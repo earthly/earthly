@@ -1,6 +1,6 @@
 
 buildkitd:
-    FROM moby/buildkit@sha256:6fa90a156b8132acb32dd255a3ac712e44d1f539d829025feb0594bba8694111
+    FROM moby/buildkit:v0.7.0-rc1
 
     # Install some missing binaries.
     RUN apk add --update --no-cache openssh-client pigz xz fuse3 e2fsprogs util-linux
