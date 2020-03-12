@@ -5,7 +5,7 @@ jobs:
       image: ubuntu-1604:201903-01
     steps:
       - checkout
-      - run: sudo curl -o /usr/local/bin/earth https://github.com/vladaionescu/earthly/releases/download/v0.0.1/earth-linux-amd64
-      - run: sudo chmod o+x /usr/local/bin/earth
-      - run: earth --help
+      - run: curl -o ./earth https://github.com/vladaionescu/earthly/releases/download/v0.0.1/earth-linux-amd64
+      - run: chmod o+x ./earth
+      - run: ./earth --help
       - run: ls
