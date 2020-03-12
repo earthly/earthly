@@ -6,7 +6,8 @@ jobs:
       docker_layer_caching: true
     steps:
       - checkout
-      - run: curl -o ./earth https://github.com/vladaionescu/earthly/releases/download/v0.0.1/earth-linux-amd64
+      - run: ./.cicleci/gh-dl-release.sh v0.0.1 earth-linux-amd64
+      - run: mv ./earth-linux-amd64 ./earth
       - run: chmod +rx ./earth
       - run: file ./earth
       - run: ls -l ./earth
