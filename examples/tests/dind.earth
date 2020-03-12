@@ -1,0 +1,3 @@
+FROM docker:19.03.7-dind
+test:
+	RUN --with-docker docker run --rm hello-world

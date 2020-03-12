@@ -1,0 +1,8 @@
+FROM alpine/git:1.0.7
+test:
+    WORKDIR /test
+    GIT CLONE https://github.com/moby/buildkit.git buildkit
+    WORKDIR /test/buildkit
+    RUN git status
+    RUN git branch
+    RUN test -f README.md

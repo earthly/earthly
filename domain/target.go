@@ -1,0 +1,139 @@
+package domain
+
+import (
+	"fmt"
+	"path"
+	"strings"
+)
+
+// Target is a earth target identifier.
+type Target struct {
+	// Remote and canonical representation.
+	Registry    string `json:"registry"`
+	ProjectPath string `json:"projectPath"`
+	Tag         string `json:"tag"`
+
+	// Local representation.
+	LocalPath string `json:"localPath"`
+
+	// Target name.
+	Target string `json:"target"`
+}
+
+// IsExternal returns whether the target is external to the current project.
+func (et Target) IsExternal() bool {
+	return et.IsRemote() || et.IsLocalExternal()
+}
+
+// IsLocalInternal returns whether the target is a local.
+func (et Target) IsLocalInternal() bool {
+	return et.LocalPath == "."
+}
+
+// IsLocalExternal returns whether the target is a local, but external target.
+func (et Target) IsLocalExternal() bool {
+	return et.LocalPath != "." && et.LocalPath != ""
+}
+
+// IsRemote returns whether the target is remote.
+func (et Target) IsRemote() bool {
+	return !et.IsLocalExternal() && !et.IsLocalInternal()
+}
+
+// String returns a string representation of the Target.
+func (et Target) String() string {
+	if et.IsLocalExternal() {
+		return fmt.Sprintf("%s+%s", et.LocalPath, et.Target)
+	}
+	if et.IsRemote() {
+		tag := fmt.Sprintf(":%s", et.Tag)
+		if et.Tag == "" {
+			tag = ""
+		}
+		return fmt.Sprintf("%s/%s%s+%s", et.Registry, et.ProjectPath, tag, et.Target)
+	}
+	// Local internal.
+	return fmt.Sprintf("+%s", et.Target)
+}
+
+// StringCanonical returns a string representation of the Target, in canonical form.
+func (et Target) StringCanonical() string {
+	if et.ProjectPath != "" {
+		tag := fmt.Sprintf(":%s", et.Tag)
+		if et.Tag == "" {
+			tag = ""
+		}
+		return fmt.Sprintf("%s/%s%s+%s", et.Registry, et.ProjectPath, tag, et.Target)
+	}
+	return et.String()
+}
+
+// ProjectCanonical returns a string representation of the project of the target, in canonical form.
+func (et Target) ProjectCanonical() string {
+	if et.ProjectPath != "" {
+		tag := fmt.Sprintf(":%s", et.Tag)
+		if et.Tag == "" {
+			tag = ""
+		}
+		return fmt.Sprintf("%s/%s%s", et.Registry, et.ProjectPath, tag)
+	}
+	if et.LocalPath == "." {
+		return ""
+	}
+	return path.Base(et.LocalPath)
+}
+
+// ParseTarget parses a string into a Target.
+func ParseTarget(fullTargetName string) (Target, error) {
+	partsPlus := strings.SplitN(fullTargetName, "+", 2)
+	if len(partsPlus) != 2 {
+		return Target{}, fmt.Errorf("Invalid target ref %s", fullTargetName)
+	}
+	if partsPlus[0] == "" {
+		// Local target.
+		return Target{
+			LocalPath: ".",
+			Target:    partsPlus[1],
+		}, nil
+	} else if strings.HasPrefix(partsPlus[0], ".") ||
+		strings.HasPrefix(partsPlus[0], "/") {
+		// Local external target.
+		localPath := partsPlus[0]
+		if path.IsAbs(localPath) {
+			localPath = path.Clean(localPath)
+		} else {
+			localPath = path.Clean(localPath)
+			if !strings.HasPrefix(localPath, ".") {
+				localPath = fmt.Sprintf("./%s", localPath)
+			}
+		}
+		return Target{
+			LocalPath: localPath,
+			Target:    partsPlus[1],
+		}, nil
+	} else {
+		// Remote target.
+		tag := ""
+		partsColon := strings.SplitN(partsPlus[0], ":", 2)
+		if len(partsColon) == 2 {
+			tag = partsColon[1]
+		}
+		registry := ""
+		projectPath := ""
+		if partsColon[0] != "" {
+			partsSlash := strings.Split(partsColon[0], "/")
+			if len(partsSlash) == 1 {
+				projectPath = partsSlash[0]
+			} else {
+				registry = partsSlash[0]
+				projectPath = strings.Join(partsSlash[1:], "/")
+			}
+		}
+		return Target{
+			Registry:    registry,
+			ProjectPath: projectPath,
+			Tag:         tag,
+			Target:      partsPlus[1],
+		}, nil
+	}
+}

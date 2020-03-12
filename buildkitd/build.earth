@@ -1,0 +1,44 @@
+
+buildkitd:
+    FROM moby/buildkit@sha256:6fa90a156b8132acb32dd255a3ac712e44d1f539d829025feb0594bba8694111
+
+    # Install some missing binaries.
+    RUN apk add --update --no-cache openssh-client pigz xz fuse3 e2fsprogs util-linux
+
+    # Add github.com to known hosts.
+    RUN mkdir -p ~/.ssh
+    RUN echo "github.com ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEAq2A7hRGmdnm9tUDbO9IDSwBK6TbQa+PXYPCPy6rbTrTtw7PHkccKrpp0yVhp5HdEIcKr6pLlVDBfOLX9QUsyCOV0wzfjIJNlGEYsdlLJizHhbn2mUjvSAHQqZETYP81eFzLQNnPHt4EVVUh7VfDESU84KezmD5QlWpXLmvU31/yMf+Se8xhHTvKSCZIFImWwoG6mbUoWf9nzpIoaSjB+weqqUUmpaaasXVal72J+UX2B+2RPW3RcT0eOzQgqlJL3RKrTJvdsjE3JEAvGq3lGHSZXy28G3skua2SmVi/w4yCE6gbODqnTWlg7+wC604ydGXA8VJiS5ap43JXiUFFAaQ==" >> ~/.ssh/known_hosts
+
+    # Install git cred helper which uses env vars for https username and password.
+    COPY ./envcredhelper.sh /usr/bin/envcredhelper.sh
+    RUN git config --global credential.helper "/bin/sh /usr/bin/envcredhelper.sh"
+
+    # Copy fuse-overlayfs binary.
+    #COPY --artifact +fuse/fuse-overlayfs /usr/bin/fuse-overlayfs
+
+    # Add the config and our own wrapper script.
+    COPY ./entrypoint.sh /usr/bin/entrypoint.sh
+    COPY ./buildkitd.toml.template /etc/buildkitd.toml.template
+
+    ENV EARTHLY_TMP_DIR=/tmp/earthly
+    ENV ENABLE_LOOP_DEVICE=true
+    # 10GB
+    ENV CACHE_SIZE_MB=10000
+    ENTRYPOINT ["/usr/bin/entrypoint.sh", "buildkitd", "--allow-insecure-entitlement=security.insecure", "--config=/etc/buildkitd.toml"]
+    SAVE IMAGE earthly/buildkitd:latest
+
+fuse:
+    # Based on https://github.com/moby/buildkit/blob/master/Dockerfile#L176
+    FROM debian:10
+    RUN apt-get update && \
+        apt-get install --no-install-recommends -y \
+        git ca-certificates libc6-dev gcc make automake autoconf pkgconf libfuse3-dev file
+    RUN git clone https://github.com/containers/fuse-overlayfs
+    WORKDIR fuse-overlayfs
+    ARG FUSEOVERLAYFS_VERSION=v0.7.6
+    RUN git pull && git checkout "${FUSEOVERLAYFS_VERSION}"
+    RUN  ./autogen.sh && \
+        LIBS="-ldl" LDFLAGS="-static" ./configure && \
+        make && mkdir /out && cp fuse-overlayfs /out && \
+        file /out/fuse-overlayfs | grep "statically linked"
+    SAVE ARTIFACT /out/fuse-overlayfs /fuse-overlayfs

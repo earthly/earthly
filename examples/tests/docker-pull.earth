@@ -1,0 +1,7 @@
+FROM docker:19.03.7-dind
+# Note that this is mainly a smoke test, because the RUN command
+# works even in absence of the PULL (it pull automatically if image
+# not present).
+test:
+	DOCKER PULL hello-world
+	RUN --with-docker docker run --rm hello-world

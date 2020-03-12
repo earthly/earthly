@@ -1,0 +1,7 @@
+FROM alpine:3.10
+test:
+    WORKDIR /test
+    COPY . .
+    RUN ls
+    RUN test -f do-not-exclude-me.txt
+    RUN test ! -f exclude-me.txt

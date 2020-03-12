@@ -1,0 +1,4 @@
+build
+earthfile2llb/parser/*.go
+examples
+.git

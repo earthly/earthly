@@ -1,0 +1,141 @@
+FROM ../..+earth-docker
+WORKDIR /test
+
+all:
+	BUILD +privileged-test
+	BUILD +cache-test
+	BUILD +git-clone-test
+	BUILD +builtin-args-test
+	BUILD +excludes-test
+	BUILD +secrets-test
+	BUILD +build-arg-test
+	BUILD +star-test
+
+experimental:
+	# TODO: These are troublesome due to vfs driver used in dind. They quickly exhaust disk space.
+	BUILD +docker-load-test
+	BUILD +dind-test
+	BUILD +docker-pull-test
+
+privileged-test:
+	COPY privileged.earth ./build.earth
+	RUN \
+		--mount=type=cache,target=/tmp/earthly \
+		--privileged \
+		--entrypoint \
+		-- --allow-privileged +test
+
+cache-test:
+	COPY cache1.earth ./build.earth
+	RUN \
+		--mount=type=cache,target=/tmp/earthly \
+		--privileged \
+		--entrypoint \
+		-- +test
+	COPY cache2.earth ./build.earth
+	RUN \
+		--mount=type=cache,target=/tmp/earthly \
+		--privileged \
+		--entrypoint \
+		-- +test
+
+git-clone-test:
+	COPY git-clone.earth ./build.earth
+	RUN \
+		--mount=type=cache,target=/tmp/earthly \
+		--privileged \
+		--entrypoint \
+		-- +test
+
+builtin-args-test:
+	COPY builtin-args.earth ./build.earth
+	RUN \
+		--mount=type=cache,target=/tmp/earthly \
+		--privileged \
+		--entrypoint \
+		-- +builtin-args-test
+
+excludes-test:
+	COPY excludes.earth ./build.earth
+	RUN touch exclude-me.txt
+	RUN touch do-not-exclude-me.txt
+	RUN echo 'exclude-me.txt' > .earthignore
+	RUN \
+		--mount=type=cache,target=/tmp/earthly \
+		--privileged \
+		--entrypoint \
+		-- +test
+
+secrets-test:
+	COPY secrets.earth ./build.earth
+	ENV SECRET1=foo
+	ENV SECRET2=wrong
+	RUN \
+		--mount=type=cache,target=/tmp/earthly \
+		--privileged \
+		--entrypoint \
+		-- --secret SECRET1 --secret SECRET2=bar +test
+
+build-arg-test:
+	COPY build-arg.earth ./build.earth
+	RUN \
+		--mount=type=cache,target=/tmp/earthly \
+		--privileged \
+		--entrypoint \
+		-- +test
+
+build-github-test:
+	# TODO: Use a safer test, which doesn't produce earthly outputs.
+	BUILD github.com/vladaionescu/earthly/examples/tests+build-arg-test
+
+star-test:
+	COPY star.earth ./build.earth
+	RUN touch a.txt b.txt c.nottxt
+	RUN \
+		--mount=type=cache,target=/tmp/earthly \
+		--privileged \
+		--entrypoint \
+		-- +test
+
+star-test-todo:
+	COPY star.earth ./build.earth
+	RUN touch a.txt b.txt c.nottxt
+	RUN \
+		--mount=type=cache,target=/tmp/earthly \
+		--privileged \
+		--entrypoint \
+		-- +test
+	RUN echo "a change" > c.nottxt
+	RUN \
+		--mount=type=cache,target=/tmp/earthly \
+		--privileged \
+		--entrypoint \
+		-- +test >output.txt
+	RUN cat output.txt
+	RUN cached_lines=$(cat output.txt | grep cached | wc -l); \
+		echo "cached_lines=$cached_lines"; \
+		test "$cached_lines" == "6"
+
+docker-load-test:
+	COPY docker-load.earth ./build.earth
+	RUN \
+		--mount=type=cache,target=/tmp/earthly \
+		--privileged \
+		--entrypoint \
+		-- --allow-privileged +test
+
+dind-test:
+	COPY dind.earth ./build.earth
+	RUN \
+		--mount=type=cache,target=/tmp/earthly \
+		--privileged \
+		--entrypoint \
+		-- --allow-privileged +test
+
+docker-pull-test:
+	COPY docker-pull.earth ./build.earth
+	RUN \
+		--mount=type=cache,target=/tmp/earthly \
+		--privileged \
+		--entrypoint \
+		-- --allow-privileged +test

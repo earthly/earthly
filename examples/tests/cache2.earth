@@ -1,0 +1,3 @@
+FROM alpine:3.10
+test:
+    RUN --mount=type=cache,target=/cache-test test -f /cache-test/test.txt

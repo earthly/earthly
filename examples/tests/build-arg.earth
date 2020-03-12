@@ -1,0 +1,17 @@
+FROM alpine:3.10
+WORKDIR /test
+file-exists:
+    ARG VAR1=nope.txt
+    ARG VAR2=dummy
+    RUN touch "$VAR2"
+    RUN touch "existing-file.txt"
+    RUN test -f "$VAR1"
+test:
+    BUILD --build-arg=VAR1=existing-file.txt +file-exists
+    BUILD --build-arg=VAR1=dummy +file-exists
+    BUILD --build-arg=VAR1=dummy2 --build-arg=VAR2=dummy2 +file-exists
+    RUN touch dummy
+    BUILD --build-arg=VAR1=$(ls) +file-exists
+    RUN rm dummy
+    RUN touch existing-file.txt
+    BUILD --build-arg=VAR1=$(ls) +file-exists
