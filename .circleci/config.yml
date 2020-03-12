@@ -9,6 +9,7 @@ jobs:
       docker_layer_caching: true
     steps:
       - checkout
+      - run: docker pull earthly/earth:"$EARTHLY_VERSION"
       - run: |
           docker run --rm --privileged \
             -v /tmp/earthly:/tmp/earthly \
