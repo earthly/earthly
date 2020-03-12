@@ -11,7 +11,7 @@ jobs:
       - checkout
       # - restore_cache:
       #     keys:
-      #       - earthly
+      #       - earthly-
       - run: df -Th
       - run: ./.circleci/gh-dl-release.sh "$EARTHLY_VERSION" earth-linux-amd64
       - run: sudo mv ./earth-linux-amd64 /usr/bin/earth
@@ -21,6 +21,6 @@ jobs:
       - run: earth -p +test
       - run: docker stop earthly-buildkitd
       - save_cache:
-          key: earthly
+          key: earthly-{{ epoch }}
           paths:
             - /tmp/earthly
