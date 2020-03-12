@@ -8,4 +8,5 @@ jobs:
       - checkout
       - run: ./.circleci/gh-dl-release.sh v0.0.1 earth-linux-amd64
       - run: sudo mv ./earth-linux-amd64 /usr/bin/earth
+      - run: sudo chmod +x /usr/bin/earth
       - run: earth --help
