@@ -6,6 +6,6 @@ jobs:
     steps:
       - checkout
       - run: curl -o ./earth https://github.com/vladaionescu/earthly/releases/download/v0.0.1/earth-linux-amd64
-      - run: chmod o+x ./earth
+      - run: chmod +x ./earth
       - run: ./earth --help
       - run: ls
