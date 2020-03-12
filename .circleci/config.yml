@@ -10,11 +10,11 @@ jobs:
     steps:
       - checkout
       - run: |
-        docker run --rm --privileged \
-          -v /tmp/earthly:/tmp/earthly \
-          -v "$PWD:/earthly" \
-          -w /earthly \
-          earthly/earth:"EARTHLY_VERSION" -p +test
+          docker run --rm --privileged \
+            -v /tmp/earthly:/tmp/earthly \
+            -v "$PWD:/earthly" \
+            -w /earthly \
+            earthly/earth:"EARTHLY_VERSION" -p +test
       - save_cache:
           key: earthly-buildkit-{{ epoch }}
           paths:
