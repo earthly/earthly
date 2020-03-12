@@ -13,6 +13,7 @@ jobs:
           docker run --rm --privileged \
             -v /tmp/earthly:/tmp/earthly \
             -v "$PWD:/earthly" \
+            -v "/var/run/docker.sock:/var/run/docker.sock" \
             -w /earthly \
             --entrypoint=/usr/bin/earth-buildkitd-wrapper.sh \
             earthly/earth:"$EARTHLY_VERSION" -p +test
