@@ -17,6 +17,7 @@ jobs:
       - run: sudo mv ./earth-linux-amd64 /usr/bin/earth
       - run: sudo chmod +x /usr/bin/earth
       - run: earth +all
+      - run: earth -p +test
       - save_cache:
           key: earthly
           paths:
