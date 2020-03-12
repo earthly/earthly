@@ -14,7 +14,8 @@ jobs:
             -v /tmp/earthly:/tmp/earthly \
             -v "$PWD:/earthly" \
             -w /earthly \
-            earthly/earth:"$EARTHLY_VERSION" --help
+            --entrypoint=/usr/bin/earth-buildkitd-wrapper.sh \
+            earthly/earth:"$EARTHLY_VERSION" -p +test
       - save_cache:
           key: earthly-buildkit-{{ epoch }}
           paths:
