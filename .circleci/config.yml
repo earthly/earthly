@@ -6,7 +6,7 @@ jobs:
       docker_layer_caching: true
     steps:
       - checkout
-      - run: ./.cicleci/gh-dl-release.sh v0.0.1 earth-linux-amd64
+      - run: ./.circleci/gh-dl-release.sh v0.0.1 earth-linux-amd64
       - run: mv ./earth-linux-amd64 ./earth
       - run: chmod +rx ./earth
       - run: file ./earth
