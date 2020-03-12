@@ -3,13 +3,17 @@ jobs:
   build:
     environment:
       - EARTHLY_VERSION: "v0.0.1"
+      - EARTHLY_EARTH_IMAGE: "earthly/earth:v0.0.1"
       - EARTHLY_BUILDKITD_IMAGE: "earthly/buildkitd:v0.0.1"
     machine:
       image: ubuntu-1604:201903-01
       docker_layer_caching: true
     steps:
       - checkout
-      - run: docker pull earthly/earth:"$EARTHLY_VERSION"
+      - restore_cache:
+          keys:
+            - earthly-buildkit-
+      - run: docker pull "$EARTHLY_EARTH_IMAGE"
       - run: |
           docker run --rm --privileged \
             -v /tmp/earthly:/tmp/earthly \
@@ -17,7 +21,7 @@ jobs:
             -v "/var/run/docker.sock:/var/run/docker.sock" \
             -w /earthly \
             --entrypoint=/usr/bin/earth-buildkitd-wrapper.sh \
-            earthly/earth:"$EARTHLY_VERSION" -p +test
+            "$EARTHLY_EARTH_IMAGE" -p +test
       - save_cache:
           key: earthly-buildkit-{{ epoch }}
           paths:
