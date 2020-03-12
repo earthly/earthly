@@ -9,17 +9,26 @@ jobs:
       docker_layer_caching: true
     steps:
       - checkout
-      - restore_cache:
-          keys:
-            - earthly-
-      - run: df -Th
-      - run: ./.circleci/gh-dl-release.sh "$EARTHLY_VERSION" earth-linux-amd64
-      - run: sudo mv ./earth-linux-amd64 /usr/bin/earth
-      - run: sudo chmod +x /usr/bin/earth
-      - run: earth +all
-      - run: earth -p +test
-      - run: docker stop earthly-buildkitd
+      - run: >
+        docker run --rm --privileged
+        -v /tmp/earthly:/tmp/earthly
+        -v "$PWD:/earthly"
+        -w /earthly
+        earthly/earth:"EARTHLY_VERSION" -p +test
       - save_cache:
-          key: earthly-{{ epoch }}
+          key: earthly-buildkit-{{ epoch }}
           paths:
-            - /tmp/earthly
+              - /tmp/earthly
+      # - restore_cache:
+      #     keys:
+      #       - earthly-
+      # - run: ./.circleci/gh-dl-release.sh "$EARTHLY_VERSION" earth-linux-amd64
+      # - run: sudo mv ./earth-linux-amd64 /usr/bin/earth
+      # - run: sudo chmod +x /usr/bin/earth
+      # - run: earth +all
+      # - run: earth -p +test
+      # - run: docker stop earthly-buildkitd
+      # - save_cache:
+      #     key: earthly-{{ epoch }}
+      #     paths:
+      #       - /tmp/earthly
