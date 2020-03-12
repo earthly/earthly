@@ -9,7 +9,15 @@ jobs:
       docker_layer_caching: true
     steps:
       - checkout
+      - restore_cache:
+          keys:
+            - earthly
+      - run: df -Th
       - run: ./.circleci/gh-dl-release.sh "$EARTHLY_VERSION" earth-linux-amd64
       - run: sudo mv ./earth-linux-amd64 /usr/bin/earth
       - run: sudo chmod +x /usr/bin/earth
       - run: earth +all
+      - save_cache:
+          key: earthly
+          paths:
+            - /tmp/earthly
