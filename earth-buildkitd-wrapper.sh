@@ -2,7 +2,9 @@
 
 # Start buildkitd.
 /usr/bin/entrypoint.sh \
-    buildkitd --allow-insecure-entitlement=security.insecure \
+    buildkitd \
+    --allow-insecure-entitlement=security.insecure \
+    --config=/etc/buildkitd.toml \
     &>/var/log/buildkitd.log \
     &
 buildkitd_pid="$!"
