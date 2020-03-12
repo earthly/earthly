@@ -1,11 +1,15 @@
-version: 2
+version: 2.1
 jobs:
   build:
     machine:
       image: ubuntu-1604:201903-01
+      docker_layer_caching: true
     steps:
       - checkout
       - run: curl -o ./earth https://github.com/vladaionescu/earthly/releases/download/v0.0.1/earth-linux-amd64
-      - run: chmod +x ./earth
+      - run: chmod +rx ./earth
+      - run: file ./earth
+      - run: ls -l ./earth
+      - run: sudo ./earth --help
       - run: ./earth --help
       - run: ls
