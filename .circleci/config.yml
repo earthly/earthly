@@ -25,6 +25,8 @@ jobs:
       - run: sudo ls /tmp/earthly
       - run: sudo ls /tmp/earthly/buildkit
       - run: printenv USER
+      - run: sudo printenv SUDO_USER
+      - run: sudo echo $SUDO_USER
       - run: sudo chown -R "$SUDO_USER:$SUDO_USER" /tmp/earthly
       - run: sudo chmod -R 777 /tmp/earthly
       - save_cache:
