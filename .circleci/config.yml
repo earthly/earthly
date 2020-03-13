@@ -24,7 +24,6 @@ jobs:
             "$EARTHLY_EARTH_IMAGE" +base
       - run: sudo ls /tmp/earthly
       - run: sudo ls /tmp/earthly/buildkit
-      - run: sudo ls /tmp/earthly/buildkit/*
       - run: sudo chown -R "$SUDO_USER:$SUDO_USER" /tmp/earthly
       - save_cache:
           key: earthly-buildkit-{{ epoch }}
