@@ -23,6 +23,8 @@ jobs:
             --entrypoint=/usr/bin/earth-buildkitd-wrapper.sh \
             "$EARTHLY_EARTH_IMAGE" +base
       - run: ls /tmp/earthly
+      - run: ls /tmp/earthly/buildkit
+      - run: ls /tmp/earthly/buildkit/*
       - save_cache:
           key: earthly-buildkit-{{ epoch }}
           paths:

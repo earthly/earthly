@@ -10,6 +10,9 @@
 buildkitd_pid="$!"
 export EARTHLY_BUILDKIT_HOST="unix:///run/buildkit/buildkitd.sock"
 
+# TODO: Poll for buildkitd readiness.
+sleep 2
+
 # Run earth with given args.
 earth "$@"
 exit_code="$?"
