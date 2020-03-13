@@ -36,9 +36,8 @@ jobs:
       - HOMEBREW_NO_AUTO_UPDATE: 1
     steps:
       - setup_remote_docker
-      # - run: brew cask install docker
-      # - run: ls -al /Applications/Docker.app/Contents/Resources/bin
-      # - run: ln -s /Applications/Docker.app/Contents/Resources/bin/* /usr/local/bin/
+      - run: brew cask install docker
+      - run: ln -s /Applications/Docker.app/Contents/Resources/bin/* /usr/local/bin/
       # - run: open /Applications/Docker.app & (sleep 10; docker run hello-world)
       # - run: brew cask install virtualbox
       # - run: brew cask install docker-toolbox
