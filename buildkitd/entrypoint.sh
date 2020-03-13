@@ -14,8 +14,8 @@ if [ -z "$EARTHLY_TMP_DIR" ]; then
 fi
 
 BUILDKIT_ROOT_DIR="$EARTHLY_TMP_DIR"/buildkit
-# Leave 500MB as additional buffer.
-buildkit_cache_size_mb=$(( CACHE_SIZE_MB - 500 ))
+# Leave 1GB as additional buffer.
+buildkit_cache_size_mb=$(( CACHE_SIZE_MB - 1000 ))
 sed 's^:BUILDKIT_ROOT_DIR:^'"$BUILDKIT_ROOT_DIR"'^g; s/:CACHE_SIZE_MB:/'"$buildkit_cache_size_mb"'/g' \
     /etc/buildkitd.toml.template > /etc/buildkitd.toml
 

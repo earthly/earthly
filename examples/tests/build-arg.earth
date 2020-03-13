@@ -1,4 +1,4 @@
-FROM alpine:3.10
+FROM alpine:3.11
 WORKDIR /test
 file-exists:
     ARG VAR1=nope.txt
