@@ -22,9 +22,10 @@ jobs:
             -w /earthly \
             --entrypoint=/usr/bin/earth-buildkitd-wrapper.sh \
             "$EARTHLY_EARTH_IMAGE" +base
-      - run: ls /tmp/earthly
-      - run: ls /tmp/earthly/buildkit
-      - run: ls /tmp/earthly/buildkit/*
+      - run: sudo ls /tmp/earthly
+      - run: sudo ls /tmp/earthly/buildkit
+      - run: sudo ls /tmp/earthly/buildkit/*
+      - run: sudo chown -R "$SUDO_USER:$SUDO_USER" /tmp/earthly
       - save_cache:
           key: earthly-buildkit-{{ epoch }}
           paths:
