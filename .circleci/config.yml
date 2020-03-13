@@ -1,13 +1,13 @@
 version: 2.1
 jobs:
   build-linux:
+    machine:
+      image: ubuntu-1604:201903-01
+      docker_layer_caching: true
     environment:
       - EARTHLY_VERSION: "v0.0.1"
       - EARTHLY_EARTH_IMAGE: "earthly/earth:v0.0.1"
       - EARTHLY_BUILDKITD_IMAGE: "earthly/buildkitd:v0.0.1"
-    machine:
-      image: ubuntu-1604:201903-01
-      docker_layer_caching: true
     steps:
       - checkout
       - restore_cache:
@@ -28,11 +28,12 @@ jobs:
           paths:
               - /tmp/earthly
   build-darwin:
+    macos:
+      xcode: 11.3.1
     environment:
       - EARTHLY_VERSION: "v0.0.1"
       - EARTHLY_BUILDKITD_IMAGE: "earthly/buildkitd:v0.0.1"
-    macos:
-      xcode: 11.3.1
+      - HOMEBREW_NO_AUTO_UPDATE: 1
     steps:
       - run: brew cask install docker
       - run: sleep 5
