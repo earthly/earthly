@@ -27,7 +27,7 @@ jobs:
           key: earthly-buildkit-{{ epoch }}
           paths:
               - /tmp/earthly
-  build-mac:
+  build-darwin:
     environment:
       - EARTHLY_VERSION: "v0.0.1"
       - EARTHLY_BUILDKITD_IMAGE: "earthly/buildkitd:v0.0.1"
@@ -42,3 +42,9 @@ jobs:
       - run: chmod +x ./earth
       - run: ./earth +base
       - run: docker stop earthly-buildkitd
+
+workflows:
+  build-all:
+    jobs:
+      - build-linux
+      - build-darwin
