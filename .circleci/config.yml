@@ -21,7 +21,8 @@ jobs:
             -v "/var/run/docker.sock:/var/run/docker.sock" \
             -w /earthly \
             --entrypoint=/usr/bin/earth-buildkitd-wrapper.sh \
-            "$EARTHLY_EARTH_IMAGE" -p +test
+            "$EARTHLY_EARTH_IMAGE" +base
+      - run: ls /tmp/earthly
       - save_cache:
           key: earthly-buildkit-{{ epoch }}
           paths:
