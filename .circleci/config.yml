@@ -36,10 +36,12 @@ jobs:
     steps:
       - run: brew cask install docker
       - run: sleep 5
+      - run: ln -s /Applications/Docker.app/Contents/Resources/bin /usr/local/bin/docker
       - run: docker run hello-world
       - run: ./.circleci/gh-dl-release.sh "$EARTHLY_VERSION" earth-linux-amd64
       - run: mv ./earth-darwin-amd64 ./earth
       - run: chmod +x ./earth
+      - checkout
       - run: ./earth +base
       - run: docker stop earthly-buildkitd
 
