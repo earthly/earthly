@@ -1,6 +1,6 @@
 version: 2.1
 jobs:
-  build:
+  build-linux:
     environment:
       - EARTHLY_VERSION: "v0.0.1"
       - EARTHLY_EARTH_IMAGE: "earthly/earth:v0.0.1"
@@ -27,16 +27,18 @@ jobs:
           key: earthly-buildkit-{{ epoch }}
           paths:
               - /tmp/earthly
-      # - restore_cache:
-      #     keys:
-      #       - earthly-
-      # - run: ./.circleci/gh-dl-release.sh "$EARTHLY_VERSION" earth-linux-amd64
-      # - run: sudo mv ./earth-linux-amd64 /usr/bin/earth
-      # - run: sudo chmod +x /usr/bin/earth
-      # - run: earth +all
-      # - run: earth -p +test
-      # - run: docker stop earthly-buildkitd
-      # - save_cache:
-      #     key: earthly-{{ epoch }}
-      #     paths:
-      #       - /tmp/earthly
+  build-mac:
+    environment:
+      - EARTHLY_VERSION: "v0.0.1"
+      - EARTHLY_BUILDKITD_IMAGE: "earthly/buildkitd:v0.0.1"
+    macos:
+      xcode: 11.3.1
+    steps:
+      - run: brew cask install docker
+      - run: sleep 5
+      - run: docker run hello-world
+      - run: ./.circleci/gh-dl-release.sh "$EARTHLY_VERSION" earth-linux-amd64
+      - run: mv ./earth-darwin-amd64 ./earth
+      - run: chmod +x ./earth
+      - run: ./earth +base
+      - run: docker stop earthly-buildkitd
