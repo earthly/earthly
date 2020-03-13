@@ -37,7 +37,7 @@ jobs:
     steps:
       - run: brew cask install docker
       - run: ls -al /Applications/Docker.app/Contents/Resources/bin
-      - run: ln -s /Applications/Docker.app/Contents/Resources/bin /usr/local/bin/docker
+      - run: ln -s /Applications/Docker.app/Contents/Resources/bin/docker /usr/local/bin/docker
       - run: which docker || true
       - run: file /Applications/Docker.app/Contents/Resources/bin/docker || true
       # - run: brew cask install virtualbox
