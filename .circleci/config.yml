@@ -11,6 +11,7 @@ jobs:
       - restore_cache:
           keys:
             - earthly-buildkit-
+      - run: docker login --username vladaionescu --password "$DOCKERHUB_TOKEN"
       - run: docker pull "$EARTHLY_EARTH_IMAGE"
       - run: |
           docker run --rm --privileged \
@@ -20,6 +21,8 @@ jobs:
             -w /earthly \
             --entrypoint=/usr/bin/earth-buildkitd-wrapper.sh \
             "$EARTHLY_EARTH_IMAGE" -p +test
+      - run: docker push earthly/buildkitd:latest
+      - run: docker push earthly/earth:latest
       - run: sudo chown -R "circleci:circleci" /tmp/earthly
       - save_cache:
           key: earthly-buildkit-{{ epoch }}
