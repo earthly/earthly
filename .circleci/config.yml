@@ -35,10 +35,13 @@ jobs:
       - EARTHLY_BUILDKITD_IMAGE: "earthly/buildkitd:v0.0.1"
       - HOMEBREW_NO_AUTO_UPDATE: 1
     steps:
-      - run: brew cask install docker
-      - run: sleep 5
-      - run: ln -s /Applications/Docker.app/Contents/Resources/bin /usr/local/bin/docker
-      - run: docker run hello-world
+      # - run: brew cask install docker
+      # - run: sleep 5
+      # - run: ln -s /Applications/Docker.app/Contents/Resources/bin /usr/local/bin/docker
+      - run: brew cask install virtualbox
+      - run: brew cask install docker-toolbox
+      - run: docker-machine create --driver virtualbox circleci-build
+      - run: eval $(docker-machine env circleci-build); docker run hello-world
       - run: ./.circleci/gh-dl-release.sh "$EARTHLY_VERSION" earth-linux-amd64
       - run: mv ./earth-darwin-amd64 ./earth
       - run: chmod +x ./earth
