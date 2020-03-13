@@ -2,6 +2,7 @@ package earthfile2llb
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"strings"
 
@@ -22,10 +23,7 @@ type listener struct {
 
 	imageName      string
 	saveImageNames []string
-	artifactName   string
 	asName         string
-	copySrcs       []string
-	copyDest       string
 	fullTargetName string
 	runArgs        []string
 	entrypointArgs []string
@@ -36,7 +34,9 @@ type listener struct {
 	envArgKey      string
 	envArgValue    string
 	gitURL         string
+	gitCloneDest   string
 	flagKeyValues  []string
+	stmtWords      []string
 
 	err error
 }
@@ -103,44 +103,64 @@ func (l *listener) ExitFromStmt(c *parser.FromStmtContext) {
 	}
 }
 
-func (l *listener) EnterCopyArgsArtifact(c *parser.CopyArgsArtifactContext) {
+func (l *listener) EnterCopyStmt(c *parser.CopyStmtContext) {
 	if l.shouldSkip() {
 		return
 	}
-	l.artifactName = ""
-	l.copyDest = ""
-	l.flagKeyValues = nil
+	l.stmtWords = nil
 }
 
-func (l *listener) ExitCopyArgsArtifact(c *parser.CopyArgsArtifactContext) {
+func (l *listener) ExitCopyStmt(c *parser.CopyStmtContext) {
 	if l.shouldSkip() {
 		return
 	}
-	buildArgs, err := parseBuildArgFlags(l.flagKeyValues)
+	fs := flag.NewFlagSet("COPY", flag.ContinueOnError)
+	isArtifactCopy := fs.Bool("artifact", false, "")
+	from := fs.String("from", "", "")
+	isDirCopy := fs.Bool("dir", false, "")
+	buildArgsFlag := new(StringSliceFlag)
+	fs.Var(buildArgsFlag, "build-arg", "")
+	err := fs.Parse(l.stmtWords)
 	if err != nil {
-		l.err = errors.Wrap(err, "parse build arg flags")
+		l.err = errors.Wrapf(err, "invalid COPY arguments %v", l.stmtWords)
 		return
 	}
-	err = l.converter.CopyArtifact(l.ctx, l.artifactName, l.copyDest, buildArgs)
-	if err != nil {
-		l.err = errors.Wrapf(err, "apply COPY --artifact %s %s", l.artifactName, l.copyDest)
+	if fs.NArg() < 2 {
+		l.err = fmt.Errorf("Not enough COPY arguments %v", l.stmtWords)
 		return
 	}
-}
-
-func (l *listener) EnterCopyArgsClassical(c *parser.CopyArgsClassicalContext) {
-	if l.shouldSkip() {
+	if *from != "" && *isArtifactCopy {
+		l.err = fmt.Errorf("Invalid COPY flags %v: . The flags --from and --artifact cannot both be specified at the same time", l.stmtWords)
 		return
 	}
-	l.copySrcs = nil
-	l.copyDest = ""
-}
-
-func (l *listener) ExitCopyArgsClassical(c *parser.CopyArgsClassicalContext) {
-	if l.shouldSkip() {
+	if *from != "" {
+		l.err = errors.New("COPY --from not implemented. Use COPY --artifact instead")
 		return
 	}
-	l.converter.CopyClassical(l.ctx, l.copySrcs, l.copyDest)
+	if *isArtifactCopy {
+		if fs.NArg() != 2 {
+			l.err = errors.New("More than 2 COPY arguments not yet supported for --artifact")
+			return
+		}
+		artifactName := fs.Arg(0)
+		dest := fs.Arg(1)
+		err = l.converter.CopyArtifact(l.ctx, artifactName, dest, buildArgsFlag.Args, *isDirCopy)
+		if err != nil {
+			l.err = errors.Wrapf(err, "copy artifact")
+			return
+		}
+	} else {
+		if len(buildArgsFlag.Args) != 0 {
+			l.err = fmt.Errorf("Build args not supported for non --artifact case %v", l.stmtWords)
+			return
+		}
+		srcs := make([]string, 0, fs.NArg()-1)
+		for i := 0; i < fs.NArg()-1; i++ {
+			srcs = append(srcs, fs.Arg(i))
+		}
+		dest := fs.Arg(fs.NArg() - 1)
+		l.converter.CopyClassical(l.ctx, srcs, dest, *isDirCopy)
+	}
 }
 
 func (l *listener) EnterRunStmt(c *parser.RunStmtContext) {
@@ -293,7 +313,7 @@ func (l *listener) EnterGitCloneStmt(c *parser.GitCloneStmtContext) {
 	}
 	l.gitURL = ""
 	l.flagKeyValues = nil
-	l.copyDest = ""
+	l.gitCloneDest = ""
 }
 
 func (l *listener) ExitGitCloneStmt(c *parser.GitCloneStmtContext) {
@@ -305,7 +325,7 @@ func (l *listener) ExitGitCloneStmt(c *parser.GitCloneStmtContext) {
 		l.err = errors.Wrap(err, "parse git clone flags")
 		return
 	}
-	err = l.converter.GitClone(l.ctx, l.gitURL, branch, l.copyDest)
+	err = l.converter.GitClone(l.ctx, l.gitURL, branch, l.gitCloneDest)
 	if err != nil {
 		l.err = errors.Wrap(err, "git clone")
 		return
@@ -379,20 +399,6 @@ func (l *listener) EnterAsName(c *parser.AsNameContext) {
 	l.asName = c.GetText()
 }
 
-func (l *listener) EnterCopySrc(c *parser.CopySrcContext) {
-	if l.shouldSkip() {
-		return
-	}
-	l.copySrcs = append(l.copySrcs, c.GetText())
-}
-
-func (l *listener) EnterCopyDest(c *parser.CopyDestContext) {
-	if l.shouldSkip() {
-		return
-	}
-	l.copyDest = c.GetText()
-}
-
 func (l *listener) EnterRunArg(c *parser.RunArgContext) {
 	if l.shouldSkip() {
 		return
@@ -435,13 +441,6 @@ func (l *listener) EnterFullTargetName(c *parser.FullTargetNameContext) {
 	l.fullTargetName = c.GetText()
 }
 
-func (l *listener) EnterArtifactName(c *parser.ArtifactNameContext) {
-	if l.shouldSkip() {
-		return
-	}
-	l.artifactName = c.GetText()
-}
-
 func (l *listener) EnterWorkdirPath(c *parser.WorkdirPathContext) {
 	if l.shouldSkip() {
 		return
@@ -482,6 +481,20 @@ func (l *listener) EnterGitURL(c *parser.GitURLContext) {
 		return
 	}
 	l.gitURL = c.GetText()
+}
+
+func (l *listener) EnterGitCloneDest(c *parser.GitCloneDestContext) {
+	if l.shouldSkip() {
+		return
+	}
+	l.gitCloneDest = c.GetText()
+}
+
+func (l *listener) EnterStmtWord(c *parser.StmtWordContext) {
+	if l.shouldSkip() {
+		return
+	}
+	l.stmtWords = append(l.stmtWords, c.GetText())
 }
 
 func (l *listener) shouldSkip() bool {
@@ -573,4 +586,23 @@ func parseGitCloneFlags(flagKeyValues []string) (string, error) {
 		branch = split[1]
 	}
 	return branch, nil
+}
+
+// StringSliceFlag is a flag backed by a string slice.
+type StringSliceFlag struct {
+	Args []string
+}
+
+// String returns a string representation of the flag.
+func (ssf *StringSliceFlag) String() string {
+	if ssf == nil {
+		return ""
+	}
+	return strings.Join(ssf.Args, ",")
+}
+
+// Set adds a flag value to the string slice.
+func (ssf *StringSliceFlag) Set(arg string) error {
+	ssf.Args = append(ssf.Args, arg)
+	return nil
 }

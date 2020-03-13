@@ -69,30 +69,6 @@ func (s *BaseEarthParserListener) EnterCopyStmt(ctx *CopyStmtContext) {}
 // ExitCopyStmt is called when production copyStmt is exited.
 func (s *BaseEarthParserListener) ExitCopyStmt(ctx *CopyStmtContext) {}
 
-// EnterCopyArgsFrom is called when production copyArgsFrom is entered.
-func (s *BaseEarthParserListener) EnterCopyArgsFrom(ctx *CopyArgsFromContext) {}
-
-// ExitCopyArgsFrom is called when production copyArgsFrom is exited.
-func (s *BaseEarthParserListener) ExitCopyArgsFrom(ctx *CopyArgsFromContext) {}
-
-// EnterCopyArgsArtifact is called when production copyArgsArtifact is entered.
-func (s *BaseEarthParserListener) EnterCopyArgsArtifact(ctx *CopyArgsArtifactContext) {}
-
-// ExitCopyArgsArtifact is called when production copyArgsArtifact is exited.
-func (s *BaseEarthParserListener) ExitCopyArgsArtifact(ctx *CopyArgsArtifactContext) {}
-
-// EnterCopyArgsClassical is called when production copyArgsClassical is entered.
-func (s *BaseEarthParserListener) EnterCopyArgsClassical(ctx *CopyArgsClassicalContext) {}
-
-// ExitCopyArgsClassical is called when production copyArgsClassical is exited.
-func (s *BaseEarthParserListener) ExitCopyArgsClassical(ctx *CopyArgsClassicalContext) {}
-
-// EnterCopySrcs is called when production copySrcs is entered.
-func (s *BaseEarthParserListener) EnterCopySrcs(ctx *CopySrcsContext) {}
-
-// ExitCopySrcs is called when production copySrcs is exited.
-func (s *BaseEarthParserListener) ExitCopySrcs(ctx *CopySrcsContext) {}
-
 // EnterSaveStmt is called when production saveStmt is entered.
 func (s *BaseEarthParserListener) EnterSaveStmt(ctx *SaveStmtContext) {}
 
@@ -152,6 +128,18 @@ func (s *BaseEarthParserListener) EnterGitCloneStmt(ctx *GitCloneStmtContext) {}
 
 // ExitGitCloneStmt is called when production gitCloneStmt is exited.
 func (s *BaseEarthParserListener) ExitGitCloneStmt(ctx *GitCloneStmtContext) {}
+
+// EnterGitURL is called when production gitURL is entered.
+func (s *BaseEarthParserListener) EnterGitURL(ctx *GitURLContext) {}
+
+// ExitGitURL is called when production gitURL is exited.
+func (s *BaseEarthParserListener) ExitGitURL(ctx *GitURLContext) {}
+
+// EnterGitCloneDest is called when production gitCloneDest is entered.
+func (s *BaseEarthParserListener) EnterGitCloneDest(ctx *GitCloneDestContext) {}
+
+// ExitGitCloneDest is called when production gitCloneDest is exited.
+func (s *BaseEarthParserListener) ExitGitCloneDest(ctx *GitCloneDestContext) {}
 
 // EnterDockerLoadStmt is called when production dockerLoadStmt is entered.
 func (s *BaseEarthParserListener) EnterDockerLoadStmt(ctx *DockerLoadStmtContext) {}
@@ -261,18 +249,6 @@ func (s *BaseEarthParserListener) EnterEnvArgValue(ctx *EnvArgValueContext) {}
 // ExitEnvArgValue is called when production envArgValue is exited.
 func (s *BaseEarthParserListener) ExitEnvArgValue(ctx *EnvArgValueContext) {}
 
-// EnterCopySrc is called when production copySrc is entered.
-func (s *BaseEarthParserListener) EnterCopySrc(ctx *CopySrcContext) {}
-
-// ExitCopySrc is called when production copySrc is exited.
-func (s *BaseEarthParserListener) ExitCopySrc(ctx *CopySrcContext) {}
-
-// EnterCopyDest is called when production copyDest is entered.
-func (s *BaseEarthParserListener) EnterCopyDest(ctx *CopyDestContext) {}
-
-// ExitCopyDest is called when production copyDest is exited.
-func (s *BaseEarthParserListener) ExitCopyDest(ctx *CopyDestContext) {}
-
 // EnterAsName is called when production asName is entered.
 func (s *BaseEarthParserListener) EnterAsName(ctx *AsNameContext) {}
 
@@ -303,12 +279,6 @@ func (s *BaseEarthParserListener) EnterFullTargetName(ctx *FullTargetNameContext
 // ExitFullTargetName is called when production fullTargetName is exited.
 func (s *BaseEarthParserListener) ExitFullTargetName(ctx *FullTargetNameContext) {}
 
-// EnterArtifactName is called when production artifactName is entered.
-func (s *BaseEarthParserListener) EnterArtifactName(ctx *ArtifactNameContext) {}
-
-// ExitArtifactName is called when production artifactName is exited.
-func (s *BaseEarthParserListener) ExitArtifactName(ctx *ArtifactNameContext) {}
-
 // EnterSaveFrom is called when production saveFrom is entered.
 func (s *BaseEarthParserListener) EnterSaveFrom(ctx *SaveFromContext) {}
 
@@ -332,12 +302,6 @@ func (s *BaseEarthParserListener) EnterWorkdirPath(ctx *WorkdirPathContext) {}
 
 // ExitWorkdirPath is called when production workdirPath is exited.
 func (s *BaseEarthParserListener) ExitWorkdirPath(ctx *WorkdirPathContext) {}
-
-// EnterGitURL is called when production gitURL is entered.
-func (s *BaseEarthParserListener) EnterGitURL(ctx *GitURLContext) {}
-
-// ExitGitURL is called when production gitURL is exited.
-func (s *BaseEarthParserListener) ExitGitURL(ctx *GitURLContext) {}
 
 // EnterArgsList is called when production argsList is entered.
 func (s *BaseEarthParserListener) EnterArgsList(ctx *ArgsListContext) {}

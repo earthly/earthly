@@ -55,7 +55,7 @@ func (gr *gitResolver) resolveEarthProject(ctx context.Context, target domain.Ta
 	} else {
 		buildContext = llb.Scratch().Platform(llbutil.TargetPlatform)
 		buildContext = llbutil.CopyOp(
-			rgp.state, []string{subDir}, buildContext, "./", false,
+			rgp.state, []string{subDir}, buildContext, "./", false, false,
 			llb.WithCustomNamef("[internal] COPY git context %s", target.String()))
 	}
 

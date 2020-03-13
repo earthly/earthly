@@ -32,18 +32,6 @@ type EarthParserListener interface {
 	// EnterCopyStmt is called when entering the copyStmt production.
 	EnterCopyStmt(c *CopyStmtContext)
 
-	// EnterCopyArgsFrom is called when entering the copyArgsFrom production.
-	EnterCopyArgsFrom(c *CopyArgsFromContext)
-
-	// EnterCopyArgsArtifact is called when entering the copyArgsArtifact production.
-	EnterCopyArgsArtifact(c *CopyArgsArtifactContext)
-
-	// EnterCopyArgsClassical is called when entering the copyArgsClassical production.
-	EnterCopyArgsClassical(c *CopyArgsClassicalContext)
-
-	// EnterCopySrcs is called when entering the copySrcs production.
-	EnterCopySrcs(c *CopySrcsContext)
-
 	// EnterSaveStmt is called when entering the saveStmt production.
 	EnterSaveStmt(c *SaveStmtContext)
 
@@ -73,6 +61,12 @@ type EarthParserListener interface {
 
 	// EnterGitCloneStmt is called when entering the gitCloneStmt production.
 	EnterGitCloneStmt(c *GitCloneStmtContext)
+
+	// EnterGitURL is called when entering the gitURL production.
+	EnterGitURL(c *GitURLContext)
+
+	// EnterGitCloneDest is called when entering the gitCloneDest production.
+	EnterGitCloneDest(c *GitCloneDestContext)
 
 	// EnterDockerLoadStmt is called when entering the dockerLoadStmt production.
 	EnterDockerLoadStmt(c *DockerLoadStmtContext)
@@ -128,12 +122,6 @@ type EarthParserListener interface {
 	// EnterEnvArgValue is called when entering the envArgValue production.
 	EnterEnvArgValue(c *EnvArgValueContext)
 
-	// EnterCopySrc is called when entering the copySrc production.
-	EnterCopySrc(c *CopySrcContext)
-
-	// EnterCopyDest is called when entering the copyDest production.
-	EnterCopyDest(c *CopyDestContext)
-
 	// EnterAsName is called when entering the asName production.
 	EnterAsName(c *AsNameContext)
 
@@ -149,9 +137,6 @@ type EarthParserListener interface {
 	// EnterFullTargetName is called when entering the fullTargetName production.
 	EnterFullTargetName(c *FullTargetNameContext)
 
-	// EnterArtifactName is called when entering the artifactName production.
-	EnterArtifactName(c *ArtifactNameContext)
-
 	// EnterSaveFrom is called when entering the saveFrom production.
 	EnterSaveFrom(c *SaveFromContext)
 
@@ -163,9 +148,6 @@ type EarthParserListener interface {
 
 	// EnterWorkdirPath is called when entering the workdirPath production.
 	EnterWorkdirPath(c *WorkdirPathContext)
-
-	// EnterGitURL is called when entering the gitURL production.
-	EnterGitURL(c *GitURLContext)
 
 	// EnterArgsList is called when entering the argsList production.
 	EnterArgsList(c *ArgsListContext)
@@ -197,18 +179,6 @@ type EarthParserListener interface {
 	// ExitCopyStmt is called when exiting the copyStmt production.
 	ExitCopyStmt(c *CopyStmtContext)
 
-	// ExitCopyArgsFrom is called when exiting the copyArgsFrom production.
-	ExitCopyArgsFrom(c *CopyArgsFromContext)
-
-	// ExitCopyArgsArtifact is called when exiting the copyArgsArtifact production.
-	ExitCopyArgsArtifact(c *CopyArgsArtifactContext)
-
-	// ExitCopyArgsClassical is called when exiting the copyArgsClassical production.
-	ExitCopyArgsClassical(c *CopyArgsClassicalContext)
-
-	// ExitCopySrcs is called when exiting the copySrcs production.
-	ExitCopySrcs(c *CopySrcsContext)
-
 	// ExitSaveStmt is called when exiting the saveStmt production.
 	ExitSaveStmt(c *SaveStmtContext)
 
@@ -238,6 +208,12 @@ type EarthParserListener interface {
 
 	// ExitGitCloneStmt is called when exiting the gitCloneStmt production.
 	ExitGitCloneStmt(c *GitCloneStmtContext)
+
+	// ExitGitURL is called when exiting the gitURL production.
+	ExitGitURL(c *GitURLContext)
+
+	// ExitGitCloneDest is called when exiting the gitCloneDest production.
+	ExitGitCloneDest(c *GitCloneDestContext)
 
 	// ExitDockerLoadStmt is called when exiting the dockerLoadStmt production.
 	ExitDockerLoadStmt(c *DockerLoadStmtContext)
@@ -293,12 +269,6 @@ type EarthParserListener interface {
 	// ExitEnvArgValue is called when exiting the envArgValue production.
 	ExitEnvArgValue(c *EnvArgValueContext)
 
-	// ExitCopySrc is called when exiting the copySrc production.
-	ExitCopySrc(c *CopySrcContext)
-
-	// ExitCopyDest is called when exiting the copyDest production.
-	ExitCopyDest(c *CopyDestContext)
-
 	// ExitAsName is called when exiting the asName production.
 	ExitAsName(c *AsNameContext)
 
@@ -314,9 +284,6 @@ type EarthParserListener interface {
 	// ExitFullTargetName is called when exiting the fullTargetName production.
 	ExitFullTargetName(c *FullTargetNameContext)
 
-	// ExitArtifactName is called when exiting the artifactName production.
-	ExitArtifactName(c *ArtifactNameContext)
-
 	// ExitSaveFrom is called when exiting the saveFrom production.
 	ExitSaveFrom(c *SaveFromContext)
 
@@ -328,9 +295,6 @@ type EarthParserListener interface {
 
 	// ExitWorkdirPath is called when exiting the workdirPath production.
 	ExitWorkdirPath(c *WorkdirPathContext)
-
-	// ExitGitURL is called when exiting the gitURL production.
-	ExitGitURL(c *GitURLContext)
 
 	// ExitArgsList is called when exiting the argsList production.
 	ExitArgsList(c *ArgsListContext)

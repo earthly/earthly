@@ -28,24 +28,24 @@ stmt:
 	| genericCommand;
 
 fromStmt: FROM (WS flagKeyValue)* WS imageName (WS AS asName)?;
+asName: Atom;
 
-copyStmt:
-	COPY WS (copyArgsFrom | copyArgsArtifact | copyArgsClassical);
-copyArgsFrom: FLAG_FROM WS imageName WS stmtWord WS stmtWords;
-copyArgsArtifact: FLAG_ARTIFACT (WS flagKeyValue)* WS artifactName WS copyDest;
-copyArgsClassical: (copySrcs WS copyDest) | argsList;
-copySrcs: copySrc (WS copySrc)*;
+copyStmt: COPY WS stmtWords;
 
 saveStmt: saveArtifact | saveImage;
 saveImage: SAVE_IMAGE (WS saveImageName)*;
 saveArtifact:
 	SAVE_ARTIFACT WS saveFrom (WS saveTo)? (WS AS_LOCAL WS saveAsLocalTo)?;
+saveFrom: Atom;
+saveTo: Atom;
+saveAsLocalTo: Atom;
 
 runStmt: RUN (WS flag)* WS (runArgs | runArgsList);
 
 buildStmt: BUILD (WS flagKeyValue)* WS fullTargetName;
 
 workdirStmt: WORKDIR WS workdirPath;
+workdirPath: Atom;
 
 entrypointStmt: ENTRYPOINT WS (entrypointArgs | entrypointArgsList);
 
@@ -53,7 +53,9 @@ envStmt: ENV WS envArgKey (WS? EQUALS)? (WS? envArgValue)?;
 
 argStmt: ARG WS envArgKey ((WS? EQUALS) (WS? envArgValue)?)?;
 
-gitCloneStmt: GIT_CLONE (WS flagKeyValue)* WS gitURL WS copyDest;
+gitCloneStmt: GIT_CLONE (WS flagKeyValue)* WS gitURL WS gitCloneDest;
+gitURL: Atom;
+gitCloneDest: Atom;
 
 dockerLoadStmt:
 	DOCKER_LOAD (WS flagKeyValue)* WS fullTargetName WS AS WS imageName;
@@ -85,19 +87,10 @@ stmtWord: Atom;
 envArgKey: Atom;
 envArgValue: Atom (WS? Atom)*;
 
-copySrc: Atom;
-copyDest: Atom;
-asName: Atom;
 imageName: Atom;
 saveImageName: Atom;
 targetName: Atom;
 fullTargetName: Atom;
-artifactName: Atom;
-saveFrom: Atom;
-saveTo: Atom;
-saveAsLocalTo: Atom;
-workdirPath: Atom;
-gitURL: Atom;
 
 argsList:
 	OPEN_BRACKET WS? arg (WS? COMMA WS? arg)+ WS? CLOSE_BRACKET;

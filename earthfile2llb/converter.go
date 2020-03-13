@@ -163,7 +163,7 @@ func (c *Converter) fromTarget(ctx context.Context, targetName string, buildArgs
 }
 
 // CopyArtifact applies the earth COPY --artifact command.
-func (c *Converter) CopyArtifact(ctx context.Context, artifactName string, dest string, buildArgs []string) error {
+func (c *Converter) CopyArtifact(ctx context.Context, artifactName string, dest string, buildArgs []string, isDir bool) error {
 	artifactName = c.expandArgs(artifactName)
 	dest = c.expandArgs(dest)
 	for i := range buildArgs {
@@ -191,7 +191,7 @@ func (c *Converter) CopyArtifact(ctx context.Context, artifactName string, dest 
 	artifactPath := filepath.Join("/artifacts", artifact.Artifact)
 	c.mts.FinalStates.SideEffectsState = llbutil.CopyOp(
 		relevantDepState.ArtifactsState, []string{artifactPath},
-		c.mts.FinalStates.SideEffectsState, dest, true,
+		c.mts.FinalStates.SideEffectsState, dest, true, isDir,
 		llb.WithCustomNamef(
 			"[%s] COPY --artifact (%v) %s %s",
 			c.mts.FinalStates.Target.String(),
@@ -202,14 +202,14 @@ func (c *Converter) CopyArtifact(ctx context.Context, artifactName string, dest 
 }
 
 // CopyClassical applies the earth COPY command, with classical args.
-func (c *Converter) CopyClassical(ctx context.Context, srcs []string, dest string) {
+func (c *Converter) CopyClassical(ctx context.Context, srcs []string, dest string, isDir bool) {
 	dest = c.expandArgs(dest)
 	for i := range srcs {
 		srcs[i] = c.expandArgs(srcs[i])
 	}
 	logging.GetLogger(ctx).With("srcs", srcs).With("dest", dest).Info("Applying COPY (classical)")
 	c.mts.FinalStates.SideEffectsState = llbutil.CopyOp(
-		c.buildContext, srcs, c.mts.FinalStates.SideEffectsState, dest, true,
+		c.buildContext, srcs, c.mts.FinalStates.SideEffectsState, dest, true, isDir,
 		llb.WithCustomNamef("[%s] COPY %v %s", c.mts.FinalStates.Target.String(), srcs, dest))
 }
 
@@ -292,12 +292,12 @@ func (c *Converter) SaveArtifact(ctx context.Context, saveFrom string, saveTo st
 		Artifact: saveToF,
 	}
 	c.mts.FinalStates.ArtifactsState = llbutil.CopyOp(
-		c.mts.FinalStates.SideEffectsState, []string{saveFrom}, c.mts.FinalStates.ArtifactsState, saveToAdjusted, true,
+		c.mts.FinalStates.SideEffectsState, []string{saveFrom}, c.mts.FinalStates.ArtifactsState, saveToAdjusted, true, false,
 		llb.WithCustomNamef("[%s] SAVE ARTIFACT %s %s", c.mts.FinalStates.Target.String(), saveFrom, artifact.String()))
 	if saveAsLocalTo != "" {
 		separateArtifactsState := llb.Scratch().Platform(llbutil.TargetPlatform)
 		separateArtifactsState = llbutil.CopyOp(
-			c.mts.FinalStates.SideEffectsState, []string{saveFrom}, separateArtifactsState, saveToAdjusted, true,
+			c.mts.FinalStates.SideEffectsState, []string{saveFrom}, separateArtifactsState, saveToAdjusted, true, false,
 			llb.WithCustomNamef("[%s] SAVE ARTIFACT %s %s", c.mts.FinalStates.Target.String(), saveFrom, artifact.String()))
 		c.mts.FinalStates.SeparateArtifactsState = append(c.mts.FinalStates.SeparateArtifactsState, separateArtifactsState)
 		c.mts.FinalStates.SaveLocals = append(c.mts.FinalStates.SaveLocals, SaveLocal{
@@ -466,7 +466,7 @@ func (c *Converter) GitClone(ctx context.Context, gitURL string, branch string, 
 	}
 	gitState := llbgit.Git(gitURL, branch, gitOpts...)
 	c.mts.FinalStates.SideEffectsState = llbutil.CopyOp(
-		gitState, []string{"."}, c.mts.FinalStates.SideEffectsState, dest, false,
+		gitState, []string{"."}, c.mts.FinalStates.SideEffectsState, dest, false, false,
 		llb.WithCustomNamef(
 			"[%s] COPY GIT CLONE (--branch %s) %s TO %s", c.mts.FinalStates.Target.String(),
 			branch, gitURL, dest))
@@ -778,7 +778,7 @@ func (c *Converter) parseBuildArg(ctx context.Context, arg string) (string, vari
 	// Copy the result of the expression into a separate, isolated state.
 	buildArgState := llb.Scratch().Platform(llbutil.TargetPlatform)
 	buildArgState = llbutil.CopyOp(
-		c.mts.FinalStates.SideEffectsState, []string{srcBuildArgPath}, buildArgState, buildArgPath, false,
+		c.mts.FinalStates.SideEffectsState, []string{srcBuildArgPath}, buildArgState, buildArgPath, false, false,
 		llb.WithCustomNamef("[internal] copy buildarg %s", name))
 	// Store the state with the expression result for later use.
 	argIndex := c.nextArgIndex
