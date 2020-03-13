@@ -63,6 +63,12 @@ func (s *BaseEarthParserListener) EnterFromStmt(ctx *FromStmtContext) {}
 // ExitFromStmt is called when production fromStmt is exited.
 func (s *BaseEarthParserListener) ExitFromStmt(ctx *FromStmtContext) {}
 
+// EnterAsName is called when production asName is entered.
+func (s *BaseEarthParserListener) EnterAsName(ctx *AsNameContext) {}
+
+// ExitAsName is called when production asName is exited.
+func (s *BaseEarthParserListener) ExitAsName(ctx *AsNameContext) {}
+
 // EnterCopyStmt is called when production copyStmt is entered.
 func (s *BaseEarthParserListener) EnterCopyStmt(ctx *CopyStmtContext) {}
 
@@ -87,6 +93,24 @@ func (s *BaseEarthParserListener) EnterSaveArtifact(ctx *SaveArtifactContext) {}
 // ExitSaveArtifact is called when production saveArtifact is exited.
 func (s *BaseEarthParserListener) ExitSaveArtifact(ctx *SaveArtifactContext) {}
 
+// EnterSaveFrom is called when production saveFrom is entered.
+func (s *BaseEarthParserListener) EnterSaveFrom(ctx *SaveFromContext) {}
+
+// ExitSaveFrom is called when production saveFrom is exited.
+func (s *BaseEarthParserListener) ExitSaveFrom(ctx *SaveFromContext) {}
+
+// EnterSaveTo is called when production saveTo is entered.
+func (s *BaseEarthParserListener) EnterSaveTo(ctx *SaveToContext) {}
+
+// ExitSaveTo is called when production saveTo is exited.
+func (s *BaseEarthParserListener) ExitSaveTo(ctx *SaveToContext) {}
+
+// EnterSaveAsLocalTo is called when production saveAsLocalTo is entered.
+func (s *BaseEarthParserListener) EnterSaveAsLocalTo(ctx *SaveAsLocalToContext) {}
+
+// ExitSaveAsLocalTo is called when production saveAsLocalTo is exited.
+func (s *BaseEarthParserListener) ExitSaveAsLocalTo(ctx *SaveAsLocalToContext) {}
+
 // EnterRunStmt is called when production runStmt is entered.
 func (s *BaseEarthParserListener) EnterRunStmt(ctx *RunStmtContext) {}
 
@@ -104,6 +128,12 @@ func (s *BaseEarthParserListener) EnterWorkdirStmt(ctx *WorkdirStmtContext) {}
 
 // ExitWorkdirStmt is called when production workdirStmt is exited.
 func (s *BaseEarthParserListener) ExitWorkdirStmt(ctx *WorkdirStmtContext) {}
+
+// EnterWorkdirPath is called when production workdirPath is entered.
+func (s *BaseEarthParserListener) EnterWorkdirPath(ctx *WorkdirPathContext) {}
+
+// ExitWorkdirPath is called when production workdirPath is exited.
+func (s *BaseEarthParserListener) ExitWorkdirPath(ctx *WorkdirPathContext) {}
 
 // EnterEntrypointStmt is called when production entrypointStmt is entered.
 func (s *BaseEarthParserListener) EnterEntrypointStmt(ctx *EntrypointStmtContext) {}
@@ -249,12 +279,6 @@ func (s *BaseEarthParserListener) EnterEnvArgValue(ctx *EnvArgValueContext) {}
 // ExitEnvArgValue is called when production envArgValue is exited.
 func (s *BaseEarthParserListener) ExitEnvArgValue(ctx *EnvArgValueContext) {}
 
-// EnterAsName is called when production asName is entered.
-func (s *BaseEarthParserListener) EnterAsName(ctx *AsNameContext) {}
-
-// ExitAsName is called when production asName is exited.
-func (s *BaseEarthParserListener) ExitAsName(ctx *AsNameContext) {}
-
 // EnterImageName is called when production imageName is entered.
 func (s *BaseEarthParserListener) EnterImageName(ctx *ImageNameContext) {}
 
@@ -278,30 +302,6 @@ func (s *BaseEarthParserListener) EnterFullTargetName(ctx *FullTargetNameContext
 
 // ExitFullTargetName is called when production fullTargetName is exited.
 func (s *BaseEarthParserListener) ExitFullTargetName(ctx *FullTargetNameContext) {}
-
-// EnterSaveFrom is called when production saveFrom is entered.
-func (s *BaseEarthParserListener) EnterSaveFrom(ctx *SaveFromContext) {}
-
-// ExitSaveFrom is called when production saveFrom is exited.
-func (s *BaseEarthParserListener) ExitSaveFrom(ctx *SaveFromContext) {}
-
-// EnterSaveTo is called when production saveTo is entered.
-func (s *BaseEarthParserListener) EnterSaveTo(ctx *SaveToContext) {}
-
-// ExitSaveTo is called when production saveTo is exited.
-func (s *BaseEarthParserListener) ExitSaveTo(ctx *SaveToContext) {}
-
-// EnterSaveAsLocalTo is called when production saveAsLocalTo is entered.
-func (s *BaseEarthParserListener) EnterSaveAsLocalTo(ctx *SaveAsLocalToContext) {}
-
-// ExitSaveAsLocalTo is called when production saveAsLocalTo is exited.
-func (s *BaseEarthParserListener) ExitSaveAsLocalTo(ctx *SaveAsLocalToContext) {}
-
-// EnterWorkdirPath is called when production workdirPath is entered.
-func (s *BaseEarthParserListener) EnterWorkdirPath(ctx *WorkdirPathContext) {}
-
-// ExitWorkdirPath is called when production workdirPath is exited.
-func (s *BaseEarthParserListener) ExitWorkdirPath(ctx *WorkdirPathContext) {}
 
 // EnterArgsList is called when production argsList is entered.
 func (s *BaseEarthParserListener) EnterArgsList(ctx *ArgsListContext) {}

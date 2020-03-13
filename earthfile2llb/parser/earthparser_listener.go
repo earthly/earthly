@@ -29,6 +29,9 @@ type EarthParserListener interface {
 	// EnterFromStmt is called when entering the fromStmt production.
 	EnterFromStmt(c *FromStmtContext)
 
+	// EnterAsName is called when entering the asName production.
+	EnterAsName(c *AsNameContext)
+
 	// EnterCopyStmt is called when entering the copyStmt production.
 	EnterCopyStmt(c *CopyStmtContext)
 
@@ -41,6 +44,15 @@ type EarthParserListener interface {
 	// EnterSaveArtifact is called when entering the saveArtifact production.
 	EnterSaveArtifact(c *SaveArtifactContext)
 
+	// EnterSaveFrom is called when entering the saveFrom production.
+	EnterSaveFrom(c *SaveFromContext)
+
+	// EnterSaveTo is called when entering the saveTo production.
+	EnterSaveTo(c *SaveToContext)
+
+	// EnterSaveAsLocalTo is called when entering the saveAsLocalTo production.
+	EnterSaveAsLocalTo(c *SaveAsLocalToContext)
+
 	// EnterRunStmt is called when entering the runStmt production.
 	EnterRunStmt(c *RunStmtContext)
 
@@ -49,6 +61,9 @@ type EarthParserListener interface {
 
 	// EnterWorkdirStmt is called when entering the workdirStmt production.
 	EnterWorkdirStmt(c *WorkdirStmtContext)
+
+	// EnterWorkdirPath is called when entering the workdirPath production.
+	EnterWorkdirPath(c *WorkdirPathContext)
 
 	// EnterEntrypointStmt is called when entering the entrypointStmt production.
 	EnterEntrypointStmt(c *EntrypointStmtContext)
@@ -122,9 +137,6 @@ type EarthParserListener interface {
 	// EnterEnvArgValue is called when entering the envArgValue production.
 	EnterEnvArgValue(c *EnvArgValueContext)
 
-	// EnterAsName is called when entering the asName production.
-	EnterAsName(c *AsNameContext)
-
 	// EnterImageName is called when entering the imageName production.
 	EnterImageName(c *ImageNameContext)
 
@@ -136,18 +148,6 @@ type EarthParserListener interface {
 
 	// EnterFullTargetName is called when entering the fullTargetName production.
 	EnterFullTargetName(c *FullTargetNameContext)
-
-	// EnterSaveFrom is called when entering the saveFrom production.
-	EnterSaveFrom(c *SaveFromContext)
-
-	// EnterSaveTo is called when entering the saveTo production.
-	EnterSaveTo(c *SaveToContext)
-
-	// EnterSaveAsLocalTo is called when entering the saveAsLocalTo production.
-	EnterSaveAsLocalTo(c *SaveAsLocalToContext)
-
-	// EnterWorkdirPath is called when entering the workdirPath production.
-	EnterWorkdirPath(c *WorkdirPathContext)
 
 	// EnterArgsList is called when entering the argsList production.
 	EnterArgsList(c *ArgsListContext)
@@ -176,6 +176,9 @@ type EarthParserListener interface {
 	// ExitFromStmt is called when exiting the fromStmt production.
 	ExitFromStmt(c *FromStmtContext)
 
+	// ExitAsName is called when exiting the asName production.
+	ExitAsName(c *AsNameContext)
+
 	// ExitCopyStmt is called when exiting the copyStmt production.
 	ExitCopyStmt(c *CopyStmtContext)
 
@@ -188,6 +191,15 @@ type EarthParserListener interface {
 	// ExitSaveArtifact is called when exiting the saveArtifact production.
 	ExitSaveArtifact(c *SaveArtifactContext)
 
+	// ExitSaveFrom is called when exiting the saveFrom production.
+	ExitSaveFrom(c *SaveFromContext)
+
+	// ExitSaveTo is called when exiting the saveTo production.
+	ExitSaveTo(c *SaveToContext)
+
+	// ExitSaveAsLocalTo is called when exiting the saveAsLocalTo production.
+	ExitSaveAsLocalTo(c *SaveAsLocalToContext)
+
 	// ExitRunStmt is called when exiting the runStmt production.
 	ExitRunStmt(c *RunStmtContext)
 
@@ -196,6 +208,9 @@ type EarthParserListener interface {
 
 	// ExitWorkdirStmt is called when exiting the workdirStmt production.
 	ExitWorkdirStmt(c *WorkdirStmtContext)
+
+	// ExitWorkdirPath is called when exiting the workdirPath production.
+	ExitWorkdirPath(c *WorkdirPathContext)
 
 	// ExitEntrypointStmt is called when exiting the entrypointStmt production.
 	ExitEntrypointStmt(c *EntrypointStmtContext)
@@ -269,9 +284,6 @@ type EarthParserListener interface {
 	// ExitEnvArgValue is called when exiting the envArgValue production.
 	ExitEnvArgValue(c *EnvArgValueContext)
 
-	// ExitAsName is called when exiting the asName production.
-	ExitAsName(c *AsNameContext)
-
 	// ExitImageName is called when exiting the imageName production.
 	ExitImageName(c *ImageNameContext)
 
@@ -283,18 +295,6 @@ type EarthParserListener interface {
 
 	// ExitFullTargetName is called when exiting the fullTargetName production.
 	ExitFullTargetName(c *FullTargetNameContext)
-
-	// ExitSaveFrom is called when exiting the saveFrom production.
-	ExitSaveFrom(c *SaveFromContext)
-
-	// ExitSaveTo is called when exiting the saveTo production.
-	ExitSaveTo(c *SaveToContext)
-
-	// ExitSaveAsLocalTo is called when exiting the saveAsLocalTo production.
-	ExitSaveAsLocalTo(c *SaveAsLocalToContext)
-
-	// ExitWorkdirPath is called when exiting the workdirPath production.
-	ExitWorkdirPath(c *WorkdirPathContext)
 
 	// ExitArgsList is called when exiting the argsList production.
 	ExitArgsList(c *ArgsListContext)
