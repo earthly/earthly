@@ -1,13 +1,11 @@
 version: 2.1
 jobs:
-  build-linux:
+  build:
     machine:
       image: ubuntu-1604:201903-01
       docker_layer_caching: true
     environment:
-      - EARTHLY_VERSION: "v0.0.1"
       - EARTHLY_EARTH_IMAGE: "earthly/earth:v0.0.1"
-      - EARTHLY_BUILDKITD_IMAGE: "earthly/buildkitd:v0.0.1"
     steps:
       - checkout
       - restore_cache:
@@ -17,42 +15,13 @@ jobs:
       - run: |
           docker run --rm --privileged \
             -v /tmp/earthly:/tmp/earthly \
-            -v "$PWD:/earthly" \
             -v "/var/run/docker.sock:/var/run/docker.sock" \
+            -v "$PWD:/earthly" \
             -w /earthly \
             --entrypoint=/usr/bin/earth-buildkitd-wrapper.sh \
-            "$EARTHLY_EARTH_IMAGE" +base
+            "$EARTHLY_EARTH_IMAGE" -p +test
       - run: sudo chown -R "circleci:circleci" /tmp/earthly
       - save_cache:
           key: earthly-buildkit-{{ epoch }}
           paths:
               - /tmp/earthly
-  build-darwin:
-    macos:
-      xcode: 11.3.1
-    environment:
-      - EARTHLY_VERSION: "v0.0.1"
-      - EARTHLY_BUILDKITD_IMAGE: "earthly/buildkitd:v0.0.1"
-      - HOMEBREW_NO_AUTO_UPDATE: 1
-    steps:
-      - setup_remote_docker
-      - run: brew cask install docker
-      - run: ln -s /Applications/Docker.app/Contents/Resources/bin/* /usr/local/bin/
-      # - run: open /Applications/Docker.app & (sleep 10; docker run hello-world)
-      # - run: brew cask install virtualbox
-      # - run: brew cask install docker-toolbox
-      # - run: docker-machine create --driver virtualbox circleci-build
-      # - run: eval $(docker-machine env circleci-build); docker run hello-world
-      - run: docker run hello-world
-      - run: ./.circleci/gh-dl-release.sh "$EARTHLY_VERSION" earth-linux-amd64
-      - run: mv ./earth-darwin-amd64 ./earth
-      - run: chmod +x ./earth
-      - checkout
-      - run: ./earth +base
-      - run: docker stop earthly-buildkitd
-
-workflows:
-  build-all:
-    jobs:
-      - build-linux
-      - build-darwin
