@@ -12,7 +12,7 @@ export EARTHLY_BUILDKIT_HOST="unix:///run/buildkit/buildkitd.sock"
 
 # Poll for buildkitd readiness.
 let i=1
-while [ ! -f "/run/buildkit/buildkitd.sock" ]; do
+while [ ! -S "/run/buildkit/buildkitd.sock" ]; do
     sleep 1
     let i+=1
     if [ "$i" -gt "10" ]; then
