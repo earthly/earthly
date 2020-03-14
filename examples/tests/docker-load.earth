@@ -9,5 +9,5 @@ some-image:
 	SAVE IMAGE
 
 test:
-	DOCKER LOAD +some-image AS test-img:xyz
+	DOCKER LOAD +some-image test-img:xyz
 	RUN --with-docker docker run --rm test-img:xyz

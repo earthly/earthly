@@ -97,7 +97,7 @@ build:
 
 docker:
     COPY --artifact +build/go-example .
-    ENTRYPOINT /go-example/go-example
+    ENTRYPOINT ["/go-example/go-example"]
     SAVE IMAGE go-example:latest
 ```
 
@@ -160,7 +160,7 @@ docker:
     # within the build container.
     COPY --artifact +build/go-example .
     # Set the entrypoint for the resulting docker image.
-    ENTRYPOINT /go-example/go-example
+    ENTRYPOINT ["/go-example/go-example"]
     # Save the current state as a docker image, which will have the docker tag go-example:latest.
     # This image is only made available to the host's docker if the entire build succeeds.
     SAVE IMAGE go-example:latest

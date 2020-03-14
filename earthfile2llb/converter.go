@@ -150,7 +150,7 @@ func (c *Converter) fromTarget(ctx context.Context, targetName string, buildArgs
 	// Pass on dep state over to this state.
 	// Run a dummy command, mainly for the custom name output.
 	runOpts := []llb.RunOption{
-		llb.Args(withShell([]string{"true"})),
+		llb.Args([]string{"/bin/sh", "-c", "true"}),
 		llb.Dir("/"),
 		llb.WithCustomNamef("[%s] FROM (%v) %s", c.mts.FinalStates.Target.String(), buildArgs, targetName),
 	}
@@ -163,7 +163,7 @@ func (c *Converter) fromTarget(ctx context.Context, targetName string, buildArgs
 }
 
 // CopyArtifact applies the earth COPY --artifact command.
-func (c *Converter) CopyArtifact(ctx context.Context, artifactName string, dest string, buildArgs []string) error {
+func (c *Converter) CopyArtifact(ctx context.Context, artifactName string, dest string, buildArgs []string, isDir bool) error {
 	artifactName = c.expandArgs(artifactName)
 	dest = c.expandArgs(dest)
 	for i := range buildArgs {
@@ -191,7 +191,7 @@ func (c *Converter) CopyArtifact(ctx context.Context, artifactName string, dest 
 	artifactPath := filepath.Join("/artifacts", artifact.Artifact)
 	c.mts.FinalStates.SideEffectsState = llbutil.CopyOp(
 		relevantDepState.ArtifactsState, []string{artifactPath},
-		c.mts.FinalStates.SideEffectsState, dest, true,
+		c.mts.FinalStates.SideEffectsState, dest, true, isDir,
 		llb.WithCustomNamef(
 			"[%s] COPY --artifact (%v) %s %s",
 			c.mts.FinalStates.Target.String(),
@@ -202,27 +202,28 @@ func (c *Converter) CopyArtifact(ctx context.Context, artifactName string, dest 
 }
 
 // CopyClassical applies the earth COPY command, with classical args.
-func (c *Converter) CopyClassical(ctx context.Context, srcs []string, dest string) {
+func (c *Converter) CopyClassical(ctx context.Context, srcs []string, dest string, isDir bool) {
 	dest = c.expandArgs(dest)
 	for i := range srcs {
 		srcs[i] = c.expandArgs(srcs[i])
 	}
 	logging.GetLogger(ctx).With("srcs", srcs).With("dest", dest).Info("Applying COPY (classical)")
 	c.mts.FinalStates.SideEffectsState = llbutil.CopyOp(
-		c.buildContext, srcs, c.mts.FinalStates.SideEffectsState, dest, true,
+		c.buildContext, srcs, c.mts.FinalStates.SideEffectsState, dest, true, isDir,
 		llb.WithCustomNamef("[%s] COPY %v %s", c.mts.FinalStates.Target.String(), srcs, dest))
 }
 
 // Run applies the earth RUN command.
-func (c *Converter) Run(ctx context.Context, args []string, mounts []string, secretKeyValues []string, privileged bool, withEntrypoint bool, withDocker bool) error {
-	// TODO: This does not work, because it strips away some quotes, which are valuable to the shell.
-	//       This is probably working as intended as is. Should check what happens in the case of the
-	//       bracket syntax, however.
-	// for i := range args {
-	// 	args[i] = c.expandArgs(args[i])
-	// }
-	for i := range mounts {
-		mounts[i] = c.expandArgs(mounts[i])
+func (c *Converter) Run(ctx context.Context, args []string, mounts []string, secretKeyValues []string, privileged bool, withEntrypoint bool, withDocker bool, isWithShell bool) error {
+	if !isWithShell {
+		// TODO: This does not work, because it strips away some quotes, which are valuable to the shell.
+		//       In any case, this is probably working as intended as is.
+		// for i := range args {
+		// 	args[i] = c.expandArgs(args[i])
+		// }
+		for i := range mounts {
+			mounts[i] = c.expandArgs(mounts[i])
+		}
 	}
 	logging.GetLogger(ctx).
 		With("args", args).
@@ -240,15 +241,8 @@ func (c *Converter) Run(ctx context.Context, args []string, mounts []string, sec
 	opts = append(opts, mountRunOpts...)
 	finalArgs := args
 	if withEntrypoint {
-		if len(c.mts.FinalStates.SideEffectsImage.Config.Entrypoint) > 2 &&
-			c.mts.FinalStates.SideEffectsImage.Config.Entrypoint[0] == "/bin/sh" &&
-			c.mts.FinalStates.SideEffectsImage.Config.Entrypoint[1] == "-c" {
-			// TODO: This is a hack around the with shell / without shell issue. Should make this
-			//       work properly even in the shell within shell case.
-			finalArgs = append(c.mts.FinalStates.SideEffectsImage.Config.Entrypoint[2:], args...)
-		} else {
-			finalArgs = append(c.mts.FinalStates.SideEffectsImage.Config.Entrypoint, args...)
-		}
+		finalArgs = append(c.mts.FinalStates.SideEffectsImage.Config.Entrypoint, args...)
+		isWithShell = false // Don't use shell when --entrypoint is passed.
 	}
 	privilegedStr := ""
 	if privileged {
@@ -261,7 +255,7 @@ func (c *Converter) Run(ctx context.Context, args []string, mounts []string, sec
 	}
 	opts = append(opts, llb.WithCustomNamef(
 		"[%s] RUN %s%s%v", c.mts.FinalStates.Target.String(), privilegedStr, withDockerStr, finalArgs))
-	return c.internalRun(ctx, finalArgs, secretKeyValues, withDocker, opts...)
+	return c.internalRun(ctx, finalArgs, secretKeyValues, withDocker, isWithShell, opts...)
 }
 
 // SaveArtifact applies the earth SAVE ARTIFACT command.
@@ -292,12 +286,12 @@ func (c *Converter) SaveArtifact(ctx context.Context, saveFrom string, saveTo st
 		Artifact: saveToF,
 	}
 	c.mts.FinalStates.ArtifactsState = llbutil.CopyOp(
-		c.mts.FinalStates.SideEffectsState, []string{saveFrom}, c.mts.FinalStates.ArtifactsState, saveToAdjusted, true,
+		c.mts.FinalStates.SideEffectsState, []string{saveFrom}, c.mts.FinalStates.ArtifactsState, saveToAdjusted, true, false,
 		llb.WithCustomNamef("[%s] SAVE ARTIFACT %s %s", c.mts.FinalStates.Target.String(), saveFrom, artifact.String()))
 	if saveAsLocalTo != "" {
 		separateArtifactsState := llb.Scratch().Platform(llbutil.TargetPlatform)
 		separateArtifactsState = llbutil.CopyOp(
-			c.mts.FinalStates.SideEffectsState, []string{saveFrom}, separateArtifactsState, saveToAdjusted, true,
+			c.mts.FinalStates.SideEffectsState, []string{saveFrom}, separateArtifactsState, saveToAdjusted, true, false,
 			llb.WithCustomNamef("[%s] SAVE ARTIFACT %s %s", c.mts.FinalStates.Target.String(), saveFrom, artifact.String()))
 		c.mts.FinalStates.SeparateArtifactsState = append(c.mts.FinalStates.SeparateArtifactsState, separateArtifactsState)
 		c.mts.FinalStates.SaveLocals = append(c.mts.FinalStates.SaveLocals, SaveLocal{
@@ -419,12 +413,14 @@ func (c *Converter) Workdir(ctx context.Context, workdirPath string) {
 }
 
 // Entrypoint applies the ENTRYPOINT command.
-func (c *Converter) Entrypoint(ctx context.Context, entrypointArgs []string) {
-	for i := range entrypointArgs {
-		entrypointArgs[i] = c.expandArgs(entrypointArgs[i])
+func (c *Converter) Entrypoint(ctx context.Context, entrypointArgs []string, isWithShell bool) {
+	if !isWithShell {
+		for i := range entrypointArgs {
+			entrypointArgs[i] = c.expandArgs(entrypointArgs[i])
+		}
 	}
 	logging.GetLogger(ctx).With("entrypoint", entrypointArgs).Info("Applying ENTRYPOINT")
-	c.mts.FinalStates.SideEffectsImage.Config.Entrypoint = withShell(entrypointArgs)
+	c.mts.FinalStates.SideEffectsImage.Config.Entrypoint = withShell(entrypointArgs, isWithShell)
 }
 
 // Env applies the ENV command.
@@ -466,7 +462,7 @@ func (c *Converter) GitClone(ctx context.Context, gitURL string, branch string, 
 	}
 	gitState := llbgit.Git(gitURL, branch, gitOpts...)
 	c.mts.FinalStates.SideEffectsState = llbutil.CopyOp(
-		gitState, []string{"."}, c.mts.FinalStates.SideEffectsState, dest, false,
+		gitState, []string{"."}, c.mts.FinalStates.SideEffectsState, dest, false, false,
 		llb.WithCustomNamef(
 			"[%s] COPY GIT CLONE (--branch %s) %s TO %s", c.mts.FinalStates.Target.String(),
 			branch, gitURL, dest))
@@ -492,7 +488,7 @@ func (c *Converter) DockerLoad(ctx context.Context, targetName string, dockerTag
 	err = c.solveAndLoad(
 		ctx, mts, depTarget.String(), dockerTag,
 		llb.WithCustomNamef(
-			"[%s] DOCKER LOAD %s AS %s",
+			"[%s] DOCKER LOAD %s %s",
 			c.mts.FinalStates.Target.String(), depTarget.String(), dockerTag))
 	if err != nil {
 		return err
@@ -547,7 +543,7 @@ func (c *Converter) FinalizeStates() *MultiTargetStates {
 	return c.mts
 }
 
-func (c *Converter) internalRun(ctx context.Context, args []string, secretKeyValues []string, withDocker bool, opts ...llb.RunOption) error {
+func (c *Converter) internalRun(ctx context.Context, args []string, secretKeyValues []string, withDocker bool, isWithShell bool, opts ...llb.RunOption) error {
 	finalOpts := opts
 	var extraEnvVars []string
 	for _, secretKeyValue := range secretKeyValues {
@@ -584,9 +580,9 @@ func (c *Converter) internalRun(ctx context.Context, args []string, secretKeyVal
 	}
 	var finalArgs []string
 	if withDocker {
-		finalArgs = withDockerdWrap(args, extraEnvVars)
+		finalArgs = withDockerdWrap(args, extraEnvVars, isWithShell)
 	} else {
-		finalArgs = withShellAndEnvVars(args, extraEnvVars)
+		finalArgs = withShellAndEnvVars(args, extraEnvVars, isWithShell)
 	}
 	finalOpts = append(finalOpts, llb.Args(finalArgs))
 	c.mts.FinalStates.SideEffectsState = c.mts.FinalStates.SideEffectsState.Run(finalOpts...).Root()
@@ -637,7 +633,7 @@ func (c *Converter) solveAndLoad(ctx context.Context, mts *MultiTargetStates, op
 	loadOpts := []llb.RunOption{
 		llb.Args(
 			withDockerdWrap(
-				[]string{"docker", "load", "</src/image.tar"}, []string{})),
+				[]string{"docker", "load", "</src/image.tar"}, []string{}, true)),
 		llb.AddMount("/src", tarContext, llb.Readonly),
 		llb.Dir("/src"),
 		llb.Security(llb.SecurityModeInsecure),
@@ -770,7 +766,7 @@ func (c *Converter) parseBuildArg(ctx context.Context, arg string) (string, vari
 	buildArgPath := filepath.Join("/run/buildargs", name)
 	args := strings.Split(fmt.Sprintf("echo \"%s\" >%s", value, srcBuildArgPath), " ")
 	err := c.internalRun(
-		ctx, args, []string{}, false,
+		ctx, args, []string{}, false, true,
 		llb.WithCustomNamef("[%s] RUN %s", c.mts.FinalStates.Target.String(), value))
 	if err != nil {
 		return "", variables.Variable{}, errors.Wrapf(err, "run %v", value)
@@ -778,7 +774,7 @@ func (c *Converter) parseBuildArg(ctx context.Context, arg string) (string, vari
 	// Copy the result of the expression into a separate, isolated state.
 	buildArgState := llb.Scratch().Platform(llbutil.TargetPlatform)
 	buildArgState = llbutil.CopyOp(
-		c.mts.FinalStates.SideEffectsState, []string{srcBuildArgPath}, buildArgState, buildArgPath, false,
+		c.mts.FinalStates.SideEffectsState, []string{srcBuildArgPath}, buildArgState, buildArgPath, false, false,
 		llb.WithCustomNamef("[internal] copy buildarg %s", name))
 	// Store the state with the expression result for later use.
 	argIndex := c.nextArgIndex

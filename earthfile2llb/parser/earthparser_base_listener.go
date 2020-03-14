@@ -69,30 +69,6 @@ func (s *BaseEarthParserListener) EnterCopyStmt(ctx *CopyStmtContext) {}
 // ExitCopyStmt is called when production copyStmt is exited.
 func (s *BaseEarthParserListener) ExitCopyStmt(ctx *CopyStmtContext) {}
 
-// EnterCopyArgsFrom is called when production copyArgsFrom is entered.
-func (s *BaseEarthParserListener) EnterCopyArgsFrom(ctx *CopyArgsFromContext) {}
-
-// ExitCopyArgsFrom is called when production copyArgsFrom is exited.
-func (s *BaseEarthParserListener) ExitCopyArgsFrom(ctx *CopyArgsFromContext) {}
-
-// EnterCopyArgsArtifact is called when production copyArgsArtifact is entered.
-func (s *BaseEarthParserListener) EnterCopyArgsArtifact(ctx *CopyArgsArtifactContext) {}
-
-// ExitCopyArgsArtifact is called when production copyArgsArtifact is exited.
-func (s *BaseEarthParserListener) ExitCopyArgsArtifact(ctx *CopyArgsArtifactContext) {}
-
-// EnterCopyArgsClassical is called when production copyArgsClassical is entered.
-func (s *BaseEarthParserListener) EnterCopyArgsClassical(ctx *CopyArgsClassicalContext) {}
-
-// ExitCopyArgsClassical is called when production copyArgsClassical is exited.
-func (s *BaseEarthParserListener) ExitCopyArgsClassical(ctx *CopyArgsClassicalContext) {}
-
-// EnterCopySrcs is called when production copySrcs is entered.
-func (s *BaseEarthParserListener) EnterCopySrcs(ctx *CopySrcsContext) {}
-
-// ExitCopySrcs is called when production copySrcs is exited.
-func (s *BaseEarthParserListener) ExitCopySrcs(ctx *CopySrcsContext) {}
-
 // EnterSaveStmt is called when production saveStmt is entered.
 func (s *BaseEarthParserListener) EnterSaveStmt(ctx *SaveStmtContext) {}
 
@@ -147,6 +123,18 @@ func (s *BaseEarthParserListener) EnterArgStmt(ctx *ArgStmtContext) {}
 // ExitArgStmt is called when production argStmt is exited.
 func (s *BaseEarthParserListener) ExitArgStmt(ctx *ArgStmtContext) {}
 
+// EnterEnvArgKey is called when production envArgKey is entered.
+func (s *BaseEarthParserListener) EnterEnvArgKey(ctx *EnvArgKeyContext) {}
+
+// ExitEnvArgKey is called when production envArgKey is exited.
+func (s *BaseEarthParserListener) ExitEnvArgKey(ctx *EnvArgKeyContext) {}
+
+// EnterEnvArgValue is called when production envArgValue is entered.
+func (s *BaseEarthParserListener) EnterEnvArgValue(ctx *EnvArgValueContext) {}
+
+// ExitEnvArgValue is called when production envArgValue is exited.
+func (s *BaseEarthParserListener) ExitEnvArgValue(ctx *EnvArgValueContext) {}
+
 // EnterGitCloneStmt is called when production gitCloneStmt is entered.
 func (s *BaseEarthParserListener) EnterGitCloneStmt(ctx *GitCloneStmtContext) {}
 
@@ -177,65 +165,11 @@ func (s *BaseEarthParserListener) EnterCommandName(ctx *CommandNameContext) {}
 // ExitCommandName is called when production commandName is exited.
 func (s *BaseEarthParserListener) ExitCommandName(ctx *CommandNameContext) {}
 
-// EnterRunArgs is called when production runArgs is entered.
-func (s *BaseEarthParserListener) EnterRunArgs(ctx *RunArgsContext) {}
+// EnterStmtWordsMaybeJSON is called when production stmtWordsMaybeJSON is entered.
+func (s *BaseEarthParserListener) EnterStmtWordsMaybeJSON(ctx *StmtWordsMaybeJSONContext) {}
 
-// ExitRunArgs is called when production runArgs is exited.
-func (s *BaseEarthParserListener) ExitRunArgs(ctx *RunArgsContext) {}
-
-// EnterRunArgsList is called when production runArgsList is entered.
-func (s *BaseEarthParserListener) EnterRunArgsList(ctx *RunArgsListContext) {}
-
-// ExitRunArgsList is called when production runArgsList is exited.
-func (s *BaseEarthParserListener) ExitRunArgsList(ctx *RunArgsListContext) {}
-
-// EnterRunArg is called when production runArg is entered.
-func (s *BaseEarthParserListener) EnterRunArg(ctx *RunArgContext) {}
-
-// ExitRunArg is called when production runArg is exited.
-func (s *BaseEarthParserListener) ExitRunArg(ctx *RunArgContext) {}
-
-// EnterEntrypointArgs is called when production entrypointArgs is entered.
-func (s *BaseEarthParserListener) EnterEntrypointArgs(ctx *EntrypointArgsContext) {}
-
-// ExitEntrypointArgs is called when production entrypointArgs is exited.
-func (s *BaseEarthParserListener) ExitEntrypointArgs(ctx *EntrypointArgsContext) {}
-
-// EnterEntrypointArgsList is called when production entrypointArgsList is entered.
-func (s *BaseEarthParserListener) EnterEntrypointArgsList(ctx *EntrypointArgsListContext) {}
-
-// ExitEntrypointArgsList is called when production entrypointArgsList is exited.
-func (s *BaseEarthParserListener) ExitEntrypointArgsList(ctx *EntrypointArgsListContext) {}
-
-// EnterEntrypointArg is called when production entrypointArg is entered.
-func (s *BaseEarthParserListener) EnterEntrypointArg(ctx *EntrypointArgContext) {}
-
-// ExitEntrypointArg is called when production entrypointArg is exited.
-func (s *BaseEarthParserListener) ExitEntrypointArg(ctx *EntrypointArgContext) {}
-
-// EnterFlags is called when production flags is entered.
-func (s *BaseEarthParserListener) EnterFlags(ctx *FlagsContext) {}
-
-// ExitFlags is called when production flags is exited.
-func (s *BaseEarthParserListener) ExitFlags(ctx *FlagsContext) {}
-
-// EnterFlag is called when production flag is entered.
-func (s *BaseEarthParserListener) EnterFlag(ctx *FlagContext) {}
-
-// ExitFlag is called when production flag is exited.
-func (s *BaseEarthParserListener) ExitFlag(ctx *FlagContext) {}
-
-// EnterFlagKey is called when production flagKey is entered.
-func (s *BaseEarthParserListener) EnterFlagKey(ctx *FlagKeyContext) {}
-
-// ExitFlagKey is called when production flagKey is exited.
-func (s *BaseEarthParserListener) ExitFlagKey(ctx *FlagKeyContext) {}
-
-// EnterFlagKeyValue is called when production flagKeyValue is entered.
-func (s *BaseEarthParserListener) EnterFlagKeyValue(ctx *FlagKeyValueContext) {}
-
-// ExitFlagKeyValue is called when production flagKeyValue is exited.
-func (s *BaseEarthParserListener) ExitFlagKeyValue(ctx *FlagKeyValueContext) {}
+// ExitStmtWordsMaybeJSON is called when production stmtWordsMaybeJSON is exited.
+func (s *BaseEarthParserListener) ExitStmtWordsMaybeJSON(ctx *StmtWordsMaybeJSONContext) {}
 
 // EnterStmtWords is called when production stmtWords is entered.
 func (s *BaseEarthParserListener) EnterStmtWords(ctx *StmtWordsContext) {}
@@ -248,105 +182,3 @@ func (s *BaseEarthParserListener) EnterStmtWord(ctx *StmtWordContext) {}
 
 // ExitStmtWord is called when production stmtWord is exited.
 func (s *BaseEarthParserListener) ExitStmtWord(ctx *StmtWordContext) {}
-
-// EnterEnvArgKey is called when production envArgKey is entered.
-func (s *BaseEarthParserListener) EnterEnvArgKey(ctx *EnvArgKeyContext) {}
-
-// ExitEnvArgKey is called when production envArgKey is exited.
-func (s *BaseEarthParserListener) ExitEnvArgKey(ctx *EnvArgKeyContext) {}
-
-// EnterEnvArgValue is called when production envArgValue is entered.
-func (s *BaseEarthParserListener) EnterEnvArgValue(ctx *EnvArgValueContext) {}
-
-// ExitEnvArgValue is called when production envArgValue is exited.
-func (s *BaseEarthParserListener) ExitEnvArgValue(ctx *EnvArgValueContext) {}
-
-// EnterCopySrc is called when production copySrc is entered.
-func (s *BaseEarthParserListener) EnterCopySrc(ctx *CopySrcContext) {}
-
-// ExitCopySrc is called when production copySrc is exited.
-func (s *BaseEarthParserListener) ExitCopySrc(ctx *CopySrcContext) {}
-
-// EnterCopyDest is called when production copyDest is entered.
-func (s *BaseEarthParserListener) EnterCopyDest(ctx *CopyDestContext) {}
-
-// ExitCopyDest is called when production copyDest is exited.
-func (s *BaseEarthParserListener) ExitCopyDest(ctx *CopyDestContext) {}
-
-// EnterAsName is called when production asName is entered.
-func (s *BaseEarthParserListener) EnterAsName(ctx *AsNameContext) {}
-
-// ExitAsName is called when production asName is exited.
-func (s *BaseEarthParserListener) ExitAsName(ctx *AsNameContext) {}
-
-// EnterImageName is called when production imageName is entered.
-func (s *BaseEarthParserListener) EnterImageName(ctx *ImageNameContext) {}
-
-// ExitImageName is called when production imageName is exited.
-func (s *BaseEarthParserListener) ExitImageName(ctx *ImageNameContext) {}
-
-// EnterSaveImageName is called when production saveImageName is entered.
-func (s *BaseEarthParserListener) EnterSaveImageName(ctx *SaveImageNameContext) {}
-
-// ExitSaveImageName is called when production saveImageName is exited.
-func (s *BaseEarthParserListener) ExitSaveImageName(ctx *SaveImageNameContext) {}
-
-// EnterTargetName is called when production targetName is entered.
-func (s *BaseEarthParserListener) EnterTargetName(ctx *TargetNameContext) {}
-
-// ExitTargetName is called when production targetName is exited.
-func (s *BaseEarthParserListener) ExitTargetName(ctx *TargetNameContext) {}
-
-// EnterFullTargetName is called when production fullTargetName is entered.
-func (s *BaseEarthParserListener) EnterFullTargetName(ctx *FullTargetNameContext) {}
-
-// ExitFullTargetName is called when production fullTargetName is exited.
-func (s *BaseEarthParserListener) ExitFullTargetName(ctx *FullTargetNameContext) {}
-
-// EnterArtifactName is called when production artifactName is entered.
-func (s *BaseEarthParserListener) EnterArtifactName(ctx *ArtifactNameContext) {}
-
-// ExitArtifactName is called when production artifactName is exited.
-func (s *BaseEarthParserListener) ExitArtifactName(ctx *ArtifactNameContext) {}
-
-// EnterSaveFrom is called when production saveFrom is entered.
-func (s *BaseEarthParserListener) EnterSaveFrom(ctx *SaveFromContext) {}
-
-// ExitSaveFrom is called when production saveFrom is exited.
-func (s *BaseEarthParserListener) ExitSaveFrom(ctx *SaveFromContext) {}
-
-// EnterSaveTo is called when production saveTo is entered.
-func (s *BaseEarthParserListener) EnterSaveTo(ctx *SaveToContext) {}
-
-// ExitSaveTo is called when production saveTo is exited.
-func (s *BaseEarthParserListener) ExitSaveTo(ctx *SaveToContext) {}
-
-// EnterSaveAsLocalTo is called when production saveAsLocalTo is entered.
-func (s *BaseEarthParserListener) EnterSaveAsLocalTo(ctx *SaveAsLocalToContext) {}
-
-// ExitSaveAsLocalTo is called when production saveAsLocalTo is exited.
-func (s *BaseEarthParserListener) ExitSaveAsLocalTo(ctx *SaveAsLocalToContext) {}
-
-// EnterWorkdirPath is called when production workdirPath is entered.
-func (s *BaseEarthParserListener) EnterWorkdirPath(ctx *WorkdirPathContext) {}
-
-// ExitWorkdirPath is called when production workdirPath is exited.
-func (s *BaseEarthParserListener) ExitWorkdirPath(ctx *WorkdirPathContext) {}
-
-// EnterGitURL is called when production gitURL is entered.
-func (s *BaseEarthParserListener) EnterGitURL(ctx *GitURLContext) {}
-
-// ExitGitURL is called when production gitURL is exited.
-func (s *BaseEarthParserListener) ExitGitURL(ctx *GitURLContext) {}
-
-// EnterArgsList is called when production argsList is entered.
-func (s *BaseEarthParserListener) EnterArgsList(ctx *ArgsListContext) {}
-
-// ExitArgsList is called when production argsList is exited.
-func (s *BaseEarthParserListener) ExitArgsList(ctx *ArgsListContext) {}
-
-// EnterArg is called when production arg is entered.
-func (s *BaseEarthParserListener) EnterArg(ctx *ArgContext) {}
-
-// ExitArg is called when production arg is exited.
-func (s *BaseEarthParserListener) ExitArg(ctx *ArgContext) {}

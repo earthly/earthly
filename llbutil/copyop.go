@@ -8,7 +8,7 @@ import (
 )
 
 // CopyOp is a simplified llb copy operation.
-func CopyOp(srcState llb.State, srcs []string, destState llb.State, dest string, allowWildcard bool, opts ...llb.ConstraintsOpt) llb.State {
+func CopyOp(srcState llb.State, srcs []string, destState llb.State, dest string, allowWildcard bool, isDir bool, opts ...llb.ConstraintsOpt) llb.State {
 	destAdjusted := dest
 	if dest == "." || dest == "" || strings.HasSuffix(dest, string(filepath.Separator)) {
 		destAdjusted += string(filepath.Separator)
@@ -18,7 +18,7 @@ func CopyOp(srcState llb.State, srcs []string, destState llb.State, dest string,
 		copyOpts := []llb.CopyOption{
 			&llb.CopyInfo{
 				FollowSymlinks:      true,
-				CopyDirContentsOnly: true,
+				CopyDirContentsOnly: !isDir,
 				AttemptUnpack:       false,
 				CreateDestPath:      true,
 				AllowWildcard:       allowWildcard,

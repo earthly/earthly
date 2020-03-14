@@ -22,30 +22,6 @@ func (l *debugListener) EnterStmt(ctx *parser.StmtContext) {
 	log.Printf("Stmt: %s\n", ctx.GetText())
 }
 
-func (l *debugListener) EnterFromStmt(ctx *parser.FromStmtContext) {
-	log.Printf("FromStmt: %s\n", ctx.GetText())
-}
-
-func (l *debugListener) EnterTargetName(ctx *parser.TargetNameContext) {
-	log.Printf("TargetName: %s\n", ctx.GetText())
-}
-
-func (l *debugListener) EnterCommandName(ctx *parser.CommandNameContext) {
-	log.Printf("CommandName: %s\n", ctx.GetText())
-}
-
-func (l *debugListener) EnterFlag(ctx *parser.FlagContext) {
-	log.Printf("Flag: %s\n", ctx.GetText())
-}
-
 func (l *debugListener) EnterStmtWords(ctx *parser.StmtWordsContext) {
 	log.Printf("StmtWords: %s\n", ctx.GetText())
 }
-
-func (l *debugListener) EnterArg(ctx *parser.ArgContext) {
-	log.Printf("Arg: %s\n", ctx.GetText())
-}
-
-// func (l *debugListener) EnterEveryRule(ctx antlr.ParserRuleContext) {
-// 	log.Printf("Every: %s\n", ctx.GetText())
-// }

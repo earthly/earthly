@@ -32,21 +32,12 @@ deps:
 
 code:
 	FROM +deps
-	COPY builder builder
-	COPY buildcontext buildcontext
-	COPY buildkitd/buildkitd.go buildkitd/settings.go buildkitd/
-	COPY cleanup cleanup
-	COPY cmd cmd
-	COPY conslogging conslogging
-	COPY dockertar dockertar
-	COPY domain domain
-	COPY earthfile2llb/*.go earthfile2llb/
-	COPY earthfile2llb/dedup earthfile2llb/dedup
-	COPY earthfile2llb/image earthfile2llb/image
+	COPY --dir buildcontext builder cleanup cmd conslogging dockertar domain \
+		llbutil logging ./
+	COPY --dir buildkitd/buildkitd.go buildkitd/settings.go buildkitd/
+	COPY --dir earthfile2llb/antlrhandler earthfile2llb/dedup earthfile2llb/image \
+		earthfile2llb/variables earthfile2llb/*.go earthfile2llb/
 	COPY --artifact ./earthfile2llb/parser+parser/*.go ./earthfile2llb/parser/
-	COPY earthfile2llb/variables earthfile2llb/variables
-	COPY llbutil llbutil
-	COPY logging logging
 	SAVE IMAGE
 
 lint:
@@ -59,8 +50,7 @@ earth:
 	ARG GOOS=linux
 	ARG GOARCH=amd64
 	ARG GO_EXTRA_LDFLAGS="-linkmode external -extldflags -static"
-	RUN test -n "$GOOS"
-	RUN test -n "$GOARCH"
+	RUN test -n "$GOOS" && test -n "$GOARCH"
 	RUN \
 		--mount=type=cache,target=/go-cache \
 		go build \
@@ -82,7 +72,7 @@ earth-docker:
 	RUN apk add --update --no-cache docker
 	ENV ENABLE_LOOP_DEVICE=false
 	COPY earth-buildkitd-wrapper.sh /usr/bin/earth-buildkitd-wrapper.sh
-	ENTRYPOINT /usr/bin/earth-buildkitd-wrapper.sh
+	ENTRYPOINT ["/usr/bin/earth-buildkitd-wrapper.sh"]
 	COPY --artifact +earth/earth /usr/bin/earth
 	SAVE IMAGE earthly/earth:latest
 
