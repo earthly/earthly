@@ -8,9 +8,9 @@ jobs:
       - EARTHLY_EARTH_IMAGE: "earthly/earth:v0.0.2"
     steps:
       - checkout
-      - restore_cache:
-          keys:
-            - earthly-buildkit-
+      # - restore_cache:
+      #     keys:
+      #       - earthly-buildkit-
       - run: docker login --username vladaionescu --password "$DOCKERHUB_TOKEN"
       - run: docker pull "$EARTHLY_EARTH_IMAGE"
       - run: |
@@ -23,7 +23,7 @@ jobs:
       - run: docker push earthly/buildkitd:latest
       - run: docker push earthly/earth:latest
       - run: sudo chown -R "circleci:circleci" /tmp/earthly
-      - save_cache:
-          key: earthly-buildkit-{{ epoch }}
-          paths:
-              - /tmp/earthly
+      # - save_cache:
+      #     key: earthly-buildkit-{{ epoch }}
+      #     paths:
+      #         - /tmp/earthly
