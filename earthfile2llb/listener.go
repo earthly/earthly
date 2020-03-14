@@ -31,8 +31,8 @@ type listener struct {
 	gitCloneDest   string
 	flagKeyValues  []string
 
-	isListWithBrackets bool
-	stmtWords          []string
+	execMode  bool
+	stmtWords []string
 
 	err error
 }
@@ -171,7 +171,7 @@ func (l *listener) EnterRunStmt(c *parser.RunStmtContext) {
 		return
 	}
 	l.stmtWords = nil
-	l.isListWithBrackets = false
+	l.execMode = false
 }
 
 func (l *listener) ExitRunStmt(c *parser.RunStmtContext) {
@@ -196,7 +196,7 @@ func (l *listener) ExitRunStmt(c *parser.RunStmtContext) {
 		l.err = errors.Wrapf(err, "invalid RUN arguments %v", l.stmtWords)
 		return
 	}
-	withShell := !l.isListWithBrackets
+	withShell := !l.execMode
 	if *withDocker {
 		*privileged = true
 	}
@@ -276,20 +276,27 @@ func (l *listener) EnterBuildStmt(c *parser.BuildStmtContext) {
 	if l.shouldSkip() {
 		return
 	}
-	l.fullTargetName = ""
-	l.flagKeyValues = nil
+	l.stmtWords = nil
 }
 
 func (l *listener) ExitBuildStmt(c *parser.BuildStmtContext) {
 	if l.shouldSkip() {
 		return
 	}
-	buildArgs, err := parseBuildArgFlags(l.flagKeyValues)
+	fs := flag.NewFlagSet("BUILD", flag.ContinueOnError)
+	buildArgs := new(StringSliceFlag)
+	fs.Var(buildArgs, "build-arg", "")
+	err := fs.Parse(l.stmtWords)
 	if err != nil {
-		l.err = errors.Wrap(err, "parse build arg flags")
+		l.err = errors.Wrapf(err, "invalid BUILD arguments %v", l.stmtWords)
 		return
 	}
-	_, err = l.converter.Build(l.ctx, l.fullTargetName, buildArgs)
+	if fs.NArg() != 1 {
+		l.err = fmt.Errorf("invalid number of arguments for BUILD: %s", l.stmtWords)
+		return
+	}
+	fullTargetName := fs.Arg(0)
+	_, err = l.converter.Build(l.ctx, fullTargetName, buildArgs.Args)
 	if err != nil {
 		l.err = errors.Wrapf(err, "apply BUILD %s", l.fullTargetName)
 		return
@@ -315,14 +322,14 @@ func (l *listener) EnterEntrypointStmt(c *parser.EntrypointStmtContext) {
 		return
 	}
 	l.stmtWords = nil
-	l.isListWithBrackets = false
+	l.execMode = false
 }
 
 func (l *listener) ExitEntrypointStmt(c *parser.EntrypointStmtContext) {
 	if l.shouldSkip() {
 		return
 	}
-	withShell := !l.isListWithBrackets
+	withShell := !l.execMode
 	l.converter.Entrypoint(l.ctx, l.stmtWords, withShell)
 }
 
@@ -445,7 +452,7 @@ func (l *listener) EnterStmtWordsList(c *parser.StmtWordsListContext) {
 	if l.shouldSkip() {
 		return
 	}
-	l.isListWithBrackets = true
+	l.execMode = true
 }
 
 func (l *listener) EnterFullTargetName(c *parser.FullTargetNameContext) {

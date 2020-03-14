@@ -37,7 +37,7 @@ saveArtifact: SAVE_ARTIFACT (WS stmtWords)?;
 
 runStmt: RUN (WS (stmtWords | stmtWordsList))?;
 
-buildStmt: BUILD (WS flagKeyValue)* WS fullTargetName;
+buildStmt: BUILD (WS stmtWords)?;
 
 workdirStmt: WORKDIR WS workdirPath;
 workdirPath: Atom;
