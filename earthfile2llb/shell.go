@@ -28,31 +28,39 @@ func splitWildcards(name string) (string, string) {
 	return path.Dir(name[:i]), base + name[i:]
 }
 
-func withShell(args []string) []string {
-	return []string{"/bin/sh", "-c", strings.Join(args, " ")}
+func withShell(args []string, isWithShell bool) []string {
+	if isWithShell {
+		return []string{"/bin/sh", "-c", strings.Join(args, " ")}
+	}
+	return args
 }
 
-func withShellAndEnvVars(args []string, envVars []string) []string {
-	var escapedArgs []string
-	for _, arg := range args {
-		escapedArgs = append(escapedArgs, escapeShellSingleQuotes(arg))
+func strWithEnvVars(args []string, envVars []string, isWithShell bool) string {
+	if isWithShell {
+		var escapedArgs []string
+		for _, arg := range args {
+			escapedArgs = append(escapedArgs, escapeShellSingleQuotes(arg))
+		}
+		return strings.Join(
+			[]string{
+				strings.Join(envVars, " "),
+				"/bin/sh", "-c",
+				fmt.Sprintf("'%s'", strings.Join(escapedArgs, " ")),
+			}, " ")
+	} else {
+		return strings.Join(append([]string{strings.Join(envVars, " ")}, args...), " ")
 	}
+
+}
+
+func withShellAndEnvVars(args []string, envVars []string, isWithShell bool) []string {
 	return []string{
 		"/bin/sh", "-c",
-		strings.Join([]string{
-			strings.Join(envVars, " "),
-			"/bin/sh",
-			"-c",
-			fmt.Sprintf("'%s'", strings.Join(escapedArgs, " ")),
-		}, " "),
+		strWithEnvVars(args, envVars, isWithShell),
 	}
 }
 
-func withDockerdWrap(args []string, envVars []string) []string {
-	var escapedArgs []string
-	for _, arg := range args {
-		escapedArgs = append(escapedArgs, escapeShellSingleQuotes(arg))
-	}
+func withDockerdWrap(args []string, envVars []string, isWithShell bool) []string {
 	return []string{
 		"/bin/sh", "-c",
 		"/bin/sh <<EOF" +
@@ -74,12 +82,7 @@ func withDockerdWrap(args []string, envVars []string) []string {
 			"let i+=1\n" +
 			"done\n" +
 			// Run provided args.
-			strings.Join([]string{
-				strings.Join(envVars, " "),
-				"/bin/sh",
-				"-c",
-				fmt.Sprintf("'%s'", strings.Join(escapedArgs, " ")),
-			}, " ") + "\n" +
+			strWithEnvVars(args, envVars, isWithShell) + "\n" +
 			"exit_code=\"\\$?\"\n" +
 			// Shut down dockerd.
 			"kill \"\\$dockerd_pid\" &>/dev/null\n" +

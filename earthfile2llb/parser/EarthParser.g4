@@ -14,12 +14,12 @@ stmts: WS? stmt (NL+ WS? stmt)*;
 
 stmt:
 	fromStmt
-	| copyStmt
+	| copyStmt  // Updated.
 	| saveStmt
-	| runStmt
+	| runStmt  // Updated.
 	| buildStmt
 	| workdirStmt
-	| entrypointStmt
+	| entrypointStmt  // Updated.
 	| envStmt
 	| argStmt
 	| gitCloneStmt
@@ -30,7 +30,7 @@ stmt:
 fromStmt: FROM (WS flagKeyValue)* WS imageName (WS AS asName)?;
 asName: Atom;
 
-copyStmt: COPY WS stmtWords;
+copyStmt: COPY (WS stmtWords)?;
 
 saveStmt: saveArtifact | saveImage;
 saveImage: SAVE_IMAGE (WS saveImageName)*;
@@ -40,14 +40,14 @@ saveFrom: Atom;
 saveTo: Atom;
 saveAsLocalTo: Atom;
 
-runStmt: RUN (WS flag)* WS (runArgs | runArgsList);
+runStmt: RUN (WS (stmtWords | stmtWordsList))?;
 
 buildStmt: BUILD (WS flagKeyValue)* WS fullTargetName;
 
 workdirStmt: WORKDIR WS workdirPath;
 workdirPath: Atom;
 
-entrypointStmt: ENTRYPOINT WS (entrypointArgs | entrypointArgsList);
+entrypointStmt: ENTRYPOINT (WS (stmtWords | stmtWordsList))?;
 
 envStmt: ENV WS envArgKey (WS? EQUALS)? (WS? envArgValue)?;
 
@@ -66,22 +66,14 @@ genericCommand:
 	commandName (WS flags)? (WS stmtWords | WS argsList)?;
 commandName: Command;
 
-runArgs: runArg (WS runArg)*;
-runArgsList:
-	OPEN_BRACKET WS? runArg (WS? COMMA WS? runArg)+ WS? CLOSE_BRACKET;
-runArg: Atom;
-
-entrypointArgs: entrypointArg (WS entrypointArg)*;
-entrypointArgsList:
-	OPEN_BRACKET WS? entrypointArg (WS? COMMA WS? entrypointArg)+ WS? CLOSE_BRACKET;
-entrypointArg: Atom;
-
 flags: flag (WS? flag)*;
 flag: flagKey | flagKeyValue;
 flagKey: FlagKey;
 flagKeyValue: FlagKeyValue;
 
 stmtWords: stmtWord (WS? stmtWord)*;
+stmtWordsList:
+	OPEN_BRACKET WS? (stmtWord (WS? COMMA WS? stmtWord)* WS?)? CLOSE_BRACKET;
 stmtWord: Atom;
 
 envArgKey: Atom;

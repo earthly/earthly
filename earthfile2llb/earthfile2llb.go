@@ -3,12 +3,14 @@ package earthfile2llb
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/antlr/antlr4/runtime/Go/antlr"
 	"github.com/pkg/errors"
 	"github.com/vladaionescu/earthly/buildcontext"
 	"github.com/vladaionescu/earthly/cleanup"
 	"github.com/vladaionescu/earthly/domain"
+	"github.com/vladaionescu/earthly/earthfile2llb/antlrhandler"
 	"github.com/vladaionescu/earthly/earthfile2llb/parser"
 	"github.com/vladaionescu/earthly/earthfile2llb/variables"
 	"github.com/vladaionescu/earthly/logging"
@@ -61,7 +63,9 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, resolver *buildcon
 	}
 	// Convert.
 	targetCtx := logging.With(ctx, "target", target)
-	tree, err := newEarthfileTree(bc.EarthfilePath)
+	errorListener := antlrhandler.NewReturnErrorListener()
+	errorStrategy := antlrhandler.NewReturnErrorStrategy()
+	tree, err := newEarthfileTree(bc.EarthfilePath, errorListener, errorStrategy)
 	if err != nil {
 		return nil, err
 	}
@@ -71,9 +75,28 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, resolver *buildcon
 	if err != nil {
 		return nil, err
 	}
-	err = walkTree(newListener(targetCtx, converter, target.Target), tree)
-	if err != nil {
-		return nil, err
+	walkErr := walkTree(newListener(targetCtx, converter, target.Target), tree)
+	if len(errorListener.Errs) > 0 {
+		var errString []string
+		for _, err := range errorListener.Errs {
+			errString = append(errString, err.Error())
+		}
+		return nil, fmt.Errorf(strings.Join(errString, "\n"))
+	}
+	if errorStrategy.Err != nil {
+		var errString []string
+		errString = append(errString,
+			fmt.Sprintf(
+				"Syntax error: line %d:%d when parsing %s",
+				errorStrategy.RE.GetOffendingToken().GetLine(),
+				errorStrategy.RE.GetOffendingToken().GetColumn(),
+				errorStrategy.ErrContext.GetText()))
+		errString = append(errString,
+			fmt.Sprintf("Details: %s", errorStrategy.RE.GetMessage()))
+		return nil, errors.Wrapf(errorStrategy.Err, "%s", strings.Join(errString, "\n"))
+	}
+	if walkErr != nil {
+		return nil, walkErr
 	}
 	return converter.FinalizeStates(), nil
 }
@@ -82,7 +105,7 @@ func walkTree(l *listener, tree parser.IEarthFileContext) (err error) {
 	defer func() {
 		r := recover()
 		if r != nil {
-			err = fmt.Errorf("parser failure: %v", r)
+			err = fmt.Errorf("Parser failure: %v", r)
 		}
 	}()
 	antlr.ParseTreeWalkerDefault.Walk(l, tree)
@@ -94,7 +117,8 @@ func walkTree(l *listener, tree parser.IEarthFileContext) (err error) {
 
 // ParseDebug parses a earthfile and prints debug information about it.
 func ParseDebug(filename string) error {
-	tree, err := newEarthfileTree(filename)
+	tree, err := newEarthfileTree(
+		filename, antlr.NewConsoleErrorListener(), antlr.NewBailErrorStrategy())
 	if err != nil {
 		return errors.Wrap(err, "new earthfile tree")
 	}
@@ -102,7 +126,7 @@ func ParseDebug(filename string) error {
 	return nil
 }
 
-func newEarthfileTree(filename string) (parser.IEarthFileContext, error) {
+func newEarthfileTree(filename string, errorListener antlr.ErrorListener, errorStrategy antlr.ErrorStrategy) (parser.IEarthFileContext, error) {
 	input, err := antlr.NewFileStream(filename)
 	if err != nil {
 		return nil, errors.Wrapf(err, "new file stream %s", filename)
@@ -110,8 +134,8 @@ func newEarthfileTree(filename string) (parser.IEarthFileContext, error) {
 	lexer := newLexer(input)
 	stream := antlr.NewCommonTokenStream(lexer, 0)
 	p := parser.NewEarthParser(stream)
-	p.AddErrorListener(antlr.NewDiagnosticErrorListener(true))
-	p.SetErrorHandler(antlr.NewBailErrorStrategy())
+	p.AddErrorListener(errorListener)
+	p.SetErrorHandler(errorStrategy)
 	p.BuildParseTrees = true
 	return p.EarthFile(), nil
 }

@@ -150,7 +150,7 @@ func (c *Converter) fromTarget(ctx context.Context, targetName string, buildArgs
 	// Pass on dep state over to this state.
 	// Run a dummy command, mainly for the custom name output.
 	runOpts := []llb.RunOption{
-		llb.Args(withShell([]string{"true"})),
+		llb.Args([]string{"/bin/sh", "-c", "true"}),
 		llb.Dir("/"),
 		llb.WithCustomNamef("[%s] FROM (%v) %s", c.mts.FinalStates.Target.String(), buildArgs, targetName),
 	}
@@ -214,7 +214,7 @@ func (c *Converter) CopyClassical(ctx context.Context, srcs []string, dest strin
 }
 
 // Run applies the earth RUN command.
-func (c *Converter) Run(ctx context.Context, args []string, mounts []string, secretKeyValues []string, privileged bool, withEntrypoint bool, withDocker bool) error {
+func (c *Converter) Run(ctx context.Context, args []string, mounts []string, secretKeyValues []string, privileged bool, withEntrypoint bool, withDocker bool, isWithShell bool) error {
 	// TODO: This does not work, because it strips away some quotes, which are valuable to the shell.
 	//       This is probably working as intended as is. Should check what happens in the case of the
 	//       bracket syntax, however.
@@ -240,15 +240,8 @@ func (c *Converter) Run(ctx context.Context, args []string, mounts []string, sec
 	opts = append(opts, mountRunOpts...)
 	finalArgs := args
 	if withEntrypoint {
-		if len(c.mts.FinalStates.SideEffectsImage.Config.Entrypoint) > 2 &&
-			c.mts.FinalStates.SideEffectsImage.Config.Entrypoint[0] == "/bin/sh" &&
-			c.mts.FinalStates.SideEffectsImage.Config.Entrypoint[1] == "-c" {
-			// TODO: This is a hack around the with shell / without shell issue. Should make this
-			//       work properly even in the shell within shell case.
-			finalArgs = append(c.mts.FinalStates.SideEffectsImage.Config.Entrypoint[2:], args...)
-		} else {
-			finalArgs = append(c.mts.FinalStates.SideEffectsImage.Config.Entrypoint, args...)
-		}
+		finalArgs = append(c.mts.FinalStates.SideEffectsImage.Config.Entrypoint, args...)
+		isWithShell = false // Don't use shell when --entrypoint is passed.
 	}
 	privilegedStr := ""
 	if privileged {
@@ -261,7 +254,7 @@ func (c *Converter) Run(ctx context.Context, args []string, mounts []string, sec
 	}
 	opts = append(opts, llb.WithCustomNamef(
 		"[%s] RUN %s%s%v", c.mts.FinalStates.Target.String(), privilegedStr, withDockerStr, finalArgs))
-	return c.internalRun(ctx, finalArgs, secretKeyValues, withDocker, opts...)
+	return c.internalRun(ctx, finalArgs, secretKeyValues, withDocker, isWithShell, opts...)
 }
 
 // SaveArtifact applies the earth SAVE ARTIFACT command.
@@ -419,12 +412,12 @@ func (c *Converter) Workdir(ctx context.Context, workdirPath string) {
 }
 
 // Entrypoint applies the ENTRYPOINT command.
-func (c *Converter) Entrypoint(ctx context.Context, entrypointArgs []string) {
+func (c *Converter) Entrypoint(ctx context.Context, entrypointArgs []string, isWithShell bool) {
 	for i := range entrypointArgs {
 		entrypointArgs[i] = c.expandArgs(entrypointArgs[i])
 	}
 	logging.GetLogger(ctx).With("entrypoint", entrypointArgs).Info("Applying ENTRYPOINT")
-	c.mts.FinalStates.SideEffectsImage.Config.Entrypoint = withShell(entrypointArgs)
+	c.mts.FinalStates.SideEffectsImage.Config.Entrypoint = withShell(entrypointArgs, isWithShell)
 }
 
 // Env applies the ENV command.
@@ -547,7 +540,7 @@ func (c *Converter) FinalizeStates() *MultiTargetStates {
 	return c.mts
 }
 
-func (c *Converter) internalRun(ctx context.Context, args []string, secretKeyValues []string, withDocker bool, opts ...llb.RunOption) error {
+func (c *Converter) internalRun(ctx context.Context, args []string, secretKeyValues []string, withDocker bool, isWithShell bool, opts ...llb.RunOption) error {
 	finalOpts := opts
 	var extraEnvVars []string
 	for _, secretKeyValue := range secretKeyValues {
@@ -584,9 +577,9 @@ func (c *Converter) internalRun(ctx context.Context, args []string, secretKeyVal
 	}
 	var finalArgs []string
 	if withDocker {
-		finalArgs = withDockerdWrap(args, extraEnvVars)
+		finalArgs = withDockerdWrap(args, extraEnvVars, isWithShell)
 	} else {
-		finalArgs = withShellAndEnvVars(args, extraEnvVars)
+		finalArgs = withShellAndEnvVars(args, extraEnvVars, isWithShell)
 	}
 	finalOpts = append(finalOpts, llb.Args(finalArgs))
 	c.mts.FinalStates.SideEffectsState = c.mts.FinalStates.SideEffectsState.Run(finalOpts...).Root()
@@ -637,7 +630,7 @@ func (c *Converter) solveAndLoad(ctx context.Context, mts *MultiTargetStates, op
 	loadOpts := []llb.RunOption{
 		llb.Args(
 			withDockerdWrap(
-				[]string{"docker", "load", "</src/image.tar"}, []string{})),
+				[]string{"docker", "load", "</src/image.tar"}, []string{}, true)),
 		llb.AddMount("/src", tarContext, llb.Readonly),
 		llb.Dir("/src"),
 		llb.Security(llb.SecurityModeInsecure),
@@ -770,7 +763,7 @@ func (c *Converter) parseBuildArg(ctx context.Context, arg string) (string, vari
 	buildArgPath := filepath.Join("/run/buildargs", name)
 	args := strings.Split(fmt.Sprintf("echo \"%s\" >%s", value, srcBuildArgPath), " ")
 	err := c.internalRun(
-		ctx, args, []string{}, false,
+		ctx, args, []string{}, false, true,
 		llb.WithCustomNamef("[%s] RUN %s", c.mts.FinalStates.Target.String(), value))
 	if err != nil {
 		return "", variables.Variable{}, errors.Wrapf(err, "run %v", value)

@@ -11,12 +11,12 @@ FROM: 'FROM' -> pushMode(COMMAND_ARGS);
 COPY: 'COPY' -> pushMode(COMMAND_ARGS_ATOMS_ONLY);
 SAVE_ARTIFACT: 'SAVE ARTIFACT' -> pushMode(COMMAND_ARGS);
 SAVE_IMAGE: 'SAVE IMAGE' -> pushMode(COMMAND_ARGS);
-RUN: 'RUN' -> pushMode(COMMAND_ARGS);
+RUN: 'RUN' -> pushMode(COMMAND_ARGS_ATOMS_ONLY);
 ENV: 'ENV' -> pushMode(COMMAND_ARGS_KEY_VALUE);
 ARG: 'ARG' -> pushMode(COMMAND_ARGS_KEY_VALUE);
 BUILD: 'BUILD' -> pushMode(COMMAND_ARGS);
 WORKDIR: 'WORKDIR' -> pushMode(COMMAND_ARGS);
-ENTRYPOINT: 'ENTRYPOINT' -> pushMode(COMMAND_ARGS);
+ENTRYPOINT: 'ENTRYPOINT' -> pushMode(COMMAND_ARGS_ATOMS_ONLY);
 GIT_CLONE: 'GIT CLONE' -> pushMode(COMMAND_ARGS);
 DOCKER_LOAD: 'DOCKER LOAD' -> pushMode(COMMAND_ARGS);
 DOCKER_PULL: 'DOCKER PULL' -> pushMode(COMMAND_ARGS);
@@ -37,12 +37,13 @@ FROM_R: FROM -> type(FROM), pushMode(COMMAND_ARGS);
 COPY_R: COPY -> type(COPY), pushMode(COMMAND_ARGS_ATOMS_ONLY);
 SAVE_ARTIFACT_R: SAVE_ARTIFACT -> type(SAVE_ARTIFACT), pushMode(COMMAND_ARGS);
 SAVE_IMAGE_R: SAVE_IMAGE -> type(SAVE_IMAGE), pushMode(COMMAND_ARGS);
-RUN_R: RUN -> type(RUN), pushMode(COMMAND_ARGS);
+RUN_R: RUN -> type(RUN), pushMode(COMMAND_ARGS_ATOMS_ONLY);
 ENV_R: ENV -> type(ENV), pushMode(COMMAND_ARGS_KEY_VALUE);
 ARG_R: ARG -> type(ARG), pushMode(COMMAND_ARGS_KEY_VALUE);
 BUILD_R: BUILD -> type(BUILD), pushMode(COMMAND_ARGS);
 WORKDIR_R: WORKDIR -> type(WORKDIR), pushMode(COMMAND_ARGS);
-ENTRYPOINT_R: ENTRYPOINT -> type(ENTRYPOINT), pushMode(COMMAND_ARGS);
+ENTRYPOINT_R:
+	ENTRYPOINT -> type(ENTRYPOINT), pushMode(COMMAND_ARGS_ATOMS_ONLY);
 GIT_CLONE_R: GIT_CLONE -> type(GIT_CLONE), pushMode(COMMAND_ARGS);
 DOCKER_LOAD_R: DOCKER_LOAD -> type(DOCKER_LOAD), pushMode(COMMAND_ARGS);
 DOCKER_PULL_R: DOCKER_PULL -> type(DOCKER_PULL), pushMode(COMMAND_ARGS);
@@ -54,7 +55,7 @@ WS_R: WS -> type(WS);
 mode COMMAND_ARGS;
 
 // TODO: This should only be allowed in the beginning. Command itself should be ok to contain '[',
-//       without going into command brackets mode.
+// without going into command brackets mode.
 OPEN_BRACKET: '[' -> pushMode(COMMAND_BRACKETS);
 
 FlagKeyValue: FlagKey '=' Atom;
@@ -79,6 +80,10 @@ NL_C: WS? CRLF -> type(NL), popMode;
 WS_C: WS -> type(WS);
 
 mode COMMAND_ARGS_ATOMS_ONLY;
+
+// TODO: This should only be allowed in the beginning. Command itself should be ok to contain '[',
+// without going into command brackets mode.
+OPEN_BRACKET_CAAO: '[' -> type(OPEN_BRACKET), pushMode(COMMAND_BRACKETS);
 
 AS: 'AS';
 AS_LOCAL: 'AS LOCAL';

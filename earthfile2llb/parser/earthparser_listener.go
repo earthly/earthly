@@ -95,24 +95,6 @@ type EarthParserListener interface {
 	// EnterCommandName is called when entering the commandName production.
 	EnterCommandName(c *CommandNameContext)
 
-	// EnterRunArgs is called when entering the runArgs production.
-	EnterRunArgs(c *RunArgsContext)
-
-	// EnterRunArgsList is called when entering the runArgsList production.
-	EnterRunArgsList(c *RunArgsListContext)
-
-	// EnterRunArg is called when entering the runArg production.
-	EnterRunArg(c *RunArgContext)
-
-	// EnterEntrypointArgs is called when entering the entrypointArgs production.
-	EnterEntrypointArgs(c *EntrypointArgsContext)
-
-	// EnterEntrypointArgsList is called when entering the entrypointArgsList production.
-	EnterEntrypointArgsList(c *EntrypointArgsListContext)
-
-	// EnterEntrypointArg is called when entering the entrypointArg production.
-	EnterEntrypointArg(c *EntrypointArgContext)
-
 	// EnterFlags is called when entering the flags production.
 	EnterFlags(c *FlagsContext)
 
@@ -127,6 +109,9 @@ type EarthParserListener interface {
 
 	// EnterStmtWords is called when entering the stmtWords production.
 	EnterStmtWords(c *StmtWordsContext)
+
+	// EnterStmtWordsList is called when entering the stmtWordsList production.
+	EnterStmtWordsList(c *StmtWordsListContext)
 
 	// EnterStmtWord is called when entering the stmtWord production.
 	EnterStmtWord(c *StmtWordContext)
@@ -242,24 +227,6 @@ type EarthParserListener interface {
 	// ExitCommandName is called when exiting the commandName production.
 	ExitCommandName(c *CommandNameContext)
 
-	// ExitRunArgs is called when exiting the runArgs production.
-	ExitRunArgs(c *RunArgsContext)
-
-	// ExitRunArgsList is called when exiting the runArgsList production.
-	ExitRunArgsList(c *RunArgsListContext)
-
-	// ExitRunArg is called when exiting the runArg production.
-	ExitRunArg(c *RunArgContext)
-
-	// ExitEntrypointArgs is called when exiting the entrypointArgs production.
-	ExitEntrypointArgs(c *EntrypointArgsContext)
-
-	// ExitEntrypointArgsList is called when exiting the entrypointArgsList production.
-	ExitEntrypointArgsList(c *EntrypointArgsListContext)
-
-	// ExitEntrypointArg is called when exiting the entrypointArg production.
-	ExitEntrypointArg(c *EntrypointArgContext)
-
 	// ExitFlags is called when exiting the flags production.
 	ExitFlags(c *FlagsContext)
 
@@ -274,6 +241,9 @@ type EarthParserListener interface {
 
 	// ExitStmtWords is called when exiting the stmtWords production.
 	ExitStmtWords(c *StmtWordsContext)
+
+	// ExitStmtWordsList is called when exiting the stmtWordsList production.
+	ExitStmtWordsList(c *StmtWordsListContext)
 
 	// ExitStmtWord is called when exiting the stmtWord production.
 	ExitStmtWord(c *StmtWordContext)

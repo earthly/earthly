@@ -25,8 +25,6 @@ type listener struct {
 	saveImageNames []string
 	asName         string
 	fullTargetName string
-	runArgs        []string
-	entrypointArgs []string
 	saveFrom       string
 	saveTo         string
 	saveAsLocalTo  string
@@ -36,7 +34,9 @@ type listener struct {
 	gitURL         string
 	gitCloneDest   string
 	flagKeyValues  []string
-	stmtWords      []string
+
+	isListWithBrackets bool
+	stmtWords          []string
 
 	err error
 }
@@ -118,8 +118,8 @@ func (l *listener) ExitCopyStmt(c *parser.CopyStmtContext) {
 	isArtifactCopy := fs.Bool("artifact", false, "")
 	from := fs.String("from", "", "")
 	isDirCopy := fs.Bool("dir", false, "")
-	buildArgsFlag := new(StringSliceFlag)
-	fs.Var(buildArgsFlag, "build-arg", "")
+	buildArgs := new(StringSliceFlag)
+	fs.Var(buildArgs, "build-arg", "")
 	err := fs.Parse(l.stmtWords)
 	if err != nil {
 		l.err = errors.Wrapf(err, "invalid COPY arguments %v", l.stmtWords)
@@ -144,20 +144,17 @@ func (l *listener) ExitCopyStmt(c *parser.CopyStmtContext) {
 		}
 		artifactName := fs.Arg(0)
 		dest := fs.Arg(1)
-		err = l.converter.CopyArtifact(l.ctx, artifactName, dest, buildArgsFlag.Args, *isDirCopy)
+		err = l.converter.CopyArtifact(l.ctx, artifactName, dest, buildArgs.Args, *isDirCopy)
 		if err != nil {
 			l.err = errors.Wrapf(err, "copy artifact")
 			return
 		}
 	} else {
-		if len(buildArgsFlag.Args) != 0 {
+		if len(buildArgs.Args) != 0 {
 			l.err = fmt.Errorf("Build args not supported for non --artifact case %v", l.stmtWords)
 			return
 		}
-		srcs := make([]string, 0, fs.NArg()-1)
-		for i := 0; i < fs.NArg()-1; i++ {
-			srcs = append(srcs, fs.Arg(i))
-		}
+		srcs := fs.Args()[:fs.NArg()-1]
 		dest := fs.Arg(fs.NArg() - 1)
 		l.converter.CopyClassical(l.ctx, srcs, dest, *isDirCopy)
 	}
@@ -167,21 +164,39 @@ func (l *listener) EnterRunStmt(c *parser.RunStmtContext) {
 	if l.shouldSkip() {
 		return
 	}
-	l.runArgs = nil
-	l.flagKeyValues = nil
+	l.stmtWords = nil
+	l.isListWithBrackets = false
 }
 
 func (l *listener) ExitRunStmt(c *parser.RunStmtContext) {
 	if l.shouldSkip() {
 		return
 	}
-	restArgs, mounts, secretKeyValues, privileged, withEntrypoint, withDocker, err := parseRunFlags(l.flagKeyValues)
-	if err != nil {
-		l.err = errors.Wrap(err, "parse run flags")
+	if len(l.stmtWords) < 1 {
+		l.err = errors.New("Not enough arguments for RUN")
 		return
 	}
-	args := append(restArgs, l.runArgs...)
-	err = l.converter.Run(l.ctx, args, mounts, secretKeyValues, privileged, withEntrypoint, withDocker)
+
+	fs := flag.NewFlagSet("RUN", flag.ContinueOnError)
+	privileged := fs.Bool("privileged", false, "")
+	withEntrypoint := fs.Bool("entrypoint", false, "")
+	withDocker := fs.Bool("with-docker", false, "")
+	secrets := new(StringSliceFlag)
+	fs.Var(secrets, "secret", "")
+	mounts := new(StringSliceFlag)
+	fs.Var(mounts, "mount", "")
+	err := fs.Parse(l.stmtWords)
+	if err != nil {
+		l.err = errors.Wrapf(err, "invalid RUN arguments %v", l.stmtWords)
+		return
+	}
+	withShell := !l.isListWithBrackets
+	if *withDocker {
+		*privileged = true
+	}
+	// TODO: In the bracket case, should flags be outside of the brackets?
+
+	err = l.converter.Run(l.ctx, fs.Args(), mounts.Args, secrets.Args, *privileged, *withEntrypoint, *withDocker, withShell)
 	if err != nil {
 		l.err = errors.Wrap(err, "run")
 		return
@@ -267,14 +282,16 @@ func (l *listener) EnterEntrypointStmt(c *parser.EntrypointStmtContext) {
 	if l.shouldSkip() {
 		return
 	}
-	l.entrypointArgs = nil
+	l.stmtWords = nil
+	l.isListWithBrackets = false
 }
 
 func (l *listener) ExitEntrypointStmt(c *parser.EntrypointStmtContext) {
 	if l.shouldSkip() {
 		return
 	}
-	l.converter.Entrypoint(l.ctx, l.entrypointArgs)
+	withShell := !l.isListWithBrackets
+	l.converter.Entrypoint(l.ctx, l.stmtWords, withShell)
 }
 
 func (l *listener) EnterEnvStmt(c *parser.EnvStmtContext) {
@@ -399,18 +416,11 @@ func (l *listener) EnterAsName(c *parser.AsNameContext) {
 	l.asName = c.GetText()
 }
 
-func (l *listener) EnterRunArg(c *parser.RunArgContext) {
+func (l *listener) EnterStmtWordsList(c *parser.StmtWordsListContext) {
 	if l.shouldSkip() {
 		return
 	}
-	l.runArgs = append(l.runArgs, c.GetText())
-}
-
-func (l *listener) EnterEntrypointArg(c *parser.EntrypointArgContext) {
-	if l.shouldSkip() {
-		return
-	}
-	l.entrypointArgs = append(l.entrypointArgs, c.GetText())
+	l.isListWithBrackets = true
 }
 
 func (l *listener) EnterSaveFrom(c *parser.SaveFromContext) {
@@ -514,63 +524,6 @@ func parseBuildArgFlags(flagKeyValues []string) ([]string, error) {
 		out = append(out, split[1])
 	}
 	return out, nil
-}
-
-func parseRunFlags(flagKeyValues []string) ([]string, []string, []string, bool, bool, bool, error) {
-	// TODO: Clean up return values.
-	// TODO: Use a flags parser.
-	var restArgs []string
-	var mounts []string
-	var secrets []string
-	privileged := false
-	entrypoint := false
-	withDocker := false
-	for index, flag := range flagKeyValues {
-		split := strings.SplitN(flag, "=", 2)
-		if len(split) < 1 {
-			return nil, nil, nil, false, false, false, fmt.Errorf("Invalid flag format %s", flag)
-		}
-		switch split[0] {
-		case "--secret":
-			if len(split) != 2 {
-				return nil, nil, nil, false, false, false, fmt.Errorf("Invalid flag format %s", flag)
-			}
-			secrets = append(secrets, split[1])
-		case "--privileged":
-			if len(split) != 1 {
-				return nil, nil, nil, false, false, false, fmt.Errorf("Invalid flag format %s", flag)
-			}
-			privileged = true
-		case "--entrypoint":
-			if len(split) != 1 {
-				return nil, nil, nil, false, false, false, fmt.Errorf("Invalid flag format %s", flag)
-			}
-			entrypoint = true
-		case "--mount":
-			if len(split) != 2 {
-				return nil, nil, nil, false, false, false, fmt.Errorf("Invalid flag format %s", flag)
-			}
-			mounts = append(mounts, split[1])
-		case "--with-docker":
-			if len(split) != 1 {
-				return nil, nil, nil, false, false, false, fmt.Errorf("Invalid flag format %s", flag)
-			}
-			privileged = true
-			withDocker = true
-		case "--":
-			if len(split) != 1 {
-				return nil, nil, nil, false, false, false, fmt.Errorf("Invalid flag format %s", flag)
-			}
-			// The rest are regular run args.
-			if index+1 < len(flagKeyValues) {
-				restArgs = flagKeyValues[(index + 1):]
-				return restArgs, mounts, secrets, privileged, entrypoint, withDocker, nil
-			}
-		default:
-			return nil, nil, nil, false, false, false, fmt.Errorf("Invalid flag %s", split[0])
-		}
-	}
-	return restArgs, mounts, secrets, privileged, entrypoint, withDocker, nil
 }
 
 func parseGitCloneFlags(flagKeyValues []string) (string, error) {

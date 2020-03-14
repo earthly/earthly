@@ -195,42 +195,6 @@ func (s *BaseEarthParserListener) EnterCommandName(ctx *CommandNameContext) {}
 // ExitCommandName is called when production commandName is exited.
 func (s *BaseEarthParserListener) ExitCommandName(ctx *CommandNameContext) {}
 
-// EnterRunArgs is called when production runArgs is entered.
-func (s *BaseEarthParserListener) EnterRunArgs(ctx *RunArgsContext) {}
-
-// ExitRunArgs is called when production runArgs is exited.
-func (s *BaseEarthParserListener) ExitRunArgs(ctx *RunArgsContext) {}
-
-// EnterRunArgsList is called when production runArgsList is entered.
-func (s *BaseEarthParserListener) EnterRunArgsList(ctx *RunArgsListContext) {}
-
-// ExitRunArgsList is called when production runArgsList is exited.
-func (s *BaseEarthParserListener) ExitRunArgsList(ctx *RunArgsListContext) {}
-
-// EnterRunArg is called when production runArg is entered.
-func (s *BaseEarthParserListener) EnterRunArg(ctx *RunArgContext) {}
-
-// ExitRunArg is called when production runArg is exited.
-func (s *BaseEarthParserListener) ExitRunArg(ctx *RunArgContext) {}
-
-// EnterEntrypointArgs is called when production entrypointArgs is entered.
-func (s *BaseEarthParserListener) EnterEntrypointArgs(ctx *EntrypointArgsContext) {}
-
-// ExitEntrypointArgs is called when production entrypointArgs is exited.
-func (s *BaseEarthParserListener) ExitEntrypointArgs(ctx *EntrypointArgsContext) {}
-
-// EnterEntrypointArgsList is called when production entrypointArgsList is entered.
-func (s *BaseEarthParserListener) EnterEntrypointArgsList(ctx *EntrypointArgsListContext) {}
-
-// ExitEntrypointArgsList is called when production entrypointArgsList is exited.
-func (s *BaseEarthParserListener) ExitEntrypointArgsList(ctx *EntrypointArgsListContext) {}
-
-// EnterEntrypointArg is called when production entrypointArg is entered.
-func (s *BaseEarthParserListener) EnterEntrypointArg(ctx *EntrypointArgContext) {}
-
-// ExitEntrypointArg is called when production entrypointArg is exited.
-func (s *BaseEarthParserListener) ExitEntrypointArg(ctx *EntrypointArgContext) {}
-
 // EnterFlags is called when production flags is entered.
 func (s *BaseEarthParserListener) EnterFlags(ctx *FlagsContext) {}
 
@@ -260,6 +224,12 @@ func (s *BaseEarthParserListener) EnterStmtWords(ctx *StmtWordsContext) {}
 
 // ExitStmtWords is called when production stmtWords is exited.
 func (s *BaseEarthParserListener) ExitStmtWords(ctx *StmtWordsContext) {}
+
+// EnterStmtWordsList is called when production stmtWordsList is entered.
+func (s *BaseEarthParserListener) EnterStmtWordsList(ctx *StmtWordsListContext) {}
+
+// ExitStmtWordsList is called when production stmtWordsList is exited.
+func (s *BaseEarthParserListener) ExitStmtWordsList(ctx *StmtWordsListContext) {}
 
 // EnterStmtWord is called when production stmtWord is entered.
 func (s *BaseEarthParserListener) EnterStmtWord(ctx *StmtWordContext) {}
