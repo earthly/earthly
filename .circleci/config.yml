@@ -19,7 +19,6 @@ jobs:
             -v "/var/run/docker.sock:/var/run/docker.sock" \
             -v "$PWD:/earthly" \
             -w /earthly \
-            --entrypoint=/usr/bin/earth-buildkitd-wrapper.sh \
             "$EARTHLY_EARTH_IMAGE" -p +test
       - run: docker push earthly/buildkitd:latest
       - run: docker push earthly/earth:latest
