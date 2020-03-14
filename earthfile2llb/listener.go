@@ -23,7 +23,6 @@ type listener struct {
 
 	imageName      string
 	saveImageNames []string
-	asName         string
 	fullTargetName string
 	saveFrom       string
 	saveTo         string
@@ -82,21 +81,31 @@ func (l *listener) EnterFromStmt(c *parser.FromStmtContext) {
 	if l.shouldSkip() {
 		return
 	}
-	l.flagKeyValues = nil
-	l.imageName = ""
-	l.asName = ""
+	l.stmtWords = nil
 }
 
 func (l *listener) ExitFromStmt(c *parser.FromStmtContext) {
 	if l.shouldSkip() {
 		return
 	}
-	buildArgs, err := parseBuildArgFlags(l.flagKeyValues)
+	fs := flag.NewFlagSet("FROM", flag.ContinueOnError)
+	buildArgs := new(StringSliceFlag)
+	fs.Var(buildArgs, "build-arg", "")
+	err := fs.Parse(l.stmtWords)
 	if err != nil {
-		l.err = errors.Wrap(err, "parse build arg flags")
+		l.err = errors.Wrapf(err, "invalid FROM arguments %v", l.stmtWords)
 		return
 	}
-	err = l.converter.From(l.ctx, l.imageName, buildArgs)
+	if fs.NArg() != 1 {
+		if fs.NArg() == 3 && fs.Arg(1) == "AS" {
+			l.err = errors.New("AS not supported, use earthly targets instead")
+		} else {
+			l.err = fmt.Errorf("invalid number of arguments for FROM: %s", l.stmtWords)
+		}
+		return
+	}
+	imageName := fs.Arg(0)
+	err = l.converter.From(l.ctx, imageName, buildArgs.Args)
 	if err != nil {
 		l.err = errors.Wrapf(err, "apply FROM %s", l.imageName)
 		return
@@ -126,11 +135,11 @@ func (l *listener) ExitCopyStmt(c *parser.CopyStmtContext) {
 		return
 	}
 	if fs.NArg() < 2 {
-		l.err = fmt.Errorf("Not enough COPY arguments %v", l.stmtWords)
+		l.err = fmt.Errorf("not enough COPY arguments %v", l.stmtWords)
 		return
 	}
 	if *from != "" && *isArtifactCopy {
-		l.err = fmt.Errorf("Invalid COPY flags %v: . The flags --from and --artifact cannot both be specified at the same time", l.stmtWords)
+		l.err = fmt.Errorf("invalid COPY flags %v: . The flags --from and --artifact cannot both be specified at the same time", l.stmtWords)
 		return
 	}
 	if *from != "" {
@@ -139,7 +148,7 @@ func (l *listener) ExitCopyStmt(c *parser.CopyStmtContext) {
 	}
 	if *isArtifactCopy {
 		if fs.NArg() != 2 {
-			l.err = errors.New("More than 2 COPY arguments not yet supported for --artifact")
+			l.err = errors.New("more than 2 COPY arguments not yet supported for --artifact")
 			return
 		}
 		artifactName := fs.Arg(0)
@@ -151,7 +160,7 @@ func (l *listener) ExitCopyStmt(c *parser.CopyStmtContext) {
 		}
 	} else {
 		if len(buildArgs.Args) != 0 {
-			l.err = fmt.Errorf("Build args not supported for non --artifact case %v", l.stmtWords)
+			l.err = fmt.Errorf("build args not supported for non --artifact case %v", l.stmtWords)
 			return
 		}
 		srcs := fs.Args()[:fs.NArg()-1]
@@ -173,7 +182,7 @@ func (l *listener) ExitRunStmt(c *parser.RunStmtContext) {
 		return
 	}
 	if len(l.stmtWords) < 1 {
-		l.err = errors.New("Not enough arguments for RUN")
+		l.err = errors.New("not enough arguments for RUN")
 		return
 	}
 
@@ -225,7 +234,7 @@ func (l *listener) EnterSaveImage(c *parser.SaveImageContext) {
 	}
 	if l.saveImageExists {
 		l.err = fmt.Errorf(
-			"More than one SAVE IMAGE statement per target not allowed: %s", c.GetText())
+			"more than one SAVE IMAGE statement per target not allowed: %s", c.GetText())
 		return
 	}
 	l.saveImageExists = true
@@ -407,13 +416,6 @@ func (l *listener) EnterSaveImageName(c *parser.SaveImageNameContext) {
 		return
 	}
 	l.saveImageNames = append(l.saveImageNames, c.GetText())
-}
-
-func (l *listener) EnterAsName(c *parser.AsNameContext) {
-	if l.shouldSkip() {
-		return
-	}
-	l.asName = c.GetText()
 }
 
 func (l *listener) EnterStmtWordsList(c *parser.StmtWordsListContext) {

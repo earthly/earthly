@@ -63,12 +63,6 @@ func (s *BaseEarthParserListener) EnterFromStmt(ctx *FromStmtContext) {}
 // ExitFromStmt is called when production fromStmt is exited.
 func (s *BaseEarthParserListener) ExitFromStmt(ctx *FromStmtContext) {}
 
-// EnterAsName is called when production asName is entered.
-func (s *BaseEarthParserListener) EnterAsName(ctx *AsNameContext) {}
-
-// ExitAsName is called when production asName is exited.
-func (s *BaseEarthParserListener) ExitAsName(ctx *AsNameContext) {}
-
 // EnterCopyStmt is called when production copyStmt is entered.
 func (s *BaseEarthParserListener) EnterCopyStmt(ctx *CopyStmtContext) {}
 

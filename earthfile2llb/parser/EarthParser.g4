@@ -13,7 +13,7 @@ targetHeader: Target;
 stmts: WS? stmt (NL+ WS? stmt)*;
 
 stmt:
-	fromStmt
+	fromStmt  // Updated.
 	| copyStmt  // Updated.
 	| saveStmt
 	| runStmt  // Updated.
@@ -27,8 +27,7 @@ stmt:
 	| dockerPullStmt
 	| genericCommand;
 
-fromStmt: FROM (WS flagKeyValue)* WS imageName (WS AS asName)?;
-asName: Atom;
+fromStmt: FROM (WS stmtWords)?;
 
 copyStmt: COPY (WS stmtWords)?;
 

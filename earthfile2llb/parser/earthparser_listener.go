@@ -29,9 +29,6 @@ type EarthParserListener interface {
 	// EnterFromStmt is called when entering the fromStmt production.
 	EnterFromStmt(c *FromStmtContext)
 
-	// EnterAsName is called when entering the asName production.
-	EnterAsName(c *AsNameContext)
-
 	// EnterCopyStmt is called when entering the copyStmt production.
 	EnterCopyStmt(c *CopyStmtContext)
 
@@ -160,9 +157,6 @@ type EarthParserListener interface {
 
 	// ExitFromStmt is called when exiting the fromStmt production.
 	ExitFromStmt(c *FromStmtContext)
-
-	// ExitAsName is called when exiting the asName production.
-	ExitAsName(c *AsNameContext)
 
 	// ExitCopyStmt is called when exiting the copyStmt production.
 	ExitCopyStmt(c *CopyStmtContext)
