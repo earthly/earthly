@@ -165,17 +165,17 @@ func (s *BaseEarthParserListener) EnterCommandName(ctx *CommandNameContext) {}
 // ExitCommandName is called when production commandName is exited.
 func (s *BaseEarthParserListener) ExitCommandName(ctx *CommandNameContext) {}
 
+// EnterStmtWordsMaybeJSON is called when production stmtWordsMaybeJSON is entered.
+func (s *BaseEarthParserListener) EnterStmtWordsMaybeJSON(ctx *StmtWordsMaybeJSONContext) {}
+
+// ExitStmtWordsMaybeJSON is called when production stmtWordsMaybeJSON is exited.
+func (s *BaseEarthParserListener) ExitStmtWordsMaybeJSON(ctx *StmtWordsMaybeJSONContext) {}
+
 // EnterStmtWords is called when production stmtWords is entered.
 func (s *BaseEarthParserListener) EnterStmtWords(ctx *StmtWordsContext) {}
 
 // ExitStmtWords is called when production stmtWords is exited.
 func (s *BaseEarthParserListener) ExitStmtWords(ctx *StmtWordsContext) {}
-
-// EnterStmtWordsList is called when production stmtWordsList is entered.
-func (s *BaseEarthParserListener) EnterStmtWordsList(ctx *StmtWordsListContext) {}
-
-// ExitStmtWordsList is called when production stmtWordsList is exited.
-func (s *BaseEarthParserListener) ExitStmtWordsList(ctx *StmtWordsListContext) {}
 
 // EnterStmtWord is called when production stmtWord is entered.
 func (s *BaseEarthParserListener) EnterStmtWord(ctx *StmtWordContext) {}

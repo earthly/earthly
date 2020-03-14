@@ -13,19 +13,19 @@ targetHeader: Target;
 stmts: WS? stmt (NL+ WS? stmt)*;
 
 stmt:
-	fromStmt  // Updated.
-	| copyStmt  // Updated.
-	| saveStmt  // Updated.
-	| runStmt  // Updated.
-	| buildStmt  // Updated.
-	| workdirStmt // Updated.
-	| entrypointStmt  // Updated.
+	fromStmt
+	| copyStmt
+	| saveStmt
+	| runStmt
+	| buildStmt
+	| workdirStmt
+	| entrypointStmt
 	| envStmt
 	| argStmt
-	| gitCloneStmt  // Updated.
-	| dockerLoadStmt  // Updated.
-	| dockerPullStmt  // Updated.
-	| genericCommand;  // Updated.
+	| gitCloneStmt
+	| dockerLoadStmt
+	| dockerPullStmt
+	| genericCommand;
 
 fromStmt: FROM (WS stmtWords)?;
 
@@ -35,13 +35,13 @@ saveStmt: saveArtifact | saveImage;
 saveImage: SAVE_IMAGE (WS stmtWords)?;
 saveArtifact: SAVE_ARTIFACT (WS stmtWords)?;
 
-runStmt: RUN (WS (stmtWords | stmtWordsList))?;
+runStmt: RUN (WS stmtWordsMaybeJSON)?;
 
 buildStmt: BUILD (WS stmtWords)?;
 
 workdirStmt: WORKDIR (WS stmtWords)?;
 
-entrypointStmt: ENTRYPOINT (WS (stmtWords | stmtWordsList))?;
+entrypointStmt: ENTRYPOINT (WS stmtWordsMaybeJSON)?;
 
 envStmt: ENV WS envArgKey (WS? EQUALS)? (WS? envArgValue)?;
 argStmt: ARG WS envArgKey ((WS? EQUALS) (WS? envArgValue)?)?;
@@ -57,7 +57,6 @@ dockerPullStmt: DOCKER_PULL (WS stmtWords)?;
 genericCommand: commandName (WS stmtWords)?;
 commandName: Command;
 
+stmtWordsMaybeJSON: stmtWords;
 stmtWords: stmtWord (WS? stmtWord)*;
-stmtWordsList:
-	OPEN_BRACKET WS? (stmtWord (WS? COMMA WS? stmtWord)* WS?)? CLOSE_BRACKET;
 stmtWord: Atom;

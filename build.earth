@@ -50,8 +50,7 @@ earth:
 	ARG GOOS=linux
 	ARG GOARCH=amd64
 	ARG GO_EXTRA_LDFLAGS="-linkmode external -extldflags -static"
-	RUN test -n "$GOOS"
-	RUN test -n "$GOARCH"
+	RUN test -n "$GOOS" && test -n "$GOARCH"
 	RUN \
 		--mount=type=cache,target=/go-cache \
 		go build \

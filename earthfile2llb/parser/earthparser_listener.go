@@ -80,11 +80,11 @@ type EarthParserListener interface {
 	// EnterCommandName is called when entering the commandName production.
 	EnterCommandName(c *CommandNameContext)
 
+	// EnterStmtWordsMaybeJSON is called when entering the stmtWordsMaybeJSON production.
+	EnterStmtWordsMaybeJSON(c *StmtWordsMaybeJSONContext)
+
 	// EnterStmtWords is called when entering the stmtWords production.
 	EnterStmtWords(c *StmtWordsContext)
-
-	// EnterStmtWordsList is called when entering the stmtWordsList production.
-	EnterStmtWordsList(c *StmtWordsListContext)
 
 	// EnterStmtWord is called when entering the stmtWord production.
 	EnterStmtWord(c *StmtWordContext)
@@ -161,11 +161,11 @@ type EarthParserListener interface {
 	// ExitCommandName is called when exiting the commandName production.
 	ExitCommandName(c *CommandNameContext)
 
+	// ExitStmtWordsMaybeJSON is called when exiting the stmtWordsMaybeJSON production.
+	ExitStmtWordsMaybeJSON(c *StmtWordsMaybeJSONContext)
+
 	// ExitStmtWords is called when exiting the stmtWords production.
 	ExitStmtWords(c *StmtWordsContext)
-
-	// ExitStmtWordsList is called when exiting the stmtWordsList production.
-	ExitStmtWordsList(c *StmtWordsListContext)
 
 	// ExitStmtWord is called when exiting the stmtWord production.
 	ExitStmtWord(c *StmtWordContext)

@@ -2,6 +2,7 @@ package earthfile2llb
 
 import (
 	"context"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"strings"
@@ -365,13 +366,6 @@ func (l *listener) ExitDockerPullStmt(c *parser.DockerPullStmtContext) {
 //
 // Variables.
 
-func (l *listener) EnterStmtWordsList(c *parser.StmtWordsListContext) {
-	if l.shouldSkip() {
-		return
-	}
-	l.execMode = true
-}
-
 func (l *listener) EnterEnvArgKey(c *parser.EnvArgKeyContext) {
 	if l.shouldSkip() {
 		return
@@ -384,6 +378,19 @@ func (l *listener) EnterEnvArgValue(c *parser.EnvArgValueContext) {
 		return
 	}
 	l.envArgValue = c.GetText()
+}
+
+func (l *listener) ExitStmtWordsMaybeJSON(c *parser.StmtWordsMaybeJSONContext) {
+	if l.shouldSkip() {
+		return
+	}
+	// Try to parse as JSON. If parse works, override the already collected stmtWords.
+	var words []string
+	err := json.Unmarshal([]byte(c.GetText()), &words)
+	if err == nil {
+		l.stmtWords = words
+		l.execMode = true
+	}
 }
 
 func (l *listener) EnterStmtWord(c *parser.StmtWordContext) {

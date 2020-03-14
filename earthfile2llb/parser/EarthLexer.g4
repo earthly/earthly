@@ -62,39 +62,13 @@ WS_R: WS -> type(WS);
 
 mode COMMAND_ARGS;
 
-// TODO: This should only be allowed in the beginning. Command itself should be ok to contain '[',
-// without going into command brackets mode.
-OPEN_BRACKET: '[' -> pushMode(COMMAND_BRACKETS);
-
-Atom:
-	(
-		(
-			NonWSNLQuoteBracket
-			| QuotedAtom
-		) (
-			NonWSNLQuote
-			| QuotedAtom
-		)*
-	);
+Atom: (NonWSNLQuote | QuotedAtom)+;
 fragment QuotedAtom: ('"' (~'"' | '\\"')* '"');
-fragment NonWSNLQuoteBracket: ~([ \t\r\n"] | '[');
 fragment NonWSNLQuote: ~([ \t\r\n"]);
 
 // Note; Comments not allowed in command lines.
 NL_C: WS? CRLF -> type(NL), popMode;
 WS_C: WS -> type(WS);
-
-mode COMMAND_BRACKETS;
-
-CLOSE_BRACKET: ']' -> popMode;
-COMMA: ',';
-
-// Note: Only quoted atoms are allowed in brackets.
-Atom_CB: QuotedAtom -> type(Atom);
-
-// Note; Comments not allowed in command lines.
-NL_CB: WS? CRLF -> type(NL), popMode;
-WS_CB: WS -> type(WS);
 
 mode COMMAND_ARGS_KEY_VALUE;
 
@@ -102,17 +76,7 @@ mode COMMAND_ARGS_KEY_VALUE;
 EQUALS: '=' -> mode(COMMAND_ARGS);
 
 // Similar Atom, but don't allow '=' as part of it, unless it's in quotes.
-Atom_CAKV:
-	(
-		(
-			NonWSNLQuoteBracket_CAKV
-			| QuotedAtom
-		) (
-			NonWSNLQuote_CAKV
-			| QuotedAtom
-		)*
-	) -> type(Atom);
-fragment NonWSNLQuoteBracket_CAKV: ~([ \t\r\n"=] | '[');
+Atom_CAKV: (NonWSNLQuote_CAKV | QuotedAtom)+ -> type(Atom);
 fragment NonWSNLQuote_CAKV: ~([ \t\r\n"=]);
 
 // Note; Comments not allowed in command lines.
