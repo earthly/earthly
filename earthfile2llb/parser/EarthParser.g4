@@ -17,15 +17,15 @@ stmt:
 	| copyStmt  // Updated.
 	| saveStmt  // Updated.
 	| runStmt  // Updated.
-	| buildStmt
-	| workdirStmt
+	| buildStmt  // Updated.
+	| workdirStmt // Updated.
 	| entrypointStmt  // Updated.
 	| envStmt
 	| argStmt
-	| gitCloneStmt
-	| dockerLoadStmt
-	| dockerPullStmt
-	| genericCommand;
+	| gitCloneStmt  // Updated.
+	| dockerLoadStmt  // Updated.
+	| dockerPullStmt  // Updated.
+	| genericCommand;  // Updated.
 
 fromStmt: FROM (WS stmtWords)?;
 
@@ -39,46 +39,25 @@ runStmt: RUN (WS (stmtWords | stmtWordsList))?;
 
 buildStmt: BUILD (WS stmtWords)?;
 
-workdirStmt: WORKDIR WS workdirPath;
-workdirPath: Atom;
+workdirStmt: WORKDIR (WS stmtWords)?;
 
 entrypointStmt: ENTRYPOINT (WS (stmtWords | stmtWordsList))?;
 
 envStmt: ENV WS envArgKey (WS? EQUALS)? (WS? envArgValue)?;
-
 argStmt: ARG WS envArgKey ((WS? EQUALS) (WS? envArgValue)?)?;
+envArgKey: Atom;
+envArgValue: Atom (WS? Atom)*;
 
-gitCloneStmt: GIT_CLONE (WS flagKeyValue)* WS gitURL WS gitCloneDest;
-gitURL: Atom;
-gitCloneDest: Atom;
+gitCloneStmt: GIT_CLONE (WS stmtWords)?;
 
-dockerLoadStmt:
-	DOCKER_LOAD (WS flagKeyValue)* WS fullTargetName WS imageName;
+dockerLoadStmt: DOCKER_LOAD (WS stmtWords)?;
 
-dockerPullStmt: DOCKER_PULL WS imageName;
+dockerPullStmt: DOCKER_PULL (WS stmtWords)?;
 
-genericCommand:
-	commandName (WS flags)? (WS stmtWords | WS argsList)?;
+genericCommand: commandName (WS stmtWords)?;
 commandName: Command;
-
-flags: flag (WS? flag)*;
-flag: flagKey | flagKeyValue;
-flagKey: FlagKey;
-flagKeyValue: FlagKeyValue;
 
 stmtWords: stmtWord (WS? stmtWord)*;
 stmtWordsList:
 	OPEN_BRACKET WS? (stmtWord (WS? COMMA WS? stmtWord)* WS?)? CLOSE_BRACKET;
 stmtWord: Atom;
-
-envArgKey: Atom;
-envArgValue: Atom (WS? Atom)*;
-
-imageName: Atom;
-saveImageName: Atom;
-targetName: Atom;
-fullTargetName: Atom;
-
-argsList:
-	OPEN_BRACKET WS? arg (WS? COMMA WS? arg)+ WS? CLOSE_BRACKET;
-arg: Atom;

@@ -21,15 +21,8 @@ type listener struct {
 	currentTarget   string
 	saveImageExists bool
 
-	imageName      string
-	saveImageNames []string
-	fullTargetName string
-	workdirPath    string
-	envArgKey      string
-	envArgValue    string
-	gitURL         string
-	gitCloneDest   string
-	flagKeyValues  []string
+	envArgKey   string
+	envArgValue string
 
 	execMode  bool
 	stmtWords []string
@@ -74,11 +67,14 @@ func (l *listener) EnterTargetHeader(c *parser.TargetHeaderContext) {
 //
 // Commands.
 
-func (l *listener) EnterFromStmt(c *parser.FromStmtContext) {
+func (l *listener) EnterStmt(c *parser.StmtContext) {
 	if l.shouldSkip() {
 		return
 	}
 	l.stmtWords = nil
+	l.envArgKey = ""
+	l.envArgValue = ""
+	l.execMode = false
 }
 
 func (l *listener) ExitFromStmt(c *parser.FromStmtContext) {
@@ -104,16 +100,9 @@ func (l *listener) ExitFromStmt(c *parser.FromStmtContext) {
 	imageName := fs.Arg(0)
 	err = l.converter.From(l.ctx, imageName, buildArgs.Args)
 	if err != nil {
-		l.err = errors.Wrapf(err, "apply FROM %s", l.imageName)
+		l.err = errors.Wrapf(err, "apply FROM %s", imageName)
 		return
 	}
-}
-
-func (l *listener) EnterCopyStmt(c *parser.CopyStmtContext) {
-	if l.shouldSkip() {
-		return
-	}
-	l.stmtWords = nil
 }
 
 func (l *listener) ExitCopyStmt(c *parser.CopyStmtContext) {
@@ -166,14 +155,6 @@ func (l *listener) ExitCopyStmt(c *parser.CopyStmtContext) {
 	}
 }
 
-func (l *listener) EnterRunStmt(c *parser.RunStmtContext) {
-	if l.shouldSkip() {
-		return
-	}
-	l.stmtWords = nil
-	l.execMode = false
-}
-
 func (l *listener) ExitRunStmt(c *parser.RunStmtContext) {
 	if l.shouldSkip() {
 		return
@@ -207,13 +188,6 @@ func (l *listener) ExitRunStmt(c *parser.RunStmtContext) {
 		l.err = errors.Wrap(err, "run")
 		return
 	}
-}
-
-func (l *listener) EnterSaveArtifact(c *parser.SaveArtifactContext) {
-	if l.shouldSkip() {
-		return
-	}
-	l.stmtWords = nil
 }
 
 func (l *listener) ExitSaveArtifact(c *parser.SaveArtifactContext) {
@@ -251,7 +225,7 @@ func (l *listener) ExitSaveArtifact(c *parser.SaveArtifactContext) {
 	l.converter.SaveArtifact(l.ctx, saveFrom, saveTo, saveAsLocalTo)
 }
 
-func (l *listener) EnterSaveImage(c *parser.SaveImageContext) {
+func (l *listener) ExitSaveImage(c *parser.SaveImageContext) {
 	if l.shouldSkip() {
 		return
 	}
@@ -262,21 +236,7 @@ func (l *listener) EnterSaveImage(c *parser.SaveImageContext) {
 	}
 	l.saveImageExists = true
 
-	l.stmtWords = nil
-}
-
-func (l *listener) ExitSaveImage(c *parser.SaveImageContext) {
-	if l.shouldSkip() {
-		return
-	}
 	l.converter.SaveImage(l.ctx, l.stmtWords)
-}
-
-func (l *listener) EnterBuildStmt(c *parser.BuildStmtContext) {
-	if l.shouldSkip() {
-		return
-	}
-	l.stmtWords = nil
 }
 
 func (l *listener) ExitBuildStmt(c *parser.BuildStmtContext) {
@@ -298,31 +258,21 @@ func (l *listener) ExitBuildStmt(c *parser.BuildStmtContext) {
 	fullTargetName := fs.Arg(0)
 	_, err = l.converter.Build(l.ctx, fullTargetName, buildArgs.Args)
 	if err != nil {
-		l.err = errors.Wrapf(err, "apply BUILD %s", l.fullTargetName)
+		l.err = errors.Wrapf(err, "apply BUILD %s", fullTargetName)
 		return
 	}
-}
-
-func (l *listener) EnterWorkdirStmt(c *parser.WorkdirStmtContext) {
-	if l.shouldSkip() {
-		return
-	}
-	l.workdirPath = ""
 }
 
 func (l *listener) ExitWorkdirStmt(c *parser.WorkdirStmtContext) {
 	if l.shouldSkip() {
 		return
 	}
-	l.converter.Workdir(l.ctx, l.workdirPath)
-}
-
-func (l *listener) EnterEntrypointStmt(c *parser.EntrypointStmtContext) {
-	if l.shouldSkip() {
+	if len(l.stmtWords) != 1 {
+		l.err = fmt.Errorf("invalid number of arguments for WORKDIR: %v", l.stmtWords)
 		return
 	}
-	l.stmtWords = nil
-	l.execMode = false
+	workdirPath := l.stmtWords[0]
+	l.converter.Workdir(l.ctx, workdirPath)
 }
 
 func (l *listener) ExitEntrypointStmt(c *parser.EntrypointStmtContext) {
@@ -333,27 +283,11 @@ func (l *listener) ExitEntrypointStmt(c *parser.EntrypointStmtContext) {
 	l.converter.Entrypoint(l.ctx, l.stmtWords, withShell)
 }
 
-func (l *listener) EnterEnvStmt(c *parser.EnvStmtContext) {
-	if l.shouldSkip() {
-		return
-	}
-	l.envArgKey = ""
-	l.envArgValue = ""
-}
-
 func (l *listener) ExitEnvStmt(c *parser.EnvStmtContext) {
 	if l.shouldSkip() {
 		return
 	}
 	l.converter.Env(l.ctx, l.envArgKey, l.envArgValue)
-}
-
-func (l *listener) EnterArgStmt(c *parser.ArgStmtContext) {
-	if l.shouldSkip() {
-		return
-	}
-	l.envArgKey = ""
-	l.envArgValue = ""
 }
 
 func (l *listener) ExitArgStmt(c *parser.ArgStmtContext) {
@@ -363,68 +297,65 @@ func (l *listener) ExitArgStmt(c *parser.ArgStmtContext) {
 	l.converter.Arg(l.ctx, l.envArgKey, l.envArgValue)
 }
 
-func (l *listener) EnterGitCloneStmt(c *parser.GitCloneStmtContext) {
-	if l.shouldSkip() {
-		return
-	}
-	l.gitURL = ""
-	l.flagKeyValues = nil
-	l.gitCloneDest = ""
-}
-
 func (l *listener) ExitGitCloneStmt(c *parser.GitCloneStmtContext) {
 	if l.shouldSkip() {
 		return
 	}
-	branch, err := parseGitCloneFlags(l.flagKeyValues)
+	fs := flag.NewFlagSet("GIT CLONE", flag.ContinueOnError)
+	branch := fs.String("build-arg", "", "")
+	err := fs.Parse(l.stmtWords)
 	if err != nil {
-		l.err = errors.Wrap(err, "parse git clone flags")
+		l.err = errors.Wrapf(err, "invalid GIT CLONE arguments %v", l.stmtWords)
 		return
 	}
-	err = l.converter.GitClone(l.ctx, l.gitURL, branch, l.gitCloneDest)
+	if fs.NArg() != 2 {
+		l.err = fmt.Errorf("invalid number of arguments for GIT CLONE: %s", l.stmtWords)
+		return
+	}
+	gitURL := fs.Arg(0)
+	gitCloneDest := fs.Arg(1)
+	err = l.converter.GitClone(l.ctx, gitURL, *branch, gitCloneDest)
 	if err != nil {
 		l.err = errors.Wrap(err, "git clone")
 		return
 	}
 }
 
-func (l *listener) EnterDockerLoadStmt(c *parser.DockerLoadStmtContext) {
-	if l.shouldSkip() {
-		return
-	}
-	l.fullTargetName = ""
-	l.imageName = ""
-	l.flagKeyValues = nil
-}
-
 func (l *listener) ExitDockerLoadStmt(c *parser.DockerLoadStmtContext) {
 	if l.shouldSkip() {
 		return
 	}
-	buildArgs, err := parseBuildArgFlags(l.flagKeyValues)
+	fs := flag.NewFlagSet("DOCKER LOAD", flag.ContinueOnError)
+	buildArgs := new(StringSliceFlag)
+	fs.Var(buildArgs, "build-arg", "")
+	err := fs.Parse(l.stmtWords)
 	if err != nil {
-		l.err = errors.Wrap(err, "parse build arg flags")
+		l.err = errors.Wrapf(err, "invalid DOCKER LOAD arguments %v", l.stmtWords)
 		return
 	}
-	err = l.converter.DockerLoad(l.ctx, l.fullTargetName, l.imageName, buildArgs)
+	if fs.NArg() != 2 {
+		l.err = fmt.Errorf("invalid number of arguments for DOCKER LOAD: %s", l.stmtWords)
+		return
+	}
+	fullTargetName := fs.Arg(0)
+	imageName := fs.Arg(1)
+	err = l.converter.DockerLoad(l.ctx, fullTargetName, imageName, buildArgs.Args)
 	if err != nil {
 		l.err = errors.Wrap(err, "docker load")
 		return
 	}
 }
 
-func (l *listener) EnterDockerPullStmt(c *parser.DockerPullStmtContext) {
-	if l.shouldSkip() {
-		return
-	}
-	l.imageName = ""
-}
-
 func (l *listener) ExitDockerPullStmt(c *parser.DockerPullStmtContext) {
 	if l.shouldSkip() {
 		return
 	}
-	err := l.converter.DockerPull(l.ctx, l.imageName)
+	if len(l.stmtWords) != 1 {
+		l.err = fmt.Errorf("invalid number of arguments for DOCKER PULL: %s", l.stmtWords)
+		return
+	}
+	imageName := l.stmtWords[0]
+	err := l.converter.DockerPull(l.ctx, imageName)
 	if err != nil {
 		l.err = errors.Wrap(err, "docker pull")
 		return
@@ -434,39 +365,11 @@ func (l *listener) ExitDockerPullStmt(c *parser.DockerPullStmtContext) {
 //
 // Variables.
 
-func (l *listener) EnterImageName(c *parser.ImageNameContext) {
-	if l.shouldSkip() {
-		return
-	}
-	l.imageName = c.GetText()
-}
-
-func (l *listener) EnterSaveImageName(c *parser.SaveImageNameContext) {
-	if l.shouldSkip() {
-		return
-	}
-	l.saveImageNames = append(l.saveImageNames, c.GetText())
-}
-
 func (l *listener) EnterStmtWordsList(c *parser.StmtWordsListContext) {
 	if l.shouldSkip() {
 		return
 	}
 	l.execMode = true
-}
-
-func (l *listener) EnterFullTargetName(c *parser.FullTargetNameContext) {
-	if l.shouldSkip() {
-		return
-	}
-	l.fullTargetName = c.GetText()
-}
-
-func (l *listener) EnterWorkdirPath(c *parser.WorkdirPathContext) {
-	if l.shouldSkip() {
-		return
-	}
-	l.workdirPath = c.GetText()
 }
 
 func (l *listener) EnterEnvArgKey(c *parser.EnvArgKeyContext) {
@@ -483,34 +386,6 @@ func (l *listener) EnterEnvArgValue(c *parser.EnvArgValueContext) {
 	l.envArgValue = c.GetText()
 }
 
-func (l *listener) EnterFlagKeyValue(c *parser.FlagKeyValueContext) {
-	if l.shouldSkip() {
-		return
-	}
-	l.flagKeyValues = append(l.flagKeyValues, c.GetText())
-}
-
-func (l *listener) EnterFlagKey(c *parser.FlagKeyContext) {
-	if l.shouldSkip() {
-		return
-	}
-	l.flagKeyValues = append(l.flagKeyValues, c.GetText())
-}
-
-func (l *listener) EnterGitURL(c *parser.GitURLContext) {
-	if l.shouldSkip() {
-		return
-	}
-	l.gitURL = c.GetText()
-}
-
-func (l *listener) EnterGitCloneDest(c *parser.GitCloneDestContext) {
-	if l.shouldSkip() {
-		return
-	}
-	l.gitCloneDest = c.GetText()
-}
-
 func (l *listener) EnterStmtWord(c *parser.StmtWordContext) {
 	if l.shouldSkip() {
 		return
@@ -520,36 +395,6 @@ func (l *listener) EnterStmtWord(c *parser.StmtWordContext) {
 
 func (l *listener) shouldSkip() bool {
 	return l.err != nil || l.currentTarget != l.executeTarget
-}
-
-func parseBuildArgFlags(flagKeyValues []string) ([]string, error) {
-	var out []string
-	for _, flag := range flagKeyValues {
-		split := strings.SplitN(flag, "=", 2)
-		if len(split) != 2 {
-			return nil, fmt.Errorf("Invalid flag format %s", flag)
-		}
-		if split[0] != "--build-arg" {
-			return nil, fmt.Errorf("Invalid flag %s", split[0])
-		}
-		out = append(out, split[1])
-	}
-	return out, nil
-}
-
-func parseGitCloneFlags(flagKeyValues []string) (string, error) {
-	branch := ""
-	for _, flag := range flagKeyValues {
-		split := strings.SplitN(flag, "=", 2)
-		if len(split) != 2 {
-			return "", fmt.Errorf("Invalid flag format %s", flag)
-		}
-		if split[0] != "--branch" {
-			return "", fmt.Errorf("Invalid flag %s", split[0])
-		}
-		branch = split[1]
-	}
-	return branch, nil
 }
 
 // StringSliceFlag is a flag backed by a string slice.

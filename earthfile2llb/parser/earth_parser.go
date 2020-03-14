@@ -16,193 +16,150 @@ var _ = reflect.Copy
 var _ = strconv.Itoa
 
 var parserATN = []uint16{
-	3, 24715, 42794, 33075, 47597, 16764, 15335, 30598, 22884, 3, 28, 412,
+	3, 24715, 42794, 33075, 47597, 16764, 15335, 30598, 22884, 3, 28, 310,
 	4, 2, 9, 2, 4, 3, 9, 3, 4, 4, 9, 4, 4, 5, 9, 5, 4, 6, 9, 6, 4, 7, 9, 7,
 	4, 8, 9, 8, 4, 9, 9, 9, 4, 10, 9, 10, 4, 11, 9, 11, 4, 12, 9, 12, 4, 13,
 	9, 13, 4, 14, 9, 14, 4, 15, 9, 15, 4, 16, 9, 16, 4, 17, 9, 17, 4, 18, 9,
 	18, 4, 19, 9, 19, 4, 20, 9, 20, 4, 21, 9, 21, 4, 22, 9, 22, 4, 23, 9, 23,
-	4, 24, 9, 24, 4, 25, 9, 25, 4, 26, 9, 26, 4, 27, 9, 27, 4, 28, 9, 28, 4,
-	29, 9, 29, 4, 30, 9, 30, 4, 31, 9, 31, 4, 32, 9, 32, 4, 33, 9, 33, 4, 34,
-	9, 34, 4, 35, 9, 35, 4, 36, 9, 36, 4, 37, 9, 37, 4, 38, 9, 38, 4, 39, 9,
-	39, 4, 40, 9, 40, 4, 41, 9, 41, 3, 2, 7, 2, 84, 10, 2, 12, 2, 14, 2, 87,
-	11, 2, 3, 2, 5, 2, 90, 10, 2, 3, 2, 6, 2, 93, 10, 2, 13, 2, 14, 2, 94,
-	3, 2, 5, 2, 98, 10, 2, 3, 2, 7, 2, 101, 10, 2, 12, 2, 14, 2, 104, 11, 2,
-	3, 2, 3, 2, 3, 3, 3, 3, 5, 3, 110, 10, 3, 3, 3, 6, 3, 113, 10, 3, 13, 3,
-	14, 3, 114, 3, 3, 3, 3, 3, 3, 5, 3, 120, 10, 3, 7, 3, 122, 10, 3, 12, 3,
-	14, 3, 125, 11, 3, 3, 3, 7, 3, 128, 10, 3, 12, 3, 14, 3, 131, 11, 3, 3,
-	3, 5, 3, 134, 10, 3, 3, 4, 3, 4, 6, 4, 138, 10, 4, 13, 4, 14, 4, 139, 3,
-	4, 5, 4, 143, 10, 4, 3, 4, 3, 4, 5, 4, 147, 10, 4, 3, 5, 3, 5, 3, 6, 5,
-	6, 152, 10, 6, 3, 6, 3, 6, 6, 6, 156, 10, 6, 13, 6, 14, 6, 157, 3, 6, 5,
-	6, 161, 10, 6, 3, 6, 7, 6, 164, 10, 6, 12, 6, 14, 6, 167, 11, 6, 3, 7,
-	3, 7, 3, 7, 3, 7, 3, 7, 3, 7, 3, 7, 3, 7, 3, 7, 3, 7, 3, 7, 3, 7, 3, 7,
-	5, 7, 182, 10, 7, 3, 8, 3, 8, 3, 8, 5, 8, 187, 10, 8, 3, 9, 3, 9, 3, 9,
-	5, 9, 192, 10, 9, 3, 10, 3, 10, 5, 10, 196, 10, 10, 3, 11, 3, 11, 3, 11,
-	5, 11, 201, 10, 11, 3, 12, 3, 12, 3, 12, 5, 12, 206, 10, 12, 3, 13, 3,
-	13, 3, 13, 3, 13, 5, 13, 212, 10, 13, 5, 13, 214, 10, 13, 3, 14, 3, 14,
-	3, 14, 5, 14, 219, 10, 14, 3, 15, 3, 15, 3, 15, 3, 15, 3, 16, 3, 16, 3,
-	17, 3, 17, 3, 17, 3, 17, 5, 17, 231, 10, 17, 5, 17, 233, 10, 17, 3, 18,
-	3, 18, 3, 18, 3, 18, 5, 18, 239, 10, 18, 3, 18, 5, 18, 242, 10, 18, 3,
-	18, 5, 18, 245, 10, 18, 3, 18, 5, 18, 248, 10, 18, 3, 19, 3, 19, 3, 19,
-	3, 19, 5, 19, 254, 10, 19, 3, 19, 3, 19, 3, 19, 5, 19, 259, 10, 19, 3,
-	19, 5, 19, 262, 10, 19, 5, 19, 264, 10, 19, 3, 20, 3, 20, 3, 20, 7, 20,
-	269, 10, 20, 12, 20, 14, 20, 272, 11, 20, 3, 20, 3, 20, 3, 20, 3, 20, 3,
-	20, 3, 21, 3, 21, 3, 22, 3, 22, 3, 23, 3, 23, 3, 23, 7, 23, 286, 10, 23,
-	12, 23, 14, 23, 289, 11, 23, 3, 23, 3, 23, 3, 23, 3, 23, 3, 23, 3, 24,
-	3, 24, 3, 24, 3, 24, 3, 25, 3, 25, 3, 25, 5, 25, 303, 10, 25, 3, 25, 3,
-	25, 3, 25, 3, 25, 5, 25, 309, 10, 25, 3, 26, 3, 26, 3, 27, 3, 27, 5, 27,
-	315, 10, 27, 3, 27, 7, 27, 318, 10, 27, 12, 27, 14, 27, 321, 11, 27, 3,
-	28, 3, 28, 5, 28, 325, 10, 28, 3, 29, 3, 29, 3, 30, 3, 30, 3, 31, 3, 31,
-	5, 31, 333, 10, 31, 3, 31, 7, 31, 336, 10, 31, 12, 31, 14, 31, 339, 11,
-	31, 3, 32, 3, 32, 5, 32, 343, 10, 32, 3, 32, 3, 32, 5, 32, 347, 10, 32,
-	3, 32, 3, 32, 5, 32, 351, 10, 32, 3, 32, 7, 32, 354, 10, 32, 12, 32, 14,
-	32, 357, 11, 32, 3, 32, 5, 32, 360, 10, 32, 5, 32, 362, 10, 32, 3, 32,
-	3, 32, 3, 33, 3, 33, 3, 34, 3, 34, 3, 35, 3, 35, 5, 35, 372, 10, 35, 3,
-	35, 7, 35, 375, 10, 35, 12, 35, 14, 35, 378, 11, 35, 3, 36, 3, 36, 3, 37,
-	3, 37, 3, 38, 3, 38, 3, 39, 3, 39, 3, 40, 3, 40, 5, 40, 390, 10, 40, 3,
-	40, 3, 40, 5, 40, 394, 10, 40, 3, 40, 3, 40, 5, 40, 398, 10, 40, 3, 40,
-	6, 40, 401, 10, 40, 13, 40, 14, 40, 402, 3, 40, 5, 40, 406, 10, 40, 3,
-	40, 3, 40, 3, 41, 3, 41, 3, 41, 2, 2, 42, 2, 4, 6, 8, 10, 12, 14, 16, 18,
-	20, 22, 24, 26, 28, 30, 32, 34, 36, 38, 40, 42, 44, 46, 48, 50, 52, 54,
-	56, 58, 60, 62, 64, 66, 68, 70, 72, 74, 76, 78, 80, 2, 2, 2, 442, 2, 85,
-	3, 2, 2, 2, 4, 107, 3, 2, 2, 2, 6, 135, 3, 2, 2, 2, 8, 148, 3, 2, 2, 2,
-	10, 151, 3, 2, 2, 2, 12, 181, 3, 2, 2, 2, 14, 183, 3, 2, 2, 2, 16, 188,
-	3, 2, 2, 2, 18, 195, 3, 2, 2, 2, 20, 197, 3, 2, 2, 2, 22, 202, 3, 2, 2,
-	2, 24, 207, 3, 2, 2, 2, 26, 215, 3, 2, 2, 2, 28, 220, 3, 2, 2, 2, 30, 224,
-	3, 2, 2, 2, 32, 226, 3, 2, 2, 2, 34, 234, 3, 2, 2, 2, 36, 249, 3, 2, 2,
-	2, 38, 265, 3, 2, 2, 2, 40, 278, 3, 2, 2, 2, 42, 280, 3, 2, 2, 2, 44, 282,
-	3, 2, 2, 2, 46, 295, 3, 2, 2, 2, 48, 299, 3, 2, 2, 2, 50, 310, 3, 2, 2,
-	2, 52, 312, 3, 2, 2, 2, 54, 324, 3, 2, 2, 2, 56, 326, 3, 2, 2, 2, 58, 328,
-	3, 2, 2, 2, 60, 330, 3, 2, 2, 2, 62, 340, 3, 2, 2, 2, 64, 365, 3, 2, 2,
-	2, 66, 367, 3, 2, 2, 2, 68, 369, 3, 2, 2, 2, 70, 379, 3, 2, 2, 2, 72, 381,
-	3, 2, 2, 2, 74, 383, 3, 2, 2, 2, 76, 385, 3, 2, 2, 2, 78, 387, 3, 2, 2,
-	2, 80, 409, 3, 2, 2, 2, 82, 84, 7, 20, 2, 2, 83, 82, 3, 2, 2, 2, 84, 87,
-	3, 2, 2, 2, 85, 83, 3, 2, 2, 2, 85, 86, 3, 2, 2, 2, 86, 89, 3, 2, 2, 2,
-	87, 85, 3, 2, 2, 2, 88, 90, 5, 10, 6, 2, 89, 88, 3, 2, 2, 2, 89, 90, 3,
-	2, 2, 2, 90, 92, 3, 2, 2, 2, 91, 93, 7, 20, 2, 2, 92, 91, 3, 2, 2, 2, 93,
-	94, 3, 2, 2, 2, 94, 92, 3, 2, 2, 2, 94, 95, 3, 2, 2, 2, 95, 97, 3, 2, 2,
-	2, 96, 98, 5, 4, 3, 2, 97, 96, 3, 2, 2, 2, 97, 98, 3, 2, 2, 2, 98, 102,
-	3, 2, 2, 2, 99, 101, 7, 20, 2, 2, 100, 99, 3, 2, 2, 2, 101, 104, 3, 2,
-	2, 2, 102, 100, 3, 2, 2, 2, 102, 103, 3, 2, 2, 2, 103, 105, 3, 2, 2, 2,
-	104, 102, 3, 2, 2, 2, 105, 106, 7, 2, 2, 3, 106, 3, 3, 2, 2, 2, 107, 109,
-	5, 6, 4, 2, 108, 110, 7, 21, 2, 2, 109, 108, 3, 2, 2, 2, 109, 110, 3, 2,
-	2, 2, 110, 123, 3, 2, 2, 2, 111, 113, 7, 20, 2, 2, 112, 111, 3, 2, 2, 2,
-	113, 114, 3, 2, 2, 2, 114, 112, 3, 2, 2, 2, 114, 115, 3, 2, 2, 2, 115,
-	116, 3, 2, 2, 2, 116, 117, 7, 4, 2, 2, 117, 119, 5, 6, 4, 2, 118, 120,
-	7, 21, 2, 2, 119, 118, 3, 2, 2, 2, 119, 120, 3, 2, 2, 2, 120, 122, 3, 2,
-	2, 2, 121, 112, 3, 2, 2, 2, 122, 125, 3, 2, 2, 2, 123, 121, 3, 2, 2, 2,
-	123, 124, 3, 2, 2, 2, 124, 129, 3, 2, 2, 2, 125, 123, 3, 2, 2, 2, 126,
-	128, 7, 20, 2, 2, 127, 126, 3, 2, 2, 2, 128, 131, 3, 2, 2, 2, 129, 127,
-	3, 2, 2, 2, 129, 130, 3, 2, 2, 2, 130, 133, 3, 2, 2, 2, 131, 129, 3, 2,
-	2, 2, 132, 134, 7, 4, 2, 2, 133, 132, 3, 2, 2, 2, 133, 134, 3, 2, 2, 2,
-	134, 5, 3, 2, 2, 2, 135, 137, 5, 8, 5, 2, 136, 138, 7, 20, 2, 2, 137, 136,
-	3, 2, 2, 2, 138, 139, 3, 2, 2, 2, 139, 137, 3, 2, 2, 2, 139, 140, 3, 2,
-	2, 2, 140, 142, 3, 2, 2, 2, 141, 143, 7, 21, 2, 2, 142, 141, 3, 2, 2, 2,
-	142, 143, 3, 2, 2, 2, 143, 144, 3, 2, 2, 2, 144, 146, 7, 3, 2, 2, 145,
-	147, 5, 10, 6, 2, 146, 145, 3, 2, 2, 2, 146, 147, 3, 2, 2, 2, 147, 7, 3,
-	2, 2, 2, 148, 149, 7, 5, 2, 2, 149, 9, 3, 2, 2, 2, 150, 152, 7, 21, 2,
-	2, 151, 150, 3, 2, 2, 2, 151, 152, 3, 2, 2, 2, 152, 153, 3, 2, 2, 2, 153,
-	165, 5, 12, 7, 2, 154, 156, 7, 20, 2, 2, 155, 154, 3, 2, 2, 2, 156, 157,
-	3, 2, 2, 2, 157, 155, 3, 2, 2, 2, 157, 158, 3, 2, 2, 2, 158, 160, 3, 2,
-	2, 2, 159, 161, 7, 21, 2, 2, 160, 159, 3, 2, 2, 2, 160, 161, 3, 2, 2, 2,
-	161, 162, 3, 2, 2, 2, 162, 164, 5, 12, 7, 2, 163, 155, 3, 2, 2, 2, 164,
-	167, 3, 2, 2, 2, 165, 163, 3, 2, 2, 2, 165, 166, 3, 2, 2, 2, 166, 11, 3,
-	2, 2, 2, 167, 165, 3, 2, 2, 2, 168, 182, 5, 14, 8, 2, 169, 182, 5, 16,
-	9, 2, 170, 182, 5, 18, 10, 2, 171, 182, 5, 24, 13, 2, 172, 182, 5, 26,
-	14, 2, 173, 182, 5, 28, 15, 2, 174, 182, 5, 32, 17, 2, 175, 182, 5, 34,
-	18, 2, 176, 182, 5, 36, 19, 2, 177, 182, 5, 38, 20, 2, 178, 182, 5, 44,
-	23, 2, 179, 182, 5, 46, 24, 2, 180, 182, 5, 48, 25, 2, 181, 168, 3, 2,
-	2, 2, 181, 169, 3, 2, 2, 2, 181, 170, 3, 2, 2, 2, 181, 171, 3, 2, 2, 2,
-	181, 172, 3, 2, 2, 2, 181, 173, 3, 2, 2, 2, 181, 174, 3, 2, 2, 2, 181,
-	175, 3, 2, 2, 2, 181, 176, 3, 2, 2, 2, 181, 177, 3, 2, 2, 2, 181, 178,
-	3, 2, 2, 2, 181, 179, 3, 2, 2, 2, 181, 180, 3, 2, 2, 2, 182, 13, 3, 2,
-	2, 2, 183, 186, 7, 6, 2, 2, 184, 185, 7, 21, 2, 2, 185, 187, 5, 60, 31,
-	2, 186, 184, 3, 2, 2, 2, 186, 187, 3, 2, 2, 2, 187, 15, 3, 2, 2, 2, 188,
-	191, 7, 7, 2, 2, 189, 190, 7, 21, 2, 2, 190, 192, 5, 60, 31, 2, 191, 189,
-	3, 2, 2, 2, 191, 192, 3, 2, 2, 2, 192, 17, 3, 2, 2, 2, 193, 196, 5, 22,
-	12, 2, 194, 196, 5, 20, 11, 2, 195, 193, 3, 2, 2, 2, 195, 194, 3, 2, 2,
-	2, 196, 19, 3, 2, 2, 2, 197, 200, 7, 9, 2, 2, 198, 199, 7, 21, 2, 2, 199,
-	201, 5, 60, 31, 2, 200, 198, 3, 2, 2, 2, 200, 201, 3, 2, 2, 2, 201, 21,
-	3, 2, 2, 2, 202, 205, 7, 8, 2, 2, 203, 204, 7, 21, 2, 2, 204, 206, 5, 60,
-	31, 2, 205, 203, 3, 2, 2, 2, 205, 206, 3, 2, 2, 2, 206, 23, 3, 2, 2, 2,
-	207, 213, 7, 10, 2, 2, 208, 211, 7, 21, 2, 2, 209, 212, 5, 60, 31, 2, 210,
-	212, 5, 62, 32, 2, 211, 209, 3, 2, 2, 2, 211, 210, 3, 2, 2, 2, 212, 214,
-	3, 2, 2, 2, 213, 208, 3, 2, 2, 2, 213, 214, 3, 2, 2, 2, 214, 25, 3, 2,
-	2, 2, 215, 218, 7, 13, 2, 2, 216, 217, 7, 21, 2, 2, 217, 219, 5, 60, 31,
-	2, 218, 216, 3, 2, 2, 2, 218, 219, 3, 2, 2, 2, 219, 27, 3, 2, 2, 2, 220,
-	221, 7, 14, 2, 2, 221, 222, 7, 21, 2, 2, 222, 223, 5, 30, 16, 2, 223, 29,
-	3, 2, 2, 2, 224, 225, 7, 25, 2, 2, 225, 31, 3, 2, 2, 2, 226, 232, 7, 15,
-	2, 2, 227, 230, 7, 21, 2, 2, 228, 231, 5, 60, 31, 2, 229, 231, 5, 62, 32,
-	2, 230, 228, 3, 2, 2, 2, 230, 229, 3, 2, 2, 2, 231, 233, 3, 2, 2, 2, 232,
-	227, 3, 2, 2, 2, 232, 233, 3, 2, 2, 2, 233, 33, 3, 2, 2, 2, 234, 235, 7,
-	11, 2, 2, 235, 236, 7, 21, 2, 2, 236, 241, 5, 66, 34, 2, 237, 239, 7, 21,
-	2, 2, 238, 237, 3, 2, 2, 2, 238, 239, 3, 2, 2, 2, 239, 240, 3, 2, 2, 2,
-	240, 242, 7, 28, 2, 2, 241, 238, 3, 2, 2, 2, 241, 242, 3, 2, 2, 2, 242,
-	247, 3, 2, 2, 2, 243, 245, 7, 21, 2, 2, 244, 243, 3, 2, 2, 2, 244, 245,
-	3, 2, 2, 2, 245, 246, 3, 2, 2, 2, 246, 248, 5, 68, 35, 2, 247, 244, 3,
-	2, 2, 2, 247, 248, 3, 2, 2, 2, 248, 35, 3, 2, 2, 2, 249, 250, 7, 12, 2,
-	2, 250, 251, 7, 21, 2, 2, 251, 263, 5, 66, 34, 2, 252, 254, 7, 21, 2, 2,
-	253, 252, 3, 2, 2, 2, 253, 254, 3, 2, 2, 2, 254, 255, 3, 2, 2, 2, 255,
-	256, 7, 28, 2, 2, 256, 261, 3, 2, 2, 2, 257, 259, 7, 21, 2, 2, 258, 257,
-	3, 2, 2, 2, 258, 259, 3, 2, 2, 2, 259, 260, 3, 2, 2, 2, 260, 262, 5, 68,
-	35, 2, 261, 258, 3, 2, 2, 2, 261, 262, 3, 2, 2, 2, 262, 264, 3, 2, 2, 2,
-	263, 253, 3, 2, 2, 2, 263, 264, 3, 2, 2, 2, 264, 37, 3, 2, 2, 2, 265, 270,
-	7, 16, 2, 2, 266, 267, 7, 21, 2, 2, 267, 269, 5, 58, 30, 2, 268, 266, 3,
-	2, 2, 2, 269, 272, 3, 2, 2, 2, 270, 268, 3, 2, 2, 2, 270, 271, 3, 2, 2,
-	2, 271, 273, 3, 2, 2, 2, 272, 270, 3, 2, 2, 2, 273, 274, 7, 21, 2, 2, 274,
-	275, 5, 40, 21, 2, 275, 276, 7, 21, 2, 2, 276, 277, 5, 42, 22, 2, 277,
-	39, 3, 2, 2, 2, 278, 279, 7, 25, 2, 2, 279, 41, 3, 2, 2, 2, 280, 281, 7,
-	25, 2, 2, 281, 43, 3, 2, 2, 2, 282, 287, 7, 17, 2, 2, 283, 284, 7, 21,
-	2, 2, 284, 286, 5, 58, 30, 2, 285, 283, 3, 2, 2, 2, 286, 289, 3, 2, 2,
-	2, 287, 285, 3, 2, 2, 2, 287, 288, 3, 2, 2, 2, 288, 290, 3, 2, 2, 2, 289,
-	287, 3, 2, 2, 2, 290, 291, 7, 21, 2, 2, 291, 292, 5, 76, 39, 2, 292, 293,
-	7, 21, 2, 2, 293, 294, 5, 70, 36, 2, 294, 45, 3, 2, 2, 2, 295, 296, 7,
-	18, 2, 2, 296, 297, 7, 21, 2, 2, 297, 298, 5, 70, 36, 2, 298, 47, 3, 2,
-	2, 2, 299, 302, 5, 50, 26, 2, 300, 301, 7, 21, 2, 2, 301, 303, 5, 52, 27,
-	2, 302, 300, 3, 2, 2, 2, 302, 303, 3, 2, 2, 2, 303, 308, 3, 2, 2, 2, 304,
-	305, 7, 21, 2, 2, 305, 309, 5, 60, 31, 2, 306, 307, 7, 21, 2, 2, 307, 309,
-	5, 78, 40, 2, 308, 304, 3, 2, 2, 2, 308, 306, 3, 2, 2, 2, 308, 309, 3,
-	2, 2, 2, 309, 49, 3, 2, 2, 2, 310, 311, 7, 19, 2, 2, 311, 51, 3, 2, 2,
-	2, 312, 319, 5, 54, 28, 2, 313, 315, 7, 21, 2, 2, 314, 313, 3, 2, 2, 2,
-	314, 315, 3, 2, 2, 2, 315, 316, 3, 2, 2, 2, 316, 318, 5, 54, 28, 2, 317,
-	314, 3, 2, 2, 2, 318, 321, 3, 2, 2, 2, 319, 317, 3, 2, 2, 2, 319, 320,
-	3, 2, 2, 2, 320, 53, 3, 2, 2, 2, 321, 319, 3, 2, 2, 2, 322, 325, 5, 56,
-	29, 2, 323, 325, 5, 58, 30, 2, 324, 322, 3, 2, 2, 2, 324, 323, 3, 2, 2,
-	2, 325, 55, 3, 2, 2, 2, 326, 327, 7, 24, 2, 2, 327, 57, 3, 2, 2, 2, 328,
-	329, 7, 23, 2, 2, 329, 59, 3, 2, 2, 2, 330, 337, 5, 64, 33, 2, 331, 333,
-	7, 21, 2, 2, 332, 331, 3, 2, 2, 2, 332, 333, 3, 2, 2, 2, 333, 334, 3, 2,
-	2, 2, 334, 336, 5, 64, 33, 2, 335, 332, 3, 2, 2, 2, 336, 339, 3, 2, 2,
-	2, 337, 335, 3, 2, 2, 2, 337, 338, 3, 2, 2, 2, 338, 61, 3, 2, 2, 2, 339,
-	337, 3, 2, 2, 2, 340, 342, 7, 22, 2, 2, 341, 343, 7, 21, 2, 2, 342, 341,
-	3, 2, 2, 2, 342, 343, 3, 2, 2, 2, 343, 361, 3, 2, 2, 2, 344, 355, 5, 64,
-	33, 2, 345, 347, 7, 21, 2, 2, 346, 345, 3, 2, 2, 2, 346, 347, 3, 2, 2,
-	2, 347, 348, 3, 2, 2, 2, 348, 350, 7, 27, 2, 2, 349, 351, 7, 21, 2, 2,
-	350, 349, 3, 2, 2, 2, 350, 351, 3, 2, 2, 2, 351, 352, 3, 2, 2, 2, 352,
-	354, 5, 64, 33, 2, 353, 346, 3, 2, 2, 2, 354, 357, 3, 2, 2, 2, 355, 353,
-	3, 2, 2, 2, 355, 356, 3, 2, 2, 2, 356, 359, 3, 2, 2, 2, 357, 355, 3, 2,
-	2, 2, 358, 360, 7, 21, 2, 2, 359, 358, 3, 2, 2, 2, 359, 360, 3, 2, 2, 2,
-	360, 362, 3, 2, 2, 2, 361, 344, 3, 2, 2, 2, 361, 362, 3, 2, 2, 2, 362,
-	363, 3, 2, 2, 2, 363, 364, 7, 26, 2, 2, 364, 63, 3, 2, 2, 2, 365, 366,
-	7, 25, 2, 2, 366, 65, 3, 2, 2, 2, 367, 368, 7, 25, 2, 2, 368, 67, 3, 2,
-	2, 2, 369, 376, 7, 25, 2, 2, 370, 372, 7, 21, 2, 2, 371, 370, 3, 2, 2,
-	2, 371, 372, 3, 2, 2, 2, 372, 373, 3, 2, 2, 2, 373, 375, 7, 25, 2, 2, 374,
-	371, 3, 2, 2, 2, 375, 378, 3, 2, 2, 2, 376, 374, 3, 2, 2, 2, 376, 377,
-	3, 2, 2, 2, 377, 69, 3, 2, 2, 2, 378, 376, 3, 2, 2, 2, 379, 380, 7, 25,
-	2, 2, 380, 71, 3, 2, 2, 2, 381, 382, 7, 25, 2, 2, 382, 73, 3, 2, 2, 2,
-	383, 384, 7, 25, 2, 2, 384, 75, 3, 2, 2, 2, 385, 386, 7, 25, 2, 2, 386,
-	77, 3, 2, 2, 2, 387, 389, 7, 22, 2, 2, 388, 390, 7, 21, 2, 2, 389, 388,
-	3, 2, 2, 2, 389, 390, 3, 2, 2, 2, 390, 391, 3, 2, 2, 2, 391, 400, 5, 80,
-	41, 2, 392, 394, 7, 21, 2, 2, 393, 392, 3, 2, 2, 2, 393, 394, 3, 2, 2,
-	2, 394, 395, 3, 2, 2, 2, 395, 397, 7, 27, 2, 2, 396, 398, 7, 21, 2, 2,
-	397, 396, 3, 2, 2, 2, 397, 398, 3, 2, 2, 2, 398, 399, 3, 2, 2, 2, 399,
-	401, 5, 80, 41, 2, 400, 393, 3, 2, 2, 2, 401, 402, 3, 2, 2, 2, 402, 400,
-	3, 2, 2, 2, 402, 403, 3, 2, 2, 2, 403, 405, 3, 2, 2, 2, 404, 406, 7, 21,
-	2, 2, 405, 404, 3, 2, 2, 2, 405, 406, 3, 2, 2, 2, 406, 407, 3, 2, 2, 2,
-	407, 408, 7, 26, 2, 2, 408, 79, 3, 2, 2, 2, 409, 410, 7, 25, 2, 2, 410,
-	81, 3, 2, 2, 2, 61, 85, 89, 94, 97, 102, 109, 114, 119, 123, 129, 133,
-	139, 142, 146, 151, 157, 160, 165, 181, 186, 191, 195, 200, 205, 211, 213,
-	218, 230, 232, 238, 241, 244, 247, 253, 258, 261, 263, 270, 287, 302, 308,
-	314, 319, 324, 332, 337, 342, 346, 350, 355, 359, 361, 371, 376, 389, 393,
-	397, 402, 405,
+	4, 24, 9, 24, 4, 25, 9, 25, 4, 26, 9, 26, 4, 27, 9, 27, 4, 28, 9, 28, 3,
+	2, 7, 2, 58, 10, 2, 12, 2, 14, 2, 61, 11, 2, 3, 2, 5, 2, 64, 10, 2, 3,
+	2, 6, 2, 67, 10, 2, 13, 2, 14, 2, 68, 3, 2, 5, 2, 72, 10, 2, 3, 2, 7, 2,
+	75, 10, 2, 12, 2, 14, 2, 78, 11, 2, 3, 2, 3, 2, 3, 3, 3, 3, 5, 3, 84, 10,
+	3, 3, 3, 6, 3, 87, 10, 3, 13, 3, 14, 3, 88, 3, 3, 3, 3, 3, 3, 5, 3, 94,
+	10, 3, 7, 3, 96, 10, 3, 12, 3, 14, 3, 99, 11, 3, 3, 3, 7, 3, 102, 10, 3,
+	12, 3, 14, 3, 105, 11, 3, 3, 3, 5, 3, 108, 10, 3, 3, 4, 3, 4, 6, 4, 112,
+	10, 4, 13, 4, 14, 4, 113, 3, 4, 5, 4, 117, 10, 4, 3, 4, 3, 4, 5, 4, 121,
+	10, 4, 3, 5, 3, 5, 3, 6, 5, 6, 126, 10, 6, 3, 6, 3, 6, 6, 6, 130, 10, 6,
+	13, 6, 14, 6, 131, 3, 6, 5, 6, 135, 10, 6, 3, 6, 7, 6, 138, 10, 6, 12,
+	6, 14, 6, 141, 11, 6, 3, 7, 3, 7, 3, 7, 3, 7, 3, 7, 3, 7, 3, 7, 3, 7, 3,
+	7, 3, 7, 3, 7, 3, 7, 3, 7, 5, 7, 156, 10, 7, 3, 8, 3, 8, 3, 8, 5, 8, 161,
+	10, 8, 3, 9, 3, 9, 3, 9, 5, 9, 166, 10, 9, 3, 10, 3, 10, 5, 10, 170, 10,
+	10, 3, 11, 3, 11, 3, 11, 5, 11, 175, 10, 11, 3, 12, 3, 12, 3, 12, 5, 12,
+	180, 10, 12, 3, 13, 3, 13, 3, 13, 3, 13, 5, 13, 186, 10, 13, 5, 13, 188,
+	10, 13, 3, 14, 3, 14, 3, 14, 5, 14, 193, 10, 14, 3, 15, 3, 15, 3, 15, 5,
+	15, 198, 10, 15, 3, 16, 3, 16, 3, 16, 3, 16, 5, 16, 204, 10, 16, 5, 16,
+	206, 10, 16, 3, 17, 3, 17, 3, 17, 3, 17, 5, 17, 212, 10, 17, 3, 17, 5,
+	17, 215, 10, 17, 3, 17, 5, 17, 218, 10, 17, 3, 17, 5, 17, 221, 10, 17,
+	3, 18, 3, 18, 3, 18, 3, 18, 5, 18, 227, 10, 18, 3, 18, 3, 18, 3, 18, 5,
+	18, 232, 10, 18, 3, 18, 5, 18, 235, 10, 18, 5, 18, 237, 10, 18, 3, 19,
+	3, 19, 3, 20, 3, 20, 5, 20, 243, 10, 20, 3, 20, 7, 20, 246, 10, 20, 12,
+	20, 14, 20, 249, 11, 20, 3, 21, 3, 21, 3, 21, 5, 21, 254, 10, 21, 3, 22,
+	3, 22, 3, 22, 5, 22, 259, 10, 22, 3, 23, 3, 23, 3, 23, 5, 23, 264, 10,
+	23, 3, 24, 3, 24, 3, 24, 5, 24, 269, 10, 24, 3, 25, 3, 25, 3, 26, 3, 26,
+	5, 26, 275, 10, 26, 3, 26, 7, 26, 278, 10, 26, 12, 26, 14, 26, 281, 11,
+	26, 3, 27, 3, 27, 5, 27, 285, 10, 27, 3, 27, 3, 27, 5, 27, 289, 10, 27,
+	3, 27, 3, 27, 5, 27, 293, 10, 27, 3, 27, 7, 27, 296, 10, 27, 12, 27, 14,
+	27, 299, 11, 27, 3, 27, 5, 27, 302, 10, 27, 5, 27, 304, 10, 27, 3, 27,
+	3, 27, 3, 28, 3, 28, 3, 28, 2, 2, 29, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20,
+	22, 24, 26, 28, 30, 32, 34, 36, 38, 40, 42, 44, 46, 48, 50, 52, 54, 2,
+	2, 2, 345, 2, 59, 3, 2, 2, 2, 4, 81, 3, 2, 2, 2, 6, 109, 3, 2, 2, 2, 8,
+	122, 3, 2, 2, 2, 10, 125, 3, 2, 2, 2, 12, 155, 3, 2, 2, 2, 14, 157, 3,
+	2, 2, 2, 16, 162, 3, 2, 2, 2, 18, 169, 3, 2, 2, 2, 20, 171, 3, 2, 2, 2,
+	22, 176, 3, 2, 2, 2, 24, 181, 3, 2, 2, 2, 26, 189, 3, 2, 2, 2, 28, 194,
+	3, 2, 2, 2, 30, 199, 3, 2, 2, 2, 32, 207, 3, 2, 2, 2, 34, 222, 3, 2, 2,
+	2, 36, 238, 3, 2, 2, 2, 38, 240, 3, 2, 2, 2, 40, 250, 3, 2, 2, 2, 42, 255,
+	3, 2, 2, 2, 44, 260, 3, 2, 2, 2, 46, 265, 3, 2, 2, 2, 48, 270, 3, 2, 2,
+	2, 50, 272, 3, 2, 2, 2, 52, 282, 3, 2, 2, 2, 54, 307, 3, 2, 2, 2, 56, 58,
+	7, 20, 2, 2, 57, 56, 3, 2, 2, 2, 58, 61, 3, 2, 2, 2, 59, 57, 3, 2, 2, 2,
+	59, 60, 3, 2, 2, 2, 60, 63, 3, 2, 2, 2, 61, 59, 3, 2, 2, 2, 62, 64, 5,
+	10, 6, 2, 63, 62, 3, 2, 2, 2, 63, 64, 3, 2, 2, 2, 64, 66, 3, 2, 2, 2, 65,
+	67, 7, 20, 2, 2, 66, 65, 3, 2, 2, 2, 67, 68, 3, 2, 2, 2, 68, 66, 3, 2,
+	2, 2, 68, 69, 3, 2, 2, 2, 69, 71, 3, 2, 2, 2, 70, 72, 5, 4, 3, 2, 71, 70,
+	3, 2, 2, 2, 71, 72, 3, 2, 2, 2, 72, 76, 3, 2, 2, 2, 73, 75, 7, 20, 2, 2,
+	74, 73, 3, 2, 2, 2, 75, 78, 3, 2, 2, 2, 76, 74, 3, 2, 2, 2, 76, 77, 3,
+	2, 2, 2, 77, 79, 3, 2, 2, 2, 78, 76, 3, 2, 2, 2, 79, 80, 7, 2, 2, 3, 80,
+	3, 3, 2, 2, 2, 81, 83, 5, 6, 4, 2, 82, 84, 7, 21, 2, 2, 83, 82, 3, 2, 2,
+	2, 83, 84, 3, 2, 2, 2, 84, 97, 3, 2, 2, 2, 85, 87, 7, 20, 2, 2, 86, 85,
+	3, 2, 2, 2, 87, 88, 3, 2, 2, 2, 88, 86, 3, 2, 2, 2, 88, 89, 3, 2, 2, 2,
+	89, 90, 3, 2, 2, 2, 90, 91, 7, 4, 2, 2, 91, 93, 5, 6, 4, 2, 92, 94, 7,
+	21, 2, 2, 93, 92, 3, 2, 2, 2, 93, 94, 3, 2, 2, 2, 94, 96, 3, 2, 2, 2, 95,
+	86, 3, 2, 2, 2, 96, 99, 3, 2, 2, 2, 97, 95, 3, 2, 2, 2, 97, 98, 3, 2, 2,
+	2, 98, 103, 3, 2, 2, 2, 99, 97, 3, 2, 2, 2, 100, 102, 7, 20, 2, 2, 101,
+	100, 3, 2, 2, 2, 102, 105, 3, 2, 2, 2, 103, 101, 3, 2, 2, 2, 103, 104,
+	3, 2, 2, 2, 104, 107, 3, 2, 2, 2, 105, 103, 3, 2, 2, 2, 106, 108, 7, 4,
+	2, 2, 107, 106, 3, 2, 2, 2, 107, 108, 3, 2, 2, 2, 108, 5, 3, 2, 2, 2, 109,
+	111, 5, 8, 5, 2, 110, 112, 7, 20, 2, 2, 111, 110, 3, 2, 2, 2, 112, 113,
+	3, 2, 2, 2, 113, 111, 3, 2, 2, 2, 113, 114, 3, 2, 2, 2, 114, 116, 3, 2,
+	2, 2, 115, 117, 7, 21, 2, 2, 116, 115, 3, 2, 2, 2, 116, 117, 3, 2, 2, 2,
+	117, 118, 3, 2, 2, 2, 118, 120, 7, 3, 2, 2, 119, 121, 5, 10, 6, 2, 120,
+	119, 3, 2, 2, 2, 120, 121, 3, 2, 2, 2, 121, 7, 3, 2, 2, 2, 122, 123, 7,
+	5, 2, 2, 123, 9, 3, 2, 2, 2, 124, 126, 7, 21, 2, 2, 125, 124, 3, 2, 2,
+	2, 125, 126, 3, 2, 2, 2, 126, 127, 3, 2, 2, 2, 127, 139, 5, 12, 7, 2, 128,
+	130, 7, 20, 2, 2, 129, 128, 3, 2, 2, 2, 130, 131, 3, 2, 2, 2, 131, 129,
+	3, 2, 2, 2, 131, 132, 3, 2, 2, 2, 132, 134, 3, 2, 2, 2, 133, 135, 7, 21,
+	2, 2, 134, 133, 3, 2, 2, 2, 134, 135, 3, 2, 2, 2, 135, 136, 3, 2, 2, 2,
+	136, 138, 5, 12, 7, 2, 137, 129, 3, 2, 2, 2, 138, 141, 3, 2, 2, 2, 139,
+	137, 3, 2, 2, 2, 139, 140, 3, 2, 2, 2, 140, 11, 3, 2, 2, 2, 141, 139, 3,
+	2, 2, 2, 142, 156, 5, 14, 8, 2, 143, 156, 5, 16, 9, 2, 144, 156, 5, 18,
+	10, 2, 145, 156, 5, 24, 13, 2, 146, 156, 5, 26, 14, 2, 147, 156, 5, 28,
+	15, 2, 148, 156, 5, 30, 16, 2, 149, 156, 5, 32, 17, 2, 150, 156, 5, 34,
+	18, 2, 151, 156, 5, 40, 21, 2, 152, 156, 5, 42, 22, 2, 153, 156, 5, 44,
+	23, 2, 154, 156, 5, 46, 24, 2, 155, 142, 3, 2, 2, 2, 155, 143, 3, 2, 2,
+	2, 155, 144, 3, 2, 2, 2, 155, 145, 3, 2, 2, 2, 155, 146, 3, 2, 2, 2, 155,
+	147, 3, 2, 2, 2, 155, 148, 3, 2, 2, 2, 155, 149, 3, 2, 2, 2, 155, 150,
+	3, 2, 2, 2, 155, 151, 3, 2, 2, 2, 155, 152, 3, 2, 2, 2, 155, 153, 3, 2,
+	2, 2, 155, 154, 3, 2, 2, 2, 156, 13, 3, 2, 2, 2, 157, 160, 7, 6, 2, 2,
+	158, 159, 7, 21, 2, 2, 159, 161, 5, 50, 26, 2, 160, 158, 3, 2, 2, 2, 160,
+	161, 3, 2, 2, 2, 161, 15, 3, 2, 2, 2, 162, 165, 7, 7, 2, 2, 163, 164, 7,
+	21, 2, 2, 164, 166, 5, 50, 26, 2, 165, 163, 3, 2, 2, 2, 165, 166, 3, 2,
+	2, 2, 166, 17, 3, 2, 2, 2, 167, 170, 5, 22, 12, 2, 168, 170, 5, 20, 11,
+	2, 169, 167, 3, 2, 2, 2, 169, 168, 3, 2, 2, 2, 170, 19, 3, 2, 2, 2, 171,
+	174, 7, 9, 2, 2, 172, 173, 7, 21, 2, 2, 173, 175, 5, 50, 26, 2, 174, 172,
+	3, 2, 2, 2, 174, 175, 3, 2, 2, 2, 175, 21, 3, 2, 2, 2, 176, 179, 7, 8,
+	2, 2, 177, 178, 7, 21, 2, 2, 178, 180, 5, 50, 26, 2, 179, 177, 3, 2, 2,
+	2, 179, 180, 3, 2, 2, 2, 180, 23, 3, 2, 2, 2, 181, 187, 7, 10, 2, 2, 182,
+	185, 7, 21, 2, 2, 183, 186, 5, 50, 26, 2, 184, 186, 5, 52, 27, 2, 185,
+	183, 3, 2, 2, 2, 185, 184, 3, 2, 2, 2, 186, 188, 3, 2, 2, 2, 187, 182,
+	3, 2, 2, 2, 187, 188, 3, 2, 2, 2, 188, 25, 3, 2, 2, 2, 189, 192, 7, 13,
+	2, 2, 190, 191, 7, 21, 2, 2, 191, 193, 5, 50, 26, 2, 192, 190, 3, 2, 2,
+	2, 192, 193, 3, 2, 2, 2, 193, 27, 3, 2, 2, 2, 194, 197, 7, 14, 2, 2, 195,
+	196, 7, 21, 2, 2, 196, 198, 5, 50, 26, 2, 197, 195, 3, 2, 2, 2, 197, 198,
+	3, 2, 2, 2, 198, 29, 3, 2, 2, 2, 199, 205, 7, 15, 2, 2, 200, 203, 7, 21,
+	2, 2, 201, 204, 5, 50, 26, 2, 202, 204, 5, 52, 27, 2, 203, 201, 3, 2, 2,
+	2, 203, 202, 3, 2, 2, 2, 204, 206, 3, 2, 2, 2, 205, 200, 3, 2, 2, 2, 205,
+	206, 3, 2, 2, 2, 206, 31, 3, 2, 2, 2, 207, 208, 7, 11, 2, 2, 208, 209,
+	7, 21, 2, 2, 209, 214, 5, 36, 19, 2, 210, 212, 7, 21, 2, 2, 211, 210, 3,
+	2, 2, 2, 211, 212, 3, 2, 2, 2, 212, 213, 3, 2, 2, 2, 213, 215, 7, 28, 2,
+	2, 214, 211, 3, 2, 2, 2, 214, 215, 3, 2, 2, 2, 215, 220, 3, 2, 2, 2, 216,
+	218, 7, 21, 2, 2, 217, 216, 3, 2, 2, 2, 217, 218, 3, 2, 2, 2, 218, 219,
+	3, 2, 2, 2, 219, 221, 5, 38, 20, 2, 220, 217, 3, 2, 2, 2, 220, 221, 3,
+	2, 2, 2, 221, 33, 3, 2, 2, 2, 222, 223, 7, 12, 2, 2, 223, 224, 7, 21, 2,
+	2, 224, 236, 5, 36, 19, 2, 225, 227, 7, 21, 2, 2, 226, 225, 3, 2, 2, 2,
+	226, 227, 3, 2, 2, 2, 227, 228, 3, 2, 2, 2, 228, 229, 7, 28, 2, 2, 229,
+	234, 3, 2, 2, 2, 230, 232, 7, 21, 2, 2, 231, 230, 3, 2, 2, 2, 231, 232,
+	3, 2, 2, 2, 232, 233, 3, 2, 2, 2, 233, 235, 5, 38, 20, 2, 234, 231, 3,
+	2, 2, 2, 234, 235, 3, 2, 2, 2, 235, 237, 3, 2, 2, 2, 236, 226, 3, 2, 2,
+	2, 236, 237, 3, 2, 2, 2, 237, 35, 3, 2, 2, 2, 238, 239, 7, 25, 2, 2, 239,
+	37, 3, 2, 2, 2, 240, 247, 7, 25, 2, 2, 241, 243, 7, 21, 2, 2, 242, 241,
+	3, 2, 2, 2, 242, 243, 3, 2, 2, 2, 243, 244, 3, 2, 2, 2, 244, 246, 7, 25,
+	2, 2, 245, 242, 3, 2, 2, 2, 246, 249, 3, 2, 2, 2, 247, 245, 3, 2, 2, 2,
+	247, 248, 3, 2, 2, 2, 248, 39, 3, 2, 2, 2, 249, 247, 3, 2, 2, 2, 250, 253,
+	7, 16, 2, 2, 251, 252, 7, 21, 2, 2, 252, 254, 5, 50, 26, 2, 253, 251, 3,
+	2, 2, 2, 253, 254, 3, 2, 2, 2, 254, 41, 3, 2, 2, 2, 255, 258, 7, 17, 2,
+	2, 256, 257, 7, 21, 2, 2, 257, 259, 5, 50, 26, 2, 258, 256, 3, 2, 2, 2,
+	258, 259, 3, 2, 2, 2, 259, 43, 3, 2, 2, 2, 260, 263, 7, 18, 2, 2, 261,
+	262, 7, 21, 2, 2, 262, 264, 5, 50, 26, 2, 263, 261, 3, 2, 2, 2, 263, 264,
+	3, 2, 2, 2, 264, 45, 3, 2, 2, 2, 265, 268, 5, 48, 25, 2, 266, 267, 7, 21,
+	2, 2, 267, 269, 5, 50, 26, 2, 268, 266, 3, 2, 2, 2, 268, 269, 3, 2, 2,
+	2, 269, 47, 3, 2, 2, 2, 270, 271, 7, 19, 2, 2, 271, 49, 3, 2, 2, 2, 272,
+	279, 5, 54, 28, 2, 273, 275, 7, 21, 2, 2, 274, 273, 3, 2, 2, 2, 274, 275,
+	3, 2, 2, 2, 275, 276, 3, 2, 2, 2, 276, 278, 5, 54, 28, 2, 277, 274, 3,
+	2, 2, 2, 278, 281, 3, 2, 2, 2, 279, 277, 3, 2, 2, 2, 279, 280, 3, 2, 2,
+	2, 280, 51, 3, 2, 2, 2, 281, 279, 3, 2, 2, 2, 282, 284, 7, 22, 2, 2, 283,
+	285, 7, 21, 2, 2, 284, 283, 3, 2, 2, 2, 284, 285, 3, 2, 2, 2, 285, 303,
+	3, 2, 2, 2, 286, 297, 5, 54, 28, 2, 287, 289, 7, 21, 2, 2, 288, 287, 3,
+	2, 2, 2, 288, 289, 3, 2, 2, 2, 289, 290, 3, 2, 2, 2, 290, 292, 7, 27, 2,
+	2, 291, 293, 7, 21, 2, 2, 292, 291, 3, 2, 2, 2, 292, 293, 3, 2, 2, 2, 293,
+	294, 3, 2, 2, 2, 294, 296, 5, 54, 28, 2, 295, 288, 3, 2, 2, 2, 296, 299,
+	3, 2, 2, 2, 297, 295, 3, 2, 2, 2, 297, 298, 3, 2, 2, 2, 298, 301, 3, 2,
+	2, 2, 299, 297, 3, 2, 2, 2, 300, 302, 7, 21, 2, 2, 301, 300, 3, 2, 2, 2,
+	301, 302, 3, 2, 2, 2, 302, 304, 3, 2, 2, 2, 303, 286, 3, 2, 2, 2, 303,
+	304, 3, 2, 2, 2, 304, 305, 3, 2, 2, 2, 305, 306, 7, 26, 2, 2, 306, 53,
+	3, 2, 2, 2, 307, 308, 7, 25, 2, 2, 308, 55, 3, 2, 2, 2, 54, 59, 63, 68,
+	71, 76, 83, 88, 93, 97, 103, 107, 113, 116, 120, 125, 131, 134, 139, 155,
+	160, 165, 169, 174, 179, 185, 187, 192, 197, 203, 205, 211, 214, 217, 220,
+	226, 231, 234, 236, 242, 247, 253, 258, 263, 268, 274, 279, 284, 288, 292,
+	297, 301, 303,
 }
 var deserializer = antlr.NewATNDeserializer(nil)
 var deserializedATN = deserializer.DeserializeFromUInt16(parserATN)
@@ -223,11 +180,9 @@ var symbolicNames = []string{
 var ruleNames = []string{
 	"earthFile", "targets", "target", "targetHeader", "stmts", "stmt", "fromStmt",
 	"copyStmt", "saveStmt", "saveImage", "saveArtifact", "runStmt", "buildStmt",
-	"workdirStmt", "workdirPath", "entrypointStmt", "envStmt", "argStmt", "gitCloneStmt",
-	"gitURL", "gitCloneDest", "dockerLoadStmt", "dockerPullStmt", "genericCommand",
-	"commandName", "flags", "flag", "flagKey", "flagKeyValue", "stmtWords",
-	"stmtWordsList", "stmtWord", "envArgKey", "envArgValue", "imageName", "saveImageName",
-	"targetName", "fullTargetName", "argsList", "arg",
+	"workdirStmt", "entrypointStmt", "envStmt", "argStmt", "envArgKey", "envArgValue",
+	"gitCloneStmt", "dockerLoadStmt", "dockerPullStmt", "genericCommand", "commandName",
+	"stmtWords", "stmtWordsList", "stmtWord",
 }
 var decisionToDFA = make([]*antlr.DFA, len(deserializedATN.DecisionToState))
 
@@ -302,32 +257,19 @@ const (
 	EarthParserRULE_runStmt        = 11
 	EarthParserRULE_buildStmt      = 12
 	EarthParserRULE_workdirStmt    = 13
-	EarthParserRULE_workdirPath    = 14
-	EarthParserRULE_entrypointStmt = 15
-	EarthParserRULE_envStmt        = 16
-	EarthParserRULE_argStmt        = 17
-	EarthParserRULE_gitCloneStmt   = 18
-	EarthParserRULE_gitURL         = 19
-	EarthParserRULE_gitCloneDest   = 20
-	EarthParserRULE_dockerLoadStmt = 21
-	EarthParserRULE_dockerPullStmt = 22
-	EarthParserRULE_genericCommand = 23
-	EarthParserRULE_commandName    = 24
-	EarthParserRULE_flags          = 25
-	EarthParserRULE_flag           = 26
-	EarthParserRULE_flagKey        = 27
-	EarthParserRULE_flagKeyValue   = 28
-	EarthParserRULE_stmtWords      = 29
-	EarthParserRULE_stmtWordsList  = 30
-	EarthParserRULE_stmtWord       = 31
-	EarthParserRULE_envArgKey      = 32
-	EarthParserRULE_envArgValue    = 33
-	EarthParserRULE_imageName      = 34
-	EarthParserRULE_saveImageName  = 35
-	EarthParserRULE_targetName     = 36
-	EarthParserRULE_fullTargetName = 37
-	EarthParserRULE_argsList       = 38
-	EarthParserRULE_arg            = 39
+	EarthParserRULE_entrypointStmt = 14
+	EarthParserRULE_envStmt        = 15
+	EarthParserRULE_argStmt        = 16
+	EarthParserRULE_envArgKey      = 17
+	EarthParserRULE_envArgValue    = 18
+	EarthParserRULE_gitCloneStmt   = 19
+	EarthParserRULE_dockerLoadStmt = 20
+	EarthParserRULE_dockerPullStmt = 21
+	EarthParserRULE_genericCommand = 22
+	EarthParserRULE_commandName    = 23
+	EarthParserRULE_stmtWords      = 24
+	EarthParserRULE_stmtWordsList  = 25
+	EarthParserRULE_stmtWord       = 26
 )
 
 // IEarthFileContext is an interface to support dynamic dispatch.
@@ -444,41 +386,41 @@ func (p *EarthParser) EarthFile() (localctx IEarthFileContext) {
 	var _alt int
 
 	p.EnterOuterAlt(localctx, 1)
-	p.SetState(83)
+	p.SetState(57)
 	p.GetErrorHandler().Sync(p)
 	_alt = p.GetInterpreter().AdaptivePredict(p.GetTokenStream(), 0, p.GetParserRuleContext())
 
 	for _alt != 2 && _alt != antlr.ATNInvalidAltNumber {
 		if _alt == 1 {
 			{
-				p.SetState(80)
+				p.SetState(54)
 				p.Match(EarthParserNL)
 			}
 
 		}
-		p.SetState(85)
+		p.SetState(59)
 		p.GetErrorHandler().Sync(p)
 		_alt = p.GetInterpreter().AdaptivePredict(p.GetTokenStream(), 0, p.GetParserRuleContext())
 	}
-	p.SetState(87)
+	p.SetState(61)
 	p.GetErrorHandler().Sync(p)
 	_la = p.GetTokenStream().LA(1)
 
 	if ((_la)&-(0x1f+1)) == 0 && ((1<<uint(_la))&((1<<EarthParserFROM)|(1<<EarthParserCOPY)|(1<<EarthParserSAVE_ARTIFACT)|(1<<EarthParserSAVE_IMAGE)|(1<<EarthParserRUN)|(1<<EarthParserENV)|(1<<EarthParserARG)|(1<<EarthParserBUILD)|(1<<EarthParserWORKDIR)|(1<<EarthParserENTRYPOINT)|(1<<EarthParserGIT_CLONE)|(1<<EarthParserDOCKER_LOAD)|(1<<EarthParserDOCKER_PULL)|(1<<EarthParserCommand)|(1<<EarthParserWS))) != 0 {
 		{
-			p.SetState(86)
+			p.SetState(60)
 			p.Stmts()
 		}
 
 	}
-	p.SetState(90)
+	p.SetState(64)
 	p.GetErrorHandler().Sync(p)
 	_alt = 1
 	for ok := true; ok; ok = _alt != 2 && _alt != antlr.ATNInvalidAltNumber {
 		switch _alt {
 		case 1:
 			{
-				p.SetState(89)
+				p.SetState(63)
 				p.Match(EarthParserNL)
 			}
 
@@ -486,37 +428,37 @@ func (p *EarthParser) EarthFile() (localctx IEarthFileContext) {
 			panic(antlr.NewNoViableAltException(p, nil, nil, nil, nil, nil))
 		}
 
-		p.SetState(92)
+		p.SetState(66)
 		p.GetErrorHandler().Sync(p)
 		_alt = p.GetInterpreter().AdaptivePredict(p.GetTokenStream(), 2, p.GetParserRuleContext())
 	}
-	p.SetState(95)
+	p.SetState(69)
 	p.GetErrorHandler().Sync(p)
 	_la = p.GetTokenStream().LA(1)
 
 	if _la == EarthParserTarget {
 		{
-			p.SetState(94)
+			p.SetState(68)
 			p.Targets()
 		}
 
 	}
-	p.SetState(100)
+	p.SetState(74)
 	p.GetErrorHandler().Sync(p)
 	_la = p.GetTokenStream().LA(1)
 
 	for _la == EarthParserNL {
 		{
-			p.SetState(97)
+			p.SetState(71)
 			p.Match(EarthParserNL)
 		}
 
-		p.SetState(102)
+		p.SetState(76)
 		p.GetErrorHandler().Sync(p)
 		_la = p.GetTokenStream().LA(1)
 	}
 	{
-		p.SetState(103)
+		p.SetState(77)
 		p.Match(EarthParserEOF)
 	}
 
@@ -653,88 +595,88 @@ func (p *EarthParser) Targets() (localctx ITargetsContext) {
 
 	p.EnterOuterAlt(localctx, 1)
 	{
-		p.SetState(105)
+		p.SetState(79)
 		p.Target()
 	}
-	p.SetState(107)
+	p.SetState(81)
 	p.GetErrorHandler().Sync(p)
 	_la = p.GetTokenStream().LA(1)
 
 	if _la == EarthParserWS {
 		{
-			p.SetState(106)
+			p.SetState(80)
 			p.Match(EarthParserWS)
 		}
 
 	}
-	p.SetState(121)
+	p.SetState(95)
 	p.GetErrorHandler().Sync(p)
 	_alt = p.GetInterpreter().AdaptivePredict(p.GetTokenStream(), 8, p.GetParserRuleContext())
 
 	for _alt != 2 && _alt != antlr.ATNInvalidAltNumber {
 		if _alt == 1 {
-			p.SetState(110)
+			p.SetState(84)
 			p.GetErrorHandler().Sync(p)
 			_la = p.GetTokenStream().LA(1)
 
 			for ok := true; ok; ok = _la == EarthParserNL {
 				{
-					p.SetState(109)
+					p.SetState(83)
 					p.Match(EarthParserNL)
 				}
 
-				p.SetState(112)
+				p.SetState(86)
 				p.GetErrorHandler().Sync(p)
 				_la = p.GetTokenStream().LA(1)
 			}
 			{
-				p.SetState(114)
+				p.SetState(88)
 				p.Match(EarthParserDEDENT)
 			}
 			{
-				p.SetState(115)
+				p.SetState(89)
 				p.Target()
 			}
-			p.SetState(117)
+			p.SetState(91)
 			p.GetErrorHandler().Sync(p)
 			_la = p.GetTokenStream().LA(1)
 
 			if _la == EarthParserWS {
 				{
-					p.SetState(116)
+					p.SetState(90)
 					p.Match(EarthParserWS)
 				}
 
 			}
 
 		}
-		p.SetState(123)
+		p.SetState(97)
 		p.GetErrorHandler().Sync(p)
 		_alt = p.GetInterpreter().AdaptivePredict(p.GetTokenStream(), 8, p.GetParserRuleContext())
 	}
-	p.SetState(127)
+	p.SetState(101)
 	p.GetErrorHandler().Sync(p)
 	_alt = p.GetInterpreter().AdaptivePredict(p.GetTokenStream(), 9, p.GetParserRuleContext())
 
 	for _alt != 2 && _alt != antlr.ATNInvalidAltNumber {
 		if _alt == 1 {
 			{
-				p.SetState(124)
+				p.SetState(98)
 				p.Match(EarthParserNL)
 			}
 
 		}
-		p.SetState(129)
+		p.SetState(103)
 		p.GetErrorHandler().Sync(p)
 		_alt = p.GetInterpreter().AdaptivePredict(p.GetTokenStream(), 9, p.GetParserRuleContext())
 	}
-	p.SetState(131)
+	p.SetState(105)
 	p.GetErrorHandler().Sync(p)
 	_la = p.GetTokenStream().LA(1)
 
 	if _la == EarthParserDEDENT {
 		{
-			p.SetState(130)
+			p.SetState(104)
 			p.Match(EarthParserDEDENT)
 		}
 
@@ -860,44 +802,44 @@ func (p *EarthParser) Target() (localctx ITargetContext) {
 
 	p.EnterOuterAlt(localctx, 1)
 	{
-		p.SetState(133)
+		p.SetState(107)
 		p.TargetHeader()
 	}
-	p.SetState(135)
+	p.SetState(109)
 	p.GetErrorHandler().Sync(p)
 	_la = p.GetTokenStream().LA(1)
 
 	for ok := true; ok; ok = _la == EarthParserNL {
 		{
-			p.SetState(134)
+			p.SetState(108)
 			p.Match(EarthParserNL)
 		}
 
-		p.SetState(137)
+		p.SetState(111)
 		p.GetErrorHandler().Sync(p)
 		_la = p.GetTokenStream().LA(1)
 	}
-	p.SetState(140)
+	p.SetState(114)
 	p.GetErrorHandler().Sync(p)
 	_la = p.GetTokenStream().LA(1)
 
 	if _la == EarthParserWS {
 		{
-			p.SetState(139)
+			p.SetState(113)
 			p.Match(EarthParserWS)
 		}
 
 	}
 	{
-		p.SetState(142)
+		p.SetState(116)
 		p.Match(EarthParserINDENT)
 	}
-	p.SetState(144)
+	p.SetState(118)
 	p.GetErrorHandler().Sync(p)
 
 	if p.GetInterpreter().AdaptivePredict(p.GetTokenStream(), 13, p.GetParserRuleContext()) == 1 {
 		{
-			p.SetState(143)
+			p.SetState(117)
 			p.Stmts()
 		}
 
@@ -990,7 +932,7 @@ func (p *EarthParser) TargetHeader() (localctx ITargetHeaderContext) {
 
 	p.EnterOuterAlt(localctx, 1)
 	{
-		p.SetState(146)
+		p.SetState(120)
 		p.Match(EarthParserTarget)
 	}
 
@@ -1118,59 +1060,59 @@ func (p *EarthParser) Stmts() (localctx IStmtsContext) {
 	var _alt int
 
 	p.EnterOuterAlt(localctx, 1)
-	p.SetState(149)
+	p.SetState(123)
 	p.GetErrorHandler().Sync(p)
 	_la = p.GetTokenStream().LA(1)
 
 	if _la == EarthParserWS {
 		{
-			p.SetState(148)
+			p.SetState(122)
 			p.Match(EarthParserWS)
 		}
 
 	}
 	{
-		p.SetState(151)
+		p.SetState(125)
 		p.Stmt()
 	}
-	p.SetState(163)
+	p.SetState(137)
 	p.GetErrorHandler().Sync(p)
 	_alt = p.GetInterpreter().AdaptivePredict(p.GetTokenStream(), 17, p.GetParserRuleContext())
 
 	for _alt != 2 && _alt != antlr.ATNInvalidAltNumber {
 		if _alt == 1 {
-			p.SetState(153)
+			p.SetState(127)
 			p.GetErrorHandler().Sync(p)
 			_la = p.GetTokenStream().LA(1)
 
 			for ok := true; ok; ok = _la == EarthParserNL {
 				{
-					p.SetState(152)
+					p.SetState(126)
 					p.Match(EarthParserNL)
 				}
 
-				p.SetState(155)
+				p.SetState(129)
 				p.GetErrorHandler().Sync(p)
 				_la = p.GetTokenStream().LA(1)
 			}
-			p.SetState(158)
+			p.SetState(132)
 			p.GetErrorHandler().Sync(p)
 			_la = p.GetTokenStream().LA(1)
 
 			if _la == EarthParserWS {
 				{
-					p.SetState(157)
+					p.SetState(131)
 					p.Match(EarthParserWS)
 				}
 
 			}
 			{
-				p.SetState(160)
+				p.SetState(134)
 				p.Stmt()
 			}
 
 		}
-		p.SetState(165)
+		p.SetState(139)
 		p.GetErrorHandler().Sync(p)
 		_alt = p.GetInterpreter().AdaptivePredict(p.GetTokenStream(), 17, p.GetParserRuleContext())
 	}
@@ -1386,98 +1328,98 @@ func (p *EarthParser) Stmt() (localctx IStmtContext) {
 		}
 	}()
 
-	p.SetState(179)
+	p.SetState(153)
 	p.GetErrorHandler().Sync(p)
 
 	switch p.GetTokenStream().LA(1) {
 	case EarthParserFROM:
 		p.EnterOuterAlt(localctx, 1)
 		{
-			p.SetState(166)
+			p.SetState(140)
 			p.FromStmt()
 		}
 
 	case EarthParserCOPY:
 		p.EnterOuterAlt(localctx, 2)
 		{
-			p.SetState(167)
+			p.SetState(141)
 			p.CopyStmt()
 		}
 
 	case EarthParserSAVE_ARTIFACT, EarthParserSAVE_IMAGE:
 		p.EnterOuterAlt(localctx, 3)
 		{
-			p.SetState(168)
+			p.SetState(142)
 			p.SaveStmt()
 		}
 
 	case EarthParserRUN:
 		p.EnterOuterAlt(localctx, 4)
 		{
-			p.SetState(169)
+			p.SetState(143)
 			p.RunStmt()
 		}
 
 	case EarthParserBUILD:
 		p.EnterOuterAlt(localctx, 5)
 		{
-			p.SetState(170)
+			p.SetState(144)
 			p.BuildStmt()
 		}
 
 	case EarthParserWORKDIR:
 		p.EnterOuterAlt(localctx, 6)
 		{
-			p.SetState(171)
+			p.SetState(145)
 			p.WorkdirStmt()
 		}
 
 	case EarthParserENTRYPOINT:
 		p.EnterOuterAlt(localctx, 7)
 		{
-			p.SetState(172)
+			p.SetState(146)
 			p.EntrypointStmt()
 		}
 
 	case EarthParserENV:
 		p.EnterOuterAlt(localctx, 8)
 		{
-			p.SetState(173)
+			p.SetState(147)
 			p.EnvStmt()
 		}
 
 	case EarthParserARG:
 		p.EnterOuterAlt(localctx, 9)
 		{
-			p.SetState(174)
+			p.SetState(148)
 			p.ArgStmt()
 		}
 
 	case EarthParserGIT_CLONE:
 		p.EnterOuterAlt(localctx, 10)
 		{
-			p.SetState(175)
+			p.SetState(149)
 			p.GitCloneStmt()
 		}
 
 	case EarthParserDOCKER_LOAD:
 		p.EnterOuterAlt(localctx, 11)
 		{
-			p.SetState(176)
+			p.SetState(150)
 			p.DockerLoadStmt()
 		}
 
 	case EarthParserDOCKER_PULL:
 		p.EnterOuterAlt(localctx, 12)
 		{
-			p.SetState(177)
+			p.SetState(151)
 			p.DockerPullStmt()
 		}
 
 	case EarthParserCommand:
 		p.EnterOuterAlt(localctx, 13)
 		{
-			p.SetState(178)
+			p.SetState(152)
 			p.GenericCommand()
 		}
 
@@ -1586,19 +1528,19 @@ func (p *EarthParser) FromStmt() (localctx IFromStmtContext) {
 
 	p.EnterOuterAlt(localctx, 1)
 	{
-		p.SetState(181)
+		p.SetState(155)
 		p.Match(EarthParserFROM)
 	}
-	p.SetState(184)
+	p.SetState(158)
 	p.GetErrorHandler().Sync(p)
 
 	if p.GetInterpreter().AdaptivePredict(p.GetTokenStream(), 19, p.GetParserRuleContext()) == 1 {
 		{
-			p.SetState(182)
+			p.SetState(156)
 			p.Match(EarthParserWS)
 		}
 		{
-			p.SetState(183)
+			p.SetState(157)
 			p.StmtWords()
 		}
 
@@ -1705,19 +1647,19 @@ func (p *EarthParser) CopyStmt() (localctx ICopyStmtContext) {
 
 	p.EnterOuterAlt(localctx, 1)
 	{
-		p.SetState(186)
+		p.SetState(160)
 		p.Match(EarthParserCOPY)
 	}
-	p.SetState(189)
+	p.SetState(163)
 	p.GetErrorHandler().Sync(p)
 
 	if p.GetInterpreter().AdaptivePredict(p.GetTokenStream(), 20, p.GetParserRuleContext()) == 1 {
 		{
-			p.SetState(187)
+			p.SetState(161)
 			p.Match(EarthParserWS)
 		}
 		{
-			p.SetState(188)
+			p.SetState(162)
 			p.StmtWords()
 		}
 
@@ -1824,21 +1766,21 @@ func (p *EarthParser) SaveStmt() (localctx ISaveStmtContext) {
 		}
 	}()
 
-	p.SetState(193)
+	p.SetState(167)
 	p.GetErrorHandler().Sync(p)
 
 	switch p.GetTokenStream().LA(1) {
 	case EarthParserSAVE_ARTIFACT:
 		p.EnterOuterAlt(localctx, 1)
 		{
-			p.SetState(191)
+			p.SetState(165)
 			p.SaveArtifact()
 		}
 
 	case EarthParserSAVE_IMAGE:
 		p.EnterOuterAlt(localctx, 2)
 		{
-			p.SetState(192)
+			p.SetState(166)
 			p.SaveImage()
 		}
 
@@ -1947,19 +1889,19 @@ func (p *EarthParser) SaveImage() (localctx ISaveImageContext) {
 
 	p.EnterOuterAlt(localctx, 1)
 	{
-		p.SetState(195)
+		p.SetState(169)
 		p.Match(EarthParserSAVE_IMAGE)
 	}
-	p.SetState(198)
+	p.SetState(172)
 	p.GetErrorHandler().Sync(p)
 
 	if p.GetInterpreter().AdaptivePredict(p.GetTokenStream(), 22, p.GetParserRuleContext()) == 1 {
 		{
-			p.SetState(196)
+			p.SetState(170)
 			p.Match(EarthParserWS)
 		}
 		{
-			p.SetState(197)
+			p.SetState(171)
 			p.StmtWords()
 		}
 
@@ -2066,19 +2008,19 @@ func (p *EarthParser) SaveArtifact() (localctx ISaveArtifactContext) {
 
 	p.EnterOuterAlt(localctx, 1)
 	{
-		p.SetState(200)
+		p.SetState(174)
 		p.Match(EarthParserSAVE_ARTIFACT)
 	}
-	p.SetState(203)
+	p.SetState(177)
 	p.GetErrorHandler().Sync(p)
 
 	if p.GetInterpreter().AdaptivePredict(p.GetTokenStream(), 23, p.GetParserRuleContext()) == 1 {
 		{
-			p.SetState(201)
+			p.SetState(175)
 			p.Match(EarthParserWS)
 		}
 		{
-			p.SetState(202)
+			p.SetState(176)
 			p.StmtWords()
 		}
 
@@ -2195,30 +2137,30 @@ func (p *EarthParser) RunStmt() (localctx IRunStmtContext) {
 
 	p.EnterOuterAlt(localctx, 1)
 	{
-		p.SetState(205)
+		p.SetState(179)
 		p.Match(EarthParserRUN)
 	}
-	p.SetState(211)
+	p.SetState(185)
 	p.GetErrorHandler().Sync(p)
 
 	if p.GetInterpreter().AdaptivePredict(p.GetTokenStream(), 25, p.GetParserRuleContext()) == 1 {
 		{
-			p.SetState(206)
+			p.SetState(180)
 			p.Match(EarthParserWS)
 		}
-		p.SetState(209)
+		p.SetState(183)
 		p.GetErrorHandler().Sync(p)
 
 		switch p.GetTokenStream().LA(1) {
 		case EarthParserAtom:
 			{
-				p.SetState(207)
+				p.SetState(181)
 				p.StmtWords()
 			}
 
 		case EarthParserOPEN_BRACKET:
 			{
-				p.SetState(208)
+				p.SetState(182)
 				p.StmtWordsList()
 			}
 
@@ -2329,19 +2271,19 @@ func (p *EarthParser) BuildStmt() (localctx IBuildStmtContext) {
 
 	p.EnterOuterAlt(localctx, 1)
 	{
-		p.SetState(213)
+		p.SetState(187)
 		p.Match(EarthParserBUILD)
 	}
-	p.SetState(216)
+	p.SetState(190)
 	p.GetErrorHandler().Sync(p)
 
 	if p.GetInterpreter().AdaptivePredict(p.GetTokenStream(), 26, p.GetParserRuleContext()) == 1 {
 		{
-			p.SetState(214)
+			p.SetState(188)
 			p.Match(EarthParserWS)
 		}
 		{
-			p.SetState(215)
+			p.SetState(189)
 			p.StmtWords()
 		}
 
@@ -2396,14 +2338,14 @@ func (s *WorkdirStmtContext) WS() antlr.TerminalNode {
 	return s.GetToken(EarthParserWS, 0)
 }
 
-func (s *WorkdirStmtContext) WorkdirPath() IWorkdirPathContext {
-	var t = s.GetTypedRuleContext(reflect.TypeOf((*IWorkdirPathContext)(nil)).Elem(), 0)
+func (s *WorkdirStmtContext) StmtWords() IStmtWordsContext {
+	var t = s.GetTypedRuleContext(reflect.TypeOf((*IStmtWordsContext)(nil)).Elem(), 0)
 
 	if t == nil {
 		return nil
 	}
 
-	return t.(IWorkdirPathContext)
+	return t.(IStmtWordsContext)
 }
 
 func (s *WorkdirStmtContext) GetRuleContext() antlr.RuleContext {
@@ -2448,107 +2390,22 @@ func (p *EarthParser) WorkdirStmt() (localctx IWorkdirStmtContext) {
 
 	p.EnterOuterAlt(localctx, 1)
 	{
-		p.SetState(218)
+		p.SetState(192)
 		p.Match(EarthParserWORKDIR)
 	}
-	{
-		p.SetState(219)
-		p.Match(EarthParserWS)
-	}
-	{
-		p.SetState(220)
-		p.WorkdirPath()
-	}
+	p.SetState(195)
+	p.GetErrorHandler().Sync(p)
 
-	return localctx
-}
-
-// IWorkdirPathContext is an interface to support dynamic dispatch.
-type IWorkdirPathContext interface {
-	antlr.ParserRuleContext
-
-	// GetParser returns the parser.
-	GetParser() antlr.Parser
-
-	// IsWorkdirPathContext differentiates from other interfaces.
-	IsWorkdirPathContext()
-}
-
-type WorkdirPathContext struct {
-	*antlr.BaseParserRuleContext
-	parser antlr.Parser
-}
-
-func NewEmptyWorkdirPathContext() *WorkdirPathContext {
-	var p = new(WorkdirPathContext)
-	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(nil, -1)
-	p.RuleIndex = EarthParserRULE_workdirPath
-	return p
-}
-
-func (*WorkdirPathContext) IsWorkdirPathContext() {}
-
-func NewWorkdirPathContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *WorkdirPathContext {
-	var p = new(WorkdirPathContext)
-
-	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(parent, invokingState)
-
-	p.parser = parser
-	p.RuleIndex = EarthParserRULE_workdirPath
-
-	return p
-}
-
-func (s *WorkdirPathContext) GetParser() antlr.Parser { return s.parser }
-
-func (s *WorkdirPathContext) Atom() antlr.TerminalNode {
-	return s.GetToken(EarthParserAtom, 0)
-}
-
-func (s *WorkdirPathContext) GetRuleContext() antlr.RuleContext {
-	return s
-}
-
-func (s *WorkdirPathContext) ToStringTree(ruleNames []string, recog antlr.Recognizer) string {
-	return antlr.TreesStringTree(s, ruleNames, recog)
-}
-
-func (s *WorkdirPathContext) EnterRule(listener antlr.ParseTreeListener) {
-	if listenerT, ok := listener.(EarthParserListener); ok {
-		listenerT.EnterWorkdirPath(s)
-	}
-}
-
-func (s *WorkdirPathContext) ExitRule(listener antlr.ParseTreeListener) {
-	if listenerT, ok := listener.(EarthParserListener); ok {
-		listenerT.ExitWorkdirPath(s)
-	}
-}
-
-func (p *EarthParser) WorkdirPath() (localctx IWorkdirPathContext) {
-	localctx = NewWorkdirPathContext(p, p.GetParserRuleContext(), p.GetState())
-	p.EnterRule(localctx, 28, EarthParserRULE_workdirPath)
-
-	defer func() {
-		p.ExitRule()
-	}()
-
-	defer func() {
-		if err := recover(); err != nil {
-			if v, ok := err.(antlr.RecognitionException); ok {
-				localctx.SetException(v)
-				p.GetErrorHandler().ReportError(p, v)
-				p.GetErrorHandler().Recover(p, v)
-			} else {
-				panic(err)
-			}
+	if p.GetInterpreter().AdaptivePredict(p.GetTokenStream(), 27, p.GetParserRuleContext()) == 1 {
+		{
+			p.SetState(193)
+			p.Match(EarthParserWS)
 		}
-	}()
+		{
+			p.SetState(194)
+			p.StmtWords()
+		}
 
-	p.EnterOuterAlt(localctx, 1)
-	{
-		p.SetState(222)
-		p.Match(EarthParserAtom)
 	}
 
 	return localctx
@@ -2642,7 +2499,7 @@ func (s *EntrypointStmtContext) ExitRule(listener antlr.ParseTreeListener) {
 
 func (p *EarthParser) EntrypointStmt() (localctx IEntrypointStmtContext) {
 	localctx = NewEntrypointStmtContext(p, p.GetParserRuleContext(), p.GetState())
-	p.EnterRule(localctx, 30, EarthParserRULE_entrypointStmt)
+	p.EnterRule(localctx, 28, EarthParserRULE_entrypointStmt)
 
 	defer func() {
 		p.ExitRule()
@@ -2662,30 +2519,30 @@ func (p *EarthParser) EntrypointStmt() (localctx IEntrypointStmtContext) {
 
 	p.EnterOuterAlt(localctx, 1)
 	{
-		p.SetState(224)
+		p.SetState(197)
 		p.Match(EarthParserENTRYPOINT)
 	}
-	p.SetState(230)
+	p.SetState(203)
 	p.GetErrorHandler().Sync(p)
 
-	if p.GetInterpreter().AdaptivePredict(p.GetTokenStream(), 28, p.GetParserRuleContext()) == 1 {
+	if p.GetInterpreter().AdaptivePredict(p.GetTokenStream(), 29, p.GetParserRuleContext()) == 1 {
 		{
-			p.SetState(225)
+			p.SetState(198)
 			p.Match(EarthParserWS)
 		}
-		p.SetState(228)
+		p.SetState(201)
 		p.GetErrorHandler().Sync(p)
 
 		switch p.GetTokenStream().LA(1) {
 		case EarthParserAtom:
 			{
-				p.SetState(226)
+				p.SetState(199)
 				p.StmtWords()
 			}
 
 		case EarthParserOPEN_BRACKET:
 			{
-				p.SetState(227)
+				p.SetState(200)
 				p.StmtWordsList()
 			}
 
@@ -2794,7 +2651,7 @@ func (s *EnvStmtContext) ExitRule(listener antlr.ParseTreeListener) {
 
 func (p *EarthParser) EnvStmt() (localctx IEnvStmtContext) {
 	localctx = NewEnvStmtContext(p, p.GetParserRuleContext(), p.GetState())
-	p.EnterRule(localctx, 32, EarthParserRULE_envStmt)
+	p.EnterRule(localctx, 30, EarthParserRULE_envStmt)
 	var _la int
 
 	defer func() {
@@ -2815,55 +2672,55 @@ func (p *EarthParser) EnvStmt() (localctx IEnvStmtContext) {
 
 	p.EnterOuterAlt(localctx, 1)
 	{
-		p.SetState(232)
+		p.SetState(205)
 		p.Match(EarthParserENV)
 	}
 	{
-		p.SetState(233)
+		p.SetState(206)
 		p.Match(EarthParserWS)
 	}
 	{
-		p.SetState(234)
+		p.SetState(207)
 		p.EnvArgKey()
 	}
-	p.SetState(239)
+	p.SetState(212)
 	p.GetErrorHandler().Sync(p)
 
-	if p.GetInterpreter().AdaptivePredict(p.GetTokenStream(), 30, p.GetParserRuleContext()) == 1 {
-		p.SetState(236)
+	if p.GetInterpreter().AdaptivePredict(p.GetTokenStream(), 31, p.GetParserRuleContext()) == 1 {
+		p.SetState(209)
 		p.GetErrorHandler().Sync(p)
 		_la = p.GetTokenStream().LA(1)
 
 		if _la == EarthParserWS {
 			{
-				p.SetState(235)
+				p.SetState(208)
 				p.Match(EarthParserWS)
 			}
 
 		}
 		{
-			p.SetState(238)
+			p.SetState(211)
 			p.Match(EarthParserEQUALS)
 		}
 
 	}
-	p.SetState(245)
+	p.SetState(218)
 	p.GetErrorHandler().Sync(p)
 
-	if p.GetInterpreter().AdaptivePredict(p.GetTokenStream(), 32, p.GetParserRuleContext()) == 1 {
-		p.SetState(242)
+	if p.GetInterpreter().AdaptivePredict(p.GetTokenStream(), 33, p.GetParserRuleContext()) == 1 {
+		p.SetState(215)
 		p.GetErrorHandler().Sync(p)
 		_la = p.GetTokenStream().LA(1)
 
 		if _la == EarthParserWS {
 			{
-				p.SetState(241)
+				p.SetState(214)
 				p.Match(EarthParserWS)
 			}
 
 		}
 		{
-			p.SetState(244)
+			p.SetState(217)
 			p.EnvArgValue()
 		}
 
@@ -2968,7 +2825,7 @@ func (s *ArgStmtContext) ExitRule(listener antlr.ParseTreeListener) {
 
 func (p *EarthParser) ArgStmt() (localctx IArgStmtContext) {
 	localctx = NewArgStmtContext(p, p.GetParserRuleContext(), p.GetState())
-	p.EnterRule(localctx, 34, EarthParserRULE_argStmt)
+	p.EnterRule(localctx, 32, EarthParserRULE_argStmt)
 	var _la int
 
 	defer func() {
@@ -2989,59 +2846,283 @@ func (p *EarthParser) ArgStmt() (localctx IArgStmtContext) {
 
 	p.EnterOuterAlt(localctx, 1)
 	{
-		p.SetState(247)
+		p.SetState(220)
 		p.Match(EarthParserARG)
 	}
 	{
-		p.SetState(248)
+		p.SetState(221)
 		p.Match(EarthParserWS)
 	}
 	{
-		p.SetState(249)
+		p.SetState(222)
 		p.EnvArgKey()
 	}
-	p.SetState(261)
+	p.SetState(234)
 	p.GetErrorHandler().Sync(p)
 
-	if p.GetInterpreter().AdaptivePredict(p.GetTokenStream(), 36, p.GetParserRuleContext()) == 1 {
-		p.SetState(251)
+	if p.GetInterpreter().AdaptivePredict(p.GetTokenStream(), 37, p.GetParserRuleContext()) == 1 {
+		p.SetState(224)
 		p.GetErrorHandler().Sync(p)
 		_la = p.GetTokenStream().LA(1)
 
 		if _la == EarthParserWS {
 			{
-				p.SetState(250)
+				p.SetState(223)
 				p.Match(EarthParserWS)
 			}
 
 		}
 		{
-			p.SetState(253)
+			p.SetState(226)
 			p.Match(EarthParserEQUALS)
 		}
 
-		p.SetState(259)
+		p.SetState(232)
 		p.GetErrorHandler().Sync(p)
 
-		if p.GetInterpreter().AdaptivePredict(p.GetTokenStream(), 35, p.GetParserRuleContext()) == 1 {
-			p.SetState(256)
+		if p.GetInterpreter().AdaptivePredict(p.GetTokenStream(), 36, p.GetParserRuleContext()) == 1 {
+			p.SetState(229)
 			p.GetErrorHandler().Sync(p)
 			_la = p.GetTokenStream().LA(1)
 
 			if _la == EarthParserWS {
 				{
-					p.SetState(255)
+					p.SetState(228)
 					p.Match(EarthParserWS)
 				}
 
 			}
 			{
-				p.SetState(258)
+				p.SetState(231)
 				p.EnvArgValue()
 			}
 
 		}
 
+	}
+
+	return localctx
+}
+
+// IEnvArgKeyContext is an interface to support dynamic dispatch.
+type IEnvArgKeyContext interface {
+	antlr.ParserRuleContext
+
+	// GetParser returns the parser.
+	GetParser() antlr.Parser
+
+	// IsEnvArgKeyContext differentiates from other interfaces.
+	IsEnvArgKeyContext()
+}
+
+type EnvArgKeyContext struct {
+	*antlr.BaseParserRuleContext
+	parser antlr.Parser
+}
+
+func NewEmptyEnvArgKeyContext() *EnvArgKeyContext {
+	var p = new(EnvArgKeyContext)
+	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(nil, -1)
+	p.RuleIndex = EarthParserRULE_envArgKey
+	return p
+}
+
+func (*EnvArgKeyContext) IsEnvArgKeyContext() {}
+
+func NewEnvArgKeyContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *EnvArgKeyContext {
+	var p = new(EnvArgKeyContext)
+
+	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(parent, invokingState)
+
+	p.parser = parser
+	p.RuleIndex = EarthParserRULE_envArgKey
+
+	return p
+}
+
+func (s *EnvArgKeyContext) GetParser() antlr.Parser { return s.parser }
+
+func (s *EnvArgKeyContext) Atom() antlr.TerminalNode {
+	return s.GetToken(EarthParserAtom, 0)
+}
+
+func (s *EnvArgKeyContext) GetRuleContext() antlr.RuleContext {
+	return s
+}
+
+func (s *EnvArgKeyContext) ToStringTree(ruleNames []string, recog antlr.Recognizer) string {
+	return antlr.TreesStringTree(s, ruleNames, recog)
+}
+
+func (s *EnvArgKeyContext) EnterRule(listener antlr.ParseTreeListener) {
+	if listenerT, ok := listener.(EarthParserListener); ok {
+		listenerT.EnterEnvArgKey(s)
+	}
+}
+
+func (s *EnvArgKeyContext) ExitRule(listener antlr.ParseTreeListener) {
+	if listenerT, ok := listener.(EarthParserListener); ok {
+		listenerT.ExitEnvArgKey(s)
+	}
+}
+
+func (p *EarthParser) EnvArgKey() (localctx IEnvArgKeyContext) {
+	localctx = NewEnvArgKeyContext(p, p.GetParserRuleContext(), p.GetState())
+	p.EnterRule(localctx, 34, EarthParserRULE_envArgKey)
+
+	defer func() {
+		p.ExitRule()
+	}()
+
+	defer func() {
+		if err := recover(); err != nil {
+			if v, ok := err.(antlr.RecognitionException); ok {
+				localctx.SetException(v)
+				p.GetErrorHandler().ReportError(p, v)
+				p.GetErrorHandler().Recover(p, v)
+			} else {
+				panic(err)
+			}
+		}
+	}()
+
+	p.EnterOuterAlt(localctx, 1)
+	{
+		p.SetState(236)
+		p.Match(EarthParserAtom)
+	}
+
+	return localctx
+}
+
+// IEnvArgValueContext is an interface to support dynamic dispatch.
+type IEnvArgValueContext interface {
+	antlr.ParserRuleContext
+
+	// GetParser returns the parser.
+	GetParser() antlr.Parser
+
+	// IsEnvArgValueContext differentiates from other interfaces.
+	IsEnvArgValueContext()
+}
+
+type EnvArgValueContext struct {
+	*antlr.BaseParserRuleContext
+	parser antlr.Parser
+}
+
+func NewEmptyEnvArgValueContext() *EnvArgValueContext {
+	var p = new(EnvArgValueContext)
+	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(nil, -1)
+	p.RuleIndex = EarthParserRULE_envArgValue
+	return p
+}
+
+func (*EnvArgValueContext) IsEnvArgValueContext() {}
+
+func NewEnvArgValueContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *EnvArgValueContext {
+	var p = new(EnvArgValueContext)
+
+	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(parent, invokingState)
+
+	p.parser = parser
+	p.RuleIndex = EarthParserRULE_envArgValue
+
+	return p
+}
+
+func (s *EnvArgValueContext) GetParser() antlr.Parser { return s.parser }
+
+func (s *EnvArgValueContext) AllAtom() []antlr.TerminalNode {
+	return s.GetTokens(EarthParserAtom)
+}
+
+func (s *EnvArgValueContext) Atom(i int) antlr.TerminalNode {
+	return s.GetToken(EarthParserAtom, i)
+}
+
+func (s *EnvArgValueContext) AllWS() []antlr.TerminalNode {
+	return s.GetTokens(EarthParserWS)
+}
+
+func (s *EnvArgValueContext) WS(i int) antlr.TerminalNode {
+	return s.GetToken(EarthParserWS, i)
+}
+
+func (s *EnvArgValueContext) GetRuleContext() antlr.RuleContext {
+	return s
+}
+
+func (s *EnvArgValueContext) ToStringTree(ruleNames []string, recog antlr.Recognizer) string {
+	return antlr.TreesStringTree(s, ruleNames, recog)
+}
+
+func (s *EnvArgValueContext) EnterRule(listener antlr.ParseTreeListener) {
+	if listenerT, ok := listener.(EarthParserListener); ok {
+		listenerT.EnterEnvArgValue(s)
+	}
+}
+
+func (s *EnvArgValueContext) ExitRule(listener antlr.ParseTreeListener) {
+	if listenerT, ok := listener.(EarthParserListener); ok {
+		listenerT.ExitEnvArgValue(s)
+	}
+}
+
+func (p *EarthParser) EnvArgValue() (localctx IEnvArgValueContext) {
+	localctx = NewEnvArgValueContext(p, p.GetParserRuleContext(), p.GetState())
+	p.EnterRule(localctx, 36, EarthParserRULE_envArgValue)
+	var _la int
+
+	defer func() {
+		p.ExitRule()
+	}()
+
+	defer func() {
+		if err := recover(); err != nil {
+			if v, ok := err.(antlr.RecognitionException); ok {
+				localctx.SetException(v)
+				p.GetErrorHandler().ReportError(p, v)
+				p.GetErrorHandler().Recover(p, v)
+			} else {
+				panic(err)
+			}
+		}
+	}()
+
+	var _alt int
+
+	p.EnterOuterAlt(localctx, 1)
+	{
+		p.SetState(238)
+		p.Match(EarthParserAtom)
+	}
+	p.SetState(245)
+	p.GetErrorHandler().Sync(p)
+	_alt = p.GetInterpreter().AdaptivePredict(p.GetTokenStream(), 39, p.GetParserRuleContext())
+
+	for _alt != 2 && _alt != antlr.ATNInvalidAltNumber {
+		if _alt == 1 {
+			p.SetState(240)
+			p.GetErrorHandler().Sync(p)
+			_la = p.GetTokenStream().LA(1)
+
+			if _la == EarthParserWS {
+				{
+					p.SetState(239)
+					p.Match(EarthParserWS)
+				}
+
+			}
+			{
+				p.SetState(242)
+				p.Match(EarthParserAtom)
+			}
+
+		}
+		p.SetState(247)
+		p.GetErrorHandler().Sync(p)
+		_alt = p.GetInterpreter().AdaptivePredict(p.GetTokenStream(), 39, p.GetParserRuleContext())
 	}
 
 	return localctx
@@ -3089,55 +3170,18 @@ func (s *GitCloneStmtContext) GIT_CLONE() antlr.TerminalNode {
 	return s.GetToken(EarthParserGIT_CLONE, 0)
 }
 
-func (s *GitCloneStmtContext) AllWS() []antlr.TerminalNode {
-	return s.GetTokens(EarthParserWS)
+func (s *GitCloneStmtContext) WS() antlr.TerminalNode {
+	return s.GetToken(EarthParserWS, 0)
 }
 
-func (s *GitCloneStmtContext) WS(i int) antlr.TerminalNode {
-	return s.GetToken(EarthParserWS, i)
-}
-
-func (s *GitCloneStmtContext) GitURL() IGitURLContext {
-	var t = s.GetTypedRuleContext(reflect.TypeOf((*IGitURLContext)(nil)).Elem(), 0)
+func (s *GitCloneStmtContext) StmtWords() IStmtWordsContext {
+	var t = s.GetTypedRuleContext(reflect.TypeOf((*IStmtWordsContext)(nil)).Elem(), 0)
 
 	if t == nil {
 		return nil
 	}
 
-	return t.(IGitURLContext)
-}
-
-func (s *GitCloneStmtContext) GitCloneDest() IGitCloneDestContext {
-	var t = s.GetTypedRuleContext(reflect.TypeOf((*IGitCloneDestContext)(nil)).Elem(), 0)
-
-	if t == nil {
-		return nil
-	}
-
-	return t.(IGitCloneDestContext)
-}
-
-func (s *GitCloneStmtContext) AllFlagKeyValue() []IFlagKeyValueContext {
-	var ts = s.GetTypedRuleContexts(reflect.TypeOf((*IFlagKeyValueContext)(nil)).Elem())
-	var tst = make([]IFlagKeyValueContext, len(ts))
-
-	for i, t := range ts {
-		if t != nil {
-			tst[i] = t.(IFlagKeyValueContext)
-		}
-	}
-
-	return tst
-}
-
-func (s *GitCloneStmtContext) FlagKeyValue(i int) IFlagKeyValueContext {
-	var t = s.GetTypedRuleContext(reflect.TypeOf((*IFlagKeyValueContext)(nil)).Elem(), i)
-
-	if t == nil {
-		return nil
-	}
-
-	return t.(IFlagKeyValueContext)
+	return t.(IStmtWordsContext)
 }
 
 func (s *GitCloneStmtContext) GetRuleContext() antlr.RuleContext {
@@ -3162,7 +3206,7 @@ func (s *GitCloneStmtContext) ExitRule(listener antlr.ParseTreeListener) {
 
 func (p *EarthParser) GitCloneStmt() (localctx IGitCloneStmtContext) {
 	localctx = NewGitCloneStmtContext(p, p.GetParserRuleContext(), p.GetState())
-	p.EnterRule(localctx, 36, EarthParserRULE_gitCloneStmt)
+	p.EnterRule(localctx, 38, EarthParserRULE_gitCloneStmt)
 
 	defer func() {
 		p.ExitRule()
@@ -3180,230 +3224,24 @@ func (p *EarthParser) GitCloneStmt() (localctx IGitCloneStmtContext) {
 		}
 	}()
 
-	var _alt int
-
 	p.EnterOuterAlt(localctx, 1)
 	{
-		p.SetState(263)
+		p.SetState(248)
 		p.Match(EarthParserGIT_CLONE)
 	}
-	p.SetState(268)
+	p.SetState(251)
 	p.GetErrorHandler().Sync(p)
-	_alt = p.GetInterpreter().AdaptivePredict(p.GetTokenStream(), 37, p.GetParserRuleContext())
 
-	for _alt != 2 && _alt != antlr.ATNInvalidAltNumber {
-		if _alt == 1 {
-			{
-				p.SetState(264)
-				p.Match(EarthParserWS)
-			}
-			{
-				p.SetState(265)
-				p.FlagKeyValue()
-			}
-
+	if p.GetInterpreter().AdaptivePredict(p.GetTokenStream(), 40, p.GetParserRuleContext()) == 1 {
+		{
+			p.SetState(249)
+			p.Match(EarthParserWS)
 		}
-		p.SetState(270)
-		p.GetErrorHandler().Sync(p)
-		_alt = p.GetInterpreter().AdaptivePredict(p.GetTokenStream(), 37, p.GetParserRuleContext())
-	}
-	{
-		p.SetState(271)
-		p.Match(EarthParserWS)
-	}
-	{
-		p.SetState(272)
-		p.GitURL()
-	}
-	{
-		p.SetState(273)
-		p.Match(EarthParserWS)
-	}
-	{
-		p.SetState(274)
-		p.GitCloneDest()
-	}
-
-	return localctx
-}
-
-// IGitURLContext is an interface to support dynamic dispatch.
-type IGitURLContext interface {
-	antlr.ParserRuleContext
-
-	// GetParser returns the parser.
-	GetParser() antlr.Parser
-
-	// IsGitURLContext differentiates from other interfaces.
-	IsGitURLContext()
-}
-
-type GitURLContext struct {
-	*antlr.BaseParserRuleContext
-	parser antlr.Parser
-}
-
-func NewEmptyGitURLContext() *GitURLContext {
-	var p = new(GitURLContext)
-	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(nil, -1)
-	p.RuleIndex = EarthParserRULE_gitURL
-	return p
-}
-
-func (*GitURLContext) IsGitURLContext() {}
-
-func NewGitURLContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *GitURLContext {
-	var p = new(GitURLContext)
-
-	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(parent, invokingState)
-
-	p.parser = parser
-	p.RuleIndex = EarthParserRULE_gitURL
-
-	return p
-}
-
-func (s *GitURLContext) GetParser() antlr.Parser { return s.parser }
-
-func (s *GitURLContext) Atom() antlr.TerminalNode {
-	return s.GetToken(EarthParserAtom, 0)
-}
-
-func (s *GitURLContext) GetRuleContext() antlr.RuleContext {
-	return s
-}
-
-func (s *GitURLContext) ToStringTree(ruleNames []string, recog antlr.Recognizer) string {
-	return antlr.TreesStringTree(s, ruleNames, recog)
-}
-
-func (s *GitURLContext) EnterRule(listener antlr.ParseTreeListener) {
-	if listenerT, ok := listener.(EarthParserListener); ok {
-		listenerT.EnterGitURL(s)
-	}
-}
-
-func (s *GitURLContext) ExitRule(listener antlr.ParseTreeListener) {
-	if listenerT, ok := listener.(EarthParserListener); ok {
-		listenerT.ExitGitURL(s)
-	}
-}
-
-func (p *EarthParser) GitURL() (localctx IGitURLContext) {
-	localctx = NewGitURLContext(p, p.GetParserRuleContext(), p.GetState())
-	p.EnterRule(localctx, 38, EarthParserRULE_gitURL)
-
-	defer func() {
-		p.ExitRule()
-	}()
-
-	defer func() {
-		if err := recover(); err != nil {
-			if v, ok := err.(antlr.RecognitionException); ok {
-				localctx.SetException(v)
-				p.GetErrorHandler().ReportError(p, v)
-				p.GetErrorHandler().Recover(p, v)
-			} else {
-				panic(err)
-			}
+		{
+			p.SetState(250)
+			p.StmtWords()
 		}
-	}()
 
-	p.EnterOuterAlt(localctx, 1)
-	{
-		p.SetState(276)
-		p.Match(EarthParserAtom)
-	}
-
-	return localctx
-}
-
-// IGitCloneDestContext is an interface to support dynamic dispatch.
-type IGitCloneDestContext interface {
-	antlr.ParserRuleContext
-
-	// GetParser returns the parser.
-	GetParser() antlr.Parser
-
-	// IsGitCloneDestContext differentiates from other interfaces.
-	IsGitCloneDestContext()
-}
-
-type GitCloneDestContext struct {
-	*antlr.BaseParserRuleContext
-	parser antlr.Parser
-}
-
-func NewEmptyGitCloneDestContext() *GitCloneDestContext {
-	var p = new(GitCloneDestContext)
-	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(nil, -1)
-	p.RuleIndex = EarthParserRULE_gitCloneDest
-	return p
-}
-
-func (*GitCloneDestContext) IsGitCloneDestContext() {}
-
-func NewGitCloneDestContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *GitCloneDestContext {
-	var p = new(GitCloneDestContext)
-
-	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(parent, invokingState)
-
-	p.parser = parser
-	p.RuleIndex = EarthParserRULE_gitCloneDest
-
-	return p
-}
-
-func (s *GitCloneDestContext) GetParser() antlr.Parser { return s.parser }
-
-func (s *GitCloneDestContext) Atom() antlr.TerminalNode {
-	return s.GetToken(EarthParserAtom, 0)
-}
-
-func (s *GitCloneDestContext) GetRuleContext() antlr.RuleContext {
-	return s
-}
-
-func (s *GitCloneDestContext) ToStringTree(ruleNames []string, recog antlr.Recognizer) string {
-	return antlr.TreesStringTree(s, ruleNames, recog)
-}
-
-func (s *GitCloneDestContext) EnterRule(listener antlr.ParseTreeListener) {
-	if listenerT, ok := listener.(EarthParserListener); ok {
-		listenerT.EnterGitCloneDest(s)
-	}
-}
-
-func (s *GitCloneDestContext) ExitRule(listener antlr.ParseTreeListener) {
-	if listenerT, ok := listener.(EarthParserListener); ok {
-		listenerT.ExitGitCloneDest(s)
-	}
-}
-
-func (p *EarthParser) GitCloneDest() (localctx IGitCloneDestContext) {
-	localctx = NewGitCloneDestContext(p, p.GetParserRuleContext(), p.GetState())
-	p.EnterRule(localctx, 40, EarthParserRULE_gitCloneDest)
-
-	defer func() {
-		p.ExitRule()
-	}()
-
-	defer func() {
-		if err := recover(); err != nil {
-			if v, ok := err.(antlr.RecognitionException); ok {
-				localctx.SetException(v)
-				p.GetErrorHandler().ReportError(p, v)
-				p.GetErrorHandler().Recover(p, v)
-			} else {
-				panic(err)
-			}
-		}
-	}()
-
-	p.EnterOuterAlt(localctx, 1)
-	{
-		p.SetState(278)
-		p.Match(EarthParserAtom)
 	}
 
 	return localctx
@@ -3451,55 +3289,18 @@ func (s *DockerLoadStmtContext) DOCKER_LOAD() antlr.TerminalNode {
 	return s.GetToken(EarthParserDOCKER_LOAD, 0)
 }
 
-func (s *DockerLoadStmtContext) AllWS() []antlr.TerminalNode {
-	return s.GetTokens(EarthParserWS)
+func (s *DockerLoadStmtContext) WS() antlr.TerminalNode {
+	return s.GetToken(EarthParserWS, 0)
 }
 
-func (s *DockerLoadStmtContext) WS(i int) antlr.TerminalNode {
-	return s.GetToken(EarthParserWS, i)
-}
-
-func (s *DockerLoadStmtContext) FullTargetName() IFullTargetNameContext {
-	var t = s.GetTypedRuleContext(reflect.TypeOf((*IFullTargetNameContext)(nil)).Elem(), 0)
+func (s *DockerLoadStmtContext) StmtWords() IStmtWordsContext {
+	var t = s.GetTypedRuleContext(reflect.TypeOf((*IStmtWordsContext)(nil)).Elem(), 0)
 
 	if t == nil {
 		return nil
 	}
 
-	return t.(IFullTargetNameContext)
-}
-
-func (s *DockerLoadStmtContext) ImageName() IImageNameContext {
-	var t = s.GetTypedRuleContext(reflect.TypeOf((*IImageNameContext)(nil)).Elem(), 0)
-
-	if t == nil {
-		return nil
-	}
-
-	return t.(IImageNameContext)
-}
-
-func (s *DockerLoadStmtContext) AllFlagKeyValue() []IFlagKeyValueContext {
-	var ts = s.GetTypedRuleContexts(reflect.TypeOf((*IFlagKeyValueContext)(nil)).Elem())
-	var tst = make([]IFlagKeyValueContext, len(ts))
-
-	for i, t := range ts {
-		if t != nil {
-			tst[i] = t.(IFlagKeyValueContext)
-		}
-	}
-
-	return tst
-}
-
-func (s *DockerLoadStmtContext) FlagKeyValue(i int) IFlagKeyValueContext {
-	var t = s.GetTypedRuleContext(reflect.TypeOf((*IFlagKeyValueContext)(nil)).Elem(), i)
-
-	if t == nil {
-		return nil
-	}
-
-	return t.(IFlagKeyValueContext)
+	return t.(IStmtWordsContext)
 }
 
 func (s *DockerLoadStmtContext) GetRuleContext() antlr.RuleContext {
@@ -3524,7 +3325,7 @@ func (s *DockerLoadStmtContext) ExitRule(listener antlr.ParseTreeListener) {
 
 func (p *EarthParser) DockerLoadStmt() (localctx IDockerLoadStmtContext) {
 	localctx = NewDockerLoadStmtContext(p, p.GetParserRuleContext(), p.GetState())
-	p.EnterRule(localctx, 42, EarthParserRULE_dockerLoadStmt)
+	p.EnterRule(localctx, 40, EarthParserRULE_dockerLoadStmt)
 
 	defer func() {
 		p.ExitRule()
@@ -3542,48 +3343,24 @@ func (p *EarthParser) DockerLoadStmt() (localctx IDockerLoadStmtContext) {
 		}
 	}()
 
-	var _alt int
-
 	p.EnterOuterAlt(localctx, 1)
 	{
-		p.SetState(280)
+		p.SetState(253)
 		p.Match(EarthParserDOCKER_LOAD)
 	}
-	p.SetState(285)
+	p.SetState(256)
 	p.GetErrorHandler().Sync(p)
-	_alt = p.GetInterpreter().AdaptivePredict(p.GetTokenStream(), 38, p.GetParserRuleContext())
 
-	for _alt != 2 && _alt != antlr.ATNInvalidAltNumber {
-		if _alt == 1 {
-			{
-				p.SetState(281)
-				p.Match(EarthParserWS)
-			}
-			{
-				p.SetState(282)
-				p.FlagKeyValue()
-			}
-
+	if p.GetInterpreter().AdaptivePredict(p.GetTokenStream(), 41, p.GetParserRuleContext()) == 1 {
+		{
+			p.SetState(254)
+			p.Match(EarthParserWS)
 		}
-		p.SetState(287)
-		p.GetErrorHandler().Sync(p)
-		_alt = p.GetInterpreter().AdaptivePredict(p.GetTokenStream(), 38, p.GetParserRuleContext())
-	}
-	{
-		p.SetState(288)
-		p.Match(EarthParserWS)
-	}
-	{
-		p.SetState(289)
-		p.FullTargetName()
-	}
-	{
-		p.SetState(290)
-		p.Match(EarthParserWS)
-	}
-	{
-		p.SetState(291)
-		p.ImageName()
+		{
+			p.SetState(255)
+			p.StmtWords()
+		}
+
 	}
 
 	return localctx
@@ -3635,14 +3412,14 @@ func (s *DockerPullStmtContext) WS() antlr.TerminalNode {
 	return s.GetToken(EarthParserWS, 0)
 }
 
-func (s *DockerPullStmtContext) ImageName() IImageNameContext {
-	var t = s.GetTypedRuleContext(reflect.TypeOf((*IImageNameContext)(nil)).Elem(), 0)
+func (s *DockerPullStmtContext) StmtWords() IStmtWordsContext {
+	var t = s.GetTypedRuleContext(reflect.TypeOf((*IStmtWordsContext)(nil)).Elem(), 0)
 
 	if t == nil {
 		return nil
 	}
 
-	return t.(IImageNameContext)
+	return t.(IStmtWordsContext)
 }
 
 func (s *DockerPullStmtContext) GetRuleContext() antlr.RuleContext {
@@ -3667,7 +3444,7 @@ func (s *DockerPullStmtContext) ExitRule(listener antlr.ParseTreeListener) {
 
 func (p *EarthParser) DockerPullStmt() (localctx IDockerPullStmtContext) {
 	localctx = NewDockerPullStmtContext(p, p.GetParserRuleContext(), p.GetState())
-	p.EnterRule(localctx, 44, EarthParserRULE_dockerPullStmt)
+	p.EnterRule(localctx, 42, EarthParserRULE_dockerPullStmt)
 
 	defer func() {
 		p.ExitRule()
@@ -3687,16 +3464,22 @@ func (p *EarthParser) DockerPullStmt() (localctx IDockerPullStmtContext) {
 
 	p.EnterOuterAlt(localctx, 1)
 	{
-		p.SetState(293)
+		p.SetState(258)
 		p.Match(EarthParserDOCKER_PULL)
 	}
-	{
-		p.SetState(294)
-		p.Match(EarthParserWS)
-	}
-	{
-		p.SetState(295)
-		p.ImageName()
+	p.SetState(261)
+	p.GetErrorHandler().Sync(p)
+
+	if p.GetInterpreter().AdaptivePredict(p.GetTokenStream(), 42, p.GetParserRuleContext()) == 1 {
+		{
+			p.SetState(259)
+			p.Match(EarthParserWS)
+		}
+		{
+			p.SetState(260)
+			p.StmtWords()
+		}
+
 	}
 
 	return localctx
@@ -3750,22 +3533,8 @@ func (s *GenericCommandContext) CommandName() ICommandNameContext {
 	return t.(ICommandNameContext)
 }
 
-func (s *GenericCommandContext) AllWS() []antlr.TerminalNode {
-	return s.GetTokens(EarthParserWS)
-}
-
-func (s *GenericCommandContext) WS(i int) antlr.TerminalNode {
-	return s.GetToken(EarthParserWS, i)
-}
-
-func (s *GenericCommandContext) Flags() IFlagsContext {
-	var t = s.GetTypedRuleContext(reflect.TypeOf((*IFlagsContext)(nil)).Elem(), 0)
-
-	if t == nil {
-		return nil
-	}
-
-	return t.(IFlagsContext)
+func (s *GenericCommandContext) WS() antlr.TerminalNode {
+	return s.GetToken(EarthParserWS, 0)
 }
 
 func (s *GenericCommandContext) StmtWords() IStmtWordsContext {
@@ -3776,16 +3545,6 @@ func (s *GenericCommandContext) StmtWords() IStmtWordsContext {
 	}
 
 	return t.(IStmtWordsContext)
-}
-
-func (s *GenericCommandContext) ArgsList() IArgsListContext {
-	var t = s.GetTypedRuleContext(reflect.TypeOf((*IArgsListContext)(nil)).Elem(), 0)
-
-	if t == nil {
-		return nil
-	}
-
-	return t.(IArgsListContext)
 }
 
 func (s *GenericCommandContext) GetRuleContext() antlr.RuleContext {
@@ -3810,7 +3569,7 @@ func (s *GenericCommandContext) ExitRule(listener antlr.ParseTreeListener) {
 
 func (p *EarthParser) GenericCommand() (localctx IGenericCommandContext) {
 	localctx = NewGenericCommandContext(p, p.GetParserRuleContext(), p.GetState())
-	p.EnterRule(localctx, 46, EarthParserRULE_genericCommand)
+	p.EnterRule(localctx, 44, EarthParserRULE_genericCommand)
 
 	defer func() {
 		p.ExitRule()
@@ -3830,44 +3589,20 @@ func (p *EarthParser) GenericCommand() (localctx IGenericCommandContext) {
 
 	p.EnterOuterAlt(localctx, 1)
 	{
-		p.SetState(297)
+		p.SetState(263)
 		p.CommandName()
 	}
-	p.SetState(300)
+	p.SetState(266)
 	p.GetErrorHandler().Sync(p)
 
-	if p.GetInterpreter().AdaptivePredict(p.GetTokenStream(), 39, p.GetParserRuleContext()) == 1 {
+	if p.GetInterpreter().AdaptivePredict(p.GetTokenStream(), 43, p.GetParserRuleContext()) == 1 {
 		{
-			p.SetState(298)
+			p.SetState(264)
 			p.Match(EarthParserWS)
 		}
 		{
-			p.SetState(299)
-			p.Flags()
-		}
-
-	}
-	p.SetState(306)
-	p.GetErrorHandler().Sync(p)
-
-	if p.GetInterpreter().AdaptivePredict(p.GetTokenStream(), 40, p.GetParserRuleContext()) == 1 {
-		{
-			p.SetState(302)
-			p.Match(EarthParserWS)
-		}
-		{
-			p.SetState(303)
+			p.SetState(265)
 			p.StmtWords()
-		}
-
-	} else if p.GetInterpreter().AdaptivePredict(p.GetTokenStream(), 40, p.GetParserRuleContext()) == 2 {
-		{
-			p.SetState(304)
-			p.Match(EarthParserWS)
-		}
-		{
-			p.SetState(305)
-			p.ArgsList()
 		}
 
 	}
@@ -3939,7 +3674,7 @@ func (s *CommandNameContext) ExitRule(listener antlr.ParseTreeListener) {
 
 func (p *EarthParser) CommandName() (localctx ICommandNameContext) {
 	localctx = NewCommandNameContext(p, p.GetParserRuleContext(), p.GetState())
-	p.EnterRule(localctx, 48, EarthParserRULE_commandName)
+	p.EnterRule(localctx, 46, EarthParserRULE_commandName)
 
 	defer func() {
 		p.ExitRule()
@@ -3959,461 +3694,8 @@ func (p *EarthParser) CommandName() (localctx ICommandNameContext) {
 
 	p.EnterOuterAlt(localctx, 1)
 	{
-		p.SetState(308)
+		p.SetState(268)
 		p.Match(EarthParserCommand)
-	}
-
-	return localctx
-}
-
-// IFlagsContext is an interface to support dynamic dispatch.
-type IFlagsContext interface {
-	antlr.ParserRuleContext
-
-	// GetParser returns the parser.
-	GetParser() antlr.Parser
-
-	// IsFlagsContext differentiates from other interfaces.
-	IsFlagsContext()
-}
-
-type FlagsContext struct {
-	*antlr.BaseParserRuleContext
-	parser antlr.Parser
-}
-
-func NewEmptyFlagsContext() *FlagsContext {
-	var p = new(FlagsContext)
-	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(nil, -1)
-	p.RuleIndex = EarthParserRULE_flags
-	return p
-}
-
-func (*FlagsContext) IsFlagsContext() {}
-
-func NewFlagsContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *FlagsContext {
-	var p = new(FlagsContext)
-
-	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(parent, invokingState)
-
-	p.parser = parser
-	p.RuleIndex = EarthParserRULE_flags
-
-	return p
-}
-
-func (s *FlagsContext) GetParser() antlr.Parser { return s.parser }
-
-func (s *FlagsContext) AllFlag() []IFlagContext {
-	var ts = s.GetTypedRuleContexts(reflect.TypeOf((*IFlagContext)(nil)).Elem())
-	var tst = make([]IFlagContext, len(ts))
-
-	for i, t := range ts {
-		if t != nil {
-			tst[i] = t.(IFlagContext)
-		}
-	}
-
-	return tst
-}
-
-func (s *FlagsContext) Flag(i int) IFlagContext {
-	var t = s.GetTypedRuleContext(reflect.TypeOf((*IFlagContext)(nil)).Elem(), i)
-
-	if t == nil {
-		return nil
-	}
-
-	return t.(IFlagContext)
-}
-
-func (s *FlagsContext) AllWS() []antlr.TerminalNode {
-	return s.GetTokens(EarthParserWS)
-}
-
-func (s *FlagsContext) WS(i int) antlr.TerminalNode {
-	return s.GetToken(EarthParserWS, i)
-}
-
-func (s *FlagsContext) GetRuleContext() antlr.RuleContext {
-	return s
-}
-
-func (s *FlagsContext) ToStringTree(ruleNames []string, recog antlr.Recognizer) string {
-	return antlr.TreesStringTree(s, ruleNames, recog)
-}
-
-func (s *FlagsContext) EnterRule(listener antlr.ParseTreeListener) {
-	if listenerT, ok := listener.(EarthParserListener); ok {
-		listenerT.EnterFlags(s)
-	}
-}
-
-func (s *FlagsContext) ExitRule(listener antlr.ParseTreeListener) {
-	if listenerT, ok := listener.(EarthParserListener); ok {
-		listenerT.ExitFlags(s)
-	}
-}
-
-func (p *EarthParser) Flags() (localctx IFlagsContext) {
-	localctx = NewFlagsContext(p, p.GetParserRuleContext(), p.GetState())
-	p.EnterRule(localctx, 50, EarthParserRULE_flags)
-	var _la int
-
-	defer func() {
-		p.ExitRule()
-	}()
-
-	defer func() {
-		if err := recover(); err != nil {
-			if v, ok := err.(antlr.RecognitionException); ok {
-				localctx.SetException(v)
-				p.GetErrorHandler().ReportError(p, v)
-				p.GetErrorHandler().Recover(p, v)
-			} else {
-				panic(err)
-			}
-		}
-	}()
-
-	var _alt int
-
-	p.EnterOuterAlt(localctx, 1)
-	{
-		p.SetState(310)
-		p.Flag()
-	}
-	p.SetState(317)
-	p.GetErrorHandler().Sync(p)
-	_alt = p.GetInterpreter().AdaptivePredict(p.GetTokenStream(), 42, p.GetParserRuleContext())
-
-	for _alt != 2 && _alt != antlr.ATNInvalidAltNumber {
-		if _alt == 1 {
-			p.SetState(312)
-			p.GetErrorHandler().Sync(p)
-			_la = p.GetTokenStream().LA(1)
-
-			if _la == EarthParserWS {
-				{
-					p.SetState(311)
-					p.Match(EarthParserWS)
-				}
-
-			}
-			{
-				p.SetState(314)
-				p.Flag()
-			}
-
-		}
-		p.SetState(319)
-		p.GetErrorHandler().Sync(p)
-		_alt = p.GetInterpreter().AdaptivePredict(p.GetTokenStream(), 42, p.GetParserRuleContext())
-	}
-
-	return localctx
-}
-
-// IFlagContext is an interface to support dynamic dispatch.
-type IFlagContext interface {
-	antlr.ParserRuleContext
-
-	// GetParser returns the parser.
-	GetParser() antlr.Parser
-
-	// IsFlagContext differentiates from other interfaces.
-	IsFlagContext()
-}
-
-type FlagContext struct {
-	*antlr.BaseParserRuleContext
-	parser antlr.Parser
-}
-
-func NewEmptyFlagContext() *FlagContext {
-	var p = new(FlagContext)
-	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(nil, -1)
-	p.RuleIndex = EarthParserRULE_flag
-	return p
-}
-
-func (*FlagContext) IsFlagContext() {}
-
-func NewFlagContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *FlagContext {
-	var p = new(FlagContext)
-
-	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(parent, invokingState)
-
-	p.parser = parser
-	p.RuleIndex = EarthParserRULE_flag
-
-	return p
-}
-
-func (s *FlagContext) GetParser() antlr.Parser { return s.parser }
-
-func (s *FlagContext) FlagKey() IFlagKeyContext {
-	var t = s.GetTypedRuleContext(reflect.TypeOf((*IFlagKeyContext)(nil)).Elem(), 0)
-
-	if t == nil {
-		return nil
-	}
-
-	return t.(IFlagKeyContext)
-}
-
-func (s *FlagContext) FlagKeyValue() IFlagKeyValueContext {
-	var t = s.GetTypedRuleContext(reflect.TypeOf((*IFlagKeyValueContext)(nil)).Elem(), 0)
-
-	if t == nil {
-		return nil
-	}
-
-	return t.(IFlagKeyValueContext)
-}
-
-func (s *FlagContext) GetRuleContext() antlr.RuleContext {
-	return s
-}
-
-func (s *FlagContext) ToStringTree(ruleNames []string, recog antlr.Recognizer) string {
-	return antlr.TreesStringTree(s, ruleNames, recog)
-}
-
-func (s *FlagContext) EnterRule(listener antlr.ParseTreeListener) {
-	if listenerT, ok := listener.(EarthParserListener); ok {
-		listenerT.EnterFlag(s)
-	}
-}
-
-func (s *FlagContext) ExitRule(listener antlr.ParseTreeListener) {
-	if listenerT, ok := listener.(EarthParserListener); ok {
-		listenerT.ExitFlag(s)
-	}
-}
-
-func (p *EarthParser) Flag() (localctx IFlagContext) {
-	localctx = NewFlagContext(p, p.GetParserRuleContext(), p.GetState())
-	p.EnterRule(localctx, 52, EarthParserRULE_flag)
-
-	defer func() {
-		p.ExitRule()
-	}()
-
-	defer func() {
-		if err := recover(); err != nil {
-			if v, ok := err.(antlr.RecognitionException); ok {
-				localctx.SetException(v)
-				p.GetErrorHandler().ReportError(p, v)
-				p.GetErrorHandler().Recover(p, v)
-			} else {
-				panic(err)
-			}
-		}
-	}()
-
-	p.SetState(322)
-	p.GetErrorHandler().Sync(p)
-
-	switch p.GetTokenStream().LA(1) {
-	case EarthParserFlagKey:
-		p.EnterOuterAlt(localctx, 1)
-		{
-			p.SetState(320)
-			p.FlagKey()
-		}
-
-	case EarthParserFlagKeyValue:
-		p.EnterOuterAlt(localctx, 2)
-		{
-			p.SetState(321)
-			p.FlagKeyValue()
-		}
-
-	default:
-		panic(antlr.NewNoViableAltException(p, nil, nil, nil, nil, nil))
-	}
-
-	return localctx
-}
-
-// IFlagKeyContext is an interface to support dynamic dispatch.
-type IFlagKeyContext interface {
-	antlr.ParserRuleContext
-
-	// GetParser returns the parser.
-	GetParser() antlr.Parser
-
-	// IsFlagKeyContext differentiates from other interfaces.
-	IsFlagKeyContext()
-}
-
-type FlagKeyContext struct {
-	*antlr.BaseParserRuleContext
-	parser antlr.Parser
-}
-
-func NewEmptyFlagKeyContext() *FlagKeyContext {
-	var p = new(FlagKeyContext)
-	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(nil, -1)
-	p.RuleIndex = EarthParserRULE_flagKey
-	return p
-}
-
-func (*FlagKeyContext) IsFlagKeyContext() {}
-
-func NewFlagKeyContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *FlagKeyContext {
-	var p = new(FlagKeyContext)
-
-	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(parent, invokingState)
-
-	p.parser = parser
-	p.RuleIndex = EarthParserRULE_flagKey
-
-	return p
-}
-
-func (s *FlagKeyContext) GetParser() antlr.Parser { return s.parser }
-
-func (s *FlagKeyContext) FlagKey() antlr.TerminalNode {
-	return s.GetToken(EarthParserFlagKey, 0)
-}
-
-func (s *FlagKeyContext) GetRuleContext() antlr.RuleContext {
-	return s
-}
-
-func (s *FlagKeyContext) ToStringTree(ruleNames []string, recog antlr.Recognizer) string {
-	return antlr.TreesStringTree(s, ruleNames, recog)
-}
-
-func (s *FlagKeyContext) EnterRule(listener antlr.ParseTreeListener) {
-	if listenerT, ok := listener.(EarthParserListener); ok {
-		listenerT.EnterFlagKey(s)
-	}
-}
-
-func (s *FlagKeyContext) ExitRule(listener antlr.ParseTreeListener) {
-	if listenerT, ok := listener.(EarthParserListener); ok {
-		listenerT.ExitFlagKey(s)
-	}
-}
-
-func (p *EarthParser) FlagKey() (localctx IFlagKeyContext) {
-	localctx = NewFlagKeyContext(p, p.GetParserRuleContext(), p.GetState())
-	p.EnterRule(localctx, 54, EarthParserRULE_flagKey)
-
-	defer func() {
-		p.ExitRule()
-	}()
-
-	defer func() {
-		if err := recover(); err != nil {
-			if v, ok := err.(antlr.RecognitionException); ok {
-				localctx.SetException(v)
-				p.GetErrorHandler().ReportError(p, v)
-				p.GetErrorHandler().Recover(p, v)
-			} else {
-				panic(err)
-			}
-		}
-	}()
-
-	p.EnterOuterAlt(localctx, 1)
-	{
-		p.SetState(324)
-		p.Match(EarthParserFlagKey)
-	}
-
-	return localctx
-}
-
-// IFlagKeyValueContext is an interface to support dynamic dispatch.
-type IFlagKeyValueContext interface {
-	antlr.ParserRuleContext
-
-	// GetParser returns the parser.
-	GetParser() antlr.Parser
-
-	// IsFlagKeyValueContext differentiates from other interfaces.
-	IsFlagKeyValueContext()
-}
-
-type FlagKeyValueContext struct {
-	*antlr.BaseParserRuleContext
-	parser antlr.Parser
-}
-
-func NewEmptyFlagKeyValueContext() *FlagKeyValueContext {
-	var p = new(FlagKeyValueContext)
-	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(nil, -1)
-	p.RuleIndex = EarthParserRULE_flagKeyValue
-	return p
-}
-
-func (*FlagKeyValueContext) IsFlagKeyValueContext() {}
-
-func NewFlagKeyValueContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *FlagKeyValueContext {
-	var p = new(FlagKeyValueContext)
-
-	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(parent, invokingState)
-
-	p.parser = parser
-	p.RuleIndex = EarthParserRULE_flagKeyValue
-
-	return p
-}
-
-func (s *FlagKeyValueContext) GetParser() antlr.Parser { return s.parser }
-
-func (s *FlagKeyValueContext) FlagKeyValue() antlr.TerminalNode {
-	return s.GetToken(EarthParserFlagKeyValue, 0)
-}
-
-func (s *FlagKeyValueContext) GetRuleContext() antlr.RuleContext {
-	return s
-}
-
-func (s *FlagKeyValueContext) ToStringTree(ruleNames []string, recog antlr.Recognizer) string {
-	return antlr.TreesStringTree(s, ruleNames, recog)
-}
-
-func (s *FlagKeyValueContext) EnterRule(listener antlr.ParseTreeListener) {
-	if listenerT, ok := listener.(EarthParserListener); ok {
-		listenerT.EnterFlagKeyValue(s)
-	}
-}
-
-func (s *FlagKeyValueContext) ExitRule(listener antlr.ParseTreeListener) {
-	if listenerT, ok := listener.(EarthParserListener); ok {
-		listenerT.ExitFlagKeyValue(s)
-	}
-}
-
-func (p *EarthParser) FlagKeyValue() (localctx IFlagKeyValueContext) {
-	localctx = NewFlagKeyValueContext(p, p.GetParserRuleContext(), p.GetState())
-	p.EnterRule(localctx, 56, EarthParserRULE_flagKeyValue)
-
-	defer func() {
-		p.ExitRule()
-	}()
-
-	defer func() {
-		if err := recover(); err != nil {
-			if v, ok := err.(antlr.RecognitionException); ok {
-				localctx.SetException(v)
-				p.GetErrorHandler().ReportError(p, v)
-				p.GetErrorHandler().Recover(p, v)
-			} else {
-				panic(err)
-			}
-		}
-	}()
-
-	p.EnterOuterAlt(localctx, 1)
-	{
-		p.SetState(326)
-		p.Match(EarthParserFlagKeyValue)
 	}
 
 	return localctx
@@ -4510,7 +3792,7 @@ func (s *StmtWordsContext) ExitRule(listener antlr.ParseTreeListener) {
 
 func (p *EarthParser) StmtWords() (localctx IStmtWordsContext) {
 	localctx = NewStmtWordsContext(p, p.GetParserRuleContext(), p.GetState())
-	p.EnterRule(localctx, 58, EarthParserRULE_stmtWords)
+	p.EnterRule(localctx, 48, EarthParserRULE_stmtWords)
 	var _la int
 
 	defer func() {
@@ -4533,33 +3815,33 @@ func (p *EarthParser) StmtWords() (localctx IStmtWordsContext) {
 
 	p.EnterOuterAlt(localctx, 1)
 	{
-		p.SetState(328)
+		p.SetState(270)
 		p.StmtWord()
 	}
-	p.SetState(335)
+	p.SetState(277)
 	p.GetErrorHandler().Sync(p)
 	_alt = p.GetInterpreter().AdaptivePredict(p.GetTokenStream(), 45, p.GetParserRuleContext())
 
 	for _alt != 2 && _alt != antlr.ATNInvalidAltNumber {
 		if _alt == 1 {
-			p.SetState(330)
+			p.SetState(272)
 			p.GetErrorHandler().Sync(p)
 			_la = p.GetTokenStream().LA(1)
 
 			if _la == EarthParserWS {
 				{
-					p.SetState(329)
+					p.SetState(271)
 					p.Match(EarthParserWS)
 				}
 
 			}
 			{
-				p.SetState(332)
+				p.SetState(274)
 				p.StmtWord()
 			}
 
 		}
-		p.SetState(337)
+		p.SetState(279)
 		p.GetErrorHandler().Sync(p)
 		_alt = p.GetInterpreter().AdaptivePredict(p.GetTokenStream(), 45, p.GetParserRuleContext())
 	}
@@ -4674,7 +3956,7 @@ func (s *StmtWordsListContext) ExitRule(listener antlr.ParseTreeListener) {
 
 func (p *EarthParser) StmtWordsList() (localctx IStmtWordsListContext) {
 	localctx = NewStmtWordsListContext(p, p.GetParserRuleContext(), p.GetState())
-	p.EnterRule(localctx, 60, EarthParserRULE_stmtWordsList)
+	p.EnterRule(localctx, 50, EarthParserRULE_stmtWordsList)
 	var _la int
 
 	defer func() {
@@ -4697,78 +3979,78 @@ func (p *EarthParser) StmtWordsList() (localctx IStmtWordsListContext) {
 
 	p.EnterOuterAlt(localctx, 1)
 	{
-		p.SetState(338)
+		p.SetState(280)
 		p.Match(EarthParserOPEN_BRACKET)
 	}
-	p.SetState(340)
+	p.SetState(282)
 	p.GetErrorHandler().Sync(p)
 	_la = p.GetTokenStream().LA(1)
 
 	if _la == EarthParserWS {
 		{
-			p.SetState(339)
+			p.SetState(281)
 			p.Match(EarthParserWS)
 		}
 
 	}
-	p.SetState(359)
+	p.SetState(301)
 	p.GetErrorHandler().Sync(p)
 	_la = p.GetTokenStream().LA(1)
 
 	if _la == EarthParserAtom {
 		{
-			p.SetState(342)
+			p.SetState(284)
 			p.StmtWord()
 		}
-		p.SetState(353)
+		p.SetState(295)
 		p.GetErrorHandler().Sync(p)
 		_alt = p.GetInterpreter().AdaptivePredict(p.GetTokenStream(), 49, p.GetParserRuleContext())
 
 		for _alt != 2 && _alt != antlr.ATNInvalidAltNumber {
 			if _alt == 1 {
-				p.SetState(344)
+				p.SetState(286)
 				p.GetErrorHandler().Sync(p)
 				_la = p.GetTokenStream().LA(1)
 
 				if _la == EarthParserWS {
 					{
-						p.SetState(343)
+						p.SetState(285)
 						p.Match(EarthParserWS)
 					}
 
 				}
 				{
-					p.SetState(346)
+					p.SetState(288)
 					p.Match(EarthParserCOMMA)
 				}
-				p.SetState(348)
+				p.SetState(290)
 				p.GetErrorHandler().Sync(p)
 				_la = p.GetTokenStream().LA(1)
 
 				if _la == EarthParserWS {
 					{
-						p.SetState(347)
+						p.SetState(289)
 						p.Match(EarthParserWS)
 					}
 
 				}
 				{
-					p.SetState(350)
+					p.SetState(292)
 					p.StmtWord()
 				}
 
 			}
-			p.SetState(355)
+			p.SetState(297)
 			p.GetErrorHandler().Sync(p)
 			_alt = p.GetInterpreter().AdaptivePredict(p.GetTokenStream(), 49, p.GetParserRuleContext())
 		}
-		p.SetState(357)
+		p.SetState(299)
 		p.GetErrorHandler().Sync(p)
 		_la = p.GetTokenStream().LA(1)
 
 		if _la == EarthParserWS {
 			{
-				p.SetState(356)
+				p.SetState(298)
 				p.Match(EarthParserWS)
 			}
 
@@ -4776,7 +4058,7 @@ func (p *EarthParser) StmtWordsList() (localctx IStmtWordsListContext) {
 
 	}
 	{
-		p.SetState(361)
+		p.SetState(303)
 		p.Match(EarthParserCLOSE_BRACKET)
 	}
 
@@ -4847,7 +4129,7 @@ func (s *StmtWordContext) ExitRule(listener antlr.ParseTreeListener) {
 
 func (p *EarthParser) StmtWord() (localctx IStmtWordContext) {
 	localctx = NewStmtWordContext(p, p.GetParserRuleContext(), p.GetState())
-	p.EnterRule(localctx, 62, EarthParserRULE_stmtWord)
+	p.EnterRule(localctx, 52, EarthParserRULE_stmtWord)
 
 	defer func() {
 		p.ExitRule()
@@ -4867,898 +4149,7 @@ func (p *EarthParser) StmtWord() (localctx IStmtWordContext) {
 
 	p.EnterOuterAlt(localctx, 1)
 	{
-		p.SetState(363)
-		p.Match(EarthParserAtom)
-	}
-
-	return localctx
-}
-
-// IEnvArgKeyContext is an interface to support dynamic dispatch.
-type IEnvArgKeyContext interface {
-	antlr.ParserRuleContext
-
-	// GetParser returns the parser.
-	GetParser() antlr.Parser
-
-	// IsEnvArgKeyContext differentiates from other interfaces.
-	IsEnvArgKeyContext()
-}
-
-type EnvArgKeyContext struct {
-	*antlr.BaseParserRuleContext
-	parser antlr.Parser
-}
-
-func NewEmptyEnvArgKeyContext() *EnvArgKeyContext {
-	var p = new(EnvArgKeyContext)
-	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(nil, -1)
-	p.RuleIndex = EarthParserRULE_envArgKey
-	return p
-}
-
-func (*EnvArgKeyContext) IsEnvArgKeyContext() {}
-
-func NewEnvArgKeyContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *EnvArgKeyContext {
-	var p = new(EnvArgKeyContext)
-
-	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(parent, invokingState)
-
-	p.parser = parser
-	p.RuleIndex = EarthParserRULE_envArgKey
-
-	return p
-}
-
-func (s *EnvArgKeyContext) GetParser() antlr.Parser { return s.parser }
-
-func (s *EnvArgKeyContext) Atom() antlr.TerminalNode {
-	return s.GetToken(EarthParserAtom, 0)
-}
-
-func (s *EnvArgKeyContext) GetRuleContext() antlr.RuleContext {
-	return s
-}
-
-func (s *EnvArgKeyContext) ToStringTree(ruleNames []string, recog antlr.Recognizer) string {
-	return antlr.TreesStringTree(s, ruleNames, recog)
-}
-
-func (s *EnvArgKeyContext) EnterRule(listener antlr.ParseTreeListener) {
-	if listenerT, ok := listener.(EarthParserListener); ok {
-		listenerT.EnterEnvArgKey(s)
-	}
-}
-
-func (s *EnvArgKeyContext) ExitRule(listener antlr.ParseTreeListener) {
-	if listenerT, ok := listener.(EarthParserListener); ok {
-		listenerT.ExitEnvArgKey(s)
-	}
-}
-
-func (p *EarthParser) EnvArgKey() (localctx IEnvArgKeyContext) {
-	localctx = NewEnvArgKeyContext(p, p.GetParserRuleContext(), p.GetState())
-	p.EnterRule(localctx, 64, EarthParserRULE_envArgKey)
-
-	defer func() {
-		p.ExitRule()
-	}()
-
-	defer func() {
-		if err := recover(); err != nil {
-			if v, ok := err.(antlr.RecognitionException); ok {
-				localctx.SetException(v)
-				p.GetErrorHandler().ReportError(p, v)
-				p.GetErrorHandler().Recover(p, v)
-			} else {
-				panic(err)
-			}
-		}
-	}()
-
-	p.EnterOuterAlt(localctx, 1)
-	{
-		p.SetState(365)
-		p.Match(EarthParserAtom)
-	}
-
-	return localctx
-}
-
-// IEnvArgValueContext is an interface to support dynamic dispatch.
-type IEnvArgValueContext interface {
-	antlr.ParserRuleContext
-
-	// GetParser returns the parser.
-	GetParser() antlr.Parser
-
-	// IsEnvArgValueContext differentiates from other interfaces.
-	IsEnvArgValueContext()
-}
-
-type EnvArgValueContext struct {
-	*antlr.BaseParserRuleContext
-	parser antlr.Parser
-}
-
-func NewEmptyEnvArgValueContext() *EnvArgValueContext {
-	var p = new(EnvArgValueContext)
-	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(nil, -1)
-	p.RuleIndex = EarthParserRULE_envArgValue
-	return p
-}
-
-func (*EnvArgValueContext) IsEnvArgValueContext() {}
-
-func NewEnvArgValueContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *EnvArgValueContext {
-	var p = new(EnvArgValueContext)
-
-	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(parent, invokingState)
-
-	p.parser = parser
-	p.RuleIndex = EarthParserRULE_envArgValue
-
-	return p
-}
-
-func (s *EnvArgValueContext) GetParser() antlr.Parser { return s.parser }
-
-func (s *EnvArgValueContext) AllAtom() []antlr.TerminalNode {
-	return s.GetTokens(EarthParserAtom)
-}
-
-func (s *EnvArgValueContext) Atom(i int) antlr.TerminalNode {
-	return s.GetToken(EarthParserAtom, i)
-}
-
-func (s *EnvArgValueContext) AllWS() []antlr.TerminalNode {
-	return s.GetTokens(EarthParserWS)
-}
-
-func (s *EnvArgValueContext) WS(i int) antlr.TerminalNode {
-	return s.GetToken(EarthParserWS, i)
-}
-
-func (s *EnvArgValueContext) GetRuleContext() antlr.RuleContext {
-	return s
-}
-
-func (s *EnvArgValueContext) ToStringTree(ruleNames []string, recog antlr.Recognizer) string {
-	return antlr.TreesStringTree(s, ruleNames, recog)
-}
-
-func (s *EnvArgValueContext) EnterRule(listener antlr.ParseTreeListener) {
-	if listenerT, ok := listener.(EarthParserListener); ok {
-		listenerT.EnterEnvArgValue(s)
-	}
-}
-
-func (s *EnvArgValueContext) ExitRule(listener antlr.ParseTreeListener) {
-	if listenerT, ok := listener.(EarthParserListener); ok {
-		listenerT.ExitEnvArgValue(s)
-	}
-}
-
-func (p *EarthParser) EnvArgValue() (localctx IEnvArgValueContext) {
-	localctx = NewEnvArgValueContext(p, p.GetParserRuleContext(), p.GetState())
-	p.EnterRule(localctx, 66, EarthParserRULE_envArgValue)
-	var _la int
-
-	defer func() {
-		p.ExitRule()
-	}()
-
-	defer func() {
-		if err := recover(); err != nil {
-			if v, ok := err.(antlr.RecognitionException); ok {
-				localctx.SetException(v)
-				p.GetErrorHandler().ReportError(p, v)
-				p.GetErrorHandler().Recover(p, v)
-			} else {
-				panic(err)
-			}
-		}
-	}()
-
-	var _alt int
-
-	p.EnterOuterAlt(localctx, 1)
-	{
-		p.SetState(367)
-		p.Match(EarthParserAtom)
-	}
-	p.SetState(374)
-	p.GetErrorHandler().Sync(p)
-	_alt = p.GetInterpreter().AdaptivePredict(p.GetTokenStream(), 53, p.GetParserRuleContext())
-
-	for _alt != 2 && _alt != antlr.ATNInvalidAltNumber {
-		if _alt == 1 {
-			p.SetState(369)
-			p.GetErrorHandler().Sync(p)
-			_la = p.GetTokenStream().LA(1)
-
-			if _la == EarthParserWS {
-				{
-					p.SetState(368)
-					p.Match(EarthParserWS)
-				}
-
-			}
-			{
-				p.SetState(371)
-				p.Match(EarthParserAtom)
-			}
-
-		}
-		p.SetState(376)
-		p.GetErrorHandler().Sync(p)
-		_alt = p.GetInterpreter().AdaptivePredict(p.GetTokenStream(), 53, p.GetParserRuleContext())
-	}
-
-	return localctx
-}
-
-// IImageNameContext is an interface to support dynamic dispatch.
-type IImageNameContext interface {
-	antlr.ParserRuleContext
-
-	// GetParser returns the parser.
-	GetParser() antlr.Parser
-
-	// IsImageNameContext differentiates from other interfaces.
-	IsImageNameContext()
-}
-
-type ImageNameContext struct {
-	*antlr.BaseParserRuleContext
-	parser antlr.Parser
-}
-
-func NewEmptyImageNameContext() *ImageNameContext {
-	var p = new(ImageNameContext)
-	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(nil, -1)
-	p.RuleIndex = EarthParserRULE_imageName
-	return p
-}
-
-func (*ImageNameContext) IsImageNameContext() {}
-
-func NewImageNameContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *ImageNameContext {
-	var p = new(ImageNameContext)
-
-	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(parent, invokingState)
-
-	p.parser = parser
-	p.RuleIndex = EarthParserRULE_imageName
-
-	return p
-}
-
-func (s *ImageNameContext) GetParser() antlr.Parser { return s.parser }
-
-func (s *ImageNameContext) Atom() antlr.TerminalNode {
-	return s.GetToken(EarthParserAtom, 0)
-}
-
-func (s *ImageNameContext) GetRuleContext() antlr.RuleContext {
-	return s
-}
-
-func (s *ImageNameContext) ToStringTree(ruleNames []string, recog antlr.Recognizer) string {
-	return antlr.TreesStringTree(s, ruleNames, recog)
-}
-
-func (s *ImageNameContext) EnterRule(listener antlr.ParseTreeListener) {
-	if listenerT, ok := listener.(EarthParserListener); ok {
-		listenerT.EnterImageName(s)
-	}
-}
-
-func (s *ImageNameContext) ExitRule(listener antlr.ParseTreeListener) {
-	if listenerT, ok := listener.(EarthParserListener); ok {
-		listenerT.ExitImageName(s)
-	}
-}
-
-func (p *EarthParser) ImageName() (localctx IImageNameContext) {
-	localctx = NewImageNameContext(p, p.GetParserRuleContext(), p.GetState())
-	p.EnterRule(localctx, 68, EarthParserRULE_imageName)
-
-	defer func() {
-		p.ExitRule()
-	}()
-
-	defer func() {
-		if err := recover(); err != nil {
-			if v, ok := err.(antlr.RecognitionException); ok {
-				localctx.SetException(v)
-				p.GetErrorHandler().ReportError(p, v)
-				p.GetErrorHandler().Recover(p, v)
-			} else {
-				panic(err)
-			}
-		}
-	}()
-
-	p.EnterOuterAlt(localctx, 1)
-	{
-		p.SetState(377)
-		p.Match(EarthParserAtom)
-	}
-
-	return localctx
-}
-
-// ISaveImageNameContext is an interface to support dynamic dispatch.
-type ISaveImageNameContext interface {
-	antlr.ParserRuleContext
-
-	// GetParser returns the parser.
-	GetParser() antlr.Parser
-
-	// IsSaveImageNameContext differentiates from other interfaces.
-	IsSaveImageNameContext()
-}
-
-type SaveImageNameContext struct {
-	*antlr.BaseParserRuleContext
-	parser antlr.Parser
-}
-
-func NewEmptySaveImageNameContext() *SaveImageNameContext {
-	var p = new(SaveImageNameContext)
-	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(nil, -1)
-	p.RuleIndex = EarthParserRULE_saveImageName
-	return p
-}
-
-func (*SaveImageNameContext) IsSaveImageNameContext() {}
-
-func NewSaveImageNameContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *SaveImageNameContext {
-	var p = new(SaveImageNameContext)
-
-	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(parent, invokingState)
-
-	p.parser = parser
-	p.RuleIndex = EarthParserRULE_saveImageName
-
-	return p
-}
-
-func (s *SaveImageNameContext) GetParser() antlr.Parser { return s.parser }
-
-func (s *SaveImageNameContext) Atom() antlr.TerminalNode {
-	return s.GetToken(EarthParserAtom, 0)
-}
-
-func (s *SaveImageNameContext) GetRuleContext() antlr.RuleContext {
-	return s
-}
-
-func (s *SaveImageNameContext) ToStringTree(ruleNames []string, recog antlr.Recognizer) string {
-	return antlr.TreesStringTree(s, ruleNames, recog)
-}
-
-func (s *SaveImageNameContext) EnterRule(listener antlr.ParseTreeListener) {
-	if listenerT, ok := listener.(EarthParserListener); ok {
-		listenerT.EnterSaveImageName(s)
-	}
-}
-
-func (s *SaveImageNameContext) ExitRule(listener antlr.ParseTreeListener) {
-	if listenerT, ok := listener.(EarthParserListener); ok {
-		listenerT.ExitSaveImageName(s)
-	}
-}
-
-func (p *EarthParser) SaveImageName() (localctx ISaveImageNameContext) {
-	localctx = NewSaveImageNameContext(p, p.GetParserRuleContext(), p.GetState())
-	p.EnterRule(localctx, 70, EarthParserRULE_saveImageName)
-
-	defer func() {
-		p.ExitRule()
-	}()
-
-	defer func() {
-		if err := recover(); err != nil {
-			if v, ok := err.(antlr.RecognitionException); ok {
-				localctx.SetException(v)
-				p.GetErrorHandler().ReportError(p, v)
-				p.GetErrorHandler().Recover(p, v)
-			} else {
-				panic(err)
-			}
-		}
-	}()
-
-	p.EnterOuterAlt(localctx, 1)
-	{
-		p.SetState(379)
-		p.Match(EarthParserAtom)
-	}
-
-	return localctx
-}
-
-// ITargetNameContext is an interface to support dynamic dispatch.
-type ITargetNameContext interface {
-	antlr.ParserRuleContext
-
-	// GetParser returns the parser.
-	GetParser() antlr.Parser
-
-	// IsTargetNameContext differentiates from other interfaces.
-	IsTargetNameContext()
-}
-
-type TargetNameContext struct {
-	*antlr.BaseParserRuleContext
-	parser antlr.Parser
-}
-
-func NewEmptyTargetNameContext() *TargetNameContext {
-	var p = new(TargetNameContext)
-	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(nil, -1)
-	p.RuleIndex = EarthParserRULE_targetName
-	return p
-}
-
-func (*TargetNameContext) IsTargetNameContext() {}
-
-func NewTargetNameContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *TargetNameContext {
-	var p = new(TargetNameContext)
-
-	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(parent, invokingState)
-
-	p.parser = parser
-	p.RuleIndex = EarthParserRULE_targetName
-
-	return p
-}
-
-func (s *TargetNameContext) GetParser() antlr.Parser { return s.parser }
-
-func (s *TargetNameContext) Atom() antlr.TerminalNode {
-	return s.GetToken(EarthParserAtom, 0)
-}
-
-func (s *TargetNameContext) GetRuleContext() antlr.RuleContext {
-	return s
-}
-
-func (s *TargetNameContext) ToStringTree(ruleNames []string, recog antlr.Recognizer) string {
-	return antlr.TreesStringTree(s, ruleNames, recog)
-}
-
-func (s *TargetNameContext) EnterRule(listener antlr.ParseTreeListener) {
-	if listenerT, ok := listener.(EarthParserListener); ok {
-		listenerT.EnterTargetName(s)
-	}
-}
-
-func (s *TargetNameContext) ExitRule(listener antlr.ParseTreeListener) {
-	if listenerT, ok := listener.(EarthParserListener); ok {
-		listenerT.ExitTargetName(s)
-	}
-}
-
-func (p *EarthParser) TargetName() (localctx ITargetNameContext) {
-	localctx = NewTargetNameContext(p, p.GetParserRuleContext(), p.GetState())
-	p.EnterRule(localctx, 72, EarthParserRULE_targetName)
-
-	defer func() {
-		p.ExitRule()
-	}()
-
-	defer func() {
-		if err := recover(); err != nil {
-			if v, ok := err.(antlr.RecognitionException); ok {
-				localctx.SetException(v)
-				p.GetErrorHandler().ReportError(p, v)
-				p.GetErrorHandler().Recover(p, v)
-			} else {
-				panic(err)
-			}
-		}
-	}()
-
-	p.EnterOuterAlt(localctx, 1)
-	{
-		p.SetState(381)
-		p.Match(EarthParserAtom)
-	}
-
-	return localctx
-}
-
-// IFullTargetNameContext is an interface to support dynamic dispatch.
-type IFullTargetNameContext interface {
-	antlr.ParserRuleContext
-
-	// GetParser returns the parser.
-	GetParser() antlr.Parser
-
-	// IsFullTargetNameContext differentiates from other interfaces.
-	IsFullTargetNameContext()
-}
-
-type FullTargetNameContext struct {
-	*antlr.BaseParserRuleContext
-	parser antlr.Parser
-}
-
-func NewEmptyFullTargetNameContext() *FullTargetNameContext {
-	var p = new(FullTargetNameContext)
-	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(nil, -1)
-	p.RuleIndex = EarthParserRULE_fullTargetName
-	return p
-}
-
-func (*FullTargetNameContext) IsFullTargetNameContext() {}
-
-func NewFullTargetNameContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *FullTargetNameContext {
-	var p = new(FullTargetNameContext)
-
-	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(parent, invokingState)
-
-	p.parser = parser
-	p.RuleIndex = EarthParserRULE_fullTargetName
-
-	return p
-}
-
-func (s *FullTargetNameContext) GetParser() antlr.Parser { return s.parser }
-
-func (s *FullTargetNameContext) Atom() antlr.TerminalNode {
-	return s.GetToken(EarthParserAtom, 0)
-}
-
-func (s *FullTargetNameContext) GetRuleContext() antlr.RuleContext {
-	return s
-}
-
-func (s *FullTargetNameContext) ToStringTree(ruleNames []string, recog antlr.Recognizer) string {
-	return antlr.TreesStringTree(s, ruleNames, recog)
-}
-
-func (s *FullTargetNameContext) EnterRule(listener antlr.ParseTreeListener) {
-	if listenerT, ok := listener.(EarthParserListener); ok {
-		listenerT.EnterFullTargetName(s)
-	}
-}
-
-func (s *FullTargetNameContext) ExitRule(listener antlr.ParseTreeListener) {
-	if listenerT, ok := listener.(EarthParserListener); ok {
-		listenerT.ExitFullTargetName(s)
-	}
-}
-
-func (p *EarthParser) FullTargetName() (localctx IFullTargetNameContext) {
-	localctx = NewFullTargetNameContext(p, p.GetParserRuleContext(), p.GetState())
-	p.EnterRule(localctx, 74, EarthParserRULE_fullTargetName)
-
-	defer func() {
-		p.ExitRule()
-	}()
-
-	defer func() {
-		if err := recover(); err != nil {
-			if v, ok := err.(antlr.RecognitionException); ok {
-				localctx.SetException(v)
-				p.GetErrorHandler().ReportError(p, v)
-				p.GetErrorHandler().Recover(p, v)
-			} else {
-				panic(err)
-			}
-		}
-	}()
-
-	p.EnterOuterAlt(localctx, 1)
-	{
-		p.SetState(383)
-		p.Match(EarthParserAtom)
-	}
-
-	return localctx
-}
-
-// IArgsListContext is an interface to support dynamic dispatch.
-type IArgsListContext interface {
-	antlr.ParserRuleContext
-
-	// GetParser returns the parser.
-	GetParser() antlr.Parser
-
-	// IsArgsListContext differentiates from other interfaces.
-	IsArgsListContext()
-}
-
-type ArgsListContext struct {
-	*antlr.BaseParserRuleContext
-	parser antlr.Parser
-}
-
-func NewEmptyArgsListContext() *ArgsListContext {
-	var p = new(ArgsListContext)
-	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(nil, -1)
-	p.RuleIndex = EarthParserRULE_argsList
-	return p
-}
-
-func (*ArgsListContext) IsArgsListContext() {}
-
-func NewArgsListContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *ArgsListContext {
-	var p = new(ArgsListContext)
-
-	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(parent, invokingState)
-
-	p.parser = parser
-	p.RuleIndex = EarthParserRULE_argsList
-
-	return p
-}
-
-func (s *ArgsListContext) GetParser() antlr.Parser { return s.parser }
-
-func (s *ArgsListContext) OPEN_BRACKET() antlr.TerminalNode {
-	return s.GetToken(EarthParserOPEN_BRACKET, 0)
-}
-
-func (s *ArgsListContext) AllArg() []IArgContext {
-	var ts = s.GetTypedRuleContexts(reflect.TypeOf((*IArgContext)(nil)).Elem())
-	var tst = make([]IArgContext, len(ts))
-
-	for i, t := range ts {
-		if t != nil {
-			tst[i] = t.(IArgContext)
-		}
-	}
-
-	return tst
-}
-
-func (s *ArgsListContext) Arg(i int) IArgContext {
-	var t = s.GetTypedRuleContext(reflect.TypeOf((*IArgContext)(nil)).Elem(), i)
-
-	if t == nil {
-		return nil
-	}
-
-	return t.(IArgContext)
-}
-
-func (s *ArgsListContext) CLOSE_BRACKET() antlr.TerminalNode {
-	return s.GetToken(EarthParserCLOSE_BRACKET, 0)
-}
-
-func (s *ArgsListContext) AllWS() []antlr.TerminalNode {
-	return s.GetTokens(EarthParserWS)
-}
-
-func (s *ArgsListContext) WS(i int) antlr.TerminalNode {
-	return s.GetToken(EarthParserWS, i)
-}
-
-func (s *ArgsListContext) AllCOMMA() []antlr.TerminalNode {
-	return s.GetTokens(EarthParserCOMMA)
-}
-
-func (s *ArgsListContext) COMMA(i int) antlr.TerminalNode {
-	return s.GetToken(EarthParserCOMMA, i)
-}
-
-func (s *ArgsListContext) GetRuleContext() antlr.RuleContext {
-	return s
-}
-
-func (s *ArgsListContext) ToStringTree(ruleNames []string, recog antlr.Recognizer) string {
-	return antlr.TreesStringTree(s, ruleNames, recog)
-}
-
-func (s *ArgsListContext) EnterRule(listener antlr.ParseTreeListener) {
-	if listenerT, ok := listener.(EarthParserListener); ok {
-		listenerT.EnterArgsList(s)
-	}
-}
-
-func (s *ArgsListContext) ExitRule(listener antlr.ParseTreeListener) {
-	if listenerT, ok := listener.(EarthParserListener); ok {
-		listenerT.ExitArgsList(s)
-	}
-}
-
-func (p *EarthParser) ArgsList() (localctx IArgsListContext) {
-	localctx = NewArgsListContext(p, p.GetParserRuleContext(), p.GetState())
-	p.EnterRule(localctx, 76, EarthParserRULE_argsList)
-	var _la int
-
-	defer func() {
-		p.ExitRule()
-	}()
-
-	defer func() {
-		if err := recover(); err != nil {
-			if v, ok := err.(antlr.RecognitionException); ok {
-				localctx.SetException(v)
-				p.GetErrorHandler().ReportError(p, v)
-				p.GetErrorHandler().Recover(p, v)
-			} else {
-				panic(err)
-			}
-		}
-	}()
-
-	var _alt int
-
-	p.EnterOuterAlt(localctx, 1)
-	{
-		p.SetState(385)
-		p.Match(EarthParserOPEN_BRACKET)
-	}
-	p.SetState(387)
-	p.GetErrorHandler().Sync(p)
-	_la = p.GetTokenStream().LA(1)
-
-	if _la == EarthParserWS {
-		{
-			p.SetState(386)
-			p.Match(EarthParserWS)
-		}
-
-	}
-	{
-		p.SetState(389)
-		p.Arg()
-	}
-	p.SetState(398)
-	p.GetErrorHandler().Sync(p)
-	_alt = 1
-	for ok := true; ok; ok = _alt != 2 && _alt != antlr.ATNInvalidAltNumber {
-		switch _alt {
-		case 1:
-			p.SetState(391)
-			p.GetErrorHandler().Sync(p)
-			_la = p.GetTokenStream().LA(1)
-
-			if _la == EarthParserWS {
-				{
-					p.SetState(390)
-					p.Match(EarthParserWS)
-				}
-
-			}
-			{
-				p.SetState(393)
-				p.Match(EarthParserCOMMA)
-			}
-			p.SetState(395)
-			p.GetErrorHandler().Sync(p)
-			_la = p.GetTokenStream().LA(1)
-
-			if _la == EarthParserWS {
-				{
-					p.SetState(394)
-					p.Match(EarthParserWS)
-				}
-
-			}
-			{
-				p.SetState(397)
-				p.Arg()
-			}
-
-		default:
-			panic(antlr.NewNoViableAltException(p, nil, nil, nil, nil, nil))
-		}
-
-		p.SetState(400)
-		p.GetErrorHandler().Sync(p)
-		_alt = p.GetInterpreter().AdaptivePredict(p.GetTokenStream(), 57, p.GetParserRuleContext())
-	}
-	p.SetState(403)
-	p.GetErrorHandler().Sync(p)
-	_la = p.GetTokenStream().LA(1)
-
-	if _la == EarthParserWS {
-		{
-			p.SetState(402)
-			p.Match(EarthParserWS)
-		}
-
-	}
-	{
-		p.SetState(405)
-		p.Match(EarthParserCLOSE_BRACKET)
-	}
-
-	return localctx
-}
-
-// IArgContext is an interface to support dynamic dispatch.
-type IArgContext interface {
-	antlr.ParserRuleContext
-
-	// GetParser returns the parser.
-	GetParser() antlr.Parser
-
-	// IsArgContext differentiates from other interfaces.
-	IsArgContext()
-}
-
-type ArgContext struct {
-	*antlr.BaseParserRuleContext
-	parser antlr.Parser
-}
-
-func NewEmptyArgContext() *ArgContext {
-	var p = new(ArgContext)
-	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(nil, -1)
-	p.RuleIndex = EarthParserRULE_arg
-	return p
-}
-
-func (*ArgContext) IsArgContext() {}
-
-func NewArgContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *ArgContext {
-	var p = new(ArgContext)
-
-	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(parent, invokingState)
-
-	p.parser = parser
-	p.RuleIndex = EarthParserRULE_arg
-
-	return p
-}
-
-func (s *ArgContext) GetParser() antlr.Parser { return s.parser }
-
-func (s *ArgContext) Atom() antlr.TerminalNode {
-	return s.GetToken(EarthParserAtom, 0)
-}
-
-func (s *ArgContext) GetRuleContext() antlr.RuleContext {
-	return s
-}
-
-func (s *ArgContext) ToStringTree(ruleNames []string, recog antlr.Recognizer) string {
-	return antlr.TreesStringTree(s, ruleNames, recog)
-}
-
-func (s *ArgContext) EnterRule(listener antlr.ParseTreeListener) {
-	if listenerT, ok := listener.(EarthParserListener); ok {
-		listenerT.EnterArg(s)
-	}
-}
-
-func (s *ArgContext) ExitRule(listener antlr.ParseTreeListener) {
-	if listenerT, ok := listener.(EarthParserListener); ok {
-		listenerT.ExitArg(s)
-	}
-}
-
-func (p *EarthParser) Arg() (localctx IArgContext) {
-	localctx = NewArgContext(p, p.GetParserRuleContext(), p.GetState())
-	p.EnterRule(localctx, 78, EarthParserRULE_arg)
-
-	defer func() {
-		p.ExitRule()
-	}()
-
-	defer func() {
-		if err := recover(); err != nil {
-			if v, ok := err.(antlr.RecognitionException); ok {
-				localctx.SetException(v)
-				p.GetErrorHandler().ReportError(p, v)
-				p.GetErrorHandler().Recover(p, v)
-			} else {
-				panic(err)
-			}
-		}
-	}()
-
-	p.EnterOuterAlt(localctx, 1)
-	{
-		p.SetState(407)
+		p.SetState(305)
 		p.Match(EarthParserAtom)
 	}
 

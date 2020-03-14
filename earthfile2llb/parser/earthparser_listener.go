@@ -50,9 +50,6 @@ type EarthParserListener interface {
 	// EnterWorkdirStmt is called when entering the workdirStmt production.
 	EnterWorkdirStmt(c *WorkdirStmtContext)
 
-	// EnterWorkdirPath is called when entering the workdirPath production.
-	EnterWorkdirPath(c *WorkdirPathContext)
-
 	// EnterEntrypointStmt is called when entering the entrypointStmt production.
 	EnterEntrypointStmt(c *EntrypointStmtContext)
 
@@ -62,14 +59,14 @@ type EarthParserListener interface {
 	// EnterArgStmt is called when entering the argStmt production.
 	EnterArgStmt(c *ArgStmtContext)
 
+	// EnterEnvArgKey is called when entering the envArgKey production.
+	EnterEnvArgKey(c *EnvArgKeyContext)
+
+	// EnterEnvArgValue is called when entering the envArgValue production.
+	EnterEnvArgValue(c *EnvArgValueContext)
+
 	// EnterGitCloneStmt is called when entering the gitCloneStmt production.
 	EnterGitCloneStmt(c *GitCloneStmtContext)
-
-	// EnterGitURL is called when entering the gitURL production.
-	EnterGitURL(c *GitURLContext)
-
-	// EnterGitCloneDest is called when entering the gitCloneDest production.
-	EnterGitCloneDest(c *GitCloneDestContext)
 
 	// EnterDockerLoadStmt is called when entering the dockerLoadStmt production.
 	EnterDockerLoadStmt(c *DockerLoadStmtContext)
@@ -83,18 +80,6 @@ type EarthParserListener interface {
 	// EnterCommandName is called when entering the commandName production.
 	EnterCommandName(c *CommandNameContext)
 
-	// EnterFlags is called when entering the flags production.
-	EnterFlags(c *FlagsContext)
-
-	// EnterFlag is called when entering the flag production.
-	EnterFlag(c *FlagContext)
-
-	// EnterFlagKey is called when entering the flagKey production.
-	EnterFlagKey(c *FlagKeyContext)
-
-	// EnterFlagKeyValue is called when entering the flagKeyValue production.
-	EnterFlagKeyValue(c *FlagKeyValueContext)
-
 	// EnterStmtWords is called when entering the stmtWords production.
 	EnterStmtWords(c *StmtWordsContext)
 
@@ -103,30 +88,6 @@ type EarthParserListener interface {
 
 	// EnterStmtWord is called when entering the stmtWord production.
 	EnterStmtWord(c *StmtWordContext)
-
-	// EnterEnvArgKey is called when entering the envArgKey production.
-	EnterEnvArgKey(c *EnvArgKeyContext)
-
-	// EnterEnvArgValue is called when entering the envArgValue production.
-	EnterEnvArgValue(c *EnvArgValueContext)
-
-	// EnterImageName is called when entering the imageName production.
-	EnterImageName(c *ImageNameContext)
-
-	// EnterSaveImageName is called when entering the saveImageName production.
-	EnterSaveImageName(c *SaveImageNameContext)
-
-	// EnterTargetName is called when entering the targetName production.
-	EnterTargetName(c *TargetNameContext)
-
-	// EnterFullTargetName is called when entering the fullTargetName production.
-	EnterFullTargetName(c *FullTargetNameContext)
-
-	// EnterArgsList is called when entering the argsList production.
-	EnterArgsList(c *ArgsListContext)
-
-	// EnterArg is called when entering the arg production.
-	EnterArg(c *ArgContext)
 
 	// ExitEarthFile is called when exiting the earthFile production.
 	ExitEarthFile(c *EarthFileContext)
@@ -170,9 +131,6 @@ type EarthParserListener interface {
 	// ExitWorkdirStmt is called when exiting the workdirStmt production.
 	ExitWorkdirStmt(c *WorkdirStmtContext)
 
-	// ExitWorkdirPath is called when exiting the workdirPath production.
-	ExitWorkdirPath(c *WorkdirPathContext)
-
 	// ExitEntrypointStmt is called when exiting the entrypointStmt production.
 	ExitEntrypointStmt(c *EntrypointStmtContext)
 
@@ -182,14 +140,14 @@ type EarthParserListener interface {
 	// ExitArgStmt is called when exiting the argStmt production.
 	ExitArgStmt(c *ArgStmtContext)
 
+	// ExitEnvArgKey is called when exiting the envArgKey production.
+	ExitEnvArgKey(c *EnvArgKeyContext)
+
+	// ExitEnvArgValue is called when exiting the envArgValue production.
+	ExitEnvArgValue(c *EnvArgValueContext)
+
 	// ExitGitCloneStmt is called when exiting the gitCloneStmt production.
 	ExitGitCloneStmt(c *GitCloneStmtContext)
-
-	// ExitGitURL is called when exiting the gitURL production.
-	ExitGitURL(c *GitURLContext)
-
-	// ExitGitCloneDest is called when exiting the gitCloneDest production.
-	ExitGitCloneDest(c *GitCloneDestContext)
 
 	// ExitDockerLoadStmt is called when exiting the dockerLoadStmt production.
 	ExitDockerLoadStmt(c *DockerLoadStmtContext)
@@ -203,18 +161,6 @@ type EarthParserListener interface {
 	// ExitCommandName is called when exiting the commandName production.
 	ExitCommandName(c *CommandNameContext)
 
-	// ExitFlags is called when exiting the flags production.
-	ExitFlags(c *FlagsContext)
-
-	// ExitFlag is called when exiting the flag production.
-	ExitFlag(c *FlagContext)
-
-	// ExitFlagKey is called when exiting the flagKey production.
-	ExitFlagKey(c *FlagKeyContext)
-
-	// ExitFlagKeyValue is called when exiting the flagKeyValue production.
-	ExitFlagKeyValue(c *FlagKeyValueContext)
-
 	// ExitStmtWords is called when exiting the stmtWords production.
 	ExitStmtWords(c *StmtWordsContext)
 
@@ -223,28 +169,4 @@ type EarthParserListener interface {
 
 	// ExitStmtWord is called when exiting the stmtWord production.
 	ExitStmtWord(c *StmtWordContext)
-
-	// ExitEnvArgKey is called when exiting the envArgKey production.
-	ExitEnvArgKey(c *EnvArgKeyContext)
-
-	// ExitEnvArgValue is called when exiting the envArgValue production.
-	ExitEnvArgValue(c *EnvArgValueContext)
-
-	// ExitImageName is called when exiting the imageName production.
-	ExitImageName(c *ImageNameContext)
-
-	// ExitSaveImageName is called when exiting the saveImageName production.
-	ExitSaveImageName(c *SaveImageNameContext)
-
-	// ExitTargetName is called when exiting the targetName production.
-	ExitTargetName(c *TargetNameContext)
-
-	// ExitFullTargetName is called when exiting the fullTargetName production.
-	ExitFullTargetName(c *FullTargetNameContext)
-
-	// ExitArgsList is called when exiting the argsList production.
-	ExitArgsList(c *ArgsListContext)
-
-	// ExitArg is called when exiting the arg production.
-	ExitArg(c *ArgContext)
 }
