@@ -27,7 +27,7 @@ func NewReturnErrorStrategy() *ReturnErrorStrategy {
 func (res *ReturnErrorStrategy) Recover(recognizer antlr.Parser, e antlr.RecognitionException) {
 	if res.Err == nil {
 		res.RE = e
-		res.Err = fmt.Errorf("Parse error")
+		res.Err = fmt.Errorf("parse error")
 		res.ErrContext = recognizer.GetParserRuleContext()
 	}
 	context := recognizer.GetParserRuleContext()

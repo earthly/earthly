@@ -9,8 +9,8 @@ Target: ([a-zA-Z0-9.] | '-')+ ':' -> pushMode(RECIPE);
 
 FROM: 'FROM' -> pushMode(COMMAND_ARGS_ATOMS_ONLY);
 COPY: 'COPY' -> pushMode(COMMAND_ARGS_ATOMS_ONLY);
-SAVE_ARTIFACT: 'SAVE ARTIFACT' -> pushMode(COMMAND_ARGS);
-SAVE_IMAGE: 'SAVE IMAGE' -> pushMode(COMMAND_ARGS);
+SAVE_ARTIFACT: 'SAVE ARTIFACT' -> pushMode(COMMAND_ARGS_ATOMS_ONLY);
+SAVE_IMAGE: 'SAVE IMAGE' -> pushMode(COMMAND_ARGS_ATOMS_ONLY);
 RUN: 'RUN' -> pushMode(COMMAND_ARGS_ATOMS_ONLY);
 ENV: 'ENV' -> pushMode(COMMAND_ARGS_KEY_VALUE);
 ARG: 'ARG' -> pushMode(COMMAND_ARGS_KEY_VALUE);
@@ -36,8 +36,8 @@ Target_R: Target -> type(Target), pushMode(RECIPE);
 FROM_R:
 	FROM -> type(FROM), pushMode(COMMAND_ARGS_ATOMS_ONLY);
 COPY_R: COPY -> type(COPY), pushMode(COMMAND_ARGS_ATOMS_ONLY);
-SAVE_ARTIFACT_R: SAVE_ARTIFACT -> type(SAVE_ARTIFACT), pushMode(COMMAND_ARGS);
-SAVE_IMAGE_R: SAVE_IMAGE -> type(SAVE_IMAGE), pushMode(COMMAND_ARGS);
+SAVE_ARTIFACT_R: SAVE_ARTIFACT -> type(SAVE_ARTIFACT), pushMode(COMMAND_ARGS_ATOMS_ONLY);
+SAVE_IMAGE_R: SAVE_IMAGE -> type(SAVE_IMAGE), pushMode(COMMAND_ARGS_ATOMS_ONLY);
 RUN_R: RUN -> type(RUN), pushMode(COMMAND_ARGS_ATOMS_ONLY);
 ENV_R: ENV -> type(ENV), pushMode(COMMAND_ARGS_KEY_VALUE);
 ARG_R: ARG -> type(ARG), pushMode(COMMAND_ARGS_KEY_VALUE);
@@ -85,8 +85,6 @@ mode COMMAND_ARGS_ATOMS_ONLY;
 // TODO: This should only be allowed in the beginning. Command itself should be ok to contain '[',
 // without going into command brackets mode.
 OPEN_BRACKET_CAAO: '[' -> type(OPEN_BRACKET), pushMode(COMMAND_BRACKETS);
-
-AS_LOCAL: 'AS LOCAL';
 
 Atom_CAAO: Atom -> type(Atom);
 

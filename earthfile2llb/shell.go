@@ -47,9 +47,8 @@ func strWithEnvVars(args []string, envVars []string, isWithShell bool) string {
 				"/bin/sh", "-c",
 				fmt.Sprintf("'%s'", strings.Join(escapedArgs, " ")),
 			}, " ")
-	} else {
-		return strings.Join(append([]string{strings.Join(envVars, " ")}, args...), " ")
 	}
+	return strings.Join(append([]string{strings.Join(envVars, " ")}, args...), " ")
 
 }
 

@@ -24,9 +24,6 @@ type listener struct {
 	imageName      string
 	saveImageNames []string
 	fullTargetName string
-	saveFrom       string
-	saveTo         string
-	saveAsLocalTo  string
 	workdirPath    string
 	envArgKey      string
 	envArgValue    string
@@ -216,16 +213,42 @@ func (l *listener) EnterSaveArtifact(c *parser.SaveArtifactContext) {
 	if l.shouldSkip() {
 		return
 	}
-	l.saveFrom = ""
-	l.saveTo = ""
-	l.saveAsLocalTo = ""
+	l.stmtWords = nil
 }
 
 func (l *listener) ExitSaveArtifact(c *parser.SaveArtifactContext) {
 	if l.shouldSkip() {
 		return
 	}
-	l.converter.SaveArtifact(l.ctx, l.saveFrom, l.saveTo, l.saveAsLocalTo)
+	if len(l.stmtWords) == 0 {
+		l.err = fmt.Errorf("no arguments provided to the SAVE ARTIFACT command")
+		return
+	}
+	if len(l.stmtWords) > 5 {
+		l.err = fmt.Errorf("too many arguments provided to the SAVE ARTIFACT command: %v", l.stmtWords)
+		return
+	}
+	saveAsLocalTo := ""
+	saveTo := "./"
+	if len(l.stmtWords) >= 4 {
+		if strings.Join(l.stmtWords[len(l.stmtWords)-3:len(l.stmtWords)-1], " ") == "AS LOCAL" {
+			saveAsLocalTo = l.stmtWords[len(l.stmtWords)-1]
+			if len(l.stmtWords) == 5 {
+				saveTo = l.stmtWords[1]
+			}
+		} else {
+			l.err = fmt.Errorf("invalid arguments for SAVE ARTIFACT command: %v", l.stmtWords)
+			return
+		}
+	} else if len(l.stmtWords) == 2 {
+		saveTo = l.stmtWords[1]
+	} else if len(l.stmtWords) == 3 {
+		l.err = fmt.Errorf("invalid arguments for SAVE ARTIFACT command: %v", l.stmtWords)
+		return
+	}
+	saveFrom := l.stmtWords[0]
+
+	l.converter.SaveArtifact(l.ctx, saveFrom, saveTo, saveAsLocalTo)
 }
 
 func (l *listener) EnterSaveImage(c *parser.SaveImageContext) {
@@ -239,14 +262,14 @@ func (l *listener) EnterSaveImage(c *parser.SaveImageContext) {
 	}
 	l.saveImageExists = true
 
-	l.saveImageNames = nil
+	l.stmtWords = nil
 }
 
 func (l *listener) ExitSaveImage(c *parser.SaveImageContext) {
 	if l.shouldSkip() {
 		return
 	}
-	l.converter.SaveImage(l.ctx, l.saveImageNames)
+	l.converter.SaveImage(l.ctx, l.stmtWords)
 }
 
 func (l *listener) EnterBuildStmt(c *parser.BuildStmtContext) {
@@ -423,27 +446,6 @@ func (l *listener) EnterStmtWordsList(c *parser.StmtWordsListContext) {
 		return
 	}
 	l.isListWithBrackets = true
-}
-
-func (l *listener) EnterSaveFrom(c *parser.SaveFromContext) {
-	if l.shouldSkip() {
-		return
-	}
-	l.saveFrom = c.GetText()
-}
-
-func (l *listener) EnterSaveTo(c *parser.SaveToContext) {
-	if l.shouldSkip() {
-		return
-	}
-	l.saveTo = c.GetText()
-}
-
-func (l *listener) EnterSaveAsLocalTo(c *parser.SaveAsLocalToContext) {
-	if l.shouldSkip() {
-		return
-	}
-	l.saveAsLocalTo = c.GetText()
 }
 
 func (l *listener) EnterFullTargetName(c *parser.FullTargetNameContext) {

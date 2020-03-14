@@ -15,7 +15,7 @@ stmts: WS? stmt (NL+ WS? stmt)*;
 stmt:
 	fromStmt  // Updated.
 	| copyStmt  // Updated.
-	| saveStmt
+	| saveStmt  // Updated.
 	| runStmt  // Updated.
 	| buildStmt
 	| workdirStmt
@@ -32,12 +32,8 @@ fromStmt: FROM (WS stmtWords)?;
 copyStmt: COPY (WS stmtWords)?;
 
 saveStmt: saveArtifact | saveImage;
-saveImage: SAVE_IMAGE (WS saveImageName)*;
-saveArtifact:
-	SAVE_ARTIFACT WS saveFrom (WS saveTo)? (WS AS_LOCAL WS saveAsLocalTo)?;
-saveFrom: Atom;
-saveTo: Atom;
-saveAsLocalTo: Atom;
+saveImage: SAVE_IMAGE (WS stmtWords)?;
+saveArtifact: SAVE_ARTIFACT (WS stmtWords)?;
 
 runStmt: RUN (WS (stmtWords | stmtWordsList))?;
 
@@ -57,7 +53,7 @@ gitURL: Atom;
 gitCloneDest: Atom;
 
 dockerLoadStmt:
-	DOCKER_LOAD (WS flagKeyValue)* WS fullTargetName WS AS WS imageName;
+	DOCKER_LOAD (WS flagKeyValue)* WS fullTargetName WS imageName;
 
 dockerPullStmt: DOCKER_PULL WS imageName;
 

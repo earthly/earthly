@@ -41,15 +41,6 @@ type EarthParserListener interface {
 	// EnterSaveArtifact is called when entering the saveArtifact production.
 	EnterSaveArtifact(c *SaveArtifactContext)
 
-	// EnterSaveFrom is called when entering the saveFrom production.
-	EnterSaveFrom(c *SaveFromContext)
-
-	// EnterSaveTo is called when entering the saveTo production.
-	EnterSaveTo(c *SaveToContext)
-
-	// EnterSaveAsLocalTo is called when entering the saveAsLocalTo production.
-	EnterSaveAsLocalTo(c *SaveAsLocalToContext)
-
 	// EnterRunStmt is called when entering the runStmt production.
 	EnterRunStmt(c *RunStmtContext)
 
@@ -169,15 +160,6 @@ type EarthParserListener interface {
 
 	// ExitSaveArtifact is called when exiting the saveArtifact production.
 	ExitSaveArtifact(c *SaveArtifactContext)
-
-	// ExitSaveFrom is called when exiting the saveFrom production.
-	ExitSaveFrom(c *SaveFromContext)
-
-	// ExitSaveTo is called when exiting the saveTo production.
-	ExitSaveTo(c *SaveToContext)
-
-	// ExitSaveAsLocalTo is called when exiting the saveAsLocalTo production.
-	ExitSaveAsLocalTo(c *SaveAsLocalToContext)
 
 	// ExitRunStmt is called when exiting the runStmt production.
 	ExitRunStmt(c *RunStmtContext)

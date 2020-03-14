@@ -19,5 +19,5 @@ func NewReturnErrorListener() *ReturnErrorListener {
 
 // SyntaxError implements ErrorListener SyntaxError.
 func (rel *ReturnErrorListener) SyntaxError(recognizer antlr.Recognizer, offendingSymbol interface{}, line, column int, msg string, e antlr.RecognitionException) {
-	rel.Errs = append(rel.Errs, fmt.Errorf("Syntax error: line %d:%d %s", line, column, msg))
+	rel.Errs = append(rel.Errs, fmt.Errorf("syntax error: line %d:%d %s", line, column, msg))
 }

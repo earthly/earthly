@@ -485,7 +485,7 @@ func (c *Converter) DockerLoad(ctx context.Context, targetName string, dockerTag
 	err = c.solveAndLoad(
 		ctx, mts, depTarget.String(), dockerTag,
 		llb.WithCustomNamef(
-			"[%s] DOCKER LOAD %s AS %s",
+			"[%s] DOCKER LOAD %s %s",
 			c.mts.FinalStates.Target.String(), depTarget.String(), dockerTag))
 	if err != nil {
 		return err

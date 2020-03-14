@@ -87,24 +87,6 @@ func (s *BaseEarthParserListener) EnterSaveArtifact(ctx *SaveArtifactContext) {}
 // ExitSaveArtifact is called when production saveArtifact is exited.
 func (s *BaseEarthParserListener) ExitSaveArtifact(ctx *SaveArtifactContext) {}
 
-// EnterSaveFrom is called when production saveFrom is entered.
-func (s *BaseEarthParserListener) EnterSaveFrom(ctx *SaveFromContext) {}
-
-// ExitSaveFrom is called when production saveFrom is exited.
-func (s *BaseEarthParserListener) ExitSaveFrom(ctx *SaveFromContext) {}
-
-// EnterSaveTo is called when production saveTo is entered.
-func (s *BaseEarthParserListener) EnterSaveTo(ctx *SaveToContext) {}
-
-// ExitSaveTo is called when production saveTo is exited.
-func (s *BaseEarthParserListener) ExitSaveTo(ctx *SaveToContext) {}
-
-// EnterSaveAsLocalTo is called when production saveAsLocalTo is entered.
-func (s *BaseEarthParserListener) EnterSaveAsLocalTo(ctx *SaveAsLocalToContext) {}
-
-// ExitSaveAsLocalTo is called when production saveAsLocalTo is exited.
-func (s *BaseEarthParserListener) ExitSaveAsLocalTo(ctx *SaveAsLocalToContext) {}
-
 // EnterRunStmt is called when production runStmt is entered.
 func (s *BaseEarthParserListener) EnterRunStmt(ctx *RunStmtContext) {}
 
