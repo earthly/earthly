@@ -215,14 +215,15 @@ func (c *Converter) CopyClassical(ctx context.Context, srcs []string, dest strin
 
 // Run applies the earth RUN command.
 func (c *Converter) Run(ctx context.Context, args []string, mounts []string, secretKeyValues []string, privileged bool, withEntrypoint bool, withDocker bool, isWithShell bool) error {
-	// TODO: This does not work, because it strips away some quotes, which are valuable to the shell.
-	//       This is probably working as intended as is. Should check what happens in the case of the
-	//       bracket syntax, however.
-	// for i := range args {
-	// 	args[i] = c.expandArgs(args[i])
-	// }
-	for i := range mounts {
-		mounts[i] = c.expandArgs(mounts[i])
+	if !isWithShell {
+		// TODO: This does not work, because it strips away some quotes, which are valuable to the shell.
+		//       In any case, this is probably working as intended as is.
+		// for i := range args {
+		// 	args[i] = c.expandArgs(args[i])
+		// }
+		for i := range mounts {
+			mounts[i] = c.expandArgs(mounts[i])
+		}
 	}
 	logging.GetLogger(ctx).
 		With("args", args).
@@ -413,8 +414,10 @@ func (c *Converter) Workdir(ctx context.Context, workdirPath string) {
 
 // Entrypoint applies the ENTRYPOINT command.
 func (c *Converter) Entrypoint(ctx context.Context, entrypointArgs []string, isWithShell bool) {
-	for i := range entrypointArgs {
-		entrypointArgs[i] = c.expandArgs(entrypointArgs[i])
+	if !isWithShell {
+		for i := range entrypointArgs {
+			entrypointArgs[i] = c.expandArgs(entrypointArgs[i])
+		}
 	}
 	logging.GetLogger(ctx).With("entrypoint", entrypointArgs).Info("Applying ENTRYPOINT")
 	c.mts.FinalStates.SideEffectsImage.Config.Entrypoint = withShell(entrypointArgs, isWithShell)
