@@ -89,3 +89,9 @@ test:
 
 test-experimental:
 	BUILD ./examples/tests+experimental
+
+# TODO: Remove me when done with testing.
+test-pull-private:
+	FROM earthly/earth:vlad-no-push
+	RUN ls
+	RUN echo hello world

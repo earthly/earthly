@@ -3,7 +3,9 @@ package buildkitd
 import (
 	"context"
 	"fmt"
+	"os"
 	"os/exec"
+	"path"
 	"time"
 
 	"github.com/moby/buildkit/client"
@@ -128,12 +130,17 @@ func Start(ctx context.Context, image string, settings Settings) error {
 		"run",
 		"-d", "--rm",
 		"-v", cacheMount,
+		"--label", fmt.Sprintf("dev.earthly.settingshash=%s", settingsHash),
+		"--name", ContainerName,
+		"--privileged",
 	}
+	// Apply some buildkitd-related settings.
 	if settings.CacheSizeMb > 0 {
 		args = append(args,
 			"-e", fmt.Sprintf("CACHE_SIZE_MB=%d", settings.CacheSizeMb),
 		)
 	}
+	// Apply some git-related settings.
 	if settings.SSHAuthSock != "" {
 		args = append(args,
 			"-v", fmt.Sprintf("%s:/ssh-agent", settings.SSHAuthSock),
@@ -153,12 +160,26 @@ func Start(ctx context.Context, image string, settings Settings) error {
 			"-e", fmt.Sprintf("GIT_URL_INSTEAD_OF=%s", settings.GitURLInsteadOf),
 		)
 	}
-	args = append(args,
-		"--label", fmt.Sprintf("dev.earthly.settingshash=%s", settingsHash),
-		"--name", ContainerName,
-		"--privileged",
-		image,
-	)
+	// Mount docker credentials.
+	dockerConfigDir := os.Getenv("DOCKER_CONFIG")
+	if dockerConfigDir == "" {
+		homeDir := os.Getenv("HOME")
+		if homeDir == "" {
+			homeDir = "/root"
+		}
+		dockerConfigDir = path.Join(homeDir, ".docker")
+	}
+	_, err = os.Stat(dockerConfigDir)
+	if !os.IsNotExist(err) {
+		if err != nil {
+			return errors.Wrapf(err, "unable to stat directory %s", dockerConfigDir)
+		}
+		args = append(args,
+			"-v", fmt.Sprintf("%s:/root/.docker", dockerConfigDir),
+		)
+	}
+	// Execute.
+	args = append(args, image)
 	cmd := exec.CommandContext(ctx, "docker", args...)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
