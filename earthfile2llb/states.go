@@ -69,4 +69,5 @@ type SaveImage struct {
 	State     llb.State
 	Image     *image.Image
 	DockerTag string
+	Push      bool
 }

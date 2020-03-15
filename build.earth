@@ -76,10 +76,19 @@ earth-docker:
 	COPY --artifact +earth/earth /usr/bin/earth
 	SAVE IMAGE earthly/earth:latest
 
+push-earth-docker:
+	FROM +earth-docker
+	ARG TAG=$EARTHLY_TARGET_TAG
+	SAVE IMAGE --push earthly/earth:$TAG
+
 all:
 	BUILD +earth-all
 	BUILD +earth-docker
 	BUILD ./buildkitd+buildkitd
+
+push-all:
+	BUILD +push-earth-docker
+	BUILD ./buildkitd+push-buildkitd
 
 test:
 	BUILD +lint

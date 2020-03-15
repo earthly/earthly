@@ -44,7 +44,7 @@ func (l *listener) EnterTargetHeader(c *parser.TargetHeaderContext) {
 	// Apply implicit SAVE IMAGE for +base.
 	if l.executeTarget == "base" {
 		if !l.saveImageExists {
-			l.converter.SaveImage(l.ctx, []string{})
+			l.converter.SaveImage(l.ctx, []string{}, false)
 		}
 		l.saveImageExists = true
 	}
@@ -237,7 +237,20 @@ func (l *listener) ExitSaveImage(c *parser.SaveImageContext) {
 	}
 	l.saveImageExists = true
 
-	l.converter.SaveImage(l.ctx, l.stmtWords)
+	fs := flag.NewFlagSet("SAVE IMAGE", flag.ContinueOnError)
+	pushImages := fs.Bool("push", false, "")
+	err := fs.Parse(l.stmtWords)
+	if err != nil {
+		l.err = errors.Wrapf(err, "invalid SAVE IMAGE arguments %v", l.stmtWords)
+		return
+	}
+	if *pushImages && fs.NArg() == 0 {
+		l.err = errors.Wrapf(err, "invalid number of arguments for SAVE IMAGE --push: %v", l.stmtWords)
+		return
+	}
+	imageNames := fs.Args()
+
+	l.converter.SaveImage(l.ctx, imageNames, *pushImages)
 }
 
 func (l *listener) ExitBuildStmt(c *parser.BuildStmtContext) {

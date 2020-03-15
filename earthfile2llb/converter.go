@@ -67,14 +67,15 @@ func NewConverter(ctx context.Context, target domain.Target, resolver *buildcont
 	}
 	targetStr := target.String()
 	visitedStates[targetStr] = append(visitedStates[targetStr], sts)
+	variables, activeVariables := withBuiltinBuildArgs(buildArgs, target, bc.GitMetadata)
 	return &Converter{
 		gitMeta:          bc.GitMetadata,
 		resolver:         resolver,
 		mts:              mts,
 		buildContext:     bc.BuildContext,
 		cacheContext:     makeCacheContext(target),
-		variables:        withBuiltinBuildArgs(buildArgs, target),
-		activeVariables:  make(map[string]bool),
+		variables:        variables,
+		activeVariables:  activeVariables,
 		dockerBuilderFun: dockerBuilderFun,
 		cleanCollection:  cleanCollection,
 	}, nil
@@ -173,6 +174,7 @@ func (c *Converter) CopyArtifact(ctx context.Context, artifactName string, dest 
 		With("srcArtifact", artifactName).
 		With("dest", dest).
 		With("build-args", buildArgs).
+		With("dir", isDir).
 		Info("Applying COPY --artifact")
 	artifact, err := domain.ParseArtifact(artifactName)
 	if err != nil {
@@ -207,7 +209,11 @@ func (c *Converter) CopyClassical(ctx context.Context, srcs []string, dest strin
 	for i := range srcs {
 		srcs[i] = c.expandArgs(srcs[i])
 	}
-	logging.GetLogger(ctx).With("srcs", srcs).With("dest", dest).Info("Applying COPY (classical)")
+	logging.GetLogger(ctx).
+		With("srcs", srcs).
+		With("dest", dest).
+		With("dir", isDir).
+		Info("Applying COPY (classical)")
 	c.mts.FinalStates.SideEffectsState = llbutil.CopyOp(
 		c.buildContext, srcs, c.mts.FinalStates.SideEffectsState, dest, true, isDir,
 		llb.WithCustomNamef("[%s] COPY %v %s", c.mts.FinalStates.Target.String(), srcs, dest))
@@ -303,11 +309,11 @@ func (c *Converter) SaveArtifact(ctx context.Context, saveFrom string, saveTo st
 }
 
 // SaveImage applies the earth SAVE IMAGE command.
-func (c *Converter) SaveImage(ctx context.Context, imageNames []string) {
+func (c *Converter) SaveImage(ctx context.Context, imageNames []string, pushImages bool) {
 	for i := range imageNames {
 		imageNames[i] = c.expandArgs(imageNames[i])
 	}
-	logging.GetLogger(ctx).With("image", imageNames).Info("Applying SAVE IMAGE")
+	logging.GetLogger(ctx).With("image", imageNames).With("push", pushImages).Info("Applying SAVE IMAGE")
 	if len(imageNames) == 0 {
 		// Use an empty image name if none provided. This will not be exported
 		// as docker image, but will allow for importing / referencing within
@@ -319,6 +325,7 @@ func (c *Converter) SaveImage(ctx context.Context, imageNames []string) {
 			State:     c.mts.FinalStates.SideEffectsState,
 			Image:     c.mts.FinalStates.SideEffectsImage.Clone(),
 			DockerTag: imageName,
+			Push:      pushImages,
 		})
 	}
 }
@@ -692,9 +699,10 @@ func internalFromClassical(ctx context.Context, imageName string, opts ...llb.Im
 	if img.Config.User != "" {
 		state = state.User(img.Config.User)
 	}
+	// No need to apply entrypoint. The fact that it exists in the image configuration is enough.
+
 	// TODO: Apply other settings from image config? exposed? volumes?
-	//       Cmd? Entrypoint? Build args? Shell?
-	state, err = state.WithImageConfig(dt)
+	//       Cmd? Build args? Shell?
 	if err != nil {
 		return llb.State{}, nil, nil, nil, errors.Wrapf(err, "add image config for %s", imageName)
 	}
@@ -824,18 +832,41 @@ func (c *Converter) mergeBuildArgs(addArgs map[string]variables.Variable) map[st
 	return out
 }
 
-func withBuiltinBuildArgs(buildArgs map[string]variables.Variable, target domain.Target) map[string]variables.Variable {
+func withBuiltinBuildArgs(buildArgs map[string]variables.Variable, target domain.Target, gitMeta *buildcontext.GitMetadata) (map[string]variables.Variable, map[string]bool) {
+	activeVariables := make(map[string]bool)
 	buildArgsCopy := make(map[string]variables.Variable)
 	for k, v := range buildArgs {
 		buildArgsCopy[k] = v
 	}
 	buildArgsCopy["EARTHLY_TARGET"] = variables.NewConstant(target.StringCanonical())
+	activeVariables["EARTHLY_TARGET"] = true
 	buildArgsCopy["EARTHLY_TARGET_PROJECT"] = variables.NewConstant(target.ProjectCanonical())
+	activeVariables["EARTHLY_TARGET_PROJECT"] = true
 	buildArgsCopy["EARTHLY_TARGET_NAME"] = variables.NewConstant(target.Target)
-	if target.Tag != "" {
-		buildArgsCopy["EARTHLY_TARGET_TAG"] = variables.NewConstant(target.Tag)
+	activeVariables["EARTHLY_TARGET_NAME"] = true
+	buildArgsCopy["EARTHLY_TARGET_TAG"] = variables.NewConstant(target.Tag) // Often ""
+	activeVariables["EARTHLY_TARGET_TAG"] = true
+
+	// The following may end up being "" if no git metadata is detected.
+	buildArgsCopy["EARTHLY_GIT_HASH"] = variables.NewConstant(gitMeta.Hash)
+	activeVariables["EARTHLY_GIT_HASH"] = true
+	branch := ""
+	if len(gitMeta.Branch) > 0 {
+		branch = gitMeta.Branch[0]
 	}
-	return buildArgsCopy
+	buildArgsCopy["EARTHLY_GIT_BRANCH"] = variables.NewConstant(branch)
+	activeVariables["EARTHLY_GIT_BRANCH"] = true
+	tag := ""
+	if len(gitMeta.Tags) > 0 {
+		tag = gitMeta.Tags[0]
+	}
+	buildArgsCopy["EARTHLY_GIT_TAG"] = variables.NewConstant(tag)
+	activeVariables["EARTHLY_GIT_TAG"] = true
+	buildArgsCopy["EARTHLY_GIT_ORIGIN_URL"] = variables.NewConstant(gitMeta.RemoteURL)
+	activeVariables["EARTHLY_GIT_ORIGIN_URL"] = true
+	buildArgsCopy["EARTHLY_GIT_PROJECT_NAME"] = variables.NewConstant(gitMeta.GitProject)
+	activeVariables["EARTHLY_GIT_PROJECT_NAME"] = true
+	return buildArgsCopy, activeVariables
 }
 
 func withDependency(state llb.State, target domain.Target, depState llb.State, depTarget domain.Target) llb.State {

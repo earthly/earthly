@@ -32,7 +32,7 @@ type solver struct {
 	enttlmnts   []entitlements.Entitlement
 }
 
-func (s *solver) solveDocker(ctx context.Context, localDirs map[string]string, state llb.State, img *image.Image, dockerTag string) error {
+func (s *solver) solveDocker(ctx context.Context, localDirs map[string]string, state llb.State, img *image.Image, dockerTag string, push bool) error {
 	dt, err := state.Marshal(llb.Platform(llbutil.TargetPlatform))
 	if err != nil {
 		return errors.Wrap(err, "state marshal")
@@ -63,9 +63,16 @@ func (s *solver) solveDocker(ctx context.Context, localDirs map[string]string, s
 		defer pipeR.Close()
 		err := loadDockerTar(ctx, pipeR)
 		if err != nil {
-			return errors.Wrap(err, "load docker tar")
+			return errors.Wrapf(err, "load docker tar for %s", dockerTag)
 		}
 		logging.GetLogger(ctx).Info("Docker load success")
+		if push {
+			err := pushDockerImage(ctx, dockerTag)
+			if err != nil {
+				return err
+			}
+			logging.GetLogger(ctx).Info("Docker push success")
+		}
 		return nil
 	})
 	go func() {
@@ -485,6 +492,17 @@ func loadDockerTar(ctx context.Context, r io.ReadCloser) error {
 	err := cmd.Run()
 	if err != nil {
 		return errors.Wrap(err, "docker load")
+	}
+	return nil
+}
+
+func pushDockerImage(ctx context.Context, imageName string) error {
+	cmd := exec.CommandContext(ctx, "docker", "push", imageName)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	err := cmd.Run()
+	if err != nil {
+		return errors.Wrapf(err, "docker push %s", imageName)
 	}
 	return nil
 }
