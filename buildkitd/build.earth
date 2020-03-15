@@ -25,10 +25,7 @@ buildkitd:
     # 10GB
     ENV CACHE_SIZE_MB=10000
     ENTRYPOINT ["/usr/bin/entrypoint.sh", "buildkitd", "--allow-insecure-entitlement=security.insecure", "--config=/etc/buildkitd.toml"]
-    SAVE IMAGE earthly/buildkitd:latest
-
-push-buildkitd:
-    FROM +buildkitd
+    ARG EARTHLY_TARGET_TAG
     ARG TAG=$EARTHLY_TARGET_TAG
     SAVE IMAGE --push earthly/buildkitd:$TAG
 

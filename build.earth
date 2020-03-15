@@ -69,15 +69,12 @@ earth-all:
 
 earth-docker:
 	FROM ./buildkitd+buildkitd
-	RUN apk add --update --no-cache docker
+	RUN apk add --update --no-cache docker-cli
 	ENV ENABLE_LOOP_DEVICE=false
 	COPY earth-buildkitd-wrapper.sh /usr/bin/earth-buildkitd-wrapper.sh
 	ENTRYPOINT ["/usr/bin/earth-buildkitd-wrapper.sh"]
 	COPY --artifact +earth/earth /usr/bin/earth
-	SAVE IMAGE earthly/earth:latest
-
-push-earth-docker:
-	FROM +earth-docker
+	ARG EARTHLY_TARGET_TAG
 	ARG TAG=$EARTHLY_TARGET_TAG
 	SAVE IMAGE --push earthly/earth:$TAG
 
@@ -86,13 +83,15 @@ all:
 	BUILD +earth-docker
 	BUILD ./buildkitd+buildkitd
 
-push-all:
-	BUILD +push-earth-docker
-	BUILD ./buildkitd+push-buildkitd
-
 test:
 	BUILD +lint
 	BUILD ./examples/tests+all
 
 test-experimental:
 	BUILD ./examples/tests+experimental
+
+# TODO: Remove me when done with testing.
+test-pull-private:
+	FROM earthly/earth:vlad-no-push
+	RUN ls
+	RUN echo hello world

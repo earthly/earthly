@@ -67,15 +67,14 @@ func NewConverter(ctx context.Context, target domain.Target, resolver *buildcont
 	}
 	targetStr := target.String()
 	visitedStates[targetStr] = append(visitedStates[targetStr], sts)
-	variables, activeVariables := withBuiltinBuildArgs(buildArgs, target, bc.GitMetadata)
 	return &Converter{
 		gitMeta:          bc.GitMetadata,
 		resolver:         resolver,
 		mts:              mts,
 		buildContext:     bc.BuildContext,
 		cacheContext:     makeCacheContext(target),
-		variables:        variables,
-		activeVariables:  activeVariables,
+		variables:        withBuiltinBuildArgs(buildArgs, target, bc.GitMetadata),
+		activeVariables:  make(map[string]bool),
 		dockerBuilderFun: dockerBuilderFun,
 		cleanCollection:  cleanCollection,
 	}, nil
@@ -832,41 +831,33 @@ func (c *Converter) mergeBuildArgs(addArgs map[string]variables.Variable) map[st
 	return out
 }
 
-func withBuiltinBuildArgs(buildArgs map[string]variables.Variable, target domain.Target, gitMeta *buildcontext.GitMetadata) (map[string]variables.Variable, map[string]bool) {
-	activeVariables := make(map[string]bool)
+func withBuiltinBuildArgs(buildArgs map[string]variables.Variable, target domain.Target, gitMeta *buildcontext.GitMetadata) map[string]variables.Variable {
 	buildArgsCopy := make(map[string]variables.Variable)
 	for k, v := range buildArgs {
 		buildArgsCopy[k] = v
 	}
 	buildArgsCopy["EARTHLY_TARGET"] = variables.NewConstant(target.StringCanonical())
-	activeVariables["EARTHLY_TARGET"] = true
 	buildArgsCopy["EARTHLY_TARGET_PROJECT"] = variables.NewConstant(target.ProjectCanonical())
-	activeVariables["EARTHLY_TARGET_PROJECT"] = true
 	buildArgsCopy["EARTHLY_TARGET_NAME"] = variables.NewConstant(target.Target)
-	activeVariables["EARTHLY_TARGET_NAME"] = true
-	buildArgsCopy["EARTHLY_TARGET_TAG"] = variables.NewConstant(target.Tag) // Often ""
-	activeVariables["EARTHLY_TARGET_TAG"] = true
+	buildArgsCopy["EARTHLY_TARGET_TAG"] = variables.NewConstant(target.Tag)
 
-	// The following may end up being "" if no git metadata is detected.
-	buildArgsCopy["EARTHLY_GIT_HASH"] = variables.NewConstant(gitMeta.Hash)
-	activeVariables["EARTHLY_GIT_HASH"] = true
-	branch := ""
-	if len(gitMeta.Branch) > 0 {
-		branch = gitMeta.Branch[0]
+	if gitMeta != nil {
+		// The following ends up being "" if no git metadata is detected.
+		buildArgsCopy["EARTHLY_GIT_HASH"] = variables.NewConstant(gitMeta.Hash)
+		branch := ""
+		if len(gitMeta.Branch) > 0 {
+			branch = gitMeta.Branch[0]
+		}
+		buildArgsCopy["EARTHLY_GIT_BRANCH"] = variables.NewConstant(branch)
+		tag := ""
+		if len(gitMeta.Tags) > 0 {
+			tag = gitMeta.Tags[0]
+		}
+		buildArgsCopy["EARTHLY_GIT_TAG"] = variables.NewConstant(tag)
+		buildArgsCopy["EARTHLY_GIT_ORIGIN_URL"] = variables.NewConstant(gitMeta.RemoteURL)
+		buildArgsCopy["EARTHLY_GIT_PROJECT_NAME"] = variables.NewConstant(gitMeta.GitProject)
 	}
-	buildArgsCopy["EARTHLY_GIT_BRANCH"] = variables.NewConstant(branch)
-	activeVariables["EARTHLY_GIT_BRANCH"] = true
-	tag := ""
-	if len(gitMeta.Tags) > 0 {
-		tag = gitMeta.Tags[0]
-	}
-	buildArgsCopy["EARTHLY_GIT_TAG"] = variables.NewConstant(tag)
-	activeVariables["EARTHLY_GIT_TAG"] = true
-	buildArgsCopy["EARTHLY_GIT_ORIGIN_URL"] = variables.NewConstant(gitMeta.RemoteURL)
-	activeVariables["EARTHLY_GIT_ORIGIN_URL"] = true
-	buildArgsCopy["EARTHLY_GIT_PROJECT_NAME"] = variables.NewConstant(gitMeta.GitProject)
-	activeVariables["EARTHLY_GIT_PROJECT_NAME"] = true
-	return buildArgsCopy, activeVariables
+	return buildArgsCopy
 }
 
 func withDependency(state llb.State, target domain.Target, depState llb.State, depTarget domain.Target) llb.State {

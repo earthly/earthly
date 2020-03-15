@@ -42,6 +42,7 @@ type cliFlags struct {
 	secrets           cli.StringSlice
 	artifactMode      bool
 	imageMode         bool
+	push              bool
 	noOutput          bool
 	noCache           bool
 	pruneAll          bool
@@ -123,6 +124,12 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 			Aliases:     []string{"i"},
 			Usage:       "Output only docker image of the specified target",
 			Destination: &app.imageMode,
+		},
+		&cli.BoolFlag{
+			Name:        "push",
+			EnvVars:     []string{"EARTHLY_PUSH"},
+			Usage:       "Push images with SAVE IMAGE --push option",
+			Destination: &app.push,
 		},
 		&cli.BoolFlag{
 			Name:        "no-output",
@@ -371,7 +378,7 @@ func (app *earthApp) actionBuild(c *cli.Context) error {
 	}
 
 	if app.imageMode {
-		err = b.BuildOnlyImages(app.ctx, mts)
+		err = b.BuildOnlyImages(app.ctx, mts, app.push)
 		if err != nil {
 			return errors.Wrap(err, "build only image")
 		}
@@ -381,7 +388,7 @@ func (app *earthApp) actionBuild(c *cli.Context) error {
 			return errors.Wrap(err, "build only artifact")
 		}
 	} else {
-		err = b.Build(app.ctx, mts, app.noOutput)
+		err = b.Build(app.ctx, mts, app.noOutput, app.push)
 		if err != nil {
 			return errors.Wrap(err, "build")
 		}

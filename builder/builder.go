@@ -46,7 +46,7 @@ func NewBuilder(ctx context.Context, bkClient *client.Client, console consloggin
 
 // Build performs the build for the given multi target states, outputting images for
 // all sub-targets and artifacts for all local sub-targets.
-func (b *Builder) Build(ctx context.Context, mts *earthfile2llb.MultiTargetStates, noOutput bool) error {
+func (b *Builder) Build(ctx context.Context, mts *earthfile2llb.MultiTargetStates, noOutput bool, push bool) error {
 	// Start with final side-effects. This will automatically trigger the dependency builds too,
 	// in parallel.
 	cacheLocalDir, localDirs, err := b.buildCommon(ctx, mts)
@@ -59,7 +59,7 @@ func (b *Builder) Build(ctx context.Context, mts *earthfile2llb.MultiTargetState
 	// Then output images and artifacts.
 	if !noOutput {
 		for _, states := range mts.AllStates() {
-			err = b.buildOutputs(ctx, localDirs, states)
+			err = b.buildOutputs(ctx, localDirs, states, push)
 			if err != nil {
 				return err
 			}
@@ -91,7 +91,7 @@ func (b *Builder) BuildOnlyLastImageAsTar(ctx context.Context, mts *earthfile2ll
 
 // BuildOnlyImages performs the build for the given multi target states, outputting only images
 // of the final states.
-func (b *Builder) BuildOnlyImages(ctx context.Context, mts *earthfile2llb.MultiTargetStates) error {
+func (b *Builder) BuildOnlyImages(ctx context.Context, mts *earthfile2llb.MultiTargetStates, push bool) error {
 	// Start with final side-effects. This will automatically trigger the dependency builds too,
 	// in parallel.
 	cacheLocalDir, localDirs, err := b.buildCommon(ctx, mts)
@@ -101,7 +101,7 @@ func (b *Builder) BuildOnlyImages(ctx context.Context, mts *earthfile2llb.MultiT
 	defer os.RemoveAll(cacheLocalDir)
 	b.console.PrintSuccess()
 
-	err = b.buildImages(ctx, localDirs, mts.FinalStates)
+	err = b.buildImages(ctx, localDirs, mts.FinalStates, push)
 	if err != nil {
 		return err
 	}
@@ -178,9 +178,9 @@ func (b *Builder) buildSideEffects(ctx context.Context, localDirs map[string]str
 	return nil
 }
 
-func (b *Builder) buildOutputs(ctx context.Context, localDirs map[string]string, states *earthfile2llb.SingleTargetStates) error {
+func (b *Builder) buildOutputs(ctx context.Context, localDirs map[string]string, states *earthfile2llb.SingleTargetStates, push bool) error {
 	targetCtx := logging.With(ctx, "target", states.Target.String())
-	err := b.buildImages(targetCtx, localDirs, states)
+	err := b.buildImages(targetCtx, localDirs, states, push)
 	if err != nil {
 		return err
 	}
@@ -196,13 +196,13 @@ func (b *Builder) buildOutputs(ctx context.Context, localDirs map[string]string,
 	return nil
 }
 
-func (b *Builder) buildImages(ctx context.Context, localDirs map[string]string, states *earthfile2llb.SingleTargetStates) error {
+func (b *Builder) buildImages(ctx context.Context, localDirs map[string]string, states *earthfile2llb.SingleTargetStates, push bool) error {
 	for _, imageToSave := range states.SaveImages {
 		if imageToSave.DockerTag == "" {
 			// Not a docker export. Skip.
 			continue
 		}
-		err := b.buildImage(ctx, imageToSave, localDirs, states)
+		err := b.buildImage(ctx, imageToSave, localDirs, states, push)
 		if err != nil {
 			return err
 		}
@@ -210,19 +210,23 @@ func (b *Builder) buildImages(ctx context.Context, localDirs map[string]string, 
 	return nil
 }
 
-func (b *Builder) buildImage(ctx context.Context, imageToSave earthfile2llb.SaveImage, localDirs map[string]string, states *earthfile2llb.SingleTargetStates) error {
+func (b *Builder) buildImage(ctx context.Context, imageToSave earthfile2llb.SaveImage, localDirs map[string]string, states *earthfile2llb.SingleTargetStates, push bool) error {
+	shouldPush := push && imageToSave.Push
 	console := b.console.WithPrefix(states.Target.String())
 	solveCtx := logging.With(ctx, "image", imageToSave.DockerTag)
 	solveCtx = logging.With(solveCtx, "solve", "image")
-	err := b.s.solveDocker(solveCtx, localDirs, imageToSave.State, imageToSave.Image, imageToSave.DockerTag, imageToSave.Push)
+	err := b.s.solveDocker(solveCtx, localDirs, imageToSave.State, imageToSave.Image, imageToSave.DockerTag, shouldPush)
 	if err != nil {
 		return errors.Wrapf(err, "solve image %s", imageToSave.DockerTag)
 	}
 	pushStr := ""
-	if imageToSave.Push {
+	if shouldPush {
 		pushStr = " (pushed)"
 	}
 	console.Printf("Image %s as %s%s\n", states.Target.StringCanonical(), imageToSave.DockerTag, pushStr)
+	if imageToSave.Push && !push {
+		console.Printf("Did not push %s. Use earth --push to enable pushing\n", imageToSave.DockerTag)
+	}
 	return nil
 }
 
