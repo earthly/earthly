@@ -69,7 +69,7 @@ earth-all:
 
 earth-docker:
 	FROM ./buildkitd+buildkitd
-	RUN apk add --update --no-cache docker
+	RUN apk add --update --no-cache docker-cli
 	ENV ENABLE_LOOP_DEVICE=false
 	COPY earth-buildkitd-wrapper.sh /usr/bin/earth-buildkitd-wrapper.sh
 	ENTRYPOINT ["/usr/bin/earth-buildkitd-wrapper.sh"]
