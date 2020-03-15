@@ -74,10 +74,7 @@ earth-docker:
 	COPY earth-buildkitd-wrapper.sh /usr/bin/earth-buildkitd-wrapper.sh
 	ENTRYPOINT ["/usr/bin/earth-buildkitd-wrapper.sh"]
 	COPY --artifact +earth/earth /usr/bin/earth
-	SAVE IMAGE earthly/earth:latest
-
-push-earth-docker:
-	FROM +earth-docker
+	ARG EARTHLY_TARGET_TAG
 	ARG TAG=$EARTHLY_TARGET_TAG
 	SAVE IMAGE --push earthly/earth:$TAG
 
@@ -85,10 +82,6 @@ all:
 	BUILD +earth-all
 	BUILD +earth-docker
 	BUILD ./buildkitd+buildkitd
-
-push-all:
-	BUILD +push-earth-docker
-	BUILD ./buildkitd+push-buildkitd
 
 test:
 	BUILD +lint
