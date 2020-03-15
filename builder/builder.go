@@ -214,11 +214,15 @@ func (b *Builder) buildImage(ctx context.Context, imageToSave earthfile2llb.Save
 	console := b.console.WithPrefix(states.Target.String())
 	solveCtx := logging.With(ctx, "image", imageToSave.DockerTag)
 	solveCtx = logging.With(solveCtx, "solve", "image")
-	err := b.s.solveDocker(solveCtx, localDirs, imageToSave.State, imageToSave.Image, imageToSave.DockerTag)
+	err := b.s.solveDocker(solveCtx, localDirs, imageToSave.State, imageToSave.Image, imageToSave.DockerTag, imageToSave.Push)
 	if err != nil {
 		return errors.Wrapf(err, "solve image %s", imageToSave.DockerTag)
 	}
-	console.Printf("Image %s as %s\n", states.Target.StringCanonical(), imageToSave.DockerTag)
+	pushStr := ""
+	if imageToSave.Push {
+		pushStr = " (pushed)"
+	}
+	console.Printf("Image %s as %s%s\n", states.Target.StringCanonical(), imageToSave.DockerTag, pushStr)
 	return nil
 }
 

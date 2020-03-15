@@ -27,6 +27,11 @@ buildkitd:
     ENTRYPOINT ["/usr/bin/entrypoint.sh", "buildkitd", "--allow-insecure-entitlement=security.insecure", "--config=/etc/buildkitd.toml"]
     SAVE IMAGE earthly/buildkitd:latest
 
+push-buildkitd:
+    FROM +buildkitd
+    ARG TAG=$EARTHLY_TARGET_TAG
+    SAVE IMAGE --push earthly/buildkitd:$TAG
+
 fuse:
     # Based on https://github.com/moby/buildkit/blob/master/Dockerfile#L176
     FROM debian:10
