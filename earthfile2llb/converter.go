@@ -841,20 +841,22 @@ func withBuiltinBuildArgs(buildArgs map[string]variables.Variable, target domain
 	buildArgsCopy["EARTHLY_TARGET_NAME"] = variables.NewConstant(target.Target)
 	buildArgsCopy["EARTHLY_TARGET_TAG"] = variables.NewConstant(target.Tag)
 
-	// The following may end up being "" if no git metadata is detected.
-	buildArgsCopy["EARTHLY_GIT_HASH"] = variables.NewConstant(gitMeta.Hash)
-	branch := ""
-	if len(gitMeta.Branch) > 0 {
-		branch = gitMeta.Branch[0]
+	if gitMeta != nil {
+		// The following ends up being "" if no git metadata is detected.
+		buildArgsCopy["EARTHLY_GIT_HASH"] = variables.NewConstant(gitMeta.Hash)
+		branch := ""
+		if len(gitMeta.Branch) > 0 {
+			branch = gitMeta.Branch[0]
+		}
+		buildArgsCopy["EARTHLY_GIT_BRANCH"] = variables.NewConstant(branch)
+		tag := ""
+		if len(gitMeta.Tags) > 0 {
+			tag = gitMeta.Tags[0]
+		}
+		buildArgsCopy["EARTHLY_GIT_TAG"] = variables.NewConstant(tag)
+		buildArgsCopy["EARTHLY_GIT_ORIGIN_URL"] = variables.NewConstant(gitMeta.RemoteURL)
+		buildArgsCopy["EARTHLY_GIT_PROJECT_NAME"] = variables.NewConstant(gitMeta.GitProject)
 	}
-	buildArgsCopy["EARTHLY_GIT_BRANCH"] = variables.NewConstant(branch)
-	tag := ""
-	if len(gitMeta.Tags) > 0 {
-		tag = gitMeta.Tags[0]
-	}
-	buildArgsCopy["EARTHLY_GIT_TAG"] = variables.NewConstant(tag)
-	buildArgsCopy["EARTHLY_GIT_ORIGIN_URL"] = variables.NewConstant(gitMeta.RemoteURL)
-	buildArgsCopy["EARTHLY_GIT_PROJECT_NAME"] = variables.NewConstant(gitMeta.GitProject)
 	return buildArgsCopy
 }
 
