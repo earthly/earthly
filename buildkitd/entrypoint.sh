@@ -32,6 +32,7 @@ if [ -n "$DOCKER_CONFIG_JSON" ]; then
         fi
         DOCKER_CONFIG="$HOME/.docker"
     fi
+    mkdir -p "$DOCKER_CONFIG"
     printenv DOCKER_CONFIG_JSON > "$DOCKER_CONFIG/config.json"
 fi
 
