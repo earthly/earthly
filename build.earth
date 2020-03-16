@@ -34,7 +34,7 @@ code:
 	FROM +deps
 	COPY --dir buildcontext builder cleanup cmd conslogging dockertar domain \
 		llbutil logging ./
-	COPY --dir buildkitd/buildkitd.go buildkitd/settings.go buildkitd/
+	COPY --dir buildkitd/credpass buildkitd/buildkitd.go buildkitd/settings.go buildkitd/
 	COPY --dir earthfile2llb/antlrhandler earthfile2llb/dedup earthfile2llb/image \
 		earthfile2llb/variables earthfile2llb/*.go earthfile2llb/
 	COPY --artifact ./earthfile2llb/parser+parser/*.go ./earthfile2llb/parser/
@@ -89,9 +89,3 @@ test:
 
 test-experimental:
 	BUILD ./examples/tests+experimental
-
-# TODO: Remove me when done with testing.
-test-pull-private:
-	FROM earthly/earth:vlad-no-push
-	RUN ls
-	RUN echo hello world

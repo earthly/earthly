@@ -1,5 +1,4 @@
 root = ":BUILDKIT_ROOT_DIR:"
-debug = true
 
 [worker.oci]
   enabled = true

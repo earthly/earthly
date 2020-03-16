@@ -1,7 +1,6 @@
 #!/bin/sh
 
 set -e
-set -x
 
 if [ -z "$CACHE_SIZE_MB" ]; then
     echo "CACHE_SIZE_MB not set"
@@ -24,6 +23,17 @@ if [ -n "$GIT_URL_INSTEAD_OF" ]; then
     base="${GIT_URL_INSTEAD_OF%%=*}"
     insteadOf="${GIT_URL_INSTEAD_OF#*=}"
     git config --global url."$base".insteadOf "$insteadOf"
+fi
+
+if [ -n "$DOCKER_CONFIG_JSON" ]; then
+    if [ -z "$DOCKER_CONFIG" ]; then
+        if [ -z "$HOME" ]; then
+            HOME=/root
+        fi
+        DOCKER_CONFIG="$HOME/.docker"
+    fi
+    mkdir -p "$DOCKER_CONFIG"
+    printenv DOCKER_CONFIG_JSON > "$DOCKER_CONFIG/config.json"
 fi
 
 # Create an ext4 fs in a pre-allocated file. Ext4 will allow

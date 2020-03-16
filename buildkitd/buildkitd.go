@@ -3,15 +3,15 @@ package buildkitd
 import (
 	"context"
 	"fmt"
-	"os"
 	"os/exec"
-	"path"
 	"time"
 
 	"github.com/moby/buildkit/client"
 	_ "github.com/moby/buildkit/client/connhelper/dockercontainer" // Load "docker-container://" helper.
 	"github.com/pkg/errors"
+	"github.com/vladaionescu/earthly/buildkitd/credpass"
 	"github.com/vladaionescu/earthly/conslogging"
+	"github.com/vladaionescu/earthly/logging"
 )
 
 const (
@@ -160,23 +160,26 @@ func Start(ctx context.Context, image string, settings Settings) error {
 			"-e", fmt.Sprintf("GIT_URL_INSTEAD_OF=%s", settings.GitURLInsteadOf),
 		)
 	}
-	// Mount docker credentials.
-	dockerConfigDir := os.Getenv("DOCKER_CONFIG")
-	if dockerConfigDir == "" {
-		homeDir := os.Getenv("HOME")
-		if homeDir == "" {
-			homeDir = "/root"
+	// Pass docker credentials.
+	dockerConfig, dockerConfigDir, err := credpass.Read(ctx)
+	if err != nil {
+		warningText := fmt.Sprintf("Unable to pass docker credentials to buildkitd: %s", err.Error())
+		logging.GetLogger(ctx).Warning(warningText)
+		// TODO: Print console warning properly.
+		fmt.Printf("Warning: %s\nYour builds will not be able to pull from private logged-in registries!\n", warningText)
+		// Keep going anyway.
+	} else {
+		if dockerConfig != "" {
+			// Pass docker config as env var.
+			args = append(args,
+				"-e", fmt.Sprintf("DOCKER_CONFIG_JSON=%s", dockerConfig),
+			)
+		} else if dockerConfigDir != "" {
+			// Pass docker config as mount.
+			args = append(args,
+				"-v", fmt.Sprintf("%s:/root/.docker", dockerConfigDir),
+			)
 		}
-		dockerConfigDir = path.Join(homeDir, ".docker")
-	}
-	_, err = os.Stat(dockerConfigDir)
-	if !os.IsNotExist(err) {
-		if err != nil {
-			return errors.Wrapf(err, "unable to stat directory %s", dockerConfigDir)
-		}
-		args = append(args,
-			"-v", fmt.Sprintf("%s:/root/.docker", dockerConfigDir),
-		)
 	}
 	// Execute.
 	args = append(args, image)
