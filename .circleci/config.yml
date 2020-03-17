@@ -17,4 +17,4 @@ jobs:
             -v "$HOME/.docker:/root/.docker" \
             -v "$PWD:/earthly" \
             -w /earthly \
-            "$EARTHLY_EARTH_IMAGE" --push -p +test
+            "$EARTHLY_EARTH_IMAGE" --push -P +test

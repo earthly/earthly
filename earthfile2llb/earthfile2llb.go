@@ -21,8 +21,7 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, resolver *buildcon
 	if visitedStates == nil {
 		visitedStates = make(map[string][]*SingleTargetStates)
 	}
-	// Check if we have previously converted this target, with the same
-	// build args.
+	// Check if we have previously converted this target, with the same build args.
 	targetStr := target.String()
 	for _, sts := range visitedStates[targetStr] {
 		same := true

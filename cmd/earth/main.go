@@ -169,7 +169,7 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 		},
 		&cli.BoolFlag{
 			Name:        "allow-privileged",
-			Aliases:     []string{"p"},
+			Aliases:     []string{"P"},
 			EnvVars:     []string{"EARTHLY_ALLOW_PRIVILEGED"},
 			Usage:       "Allow build to use the --privileged flag in RUN commands",
 			Destination: &app.allowPrivileged,

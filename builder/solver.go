@@ -445,10 +445,26 @@ func (s *solver) newSolveOptArtifacts(outDir string, localDirs map[string]string
 
 func (s *solver) newSolveOptSideEffects(localDirs map[string]string) (*client.SolveOpt, error) {
 	return &client.SolveOpt{
-		LocalDirs:           localDirs,
-		AllowedEntitlements: s.enttlmnts,
 		Session:             s.attachables,
+		AllowedEntitlements: s.enttlmnts,
+		LocalDirs:           localDirs,
+		// CacheImports: []client.CacheOptionsEntry{
+		// 	newRegistryCacheOpt("docker.io/earthly/buildkitd:cache"),
+		// },
+		// CacheExports: []client.CacheOptionsEntry{
+		// 	newRegistryCacheOpt("docker.io/earthly/buildkitd:cache"),
+		// },
 	}, nil
+}
+
+func newRegistryCacheOpt(ref string) client.CacheOptionsEntry {
+	registryCacheOptAttrs := make(map[string]string)
+	registryCacheOptAttrs["ref"] = ref
+	registryCacheOptAttrs["mode"] = "max"
+	return client.CacheOptionsEntry{
+		Type:  "registry",
+		Attrs: registryCacheOptAttrs,
+	}
 }
 
 var bracketsRegexp = regexp.MustCompile("^\\[([^\\]]*)\\] (.*)$")

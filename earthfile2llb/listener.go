@@ -111,7 +111,6 @@ func (l *listener) ExitCopyStmt(c *parser.CopyStmtContext) {
 		return
 	}
 	fs := flag.NewFlagSet("COPY", flag.ContinueOnError)
-	isArtifactCopy := fs.Bool("artifact", false, "")
 	from := fs.String("from", "", "")
 	isDirCopy := fs.Bool("dir", false, "")
 	buildArgs := new(StringSliceFlag)
@@ -125,33 +124,38 @@ func (l *listener) ExitCopyStmt(c *parser.CopyStmtContext) {
 		l.err = fmt.Errorf("not enough COPY arguments %v", l.stmtWords)
 		return
 	}
-	if *from != "" && *isArtifactCopy {
-		l.err = fmt.Errorf("invalid COPY flags %v: . The flags --from and --artifact cannot both be specified at the same time", l.stmtWords)
-		return
-	}
 	if *from != "" {
-		l.err = errors.New("COPY --from not implemented. Use COPY --artifact instead")
+		l.err = errors.New("COPY --from not implemented. Use COPY artifacts form instead")
 		return
 	}
-	if *isArtifactCopy {
-		if fs.NArg() != 2 {
-			l.err = errors.New("more than 2 COPY arguments not yet supported for --artifact")
-			return
+	srcs := fs.Args()[:fs.NArg()-1]
+	dest := fs.Arg(fs.NArg() - 1)
+	allClassical := true
+	allArtifacts := true
+	for _, src := range srcs {
+		if strings.Contains(src, "+") {
+			allClassical = false
+		} else {
+			allArtifacts = false
 		}
-		artifactName := fs.Arg(0)
-		dest := fs.Arg(1)
-		err = l.converter.CopyArtifact(l.ctx, artifactName, dest, buildArgs.Args, *isDirCopy)
-		if err != nil {
-			l.err = errors.Wrapf(err, "copy artifact")
-			return
+	}
+	if !allClassical && !allArtifacts {
+		l.err = fmt.Errorf("Combining artifacts and build context arguments in a single COPY command is not allowed: %v", srcs)
+		return
+	}
+	if allArtifacts {
+		for _, src := range srcs {
+			err = l.converter.CopyArtifact(l.ctx, src, dest, buildArgs.Args, *isDirCopy)
+			if err != nil {
+				l.err = errors.Wrapf(err, "copy artifact")
+				return
+			}
 		}
 	} else {
 		if len(buildArgs.Args) != 0 {
-			l.err = fmt.Errorf("build args not supported for non --artifact case %v", l.stmtWords)
+			l.err = fmt.Errorf("build args not supported for non +artifact arguments case %v", l.stmtWords)
 			return
 		}
-		srcs := fs.Args()[:fs.NArg()-1]
-		dest := fs.Arg(fs.NArg() - 1)
 		l.converter.CopyClassical(l.ctx, srcs, dest, *isDirCopy)
 	}
 }

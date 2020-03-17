@@ -162,7 +162,7 @@ func (c *Converter) fromTarget(ctx context.Context, targetName string, buildArgs
 	return nil
 }
 
-// CopyArtifact applies the earth COPY --artifact command.
+// CopyArtifact applies the earth COPY artifact command.
 func (c *Converter) CopyArtifact(ctx context.Context, artifactName string, dest string, buildArgs []string, isDir bool) error {
 	artifactName = c.expandArgs(artifactName)
 	dest = c.expandArgs(dest)
@@ -174,7 +174,7 @@ func (c *Converter) CopyArtifact(ctx context.Context, artifactName string, dest 
 		With("dest", dest).
 		With("build-args", buildArgs).
 		With("dir", isDir).
-		Info("Applying COPY --artifact")
+		Info("Applying COPY (artifact)")
 	artifact, err := domain.ParseArtifact(artifactName)
 	if err != nil {
 		return errors.Wrapf(err, "parse artifact name %s", artifactName)
@@ -194,7 +194,7 @@ func (c *Converter) CopyArtifact(ctx context.Context, artifactName string, dest 
 		relevantDepState.ArtifactsState, []string{artifactPath},
 		c.mts.FinalStates.SideEffectsState, dest, true, isDir,
 		llb.WithCustomNamef(
-			"[%s] COPY --artifact (%v) %s %s",
+			"[%s] COPY (%v) %s %s",
 			c.mts.FinalStates.Target.String(),
 			buildArgs,
 			artifact.String(),
@@ -291,7 +291,7 @@ func (c *Converter) SaveArtifact(ctx context.Context, saveFrom string, saveTo st
 		Artifact: saveToF,
 	}
 	c.mts.FinalStates.ArtifactsState = llbutil.CopyOp(
-		c.mts.FinalStates.SideEffectsState, []string{saveFrom}, c.mts.FinalStates.ArtifactsState, saveToAdjusted, true, false,
+		c.mts.FinalStates.SideEffectsState, []string{saveFrom}, c.mts.FinalStates.ArtifactsState, saveToAdjusted, true, true,
 		llb.WithCustomNamef("[%s] SAVE ARTIFACT %s %s", c.mts.FinalStates.Target.String(), saveFrom, artifact.String()))
 	if saveAsLocalTo != "" {
 		separateArtifactsState := llb.Scratch().Platform(llbutil.TargetPlatform)
