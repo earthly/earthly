@@ -104,7 +104,13 @@ release:
 	ARG EARTHLY_GIT_HASH
 	RUN test -n "$RELEASE_TAG" && test -n "$EARTHLY_GIT_HASH"
 	BUILD +test
-	RUN --secret GITHUB_TOKEN=+secrets/GITHUB_TOKEN \
+	BUILD --build-arg TAG="$RELEASE_TAG" +earth-docker
+	BUILD --build-arg TAG="$RELEASE_TAG" ./buildkitd+buildkitd
+	BUILD --build-arg TAG=latest +earth-docker
+	BUILD --build-arg TAG=latest ./buildkitd+buildkitd
+	RUN --secret GITHUB_TOKEN=+secrets/GITHUB_TOKEN true
+	RUN --push \
+		--secret GITHUB_TOKEN=+secrets/GITHUB_TOKEN \
 		github-release upload \
 		--owner vladaionescu \
 		--repo earthly \
@@ -113,7 +119,3 @@ release:
 		--name "$RELEASE_TAG" \
 		--body "$BODY" \
 		earth-linux-amd64 earth-darwin-amd64
-	BUILD --build-arg TAG="$RELEASE_TAG" +earth-docker
-	BUILD --build-arg TAG="$RELEASE_TAG" ./buildkitd+buildkitd
-	BUILD --build-arg TAG=latest +earth-docker
-	BUILD --build-arg TAG=latest ./buildkitd+buildkitd

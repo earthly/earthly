@@ -42,6 +42,7 @@ type SingleTargetStates struct {
 	SeparateArtifactsState []llb.State
 	SaveLocals             []SaveLocal
 	SaveImages             []SaveImage
+	RunPush                RunPush
 	LocalDirs              map[string]string
 	Ongoing                bool
 }
@@ -70,4 +71,12 @@ type SaveImage struct {
 	Image     *image.Image
 	DockerTag string
 	Push      bool
+}
+
+// RunPush is a series of RUN --push commands to be run after the build has been deemed as
+// successful.
+type RunPush struct {
+	Initialized bool
+	CommandStrs []string
+	State       llb.State
 }

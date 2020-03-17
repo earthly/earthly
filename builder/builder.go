@@ -171,7 +171,7 @@ func (b *Builder) buildSideEffects(ctx context.Context, localDirs map[string]str
 	if b.noCache {
 		state = state.SetMarshalDefaults(llb.IgnoreCache)
 	}
-	err := b.s.solveSideEffects(solveCtx, localDirs, state)
+	err := b.s.solveSideEffects(solveCtx, localDirs, state, true)
 	if err != nil {
 		return errors.Wrapf(err, "solve side effects")
 	}
@@ -180,7 +180,15 @@ func (b *Builder) buildSideEffects(ctx context.Context, localDirs map[string]str
 
 func (b *Builder) buildOutputs(ctx context.Context, localDirs map[string]string, states *earthfile2llb.SingleTargetStates, push bool) error {
 	targetCtx := logging.With(ctx, "target", states.Target.String())
-	err := b.buildImages(targetCtx, localDirs, states, push)
+
+	// Run --push commands.
+	err := b.buildRunPush(targetCtx, localDirs, states, push)
+	if err != nil {
+		return err
+	}
+
+	// Images.
+	err = b.buildImages(targetCtx, localDirs, states, push)
 	if err != nil {
 		return err
 	}
@@ -192,6 +200,27 @@ func (b *Builder) buildOutputs(ctx context.Context, localDirs map[string]string,
 		if err != nil {
 			return err
 		}
+	}
+	return nil
+}
+
+func (b *Builder) buildRunPush(ctx context.Context, localDirs map[string]string, states *earthfile2llb.SingleTargetStates, push bool) error {
+	if !states.RunPush.Initialized {
+		// No run --push commands here. Quick way out.
+		return nil
+	}
+	console := b.console.WithPrefix(states.Target.String())
+	if !push {
+		for _, commandStr := range states.RunPush.CommandStrs {
+			console.Printf("Did not execute push command %s. Use earth --push to enable pushing\n", commandStr)
+		}
+		return nil
+	}
+	targetCtx := logging.With(ctx, "target", states.Target.String())
+	solveCtx := logging.With(targetCtx, "solve", "run-push")
+	err := b.s.solveSideEffects(solveCtx, localDirs, states.RunPush.State, false)
+	if err != nil {
+		return errors.Wrapf(err, "solve run-push")
 	}
 	return nil
 }

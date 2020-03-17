@@ -63,11 +63,11 @@ func main() {
 	logFile := filepath.Join(logDir, "earth.log")
 	err := os.MkdirAll(logDir, 0755)
 	if err != nil {
-		fmt.Printf("Warning: Cannot create dir %s\n", logDir)
+		fmt.Printf("Warning: cannot create dir %s\n", logDir)
 	} else {
 		f, err := os.OpenFile(logFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0755)
 		if err != nil {
-			fmt.Printf("Warning: Cannot open log file for writing %s\n", logFile)
+			fmt.Printf("Warning: cannot open log file for writing %s\n", logFile)
 		} else {
 			logrus.SetOutput(f)
 		}
@@ -128,7 +128,7 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 		&cli.BoolFlag{
 			Name:        "push",
 			EnvVars:     []string{"EARTHLY_PUSH"},
-			Usage:       "Push images with SAVE IMAGE --push option",
+			Usage:       "Push docker images and execute RUN --push commmands",
 			Destination: &app.push,
 		},
 		&cli.BoolFlag{
@@ -240,7 +240,7 @@ func (app *earthApp) run(args []string) int {
 
 func (app *earthApp) actionDebug(c *cli.Context) error {
 	if c.NArg() > 1 {
-		return errors.New("Invalid number of arguments provided")
+		return errors.New("invalid number of arguments provided")
 	}
 	path := "."
 	if c.NArg() == 1 {
@@ -257,7 +257,7 @@ func (app *earthApp) actionDebug(c *cli.Context) error {
 
 func (app *earthApp) actionPrune(c *cli.Context) error {
 	if c.NArg() != 0 {
-		return errors.New("Invalid arguments")
+		return errors.New("invalid arguments")
 	}
 	bkClient, err := app.newBuildkitdClient()
 	if err != nil {
@@ -300,17 +300,20 @@ func (app *earthApp) actionPrune(c *cli.Context) error {
 
 func (app *earthApp) actionBuild(c *cli.Context) error {
 	if app.imageMode && app.artifactMode {
-		return errors.New("Both image and artifact modes cannot be active at the same time")
+		return errors.New("both image and artifact modes cannot be active at the same time")
 	}
 	if (app.imageMode && app.noOutput) || (app.artifactMode && app.noOutput) {
-		return errors.New("Cannot use --no-output with image or artifact modes")
+		return errors.New("cannot use --no-output with image or artifact modes")
+	}
+	if app.push && app.noOutput {
+		return errors.New("cannot use --no-output with --push")
 	}
 	var target domain.Target
 	var artifact domain.Artifact
 	destPath := "./"
 	if app.imageMode {
 		if c.NArg() != 1 {
-			return errors.New("Invalid number of args")
+			return errors.New("invalid number of args")
 		}
 		targetName := c.Args().Get(0)
 		var err error
@@ -320,7 +323,7 @@ func (app *earthApp) actionBuild(c *cli.Context) error {
 		}
 	} else if app.artifactMode {
 		if c.NArg() != 1 && c.NArg() != 2 {
-			return errors.New("Invalid number of args")
+			return errors.New("invalid number of args")
 		}
 		artifactName := c.Args().Get(0)
 		if c.NArg() == 2 {
@@ -334,7 +337,7 @@ func (app *earthApp) actionBuild(c *cli.Context) error {
 		target = artifact.Target
 	} else {
 		if c.NArg() != 1 {
-			return errors.New("Invalid number of args")
+			return errors.New("invalid number of args")
 		}
 		targetName := c.Args().Get(0)
 		var err error

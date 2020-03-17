@@ -189,7 +189,7 @@ func (s *solver) solveArtifacts(ctx context.Context, localDirs map[string]string
 	return nil
 }
 
-func (s *solver) solveSideEffects(ctx context.Context, localDirs map[string]string, state llb.State) error {
+func (s *solver) solveSideEffects(ctx context.Context, localDirs map[string]string, state llb.State, printDetailed bool) error {
 	dt, err := state.Marshal(llb.Platform(llbutil.TargetPlatform))
 	if err != nil {
 		return errors.Wrap(err, "state marshal")
@@ -233,7 +233,11 @@ func (s *solver) solveSideEffects(ctx context.Context, localDirs map[string]stri
 		return nil
 	})
 	eg.Go(func() error {
-		return s.monitorProgressDetailed(ctx, ch)
+		if printDetailed {
+			return s.monitorProgressDetailed(ctx, ch)
+		} else {
+			return s.monitorProgressBasic(ctx, ch)
+		}
 	})
 	err = eg.Wait()
 	if err != nil {
