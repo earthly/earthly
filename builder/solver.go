@@ -235,9 +235,8 @@ func (s *solver) solveSideEffects(ctx context.Context, localDirs map[string]stri
 	eg.Go(func() error {
 		if printDetailed {
 			return s.monitorProgressDetailed(ctx, ch)
-		} else {
-			return s.monitorProgressBasic(ctx, ch)
 		}
+		return s.monitorProgressBasic(ctx, ch)
 	})
 	err = eg.Wait()
 	if err != nil {
