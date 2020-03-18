@@ -14,7 +14,7 @@ buildkitd:
     RUN git config --global credential.helper "/bin/sh /usr/bin/envcredhelper.sh"
 
     # Copy fuse-overlayfs binary.
-    #COPY --artifact +fuse/fuse-overlayfs /usr/bin/fuse-overlayfs
+    #COPY +fuse/fuse-overlayfs /usr/bin/fuse-overlayfs
 
     # Add the config and our own wrapper script.
     COPY ./entrypoint.sh /usr/bin/entrypoint.sh
@@ -24,7 +24,7 @@ buildkitd:
     ENV ENABLE_LOOP_DEVICE=true
     # 10GB
     ENV CACHE_SIZE_MB=10000
-    ENTRYPOINT ["/usr/bin/entrypoint.sh", "buildkitd", "--allow-insecure-entitlement=security.insecure", "--config=/etc/buildkitd.toml"]
+    ENTRYPOINT ["/usr/bin/entrypoint.sh", "buildkitd", "--config=/etc/buildkitd.toml"]
     ARG EARTHLY_TARGET_TAG
     ARG TAG=$EARTHLY_TARGET_TAG
     SAVE IMAGE --push earthly/buildkitd:$TAG

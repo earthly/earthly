@@ -189,7 +189,7 @@ func (s *solver) solveArtifacts(ctx context.Context, localDirs map[string]string
 	return nil
 }
 
-func (s *solver) solveSideEffects(ctx context.Context, localDirs map[string]string, state llb.State) error {
+func (s *solver) solveSideEffects(ctx context.Context, localDirs map[string]string, state llb.State, printDetailed bool) error {
 	dt, err := state.Marshal(llb.Platform(llbutil.TargetPlatform))
 	if err != nil {
 		return errors.Wrap(err, "state marshal")
@@ -233,7 +233,11 @@ func (s *solver) solveSideEffects(ctx context.Context, localDirs map[string]stri
 		return nil
 	})
 	eg.Go(func() error {
-		return s.monitorProgressDetailed(ctx, ch)
+		if printDetailed {
+			return s.monitorProgressDetailed(ctx, ch)
+		} else {
+			return s.monitorProgressBasic(ctx, ch)
+		}
 	})
 	err = eg.Wait()
 	if err != nil {
@@ -445,10 +449,26 @@ func (s *solver) newSolveOptArtifacts(outDir string, localDirs map[string]string
 
 func (s *solver) newSolveOptSideEffects(localDirs map[string]string) (*client.SolveOpt, error) {
 	return &client.SolveOpt{
-		LocalDirs:           localDirs,
-		AllowedEntitlements: s.enttlmnts,
 		Session:             s.attachables,
+		AllowedEntitlements: s.enttlmnts,
+		LocalDirs:           localDirs,
+		// CacheImports: []client.CacheOptionsEntry{
+		// 	newRegistryCacheOpt("docker.io/earthly/buildkitd:cache"),
+		// },
+		// CacheExports: []client.CacheOptionsEntry{
+		// 	newRegistryCacheOpt("docker.io/earthly/buildkitd:cache"),
+		// },
 	}, nil
+}
+
+func newRegistryCacheOpt(ref string) client.CacheOptionsEntry {
+	registryCacheOptAttrs := make(map[string]string)
+	registryCacheOptAttrs["ref"] = ref
+	registryCacheOptAttrs["mode"] = "max"
+	return client.CacheOptionsEntry{
+		Type:  "registry",
+		Attrs: registryCacheOptAttrs,
+	}
 }
 
 var bracketsRegexp = regexp.MustCompile("^\\[([^\\]]*)\\] (.*)$")

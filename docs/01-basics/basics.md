@@ -96,12 +96,12 @@ build:
     SAVE ARTIFACT build/go-example /go-example AS LOCAL build/go-example
 
 docker:
-    COPY --artifact +build/go-example .
+    COPY +build/go-example .
     ENTRYPOINT ["/go-example/go-example"]
     SAVE IMAGE go-example:latest
 ```
 
-You will notice that the recipes look very much like Dockerfiles. This is an intentional design decision. Existing Dockerfiles can be ported to earthfiles by copy-pasting them over and then tweaking them slightly. Compared to Dockerfile syntax, some commands are new (like `SAVE ARTIFACT`), others have additional semantics (like `COPY --artifact`) and other semantics are removed (like `FROM ... AS ...`).
+You will notice that the recipes look very much like Dockerfiles. This is an intentional design decision. Existing Dockerfiles can be ported to earthfiles by copy-pasting them over and then tweaking them slightly. Compared to Dockerfile syntax, some commands are new (like `SAVE ARTIFACT`), others have additional semantics (like `COPY +target/some-artifact`) and other semantics are removed (like `FROM ... AS ...` and `COPY --from`).
 
 All earthfiles start with a base recipe. This is the only recipe which does not have an explicit target name - the name is always implied to be `base`. All other target implicitly inherit from `base`. You can imagine that all recipes start with an implicit `FROM +base`.
 
@@ -123,7 +123,7 @@ Notice how to the left of `|`, within the output, we can see some targets like `
 
 In addition, notice how even though the base is used as part of both `build` and `docker`, it is only executed once. This is because the system deduplicates execution, where possible.
 
-Furthermore, the fact that the `docker` target depends on the `build` target is visible within the command `COPY --artifact +build/go-example .`. Through this command, the system knows that it also needs to build the target `+build`, in order to satisfy the dependency on the artifact.
+Furthermore, the fact that the `docker` target depends on the `build` target is visible within the command `COPY +build/go-example .`. Through this command, the system knows that it also needs to build the target `+build`, in order to satisfy the dependency on the artifact.
 
 Finally, notice how the output of the build: the docker image `go-example:latest` and the file `build/go-example` is only written after the build is declared a success. This is due to another isolation principle of Earthly: a build either succeeds completely or it fails altogether.
 
@@ -158,7 +158,7 @@ docker:
 
     # Copy the artifact /go-example produced by another target, +build, to the current directory
     # within the build container.
-    COPY --artifact +build/go-example .
+    COPY +build/go-example .
     # Set the entrypoint for the resulting docker image.
     ENTRYPOINT ["/go-example/go-example"]
     # Save the current state as a docker image, which will have the docker tag go-example:latest.

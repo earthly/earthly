@@ -162,7 +162,7 @@ func (c *Converter) fromTarget(ctx context.Context, targetName string, buildArgs
 	return nil
 }
 
-// CopyArtifact applies the earth COPY --artifact command.
+// CopyArtifact applies the earth COPY artifact command.
 func (c *Converter) CopyArtifact(ctx context.Context, artifactName string, dest string, buildArgs []string, isDir bool) error {
 	artifactName = c.expandArgs(artifactName)
 	dest = c.expandArgs(dest)
@@ -174,7 +174,7 @@ func (c *Converter) CopyArtifact(ctx context.Context, artifactName string, dest 
 		With("dest", dest).
 		With("build-args", buildArgs).
 		With("dir", isDir).
-		Info("Applying COPY --artifact")
+		Info("Applying COPY (artifact)")
 	artifact, err := domain.ParseArtifact(artifactName)
 	if err != nil {
 		return errors.Wrapf(err, "parse artifact name %s", artifactName)
@@ -194,7 +194,7 @@ func (c *Converter) CopyArtifact(ctx context.Context, artifactName string, dest 
 		relevantDepState.ArtifactsState, []string{artifactPath},
 		c.mts.FinalStates.SideEffectsState, dest, true, isDir,
 		llb.WithCustomNamef(
-			"[%s] COPY --artifact (%v) %s %s",
+			"[%s] COPY (%v) %s %s",
 			c.mts.FinalStates.Target.String(),
 			buildArgs,
 			artifact.String(),
@@ -219,7 +219,7 @@ func (c *Converter) CopyClassical(ctx context.Context, srcs []string, dest strin
 }
 
 // Run applies the earth RUN command.
-func (c *Converter) Run(ctx context.Context, args []string, mounts []string, secretKeyValues []string, privileged bool, withEntrypoint bool, withDocker bool, isWithShell bool) error {
+func (c *Converter) Run(ctx context.Context, args []string, mounts []string, secretKeyValues []string, privileged bool, withEntrypoint bool, withDocker bool, isWithShell bool, pushFlag bool) error {
 	if !isWithShell {
 		// TODO: This does not work, because it strips away some quotes, which are valuable to the shell.
 		//       In any case, this is probably working as intended as is.
@@ -237,6 +237,7 @@ func (c *Converter) Run(ctx context.Context, args []string, mounts []string, sec
 		With("privileged", privileged).
 		With("withEntrypoint", withEntrypoint).
 		With("withDocker", withDocker).
+		With("push", pushFlag).
 		Info("Applying RUN")
 	var opts []llb.RunOption
 	mountRunOpts, err := parseMounts(mounts, c.mts.FinalStates.Target, c.mts.FinalStates.TargetInput, c.cacheContext)
@@ -258,9 +259,10 @@ func (c *Converter) Run(ctx context.Context, args []string, mounts []string, sec
 	if withDocker {
 		withDockerStr = "--with-docker "
 	}
+	runStr := fmt.Sprintf("RUN %s%s%v", privilegedStr, withDockerStr, finalArgs)
 	opts = append(opts, llb.WithCustomNamef(
-		"[%s] RUN %s%s%v", c.mts.FinalStates.Target.String(), privilegedStr, withDockerStr, finalArgs))
-	return c.internalRun(ctx, finalArgs, secretKeyValues, withDocker, isWithShell, opts...)
+		"[%s] %s", c.mts.FinalStates.Target.String(), runStr))
+	return c.internalRun(ctx, finalArgs, secretKeyValues, withDocker, isWithShell, pushFlag, runStr, opts...)
 }
 
 // SaveArtifact applies the earth SAVE ARTIFACT command.
@@ -291,7 +293,7 @@ func (c *Converter) SaveArtifact(ctx context.Context, saveFrom string, saveTo st
 		Artifact: saveToF,
 	}
 	c.mts.FinalStates.ArtifactsState = llbutil.CopyOp(
-		c.mts.FinalStates.SideEffectsState, []string{saveFrom}, c.mts.FinalStates.ArtifactsState, saveToAdjusted, true, false,
+		c.mts.FinalStates.SideEffectsState, []string{saveFrom}, c.mts.FinalStates.ArtifactsState, saveToAdjusted, true, true,
 		llb.WithCustomNamef("[%s] SAVE ARTIFACT %s %s", c.mts.FinalStates.Target.String(), saveFrom, artifact.String()))
 	if saveAsLocalTo != "" {
 		separateArtifactsState := llb.Scratch().Platform(llbutil.TargetPlatform)
@@ -549,7 +551,7 @@ func (c *Converter) FinalizeStates() *MultiTargetStates {
 	return c.mts
 }
 
-func (c *Converter) internalRun(ctx context.Context, args []string, secretKeyValues []string, withDocker bool, isWithShell bool, opts ...llb.RunOption) error {
+func (c *Converter) internalRun(ctx context.Context, args []string, secretKeyValues []string, withDocker bool, isWithShell bool, pushFlag bool, commandStr string, opts ...llb.RunOption) error {
 	finalOpts := opts
 	var extraEnvVars []string
 	for _, secretKeyValue := range secretKeyValues {
@@ -591,7 +593,23 @@ func (c *Converter) internalRun(ctx context.Context, args []string, secretKeyVal
 		finalArgs = withShellAndEnvVars(args, extraEnvVars, isWithShell)
 	}
 	finalOpts = append(finalOpts, llb.Args(finalArgs))
-	c.mts.FinalStates.SideEffectsState = c.mts.FinalStates.SideEffectsState.Run(finalOpts...).Root()
+	if pushFlag {
+		// For push-flagged commands, make sure they run every time - don't use cache.
+		finalOpts = append(finalOpts, llb.IgnoreCache)
+		if !c.mts.FinalStates.RunPush.Initialized {
+			// If this is the first push-flagged command, initialize the state with the latest
+			// side-effects state.
+			c.mts.FinalStates.RunPush.State = c.mts.FinalStates.SideEffectsState
+			c.mts.FinalStates.RunPush.Initialized = true
+		}
+		// Don't run on SideEffectsState. We want push-flagged commands to be executed only
+		// *after* the build. Save this for later.
+		c.mts.FinalStates.RunPush.State = c.mts.FinalStates.RunPush.State.Run(finalOpts...).Root()
+		c.mts.FinalStates.RunPush.CommandStrs = append(
+			c.mts.FinalStates.RunPush.CommandStrs, commandStr)
+	} else {
+		c.mts.FinalStates.SideEffectsState = c.mts.FinalStates.SideEffectsState.Run(finalOpts...).Root()
+	}
 	return nil
 }
 
@@ -773,7 +791,7 @@ func (c *Converter) parseBuildArg(ctx context.Context, arg string) (string, vari
 	buildArgPath := filepath.Join("/run/buildargs", name)
 	args := strings.Split(fmt.Sprintf("echo \"%s\" >%s", value, srcBuildArgPath), " ")
 	err := c.internalRun(
-		ctx, args, []string{}, false, true,
+		ctx, args, []string{}, false, true, false, value,
 		llb.WithCustomNamef("[%s] RUN %s", c.mts.FinalStates.Target.String(), value))
 	if err != nil {
 		return "", variables.Variable{}, errors.Wrapf(err, "run %v", value)

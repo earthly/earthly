@@ -84,6 +84,17 @@ build-arg-test:
 		--entrypoint \
 		-- +test
 
+# TODO: This does not pass.
+transitive-args-test-todo:
+	COPY transitive-args.earth ./build.earth
+	RUN \
+		--mount=type=cache,target=/tmp/earthly \
+		--privileged \
+		--entrypoint \
+		-- --build-arg SOMEARG=def +test
+	RUN ls
+	RUN test -f ./abc && test -f ./def && test ! -f ./default
+
 build-github-test:
 	# TODO: Use a safer test, which doesn't produce earthly outputs.
 	BUILD github.com/vladaionescu/earthly/examples/tests+build-arg-test
@@ -97,6 +108,7 @@ star-test:
 		--entrypoint \
 		-- +test
 
+# TODO: This does not pass.
 star-test-todo:
 	COPY star.earth ./build.earth
 	RUN touch a.txt b.txt c.nottxt
