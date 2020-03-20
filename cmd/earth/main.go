@@ -51,6 +51,7 @@ type cliFlags struct {
 	allowPrivileged   bool
 	buildkitHost      string
 	buildkitdImage    string
+	remoteCache       string
 }
 
 func main() {
@@ -193,6 +194,13 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 			EnvVars:     []string{"EARTHLY_BUILDKITD_IMAGE"},
 			Usage:       "The docker image to use for the buildkit daemon",
 			Destination: &app.buildkitdImage,
+		},
+		&cli.StringFlag{
+			Name:        "remote-cache",
+			EnvVars:     []string{"EARTHLY_REMOTE_CACHE"},
+			Usage:       "A remote docker image repository to be used as build cache",
+			Destination: &app.remoteCache,
+			Hidden:      true, // Experimental.
 		},
 	}
 
@@ -363,7 +371,8 @@ func (app *earthApp) actionBuild(c *cli.Context) error {
 	if app.allowPrivileged {
 		enttlmnts = append(enttlmnts, entitlements.EntitlementSecurityInsecure)
 	}
-	b, err := builder.NewBuilder(app.ctx, bkClient, app.console, attachables, enttlmnts, app.noCache)
+	b, err := builder.NewBuilder(
+		app.ctx, bkClient, app.console, attachables, enttlmnts, app.noCache, app.remoteCache)
 	if err != nil {
 		return errors.Wrap(err, "new builder")
 	}

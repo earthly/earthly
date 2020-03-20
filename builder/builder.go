@@ -31,10 +31,11 @@ type Builder struct {
 }
 
 // NewBuilder returns a new earth Builder.
-func NewBuilder(ctx context.Context, bkClient *client.Client, console conslogging.ConsoleLogger, attachables []session.Attachable, enttlmnts []entitlements.Entitlement, noCache bool) (*Builder, error) {
+func NewBuilder(ctx context.Context, bkClient *client.Client, console conslogging.ConsoleLogger, attachables []session.Attachable, enttlmnts []entitlements.Entitlement, noCache bool, remoteCache string) (*Builder, error) {
 	return &Builder{
 		s: &solver{
 			bkClient:    bkClient,
+			remoteCache: remoteCache,
 			attachables: attachables,
 			enttlmnts:   enttlmnts,
 			console:     console,

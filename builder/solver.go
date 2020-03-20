@@ -30,6 +30,7 @@ type solver struct {
 	console     conslogging.ConsoleLogger
 	attachables []session.Attachable
 	enttlmnts   []entitlements.Entitlement
+	remoteCache string
 }
 
 func (s *solver) solveDocker(ctx context.Context, localDirs map[string]string, state llb.State, img *image.Image, dockerTag string, push bool) error {
@@ -447,16 +448,16 @@ func (s *solver) newSolveOptArtifacts(outDir string, localDirs map[string]string
 }
 
 func (s *solver) newSolveOptSideEffects(localDirs map[string]string) (*client.SolveOpt, error) {
+	var cacheImportExport []client.CacheOptionsEntry
+	if s.remoteCache != "" {
+		cacheImportExport = append(cacheImportExport, newRegistryCacheOpt(s.remoteCache))
+	}
 	return &client.SolveOpt{
 		Session:             s.attachables,
 		AllowedEntitlements: s.enttlmnts,
 		LocalDirs:           localDirs,
-		// CacheImports: []client.CacheOptionsEntry{
-		// 	newRegistryCacheOpt("docker.io/earthly/buildkitd:cache1"),
-		// },
-		// CacheExports: []client.CacheOptionsEntry{
-		// 	newRegistryCacheOpt("docker.io/earthly/buildkitd:cache1"),
-		// },
+		CacheImports:        cacheImportExport,
+		CacheExports:        cacheImportExport,
 	}, nil
 }
 
