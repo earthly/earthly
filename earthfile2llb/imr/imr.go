@@ -1,3 +1,6 @@
+// Package imr is based on github.com/moby/buildkit/client/llb/imagemetaresolver, except that
+// it applies a docker authorizer, which uses the standard docker credentials already available on
+// the system.
 package imr
 
 import (
@@ -20,22 +23,21 @@ import (
 var defaultImageMetaResolver llb.ImageMetaResolver
 var defaultImageMetaResolverOnce sync.Once
 
-var WithDefault = imageOptionFunc(func(ii *llb.ImageInfo) {
-	llb.WithMetaResolver(Default()).SetImageOption(ii)
-})
-
 type imageMetaResolverOpts struct {
 	platform *specs.Platform
 }
 
+// ImageMetaResolverOpt represents an ImageMetaResolver option,
 type ImageMetaResolverOpt func(o *imageMetaResolverOpts)
 
+// WithDefaultPlatform sets the default platform.
 func WithDefaultPlatform(p *specs.Platform) ImageMetaResolverOpt {
 	return func(o *imageMetaResolverOpts) {
 		o.platform = p
 	}
 }
 
+// New returns a new ImageMetaResolver.
 func New(ctx context.Context, with ...ImageMetaResolverOpt) llb.ImageMetaResolver {
 	r := docker.NewResolver(docker.ResolverOptions{
 		Authorizer: docker.NewDockerAuthorizer(
@@ -55,6 +57,7 @@ func New(ctx context.Context, with ...ImageMetaResolverOpt) llb.ImageMetaResolve
 	}
 }
 
+// Default returns the default ImageMetaResolver instance.
 func Default() llb.ImageMetaResolver {
 	defaultImageMetaResolverOnce.Do(func() {
 		defaultImageMetaResolver = New(context.Background())
@@ -106,14 +109,9 @@ func (imr *imageMetaResolver) key(ref string, platform *specs.Platform) string {
 	return ref
 }
 
-type imageOptionFunc func(*llb.ImageInfo)
-
-func (fn imageOptionFunc) SetImageOption(ii *llb.ImageInfo) {
-	fn(ii)
-}
-
 func makeCredentialsFun() func(host string) (string, string, error) {
 	var mu sync.Mutex
+	// TODO: Should use a better stream here, rather than straight os.Stderr.
 	conf := config.LoadDefaultConfigFile(os.Stderr)
 	return func(host string) (string, string, error) {
 		mu.Lock()

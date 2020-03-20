@@ -452,10 +452,10 @@ func (s *solver) newSolveOptSideEffects(localDirs map[string]string) (*client.So
 		AllowedEntitlements: s.enttlmnts,
 		LocalDirs:           localDirs,
 		// CacheImports: []client.CacheOptionsEntry{
-		// 	newRegistryCacheOpt("docker.io/earthly/buildkitd:cache"),
+		// 	newRegistryCacheOpt("docker.io/earthly/buildkitd:cache1"),
 		// },
 		// CacheExports: []client.CacheOptionsEntry{
-		// 	newRegistryCacheOpt("docker.io/earthly/buildkitd:cache"),
+		// 	newRegistryCacheOpt("docker.io/earthly/buildkitd:cache1"),
 		// },
 	}, nil
 }

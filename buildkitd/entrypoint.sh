@@ -25,17 +25,6 @@ if [ -n "$GIT_URL_INSTEAD_OF" ]; then
     git config --global url."$base".insteadOf "$insteadOf"
 fi
 
-if [ -n "$DOCKER_CONFIG_JSON" ]; then
-    if [ -z "$DOCKER_CONFIG" ]; then
-        if [ -z "$HOME" ]; then
-            HOME=/root
-        fi
-        DOCKER_CONFIG="$HOME/.docker"
-    fi
-    mkdir -p "$DOCKER_CONFIG"
-    printenv DOCKER_CONFIG_JSON > "$DOCKER_CONFIG/config.json"
-fi
-
 # Create an ext4 fs in a pre-allocated file. Ext4 will allow
 # us to use overlayfs snapshotter even when running on mac.
 if [ "$ENABLE_LOOP_DEVICE" == "true" ]; then
