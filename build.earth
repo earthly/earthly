@@ -119,7 +119,3 @@ release:
 		--name "$RELEASE_TAG" \
 		--body "$BODY" \
 		earth-linux-amd64 earth-darwin-amd64
-
-test-from-private:
-	FROM earthly/earth:latest
-	RUN ls
