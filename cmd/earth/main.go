@@ -12,6 +12,7 @@ import (
 	"github.com/moby/buildkit/client"
 	_ "github.com/moby/buildkit/client/connhelper/dockercontainer" // Load "docker-container://" helper.
 	"github.com/moby/buildkit/session"
+	"github.com/moby/buildkit/session/auth/authprovider"
 	"github.com/moby/buildkit/session/secrets/secretsprovider"
 	"github.com/moby/buildkit/util/entitlements"
 	"github.com/pkg/errors"
@@ -356,6 +357,7 @@ func (app *earthApp) actionBuild(c *cli.Context) error {
 	secrets := processSecrets(app.secrets.Value())
 	attachables := []session.Attachable{
 		secrets,
+		authprovider.NewDockerAuthProvider(os.Stderr),
 	}
 	var enttlmnts []entitlements.Entitlement
 	if app.allowPrivileged {

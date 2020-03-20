@@ -177,7 +177,7 @@ func Start(ctx context.Context, image string, settings Settings) error {
 		} else if dockerConfigDir != "" {
 			// Pass docker config as mount.
 			args = append(args,
-				"-v", fmt.Sprintf("%s:/root/.docker", dockerConfigDir),
+				"-v", fmt.Sprintf("%s:/root/.docker:ro", dockerConfigDir),
 			)
 		}
 	}

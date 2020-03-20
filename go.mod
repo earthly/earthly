@@ -5,6 +5,7 @@ go 1.13
 require (
 	github.com/antlr/antlr4 v0.0.0-20200225173536-225249fdaef5
 	github.com/containerd/containerd v1.4.0-0
+	github.com/docker/cli v0.0.0-20200227165822-2298e6a3fe24
 	github.com/docker/distribution v2.7.1-0.20190205005809-0d3efadf0154+incompatible
 	github.com/docker/docker v1.14.0-0.20190319215453-e7b5f7dbe98c
 	github.com/fatih/color v1.9.0
