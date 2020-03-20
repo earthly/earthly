@@ -14,7 +14,6 @@ import (
 
 	"github.com/docker/distribution/reference"
 	"github.com/moby/buildkit/client/llb"
-	"github.com/moby/buildkit/client/llb/imagemetaresolver"
 	dfShell "github.com/moby/buildkit/frontend/dockerfile/shell"
 	"github.com/pkg/errors"
 	"github.com/vladaionescu/earthly/buildcontext"
@@ -23,6 +22,7 @@ import (
 	"github.com/vladaionescu/earthly/domain"
 	"github.com/vladaionescu/earthly/earthfile2llb/dedup"
 	"github.com/vladaionescu/earthly/earthfile2llb/image"
+	"github.com/vladaionescu/earthly/earthfile2llb/imr"
 	"github.com/vladaionescu/earthly/earthfile2llb/variables"
 	"github.com/vladaionescu/earthly/llbutil"
 	"github.com/vladaionescu/earthly/llbutil/llbgit"
@@ -677,7 +677,7 @@ func internalFromClassical(ctx context.Context, imageName string, opts ...llb.Im
 		return llb.State{}, nil, nil, nil, errors.Wrapf(err, "parse normalized named %s", imageName)
 	}
 	baseImageName := reference.TagNameOnly(ref).String()
-	metaResolver := imagemetaresolver.Default()
+	metaResolver := imr.Default()
 	dgst, dt, err := metaResolver.ResolveImageConfig(
 		ctx, baseImageName,
 		llb.ResolveImageConfigOpt{

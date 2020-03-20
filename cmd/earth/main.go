@@ -12,6 +12,7 @@ import (
 	"github.com/moby/buildkit/client"
 	_ "github.com/moby/buildkit/client/connhelper/dockercontainer" // Load "docker-container://" helper.
 	"github.com/moby/buildkit/session"
+	"github.com/moby/buildkit/session/auth/authprovider"
 	"github.com/moby/buildkit/session/secrets/secretsprovider"
 	"github.com/moby/buildkit/util/entitlements"
 	"github.com/pkg/errors"
@@ -50,6 +51,7 @@ type cliFlags struct {
 	allowPrivileged   bool
 	buildkitHost      string
 	buildkitdImage    string
+	remoteCache       string
 }
 
 func main() {
@@ -192,6 +194,13 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 			EnvVars:     []string{"EARTHLY_BUILDKITD_IMAGE"},
 			Usage:       "The docker image to use for the buildkit daemon",
 			Destination: &app.buildkitdImage,
+		},
+		&cli.StringFlag{
+			Name:        "remote-cache",
+			EnvVars:     []string{"EARTHLY_REMOTE_CACHE"},
+			Usage:       "A remote docker image repository to be used as build cache",
+			Destination: &app.remoteCache,
+			Hidden:      true, // Experimental.
 		},
 	}
 
@@ -356,12 +365,14 @@ func (app *earthApp) actionBuild(c *cli.Context) error {
 	secrets := processSecrets(app.secrets.Value())
 	attachables := []session.Attachable{
 		secrets,
+		authprovider.NewDockerAuthProvider(os.Stderr),
 	}
 	var enttlmnts []entitlements.Entitlement
 	if app.allowPrivileged {
 		enttlmnts = append(enttlmnts, entitlements.EntitlementSecurityInsecure)
 	}
-	b, err := builder.NewBuilder(app.ctx, bkClient, app.console, attachables, enttlmnts, app.noCache)
+	b, err := builder.NewBuilder(
+		app.ctx, bkClient, app.console, attachables, enttlmnts, app.noCache, app.remoteCache)
 	if err != nil {
 		return errors.Wrap(err, "new builder")
 	}
