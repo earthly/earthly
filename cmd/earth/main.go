@@ -47,6 +47,7 @@ type cliFlags struct {
 	noOutput          bool
 	noCache           bool
 	pruneAll          bool
+	pruneReset        bool
 	buildkitdSettings buildkitd.Settings
 	allowPrivileged   bool
 	buildkitHost      string
@@ -226,6 +227,12 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 					Usage:       "Prune all cache",
 					Destination: &app.pruneAll,
 				},
+				&cli.BoolFlag{
+					Name:        "reset",
+					EnvVars:     []string{"EARTHLY_PRUNE_RESET"},
+					Usage:       "Reset cache entirely by wiping cache dir",
+					Destination: &app.pruneReset,
+				},
 			},
 		},
 	}
@@ -268,6 +275,20 @@ func (app *earthApp) actionPrune(c *cli.Context) error {
 	if c.NArg() != 0 {
 		return errors.New("invalid arguments")
 	}
+	if app.pruneReset {
+		// Prune by resetting container.
+		if app.buildkitHost != "" {
+			return errors.New("Cannot use prune --reset on non-default buildkit-host setting")
+		}
+		err := buildkitd.ResetCache(
+			app.ctx, app.console, app.buildkitdImage, app.buildkitdSettings)
+		if err != nil {
+			return errors.Wrap(err, "reset cache")
+		}
+		return nil
+	}
+
+	// Prune via API.
 	bkClient, err := app.newBuildkitdClient()
 	if err != nil {
 		return errors.Wrap(err, "buildkitd new client")
