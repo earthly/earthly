@@ -20,6 +20,7 @@ buildkitd:
     COPY ./entrypoint.sh /usr/bin/entrypoint.sh
     COPY ./buildkitd.toml.template /etc/buildkitd.toml.template
 
+    ENV EARTHLY_RESET_TMP_DIR=false
     ENV EARTHLY_TMP_DIR=/tmp/earthly
     ENV ENABLE_LOOP_DEVICE=true
     # 10GB

@@ -12,6 +12,11 @@ if [ -z "$EARTHLY_TMP_DIR" ]; then
     exit 1
 fi
 
+if [ "$EARTHLY_RESET_TMP_DIR" == "true" ]; then
+    echo "Resetting dir $EARTHLY_TMP_DIR"
+    rm -rf "$EARTHLY_TMP_DIR"/* || true
+fi
+
 BUILDKIT_ROOT_DIR="$EARTHLY_TMP_DIR"/buildkit
 # Leave 1GB as additional buffer.
 buildkit_cache_size_mb=$(( CACHE_SIZE_MB - 1000 ))
