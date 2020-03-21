@@ -1,0 +1,29 @@
+name: CI
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      EARTHLY_EARTH_IMAGE: "earthly/earth:latest"
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+    steps:
+    - uses: actions/checkout@v2
+    - name: Docker Login
+      run: docker login --username vladaionescu --password "$DOCKERHUB_TOKEN"
+    - name: Docker Pull Earth image
+      run: docker pull "$EARTHLY_EARTH_IMAGE"
+    - name: Run build
+      run: |
+        docker run --rm --privileged \
+            -v /tmp/earthly:/tmp/earthly \
+            -v "/var/run/docker.sock:/var/run/docker.sock" \
+            -v "$HOME/.docker:/root/.docker" \
+            -v "$PWD:/earthly" \
+            -w /earthly \
+            "$EARTHLY_EARTH_IMAGE" --push -P +test
