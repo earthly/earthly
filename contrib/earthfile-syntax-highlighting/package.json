@@ -4,6 +4,7 @@
     "description": "Syntax highlighting for Earthly build earthfiles (build.earth).",
     "version": ":VERSION:",
     "publisher": "earthly",
+    "icon": "logo.png",
     "repository": {
         "type": "git",
         "url": "https://github.com/vladaionescu/earthly.git"
