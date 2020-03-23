@@ -20,6 +20,7 @@ type listener struct {
 
 	executeTarget   string
 	currentTarget   string
+	targetFound     bool
 	saveImageExists bool
 	pushOnlyAllowed bool
 
@@ -40,7 +41,18 @@ func newListener(ctx context.Context, converter *Converter, executeTarget string
 		converter:     converter,
 		executeTarget: executeTarget,
 		currentTarget: "base",
+		targetFound:   (executeTarget == "base"),
 	}
+}
+
+func (l *listener) Err() error {
+	if l.err != nil {
+		return l.err
+	}
+	if !l.targetFound {
+		return fmt.Errorf("target %s not defined", l.executeTarget)
+	}
+	return nil
 }
 
 func (l *listener) EnterTargetHeader(c *parser.TargetHeaderContext) {
@@ -53,11 +65,18 @@ func (l *listener) EnterTargetHeader(c *parser.TargetHeaderContext) {
 	}
 
 	l.currentTarget = strings.TrimSuffix(c.GetText(), ":")
+	if l.currentTarget == l.executeTarget {
+		if l.targetFound {
+			l.err = fmt.Errorf("target %s is declared twice", l.currentTarget)
+			return
+		}
+		l.targetFound = true
+	}
 	if l.shouldSkip() {
 		return
 	}
 	if l.currentTarget == "base" {
-		l.err = errors.New("Target name cannot be base")
+		l.err = errors.New("target name cannot be base")
 		return
 	}
 	// Apply implicit FROM +base

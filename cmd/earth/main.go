@@ -408,23 +408,23 @@ func (app *earthApp) actionBuild(c *cli.Context) error {
 		app.ctx, target, resolver, b.BuildOnlyLastImageAsTar, cleanCollection,
 		nil, buildArgs)
 	if err != nil {
-		return errors.Wrap(err, "parse build")
+		return err
 	}
 
 	if app.imageMode {
 		err = b.BuildOnlyImages(app.ctx, mts, app.push)
 		if err != nil {
-			return errors.Wrap(err, "build only image")
+			return err
 		}
 	} else if app.artifactMode {
 		err = b.BuildOnlyArtifact(app.ctx, mts, artifact, destPath)
 		if err != nil {
-			return errors.Wrap(err, "build only artifact")
+			return err
 		}
 	} else {
 		err = b.Build(app.ctx, mts, app.noOutput, app.push)
 		if err != nil {
-			return errors.Wrap(err, "build")
+			return err
 		}
 	}
 	return nil
