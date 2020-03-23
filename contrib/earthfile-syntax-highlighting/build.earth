@@ -1,0 +1,24 @@
+FROM node:13.10.1-alpine3.11
+
+RUN npm install -g vsce
+WORKDIR /earthfile-syntax-highlighting
+
+package:
+    COPY . ./
+    ARG RELEASE_TAG
+    RUN test -n "$RELEASE_TAG"
+    RUN VERSION=${RELEASE_TAG#v} ; \
+        sed -i 's^:VERSION:^'"$VERSION"'^g' ./package.json
+    RUN vsce package
+    RUN VERSION=${RELEASE_TAG#v} ; \
+        mv ./earthfile-syntax-highlighting-$VERSION.vsix ./earthfile-syntax-highlighting-$RELEASE_TAG.vsix
+    SAVE ARTIFACT ./earthfile-syntax-highlighting-$RELEASE_TAG.vsix
+
+release:
+    ARG RELEASE_TAG
+    RUN test -n "$RELEASE_TAG"
+    COPY --build-arg RELEASE_TAG="$RELEASE_TAG" +package/earthfile-syntax-highlighting-$RELEASE_TAG.vsix ./
+    RUN --secret VSCE_TOKEN=+secrets/VSCE_TOKEN true
+    RUN --push \
+        --secret VSCE_TOKEN=+secrets/VSCE_TOKEN \
+        vsce publish --pat "$VSCE_TOKEN" --packagePath ./earthfile-syntax-highlighting-$RELEASE_TAG.vsix
