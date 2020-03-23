@@ -109,7 +109,7 @@ release:
 		--build-arg=GO_EXTRA_LDFLAGS= \
 		+earth/earth ./earth-darwin-amd64
 	ARG RELEASE_TAG
-	ARG BODY
+	ARG BODY="No details provided"
 	ARG EARTHLY_GIT_HASH
 	RUN test -n "$RELEASE_TAG" && test -n "$EARTHLY_GIT_HASH"
 	BUILD +test
