@@ -128,3 +128,6 @@ release:
 		--name "$RELEASE_TAG" \
 		--body "$BODY" \
 		earth-linux-amd64 earth-darwin-amd64
+
+release-vscode-syntax-highlighting:
+	BUILD ./contrib/earthfile-syntax-highlighting+release

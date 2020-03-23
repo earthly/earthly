@@ -2,8 +2,13 @@
     "name": "earthfile-syntax-highlighting",
     "displayName": "Earthfile Syntax Highlighting",
     "description": "Syntax highlighting for Earthly build earthfiles (build.earth).",
-    "version": "0.0.1",
-    "publisher": "vladaionescu",
+    "version": ":VERSION:",
+    "publisher": "earthly",
+    "icon": "logo.png",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/vladaionescu/earthly.git"
+    },
     "engines": {
         "vscode": "^1.43.0"
     },
