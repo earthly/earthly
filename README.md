@@ -2,6 +2,18 @@
 
 *Parallel, reproducible, consistent and portable builds for the same era as your code*
 
+## Installation
+
+* **Linux** - As root, run:
+   ```bash
+   curl -o /usr/local/bin/earth -L https://github.com/vladaionescu/earthly-releases/releases/download/v0.0.4/earth-linux-amd64 && chmod +x /usr/local/bin/earth
+   ```
+* **Mac** - As root, run:
+  ```bash
+   curl -o /usr/local/bin/earth -L https://github.com/vladaionescu/earthly-releases/releases/download/v0.0.4/earth-darwin-amd64 && chmod +x /usr/local/bin/earth
+   ```
+* **Windows** - Coming soon
+
 ## Why
 
 TODO: Simplify this by moving details into launch blog post. Keep only the essence here.
