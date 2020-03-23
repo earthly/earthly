@@ -19,13 +19,23 @@ stmt:
 	| runStmt
 	| buildStmt
 	| workdirStmt
+	| userStmt
+	| cmdStmt
 	| entrypointStmt
+	| exposeStmt
+	| volumeStmt
 	| envStmt
 	| argStmt
+	| labelStmt
 	| gitCloneStmt
 	| dockerLoadStmt
 	| dockerPullStmt
-	| genericCommand;
+	| addStmt
+	| stopsignalStmt
+	| onbuildStmt
+	| healthcheckStmt
+	| shellStmt
+	| genericCommandStmt;
 
 fromStmt: FROM (WS stmtWords)?;
 
@@ -41,12 +51,24 @@ buildStmt: BUILD (WS stmtWords)?;
 
 workdirStmt: WORKDIR (WS stmtWords)?;
 
+userStmt: USER (WS stmtWords)?;
+
+cmdStmt: CMD (WS stmtWordsMaybeJSON)?;
+
 entrypointStmt: ENTRYPOINT (WS stmtWordsMaybeJSON)?;
+
+exposeStmt: EXPOSE (WS stmtWords)?;
+
+volumeStmt: VOLUME (WS stmtWordsMaybeJSON)?;
 
 envStmt: ENV WS envArgKey (WS? EQUALS)? (WS? envArgValue)?;
 argStmt: ARG WS envArgKey ((WS? EQUALS) (WS? envArgValue)?)?;
 envArgKey: Atom;
 envArgValue: Atom (WS? Atom)*;
+
+labelStmt: LABEL (WS labelKey WS? EQUALS WS? labelValue)*;
+labelKey: Atom;
+labelValue: Atom;
 
 gitCloneStmt: GIT_CLONE (WS stmtWords)?;
 
@@ -54,7 +76,13 @@ dockerLoadStmt: DOCKER_LOAD (WS stmtWords)?;
 
 dockerPullStmt: DOCKER_PULL (WS stmtWords)?;
 
-genericCommand: commandName (WS stmtWords)?;
+addStmt: ADD (WS stmtWords)?;
+stopsignalStmt: STOPSIGNAL (WS stmtWords)?;
+onbuildStmt: ONBUILD (WS stmtWords)?;
+healthcheckStmt: HEALTHCHECK (WS stmtWords)?;
+shellStmt: SHELL (WS stmtWords)?;
+
+genericCommandStmt: commandName (WS stmtWords)?;
 commandName: Command;
 
 stmtWordsMaybeJSON: stmtWords;

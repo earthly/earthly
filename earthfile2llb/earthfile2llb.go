@@ -104,12 +104,13 @@ func walkTree(l *listener, tree parser.IEarthFileContext) (err error) {
 	defer func() {
 		r := recover()
 		if r != nil {
-			err = fmt.Errorf("Parser failure: %v", r)
+			err = fmt.Errorf("parser failure: %v", r)
 		}
 	}()
 	antlr.ParseTreeWalkerDefault.Walk(l, tree)
-	if l.err != nil {
-		return errors.Wrap(l.err, "parse error")
+	err = l.Err()
+	if err != nil {
+		return errors.Wrap(err, "parse")
 	}
 	return nil
 }

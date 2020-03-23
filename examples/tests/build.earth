@@ -6,6 +6,7 @@ all:
 	BUILD +cache-test
 	BUILD +git-clone-test
 	BUILD +builtin-args-test
+	BUILD +config-test
 	BUILD +excludes-test
 	BUILD +secrets-test
 	BUILD +build-arg-test
@@ -54,6 +55,14 @@ builtin-args-test:
 		--privileged \
 		--entrypoint \
 		-- +builtin-args-test
+
+config-test:
+	COPY config.earth ./build.earth
+	RUN \
+		--mount=type=cache,target=/tmp/earthly \
+		--privileged \
+		--entrypoint \
+		-- +test
 
 excludes-test:
 	COPY excludes.earth ./build.earth

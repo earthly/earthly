@@ -4,7 +4,7 @@ import (
 	"github.com/moby/buildkit/client/llb"
 )
 
-const fakeDepImg = "alpine:3.11"
+const fakeDepImg = "busybox:1.31.1"
 
 // WithDependency creates a fake dependency between two states.
 func WithDependency(state llb.State, depState llb.State, opts ...llb.RunOption) llb.State {

@@ -42,8 +42,17 @@ code:
 
 lint:
 	FROM +code
-	RUN output="$(goimports -d .)" ; test -z "$output" || (echo "$output" && exit 1)
+	RUN output="$(goimports -d . 2>&1)" ; \
+		if [ -n "$output" ]; then \
+			echo "$output" ; \
+			exit 1 ; \
+		fi
 	RUN golint -set_exit_status .
+	RUN output="$(go vet ./... 2>&1)" ; \
+		if [ -n "$output" ]; then \
+			echo "$output" ; \
+			exit 1 ; \
+		fi
 
 earth:
 	FROM +code
@@ -100,7 +109,7 @@ release:
 		--build-arg=GO_EXTRA_LDFLAGS= \
 		+earth/earth ./earth-darwin-amd64
 	ARG RELEASE_TAG
-	ARG BODY
+	ARG BODY="No details provided"
 	ARG EARTHLY_GIT_HASH
 	RUN test -n "$RELEASE_TAG" && test -n "$EARTHLY_GIT_HASH"
 	BUILD +test

@@ -38,7 +38,6 @@ func (s *solver) solveDocker(ctx context.Context, localDirs map[string]string, s
 	if err != nil {
 		return errors.Wrap(err, "state marshal")
 	}
-	// TODO: Maybe add some buffering?
 	pipeR, pipeW := io.Pipe()
 	solveOpt, err := s.newSolveOptDocker(img, dockerTag, localDirs, pipeW)
 	if err != nil {

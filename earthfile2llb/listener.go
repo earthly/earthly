@@ -20,11 +20,14 @@ type listener struct {
 
 	executeTarget   string
 	currentTarget   string
+	targetFound     bool
 	saveImageExists bool
 	pushOnlyAllowed bool
 
 	envArgKey   string
 	envArgValue string
+	labelKeys   []string
+	labelValues []string
 
 	execMode  bool
 	stmtWords []string
@@ -38,7 +41,18 @@ func newListener(ctx context.Context, converter *Converter, executeTarget string
 		converter:     converter,
 		executeTarget: executeTarget,
 		currentTarget: "base",
+		targetFound:   (executeTarget == "base"),
 	}
+}
+
+func (l *listener) Err() error {
+	if l.err != nil {
+		return l.err
+	}
+	if !l.targetFound {
+		return fmt.Errorf("target %s not defined", l.executeTarget)
+	}
+	return nil
 }
 
 func (l *listener) EnterTargetHeader(c *parser.TargetHeaderContext) {
@@ -51,11 +65,18 @@ func (l *listener) EnterTargetHeader(c *parser.TargetHeaderContext) {
 	}
 
 	l.currentTarget = strings.TrimSuffix(c.GetText(), ":")
+	if l.currentTarget == l.executeTarget {
+		if l.targetFound {
+			l.err = fmt.Errorf("target %s is declared twice", l.currentTarget)
+			return
+		}
+		l.targetFound = true
+	}
 	if l.shouldSkip() {
 		return
 	}
 	if l.currentTarget == "base" {
-		l.err = errors.New("Target name cannot be base")
+		l.err = errors.New("target name cannot be base")
 		return
 	}
 	// Apply implicit FROM +base
@@ -77,6 +98,8 @@ func (l *listener) EnterStmt(c *parser.StmtContext) {
 	l.stmtWords = nil
 	l.envArgKey = ""
 	l.envArgValue = ""
+	l.labelKeys = nil
+	l.labelValues = nil
 	l.execMode = false
 }
 
@@ -330,6 +353,34 @@ func (l *listener) ExitWorkdirStmt(c *parser.WorkdirStmtContext) {
 	l.converter.Workdir(l.ctx, workdirPath)
 }
 
+func (l *listener) ExitUserStmt(c *parser.UserStmtContext) {
+	if l.shouldSkip() {
+		return
+	}
+	if l.pushOnlyAllowed {
+		l.err = fmt.Errorf("no non-push commands allowed after a --push: %s", c.GetText())
+		return
+	}
+	if len(l.stmtWords) != 1 {
+		l.err = fmt.Errorf("invalid number of arguments for USER: %v", l.stmtWords)
+		return
+	}
+	user := l.stmtWords[0]
+	l.converter.User(l.ctx, user)
+}
+
+func (l *listener) ExitCmdStmt(c *parser.CmdStmtContext) {
+	if l.shouldSkip() {
+		return
+	}
+	if l.pushOnlyAllowed {
+		l.err = fmt.Errorf("no non-push commands allowed after a --push: %s", c.GetText())
+		return
+	}
+	withShell := !l.execMode
+	l.converter.Cmd(l.ctx, l.stmtWords, withShell)
+}
+
 func (l *listener) ExitEntrypointStmt(c *parser.EntrypointStmtContext) {
 	if l.shouldSkip() {
 		return
@@ -340,6 +391,36 @@ func (l *listener) ExitEntrypointStmt(c *parser.EntrypointStmtContext) {
 	}
 	withShell := !l.execMode
 	l.converter.Entrypoint(l.ctx, l.stmtWords, withShell)
+}
+
+func (l *listener) ExitExposeStmt(c *parser.ExposeStmtContext) {
+	if l.shouldSkip() {
+		return
+	}
+	if l.pushOnlyAllowed {
+		l.err = fmt.Errorf("no non-push commands allowed after a --push: %s", c.GetText())
+		return
+	}
+	if len(l.stmtWords) == 0 {
+		l.err = fmt.Errorf("no arguments provided to the EXPOSE command")
+		return
+	}
+	l.converter.Expose(l.ctx, l.stmtWords)
+}
+
+func (l *listener) ExitVolumeStmt(c *parser.VolumeStmtContext) {
+	if l.shouldSkip() {
+		return
+	}
+	if l.pushOnlyAllowed {
+		l.err = fmt.Errorf("no non-push commands allowed after a --push: %s", c.GetText())
+		return
+	}
+	if len(l.stmtWords) == 0 {
+		l.err = fmt.Errorf("no arguments provided to the VOLUME command")
+		return
+	}
+	l.converter.Volume(l.ctx, l.stmtWords)
 }
 
 func (l *listener) ExitEnvStmt(c *parser.EnvStmtContext) {
@@ -362,6 +443,29 @@ func (l *listener) ExitArgStmt(c *parser.ArgStmtContext) {
 		return
 	}
 	l.converter.Arg(l.ctx, l.envArgKey, l.envArgValue)
+}
+
+func (l *listener) ExitLabelStmt(c *parser.LabelStmtContext) {
+	if l.shouldSkip() {
+		return
+	}
+	if l.pushOnlyAllowed {
+		l.err = fmt.Errorf("no non-push commands allowed after a --push: %s", c.GetText())
+		return
+	}
+	if len(l.labelKeys) == 0 {
+		l.err = fmt.Errorf("no labels provided in LABEL command: %s", c.GetText())
+		return
+	}
+	if len(l.labelKeys) != len(l.labelValues) {
+		l.err = fmt.Errorf("label keys and values do not match: %s", c.GetText())
+		return
+	}
+	labels := make(map[string]string)
+	for i := range l.labelKeys {
+		labels[l.labelKeys[i]] = l.labelValues[i]
+	}
+	l.converter.Label(l.ctx, labels)
 }
 
 func (l *listener) ExitGitCloneStmt(c *parser.GitCloneStmtContext) {
@@ -441,6 +545,48 @@ func (l *listener) ExitDockerPullStmt(c *parser.DockerPullStmtContext) {
 	}
 }
 
+func (l *listener) ExitAddStmt(c *parser.AddStmtContext) {
+	if l.shouldSkip() {
+		return
+	}
+	l.err = fmt.Errorf("Command ADD not yet supported")
+}
+
+func (l *listener) ExitStopsignalStmt(c *parser.StopsignalStmtContext) {
+	if l.shouldSkip() {
+		return
+	}
+	l.err = fmt.Errorf("Command STOPSIGNAL not yet supported")
+}
+
+func (l *listener) ExitOnbuildStmt(c *parser.OnbuildStmtContext) {
+	if l.shouldSkip() {
+		return
+	}
+	l.err = fmt.Errorf("Command ONBUILD not supported")
+}
+
+func (l *listener) ExitHealthcheckStmt(c *parser.HealthcheckStmtContext) {
+	if l.shouldSkip() {
+		return
+	}
+	l.err = fmt.Errorf("Command HEALTHCHECK not yet supported")
+}
+
+func (l *listener) ExitShellStmt(c *parser.ShellStmtContext) {
+	if l.shouldSkip() {
+		return
+	}
+	l.err = fmt.Errorf("Command SHELL not yet supported")
+}
+
+func (l *listener) ExitGenericCommandStmt(c *parser.GenericCommandStmtContext) {
+	if l.shouldSkip() {
+		return
+	}
+	l.err = fmt.Errorf("Invalid command %s", c.GetText())
+}
+
 //
 // Variables.
 
@@ -456,6 +602,20 @@ func (l *listener) EnterEnvArgValue(c *parser.EnvArgValueContext) {
 		return
 	}
 	l.envArgValue = c.GetText()
+}
+
+func (l *listener) EnterLabelKey(c *parser.LabelKeyContext) {
+	if l.shouldSkip() {
+		return
+	}
+	l.labelKeys = append(l.labelKeys, c.GetText())
+}
+
+func (l *listener) EnterLabelValue(c *parser.LabelValueContext) {
+	if l.shouldSkip() {
+		return
+	}
+	l.labelValues = append(l.labelValues, c.GetText())
 }
 
 func (l *listener) ExitStmtWordsMaybeJSON(c *parser.StmtWordsMaybeJSONContext) {

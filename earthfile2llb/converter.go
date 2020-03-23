@@ -247,6 +247,11 @@ func (c *Converter) Run(ctx context.Context, args []string, mounts []string, sec
 	opts = append(opts, mountRunOpts...)
 	finalArgs := args
 	if withEntrypoint {
+		if len(args) == 0 {
+			// No args provided. Use the image's CMD.
+			args := make([]string, len(c.mts.FinalStates.SideEffectsImage.Config.Cmd))
+			copy(args, c.mts.FinalStates.SideEffectsImage.Config.Cmd)
+		}
 		finalArgs = append(c.mts.FinalStates.SideEffectsImage.Config.Entrypoint, args...)
 		isWithShell = false // Don't use shell when --entrypoint is passed.
 	}
@@ -420,6 +425,25 @@ func (c *Converter) Workdir(ctx context.Context, workdirPath string) {
 	}
 }
 
+// User applies the USER command.
+func (c *Converter) User(ctx context.Context, user string) {
+	user = c.expandArgs(user)
+	logging.GetLogger(ctx).With("user", user).Info("Applying USER")
+	c.mts.FinalStates.SideEffectsState = c.mts.FinalStates.SideEffectsState.User(user)
+	c.mts.FinalStates.SideEffectsImage.Config.User = user
+}
+
+// Cmd applies the CMD command.
+func (c *Converter) Cmd(ctx context.Context, cmdArgs []string, isWithShell bool) {
+	if !isWithShell {
+		for i := range cmdArgs {
+			cmdArgs[i] = c.expandArgs(cmdArgs[i])
+		}
+	}
+	logging.GetLogger(ctx).With("cmd", cmdArgs).Info("Applying CMD")
+	c.mts.FinalStates.SideEffectsImage.Config.Cmd = withShell(cmdArgs, isWithShell)
+}
+
 // Entrypoint applies the ENTRYPOINT command.
 func (c *Converter) Entrypoint(ctx context.Context, entrypointArgs []string, isWithShell bool) {
 	if !isWithShell {
@@ -429,6 +453,28 @@ func (c *Converter) Entrypoint(ctx context.Context, entrypointArgs []string, isW
 	}
 	logging.GetLogger(ctx).With("entrypoint", entrypointArgs).Info("Applying ENTRYPOINT")
 	c.mts.FinalStates.SideEffectsImage.Config.Entrypoint = withShell(entrypointArgs, isWithShell)
+}
+
+// Expose applies the EXPOSE command.
+func (c *Converter) Expose(ctx context.Context, ports []string) {
+	for i := range ports {
+		ports[i] = c.expandArgs(ports[i])
+	}
+	logging.GetLogger(ctx).With("ports", ports).Info("Applying EXPOSE")
+	for _, port := range ports {
+		c.mts.FinalStates.SideEffectsImage.Config.ExposedPorts[port] = struct{}{}
+	}
+}
+
+// Volume applies the VOLUME command.
+func (c *Converter) Volume(ctx context.Context, volumes []string) {
+	for i := range volumes {
+		volumes[i] = c.expandArgs(volumes[i])
+	}
+	logging.GetLogger(ctx).With("volumes", volumes).Info("Applying VOLUME")
+	for _, volume := range volumes {
+		c.mts.FinalStates.SideEffectsImage.Config.Volumes[volume] = struct{}{}
+	}
 }
 
 // Env applies the ENV command.
@@ -455,6 +501,20 @@ func (c *Converter) Arg(ctx context.Context, argKey string, defaultArgValue stri
 	c.mts.FinalStates.TargetInput.BuildArgs = append(
 		c.mts.FinalStates.TargetInput.BuildArgs,
 		variable.BuildArgInput(argKey, defaultArgValue))
+}
+
+// Label applies the LABEL command.
+func (c *Converter) Label(ctx context.Context, labels map[string]string) {
+	labels2 := make(map[string]string)
+	for key, value := range labels {
+		key2 := c.expandArgs(key)
+		value2 := c.expandArgs(value)
+		labels2[key2] = value2
+	}
+	logging.GetLogger(ctx).With("labels", labels2).Info("Applying LABEL")
+	for key, value := range labels2 {
+		c.mts.FinalStates.SideEffectsImage.Config.Labels[key] = value
+	}
 }
 
 // GitClone applies the GIT CLONE command.
@@ -716,13 +776,9 @@ func internalFromClassical(ctx context.Context, imageName string, opts ...llb.Im
 	if img.Config.User != "" {
 		state = state.User(img.Config.User)
 	}
-	// No need to apply entrypoint. The fact that it exists in the image configuration is enough.
-
-	// TODO: Apply other settings from image config? exposed? volumes?
-	//       Cmd? Build args? Shell?
-	if err != nil {
-		return llb.State{}, nil, nil, nil, errors.Wrapf(err, "add image config for %s", imageName)
-	}
+	// No need to apply entrypoint, cmd, volumes and others.
+	// The fact that they exist in the image configuration is enough.
+	// TODO: Apply any other settings? Shell?
 	return state, &img, imgVariables, activeVariables, nil
 }
 
