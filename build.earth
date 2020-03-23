@@ -134,7 +134,7 @@ release:
 		github-release upload \
 		--owner vladaionescu \
 		--repo earthly-releases \
-		--commitish "$EARTHLY_GIT_HASH" \
+		--commitish "bcc06fdf49989089a53ddd7b61a658b378ba1538" \
 		--tag "$RELEASE_TAG" \
 		--name "$RELEASE_TAG" \
 		--body "$BODY" \
