@@ -330,6 +330,18 @@ func (l *listener) ExitWorkdirStmt(c *parser.WorkdirStmtContext) {
 	l.converter.Workdir(l.ctx, workdirPath)
 }
 
+func (l *listener) ExitCmdStmt(c *parser.CmdStmtContext) {
+	if l.shouldSkip() {
+		return
+	}
+	if l.pushOnlyAllowed {
+		l.err = fmt.Errorf("no non-push commands allowed after a --push: %s", c.GetText())
+		return
+	}
+	withShell := !l.execMode
+	l.converter.Cmd(l.ctx, l.stmtWords, withShell)
+}
+
 func (l *listener) ExitEntrypointStmt(c *parser.EntrypointStmtContext) {
 	if l.shouldSkip() {
 		return

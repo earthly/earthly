@@ -3,6 +3,7 @@ package buildkitd
 import (
 	"context"
 	"fmt"
+	"os"
 	"os/exec"
 	"time"
 
@@ -169,6 +170,7 @@ func Start(ctx context.Context, image string, settings Settings, reset bool) err
 	if err != nil {
 		return errors.Wrap(err, "settings hash")
 	}
+	env := os.Environ()
 	cacheMount := fmt.Sprintf("%s:%s:delegated", TempDir, TempDir)
 	args := []string{
 		"run",
@@ -195,8 +197,13 @@ func Start(ctx context.Context, image string, settings Settings, reset bool) err
 		// TODO: Only the first GitSettings entry is used, and it is not bound
 		//       to the specified domain.
 		args = append(args,
-			"-e", fmt.Sprintf("GIT_USERNAME=%s", settings.GitSettings[0].Username),
-			"-e", fmt.Sprintf("GIT_PASSWORD=%s", settings.GitSettings[0].Password),
+			"-e", "GIT_USERNAME",
+			"-e", "GIT_PASSWORD",
+		)
+		// Pass secrets via env vars, not via command-line.
+		env = append(env,
+			fmt.Sprintf("GIT_USERNAME=%s", settings.GitSettings[0].Username),
+			fmt.Sprintf("GIT_PASSWORD=%s", settings.GitSettings[0].Password),
 		)
 	}
 	if settings.GitURLInsteadOf != "" {
@@ -211,6 +218,7 @@ func Start(ctx context.Context, image string, settings Settings, reset bool) err
 	// Execute.
 	args = append(args, image)
 	cmd := exec.CommandContext(ctx, "docker", args...)
+	cmd.Env = env
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return errors.Wrapf(err, "docker run %s: %s", image, string(output))

@@ -398,8 +398,7 @@ func (app *earthApp) actionBuild(c *cli.Context) error {
 		return errors.Wrap(err, "new builder")
 	}
 
-	buildArgsSlice := appendBuiltinBuildArgs(app.buildArgs.Value(), target)
-	buildArgs, err := parseBuildArgs(buildArgsSlice)
+	buildArgs, err := parseBuildArgs(app.buildArgs.Value())
 	if err != nil {
 		return errors.Wrap(err, "parse build args")
 	}

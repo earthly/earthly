@@ -50,6 +50,9 @@ type EarthParserListener interface {
 	// EnterWorkdirStmt is called when entering the workdirStmt production.
 	EnterWorkdirStmt(c *WorkdirStmtContext)
 
+	// EnterCmdStmt is called when entering the cmdStmt production.
+	EnterCmdStmt(c *CmdStmtContext)
+
 	// EnterEntrypointStmt is called when entering the entrypointStmt production.
 	EnterEntrypointStmt(c *EntrypointStmtContext)
 
@@ -130,6 +133,9 @@ type EarthParserListener interface {
 
 	// ExitWorkdirStmt is called when exiting the workdirStmt production.
 	ExitWorkdirStmt(c *WorkdirStmtContext)
+
+	// ExitCmdStmt is called when exiting the cmdStmt production.
+	ExitCmdStmt(c *CmdStmtContext)
 
 	// ExitEntrypointStmt is called when exiting the entrypointStmt production.
 	ExitEntrypointStmt(c *EntrypointStmtContext)

@@ -44,6 +44,7 @@ lint:
 	FROM +code
 	RUN output="$(goimports -d .)" ; test -z "$output" || (echo "$output" && exit 1)
 	RUN golint -set_exit_status .
+	RUN output="$(go vet ./...)" ; test -z "$output" || (echo "$output" && exit 1)
 
 earth:
 	FROM +code

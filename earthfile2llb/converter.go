@@ -420,6 +420,17 @@ func (c *Converter) Workdir(ctx context.Context, workdirPath string) {
 	}
 }
 
+// Cmd applies the CMD command.
+func (c *Converter) Cmd(ctx context.Context, cmdArgs []string, isWithShell bool) {
+	if !isWithShell {
+		for i := range cmdArgs {
+			cmdArgs[i] = c.expandArgs(cmdArgs[i])
+		}
+	}
+	logging.GetLogger(ctx).With("cmd", cmdArgs).Info("Applying CMD")
+	c.mts.FinalStates.SideEffectsImage.Config.Cmd = withShell(cmdArgs, isWithShell)
+}
+
 // Entrypoint applies the ENTRYPOINT command.
 func (c *Converter) Entrypoint(ctx context.Context, entrypointArgs []string, isWithShell bool) {
 	if !isWithShell {
@@ -718,8 +729,7 @@ func internalFromClassical(ctx context.Context, imageName string, opts ...llb.Im
 	}
 	// No need to apply entrypoint. The fact that it exists in the image configuration is enough.
 
-	// TODO: Apply other settings from image config? exposed? volumes?
-	//       Cmd? Build args? Shell?
+	// TODO: Apply any other settings? Shell?
 	if err != nil {
 		return llb.State{}, nil, nil, nil, errors.Wrapf(err, "add image config for %s", imageName)
 	}

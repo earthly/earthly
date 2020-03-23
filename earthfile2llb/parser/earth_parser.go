@@ -16,155 +16,159 @@ var _ = reflect.Copy
 var _ = strconv.Itoa
 
 var parserATN = []uint16{
-	3, 24715, 42794, 33075, 47597, 16764, 15335, 30598, 22884, 3, 23, 281,
+	3, 24715, 42794, 33075, 47597, 16764, 15335, 30598, 22884, 3, 24, 289,
 	4, 2, 9, 2, 4, 3, 9, 3, 4, 4, 9, 4, 4, 5, 9, 5, 4, 6, 9, 6, 4, 7, 9, 7,
 	4, 8, 9, 8, 4, 9, 9, 9, 4, 10, 9, 10, 4, 11, 9, 11, 4, 12, 9, 12, 4, 13,
 	9, 13, 4, 14, 9, 14, 4, 15, 9, 15, 4, 16, 9, 16, 4, 17, 9, 17, 4, 18, 9,
 	18, 4, 19, 9, 19, 4, 20, 9, 20, 4, 21, 9, 21, 4, 22, 9, 22, 4, 23, 9, 23,
-	4, 24, 9, 24, 4, 25, 9, 25, 4, 26, 9, 26, 4, 27, 9, 27, 4, 28, 9, 28, 3,
-	2, 7, 2, 58, 10, 2, 12, 2, 14, 2, 61, 11, 2, 3, 2, 5, 2, 64, 10, 2, 3,
-	2, 6, 2, 67, 10, 2, 13, 2, 14, 2, 68, 3, 2, 5, 2, 72, 10, 2, 3, 2, 7, 2,
-	75, 10, 2, 12, 2, 14, 2, 78, 11, 2, 3, 2, 3, 2, 3, 3, 3, 3, 5, 3, 84, 10,
-	3, 3, 3, 6, 3, 87, 10, 3, 13, 3, 14, 3, 88, 3, 3, 3, 3, 3, 3, 5, 3, 94,
-	10, 3, 7, 3, 96, 10, 3, 12, 3, 14, 3, 99, 11, 3, 3, 3, 7, 3, 102, 10, 3,
-	12, 3, 14, 3, 105, 11, 3, 3, 3, 5, 3, 108, 10, 3, 3, 4, 3, 4, 6, 4, 112,
-	10, 4, 13, 4, 14, 4, 113, 3, 4, 5, 4, 117, 10, 4, 3, 4, 3, 4, 5, 4, 121,
-	10, 4, 3, 5, 3, 5, 3, 6, 5, 6, 126, 10, 6, 3, 6, 3, 6, 6, 6, 130, 10, 6,
-	13, 6, 14, 6, 131, 3, 6, 5, 6, 135, 10, 6, 3, 6, 7, 6, 138, 10, 6, 12,
-	6, 14, 6, 141, 11, 6, 3, 7, 3, 7, 3, 7, 3, 7, 3, 7, 3, 7, 3, 7, 3, 7, 3,
-	7, 3, 7, 3, 7, 3, 7, 3, 7, 5, 7, 156, 10, 7, 3, 8, 3, 8, 3, 8, 5, 8, 161,
-	10, 8, 3, 9, 3, 9, 3, 9, 5, 9, 166, 10, 9, 3, 10, 3, 10, 5, 10, 170, 10,
-	10, 3, 11, 3, 11, 3, 11, 5, 11, 175, 10, 11, 3, 12, 3, 12, 3, 12, 5, 12,
-	180, 10, 12, 3, 13, 3, 13, 3, 13, 5, 13, 185, 10, 13, 3, 14, 3, 14, 3,
-	14, 5, 14, 190, 10, 14, 3, 15, 3, 15, 3, 15, 5, 15, 195, 10, 15, 3, 16,
-	3, 16, 3, 16, 5, 16, 200, 10, 16, 3, 17, 3, 17, 3, 17, 3, 17, 5, 17, 206,
-	10, 17, 3, 17, 5, 17, 209, 10, 17, 3, 17, 5, 17, 212, 10, 17, 3, 17, 5,
-	17, 215, 10, 17, 3, 18, 3, 18, 3, 18, 3, 18, 5, 18, 221, 10, 18, 3, 18,
-	3, 18, 3, 18, 5, 18, 226, 10, 18, 3, 18, 5, 18, 229, 10, 18, 5, 18, 231,
-	10, 18, 3, 19, 3, 19, 3, 20, 3, 20, 5, 20, 237, 10, 20, 3, 20, 7, 20, 240,
-	10, 20, 12, 20, 14, 20, 243, 11, 20, 3, 21, 3, 21, 3, 21, 5, 21, 248, 10,
-	21, 3, 22, 3, 22, 3, 22, 5, 22, 253, 10, 22, 3, 23, 3, 23, 3, 23, 5, 23,
-	258, 10, 23, 3, 24, 3, 24, 3, 24, 5, 24, 263, 10, 24, 3, 25, 3, 25, 3,
-	26, 3, 26, 3, 27, 3, 27, 5, 27, 271, 10, 27, 3, 27, 7, 27, 274, 10, 27,
-	12, 27, 14, 27, 277, 11, 27, 3, 28, 3, 28, 3, 28, 2, 2, 29, 2, 4, 6, 8,
+	4, 24, 9, 24, 4, 25, 9, 25, 4, 26, 9, 26, 4, 27, 9, 27, 4, 28, 9, 28, 4,
+	29, 9, 29, 3, 2, 7, 2, 60, 10, 2, 12, 2, 14, 2, 63, 11, 2, 3, 2, 5, 2,
+	66, 10, 2, 3, 2, 6, 2, 69, 10, 2, 13, 2, 14, 2, 70, 3, 2, 5, 2, 74, 10,
+	2, 3, 2, 7, 2, 77, 10, 2, 12, 2, 14, 2, 80, 11, 2, 3, 2, 3, 2, 3, 3, 3,
+	3, 5, 3, 86, 10, 3, 3, 3, 6, 3, 89, 10, 3, 13, 3, 14, 3, 90, 3, 3, 3, 3,
+	3, 3, 5, 3, 96, 10, 3, 7, 3, 98, 10, 3, 12, 3, 14, 3, 101, 11, 3, 3, 3,
+	7, 3, 104, 10, 3, 12, 3, 14, 3, 107, 11, 3, 3, 3, 5, 3, 110, 10, 3, 3,
+	4, 3, 4, 6, 4, 114, 10, 4, 13, 4, 14, 4, 115, 3, 4, 5, 4, 119, 10, 4, 3,
+	4, 3, 4, 5, 4, 123, 10, 4, 3, 5, 3, 5, 3, 6, 5, 6, 128, 10, 6, 3, 6, 3,
+	6, 6, 6, 132, 10, 6, 13, 6, 14, 6, 133, 3, 6, 5, 6, 137, 10, 6, 3, 6, 7,
+	6, 140, 10, 6, 12, 6, 14, 6, 143, 11, 6, 3, 7, 3, 7, 3, 7, 3, 7, 3, 7,
+	3, 7, 3, 7, 3, 7, 3, 7, 3, 7, 3, 7, 3, 7, 3, 7, 3, 7, 5, 7, 159, 10, 7,
+	3, 8, 3, 8, 3, 8, 5, 8, 164, 10, 8, 3, 9, 3, 9, 3, 9, 5, 9, 169, 10, 9,
+	3, 10, 3, 10, 5, 10, 173, 10, 10, 3, 11, 3, 11, 3, 11, 5, 11, 178, 10,
+	11, 3, 12, 3, 12, 3, 12, 5, 12, 183, 10, 12, 3, 13, 3, 13, 3, 13, 5, 13,
+	188, 10, 13, 3, 14, 3, 14, 3, 14, 5, 14, 193, 10, 14, 3, 15, 3, 15, 3,
+	15, 5, 15, 198, 10, 15, 3, 16, 3, 16, 3, 16, 5, 16, 203, 10, 16, 3, 17,
+	3, 17, 3, 17, 5, 17, 208, 10, 17, 3, 18, 3, 18, 3, 18, 3, 18, 5, 18, 214,
+	10, 18, 3, 18, 5, 18, 217, 10, 18, 3, 18, 5, 18, 220, 10, 18, 3, 18, 5,
+	18, 223, 10, 18, 3, 19, 3, 19, 3, 19, 3, 19, 5, 19, 229, 10, 19, 3, 19,
+	3, 19, 3, 19, 5, 19, 234, 10, 19, 3, 19, 5, 19, 237, 10, 19, 5, 19, 239,
+	10, 19, 3, 20, 3, 20, 3, 21, 3, 21, 5, 21, 245, 10, 21, 3, 21, 7, 21, 248,
+	10, 21, 12, 21, 14, 21, 251, 11, 21, 3, 22, 3, 22, 3, 22, 5, 22, 256, 10,
+	22, 3, 23, 3, 23, 3, 23, 5, 23, 261, 10, 23, 3, 24, 3, 24, 3, 24, 5, 24,
+	266, 10, 24, 3, 25, 3, 25, 3, 25, 5, 25, 271, 10, 25, 3, 26, 3, 26, 3,
+	27, 3, 27, 3, 28, 3, 28, 5, 28, 279, 10, 28, 3, 28, 7, 28, 282, 10, 28,
+	12, 28, 14, 28, 285, 11, 28, 3, 29, 3, 29, 3, 29, 2, 2, 30, 2, 4, 6, 8,
 	10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32, 34, 36, 38, 40, 42, 44,
-	46, 48, 50, 52, 54, 2, 2, 2, 308, 2, 59, 3, 2, 2, 2, 4, 81, 3, 2, 2, 2,
-	6, 109, 3, 2, 2, 2, 8, 122, 3, 2, 2, 2, 10, 125, 3, 2, 2, 2, 12, 155, 3,
-	2, 2, 2, 14, 157, 3, 2, 2, 2, 16, 162, 3, 2, 2, 2, 18, 169, 3, 2, 2, 2,
-	20, 171, 3, 2, 2, 2, 22, 176, 3, 2, 2, 2, 24, 181, 3, 2, 2, 2, 26, 186,
-	3, 2, 2, 2, 28, 191, 3, 2, 2, 2, 30, 196, 3, 2, 2, 2, 32, 201, 3, 2, 2,
-	2, 34, 216, 3, 2, 2, 2, 36, 232, 3, 2, 2, 2, 38, 234, 3, 2, 2, 2, 40, 244,
-	3, 2, 2, 2, 42, 249, 3, 2, 2, 2, 44, 254, 3, 2, 2, 2, 46, 259, 3, 2, 2,
-	2, 48, 264, 3, 2, 2, 2, 50, 266, 3, 2, 2, 2, 52, 268, 3, 2, 2, 2, 54, 278,
-	3, 2, 2, 2, 56, 58, 7, 20, 2, 2, 57, 56, 3, 2, 2, 2, 58, 61, 3, 2, 2, 2,
-	59, 57, 3, 2, 2, 2, 59, 60, 3, 2, 2, 2, 60, 63, 3, 2, 2, 2, 61, 59, 3,
-	2, 2, 2, 62, 64, 5, 10, 6, 2, 63, 62, 3, 2, 2, 2, 63, 64, 3, 2, 2, 2, 64,
-	66, 3, 2, 2, 2, 65, 67, 7, 20, 2, 2, 66, 65, 3, 2, 2, 2, 67, 68, 3, 2,
-	2, 2, 68, 66, 3, 2, 2, 2, 68, 69, 3, 2, 2, 2, 69, 71, 3, 2, 2, 2, 70, 72,
-	5, 4, 3, 2, 71, 70, 3, 2, 2, 2, 71, 72, 3, 2, 2, 2, 72, 76, 3, 2, 2, 2,
-	73, 75, 7, 20, 2, 2, 74, 73, 3, 2, 2, 2, 75, 78, 3, 2, 2, 2, 76, 74, 3,
-	2, 2, 2, 76, 77, 3, 2, 2, 2, 77, 79, 3, 2, 2, 2, 78, 76, 3, 2, 2, 2, 79,
-	80, 7, 2, 2, 3, 80, 3, 3, 2, 2, 2, 81, 83, 5, 6, 4, 2, 82, 84, 7, 21, 2,
-	2, 83, 82, 3, 2, 2, 2, 83, 84, 3, 2, 2, 2, 84, 97, 3, 2, 2, 2, 85, 87,
-	7, 20, 2, 2, 86, 85, 3, 2, 2, 2, 87, 88, 3, 2, 2, 2, 88, 86, 3, 2, 2, 2,
-	88, 89, 3, 2, 2, 2, 89, 90, 3, 2, 2, 2, 90, 91, 7, 4, 2, 2, 91, 93, 5,
-	6, 4, 2, 92, 94, 7, 21, 2, 2, 93, 92, 3, 2, 2, 2, 93, 94, 3, 2, 2, 2, 94,
-	96, 3, 2, 2, 2, 95, 86, 3, 2, 2, 2, 96, 99, 3, 2, 2, 2, 97, 95, 3, 2, 2,
-	2, 97, 98, 3, 2, 2, 2, 98, 103, 3, 2, 2, 2, 99, 97, 3, 2, 2, 2, 100, 102,
-	7, 20, 2, 2, 101, 100, 3, 2, 2, 2, 102, 105, 3, 2, 2, 2, 103, 101, 3, 2,
-	2, 2, 103, 104, 3, 2, 2, 2, 104, 107, 3, 2, 2, 2, 105, 103, 3, 2, 2, 2,
-	106, 108, 7, 4, 2, 2, 107, 106, 3, 2, 2, 2, 107, 108, 3, 2, 2, 2, 108,
-	5, 3, 2, 2, 2, 109, 111, 5, 8, 5, 2, 110, 112, 7, 20, 2, 2, 111, 110, 3,
-	2, 2, 2, 112, 113, 3, 2, 2, 2, 113, 111, 3, 2, 2, 2, 113, 114, 3, 2, 2,
-	2, 114, 116, 3, 2, 2, 2, 115, 117, 7, 21, 2, 2, 116, 115, 3, 2, 2, 2, 116,
-	117, 3, 2, 2, 2, 117, 118, 3, 2, 2, 2, 118, 120, 7, 3, 2, 2, 119, 121,
-	5, 10, 6, 2, 120, 119, 3, 2, 2, 2, 120, 121, 3, 2, 2, 2, 121, 7, 3, 2,
-	2, 2, 122, 123, 7, 5, 2, 2, 123, 9, 3, 2, 2, 2, 124, 126, 7, 21, 2, 2,
-	125, 124, 3, 2, 2, 2, 125, 126, 3, 2, 2, 2, 126, 127, 3, 2, 2, 2, 127,
-	139, 5, 12, 7, 2, 128, 130, 7, 20, 2, 2, 129, 128, 3, 2, 2, 2, 130, 131,
-	3, 2, 2, 2, 131, 129, 3, 2, 2, 2, 131, 132, 3, 2, 2, 2, 132, 134, 3, 2,
-	2, 2, 133, 135, 7, 21, 2, 2, 134, 133, 3, 2, 2, 2, 134, 135, 3, 2, 2, 2,
-	135, 136, 3, 2, 2, 2, 136, 138, 5, 12, 7, 2, 137, 129, 3, 2, 2, 2, 138,
-	141, 3, 2, 2, 2, 139, 137, 3, 2, 2, 2, 139, 140, 3, 2, 2, 2, 140, 11, 3,
-	2, 2, 2, 141, 139, 3, 2, 2, 2, 142, 156, 5, 14, 8, 2, 143, 156, 5, 16,
-	9, 2, 144, 156, 5, 18, 10, 2, 145, 156, 5, 24, 13, 2, 146, 156, 5, 26,
-	14, 2, 147, 156, 5, 28, 15, 2, 148, 156, 5, 30, 16, 2, 149, 156, 5, 32,
-	17, 2, 150, 156, 5, 34, 18, 2, 151, 156, 5, 40, 21, 2, 152, 156, 5, 42,
-	22, 2, 153, 156, 5, 44, 23, 2, 154, 156, 5, 46, 24, 2, 155, 142, 3, 2,
-	2, 2, 155, 143, 3, 2, 2, 2, 155, 144, 3, 2, 2, 2, 155, 145, 3, 2, 2, 2,
-	155, 146, 3, 2, 2, 2, 155, 147, 3, 2, 2, 2, 155, 148, 3, 2, 2, 2, 155,
-	149, 3, 2, 2, 2, 155, 150, 3, 2, 2, 2, 155, 151, 3, 2, 2, 2, 155, 152,
-	3, 2, 2, 2, 155, 153, 3, 2, 2, 2, 155, 154, 3, 2, 2, 2, 156, 13, 3, 2,
-	2, 2, 157, 160, 7, 6, 2, 2, 158, 159, 7, 21, 2, 2, 159, 161, 5, 52, 27,
-	2, 160, 158, 3, 2, 2, 2, 160, 161, 3, 2, 2, 2, 161, 15, 3, 2, 2, 2, 162,
-	165, 7, 7, 2, 2, 163, 164, 7, 21, 2, 2, 164, 166, 5, 52, 27, 2, 165, 163,
-	3, 2, 2, 2, 165, 166, 3, 2, 2, 2, 166, 17, 3, 2, 2, 2, 167, 170, 5, 22,
-	12, 2, 168, 170, 5, 20, 11, 2, 169, 167, 3, 2, 2, 2, 169, 168, 3, 2, 2,
-	2, 170, 19, 3, 2, 2, 2, 171, 174, 7, 9, 2, 2, 172, 173, 7, 21, 2, 2, 173,
-	175, 5, 52, 27, 2, 174, 172, 3, 2, 2, 2, 174, 175, 3, 2, 2, 2, 175, 21,
-	3, 2, 2, 2, 176, 179, 7, 8, 2, 2, 177, 178, 7, 21, 2, 2, 178, 180, 5, 52,
-	27, 2, 179, 177, 3, 2, 2, 2, 179, 180, 3, 2, 2, 2, 180, 23, 3, 2, 2, 2,
-	181, 184, 7, 10, 2, 2, 182, 183, 7, 21, 2, 2, 183, 185, 5, 50, 26, 2, 184,
-	182, 3, 2, 2, 2, 184, 185, 3, 2, 2, 2, 185, 25, 3, 2, 2, 2, 186, 189, 7,
-	13, 2, 2, 187, 188, 7, 21, 2, 2, 188, 190, 5, 52, 27, 2, 189, 187, 3, 2,
-	2, 2, 189, 190, 3, 2, 2, 2, 190, 27, 3, 2, 2, 2, 191, 194, 7, 14, 2, 2,
-	192, 193, 7, 21, 2, 2, 193, 195, 5, 52, 27, 2, 194, 192, 3, 2, 2, 2, 194,
-	195, 3, 2, 2, 2, 195, 29, 3, 2, 2, 2, 196, 199, 7, 15, 2, 2, 197, 198,
-	7, 21, 2, 2, 198, 200, 5, 50, 26, 2, 199, 197, 3, 2, 2, 2, 199, 200, 3,
-	2, 2, 2, 200, 31, 3, 2, 2, 2, 201, 202, 7, 11, 2, 2, 202, 203, 7, 21, 2,
-	2, 203, 208, 5, 36, 19, 2, 204, 206, 7, 21, 2, 2, 205, 204, 3, 2, 2, 2,
-	205, 206, 3, 2, 2, 2, 206, 207, 3, 2, 2, 2, 207, 209, 7, 23, 2, 2, 208,
-	205, 3, 2, 2, 2, 208, 209, 3, 2, 2, 2, 209, 214, 3, 2, 2, 2, 210, 212,
-	7, 21, 2, 2, 211, 210, 3, 2, 2, 2, 211, 212, 3, 2, 2, 2, 212, 213, 3, 2,
-	2, 2, 213, 215, 5, 38, 20, 2, 214, 211, 3, 2, 2, 2, 214, 215, 3, 2, 2,
-	2, 215, 33, 3, 2, 2, 2, 216, 217, 7, 12, 2, 2, 217, 218, 7, 21, 2, 2, 218,
-	230, 5, 36, 19, 2, 219, 221, 7, 21, 2, 2, 220, 219, 3, 2, 2, 2, 220, 221,
-	3, 2, 2, 2, 221, 222, 3, 2, 2, 2, 222, 223, 7, 23, 2, 2, 223, 228, 3, 2,
-	2, 2, 224, 226, 7, 21, 2, 2, 225, 224, 3, 2, 2, 2, 225, 226, 3, 2, 2, 2,
-	226, 227, 3, 2, 2, 2, 227, 229, 5, 38, 20, 2, 228, 225, 3, 2, 2, 2, 228,
-	229, 3, 2, 2, 2, 229, 231, 3, 2, 2, 2, 230, 220, 3, 2, 2, 2, 230, 231,
-	3, 2, 2, 2, 231, 35, 3, 2, 2, 2, 232, 233, 7, 22, 2, 2, 233, 37, 3, 2,
-	2, 2, 234, 241, 7, 22, 2, 2, 235, 237, 7, 21, 2, 2, 236, 235, 3, 2, 2,
-	2, 236, 237, 3, 2, 2, 2, 237, 238, 3, 2, 2, 2, 238, 240, 7, 22, 2, 2, 239,
-	236, 3, 2, 2, 2, 240, 243, 3, 2, 2, 2, 241, 239, 3, 2, 2, 2, 241, 242,
-	3, 2, 2, 2, 242, 39, 3, 2, 2, 2, 243, 241, 3, 2, 2, 2, 244, 247, 7, 16,
-	2, 2, 245, 246, 7, 21, 2, 2, 246, 248, 5, 52, 27, 2, 247, 245, 3, 2, 2,
-	2, 247, 248, 3, 2, 2, 2, 248, 41, 3, 2, 2, 2, 249, 252, 7, 17, 2, 2, 250,
-	251, 7, 21, 2, 2, 251, 253, 5, 52, 27, 2, 252, 250, 3, 2, 2, 2, 252, 253,
-	3, 2, 2, 2, 253, 43, 3, 2, 2, 2, 254, 257, 7, 18, 2, 2, 255, 256, 7, 21,
-	2, 2, 256, 258, 5, 52, 27, 2, 257, 255, 3, 2, 2, 2, 257, 258, 3, 2, 2,
-	2, 258, 45, 3, 2, 2, 2, 259, 262, 5, 48, 25, 2, 260, 261, 7, 21, 2, 2,
-	261, 263, 5, 52, 27, 2, 262, 260, 3, 2, 2, 2, 262, 263, 3, 2, 2, 2, 263,
-	47, 3, 2, 2, 2, 264, 265, 7, 19, 2, 2, 265, 49, 3, 2, 2, 2, 266, 267, 5,
-	52, 27, 2, 267, 51, 3, 2, 2, 2, 268, 275, 5, 54, 28, 2, 269, 271, 7, 21,
-	2, 2, 270, 269, 3, 2, 2, 2, 270, 271, 3, 2, 2, 2, 271, 272, 3, 2, 2, 2,
-	272, 274, 5, 54, 28, 2, 273, 270, 3, 2, 2, 2, 274, 277, 3, 2, 2, 2, 275,
-	273, 3, 2, 2, 2, 275, 276, 3, 2, 2, 2, 276, 53, 3, 2, 2, 2, 277, 275, 3,
-	2, 2, 2, 278, 279, 7, 22, 2, 2, 279, 55, 3, 2, 2, 2, 46, 59, 63, 68, 71,
-	76, 83, 88, 93, 97, 103, 107, 113, 116, 120, 125, 131, 134, 139, 155, 160,
-	165, 169, 174, 179, 184, 189, 194, 199, 205, 208, 211, 214, 220, 225, 228,
-	230, 236, 241, 247, 252, 257, 262, 270, 275,
+	46, 48, 50, 52, 54, 56, 2, 2, 2, 317, 2, 61, 3, 2, 2, 2, 4, 83, 3, 2, 2,
+	2, 6, 111, 3, 2, 2, 2, 8, 124, 3, 2, 2, 2, 10, 127, 3, 2, 2, 2, 12, 158,
+	3, 2, 2, 2, 14, 160, 3, 2, 2, 2, 16, 165, 3, 2, 2, 2, 18, 172, 3, 2, 2,
+	2, 20, 174, 3, 2, 2, 2, 22, 179, 3, 2, 2, 2, 24, 184, 3, 2, 2, 2, 26, 189,
+	3, 2, 2, 2, 28, 194, 3, 2, 2, 2, 30, 199, 3, 2, 2, 2, 32, 204, 3, 2, 2,
+	2, 34, 209, 3, 2, 2, 2, 36, 224, 3, 2, 2, 2, 38, 240, 3, 2, 2, 2, 40, 242,
+	3, 2, 2, 2, 42, 252, 3, 2, 2, 2, 44, 257, 3, 2, 2, 2, 46, 262, 3, 2, 2,
+	2, 48, 267, 3, 2, 2, 2, 50, 272, 3, 2, 2, 2, 52, 274, 3, 2, 2, 2, 54, 276,
+	3, 2, 2, 2, 56, 286, 3, 2, 2, 2, 58, 60, 7, 21, 2, 2, 59, 58, 3, 2, 2,
+	2, 60, 63, 3, 2, 2, 2, 61, 59, 3, 2, 2, 2, 61, 62, 3, 2, 2, 2, 62, 65,
+	3, 2, 2, 2, 63, 61, 3, 2, 2, 2, 64, 66, 5, 10, 6, 2, 65, 64, 3, 2, 2, 2,
+	65, 66, 3, 2, 2, 2, 66, 68, 3, 2, 2, 2, 67, 69, 7, 21, 2, 2, 68, 67, 3,
+	2, 2, 2, 69, 70, 3, 2, 2, 2, 70, 68, 3, 2, 2, 2, 70, 71, 3, 2, 2, 2, 71,
+	73, 3, 2, 2, 2, 72, 74, 5, 4, 3, 2, 73, 72, 3, 2, 2, 2, 73, 74, 3, 2, 2,
+	2, 74, 78, 3, 2, 2, 2, 75, 77, 7, 21, 2, 2, 76, 75, 3, 2, 2, 2, 77, 80,
+	3, 2, 2, 2, 78, 76, 3, 2, 2, 2, 78, 79, 3, 2, 2, 2, 79, 81, 3, 2, 2, 2,
+	80, 78, 3, 2, 2, 2, 81, 82, 7, 2, 2, 3, 82, 3, 3, 2, 2, 2, 83, 85, 5, 6,
+	4, 2, 84, 86, 7, 22, 2, 2, 85, 84, 3, 2, 2, 2, 85, 86, 3, 2, 2, 2, 86,
+	99, 3, 2, 2, 2, 87, 89, 7, 21, 2, 2, 88, 87, 3, 2, 2, 2, 89, 90, 3, 2,
+	2, 2, 90, 88, 3, 2, 2, 2, 90, 91, 3, 2, 2, 2, 91, 92, 3, 2, 2, 2, 92, 93,
+	7, 4, 2, 2, 93, 95, 5, 6, 4, 2, 94, 96, 7, 22, 2, 2, 95, 94, 3, 2, 2, 2,
+	95, 96, 3, 2, 2, 2, 96, 98, 3, 2, 2, 2, 97, 88, 3, 2, 2, 2, 98, 101, 3,
+	2, 2, 2, 99, 97, 3, 2, 2, 2, 99, 100, 3, 2, 2, 2, 100, 105, 3, 2, 2, 2,
+	101, 99, 3, 2, 2, 2, 102, 104, 7, 21, 2, 2, 103, 102, 3, 2, 2, 2, 104,
+	107, 3, 2, 2, 2, 105, 103, 3, 2, 2, 2, 105, 106, 3, 2, 2, 2, 106, 109,
+	3, 2, 2, 2, 107, 105, 3, 2, 2, 2, 108, 110, 7, 4, 2, 2, 109, 108, 3, 2,
+	2, 2, 109, 110, 3, 2, 2, 2, 110, 5, 3, 2, 2, 2, 111, 113, 5, 8, 5, 2, 112,
+	114, 7, 21, 2, 2, 113, 112, 3, 2, 2, 2, 114, 115, 3, 2, 2, 2, 115, 113,
+	3, 2, 2, 2, 115, 116, 3, 2, 2, 2, 116, 118, 3, 2, 2, 2, 117, 119, 7, 22,
+	2, 2, 118, 117, 3, 2, 2, 2, 118, 119, 3, 2, 2, 2, 119, 120, 3, 2, 2, 2,
+	120, 122, 7, 3, 2, 2, 121, 123, 5, 10, 6, 2, 122, 121, 3, 2, 2, 2, 122,
+	123, 3, 2, 2, 2, 123, 7, 3, 2, 2, 2, 124, 125, 7, 5, 2, 2, 125, 9, 3, 2,
+	2, 2, 126, 128, 7, 22, 2, 2, 127, 126, 3, 2, 2, 2, 127, 128, 3, 2, 2, 2,
+	128, 129, 3, 2, 2, 2, 129, 141, 5, 12, 7, 2, 130, 132, 7, 21, 2, 2, 131,
+	130, 3, 2, 2, 2, 132, 133, 3, 2, 2, 2, 133, 131, 3, 2, 2, 2, 133, 134,
+	3, 2, 2, 2, 134, 136, 3, 2, 2, 2, 135, 137, 7, 22, 2, 2, 136, 135, 3, 2,
+	2, 2, 136, 137, 3, 2, 2, 2, 137, 138, 3, 2, 2, 2, 138, 140, 5, 12, 7, 2,
+	139, 131, 3, 2, 2, 2, 140, 143, 3, 2, 2, 2, 141, 139, 3, 2, 2, 2, 141,
+	142, 3, 2, 2, 2, 142, 11, 3, 2, 2, 2, 143, 141, 3, 2, 2, 2, 144, 159, 5,
+	14, 8, 2, 145, 159, 5, 16, 9, 2, 146, 159, 5, 18, 10, 2, 147, 159, 5, 24,
+	13, 2, 148, 159, 5, 26, 14, 2, 149, 159, 5, 28, 15, 2, 150, 159, 5, 30,
+	16, 2, 151, 159, 5, 32, 17, 2, 152, 159, 5, 34, 18, 2, 153, 159, 5, 36,
+	19, 2, 154, 159, 5, 42, 22, 2, 155, 159, 5, 44, 23, 2, 156, 159, 5, 46,
+	24, 2, 157, 159, 5, 48, 25, 2, 158, 144, 3, 2, 2, 2, 158, 145, 3, 2, 2,
+	2, 158, 146, 3, 2, 2, 2, 158, 147, 3, 2, 2, 2, 158, 148, 3, 2, 2, 2, 158,
+	149, 3, 2, 2, 2, 158, 150, 3, 2, 2, 2, 158, 151, 3, 2, 2, 2, 158, 152,
+	3, 2, 2, 2, 158, 153, 3, 2, 2, 2, 158, 154, 3, 2, 2, 2, 158, 155, 3, 2,
+	2, 2, 158, 156, 3, 2, 2, 2, 158, 157, 3, 2, 2, 2, 159, 13, 3, 2, 2, 2,
+	160, 163, 7, 6, 2, 2, 161, 162, 7, 22, 2, 2, 162, 164, 5, 54, 28, 2, 163,
+	161, 3, 2, 2, 2, 163, 164, 3, 2, 2, 2, 164, 15, 3, 2, 2, 2, 165, 168, 7,
+	7, 2, 2, 166, 167, 7, 22, 2, 2, 167, 169, 5, 54, 28, 2, 168, 166, 3, 2,
+	2, 2, 168, 169, 3, 2, 2, 2, 169, 17, 3, 2, 2, 2, 170, 173, 5, 22, 12, 2,
+	171, 173, 5, 20, 11, 2, 172, 170, 3, 2, 2, 2, 172, 171, 3, 2, 2, 2, 173,
+	19, 3, 2, 2, 2, 174, 177, 7, 9, 2, 2, 175, 176, 7, 22, 2, 2, 176, 178,
+	5, 54, 28, 2, 177, 175, 3, 2, 2, 2, 177, 178, 3, 2, 2, 2, 178, 21, 3, 2,
+	2, 2, 179, 182, 7, 8, 2, 2, 180, 181, 7, 22, 2, 2, 181, 183, 5, 54, 28,
+	2, 182, 180, 3, 2, 2, 2, 182, 183, 3, 2, 2, 2, 183, 23, 3, 2, 2, 2, 184,
+	187, 7, 10, 2, 2, 185, 186, 7, 22, 2, 2, 186, 188, 5, 52, 27, 2, 187, 185,
+	3, 2, 2, 2, 187, 188, 3, 2, 2, 2, 188, 25, 3, 2, 2, 2, 189, 192, 7, 13,
+	2, 2, 190, 191, 7, 22, 2, 2, 191, 193, 5, 54, 28, 2, 192, 190, 3, 2, 2,
+	2, 192, 193, 3, 2, 2, 2, 193, 27, 3, 2, 2, 2, 194, 197, 7, 14, 2, 2, 195,
+	196, 7, 22, 2, 2, 196, 198, 5, 54, 28, 2, 197, 195, 3, 2, 2, 2, 197, 198,
+	3, 2, 2, 2, 198, 29, 3, 2, 2, 2, 199, 202, 7, 15, 2, 2, 200, 201, 7, 22,
+	2, 2, 201, 203, 5, 52, 27, 2, 202, 200, 3, 2, 2, 2, 202, 203, 3, 2, 2,
+	2, 203, 31, 3, 2, 2, 2, 204, 207, 7, 16, 2, 2, 205, 206, 7, 22, 2, 2, 206,
+	208, 5, 52, 27, 2, 207, 205, 3, 2, 2, 2, 207, 208, 3, 2, 2, 2, 208, 33,
+	3, 2, 2, 2, 209, 210, 7, 11, 2, 2, 210, 211, 7, 22, 2, 2, 211, 216, 5,
+	38, 20, 2, 212, 214, 7, 22, 2, 2, 213, 212, 3, 2, 2, 2, 213, 214, 3, 2,
+	2, 2, 214, 215, 3, 2, 2, 2, 215, 217, 7, 24, 2, 2, 216, 213, 3, 2, 2, 2,
+	216, 217, 3, 2, 2, 2, 217, 222, 3, 2, 2, 2, 218, 220, 7, 22, 2, 2, 219,
+	218, 3, 2, 2, 2, 219, 220, 3, 2, 2, 2, 220, 221, 3, 2, 2, 2, 221, 223,
+	5, 40, 21, 2, 222, 219, 3, 2, 2, 2, 222, 223, 3, 2, 2, 2, 223, 35, 3, 2,
+	2, 2, 224, 225, 7, 12, 2, 2, 225, 226, 7, 22, 2, 2, 226, 238, 5, 38, 20,
+	2, 227, 229, 7, 22, 2, 2, 228, 227, 3, 2, 2, 2, 228, 229, 3, 2, 2, 2, 229,
+	230, 3, 2, 2, 2, 230, 231, 7, 24, 2, 2, 231, 236, 3, 2, 2, 2, 232, 234,
+	7, 22, 2, 2, 233, 232, 3, 2, 2, 2, 233, 234, 3, 2, 2, 2, 234, 235, 3, 2,
+	2, 2, 235, 237, 5, 40, 21, 2, 236, 233, 3, 2, 2, 2, 236, 237, 3, 2, 2,
+	2, 237, 239, 3, 2, 2, 2, 238, 228, 3, 2, 2, 2, 238, 239, 3, 2, 2, 2, 239,
+	37, 3, 2, 2, 2, 240, 241, 7, 23, 2, 2, 241, 39, 3, 2, 2, 2, 242, 249, 7,
+	23, 2, 2, 243, 245, 7, 22, 2, 2, 244, 243, 3, 2, 2, 2, 244, 245, 3, 2,
+	2, 2, 245, 246, 3, 2, 2, 2, 246, 248, 7, 23, 2, 2, 247, 244, 3, 2, 2, 2,
+	248, 251, 3, 2, 2, 2, 249, 247, 3, 2, 2, 2, 249, 250, 3, 2, 2, 2, 250,
+	41, 3, 2, 2, 2, 251, 249, 3, 2, 2, 2, 252, 255, 7, 17, 2, 2, 253, 254,
+	7, 22, 2, 2, 254, 256, 5, 54, 28, 2, 255, 253, 3, 2, 2, 2, 255, 256, 3,
+	2, 2, 2, 256, 43, 3, 2, 2, 2, 257, 260, 7, 18, 2, 2, 258, 259, 7, 22, 2,
+	2, 259, 261, 5, 54, 28, 2, 260, 258, 3, 2, 2, 2, 260, 261, 3, 2, 2, 2,
+	261, 45, 3, 2, 2, 2, 262, 265, 7, 19, 2, 2, 263, 264, 7, 22, 2, 2, 264,
+	266, 5, 54, 28, 2, 265, 263, 3, 2, 2, 2, 265, 266, 3, 2, 2, 2, 266, 47,
+	3, 2, 2, 2, 267, 270, 5, 50, 26, 2, 268, 269, 7, 22, 2, 2, 269, 271, 5,
+	54, 28, 2, 270, 268, 3, 2, 2, 2, 270, 271, 3, 2, 2, 2, 271, 49, 3, 2, 2,
+	2, 272, 273, 7, 20, 2, 2, 273, 51, 3, 2, 2, 2, 274, 275, 5, 54, 28, 2,
+	275, 53, 3, 2, 2, 2, 276, 283, 5, 56, 29, 2, 277, 279, 7, 22, 2, 2, 278,
+	277, 3, 2, 2, 2, 278, 279, 3, 2, 2, 2, 279, 280, 3, 2, 2, 2, 280, 282,
+	5, 56, 29, 2, 281, 278, 3, 2, 2, 2, 282, 285, 3, 2, 2, 2, 283, 281, 3,
+	2, 2, 2, 283, 284, 3, 2, 2, 2, 284, 55, 3, 2, 2, 2, 285, 283, 3, 2, 2,
+	2, 286, 287, 7, 23, 2, 2, 287, 57, 3, 2, 2, 2, 47, 61, 65, 70, 73, 78,
+	85, 90, 95, 99, 105, 109, 115, 118, 122, 127, 133, 136, 141, 158, 163,
+	168, 172, 177, 182, 187, 192, 197, 202, 207, 213, 216, 219, 222, 228, 233,
+	236, 238, 244, 249, 255, 260, 265, 270, 278, 283,
 }
 var deserializer = antlr.NewATNDeserializer(nil)
 var deserializedATN = deserializer.DeserializeFromUInt16(parserATN)
 
 var literalNames = []string{
 	"", "", "", "", "'FROM'", "'COPY'", "'SAVE ARTIFACT'", "'SAVE IMAGE'",
-	"'RUN'", "'ENV'", "'ARG'", "'BUILD'", "'WORKDIR'", "'ENTRYPOINT'", "'GIT CLONE'",
-	"'DOCKER LOAD'", "'DOCKER PULL'", "", "", "", "", "'='",
+	"'RUN'", "'ENV'", "'ARG'", "'BUILD'", "'WORKDIR'", "'CMD'", "'ENTRYPOINT'",
+	"'GIT CLONE'", "'DOCKER LOAD'", "'DOCKER PULL'", "", "", "", "", "'='",
 }
 var symbolicNames = []string{
 	"", "INDENT", "DEDENT", "Target", "FROM", "COPY", "SAVE_ARTIFACT", "SAVE_IMAGE",
-	"RUN", "ENV", "ARG", "BUILD", "WORKDIR", "ENTRYPOINT", "GIT_CLONE", "DOCKER_LOAD",
-	"DOCKER_PULL", "Command", "NL", "WS", "Atom", "EQUALS",
+	"RUN", "ENV", "ARG", "BUILD", "WORKDIR", "CMD", "ENTRYPOINT", "GIT_CLONE",
+	"DOCKER_LOAD", "DOCKER_PULL", "Command", "NL", "WS", "Atom", "EQUALS",
 }
 
 var ruleNames = []string{
 	"earthFile", "targets", "target", "targetHeader", "stmts", "stmt", "fromStmt",
 	"copyStmt", "saveStmt", "saveImage", "saveArtifact", "runStmt", "buildStmt",
-	"workdirStmt", "entrypointStmt", "envStmt", "argStmt", "envArgKey", "envArgValue",
-	"gitCloneStmt", "dockerLoadStmt", "dockerPullStmt", "genericCommand", "commandName",
-	"stmtWordsMaybeJSON", "stmtWords", "stmtWord",
+	"workdirStmt", "cmdStmt", "entrypointStmt", "envStmt", "argStmt", "envArgKey",
+	"envArgValue", "gitCloneStmt", "dockerLoadStmt", "dockerPullStmt", "genericCommand",
+	"commandName", "stmtWordsMaybeJSON", "stmtWords", "stmtWord",
 }
 var decisionToDFA = make([]*antlr.DFA, len(deserializedATN.DecisionToState))
 
@@ -207,15 +211,16 @@ const (
 	EarthParserARG           = 10
 	EarthParserBUILD         = 11
 	EarthParserWORKDIR       = 12
-	EarthParserENTRYPOINT    = 13
-	EarthParserGIT_CLONE     = 14
-	EarthParserDOCKER_LOAD   = 15
-	EarthParserDOCKER_PULL   = 16
-	EarthParserCommand       = 17
-	EarthParserNL            = 18
-	EarthParserWS            = 19
-	EarthParserAtom          = 20
-	EarthParserEQUALS        = 21
+	EarthParserCMD           = 13
+	EarthParserENTRYPOINT    = 14
+	EarthParserGIT_CLONE     = 15
+	EarthParserDOCKER_LOAD   = 16
+	EarthParserDOCKER_PULL   = 17
+	EarthParserCommand       = 18
+	EarthParserNL            = 19
+	EarthParserWS            = 20
+	EarthParserAtom          = 21
+	EarthParserEQUALS        = 22
 )
 
 // EarthParser rules.
@@ -234,19 +239,20 @@ const (
 	EarthParserRULE_runStmt            = 11
 	EarthParserRULE_buildStmt          = 12
 	EarthParserRULE_workdirStmt        = 13
-	EarthParserRULE_entrypointStmt     = 14
-	EarthParserRULE_envStmt            = 15
-	EarthParserRULE_argStmt            = 16
-	EarthParserRULE_envArgKey          = 17
-	EarthParserRULE_envArgValue        = 18
-	EarthParserRULE_gitCloneStmt       = 19
-	EarthParserRULE_dockerLoadStmt     = 20
-	EarthParserRULE_dockerPullStmt     = 21
-	EarthParserRULE_genericCommand     = 22
-	EarthParserRULE_commandName        = 23
-	EarthParserRULE_stmtWordsMaybeJSON = 24
-	EarthParserRULE_stmtWords          = 25
-	EarthParserRULE_stmtWord           = 26
+	EarthParserRULE_cmdStmt            = 14
+	EarthParserRULE_entrypointStmt     = 15
+	EarthParserRULE_envStmt            = 16
+	EarthParserRULE_argStmt            = 17
+	EarthParserRULE_envArgKey          = 18
+	EarthParserRULE_envArgValue        = 19
+	EarthParserRULE_gitCloneStmt       = 20
+	EarthParserRULE_dockerLoadStmt     = 21
+	EarthParserRULE_dockerPullStmt     = 22
+	EarthParserRULE_genericCommand     = 23
+	EarthParserRULE_commandName        = 24
+	EarthParserRULE_stmtWordsMaybeJSON = 25
+	EarthParserRULE_stmtWords          = 26
+	EarthParserRULE_stmtWord           = 27
 )
 
 // IEarthFileContext is an interface to support dynamic dispatch.
@@ -363,41 +369,41 @@ func (p *EarthParser) EarthFile() (localctx IEarthFileContext) {
 	var _alt int
 
 	p.EnterOuterAlt(localctx, 1)
-	p.SetState(57)
+	p.SetState(59)
 	p.GetErrorHandler().Sync(p)
 	_alt = p.GetInterpreter().AdaptivePredict(p.GetTokenStream(), 0, p.GetParserRuleContext())
 
 	for _alt != 2 && _alt != antlr.ATNInvalidAltNumber {
 		if _alt == 1 {
 			{
-				p.SetState(54)
+				p.SetState(56)
 				p.Match(EarthParserNL)
 			}
 
 		}
-		p.SetState(59)
+		p.SetState(61)
 		p.GetErrorHandler().Sync(p)
 		_alt = p.GetInterpreter().AdaptivePredict(p.GetTokenStream(), 0, p.GetParserRuleContext())
 	}
-	p.SetState(61)
+	p.SetState(63)
 	p.GetErrorHandler().Sync(p)
 	_la = p.GetTokenStream().LA(1)
 
-	if ((_la)&-(0x1f+1)) == 0 && ((1<<uint(_la))&((1<<EarthParserFROM)|(1<<EarthParserCOPY)|(1<<EarthParserSAVE_ARTIFACT)|(1<<EarthParserSAVE_IMAGE)|(1<<EarthParserRUN)|(1<<EarthParserENV)|(1<<EarthParserARG)|(1<<EarthParserBUILD)|(1<<EarthParserWORKDIR)|(1<<EarthParserENTRYPOINT)|(1<<EarthParserGIT_CLONE)|(1<<EarthParserDOCKER_LOAD)|(1<<EarthParserDOCKER_PULL)|(1<<EarthParserCommand)|(1<<EarthParserWS))) != 0 {
+	if ((_la)&-(0x1f+1)) == 0 && ((1<<uint(_la))&((1<<EarthParserFROM)|(1<<EarthParserCOPY)|(1<<EarthParserSAVE_ARTIFACT)|(1<<EarthParserSAVE_IMAGE)|(1<<EarthParserRUN)|(1<<EarthParserENV)|(1<<EarthParserARG)|(1<<EarthParserBUILD)|(1<<EarthParserWORKDIR)|(1<<EarthParserCMD)|(1<<EarthParserENTRYPOINT)|(1<<EarthParserGIT_CLONE)|(1<<EarthParserDOCKER_LOAD)|(1<<EarthParserDOCKER_PULL)|(1<<EarthParserCommand)|(1<<EarthParserWS))) != 0 {
 		{
-			p.SetState(60)
+			p.SetState(62)
 			p.Stmts()
 		}
 
 	}
-	p.SetState(64)
+	p.SetState(66)
 	p.GetErrorHandler().Sync(p)
 	_alt = 1
 	for ok := true; ok; ok = _alt != 2 && _alt != antlr.ATNInvalidAltNumber {
 		switch _alt {
 		case 1:
 			{
-				p.SetState(63)
+				p.SetState(65)
 				p.Match(EarthParserNL)
 			}
 
@@ -405,37 +411,37 @@ func (p *EarthParser) EarthFile() (localctx IEarthFileContext) {
 			panic(antlr.NewNoViableAltException(p, nil, nil, nil, nil, nil))
 		}
 
-		p.SetState(66)
+		p.SetState(68)
 		p.GetErrorHandler().Sync(p)
 		_alt = p.GetInterpreter().AdaptivePredict(p.GetTokenStream(), 2, p.GetParserRuleContext())
 	}
-	p.SetState(69)
+	p.SetState(71)
 	p.GetErrorHandler().Sync(p)
 	_la = p.GetTokenStream().LA(1)
 
 	if _la == EarthParserTarget {
 		{
-			p.SetState(68)
+			p.SetState(70)
 			p.Targets()
 		}
 
 	}
-	p.SetState(74)
+	p.SetState(76)
 	p.GetErrorHandler().Sync(p)
 	_la = p.GetTokenStream().LA(1)
 
 	for _la == EarthParserNL {
 		{
-			p.SetState(71)
+			p.SetState(73)
 			p.Match(EarthParserNL)
 		}
 
-		p.SetState(76)
+		p.SetState(78)
 		p.GetErrorHandler().Sync(p)
 		_la = p.GetTokenStream().LA(1)
 	}
 	{
-		p.SetState(77)
+		p.SetState(79)
 		p.Match(EarthParserEOF)
 	}
 
@@ -572,88 +578,88 @@ func (p *EarthParser) Targets() (localctx ITargetsContext) {
 
 	p.EnterOuterAlt(localctx, 1)
 	{
-		p.SetState(79)
+		p.SetState(81)
 		p.Target()
 	}
-	p.SetState(81)
+	p.SetState(83)
 	p.GetErrorHandler().Sync(p)
 	_la = p.GetTokenStream().LA(1)
 
 	if _la == EarthParserWS {
 		{
-			p.SetState(80)
+			p.SetState(82)
 			p.Match(EarthParserWS)
 		}
 
 	}
-	p.SetState(95)
+	p.SetState(97)
 	p.GetErrorHandler().Sync(p)
 	_alt = p.GetInterpreter().AdaptivePredict(p.GetTokenStream(), 8, p.GetParserRuleContext())
 
 	for _alt != 2 && _alt != antlr.ATNInvalidAltNumber {
 		if _alt == 1 {
-			p.SetState(84)
+			p.SetState(86)
 			p.GetErrorHandler().Sync(p)
 			_la = p.GetTokenStream().LA(1)
 
 			for ok := true; ok; ok = _la == EarthParserNL {
 				{
-					p.SetState(83)
+					p.SetState(85)
 					p.Match(EarthParserNL)
 				}
 
-				p.SetState(86)
+				p.SetState(88)
 				p.GetErrorHandler().Sync(p)
 				_la = p.GetTokenStream().LA(1)
 			}
 			{
-				p.SetState(88)
+				p.SetState(90)
 				p.Match(EarthParserDEDENT)
 			}
 			{
-				p.SetState(89)
+				p.SetState(91)
 				p.Target()
 			}
-			p.SetState(91)
+			p.SetState(93)
 			p.GetErrorHandler().Sync(p)
 			_la = p.GetTokenStream().LA(1)
 
 			if _la == EarthParserWS {
 				{
-					p.SetState(90)
+					p.SetState(92)
 					p.Match(EarthParserWS)
 				}
 
 			}
 
 		}
-		p.SetState(97)
+		p.SetState(99)
 		p.GetErrorHandler().Sync(p)
 		_alt = p.GetInterpreter().AdaptivePredict(p.GetTokenStream(), 8, p.GetParserRuleContext())
 	}
-	p.SetState(101)
+	p.SetState(103)
 	p.GetErrorHandler().Sync(p)
 	_alt = p.GetInterpreter().AdaptivePredict(p.GetTokenStream(), 9, p.GetParserRuleContext())
 
 	for _alt != 2 && _alt != antlr.ATNInvalidAltNumber {
 		if _alt == 1 {
 			{
-				p.SetState(98)
+				p.SetState(100)
 				p.Match(EarthParserNL)
 			}
 
 		}
-		p.SetState(103)
+		p.SetState(105)
 		p.GetErrorHandler().Sync(p)
 		_alt = p.GetInterpreter().AdaptivePredict(p.GetTokenStream(), 9, p.GetParserRuleContext())
 	}
-	p.SetState(105)
+	p.SetState(107)
 	p.GetErrorHandler().Sync(p)
 	_la = p.GetTokenStream().LA(1)
 
 	if _la == EarthParserDEDENT {
 		{
-			p.SetState(104)
+			p.SetState(106)
 			p.Match(EarthParserDEDENT)
 		}
 
@@ -779,44 +785,44 @@ func (p *EarthParser) Target() (localctx ITargetContext) {
 
 	p.EnterOuterAlt(localctx, 1)
 	{
-		p.SetState(107)
+		p.SetState(109)
 		p.TargetHeader()
 	}
-	p.SetState(109)
+	p.SetState(111)
 	p.GetErrorHandler().Sync(p)
 	_la = p.GetTokenStream().LA(1)
 
 	for ok := true; ok; ok = _la == EarthParserNL {
 		{
-			p.SetState(108)
+			p.SetState(110)
 			p.Match(EarthParserNL)
 		}
 
-		p.SetState(111)
+		p.SetState(113)
 		p.GetErrorHandler().Sync(p)
 		_la = p.GetTokenStream().LA(1)
 	}
-	p.SetState(114)
+	p.SetState(116)
 	p.GetErrorHandler().Sync(p)
 	_la = p.GetTokenStream().LA(1)
 
 	if _la == EarthParserWS {
 		{
-			p.SetState(113)
+			p.SetState(115)
 			p.Match(EarthParserWS)
 		}
 
 	}
 	{
-		p.SetState(116)
+		p.SetState(118)
 		p.Match(EarthParserINDENT)
 	}
-	p.SetState(118)
+	p.SetState(120)
 	p.GetErrorHandler().Sync(p)
 
 	if p.GetInterpreter().AdaptivePredict(p.GetTokenStream(), 13, p.GetParserRuleContext()) == 1 {
 		{
-			p.SetState(117)
+			p.SetState(119)
 			p.Stmts()
 		}
 
@@ -909,7 +915,7 @@ func (p *EarthParser) TargetHeader() (localctx ITargetHeaderContext) {
 
 	p.EnterOuterAlt(localctx, 1)
 	{
-		p.SetState(120)
+		p.SetState(122)
 		p.Match(EarthParserTarget)
 	}
 
@@ -1037,59 +1043,59 @@ func (p *EarthParser) Stmts() (localctx IStmtsContext) {
 	var _alt int
 
 	p.EnterOuterAlt(localctx, 1)
-	p.SetState(123)
+	p.SetState(125)
 	p.GetErrorHandler().Sync(p)
 	_la = p.GetTokenStream().LA(1)
 
 	if _la == EarthParserWS {
 		{
-			p.SetState(122)
+			p.SetState(124)
 			p.Match(EarthParserWS)
 		}
 
 	}
 	{
-		p.SetState(125)
+		p.SetState(127)
 		p.Stmt()
 	}
-	p.SetState(137)
+	p.SetState(139)
 	p.GetErrorHandler().Sync(p)
 	_alt = p.GetInterpreter().AdaptivePredict(p.GetTokenStream(), 17, p.GetParserRuleContext())
 
 	for _alt != 2 && _alt != antlr.ATNInvalidAltNumber {
 		if _alt == 1 {
-			p.SetState(127)
+			p.SetState(129)
 			p.GetErrorHandler().Sync(p)
 			_la = p.GetTokenStream().LA(1)
 
 			for ok := true; ok; ok = _la == EarthParserNL {
 				{
-					p.SetState(126)
+					p.SetState(128)
 					p.Match(EarthParserNL)
 				}
 
-				p.SetState(129)
+				p.SetState(131)
 				p.GetErrorHandler().Sync(p)
 				_la = p.GetTokenStream().LA(1)
 			}
-			p.SetState(132)
+			p.SetState(134)
 			p.GetErrorHandler().Sync(p)
 			_la = p.GetTokenStream().LA(1)
 
 			if _la == EarthParserWS {
 				{
-					p.SetState(131)
+					p.SetState(133)
 					p.Match(EarthParserWS)
 				}
 
 			}
 			{
-				p.SetState(134)
+				p.SetState(136)
 				p.Stmt()
 			}
 
 		}
-		p.SetState(139)
+		p.SetState(141)
 		p.GetErrorHandler().Sync(p)
 		_alt = p.GetInterpreter().AdaptivePredict(p.GetTokenStream(), 17, p.GetParserRuleContext())
 	}
@@ -1193,6 +1199,16 @@ func (s *StmtContext) WorkdirStmt() IWorkdirStmtContext {
 	}
 
 	return t.(IWorkdirStmtContext)
+}
+
+func (s *StmtContext) CmdStmt() ICmdStmtContext {
+	var t = s.GetTypedRuleContext(reflect.TypeOf((*ICmdStmtContext)(nil)).Elem(), 0)
+
+	if t == nil {
+		return nil
+	}
+
+	return t.(ICmdStmtContext)
 }
 
 func (s *StmtContext) EntrypointStmt() IEntrypointStmtContext {
@@ -1305,98 +1321,105 @@ func (p *EarthParser) Stmt() (localctx IStmtContext) {
 		}
 	}()
 
-	p.SetState(153)
+	p.SetState(156)
 	p.GetErrorHandler().Sync(p)
 
 	switch p.GetTokenStream().LA(1) {
 	case EarthParserFROM:
 		p.EnterOuterAlt(localctx, 1)
 		{
-			p.SetState(140)
+			p.SetState(142)
 			p.FromStmt()
 		}
 
 	case EarthParserCOPY:
 		p.EnterOuterAlt(localctx, 2)
 		{
-			p.SetState(141)
+			p.SetState(143)
 			p.CopyStmt()
 		}
 
 	case EarthParserSAVE_ARTIFACT, EarthParserSAVE_IMAGE:
 		p.EnterOuterAlt(localctx, 3)
 		{
-			p.SetState(142)
+			p.SetState(144)
 			p.SaveStmt()
 		}
 
 	case EarthParserRUN:
 		p.EnterOuterAlt(localctx, 4)
 		{
-			p.SetState(143)
+			p.SetState(145)
 			p.RunStmt()
 		}
 
 	case EarthParserBUILD:
 		p.EnterOuterAlt(localctx, 5)
 		{
-			p.SetState(144)
+			p.SetState(146)
 			p.BuildStmt()
 		}
 
 	case EarthParserWORKDIR:
 		p.EnterOuterAlt(localctx, 6)
 		{
-			p.SetState(145)
+			p.SetState(147)
 			p.WorkdirStmt()
 		}
 
-	case EarthParserENTRYPOINT:
+	case EarthParserCMD:
 		p.EnterOuterAlt(localctx, 7)
 		{
-			p.SetState(146)
+			p.SetState(148)
+			p.CmdStmt()
+		}
+
+	case EarthParserENTRYPOINT:
+		p.EnterOuterAlt(localctx, 8)
+		{
+			p.SetState(149)
 			p.EntrypointStmt()
 		}
 
 	case EarthParserENV:
-		p.EnterOuterAlt(localctx, 8)
+		p.EnterOuterAlt(localctx, 9)
 		{
-			p.SetState(147)
+			p.SetState(150)
 			p.EnvStmt()
 		}
 
 	case EarthParserARG:
-		p.EnterOuterAlt(localctx, 9)
+		p.EnterOuterAlt(localctx, 10)
 		{
-			p.SetState(148)
+			p.SetState(151)
 			p.ArgStmt()
 		}
 
 	case EarthParserGIT_CLONE:
-		p.EnterOuterAlt(localctx, 10)
+		p.EnterOuterAlt(localctx, 11)
 		{
-			p.SetState(149)
+			p.SetState(152)
 			p.GitCloneStmt()
 		}
 
 	case EarthParserDOCKER_LOAD:
-		p.EnterOuterAlt(localctx, 11)
+		p.EnterOuterAlt(localctx, 12)
 		{
-			p.SetState(150)
+			p.SetState(153)
 			p.DockerLoadStmt()
 		}
 
 	case EarthParserDOCKER_PULL:
-		p.EnterOuterAlt(localctx, 12)
+		p.EnterOuterAlt(localctx, 13)
 		{
-			p.SetState(151)
+			p.SetState(154)
 			p.DockerPullStmt()
 		}
 
 	case EarthParserCommand:
-		p.EnterOuterAlt(localctx, 13)
+		p.EnterOuterAlt(localctx, 14)
 		{
-			p.SetState(152)
+			p.SetState(155)
 			p.GenericCommand()
 		}
 
@@ -1505,19 +1528,19 @@ func (p *EarthParser) FromStmt() (localctx IFromStmtContext) {
 
 	p.EnterOuterAlt(localctx, 1)
 	{
-		p.SetState(155)
+		p.SetState(158)
 		p.Match(EarthParserFROM)
 	}
-	p.SetState(158)
+	p.SetState(161)
 	p.GetErrorHandler().Sync(p)
 
 	if p.GetInterpreter().AdaptivePredict(p.GetTokenStream(), 19, p.GetParserRuleContext()) == 1 {
 		{
-			p.SetState(156)
+			p.SetState(159)
 			p.Match(EarthParserWS)
 		}
 		{
-			p.SetState(157)
+			p.SetState(160)
 			p.StmtWords()
 		}
 
@@ -1624,19 +1647,19 @@ func (p *EarthParser) CopyStmt() (localctx ICopyStmtContext) {
 
 	p.EnterOuterAlt(localctx, 1)
 	{
-		p.SetState(160)
+		p.SetState(163)
 		p.Match(EarthParserCOPY)
 	}
-	p.SetState(163)
+	p.SetState(166)
 	p.GetErrorHandler().Sync(p)
 
 	if p.GetInterpreter().AdaptivePredict(p.GetTokenStream(), 20, p.GetParserRuleContext()) == 1 {
 		{
-			p.SetState(161)
+			p.SetState(164)
 			p.Match(EarthParserWS)
 		}
 		{
-			p.SetState(162)
+			p.SetState(165)
 			p.StmtWords()
 		}
 
@@ -1743,21 +1766,21 @@ func (p *EarthParser) SaveStmt() (localctx ISaveStmtContext) {
 		}
 	}()
 
-	p.SetState(167)
+	p.SetState(170)
 	p.GetErrorHandler().Sync(p)
 
 	switch p.GetTokenStream().LA(1) {
 	case EarthParserSAVE_ARTIFACT:
 		p.EnterOuterAlt(localctx, 1)
 		{
-			p.SetState(165)
+			p.SetState(168)
 			p.SaveArtifact()
 		}
 
 	case EarthParserSAVE_IMAGE:
 		p.EnterOuterAlt(localctx, 2)
 		{
-			p.SetState(166)
+			p.SetState(169)
 			p.SaveImage()
 		}
 
@@ -1866,19 +1889,19 @@ func (p *EarthParser) SaveImage() (localctx ISaveImageContext) {
 
 	p.EnterOuterAlt(localctx, 1)
 	{
-		p.SetState(169)
+		p.SetState(172)
 		p.Match(EarthParserSAVE_IMAGE)
 	}
-	p.SetState(172)
+	p.SetState(175)
 	p.GetErrorHandler().Sync(p)
 
 	if p.GetInterpreter().AdaptivePredict(p.GetTokenStream(), 22, p.GetParserRuleContext()) == 1 {
 		{
-			p.SetState(170)
+			p.SetState(173)
 			p.Match(EarthParserWS)
 		}
 		{
-			p.SetState(171)
+			p.SetState(174)
 			p.StmtWords()
 		}
 
@@ -1985,19 +2008,19 @@ func (p *EarthParser) SaveArtifact() (localctx ISaveArtifactContext) {
 
 	p.EnterOuterAlt(localctx, 1)
 	{
-		p.SetState(174)
+		p.SetState(177)
 		p.Match(EarthParserSAVE_ARTIFACT)
 	}
-	p.SetState(177)
+	p.SetState(180)
 	p.GetErrorHandler().Sync(p)
 
 	if p.GetInterpreter().AdaptivePredict(p.GetTokenStream(), 23, p.GetParserRuleContext()) == 1 {
 		{
-			p.SetState(175)
+			p.SetState(178)
 			p.Match(EarthParserWS)
 		}
 		{
-			p.SetState(176)
+			p.SetState(179)
 			p.StmtWords()
 		}
 
@@ -2104,19 +2127,19 @@ func (p *EarthParser) RunStmt() (localctx IRunStmtContext) {
 
 	p.EnterOuterAlt(localctx, 1)
 	{
-		p.SetState(179)
+		p.SetState(182)
 		p.Match(EarthParserRUN)
 	}
-	p.SetState(182)
+	p.SetState(185)
 	p.GetErrorHandler().Sync(p)
 
 	if p.GetInterpreter().AdaptivePredict(p.GetTokenStream(), 24, p.GetParserRuleContext()) == 1 {
 		{
-			p.SetState(180)
+			p.SetState(183)
 			p.Match(EarthParserWS)
 		}
 		{
-			p.SetState(181)
+			p.SetState(184)
 			p.StmtWordsMaybeJSON()
 		}
 
@@ -2223,19 +2246,19 @@ func (p *EarthParser) BuildStmt() (localctx IBuildStmtContext) {
 
 	p.EnterOuterAlt(localctx, 1)
 	{
-		p.SetState(184)
+		p.SetState(187)
 		p.Match(EarthParserBUILD)
 	}
-	p.SetState(187)
+	p.SetState(190)
 	p.GetErrorHandler().Sync(p)
 
 	if p.GetInterpreter().AdaptivePredict(p.GetTokenStream(), 25, p.GetParserRuleContext()) == 1 {
 		{
-			p.SetState(185)
+			p.SetState(188)
 			p.Match(EarthParserWS)
 		}
 		{
-			p.SetState(186)
+			p.SetState(189)
 			p.StmtWords()
 		}
 
@@ -2342,20 +2365,139 @@ func (p *EarthParser) WorkdirStmt() (localctx IWorkdirStmtContext) {
 
 	p.EnterOuterAlt(localctx, 1)
 	{
-		p.SetState(189)
+		p.SetState(192)
 		p.Match(EarthParserWORKDIR)
 	}
-	p.SetState(192)
+	p.SetState(195)
 	p.GetErrorHandler().Sync(p)
 
 	if p.GetInterpreter().AdaptivePredict(p.GetTokenStream(), 26, p.GetParserRuleContext()) == 1 {
 		{
-			p.SetState(190)
+			p.SetState(193)
 			p.Match(EarthParserWS)
 		}
 		{
-			p.SetState(191)
+			p.SetState(194)
 			p.StmtWords()
+		}
+
+	}
+
+	return localctx
+}
+
+// ICmdStmtContext is an interface to support dynamic dispatch.
+type ICmdStmtContext interface {
+	antlr.ParserRuleContext
+
+	// GetParser returns the parser.
+	GetParser() antlr.Parser
+
+	// IsCmdStmtContext differentiates from other interfaces.
+	IsCmdStmtContext()
+}
+
+type CmdStmtContext struct {
+	*antlr.BaseParserRuleContext
+	parser antlr.Parser
+}
+
+func NewEmptyCmdStmtContext() *CmdStmtContext {
+	var p = new(CmdStmtContext)
+	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(nil, -1)
+	p.RuleIndex = EarthParserRULE_cmdStmt
+	return p
+}
+
+func (*CmdStmtContext) IsCmdStmtContext() {}
+
+func NewCmdStmtContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *CmdStmtContext {
+	var p = new(CmdStmtContext)
+
+	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(parent, invokingState)
+
+	p.parser = parser
+	p.RuleIndex = EarthParserRULE_cmdStmt
+
+	return p
+}
+
+func (s *CmdStmtContext) GetParser() antlr.Parser { return s.parser }
+
+func (s *CmdStmtContext) CMD() antlr.TerminalNode {
+	return s.GetToken(EarthParserCMD, 0)
+}
+
+func (s *CmdStmtContext) WS() antlr.TerminalNode {
+	return s.GetToken(EarthParserWS, 0)
+}
+
+func (s *CmdStmtContext) StmtWordsMaybeJSON() IStmtWordsMaybeJSONContext {
+	var t = s.GetTypedRuleContext(reflect.TypeOf((*IStmtWordsMaybeJSONContext)(nil)).Elem(), 0)
+
+	if t == nil {
+		return nil
+	}
+
+	return t.(IStmtWordsMaybeJSONContext)
+}
+
+func (s *CmdStmtContext) GetRuleContext() antlr.RuleContext {
+	return s
+}
+
+func (s *CmdStmtContext) ToStringTree(ruleNames []string, recog antlr.Recognizer) string {
+	return antlr.TreesStringTree(s, ruleNames, recog)
+}
+
+func (s *CmdStmtContext) EnterRule(listener antlr.ParseTreeListener) {
+	if listenerT, ok := listener.(EarthParserListener); ok {
+		listenerT.EnterCmdStmt(s)
+	}
+}
+
+func (s *CmdStmtContext) ExitRule(listener antlr.ParseTreeListener) {
+	if listenerT, ok := listener.(EarthParserListener); ok {
+		listenerT.ExitCmdStmt(s)
+	}
+}
+
+func (p *EarthParser) CmdStmt() (localctx ICmdStmtContext) {
+	localctx = NewCmdStmtContext(p, p.GetParserRuleContext(), p.GetState())
+	p.EnterRule(localctx, 28, EarthParserRULE_cmdStmt)
+
+	defer func() {
+		p.ExitRule()
+	}()
+
+	defer func() {
+		if err := recover(); err != nil {
+			if v, ok := err.(antlr.RecognitionException); ok {
+				localctx.SetException(v)
+				p.GetErrorHandler().ReportError(p, v)
+				p.GetErrorHandler().Recover(p, v)
+			} else {
+				panic(err)
+			}
+		}
+	}()
+
+	p.EnterOuterAlt(localctx, 1)
+	{
+		p.SetState(197)
+		p.Match(EarthParserCMD)
+	}
+	p.SetState(200)
+	p.GetErrorHandler().Sync(p)
+
+	if p.GetInterpreter().AdaptivePredict(p.GetTokenStream(), 27, p.GetParserRuleContext()) == 1 {
+		{
+			p.SetState(198)
+			p.Match(EarthParserWS)
+		}
+		{
+			p.SetState(199)
+			p.StmtWordsMaybeJSON()
 		}
 
 	}
@@ -2441,7 +2583,7 @@ func (s *EntrypointStmtContext) ExitRule(listener antlr.ParseTreeListener) {
 
 func (p *EarthParser) EntrypointStmt() (localctx IEntrypointStmtContext) {
 	localctx = NewEntrypointStmtContext(p, p.GetParserRuleContext(), p.GetState())
-	p.EnterRule(localctx, 28, EarthParserRULE_entrypointStmt)
+	p.EnterRule(localctx, 30, EarthParserRULE_entrypointStmt)
 
 	defer func() {
 		p.ExitRule()
@@ -2461,19 +2603,19 @@ func (p *EarthParser) EntrypointStmt() (localctx IEntrypointStmtContext) {
 
 	p.EnterOuterAlt(localctx, 1)
 	{
-		p.SetState(194)
+		p.SetState(202)
 		p.Match(EarthParserENTRYPOINT)
 	}
-	p.SetState(197)
+	p.SetState(205)
 	p.GetErrorHandler().Sync(p)
 
-	if p.GetInterpreter().AdaptivePredict(p.GetTokenStream(), 27, p.GetParserRuleContext()) == 1 {
+	if p.GetInterpreter().AdaptivePredict(p.GetTokenStream(), 28, p.GetParserRuleContext()) == 1 {
 		{
-			p.SetState(195)
+			p.SetState(203)
 			p.Match(EarthParserWS)
 		}
 		{
-			p.SetState(196)
+			p.SetState(204)
 			p.StmtWordsMaybeJSON()
 		}
 
@@ -2578,7 +2720,7 @@ func (s *EnvStmtContext) ExitRule(listener antlr.ParseTreeListener) {
 
 func (p *EarthParser) EnvStmt() (localctx IEnvStmtContext) {
 	localctx = NewEnvStmtContext(p, p.GetParserRuleContext(), p.GetState())
-	p.EnterRule(localctx, 30, EarthParserRULE_envStmt)
+	p.EnterRule(localctx, 32, EarthParserRULE_envStmt)
 	var _la int
 
 	defer func() {
@@ -2599,55 +2741,55 @@ func (p *EarthParser) EnvStmt() (localctx IEnvStmtContext) {
 
 	p.EnterOuterAlt(localctx, 1)
 	{
-		p.SetState(199)
+		p.SetState(207)
 		p.Match(EarthParserENV)
 	}
 	{
-		p.SetState(200)
+		p.SetState(208)
 		p.Match(EarthParserWS)
 	}
 	{
-		p.SetState(201)
+		p.SetState(209)
 		p.EnvArgKey()
 	}
-	p.SetState(206)
+	p.SetState(214)
 	p.GetErrorHandler().Sync(p)
 
-	if p.GetInterpreter().AdaptivePredict(p.GetTokenStream(), 29, p.GetParserRuleContext()) == 1 {
-		p.SetState(203)
+	if p.GetInterpreter().AdaptivePredict(p.GetTokenStream(), 30, p.GetParserRuleContext()) == 1 {
+		p.SetState(211)
 		p.GetErrorHandler().Sync(p)
 		_la = p.GetTokenStream().LA(1)
 
 		if _la == EarthParserWS {
 			{
-				p.SetState(202)
+				p.SetState(210)
 				p.Match(EarthParserWS)
 			}
 
 		}
 		{
-			p.SetState(205)
+			p.SetState(213)
 			p.Match(EarthParserEQUALS)
 		}
 
 	}
-	p.SetState(212)
+	p.SetState(220)
 	p.GetErrorHandler().Sync(p)
 
-	if p.GetInterpreter().AdaptivePredict(p.GetTokenStream(), 31, p.GetParserRuleContext()) == 1 {
-		p.SetState(209)
+	if p.GetInterpreter().AdaptivePredict(p.GetTokenStream(), 32, p.GetParserRuleContext()) == 1 {
+		p.SetState(217)
 		p.GetErrorHandler().Sync(p)
 		_la = p.GetTokenStream().LA(1)
 
 		if _la == EarthParserWS {
 			{
-				p.SetState(208)
+				p.SetState(216)
 				p.Match(EarthParserWS)
 			}
 
 		}
 		{
-			p.SetState(211)
+			p.SetState(219)
 			p.EnvArgValue()
 		}
 
@@ -2752,7 +2894,7 @@ func (s *ArgStmtContext) ExitRule(listener antlr.ParseTreeListener) {
 
 func (p *EarthParser) ArgStmt() (localctx IArgStmtContext) {
 	localctx = NewArgStmtContext(p, p.GetParserRuleContext(), p.GetState())
-	p.EnterRule(localctx, 32, EarthParserRULE_argStmt)
+	p.EnterRule(localctx, 34, EarthParserRULE_argStmt)
 	var _la int
 
 	defer func() {
@@ -2773,54 +2915,54 @@ func (p *EarthParser) ArgStmt() (localctx IArgStmtContext) {
 
 	p.EnterOuterAlt(localctx, 1)
 	{
-		p.SetState(214)
+		p.SetState(222)
 		p.Match(EarthParserARG)
 	}
 	{
-		p.SetState(215)
+		p.SetState(223)
 		p.Match(EarthParserWS)
 	}
 	{
-		p.SetState(216)
+		p.SetState(224)
 		p.EnvArgKey()
 	}
-	p.SetState(228)
+	p.SetState(236)
 	p.GetErrorHandler().Sync(p)
 
-	if p.GetInterpreter().AdaptivePredict(p.GetTokenStream(), 35, p.GetParserRuleContext()) == 1 {
-		p.SetState(218)
+	if p.GetInterpreter().AdaptivePredict(p.GetTokenStream(), 36, p.GetParserRuleContext()) == 1 {
+		p.SetState(226)
 		p.GetErrorHandler().Sync(p)
 		_la = p.GetTokenStream().LA(1)
 
 		if _la == EarthParserWS {
 			{
-				p.SetState(217)
+				p.SetState(225)
 				p.Match(EarthParserWS)
 			}
 
 		}
 		{
-			p.SetState(220)
+			p.SetState(228)
 			p.Match(EarthParserEQUALS)
 		}
 
-		p.SetState(226)
+		p.SetState(234)
 		p.GetErrorHandler().Sync(p)
 
-		if p.GetInterpreter().AdaptivePredict(p.GetTokenStream(), 34, p.GetParserRuleContext()) == 1 {
-			p.SetState(223)
+		if p.GetInterpreter().AdaptivePredict(p.GetTokenStream(), 35, p.GetParserRuleContext()) == 1 {
+			p.SetState(231)
 			p.GetErrorHandler().Sync(p)
 			_la = p.GetTokenStream().LA(1)
 
 			if _la == EarthParserWS {
 				{
-					p.SetState(222)
+					p.SetState(230)
 					p.Match(EarthParserWS)
 				}
 
 			}
 			{
-				p.SetState(225)
+				p.SetState(233)
 				p.EnvArgValue()
 			}
 
@@ -2895,7 +3037,7 @@ func (s *EnvArgKeyContext) ExitRule(listener antlr.ParseTreeListener) {
 
 func (p *EarthParser) EnvArgKey() (localctx IEnvArgKeyContext) {
 	localctx = NewEnvArgKeyContext(p, p.GetParserRuleContext(), p.GetState())
-	p.EnterRule(localctx, 34, EarthParserRULE_envArgKey)
+	p.EnterRule(localctx, 36, EarthParserRULE_envArgKey)
 
 	defer func() {
 		p.ExitRule()
@@ -2915,7 +3057,7 @@ func (p *EarthParser) EnvArgKey() (localctx IEnvArgKeyContext) {
 
 	p.EnterOuterAlt(localctx, 1)
 	{
-		p.SetState(230)
+		p.SetState(238)
 		p.Match(EarthParserAtom)
 	}
 
@@ -2998,7 +3140,7 @@ func (s *EnvArgValueContext) ExitRule(listener antlr.ParseTreeListener) {
 
 func (p *EarthParser) EnvArgValue() (localctx IEnvArgValueContext) {
 	localctx = NewEnvArgValueContext(p, p.GetParserRuleContext(), p.GetState())
-	p.EnterRule(localctx, 36, EarthParserRULE_envArgValue)
+	p.EnterRule(localctx, 38, EarthParserRULE_envArgValue)
 	var _la int
 
 	defer func() {
@@ -3021,35 +3163,35 @@ func (p *EarthParser) EnvArgValue() (localctx IEnvArgValueContext) {
 
 	p.EnterOuterAlt(localctx, 1)
 	{
-		p.SetState(232)
+		p.SetState(240)
 		p.Match(EarthParserAtom)
 	}
-	p.SetState(239)
+	p.SetState(247)
 	p.GetErrorHandler().Sync(p)
-	_alt = p.GetInterpreter().AdaptivePredict(p.GetTokenStream(), 37, p.GetParserRuleContext())
+	_alt = p.GetInterpreter().AdaptivePredict(p.GetTokenStream(), 38, p.GetParserRuleContext())
 
 	for _alt != 2 && _alt != antlr.ATNInvalidAltNumber {
 		if _alt == 1 {
-			p.SetState(234)
+			p.SetState(242)
 			p.GetErrorHandler().Sync(p)
 			_la = p.GetTokenStream().LA(1)
 
 			if _la == EarthParserWS {
 				{
-					p.SetState(233)
+					p.SetState(241)
 					p.Match(EarthParserWS)
 				}
 
 			}
 			{
-				p.SetState(236)
+				p.SetState(244)
 				p.Match(EarthParserAtom)
 			}
 
 		}
-		p.SetState(241)
+		p.SetState(249)
 		p.GetErrorHandler().Sync(p)
-		_alt = p.GetInterpreter().AdaptivePredict(p.GetTokenStream(), 37, p.GetParserRuleContext())
+		_alt = p.GetInterpreter().AdaptivePredict(p.GetTokenStream(), 38, p.GetParserRuleContext())
 	}
 
 	return localctx
@@ -3133,7 +3275,7 @@ func (s *GitCloneStmtContext) ExitRule(listener antlr.ParseTreeListener) {
 
 func (p *EarthParser) GitCloneStmt() (localctx IGitCloneStmtContext) {
 	localctx = NewGitCloneStmtContext(p, p.GetParserRuleContext(), p.GetState())
-	p.EnterRule(localctx, 38, EarthParserRULE_gitCloneStmt)
+	p.EnterRule(localctx, 40, EarthParserRULE_gitCloneStmt)
 
 	defer func() {
 		p.ExitRule()
@@ -3153,19 +3295,19 @@ func (p *EarthParser) GitCloneStmt() (localctx IGitCloneStmtContext) {
 
 	p.EnterOuterAlt(localctx, 1)
 	{
-		p.SetState(242)
+		p.SetState(250)
 		p.Match(EarthParserGIT_CLONE)
 	}
-	p.SetState(245)
+	p.SetState(253)
 	p.GetErrorHandler().Sync(p)
 
-	if p.GetInterpreter().AdaptivePredict(p.GetTokenStream(), 38, p.GetParserRuleContext()) == 1 {
+	if p.GetInterpreter().AdaptivePredict(p.GetTokenStream(), 39, p.GetParserRuleContext()) == 1 {
 		{
-			p.SetState(243)
+			p.SetState(251)
 			p.Match(EarthParserWS)
 		}
 		{
-			p.SetState(244)
+			p.SetState(252)
 			p.StmtWords()
 		}
 
@@ -3252,7 +3394,7 @@ func (s *DockerLoadStmtContext) ExitRule(listener antlr.ParseTreeListener) {
 
 func (p *EarthParser) DockerLoadStmt() (localctx IDockerLoadStmtContext) {
 	localctx = NewDockerLoadStmtContext(p, p.GetParserRuleContext(), p.GetState())
-	p.EnterRule(localctx, 40, EarthParserRULE_dockerLoadStmt)
+	p.EnterRule(localctx, 42, EarthParserRULE_dockerLoadStmt)
 
 	defer func() {
 		p.ExitRule()
@@ -3272,19 +3414,19 @@ func (p *EarthParser) DockerLoadStmt() (localctx IDockerLoadStmtContext) {
 
 	p.EnterOuterAlt(localctx, 1)
 	{
-		p.SetState(247)
+		p.SetState(255)
 		p.Match(EarthParserDOCKER_LOAD)
 	}
-	p.SetState(250)
+	p.SetState(258)
 	p.GetErrorHandler().Sync(p)
 
-	if p.GetInterpreter().AdaptivePredict(p.GetTokenStream(), 39, p.GetParserRuleContext()) == 1 {
+	if p.GetInterpreter().AdaptivePredict(p.GetTokenStream(), 40, p.GetParserRuleContext()) == 1 {
 		{
-			p.SetState(248)
+			p.SetState(256)
 			p.Match(EarthParserWS)
 		}
 		{
-			p.SetState(249)
+			p.SetState(257)
 			p.StmtWords()
 		}
 
@@ -3371,7 +3513,7 @@ func (s *DockerPullStmtContext) ExitRule(listener antlr.ParseTreeListener) {
 
 func (p *EarthParser) DockerPullStmt() (localctx IDockerPullStmtContext) {
 	localctx = NewDockerPullStmtContext(p, p.GetParserRuleContext(), p.GetState())
-	p.EnterRule(localctx, 42, EarthParserRULE_dockerPullStmt)
+	p.EnterRule(localctx, 44, EarthParserRULE_dockerPullStmt)
 
 	defer func() {
 		p.ExitRule()
@@ -3391,19 +3533,19 @@ func (p *EarthParser) DockerPullStmt() (localctx IDockerPullStmtContext) {
 
 	p.EnterOuterAlt(localctx, 1)
 	{
-		p.SetState(252)
+		p.SetState(260)
 		p.Match(EarthParserDOCKER_PULL)
 	}
-	p.SetState(255)
+	p.SetState(263)
 	p.GetErrorHandler().Sync(p)
 
-	if p.GetInterpreter().AdaptivePredict(p.GetTokenStream(), 40, p.GetParserRuleContext()) == 1 {
+	if p.GetInterpreter().AdaptivePredict(p.GetTokenStream(), 41, p.GetParserRuleContext()) == 1 {
 		{
-			p.SetState(253)
+			p.SetState(261)
 			p.Match(EarthParserWS)
 		}
 		{
-			p.SetState(254)
+			p.SetState(262)
 			p.StmtWords()
 		}
 
@@ -3496,7 +3638,7 @@ func (s *GenericCommandContext) ExitRule(listener antlr.ParseTreeListener) {
 
 func (p *EarthParser) GenericCommand() (localctx IGenericCommandContext) {
 	localctx = NewGenericCommandContext(p, p.GetParserRuleContext(), p.GetState())
-	p.EnterRule(localctx, 44, EarthParserRULE_genericCommand)
+	p.EnterRule(localctx, 46, EarthParserRULE_genericCommand)
 
 	defer func() {
 		p.ExitRule()
@@ -3516,19 +3658,19 @@ func (p *EarthParser) GenericCommand() (localctx IGenericCommandContext) {
 
 	p.EnterOuterAlt(localctx, 1)
 	{
-		p.SetState(257)
+		p.SetState(265)
 		p.CommandName()
 	}
-	p.SetState(260)
+	p.SetState(268)
 	p.GetErrorHandler().Sync(p)
 
-	if p.GetInterpreter().AdaptivePredict(p.GetTokenStream(), 41, p.GetParserRuleContext()) == 1 {
+	if p.GetInterpreter().AdaptivePredict(p.GetTokenStream(), 42, p.GetParserRuleContext()) == 1 {
 		{
-			p.SetState(258)
+			p.SetState(266)
 			p.Match(EarthParserWS)
 		}
 		{
-			p.SetState(259)
+			p.SetState(267)
 			p.StmtWords()
 		}
 
@@ -3601,7 +3743,7 @@ func (s *CommandNameContext) ExitRule(listener antlr.ParseTreeListener) {
 
 func (p *EarthParser) CommandName() (localctx ICommandNameContext) {
 	localctx = NewCommandNameContext(p, p.GetParserRuleContext(), p.GetState())
-	p.EnterRule(localctx, 46, EarthParserRULE_commandName)
+	p.EnterRule(localctx, 48, EarthParserRULE_commandName)
 
 	defer func() {
 		p.ExitRule()
@@ -3621,7 +3763,7 @@ func (p *EarthParser) CommandName() (localctx ICommandNameContext) {
 
 	p.EnterOuterAlt(localctx, 1)
 	{
-		p.SetState(262)
+		p.SetState(270)
 		p.Match(EarthParserCommand)
 	}
 
@@ -3698,7 +3840,7 @@ func (s *StmtWordsMaybeJSONContext) ExitRule(listener antlr.ParseTreeListener) {
 
 func (p *EarthParser) StmtWordsMaybeJSON() (localctx IStmtWordsMaybeJSONContext) {
 	localctx = NewStmtWordsMaybeJSONContext(p, p.GetParserRuleContext(), p.GetState())
-	p.EnterRule(localctx, 48, EarthParserRULE_stmtWordsMaybeJSON)
+	p.EnterRule(localctx, 50, EarthParserRULE_stmtWordsMaybeJSON)
 
 	defer func() {
 		p.ExitRule()
@@ -3718,7 +3860,7 @@ func (p *EarthParser) StmtWordsMaybeJSON() (localctx IStmtWordsMaybeJSONContext)
 
 	p.EnterOuterAlt(localctx, 1)
 	{
-		p.SetState(264)
+		p.SetState(272)
 		p.StmtWords()
 	}
 
@@ -3816,7 +3958,7 @@ func (s *StmtWordsContext) ExitRule(listener antlr.ParseTreeListener) {
 
 func (p *EarthParser) StmtWords() (localctx IStmtWordsContext) {
 	localctx = NewStmtWordsContext(p, p.GetParserRuleContext(), p.GetState())
-	p.EnterRule(localctx, 50, EarthParserRULE_stmtWords)
+	p.EnterRule(localctx, 52, EarthParserRULE_stmtWords)
 	var _la int
 
 	defer func() {
@@ -3839,35 +3981,35 @@ func (p *EarthParser) StmtWords() (localctx IStmtWordsContext) {
 
 	p.EnterOuterAlt(localctx, 1)
 	{
-		p.SetState(266)
+		p.SetState(274)
 		p.StmtWord()
 	}
-	p.SetState(273)
+	p.SetState(281)
 	p.GetErrorHandler().Sync(p)
-	_alt = p.GetInterpreter().AdaptivePredict(p.GetTokenStream(), 43, p.GetParserRuleContext())
+	_alt = p.GetInterpreter().AdaptivePredict(p.GetTokenStream(), 44, p.GetParserRuleContext())
 
 	for _alt != 2 && _alt != antlr.ATNInvalidAltNumber {
 		if _alt == 1 {
-			p.SetState(268)
+			p.SetState(276)
 			p.GetErrorHandler().Sync(p)
 			_la = p.GetTokenStream().LA(1)
 
 			if _la == EarthParserWS {
 				{
-					p.SetState(267)
+					p.SetState(275)
 					p.Match(EarthParserWS)
 				}
 
 			}
 			{
-				p.SetState(270)
+				p.SetState(278)
 				p.StmtWord()
 			}
 
 		}
-		p.SetState(275)
+		p.SetState(283)
 		p.GetErrorHandler().Sync(p)
-		_alt = p.GetInterpreter().AdaptivePredict(p.GetTokenStream(), 43, p.GetParserRuleContext())
+		_alt = p.GetInterpreter().AdaptivePredict(p.GetTokenStream(), 44, p.GetParserRuleContext())
 	}
 
 	return localctx
@@ -3937,7 +4079,7 @@ func (s *StmtWordContext) ExitRule(listener antlr.ParseTreeListener) {
 
 func (p *EarthParser) StmtWord() (localctx IStmtWordContext) {
 	localctx = NewStmtWordContext(p, p.GetParserRuleContext(), p.GetState())
-	p.EnterRule(localctx, 52, EarthParserRULE_stmtWord)
+	p.EnterRule(localctx, 54, EarthParserRULE_stmtWord)
 
 	defer func() {
 		p.ExitRule()
@@ -3957,7 +4099,7 @@ func (p *EarthParser) StmtWord() (localctx IStmtWordContext) {
 
 	p.EnterOuterAlt(localctx, 1)
 	{
-		p.SetState(276)
+		p.SetState(284)
 		p.Match(EarthParserAtom)
 	}
 

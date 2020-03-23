@@ -19,6 +19,7 @@ stmt:
 	| runStmt
 	| buildStmt
 	| workdirStmt
+	| cmdStmt
 	| entrypointStmt
 	| envStmt
 	| argStmt
@@ -40,6 +41,8 @@ runStmt: RUN (WS stmtWordsMaybeJSON)?;
 buildStmt: BUILD (WS stmtWords)?;
 
 workdirStmt: WORKDIR (WS stmtWords)?;
+
+cmdStmt: CMD (WS stmtWordsMaybeJSON)?;
 
 entrypointStmt: ENTRYPOINT (WS stmtWordsMaybeJSON)?;
 

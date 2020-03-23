@@ -105,6 +105,12 @@ func (s *BaseEarthParserListener) EnterWorkdirStmt(ctx *WorkdirStmtContext) {}
 // ExitWorkdirStmt is called when production workdirStmt is exited.
 func (s *BaseEarthParserListener) ExitWorkdirStmt(ctx *WorkdirStmtContext) {}
 
+// EnterCmdStmt is called when production cmdStmt is entered.
+func (s *BaseEarthParserListener) EnterCmdStmt(ctx *CmdStmtContext) {}
+
+// ExitCmdStmt is called when production cmdStmt is exited.
+func (s *BaseEarthParserListener) ExitCmdStmt(ctx *CmdStmtContext) {}
+
 // EnterEntrypointStmt is called when production entrypointStmt is entered.
 func (s *BaseEarthParserListener) EnterEntrypointStmt(ctx *EntrypointStmtContext) {}
 
