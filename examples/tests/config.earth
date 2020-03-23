@@ -1,0 +1,18 @@
+# This is a smoke test for parsing. We don't actually check that the config was
+# set correctly.
+FROM alpine:3.11
+test:
+	LABEL a=b c=d "e    eee = ee"=fff
+	LABEL x=y
+    LABEL abc.def.ghi=jkl
+	EXPOSE 8080 123/tcp
+	EXPOSE 8081
+    ENTRYPOINT xyz abc
+    ENTRYPOINT ["x1", "x2"]
+    WORKDIR /abc
+	CMD ["/bin/bash", "abc", "def"]
+	CMD /bin/bash abc def
+	VOLUME ["/tmp/earthly", "/another/volume"]
+	VOLUME /tmp/earthly2 /another/volume2
+	USER jack
+	SAVE IMAGE

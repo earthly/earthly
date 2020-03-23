@@ -105,6 +105,12 @@ func (s *BaseEarthParserListener) EnterWorkdirStmt(ctx *WorkdirStmtContext) {}
 // ExitWorkdirStmt is called when production workdirStmt is exited.
 func (s *BaseEarthParserListener) ExitWorkdirStmt(ctx *WorkdirStmtContext) {}
 
+// EnterUserStmt is called when production userStmt is entered.
+func (s *BaseEarthParserListener) EnterUserStmt(ctx *UserStmtContext) {}
+
+// ExitUserStmt is called when production userStmt is exited.
+func (s *BaseEarthParserListener) ExitUserStmt(ctx *UserStmtContext) {}
+
 // EnterCmdStmt is called when production cmdStmt is entered.
 func (s *BaseEarthParserListener) EnterCmdStmt(ctx *CmdStmtContext) {}
 
@@ -116,6 +122,18 @@ func (s *BaseEarthParserListener) EnterEntrypointStmt(ctx *EntrypointStmtContext
 
 // ExitEntrypointStmt is called when production entrypointStmt is exited.
 func (s *BaseEarthParserListener) ExitEntrypointStmt(ctx *EntrypointStmtContext) {}
+
+// EnterExposeStmt is called when production exposeStmt is entered.
+func (s *BaseEarthParserListener) EnterExposeStmt(ctx *ExposeStmtContext) {}
+
+// ExitExposeStmt is called when production exposeStmt is exited.
+func (s *BaseEarthParserListener) ExitExposeStmt(ctx *ExposeStmtContext) {}
+
+// EnterVolumeStmt is called when production volumeStmt is entered.
+func (s *BaseEarthParserListener) EnterVolumeStmt(ctx *VolumeStmtContext) {}
+
+// ExitVolumeStmt is called when production volumeStmt is exited.
+func (s *BaseEarthParserListener) ExitVolumeStmt(ctx *VolumeStmtContext) {}
 
 // EnterEnvStmt is called when production envStmt is entered.
 func (s *BaseEarthParserListener) EnterEnvStmt(ctx *EnvStmtContext) {}
@@ -141,6 +159,24 @@ func (s *BaseEarthParserListener) EnterEnvArgValue(ctx *EnvArgValueContext) {}
 // ExitEnvArgValue is called when production envArgValue is exited.
 func (s *BaseEarthParserListener) ExitEnvArgValue(ctx *EnvArgValueContext) {}
 
+// EnterLabelStmt is called when production labelStmt is entered.
+func (s *BaseEarthParserListener) EnterLabelStmt(ctx *LabelStmtContext) {}
+
+// ExitLabelStmt is called when production labelStmt is exited.
+func (s *BaseEarthParserListener) ExitLabelStmt(ctx *LabelStmtContext) {}
+
+// EnterLabelKey is called when production labelKey is entered.
+func (s *BaseEarthParserListener) EnterLabelKey(ctx *LabelKeyContext) {}
+
+// ExitLabelKey is called when production labelKey is exited.
+func (s *BaseEarthParserListener) ExitLabelKey(ctx *LabelKeyContext) {}
+
+// EnterLabelValue is called when production labelValue is entered.
+func (s *BaseEarthParserListener) EnterLabelValue(ctx *LabelValueContext) {}
+
+// ExitLabelValue is called when production labelValue is exited.
+func (s *BaseEarthParserListener) ExitLabelValue(ctx *LabelValueContext) {}
+
 // EnterGitCloneStmt is called when production gitCloneStmt is entered.
 func (s *BaseEarthParserListener) EnterGitCloneStmt(ctx *GitCloneStmtContext) {}
 
@@ -159,11 +195,41 @@ func (s *BaseEarthParserListener) EnterDockerPullStmt(ctx *DockerPullStmtContext
 // ExitDockerPullStmt is called when production dockerPullStmt is exited.
 func (s *BaseEarthParserListener) ExitDockerPullStmt(ctx *DockerPullStmtContext) {}
 
-// EnterGenericCommand is called when production genericCommand is entered.
-func (s *BaseEarthParserListener) EnterGenericCommand(ctx *GenericCommandContext) {}
+// EnterAddStmt is called when production addStmt is entered.
+func (s *BaseEarthParserListener) EnterAddStmt(ctx *AddStmtContext) {}
 
-// ExitGenericCommand is called when production genericCommand is exited.
-func (s *BaseEarthParserListener) ExitGenericCommand(ctx *GenericCommandContext) {}
+// ExitAddStmt is called when production addStmt is exited.
+func (s *BaseEarthParserListener) ExitAddStmt(ctx *AddStmtContext) {}
+
+// EnterStopsignalStmt is called when production stopsignalStmt is entered.
+func (s *BaseEarthParserListener) EnterStopsignalStmt(ctx *StopsignalStmtContext) {}
+
+// ExitStopsignalStmt is called when production stopsignalStmt is exited.
+func (s *BaseEarthParserListener) ExitStopsignalStmt(ctx *StopsignalStmtContext) {}
+
+// EnterOnbuildStmt is called when production onbuildStmt is entered.
+func (s *BaseEarthParserListener) EnterOnbuildStmt(ctx *OnbuildStmtContext) {}
+
+// ExitOnbuildStmt is called when production onbuildStmt is exited.
+func (s *BaseEarthParserListener) ExitOnbuildStmt(ctx *OnbuildStmtContext) {}
+
+// EnterHealthcheckStmt is called when production healthcheckStmt is entered.
+func (s *BaseEarthParserListener) EnterHealthcheckStmt(ctx *HealthcheckStmtContext) {}
+
+// ExitHealthcheckStmt is called when production healthcheckStmt is exited.
+func (s *BaseEarthParserListener) ExitHealthcheckStmt(ctx *HealthcheckStmtContext) {}
+
+// EnterShellStmt is called when production shellStmt is entered.
+func (s *BaseEarthParserListener) EnterShellStmt(ctx *ShellStmtContext) {}
+
+// ExitShellStmt is called when production shellStmt is exited.
+func (s *BaseEarthParserListener) ExitShellStmt(ctx *ShellStmtContext) {}
+
+// EnterGenericCommandStmt is called when production genericCommandStmt is entered.
+func (s *BaseEarthParserListener) EnterGenericCommandStmt(ctx *GenericCommandStmtContext) {}
+
+// ExitGenericCommandStmt is called when production genericCommandStmt is exited.
+func (s *BaseEarthParserListener) ExitGenericCommandStmt(ctx *GenericCommandStmtContext) {}
 
 // EnterCommandName is called when production commandName is entered.
 func (s *BaseEarthParserListener) EnterCommandName(ctx *CommandNameContext) {}

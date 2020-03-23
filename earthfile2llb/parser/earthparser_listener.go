@@ -50,11 +50,20 @@ type EarthParserListener interface {
 	// EnterWorkdirStmt is called when entering the workdirStmt production.
 	EnterWorkdirStmt(c *WorkdirStmtContext)
 
+	// EnterUserStmt is called when entering the userStmt production.
+	EnterUserStmt(c *UserStmtContext)
+
 	// EnterCmdStmt is called when entering the cmdStmt production.
 	EnterCmdStmt(c *CmdStmtContext)
 
 	// EnterEntrypointStmt is called when entering the entrypointStmt production.
 	EnterEntrypointStmt(c *EntrypointStmtContext)
+
+	// EnterExposeStmt is called when entering the exposeStmt production.
+	EnterExposeStmt(c *ExposeStmtContext)
+
+	// EnterVolumeStmt is called when entering the volumeStmt production.
+	EnterVolumeStmt(c *VolumeStmtContext)
 
 	// EnterEnvStmt is called when entering the envStmt production.
 	EnterEnvStmt(c *EnvStmtContext)
@@ -68,6 +77,15 @@ type EarthParserListener interface {
 	// EnterEnvArgValue is called when entering the envArgValue production.
 	EnterEnvArgValue(c *EnvArgValueContext)
 
+	// EnterLabelStmt is called when entering the labelStmt production.
+	EnterLabelStmt(c *LabelStmtContext)
+
+	// EnterLabelKey is called when entering the labelKey production.
+	EnterLabelKey(c *LabelKeyContext)
+
+	// EnterLabelValue is called when entering the labelValue production.
+	EnterLabelValue(c *LabelValueContext)
+
 	// EnterGitCloneStmt is called when entering the gitCloneStmt production.
 	EnterGitCloneStmt(c *GitCloneStmtContext)
 
@@ -77,8 +95,23 @@ type EarthParserListener interface {
 	// EnterDockerPullStmt is called when entering the dockerPullStmt production.
 	EnterDockerPullStmt(c *DockerPullStmtContext)
 
-	// EnterGenericCommand is called when entering the genericCommand production.
-	EnterGenericCommand(c *GenericCommandContext)
+	// EnterAddStmt is called when entering the addStmt production.
+	EnterAddStmt(c *AddStmtContext)
+
+	// EnterStopsignalStmt is called when entering the stopsignalStmt production.
+	EnterStopsignalStmt(c *StopsignalStmtContext)
+
+	// EnterOnbuildStmt is called when entering the onbuildStmt production.
+	EnterOnbuildStmt(c *OnbuildStmtContext)
+
+	// EnterHealthcheckStmt is called when entering the healthcheckStmt production.
+	EnterHealthcheckStmt(c *HealthcheckStmtContext)
+
+	// EnterShellStmt is called when entering the shellStmt production.
+	EnterShellStmt(c *ShellStmtContext)
+
+	// EnterGenericCommandStmt is called when entering the genericCommandStmt production.
+	EnterGenericCommandStmt(c *GenericCommandStmtContext)
 
 	// EnterCommandName is called when entering the commandName production.
 	EnterCommandName(c *CommandNameContext)
@@ -134,11 +167,20 @@ type EarthParserListener interface {
 	// ExitWorkdirStmt is called when exiting the workdirStmt production.
 	ExitWorkdirStmt(c *WorkdirStmtContext)
 
+	// ExitUserStmt is called when exiting the userStmt production.
+	ExitUserStmt(c *UserStmtContext)
+
 	// ExitCmdStmt is called when exiting the cmdStmt production.
 	ExitCmdStmt(c *CmdStmtContext)
 
 	// ExitEntrypointStmt is called when exiting the entrypointStmt production.
 	ExitEntrypointStmt(c *EntrypointStmtContext)
+
+	// ExitExposeStmt is called when exiting the exposeStmt production.
+	ExitExposeStmt(c *ExposeStmtContext)
+
+	// ExitVolumeStmt is called when exiting the volumeStmt production.
+	ExitVolumeStmt(c *VolumeStmtContext)
 
 	// ExitEnvStmt is called when exiting the envStmt production.
 	ExitEnvStmt(c *EnvStmtContext)
@@ -152,6 +194,15 @@ type EarthParserListener interface {
 	// ExitEnvArgValue is called when exiting the envArgValue production.
 	ExitEnvArgValue(c *EnvArgValueContext)
 
+	// ExitLabelStmt is called when exiting the labelStmt production.
+	ExitLabelStmt(c *LabelStmtContext)
+
+	// ExitLabelKey is called when exiting the labelKey production.
+	ExitLabelKey(c *LabelKeyContext)
+
+	// ExitLabelValue is called when exiting the labelValue production.
+	ExitLabelValue(c *LabelValueContext)
+
 	// ExitGitCloneStmt is called when exiting the gitCloneStmt production.
 	ExitGitCloneStmt(c *GitCloneStmtContext)
 
@@ -161,8 +212,23 @@ type EarthParserListener interface {
 	// ExitDockerPullStmt is called when exiting the dockerPullStmt production.
 	ExitDockerPullStmt(c *DockerPullStmtContext)
 
-	// ExitGenericCommand is called when exiting the genericCommand production.
-	ExitGenericCommand(c *GenericCommandContext)
+	// ExitAddStmt is called when exiting the addStmt production.
+	ExitAddStmt(c *AddStmtContext)
+
+	// ExitStopsignalStmt is called when exiting the stopsignalStmt production.
+	ExitStopsignalStmt(c *StopsignalStmtContext)
+
+	// ExitOnbuildStmt is called when exiting the onbuildStmt production.
+	ExitOnbuildStmt(c *OnbuildStmtContext)
+
+	// ExitHealthcheckStmt is called when exiting the healthcheckStmt production.
+	ExitHealthcheckStmt(c *HealthcheckStmtContext)
+
+	// ExitShellStmt is called when exiting the shellStmt production.
+	ExitShellStmt(c *ShellStmtContext)
+
+	// ExitGenericCommandStmt is called when exiting the genericCommandStmt production.
+	ExitGenericCommandStmt(c *GenericCommandStmtContext)
 
 	// ExitCommandName is called when exiting the commandName production.
 	ExitCommandName(c *CommandNameContext)

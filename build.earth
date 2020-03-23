@@ -42,9 +42,17 @@ code:
 
 lint:
 	FROM +code
-	RUN output="$(goimports -d .)" ; test -z "$output" || (echo "$output" && exit 1)
+	RUN output="$(goimports -d . 2>&1)" ; \
+		if [ -n "$output" ]; then \
+			echo "$output" ; \
+			exit 1 ; \
+		fi
 	RUN golint -set_exit_status .
-	RUN output="$(go vet ./...)" ; test -z "$output" || (echo "$output" && exit 1)
+	RUN output="$(go vet ./... 2>&1)" ; \
+		if [ -n "$output" ]; then \
+			echo "$output" ; \
+			exit 1 ; \
+		fi
 
 earth:
 	FROM +code
