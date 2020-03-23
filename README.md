@@ -8,7 +8,7 @@
    ```bash
    curl -o /usr/local/bin/earth -L https://github.com/vladaionescu/earthly-releases/releases/download/v0.0.4/earth-linux-amd64 && chmod +x /usr/local/bin/earth
    ```
-* **Mac** - As root, run:
+* **Mac** - Run:
   ```bash
    curl -o /usr/local/bin/earth -L https://github.com/vladaionescu/earthly-releases/releases/download/v0.0.4/earth-darwin-amd64 && chmod +x /usr/local/bin/earth
    ```
