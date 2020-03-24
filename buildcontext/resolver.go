@@ -35,7 +35,7 @@ func NewResolver(bkClient *client.Client, console conslogging.ConsoleLogger, ses
 		gr: &gitResolver{
 			bkClient:     bkClient,
 			console:      console,
-			projectCache: make(map[string]resolvedGitProject),
+			projectCache: make(map[string]*resolvedGitProject),
 		},
 		lr: &localResolver{
 			gitMetaCache: make(map[string]*GitMetadata),
@@ -48,14 +48,18 @@ func NewResolver(bkClient *client.Client, console conslogging.ConsoleLogger, ses
 func (r *Resolver) Resolve(ctx context.Context, target domain.Target) (*Data, error) {
 	localDirs := make(map[string]string)
 	if target.IsRemote() {
+		// Remote.
 		d, err := r.gr.resolveEarthProject(ctx, target)
 		if err != nil {
 			return nil, err
 		}
-		d.Target = target
+
+		d.Target = TargetWithGitMeta(target, d.GitMetadata)
 		d.LocalDirs = localDirs
 		return d, nil
 	}
+
+	// Local.
 	localDirs[target.LocalPath] = target.LocalPath
 	d, err := r.lr.resolveLocal(ctx, target)
 	if err != nil {

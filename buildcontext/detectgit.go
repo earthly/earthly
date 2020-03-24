@@ -243,8 +243,14 @@ func TargetWithGitMeta(target domain.Target, gitMeta *GitMetadata) domain.Target
 	targetRet := target
 	targetRet.Registry = gitMeta.GitVendor
 	targetRet.ProjectPath = path.Join(gitMeta.GitProject, gitMeta.RelDir)
-	if len(gitMeta.Branch) > 0 {
-		targetRet.Tag = gitMeta.Branch[0]
+	if targetRet.Tag == "" {
+		if len(gitMeta.Tags) > 0 {
+			targetRet.Tag = gitMeta.Tags[0]
+		} else if len(gitMeta.Branch) > 0 {
+			targetRet.Tag = gitMeta.Branch[0]
+		} else {
+			targetRet.Tag = gitMeta.Hash
+		}
 	}
 	return targetRet
 }
