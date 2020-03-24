@@ -14,6 +14,14 @@
    ```
 * **Windows** - Coming soon
 
+TODO: Git auth (SSH/password). Docker login. Basic idea, links for further.
+
+### Example use
+
+```bash
+earth github.com/vladaionescu/earthly+earth-docker
+```
+
 ## Why
 
 TODO: Simplify this by moving details into launch blog post. Keep only the essence here.

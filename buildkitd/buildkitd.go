@@ -29,6 +29,7 @@ var Address = fmt.Sprintf("docker-container://%s", ContainerName)
 func NewClient(ctx context.Context, console conslogging.ConsoleLogger, image string, settings Settings, opts ...client.ClientOpt) (*client.Client, error) {
 	address, err := MaybeStart(ctx, console, image, settings)
 	if err != nil {
+		console.WithPrefix("buildkitd").Printf("Is docker installed and running? Are you part of the docker group?\n")
 		return nil, errors.Wrap(err, "maybe start buildkitd")
 	}
 	bkClient, err := client.New(ctx, address, opts...)

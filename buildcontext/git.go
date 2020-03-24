@@ -26,14 +26,20 @@ type gitResolver struct {
 	bkClient *client.Client
 	console  conslogging.ConsoleLogger
 
-	projectCache map[string]resolvedGitProject
+	projectCache map[string]*resolvedGitProject
 }
 
 type resolvedGitProject struct {
 	// localGitDir is where the git dir exists locally (only build.earth files).
 	localGitDir string
+	// gitProject is the git project identifier. For GitHub, this is <username>/<project>.
+	gitProject string
 	// hash is the git hash.
 	hash string
+	// branches is the git branches.
+	branches []string
+	// tags is the git tags
+	tags []string
 	// state is the state holding the git files.
 	state llb.State
 }
@@ -69,10 +75,10 @@ func (gr *gitResolver) resolveEarthProject(ctx context.Context, target domain.Ta
 			RelDir:     subDir,
 			RemoteURL:  gitURL,
 			GitVendor:  target.Registry,
-			GitProject: target.ProjectPath,
+			GitProject: rgp.gitProject,
 			Hash:       rgp.hash,
-			Branch:     nil,
-			Tags:       nil,
+			Branch:     rgp.branches,
+			Tags:       rgp.tags,
 		},
 	}, nil
 }
@@ -98,7 +104,7 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, target domain.Targ
 	cacheKey := fmt.Sprintf("%s#%s", gitURL, ref)
 	data, found := gr.projectCache[cacheKey]
 	if found {
-		return &data, gitURL, subDir, nil
+		return data, gitURL, subDir, nil
 	}
 	// Not cached.
 
@@ -123,18 +129,25 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, target domain.Targ
 	earthfileState := copyOp.AddMount("/dest", llb.Scratch().Platform(llbutil.TargetPlatform))
 
 	// Get git hash.
+	// TODO: Note that the branches and the tags are not extracted as they are not present
+	//       for some reason.
 	gitHashOpts := []llb.RunOption{
-		llb.Args([]string{"/bin/sh", "-c", "git rev-parse HEAD >/dest/git-hash"}),
+		llb.Args([]string{
+			"/bin/sh", "-c",
+			"git rev-parse HEAD >/dest/git-hash ; " +
+				"git rev-parse --abbrev-ref HEAD >/dest/git-branch ; " +
+				"git describe --tags >/dest/git-tags",
+		}),
 		llb.Dir("/git-src"),
 		llb.ReadonlyRootFS(),
 		llb.AddMount("/git-src", gitState, llb.Readonly),
-		llb.WithCustomNamef("GET GIT HASH %s", target.ProjectCanonical()),
+		llb.WithCustomNamef("GET GIT META %s", target.ProjectCanonical()),
 	}
 	gitHashOp := opImg.Run(gitHashOpts...)
-	hashAndEarthfileState := gitHashOp.AddMount("/dest", earthfileState)
+	gitMetaAndEarthfileState := gitHashOp.AddMount("/dest", earthfileState)
 
 	// Build.
-	dt, err := hashAndEarthfileState.Marshal(llb.LinuxAmd64)
+	dt, err := gitMetaAndEarthfileState.Marshal(llb.LinuxAmd64)
 	if err != nil {
 		return nil, "", "", errors.Wrapf(err, "get build.earth from %s", target.ProjectCanonical())
 	}
@@ -189,11 +202,44 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, target domain.Targ
 		return nil, "", "", errors.Wrap(err, "read git hash after solve")
 	}
 	gitHash := strings.SplitN(string(gitHashBytes), "\n", 2)[0]
+	gitBranchFile, err := os.Open(filepath.Join(earthfileTmpDir, "git-branch"))
+	if err != nil {
+		return nil, "", "", errors.Wrap(err, "open git branch file after solve")
+	}
+	gitBranchBytes, err := ioutil.ReadAll(gitBranchFile)
+	if err != nil {
+		return nil, "", "", errors.Wrap(err, "read git branch after solve")
+	}
+	gitBranches := strings.SplitN(string(gitBranchBytes), "\n", 2)
+	var gitBranches2 []string
+	for _, gitBranch := range gitBranches {
+		if gitBranch != "" {
+			gitBranches2 = append(gitBranches2, gitBranch)
+		}
+	}
+	gitTagsFile, err := os.Open(filepath.Join(earthfileTmpDir, "git-tags"))
+	if err != nil {
+		return nil, "", "", errors.Wrap(err, "open git tags file after solve")
+	}
+	gitTagsBytes, err := ioutil.ReadAll(gitTagsFile)
+	if err != nil {
+		return nil, "", "", errors.Wrap(err, "read git tags after solve")
+	}
+	gitTags := strings.SplitN(string(gitTagsBytes), "\n", 2)
+	var gitTags2 []string
+	for _, gitTag := range gitTags {
+		if gitTag != "" && gitTag != "HEAD" {
+			gitTags2 = append(gitTags2, gitTag)
+		}
+	}
 
 	// Add to cache.
-	resolved := resolvedGitProject{
+	resolved := &resolvedGitProject{
 		localGitDir: earthfileTmpDir,
 		hash:        gitHash,
+		branches:    gitBranches2,
+		tags:        gitTags2,
+		gitProject:  fmt.Sprintf("%s/%s", githubUsername, githubProject),
 		state: llbgit.Git(
 			gitURL,
 			gitHash,
@@ -201,7 +247,17 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, target domain.Targ
 		),
 	}
 	gr.projectCache[cacheKey] = resolved
-	return &resolved, gitURL, subDir, nil
+	cacheKey2 := fmt.Sprintf("%s#%s", gitURL, gitHash)
+	gr.projectCache[cacheKey2] = resolved
+	if len(gitBranches2) > 0 {
+		cacheKey3 := fmt.Sprintf("%s#%s", gitURL, gitBranches2[0])
+		gr.projectCache[cacheKey3] = resolved
+	}
+	if len(gitTags2) > 0 {
+		cacheKey4 := fmt.Sprintf("%s#%s", gitURL, gitTags2[0])
+		gr.projectCache[cacheKey4] = resolved
+	}
+	return resolved, gitURL, subDir, nil
 }
 
 func (gr *gitResolver) close() error {
