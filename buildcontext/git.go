@@ -135,8 +135,8 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, target domain.Targ
 		llb.Args([]string{
 			"/bin/sh", "-c",
 			"git rev-parse HEAD >/dest/git-hash ; " +
-				"git rev-parse --abbrev-ref HEAD >/dest/git-branch ; " +
-				"git describe --tags >/dest/git-tags",
+				"git rev-parse --abbrev-ref HEAD >/dest/git-branch  || touch /dest/git-branch ; " +
+				"git describe --exact-match --tags >/dest/git-tags || touch /dest/git-tags",
 		}),
 		llb.Dir("/git-src"),
 		llb.ReadonlyRootFS(),

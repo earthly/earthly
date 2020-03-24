@@ -55,6 +55,13 @@ type cliFlags struct {
 	remoteCache       string
 }
 
+var (
+	// DefaultBuildkitdImage is the default buildkitd image to use.
+	DefaultBuildkitdImage string
+	// Version is the version of this CLI app.
+	Version string
+)
+
 func main() {
 	// Set up file-based logging.
 	logrus.SetFormatter(&logrus.TextFormatter{
@@ -102,6 +109,7 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 	app.cliApp.ArgsUsage = "+<target> | <command>"
 	app.cliApp.UseShortOptionHandling = true
 	app.cliApp.Action = app.actionBuild
+	app.cliApp.Version = Version
 	app.cliApp.Flags = []cli.Flag{
 		&cli.StringSliceFlag{
 			Name:    "build-arg",
@@ -191,7 +199,7 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 		},
 		&cli.StringFlag{
 			Name:        "buildkit-image",
-			Value:       "earthly/buildkitd:latest",
+			Value:       DefaultBuildkitdImage,
 			EnvVars:     []string{"EARTHLY_BUILDKITD_IMAGE"},
 			Usage:       "The docker image to use for the buildkit daemon",
 			Destination: &app.buildkitdImage,

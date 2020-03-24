@@ -195,7 +195,7 @@ func detectGitBranch(ctx context.Context, dir string) ([]string, error) {
 }
 
 func detectGitTags(ctx context.Context, dir string) ([]string, error) {
-	cmd := exec.CommandContext(ctx, "git", "describe", "--tags")
+	cmd := exec.CommandContext(ctx, "git", "describe", "--exact-match", "--tags")
 	cmd.Dir = dir
 	out, err := cmd.Output()
 	if err != nil {
