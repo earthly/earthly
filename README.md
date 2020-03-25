@@ -201,90 +201,90 @@ earth --secret GITHUB_TOKEN --push +some-target
 ## Commands added on top of Dockerfile syntax
 
 
-`FROM`
+**`FROM`**
 
   * Allows the classical syntax, as well as the additional `FROM +some-target` syntax, which
 allows target inheritance.
 
-`COPY`
+**`COPY`**
 
   * Allows the classical syntax for copying files from the build context, as well as the
 additional `COPY +some-target/artifact-name ./dest/path` syntax, which allows copying artifacts
 resulting from another target.
 
-`COPY --dir`
+**`COPY --dir`**
 
   * Behaves more like `cp -r` (copies the directories themselves, not just
 the contents).
 
-`RUN --secret SOME_ENV_VAR=+secrets/SOME_SECRET`
+**`RUN --secret SOME_ENV_VAR=+secrets/SOME_SECRET`**
 
   * Allows running with a secret
 as an env var. The secret is not stored in the image's layers and is only available to that command.
 
-`RUN --entrypoint`
+**`RUN --entrypoint`**
 
   * Runs the entrypoint of the image (useful when inheriting other targets,
 in order to run the images as part of the build).
 
-`RUN --push`
+**`RUN --push`**
 
   * Defines a push command. It never uses cache and only executes if the rest of the
 b uild succeeds. Useful for triggering state change in remote environments (eg production) or for
 pushing artifacts to artifactories.
 
-`BUILD +target`
+**`BUILD +target`**
 
   * Builds another target as part of the execution.
 
-`BUILD --build-arg SOME_ARG=some-value +target`
+**`BUILD --build-arg SOME_ARG=some-value +target`**
 
   * Builds another target, with specified value
 for a build arg. The `--build-arg` flag is also available for `FROM +target` and
 `COPY +target/artifact` commands.
 
-`BUILD --build-arg SOME_ARG=$(some command) +target`
+**`BUILD --build-arg SOME_ARG=$(some command) +target`**
 
   * Builds another target, with a build
 arg value specified as the output of a command.
 
-`SAVE ARTIFACT ./artifact/path /artifact-name [AS LOCAL ./local/artifact/path]`
+**`SAVE ARTIFACT ./artifact/path /artifact-name [AS LOCAL ./local/artifact/path]`**
 
   * Saves an
 artifact for later use. It is stored as a target artifact, to be used by other targets
 (`/artifact-name`) and optionally, as a local file which will be written to the host system at
 `./local/artifact/path`.
 
-`SAVE IMAGE [image/name:tag]`
+**`SAVE IMAGE [image/name:tag]`**
 
   * Saves the current target as an image. It can be used by other
 targets and also, optionally made available to the local system as docker image name
 `image/name:tag`.
 
-`SAVE IMAGE --push image/name:tag`
+**`SAVE IMAGE --push image/name:tag`**
 
   * Similar to above, but it additionally pushes the image
 to the image registry.
 
-`GIT CLONE git@github.com:some-user/some-project.git dest-dir`
+**`GIT CLONE git@github.com:some-user/some-project.git dest-dir`**
 
   * Clones the git project into
 directory `dest-dir`. The difference from doing `RUN git clone ...` is that it is cache-aware,
 thus building again when the git hash is different.
 
-`RUN --with-docker docker ...` [**experimental**]
+**`RUN --with-docker docker ...` [**experimental**]**
 
   * Allows running commands in the presence of a
 docker daemon, as part of the build. The main use-case for this is running complex integration
 tests where several containers need to be running in parallel.
 
-`DOCKER PULL some-image` [**experimental**]
+**`DOCKER PULL some-image` [**experimental**]**
 
   * Allows pulling a remote image into the context of the
 build. (Can then run the image via `RUN --with-docker docker run some-image`). This command
 is cache-aware compared to `RUN --with-docker docker pull some-image`.
 
-`DOCKER LOAD +some-target AS image-name` [**experimental**]
+**`DOCKER LOAD +some-target AS image-name` [**experimental**]**
 
   * Allows using an Earthly target as
 a docker image loaded into the context of the build.
