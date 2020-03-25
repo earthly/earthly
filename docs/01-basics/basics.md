@@ -86,7 +86,7 @@ target:
 
 For example, here is an earthfile of an example go app:
 
-```earth
+```Dockerfile
 FROM golang:1.13-alpine3.11
 WORKDIR /go-example
 
@@ -129,7 +129,7 @@ Finally, notice how the output of the build: the docker image `go-example:latest
 
 Going back to the example earthfile definition, here is what each command does:
 
-```earth
+```Dockerfile
 # The build starts from a docker image: golang:1.13-alpine3.11
 FROM golang:1.13-alpine3.11
 # We change the current working directory.

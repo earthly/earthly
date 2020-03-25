@@ -116,9 +116,10 @@ func MaybeRestart(ctx context.Context, console conslogging.ConsoleLogger, image 
 	}
 	availableImageID, err := GetAvailableImageID(ctx, image)
 	if err != nil {
-		return err
+		// Could not get available image ID. Keep going anyway.
+		availableImageID = ""
 	}
-	if containerImageID == availableImageID {
+	if availableImageID == "" || containerImageID == availableImageID {
 		// Images are the same. Check settings hash.
 		hash, err := GetSettingsHash(ctx)
 		if err != nil {
