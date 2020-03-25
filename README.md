@@ -75,36 +75,6 @@ If you use SSH-based git authentication, then your git credentials will just wor
 ext install earthly.earthfile-syntax-highlighting
 ```
 
-<h2 align="center">Example use</h2>
-
-Write your own `build.earth` file. Build any target via
-
-```bash
-earth +target-name
-```
-
-You can also reference targets from other directories.
-
-```bash
-earth ./path/to/a/deep/dir+target-name
-```
-
-... or from other repositories.
-
-```bash
-# Try it yourself!
-earth github.com/vladaionescu/earthly+earth-docker
-```
-
-... or from a subdir of some repository.
-
-```bash
-# Try it yourself!
-earth github.com/vladaionescu/earthly/buildkitd+buildkitd
-```
-
-For more details on using the `earth` command, see `earth --help`.
-
 <h2 align="center">Core concepts</h2>
 
 ### 🔨 Reference targets using `+`
@@ -217,6 +187,37 @@ some-target:
 earth --secret GITHUB_TOKEN --push +some-target
 ```
 
+<h2 align="center">Example usage of earth command</h2>
+
+Write your own `build.earth` file, then build any target via
+
+```bash
+earth +target-name
+```
+
+You can also reference targets from other directories.
+
+```bash
+earth ./path/to/a/deep/dir+target-name
+```
+
+... or from other repositories.
+
+```bash
+# Try it yourself! No need to clone.
+earth github.com/vladaionescu/earthly+earth-docker
+```
+
+... or from a subdir of some repository.
+
+```bash
+# Try it yourself! No need to clone.
+earth github.com/vladaionescu/earthly/buildkitd+buildkitd
+```
+
+For more details on using the `earth` command, see `earth --help`.
+
+
 <h2 align="center">Commands beyond Dockerfile syntax</h2>
 
 
@@ -285,3 +286,19 @@ earth --secret GITHUB_TOKEN --push +some-target
 > Allows using an Earthly target as a docker image loaded into the context of the build.
 
 For more details see the Earthfile reference (TODO: link to reference).
+
+<h2 align="center">What's next?</h2>
+
+To learn more about using Earthly, check the [full documentation](https://docs.earthly.dev/).
+
+<h2 align="center">Contributing</h2>
+
+* Please report bugs as [GitHub issues](https://github.com/vladaionescu/earthly/issues).
+* Join us on [Gitter](https://gitter.im/vladaionescu/earthly)!
+* Questions via GitHub issues are welcome!
+* PRs welcome! But please give a heads-up in GitHub issue before starting work. If there is no GitHub issue for what you want to do, please create one.
+* To build from source, you will need the `earth` binary (Earthly [builds itself](./build.earth)). Check out the code and run `earth +all`.
+
+<h2 align="center">Licensing</h2>
+
+Earthly is licensed under the Mozilla Public License Version 2.0. See [LICENSE](./LICENSE) for the full license text.
