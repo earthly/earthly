@@ -75,6 +75,8 @@ If you use SSH-based git authentication, then your git credentials will just wor
 ext install earthly.earthfile-syntax-highlighting
 ```
 
+[![Earthfile Syntax Highlighting](images/vscode-plugin.png)](https://marketplace.visualstudio.com/items?itemName=earthly.earthfile-syntax-highlighting)
+
 <h2 align="center">Core concepts</h2>
 
 ### 🔨 Reference targets using +
