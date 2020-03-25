@@ -67,15 +67,15 @@ Coming soon.
 
 If you use SSH-based git authentication, then your git credentials will just work with Earthly. Read more about git auth (TODO: Link).
 
-#### VS Code extension for syntax highlighting
+##### VS Code extension for syntax highlighting
+
+[![Earthfile Syntax Highlighting](images/vscode-plugin.png)](https://marketplace.visualstudio.com/items?itemName=earthly.earthfile-syntax-highlighting)
 
 [Earthfile Syntax Highlighting](https://marketplace.visualstudio.com/items?itemName=earthly.earthfile-syntax-highlighting)
 
 ```
 ext install earthly.earthfile-syntax-highlighting
 ```
-
-[![Earthfile Syntax Highlighting](images/vscode-plugin.png)](https://marketplace.visualstudio.com/items?itemName=earthly.earthfile-syntax-highlighting)
 
 <h2 align="center">Core concepts</h2>
 
