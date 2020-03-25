@@ -16,7 +16,7 @@
 ![CI](https://github.com/vladaionescu/earthly/workflows/CI/badge.svg)
 [![Go Report Card](https://goreportcard.com/badge/github.com/vladaionescu/earthly)](https://goreportcard.com/report/github.com/vladaionescu/earthly)
 [![Join the chat at https://gitter.im/vladaionescu/earthly](https://badges.gitter.im/vladaionescu/earthly.svg)](https://gitter.im/vladaionescu/earthly?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
-[![Docs](https://img.shields.io/badge/docs-gitbooks-blue)](https://docs.earthly.dev)
+[![Docs](https://img.shields.io/badge/docs-git%20book-blue)](https://docs.earthly.dev)
 [![Docker Hub](https://img.shields.io/badge/docker%20hub-earthly-blue)](https://hub.docker.com/u/earthly)
 [![License](https://img.shields.io/badge/license-MPL--2.0-blue.svg)](http://www.apache.org/licenses/LICENSE-2.0)
 [![Analytics](https://ga-beacon.appspot.com/UA-161831101-2/readme)](https://github.com/igrigorik/ga-beacon)
@@ -47,8 +47,6 @@ Invoke the build using either `earth +build` (to build the binary) or `earth +do
 
 <h2 align="center">Installation</h2>
 
-### CLI
-
 ##### Linux
 
 ```bash
@@ -73,7 +71,6 @@ If you use SSH-based git authentication, then your git credentials will just wor
 
 [Earthfile Syntax Highlighting](https://marketplace.visualstudio.com/items?itemName=earthly.earthfile-syntax-highlighting)
 
-Launch VS Code Quick Open (Ctrl+P), paste the following command, and press enter.
 ```
 ext install earthly.earthfile-syntax-highlighting
 ```
@@ -95,14 +92,14 @@ earth ./path/to/a/deep/dir+target-name
 ... or from other repositories.
 
 ```bash
-# Build the target +earth-docker from the project github.com/vladaionescu/earthly.
-# Run this anywhere, no need to clone repo first. Try it yourself!
+# Try it yourself!
 earth github.com/vladaionescu/earthly+earth-docker
 ```
 
 ... or from a subdir of some repository.
 
 ```bash
+# Try it yourself!
 earth github.com/vladaionescu/earthly/buildkitd+buildkitd
 ```
 
