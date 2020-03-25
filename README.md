@@ -158,7 +158,7 @@ final-target:
 
 *Interleaved output shows execution of targets in parallel*
 
-### ❌ A build either completely succeeds or completely fails
+### ✅ A build either completely succeeds or completely fails
 
 If some artifacts or images succeed, but others fail, the system does not ouptut any of them. It also does not push partial results to registries or artifactories (unless the pushing operation itself fails).
 
@@ -207,7 +207,7 @@ lint-project-b:
   BUILD --build-arg COPY_SRC=./project-b +lint
 ```
 
-### 🗝 Secrets support built-in
+### 🔑 Secrets support built-in
 
 Secrets are never stored within an image's layers and they are only available to the commands that need them.
 
