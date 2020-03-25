@@ -14,7 +14,7 @@
 
 ----------------------------
 
-## Dockerfile-like syntax
+<h2 align="center">Dockerfile-like syntax</h2>
 
 ```Dockerfile
 # Initialize the build environment - this applies to all targets.
@@ -38,22 +38,28 @@ docker:
 
 Invoke the build using either `earth +build` (to build the binary) or `earth +docker` (to build the docker image).
 
-## Installation
+<h2 align="center">Installation</h2>
 
-* **Linux** - As root, run:
-   ```bash
-   curl -o /usr/local/bin/earth -L https://github.com/vladaionescu/earthly-releases/releases/download/v0.0.4/earth-linux-amd64 && chmod +x /usr/local/bin/earth
-   ```
-* **Mac** - Run:
-  ```bash
-   curl -o /usr/local/bin/earth -L https://github.com/vladaionescu/earthly-releases/releases/download/v0.0.4/earth-darwin-amd64 && chmod +x /usr/local/bin/earth
-   ```
-* **Windows** - Coming soon
+**Linux**
+
+```bash
+curl -o /usr/local/bin/earth -L https://github.com/vladaionescu/earthly-releases/releases/download/v0.0.4/earth-linux-amd64 && chmod +x /usr/local/bin/earth
+```
+
+**Mac**
+
+```bash
+curl -o /usr/local/bin/earth -L https://github.com/vladaionescu/earthly-releases/releases/download/v0.0.4/earth-darwin-amd64 && chmod +x /usr/local/bin/earth
+```
+
+**Windows** 
+
+Coming soon
 
 If you use SSH-based git authentication, then your git credentials will just work with Earthly.
 Read more about git auth (TODO: Link).
 
-## Example use
+<h2 align="center">Example use</h2>
 
 Write your own `build.earth` file. Build any target via
 
@@ -83,7 +89,7 @@ earth github.com/vladaionescu/earthly/buildkitd+buildkitd
 
 For more details on using the `earth` command, see `earth --help`.
 
-## Core concepts
+<h2 align="center">Core concepts</h2>
 
 ### Reference targets using `+`
 
@@ -201,7 +207,7 @@ some-target:
 earth --secret GITHUB_TOKEN --push +some-target
 ```
 
-## Commands added on top of Dockerfile syntax
+<h2 align="center">Commands added on top of Dockerfile syntax</h2>
 
 
 **`FROM`**
