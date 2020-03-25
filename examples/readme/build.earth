@@ -1,0 +1,45 @@
+FROM alpine:3.11
+
+a-target:
+    RUN echo "content" > ./an-artifact
+    SAVE ARTIFACT ./an-artifact AS LOCAL ./an-artifact
+
+another-failure-target:
+    RUN sleep 5
+    RUN echo "content" > ./another-artifact
+    SAVE ARTIFACT ./another-artifact AS LOCAL ./another-failure-artifact
+    RUN sleep 5
+    RUN echo fail; exit 1
+
+another-success-target:
+    RUN sleep 5
+    RUN echo "content" > ./another-artifact
+    SAVE ARTIFACT ./another-artifact AS LOCAL ./another-success-artifact
+    RUN sleep 5
+    RUN echo success; exit 0
+
+final-success-target:
+    BUILD +a-target
+    BUILD +another-success-target
+
+final-failure-target:
+    BUILD +a-target
+    BUILD +another-failure-target
+
+parallel-1:
+    RUN echo Starting...
+    RUN sleep 10
+    RUN echo Making progress...
+    RUN sleep 10
+    RUN echo Done
+
+parallel-2:
+    RUN echo Starting...
+    RUN sleep 7
+    RUN echo Making progress...
+    RUN sleep 7
+    RUN echo Done
+
+parallel:
+    BUILD +parallel-1
+    BUILD +parallel-2

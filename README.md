@@ -77,7 +77,7 @@ ext install earthly.earthfile-syntax-highlighting
 
 <h2 align="center">Core concepts</h2>
 
-### 🔨 Reference targets using `+`
+### 🔨 Reference targets using +
 
 ```Dockerfile
 build:
@@ -129,25 +129,9 @@ final-target:
 
 If some artifacts or images succeed, but others fail, the system does not ouptut any of them. It also does not push partial results to registries or artifactories (unless the pushing operation itself fails).
 
-```Dockerfile
-a-target:
-	# ...
-	SAVE ARTIFACT ./an-artifact AS LOCAL ./an-artifact
+![Success output](images/fail-success.png)
 
-another-target:
-	# ...
-	SAVE ARTIFACT ./another-artifact AS LOCAL ./another-artifact
-
-final-target:
-	BUILD +a-target
-	BUILD +another-target
-```
-
-When invoking `earth +final-target`, the system guarantees that an-artifact and another-artifact either both are written as output, or none are.
-
-![Success output](images/success.png)
-
-*Outputting takes place below the `=== SUCCESS ===` line*
+*Outputting only takes place below the `=== SUCCESS ===` line*
 
 ### 💾 Caching that works the same as docker builds
 
