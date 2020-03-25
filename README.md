@@ -71,7 +71,7 @@ If you use SSH-based git authentication, then your git credentials will just wor
 
 [![Earthfile Syntax Highlighting](images/vscode-plugin.png)](https://marketplace.visualstudio.com/items?itemName=earthly.earthfile-syntax-highlighting)
 
-[Earthfile Syntax Highlighting](https://marketplace.visualstudio.com/items?itemName=earthly.earthfile-syntax-highlighting)
+Add [Earthfile Syntax Highlighting](https://marketplace.visualstudio.com/items?itemName=earthly.earthfile-syntax-highlighting) to VS Code.
 
 ```
 ext install earthly.earthfile-syntax-highlighting
