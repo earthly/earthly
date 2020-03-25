@@ -1,8 +1,8 @@
 # 🌎 Earthly - a build system for the container era
 
-**🛠 Build anything via containers** - *build container images or standalone artifacts (binaries, jars, gems, arbitrary files)*
+**🐳 Build anything via containers** - *build container images or standalone artifacts (binaries, jars, gems, arbitrary files)*
 
-**💻 Programming language agnostic** - *allows use of language-specific build tooling*
+**🛠 Programming language agnostic** - *allows use of language-specific build tooling*
 
 **♻️ Reproducible builds** - *does not depend on user's local installation. Runs the same locally, as in CI*
 
@@ -13,6 +13,13 @@
 **🏘 Multi-repo friendly** - *ability to import builds or artifacts from other repositories*
 
 ----------------------------
+![CI](https://github.com/vladaionescu/earthly/workflows/CI/badge.svg)
+[![Go Report Card](https://goreportcard.com/badge/github.com/vladaionescu/earthly)](https://goreportcard.com/report/github.com/vladaionescu/earthly)
+[![Join the chat at https://gitter.im/vladaionescu/earthly](https://badges.gitter.im/vladaionescu/earthly.svg)](https://gitter.im/vladaionescu/earthly?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+[![Docs](https://img.shields.io/badge/docs-gitbooks-blue)](https://docs.earthly.dev)
+[![Docker Hub](https://img.shields.io/badge/docker%20hub-earthly-blue)](https://hub.docker.com/u/earthly)
+[![License](https://img.shields.io/badge/license-MPL--2.0-blue.svg)](http://www.apache.org/licenses/LICENSE-2.0)
+[![Analytics](https://ga-beacon.appspot.com/UA-161831101-2/readme)](https://github.com/igrigorik/ga-beacon)
 
 <h2 align="center">Dockerfile-like syntax</h2>
 
@@ -60,8 +67,7 @@ Coming soon.
 
 ##### Note
 
-If you use SSH-based git authentication, then your git credentials will just work with Earthly.
-Read more about git auth (TODO: Link).
+If you use SSH-based git authentication, then your git credentials will just work with Earthly. Read more about git auth (TODO: Link).
 
 ### VS Code plugin
 
@@ -125,9 +131,7 @@ lint:
 
 ### Nothing is shared between build targets, other than images and artifacts
 
-The container isolation prevents use of any resources specific to the local system.
-This allows Earthly to completely parallelize the building of independent targets,
-without any additional effort.
+The container isolation prevents use of any resources specific to the local system. This allows Earthly to completely parallelize the building of independent targets, without any additional effort.
 
 ```Dockerfile
 a-target:
@@ -156,9 +160,7 @@ final-target:
 
 ### A build either completely succeeds or completely fails
 
-If some artifacts or images succeed, but others fail, the system does not ouptut any of them.
-It also does not push partial results to registries or artifactories (unless the pushing operation
-itself fails).
+If some artifacts or images succeed, but others fail, the system does not ouptut any of them. It also does not push partial results to registries or artifactories (unless the pushing operation itself fails).
 
 ```Dockerfile
 a-target:
@@ -174,8 +176,7 @@ final-target:
 	BUILD +another-target
 ```
 
-When invoking `earth +final-target`, the system guarantees that an-artifact and another-artifact
-either both are written as output, or none are.
+When invoking `earth +final-target`, the system guarantees that an-artifact and another-artifact either both are written as output, or none are.
 
 ![Success output](images/success.png)
 
@@ -208,8 +209,7 @@ lint-project-b:
 
 ### Secrets support built-in
 
-Secrets are never stored within an image's layers and they are only available to the commands
-that need them.
+Secrets are never stored within an image's layers and they are only available to the commands that need them.
 
 ```Dockerfile
 some-target:
@@ -225,35 +225,27 @@ earth --secret GITHUB_TOKEN --push +some-target
 
 ##### `FROM`
 
-> Allows the classical syntax, as well as the additional `FROM +some-target` syntax, which
-allows target inheritance.
+> Allows the classical syntax, as well as the additional `FROM +some-target` syntax, which allows target inheritance.
 
 ##### `COPY`
 
-> Allows the classical syntax for copying files from the build context, as well as the
-additional `COPY +some-target/artifact-name ./dest/path` syntax, which allows copying artifacts
-resulting from another target.
+> Allows the classical syntax for copying files from the build context, as well as the additional `COPY +some-target/artifact-name ./dest/path` syntax, which allows copying artifacts resulting from another target.
 
 ##### `COPY --dir`
 
-> Behaves more like `cp -r` (copies the directories themselves, not just
-the contents).
+> Behaves more like `cp -r` (copies the directories themselves, not just the contents).
 
 ##### `RUN --secret SOME_ENV_VAR=+secrets/SOME_SECRET`
 
-> Allows running with a secret
-as an env var. The secret is not stored in the image's layers and is only available to that command.
+> Allows running with a secret as an env var. The secret is not stored in the image's layers and is only available to that command.
 
 ##### `RUN --entrypoint`
 
-> Runs the entrypoint of the image (useful when inheriting other targets,
-in order to run the images as part of the build).
+> Runs the entrypoint of the image (useful when inheriting other targets, in order to run the images as part of the build).
 
 ##### `RUN --push`
 
-> Defines a push command. It never uses cache and only executes if the rest of the
-b uild succeeds. Useful for triggering state change in remote environments (eg production) or for
-pushing artifacts to artifactories.
+> Defines a push command. It never uses cache and only executes if the rest of the build succeeds. Useful for triggering state change in remote environments (eg production) or for pushing artifacts to artifactories.
 
 ##### `BUILD +target`
 
@@ -261,50 +253,35 @@ pushing artifacts to artifactories.
 
 ##### `BUILD --build-arg SOME_ARG=some-value +target`
 
-> Builds another target, with specified value
-for a build arg. The `--build-arg` flag is also available for `FROM +target` and
-`COPY +target/artifact` commands.
+> Builds another target, with specified value for a build arg. The `--build-arg` flag is also available for `FROM +target` and `COPY +target/artifact` commands.
 
 ##### `BUILD --build-arg SOME_ARG=$(some command) +target`
 
-> Builds another target, with a build
-arg value specified as the output of a command.
+> Builds another target, with a build arg value specified as the output of a command.
 
 ##### `SAVE ARTIFACT ./artifact/path /artifact-name [AS LOCAL ./local/artifact/path]`
 
-> Saves an
-artifact for later use. It is stored as a target artifact, to be used by other targets
-(`/artifact-name`) and optionally, as a local file which will be written to the host system at
-`./local/artifact/path`.
+> Saves an artifact for later use. It is stored as a target artifact, to be used by other targets (`/artifact-name`) and optionally, as a local file which will be written to the host system at `./local/artifact/path`.
 
 ##### `SAVE IMAGE [image/name:tag]`
 
-> Saves the current target as an image. It can be used by other
-targets and also, optionally made available to the local system as docker image name
-`image/name:tag`.
+> Saves the current target as an image. It can be used by other targets and also, optionally made available to the local system as docker image name `image/name:tag`.
 
 ##### `SAVE IMAGE --push image/name:tag`
 
-> Similar to above, but it additionally pushes the image
-to the image registry.
+> Similar to above, but it additionally pushes the image to the image registry.
 
 ##### `GIT CLONE git@github.com:some-user/some-project.git dest-dir`
 
-> Clones the git project into
-directory `dest-dir`. The difference from doing `RUN git clone ...` is that it is cache-aware,
-thus building again when the git hash is different.
+> Clones the git project into directory `dest-dir`. The difference from doing `RUN git clone ...` is that it is cache-aware, thus building again when the git hash is different.
 
 ##### `RUN --with-docker docker ...` [**experimental**]
 
-> Allows running commands in the presence of a
-docker daemon, as part of the build. The main use-case for this is running complex integration
-tests where several containers need to be running in parallel.
+> Allows running commands in the presence of a docker daemon, as part of the build. The main use-case for this is running complex integration tests where several containers need to be running in parallel.
 
 ##### `DOCKER PULL some-image` [**experimental**]
 
-> Allows pulling a remote image into the context of the
-build. (Can then run the image via `RUN --with-docker docker run some-image`). This command
-is cache-aware compared to `RUN --with-docker docker pull some-image`.
+> Allows pulling a remote image into the context of the build. (Can then run the image via `RUN --with-docker docker run some-image`). This command is cache-aware compared to `RUN --with-docker docker pull some-image`.
 
 ##### `DOCKER LOAD +some-target AS image-name` [**experimental**]
 
