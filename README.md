@@ -110,7 +110,7 @@ For more details on using the `earth` command, see `earth --help`.
 
 <h2 align="center">Core concepts</h2>
 
-### Reference targets using `+`
+### 🔨 Reference targets using `+`
 
 ```Dockerfile
 build:
@@ -129,7 +129,7 @@ lint:
   # ...
 ```
 
-### Nothing is shared between build targets, other than images and artifacts
+### 📦 Nothing is shared between build targets, other than images and artifacts
 
 The container isolation prevents use of any resources specific to the local system. This allows Earthly to completely parallelize the building of independent targets, without any additional effort.
 
@@ -152,13 +152,13 @@ final-target:
   COPY +another-target/another-artifact ./
 ```
 
-### Parallelization that just works
+### ⛓ Parallelization that just works
 
 ![Parallel output](images/parallel.png)
 
 *Interleaved output shows execution of targets in parallel*
 
-### A build either completely succeeds or completely fails
+### ❌ A build either completely succeeds or completely fails
 
 If some artifacts or images succeed, but others fail, the system does not ouptut any of them. It also does not push partial results to registries or artifactories (unless the pushing operation itself fails).
 
@@ -182,7 +182,7 @@ When invoking `earth +final-target`, the system guarantees that an-artifact and 
 
 *Outputting takes place below the `=== SUCCESS ===` line*
 
-### Caching that works the same as docker builds
+### 💾 Caching that works the same as docker builds
 
 ... in fact, the same [technology](https://github.com/moby/buildkit) is used underneath.
 
@@ -190,7 +190,7 @@ When invoking `earth +final-target`, the system guarantees that an-artifact and 
 
 *The build picks up from the point it notices a difference in the code*
 
-### Reusability with build args
+### 🛠 Reusability with build args
 
 ```Dockerfile
 lint:
@@ -207,7 +207,7 @@ lint-project-b:
   BUILD --build-arg COPY_SRC=./project-b +lint
 ```
 
-### Secrets support built-in
+### 🗝 Secrets support built-in
 
 Secrets are never stored within an image's layers and they are only available to the commands that need them.
 
