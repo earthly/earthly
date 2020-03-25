@@ -1,16 +1,16 @@
 # 🌎 Earthly - a build system for the container era
 
-**🛠 Build anything via containers** - *build container images or standalone artifacts (binaries, jars, eggs, gems, crates, arbitrary files).*
+**🛠 Build anything via containers** - *build container images or standalone artifacts (binaries, jars, gems, arbitrary files)*
 
-**💻 Programming language agnostic** - *allows use of language-specific build tooling.*
+**💻 Programming language agnostic** - *allows use of language-specific build tooling*
 
-**♻️ Reproducible builds** - *does not depend on user's local installation. Runs the same locally, in CI, or on the laptop of your colleague. No need to pre-install project-specific dependencies.*
+**♻️ Reproducible builds** - *does not depend on user's local installation. Runs the same locally, as in CI*
 
-**⛓ Parallelism that just works** - *builds in parallel without special considerations the user has to make.*
+**⛓ Parallelism that just works** - *builds in parallel without special considerations the user has to make*
 
-**🏠 Mono-repo friendly** - *ability to split the build definitions across a vast directory hierarchy. Build components one at a time or altogether.*
+**🏠 Mono-repo friendly** - *ability to split the build definitions across a vast directory hierarchy*
 
-**🏘 Multi-repo friendly** - *ability import builds or artifacts from other repositories.*
+**🏘 Multi-repo friendly** - *ability import builds or artifacts from other repositories*
 
 ----------------------------
 
