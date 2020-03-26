@@ -105,8 +105,7 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 		},
 	}
 
-	app.cliApp.Usage = "The build system for mere mortals"
-	app.cliApp.ArgsUsage = "+<target> | <command>"
+	app.cliApp.Usage = "A build system for the container era"
 	app.cliApp.UseShortOptionHandling = true
 	app.cliApp.Action = app.actionBuild
 	app.cliApp.Version = Version
@@ -174,8 +173,9 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 		},
 		&cli.StringFlag{
 			Name:        "git-url-instead-of",
+			Value:       "git@github.com:=https://github.com/",
 			EnvVars:     []string{"GIT_URL_INSTEAD_OF"},
-			Usage:       "Rewrite git URLs of a certain pattern. Similar to git-config url.<base>.insteadOf (https://git-scm.com/docs/git-config#Documentation/git-config.txt-urlltbasegtinsteadOf). Format: <base>=<replacement>. For example: 'git@github.com:=https://github.com/'",
+			Usage:       "Rewrite git URLs of a certain pattern. Similar to git-config url.<base>.insteadOf (https://git-scm.com/docs/git-config#Documentation/git-config.txt-urlltbasegtinsteadOf). Format: <base>=<instead-of>. For example: 'git@github.com:=https://github.com/'",
 			Destination: &app.buildkitdSettings.GitURLInsteadOf,
 		},
 		&cli.BoolFlag{

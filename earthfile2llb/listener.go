@@ -477,7 +477,7 @@ func (l *listener) ExitGitCloneStmt(c *parser.GitCloneStmtContext) {
 		return
 	}
 	fs := flag.NewFlagSet("GIT CLONE", flag.ContinueOnError)
-	branch := fs.String("build-arg", "", "")
+	branch := fs.String("branch", "", "")
 	err := fs.Parse(l.stmtWords)
 	if err != nil {
 		l.err = errors.Wrapf(err, "invalid GIT CLONE arguments %v", l.stmtWords)
