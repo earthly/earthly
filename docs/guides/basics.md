@@ -164,6 +164,6 @@ docker:
 
 To learn more about how to use Earthly, see also
 
-* The [Earthfile reference](../02-earthfile/earthfile.md)
-* The [earth command reference](../03-earth-command/earth-command.md)
-* More [examples](../04-examples/examples.md)
+* The [Earthfile reference](../earthfile/earthfile.md)
+* The [earth command reference](../earth-command/earth-command.md)
+* More [examples](../examples/examples.md)
