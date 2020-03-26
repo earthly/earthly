@@ -44,7 +44,7 @@ Coming soon.
 
 ##### Note
 
-If you use SSH-based git authentication, then your git credentials will just work with Earthly. Read more about git auth (TODO: Link).
+If you use SSH-based git authentication, then your git credentials will just work with Earthly. Read more about [git auth](https://docs.earthly.dev/guides/auth).
 
 ##### VS Code extension for syntax highlighting
 
@@ -274,7 +274,7 @@ For more details on using the `earth` command, see `earth --help`.
 
 > Allows using an Earthly target as a docker image loaded into the context of the build.
 
-For more details see the Earthfile reference (TODO: link to reference).
+For more details see the [Earthfile reference](https://docs.earthly.dev/earthfile).
 
 <h2 align="center">What's next?</h2>
 
