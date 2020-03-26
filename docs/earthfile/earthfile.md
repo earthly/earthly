@@ -14,6 +14,8 @@ Earthfiles are comprised of a series of target declarations and recipe definitio
 The `FROM` command initializes a new build environment and sets the base image for subsequent instructions. It works similarly to the classical [Dockerfile `FROM` instruction](https://docs.docker.com/engine/reference/builder/#from), but it has the added ability to use another target's image as the base image for the build. For example: `FROM +another-target`.
 
 {% hint style='info' %}
+##### Note
+
 The `FROM ... AS ...` form available in the classical Dockerfile syntax is not supported in Earthfiles. Instead, define a new Earthly target. For example, the following Dockerfile
  
 ```Dockerfile
