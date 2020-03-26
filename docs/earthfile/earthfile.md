@@ -135,8 +135,10 @@ or
 RUN --with-docker docker-compose up -d ; docker run some-test-image
 ```
 
-> ##### Note
-> This feature is experimental and is subject to change.
+{% hint style='danger' %}
+##### Important
+This feature is experimental and is subject to change.
+{% endhint %}
 
 ##### `--secret <env-var>=<secret-ref>`
 
@@ -280,8 +282,10 @@ The command `SAVE IMAGE` marks the current build environment as the image of the
 
 If one ore more `<image-name>`>'s are specified, the command also marks the image to be loaded within the docker daemon available on the host.
 
-> ##### Note
-> It is an error to issue the command `SAVE IMAGE` twice within the same recipe. The `SAVE IMAGE` command is always implied at the end of the `base` target, thus issuing `SAVE IMAGE` within the recipe of the `base` target is also an error.
+{% hint style='info' %}
+##### Note
+It is an error to issue the command `SAVE IMAGE` twice within the same recipe. In addition, the `SAVE IMAGE` command is always implied at the end of the `base` target, thus issuing `SAVE IMAGE` within the recipe of the `base` target is also an error.
+{% endhint %}
 
 #### Options
 
@@ -363,13 +367,16 @@ COPY --build-arg PLATFORM=linux +binary/bin ./
 FROM --build-arg NAME=john +docker-image
 ```
 
-> ##### Note
-> In contrast to Dockerfile predefined args, Earthly builtin args need to be pre-declared before they can be used. For example
->
-> ```Dockerfile
-> ARG EARTHLY_TARGET
-> RUN echo "The current target is $EARTHLY_TARGET"
-> ```
+{% hint style='danger' %}
+##### Important
+
+In contrast to Dockerfile predefined args, Earthly builtin args need to be pre-declared before they can be used. For example
+
+```Dockerfile
+ARG EARTHLY_TARGET
+RUN echo "The current target is $EARTHLY_TARGET"
+```
+{% endhint %}
 
 The value of a builtin arg can never be overriden.
 
@@ -395,6 +402,11 @@ The following builtin args are available
 
 The command `DOCKER PULL` pulls a docker image from a remote registry into the docker daemon available within the build envionment. It can be used in conjunction with `RUN --with-docker docker run ...` to execute docker images in the context of the build environment.
 
+{% hint style='danger' %}
+##### Important
+This feature is experimental and is subject to change.
+{% endhint %}
+
 ## DOCKER LOAD [**experimental**]
 
 #### Synopsis
@@ -404,6 +416,11 @@ The command `DOCKER PULL` pulls a docker image from a remote registry into the d
 #### Description
 
 The command `DOCKER LOAD` builds the image referenced by `<target-ref>` and then loads it into the docker daemon available within the build environment, as a docker image `<image-name>`. It can be used in conjunction with `RUN --with-docker docker run ...` to execute docker images that are produced by other targets of the build.
+
+{% hint style='danger' %}
+##### Important
+This feature is experimental and is subject to change.
+{% endhint %}
 
 #### Options
 
@@ -455,8 +472,10 @@ The `EXPOSE` command marks a series of ports as listening ports within the image
 
 The `ENV` command sets the environment variable `<key>` to the value `<value>`. It works the same way as the [Dockerfile `ENV` command](https://docs.docker.com/engine/reference/builder/#env).
 
-> ##### Note
-> Do not use the `ENV` command for secrets used during the build. All `ENV` values used during the build are persisted within the image itself. See the [`RUN --secret` option](#run) to pass secrets to build instructions.
+{% hint style='info' %}
+##### Note
+Do not use the `ENV` command for secrets used during the build. All `ENV` values used during the build are persisted within the image itself. See the [`RUN --secret` option](#run) to pass secrets to build instructions.
+{% endhint %}
 
 ## ENTRYPOINT (same as Dockerfile ENTRYPOINT)
 
