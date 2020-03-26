@@ -22,6 +22,10 @@
 
 <h2 align="center">Installation</h2>
 
+##### Pre-requisites (all platforms)
+
+* [Docker](https://docs.docker.com/install/)
+
 ##### Linux
 
 ```bash
