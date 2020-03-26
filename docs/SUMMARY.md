@@ -9,7 +9,7 @@
     * [Experimental features](guides/experimental.md)
     * [CI integration](guides/ci-integration.md)
 * [Earthfile reference](earthfile/earthfile.md)
-* [Earth command reference](earth-command/earth-command.md)
+* [earth command reference](earth-command/earth-command.md)
 * [Examples](examples/examples.md)
     * [Go](examples/go.md)
     * [Java](examples/java.md)
