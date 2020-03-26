@@ -44,9 +44,9 @@ The command executes a build referenced by `<target-ref>` (*target form*), `<art
 
 If a buildkit daemon has not already been started, and the option `--buildkit-host` is not specified, this command also starts up a container named `earthly-buildkitd` to act as a build daemon.
 
-The build has two stages:
+The execution has two phases:
 
-* The build itself
+* The build
 * The output
 
 During the build phase, the referenced target and all its direct or indirect dependencies are executed. During the output phase, all applicable artifacts with an `AS LOCAL` specification are written to the specified output location, and all applicable docker images are loaded onto the host's docker daemon. If the `--push` option is specified, the output phase additionally pushes any applicable docker images to remote registries and also all `RUN --push` commands are executed.
@@ -77,7 +77,7 @@ Also available as an env var setting: `EARTHLY_PUSH=true`.
 
 Instructs Earthly to push any docker images declared with the `--push` flag to remote docker registries and to run any `RUN --push` commands. For more information see the [`SAVE IMAGE` Earthfile command](../earthfile/earthfile.md#save-image) and the [`RUN --push` Earthfile command](../earthfile/earthfile.md#run).
 
-Pushing only happens during the output stage, and only if the build has succeeded.
+Pushing only happens during the output phase, and only if the build has succeeded.
 
 ##### `--no-output`
 
