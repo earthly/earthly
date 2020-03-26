@@ -121,7 +121,7 @@ earth --allow-privileged +some-target
 
 ##### `--with-docker` [**experimental**]
 
-{% hint style='danger' %}
+{% hint style='working' %}
 `RUN --with-docker` is experimental and is subject to change.
 {% endhint %}
 
