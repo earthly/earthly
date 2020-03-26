@@ -4,7 +4,8 @@
 
 #### Synopsis
 
-* ```
+* Target form
+  ```
   earth [--build-arg <key>[=<value>]] [--secret|-s <secret-id>[=<value>]]
         [--push] [--no-output] [--no-cache] [--allow-privileged|-P]
         [--ssh-auth-sock <path-to-sock>]
@@ -14,8 +15,8 @@
         [--buildkit-image <bk-image>]
         <target-ref>
   ```
-  (target form)
-* ```
+* Artifact form
+  ```
   earth [--build-arg <key>[=<value>]] [--secret|-s <secret-id>[=<value>]]
         [--push] [--no-cache] [--allow-privileged|-P]
         [--ssh-auth-sock <path-to-sock>]
@@ -25,8 +26,8 @@
         [--buildkit-image <bk-image>]
         --artifact|-a <artifact-ref>
   ```
-  (artifact form)
-* ```
+* Image form
+  ```
   earth [--build-arg <key>[=<value>]] [--secret|-s <secret-id>[=<value>]]
         [--push] [--no-cache] [--allow-privileged|-P]
         [--ssh-auth-sock <path-to-sock>]
@@ -36,7 +37,6 @@
         [--buildkit-image <bk-image>]
         --image|-i <image-ref>
   ```
-  (image form)
 
 #### Description
 
@@ -168,11 +168,13 @@ Instructs earth to use an alternate image for buildkitd. The default image used 
 
 #### Synopsis
 
-* ```
-  earth [options] [--all|-a] prune (standard form)
+* Standard form
   ```
-* ```
-  earth [options] --reset prune (reset form)
+  earth [options] [--all|-a] prune
+  ```
+* Reset form
+  ```
+  earth [options] --reset prune
   ```
 
 #### Description
