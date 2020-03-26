@@ -1,6 +1,6 @@
 # earth command reference
 
-## earth \<target-ref\>
+## earth
 
 #### Synopsis
 
@@ -8,8 +8,10 @@
   earth [--build-arg <key>[=<value>]] [--secret|-s <secret-id>[=<value>]]
         [--push] [--no-output] [--no-cache] [--allow-privileged|-P]
         [--ssh-auth-sock <path-to-sock>]
-        [--git-username <git-user>] [--git-password <git-pass>] [--git-url-instead-of <git-instead-of>]
-        [--buildkit-host <bk-host>] [--buildkit-cache-size-mb <cache-size-mb>] [--buildkit-image <bk-image>]
+        [--git-username <git-user>] [--git-password <git-pass>]
+        [--git-url-instead-of <git-instead-of>]
+        [--buildkit-host <bk-host>] [--buildkit-cache-size-mb <cache-size-mb>]
+        [--buildkit-image <bk-image>]
         <target-ref>
   ```
   (target form)
@@ -17,8 +19,10 @@
   earth [--build-arg <key>[=<value>]] [--secret|-s <secret-id>[=<value>]]
         [--push] [--no-cache] [--allow-privileged|-P]
         [--ssh-auth-sock <path-to-sock>]
-        [--git-username <git-user>] [--git-password <git-pass>] [--git-url-instead-of <git-instead-of>]
-        [--buildkit-host <bk-host>] [--buildkit-cache-size-mb <cache-size-mb>] [--buildkit-image <bk-image>]
+        [--git-username <git-user>] [--git-password <git-pass>]
+        [--git-url-instead-of <git-instead-of>]
+        [--buildkit-host <bk-host>] [--buildkit-cache-size-mb <cache-size-mb>]
+        [--buildkit-image <bk-image>]
         --artifact|-a <artifact-ref>
   ```
   (artifact form)
@@ -26,8 +30,10 @@
   earth [--build-arg <key>[=<value>]] [--secret|-s <secret-id>[=<value>]]
         [--push] [--no-cache] [--allow-privileged|-P]
         [--ssh-auth-sock <path-to-sock>]
-        [--git-username <git-user>] [--git-password <git-pass>] [--git-url-instead-of <git-instead-of>]
-        [--buildkit-host <bk-host>] [--buildkit-cache-size-mb <cache-size-mb>] [--buildkit-image <bk-image>]
+        [--git-username <git-user>] [--git-password <git-pass>]
+        [--git-url-instead-of <git-instead-of>]
+        [--buildkit-host <bk-host>] [--buildkit-cache-size-mb <cache-size-mb>]
+        [--buildkit-image <bk-image>]
         --image|-i <image-ref>
   ```
   (image form)
