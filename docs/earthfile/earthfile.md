@@ -16,29 +16,35 @@ The `FROM` command initializes a new build environment and sets the base image f
 > 
 > ```Dockerfile
 > # Dockerfile
->     FROM alpine:3.11 AS build
->     # ... instructions for build
->     FROM build as another
->     # ... further instructions inheriting build
->     FROM busybox as yet-another
->     COPY --from=build ./a-file ./
+>
+> FROM alpine:3.11 AS build
+> # ... instructions for build
+>
+> FROM build as another
+> # ... further instructions inheriting build
+>
+> FROM busybox as yet-another
+> COPY --from=build ./a-file ./
 > ```
 >
 > can become
 >
 > ```Dockerfile
 > # build.earth
->     build:
->         FROM alpine:3.11
->         # ... instructions for build
->         SAVE ARTIFACT ./a-file
->         SAVE IMAGE
->     another:
->         FROM +build
->         # ... further instructions inheriting build
->     yet-another:
->         FROM busybox
->         COPY +build/a-file ./
+>
+> build:
+>     FROM alpine:3.11
+>     # ... instructions for build
+>     SAVE ARTIFACT ./a-file
+>     SAVE IMAGE
+>
+> another:
+>     FROM +build
+>     # ... further instructions inheriting build
+>
+> yet-another:
+>     FROM busybox
+>     COPY +build/a-file ./
 > ```
 
 #### Options
@@ -235,7 +241,7 @@ If `AS LOCAL ...` is also specified, it additionally marks the artifact to be co
 
 If `<artifact-dest-path>` is not specified, it is inferred as `/`.
 
-File within the artifact environment are also known as "artifacts". Once a file has been copied into the artifact environment, it can be referenced in other places of the build (for example in a `COPY` command), using an [artifact reference](../guides/target-ref.md).
+Files within the artifact environment are also known as "artifacts". Once a file has been copied into the artifact environment, it can be referenced in other places of the build (for example in a `COPY` command), using an [artifact reference](../guides/target-ref.md).
 
 ## SAVE IMAGE
 
@@ -266,7 +272,7 @@ The `--push` options marks the image to be pushed to an external registry after 
 
 #### Description
 
-The command `BUILD` instructs Earthly to additionally invoke the build of the target referenced by `<target-ref>`.
+The command `BUILD` instructs Earthly to additionally invoke the build of the target referenced by `<target-ref>`, where `<target-ref>` follows the rules defined by [target referencing](../guides/target-ref.md).
 
 #### Options
 

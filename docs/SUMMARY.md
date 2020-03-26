@@ -4,7 +4,7 @@
     * [Basics](guides/basics.md)
     * [Authenticating git and image registries](guides/auth.md)
     * [Managing cache](guides/cache.md)
-    * [Target referencing](guides/target-ref.md)
+    * [Target, artifact and image referencing](guides/target-ref.md)
     * [Builtin args](guides/builtin-args.md)
     * [Experimental features](guides/experimental.md)
     * [CI integration](guides/ci-integration.md)
