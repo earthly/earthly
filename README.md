@@ -19,31 +19,6 @@
 [![Docs](https://img.shields.io/badge/docs-git%20book-blue)](https://docs.earthly.dev)
 [![Docker Hub](https://img.shields.io/badge/docker%20hub-earthly-blue)](https://hub.docker.com/u/earthly)
 [![License](https://img.shields.io/badge/license-MPL--2.0-blue.svg)](http://www.apache.org/licenses/LICENSE-2.0)
-[![Analytics](https://ga-beacon.appspot.com/UA-161831101-2/readme)](https://github.com/igrigorik/ga-beacon)
-
-<h2 align="center">Dockerfile-like syntax</h2>
-
-```Dockerfile
-# Initialize the build environment - this applies to all targets.
-FROM golang:1.13-alpine3.11
-WORKDIR /go-example
-
-build:
-  # Copy source from local dir into the build context,
-  # run go build and save the resulting binary.
-  COPY main.go .
-  RUN go build -o build/go-example main.go
-  SAVE ARTIFACT build/go-example AS LOCAL build/go-example
-
-docker:
-  # Copy an artifact from target +build,
-  # set an entrypoint for the image and save it.
-  COPY +build/go-example .
-  ENTRYPOINT ["/go-example/go-example"]
-  SAVE IMAGE go-example:latest
-```
-
-Invoke the build using either `earth +build` (to build the binary) or `earth +docker` (to build the docker image).
 
 <h2 align="center">Installation</h2>
 
@@ -77,7 +52,31 @@ Add [Earthfile Syntax Highlighting](https://marketplace.visualstudio.com/items?i
 ext install earthly.earthfile-syntax-highlighting
 ```
 
-<h2 align="center">Core concepts</h2>
+<h2 align="center">Core features</h2>
+
+#### 🐳 Dockerfile-like syntax
+
+```Dockerfile
+# Initialize the build environment - this applies to all targets.
+FROM golang:1.13-alpine3.11
+WORKDIR /go-example
+
+build:
+  # Copy source from local dir into the build context,
+  # run go build and save the resulting binary.
+  COPY main.go .
+  RUN go build -o build/go-example main.go
+  SAVE ARTIFACT build/go-example AS LOCAL build/go-example
+
+docker:
+  # Copy an artifact from target +build,
+  # set an entrypoint for the image and save it.
+  COPY +build/go-example .
+  ENTRYPOINT ["/go-example/go-example"]
+  SAVE IMAGE go-example:latest
+```
+
+Invoke the build using either `earth +build` (to build the binary) or `earth +docker` (to build the docker image).
 
 #### 🔨 Reference targets using +
 
