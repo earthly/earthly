@@ -121,6 +121,10 @@ earth --allow-privileged +some-target
 
 ##### `--with-docker` [**experimental**]
 
+{% hint style='danger' %}
+`RUN --with-docker` is experimental and is subject to change.
+{% endhint %}
+
 Makes available a docker daemon within the build environment, which the command can leverage. This option automatically implies `--privileged`.
 
 Example:
@@ -134,11 +138,6 @@ or
 ```Dockerfile
 RUN --with-docker docker-compose up -d ; docker run some-test-image
 ```
-
-{% hint style='danger' %}
-##### Important
-This feature is experimental and is subject to change.
-{% endhint %}
 
 ##### `--secret <env-var>=<secret-ref>`
 
@@ -394,6 +393,10 @@ The following builtin args are available
 
 ## DOCKER PULL [**experimental**]
 
+{% hint style='danger' %}
+`DOCKER PULL` is experimental and is subject to change.
+{% endhint %}
+
 #### Synopsis
 
 * `DOCKER PULL <image-name>`
@@ -402,12 +405,11 @@ The following builtin args are available
 
 The command `DOCKER PULL` pulls a docker image from a remote registry into the docker daemon available within the build envionment. It can be used in conjunction with `RUN --with-docker docker run ...` to execute docker images in the context of the build environment.
 
-{% hint style='danger' %}
-##### Important
-This feature is experimental and is subject to change.
-{% endhint %}
-
 ## DOCKER LOAD [**experimental**]
+
+{% hint style='danger' %}
+`DOCKER LOAD` is experimental and is subject to change.
+{% endhint %}
 
 #### Synopsis
 
@@ -416,11 +418,6 @@ This feature is experimental and is subject to change.
 #### Description
 
 The command `DOCKER LOAD` builds the image referenced by `<target-ref>` and then loads it into the docker daemon available within the build environment, as a docker image `<image-name>`. It can be used in conjunction with `RUN --with-docker docker run ...` to execute docker images that are produced by other targets of the build.
-
-{% hint style='danger' %}
-##### Important
-This feature is experimental and is subject to change.
-{% endhint %}
 
 #### Options
 
