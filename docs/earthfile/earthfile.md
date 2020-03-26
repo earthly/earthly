@@ -1,6 +1,6 @@
 # Earthfile reference
 
-Earthfiles are comprised of a series of target declarations and recipe definitions. Each recipe contains a series of commands, which are defined below. For an introduction into Earthfiles, see the [Basics page](./basics.md).
+Earthfiles are comprised of a series of target declarations and recipe definitions. Each recipe contains a series of commands, which are defined below. For an introduction into Earthfiles, see the [Basics page](../guides/basics.md).
 
 ## FROM
 
@@ -13,41 +13,42 @@ Earthfiles are comprised of a series of target declarations and recipe definitio
 
 The `FROM` command initializes a new build environment and sets the base image for subsequent instructions. It works similarly to the classical [Dockerfile `FROM` instruction](https://docs.docker.com/engine/reference/builder/#from), but it has the added ability to use another target's image as the base image for the build. For example: `FROM +another-target`.
 
-> ##### Note
-> The `FROM ... AS ...` form available in the classical Dockerfile syntax is not supported in Earthfiles. Instead, define a new Earthly target. For example, the following Dockerfile
-> 
-> ```Dockerfile
-> # Dockerfile
->
-> FROM alpine:3.11 AS build
-> # ... instructions for build
->
-> FROM build as another
-> # ... further instructions inheriting build
->
-> FROM busybox as yet-another
-> COPY --from=build ./a-file ./
-> ```
->
-> can become
->
-> ```Dockerfile
-> # build.earth
->
-> build:
->     FROM alpine:3.11
->     # ... instructions for build
->     SAVE ARTIFACT ./a-file
->     SAVE IMAGE
->
-> another:
->     FROM +build
->     # ... further instructions inheriting build
->
-> yet-another:
->     FROM busybox
->     COPY +build/a-file ./
-> ```
+{% hint style='info' %}
+The `FROM ... AS ...` form available in the classical Dockerfile syntax is not supported in Earthfiles. Instead, define a new Earthly target. For example, the following Dockerfile
+ 
+```Dockerfile
+# Dockerfile
+
+FROM alpine:3.11 AS build
+# ... instructions for build
+
+FROM build as another
+# ... further instructions inheriting build
+
+FROM busybox as yet-another
+COPY --from=build ./a-file ./
+```
+
+can become
+
+```Dockerfile
+# build.earth
+
+build:
+    FROM alpine:3.11
+    # ... instructions for build
+    SAVE ARTIFACT ./a-file
+    SAVE IMAGE
+
+another:
+    FROM +build
+    # ... further instructions inheriting build
+
+yet-another:
+    FROM busybox
+    COPY +build/a-file ./
+```
+{% endhint %}
 
 #### Options
 
@@ -78,7 +79,7 @@ To avoid any abiguity regarding whether an argument is a `RUN` flag option or pa
 
 Marks the command as a "push command". Push commands are only executed if all other non-push instructions succeed. In addition, push commands are never cached, thus they are executed on every applicable invocation of the build.
 
-Push commands are not run by default. Add the `--push` flag to the `earth` invocation to enable pushing. Example:
+Push commands are not run by default. Add the `--push` flag to the `earth` invocation to enable pushing. For example
 
 ```bash
 earth --push +deploy
@@ -86,7 +87,7 @@ earth --push +deploy
 
 Push commands were introduced to allow the user to define commands that have an effect external to the build. This kind of effects are only allowed to take place if the entire build succeeds. Good candidates for push commands are uploads of artifacts to artifactories, commands that make a change to an external environment, like a production or staging environment.
 
-Note that no other non-push commands are allowed to follow a push command within a recipe.
+Note that non-push commands are not allowed to follow a push command within a recipe.
 
 ##### `--entrypoint`
 
@@ -286,6 +287,12 @@ If one ore more `<image-name>`>'s are specified, the command also marks the imag
 
 The `--push` options marks the image to be pushed to an external registry after it has been loaded within the docker daemon available on the host.
 
+Push commands are not run by default. Add the --push flag to the earth invocation to enable pushing. For example
+
+```bash
+earth --push +docker-image
+```
+
 ## BUILD
 
 #### Synopsis
@@ -330,14 +337,7 @@ or a dynamic expression, based on the output of a command executed in the contex
 
 The command `ARG` declares a variable (or arg) with the name `<name>` and with an optional default value `<default-value>`. If no default value is provided, then empty string is used as the default value.
 
-This command works similarly to the [Dockerfile `ARG` command](https://docs.docker.com/engine/reference/builder/#arg), with a few small differences regarding the scope and the predefined args (called builtin args in Earthly). For more information see [builtin args](./builtin-args.md). The variable's scope is always limited to the current target's recipe and only from the point it is declared onwards.
-
-In contrast to Dockerfile predefined args, Earthly builtin args need to be pre-declared before they can be used. For example
-
-```Dockerfile
-ARG EARTHLY_TARGET
-RUN echo "The current target is $EARTHLY_TARGET"
-```
+This command works similarly to the [Dockerfile `ARG` command](https://docs.docker.com/engine/reference/builder/#arg), with a few differences regarding the scope and the predefined args (called builtin args in Earthly). For more information see [builtin args](../guides/builtin-args.md). The variable's scope is always limited to the current target's recipe and only from the point it is declared onwards.
 
 The value of an arg can be overridden either from the `earth` command
 
@@ -361,7 +361,27 @@ COPY --build-arg PLATFORM=linux +binary/bin ./
 FROM --build-arg NAME=john +docker-image
 ```
 
-The value of a builtin arg can never be overriden and also the default value is always ignored.
+> ##### Note
+> In contrast to Dockerfile predefined args, Earthly builtin args need to be pre-declared before they can be used. For example
+>
+> ```Dockerfile
+> ARG EARTHLY_TARGET
+> RUN echo "The current target is $EARTHLY_TARGET"
+> ```
+
+The value of a builtin arg can never be overriden.
+
+The following builtin args are available
+
+| Name | Description | Example value |
+| --- | --- | --- |
+| `EARTHLY_TARGET` | The canonical reference of the current target. | For example, for a target named `foo`, which exists on `master` branch, in a repository at `github.com/bar/buz`, in a subdirectory `src`, the canonical reference would be `github.com/bar/buz/src:master+foo`. For more information about canonical references, see [target referencing](../guides/target-ref.md). |
+| `EARTHLY_TARGET_PROJECT` | The project part of the canonical reference of the current target. | For the example above, the canonical project would be `github.com/bar/buz/src` |
+| `EARTHLY_TARGET_NAME` | The name part of the canonical reference of the current target. | For the example above, the name would be `foo` |
+| `EARTHLY_TARGET_TAG` | The tag part of the canonical reference of the current target. Note that in some cases, no tag is detected, and as such, the value is an empty string | For the example above, the tag would be `master` |
+| `EARTHLY_GIT_HASH` | The git hash detected within the build context directory. If no git directory is detected, then the value is an empty string. Take care when using this arg, as the frequently changing git hash may be cause for not using the cache. | `41cb5666ade67b29e42bef121144456d3977a67a` |
+| `EARTHLY_GIT_ORIGIN_URL` | The git URL detected within the build context directory. If no git directory is detected, then the value is an empty string. | `git@github.com:vladaionescu/earthly.git` |
+| `EARTHLY_GIT_PROJECT_NAME` | The git project name from within the git URL detected within the build context directory. If no git directory is detected, then the value is an empty string. | `vladaionescu/earthly` |
 
 ## DOCKER PULL [**experimental**]
 
