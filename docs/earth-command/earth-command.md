@@ -63,7 +63,7 @@ Also available as an env var setting: `EARTHLY_BUILD_ARGS"<key>=<value>,<key>=<v
 
 Overides the value of the build arg `<key>`. If `<value>` is not specified, then the value becomes the value of the environment variable with the same name as `<key>`. For more information see the [`ARG` Earthfile command](../earthfile/earthfile.md#arg).
 
-##### `--secret|-s <secret-id>[=<value>]'
+##### `--secret|-s <secret-id>[=<value>]`
 
 Also available as an env var setting: `EARTHLY_SECRETS="<secret-id>=<value>,<secret-id>=<value>,..."`.
 
@@ -71,7 +71,7 @@ Passes a secret with ID `<secret-id>` to the build environments. If `<value>` is
 
 The secret can be referenced within Earthfile recipes as `RUN --secret <arbitrary-env-var-name>=+secrets/<secret-id>`. For more information see the [`RUN --secret` Earthfile command](../earthfile/earthfile.md#run).
 
-#### `--push`
+##### `--push`
 
 Also available as an env var setting: `EARTHLY_PUSH=true`.
 
@@ -79,31 +79,31 @@ Instructs Earthly to push any docker images declared with the `--push` flag to r
 
 Pushing only happens during the output stage, and only if the build has succeeded.
 
-#### `--no-output`
+##### `--no-output`
 
 Also available as an env var setting: `EARTHLY_NO_OUTPUT=true`.
 
 Instructs Earthly not to output any images or artifacts. This option cannot be used with the *artifact form* or the *image form*.
 
-#### `--no-cache`
+##### `--no-cache`
 
 Also available as an env var setting: `EARTHLY_NO_CACHE=true`.
 
 Instructs Earthly to ignore any cache when building. It does, however, continue to store new cache formed as part of the build (to be possibly used on future invocations).
 
-#### `--allow-privileged|-P`
+##### `--allow-privileged|-P`
 
 Also available as an env var setting: `EARTHLY_ALLOW_PRIVILEGED=true`.
 
 Permits the build to use the --privileged flag in RUN commands. For more information see the [`RUN --privileged` command](../earthfile/earthfile.md#run).
 
-#### `--ssh-auth-sock <path-to-sock>`
+##### `--ssh-auth-sock <path-to-sock>`
 
 Also available as an env var setting: `SSH_AUTH_SOCK=<path-to-sock>`.
 
 Sets the path to the SSH agent sock, which can be used for SSH authentication. SSH authentication is used by Earthly in order to perform git clone's underneath. On most systems, the env var `SSH_AUTH_SOCK` env var is already set if a SSH agent is running. For more information see the [Authentication page](../guides/auth.md).
 
-#### `--git-username <git-user>`
+##### `--git-username <git-user>`
 
 Also available as an env var setting: `GIT_USERNAME=<git-user>`.
 
@@ -111,7 +111,7 @@ Sets the git username to use for non-SSH git authentication. For more informatio
 
 To prevent the need to specify this option on every `earth` invocation, it is recommended to specify the env var form in a file like `.bashrc` or `.profile`.
 
-#### `--git-password <git-pass>`
+##### `--git-password <git-pass>`
 
 Also available as an env var setting: `GIT_PASSWORD=<git-pass>`.
 
@@ -123,7 +123,7 @@ Sets the git password to use for non-SSH git authentication. For more informatio
 For security reasons, it is strongly recommended to use the env var form of this setting and not the flag form.
 {% endhint %}
 
-#### `--git-url-instead-of <git-instead-of>`
+##### `--git-url-instead-of <git-instead-of>`
 
 Also available as an env var setting: `GIT_URL_INSTEAD_OF=<git-instead-of>`.
 
@@ -140,13 +140,13 @@ Currently, only one such pattern is allowed to be specified.
 
 To prevent the need to specify this option on every `earth` invocation, it is recommended to specify the env var form in a file like `.bashrc` or `.profile`.
 
-#### `--buildkit-host <bk-host>`
+##### `--buildkit-host <bk-host>`
 
 Also available as an env var setting: `EARTHLY_BUILDKIT_HOST=<bk-host>`.
 
 Instructs `earth` to use an alternate buildkit host. When this option is specified, `earth` does not manage (starts/restarts as necessary) the buildkit daemon.
 
-#### `--buildkit-cache-size-mb <cache-size-mb>`
+##### `--buildkit-cache-size-mb <cache-size-mb>`
 
 Also available as an env var setting: `EARTHLY_BUILDKIT_CACHE_SIZE_MB=<cache-size-mb>`.
 
@@ -158,7 +158,7 @@ This setting is only used when the buildkit daemon is started (or restarted). In
 earth --buildkit-cache-size-mb <cache-size-mb> prune --reset
 ```
 
-#### `--buildkit-image <bk-image>`
+##### `--buildkit-image <bk-image>`
 
 Also available as an env var setting: `EARTHLY_BUILDKITD_IMAGE=<bk-image>`.
 
