@@ -22,6 +22,10 @@
 
 <h2 align="center">Installation</h2>
 
+##### Pre-requisites (all platforms)
+
+* [Docker](https://docs.docker.com/install/)
+
 ##### Linux
 
 ```bash
@@ -40,7 +44,7 @@ Coming soon.
 
 ##### Note
 
-If you use SSH-based git authentication, then your git credentials will just work with Earthly. Read more about git auth (TODO: Link).
+If you use SSH-based git authentication, then your git credentials will just work with Earthly. Read more about [git auth](https://docs.earthly.dev/guides/auth).
 
 ##### VS Code extension for syntax highlighting
 
@@ -62,7 +66,7 @@ FROM golang:1.13-alpine3.11
 WORKDIR /go-example
 
 build:
-  # Copy source from local dir into the build context,
+  # Copy source from local dir into the build environment,
   # run go build and save the resulting binary.
   COPY main.go .
   RUN go build -o build/go-example main.go
@@ -242,7 +246,7 @@ For more details on using the `earth` command, see `earth --help`.
 
 > Builds another target, with a build arg value specified as the output of a command.
 
-##### `SAVE ARTIFACT ./artifact/path /artifact-name [AS LOCAL ./local/artifact/path]`
+##### `SAVE ARTIFACT ./artifact/path [/artifact-name] [AS LOCAL ./local/artifact/path]`
 
 > Saves an artifact for later use. It is stored as a target artifact, to be used by other targets (`/artifact-name`) and optionally, as a local file which will be written to the host system at `./local/artifact/path`.
 
@@ -270,7 +274,7 @@ For more details on using the `earth` command, see `earth --help`.
 
 > Allows using an Earthly target as a docker image loaded into the context of the build.
 
-For more details see the Earthfile reference (TODO: link to reference).
+For more details see the [Earthfile reference](https://docs.earthly.dev/earthfile).
 
 <h2 align="center">What's next?</h2>
 

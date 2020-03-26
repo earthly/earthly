@@ -1,6 +1,4 @@
 
-# Basics
-
 You're here to learn how to use Earthly. Welcome! Earthly is a build system based upon modern development technologies available today, like Docker.
 
 First, a few concepts:
@@ -8,9 +6,9 @@ First, a few concepts:
 * Earthly - the build system as a whole
 * `earth` - the CLI tool used to interact with Earthly
 * earthfile - a file named `build.earth`, which contains a series of targets and their respective recipes
-* buildkitd - a [daemon built by Docker team](https://github.com/moby/buildkit) and used by Earthly to execute builds. It executes LLB, the same low-level primitives used when building Dockerfiles. The buildkitd daemon is started automatically in a docker container, by `earth`, when executing builds.
+* buildkitd - a [daemon built by the Docker team](https://github.com/moby/buildkit) and used by Earthly to execute builds. It executes LLB, the same low-level primitives used when building Dockerfiles. The buildkitd daemon is started automatically in a docker container, by `earth`, when executing builds.
 * recipe - a specific series of build steps
-* target - the label used to identify a recipe
+* target - the label used to identify a recipe. 'Target' is also used to refer to a build of a specific target.
 * build context - the main directory made available to the build for copying files from
 * artifact - a file resulting from executing a target (not all targets have artifacts)
 * image - a docker image resulting from executing a target (not all targets have images)
@@ -113,11 +111,7 @@ earth +docker
 
 The output might look like this:
 
-**TODO: Redo output**
-
-```
-...
-```
+![Earth build output](img/go-example.png)
 
 Notice how to the left of `|`, within the output, we can see some targets like `+base`, `+build` and `+docker` . Notice how the output is interleaved between `+docker` and `+build`. This is because the system executes independent build steps in parallel. The reason this is possible effortlessly is because only very few things are shared between the builds of the recipes and those things are declared and obvious. The rest is completely isolated.
 
@@ -147,7 +141,7 @@ build:
     # Run a go build command as a layer. This uses the previously copied main.go file.
     RUN go build -o build/go-example main.go
     # Save the output of the build command as an artifact. Call this artifact /go-example (it
-    # can be later referenced as +build/go-example. In addition, store the artifact as a
+    # can be later referenced as +build/go-example). In addition, store the artifact as a
     # local file (on the host) named build/go-example. This local file is only written if the
     # entire build succeeds.
     SAVE ARTIFACT build/go-example /go-example AS LOCAL build/go-example
@@ -165,3 +159,9 @@ docker:
     # This image is only made available to the host's docker if the entire build succeeds.
     SAVE IMAGE go-example:latest
 ```
+
+## See also
+
+* The [Earthfile reference](../earthfile/earthfile.md)
+* The [earth command reference](../earth-command/earth-command.md)
+* More [examples](../examples/examples.md)
