@@ -15,6 +15,7 @@ The `FROM` command initializes a new build environment and sets the base image f
 > The `FROM ... AS ...` form available in the classical Dockerfile syntax is not supported in Earthfiles. Instead, define a new Earthly target. For example, the following Dockerfile
 > 
 > ```Dockerfile
+> # Dockerfile
 >     FROM alpine:3.11 AS build
 >     # ... instructions for build
 >     FROM build as another
@@ -26,6 +27,7 @@ The `FROM` command initializes a new build environment and sets the base image f
 > can become
 >
 > ```Dockerfile
+> # build.earth
 >     build:
 >         FROM alpine:3.11
 >         # ... instructions for build
@@ -43,23 +45,7 @@ The `FROM` command initializes a new build environment and sets the base image f
 
 ##### `--build-arg <key>=<value>`
 
-Sets a value override of `<value>` for the build arg identified by `<key>`. The value may be a constant string
-
-```
---build-arg SOME_ARG="a constant value"
-```
-
-or an expression involving other build args
-
-```
---build-arg SOME_ARG="a value based on other args, like $ANOTHER_ARG and $YET_ANOTHER_ARG"
-```
-
-or a dynamic expression, based on the output of a command executed in the context of the build environment. In this case, the build arg becomes a "variable build arg".
-
-```
---build-arg SOME_ARG=$(find /app -type f -name '*.php')
-```
+Sets a value override of `<value>` for the build arg identified by `<key>`. See also [BUILD](#build) for more details about the `--build-arg` option.
 
 ## RUN
 
@@ -192,6 +178,8 @@ The command `COPY` allows copying of files and directories between different con
 
 The command may take a couple of possible forms. In the *classical form*, `COPY` copies files and directories from the build context into the build environment. In the *artifact form*, `COPY` copies files or directories (also known as "artifacts" in this context) from the artifact environment of other build targets into the build environment of the current target. Either form allows the use of wildcards for the sources.
 
+The parameter `<src-artifact>` is an artifact reference and is generally of the form `<target-ref>/<artifact-path>`, where `<target-ref>` is the reference to the target which needs to be built in order to yield the artifact and `<artifact-path>` is the path within the artifact environment of the target, where the file or directory is located. The `<artifact-path>` may also be a wildcard.
+
 #### Options
 
 ##### `--dir`
@@ -210,22 +198,27 @@ COPY --dir dir1 dir2 dir3 ./
 
 ##### `--build-arg <key>=<value>`
 
-Sets a value override of `<value>` for the build arg identified by `<key>`, when building the target containing the mentioned artifact. The value may be a constant string
+Sets a value override of `<value>` for the build arg identified by `<key>`, when building the target containing the mentioned artifact. See also [BUILD](#build) for more details about the `--build-arg` option.
 
-```
---build-arg SOME_ARG="a constant value"
+##### `--from`
+
+Although this option is present in classical Dockerfile syntax, it is not supported by Earthfiles. You may instead use a combination of `SAVE ARTIFACT` and `COPY` *artifact form* commands to achieve similar effects. For example, the following Dockerfile
+
+```Dockerfile
+# Dockerfile
+COPY --from=some-image /path/to/some-file.txt ./
 ```
 
-or an expression involving other build args
+... would be equivalent to `final-target` in the following Earthfile
 
-```
---build-arg SOME_ARG="a value based on other args, like $ANOTHER_ARG and $YET_ANOTHER_ARG"
-```
+```Dockerfile
+# build.earth
+intermediate:
+    FROM some-image
+    SAVE ARTIFACT /path/to/some-file.txt
 
-or a dynamic expression, based on the output of a command executed in the context of the build environment. In this case, the build arg becomes a "variable build arg".
-
-```
---build-arg SOME_ARG=$(find /app -type f -name '*.php')
+final-target:
+    COPY +intermediate/some-file.txt ./
 ```
 
 ## SAVE ARTIFACT
@@ -264,3 +257,37 @@ If one ore more `<image-name>`>'s are specified, the command also marks the imag
 ##### `--push`
 
 The `--push` options marks the image to be pushed to an external registry after it has been loaded within the docker daemon available on the host.
+
+## BUILD
+
+#### Synopsis
+
+* `BUILD [--build-arg <key>=<value>] <target-ref>`
+
+#### Description
+
+The command `BUILD` instructs Earthly to additionally invoke the build of the target referenced by `<target-ref>`.
+
+#### Options
+
+##### `--build-arg <key>=<value>`
+
+Sets a value override of `<value>` for the build arg identified by `<key>`.
+
+The override value of a build arg may be a constant string
+
+```
+--build-arg SOME_ARG="a constant value"
+```
+
+or an expression involving other build args
+
+```
+--build-arg SOME_ARG="a value based on other args, like $ANOTHER_ARG and $YET_ANOTHER_ARG"
+```
+
+or a dynamic expression, based on the output of a command executed in the context of the build environment. In this case, the build arg becomes a "variable build arg".
+
+```
+--build-arg SOME_ARG=$(find /app -type f -name '*.php')
+```
