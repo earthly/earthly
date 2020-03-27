@@ -130,8 +130,6 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, target domain.Targ
 	earthfileState := copyOp.AddMount("/dest", llb.Scratch().Platform(llbutil.TargetPlatform))
 
 	// Get git hash.
-	// TODO: Note that the branches and the tags are not extracted as they are not present
-	//       for some reason.
 	gitHashOpts := []llb.RunOption{
 		llb.Args([]string{
 			"/bin/sh", "-c",

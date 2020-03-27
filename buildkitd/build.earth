@@ -1,6 +1,6 @@
 
 buildkitd:
-    FROM moby/buildkit:v0.7.0-rc1
+    FROM moby/buildkit:v0.7.0
 
     # Install some missing binaries.
     RUN apk add --update --no-cache openssh-client pigz xz fuse3 e2fsprogs util-linux

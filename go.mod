@@ -13,7 +13,7 @@ require (
 	github.com/golang/protobuf v1.3.3
 	github.com/google/pprof v0.0.0-20191025152101-a8b9f9d2d3ce // indirect
 	github.com/ianlancetaylor/demangle v0.0.0-20181102032728-5e5cf60278f6 // indirect
-	github.com/moby/buildkit v0.7.0-rc1
+	github.com/moby/buildkit v0.7.0
 	github.com/opencontainers/go-digest v1.0.0-rc1
 	github.com/opencontainers/image-spec v1.0.1
 	github.com/pkg/errors v0.9.1
