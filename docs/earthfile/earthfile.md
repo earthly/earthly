@@ -377,7 +377,13 @@ RUN echo "The current target is $EARTHLY_TARGET"
 ```
 {% endhint %}
 
-The value of a builtin arg can never be overriden.
+The value of a builtin arg can never be overriden. However, you can always have an additional `ARG`, which takes as the default value, the value of the builtin arg. The additional arg can be overriden. Example
+
+```Dockerfile
+ARG EARTHLY_TARGET_TAG
+ARG TAG=$EARTHLY_TARGET_TAG
+SAVE IMAGE --push some/name:$TAG
+```
 
 The following builtin args are available
 

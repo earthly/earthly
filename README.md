@@ -286,7 +286,7 @@ To learn more about using Earthly, check the [full documentation](https://docs.e
 * Join us on [Gitter](https://gitter.im/vladaionescu/earthly)!
 * Questions via GitHub issues are welcome!
 * PRs welcome! But please give a heads-up in GitHub issue before starting work. If there is no GitHub issue for what you want to do, please create one.
-* To build from source, you will need the `earth` binary (Earthly [builds itself](./build.earth)). Check out the code and run `earth +all`.
+* To build from source, you will need the `earth` binary ([Earthly builds itself](https://docs.earthly.dev/examples/earthly)). Check out the code and run `earth +all`.
 
 <h2 align="center">Licensing</h2>
 
