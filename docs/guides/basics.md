@@ -1,3 +1,4 @@
+# Basics
 
 You're here to learn how to use Earthly. Welcome! Earthly is a build system based upon modern development technologies available today, like Docker.
 

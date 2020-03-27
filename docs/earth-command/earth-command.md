@@ -51,6 +51,8 @@ The execution has two phases:
 
 During the build phase, the referenced target and all its direct or indirect dependencies are executed. During the output phase, all applicable artifacts with an `AS LOCAL` specification are written to the specified output location, and all applicable docker images are loaded onto the host's docker daemon. If the `--push` option is specified, the output phase additionally pushes any applicable docker images to remote registries and also all `RUN --push` commands are executed.
 
+Remote targets only output images and no artifacts, by default.
+
 If the build phase does not succeed, not output is produced and no push instruction is executed. In this case, the command exits with a non-zero exit code.
 
 The output of the two phases are separated by a `=== SUCCESS ===` marker.
