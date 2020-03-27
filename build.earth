@@ -74,9 +74,9 @@ earth:
 earth-all:
 	BUILD +earth
 	BUILD \
-		--build-arg=GOOS=darwin \
-		--build-arg=GOARCH=amd64 \
-		--build-arg=GO_EXTRA_LDFLAGS= \
+		--build-arg GOOS=darwin \
+		--build-arg GOARCH=amd64 \
+		--build-arg GO_EXTRA_LDFLAGS= \
 		+earth
 
 earth-docker:
@@ -85,9 +85,9 @@ earth-docker:
 	ENV ENABLE_LOOP_DEVICE=false
 	COPY earth-buildkitd-wrapper.sh /usr/bin/earth-buildkitd-wrapper.sh
 	ENTRYPOINT ["/usr/bin/earth-buildkitd-wrapper.sh"]
-	COPY +earth/earth /usr/bin/earth
 	ARG EARTHLY_TARGET_TAG
 	ARG TAG=$EARTHLY_TARGET_TAG
+	COPY --build-arg VERSION=$TAG +earth/earth /usr/bin/earth
 	SAVE IMAGE --push earthly/earth:$TAG
 
 all:
@@ -106,20 +106,22 @@ release:
 	FROM node:13.10.1-alpine3.11
 	RUN npm install -g github-release-cli
 	WORKDIR /earthly
-	COPY +earth/earth ./earth-linux-amd64
-	COPY --build-arg=GOOS=darwin \
-		--build-arg=GOARCH=amd64 \
-		--build-arg=GO_EXTRA_LDFLAGS= \
-		+earth/earth ./earth-darwin-amd64
 	ARG RELEASE_TAG
-	ARG BODY="No details provided"
 	ARG EARTHLY_GIT_HASH
 	RUN test -n "$RELEASE_TAG" && test -n "$EARTHLY_GIT_HASH"
+	COPY --build-arg VERSION=$RELEASE_TAG \
+		+earth/earth ./earth-linux-amd64
+	COPY --build-arg VERSION=$RELEASE_TAG \
+		--build-arg GOOS=darwin \
+		--build-arg GOARCH=amd64 \
+		--build-arg GO_EXTRA_LDFLAGS= \
+		+earth/earth ./earth-darwin-amd64
 	BUILD +test
 	BUILD --build-arg TAG="$RELEASE_TAG" +earth-docker
 	BUILD --build-arg TAG="$RELEASE_TAG" ./buildkitd+buildkitd
 	BUILD --build-arg TAG=latest +earth-docker
 	BUILD --build-arg TAG=latest ./buildkitd+buildkitd
+	ARG BODY="No details provided"
 	RUN --secret GITHUB_TOKEN=+secrets/GITHUB_TOKEN true
 	RUN --push \
 		--secret GITHUB_TOKEN=+secrets/GITHUB_TOKEN \
