@@ -16,3 +16,4 @@
     * [JS](examples/js.md)
     * [Mono-repo](examples/monorepo.md)
     * [Multi-repo](examples/multirepo.md)
+    * [Earthly](examples/earthly.md)
