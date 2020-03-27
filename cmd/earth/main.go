@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	"github.com/moby/buildkit/client"
@@ -155,7 +156,8 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 		},
 		&cli.StringFlag{
 			Name:        "ssh-auth-sock",
-			EnvVars:     []string{"SSH_AUTH_SOCK"},
+			Value:       defaultSSHAuthSock(),
+			EnvVars:     []string{"EARTHLY_SSH_AUTH_SOCK"},
 			Usage:       "The SSH auth socket to use for ssh-agent forwarding",
 			Destination: &app.buildkitdSettings.SSHAuthSock,
 		},
@@ -494,4 +496,11 @@ func processSecrets(secrets []string) session.Attachable {
 		}
 	}
 	return secretsprovider.FromMap(finalSecrets)
+}
+
+func defaultSSHAuthSock() string {
+	if runtime.GOOS == "darwin" {
+		return "/run/host-services/ssh-auth.sock"
+	}
+	return os.Getenv("SSH_AUTH_SOCK")
 }

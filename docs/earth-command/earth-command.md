@@ -101,9 +101,15 @@ Permits the build to use the --privileged flag in RUN commands. For more informa
 
 ##### `--ssh-auth-sock <path-to-sock>`
 
-Also available as an env var setting: `SSH_AUTH_SOCK=<path-to-sock>`.
+Also available as an env var setting: `EARTHLY_SSH_AUTH_SOCK=<path-to-sock>`.
 
-Sets the path to the SSH agent sock, which can be used for SSH authentication. SSH authentication is used by Earthly in order to perform git clone's underneath. On most systems, the env var `SSH_AUTH_SOCK` env var is already set if a SSH agent is running. For more information see the [Authentication page](../guides/auth.md).
+Sets the path to the SSH agent sock, which can be used for SSH authentication. SSH authentication is used by Earthly in order to perform git clone's underneath.
+
+On Linux systems, this setting defaults to the value of the env var $SSH_AUTH_SOCK. On most systems, the env var `SSH_AUTH_SOCK` env var is already set if an SSH agent is running.
+
+On Mac systems, this setting defaults to `/run/host-services/ssh-auth.sock` to match recommendation in [the official Docker documentation](https://docs.docker.com/docker-for-mac/osxfs/#ssh-agent-forwarding).
+
+For more information see the [Authentication page](../guides/auth.md).
 
 ##### `--git-username <git-user>`
 

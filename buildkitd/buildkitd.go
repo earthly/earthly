@@ -193,8 +193,8 @@ func Start(ctx context.Context, image string, settings Settings, reset bool) err
 	// Apply some git-related settings.
 	if settings.SSHAuthSock != "" {
 		args = append(args,
-			"-v", fmt.Sprintf("%s:/ssh-agent", settings.SSHAuthSock),
-			"-e", "SSH_AUTH_SOCK=/ssh-agent",
+			"-v", fmt.Sprintf("%s:/ssh-agent.sock", settings.SSHAuthSock),
+			"-e", "SSH_AUTH_SOCK=/ssh-agent.sock",
 		)
 	}
 	if len(settings.GitSettings) > 0 {
