@@ -1,4 +1,4 @@
-# 🌎 Earthly - a build system for the container era
+# ![Earthly Logo](images/logo.png) Earthly - a build system for the container era
 
 **🐳 Build anything via containers** - *build container images or standalone artifacts (binaries, jars, gems, arbitrary files)*
 
