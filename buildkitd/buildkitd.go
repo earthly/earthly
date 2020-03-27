@@ -116,10 +116,12 @@ func MaybeRestart(ctx context.Context, console conslogging.ConsoleLogger, image 
 	}
 	availableImageID, err := GetAvailableImageID(ctx, image)
 	if err != nil {
-		// Could not get available image ID. Keep going anyway.
-		availableImageID = ""
+		// Could not get available image ID. This happens when a new image tag is given and that
+		// tag has not yet been pulled locally. Restarting will cause that tag to be pulled.
+		availableImageID = "" // Will cause equality to fail and force a restart.
+		// Keep going anyway.
 	}
-	if availableImageID == "" || containerImageID == availableImageID {
+	if containerImageID == availableImageID {
 		// Images are the same. Check settings hash.
 		hash, err := GetSettingsHash(ctx)
 		if err != nil {
