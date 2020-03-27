@@ -156,6 +156,8 @@ github.com/mitchellh/osext v0.0.0-20151018003038-5e2d6d41470f/go.mod h1:OkQIRizQ
 github.com/moby/buildkit v0.6.2-0.20200304194438-a276ba731c9e/go.mod h1:zOhLO1TiQepuSfzoNDQ542IGJQy0CHr79T4MOJvaewY=
 github.com/moby/buildkit v0.7.0-rc1 h1:NLah6bBmiVSRDlG2U60GlJNYbbR9M4thouXM1MMXmlo=
 github.com/moby/buildkit v0.7.0-rc1/go.mod h1:zOhLO1TiQepuSfzoNDQ542IGJQy0CHr79T4MOJvaewY=
+github.com/moby/buildkit v0.7.0 h1:5T41l8i0f+OqHvRThh2NKVXiLpclXYmgO8QePoyIJrw=
+github.com/moby/buildkit v0.7.0/go.mod h1:zOhLO1TiQepuSfzoNDQ542IGJQy0CHr79T4MOJvaewY=
 github.com/morikuni/aec v0.0.0-20170113033406-39771216ff4c/go.mod h1:BbKIizmSmc5MMPqRYbxO4ZU0S0+P200+tUnFx7PXmsc=
 github.com/ncw/swift v1.0.47/go.mod h1:23YIA4yWVnGwv2dQlN4bB7egfYX6YLn0Yo/S6zZO/ZM=
 github.com/onsi/ginkgo v1.6.0/go.mod h1:lLunBs/Ym6LB5Z9jYTR76FiuTmxDTDusOGeTQH+WWjE=

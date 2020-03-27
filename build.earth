@@ -61,8 +61,8 @@ earth:
 	ARG GO_EXTRA_LDFLAGS="-linkmode external -extldflags -static"
 	RUN test -n "$GOOS" && test -n "$GOARCH"
 	ARG EARTHLY_TARGET_TAG
-	ARG DEFAULT_BUILDKITD_IMAGE=earthly/buildkitd:$EARTHLY_TARGET_TAG
 	ARG VERSION=$EARTHLY_TARGET_TAG
+	ARG DEFAULT_BUILDKITD_IMAGE=earthly/buildkitd:$VERSION
 	RUN \
 		--mount=type=cache,target=/go-cache \
 		go build \

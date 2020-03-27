@@ -96,9 +96,6 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, target domain.Targ
 	subDir = strings.Join(projectPathParts[2:], "/")
 	gitURL = fmt.Sprintf("git@github.com:%s/%s.git", githubUsername, githubProject)
 	ref := target.Tag
-	if ref == "" {
-		ref = "HEAD"
-	}
 
 	// Check the cache first.
 	cacheKey := fmt.Sprintf("%s#%s", gitURL, ref)
@@ -109,7 +106,11 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, target domain.Targ
 	// Not cached.
 
 	// Copy all build.earth files.
-	gitState := llbgit.Git(gitURL, ref, llb.KeepGitDir())
+	gitOpts := []llb.GitOption{
+		llb.WithCustomNamef("[context] GIT CLONE %s", gitURL),
+		llb.KeepGitDir(),
+	}
+	gitState := llbgit.Git(gitURL, ref, gitOpts...)
 	copyOpts := []llb.RunOption{
 		llb.Args([]string{
 			"find",
@@ -120,7 +121,7 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, target domain.Targ
 		llb.Dir("/git-src"),
 		llb.ReadonlyRootFS(),
 		llb.AddMount("/git-src", gitState, llb.Readonly),
-		llb.WithCustomNamef("COPY GIT CLONE %s/build.earth", target.ProjectCanonical()),
+		llb.WithCustomNamef("COPY GIT CLONE %s build.earth", target.ProjectCanonical()),
 	}
 	opImg := llb.Image(
 		defaultGitImage, llb.MarkImageInternal,
@@ -129,8 +130,6 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, target domain.Targ
 	earthfileState := copyOp.AddMount("/dest", llb.Scratch().Platform(llbutil.TargetPlatform))
 
 	// Get git hash.
-	// TODO: Note that the branches and the tags are not extracted as they are not present
-	//       for some reason.
 	gitHashOpts := []llb.RunOption{
 		llb.Args([]string{
 			"/bin/sh", "-c",
