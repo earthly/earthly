@@ -205,6 +205,8 @@ earth github.com/vladaionescu/earthly+earth-docker
 earth github.com/vladaionescu/earthly/buildkitd+buildkitd
 ```
 
+[![asciicast](https://asciinema.org/a/314100.svg)](https://asciinema.org/a/314100)
+
 For more details on using the `earth` command, see `earth --help`.
 
 
