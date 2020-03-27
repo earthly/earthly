@@ -147,13 +147,3 @@ release:
 
 release-vscode-syntax-highlighting:
 	BUILD ./contrib/earthfile-syntax-highlighting+release
-
-
-build-github-test:
-	# TODO: Use a safer test, which doesn't produce earthly outputs.
-	GIT CLONE git@github.com:vladaionescu/earthly.git /earthly
-	RUN ls
-	BUILD github.com/vladaionescu/earthly+all
-
-gh-test:
-	BUILD github.com/moby/buildkit+all
