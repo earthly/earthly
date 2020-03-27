@@ -25,6 +25,7 @@
 ##### Pre-requisites (all platforms)
 
 * [Docker](https://docs.docker.com/install/)
+* [Git](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git)
 
 ##### Linux
 
