@@ -61,8 +61,8 @@ earth:
 	ARG GO_EXTRA_LDFLAGS="-linkmode external -extldflags -static"
 	RUN test -n "$GOOS" && test -n "$GOARCH"
 	ARG EARTHLY_TARGET_TAG
-	ARG DEFAULT_BUILDKITD_IMAGE=earthly/buildkitd:$EARTHLY_TARGET_TAG
 	ARG VERSION=$EARTHLY_TARGET_TAG
+	ARG DEFAULT_BUILDKITD_IMAGE=earthly/buildkitd:$VERSION
 	RUN \
 		--mount=type=cache,target=/go-cache \
 		go build \
@@ -147,3 +147,13 @@ release:
 
 release-vscode-syntax-highlighting:
 	BUILD ./contrib/earthfile-syntax-highlighting+release
+
+
+build-github-test:
+	# TODO: Use a safer test, which doesn't produce earthly outputs.
+	GIT CLONE git@github.com:vladaionescu/earthly.git /earthly
+	RUN ls
+	BUILD github.com/vladaionescu/earthly+all
+
+gh-test:
+	BUILD github.com/moby/buildkit+all
