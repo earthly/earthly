@@ -30,13 +30,13 @@
 ##### Linux
 
 ```bash
-sudo /bin/sh -c 'curl -o /usr/local/bin/earth -L https://github.com/vladaionescu/earthly-releases/releases/download/v0.0.4/earth-linux-amd64 && chmod +x /usr/local/bin/earth'
+sudo /bin/sh -c 'curl -o /usr/local/bin/earth -L https://github.com/vladaionescu/earthly-releases/releases/download/v0.0.5/earth-linux-amd64 && chmod +x /usr/local/bin/earth'
 ```
 
 ##### Mac
 
 ```bash
-curl -o /usr/local/bin/earth -L https://github.com/vladaionescu/earthly-releases/releases/download/v0.0.4/earth-darwin-amd64 && chmod +x /usr/local/bin/earth
+curl -o /usr/local/bin/earth -L https://github.com/vladaionescu/earthly-releases/releases/download/v0.0.5/earth-darwin-amd64 && chmod +x /usr/local/bin/earth
 ```
 
 ##### Windows
