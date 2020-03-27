@@ -1,4 +1,4 @@
-# ![Earthly Logo](images/logo.png) Earthly - a build system for the container era
+# <img src="images/logo.png" alt="Earthly Logo" style="margin-bottom: -20px;" /> Earthly - a build system for the container era
 
 **🐳 Build anything via containers** - *build container images or standalone artifacts (binaries, jars, gems, arbitrary files)*
 
