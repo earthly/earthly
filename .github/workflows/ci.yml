@@ -14,6 +14,10 @@ jobs:
       DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
     steps:
     - uses: actions/checkout@v2
+    - name: GITHUB_REF
+      run: echo "$GITHUB_REF"
+    - name: Branch
+      run: echo "${GITHUB_REF##*/}"
     - name: Put back the git branch into git (Earthly uses it for tagging)
       run: git checkout -b "${GITHUB_REF##*/}"
     - name: Docker Login
