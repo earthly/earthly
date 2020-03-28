@@ -14,6 +14,8 @@ jobs:
       DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
     steps:
     - uses: actions/checkout@v2
+    - name: Put back the git branch into git (Earthly uses it for tagging)
+      run: git checkout -b "${GITHUB_REF##*/}"
     - name: Docker Login
       run: docker login --username vladaionescu --password "$DOCKERHUB_TOKEN"
     - name: Docker Pull Earth image
