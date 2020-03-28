@@ -21,7 +21,14 @@ jobs:
     - name: Branch
       run: echo "${GITHUB_REF##*/}"
     - name: Put back the git branch into git (Earthly uses it for tagging)
-      run: git checkout -b "${GITHUB_REF##*/}"
+      run: |
+        branch=""
+        if [ -n "$GITHUB_HEAD_REF" ]; then
+          branch="$GITHUB_HEAD_REF"
+        else
+          branch="${GITHUB_REF##*/}"
+        fi
+        git checkout -b "$branch"
     - name: Docker Login
       run: docker login --username vladaionescu --password "$DOCKERHUB_TOKEN"
     - name: Docker Pull Earth image
