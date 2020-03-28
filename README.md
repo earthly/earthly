@@ -195,14 +195,14 @@ earth ./path/to/a/deep/dir+target-name
 
 ```bash
 # Try it yourself! No need to clone.
-earth github.com/vladaionescu/earthly+earth-docker
+earth github.com/vladaionescu/earthly:v0.1.0-rc1+earth-docker
 ```
 
 ... or from a subdir of some repository.
 
 ```bash
 # Try it yourself! No need to clone.
-earth github.com/vladaionescu/earthly/buildkitd+buildkitd
+earth github.com/vladaionescu/earthly/buildkitd:v0.1.0-rc1+buildkitd
 ```
 
 [![asciicast](https://asciinema.org/a/314104.svg)](https://asciinema.org/a/314104)
