@@ -29,7 +29,7 @@ import (
 	"github.com/vladaionescu/earthly/logging"
 )
 
-// DockerBuilderFun is a function able to build a target into a docker tar file..
+// DockerBuilderFun is a function able to build a target into a docker tar file.
 type DockerBuilderFun = func(ctx context.Context, mts *MultiTargetStates, dockerTag string, outFile string) error
 
 // Converter turns earth commands to buildkit LLB representation.
