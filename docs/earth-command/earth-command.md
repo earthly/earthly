@@ -24,7 +24,7 @@
         [--git-url-instead-of <git-instead-of>]
         [--buildkit-host <bk-host>] [--buildkit-cache-size-mb <cache-size-mb>]
         [--buildkit-image <bk-image>]
-        --artifact|-a <artifact-ref>
+        --artifact|-a <artifact-ref> [<dest-path>]
   ```
 * Image form
   ```
@@ -40,7 +40,7 @@
 
 #### Description
 
-The command executes a build referenced by `<target-ref>` (*target form* and *image form*) or `<artifact-ref>` (*artifact form*). In the *target form*, the referenced target and its dependencies are built. In the *artifact form*, the referenced artifact and its dependencies are built, but only the specified artifact is output. In the *image form*, the image produced by the referenced target and its dependencies are built, but only the specified image is output.
+The command executes a build referenced by `<target-ref>` (*target form* and *image form*) or `<artifact-ref>` (*artifact form*). In the *target form*, the referenced target and its dependencies are built. In the *artifact form*, the referenced artifact and its dependencies are built, but only the specified artifact is output. The output path of the artifact can be optionally overriden by `<dest-path>`. In the *image form*, the image produced by the referenced target and its dependencies are built, but only the specified image is output.
 
 If a buildkit daemon has not already been started, and the option `--buildkit-host` is not specified, this command also starts up a container named `earthly-buildkitd` to act as a build daemon.
 

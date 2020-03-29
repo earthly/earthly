@@ -33,7 +33,6 @@ import (
 
 type earthApp struct {
 	cliApp    *cli.App
-	ctx       context.Context
 	console   conslogging.ConsoleLogger
 	sessionID string
 	cliFlags
@@ -84,7 +83,8 @@ func main() {
 		}
 	}
 
-	os.Exit(newEarthApp(context.Background(), conslogging.Current(false)).run(os.Args))
+	ctx := context.Background()
+	os.Exit(newEarthApp(ctx, conslogging.Current(false)).run(ctx, os.Args))
 }
 
 func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthApp {
@@ -95,7 +95,6 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 	}
 	app := &earthApp{
 		cliApp:    cli.NewApp(),
-		ctx:       ctx,
 		console:   console,
 		sessionID: base64.StdEncoding.EncodeToString(sessionIDBytes),
 		cliFlags: cliFlags{
@@ -107,6 +106,16 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 	}
 
 	app.cliApp.Usage = "A build system for the container era"
+	app.cliApp.UsageText = "\tearth [options] <target-ref>\n" +
+		"\n" +
+		"   \tearth [options] --image <target-ref>\n" +
+		"\n" +
+		"   \tearth [options] --artifact <artifact-ref> [<dest-path>]\n" +
+		"\n" +
+		"   \tearth [options] command [command options]\n" +
+		"\n" +
+		"Executes Earthly builds. For more information see https://docs.earthly.dev/earth-command.\n" +
+		"To get started with using Earthly, check out the getting started guide at https://docs.earthly.dev/guides/basics."
 	app.cliApp.UseShortOptionHandling = true
 	app.cliApp.Action = app.actionBuild
 	app.cliApp.Version = Version
@@ -249,15 +258,15 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 	return app
 }
 
-func (app *earthApp) run(args []string) int {
+func (app *earthApp) run(ctx context.Context, args []string) int {
 	joinedArgs := ""
 	if len(args) > 2 {
 		joinedArgs = strings.Join(args[2:], " ")
 	}
-	app.ctx = logging.With(app.ctx, logging.COMMAND, fmt.Sprintf("earth %s", joinedArgs))
-	err := app.cliApp.Run(args)
+	ctx = logging.With(ctx, logging.COMMAND, fmt.Sprintf("earth %s", joinedArgs))
+	err := app.cliApp.RunContext(ctx, args)
 	if err != nil {
-		logging.GetLogger(app.ctx).Error(err)
+		logging.GetLogger(ctx).Error(err)
 		app.console.Printf("Error: %v\n", err)
 		return 1
 	}
@@ -291,7 +300,7 @@ func (app *earthApp) actionPrune(c *cli.Context) error {
 			return errors.New("Cannot use prune --reset on non-default buildkit-host setting")
 		}
 		err := buildkitd.ResetCache(
-			app.ctx, app.console, app.buildkitdImage, app.buildkitdSettings)
+			c.Context, app.console, app.buildkitdImage, app.buildkitdSettings)
 		if err != nil {
 			return errors.Wrap(err, "reset cache")
 		}
@@ -299,7 +308,7 @@ func (app *earthApp) actionPrune(c *cli.Context) error {
 	}
 
 	// Prune via API.
-	bkClient, err := app.newBuildkitdClient()
+	bkClient, err := app.newBuildkitdClient(c.Context)
 	if err != nil {
 		return errors.Wrap(err, "buildkitd new client")
 	}
@@ -309,7 +318,7 @@ func (app *earthApp) actionPrune(c *cli.Context) error {
 		opts = append(opts, client.PruneAll)
 	}
 	ch := make(chan client.UsageInfo, 1)
-	eg, ctx := errgroup.WithContext(app.ctx)
+	eg, ctx := errgroup.WithContext(c.Context)
 	eg.Go(func() error {
 		err = bkClient.Prune(ctx, ch, opts...)
 		if err != nil {
@@ -353,6 +362,7 @@ func (app *earthApp) actionBuild(c *cli.Context) error {
 	destPath := "./"
 	if app.imageMode {
 		if c.NArg() != 1 {
+			cli.ShowAppHelp(c)
 			return errors.New("invalid number of args")
 		}
 		targetName := c.Args().Get(0)
@@ -363,6 +373,7 @@ func (app *earthApp) actionBuild(c *cli.Context) error {
 		}
 	} else if app.artifactMode {
 		if c.NArg() != 1 && c.NArg() != 2 {
+			cli.ShowAppHelp(c)
 			return errors.New("invalid number of args")
 		}
 		artifactName := c.Args().Get(0)
@@ -377,6 +388,7 @@ func (app *earthApp) actionBuild(c *cli.Context) error {
 		target = artifact.Target
 	} else {
 		if c.NArg() != 1 {
+			cli.ShowAppHelp(c)
 			return errors.New("invalid number of args")
 		}
 		targetName := c.Args().Get(0)
@@ -386,7 +398,7 @@ func (app *earthApp) actionBuild(c *cli.Context) error {
 			return errors.Wrapf(err, "parse target name %s", targetName)
 		}
 	}
-	bkClient, err := app.newBuildkitdClient()
+	bkClient, err := app.newBuildkitdClient(c.Context)
 	if err != nil {
 		return errors.Wrap(err, "buildkitd new client")
 	}
@@ -403,7 +415,7 @@ func (app *earthApp) actionBuild(c *cli.Context) error {
 		enttlmnts = append(enttlmnts, entitlements.EntitlementSecurityInsecure)
 	}
 	b, err := builder.NewBuilder(
-		app.ctx, bkClient, app.console, attachables, enttlmnts, app.noCache, app.remoteCache)
+		c.Context, bkClient, app.console, attachables, enttlmnts, app.noCache, app.remoteCache)
 	if err != nil {
 		return errors.Wrap(err, "new builder")
 	}
@@ -415,24 +427,24 @@ func (app *earthApp) actionBuild(c *cli.Context) error {
 	cleanCollection := cleanup.NewCollection()
 	defer cleanCollection.Close()
 	mts, err := earthfile2llb.Earthfile2LLB(
-		app.ctx, target, resolver, b.BuildOnlyLastImageAsTar, cleanCollection,
+		c.Context, target, resolver, b.BuildOnlyLastImageAsTar, cleanCollection,
 		nil, buildArgs)
 	if err != nil {
 		return err
 	}
 
 	if app.imageMode {
-		err = b.BuildOnlyImages(app.ctx, mts, app.push)
+		err = b.BuildOnlyImages(c.Context, mts, app.push)
 		if err != nil {
 			return err
 		}
 	} else if app.artifactMode {
-		err = b.BuildOnlyArtifact(app.ctx, mts, artifact, destPath)
+		err = b.BuildOnlyArtifact(c.Context, mts, artifact, destPath)
 		if err != nil {
 			return err
 		}
 	} else {
-		err = b.Build(app.ctx, mts, app.noOutput, app.push)
+		err = b.Build(c.Context, mts, app.noOutput, app.push)
 		if err != nil {
 			return err
 		}
@@ -440,10 +452,10 @@ func (app *earthApp) actionBuild(c *cli.Context) error {
 	return nil
 }
 
-func (app *earthApp) newBuildkitdClient(opts ...client.ClientOpt) (*client.Client, error) {
+func (app *earthApp) newBuildkitdClient(ctx context.Context, opts ...client.ClientOpt) (*client.Client, error) {
 	if app.buildkitHost == "" {
 		// Start our own.
-		bkClient, err := buildkitd.NewClient(app.ctx, app.console, app.buildkitdImage, app.buildkitdSettings)
+		bkClient, err := buildkitd.NewClient(ctx, app.console, app.buildkitdImage, app.buildkitdSettings)
 		if err != nil {
 			return nil, errors.Wrap(err, "buildkitd new client (own)")
 		}
@@ -451,7 +463,7 @@ func (app *earthApp) newBuildkitdClient(opts ...client.ClientOpt) (*client.Clien
 	}
 
 	// Use provided.
-	bkClient, err := client.New(app.ctx, app.buildkitHost, opts...)
+	bkClient, err := client.New(ctx, app.buildkitHost, opts...)
 	if err != nil {
 		return nil, errors.Wrap(err, "buildkitd new client (provided)")
 	}
