@@ -122,7 +122,7 @@ release:
 	BUILD --build-arg TAG=latest +earth-docker
 	BUILD --build-arg TAG=latest ./buildkitd+buildkitd
 	ARG BODY="No details provided"
-	RUN --secret GITHUB_TOKEN=+secrets/GITHUB_TOKEN true
+	RUN --secret GITHUB_TOKEN=+secrets/GITHUB_TOKEN test -n "$GITHUB_TOKEN"
 	RUN --push \
 		--secret GITHUB_TOKEN=+secrets/GITHUB_TOKEN \
 		github-release upload \

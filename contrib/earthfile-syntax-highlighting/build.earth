@@ -18,7 +18,7 @@ release:
     ARG RELEASE_TAG
     RUN test -n "$RELEASE_TAG"
     COPY --build-arg RELEASE_TAG="$RELEASE_TAG" +package/earthfile-syntax-highlighting-$RELEASE_TAG.vsix ./
-    RUN --secret VSCE_TOKEN=+secrets/VSCE_TOKEN true
+    RUN --secret VSCE_TOKEN=+secrets/VSCE_TOKEN test -n "$VSCE_TOKEN"
     RUN --push \
         --secret VSCE_TOKEN=+secrets/VSCE_TOKEN \
         vsce publish --pat "$VSCE_TOKEN" --packagePath ./earthfile-syntax-highlighting-$RELEASE_TAG.vsix
