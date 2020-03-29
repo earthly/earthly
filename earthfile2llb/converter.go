@@ -189,9 +189,8 @@ func (c *Converter) CopyArtifact(ctx context.Context, artifactName string, dest 
 	// Grab the artifacts state in the dep states, after we've built it.
 	relevantDepState := mts.FinalStates
 	// Copy.
-	artifactPath := path.Join("/artifacts", artifact.Artifact)
 	c.mts.FinalStates.SideEffectsState = llbutil.CopyOp(
-		relevantDepState.ArtifactsState, []string{artifactPath},
+		relevantDepState.ArtifactsState, []string{artifact.Artifact},
 		c.mts.FinalStates.SideEffectsState, dest, true, isDir,
 		llb.WithCustomNamef(
 			"[%s] COPY (%v) %s %s",
@@ -280,12 +279,10 @@ func (c *Converter) SaveArtifact(ctx context.Context, saveFrom string, saveTo st
 		With("saveTo", saveTo).
 		With("saveAsLocalTo", saveAsLocalTo).
 		Info("Applying SAVE ARTIFACT")
-	var saveToAdjusted string
+	saveToAdjusted := saveTo
 	if saveTo == "" || saveTo == "." || strings.HasSuffix(saveTo, "/") {
 		saveFromRelative := path.Join(".", llbutil.Abs(c.mts.FinalStates.SideEffectsState, saveFrom))
-		saveToAdjusted = path.Join("./artifacts", saveTo, path.Base(saveFromRelative))
-	} else {
-		saveToAdjusted = path.Join("./artifacts", saveTo)
+		saveToAdjusted = path.Join(saveTo, path.Base(saveFromRelative))
 	}
 	saveToD, saveToF := splitWildcards(saveToAdjusted)
 	var artifactPath string

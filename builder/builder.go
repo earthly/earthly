@@ -420,8 +420,8 @@ func (b *Builder) saveArtifactLocally(ctx context.Context, artifact domain.Artif
 		// Write to console about this artifact.
 		parts := strings.Split(filepath.ToSlash(from), "/")
 		artifactPath := artifact.Artifact
-		if len(parts) >= 3 {
-			artifactPath = filepath.FromSlash(strings.Join(parts[3:], "/"))
+		if len(parts) >= 2 {
+			artifactPath = filepath.FromSlash(strings.Join(parts[2:], "/"))
 		}
 		artifact2 := domain.Artifact{
 			Target:   artifact.Target,
