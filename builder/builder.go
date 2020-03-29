@@ -13,6 +13,7 @@ import (
 	"github.com/moby/buildkit/client/llb"
 	"github.com/moby/buildkit/session"
 	"github.com/moby/buildkit/util/entitlements"
+	reccopy "github.com/otiai10/copy"
 	"github.com/pkg/errors"
 	"github.com/vladaionescu/earthly/conslogging"
 	"github.com/vladaionescu/earthly/domain"
@@ -339,7 +340,7 @@ func (b *Builder) buildArtifact(ctx context.Context, artifactToSaveLocally earth
 
 func (b *Builder) saveArtifactLocally(ctx context.Context, artifact domain.Artifact, indexOutDir string, destPath string) error {
 	console := b.console.WithPrefix(artifact.Target.String())
-	fromPattern := filepath.Join(indexOutDir, "artifacts", filepath.FromSlash(artifact.Artifact))
+	fromPattern := filepath.Join(indexOutDir, filepath.FromSlash(artifact.Artifact))
 	// Resolve possible wildcards.
 	// TODO: Note that this is not very portable, as the glob is host-platform dependent,
 	//       while the pattern is also guest-platform dependent.
@@ -398,11 +399,10 @@ func (b *Builder) saveArtifactLocally(ctx context.Context, artifact domain.Artif
 			}
 		}
 
-		// TODO: Some platforms don't support hard-linking. Need to use copy in those cases.
 		logging.GetLogger(ctx).
 			With("from", from).
 			With("to", to).
-			Info("Hard linking artifact")
+			Info("Copying artifact")
 		toDir := path.Dir(to)
 		err = os.MkdirAll(toDir, 0755)
 		if err != nil {
@@ -410,7 +410,11 @@ func (b *Builder) saveArtifactLocally(ctx context.Context, artifact domain.Artif
 		}
 		err = os.Link(from, to)
 		if err != nil {
-			return errors.Wrapf(err, "hard link artifact %s", from)
+			// Hard linking did not work. Try recursive copy.
+			errCopy := reccopy.Copy(from, to)
+			if errCopy != nil {
+				return errors.Wrapf(errCopy, "copy artifact %s", from)
+			}
 		}
 
 		// Write to console about this artifact.

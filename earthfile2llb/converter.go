@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"path/filepath"
+	"path"
 	"sort"
 	"strings"
 
@@ -189,7 +189,7 @@ func (c *Converter) CopyArtifact(ctx context.Context, artifactName string, dest 
 	// Grab the artifacts state in the dep states, after we've built it.
 	relevantDepState := mts.FinalStates
 	// Copy.
-	artifactPath := filepath.Join("/artifacts", artifact.Artifact)
+	artifactPath := path.Join("/artifacts", artifact.Artifact)
 	c.mts.FinalStates.SideEffectsState = llbutil.CopyOp(
 		relevantDepState.ArtifactsState, []string{artifactPath},
 		c.mts.FinalStates.SideEffectsState, dest, true, isDir,
@@ -282,20 +282,23 @@ func (c *Converter) SaveArtifact(ctx context.Context, saveFrom string, saveTo st
 		Info("Applying SAVE ARTIFACT")
 	var saveToAdjusted string
 	if saveTo == "" || saveTo == "." || strings.HasSuffix(saveTo, "/") {
-		saveFromRelative := filepath.Join(".", llbutil.Abs(c.mts.FinalStates.SideEffectsState, saveFrom))
-		saveToAdjusted = filepath.Join("./artifacts", saveTo, filepath.Base(saveFromRelative))
+		saveFromRelative := path.Join(".", llbutil.Abs(c.mts.FinalStates.SideEffectsState, saveFrom))
+		saveToAdjusted = path.Join("./artifacts", saveTo, path.Base(saveFromRelative))
 	} else {
-		saveToAdjusted = filepath.Join("./artifacts", saveTo)
+		saveToAdjusted = path.Join("./artifacts", saveTo)
 	}
 	saveToD, saveToF := splitWildcards(saveToAdjusted)
+	var artifactPath string
 	if saveToF == "" {
-		saveToF = filepath.Base(saveToAdjusted)
+		saveToF = path.Base(saveToAdjusted)
+		artifactPath = saveToAdjusted
 	} else {
 		saveToAdjusted = fmt.Sprintf("%s/", saveToD)
+		artifactPath = path.Join(saveToAdjusted, saveToF)
 	}
 	artifact := domain.Artifact{
 		Target:   c.mts.FinalStates.Target,
-		Artifact: saveToF,
+		Artifact: artifactPath,
 	}
 	c.mts.FinalStates.ArtifactsState = llbutil.CopyOp(
 		c.mts.FinalStates.SideEffectsState, []string{saveFrom}, c.mts.FinalStates.ArtifactsState, saveToAdjusted, true, true,
@@ -308,7 +311,7 @@ func (c *Converter) SaveArtifact(ctx context.Context, saveFrom string, saveTo st
 		c.mts.FinalStates.SeparateArtifactsState = append(c.mts.FinalStates.SeparateArtifactsState, separateArtifactsState)
 		c.mts.FinalStates.SaveLocals = append(c.mts.FinalStates.SaveLocals, SaveLocal{
 			DestPath:     saveAsLocalTo,
-			ArtifactPath: saveToF,
+			ArtifactPath: artifactPath,
 			Index:        len(c.mts.FinalStates.SeparateArtifactsState) - 1,
 		})
 	}
@@ -360,10 +363,10 @@ func (c *Converter) Build(ctx context.Context, fullTargetName string, buildArgs 
 			target.ProjectPath = c.mts.FinalStates.Target.ProjectPath
 			target.Tag = c.mts.FinalStates.Target.Tag
 			if target.IsLocalExternal() {
-				if filepath.IsAbs(target.LocalPath) {
+				if path.IsAbs(target.LocalPath) {
 					return nil, fmt.Errorf("Absolute path %s not supported as reference in external target context", target.LocalPath)
 				}
-				target.ProjectPath = filepath.Join(c.mts.FinalStates.Target.ProjectPath, target.LocalPath)
+				target.ProjectPath = path.Join(c.mts.FinalStates.Target.ProjectPath, target.LocalPath)
 				target.LocalPath = ""
 			} else if target.IsLocalInternal() {
 				target.LocalPath = ""
@@ -371,10 +374,10 @@ func (c *Converter) Build(ctx context.Context, fullTargetName string, buildArgs 
 		}
 	} else {
 		if target.IsLocalExternal() {
-			if filepath.IsAbs(target.LocalPath) {
-				target.LocalPath = filepath.Clean(target.LocalPath)
+			if path.IsAbs(target.LocalPath) {
+				target.LocalPath = path.Clean(target.LocalPath)
 			} else {
-				target.LocalPath = filepath.Join(c.mts.FinalStates.Target.LocalPath, target.LocalPath)
+				target.LocalPath = path.Join(c.mts.FinalStates.Target.LocalPath, target.LocalPath)
 				if !strings.HasPrefix(target.LocalPath, ".") {
 					target.LocalPath = fmt.Sprintf("./%s", target.LocalPath)
 				}
@@ -405,8 +408,8 @@ func (c *Converter) Workdir(ctx context.Context, workdirPath string) {
 	logging.GetLogger(ctx).With("workdir", workdirPath).Info("Applying WORKDIR")
 	c.mts.FinalStates.SideEffectsState = c.mts.FinalStates.SideEffectsState.Dir(workdirPath)
 	workdirAbs := workdirPath
-	if !filepath.IsAbs(workdirAbs) {
-		workdirAbs = filepath.Join("/", c.mts.FinalStates.SideEffectsImage.Config.WorkingDir, workdirAbs)
+	if !path.IsAbs(workdirAbs) {
+		workdirAbs = path.Join("/", c.mts.FinalStates.SideEffectsImage.Config.WorkingDir, workdirAbs)
 	}
 	c.mts.FinalStates.SideEffectsImage.Config.WorkingDir = workdirAbs
 	if workdirAbs != "/" {
@@ -624,7 +627,7 @@ func (c *Converter) internalRun(ctx context.Context, args []string, secretKeyVal
 		}
 		envVar := parts[0]
 		secretID := strings.TrimPrefix(parts[1], "+secrets/")
-		secretPath := filepath.Join("/run/secrets", secretID)
+		secretPath := path.Join("/run/secrets", secretID)
 		secretOpts := []llb.SecretOption{
 			llb.SecretID(secretID),
 		}
@@ -640,7 +643,7 @@ func (c *Converter) internalRun(ctx context.Context, args []string, secretKeyVal
 		if ba.IsConstant() {
 			extraEnvVars = append(extraEnvVars, fmt.Sprintf("%s=\"%s\"", buildArgName, ba.ConstantValue()))
 		} else {
-			buildArgPath := filepath.Join("/run/buildargs", buildArgName)
+			buildArgPath := path.Join("/run/buildargs", buildArgName)
 			finalOpts = append(finalOpts, llb.AddMount(buildArgPath, ba.VariableState(), llb.SourcePath(buildArgPath)))
 			// TODO: The use of cat here might not be portable.
 			extraEnvVars = append(extraEnvVars, fmt.Sprintf("%s=\"$(cat %s)\"", buildArgName, buildArgPath))
@@ -683,7 +686,7 @@ func (c *Converter) solveAndLoad(ctx context.Context, mts *MultiTargetStates, op
 	c.cleanCollection.Add(func() error {
 		return os.RemoveAll(outDir)
 	})
-	outFile := filepath.Join(outDir, "image.tar")
+	outFile := path.Join(outDir, "image.tar")
 	// TODO: This ends up printing some repetitive output, as it builds
 	//       the dep twice (even though it's cached the second time).
 	err = c.dockerBuilderFun(ctx, mts, dockerTag, outFile)
@@ -840,11 +843,11 @@ func (c *Converter) parseBuildArg(ctx context.Context, arg string) (string, vari
 	// Variable build arg.
 	// Run the expression on the side effects state.
 	srcBuildArgDir := "/run/buildargs-src"
-	srcBuildArgPath := filepath.Join(srcBuildArgDir, name)
+	srcBuildArgPath := path.Join(srcBuildArgDir, name)
 	c.mts.FinalStates.SideEffectsState = c.mts.FinalStates.SideEffectsState.File(
 		llb.Mkdir(srcBuildArgDir, 0755, llb.WithParents(true)),
 		llb.WithCustomNamef("[internal] mkdir %s", srcBuildArgDir))
-	buildArgPath := filepath.Join("/run/buildargs", name)
+	buildArgPath := path.Join("/run/buildargs", name)
 	args := strings.Split(fmt.Sprintf("echo \"%s\" >%s", value, srcBuildArgPath), " ")
 	err := c.internalRun(
 		ctx, args, []string{}, false, true, false, value,
