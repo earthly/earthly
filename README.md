@@ -38,13 +38,13 @@ For some examples, see [Go](https://docs.earthly.dev/examples/go), [Java](https:
 ##### Linux
 
 ```bash
-sudo /bin/sh -c 'curl -o /usr/local/bin/earth -L https://github.com/vladaionescu/earthly-releases/releases/download/v0.1.0-rc3/earth-linux-amd64 && chmod +x /usr/local/bin/earth'
+sudo /bin/sh -c 'curl -o /usr/local/bin/earth -L https://github.com/vladaionescu/earthly-releases/releases/download/v0.1.0-rc4/earth-linux-amd64 && chmod +x /usr/local/bin/earth'
 ```
 
 ##### Mac
 
 ```bash
-curl -o /usr/local/bin/earth -L https://github.com/vladaionescu/earthly-releases/releases/download/v0.1.0-rc3/earth-darwin-amd64 && chmod +x /usr/local/bin/earth
+curl -o /usr/local/bin/earth -L https://github.com/vladaionescu/earthly-releases/releases/download/v0.1.0-rc4/earth-darwin-amd64 && chmod +x /usr/local/bin/earth
 ```
 
 ##### Windows
