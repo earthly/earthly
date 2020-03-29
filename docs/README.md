@@ -2,7 +2,7 @@
 
 Earthly is a build system based on containers. It allows you to execute self-contained and portable builds, to create Docker images and arbitrary files (called artifacts), with the help of container technology.
 
-Build docker images or abitrary files (artifacts) with a Dockerfile-like syntax. Because everything runs on containers, your builds run the same on your laptop as they runs in CI or on your colleague's laptop. Strong isolation also gives you easy to use parallelism, with no strings attached. You can also import dependencies from other directories or other repositories, making Earthly great for large mono-repo builds that span a vast directory hierarchy; but also for multi-repo setups where builds might depend on each other across repositories.
+Earthly has a number of key features. You can specify builds with a Dockerfile-like syntax. Because everything runs on containers, your builds run the same on your laptop as they runs in CI or on your colleague's laptop. Strong isolation also gives you easy to use parallelism, with no strings attached. You can also import dependencies from other directories or other repositories, making Earthly great for large mono-repo builds that span a vast directory hierarchy; but also for multi-repo setups where builds might depend on each other across repositories.
 
 ## Installation
 
