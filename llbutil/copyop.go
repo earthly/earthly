@@ -22,7 +22,7 @@ func CopyOp(srcState llb.State, srcs []string, destState llb.State, dest string,
 				AttemptUnpack:       false,
 				CreateDestPath:      true,
 				AllowWildcard:       allowWildcard,
-				AllowEmptyWildcard:  allowWildcard,
+				AllowEmptyWildcard:  false,
 			},
 		}
 		if fa == nil {
