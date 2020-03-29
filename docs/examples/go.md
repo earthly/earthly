@@ -1,10 +1,5 @@
 # Go example
 
-TODO
-
-This page is under construction. See [the Basics page](../guides/basics.md) in the meantime, or this [raw Go example](https://github.com/vladaionescu/earthly/tree/master/examples/go).
-
-
 This page will walk you through an example of how to build a hello-world application using Earthly. The entire code used on this page is available in the [examples/go GitHub directory](https://github.com/vladaionescu/earthly/tree/master/examples/go).
 
 First, let's assume that you have written a Hello Wolrd app in `./main.go`:
@@ -26,10 +21,11 @@ In order to build it, you would normally run something like
 go build -o build/go-example main.go
 ```
 
-In our case, we will use a `build.earth` file to build it. We would create a target called `build`, and we would copy the necessary files within it (in this case, just `main.go`) and then execute the `go build` command. We would also need a base Docker image that has go pre-installed: `golang:1.13-alpine3.11`.
+In our case, we will use a `build.earth` file to build it. We will create a target called `build`, and we will copy the necessary files within it (in this case, just `main.go`) and then execute the `go build` command. We will also need a base Docker image that has go pre-installed: `golang:1.13-alpine3.11`.
 
 ```Dockerfile
 # build.earth
+
 FROM golang:1.13-alpine3.11
 
 WORKDIR /go-example
@@ -73,6 +69,10 @@ hello world
 Finally, let's say that we want to build a Docker image for this program. For this, we can add another target, which depends on `build` and uses the built program.
 
 ```Dockerfile
+# build.earth
+
+# ...
+
 docker:
     COPY +build/go-example .
     ENTRYPOINT ["/go-example/go-example"]
@@ -82,7 +82,7 @@ docker:
 We can then run `earth +docker` to build this target:
 
 ```
-~/workspace/earthly/examples/go docs-vlad-examples ❯ earth +docker     
+~/workspace/earthly/examples/go ❯ earth +docker     
 buildkitd | Found buildkit daemon as docker container (earthly-buildkitd)
 context | --> local context .
 +base | --> FROM golang:1.13-alpine3.11
@@ -114,7 +114,7 @@ Loaded image: go-example:latest
 And then we can run the built image like so:
 
 ```
-~/workspace/earthly/examples/go docs-vlad-examples ❯ docker run --rm go-example:latest
+~/workspace/earthly/examples/go ❯ docker run --rm go-example:latest
 hello world
 ```
 
