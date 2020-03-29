@@ -9,7 +9,6 @@ build:
     COPY build.gradle ./
     RUN gradle build
     RUN gradle install
-    RUN tree build/install
     SAVE ARTIFACT build/install/java-example/bin AS LOCAL build/bin
     SAVE ARTIFACT build/install/java-example/lib AS LOCAL build/lib
 
