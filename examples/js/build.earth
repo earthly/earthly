@@ -10,12 +10,6 @@ deps:
     SAVE ARTIFACT package-lock.json AS LOCAL ./package-lock.json
     SAVE IMAGE
 
-prod-deps:
-    COPY package.json ./
-    COPY package-lock.json ./
-    RUN npm install --production
-    SAVE IMAGE
-
 build:
     FROM +deps
     COPY src src
@@ -24,7 +18,7 @@ build:
     SAVE ARTIFACT dist /dist AS LOCAL dist
 
 docker:
-    FROM +prod-deps
+    FROM +deps
     COPY +build/dist ./dist
     EXPOSE 8080
     ENTRYPOINT ["/example-js/node_modules/http-server/bin/http-server", "./dist"]
