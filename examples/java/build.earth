@@ -1,6 +1,6 @@
 FROM openjdk:8-jdk-alpine
 
-RUN apk add --update --no-cache gradle tree
+RUN apk add --update --no-cache gradle
 
 WORKDIR /java-example
 
