@@ -5,7 +5,7 @@ This page guides you through passing Git and Docker authentication to Earthly bu
 {% hint style='danger' %}
 ##### Important
 
-This page is NOT about passing Git or Docker credentials for your own custom commands within builds. For those cases, use the `RUN --secret` feature.
+This page is NOT about passing Git or Docker credentials for your own custom commands within builds. For those cases, use the [`RUN --secret`](../earthfile/earthfile.md#run) feature.
 {% endhint %}
 
 ## Git authentication
