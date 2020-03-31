@@ -9,7 +9,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/vladaionescu/earthly/domain"
 	"github.com/vladaionescu/earthly/earthfile2llb/dedup"
-	"github.com/vladaionescu/earthly/llbutil"
 )
 
 func parseMounts(mounts []string, target domain.Target, ti dedup.TargetInput, cacheContext llb.State) ([]llb.RunOption, error) {
@@ -25,7 +24,7 @@ func parseMounts(mounts []string, target domain.Target, ti dedup.TargetInput, ca
 }
 
 func parseMount(mount string, target domain.Target, ti dedup.TargetInput, cacheContext llb.State) (string, llb.State, []llb.MountOption, error) {
-	state := llb.Scratch().Platform(llbutil.TargetPlatform)
+	var state llb.State
 	var mountTarget string
 	var mountID string
 	var mountType string

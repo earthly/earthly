@@ -132,6 +132,9 @@ func (b *Builder) BuildOnlyArtifact(ctx context.Context, mts *earthfile2llb.Mult
 	solvedStates := make(map[int]bool)
 	err = b.buildSpecifiedArtifact(
 		ctx, artifact, destPath, outDir, solvedStates, localDirs, mts.FinalStates)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

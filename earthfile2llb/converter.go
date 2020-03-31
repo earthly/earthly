@@ -287,7 +287,6 @@ func (c *Converter) SaveArtifact(ctx context.Context, saveFrom string, saveTo st
 	saveToD, saveToF := splitWildcards(saveToAdjusted)
 	var artifactPath string
 	if saveToF == "" {
-		saveToF = path.Base(saveToAdjusted)
 		artifactPath = saveToAdjusted
 	} else {
 		saveToAdjusted = fmt.Sprintf("%s/", saveToD)
@@ -573,6 +572,9 @@ func (c *Converter) DockerPull(ctx context.Context, dockerTag string) error {
 		llb.WithCustomNamef(
 			"[%s] DOCKER PULL %s", c.mts.FinalStates.Target.String(), dockerTag),
 	)
+	if err != nil {
+		return err
+	}
 	mts := &MultiTargetStates{
 		FinalStates: &SingleTargetStates{
 			SideEffectsState: state,
