@@ -360,7 +360,7 @@ or a dynamic expression, based on the output of a command executed in the contex
 
 The command `ARG` declares a variable (or arg) with the name `<name>` and with an optional default value `<default-value>`. If no default value is provided, then empty string is used as the default value.
 
-This command works similarly to the [Dockerfile `ARG` command](https://docs.docker.com/engine/reference/builder/#arg), with a few differences regarding the scope and the predefined args (called builtin args in Earthly). The variable's scope is always limited to the current target's recipe and only from the point it is declared onwards. For more information regarding builtin args, see the [builtin args page](../guides/builtin-args.md).
+This command works similarly to the [Dockerfile `ARG` command](https://docs.docker.com/engine/reference/builder/#arg), with a few differences regarding the scope and the predefined args (called builtin args in Earthly). The variable's scope is always limited to the current target's recipe and only from the point it is declared onwards. For more information regarding builtin args, see the [builtin args page](./builtin-args.md).
 
 The value of an arg can be overridden either from the `earth` command
 
@@ -384,7 +384,7 @@ COPY --build-arg PLATFORM=linux +binary/bin ./
 FROM --build-arg NAME=john +docker-image
 ```
 
-A number of builtin args are available and are pre-filled by Earthly. For more information see [builtin args](../guides/builtin-args.md).
+A number of builtin args are available and are pre-filled by Earthly. For more information see [builtin args](./builtin-args.md).
 
 ## DOCKER PULL [**experimental**]
 
