@@ -16,5 +16,6 @@ jobs:
             -v "/var/run/docker.sock:/var/run/docker.sock" \
             -v "$HOME/.docker:/root/.docker" \
             -v "$PWD:/earthly" \
+            -e "GIT_URL_INSTEAD_OF=https://github.com/=git@github.com:" \
             -w /earthly \
             "$EARTHLY_EARTH_IMAGE" -P +test
