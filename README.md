@@ -1,6 +1,6 @@
 # <img src="images/logo.png" alt="Earthly Logo" align="left" /><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="" height="42" width="1" /> Earthly - a build system for the container era
 
-**🐳 Build anything via containers** - *build container images or standalone artifacts (binaries, jars, gems, arbitrary files)*
+**🐳 Build anything via containers** - *build container images or standalone artifacts (eg binaries, packages, arbitrary files)*
 
 **🛠 Programming language agnostic** - *allows use of language-specific build tooling*
 
@@ -20,9 +20,11 @@
 [![Docker Hub](https://img.shields.io/badge/docker%20hub-earthly-blue)](https://hub.docker.com/u/earthly)
 [![License](https://img.shields.io/badge/license-MPL--2.0-blue.svg)](http://www.apache.org/licenses/LICENSE-2.0)
 
-Earthly is a build system based on containers. It allows you to execute self-contained and portable builds, to create Docker images and arbitrary files (called artifacts), with the help of container technology.
+Earthly is a build system based on containers. It allows you to execute self-contained and portable builds, to create Docker images and artifacts (eg binaries, packages, arbitrary files), with the help of container technology.
 
-Earthly has a number of key features. You can specify builds with a Dockerfile-like syntax. Because everything runs on containers, your builds run the same on your laptop as they runs in CI or on your colleague's laptop. Strong isolation also gives you easy to use parallelism, with no strings attached. You can also import dependencies from other directories or other repositories, making Earthly great for large mono-repo builds that span a vast directory hierarchy; but also for multi-repo setups where builds might depend on each other across repositories.
+It's like a Makefile reimagined with Docker in mind.
+
+Earthly has a number of key features. You can specify builds with a Dockerfile-like syntax. Because everything runs on containers, your builds run the same on your laptop as they runs in CI or on your colleague's laptop. Strong isolation also gives you easy to use parallelism, with no strings attached. You can also import dependencies from other directories or other repositories with ease, making Earthly great for large mono-repo builds that span a vast directory hierarchy; but also for multi-repo setups where builds might depend on each other across repositories.
 
 To learn how to use Earthly, check out the [getting started guide](https://docs.earthly.dev/guides/basics).
 
@@ -294,7 +296,7 @@ To learn more about using Earthly, check the [full documentation](https://docs.e
 <h2 align="center">Contributing</h2>
 
 * Please report bugs as [GitHub issues](https://github.com/vladaionescu/earthly/issues).
-* Join us on [Gitter](https://gitter.im/vladaionescu/earthly)!
+* Join us on [Gitter](https://gitter.im/earthly-room/community)!
 * Questions via GitHub issues are welcome!
 * PRs welcome! But please give a heads-up in GitHub issue before starting work. If there is no GitHub issue for what you want to do, please create one.
 * To build from source, you will need the `earth` binary ([Earthly builds itself](https://docs.earthly.dev/examples/earthly)). Check out the code and run `earth +all`.
