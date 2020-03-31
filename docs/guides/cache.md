@@ -16,6 +16,24 @@ For a primer into Dockerfile caching see [this article](https://pythonspeed.com/
 
 Earthly cache is persisted in a directory located at `/tmp/earthly` on your system. When Earthly starts for the first time, it brings up a BuildKit daemon in a Docker container, which reserves some disk space for the cache (by default, 10GB) as a loop device.
 
+## Specifying cache size
+
+Some builds may require more cache size beyond the default 10GB allocated. In order to modify the size of the cache, you can run the command:
+
+```bash
+earth --buildkit-cache-size-mb <cache-size-mb> prune --reset
+```
+
+or alternatively, set the environment variable
+
+```bash
+export EARTHLY_BUILDKIT_CACHE_SIZE_MB=<cache-size-mb>
+```
+
+in your `.profile`, `.bashrc` or `.zshrc`, to ensure that all future `earth` invocations get this setting.
+
+Note that the command `earth prune --reset` wipes you entire existing cache.
+
 ## Resetting cache
 
 The cache can be safely deleted manually, if the daemon is not running

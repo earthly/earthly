@@ -45,6 +45,18 @@ or
 
 `github.com/vladaionescu/earthly:v0.1.0+all`
 
+### Canonical form
+
+Most target references have a canonical form. It is essentially the remote form of the same target, with repository and tag inferred. The canonical form can be useful as a universal identifier for a target.
+
+For example, depending on where the files are stored, the `+build` target could have the canonical form `github.com/some-user/some-project/some/deep/dir:master+build`, where `github.com/some-user/some-project` was inferred as the Git location, based on the Git remote called `origin`, and `/some/deep/dir` was inferred as the sub-directory where `+build` exists within that repository. The Earthly tag is inferred using the following algorithm:
+
+* If the current HEAD has at least one Git tag, then use the first Git tag listed by Git, otherwise
+* If the repository is not in detached HEAD mode, use the current branch, otherwise
+* Use the current Git hash.
+
+If no Git context is detected by Earthly, then the target does not have a canonical form.
+
 ## Artifact reference
 
 Artifact references are similar to target references, except that they have an artifact path at the end. It has the following form

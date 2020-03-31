@@ -24,7 +24,7 @@ Currently, only `github.com` is supported as an SCM provider. If you need suppor
 There are two possible ways to pass Git authentication to Earthly builds:
 
 * Via SSH agent socket (for SSH-based authentication)
-* Via username-password (usually for https Git URLS)
+* Via username-password (usually for https Git URLs)
 
 #### SSH agent socket
 
@@ -61,7 +61,7 @@ All you have to do as a user is issue the command
 docker login --username <username>
 ```
 
-before issuing earth commands - if you have not already done so in the past.
+before issuing earth commands, if you have not already done so in the past.
 
 ## See also
 
