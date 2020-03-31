@@ -1,6 +1,24 @@
 # Earthfile reference
 
-Earthfiles are comprised of a series of target declarations and recipe definitions. Each recipe contains a series of commands, which are defined below. For an introduction into Earthfiles, see the [Basics page](../guides/basics.md).
+Earthfiles are comprised of a series of target declarations and recipe definitions. Earthfiles are always named `build.earth`, regardless of their location in the codebase. Earthfiles have the following rough structure:
+
+```
+...
+base recipe
+...
+
+target:
+    ...
+    recipe
+    ...
+
+target:
+    ...
+    recipe
+    ...
+```
+
+Each recipe contains a series of commands, which are defined below. For an introduction into Earthfiles, see the [Basics page](../guides/basics.md).
 
 ## FROM
 
@@ -342,7 +360,7 @@ or a dynamic expression, based on the output of a command executed in the contex
 
 The command `ARG` declares a variable (or arg) with the name `<name>` and with an optional default value `<default-value>`. If no default value is provided, then empty string is used as the default value.
 
-This command works similarly to the [Dockerfile `ARG` command](https://docs.docker.com/engine/reference/builder/#arg), with a few differences regarding the scope and the predefined args (called builtin args in Earthly). For more information see [builtin args](../guides/builtin-args.md). The variable's scope is always limited to the current target's recipe and only from the point it is declared onwards.
+This command works similarly to the [Dockerfile `ARG` command](https://docs.docker.com/engine/reference/builder/#arg), with a few differences regarding the scope and the predefined args (called builtin args in Earthly). The variable's scope is always limited to the current target's recipe and only from the point it is declared onwards. For more information regarding builtin args, see the [builtin args page](./builtin-args.md).
 
 The value of an arg can be overridden either from the `earth` command
 
@@ -366,36 +384,7 @@ COPY --build-arg PLATFORM=linux +binary/bin ./
 FROM --build-arg NAME=john +docker-image
 ```
 
-{% hint style='danger' %}
-##### Important
-
-In contrast to Dockerfile predefined args, Earthly builtin args need to be pre-declared before they can be used. For example
-
-```Dockerfile
-ARG EARTHLY_TARGET
-RUN echo "The current target is $EARTHLY_TARGET"
-```
-{% endhint %}
-
-The value of a builtin arg can never be overriden. However, you can always have an additional `ARG`, which takes as the default value, the value of the builtin arg. The additional arg can be overriden. Example
-
-```Dockerfile
-ARG EARTHLY_TARGET_TAG
-ARG TAG=$EARTHLY_TARGET_TAG
-SAVE IMAGE --push some/name:$TAG
-```
-
-The following builtin args are available
-
-| Name | Description | Example value |
-| --- | --- | --- |
-| `EARTHLY_TARGET` | The canonical reference of the current target. | For example, for a target named `foo`, which exists on `master` branch, in a repository at `github.com/bar/buz`, in a subdirectory `src`, the canonical reference would be `github.com/bar/buz/src:master+foo`. For more information about canonical references, see [target referencing](../guides/target-ref.md). |
-| `EARTHLY_TARGET_PROJECT` | The project part of the canonical reference of the current target. | For the example above, the canonical project would be `github.com/bar/buz/src` |
-| `EARTHLY_TARGET_NAME` | The name part of the canonical reference of the current target. | For the example above, the name would be `foo` |
-| `EARTHLY_TARGET_TAG` | The tag part of the canonical reference of the current target. Note that in some cases, no tag is detected, and as such, the value is an empty string | For the example above, the tag would be `master` |
-| `EARTHLY_GIT_HASH` | The git hash detected within the build context directory. If no git directory is detected, then the value is an empty string. Take care when using this arg, as the frequently changing git hash may be cause for not using the cache. | `41cb5666ade67b29e42bef121144456d3977a67a` |
-| `EARTHLY_GIT_ORIGIN_URL` | The git URL detected within the build context directory. If no git directory is detected, then the value is an empty string. | `git@github.com:vladaionescu/earthly.git` |
-| `EARTHLY_GIT_PROJECT_NAME` | The git project name from within the git URL detected within the build context directory. If no git directory is detected, then the value is an empty string. | `vladaionescu/earthly` |
+A number of builtin args are available and are pre-filled by Earthly. For more information see [builtin args](./builtin-args.md).
 
 ## DOCKER PULL [**experimental**]
 

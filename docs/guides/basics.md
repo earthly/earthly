@@ -20,70 +20,9 @@ Earthly is a build system where all recipes are executed in docker containers, w
 
 A key difference from a Dockerfile build is that Earthly can be used to build not just images, but also artifacts - files that can be written back onto the host filesystem.
 
-## Target referencing
-
-Targets have a particular referencing convention which helps Earthly to identify which recipe to execute.
-
-### Local, internal
-
-The simplest form, is where a target is referenced from the same directory:
-
-`+<target-name>`
-
-For example,
-
-`+build`
-
-In this form, Earthly will look for the target within the same dir (or within the same earthfile). We call this type of referencing local, internal. Local, because it comes from the same system, and internal, because it is within the same earthfile.
-
-### Local, external
-
-Another form, is where a target is referenced from a different directory. In this form, the path to that directory is specified before `+`. It must always start with either `./`, `../` or `/`, on any operating system (including Windows). Example:
-
-`./path/to/another/dir+<target-name>`
-
-For example:
-
-`./js+build`
-
-It is recommended that relative paths are used, for portability reasons: the working directory checked out by different users will be different, making absolute paths infeasible in most cases.
-
-
-### Remote
-
-Finally, the last form of target referencing is the remote form. In this form, the recipe and the build context are imported from a remote location. It has the following form:
-
-`<vendor>/<namespace>/<project>/path/in/project:some-tag+<target-name>`
-
-For example:
-
-`github.com/vladaionescu/earthly/buildkitd+buildkitd`
-
-or
-
-`github.com/vladaionescu/earthly:v0.1+all`
-
 ## Earthfile basics
 
-Earthfiles are always named `build.earth`, regardless of their location in the codebase. Earthfiles have the following rough structure:
-
-```
-...
-base recipe
-...
-
-target:
-    ...
-    recipe
-    ...
-
-target:
-    ...
-    recipe
-    ...
-```
-
-For example, here is an earthfile of an example go app:
+Earthfiles are always named `build.earth`, regardless of their location in the codebase. Here is a sample earthfile of an example go app:
 
 ```Dockerfile
 FROM golang:1.13-alpine3.11
@@ -121,6 +60,12 @@ In addition, notice how even though the base is used as part of both `build` and
 Furthermore, the fact that the `docker` target depends on the `build` target is visible within the command `COPY +build/go-example .`. Through this command, the system knows that it also needs to build the target `+build`, in order to satisfy the dependency on the artifact.
 
 Finally, notice how the output of the build: the docker image `go-example:latest` and the file `build/go-example` is only written after the build is declared a success. This is due to another isolation principle of Earthly: a build either succeeds completely or it fails altogether.
+
+{% hint style='info' %}
+##### Note
+
+Targets have a particular referencing convention which helps Earthly to identify which recipe to execute. In the simplest form, targets are referenced by `+<target-name>` - for example, `+build`. For more details see the [target referencing page](./target-ref.md).
+{% endhint %}
 
 Going back to the example earthfile definition, here is what each command does:
 
