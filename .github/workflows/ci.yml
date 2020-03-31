@@ -10,8 +10,8 @@ jobs:
   build:
     runs-on: ubuntu-latest
     env:
-      EARTHLY_EARTH_IMAGE: "earthly/earth:latest"
       DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+      GIT_URL_INSTEAD_OF: "https://github.com/=git@github.com:"
     steps:
     - uses: actions/checkout@v2
     - name: Put back the git branch into git (Earthly uses it for tagging)
@@ -25,15 +25,9 @@ jobs:
         git checkout -b "$branch" || true
     - name: Docker Login
       run: docker login --username vladaionescu --password "$DOCKERHUB_TOKEN"
-    - name: Docker Pull Earth image
-      run: docker pull "$EARTHLY_EARTH_IMAGE"
+    - name: Download latest earth
+      run: sudo /bin/sh -c 'curl -o /usr/local/bin/earth -L https://github.com/vladaionescu/earthly-releases/releases/download/v0.1.0-rc4/earth-linux-amd64 && chmod +x /usr/local/bin/earth'
+    - name: Earth version
+      run: earth --version
     - name: Run build
-      run: |
-        docker run --rm --privileged \
-            -v /tmp/earthly:/tmp/earthly \
-            -v "/var/run/docker.sock:/var/run/docker.sock" \
-            -v "$HOME/.docker:/root/.docker" \
-            -v "$PWD:/earthly" \
-            -e "GIT_URL_INSTEAD_OF=https://github.com/=git@github.com:" \
-            -w /earthly \
-            "$EARTHLY_EARTH_IMAGE" --push -P +test
+      run: earth --push -P +test
