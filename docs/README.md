@@ -1,6 +1,6 @@
 # Introduction
 
-Earthly is a build system based on containers. It allows you to execute self-contained and portable builds, to create Docker images and arbitrary files (like binaries, jars, gems, eggs, or just about any type of file or directory), with the help of container technology.
+Earthly is a build system based on containers. It allows you to execute self-contained and portable builds, to create Docker images and artifacts (eg binaries, packages, arbitrary files), with the help of container technology.
 
 It's like a Makefile reimagined with Docker in mind.
 
