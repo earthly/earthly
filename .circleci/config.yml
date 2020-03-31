@@ -5,17 +5,10 @@ jobs:
       image: ubuntu-1604:201903-01
       docker_layer_caching: true
     environment:
-      - EARTHLY_EARTH_IMAGE: "earthly/earth:latest"
+      - GIT_URL_INSTEAD_OF: "https://github.com/=git@github.com:"
     steps:
       - checkout
       - run: docker login --username vladaionescu --password "$DOCKERHUB_TOKEN"
-      - run: docker pull "$EARTHLY_EARTH_IMAGE"
-      - run: |
-          docker run --rm --privileged \
-            -v /tmp/earthly:/tmp/earthly \
-            -v "/var/run/docker.sock:/var/run/docker.sock" \
-            -v "$HOME/.docker:/root/.docker" \
-            -v "$PWD:/earthly" \
-            -e "GIT_URL_INSTEAD_OF=https://github.com/=git@github.com:" \
-            -w /earthly \
-            "$EARTHLY_EARTH_IMAGE" -P +test
+      - run: sudo /bin/sh -c 'curl -o /usr/local/bin/earth -L https://github.com/vladaionescu/earthly-releases/releases/download/v0.1.0-rc4/earth-linux-amd64 && chmod +x /usr/local/bin/earth'
+      - run: earth --version
+      - run: earth -P +test
