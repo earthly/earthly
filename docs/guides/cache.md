@@ -18,7 +18,7 @@ Earthly cache is persisted in a directory located at `/tmp/earthly` on your syst
 
 ## Specifying cache size
 
-Some builds may require more cache size beyond the default 10GB allocated. In order to modify the size of the cache, you can run the command:
+Some builds may require more cache beyond the default 10GB allocated. In order to modify the size of the cache, you can run the command:
 
 ```bash
 earth --buildkit-cache-size-mb <cache-size-mb> prune --reset
