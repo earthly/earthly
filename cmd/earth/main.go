@@ -272,7 +272,7 @@ func (app *earthApp) run(ctx context.Context, args []string) int {
 			app.console.Printf(
 				"Check your git auth settings.\n" +
 					"Did you ssh-add today? Need to specify GIT_USERNAME and GIT_PASSWORD?\n" +
-					"For more information see https://docs.earthly.dev/guides/auth")
+					"For more information see https://docs.earthly.dev/guides/auth\n")
 		}
 		return 1
 	}
