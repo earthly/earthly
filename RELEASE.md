@@ -12,7 +12,6 @@
   ```bash
   earth --build-arg RELEASE_TAG --secret GITHUB_TOKEN --push -P +release
   ```
-* Update [README.md](./README.md) installation instructions to use the newly released version.
 
 ### Updating buildkitd
 
