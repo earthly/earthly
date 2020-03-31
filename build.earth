@@ -105,6 +105,7 @@ examples:
 	BUILD ./examples/java+docker
 	BUILD ./examples/js+docker
 	BUILD ./examples/monorepo+all
+	BUILD ./examples/multirepo+docker
 
 test-experimental:
 	BUILD ./examples/tests+experimental
