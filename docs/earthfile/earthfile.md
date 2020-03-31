@@ -1,6 +1,24 @@
 # Earthfile reference
 
-Earthfiles are comprised of a series of target declarations and recipe definitions. Each recipe contains a series of commands, which are defined below. For an introduction into Earthfiles, see the [Basics page](../guides/basics.md).
+Earthfiles are comprised of a series of target declarations and recipe definitions. Earthfiles are always named `build.earth`, regardless of their location in the codebase. Earthfiles have the following rough structure:
+
+```
+...
+base recipe
+...
+
+target:
+    ...
+    recipe
+    ...
+
+target:
+    ...
+    recipe
+    ...
+```
+
+Each recipe contains a series of commands, which are defined below. For an introduction into Earthfiles, see the [Basics page](../guides/basics.md).
 
 ## FROM
 
