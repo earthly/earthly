@@ -20,15 +20,17 @@ Earthly is a build system where all recipes are executed in docker containers, w
 
 A key difference from a Dockerfile build is that Earthly can be used to build not just images, but also artifacts - regular files or directories that can be written back onto the host filesystem.
 
-{% method %}
 ## Earthfile basics
 
 Earthfiles are always named `build.earth`, regardless of their location in the codebase.
 
-{% sample lang="go" %}
+{% method %}
+{% sample lang="Go" %}
 Here is a sample earthfile of a Go app
 
-```dockerfile
+```Dockerfile
+# build.earth
+
 FROM golang:1.13-alpine3.11
 WORKDIR /go-example
 
@@ -43,26 +45,99 @@ docker:
     SAVE IMAGE go-example:latest
 ```
 
-{% sample lang="java" %}
+The code of the app might look like this
+
+```go
+// main.go
+
+package main
+
+import "fmt"
+
+func main() {
+	fmt.Println("hello world")
+}
+```
+
+{% sample lang="JavaScript" %}
+Here is a sample earthfile of a JS app
+
+```Dockerfile
+# build.earth
+
+FROM node:13.10.1-alpine3.11
+WORKDIR /js-example
+
+build:
+    # In JS, there's nothing to build in this simple form.
+    # The source is also the artifact used in production.
+    COPY index.js .
+    SAVE ARTIFACT index.js
+
+docker:
+    COPY +build/index.js .
+    ENTRYPOINT ["node", "./index.js"]
+    SAVE IMAGE js-example:latest
+```
+
+The code of the app might look like this
+
+```js
+// index.js
+
+console.log("hello world");
+```
+
+{% sample lang="Java" %}
 Here is a sample earthfile of a Java app
 
-```dockerfile
-RUN echo TODO Java Dockerfile
+```Dockerfile
+# build.earth
+
+FROM openjdk:8-jdk-alpine
+RUN apk add --update --no-cache gradle
+WORKDIR /java-example
+
+build:
+    COPY src src
+    RUN gradle build
+    RUN gradle install
+    SAVE ARTIFACT build/install/java-example/bin AS LOCAL build/bin
+    SAVE ARTIFACT build/install/java-example/lib AS LOCAL build/lib
+
+docker:
+    COPY +build/bin bin
+    COPY +build/lib lib
+    ENTRYPOINT ["/java-example/bin/java-example"]
+    SAVE IMAGE java-example:latest
 ```
 
-{% sample lang="dockerfile" %}
-```dockerfile
-RUN echo Dockerfile test
-RUN echo Dockerfile test
-```
+The code of the app might look like this
 
-{% common %}
-You will notice that the recipes look very much like Dockerfiles. This is an intentional design decision. Existing Dockerfiles can be ported to earthfiles by copy-pasting them over and then tweaking them slightly. Compared to Dockerfile syntax, some commands are new (like `SAVE ARTIFACT`), others have additional semantics (like `COPY +target/some-artifact`) and other semantics are removed (like `FROM ... AS ...` and `COPY --from`).
+```java
+// src/main/java/hello/HelloWorld.java
+
+package hello;
+
+public class HelloWorld {
+    public static void main(String[] args) {
+        System.out.println("hello world");
+    }
+}
+```
 {% endmethod %}
+
+You will notice that the recipes look very much like Dockerfiles. This is an intentional design decision. Existing Dockerfiles can be ported to earthfiles by copy-pasting them over and then tweaking them slightly. Compared to Dockerfile syntax, some commands are new (like `SAVE ARTIFACT`), others have additional semantics (like `COPY +target/some-artifact`) and other semantics are removed (like `FROM ... AS ...` and `COPY --from`).
 
 All earthfiles start with a base recipe. This is the only recipe which does not have an explicit target name - the name is always implied to be `base`. All other target implicitly inherit from `base`. You can imagine that all recipes start with an implicit `FROM +base`.
 
 In this particular example, we can see two explicit targets: `build` and `docker`. In order to execute the build, we can run, for example:
+
+```bash
+earth +build
+```
+
+or
 
 ```bash
 earth +docker
@@ -76,7 +151,7 @@ Notice how to the left of `|`, within the output, we can see some targets like `
 
 In addition, notice how even though the base is used as part of both `build` and `docker`, it is only executed once. This is because the system deduplicates execution, where possible.
 
-Furthermore, the fact that the `docker` target depends on the `build` target is visible within the command `COPY +build/go-example .`. Through this command, the system knows that it also needs to build the target `+build`, in order to satisfy the dependency on the artifact.
+Furthermore, the fact that the `docker` target depends on the `build` target is visible within the command `COPY +build/...`. Through this command, the system knows that it also needs to build the target `+build`, in order to satisfy the dependency on the artifact.
 
 Finally, notice how the output of the build: the docker image `go-example:latest` and the file `build/go-example` is only written after the build is declared a success. This is due to another isolation principle of Earthly: a build either succeeds completely or it fails altogether.
 

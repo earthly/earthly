@@ -4,9 +4,14 @@ RUN apk add --update --no-cache gradle
 
 WORKDIR /java-example
 
-build:
-    COPY src src
+deps:
     COPY build.gradle ./
+    RUN gradle build
+    SAVE IMAGE
+
+build:
+    FROM +deps
+    COPY src src
     RUN gradle build
     RUN gradle install
     SAVE ARTIFACT build/install/java-example/bin AS LOCAL build/bin
