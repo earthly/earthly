@@ -609,7 +609,7 @@ For a primer into Dockerfile layer caching see [this article](https://pythonspee
 
 ## Reduce repetition
 
-In some cases, the dependencies might be used in more than one build target. In addition, it is often useful to break out long builds into smaller, easier to understand chunks. For this reason, let's consider breaking out the step of downloading the dependencies into a separate build target, called `deps`. We can then inherit from `deps` by using the command `FROM +deps`.
+In some cases, the dependencies might be used in more than one build target. For this usecase, we might want to separate dependency downloading into a separate target. In addition, it is often useful to break out long builds into smaller, easier to understand chunks. For this reason, let's consider breaking this out into a separate build target, called `deps`. We can then inherit from `deps` by using the command `FROM +deps`.
 
 {% method %}
 {% sample lang="Go" %}
@@ -695,7 +695,7 @@ docker:
 ```
 {% endmethod %}
 
-Notice how at the end of the `deps` recipe, we issued a `SAVE IMAGE` command. In this case, it is not for the purpose of saving as an image that would be used outside of the build: the command has no docker tag associated with it. Instead, it is for the purpose of reusing the image within the build, from another target. In this case, in `build`, through the use of the command `FROM +deps`.
+Notice how at the end of the `deps` recipe, we issued a `SAVE IMAGE` command. In this case, it is not for the purpose of saving as an image that would be used outside of the build: the command has no docker tag associated with it. Instead, it is for the purpose of reusing the image within the build, from another target (via `FROM +deps`).
 
 ## See also
 
