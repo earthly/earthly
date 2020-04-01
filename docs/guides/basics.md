@@ -20,7 +20,7 @@ Earthly is a build system where all recipes are executed in docker containers, w
 
 A key difference from a Dockerfile build is that Earthly can be used to build not just images, but also artifacts - regular files or directories that can be written back onto the host filesystem.
 
-## Earthfile basics
+## A simple Earthfile
 
 Earthfiles are always named `build.earth`, regardless of their location in the codebase.
 
@@ -72,11 +72,11 @@ build:
     # In JS, there's nothing to build in this simple form.
     # The source is also the artifact used in production.
     COPY index.js .
-    SAVE ARTIFACT index.js
+    SAVE ARTIFACT index.js /dist/index.js AS LOCAL /dist/index.js
 
 docker:
-    COPY +build/index.js .
-    ENTRYPOINT ["node", "./index.js"]
+    COPY +build/dist /dist
+    ENTRYPOINT ["node", "./dist/index.js"]
     SAVE IMAGE js-example:latest
 ```
 
@@ -102,8 +102,8 @@ build:
     COPY src src
     RUN gradle build
     RUN gradle install
-    SAVE ARTIFACT build/install/java-example/bin AS LOCAL build/bin
-    SAVE ARTIFACT build/install/java-example/lib AS LOCAL build/lib
+    SAVE ARTIFACT build/install/java-example/bin /bin AS LOCAL build/bin
+    SAVE ARTIFACT build/install/java-example/lib /lib AS LOCAL build/lib
 
 docker:
     COPY +build/bin bin
@@ -161,9 +161,15 @@ Finally, notice how the output of the build: the docker image `go-example:latest
 Targets have a particular referencing convention which helps Earthly to identify which recipe to execute. In the simplest form, targets are referenced by `+<target-name>` - for example, `+build`. For more details see the [target referencing page](./target-ref.md).
 {% endhint %}
 
+## Detailed explanation
+
 Going back to the example earthfile definition, here is what each command does:
 
+{% method %}
+{% sample lang="Go" %}
 ```Dockerfile
+# build.earth
+
 # The build starts from a docker image: golang:1.13-alpine3.11
 FROM golang:1.13-alpine3.11
 # We change the current working directory.
@@ -176,29 +182,131 @@ WORKDIR /go-example
 build:
     # Define the recipe of the target build as follows:
 
-    # Copy main.go from the build context to the current dir within the build container, as a layer.
+    # Copy main.go from the build context to the build environment, as a layer.
     COPY main.go .
-    # Run a go build command as a layer. This uses the previously copied main.go file.
+    # Run a go build command as a layer.
+    # This uses the previously copied main.go file.
     RUN go build -o build/go-example main.go
-    # Save the output of the build command as an artifact. Call this artifact /go-example (it
-    # can be later referenced as +build/go-example). In addition, store the artifact as a
-    # local file (on the host) named build/go-example. This local file is only written if the
-    # entire build succeeds.
+    # Save the output of the build command as an artifact. Call this
+    # artifact /go-example (it can be later referenced as +build/go-example).
+    # In addition, store the artifact as a local file (on the host) named
+    # build/go-example. This local file is only written if the entire build
+    # succeeds.
     SAVE ARTIFACT build/go-example /go-example AS LOCAL build/go-example
 
 # Declare a target, docker.
 docker:
     # Define the recipe of the target docker as follows:
 
-    # Copy the artifact /go-example produced by another target, +build, to the current directory
-    # within the build container.
+    # Copy the artifact /go-example produced by another target, +build, to the
+    # current directory within the build container.
     COPY +build/go-example .
     # Set the entrypoint for the resulting docker image.
     ENTRYPOINT ["/go-example/go-example"]
-    # Save the current state as a docker image, which will have the docker tag go-example:latest.
-    # This image is only made available to the host's docker if the entire build succeeds.
+    # Save the current state as a docker image, which will have the docker tag
+    # go-example:latest. This image is only made available to the host's docker
+    # if the entire build succeeds.
     SAVE IMAGE go-example:latest
 ```
+{% sample lang="JavaScript" %}
+```Dockerfile
+# build.earth
+
+# The build starts from a docker image: node:13.10.1-alpine3.11
+FROM node:13.10.1-alpine3.11
+# We change the current working directory.
+WORKDIR /js-example
+
+# The above commands are inherited implicitly by all targets below
+# (as if they started with FROM +base).
+
+# Declare a target, build.
+build:
+    # Define the recipe of the target build as follows:
+
+    # Copy index.js from the build context to the build environment, as a layer.
+    COPY index.js .
+    # Save the index.js in an artifact dir called dist (it can be later
+    # referenced as +build/dist). In addition, store the artifact as a
+    # local file (on the host) named dist/index.js. This local file is only
+    # written if the entire build succeeds.
+    SAVE ARTIFACT index.js /dist/index.js AS LOCAL /dist/index.js
+
+# Declare a target, docker.
+docker:
+    # Define the recipe of the target docker as follows:
+
+    # Copy the artifact /dist produced by another target, +build, to the
+    # current directory within the build container.
+    COPY +build/dist /dist
+    # Set the entrypoint for the resulting docker image.
+    ENTRYPOINT ["node", "./dist/index.js"]
+    # Save the current state as a docker image, which will have the docker tag
+    # js-example:latest. This image is only made available to the host's docker
+    # if the entire build succeeds.
+    SAVE IMAGE js-example:latest
+```
+{% sample lang="Java" %}
+```Dockerfile
+# build.earth
+
+# The build starts from a docker image: openjdk:8-jdk-alpine
+FROM openjdk:8-jdk-alpine
+# We install gradle using alpine's apk command.
+RUN apk add --update --no-cache gradle
+# We change the current working directory.
+WORKDIR /java-example
+
+# The above commands are inherited implicitly by all targets below
+# (as if they started with FROM +base).
+
+# Declare a target, build.
+build:
+    # Define the recipe of the target build as follows:
+
+    # Copy src from the build context to the build environment, as a layer.
+    COPY src src
+    # Run the gradle build and gradle install commands as layers.
+    # These use the previously copied src dir.
+    RUN gradle build
+    RUN gradle install
+    # Save the output of the build command as artifacts. Call these
+    # artifacts bin and lib (they can be later referenced as +build/bin and
+    # +build/lib respectively).
+    # In addition, store the artifacts as local dirs (on the host) named
+    # build/bin and build/lib. This local dirs are only written if the entire
+    # build succeeds.
+    SAVE ARTIFACT build/install/java-example/bin /bin AS LOCAL build/bin
+    SAVE ARTIFACT build/install/java-example/lib /lib AS LOCAL build/lib
+
+# Declare a target, docker.
+docker:
+    # Define the recipe of the target docker as follows:
+
+    # Copy the artifacts /bin and /lib produced by another target, +build, to
+    # the current directory within the build container.
+    COPY +build/bin bin
+    COPY +build/lib lib
+    # Set the entrypoint for the resulting docker image.
+    ENTRYPOINT ["/java-example/bin/java-example"]
+    # Save the current state as a docker image, which will have the docker tag
+    # java-example:latest. This image is only made available to the host's
+    # docker if the entire build succeeds.
+    SAVE IMAGE java-example:latest
+```
+{% endmethod %}
+
+## Adding dependecies in the mix
+
+...
+
+## Efficient caching of dependencies
+
+...
+
+## Reduce repetition
+
+...
 
 ## See also
 
