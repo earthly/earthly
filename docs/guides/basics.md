@@ -409,6 +409,23 @@ function component() {
 document.body.appendChild(component());
 ```
 
+```html
+<!-- dist/index.html -->
+
+<!doctype html>
+<html>
+
+<head>
+    <title>Getting Started</title>
+</head>
+
+<body>
+    <script src="./main.js"></script>
+</body>
+
+</html>
+```
+
 The build then might become
 
 ```Dockerfile
@@ -419,10 +436,11 @@ WORKDIR /js-example
 
 build:
     COPY package.json .
-    COPY index.js .
+    COPY src src
+    COPY dist dist
     RUN npm install
-    SAVE ARTIFACT node_modules /dist/node_modules AS LOCAL /dist/node_modules
-    SAVE ARTIFACT index.js /dist/index.js AS LOCAL /dist/index.js
+    RUN npx webpack
+    SAVE ARTIFACT dist /dist AS LOCAL /dist
 
 docker:
     COPY +build/dist dist
