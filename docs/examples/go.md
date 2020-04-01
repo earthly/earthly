@@ -1,6 +1,6 @@
 # Go example
 
-This page will walk you through an example of how to build a hello-world application using Earthly. The entire code used on this page is available in the [examples/go GitHub directory](https://github.com/vladaionescu/earthly/tree/master/examples/go).
+This page will walk you through an example of how to build a hello-world application using Earthly.
 
 First, let's assume that you have written a Hello Wolrd app in `./main.go`:
 
@@ -122,7 +122,7 @@ hello world
 
 ## See also
 
-* The [Earthly basics page](../guides/basics.md)
+* The [Earthly basics page](../guides/basics.md), which includes an extended Go example
 * The [Earthfile reference](../earthfile/earthfile.md)
 * The [earth command reference](../earth-command/earth-command.md)
 * More [examples](../examples/examples.md)
