@@ -18,11 +18,15 @@ Now that we got that out of the way, we can now be more specific:
 
 Earthly is a build system where all recipes are executed in docker containers, with layer caching principles similar to Dockerfiles, and where the only thing shared between recipes are declared artifacts and images.
 
-A key difference from a Dockerfile build is that Earthly can be used to build not just images, but also artifacts - files that can be written back onto the host filesystem.
+A key difference from a Dockerfile build is that Earthly can be used to build not just images, but also artifacts - regular files or directories that can be written back onto the host filesystem.
 
+{% method %}
 ## Earthfile basics
 
-Earthfiles are always named `build.earth`, regardless of their location in the codebase. Here is a sample earthfile of an example go app:
+Earthfiles are always named `build.earth`, regardless of their location in the codebase.
+
+{% sample lang="go" %}
+Here is a sample earthfile of an example go app:
 
 ```Dockerfile
 FROM golang:1.13-alpine3.11
@@ -39,7 +43,15 @@ docker:
     SAVE IMAGE go-example:latest
 ```
 
+{% sample lang="java" %}
+
+```Dockerfile
+RUN echo TODO Java Dockerfile
+```
+
+{% common %}
 You will notice that the recipes look very much like Dockerfiles. This is an intentional design decision. Existing Dockerfiles can be ported to earthfiles by copy-pasting them over and then tweaking them slightly. Compared to Dockerfile syntax, some commands are new (like `SAVE ARTIFACT`), others have additional semantics (like `COPY +target/some-artifact`) and other semantics are removed (like `FROM ... AS ...` and `COPY --from`).
+{% endmethod %}
 
 All earthfiles start with a base recipe. This is the only recipe which does not have an explicit target name - the name is always implied to be `base`. All other target implicitly inherit from `base`. You can imagine that all recipes start with an implicit `FROM +base`.
 
