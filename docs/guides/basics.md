@@ -607,9 +607,11 @@ docker:
 
 For a primer into Dockerfile layer caching see [this article](https://pythonspeed.com/articles/docker-caching-model/). The same principles apply to Earthfiles.
 
-## Reduce repetition
+## Reduce code duplication
 
 In some cases, the dependencies might be used in more than one build target. For this usecase, we might want to separate dependency downloading and reuse it. For this reason, let's consider breaking this out into a separate build target, called `deps`. We can then inherit from `deps` by using the command `FROM +deps`.
+
+Note that in our case, only the JavaScript version has an example where `FROM +deps` is used in more than one place: both in `build` and in `docker`. Nevertheless, all versions show how dependencies may be separated.
 
 {% method %}
 {% sample lang="Go" %}
