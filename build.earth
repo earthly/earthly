@@ -27,8 +27,8 @@ deps:
 	RUN go get github.com/gordonklaus/ineffassign
 	COPY go.mod go.sum ./
 	RUN go mod download
-	SAVE ARTIFACT go.mod /go.mod AS LOCAL go.mod
-	SAVE ARTIFACT go.sum /go.sum AS LOCAL go.sum
+	SAVE ARTIFACT go.mod AS LOCAL go.mod
+	SAVE ARTIFACT go.sum AS LOCAL go.sum
 	SAVE IMAGE
 
 code:
@@ -75,7 +75,7 @@ earth:
 			-ldflags "-X main.DefaultBuildkitdImage=$DEFAULT_BUILDKITD_IMAGE -X main.Version=$VERSION $GO_EXTRA_LDFLAGS" \
 			-o build/earth \
 			cmd/earth/*.go
-	SAVE ARTIFACT build/earth /earth AS LOCAL "build/$GOOS/$GOARCH/earth"
+	SAVE ARTIFACT build/earth AS LOCAL "build/$GOOS/$GOARCH/earth"
 
 earth-all:
 	BUILD +earth

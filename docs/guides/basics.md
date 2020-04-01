@@ -435,7 +435,7 @@ FROM node:13.10.1-alpine3.11
 WORKDIR /js-example
 
 build:
-    COPY package.json .
+    COPY package.json package-lock.json ./
     COPY src src
     COPY dist dist
     RUN npm install
@@ -443,6 +443,8 @@ build:
     SAVE ARTIFACT dist /dist AS LOCAL /dist
 
 docker:
+    COPY package.json package-lock.json ./
+    RUN npm install
     COPY +build/dist dist
     ENTRYPOINT ["node", "./dist/index.js"]
     SAVE IMAGE js-example:latest
@@ -522,13 +524,178 @@ However, as we build this new setup and make changes to the main source code, we
 
 The reason the build is inefficient is because we have not made proper use of layer caching. When a file changes, the corresponding `COPY` command is re-executed without cache, causing all commands after it to also re-execute without cache.
 
-If, however, we could separate the dependency downloading from the code building, then the cache would be reused every time we changed the code.
+If, however, we could first download the dependencies and only afterwards copy and build the code, then the cache would be reused every time we changed the code.
 
-...
+{% method %}
+{% sample lang="Go" %}
+```Dockerfile
+# build.earth
+
+FROM golang:1.13-alpine3.11
+WORKDIR /go-example
+
+build:
+    # Download deps before copying code.
+    COPY go.mod go.sum .
+    RUN go mod download
+    # Also save these back to host, in case go.sum changes.
+    SAVE ARTIFACT go.mod AS LOCAL go.mod
+	SAVE ARTIFACT go.sum AS LOCAL go.sum
+    # Copy and build code.
+    COPY main.go .
+    RUN go build -o build/go-example main.go
+    SAVE ARTIFACT build/go-example /go-example AS LOCAL build/go-example
+
+docker:
+    COPY +build/go-example .
+    ENTRYPOINT ["/go-example/go-example"]
+    SAVE IMAGE go-example:latest
+```
+{% sample lang="JavaScript" %}
+```Dockerfile
+# build.earth
+
+FROM node:13.10.1-alpine3.11
+WORKDIR /js-example
+
+build:
+    # Download deps before copying code.
+    COPY package.json package-lock.json ./
+    RUN npm install
+    # Also save these back to host, in case package-lock.json changes.
+    SAVE ARTIFACT package.json AS LOCAL ./package.json
+    SAVE ARTIFACT package-lock.json AS LOCAL ./package-lock.json
+    # Copy and build code.
+    COPY src src
+    COPY dist dist
+    RUN npx webpack
+    SAVE ARTIFACT dist /dist AS LOCAL /dist
+
+docker:
+    COPY package.json package-lock.json ./
+    RUN npm install
+    COPY +build/dist dist
+    ENTRYPOINT ["node", "./dist/index.js"]
+    SAVE IMAGE js-example:latest
+```
+{% sample lang="Java" %}
+```Dockerfile
+# build.earth
+
+FROM openjdk:8-jdk-alpine
+RUN apk add --update --no-cache gradle
+WORKDIR /java-example
+
+build:
+    # Download deps before copying code.
+    COPY build.gradle ./
+    RUN gradle build
+    # Copy and build code.
+    COPY src src
+    RUN gradle build
+    RUN gradle install
+    SAVE ARTIFACT build/install/java-example/bin /bin AS LOCAL build/bin
+    SAVE ARTIFACT build/install/java-example/lib /lib AS LOCAL build/lib
+
+docker:
+    COPY +build/bin bin
+    COPY +build/lib lib
+    ENTRYPOINT ["/java-example/bin/java-example"]
+    SAVE IMAGE java-example:latest
+```
+{% endmethod %}
+
+For a primer into Dockerfile layer caching see [this article](https://pythonspeed.com/articles/docker-caching-model/). The same principles apply to Earthfiles.
 
 ## Reduce repetition
 
-...
+In some cases, the dependencies might be used in more than one build target. In addition, it is often useful to break out long builds into smaller, easier to understand chunks. For this reason, let's consider breaking out the step of downloading the dependencies into a separate build target, called `deps`. We can then inherit from `deps` by using the command `FROM +deps`.
+
+{% method %}
+{% sample lang="Go" %}
+```Dockerfile
+# build.earth
+
+FROM golang:1.13-alpine3.11
+WORKDIR /go-example
+
+deps:
+    COPY go.mod go.sum ./
+	RUN go mod download
+	SAVE ARTIFACT go.mod AS LOCAL go.mod
+	SAVE ARTIFACT go.sum AS LOCAL go.sum
+	SAVE IMAGE
+
+build:
+    FROM +deps
+    COPY main.go .
+    RUN go build -o build/go-example main.go
+    SAVE ARTIFACT build/go-example /go-example AS LOCAL build/go-example
+
+docker:
+    COPY +build/go-example .
+    ENTRYPOINT ["/go-example/go-example"]
+    SAVE IMAGE go-example:latest
+```
+{% sample lang="JavaScript" %}
+```Dockerfile
+# build.earth
+
+FROM node:13.10.1-alpine3.11
+WORKDIR /js-example
+
+deps:
+    COPY package.json ./
+    COPY package-lock.json ./
+    RUN npm install
+    SAVE ARTIFACT package.json AS LOCAL ./package.json
+    SAVE ARTIFACT package-lock.json AS LOCAL ./package-lock.json
+    SAVE IMAGE
+
+build:
+    FROM +deps
+    COPY src src
+    COPY dist dist
+    RUN npx webpack
+    SAVE ARTIFACT dist /dist AS LOCAL dist
+
+docker:
+    FROM +deps
+    COPY +build/dist ./dist
+    EXPOSE 8080
+    ENTRYPOINT ["/js-example/node_modules/http-server/bin/http-server", "./dist"]
+    SAVE IMAGE js-example:latest
+```
+{% sample lang="Java" %}
+```Dockerfile
+# build.earth
+
+FROM openjdk:8-jdk-alpine
+RUN apk add --update --no-cache gradle
+WORKDIR /java-example
+
+deps:
+    COPY build.gradle ./
+    RUN gradle build
+    SAVE IMAGE
+
+build:
+    FROM +deps
+    COPY src src
+    RUN gradle build
+    RUN gradle install
+    SAVE ARTIFACT build/install/java-example/bin AS LOCAL build/bin
+    SAVE ARTIFACT build/install/java-example/lib AS LOCAL build/lib
+
+docker:
+    COPY +build/bin bin
+    COPY +build/lib lib
+    ENTRYPOINT ["/java-example/bin/java-example"]
+    SAVE IMAGE java-example:latest
+```
+{% endmethod %}
+
+Notice how at the end of the `deps` recipe, we issued a `SAVE IMAGE` command. In this case, it is not for the purpose of saving as an image that would be used outside of the build: the command has no docker tag associated with it. Instead, it is for the purpose of reusing the image within the build, from another target. In this case, in `build`, through the use of the command `FROM +deps`.
 
 ## See also
 
