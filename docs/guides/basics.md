@@ -609,7 +609,7 @@ For a primer into Dockerfile layer caching see [this article](https://pythonspee
 
 ## Reduce repetition
 
-In some cases, the dependencies might be used in more than one build target. For this usecase, we might want to separate dependency downloading into a separate target. In addition, it is often useful to break out long builds into smaller, easier to understand chunks. For this reason, let's consider breaking this out into a separate build target, called `deps`. We can then inherit from `deps` by using the command `FROM +deps`.
+In some cases, the dependencies might be used in more than one build target. For this usecase, we might want to separate dependency downloading and reuse it. For this reason, let's consider breaking this out into a separate build target, called `deps`. We can then inherit from `deps` by using the command `FROM +deps`.
 
 {% method %}
 {% sample lang="Go" %}
