@@ -26,9 +26,9 @@ A key difference from a Dockerfile build is that Earthly can be used to build no
 Earthfiles are always named `build.earth`, regardless of their location in the codebase.
 
 {% sample lang="go" %}
-Here is a sample earthfile of an example go app:
+Here is a sample earthfile of a Go app
 
-```Dockerfile
+```dockerfile
 FROM golang:1.13-alpine3.11
 WORKDIR /go-example
 
@@ -44,9 +44,16 @@ docker:
 ```
 
 {% sample lang="java" %}
+Here is a sample earthfile of a Java app
 
-```Dockerfile
+```dockerfile
 RUN echo TODO Java Dockerfile
+```
+
+{% sample lang="dockerfile" %}
+```dockerfile
+RUN echo Dockerfile test
+RUN echo Dockerfile test
 ```
 
 {% common %}
