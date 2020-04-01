@@ -1,4 +1,4 @@
-# Earthly
+# Earthly example
 
 As a distinct example of a complete build, you can take a look at Earthly's own build. Earthly builds itself, and the build files are available on GitHub:
 
