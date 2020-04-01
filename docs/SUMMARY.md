@@ -14,6 +14,6 @@
     * [Go](examples/go.md)
     * [Java](examples/java.md)
     * [JS](examples/js.md)
-    * [Mono-repo](examples/monorepo.md)
-    * [Multi-repo](examples/multirepo.md)
+    * [Monorepo](examples/monorepo.md)
+    * [Multirepo](examples/multirepo.md)
     * [Earthly](examples/earthly.md)

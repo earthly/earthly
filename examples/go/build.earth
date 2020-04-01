@@ -1,8 +1,15 @@
 FROM golang:1.13-alpine3.11
-
 WORKDIR /go-example
 
+deps:
+	COPY go.mod go.sum ./
+	RUN go mod download
+	SAVE ARTIFACT go.mod AS LOCAL go.mod
+	SAVE ARTIFACT go.sum AS LOCAL go.sum
+	SAVE IMAGE
+
 build:
+    FROM +deps
     COPY main.go .
     RUN go build -o build/go-example main.go
     SAVE ARTIFACT build/go-example /go-example AS LOCAL build/go-example

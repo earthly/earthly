@@ -1,11 +1,9 @@
 
 FROM node:13.10.1-alpine3.11
-
-WORKDIR /example-js
+WORKDIR /js-example
 
 deps:
-    COPY package.json ./
-    COPY package-lock.json ./
+    COPY package.json package-lock.json ./
     RUN npm install
     SAVE ARTIFACT package-lock.json AS LOCAL ./package-lock.json
     SAVE IMAGE
@@ -21,5 +19,5 @@ docker:
     FROM +deps
     COPY +build/dist ./dist
     EXPOSE 8080
-    ENTRYPOINT ["/example-js/node_modules/http-server/bin/http-server", "./dist"]
-    SAVE IMAGE example-js:latest
+    ENTRYPOINT ["/js-example/node_modules/http-server/bin/http-server", "./dist"]
+    SAVE IMAGE js-example:latest
