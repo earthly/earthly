@@ -697,6 +697,16 @@ docker:
 
 Notice how at the end of the `deps` recipe, we issued a `SAVE IMAGE` command. In this case, it is not for the purpose of saving as an image that would be used outside of the build: the command has no docker tag associated with it. Instead, it is for the purpose of reusing the image within the build, from another target (via `FROM +deps`).
 
+## Next steps
+
+Congratulations, you made it this far!
+
+To learn more about Earthly, take a look at the [examples directory on GitHub](https://github.com/vladaionescu/earthly/tree/master/examples), where you will find the complete code used in this guide:
+
+* [Go](https://github.com/vladaionescu/earthly/tree/master/examples/go)
+* [JavaScript](https://github.com/vladaionescu/earthly/tree/master/examples/js)
+* [Java](https://github.com/vladaionescu/earthly/tree/master/examples/java)
+
 ## See also
 
 * The [Earthfile reference](../earthfile/earthfile.md)
