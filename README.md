@@ -291,7 +291,12 @@ For more details see the [Earthfile reference](https://docs.earthly.dev/earthfil
 
 <h2 align="center">What's next?</h2>
 
-To learn more about using Earthly, check the [full documentation](https://docs.earthly.dev/).
+To learn more about using Earthly, check the [full documentation](https://docs.earthly.dev/), which includes
+
+* [Getting started](https://docs.earthly.dev/guides/basics)
+* [Earthfile reference](https://docs.earthly.dev/earthfile)
+* [earth command reference](https://docs.earthly.dev/earth-command)
+* [Examples](https://docs.earthly.dev/examples)
 
 <h2 align="center">Contributing</h2>
 
@@ -299,7 +304,7 @@ To learn more about using Earthly, check the [full documentation](https://docs.e
 * Join us on [Gitter](https://gitter.im/earthly-room/community)!
 * Questions via GitHub issues are welcome!
 * PRs welcome! But please give a heads-up in GitHub issue before starting work. If there is no GitHub issue for what you want to do, please create one.
-* To build from source, you will need the `earth` binary ([Earthly builds itself](https://docs.earthly.dev/examples/earthly)). Check out the code and run `earth +all`.
+* To build from source, you will need the `earth` binary ([Earthly builds itself](https://docs.earthly.dev/examples/earthly)). Git clone the code and run `earth +all`.
 
 <h2 align="center">Licensing</h2>
 
