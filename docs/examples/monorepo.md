@@ -2,7 +2,7 @@
 
 In this example, we will walk through a simple monorepo setup that can be used with Earthly. The entire code of this exercise is available in the [examples/monorepo directory on GitHub](https://github.com/vladaionescu/earthly/tree/master/examples/monorepo).
 
-In this example, let's assume we've organized our monorepo such that each root-level directory is a sub-project:
+In this example, let's assume we've organized our monorepo such that each root-level directory is a sub-project.
 
 ```
 .

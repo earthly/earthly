@@ -35,7 +35,7 @@ COPY github.com/vladaionescu/earthly-example-multirepo-static+html/* ./
 
 references the `html` target of the repository `github.com/vladaionescu/earthly-example-multirepo-static` and copies all its artifacts in the current build environment. Earthly takes care of cloning that repository, executing its build for the `html` target and extracting the artifacts to be used here.
 
-This command is also cache-aware. If the git commit of the HEAD of the repository changes, Earthly knows to clone and build the repository again, using as much cache as relevant, depending on which files have changed.
+This command is also cache-aware. If the HEAD of the repository points to a different Git hash, Earthly knows to re-clone and build the repository again, using as much cache as relevant, depending on which files have changed.
 
 You can also specify a specific tag or branch of the remote repository, to help keep builds consistent and avoid surprising changes. For that, you can use the syntax
 
