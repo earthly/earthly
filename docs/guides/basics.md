@@ -75,7 +75,7 @@ build:
     SAVE ARTIFACT index.js /dist/index.js AS LOCAL /dist/index.js
 
 docker:
-    COPY +build/dist /dist
+    COPY +build/dist dist
     ENTRYPOINT ["node", "./dist/index.js"]
     SAVE IMAGE js-example:latest
 ```
@@ -99,6 +99,7 @@ RUN apk add --update --no-cache gradle
 WORKDIR /java-example
 
 build:
+    COPY build.gradle ./
     COPY src src
     RUN gradle build
     RUN gradle install
@@ -131,6 +132,8 @@ You will notice that the recipes look very much like Dockerfiles. This is an int
 
 All earthfiles start with a base recipe. This is the only recipe which does not have an explicit target name - the name is always implied to be `base`. All other target implicitly inherit from `base`. You can imagine that all recipes start with an implicit `FROM +base`.
 
+## Executing a build
+
 In this particular example, we can see two explicit targets: `build` and `docker`. In order to execute the build, we can run, for example:
 
 ```bash
@@ -154,6 +157,26 @@ In addition, notice how even though the base is used as part of both `build` and
 Furthermore, the fact that the `docker` target depends on the `build` target is visible within the command `COPY +build/...`. Through this command, the system knows that it also needs to build the target `+build`, in order to satisfy the dependency on the artifact.
 
 Finally, notice how the output of the build: the docker image `go-example:latest` and the file `build/go-example` is only written after the build is declared a success. This is due to another isolation principle of Earthly: a build either succeeds completely or it fails altogether.
+
+Once the build has executed, we can run the resulting docker image to try it out:
+
+{% method %}
+{% sample lang="Go" %}
+```
+$ docker run --rm go-example:latest
+hello world
+```
+{% sample lang="JavaScript" %}
+```
+$ docker run --rm js-example:latest
+hello world
+```
+{% sample lang="Java" %}
+```
+$ docker run --rm java-example:latest
+hello world
+```
+{% endmethod %}
 
 {% hint style='info' %}
 ##### Note
@@ -224,7 +247,8 @@ WORKDIR /js-example
 build:
     # Define the recipe of the target build as follows:
 
-    # Copy index.js from the build context to the build environment, as a layer.
+    # Copy index.js from the build context to the build environment, as a
+    # layer.
     COPY index.js .
     # Save the index.js in an artifact dir called dist (it can be later
     # referenced as +build/dist). In addition, store the artifact as a
@@ -238,7 +262,7 @@ docker:
 
     # Copy the artifact /dist produced by another target, +build, to the
     # current directory within the build container.
-    COPY +build/dist /dist
+    COPY +build/dist dist
     # Set the entrypoint for the resulting docker image.
     ENTRYPOINT ["node", "./dist/index.js"]
     # Save the current state as a docker image, which will have the docker tag
@@ -264,7 +288,9 @@ WORKDIR /java-example
 build:
     # Define the recipe of the target build as follows:
 
-    # Copy src from the build context to the build environment, as a layer.
+    # Copy build.gradle and src from the build context to the build
+    # environment, as layers.
+    COPY build.gradle ./
     COPY src src
     # Run the gradle build and gradle install commands as layers.
     # These use the previously copied src dir.
@@ -298,9 +324,187 @@ docker:
 
 ## Adding dependecies in the mix
 
-...
+Let's imagine now that in our simple app, we now want to add a programming language dependency. Here's how our build might look like as a result
+
+{% method %}
+{% sample lang="Go" %}
+```go.mod
+// go.mod
+
+module github.com/vladaionescu/earthly/examples/go
+
+go 1.13
+
+require github.com/sirupsen/logrus v1.5.0
+```
+
+The code of the app might look like this
+
+```go
+// main.go
+
+package main
+
+import "github.com/sirupsen/logrus"
+
+func main() {
+	logrus.Info("hello world")
+}
+```
+
+The build then might become
+
+```Dockerfile
+# build.earth
+
+FROM golang:1.13-alpine3.11
+WORKDIR /go-example
+
+build:
+    COPY go.mod go.sum .
+    COPY main.go .
+    RUN go build -o build/go-example main.go
+    SAVE ARTIFACT build/go-example /go-example AS LOCAL build/go-example
+
+docker:
+    COPY +build/go-example .
+    ENTRYPOINT ["/go-example/go-example"]
+    SAVE IMAGE go-example:latest
+```
+{% sample lang="JavaScript" %}
+```json
+// package.json
+
+{
+  "name": "example-js",
+  "version": "0.0.1",
+  "description": "Hello world",
+  "private": true,
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "MPL-2.0",
+  "devDependencies": {
+    "webpack": "^4.42.1",
+    "webpack-cli": "^3.3.11"
+  },
+  "dependencies": {
+    "http-server": "^0.12.1"
+  }
+}
+```
+
+The code of the app might look like this
+
+```js
+// src/index.js
+
+function component() {
+    const element = document.createElement('div');
+    element.innerHTML = "hello world"
+    return element;
+}
+
+document.body.appendChild(component());
+```
+
+The build then might become
+
+```Dockerfile
+# build.earth
+
+FROM node:13.10.1-alpine3.11
+WORKDIR /js-example
+
+build:
+    COPY package.json .
+    COPY index.js .
+    RUN npm install
+    SAVE ARTIFACT node_modules /dist/node_modules AS LOCAL /dist/node_modules
+    SAVE ARTIFACT index.js /dist/index.js AS LOCAL /dist/index.js
+
+docker:
+    COPY +build/dist dist
+    ENTRYPOINT ["node", "./dist/index.js"]
+    SAVE IMAGE js-example:latest
+```
+{% sample lang="Java" %}
+```groovy
+// build.gradle
+
+apply plugin: 'java'
+apply plugin: 'application'
+
+mainClassName = 'hello.HelloWorld'
+
+repositories {
+    mavenCentral()
+}
+
+jar {
+    baseName = 'hello-world'
+    version = '0.0.1'
+}
+
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+
+dependencies {
+    compile "joda-time:joda-time:2.2"
+    testCompile "junit:junit:4.12"
+}
+```
+
+The code of the app might look like this
+
+```java
+// src/main/java/hello/HelloWorld.java
+
+package hello;
+
+import org.joda.time.LocalTime;
+
+public class HelloWorld {
+    public static void main(String[] args) {
+        LocalTime currentTime = new LocalTime();
+        System.out.println(currentTime + " - hello world");
+    }
+}
+```
+
+The build.earth file would not change
+
+```Dockerfile
+# build.earth
+
+FROM openjdk:8-jdk-alpine
+RUN apk add --update --no-cache gradle
+WORKDIR /java-example
+
+build:
+    COPY build.gradle ./
+    COPY src src
+    RUN gradle build
+    RUN gradle install
+    SAVE ARTIFACT build/install/java-example/bin /bin AS LOCAL build/bin
+    SAVE ARTIFACT build/install/java-example/lib /lib AS LOCAL build/lib
+
+docker:
+    COPY +build/bin bin
+    COPY +build/lib lib
+    ENTRYPOINT ["/java-example/bin/java-example"]
+    SAVE IMAGE java-example:latest
+```
+{% endmethod %}
+
+However, as we build this new setup and make changes to the main source code, we notice that the dependencies are downloaded every single time we change the source code. While the build is not necessarily incorrect, it is inefficient for proper development speed.
 
 ## Efficient caching of dependencies
+
+The reason the build is inefficient is because we have not made proper use of layer caching. When a file changes, the corresponding `COPY` command is re-executed without cache, causing all commands after it to also re-execute without cache.
+
+If, however, we could separate the dependency downloading from the code building, then the cache would be reused every time we changed the code.
 
 ...
 
