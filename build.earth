@@ -149,17 +149,6 @@ release:
 		--name "$RELEASE_TAG" \
 		--body "$BODY" \
 		earth-linux-amd64 earth-darwin-amd64
-	# TODO: This can be removed once the repo is public.
-	RUN --push \
-		--secret GITHUB_TOKEN=+secrets/GITHUB_TOKEN \
-		github-release upload \
-		--owner vladaionescu \
-		--repo earthly-releases \
-		--commitish "bcc06fdf49989089a53ddd7b61a658b378ba1538" \
-		--tag "$RELEASE_TAG" \
-		--name "$RELEASE_TAG" \
-		--body "$BODY" \
-		earth-linux-amd64 earth-darwin-amd64
 
 release-vscode-syntax-highlighting:
 	BUILD ./contrib/earthfile-syntax-highlighting+release
