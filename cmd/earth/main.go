@@ -105,7 +105,7 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 		},
 	}
 
-	app.cliApp.Usage = "A build system for the container era"
+	app.cliApp.Usage = "A build automation tool for the container era"
 	app.cliApp.UsageText = "\tearth [options] <target-ref>\n" +
 		"\n" +
 		"   \tearth [options] --image <target-ref>\n" +
