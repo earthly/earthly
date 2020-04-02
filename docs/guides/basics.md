@@ -20,7 +20,7 @@ Earthly is a build automation tool where all recipes are executed in docker cont
 
 A key difference from a Dockerfile build is that Earthly can be used to build not just images, but also artifacts - regular files or directories that can be written back onto the host filesystem.
 
-One of the key principles of Earthly is that the best build tooling of a specific language is built by the community of that language itself. Earthly does not intend to replace that tooling, but rather to leverage, augment and wrap it.
+One of the key principles of Earthly is that the best build tooling of a specific language is built by the community of that language itself. Earthly does not intend to replace that tooling, but rather to leverage and augment it.
 
 ## A simple Earthfile
 

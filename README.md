@@ -26,6 +26,8 @@ It's like Dockerfile and Makefile had a baby. And they called it Earthly.
 
 Earthly has a number of key features. You can specify builds with a Dockerfile-like syntax. Because everything runs on containers, your builds run the same on your laptop as they run in CI or on your colleague's laptop. Strong isolation also gives you easy to use parallelism, with no strings attached. You can also import dependencies from other directories or other repositories with ease, making Earthly great for large mono-repo builds that span a vast directory hierarchy; but also for multi-repo setups where builds might depend on each other across repositories.
 
+One of the key principles of Earthly is that the best build tooling of a specific language is built by the community of that language itself. Earthly does not intend to replace that tooling, but rather to leverage and augment it.
+
 To learn how to use Earthly, check out the [getting started guide](https://docs.earthly.dev/guides/basics).
 
 For some examples, see [Go](https://docs.earthly.dev/examples/go), [Java](https://docs.earthly.dev/examples/java), [JS](https://docs.earthly.dev/examples/js), [Mono-repo](https://docs.earthly.dev/examples/monorepo), [Multi-repo](https://docs.earthly.dev/examples/multirepo), [Earthly's own build](https://docs.earthly.dev/examples/earthly) or the [examples dir](./examples).
