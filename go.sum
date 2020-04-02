@@ -240,6 +240,7 @@ github.com/syndtr/gocapability v0.0.0-20180916011248-d98352740cb2 h1:b6uOv7YOFK0
 github.com/syndtr/gocapability v0.0.0-20180916011248-d98352740cb2/go.mod h1:hkRG7XYTFWNJGYcbNJQlaLq0fg1yr4J4t/NcTQtrfww=
 github.com/tonistiigi/fsutil v0.0.0-20200225063759-013a9fe6aee2 h1:RCy9Kde5WFuCrGYznzS1dFANTwqvAzFDoih8L3sE0UY=
 github.com/tonistiigi/fsutil v0.0.0-20200225063759-013a9fe6aee2/go.mod h1:0G1sLZ/0ttFf09xvh7GR4AEECnjifHRNJN/sYbLianU=
+github.com/tonistiigi/fsutil v0.0.0-20200326231323-c2c7d7b0e144 h1:6RY1EKxCnPQShPM46xFDHta2JSOd+YKCgHyyBHtKuo8=
 github.com/tonistiigi/fsutil v0.0.0-20200326231323-c2c7d7b0e144/go.mod h1:0G1sLZ/0ttFf09xvh7GR4AEECnjifHRNJN/sYbLianU=
 github.com/tonistiigi/go-immutable-radix v0.0.0-20170803185627-826af9ccf0fe/go.mod h1:/+MCh11CJf2oz0BXmlmqyopK/ad1rKkcOXPoYuPCJYU=
 github.com/tonistiigi/units v0.0.0-20180711220420-6950e57a87ea/go.mod h1:WPnis/6cRcDZSUvVmezrxJPkiO87ThFYsoUiMwWNDJk=

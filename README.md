@@ -1,4 +1,4 @@
-# <img src="images/logo.png" alt="Earthly Logo" align="left" /><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="" height="42" width="1" /> Earthly - a build system for the container era
+# <img src="images/logo.png" alt="Earthly Logo" align="left" /><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="" height="42" width="1" /> Earthly - build automation for the container era
 
 **🐳 Build anything via containers** - *build container images or standalone artifacts (eg binaries, packages, arbitrary files)*
 
@@ -20,9 +20,9 @@
 [![Docker Hub](https://img.shields.io/badge/docker%20hub-earthly-blue)](https://hub.docker.com/u/earthly)
 [![License](https://img.shields.io/badge/license-MPL--2.0-blue.svg)](http://www.apache.org/licenses/LICENSE-2.0)
 
-Earthly is a build system based on containers. It allows you to execute self-contained and portable builds, to create Docker images and artifacts (eg binaries, packages, arbitrary files), with the help of container technology.
+Earthly is a build automation tool based on containers. It allows you to execute self-contained and portable builds, to create Docker images and artifacts (eg binaries, packages, arbitrary files), with the help of container technology.
 
-It's like a Makefile reimagined with Docker in mind.
+It's like Dockerfile and Makefile had a baby. And they called it Earthly.
 
 Earthly has a number of key features. You can specify builds with a Dockerfile-like syntax. Because everything runs on containers, your builds run the same on your laptop as they run in CI or on your colleague's laptop. Strong isolation also gives you easy to use parallelism, with no strings attached. You can also import dependencies from other directories or other repositories with ease, making Earthly great for large mono-repo builds that span a vast directory hierarchy; but also for multi-repo setups where builds might depend on each other across repositories.
 
