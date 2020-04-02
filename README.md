@@ -1,4 +1,4 @@
-# <img src="images/logo.png" alt="Earthly Logo" align="left" /><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="" height="42" width="1" /> Earthly - build automation for the container era
+# <img src="images/logo.png" alt="Earthly Logo" align="left" /><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="" height="42" width="1" />Earthly - build automation for the container era
 
 **🐳 Build anything via containers** - *build container images or standalone artifacts (eg binaries, packages, arbitrary files)*
 
