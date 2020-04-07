@@ -12,6 +12,8 @@
 
 **🏘 Multi-repo friendly** - *ability to import builds or artifacts from other repositories*
 
+**⚙️ Works with your CI** - *can run on top of popular CIs like Circle CI and GitHub Actions*
+
 ----------------------------
 ![CI](https://github.com/vladaionescu/earthly/workflows/CI/badge.svg)
 [![Go Report Card](https://goreportcard.com/badge/github.com/vladaionescu/earthly)](https://goreportcard.com/report/github.com/vladaionescu/earthly)
