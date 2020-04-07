@@ -12,6 +12,8 @@
 
 **🏘 Multi-repo friendly** - *ability to import builds or artifacts from other repositories*
 
+**⚙️ Works with your CI** - *can run on top of popular CIs like Circle CI and GitHub Actions*
+
 ----------------------------
 ![CI](https://github.com/vladaionescu/earthly/workflows/CI/badge.svg)
 [![Go Report Card](https://goreportcard.com/badge/github.com/vladaionescu/earthly)](https://goreportcard.com/report/github.com/vladaionescu/earthly)
@@ -299,6 +301,7 @@ To learn more about using Earthly, check the [full documentation](https://docs.e
 * [Earthfile reference](https://docs.earthly.dev/earthfile)
 * [earth command reference](https://docs.earthly.dev/earth-command)
 * [Examples](https://docs.earthly.dev/examples)
+* [CI integration guide](https://docs.earthly.dev/guides/ci-integration)
 
 <h2 align="center">Contributing</h2>
 

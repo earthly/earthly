@@ -297,7 +297,7 @@ Files within the artifact environment are also known as "artifacts". Once a file
 
 The command `SAVE IMAGE` marks the current build environment as the image of the target. The image can then be referenced using an [image reference](../guides/target-ref.md) in other parts of the build (for example in a `FROM` command).
 
-If one ore more `<image-name>`>'s are specified, the command also marks the image to be loaded within the docker daemon available on the host.
+If one ore more `<image-name>`'s are specified, the command also marks the image to be loaded within the docker daemon available on the host.
 
 {% hint style='info' %}
 ##### Note

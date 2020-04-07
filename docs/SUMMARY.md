@@ -17,3 +17,5 @@
     * [Monorepo](examples/monorepo.md)
     * [Multirepo](examples/multirepo.md)
     * [Earthly](examples/earthly.md)
+    * [Circle CI](examples/circle-integration.md)
+    * [GitHub Actions](examples/gh-actions-integration.md)
