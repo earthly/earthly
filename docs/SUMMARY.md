@@ -16,6 +16,6 @@
     * [JS](examples/js.md)
     * [Monorepo](examples/monorepo.md)
     * [Multirepo](examples/multirepo.md)
-    * [Circle CI integration](examples/circle-integration.md)
-    * [GitHub Actions integration](examples/gh-actions-integration.md)
     * [Earthly](examples/earthly.md)
+    * [Circle CI](examples/circle-integration.md)
+    * [GitHub Actions](examples/gh-actions-integration.md)
