@@ -299,7 +299,7 @@ To learn more about using Earthly, check the [full documentation](https://docs.e
 * [Earthfile reference](https://docs.earthly.dev/earthfile)
 * [earth command reference](https://docs.earthly.dev/earth-command)
 * [Examples](https://docs.earthly.dev/examples)
-* [CI integration guice](https://docs.earthly.dev/guides/ci-integration)
+* [CI integration guide](https://docs.earthly.dev/guides/ci-integration)
 
 <h2 align="center">Contributing</h2>
 
