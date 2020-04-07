@@ -1,0 +1,61 @@
+
+# Circle CI and GitHub Actions integration
+
+For a complete guide with examples on CI integration see the [CI integration guide](../guides/ci-integration.md).
+
+#### CircleCI
+
+```yml
+version: 2.1
+jobs:
+  build:
+    machine:
+      image: ubuntu-1604:201903-01
+    environment:
+      - GIT_URL_INSTEAD_OF: "https://github.com/=git@github.com:"
+    steps:
+      - checkout
+      - run: docker login --username "$DOCKERHUB_USERNAME" --password "$DOCKERHUB_TOKEN"
+      - run: "sudo /bin/sh -c 'curl -s https://api.github.com/repos/vladaionescu/earthly/releases/latest | grep browser_download_url | grep linux-amd64 | cut -d : -f 2- | tr -d \\\" | wget -P /usr/local/bin/ -i - && mv /usr/local/bin/earth-linux-amd64 /usr/local/bin/earth && chmod +x /usr/local/bin/earth'"
+      - run: earth --version
+      - run: earth --push +build
+```
+
+#### GitHub Actions
+
+```yml
+name: CI
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+      GIT_URL_INSTEAD_OF: "https://github.com/=git@github.com:"
+    steps:
+    - uses: actions/checkout@v2
+    - name: Put back the git branch into git (Earthly uses it for tagging)
+      run: |
+        branch=""
+        if [ -n "$GITHUB_HEAD_REF" ]; then
+          branch="$GITHUB_HEAD_REF"
+        else
+          branch="${GITHUB_REF##*/}"
+        fi
+        git checkout -b "$branch" || true
+    - name: Docker Login
+      run: docker login --username "$DOCKERHUB_USERNAME" --password "$DOCKERHUB_TOKEN"
+    - name: Download latest earth
+      run: "sudo /bin/sh -c 'curl -s https://api.github.com/repos/vladaionescu/earthly/releases/latest | grep browser_download_url | grep linux-amd64 | cut -d : -f 2- | tr -d \\\" | wget -P /usr/local/bin/ -i - && mv /usr/local/bin/earth-linux-amd64 /usr/local/bin/earth && chmod +x /usr/local/bin/earth'"
+    - name: Earth version
+      run: earth --version
+    - name: Run build
+      run: earth --push +build
+```
