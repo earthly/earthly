@@ -219,15 +219,15 @@ func (c *Converter) CopyClassical(ctx context.Context, srcs []string, dest strin
 
 // Run applies the earth RUN command.
 func (c *Converter) Run(ctx context.Context, args []string, mounts []string, secretKeyValues []string, privileged bool, withEntrypoint bool, withDocker bool, isWithShell bool, pushFlag bool) error {
-	if !isWithShell {
-		// TODO: This does not work, because it strips away some quotes, which are valuable to the shell.
-		//       In any case, this is probably working as intended as is.
-		// for i := range args {
-		// 	args[i] = c.expandArgs(args[i])
-		// }
-		for i := range mounts {
-			mounts[i] = c.expandArgs(mounts[i])
-		}
+	// TODO: This does not work, because it strips away some quotes, which are valuable to the shell.
+	//       In any case, this is probably working as intended as is.
+	// if !isWithShell {
+	// 	for i := range args {
+	// 		args[i] = c.expandArgs(args[i])
+	// 	}
+	// }
+	for i := range mounts {
+		mounts[i] = c.expandArgs(mounts[i])
 	}
 	logging.GetLogger(ctx).
 		With("args", args).
@@ -954,6 +954,9 @@ func makeCacheContext(target domain.Target) llb.State {
 }
 
 func cacheKey(target domain.Target) string {
-	digest := sha256.Sum256([]byte(target.StringCanonical()))
+	// Use the canonical target, but wihout the tag for cache matching.
+	targetCopy := target
+	targetCopy.Tag = ""
+	digest := sha256.Sum256([]byte(targetCopy.StringCanonical()))
 	return hex.EncodeToString(digest[:])
 }

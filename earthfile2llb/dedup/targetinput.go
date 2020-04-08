@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 
 	"github.com/pkg/errors"
+	"github.com/vladaionescu/earthly/domain"
 )
 
 // TargetInput represents the conditions in which a target is invoked.
@@ -32,11 +33,49 @@ func (ti TargetInput) Equals(other TargetInput) bool {
 	return true
 }
 
+func (ti TargetInput) cloneNoTag() (TargetInput, error) {
+	targetStr := ""
+	if ti.TargetCanonical != "" {
+		target, err := domain.ParseTarget(ti.TargetCanonical)
+		if err != nil {
+			return TargetInput{}, err
+		}
+		target.Tag = ""
+		targetStr = target.StringCanonical()
+	}
+	tiCopy := TargetInput{
+		TargetCanonical: targetStr,
+		BuildArgs:       make([]BuildArgInput, 0, len(ti.BuildArgs)),
+	}
+	for _, bai := range ti.BuildArgs {
+		baiCopy, err := bai.cloneNoTag()
+		if err != nil {
+			return TargetInput{}, err
+		}
+		tiCopy.BuildArgs = append(tiCopy.BuildArgs, baiCopy)
+	}
+	return tiCopy, nil
+}
+
 // Hash returns a hash of the target input.
 func (ti TargetInput) Hash() (string, error) {
 	tiBytes, err := json.Marshal(&ti)
 	if err != nil {
 		return "", errors.Wrap(err, "serialize TargetInput when creating hash")
+	}
+	digest := sha256.Sum256(tiBytes)
+	return hex.EncodeToString(digest[:]), nil
+}
+
+// HashNoTag returns a hash of the target input with tag info stripped away.
+func (ti TargetInput) HashNoTag() (string, error) {
+	tiNoTag, err := ti.cloneNoTag()
+	if err != nil {
+		return "", err
+	}
+	tiBytes, err := json.Marshal(&tiNoTag)
+	if err != nil {
+		return "", errors.Wrap(err, "serialize TargetInput when creating hash no tag")
 	}
 	digest := sha256.Sum256(tiBytes)
 	return hex.EncodeToString(digest[:]), nil
@@ -83,6 +122,20 @@ func (bai BuildArgInput) Equals(other BuildArgInput) bool {
 	return true
 }
 
+func (bai BuildArgInput) cloneNoTag() (BuildArgInput, error) {
+	vfiCopy, err := bai.VariableFromInput.cloneNoTag()
+	if err != nil {
+		return BuildArgInput{}, err
+	}
+	return BuildArgInput{
+		Name:              bai.Name,
+		IsConstant:        bai.IsConstant,
+		ConstantValue:     bai.ConstantValue,
+		DefaultValue:      bai.DefaultValue,
+		VariableFromInput: vfiCopy,
+	}, nil
+}
+
 // VariableFromInput represents the conditions in which a variable build arg is passed.
 type VariableFromInput struct {
 	// TargetInput is the target where this variable's expression is executed.
@@ -100,4 +153,15 @@ func (vfi VariableFromInput) Equals(other VariableFromInput) bool {
 		return false
 	}
 	return true
+}
+
+func (vfi VariableFromInput) cloneNoTag() (VariableFromInput, error) {
+	tiCopy, err := vfi.TargetInput.cloneNoTag()
+	if err != nil {
+		return VariableFromInput{}, err
+	}
+	return VariableFromInput{
+		TargetInput: tiCopy,
+		Index:       vfi.Index,
+	}, nil
 }

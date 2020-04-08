@@ -137,7 +137,7 @@ func parseMount(mount string, target domain.Target, ti dedup.TargetInput, cacheC
 }
 
 func cacheKeyTargetInput(ti dedup.TargetInput) (string, error) {
-	digest, err := ti.Hash()
+	digest, err := ti.HashNoTag()
 	if err != nil {
 		return "", errors.Wrapf(err, "compute hash key for %s", ti.TargetCanonical)
 	}

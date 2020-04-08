@@ -1,3 +1,4 @@
 FROM alpine:3.11
 test:
     RUN --mount=type=cache,target=/cache-test test -f /cache-test/test.txt
+    RUN --mount=type=cache,target=/cache-test cat /cache-test/test.txt

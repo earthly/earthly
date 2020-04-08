@@ -168,7 +168,7 @@ earth --buildkit-cache-size-mb <cache-size-mb> prune --reset
 
 ##### `--buildkit-image <bk-image>`
 
-Also available as an env var setting: `EARTHLY_BUILDKITD_IMAGE=<bk-image>`.
+Also available as an env var setting: `EARTHLY_BUILDKIT_IMAGE=<bk-image>`.
 
 Instructs earth to use an alternate image for buildkitd. The default image used is `earthly/buildkitd:<earth-version>`.
 

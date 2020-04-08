@@ -20,46 +20,40 @@ experimental:
 
 privileged-test:
 	COPY privileged.earth ./build.earth
-	RUN \
-		--mount=type=cache,target=/tmp/earthly \
+	RUN --mount=type=cache,target=/tmp/earthly \
 		--privileged \
 		--entrypoint \
 		-- --allow-privileged +test
 
 cache-test:
 	COPY cache1.earth ./build.earth
-	RUN \
-		--mount=type=cache,target=/tmp/earthly \
+	RUN --mount=type=cache,target=/tmp/earthly \
 		--privileged \
 		--entrypoint \
 		-- +test
 	COPY cache2.earth ./build.earth
-	RUN \
-		--mount=type=cache,target=/tmp/earthly \
+	RUN --mount=type=cache,target=/tmp/earthly \
 		--privileged \
 		--entrypoint \
 		-- +test
 
 git-clone-test:
 	COPY git-clone.earth ./build.earth
-	RUN \
-		--mount=type=cache,target=/tmp/earthly \
+	RUN --mount=type=cache,target=/tmp/earthly \
 		--privileged \
 		--entrypoint \
 		-- +test
 
 builtin-args-test:
 	COPY builtin-args.earth ./build.earth
-	RUN \
-		--mount=type=cache,target=/tmp/earthly \
+	RUN --mount=type=cache,target=/tmp/earthly \
 		--privileged \
 		--entrypoint \
 		-- +builtin-args-test
 
 config-test:
 	COPY config.earth ./build.earth
-	RUN \
-		--mount=type=cache,target=/tmp/earthly \
+	RUN --mount=type=cache,target=/tmp/earthly \
 		--privileged \
 		--entrypoint \
 		-- +test
@@ -69,8 +63,7 @@ excludes-test:
 	RUN touch exclude-me.txt
 	RUN touch do-not-exclude-me.txt
 	RUN echo 'exclude-me.txt' > .earthignore
-	RUN \
-		--mount=type=cache,target=/tmp/earthly \
+	RUN --mount=type=cache,target=/tmp/earthly \
 		--privileged \
 		--entrypoint \
 		-- +test
@@ -79,16 +72,14 @@ secrets-test:
 	COPY secrets.earth ./build.earth
 	ENV SECRET1=foo
 	ENV SECRET2=wrong
-	RUN \
-		--mount=type=cache,target=/tmp/earthly \
+	RUN --mount=type=cache,target=/tmp/earthly \
 		--privileged \
 		--entrypoint \
 		-- --secret SECRET1 --secret SECRET2=bar +test
 
 build-arg-test:
 	COPY build-arg.earth ./build.earth
-	RUN \
-		--mount=type=cache,target=/tmp/earthly \
+	RUN --mount=type=cache,target=/tmp/earthly \
 		--privileged \
 		--entrypoint \
 		-- +test
@@ -96,8 +87,7 @@ build-arg-test:
 # TODO: This does not pass.
 transitive-args-test-todo:
 	COPY transitive-args.earth ./build.earth
-	RUN \
-		--mount=type=cache,target=/tmp/earthly \
+	RUN --mount=type=cache,target=/tmp/earthly \
 		--privileged \
 		--entrypoint \
 		-- --build-arg SOMEARG=def +test
@@ -111,8 +101,7 @@ build-github-test:
 star-test:
 	COPY star.earth ./build.earth
 	RUN touch a.txt b.txt c.nottxt
-	RUN \
-		--mount=type=cache,target=/tmp/earthly \
+	RUN --mount=type=cache,target=/tmp/earthly \
 		--privileged \
 		--entrypoint \
 		-- +test
@@ -121,14 +110,12 @@ star-test:
 star-test-todo:
 	COPY star.earth ./build.earth
 	RUN touch a.txt b.txt c.nottxt
-	RUN \
-		--mount=type=cache,target=/tmp/earthly \
+	RUN --mount=type=cache,target=/tmp/earthly \
 		--privileged \
 		--entrypoint \
 		-- +test
 	RUN echo "a change" > c.nottxt
-	RUN \
-		--mount=type=cache,target=/tmp/earthly \
+	RUN --mount=type=cache,target=/tmp/earthly \
 		--privileged \
 		--entrypoint \
 		-- +test >output.txt
@@ -139,24 +126,21 @@ star-test-todo:
 
 docker-load-test:
 	COPY docker-load.earth ./build.earth
-	RUN \
-		--mount=type=cache,target=/tmp/earthly \
+	RUN --mount=type=cache,target=/tmp/earthly \
 		--privileged \
 		--entrypoint \
 		-- --allow-privileged +test
 
 dind-test:
 	COPY dind.earth ./build.earth
-	RUN \
-		--mount=type=cache,target=/tmp/earthly \
+	RUN --mount=type=cache,target=/tmp/earthly \
 		--privileged \
 		--entrypoint \
 		-- --allow-privileged +test
 
 docker-pull-test:
 	COPY docker-pull.earth ./build.earth
-	RUN \
-		--mount=type=cache,target=/tmp/earthly \
+	RUN --mount=type=cache,target=/tmp/earthly \
 		--privileged \
 		--entrypoint \
 		-- --allow-privileged +test

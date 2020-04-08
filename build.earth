@@ -1,24 +1,23 @@
 FROM golang:1.13-alpine3.11
 
 RUN apk add --update --no-cache \
-	openssl \
-	ca-certificates \
 	bash \
 	bash-completion \
-	util-linux \
-	grep \
-	less \
 	binutils \
-	findutils \
+	ca-certificates \
 	coreutils \
+	curl \
+	findutils \
+	g++ \
+	git \
+	grep \
 	grep \
 	less \
-	git \
-	g++ \
-	curl \
-	make
+	less \
+	make \
+	openssl \
+	util-linux
 
-ENV GOCACHE=/go-cache
 WORKDIR /earthly
 
 deps:
@@ -69,8 +68,8 @@ earth:
 	ARG EARTHLY_TARGET_TAG
 	ARG VERSION=$EARTHLY_TARGET_TAG
 	ARG DEFAULT_BUILDKITD_IMAGE=earthly/buildkitd:$VERSION
-	RUN \
-		--mount=type=cache,target=/go-cache \
+	ARG GOCACHE=/go-cache
+	RUN --mount=type=cache,target=$GOCACHE \
 		go build \
 			-ldflags "-X main.DefaultBuildkitdImage=$DEFAULT_BUILDKITD_IMAGE -X main.Version=$VERSION $GO_EXTRA_LDFLAGS" \
 			-o build/earth \

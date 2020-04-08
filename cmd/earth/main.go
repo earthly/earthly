@@ -204,6 +204,7 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 		},
 		&cli.IntFlag{
 			Name:        "buildkit-cache-size-mb",
+			Value:       10000,
 			EnvVars:     []string{"EARTHLY_BUILDKIT_CACHE_SIZE_MB"},
 			Usage:       "The total size of the buildkit cache, in MB",
 			Destination: &app.buildkitdSettings.CacheSizeMb,
@@ -211,7 +212,7 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 		&cli.StringFlag{
 			Name:        "buildkit-image",
 			Value:       DefaultBuildkitdImage,
-			EnvVars:     []string{"EARTHLY_BUILDKITD_IMAGE"},
+			EnvVars:     []string{"EARTHLY_BUILDKIT_IMAGE"},
 			Usage:       "The docker image to use for the buildkit daemon",
 			Destination: &app.buildkitdImage,
 		},
