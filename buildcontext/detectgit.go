@@ -14,9 +14,11 @@ import (
 
 var (
 	// ErrNoGitBinary is an error returned when no git binary is found.
-	ErrNoGitBinary = fmt.Errorf("No git binary found")
+	ErrNoGitBinary = errors.New("No git binary found")
 	// ErrNotAGitDir is an error returned when a given directory is not a git dir.
-	ErrNotAGitDir = fmt.Errorf("Not a git directory")
+	ErrNotAGitDir = errors.New("Not a git directory")
+	// ErrCouldNotDetectRemote is an error returned when git remote could not be detected or parsed.
+	ErrCouldNotDetectRemote = errors.New("Could not auto-detect or parse Git remote URL")
 )
 
 // GitMetadata is a collection of git information about a certain directory.
@@ -122,19 +124,30 @@ func detectIsGitDir(ctx context.Context, dir string) error {
 }
 
 func parseGitRemoteURL(url string) (string, string, error) {
+	// TODO: Should use a more robust method for origin URL parsing.
 	if strings.HasPrefix(url, "git@github.com:") {
 		ret := strings.TrimPrefix(url, "git@github.com:")
 		ret = strings.TrimSuffix(ret, ".git")
 		return "github.com", ret, nil
+	} else if strings.HasPrefix(url, "ssh://git@github.com/") {
+		ret := strings.TrimPrefix(url, "ssh://git@github.com/")
+		ret = strings.TrimSuffix(ret, ".git")
+		return "github.com", ret, nil
+	} else if strings.HasPrefix(url, "ssh://git@github.com:") {
+		ret := strings.TrimPrefix(url, "ssh://git@github.com:")
+		ret = strings.TrimSuffix(ret, ".git")
+		return "github.com", ret, nil
 	} else if strings.HasPrefix(url, "https://") {
 		ret := strings.TrimPrefix(url, "https://")
+		ret = strings.TrimSuffix(ret, ".git")
 		parts := strings.SplitN(ret, "/", 2)
 		if len(parts) < 2 {
-			return "", "", fmt.Errorf("Unable to parse git URL %s", url)
+			return "", "", errors.Wrapf(ErrCouldNotDetectRemote, "could not parse git URL %s", url)
 		}
-		return parts[0], strings.TrimSuffix(parts[1], ".git"), nil
+		return parts[0], parts[1], nil
 	} else {
-		return "", "", fmt.Errorf("Unable to parse git URL %s", url)
+		return "", "", errors.Wrapf(
+			ErrCouldNotDetectRemote, "could not parse git URL %s. Maybe not github.com?", url)
 	}
 }
 
@@ -143,11 +156,12 @@ func detectGitRemoteURL(ctx context.Context, dir string) (string, error) {
 	cmd.Dir = dir
 	out, err := cmd.Output()
 	if err != nil {
-		return "", errors.Wrap(err, "detect git directory")
+		return "", errors.Wrapf(
+			ErrCouldNotDetectRemote, "returned error %s: %s", err.Error(), string(out))
 	}
 	outStr := string(out)
 	if outStr == "" {
-		return "", errors.New("No output returned for git remote url")
+		return "", errors.Wrapf(ErrCouldNotDetectRemote, "no remote origin url output")
 	}
 	return strings.SplitN(outStr, "\n", 2)[0], nil
 }

@@ -2,12 +2,14 @@ package buildcontext
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"path/filepath"
 
 	"github.com/moby/buildkit/client/llb"
 	"github.com/vladaionescu/earthly/domain"
 	"github.com/vladaionescu/earthly/llbutil"
+	"github.com/vladaionescu/earthly/logging"
 )
 
 type localResolver struct {
@@ -28,9 +30,17 @@ func (lr *localResolver) resolveLocal(ctx context.Context, target domain.Target)
 	if !found {
 		metadata, err = Metadata(ctx, target.LocalPath)
 		if err != nil {
-			if err == ErrNoGitBinary || err == ErrNotAGitDir {
-				// Keep going anyway. Either not a git dir, or git not installed.
-				// TODO: Log this as a warning.
+			if errors.Is(err, ErrNoGitBinary) ||
+				errors.Is(err, ErrNotAGitDir) ||
+				errors.Is(err, ErrCouldNotDetectRemote) {
+				// Keep going anyway. Either not a git dir, or git not installed, or
+				// remote not detected.
+				logging.GetLogger(ctx).Warning(err.Error())
+				if errors.Is(err, ErrNoGitBinary) ||
+					errors.Is(err, ErrCouldNotDetectRemote) {
+					// TODO: Log this properly in the console.
+					fmt.Printf("Warning: %s\n", err.Error())
+				}
 			} else {
 				return nil, err
 			}
