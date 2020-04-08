@@ -75,6 +75,13 @@ build-arg-test:
 		--entrypoint \
 		-- +test
 
+# TODO: This does not pass, due to space on device limitation (dind caused).
+remote-test:
+	ENV GIT_URL_INSTEAD_OF="https://github.com/=git@github.com:"
+	RUN --privileged \
+		--entrypoint \
+		-- --no-output github.com/vladaionescu/earthly+earth-docker
+
 # TODO: This does not pass.
 transitive-args-test-todo:
 	COPY transitive-args.earth ./build.earth
