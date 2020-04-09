@@ -312,7 +312,9 @@ To learn more about using Earthly, check the [full documentation](https://docs.e
 
 ##### Can I just use docker build instead of Earthly?
 
-You might. There are docker build features such as `--target` and `-o` and `FROM ... AS ...` which give you part of Earthly's functionality. However, docker build was not designed to be used as a full-on build system, but rather as a tool to build container images primarily. You will always end up wrapping docker build's in scripts like bash and Makefile to make it do what you need to: eg building regular files, passing the right tags for images, importing files from other repositories etc. Historically such scripts are typically only understood by a fraction of the team, leading to a build guru situation: only one person knows how the build works. There are, however, situations where using docker build alone is more advisable. For example, docker build is a very mature command and has been battle-tested. Also in some environments, only a very trivial build may be needed and installing yet another tool for it may be overkill.
+You might. There are docker build features such as `--target` and `-o` and `FROM ... AS ...` which give you part of Earthly's functionality. However, docker build was not designed to be used as a full-on build system, but rather as a tool to build container images. You always end up wrapping `docker build`'s in scripts like bash and Makefile to make it do what you need to: building regular files, passing the right tags for images, importing files from other repositories etc. Historically such scripts are typically only understood by a fraction of the team, leading to a build guru situation: only one person knows how the build works.
+
+There are, however, cases where using docker build alone is more advisable. For example, docker build is a very mature command and has been battle-tested. Also, in some situations, only a very trivial build may be needed and installing yet another tool for it may be overkill.
 
 ##### How do I tell apart classical Dockerfile commands from Earthly commands
 
