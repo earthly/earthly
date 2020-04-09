@@ -12,8 +12,6 @@
 
 **🏘 Multi-repo friendly** - *ability to import builds or artifacts from other repositories*
 
-**⚙️ Works with your CI** - *can run on top of popular CIs like Circle CI and GitHub Actions*
-
 ----------------------------
 ![CI](https://github.com/vladaionescu/earthly/workflows/CI/badge.svg)
 [![Go Report Card](https://goreportcard.com/badge/github.com/vladaionescu/earthly)](https://goreportcard.com/report/github.com/vladaionescu/earthly)
@@ -22,13 +20,18 @@
 [![Docker Hub](https://img.shields.io/badge/docker%20hub-earthly-blue)](https://hub.docker.com/u/earthly)
 [![License](https://img.shields.io/badge/license-MPL--2.0-blue.svg)](http://www.apache.org/licenses/LICENSE-2.0)
 
-Earthly is a build automation tool based on containers. It allows you to execute self-contained and portable builds, to create Docker images and artifacts (eg binaries, packages, arbitrary files), with the help of container technology.
+### Aren't you tired of debugging builds that you cannot run locally?
 
-It's like Dockerfile and Makefile had a baby. And they called it Earthly.
+<p align="center">
+  <img src="images/git-log.png" alt="Frustrated Git log messages" width="525" />
+  <img src="images/one-does-not-simply.png" alt="One does not simply reproduce the CI failure" width="315" />
+</p>
 
-Earthly has a number of key features. You can specify builds with a Dockerfile-like syntax. Because everything runs on containers, your builds run the same on your laptop as they run in CI or on your colleague's laptop. Strong isolation also gives you easy to use parallelism, with no strings attached. You can also import dependencies from other directories or other repositories with ease, making Earthly great for large mono-repo builds that span a vast directory hierarchy; but also for multi-repo setups where builds might depend on each other across repositories.
+Earthly is a build automation tool from the same era as your code. It allows you to execute all your builds in containers. This makes them self-contained, reproducible, portable and parallel. You can use Earthly to create Docker images and artifacts (eg binaries, packages, arbitrary files).
 
-One of the key principles of Earthly is that the best build tooling of a specific language is built by the community of that language itself. Earthly does not intend to replace that tooling, but rather to leverage and augment it.
+Earthly can run on top of popular CI systems (like Jenkins, [Circle](https://docs.earthly.dev/examples/circle-integration), [GitHub Actions](https://docs.earthly.dev/examples/gh-actions-integration)). It is typically the [layer](https://docs.earthly.dev) between language-specific tooling (like maven, gradle, npm, pip, go build) and the CI build spec.
+
+<img src="images/integration-diagram-horizontal.png" alt="Earthly fits between language-specific tooling and the CI" />
 
 To learn how to use Earthly, check out the [getting started guide](https://docs.earthly.dev/guides/basics).
 
@@ -63,7 +66,7 @@ If you use SSH-based git authentication, then your git credentials will just wor
 
 ##### VS Code extension for syntax highlighting
 
-[![Earthfile Syntax Highlighting](images/vscode-plugin.png)](https://marketplace.visualstudio.com/items?itemName=earthly.earthfile-syntax-highlighting)
+[<img src="images/vscode-plugin.png" alt="Earthfile Syntax Highlighting" width="457" />](https://marketplace.visualstudio.com/items?itemName=earthly.earthfile-syntax-highlighting)
 
 Add [Earthfile Syntax Highlighting](https://marketplace.visualstudio.com/items?itemName=earthly.earthfile-syntax-highlighting) to VS Code.
 
@@ -219,7 +222,7 @@ earth github.com/vladaionescu/earthly+earth-docker
 earth github.com/vladaionescu/earthly/buildkitd+buildkitd
 ```
 
-[![asciicast](https://asciinema.org/a/314104.svg)](https://asciinema.org/a/314104)
+[<img src="https://asciinema.org/a/314104.svg" alt="Earthly demo" width="457" />](https://asciinema.org/a/314104)
 
 For more details on using the `earth` command, see `earth --help`.
 
@@ -302,6 +305,22 @@ To learn more about using Earthly, check the [full documentation](https://docs.e
 * [earth command reference](https://docs.earthly.dev/earth-command)
 * [Examples](https://docs.earthly.dev/examples)
 * [CI integration guide](https://docs.earthly.dev/guides/ci-integration)
+
+<h2 align="center">FAQ</h2>
+
+##### Can I just use docker build instead of Earthly?
+
+You might. There are docker build features such as `--target` and `-o` and `FROM ... AS ...` which give you part of Earthly's functionality. However, docker build was not designed to be used as a full-on build system, but rather as a tool to build container images. You always end up wrapping `docker build`'s in scripts like bash and Makefile to make it do what you need to: building regular files, passing the right tags for images, importing files from other repositories etc. Historically such scripts are typically only understood by a fraction of the team, leading to a build guru situation: only one person knows how the build works.
+
+There are, however, cases where using docker build alone is more advisable. For example, docker build is a very mature command and has been battle-tested. Also, in some situations, only a very trivial build may be needed and installing yet another tool for it may be overkill.
+
+##### How do I tell apart classical Dockerfile commands from Earthly commands
+
+Check out the [Earthfile reference doc page](https://docs.earthly.dev/earthfile). It has all the commands there and it specifies which commands are the same as Dockerfile commands and which are new. A summary of the differences are also shown [above here](#commands-beyond-dockerfile-syntax).
+
+##### Can Earthly build Dockerfiles
+
+It cannot - however, translating Dockerfiles to Earthfiles (`build.earth`) is usually a matter of copy-pasting and making small adjustments. See the [getting started page](https://docs.earthly.dev/guides/basics) for some Earthfile examples.
 
 <h2 align="center">Contributing</h2>
 
