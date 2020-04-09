@@ -28,7 +28,7 @@
 
 ### How do you fix that flaky build if you can't reproduce it on your computer?
 
-![One does not simply reproduce the CI failure](images/one-does-not-simply.png | width=50%)
+<img src="images/one-does-not-simply.png" alt="One does not simply reproduce the CI failure" width="457" />
 
 ----------------------------
 
@@ -71,7 +71,7 @@ If you use SSH-based git authentication, then your git credentials will just wor
 
 ##### VS Code extension for syntax highlighting
 
-[![Earthfile Syntax Highlighting](images/vscode-plugin.png | width=50%)](https://marketplace.visualstudio.com/items?itemName=earthly.earthfile-syntax-highlighting)
+[<img src="images/vscode-plugin.png" alt="Earthfile Syntax Highlighting" width="457" />](https://marketplace.visualstudio.com/items?itemName=earthly.earthfile-syntax-highlighting)
 
 Add [Earthfile Syntax Highlighting](https://marketplace.visualstudio.com/items?itemName=earthly.earthfile-syntax-highlighting) to VS Code.
 
