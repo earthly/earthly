@@ -24,7 +24,10 @@
 
 ### Aren't you tired of debugging builds that you cannot run locally?
 
-<img src="images/git-log.png" alt="Frustrated Git log messages" width="525" /><img src="images/one-does-not-simply.png" alt="One does not simply reproduce the CI failure" width="315" />
+<p align="center">
+  <img src="images/git-log.png" alt="Frustrated Git log messages" width="525" />
+  <img src="images/one-does-not-simply.png" alt="One does not simply reproduce the CI failure" width="315" />
+</p>
 
 Earthly is a build automation tool from the same era as your code. It allows you to execute all your builds in containers. This makes them self-contained, reproducible, portable and parallel. You can use Earthly to create Docker images and artifacts (eg binaries, packages, arbitrary files).
 
@@ -68,7 +71,9 @@ If you use SSH-based git authentication, then your git credentials will just wor
 ##### VS Code extension for syntax highlighting
 
 <p align="center">
+
 [<img src="images/vscode-plugin.png" alt="Earthfile Syntax Highlighting" width="457" />](https://marketplace.visualstudio.com/items?itemName=earthly.earthfile-syntax-highlighting)
+
 </p>
 
 Add [Earthfile Syntax Highlighting](https://marketplace.visualstudio.com/items?itemName=earthly.earthfile-syntax-highlighting) to VS Code.
