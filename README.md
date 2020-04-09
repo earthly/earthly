@@ -26,8 +26,6 @@
 
 <img src="images/git-log.png" alt="Frustrated Git log messages" width="500" /><img src="images/one-does-not-simply.png" alt="One does not simply reproduce the CI failure" width="300" />
 
-----------------------------
-
 Earthly is a build automation tool from the same era as your code. It allows you to execute all your builds in containers. This makes them self-contained, reproducible, portable and parallel. You can use Earthly to create Docker images and artifacts (eg binaries, packages, arbitrary files).
 
 Earthly can run on top of popular CI systems (like Jenkins, [Circle](https://docs.earthly.dev/examples/circle-integration), [GitHub Actions](https://docs.earthly.dev/examples/gh-actions-integration)). It is typically the [layer](https://docs.earthly.dev) between language-specific tooling (like maven, gradle, npm, pip, go build) and the CI build spec.
