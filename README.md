@@ -30,7 +30,9 @@ Earthly is a build automation tool from the same era as your code. It allows you
 
 Earthly can run on top of popular CI systems (like Jenkins, [Circle](https://docs.earthly.dev/examples/circle-integration), [GitHub Actions](https://docs.earthly.dev/examples/gh-actions-integration)). It is typically the [layer](https://docs.earthly.dev) between language-specific tooling (like maven, gradle, npm, pip, go build) and the CI build spec.
 
-<img src="images/integration-diagram-simple.png" alt="Earthly fits between language-specific tooling and the CI" width="400" align="center" />
+<p align="center">
+  <img src="images/integration-diagram-simple.png" alt="Earthly fits between language-specific tooling and the CI" width="400" />
+</p>
 
 To learn how to use Earthly, check out the [getting started guide](https://docs.earthly.dev/guides/basics).
 
@@ -65,7 +67,9 @@ If you use SSH-based git authentication, then your git credentials will just wor
 
 ##### VS Code extension for syntax highlighting
 
-<div align="center"> [<img src="images/vscode-plugin.png" alt="Earthfile Syntax Highlighting" width="457" />](https://marketplace.visualstudio.com/items?itemName=earthly.earthfile-syntax-highlighting) </div>
+<p align="center">
+[<img src="images/vscode-plugin.png" alt="Earthfile Syntax Highlighting" width="457" />](https://marketplace.visualstudio.com/items?itemName=earthly.earthfile-syntax-highlighting)
+</p>
 
 Add [Earthfile Syntax Highlighting](https://marketplace.visualstudio.com/items?itemName=earthly.earthfile-syntax-highlighting) to VS Code.
 
