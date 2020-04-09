@@ -316,7 +316,7 @@ There are, however, cases where using docker build alone is more advisable. For 
 
 ##### How do I tell apart classical Dockerfile commands from Earthly commands
 
-Check out the [Earthfile reference doc page](https://docs.earthly.dev/earthfile). It has all the commands there and it specifies which commands are the same as Dockerfile commands and which are new. A summary of the differences are also shown in this README, [here](#commands-beyond-dockerfile-syntax).
+Check out the [Earthfile reference doc page](https://docs.earthly.dev/earthfile). It has all the commands there and it specifies which commands are the same as Dockerfile commands and which are new. A summary of the differences are also shown [above here](#commands-beyond-dockerfile-syntax).
 
 ##### Can Earthly build Dockerfiles
 
