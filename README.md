@@ -26,10 +26,6 @@
 
 <img src="images/git-log.png" alt="Frustrated Git log messages" width="548" />
 
-### How do you fix that flaky build if you can't reproduce it on your computer?
-
-<img src="images/one-does-not-simply.png" alt="One does not simply reproduce the CI failure" width="457" />
-
 ----------------------------
 
 Earthly is a build automation tool from the same era as your code. It allows you to execute all your builds in containers. This makes them self-contained, reproducible, portable and parallel. You can use Earthly to create Docker images and artifacts (eg binaries, packages, arbitrary files).
