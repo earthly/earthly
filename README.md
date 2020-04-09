@@ -24,7 +24,7 @@
 
 ### Aren't you tired of debugging builds that you cannot run locally?
 
-![Frustrated git log messages](images/git-log.png){: width="548px"}
+<img src="images/git-log.png" alt="Frustrated Git log messages" width="548" />
 
 ### How do you fix that flaky build if you can't reproduce it on your computer?
 
