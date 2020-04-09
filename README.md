@@ -24,9 +24,7 @@
 
 ### Aren't you tired of debugging builds that you cannot run locally?
 
-<img src="images/git-log.png" alt="Frustrated Git log messages" width="548" />
-
-<img src="images/one-does-not-simply.png" alt="One does not simply reproduce the CI failure" width="457" />
+<img src="images/git-log.png" alt="Frustrated Git log messages" width="456" /><img src="images/one-does-not-simply.png" alt="One does not simply reproduce the CI failure" width="456" />
 
 ----------------------------
 
