@@ -34,7 +34,7 @@ Earthly is a build automation tool from the same era as your code. It allows you
 Earthly can run on top of popular CI systems (like Jenkins, [Circle](https://docs.earthly.dev/examples/circle-integration), [GitHub Actions](https://docs.earthly.dev/examples/gh-actions-integration)). It is typically the [layer](https://docs.earthly.dev) between language-specific tooling (like maven, gradle, npm, pip, go build) and the CI build spec.
 
 <p align="center">
-  <img src="images/integration-diagram-simple.png" alt="Earthly fits between language-specific tooling and the CI" width="400" />
+  <img src="images/integration-diagram-horizontal.png" alt="Earthly fits between language-specific tooling and the CI" width="400" />
 </p>
 
 To learn how to use Earthly, check out the [getting started guide](https://docs.earthly.dev/guides/basics).
