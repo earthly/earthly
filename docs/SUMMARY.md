@@ -5,6 +5,7 @@
     * [Authenticating Git and image registries](guides/auth.md)
     * [Managing cache](guides/cache.md)
     * [Target, artifact and image referencing](guides/target-ref.md)
+    * [Advanced caching techniques](guides/advanced-caching.md)
     * [Experimental features](guides/experimental.md)
     * [CI integration](guides/ci-integration.md)
 * [Earthfile reference](earthfile/earthfile.md)

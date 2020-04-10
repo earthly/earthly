@@ -50,3 +50,7 @@ earth prune --reset
 ```
 
 which restarts the daemon and resets the cache directory.
+
+## See also
+
+* [Advanced caching techniques](./advanced-caching.md)
