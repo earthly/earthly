@@ -192,7 +192,7 @@ ENV GOCACHE=/go-cache
 RUN --mount=type=cache,target=/go-cache go build main.go
 ```
 
-Note that mounts cannot be shared between targets, nor can it be shared within the same target,
+Note that mounts cannot be shared between targets, nor can they be shared within the same target,
 if the build-args differ between invocations.
 
 ## COPY
