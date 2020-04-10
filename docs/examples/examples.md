@@ -9,4 +9,9 @@ In this section, you will find some examples of Earthfiles for:
 * [Multi-repos](./multirepo.md)
 * [Earthly](./earthly.md)
 
+In addition, there are also examples of how integrate Earthly in CI
+
+* [Circle CI](./circle-integration.md)
+* [GitHub Actions](./gh-actions-integration.md)
+
 The code for all the examples is available in the [examples GitHub directory](https://github.com/vladaionescu/earthly/tree/master/examples).
