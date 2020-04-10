@@ -20,13 +20,6 @@
 [![Docker Hub](https://img.shields.io/badge/docker%20hub-earthly-blue)](https://hub.docker.com/u/earthly)
 [![License](https://img.shields.io/badge/license-MPL--2.0-blue.svg)](http://www.apache.org/licenses/LICENSE-2.0)
 
-### Aren't you tired of debugging builds that you cannot run locally?
-
-<p align="center">
-  <img src="images/git-log.png" alt="Frustrated Git log messages" width="525" />
-  <img src="images/one-does-not-simply.png" alt="One does not simply reproduce the CI failure" width="315" />
-</p>
-
 Earthly is a build automation tool from the same era as your code. It allows you to execute all your builds in containers. This makes them self-contained, reproducible, portable and parallel. You can use Earthly to create Docker images and artifacts (eg binaries, packages, arbitrary files).
 
 Earthly can run on top of popular CI systems (like Jenkins, [Circle](https://docs.earthly.dev/examples/circle-integration), [GitHub Actions](https://docs.earthly.dev/examples/gh-actions-integration)). It is typically the [layer](https://docs.earthly.dev) between language-specific tooling (like maven, gradle, npm, pip, go build) and the CI build spec.
@@ -307,12 +300,6 @@ To learn more about using Earthly, check the [full documentation](https://docs.e
 * [CI integration guide](https://docs.earthly.dev/guides/ci-integration)
 
 <h2 align="center">FAQ</h2>
-
-##### Can I just use docker build instead of Earthly?
-
-You might. There are docker build features such as `--target` and `-o` and `FROM ... AS ...` which give you part of Earthly's functionality. However, docker build was not designed to be used as a full-on build system, but rather as a tool to build container images. You always end up wrapping `docker build`'s in scripts like bash and Makefile to make it do what you need to: building regular files, passing the right tags for images, importing files from other repositories etc. Historically such scripts are typically only understood by a fraction of the team, leading to a build guru situation: only one person knows how the build works.
-
-There are, however, cases where using docker build alone is more advisable. For example, docker build is a very mature command and has been battle-tested. Also, in some situations, only a very trivial build may be needed and installing yet another tool for it may be overkill.
 
 ##### How do I tell apart classical Dockerfile commands from Earthly commands
 
