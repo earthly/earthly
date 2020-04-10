@@ -51,7 +51,7 @@ curl -s https://api.github.com/repos/vladaionescu/earthly/releases/latest | grep
 
 ##### Windows
 
-Coming soon.
+Windows native version coming soon. The linux version has been reported to just work on WSL [experimental].
 
 ##### Note
 
