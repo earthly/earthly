@@ -26,7 +26,7 @@ Earthly can run on top of popular CI systems (like Jenkins, [Circle](https://doc
 
 <img src="images/integration-diagram-horizontal.png" alt="Earthly fits between language-specific tooling and the CI" />
 
-To learn how to use Earthly, check out the [getting started guide](https://docs.earthly.dev/guides/basics).
+Read the [launch blog post](https://vladaionescu.com/introducing-earthly-build-automation-for-the-container-era-55619c63c3e) for the motivation behind Earthly. To learn how to use Earthly, check out the [getting started guide](https://docs.earthly.dev/guides/basics).
 
 For some examples, see [Go](https://docs.earthly.dev/examples/go), [Java](https://docs.earthly.dev/examples/java), [JS](https://docs.earthly.dev/examples/js), [Mono-repo](https://docs.earthly.dev/examples/monorepo), [Multi-repo](https://docs.earthly.dev/examples/multirepo), [Earthly's own build](https://docs.earthly.dev/examples/earthly) or the [examples dir](./examples).
 
