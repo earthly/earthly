@@ -49,6 +49,10 @@ sudo /bin/sh -c 'curl -s https://api.github.com/repos/vladaionescu/earthly/relea
 curl -s https://api.github.com/repos/vladaionescu/earthly/releases/latest | grep browser_download_url | grep darwin-amd64 | cut -d : -f 2- | tr -d \" | wget -P /usr/local/bin/ -i - && mv /usr/local/bin/earth-darwin-amd64 /usr/local/bin/earth && chmod +x /usr/local/bin/earth
 ```
 
+##### Alternative Linux & Mac
+
+You may also download the binary from [the releases page](https://github.com/vladaionescu/earthly/releases) and place it in your `bin`.
+
 ##### Windows
 
 Windows native version coming soon. The linux version has been reported to just work on WSL [experimental].
