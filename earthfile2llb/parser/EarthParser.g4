@@ -87,5 +87,4 @@ commandName: Command;
 
 stmtWordsMaybeJSON: stmtWords;
 stmtWords: stmtWord (WS? stmtWord)*;
-stmtWord: stmtWordPart | (stmtWordPart LC WS? stmtWordPart);
-stmtWordPart: Atom;
+stmtWord: Atom;

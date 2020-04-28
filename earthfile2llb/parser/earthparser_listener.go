@@ -125,9 +125,6 @@ type EarthParserListener interface {
 	// EnterStmtWord is called when entering the stmtWord production.
 	EnterStmtWord(c *StmtWordContext)
 
-	// EnterStmtWordPart is called when entering the stmtWordPart production.
-	EnterStmtWordPart(c *StmtWordPartContext)
-
 	// ExitEarthFile is called when exiting the earthFile production.
 	ExitEarthFile(c *EarthFileContext)
 
@@ -244,7 +241,4 @@ type EarthParserListener interface {
 
 	// ExitStmtWord is called when exiting the stmtWord production.
 	ExitStmtWord(c *StmtWordContext)
-
-	// ExitStmtWordPart is called when exiting the stmtWordPart production.
-	ExitStmtWordPart(c *StmtWordPartContext)
 }
