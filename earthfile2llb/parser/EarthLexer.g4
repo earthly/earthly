@@ -77,7 +77,7 @@ mode COMMAND_ARGS;
 
 Atom: (NonWSNLEscQuote | QuotedAtom)+;
 fragment QuotedAtom: ('"' (~'"' | '\\"')* '"');
-fragment NonWSNLEscQuote: ~([ \t\r\n\\"]);
+fragment NonWSNLEscQuote: ~([ \t\r\n\\"]) | ('\\' ~([\r\n]));
 
 // Note; Comments not allowed in command lines.
 LC: LINE_CONTINUATION;
@@ -91,7 +91,7 @@ EQUALS: '=' -> mode(COMMAND_ARGS);
 
 // Similar Atom, but don't allow '=' as part of it, unless it's in quotes.
 Atom_CAKV: (NonWSNLEscQuote_CAKV | QuotedAtom)+ -> type(Atom);
-fragment NonWSNLEscQuote_CAKV: ~([ \t\r\n\\"=]);
+fragment NonWSNLEscQuote_CAKV: ~([ \t\r\n\\"=]) | ('\\' ~([\r\n]));
 
 // Note; Comments not allowed in command lines.
 NL_CAKV: WS? CRLF -> type(NL), popMode;
