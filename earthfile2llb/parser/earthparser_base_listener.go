@@ -254,3 +254,9 @@ func (s *BaseEarthParserListener) EnterStmtWord(ctx *StmtWordContext) {}
 
 // ExitStmtWord is called when production stmtWord is exited.
 func (s *BaseEarthParserListener) ExitStmtWord(ctx *StmtWordContext) {}
+
+// EnterStmtWordPart is called when production stmtWordPart is entered.
+func (s *BaseEarthParserListener) EnterStmtWordPart(ctx *StmtWordPartContext) {}
+
+// ExitStmtWordPart is called when production stmtWordPart is exited.
+func (s *BaseEarthParserListener) ExitStmtWordPart(ctx *StmtWordPartContext) {}

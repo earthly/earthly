@@ -29,8 +29,9 @@ type listener struct {
 	labelKeys   []string
 	labelValues []string
 
-	execMode  bool
-	stmtWords []string
+	execMode      bool
+	stmtWords     []string
+	stmtWordParts []string
 
 	err error
 }
@@ -635,7 +636,21 @@ func (l *listener) EnterStmtWord(c *parser.StmtWordContext) {
 	if l.shouldSkip() {
 		return
 	}
-	l.stmtWords = append(l.stmtWords, c.GetText())
+	l.stmtWordParts = nil
+}
+
+func (l *listener) ExitStmtWord(c *parser.StmtWordContext) {
+	if l.shouldSkip() {
+		return
+	}
+	l.stmtWords = append(l.stmtWords, strings.Join(l.stmtWordParts, ""))
+}
+
+func (l *listener) EnterStmtWordPart(c *parser.StmtWordPartContext) {
+	if l.shouldSkip() {
+		return
+	}
+	l.stmtWordParts = append(l.stmtWordParts, c.GetText())
 }
 
 func (l *listener) shouldSkip() bool {

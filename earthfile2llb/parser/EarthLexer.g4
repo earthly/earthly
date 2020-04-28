@@ -82,7 +82,7 @@ fragment NonWSNLEscQuote: ~([ \t\r\n\\"]);
 // Note; Comments not allowed in command lines.
 LC: LINE_CONTINUATION;
 NL_C: WHITESPACE* CRLF -> type(NL), popMode;
-WS_C: WHITESPACE+ -> type(WS);
+WS_C: WS -> type(WS);
 
 mode COMMAND_ARGS_KEY_VALUE;
 
