@@ -10,6 +10,7 @@ all:
 	BUILD +excludes-test
 	BUILD +secrets-test
 	BUILD +build-arg-test
+	BUILD +lc-test
 	BUILD +star-test
 
 experimental:
@@ -71,6 +72,12 @@ secrets-test:
 
 build-arg-test:
 	COPY build-arg.earth ./build.earth
+	RUN --privileged \
+		--entrypoint \
+		-- +test
+
+lc-test:
+	COPY lc.earth ./build.earth
 	RUN --privileged \
 		--entrypoint \
 		-- +test

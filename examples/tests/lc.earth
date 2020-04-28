@@ -1,0 +1,10 @@
+FROM alpine:3.11
+WORKDIR /test
+
+test:
+    RUN echo a\
+    b > out.txt ; \
+    cat out.txt ; \
+    if [ "$(cat out.txt)" != "ab" ]; then \
+        exit 1 ; \
+    fi
