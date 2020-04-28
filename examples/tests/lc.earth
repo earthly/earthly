@@ -1,0 +1,51 @@
+FROM alpine:3.11
+WORKDIR /test
+
+test:
+    BUILD +test1
+    BUILD +test2
+    BUILD +test3
+    BUILD +test4
+    BUILD +test5
+
+test1:
+    RUN echo a\
+    b > out.txt ; \
+    cat out.txt ; \
+    if [ "$(cat out.txt)" != "ab" ]; then \
+        exit 1 ; \
+    fi
+
+test2:
+    RUN echo a\
+    \
+    b > out.txt ; \
+    cat out.txt ; \
+    if [ "$(cat out.txt)" != "ab" ]; then \
+        exit 1 ; \
+    fi
+
+test3:
+    RUN echo a \
+    \
+    b > out.txt ; \
+    cat out.txt ; \
+    if [ "$(cat out.txt)" != "a b" ]; then \
+        exit 1 ; \
+    fi
+
+test4:
+    RUN echo a\
+        b > out.txt ; \
+        cat out.txt ; \
+        if [ "$(cat out.txt)" != "ab" ]; then \
+            exit 1 ; \
+        fi
+
+test5:
+    RUN echo a\
+    b > out.txt ;\
+    cat out.txt ;\
+    if [ "$(cat out.txt)" != "ab" ]; then \
+        exit 1 ;\
+    fi

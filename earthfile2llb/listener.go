@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -635,7 +636,7 @@ func (l *listener) EnterStmtWord(c *parser.StmtWordContext) {
 	if l.shouldSkip() {
 		return
 	}
-	l.stmtWords = append(l.stmtWords, c.GetText())
+	l.stmtWords = append(l.stmtWords, replaceEscape(c.GetText()))
 }
 
 func (l *listener) shouldSkip() bool {
@@ -659,4 +660,10 @@ func (ssf *StringSliceFlag) String() string {
 func (ssf *StringSliceFlag) Set(arg string) error {
 	ssf.Args = append(ssf.Args, arg)
 	return nil
+}
+
+var lineContinuationRegexp = regexp.MustCompile("\\\\(\\n|(\\r\\n))[\\t ]*")
+
+func replaceEscape(str string) string {
+	return lineContinuationRegexp.ReplaceAllString(str, "")
 }

@@ -33,9 +33,10 @@ SHELL: 'SHELL' -> pushMode(COMMAND_ARGS);
 Command: [A-Z]+ -> pushMode(COMMAND_ARGS);
 
 NL: WS? COMMENT? CRLF;
-WS: ([ \t] | ('\\' [ \t]* CRLF))+;
+WS: [ \t] ([ \t] | LC)*;
 fragment CRLF: ('\r' | '\n' | '\r\n');
 fragment COMMENT: '#' (~[\r\n])*;
+fragment LC: '\\' [ \t]* CRLF;
 
 mode RECIPE;
 
@@ -73,9 +74,10 @@ WS_R: WS -> type(WS);
 
 mode COMMAND_ARGS;
 
-Atom: (NonWSNLQuote | QuotedAtom)+;
-fragment QuotedAtom: ('"' (~'"' | '\\"')* '"');
-fragment NonWSNLQuote: ~([ \t\r\n"]);
+Atom: (RegularAtomPart | QuotedAtomPart)+;
+fragment QuotedAtomPart: ('"' (~'"' | '\\"')* '"');
+fragment RegularAtomPart: ~([ \t\r\n\\"]) | EscapedAtomPart;
+fragment EscapedAtomPart: ('\\' .) | (LC [ \t]*);
 
 // Note; Comments not allowed in command lines.
 NL_C: WS? CRLF -> type(NL), popMode;
@@ -87,8 +89,8 @@ mode COMMAND_ARGS_KEY_VALUE;
 EQUALS: '=' -> mode(COMMAND_ARGS);
 
 // Similar Atom, but don't allow '=' as part of it, unless it's in quotes.
-Atom_CAKV: (NonWSNLQuote_CAKV | QuotedAtom)+ -> type(Atom);
-fragment NonWSNLQuote_CAKV: ~([ \t\r\n"=]);
+Atom_CAKV: (RegularAtomPart_CAKV | QuotedAtomPart)+ -> type(Atom);
+fragment RegularAtomPart_CAKV: ~([ \t\r\n"=]) | EscapedAtomPart;
 
 // Note; Comments not allowed in command lines.
 NL_CAKV: WS? CRLF -> type(NL), popMode;
