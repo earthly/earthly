@@ -1,6 +1,6 @@
 # Monorepo example
 
-In this example, we will walk through a simple monorepo setup that can be used with Earthly. The entire code of this exercise is available in the [examples/monorepo directory on GitHub](https://github.com/vladaionescu/earthly/tree/master/examples/monorepo).
+In this example, we will walk through a simple monorepo setup that can be used with Earthly. The entire code of this exercise is available in the [examples/monorepo directory on GitHub](https://github.com/earthly/earthly/tree/master/examples/monorepo).
 
 In this example, let's assume we've organized our monorepo such that each root-level directory is a sub-project.
 
@@ -37,4 +37,4 @@ Note that the directory hierarchy may be as vast and deeply-nested as appropriat
 
 Further, throught the use of caching, the build setup is able to infer automatically which sub-projects to rebuild because of local changes, and which ones to reuse cache for.
 
-To review this example with its complete code, check out the [examples/monorepo directory on GitHub](https://github.com/vladaionescu/earthly/tree/master/examples/monorepo).
+To review this example with its complete code, check out the [examples/monorepo directory on GitHub](https://github.com/earthly/earthly/tree/master/examples/monorepo).

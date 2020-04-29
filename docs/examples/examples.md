@@ -15,4 +15,4 @@ In addition, there are also examples of how to integrate Earthly in CI
 * [Circle CI](./circle-integration.md)
 * [GitHub Actions](./gh-actions-integration.md)
 
-The code for all the examples is available in the [examples GitHub directory](https://github.com/vladaionescu/earthly/tree/master/examples).
+The code for all the examples is available in the [examples GitHub directory](https://github.com/earthly/earthly/tree/master/examples).

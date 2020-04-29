@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
-	"github.com/vladaionescu/earthly/earthfile2llb/parser"
+	"github.com/earthly/earthly/earthfile2llb/parser"
 )
 
 var _ parser.EarthParserListener = &listener{}

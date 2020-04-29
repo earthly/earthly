@@ -18,10 +18,10 @@ import (
 	"github.com/moby/buildkit/util/entitlements"
 	"github.com/opencontainers/go-digest"
 	"github.com/pkg/errors"
-	"github.com/vladaionescu/earthly/conslogging"
-	"github.com/vladaionescu/earthly/earthfile2llb/image"
-	"github.com/vladaionescu/earthly/llbutil"
-	"github.com/vladaionescu/earthly/logging"
+	"github.com/earthly/earthly/conslogging"
+	"github.com/earthly/earthly/earthfile2llb/image"
+	"github.com/earthly/earthly/llbutil"
+	"github.com/earthly/earthly/logging"
 	"golang.org/x/sync/errgroup"
 )
 

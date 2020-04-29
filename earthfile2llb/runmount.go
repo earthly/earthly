@@ -7,8 +7,8 @@ import (
 
 	"github.com/moby/buildkit/client/llb"
 	"github.com/pkg/errors"
-	"github.com/vladaionescu/earthly/domain"
-	"github.com/vladaionescu/earthly/earthfile2llb/dedup"
+	"github.com/earthly/earthly/domain"
+	"github.com/earthly/earthly/earthfile2llb/dedup"
 )
 
 func parseMounts(mounts []string, target domain.Target, ti dedup.TargetInput, cacheContext llb.State) ([]llb.RunOption, error) {

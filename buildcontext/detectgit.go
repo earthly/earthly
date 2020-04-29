@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
-	"github.com/vladaionescu/earthly/domain"
+	"github.com/earthly/earthly/domain"
 )
 
 var (

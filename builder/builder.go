@@ -15,10 +15,10 @@ import (
 	"github.com/moby/buildkit/util/entitlements"
 	reccopy "github.com/otiai10/copy"
 	"github.com/pkg/errors"
-	"github.com/vladaionescu/earthly/conslogging"
-	"github.com/vladaionescu/earthly/domain"
-	"github.com/vladaionescu/earthly/earthfile2llb"
-	"github.com/vladaionescu/earthly/logging"
+	"github.com/earthly/earthly/conslogging"
+	"github.com/earthly/earthly/domain"
+	"github.com/earthly/earthly/earthfile2llb"
+	"github.com/earthly/earthly/logging"
 )
 
 // Builder provides a earth commands executor.

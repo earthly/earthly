@@ -4,7 +4,7 @@
   ```bash
   export GITHUB_TOKEN="..."
   ```
-* Choose the next [release tag](https://github.com/vladaionescu/earthly/releases).
+* Choose the next [release tag](https://github.com/earthly/earthly/releases).
   ```bash
   export RELEASE_TAG="v..."
   ```

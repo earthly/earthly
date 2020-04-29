@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 
 	"github.com/pkg/errors"
-	"github.com/vladaionescu/earthly/domain"
+	"github.com/earthly/earthly/domain"
 )
 
 // TargetInput represents the conditions in which a target is invoked.

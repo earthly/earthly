@@ -2,7 +2,7 @@ package variables
 
 import (
 	"github.com/moby/buildkit/client/llb"
-	"github.com/vladaionescu/earthly/earthfile2llb/dedup"
+	"github.com/earthly/earthly/earthfile2llb/dedup"
 )
 
 // Variable is an object representing a build arg or an env var.

@@ -2,7 +2,7 @@ package earthfile2llb
 
 import (
 	"github.com/antlr/antlr4/runtime/Go/antlr"
-	"github.com/vladaionescu/earthly/earthfile2llb/parser"
+	"github.com/earthly/earthly/earthfile2llb/parser"
 )
 
 // lexer is a lexer for an earth file, which also emits indentation

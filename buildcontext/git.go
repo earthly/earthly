@@ -11,10 +11,10 @@ import (
 	"github.com/moby/buildkit/client"
 	"github.com/moby/buildkit/client/llb"
 	"github.com/pkg/errors"
-	"github.com/vladaionescu/earthly/conslogging"
-	"github.com/vladaionescu/earthly/domain"
-	"github.com/vladaionescu/earthly/llbutil"
-	"github.com/vladaionescu/earthly/llbutil/llbgit"
+	"github.com/earthly/earthly/conslogging"
+	"github.com/earthly/earthly/domain"
+	"github.com/earthly/earthly/llbutil"
+	"github.com/earthly/earthly/llbutil/llbgit"
 	"golang.org/x/sync/errgroup"
 )
 
