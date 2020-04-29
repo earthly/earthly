@@ -10,15 +10,6 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/moby/buildkit/client"
-	_ "github.com/moby/buildkit/client/connhelper/dockercontainer" // Load "docker-container://" helper.
-	"github.com/moby/buildkit/session"
-	"github.com/moby/buildkit/session/auth/authprovider"
-	"github.com/moby/buildkit/session/secrets/secretsprovider"
-	"github.com/moby/buildkit/util/entitlements"
-	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
-	"github.com/urfave/cli/v2"
 	"github.com/earthly/earthly/buildcontext"
 	"github.com/earthly/earthly/builder"
 	"github.com/earthly/earthly/buildkitd"
@@ -28,6 +19,15 @@ import (
 	"github.com/earthly/earthly/earthfile2llb"
 	"github.com/earthly/earthly/earthfile2llb/variables"
 	"github.com/earthly/earthly/logging"
+	"github.com/moby/buildkit/client"
+	_ "github.com/moby/buildkit/client/connhelper/dockercontainer" // Load "docker-container://" helper.
+	"github.com/moby/buildkit/session"
+	"github.com/moby/buildkit/session/auth/authprovider"
+	"github.com/moby/buildkit/session/secrets/secretsprovider"
+	"github.com/moby/buildkit/util/entitlements"
+	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
+	"github.com/urfave/cli/v2"
 	"golang.org/x/sync/errgroup"
 )
 

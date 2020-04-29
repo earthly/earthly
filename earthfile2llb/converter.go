@@ -13,9 +13,6 @@ import (
 	"strings"
 
 	"github.com/docker/distribution/reference"
-	"github.com/moby/buildkit/client/llb"
-	dfShell "github.com/moby/buildkit/frontend/dockerfile/shell"
-	"github.com/pkg/errors"
 	"github.com/earthly/earthly/buildcontext"
 	"github.com/earthly/earthly/cleanup"
 	"github.com/earthly/earthly/dockertar"
@@ -27,6 +24,9 @@ import (
 	"github.com/earthly/earthly/llbutil"
 	"github.com/earthly/earthly/llbutil/llbgit"
 	"github.com/earthly/earthly/logging"
+	"github.com/moby/buildkit/client/llb"
+	dfShell "github.com/moby/buildkit/frontend/dockerfile/shell"
+	"github.com/pkg/errors"
 )
 
 // DockerBuilderFun is a function able to build a target into a docker tar file.

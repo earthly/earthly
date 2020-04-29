@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/moby/buildkit/client/llb"
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/llbutil"
 	"github.com/earthly/earthly/logging"
+	"github.com/moby/buildkit/client/llb"
 )
 
 type localResolver struct {

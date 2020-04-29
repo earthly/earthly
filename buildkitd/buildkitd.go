@@ -7,10 +7,10 @@ import (
 	"os/exec"
 	"time"
 
+	"github.com/earthly/earthly/conslogging"
 	"github.com/moby/buildkit/client"
 	_ "github.com/moby/buildkit/client/connhelper/dockercontainer" // Load "docker-container://" helper.
 	"github.com/pkg/errors"
-	"github.com/earthly/earthly/conslogging"
 )
 
 const (

@@ -9,16 +9,16 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/earthly/earthly/conslogging"
+	"github.com/earthly/earthly/domain"
+	"github.com/earthly/earthly/earthfile2llb"
+	"github.com/earthly/earthly/logging"
 	"github.com/moby/buildkit/client"
 	"github.com/moby/buildkit/client/llb"
 	"github.com/moby/buildkit/session"
 	"github.com/moby/buildkit/util/entitlements"
 	reccopy "github.com/otiai10/copy"
 	"github.com/pkg/errors"
-	"github.com/earthly/earthly/conslogging"
-	"github.com/earthly/earthly/domain"
-	"github.com/earthly/earthly/earthfile2llb"
-	"github.com/earthly/earthly/logging"
 )
 
 // Builder provides a earth commands executor.

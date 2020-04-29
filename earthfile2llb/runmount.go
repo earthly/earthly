@@ -5,10 +5,10 @@ import (
 	"path"
 	"strings"
 
-	"github.com/moby/buildkit/client/llb"
-	"github.com/pkg/errors"
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/earthfile2llb/dedup"
+	"github.com/moby/buildkit/client/llb"
+	"github.com/pkg/errors"
 )
 
 func parseMounts(mounts []string, target domain.Target, ti dedup.TargetInput, cacheContext llb.State) ([]llb.RunOption, error) {

@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/antlr/antlr4/runtime/Go/antlr"
-	"github.com/pkg/errors"
 	"github.com/earthly/earthly/buildcontext"
 	"github.com/earthly/earthly/cleanup"
 	"github.com/earthly/earthly/domain"
@@ -14,6 +13,7 @@ import (
 	"github.com/earthly/earthly/earthfile2llb/parser"
 	"github.com/earthly/earthly/earthfile2llb/variables"
 	"github.com/earthly/earthly/logging"
+	"github.com/pkg/errors"
 )
 
 // Earthfile2LLB parses a earthfile and executes the statements for a given target.

@@ -8,8 +8,8 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/pkg/errors"
 	"github.com/earthly/earthly/earthfile2llb/parser"
+	"github.com/pkg/errors"
 )
 
 var _ parser.EarthParserListener = &listener{}

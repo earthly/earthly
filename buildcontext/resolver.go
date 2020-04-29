@@ -3,10 +3,10 @@ package buildcontext
 import (
 	"context"
 
-	"github.com/moby/buildkit/client"
-	"github.com/moby/buildkit/client/llb"
 	"github.com/earthly/earthly/conslogging"
 	"github.com/earthly/earthly/domain"
+	"github.com/moby/buildkit/client"
+	"github.com/moby/buildkit/client/llb"
 )
 
 // Data represents a resolved target's build context data.

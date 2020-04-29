@@ -1,10 +1,10 @@
 package earthfile2llb
 
 import (
-	"github.com/moby/buildkit/client/llb"
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/earthfile2llb/dedup"
 	"github.com/earthly/earthly/earthfile2llb/image"
+	"github.com/moby/buildkit/client/llb"
 )
 
 // MultiTargetStates holds LLB states representing multiple earth targets,
