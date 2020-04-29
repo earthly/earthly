@@ -12,7 +12,7 @@ One of the key principles of Earthly is that the best build tooling of a specifi
 
 ## Installation
 
-To install `earth` (the Earthly CLI) on your system, see [instructions on the Earthly GitHub page](https://github.com/vladaionescu/earthly#installation).
+To install `earth` (the Earthly CLI) on your system, see [instructions on the Earthly GitHub page](https://github.com/earthly/earthly#installation).
 
 You may optionally also install the [VS Code Syntax Highlighting extension](https://marketplace.visualstudio.com/items?itemName=earthly.earthfile-syntax-highlighting).
 
@@ -20,11 +20,11 @@ You may optionally also install the [VS Code Syntax Highlighting extension](http
 
 If you are new to Earthly, check out the [Basics page](./guides/basics.md), to get started.
 
-A high-level overview is available on [the Earthly GitHub page](https://github.com/vladaionescu/earthly).
+A high-level overview is available on [the Earthly GitHub page](https://github.com/earthly/earthly).
 
 ## Quick Links
 
-* [Earthly GitHub page](https://github.com/vladaionescu/earthly)
+* [Earthly GitHub page](https://github.com/earthly/earthly)
 * [Earthly basics](./guides/basics.md)
 * [Earthfile reference](./earthfile/earthfile.md)
 * [earth command reference](./earth-command/earth-command.md)

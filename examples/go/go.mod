@@ -1,4 +1,4 @@
-module github.com/vladaionescu/earthly/examples/go
+module github.com/earthly/earthly/examples/go
 
 go 1.13
 

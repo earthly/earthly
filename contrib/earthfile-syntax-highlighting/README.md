@@ -2,7 +2,7 @@
 
 Syntax highlighting for Earthly build earthfile's (`build.earth`).
 
-![Earthfile Syntax Highlighting](https://github.com/vladaionescu/earthly/raw/master/images/vscode-plugin.png)
+![Earthfile Syntax Highlighting](https://github.com/earthly/earthly/raw/master/images/vscode-plugin.png)
 
 ## Release Notes
 

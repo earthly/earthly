@@ -141,7 +141,7 @@ release:
 	RUN --push \
 		--secret GITHUB_TOKEN=+secrets/GITHUB_TOKEN \
 		github-release upload \
-		--owner vladaionescu \
+		--owner earthly \
 		--repo earthly \
 		--commitish "$EARTHLY_GIT_HASH" \
 		--tag "$RELEASE_TAG" \

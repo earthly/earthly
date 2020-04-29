@@ -18,7 +18,7 @@ A number of Earthly features use Git credentials to perform remote Git operation
 {% hint style='info' %}
 ##### Note
 
-Currently, only `github.com` is supported as an SCM provider. If you need support for others, please [open a new GitHub issue](https://github.com/vladaionescu/earthly/issues/new).
+Currently, only `github.com` is supported as an SCM provider. If you need support for others, please [open a new GitHub issue](https://github.com/earthly/earthly/issues/new).
 {% endhint %}
 
 There are two possible ways to pass Git authentication to Earthly builds:

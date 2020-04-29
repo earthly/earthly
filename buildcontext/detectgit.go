@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/earthly/earthly/domain"
 	"github.com/pkg/errors"
-	"github.com/vladaionescu/earthly/domain"
 )
 
 var (

@@ -10,6 +10,15 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/earthly/earthly/buildcontext"
+	"github.com/earthly/earthly/builder"
+	"github.com/earthly/earthly/buildkitd"
+	"github.com/earthly/earthly/cleanup"
+	"github.com/earthly/earthly/conslogging"
+	"github.com/earthly/earthly/domain"
+	"github.com/earthly/earthly/earthfile2llb"
+	"github.com/earthly/earthly/earthfile2llb/variables"
+	"github.com/earthly/earthly/logging"
 	"github.com/moby/buildkit/client"
 	_ "github.com/moby/buildkit/client/connhelper/dockercontainer" // Load "docker-container://" helper.
 	"github.com/moby/buildkit/session"
@@ -19,15 +28,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
-	"github.com/vladaionescu/earthly/buildcontext"
-	"github.com/vladaionescu/earthly/builder"
-	"github.com/vladaionescu/earthly/buildkitd"
-	"github.com/vladaionescu/earthly/cleanup"
-	"github.com/vladaionescu/earthly/conslogging"
-	"github.com/vladaionescu/earthly/domain"
-	"github.com/vladaionescu/earthly/earthfile2llb"
-	"github.com/vladaionescu/earthly/earthfile2llb/variables"
-	"github.com/vladaionescu/earthly/logging"
 	"golang.org/x/sync/errgroup"
 )
 

@@ -10,6 +10,10 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/earthly/earthly/conslogging"
+	"github.com/earthly/earthly/earthfile2llb/image"
+	"github.com/earthly/earthly/llbutil"
+	"github.com/earthly/earthly/logging"
 	"github.com/golang/protobuf/proto"
 	"github.com/moby/buildkit/client"
 	"github.com/moby/buildkit/client/llb"
@@ -18,10 +22,6 @@ import (
 	"github.com/moby/buildkit/util/entitlements"
 	"github.com/opencontainers/go-digest"
 	"github.com/pkg/errors"
-	"github.com/vladaionescu/earthly/conslogging"
-	"github.com/vladaionescu/earthly/earthfile2llb/image"
-	"github.com/vladaionescu/earthly/llbutil"
-	"github.com/vladaionescu/earthly/logging"
 	"golang.org/x/sync/errgroup"
 )
 

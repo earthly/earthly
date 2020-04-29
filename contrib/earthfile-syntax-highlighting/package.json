@@ -7,7 +7,7 @@
     "icon": "logo.png",
     "repository": {
         "type": "git",
-        "url": "https://github.com/vladaionescu/earthly.git"
+        "url": "https://github.com/earthly/earthly.git"
     },
     "engines": {
         "vscode": "^1.43.0"

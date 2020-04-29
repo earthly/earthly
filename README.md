@@ -13,8 +13,8 @@
 **🏘 Multi-repo friendly** - *ability to import builds or artifacts from other repositories*
 
 ----------------------------
-![CI](https://github.com/vladaionescu/earthly/workflows/CI/badge.svg)
-[![Go Report Card](https://goreportcard.com/badge/github.com/vladaionescu/earthly)](https://goreportcard.com/report/github.com/vladaionescu/earthly)
+![CI](https://github.com/earthly/earthly/workflows/CI/badge.svg)
+[![Go Report Card](https://goreportcard.com/badge/github.com/earthly/earthly)](https://goreportcard.com/report/github.com/earthly/earthly)
 [![Join the chat at https://gitter.im/earthly-room/community](https://badges.gitter.im/earthly-room.svg)](https://gitter.im/earthly-room/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 [![Docs](https://img.shields.io/badge/docs-git%20book-blue)](https://docs.earthly.dev)
 [![Docker Hub](https://img.shields.io/badge/docker%20hub-earthly-blue)](https://hub.docker.com/u/earthly)
@@ -40,18 +40,18 @@ For some examples, see [Go](https://docs.earthly.dev/examples/go), [Java](https:
 ##### Linux
 
 ```bash
-sudo /bin/sh -c 'curl -s https://api.github.com/repos/vladaionescu/earthly/releases/latest | grep browser_download_url | grep linux-amd64 | cut -d : -f 2- | tr -d \" | wget -P /usr/local/bin/ -i - && mv /usr/local/bin/earth-linux-amd64 /usr/local/bin/earth && chmod +x /usr/local/bin/earth'
+sudo /bin/sh -c 'curl -s https://api.github.com/repos/earthly/earthly/releases/latest | grep browser_download_url | grep linux-amd64 | cut -d : -f 2- | tr -d \" | wget -P /usr/local/bin/ -i - && mv /usr/local/bin/earth-linux-amd64 /usr/local/bin/earth && chmod +x /usr/local/bin/earth'
 ```
 
 ##### Mac
 
 ```bash
-curl -s https://api.github.com/repos/vladaionescu/earthly/releases/latest | grep browser_download_url | grep darwin-amd64 | cut -d : -f 2- | tr -d \" | wget -P /usr/local/bin/ -i - && mv /usr/local/bin/earth-darwin-amd64 /usr/local/bin/earth && chmod +x /usr/local/bin/earth
+curl -s https://api.github.com/repos/earthly/earthly/releases/latest | grep browser_download_url | grep darwin-amd64 | cut -d : -f 2- | tr -d \" | wget -P /usr/local/bin/ -i - && mv /usr/local/bin/earth-darwin-amd64 /usr/local/bin/earth && chmod +x /usr/local/bin/earth
 ```
 
 ##### Alternative Linux & Mac
 
-You may also download the binary from [the releases page](https://github.com/vladaionescu/earthly/releases) and place it in your `bin`.
+You may also download the binary from [the releases page](https://github.com/earthly/earthly/releases) and place it in your `bin`.
 
 ##### Windows
 
@@ -209,14 +209,14 @@ earth ./path/to/a/deep/dir+target-name
 
 ```bash
 # Try it yourself! No need to clone.
-earth github.com/vladaionescu/earthly+earth-docker
+earth github.com/earthly/earthly+earth-docker
 ```
 
 ... or from a subdir of some repository.
 
 ```bash
 # Try it yourself! No need to clone.
-earth github.com/vladaionescu/earthly/buildkitd+buildkitd
+earth github.com/earthly/earthly/buildkitd+buildkitd
 ```
 
 [<img src="https://asciinema.org/a/314104.svg" alt="Earthly demo" width="457" />](https://asciinema.org/a/314104)
@@ -315,7 +315,7 @@ It cannot - however, translating Dockerfiles to Earthfiles (`build.earth`) is us
 
 <h2 align="center">Contributing</h2>
 
-* Please report bugs as [GitHub issues](https://github.com/vladaionescu/earthly/issues).
+* Please report bugs as [GitHub issues](https://github.com/earthly/earthly/issues).
 * Join us on [Gitter](https://gitter.im/earthly-room/community)!
 * Questions via GitHub issues are welcome!
 * PRs welcome! But please give a heads-up in GitHub issue before starting work. If there is no GitHub issue for what you want to do, please create one.
