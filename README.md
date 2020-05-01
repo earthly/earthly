@@ -45,6 +45,14 @@ sudo /bin/sh -c 'curl -s https://api.github.com/repos/earthly/earthly/releases/l
 
 ##### Mac
 
+###### Homebrew
+
+```bash
+brew install earthly
+```
+
+###### Script
+
 ```bash
 curl -s https://api.github.com/repos/earthly/earthly/releases/latest | grep browser_download_url | grep darwin-amd64 | cut -d : -f 2- | tr -d \" | wget -P /usr/local/bin/ -i - && mv /usr/local/bin/earth-darwin-amd64 /usr/local/bin/earth && chmod +x /usr/local/bin/earth
 ```
