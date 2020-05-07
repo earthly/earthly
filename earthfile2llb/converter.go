@@ -772,6 +772,16 @@ func internalFromClassical(ctx context.Context, imageName string, opts ...llb.Im
 		imgVariables[k] = variables.NewConstantEnvVar(v)
 		activeVariables[k] = true
 	}
+	// Init config maps if not already initialized.
+	if img.Config.ExposedPorts == nil {
+		img.Config.ExposedPorts = make(map[string]struct{})
+	}
+	if img.Config.Labels == nil {
+		img.Config.Labels = make(map[string]string)
+	}
+	if img.Config.Volumes == nil {
+		img.Config.Volumes = make(map[string]struct{})
+	}
 	if img.Config.WorkingDir != "" {
 		state = state.Dir(img.Config.WorkingDir)
 	}

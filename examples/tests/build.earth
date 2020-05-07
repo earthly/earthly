@@ -11,6 +11,7 @@ all:
 	BUILD +secrets-test
 	BUILD +build-arg-test
 	BUILD +lc-test
+	BUILD +from-expose-test
 	BUILD +star-test
 
 experimental:
@@ -81,6 +82,12 @@ lc-test:
 	RUN --privileged \
 		--entrypoint \
 		-- +test
+
+from-expose-test:
+	COPY from-expose.earth ./build.earth
+	RUN --privileged \
+		--entrypoint \
+		-- --no-output +test
 
 # TODO: This does not pass, due to space on device limitation (dind caused).
 remote-test:
