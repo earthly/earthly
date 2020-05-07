@@ -35,6 +35,6 @@ all:
 
 Note that the directory hierarchy may be as vast and deeply-nested as appropriate for your setup. In addition, build targets within projects may depend on targets from other projects. As an example, consider the case where one project builds a library and another takes the built library as an artifact and imports it in order to use it in its own build.
 
-Further, throught the use of caching, the build setup is able to infer automatically which sub-projects to rebuild because of local changes, and which ones to reuse cache for.
+Further, through the use of caching, the build setup is able to infer automatically which sub-projects to rebuild because of local changes, and which ones to reuse cache for.
 
 To review this example with its complete code, check out the [examples/monorepo directory on GitHub](https://github.com/earthly/earthly/tree/master/examples/monorepo).
