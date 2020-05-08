@@ -118,6 +118,23 @@ test-experimental:
 	BUILD ./examples/tests+experimental
 
 release:
+	ARG RELEASE_TAG
+	RUN test -n "$RELEASE_TAG"
+	BUILD +test
+	BUILD --build-arg RELEASE_TAG="$RELEASE_TAG" +release-dockerhub
+	BUILD --build-arg RELEASE_TAG="$RELEASE_TAG" +release-github
+	# TODO: Enable this once comfortable that it works.
+	#BUILD --build-arg RELEASE_TAG="$RELEASE_TAG" +release-homebrew
+
+release-dockerhub:
+	ARG RELEASE_TAG
+	RUN test -n "$RELEASE_TAG"
+	BUILD --build-arg TAG="$RELEASE_TAG" +earth-docker
+	BUILD --build-arg TAG="$RELEASE_TAG" ./buildkitd+buildkitd
+	BUILD --build-arg TAG=latest +earth-docker
+	BUILD --build-arg TAG=latest ./buildkitd+buildkitd
+
+release-github:
 	FROM node:13.10.1-alpine3.11
 	RUN npm install -g github-release-cli
 	WORKDIR /earthly
@@ -131,11 +148,6 @@ release:
 		--build-arg GOARCH=amd64 \
 		--build-arg GO_EXTRA_LDFLAGS= \
 		+earth/earth ./earth-darwin-amd64
-	BUILD +test
-	BUILD --build-arg TAG="$RELEASE_TAG" +earth-docker
-	BUILD --build-arg TAG="$RELEASE_TAG" ./buildkitd+buildkitd
-	BUILD --build-arg TAG=latest +earth-docker
-	BUILD --build-arg TAG=latest ./buildkitd+buildkitd
 	ARG BODY="No details provided"
 	RUN --secret GITHUB_TOKEN=+secrets/GITHUB_TOKEN test -n "$GITHUB_TOKEN"
 	RUN --push \
@@ -148,6 +160,25 @@ release:
 		--name "$RELEASE_TAG" \
 		--body "$BODY" \
 		earth-linux-amd64 earth-darwin-amd64
+
+release-homebrew:
+	RUN apk add --update --no-cache ruby ruby-json ruby-bigdecimal ruby-etc
+	RUN cd /usr/local && \
+		mkdir homebrew && \
+		curl -L https://github.com/Homebrew/brew/tarball/2.2.15 | tar xz --strip 1 -C homebrew
+	RUN ln -s /usr/local/homebrew/bin/brew /usr/local/bin/brew
+	RUN brew --version
+	ARG RELEASE_TAG
+	RUN test -n "$RELEASE_TAG"
+	ARG BREW_URL=https://github.com/earthly/earthly/archive/"$RELEASE_TAG".tar.gz
+	RUN test -n "$BREW_URL"
+	RUN echo "brew URL: $BREW_URL"
+	RUN curl -L "$BREW_URL" | sha256sum | cut -f 1 -d ' ' > downloadsha256.txt
+	RUN echo "sha256: $(cat downloadsha256.txt)"
+	RUN --push brew bump-formula-pr \
+		--no-browse --strict --verbose \
+		--url "$BREW_URL" \
+		--sha256 "$(cat downloadsha256.txt)"
 
 release-vscode-syntax-highlighting:
 	BUILD ./contrib/earthfile-syntax-highlighting+release
