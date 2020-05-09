@@ -10,16 +10,18 @@
   ```
 * Run
   ```bash
-  earth --build-arg RELEASE_TAG --secret GITHUB_TOKEN --push -P +release
+  earth \
+    --build-arg RELEASE_TAG \
+    --secret GITHUB_TOKEN \
+    --push -P +release
   ```
-
-### Updating buildkitd
-
-Update the vladaionescu/buildkit fork, then run this locally to rebuild and push to docker:
-
-```bash
-DOCKER_BUILDKIT=1 docker build -t earthly/buildkit:latest --target buildkit-buildkitd-linux .
-docker push earthly/buildkit:latest
-```
-
-Then edit buildkitd/build.earth in this repo to point to the new sha256 of the earthly/buildkit image.
+* Run
+  ```bash
+  earth \
+    --build-arg RELEASE_TAG \
+    --build-arg GIT_USERNAME=vladaionescu \
+    --build-arg GIT_NAME="$(git config user.name)" \
+    --build-arg GIT_EMAIL="$(git config user.email)" \
+    --secret GITHUB_TOKEN \
+    --push +release-homebrew
+  ```
