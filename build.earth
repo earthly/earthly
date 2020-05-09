@@ -190,7 +190,7 @@ release-homebrew:
 		git config --global user.email "$GIT_EMAIL"
 	# TODO: Move this script to a more common location.
 	COPY ./buildkitd/envcredhelper.sh /usr/bin/envcredhelper.sh
-    RUN git config --global credential.helper "/bin/sh /usr/bin/envcredhelper.sh"
+	RUN git config --global credential.helper "/bin/sh /usr/bin/envcredhelper.sh"
 
 	# Make the change in a new branch.
 	RUN git checkout -b "release-$RELEASE_TAG"
