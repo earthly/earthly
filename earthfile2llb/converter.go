@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
+	"regexp"
 	"sort"
 	"strings"
 
@@ -477,14 +478,21 @@ func (c *Converter) Volume(ctx context.Context, volumes []string) {
 }
 
 // Env applies the ENV command.
-func (c *Converter) Env(ctx context.Context, envKey string, envValue string) {
+func (c *Converter) Env(ctx context.Context, envKey string, envValue string) error {
 	envValue = c.expandArgs(envValue)
+	invalidEnvKey, err := regexp.MatchString(`[${}()]`, envKey)
+	logging.GetLogger(ctx).With("env-key", envKey).With("env-key-value", invalidEnvKey).Info("ENV Key Value")
+	if invalidEnvKey || err != nil {
+		logging.GetLogger(ctx).Info("Failed to apply ENV")
+		return fmt.Errorf("Invalid env key definition %s", envKey)
+	}
 	logging.GetLogger(ctx).With("env-key", envKey).With("env-value", envValue).Info("Applying ENV")
 	c.activeVariables[envKey] = true
 	c.variables[envKey] = variables.NewConstantEnvVar(envValue)
 	c.mts.FinalStates.SideEffectsState = c.mts.FinalStates.SideEffectsState.AddEnv(envKey, envValue)
 	c.mts.FinalStates.SideEffectsImage.Config.Env = addEnv(
 		c.mts.FinalStates.SideEffectsImage.Config.Env, envKey, envValue)
+	return nil
 }
 
 // Arg applies the ARG command.

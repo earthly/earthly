@@ -432,7 +432,11 @@ func (l *listener) ExitEnvStmt(c *parser.EnvStmtContext) {
 		l.err = fmt.Errorf("no non-push commands allowed after a --push: %s", c.GetText())
 		return
 	}
-	l.converter.Env(l.ctx, l.envArgKey, l.envArgValue)
+	err := l.converter.Env(l.ctx, l.envArgKey, l.envArgValue)
+	if err != nil {
+		l.err = errors.Wrap(err, "ENV")
+		return
+	}
 }
 
 func (l *listener) ExitArgStmt(c *parser.ArgStmtContext) {

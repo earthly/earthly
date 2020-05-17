@@ -204,7 +204,7 @@ release-homebrew:
 	RUN version=${RELEASE_TAG#v} ;\
 		echo version=$version ;\
 		git commit -a -m "earthly $version"
-	
+
 	# Fork, push branch to fork and create upstream PR.
 	RUN --secret GITHUB_TOKEN=+secrets/GITHUB_TOKEN test -n "$GITHUB_TOKEN"
 	RUN --push \
