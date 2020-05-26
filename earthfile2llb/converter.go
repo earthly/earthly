@@ -148,13 +148,7 @@ func (c *Converter) fromTarget(ctx context.Context, targetName string, buildArgs
 	}
 
 	// Pass on dep state over to this state.
-	// Run a dummy command, mainly for the custom name output.
-	runOpts := []llb.RunOption{
-		llb.Args([]string{"/bin/sh", "-c", "true"}),
-		llb.Dir("/"),
-		llb.WithCustomNamef("[%s] FROM (%v) %s", c.mts.FinalStates.Target.String(), buildArgs, targetName),
-	}
-	c.mts.FinalStates.SideEffectsState = saveImage.State.Run(runOpts...).Root()
+	c.mts.FinalStates.SideEffectsState = saveImage.State
 	for dirKey, dirValue := range relevantDepState.LocalDirs {
 		c.mts.FinalStates.LocalDirs[dirKey] = dirValue
 	}
@@ -734,6 +728,11 @@ func (c *Converter) solveAndLoad(ctx context.Context, mts *MultiTargetStates, op
 
 func internalFromClassical(ctx context.Context, imageName string, opts ...llb.ImageOption) (llb.State, *image.Image, map[string]variables.Variable, map[string]bool, error) {
 	logging.GetLogger(ctx).With("image", imageName).Info("Applying FROM")
+	if imageName == "scratch" {
+		// FROM scratch
+		return llb.Scratch().Platform(llbutil.TargetPlatform), image.NewImage(),
+			make(map[string]variables.Variable), make(map[string]bool), nil
+	}
 	ref, err := reference.ParseNormalizedNamed(imageName)
 	if err != nil {
 		return llb.State{}, nil, nil, nil, errors.Wrapf(err, "parse normalized named %s", imageName)
