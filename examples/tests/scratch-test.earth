@@ -1,5 +1,5 @@
 FROM scratch
 
 test:
-	WORKDIR /
+    WORKDIR /
     SAVE IMAGE bare
