@@ -12,7 +12,13 @@ type Image struct {
 
 // NewImage returns a new image.
 func NewImage() *Image {
-	return &Image{}
+	return &Image{
+		Config: specs.ImageConfig{
+			ExposedPorts: make(map[string]struct{}),
+			Labels:       make(map[string]string),
+			Volumes:      make(map[string]struct{}),
+		},
+	}
 }
 
 // Clone creates a copy of the image.

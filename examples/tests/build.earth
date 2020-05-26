@@ -12,6 +12,7 @@ all:
 	BUILD +build-arg-test
 	BUILD +lc-test
 	BUILD +from-expose-test
+	BUILD +scratch-test
 	BUILD +star-test
 
 experimental:
@@ -85,6 +86,12 @@ lc-test:
 
 from-expose-test:
 	COPY from-expose.earth ./build.earth
+	RUN --privileged \
+		--entrypoint \
+		-- --no-output +test
+
+scratch-test:
+	COPY scratch-test.earth ./build.earth
 	RUN --privileged \
 		--entrypoint \
 		-- --no-output +test
