@@ -13,7 +13,7 @@ require (
 	github.com/golang/protobuf v1.3.3
 	github.com/google/pprof v0.0.0-20191025152101-a8b9f9d2d3ce // indirect
 	github.com/ianlancetaylor/demangle v0.0.0-20181102032728-5e5cf60278f6 // indirect
-	github.com/moby/buildkit v0.7.1
+	github.com/moby/buildkit v0.7.1-0.20200331041515-6e725bdbb6ce
 	github.com/opencontainers/go-digest v1.0.0-rc1
 	github.com/opencontainers/image-spec v1.0.1
 	github.com/otiai10/copy v1.1.1
@@ -23,12 +23,8 @@ require (
 	golang.org/x/arch v0.0.0-20190927153633-4e8777c89be4 // indirect
 	golang.org/x/crypto v0.0.0-20200302210943-78000ba7a073
 	golang.org/x/lint v0.0.0-20190930215403-16217165b5de // indirect
-	golang.org/x/mod v0.3.0 // indirect
-	golang.org/x/sync v0.0.0-20200317015054-43a5402ce75a
-	golang.org/x/tools v0.0.0-20200515220128-d3bf790afa53 // indirect
-	golang.org/x/tools/gopls v0.4.1 // indirect
-	honnef.co/go/tools v0.0.1-2020.1.4 // indirect
-	mvdan.cc/xurls/v2 v2.2.0 // indirect
+	golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e
+	golang.org/x/xerrors v0.0.0-20191011141410-1b5146add898 // indirect
 )
 
 replace github.com/hashicorp/go-immutable-radix => github.com/tonistiigi/go-immutable-radix v0.0.0-20170803185627-826af9ccf0fe

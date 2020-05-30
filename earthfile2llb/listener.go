@@ -8,6 +8,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/earthly/earthly/logging"
 	"github.com/earthly/earthly/earthfile2llb/parser"
 	"github.com/pkg/errors"
 )
@@ -432,11 +433,7 @@ func (l *listener) ExitEnvStmt(c *parser.EnvStmtContext) {
 		l.err = fmt.Errorf("no non-push commands allowed after a --push: %s", c.GetText())
 		return
 	}
-	err := l.converter.Env(l.ctx, l.envArgKey, l.envArgValue)
-	if err != nil {
-		l.err = errors.Wrap(err, "ENV")
-		return
-	}
+	l.converter.Env(l.ctx, l.envArgKey, l.envArgValue)
 }
 
 func (l *listener) ExitArgStmt(c *parser.ArgStmtContext) {
@@ -599,7 +596,12 @@ func (l *listener) EnterEnvArgKey(c *parser.EnvArgKeyContext) {
 	if l.shouldSkip() {
 		return
 	}
-	l.envArgKey = c.GetText()
+	var envKey = c.GetText()
+	var matchedEnvKey = checkShellName(envKey)
+	if matchedEnvKey != envKey {
+		l.err = fmt.Errorf("Invalid env key definition %s", envKey)
+	}
+	l.envArgKey = envKey
 }
 
 func (l *listener) EnterEnvArgValue(c *parser.EnvArgValueContext) {
@@ -664,6 +666,12 @@ func (ssf *StringSliceFlag) String() string {
 func (ssf *StringSliceFlag) Set(arg string) error {
 	ssf.Args = append(ssf.Args, arg)
 	return nil
+}
+
+var shellNameStringRegexp = regexp.MustCompile("^[a-zA-Z_]+[a-zA-Z0-9_]*")
+
+func checkShellName(str string) string {
+	return shellNameStringRegexp.FindString(str)
 }
 
 var lineContinuationRegexp = regexp.MustCompile("\\\\(\\n|(\\r\\n))[\\t ]*")
