@@ -12,7 +12,7 @@
         [--git-username <git-user>] [--git-password <git-pass>]
         [--git-url-instead-of <git-instead-of>]
         [--buildkit-host <bk-host>] [--buildkit-cache-size-mb <cache-size-mb>]
-        [--buildkit-image <bk-image>]
+        [--buildkit-image <bk-image>] [--no-loop-device]
         <target-ref>
   ```
 * Artifact form
@@ -23,7 +23,7 @@
         [--git-username <git-user>] [--git-password <git-pass>]
         [--git-url-instead-of <git-instead-of>]
         [--buildkit-host <bk-host>] [--buildkit-cache-size-mb <cache-size-mb>]
-        [--buildkit-image <bk-image>]
+        [--buildkit-image <bk-image>] [--no-loop-device]
         --artifact|-a <artifact-ref> [<dest-path>]
   ```
 * Image form
@@ -34,7 +34,7 @@
         [--git-username <git-user>] [--git-password <git-pass>]
         [--git-url-instead-of <git-instead-of>]
         [--buildkit-host <bk-host>] [--buildkit-cache-size-mb <cache-size-mb>]
-        [--buildkit-image <bk-image>]
+        [--buildkit-image <bk-image>] [--no-loop-device]
         --image|-i <target-ref>
   ```
 
@@ -171,6 +171,12 @@ earth --buildkit-cache-size-mb <cache-size-mb> prune --reset
 Also available as an env var setting: `EARTHLY_BUILDKIT_IMAGE=<bk-image>`.
 
 Instructs earth to use an alternate image for buildkitd. The default image used is `earthly/buildkitd:<earth-version>`.
+
+##### `--no-loop-device`
+
+Also available as an env var setting: `EARTHLY_NO_LOOP_DEVICE=true`.
+
+Disables the use of a loop device for storing the cache. By default, Earthly uses a file mounted as a loop device, so that it can control the type of filesystem used for the cache, in order to ensure that overlayfs can be mounted on top of it. If you are already using a filesystem compatible with overlayfs, then you can disable the loop device.
 
 ## earth prune
 
