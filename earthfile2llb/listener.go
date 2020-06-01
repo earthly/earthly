@@ -8,7 +8,6 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/earthly/earthly/logging"
 	"github.com/earthly/earthly/earthfile2llb/parser"
 	"github.com/pkg/errors"
 )
