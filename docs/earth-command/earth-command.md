@@ -184,11 +184,11 @@ Disables the use of a loop device for storing the cache. By default, Earthly use
 
 * Standard form
   ```
-  earth [options] [--all|-a] prune
+  earth [options] prune [--all|-a]
   ```
 * Reset form
   ```
-  earth [options] --reset prune
+  earth [options] prune --reset
   ```
 
 #### Description
