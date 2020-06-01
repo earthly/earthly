@@ -216,6 +216,13 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 			Usage:       "The docker image to use for the buildkit daemon",
 			Destination: &app.buildkitdImage,
 		},
+		&cli.BoolFlag{
+			Name:        "enable-loop-device",
+			EnvVars:     []string{"ENABLE_LOOP_DEVICE"},
+			Usage:       "Enables the use of a loop device for storing the cache contents",
+			Destination: &app.buildkitdSettings.EnableLoopDevice,
+			Value:       true,
+		},
 		&cli.StringFlag{
 			Name:        "remote-cache",
 			EnvVars:     []string{"EARTHLY_REMOTE_CACHE"},
