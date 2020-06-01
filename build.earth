@@ -182,7 +182,7 @@ release-homebrew:
 	RUN git remote set-url origin "$HOMEBREW_CORE_URL" && \
 		git remote -v
 	RUN --secret GIT_PASSWORD=+secrets/GITHUB_TOKEN \
-		git fetch origin master
+		git fetch --unshallow origin master
 	RUN git branch -f master && \
 		git checkout master && \
 		git branch -u origin/master
