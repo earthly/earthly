@@ -11,10 +11,11 @@ import (
 
 // Settings represents the buildkitd settings used to start up the daemon with.
 type Settings struct {
-	SSHAuthSock     string       `json:"sshAuthSock"`
-	GitURLInsteadOf string       `json:"gitUrlInsteadOf"`
-	GitSettings     []GitSetting `json:"gitSettings"`
-	CacheSizeMb     int          `json:"cacheSizeMb"`
+	SSHAuthSock       string       `json:"sshAuthSock"`
+	GitURLInsteadOf   string       `json:"gitUrlInsteadOf"`
+	GitSettings       []GitSetting `json:"gitSettings"`
+	CacheSizeMb       int          `json:"cacheSizeMb"`
+	DisableLoopDevice bool         `json:"disableLoopDevice"`
 }
 
 // GitSetting represents git settings for a specific domain.
