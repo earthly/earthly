@@ -217,11 +217,10 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 			Destination: &app.buildkitdImage,
 		},
 		&cli.BoolFlag{
-			Name:        "enable-loop-device",
-			EnvVars:     []string{"ENABLE_LOOP_DEVICE"},
-			Usage:       "Enables the use of a loop device for storing the cache contents",
-			Destination: &app.buildkitdSettings.EnableLoopDevice,
-			Value:       true,
+			Name:        "no-loop-device",
+			EnvVars:     []string{"EARTHLY_NO_LOOP_DEVICE"},
+			Usage:       "Disables the use of a loop device for storing the cache contents",
+			Destination: &app.buildkitdSettings.DisableLoopDevice,
 		},
 		&cli.StringFlag{
 			Name:        "remote-cache",
