@@ -107,6 +107,7 @@ examples:
 	BUILD ./examples/go+docker
 	BUILD ./examples/java+docker
 	BUILD ./examples/js+docker
+	BUILD ./examples/cpp+docker
 	BUILD ./examples/monorepo+all
 	BUILD ./examples/multirepo+docker
 	BUILD ./examples/readme+parallel

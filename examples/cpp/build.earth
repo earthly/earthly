@@ -1,0 +1,26 @@
+FROM ubuntu:20.10
+
+## for apt to be noninteractive
+ENV DEBIAN_FRONTEND noninteractive
+ENV DEBCONF_NONINTERACTIVE_SEEN true
+
+RUN apt-get update && apt-get install -y build-essential cmake
+
+WORKDIR /code
+
+code:
+  COPY src src
+  SAVE IMAGE
+
+build:
+  FROM +code
+  RUN cmake src
+  # cache cmake temp files to prevent rebuilding .o files
+  # when the .cpp files don't change
+  RUN --mount=type=cache,target=/code/CMakeFiles make
+  SAVE ARTIFACT fibonacci AS LOCAL "fibonacci"
+
+docker:
+  COPY +build/fibonacci /bin/fibonacci
+  ENTRYPOINT ["/bin/fibonacci"]
+  SAVE IMAGE cpp-example:latest
