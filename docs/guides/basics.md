@@ -128,6 +128,59 @@ public class HelloWorld {
     }
 }
 ```
+
+{% sample lang="C++" %}
+Here is a sample earthfile of a C++ app
+
+```Dockerfile
+# build.earth
+FROM ubuntu:20.10
+
+# for apt to be noninteractive
+ENV DEBIAN_FRONTEND noninteractive
+ENV DEBCONF_NONINTERACTIVE_SEEN true
+
+RUN apt-get update && apt-get install -y build-essential cmake
+
+WORKDIR /code
+
+code:
+  COPY src src
+  SAVE IMAGE
+
+build:
+  FROM +code
+  RUN cmake src
+  RUN make
+  SAVE ARTIFACT hello AS LOCAL "hello"
+
+docker:
+  COPY +build/hello /bin/hello
+  ENTRYPOINT ["/bin/hello"]
+  SAVE IMAGE cpp-example:latest
+```
+
+The code of the app might look like this
+
+```c++
+// src/helloworld.cpp
+
+#include <iostream>
+
+int main(int argc, char *argv[]) {
+	std::cout << "Hello World!" << std::endl;
+	return 0;
+}
+```
+
+Additionally the CMakeLists.txt might look like this
+
+```
+cmake_minimum_required(VERSION 2.8.9)
+project (hello)
+add_executable(hello helloworld.cpp fib.cpp)
+```
+
 {% endmethod %}
 
 You will notice that the recipes look very much like Dockerfiles. This is an intentional design decision. Existing Dockerfiles can be ported to earthfiles by copy-pasting them over and then tweaking them slightly. Compared to Dockerfile syntax, some commands are new (like `SAVE ARTIFACT`), others have additional semantics (like `COPY +target/some-artifact`) and other semantics are removed (like `FROM ... AS ...` and `COPY --from`).
