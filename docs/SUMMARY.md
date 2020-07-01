@@ -15,6 +15,7 @@
     * [Go](examples/go.md)
     * [Java](examples/java.md)
     * [JS](examples/js.md)
+    * [C++](examples/cpp.md)
     * [Monorepo](examples/monorepo.md)
     * [Multirepo](examples/multirepo.md)
     * [Earthly](examples/earthly.md)
