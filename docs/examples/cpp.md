@@ -93,7 +93,7 @@ If you run `earth +build` for the first time you should see:
 ```
 ...
 +build | Scanning dependencies of target fibonacci
-+build | [ 33%] Building CXX object CMakeFiles/fibonacci.dir/fibonacciworld.cpp.o
++build | [ 33%] Building CXX object CMakeFiles/fibonacci.dir/main.cpp.o
 +build | [ 66%] Building CXX object CMakeFiles/fibonacci.dir/fib.cpp.o
 +build | [100%] Linking CXX executable fibonacci
 +build | [100%] Built target fibonacci
