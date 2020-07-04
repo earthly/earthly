@@ -84,7 +84,11 @@ func (gr *gitResolver) resolveEarthProject(ctx context.Context, target domain.Ta
 }
 
 func (gr *gitResolver) resolveGitProject(ctx context.Context, target domain.Target) (rgp *resolvedGitProject, gitURL string, subDir string, finalErr error) {
-	if target.Registry != "github.com" {
+	var hostedGit string
+	switch target.Registry {
+	case "github.com", "gitlab.com": // TODO support for hosted github enterprise?
+		hostedGit = target.Registry
+	default:
 		return nil, "", "", fmt.Errorf("Registry %s not supported", target.Registry)
 	}
 	projectPathParts := strings.Split(target.ProjectPath, "/")
@@ -94,7 +98,7 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, target domain.Targ
 	githubUsername := projectPathParts[0]
 	githubProject := projectPathParts[1]
 	subDir = strings.Join(projectPathParts[2:], "/")
-	gitURL = fmt.Sprintf("git@github.com:%s/%s.git", githubUsername, githubProject)
+	gitURL = fmt.Sprintf("git@%s:%s/%s.git", hostedGit, githubUsername, githubProject)
 	ref := target.Tag
 
 	// Check the cache first.

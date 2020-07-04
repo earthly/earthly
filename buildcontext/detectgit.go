@@ -123,32 +123,41 @@ func detectIsGitDir(ctx context.Context, dir string) error {
 	return nil
 }
 
-func parseGitRemoteURL(url string) (string, string, error) {
-	// TODO: Should use a more robust method for origin URL parsing.
-	if strings.HasPrefix(url, "git@github.com:") {
-		ret := strings.TrimPrefix(url, "git@github.com:")
-		ret = strings.TrimSuffix(ret, ".git")
-		return "github.com", ret, nil
-	} else if strings.HasPrefix(url, "ssh://git@github.com/") {
-		ret := strings.TrimPrefix(url, "ssh://git@github.com/")
-		ret = strings.TrimSuffix(ret, ".git")
-		return "github.com", ret, nil
-	} else if strings.HasPrefix(url, "ssh://git@github.com:") {
-		ret := strings.TrimPrefix(url, "ssh://git@github.com:")
-		ret = strings.TrimSuffix(ret, ".git")
-		return "github.com", ret, nil
-	} else if strings.HasPrefix(url, "https://") {
-		ret := strings.TrimPrefix(url, "https://")
-		ret = strings.TrimSuffix(ret, ".git")
-		parts := strings.SplitN(ret, "/", 2)
-		if len(parts) < 2 {
-			return "", "", errors.Wrapf(ErrCouldNotDetectRemote, "could not parse git URL %s", url)
-		}
-		return parts[0], parts[1], nil
-	} else {
-		return "", "", errors.Wrapf(
-			ErrCouldNotDetectRemote, "could not parse git URL %s. Maybe not github.com?", url)
+func parseGitRemoteURL(gitURL string) (string, string, error) {
+	if !strings.HasSuffix(gitURL, ".git") {
+		return "", "", errors.Wrapf(ErrCouldNotDetectRemote, "could not parse git url %s", gitURL)
 	}
+
+	s := gitURL
+
+	// remove transport
+	parts := strings.SplitN(gitURL, "://", 2)
+	if len(parts) == 2 {
+		s = parts[1]
+	}
+
+	// remove user
+	parts = strings.SplitN(s, "@", 2)
+	if len(parts) == 2 {
+		s = parts[1]
+	}
+
+	var host string // for example: "github.com"
+	var repo string // for example: "user/repo"
+
+	if strings.Contains(s, ":") {
+		parts = strings.SplitN(s, ":", 2)
+		host = parts[0]
+		repo = parts[1]
+	} else if strings.Contains(s, "/") {
+		parts = strings.SplitN(s, "/", 2)
+		host = parts[0]
+		repo = parts[1]
+	}
+
+	repo = strings.TrimSuffix(repo, ".git")
+
+	return host, repo, nil
 }
 
 func detectGitRemoteURL(ctx context.Context, dir string) (string, error) {
