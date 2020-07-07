@@ -25,7 +25,7 @@ sed 's^:BUILDKIT_ROOT_DIR:^'"$BUILDKIT_ROOT_DIR"'^g; s/:CACHE_SIZE_MB:/'"$buildk
 
 if [ -n "$GIT_URL_INSTEAD_OF" ]; then
     # GIT_URL_INSTEAD_OF can support multiple comma-separated values
-    for instead_of in $(echo ${GIT_URL_INSTEAD_OF} | sed "s/,/ /g")
+    for instead_of in $(echo "${GIT_URL_INSTEAD_OF}" | sed "s/,/ /g")
     do
         base="${instead_of%%=*}"
         insteadOf="${instead_of#*=}"
