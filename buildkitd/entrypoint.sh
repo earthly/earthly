@@ -24,10 +24,14 @@ sed 's^:BUILDKIT_ROOT_DIR:^'"$BUILDKIT_ROOT_DIR"'^g; s/:CACHE_SIZE_MB:/'"$buildk
     /etc/buildkitd.toml.template > /etc/buildkitd.toml
 
 if [ -n "$GIT_URL_INSTEAD_OF" ]; then
-    # TODO: Perhaps allow multiple such values to be passed in (eg comma-separated).
-    base="${GIT_URL_INSTEAD_OF%%=*}"
-    insteadOf="${GIT_URL_INSTEAD_OF#*=}"
-    git config --global url."$base".insteadOf "$insteadOf"
+    # GIT_URL_INSTEAD_OF can support multiple comma-separated values
+    for instead_of in $(echo "${GIT_URL_INSTEAD_OF}" | sed "s/,/ /g")
+    do
+        base="${instead_of%%=*}"
+        insteadOf="${instead_of#*=}"
+        git config --global url."$base".insteadOf "$insteadOf"
+    done
+
 fi
 
 # Create an ext4 fs in a pre-allocated file. Ext4 will allow

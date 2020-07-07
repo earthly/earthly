@@ -135,7 +135,8 @@ For security reasons, it is strongly recommended to use the env var form of this
 
 Also available as an env var setting: `GIT_URL_INSTEAD_OF=<git-instead-of>`.
 
-Rewrites git URLs of a certain pattern. Similar to [`git-config url.<base>.insteadOf`](https://git-scm.com/docs/git-config#Documentation/git-config.txt-urlltbasegtinsteadOf). Format: `<base>=<instead-of>`.
+Rewrites git URLs of a certain pattern. Similar to [`git-config url.<base>.insteadOf`](https://git-scm.com/docs/git-config#Documentation/git-config.txt-urlltbasegtinsteadOf).
+Multiple values can be separated by commas. Format: `<base>=<instead-of>[,...]`.
 
 This setting allows rewriting all git URLs of the form `https://...` into `git@github.com:...`, or vice-versa.
 

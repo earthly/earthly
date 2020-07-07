@@ -57,6 +57,10 @@ lint:
 			exit 1 ; \
 		fi
 
+unittest:
+	FROM +code
+	RUN go test ./...
+
 earth:
 	FROM +code
 	ARG GOOS=linux
@@ -100,6 +104,7 @@ all:
 
 test:
 	BUILD +lint
+	BUILD +unittest
 	BUILD ./examples/tests+all
 	BUILD +examples
 
