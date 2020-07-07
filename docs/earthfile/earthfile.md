@@ -91,7 +91,7 @@ The command allows for two possible forms. The *exec form* runs the command exec
 
 When the `--entrypoint` flag is used, the current image entrypoint is used to prepend the current command.
 
-To avoid any abiguity regarding whether an argument is a `RUN` flag option or part of the command, the delimiter `--` may be used to signal the parser that no more `RUN` flag options will follow.
+To avoid any ambiguity regarding whether an argument is a `RUN` flag option or part of the command, the delimiter `--` may be used to signal the parser that no more `RUN` flag options will follow.
 
 #### Options
 
