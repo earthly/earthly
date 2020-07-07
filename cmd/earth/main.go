@@ -186,7 +186,7 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 			Name:        "git-url-instead-of",
 			Value:       "https://gitlab.com/=git@gitlab.com:,https://github.com/=git@github.com:",
 			EnvVars:     []string{"GIT_URL_INSTEAD_OF"},
-			Usage:       "Rewrite git URLs of a certain pattern. Similar to git-config url.<base>.insteadOf (https://git-scm.com/docs/git-config#Documentation/git-config.txt-urlltbasegtinsteadOf). Format: <base>=<instead-of>. For example: 'https://github.com/=git@github.com:'",
+			Usage:       "Rewrite git URLs of a certain pattern. Similar to git-config url.<base>.insteadOf (https://git-scm.com/docs/git-config#Documentation/git-config.txt-urlltbasegtinsteadOf). Format: <base>=<instead-of>. For example: 'git@github.com:=https://github.com/'",
 			Destination: &app.buildkitdSettings.GitURLInsteadOf,
 		},
 		&cli.BoolFlag{

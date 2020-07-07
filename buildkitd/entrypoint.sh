@@ -30,9 +30,6 @@ if [ -n "$GIT_URL_INSTEAD_OF" ]; then
         base="${instead_of%%=*}"
         insteadOf="${instead_of#*=}"
         git config --global url."$base".insteadOf "$insteadOf"
-
-        # call your procedure/other scripts here below
-        echo "$i"
     done
 
 fi

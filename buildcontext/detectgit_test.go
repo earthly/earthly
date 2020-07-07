@@ -12,6 +12,12 @@ func TestParseGitRemoteURL(t *testing.T) {
 		valid           bool
 	}{
 		{
+			"github.com:user/repo",
+			"github.com",
+			"user/repo",
+			true,
+		},
+		{
 			"git@github.com:user/repo.git",
 			"github.com",
 			"user/repo",
@@ -34,12 +40,6 @@ func TestParseGitRemoteURL(t *testing.T) {
 			"github.com",
 			"earthly/earthly",
 			true,
-		},
-		{
-			"http://google.com/hello/world",
-			"",
-			"",
-			false,
 		},
 	}
 	for _, test := range tests {

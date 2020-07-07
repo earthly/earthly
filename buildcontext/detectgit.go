@@ -124,10 +124,6 @@ func detectIsGitDir(ctx context.Context, dir string) error {
 }
 
 func parseGitRemoteURL(gitURL string) (string, string, error) {
-	if !strings.HasSuffix(gitURL, ".git") {
-		return "", "", errors.Wrapf(ErrCouldNotDetectRemote, "could not parse git url %s", gitURL)
-	}
-
 	s := gitURL
 
 	// remove transport
