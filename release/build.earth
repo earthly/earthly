@@ -75,7 +75,7 @@ release-homebrew:
         test -n "$HOMEBREW_CORE_URL"
     ARG NEW_URL=https://github.com/earthly/earthly/archive/"$RELEASE_TAG".tar.gz
     RUN test -n "$NEW_URL"
-    GIT CLONE "$HOMEBREW_CORE_URL" homebrew-core
+    GIT CLONE "$HOMEBREW_CORE_URL" /earthly/homebrew-core
     WORKDIR /earthly/homebrew-core
 
     # Git setup.

@@ -2,7 +2,7 @@
 
 ### earth
 
-* Make sure you have a GITHUB_TOKEN set.
+* Make sure you have a GITHUB_TOKEN set. If you don't have a GITHUB_TOKEN, generate one [here](https://github.com/settings/tokens) with scope `repo`.
   ```bash
   export GITHUB_TOKEN="..."
   ```
