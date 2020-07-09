@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/earthly/earthly/earthfile2llb/parser"
 	"github.com/pkg/errors"
@@ -546,6 +547,54 @@ func (l *listener) ExitDockerPullStmt(c *parser.DockerPullStmtContext) {
 	}
 }
 
+func (l *listener) ExitHealthcheckStmt(c *parser.HealthcheckStmtContext) {
+	if l.shouldSkip() {
+		return
+	}
+	if l.pushOnlyAllowed {
+		l.err = fmt.Errorf("no non-push commands allowed after a --push: %s", c.GetText())
+		return
+	}
+	fs := flag.NewFlagSet("HEALTHCHECK", flag.ContinueOnError)
+	interval := fs.Duration("interval", 30*time.Second, "")
+	timeout := fs.Duration("timeout", 30*time.Second, "")
+	startPeriod := fs.Duration("start-period", 0, "")
+	retries := fs.Int("retries", 3, "")
+	err := fs.Parse(l.stmtWords)
+	if err != nil {
+		l.err = errors.Wrapf(err, "invalid HEALTHCHECK arguments %v", l.stmtWords)
+		return
+	}
+	if fs.NArg() == 0 {
+		l.err = fmt.Errorf("invalid number of arguments for HEALTHCHECK: %s", l.stmtWords)
+		return
+	}
+	isNone := false
+	var cmdArgs []string
+	switch fs.Arg(0) {
+	case "NONE":
+		if fs.NArg() != 1 {
+			l.err = fmt.Errorf("invalid arguments for HEALTHCHECK: %s", l.stmtWords)
+			return
+		}
+		isNone = true
+	case "CMD":
+		if fs.NArg() == 1 {
+			l.err = fmt.Errorf("invalid number of arguments for HEALTHCHECK CMD: %s", l.stmtWords)
+			return
+		}
+		cmdArgs = fs.Args()[1:]
+	default:
+		if strings.HasPrefix(fs.Arg(0), "[") {
+			l.err = fmt.Errorf("exec form not yet supported for HEALTHCHECK CMD: %s", l.stmtWords)
+			return
+		}
+		l.err = fmt.Errorf("invalid arguments for HEALTHCHECK: %s", l.stmtWords)
+		return
+	}
+	l.converter.Healthcheck(l.ctx, isNone, cmdArgs, *interval, *timeout, *startPeriod, *retries)
+}
+
 func (l *listener) ExitAddStmt(c *parser.AddStmtContext) {
 	if l.shouldSkip() {
 		return
@@ -565,13 +614,6 @@ func (l *listener) ExitOnbuildStmt(c *parser.OnbuildStmtContext) {
 		return
 	}
 	l.err = fmt.Errorf("Command ONBUILD not supported")
-}
-
-func (l *listener) ExitHealthcheckStmt(c *parser.HealthcheckStmtContext) {
-	if l.shouldSkip() {
-		return
-	}
-	l.err = fmt.Errorf("Command HEALTHCHECK not yet supported")
 }
 
 func (l *listener) ExitShellStmt(c *parser.ShellStmtContext) {

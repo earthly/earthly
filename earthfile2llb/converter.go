@@ -11,6 +11,7 @@ import (
 	"path"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/docker/distribution/reference"
 	"github.com/earthly/earthly/buildcontext"
@@ -25,6 +26,7 @@ import (
 	"github.com/earthly/earthly/llbutil/llbgit"
 	"github.com/earthly/earthly/logging"
 	"github.com/moby/buildkit/client/llb"
+	"github.com/moby/buildkit/frontend/dockerfile/dockerfile2llb"
 	dfShell "github.com/moby/buildkit/frontend/dockerfile/shell"
 	"github.com/pkg/errors"
 )
@@ -590,6 +592,34 @@ func (c *Converter) DockerPull(ctx context.Context, dockerTag string) error {
 		return err
 	}
 	return nil
+}
+
+// Healthcheck applies the HEALTHCHECK command.
+func (c *Converter) Healthcheck(ctx context.Context, isNone bool, cmdArgs []string, interval time.Duration, timeout time.Duration, startPeriod time.Duration, retries int) {
+	for index := range cmdArgs {
+		cmdArgs[index] = c.expandArgs(cmdArgs[index])
+	}
+	logging.GetLogger(ctx).
+		With("isNone", isNone).
+		With("cmdArgs", cmdArgs).
+		With("interval", interval).
+		With("timeout", timeout).
+		With("startPeriod", startPeriod).
+		With("retries", retries).
+		Info("Applying HEALTHCHECK")
+	hc := &dockerfile2llb.HealthConfig{}
+	if isNone {
+		hc.Test = []string{"NONE"}
+	} else {
+		// TODO: Should support also CMD without shell (exec form).
+		//       See https://github.com/moby/buildkit/blob/master/frontend/dockerfile/dockerfile2llb/image.go#L18
+		hc.Test = append([]string{"CMD-SHELL", strings.Join(cmdArgs, " ")})
+		hc.Interval = interval
+		hc.Timeout = timeout
+		hc.StartPeriod = startPeriod
+		hc.Retries = retries
+	}
+	c.mts.FinalStates.SideEffectsImage.Config.Healthcheck = hc
 }
 
 // FinalizeStates returns the LLB states.
