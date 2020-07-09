@@ -1,6 +1,6 @@
 
 buildkitd:
-    FROM moby/buildkit:master@sha256:08c8411ceb6c190a698d5409a1f891e7085ebfaa405e061d7ad3dab7aede8f66
+    FROM earthly/buildkit:fix-ssh-auth-sock@sha256:bef03b725be0d4ecbc6c3d07378bea0e660600becf9858378754cc3dd8435f26
 
     # Install some missing binaries.
     RUN apk add --update --no-cache openssh-client pigz xz fuse3 e2fsprogs util-linux

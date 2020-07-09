@@ -114,7 +114,7 @@ examples:
 	BUILD ./examples/js+docker
 	BUILD ./examples/cpp+docker
 	BUILD ./examples/monorepo+all
-	#BUILD ./examples/multirepo+docker
+	BUILD ./examples/multirepo+docker
 	BUILD ./examples/readme+parallel
 	BUILD ./examples/readme+final-success-target
 

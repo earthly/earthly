@@ -29,6 +29,10 @@ func Git(remote, ref string, opts ...llb.GitOption) llb.State {
 	}
 
 	gi := &llb.GitInfo{}
+	// gi := &llb.GitInfo{
+	// 	AuthHeaderSecret: "GIT_AUTH_HEADER",
+	// 	AuthTokenSecret:  "GIT_AUTH_TOKEN",
+	// }
 	for _, o := range opts {
 		o.SetGitOption(gi)
 	}
@@ -41,6 +45,14 @@ func Git(remote, ref string, opts ...llb.GitOption) llb.State {
 		attrs[pb.AttrFullRemoteURL] = url
 		addCap(&gi.Constraints, pb.CapSourceGitFullURL)
 	}
+	// if gi.AuthTokenSecret != "" {
+	// 	attrs[pb.AttrAuthTokenSecret] = gi.AuthTokenSecret
+	// 	addCap(&gi.Constraints, pb.CapSourceGitHttpAuth)
+	// }
+	// if gi.AuthHeaderSecret != "" {
+	// 	attrs[pb.AttrAuthHeaderSecret] = gi.AuthHeaderSecret
+	// 	addCap(&gi.Constraints, pb.CapSourceGitHttpAuth)
+	// }
 
 	addCap(&gi.Constraints, pb.CapSourceGit)
 
