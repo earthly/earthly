@@ -89,7 +89,7 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, target domain.Targ
 		return nil, "", "", fmt.Errorf("Invalid github project path %s", target.ProjectPath)
 	}
 	githubUsername := projectPathParts[0]
-	githubProject := projectPathParts[1]
+	githubProject := strings.TrimSuffix(projectPathParts[1], ".git")
 	subDir = strings.Join(projectPathParts[2:], "/")
 	gitURL = fmt.Sprintf("git@%s:%s/%s.git", target.Registry, githubUsername, githubProject)
 	ref := target.Tag
