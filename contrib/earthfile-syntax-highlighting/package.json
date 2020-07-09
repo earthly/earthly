@@ -2,7 +2,7 @@
     "name": "earthfile-syntax-highlighting",
     "displayName": "Earthfile Syntax Highlighting",
     "description": "Syntax highlighting for Earthly build earthfiles (build.earth).",
-    "version": ":VERSION:",
+    "version": "0.0.0",
     "publisher": "earthly",
     "icon": "logo.png",
     "repository": {

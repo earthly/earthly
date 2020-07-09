@@ -13,3 +13,7 @@ Initial release of earthfile-syntax-highlighting.
 ### 0.0.2
 
 Add screenshot in the README.
+
+### 0.0.3
+
+Add highlighting for `HEALTHCHECK`.

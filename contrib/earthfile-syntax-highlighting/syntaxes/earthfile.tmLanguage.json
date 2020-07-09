@@ -132,7 +132,11 @@
 				},
 				{
 					"name": "keyword.other.special-method.earthfile",
-					"match": "^\\s*(?i:(ONBUILD)\\s+)?(?i:(FROM|COPY|SAVE ARTIFACT|SAVE IMAGE|RUN|LABEL|EXPOSE|VOLUME|USER|ENV|ARG|BUILD|WORKDIR|ENTRYPOINT|GIT CLONE|DOCKER LOAD|DOCKER PULL))\\s"
+					"match": "^\\s*(?i:(HEALTHCHECK)\\s+)?(?i:(NONE|CMD))\\s"
+				},
+				{
+					"name": "keyword.other.special-method.earthfile",
+					"match": "^\\s*(?i:(ONBUILD|HEALTHCHECK)\\s+)?(?i:(FROM|COPY|SAVE ARTIFACT|SAVE IMAGE|RUN|LABEL|EXPOSE|VOLUME|USER|ENV|ARG|BUILD|WORKDIR|ENTRYPOINT|GIT CLONE|DOCKER LOAD|DOCKER PULL|HEALTHCHECK))\\s"
 				}
 			]
 		},
