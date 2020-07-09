@@ -143,7 +143,7 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, target domain.Targ
 	gitMetaAndEarthfileState := gitHashOp.AddMount("/dest", earthfileState)
 
 	// Build.
-	dt, err := gitMetaAndEarthfileState.Marshal(llb.LinuxAmd64)
+	dt, err := gitMetaAndEarthfileState.Marshal(ctx, llb.LinuxAmd64)
 	if err != nil {
 		return nil, "", "", errors.Wrapf(err, "get build.earth from %s", target.ProjectCanonical())
 	}

@@ -266,7 +266,7 @@ func (c *Converter) Run(ctx context.Context, args []string, mounts []string, sec
 }
 
 // SaveArtifact applies the earth SAVE ARTIFACT command.
-func (c *Converter) SaveArtifact(ctx context.Context, saveFrom string, saveTo string, saveAsLocalTo string) {
+func (c *Converter) SaveArtifact(ctx context.Context, saveFrom string, saveTo string, saveAsLocalTo string) error {
 	saveFrom = c.expandArgs(saveFrom)
 	saveTo = c.expandArgs(saveTo)
 	saveAsLocalTo = c.expandArgs(saveAsLocalTo)
@@ -277,7 +277,11 @@ func (c *Converter) SaveArtifact(ctx context.Context, saveFrom string, saveTo st
 		Info("Applying SAVE ARTIFACT")
 	saveToAdjusted := saveTo
 	if saveTo == "" || saveTo == "." || strings.HasSuffix(saveTo, "/") {
-		saveFromRelative := path.Join(".", llbutil.Abs(c.mts.FinalStates.SideEffectsState, saveFrom))
+		absSaveFrom, err := llbutil.Abs(ctx, c.mts.FinalStates.SideEffectsState, saveFrom)
+		if err != nil {
+			return err
+		}
+		saveFromRelative := path.Join(".", absSaveFrom)
 		saveToAdjusted = path.Join(saveTo, path.Base(saveFromRelative))
 	}
 	saveToD, saveToF := splitWildcards(saveToAdjusted)
@@ -307,6 +311,7 @@ func (c *Converter) SaveArtifact(ctx context.Context, saveFrom string, saveTo st
 			Index:        len(c.mts.FinalStates.SeparateArtifactsState) - 1,
 		})
 	}
+	return nil
 }
 
 // SaveImage applies the earth SAVE IMAGE command.
