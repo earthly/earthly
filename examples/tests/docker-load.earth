@@ -1,7 +1,7 @@
 FROM docker:19.03.7-dind
 
 some-image:
-	FROM alpine:latest
+	FROM alpine:3.11
 	RUN mkdir /abc
 	WORKDIR /abc
 	RUN echo "hello world" >def.txt
