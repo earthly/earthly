@@ -1,6 +1,8 @@
-# Release checklist
+# Releasing instructions
 
-* Make sure you have a GITHUB_TOKEN set.
+### earth
+
+* Make sure you have a GITHUB_TOKEN set. If you don't have a GITHUB_TOKEN, generate one [here](https://github.com/settings/tokens) with scope `repo`.
   ```bash
   export GITHUB_TOKEN="..."
   ```
@@ -13,7 +15,7 @@
   earth \
     --build-arg RELEASE_TAG \
     --secret GITHUB_TOKEN \
-    --push -P +release
+    --push -P ./release+release
   ```
 * Run
   ```bash
@@ -23,5 +25,9 @@
     --build-arg GIT_NAME="$(git config user.name)" \
     --build-arg GIT_EMAIL="$(git config user.email)" \
     --secret GITHUB_TOKEN \
-    --push +release-homebrew
+    --push ./release+release-homebrew
   ```
+
+### VS Code syntax highlighting
+
+TODO
