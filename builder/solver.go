@@ -34,7 +34,7 @@ type solver struct {
 }
 
 func (s *solver) solveDocker(ctx context.Context, localDirs map[string]string, state llb.State, img *image.Image, dockerTag string, push bool) error {
-	dt, err := state.Marshal(llb.Platform(llbutil.TargetPlatform))
+	dt, err := state.Marshal(ctx, llb.Platform(llbutil.TargetPlatform))
 	if err != nil {
 		return errors.Wrap(err, "state marshal")
 	}
@@ -92,7 +92,7 @@ func (s *solver) solveDocker(ctx context.Context, localDirs map[string]string, s
 }
 
 func (s *solver) solveDockerTar(ctx context.Context, localDirs map[string]string, state llb.State, img *image.Image, dockerTag string, outFile string) error {
-	dt, err := state.Marshal(llb.Platform(llbutil.TargetPlatform))
+	dt, err := state.Marshal(ctx, llb.Platform(llbutil.TargetPlatform))
 	if err != nil {
 		return errors.Wrap(err, "state marshal")
 	}
@@ -158,7 +158,7 @@ func (s *solver) solveDockerTar(ctx context.Context, localDirs map[string]string
 }
 
 func (s *solver) solveArtifacts(ctx context.Context, localDirs map[string]string, state llb.State, outDir string) error {
-	dt, err := state.Marshal(llb.Platform(llbutil.TargetPlatform))
+	dt, err := state.Marshal(ctx, llb.Platform(llbutil.TargetPlatform))
 	if err != nil {
 		return errors.Wrap(err, "state marshal")
 	}
@@ -190,7 +190,7 @@ func (s *solver) solveArtifacts(ctx context.Context, localDirs map[string]string
 }
 
 func (s *solver) solveSideEffects(ctx context.Context, localDirs map[string]string, state llb.State, printDetailed bool) error {
-	dt, err := state.Marshal(llb.Platform(llbutil.TargetPlatform))
+	dt, err := state.Marshal(ctx, llb.Platform(llbutil.TargetPlatform))
 	if err != nil {
 		return errors.Wrap(err, "state marshal")
 	}

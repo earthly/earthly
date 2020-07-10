@@ -31,3 +31,19 @@
 ### VS Code syntax highlighting
 
 TODO
+
+### Using a fork of buildkit
+
+* Build a buildkit image with
+
+```bash
+DOCKER_BUILDKIT=1 docker build -t earthly/buildkit:fix-ssh-auth-sock --target buildkit-buildkitd-linux .
+```
+
+* Push it to docker hub
+
+```bash
+docker push earthly/buildkit:fix-ssh-auth-sock
+```
+
+* Use it in our own build, but pin it to a specific sha256, just in case.

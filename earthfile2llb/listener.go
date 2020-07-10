@@ -274,7 +274,11 @@ func (l *listener) ExitSaveArtifact(c *parser.SaveArtifactContext) {
 	}
 	saveFrom := l.stmtWords[0]
 
-	l.converter.SaveArtifact(l.ctx, saveFrom, saveTo, saveAsLocalTo)
+	err := l.converter.SaveArtifact(l.ctx, saveFrom, saveTo, saveAsLocalTo)
+	if err != nil {
+		l.err = errors.Wrap(err, "apply SAVE ARTIFACT")
+		return
+	}
 }
 
 func (l *listener) ExitSaveImage(c *parser.SaveImageContext) {

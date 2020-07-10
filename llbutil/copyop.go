@@ -1,10 +1,12 @@
 package llbutil
 
 import (
+	"context"
 	"path/filepath"
 	"strings"
 
 	"github.com/moby/buildkit/client/llb"
+	"github.com/pkg/errors"
 )
 
 // CopyOp is a simplified llb copy operation.
@@ -39,9 +41,13 @@ func CopyOp(srcState llb.State, srcs []string, destState llb.State, dest string,
 
 // Abs pre-pends the working dir to the given path, if the
 // path is relative.
-func Abs(s llb.State, p string) string {
+func Abs(ctx context.Context, s llb.State, p string) (string, error) {
 	if filepath.IsAbs(p) {
-		return p
+		return p, nil
 	}
-	return filepath.Join(s.GetDir(), p)
+	dir, err := s.GetDir(ctx)
+	if err != nil {
+		return "", errors.Wrap(err, "get dir")
+	}
+	return filepath.Join(dir, p), nil
 }
