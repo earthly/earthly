@@ -57,8 +57,8 @@ type cliFlags struct {
 	buildkitdImage      string
 	remoteCache         string
 	configPath          string
-	GitUsernameOverride string
-	GitPasswordOverride string
+	gitUsernameOverride string
+	gitPasswordOverride string
 }
 
 var (
@@ -168,7 +168,7 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 		},
 		&cli.StringFlag{
 			Name:        "config",
-			Value:       "~/earthly/config.yaml",
+			Value:       filepath.Join(os.Getenv("HOME"), ".earthly", "config.yaml"),
 			EnvVars:     []string{"EARTHLY_CONFIG"},
 			Usage:       "Path to config file for",
 			Destination: &app.configPath,
@@ -184,13 +184,13 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 			Name:        "git-username",
 			EnvVars:     []string{"GIT_USERNAME"},
 			Usage:       "The git username to use for git HTTPS authentication",
-			Destination: &app.GitUsernameOverride,
+			Destination: &app.gitUsernameOverride,
 		},
 		&cli.StringFlag{
 			Name:        "git-password",
 			EnvVars:     []string{"GIT_PASSWORD"},
 			Usage:       "The git password to use for git HTTPS authentication",
-			Destination: &app.GitPasswordOverride,
+			Destination: &app.gitPasswordOverride,
 		},
 		&cli.StringFlag{
 			Name:        "git-url-instead-of",
@@ -299,7 +299,7 @@ func (app *earthApp) parseConfigFile(context *cli.Context) error {
 	}
 
 	// command line overrides the config file
-	if app.GitUsernameOverride != "" || app.GitPasswordOverride != "" {
+	if app.gitUsernameOverride != "" || app.gitPasswordOverride != "" {
 		if _, ok := cfg.Git["github.com"]; !ok {
 			cfg.Git["github.com"] = config.GitConfig{}
 		}
@@ -309,11 +309,11 @@ func (app *earthApp) parseConfigFile(context *cli.Context) error {
 
 		for k, v := range cfg.Git {
 			v.Auth = "https"
-			if app.GitUsernameOverride != "" {
-				v.User = app.GitUsernameOverride
+			if app.gitUsernameOverride != "" {
+				v.User = app.gitUsernameOverride
 			}
-			if app.GitPasswordOverride != "" {
-				v.Password = app.GitPasswordOverride
+			if app.gitPasswordOverride != "" {
+				v.Password = app.gitPasswordOverride
 			}
 			cfg.Git[k] = v
 		}
