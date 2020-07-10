@@ -1,12 +1,12 @@
 package conslogging
 
 import (
-	"bytes"
 	"fmt"
 	"io"
 	"os"
 	"strings"
 	"sync"
+	"unicode/utf8"
 
 	"github.com/fatih/color"
 )
@@ -24,6 +24,7 @@ type ConsoleLogger struct {
 	prefixColors   map[string]*color.Color
 	nextColorIndex *int
 	w              io.Writer
+	trailingLine   bool
 }
 
 // Current returns the current console.
@@ -90,19 +91,36 @@ func (cl ConsoleLogger) Printf(format string, args ...interface{}) {
 
 // PrintBytes prints bytes directly to the console.
 func (cl ConsoleLogger) PrintBytes(data []byte) {
-	// TODO: This does not deal well with control characters, because of the prefix.
 	cl.mu.Lock()
 	defer cl.mu.Unlock()
-	if !bytes.Contains(data, []byte("\n")) {
-		// No prefix when it's not a complete line.
-		cl.w.Write(data)
-	} else {
-		adjustedData := bytes.TrimSuffix(data, []byte("\n"))
-		for _, line := range bytes.Split(adjustedData, []byte("\n")) {
-			cl.printPrefix()
-			cl.w.Write(line)
-			cl.w.Write([]byte("\n"))
+
+	output := make([]byte, 0, len(data))
+	for len(data) > 0 {
+		r, size := utf8.DecodeRune(data)
+		ch := data[:size]
+		data = data[size:]
+		switch r {
+		case '\r':
+			output = append(output, ch...)
+			cl.trailingLine = false
+		case '\n':
+			output = append(output, ch...)
+			cl.trailingLine = false
+		default:
+			if !cl.trailingLine {
+				if len(output) > 0 {
+					cl.w.Write(output)
+					output = output[:0]
+				}
+				cl.printPrefix()
+				cl.trailingLine = true
+			}
+			output = append(output, ch...)
 		}
+	}
+	if len(output) > 0 {
+		cl.w.Write(output)
+		output = output[:0]
 	}
 }
 
