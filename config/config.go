@@ -87,7 +87,7 @@ func CreateGitConfig(config *Config) (string, []string, error) {
 			lines = append(lines, fmt.Sprintf("[credential %q]", url))
 			lines = append(lines, fmt.Sprintf("  username=%q", v.User))
 			lines = append(lines, fmt.Sprintf("  helper=/usr/bin/git_credentials_%d", cred_i))
-			credentials = append(credentials, fmt.Sprintf("echo password=%q", v.Password))
+			credentials = append(credentials, v.Password)
 			cred_i++
 
 			// use https instead of ssh://git@....

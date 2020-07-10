@@ -212,7 +212,7 @@ func Start(ctx context.Context, image string, settings Settings, reset bool) err
 			"-e", fmt.Sprintf("GIT_CREDENTIALS_%d", i),
 		)
 		env = append(env,
-			fmt.Sprintf("GIT_CREDENTIALS_%d=%s", i, base64.StdEncoding.EncodeToString([]byte(data))),
+			fmt.Sprintf("GIT_CREDENTIALS_%d=%s", i, base64.StdEncoding.EncodeToString([]byte("password="+data))),
 		)
 	}
 
