@@ -42,7 +42,7 @@ do
     eval data=\$$varname
     if [ -n "$data" ]
     then
-        echo echo \$$varname \| base64 -d > /usr/bin/git_credentials_"$i"
+        echo 'echo $'$varname' | base64 -d' > /usr/bin/git_credentials_"$i"
         chmod +x /usr/bin/git_credentials_"$i"
     else
         break
