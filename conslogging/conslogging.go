@@ -94,7 +94,7 @@ func (cl ConsoleLogger) PrintBytes(data []byte) {
 	cl.mu.Lock()
 	defer cl.mu.Unlock()
 
-	output := []byte{}
+	output := make([]byte, 0, len(data))
 	for len(data) > 0 {
 		r, size := utf8.DecodeRune(data)
 		ch := data[:size]
@@ -110,7 +110,7 @@ func (cl ConsoleLogger) PrintBytes(data []byte) {
 			if !cl.trailingLine {
 				if len(output) > 0 {
 					cl.w.Write(output)
-					output = []byte{}
+					output = output[:0]
 				}
 				cl.printPrefix()
 				cl.trailingLine = true
@@ -120,7 +120,7 @@ func (cl ConsoleLogger) PrintBytes(data []byte) {
 	}
 	if len(output) > 0 {
 		cl.w.Write(output)
-		output = []byte{}
+		output = output[:0]
 	}
 }
 
