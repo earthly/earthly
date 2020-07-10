@@ -286,12 +286,12 @@ func (app *earthApp) parseConfigFile(context *cli.Context) error {
 	if os.IsNotExist(err) && !context.IsSet("config") {
 		yamlData = []byte{}
 	} else if err != nil {
-		return err
+		return errors.Wrapf(err, "failed to read from %s", app.configPath)
 	}
 
 	cfg, err := config.ParseConfigFile(yamlData)
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "failed to parse %s", app.configPath)
 	}
 
 	if cfg.Git == nil {
@@ -321,7 +321,7 @@ func (app *earthApp) parseConfigFile(context *cli.Context) error {
 
 	gitConfig, gitCredentials, err := config.CreateGitConfig(cfg)
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "failed to create git config from %s", app.configPath)
 	}
 
 	app.buildkitdSettings.GitConfig = gitConfig
