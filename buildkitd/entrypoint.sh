@@ -49,7 +49,7 @@ do
     fi
     i=$((i+1))
 done
-echo $GIT_CONFIG | base64 -d > /root/.gitconfig
+echo "$GIT_CONFIG" | base64 -d > /root/.gitconfig
 
 # Create an ext4 fs in a pre-allocated file. Ext4 will allow
 # us to use overlayfs snapshotter even when running on mac.
