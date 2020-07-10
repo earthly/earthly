@@ -343,7 +343,7 @@ func (app *earthApp) run(ctx context.Context, args []string) int {
 		if strings.Contains(err.Error(), "failed to fetch remote") {
 			app.console.Printf(
 				"Check your git auth settings.\n" +
-					"Did you ssh-add today? Need to specify GIT_USERNAME and GIT_PASSWORD?\n" +
+					"Did you ssh-add today? Need to configure ~/earthly/config.yaml?\n" +
 					"For more information see https://docs.earthly.dev/guides/auth\n")
 		}
 		return 1

@@ -68,6 +68,7 @@ require (
 	golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e
 	google.golang.org/api v0.0.0-20160322025152-9bf6e6e569ff // indirect
 	google.golang.org/cloud v0.0.0-20151119220103-975617b05ea8 // indirect
+	gopkg.in/yaml.v2 v2.2.8
 	k8s.io/kubernetes v1.13.0 // indirect
 )
 
