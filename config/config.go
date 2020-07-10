@@ -61,20 +61,21 @@ func CreateGitConfig(config *Config) (string, []string, error) {
 	}
 	sort.Strings(keys)
 
+	// TODO figure out how to get the URL rewritting working for the generic case for all URLs
 	// default
-	if v, ok := config.Git["default"]; ok {
-		if v.Auth == "https" {
-			lines = append(lines, fmt.Sprintf("[credential]"))
-			lines = append(lines, fmt.Sprintf("  username=%q", v.User))
-			lines = append(lines, fmt.Sprintf("  helper=/usr/bin/git_credentials_%d", cred_i))
-			credentials = append(credentials, fmt.Sprintf("echo password=%q", v.Password))
-			cred_i++
+	//if v, ok := config.Git["default"]; ok {
+	//	if v.Auth == "https" {
+	//		lines = append(lines, fmt.Sprintf("[credential]"))
+	//		lines = append(lines, fmt.Sprintf("  username=%q", v.User))
+	//		lines = append(lines, fmt.Sprintf("  helper=/usr/bin/git_credentials_%d", cred_i))
+	//		credentials = append(credentials, fmt.Sprintf("echo password=%q", v.Password))
+	//		cred_i++
 
-			// use https instead of ssh://git@....
-			lines = append(lines, fmt.Sprintf("[url \"https://\"]"))
-			lines = append(lines, fmt.Sprintf("  insteadOf = ssh://git@"))
-		}
-	}
+	//		// use https instead of ssh://git@....
+	//		lines = append(lines, fmt.Sprintf("[url \"https://\"]"))
+	//		lines = append(lines, fmt.Sprintf("  insteadOf = ssh://git@"))
+	//	}
+	//}
 
 	for _, k := range keys {
 		v := config.Git[k]
@@ -90,8 +91,8 @@ func CreateGitConfig(config *Config) (string, []string, error) {
 			cred_i++
 
 			// use https instead of ssh://git@....
-			lines = append(lines, fmt.Sprintf("[url %q]", url))
-			lines = append(lines, fmt.Sprintf("  insteadOf = ssh://git@%s", url[8:]))
+			lines = append(lines, fmt.Sprintf("[url %q]", url+"/"))
+			lines = append(lines, fmt.Sprintf("  insteadOf = git@%s:", url[8:]))
 		}
 	}
 

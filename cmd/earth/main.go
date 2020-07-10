@@ -300,8 +300,11 @@ func (app *earthApp) parseConfigFile(context *cli.Context) error {
 
 	// command line overrides the config file
 	if app.GitUsernameOverride != "" || app.GitPasswordOverride != "" {
-		if _, ok := cfg.Git["default"]; !ok {
-			cfg.Git["default"] = config.GitConfig{}
+		if _, ok := cfg.Git["github.com"]; !ok {
+			cfg.Git["github.com"] = config.GitConfig{}
+		}
+		if _, ok := cfg.Git["gitlab.com"]; !ok {
+			cfg.Git["gitlab.com"] = config.GitConfig{}
 		}
 
 		for k, v := range cfg.Git {
