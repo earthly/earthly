@@ -112,26 +112,16 @@ func (c *Collection) AddActive(name string, variable Variable, override bool) Va
 	return effective
 }
 
-// WithResetEnvVars returns a new collection with all env vars removed from the
-// collection and replaced with new ones. This operation does not modify the
-// current collection.
-func (c *Collection) WithResetEnvVars(newEnvVars []string) (*Collection, [][]string) {
+// WithResetEnvVars returns a copy of the current collection with all env vars
+// removed. This operation does not modify the current collection.
+func (c *Collection) WithResetEnvVars() *Collection {
 	ret := NewCollection()
 	for k, v := range c.variables {
 		if !v.IsEnvVar() {
 			ret.variables[k] = v
 		}
 	}
-	parsedEnvVars := make([][]string, 0, len(newEnvVars))
-	for _, env := range newEnvVars {
-		k, v := ParseKeyValue(env)
-		ret.variables[k] = NewConstantEnvVar(v)
-		ret.activeVariables[k] = true
-		parsedEnvVars = append(parsedEnvVars, []string{k, v})
-	}
-	// Returning parsedEnvVars as a slice of key-values, rather than a map for
-	// consistent ordering.
-	return ret, parsedEnvVars
+	return ret
 }
 
 // WithBuiltinBuildArgs returns a new collection containing the current variables together with
@@ -185,13 +175,8 @@ func (c *Collection) WithParseBuildArgs(args []string, pncvf ProcessNonConstantV
 	}
 
 	// Merge into a new collection.
-	ret := NewCollection()
 	// Copy existing, without env vars.
-	for key, ba := range c.variables {
-		if !ba.IsEnvVar() {
-			ret.variables[key] = ba
-		}
-	}
+	ret := c.WithResetEnvVars()
 	// Add the parsed ones too.
 	for key, ba := range toAdd {
 		if ba.IsEnvVar() {

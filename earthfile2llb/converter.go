@@ -778,9 +778,11 @@ func (c *Converter) internalFromClassical(ctx context.Context, imageName string,
 	allOpts := append(opts, llb.Platform(llbutil.TargetPlatform))
 	state := llb.Image(ref.String(), allOpts...)
 	// Reset variables.
-	newVarCollection, newEnvVars := c.varCollection.WithResetEnvVars(img.Config.Env)
-	for _, keyValue := range newEnvVars {
-		state = state.AddEnv(keyValue[0], keyValue[1])
+	newVarCollection := c.varCollection.WithResetEnvVars()
+	for _, envVar := range img.Config.Env {
+		k, v := variables.ParseKeyValue(envVar)
+		newVarCollection.AddActive(k, variables.NewConstantEnvVar(v), true)
+		state = state.AddEnv(k, v)
 	}
 	// Init config maps if not already initialized.
 	if img.Config.ExposedPorts == nil {
