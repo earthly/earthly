@@ -115,20 +115,22 @@ func (c *Collection) AddActive(name string, variable Variable, override bool) Va
 // WithResetEnvVars returns a new collection with all env vars removed from the
 // collection and replaced with new ones. This operation does not modify the
 // current collection.
-func (c *Collection) WithResetEnvVars(newEnvVars []string) (*Collection, map[string]string) {
+func (c *Collection) WithResetEnvVars(newEnvVars []string) (*Collection, [][]string) {
 	ret := NewCollection()
 	for k, v := range c.variables {
 		if !v.IsEnvVar() {
 			ret.variables[k] = v
 		}
 	}
-	parsedEnvVars := make(map[string]string)
+	parsedEnvVars := make([][]string, 0, len(newEnvVars))
 	for _, env := range newEnvVars {
 		k, v := ParseKeyValue(env)
 		ret.variables[k] = NewConstantEnvVar(v)
 		ret.activeVariables[k] = true
-		parsedEnvVars[k] = v
+		parsedEnvVars = append(parsedEnvVars, []string{k, v})
 	}
+	// Returning parsedEnvVars as a slice of key-values, rather than a map for
+	// consistent ordering.
 	return ret, parsedEnvVars
 }
 
@@ -164,10 +166,10 @@ func (c *Collection) WithBuiltinBuildArgs(target domain.Target, gitMeta *buildco
 	return ret
 }
 
-// ParseAndMergeBuildArgs takes in a slice of build args to be parsed and returns another collection
+// WithParseBuildArgs takes in a slice of build args to be parsed and returns another collection
 // containing the current build args, together with the newly parsed build args. This operation does
 // not modify the current collection.
-func (c *Collection) ParseAndMergeBuildArgs(args []string, pncvf ProcessNonConstantVariableFunc) (*Collection, error) {
+func (c *Collection) WithParseBuildArgs(args []string, pncvf ProcessNonConstantVariableFunc) (*Collection, error) {
 	// First, parse.
 	toAdd := make(map[string]Variable)
 	haveValues := make(map[string]bool)

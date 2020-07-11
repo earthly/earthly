@@ -370,7 +370,7 @@ func (c *Converter) Build(ctx context.Context, fullTargetName string, buildArgs 
 			target.LocalPath = c.mts.FinalStates.Target.LocalPath
 		}
 	}
-	newVarCollection, err := c.varCollection.ParseAndMergeBuildArgs(
+	newVarCollection, err := c.varCollection.WithParseBuildArgs(
 		buildArgs, c.processNonConstantBuildArgFunc(ctx))
 	if err != nil {
 		return nil, errors.Wrap(err, "parse build args")
@@ -779,8 +779,8 @@ func (c *Converter) internalFromClassical(ctx context.Context, imageName string,
 	state := llb.Image(ref.String(), allOpts...)
 	// Reset variables.
 	newVarCollection, newEnvVars := c.varCollection.WithResetEnvVars(img.Config.Env)
-	for k, v := range newEnvVars {
-		state = state.AddEnv(k, v)
+	for _, keyValue := range newEnvVars {
+		state = state.AddEnv(keyValue[0], keyValue[1])
 	}
 	// Init config maps if not already initialized.
 	if img.Config.ExposedPorts == nil {
