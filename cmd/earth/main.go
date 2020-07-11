@@ -498,7 +498,7 @@ func (app *earthApp) actionBuild(c *cli.Context) error {
 		return errors.Wrap(err, "new builder")
 	}
 
-	buildArgs, err := parseBuildArgs(app.buildArgs.Value())
+	varCollection, err := variables.ParseCommandLineBuildArgs(app.buildArgs.Value())
 	if err != nil {
 		return errors.Wrap(err, "parse build args")
 	}
@@ -506,7 +506,7 @@ func (app *earthApp) actionBuild(c *cli.Context) error {
 	defer cleanCollection.Close()
 	mts, err := earthfile2llb.Earthfile2LLB(
 		c.Context, target, resolver, b.BuildOnlyLastImageAsTar, cleanCollection,
-		nil, buildArgs)
+		nil, varCollection)
 	if err != nil {
 		return err
 	}
@@ -546,30 +546,6 @@ func (app *earthApp) newBuildkitdClient(ctx context.Context, opts ...client.Clie
 		return nil, errors.Wrap(err, "buildkitd new client (provided)")
 	}
 	return bkClient, nil
-}
-
-func appendBuiltinBuildArgs(buildArgs []string, target domain.Target) []string {
-	return buildArgs
-}
-
-func parseBuildArgs(buildArgs []string) (map[string]variables.Variable, error) {
-	out := make(map[string]variables.Variable)
-	for _, arg := range buildArgs {
-		splitArg := strings.SplitN(arg, "=", 2)
-		if len(splitArg) < 1 {
-			return nil, fmt.Errorf("Invalid build arg %s", splitArg)
-		}
-		key := splitArg[0]
-		value := ""
-		if len(splitArg) == 2 {
-			value = splitArg[1]
-		}
-		if value == "" {
-			value = os.Getenv(key)
-		}
-		out[key] = variables.NewConstant(value)
-	}
-	return out, nil
 }
 
 func processSecrets(secrets []string) session.Attachable {

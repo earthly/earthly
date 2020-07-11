@@ -9,7 +9,6 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
-	"sort"
 	"strings"
 	"time"
 
@@ -27,12 +26,13 @@ import (
 	"github.com/earthly/earthly/logging"
 	"github.com/moby/buildkit/client/llb"
 	"github.com/moby/buildkit/frontend/dockerfile/dockerfile2llb"
-	dfShell "github.com/moby/buildkit/frontend/dockerfile/shell"
 	"github.com/pkg/errors"
 )
 
 // DockerBuilderFun is a function able to build a target into a docker tar file.
 type DockerBuilderFun = func(ctx context.Context, mts *MultiTargetStates, dockerTag string, outFile string) error
+
+var _ commandInterpreter = (*Converter)(nil)
 
 // Converter turns earth commands to buildkit LLB representation.
 type Converter struct {
@@ -43,15 +43,14 @@ type Converter struct {
 	directDepIndices []int
 	buildContext     llb.State
 	cacheContext     llb.State
-	variables        map[string]variables.Variable
-	activeVariables  map[string]bool
+	varCollection    *variables.Collection
 	dockerBuilderFun DockerBuilderFun
 	cleanCollection  *cleanup.Collection
 	nextArgIndex     int
 }
 
 // NewConverter constructs a new converter for a given earth target.
-func NewConverter(ctx context.Context, target domain.Target, resolver *buildcontext.Resolver, dockerBuilderFun DockerBuilderFun, cleanCollection *cleanup.Collection, bc *buildcontext.Data, visitedStates map[string][]*SingleTargetStates, buildArgs map[string]variables.Variable) (*Converter, error) {
+func NewConverter(ctx context.Context, target domain.Target, resolver *buildcontext.Resolver, dockerBuilderFun DockerBuilderFun, cleanCollection *cleanup.Collection, bc *buildcontext.Data, visitedStates map[string][]*SingleTargetStates, varCollection *variables.Collection) (*Converter, error) {
 	sts := &SingleTargetStates{
 		Target: target,
 		TargetInput: dedup.TargetInput{
@@ -75,8 +74,7 @@ func NewConverter(ctx context.Context, target domain.Target, resolver *buildcont
 		mts:              mts,
 		buildContext:     bc.BuildContext,
 		cacheContext:     makeCacheContext(target),
-		variables:        withBuiltinBuildArgs(buildArgs, target, bc.GitMetadata),
-		activeVariables:  make(map[string]bool),
+		varCollection:    varCollection.WithBuiltinBuildArgs(target, bc.GitMetadata),
 		dockerBuilderFun: dockerBuilderFun,
 		cleanCollection:  cleanCollection,
 	}, nil
@@ -101,17 +99,7 @@ func (c *Converter) From(ctx context.Context, imageName string, buildArgs []stri
 }
 
 func (c *Converter) fromClassical(ctx context.Context, imageName string) error {
-	// Reset env vars.
-	var varsToRemove []string
-	for k, v := range c.variables {
-		if v.IsEnvVar() {
-			varsToRemove = append(varsToRemove, k)
-		}
-	}
-	for _, k := range varsToRemove {
-		delete(c.variables, k)
-	}
-	state, img, imgVariables, activeVariables, err := internalFromClassical(
+	state, img, newVariables, err := c.internalFromClassical(
 		ctx, imageName,
 		llb.WithCustomNamef("[%s] FROM %s", c.mts.FinalStates.Target.String(), imageName))
 	if err != nil {
@@ -119,10 +107,7 @@ func (c *Converter) fromClassical(ctx context.Context, imageName string) error {
 	}
 	c.mts.FinalStates.SideEffectsState = state
 	c.mts.FinalStates.SideEffectsImage = img
-	c.activeVariables = activeVariables
-	for k, v := range imgVariables {
-		c.variables[k] = v
-	}
+	c.varCollection = newVariables
 	return nil
 }
 
@@ -361,9 +346,11 @@ func (c *Converter) Build(ctx context.Context, fullTargetName string, buildArgs 
 			target.Tag = c.mts.FinalStates.Target.Tag
 			if target.IsLocalExternal() {
 				if path.IsAbs(target.LocalPath) {
-					return nil, fmt.Errorf("Absolute path %s not supported as reference in external target context", target.LocalPath)
+					return nil, fmt.Errorf(
+						"Absolute path %s not supported as reference in external target context", target.LocalPath)
 				}
-				target.ProjectPath = path.Join(c.mts.FinalStates.Target.ProjectPath, target.LocalPath)
+				target.ProjectPath = path.Join(
+					c.mts.FinalStates.Target.ProjectPath, target.LocalPath)
 				target.LocalPath = ""
 			} else if target.IsLocalInternal() {
 				target.LocalPath = ""
@@ -383,15 +370,15 @@ func (c *Converter) Build(ctx context.Context, fullTargetName string, buildArgs 
 			target.LocalPath = c.mts.FinalStates.Target.LocalPath
 		}
 	}
-	statementBuildArgsOverride, err := c.parseBuildArgs(ctx, buildArgs)
+	newVarCollection, err := c.varCollection.ParseAndMergeBuildArgs(
+		buildArgs, c.processNonConstantBuildArgFunc(ctx))
 	if err != nil {
 		return nil, errors.Wrap(err, "parse build args")
 	}
-	finalBuildArgsOverride := c.mergeBuildArgs(statementBuildArgsOverride)
 	// Recursion.
 	mts, err := Earthfile2LLB(
 		ctx, target, c.resolver, c.dockerBuilderFun, c.cleanCollection,
-		c.mts.VisitedStates, finalBuildArgsOverride)
+		c.mts.VisitedStates, newVarCollection)
 	if err != nil {
 		return nil, errors.Wrapf(err, "earthfile2llb for %s", fullTargetName)
 	}
@@ -481,10 +468,9 @@ func (c *Converter) Volume(ctx context.Context, volumes []string) {
 func (c *Converter) Env(ctx context.Context, envKey string, envValue string) {
 	envValue = c.expandArgs(envValue)
 	logging.GetLogger(ctx).With("env-key", envKey).With("env-value", envValue).Info("Applying ENV")
-	c.activeVariables[envKey] = true
-	c.variables[envKey] = variables.NewConstantEnvVar(envValue)
+	c.varCollection.AddActive(envKey, variables.NewConstantEnvVar(envValue), true)
 	c.mts.FinalStates.SideEffectsState = c.mts.FinalStates.SideEffectsState.AddEnv(envKey, envValue)
-	c.mts.FinalStates.SideEffectsImage.Config.Env = addEnv(
+	c.mts.FinalStates.SideEffectsImage.Config.Env = variables.AddEnv(
 		c.mts.FinalStates.SideEffectsImage.Config.Env, envKey, envValue)
 }
 
@@ -492,15 +478,10 @@ func (c *Converter) Env(ctx context.Context, envKey string, envValue string) {
 func (c *Converter) Arg(ctx context.Context, argKey string, defaultArgValue string) {
 	defaultArgValue = c.expandArgs(defaultArgValue)
 	logging.GetLogger(ctx).With("arg-key", argKey).With("arg-value", defaultArgValue).Info("Applying ARG")
-	variable, found := c.variables[argKey]
-	if !found {
-		variable = variables.NewConstant(defaultArgValue)
-		c.variables[argKey] = variable
-	}
-	c.activeVariables[argKey] = true
+	effective := c.varCollection.AddActive(argKey, variables.NewConstant(defaultArgValue), false)
 	c.mts.FinalStates.TargetInput.BuildArgs = append(
 		c.mts.FinalStates.TargetInput.BuildArgs,
-		variable.BuildArgInput(argKey, defaultArgValue))
+		effective.BuildArgInput(argKey, defaultArgValue))
 }
 
 // Label applies the LABEL command.
@@ -568,7 +549,7 @@ func (c *Converter) DockerLoad(ctx context.Context, targetName string, dockerTag
 func (c *Converter) DockerPull(ctx context.Context, dockerTag string) error {
 	dockerTag = c.expandArgs(dockerTag)
 	logging.GetLogger(ctx).With("dockerTag", dockerTag).Info("Applying DOCKER PULL")
-	state, image, _, _, err := internalFromClassical(
+	state, image, _, err := c.internalFromClassical(
 		ctx, dockerTag,
 		llb.WithCustomNamef(
 			"[%s] DOCKER PULL %s", c.mts.FinalStates.Target.String(), dockerTag),
@@ -663,8 +644,8 @@ func (c *Converter) internalRun(ctx context.Context, args []string, secretKeyVal
 		// TODO: The use of cat here might not be portable.
 		extraEnvVars = append(extraEnvVars, fmt.Sprintf("%s=\"$(cat %s)\"", envVar, secretPath))
 	}
-	for _, buildArgName := range c.sortedActiveVariables() {
-		ba := c.variables[buildArgName]
+	for _, buildArgName := range c.varCollection.SortedActiveVariables() {
+		ba, _, _ := c.varCollection.Get(buildArgName)
 		if ba.IsEnvVar() {
 			continue
 		}
@@ -761,16 +742,16 @@ func (c *Converter) solveAndLoad(ctx context.Context, mts *MultiTargetStates, op
 	return nil
 }
 
-func internalFromClassical(ctx context.Context, imageName string, opts ...llb.ImageOption) (llb.State, *image.Image, map[string]variables.Variable, map[string]bool, error) {
+func (c *Converter) internalFromClassical(ctx context.Context, imageName string, opts ...llb.ImageOption) (llb.State, *image.Image, *variables.Collection, error) {
 	logging.GetLogger(ctx).With("image", imageName).Info("Applying FROM")
 	if imageName == "scratch" {
 		// FROM scratch
 		return llb.Scratch().Platform(llbutil.TargetPlatform), image.NewImage(),
-			make(map[string]variables.Variable), make(map[string]bool), nil
+			variables.NewCollection(), nil
 	}
 	ref, err := reference.ParseNormalizedNamed(imageName)
 	if err != nil {
-		return llb.State{}, nil, nil, nil, errors.Wrapf(err, "parse normalized named %s", imageName)
+		return llb.State{}, nil, nil, errors.Wrapf(err, "parse normalized named %s", imageName)
 	}
 	baseImageName := reference.TagNameOnly(ref).String()
 	metaResolver := imr.Default()
@@ -781,30 +762,25 @@ func internalFromClassical(ctx context.Context, imageName string, opts ...llb.Im
 			ResolveMode: llb.ResolveModePreferLocal.String(),
 		})
 	if err != nil {
-		return llb.State{}, nil, nil, nil, errors.Wrapf(err, "resolve image config for %s", imageName)
+		return llb.State{}, nil, nil, errors.Wrapf(err, "resolve image config for %s", imageName)
 	}
 	var img image.Image
 	err = json.Unmarshal(dt, &img)
 	if err != nil {
-		return llb.State{}, nil, nil, nil, errors.Wrapf(err, "unmarshal image config for %s", imageName)
+		return llb.State{}, nil, nil, errors.Wrapf(err, "unmarshal image config for %s", imageName)
 	}
 	if dgst != "" {
 		ref, err = reference.WithDigest(ref, dgst)
 		if err != nil {
-			return llb.State{}, nil, nil, nil, errors.Wrapf(err, "reference add digest %v for %s", dgst, imageName)
+			return llb.State{}, nil, nil, errors.Wrapf(err, "reference add digest %v for %s", dgst, imageName)
 		}
 	}
 	allOpts := append(opts, llb.Platform(llbutil.TargetPlatform))
 	state := llb.Image(ref.String(), allOpts...)
-	// Reset active state for build args and env vars.
-	imgVariables := make(map[string]variables.Variable)
-	activeVariables := make(map[string]bool)
-	// Pick up env vars from image config.
-	for _, env := range img.Config.Env {
-		k, v := parseKeyValue(env)
+	// Reset variables.
+	newVarCollection, newEnvVars := c.varCollection.WithResetEnvVars(img.Config.Env)
+	for k, v := range newEnvVars {
 		state = state.AddEnv(k, v)
-		imgVariables[k] = variables.NewConstantEnvVar(v)
-		activeVariables[k] = true
 	}
 	// Init config maps if not already initialized.
 	if img.Config.ExposedPorts == nil {
@@ -825,159 +801,44 @@ func internalFromClassical(ctx context.Context, imageName string, opts ...llb.Im
 	// No need to apply entrypoint, cmd, volumes and others.
 	// The fact that they exist in the image configuration is enough.
 	// TODO: Apply any other settings? Shell?
-	return state, &img, imgVariables, activeVariables, nil
+	return state, &img, newVarCollection, nil
 }
 
 func (c *Converter) expandArgs(word string) string {
-	shlex := dfShell.NewLex('\\')
-	argsMap := make(map[string]string)
-	for varName := range c.activeVariables {
-		variable := c.variables[varName]
-		if !variable.IsConstant() || variable.IsEnvVar() {
-			continue
-		}
-		argsMap[varName] = variable.ConstantValue()
-	}
-	ret, err := shlex.ProcessWordWithMap(word, argsMap)
-	if err != nil {
-		// No effect if there is an error.
-		return word
-	}
-	return ret
+	return c.varCollection.Expand(word)
 }
 
-func (c *Converter) sortedActiveVariables() []string {
-	varNames := make([]string, 0, len(c.activeVariables))
-	for varName := range c.activeVariables {
-		varNames = append(varNames, varName)
-	}
-	sort.Strings(varNames)
-	return varNames
-}
-
-func (c *Converter) parseBuildArgs(ctx context.Context, args []string) (map[string]variables.Variable, error) {
-	out := make(map[string]variables.Variable)
-	for _, arg := range args {
-		name, variable, err := c.parseBuildArg(ctx, arg)
+func (c *Converter) processNonConstantBuildArgFunc(ctx context.Context) variables.ProcessNonConstantVariableFunc {
+	return func(name string, expression string) (llb.State, dedup.TargetInput, int, error) {
+		// Run the expression on the side effects state.
+		srcBuildArgDir := "/run/buildargs-src"
+		srcBuildArgPath := path.Join(srcBuildArgDir, name)
+		c.mts.FinalStates.SideEffectsState = c.mts.FinalStates.SideEffectsState.File(
+			llb.Mkdir(srcBuildArgDir, 0755, llb.WithParents(true)),
+			llb.WithCustomNamef("[internal] mkdir %s", srcBuildArgDir))
+		buildArgPath := path.Join("/run/buildargs", name)
+		args := strings.Split(fmt.Sprintf("echo \"%s\" >%s", expression, srcBuildArgPath), " ")
+		err := c.internalRun(
+			ctx, args, []string{}, false, true, false, expression,
+			llb.WithCustomNamef("[%s] RUN %s", c.mts.FinalStates.Target.String(), expression))
 		if err != nil {
-			return nil, errors.Wrapf(err, "parse build arg %s", arg)
+			return llb.State{}, dedup.TargetInput{}, 0, errors.Wrapf(err, "run %v", expression)
 		}
-		out[name] = variable
-	}
-	return out, nil
-}
+		// Copy the result of the expression into a separate, isolated state.
+		buildArgState := llb.Scratch().Platform(llbutil.TargetPlatform)
+		buildArgState = llbutil.CopyOp(
+			c.mts.FinalStates.SideEffectsState, []string{srcBuildArgPath}, buildArgState, buildArgPath, false, false,
+			llb.WithCustomNamef("[internal] copy buildarg %s", name))
+		// Store the state with the expression result for later use.
+		argIndex := c.nextArgIndex
+		c.nextArgIndex++
+		// Remove intermediary file from side effects state.
+		c.mts.FinalStates.SideEffectsState = c.mts.FinalStates.SideEffectsState.File(
+			llb.Rm(srcBuildArgPath, llb.WithAllowNotFound(true)),
+			llb.WithCustomNamef("[internal] rm %s", srcBuildArgPath))
 
-func (c *Converter) parseBuildArg(ctx context.Context, arg string) (string, variables.Variable, error) {
-	var name string
-	splitArg := strings.SplitN(arg, "=", 2)
-	if len(splitArg) < 1 {
-		return "", variables.Variable{}, fmt.Errorf("Invalid build arg %s", splitArg)
+		return buildArgState, c.mts.FinalStates.TargetInput, argIndex, nil
 	}
-	name = splitArg[0]
-	value := ""
-	if len(splitArg) == 2 {
-		value = splitArg[1]
-	}
-	if !strings.HasPrefix(value, "$") {
-		// Constant build arg.
-		return name, variables.NewConstant(value), nil
-	}
-
-	// Variable build arg.
-	// Run the expression on the side effects state.
-	srcBuildArgDir := "/run/buildargs-src"
-	srcBuildArgPath := path.Join(srcBuildArgDir, name)
-	c.mts.FinalStates.SideEffectsState = c.mts.FinalStates.SideEffectsState.File(
-		llb.Mkdir(srcBuildArgDir, 0755, llb.WithParents(true)),
-		llb.WithCustomNamef("[internal] mkdir %s", srcBuildArgDir))
-	buildArgPath := path.Join("/run/buildargs", name)
-	args := strings.Split(fmt.Sprintf("echo \"%s\" >%s", value, srcBuildArgPath), " ")
-	err := c.internalRun(
-		ctx, args, []string{}, false, true, false, value,
-		llb.WithCustomNamef("[%s] RUN %s", c.mts.FinalStates.Target.String(), value))
-	if err != nil {
-		return "", variables.Variable{}, errors.Wrapf(err, "run %v", value)
-	}
-	// Copy the result of the expression into a separate, isolated state.
-	buildArgState := llb.Scratch().Platform(llbutil.TargetPlatform)
-	buildArgState = llbutil.CopyOp(
-		c.mts.FinalStates.SideEffectsState, []string{srcBuildArgPath}, buildArgState, buildArgPath, false, false,
-		llb.WithCustomNamef("[internal] copy buildarg %s", name))
-	// Store the state with the expression result for later use.
-	argIndex := c.nextArgIndex
-	c.nextArgIndex++
-	ret := variables.NewVariable(buildArgState, c.mts.FinalStates.TargetInput, argIndex)
-
-	// Remove intermediary file from side effects state.
-	c.mts.FinalStates.SideEffectsState = c.mts.FinalStates.SideEffectsState.File(
-		llb.Rm(srcBuildArgPath, llb.WithAllowNotFound(true)),
-		llb.WithCustomNamef("[internal] rm %s", srcBuildArgPath))
-	return name, ret, nil
-}
-
-func (c *Converter) mergeBuildArgs(addArgs map[string]variables.Variable) map[string]variables.Variable {
-	out := make(map[string]variables.Variable)
-	for key, ba := range c.variables {
-		if ba.IsEnvVar() {
-			continue
-		}
-		out[key] = ba
-	}
-	for key, ba := range addArgs {
-		if ba.IsEnvVar() {
-			continue
-		}
-		var finalValue variables.Variable
-		if ba.IsConstant() {
-			if ba.ConstantValue() == "" {
-				existing, found := c.variables[key]
-				if found {
-					if existing.IsEnvVar() {
-						finalValue = variables.NewConstant(existing.ConstantValue())
-					} else {
-						finalValue = existing
-					}
-				} else {
-					finalValue = ba
-				}
-			} else {
-				finalValue = ba
-			}
-		} else {
-			finalValue = ba
-		}
-		out[key] = finalValue
-	}
-	return out
-}
-
-func withBuiltinBuildArgs(buildArgs map[string]variables.Variable, target domain.Target, gitMeta *buildcontext.GitMetadata) map[string]variables.Variable {
-	buildArgsCopy := make(map[string]variables.Variable)
-	for k, v := range buildArgs {
-		buildArgsCopy[k] = v
-	}
-	buildArgsCopy["EARTHLY_TARGET"] = variables.NewConstant(target.StringCanonical())
-	buildArgsCopy["EARTHLY_TARGET_PROJECT"] = variables.NewConstant(target.ProjectCanonical())
-	buildArgsCopy["EARTHLY_TARGET_NAME"] = variables.NewConstant(target.Target)
-	buildArgsCopy["EARTHLY_TARGET_TAG"] = variables.NewConstant(target.Tag)
-
-	if gitMeta != nil {
-		// The following ends up being "" if no git metadata is detected.
-		buildArgsCopy["EARTHLY_GIT_HASH"] = variables.NewConstant(gitMeta.Hash)
-		branch := ""
-		if len(gitMeta.Branch) > 0 {
-			branch = gitMeta.Branch[0]
-		}
-		buildArgsCopy["EARTHLY_GIT_BRANCH"] = variables.NewConstant(branch)
-		tag := ""
-		if len(gitMeta.Tags) > 0 {
-			tag = gitMeta.Tags[0]
-		}
-		buildArgsCopy["EARTHLY_GIT_TAG"] = variables.NewConstant(tag)
-		buildArgsCopy["EARTHLY_GIT_ORIGIN_URL"] = variables.NewConstant(gitMeta.RemoteURL)
-		buildArgsCopy["EARTHLY_GIT_PROJECT_NAME"] = variables.NewConstant(gitMeta.GitProject)
-	}
-	return buildArgsCopy
 }
 
 func withDependency(state llb.State, target domain.Target, depState llb.State, depTarget domain.Target) llb.State {

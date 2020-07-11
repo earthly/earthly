@@ -17,7 +17,7 @@ import (
 )
 
 // Earthfile2LLB parses a earthfile and executes the statements for a given target.
-func Earthfile2LLB(ctx context.Context, target domain.Target, resolver *buildcontext.Resolver, dockerBuilderFun DockerBuilderFun, cleanCollection *cleanup.Collection, visitedStates map[string][]*SingleTargetStates, buildArgs map[string]variables.Variable) (mts *MultiTargetStates, err error) {
+func Earthfile2LLB(ctx context.Context, target domain.Target, resolver *buildcontext.Resolver, dockerBuilderFun DockerBuilderFun, cleanCollection *cleanup.Collection, visitedStates map[string][]*SingleTargetStates, varCollection *variables.Collection) (mts *MultiTargetStates, err error) {
 	if visitedStates == nil {
 		visitedStates = make(map[string][]*SingleTargetStates)
 	}
@@ -30,7 +30,7 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, resolver *buildcon
 				return nil, fmt.Errorf(
 					"Use of recursive targets with variable build args is not supported: %s", targetStr)
 			}
-			variable, found := buildArgs[bai.Name]
+			variable, _, found := varCollection.Get(bai.Name)
 			if found {
 				if !variable.BuildArgInput(bai.Name, bai.DefaultValue).Equals(bai) {
 					same = false
@@ -70,7 +70,7 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, resolver *buildcon
 	}
 	converter, err := NewConverter(
 		targetCtx, bc.Target, resolver, dockerBuilderFun, cleanCollection, bc,
-		visitedStates, buildArgs)
+		visitedStates, varCollection)
 	if err != nil {
 		return nil, err
 	}
