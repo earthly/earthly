@@ -27,6 +27,7 @@
     --secret GITHUB_TOKEN \
     --push ./release+release-homebrew
   ```
+* Merge branch `next` into `master`.
 
 ### VS Code syntax highlighting
 
