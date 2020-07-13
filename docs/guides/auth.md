@@ -38,16 +38,27 @@ Another key setting available, is `GIT_URL_INSTEAD_OF`. It allows for `https://g
 
 #### Username-password authentication
 
-Username-password based authentication works by specifying the following environment variables
+Username-password based authentication can be configured in the [earthly config file](../earth-config/earth-config.md) under the git section: 
+
+```yaml
+git:
+    github.com:
+        auth: https
+        user: <username>
+        password: <password>
+    gitlab.com:
+        auth: https
+        user: <username>
+        password: <password>
+
+```
+
+Alternatively, environment variables can be set which will be override all host entries from the config file:
 
 * `GIT_USERNAME`
 * `GIT_PASSWORD`
 
-And additionally overriding the setting `GIT_URL_INSTEAD_OF` to force `git@github.com` URLs to be interpreted as `https://github.com` URLs:
-
-```bash
-export GIT_URL_INSTEAD_OF='https://github.com/=git@github.com:'
-```
+However, environment variable authentication are now deprecated in favor of using the configuration file instead.
 
 ## Docker authentication
 

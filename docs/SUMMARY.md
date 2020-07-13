@@ -11,6 +11,7 @@
 * [Earthfile reference](earthfile/earthfile.md)
     * [Builtin args](earthfile/builtin-args.md)
 * [earth command reference](earth-command/earth-command.md)
+* [Configuration reference](earth-config/earth-config.md)
 * [Examples](examples/examples.md)
     * [Go](examples/go.md)
     * [Java](examples/java.md)
