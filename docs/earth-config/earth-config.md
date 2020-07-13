@@ -36,7 +36,7 @@ git:
 
 ### site
 
-The git repo hostname; e.g. `github.com`, or `gitlab.com`
+The git repository hostname. For example `github.com`, or `gitlab.com`
 
 ### auth
 
