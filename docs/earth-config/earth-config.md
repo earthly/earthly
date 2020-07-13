@@ -51,4 +51,4 @@ The https username to use when auth is set to `https`. This setting is ignored w
 
 ### password
 
-The https password to use when auth is set to https; this is ignored when auth is ssh.
+The https password to use when auth is set to `https`. This setting is ignored when auth is `ssh`.
