@@ -6,7 +6,7 @@ By default, earth reads the configuration file `~/.earthly/config.yaml`; however
 overridden with the `--config` command flag option.
 
 Currently only https authentication configuration is configured in the config file; ssh authentication
-is additionally supported (and the default when the no overrides have been configured)
+is additionally [supported](../guides/auth.md) (and the default when the no overrides have been configured).
 
 ## Format
 
