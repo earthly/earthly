@@ -43,7 +43,7 @@ The git repo hostname; e.g. `github.com`, or `gitlab.com`
 Either `https` or `ssh` (default). If https is specified, user and password fields are used
 to authenticate over https when pulling from git for the corresponding site.
 
-See the [Authentication guide](guides/auth.md) for a guide on setting up authentication.
+See the [Authentication guide](../guides/auth.md) for a guide on setting up authentication.
 
 ### user
 
@@ -52,4 +52,3 @@ The https username to use when auth is set to https; this is ignored when auth i
 ### password
 
 The https password to use when auth is set to https; this is ignored when auth is ssh.
-
