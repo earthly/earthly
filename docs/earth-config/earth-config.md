@@ -47,7 +47,7 @@ See the [Authentication guide](../guides/auth.md) for a guide on setting up auth
 
 ### user
 
-The https username to use when auth is set to https; this is ignored when auth is ssh.
+The https username to use when auth is set to `https`. This setting is ignored when auth is `ssh`.
 
 ### password
 
