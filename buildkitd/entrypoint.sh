@@ -23,17 +23,6 @@ buildkit_cache_size_mb=$(( CACHE_SIZE_MB - 1000 ))
 sed 's^:BUILDKIT_ROOT_DIR:^'"$BUILDKIT_ROOT_DIR"'^g; s/:CACHE_SIZE_MB:/'"$buildkit_cache_size_mb"'/g' \
     /etc/buildkitd.toml.template > /etc/buildkitd.toml
 
-if [ -n "$GIT_URL_INSTEAD_OF" ]; then
-    # GIT_URL_INSTEAD_OF can support multiple comma-separated values
-    for instead_of in $(echo "${GIT_URL_INSTEAD_OF}" | sed "s/,/ /g")
-    do
-        base="${instead_of%%=*}"
-        insteadOf="${instead_of#*=}"
-        git config --global url."$base".insteadOf "$insteadOf"
-    done
-
-fi
-
 # setup git credentials and config
 i=0
 while true
@@ -50,6 +39,17 @@ do
     i=$((i+1))
 done
 echo "$EARTH_GIT_CONFIG" | base64 -d > /root/.gitconfig
+
+if [ -n "$GIT_URL_INSTEAD_OF" ]; then
+    # GIT_URL_INSTEAD_OF can support multiple comma-separated values
+    for instead_of in $(echo "${GIT_URL_INSTEAD_OF}" | sed "s/,/ /g")
+    do
+        base="${instead_of%%=*}"
+        insteadOf="${instead_of#*=}"
+        git config --global url."$base".insteadOf "$insteadOf"
+    done
+
+fi
 
 # Create an ext4 fs in a pre-allocated file. Ext4 will allow
 # us to use overlayfs snapshotter even when running on mac.
