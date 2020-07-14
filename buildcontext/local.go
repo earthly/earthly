@@ -49,8 +49,12 @@ func (lr *localResolver) resolveLocal(ctx context.Context, target domain.Target)
 		lr.gitMetaCache[target.LocalPath] = metadata
 	}
 
+	earthfilePath, err := detectEarthfile(target.String(), filepath.FromSlash(target.LocalPath))
+	if err != nil {
+		return nil, err
+	}
 	return &Data{
-		EarthfilePath: filepath.Join(filepath.FromSlash(target.LocalPath), "build.earth"),
+		EarthfilePath: earthfilePath,
 		BuildContext: llb.Local(
 			target.LocalPath,
 			llb.SharedKeyHint(target.LocalPath),

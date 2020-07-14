@@ -30,7 +30,7 @@ type gitResolver struct {
 }
 
 type resolvedGitProject struct {
-	// localGitDir is where the git dir exists locally (only build.earth files).
+	// localGitDir is where the git dir exists locally (only Earthfile and build.earth files).
 	localGitDir string
 	// gitProject is the git project identifier. For GitHub, this is <username>/<project>.
 	gitProject string
@@ -66,10 +66,14 @@ func (gr *gitResolver) resolveEarthProject(ctx context.Context, target domain.Ta
 	}
 
 	// TODO: Apply excludes / .earthignore.
+	localEarthfileDir := filepath.Join(rgp.localGitDir, filepath.FromSlash(subDir))
+	earthfilePath, err := detectEarthfile(target.String(), localEarthfileDir)
+	if err != nil {
+		return nil, err
+	}
 	return &Data{
-		EarthfilePath: filepath.Join(
-			rgp.localGitDir, filepath.FromSlash(subDir), "build.earth"),
-		BuildContext: buildContext,
+		EarthfilePath: earthfilePath,
+		BuildContext:  buildContext,
 		GitMetadata: &GitMetadata{
 			BaseDir:    "",
 			RelDir:     subDir,
@@ -102,7 +106,7 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, target domain.Targ
 	}
 	// Not cached.
 
-	// Copy all build.earth files.
+	// Copy all Earthfile and build.earth files.
 	gitOpts := []llb.GitOption{
 		llb.WithCustomNamef("[context] GIT CLONE %s", gitURL),
 		llb.KeepGitDir(),
@@ -112,13 +116,13 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, target domain.Targ
 		llb.Args([]string{
 			"find",
 			"-type", "f",
-			"-name", "build.earth",
+			"(", "-name", "build.earth", "-o", "-name", "Earthfile", ")",
 			"-exec", "cp", "--parents", "{}", "/dest", ";",
 		}),
 		llb.Dir("/git-src"),
 		llb.ReadonlyRootFS(),
 		llb.AddMount("/git-src", gitState, llb.Readonly),
-		llb.WithCustomNamef("COPY GIT CLONE %s build.earth", target.ProjectCanonical()),
+		llb.WithCustomNamef("COPY GIT CLONE %s Earthfile", target.ProjectCanonical()),
 	}
 	opImg := llb.Image(
 		defaultGitImage, llb.MarkImageInternal,
@@ -145,11 +149,11 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, target domain.Targ
 	// Build.
 	dt, err := gitMetaAndEarthfileState.Marshal(ctx, llb.LinuxAmd64)
 	if err != nil {
-		return nil, "", "", errors.Wrapf(err, "get build.earth from %s", target.ProjectCanonical())
+		return nil, "", "", errors.Wrapf(err, "get Earthfile from %s", target.ProjectCanonical())
 	}
 	earthfileTmpDir, err := ioutil.TempDir("/tmp", "earthly-git")
 	if err != nil {
-		return nil, "", "", errors.Wrap(err, "create temp dir for build.earth")
+		return nil, "", "", errors.Wrap(err, "create temp dir for Earthfile")
 	}
 	defer func() {
 		if finalErr != nil {
@@ -259,7 +263,10 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, target domain.Targ
 func (gr *gitResolver) close() error {
 	var lastErr error
 	for _, rgp := range gr.projectCache {
-		lastErr = os.RemoveAll(rgp.localGitDir)
+		err := os.RemoveAll(rgp.localGitDir)
+		if err != nil {
+			lastErr = err
+		}
 	}
 	if lastErr != nil {
 		return errors.Wrap(lastErr, "remove temp git dir")
