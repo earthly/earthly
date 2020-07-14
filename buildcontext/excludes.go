@@ -15,6 +15,7 @@ const EarthIgnoreFile = ".earthignore"
 var ImplicitExcludes = []string{
 	".tmp-earth-out/",
 	"build.earth",
+	"Earthfile",
 	EarthIgnoreFile,
 }
 

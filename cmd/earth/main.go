@@ -244,8 +244,8 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 	app.cliApp.Commands = []*cli.Command{
 		{
 			Name:        "debug",
-			Usage:       "Print debug information about a build.earth file",
-			Description: "Print debug information about a build.earth file",
+			Usage:       "Print debug information about an Earthfile",
+			Description: "Print debug information about an Earthfile",
 			ArgsUsage:   "[<path>]",
 			Hidden:      true,
 			Action:      app.actionDebug,
@@ -359,7 +359,7 @@ func (app *earthApp) actionDebug(c *cli.Context) error {
 	if c.NArg() == 1 {
 		path = c.Args().First()
 	}
-	path = filepath.Join(path, "build.earth")
+	path = filepath.Join(path, "Earthfile")
 
 	err := earthfile2llb.ParseDebug(path)
 	if err != nil {

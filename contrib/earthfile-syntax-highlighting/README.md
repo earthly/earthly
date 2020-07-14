@@ -1,6 +1,6 @@
 # earthfile-syntax-highlighting README
 
-Syntax highlighting for Earthly build earthfile's (`build.earth`).
+Syntax highlighting for Earthly build Earthfiles.
 
 ![Earthfile Syntax Highlighting](https://github.com/earthly/earthly/raw/master/images/vscode-plugin.png)
 
@@ -16,4 +16,5 @@ Add screenshot in the README.
 
 ### 0.0.3
 
-Add highlighting for `HEALTHCHECK`.
+* Add highlighting for `HEALTHCHECK`.
+* Switch from `build.earth` to `Earthfile`.

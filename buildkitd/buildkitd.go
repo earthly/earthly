@@ -201,10 +201,11 @@ func Start(ctx context.Context, image string, settings Settings, reset bool) err
 	}
 
 	args = append(args,
-		"-e", "GIT_CONFIG",
+		"-e", "EARTHLY_GIT_CONFIG",
+		"-e", fmt.Sprintf("GIT_URL_INSTEAD_OF=%s", settings.GitURLInsteadOf),
 	)
 	env = append(env,
-		fmt.Sprintf("GIT_CONFIG=%s", base64.StdEncoding.EncodeToString([]byte(settings.GitConfig))),
+		fmt.Sprintf("EARTHLY_GIT_CONFIG=%s", base64.StdEncoding.EncodeToString([]byte(settings.GitConfig))),
 	)
 
 	for i, data := range settings.GitCredentials {
