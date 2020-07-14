@@ -38,7 +38,7 @@ do
     fi
     i=$((i+1))
 done
-echo "$EARTH_GIT_CONFIG" | base64 -d > /root/.gitconfig
+echo "$EARTHLY_GIT_CONFIG" | base64 -d > /root/.gitconfig
 
 if [ -n "$GIT_URL_INSTEAD_OF" ]; then
     # GIT_URL_INSTEAD_OF can support multiple comma-separated values
