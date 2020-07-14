@@ -1,6 +1,8 @@
 # Earthfile reference
 
-Earthfiles are comprised of a series of target declarations and recipe definitions. Earthfiles are always named `build.earth`, regardless of their location in the codebase. Earthfiles have the following rough structure:
+Earthfiles are comprised of a series of target declarations and recipe definitions. Earthfiles are named `Earthfile`, regardless of their location in the codebase. For backwards compatibility, the name `build.earth` is also permitted. This compatibility will be removed in a future version.
+
+Earthfiles have the following rough structure:
 
 ```
 ...
@@ -52,7 +54,7 @@ COPY --from=build ./a-file ./
 can become
 
 ```Dockerfile
-# build.earth
+# Earthfile
 
 build:
     FROM alpine:3.11
@@ -244,7 +246,7 @@ COPY --from=some-image /path/to/some-file.txt ./
 ... would be equivalent to `final-target` in the following Earthfile
 
 ```Dockerfile
-# build.earth
+# Earthfile
 intermediate:
     FROM some-image
     SAVE ARTIFACT /path/to/some-file.txt

@@ -3,7 +3,7 @@
 A complete JavaScript example is available on [the Basics page](../guides/basics.md).
 
 ```Dockerfile
-# build.earth
+# Earthfile
 
 FROM node:13.10.1-alpine3.11
 WORKDIR /js-example

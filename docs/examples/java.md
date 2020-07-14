@@ -3,7 +3,7 @@
 A complete Java example is available on [the Basics page](../guides/basics.md).
 
 ```Dockerfile
-# build.earth
+# Earthfile
 
 FROM openjdk:8-jdk-alpine
 RUN apk add --update --no-cache gradle

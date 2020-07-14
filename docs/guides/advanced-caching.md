@@ -5,7 +5,7 @@ In this article we're going to discuss various caching techniques that may be us
 We will discuss a specific example where dependencies are cached using multiple techniques. Let's take the following build for instance
 
 ```Dockerfile
-# build.earth
+# Earthfile
 
 FROM openjdk:8-jdk-alpine
 RUN apk add --update --no-cache gradle
@@ -27,7 +27,7 @@ If we ran this every time we changed the code, then the build would end up downl
 One option is to use layer-based caching to first download all dependencies and only afterwards to copy the code and build it. Thus, when the code changes, the cache is bust after the step where we download dependencies.
 
 ```Dockerfile
-# build.earth
+# Earthfile
 
 FROM openjdk:8-jdk-alpine
 RUN apk add --update --no-cache gradle
@@ -54,7 +54,7 @@ Consider, for instance, a situation where the dependencies themselves change fre
 For these cases, the build could use a cache mount. A cache mount is a volume that gets attached to a `RUN` command and is persisted and shared between runs.
 
 ```Dockerfile
-# build.earth
+# Earthfile
 
 FROM openjdk:8-jdk-alpine
 RUN apk add --update --no-cache gradle
