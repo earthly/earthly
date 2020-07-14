@@ -116,7 +116,7 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, target domain.Targ
 		llb.Args([]string{
 			"find",
 			"-type", "f",
-			"-name", "build.earth", "-o", "-name", "Earthfile",
+			"(", "-name", "build.earth", "-o", "-name", "Earthfile", ")",
 			"-exec", "cp", "--parents", "{}", "/dest", ";",
 		}),
 		llb.Dir("/git-src"),
@@ -263,7 +263,10 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, target domain.Targ
 func (gr *gitResolver) close() error {
 	var lastErr error
 	for _, rgp := range gr.projectCache {
-		lastErr = os.RemoveAll(rgp.localGitDir)
+		err := os.RemoveAll(rgp.localGitDir)
+		if err != nil {
+			lastErr = err
+		}
 	}
 	if lastErr != nil {
 		return errors.Wrap(lastErr, "remove temp git dir")
