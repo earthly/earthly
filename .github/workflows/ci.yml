@@ -29,5 +29,7 @@ jobs:
       run: "sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/latest/download/earth-linux-amd64 -O /usr/local/bin/earth && chmod +x /usr/local/bin/earth'"
     - name: Earth version
       run: earth --version
-    - name: Run build
-      run: earth --push -P +test
+    - name: Build
+      run: earth +all
+    - name: Build, test, push
+      run: ./build/linux/amd64/earth --push -P +test
