@@ -1,7 +1,7 @@
 {
     "name": "earthfile-syntax-highlighting",
     "displayName": "Earthfile Syntax Highlighting",
-    "description": "Syntax highlighting for Earthly build earthfiles (build.earth).",
+    "description": "Syntax highlighting for Earthly build Earthfiles.",
     "version": "0.0.0",
     "publisher": "earthly",
     "icon": "logo.png",
@@ -19,7 +19,7 @@
         "languages": [{
             "id": "earthfile",
             "aliases": ["Earthfile", "earthfile"],
-            "extensions": [".earth"],
+            "extensions": [".earth", ".Earthfile", "Earthfile"],
             "configuration": "./language-configuration.json"
         }],
         "grammars": [{
