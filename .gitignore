@@ -3,3 +3,5 @@
 *.tokens
 *.interp
 .antlr/
+target
+.metals
