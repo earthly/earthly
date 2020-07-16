@@ -3,6 +3,14 @@
 
 Here is an example of an AWS CodeBuild build, where we build the Earthly target `+build`.
 
+{% hint style='info' %}
+##### Note
+
+Ensure when you're creating your CodeBuild Project that you enable the `Privileged` flag
+in order to allow Earthly build Docker images.
+
+{% endhint %}
+
 ```yml
 # ./buildspec.yml
 version: 0.2
