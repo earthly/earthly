@@ -13,6 +13,7 @@ Vendors known to include these dependencies:
 * Travis dist `xenial`
 * GitLab image `docker:git` with service `docker:dind` added.
 * Azure DevOps vmImage `Ubuntu-16.04`
+* AWS CodeBuild image `aws/codebuild/amazonlinux2-x86_64-standard:3.0`
 
 ## Step 2: Install earth command
 
@@ -74,3 +75,4 @@ A couple of build examples are available for
 
 * [Circle CI](../examples/circle-integration.md)
 * [GitHub Actions](../examples/gh-actions-integration.md)
+* [AWS CodeBuild](../examples/codebuild-integration.md)
