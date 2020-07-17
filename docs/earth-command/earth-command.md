@@ -74,7 +74,7 @@ specified by `<local-path>`, which must start with `./`, `../`, or `/`.
 
 ##### Artifact Reference
 
-`<target-ref>/<artifact-path>` will reference a build target's artifact.
+The `<artifact-ref>` can reference artifacts built by targets. `<target-ref>/<artifact-path>` will reference a build target's artifact.
 
 ##### Examples
 
