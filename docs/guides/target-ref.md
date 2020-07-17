@@ -39,11 +39,11 @@ Finally, the last form of target referencing is the remote form. In this form, t
 
 For example:
 
-`github.com/vladaionescu/earthly/buildkitd+buildkitd`
+`github.com/earthly/earthly/buildkitd+buildkitd`
 
 or
 
-`github.com/vladaionescu/earthly:v0.1.0+all`
+`github.com/earthly/earthly:v0.1.0+all`
 
 ### Canonical form
 
@@ -68,7 +68,7 @@ Here are some examples:
 * `+build/my-artifact`
 * `+build/some/artifact/deep/in/a/dir`
 * `./js+build/dist`
-* `github.com/vladaionescu/earthly:v0.1.0+earth/earth`
+* `github.com/earthly/earthly:v0.1.0+earth/earth`
 
 ## Image reference
 

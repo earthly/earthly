@@ -107,30 +107,3 @@ func withDockerdWrap(args []string, envVars []string, isWithShell bool) []string
 func escapeShellSingleQuotes(arg string) string {
 	return strings.Replace(arg, "'", "'\"'\"'", -1)
 }
-
-func parseKeyValue(env string) (string, string) {
-	parts := strings.SplitN(env, "=", 2)
-	v := ""
-	if len(parts) > 1 {
-		v = parts[1]
-	}
-
-	return parts[0], v
-}
-
-func addEnv(envVars []string, key, value string) []string {
-	// Note that this mutates the original slice.
-	found := false
-	for i, envVar := range envVars {
-		k, _ := parseKeyValue(envVar)
-		if k == key {
-			envVars[i] = fmt.Sprintf("%s=%s", key, value)
-			found = true
-			break
-		}
-	}
-	if !found {
-		envVars = append(envVars, fmt.Sprintf("%s=%s", key, value))
-	}
-	return envVars
-}

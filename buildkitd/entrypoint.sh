@@ -17,24 +17,61 @@ if [ "$EARTHLY_RESET_TMP_DIR" == "true" ]; then
     rm -rf "$EARTHLY_TMP_DIR"/* || true
 fi
 
-BUILDKIT_ROOT_DIR="$EARTHLY_TMP_DIR"/buildkit
-# Leave 1GB as additional buffer.
-buildkit_cache_size_mb=$(( CACHE_SIZE_MB - 1000 ))
-sed 's^:BUILDKIT_ROOT_DIR:^'"$BUILDKIT_ROOT_DIR"'^g; s/:CACHE_SIZE_MB:/'"$buildkit_cache_size_mb"'/g' \
-    /etc/buildkitd.toml.template > /etc/buildkitd.toml
+# setup git credentials and config
+i=0
+while true
+do
+    varname=GIT_CREDENTIALS_"$i"
+    eval data=\$$varname
+    if [ -n "$data" ]
+    then
+        echo 'echo $'$varname' | base64 -d' > /usr/bin/git_credentials_"$i"
+        chmod +x /usr/bin/git_credentials_"$i"
+    else
+        break
+    fi
+    i=$((i+1))
+done
+echo "$EARTHLY_GIT_CONFIG" | base64 -d > /root/.gitconfig
 
 if [ -n "$GIT_URL_INSTEAD_OF" ]; then
-    # TODO: Perhaps allow multiple such values to be passed in (eg comma-separated).
-    base="${GIT_URL_INSTEAD_OF%%=*}"
-    insteadOf="${GIT_URL_INSTEAD_OF#*=}"
-    git config --global url."$base".insteadOf "$insteadOf"
+    # GIT_URL_INSTEAD_OF can support multiple comma-separated values
+    for instead_of in $(echo "${GIT_URL_INSTEAD_OF}" | sed "s/,/ /g")
+    do
+        base="${instead_of%%=*}"
+        insteadOf="${instead_of#*=}"
+        git config --global url."$base".insteadOf "$insteadOf"
+    done
+
 fi
 
-# Create an ext4 fs in a pre-allocated file. Ext4 will allow
-# us to use overlayfs snapshotter even when running on mac.
-if [ "$ENABLE_LOOP_DEVICE" == "true" ]; then
-    echo "ENABLE_LOOP_DEVICE=true"
-    echo "CACHE_SIZE_MB=$CACHE_SIZE_MB"
+# Set up buildkit cache.
+BUILDKIT_ROOT_DIR="$EARTHLY_TMP_DIR"/buildkit
+mkdir -p "$BUILDKIT_ROOT_DIR"
+echo "BUILDKIT_ROOT_DIR=$BUILDKIT_ROOT_DIR"
+echo "CACHE_SIZE_MB=$CACHE_SIZE_MB"
+sed 's^:BUILDKIT_ROOT_DIR:^'"$BUILDKIT_ROOT_DIR"'^g; s/:CACHE_SIZE_MB:/'"$CACHE_SIZE_MB"'/g' \
+    /etc/buildkitd.toml.template > /etc/buildkitd.toml
+
+echo "ENABLE_LOOP_DEVICE=$ENABLE_LOOP_DEVICE"
+echo "FORCE_LOOP_DEVICE=$FORCE_LOOP_DEVICE"
+use_loop_device=false
+if [ "$FORCE_LOOP_DEVICE" == "true" ]; then
+    use_loop_device=true
+else
+    if [ "$ENABLE_LOOP_DEVICE" == "true" ]; then
+        tmp_dir_fs="$(df -T $BUILDKIT_ROOT_DIR | awk '{print $2}' | tail -1)"
+        echo "Buildkit dir $BUILDKIT_ROOT_DIR fs type is $tmp_dir_fs"
+        if [ "$tmp_dir_fs" != "ext4" ]; then
+            echo "Using a loop device, because fs is not ext4"
+            use_loop_device=true
+        fi
+    fi
+fi
+echo "use_loop_device=$use_loop_device"
+if [ "$use_loop_device" == "true" ]; then
+    # Create an ext4 fs in a pre-allocated file. Ext4 will allow
+    # us to use overlayfs snapshotter even when running on mac.
     image_file="$EARTHLY_TMP_DIR"/buildkit.img
     mount_point="$BUILDKIT_ROOT_DIR"
 
@@ -48,8 +85,12 @@ if [ "$ENABLE_LOOP_DEVICE" == "true" ]; then
     function init_mount {
         echo "Creating loop device"
         mkdir -p "$mount_point"
-        fallocate -l "$CACHE_SIZE_MB"M "$image_file" || \
-            dd if=/dev/zero of="$image_file" bs=1M count=0 seek="$CACHE_SIZE_MB"
+        # We use quadruple the cache size for the loop device. This uses
+        # a sparse file for the allocation, meaning that the space is not
+        # actually occupied until the cache grows.
+        sparse_loop_device_size_mb=$(( CACHE_SIZE_MB * 4 ))
+        echo "sparse_loop_device_size_mb=$sparse_loop_device_size_mb"
+        dd if=/dev/zero of="$image_file" bs=1M count=0 seek="$sparse_loop_device_size_mb"
         mkfs.ext4 "$image_file"
     }
 

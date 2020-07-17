@@ -13,14 +13,15 @@
 **🏘 Multi-repo friendly** - *ability to import builds or artifacts from other repositories*
 
 ----------------------------
-![CI](https://github.com/vladaionescu/earthly/workflows/CI/badge.svg)
-[![Go Report Card](https://goreportcard.com/badge/github.com/vladaionescu/earthly)](https://goreportcard.com/report/github.com/vladaionescu/earthly)
+![CI](https://github.com/earthly/earthly/workflows/CI/badge.svg)
+[![Go Report Card](https://goreportcard.com/badge/github.com/earthly/earthly)](https://goreportcard.com/report/github.com/earthly/earthly)
 [![Join the chat at https://gitter.im/earthly-room/community](https://badges.gitter.im/earthly-room.svg)](https://gitter.im/earthly-room/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 [![Docs](https://img.shields.io/badge/docs-git%20book-blue)](https://docs.earthly.dev)
+[![Website](https://img.shields.io/badge/website-earthly.dev-blue)](https://earthly.dev)
 [![Docker Hub](https://img.shields.io/badge/docker%20hub-earthly-blue)](https://hub.docker.com/u/earthly)
 [![License](https://img.shields.io/badge/license-MPL--2.0-blue.svg)](http://www.apache.org/licenses/LICENSE-2.0)
 
-Earthly is a build automation tool from the same era as your code. It allows you to execute all your builds in containers. This makes them self-contained, reproducible, portable and parallel. You can use Earthly to create Docker images and artifacts (eg binaries, packages, arbitrary files).
+[Earthly](https://earthly.dev) is a build automation tool from the same era as your code. It allows you to execute all your builds in containers. This makes them self-contained, reproducible, portable and parallel. You can use Earthly to create Docker images and artifacts (eg binaries, packages, arbitrary files).
 
 Earthly can run on top of popular CI systems (like Jenkins, [Circle](https://docs.earthly.dev/examples/circle-integration), [GitHub Actions](https://docs.earthly.dev/examples/gh-actions-integration)). It is typically the [layer](https://docs.earthly.dev) between language-specific tooling (like maven, gradle, npm, pip, go build) and the CI build spec.
 
@@ -28,7 +29,7 @@ Earthly can run on top of popular CI systems (like Jenkins, [Circle](https://doc
 
 Read the [launch blog post](https://vladaionescu.com/introducing-earthly-build-automation-for-the-container-era-55619c63c3e) for the motivation behind Earthly. To learn how to use Earthly, check out the [getting started guide](https://docs.earthly.dev/guides/basics).
 
-For some examples, see [Go](https://docs.earthly.dev/examples/go), [Java](https://docs.earthly.dev/examples/java), [JS](https://docs.earthly.dev/examples/js), [Mono-repo](https://docs.earthly.dev/examples/monorepo), [Multi-repo](https://docs.earthly.dev/examples/multirepo), [Earthly's own build](https://docs.earthly.dev/examples/earthly) or the [examples dir](./examples).
+For some examples, see [Go](https://docs.earthly.dev/examples/go), [Java](https://docs.earthly.dev/examples/java), [JS](https://docs.earthly.dev/examples/js), [C++](https://docs.earthly.dev/examples/cpp), [Mono-repo](https://docs.earthly.dev/examples/monorepo), [Multi-repo](https://docs.earthly.dev/examples/multirepo), [Earthly's own build](https://docs.earthly.dev/examples/earthly) or the [examples dir](./examples).
 
 <h2 align="center">Installation</h2>
 
@@ -40,18 +41,26 @@ For some examples, see [Go](https://docs.earthly.dev/examples/go), [Java](https:
 ##### Linux
 
 ```bash
-sudo /bin/sh -c 'curl -s https://api.github.com/repos/vladaionescu/earthly/releases/latest | grep browser_download_url | grep linux-amd64 | cut -d : -f 2- | tr -d \" | wget -P /usr/local/bin/ -i - && mv /usr/local/bin/earth-linux-amd64 /usr/local/bin/earth && chmod +x /usr/local/bin/earth'
+sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/latest/download/earth-linux-amd64 -O /usr/local/bin/earth && chmod +x /usr/local/bin/earth'
 ```
 
 ##### Mac
 
+###### Homebrew
+
 ```bash
-curl -s https://api.github.com/repos/vladaionescu/earthly/releases/latest | grep browser_download_url | grep darwin-amd64 | cut -d : -f 2- | tr -d \" | wget -P /usr/local/bin/ -i - && mv /usr/local/bin/earth-darwin-amd64 /usr/local/bin/earth && chmod +x /usr/local/bin/earth
+brew install earthly
+```
+
+###### Script
+
+```bash
+wget https://github.com/earthly/earthly/releases/latest/download/earth-darwin-amd64 -O /usr/local/bin/earth && chmod +x /usr/local/bin/earth
 ```
 
 ##### Alternative Linux & Mac
 
-You may also download the binary from [the releases page](https://github.com/vladaionescu/earthly/releases) and place it in your `bin`.
+You may also download the binary from [the releases page](https://github.com/earthly/earthly/releases) and place it in your `bin`.
 
 ##### Windows
 
@@ -209,14 +218,14 @@ earth ./path/to/a/deep/dir+target-name
 
 ```bash
 # Try it yourself! No need to clone.
-earth github.com/vladaionescu/earthly+earth-docker
+earth github.com/earthly/earthly+earth-docker
 ```
 
 ... or from a subdir of some repository.
 
 ```bash
 # Try it yourself! No need to clone.
-earth github.com/vladaionescu/earthly/buildkitd+buildkitd
+earth github.com/earthly/earthly/buildkitd+buildkitd
 ```
 
 [<img src="https://asciinema.org/a/314104.svg" alt="Earthly demo" width="457" />](https://asciinema.org/a/314104)
@@ -315,7 +324,7 @@ It cannot - however, translating Dockerfiles to Earthfiles (`build.earth`) is us
 
 <h2 align="center">Contributing</h2>
 
-* Please report bugs as [GitHub issues](https://github.com/vladaionescu/earthly/issues).
+* Please report bugs as [GitHub issues](https://github.com/earthly/earthly/issues).
 * Join us on [Gitter](https://gitter.im/earthly-room/community)!
 * Questions via GitHub issues are welcome!
 * PRs welcome! But please give a heads-up in GitHub issue before starting work. If there is no GitHub issue for what you want to do, please create one.

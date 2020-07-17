@@ -3,15 +3,15 @@ package buildcontext
 import (
 	"context"
 
+	"github.com/earthly/earthly/conslogging"
+	"github.com/earthly/earthly/domain"
 	"github.com/moby/buildkit/client"
 	"github.com/moby/buildkit/client/llb"
-	"github.com/vladaionescu/earthly/conslogging"
-	"github.com/vladaionescu/earthly/domain"
 )
 
 // Data represents a resolved target's build context data.
 type Data struct {
-	// EarthfilePath is the local path where the build.earth file can be found.
+	// EarthfilePath is the local path where the Earthfile can be found.
 	EarthfilePath string
 	// BuildContext is the state to use for the build.
 	BuildContext llb.State

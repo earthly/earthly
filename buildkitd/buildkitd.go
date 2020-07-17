@@ -2,15 +2,16 @@ package buildkitd
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"os"
 	"os/exec"
 	"time"
 
+	"github.com/earthly/earthly/conslogging"
 	"github.com/moby/buildkit/client"
 	_ "github.com/moby/buildkit/client/connhelper/dockercontainer" // Load "docker-container://" helper.
 	"github.com/pkg/errors"
-	"github.com/vladaionescu/earthly/conslogging"
 )
 
 const (
@@ -180,6 +181,8 @@ func Start(ctx context.Context, image string, settings Settings, reset bool) err
 		"run",
 		"-d", "--rm",
 		"-v", cacheMount,
+		"-e", fmt.Sprintf("ENABLE_LOOP_DEVICE=%t", !settings.DisableLoopDevice),
+		"-e", fmt.Sprintf("FORCE_LOOP_DEVICE=%t", !settings.DisableLoopDevice),
 		"--label", fmt.Sprintf("dev.earthly.settingshash=%s", settingsHash),
 		"--name", ContainerName,
 		"--privileged",
@@ -197,24 +200,24 @@ func Start(ctx context.Context, image string, settings Settings, reset bool) err
 			"-e", "SSH_AUTH_SOCK=/ssh-agent.sock",
 		)
 	}
-	if len(settings.GitSettings) > 0 {
-		// TODO: Only the first GitSettings entry is used, and it is not bound
-		//       to the specified domain.
+
+	args = append(args,
+		"-e", "EARTHLY_GIT_CONFIG",
+		"-e", fmt.Sprintf("GIT_URL_INSTEAD_OF=%s", settings.GitURLInsteadOf),
+	)
+	env = append(env,
+		fmt.Sprintf("EARTHLY_GIT_CONFIG=%s", base64.StdEncoding.EncodeToString([]byte(settings.GitConfig))),
+	)
+
+	for i, data := range settings.GitCredentials {
 		args = append(args,
-			"-e", "GIT_USERNAME",
-			"-e", "GIT_PASSWORD",
+			"-e", fmt.Sprintf("GIT_CREDENTIALS_%d", i),
 		)
-		// Pass secrets via env vars, not via command-line.
 		env = append(env,
-			fmt.Sprintf("GIT_USERNAME=%s", settings.GitSettings[0].Username),
-			fmt.Sprintf("GIT_PASSWORD=%s", settings.GitSettings[0].Password),
+			fmt.Sprintf("GIT_CREDENTIALS_%d=%s", i, base64.StdEncoding.EncodeToString([]byte("password="+data))),
 		)
 	}
-	if settings.GitURLInsteadOf != "" {
-		args = append(args,
-			"-e", fmt.Sprintf("GIT_URL_INSTEAD_OF=%s", settings.GitURLInsteadOf),
-		)
-	}
+
 	// Apply reset.
 	if reset {
 		args = append(args, "-e", "EARTHLY_RESET_TMP_DIR=true")

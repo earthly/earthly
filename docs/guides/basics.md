@@ -128,6 +128,7 @@ public class HelloWorld {
     }
 }
 ```
+
 {% endmethod %}
 
 You will notice that the recipes look very much like Dockerfiles. This is an intentional design decision. Existing Dockerfiles can be ported to earthfiles by copy-pasting them over and then tweaking them slightly. Compared to Dockerfile syntax, some commands are new (like `SAVE ARTIFACT`), others have additional semantics (like `COPY +target/some-artifact`) and other semantics are removed (like `FROM ... AS ...` and `COPY --from`).
@@ -333,7 +334,7 @@ Let's imagine now that in our simple app, we now want to add a programming langu
 ```go.mod
 // go.mod
 
-module github.com/vladaionescu/earthly/examples/go
+module github.com/earthly/earthly/examples/go
 
 go 1.13
 
@@ -705,11 +706,11 @@ Notice how at the end of the `deps` recipe, we issued a `SAVE IMAGE` command. In
 
 Congratulations, you made it this far!
 
-To learn more about Earthly, take a look at the [examples directory on GitHub](https://github.com/vladaionescu/earthly/tree/master/examples), where you will find the complete code used in this guide:
+To learn more about Earthly, take a look at the [examples directory on GitHub](https://github.com/earthly/earthly/tree/master/examples), where you will find the complete code used in this guide:
 
-* [Go](https://github.com/vladaionescu/earthly/tree/master/examples/go)
-* [JavaScript](https://github.com/vladaionescu/earthly/tree/master/examples/js)
-* [Java](https://github.com/vladaionescu/earthly/tree/master/examples/java)
+* [Go](https://github.com/earthly/earthly/tree/master/examples/go)
+* [JavaScript](https://github.com/earthly/earthly/tree/master/examples/js)
+* [Java](https://github.com/earthly/earthly/tree/master/examples/java)
 
 ## See also
 

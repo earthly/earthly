@@ -11,8 +11,6 @@ RUN apk add --update --no-cache \
 	g++ \
 	git \
 	grep \
-	grep \
-	less \
 	less \
 	make \
 	openssl \
@@ -32,7 +30,7 @@ deps:
 
 code:
 	FROM +deps
-	COPY --dir buildcontext builder cleanup cmd conslogging dockertar domain \
+	COPY --dir buildcontext builder cleanup cmd config conslogging dockertar domain \
 		llbutil logging ./
 	COPY --dir buildkitd/buildkitd.go buildkitd/settings.go buildkitd/
 	COPY --dir earthfile2llb/antlrhandler earthfile2llb/dedup earthfile2llb/image \
@@ -58,6 +56,10 @@ lint:
 			echo "$output" ; \
 			exit 1 ; \
 		fi
+
+unittest:
+	FROM +code
+	RUN go test ./...
 
 earth:
 	FROM +code
@@ -88,6 +90,7 @@ earth-docker:
 	FROM ./buildkitd+buildkitd
 	RUN apk add --update --no-cache docker-cli
 	ENV ENABLE_LOOP_DEVICE=false
+	ENV FORCE_LOOP_DEVICE=false
 	COPY earth-buildkitd-wrapper.sh /usr/bin/earth-buildkitd-wrapper.sh
 	ENTRYPOINT ["/usr/bin/earth-buildkitd-wrapper.sh"]
 	ARG EARTHLY_TARGET_TAG
@@ -102,6 +105,7 @@ all:
 
 test:
 	BUILD +lint
+	BUILD +unittest
 	BUILD ./examples/tests+all
 	BUILD +examples
 
@@ -109,6 +113,8 @@ examples:
 	BUILD ./examples/go+docker
 	BUILD ./examples/java+docker
 	BUILD ./examples/js+docker
+	BUILD ./examples/cpp+docker
+	BUILD ./examples/scala+docker
 	BUILD ./examples/monorepo+all
 	BUILD ./examples/multirepo+docker
 	BUILD ./examples/readme+parallel
@@ -116,38 +122,3 @@ examples:
 
 test-experimental:
 	BUILD ./examples/tests+experimental
-
-release:
-	FROM node:13.10.1-alpine3.11
-	RUN npm install -g github-release-cli
-	WORKDIR /earthly
-	ARG RELEASE_TAG
-	ARG EARTHLY_GIT_HASH
-	RUN test -n "$RELEASE_TAG" && test -n "$EARTHLY_GIT_HASH"
-	COPY --build-arg VERSION=$RELEASE_TAG \
-		+earth/earth ./earth-linux-amd64
-	COPY --build-arg VERSION=$RELEASE_TAG \
-		--build-arg GOOS=darwin \
-		--build-arg GOARCH=amd64 \
-		--build-arg GO_EXTRA_LDFLAGS= \
-		+earth/earth ./earth-darwin-amd64
-	BUILD +test
-	BUILD --build-arg TAG="$RELEASE_TAG" +earth-docker
-	BUILD --build-arg TAG="$RELEASE_TAG" ./buildkitd+buildkitd
-	BUILD --build-arg TAG=latest +earth-docker
-	BUILD --build-arg TAG=latest ./buildkitd+buildkitd
-	ARG BODY="No details provided"
-	RUN --secret GITHUB_TOKEN=+secrets/GITHUB_TOKEN test -n "$GITHUB_TOKEN"
-	RUN --push \
-		--secret GITHUB_TOKEN=+secrets/GITHUB_TOKEN \
-		github-release upload \
-		--owner vladaionescu \
-		--repo earthly \
-		--commitish "$EARTHLY_GIT_HASH" \
-		--tag "$RELEASE_TAG" \
-		--name "$RELEASE_TAG" \
-		--body "$BODY" \
-		earth-linux-amd64 earth-darwin-amd64
-
-release-vscode-syntax-highlighting:
-	BUILD ./contrib/earthfile-syntax-highlighting+release

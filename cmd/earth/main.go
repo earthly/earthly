@@ -5,10 +5,22 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
+
+	"github.com/earthly/earthly/buildcontext"
+	"github.com/earthly/earthly/builder"
+	"github.com/earthly/earthly/buildkitd"
+	"github.com/earthly/earthly/cleanup"
+	"github.com/earthly/earthly/config"
+	"github.com/earthly/earthly/conslogging"
+	"github.com/earthly/earthly/domain"
+	"github.com/earthly/earthly/earthfile2llb"
+	"github.com/earthly/earthly/earthfile2llb/variables"
+	"github.com/earthly/earthly/logging"
 
 	"github.com/moby/buildkit/client"
 	_ "github.com/moby/buildkit/client/connhelper/dockercontainer" // Load "docker-container://" helper.
@@ -19,15 +31,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
-	"github.com/vladaionescu/earthly/buildcontext"
-	"github.com/vladaionescu/earthly/builder"
-	"github.com/vladaionescu/earthly/buildkitd"
-	"github.com/vladaionescu/earthly/cleanup"
-	"github.com/vladaionescu/earthly/conslogging"
-	"github.com/vladaionescu/earthly/domain"
-	"github.com/vladaionescu/earthly/earthfile2llb"
-	"github.com/vladaionescu/earthly/earthfile2llb/variables"
-	"github.com/vladaionescu/earthly/logging"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -39,20 +42,23 @@ type earthApp struct {
 }
 
 type cliFlags struct {
-	buildArgs         cli.StringSlice
-	secrets           cli.StringSlice
-	artifactMode      bool
-	imageMode         bool
-	push              bool
-	noOutput          bool
-	noCache           bool
-	pruneAll          bool
-	pruneReset        bool
-	buildkitdSettings buildkitd.Settings
-	allowPrivileged   bool
-	buildkitHost      string
-	buildkitdImage    string
-	remoteCache       string
+	buildArgs           cli.StringSlice
+	secrets             cli.StringSlice
+	artifactMode        bool
+	imageMode           bool
+	push                bool
+	noOutput            bool
+	noCache             bool
+	pruneAll            bool
+	pruneReset          bool
+	buildkitdSettings   buildkitd.Settings
+	allowPrivileged     bool
+	buildkitHost        string
+	buildkitdImage      string
+	remoteCache         string
+	configPath          string
+	gitUsernameOverride string
+	gitPasswordOverride string
 }
 
 var (
@@ -98,10 +104,7 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 		console:   console,
 		sessionID: base64.StdEncoding.EncodeToString(sessionIDBytes),
 		cliFlags: cliFlags{
-			buildkitdSettings: buildkitd.Settings{
-				// Add one empty entry for git settings.
-				GitSettings: []buildkitd.GitSetting{buildkitd.GitSetting{}},
-			},
+			buildkitdSettings: buildkitd.Settings{},
 		},
 	}
 
@@ -164,6 +167,13 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 			Destination: &app.noCache,
 		},
 		&cli.StringFlag{
+			Name:        "config",
+			Value:       filepath.Join(os.Getenv("HOME"), ".earthly", "config.yaml"),
+			EnvVars:     []string{"EARTHLY_CONFIG"},
+			Usage:       "Path to config file for",
+			Destination: &app.configPath,
+		},
+		&cli.StringFlag{
 			Name:        "ssh-auth-sock",
 			Value:       defaultSSHAuthSock(),
 			EnvVars:     []string{"EARTHLY_SSH_AUTH_SOCK"},
@@ -174,19 +184,19 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 			Name:        "git-username",
 			EnvVars:     []string{"GIT_USERNAME"},
 			Usage:       "The git username to use for git HTTPS authentication",
-			Destination: &app.buildkitdSettings.GitSettings[0].Username,
+			Destination: &app.gitUsernameOverride,
 		},
 		&cli.StringFlag{
 			Name:        "git-password",
 			EnvVars:     []string{"GIT_PASSWORD"},
 			Usage:       "The git password to use for git HTTPS authentication",
-			Destination: &app.buildkitdSettings.GitSettings[0].Password,
+			Destination: &app.gitPasswordOverride,
 		},
 		&cli.StringFlag{
 			Name:        "git-url-instead-of",
-			Value:       "git@github.com:=https://github.com/",
+			Value:       "git@gitlab.com:=https://gitlab.com/,git@github.com:=https://github.com/",
 			EnvVars:     []string{"GIT_URL_INSTEAD_OF"},
-			Usage:       "Rewrite git URLs of a certain pattern. Similar to git-config url.<base>.insteadOf (https://git-scm.com/docs/git-config#Documentation/git-config.txt-urlltbasegtinsteadOf). Format: <base>=<instead-of>. For example: 'git@github.com:=https://github.com/'",
+			Usage:       "Rewrite git URLs of a certain pattern. Similar to git-config url.<base>.insteadOf (https://git-scm.com/docs/git-config#Documentation/git-config.txt-urlltbasegtinsteadOf). Multiple values can be separated by commas. Format: <base>=<instead-of>[,...]. For example: 'https://github.com/=git@github.com:'",
 			Destination: &app.buildkitdSettings.GitURLInsteadOf,
 		},
 		&cli.BoolFlag{
@@ -216,6 +226,12 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 			Usage:       "The docker image to use for the buildkit daemon",
 			Destination: &app.buildkitdImage,
 		},
+		&cli.BoolFlag{
+			Name:        "no-loop-device",
+			EnvVars:     []string{"EARTHLY_NO_LOOP_DEVICE"},
+			Usage:       "Disables the use of a loop device for storing the cache contents",
+			Destination: &app.buildkitdSettings.DisableLoopDevice,
+		},
 		&cli.StringFlag{
 			Name:        "remote-cache",
 			EnvVars:     []string{"EARTHLY_REMOTE_CACHE"},
@@ -228,8 +244,8 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 	app.cliApp.Commands = []*cli.Command{
 		{
 			Name:        "debug",
-			Usage:       "Print debug information about a build.earth file",
-			Description: "Print debug information about a build.earth file",
+			Usage:       "Print debug information about an Earthfile",
+			Description: "Print debug information about an Earthfile",
 			ArgsUsage:   "[<path>]",
 			Hidden:      true,
 			Action:      app.actionDebug,
@@ -256,7 +272,62 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 			},
 		},
 	}
+
+	app.cliApp.Before = app.parseConfigFile
 	return app
+}
+
+func (app *earthApp) parseConfigFile(context *cli.Context) error {
+	if context.IsSet("config") {
+		app.console.Printf("loading config values from %q\n", app.configPath)
+	}
+
+	yamlData, err := ioutil.ReadFile(app.configPath)
+	if os.IsNotExist(err) && !context.IsSet("config") {
+		yamlData = []byte{}
+	} else if err != nil {
+		return errors.Wrapf(err, "failed to read from %s", app.configPath)
+	}
+
+	cfg, err := config.ParseConfigFile(yamlData)
+	if err != nil {
+		return errors.Wrapf(err, "failed to parse %s", app.configPath)
+	}
+
+	if cfg.Git == nil {
+		cfg.Git = map[string]config.GitConfig{}
+	}
+
+	// command line overrides the config file
+	if app.gitUsernameOverride != "" || app.gitPasswordOverride != "" {
+		if _, ok := cfg.Git["github.com"]; !ok {
+			cfg.Git["github.com"] = config.GitConfig{}
+		}
+		if _, ok := cfg.Git["gitlab.com"]; !ok {
+			cfg.Git["gitlab.com"] = config.GitConfig{}
+		}
+
+		for k, v := range cfg.Git {
+			v.Auth = "https"
+			if app.gitUsernameOverride != "" {
+				v.User = app.gitUsernameOverride
+			}
+			if app.gitPasswordOverride != "" {
+				v.Password = app.gitPasswordOverride
+			}
+			cfg.Git[k] = v
+		}
+	}
+
+	gitConfig, gitCredentials, err := config.CreateGitConfig(cfg)
+	if err != nil {
+		return errors.Wrapf(err, "failed to create git config from %s", app.configPath)
+	}
+
+	app.buildkitdSettings.GitConfig = gitConfig
+	app.buildkitdSettings.GitCredentials = gitCredentials
+	return nil
+
 }
 
 func (app *earthApp) run(ctx context.Context, args []string) int {
@@ -272,7 +343,7 @@ func (app *earthApp) run(ctx context.Context, args []string) int {
 		if strings.Contains(err.Error(), "failed to fetch remote") {
 			app.console.Printf(
 				"Check your git auth settings.\n" +
-					"Did you ssh-add today? Need to specify GIT_USERNAME and GIT_PASSWORD?\n" +
+					"Did you ssh-add today? Need to configure ~/earthly/config.yaml?\n" +
 					"For more information see https://docs.earthly.dev/guides/auth\n")
 		}
 		return 1
@@ -288,7 +359,7 @@ func (app *earthApp) actionDebug(c *cli.Context) error {
 	if c.NArg() == 1 {
 		path = c.Args().First()
 	}
-	path = filepath.Join(path, "build.earth")
+	path = filepath.Join(path, "Earthfile")
 
 	err := earthfile2llb.ParseDebug(path)
 	if err != nil {
@@ -427,7 +498,7 @@ func (app *earthApp) actionBuild(c *cli.Context) error {
 		return errors.Wrap(err, "new builder")
 	}
 
-	buildArgs, err := parseBuildArgs(app.buildArgs.Value())
+	varCollection, err := variables.ParseCommandLineBuildArgs(app.buildArgs.Value())
 	if err != nil {
 		return errors.Wrap(err, "parse build args")
 	}
@@ -435,7 +506,7 @@ func (app *earthApp) actionBuild(c *cli.Context) error {
 	defer cleanCollection.Close()
 	mts, err := earthfile2llb.Earthfile2LLB(
 		c.Context, target, resolver, b.BuildOnlyLastImageAsTar, cleanCollection,
-		nil, buildArgs)
+		nil, varCollection)
 	if err != nil {
 		return err
 	}
@@ -475,30 +546,6 @@ func (app *earthApp) newBuildkitdClient(ctx context.Context, opts ...client.Clie
 		return nil, errors.Wrap(err, "buildkitd new client (provided)")
 	}
 	return bkClient, nil
-}
-
-func appendBuiltinBuildArgs(buildArgs []string, target domain.Target) []string {
-	return buildArgs
-}
-
-func parseBuildArgs(buildArgs []string) (map[string]variables.Variable, error) {
-	out := make(map[string]variables.Variable)
-	for _, arg := range buildArgs {
-		splitArg := strings.SplitN(arg, "=", 2)
-		if len(splitArg) < 1 {
-			return nil, fmt.Errorf("Invalid build arg %s", splitArg)
-		}
-		key := splitArg[0]
-		value := ""
-		if len(splitArg) == 2 {
-			value = splitArg[1]
-		}
-		if value == "" {
-			value = os.Getenv(key)
-		}
-		out[key] = variables.NewConstant(value)
-	}
-	return out, nil
 }
 
 func processSecrets(secrets []string) session.Attachable {

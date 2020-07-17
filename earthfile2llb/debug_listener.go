@@ -3,7 +3,7 @@ package earthfile2llb
 import (
 	"log"
 
-	"github.com/vladaionescu/earthly/earthfile2llb/parser"
+	"github.com/earthly/earthly/earthfile2llb/parser"
 )
 
 type debugListener struct {

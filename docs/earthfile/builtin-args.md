@@ -30,8 +30,8 @@ The following builtin args are available
 | `EARTHLY_TARGET_NAME` | The name part of the canonical reference of the current target. | For the example above, the name would be `foo` |
 | `EARTHLY_TARGET_TAG` | The tag part of the canonical reference of the current target. Note that in some cases, no tag is detected, and as such, the value is an empty string | For the example above, the tag would be `master` |
 | `EARTHLY_GIT_HASH` | The git hash detected within the build context directory. If no git directory is detected, then the value is an empty string. Take care when using this arg, as the frequently changing git hash may be cause for not using the cache. | `41cb5666ade67b29e42bef121144456d3977a67a` |
-| `EARTHLY_GIT_ORIGIN_URL` | The git URL detected within the build context directory. If no git directory is detected, then the value is an empty string. | `git@github.com:vladaionescu/earthly.git` |
-| `EARTHLY_GIT_PROJECT_NAME` | The git project name from within the git URL detected within the build context directory. If no git directory is detected, then the value is an empty string. | `vladaionescu/earthly` |
+| `EARTHLY_GIT_ORIGIN_URL` | The git URL detected within the build context directory. If no git directory is detected, then the value is an empty string. | `git@github.com:earthly/earthly.git` |
+| `EARTHLY_GIT_PROJECT_NAME` | The git project name from within the git URL detected within the build context directory. If no git directory is detected, then the value is an empty string. | `earthly/earthly` |
 
 {% hint style='info' %}
 ##### Note

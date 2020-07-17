@@ -54,9 +54,9 @@ context | transferring .: 100%
 +build | --> FROM ([]) +base
 +build | --> COPY [main.go] .
 +build | --> RUN [go build -o build/go-example main.go]
-+build | Target github.com/vladaionescu/earthly/examples/go:docs-vlad-examples+build built successfully
++build | Target github.com/earthly/earthly/examples/go:docs-vlad-examples+build built successfully
 =========================== SUCCESS ===========================
-+build | Artifact github.com/vladaionescu/earthly/examples/go:docs-vlad-examples+build/go-example as local build/go-example
++build | Artifact github.com/earthly/earthly/examples/go:docs-vlad-examples+build/go-example as local build/go-example
 ```
 
 And then, we can execute the hello world program:
@@ -97,7 +97,7 @@ context | transferring .: 100%
 +build | *cached* --> RUN [go build -o build/go-example main.go]
 +build | --> SAVE ARTIFACT build/go-example +build/go-example
 +docker | --> COPY ([]) +build/go-example .
-+docker | Target github.com/vladaionescu/earthly/examples/go:docs-vlad-examples+docker built successfully
++docker | Target github.com/earthly/earthly/examples/go:docs-vlad-examples+docker built successfully
 =========================== SUCCESS ===========================
 2f7c4d7718b7: Loading layer [==================================================>]  301.3kB/301.3kB
 1e3681958479: Loading layer [==================================================>]     153B/153B
@@ -107,8 +107,8 @@ context | transferring .: 100%
 66d3e336d237: Loading layer [==================================================>]     914B/914B
 160251c27a86: Loading layer [==================================================>]  1.048MB/1.048MB
 Loaded image: go-example:latest
-+docker | Image github.com/vladaionescu/earthly/examples/go:docs-vlad-examples+docker as go-example:latest
-+build | Artifact github.com/vladaionescu/earthly/examples/go:docs-vlad-examples+build/go-example as local build/go-example
++docker | Image github.com/earthly/earthly/examples/go:docs-vlad-examples+docker as go-example:latest
++build | Artifact github.com/earthly/earthly/examples/go:docs-vlad-examples+build/go-example as local build/go-example
 ```
 
 And then we can run the built image like so:

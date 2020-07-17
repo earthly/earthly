@@ -10,6 +10,10 @@ all:
 	BUILD +excludes-test
 	BUILD +secrets-test
 	BUILD +build-arg-test
+	BUILD +lc-test
+	BUILD +from-expose-test
+	BUILD +scratch-test
+	BUILD +build-earth-test
 	BUILD +star-test
 
 experimental:
@@ -19,41 +23,41 @@ experimental:
 	BUILD +docker-pull-test
 
 privileged-test:
-	COPY privileged.earth ./build.earth
+	COPY privileged.earth ./Earthfile
 	RUN --privileged \
 		--entrypoint \
 		-- --allow-privileged +test
 
 cache-test:
-	COPY cache1.earth ./build.earth
+	COPY cache1.earth ./Earthfile
 	RUN --privileged \
 		--entrypoint \
 		-- +test
-	COPY cache2.earth ./build.earth
+	COPY cache2.earth ./Earthfile
 	RUN --privileged \
 		--entrypoint \
 		-- +test
 
 git-clone-test:
-	COPY git-clone.earth ./build.earth
+	COPY git-clone.earth ./Earthfile
 	RUN --privileged \
 		--entrypoint \
 		-- +test
 
 builtin-args-test:
-	COPY builtin-args.earth ./build.earth
+	COPY builtin-args.earth ./Earthfile
 	RUN --privileged \
 		--entrypoint \
 		-- +builtin-args-test
 
 config-test:
-	COPY config.earth ./build.earth
+	COPY config.earth ./Earthfile
 	RUN --privileged \
 		--entrypoint \
 		-- +test
 
 excludes-test:
-	COPY excludes.earth ./build.earth
+	COPY excludes.earth ./Earthfile
 	RUN touch exclude-me.txt
 	RUN touch do-not-exclude-me.txt
 	RUN echo 'exclude-me.txt' > .earthignore
@@ -62,7 +66,7 @@ excludes-test:
 		-- +test
 
 secrets-test:
-	COPY secrets.earth ./build.earth
+	COPY secrets.earth ./Earthfile
 	ENV SECRET1=foo
 	ENV SECRET2=wrong
 	RUN --privileged \
@@ -70,7 +74,32 @@ secrets-test:
 		-- --secret SECRET1 --secret SECRET2=bar +test
 
 build-arg-test:
-	COPY build-arg.earth ./build.earth
+	COPY build-arg.earth ./Earthfile
+	RUN --privileged \
+		--entrypoint \
+		-- +test
+
+lc-test:
+	COPY lc.earth ./Earthfile
+	RUN --privileged \
+		--entrypoint \
+		-- +test
+
+from-expose-test:
+	COPY from-expose.earth ./Earthfile
+	RUN --privileged \
+		--entrypoint \
+		-- --no-output +test
+
+scratch-test:
+	COPY scratch-test.earth ./Earthfile
+	RUN --privileged \
+		--entrypoint \
+		-- --no-output +test
+
+build-earth-test:
+	# Test that build.earth is supported.
+	COPY config.earth ./build.earth
 	RUN --privileged \
 		--entrypoint \
 		-- +test
@@ -80,11 +109,11 @@ remote-test:
 	ENV GIT_URL_INSTEAD_OF="https://github.com/=git@github.com:"
 	RUN --privileged \
 		--entrypoint \
-		-- --no-output github.com/vladaionescu/earthly+earth-docker
+		-- --no-output github.com/earthly/earthly+earth-docker
 
 # TODO: This does not pass.
 transitive-args-test-todo:
-	COPY transitive-args.earth ./build.earth
+	COPY transitive-args.earth ./Earthfile
 	RUN --privileged \
 		--entrypoint \
 		-- --build-arg SOMEARG=def +test
@@ -92,7 +121,7 @@ transitive-args-test-todo:
 	RUN test -f ./abc && test -f ./def && test ! -f ./default
 
 star-test:
-	COPY star.earth ./build.earth
+	COPY star.earth ./Earthfile
 	RUN touch a.txt b.txt c.nottxt
 	RUN --privileged \
 		--entrypoint \
@@ -100,7 +129,7 @@ star-test:
 
 # TODO: This does not pass.
 star-test-todo:
-	COPY star.earth ./build.earth
+	COPY star.earth ./Earthfile
 	RUN touch a.txt b.txt c.nottxt
 	RUN --privileged \
 		--entrypoint \
@@ -115,19 +144,19 @@ star-test-todo:
 		test "$cached_lines" == "6"
 
 docker-load-test:
-	COPY docker-load.earth ./build.earth
+	COPY docker-load.earth ./Earthfile
 	RUN --privileged \
 		--entrypoint \
 		-- --allow-privileged +test
 
 dind-test:
-	COPY dind.earth ./build.earth
+	COPY dind.earth ./Earthfile
 	RUN --privileged \
 		--entrypoint \
 		-- --allow-privileged +test
 
 docker-pull-test:
-	COPY docker-pull.earth ./build.earth
+	COPY docker-pull.earth ./Earthfile
 	RUN --privileged \
 		--entrypoint \
 		-- --allow-privileged +test

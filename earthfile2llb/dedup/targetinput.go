@@ -5,8 +5,8 @@ import (
 	"encoding/hex"
 	"encoding/json"
 
+	"github.com/earthly/earthly/domain"
 	"github.com/pkg/errors"
-	"github.com/vladaionescu/earthly/domain"
 )
 
 // TargetInput represents the conditions in which a target is invoked.

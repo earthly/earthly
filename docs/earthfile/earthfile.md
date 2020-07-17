@@ -91,7 +91,7 @@ The command allows for two possible forms. The *exec form* runs the command exec
 
 When the `--entrypoint` flag is used, the current image entrypoint is used to prepend the current command.
 
-To avoid any abiguity regarding whether an argument is a `RUN` flag option or part of the command, the delimiter `--` may be used to signal the parser that no more `RUN` flag options will follow.
+To avoid any ambiguity regarding whether an argument is a `RUN` flag option or part of the command, the delimiter `--` may be used to signal the parser that no more `RUN` flag options will follow.
 
 #### Options
 
@@ -512,6 +512,35 @@ The `USER` command sets the user name (or UID) and optionally the user group (or
 
 The `WORKDIR` command strs the working directory for other commands that follow in the recipe. The working directory is also persisted as the default directory for the image. If the directory does not exist, it is automatically created. This command works the same way as the [Dockerfile `WORKDIR` command](https://docs.docker.com/engine/reference/builder/#workdir).
 
+## HEALTHCHECK (same as Dockerfile HEALTHCHECK)
+
+#### Synopsis
+
+* `HEALTHCHECK NONE` (disable healthchecking)
+* `HEALTHCHECK [--interval=DURATION] [--timeout=DURATION] [--start-period=DURATION] [--retries=N] CMD command arg1 arg2` (check container health by running command inside the container)
+
+#### Description
+
+The `HEALTHCHECK` command tells Docker how to test a container to check that it is still working. It works the same way as the [Dockerfile `HEALTHCHECK` command](https://docs.docker.com/engine/reference/builder/#healthcheck), with the only exception that the exec form of this command is not yet supported.
+
+#### Options
+
+##### `--interval=DURATION`
+
+Sets the time interval between health checks. Defaults to `30s`.
+
+##### `--timeout=DURATION`
+
+Sets the timeout for a single run before it is considered as failed. Defaults to `30s`.
+
+##### `--start-period=DURATION`
+
+Sets an initialization time period in which failures are not counted towards the maximum number of retries. Defaults to `0s`.
+
+##### `--retries=N`
+
+Sets the number of retries before a container is considered `unhealthy`. Defaults to `3`.
+
 ## SHELL (not supported)
 
 The classical [`SHELL` Dockerfile command](https://docs.docker.com/engine/reference/builder/#add) is not yet supported. Use the *exec form* of `RUN`, `ENTRYPOINT` and `CMD` instead and prepend a different shell.
@@ -527,7 +556,3 @@ The classical [`ONBUILD` Dockerfile command](https://docs.docker.com/engine/refe
 ## STOPSIGNAL (not supported)
 
 The classical [`STOPSIGNAL` Dockerfile command](https://docs.docker.com/engine/reference/builder/#stopsignal) is not yet supported.
-
-## HEALTHCHECK (not supported)
-
-The classical [`HEALTHCHECK` Dockerfile command](https://docs.docker.com/engine/reference/builder/#healthcheck) is not yet supported.
