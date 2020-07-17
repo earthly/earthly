@@ -57,6 +57,31 @@ If the build phase does not succeed, not output is produced and no push instruct
 
 The output of the two phases are separated by a `=== SUCCESS ===` marker.
 
+#### Target and Artifact Reference
+
+The `<target-ref>` can reference both local and remote targets.
+
+##### local reference
+
+`+<target-name>` will reference a target in the local earthfile in the current directory.
+
+`<local-path>+<target-name>` will reference a local earthfile in a different directory as
+specified by `<local-path>`, which must start with `./`, `../`, or `/`.
+
+##### remote reference
+
+`<gitvendor>/<namespace>/<project>/path/in/project[:some-tag]+<target-name>` will access a remote git repository.
+
+##### Artifact Reference
+
+`<target-ref>/<artifact-path>` will reference a build target's artifact.
+
+##### Examples
+
+See the [Target, artifact, and image referencing guide](../guides/target-ref) for more details and examples.
+
+
+
 #### Options
 
 ##### `--build-arg <key>[=<value>]`
