@@ -1,0 +1,28 @@
+FROM mcr.microsoft.com/dotnet/core/sdk:3.1.302-alpine3.12
+WORKDIR /dotnet-example
+
+deps:
+    # copying project files and restoring NuGet packages allows docker to cache the layer and only re-build it when NuGet packages change
+    COPY src/HelloEarthly/HelloEarthly.csproj src/HelloEarthly/
+    RUN dotnet restore src/HelloEarthly
+    SAVE IMAGE
+
+build:
+    FROM +deps
+    COPY src src
+
+    # make sure you have /bin and /obj in .earthignore, as their content from context might cause problems
+    RUN dotnet publish --no-restore src/HelloEarthly -o publish
+    
+    # 'dotnet publish' flag creates socket files in /tmp , which causes buildkit to fail
+    # this command removes these files
+    # for more see https://github.com/earthly/earthly/issues/115
+    RUN find /tmp -type s | xargs rm
+
+    SAVE ARTIFACT publish AS LOCAL publish
+
+docker:
+    FROM mcr.microsoft.com/dotnet/core/runtime:3.1.6-alpine3.12
+    COPY +build/publish .
+    ENTRYPOINT ["dotnet", "HelloEarthly.dll"]
+    SAVE IMAGE dotnet-example:latest
