@@ -22,6 +22,7 @@ import (
 	"github.com/earthly/earthly/earthfile2llb/variables"
 	"github.com/earthly/earthly/logging"
 
+	"github.com/dustin/go-humanize"
 	"github.com/moby/buildkit/client"
 	_ "github.com/moby/buildkit/client/connhelper/dockercontainer" // Load "docker-container://" helper.
 	"github.com/moby/buildkit/session"
@@ -322,6 +323,24 @@ func (app *earthApp) parseConfigFile(context *cli.Context) error {
 	gitConfig, gitCredentials, err := config.CreateGitConfig(cfg)
 	if err != nil {
 		return errors.Wrapf(err, "failed to create git config from %s", app.configPath)
+	}
+
+	// deprecated flag options
+
+	if context.IsSet("no-loop-device") {
+		app.console.Printf("Warning: the --no-loop-device command flag is deprecated and is now configured in the earthly config file under the `no_loop_device` setting\n")
+	} else {
+		app.buildkitdSettings.DisableLoopDevice = cfg.Global.DisableLoopDevice
+	}
+
+	if context.IsSet("buildkit-cache-size-mb") {
+		app.console.Printf("Warning: the --buildkit-cache-size-mb command flag is deprecated and is now configured in the earthly config file under the `buildkit_cache_size` setting\n")
+	} else {
+		cacheSize, err := humanize.ParseBytes(cfg.Global.BuildKitCacheSize)
+		if err != nil {
+			return errors.Wrap(err, fmt.Sprintf("failed to parse buildkit_cache_size configuration size value %q", cfg.Global.BuildKitCacheSize))
+		}
+		app.buildkitdSettings.CacheSizeMb = int(cacheSize)
 	}
 
 	app.buildkitdSettings.TempDir = cfg.Global.CachePath

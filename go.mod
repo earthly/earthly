@@ -25,6 +25,7 @@ require (
 	github.com/docker/docker v1.14.0-0.20190319215453-e7b5f7dbe98c
 	github.com/docker/go-metrics v0.0.0-20180209012529-399ea8c73916 // indirect
 	github.com/docker/libtrust v0.0.0-20150114040149-fa567046d9b1 // indirect
+	github.com/dustin/go-humanize v0.0.0-20171111073723-bb3d318650d4
 	github.com/fatih/color v1.9.0
 	github.com/garyburd/redigo v0.0.0-20150301180006-535138d7bcd7 // indirect
 	github.com/godbus/dbus v4.1.0+incompatible // indirect
