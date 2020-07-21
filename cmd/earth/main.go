@@ -324,6 +324,7 @@ func (app *earthApp) parseConfigFile(context *cli.Context) error {
 		return errors.Wrapf(err, "failed to create git config from %s", app.configPath)
 	}
 
+	app.buildkitdSettings.TempDir = cfg.Global.CachePath
 	app.buildkitdSettings.GitConfig = gitConfig
 	app.buildkitdSettings.GitCredentials = gitCredentials
 	return nil

@@ -11,7 +11,7 @@ import (
 var ErrInvalidTransport = fmt.Errorf("invalid transport")
 
 type GlobalConfig struct {
-	//TODO add support for global config as needed
+	CachePath string `yaml:"cache_path"`
 }
 
 type GitConfig struct {
@@ -36,7 +36,11 @@ func ensureTransport(s, transport string) (string, error) {
 }
 
 func ParseConfigFile(yamlData []byte) (*Config, error) {
-	var config Config
+	config := Config{
+		Global: GlobalConfig{
+			CachePath: "/var/cache/earthly",
+		},
+	}
 
 	err := yaml.Unmarshal(yamlData, &config)
 	if err != nil {
