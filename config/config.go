@@ -13,7 +13,7 @@ var ErrInvalidTransport = fmt.Errorf("invalid transport")
 type GlobalConfig struct {
 	CachePath           string `yaml:"cache_path"`
 	DisableLoopDevice   bool   `yaml:"no_loop_device"`
-	BuildkitCacheSizeMb int    `yaml:"buildkit_cache_size_mb"`
+	BuildkitCacheSizeMb int    `yaml:"cache_size_mb"`
 	BuildkitImage       string `yaml:"buildkit_image"`
 }
 
