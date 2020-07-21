@@ -13,7 +13,8 @@ var ErrInvalidTransport = fmt.Errorf("invalid transport")
 type GlobalConfig struct {
 	CachePath         string `yaml:"cache_path"`
 	DisableLoopDevice bool   `yaml:"no_loop_device"`
-	BuildKitCacheSize string `yaml:"buildkit_cache_size"`
+	BuildkitCacheSize string `yaml:"buildkit_cache_size"`
+	BuildkitImage     string `yaml:"buildkit_image"`
 }
 
 type GitConfig struct {
@@ -46,7 +47,7 @@ func ParseConfigFile(yamlData []byte) (*Config, error) {
 		Global: GlobalConfig{
 			CachePath:         "/var/cache/earthly",
 			DisableLoopDevice: false,
-			BuildKitCacheSize: "10GB",
+			BuildkitCacheSize: "10GB",
 		},
 	}
 

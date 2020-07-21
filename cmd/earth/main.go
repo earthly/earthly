@@ -320,7 +320,7 @@ func (app *earthApp) processDeprecatedCommandOptions(context *cli.Context, cfg *
 
 	// command line overrides the config file
 	if app.gitUsernameOverride != "" || app.gitPasswordOverride != "" {
-		app.console.Printf("Warning: the --git-username and --git-password command flags are deprecated and are now configured in the earthly config file under the `git` section\n")
+		app.console.Warnf("Warning: the --git-username and --git-password command flags are deprecated and are now configured in the earthly config file under the `git` section\n")
 		if _, ok := cfg.Git["github.com"]; !ok {
 			cfg.Git["github.com"] = config.GitConfig{}
 		}
@@ -341,7 +341,7 @@ func (app *earthApp) processDeprecatedCommandOptions(context *cli.Context, cfg *
 	}
 
 	if context.IsSet("git-url-instead-of") {
-		app.console.Printf("Warning: the --git-url-instead-of command flag is deprecated and is now configured in the earthly config file under the `git` setting\n")
+		app.console.Warnf("Warning: the --git-url-instead-of command flag is deprecated and is now configured in the earthly config file under the `git` global url_instead_of setting\n")
 	} else {
 		if gitGlobal, ok := cfg.Git["global"]; ok {
 			if gitGlobal.GitURLInsteadOf != "" {
@@ -351,20 +351,27 @@ func (app *earthApp) processDeprecatedCommandOptions(context *cli.Context, cfg *
 	}
 
 	if context.IsSet("no-loop-device") {
-		app.console.Printf("Warning: the --no-loop-device command flag is deprecated and is now configured in the earthly config file under the `no_loop_device` setting\n")
+		app.console.Warnf("Warning: the --no-loop-device command flag is deprecated and is now configured in the earthly config file under the `no_loop_device` setting\n")
 	} else {
 		app.buildkitdSettings.DisableLoopDevice = cfg.Global.DisableLoopDevice
 	}
 
 	if context.IsSet("buildkit-cache-size-mb") {
-		app.console.Printf("Warning: the --buildkit-cache-size-mb command flag is deprecated and is now configured in the earthly config file under the `buildkit_cache_size` setting\n")
+		app.console.Warnf("Warning: the --buildkit-cache-size-mb command flag is deprecated and is now configured in the earthly config file under the `buildkit_cache_size` setting\n")
 	} else {
-		cacheSize, err := humanize.ParseBytes(cfg.Global.BuildKitCacheSize)
+		cacheSize, err := humanize.ParseBytes(cfg.Global.BuildkitCacheSize)
 		if err != nil {
-			return errors.Wrap(err, fmt.Sprintf("failed to parse buildkit_cache_size configuration size value %q", cfg.Global.BuildKitCacheSize))
+			return errors.Wrap(err, fmt.Sprintf("failed to parse buildkit_cache_size configuration size value %q", cfg.Global.BuildkitCacheSize))
 		}
 		app.buildkitdSettings.CacheSizeMb = int(cacheSize)
 	}
+
+	if context.IsSet("buildkit-image") {
+		app.console.Warnf("Warning: the --buildkit-image command flag is deprecated and is now configured in the earthly config file under the `buildkit_image` setting\n")
+	} else if cfg.Global.BuildkitImage != "" {
+		app.buildkitdImage = cfg.Global.BuildkitImage
+	}
+
 	return nil
 
 }
