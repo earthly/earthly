@@ -170,8 +170,6 @@ For example:
 * `--git-url-instead-of='git@github.com:=https://github.com/'` forces use of SSH-based URLs for GitHub (default)
 * `--git-url-instead-of='https://github.com/=git@github.com:'` forces use of HTTPS-based URLs for GitHub
 
-Currently, only one such pattern is allowed to be specified.
-
 To prevent the need to specify this option on every `earth` invocation, it is recommended to specify the env var form in a file like `.bashrc` or `.profile`.
 
 ##### `--buildkit-host <bk-host>`
