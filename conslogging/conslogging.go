@@ -76,6 +76,19 @@ func (cl ConsoleLogger) PrintSuccess() {
 	successColor.Fprintf(cl.w, "=========================== SUCCESS ===========================\n")
 }
 
+// Warnf prints a warning message in red
+func (cl ConsoleLogger) Warnf(format string, args ...interface{}) {
+	cl.mu.Lock()
+	defer cl.mu.Unlock()
+
+	c := noColor
+	if !cl.disableColors {
+		c = warnColor
+	}
+
+	c.Fprintf(cl.w, format, args...)
+}
+
 // Printf prints formatted text to the console.
 func (cl ConsoleLogger) Printf(format string, args ...interface{}) {
 	cl.mu.Lock()
