@@ -11,10 +11,17 @@ import (
 var ErrInvalidTransport = fmt.Errorf("invalid transport")
 
 type GlobalConfig struct {
-	CachePath string `yaml:"cache_path"`
+	CachePath           string `yaml:"cache_path"`
+	DisableLoopDevice   bool   `yaml:"no_loop_device"`
+	BuildkitCacheSizeMb int    `yaml:"buildkit_cache_size_mb"`
+	BuildkitImage       string `yaml:"buildkit_image"`
 }
 
 type GitConfig struct {
+	// these are used for global config
+	GitURLInsteadOf string `yaml:"url_instead_of"`
+
+	// these are used for git vendors (e.g. github, gitlab)
 	Auth     string `yaml:"auth"`
 	User     string `yaml:"user"`
 	Password string `yaml:"password"`
@@ -38,7 +45,9 @@ func ensureTransport(s, transport string) (string, error) {
 func ParseConfigFile(yamlData []byte) (*Config, error) {
 	config := Config{
 		Global: GlobalConfig{
-			CachePath: "/var/cache/earthly",
+			CachePath:           "/var/cache/earthly",
+			DisableLoopDevice:   false,
+			BuildkitCacheSizeMb: 10000,
 		},
 	}
 
@@ -59,7 +68,7 @@ func CreateGitConfig(config *Config) (string, []string, error) {
 	// due to the settings hash being different
 	keys := []string{}
 	for k := range config.Git {
-		if k != "default" {
+		if k != "default" && k != "global" {
 			keys = append(keys, k)
 		}
 	}
