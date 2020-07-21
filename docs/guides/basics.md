@@ -74,7 +74,7 @@ build:
     # In JS, there's nothing to build in this simple form.
     # The source is also the artifact used in production.
     COPY index.js .
-    SAVE ARTIFACT index.js /dist/index.js AS LOCAL /dist/index.js
+    SAVE ARTIFACT index.js /dist/index.js AS LOCAL ./dist/index.js
 
 docker:
     COPY +build/dist dist
@@ -257,7 +257,7 @@ build:
     # referenced as +build/dist). In addition, store the artifact as a
     # local file (on the host) named dist/index.js. This local file is only
     # written if the entire build succeeds.
-    SAVE ARTIFACT index.js /dist/index.js AS LOCAL /dist/index.js
+    SAVE ARTIFACT index.js /dist/index.js AS LOCAL ./dist/index.js
 
 # Declare a target, docker.
 docker:
@@ -443,7 +443,7 @@ build:
     COPY dist dist
     RUN npm install
     RUN npx webpack
-    SAVE ARTIFACT dist /dist AS LOCAL /dist
+    SAVE ARTIFACT dist /dist AS LOCAL ./dist
 
 docker:
     COPY package.json package-lock.json ./
@@ -572,7 +572,7 @@ build:
     COPY src src
     COPY dist dist
     RUN npx webpack
-    SAVE ARTIFACT dist /dist AS LOCAL /dist
+    SAVE ARTIFACT dist /dist AS LOCAL ./dist
 
 docker:
     COPY package.json package-lock.json ./
