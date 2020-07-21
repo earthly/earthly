@@ -17,8 +17,6 @@ import (
 const (
 	// ContainerName is the name of the buildkitd container.
 	ContainerName = "earthly-buildkitd"
-	// TempDir is the directory used for buildkitd cache.
-	TempDir = "/tmp/earthly"
 )
 
 // Address is the address at which the daemon is available.
@@ -176,7 +174,7 @@ func Start(ctx context.Context, image string, settings Settings, reset bool) err
 		return errors.Wrap(err, "settings hash")
 	}
 	env := os.Environ()
-	cacheMount := fmt.Sprintf("%s:%s:delegated", TempDir, TempDir)
+	cacheMount := fmt.Sprintf("%s:/tmp/earthly:delegated", settings.TempDir)
 	args := []string{
 		"run",
 		"-d", "--rm",

@@ -17,6 +17,7 @@ type Settings struct {
 	DisableLoopDevice bool     `json:"disableLoopDevice"`
 	GitConfig         string   `json:"gitConfig"`
 	GitCredentials    []string `json:"gitCredentials"`
+	TempDir           string   `json:"tmpDir"`
 }
 
 // Hash returns a secure hash of the settings.
