@@ -151,7 +151,7 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 		&cli.BoolFlag{
 			Name:        "push",
 			EnvVars:     []string{"EARTHLY_PUSH"},
-			Usage:       "Push docker images and execute RUN --push commmands",
+			Usage:       "Push docker images and execute RUN --push commands",
 			Destination: &app.push,
 		},
 		&cli.BoolFlag{
