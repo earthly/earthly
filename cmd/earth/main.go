@@ -299,8 +299,28 @@ func (app *earthApp) parseConfigFile(context *cli.Context) error {
 		cfg.Git = map[string]config.GitConfig{}
 	}
 
+	err = app.processDeprecatedCommandOptions(context, cfg)
+	if err != nil {
+		return err
+	}
+
+	gitConfig, gitCredentials, err := config.CreateGitConfig(cfg)
+	if err != nil {
+		return errors.Wrapf(err, "failed to create git config from %s", app.configPath)
+	}
+
+	app.buildkitdSettings.TempDir = cfg.Global.CachePath
+	app.buildkitdSettings.GitConfig = gitConfig
+	app.buildkitdSettings.GitCredentials = gitCredentials
+	return nil
+
+}
+
+func (app *earthApp) processDeprecatedCommandOptions(context *cli.Context, cfg *config.Config) error {
+
 	// command line overrides the config file
 	if app.gitUsernameOverride != "" || app.gitPasswordOverride != "" {
+		app.console.Printf("Warning: the --git-username and --git-password command flags are deprecated and are now configured in the earthly config file under the `git` section\n")
 		if _, ok := cfg.Git["github.com"]; !ok {
 			cfg.Git["github.com"] = config.GitConfig{}
 		}
@@ -320,12 +340,15 @@ func (app *earthApp) parseConfigFile(context *cli.Context) error {
 		}
 	}
 
-	gitConfig, gitCredentials, err := config.CreateGitConfig(cfg)
-	if err != nil {
-		return errors.Wrapf(err, "failed to create git config from %s", app.configPath)
+	if context.IsSet("git-url-instead-of") {
+		app.console.Printf("Warning: the --git-url-instead-of command flag is deprecated and is now configured in the earthly config file under the `git` setting\n")
+	} else {
+		if gitGlobal, ok := cfg.Git["global"]; ok {
+			if gitGlobal.GitURLInsteadOf != "" {
+				app.buildkitdSettings.GitURLInsteadOf = gitGlobal.GitURLInsteadOf
+			}
+		}
 	}
-
-	// deprecated flag options
 
 	if context.IsSet("no-loop-device") {
 		app.console.Printf("Warning: the --no-loop-device command flag is deprecated and is now configured in the earthly config file under the `no_loop_device` setting\n")
@@ -342,10 +365,6 @@ func (app *earthApp) parseConfigFile(context *cli.Context) error {
 		}
 		app.buildkitdSettings.CacheSizeMb = int(cacheSize)
 	}
-
-	app.buildkitdSettings.TempDir = cfg.Global.CachePath
-	app.buildkitdSettings.GitConfig = gitConfig
-	app.buildkitdSettings.GitCredentials = gitCredentials
 	return nil
 
 }

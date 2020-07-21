@@ -17,6 +17,10 @@ type GlobalConfig struct {
 }
 
 type GitConfig struct {
+	// these are used for global config
+	GitURLInsteadOf string `yaml:"url_instead_of"`
+
+	// these are used for git vendors (e.g. github, gitlab)
 	Auth     string `yaml:"auth"`
 	User     string `yaml:"user"`
 	Password string `yaml:"password"`
@@ -63,7 +67,7 @@ func CreateGitConfig(config *Config) (string, []string, error) {
 	// due to the settings hash being different
 	keys := []string{}
 	for k := range config.Git {
-		if k != "default" {
+		if k != "default" && k != "global" {
 			keys = append(keys, k)
 		}
 	}
