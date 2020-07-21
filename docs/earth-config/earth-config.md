@@ -5,14 +5,13 @@ Global configuration values for earth can be stored on disk in the configuration
 By default, earth reads the configuration file `~/.earthly/config.yaml`; however, it can also be
 overridden with the `--config` command flag option.
 
-Currently only https authentication configuration is configured in the config file; ssh authentication
-is additionally [supported](../guides/auth.md) (and the default when the no overrides have been configured).
-
 ## Format
 
 The earthly config file is a [yaml](https://yaml.org/) formatted file that looks like:
 
 ```yaml
+global:
+  cache_path: <cache_path>
 git:
     <site>:
         auth: https|ssh
@@ -31,6 +30,12 @@ git:
         user: alice
         password: itsasecret
 ```
+
+## Global configuration reference
+
+### cache_path
+
+Specifies the location where build data is stored. The default location is `/var/cache/earthly`.
 
 ## Git configuration reference
 
