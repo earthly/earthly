@@ -18,7 +18,7 @@ A number of Earthly features use Git credentials to perform remote Git operation
 {% hint style='info' %}
 ##### Note
 
-Currently, only `github.com` is supported as an SCM provider. If you need support for others, please [open a new GitHub issue](https://github.com/earthly/earthly/issues/new).
+Currently, only `github.com`, and `gitlab.com` have been tested as SCM providers. If you need support for others, please [open a new GitHub issue](https://github.com/earthly/earthly/issues/new).
 {% endhint %}
 
 There are two possible ways to pass Git authentication to Earthly builds:
@@ -34,7 +34,13 @@ If you need to override the SSH agent socket, you can set the environment variab
 
 In order for the SSH agent to have the right credentials available, make sure you run `ssh-add` before executing Earthly builds.
 
-Another key setting available, is `GIT_URL_INSTEAD_OF`. It allows for `https://github.com` URLs to be translated into `git@github.com` URLs, effectively forcing all github references to be interpreted through SSH-based authentication. This setting defaults to `git@github.com:=https://github.com/`, making SSH-based authentication work out of the box.
+Another key setting is the `auth` mode for the git site that hosts the repository. By default `github.com` and `gitlab.com` automatically default to `ssh` authentication, making SSH-based authentication work out of the box. Other sites will have to be explicitly added to the [earthly config file](../earth-config/earth-config.md) under the git section:
+
+```yaml
+git:
+    git.example.com:
+        auth: ssh
+```
 
 #### Username-password authentication
 
