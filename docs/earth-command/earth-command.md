@@ -153,6 +153,12 @@ Sets the git password to use for non-SSH git authentication. For more informatio
 For security reasons, it is strongly recommended to use the env var form of this setting and not the flag form.
 {% endhint %}
 
+##### `--git-url-instead-of <git-instead-of>`
+
+Also available as an env var setting: `GIT_URL_INSTEAD_OF=<git-instead-of>`.
+
+This option is now deprecated. Please use the [configuration file](../earth-config/earth-config.md) instead.
+
 ##### `--buildkit-host <bk-host>`
 
 Also available as an env var setting: `EARTHLY_BUILDKIT_HOST=<bk-host>`.
