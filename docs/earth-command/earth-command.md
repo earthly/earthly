@@ -9,7 +9,7 @@
   earth [--build-arg <key>[=<value>]] [--secret|-s <secret-id>[=<value>]]
         [--push] [--no-output] [--no-cache] [--allow-privileged|-P]
         [--ssh-auth-sock <path-to-sock>]
-        [--buildkit-host <bk-host>] [--buildkit-cache-size-mb <cache-size-mb>]
+        [--buildkit-host <bk-host>]
         [--no-loop-device]
         <target-ref>
   ```
@@ -18,7 +18,7 @@
   earth [--build-arg <key>[=<value>]] [--secret|-s <secret-id>[=<value>]]
         [--push] [--no-cache] [--allow-privileged|-P]
         [--ssh-auth-sock <path-to-sock>]
-        [--buildkit-host <bk-host>] [--buildkit-cache-size-mb <cache-size-mb>]
+        [--buildkit-host <bk-host>]
         [--no-loop-device]
         --artifact|-a <artifact-ref> [<dest-path>]
   ```
@@ -27,7 +27,7 @@
   earth [--build-arg <key>[=<value>]] [--secret|-s <secret-id>[=<value>]]
         [--push] [--no-cache] [--allow-privileged|-P]
         [--ssh-auth-sock <path-to-sock>]
-        [--buildkit-host <bk-host>] [--buildkit-cache-size-mb <cache-size-mb>]
+        [--buildkit-host <bk-host>]
         [--no-loop-device]
         --image|-i <target-ref>
   ```
@@ -173,6 +173,8 @@ Also available as an env var setting: `EARTHLY_BUILDKIT_CACHE_SIZE_MB=<cache-siz
 The total size of the buildkit cache, in MB. The buildkit daemon will allocate disk space for this size. Size less than `1000` (1GB) is not recommended. The default size if this option is not set is `10000` (10GB).
 
 This setting is only used when the buildkit daemon is started (or restarted). In order to apply the setting immediately, issue the command
+
+This option is now deprecated. Please use the [configuration file](../earth-config/earth-config.md) instead.
 
 ```bash
 earth --buildkit-cache-size-mb <cache-size-mb> prune --reset
