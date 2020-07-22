@@ -134,10 +134,6 @@ For more information see the [Authentication page](../guides/auth.md).
 
 Also available as an env var setting: `GIT_USERNAME=<git-user>`.
 
-Sets the git username to use for non-SSH git authentication. For more information see the [Authentication page](../guides/auth.md).
-
-To prevent the need to specify this option on every `earth` invocation, it is recommended to specify the env var form in a file like `.bashrc` or `.profile`.
-
 This option is now deprecated. Please use the [configuration file](../earth-config/earth-config.md) instead.
 
 ##### `--git-password <git-pass>`
@@ -169,10 +165,6 @@ Instructs `earth` to use an alternate buildkit host. When this option is specifi
 ##### `--buildkit-cache-size-mb <cache-size-mb>`
 
 Also available as an env var setting: `EARTHLY_BUILDKIT_CACHE_SIZE_MB=<cache-size-mb>`.
-
-The total size of the buildkit cache, in MB. The buildkit daemon will allocate disk space for this size. Size less than `1000` (1GB) is not recommended. The default size if this option is not set is `10000` (10GB).
-
-This setting is only used when the buildkit daemon is started (or restarted). In order to apply the setting immediately, issue the command
 
 This option is now deprecated. Please use the [configuration file](../earth-config/earth-config.md) instead.
 
