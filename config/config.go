@@ -5,10 +5,14 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/pkg/errors"
 	"gopkg.in/yaml.v2"
 )
 
-var ErrInvalidTransport = fmt.Errorf("invalid transport")
+var (
+	ErrInvalidTransport = fmt.Errorf("invalid transport")
+	ErrInvalidAuth      = fmt.Errorf("invalid auth")
+)
 
 type GlobalConfig struct {
 	CachePath           string `yaml:"cache_path"`
@@ -64,6 +68,16 @@ func CreateGitConfig(config *Config) (string, []string, error) {
 	lines := []string{}
 	cred_i := 0
 
+	// automatically add default auth=ssh for known sites
+	defaultSites := []string{"github.com", "gitlab.com"}
+	for _, k := range defaultSites {
+		if _, ok := config.Git[k]; !ok {
+			config.Git[k] = GitConfig{
+				Auth: "ssh",
+			}
+		}
+	}
+
 	// iterate over map in a consistent order otherwise it will cause the buildkitd image to restart
 	// due to the settings hash being different
 	keys := []string{}
@@ -92,11 +106,14 @@ func CreateGitConfig(config *Config) (string, []string, error) {
 
 	for _, k := range keys {
 		v := config.Git[k]
-		if v.Auth == "https" {
-			url, err := ensureTransport(k, "https")
-			if err != nil {
-				return "", nil, err
-			}
+
+		url, err := ensureTransport(k, "https")
+		if err != nil {
+			return "", nil, err
+		}
+
+		switch v.Auth {
+		case "https":
 			lines = append(lines, fmt.Sprintf("[credential %q]", url))
 			lines = append(lines, fmt.Sprintf("  username=%q", v.User))
 			lines = append(lines, fmt.Sprintf("  helper=/usr/bin/git_credentials_%d", cred_i))
@@ -106,6 +123,12 @@ func CreateGitConfig(config *Config) (string, []string, error) {
 			// use https instead of ssh://git@....
 			lines = append(lines, fmt.Sprintf("[url %q]", url+"/"))
 			lines = append(lines, fmt.Sprintf("  insteadOf = git@%s:", url[8:]))
+		case "ssh":
+			// use git@... instead of https://...
+			lines = append(lines, fmt.Sprintf("[url %q]", "git@"+url[8:]+":"))
+			lines = append(lines, fmt.Sprintf("  insteadOf = %s:", url+"/"))
+		default:
+			return "", nil, errors.Wrapf(ErrInvalidAuth, "unsupported auth %s for site %s", v.Auth, k)
 		}
 	}
 
