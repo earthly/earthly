@@ -110,7 +110,7 @@ Invoke the build using either `earth +build` (to build the binary) or `earth +do
 
 ```Dockerfile
 build:
-  # Build the target lint (defined in the same build.earth file).
+  # Build the target lint (defined in the same Earthfile file).
   BUILD +lint
   # Inherit image from target +some-image available in ./some/deep/dir.
   FROM ./some/deep/dir+some-image
@@ -202,7 +202,7 @@ earth --secret GITHUB_TOKEN --push +some-target
 
 <h2 align="center">Example usage of earth command</h2>
 
-Write your own `build.earth` file, then build any target via
+Write your own `Earthfile`, then build any target via
 
 ```bash
 earth +target-name
@@ -320,7 +320,7 @@ Check out the [Earthfile reference doc page](https://docs.earthly.dev/earthfile)
 
 ##### Can Earthly build Dockerfiles
 
-It cannot - however, translating Dockerfiles to Earthfiles (`build.earth`) is usually a matter of copy-pasting and making small adjustments. See the [getting started page](https://docs.earthly.dev/guides/basics) for some Earthfile examples.
+It cannot - however, translating Dockerfiles to Earthfiles is usually a matter of copy-pasting and making small adjustments. See the [getting started page](https://docs.earthly.dev/guides/basics) for some Earthfile examples.
 
 <h2 align="center">Contributing</h2>
 
