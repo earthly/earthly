@@ -10,6 +10,10 @@
   ```bash
   export RELEASE_TAG="v..."
   ```
+* Make sure you are on master
+  ```bash
+  git checkout master && git pull
+  ```
 * Run
   ```bash
   earth \
