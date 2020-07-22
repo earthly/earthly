@@ -54,6 +54,7 @@ This setting is only used when the cache is initialized for the first time. In o
 
 ```bash
 earth prune --reset
+```
 
 ### no_loop_device
 

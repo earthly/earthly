@@ -56,7 +56,6 @@ git:
         auth: https
         user: <username>
         password: <password>
-
 ```
 
 Alternatively, environment variables can be set which will be override all host entries from the config file:
