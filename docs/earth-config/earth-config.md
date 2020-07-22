@@ -50,11 +50,10 @@ Specifies the location where build data is stored. The default location is `/var
 
 Specifies the total size of the buildkit cache, in MB. The buildkit daemon will allocate disk space for this size. Size less than `1000` (1GB) is not recommended. The default size if this option is not set is `10000` (10GB).
 
-This setting is only used when the buildkit daemon is started (or restarted). In order to apply the setting immediately, issue the command
+This setting is only used when the cache is initialized for the first time. In order to apply the setting immediately, issue the following command after changing the configuration
 
 ```bash
-earth --buildkit-cache-size-mb <cache-size-mb> prune --reset
-```
+earth prune --reset
 
 ### no_loop_device
 
@@ -107,4 +106,3 @@ The https username to use when auth is set to `https`. This setting is ignored w
 #### password
 
 The https password to use when auth is set to `https`. This setting is ignored when auth is `ssh`.
-
