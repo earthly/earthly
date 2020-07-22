@@ -66,7 +66,7 @@ Instructs earth to use an alternate image for buildkitd. The default image used 
 
 ## Git configuration reference
 
-git configuration is split up into global confi options, or site-specific options.
+The git configuration is split up into global config options, or site-specific options.
 
 ### global options
 
