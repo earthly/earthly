@@ -72,7 +72,7 @@ The global git options
 Rewrites git URLs of a certain pattern. Similar to [`git-config url.<base>.insteadOf`](https://git-scm.com/docs/git-config#Documentation/git-config.txt-urlltbasegtinsteadOf).
 Multiple values can be separated by commas. Format: `<base>=<instead-of>[,...]`.
 
-This setting allows rewriting all git URLs of the form `https://...` into `git@github.com:...`, or vice-versa.
+This setting allows rewriting all git URLs of the form `https://example...` into `git@example.com:...`, or vice-versa.
 
 For example:
 
