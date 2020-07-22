@@ -9,7 +9,6 @@
   earth [--build-arg <key>[=<value>]] [--secret|-s <secret-id>[=<value>]]
         [--push] [--no-output] [--no-cache] [--allow-privileged|-P]
         [--ssh-auth-sock <path-to-sock>]
-        [--git-username <git-user>] [--git-password <git-pass>]
         [--buildkit-host <bk-host>] [--buildkit-cache-size-mb <cache-size-mb>]
         [--no-loop-device]
         <target-ref>
@@ -19,7 +18,6 @@
   earth [--build-arg <key>[=<value>]] [--secret|-s <secret-id>[=<value>]]
         [--push] [--no-cache] [--allow-privileged|-P]
         [--ssh-auth-sock <path-to-sock>]
-        [--git-username <git-user>] [--git-password <git-pass>]
         [--buildkit-host <bk-host>] [--buildkit-cache-size-mb <cache-size-mb>]
         [--no-loop-device]
         --artifact|-a <artifact-ref> [<dest-path>]
@@ -29,7 +27,6 @@
   earth [--build-arg <key>[=<value>]] [--secret|-s <secret-id>[=<value>]]
         [--push] [--no-cache] [--allow-privileged|-P]
         [--ssh-auth-sock <path-to-sock>]
-        [--git-username <git-user>] [--git-password <git-pass>]
         [--buildkit-host <bk-host>] [--buildkit-cache-size-mb <cache-size-mb>]
         [--no-loop-device]
         --image|-i <target-ref>
@@ -141,6 +138,8 @@ Sets the git username to use for non-SSH git authentication. For more informatio
 
 To prevent the need to specify this option on every `earth` invocation, it is recommended to specify the env var form in a file like `.bashrc` or `.profile`.
 
+This option is now deprecated. Please use the [configuration file](../earth-config/earth-config.md) instead.
+
 ##### `--git-password <git-pass>`
 
 Also available as an env var setting: `GIT_PASSWORD=<git-pass>`.
@@ -152,6 +151,8 @@ Sets the git password to use for non-SSH git authentication. For more informatio
 
 For security reasons, it is strongly recommended to use the env var form of this setting and not the flag form.
 {% endhint %}
+
+This option is now deprecated. Please use the [configuration file](../earth-config/earth-config.md) instead.
 
 ##### `--git-url-instead-of <git-instead-of>`
 
