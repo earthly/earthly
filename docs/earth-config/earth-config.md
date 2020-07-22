@@ -44,7 +44,7 @@ git:
 
 ### cache_path
 
-Specifies the location where build data is stored. The default location is `/var/cache/earthly`.
+Specifies the location where build data is stored. The default location is `/var/cache/earthly` on Linux and `~/Library/Caches/earthly` on macOS.
 
 ### cache_size_mb
 
