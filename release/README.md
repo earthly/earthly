@@ -39,7 +39,27 @@
 
 ### VS Code syntax highlighting
 
-TODO
+First set the version to publish:
+
+```bash
+export VSCODE_RELEASE_TAG=v0.0.3
+```
+
+Ask Vlad for a token
+
+```bash
+VSCE_TOKEN=.....
+```
+(vlad can generate one following this guide: https://code.visualstudio.com/api/working-with-extensions/publishing-extension#get-a-personal-access-token )
+
+Then publish it:
+```bash
+earth \
+  --build-arg VSCODE_RELEASE_TAG \
+  --secret VSCE_TOKEN \
+  --push \
+  +release-vscode-syntax-highlighting
+```
 
 ### Using a fork of buildkit
 
