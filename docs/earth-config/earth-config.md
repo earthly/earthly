@@ -17,7 +17,7 @@ global:
   buildkit_image: <buildkit_image>
 git:
     global:
-	    url_instead_of: <url_instead_of>
+        url_instead_of: <url_instead_of>
     <site>:
         auth: https|ssh
         user: <username>
@@ -33,7 +33,7 @@ global:
     cache_size_mb: 20000
 git:
     global:
-        url_instead_of:
+        url_instead_of: "git@example.com:=https://localmirror.example.com/"
     github.com:
         auth: https
         user: alice
@@ -59,11 +59,6 @@ earth prune --reset
 
 When set to true, disables the use of a loop device for storing the cache. By default, Earthly uses a file mounted as a loop device, so that it can control the type of filesystem used for the cache, in order to ensure that overlayfs can be mounted on top of it. If you are already using a filesystem compatible with overlayfs, then you can disable the loop device.
 
-### buildkit_image
-
-Instructs earth to use an alternate image for buildkitd. The default image used is `earthly/buildkitd:<earth-version>`.
-
-
 ## Git configuration reference
 
 The git configuration is split up into global config options, or site-specific options.
@@ -81,8 +76,8 @@ This setting allows rewriting all git URLs of the form `https://...` into `git@g
 
 For example:
 
-* `--git-url-instead-of='git@github.com:=https://github.com/'` forces use of SSH-based URLs for GitHub
-* `--git-url-instead-of='https://github.com/=git@github.com:'` forces use of HTTPS-based URLs for GitHub
+* `--git-url-instead-of='git@example.com:=https://example.com/'` forces use of SSH-based URLs rather than HTTPS
+* `--git-url-instead-of='https://localmirror.example.com/=git@example.com:'` forces use of HTTPS-based local mirror for ssh-based example.com repositories
 
 NOTE: if the `auth` option is configured under a site-specific configuration, then the appropriate rewriting rule will be automatically applied.
 

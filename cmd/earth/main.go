@@ -225,6 +225,7 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 			EnvVars:     []string{"EARTHLY_BUILDKIT_IMAGE"},
 			Usage:       "The docker image to use for the buildkit daemon",
 			Destination: &app.buildkitdImage,
+			Hidden:      true, // dev feature
 		},
 		&cli.BoolFlag{
 			Name:        "no-loop-device",
