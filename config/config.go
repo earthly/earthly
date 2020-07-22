@@ -2,6 +2,9 @@ package config
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
+	"runtime"
 	"sort"
 	"strings"
 
@@ -49,7 +52,7 @@ func ensureTransport(s, transport string) (string, error) {
 func ParseConfigFile(yamlData []byte) (*Config, error) {
 	config := Config{
 		Global: GlobalConfig{
-			CachePath:           "/var/cache/earthly",
+			CachePath:           defaultCachePath(),
 			DisableLoopDevice:   false,
 			BuildkitCacheSizeMb: 10000,
 		},
@@ -136,4 +139,11 @@ func CreateGitConfig(config *Config) (string, []string, error) {
 	gitConfig := strings.Join(lines, "\n")
 
 	return gitConfig, credentials, nil
+}
+
+func defaultCachePath() string {
+	if runtime.GOOS == "darwin" {
+		return filepath.Join(os.Getenv("HOME"), "Library/Caches/earthly")
+	}
+	return "/var/cache/earthly"
 }
