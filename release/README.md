@@ -10,6 +10,10 @@
   ```bash
   export RELEASE_TAG="v..."
   ```
+* Export github username.
+  ```bash
+  export GIT_USERNAME="..."
+  ```
 * Make sure you are on master
   ```bash
   git checkout master && git pull
@@ -25,7 +29,7 @@
   ```bash
   earth \
     --build-arg RELEASE_TAG \
-    --build-arg GIT_USERNAME=vladaionescu \
+    --build-arg GIT_USERNAME \
     --build-arg GIT_NAME="$(git config user.name)" \
     --build-arg GIT_EMAIL="$(git config user.email)" \
     --secret GITHUB_TOKEN \
