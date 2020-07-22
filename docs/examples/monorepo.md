@@ -10,21 +10,21 @@ In this example, let's assume we've organized our monorepo such that each root-l
 └── proj2
 ```
 
-As such, each sub-project might have its own self-contained `build.earth` file, specific to the programming language and setup of the sub-project. A root-level `build.earth` can tie everything together or surface important targets of the sub-projects.
+As such, each sub-project might have its own self-contained `Earthfile`, specific to the programming language and setup of the sub-project. A root-level `Earthfile` can tie everything together or surface important targets of the sub-projects.
 
 ```
 .
-├── build.earth
+├── Earthfile
 ├── proj1
-│   └── build.earth
+│   └── Earthfile
 └── proj2
-    └── build.earth
+    └── Earthfile
 ```
 
-Here is an example of a possible root-level `build.earth` file, where an `all` target simply calls the `+docker` target of each sub-project.
+Here is an example of a possible root-level `Earthfile` file, where an `all` target simply calls the `+docker` target of each sub-project.
 
 ```Dockerfile
-# build.earth
+# Earthfile
 
 FROM alpine:3.11
 

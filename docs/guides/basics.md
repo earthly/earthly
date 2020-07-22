@@ -6,7 +6,7 @@ First, a few concepts:
 
 * Earthly - the build automation system as a whole
 * `earth` - the CLI tool used to interact with Earthly
-* earthfile - a file named `build.earth`, which contains a series of targets and their respective recipes
+* Earthfile - a file (named literally `Earthfile`) which contains a series of targets and their respective recipes
 * buildkitd - a [daemon built by the Docker team](https://github.com/moby/buildkit) and used by Earthly to execute builds. It executes LLB, the same low-level primitives used when building Dockerfiles. The buildkitd daemon is started automatically in a docker container, by `earth`, when executing builds.
 * recipe - a specific series of build steps
 * target - the label used to identify a recipe. 'Target' is also used to refer to a build of a specific target.
@@ -24,14 +24,14 @@ One of the key principles of Earthly is that the best build tooling of a specifi
 
 ## A simple Earthfile
 
-Earthfiles are always named `build.earth`, regardless of their location in the codebase.
+Earthfiles are always named `Earthfile`, regardless of their location in the codebase.
 
 {% method %}
 {% sample lang="Go" %}
 Here is a sample earthfile of a Go app
 
 ```Dockerfile
-# build.earth
+# Earthfile
 
 FROM golang:1.13-alpine3.11
 WORKDIR /go-example
@@ -65,7 +65,7 @@ func main() {
 Here is a sample earthfile of a JS app
 
 ```Dockerfile
-# build.earth
+# Earthfile
 
 FROM node:13.10.1-alpine3.11
 WORKDIR /js-example
@@ -94,7 +94,7 @@ console.log("hello world");
 Here is a sample earthfile of a Java app
 
 ```Dockerfile
-# build.earth
+# Earthfile
 
 FROM openjdk:8-jdk-alpine
 RUN apk add --update --no-cache gradle
@@ -194,7 +194,7 @@ Going back to the example earthfile definition, here is what each command does:
 {% method %}
 {% sample lang="Go" %}
 ```Dockerfile
-# build.earth
+# Earthfile
 
 # The build starts from a docker image: golang:1.13-alpine3.11
 FROM golang:1.13-alpine3.11
@@ -236,7 +236,7 @@ docker:
 ```
 {% sample lang="JavaScript" %}
 ```Dockerfile
-# build.earth
+# Earthfile
 
 # The build starts from a docker image: node:13.10.1-alpine3.11
 FROM node:13.10.1-alpine3.11
@@ -275,7 +275,7 @@ docker:
 ```
 {% sample lang="Java" %}
 ```Dockerfile
-# build.earth
+# Earthfile
 
 # The build starts from a docker image: openjdk:8-jdk-alpine
 FROM openjdk:8-jdk-alpine
@@ -358,7 +358,7 @@ func main() {
 The build then might become
 
 ```Dockerfile
-# build.earth
+# Earthfile
 
 FROM golang:1.13-alpine3.11
 WORKDIR /go-example
@@ -432,7 +432,7 @@ document.body.appendChild(component());
 The build then might become
 
 ```Dockerfile
-# build.earth
+# Earthfile
 
 FROM node:13.10.1-alpine3.11
 WORKDIR /js-example
@@ -496,10 +496,10 @@ public class HelloWorld {
 }
 ```
 
-The build.earth file would not change
+The Earthfile file would not change
 
 ```Dockerfile
-# build.earth
+# Earthfile
 
 FROM openjdk:8-jdk-alpine
 RUN apk add --update --no-cache gradle
@@ -532,7 +532,7 @@ If, however, we could first download the dependencies and only afterwards copy a
 {% method %}
 {% sample lang="Go" %}
 ```Dockerfile
-# build.earth
+# Earthfile
 
 FROM golang:1.13-alpine3.11
 WORKDIR /go-example
@@ -556,7 +556,7 @@ docker:
 ```
 {% sample lang="JavaScript" %}
 ```Dockerfile
-# build.earth
+# Earthfile
 
 FROM node:13.10.1-alpine3.11
 WORKDIR /js-example
@@ -583,7 +583,7 @@ docker:
 ```
 {% sample lang="Java" %}
 ```Dockerfile
-# build.earth
+# Earthfile
 
 FROM openjdk:8-jdk-alpine
 RUN apk add --update --no-cache gradle
@@ -619,7 +619,7 @@ Note that in our case, only the JavaScript version has an example where `FROM +d
 {% method %}
 {% sample lang="Go" %}
 ```Dockerfile
-# build.earth
+# Earthfile
 
 FROM golang:1.13-alpine3.11
 WORKDIR /go-example
@@ -644,7 +644,7 @@ docker:
 ```
 {% sample lang="JavaScript" %}
 ```Dockerfile
-# build.earth
+# Earthfile
 
 FROM node:13.10.1-alpine3.11
 WORKDIR /js-example
@@ -673,7 +673,7 @@ docker:
 ```
 {% sample lang="Java" %}
 ```Dockerfile
-# build.earth
+# Earthfile
 
 FROM openjdk:8-jdk-alpine
 RUN apk add --update --no-cache gradle

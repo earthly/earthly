@@ -9,10 +9,8 @@
   earth [--build-arg <key>[=<value>]] [--secret|-s <secret-id>[=<value>]]
         [--push] [--no-output] [--no-cache] [--allow-privileged|-P]
         [--ssh-auth-sock <path-to-sock>]
-        [--git-username <git-user>] [--git-password <git-pass>]
-        [--git-url-instead-of <git-instead-of>]
-        [--buildkit-host <bk-host>] [--buildkit-cache-size-mb <cache-size-mb>]
-        [--buildkit-image <bk-image>] [--no-loop-device]
+        [--buildkit-host <bk-host>]
+        [--no-loop-device]
         <target-ref>
   ```
 * Artifact form
@@ -20,10 +18,8 @@
   earth [--build-arg <key>[=<value>]] [--secret|-s <secret-id>[=<value>]]
         [--push] [--no-cache] [--allow-privileged|-P]
         [--ssh-auth-sock <path-to-sock>]
-        [--git-username <git-user>] [--git-password <git-pass>]
-        [--git-url-instead-of <git-instead-of>]
-        [--buildkit-host <bk-host>] [--buildkit-cache-size-mb <cache-size-mb>]
-        [--buildkit-image <bk-image>] [--no-loop-device]
+        [--buildkit-host <bk-host>]
+        [--no-loop-device]
         --artifact|-a <artifact-ref> [<dest-path>]
   ```
 * Image form
@@ -31,10 +27,8 @@
   earth [--build-arg <key>[=<value>]] [--secret|-s <secret-id>[=<value>]]
         [--push] [--no-cache] [--allow-privileged|-P]
         [--ssh-auth-sock <path-to-sock>]
-        [--git-username <git-user>] [--git-password <git-pass>]
-        [--git-url-instead-of <git-instead-of>]
-        [--buildkit-host <bk-host>] [--buildkit-cache-size-mb <cache-size-mb>]
-        [--buildkit-image <bk-image>] [--no-loop-device]
+        [--buildkit-host <bk-host>]
+        [--no-loop-device]
         --image|-i <target-ref>
   ```
 
@@ -140,9 +134,7 @@ For more information see the [Authentication page](../guides/auth.md).
 
 Also available as an env var setting: `GIT_USERNAME=<git-user>`.
 
-Sets the git username to use for non-SSH git authentication. For more information see the [Authentication page](../guides/auth.md).
-
-To prevent the need to specify this option on every `earth` invocation, it is recommended to specify the env var form in a file like `.bashrc` or `.profile`.
+This option is now deprecated. Please use the [configuration file](../earth-config/earth-config.md) instead.
 
 ##### `--git-password <git-pass>`
 
@@ -156,23 +148,13 @@ Sets the git password to use for non-SSH git authentication. For more informatio
 For security reasons, it is strongly recommended to use the env var form of this setting and not the flag form.
 {% endhint %}
 
+This option is now deprecated. Please use the [configuration file](../earth-config/earth-config.md) instead.
+
 ##### `--git-url-instead-of <git-instead-of>`
 
 Also available as an env var setting: `GIT_URL_INSTEAD_OF=<git-instead-of>`.
 
-Rewrites git URLs of a certain pattern. Similar to [`git-config url.<base>.insteadOf`](https://git-scm.com/docs/git-config#Documentation/git-config.txt-urlltbasegtinsteadOf).
-Multiple values can be separated by commas. Format: `<base>=<instead-of>[,...]`.
-
-This setting allows rewriting all git URLs of the form `https://...` into `git@github.com:...`, or vice-versa.
-
-For example:
-
-* `--git-url-instead-of='git@github.com:=https://github.com/'` forces use of SSH-based URLs for GitHub (default)
-* `--git-url-instead-of='https://github.com/=git@github.com:'` forces use of HTTPS-based URLs for GitHub
-
-Currently, only one such pattern is allowed to be specified.
-
-To prevent the need to specify this option on every `earth` invocation, it is recommended to specify the env var form in a file like `.bashrc` or `.profile`.
+This option is now deprecated. Please use the [configuration file](../earth-config/earth-config.md) instead.
 
 ##### `--buildkit-host <bk-host>`
 
@@ -184,19 +166,11 @@ Instructs `earth` to use an alternate buildkit host. When this option is specifi
 
 Also available as an env var setting: `EARTHLY_BUILDKIT_CACHE_SIZE_MB=<cache-size-mb>`.
 
-The total size of the buildkit cache, in MB. The buildkit daemon will allocate disk space for this size. Size less than `1000` (1GB) is not recommended. The default size if this option is not set is `10000` (10GB).
-
-This setting is only used when the buildkit daemon is started (or restarted). In order to apply the setting immediately, issue the command
+This option is now deprecated. Please use the [configuration file](../earth-config/earth-config.md) instead.
 
 ```bash
 earth --buildkit-cache-size-mb <cache-size-mb> prune --reset
 ```
-
-##### `--buildkit-image <bk-image>`
-
-Also available as an env var setting: `EARTHLY_BUILDKIT_IMAGE=<bk-image>`.
-
-Instructs earth to use an alternate image for buildkitd. The default image used is `earthly/buildkitd:<earth-version>`.
 
 ##### `--no-loop-device`
 
