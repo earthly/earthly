@@ -5,20 +5,20 @@ WORKDIR /earthfile-syntax-highlighting
 
 package:
     COPY . ./
-    ARG RELEASE_TAG
-    RUN test -n "$RELEASE_TAG"
-    RUN VERSION=${RELEASE_TAG#v} ; \
+    ARG VSCODE_RELEASE_TAG
+    RUN test -n "$VSCODE_RELEASE_TAG"
+    RUN VERSION=${VSCODE_RELEASE_TAG#v} ; \
         sed -i 's^0.0.0^'"$VERSION"'^g' ./package.json
     RUN vsce package
-    RUN VERSION=${RELEASE_TAG#v} ; \
-        mv ./earthfile-syntax-highlighting-$VERSION.vsix ./earthfile-syntax-highlighting-$RELEASE_TAG.vsix
-    SAVE ARTIFACT ./earthfile-syntax-highlighting-$RELEASE_TAG.vsix
+    RUN VERSION=${VSCODE_RELEASE_TAG#v} ; \
+        mv ./earthfile-syntax-highlighting-$VERSION.vsix ./earthfile-syntax-highlighting-$VSCODE_RELEASE_TAG.vsix
+    SAVE ARTIFACT ./earthfile-syntax-highlighting-$VSCODE_RELEASE_TAG.vsix
 
 release:
-    ARG RELEASE_TAG
-    RUN test -n "$RELEASE_TAG"
-    COPY --build-arg RELEASE_TAG="$RELEASE_TAG" +package/earthfile-syntax-highlighting-$RELEASE_TAG.vsix ./
+    ARG VSCODE_RELEASE_TAG
+    RUN test -n "$VSCODE_RELEASE_TAG"
+    COPY --build-arg VSCODE_RELEASE_TAG="$VSCODE_RELEASE_TAG" +package/earthfile-syntax-highlighting-$VSCODE_RELEASE_TAG.vsix ./
     RUN --secret VSCE_TOKEN=+secrets/VSCE_TOKEN test -n "$VSCE_TOKEN"
     RUN --push \
         --secret VSCE_TOKEN=+secrets/VSCE_TOKEN \
-        vsce publish --pat "$VSCE_TOKEN" --packagePath ./earthfile-syntax-highlighting-$RELEASE_TAG.vsix
+        vsce publish --pat "$VSCE_TOKEN" --packagePath ./earthfile-syntax-highlighting-$VSCODE_RELEASE_TAG.vsix
