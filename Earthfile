@@ -50,7 +50,7 @@ lint:
 			echo "$output" ; \
 			exit 1 ; \
 		fi
-	RUN golint -set_exit_status .
+	RUN golint -set_exit_status ./...
 	RUN output="$(go vet ./... 2>&1)" ; \
 		if [ -n "$output" ]; then \
 			echo "$output" ; \
