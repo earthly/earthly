@@ -13,10 +13,14 @@ import (
 )
 
 var (
+	// ErrInvalidTransport occurs when a URL transport type is invalid
 	ErrInvalidTransport = fmt.Errorf("invalid transport")
-	ErrInvalidAuth      = fmt.Errorf("invalid auth")
+
+	// ErrInvalidAuth occurs when the auth type is invalid
+	ErrInvalidAuth = fmt.Errorf("invalid auth")
 )
 
+// GlobalConfig contains global config values
 type GlobalConfig struct {
 	CachePath           string `yaml:"cache_path"`
 	DisableLoopDevice   bool   `yaml:"no_loop_device"`
@@ -24,6 +28,7 @@ type GlobalConfig struct {
 	BuildkitImage       string `yaml:"buildkit_image"`
 }
 
+// GitConfig contains git-specific config values
 type GitConfig struct {
 	// these are used for global config
 	GitURLInsteadOf string `yaml:"url_instead_of"`
@@ -34,6 +39,7 @@ type GitConfig struct {
 	Password string `yaml:"password"`
 }
 
+// Config contains user's configuration values from ~/earthly/config.yaml
 type Config struct {
 	Global GlobalConfig         `yaml:"global"`
 	Git    map[string]GitConfig `yaml:"git"`
@@ -49,6 +55,7 @@ func ensureTransport(s, transport string) (string, error) {
 	return transport + "://" + s, nil
 }
 
+// ParseConfigFile parse config data
 func ParseConfigFile(yamlData []byte) (*Config, error) {
 	config := Config{
 		Global: GlobalConfig{
@@ -66,10 +73,12 @@ func ParseConfigFile(yamlData []byte) (*Config, error) {
 	return &config, nil
 }
 
+// CreateGitConfig returns the contents of the /root/.gitconfig file and a list of corresponding
+// password credentials (the passwords are stored as env variables rather than written to disk)
 func CreateGitConfig(config *Config) (string, []string, error) {
 	credentials := []string{}
 	lines := []string{}
-	cred_i := 0
+	credIndex := 0
 
 	// automatically add default auth=ssh for known sites
 	defaultSites := []string{"github.com", "gitlab.com"}
@@ -97,9 +106,9 @@ func CreateGitConfig(config *Config) (string, []string, error) {
 	//	if v.Auth == "https" {
 	//		lines = append(lines, fmt.Sprintf("[credential]"))
 	//		lines = append(lines, fmt.Sprintf("  username=%q", v.User))
-	//		lines = append(lines, fmt.Sprintf("  helper=/usr/bin/git_credentials_%d", cred_i))
+	//		lines = append(lines, fmt.Sprintf("  helper=/usr/bin/git_credentials_%d", credIndex))
 	//		credentials = append(credentials, fmt.Sprintf("echo password=%q", v.Password))
-	//		cred_i++
+	//		credIndex++
 
 	//		// use https instead of ssh://git@....
 	//		lines = append(lines, fmt.Sprintf("[url \"https://\"]"))
@@ -119,9 +128,9 @@ func CreateGitConfig(config *Config) (string, []string, error) {
 		case "https":
 			lines = append(lines, fmt.Sprintf("[credential %q]", url))
 			lines = append(lines, fmt.Sprintf("  username=%q", v.User))
-			lines = append(lines, fmt.Sprintf("  helper=/usr/bin/git_credentials_%d", cred_i))
+			lines = append(lines, fmt.Sprintf("  helper=/usr/bin/git_credentials_%d", credIndex))
 			credentials = append(credentials, v.Password)
-			cred_i++
+			credIndex++
 
 			// use https instead of ssh://git@....
 			lines = append(lines, fmt.Sprintf("[url %q]", url+"/"))
