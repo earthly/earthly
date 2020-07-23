@@ -63,16 +63,17 @@ earth \
 
 ### Using a fork of buildkit
 
-* Build a buildkit image with
+We maintain a fork of buildkit under https://github.com/earthly/buildkit which has an earthly-master branch which contains our patches.
 
-```bash
-DOCKER_BUILDKIT=1 docker build -t earthly/buildkit:fix-ssh-auth-sock --target buildkit-buildkitd-linux .
+Github actions performs a build of the buildkit docker image; under the build output expand the section titled `push buildkit docker image`
+and look for the last line, which is similar to:
+
+```
+earthly-master: digest: sha256:40303c69b24c23c63c417efac1b6641e53ecc526598edf101a965c3dc54dddc3 size: 1158
 ```
 
-* Push it to docker hub
+Then update the [../buildkitd/Earthfile](buildkit earthfile) FROM entry with the updated sha256 string:
 
-```bash
-docker push earthly/buildkit:fix-ssh-auth-sock
 ```
-
-* Use it in our own build, but pin it to a specific sha256, just in case.
+FROM earthly/buildkit:earthly-master@sha256:40303c69b24c23c63c417efac1b6641e53ecc526598edf101a965c3dc54dddc3
+```

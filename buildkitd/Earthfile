@@ -1,6 +1,6 @@
 
 buildkitd:
-    FROM earthly/buildkit:fix-ssh-auth-sock@sha256:84c4f10f55f4305a83094b6959663431fea96352e821b71d79759b46cdd8b39b
+    FROM earthly/buildkit:earthly-master@sha256:40303c69b24c23c63c417efac1b6641e53ecc526598edf101a965c3dc54dddc3
 
     # Install some missing binaries.
     RUN apk add --update --no-cache openssh-client pigz xz fuse3 e2fsprogs util-linux
