@@ -139,4 +139,5 @@ release-homebrew:
             -m '* `NEW_SHA256='"$(cat /downloadsha256.txt)"'`'
 
 release-vscode-syntax-highlighting:
-    BUILD ../contrib/earthfile-syntax-highlighting+release
+    ARG VSCODE_RELEASE_TAG
+    BUILD --build-arg VSCODE_RELEASE_TAG="$VSCODE_RELEASE_TAG" ../contrib/earthfile-syntax-highlighting+release
