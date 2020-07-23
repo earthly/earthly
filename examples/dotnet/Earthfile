@@ -13,11 +13,6 @@ build:
 
     # make sure you have /bin and /obj in .earthignore, as their content from context might cause problems
     RUN dotnet publish --no-restore src/HelloEarthly -o publish
-    
-    # 'dotnet publish' flag creates socket files in /tmp , which causes buildkit to fail
-    # this command removes these files
-    # for more see https://github.com/earthly/earthly/issues/115
-    RUN find /tmp -type s | xargs rm
 
     SAVE ARTIFACT publish AS LOCAL publish
 
