@@ -1,7 +1,7 @@
 # Releasing instructions
 
 ### earth
-
+* Ask Vlad to test the latest version on his Mac
 * Make sure you have a GITHUB_TOKEN set. If you don't have a GITHUB_TOKEN, generate one [here](https://github.com/settings/tokens) with scope `repo`.
   ```bash
   export GITHUB_TOKEN="..."
