@@ -86,7 +86,13 @@ func (cl ConsoleLogger) Warnf(format string, args ...interface{}) {
 		c = warnColor
 	}
 
-	c.Fprintf(cl.w, format, args...)
+	text := fmt.Sprintf(format, args...)
+	text = strings.TrimSuffix(text, "\n")
+
+	for _, line := range strings.Split(text, "\n") {
+		cl.printPrefix()
+		c.Fprintf(cl.w, "%s\n", line)
+	}
 }
 
 // Printf prints formatted text to the console.
