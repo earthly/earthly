@@ -491,7 +491,11 @@ func (app *earthApp) actionBuild(c *cli.Context) error {
 	var artifact domain.Artifact
 	destPath := "./"
 	if app.imageMode {
-		if c.NArg() != 1 {
+		if c.NArg() == 0 {
+			cli.ShowAppHelp(c)
+			return fmt.Errorf(
+				"no image reference provided. Try %s --image +<target-name>", c.App.Name)
+		} else if c.NArg() != 1 {
 			cli.ShowAppHelp(c)
 			return errors.New("invalid number of args")
 		}
@@ -502,7 +506,11 @@ func (app *earthApp) actionBuild(c *cli.Context) error {
 			return errors.Wrapf(err, "parse target name %s", targetName)
 		}
 	} else if app.artifactMode {
-		if c.NArg() != 1 && c.NArg() != 2 {
+		if c.NArg() == 0 {
+			cli.ShowAppHelp(c)
+			return fmt.Errorf(
+				"no artifact reference provided. Try %s --artifact +<target-name>/<artifact-name>", c.App.Name)
+		} else if c.NArg() != 1 && c.NArg() != 2 {
 			cli.ShowAppHelp(c)
 			return errors.New("invalid number of args")
 		}
@@ -517,7 +525,11 @@ func (app *earthApp) actionBuild(c *cli.Context) error {
 		}
 		target = artifact.Target
 	} else {
-		if c.NArg() != 1 {
+		if c.NArg() == 0 {
+			cli.ShowAppHelp(c)
+			return fmt.Errorf(
+				"no target reference provided. Try %s +<target-name>", c.App.Name)
+		} else if c.NArg() != 1 {
 			cli.ShowAppHelp(c)
 			return errors.New("invalid number of args")
 		}
