@@ -316,10 +316,11 @@ func (app *earthApp) parseConfigFile(context *cli.Context) error {
 	if app.buildkitdSettings.SSHAuthSock != "" {
 		// EvalSymlinks evaluates "" as "." which then breaks docker volume mounting
 		realSSHSocketPath, err := filepath.EvalSymlinks(app.buildkitdSettings.SSHAuthSock)
-		if err != nil {
-			return errors.Wrapf(err, "failed to evaluate potential symbolic links in ssh auth socket %q", app.buildkitdSettings.SSHAuthSock)
+		if err != nil && runtime.GOOS != "darwin" {
+			app.console.Warnf("failed to evaluate potential symbolic links in ssh auth socket %q: %v\n", app.buildkitdSettings.SSHAuthSock, err)
+		} else {
+			app.buildkitdSettings.SSHAuthSock = realSSHSocketPath
 		}
-		app.buildkitdSettings.SSHAuthSock = realSSHSocketPath
 	}
 
 	app.buildkitdSettings.TempDir = cfg.Global.CachePath
