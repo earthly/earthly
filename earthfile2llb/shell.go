@@ -93,11 +93,6 @@ func withDockerdWrap(args []string, envVars []string, isWithShell bool) []string
 			"kill -9 \"\\$dockerd_pid\" &>/dev/null\n" +
 			"fi\n" +
 			"done\n" +
-			"rm -f /var/run/docker.sock\n" +
-			// TODO: This should not be necessary.
-			"rm -rf /var/lib/docker/tmp\n" +
-			"rm -rf /var/lib/docker/runtimes\n" +
-			"find /tmp/earthly -type f -name '*.sock' -rm\n" +
 			// Exit with right code.
 			"exit \"\\$exit_code\"\n" +
 			"EOF",
