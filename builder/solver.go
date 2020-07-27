@@ -7,8 +7,6 @@ import (
 	"io"
 	"os"
 	"os/exec"
-	"regexp"
-	"strings"
 
 	"github.com/earthly/earthly/conslogging"
 	"github.com/earthly/earthly/earthfile2llb/image"
@@ -20,7 +18,6 @@ import (
 	"github.com/moby/buildkit/session"
 	"github.com/moby/buildkit/solver/pb"
 	"github.com/moby/buildkit/util/entitlements"
-	"github.com/opencontainers/go-digest"
 	"github.com/pkg/errors"
 	"golang.org/x/sync/errgroup"
 )
@@ -57,7 +54,7 @@ func (s *solver) solveDocker(ctx context.Context, localDirs map[string]string, s
 		return nil
 	})
 	eg.Go(func() error {
-		return s.monitorProgressBasic(ctx, ch)
+		return newSolverMonitor(s.console).monitorProgress(ctx, ch, false)
 	})
 	eg.Go(func() error {
 		defer pipeR.Close()
@@ -115,7 +112,7 @@ func (s *solver) solveDockerTar(ctx context.Context, localDirs map[string]string
 		return nil
 	})
 	eg.Go(func() error {
-		return s.monitorProgressBasic(ctx, ch)
+		return newSolverMonitor(s.console).monitorProgress(ctx, ch, false)
 	})
 	eg.Go(func() error {
 		file, err := os.Create(outFile)
@@ -180,7 +177,7 @@ func (s *solver) solveArtifacts(ctx context.Context, localDirs map[string]string
 		return nil
 	})
 	eg.Go(func() error {
-		return s.monitorProgressBasic(ctx, ch)
+		return newSolverMonitor(s.console).monitorProgress(ctx, ch, false)
 	})
 	err = eg.Wait()
 	if err != nil {
@@ -233,179 +230,13 @@ func (s *solver) solveSideEffects(ctx context.Context, localDirs map[string]stri
 		return nil
 	})
 	eg.Go(func() error {
-		if printDetailed {
-			return s.monitorProgressDetailed(ctx, ch)
-		}
-		return s.monitorProgressBasic(ctx, ch)
+		return newSolverMonitor(s.console).monitorProgress(ctx, ch, printDetailed)
 	})
 	err = eg.Wait()
 	if err != nil {
 		return errors.Wrap(err, "build error group")
 	}
 	return nil
-}
-
-func (s *solver) monitorProgressDetailed(ctx context.Context, ch chan *client.SolveStatus) error {
-	vertexLoggers := make(map[digest.Digest]logging.Logger)
-	vertexConsoles := make(map[digest.Digest]conslogging.ConsoleLogger)
-	vertices := make(map[digest.Digest]*client.Vertex)
-	introducedVertex := make(map[digest.Digest]bool)
-	for {
-		select {
-		case ss, ok := <-ch:
-			if !ok {
-				return nil
-			}
-			for _, vertex := range ss.Vertexes {
-				if strings.HasPrefix(vertex.Name, "[internal]") {
-					// No logging for internal operations.
-					continue
-				}
-				targetStr, operation := parseVertexName(vertex.Name)
-				logger := logging.GetLogger(ctx).
-					With("target", targetStr).
-					With("vertex", shortDigest(vertex.Digest)).
-					With("cached", vertex.Cached).
-					With("operation", operation)
-				vertexLoggers[vertex.Digest] = logger
-				targetConsole := s.console.WithPrefix(targetStr)
-				vertexConsoles[vertex.Digest] = targetConsole
-				vertices[vertex.Digest] = vertex
-				if !introducedVertex[vertex.Digest] && (vertex.Cached || vertex.Started != nil) {
-					introducedVertex[vertex.Digest] = true
-					printVertex(vertex, targetConsole)
-					logger.Info("Vertex started or cached")
-				}
-				if vertex.Error != "" {
-					if !introducedVertex[vertex.Digest] {
-						introducedVertex[vertex.Digest] = true
-						printVertex(vertex, targetConsole)
-					}
-					targetConsole.Printf("ERROR: (%s) %s\n", operation, vertex.Error)
-					logger.Error(errors.New(vertex.Error))
-				}
-			}
-			for _, vs := range ss.Statuses {
-				vertex, found := vertices[vs.Vertex]
-				if !found {
-					// No logging for internal operations.
-					continue
-				}
-				logger := vertexLoggers[vs.Vertex]
-				targetConsole := vertexConsoles[vs.Vertex]
-				progress := int32(0)
-				if vs.Total != 0 {
-					progress = int32(100.0 * float32(vs.Current) / float32(vs.Total))
-				}
-				if vs.Completed != nil {
-					progress = 100
-				}
-				logger = logger.
-					With("progress", progress).
-					With("name", vs.Name)
-				if !introducedVertex[vertex.Digest] {
-					introducedVertex[vertex.Digest] = true
-					printVertex(vertex, targetConsole)
-				}
-				logger.Info(vs.ID)
-				targetConsole.Printf("%s %d%%\n", vs.ID, progress)
-			}
-			for _, logLine := range ss.Logs {
-				vertex, found := vertices[logLine.Vertex]
-				if !found {
-					// No logging for internal operations.
-					continue
-				}
-				logger := vertexLoggers[logLine.Vertex]
-				targetConsole := vertexConsoles[logLine.Vertex]
-				if !introducedVertex[logLine.Vertex] {
-					introducedVertex[logLine.Vertex] = true
-					printVertex(vertex, targetConsole)
-				}
-				targetConsole.PrintBytes(logLine.Data)
-				logger.Info(string(logLine.Data))
-			}
-		case <-ctx.Done():
-			return nil
-		}
-	}
-}
-
-func (s *solver) monitorProgressBasic(ctx context.Context, ch chan *client.SolveStatus) error {
-	vertexLoggers := make(map[digest.Digest]logging.Logger)
-	vertexConsoles := make(map[digest.Digest]conslogging.ConsoleLogger)
-	vertices := make(map[digest.Digest]*client.Vertex)
-	introducedVertex := make(map[digest.Digest]bool)
-	for {
-		select {
-		case ss, ok := <-ch:
-			if !ok {
-				return nil
-			}
-			for _, vertex := range ss.Vertexes {
-				targetStr, operation := parseVertexName(vertex.Name)
-				logger := logging.GetLogger(ctx).
-					With("target", targetStr).
-					With("vertex", shortDigest(vertex.Digest)).
-					With("cached", vertex.Cached).
-					With("operation", operation)
-				vertexLoggers[vertex.Digest] = logger
-				targetConsole := s.console.WithPrefix(targetStr)
-				vertexConsoles[vertex.Digest] = targetConsole
-				vertices[vertex.Digest] = vertex
-				if !introducedVertex[vertex.Digest] {
-					if vertex.Cached || vertex.Started != nil {
-						introducedVertex[vertex.Digest] = true
-						logger.Debug("Vertex")
-					}
-				}
-				if vertex.Error != "" {
-					logger.Error(errors.New(vertex.Error))
-					if !introducedVertex[vertex.Digest] {
-						introducedVertex[vertex.Digest] = true
-						printVertex(vertex, targetConsole)
-					}
-					targetConsole.Printf("ERROR: (%s) %s\n", operation, vertex.Error)
-				}
-			}
-			for _, vs := range ss.Statuses {
-				_, found := vertices[vs.Vertex]
-				if !found {
-					// No logging for internal operations.
-					continue
-				}
-				logger := vertexLoggers[vs.Vertex]
-				progress := int32(0)
-				if vs.Total != 0 {
-					progress = int32(100.0 * float32(vs.Current) / float32(vs.Total))
-				}
-				if vs.Completed != nil {
-					progress = 100
-				}
-				logger = logger.
-					With("progress", int32(progress)).
-					With("name", vs.Name)
-				logger.Debug(vs.ID)
-			}
-			for _, logLine := range ss.Logs {
-				vertex, found := vertices[logLine.Vertex]
-				if !found {
-					// No logging for internal operations.
-					continue
-				}
-				logger := vertexLoggers[logLine.Vertex]
-				targetConsole := vertexConsoles[logLine.Vertex]
-				if !introducedVertex[logLine.Vertex] {
-					introducedVertex[logLine.Vertex] = true
-					printVertex(vertex, targetConsole)
-				}
-				logger.Info(string(logLine.Data))
-				targetConsole.PrintBytes(logLine.Data)
-			}
-		case <-ctx.Done():
-			return nil
-		}
-	}
 }
 
 func (s *solver) newSolveOptDocker(img *image.Image, dockerTag string, localDirs map[string]string, w io.WriteCloser) (*client.SolveOpt, error) {
@@ -468,38 +299,6 @@ func newRegistryCacheOpt(ref string) client.CacheOptionsEntry {
 		Type:  "registry",
 		Attrs: registryCacheOptAttrs,
 	}
-}
-
-var bracketsRegexp = regexp.MustCompile("^\\[([^\\]]*)\\] (.*)$")
-
-func parseVertexName(vertexName string) (string, string) {
-	target := ""
-	operation := ""
-	match := bracketsRegexp.FindStringSubmatch(vertexName)
-	if len(match) < 2 {
-		return target, operation
-	}
-	target = match[1]
-	if len(match) < 3 {
-		return target, operation
-	}
-	operation = match[2]
-	return target, operation
-}
-
-func printVertex(vertex *client.Vertex, console conslogging.ConsoleLogger) {
-	_, operation := parseVertexName(vertex.Name)
-	out := []string{"-->"}
-	out = append(out, operation)
-	c := console
-	if vertex.Cached {
-		c = c.WithCached(true)
-	}
-	c.Printf("%s\n", strings.Join(out, " "))
-}
-
-func shortDigest(d digest.Digest) string {
-	return d.Hex()[:12]
 }
 
 func loadDockerTar(ctx context.Context, r io.ReadCloser) error {
