@@ -22,6 +22,8 @@ deps:
 	RUN go get golang.org/x/tools/cmd/goimports
 	RUN go get golang.org/x/lint/golint
 	RUN go get github.com/gordonklaus/ineffassign
+	RUN go get github.com/markbates/pkger/cmd/pkger
+	RUN go get github.com/go-bindata/go-bindata/...
 	COPY go.mod go.sum ./
 	RUN go mod download
 	SAVE ARTIFACT go.mod AS LOCAL go.mod
@@ -64,6 +66,27 @@ unittest:
 buildkitd:
 	BUILD ./buildkitd+buildkitd
 
+debugger:
+	FROM +code
+	ARG GOCACHE=/go-cache
+	ARG EARTHLY_TARGET_TAG
+	ARG VERSION=$EARTHLY_TARGET_TAG
+	RUN --mount=type=cache,target=$GOCACHE \
+		go build \
+			-ldflags "-d -X main.Version=$VERSION $GO_EXTRA_LDFLAGS" \
+			-tags netgo -installsuffix netgo \
+			-o build/earth_debugger \
+			cmd/debugger/*.go
+	SAVE ARTIFACT build/earth_debugger AS LOCAL "earth_debugger"
+
+debugger-docker:
+	# cant be FROM scratch because the args require sh to exist
+	FROM busybox:latest
+	COPY +debugger/earth_debugger /earth_debugger
+	ARG EARTHLY_TARGET_TAG
+	ARG TAG=$EARTHLY_TARGET_TAG
+	SAVE IMAGE --push earthly/debugger:$TAG
+
 earth:
 	FROM +code
 	ARG GOOS=linux
@@ -73,10 +96,12 @@ earth:
 	ARG EARTHLY_TARGET_TAG
 	ARG VERSION=$EARTHLY_TARGET_TAG
 	ARG DEFAULT_BUILDKITD_IMAGE=earthly/buildkitd:$VERSION
+	ARG DEFAULT_DEBUGGER_IMAGE=earthly/debugger:$VERSION
 	ARG GOCACHE=/go-cache
+	#COPY +packdebugger/packed_data.go cmd/earth/packed_data.go
 	RUN --mount=type=cache,target=$GOCACHE \
 		go build \
-			-ldflags "-X main.DefaultBuildkitdImage=$DEFAULT_BUILDKITD_IMAGE -X main.Version=$VERSION $GO_EXTRA_LDFLAGS" \
+			-ldflags "-X main.DefaultBuildkitdImage=$DEFAULT_BUILDKITD_IMAGE -X main.DefaultDebuggerImage=$DEFAULT_DEBUGGER_IMAGE -X main.Version=$VERSION $GO_EXTRA_LDFLAGS" \
 			-o build/earth \
 			cmd/earth/*.go
 	SAVE ARTIFACT build/earth AS LOCAL "build/$GOOS/$GOARCH/earth"
@@ -114,6 +139,7 @@ for-darwin:
 
 all:
 	BUILD +buildkitd
+	BUILD +debugger
 	BUILD +earth-all
 	BUILD +earth-docker
 

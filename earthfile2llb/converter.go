@@ -37,21 +37,24 @@ var _ commandInterpreter = (*Converter)(nil)
 
 // Converter turns earth commands to buildkit LLB representation.
 type Converter struct {
-	gitMeta          *buildcontext.GitMetadata
-	resolver         *buildcontext.Resolver
-	mts              *MultiTargetStates
-	directDeps       []*SingleTargetStates
-	directDepIndices []int
-	buildContext     llb.State
-	cacheContext     llb.State
-	varCollection    *variables.Collection
-	dockerBuilderFun DockerBuilderFun
-	cleanCollection  *cleanup.Collection
-	nextArgIndex     int
+	gitMeta              *buildcontext.GitMetadata
+	resolver             *buildcontext.Resolver
+	mts                  *MultiTargetStates
+	directDeps           []*SingleTargetStates
+	directDepIndices     []int
+	buildContext         llb.State
+	cacheContext         llb.State
+	varCollection        *variables.Collection
+	dockerBuilderFun     DockerBuilderFun
+	cleanCollection      *cleanup.Collection
+	nextArgIndex         int
+	interactiveDebugging bool
+	debuggerImage        string
+	remoteConsoleAddr    string
 }
 
 // NewConverter constructs a new converter for a given earth target.
-func NewConverter(ctx context.Context, target domain.Target, resolver *buildcontext.Resolver, dockerBuilderFun DockerBuilderFun, cleanCollection *cleanup.Collection, bc *buildcontext.Data, visitedStates map[string][]*SingleTargetStates, varCollection *variables.Collection) (*Converter, error) {
+func NewConverter(ctx context.Context, target domain.Target, resolver *buildcontext.Resolver, dockerBuilderFun DockerBuilderFun, cleanCollection *cleanup.Collection, bc *buildcontext.Data, visitedStates map[string][]*SingleTargetStates, varCollection *variables.Collection, interactiveDebugging bool, debuggerImage, remoteConsoleAddr string) (*Converter, error) {
 	sts := &SingleTargetStates{
 		Target: target,
 		TargetInput: dedup.TargetInput{
@@ -71,14 +74,17 @@ func NewConverter(ctx context.Context, target domain.Target, resolver *buildcont
 	targetStr := target.String()
 	visitedStates[targetStr] = append(visitedStates[targetStr], sts)
 	return &Converter{
-		gitMeta:          bc.GitMetadata,
-		resolver:         resolver,
-		mts:              mts,
-		buildContext:     bc.BuildContext,
-		cacheContext:     makeCacheContext(target),
-		varCollection:    varCollection.WithBuiltinBuildArgs(target, bc.GitMetadata),
-		dockerBuilderFun: dockerBuilderFun,
-		cleanCollection:  cleanCollection,
+		gitMeta:              bc.GitMetadata,
+		resolver:             resolver,
+		mts:                  mts,
+		buildContext:         bc.BuildContext,
+		cacheContext:         makeCacheContext(target),
+		varCollection:        varCollection.WithBuiltinBuildArgs(target, bc.GitMetadata),
+		dockerBuilderFun:     dockerBuilderFun,
+		cleanCollection:      cleanCollection,
+		interactiveDebugging: interactiveDebugging,
+		debuggerImage:        debuggerImage,
+		remoteConsoleAddr:    remoteConsoleAddr,
 	}, nil
 }
 
@@ -233,6 +239,7 @@ func (c *Converter) Run(ctx context.Context, args []string, mounts []string, sec
 		return errors.Wrap(err, "parse mounts")
 	}
 	opts = append(opts, mountRunOpts...)
+
 	finalArgs := args
 	if withEntrypoint {
 		if len(args) == 0 {
@@ -387,7 +394,7 @@ func (c *Converter) Build(ctx context.Context, fullTargetName string, buildArgs 
 	// Recursion.
 	mts, err := Earthfile2LLB(
 		ctx, target, c.resolver, c.dockerBuilderFun, c.cleanCollection,
-		c.mts.VisitedStates, newVarCollection)
+		c.mts.VisitedStates, newVarCollection, c.interactiveDebugging, c.debuggerImage, c.remoteConsoleAddr)
 	if err != nil {
 		return nil, errors.Wrapf(err, "earthfile2llb for %s", fullTargetName)
 	}
@@ -664,12 +671,23 @@ func (c *Converter) internalRun(ctx context.Context, args []string, secretKeyVal
 			extraEnvVars = append(extraEnvVars, fmt.Sprintf("%s=\"$(cat %s)\"", buildArgName, buildArgPath))
 		}
 	}
+
+	if c.interactiveDebugging {
+		finalOpts = append(finalOpts, llb.AddMount("/usr/bin/earth_debugger", llb.Image(c.debuggerImage), llb.SourcePath("/earth_debugger"), llb.Readonly))
+		extraEnvVars = append(extraEnvVars, fmt.Sprintf("EARTHLY_REMOTE_CONSOLE_ADDR=%s", c.remoteConsoleAddr))
+	}
+
 	var finalArgs []string
 	if withDocker {
 		finalArgs = withDockerdWrap(args, extraEnvVars, isWithShell)
 	} else {
 		finalArgs = withShellAndEnvVars(args, extraEnvVars, isWithShell)
 	}
+
+	if c.interactiveDebugging {
+		finalArgs = append([]string{"earth_debugger"}, finalArgs...)
+	}
+
 	finalOpts = append(finalOpts, llb.Args(finalArgs))
 	if pushFlag {
 		// For push-flagged commands, make sure they run every time - don't use cache.
