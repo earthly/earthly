@@ -73,14 +73,14 @@ func (s *solverMonitor) monitorProgress(ctx context.Context, ch chan *client.Sol
 					// No logging for internal operations.
 					continue
 				}
-				targetStr, operation := parseVertexName(vertex.Name)
+				targetStr, salt, operation := parseVertexName(vertex.Name)
 				logger := logging.GetLogger(ctx).
 					With("target", targetStr).
 					With("vertex", shortDigest(vertex.Digest)).
 					With("cached", vertex.Cached).
 					With("operation", operation)
 				vertexLoggers[vertex.Digest] = logger
-				targetConsole := s.console.WithPrefix(targetStr)
+				targetConsole := s.console.WithPrefixAndSalt(targetStr, salt)
 				vertexConsoles[vertex.Digest] = targetConsole
 				vertices[vertex.Digest] = vertex
 				if !introducedVertex[vertex.Digest] && (vertex.Cached || vertex.Started != nil) {
@@ -160,7 +160,7 @@ func (s *solverMonitor) monitorProgress(ctx context.Context, ch chan *client.Sol
 }
 
 func printVertex(vertex *client.Vertex, console conslogging.ConsoleLogger) {
-	_, operation := parseVertexName(vertex.Name)
+	_, _, operation := parseVertexName(vertex.Name)
 	out := []string{"-->"}
 	out = append(out, operation)
 	c := console
@@ -172,19 +172,27 @@ func printVertex(vertex *client.Vertex, console conslogging.ConsoleLogger) {
 
 var bracketsRegexp = regexp.MustCompile("^\\[([^\\]]*)\\] (.*)$")
 
-func parseVertexName(vertexName string) (string, string) {
+func parseVertexName(vertexName string) (string, string, string) {
 	target := ""
 	operation := ""
+	salt := ""
 	match := bracketsRegexp.FindStringSubmatch(vertexName)
 	if len(match) < 2 {
-		return target, operation
+		return target, salt, operation
 	}
-	target = match[1]
+	targetAndSalt := match[1]
+	targetAndSaltSlice := strings.SplitN(targetAndSalt, " ", 2)
+	if len(targetAndSaltSlice) == 2 {
+		target = targetAndSaltSlice[0]
+		salt = targetAndSaltSlice[1]
+	} else {
+		target = targetAndSalt
+	}
 	if len(match) < 3 {
-		return target, operation
+		return target, salt, operation
 	}
 	operation = match[2]
-	return target, operation
+	return target, salt, operation
 }
 
 func shortDigest(d digest.Digest) string {

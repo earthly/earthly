@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"math/rand"
 	"os"
 	"path"
 	"strings"
@@ -61,6 +62,7 @@ func NewConverter(ctx context.Context, target domain.Target, resolver *buildcont
 		ArtifactsState:   llb.Scratch().Platform(llbutil.TargetPlatform),
 		LocalDirs:        bc.LocalDirs,
 		Ongoing:          true,
+		Salt:             fmt.Sprintf("%d", rand.Int()),
 	}
 	mts := &MultiTargetStates{
 		FinalStates:   sts,
@@ -101,7 +103,7 @@ func (c *Converter) From(ctx context.Context, imageName string, buildArgs []stri
 func (c *Converter) fromClassical(ctx context.Context, imageName string) error {
 	state, img, newVariables, err := c.internalFromClassical(
 		ctx, imageName,
-		llb.WithCustomNamef("[%s] FROM %s", c.mts.FinalStates.Target.String(), imageName))
+		llb.WithCustomNamef("%sFROM %s", c.vertexPrefix(), imageName))
 	if err != nil {
 		return err
 	}
@@ -174,9 +176,10 @@ func (c *Converter) CopyArtifact(ctx context.Context, artifactName string, dest 
 		relevantDepState.ArtifactsState, []string{artifact.Artifact},
 		c.mts.FinalStates.SideEffectsState, dest, true, isDir,
 		llb.WithCustomNamef(
-			"[%s] COPY (%v) %s %s",
-			c.mts.FinalStates.Target.String(),
-			buildArgs,
+			"%sCOPY %s%s%s %s",
+			c.vertexPrefix(),
+			strIf(isDir, "--dir "),
+			joinWrap(buildArgs, "(", " ", ") "),
 			artifact.String(),
 			dest))
 	return nil
@@ -195,7 +198,12 @@ func (c *Converter) CopyClassical(ctx context.Context, srcs []string, dest strin
 		Info("Applying COPY (classical)")
 	c.mts.FinalStates.SideEffectsState = llbutil.CopyOp(
 		c.buildContext, srcs, c.mts.FinalStates.SideEffectsState, dest, true, isDir,
-		llb.WithCustomNamef("[%s] COPY %v %s", c.mts.FinalStates.Target.String(), srcs, dest))
+		llb.WithCustomNamef(
+			"%sCOPY %s%s %s",
+			c.vertexPrefix(),
+			strIf(isDir, "--dir "),
+			strings.Join(srcs, " "),
+			dest))
 }
 
 // Run applies the earth RUN command.
@@ -235,18 +243,17 @@ func (c *Converter) Run(ctx context.Context, args []string, mounts []string, sec
 		finalArgs = append(c.mts.FinalStates.SideEffectsImage.Config.Entrypoint, args...)
 		isWithShell = false // Don't use shell when --entrypoint is passed.
 	}
-	privilegedStr := ""
 	if privileged {
 		opts = append(opts, llb.Security(llb.SecurityModeInsecure))
-		privilegedStr = "--privileged "
 	}
-	withDockerStr := ""
-	if withDocker {
-		withDockerStr = "--with-docker "
-	}
-	runStr := fmt.Sprintf("RUN %s%s%v", privilegedStr, withDockerStr, finalArgs)
-	opts = append(opts, llb.WithCustomNamef(
-		"[%s] %s", c.mts.FinalStates.Target.String(), runStr))
+	runStr := fmt.Sprintf(
+		"RUN %s%s%s%s%s",
+		strIf(privileged, "--privileged "),
+		strIf(withDocker, "--with-docker "),
+		strIf(withEntrypoint, "--entrypoint "),
+		strIf(pushFlag, "--push "),
+		strings.Join(finalArgs, " "))
+	opts = append(opts, llb.WithCustomNamef("%s%s", c.vertexPrefix(), runStr))
 	return c.internalRun(ctx, finalArgs, secretKeyValues, withDocker, isWithShell, pushFlag, runStr, opts...)
 }
 
@@ -282,13 +289,15 @@ func (c *Converter) SaveArtifact(ctx context.Context, saveFrom string, saveTo st
 		Artifact: artifactPath,
 	}
 	c.mts.FinalStates.ArtifactsState = llbutil.CopyOp(
-		c.mts.FinalStates.SideEffectsState, []string{saveFrom}, c.mts.FinalStates.ArtifactsState, saveToAdjusted, true, true,
-		llb.WithCustomNamef("[%s] SAVE ARTIFACT %s %s", c.mts.FinalStates.Target.String(), saveFrom, artifact.String()))
+		c.mts.FinalStates.SideEffectsState, []string{saveFrom}, c.mts.FinalStates.ArtifactsState,
+		saveToAdjusted, true, true,
+		llb.WithCustomNamef("%sSAVE ARTIFACT %s %s", c.vertexPrefix(), saveFrom, artifact.String()))
 	if saveAsLocalTo != "" {
 		separateArtifactsState := llb.Scratch().Platform(llbutil.TargetPlatform)
 		separateArtifactsState = llbutil.CopyOp(
-			c.mts.FinalStates.SideEffectsState, []string{saveFrom}, separateArtifactsState, saveToAdjusted, true, false,
-			llb.WithCustomNamef("[%s] SAVE ARTIFACT %s %s", c.mts.FinalStates.Target.String(), saveFrom, artifact.String()))
+			c.mts.FinalStates.SideEffectsState, []string{saveFrom}, separateArtifactsState,
+			saveToAdjusted, true, false,
+			llb.WithCustomNamef("%sSAVE ARTIFACT %s %s", c.vertexPrefix(), saveFrom, artifact.String()))
 		c.mts.FinalStates.SeparateArtifactsState = append(c.mts.FinalStates.SeparateArtifactsState, separateArtifactsState)
 		c.mts.FinalStates.SaveLocals = append(c.mts.FinalStates.SaveLocals, SaveLocal{
 			DestPath:     saveAsLocalTo,
@@ -405,7 +414,7 @@ func (c *Converter) Workdir(ctx context.Context, workdirPath string) {
 			mkdirOpts = append(mkdirOpts, llb.WithUser(c.mts.FinalStates.SideEffectsImage.Config.User))
 		}
 		opts := []llb.ConstraintsOpt{
-			llb.WithCustomNamef("[%s] WORKDIR %s", c.mts.FinalStates.Target.String(), workdirPath),
+			llb.WithCustomNamef("%sWORKDIR %s", c.vertexPrefix(), workdirPath),
 		}
 		c.mts.FinalStates.SideEffectsState = c.mts.FinalStates.SideEffectsState.File(
 			llb.Mkdir(workdirAbs, 0755, mkdirOpts...), opts...)
@@ -506,14 +515,14 @@ func (c *Converter) GitClone(ctx context.Context, gitURL string, branch string, 
 	logging.GetLogger(ctx).With("git-url", gitURL).With("branch", branch).Info("Applying GIT CLONE")
 	gitOpts := []llb.GitOption{
 		llb.WithCustomNamef(
-			"[%s(%s)] GIT CLONE (--branch %s) %s", c.mts.FinalStates.Target.String(), gitURL, branch, gitURL),
+			"%sGIT CLONE (--branch %s) %s", c.vertexPrefixWithURL(gitURL), branch, gitURL),
 		llb.KeepGitDir(),
 	}
 	gitState := llbgit.Git(gitURL, branch, gitOpts...)
 	c.mts.FinalStates.SideEffectsState = llbutil.CopyOp(
 		gitState, []string{"."}, c.mts.FinalStates.SideEffectsState, dest, false, false,
 		llb.WithCustomNamef(
-			"[%s] COPY GIT CLONE (--branch %s) %s TO %s", c.mts.FinalStates.Target.String(),
+			"%sCOPY GIT CLONE (--branch %s) %s TO %s", c.vertexPrefix(),
 			branch, gitURL, dest))
 	return nil
 }
@@ -537,8 +546,7 @@ func (c *Converter) DockerLoad(ctx context.Context, targetName string, dockerTag
 	err = c.solveAndLoad(
 		ctx, mts, depTarget.String(), dockerTag,
 		llb.WithCustomNamef(
-			"[%s] DOCKER LOAD %s %s",
-			c.mts.FinalStates.Target.String(), depTarget.String(), dockerTag))
+			"%sDOCKER LOAD %s %s", c.vertexPrefix(), depTarget.String(), dockerTag))
 	if err != nil {
 		return err
 	}
@@ -551,8 +559,7 @@ func (c *Converter) DockerPull(ctx context.Context, dockerTag string) error {
 	logging.GetLogger(ctx).With("dockerTag", dockerTag).Info("Applying DOCKER PULL")
 	state, image, _, err := c.internalFromClassical(
 		ctx, dockerTag,
-		llb.WithCustomNamef(
-			"[%s] DOCKER PULL %s", c.mts.FinalStates.Target.String(), dockerTag),
+		llb.WithCustomNamef("%sDOCKER PULL %s", c.vertexPrefix(), dockerTag),
 	)
 	if err != nil {
 		return err
@@ -572,8 +579,7 @@ func (c *Converter) DockerPull(ctx context.Context, dockerTag string) error {
 	}
 	err = c.solveAndLoad(
 		ctx, mts, dockerTag, dockerTag,
-		llb.WithCustomNamef(
-			"[%s] DOCKER LOAD (PULL %s)", c.mts.FinalStates.Target.String(), dockerTag))
+		llb.WithCustomNamef("%sDOCKER LOAD (PULL %s)", c.vertexPrefix(), dockerTag))
 	if err != nil {
 		return err
 	}
@@ -822,7 +828,7 @@ func (c *Converter) processNonConstantBuildArgFunc(ctx context.Context) variable
 		args := strings.Split(fmt.Sprintf("echo \"%s\" >%s", expression, srcBuildArgPath), " ")
 		err := c.internalRun(
 			ctx, args, []string{}, false, true, false, expression,
-			llb.WithCustomNamef("[%s] RUN %s", c.mts.FinalStates.Target.String(), expression))
+			llb.WithCustomNamef("%sRUN %s", c.vertexPrefix(), expression))
 		if err != nil {
 			return llb.State{}, dedup.TargetInput{}, 0, errors.Wrapf(err, "run %v", expression)
 		}
@@ -843,10 +849,20 @@ func (c *Converter) processNonConstantBuildArgFunc(ctx context.Context) variable
 	}
 }
 
+func (c *Converter) vertexPrefix() string {
+	return fmt.Sprintf("[%s %s] ", c.mts.FinalStates.Target.String(), c.mts.FinalStates.Salt)
+}
+
+func (c *Converter) vertexPrefixWithURL(url string) string {
+	return fmt.Sprintf("[%s(%s) %s] ", c.mts.FinalStates.Target.String(), url, url)
+}
+
 func withDependency(state llb.State, target domain.Target, depState llb.State, depTarget domain.Target) llb.State {
 	return llbutil.WithDependency(
 		state, depState,
-		llb.WithCustomNamef("[internal] create artificial dependency: %s depends on %s", target.String(), depTarget.String()))
+		llb.WithCustomNamef(
+			"[internal] create artificial dependency: %s depends on %s",
+			target.String(), depTarget.String()))
 }
 
 func makeCacheContext(target domain.Target) llb.State {
@@ -855,7 +871,7 @@ func makeCacheContext(target domain.Target) llb.State {
 		llb.SharedKeyHint(target.ProjectCanonical()),
 		llb.SessionID(sessionID),
 		llb.Platform(llbutil.TargetPlatform),
-		llb.WithCustomNamef("[context] cache context %s", target.ProjectCanonical()),
+		llb.WithCustomNamef("[internal] cache context %s", target.ProjectCanonical()),
 	}
 	return llb.Local("earthly-cache", opts...)
 }
@@ -866,4 +882,18 @@ func cacheKey(target domain.Target) string {
 	targetCopy.Tag = ""
 	digest := sha256.Sum256([]byte(targetCopy.StringCanonical()))
 	return hex.EncodeToString(digest[:])
+}
+
+func joinWrap(a []string, before string, sep string, after string) string {
+	if len(a) > 0 {
+		return fmt.Sprintf("%s%s%s", before, strings.Join(a, sep), after)
+	}
+	return ""
+}
+
+func strIf(condition bool, str string) string {
+	if condition {
+		return str
+	}
+	return ""
 }

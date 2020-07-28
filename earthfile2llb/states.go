@@ -45,6 +45,7 @@ type SingleTargetStates struct {
 	RunPush                RunPush
 	LocalDirs              map[string]string
 	Ongoing                bool
+	Salt                   string
 }
 
 // LastSaveImage returns the last save image available (if any).
