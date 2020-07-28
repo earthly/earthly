@@ -75,7 +75,7 @@ func NewConverter(ctx context.Context, target domain.Target, resolver *buildcont
 		resolver:         resolver,
 		mts:              mts,
 		buildContext:     bc.BuildContext,
-		cacheContext:     makeCacheContext(target, sts.Salt),
+		cacheContext:     makeCacheContext(target),
 		varCollection:    varCollection.WithBuiltinBuildArgs(target, bc.GitMetadata),
 		dockerBuilderFun: dockerBuilderFun,
 		cleanCollection:  cleanCollection,
@@ -242,6 +242,9 @@ func (c *Converter) Run(ctx context.Context, args []string, mounts []string, sec
 		}
 		finalArgs = append(c.mts.FinalStates.SideEffectsImage.Config.Entrypoint, args...)
 		isWithShell = false // Don't use shell when --entrypoint is passed.
+	}
+	if privileged {
+		opts = append(opts, llb.Security(llb.SecurityModeInsecure))
 	}
 	runStr := fmt.Sprintf(
 		"RUN %s%s%s%s%s",
@@ -857,16 +860,18 @@ func (c *Converter) vertexPrefixWithURL(url string) string {
 func withDependency(state llb.State, target domain.Target, depState llb.State, depTarget domain.Target) llb.State {
 	return llbutil.WithDependency(
 		state, depState,
-		llb.WithCustomNamef("[internal] create artificial dependency: %s depends on %s", target.String(), depTarget.String()))
+		llb.WithCustomNamef(
+			"[internal] create artificial dependency: %s depends on %s",
+			target.String(), depTarget.String()))
 }
 
-func makeCacheContext(target domain.Target, salt string) llb.State {
+func makeCacheContext(target domain.Target) llb.State {
 	sessionID := cacheKey(target)
 	opts := []llb.LocalOption{
 		llb.SharedKeyHint(target.ProjectCanonical()),
 		llb.SessionID(sessionID),
 		llb.Platform(llbutil.TargetPlatform),
-		llb.WithCustomNamef("[context %s] cache context %s", salt, target.ProjectCanonical()),
+		llb.WithCustomNamef("[internal] cache context %s", target.ProjectCanonical()),
 	}
 	return llb.Local("earthly-cache", opts...)
 }
