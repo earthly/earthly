@@ -391,12 +391,16 @@ func (app *earthApp) run(ctx context.Context, args []string) int {
 	err := app.cliApp.RunContext(ctx, args)
 	if err != nil {
 		logging.GetLogger(ctx).Error(err)
-		app.console.Printf("Error: %v\n", err)
-		if strings.Contains(err.Error(), "failed to fetch remote") {
+		if errors.Is(err, builder.ErrSolve) {
+			// Do not print error if it's a solve error. It has already been printed somewhere else.
+		} else if strings.Contains(err.Error(), "failed to fetch remote") {
+			app.console.Printf("Error: %v\n", err)
 			app.console.Printf(
 				"Check your git auth settings.\n" +
 					"Did you ssh-add today? Need to configure ~/earthly/config.yaml?\n" +
 					"For more information see https://docs.earthly.dev/guides/auth\n")
+		} else {
+			app.console.Printf("Error: %v\n", err)
 		}
 		return 1
 	}

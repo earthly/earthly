@@ -21,6 +21,7 @@ type ConsoleLogger struct {
 	salt          string
 	disableColors bool
 	isCached      bool
+	isFailed      bool
 
 	// The following are shared between instances and are protected by the mutex.
 	mu             *sync.Mutex
@@ -47,6 +48,7 @@ func (cl ConsoleLogger) clone() ConsoleLogger {
 		prefix:         cl.prefix,
 		salt:           cl.salt,
 		isCached:       cl.isCached,
+		isFailed:       cl.isFailed,
 		saltColors:     cl.saltColors,
 		disableColors:  cl.disableColors,
 		nextColorIndex: cl.nextColorIndex,
@@ -82,11 +84,25 @@ func (cl ConsoleLogger) WithCached(isCached bool) ConsoleLogger {
 	return ret
 }
 
+// WithFailed returns a ConsoleLogger with isFailed flag set accordingly.
+func (cl ConsoleLogger) WithFailed(isFailed bool) ConsoleLogger {
+	ret := cl.clone()
+	ret.isFailed = isFailed
+	return ret
+}
+
 // PrintSuccess prints the success message.
 func (cl ConsoleLogger) PrintSuccess() {
 	cl.mu.Lock()
 	defer cl.mu.Unlock()
 	successColor.Fprintf(cl.w, "=========================== SUCCESS ===========================\n")
+}
+
+// PrintFailure prints the failure message.
+func (cl ConsoleLogger) PrintFailure() {
+	cl.mu.Lock()
+	defer cl.mu.Unlock()
+	warnColor.Fprintf(cl.w, "=========================== FAILURE ===========================\n")
 }
 
 // Warnf prints a warning message in red
@@ -172,6 +188,11 @@ func (cl ConsoleLogger) printPrefix() {
 		}
 	}
 	c.Fprintf(cl.w, "%s", cl.prefix)
+	if cl.isFailed {
+		cl.w.Write([]byte(" *"))
+		warnColor.Fprintf(cl.w, "failed")
+		cl.w.Write([]byte("*"))
+	}
 	cl.w.Write([]byte(" | "))
 	if cl.isCached {
 		cl.w.Write([]byte("*"))

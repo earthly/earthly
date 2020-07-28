@@ -22,6 +22,9 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
+// ErrSolve is an error resulting from a solve.
+var ErrSolve = errors.New("Solve error")
+
 type solver struct {
 	bkClient    *client.Client
 	console     conslogging.ConsoleLogger
@@ -83,7 +86,7 @@ func (s *solver) solveDocker(ctx context.Context, localDirs map[string]string, s
 	}()
 	err = eg.Wait()
 	if err != nil {
-		return errors.Wrap(err, "build error group")
+		return errors.Wrap(ErrSolve, err.Error())
 	}
 	return nil
 }
@@ -149,7 +152,7 @@ func (s *solver) solveDockerTar(ctx context.Context, localDirs map[string]string
 	}()
 	err = eg.Wait()
 	if err != nil {
-		return errors.Wrap(err, "build error group")
+		return errors.Wrap(ErrSolve, err.Error())
 	}
 	return nil
 }
@@ -181,7 +184,7 @@ func (s *solver) solveArtifacts(ctx context.Context, localDirs map[string]string
 	})
 	err = eg.Wait()
 	if err != nil {
-		return errors.Wrap(err, "build error group")
+		return errors.Wrap(ErrSolve, err.Error())
 	}
 	return nil
 }
@@ -234,7 +237,7 @@ func (s *solver) solveSideEffects(ctx context.Context, localDirs map[string]stri
 	})
 	err = eg.Wait()
 	if err != nil {
-		return errors.Wrap(err, "build error group")
+		return errors.Wrap(ErrSolve, err.Error())
 	}
 	return nil
 }

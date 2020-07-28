@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/armon/circbuf"
 	"github.com/earthly/earthly/conslogging"
 	"github.com/earthly/earthly/logging"
 	"github.com/moby/buildkit/client"
@@ -13,7 +14,10 @@ import (
 	"github.com/pkg/errors"
 )
 
-const durationBetweenProgressUpdate = time.Second * 5
+const (
+	durationBetweenProgressUpdate = time.Second * 5
+	tailErrorBufferSizeBytes      = 80 * 1024 // About as much as 1024 lines of 80 chars each.
+)
 
 type vertexMonitor struct {
 	vertex         *client.Vertex
@@ -27,6 +31,7 @@ type vertexMonitor struct {
 	headerPrinted  bool
 	isInternal     bool
 	isError        bool
+	tailOutput     *circbuf.Buffer
 }
 
 type solverMonitor struct {
@@ -69,7 +74,32 @@ func (vm *vertexMonitor) shouldPrintProgress(percent int) bool {
 	return true
 }
 
+func (vm *vertexMonitor) printOutput(output []byte) error {
+	vm.console.PrintBytes(output)
+	if vm.tailOutput == nil {
+		var err error
+		vm.tailOutput, err = circbuf.NewBuffer(tailErrorBufferSizeBytes)
+		if err != nil {
+			return errors.Wrap(err, "allocate buffer for output")
+		}
+	}
+	_, err := vm.tailOutput.Write(output)
+	if err != nil {
+		return errors.Wrap(err, "write to in-memory output buffer")
+	}
+	return nil
+}
+
+func (vm *vertexMonitor) printError() {
+	if strings.Contains(vm.vertex.Error, "executor failed running") {
+		vm.console.Warnf("ERROR: Command exited with non-zero code: %s\n", vm.operation)
+	} else {
+		vm.console.Warnf("ERROR: (%s) %s\n", vm.operation, vm.vertex.Error)
+	}
+}
+
 func (sm *solverMonitor) monitorProgress(ctx context.Context, ch chan *client.SolveStatus, printDetailed bool) error {
+	var errVertex *vertexMonitor
 	for {
 		select {
 		case ss, ok := <-ch:
@@ -105,15 +135,14 @@ func (sm *solverMonitor) monitorProgress(ctx context.Context, ch chan *client.So
 				if vertex.Error != "" {
 					if strings.Contains(vertex.Error, "context canceled: context canceled") {
 						if !vm.isInternal {
-							vm.console.Printf("WARN: canceled\n")
+							vm.console.Printf("WARN: Canceled\n")
 						}
 					} else {
 						vm.isError = true
-						if strings.Contains(vertex.Error, "executor failed running") {
-							vm.console.Warnf("ERROR: Command exited with non-zero code: %s\n", vm.operation)
-						} else {
-							vm.console.Warnf("ERROR: (%s) %s\n", vm.operation, vertex.Error)
+						if errVertex == nil {
+							errVertex = vm
 						}
+						vm.printError()
 					}
 					vm.logger.Error(errors.New(vertex.Error))
 				}
@@ -124,14 +153,14 @@ func (sm *solverMonitor) monitorProgress(ctx context.Context, ch chan *client.So
 					// No logging for internal operations.
 					continue
 				}
-				progress := int32(0)
+				progress := int(0)
 				if vs.Total != 0 {
-					progress = int32(100.0 * float32(vs.Current) / float32(vs.Total))
+					progress = int(100.0 * float32(vs.Current) / float32(vs.Total))
 				}
 				if vs.Completed != nil {
 					progress = 100
 				}
-				if vm.shouldPrintProgress(int(progress)) {
+				if vm.shouldPrintProgress(progress) {
 					logger := vm.logger.
 						With("progress", progress).
 						With("name", vs.Name)
@@ -155,10 +184,34 @@ func (sm *solverMonitor) monitorProgress(ctx context.Context, ch chan *client.So
 				}
 				vm.logger.Info(string(logLine.Data))
 				if printDetailed {
-					vm.console.PrintBytes(logLine.Data)
+					err := vm.printOutput(logLine.Data)
+					if err != nil {
+						return err
+					}
 				}
 			}
 		case <-ctx.Done():
+			if errVertex != nil && errVertex.tailOutput != nil {
+				isTruncated := (errVertex.tailOutput.TotalWritten() > errVertex.tailOutput.Size())
+				if isTruncated {
+					sm.console.Warnf(
+						"Repeating the last %d bytes of output of the command that caused the failure\n", errVertex.tailOutput.Size())
+				} else {
+					sm.console.Warnf("Repeating the output of the command that caused the failure\n")
+				}
+				sm.console.PrintFailure()
+				errVertex.console = errVertex.console.WithFailed(true)
+				errVertex.printHeader()
+				if errVertex.tailOutput.TotalWritten() == 0 {
+					errVertex.console.Printf("[no output]\n")
+				} else {
+					if isTruncated {
+						errVertex.console.Printf("[...]\n")
+					}
+					errVertex.console.PrintBytes(errVertex.tailOutput.Bytes())
+				}
+				errVertex.printError()
+			}
 			return nil
 		}
 	}
