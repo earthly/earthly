@@ -108,7 +108,7 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, target domain.Targ
 
 	// Copy all Earthfile and build.earth files.
 	gitOpts := []llb.GitOption{
-		llb.WithCustomNamef("[context] GIT CLONE %s", gitURL),
+		llb.WithCustomNamef("[context %s] GIT CLONE %s", gitURL, gitURL),
 		llb.KeepGitDir(),
 	}
 	gitState := llbgit.Git(gitURL, ref, gitOpts...)
@@ -179,7 +179,8 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, target domain.Targ
 				}
 				for _, vertex := range ss.Vertexes {
 					if vertex.Error != "" {
-						gr.console.Printf("ERROR: %s\n", vertex.Error)
+						// TODO: Should also print full logs in case of error.
+						gr.console.Warnf("ERROR: %s\n", vertex.Error)
 					}
 				}
 			case <-ctx.Done():
@@ -243,7 +244,7 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, target domain.Targ
 		state: llbgit.Git(
 			gitURL,
 			gitHash,
-			llb.WithCustomNamef("[context] git context %s", target.StringCanonical()),
+			llb.WithCustomNamef("[context %s] git context %s", gitURL, target.StringCanonical()),
 		),
 	}
 	gr.projectCache[cacheKey] = resolved

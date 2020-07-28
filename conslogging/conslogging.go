@@ -15,13 +15,16 @@ var currentConsoleMutex sync.Mutex
 
 // ConsoleLogger is a writer for consoles.
 type ConsoleLogger struct {
-	prefix        string
+	prefix string
+	// salt is a salt used for color consistency
+	// (the same salt will get the same color).
+	salt          string
 	disableColors bool
 	isCached      bool
 
 	// The following are shared between instances and are protected by the mutex.
 	mu             *sync.Mutex
-	prefixColors   map[string]*color.Color
+	saltColors     map[string]*color.Color
 	nextColorIndex *int
 	w              io.Writer
 	trailingLine   bool
@@ -32,7 +35,7 @@ func Current(disableColors bool) ConsoleLogger {
 	return ConsoleLogger{
 		w:              os.Stdout,
 		disableColors:  disableColors || color.NoColor,
-		prefixColors:   make(map[string]*color.Color),
+		saltColors:     make(map[string]*color.Color),
 		nextColorIndex: new(int),
 		mu:             &currentConsoleMutex,
 	}
@@ -42,8 +45,9 @@ func (cl ConsoleLogger) clone() ConsoleLogger {
 	return ConsoleLogger{
 		w:              cl.w,
 		prefix:         cl.prefix,
+		salt:           cl.salt,
 		isCached:       cl.isCached,
-		prefixColors:   cl.prefixColors,
+		saltColors:     cl.saltColors,
 		disableColors:  cl.disableColors,
 		nextColorIndex: cl.nextColorIndex,
 		mu:             cl.mu,
@@ -54,6 +58,15 @@ func (cl ConsoleLogger) clone() ConsoleLogger {
 func (cl ConsoleLogger) WithPrefix(prefix string) ConsoleLogger {
 	ret := cl.clone()
 	ret.prefix = prefix
+	ret.salt = prefix
+	return ret
+}
+
+// WithPrefixAndSalt returns a ConsoleLogger with a prefix and a seed added.
+func (cl ConsoleLogger) WithPrefixAndSalt(prefix string, salt string) ConsoleLogger {
+	ret := cl.clone()
+	ret.prefix = prefix
+	ret.salt = salt
 	return ret
 }
 
@@ -151,10 +164,10 @@ func (cl ConsoleLogger) printPrefix() {
 	c := noColor
 	if !cl.disableColors {
 		var found bool
-		c, found = cl.prefixColors[cl.prefix]
+		c, found = cl.saltColors[cl.salt]
 		if !found {
 			c = availablePrefixColors[*cl.nextColorIndex]
-			cl.prefixColors[cl.prefix] = c
+			cl.saltColors[cl.salt] = c
 			*cl.nextColorIndex = (*cl.nextColorIndex + 1) % len(availablePrefixColors)
 		}
 	}

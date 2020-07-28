@@ -160,7 +160,7 @@ func (b *Builder) buildCommon(ctx context.Context, mts *earthfile2llb.MultiTarge
 	}
 
 	finalTarget := mts.FinalStates.Target
-	finalTargetConsole := b.console.WithPrefix(finalTarget.String())
+	finalTargetConsole := b.console.WithPrefixAndSalt(finalTarget.String(), mts.FinalStates.Salt)
 	err = b.buildSideEffects(ctx, localDirs, mts.FinalStates)
 	if err != nil {
 		return "", nil, err
@@ -214,7 +214,7 @@ func (b *Builder) buildRunPush(ctx context.Context, localDirs map[string]string,
 		// No run --push commands here. Quick way out.
 		return nil
 	}
-	console := b.console.WithPrefix(states.Target.String())
+	console := b.console.WithPrefixAndSalt(states.Target.String(), states.Salt)
 	if !push {
 		for _, commandStr := range states.RunPush.CommandStrs {
 			console.Printf("Did not execute push command %s. Use earth --push to enable pushing\n", commandStr)
@@ -246,7 +246,7 @@ func (b *Builder) buildImages(ctx context.Context, localDirs map[string]string, 
 
 func (b *Builder) buildImage(ctx context.Context, imageToSave earthfile2llb.SaveImage, localDirs map[string]string, states *earthfile2llb.SingleTargetStates, push bool) error {
 	shouldPush := push && imageToSave.Push
-	console := b.console.WithPrefix(states.Target.String())
+	console := b.console.WithPrefixAndSalt(states.Target.String(), states.Salt)
 	solveCtx := logging.With(ctx, "image", imageToSave.DockerTag)
 	solveCtx = logging.With(solveCtx, "solve", "image")
 	err := b.s.solveDocker(solveCtx, localDirs, imageToSave.State, imageToSave.Image, imageToSave.DockerTag, shouldPush)
@@ -305,7 +305,7 @@ func (b *Builder) buildSpecifiedArtifact(ctx context.Context, artifact domain.Ar
 		return errors.Wrap(err, "solve combined artifacts")
 	}
 
-	err = b.saveArtifactLocally(ctx, artifact, indexOutDir, destPath)
+	err = b.saveArtifactLocally(ctx, artifact, indexOutDir, destPath, states.Salt)
 	if err != nil {
 		return err
 	}
@@ -334,15 +334,15 @@ func (b *Builder) buildArtifact(ctx context.Context, artifactToSaveLocally earth
 		Target:   states.Target,
 		Artifact: artifactToSaveLocally.ArtifactPath,
 	}
-	err := b.saveArtifactLocally(ctx, artifact, indexOutDir, artifactToSaveLocally.DestPath)
+	err := b.saveArtifactLocally(ctx, artifact, indexOutDir, artifactToSaveLocally.DestPath, states.Salt)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (b *Builder) saveArtifactLocally(ctx context.Context, artifact domain.Artifact, indexOutDir string, destPath string) error {
-	console := b.console.WithPrefix(artifact.Target.String())
+func (b *Builder) saveArtifactLocally(ctx context.Context, artifact domain.Artifact, indexOutDir string, destPath string, salt string) error {
+	console := b.console.WithPrefixAndSalt(artifact.Target.String(), salt)
 	fromPattern := filepath.Join(indexOutDir, filepath.FromSlash(artifact.Artifact))
 	// Resolve possible wildcards.
 	// TODO: Note that this is not very portable, as the glob is host-platform dependent,

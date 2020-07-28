@@ -61,7 +61,7 @@ func (lr *localResolver) resolveLocal(ctx context.Context, target domain.Target)
 			llb.ExcludePatterns(excludes),
 			llb.SessionID(lr.sessionID),
 			llb.Platform(llbutil.TargetPlatform),
-			llb.WithCustomNamef("[context] local context %s", target.LocalPath),
+			llb.WithCustomNamef("[context %s] local context %s", target.LocalPath, target.LocalPath),
 		),
 		GitMetadata: metadata,
 	}, nil
