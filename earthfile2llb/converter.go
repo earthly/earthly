@@ -174,9 +174,10 @@ func (c *Converter) CopyArtifact(ctx context.Context, artifactName string, dest 
 		relevantDepState.ArtifactsState, []string{artifact.Artifact},
 		c.mts.FinalStates.SideEffectsState, dest, true, isDir,
 		llb.WithCustomNamef(
-			"[%s] COPY (%v) %s %s",
+			"[%s] COPY %s%s%s %s",
 			c.mts.FinalStates.Target.String(),
-			buildArgs,
+			strIf(isDir, "--dir "),
+			joinWrap(buildArgs, "(", " ", ") "),
 			artifact.String(),
 			dest))
 	return nil
@@ -195,7 +196,12 @@ func (c *Converter) CopyClassical(ctx context.Context, srcs []string, dest strin
 		Info("Applying COPY (classical)")
 	c.mts.FinalStates.SideEffectsState = llbutil.CopyOp(
 		c.buildContext, srcs, c.mts.FinalStates.SideEffectsState, dest, true, isDir,
-		llb.WithCustomNamef("[%s] COPY %v %s", c.mts.FinalStates.Target.String(), srcs, dest))
+		llb.WithCustomNamef(
+			"[%s] COPY %s%s %s",
+			c.mts.FinalStates.Target.String(),
+			strIf(isDir, "--dir "),
+			strings.Join(srcs, " "),
+			dest))
 }
 
 // Run applies the earth RUN command.
@@ -235,16 +241,13 @@ func (c *Converter) Run(ctx context.Context, args []string, mounts []string, sec
 		finalArgs = append(c.mts.FinalStates.SideEffectsImage.Config.Entrypoint, args...)
 		isWithShell = false // Don't use shell when --entrypoint is passed.
 	}
-	privilegedStr := ""
-	if privileged {
-		opts = append(opts, llb.Security(llb.SecurityModeInsecure))
-		privilegedStr = "--privileged "
-	}
-	withDockerStr := ""
-	if withDocker {
-		withDockerStr = "--with-docker "
-	}
-	runStr := fmt.Sprintf("RUN %s%s%v", privilegedStr, withDockerStr, finalArgs)
+	runStr := fmt.Sprintf(
+		"RUN %s%s%s%s%s",
+		strIf(privileged, "--privileged "),
+		strIf(withDocker, "--with-docker "),
+		strIf(withEntrypoint, "--entrypoint "),
+		strIf(pushFlag, "--push "),
+		strings.Join(finalArgs, " "))
 	opts = append(opts, llb.WithCustomNamef(
 		"[%s] %s", c.mts.FinalStates.Target.String(), runStr))
 	return c.internalRun(ctx, finalArgs, secretKeyValues, withDocker, isWithShell, pushFlag, runStr, opts...)
@@ -866,4 +869,18 @@ func cacheKey(target domain.Target) string {
 	targetCopy.Tag = ""
 	digest := sha256.Sum256([]byte(targetCopy.StringCanonical()))
 	return hex.EncodeToString(digest[:])
+}
+
+func joinWrap(a []string, before string, sep string, after string) string {
+	if len(a) > 0 {
+		return fmt.Sprintf("%s%s%s", before, strings.Join(a, sep), after)
+	}
+	return ""
+}
+
+func strIf(condition bool, str string) string {
+	if condition {
+		return str
+	}
+	return ""
 }

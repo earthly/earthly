@@ -61,6 +61,9 @@ unittest:
 	FROM +code
 	RUN go test ./...
 
+buildkitd:
+	BUILD ./buildkitd+buildkitd
+
 earth:
 	FROM +code
 	ARG GOOS=linux
@@ -78,13 +81,16 @@ earth:
 			cmd/earth/*.go
 	SAVE ARTIFACT build/earth AS LOCAL "build/$GOOS/$GOARCH/earth"
 
-earth-all:
-	BUILD +earth
+earth-darwin:
 	BUILD \
 		--build-arg GOOS=darwin \
 		--build-arg GOARCH=amd64 \
 		--build-arg GO_EXTRA_LDFLAGS= \
 		+earth
+
+earth-all:
+	BUILD +earth
+	BUILD +earth-darwin
 
 earth-docker:
 	FROM ./buildkitd+buildkitd
@@ -98,10 +104,18 @@ earth-docker:
 	COPY --build-arg VERSION=$TAG +earth/earth /usr/bin/earth
 	SAVE IMAGE --push earthly/earth:$TAG
 
+for-linux:
+	BUILD +buildkitd
+	BUILD +earth
+
+for-darwin:
+	BUILD +buildkitd
+	BUILD +earth-darwin
+
 all:
+	BUILD +buildkitd
 	BUILD +earth-all
 	BUILD +earth-docker
-	BUILD ./buildkitd+buildkitd
 
 test:
 	BUILD +lint
@@ -115,11 +129,11 @@ examples:
 	BUILD ./examples/js+docker
 	BUILD ./examples/cpp+docker
 	BUILD ./examples/scala+docker
+	BUILD ./examples/dotnet+docker
 	BUILD ./examples/monorepo+all
 	BUILD ./examples/multirepo+docker
 	BUILD ./examples/readme+parallel
 	BUILD ./examples/readme+final-success-target
-	BUILD ./examples/dotnet+docker
 
 test-experimental:
 	BUILD ./examples/tests+experimental
