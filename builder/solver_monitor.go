@@ -34,19 +34,6 @@ type vertexMonitor struct {
 	tailOutput     *circbuf.Buffer
 }
 
-type solverMonitor struct {
-	console conslogging.ConsoleLogger
-
-	vertices map[digest.Digest]*vertexMonitor
-}
-
-func newSolverMonitor(console conslogging.ConsoleLogger) *solverMonitor {
-	return &solverMonitor{
-		console:  console,
-		vertices: make(map[digest.Digest]*vertexMonitor),
-	}
-}
-
 func (vm *vertexMonitor) printHeader() {
 	out := []string{"-->"}
 	out = append(out, vm.operation)
@@ -95,6 +82,19 @@ func (vm *vertexMonitor) printError() {
 		vm.console.Warnf("ERROR: Command exited with non-zero code: %s\n", vm.operation)
 	} else {
 		vm.console.Warnf("ERROR: (%s) %s\n", vm.operation, vm.vertex.Error)
+	}
+}
+
+type solverMonitor struct {
+	console conslogging.ConsoleLogger
+
+	vertices map[digest.Digest]*vertexMonitor
+}
+
+func newSolverMonitor(console conslogging.ConsoleLogger) *solverMonitor {
+	return &solverMonitor{
+		console:  console,
+		vertices: make(map[digest.Digest]*vertexMonitor),
 	}
 }
 
