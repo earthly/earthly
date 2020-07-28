@@ -273,6 +273,12 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 			Usage:       "Enable interactive debugging",
 			Destination: &app.interactiveDebugging,
 			Hidden:      true, // Experimental.
+		&cli.BoolFlag{
+			Name:        "verbose",
+			Aliases:     []string{"V"},
+			EnvVars:     []string{"EARTHLY_VERBOSE"},
+			Usage:       "enable verbose logging of the earthly-buildkitd container",
+			Destination: &app.buildkitdSettings.Debug,
 		},
 	}
 
