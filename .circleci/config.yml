@@ -10,5 +10,5 @@ jobs:
       - run: docker login --username vladaionescu --password "$DOCKERHUB_TOKEN"
       - run: "sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/latest/download/earth-linux-amd64 -O /usr/local/bin/earth && chmod +x /usr/local/bin/earth'"
       - run: earth --version
-      - run: earth +all
+      - run: earth +for-linux
       - run: ./build/linux/amd64/earth -P +test

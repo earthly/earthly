@@ -30,7 +30,7 @@ jobs:
     - name: Earth version
       run: earth --version
     - name: Build latest earth
-      run: earth +all
+      run: earth +for-linux
     - name: Reset cache
       run: ./build/linux/amd64/earth prune --reset
     - name: Build, test, push using latest earth
