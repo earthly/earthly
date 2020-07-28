@@ -191,24 +191,23 @@ func (sm *solverMonitor) monitorProgress(ctx context.Context, ch chan *client.So
 				}
 			}
 		case <-ctx.Done():
-			if errVertex != nil && errVertex.tailOutput != nil {
-				isTruncated := (errVertex.tailOutput.TotalWritten() > errVertex.tailOutput.Size())
-				if isTruncated {
-					sm.console.Warnf(
-						"Repeating the last %d bytes of output of the command that caused the failure\n", errVertex.tailOutput.Size())
-				} else {
-					sm.console.Warnf("Repeating the output of the command that caused the failure\n")
-				}
+			if errVertex != nil {
+				sm.console.Warnf("Repeating the output of the command that caused the failure\n")
 				sm.console.PrintFailure()
 				errVertex.console = errVertex.console.WithFailed(true)
 				errVertex.printHeader()
-				if errVertex.tailOutput.TotalWritten() == 0 {
-					errVertex.console.Printf("[no output]\n")
-				} else {
-					if isTruncated {
-						errVertex.console.Printf("[...]\n")
+				if errVertex.tailOutput != nil {
+					isTruncated := (errVertex.tailOutput.TotalWritten() > errVertex.tailOutput.Size())
+					if errVertex.tailOutput.TotalWritten() == 0 {
+						errVertex.console.Printf("[no output]\n")
+					} else {
+						if isTruncated {
+							errVertex.console.Printf("[...]\n")
+						}
+						errVertex.console.PrintBytes(errVertex.tailOutput.Bytes())
 					}
-					errVertex.console.PrintBytes(errVertex.tailOutput.Bytes())
+				} else {
+					errVertex.console.Printf("[no output]\n")
 				}
 				errVertex.printError()
 			}
