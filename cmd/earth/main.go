@@ -11,6 +11,8 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/fatih/color"
+
 	"github.com/earthly/earthly/buildcontext"
 	"github.com/earthly/earthly/builder"
 	"github.com/earthly/earthly/buildkitd"
@@ -94,10 +96,12 @@ func main() {
 	_, forceColor := os.LookupEnv("FORCE_COLOR")
 	if forceColor {
 		colorMode = conslogging.ForceColor
+		color.NoColor = false
 	}
 	_, noColor := os.LookupEnv("NO_COLOR")
 	if noColor {
 		colorMode = conslogging.NoColor
+		color.NoColor = true
 	}
 	os.Exit(newEarthApp(ctx, conslogging.Current(colorMode)).run(ctx, os.Args))
 }
