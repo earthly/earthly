@@ -19,6 +19,7 @@ import (
 	"github.com/earthly/earthly/cleanup"
 	"github.com/earthly/earthly/config"
 	"github.com/earthly/earthly/conslogging"
+	"github.com/earthly/earthly/debugger/server"
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/earthfile2llb"
 	"github.com/earthly/earthly/earthfile2llb/variables"
@@ -44,28 +45,34 @@ type earthApp struct {
 }
 
 type cliFlags struct {
-	buildArgs           cli.StringSlice
-	secrets             cli.StringSlice
-	artifactMode        bool
-	imageMode           bool
-	push                bool
-	noOutput            bool
-	noCache             bool
-	pruneAll            bool
-	pruneReset          bool
-	buildkitdSettings   buildkitd.Settings
-	allowPrivileged     bool
-	buildkitHost        string
-	buildkitdImage      string
-	remoteCache         string
-	configPath          string
-	gitUsernameOverride string
-	gitPasswordOverride string
+	buildArgs            cli.StringSlice
+	secrets              cli.StringSlice
+	artifactMode         bool
+	imageMode            bool
+	push                 bool
+	noOutput             bool
+	noCache              bool
+	pruneAll             bool
+	pruneReset           bool
+	buildkitdSettings    buildkitd.Settings
+	allowPrivileged      bool
+	buildkitHost         string
+	buildkitdImage       string
+	debuggerImage        string
+	remoteCache          string
+	configPath           string
+	gitUsernameOverride  string
+	gitPasswordOverride  string
+	interactiveDebugging bool
 }
 
 var (
 	// DefaultBuildkitdImage is the default buildkitd image to use.
 	DefaultBuildkitdImage string
+
+	// DefaultDebuggerImage is the default debugger image to use.
+	DefaultDebuggerImage string
+
 	// Version is the version of this CLI app.
 	Version string
 )
@@ -81,11 +88,11 @@ func main() {
 	logFile := filepath.Join(logDir, "earth.log")
 	err := os.MkdirAll(logDir, 0755)
 	if err != nil {
-		fmt.Printf("Warning: cannot create dir %s\n", logDir)
+		fmt.Fprintf(os.Stderr, "Warning: cannot create dir %s\n", logDir)
 	} else {
 		f, err := os.OpenFile(logFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0755)
 		if err != nil {
-			fmt.Printf("Warning: cannot open log file for writing %s\n", logFile)
+			fmt.Fprintf(os.Stderr, "Warning: cannot open log file for writing %s\n", logFile)
 		} else {
 			logrus.SetOutput(f)
 		}
@@ -157,7 +164,6 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 		},
 		&cli.BoolFlag{
 			Name:        "image",
-			Aliases:     []string{"i"},
 			Usage:       "Output only docker image of the specified target",
 			Destination: &app.imageMode,
 		},
@@ -239,6 +245,14 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 			Usage:       "The docker image to use for the buildkit daemon",
 			Destination: &app.buildkitdImage,
 		},
+		&cli.StringFlag{
+			Name:        "debugger-image",
+			Value:       DefaultDebuggerImage,
+			EnvVars:     []string{"EARTHLY_DEBUGGER_IMAGE"},
+			Usage:       "The docker image to use for the interactive debugger process",
+			Destination: &app.debuggerImage,
+			Hidden:      true,
+		},
 		&cli.BoolFlag{
 			Name:        "no-loop-device",
 			EnvVars:     []string{"EARTHLY_NO_LOOP_DEVICE"},
@@ -250,6 +264,14 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 			EnvVars:     []string{"EARTHLY_REMOTE_CACHE"},
 			Usage:       "A remote docker image repository to be used as build cache",
 			Destination: &app.remoteCache,
+			Hidden:      true, // Experimental.
+		},
+		&cli.BoolFlag{
+			Name:        "interactive",
+			Aliases:     []string{"i"},
+			EnvVars:     []string{"EARTHLY_INTERACTIVE"},
+			Usage:       "Enable interactive debugging",
+			Destination: &app.interactiveDebugging,
 			Hidden:      true, // Experimental.
 		},
 	}
@@ -324,6 +346,9 @@ func (app *earthApp) parseConfigFile(context *cli.Context) error {
 	// command line option overrides the config which overrides the default value
 	if !context.IsSet("buildkit-image") && cfg.Global.BuildkitImage != "" {
 		app.buildkitdImage = cfg.Global.BuildkitImage
+	}
+	if !context.IsSet("debugger-image") && cfg.Global.DebuggerImage != "" {
+		app.debuggerImage = cfg.Global.DebuggerImage
 	}
 
 	if app.buildkitdSettings.SSHAuthSock != "" {
@@ -495,6 +520,17 @@ func (app *earthApp) actionPrune(c *cli.Context) error {
 }
 
 func (app *earthApp) actionBuild(c *cli.Context) error {
+	var remoteConsoleAddr string
+	var err error
+	if app.interactiveDebugging {
+		debugServer := server.NewDebugServer(app.console)
+		remoteConsoleAddr, err = debugServer.Start()
+		if err != nil {
+			app.console.Warnf("failed to open remote console listener: %v; interactive debugging disabled\n", err)
+			app.interactiveDebugging = false
+		}
+	}
+
 	if app.imageMode && app.artifactMode {
 		return errors.New("both image and artifact modes cannot be active at the same time")
 	}
@@ -587,7 +623,7 @@ func (app *earthApp) actionBuild(c *cli.Context) error {
 	defer cleanCollection.Close()
 	mts, err := earthfile2llb.Earthfile2LLB(
 		c.Context, target, resolver, b.BuildOnlyLastImageAsTar, cleanCollection,
-		nil, varCollection)
+		nil, varCollection, app.interactiveDebugging, app.debuggerImage, remoteConsoleAddr)
 	if err != nil {
 		return err
 	}

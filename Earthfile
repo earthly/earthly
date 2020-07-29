@@ -30,8 +30,8 @@ deps:
 
 code:
 	FROM +deps
-	COPY --dir buildcontext builder cleanup cmd config conslogging dockertar domain \
-		llbutil logging ./
+	COPY --dir buildcontext builder cleanup cmd config conslogging debugger dockertar \
+		domain llbutil logging ./
 	COPY --dir buildkitd/buildkitd.go buildkitd/settings.go buildkitd/
 	COPY --dir earthfile2llb/antlrhandler earthfile2llb/dedup earthfile2llb/image \
 		earthfile2llb/imr earthfile2llb/variables earthfile2llb/*.go earthfile2llb/
@@ -64,6 +64,27 @@ unittest:
 buildkitd:
 	BUILD ./buildkitd+buildkitd
 
+debugger:
+	FROM +code
+	ARG GOCACHE=/go-cache
+	ARG EARTHLY_TARGET_TAG
+	ARG VERSION=$EARTHLY_TARGET_TAG
+	RUN --mount=type=cache,target=$GOCACHE \
+		go build \
+			-ldflags "-d -X main.Version=$VERSION $GO_EXTRA_LDFLAGS" \
+			-tags netgo -installsuffix netgo \
+			-o build/earth_debugger \
+			cmd/debugger/*.go
+	SAVE ARTIFACT build/earth_debugger
+
+debugger-docker:
+	# cant be FROM scratch because the args require sh to exist
+	FROM busybox:1.32.0
+	COPY +debugger/earth_debugger /earth_debugger
+	ARG EARTHLY_TARGET_TAG
+	ARG TAG=$EARTHLY_TARGET_TAG
+	SAVE IMAGE --push earthly/debugger:$TAG
+
 earth:
 	FROM +code
 	ARG GOOS=linux
@@ -73,10 +94,11 @@ earth:
 	ARG EARTHLY_TARGET_TAG
 	ARG VERSION=$EARTHLY_TARGET_TAG
 	ARG DEFAULT_BUILDKITD_IMAGE=earthly/buildkitd:$VERSION
+	ARG DEFAULT_DEBUGGER_IMAGE=earthly/debugger:$VERSION
 	ARG GOCACHE=/go-cache
 	RUN --mount=type=cache,target=$GOCACHE \
 		go build \
-			-ldflags "-X main.DefaultBuildkitdImage=$DEFAULT_BUILDKITD_IMAGE -X main.Version=$VERSION $GO_EXTRA_LDFLAGS" \
+			-ldflags "-X main.DefaultBuildkitdImage=$DEFAULT_BUILDKITD_IMAGE -X main.DefaultDebuggerImage=$DEFAULT_DEBUGGER_IMAGE -X main.Version=$VERSION $GO_EXTRA_LDFLAGS" \
 			-o build/earth \
 			cmd/earth/*.go
 	SAVE ARTIFACT build/earth AS LOCAL "build/$GOOS/$GOARCH/earth"
@@ -114,6 +136,7 @@ for-darwin:
 
 all:
 	BUILD +buildkitd
+	BUILD +debugger
 	BUILD +earth-all
 	BUILD +earth-docker
 
