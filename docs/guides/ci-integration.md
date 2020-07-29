@@ -46,7 +46,19 @@ docker login --username '<username>' --password '<password>'
 Make sure that secrets (like `<password>` above) are not exposed in plain text. You may need to configure an environment variable with your CI vendor.
 {% endhint %}
 
-## Step 4: Run the build
+## Step 4: (Optional) Force or disable color output
+
+The CLI `earth` automatically detects the presence of a TTY for the purpose of deciding whether to use colorized output or not. In some CI environments, this kind of detection is not enough in order to infer support for colorized output. However, two environment variables can be used to either disable or force it:
+
+* `NO_COLOR=1` disables the use of color.
+* `FORCE_COLOR=1` forces the use of color.
+
+The following environments are known to require additional settings:
+
+* GitHub Actions: requires `FORCE_COLOR=1`
+* Jenkins: requires `NO_COLOR=1`
+
+## Step 5: Run the build
 
 This is often as simple as
 
