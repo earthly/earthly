@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/armon/circbuf"
 	"github.com/earthly/earthly/conslogging"
 	"github.com/earthly/earthly/logging"
 	"github.com/moby/buildkit/client"
@@ -13,55 +14,92 @@ import (
 	"github.com/pkg/errors"
 )
 
-var durationBetweenProgressUpdate = time.Second * 5
+const (
+	durationBetweenProgressUpdate = time.Second * 5
+	tailErrorBufferSizeBytes      = 80 * 1024 // About as much as 1024 lines of 80 chars each.
+)
 
-type lastProgress struct {
+type vertexMonitor struct {
+	vertex         *client.Vertex
+	targetStr      string
+	salt           string
+	operation      string
 	lastOutput     time.Time
 	lastPercentage int
+	logger         logging.Logger
+	console        conslogging.ConsoleLogger
+	headerPrinted  bool
+	isInternal     bool
+	isError        bool
+	tailOutput     *circbuf.Buffer
+}
+
+func (vm *vertexMonitor) printHeader() {
+	out := []string{"-->"}
+	out = append(out, vm.operation)
+	c := vm.console
+	if vm.vertex.Cached {
+		c = c.WithCached(true)
+	}
+	c.Printf("%s\n", strings.Join(out, " "))
+	vm.headerPrinted = true
+}
+
+func (vm *vertexMonitor) shouldPrintProgress(percent int) bool {
+	now := time.Now()
+	if !vm.headerPrinted {
+		return false
+	}
+	if now.Sub(vm.lastOutput) < durationBetweenProgressUpdate && percent < 100 {
+		return false
+	}
+	if vm.lastPercentage == percent {
+		return false
+	}
+	vm.lastOutput = now
+	vm.lastPercentage = percent
+	return true
+}
+
+func (vm *vertexMonitor) printOutput(output []byte) error {
+	vm.console.PrintBytes(output)
+	if vm.tailOutput == nil {
+		var err error
+		vm.tailOutput, err = circbuf.NewBuffer(tailErrorBufferSizeBytes)
+		if err != nil {
+			return errors.Wrap(err, "allocate buffer for output")
+		}
+	}
+	_, err := vm.tailOutput.Write(output)
+	if err != nil {
+		return errors.Wrap(err, "write to in-memory output buffer")
+	}
+	return nil
+}
+
+func (vm *vertexMonitor) printError() {
+	if strings.Contains(vm.vertex.Error, "executor failed running") {
+		vm.console.Warnf("ERROR: Command exited with non-zero code: %s\n", vm.operation)
+	} else {
+		vm.console.Warnf("ERROR: (%s) %s\n", vm.operation, vm.vertex.Error)
+	}
 }
 
 type solverMonitor struct {
 	console conslogging.ConsoleLogger
 
-	lastProgress map[digest.Digest]lastProgress
+	vertices map[digest.Digest]*vertexMonitor
 }
 
 func newSolverMonitor(console conslogging.ConsoleLogger) *solverMonitor {
 	return &solverMonitor{
-		console:      console,
-		lastProgress: map[digest.Digest]lastProgress{},
+		console:  console,
+		vertices: make(map[digest.Digest]*vertexMonitor),
 	}
 }
 
-func (s *solverMonitor) shouldPrint(vert digest.Digest, percent int) bool {
-	now := time.Now()
-	lp, ok := s.lastProgress[vert]
-	if !ok {
-		s.lastProgress[vert] = lastProgress{
-			lastOutput:     now,
-			lastPercentage: percent,
-		}
-		return true
-	}
-	if now.Sub(lp.lastOutput) < durationBetweenProgressUpdate && percent < 100 {
-		return false
-	}
-	if lp.lastPercentage == percent {
-		return false
-	}
-
-	s.lastProgress[vert] = lastProgress{
-		lastOutput:     now,
-		lastPercentage: percent,
-	}
-	return true
-}
-
-func (s *solverMonitor) monitorProgress(ctx context.Context, ch chan *client.SolveStatus, printDetailed bool) error {
-	vertexLoggers := make(map[digest.Digest]logging.Logger)
-	vertexConsoles := make(map[digest.Digest]conslogging.ConsoleLogger)
-	vertices := make(map[digest.Digest]*client.Vertex)
-	introducedVertex := make(map[digest.Digest]bool)
+func (sm *solverMonitor) monitorProgress(ctx context.Context, ch chan *client.SolveStatus, printDetailed bool) error {
+	var errVertex *vertexMonitor
 	for {
 		select {
 		case ss, ok := <-ch:
@@ -69,105 +107,113 @@ func (s *solverMonitor) monitorProgress(ctx context.Context, ch chan *client.Sol
 				return nil
 			}
 			for _, vertex := range ss.Vertexes {
-				if strings.HasPrefix(vertex.Name, "[internal]") {
-					// No logging for internal operations.
-					continue
-				}
-				targetStr, salt, operation := parseVertexName(vertex.Name)
-				logger := logging.GetLogger(ctx).
-					With("target", targetStr).
-					With("vertex", shortDigest(vertex.Digest)).
-					With("cached", vertex.Cached).
-					With("operation", operation)
-				vertexLoggers[vertex.Digest] = logger
-				targetConsole := s.console.WithPrefixAndSalt(targetStr, salt)
-				vertexConsoles[vertex.Digest] = targetConsole
-				vertices[vertex.Digest] = vertex
-				if !introducedVertex[vertex.Digest] && (vertex.Cached || vertex.Started != nil) {
-					introducedVertex[vertex.Digest] = true
-					if printDetailed {
-						printVertex(vertex, targetConsole)
+				vm, ok := sm.vertices[vertex.Digest]
+				if !ok {
+					targetStr, salt, operation := parseVertexName(vertex.Name)
+					vertexLogger := logging.GetLogger(ctx).
+						With("target", targetStr).
+						With("vertex", shortDigest(vertex.Digest)).
+						With("cached", vertex.Cached).
+						With("operation", operation)
+					vm = &vertexMonitor{
+						vertex:     vertex,
+						targetStr:  targetStr,
+						salt:       salt,
+						operation:  operation,
+						logger:     vertexLogger,
+						isInternal: (targetStr == "internal"),
+						console:    sm.console.WithPrefixAndSalt(targetStr, salt),
 					}
-					logger.Info("Vertex started or cached")
+					sm.vertices[vertex.Digest] = vm
+				}
+				vm.vertex = vertex
+				if !vm.headerPrinted &&
+					((printDetailed && !vm.isInternal && (vertex.Cached || vertex.Started != nil)) || vertex.Error != "") {
+					vm.printHeader()
+					vm.logger.Info("Vertex started or cached")
 				}
 				if vertex.Error != "" {
-					if !introducedVertex[vertex.Digest] {
-						introducedVertex[vertex.Digest] = true
-						if printDetailed {
-							printVertex(vertex, targetConsole)
-						}
-					}
 					if strings.Contains(vertex.Error, "context canceled: context canceled") {
-						targetConsole.Printf("WARN: (%s) canceled\n", operation)
-					} else {
-						if printDetailed {
-							targetConsole.Warnf("ERROR: (%s) %s\n", operation, vertex.Error)
+						if !vm.isInternal {
+							vm.console.Printf("WARN: Canceled\n")
 						}
+					} else {
+						vm.isError = true
+						if errVertex == nil {
+							errVertex = vm
+						}
+						vm.printError()
 					}
-					logger.Error(errors.New(vertex.Error))
+					vm.logger.Error(errors.New(vertex.Error))
 				}
 			}
 			for _, vs := range ss.Statuses {
-				vertex, found := vertices[vs.Vertex]
-				if !found {
+				vm, ok := sm.vertices[vs.Vertex]
+				if !ok || vm.isInternal {
 					// No logging for internal operations.
 					continue
 				}
-				logger := vertexLoggers[vs.Vertex]
-				targetConsole := vertexConsoles[vs.Vertex]
-				progress := int32(0)
+				progress := int(0)
 				if vs.Total != 0 {
-					progress = int32(100.0 * float32(vs.Current) / float32(vs.Total))
+					progress = int(100.0 * float32(vs.Current) / float32(vs.Total))
 				}
 				if vs.Completed != nil {
 					progress = 100
 				}
-				if s.shouldPrint(vs.Vertex, int(progress)) {
-					logger = logger.
+				if vm.shouldPrintProgress(progress) {
+					logger := vm.logger.
 						With("progress", progress).
 						With("name", vs.Name)
-					if !introducedVertex[vertex.Digest] {
-						introducedVertex[vertex.Digest] = true
-						if printDetailed {
-							printVertex(vertex, targetConsole)
-						}
+					if !vm.headerPrinted && printDetailed {
+						vm.printHeader()
 					}
 					logger.Info(vs.ID)
 					if printDetailed {
-						targetConsole.Printf("%s %d%%\n", vs.ID, progress)
+						vm.console.Printf("%s %d%%\n", vs.ID, progress)
 					}
 				}
 			}
 			for _, logLine := range ss.Logs {
-				vertex, found := vertices[logLine.Vertex]
-				if !found {
+				vm, ok := sm.vertices[logLine.Vertex]
+				if !ok || vm.isInternal {
 					// No logging for internal operations.
 					continue
 				}
-				logger := vertexLoggers[logLine.Vertex]
-				targetConsole := vertexConsoles[logLine.Vertex]
-				if !introducedVertex[logLine.Vertex] {
-					introducedVertex[logLine.Vertex] = true
-					printVertex(vertex, targetConsole)
+				if !vm.headerPrinted && printDetailed {
+					vm.printHeader()
 				}
-				logger.Info(string(logLine.Data))
-				targetConsole.PrintBytes(logLine.Data)
+				vm.logger.Info(string(logLine.Data))
+				if printDetailed {
+					err := vm.printOutput(logLine.Data)
+					if err != nil {
+						return err
+					}
+				}
 			}
 		case <-ctx.Done():
+			if errVertex != nil {
+				sm.console.Warnf("Repeating the output of the command that caused the failure\n")
+				sm.console.PrintFailure()
+				errVertex.console = errVertex.console.WithFailed(true)
+				errVertex.printHeader()
+				if errVertex.tailOutput != nil {
+					isTruncated := (errVertex.tailOutput.TotalWritten() > errVertex.tailOutput.Size())
+					if errVertex.tailOutput.TotalWritten() == 0 {
+						errVertex.console.Printf("[no output]\n")
+					} else {
+						if isTruncated {
+							errVertex.console.Printf("[...]\n")
+						}
+						errVertex.console.PrintBytes(errVertex.tailOutput.Bytes())
+					}
+				} else {
+					errVertex.console.Printf("[no output]\n")
+				}
+				errVertex.printError()
+			}
 			return nil
 		}
 	}
-}
-
-func printVertex(vertex *client.Vertex, console conslogging.ConsoleLogger) {
-	_, _, operation := parseVertexName(vertex.Name)
-	out := []string{"-->"}
-	out = append(out, operation)
-	c := console
-	if vertex.Cached {
-		c = c.WithCached(true)
-	}
-	c.Printf("%s\n", strings.Join(out, " "))
 }
 
 var bracketsRegexp = regexp.MustCompile("^\\[([^\\]]*)\\] (.*)$")

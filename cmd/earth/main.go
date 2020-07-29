@@ -11,6 +11,8 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/fatih/color"
+
 	"github.com/earthly/earthly/buildcontext"
 	"github.com/earthly/earthly/builder"
 	"github.com/earthly/earthly/buildkitd"
@@ -90,7 +92,18 @@ func main() {
 	}
 
 	ctx := context.Background()
-	os.Exit(newEarthApp(ctx, conslogging.Current(false)).run(ctx, os.Args))
+	colorMode := conslogging.AutoColor
+	_, forceColor := os.LookupEnv("FORCE_COLOR")
+	if forceColor {
+		colorMode = conslogging.ForceColor
+		color.NoColor = false
+	}
+	_, noColor := os.LookupEnv("NO_COLOR")
+	if noColor {
+		colorMode = conslogging.NoColor
+		color.NoColor = true
+	}
+	os.Exit(newEarthApp(ctx, conslogging.Current(colorMode)).run(ctx, os.Args))
 }
 
 func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthApp {
@@ -391,12 +404,16 @@ func (app *earthApp) run(ctx context.Context, args []string) int {
 	err := app.cliApp.RunContext(ctx, args)
 	if err != nil {
 		logging.GetLogger(ctx).Error(err)
-		app.console.Printf("Error: %v\n", err)
-		if strings.Contains(err.Error(), "failed to fetch remote") {
+		if errors.Is(err, builder.ErrSolve) {
+			// Do not print error if it's a solve error. It has already been printed somewhere else.
+		} else if strings.Contains(err.Error(), "failed to fetch remote") {
+			app.console.Printf("Error: %v\n", err)
 			app.console.Printf(
 				"Check your git auth settings.\n" +
 					"Did you ssh-add today? Need to configure ~/earthly/config.yaml?\n" +
 					"For more information see https://docs.earthly.dev/guides/auth\n")
+		} else {
+			app.console.Printf("Error: %v\n", err)
 		}
 		return 1
 	}

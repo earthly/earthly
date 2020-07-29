@@ -11,6 +11,19 @@ import (
 	"github.com/fatih/color"
 )
 
+// ColorMode is the mode in which colors are represented in the output.
+type ColorMode int
+
+const (
+	// AutoColor automatically detects the presence of a TTY to decide if
+	// color should be used.
+	AutoColor ColorMode = iota
+	// NoColor disables use of color.
+	NoColor
+	// ForceColor forces use of color.
+	ForceColor
+)
+
 var currentConsoleMutex sync.Mutex
 
 // ConsoleLogger is a writer for consoles.
@@ -18,9 +31,10 @@ type ConsoleLogger struct {
 	prefix string
 	// salt is a salt used for color consistency
 	// (the same salt will get the same color).
-	salt          string
-	disableColors bool
-	isCached      bool
+	salt      string
+	colorMode ColorMode
+	isCached  bool
+	isFailed  bool
 
 	// The following are shared between instances and are protected by the mutex.
 	mu             *sync.Mutex
@@ -31,10 +45,10 @@ type ConsoleLogger struct {
 }
 
 // Current returns the current console.
-func Current(disableColors bool) ConsoleLogger {
+func Current(colorMode ColorMode) ConsoleLogger {
 	return ConsoleLogger{
 		w:              os.Stdout,
-		disableColors:  disableColors || color.NoColor,
+		colorMode:      colorMode,
 		saltColors:     make(map[string]*color.Color),
 		nextColorIndex: new(int),
 		mu:             &currentConsoleMutex,
@@ -47,8 +61,9 @@ func (cl ConsoleLogger) clone() ConsoleLogger {
 		prefix:         cl.prefix,
 		salt:           cl.salt,
 		isCached:       cl.isCached,
+		isFailed:       cl.isFailed,
 		saltColors:     cl.saltColors,
-		disableColors:  cl.disableColors,
+		colorMode:      cl.colorMode,
 		nextColorIndex: cl.nextColorIndex,
 		mu:             cl.mu,
 	}
@@ -82,11 +97,25 @@ func (cl ConsoleLogger) WithCached(isCached bool) ConsoleLogger {
 	return ret
 }
 
+// WithFailed returns a ConsoleLogger with isFailed flag set accordingly.
+func (cl ConsoleLogger) WithFailed(isFailed bool) ConsoleLogger {
+	ret := cl.clone()
+	ret.isFailed = isFailed
+	return ret
+}
+
 // PrintSuccess prints the success message.
 func (cl ConsoleLogger) PrintSuccess() {
 	cl.mu.Lock()
 	defer cl.mu.Unlock()
-	successColor.Fprintf(cl.w, "=========================== SUCCESS ===========================\n")
+	cl.color(successColor).Fprintf(cl.w, "=========================== SUCCESS ===========================\n")
+}
+
+// PrintFailure prints the failure message.
+func (cl ConsoleLogger) PrintFailure() {
+	cl.mu.Lock()
+	defer cl.mu.Unlock()
+	cl.color(warnColor).Fprintf(cl.w, "=========================== FAILURE ===========================\n")
 }
 
 // Warnf prints a warning message in red
@@ -94,11 +123,7 @@ func (cl ConsoleLogger) Warnf(format string, args ...interface{}) {
 	cl.mu.Lock()
 	defer cl.mu.Unlock()
 
-	c := noColor
-	if !cl.disableColors {
-		c = warnColor
-	}
-
+	c := cl.color(warnColor)
 	text := fmt.Sprintf(format, args...)
 	text = strings.TrimSuffix(text, "\n")
 
@@ -161,21 +186,38 @@ func (cl ConsoleLogger) printPrefix() {
 	if cl.prefix == "" {
 		return
 	}
-	c := noColor
-	if !cl.disableColors {
-		var found bool
-		c, found = cl.saltColors[cl.salt]
-		if !found {
-			c = availablePrefixColors[*cl.nextColorIndex]
-			cl.saltColors[cl.salt] = c
-			*cl.nextColorIndex = (*cl.nextColorIndex + 1) % len(availablePrefixColors)
-		}
+	c, found := cl.saltColors[cl.salt]
+	if !found {
+		c = availablePrefixColors[*cl.nextColorIndex]
+		cl.saltColors[cl.salt] = c
+		*cl.nextColorIndex = (*cl.nextColorIndex + 1) % len(availablePrefixColors)
 	}
+	c = cl.color(c)
 	c.Fprintf(cl.w, "%s", cl.prefix)
+	if cl.isFailed {
+		cl.w.Write([]byte(" *"))
+		cl.color(warnColor).Fprintf(cl.w, "failed")
+		cl.w.Write([]byte("*"))
+	}
 	cl.w.Write([]byte(" | "))
 	if cl.isCached {
 		cl.w.Write([]byte("*"))
-		cachedColor.Fprintf(cl.w, "cached")
+		cl.color(cachedColor).Fprintf(cl.w, "cached")
 		cl.w.Write([]byte("* "))
 	}
+}
+
+func (cl ConsoleLogger) color(c *color.Color) *color.Color {
+	switch cl.colorMode {
+	case NoColor:
+		return noColor
+	case ForceColor:
+		return c
+	case AutoColor:
+		if color.NoColor {
+			return noColor
+		}
+		return c
+	}
+	return noColor
 }
