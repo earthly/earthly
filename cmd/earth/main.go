@@ -90,7 +90,16 @@ func main() {
 	}
 
 	ctx := context.Background()
-	os.Exit(newEarthApp(ctx, conslogging.Current(false)).run(ctx, os.Args))
+	colorMode := conslogging.AutoColor
+	_, forceColor := os.LookupEnv("FORCE_COLOR")
+	if forceColor {
+		colorMode = conslogging.ForceColor
+	}
+	_, noColor := os.LookupEnv("NO_COLOR")
+	if noColor {
+		colorMode = conslogging.NoColor
+	}
+	os.Exit(newEarthApp(ctx, conslogging.Current(colorMode)).run(ctx, os.Args))
 }
 
 func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthApp {
