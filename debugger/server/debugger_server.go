@@ -18,7 +18,7 @@ type DebugServer struct {
 // NewDebugServer creates a new debug server
 func NewDebugServer(console conslogging.ConsoleLogger) *DebugServer {
 	return &DebugServer{
-		addr:    "127.0.0.1:8543", // TODO make this configurable (and support port 0 which auto assigns a free port)
+		addr:    "127.0.0.1:0",
 		console: console,
 	}
 }

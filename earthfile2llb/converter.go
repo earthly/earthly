@@ -672,10 +672,11 @@ func (c *Converter) internalRun(ctx context.Context, args []string, secretKeyVal
 		}
 	}
 
-	if c.interactiveDebugging {
-		finalOpts = append(finalOpts, llb.AddMount("/usr/bin/earth_debugger", llb.Image(c.debuggerImage), llb.SourcePath("/earth_debugger"), llb.Readonly))
-		extraEnvVars = append(extraEnvVars, fmt.Sprintf("EARTHLY_REMOTE_CONSOLE_ADDR=%s", c.remoteConsoleAddr))
+	finalOpts = append(finalOpts, llb.AddMount("/usr/bin/earth_debugger", llb.Image(c.debuggerImage), llb.SourcePath("/earth_debugger"), llb.Readonly))
+	secretOpts := []llb.SecretOption{
+		llb.SecretID("earthly_remote_console_addr"),
 	}
+	finalOpts = append(finalOpts, llb.AddSecret("/run/secrets/earthly_remote_console_addr", secretOpts...))
 
 	var finalArgs []string
 	if withDocker {

@@ -600,9 +600,11 @@ func (app *earthApp) actionBuild(c *cli.Context) error {
 	defer bkClient.Close()
 	resolver := buildcontext.NewResolver(bkClient, app.console, app.sessionID)
 	defer resolver.Close()
-	secrets := processSecrets(app.secrets.Value())
+	secrets := app.secrets.Value()
+	//interactive debugger settings are passed as secrets to avoid having it affect the cache hash
+	secrets = append(secrets, fmt.Sprintf("earthly_remote_console_addr=%s", remoteConsoleAddr))
 	attachables := []session.Attachable{
-		secrets,
+		processSecrets(secrets),
 		authprovider.NewDockerAuthProvider(os.Stderr),
 	}
 	var enttlmnts []entitlements.Entitlement
