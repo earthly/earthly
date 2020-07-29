@@ -5,9 +5,7 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"fmt"
-	"io"
 	"io/ioutil"
-	"net"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -19,6 +17,7 @@ import (
 	"github.com/earthly/earthly/cleanup"
 	"github.com/earthly/earthly/config"
 	"github.com/earthly/earthly/conslogging"
+	"github.com/earthly/earthly/debugger/server"
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/earthfile2llb"
 	"github.com/earthly/earthly/earthfile2llb/variables"
@@ -152,7 +151,6 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 		},
 		&cli.BoolFlag{
 			Name:        "image",
-			Aliases:     []string{"i"},
 			Usage:       "Output only docker image of the specified target",
 			Destination: &app.imageMode,
 		},
@@ -257,9 +255,9 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 		},
 		&cli.BoolFlag{
 			Name:        "interactive",
-			Aliases:     []string{"I"},
+			Aliases:     []string{"i"},
 			EnvVars:     []string{"EARTHLY_INTERACTIVE"},
-			Usage:       "enable interactive debugging",
+			Usage:       "Enable interactive debugging",
 			Destination: &app.interactiveDebugging,
 			Hidden:      true, // Experimental.
 		},
@@ -504,53 +502,16 @@ func (app *earthApp) actionPrune(c *cli.Context) error {
 	return nil
 }
 
-// Handles incoming requests.
-func handleRequest(conn net.Conn) {
-	defer conn.Close()
-	b := make([]byte, 256)
-	for {
-		n, err := os.Stdin.Read(b)
-		if err != nil {
-			if err != io.EOF {
-				fmt.Printf("err: %v\n", err)
-			}
-			break
-		}
-		conn.Write(b[:n])
-	}
-}
-
-func (app *earthApp) interactiveHandler(c *cli.Context) (string, error) {
-	l, err := net.Listen("tcp", "127.0.0.1:8543") // TODO make this configurable
-	if err != nil {
-		return "", err
-	}
-	go func() {
-		app.console.Printf("interactive debugger listening\n")
-		defer l.Close()
-		for {
-			// Listen for an incoming connection.
-			conn, err := l.Accept()
-			if err != nil {
-				app.console.Warnf("Error accepting: %v", err.Error())
-				os.Exit(1)
-			}
-			// Handle connections in a new goroutine.
-			handleRequest(conn)
-		}
-	}()
-	return l.Addr().String(), nil
-}
-
 func (app *earthApp) actionBuild(c *cli.Context) error {
 	var remoteConsoleAddr string
 	var err error
 	if app.interactiveDebugging {
-		remoteConsoleAddr, err = app.interactiveHandler(c)
+		debugServer := server.NewDebugServer(app.console)
+		remoteConsoleAddr, err = debugServer.Start()
 		if err != nil {
 			app.console.Warnf("failed to open remote console listener: %v; interactive debugging disabled\n", err)
+			app.interactiveDebugging = false
 		}
-		app.interactiveDebugging = false
 	}
 
 	if app.imageMode && app.artifactMode {

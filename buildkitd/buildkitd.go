@@ -177,7 +177,7 @@ func Start(ctx context.Context, image string, settings Settings, reset bool) err
 	cacheMount := fmt.Sprintf("%s:/tmp/earthly:delegated", settings.TempDir)
 	args := []string{
 		"run",
-		"-d",
+		"-d", "--rm",
 		"-v", cacheMount,
 		"-e", fmt.Sprintf("ENABLE_LOOP_DEVICE=%t", !settings.DisableLoopDevice),
 		"-e", fmt.Sprintf("FORCE_LOOP_DEVICE=%t", !settings.DisableLoopDevice),
@@ -185,12 +185,6 @@ func Start(ctx context.Context, image string, settings Settings, reset bool) err
 		"--name", ContainerName,
 		"--privileged",
 		"--network=host",
-	}
-	// remove the container on exit (unless KEEP_BUILDKIT_CONTAINER=1 which is useful for debugging issues)
-	if os.Getenv("EARTHLY_KEEP_BUILDKIT_CONTAINER") == "1" {
-		fmt.Printf("RUNNING EARTHLY_KEEP_BUILDKIT_CONTAINER without --rm\n")
-	} else {
-		args = append(args, "--rm")
 	}
 	// Apply some buildkitd-related settings.
 	if settings.CacheSizeMb > 0 {
