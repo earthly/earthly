@@ -169,13 +169,6 @@ func MaybeRestart(ctx context.Context, console conslogging.ConsoleLogger, image 
 
 // RemoveExited removes any stopped or exited buildkitd containers
 func RemoveExited(ctx context.Context) error {
-	started, err := IsStarted(ctx)
-	if err != nil {
-		return err
-	}
-	if started {
-		return nil
-	}
 	cmd := exec.CommandContext(ctx, "docker", "ps", "-a", "-q", "-f", fmt.Sprintf("name=%s", ContainerName))
 	output, err := cmd.CombinedOutput()
 	if err != nil {
