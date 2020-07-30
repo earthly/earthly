@@ -136,7 +136,7 @@ for-darwin:
 
 all:
 	BUILD +buildkitd
-	BUILD +debugger
+	BUILD +debugger-docker
 	BUILD +earth-all
 	BUILD +earth-docker
 

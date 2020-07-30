@@ -21,6 +21,7 @@ buildkitd:
     ENV EARTHLY_TMP_DIR=/tmp/earthly
     ENV ENABLE_LOOP_DEVICE=true
     ENV FORCE_LOOP_DEVICE=true
+    ENV BUILDKIT_DEBUG=false
     # 10GB
     ENV CACHE_SIZE_MB=10000
     ENTRYPOINT ["/usr/bin/entrypoint.sh", "buildkitd", "--config=/etc/buildkitd.toml"]

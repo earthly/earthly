@@ -7,6 +7,11 @@ if [ -z "$CACHE_SIZE_MB" ]; then
     exit 1
 fi
 
+if [ -z "$BUILDKIT_DEBUG" ]; then
+    echo "BUILDKIT_DEBUG not set"
+    exit 1
+fi
+
 if [ -z "$EARTHLY_TMP_DIR" ]; then
     echo "EARTHLY_TMP_DIR not set"
     exit 1
@@ -50,7 +55,7 @@ BUILDKIT_ROOT_DIR="$EARTHLY_TMP_DIR"/buildkit
 mkdir -p "$BUILDKIT_ROOT_DIR"
 echo "BUILDKIT_ROOT_DIR=$BUILDKIT_ROOT_DIR"
 echo "CACHE_SIZE_MB=$CACHE_SIZE_MB"
-sed 's^:BUILDKIT_ROOT_DIR:^'"$BUILDKIT_ROOT_DIR"'^g; s/:CACHE_SIZE_MB:/'"$CACHE_SIZE_MB"'/g' \
+sed 's^:BUILDKIT_ROOT_DIR:^'"$BUILDKIT_ROOT_DIR"'^g; s/:CACHE_SIZE_MB:/'"$CACHE_SIZE_MB"'/g; s/:BUILDKIT_DEBUG:/'"$BUILDKIT_DEBUG"'/g' \
     /etc/buildkitd.toml.template > /etc/buildkitd.toml
 
 echo "ENABLE_LOOP_DEVICE=$ENABLE_LOOP_DEVICE"
