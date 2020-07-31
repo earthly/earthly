@@ -35,19 +35,19 @@ For some examples, see [Go](https://docs.earthly.dev/examples/go), [Java](https:
 
 For a full list of installation options see the [Installation page](https://docs.earthly.dev/installation).
 
-### Linux
+#### Linux
 
 ```bash
 sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/latest/download/earth-linux-amd64 -O /usr/local/bin/earth && chmod +x /usr/local/bin/earth'
 ```
 
-### Mac
+#### Mac
 
 ```bash
 brew install earthly
 ```
 
-### VS Code Syntax Highlighting
+#### VS Code Syntax Highlighting
 
 Visit [Earthfile Syntax Highlighting](https://marketplace.visualstudio.com/items?itemName=earthly.earthfile-syntax-highlighting) or issue the VS Code command
 
