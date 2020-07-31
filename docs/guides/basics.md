@@ -22,6 +22,10 @@ A key difference from a Dockerfile build is that Earthly can be used to build no
 
 One of the key principles of Earthly is that the best build tooling of a specific language is built by the community of that language itself. Earthly does not intend to replace that tooling, but rather to leverage and augment it.
 
+## Installation
+
+Before going any further, it is advisable that you install `earth` on your computer, so you can follow along and try out the examples. See the [installation page](../installation/installation.md).
+
 ## A simple Earthfile
 
 Earthfiles are always named `Earthfile`, regardless of their location in the codebase.

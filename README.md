@@ -33,48 +33,23 @@ For some examples, see [Go](https://docs.earthly.dev/examples/go), [Java](https:
 
 <h2 align="center">Installation</h2>
 
-##### Pre-requisites (all platforms)
+For a full list of installation options see the [Installation page](https://docs.earthly.dev/installation).
 
-* [Docker](https://docs.docker.com/install/)
-* [Git](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git)
-
-##### Linux
+### Linux
 
 ```bash
 sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/latest/download/earth-linux-amd64 -O /usr/local/bin/earth && chmod +x /usr/local/bin/earth'
 ```
 
-##### Mac
-
-###### Homebrew
+### Mac
 
 ```bash
 brew install earthly
 ```
 
-###### Script
+### VS Code Syntax Highlighting
 
-```bash
-wget https://github.com/earthly/earthly/releases/latest/download/earth-darwin-amd64 -O /usr/local/bin/earth && chmod +x /usr/local/bin/earth
-```
-
-##### Alternative Linux & Mac
-
-You may also download the binary from [the releases page](https://github.com/earthly/earthly/releases) and place it in your `bin`.
-
-##### Windows
-
-Windows native version coming soon. The linux version has been reported to just work on WSL [experimental].
-
-##### Note
-
-If you use SSH-based git authentication, then your git credentials will just work with Earthly. Read more about [git auth](https://docs.earthly.dev/guides/auth).
-
-##### VS Code extension for syntax highlighting
-
-[<img src="images/vscode-plugin.png" alt="Earthfile Syntax Highlighting" width="457" />](https://marketplace.visualstudio.com/items?itemName=earthly.earthfile-syntax-highlighting)
-
-Add [Earthfile Syntax Highlighting](https://marketplace.visualstudio.com/items?itemName=earthly.earthfile-syntax-highlighting) to VS Code.
+Visit [Earthfile Syntax Highlighting](https://marketplace.visualstudio.com/items?itemName=earthly.earthfile-syntax-highlighting) or issue the VS Code command
 
 ```
 ext install earthly.earthfile-syntax-highlighting
