@@ -536,6 +536,7 @@ func (app *earthApp) actionBuild(c *cli.Context) error {
 			app.console.Warnf("failed to open remote console listener: %v; interactive debugging disabled\n", err)
 			app.interactiveDebugging = false
 		}
+		defer debugServer.Stop()
 	}
 
 	if app.imageMode && app.artifactMode {
