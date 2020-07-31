@@ -157,6 +157,7 @@ examples:
 	BUILD ./examples/multirepo+docker
 	BUILD ./examples/readme+parallel
 	BUILD ./examples/readme+final-success-target
+	BUILD github.com/earthly/hello-world+hello
 
 test-experimental:
 	BUILD ./examples/tests+experimental
