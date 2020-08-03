@@ -1,8 +1,8 @@
 <h1 align="center"><a href="https://earthly.dev"><img src="images/logo-banner-white-bg.png" alt="Earthly" align="center" /></a></h1>
 
-<div align="center">A build automation system for the post-container era</div>
+<!-- <div align="center">A build automation system for the post-container era</div> -->
 
-# <img src="images/logo.png" alt="Earthly Logo" align="left" /><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="" height="42" width="1" />Earthly - a build automation system for the post-container era
+<!-- # <img src="images/logo.png" alt="Earthly Logo" align="left" /><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="" height="42" width="1" />Earthly - a build automation system for the post-container era -->
 
 ![CI](https://github.com/earthly/earthly/workflows/CI/badge.svg)
 [![Go Report Card](https://goreportcard.com/badge/github.com/earthly/earthly)](https://goreportcard.com/report/github.com/earthly/earthly)
