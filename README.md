@@ -294,15 +294,15 @@ Similar to above, but it additionally pushes the image to the image registry.
 
 Clones the git project into directory `dest-dir`. The difference from doing `RUN git clone ...` is that it is cache-aware, thus building again when the git hash is different.
 
-### RUN --with-docker docker ... [**experimental**]
+### RUN --with-docker docker ... [⚠️ *experimental*]
 
 Allows running commands in the presence of a docker daemon, as part of the build. The main use-case for this is running complex integration tests where several containers need to be running in parallel.
 
-### DOCKER PULL some-image [**experimental**]
+### DOCKER PULL some-image [⚠️ *experimental*]
 
 Allows pulling a remote image into the context of the build. (Can then run the image via `RUN --with-docker docker run some-image`). This command is cache-aware compared to `RUN --with-docker docker pull some-image`.
 
-### DOCKER LOAD +some-target AS image-name [**experimental**]
+### DOCKER LOAD +some-target AS image-name [⚠️ *experimental*]
 
 Allows using an Earthly target as a docker image loaded into the context of the build.
 
