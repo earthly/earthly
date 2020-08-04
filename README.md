@@ -180,6 +180,8 @@ docker run --rm go-example:latest
 
 ### 🔨 Reference other targets using +
 
+<div align="center"><a href="https://docs.earthly.dev/guides/target-ref"><img src="docs/guides/img/ref-infographic.png" alt="Target and artifact reference syntax" title="Reference targets using +" width="600px" /></a></div>
+
 * Same directory (same Earthfile)
   
   ```Dockerfile
@@ -203,8 +205,6 @@ docker run --rm go-example:latest
   FROM github.com/someone/someproject:v1.2.3+some-target
   COPY github.com/someone/someproject:v1.2.3+some-target/my-artifact ./
   ```
-
-<div align="center"><a href="https://docs.earthly.dev/guides/target-ref"><img src="docs/guides/img/ref-infographic.png" alt="Target and artifact reference syntax" title="Reference targets using +" width="600px" /></a></div>
 
 ### ⛓ Parallelization that just works
 
