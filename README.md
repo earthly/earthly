@@ -76,7 +76,7 @@ Install Earthly on
   ```bash
   brew install earthly
   ```
-* Windows (**experimental**)
+* Windows <span title="Experimental">🧪</span>
   
   Use the Linux version via WSL
 
