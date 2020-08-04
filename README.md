@@ -1,4 +1,4 @@
-<h1 align="center"><a href="https://earthly.dev"><img src="images/logo-banner-white-bg.png" alt="Earthly" align="center" /></a></h1>
+<h1 align="center"><a href="https://earthly.dev"><img src="img/logo-banner-white-bg.png" alt="Earthly" align="center" /></a></h1>
 
 ![CI](https://github.com/earthly/earthly/workflows/CI/badge.svg)
 [![Go Report Card](https://goreportcard.com/badge/github.com/earthly/earthly)](https://goreportcard.com/report/github.com/earthly/earthly)
@@ -151,7 +151,7 @@ func main() {
 
 Invoke the build using either `earth +build` (to build the binary) or `earth +docker` (to build the docker image).
 
-TODO Gif
+<div align="center"><img src="img/demo-351488.gif" alt="earth +docker" title="earth +docker" width="600px" /></div>
 
 Examples for other languages are available on the [examples page](https://docs.earthly.dev/examples).
 
