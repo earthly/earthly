@@ -24,7 +24,7 @@
 
 [🌍 Earthly](https://earthly.dev) is a build automation tool for the post-container era. It allows you to execute all your builds in containers. This makes them self-contained, reproducible, portable and parallel. You can use 🌍 Earthly to create Docker images and artifacts (eg binaries, packages, arbitrary files).
 
-<h2 align="center">Why Use 🌍 Earthly</h2>
+<h2 align="center">Why Use 🌍 Earthly?</h2>
 
 ### 🔁 Reproduce CI failures
 
@@ -46,23 +46,22 @@ A simple, yet powerful import system allows for reusability of builds across dir
 
 Taking some of the best ideas from Makefiles and Dockerfiles, 🌍 Earthly combines two build specifications into one.
 
-<!--
-<h2 align="center">How It Works</h2>
-
-TODO: This section needs to be more scannable.
-
-Containers! Layer caching! And build graphs!
-
-🌍 Earthly executes all builds within containers, where execution is isolated. The dependencies of the build are explicitly specified in the build definition, thus making the build self-sufficient.
-
-🌍 Earthly uses a target-based system to help users break-up complex builds into reusable parts. Nothing is shared between targets, other than clearly declared dependencies. Nothing shared means no unexpected race conditions. In fact, the build is automatically parallel whenever possible, without any need for the user to take care of any locking or unexpected environment interactions.
--->
-
 <h2 align="center">Where Does 🌍 Earthly Fit?</h2>
 
 <div align="center"><img src="docs/img/integration-diagram.png" alt="🌍 Earthly fits between language-specific tooling and the CI" /></div>
 
 🌍 Earthly is meant to be used both on your development machine and in CI. It can run on top of popular CI systems (like Jenkins, [Circle](https://docs.earthly.dev/examples/circle-integration), [GitHub Actions](https://docs.earthly.dev/examples/gh-actions-integration)). It is typically the layer between language-specific tooling (like maven, gradle, npm, pip, go build) and the CI build spec.
+
+<h2 align="center">How Does It Work?</h2>
+
+In short: **containers**, **layer caching** and **complex build graphs**!
+
+🌍 Earthly executes builds in containers, where execution is isolated. The dependencies of the build are explicitly specified in the build definition, thus making the build self-sufficient.
+
+We use a target-based system to help users break-up complex builds into reusable parts. Nothing is shared between targets, other than clearly declared dependencies. Nothing shared means no unexpected race conditions. In fact, the build is executed in parallel whenever possible, without any need for the user to take care of any locking or unexpected environment interactions.
+
+| ℹ️ Note <br/><br/> Earthfiles might seem very similar to Dockerfile multi-stage builds. In fact, the [same technology](https://github.com/moby/buildkit) is used underneath. However, a key difference is that 🌍 Earthly is designed to be a general purpose build system, not just a Docker image specification. Read more about [how 🌍 Earthly is different from Dockerfiles](#how-is-earthly-different-from-dockerfiles). |
+| :--- |
 
 <h2 align="center">Quick Start</h2>
 
@@ -111,7 +110,7 @@ Here are some resources to get you started with 🌍 Earthly
   * [Mono-repo](https://docs.earthly.dev/examples/monorepo)
   * [Multi-repo](https://docs.earthly.dev/examples/multirepo)
   * The [examples](./examples) dir
-* 🔨 Explore [🌍 Earthly's own build](https://docs.earthly.dev/examples/earthly)
+* 🔍 Explore [🌍 Earthly's own build](https://docs.earthly.dev/examples/earthly)
 
 See also the [full documentation](https://docs.earthly.dev).
 
@@ -155,9 +154,6 @@ Invoke the build using either `earth +build` (to build the binary) or `earth +do
 TODO Gif
 
 Examples for other languages are available on the [examples page](https://docs.earthly.dev/examples).
-
-| ℹ️ Note <br/><br/> 🌍 Earthly might seem very similar to Dockerfile multi-stage builds. In fact, the [same technology](https://github.com/moby/buildkit) is used underneath. However, a key difference is that 🌍 Earthly is designed to be a general purpose build system, not just a Docker image specification. Read more about [how 🌍 Earthly is different from Dockerfiles](#how-is-earthly-different-from-dockerfiles). |
-| :--- |
 
 <h2 align="center">Features</h2>
 
@@ -324,11 +320,11 @@ It is possible to use Dockerfiles in combination with other technologies (eg Mak
 
 As an example, 🌍 Earthly introduces a richer target, artifact and image [referencing system](https://docs.earthly.dev/guides/target-ref), which allows for better reuse in complex builds spanning a single large repository or multiple repositories. Because Dockerfiles are only meant to describe one image at a time, such features are outside the scope of applicability of Dockerfiles.
 
-### How do I tell apart classical Dockerfile commands from 🌍 Earthly commands
+### How do I tell apart classical Dockerfile commands from 🌍 Earthly commands?
 
 Check out the [Earthfile reference doc page](https://docs.earthly.dev/earthfile). It has all the commands there and it specifies which commands are the same as Dockerfile commands and which are new. A summary of the differences are also shown [above here](#commands-beyond-dockerfile-syntax).
 
-### Can 🌍 Earthly build Dockerfiles
+### Can 🌍 Earthly build Dockerfiles?
 
 It cannot - however, translating Dockerfiles to Earthfiles is usually a matter of copy-pasting and making small adjustments. See the [getting started page](https://docs.earthly.dev/guides/basics) for some Earthfile examples.
 
