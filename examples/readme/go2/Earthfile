@@ -1,0 +1,27 @@
+FROM golang:1.13-alpine3.11
+RUN apk add --update --no-cache g++
+WORKDIR /go-example
+
+all:
+  BUILD \
+    --build-arg GOOS=linux \
+    --build-arg GOARCH=amd64 \
+    --build-arg GO_LDFLAGS="-linkmode external -extldflags -static" \
+    +build
+  BUILD \
+    --build-arg GOOS=darwin \
+    --build-arg GOARCH=amd64 \
+    +build
+  BUILD \
+    --build-arg GOOS=windows \
+    --build-arg GOARCH=amd64 \
+    +build
+
+build:
+  COPY main.go .
+  ARG GOOS
+	ARG GOARCH
+	ARG GO_LDFLAGS
+  RUN go build -ldflags "$GO_LDFLAGS" -o build/go-example main.go && \
+      echo "Build for $GOOS/$GOARCH was successful"
+  SAVE ARTIFACT build/go-example AS LOCAL "build/$GOOS/$GOARCH/go-example"

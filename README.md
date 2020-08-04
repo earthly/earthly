@@ -206,12 +206,6 @@ docker run --rm go-example:latest
   COPY github.com/someone/someproject:v1.2.3+some-target/my-artifact ./
   ```
 
-### ⛓ Parallelization that just works
-
-Whenever possible, the system automatically executes targets in parallel.
-
-TODO Gif
-
 ### 💾 Caching that works the same as docker builds
 
 TODO Gif
@@ -220,22 +214,41 @@ TODO Gif
 
 ### 🛠 Reusability with build args
 
-TODO Redo this example to make it more relevant and immediately applicable.
-
 ```Dockerfile
-lint:
-  FROM golang:1.13-alpine3.11
-  RUN go get golang.org/x/lint/golint
-  ARG COPY_SRC
-  COPY "$COPY_SRC" ./
-  RUN golint -set_exit_status .
+FROM golang:1.13-alpine3.11
+RUN apk add --update --no-cache g++
+WORKDIR /go-example
 
-lint-project-a:
-  BUILD --build-arg COPY_SRC=./project-a +lint
+all:
+  BUILD \
+    --build-arg GOOS=linux \
+    --build-arg GOARCH=amd64 \
+    --build-arg GO_LDFLAGS="-linkmode external -extldflags -static" \
+    +build
+  BUILD \
+    --build-arg GOOS=darwin \
+    --build-arg GOARCH=amd64 \
+    +build
+  BUILD \
+    --build-arg GOOS=windows \
+    --build-arg GOARCH=amd64 \
+    +build
 
-lint-project-b:
-  BUILD --build-arg COPY_SRC=./project-b +lint
+build:
+  COPY main.go .
+  ARG GOOS
+	ARG GOARCH
+	ARG GO_LDFLAGS
+  RUN go build -ldflags "$GO_LDFLAGS" -o build/go-example main.go && \
+      echo "Build for $GOOS/$GOARCH was successful"
+  SAVE ARTIFACT build/go-example AS LOCAL "build/$GOOS/$GOARCH/go-example"
 ```
+
+### ⛓ Parallelization that just works
+
+Whenever possible, the system automatically executes targets in parallel.
+
+TODO Gif
 
 ### 🔑 Secrets support built-in
 

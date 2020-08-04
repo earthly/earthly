@@ -155,8 +155,8 @@ examples:
 	BUILD ./examples/dotnet+docker
 	BUILD ./examples/monorepo+all
 	BUILD ./examples/multirepo+docker
-	BUILD ./examples/readme+parallel
-	BUILD ./examples/readme+final-success-target
+	BUILD ./examples/readme/go1+all
+	BUILD ./examples/readme/go2+all
 	BUILD github.com/earthly/hello-world+hello
 
 test-experimental:
