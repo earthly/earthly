@@ -125,12 +125,22 @@ Reference pages
 ```Dockerfile
 # Earthfile
 FROM golang:1.13-alpine3.11
+RUN apk --update --no-cache add git
 WORKDIR /go-example
+
+all:
+  BUILD +lint
+  BUILD +docker
 
 build:
   COPY main.go .
   RUN go build -o build/go-example main.go
   SAVE ARTIFACT build/go-example AS LOCAL build/go-example
+
+lint:
+  RUN go get golang.org/x/lint/golint
+  COPY main.go .
+  RUN golint -set_exit_status ./...
 
 docker:
   COPY +build/go-example .
@@ -149,7 +159,7 @@ func main() {
 }
 ```
 
-Invoke the build using either `earth +build` (to build the binary) or `earth +docker` (to build the docker image).
+Invoke the build using `earth +all`.
 
 <div align="center"><a href="https://asciinema.org/a/351488?speed=2"><img src="img/demo-351488.gif" alt="earth +docker" title="View on asciinema.org" width="600px" /></a></div>
 
