@@ -159,7 +159,7 @@ Examples for other languages are available on the [examples page](https://docs.e
 
 ### 📦 Modern import system
 
-🌍 Earthly has a modern import system, which can be used to reference and build targets from other repositories. For example, if we wanted to build [an example target from the `github.com/earthly/earthly` repository](./examples/go/Earthfile#L17-L20), we could issue
+🌍 Earthly can be used to reference and build targets from other directories or even other repositories. For example, if we wanted to build [an example target from the `github.com/earthly/earthly` repository](./examples/go/Earthfile#L17-L20), we could issue
 
 ```bash
 # Try it yourself! No need to clone.
