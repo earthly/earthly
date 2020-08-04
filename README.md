@@ -161,7 +161,7 @@ func main() {
 
 Invoke the build using `earth +all`.
 
-<div align="center"><a href="https://asciinema.org/a/351670?speed=2"><img src="img/demo-351670.gif" alt="Demonstration of a simple Earthly build" title="View on asciinema.org" width="600px" /></a></div>
+<div align="center"><a href="https://asciinema.org/a/351683?speed=2"><img src="img/demo-351683.gif" alt="Demonstration of a simple Earthly build" title="View on asciinema.org" width="600px" /></a></div>
 
 Examples for other languages are available on the [examples page](https://docs.earthly.dev/examples).
 
@@ -252,7 +252,7 @@ build:
 
 Whenever possible, Earthly automatically executes targets in parallel.
 
-<div align="center"><a href="https://asciinema.org/a/351678?speed=2"><img src="img/demo-351678.gif" alt="Demonstration of Earthly's caching" title="View on asciinema.org" width="600px" /></a></div>
+<div align="center"><a href="https://asciinema.org/a/351678?speed=2"><img src="img/demo-351678.gif" alt="Demonstration of Earthly's parallelization" title="View on asciinema.org" width="600px" /></a></div>
 
 ### 🔑 Secrets support built-in
 
