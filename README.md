@@ -24,8 +24,6 @@
 
 [Earthly](https://earthly.dev) is a build automation tool for the post-container era. It allows you to execute all your builds in containers. This makes them self-contained, reproducible, portable and parallel. You can use Earthly to create Docker images and artifacts (eg binaries, packages, arbitrary files).
 
-Read the [launch blog post](https://vladaionescu.com/introducing-earthly-build-automation-for-the-container-era-55619c63c3e) for the motivation behind Earthly. To learn how to use Earthly, check out the [getting started guide](https://docs.earthly.dev/guides/basics).
-
 <h2 align="center">Why Use Earthly</h2>
 
 ### 🔁 Reproduce CI failures
