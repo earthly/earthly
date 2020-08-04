@@ -28,7 +28,7 @@
 
 ### 🔁 Reproduce CI failures
 
-🌍 Earthly builds are self-contained, isolated and reproducible. Regardless of whether 🌍 Earthly runs in your CI or on your laptop, there is a degree of guarantee that the build will run the same way. This allows for faster itteration on the build scripts and easier debugging when something goes wrong. No more `git commit -m "try again"`.
+Earthly builds are self-contained, isolated and reproducible. Regardless of whether Earthly runs in your CI or on your laptop, there is a degree of guarantee that the build will run the same way. This allows for faster itteration on the build scripts and easier debugging when something goes wrong. No more `git commit -m "try again"`.
 
 ### 🤲 Builds that run the same for everyone
 
@@ -36,7 +36,7 @@ Reproducible builds also means that your build will run the same on your colleag
 
 ### 🚀 From zero to working build in minutes
 
-Jump from project to project with ease, regardless of the language they are written in. Running the project's test suites is simply a matter of running an 🌍 Earthly target (and not fiddling with project configuration to make it compile and run on your system). Contribute across teams with confidence.
+Jump from project to project with ease, regardless of the language they are written in. Running the project's test suites is simply a matter of running an Earthly target (and not fiddling with project configuration to make it compile and run on your system). Contribute across teams with confidence.
 
 ### 📦 Reusability
 
@@ -44,23 +44,23 @@ A simple, yet powerful import system allows for reusability of builds across dir
 
 ### ❤️ It's like Makefile and Dockerfile had a baby
 
-Taking some of the best ideas from Makefiles and Dockerfiles, 🌍 Earthly combines two build specifications into one.
+Taking some of the best ideas from Makefiles and Dockerfiles, Earthly combines two build specifications into one.
 
 <h2 align="center">Where Does 🌍 Earthly Fit?</h2>
 
-<div align="center"><img src="docs/img/integration-diagram.png" alt="🌍 Earthly fits between language-specific tooling and the CI" /></div>
+<div align="center"><img src="docs/img/integration-diagram.png" alt="Earthly fits between language-specific tooling and the CI" /></div>
 
-🌍 Earthly is meant to be used both on your development machine and in CI. It can run on top of popular CI systems (like Jenkins, [Circle](https://docs.earthly.dev/examples/circle-integration), [GitHub Actions](https://docs.earthly.dev/examples/gh-actions-integration)). It is typically the layer between language-specific tooling (like maven, gradle, npm, pip, go build) and the CI build spec.
+Earthly is meant to be used both on your development machine and in CI. It can run on top of popular CI systems (like Jenkins, [Circle](https://docs.earthly.dev/examples/circle-integration), [GitHub Actions](https://docs.earthly.dev/examples/gh-actions-integration)). It is typically the layer between language-specific tooling (like maven, gradle, npm, pip, go build) and the CI build spec.
 
-<h2 align="center">How Does It Work?</h2>
+<h2 align="center">How Does 🌍 Earthly Work?</h2>
 
 In short: **containers**, **layer caching** and **complex build graphs**!
 
-🌍 Earthly executes builds in containers, where execution is isolated. The dependencies of the build are explicitly specified in the build definition, thus making the build self-sufficient.
+Earthly executes builds in containers, where execution is isolated. The dependencies of the build are explicitly specified in the build definition, thus making the build self-sufficient.
 
 We use a target-based system to help users break-up complex builds into reusable parts. Nothing is shared between targets, other than clearly declared dependencies. Nothing shared means no unexpected race conditions. In fact, the build is executed in parallel whenever possible, without any need for the user to take care of any locking or unexpected environment interactions.
 
-| ℹ️ Note <br/><br/> Earthfiles might seem very similar to Dockerfile multi-stage builds. In fact, the [same technology](https://github.com/moby/buildkit) is used underneath. However, a key difference is that 🌍 Earthly is designed to be a general purpose build system, not just a Docker image specification. Read more about [how 🌍 Earthly is different from Dockerfiles](#how-is-earthly-different-from-dockerfiles). |
+| ℹ️ Note <br/><br/> Earthfiles might seem very similar to Dockerfile multi-stage builds. In fact, the [same technology](https://github.com/moby/buildkit) is used underneath. However, a key difference is that Earthly is designed to be a general purpose build system, not just a Docker image specification. Read more about [how 🌍 Earthly is different from Dockerfiles](#how-is-earthly-different-from-dockerfiles). |
 | :--- |
 
 <h2 align="center">Quick Start</h2>
@@ -99,7 +99,7 @@ ext install earthly.earthfile-syntax-highlighting
 
 ### Learn 🌍 Earthly
 
-Here are some resources to get you started with 🌍 Earthly
+Here are some resources to get you started with Earthly
 
 * 🏁 [Getting started guide](https://docs.earthly.dev/guides/basics)
 * 👀 [Examples](https://docs.earthly.dev/examples)
@@ -159,7 +159,7 @@ Examples for other languages are available on the [examples page](https://docs.e
 
 ### 📦 Modern import system
 
-🌍 Earthly can be used to reference and build targets from other directories or even other repositories. For example, if we wanted to build [an example target from the `github.com/earthly/earthly` repository](./examples/go/Earthfile#L17-L20), we could issue
+Earthly can be used to reference and build targets from other directories or even other repositories. For example, if we wanted to build [an example target from the `github.com/earthly/earthly` repository](./examples/go/Earthfile#L17-L20), we could issue
 
 ```bash
 # Try it yourself! No need to clone.
@@ -304,7 +304,7 @@ Allows pulling a remote image into the context of the build. (Can then run the i
 
 ### DOCKER LOAD +some-target AS image-name <span title="Experimental">🧪</span>
 
-Allows using an 🌍 Earthly target as a docker image loaded into the context of the build.
+Allows using an Earthly target as a docker image loaded into the context of the build.
 
 For more details see the [Earthfile reference](https://docs.earthly.dev/earthfile).
 
@@ -312,11 +312,11 @@ For more details see the [Earthfile reference](https://docs.earthly.dev/earthfil
 
 ### How is 🌍 Earthly different from Dockerfiles?
 
-[Dockerfiles](https://docs.docker.com/engine/reference/builder/) were designed for specifying the make-up of Docker images and that's where Dockerfiles stop. 🌍 Earthly takes some key principles of Dockerfiles (like layer caching), but expands on the use-cases. For example, 🌍 Earthly can output regular artifacts, run unit and integration tests and also create several Docker images at a time - all of which are outside the scope of Dockerfiles.
+[Dockerfiles](https://docs.docker.com/engine/reference/builder/) were designed for specifying the make-up of Docker images and that's where Dockerfiles stop. Earthly takes some key principles of Dockerfiles (like layer caching), but expands on the use-cases. For example, Earthly can output regular artifacts, run unit and integration tests and also create several Docker images at a time - all of which are outside the scope of Dockerfiles.
 
-It is possible to use Dockerfiles in combination with other technologies (eg Makefiles or bash files) in order to solve for such use-cases. However, these combinations are difficult to parallelize, difficult to scale across repositories as they lack a robust import system and also they often vary in style from one team to another. 🌍 Earthly does not have these limitations as it was as a general purpose build system.
+It is possible to use Dockerfiles in combination with other technologies (eg Makefiles or bash files) in order to solve for such use-cases. However, these combinations are difficult to parallelize, difficult to scale across repositories as they lack a robust import system and also they often vary in style from one team to another. Earthly does not have these limitations as it was as a general purpose build system.
 
-As an example, 🌍 Earthly introduces a richer target, artifact and image [referencing system](https://docs.earthly.dev/guides/target-ref), which allows for better reuse in complex builds spanning a single large repository or multiple repositories. Because Dockerfiles are only meant to describe one image at a time, such features are outside the scope of applicability of Dockerfiles.
+As an example, Earthly introduces a richer target, artifact and image [referencing system](https://docs.earthly.dev/guides/target-ref), which allows for better reuse in complex builds spanning a single large repository or multiple repositories. Because Dockerfiles are only meant to describe one image at a time, such features are outside the scope of applicability of Dockerfiles.
 
 ### How do I tell apart classical Dockerfile commands from 🌍 Earthly commands?
 
@@ -328,14 +328,14 @@ It cannot - however, translating Dockerfiles to Earthfiles is usually a matter o
 
 ### How is 🌍 Earthly different from Bazel?
 
-[Bazel](https://bazel.build) is a build tool developed by Google for the purpose of optimizing speed, correctness and reproducibility of their internal monorepo codebase. 🌍 Earthly draws inspiration from some of the principles of Bazel (mainly reproducibility), but it is different in a few key ways:
+[Bazel](https://bazel.build) is a build tool developed by Google for the purpose of optimizing speed, correctness and reproducibility of their internal monorepo codebase. Earthly draws inspiration from some of the principles of Bazel (mainly reproducibility), but it is different in a few key ways:
 
-* 🌍 Earthly does not replace language-specific tools, like Maven, Gradle, Webpack etc. Instead, it leverages and integrates with them. Adopting Bazel usually means that all build files need to be completely rewritten. This is not the case with 🌍 Earthly as it mainly acts as the glue between builds.
-* The learning curve of 🌍 Earthly is more accessible, especially if the user already has experience with Dockerfiles. Bazel, on the other hand, introduces some completely new concepts.
-* Bazel has a purely descriptive specification language. 🌍 Earthly is a mix of descriptive and imperative language.
-* Bazel uses tight control of compiler tool chain to achieve consistent builds, whereas 🌍 Earthly uses containers and well-defined inputs.
+* Earthly does not replace language-specific tools, like Maven, Gradle, Webpack etc. Instead, it leverages and integrates with them. Adopting Bazel usually means that all build files need to be completely rewritten. This is not the case with Earthly as it mainly acts as the glue between builds.
+* The learning curve of Earthly is more accessible, especially if the user already has experience with Dockerfiles. Bazel, on the other hand, introduces some completely new concepts.
+* Bazel has a purely descriptive specification language. Earthly is a mix of descriptive and imperative language.
+* Bazel uses tight control of compiler tool chain to achieve consistent builds, whereas Earthly uses containers and well-defined inputs.
 
-Overall, compared to Bazel, 🌍 Earthly sacrifices a little correctness and reproducibility in favor of significantly better usability and composability with existing open-source technologies.
+Overall, compared to Bazel, Earthly sacrifices a little correctness and reproducibility in favor of significantly better usability and composability with existing open-source technologies.
 
 <h2 align="center">Contributing</h2>
 
@@ -343,8 +343,8 @@ Overall, compared to Bazel, 🌍 Earthly sacrifices a little correctness and rep
 * Join us on [Gitter](https://gitter.im/earthly-room/community)!
 * Questions via GitHub issues are welcome!
 * PRs welcome! But please give a heads-up in GitHub issue before starting work. If there is no GitHub issue for what you want to do, please create one.
-* To build from source, you will need the `earth` binary ([🌍 Earthly builds itself](https://docs.earthly.dev/examples/earthly)). Git clone the code and run `earth +all`. To run the tests, run `earth -P +test`.
+* To build from source, you will need the `earth` binary ([Earthly builds itself](https://docs.earthly.dev/examples/earthly)). Git clone the code and run `earth +all`. To run the tests, run `earth -P +test`.
 
 <h2 align="center">Licensing</h2>
 
-🌍 Earthly is licensed under the Mozilla Public License Version 2.0. See [LICENSE](./LICENSE) for the full license text.
+Earthly is licensed under the Mozilla Public License Version 2.0. See [LICENSE](./LICENSE) for the full license text.
