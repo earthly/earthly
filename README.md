@@ -155,7 +155,7 @@ package main
 import "fmt"
 
 func main() {
-	fmt.Println("hello world")
+  fmt.Println("hello world")
 }
 ```
 
@@ -235,8 +235,8 @@ all:
 build:
   COPY main.go .
   ARG GOOS
-	ARG GOARCH
-	ARG GO_LDFLAGS
+  ARG GOARCH
+  ARG GO_LDFLAGS
   RUN go build -ldflags "$GO_LDFLAGS" -o build/go-example main.go && \
       echo "Build for $GOOS/$GOARCH was successful"
   SAVE ARTIFACT build/go-example AS LOCAL "build/$GOOS/$GOARCH/go-example"
