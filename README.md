@@ -151,7 +151,7 @@ func main() {
 
 Invoke the build using either `earth +build` (to build the binary) or `earth +docker` (to build the docker image).
 
-<div align="center"><img src="img/demo-351488.gif" alt="earth +docker" title="earth +docker" width="600px" /></div>
+<div align="center"><img src="img/demo-351488.gif" alt="earth +docker" title="earth +docker" /></div>
 
 Examples for other languages are available on the [examples page](https://docs.earthly.dev/examples).
 
