@@ -161,7 +161,7 @@ func main() {
 
 Invoke the build using `earth +all`.
 
-<div align="center"><a href="https://asciinema.org/a/351488?speed=2"><img src="img/demo-351488.gif" alt="earth +docker" title="View on asciinema.org" width="600px" /></a></div>
+<div align="center"><a href="https://asciinema.org/a/351670?speed=2"><img src="img/demo-351670.gif" alt="Demonstration of a simple Earthly build" title="View on asciinema.org" width="600px" /></a></div>
 
 Examples for other languages are available on the [examples page](https://docs.earthly.dev/examples).
 
@@ -208,9 +208,7 @@ docker run --rm go-example:latest
 
 ### 💾 Caching that works the same as docker builds
 
-TODO Gif
-
-*The build picks up from the point it notices a difference in the code*
+<div align="center"><a href="https://asciinema.org/a/351674?speed=2"><img src="img/demo-351674.gif" alt="Demonstration of Earthly's caching" title="View on asciinema.org" width="600px" /></a></div>
 
 ### 🛠 Reusability with build args
 
@@ -246,9 +244,9 @@ build:
 
 ### ⛓ Parallelization that just works
 
-Whenever possible, the system automatically executes targets in parallel.
+Whenever possible, Earthly automatically executes targets in parallel.
 
-TODO Gif
+<div align="center"><a href="https://asciinema.org/a/351678?speed=2"><img src="img/demo-351678.gif" alt="Demonstration of Earthly's caching" title="View on asciinema.org" width="600px" /></a></div>
 
 ### 🔑 Secrets support built-in
 
