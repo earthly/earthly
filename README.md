@@ -1,9 +1,5 @@
 <h1 align="center"><a href="https://earthly.dev"><img src="images/logo-banner-white-bg.png" alt="Earthly" align="center" /></a></h1>
 
-<!-- <div align="center">A build automation system for the post-container era</div> -->
-
-<!-- # <img src="images/logo.png" alt="Earthly Logo" align="left" /><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="" height="42" width="1" />Earthly - a build automation system for the post-container era -->
-
 ![CI](https://github.com/earthly/earthly/workflows/CI/badge.svg)
 [![Go Report Card](https://goreportcard.com/badge/github.com/earthly/earthly)](https://goreportcard.com/report/github.com/earthly/earthly)
 [![Join the chat at https://gitter.im/earthly-room/community](https://badges.gitter.im/earthly-room.svg)](https://gitter.im/earthly-room/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
@@ -12,7 +8,7 @@
 [![Docker Hub](https://img.shields.io/badge/docker%20hub-earthly-blue)](https://hub.docker.com/u/earthly)
 [![License](https://img.shields.io/badge/license-MPL--2.0-blue.svg)](http://www.apache.org/licenses/LICENSE-2.0)
 
-**🐳 Build anything via containers** - *build container images or standalone artifacts (eg binaries, packages, arbitrary files)*
+**🐳 Build anything via containers** - *build images or standalone artifacts (binaries, packages, arbitrary files)*
 
 **🛠 Programming language agnostic** - *allows use of language-specific build tooling*
 
@@ -54,6 +50,8 @@ Taking some of the best ideas from Makefiles and Dockerfiles, Earthly combines t
 
 <h2 align="center">How It Works</h2>
 
+TODO: This section needs to be more scannable.
+
 Earthly executes all builds within containers, where execution is isolated. The dependencies of the build are explicitly specified in the build definition, thus making the build self-sufficient.
 
 Earthly uses a target-based system to help users break-up complex builds into reusable parts. Nothing is shared between targets, other than clearly declared dependencies. Nothing shared means no unexpected race conditions. In fact, the build is automatically parallel whenever possible, without any need for the user to take care of any locking or unexpected environment interactions.
@@ -62,9 +60,7 @@ Earthly might seem very similar to Dockerfile multi-stage builds. In fact, the [
 
 <h2 align="center">Where Does Earthly Fit?</h2>
 
-Earthly is meant to be used locally on your laptop for dev purposes and also in CI.
-
-It can run on top of popular CI systems (like Jenkins, [Circle](https://docs.earthly.dev/examples/circle-integration), [GitHub Actions](https://docs.earthly.dev/examples/gh-actions-integration)). It is typically the [layer](https://docs.earthly.dev) between language-specific tooling (like maven, gradle, npm, pip, go build) and the CI build spec.
+Earthly is meant to be used both on your development machine and in CI. It can run on top of popular CI systems (like Jenkins, [Circle](https://docs.earthly.dev/examples/circle-integration), [GitHub Actions](https://docs.earthly.dev/examples/gh-actions-integration)). It is typically the [layer](https://docs.earthly.dev) between language-specific tooling (like maven, gradle, npm, pip, go build) and the CI build spec.
 
 TODO Flip diagram and possibly turn into gif
 
@@ -72,7 +68,7 @@ TODO Flip diagram and possibly turn into gif
 
 <h2 align="center">Quick Start</h2>
 
-Install Earthly for
+Install Earthly on
 
 * Linux
   ```bash
