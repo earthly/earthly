@@ -151,9 +151,8 @@ TODO Gif
 Examples for other languages are available on the [examples page](https://docs.earthly.dev/examples).
 
 #### ℹ️ Note
-| |
-| ---- |
 | Earthly might seem very similar to Dockerfile multi-stage builds. In fact, the [same technology](https://github.com/moby/buildkit) is used underneath. However, a key difference is that Earthly is designed to be a general purpose build system, not just a Docker image specification. Read more about [how Earthly is different from Dockerfiles](#how-is-earthly-different-from-dockerfiles). |
+| - |
 
 <h2 align="center">Features</h2>
 
