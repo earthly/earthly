@@ -66,39 +66,43 @@ Earthly is meant to be used both on your development machine and in CI. It can r
 
 <h2 align="center">Quick Start</h2>
 
-Install Earthly on
-
-* Linux
-  ```bash
-  sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/latest/download/earth-linux-amd64 -O /usr/local/bin/earth && chmod +x /usr/local/bin/earth'
-  ```
-* Mac
-  ```bash
-  brew install earthly
-  ```
-* Windows <span title="Experimental">🧪</span>
-  
-  Use the Linux version via WSL
-
-* Your CI
-
-  See the [CI integration guide](https://docs.earthly.dev/guides/ci-integration)
-
-Syntax highlighting available for
-
-* [VS code](https://marketplace.visualstudio.com/items?itemName=earthly.earthfile-syntax-highlighting)
-  ```
-  ext install earthly.earthfile-syntax-highlighting
-  ```
+### Installation
 
 For a full list of installation options see the [Installation page](https://docs.earthly.dev/installation).
 
-### Quick links
+#### Linux
 
-To learn how to use Earthly, see
+```bash
+sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/latest/download/earth-linux-amd64 -O /usr/local/bin/earth && chmod +x /usr/local/bin/earth'
+```
 
-* 🏁 [The getting started guide](https://docs.earthly.dev/guides/basics)
-* 📖 The [full documentation](https://docs.earthly.dev)
+#### Mac
+
+```bash
+brew install earthly
+```
+
+#### Windows <span title="Experimental">🧪</span>
+  
+Use the Linux version via WSL. Note that support for Windows is experimental for now.
+
+#### Your CI
+
+See the [CI integration guide](https://docs.earthly.dev/guides/ci-integration)
+
+### Syntax highlighting
+
+[Install](https://marketplace.visualstudio.com/items?itemName=earthly.earthfile-syntax-highlighting) for VS code.
+
+```
+ext install earthly.earthfile-syntax-highlighting
+```
+
+### Learn Earthly
+
+Here are some resources to get you started with Earthly
+
+* 🏁 [Getting started guide](https://docs.earthly.dev/guides/basics)
 * 👀 [Examples](https://docs.earthly.dev/examples)
   * [Go](https://docs.earthly.dev/examples/go)
   * [Java](https://docs.earthly.dev/examples/java)
@@ -108,6 +112,8 @@ To learn how to use Earthly, see
   * [Multi-repo](https://docs.earthly.dev/examples/multirepo)
   * The [examples](./examples) dir
 * 🔨 [Earthly's own build](https://docs.earthly.dev/examples/earthly)
+
+See also the [full documentation](https://docs.earthly.dev).
 
 Reference pages
 
