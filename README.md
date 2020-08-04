@@ -180,7 +180,11 @@ docker run --rm go-example:latest
 
 ### 🔨 Reference other targets using +
 
+Use `+` to reference other targets and create complex build inter-dependencies.
+
 <div align="center"><a href="https://docs.earthly.dev/guides/target-ref"><img src="docs/guides/img/ref-infographic.png" alt="Target and artifact reference syntax" title="Reference targets using +" width="600px" /></a></div>
+
+Examples
 
 * Same directory (same Earthfile)
   
