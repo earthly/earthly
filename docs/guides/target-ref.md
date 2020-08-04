@@ -2,6 +2,8 @@
 
 This page describes the different types of references used in Earthly.
 
+<img src="img/ref-infographic.png" alt="Target and artifact reference syntax" title="Reference targets using +" width="800px" />
+
 ## Target reference
 
 Targets have a particular referencing convention which helps Earthly to identify which recipe to execute.

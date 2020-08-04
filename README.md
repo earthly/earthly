@@ -191,20 +191,20 @@ docker run --rm go-example:latest
 * Other directories
 
   ```Dockerfile
-  BUILD ./some/deep/dir+some-target
-  FROM ./some/deep/dir+some-target
-  COPY ./some/deep/dir+some-target/my-artifact ./
+  BUILD ./some/local/path+some-target
+  FROM ./some/local/path+some-target
+  COPY ./some/local/path+some-target/my-artifact ./
   ```
 
 * Other repositories
 
   ```Dockerfile
-  BUILD github.com/someone/someproject+some-target
-  FROM github.com/someone/someproject+some-target
-  COPY github.com/someone/someproject+some-target/my-artifact ./
+  BUILD github.com/someone/someproject:v1.2.3+some-target
+  FROM github.com/someone/someproject:v1.2.3+some-target
+  COPY github.com/someone/someproject:v1.2.3+some-target/my-artifact ./
   ```
 
-TODO Infographic structure of target refs.
+<div align="center"><a href="https://docs.earthly.dev/guides/target-ref"><img src="docs/guides/img/ref-infographic.png" alt="Target and artifact reference syntax" title="Reference targets using +" width="600px" /></a></div>
 
 ### ⛓ Parallelization that just works
 
