@@ -171,29 +171,29 @@ TODO Gif
 
 ### 🔨 Reference other targets using +
 
-* Reference builds in the same Earthfile (same directory)
+* Same directory (same Earthfile)
   
-  `BUILD +some-target`
+  ```Dockerfile
+  BUILD +some-target
+  FROM +some-target
+  COPY +some-target/my-artifact ./
+  ```
 
-  `FROM +some-target`
+* Other directories
 
-  `COPY +some-target/my-artifact ./`
+  ```Dockerfile
+  BUILD ./some/deep/dir+some-target
+  FROM ./some/deep/dir+some-target
+  COPY ./some/deep/dir+some-target/my-artifact ./
+  ```
 
-* Reference builds from other directories
+* Other repositories
 
-  `BUILD ./some/deep/dir+some-target`
-
-  `FROM ./some/deep/dir+some-target`
-
-  `COPY ./some/deep/dir+some-target/my-artifact ./`
-
-* Reference builds from other repositories
-
-  `BUILD github.com/some-user/some-project+some-target`
-
-  `FROM github.com/some-user/some-project+some-target`
-
-  `COPY github.com/some-user/some-project+some-target/my-artifact ./`
+  ```Dockerfile
+  BUILD github.com/someone/someproject+some-target
+  FROM github.com/someone/someproject+some-target
+  COPY github.com/someone/someproject+some-target/my-artifact ./
+  ```
 
 TODO Infographic structure of target refs.
 
