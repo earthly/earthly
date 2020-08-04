@@ -168,8 +168,6 @@ earth github.com/earthly/earthly/examples/go+docker
 docker run --rm go-example:latest
 ```
 
-TODO Gif
-
 ### 🔨 Reference other targets using +
 
 * Same directory (same Earthfile)
