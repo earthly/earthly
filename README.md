@@ -56,8 +56,6 @@ Containers! Layer caching! And build graphs!
 Earthly executes all builds within containers, where execution is isolated. The dependencies of the build are explicitly specified in the build definition, thus making the build self-sufficient.
 
 Earthly uses a target-based system to help users break-up complex builds into reusable parts. Nothing is shared between targets, other than clearly declared dependencies. Nothing shared means no unexpected race conditions. In fact, the build is automatically parallel whenever possible, without any need for the user to take care of any locking or unexpected environment interactions.
-
-Earthly might seem very similar to Dockerfile multi-stage builds. In fact, the [same technology](https://github.com/moby/buildkit) is used underneath. However, a key difference is that Earthly is designed to be a general purpose build system, not just a Docker image specification. Read more about [how Earthly is different from Dockerfiles](#how-is-earthly-different-from-dockerfiles).
 -->
 
 <h2 align="center">Where Does Earthly Fit?</h2>
@@ -151,6 +149,10 @@ Invoke the build using either `earth +build` (to build the binary) or `earth +do
 TODO Gif
 
 Examples for other languages are available on the [examples page](https://docs.earthly.dev/examples).
+
+| <h4>ℹ️ Note</h4>  |
+| ---- |
+| Earthly might seem very similar to Dockerfile multi-stage builds. In fact, the [same technology](https://github.com/moby/buildkit) is used underneath. However, a key difference is that Earthly is designed to be a general purpose build system, not just a Docker image specification. Read more about [how Earthly is different from Dockerfiles](#how-is-earthly-different-from-dockerfiles). |
 
 <h2 align="center">Features</h2>
 
