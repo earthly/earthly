@@ -36,7 +36,7 @@ Reproducible builds also means that your build will run the same on your colleag
 
 ### 🚀 From zero to working build in minutes
 
-Jump from project to project with ease, regardless of the language they are written in. Running the project's test suites is simply a matter of running an Earthly target (and not fiddling with project configuration to make it compile and run on your system). Contribute across teams with confidence.
+Jump from project to project with ease, regardless of the language they are written in. Running the project's test suites is simply a matter of running an Earthly target (without fiddling with project configuration to make it compile and run on your system). Contribute across teams with confidence.
 
 ### 📦 Reusability
 
