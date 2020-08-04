@@ -48,23 +48,25 @@ A simple, yet powerful import system allows for reusability of builds across dir
 
 Taking some of the best ideas from Makefiles and Dockerfiles, Earthly combines two build specifications into one.
 
+<!--
 <h2 align="center">How It Works</h2>
 
 TODO: This section needs to be more scannable.
+
+Containers! Layer caching! And build graphs!
 
 Earthly executes all builds within containers, where execution is isolated. The dependencies of the build are explicitly specified in the build definition, thus making the build self-sufficient.
 
 Earthly uses a target-based system to help users break-up complex builds into reusable parts. Nothing is shared between targets, other than clearly declared dependencies. Nothing shared means no unexpected race conditions. In fact, the build is automatically parallel whenever possible, without any need for the user to take care of any locking or unexpected environment interactions.
 
 Earthly might seem very similar to Dockerfile multi-stage builds. In fact, the [same technology](https://github.com/moby/buildkit) is used underneath. However, a key difference is that Earthly is designed to be a general purpose build system, not just a Docker image specification. Read more about [how Earthly is different from Dockerfiles](#how-is-earthly-different-from-dockerfiles).
+-->
 
 <h2 align="center">Where Does Earthly Fit?</h2>
 
-Earthly is meant to be used both on your development machine and in CI. It can run on top of popular CI systems (like Jenkins, [Circle](https://docs.earthly.dev/examples/circle-integration), [GitHub Actions](https://docs.earthly.dev/examples/gh-actions-integration)). It is typically the [layer](https://docs.earthly.dev) between language-specific tooling (like maven, gradle, npm, pip, go build) and the CI build spec.
+<div align="center"><img src="docs/img/integration-diagram.png" alt="Earthly fits between language-specific tooling and the CI" /></div>
 
-TODO Flip diagram and possibly turn into gif
-
-<img src="images/integration-diagram-horizontal.png" alt="Earthly fits between language-specific tooling and the CI" />
+Earthly is meant to be used both on your development machine and in CI. It can run on top of popular CI systems (like Jenkins, [Circle](https://docs.earthly.dev/examples/circle-integration), [GitHub Actions](https://docs.earthly.dev/examples/gh-actions-integration)). It is typically the layer between language-specific tooling (like maven, gradle, npm, pip, go build) and the CI build spec.
 
 <h2 align="center">Quick Start</h2>
 
