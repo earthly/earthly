@@ -2,9 +2,11 @@
 
 Integrating Earthly into your CI is simply a matter of automating the same steps you would use for your local installation. In this guide, we will walk through this process.
 
-## Step 1: Ensure Docker and Git are available
+## Step 1: Ensure pre-requisited are available
 
-The first step is to ensure that Earthly's pre-requisites are available. On many CI systems both of these are available in the default base image or environment. Refer to your provider's documentation.
+### Docker and Git
+
+The first step is to ensure that Earthly's pre-requisites, Docker and Git, are available. On many CI systems both of these already exist in the default base image or environment. Refer to your provider's documentation.
 
 Vendors known to include these dependencies:
 
@@ -13,6 +15,10 @@ Vendors known to include these dependencies:
 * Travis dist `xenial`
 * GitLab image `docker:git` with service `docker:dind` added.
 * Azure DevOps vmImage `Ubuntu-16.04`
+
+### Privileged mode
+
+In addition to Docker and Git, Earthly also requires privileged mode as it executes container builds under the hood. In most linux-based CI environments, this is readily available and no special setting is necessary. GitLab CI requires using a compatible runner (eg Docker) and explicitly enabling [privileged mode](https://docs.gitlab.com/runner/executors/docker.html#the-privileged-mode).
 
 ## Step 2: Install earth command
 
