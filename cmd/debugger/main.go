@@ -15,6 +15,7 @@ import (
 
 	"github.com/creack/pty"
 	"github.com/hashicorp/yamux"
+	"github.com/pkg/errors"
 )
 
 var (
@@ -36,7 +37,7 @@ func getShellPath() (string, bool) {
 	return "", false
 }
 
-func interactiveMode(remoteConsoleAddr string) error {
+func interactiveMode(ctx context.Context, remoteConsoleAddr string) error {
 	conn, err := net.Dial("tcp", remoteConsoleAddr)
 	if err != nil {
 		return err
@@ -69,23 +70,28 @@ func interactiveMode(remoteConsoleAddr string) error {
 	if !ok {
 		return ErrNoShellFound
 	}
-	c := exec.Command(shellPath)
+	c := exec.CommandContext(ctx, shellPath)
 
-	ptmx, e := pty.Start(c)
-	if e != nil {
-		fmt.Fprintf(os.Stderr, "failed to start pty: %v\n", e)
-		return e
+	ptmx, err := pty.Start(c)
+	if err != nil {
+		return errors.Wrap(err, "failed to start pty")
 	}
 	defer func() { _ = ptmx.Close() }() // Best effort.
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(ctx)
 
 	go func() {
-		_, _ = io.Copy(ptmx, ptyStream)
+		_, err := io.Copy(ptmx, ptyStream)
+		if err != nil && err != io.EOF {
+			fmt.Fprintf(os.Stderr, "failed copying pty to ptyStream: %v\n", err)
+		}
 		cancel()
 	}()
 	go func() {
-		_, _ = io.Copy(ptyStream, ptmx)
+		_, err := io.Copy(ptyStream, ptmx)
+		if err != nil && err != io.EOF {
+			fmt.Fprintf(os.Stderr, "failed copying pty to ptyStream: %v\n", err)
+		}
 		cancel()
 	}()
 	go func() {
@@ -142,6 +148,8 @@ func main() {
 		return
 	}
 
+	ctx := context.Background()
+
 	remoteConsoleAddr := getRemoteDebuggerAddr()
 
 	cmd := exec.Command(args[0], args[1:]...)
@@ -162,7 +170,7 @@ func main() {
 			// Take a brief pause and issue a new line as a work around.
 			time.Sleep(time.Millisecond * 5)
 			fmt.Printf("\n")
-			interactiveMode(remoteConsoleAddr)
+			interactiveMode(ctx, remoteConsoleAddr)
 		}
 
 		// ensure that this always exits with an error status; otherwise it will be cached by earthly

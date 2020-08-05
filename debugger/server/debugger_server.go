@@ -2,8 +2,6 @@ package server
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
 	"io"
 	"net"
 	"os"
@@ -11,24 +9,11 @@ import (
 	"syscall"
 
 	"github.com/earthly/earthly/conslogging"
-	"github.com/earthly/earthly/debugger/common"
 
 	"github.com/creack/pty"
 	"github.com/hashicorp/yamux"
 	"golang.org/x/crypto/ssh/terminal"
 )
-
-type session struct {
-	yaSession *yamux.Session
-
-	ctx    context.Context
-	cancel context.CancelFunc
-
-	ttyCon     net.Conn
-	resizeConn net.Conn
-
-	server *DebugServer
-}
 
 // DebugServer provides a server that accepts a remote debugging shell
 type DebugServer struct {
@@ -42,51 +27,6 @@ type DebugServer struct {
 	addr string
 }
 
-func (s *session) sendNewWindowSize(size *pty.Winsize) error {
-	b, err := json.Marshal(size)
-	if err != nil {
-		return err
-	}
-	return common.WriteUint16PrefixedData(s.resizeConn, b)
-}
-
-func (s *session) handle() error {
-	for {
-		stream, err := s.yaSession.Accept()
-		if err != nil {
-			return err
-		}
-
-		buf := make([]byte, 1)
-		stream.Read(buf)
-
-		switch buf[0] {
-		case common.PtyStream:
-			go s.handlePtyStream(stream)
-
-		case common.WinChangeStream:
-			s.resizeConn = stream
-			s.server.sigs <- syscall.SIGWINCH
-		default:
-			return fmt.Errorf("unsupported stream code %v", buf[0])
-		}
-	}
-}
-
-func (s *session) handlePtyStream(conn net.Conn) error {
-	go func() {
-		_, _ = io.Copy(os.Stdout, conn)
-		s.cancel()
-	}()
-	go func() {
-		_, _ = io.Copy(conn, os.Stdin)
-		s.cancel()
-	}()
-
-	<-s.ctx.Done()
-	return nil
-}
-
 func (ds *DebugServer) handleRequest(conn net.Conn) error {
 	defer conn.Close()
 
@@ -95,7 +35,7 @@ func (ds *DebugServer) handleRequest(conn net.Conn) error {
 		return err
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(ds.ctx)
 	ds.session = &session{
 		yaSession: yaSession,
 		ctx:       ctx,
@@ -174,11 +114,11 @@ func (ds *DebugServer) Stop() {
 }
 
 // NewDebugServer returns a new deubgging server
-func NewDebugServer(console conslogging.ConsoleLogger) *DebugServer {
+func NewDebugServer(ctx context.Context, console conslogging.ConsoleLogger) *DebugServer {
 	sigs := make(chan os.Signal, 100)
 	signal.Notify(sigs, syscall.SIGWINCH)
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(ctx)
 	srv := &DebugServer{
 		console: console,
 		sigs:    sigs,
