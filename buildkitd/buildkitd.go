@@ -167,17 +167,34 @@ func MaybeRestart(ctx context.Context, console conslogging.ConsoleLogger, image 
 	return nil
 }
 
+// RemoveExited removes any stopped or exited buildkitd containers
+func RemoveExited(ctx context.Context) error {
+	cmd := exec.CommandContext(ctx, "docker", "ps", "-a", "-q", "-f", fmt.Sprintf("name=%s", ContainerName))
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return errors.Wrap(err, "get combined output")
+	}
+	if len(output) == 0 {
+		return nil
+	}
+	return exec.CommandContext(ctx, "docker", "rm", ContainerName).Run()
+}
+
 // Start starts the buildkitd daemon.
 func Start(ctx context.Context, image string, settings Settings, reset bool) error {
 	settingsHash, err := settings.Hash()
 	if err != nil {
 		return errors.Wrap(err, "settings hash")
 	}
+	err = RemoveExited(ctx)
+	if err != nil {
+		return err
+	}
 	env := os.Environ()
 	cacheMount := fmt.Sprintf("%s:/tmp/earthly:delegated", settings.TempDir)
 	args := []string{
 		"run",
-		"-d", "--rm",
+		"-d",
 		"-v", cacheMount,
 		"-e", fmt.Sprintf("ENABLE_LOOP_DEVICE=%t", !settings.DisableLoopDevice),
 		"-e", fmt.Sprintf("FORCE_LOOP_DEVICE=%t", !settings.DisableLoopDevice),
