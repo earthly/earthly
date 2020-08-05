@@ -298,8 +298,7 @@ build:
   RUN go mod download
   COPY +proto/pb pb
   COPY main.go ./
-  RUN go build \
-    -o build/proto-example main.go
+  RUN go build -o build/proto-example main.go
   SAVE ARTIFACT build/proto-example
 ```
 
