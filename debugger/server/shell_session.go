@@ -61,11 +61,17 @@ func (s *session) handle() error {
 
 func (s *session) handlePtyStream(conn net.Conn) error {
 	go func() {
-		_, _ = io.Copy(os.Stdout, conn)
+		_, err := io.Copy(os.Stdout, conn)
+		if err != nil && err != io.EOF {
+			fmt.Fprintf(os.Stderr, "failed copying stdout to ptyStream: %v\n", err)
+		}
 		s.cancel()
 	}()
 	go func() {
-		_, _ = io.Copy(conn, os.Stdin)
+		_, err := io.Copy(conn, os.Stdin)
+		if err != nil && err != io.EOF {
+			fmt.Fprintf(os.Stderr, "failed copying ptyStream to stdin: %v\n", err)
+		}
 		s.cancel()
 	}()
 
