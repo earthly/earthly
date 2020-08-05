@@ -530,12 +530,13 @@ func (app *earthApp) actionBuild(c *cli.Context) error {
 	var remoteConsoleAddr string
 	var err error
 	if app.interactiveDebugging {
-		debugServer := server.NewDebugServer(app.console)
+		debugServer := server.NewDebugServer(c.Context, app.console)
 		remoteConsoleAddr, err = debugServer.Start()
 		if err != nil {
 			app.console.Warnf("failed to open remote console listener: %v; interactive debugging disabled\n", err)
 			app.interactiveDebugging = false
 		}
+		defer debugServer.Stop()
 	}
 
 	if app.imageMode && app.artifactMode {
