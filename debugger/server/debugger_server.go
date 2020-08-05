@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"net"
 	"os"
@@ -12,6 +13,7 @@ import (
 
 	"github.com/creack/pty"
 	"github.com/hashicorp/yamux"
+	"github.com/pkg/errors"
 	"golang.org/x/crypto/ssh/terminal"
 )
 
@@ -32,7 +34,7 @@ func (ds *DebugServer) handleRequest(conn net.Conn) error {
 
 	yaSession, err := yamux.Server(conn, nil)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "failed creating yamux server")
 	}
 
 	ctx, cancel := context.WithCancel(ds.ctx)
@@ -47,7 +49,7 @@ func (ds *DebugServer) handleRequest(conn net.Conn) error {
 
 	oldState, err := terminal.MakeRaw(int(os.Stdin.Fd()))
 	if err != nil {
-		return err
+		return errors.Wrap(err, "failed initializing raw terminal mode")
 	}
 	defer func() { _ = terminal.Restore(int(os.Stdin.Fd()), oldState) }()
 
@@ -81,7 +83,7 @@ func (ds *DebugServer) windowResizeHandler() error {
 func (ds *DebugServer) Start() (string, error) {
 	l, err := net.Listen("tcp", ds.addr)
 	if err != nil {
-		return "", err
+		return "", errors.Wrap(err, fmt.Sprintf("failed listening on %s", ds.addr))
 	}
 
 	go ds.windowResizeHandler()
