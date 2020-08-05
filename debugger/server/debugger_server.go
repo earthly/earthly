@@ -62,7 +62,7 @@ func (s *session) handle() error {
 
 		switch buf[0] {
 		case common.PtyStream:
-			go s.handle1(stream)
+			go s.handlePtyStream(stream)
 
 		case common.WinChangeStream:
 			s.resizeConn = stream
@@ -73,7 +73,7 @@ func (s *session) handle() error {
 	}
 }
 
-func (s *session) handle1(conn net.Conn) error {
+func (s *session) handlePtyStream(conn net.Conn) error {
 	go func() {
 		_, _ = io.Copy(os.Stdout, conn)
 		s.cancel()

@@ -44,7 +44,7 @@ func interactiveMode(remoteConsoleAddr string) error {
 	defer func() {
 		err := conn.Close()
 		if err != nil {
-			fmt.Printf("error closing: %v\n", err)
+			fmt.Fprintf(os.Stderr, "error closing: %v\n", err)
 		}
 	}()
 
@@ -53,17 +53,17 @@ func interactiveMode(remoteConsoleAddr string) error {
 		return err
 	}
 
-	stream1, err := session.Open()
+	ptyStream, err := session.Open()
 	if err != nil {
 		return err
 	}
-	stream1.Write([]byte{common.PtyStream})
+	ptyStream.Write([]byte{common.PtyStream})
 
-	stream2, err := session.Open()
+	winChangeStream, err := session.Open()
 	if err != nil {
 		return err
 	}
-	stream2.Write([]byte{common.WinChangeStream})
+	winChangeStream.Write([]byte{common.WinChangeStream})
 
 	shellPath, ok := getShellPath()
 	if !ok {
@@ -73,7 +73,7 @@ func interactiveMode(remoteConsoleAddr string) error {
 
 	ptmx, e := pty.Start(c)
 	if e != nil {
-		fmt.Printf("failed to start pty: %v\n", e)
+		fmt.Fprintf(os.Stderr, "failed to start pty: %v\n", e)
 		return e
 	}
 	defer func() { _ = ptmx.Close() }() // Best effort.
@@ -81,11 +81,11 @@ func interactiveMode(remoteConsoleAddr string) error {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	go func() {
-		_, _ = io.Copy(ptmx, stream1)
+		_, _ = io.Copy(ptmx, ptyStream)
 		cancel()
 	}()
 	go func() {
-		_, _ = io.Copy(stream1, ptmx)
+		_, _ = io.Copy(ptyStream, ptmx)
 		cancel()
 	}()
 	go func() {
@@ -95,7 +95,7 @@ func interactiveMode(remoteConsoleAddr string) error {
 
 	go func() {
 		for {
-			data, err := common.ReadUint16PrefixedData(stream2)
+			data, err := common.ReadUint16PrefixedData(winChangeStream)
 			if err == io.EOF {
 				return
 			} else if err != nil {
