@@ -158,6 +158,7 @@ examples:
 	BUILD ./examples/readme/go1+all
 	BUILD ./examples/readme/go2+all
 	BUILD ./examples/readme/go3+build
+	BUILD ./examples/readme/proto+docker
 	BUILD github.com/earthly/hello-world+hello
 
 test-experimental:
