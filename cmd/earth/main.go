@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strings"
 
@@ -75,6 +76,9 @@ var (
 
 	// Version is the version of this CLI app.
 	Version string
+
+	// GitSha contains the git sha used to build this app
+	GitSha string
 )
 
 func main() {
@@ -113,6 +117,14 @@ func main() {
 	os.Exit(newEarthApp(ctx, conslogging.Current(colorMode)).run(ctx, os.Args))
 }
 
+func getVersion() string {
+	var isRelease = regexp.MustCompile(`^v[0-9]+\.[0-9]+\.[0-9]+$`)
+	if isRelease.MatchString(Version) {
+		return Version
+	}
+	return fmt.Sprintf("%s-%s", Version, GitSha)
+}
+
 func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthApp {
 	sessionIDBytes := make([]byte, 64)
 	_, err := rand.Read(sessionIDBytes)
@@ -141,7 +153,7 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 		"To get started with using Earthly, check out the getting started guide at https://docs.earthly.dev/guides/basics."
 	app.cliApp.UseShortOptionHandling = true
 	app.cliApp.Action = app.actionBuild
-	app.cliApp.Version = Version
+	app.cliApp.Version = getVersion()
 	app.cliApp.Flags = []cli.Flag{
 		&cli.StringSliceFlag{
 			Name:    "build-arg",
