@@ -279,6 +279,32 @@ Whenever possible, Earthly automatically executes targets in parallel.
 
 <div align="center"><a href="https://asciinema.org/a/351678?speed=2"><img src="img/demo-351678.gif" alt="Demonstration of Earthly's parallelization" title="View on asciinema.org" width="600px" /></a></div>
 
+### 🤲 Make use of build tools that work everywhere
+
+No need to ask your team to install `protoc`, a specific version of Python, Java 1.6 or the .NET Core ecosystem. You only install once, in your Earthfile, and it works for everyone. Or even better, you can just make use of the rich Docker Hub ecosystem.
+
+```Dockerfile
+FROM golang:1.13-alpine3.11
+WORKDIR /proto-example
+
+proto:
+  FROM namely/protoc-all:1.29_4
+  COPY api.proto /defs
+  RUN --entrypoint -- -f api.proto -l go
+  SAVE ARTIFACT ./gen/pb-go /pb AS LOCAL pb
+
+build:
+  COPY go.mod go.sum .
+  RUN go mod download
+  COPY +proto/pb pb
+  COPY main.go ./
+  RUN go build \
+    -o build/proto-example main.go
+  SAVE ARTIFACT build/proto-example
+```
+
+See full [example code](./examples/readme/proto).
+
 ### 🔑 Secrets support built-in
 
 Secrets are never stored within an image's layers and they are only available to the commands that need them.
