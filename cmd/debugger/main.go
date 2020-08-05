@@ -40,7 +40,7 @@ func getShellPath() (string, bool) {
 func interactiveMode(ctx context.Context, remoteConsoleAddr string) error {
 	conn, err := net.Dial("tcp", remoteConsoleAddr)
 	if err != nil {
-		return err
+		return errors.Wrap(err, fmt.Sprintf("failed connecting to %s", remoteConsoleAddr))
 	}
 	defer func() {
 		err := conn.Close()
@@ -51,18 +51,18 @@ func interactiveMode(ctx context.Context, remoteConsoleAddr string) error {
 
 	session, err := yamux.Client(conn, nil)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "failed creating yamux client")
 	}
 
 	ptyStream, err := session.Open()
 	if err != nil {
-		return err
+		return errors.Wrap(err, "failed openning ptyStream session")
 	}
 	ptyStream.Write([]byte{common.PtyStream})
 
 	winChangeStream, err := session.Open()
 	if err != nil {
-		return err
+		return errors.Wrap(err, "failed openning winChangeStream session")
 	}
 	winChangeStream.Write([]byte{common.WinChangeStream})
 
