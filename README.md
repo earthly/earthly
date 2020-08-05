@@ -30,7 +30,7 @@
 
 * [Why use Earthly?](#why-use-earthly)
 * [Where Does Earthly Fit?](#where-does-earthly-fit)
-* [How Does It Work?](#where-does-it-work)
+* [How Does It Work?](#how-does-it-work)
 * [Quick Start](#quick-start)
 * [Features](#features)
 * [FAQ](#faq)
