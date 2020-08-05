@@ -7,6 +7,7 @@ import (
 	"net"
 	"os"
 	"os/signal"
+	"runtime"
 	"syscall"
 
 	"github.com/earthly/earthly/conslogging"
@@ -26,7 +27,6 @@ type DebugServer struct {
 	cancel context.CancelFunc
 
 	sigs chan os.Signal
-	addr string
 }
 
 func (ds *DebugServer) handleRequest(conn net.Conn) error {
@@ -79,17 +79,48 @@ func (ds *DebugServer) windowResizeHandler() error {
 	}
 }
 
+func (ds *DebugServer) getIP() string {
+	if runtime.GOOS == "darwin" {
+		// macOS doesn't have a docker0 bridge
+		return "0.0.0.0"
+	}
+
+	iface, err := net.InterfaceByName("docker0")
+	if err != nil {
+		ds.console.Warnf("falling back to 0.0.0.0 due to docker0 lookup error: %v", err.Error())
+		return "0.0.0.0"
+	}
+	addrs, err := iface.Addrs()
+	if err != nil {
+		ds.console.Warnf("falling back to 0.0.0.0 due to docker0 addrs error: %v", err.Error())
+		return "0.0.0.0"
+	}
+	for _, a := range addrs {
+		switch v := a.(type) {
+		case *net.IPNet:
+			if x := v.IP.To4(); x != nil {
+				return x.String()
+			}
+		}
+	}
+
+	ds.console.Warnf("falling back to 0.0.0.0 due to docker0 addrs being empty")
+	return "0.0.0.0"
+}
+
 // Start starts the debug server listener
 func (ds *DebugServer) Start() (string, error) {
-	l, err := net.Listen("tcp", ds.addr)
+	addr := fmt.Sprintf("%s:0", ds.getIP())
+
+	l, err := net.Listen("tcp", addr)
 	if err != nil {
-		return "", errors.Wrap(err, fmt.Sprintf("failed listening on %s", ds.addr))
+		return "", errors.Wrap(err, fmt.Sprintf("failed listening on %s", addr))
 	}
 
 	go ds.windowResizeHandler()
 
 	go func() {
-		ds.console.Printf("interactive debugger listening\n")
+		ds.console.Printf("interactive debugger listening on %v\n", l.Addr())
 		defer l.Close()
 		for {
 			// Listen for an incoming connection.
@@ -107,7 +138,20 @@ func (ds *DebugServer) Start() (string, error) {
 			}
 		}
 	}()
-	return l.Addr().String(), nil
+
+	assignedAddr := l.Addr()
+
+	if runtime.GOOS == "darwin" {
+		tcpAddr, ok := assignedAddr.(*net.TCPAddr)
+		if !ok {
+			panic("failed to cast to TCPAddr (shouldnt happen)")
+		}
+
+		// under macOS this dns points back to the host (but doesn't work under linux)
+		return fmt.Sprintf("host.docker.internal:%d", tcpAddr.Port), nil
+	}
+
+	return assignedAddr.String(), nil
 }
 
 // Stop stops the server
@@ -126,7 +170,6 @@ func NewDebugServer(ctx context.Context, console conslogging.ConsoleLogger) *Deb
 		sigs:    sigs,
 		ctx:     ctx,
 		cancel:  cancel,
-		addr:    "127.0.0.1:0",
 	}
 
 	return srv

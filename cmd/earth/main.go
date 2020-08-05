@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -20,6 +21,7 @@ import (
 	"github.com/earthly/earthly/cleanup"
 	"github.com/earthly/earthly/config"
 	"github.com/earthly/earthly/conslogging"
+	debuggercommon "github.com/earthly/earthly/debugger/common"
 	"github.com/earthly/earthly/debugger/server"
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/earthfile2llb"
@@ -622,9 +624,23 @@ func (app *earthApp) actionBuild(c *cli.Context) error {
 	defer resolver.Close()
 	secrets := app.secrets.Value()
 	//interactive debugger settings are passed as secrets to avoid having it affect the cache hash
-	secrets = append(secrets, fmt.Sprintf("earthly_remote_console_addr=%s", remoteConsoleAddr))
+
+	secretsMap := processSecrets(secrets)
+
+	debuggerSettings := debuggercommon.DebuggerSettings{
+		Debug:   true,
+		Addrs:   []string{remoteConsoleAddr},
+		Enabled: app.interactiveDebugging,
+	}
+
+	debuggerSettingsData, err := json.Marshal(&debuggerSettings)
+	if err != nil {
+		return errors.Wrap(err, "debugger settings json marshal")
+	}
+	secretsMap["earthly_debugger_settings"] = debuggerSettingsData
+
 	attachables := []session.Attachable{
-		processSecrets(secrets),
+		secretsprovider.FromMap(secretsMap),
 		authprovider.NewDockerAuthProvider(os.Stderr),
 	}
 	var enttlmnts []entitlements.Entitlement
@@ -687,7 +703,7 @@ func (app *earthApp) newBuildkitdClient(ctx context.Context, opts ...client.Clie
 	return bkClient, nil
 }
 
-func processSecrets(secrets []string) session.Attachable {
+func processSecrets(secrets []string) map[string][]byte {
 	finalSecrets := make(map[string][]byte)
 	for _, secret := range secrets {
 		parts := strings.SplitN(secret, "=", 2)
@@ -700,7 +716,7 @@ func processSecrets(secrets []string) session.Attachable {
 			finalSecrets[secret] = []byte(value)
 		}
 	}
-	return secretsprovider.FromMap(finalSecrets)
+	return finalSecrets
 }
 
 func defaultSSHAuthSock() string {

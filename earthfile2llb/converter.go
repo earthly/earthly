@@ -672,11 +672,11 @@ func (c *Converter) internalRun(ctx context.Context, args []string, secretKeyVal
 		}
 	}
 
-	finalOpts = append(finalOpts, llb.AddMount("/usr/bin/earth_debugger", llb.Image(c.debuggerImage), llb.SourcePath("/earth_debugger"), llb.Readonly))
+	finalOpts = append(finalOpts, llb.AddMount("/usr/bin/earth_debugger", llb.Image(c.debuggerImage, llb.MarkImageInternal), llb.SourcePath("/earth_debugger"), llb.Readonly))
 	secretOpts := []llb.SecretOption{
-		llb.SecretID("earthly_remote_console_addr"),
+		llb.SecretID("earthly_debugger_settings"),
 	}
-	finalOpts = append(finalOpts, llb.AddSecret("/run/secrets/earthly_remote_console_addr", secretOpts...))
+	finalOpts = append(finalOpts, llb.AddSecret("/run/secrets/earthly_debugger_settings", secretOpts...))
 
 	var finalArgs []string
 	if withDocker {
@@ -685,9 +685,7 @@ func (c *Converter) internalRun(ctx context.Context, args []string, secretKeyVal
 		finalArgs = withShellAndEnvVars(args, extraEnvVars, isWithShell)
 	}
 
-	if c.interactiveDebugging {
-		finalArgs = append([]string{"earth_debugger"}, finalArgs...)
-	}
+	finalArgs = append([]string{"earth_debugger"}, finalArgs...)
 
 	finalOpts = append(finalOpts, llb.Args(finalArgs))
 	if pushFlag {

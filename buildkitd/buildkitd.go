@@ -202,7 +202,6 @@ func Start(ctx context.Context, image string, settings Settings, reset bool) err
 		"--label", fmt.Sprintf("dev.earthly.settingshash=%s", settingsHash),
 		"--name", ContainerName,
 		"--privileged",
-		"--network=host",
 	}
 	// Apply some buildkitd-related settings.
 	if settings.CacheSizeMb > 0 {
