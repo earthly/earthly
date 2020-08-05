@@ -75,6 +75,9 @@ var (
 
 	// Version is the version of this CLI app.
 	Version string
+
+	// GitSha contains the git sha used to build this app
+	GitSha string
 )
 
 func main() {
@@ -141,7 +144,7 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 		"To get started with using Earthly, check out the getting started guide at https://docs.earthly.dev/guides/basics."
 	app.cliApp.UseShortOptionHandling = true
 	app.cliApp.Action = app.actionBuild
-	app.cliApp.Version = Version
+	app.cliApp.Version = fmt.Sprintf("%s-%s", Version, GitSha)
 	app.cliApp.Flags = []cli.Flag{
 		&cli.StringSliceFlag{
 			Name:    "build-arg",

@@ -93,12 +93,13 @@ earth:
 	RUN test -n "$GOOS" && test -n "$GOARCH"
 	ARG EARTHLY_TARGET_TAG
 	ARG VERSION=$EARTHLY_TARGET_TAG
+	ARG EARTHLY_GIT_HASH
 	ARG DEFAULT_BUILDKITD_IMAGE=earthly/buildkitd:$VERSION
 	ARG DEFAULT_DEBUGGER_IMAGE=earthly/debugger:interactive-debugger-pty@sha256:a0314de585cc3ba5b44a032f54bd31c61a8fdc13b05267666168069e8932eb25
 	ARG GOCACHE=/go-cache
 	RUN --mount=type=cache,target=$GOCACHE \
 		go build \
-			-ldflags "-X main.DefaultBuildkitdImage=$DEFAULT_BUILDKITD_IMAGE -X main.DefaultDebuggerImage=$DEFAULT_DEBUGGER_IMAGE -X main.Version=$VERSION $GO_EXTRA_LDFLAGS" \
+			-ldflags "-X main.DefaultBuildkitdImage=$DEFAULT_BUILDKITD_IMAGE -X main.DefaultDebuggerImage=$DEFAULT_DEBUGGER_IMAGE -X main.Version=$VERSION -X main.GitSha=$EARTHLY_GIT_HASH $GO_EXTRA_LDFLAGS" \
 			-o build/earth \
 			cmd/earth/*.go
 	SAVE ARTIFACT build/earth AS LOCAL "build/$GOOS/$GOARCH/earth"
