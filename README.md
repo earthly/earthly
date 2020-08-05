@@ -31,6 +31,7 @@
 * [Why use Earthly?](#why-use-earthly)
 * [Where Does Earthly Fit?](#where-does-earthly-fit)
 * [How Does It Work?](#how-does-it-work)
+* [Installation](#installation)
 * [Quick Start](#quick-start)
 * [Features](#features)
 * [FAQ](#faq)
@@ -84,29 +85,27 @@ We use a target-based system to help users break-up complex builds into reusable
 
 <br/>
 <br/>
-<h2 align="center">Quick Start</h2>
-
-### Installation
+<h2 align="center">Installation</h2>
 
 For a full list of installation options see the [Installation page](https://docs.earthly.dev/installation).
 
-#### Linux
+### Linux
 
 ```bash
 sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/latest/download/earth-linux-amd64 -O /usr/local/bin/earth && chmod +x /usr/local/bin/earth'
 ```
 
-#### Mac
+### Mac
 
 ```bash
 brew install earthly
 ```
 
-#### Windows <span title="Experimental">🧪</span>
+### Windows <span title="Experimental">🧪</span>
   
 Use the Linux version via WSL. Note that support for Windows is experimental for now.
 
-#### Your CI
+### Your CI
 
 See the [CI integration guide](https://docs.earthly.dev/guides/ci-integration)
 
@@ -118,7 +117,9 @@ See the [CI integration guide](https://docs.earthly.dev/guides/ci-integration)
 ext install earthly.earthfile-syntax-highlighting
 ```
 
-### Learn Earthly
+<br/>
+<br/>
+<h2 align="center">Quick Start</h2>
 
 Here are some resources to get you started with Earthly
 
