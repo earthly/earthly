@@ -82,7 +82,7 @@ func (ds *DebugServer) windowResizeHandler() error {
 func (ds *DebugServer) getIP() string {
 	if runtime.GOOS == "darwin" {
 		// macOS doesn't have a docker0 bridge
-		return "0.0.0.0"
+		return "127.0.0.1"
 	}
 
 	iface, err := net.InterfaceByName("docker0")
