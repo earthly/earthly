@@ -44,7 +44,7 @@
 
 ### 🔁 Reproduce CI failures
 
-Earthly builds are self-contained, isolated and reproducible. Regardless of whether Earthly runs in your CI or on your laptop, there is a degree of guarantee that the build will run the same way. This allows for faster itteration on the build scripts and easier debugging when something goes wrong. No more `git commit -m "try again"`.
+Earthly builds are self-contained, isolated and reproducible. Regardless of whether Earthly runs in your CI or on your laptop, there is a degree of guarantee that the build will run the same way. This allows for faster iteration on the build scripts and easier debugging when something goes wrong. No more `git commit -m "try again"`.
 
 ### 🤲 Builds that run the same for everyone
 
