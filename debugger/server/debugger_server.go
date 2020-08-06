@@ -120,7 +120,7 @@ func (ds *DebugServer) Start() (string, error) {
 	go ds.windowResizeHandler()
 
 	go func() {
-		ds.console.Printf("interactive debugger listening on %v\n", l.Addr())
+		ds.console.Printf("Interactive debugger listening on %v\n", l.Addr())
 		defer l.Close()
 		for {
 			// Listen for an incoming connection.
@@ -144,7 +144,7 @@ func (ds *DebugServer) Start() (string, error) {
 	if runtime.GOOS == "darwin" {
 		tcpAddr, ok := assignedAddr.(*net.TCPAddr)
 		if !ok {
-			panic("failed to cast to TCPAddr (shouldnt happen)")
+			panic("failed to cast to TCPAddr (shouldn't happen)")
 		}
 
 		// under macOS this dns points back to the host (but doesn't work under linux)
