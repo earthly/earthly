@@ -96,7 +96,7 @@ earth:
 	ARG VERSION=$EARTHLY_TARGET_TAG
 	ARG EARTHLY_GIT_HASH
 	ARG DEFAULT_BUILDKITD_IMAGE=earthly/buildkitd:$VERSION
-	ARG DEFAULT_DEBUGGER_IMAGE=earthly/debugger:debugger-logging@sha256:226b55f8d0a5f8fce684b4c7f114d4781e560089962686b441665e92c64d1c5a
+	ARG DEFAULT_DEBUGGER_IMAGE=earthly/debugger:debugger-logging@sha256:965e73ef0bf11f709e39d00a1eb230f8a92ccd66cddc1339b270e11f718da5f7
 	ARG GOCACHE=/go-cache
 	RUN --mount=type=cache,target=$GOCACHE \
 		go build \
