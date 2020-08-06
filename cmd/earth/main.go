@@ -628,9 +628,9 @@ func (app *earthApp) actionBuild(c *cli.Context) error {
 	secretsMap := processSecrets(secrets)
 
 	debuggerSettings := debuggercommon.DebuggerSettings{
-		Debug:   true,
-		Addrs:   []string{remoteConsoleAddr},
-		Enabled: app.interactiveDebugging,
+		DebugLevelLogging: true,
+		RemoteConsoleAddr: remoteConsoleAddr,
+		Enabled:           app.interactiveDebugging,
 	}
 
 	debuggerSettingsData, err := json.Marshal(&debuggerSettings)

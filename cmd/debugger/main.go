@@ -28,9 +28,6 @@ var (
 
 	// ErrNoShellFound occurs when the container has no shell
 	ErrNoShellFound = fmt.Errorf("no shell found")
-
-	// ErrFailedConnection occurs when no interactive connection succeeded
-	ErrFailedConnection = fmt.Errorf("failed to connect to interactive debugger")
 )
 
 func getShellPath() (string, bool) {
@@ -44,19 +41,16 @@ func getShellPath() (string, bool) {
 	return "", false
 }
 
-func interactiveMode(ctx context.Context, remoteConsoleAddrs []string, log *logrus.Logger) error {
+func interactiveMode(ctx context.Context, addr string, log *logrus.Logger) error {
 	var conn net.Conn
 	var err error
-	for _, addr := range remoteConsoleAddrs {
-		log.WithField("addr", addr).Debug("attempting connection")
-		conn, err = net.Dial("tcp", addr)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "failed to connect to %v: %v\n", addr, err)
-		}
+
+	log.WithField("addr", addr).Debug("attempting connection")
+	conn, err = net.Dial("tcp", addr)
+	if err != nil {
+		return errors.Wrap(err, fmt.Sprintf("failed to connect to %v", addr))
 	}
-	if conn == nil {
-		return ErrFailedConnection
-	}
+
 	defer func() {
 		err := conn.Close()
 		if err != nil {
@@ -183,7 +177,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	if debuggerSettings.Debug {
+	if debuggerSettings.DebugLevelLogging {
 		log.SetLevel(logrus.DebugLevel)
 	}
 
@@ -207,7 +201,7 @@ func main() {
 			// Take a brief pause and issue a new line as a work around.
 			time.Sleep(time.Millisecond * 5)
 			fmt.Printf("\n")
-			interactiveMode(ctx, debuggerSettings.Addrs, log)
+			interactiveMode(ctx, debuggerSettings.RemoteConsoleAddr, log)
 		}
 
 		// ensure that this always exits with an error status; otherwise it will be cached by earthly
