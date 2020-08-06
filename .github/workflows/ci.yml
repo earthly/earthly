@@ -25,7 +25,7 @@ jobs:
         fi
         git checkout -b "$branch" || true
     - name: Docker Login
-      run: docker login --username vladaionescu --password "$DOCKERHUB_TOKEN"
+      run: echo "$DOCKERHUB_TOKEN" | docker login --username vladaionescu --password-stdin
     - name: Download latest earth
       run: "sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/latest/download/earth-linux-amd64 -O /usr/local/bin/earth && chmod +x /usr/local/bin/earth'"
     - name: Earth version
