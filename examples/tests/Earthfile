@@ -14,7 +14,7 @@ all:
 	BUILD +from-expose-test
 	BUILD +scratch-test
 	BUILD +build-earth-test
-	BUILD +bind-mount-test
+	BUILD +host-bind-test
 	BUILD +star-test
 
 experimental:
