@@ -14,6 +14,7 @@ all:
 	BUILD +from-expose-test
 	BUILD +scratch-test
 	BUILD +build-earth-test
+	BUILD +bind-mount-test
 	BUILD +star-test
 
 experimental:
@@ -103,6 +104,16 @@ build-earth-test:
 	RUN --privileged \
 		--entrypoint \
 		-- +test
+
+bind-mount-test:
+	RUN mkdir /bind-test
+	RUN echo "a" > /bind-test/a.txt
+	COPY bind-mount.earth ./Earthfile
+	RUN --privileged \
+		--entrypoint \
+		-- +test
+	RUN test -f /bind-test/b.txt
+	RUN cat /bind-test/b.txt
 
 # TODO: This does not pass, due to space on device limitation (dind caused).
 remote-test:

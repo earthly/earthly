@@ -27,6 +27,7 @@ func parseMounts(mounts []string, target domain.Target, ti dedup.TargetInput, ca
 
 func parseMount(mount string, target domain.Target, ti dedup.TargetInput, cacheContext llb.State) ([]llb.RunOption, error) {
 	var state llb.State
+	var mountSource string
 	var mountTarget string
 	var mountID string
 	var mountType string
@@ -49,6 +50,11 @@ func parseMount(mount string, target domain.Target, ti dedup.TargetInput, cacheC
 				return nil, fmt.Errorf("Invalid mount arg %s", kvPair)
 			}
 			mountType = kvSplit[1]
+		case "source":
+			if len(kvSplit) != 2 {
+				return nil, fmt.Errorf("Invalid mount arg %s", kvPair)
+			}
+			mountSource = kvSplit[1]
 		case "target":
 			if len(kvSplit) != 2 {
 				return nil, fmt.Errorf("Invalid mount arg %s", kvPair)
@@ -107,8 +113,6 @@ func parseMount(mount string, target domain.Target, ti dedup.TargetInput, cacheC
 			}
 		case "from":
 			return nil, fmt.Errorf("Not yet supported %s", kvPair)
-		case "source":
-			return nil, fmt.Errorf("Not yet supported %s", kvPair)
 		default:
 			return nil, fmt.Errorf("Invalid mount arg %s", kvPair)
 		}
@@ -122,11 +126,14 @@ func parseMount(mount string, target domain.Target, ti dedup.TargetInput, cacheC
 
 	switch mountType {
 	case "bind-experimental":
+		if mountSource == "" {
+			return nil, fmt.Errorf("Mount source not specified")
+		}
 		if mountTarget == "" {
 			return nil, fmt.Errorf("Mount target not specified")
 		}
-		localState := llb.Local("bind-test", llb.WithCustomNamef("[bind-test] Local"))
-		return []llb.RunOption{llb.AddMount(mountTarget, localState)}, nil
+		mountOpts = append(mountOpts, llb.BindExperimental(), llb.SourcePath(mountSource))
+		return []llb.RunOption{llb.AddMount(mountTarget, llb.Scratch(), mountOpts...)}, nil
 	case "cache":
 		if mountTarget == "" {
 			return nil, fmt.Errorf("Mount target not specified")
