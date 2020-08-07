@@ -22,9 +22,14 @@ var (
 	// Version is the version of the debugger
 	Version string
 
+	// GitSha is the git sha used to build the debugger
+	GitSha string
+
 	// ErrNoShellFound occurs when the container has no shell
 	ErrNoShellFound = fmt.Errorf("no shell found")
 )
+
+const remoteConsoleAddr = "/run/earthly/debugger.sock"
 
 func getShellPath() (string, bool) {
 	for _, sh := range []string{
@@ -37,10 +42,10 @@ func getShellPath() (string, bool) {
 	return "", false
 }
 
-func interactiveMode(ctx context.Context, remoteConsoleAddr string) error {
-	conn, err := net.Dial("tcp", remoteConsoleAddr)
+func interactiveMode(ctx context.Context, socketPath string) error {
+	conn, err := net.Dial("unix", socketPath)
 	if err != nil {
-		return errors.Wrap(err, fmt.Sprintf("failed connecting to %s", remoteConsoleAddr))
+		return errors.Wrap(err, fmt.Sprintf("failed connecting to %s", socketPath))
 	}
 	defer func() {
 		err := conn.Close()
@@ -132,30 +137,44 @@ func interactiveMode(ctx context.Context, remoteConsoleAddr string) error {
 	return nil
 }
 
-func getRemoteDebuggerAddr() string {
-	remoteConsoleAddr, err := ioutil.ReadFile("/run/secrets/earthly_remote_console_addr")
+func getSettings(path string) (*common.DebuggerSettings, error) {
+	s, err := ioutil.ReadFile(path)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Warning: failed to read earthly_remote_console_addr: %v", err)
+		return nil, errors.Wrap(err, fmt.Sprintf("failed to read %s", path))
 	}
-	return string(remoteConsoleAddr)
+	var data common.DebuggerSettings
+	err = json.Unmarshal(s, &data)
+	if err != nil {
+		return nil, errors.Wrap(err, fmt.Sprintf("failed to unmarshal %s", path))
+	}
+	return &data, nil
 }
 
 func main() {
 	args := os.Args[1:]
 
 	if args[0] == "--version" {
-		fmt.Printf("version: %v\n", Version)
+		fmt.Printf("version: %v-%v\n", Version, GitSha)
 		return
 	}
 
 	ctx := context.Background()
 
-	remoteConsoleAddr := getRemoteDebuggerAddr()
+	debuggerSettings, err := getSettings("/run/secrets/earthly_debugger_settings")
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "failed to read settings: %v\n", debuggerSettings)
+		os.Exit(1)
+	}
+
+	if debuggerSettings.DebugLevelLogging {
+		//TODO
+		//log.SetLevel(logrus.DebugLevel)
+	}
 
 	cmd := exec.Command(args[0], args[1:]...)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-	err := cmd.Run()
+	err = cmd.Run()
 	if err != nil {
 		exitCode := 1
 		if exitErr, ok := err.(*exec.ExitError); ok {
@@ -165,13 +184,11 @@ func main() {
 			fmt.Fprintf(os.Stderr, "Command %v failed with unexpected execution error %v\n", args, err)
 		}
 
-		if remoteConsoleAddr != "" {
-			// Sometimes the interactive shell doesn't correctly get a newline
-			// Take a brief pause and issue a new line as a work around.
-			time.Sleep(time.Millisecond * 5)
-			fmt.Printf("\n")
-			interactiveMode(ctx, remoteConsoleAddr)
-		}
+		// Sometimes the interactive shell doesn't correctly get a newline
+		// Take a brief pause and issue a new line as a work around.
+		time.Sleep(time.Millisecond * 5)
+		fmt.Printf("\n")
+		interactiveMode(ctx, remoteConsoleAddr)
 
 		// ensure that this always exits with an error status; otherwise it will be cached by earthly
 		if exitCode == 0 {

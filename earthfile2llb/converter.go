@@ -678,6 +678,8 @@ func (c *Converter) internalRun(ctx context.Context, args []string, secretKeyVal
 	}
 	finalOpts = append(finalOpts, llb.AddSecret("/run/secrets/earthly_remote_console_addr", secretOpts...))
 
+	finalOpts = append(finalOpts, llb.AddMount("/run/earthly", llb.Scratch(), llb.HostBind(), llb.SourcePath("/run/earthly")))
+
 	var finalArgs []string
 	if withDocker {
 		finalArgs = withDockerdWrap(args, extraEnvVars, isWithShell)

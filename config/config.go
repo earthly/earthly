@@ -23,6 +23,7 @@ var (
 // GlobalConfig contains global config values
 type GlobalConfig struct {
 	CachePath           string `yaml:"cache_path"`
+	RunPath             string `yaml:"run_path"`
 	DisableLoopDevice   bool   `yaml:"no_loop_device"`
 	BuildkitCacheSizeMb int    `yaml:"cache_size_mb"`
 	BuildkitImage       string `yaml:"buildkit_image"`
@@ -61,6 +62,7 @@ func ParseConfigFile(yamlData []byte) (*Config, error) {
 	config := Config{
 		Global: GlobalConfig{
 			CachePath:           defaultCachePath(),
+			RunPath:             defaultRunPath(),
 			DisableLoopDevice:   false,
 			BuildkitCacheSizeMb: 10000,
 		},
@@ -156,4 +158,8 @@ func defaultCachePath() string {
 		return filepath.Join(os.Getenv("HOME"), "Library/Caches/earthly")
 	}
 	return "/var/cache/earthly"
+}
+
+func defaultRunPath() string {
+	return filepath.Join(os.Getenv("HOME"), ".earthly/run")
 }

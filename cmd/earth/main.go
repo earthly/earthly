@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -20,6 +21,7 @@ import (
 	"github.com/earthly/earthly/cleanup"
 	"github.com/earthly/earthly/config"
 	"github.com/earthly/earthly/conslogging"
+	debuggercommon "github.com/earthly/earthly/debugger/common"
 	"github.com/earthly/earthly/debugger/server"
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/earthfile2llb"
@@ -382,7 +384,15 @@ func (app *earthApp) parseConfigFile(context *cli.Context) error {
 		}
 	}
 
+	if _, err := os.Stat(cfg.Global.RunPath); os.IsNotExist(err) {
+		err := os.Mkdir(cfg.Global.RunPath, 0755)
+		if err != nil {
+			return errors.Wrapf(err, "failed to create run directory %s", cfg.Global.RunPath)
+		}
+	}
+
 	app.buildkitdSettings.TempDir = cfg.Global.CachePath
+	app.buildkitdSettings.RunDir = cfg.Global.RunPath
 	app.buildkitdSettings.GitConfig = gitConfig
 	app.buildkitdSettings.GitCredentials = gitCredentials
 	return nil
@@ -539,11 +549,10 @@ func (app *earthApp) actionPrune(c *cli.Context) error {
 }
 
 func (app *earthApp) actionBuild(c *cli.Context) error {
-	var remoteConsoleAddr string
-	var err error
 	if app.interactiveDebugging {
-		debugServer := server.NewDebugServer(c.Context, app.console)
-		remoteConsoleAddr, err = debugServer.Start()
+		sockPath := fmt.Sprintf("%s/debugger.sock", app.buildkitdSettings.RunDir)
+		debugServer := server.NewDebugServer(c.Context, app.console, sockPath)
+		err := debugServer.Start()
 		if err != nil {
 			app.console.Warnf("failed to open remote console listener: %v; interactive debugging disabled\n", err)
 			app.interactiveDebugging = false
@@ -622,9 +631,22 @@ func (app *earthApp) actionBuild(c *cli.Context) error {
 	defer resolver.Close()
 	secrets := app.secrets.Value()
 	//interactive debugger settings are passed as secrets to avoid having it affect the cache hash
-	secrets = append(secrets, fmt.Sprintf("earthly_remote_console_addr=%s", remoteConsoleAddr))
+
+	secretsMap := processSecrets(secrets)
+
+	debuggerSettings := debuggercommon.DebuggerSettings{
+		DebugLevelLogging: app.buildkitdSettings.Debug,
+		Enabled:           app.interactiveDebugging,
+	}
+
+	debuggerSettingsData, err := json.Marshal(&debuggerSettings)
+	if err != nil {
+		return errors.Wrap(err, "debugger settings json marshal")
+	}
+	secretsMap["earthly_debugger_settings"] = debuggerSettingsData
+
 	attachables := []session.Attachable{
-		processSecrets(secrets),
+		secretsprovider.FromMap(secretsMap),
 		authprovider.NewDockerAuthProvider(os.Stderr),
 	}
 	var enttlmnts []entitlements.Entitlement
@@ -645,7 +667,7 @@ func (app *earthApp) actionBuild(c *cli.Context) error {
 	defer cleanCollection.Close()
 	mts, err := earthfile2llb.Earthfile2LLB(
 		c.Context, target, resolver, b.BuildOnlyLastImageAsTar, cleanCollection,
-		nil, varCollection, app.interactiveDebugging, app.debuggerImage, remoteConsoleAddr)
+		nil, varCollection, app.interactiveDebugging, app.debuggerImage, "TODO")
 	if err != nil {
 		return err
 	}
@@ -687,7 +709,7 @@ func (app *earthApp) newBuildkitdClient(ctx context.Context, opts ...client.Clie
 	return bkClient, nil
 }
 
-func processSecrets(secrets []string) session.Attachable {
+func processSecrets(secrets []string) map[string][]byte {
 	finalSecrets := make(map[string][]byte)
 	for _, secret := range secrets {
 		parts := strings.SplitN(secret, "=", 2)
@@ -700,7 +722,7 @@ func processSecrets(secrets []string) session.Attachable {
 			finalSecrets[secret] = []byte(value)
 		}
 	}
-	return secretsprovider.FromMap(finalSecrets)
+	return finalSecrets
 }
 
 func defaultSSHAuthSock() string {
