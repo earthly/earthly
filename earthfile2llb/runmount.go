@@ -5,10 +5,9 @@ import (
 	"path"
 	"strings"
 
-	"github.com/earthly/earthly/llbutil"
-
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/earthfile2llb/dedup"
+	"github.com/earthly/earthly/llbutil"
 	"github.com/moby/buildkit/client/llb"
 	"github.com/pkg/errors"
 )
