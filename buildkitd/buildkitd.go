@@ -153,6 +153,10 @@ func MaybeRestart(ctx context.Context, console conslogging.ConsoleLogger, image 
 	if err != nil {
 		return err
 	}
+	err = RemoveExited(ctx)
+	if err != nil {
+		return err
+	}
 	err = Start(ctx, image, settings, false)
 	if err != nil {
 		return err
