@@ -132,7 +132,7 @@ func parseMount(mount string, target domain.Target, ti dedup.TargetInput, cacheC
 		if mountTarget == "" {
 			return nil, fmt.Errorf("Mount target not specified")
 		}
-		mountOpts = append(mountOpts, llb.BindExperimental(), llb.SourcePath(mountSource))
+		mountOpts = append(mountOpts, llb.HostBind(), llb.SourcePath(mountSource))
 		return []llb.RunOption{llb.AddMount(mountTarget, llb.Scratch(), mountOpts...)}, nil
 	case "cache":
 		if mountTarget == "" {

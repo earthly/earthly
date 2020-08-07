@@ -105,10 +105,10 @@ build-earth-test:
 		--entrypoint \
 		-- +test
 
-bind-mount-test:
+host-bind-test:
 	RUN mkdir /bind-test
 	RUN echo "a" > /bind-test/a.txt
-	COPY bind-mount.earth ./Earthfile
+	COPY host-bind.earth ./Earthfile
 	RUN --privileged \
 		--entrypoint \
 		-- +test

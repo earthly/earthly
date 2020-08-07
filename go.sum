@@ -115,6 +115,8 @@ github.com/dustin/go-humanize v0.0.0-20171111073723-bb3d318650d4 h1:qk/FSDDxo05w
 github.com/dustin/go-humanize v0.0.0-20171111073723-bb3d318650d4/go.mod h1:HtrtbFcZ19U5GC7JDqmcUSB87Iq5E25KnS6fMYU6eOk=
 github.com/earthly/buildkit v0.7.1-0.20200806235120-d35eb9488fcf h1:K/pPZgIn/wtO96UMQBK45MZjoJ4cQ1AUEnmEoHVN1fA=
 github.com/earthly/buildkit v0.7.1-0.20200806235120-d35eb9488fcf/go.mod h1:4otpTPV294PXwTbjBlYnS1Er42Pe6baNDIS84W/Q2PM=
+github.com/earthly/buildkit v0.7.1-0.20200807180600-d4c0ac8de1a0 h1:iv1lWLpxYqGhsCb9VCqA01tePhT8ri09U+y186t97iQ=
+github.com/earthly/buildkit v0.7.1-0.20200807180600-d4c0ac8de1a0/go.mod h1:4otpTPV294PXwTbjBlYnS1Er42Pe6baNDIS84W/Q2PM=
 github.com/envoyproxy/go-control-plane v0.9.1-0.20191026205805-5f8ba28d4473/go.mod h1:YTl/9mNaCwkRvm6d1a2C3ymFceY/DCBVvsKhRF0iEA4=
 github.com/envoyproxy/protoc-gen-validate v0.1.0/go.mod h1:iSmxcyjqTsJpI2R4NaDN7+kN2VEUnK/pcBlmesArF7c=
 github.com/fatih/color v1.9.0 h1:8xPHl4/q1VyqGIPif1F+1V3Y3lSmrq01EabUW3CoW5s=

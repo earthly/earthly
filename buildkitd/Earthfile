@@ -1,6 +1,6 @@
 
 buildkitd:
-    FROM earthly/buildkit:vlad-mount-bind@sha256:5dc8b80ac6b447d95836447c3358a4834cf9f73f1e05c579eaff38c82a5ec9f9
+    FROM earthly/buildkit:earthly-master@sha256:505101caf912109c11e9dc281a2efd5fd4cb9d4999324b1f67f030208a2b9343
 
     # Install some missing binaries.
     RUN apk add --update --no-cache openssh-client pigz xz fuse3 e2fsprogs util-linux
