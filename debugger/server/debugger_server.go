@@ -91,6 +91,8 @@ func (ds *DebugServer) Start() error {
 	go func() {
 		ds.console.Printf("interactive debugger listening on %v\n", ds.addr)
 		defer l.Close()
+		defer fmt.Printf("deleting %v", ds.addr)
+		defer os.Remove(ds.addr)
 		for {
 			// Listen for an incoming connection.
 			conn, err := l.Accept()
@@ -112,6 +114,7 @@ func (ds *DebugServer) Start() error {
 
 // Stop stops the server
 func (ds *DebugServer) Stop() {
+	fmt.Printf("stopping debug server")
 	ds.cancel()
 }
 

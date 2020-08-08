@@ -31,8 +31,6 @@ var (
 	ErrNoShellFound = fmt.Errorf("no shell found")
 )
 
-const remoteConsoleAddr = "/run/earthly/debugger.sock"
-
 func getShellPath() (string, bool) {
 	for _, sh := range []string{
 		"bash", "ksh", "zsh", "sh",
@@ -47,28 +45,33 @@ func getShellPath() (string, bool) {
 func interactiveMode(ctx context.Context, socketPath string) error {
 	log := logging.GetLogger(ctx)
 
+	log.With("socket", socketPath).Debug("connecting to debugger")
 	conn, err := net.Dial("unix", socketPath)
 	if err != nil {
 		return errors.Wrap(err, fmt.Sprintf("failed connecting to %s", socketPath))
 	}
 	defer func() {
+		log.With("socket", socketPath).Debug("closing debugger")
 		err := conn.Close()
 		if err != nil {
 			log.Error(errors.Wrap(err, "failed to close connection"))
 		}
 	}()
 
+	log.Debug("creating yamux client")
 	session, err := yamux.Client(conn, nil)
 	if err != nil {
 		return errors.Wrap(err, "failed creating yamux client")
 	}
 
+	log.Debug("openning pty stream")
 	ptyStream, err := session.Open()
 	if err != nil {
 		return errors.Wrap(err, "failed openning ptyStream session")
 	}
 	ptyStream.Write([]byte{common.PtyStream})
 
+	log.Debug("openning winchange stream")
 	winChangeStream, err := session.Open()
 	if err != nil {
 		return errors.Wrap(err, "failed openning winChangeStream session")
@@ -174,6 +177,10 @@ func main() {
 
 	ctx := context.Background()
 
+	log := logging.GetLogger(ctx)
+
+	log.With("command", args).With("version", Version).With("git sha", GitSha).Debug("running command")
+
 	cmd := exec.Command(args[0], args[1:]...)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
@@ -192,7 +199,10 @@ func main() {
 			// Take a brief pause and issue a new line as a work around.
 			time.Sleep(time.Millisecond * 5)
 			fmt.Printf("\n")
-			interactiveMode(ctx, remoteConsoleAddr)
+			err := interactiveMode(ctx, debuggerSettings.SockPath)
+			if err != nil {
+				log.Error(err)
+			}
 
 			// ensure that this always exits with an error status; otherwise it will be cached by earthly
 			if exitCode == 0 {

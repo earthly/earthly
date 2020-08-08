@@ -6,9 +6,6 @@ ENV DEBCONF_NONINTERACTIVE_SEEN true
 
 RUN apt-get update && apt-get install -y build-essential cmake
 
-RUN --mount=type=bind-experimental,target=/tmpper,source=/tmp \
-    ls /tmpp | grep alex
-
 WORKDIR /code
 
 code:

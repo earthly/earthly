@@ -12,6 +12,7 @@ import (
 	"regexp"
 	"runtime"
 	"strings"
+	"time"
 
 	"github.com/fatih/color"
 
@@ -549,8 +550,9 @@ func (app *earthApp) actionPrune(c *cli.Context) error {
 }
 
 func (app *earthApp) actionBuild(c *cli.Context) error {
+	sockName := fmt.Sprintf("debugger.sock.%d", time.Now().UnixNano())
 	if app.interactiveDebugging {
-		sockPath := fmt.Sprintf("%s/debugger.sock", app.buildkitdSettings.RunDir)
+		sockPath := fmt.Sprintf("%s/%s", app.buildkitdSettings.RunDir, sockName)
 		debugServer := server.NewDebugServer(c.Context, app.console, sockPath)
 		err := debugServer.Start()
 		if err != nil {
@@ -637,13 +639,14 @@ func (app *earthApp) actionBuild(c *cli.Context) error {
 	debuggerSettings := debuggercommon.DebuggerSettings{
 		DebugLevelLogging: app.buildkitdSettings.Debug,
 		Enabled:           app.interactiveDebugging,
+		SockPath:          fmt.Sprintf("/run/earthly/%s", sockName),
 	}
 
 	debuggerSettingsData, err := json.Marshal(&debuggerSettings)
 	if err != nil {
 		return errors.Wrap(err, "debugger settings json marshal")
 	}
-	secretsMap["earthly_debugger_settings"] = debuggerSettingsData
+	secretsMap[debuggercommon.DebuggerSettingsSecretsKey] = debuggerSettingsData
 
 	attachables := []session.Attachable{
 		secretsprovider.FromMap(secretsMap),
