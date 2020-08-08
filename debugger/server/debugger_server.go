@@ -80,17 +80,19 @@ func (ds *DebugServer) windowResizeHandler() error {
 }
 
 // Start starts the debug server listener
-func (ds *DebugServer) Start() (string, error) {
-	l, err := net.Listen("tcp", ds.addr)
+func (ds *DebugServer) Start() error {
+	l, err := net.Listen("unix", ds.addr)
 	if err != nil {
-		return "", errors.Wrap(err, fmt.Sprintf("failed listening on %s", ds.addr))
+		return errors.Wrap(err, fmt.Sprintf("failed listening on %s", ds.addr))
 	}
 
 	go ds.windowResizeHandler()
 
 	go func() {
-		ds.console.Printf("interactive debugger listening\n")
+		ds.console.Printf("interactive debugger listening on %v\n", ds.addr)
 		defer l.Close()
+		defer fmt.Printf("deleting %v", ds.addr)
+		defer os.Remove(ds.addr)
 		for {
 			// Listen for an incoming connection.
 			conn, err := l.Accept()
@@ -107,7 +109,7 @@ func (ds *DebugServer) Start() (string, error) {
 			}
 		}
 	}()
-	return l.Addr().String(), nil
+	return nil
 }
 
 // Stop stops the server
@@ -116,7 +118,7 @@ func (ds *DebugServer) Stop() {
 }
 
 // NewDebugServer returns a new deubgging server
-func NewDebugServer(ctx context.Context, console conslogging.ConsoleLogger) *DebugServer {
+func NewDebugServer(ctx context.Context, console conslogging.ConsoleLogger, socketPath string) *DebugServer {
 	sigs := make(chan os.Signal, 100)
 	signal.Notify(sigs, syscall.SIGWINCH)
 
@@ -126,7 +128,7 @@ func NewDebugServer(ctx context.Context, console conslogging.ConsoleLogger) *Deb
 		sigs:    sigs,
 		ctx:     ctx,
 		cancel:  cancel,
-		addr:    "127.0.0.1:0",
+		addr:    socketPath,
 	}
 
 	return srv

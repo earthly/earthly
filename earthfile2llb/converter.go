@@ -16,6 +16,7 @@ import (
 	"github.com/docker/distribution/reference"
 	"github.com/earthly/earthly/buildcontext"
 	"github.com/earthly/earthly/cleanup"
+	"github.com/earthly/earthly/debugger/common"
 	"github.com/earthly/earthly/dockertar"
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/earthfile2llb/dedup"
@@ -672,11 +673,21 @@ func (c *Converter) internalRun(ctx context.Context, args []string, secretKeyVal
 		}
 	}
 
+	finalOpts = append(finalOpts,
+		llb.AddMount("/usr/bin/earth_debugger",
+			llb.Image(c.debuggerImage, llb.MarkImageInternal, llb.ResolveModePreferLocal, llb.Platform(llbutil.TargetPlatform)),
+			llb.SourcePath("/earth_debugger"),
+			llb.Readonly,
+		),
+	)
+
 	finalOpts = append(finalOpts, llb.AddMount("/usr/bin/earth_debugger", llb.Image(c.debuggerImage), llb.SourcePath("/earth_debugger"), llb.Readonly))
 	secretOpts := []llb.SecretOption{
-		llb.SecretID("earthly_remote_console_addr"),
+		llb.SecretID(common.DebuggerSettingsSecretsKey),
 	}
-	finalOpts = append(finalOpts, llb.AddSecret("/run/secrets/earthly_remote_console_addr", secretOpts...))
+	finalOpts = append(finalOpts, llb.AddSecret(fmt.Sprintf("/run/secrets/%s", common.DebuggerSettingsSecretsKey), secretOpts...))
+
+	finalOpts = append(finalOpts, llb.AddMount("/run/earthly", llb.Scratch(), llb.HostBind(), llb.SourcePath("/run/earthly")))
 
 	var finalArgs []string
 	if withDocker {

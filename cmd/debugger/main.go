@@ -12,15 +12,20 @@ import (
 	"time"
 
 	"github.com/earthly/earthly/debugger/common"
+	"github.com/earthly/earthly/logging"
 
 	"github.com/creack/pty"
 	"github.com/hashicorp/yamux"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 var (
 	// Version is the version of the debugger
 	Version string
+
+	// GitSha is the git sha used to build the debugger
+	GitSha string
 
 	// ErrNoShellFound occurs when the container has no shell
 	ErrNoShellFound = fmt.Errorf("no shell found")
@@ -37,29 +42,36 @@ func getShellPath() (string, bool) {
 	return "", false
 }
 
-func interactiveMode(ctx context.Context, remoteConsoleAddr string) error {
-	conn, err := net.Dial("tcp", remoteConsoleAddr)
+func interactiveMode(ctx context.Context, socketPath string) error {
+	log := logging.GetLogger(ctx)
+
+	log.With("socket", socketPath).Debug("connecting to debugger")
+	conn, err := net.Dial("unix", socketPath)
 	if err != nil {
-		return errors.Wrap(err, fmt.Sprintf("failed connecting to %s", remoteConsoleAddr))
+		return errors.Wrap(err, fmt.Sprintf("failed connecting to %s", socketPath))
 	}
 	defer func() {
+		log.With("socket", socketPath).Debug("closing debugger")
 		err := conn.Close()
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "error closing: %v\n", err)
+			log.Error(errors.Wrap(err, "failed to close connection"))
 		}
 	}()
 
+	log.Debug("creating yamux client")
 	session, err := yamux.Client(conn, nil)
 	if err != nil {
 		return errors.Wrap(err, "failed creating yamux client")
 	}
 
+	log.Debug("openning pty stream")
 	ptyStream, err := session.Open()
 	if err != nil {
 		return errors.Wrap(err, "failed openning ptyStream session")
 	}
 	ptyStream.Write([]byte{common.PtyStream})
 
+	log.Debug("openning winchange stream")
 	winChangeStream, err := session.Open()
 	if err != nil {
 		return errors.Wrap(err, "failed openning winChangeStream session")
@@ -83,14 +95,14 @@ func interactiveMode(ctx context.Context, remoteConsoleAddr string) error {
 	go func() {
 		_, err := io.Copy(ptmx, ptyStream)
 		if err != nil && err != io.EOF {
-			fmt.Fprintf(os.Stderr, "failed copying pty to ptyStream: %v\n", err)
+			log.Error(errors.Wrap(err, "failed copying pty to ptyStream"))
 		}
 		cancel()
 	}()
 	go func() {
 		_, err := io.Copy(ptyStream, ptmx)
 		if err != nil && err != io.EOF {
-			fmt.Fprintf(os.Stderr, "failed copying pty to ptyStream: %v\n", err)
+			log.Error(errors.Wrap(err, "failed copying pty to ptyStream"))
 		}
 		cancel()
 	}()
@@ -105,20 +117,20 @@ func interactiveMode(ctx context.Context, remoteConsoleAddr string) error {
 			if err == io.EOF {
 				return
 			} else if err != nil {
-				fmt.Fprintf(os.Stderr, "failed to read data: %v\n", err)
+				log.Error(errors.Wrap(err, "failed to read data"))
 				break
 			}
 
 			var size pty.Winsize
 			err = json.Unmarshal(data, &size)
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "failed to unmarshal data: %v\n", err)
+				log.Error(errors.Wrap(err, "failed to unmarshal data"))
 				break
 			}
 
 			err = pty.Setsize(ptmx, &size)
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "failed to set window size: %v\n", err)
+				log.Error(errors.Wrap(err, "failed to set window size"))
 				break
 			}
 
@@ -128,34 +140,51 @@ func interactiveMode(ctx context.Context, remoteConsoleAddr string) error {
 
 	<-ctx.Done()
 
-	fmt.Fprintf(os.Stderr, "exiting interactive debugger shell\n")
+	log.Info("exiting interactive debugger shell")
 	return nil
 }
 
-func getRemoteDebuggerAddr() string {
-	remoteConsoleAddr, err := ioutil.ReadFile("/run/secrets/earthly_remote_console_addr")
+func getSettings(path string) (*common.DebuggerSettings, error) {
+	s, err := ioutil.ReadFile(path)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Warning: failed to read earthly_remote_console_addr: %v", err)
+		return nil, errors.Wrap(err, fmt.Sprintf("failed to read %s", path))
 	}
-	return string(remoteConsoleAddr)
+	var data common.DebuggerSettings
+	err = json.Unmarshal(s, &data)
+	if err != nil {
+		return nil, errors.Wrap(err, fmt.Sprintf("failed to unmarshal %s", path))
+	}
+	return &data, nil
 }
 
 func main() {
 	args := os.Args[1:]
 
 	if args[0] == "--version" {
-		fmt.Printf("version: %v\n", Version)
+		fmt.Printf("version: %v-%v\n", Version, GitSha)
 		return
+	}
+
+	debuggerSettings, err := getSettings(fmt.Sprintf("/run/secrets/%s", common.DebuggerSettingsSecretsKey))
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "failed to read settings: %v\n", debuggerSettings)
+		os.Exit(1)
+	}
+
+	if debuggerSettings.DebugLevelLogging {
+		logrus.SetLevel(logrus.DebugLevel)
 	}
 
 	ctx := context.Background()
 
-	remoteConsoleAddr := getRemoteDebuggerAddr()
+	log := logging.GetLogger(ctx)
+
+	log.With("command", args).With("version", Version).With("git sha", GitSha).Debug("running command")
 
 	cmd := exec.Command(args[0], args[1:]...)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-	err := cmd.Run()
+	err = cmd.Run()
 	if err != nil {
 		exitCode := 1
 		if exitErr, ok := err.(*exec.ExitError); ok {
@@ -165,18 +194,21 @@ func main() {
 			fmt.Fprintf(os.Stderr, "Command %v failed with unexpected execution error %v\n", args, err)
 		}
 
-		if remoteConsoleAddr != "" {
+		if debuggerSettings.Enabled {
 			// Sometimes the interactive shell doesn't correctly get a newline
 			// Take a brief pause and issue a new line as a work around.
 			time.Sleep(time.Millisecond * 5)
 			fmt.Printf("\n")
-			interactiveMode(ctx, remoteConsoleAddr)
-		}
+			err := interactiveMode(ctx, debuggerSettings.SockPath)
+			if err != nil {
+				log.Error(err)
+			}
 
-		// ensure that this always exits with an error status; otherwise it will be cached by earthly
-		if exitCode == 0 {
-			exitCode = 1
+			// ensure that this always exits with an error status; otherwise it will be cached by earthly
+			if exitCode == 0 {
+				exitCode = 1
+			}
+			os.Exit(exitCode)
 		}
-		os.Exit(exitCode)
 	}
 }
