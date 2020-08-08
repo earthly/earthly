@@ -192,7 +192,7 @@ func Start(ctx context.Context, image string, settings Settings, reset bool) err
 	}
 	env := os.Environ()
 	cacheMount := fmt.Sprintf("%s:/tmp/earthly:delegated", settings.TempDir)
-	runMount := fmt.Sprintf("%s:/run/earthly:delegated", settings.RunDir)
+	runMount := fmt.Sprintf("%s:/run/earthly:consistent", settings.RunDir)
 	args := []string{
 		"run",
 		"-d",

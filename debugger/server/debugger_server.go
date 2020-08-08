@@ -114,7 +114,6 @@ func (ds *DebugServer) Start() error {
 
 // Stop stops the server
 func (ds *DebugServer) Stop() {
-	fmt.Printf("stopping debug server")
 	ds.cancel()
 }
 
