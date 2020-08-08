@@ -1,4 +1,4 @@
-<h1 align="center"><a href="https://earthly.dev"><img src="img/logo-banner-white-bg.png" alt="Earthly" align="center" /></a></h1>
+<h1 align="center"><a href="https://earthly.dev"><img src="img/logo-banner-white-bg.png" alt="Earthly" align="center" height="400px" /></a></h1>
 
 ![CI](https://github.com/earthly/earthly/workflows/CI/badge.svg)
 [![Go Report Card](https://goreportcard.com/badge/github.com/earthly/earthly)](https://goreportcard.com/report/github.com/earthly/earthly)
