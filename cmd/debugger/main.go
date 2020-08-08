@@ -160,7 +160,7 @@ func main() {
 
 	ctx := context.Background()
 
-	debuggerSettings, err := getSettings("/run/secrets/earthly_debugger_settings")
+	debuggerSettings, err := getSettings(fmt.Sprintf("/run/secrets/%s", common.DebuggerSettingsSecretsKey))
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "failed to read settings: %v\n", debuggerSettings)
 		os.Exit(1)
@@ -184,16 +184,18 @@ func main() {
 			fmt.Fprintf(os.Stderr, "Command %v failed with unexpected execution error %v\n", args, err)
 		}
 
-		// Sometimes the interactive shell doesn't correctly get a newline
-		// Take a brief pause and issue a new line as a work around.
-		time.Sleep(time.Millisecond * 5)
-		fmt.Printf("\n")
-		interactiveMode(ctx, remoteConsoleAddr)
+		if debuggerSettings.Enabled {
+			// Sometimes the interactive shell doesn't correctly get a newline
+			// Take a brief pause and issue a new line as a work around.
+			time.Sleep(time.Millisecond * 5)
+			fmt.Printf("\n")
+			interactiveMode(ctx, remoteConsoleAddr)
 
-		// ensure that this always exits with an error status; otherwise it will be cached by earthly
-		if exitCode == 0 {
-			exitCode = 1
+			// ensure that this always exits with an error status; otherwise it will be cached by earthly
+			if exitCode == 0 {
+				exitCode = 1
+			}
+			os.Exit(exitCode)
 		}
-		os.Exit(exitCode)
 	}
 }
