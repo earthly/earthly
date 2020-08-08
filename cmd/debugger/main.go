@@ -12,10 +12,12 @@ import (
 	"time"
 
 	"github.com/earthly/earthly/debugger/common"
+	"github.com/earthly/earthly/logging"
 
 	"github.com/creack/pty"
 	"github.com/hashicorp/yamux"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 var (
@@ -43,6 +45,8 @@ func getShellPath() (string, bool) {
 }
 
 func interactiveMode(ctx context.Context, socketPath string) error {
+	log := logging.GetLogger(ctx)
+
 	conn, err := net.Dial("unix", socketPath)
 	if err != nil {
 		return errors.Wrap(err, fmt.Sprintf("failed connecting to %s", socketPath))
@@ -50,7 +54,7 @@ func interactiveMode(ctx context.Context, socketPath string) error {
 	defer func() {
 		err := conn.Close()
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "error closing: %v\n", err)
+			log.Error(errors.Wrap(err, "failed to close connection"))
 		}
 	}()
 
@@ -88,14 +92,14 @@ func interactiveMode(ctx context.Context, socketPath string) error {
 	go func() {
 		_, err := io.Copy(ptmx, ptyStream)
 		if err != nil && err != io.EOF {
-			fmt.Fprintf(os.Stderr, "failed copying pty to ptyStream: %v\n", err)
+			log.Error(errors.Wrap(err, "failed copying pty to ptyStream"))
 		}
 		cancel()
 	}()
 	go func() {
 		_, err := io.Copy(ptyStream, ptmx)
 		if err != nil && err != io.EOF {
-			fmt.Fprintf(os.Stderr, "failed copying pty to ptyStream: %v\n", err)
+			log.Error(errors.Wrap(err, "failed copying pty to ptyStream"))
 		}
 		cancel()
 	}()
@@ -110,20 +114,20 @@ func interactiveMode(ctx context.Context, socketPath string) error {
 			if err == io.EOF {
 				return
 			} else if err != nil {
-				fmt.Fprintf(os.Stderr, "failed to read data: %v\n", err)
+				log.Error(errors.Wrap(err, "failed to read data"))
 				break
 			}
 
 			var size pty.Winsize
 			err = json.Unmarshal(data, &size)
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "failed to unmarshal data: %v\n", err)
+				log.Error(errors.Wrap(err, "failed to unmarshal data"))
 				break
 			}
 
 			err = pty.Setsize(ptmx, &size)
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "failed to set window size: %v\n", err)
+				log.Error(errors.Wrap(err, "failed to set window size"))
 				break
 			}
 
@@ -133,7 +137,7 @@ func interactiveMode(ctx context.Context, socketPath string) error {
 
 	<-ctx.Done()
 
-	fmt.Fprintf(os.Stderr, "exiting interactive debugger shell\n")
+	log.Info("exiting interactive debugger shell")
 	return nil
 }
 
@@ -158,8 +162,6 @@ func main() {
 		return
 	}
 
-	ctx := context.Background()
-
 	debuggerSettings, err := getSettings(fmt.Sprintf("/run/secrets/%s", common.DebuggerSettingsSecretsKey))
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "failed to read settings: %v\n", debuggerSettings)
@@ -167,9 +169,10 @@ func main() {
 	}
 
 	if debuggerSettings.DebugLevelLogging {
-		//TODO
-		//log.SetLevel(logrus.DebugLevel)
+		logrus.SetLevel(logrus.DebugLevel)
 	}
+
+	ctx := context.Background()
 
 	cmd := exec.Command(args[0], args[1:]...)
 	cmd.Stdout = os.Stdout

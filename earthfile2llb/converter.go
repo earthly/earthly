@@ -672,6 +672,14 @@ func (c *Converter) internalRun(ctx context.Context, args []string, secretKeyVal
 		}
 	}
 
+	finalOpts = append(finalOpts,
+		llb.AddMount("/usr/bin/earth_debugger",
+			llb.Image(c.debuggerImage, llb.MarkImageInternal, llb.ResolveModePreferLocal, llb.Platform(llbutil.TargetPlatform)),
+			llb.SourcePath("/earth_debugger"),
+			llb.Readonly,
+		),
+	)
+
 	finalOpts = append(finalOpts, llb.AddMount("/usr/bin/earth_debugger", llb.Image(c.debuggerImage), llb.SourcePath("/earth_debugger"), llb.Readonly))
 	secretOpts := []llb.SecretOption{
 		llb.SecretID("earthly_remote_console_addr"),
