@@ -16,6 +16,7 @@ all:
 	BUILD +build-earth-test
 	BUILD +host-bind-test
 	BUILD +star-test
+	BUILD +dockerfile-test
 
 experimental:
 	# TODO: These are troublesome due to vfs driver used in dind. They quickly exhaust disk space.
@@ -172,8 +173,7 @@ docker-pull-test:
 		--entrypoint \
 		-- --allow-privileged +test
 
-# TODO: This does not pass yet (not implemented).
-dockerfile-test-todo:
+dockerfile-test:
 	COPY --dir dockerfile ./
 	WORKDIR /test/dockerfile
 	RUN --privileged \
