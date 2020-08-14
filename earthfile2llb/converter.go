@@ -178,6 +178,9 @@ func (c *Converter) FromDockerfile(ctx context.Context, path string, dfPath stri
 	}
 	newVarCollection, err := c.varCollection.WithParseBuildArgs(
 		buildArgs, c.processNonConstantBuildArgFunc(ctx))
+	if err != nil {
+		return err
+	}
 	caps := solverpb.Caps.CapSet(solverpb.Caps.All())
 	localDirKey := fmt.Sprintf("Dockerfile:%s", path)
 	state, dfImg, err := dockerfile2llb.Dockerfile2LLB(ctx, dfData, dockerfile2llb.ConvertOpt{
