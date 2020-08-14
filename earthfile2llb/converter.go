@@ -169,6 +169,8 @@ func (c *Converter) FromDockerfile(ctx context.Context, path string, dfPath stri
 	path = filepath.Join(filepath.FromSlash(c.mts.FinalTarget().LocalPath), path)
 	if dfPath == "" {
 		dfPath = filepath.Join(path, "Dockerfile")
+	} else {
+		return errors.New("FROM DOCKERFILE -f not yet supported")
 	}
 	dfData, err := ioutil.ReadFile(dfPath)
 	if err != nil {
