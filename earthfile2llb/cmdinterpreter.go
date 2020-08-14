@@ -7,6 +7,7 @@ import (
 
 type commandInterpreter interface {
 	From(ctx context.Context, imageName string, buildArgs []string) error
+	FromDockerfile(ctx context.Context, path string, dfPath string, dfTarget string, buildArgs []string) error
 	CopyArtifact(ctx context.Context, artifactName string, dest string, buildArgs []string, isDir bool) error
 	CopyClassical(ctx context.Context, srcs []string, dest string, isDir bool)
 	Run(ctx context.Context, args []string, mounts []string, secretKeyValues []string, privileged bool, withEntrypoint bool, withDocker bool, isWithShell bool, pushFlag bool) error

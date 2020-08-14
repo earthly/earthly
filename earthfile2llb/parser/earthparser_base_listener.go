@@ -63,6 +63,12 @@ func (s *BaseEarthParserListener) EnterFromStmt(ctx *FromStmtContext) {}
 // ExitFromStmt is called when production fromStmt is exited.
 func (s *BaseEarthParserListener) ExitFromStmt(ctx *FromStmtContext) {}
 
+// EnterFromDockerfileStmt is called when production fromDockerfileStmt is entered.
+func (s *BaseEarthParserListener) EnterFromDockerfileStmt(ctx *FromDockerfileStmtContext) {}
+
+// ExitFromDockerfileStmt is called when production fromDockerfileStmt is exited.
+func (s *BaseEarthParserListener) ExitFromDockerfileStmt(ctx *FromDockerfileStmtContext) {}
+
 // EnterCopyStmt is called when production copyStmt is entered.
 func (s *BaseEarthParserListener) EnterCopyStmt(ctx *CopyStmtContext) {}
 

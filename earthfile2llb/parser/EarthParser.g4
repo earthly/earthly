@@ -14,6 +14,7 @@ stmts: WS? stmt (NL+ WS? stmt)*;
 
 stmt:
 	fromStmt
+	| fromDockerfileStmt
 	| copyStmt
 	| saveStmt
 	| runStmt
@@ -38,6 +39,8 @@ stmt:
 	| genericCommandStmt;
 
 fromStmt: FROM (WS stmtWords)?;
+
+fromDockerfileStmt: FROM_DOCKERFILE (WS stmtWords)?;
 
 copyStmt: COPY (WS stmtWords)?;
 

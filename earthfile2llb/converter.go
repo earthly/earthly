@@ -152,6 +152,17 @@ func (c *Converter) fromTarget(ctx context.Context, targetName string, buildArgs
 	return nil
 }
 
+// FromDockerfile applies the earth FROM DOCKERFILE command.
+func (c *Converter) FromDockerfile(ctx context.Context, path string, dfPath string, dfTarget string, buildArgs []string) error {
+	// path = c.expandArgs(path)
+	// dfPath = c.expandArgs(dfPath)
+	// dfTarget = c.expandArgs(dfTarget)
+	// for i := range buildArgs {
+	// 	buildArgs[i] = c.expandArgs(buildArgs[i])
+	// }
+	return errors.New("not implemented")
+}
+
 // CopyArtifact applies the earth COPY artifact command.
 func (c *Converter) CopyArtifact(ctx context.Context, artifactName string, dest string, buildArgs []string, isDir bool) error {
 	artifactName = c.expandArgs(artifactName)
