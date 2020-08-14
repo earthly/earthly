@@ -23,7 +23,7 @@ import (
 	"github.com/earthly/earthly/config"
 	"github.com/earthly/earthly/conslogging"
 	debuggercommon "github.com/earthly/earthly/debugger/common"
-	"github.com/earthly/earthly/debugger/server"
+	"github.com/earthly/earthly/debugger/terminal"
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/earthfile2llb"
 	"github.com/earthly/earthly/earthfile2llb/variables"
@@ -62,7 +62,6 @@ type cliFlags struct {
 	allowPrivileged      bool
 	buildkitHost         string
 	buildkitdImage       string
-	debuggerImage        string
 	remoteCache          string
 	configPath           string
 	gitUsernameOverride  string
@@ -73,9 +72,6 @@ type cliFlags struct {
 var (
 	// DefaultBuildkitdImage is the default buildkitd image to use.
 	DefaultBuildkitdImage string
-
-	// DefaultDebuggerImage is the default debugger image to use.
-	DefaultDebuggerImage string
 
 	// Version is the version of this CLI app.
 	Version string
@@ -260,14 +256,6 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 			Usage:       "The docker image to use for the buildkit daemon",
 			Destination: &app.buildkitdImage,
 		},
-		&cli.StringFlag{
-			Name:        "debugger-image",
-			Value:       DefaultDebuggerImage,
-			EnvVars:     []string{"EARTHLY_DEBUGGER_IMAGE"},
-			Usage:       "The docker image to use for the interactive debugger process",
-			Destination: &app.debuggerImage,
-			Hidden:      true,
-		},
 		&cli.BoolFlag{
 			Name:        "no-loop-device",
 			EnvVars:     []string{"EARTHLY_NO_LOOP_DEVICE"},
@@ -369,9 +357,6 @@ func (app *earthApp) parseConfigFile(context *cli.Context) error {
 	if !context.IsSet("buildkit-image") && cfg.Global.BuildkitImage != "" {
 		app.buildkitdImage = cfg.Global.BuildkitImage
 	}
-	if !context.IsSet("debugger-image") && cfg.Global.DebuggerImage != "" {
-		app.debuggerImage = cfg.Global.DebuggerImage
-	}
 
 	if app.buildkitdSettings.SSHAuthSock != "" {
 		// EvalSymlinks evaluates "" as "." which then breaks docker volume mounting
@@ -392,6 +377,7 @@ func (app *earthApp) parseConfigFile(context *cli.Context) error {
 		}
 	}
 
+	app.buildkitdSettings.DebuggerPort = cfg.Global.DebuggerPort
 	app.buildkitdSettings.RunDir = cfg.Global.RunPath
 	app.buildkitdSettings.GitConfig = gitConfig
 	app.buildkitdSettings.GitCredentials = gitCredentials
@@ -553,16 +539,6 @@ func (app *earthApp) actionPrune(c *cli.Context) error {
 
 func (app *earthApp) actionBuild(c *cli.Context) error {
 	sockName := fmt.Sprintf("debugger.sock.%d", time.Now().UnixNano())
-	if app.interactiveDebugging {
-		sockPath := fmt.Sprintf("%s/%s", app.buildkitdSettings.RunDir, sockName)
-		debugServer := server.NewDebugServer(c.Context, app.console, sockPath)
-		err := debugServer.Start()
-		if err != nil {
-			app.console.Warnf("failed to open remote console listener: %v; interactive debugging disabled\n", err)
-			app.interactiveDebugging = false
-		}
-		defer debugServer.Stop()
-	}
 
 	if app.imageMode && app.artifactMode {
 		return errors.New("both image and artifact modes cannot be active at the same time")
@@ -664,6 +640,10 @@ func (app *earthApp) actionBuild(c *cli.Context) error {
 		return errors.Wrap(err, "new builder")
 	}
 
+	if app.interactiveDebugging {
+		go terminal.ConnectTerm(c.Context, fmt.Sprintf("127.0.0.1:%d", app.buildkitdSettings.DebuggerPort))
+	}
+
 	varCollection, err := variables.ParseCommandLineBuildArgs(app.buildArgs.Value())
 	if err != nil {
 		return errors.Wrap(err, "parse build args")
@@ -672,7 +652,7 @@ func (app *earthApp) actionBuild(c *cli.Context) error {
 	defer cleanCollection.Close()
 	mts, err := earthfile2llb.Earthfile2LLB(
 		c.Context, target, resolver, b.BuildOnlyLastImageAsTar, cleanCollection,
-		nil, varCollection, app.interactiveDebugging, app.debuggerImage, "TODO")
+		nil, varCollection, app.interactiveDebugging, "TODO")
 	if err != nil {
 		return err
 	}

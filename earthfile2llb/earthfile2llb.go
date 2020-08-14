@@ -17,7 +17,7 @@ import (
 )
 
 // Earthfile2LLB parses a earthfile and executes the statements for a given target.
-func Earthfile2LLB(ctx context.Context, target domain.Target, resolver *buildcontext.Resolver, dockerBuilderFun DockerBuilderFun, cleanCollection *cleanup.Collection, visitedStates map[string][]*SingleTargetStates, varCollection *variables.Collection, interactiveDebugging bool, debuggerImage, remoteConsoleAddr string) (mts *MultiTargetStates, err error) {
+func Earthfile2LLB(ctx context.Context, target domain.Target, resolver *buildcontext.Resolver, dockerBuilderFun DockerBuilderFun, cleanCollection *cleanup.Collection, visitedStates map[string][]*SingleTargetStates, varCollection *variables.Collection, interactiveDebugging bool, remoteConsoleAddr string) (mts *MultiTargetStates, err error) {
 	if visitedStates == nil {
 		visitedStates = make(map[string][]*SingleTargetStates)
 	}
@@ -70,7 +70,7 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, resolver *buildcon
 	}
 	converter, err := NewConverter(
 		targetCtx, bc.Target, resolver, dockerBuilderFun, cleanCollection, bc,
-		visitedStates, varCollection, interactiveDebugging, debuggerImage, remoteConsoleAddr)
+		visitedStates, varCollection, interactiveDebugging, remoteConsoleAddr)
 	if err != nil {
 		return nil, err
 	}

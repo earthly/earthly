@@ -19,6 +19,7 @@ type Settings struct {
 	GitCredentials    []string `json:"gitCredentials"`
 	RunDir            string   `json:"runDir"`
 	Debug             bool     `json:"debug"`
+	DebuggerPort      int      `json:"debuggerPort"`
 }
 
 // Hash returns a secure hash of the settings.

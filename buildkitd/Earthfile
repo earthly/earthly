@@ -15,6 +15,9 @@ buildkitd:
     COPY ./entrypoint.sh /usr/bin/entrypoint.sh
     COPY ./buildkitd.toml.template /etc/buildkitd.toml.template
 
+    COPY ../+shellrepeater/shellrepeater /usr/bin/shellrepeater
+    COPY ../+debugger/earth_debugger /usr/bin/earth_debugger
+
     ENV EARTHLY_RESET_TMP_DIR=false
     ENV EARTHLY_TMP_DIR=/tmp/earthly
     ENV ENABLE_LOOP_DEVICE=true
