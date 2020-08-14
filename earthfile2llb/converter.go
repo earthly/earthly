@@ -10,6 +10,7 @@ import (
 	"math/rand"
 	"os"
 	"path"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -28,6 +29,7 @@ import (
 	"github.com/earthly/earthly/logging"
 	"github.com/moby/buildkit/client/llb"
 	"github.com/moby/buildkit/frontend/dockerfile/dockerfile2llb"
+	solverpb "github.com/moby/buildkit/solver/pb"
 	"github.com/pkg/errors"
 )
 
@@ -154,13 +156,60 @@ func (c *Converter) fromTarget(ctx context.Context, targetName string, buildArgs
 
 // FromDockerfile applies the earth FROM DOCKERFILE command.
 func (c *Converter) FromDockerfile(ctx context.Context, path string, dfPath string, dfTarget string, buildArgs []string) error {
-	// path = c.expandArgs(path)
-	// dfPath = c.expandArgs(dfPath)
-	// dfTarget = c.expandArgs(dfTarget)
-	// for i := range buildArgs {
-	// 	buildArgs[i] = c.expandArgs(buildArgs[i])
-	// }
-	return errors.New("not implemented")
+	path = c.expandArgs(path)
+	dfPath = c.expandArgs(dfPath)
+	dfTarget = c.expandArgs(dfTarget)
+	for i := range buildArgs {
+		buildArgs[i] = c.expandArgs(buildArgs[i])
+	}
+	if c.mts.FinalTarget().IsRemote() {
+		return errors.New("using FROM DOCKERFILE not yet supported for remote targets")
+	}
+	// Make sure path is relative to the target path.
+	path = filepath.Join(filepath.FromSlash(c.mts.FinalTarget().LocalPath), path)
+	if dfPath == "" {
+		dfPath = filepath.Join(path, "Dockerfile")
+	} else {
+		return errors.New("FROM DOCKERFILE -f not yet supported")
+	}
+	dfData, err := ioutil.ReadFile(dfPath)
+	if err != nil {
+		return errors.Wrapf(err, "read file %s", dfPath)
+	}
+	newVarCollection, err := c.varCollection.WithParseBuildArgs(
+		buildArgs, c.processNonConstantBuildArgFunc(ctx))
+	if err != nil {
+		return err
+	}
+	caps := solverpb.Caps.CapSet(solverpb.Caps.All())
+	localDirKey := fmt.Sprintf("Dockerfile:%s", path)
+	state, dfImg, err := dockerfile2llb.Dockerfile2LLB(ctx, dfData, dockerfile2llb.ConvertOpt{
+		MetaResolver:     imr.Default(),
+		Target:           dfTarget,
+		LLBCaps:          &caps,
+		BuildArgs:        newVarCollection.AsMap(),
+		Excludes:         nil, // TODO: Need to process this correctly.
+		ContextLocalName: localDirKey,
+	})
+	if err != nil {
+		return errors.Wrapf(err, "dockerfile2llb %s", dfPath)
+	}
+	// Convert dockerfile2llb image into earthfile2llb image via JSON.
+	imgDt, err := json.Marshal(dfImg)
+	if err != nil {
+		return errors.Wrap(err, "marshal dockerfile image")
+	}
+	var img image.Image
+	err = json.Unmarshal(imgDt, &img)
+	if err != nil {
+		return errors.Wrap(err, "unmarshal dockerfile image")
+	}
+	state2, img2, newVarCollection := c.applyFromImage(*state, &img)
+	c.mts.FinalStates.SideEffectsState = state2
+	c.mts.FinalStates.SideEffectsImage = img2
+	c.mts.FinalStates.LocalDirs[localDirKey] = path
+	c.varCollection = newVarCollection
+	return nil
 }
 
 // CopyArtifact applies the earth COPY artifact command.
@@ -366,7 +415,7 @@ func (c *Converter) Build(ctx context.Context, fullTargetName string, buildArgs 
 	}
 
 	if c.mts.FinalStates.Target.IsRemote() {
-		// Current target is remotee. Turn relative targets into remote
+		// Current target is remote. Turn relative targets into remote
 		// targets.
 		if !target.IsRemote() {
 			target.Registry = c.mts.FinalStates.Target.Registry
@@ -824,6 +873,11 @@ func (c *Converter) internalFromClassical(ctx context.Context, imageName string,
 	}
 	allOpts := append(opts, llb.Platform(llbutil.TargetPlatform))
 	state := llb.Image(ref.String(), allOpts...)
+	state, img2, newVarCollection := c.applyFromImage(state, &img)
+	return state, img2, newVarCollection, nil
+}
+
+func (c *Converter) applyFromImage(state llb.State, img *image.Image) (llb.State, *image.Image, *variables.Collection) {
 	// Reset variables.
 	newVarCollection := c.varCollection.WithResetEnvVars()
 	for _, envVar := range img.Config.Env {
@@ -850,7 +904,7 @@ func (c *Converter) internalFromClassical(ctx context.Context, imageName string,
 	// No need to apply entrypoint, cmd, volumes and others.
 	// The fact that they exist in the image configuration is enough.
 	// TODO: Apply any other settings? Shell?
-	return state, &img, newVarCollection, nil
+	return state, img, newVarCollection
 }
 
 func (c *Converter) expandArgs(word string) string {

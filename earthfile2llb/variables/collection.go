@@ -85,6 +85,18 @@ func (c *Collection) Expand(word string) string {
 	return ret
 }
 
+// AsMap returns the constant variables (active and inactive) as a map.
+func (c *Collection) AsMap() map[string]string {
+	ret := make(map[string]string)
+	for varName, variable := range c.variables {
+		if !variable.IsConstant() {
+			continue
+		}
+		ret[varName] = variable.ConstantValue()
+	}
+	return ret
+}
+
 // SortedActiveVariables returns the active variable names in a sorted slice.
 func (c *Collection) SortedActiveVariables() []string {
 	varNames := make([]string, 0, len(c.activeVariables))
