@@ -10,7 +10,6 @@ import (
 	"math/rand"
 	"os"
 	"path"
-	"path/filepath"
 	"strings"
 	"time"
 
@@ -155,24 +154,42 @@ func (c *Converter) fromTarget(ctx context.Context, targetName string, buildArgs
 }
 
 // FromDockerfile applies the earth FROM DOCKERFILE command.
-func (c *Converter) FromDockerfile(ctx context.Context, path string, dfPath string, dfTarget string, buildArgs []string) error {
-	path = c.expandArgs(path)
+func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPath string, dfTarget string, buildArgs []string) error {
+	contextPath = c.expandArgs(contextPath)
 	dfPath = c.expandArgs(dfPath)
 	dfTarget = c.expandArgs(dfTarget)
 	for i := range buildArgs {
 		buildArgs[i] = c.expandArgs(buildArgs[i])
 	}
-	if c.mts.FinalTarget().IsRemote() {
-		return errors.New("using FROM DOCKERFILE not yet supported for remote targets")
-	}
-	// Make sure path is relative to the target path.
-	path = filepath.Join(filepath.FromSlash(c.mts.FinalTarget().LocalPath), path)
-	if dfPath == "" {
-		dfPath = filepath.Join(path, "Dockerfile")
-	} else {
+	if dfPath != "" {
+		// TODO: It's not yet very clear what -f should do. Should it be referencing a Dockerfile
+		//       from the build context or the build environment?
+		//       Build environment is likely better as it gives maximum flexibility to do
+		//       anything.
 		return errors.New("FROM DOCKERFILE -f not yet supported")
 	}
-	dfData, err := ioutil.ReadFile(dfPath)
+	if contextPath != "." &&
+		!strings.HasPrefix(contextPath, "./") &&
+		!strings.HasPrefix(contextPath, "../") &&
+		!strings.HasPrefix(contextPath, "/") {
+		contextPath = fmt.Sprintf("./%s", contextPath)
+	}
+	dockerfileMetaTarget := domain.Target{
+		Target:    buildcontext.DockerfileMetaTarget,
+		LocalPath: contextPath,
+	}
+	dockerfileMetaTarget, err := domain.JoinTargets(c.mts.FinalTarget(), dockerfileMetaTarget)
+	if err != nil {
+		return errors.Wrap(err, "join targets")
+	}
+	data, err := c.resolver.Resolve(ctx, dockerfileMetaTarget)
+	if err != nil {
+		return errors.Wrap(err, "resolve build context for dockerfile")
+	}
+	for ldk, ld := range data.LocalDirs {
+		c.mts.FinalStates.LocalDirs[ldk] = ld
+	}
+	dfData, err := ioutil.ReadFile(data.BuildFilePath)
 	if err != nil {
 		return errors.Wrapf(err, "read file %s", dfPath)
 	}
@@ -182,14 +199,13 @@ func (c *Converter) FromDockerfile(ctx context.Context, path string, dfPath stri
 		return err
 	}
 	caps := solverpb.Caps.CapSet(solverpb.Caps.All())
-	localDirKey := fmt.Sprintf("Dockerfile:%s", path)
 	state, dfImg, err := dockerfile2llb.Dockerfile2LLB(ctx, dfData, dockerfile2llb.ConvertOpt{
-		MetaResolver:     imr.Default(),
-		Target:           dfTarget,
-		LLBCaps:          &caps,
-		BuildArgs:        newVarCollection.AsMap(),
-		Excludes:         nil, // TODO: Need to process this correctly.
-		ContextLocalName: localDirKey,
+		BuildContext: &data.BuildContext,
+		MetaResolver: imr.Default(),
+		Target:       dfTarget,
+		LLBCaps:      &caps,
+		BuildArgs:    newVarCollection.AsMap(),
+		Excludes:     nil, // TODO: Need to process this correctly.
 	})
 	if err != nil {
 		return errors.Wrapf(err, "dockerfile2llb %s", dfPath)
@@ -207,7 +223,6 @@ func (c *Converter) FromDockerfile(ctx context.Context, path string, dfPath stri
 	state2, img2, newVarCollection := c.applyFromImage(*state, &img)
 	c.mts.FinalStates.SideEffectsState = state2
 	c.mts.FinalStates.SideEffectsImage = img2
-	c.mts.FinalStates.LocalDirs[localDirKey] = path
 	c.varCollection = newVarCollection
 	return nil
 }
@@ -414,38 +429,9 @@ func (c *Converter) Build(ctx context.Context, fullTargetName string, buildArgs 
 		return nil, errors.Wrapf(err, "earth target parse %s", fullTargetName)
 	}
 
-	if c.mts.FinalStates.Target.IsRemote() {
-		// Current target is remote. Turn relative targets into remote
-		// targets.
-		if !target.IsRemote() {
-			target.Registry = c.mts.FinalStates.Target.Registry
-			target.ProjectPath = c.mts.FinalStates.Target.ProjectPath
-			target.Tag = c.mts.FinalStates.Target.Tag
-			if target.IsLocalExternal() {
-				if path.IsAbs(target.LocalPath) {
-					return nil, fmt.Errorf(
-						"Absolute path %s not supported as reference in external target context", target.LocalPath)
-				}
-				target.ProjectPath = path.Join(
-					c.mts.FinalStates.Target.ProjectPath, target.LocalPath)
-				target.LocalPath = ""
-			} else if target.IsLocalInternal() {
-				target.LocalPath = ""
-			}
-		}
-	} else {
-		if target.IsLocalExternal() {
-			if path.IsAbs(target.LocalPath) {
-				target.LocalPath = path.Clean(target.LocalPath)
-			} else {
-				target.LocalPath = path.Join(c.mts.FinalStates.Target.LocalPath, target.LocalPath)
-				if !strings.HasPrefix(target.LocalPath, ".") {
-					target.LocalPath = fmt.Sprintf("./%s", target.LocalPath)
-				}
-			}
-		} else if target.IsLocalInternal() {
-			target.LocalPath = c.mts.FinalStates.Target.LocalPath
-		}
+	target, err = domain.JoinTargets(c.mts.FinalStates.Target, target)
+	if err != nil {
+		return nil, errors.Wrap(err, "join targets")
 	}
 	newVarCollection, err := c.varCollection.WithParseBuildArgs(
 		buildArgs, c.processNonConstantBuildArgFunc(ctx))

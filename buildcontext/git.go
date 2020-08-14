@@ -67,12 +67,12 @@ func (gr *gitResolver) resolveEarthProject(ctx context.Context, target domain.Ta
 
 	// TODO: Apply excludes / .earthignore.
 	localEarthfileDir := filepath.Join(rgp.localGitDir, filepath.FromSlash(subDir))
-	earthfilePath, err := detectEarthfile(target.String(), localEarthfileDir)
+	buildFilePath, err := detectBuildFile(target, localEarthfileDir)
 	if err != nil {
 		return nil, err
 	}
 	return &Data{
-		EarthfilePath: earthfilePath,
+		BuildFilePath: buildFilePath,
 		BuildContext:  buildContext,
 		GitMetadata: &GitMetadata{
 			BaseDir:    "",
@@ -106,7 +106,7 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, target domain.Targ
 	}
 	// Not cached.
 
-	// Copy all Earthfile and build.earth files.
+	// Copy all Earthfile, build.earth and Dockerfile files.
 	gitOpts := []llb.GitOption{
 		llb.WithCustomNamef("[context %s] GIT CLONE %s", gitURL, gitURL),
 		llb.KeepGitDir(),
@@ -116,7 +116,7 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, target domain.Targ
 		llb.Args([]string{
 			"find",
 			"-type", "f",
-			"(", "-name", "build.earth", "-o", "-name", "Earthfile", ")",
+			"(", "-name", "build.earth", "-o", "-name", "Earthfile", "-o", "-name", "Dockerfile", ")",
 			"-exec", "cp", "--parents", "{}", "/dest", ";",
 		}),
 		llb.Dir("/git-src"),
