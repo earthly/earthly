@@ -36,7 +36,10 @@
     --push ./release+release-homebrew
   ```
 * Merge branch `next` into `master`.
-* Change the version for the installation command on the [ci-integration.md](../docs/guides/ci-integration.md) page to point to the latest version.
+* Update the version for the installation command in the following places:
+  * [ci-integration.md](../docs/guides/ci-integration.md)
+  * [circle-integration.md](../docs/examples/circle-integration.md)
+  * [gh-actions-integration.md](../docs/examples/gh-actions-integration.md)
 
 ### VS Code syntax highlighting
 
