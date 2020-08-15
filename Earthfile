@@ -98,9 +98,11 @@ earth:
     ARG EARTHLY_GIT_HASH
     ARG DEFAULT_BUILDKITD_IMAGE=earthly/buildkitd:$VERSION
     ARG DEFAULT_DEBUGGER_IMAGE=earthly/debugger:socket-debugger@sha256:5aede226d821ec854ea62e2136876a75dff124479337ce99d8421be8bb90bb6c
+    ARG BUILD_TAGS=dfrunmount dfrunsecurity dfsecrets dfssh dfrunnetwork
     ARG GOCACHE=/go-cache
     RUN --mount=type=cache,target=$GOCACHE \
         go build \
+            -tags "$BUILD_TAGS" \
             -ldflags "-X main.DefaultBuildkitdImage=$DEFAULT_BUILDKITD_IMAGE -X main.DefaultDebuggerImage=$DEFAULT_DEBUGGER_IMAGE -X main.Version=$VERSION -X main.GitSha=$EARTHLY_GIT_HASH $GO_EXTRA_LDFLAGS" \
             -o build/earth \
             cmd/earth/*.go
