@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/earthly/earthly/conslogging"
@@ -310,10 +312,16 @@ func WaitUntilStopped(ctx context.Context) error {
 		case <-time.After(1 * time.Second):
 			cmd := exec.CommandContext(
 				ctx, "docker", "inspect", "--format={{.State.Running}}", ContainerName)
-			_, err := cmd.CombinedOutput()
+			output, err := cmd.CombinedOutput()
 			if err != nil {
-				// The container has stopped successfully when this command returns an error
-				// (container can no longer be found).
+				// The container can no longer be found at all.
+				return nil
+			}
+			isRunning, err := strconv.ParseBool(strings.TrimSpace(string(output)))
+			if err != nil {
+				return errors.Wrapf(err, "cannot interpret output %s", output)
+			}
+			if !isRunning {
 				return nil
 			}
 		case <-ctxTimeout.Done():
