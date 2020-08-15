@@ -28,34 +28,40 @@ privileged-test:
 	COPY privileged.earth ./Earthfile
 	RUN --privileged \
 		--entrypoint \
+		--mount=type=tmpfs,target=/tmp/earthly \
 		-- --allow-privileged +test
 
 cache-test:
 	COPY cache1.earth ./Earthfile
 	RUN --privileged \
 		--entrypoint \
+		--mount=type=tmpfs,target=/tmp/earthly \
 		-- +test
 	COPY cache2.earth ./Earthfile
 	RUN --privileged \
 		--entrypoint \
+		--mount=type=tmpfs,target=/tmp/earthly \
 		-- +test
 
 git-clone-test:
 	COPY git-clone.earth ./Earthfile
 	RUN --privileged \
 		--entrypoint \
+		--mount=type=tmpfs,target=/tmp/earthly \
 		-- +test
 
 builtin-args-test:
 	COPY builtin-args.earth ./Earthfile
 	RUN --privileged \
 		--entrypoint \
+		--mount=type=tmpfs,target=/tmp/earthly \
 		-- +builtin-args-test
 
 config-test:
 	COPY config.earth ./Earthfile
 	RUN --privileged \
 		--entrypoint \
+		--mount=type=tmpfs,target=/tmp/earthly \
 		-- +test
 
 excludes-test:
@@ -65,6 +71,7 @@ excludes-test:
 	RUN echo 'exclude-me.txt' > .earthignore
 	RUN --privileged \
 		--entrypoint \
+		--mount=type=tmpfs,target=/tmp/earthly \
 		-- +test
 
 secrets-test:
@@ -73,30 +80,35 @@ secrets-test:
 	ENV SECRET2=wrong
 	RUN --privileged \
 		--entrypoint \
+		--mount=type=tmpfs,target=/tmp/earthly \
 		-- --secret SECRET1 --secret SECRET2=bar +test
 
 build-arg-test:
 	COPY build-arg.earth ./Earthfile
 	RUN --privileged \
 		--entrypoint \
+		--mount=type=tmpfs,target=/tmp/earthly \
 		-- +test
 
 lc-test:
 	COPY lc.earth ./Earthfile
 	RUN --privileged \
 		--entrypoint \
+		--mount=type=tmpfs,target=/tmp/earthly \
 		-- +test
 
 from-expose-test:
 	COPY from-expose.earth ./Earthfile
 	RUN --privileged \
 		--entrypoint \
+		--mount=type=tmpfs,target=/tmp/earthly \
 		-- --no-output +test
 
 scratch-test:
 	COPY scratch-test.earth ./Earthfile
 	RUN --privileged \
 		--entrypoint \
+		--mount=type=tmpfs,target=/tmp/earthly \
 		-- --no-output +test
 
 build-earth-test:
@@ -104,6 +116,7 @@ build-earth-test:
 	COPY config.earth ./build.earth
 	RUN --privileged \
 		--entrypoint \
+		--mount=type=tmpfs,target=/tmp/earthly \
 		-- +test
 
 host-bind-test:
@@ -112,6 +125,7 @@ host-bind-test:
 	COPY host-bind.earth ./Earthfile
 	RUN --privileged \
 		--entrypoint \
+		--mount=type=tmpfs,target=/tmp/earthly \
 		-- +test
 	RUN test -f /bind-test/b.txt
 	RUN cat /bind-test/b.txt
@@ -121,6 +135,7 @@ remote-test:
 	ENV GIT_URL_INSTEAD_OF="https://github.com/=git@github.com:"
 	RUN --privileged \
 		--entrypoint \
+		--mount=type=tmpfs,target=/tmp/earthly \
 		-- --no-output github.com/earthly/earthly+earth-docker
 
 # TODO: This does not pass.
@@ -128,6 +143,7 @@ transitive-args-test-todo:
 	COPY transitive-args.earth ./Earthfile
 	RUN --privileged \
 		--entrypoint \
+		--mount=type=tmpfs,target=/tmp/earthly \
 		-- --build-arg SOMEARG=def +test
 	RUN ls
 	RUN test -f ./abc && test -f ./def && test ! -f ./default
@@ -137,6 +153,7 @@ star-test:
 	RUN touch a.txt b.txt c.nottxt
 	RUN --privileged \
 		--entrypoint \
+		--mount=type=tmpfs,target=/tmp/earthly \
 		-- +test
 
 # TODO: This does not pass.
@@ -145,10 +162,12 @@ star-test-todo:
 	RUN touch a.txt b.txt c.nottxt
 	RUN --privileged \
 		--entrypoint \
+		--mount=type=tmpfs,target=/tmp/earthly \
 		-- +test
 	RUN echo "a change" > c.nottxt
 	RUN --privileged \
 		--entrypoint \
+		--mount=type=tmpfs,target=/tmp/earthly \
 		-- +test >output.txt
 	RUN cat output.txt
 	RUN cached_lines=$(cat output.txt | grep cached | wc -l); \
@@ -159,18 +178,21 @@ docker-load-test:
 	COPY docker-load.earth ./Earthfile
 	RUN --privileged \
 		--entrypoint \
+		--mount=type=tmpfs,target=/tmp/earthly \
 		-- --allow-privileged +test
 
 dind-test:
 	COPY dind.earth ./Earthfile
 	RUN --privileged \
 		--entrypoint \
+		--mount=type=tmpfs,target=/tmp/earthly \
 		-- --allow-privileged +test
 
 docker-pull-test:
 	COPY docker-pull.earth ./Earthfile
 	RUN --privileged \
 		--entrypoint \
+		--mount=type=tmpfs,target=/tmp/earthly \
 		-- --allow-privileged +test
 
 dockerfile-test:
@@ -178,4 +200,5 @@ dockerfile-test:
 	WORKDIR /test/dockerfile
 	RUN --privileged \
 		--entrypoint \
+		--mount=type=tmpfs,target=/tmp/earthly \
 		-- --no-output +test
