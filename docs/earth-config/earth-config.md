@@ -11,10 +11,8 @@ The earthly config file is a [yaml](https://yaml.org/) formatted file that looks
 
 ```yaml
 global:
-  cache_path: <cache_path>
   cache_size_mb: <cache_size_mb>
-  no_loop_device: true|false
-  buildkit_image: <buildkit_image>
+  no_loop_device: false|true
 git:
     global:
         url_instead_of: <url_instead_of>
@@ -42,23 +40,17 @@ git:
 
 ## Global configuration reference
 
-### cache_path
-
-Specifies the location where build data is stored. The default location is `/var/cache/earthly` on Linux and `~/Library/Caches/earthly` on macOS.
-
 ### cache_size_mb
 
-Specifies the total size of the buildkit cache, in MB. The buildkit daemon will allocate disk space for this size. Size less than `1000` (1GB) is not recommended. The default size if this option is not set is `10000` (10GB).
+Specifies the total size of the BuildKit cache, in MB. The BuildKit daemon uses this setting to configure automatic garbage collection of old cache.
 
-This setting is only used when the cache is initialized for the first time. In order to apply the setting immediately, issue the following command after changing the configuration
+### no_loop_device (deprecated)
 
-```bash
-earth prune --reset
-```
+When set to true, disables the use of a loop device for storing the cache. This setting is now set to `true` by default and will be removed in a future version of Earthly.
 
-### no_loop_device
+### cache_path (obsolete)
 
-When set to true, disables the use of a loop device for storing the cache. By default, Earthly uses a file mounted as a loop device, so that it can control the type of filesystem used for the cache, in order to ensure that overlayfs can be mounted on top of it. If you are already using a filesystem compatible with overlayfs, then you can disable the loop device.
+This option is obsolete and it is ignored. Earthly cache has moved to a Docker volume. For more information see the [page on managing cache](../guides/cache.md).
 
 ## Git configuration reference
 
@@ -66,7 +58,7 @@ The git configuration is split up into global config options, or site-specific o
 
 ### global options
 
-The global git options 
+The global git options.
 
 #### url_instead_of
 
