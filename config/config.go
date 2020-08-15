@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"runtime"
 	"sort"
 	"strings"
 
@@ -22,12 +21,14 @@ var (
 
 // GlobalConfig contains global config values
 type GlobalConfig struct {
-	CachePath           string `yaml:"cache_path"`
 	RunPath             string `yaml:"run_path"`
 	DisableLoopDevice   bool   `yaml:"no_loop_device"`
 	BuildkitCacheSizeMb int    `yaml:"cache_size_mb"`
 	BuildkitImage       string `yaml:"buildkit_image"`
 	DebuggerImage       string `yaml:"debugger_image"`
+
+	// Obsolete.
+	CachePath string `yaml:"cache_path"`
 }
 
 // GitConfig contains git-specific config values
@@ -61,7 +62,6 @@ func ensureTransport(s, transport string) (string, error) {
 func ParseConfigFile(yamlData []byte) (*Config, error) {
 	config := Config{
 		Global: GlobalConfig{
-			CachePath:           defaultCachePath(),
 			RunPath:             defaultRunPath(),
 			DisableLoopDevice:   false,
 			BuildkitCacheSizeMb: 10000,
@@ -151,13 +151,6 @@ func CreateGitConfig(config *Config) (string, []string, error) {
 	gitConfig := strings.Join(lines, "\n")
 
 	return gitConfig, credentials, nil
-}
-
-func defaultCachePath() string {
-	if runtime.GOOS == "darwin" {
-		return filepath.Join(os.Getenv("HOME"), "Library/Caches/earthly")
-	}
-	return "/var/cache/earthly"
 }
 
 func defaultRunPath() string {

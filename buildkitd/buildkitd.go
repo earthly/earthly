@@ -17,6 +17,8 @@ import (
 const (
 	// ContainerName is the name of the buildkitd container.
 	ContainerName = "earthly-buildkitd"
+	// VolumeName is the name of the docker volume used for storing the cache.
+	VolumeName = "earthly-cache"
 )
 
 // Address is the address at which the daemon is available.
@@ -191,12 +193,11 @@ func Start(ctx context.Context, image string, settings Settings, reset bool) err
 		return err
 	}
 	env := os.Environ()
-	cacheMount := fmt.Sprintf("%s:/tmp/earthly:delegated", settings.TempDir)
 	runMount := fmt.Sprintf("%s:/run/earthly:consistent", settings.RunDir)
 	args := []string{
 		"run",
 		"-d",
-		"-v", cacheMount,
+		"-v", fmt.Sprintf("%s:/tmp/earthly:rw", VolumeName),
 		"-v", runMount,
 		"-e", fmt.Sprintf("ENABLE_LOOP_DEVICE=%t", !settings.DisableLoopDevice),
 		"-e", fmt.Sprintf("FORCE_LOOP_DEVICE=%t", !settings.DisableLoopDevice),

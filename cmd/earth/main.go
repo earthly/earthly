@@ -392,7 +392,6 @@ func (app *earthApp) parseConfigFile(context *cli.Context) error {
 		}
 	}
 
-	app.buildkitdSettings.TempDir = cfg.Global.CachePath
 	app.buildkitdSettings.RunDir = cfg.Global.RunPath
 	app.buildkitdSettings.GitConfig = gitConfig
 	app.buildkitdSettings.GitCredentials = gitCredentials
@@ -401,6 +400,9 @@ func (app *earthApp) parseConfigFile(context *cli.Context) error {
 }
 
 func (app *earthApp) processDeprecatedCommandOptions(context *cli.Context, cfg *config.Config) error {
+	if cfg.Global.CachePath != "" {
+		app.console.Warnf("Warning: the setting cache_path is now obsolete and will be ignored")
+	}
 
 	// command line overrides the config file
 	if app.gitUsernameOverride != "" || app.gitPasswordOverride != "" {
