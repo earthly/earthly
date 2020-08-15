@@ -17,7 +17,7 @@ type Settings struct {
 	DisableLoopDevice bool     `json:"disableLoopDevice"`
 	GitConfig         string   `json:"gitConfig"`
 	GitCredentials    []string `json:"gitCredentials"`
-	TempDir           string   `json:"tmpDir"`
+	RunDir            string   `json:"runDir"`
 	Debug             bool     `json:"debug"`
 }
 

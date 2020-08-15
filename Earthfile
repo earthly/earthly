@@ -69,9 +69,10 @@ debugger:
     ARG GOCACHE=/go-cache
     ARG EARTHLY_TARGET_TAG
     ARG VERSION=$EARTHLY_TARGET_TAG
+    ARG EARTHLY_GIT_HASH
     RUN --mount=type=cache,target=$GOCACHE \
         go build \
-            -ldflags "-d -X main.Version=$VERSION $GO_EXTRA_LDFLAGS" \
+            -ldflags "-d -X main.Version=$VERSION $GO_EXTRA_LDFLAGS -X main.GitSha=$EARTHLY_GIT_HASH $GO_EXTRA_LDFLAGS" \
             -tags netgo -installsuffix netgo \
             -o build/earth_debugger \
             cmd/debugger/*.go
@@ -96,7 +97,7 @@ earth:
     ARG VERSION=$EARTHLY_TARGET_TAG_DOCKER
     ARG EARTHLY_GIT_HASH
     ARG DEFAULT_BUILDKITD_IMAGE=earthly/buildkitd:$VERSION
-    ARG DEFAULT_DEBUGGER_IMAGE=earthly/debugger:interactive-debugger-pty@sha256:a0314de585cc3ba5b44a032f54bd31c61a8fdc13b05267666168069e8932eb25
+    ARG DEFAULT_DEBUGGER_IMAGE=earthly/debugger:socket-debugger@sha256:5aede226d821ec854ea62e2136876a75dff124479337ce99d8421be8bb90bb6c
     ARG GOCACHE=/go-cache
     RUN --mount=type=cache,target=$GOCACHE \
         go build \

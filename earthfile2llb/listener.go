@@ -137,6 +137,36 @@ func (l *listener) ExitFromStmt(c *parser.FromStmtContext) {
 	}
 }
 
+func (l *listener) ExitFromDockerfileStmt(c *parser.FromDockerfileStmtContext) {
+	if l.shouldSkip() {
+		return
+	}
+	if l.pushOnlyAllowed {
+		l.err = fmt.Errorf("no non-push commands allowed after a --push: %s", c.GetText())
+		return
+	}
+	fs := flag.NewFlagSet("FROM DOCKERFILE", flag.ContinueOnError)
+	buildArgs := new(StringSliceFlag)
+	fs.Var(buildArgs, "build-arg", "")
+	dfTarget := fs.String("target", "", "")
+	dfPath := fs.String("f", "", "")
+	err := fs.Parse(l.stmtWords)
+	if err != nil {
+		l.err = errors.Wrapf(err, "invalid FROM DOCKERFILE arguments %v", l.stmtWords)
+		return
+	}
+	if fs.NArg() != 1 {
+		l.err = errors.New("invalid number of arguments for FROM DOCKERFILE")
+		return
+	}
+	path := fs.Arg(0)
+	err = l.interpreter.FromDockerfile(l.ctx, path, *dfPath, *dfTarget, buildArgs.Args)
+	if err != nil {
+		l.err = errors.Wrap(err, "from dockerfile")
+		return
+	}
+}
+
 func (l *listener) ExitCopyStmt(c *parser.CopyStmtContext) {
 	if l.shouldSkip() {
 		return

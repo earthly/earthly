@@ -137,3 +137,41 @@ func ParseTarget(fullTargetName string) (Target, error) {
 		}, nil
 	}
 }
+
+// JoinTargets returns the result of interpreting target2 as relative to target1.
+func JoinTargets(target1 Target, target2 Target) (Target, error) {
+	ret := target2
+	if target1.IsRemote() {
+		// target1 is remote. Turn relative targets into remote targets.
+		if !ret.IsRemote() {
+			ret.Registry = target1.Registry
+			ret.ProjectPath = target1.ProjectPath
+			ret.Tag = target1.Tag
+			if ret.IsLocalExternal() {
+				if path.IsAbs(ret.LocalPath) {
+					return Target{}, fmt.Errorf(
+						"Absolute path %s not supported as reference in external target context", ret.LocalPath)
+				}
+				ret.ProjectPath = path.Join(
+					target1.ProjectPath, ret.LocalPath)
+				ret.LocalPath = ""
+			} else if ret.IsLocalInternal() {
+				ret.LocalPath = ""
+			}
+		}
+	} else {
+		if ret.IsLocalExternal() {
+			if path.IsAbs(ret.LocalPath) {
+				ret.LocalPath = path.Clean(ret.LocalPath)
+			} else {
+				ret.LocalPath = path.Join(target1.LocalPath, ret.LocalPath)
+				if !strings.HasPrefix(ret.LocalPath, ".") {
+					ret.LocalPath = fmt.Sprintf("./%s", ret.LocalPath)
+				}
+			}
+		} else if ret.IsLocalInternal() {
+			ret.LocalPath = target1.LocalPath
+		}
+	}
+	return ret, nil
+}

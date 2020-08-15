@@ -2,161 +2,201 @@ FROM ../..+earth-docker
 WORKDIR /test
 
 all:
-	BUILD +privileged-test
-	BUILD +cache-test
-	BUILD +git-clone-test
-	BUILD +builtin-args-test
-	BUILD +config-test
-	BUILD +excludes-test
-	BUILD +secrets-test
-	BUILD +build-arg-test
-	BUILD +lc-test
-	BUILD +from-expose-test
-	BUILD +scratch-test
-	BUILD +build-earth-test
-	BUILD +star-test
+    BUILD +privileged-test
+    BUILD +cache-test
+    BUILD +git-clone-test
+    BUILD +builtin-args-test
+    BUILD +config-test
+    BUILD +excludes-test
+    BUILD +secrets-test
+    BUILD +build-arg-test
+    BUILD +lc-test
+    BUILD +from-expose-test
+    BUILD +scratch-test
+    BUILD +build-earth-test
+    BUILD +host-bind-test
+    BUILD +star-test
+    BUILD +dockerfile-test
 
 experimental:
-	# TODO: These are troublesome due to vfs driver used in dind. They quickly exhaust disk space.
-	BUILD +docker-load-test
-	BUILD +dind-test
-	BUILD +docker-pull-test
+    # TODO: These are troublesome due to vfs driver used in dind. They quickly exhaust disk space.
+    BUILD +docker-load-test
+    BUILD +dind-test
+    BUILD +docker-pull-test
 
 privileged-test:
-	COPY privileged.earth ./Earthfile
-	RUN --privileged \
-		--entrypoint \
-		-- --allow-privileged +test
+    COPY privileged.earth ./Earthfile
+    RUN --privileged \
+        --entrypoint \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        -- --allow-privileged +test
 
 cache-test:
-	COPY cache1.earth ./Earthfile
-	RUN --privileged \
-		--entrypoint \
-		-- +test
-	COPY cache2.earth ./Earthfile
-	RUN --privileged \
-		--entrypoint \
-		-- +test
+    COPY cache1.earth ./Earthfile
+    RUN --privileged \
+        --entrypoint \
+        -- +test
+    COPY cache2.earth ./Earthfile
+    RUN --privileged \
+        --entrypoint \
+        -- +test
 
 git-clone-test:
-	COPY git-clone.earth ./Earthfile
-	RUN --privileged \
-		--entrypoint \
-		-- +test
+    COPY git-clone.earth ./Earthfile
+    RUN --privileged \
+        --entrypoint \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        -- +test
 
 builtin-args-test:
-	COPY builtin-args.earth ./Earthfile
-	RUN --privileged \
-		--entrypoint \
-		-- +builtin-args-test
+    COPY builtin-args.earth ./Earthfile
+    RUN --privileged \
+        --entrypoint \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        -- +builtin-args-test
 
 config-test:
-	COPY config.earth ./Earthfile
-	RUN --privileged \
-		--entrypoint \
-		-- +test
+    COPY config.earth ./Earthfile
+    RUN --privileged \
+        --entrypoint \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        -- +test
 
 excludes-test:
-	COPY excludes.earth ./Earthfile
-	RUN touch exclude-me.txt
-	RUN touch do-not-exclude-me.txt
-	RUN echo 'exclude-me.txt' > .earthignore
-	RUN --privileged \
-		--entrypoint \
-		-- +test
+    COPY excludes.earth ./Earthfile
+    RUN touch exclude-me.txt
+    RUN touch do-not-exclude-me.txt
+    RUN echo 'exclude-me.txt' > .earthignore
+    RUN --privileged \
+        --entrypoint \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        -- +test
 
 secrets-test:
-	COPY secrets.earth ./Earthfile
-	ENV SECRET1=foo
-	ENV SECRET2=wrong
-	RUN --privileged \
-		--entrypoint \
-		-- --secret SECRET1 --secret SECRET2=bar +test
+    COPY secrets.earth ./Earthfile
+    ENV SECRET1=foo
+    ENV SECRET2=wrong
+    RUN --privileged \
+        --entrypoint \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        -- --secret SECRET1 --secret SECRET2=bar +test
 
 build-arg-test:
-	COPY build-arg.earth ./Earthfile
-	RUN --privileged \
-		--entrypoint \
-		-- +test
+    COPY build-arg.earth ./Earthfile
+    RUN --privileged \
+        --entrypoint \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        -- +test
 
 lc-test:
-	COPY lc.earth ./Earthfile
-	RUN --privileged \
-		--entrypoint \
-		-- +test
+    COPY lc.earth ./Earthfile
+    RUN --privileged \
+        --entrypoint \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        -- +test
 
 from-expose-test:
-	COPY from-expose.earth ./Earthfile
-	RUN --privileged \
-		--entrypoint \
-		-- --no-output +test
+    COPY from-expose.earth ./Earthfile
+    RUN --privileged \
+        --entrypoint \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        -- --no-output +test
 
 scratch-test:
-	COPY scratch-test.earth ./Earthfile
-	RUN --privileged \
-		--entrypoint \
-		-- --no-output +test
+    COPY scratch-test.earth ./Earthfile
+    RUN --privileged \
+        --entrypoint \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        -- --no-output +test
 
 build-earth-test:
-	# Test that build.earth is supported.
-	COPY config.earth ./build.earth
-	RUN --privileged \
-		--entrypoint \
-		-- +test
+    # Test that build.earth is supported.
+    COPY config.earth ./build.earth
+    RUN --privileged \
+        --entrypoint \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        -- +test
+
+host-bind-test:
+    RUN mkdir /bind-test
+    RUN echo "a" > /bind-test/a.txt
+    COPY host-bind.earth ./Earthfile
+    RUN --privileged \
+        --entrypoint \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        -- +test
+    RUN test -f /bind-test/b.txt
+    RUN cat /bind-test/b.txt
 
 # TODO: This does not pass, due to space on device limitation (dind caused).
 remote-test:
-	ENV GIT_URL_INSTEAD_OF="https://github.com/=git@github.com:"
-	RUN --privileged \
-		--entrypoint \
-		-- --no-output github.com/earthly/earthly+earth-docker
+    ENV GIT_URL_INSTEAD_OF="https://github.com/=git@github.com:"
+    RUN --privileged \
+        --entrypoint \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        -- --no-output github.com/earthly/earthly+earth-docker
 
 # TODO: This does not pass.
 transitive-args-test-todo:
-	COPY transitive-args.earth ./Earthfile
-	RUN --privileged \
-		--entrypoint \
-		-- --build-arg SOMEARG=def +test
-	RUN ls
-	RUN test -f ./abc && test -f ./def && test ! -f ./default
+    COPY transitive-args.earth ./Earthfile
+    RUN --privileged \
+        --entrypoint \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        -- --build-arg SOMEARG=def +test
+    RUN ls
+    RUN test -f ./abc && test -f ./def && test ! -f ./default
 
 star-test:
-	COPY star.earth ./Earthfile
-	RUN touch a.txt b.txt c.nottxt
-	RUN --privileged \
-		--entrypoint \
-		-- +test
+    COPY star.earth ./Earthfile
+    RUN touch a.txt b.txt c.nottxt
+    RUN --privileged \
+        --entrypoint \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        -- +test
 
 # TODO: This does not pass.
 star-test-todo:
-	COPY star.earth ./Earthfile
-	RUN touch a.txt b.txt c.nottxt
-	RUN --privileged \
-		--entrypoint \
-		-- +test
-	RUN echo "a change" > c.nottxt
-	RUN --privileged \
-		--entrypoint \
-		-- +test >output.txt
-	RUN cat output.txt
-	RUN cached_lines=$(cat output.txt | grep cached | wc -l); \
-		echo "cached_lines=$cached_lines"; \
-		test "$cached_lines" == "6"
+    COPY star.earth ./Earthfile
+    RUN touch a.txt b.txt c.nottxt
+    RUN --privileged \
+        --entrypoint \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        -- +test
+    RUN echo "a change" > c.nottxt
+    RUN --privileged \
+        --entrypoint \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        -- +test >output.txt
+    RUN cat output.txt
+    RUN cached_lines=$(cat output.txt | grep cached | wc -l); \
+        echo "cached_lines=$cached_lines"; \
+        test "$cached_lines" == "6"
 
 docker-load-test:
-	COPY docker-load.earth ./Earthfile
-	RUN --privileged \
-		--entrypoint \
-		-- --allow-privileged +test
+    COPY docker-load.earth ./Earthfile
+    RUN --privileged \
+        --entrypoint \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        -- --allow-privileged +test
 
 dind-test:
-	COPY dind.earth ./Earthfile
-	RUN --privileged \
-		--entrypoint \
-		-- --allow-privileged +test
+    COPY dind.earth ./Earthfile
+    RUN --privileged \
+        --entrypoint \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        -- --allow-privileged +test
 
 docker-pull-test:
-	COPY docker-pull.earth ./Earthfile
-	RUN --privileged \
-		--entrypoint \
-		-- --allow-privileged +test
+    COPY docker-pull.earth ./Earthfile
+    RUN --privileged \
+        --entrypoint \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        -- --allow-privileged +test
+
+dockerfile-test:
+    COPY --dir dockerfile ./
+    WORKDIR /test/dockerfile
+    RUN --privileged \
+        --entrypoint \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        -- --no-output +test

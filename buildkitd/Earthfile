@@ -1,6 +1,6 @@
 
 buildkitd:
-    FROM earthly/buildkit:earthly-master@sha256:40303c69b24c23c63c417efac1b6641e53ecc526598edf101a965c3dc54dddc3
+    FROM earthly/buildkit:earthly-master@sha256:505101caf912109c11e9dc281a2efd5fd4cb9d4999324b1f67f030208a2b9343
 
     # Install some missing binaries.
     RUN apk add --update --no-cache openssh-client pigz xz fuse3 e2fsprogs util-linux
@@ -21,6 +21,7 @@ buildkitd:
     ENV BUILDKIT_DEBUG=false
     # 10GB
     ENV CACHE_SIZE_MB=10000
+    VOLUME /tmp/earthly
     ENTRYPOINT ["/usr/bin/entrypoint.sh", "buildkitd", "--config=/etc/buildkitd.toml"]
     ARG EARTHLY_TARGET_TAG
     ARG EARTHLY_TARGET_TAG_DOCKER=$EARTHLY_TARGET_TAG

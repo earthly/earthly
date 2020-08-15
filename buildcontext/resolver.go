@@ -9,10 +9,14 @@ import (
 	"github.com/moby/buildkit/client/llb"
 )
 
+// DockerfileMetaTarget is a target name which signals the resolver that the build file is a
+// dockerfile. The DockerfileMetaTarget is really not a valid Earthly target otherwise.
+const DockerfileMetaTarget = "@dockerfile"
+
 // Data represents a resolved target's build context data.
 type Data struct {
-	// EarthfilePath is the local path where the Earthfile can be found.
-	EarthfilePath string
+	// BuildFilePath is the local path where the Earthfile or Dockerfile can be found.
+	BuildFilePath string
 	// BuildContext is the state to use for the build.
 	BuildContext llb.State
 	// GitMetadata contains git metadata information.

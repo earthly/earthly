@@ -64,7 +64,7 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, resolver *buildcon
 	targetCtx := logging.With(ctx, "target", target)
 	errorListener := antlrhandler.NewReturnErrorListener()
 	errorStrategy := antlrhandler.NewReturnErrorStrategy()
-	tree, err := newEarthfileTree(bc.EarthfilePath, errorListener, errorStrategy)
+	tree, err := newEarthfileTree(bc.BuildFilePath, errorListener, errorStrategy)
 	if err != nil {
 		return nil, err
 	}

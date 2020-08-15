@@ -1,4 +1,4 @@
-<h1 align="center"><a href="https://earthly.dev"><img src="img/logo-banner-white-bg.png" alt="Earthly" align="center" /></a></h1>
+<h1 align="center"><a href="https://earthly.dev"><img src="img/logo-banner-white-bg.png" alt="Earthly" align="center" width="700px" /></a></h1>
 
 ![CI](https://github.com/earthly/earthly/workflows/CI/badge.svg)
 [![Go Report Card](https://goreportcard.com/badge/github.com/earthly/earthly)](https://goreportcard.com/report/github.com/earthly/earthly)
@@ -66,7 +66,7 @@ Taking some of the best ideas from Makefiles and Dockerfiles, Earthly combines t
 <br/>
 <h2 align="center">Where Does Earthly Fit?</h2>
 
-<div align="center"><img src="docs/img/integration-diagram.png" alt="Earthly fits between language-specific tooling and the CI" height="400px" /></div>
+<div align="center"><img src="docs/img/integration-diagram.png" alt="Earthly fits between language-specific tooling and the CI" width="700px" /></div>
 <br/>
 
 Earthly is meant to be used both on your development machine and in CI. It can run on top of popular CI systems (like Jenkins, [Circle](https://docs.earthly.dev/examples/circle-integration), [GitHub Actions](https://docs.earthly.dev/examples/gh-actions-integration)). It is typically the layer between language-specific tooling (like maven, gradle, npm, pip, go build) and the CI build spec.
@@ -331,7 +331,7 @@ As an example, Earthly introduces a richer target, artifact and image [referenci
 
 ### How do I tell apart classical Dockerfile commands from Earthly commands?
 
-Check out the [Earthfile reference doc page](https://docs.earthly.dev/earthfile). It has all the commands there and it specifies which commands are the same as Dockerfile commands and which are new. A summary of the differences are also shown [above here](#commands-beyond-dockerfile-syntax).
+Check out the [Earthfile reference doc page](https://docs.earthly.dev/earthfile). It has all the commands there and it specifies which commands are the same as Dockerfile commands and which are new.
 
 ### Can Earthly build Dockerfiles?
 

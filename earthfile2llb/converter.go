@@ -16,6 +16,7 @@ import (
 	"github.com/docker/distribution/reference"
 	"github.com/earthly/earthly/buildcontext"
 	"github.com/earthly/earthly/cleanup"
+	"github.com/earthly/earthly/debugger/common"
 	"github.com/earthly/earthly/dockertar"
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/earthfile2llb/dedup"
@@ -27,6 +28,7 @@ import (
 	"github.com/earthly/earthly/logging"
 	"github.com/moby/buildkit/client/llb"
 	"github.com/moby/buildkit/frontend/dockerfile/dockerfile2llb"
+	solverpb "github.com/moby/buildkit/solver/pb"
 	"github.com/pkg/errors"
 )
 
@@ -148,6 +150,80 @@ func (c *Converter) fromTarget(ctx context.Context, targetName string, buildArgs
 		c.mts.FinalStates.LocalDirs[dirKey] = dirValue
 	}
 	c.mts.FinalStates.SideEffectsImage = saveImage.Image.Clone()
+	return nil
+}
+
+// FromDockerfile applies the earth FROM DOCKERFILE command.
+func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPath string, dfTarget string, buildArgs []string) error {
+	contextPath = c.expandArgs(contextPath)
+	dfPath = c.expandArgs(dfPath)
+	dfTarget = c.expandArgs(dfTarget)
+	for i := range buildArgs {
+		buildArgs[i] = c.expandArgs(buildArgs[i])
+	}
+	if dfPath != "" {
+		// TODO: It's not yet very clear what -f should do. Should it be referencing a Dockerfile
+		//       from the build context or the build environment?
+		//       Build environment is likely better as it gives maximum flexibility to do
+		//       anything.
+		return errors.New("FROM DOCKERFILE -f not yet supported")
+	}
+	if contextPath != "." &&
+		!strings.HasPrefix(contextPath, "./") &&
+		!strings.HasPrefix(contextPath, "../") &&
+		!strings.HasPrefix(contextPath, "/") {
+		contextPath = fmt.Sprintf("./%s", contextPath)
+	}
+	dockerfileMetaTarget := domain.Target{
+		Target:    buildcontext.DockerfileMetaTarget,
+		LocalPath: contextPath,
+	}
+	dockerfileMetaTarget, err := domain.JoinTargets(c.mts.FinalTarget(), dockerfileMetaTarget)
+	if err != nil {
+		return errors.Wrap(err, "join targets")
+	}
+	data, err := c.resolver.Resolve(ctx, dockerfileMetaTarget)
+	if err != nil {
+		return errors.Wrap(err, "resolve build context for dockerfile")
+	}
+	for ldk, ld := range data.LocalDirs {
+		c.mts.FinalStates.LocalDirs[ldk] = ld
+	}
+	dfData, err := ioutil.ReadFile(data.BuildFilePath)
+	if err != nil {
+		return errors.Wrapf(err, "read file %s", dfPath)
+	}
+	newVarCollection, err := c.varCollection.WithParseBuildArgs(
+		buildArgs, c.processNonConstantBuildArgFunc(ctx))
+	if err != nil {
+		return err
+	}
+	caps := solverpb.Caps.CapSet(solverpb.Caps.All())
+	state, dfImg, err := dockerfile2llb.Dockerfile2LLB(ctx, dfData, dockerfile2llb.ConvertOpt{
+		BuildContext: &data.BuildContext,
+		MetaResolver: imr.Default(),
+		Target:       dfTarget,
+		LLBCaps:      &caps,
+		BuildArgs:    newVarCollection.AsMap(),
+		Excludes:     nil, // TODO: Need to process this correctly.
+	})
+	if err != nil {
+		return errors.Wrapf(err, "dockerfile2llb %s", dfPath)
+	}
+	// Convert dockerfile2llb image into earthfile2llb image via JSON.
+	imgDt, err := json.Marshal(dfImg)
+	if err != nil {
+		return errors.Wrap(err, "marshal dockerfile image")
+	}
+	var img image.Image
+	err = json.Unmarshal(imgDt, &img)
+	if err != nil {
+		return errors.Wrap(err, "unmarshal dockerfile image")
+	}
+	state2, img2, newVarCollection := c.applyFromImage(*state, &img)
+	c.mts.FinalStates.SideEffectsState = state2
+	c.mts.FinalStates.SideEffectsImage = img2
+	c.varCollection = newVarCollection
 	return nil
 }
 
@@ -353,38 +429,9 @@ func (c *Converter) Build(ctx context.Context, fullTargetName string, buildArgs 
 		return nil, errors.Wrapf(err, "earth target parse %s", fullTargetName)
 	}
 
-	if c.mts.FinalStates.Target.IsRemote() {
-		// Current target is remotee. Turn relative targets into remote
-		// targets.
-		if !target.IsRemote() {
-			target.Registry = c.mts.FinalStates.Target.Registry
-			target.ProjectPath = c.mts.FinalStates.Target.ProjectPath
-			target.Tag = c.mts.FinalStates.Target.Tag
-			if target.IsLocalExternal() {
-				if path.IsAbs(target.LocalPath) {
-					return nil, fmt.Errorf(
-						"Absolute path %s not supported as reference in external target context", target.LocalPath)
-				}
-				target.ProjectPath = path.Join(
-					c.mts.FinalStates.Target.ProjectPath, target.LocalPath)
-				target.LocalPath = ""
-			} else if target.IsLocalInternal() {
-				target.LocalPath = ""
-			}
-		}
-	} else {
-		if target.IsLocalExternal() {
-			if path.IsAbs(target.LocalPath) {
-				target.LocalPath = path.Clean(target.LocalPath)
-			} else {
-				target.LocalPath = path.Join(c.mts.FinalStates.Target.LocalPath, target.LocalPath)
-				if !strings.HasPrefix(target.LocalPath, ".") {
-					target.LocalPath = fmt.Sprintf("./%s", target.LocalPath)
-				}
-			}
-		} else if target.IsLocalInternal() {
-			target.LocalPath = c.mts.FinalStates.Target.LocalPath
-		}
+	target, err = domain.JoinTargets(c.mts.FinalStates.Target, target)
+	if err != nil {
+		return nil, errors.Wrap(err, "join targets")
 	}
 	newVarCollection, err := c.varCollection.WithParseBuildArgs(
 		buildArgs, c.processNonConstantBuildArgFunc(ctx))
@@ -672,11 +719,21 @@ func (c *Converter) internalRun(ctx context.Context, args []string, secretKeyVal
 		}
 	}
 
+	finalOpts = append(finalOpts,
+		llb.AddMount("/usr/bin/earth_debugger",
+			llb.Image(c.debuggerImage, llb.MarkImageInternal, llb.ResolveModePreferLocal, llb.Platform(llbutil.TargetPlatform)),
+			llb.SourcePath("/earth_debugger"),
+			llb.Readonly,
+		),
+	)
+
 	finalOpts = append(finalOpts, llb.AddMount("/usr/bin/earth_debugger", llb.Image(c.debuggerImage), llb.SourcePath("/earth_debugger"), llb.Readonly))
 	secretOpts := []llb.SecretOption{
-		llb.SecretID("earthly_remote_console_addr"),
+		llb.SecretID(common.DebuggerSettingsSecretsKey),
 	}
-	finalOpts = append(finalOpts, llb.AddSecret("/run/secrets/earthly_remote_console_addr", secretOpts...))
+	finalOpts = append(finalOpts, llb.AddSecret(fmt.Sprintf("/run/secrets/%s", common.DebuggerSettingsSecretsKey), secretOpts...))
+
+	finalOpts = append(finalOpts, llb.AddMount("/run/earthly", llb.Scratch(), llb.HostBind(), llb.SourcePath("/run/earthly")))
 
 	var finalArgs []string
 	if withDocker {
@@ -802,6 +859,11 @@ func (c *Converter) internalFromClassical(ctx context.Context, imageName string,
 	}
 	allOpts := append(opts, llb.Platform(llbutil.TargetPlatform))
 	state := llb.Image(ref.String(), allOpts...)
+	state, img2, newVarCollection := c.applyFromImage(state, &img)
+	return state, img2, newVarCollection, nil
+}
+
+func (c *Converter) applyFromImage(state llb.State, img *image.Image) (llb.State, *image.Image, *variables.Collection) {
 	// Reset variables.
 	newVarCollection := c.varCollection.WithResetEnvVars()
 	for _, envVar := range img.Config.Env {
@@ -828,7 +890,7 @@ func (c *Converter) internalFromClassical(ctx context.Context, imageName string,
 	// No need to apply entrypoint, cmd, volumes and others.
 	// The fact that they exist in the image configuration is enough.
 	// TODO: Apply any other settings? Shell?
-	return state, &img, newVarCollection, nil
+	return state, img, newVarCollection
 }
 
 func (c *Converter) expandArgs(word string) string {

@@ -8,6 +8,7 @@ tokens {
 Target: ([a-zA-Z0-9.] | '-')+ ':' -> pushMode(RECIPE);
 
 FROM: 'FROM' -> pushMode(COMMAND_ARGS);
+FROM_DOCKERFILE: 'FROM DOCKERFILE' -> pushMode(COMMAND_ARGS);
 COPY: 'COPY' -> pushMode(COMMAND_ARGS);
 SAVE_ARTIFACT: 'SAVE ARTIFACT' -> pushMode(COMMAND_ARGS);
 SAVE_IMAGE: 'SAVE IMAGE' -> pushMode(COMMAND_ARGS);
@@ -45,6 +46,7 @@ mode RECIPE;
 Target_R: Target -> type(Target), pushMode(RECIPE);
 
 FROM_R: FROM -> type(FROM), pushMode(COMMAND_ARGS);
+FROM_DOCKERFILE_R: FROM_DOCKERFILE -> type(FROM_DOCKERFILE), pushMode(COMMAND_ARGS);
 COPY_R: COPY -> type(COPY), pushMode(COMMAND_ARGS);
 SAVE_ARTIFACT_R: SAVE_ARTIFACT -> type(SAVE_ARTIFACT), pushMode(COMMAND_ARGS);
 SAVE_IMAGE_R: SAVE_IMAGE -> type(SAVE_IMAGE), pushMode(COMMAND_ARGS);
