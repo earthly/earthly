@@ -14,25 +14,16 @@ For a primer into Dockerfile caching see [this article](https://pythonspeed.com/
 
 ## Cache location
 
-Earthly cache is persisted in a directory located at `/tmp/earthly` on your system. When Earthly starts for the first time, it brings up a BuildKit daemon in a Docker container, which reserves some disk space for the cache (by default, 10GB) as a loop device.
+Earthly cache is persisted in a docker volume called `earthly-cache` on your system. When Earthly starts for the first time, it brings up a BuildKit daemon in a Docker container, which initializes the `earthly-cache` volume. The volume is managed by Earthly's BuildKit daemon and there is a regular garbage-collection for old cache to keep this space at a maximum of approximately 10GB.
 
 ## Specifying cache size
 
-Some builds may require more cache beyond the default 10GB allocated. In order to modify the size of the cache, you can run the command:
+Some builds may require more cache beyond the default 10GB allocated. In order to modify the size of the cache, you can modify the `cache_size_mb` setting in the [configuration](../earth-config/earth-config.md). For example:
 
-```bash
-earth --buildkit-cache-size-mb <cache-size-mb> prune --reset
+```yaml
+global:
+  cache_size_mb: 50000
 ```
-
-or alternatively, set the environment variable
-
-```bash
-export EARTHLY_BUILDKIT_CACHE_SIZE_MB=<cache-size-mb>
-```
-
-in your `.profile`, `.bashrc` or `.zshrc`, to ensure that all future `earth` invocations get this setting.
-
-Note that the command `earth prune --reset` wipes you entire existing cache.
 
 ## Resetting cache
 
@@ -40,16 +31,17 @@ The cache can be safely deleted manually, if the daemon is not running
 
 ```bash
 docker stop earthly-buildkitd
-sudo rm -rf /tmp/earthly
+docker rm earthly-buildkitd
+docker volume rm earthly-cache
 ```
 
-Or you can also issue the earth command
+However, it is easier to simply use the command
 
 ```bash
 earth prune --reset
 ```
 
-which restarts the daemon and resets the cache directory.
+which restarts the daemon and resets the contents of the cache volume.
 
 ## See also
 
