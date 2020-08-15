@@ -35,12 +35,10 @@ cache-test:
 	COPY cache1.earth ./Earthfile
 	RUN --privileged \
 		--entrypoint \
-		--mount=type=tmpfs,target=/tmp/earthly \
 		-- +test
 	COPY cache2.earth ./Earthfile
 	RUN --privileged \
 		--entrypoint \
-		--mount=type=tmpfs,target=/tmp/earthly \
 		-- +test
 
 git-clone-test:
