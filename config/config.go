@@ -27,7 +27,7 @@ type GlobalConfig struct {
 	BuildkitImage       string `yaml:"buildkit_image"`
 	DebuggerImage       string `yaml:"debugger_image"`
 
-	// Deprecated.
+	// Obsolete.
 	CachePath string `yaml:"cache_path"`
 }
 
