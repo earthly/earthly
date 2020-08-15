@@ -18,7 +18,7 @@ Earthly cache is persisted in a docker volume called `earthly-cache` on your sys
 
 ## Specifying cache size
 
-Some builds may require more cache beyond the default 10GB allocated. In order to modify the size of the cache, you can modify the `cache_size_mb` setting in the [configuration](../earth-config/earth-config.md). For example:
+Some builds may require more cache beyond the default 10GB. In order to modify the size of the cache, you can modify the `cache_size_mb` setting in the [configuration](../earth-config/earth-config.md). For example:
 
 ```yaml
 global:
