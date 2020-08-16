@@ -15,11 +15,12 @@ all:
     BUILD +scratch-test
     BUILD +build-earth-test
     BUILD +host-bind-test
+    BUILD +remote-test
     BUILD +star-test
     BUILD +dockerfile-test
+    BUILD +experimental-dind
 
-experimental:
-    # TODO: These are troublesome due to vfs driver used in dind. They quickly exhaust disk space.
+experimental-dind:
     BUILD +docker-load-test
     BUILD +dind-test
     BUILD +docker-pull-test
@@ -128,7 +129,6 @@ host-bind-test:
     RUN test -f /bind-test/b.txt
     RUN cat /bind-test/b.txt
 
-# TODO: This does not pass, due to space on device limitation (dind caused).
 remote-test:
     ENV GIT_URL_INSTEAD_OF="https://github.com/=git@github.com:"
     RUN --privileged \
@@ -160,12 +160,10 @@ star-test-todo:
     RUN touch a.txt b.txt c.nottxt
     RUN --privileged \
         --entrypoint \
-        --mount=type=tmpfs,target=/tmp/earthly \
         -- +test
     RUN echo "a change" > c.nottxt
     RUN --privileged \
         --entrypoint \
-        --mount=type=tmpfs,target=/tmp/earthly \
         -- +test >output.txt
     RUN cat output.txt
     RUN cached_lines=$(cat output.txt | grep cached | wc -l); \

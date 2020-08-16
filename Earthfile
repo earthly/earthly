@@ -164,6 +164,3 @@ examples:
     BUILD ./examples/readme/go3+build
     BUILD ./examples/readme/proto+docker
     BUILD github.com/earthly/hello-world+hello
-
-test-experimental:
-    BUILD ./examples/tests+experimental

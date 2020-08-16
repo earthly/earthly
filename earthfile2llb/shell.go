@@ -59,23 +59,23 @@ func withShellAndEnvVars(args []string, envVars []string, isWithShell bool) []st
 	}
 }
 
-func withDockerdWrap(args []string, envVars []string, isWithShell bool) []string {
+func withDockerdWrap(args []string, envVars []string, isWithShell bool, dindID string) []string {
+	dockerRoot := path.Join("/var/earthly/dind", dindID)
 	return []string{
 		"/bin/sh", "-c",
 		"/bin/sh <<EOF" +
 			"#!/bin/sh\n" +
+			// Create dir for docker data.
+			fmt.Sprintf("mkdir -p %s\n", dockerRoot) +
 			// Start dockerd.
-			// TODO: vfs is extremely inefficient due to lack of CoW capabilities.
-			//       Unfortunately, it's the only thing that works for now. Should explore
-			//       some more combinations in the future, once buildkitd supports other
-			//       storage drivers other than overlayfs.
-			"dockerd-entrypoint.sh dockerd -s vfs &>/var/log/docker.log &\n" +
+			fmt.Sprintf("dockerd-entrypoint.sh dockerd --data-root=%s &>/var/log/docker.log &\n", dockerRoot) +
 			"dockerd_pid=\"\\$!\"\n" +
 			// Wait for dockerd to start up.
 			"let i=1\n" +
 			"while ! docker ps &>/dev/null ; do\n" +
 			"sleep 1\n" +
 			"if [ \"\\$i\" -gt \"30\" ] ; then\n" +
+			"cat /var/log/docker.log\n" +
 			"exit 1\n" +
 			"fi\n" +
 			"let i+=1\n" +

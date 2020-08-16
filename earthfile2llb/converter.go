@@ -35,6 +35,9 @@ import (
 // DockerBuilderFun is a function able to build a target into a docker tar file.
 type DockerBuilderFun = func(ctx context.Context, mts *MultiTargetStates, dockerTag string, outFile string) error
 
+var dindHostMount = llb.AddMount(
+	"/var/earthly/dind", llb.Scratch(), llb.HostBind(), llb.SourcePath("/tmp/earthly/dind"))
+
 var _ commandInterpreter = (*Converter)(nil)
 
 // Converter turns earth commands to buildkit LLB representation.
@@ -737,7 +740,9 @@ func (c *Converter) internalRun(ctx context.Context, args []string, secretKeyVal
 
 	var finalArgs []string
 	if withDocker {
-		finalArgs = withDockerdWrap(args, extraEnvVars, isWithShell)
+		dindID := cacheKey(c.mts.FinalTarget())
+		finalArgs = withDockerdWrap(args, extraEnvVars, isWithShell, dindID)
+		finalOpts = append(finalOpts, dindHostMount)
 	} else {
 		finalArgs = withShellAndEnvVars(args, extraEnvVars, isWithShell)
 	}
@@ -804,23 +809,19 @@ func (c *Converter) solveAndLoad(ctx context.Context, mts *MultiTargetStates, op
 	)
 	c.mts.FinalStates.LocalDirs[opName] = outDir
 
-	c.mts.FinalStates.SideEffectsState = c.mts.FinalStates.SideEffectsState.File(
-		llb.Mkdir("/var/lib/docker", 0755, llb.WithParents(true)),
-		llb.WithCustomNamef("[internal] mkdir /var/lib/docker"),
-	)
+	dindID := cacheKey(c.mts.FinalTarget())
 	loadOpts := []llb.RunOption{
 		llb.Args(
 			withDockerdWrap(
-				[]string{"docker", "load", "</src/image.tar"}, []string{}, true)),
+				[]string{"docker", "load", "</src/image.tar"}, []string{}, true, dindID)),
+		dindHostMount,
 		llb.AddMount("/src", tarContext, llb.Readonly),
 		llb.Dir("/src"),
 		llb.Security(llb.SecurityModeInsecure),
 	}
 	loadOpts = append(loadOpts, opts...)
 	loadOp := c.mts.FinalStates.SideEffectsState.Run(loadOpts...)
-	c.mts.FinalStates.SideEffectsState = loadOp.AddMount(
-		"/var/lib/docker", c.mts.FinalStates.SideEffectsState,
-		llb.SourcePath("/var/lib/docker"))
+	c.mts.FinalStates.SideEffectsState = loadOp.Root()
 	return nil
 }
 
