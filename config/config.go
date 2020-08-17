@@ -63,7 +63,7 @@ func ParseConfigFile(yamlData []byte) (*Config, error) {
 	config := Config{
 		Global: GlobalConfig{
 			RunPath:             defaultRunPath(),
-			DisableLoopDevice:   false,
+			DisableLoopDevice:   true,
 			BuildkitCacheSizeMb: 10000,
 		},
 	}
