@@ -1,6 +1,7 @@
 
 buildkitd:
-    FROM earthly/buildkit:earthly-master@sha256:505101caf912109c11e9dc281a2efd5fd4cb9d4999324b1f67f030208a2b9343
+    ARG BUILDKIT_BASE_IMAGE=github.com/earthly/buildkit:earthly-master+build
+    FROM $BUILDKIT_BASE_IMAGE
 
     # Install some missing binaries.
     RUN apk add --update --no-cache openssh-client pigz xz fuse3 e2fsprogs util-linux
