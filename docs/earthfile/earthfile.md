@@ -410,7 +410,7 @@ The command `DOCKER PULL` pulls a docker image from a remote registry into the d
 
 #### Synopsis
 
-* `DOCKER LOAD [--build-arg <name>=<override-value>] <target-ref> AS <image-name>`
+* `DOCKER LOAD [--build-arg <name>=<override-value>] <target-ref> <image-name>`
 
 #### Description
 
