@@ -25,8 +25,16 @@ In addition to Docker and Git, Earthly also requires privileged mode as it execu
 The next step is to install the `earth` command. For this, you need to run the command:
 
 ```bash
-sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/latest/download/earth-linux-amd64 -O /usr/local/bin/earth && chmod +x /usr/local/bin/earth'
+sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/download/v0.2.2/earth-linux-amd64 -O /usr/local/bin/earth && chmod +x /usr/local/bin/earth'
 ```
+
+{% hint style='info' %}
+##### Note
+
+The above command installs a specific version of `earth`. It is not advisable to always download the very latest, as any possible backwards incompatible changes of Earthly (rare) could cause your builds to fail unexpectedly. Pinning to a specific version, as shown here, is recommended.
+{% endhint %}
+
+In certain CI environments, such as Jenkins, where you have access to the host, it may be more convenient to install Earthly on the host in advance, so that your builds do not need to download `earth` every time they run.
 
 ## Step 3: Configure earth
 

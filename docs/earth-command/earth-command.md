@@ -10,7 +10,6 @@
         [--push] [--no-output] [--no-cache] [--allow-privileged|-P]
         [--ssh-auth-sock <path-to-sock>]
         [--buildkit-host <bk-host>]
-        [--no-loop-device]
         <target-ref>
   ```
 * Artifact form
@@ -19,7 +18,6 @@
         [--push] [--no-cache] [--allow-privileged|-P]
         [--ssh-auth-sock <path-to-sock>]
         [--buildkit-host <bk-host>]
-        [--no-loop-device]
         --artifact|-a <artifact-ref> [<dest-path>]
   ```
 * Image form
@@ -28,8 +26,7 @@
         [--push] [--no-cache] [--allow-privileged|-P]
         [--ssh-auth-sock <path-to-sock>]
         [--buildkit-host <bk-host>]
-        [--no-loop-device]
-        --image|-i <target-ref>
+        --image <target-ref>
   ```
 
 #### Description
@@ -73,8 +70,6 @@ The `<artifact-ref>` can reference artifacts built by targets. `<target-ref>/<ar
 ##### Examples
 
 See the [Target, artifact, and image referencing guide](../guides/target-ref) for more details and examples.
-
-
 
 #### Options
 
@@ -130,53 +125,23 @@ On Mac systems, this setting defaults to `/run/host-services/ssh-auth.sock` to m
 
 For more information see the [Authentication page](../guides/auth.md).
 
-##### `--git-username <git-user>`
+##### `--git-username <git-user>` (deprecated)
 
 Also available as an env var setting: `GIT_USERNAME=<git-user>`.
 
 This option is now deprecated. Please use the [configuration file](../earth-config/earth-config.md) instead.
 
-##### `--git-password <git-pass>`
+##### `--git-password <git-pass>` (deprecated)
 
 Also available as an env var setting: `GIT_PASSWORD=<git-pass>`.
 
-Sets the git password to use for non-SSH git authentication. For more information see the [Authentication page](../guides/auth.md).
-
-{% hint style='danger' %}
-##### Important
-
-For security reasons, it is strongly recommended to use the env var form of this setting and not the flag form.
-{% endhint %}
-
 This option is now deprecated. Please use the [configuration file](../earth-config/earth-config.md) instead.
 
-##### `--git-url-instead-of <git-instead-of>`
+##### `--git-url-instead-of <git-instead-of>` (deprecated)
 
 Also available as an env var setting: `GIT_URL_INSTEAD_OF=<git-instead-of>`.
 
 This option is now deprecated. Please use the [configuration file](../earth-config/earth-config.md) instead.
-
-##### `--buildkit-host <bk-host>`
-
-Also available as an env var setting: `EARTHLY_BUILDKIT_HOST=<bk-host>`.
-
-Instructs `earth` to use an alternate buildkit host. When this option is specified, `earth` does not manage (starts/restarts as necessary) the buildkit daemon.
-
-##### `--buildkit-cache-size-mb <cache-size-mb>`
-
-Also available as an env var setting: `EARTHLY_BUILDKIT_CACHE_SIZE_MB=<cache-size-mb>`.
-
-This option is now deprecated. Please use the [configuration file](../earth-config/earth-config.md) instead.
-
-```bash
-earth --buildkit-cache-size-mb <cache-size-mb> prune --reset
-```
-
-##### `--no-loop-device`
-
-Also available as an env var setting: `EARTHLY_NO_LOOP_DEVICE=true`.
-
-Disables the use of a loop device for storing the cache. By default, Earthly uses a file mounted as a loop device, so that it can control the type of filesystem used for the cache, in order to ensure that overlayfs can be mounted on top of it. If you are already using a filesystem compatible with overlayfs, then you can disable the loop device.
 
 ## earth prune
 

@@ -1,7 +1,7 @@
 # Releasing instructions
 
 ### earth
-* Ask Vlad to test the latest version on his Mac using `earth --build-arg GOOS=darwin --build-arg GOARCH=amd64 --build-arg GO_EXTRA_LDFLAGS= --artifact github.com/earthly/earthly+earth/earth ./earth && docker pull earthly/buildkitd:master && ./earth -P github.com/earthly/earthly+test`
+* Test on Mac using `earth --build-arg GOOS=darwin --build-arg GOARCH=amd64 --build-arg GO_EXTRA_LDFLAGS= --artifact github.com/earthly/earthly+earth/earth ./earth && docker pull earthly/buildkitd:master && ./earth -P github.com/earthly/earthly+test`
 * Make sure you have a GITHUB_TOKEN set. If you don't have a GITHUB_TOKEN, generate one [here](https://github.com/settings/tokens) with scope `repo`.
   ```bash
   export GITHUB_TOKEN="..."
@@ -36,6 +36,10 @@
     --push ./release+release-homebrew
   ```
 * Merge branch `next` into `master`.
+* Update the version for the installation command in the following places:
+  * [ci-integration.md](../docs/guides/ci-integration.md)
+  * [circle-integration.md](../docs/examples/circle-integration.md)
+  * [gh-actions-integration.md](../docs/examples/gh-actions-integration.md)
 
 ### VS Code syntax highlighting
 
