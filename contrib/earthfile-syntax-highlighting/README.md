@@ -6,15 +6,19 @@ Syntax highlighting for Earthly build Earthfiles.
 
 ## Release Notes
 
-### 0.0.1
+### 0.0.4
 
-Initial release of earthfile-syntax-highlighting.
-
-### 0.0.2
-
-Add screenshot in the README.
+* Add highlighting for `FROM DOCKERFILE`
 
 ### 0.0.3
 
 * Add highlighting for `HEALTHCHECK`.
 * Switch from `build.earth` to `Earthfile`.
+
+### 0.0.2
+
+Add screenshot in the README.
+
+### 0.0.1
+
+Initial release of earthfile-syntax-highlighting.
