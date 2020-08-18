@@ -335,7 +335,15 @@ Check out the [Earthfile reference doc page](https://docs.earthly.dev/earthfile)
 
 ### Can Earthly build Dockerfiles?
 
-It cannot - however, translating Dockerfiles to Earthfiles is usually a matter of copy-pasting and making small adjustments. See the [getting started page](https://docs.earthly.dev/guides/basics) for some Earthfile examples.
+Yes! You can use the command `FROM DOCKERFILE` to inherit the commands in an existing Dockerfile.
+
+```Dockerfile
+build:
+  FROM DOCKERFILE .
+  SAVE IMAGE some-image:latest
+```
+
+You may also optionally port your Dockerfiles to Earthly entirely. Translating Dockerfiles to Earthfiles is usually a matter of copy-pasting and making small adjustments. See the [getting started page](https://docs.earthly.dev/guides/basics) for some Earthfile examples.
 
 ### How is Earthly different from Bazel?
 

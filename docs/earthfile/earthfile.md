@@ -78,6 +78,38 @@ yet-another:
 
 Sets a value override of `<value>` for the build arg identified by `<key>`. See also [BUILD](#build) for more details about the `--build-arg` option.
 
+## FROM DOCKERFILE (**beta**)
+
+#### Synopsis
+
+* `FROM DOCKERFILE [--build-arg <key>=<value>] [--target <target-name>] <context-path>`
+
+#### Description
+
+The `FROM DOCKERFILE` command initializes a new build environment, inheriting from an existing Dockerfile. This allows the use of previously developed Dockerfiles in Earthly builds.
+
+The `<context-path>` is the host path relative to the current Earthfile, where the Dockerfile build context exists. It is assumed that a file named `Dockerfile` exists in that directory.
+
+{% hint style='info' %}
+##### Note
+
+This feature is currently in **Beta** and it has the following limitations:
+
+* This feature only works with files named `Dockerfile`. The equivalent of the `-f` option available in `docker build` has not yet been implemented.
+* `.dockerignore` is not used.
+* The newer experimental features which exist in the Dockerfile syntax are not guaranteed to work correctly.
+{% endhint %}
+
+#### Options
+
+##### `--build-arg <key>=<value>`
+
+Sets a value override of `<value>` for the Dockerfile build arg identified by `<key>`. This option is similar to the `docker build --build-arg <key>=<value>` option.
+
+##### `--target <target-name>`
+
+In a multi-stage Dockerfile, sets the target to be used for the build. This option is similar to the `docker build --target <target-name>` option.
+
 ## RUN
 
 #### Synopsis
@@ -139,7 +171,7 @@ Note that privileged mode is not enabled by default. In order to use this option
 earth --allow-privileged +some-target
 ```
 
-##### `--with-docker` [**experimental**]
+##### `--with-docker` (**experimental**)
 
 {% hint style='danger' %}
 `RUN --with-docker` is experimental and is subject to change.
@@ -388,7 +420,7 @@ FROM --build-arg NAME=john +docker-image
 
 A number of builtin args are available and are pre-filled by Earthly. For more information see [builtin args](./builtin-args.md).
 
-## DOCKER PULL [**experimental**]
+## DOCKER PULL (**experimental**)
 
 {% hint style='danger' %}
 `DOCKER PULL` is experimental and is subject to change.
@@ -402,7 +434,7 @@ A number of builtin args are available and are pre-filled by Earthly. For more i
 
 The command `DOCKER PULL` pulls a docker image from a remote registry into the docker daemon available within the build envionment. It can be used in conjunction with `RUN --with-docker docker run ...` to execute docker images in the context of the build environment.
 
-## DOCKER LOAD [**experimental**]
+## DOCKER LOAD (**experimental**)
 
 {% hint style='danger' %}
 `DOCKER LOAD` is experimental and is subject to change.
