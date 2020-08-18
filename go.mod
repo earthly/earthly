@@ -17,7 +17,7 @@ require (
 	github.com/bugsnag/bugsnag-go v0.0.0-20141110184014-b1d153021fcd // indirect
 	github.com/bugsnag/osext v0.0.0-20130617224835-0dd3f918b21b // indirect
 	github.com/bugsnag/panicwrap v0.0.0-20151223152923-e2c28503fcd0 // indirect
-	github.com/containerd/containerd v1.4.0-beta.2.0.20200730150746-fa1220fce33f
+	github.com/containerd/containerd v1.4.0-0
 	github.com/creack/pty v1.1.11
 	github.com/denverdino/aliyungo v0.0.0-20190125010748-a747050bb1ba // indirect
 	github.com/dgrijalva/jwt-go v0.0.0-20170104182250-a601269ab70c // indirect
@@ -30,7 +30,7 @@ require (
 	github.com/fatih/color v1.9.0
 	github.com/garyburd/redigo v0.0.0-20150301180006-535138d7bcd7 // indirect
 	github.com/godbus/dbus v4.1.0+incompatible // indirect
-	github.com/golang/protobuf v1.3.5
+	github.com/golang/protobuf v1.3.3
 	github.com/google/pprof v0.0.0-20191025152101-a8b9f9d2d3ce // indirect
 	github.com/gorilla/handlers v0.0.0-20150720190736-60c7bfde3e33 // indirect
 	github.com/hashicorp/errwrap v0.0.0-20141028054710-7554cd9344ce // indirect
@@ -46,6 +46,7 @@ require (
 	github.com/ncw/swift v1.0.47 // indirect
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/opencontainers/image-spec v1.0.1
+	github.com/opencontainers/runc v1.0.0-rc9.0.20200221051241-688cf6d43cc4 // indirect
 	github.com/opencontainers/runtime-tools v0.0.0-20181011054405-1d69bd0f9c39 // indirect
 	github.com/otiai10/copy v1.1.1
 	github.com/pkg/errors v0.9.1
@@ -53,7 +54,7 @@ require (
 	github.com/prometheus/common v0.0.0-20180110214958-89604d197083 // indirect
 	github.com/prometheus/procfs v0.0.5 // indirect
 	github.com/satori/go.uuid v1.2.0 // indirect
-	github.com/sirupsen/logrus v1.6.0
+	github.com/sirupsen/logrus v1.4.2
 	github.com/smartystreets/goconvey v0.0.0-20190330032615-68dc04aab96a // indirect
 	github.com/spf13/cobra v0.0.3 // indirect
 	github.com/urfave/cli/v2 v2.1.1
@@ -79,5 +80,5 @@ replace (
 	github.com/docker/docker => github.com/docker/docker v17.12.0-ce-rc1.0.20200310163718-4634ce647cf2+incompatible
 	github.com/hashicorp/go-immutable-radix => github.com/tonistiigi/go-immutable-radix v0.0.0-20170803185627-826af9ccf0fe
 	github.com/jaguilar/vt100 => github.com/tonistiigi/vt100 v0.0.0-20190402012908-ad4c4a574305
-	github.com/moby/buildkit => github.com/earthly/buildkit v0.7.1-0.20200818031448-40e935c0a18c
+	github.com/moby/buildkit => github.com/earthly/buildkit v0.7.1-0.20200807180600-d4c0ac8de1a0
 )
