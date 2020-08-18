@@ -9,5 +9,5 @@ jobs:
       - checkout
       - run: "sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/latest/download/earth-linux-amd64 -O /usr/local/bin/earth && chmod +x /usr/local/bin/earth'"
       - run: earth --version
-      - run: earth --build-arg BUILDKIT_BASE_IMAGE=earthly/buildkit:earthly-master@sha256:505101caf912109c11e9dc281a2efd5fd4cb9d4999324b1f67f030208a2b9343 --build-arg TAG=ci --build-arg VERSION=ci +for-linux
+      - run: earth --build-arg BUILDKIT_BASE_IMAGE=earthly/buildkit:earthly-master@sha256:038df6f18651e2150956926ea5c6048cc3993db2a450944a3b1fee967fb2b331 --build-arg TAG=ci --build-arg VERSION=ci +for-linux
       - run: ./build/linux/amd64/earth -P --no-output +test
