@@ -4,18 +4,19 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"net"
 	"os"
 	"os/exec"
+	"strings"
 	"time"
 
+	"github.com/earthly/earthly/conslogging"
 	"github.com/earthly/earthly/debugger/common"
 	"github.com/earthly/earthly/logging"
 
 	"github.com/creack/pty"
-	"github.com/hashicorp/yamux"
+	"github.com/fatih/color"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -31,6 +32,8 @@ var (
 	ErrNoShellFound = fmt.Errorf("no shell found")
 )
 
+const remoteConsoleAddr = "127.0.0.1:5000"
+
 func getShellPath() (string, bool) {
 	for _, sh := range []string{
 		"bash", "ksh", "zsh", "sh",
@@ -42,105 +45,110 @@ func getShellPath() (string, bool) {
 	return "", false
 }
 
-func interactiveMode(ctx context.Context, socketPath string) error {
+func handlePtyData(ptmx *os.File, data []byte) error {
+	_, err := ptmx.Write(data)
+	if err != nil {
+		return errors.Wrap(err, "failed to write to ptmx")
+	}
+	return nil
+}
+
+func handleWinChangeData(ptmx *os.File, data []byte) error {
+	var size pty.Winsize
+	err := json.Unmarshal(data, &size)
+	if err != nil {
+		return errors.Wrap(err, "failed unmarshal data")
+	}
+
+	err = pty.Setsize(ptmx, &size)
+	if err != nil {
+		return errors.Wrap(err, "failed to set window size")
+	}
+	return nil
+}
+
+func interactiveMode(ctx context.Context, remoteConsoleAddr string) error {
 	log := logging.GetLogger(ctx)
 
-	log.With("socket", socketPath).Debug("connecting to debugger")
-	conn, err := net.Dial("unix", socketPath)
+	conn, err := net.Dial("tcp", remoteConsoleAddr)
 	if err != nil {
-		return errors.Wrap(err, fmt.Sprintf("failed connecting to %s", socketPath))
+		return errors.Wrap(err, "failed to connect to remote debugger")
 	}
 	defer func() {
-		log.With("socket", socketPath).Debug("closing debugger")
 		err := conn.Close()
 		if err != nil {
-			log.Error(errors.Wrap(err, "failed to close connection"))
+			log.Error(errors.Wrap(err, "error closing"))
 		}
 	}()
 
-	log.Debug("creating yamux client")
-	session, err := yamux.Client(conn, nil)
+	_, err = conn.Write([]byte{common.ShellID})
 	if err != nil {
-		return errors.Wrap(err, "failed creating yamux client")
+		return err
 	}
 
-	log.Debug("openning pty stream")
-	ptyStream, err := session.Open()
+	err = common.WriteDataPacket(conn, common.StartShellSession, nil)
 	if err != nil {
-		return errors.Wrap(err, "failed openning ptyStream session")
+		return err
 	}
-	ptyStream.Write([]byte{common.PtyStream})
-
-	log.Debug("openning winchange stream")
-	winChangeStream, err := session.Open()
-	if err != nil {
-		return errors.Wrap(err, "failed openning winChangeStream session")
-	}
-	winChangeStream.Write([]byte{common.WinChangeStream})
 
 	shellPath, ok := getShellPath()
 	if !ok {
 		return ErrNoShellFound
 	}
-	c := exec.CommandContext(ctx, shellPath)
+	log.With("shell", shellPath).Debug("found shell")
+	c := exec.Command(shellPath)
 
 	ptmx, err := pty.Start(c)
 	if err != nil {
-		return errors.Wrap(err, "failed to start pty")
+		log.Error(errors.Wrap(err, "failed to start pty"))
+		return err
 	}
 	defer func() { _ = ptmx.Close() }() // Best effort.
 
 	ctx, cancel := context.WithCancel(ctx)
 
 	go func() {
-		_, err := io.Copy(ptmx, ptyStream)
-		if err != nil && err != io.EOF {
-			log.Error(errors.Wrap(err, "failed copying pty to ptyStream"))
+		for {
+			connDataType, data, err := common.ReadDataPacket(conn)
+			if err != nil {
+				log.Error(errors.Wrap(err, "failed to read data from conn"))
+				break
+			}
+			switch connDataType {
+			case common.PtyData:
+				handlePtyData(ptmx, data)
+			case common.WinSizeData:
+				handleWinChangeData(ptmx, data)
+			default:
+				log.With("datatype", connDataType).Warning("unhandled data type")
+			}
 		}
 		cancel()
 	}()
-	go func() {
-		_, err := io.Copy(ptyStream, ptmx)
-		if err != nil && err != io.EOF {
-			log.Error(errors.Wrap(err, "failed copying pty to ptyStream"))
-		}
-		cancel()
-	}()
-	go func() {
-		_ = c.Wait()
-		cancel()
-	}()
-
 	go func() {
 		for {
-			data, err := common.ReadUint16PrefixedData(winChangeStream)
-			if err == io.EOF {
-				return
-			} else if err != nil {
-				log.Error(errors.Wrap(err, "failed to read data"))
-				break
-			}
-
-			var size pty.Winsize
-			err = json.Unmarshal(data, &size)
+			buf := make([]byte, 100)
+			n, err := ptmx.Read(buf)
 			if err != nil {
-				log.Error(errors.Wrap(err, "failed to unmarshal data"))
+				log.Error(errors.Wrap(err, "failed to read from ptmx"))
 				break
 			}
-
-			err = pty.Setsize(ptmx, &size)
-			if err != nil {
-				log.Error(errors.Wrap(err, "failed to set window size"))
-				break
-			}
+			buf = buf[:n]
+			common.WriteDataPacket(conn, common.PtyData, buf)
 
 		}
+		cancel()
+	}()
+
+	go func() {
+		c.Wait()
 		cancel()
 	}()
 
 	<-ctx.Done()
 
-	log.Info("exiting interactive debugger shell")
+	common.WriteDataPacket(conn, common.EndShellSession, nil)
+
 	return nil
 }
 
@@ -165,9 +173,12 @@ func main() {
 		return
 	}
 
+	conslogger := conslogging.Current(conslogging.ForceColor)
+	color.NoColor = false
+
 	debuggerSettings, err := getSettings(fmt.Sprintf("/run/secrets/%s", common.DebuggerSettingsSecretsKey))
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "failed to read settings: %v\n", debuggerSettings)
+		conslogger.Warnf("failed to read settings: %v\n", debuggerSettings)
 		os.Exit(1)
 	}
 
@@ -179,7 +190,7 @@ func main() {
 
 	log := logging.GetLogger(ctx)
 
-	log.With("command", args).With("version", Version).With("git sha", GitSha).Debug("running command")
+	log.With("command", args).With("version", Version).Debug("running command")
 
 	cmd := exec.Command(args[0], args[1:]...)
 	cmd.Stdout = os.Stdout
@@ -189,17 +200,20 @@ func main() {
 		exitCode := 1
 		if exitErr, ok := err.(*exec.ExitError); ok {
 			exitCode = exitErr.ExitCode()
-			fmt.Fprintf(os.Stderr, "Command %v failed with exit code %d\n", args, exitCode)
+			conslogger.Warnf("Command %v failed with exit code %d\n", strings.Join(args, " "), exitCode)
 		} else {
-			fmt.Fprintf(os.Stderr, "Command %v failed with unexpected execution error %v\n", args, err)
+			conslogger.Warnf("Command %v failed with unexpected execution error %v\n", strings.Join(args, " "), err)
 		}
 
 		if debuggerSettings.Enabled {
+			c := color.New(color.FgYellow)
+			c.Println("Entering interactive debugger (**Warning: only a single debugger per host is supported**)")
+
 			// Sometimes the interactive shell doesn't correctly get a newline
 			// Take a brief pause and issue a new line as a work around.
 			time.Sleep(time.Millisecond * 5)
-			fmt.Printf("\n")
-			err := interactiveMode(ctx, debuggerSettings.SockPath)
+
+			err := interactiveMode(ctx, remoteConsoleAddr)
 			if err != nil {
 				log.Error(err)
 			}
@@ -211,4 +225,5 @@ func main() {
 			os.Exit(exitCode)
 		}
 	}
+
 }

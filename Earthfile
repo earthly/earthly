@@ -64,6 +64,20 @@ unittest:
 buildkitd:
     BUILD ./buildkitd+buildkitd
 
+shellrepeater:
+    FROM +code
+    ARG GOCACHE=/go-cache
+    ARG EARTHLY_TARGET_TAG
+    ARG VERSION=$EARTHLY_TARGET_TAG
+    ARG EARTHLY_GIT_HASH
+    RUN --mount=type=cache,target=$GOCACHE \
+        go build \
+            -ldflags "-d -X main.Version=$VERSION $GO_EXTRA_LDFLAGS -X main.GitSha=$EARTHLY_GIT_HASH $GO_EXTRA_LDFLAGS" \
+            -tags netgo -installsuffix netgo \
+            -o build/shellrepeater \
+            cmd/shellrepeater/*.go
+    SAVE ARTIFACT build/shellrepeater
+
 debugger:
     FROM +code
     ARG GOCACHE=/go-cache

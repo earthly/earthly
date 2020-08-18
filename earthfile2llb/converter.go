@@ -51,12 +51,11 @@ type Converter struct {
 	cleanCollection      *cleanup.Collection
 	nextArgIndex         int
 	interactiveDebugging bool
-	debuggerImage        string
 	remoteConsoleAddr    string
 }
 
 // NewConverter constructs a new converter for a given earth target.
-func NewConverter(ctx context.Context, target domain.Target, resolver *buildcontext.Resolver, dockerBuilderFun DockerBuilderFun, cleanCollection *cleanup.Collection, bc *buildcontext.Data, visitedStates map[string][]*SingleTargetStates, varCollection *variables.Collection, interactiveDebugging bool, debuggerImage, remoteConsoleAddr string) (*Converter, error) {
+func NewConverter(ctx context.Context, target domain.Target, resolver *buildcontext.Resolver, dockerBuilderFun DockerBuilderFun, cleanCollection *cleanup.Collection, bc *buildcontext.Data, visitedStates map[string][]*SingleTargetStates, varCollection *variables.Collection, interactiveDebugging bool, remoteConsoleAddr string) (*Converter, error) {
 	sts := &SingleTargetStates{
 		Target: target,
 		TargetInput: dedup.TargetInput{
@@ -85,7 +84,6 @@ func NewConverter(ctx context.Context, target domain.Target, resolver *buildcont
 		dockerBuilderFun:     dockerBuilderFun,
 		cleanCollection:      cleanCollection,
 		interactiveDebugging: interactiveDebugging,
-		debuggerImage:        debuggerImage,
 		remoteConsoleAddr:    remoteConsoleAddr,
 	}, nil
 }
@@ -441,7 +439,7 @@ func (c *Converter) Build(ctx context.Context, fullTargetName string, buildArgs 
 	// Recursion.
 	mts, err := Earthfile2LLB(
 		ctx, target, c.resolver, c.dockerBuilderFun, c.cleanCollection,
-		c.mts.VisitedStates, newVarCollection, c.interactiveDebugging, c.debuggerImage, c.remoteConsoleAddr)
+		c.mts.VisitedStates, newVarCollection, c.interactiveDebugging, c.remoteConsoleAddr)
 	if err != nil {
 		return nil, errors.Wrapf(err, "earthfile2llb for %s", fullTargetName)
 	}
@@ -719,19 +717,13 @@ func (c *Converter) internalRun(ctx context.Context, args []string, secretKeyVal
 		}
 	}
 
-	finalOpts = append(finalOpts,
-		llb.AddMount("/usr/bin/earth_debugger",
-			llb.Image(c.debuggerImage, llb.MarkImageInternal, llb.ResolveModePreferLocal, llb.Platform(llbutil.TargetPlatform)),
-			llb.SourcePath("/earth_debugger"),
-			llb.Readonly,
-		),
-	)
-
-	finalOpts = append(finalOpts, llb.AddMount("/usr/bin/earth_debugger", llb.Image(c.debuggerImage), llb.SourcePath("/earth_debugger"), llb.Readonly))
 	secretOpts := []llb.SecretOption{
 		llb.SecretID(common.DebuggerSettingsSecretsKey),
 	}
 	finalOpts = append(finalOpts, llb.AddSecret(fmt.Sprintf("/run/secrets/%s", common.DebuggerSettingsSecretsKey), secretOpts...))
+
+	finalOpts = append(finalOpts, llb.AddMount("/usr/bin/earth_debugger", llb.Scratch(),
+		llb.HostBind(), llb.SourcePath("/usr/bin/earth_debugger")))
 
 	finalOpts = append(finalOpts, llb.AddMount("/run/earthly", llb.Scratch(), llb.HostBind(), llb.SourcePath("/run/earthly")))
 

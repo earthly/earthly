@@ -114,4 +114,25 @@ if [ "$use_loop_device" == "true" ]; then
     fi
 fi
 
-exec "$@"
+# start shell repeater server
+echo starting shellrepeater
+which shellrepeater
+shellrepeater &
+shellrepeaterpid=$!
+
+"$@" &
+execpid=$!
+
+# quit if either buildkit or shellrepeater die
+while true
+do
+    if ! kill -0 $shellrepeaterpid > /dev/null 2>&1; then
+        echo "Error: shellrepeater process has exited"
+        exit 1
+    fi
+    if ! kill -0 $execpid > /dev/null 2>&1; then
+        echo "Error: buildkit process has exited"
+        exit 1
+    fi
+    sleep 1
+done

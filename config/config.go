@@ -25,7 +25,7 @@ type GlobalConfig struct {
 	DisableLoopDevice   bool   `yaml:"no_loop_device"`
 	BuildkitCacheSizeMb int    `yaml:"cache_size_mb"`
 	BuildkitImage       string `yaml:"buildkit_image"`
-	DebuggerImage       string `yaml:"debugger_image"`
+	DebuggerPort        int    `yaml:"debugger_port"`
 
 	// Obsolete.
 	CachePath string `yaml:"cache_path"`
@@ -65,6 +65,7 @@ func ParseConfigFile(yamlData []byte) (*Config, error) {
 			RunPath:             defaultRunPath(),
 			DisableLoopDevice:   true,
 			BuildkitCacheSizeMb: 10000,
+			DebuggerPort:        5000,
 		},
 	}
 
