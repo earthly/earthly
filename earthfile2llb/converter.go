@@ -32,9 +32,6 @@ import (
 	"github.com/pkg/errors"
 )
 
-// DockerBuilderFun is a function able to build a target into a docker tar file.
-type DockerBuilderFun = func(ctx context.Context, mts *MultiTargetStates, dockerTag string, outFile string) error
-
 var _ commandInterpreter = (*Converter)(nil)
 
 // Converter turns earth commands to buildkit LLB representation.
@@ -53,7 +50,7 @@ type Converter struct {
 }
 
 // NewConverter constructs a new converter for a given earth target.
-func NewConverter(ctx context.Context, target domain.Target, resolver *buildcontext.Resolver, dockerBuilderFun DockerBuilderFun, cleanCollection *cleanup.Collection, bc *buildcontext.Data, visitedStates map[string][]*SingleTargetStates, varCollection *variables.Collection) (*Converter, error) {
+func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Data, opt ConvertOpt) (*Converter, error) {
 	sts := &SingleTargetStates{
 		Target: target,
 		TargetInput: dedup.TargetInput{
@@ -68,19 +65,19 @@ func NewConverter(ctx context.Context, target domain.Target, resolver *buildcont
 	}
 	mts := &MultiTargetStates{
 		FinalStates:   sts,
-		VisitedStates: visitedStates,
+		VisitedStates: opt.VisitedStates,
 	}
 	targetStr := target.String()
-	visitedStates[targetStr] = append(visitedStates[targetStr], sts)
+	opt.VisitedStates[targetStr] = append(opt.VisitedStates[targetStr], sts)
 	return &Converter{
 		gitMeta:          bc.GitMetadata,
-		resolver:         resolver,
+		resolver:         opt.Resolver,
 		mts:              mts,
 		buildContext:     bc.BuildContext,
 		cacheContext:     makeCacheContext(target),
-		varCollection:    varCollection.WithBuiltinBuildArgs(target, bc.GitMetadata),
-		dockerBuilderFun: dockerBuilderFun,
-		cleanCollection:  cleanCollection,
+		varCollection:    opt.VarCollection.WithBuiltinBuildArgs(target, bc.GitMetadata),
+		dockerBuilderFun: opt.DockerBuilderFun,
+		cleanCollection:  opt.CleanCollection,
 	}, nil
 }
 
@@ -434,8 +431,11 @@ func (c *Converter) Build(ctx context.Context, fullTargetName string, buildArgs 
 	}
 	// Recursion.
 	mts, err := Earthfile2LLB(
-		ctx, target, c.resolver, c.dockerBuilderFun, c.cleanCollection,
-		c.mts.VisitedStates, newVarCollection)
+		ctx, target, ConvertOpt{
+			Resolver:         c.resolver,
+			DockerBuilderFun: c.dockerBuilderFun,
+			CleanCollection:  c.cleanCollection,
+			VarCollection:    newVarCollection})
 	if err != nil {
 		return nil, errors.Wrapf(err, "earthfile2llb for %s", fullTargetName)
 	}
@@ -680,6 +680,7 @@ func (c *Converter) FinalizeStates() *MultiTargetStates {
 func (c *Converter) internalRun(ctx context.Context, args []string, secretKeyValues []string, withDocker bool, isWithShell bool, pushFlag bool, commandStr string, opts ...llb.RunOption) error {
 	finalOpts := opts
 	var extraEnvVars []string
+	// Secrets.
 	for _, secretKeyValue := range secretKeyValues {
 		parts := strings.SplitN(secretKeyValue, "=", 2)
 		if len(parts) != 2 {
@@ -698,6 +699,7 @@ func (c *Converter) internalRun(ctx context.Context, args []string, secretKeyVal
 		// TODO: The use of cat here might not be portable.
 		extraEnvVars = append(extraEnvVars, fmt.Sprintf("%s=\"$(cat %s)\"", envVar, secretPath))
 	}
+	// Build args.
 	for _, buildArgName := range c.varCollection.SortedActiveVariables() {
 		ba, _, _ := c.varCollection.Get(buildArgName)
 		if ba.IsEnvVar() {
@@ -712,24 +714,24 @@ func (c *Converter) internalRun(ctx context.Context, args []string, secretKeyVal
 			extraEnvVars = append(extraEnvVars, fmt.Sprintf("%s=\"$(cat %s)\"", buildArgName, buildArgPath))
 		}
 	}
-
+	// Debugger.
 	secretOpts := []llb.SecretOption{
 		llb.SecretID(common.DebuggerSettingsSecretsKey),
 	}
-	finalOpts = append(finalOpts, llb.AddSecret(fmt.Sprintf("/run/secrets/%s", common.DebuggerSettingsSecretsKey), secretOpts...))
-
-	finalOpts = append(finalOpts, llb.AddMount("/usr/bin/earth_debugger", llb.Scratch(),
-		llb.HostBind(), llb.SourcePath("/usr/bin/earth_debugger")))
-
-	finalOpts = append(finalOpts, llb.AddMount("/run/earthly", llb.Scratch(), llb.HostBind(), llb.SourcePath("/run/earthly")))
-
+	debuggerSecretMount := llb.AddSecret(
+		fmt.Sprintf("/run/secrets/%s", common.DebuggerSettingsSecretsKey), secretOpts...)
+	debuggerMount := llb.AddMount("/usr/bin/earth_debugger", llb.Scratch(),
+		llb.HostBind(), llb.SourcePath("/usr/bin/earth_debugger"))
+	runEarthlyMount := llb.AddMount("/run/earthly", llb.Scratch(),
+		llb.HostBind(), llb.SourcePath("/run/earthly"))
+	finalOpts = append(finalOpts, debuggerSecretMount, debuggerMount, runEarthlyMount)
+	// Shell or dockerd wrapper.
 	var finalArgs []string
 	if withDocker {
 		finalArgs = withDockerdWrap(args, extraEnvVars, isWithShell)
 	} else {
 		finalArgs = withShellAndEnvVars(args, extraEnvVars, isWithShell)
 	}
-
 	finalArgs = append([]string{"earth_debugger"}, finalArgs...)
 
 	finalOpts = append(finalOpts, llb.Args(finalArgs))

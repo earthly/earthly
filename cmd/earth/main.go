@@ -650,8 +650,12 @@ func (app *earthApp) actionBuild(c *cli.Context) error {
 	cleanCollection := cleanup.NewCollection()
 	defer cleanCollection.Close()
 	mts, err := earthfile2llb.Earthfile2LLB(
-		c.Context, target, resolver, b.BuildOnlyLastImageAsTar, cleanCollection,
-		nil, varCollection)
+		c.Context, target, earthfile2llb.ConvertOpt{
+			Resolver:         resolver,
+			DockerBuilderFun: b.BuildOnlyLastImageAsTar,
+			CleanCollection:  cleanCollection,
+			VarCollection:    varCollection,
+		})
 	if err != nil {
 		return err
 	}

@@ -16,21 +16,41 @@ import (
 	"github.com/pkg/errors"
 )
 
+// ConvertOpt holds conversion parameters needed for conversion.
+type ConvertOpt struct {
+	// Resolver is the build context resolver.
+	Resolver *buildcontext.Resolver
+	// DockerBuilderFun is a fun that can be used to execute a docker build. This
+	// is used as part of operations like DOCKER LOAD and DOCKER PULL, where
+	// a tar image is needed in the middle of a build.
+	DockerBuilderFun DockerBuilderFun
+	// CleanCollection is a collection of cleanup functions.
+	CleanCollection *cleanup.Collection
+	// VisitedStates is a collection of target states which have been converted to LLB.
+	// This is used for deduplication and infinite cycle detection.
+	VisitedStates map[string][]*SingleTargetStates
+	// VarCollection is a collection of build args used for overriding args in the build.
+	VarCollection *variables.Collection
+}
+
+// DockerBuilderFun is a function able to build a target into a docker tar file.
+type DockerBuilderFun = func(ctx context.Context, mts *MultiTargetStates, dockerTag string, outFile string) error
+
 // Earthfile2LLB parses a earthfile and executes the statements for a given target.
-func Earthfile2LLB(ctx context.Context, target domain.Target, resolver *buildcontext.Resolver, dockerBuilderFun DockerBuilderFun, cleanCollection *cleanup.Collection, visitedStates map[string][]*SingleTargetStates, varCollection *variables.Collection) (mts *MultiTargetStates, err error) {
-	if visitedStates == nil {
-		visitedStates = make(map[string][]*SingleTargetStates)
+func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt) (mts *MultiTargetStates, err error) {
+	if opt.VisitedStates == nil {
+		opt.VisitedStates = make(map[string][]*SingleTargetStates)
 	}
 	// Check if we have previously converted this target, with the same build args.
 	targetStr := target.String()
-	for _, sts := range visitedStates[targetStr] {
+	for _, sts := range opt.VisitedStates[targetStr] {
 		same := true
 		for _, bai := range sts.TargetInput.BuildArgs {
 			if sts.Ongoing && !bai.IsConstant {
 				return nil, fmt.Errorf(
 					"Use of recursive targets with variable build args is not supported: %s", targetStr)
 			}
-			variable, _, found := varCollection.Get(bai.Name)
+			variable, _, found := opt.VarCollection.Get(bai.Name)
 			if found {
 				if !variable.BuildArgInput(bai.Name, bai.DefaultValue).Equals(bai) {
 					same = false
@@ -51,12 +71,12 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, resolver *buildcon
 			// Use the already built states.
 			return &MultiTargetStates{
 				FinalStates:   sts,
-				VisitedStates: visitedStates,
+				VisitedStates: opt.VisitedStates,
 			}, nil
 		}
 	}
 	// Resolve build context.
-	bc, err := resolver.Resolve(ctx, target)
+	bc, err := opt.Resolver.Resolve(ctx, target)
 	if err != nil {
 		return nil, errors.Wrapf(err, "resolve build context for target %s", target.String())
 	}
@@ -68,9 +88,7 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, resolver *buildcon
 	if err != nil {
 		return nil, err
 	}
-	converter, err := NewConverter(
-		targetCtx, bc.Target, resolver, dockerBuilderFun, cleanCollection, bc,
-		visitedStates, varCollection)
+	converter, err := NewConverter(targetCtx, bc.Target, bc, opt)
 	if err != nil {
 		return nil, err
 	}
