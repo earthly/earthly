@@ -446,16 +446,16 @@ func (app *earthApp) run(ctx context.Context, args []string) int {
 	err := app.cliApp.RunContext(ctx, args)
 	if err != nil {
 		logging.GetLogger(ctx).Error(err)
-		if errors.Is(err, builder.ErrSolve) {
-			// Do not print error if it's a solve error. It has already been printed somewhere else.
+		if strings.Contains(err.Error(), "security.insecure is not allowed") {
+			app.console.Warnf("Error: --allow-privileged (-P) flag is required\n")
 		} else if strings.Contains(err.Error(), "failed to fetch remote") {
-			app.console.Printf("Error: %v\n", err)
+			app.console.Warnf("Error: %v\n", err)
 			app.console.Printf(
 				"Check your git auth settings.\n" +
 					"Did you ssh-add today? Need to configure ~/earthly/config.yaml?\n" +
 					"For more information see https://docs.earthly.dev/guides/auth\n")
 		} else {
-			app.console.Printf("Error: %v\n", err)
+			app.console.Warnf("Error: %v\n", err)
 		}
 		return 1
 	}

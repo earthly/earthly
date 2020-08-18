@@ -35,6 +35,10 @@ type vertexMonitor struct {
 }
 
 func (vm *vertexMonitor) printHeader() {
+	vm.headerPrinted = true
+	if vm.operation == "" {
+		return
+	}
 	out := []string{"-->"}
 	out = append(out, vm.operation)
 	c := vm.console
@@ -42,7 +46,6 @@ func (vm *vertexMonitor) printHeader() {
 		c = c.WithCached(true)
 	}
 	c.Printf("%s\n", strings.Join(out, " "))
-	vm.headerPrinted = true
 }
 
 func (vm *vertexMonitor) shouldPrintProgress(percent int) bool {

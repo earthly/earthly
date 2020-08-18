@@ -435,6 +435,7 @@ func (c *Converter) Build(ctx context.Context, fullTargetName string, buildArgs 
 			Resolver:         c.resolver,
 			DockerBuilderFun: c.dockerBuilderFun,
 			CleanCollection:  c.cleanCollection,
+			VisitedStates:    c.mts.VisitedStates,
 			VarCollection:    newVarCollection})
 	if err != nil {
 		return nil, errors.Wrapf(err, "earthfile2llb for %s", fullTargetName)
