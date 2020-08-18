@@ -1,6 +1,6 @@
 
 buildkitd:
-    ARG BUILDKIT_BASE_IMAGE=github.com/earthly/buildkit:vlad-merge-master+build
+    ARG BUILDKIT_BASE_IMAGE=github.com/earthly/buildkit:earthly-master+build
     FROM $BUILDKIT_BASE_IMAGE
 
     # Install some missing binaries.
