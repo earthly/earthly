@@ -734,9 +734,7 @@ func (c *Converter) internalRun(ctx context.Context, args []string, secretKeyVal
 		finalArgs = withShellAndEnvVars(args, extraEnvVars, isWithShell)
 	}
 
-	if c.interactiveDebugging {
-		finalArgs = append([]string{"earth_debugger"}, finalArgs...)
-	}
+	finalArgs = append([]string{"earth_debugger"}, finalArgs...)
 
 	finalOpts = append(finalOpts, llb.Args(finalArgs))
 	if pushFlag {

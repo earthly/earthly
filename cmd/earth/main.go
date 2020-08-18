@@ -275,7 +275,6 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 			EnvVars:     []string{"EARTHLY_INTERACTIVE"},
 			Usage:       "Enable interactive debugging",
 			Destination: &app.interactiveDebugging,
-			Hidden:      true, // Experimental.
 		},
 		&cli.BoolFlag{
 			Name:        "verbose",
