@@ -14,9 +14,6 @@ type Server struct {
 	terminalConn net.Conn
 	mux          sync.Mutex
 
-	ctx    context.Context
-	cancel context.CancelFunc
-
 	dataForShell    chan []byte
 	dataForTerminal chan []byte
 
@@ -25,7 +22,7 @@ type Server struct {
 }
 
 func (s *Server) handleConn(conn net.Conn, readFrom, writeTo chan []byte) {
-	ctx, cancel := context.WithCancel(s.ctx)
+	ctx, cancel := context.WithCancel(context.TODO())
 
 	wg := sync.WaitGroup{}
 	wg.Add(2)

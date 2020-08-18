@@ -105,7 +105,7 @@ func interactiveMode(ctx context.Context, remoteConsoleAddr string) error {
 	}
 	defer func() { _ = ptmx.Close() }() // Best effort.
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(ctx)
 
 	go func() {
 		for {
