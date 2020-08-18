@@ -39,23 +39,21 @@ var _ commandInterpreter = (*Converter)(nil)
 
 // Converter turns earth commands to buildkit LLB representation.
 type Converter struct {
-	gitMeta              *buildcontext.GitMetadata
-	resolver             *buildcontext.Resolver
-	mts                  *MultiTargetStates
-	directDeps           []*SingleTargetStates
-	directDepIndices     []int
-	buildContext         llb.State
-	cacheContext         llb.State
-	varCollection        *variables.Collection
-	dockerBuilderFun     DockerBuilderFun
-	cleanCollection      *cleanup.Collection
-	nextArgIndex         int
-	interactiveDebugging bool
-	remoteConsoleAddr    string
+	gitMeta          *buildcontext.GitMetadata
+	resolver         *buildcontext.Resolver
+	mts              *MultiTargetStates
+	directDeps       []*SingleTargetStates
+	directDepIndices []int
+	buildContext     llb.State
+	cacheContext     llb.State
+	varCollection    *variables.Collection
+	dockerBuilderFun DockerBuilderFun
+	cleanCollection  *cleanup.Collection
+	nextArgIndex     int
 }
 
 // NewConverter constructs a new converter for a given earth target.
-func NewConverter(ctx context.Context, target domain.Target, resolver *buildcontext.Resolver, dockerBuilderFun DockerBuilderFun, cleanCollection *cleanup.Collection, bc *buildcontext.Data, visitedStates map[string][]*SingleTargetStates, varCollection *variables.Collection, interactiveDebugging bool, remoteConsoleAddr string) (*Converter, error) {
+func NewConverter(ctx context.Context, target domain.Target, resolver *buildcontext.Resolver, dockerBuilderFun DockerBuilderFun, cleanCollection *cleanup.Collection, bc *buildcontext.Data, visitedStates map[string][]*SingleTargetStates, varCollection *variables.Collection) (*Converter, error) {
 	sts := &SingleTargetStates{
 		Target: target,
 		TargetInput: dedup.TargetInput{
@@ -75,16 +73,14 @@ func NewConverter(ctx context.Context, target domain.Target, resolver *buildcont
 	targetStr := target.String()
 	visitedStates[targetStr] = append(visitedStates[targetStr], sts)
 	return &Converter{
-		gitMeta:              bc.GitMetadata,
-		resolver:             resolver,
-		mts:                  mts,
-		buildContext:         bc.BuildContext,
-		cacheContext:         makeCacheContext(target),
-		varCollection:        varCollection.WithBuiltinBuildArgs(target, bc.GitMetadata),
-		dockerBuilderFun:     dockerBuilderFun,
-		cleanCollection:      cleanCollection,
-		interactiveDebugging: interactiveDebugging,
-		remoteConsoleAddr:    remoteConsoleAddr,
+		gitMeta:          bc.GitMetadata,
+		resolver:         resolver,
+		mts:              mts,
+		buildContext:     bc.BuildContext,
+		cacheContext:     makeCacheContext(target),
+		varCollection:    varCollection.WithBuiltinBuildArgs(target, bc.GitMetadata),
+		dockerBuilderFun: dockerBuilderFun,
+		cleanCollection:  cleanCollection,
 	}, nil
 }
 
@@ -439,7 +435,7 @@ func (c *Converter) Build(ctx context.Context, fullTargetName string, buildArgs 
 	// Recursion.
 	mts, err := Earthfile2LLB(
 		ctx, target, c.resolver, c.dockerBuilderFun, c.cleanCollection,
-		c.mts.VisitedStates, newVarCollection, c.interactiveDebugging, c.remoteConsoleAddr)
+		c.mts.VisitedStates, newVarCollection)
 	if err != nil {
 		return nil, errors.Wrapf(err, "earthfile2llb for %s", fullTargetName)
 	}
