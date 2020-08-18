@@ -10,6 +10,7 @@
         [--push] [--no-output] [--no-cache] [--allow-privileged|-P]
         [--ssh-auth-sock <path-to-sock>]
         [--buildkit-host <bk-host>]
+        [--interactive|-i]
         <target-ref>
   ```
 * Artifact form
@@ -18,6 +19,7 @@
         [--push] [--no-cache] [--allow-privileged|-P]
         [--ssh-auth-sock <path-to-sock>]
         [--buildkit-host <bk-host>]
+        [--interactive|-i]
         --artifact|-a <artifact-ref> [<dest-path>]
   ```
 * Image form
@@ -26,6 +28,7 @@
         [--push] [--no-cache] [--allow-privileged|-P]
         [--ssh-auth-sock <path-to-sock>]
         [--buildkit-host <bk-host>]
+        [--interactive|-i]
         --image <target-ref>
   ```
 
@@ -142,6 +145,14 @@ This option is now deprecated. Please use the [configuration file](../earth-conf
 Also available as an env var setting: `GIT_URL_INSTEAD_OF=<git-instead-of>`.
 
 This option is now deprecated. Please use the [configuration file](../earth-config/earth-config.md) instead.
+
+##### `--interactive`
+
+Also available as an env var setting: `EARTHLY_INTERACTIVE=true`.
+
+Enable interactive debugging mode. By default when a RUN command fails, earth will display the error and exit. If the interactive mode is enabled and an error occurs, an
+interactive shell is presented which can be used for investigating the error interactively. Due to technical limitations, only a single interactive shell can be used on the system at any given time. This feature is experimental and may change over time.
+
 
 ## earth prune
 
