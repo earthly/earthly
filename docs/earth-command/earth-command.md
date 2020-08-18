@@ -181,7 +181,7 @@ Also available as an env var setting: `EARTHLY_NO_LOOP_DEVICE=true`.
 
 Disables the use of a loop device for storing the cache. By default, Earthly uses a file mounted as a loop device, so that it can control the type of filesystem used for the cache, in order to ensure that overlayfs can be mounted on top of it. If you are already using a filesystem compatible with overlayfs, then you can disable the loop device.
 
-##### `--interactive`
+##### `--interactive|-i` (**experimental**)
 
 Also available as an env var setting: `EARTHLY_INTERACTIVE=true`.
 
