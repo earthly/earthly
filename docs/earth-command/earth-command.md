@@ -11,6 +11,7 @@
         [--ssh-auth-sock <path-to-sock>]
         [--buildkit-host <bk-host>]
         [--no-loop-device]
+        [--interactive|-i]
         <target-ref>
   ```
 * Artifact form
@@ -20,6 +21,7 @@
         [--ssh-auth-sock <path-to-sock>]
         [--buildkit-host <bk-host>]
         [--no-loop-device]
+        [--interactive|-i]
         --artifact|-a <artifact-ref> [<dest-path>]
   ```
 * Image form
@@ -29,7 +31,8 @@
         [--ssh-auth-sock <path-to-sock>]
         [--buildkit-host <bk-host>]
         [--no-loop-device]
-        --image|-i <target-ref>
+        [--interactive|-i]
+        --image <target-ref>
   ```
 
 #### Description
@@ -177,6 +180,14 @@ earth --buildkit-cache-size-mb <cache-size-mb> prune --reset
 Also available as an env var setting: `EARTHLY_NO_LOOP_DEVICE=true`.
 
 Disables the use of a loop device for storing the cache. By default, Earthly uses a file mounted as a loop device, so that it can control the type of filesystem used for the cache, in order to ensure that overlayfs can be mounted on top of it. If you are already using a filesystem compatible with overlayfs, then you can disable the loop device.
+
+##### `--interactive`
+
+Also available as an env var setting: `EARTHLY_INTERACTIVE=true`.
+
+Enable interactive debugging mode. By default when a RUN command fails, earth will display the error and exit. If the interactive mode is enabled and an error occurs, an
+interactive shell is presented which can be used for investigating the error interactively. Due to technical limitations, only a single interactive shell can be used on the system at any given time. This feature is experimental and may change over time.
+
 
 ## earth prune
 
