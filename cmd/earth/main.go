@@ -651,7 +651,7 @@ func (app *earthApp) actionBuild(c *cli.Context) error {
 	defer cleanCollection.Close()
 	mts, err := earthfile2llb.Earthfile2LLB(
 		c.Context, target, resolver, b.BuildOnlyLastImageAsTar, cleanCollection,
-		nil, varCollection, app.interactiveDebugging, "TODO")
+		nil, varCollection)
 	if err != nil {
 		return err
 	}
