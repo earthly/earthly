@@ -25,7 +25,7 @@ type Server struct {
 }
 
 func (s *Server) handleConn(conn net.Conn, readFrom, writeTo chan []byte) {
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(s.ctx)
 
 	wg := sync.WaitGroup{}
 	wg.Add(2)

@@ -120,7 +120,7 @@ which shellrepeater
 shellrepeater &
 shellrepeaterpid=$!
 
-exec "$@" &
+"$@" &
 execpid=$!
 
 # quit if either buildkit or shellrepeater die

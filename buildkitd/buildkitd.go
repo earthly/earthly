@@ -204,7 +204,7 @@ func Start(ctx context.Context, image string, settings Settings, reset bool) err
 		"-e", fmt.Sprintf("ENABLE_LOOP_DEVICE=%t", !settings.DisableLoopDevice),
 		"-e", fmt.Sprintf("FORCE_LOOP_DEVICE=%t", !settings.DisableLoopDevice),
 		"-e", fmt.Sprintf("BUILDKIT_DEBUG=%t", settings.Debug),
-		"-p", fmt.Sprintf("%d:5000", settings.DebuggerPort),
+		"-p", fmt.Sprintf("127.0.0.1:%d:5000", settings.DebuggerPort),
 		"--label", fmt.Sprintf("dev.earthly.settingshash=%s", settingsHash),
 		"--name", ContainerName,
 		"--privileged",
