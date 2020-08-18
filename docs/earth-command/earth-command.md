@@ -146,7 +146,7 @@ Also available as an env var setting: `GIT_URL_INSTEAD_OF=<git-instead-of>`.
 
 This option is now deprecated. Please use the [configuration file](../earth-config/earth-config.md) instead.
 
-##### `--interactive`
+##### `--interactive|-i` (**experimental**)
 
 Also available as an env var setting: `EARTHLY_INTERACTIVE=true`.
 
