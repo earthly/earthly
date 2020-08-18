@@ -191,12 +191,13 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 	}
 	caps := solverpb.Caps.CapSet(solverpb.Caps.All())
 	state, dfImg, err := dockerfile2llb.Dockerfile2LLB(ctx, dfData, dockerfile2llb.ConvertOpt{
-		BuildContext: &data.BuildContext,
-		MetaResolver: imr.Default(),
-		Target:       dfTarget,
-		LLBCaps:      &caps,
-		BuildArgs:    newVarCollection.AsMap(),
-		Excludes:     nil, // TODO: Need to process this correctly.
+		BuildContext:   &data.BuildContext,
+		MetaResolver:   imr.Default(),
+		Target:         dfTarget,
+		TargetPlatform: &llbutil.TargetPlatform,
+		LLBCaps:        &caps,
+		BuildArgs:      newVarCollection.AsMap(),
+		Excludes:       nil, // TODO: Need to process this correctly.
 	})
 	if err != nil {
 		return errors.Wrapf(err, "dockerfile2llb %s", dfPath)
