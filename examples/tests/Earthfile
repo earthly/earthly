@@ -19,6 +19,7 @@ all:
     BUILD +dockerfile-test
     BUILD +fail-test
     BUILD +fail-push-test
+    BUILD +push-test
 
 experimental:
     # TODO: These are troublesome due to vfs driver used in dind. They quickly exhaust disk space.
