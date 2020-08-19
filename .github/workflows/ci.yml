@@ -23,7 +23,7 @@ jobs:
     - name: Earth version
       run: earth --version
     - name: Build latest earth
-      run: earth --build-arg BUILDKIT_BASE_IMAGE=earthly/buildkit:earthly-master@sha256:505101caf912109c11e9dc281a2efd5fd4cb9d4999324b1f67f030208a2b9343 --build-arg TAG=ci --build-arg VERSION=ci +for-linux
+      run: earth --build-arg BUILDKIT_BASE_IMAGE=earthly/buildkit:earthly-master@sha256:038df6f18651e2150956926ea5c6048cc3993db2a450944a3b1fee967fb2b331 --build-arg TAG=ci --build-arg VERSION=ci +for-linux
     - name: Reset cache
       run: ./build/linux/amd64/earth prune --reset
     - name: Build, test, push using latest earth
