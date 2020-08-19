@@ -25,7 +25,7 @@ In addition to Docker and Git, Earthly also requires privileged mode as it execu
 The next step is to install the `earth` command. For this, you need to run the command:
 
 ```bash
-sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/download/v0.3.0/earth-linux-amd64 -O /usr/local/bin/earth && chmod +x /usr/local/bin/earth'
+sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/download/v0.3.1/earth-linux-amd64 -O /usr/local/bin/earth && chmod +x /usr/local/bin/earth'
 ```
 
 {% hint style='info' %}
