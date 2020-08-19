@@ -101,6 +101,7 @@ func newSolverMonitor(console conslogging.ConsoleLogger) *solverMonitor {
 	}
 }
 
+// when printDetailed is false, we only print non-cached items
 func (sm *solverMonitor) monitorProgress(ctx context.Context, ch chan *client.SolveStatus, printDetailed bool) error {
 	var errVertex *vertexMonitor
 	for {
@@ -182,16 +183,15 @@ func (sm *solverMonitor) monitorProgress(ctx context.Context, ch chan *client.So
 					// No logging for internal operations.
 					continue
 				}
-				if !vm.headerPrinted && printDetailed {
+				if !vm.headerPrinted {
 					vm.printHeader()
 				}
 				vm.logger.Info(string(logLine.Data))
-				if printDetailed {
-					err := vm.printOutput(logLine.Data)
-					if err != nil {
-						return err
-					}
+				err := vm.printOutput(logLine.Data)
+				if err != nil {
+					return err
 				}
+
 			}
 		case <-ctx.Done():
 			if errVertex != nil {

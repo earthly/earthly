@@ -186,6 +186,7 @@ func (s *solver) solveArtifacts(ctx context.Context, localDirs map[string]string
 	return nil
 }
 
+// when printDetailed is false, we only print non-cached items
 func (s *solver) solveSideEffects(ctx context.Context, localDirs map[string]string, state llb.State, printDetailed bool) error {
 	dt, err := state.Marshal(ctx, llb.Platform(llbutil.TargetPlatform))
 	if err != nil {
