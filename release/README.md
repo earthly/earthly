@@ -25,6 +25,7 @@
     --secret GITHUB_TOKEN \
     --push -P ./release+release
   ```
+* Once pushed, download and install the released earth locally for both linux and mac and test it using `earth -P github.com/earthly/earthly+test`
 * Run
   ```bash
   earth \
@@ -40,6 +41,12 @@
   * [ci-integration.md](../docs/guides/ci-integration.md)
   * [circle-integration.md](../docs/examples/circle-integration.md)
   * [gh-actions-integration.md](../docs/examples/gh-actions-integration.md)
+* Go to the [releases page](https://github.com/earthly/earthly/releases) and edit the latest release to add release notes. Use a comparison such as https://github.com/earthly/earthly/compare/v0.3.0...v0.3.1 (replace the right versions in the URL) to see which PRs went into this release.
+* Keep an eye on the Homebrew PR and once merged, test it out on a mac using
+  ```bash
+  brew update earthly
+  earth -P github.com/earthly/earthly+test
+  ```
 
 ### VS Code syntax highlighting
 
@@ -63,21 +70,4 @@ earth \
   --secret VSCE_TOKEN \
   --push \
   +release-vscode-syntax-highlighting
-```
-
-### Using a fork of buildkit
-
-We maintain a fork of buildkit under https://github.com/earthly/buildkit which has an earthly-master branch which contains our patches.
-
-Github actions performs a build of the buildkit docker image; under the build output expand the section titled `push buildkit docker image`
-and look for the last line, which is similar to:
-
-```
-earthly-master: digest: sha256:40303c69b24c23c63c417efac1b6641e53ecc526598edf101a965c3dc54dddc3 size: 1158
-```
-
-Then update the [../buildkitd/Earthfile](buildkit earthfile) FROM entry with the updated sha256 string:
-
-```
-FROM earthly/buildkit:earthly-master@sha256:40303c69b24c23c63c417efac1b6641e53ecc526598edf101a965c3dc54dddc3
 ```
