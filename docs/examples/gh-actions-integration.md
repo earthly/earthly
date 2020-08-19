@@ -24,15 +24,6 @@ jobs:
       FORCE_COLOR: 1
     steps:
     - uses: actions/checkout@v2
-    - name: Put back the git branch into git (Earthly uses it for tagging)
-      run: |
-        branch=""
-        if [ -n "$GITHUB_HEAD_REF" ]; then
-          branch="$GITHUB_HEAD_REF"
-        else
-          branch="${GITHUB_REF##*/}"
-        fi
-        git checkout -b "$branch" || true
     - name: Docker Login
       run: docker login --username "$DOCKERHUB_USERNAME" --password "$DOCKERHUB_TOKEN"
     - name: Download latest earth
