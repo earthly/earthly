@@ -100,11 +100,7 @@ release-homebrew:
     COPY --build-arg GOOS=darwin \
         --build-arg GOARCH=amd64 \
         --build-arg GO_EXTRA_LDFLAGS= \
-        ../+earth/tags /params/
-    COPY --build-arg GOOS=darwin \
-        --build-arg GOARCH=amd64 \
-        --build-arg GO_EXTRA_LDFLAGS= \
-        ../+earth/ldflags /params/
+        ../+earth/tags ../+earth/ldflags /params/
     RUN sed -i \
         -e 's^:URL:^'"$NEW_URL"'^g' \
         -e 's^:SHA256:^'"$(cat /params/downloadsha256)"'^g' \
