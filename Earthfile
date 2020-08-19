@@ -113,12 +113,23 @@ earth:
     ARG DEFAULT_BUILDKITD_IMAGE=earthly/buildkitd:$VERSION
     ARG BUILD_TAGS=dfrunmount dfrunsecurity dfsecrets dfssh dfrunnetwork
     ARG GOCACHE=/go-cache
+    RUN mkdir -p build
+    RUN printf "$BUILD_TAGS" > ./build/tags && echo "$(cat ./build/tags)"
+    RUN printf '-X main.DefaultBuildkitdImage='"$DEFAULT_BUILDKITD_IMAGE" > ./build/ldflags && \
+        printf ' -X main.Version='"$VERSION" >> ./build/ldflags && \
+        printf ' -X main.GitSha='"$EARTHLY_GIT_HASH" >> ./build/ldflags && \
+        printf ' '"$GO_EXTRA_LDFLAGS" >> ./build/ldflags && \
+        echo "$(cat ./build/ldflags)"
+    # Important! If you change the go build options, you may need to also change them
+    # in release/earthly.rb.
     RUN --mount=type=cache,target=$GOCACHE \
         go build \
-            -tags "$BUILD_TAGS" \
-            -ldflags "-X main.DefaultBuildkitdImage=$DEFAULT_BUILDKITD_IMAGE -X main.Version=$VERSION -X main.GitSha=$EARTHLY_GIT_HASH $GO_EXTRA_LDFLAGS" \
+            -tags "$(cat ./build/tags)" \
+            -ldflags "$(cat ./build/ldflags)" \
             -o build/earth \
             cmd/earth/*.go
+    SAVE ARTIFACT ./build/tags
+    SAVE ARTIFACT ./build/ldflags
     SAVE ARTIFACT build/earth AS LOCAL "build/$GOOS/$GOARCH/earth"
 
 earth-darwin:
