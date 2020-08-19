@@ -106,8 +106,7 @@ earth:
     ARG GOARCH=amd64
     ARG GO_EXTRA_LDFLAGS="-linkmode external -extldflags -static"
     RUN test -n "$GOOS" && test -n "$GOARCH"
-    ARG EARTHLY_TARGET_TAG
-    ARG EARTHLY_TARGET_TAG_DOCKER=$EARTHLY_TARGET_TAG
+    ARG EARTHLY_TARGET_TAG_DOCKER
     ARG VERSION=$EARTHLY_TARGET_TAG_DOCKER
     ARG EARTHLY_GIT_HASH
     ARG DEFAULT_BUILDKITD_IMAGE=earthly/buildkitd:$VERSION
@@ -150,8 +149,7 @@ earth-docker:
     ENV FORCE_LOOP_DEVICE=false
     COPY earth-buildkitd-wrapper.sh /usr/bin/earth-buildkitd-wrapper.sh
     ENTRYPOINT ["/usr/bin/earth-buildkitd-wrapper.sh"]
-    ARG EARTHLY_TARGET_TAG
-    ARG EARTHLY_TARGET_TAG_DOCKER=$EARTHLY_TARGET_TAG
+    ARG EARTHLY_TARGET_TAG_DOCKER
     ARG TAG=$EARTHLY_TARGET_TAG_DOCKER
     COPY --build-arg VERSION=$TAG +earth/earth /usr/bin/earth
     SAVE IMAGE --push earthly/earth:$TAG
