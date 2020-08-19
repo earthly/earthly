@@ -97,7 +97,8 @@ release-homebrew:
     RUN mkdir -p /params
     RUN curl -L "$NEW_URL" | sha256sum | cut -f 1 -d ' ' > /params/downloadsha256
     COPY ./earthly.rb ./Formula/earthly.rb
-    COPY --build-arg GOOS=darwin \
+    COPY --build-arg VERSION=$RELEASE_TAG \
+        --build-arg GOOS=darwin \
         --build-arg GOARCH=amd64 \
         --build-arg GO_EXTRA_LDFLAGS= \
         ../+earth/tags ../+earth/ldflags /params/
