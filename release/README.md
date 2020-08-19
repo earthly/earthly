@@ -49,6 +49,8 @@ First set the version to publish:
 export VSCODE_RELEASE_TAG=v0.0.3
 ```
 
+(you can see what is already published at https://marketplace.visualstudio.com/items?itemName=earthly.earthfile-syntax-highlighting )
+
 Ask Vlad for a token
 
 ```bash
