@@ -200,3 +200,8 @@ dockerfile-test:
         --entrypoint \
         --mount=type=tmpfs,target=/tmp/earthly \
         -- --no-output +test
+
+fail-test:
+    COPY fail.earth ./Earthfile
+    # test that an error code is correctly returned
+    RUN --privileged ! /usr/bin/earth-buildkitd-wrapper.sh +test

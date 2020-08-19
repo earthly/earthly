@@ -1,0 +1,4 @@
+FROM alpine:3.11
+test:
+    # intentionally cause a failure (this test is to ensure failures are caught)
+    RUN false

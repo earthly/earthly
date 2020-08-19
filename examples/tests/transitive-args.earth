@@ -1,10 +1,10 @@
 FROM alpine:3.11
 test:
-	BUILD --build-arg SOMEARG=$SOMEARG +intermediate
-	BUILD --build-arg SOMEARG=abc +intermediate
+    BUILD --build-arg SOMEARG=$SOMEARG +intermediate
+    BUILD --build-arg SOMEARG=abc +intermediate
 intermediate:
-	BUILD +arg-target
+    BUILD +arg-target
 arg-target:
-	ARG SOMEARG=default
+    ARG SOMEARG=default
     RUN echo abc > file.txt
     SAVE ARTIFACT file.txt "/$SOMEARG" AS LOCAL "$SOMEARG"
