@@ -611,7 +611,10 @@ func (app *earthApp) actionBuild(c *cli.Context) error {
 	secrets := app.secrets.Value()
 	//interactive debugger settings are passed as secrets to avoid having it affect the cache hash
 
-	secretsMap := processSecrets(secrets)
+	secretsMap, err := processSecrets(secrets)
+	if err != nil {
+		return err
+	}
 
 	debuggerSettings := debuggercommon.DebuggerSettings{
 		DebugLevelLogging: app.buildkitdSettings.Debug,
@@ -697,7 +700,7 @@ func (app *earthApp) newBuildkitdClient(ctx context.Context, opts ...client.Clie
 	return bkClient, nil
 }
 
-func processSecrets(secrets []string) map[string][]byte {
+func processSecrets(secrets []string) (map[string][]byte, error) {
 	finalSecrets := make(map[string][]byte)
 	for _, secret := range secrets {
 		parts := strings.SplitN(secret, "=", 2)
@@ -706,11 +709,14 @@ func processSecrets(secrets []string) map[string][]byte {
 			finalSecrets[parts[0]] = []byte(parts[1])
 		} else {
 			// Not set. Use environment to fetch it.
-			value := os.Getenv(secret)
+			value, found := os.LookupEnv(secret)
+			if !found {
+				return nil, fmt.Errorf("env var %s not set", secret)
+			}
 			finalSecrets[secret] = []byte(value)
 		}
 	}
-	return finalSecrets
+	return finalSecrets, nil
 }
 
 func defaultSSHAuthSock() string {

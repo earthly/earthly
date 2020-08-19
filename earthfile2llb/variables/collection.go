@@ -39,7 +39,7 @@ func ParseCommandLineBuildArgs(args []string) (*Collection, error) {
 	for _, arg := range args {
 		splitArg := strings.SplitN(arg, "=", 2)
 		if len(splitArg) < 1 {
-			return nil, fmt.Errorf("Invalid build arg %s", splitArg)
+			return nil, fmt.Errorf("invalid build arg %s", splitArg)
 		}
 		key := splitArg[0]
 		value := ""
@@ -49,7 +49,11 @@ func ParseCommandLineBuildArgs(args []string) (*Collection, error) {
 			hasValue = true
 		}
 		if !hasValue {
-			value = os.Getenv(key)
+			var found bool
+			value, found = os.LookupEnv(key)
+			if !found {
+				return nil, fmt.Errorf("env var %s not set", key)
+			}
 		}
 		ret.variables[key] = NewConstant(value)
 	}
