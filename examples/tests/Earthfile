@@ -17,6 +17,8 @@ all:
     BUILD +host-bind-test
     BUILD +star-test
     BUILD +dockerfile-test
+    BUILD +fail-test
+    BUILD +fail-push-test
 
 experimental:
     # TODO: These are troublesome due to vfs driver used in dind. They quickly exhaust disk space.
@@ -205,3 +207,18 @@ fail-test:
     COPY fail.earth ./Earthfile
     # test that an error code is correctly returned
     RUN --privileged ! /usr/bin/earth-buildkitd-wrapper.sh +test
+    # test that the 'failed with exit code' text is printed out
+    RUN --privileged /usr/bin/earth-buildkitd-wrapper.sh +test 2>&1 | grep 'failed with exit code 1'
+
+fail-push-test:
+    COPY fail.earth ./Earthfile
+    # test that an error code is correctly returned
+    RUN --privileged ! /usr/bin/earth-buildkitd-wrapper.sh --push +test-push
+    # test that the 'failed with exit code' text is printed out
+    RUN --privileged /usr/bin/earth-buildkitd-wrapper.sh --push +test-push 2>&1 | grep 'failed with exit code 1'
+    RUN echo hello world
+
+push-test:
+    COPY push.earth ./Earthfile
+    RUN --privileged /usr/bin/earth-buildkitd-wrapper.sh +push-test | grep 'Use earth --push to enable pushing'
+    RUN --privileged /usr/bin/earth-buildkitd-wrapper.sh --push +push-test | grep 'hello world'
