@@ -217,13 +217,11 @@ func main() {
 			if err != nil {
 				log.Error(err)
 			}
-
-			// ensure that this always exits with an error status; otherwise it will be cached by earthly
-			if exitCode == 0 {
-				exitCode = 1
-			}
-			os.Exit(exitCode)
 		}
+		// ensure that this always exits with an error status; otherwise it will be cached by earthly
+		if exitCode == 0 {
+			exitCode = 1
+		}
+		os.Exit(exitCode)
 	}
-
 }
