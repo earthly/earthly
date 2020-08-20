@@ -207,19 +207,31 @@ dockerfile-test:
 fail-test:
     COPY fail.earth ./Earthfile
     # test that an error code is correctly returned
-    RUN --privileged ! /usr/bin/earth-buildkitd-wrapper.sh +test
+    RUN --privileged \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        ! /usr/bin/earth-buildkitd-wrapper.sh +test
     # test that the 'failed with exit code' text is printed out
-    RUN --privileged /usr/bin/earth-buildkitd-wrapper.sh +test 2>&1 | grep 'this-will-fail'
+    RUN --privileged \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        /usr/bin/earth-buildkitd-wrapper.sh +test 2>&1 | grep 'this-will-fail'
 
 fail-push-test:
     COPY fail.earth ./Earthfile
     # test that an error code is correctly returned
-    RUN --privileged ! /usr/bin/earth-buildkitd-wrapper.sh --push +test-push
+    RUN --privileged \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        ! /usr/bin/earth-buildkitd-wrapper.sh --push +test-push
     # test that the 'failed with exit code' text is printed out
-    RUN --privileged /usr/bin/earth-buildkitd-wrapper.sh --push +test-push 2>&1 | grep 'this-too-will-fail'
+    RUN --privileged \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        /usr/bin/earth-buildkitd-wrapper.sh --push +test-push 2>&1 | grep 'this-too-will-fail'
     RUN echo hello world
 
 push-test:
     COPY push.earth ./Earthfile
-    RUN --privileged /usr/bin/earth-buildkitd-wrapper.sh +push-test | grep 'Use earth --push to enable pushing'
-    RUN --privileged /usr/bin/earth-buildkitd-wrapper.sh --push +push-test | grep 'hello world'
+    RUN --privileged \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        /usr/bin/earth-buildkitd-wrapper.sh +push-test | grep 'Use earth --push to enable pushing'
+    RUN --privileged \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        /usr/bin/earth-buildkitd-wrapper.sh --push +push-test | grep 'hello world'
