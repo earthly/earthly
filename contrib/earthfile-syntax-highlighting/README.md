@@ -6,6 +6,12 @@ Syntax highlighting for Earthly build Earthfiles.
 
 ## Release Notes
 
+### 0.0.5
+
+* Fix `FROM DOCKERFILE`
+* Fix highlighting for target and artifact refs in edge cases (eg `g++`)
+* Make case-sensitive
+
 ### 0.0.4
 
 * Add highlighting for `FROM DOCKERFILE`
