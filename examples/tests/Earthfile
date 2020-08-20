@@ -235,3 +235,7 @@ push-test:
     RUN --privileged \
         --mount=type=tmpfs,target=/tmp/earthly \
         /usr/bin/earth-buildkitd-wrapper.sh --push +push-test | grep 'hello world'
+
+private-image-test:
+    FROM vladaionescu/private-test:latest
+    RUN --entrypoint echo hello world
