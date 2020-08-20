@@ -9,5 +9,5 @@ jobs:
       - checkout
       - run: "sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/latest/download/earth-linux-amd64 -O /usr/local/bin/earth && chmod +x /usr/local/bin/earth'"
       - run: earth --version
-      - run: earth --build-arg TAG=ci --build-arg VERSION=ci +for-linux
+      - run: earth +for-linux
       - run: ./build/linux/amd64/earth -P --no-output +test

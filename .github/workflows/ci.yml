@@ -13,7 +13,7 @@ jobs:
       DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
       GIT_URL_INSTEAD_OF: "https://github.com/=git@github.com:"
       FORCE_COLOR: 1
-    if: github.repository == 'earthly/earthly'
+    if: github.event.pull_request.head.repo.full_name == github.repository
     steps:
     - uses: actions/checkout@v2
     - name: Docker Login
@@ -23,8 +23,12 @@ jobs:
     - name: Earth version
       run: earth --version
     - name: Build latest earth
-      run: earth --build-arg TAG=ci --build-arg VERSION=ci +for-linux
+      run: earth +for-linux
     - name: Reset cache
       run: ./build/linux/amd64/earth prune --reset
-    - name: Build, test, push using latest earth
-      run: ./build/linux/amd64/earth --push -P +test
+    - name: Build and test using latest earth
+      run: ./build/linux/amd64/earth --no-output -P +test
+    - name: Execute private image test
+      run: ./build/linux/amd64/earth ./examples/tests+private-image-test
+    - name: Push
+      run: ./build/linux/amd64/earth --push +all
