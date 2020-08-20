@@ -44,7 +44,7 @@
 * Go to the [releases page](https://github.com/earthly/earthly/releases) and edit the latest release to add release notes. Use a comparison such as https://github.com/earthly/earthly/compare/v0.3.0...v0.3.1 (replace the right versions in the URL) to see which PRs went into this release.
 * Keep an eye on the Homebrew PR and once merged, test it out on a mac using
   ```bash
-  brew update earthly
+  brew upgrade earthly
   earth -P github.com/earthly/earthly+test
   ```
 
