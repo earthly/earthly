@@ -113,7 +113,7 @@
 							"name": "keyword.other.special-method.earthfile"
 						}
 					},
-					"match": "^\\s*\\b(?i:(SAVE ARTIFACT))(\\b.*?\\b)(?i:(AS LOCAL))\\b"
+					"match": "^\\s*\\b(SAVE ARTIFACT)(\\b.*?\\b)(AS LOCAL)\\b"
 				},
 				{
 					"captures": {
@@ -128,15 +128,15 @@
 				},
 				{
 					"name": "keyword.other.special-method.earthfile",
-					"match": "^\\s*(?i:(ONBUILD)\\s+)?(?i:(CMD|ENTRYPOINT))\\s"
+					"match": "^\\s*HEALTHCHECK\\s+(NONE|CMD)\\s"
 				},
 				{
 					"name": "keyword.other.special-method.earthfile",
-					"match": "^\\s*(?i:(HEALTHCHECK)\\s+)?(?i:(NONE|CMD))\\s"
+					"match": "^\\s*FROM DOCKERFILE\\s"
 				},
 				{
 					"name": "keyword.other.special-method.earthfile",
-					"match": "^\\s*(?i:(ONBUILD|HEALTHCHECK)\\s+)?(?i:(FROM|FROM DOCKERFILE|COPY|SAVE ARTIFACT|SAVE IMAGE|RUN|LABEL|EXPOSE|VOLUME|USER|ENV|ARG|BUILD|WORKDIR|ENTRYPOINT|GIT CLONE|DOCKER LOAD|DOCKER PULL|HEALTHCHECK))\\s"
+					"match": "^\\s*(FROM|COPY|SAVE ARTIFACT|SAVE IMAGE|RUN|LABEL|EXPOSE|VOLUME|USER|ENV|ARG|BUILD|WORKDIR|ENTRYPOINT|CMD|GIT CLONE|DOCKER LOAD|DOCKER PULL|HEALTHCHECK)\\s"
 				}
 			]
 		},
@@ -213,11 +213,11 @@
 		"entity": {
 			"patterns": [
 				{
-					"match": "(\\S*\\+\\S*(/\\S*)+)",
+					"match": "(\\S*\\+[a-zA-Z0-9.\\-]+(/\\S*)+)",
 					"name": "entity.name.variable.target.earthfile"
 				},
 				{
-					"match": "(\\S*\\+\\S*)",
+					"match": "(\\S*\\+[a-zA-Z0-9.\\-]+)",
 					"name": "entity.name.type.target.earthfile"
 				}
 			]
