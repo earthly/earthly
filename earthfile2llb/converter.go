@@ -758,6 +758,7 @@ func (c *Converter) internalRun(ctx context.Context, args []string, secretKeyVal
 	// Debugger.
 	secretOpts := []llb.SecretOption{
 		llb.SecretID(common.DebuggerSettingsSecretsKey),
+		llb.SecretFileOpt(0, 0, 0444),
 	}
 	debuggerSecretMount := llb.AddSecret(
 		fmt.Sprintf("/run/secrets/%s", common.DebuggerSettingsSecretsKey), secretOpts...)
