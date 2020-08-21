@@ -20,10 +20,14 @@ import (
 type ConvertOpt struct {
 	// Resolver is the build context resolver.
 	Resolver *buildcontext.Resolver
-	// DockerBuilderFun is a fun that can be used to execute a docker build. This
+	// DockerBuilderFun is a fun that can be used to execute an image build. This
 	// is used as part of operations like DOCKER LOAD and DOCKER PULL, where
 	// a tar image is needed in the middle of a build.
 	DockerBuilderFun DockerBuilderFun
+	// ArtifactBuilderFun is a fun that can be used to execute build of an artifact.
+	// This is used as part of operations like FROM DOCKERFILE +.../..., where
+	// a generated Dockerfile is needed in the middle of a build.
+	ArtifactBuilderFun ArtifactBuilderFun
 	// CleanCollection is a collection of cleanup functions.
 	CleanCollection *cleanup.Collection
 	// VisitedStates is a collection of target states which have been converted to LLB.
@@ -35,6 +39,9 @@ type ConvertOpt struct {
 
 // DockerBuilderFun is a function able to build a target into a docker tar file.
 type DockerBuilderFun = func(ctx context.Context, mts *MultiTargetStates, dockerTag string, outFile string) error
+
+// ArtifactBuilderFun is a function able to build an artifact and output it locally.
+type ArtifactBuilderFun = func(ctx context.Context, mts *MultiTargetStates, artifact domain.Artifact, outFile string) error
 
 // Earthfile2LLB parses a earthfile and executes the statements for a given target.
 func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt) (mts *MultiTargetStates, err error) {

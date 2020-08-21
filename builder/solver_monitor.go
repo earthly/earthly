@@ -49,14 +49,17 @@ func (vm *vertexMonitor) printHeader() {
 }
 
 func (vm *vertexMonitor) shouldPrintProgress(percent int) bool {
-	now := time.Now()
 	if !vm.headerPrinted {
 		return false
 	}
+	if vm.targetStr == "" {
+		return false
+	}
+	now := time.Now()
 	if now.Sub(vm.lastOutput) < durationBetweenProgressUpdate && percent < 100 {
 		return false
 	}
-	if vm.lastPercentage == percent {
+	if vm.lastPercentage >= percent {
 		return false
 	}
 	vm.lastOutput = now
@@ -101,8 +104,7 @@ func newSolverMonitor(console conslogging.ConsoleLogger) *solverMonitor {
 	}
 }
 
-// when printDetailed is false, we only print non-cached items
-func (sm *solverMonitor) monitorProgress(ctx context.Context, ch chan *client.SolveStatus, printDetailed bool) error {
+func (sm *solverMonitor) monitorProgress(ctx context.Context, ch chan *client.SolveStatus) error {
 	var errVertex *vertexMonitor
 	for {
 		select {
@@ -132,7 +134,7 @@ func (sm *solverMonitor) monitorProgress(ctx context.Context, ch chan *client.So
 				}
 				vm.vertex = vertex
 				if !vm.headerPrinted &&
-					((printDetailed && !vm.isInternal && (vertex.Cached || vertex.Started != nil)) || vertex.Error != "") {
+					((!vm.isInternal && (vertex.Cached || vertex.Started != nil)) || vertex.Error != "") {
 					vm.printHeader()
 					vm.logger.Info("Vertex started or cached")
 				}
@@ -168,13 +170,11 @@ func (sm *solverMonitor) monitorProgress(ctx context.Context, ch chan *client.So
 					logger := vm.logger.
 						With("progress", progress).
 						With("name", vs.Name)
-					if !vm.headerPrinted && printDetailed {
+					if !vm.headerPrinted {
 						vm.printHeader()
 					}
 					logger.Info(vs.ID)
-					if printDetailed {
-						vm.console.Printf("%s %d%%\n", vs.ID, progress)
-					}
+					vm.console.Printf("%s %d%%\n", vs.ID, progress)
 				}
 			}
 			for _, logLine := range ss.Logs {

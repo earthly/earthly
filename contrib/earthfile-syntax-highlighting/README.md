@@ -1,10 +1,18 @@
 # earthfile-syntax-highlighting README
 
-Syntax highlighting for Earthly build Earthfiles.
+<div align="center"><img alt="Earthly" width="700px" src="https://github.com/earthly/earthly/raw/master/img/logo-banner-white-bg.png" /></div>
 
-![Earthfile Syntax Highlighting](https://github.com/earthly/earthly/raw/master/images/vscode-plugin.png)
+Syntax highlighting for [Earthly](https://earthly.dev) Earthfiles.
+
+For an introduction of Earthly see the [Earthly GitHub repository](https://github.com/earthly/earthly) or the [Earthly documentation](https://docs.earthly.dev).
 
 ## Release Notes
+
+### 0.0.5
+
+* Fix `FROM DOCKERFILE`
+* Fix highlighting for target and artifact refs in edge cases (eg `g++`)
+* Make case-sensitive
 
 ### 0.0.4
 

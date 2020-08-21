@@ -654,27 +654,33 @@ func (app *earthApp) actionBuild(c *cli.Context) error {
 	defer cleanCollection.Close()
 	mts, err := earthfile2llb.Earthfile2LLB(
 		c.Context, target, earthfile2llb.ConvertOpt{
-			Resolver:         resolver,
-			DockerBuilderFun: b.BuildOnlyLastImageAsTar,
-			CleanCollection:  cleanCollection,
-			VarCollection:    varCollection,
+			Resolver:           resolver,
+			DockerBuilderFun:   b.MakeImageAsTarBuilderFun(),
+			ArtifactBuilderFun: b.MakeArtifactBuilderFun(),
+			CleanCollection:    cleanCollection,
+			VarCollection:      varCollection,
 		})
 	if err != nil {
 		return err
 	}
 
+	opts := builder.BuildOpt{
+		PrintSuccess: true,
+		Push:         app.push,
+		NoOutput:     app.noOutput,
+	}
 	if app.imageMode {
-		err = b.BuildOnlyImages(c.Context, mts, app.push)
+		err = b.BuildOnlyImages(c.Context, mts, opts)
 		if err != nil {
 			return err
 		}
 	} else if app.artifactMode {
-		err = b.BuildOnlyArtifact(c.Context, mts, artifact, destPath)
+		err = b.BuildOnlyArtifact(c.Context, mts, artifact, destPath, opts)
 		if err != nil {
 			return err
 		}
 	} else {
-		err = b.Build(c.Context, mts, app.noOutput, app.push)
+		err = b.Build(c.Context, mts, opts)
 		if err != nil {
 			return err
 		}

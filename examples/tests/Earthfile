@@ -17,6 +17,10 @@ all:
     BUILD +host-bind-test
     BUILD +star-test
     BUILD +dockerfile-test
+    BUILD +fail-test
+    BUILD +fail-push-test
+    BUILD +push-test
+    BUILD +gen-dockerfile-test
 
 experimental:
     # TODO: These are troublesome due to vfs driver used in dind. They quickly exhaust disk space.
@@ -200,3 +204,46 @@ dockerfile-test:
         --entrypoint \
         --mount=type=tmpfs,target=/tmp/earthly \
         -- --no-output +test
+
+fail-test:
+    COPY fail.earth ./Earthfile
+    # test that an error code is correctly returned
+    RUN --privileged \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        ! /usr/bin/earth-buildkitd-wrapper.sh +test
+    # test that the 'failed with exit code' text is printed out
+    RUN --privileged \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        /usr/bin/earth-buildkitd-wrapper.sh +test 2>&1 | grep 'this-will-fail'
+
+fail-push-test:
+    COPY fail.earth ./Earthfile
+    # test that an error code is correctly returned
+    RUN --privileged \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        ! /usr/bin/earth-buildkitd-wrapper.sh --push +test-push
+    # test that the 'failed with exit code' text is printed out
+    RUN --privileged \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        /usr/bin/earth-buildkitd-wrapper.sh --push +test-push 2>&1 | grep 'this-too-will-fail'
+    RUN echo hello world
+
+push-test:
+    COPY push.earth ./Earthfile
+    RUN --privileged \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        /usr/bin/earth-buildkitd-wrapper.sh +push-test | grep 'Use earth --push to enable pushing'
+    RUN --privileged \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        /usr/bin/earth-buildkitd-wrapper.sh --push +push-test | grep 'hello world'
+
+private-image-test:
+    FROM vladaionescu/private-test:latest
+    RUN --entrypoint echo hello world
+
+gen-dockerfile-test:
+    COPY gen-dockerfile.earth ./Earthfile
+    RUN --privileged \
+    --entrypoint \
+    --mount=type=tmpfs,target=/tmp/earthly \
+    -- --no-output +test
