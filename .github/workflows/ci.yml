@@ -29,6 +29,6 @@ jobs:
     - name: Build and test using latest earth
       run: ./build/linux/amd64/earth --no-output -P +test
     - name: Execute private image test
-      run: ./build/linux/amd64/earth ./examples/tests+private-image-test
+      run: ./build/linux/amd64/earth --no-output ./examples/tests+private-image-test
     - name: Push
       run: ./build/linux/amd64/earth --push +all

@@ -735,6 +735,9 @@ func (c *Converter) internalRun(ctx context.Context, args []string, secretKeyVal
 		secretPath := path.Join("/run/secrets", secretID)
 		secretOpts := []llb.SecretOption{
 			llb.SecretID(secretID),
+			// TODO: Perhaps this should just default to the current user automatically from
+			//       buildkit side. Then we wouldn't need to open this up to everyone.
+			llb.SecretFileOpt(0, 0, 0444),
 		}
 		finalOpts = append(finalOpts, llb.AddSecret(secretPath, secretOpts...))
 		// TODO: The use of cat here might not be portable.
