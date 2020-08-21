@@ -7,39 +7,142 @@ on:
     branches: [ master ]
 
 jobs:
-  build:
+  defaults:
     runs-on: ubuntu-latest
     env:
       DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
       GIT_URL_INSTEAD_OF: "https://github.com/=git@github.com:"
       FORCE_COLOR: 1
     if: github.event.pull_request.head.repo.full_name == github.repository
+  build:
     steps:
-    - uses: actions/checkout@v2
-    - name: Put back the git branch into git (Earthly uses it for tagging)
-      run: |
-        branch=""
-        if [ -n "$GITHUB_HEAD_REF" ]; then
-          branch="$GITHUB_HEAD_REF"
-        else
-          branch="${GITHUB_REF##*/}"
-        fi
-        git checkout -b "$branch" || true
-    - name: Docker Login
-      run: docker login --username vladaionescu --password "$DOCKERHUB_TOKEN"
-    - name: Download latest earth
-      run: "sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/latest/download/earth-linux-amd64 -O /usr/local/bin/earth && chmod +x /usr/local/bin/earth'"
-    - name: Earth version
-      run: earth --version
-    - name: Build latest earth
-      run: earth +for-linux
-    - name: Reset cache
-      run: ./build/linux/amd64/earth prune --reset
-    - name: Build and test using latest earth
-      run: ./build/linux/amd64/earth --no-output -P +test
-    - name: Execute private image test
-      run: ./build/linux/amd64/earth --no-output ./examples/tests+private-image-test
-    - name: Execute fail test
-      run: "! ./build/linux/amd64/earth --no-output +test-fail"
-    - name: Push
-      run: ./build/linux/amd64/earth --push +all
+      - uses: actions/checkout@v2
+      - name: Download released earth
+        run: "sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/latest/download/earth-linux-amd64 -O /usr/local/bin/earth && chmod +x /usr/local/bin/earth'"
+      - name: Build latest earth using released earth
+        run: earth --build-arg TAG=ci --build-arg VERSION=ci +for-linux
+      - name: Build latest earth using latest earth
+        run: ./build/linux/amd64/earth --build-arg TAG=ci --build-arg VERSION=ci +for-linux
+      - name: Save earth
+        uses: actions/upload-artifact@v2
+        with:
+          name: earth
+          path: build/linux/amd64/earth
+          if-no-files-found: error
+      - name: Output buildkitd image
+        run: docker save -o build/buildkitd.tar earthly/buildkitd:ci
+      - name: Save buildkitd.tar
+        uses: actions/upload-artifact@v2
+        with:
+          name: buildkitd.tar
+          path: build/buildkitd.tar
+          if-no-files-found: error
+  lint-unit-test:
+    needs: build
+    steps:
+      - uses: actions/checkout@v2
+      - name: Load earth
+        uses: actions/download-artifact@v2
+        with:
+          name: earth
+          path: ./earth
+      - name: Load buildkitd.tar
+        uses: actions/download-artifact@v2
+        with:
+          name: buildkitd.tar
+          path: ./buildkitd.tar
+      - name: Load buildkitd image
+        run: docker load ./buildkitd.tar
+      - name: Lint
+        run: ./earth --no-output +lint
+      - name: Unit test
+        run: ./earth --no-output +unittest
+  integration-test:
+    needs: build
+    steps:
+      - uses: actions/checkout@v2
+      - name: Load earth
+        uses: actions/download-artifact@v2
+        with:
+          name: earth
+          path: ./earth
+      - name: Load buildkitd.tar
+        uses: actions/download-artifact@v2
+        with:
+          name: buildkitd.tar
+          path: ./buildkitd.tar
+      - name: Load buildkitd image
+        run: docker load ./buildkitd.tar
+      - name: Execute integration tests
+        run: ./earth --no-output -P ./examples/tests+all
+  examples:
+    needs: build
+    steps:
+      - uses: actions/checkout@v2
+      - name: Load earth
+        uses: actions/download-artifact@v2
+        with:
+          name: earth
+          path: ./earth
+      - name: Load buildkitd.tar
+        uses: actions/download-artifact@v2
+        with:
+          name: buildkitd.tar
+          path: ./buildkitd.tar
+      - name: Load buildkitd image
+        run: docker load ./buildkitd.tar
+      - name: Build examples
+        run: ./earth --no-output +examples
+  misc-test:
+    needs: build
+    steps:
+      - uses: actions/checkout@v2
+      - name: Docker Login
+        run: docker login --username vladaionescu --password "$DOCKERHUB_TOKEN"
+      - name: Load earth
+        uses: actions/download-artifact@v2
+        with:
+          name: earth
+          path: ./earth
+      - name: Load buildkitd.tar
+        uses: actions/download-artifact@v2
+        with:
+          name: buildkitd.tar
+          path: ./buildkitd.tar
+      - name: Load buildkitd image
+        run: docker load ./buildkitd.tar
+      - name: Smoke test reset cache
+        run: ./build/linux/amd64/earth prune --reset && ./build/linux/amd64/earth prune --reset
+      - name: Execute private image test
+        run: ./earth --no-output ./examples/tests+private-image-test
+      - name: Execute fail test
+        run: "! ./build/linux/amd64/earth --no-output +test-fail"
+  push:
+    needs: ["build", "lint-unit-test", "integration-test", "examples", "misc-test"]
+    steps:
+      - uses: actions/checkout@v2
+      - name: Put back the git branch into git (Earthly uses it for tagging)
+        run: |
+          branch=""
+          if [ -n "$GITHUB_HEAD_REF" ]; then
+            branch="$GITHUB_HEAD_REF"
+          else
+            branch="${GITHUB_REF##*/}"
+          fi
+          git checkout -b "$branch" || true
+      - name: Docker Login
+        run: docker login --username vladaionescu --password "$DOCKERHUB_TOKEN"
+      - name: Load earth
+        uses: actions/download-artifact@v2
+        with:
+          name: earth
+          path: ./earth
+      - name: Load buildkitd.tar
+        uses: actions/download-artifact@v2
+        with:
+          name: buildkitd.tar
+          path: ./buildkitd.tar
+      - name: Load buildkitd image
+        run: docker load ./buildkitd.tar
+      - name: Push
+        run: ./build/linux/amd64/earth --push +all
