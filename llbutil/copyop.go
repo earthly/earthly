@@ -10,14 +10,18 @@ import (
 )
 
 // CopyOp is a simplified llb copy operation.
-func CopyOp(srcState llb.State, srcs []string, destState llb.State, dest string, allowWildcard bool, isDir bool, opts ...llb.ConstraintsOpt) llb.State {
+func CopyOp(srcState llb.State, srcs []string, destState llb.State, dest string, allowWildcard bool, isDir bool, chown string, opts ...llb.ConstraintsOpt) llb.State {
 	destAdjusted := dest
 	if dest == "." || dest == "" || strings.HasSuffix(dest, string(filepath.Separator)) {
 		destAdjusted += string(filepath.Separator)
 	}
+	var baseCopyOpts []llb.CopyOption
+	if chown != "" {
+		baseCopyOpts = append(baseCopyOpts, llb.WithUser(chown))
+	}
 	var fa *llb.FileAction
 	for _, src := range srcs {
-		copyOpts := []llb.CopyOption{
+		copyOpts := append([]llb.CopyOption{
 			&llb.CopyInfo{
 				FollowSymlinks:      true,
 				CopyDirContentsOnly: !isDir,
@@ -26,7 +30,7 @@ func CopyOp(srcState llb.State, srcs []string, destState llb.State, dest string,
 				AllowWildcard:       allowWildcard,
 				AllowEmptyWildcard:  false,
 			},
-		}
+		}, baseCopyOpts...)
 		if fa == nil {
 			fa = llb.Copy(srcState, src, destAdjusted, copyOpts...)
 		} else {
