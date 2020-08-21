@@ -18,10 +18,6 @@ jobs:
         run: "sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/latest/download/earth-linux-amd64 -O /usr/local/bin/earth && chmod +x /usr/local/bin/earth'"
       - name: Build latest earth using released earth
         run: earth --build-arg TAG=ci --build-arg VERSION=ci +for-linux
-      - name: Reset cache
-        run: ./build/linux/amd64/earth prune --reset
-      - name: Build latest earth using latest earth
-        run: ./build/linux/amd64/earth --build-arg TAG=ci --build-arg VERSION=ci +for-linux
       - name: Save earth
         uses: actions/upload-artifact@v2
         with:
@@ -48,7 +44,7 @@ jobs:
         uses: actions/download-artifact@v2
         with:
           name: earth
-          path: ./earth
+          path: ./
       - name: Load buildkitd.tar
         uses: actions/download-artifact@v2
         with:
@@ -72,7 +68,7 @@ jobs:
         uses: actions/download-artifact@v2
         with:
           name: earth
-          path: ./earth
+          path: ./
       - name: Load buildkitd.tar
         uses: actions/download-artifact@v2
         with:
@@ -94,7 +90,7 @@ jobs:
         uses: actions/download-artifact@v2
         with:
           name: earth
-          path: ./earth
+          path: ./
       - name: Load buildkitd.tar
         uses: actions/download-artifact@v2
         with:
@@ -119,7 +115,7 @@ jobs:
         uses: actions/download-artifact@v2
         with:
           name: earth
-          path: ./earth
+          path: ./
       - name: Load buildkitd.tar
         uses: actions/download-artifact@v2
         with:
@@ -155,7 +151,7 @@ jobs:
         uses: actions/download-artifact@v2
         with:
           name: earth
-          path: ./earth
+          path: ./
       - name: Load buildkitd.tar
         uses: actions/download-artifact@v2
         with:
