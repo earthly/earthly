@@ -55,7 +55,7 @@ jobs:
           name: buildkitd.tar
           path: ./buildkitd.tar
       - name: Load buildkitd image
-        run: docker load ./buildkitd.tar
+        run: docker load -i ./buildkitd.tar
       - name: Lint
         run: ./earth --no-output +lint
       - name: Unit test
@@ -79,7 +79,7 @@ jobs:
           name: buildkitd.tar
           path: ./buildkitd.tar
       - name: Load buildkitd image
-        run: docker load ./buildkitd.tar
+        run: docker load -i ./buildkitd.tar
       - name: Execute integration tests
         run: ./earth --no-output -P ./examples/tests+all
   examples:
@@ -101,7 +101,7 @@ jobs:
           name: buildkitd.tar
           path: ./buildkitd.tar
       - name: Load buildkitd image
-        run: docker load ./buildkitd.tar
+        run: docker load -i ./buildkitd.tar
       - name: Build examples
         run: ./earth --no-output +examples
   misc-test:
@@ -126,11 +126,11 @@ jobs:
           name: buildkitd.tar
           path: ./buildkitd.tar
       - name: Load buildkitd image
-        run: docker load ./buildkitd.tar
+        run: docker load -i ./buildkitd.tar
       - name: Execute private image test
         run: ./earth --no-output ./examples/tests+private-image-test
       - name: Execute fail test
-        run: "! ./build/linux/amd64/earth --no-output +test-fail"
+        run: "! ./earth --no-output +test-fail"
   push:
     runs-on: ubuntu-latest
     env:
@@ -162,6 +162,6 @@ jobs:
           name: buildkitd.tar
           path: ./buildkitd.tar
       - name: Load buildkitd image
-        run: docker load ./buildkitd.tar
+        run: docker load -i ./buildkitd.tar
       - name: Push
-        run: ./build/linux/amd64/earth --push +all
+        run: ./earth --push +all
