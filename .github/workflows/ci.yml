@@ -45,6 +45,8 @@ jobs:
         with:
           name: earth
           path: ./
+      - name: Make earth executable
+        run: chmod +x ./earth
       - name: Load buildkitd.tar
         uses: actions/download-artifact@v2
         with:
@@ -69,6 +71,8 @@ jobs:
         with:
           name: earth
           path: ./
+      - name: Make earth executable
+        run: chmod +x ./earth
       - name: Load buildkitd.tar
         uses: actions/download-artifact@v2
         with:
@@ -91,6 +95,8 @@ jobs:
         with:
           name: earth
           path: ./
+      - name: Make earth executable
+        run: chmod +x ./earth
       - name: Load buildkitd.tar
         uses: actions/download-artifact@v2
         with:
@@ -116,6 +122,8 @@ jobs:
         with:
           name: earth
           path: ./
+      - name: Make earth executable
+        run: chmod +x ./earth
       - name: Load buildkitd.tar
         uses: actions/download-artifact@v2
         with:
@@ -152,6 +160,8 @@ jobs:
         with:
           name: earth
           path: ./
+      - name: Make earth executable
+        run: chmod +x ./earth
       - name: Load buildkitd.tar
         uses: actions/download-artifact@v2
         with:
@@ -159,5 +169,5 @@ jobs:
           path: ./
       - name: Load buildkitd image
         run: docker load -i ./buildkitd.tar
-      - name: Push
+      - name: Rebuild and push
         run: ./earth --push +all
