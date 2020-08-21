@@ -20,7 +20,7 @@ jobs:
       - name: Build latest earth using released earth
         run: earth --build-arg TAG=ci --build-arg VERSION=ci +for-linux
       - name: Execute tests
-        run: ./build/linux/amd64/earth --no-output +test
+        run: ./build/linux/amd64/earth --no-output -P +test
       - name: Execute fail test
         run: "! ./build/linux/amd64/earth --no-output +test-fail"
   private-tests:
