@@ -53,7 +53,7 @@ jobs:
         uses: actions/download-artifact@v2
         with:
           name: buildkitd.tar
-          path: ./buildkitd.tar
+          path: ./
       - name: Load buildkitd image
         run: docker load -i ./buildkitd.tar
       - name: Lint
@@ -77,7 +77,7 @@ jobs:
         uses: actions/download-artifact@v2
         with:
           name: buildkitd.tar
-          path: ./buildkitd.tar
+          path: ./
       - name: Load buildkitd image
         run: docker load -i ./buildkitd.tar
       - name: Execute integration tests
@@ -99,7 +99,7 @@ jobs:
         uses: actions/download-artifact@v2
         with:
           name: buildkitd.tar
-          path: ./buildkitd.tar
+          path: ./
       - name: Load buildkitd image
         run: docker load -i ./buildkitd.tar
       - name: Build examples
@@ -124,7 +124,7 @@ jobs:
         uses: actions/download-artifact@v2
         with:
           name: buildkitd.tar
-          path: ./buildkitd.tar
+          path: ./
       - name: Load buildkitd image
         run: docker load -i ./buildkitd.tar
       - name: Execute private image test
@@ -160,7 +160,7 @@ jobs:
         uses: actions/download-artifact@v2
         with:
           name: buildkitd.tar
-          path: ./buildkitd.tar
+          path: ./
       - name: Load buildkitd image
         run: docker load -i ./buildkitd.tar
       - name: Push
