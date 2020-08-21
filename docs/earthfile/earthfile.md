@@ -86,9 +86,9 @@ Sets a value override of `<value>` for the build arg identified by `<key>`. See 
 
 #### Description
 
-The `FROM DOCKERFILE` command initializes a new build environment, inheriting from an existing Dockerfile. This allows the use of previously developed Dockerfiles in Earthly builds.
+The `FROM DOCKERFILE` command initializes a new build environment, inheriting from an existing Dockerfile. This allows the use of Dockerfiles in Earthly builds.
 
-The `<context-path>` is the host path relative to the current Earthfile, where the Dockerfile build context exists. It is assumed that a file named `Dockerfile` exists in that directory.
+The `<context-path>` is the path where the Dockerfile build context exists. It is assumed that a file named `Dockerfile` exists in that directory. The context path can be either a path on the host system, or an artifact reference, pointing to a directory containing a `Dockerfile`.
 
 {% hint style='info' %}
 ##### Note
