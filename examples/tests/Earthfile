@@ -20,6 +20,7 @@ all:
     BUILD +fail-test
     BUILD +fail-push-test
     BUILD +push-test
+    BUILD +gen-dockerfile-test
     BUILD +docker-load-test
     BUILD +dind-test
     BUILD +docker-pull-test
@@ -233,3 +234,10 @@ push-test:
 private-image-test:
     FROM vladaionescu/private-test:latest
     RUN --entrypoint echo hello world
+
+gen-dockerfile-test:
+    COPY gen-dockerfile.earth ./Earthfile
+    RUN --privileged \
+    --entrypoint \
+    --mount=type=tmpfs,target=/tmp/earthly \
+    -- --no-output +test

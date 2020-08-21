@@ -8,7 +8,6 @@ import (
 	"os"
 	"os/exec"
 
-	"github.com/earthly/earthly/conslogging"
 	"github.com/earthly/earthly/earthfile2llb/image"
 	"github.com/earthly/earthly/llbutil"
 	"github.com/earthly/earthly/logging"
@@ -23,8 +22,8 @@ import (
 )
 
 type solver struct {
+	sm          *solverMonitor
 	bkClient    *client.Client
-	console     conslogging.ConsoleLogger
 	attachables []session.Attachable
 	enttlmnts   []entitlements.Entitlement
 	remoteCache string
@@ -54,7 +53,7 @@ func (s *solver) solveDocker(ctx context.Context, localDirs map[string]string, s
 		return nil
 	})
 	eg.Go(func() error {
-		return newSolverMonitor(s.console).monitorProgress(ctx, ch, false)
+		return s.sm.monitorProgress(ctx, ch)
 	})
 	eg.Go(func() error {
 		defer pipeR.Close()
@@ -112,7 +111,7 @@ func (s *solver) solveDockerTar(ctx context.Context, localDirs map[string]string
 		return nil
 	})
 	eg.Go(func() error {
-		return newSolverMonitor(s.console).monitorProgress(ctx, ch, false)
+		return s.sm.monitorProgress(ctx, ch)
 	})
 	eg.Go(func() error {
 		file, err := os.Create(outFile)
@@ -177,7 +176,7 @@ func (s *solver) solveArtifacts(ctx context.Context, localDirs map[string]string
 		return nil
 	})
 	eg.Go(func() error {
-		return newSolverMonitor(s.console).monitorProgress(ctx, ch, false)
+		return s.sm.monitorProgress(ctx, ch)
 	})
 	err = eg.Wait()
 	if err != nil {
@@ -187,7 +186,7 @@ func (s *solver) solveArtifacts(ctx context.Context, localDirs map[string]string
 }
 
 // when printDetailed is false, we only print non-cached items
-func (s *solver) solveSideEffects(ctx context.Context, localDirs map[string]string, state llb.State, printDetailed bool) error {
+func (s *solver) solveSideEffects(ctx context.Context, localDirs map[string]string, state llb.State) error {
 	dt, err := state.Marshal(ctx, llb.Platform(llbutil.TargetPlatform))
 	if err != nil {
 		return errors.Wrap(err, "state marshal")
@@ -231,7 +230,7 @@ func (s *solver) solveSideEffects(ctx context.Context, localDirs map[string]stri
 		return nil
 	})
 	eg.Go(func() error {
-		return newSolverMonitor(s.console).monitorProgress(ctx, ch, printDetailed)
+		return s.sm.monitorProgress(ctx, ch)
 	})
 	err = eg.Wait()
 	if err != nil {

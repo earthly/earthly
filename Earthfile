@@ -92,14 +92,6 @@ debugger:
             cmd/debugger/*.go
     SAVE ARTIFACT build/earth_debugger
 
-debugger-docker:
-    # cant be FROM scratch because the args require sh to exist
-    FROM busybox:1.32.0
-    COPY +debugger/earth_debugger /earth_debugger
-    ARG EARTHLY_TARGET_TAG
-    ARG TAG=$EARTHLY_TARGET_TAG
-    SAVE IMAGE --push earthly/debugger:$TAG
-
 earth:
     FROM +code
     ARG GOOS=linux
@@ -164,7 +156,6 @@ for-darwin:
 
 all:
     BUILD +buildkitd
-    BUILD +debugger-docker
     BUILD +earth-all
     BUILD +earth-docker
 
