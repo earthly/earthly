@@ -801,8 +801,6 @@ func (c *Converter) solveAndLoad(ctx context.Context, mts *MultiTargetStates, op
 		return os.RemoveAll(outDir)
 	})
 	outFile := path.Join(outDir, "image.tar")
-	// TODO: This ends up printing some repetitive output, as it builds
-	//       the dep twice (even though it's cached the second time).
 	err = c.dockerBuilderFun(ctx, mts, dockerTag, outFile)
 	if err != nil {
 		return errors.Wrapf(err, "build target %s for docker load", opName)
@@ -855,8 +853,6 @@ func (c *Converter) solveArtifact(ctx context.Context, mts *MultiTargetStates, a
 	c.cleanCollection.Add(func() error {
 		return os.RemoveAll(outDir)
 	})
-	// TODO: This ends up printing some repetitive output, as it builds
-	//       the dep twice (even though it's cached the second time).
 	err = c.artifactBuilderFun(ctx, mts, artifact, fmt.Sprintf("%s/", outDir))
 	if err != nil {
 		return "", errors.Wrapf(err, "build artifact %s", artifact.String())

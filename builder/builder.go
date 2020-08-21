@@ -42,11 +42,11 @@ type Builder struct {
 func NewBuilder(ctx context.Context, bkClient *client.Client, console conslogging.ConsoleLogger, attachables []session.Attachable, enttlmnts []entitlements.Entitlement, noCache bool, remoteCache string) (*Builder, error) {
 	return &Builder{
 		s: &solver{
+			sm:          newSolverMonitor(console),
 			bkClient:    bkClient,
 			remoteCache: remoteCache,
 			attachables: attachables,
 			enttlmnts:   enttlmnts,
-			console:     console,
 		},
 		console: console,
 		noCache: noCache,
@@ -154,7 +154,7 @@ func (b *Builder) BuildOnlyArtifact(ctx context.Context, mts *earthfile2llb.Mult
 	defer os.RemoveAll(outDir)
 	solvedStates := make(map[int]bool)
 	err = b.buildSpecifiedArtifact(
-		ctx, artifact, destPath, outDir, solvedStates, localDirs, mts.FinalStates)
+		ctx, artifact, destPath, outDir, solvedStates, localDirs, mts.FinalStates, opt)
 	if err != nil {
 		return err
 	}
@@ -233,7 +233,7 @@ func (b *Builder) buildOutputs(ctx context.Context, localDirs map[string]string,
 	// Artifacts.
 	if !states.Target.IsRemote() {
 		// Don't output artifacts for remote images.
-		err = b.buildArtifacts(targetCtx, localDirs, states)
+		err = b.buildArtifacts(targetCtx, localDirs, states, opt)
 		if err != nil {
 			return err
 		}
@@ -306,7 +306,7 @@ func (b *Builder) buildImageTar(ctx context.Context, localDirs map[string]string
 	return nil
 }
 
-func (b *Builder) buildArtifacts(ctx context.Context, localDirs map[string]string, states *earthfile2llb.SingleTargetStates) error {
+func (b *Builder) buildArtifacts(ctx context.Context, localDirs map[string]string, states *earthfile2llb.SingleTargetStates, opt BuildOpt) error {
 	outDir, err := ioutil.TempDir(".", ".tmp-earth-out")
 	if err != nil {
 		return errors.Wrap(err, "mk temp dir for artifacts")
@@ -315,7 +315,7 @@ func (b *Builder) buildArtifacts(ctx context.Context, localDirs map[string]strin
 	solvedStates := make(map[int]bool)
 	for _, artifactToSaveLocally := range states.SaveLocals {
 		err = b.buildArtifact(
-			ctx, artifactToSaveLocally, outDir, solvedStates, localDirs, states)
+			ctx, artifactToSaveLocally, outDir, solvedStates, localDirs, states, opt)
 		if err != nil {
 			return err
 		}
@@ -323,7 +323,7 @@ func (b *Builder) buildArtifacts(ctx context.Context, localDirs map[string]strin
 	return nil
 }
 
-func (b *Builder) buildSpecifiedArtifact(ctx context.Context, artifact domain.Artifact, destPath string, outDir string, solvedStates map[int]bool, localDirs map[string]string, states *earthfile2llb.SingleTargetStates) error {
+func (b *Builder) buildSpecifiedArtifact(ctx context.Context, artifact domain.Artifact, destPath string, outDir string, solvedStates map[int]bool, localDirs map[string]string, states *earthfile2llb.SingleTargetStates, opt BuildOpt) error {
 	solveCtx := logging.With(ctx, "solve", "artifacts")
 	solveCtx = logging.With(solveCtx, "index", "combined")
 	indexOutDir := filepath.Join(outDir, "combined")
@@ -337,14 +337,14 @@ func (b *Builder) buildSpecifiedArtifact(ctx context.Context, artifact domain.Ar
 		return errors.Wrap(err, "solve combined artifacts")
 	}
 
-	err = b.saveArtifactLocally(ctx, artifact, indexOutDir, destPath, states.Salt)
+	err = b.saveArtifactLocally(ctx, artifact, indexOutDir, destPath, states.Salt, opt)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (b *Builder) buildArtifact(ctx context.Context, artifactToSaveLocally earthfile2llb.SaveLocal, outDir string, solvedStates map[int]bool, localDirs map[string]string, states *earthfile2llb.SingleTargetStates) error {
+func (b *Builder) buildArtifact(ctx context.Context, artifactToSaveLocally earthfile2llb.SaveLocal, outDir string, solvedStates map[int]bool, localDirs map[string]string, states *earthfile2llb.SingleTargetStates, opt BuildOpt) error {
 	index := artifactToSaveLocally.Index
 	solveCtx := logging.With(ctx, "solve", "artifacts")
 	solveCtx = logging.With(solveCtx, "index", index)
@@ -366,14 +366,14 @@ func (b *Builder) buildArtifact(ctx context.Context, artifactToSaveLocally earth
 		Target:   states.Target,
 		Artifact: artifactToSaveLocally.ArtifactPath,
 	}
-	err := b.saveArtifactLocally(ctx, artifact, indexOutDir, artifactToSaveLocally.DestPath, states.Salt)
+	err := b.saveArtifactLocally(ctx, artifact, indexOutDir, artifactToSaveLocally.DestPath, states.Salt, opt)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (b *Builder) saveArtifactLocally(ctx context.Context, artifact domain.Artifact, indexOutDir string, destPath string, salt string) error {
+func (b *Builder) saveArtifactLocally(ctx context.Context, artifact domain.Artifact, indexOutDir string, destPath string, salt string, opt BuildOpt) error {
 	console := b.console.WithPrefixAndSalt(artifact.Target.String(), salt)
 	fromPattern := filepath.Join(indexOutDir, filepath.FromSlash(artifact.Artifact))
 	// Resolve possible wildcards.
@@ -466,7 +466,9 @@ func (b *Builder) saveArtifactLocally(ctx context.Context, artifact domain.Artif
 		if strings.HasSuffix(destPath, "/") {
 			destPath2 = filepath.Join(destPath2, filepath.Base(artifactPath))
 		}
-		console.Printf("Artifact %s as local %s\n", artifact2.StringCanonical(), destPath2)
+		if opt.PrintSuccess {
+			console.Printf("Artifact %s as local %s\n", artifact2.StringCanonical(), destPath2)
+		}
 	}
 	return nil
 }
