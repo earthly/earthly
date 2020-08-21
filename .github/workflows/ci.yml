@@ -8,6 +8,7 @@ on:
 
 jobs:
   build:
+    name: Build
     runs-on: ubuntu-latest
     env:
       GIT_URL_INSTEAD_OF: "https://github.com/=git@github.com:"
@@ -33,6 +34,7 @@ jobs:
           path: build/buildkitd.tar
           if-no-files-found: error
   lint-unit-test:
+    name: Lint and unit test
     runs-on: ubuntu-latest
     env:
       GIT_URL_INSTEAD_OF: "https://github.com/=git@github.com:"
@@ -59,6 +61,7 @@ jobs:
       - name: Unit test
         run: ./earth --no-output +unittest
   integration-test:
+    name: Integration test
     runs-on: ubuntu-latest
     env:
       GIT_URL_INSTEAD_OF: "https://github.com/=git@github.com:"
@@ -83,6 +86,7 @@ jobs:
       - name: Execute integration tests
         run: ./earth --no-output -P ./examples/tests+all
   examples:
+    name: Examples
     runs-on: ubuntu-latest
     env:
       GIT_URL_INSTEAD_OF: "https://github.com/=git@github.com:"
@@ -107,6 +111,7 @@ jobs:
       - name: Build examples
         run: ./earth --no-output +examples
   misc-test:
+    name: Miscellaneous tests
     runs-on: ubuntu-latest
     env:
       GIT_URL_INSTEAD_OF: "https://github.com/=git@github.com:"
@@ -131,11 +136,14 @@ jobs:
           path: ./
       - name: Load buildkitd image
         run: docker load -i ./buildkitd.tar
-      - name: Execute private image test
-        run: ./earth --no-output ./examples/tests+private-image-test
       - name: Execute fail test
         run: "! ./earth --no-output +test-fail"
+      - name: Smoke test prune reset
+        run: ./earth prune --reset
+      - name: Execute private image test
+        run: ./earth --no-output ./examples/tests+private-image-test
   push:
+    name: Push
     runs-on: ubuntu-latest
     env:
       GIT_URL_INSTEAD_OF: "https://github.com/=git@github.com:"
