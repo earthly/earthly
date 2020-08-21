@@ -25,7 +25,6 @@ jobs:
         run: "! ./build/linux/amd64/earth --no-output +test-fail"
   misc-tests:
     name: ./examples/tests+private-image-test ./examples/tests+experimental
-    if: github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     env:
       GIT_URL_INSTEAD_OF: "https://github.com/=git@github.com:"
@@ -36,12 +35,14 @@ jobs:
         run: "sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/latest/download/earth-linux-amd64 -O /usr/local/bin/earth && chmod +x /usr/local/bin/earth'"
       - name: Build latest earth using released earth
         run: earth +for-linux
-      - name: Docker Login
-        run: docker login --username vladaionescu --password "${{ secrets.DOCKERHUB_TOKEN }}"
-      - name: Execute private image test
-        run: ./build/linux/amd64/earth --no-output ./examples/tests+private-image-test
       - name: Execute experimental tests
         run: ./build/linux/amd64/earth --no-output -P ./examples/tests+experimental
+      - name: Docker Login
+        run: docker login --username vladaionescu --password "${{ secrets.DOCKERHUB_TOKEN }}"
+        if: github.event.pull_request.head.repo.full_name == github.repository
+      - name: Execute private image test
+        run: ./build/linux/amd64/earth --no-output ./examples/tests+private-image-test
+        if: github.event.pull_request.head.repo.full_name == github.repository
   examples:
     name: +examples
     runs-on: ubuntu-latest
@@ -58,7 +59,7 @@ jobs:
         run: ./build/linux/amd64/earth --no-output +examples
   push:
     name: --push +all
-    if: github.event.pull_request.head.repo.full_name == github.repository
+    if: github.event_name == 'push'
     needs: ["tests", "misc-tests", "examples"]
     runs-on: ubuntu-latest
     env:
@@ -66,7 +67,7 @@ jobs:
       FORCE_COLOR: 1
     steps:
       - uses: actions/checkout@v2
-      - name: Put back the git branch into git (Earthly uses it for tagging)
+      - name: "Put back the git branch into git (Earthly uses it for tagging)"
         run: |
           branch=""
           if [ -n "$GITHUB_HEAD_REF" ]; then
