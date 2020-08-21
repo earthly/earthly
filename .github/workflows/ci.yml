@@ -39,5 +39,7 @@ jobs:
       run: ./build/linux/amd64/earth --no-output -P +test
     - name: Execute private image test
       run: ./build/linux/amd64/earth --no-output ./examples/tests+private-image-test
+    - name: Execute fail test
+      run: "! ./build/linux/amd64/earth --no-output +test-fail"
     - name: Push
       run: ./build/linux/amd64/earth --push +all

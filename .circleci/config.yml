@@ -7,7 +7,18 @@ jobs:
       - GIT_URL_INSTEAD_OF: "https://github.com/=git@github.com:"
     steps:
       - checkout
-      - run: "sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/latest/download/earth-linux-amd64 -O /usr/local/bin/earth && chmod +x /usr/local/bin/earth'"
-      - run: earth --version
-      - run: earth +for-linux
-      - run: ./build/linux/amd64/earth -P --no-output +test
+      - run:
+          name: Install released earth
+          command: "sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/latest/download/earth-linux-amd64 -O /usr/local/bin/earth && chmod +x /usr/local/bin/earth'"
+      - run:
+          name: Build latest earth
+          command: earth +for-linux
+      - run:
+          name: Reset cache
+          command: ./build/linux/amd64/earth prune --reset
+      - run:
+          name: Run tests
+          command: ./build/linux/amd64/earth -P --no-output +test
+      - run:
+          name: Execute fail test
+          command: "! ./build/linux/amd64/earth --no-output +test-fail"

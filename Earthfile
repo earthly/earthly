@@ -182,3 +182,6 @@ examples:
 
 test-experimental:
     BUILD ./examples/tests+experimental
+
+test-fail:
+    RUN false
