@@ -21,6 +21,13 @@ import (
 	"github.com/pkg/errors"
 )
 
+// BuildOpt is a collection of build options.
+type BuildOpt struct {
+	PrintSuccess bool
+	NoOutput     bool
+	Push         bool
+}
+
 // Builder provides a earth commands executor.
 type Builder struct {
 	s           *solver
@@ -48,20 +55,22 @@ func NewBuilder(ctx context.Context, bkClient *client.Client, console consloggin
 
 // Build performs the build for the given multi target states, outputting images for
 // all sub-targets and artifacts for all local sub-targets.
-func (b *Builder) Build(ctx context.Context, mts *earthfile2llb.MultiTargetStates, noOutput bool, push bool) error {
+func (b *Builder) Build(ctx context.Context, mts *earthfile2llb.MultiTargetStates, opt BuildOpt) error {
 	// Start with final side-effects. This will automatically trigger the dependency builds too,
 	// in parallel.
-	cacheLocalDir, localDirs, err := b.buildCommon(ctx, mts)
+	cacheLocalDir, localDirs, err := b.buildCommon(ctx, mts, opt)
 	if err != nil {
 		return err
 	}
 	defer os.RemoveAll(cacheLocalDir)
-	b.console.PrintSuccess()
+	if opt.PrintSuccess {
+		b.console.PrintSuccess()
+	}
 
 	// Then output images and artifacts.
-	if !noOutput {
+	if !opt.NoOutput {
 		for _, states := range mts.AllStates() {
-			err = b.buildOutputs(ctx, localDirs, states, push)
+			err = b.buildOutputs(ctx, localDirs, states, opt)
 			if err != nil {
 				return err
 			}
@@ -72,17 +81,20 @@ func (b *Builder) Build(ctx context.Context, mts *earthfile2llb.MultiTargetState
 
 // BuildOnlyLastImageAsTar performs the build for the given multi target states,
 // and outputs only a docker tar of the last saved image.
-func (b *Builder) BuildOnlyLastImageAsTar(ctx context.Context, mts *earthfile2llb.MultiTargetStates, dockerTag string, outFile string) error {
+func (b *Builder) BuildOnlyLastImageAsTar(ctx context.Context, mts *earthfile2llb.MultiTargetStates, dockerTag string, outFile string, opt BuildOpt) error {
 	saveImage, ok := mts.FinalStates.LastSaveImage()
 	if !ok {
 		return fmt.Errorf("No save image exists for %s", mts.FinalStates.Target.String())
 	}
 
-	cacheLocalDir, localDirs, err := b.buildCommon(ctx, mts)
+	cacheLocalDir, localDirs, err := b.buildCommon(ctx, mts, opt)
 	if err != nil {
 		return err
 	}
 	defer os.RemoveAll(cacheLocalDir)
+	if opt.PrintSuccess {
+		b.console.PrintSuccess()
+	}
 
 	err = b.buildImageTar(ctx, localDirs, saveImage, dockerTag, outFile)
 	if err != nil {
@@ -91,19 +103,28 @@ func (b *Builder) BuildOnlyLastImageAsTar(ctx context.Context, mts *earthfile2ll
 	return nil
 }
 
+// MakeImageAsTarBuilderFun returns a fun which can be used to build an image as a tar.
+func (b *Builder) MakeImageAsTarBuilderFun() func(context.Context, *earthfile2llb.MultiTargetStates, string, string) error {
+	return func(ctx context.Context, mts *earthfile2llb.MultiTargetStates, dockerTag string, outFile string) error {
+		return b.BuildOnlyLastImageAsTar(ctx, mts, dockerTag, outFile, BuildOpt{})
+	}
+}
+
 // BuildOnlyImages performs the build for the given multi target states, outputting only images
 // of the final states.
-func (b *Builder) BuildOnlyImages(ctx context.Context, mts *earthfile2llb.MultiTargetStates, push bool) error {
+func (b *Builder) BuildOnlyImages(ctx context.Context, mts *earthfile2llb.MultiTargetStates, opt BuildOpt) error {
 	// Start with final side-effects. This will automatically trigger the dependency builds too,
 	// in parallel.
-	cacheLocalDir, localDirs, err := b.buildCommon(ctx, mts)
+	cacheLocalDir, localDirs, err := b.buildCommon(ctx, mts, opt)
 	if err != nil {
 		return err
 	}
 	defer os.RemoveAll(cacheLocalDir)
-	b.console.PrintSuccess()
+	if opt.PrintSuccess {
+		b.console.PrintSuccess()
+	}
 
-	err = b.buildImages(ctx, localDirs, mts.FinalStates, push)
+	err = b.buildImages(ctx, localDirs, mts.FinalStates, opt)
 	if err != nil {
 		return err
 	}
@@ -112,15 +133,17 @@ func (b *Builder) BuildOnlyImages(ctx context.Context, mts *earthfile2llb.MultiT
 
 // BuildOnlyArtifact performs the build for the given multi target states, outputting only
 // the provided artifact of the final states.
-func (b *Builder) BuildOnlyArtifact(ctx context.Context, mts *earthfile2llb.MultiTargetStates, artifact domain.Artifact, destPath string) error {
+func (b *Builder) BuildOnlyArtifact(ctx context.Context, mts *earthfile2llb.MultiTargetStates, artifact domain.Artifact, destPath string, opt BuildOpt) error {
 	// Start with final side-effects. This will automatically trigger the dependency builds too,
 	// in parallel.
-	cacheLocalDir, localDirs, err := b.buildCommon(ctx, mts)
+	cacheLocalDir, localDirs, err := b.buildCommon(ctx, mts, opt)
 	if err != nil {
 		return err
 	}
 	defer os.RemoveAll(cacheLocalDir)
-	b.console.PrintSuccess()
+	if opt.PrintSuccess {
+		b.console.PrintSuccess()
+	}
 
 	// TODO: Should double check that the last state is the same as the one
 	//       referenced in artifact.Target.
@@ -139,7 +162,14 @@ func (b *Builder) BuildOnlyArtifact(ctx context.Context, mts *earthfile2llb.Mult
 	return nil
 }
 
-func (b *Builder) buildCommon(ctx context.Context, mts *earthfile2llb.MultiTargetStates) (string, map[string]string, error) {
+// MakeArtifactBuilderFun returns a function that can be used to build artifacts.
+func (b *Builder) MakeArtifactBuilderFun() func(context.Context, *earthfile2llb.MultiTargetStates, domain.Artifact, string) error {
+	return func(ctx context.Context, mts *earthfile2llb.MultiTargetStates, artifact domain.Artifact, destPath string) error {
+		return b.BuildOnlyArtifact(ctx, mts, artifact, destPath, BuildOpt{})
+	}
+}
+
+func (b *Builder) buildCommon(ctx context.Context, mts *earthfile2llb.MultiTargetStates, opt BuildOpt) (string, map[string]string, error) {
 	cacheLocalDir, err := ioutil.TempDir("/tmp", "earthly-cache")
 	if err != nil {
 		return "", nil, errors.Wrap(err, "make temp dir for cache")
@@ -165,7 +195,9 @@ func (b *Builder) buildCommon(ctx context.Context, mts *earthfile2llb.MultiTarge
 	if err != nil {
 		return "", nil, err
 	}
-	finalTargetConsole.Printf("Target %s built successfully\n", finalTarget.StringCanonical())
+	if opt.PrintSuccess {
+		finalTargetConsole.Printf("Target %s built successfully\n", finalTarget.StringCanonical())
+	}
 	return cacheLocalDir, localDirs, nil
 }
 
@@ -183,17 +215,17 @@ func (b *Builder) buildSideEffects(ctx context.Context, localDirs map[string]str
 	return nil
 }
 
-func (b *Builder) buildOutputs(ctx context.Context, localDirs map[string]string, states *earthfile2llb.SingleTargetStates, push bool) error {
+func (b *Builder) buildOutputs(ctx context.Context, localDirs map[string]string, states *earthfile2llb.SingleTargetStates, opt BuildOpt) error {
 	targetCtx := logging.With(ctx, "target", states.Target.String())
 
 	// Run --push commands.
-	err := b.buildRunPush(targetCtx, localDirs, states, push)
+	err := b.buildRunPush(targetCtx, localDirs, states, opt)
 	if err != nil {
 		return err
 	}
 
 	// Images.
-	err = b.buildImages(targetCtx, localDirs, states, push)
+	err = b.buildImages(targetCtx, localDirs, states, opt)
 	if err != nil {
 		return err
 	}
@@ -209,13 +241,13 @@ func (b *Builder) buildOutputs(ctx context.Context, localDirs map[string]string,
 	return nil
 }
 
-func (b *Builder) buildRunPush(ctx context.Context, localDirs map[string]string, states *earthfile2llb.SingleTargetStates, push bool) error {
+func (b *Builder) buildRunPush(ctx context.Context, localDirs map[string]string, states *earthfile2llb.SingleTargetStates, opt BuildOpt) error {
 	if !states.RunPush.Initialized {
 		// No run --push commands here. Quick way out.
 		return nil
 	}
 	console := b.console.WithPrefixAndSalt(states.Target.String(), states.Salt)
-	if !push {
+	if !opt.Push {
 		for _, commandStr := range states.RunPush.CommandStrs {
 			console.Printf("Did not execute push command %s. Use earth --push to enable pushing\n", commandStr)
 		}
@@ -230,13 +262,13 @@ func (b *Builder) buildRunPush(ctx context.Context, localDirs map[string]string,
 	return nil
 }
 
-func (b *Builder) buildImages(ctx context.Context, localDirs map[string]string, states *earthfile2llb.SingleTargetStates, push bool) error {
+func (b *Builder) buildImages(ctx context.Context, localDirs map[string]string, states *earthfile2llb.SingleTargetStates, opt BuildOpt) error {
 	for _, imageToSave := range states.SaveImages {
 		if imageToSave.DockerTag == "" {
 			// Not a docker export. Skip.
 			continue
 		}
-		err := b.buildImage(ctx, imageToSave, localDirs, states, push)
+		err := b.buildImage(ctx, imageToSave, localDirs, states, opt)
 		if err != nil {
 			return err
 		}
@@ -244,8 +276,8 @@ func (b *Builder) buildImages(ctx context.Context, localDirs map[string]string, 
 	return nil
 }
 
-func (b *Builder) buildImage(ctx context.Context, imageToSave earthfile2llb.SaveImage, localDirs map[string]string, states *earthfile2llb.SingleTargetStates, push bool) error {
-	shouldPush := push && imageToSave.Push
+func (b *Builder) buildImage(ctx context.Context, imageToSave earthfile2llb.SaveImage, localDirs map[string]string, states *earthfile2llb.SingleTargetStates, opt BuildOpt) error {
+	shouldPush := opt.Push && imageToSave.Push
 	console := b.console.WithPrefixAndSalt(states.Target.String(), states.Salt)
 	solveCtx := logging.With(ctx, "image", imageToSave.DockerTag)
 	solveCtx = logging.With(solveCtx, "solve", "image")
@@ -258,7 +290,7 @@ func (b *Builder) buildImage(ctx context.Context, imageToSave earthfile2llb.Save
 		pushStr = " (pushed)"
 	}
 	console.Printf("Image %s as %s%s\n", states.Target.StringCanonical(), imageToSave.DockerTag, pushStr)
-	if imageToSave.Push && !push {
+	if imageToSave.Push && !opt.Push {
 		console.Printf("Did not push %s. Use earth --push to enable pushing\n", imageToSave.DockerTag)
 	}
 	return nil

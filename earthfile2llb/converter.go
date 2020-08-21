@@ -10,6 +10,7 @@ import (
 	"math/rand"
 	"os"
 	"path"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -36,17 +37,18 @@ var _ commandInterpreter = (*Converter)(nil)
 
 // Converter turns earth commands to buildkit LLB representation.
 type Converter struct {
-	gitMeta          *buildcontext.GitMetadata
-	resolver         *buildcontext.Resolver
-	mts              *MultiTargetStates
-	directDeps       []*SingleTargetStates
-	directDepIndices []int
-	buildContext     llb.State
-	cacheContext     llb.State
-	varCollection    *variables.Collection
-	dockerBuilderFun DockerBuilderFun
-	cleanCollection  *cleanup.Collection
-	nextArgIndex     int
+	gitMeta            *buildcontext.GitMetadata
+	resolver           *buildcontext.Resolver
+	mts                *MultiTargetStates
+	directDeps         []*SingleTargetStates
+	directDepIndices   []int
+	buildContext       llb.State
+	cacheContext       llb.State
+	varCollection      *variables.Collection
+	dockerBuilderFun   DockerBuilderFun
+	artifactBuilderFun ArtifactBuilderFun
+	cleanCollection    *cleanup.Collection
+	nextArgIndex       int
 }
 
 // NewConverter constructs a new converter for a given earth target.
@@ -70,14 +72,15 @@ func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Da
 	targetStr := target.String()
 	opt.VisitedStates[targetStr] = append(opt.VisitedStates[targetStr], sts)
 	return &Converter{
-		gitMeta:          bc.GitMetadata,
-		resolver:         opt.Resolver,
-		mts:              mts,
-		buildContext:     bc.BuildContext,
-		cacheContext:     makeCacheContext(target),
-		varCollection:    opt.VarCollection.WithBuiltinBuildArgs(target, bc.GitMetadata),
-		dockerBuilderFun: opt.DockerBuilderFun,
-		cleanCollection:  opt.CleanCollection,
+		gitMeta:            bc.GitMetadata,
+		resolver:           opt.Resolver,
+		mts:                mts,
+		buildContext:       bc.BuildContext,
+		cacheContext:       makeCacheContext(target),
+		varCollection:      opt.VarCollection.WithBuiltinBuildArgs(target, bc.GitMetadata),
+		dockerBuilderFun:   opt.DockerBuilderFun,
+		artifactBuilderFun: opt.ArtifactBuilderFun,
+		cleanCollection:    opt.CleanCollection,
 	}, nil
 }
 
@@ -159,28 +162,57 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 		//       anything.
 		return errors.New("FROM DOCKERFILE -f not yet supported")
 	}
-	if contextPath != "." &&
-		!strings.HasPrefix(contextPath, "./") &&
-		!strings.HasPrefix(contextPath, "../") &&
-		!strings.HasPrefix(contextPath, "/") {
-		contextPath = fmt.Sprintf("./%s", contextPath)
+	var buildContext llb.State
+	if strings.Contains(contextPath, "+") {
+		// The Dockerfile and build context are from a target's artifact.
+		contextArtifact, err := domain.ParseArtifact(contextPath)
+		if err != nil {
+			return errors.Wrapf(err, "parse artifact %s", contextPath)
+		}
+		// TODO: The build args are used for both the artifact and the Dockerfile. This could be
+		//       confusing to the user.
+		mts, err := c.Build(ctx, contextArtifact.Target.String(), buildArgs)
+		if err != nil {
+			return err
+		}
+		pathArtifact, err := c.solveArtifact(ctx, mts, contextArtifact)
+		if err != nil {
+			return err
+		}
+		dfPath = filepath.Join(pathArtifact, "Dockerfile")
+		buildContext = llb.Scratch().Platform(llbutil.TargetPlatform)
+		buildContext = llbutil.CopyOp(
+			mts.FinalStates.ArtifactsState, []string{contextArtifact.Artifact}, buildContext, "/", true, true,
+			llb.WithCustomNamef(
+				"[internal] FROM DOCKERFILE (copy build context from) %s%s",
+				joinWrap(buildArgs, "(", " ", ") "), contextArtifact.String()))
+	} else {
+		// The Dockerfile and build context are from the host.
+		if contextPath != "." &&
+			!strings.HasPrefix(contextPath, "./") &&
+			!strings.HasPrefix(contextPath, "../") &&
+			!strings.HasPrefix(contextPath, "/") {
+			contextPath = fmt.Sprintf("./%s", contextPath)
+		}
+		dockerfileMetaTarget := domain.Target{
+			Target:    buildcontext.DockerfileMetaTarget,
+			LocalPath: contextPath,
+		}
+		dockerfileMetaTarget, err := domain.JoinTargets(c.mts.FinalTarget(), dockerfileMetaTarget)
+		if err != nil {
+			return errors.Wrap(err, "join targets")
+		}
+		data, err := c.resolver.Resolve(ctx, dockerfileMetaTarget)
+		if err != nil {
+			return errors.Wrap(err, "resolve build context for dockerfile")
+		}
+		for ldk, ld := range data.LocalDirs {
+			c.mts.FinalStates.LocalDirs[ldk] = ld
+		}
+		dfPath = data.BuildFilePath
+		buildContext = data.BuildContext
 	}
-	dockerfileMetaTarget := domain.Target{
-		Target:    buildcontext.DockerfileMetaTarget,
-		LocalPath: contextPath,
-	}
-	dockerfileMetaTarget, err := domain.JoinTargets(c.mts.FinalTarget(), dockerfileMetaTarget)
-	if err != nil {
-		return errors.Wrap(err, "join targets")
-	}
-	data, err := c.resolver.Resolve(ctx, dockerfileMetaTarget)
-	if err != nil {
-		return errors.Wrap(err, "resolve build context for dockerfile")
-	}
-	for ldk, ld := range data.LocalDirs {
-		c.mts.FinalStates.LocalDirs[ldk] = ld
-	}
-	dfData, err := ioutil.ReadFile(data.BuildFilePath)
+	dfData, err := ioutil.ReadFile(dfPath)
 	if err != nil {
 		return errors.Wrapf(err, "read file %s", dfPath)
 	}
@@ -191,13 +223,14 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 	}
 	caps := solverpb.Caps.CapSet(solverpb.Caps.All())
 	state, dfImg, err := dockerfile2llb.Dockerfile2LLB(ctx, dfData, dockerfile2llb.ConvertOpt{
-		BuildContext:   &data.BuildContext,
-		MetaResolver:   imr.Default(),
-		Target:         dfTarget,
-		TargetPlatform: &llbutil.TargetPlatform,
-		LLBCaps:        &caps,
-		BuildArgs:      newVarCollection.AsMap(),
-		Excludes:       nil, // TODO: Need to process this correctly.
+		BuildContext:     &buildContext,
+		ContextLocalName: c.mts.FinalTarget().String(),
+		MetaResolver:     imr.Default(),
+		Target:           dfTarget,
+		TargetPlatform:   &llbutil.TargetPlatform,
+		LLBCaps:          &caps,
+		BuildArgs:        newVarCollection.AsMap(),
+		Excludes:         nil, // TODO: Need to process this correctly.
 	})
 	if err != nil {
 		return errors.Wrapf(err, "dockerfile2llb %s", dfPath)
@@ -812,6 +845,23 @@ func (c *Converter) solveAndLoad(ctx context.Context, mts *MultiTargetStates, op
 		"/var/lib/docker", c.mts.FinalStates.SideEffectsState,
 		llb.SourcePath("/var/lib/docker"))
 	return nil
+}
+
+func (c *Converter) solveArtifact(ctx context.Context, mts *MultiTargetStates, artifact domain.Artifact) (string, error) {
+	outDir, err := ioutil.TempDir("/tmp", "earthly-solve-artifact")
+	if err != nil {
+		return "", errors.Wrap(err, "mk temp dir for solve artifact")
+	}
+	c.cleanCollection.Add(func() error {
+		return os.RemoveAll(outDir)
+	})
+	// TODO: This ends up printing some repetitive output, as it builds
+	//       the dep twice (even though it's cached the second time).
+	err = c.artifactBuilderFun(ctx, mts, artifact, fmt.Sprintf("%s/", outDir))
+	if err != nil {
+		return "", errors.Wrapf(err, "build artifact %s", artifact.String())
+	}
+	return outDir, nil
 }
 
 func (c *Converter) internalFromClassical(ctx context.Context, imageName string, opts ...llb.ImageOption) (llb.State, *image.Image, *variables.Collection, error) {
