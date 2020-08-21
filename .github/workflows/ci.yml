@@ -81,3 +81,9 @@ jobs:
         run: docker login --username vladaionescu --password "${{ secrets.DOCKERHUB_TOKEN }}"
       - name: Rebuild and push
         run: ./build/linux/amd64/earth --push +all
+      - name: Save earth
+        uses: actions/upload-artifact@v2
+        with:
+          name: earth artifacts
+          path: build
+          if-no-files-found: error
