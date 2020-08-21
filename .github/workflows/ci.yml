@@ -7,8 +7,8 @@ on:
     branches: [ master ]
 
 jobs:
-  build:
-    name: Build
+  tests:
+    name: +test +test-fail
     runs-on: ubuntu-latest
     env:
       GIT_URL_INSTEAD_OF: "https://github.com/=git@github.com:"
@@ -19,137 +19,49 @@ jobs:
         run: "sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/latest/download/earth-linux-amd64 -O /usr/local/bin/earth && chmod +x /usr/local/bin/earth'"
       - name: Build latest earth using released earth
         run: earth --build-arg TAG=ci --build-arg VERSION=ci +for-linux
-      - name: Save earth
-        uses: actions/upload-artifact@v2
-        with:
-          name: earth
-          path: build/linux/amd64/earth
-          if-no-files-found: error
-      - name: Output buildkitd image
-        run: docker save -o build/buildkitd.tar earthly/buildkitd:ci
-      - name: Save buildkitd.tar
-        uses: actions/upload-artifact@v2
-        with:
-          name: buildkitd.tar
-          path: build/buildkitd.tar
-          if-no-files-found: error
-  lint-unit-test:
-    name: Lint and unit test
-    runs-on: ubuntu-latest
-    env:
-      GIT_URL_INSTEAD_OF: "https://github.com/=git@github.com:"
-      FORCE_COLOR: 1
-    needs: build
-    steps:
-      - uses: actions/checkout@v2
-      - name: Load earth
-        uses: actions/download-artifact@v2
-        with:
-          name: earth
-          path: ./
-      - name: Make earth executable
-        run: chmod +x ./earth
-      - name: Load buildkitd.tar
-        uses: actions/download-artifact@v2
-        with:
-          name: buildkitd.tar
-          path: ./
-      - name: Load buildkitd image
-        run: docker load -i ./buildkitd.tar
-      - name: Lint
-        run: ./earth --no-output +lint
-      - name: Unit test
-        run: ./earth --no-output +unittest
-  integration-test:
-    name: Integration test
-    runs-on: ubuntu-latest
-    env:
-      GIT_URL_INSTEAD_OF: "https://github.com/=git@github.com:"
-      FORCE_COLOR: 1
-    needs: build
-    steps:
-      - uses: actions/checkout@v2
-      - name: Load earth
-        uses: actions/download-artifact@v2
-        with:
-          name: earth
-          path: ./
-      - name: Make earth executable
-        run: chmod +x ./earth
-      - name: Load buildkitd.tar
-        uses: actions/download-artifact@v2
-        with:
-          name: buildkitd.tar
-          path: ./
-      - name: Load buildkitd image
-        run: docker load -i ./buildkitd.tar
-      - name: Execute integration tests
-        run: ./earth --no-output -P ./examples/tests+all
-  examples:
-    name: Examples
-    runs-on: ubuntu-latest
-    env:
-      GIT_URL_INSTEAD_OF: "https://github.com/=git@github.com:"
-      FORCE_COLOR: 1
-    needs: build
-    steps:
-      - uses: actions/checkout@v2
-      - name: Load earth
-        uses: actions/download-artifact@v2
-        with:
-          name: earth
-          path: ./
-      - name: Make earth executable
-        run: chmod +x ./earth
-      - name: Load buildkitd.tar
-        uses: actions/download-artifact@v2
-        with:
-          name: buildkitd.tar
-          path: ./
-      - name: Load buildkitd image
-        run: docker load -i ./buildkitd.tar
-      - name: Build examples
-        run: ./earth --no-output +examples
-  misc-test:
-    name: Miscellaneous tests
-    runs-on: ubuntu-latest
-    env:
-      GIT_URL_INSTEAD_OF: "https://github.com/=git@github.com:"
-      FORCE_COLOR: 1
+      - name: Execute tests
+        run: ./build/linux/amd64/earth --no-output +test
+      - name: Execute fail test
+        run: "! ./build/linux/amd64/earth --no-output +test-fail"
+  private-tests:
+    name: ./examples/tests+private-image-test
     if: github.event.pull_request.head.repo.full_name == github.repository
-    needs: build
+    runs-on: ubuntu-latest
+    env:
+      GIT_URL_INSTEAD_OF: "https://github.com/=git@github.com:"
+      FORCE_COLOR: 1
     steps:
       - uses: actions/checkout@v2
+      - name: Download released earth
+        run: "sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/latest/download/earth-linux-amd64 -O /usr/local/bin/earth && chmod +x /usr/local/bin/earth'"
+      - name: Build latest earth using released earth
+        run: earth --build-arg TAG=ci --build-arg VERSION=ci +for-linux
       - name: Docker Login
         run: docker login --username vladaionescu --password "${{ secrets.DOCKERHUB_TOKEN }}"
-      - name: Load earth
-        uses: actions/download-artifact@v2
-        with:
-          name: earth
-          path: ./
-      - name: Make earth executable
-        run: chmod +x ./earth
-      - name: Load buildkitd.tar
-        uses: actions/download-artifact@v2
-        with:
-          name: buildkitd.tar
-          path: ./
-      - name: Load buildkitd image
-        run: docker load -i ./buildkitd.tar
-      - name: Execute fail test
-        run: "! ./earth --no-output +test-fail"
-      - name: Smoke test prune reset
-        run: ./earth prune --reset
       - name: Execute private image test
-        run: ./earth --no-output ./examples/tests+private-image-test
-  push:
-    name: Push
+        run: ./build/linux/amd64/earth --no-output ./examples/tests+private-image-test
+  examples:
+    name: +examples
     runs-on: ubuntu-latest
     env:
       GIT_URL_INSTEAD_OF: "https://github.com/=git@github.com:"
       FORCE_COLOR: 1
+    steps:
+      - uses: actions/checkout@v2
+      - name: Download released earth
+        run: "sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/latest/download/earth-linux-amd64 -O /usr/local/bin/earth && chmod +x /usr/local/bin/earth'"
+      - name: Build latest earth using released earth
+        run: earth --build-arg TAG=ci --build-arg VERSION=ci +for-linux
+      - name: Build examples
+        run: ./build/linux/amd64/earth --no-output +examples
+  push:
+    name: --push +all
     if: github.event.pull_request.head.repo.full_name == github.repository
-    needs: ["build", "lint-unit-test", "integration-test", "examples", "misc-test"]
+    needs: ["tests", "private-tests", "examples"]
+    runs-on: ubuntu-latest
+    env:
+      GIT_URL_INSTEAD_OF: "https://github.com/=git@github.com:"
+      FORCE_COLOR: 1
     steps:
       - uses: actions/checkout@v2
       - name: Put back the git branch into git (Earthly uses it for tagging)
@@ -161,21 +73,11 @@ jobs:
             branch="${GITHUB_REF##*/}"
           fi
           git checkout -b "$branch" || true
+      - name: Download released earth
+        run: "sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/latest/download/earth-linux-amd64 -O /usr/local/bin/earth && chmod +x /usr/local/bin/earth'"
+      - name: Build latest earth using released earth
+        run: earth --build-arg TAG=ci --build-arg VERSION=ci +for-linux
       - name: Docker Login
         run: docker login --username vladaionescu --password "${{ secrets.DOCKERHUB_TOKEN }}"
-      - name: Load earth
-        uses: actions/download-artifact@v2
-        with:
-          name: earth
-          path: ./
-      - name: Make earth executable
-        run: chmod +x ./earth
-      - name: Load buildkitd.tar
-        uses: actions/download-artifact@v2
-        with:
-          name: buildkitd.tar
-          path: ./
-      - name: Load buildkitd image
-        run: docker load -i ./buildkitd.tar
       - name: Rebuild and push
-        run: ./earth --push +all
+        run: ./build/linux/amd64/earth --push +all

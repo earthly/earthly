@@ -163,7 +163,10 @@ test:
     BUILD +lint
     BUILD +unittest
     BUILD ./examples/tests+all
+
+test-all:
     BUILD +examples
+    BUILD +test
 
 examples:
     BUILD ./examples/go+docker
