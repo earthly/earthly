@@ -2,6 +2,10 @@ FROM ../..+earth-docker
 WORKDIR /test
 
 all:
+    BUILD +ga
+    BUILD +experimental
+
+ga:
     BUILD +privileged-test
     BUILD +cache-test
     BUILD +git-clone-test
@@ -22,6 +26,8 @@ all:
     BUILD +push-test
     BUILD +gen-dockerfile-test
     BUILD +chown-test
+
+experimental:
     BUILD +docker-load-test
     BUILD +dind-test
     BUILD +docker-pull-test
