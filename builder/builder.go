@@ -208,7 +208,7 @@ func (b *Builder) buildSideEffects(ctx context.Context, localDirs map[string]str
 	if b.noCache {
 		state = state.SetMarshalDefaults(llb.IgnoreCache)
 	}
-	err := b.s.solveSideEffects(solveCtx, localDirs, state, true)
+	err := b.s.solveSideEffects(solveCtx, localDirs, state)
 	if err != nil {
 		return errors.Wrapf(err, "solve side effects")
 	}
@@ -255,7 +255,7 @@ func (b *Builder) buildRunPush(ctx context.Context, localDirs map[string]string,
 	}
 	targetCtx := logging.With(ctx, "target", states.Target.String())
 	solveCtx := logging.With(targetCtx, "solve", "run-push")
-	err := b.s.solveSideEffects(solveCtx, localDirs, states.RunPush.State, false)
+	err := b.s.solveSideEffects(solveCtx, localDirs, states.RunPush.State)
 	if err != nil {
 		return errors.Wrapf(err, "solve run-push")
 	}

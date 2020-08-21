@@ -399,13 +399,16 @@ func (c *Converter) SaveArtifact(ctx context.Context, saveFrom string, saveTo st
 	c.mts.FinalStates.ArtifactsState = llbutil.CopyOp(
 		c.mts.FinalStates.SideEffectsState, []string{saveFrom}, c.mts.FinalStates.ArtifactsState,
 		saveToAdjusted, true, true,
-		llb.WithCustomNamef("%sSAVE ARTIFACT %s %s", c.vertexPrefix(), saveFrom, artifact.String()))
+		llb.WithCustomNamef(
+			"%sSAVE ARTIFACT %s %s", c.vertexPrefix(), saveFrom, artifact.String()))
 	if saveAsLocalTo != "" {
 		separateArtifactsState := llb.Scratch().Platform(llbutil.TargetPlatform)
 		separateArtifactsState = llbutil.CopyOp(
 			c.mts.FinalStates.SideEffectsState, []string{saveFrom}, separateArtifactsState,
 			saveToAdjusted, true, false,
-			llb.WithCustomNamef("%sSAVE ARTIFACT %s %s", c.vertexPrefix(), saveFrom, artifact.String()))
+			llb.WithCustomNamef(
+				"%sSAVE ARTIFACT %s %s AS LOCAL %s",
+				c.vertexPrefix(), saveFrom, artifact.String(), saveAsLocalTo))
 		c.mts.FinalStates.SeparateArtifactsState = append(c.mts.FinalStates.SeparateArtifactsState, separateArtifactsState)
 		c.mts.FinalStates.SaveLocals = append(c.mts.FinalStates.SaveLocals, SaveLocal{
 			DestPath:     saveAsLocalTo,
