@@ -7,14 +7,11 @@ on:
     branches: [ master ]
 
 jobs:
-  defaults:
+  build:
     runs-on: ubuntu-latest
     env:
-      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
       GIT_URL_INSTEAD_OF: "https://github.com/=git@github.com:"
       FORCE_COLOR: 1
-    if: github.event.pull_request.head.repo.full_name == github.repository
-  build:
     steps:
       - uses: actions/checkout@v2
       - name: Download released earth
@@ -38,6 +35,10 @@ jobs:
           path: build/buildkitd.tar
           if-no-files-found: error
   lint-unit-test:
+    runs-on: ubuntu-latest
+    env:
+      GIT_URL_INSTEAD_OF: "https://github.com/=git@github.com:"
+      FORCE_COLOR: 1
     needs: build
     steps:
       - uses: actions/checkout@v2
@@ -58,6 +59,10 @@ jobs:
       - name: Unit test
         run: ./earth --no-output +unittest
   integration-test:
+    runs-on: ubuntu-latest
+    env:
+      GIT_URL_INSTEAD_OF: "https://github.com/=git@github.com:"
+      FORCE_COLOR: 1
     needs: build
     steps:
       - uses: actions/checkout@v2
@@ -76,6 +81,10 @@ jobs:
       - name: Execute integration tests
         run: ./earth --no-output -P ./examples/tests+all
   examples:
+    runs-on: ubuntu-latest
+    env:
+      GIT_URL_INSTEAD_OF: "https://github.com/=git@github.com:"
+      FORCE_COLOR: 1
     needs: build
     steps:
       - uses: actions/checkout@v2
@@ -94,11 +103,16 @@ jobs:
       - name: Build examples
         run: ./earth --no-output +examples
   misc-test:
+    runs-on: ubuntu-latest
+    env:
+      GIT_URL_INSTEAD_OF: "https://github.com/=git@github.com:"
+      FORCE_COLOR: 1
+    if: github.event.pull_request.head.repo.full_name == github.repository
     needs: build
     steps:
       - uses: actions/checkout@v2
       - name: Docker Login
-        run: docker login --username vladaionescu --password "$DOCKERHUB_TOKEN"
+        run: docker login --username vladaionescu --password "${{ secrets.DOCKERHUB_TOKEN }}"
       - name: Load earth
         uses: actions/download-artifact@v2
         with:
@@ -118,6 +132,11 @@ jobs:
       - name: Execute fail test
         run: "! ./build/linux/amd64/earth --no-output +test-fail"
   push:
+    runs-on: ubuntu-latest
+    env:
+      GIT_URL_INSTEAD_OF: "https://github.com/=git@github.com:"
+      FORCE_COLOR: 1
+    if: github.event.pull_request.head.repo.full_name == github.repository
     needs: ["build", "lint-unit-test", "integration-test", "examples", "misc-test"]
     steps:
       - uses: actions/checkout@v2
@@ -131,7 +150,7 @@ jobs:
           fi
           git checkout -b "$branch" || true
       - name: Docker Login
-        run: docker login --username vladaionescu --password "$DOCKERHUB_TOKEN"
+        run: docker login --username vladaionescu --password "${{ secrets.DOCKERHUB_TOKEN }}"
       - name: Load earth
         uses: actions/download-artifact@v2
         with:
