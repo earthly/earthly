@@ -162,11 +162,12 @@ all:
 test:
     BUILD +lint
     BUILD +unittest
-    BUILD ./examples/tests+all
+    BUILD ./examples/tests+ga
 
 test-all:
     BUILD +examples
     BUILD +test
+    BUILD ./examples/tests+experimental
 
 examples:
     BUILD ./examples/go+docker
@@ -182,9 +183,6 @@ examples:
     BUILD ./examples/readme/go3+build
     BUILD ./examples/readme/proto+docker
     BUILD github.com/earthly/hello-world+hello
-
-test-experimental:
-    BUILD ./examples/tests+experimental
 
 test-fail:
     RUN false

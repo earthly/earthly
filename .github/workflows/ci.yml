@@ -18,13 +18,13 @@ jobs:
       - name: Download released earth
         run: "sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/latest/download/earth-linux-amd64 -O /usr/local/bin/earth && chmod +x /usr/local/bin/earth'"
       - name: Build latest earth using released earth
-        run: earth --build-arg TAG=ci --build-arg VERSION=ci +for-linux
+        run: earth +for-linux
       - name: Execute tests
         run: ./build/linux/amd64/earth --no-output -P +test
       - name: Execute fail test
         run: "! ./build/linux/amd64/earth --no-output +test-fail"
-  private-tests:
-    name: ./examples/tests+private-image-test
+  misc-tests:
+    name: ./examples/tests+private-image-test ./examples/tests+experimental
     if: github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     env:
@@ -35,11 +35,13 @@ jobs:
       - name: Download released earth
         run: "sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/latest/download/earth-linux-amd64 -O /usr/local/bin/earth && chmod +x /usr/local/bin/earth'"
       - name: Build latest earth using released earth
-        run: earth --build-arg TAG=ci --build-arg VERSION=ci +for-linux
+        run: earth +for-linux
       - name: Docker Login
         run: docker login --username vladaionescu --password "${{ secrets.DOCKERHUB_TOKEN }}"
       - name: Execute private image test
         run: ./build/linux/amd64/earth --no-output ./examples/tests+private-image-test
+      - name: Execute experimental tests
+        run: ./build/linux/amd64/earth --no-output -P ./examples/tests+experimental
   examples:
     name: +examples
     runs-on: ubuntu-latest
@@ -51,13 +53,13 @@ jobs:
       - name: Download released earth
         run: "sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/latest/download/earth-linux-amd64 -O /usr/local/bin/earth && chmod +x /usr/local/bin/earth'"
       - name: Build latest earth using released earth
-        run: earth --build-arg TAG=ci --build-arg VERSION=ci +for-linux
+        run: earth +for-linux
       - name: Build examples
         run: ./build/linux/amd64/earth --no-output +examples
   push:
     name: --push +all
     if: github.event.pull_request.head.repo.full_name == github.repository
-    needs: ["tests", "private-tests", "examples"]
+    needs: ["tests", "misc-tests", "examples"]
     runs-on: ubuntu-latest
     env:
       GIT_URL_INSTEAD_OF: "https://github.com/=git@github.com:"
@@ -76,9 +78,11 @@ jobs:
       - name: Download released earth
         run: "sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/latest/download/earth-linux-amd64 -O /usr/local/bin/earth && chmod +x /usr/local/bin/earth'"
       - name: Build latest earth using released earth
-        run: earth --build-arg TAG=ci --build-arg VERSION=ci +for-linux
+        run: earth +for-linux
       - name: Docker Login
         run: docker login --username vladaionescu --password "${{ secrets.DOCKERHUB_TOKEN }}"
+      - name: Reset cache
+        run: ./build/linux/amd64/earth prune --reset
       - name: Rebuild and push
         run: ./build/linux/amd64/earth --push +all
       - name: Save earth
