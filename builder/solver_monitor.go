@@ -106,11 +106,12 @@ func newSolverMonitor(console conslogging.ConsoleLogger) *solverMonitor {
 
 func (sm *solverMonitor) monitorProgress(ctx context.Context, ch chan *client.SolveStatus) error {
 	var errVertex *vertexMonitor
+Loop:
 	for {
 		select {
 		case ss, ok := <-ch:
 			if !ok {
-				return nil
+				break Loop
 			}
 			for _, vertex := range ss.Vertexes {
 				vm, ok := sm.vertices[vertex.Digest]
@@ -194,29 +195,34 @@ func (sm *solverMonitor) monitorProgress(ctx context.Context, ch chan *client.So
 
 			}
 		case <-ctx.Done():
-			if errVertex != nil {
-				sm.console.Warnf("Repeating the output of the command that caused the failure\n")
-				sm.console.PrintFailure()
-				errVertex.console = errVertex.console.WithFailed(true)
-				errVertex.printHeader()
-				if errVertex.tailOutput != nil {
-					isTruncated := (errVertex.tailOutput.TotalWritten() > errVertex.tailOutput.Size())
-					if errVertex.tailOutput.TotalWritten() == 0 {
-						errVertex.console.Printf("[no output]\n")
-					} else {
-						if isTruncated {
-							errVertex.console.Printf("[...]\n")
-						}
-						errVertex.console.PrintBytes(errVertex.tailOutput.Bytes())
-					}
-				} else {
-					errVertex.console.Printf("[no output]\n")
-				}
-				errVertex.printError()
-			}
-			return nil
+			break Loop
 		}
 	}
+	if errVertex != nil {
+		sm.reprintFailure(errVertex)
+	}
+	return nil
+}
+
+func (sm *solverMonitor) reprintFailure(errVertex *vertexMonitor) {
+	sm.console.Warnf("Repeating the output of the command that caused the failure\n")
+	sm.console.PrintFailure()
+	errVertex.console = errVertex.console.WithFailed(true)
+	errVertex.printHeader()
+	if errVertex.tailOutput != nil {
+		isTruncated := (errVertex.tailOutput.TotalWritten() > errVertex.tailOutput.Size())
+		if errVertex.tailOutput.TotalWritten() == 0 {
+			errVertex.console.Printf("[no output]\n")
+		} else {
+			if isTruncated {
+				errVertex.console.Printf("[...]\n")
+			}
+			errVertex.console.PrintBytes(errVertex.tailOutput.Bytes())
+		}
+	} else {
+		errVertex.console.Printf("[no output]\n")
+	}
+	errVertex.printError()
 }
 
 var bracketsRegexp = regexp.MustCompile("^\\[([^\\]]*)\\] (.*)$")
