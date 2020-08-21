@@ -178,6 +178,7 @@ func (l *listener) ExitCopyStmt(c *parser.CopyStmtContext) {
 	fs := flag.NewFlagSet("COPY", flag.ContinueOnError)
 	from := fs.String("from", "", "")
 	isDirCopy := fs.Bool("dir", false, "")
+	chown := fs.String("chown", "", "")
 	buildArgs := new(StringSliceFlag)
 	fs.Var(buildArgs, "build-arg", "")
 	err := fs.Parse(l.stmtWords)
@@ -210,7 +211,7 @@ func (l *listener) ExitCopyStmt(c *parser.CopyStmtContext) {
 	}
 	if allArtifacts {
 		for _, src := range srcs {
-			err = l.interpreter.CopyArtifact(l.ctx, src, dest, buildArgs.Args, *isDirCopy)
+			err = l.interpreter.CopyArtifact(l.ctx, src, dest, buildArgs.Args, *isDirCopy, *chown)
 			if err != nil {
 				l.err = errors.Wrapf(err, "copy artifact")
 				return
@@ -221,7 +222,7 @@ func (l *listener) ExitCopyStmt(c *parser.CopyStmtContext) {
 			l.err = fmt.Errorf("build args not supported for non +artifact arguments case %v", l.stmtWords)
 			return
 		}
-		l.interpreter.CopyClassical(l.ctx, srcs, dest, *isDirCopy)
+		l.interpreter.CopyClassical(l.ctx, srcs, dest, *isDirCopy, *chown)
 	}
 }
 

@@ -8,8 +8,8 @@ import (
 type commandInterpreter interface {
 	From(ctx context.Context, imageName string, buildArgs []string) error
 	FromDockerfile(ctx context.Context, path string, dfPath string, dfTarget string, buildArgs []string) error
-	CopyArtifact(ctx context.Context, artifactName string, dest string, buildArgs []string, isDir bool) error
-	CopyClassical(ctx context.Context, srcs []string, dest string, isDir bool)
+	CopyArtifact(ctx context.Context, artifactName string, dest string, buildArgs []string, isDir bool, chown string) error
+	CopyClassical(ctx context.Context, srcs []string, dest string, isDir bool, chown string)
 	Run(ctx context.Context, args []string, mounts []string, secretKeyValues []string, privileged bool, withEntrypoint bool, withDocker bool, isWithShell bool, pushFlag bool) error
 	SaveArtifact(ctx context.Context, saveFrom string, saveTo string, saveAsLocalTo string) error
 	SaveImage(ctx context.Context, imageNames []string, pushImages bool)

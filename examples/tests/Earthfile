@@ -21,6 +21,7 @@ all:
     BUILD +fail-push-test
     BUILD +push-test
     BUILD +gen-dockerfile-test
+    BUILD +chown-test
 
 experimental:
     # TODO: These are troublesome due to vfs driver used in dind. They quickly exhaust disk space.
@@ -243,6 +244,14 @@ private-image-test:
 
 gen-dockerfile-test:
     COPY gen-dockerfile.earth ./Earthfile
+    RUN --privileged \
+    --entrypoint \
+    --mount=type=tmpfs,target=/tmp/earthly \
+    -- --no-output +test
+
+chown-test:
+    COPY chown.earth ./Earthfile
+    RUN echo "test" > ./a.txt
     RUN --privileged \
     --entrypoint \
     --mount=type=tmpfs,target=/tmp/earthly \
