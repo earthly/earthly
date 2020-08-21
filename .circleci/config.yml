@@ -14,11 +14,13 @@ jobs:
           name: Build latest earth
           command: earth +for-linux
       - run:
-          name: Reset cache
-          command: ./build/linux/amd64/earth prune --reset
-      - run:
           name: Run tests
           command: ./build/linux/amd64/earth -P --no-output +test
       - run:
           name: Execute fail test
           command: "! ./build/linux/amd64/earth --no-output +test-fail"
+workflows:
+  version: 2
+  circle-ci:
+    jobs:
+      - build
