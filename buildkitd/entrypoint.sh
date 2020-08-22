@@ -22,6 +22,8 @@ if [ "$EARTHLY_RESET_TMP_DIR" == "true" ]; then
     rm -rf "$EARTHLY_TMP_DIR"/* || true
 fi
 
+mkdir -p "$EARTHLY_TMP_DIR/dind"
+
 # setup git credentials and config
 i=0
 while true

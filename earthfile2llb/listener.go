@@ -31,6 +31,9 @@ type listener struct {
 	labelKeys   []string
 	labelValues []string
 
+	withDocker    *WithDockerOpt
+	withDockerRan bool
+
 	execMode  bool
 	stmtWords []string
 
@@ -88,6 +91,16 @@ func (l *listener) EnterTargetHeader(c *parser.TargetHeaderContext) {
 		return
 	}
 	l.pushOnlyAllowed = false
+}
+
+func (l *listener) ExitStmts(c *parser.StmtsContext) {
+	if l.shouldSkip() {
+		return
+	}
+	if l.withDocker != nil {
+		l.err = errors.New("no matching END found for WITH DOCKER")
+		return
+	}
 }
 
 //
@@ -259,13 +272,36 @@ func (l *listener) ExitRunStmt(c *parser.RunStmtContext) {
 	}
 	// TODO: In the bracket case, should flags be outside of the brackets?
 
-	err = l.interpreter.Run(l.ctx, fs.Args(), mounts.Args, secrets.Args, *privileged, *withEntrypoint, *withDocker, withShell, *pushFlag)
-	if err != nil {
-		l.err = errors.Wrap(err, "run")
-		return
-	}
-	if *pushFlag {
-		l.pushOnlyAllowed = true
+	if l.withDocker == nil {
+		err = l.interpreter.Run(
+			l.ctx, fs.Args(), mounts.Args, secrets.Args, *privileged, *withEntrypoint, *withDocker,
+			withShell, *pushFlag)
+		if err != nil {
+			l.err = errors.Wrap(err, "run")
+			return
+		}
+		if *pushFlag {
+			l.pushOnlyAllowed = true
+		}
+	} else {
+		if *pushFlag {
+			l.err = fmt.Errorf("RUN --push not allowed in WITH DOCKER")
+			return
+		}
+		if l.withDockerRan {
+			l.err = fmt.Errorf("Only one RUN command allowed in WITH DOCKER")
+			return
+		}
+		l.withDockerRan = true
+		l.withDocker.Mounts = mounts.Args
+		l.withDocker.Secrets = secrets.Args
+		l.withDocker.WithShell = withShell
+		l.withDocker.WithEntrypoint = *withEntrypoint
+		err = l.interpreter.WithDockerRun(l.ctx, fs.Args(), *l.withDocker)
+		if err != nil {
+			l.err = errors.Wrap(err, "with docker run")
+			return
+		}
 	}
 }
 
@@ -555,10 +591,22 @@ func (l *listener) ExitDockerLoadStmt(c *parser.DockerLoadStmtContext) {
 	}
 	fullTargetName := fs.Arg(0)
 	imageName := fs.Arg(1)
-	err = l.interpreter.DockerLoad(l.ctx, fullTargetName, imageName, buildArgs.Args)
-	if err != nil {
-		l.err = errors.Wrap(err, "docker load")
-		return
+	if l.withDocker == nil {
+		err = l.interpreter.DockerLoadOld(l.ctx, fullTargetName, imageName, buildArgs.Args)
+		if err != nil {
+			l.err = errors.Wrap(err, "docker load")
+			return
+		}
+	} else {
+		if l.withDockerRan {
+			l.err = fmt.Errorf("cannot DOCKER LOAD after the RUN command in a WITH DOCKER clause")
+			return
+		}
+		l.withDocker.Loads = append(l.withDocker.Loads, DockerLoadOpt{
+			Target:    fullTargetName,
+			ImageName: imageName,
+			BuildArgs: buildArgs.Args,
+		})
 	}
 }
 
@@ -575,10 +623,18 @@ func (l *listener) ExitDockerPullStmt(c *parser.DockerPullStmtContext) {
 		return
 	}
 	imageName := l.stmtWords[0]
-	err := l.interpreter.DockerPull(l.ctx, imageName)
-	if err != nil {
-		l.err = errors.Wrap(err, "docker pull")
-		return
+	if l.withDocker == nil {
+		err := l.interpreter.DockerPullOld(l.ctx, imageName)
+		if err != nil {
+			l.err = errors.Wrap(err, "docker pull")
+			return
+		}
+	} else {
+		if l.withDockerRan {
+			l.err = fmt.Errorf("cannot DOCKER PULL after the RUN command in a WITH DOCKER clause")
+			return
+		}
+		l.withDocker.Pulls = append(l.withDocker.Pulls, imageName)
 	}
 }
 
@@ -628,6 +684,45 @@ func (l *listener) ExitHealthcheckStmt(c *parser.HealthcheckStmtContext) {
 		return
 	}
 	l.interpreter.Healthcheck(l.ctx, isNone, cmdArgs, *interval, *timeout, *startPeriod, *retries)
+}
+
+func (l *listener) ExitWithDockerStmt(c *parser.WithDockerStmtContext) {
+	if l.shouldSkip() {
+		return
+	}
+	if l.pushOnlyAllowed {
+		l.err = fmt.Errorf("no non-push commands allowed after a --push: %s", c.GetText())
+		return
+	}
+	if len(l.stmtWords) != 0 {
+		l.err = fmt.Errorf("WITH DOCKER does not take any arguments: %s", c.GetText())
+		return
+	}
+	if l.withDocker != nil {
+		l.err = fmt.Errorf("cannot use WITH DOCKER within WITH DOCKER")
+		return
+	}
+	l.withDocker = new(WithDockerOpt)
+}
+
+func (l *listener) ExitEndStmt(c *parser.EndStmtContext) {
+	if l.shouldSkip() {
+		return
+	}
+	if len(l.stmtWords) != 0 {
+		l.err = fmt.Errorf("END does not take any arguments: %s", c.GetText())
+		return
+	}
+	if l.withDocker == nil {
+		l.err = fmt.Errorf("END can only be used to end a WITH DOCKER clause")
+		return
+	}
+	if !l.withDockerRan {
+		l.err = fmt.Errorf("No RUN command found in WITH DOCKER")
+		return
+	}
+	l.withDocker = nil
+	l.withDockerRan = false
 }
 
 func (l *listener) ExitAddStmt(c *parser.AddStmtContext) {

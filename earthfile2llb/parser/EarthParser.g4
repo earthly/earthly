@@ -36,6 +36,8 @@ stmt:
 	| onbuildStmt
 	| healthcheckStmt
 	| shellStmt
+	| withDockerStmt
+	| endStmt
 	| genericCommandStmt;
 
 fromStmt: FROM (WS stmtWords)?;
@@ -84,6 +86,9 @@ stopsignalStmt: STOPSIGNAL (WS stmtWords)?;
 onbuildStmt: ONBUILD (WS stmtWords)?;
 healthcheckStmt: HEALTHCHECK (WS stmtWords)?;
 shellStmt: SHELL (WS stmtWords)?;
+
+withDockerStmt: WITH_DOCKER (WS stmtWords)?;
+endStmt: END (WS stmtWords)?;
 
 genericCommandStmt: commandName (WS stmtWords)?;
 commandName: Command;

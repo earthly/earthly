@@ -52,6 +52,8 @@ func strWithEnvVars(args []string, envVars []string, isWithShell bool) string {
 
 }
 
+type shellWrapFun func(args []string, envVars []string, isWithShell bool) []string
+
 func withShellAndEnvVars(args []string, envVars []string, isWithShell bool) []string {
 	return []string{
 		"/bin/sh", "-c",
@@ -59,7 +61,7 @@ func withShellAndEnvVars(args []string, envVars []string, isWithShell bool) []st
 	}
 }
 
-func withDockerdWrap(args []string, envVars []string, isWithShell bool) []string {
+func withDockerdWrapOld(args []string, envVars []string, isWithShell bool) []string {
 	return []string{
 		"/bin/sh", "-c",
 		"/bin/sh <<EOF" +

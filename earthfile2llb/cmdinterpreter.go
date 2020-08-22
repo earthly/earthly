@@ -5,6 +5,23 @@ import (
 	"time"
 )
 
+// DockerLoadParams holds parameters for DOCKER LOAD commands.
+type DockerLoadOpt struct {
+	Target    string
+	ImageName string
+	BuildArgs []string
+}
+
+// WithDockerOpt holds metadata related to a WITH DOCKER run.
+type WithDockerOpt struct {
+	Mounts         []string
+	Secrets        []string
+	WithShell      bool
+	WithEntrypoint bool
+	Pulls          []string
+	Loads          []DockerLoadOpt
+}
+
 type commandInterpreter interface {
 	From(ctx context.Context, imageName string, buildArgs []string) error
 	FromDockerfile(ctx context.Context, path string, dfPath string, dfTarget string, buildArgs []string) error
@@ -24,7 +41,8 @@ type commandInterpreter interface {
 	Arg(ctx context.Context, argKey string, defaultArgValue string)
 	Label(ctx context.Context, labels map[string]string)
 	GitClone(ctx context.Context, gitURL string, branch string, dest string) error
-	DockerLoad(ctx context.Context, targetName string, dockerTag string, buildArgs []string) error
-	DockerPull(ctx context.Context, dockerTag string) error
+	WithDockerRun(ctx context.Context, args []string, opt WithDockerOpt) error
+	DockerLoadOld(ctx context.Context, targetName string, dockerTag string, buildArgs []string) error
+	DockerPullOld(ctx context.Context, dockerTag string) error
 	Healthcheck(ctx context.Context, isNone bool, cmdArgs []string, interval time.Duration, timeout time.Duration, startPeriod time.Duration, retries int)
 }

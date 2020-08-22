@@ -318,6 +318,9 @@ func (c *Converter) CopyClassical(ctx context.Context, srcs []string, dest strin
 
 // Run applies the earth RUN command.
 func (c *Converter) Run(ctx context.Context, args []string, mounts []string, secretKeyValues []string, privileged bool, withEntrypoint bool, withDocker bool, isWithShell bool, pushFlag bool) error {
+	if withDocker {
+		fmt.Printf("Warning: RUN --with-docker is deprecated. Use WITH DOCKER ... RUN ... END instead\n")
+	}
 	// TODO: This does not work, because it strips away some quotes, which are valuable to the shell.
 	//       In any case, this is probably working as intended as is.
 	// if !isWithShell {
@@ -364,8 +367,12 @@ func (c *Converter) Run(ctx context.Context, args []string, mounts []string, sec
 		strIf(withEntrypoint, "--entrypoint "),
 		strIf(pushFlag, "--push "),
 		strings.Join(finalArgs, " "))
+	shellWrap := withShellAndEnvVars
+	if withDocker {
+		shellWrap = withDockerdWrapOld
+	}
 	opts = append(opts, llb.WithCustomNamef("%s%s", c.vertexPrefix(), runStr))
-	return c.internalRun(ctx, finalArgs, secretKeyValues, withDocker, isWithShell, pushFlag, runStr, opts...)
+	return c.internalRun(ctx, finalArgs, secretKeyValues, isWithShell, shellWrap, pushFlag, runStr, opts...)
 }
 
 // SaveArtifact applies the earth SAVE ARTIFACT command.
@@ -616,8 +623,17 @@ func (c *Converter) GitClone(ctx context.Context, gitURL string, branch string, 
 	return nil
 }
 
-// DockerLoad applies the DOCKER LOAD command.
-func (c *Converter) DockerLoad(ctx context.Context, targetName string, dockerTag string, buildArgs []string) error {
+// WithDockerRun applies an entire WITH DOCKER ... RUN ... END clause.
+func (c *Converter) WithDockerRun(ctx context.Context, args []string, opt WithDockerOpt) error {
+	wdr := &withDockerRun{
+		c: c,
+	}
+	return wdr.Run(ctx, args, opt)
+}
+
+// DockerLoadOld applies the DOCKER LOAD command (outside of WITH DOCKER).
+func (c *Converter) DockerLoadOld(ctx context.Context, targetName string, dockerTag string, buildArgs []string) error {
+	fmt.Printf("Warning: DOCKER LOAD outside of WITH DOCKER is deprecated\n")
 	targetName = c.expandArgs(targetName)
 	dockerTag = c.expandArgs(dockerTag)
 	for i := range buildArgs {
@@ -632,7 +648,7 @@ func (c *Converter) DockerLoad(ctx context.Context, targetName string, dockerTag
 	if err != nil {
 		return err
 	}
-	err = c.solveAndLoad(
+	err = c.solveAndLoadOld(
 		ctx, mts, depTarget.String(), dockerTag,
 		llb.WithCustomNamef(
 			"%sDOCKER LOAD %s %s", c.vertexPrefix(), depTarget.String(), dockerTag))
@@ -642,8 +658,9 @@ func (c *Converter) DockerLoad(ctx context.Context, targetName string, dockerTag
 	return nil
 }
 
-// DockerPull applies the DOCKER PULL command.
-func (c *Converter) DockerPull(ctx context.Context, dockerTag string) error {
+// DockerPullOld applies the DOCKER PULL command (outside of WITH DOCKER).
+func (c *Converter) DockerPullOld(ctx context.Context, dockerTag string) error {
+	fmt.Printf("Warning: DOCKER PULL outside of WITH DOCKER is deprecated\n")
 	dockerTag = c.expandArgs(dockerTag)
 	logging.GetLogger(ctx).With("dockerTag", dockerTag).Info("Applying DOCKER PULL")
 	state, image, _, err := c.internalFromClassical(
@@ -666,7 +683,7 @@ func (c *Converter) DockerPull(ctx context.Context, dockerTag string) error {
 			},
 		},
 	}
-	err = c.solveAndLoad(
+	err = c.solveAndLoadOld(
 		ctx, mts, dockerTag, dockerTag,
 		llb.WithCustomNamef("%sDOCKER LOAD (PULL %s)", c.vertexPrefix(), dockerTag))
 	if err != nil {
@@ -718,7 +735,7 @@ func (c *Converter) FinalizeStates() *MultiTargetStates {
 	return c.mts
 }
 
-func (c *Converter) internalRun(ctx context.Context, args []string, secretKeyValues []string, withDocker bool, isWithShell bool, pushFlag bool, commandStr string, opts ...llb.RunOption) error {
+func (c *Converter) internalRun(ctx context.Context, args []string, secretKeyValues []string, isWithShell bool, shellWrap shellWrapFun, pushFlag bool, commandStr string, opts ...llb.RunOption) error {
 	finalOpts := opts
 	var extraEnvVars []string
 	// Secrets.
@@ -771,12 +788,7 @@ func (c *Converter) internalRun(ctx context.Context, args []string, secretKeyVal
 		llb.HostBind(), llb.SourcePath("/run/earthly"))
 	finalOpts = append(finalOpts, debuggerSecretMount, debuggerMount, runEarthlyMount)
 	// Shell or dockerd wrapper.
-	var finalArgs []string
-	if withDocker {
-		finalArgs = withDockerdWrap(args, extraEnvVars, isWithShell)
-	} else {
-		finalArgs = withShellAndEnvVars(args, extraEnvVars, isWithShell)
-	}
+	finalArgs := shellWrap(args, extraEnvVars, isWithShell)
 	finalArgs = append([]string{"earth_debugger"}, finalArgs...)
 
 	finalOpts = append(finalOpts, llb.Args(finalArgs))
@@ -800,7 +812,7 @@ func (c *Converter) internalRun(ctx context.Context, args []string, secretKeyVal
 	return nil
 }
 
-func (c *Converter) solveAndLoad(ctx context.Context, mts *MultiTargetStates, opName string, dockerTag string, opts ...llb.RunOption) error {
+func (c *Converter) solveAndLoadOld(ctx context.Context, mts *MultiTargetStates, opName string, dockerTag string, opts ...llb.RunOption) error {
 	// Use a builder to create docker .tar file, mount it via a local build context,
 	// then docker load it within the current side effects state.
 	outDir, err := ioutil.TempDir("/tmp", "earthly-docker-load")
@@ -841,7 +853,7 @@ func (c *Converter) solveAndLoad(ctx context.Context, mts *MultiTargetStates, op
 	)
 	loadOpts := []llb.RunOption{
 		llb.Args(
-			withDockerdWrap(
+			withDockerdWrapOld(
 				[]string{"docker", "load", "</src/image.tar"}, []string{}, true)),
 		llb.AddMount("/src", tarContext, llb.Readonly),
 		llb.Dir("/src"),
@@ -954,7 +966,7 @@ func (c *Converter) processNonConstantBuildArgFunc(ctx context.Context) variable
 		buildArgPath := path.Join("/run/buildargs", name)
 		args := strings.Split(fmt.Sprintf("echo \"%s\" >%s", expression, srcBuildArgPath), " ")
 		err := c.internalRun(
-			ctx, args, []string{}, false, true, false, expression,
+			ctx, args, []string{}, true, withShellAndEnvVars, false, expression,
 			llb.WithCustomNamef("%sRUN %s", c.vertexPrefix(), expression))
 		if err != nil {
 			return llb.State{}, dedup.TargetInput{}, 0, errors.Wrapf(err, "run %v", expression)

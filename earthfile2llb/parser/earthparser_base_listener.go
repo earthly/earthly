@@ -231,6 +231,18 @@ func (s *BaseEarthParserListener) EnterShellStmt(ctx *ShellStmtContext) {}
 // ExitShellStmt is called when production shellStmt is exited.
 func (s *BaseEarthParserListener) ExitShellStmt(ctx *ShellStmtContext) {}
 
+// EnterWithDockerStmt is called when production withDockerStmt is entered.
+func (s *BaseEarthParserListener) EnterWithDockerStmt(ctx *WithDockerStmtContext) {}
+
+// ExitWithDockerStmt is called when production withDockerStmt is exited.
+func (s *BaseEarthParserListener) ExitWithDockerStmt(ctx *WithDockerStmtContext) {}
+
+// EnterEndStmt is called when production endStmt is entered.
+func (s *BaseEarthParserListener) EnterEndStmt(ctx *EndStmtContext) {}
+
+// ExitEndStmt is called when production endStmt is exited.
+func (s *BaseEarthParserListener) ExitEndStmt(ctx *EndStmtContext) {}
+
 // EnterGenericCommandStmt is called when production genericCommandStmt is entered.
 func (s *BaseEarthParserListener) EnterGenericCommandStmt(ctx *GenericCommandStmtContext) {}
 

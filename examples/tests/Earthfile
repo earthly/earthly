@@ -31,6 +31,9 @@ experimental:
     BUILD +docker-load-test
     BUILD +dind-test
     BUILD +docker-pull-test
+    BUILD +docker-load-test-old
+    BUILD +dind-test-old
+    BUILD +docker-pull-test-old
 
 privileged-test:
     COPY privileged.earth ./Earthfile
@@ -184,16 +187,37 @@ docker-load-test:
     COPY docker-load.earth ./Earthfile
     RUN --privileged \
         --entrypoint \
+        --mount=type=tmpfs,target=/tmp/earthly \
         -- --allow-privileged +test
 
 dind-test:
     COPY dind.earth ./Earthfile
     RUN --privileged \
         --entrypoint \
+        --mount=type=tmpfs,target=/tmp/earthly \
         -- --allow-privileged +test
 
 docker-pull-test:
     COPY docker-pull.earth ./Earthfile
+    RUN --privileged \
+        --entrypoint \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        -- --allow-privileged +test
+
+docker-load-test-old:
+    COPY docker-load-old.earth ./Earthfile
+    RUN --privileged \
+        --entrypoint \
+        -- --allow-privileged +test
+
+dind-test-old:
+    COPY dind-old.earth ./Earthfile
+    RUN --privileged \
+        --entrypoint \
+        -- --allow-privileged +test
+
+docker-pull-test-old:
+    COPY docker-pull-old.earth ./Earthfile
     RUN --privileged \
         --entrypoint \
         -- --allow-privileged +test
