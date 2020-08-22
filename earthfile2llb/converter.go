@@ -787,9 +787,9 @@ func (c *Converter) internalRun(ctx context.Context, args []string, secretKeyVal
 	runEarthlyMount := llb.AddMount("/run/earthly", llb.Scratch(),
 		llb.HostBind(), llb.SourcePath("/run/earthly"))
 	finalOpts = append(finalOpts, debuggerSecretMount, debuggerMount, runEarthlyMount)
-	// Shell or dockerd wrapper.
-	finalArgs := shellWrap(args, extraEnvVars, isWithShell)
-	finalArgs = append([]string{"earth_debugger"}, finalArgs...)
+
+	// Shell and debugger wrap.
+	finalArgs := shellWrap(append([]string{"earth_debugger"}, args...), extraEnvVars, isWithShell)
 
 	finalOpts = append(finalOpts, llb.Args(finalArgs))
 	if pushFlag {

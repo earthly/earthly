@@ -42,6 +42,7 @@ dind-test-setup:
     COPY config.yaml /earthly/config.yaml
     ENV EARTHLY_CONFIG=/earthly/config.yaml
     ENV EARTHLY_BUILDKIT_IMAGE=earthly/buildkitd:dind-test
+    WORKDIR /test
     SAVE IMAGE
 
 # TODO: This does not work yet.
