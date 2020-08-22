@@ -88,7 +88,10 @@ func (wdr *withDockerRun) Run(ctx context.Context, args []string, opt WithDocker
 		strIf(opt.WithEntrypoint, "--entrypoint "),
 		strings.Join(finalArgs, " "))
 	runOpts = append(runOpts, llb.WithCustomNamef("%s%s", wdr.c.vertexPrefix(), runStr))
-	dindID := cacheKey(wdr.c.mts.FinalTarget())
+	dindID, err := wdr.c.mts.FinalStates.TargetInput.Hash()
+	if err != nil {
+		return errors.Wrap(err, "compute dind id")
+	}
 	shellWrap := makeWithDockerdWrapFun(dindID, loadCmds)
 	return wdr.c.internalRun(ctx, finalArgs, opt.Secrets, opt.WithShell, shellWrap, false, runStr, runOpts...)
 }
