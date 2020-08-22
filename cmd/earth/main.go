@@ -14,8 +14,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/fatih/color"
-
 	"github.com/earthly/earthly/buildcontext"
 	"github.com/earthly/earthly/builder"
 	"github.com/earthly/earthly/buildkitd"
@@ -29,6 +27,7 @@ import (
 	"github.com/earthly/earthly/earthfile2llb/variables"
 	"github.com/earthly/earthly/logging"
 
+	"github.com/fatih/color"
 	"github.com/moby/buildkit/client"
 	_ "github.com/moby/buildkit/client/connhelper/dockercontainer" // Load "docker-container://" helper.
 	"github.com/moby/buildkit/session"
@@ -381,7 +380,6 @@ func (app *earthApp) parseConfigFile(context *cli.Context) error {
 	app.buildkitdSettings.GitConfig = gitConfig
 	app.buildkitdSettings.GitCredentials = gitCredentials
 	return nil
-
 }
 
 func (app *earthApp) processDeprecatedCommandOptions(context *cli.Context, cfg *config.Config) error {

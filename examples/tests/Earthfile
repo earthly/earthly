@@ -35,6 +35,24 @@ experimental:
     BUILD +dind-test-old
     BUILD +docker-pull-test-old
 
+dind-test-setup:
+    FROM docker:19.03.12-dind
+    RUN apk --update --no-cache add git
+    COPY ../..+earth/earth /usr/local/bin/
+    COPY config.yaml /earthly/config.yaml
+    ENV EARTHLY_CONFIG=/earthly/config.yaml
+    ENV EARTHLY_BUILDKIT_IMAGE=earthly/buildkitd:dind-test
+    SAVE IMAGE
+
+# TODO: This does not work yet.
+dind-config-test-todo:
+    FROM +dind-test-setup
+    COPY config.earth ./Earthfile
+    WITH DOCKER
+        DOCKER LOAD ../../buildkitd+buildkitd earthly/buildkitd:dind-test
+        RUN earth +test
+    END
+
 privileged-test:
     COPY privileged.earth ./Earthfile
     RUN --privileged \

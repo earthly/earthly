@@ -5,14 +5,14 @@ import (
 	"time"
 )
 
-// DockerLoadParams holds parameters for DOCKER LOAD commands.
+// DockerLoadOpt holds parameters for DOCKER LOAD commands.
 type DockerLoadOpt struct {
 	Target    string
 	ImageName string
 	BuildArgs []string
 }
 
-// WithDockerOpt holds metadata related to a WITH DOCKER run.
+// WithDockerOpt holds parameters for WITH DOCKER run.
 type WithDockerOpt struct {
 	Mounts         []string
 	Secrets        []string
