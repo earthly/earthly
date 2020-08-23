@@ -184,22 +184,27 @@ func (wdr *withDockerRun) solveImage(ctx context.Context, mts *MultiTargetStates
 }
 
 func makeWithDockerdWrapFun(dindID string, loadCmds []string) shellWrapFun {
-	return func(args []string, envVars []string, isWithShell bool) []string {
+	return func(args []string, envVars []string, isWithShell bool, withDebugger bool) []string {
 		return []string{
 			"/bin/sh", "-c",
 			fmt.Sprintf(
-				"/bin/sh <<EOF\n%s\nEOF", dockerdWrapCmds(args, envVars, isWithShell, dindID, loadCmds)),
+				"/bin/sh <<EOF\n%s\nEOF",
+				dockerdWrapCmds(args, envVars, isWithShell, withDebugger, dindID, loadCmds)),
 		}
 	}
 }
 
-func dockerdWrapCmds(args []string, envVars []string, isWithShell bool, dindID string, loadCmds []string) string {
+func dockerdWrapCmds(args []string, envVars []string, isWithShell bool, withDebugger bool, dindID string, loadCmds []string) string {
 	dockerRoot := path.Join("/var/earthly/dind", dindID)
 	var cmds []string
 	cmds = append(cmds, "#!/bin/sh")
 	cmds = append(cmds, startDockerdCmds(dockerRoot)...)
 	cmds = append(cmds, loadCmds...)
-	cmds = append(cmds, strWithEnvVars(args, envVars, isWithShell))
+	if withDebugger {
+		cmds = append(cmds, fmt.Sprintf("%s %s", debuggerPath, strWithEnvVars(args, envVars, isWithShell)))
+	} else {
+		cmds = append(cmds, strWithEnvVars(args, envVars, isWithShell))
+	}
 	cmds = append(cmds, "exit_code=\"\\$?\"")
 	cmds = append(cmds, stopDockerdCmds(dockerRoot)...)
 	cmds = append(cmds, "exit \"\\$exit_code\"")

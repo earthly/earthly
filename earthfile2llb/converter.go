@@ -787,10 +787,8 @@ func (c *Converter) internalRun(ctx context.Context, args []string, secretKeyVal
 	runEarthlyMount := llb.AddMount("/run/earthly", llb.Scratch(),
 		llb.HostBind(), llb.SourcePath("/run/earthly"))
 	finalOpts = append(finalOpts, debuggerSecretMount, debuggerMount, runEarthlyMount)
-
 	// Shell and debugger wrap.
-	finalArgs := shellWrap(append([]string{"earth_debugger"}, args...), extraEnvVars, isWithShell)
-
+	finalArgs := shellWrap(args, extraEnvVars, isWithShell, true)
 	finalOpts = append(finalOpts, llb.Args(finalArgs))
 	if pushFlag {
 		// For push-flagged commands, make sure they run every time - don't use cache.
@@ -854,7 +852,7 @@ func (c *Converter) solveAndLoadOld(ctx context.Context, mts *MultiTargetStates,
 	loadOpts := []llb.RunOption{
 		llb.Args(
 			withDockerdWrapOld(
-				[]string{"docker", "load", "</src/image.tar"}, []string{}, true)),
+				[]string{"docker", "load", "</src/image.tar"}, []string{}, true, false)),
 		llb.AddMount("/src", tarContext, llb.Readonly),
 		llb.Dir("/src"),
 		llb.Security(llb.SecurityModeInsecure),

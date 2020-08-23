@@ -7,6 +7,8 @@ import (
 	"strings"
 )
 
+const debuggerPath = "/usr/bin/earth_debugger"
+
 func splitWildcards(name string) (string, string) {
 	i := 0
 	for ; i < len(name); i++ {
@@ -52,16 +54,19 @@ func strWithEnvVars(args []string, envVars []string, isWithShell bool) string {
 
 }
 
-type shellWrapFun func(args []string, envVars []string, isWithShell bool) []string
+type shellWrapFun func(args []string, envVars []string, isWithShell bool, withDebugger bool) []string
 
-func withShellAndEnvVars(args []string, envVars []string, isWithShell bool) []string {
-	return []string{
-		"/bin/sh", "-c",
-		strWithEnvVars(args, envVars, isWithShell),
+func withShellAndEnvVars(args []string, envVars []string, isWithShell bool, withDebugger bool) []string {
+	ret := []string{}
+	if withDebugger {
+		ret = append(ret, debuggerPath)
 	}
+	ret = append(ret, "/bin/sh", "-c",
+		strWithEnvVars(args, envVars, isWithShell))
+	return ret
 }
 
-func withDockerdWrapOld(args []string, envVars []string, isWithShell bool) []string {
+func withDockerdWrapOld(args []string, envVars []string, isWithShell bool, withDebugger bool) []string {
 	return []string{
 		"/bin/sh", "-c",
 		"/bin/sh <<EOF" +
@@ -83,7 +88,7 @@ func withDockerdWrapOld(args []string, envVars []string, isWithShell bool) []str
 			"let i+=1\n" +
 			"done\n" +
 			// Run provided args.
-			strWithEnvVars(args, envVars, isWithShell) + "\n" +
+			fmt.Sprintf("%s %s\n", debuggerPath, strWithEnvVars(args, envVars, isWithShell)) +
 			"exit_code=\"\\$?\"\n" +
 			// Shut down dockerd.
 			"kill \"\\$dockerd_pid\" &>/dev/null\n" +
