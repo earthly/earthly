@@ -200,11 +200,7 @@ func dockerdWrapCmds(args []string, envVars []string, isWithShell bool, withDebu
 	cmds = append(cmds, "#!/bin/sh")
 	cmds = append(cmds, startDockerdCmds(dockerRoot)...)
 	cmds = append(cmds, loadCmds...)
-	if withDebugger {
-		cmds = append(cmds, fmt.Sprintf("%s %s", debuggerPath, strWithEnvVars(args, envVars, isWithShell)))
-	} else {
-		cmds = append(cmds, strWithEnvVars(args, envVars, isWithShell))
-	}
+	cmds = append(cmds, strWithEnvVars(args, envVars, isWithShell, withDebugger))
 	cmds = append(cmds, "exit_code=\"\\$?\"")
 	cmds = append(cmds, stopDockerdCmds(dockerRoot)...)
 	cmds = append(cmds, "exit \"\\$exit_code\"")
@@ -222,7 +218,7 @@ func startDockerdCmds(dockerRoot string) []string {
 		"while ! docker ps &>/dev/null ; do",
 		"sleep 1",
 		"if [ \"\\$i\" -gt \"30\" ] ; then",
-		// Print logs dockerd start failure.
+		// Print logs on dockerd start failure.
 		"cat /var/log/docker.log",
 		"exit 1",
 		"fi",

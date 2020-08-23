@@ -782,7 +782,7 @@ func (c *Converter) internalRun(ctx context.Context, args []string, secretKeyVal
 	}
 	debuggerSecretMount := llb.AddSecret(
 		fmt.Sprintf("/run/secrets/%s", common.DebuggerSettingsSecretsKey), secretOpts...)
-	debuggerMount := llb.AddMount("/usr/bin/earth_debugger", llb.Scratch(),
+	debuggerMount := llb.AddMount(debuggerPath, llb.Scratch(),
 		llb.HostBind(), llb.SourcePath("/usr/bin/earth_debugger"))
 	runEarthlyMount := llb.AddMount("/run/earthly", llb.Scratch(),
 		llb.HostBind(), llb.SourcePath("/run/earthly"))

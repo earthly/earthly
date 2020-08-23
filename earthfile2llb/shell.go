@@ -30,43 +30,42 @@ func splitWildcards(name string) (string, string) {
 	return path.Dir(name[:i]), base + name[i:]
 }
 
-func withShell(args []string, isWithShell bool) []string {
-	if isWithShell {
+func withShell(args []string, withShell bool) []string {
+	if withShell {
 		return []string{"/bin/sh", "-c", strings.Join(args, " ")}
 	}
 	return args
 }
 
-func strWithEnvVars(args []string, envVars []string, isWithShell bool) string {
-	if isWithShell {
+func strWithEnvVars(args []string, envVars []string, withShell bool, withDebugger bool) string {
+	var cmdParts []string
+	cmdParts = append(cmdParts, strings.Join(envVars, " "))
+	if withDebugger {
+		cmdParts = append(cmdParts, debuggerPath)
+	}
+	if withShell {
 		var escapedArgs []string
 		for _, arg := range args {
 			escapedArgs = append(escapedArgs, escapeShellSingleQuotes(arg))
 		}
-		return strings.Join(
-			[]string{
-				strings.Join(envVars, " "),
-				"/bin/sh", "-c",
-				fmt.Sprintf("'%s'", strings.Join(escapedArgs, " ")),
-			}, " ")
+		cmdParts = append(cmdParts, "/bin/sh", "-c")
+		cmdParts = append(cmdParts, fmt.Sprintf("'%s'", strings.Join(escapedArgs, " ")))
+	} else {
+		cmdParts = append(cmdParts, args...)
 	}
-	return strings.Join(append([]string{strings.Join(envVars, " ")}, args...), " ")
-
+	return strings.Join(cmdParts, " ")
 }
 
-type shellWrapFun func(args []string, envVars []string, isWithShell bool, withDebugger bool) []string
+type shellWrapFun func(args []string, envVars []string, withShell bool, withDebugger bool) []string
 
-func withShellAndEnvVars(args []string, envVars []string, isWithShell bool, withDebugger bool) []string {
-	ret := []string{}
-	if withDebugger {
-		ret = append(ret, debuggerPath)
+func withShellAndEnvVars(args []string, envVars []string, withShell bool, withDebugger bool) []string {
+	return []string{
+		"/bin/sh", "-c",
+		strWithEnvVars(args, envVars, withShell, withDebugger),
 	}
-	ret = append(ret, "/bin/sh", "-c",
-		strWithEnvVars(args, envVars, isWithShell))
-	return ret
 }
 
-func withDockerdWrapOld(args []string, envVars []string, isWithShell bool, withDebugger bool) []string {
+func withDockerdWrapOld(args []string, envVars []string, withShell bool, withDebugger bool) []string {
 	return []string{
 		"/bin/sh", "-c",
 		"/bin/sh <<EOF" +
@@ -88,7 +87,7 @@ func withDockerdWrapOld(args []string, envVars []string, isWithShell bool, withD
 			"let i+=1\n" +
 			"done\n" +
 			// Run provided args.
-			fmt.Sprintf("%s %s\n", debuggerPath, strWithEnvVars(args, envVars, isWithShell)) +
+			strWithEnvVars(args, envVars, withShell, withDebugger) + "\n" +
 			"exit_code=\"\\$?\"\n" +
 			// Shut down dockerd.
 			"kill \"\\$dockerd_pid\" &>/dev/null\n" +
