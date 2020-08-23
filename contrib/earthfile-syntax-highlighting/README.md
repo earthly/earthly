@@ -13,6 +13,7 @@ For an introduction of Earthly see the [Earthly GitHub repository](https://githu
 * Fix `FROM DOCKERFILE`
 * Fix highlighting for target and artifact refs in edge cases (eg `g++`)
 * Make case-sensitive
+* Add highlighting for `WITH DOCKER` ... `END`
 
 ### 0.0.4
 

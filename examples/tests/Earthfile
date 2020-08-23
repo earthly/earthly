@@ -45,7 +45,7 @@ dind-test-setup:
     WORKDIR /test
     SAVE IMAGE
 
-# TODO: This does not work yet.
+# TODO: This does not work due to docker run --privileged not being supported yet.
 dind-config-test-todo:
     FROM +dind-test-setup
     COPY config.earth ./Earthfile
