@@ -139,7 +139,7 @@ func main() {
 	}
 
 	app := newEarthApp(ctx, conslogging.Current(colorMode))
-	autoComplete(app)
+	app.autoComplete()
 
 	// Set up file-based logging.
 	logrus.SetFormatter(&logrus.TextFormatter{
