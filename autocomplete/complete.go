@@ -18,13 +18,27 @@ const (
 	Unknown
 )
 
-// ParseLine parses a bash COMP_LINE and COMP_POINT variables into the argument to expand
-// e.g. line="earth --argum", cursorLoc=10; this will return "--ar"
-func ParseLine(line string, cursorLoc int) string {
-	i := cursorLoc
-	if i > 0 {
-		i--
+func hasTargetOrCommand(line string) bool {
+	splits := strings.Split(line, " ")
+	for i, s := range splits {
+		if i == 0 {
+			continue // skip earth command
+		}
+		if len(s) == 0 {
+			continue // skip empty commands
+		}
+		if s[0] == '-' {
+			continue // skip flags
+		}
+		return true // found a command or target
 	}
+	return false
+}
+
+// parseLine parses a bash COMP_LINE and COMP_POINT variables into the argument to expand
+// e.g. line="earth --argum", cursorLoc=10; this will return "--ar"
+func parseLine(line string, cursorLoc int) string {
+	var i int
 	for i = cursorLoc; i > 0; i-- {
 		if line[i-1] == ' ' {
 			break
@@ -117,8 +131,16 @@ func getPotentialPaths(prefix string) ([]string, error) {
 }
 
 // GetPotentials returns a list of potential arguments for shell auto completion
-func GetPotentials(prefix string, flags, commands []string) ([]string, error) {
+func GetPotentials(compLine string, compPoint int, flags, commands []string) ([]string, error) {
 	potentials := []string{}
+
+	prefix := parseLine(compLine, compPoint)
+
+	// already has a full command or target (we're done now)
+	if hasTargetOrCommand(compLine) && prefix == "" {
+		return potentials, nil
+	}
+
 	if flagPrefix, ok := trimFlag(prefix); ok {
 		for _, s := range flags {
 			if strings.HasPrefix(s, flagPrefix) {

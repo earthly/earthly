@@ -97,8 +97,6 @@ func autoComplete(app *earthApp) {
 		panic(err)
 	}
 
-	prefix := autocomplete.ParseLine(compLine, int(compPointInt))
-
 	flags := []string{}
 	for _, f := range app.cliApp.Flags {
 		for _, n := range f.Names() {
@@ -113,7 +111,7 @@ func autoComplete(app *earthApp) {
 		commands = append(commands, cmd.Name)
 	}
 
-	potentials, err := autocomplete.GetPotentials(prefix, flags, commands)
+	potentials, err := autocomplete.GetPotentials(compLine, int(compPointInt), flags, commands)
 	if err != nil {
 		//panic(err) // can't display error or it will show up under tab-completion
 		os.Exit(1)

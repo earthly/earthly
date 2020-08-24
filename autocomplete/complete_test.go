@@ -7,17 +7,19 @@ import (
 )
 
 func TestFlagCompletion(t *testing.T) {
-	matches, err := GetPotentials("--fl", []string{"flag", "fleet", "fig"}, nil)
+	matches, err := GetPotentials("earth --fl", 10, []string{"flag", "fleet", "fig"}, nil)
 	NoError(t, err, "GetPotentials failed")
-	Equal(t, []string{"--flag", "--fleet"}, matches)
+	Equal(t, []string{"--flag ", "--fleet "}, matches)
 }
+
 func TestCommandCompletion(t *testing.T) {
-	matches, err := GetPotentials("pru", nil, []string{"prune", "foo"})
+	matches, err := GetPotentials("earth pru", 9, nil, []string{"prune", "foo"})
 	NoError(t, err, "GetPotentials failed")
-	Equal(t, []string{"prune"}, matches)
+	Equal(t, []string{"prune "}, matches)
 }
+
 func TestPathCompletion(t *testing.T) {
-	matches, err := GetPotentials(".", nil, nil)
+	matches, err := GetPotentials("earth .", 7, nil, nil)
 	NoError(t, err, "GetPotentials failed")
 	Equal(t, []string{"./", "../"}, matches)
 }
