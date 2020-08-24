@@ -41,13 +41,6 @@ func parseLine(line string, cursorLoc int) string {
 	return line[i:cursorLoc]
 }
 
-func isFlag(prefix string) bool {
-	if len(prefix) == 1 && prefix[0] == '-' {
-		return true
-	}
-	return strings.HasPrefix(prefix, "--")
-}
-
 func trimFlag(prefix string) (string, bool) {
 	if len(prefix) == 1 && prefix[0] == '-' {
 		return "", true
