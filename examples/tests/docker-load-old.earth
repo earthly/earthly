@@ -9,9 +9,5 @@ some-image:
     SAVE IMAGE
 
 test:
-    WITH DOCKER
-        DOCKER LOAD +some-image test-img:xyz
-        DOCKER PULL hello-world
-        RUN docker run test-img:xyz && \
-            docker run hello-world
-    END
+    DOCKER LOAD +some-image test-img:xyz
+    RUN --with-docker docker run --rm test-img:xyz

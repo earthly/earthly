@@ -31,6 +31,28 @@ experimental:
     BUILD +docker-load-test
     BUILD +dind-test
     BUILD +docker-pull-test
+    BUILD +docker-load-test-old
+    BUILD +dind-test-old
+    BUILD +docker-pull-test-old
+
+dind-test-setup:
+    FROM docker:19.03.12-dind
+    RUN apk --update --no-cache add git
+    COPY ../..+earth/earth /usr/local/bin/
+    COPY config.yaml /earthly/config.yaml
+    ENV EARTHLY_CONFIG=/earthly/config.yaml
+    ENV EARTHLY_BUILDKIT_IMAGE=earthly/buildkitd:dind-test
+    WORKDIR /test
+    SAVE IMAGE
+
+# TODO: This does not work due to docker run --privileged not being supported yet.
+dind-config-test-todo:
+    FROM +dind-test-setup
+    COPY config.earth ./Earthfile
+    WITH DOCKER
+        DOCKER LOAD ../../buildkitd+buildkitd earthly/buildkitd:dind-test
+        RUN earth +test
+    END
 
 privileged-test:
     COPY privileged.earth ./Earthfile
@@ -184,16 +206,37 @@ docker-load-test:
     COPY docker-load.earth ./Earthfile
     RUN --privileged \
         --entrypoint \
+        --mount=type=tmpfs,target=/tmp/earthly \
         -- --allow-privileged +test
 
 dind-test:
     COPY dind.earth ./Earthfile
     RUN --privileged \
         --entrypoint \
+        --mount=type=tmpfs,target=/tmp/earthly \
         -- --allow-privileged +test
 
 docker-pull-test:
     COPY docker-pull.earth ./Earthfile
+    RUN --privileged \
+        --entrypoint \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        -- --allow-privileged +test
+
+docker-load-test-old:
+    COPY docker-load-old.earth ./Earthfile
+    RUN --privileged \
+        --entrypoint \
+        -- --allow-privileged +test
+
+dind-test-old:
+    COPY dind-old.earth ./Earthfile
+    RUN --privileged \
+        --entrypoint \
+        -- --allow-privileged +test
+
+docker-pull-test-old:
+    COPY docker-pull-old.earth ./Earthfile
     RUN --privileged \
         --entrypoint \
         -- --allow-privileged +test
