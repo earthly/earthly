@@ -76,7 +76,7 @@ func getPotentialTarget(prefix string) ([]string, error) {
 
 	potentials := []string{}
 	for _, target := range targets {
-		s := dirPath + "+" + target
+		s := dirPath + "+" + target + " "
 		if strings.HasPrefix(s, prefix) {
 			potentials = append(potentials, s)
 		}
@@ -108,7 +108,7 @@ func getPotentialPaths(prefix string) ([]string, error) {
 					paths = append(paths, s+"+")
 				}
 				if hasSubDirs(s) {
-					paths = append(paths, s)
+					paths = append(paths, s+"/")
 				}
 			}
 		}
@@ -122,22 +122,29 @@ func GetPotentials(prefix string, flags, commands []string) ([]string, error) {
 	if flagPrefix, ok := trimFlag(prefix); ok {
 		for _, s := range flags {
 			if strings.HasPrefix(s, flagPrefix) {
-				potentials = append(potentials, "--"+s)
+				potentials = append(potentials, "--"+s+" ")
 			}
 		}
 		return potentials, nil
 	}
 
-	if isLocalPath(prefix) {
+	if isLocalPath(prefix) || strings.HasPrefix(prefix, "+") {
 		if strings.Contains(prefix, "+") {
 			return getPotentialTarget(prefix)
 		}
 		return getPotentialPaths(prefix)
 	}
 
+	if prefix == "" {
+		if hasEarthfile(".") {
+			potentials = append(potentials, "+")
+		}
+		potentials = append(potentials, "./")
+	}
+
 	for _, cmd := range commands {
 		if strings.HasPrefix(cmd, prefix) {
-			potentials = append(potentials, cmd)
+			potentials = append(potentials, cmd+" ")
 		}
 	}
 	return potentials, nil

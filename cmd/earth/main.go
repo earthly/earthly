@@ -82,7 +82,7 @@ var (
 )
 
 // to enable autocomplete, enter
-// complete -o filenames -C "/path/to/earth" earth
+// complete -o nospace -C "/path/to/earth" earth
 func autoComplete(app *earthApp) {
 	_, found := os.LookupEnv("COMP_LINE")
 	if !found {
