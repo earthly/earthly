@@ -9,15 +9,6 @@ import (
 	"github.com/earthly/earthly/earthfile2llb"
 )
 
-type CompletionType int
-
-const (
-	Flag CompletionType = iota
-	Command
-	Path
-	Unknown
-)
-
 func hasTargetOrCommand(line string) bool {
 	splits := strings.Split(line, " ")
 	for i, s := range splits {

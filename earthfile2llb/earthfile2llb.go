@@ -165,6 +165,7 @@ func newEarthfileTree(filename string, errorListener antlr.ErrorListener, errorS
 	return p.EarthFile(), nil
 }
 
+// GetTargets returns a list of targets from an Earthfile
 func GetTargets(filename string) ([]string, error) {
 	tree, err := newEarthfileTree(
 		filename, antlr.NewConsoleErrorListener(), antlr.NewBailErrorStrategy())
