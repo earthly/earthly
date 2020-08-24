@@ -6,17 +6,17 @@ Earthfiles have the following rough structure:
 
 ```
 ...
-base recipe
+<base-recipe>
 ...
 
 target:
     ...
-    recipe
+    <recipe>
     ...
 
 target:
     ...
-    recipe
+    <recipe>
     ...
 ```
 
@@ -114,7 +114,7 @@ In a multi-stage Dockerfile, sets the target to be used for the build. This opti
 
 #### Synopsis
 
-* `RUN [--push] [--entrypoint] [--privileged] [--with-docker] [--secret <env-var>=<secret-ref>] [--mount <mount-spec>] [--] <command>` (shell form)
+* `RUN [--push] [--entrypoint] [--privileged] [--secret <env-var>=<secret-ref>] [--mount <mount-spec>] [--] <command>` (shell form)
 * `RUN [[<flags>...], "<executable>", "<arg1>", "<arg2>", ...]` (exec form)
 
 #### Description
@@ -171,26 +171,6 @@ Note that privileged mode is not enabled by default. In order to use this option
 earth --allow-privileged +some-target
 ```
 
-##### `--with-docker` (**experimental**)
-
-{% hint style='danger' %}
-`RUN --with-docker` is experimental and is subject to change.
-{% endhint %}
-
-Makes available a docker daemon within the build environment, which the command can leverage. This option automatically implies `--privileged`.
-
-Example:
-
-```Dockerfile
-RUN --with-docker docker run hello-world
-```
-
-or 
-
-```Dockerfile
-RUN --with-docker docker-compose up -d ; docker run some-test-image
-```
-
 ##### `--secret <env-var>=<secret-ref>`
 
 Makes available a secret, in the form of an env var (its name is defined by `<env-var>`), to the command being executed.
@@ -216,7 +196,7 @@ The `<mount-spec>` is defined as a series of comma-separated list of key-values.
 
 | Key | Description | Example |
 | --- | --- | --- |
-| `type` | The type of the mount. Currently only `cache` is allowed. | `type=cache` |
+| `type` | The type of the mount. Currently only `cache` and `tmpfs` are allowed. | `type=cache` |
 | `target` | The target path for the mount. | `target=/var/lib/data` |
 
 Example:
@@ -228,6 +208,10 @@ RUN --mount=type=cache,target=/go-cache go build main.go
 
 Note that mounts cannot be shared between targets, nor can they be shared within the same target,
 if the build-args differ between invocations.
+
+##### `--with-docker` (**deprecated**)
+
+`RUN --with-docker` is deprecated. Please use `WITH DOCKER ... RUN ... END` instead.
 
 ## COPY
 
@@ -420,6 +404,53 @@ FROM --build-arg NAME=john +docker-image
 
 A number of builtin args are available and are pre-filled by Earthly. For more information see [builtin args](./builtin-args.md).
 
+## WITH DOCKER (**experimental**)
+
+{% hint style='danger' %}
+`WITH DOCKER` is experimental and is subject to change.
+{% endhint %}
+
+#### Synopsis
+
+* ```Dockerfile
+  WITH DOCKER
+    <commands>
+    ...
+  END
+  ```
+
+#### Description
+
+The clause `WITH DOCKER` initializes a Docker daemon to be used in the context of a `RUN` command. The Docker daemon can be pre-loaded with a set of images using the commands `DOCKER PULL` and `DOCKER LOAD`. Once the execution of the `RUN` command has completed, the Docker daemon is stopped and all of its data is deleted, including any volumes and network configuration.
+
+The clause `WITH DOCKER` automatically implies the `RUN --privileged` flag.
+
+The `WITH DOCKER` clause only supports the commands `DOCKER LOAD`, `DOCKER PULL` and `RUN`. Other commands (such as `COPY`) need to be run either before or after `WITH DOCKER ... END`. In addition, only one `RUN` command is permitted within `WITH DOCKER`. However multiple shell commands may be stringed together using `;` or `&&`.
+
+A typical example of a `WITH DOCKER` clause might be:
+
+```Dockerfile
+FROM docker:19.03.12-dind
+RUN apk --update --no-cache add docker-compose
+WORKDIR /test
+COPY docker-compose.yml ./
+WITH DOCKER
+  DOCKER LOAD +some-target image-name:latest
+  DOCKER PULL some-image:latest
+  RUN docker-compose up -d ;\
+    docker run ... &&\
+    docker run ... &&\
+    docker-compose down
+END
+```
+
+{% hint style='info' %}
+##### Note
+In order to use `WITH DOCKER`, a base image containing a supported `dockerd` executable must be used.
+
+Currently only [`docker:dind`](https://hub.docker.com/_/docker) variants are supported.
+{% endhint %}
+
 ## DOCKER PULL (**experimental**)
 
 {% hint style='danger' %}
@@ -432,7 +463,18 @@ A number of builtin args are available and are pre-filled by Earthly. For more i
 
 #### Description
 
-The command `DOCKER PULL` pulls a docker image from a remote registry into the docker daemon available within the build envionment. It can be used in conjunction with `RUN --with-docker docker run ...` to execute docker images in the context of the build environment.
+The command `DOCKER PULL` pulls a docker image from a remote registry and then loads it into the temporary docker daemon created by `WITH DOCKER`. It can be used in conjunction with `RUN --with-docker docker run ...` to execute docker images in the context of the 
+build environment. `DOCKER PULL` can be used in conjunction with `RUN docker run ...` in a `WITH DOCKER` clause.
+
+{% hint style='info' %}
+##### Note
+It is recommended that you avoid issuing `RUN docker pull ...` and use `DOCKER PULL ...` instead. The classical `docker pull` command does not take into account Earthly caching and so it would redownload the image much more frequently than necessary.
+{% endhint %}
+
+{% hint style='danger' %}
+The use of `DOCKER PULL` outside of a `WITH DOCKER` clause is deperected and will not be supported in future versions of Earthly.
+{% endhint %}
+
 
 ## DOCKER LOAD (**experimental**)
 
@@ -446,7 +488,11 @@ The command `DOCKER PULL` pulls a docker image from a remote registry into the d
 
 #### Description
 
-The command `DOCKER LOAD` builds the image referenced by `<target-ref>` and then loads it into the docker daemon available within the build environment, as a docker image `<image-name>`. It can be used in conjunction with `RUN --with-docker docker run ...` to execute docker images that are produced by other targets of the build.
+The command `DOCKER LOAD` builds the image referenced by `<target-ref>` and then loads it into the temporary docker daemon created by `WITH DOCKER`. The image is identified as `<image-name>`. `DOCKER LOAD` can be used in conjunction with `RUN docker run ...` to execute docker images that are produced by other targets of the build.
+
+{% hint style='danger' %}
+The use of `DOCKER LOAD` outside of a `WITH DOCKER` clause is deperected and will not be supported in future versions of Earthly.
+{% endhint %}
 
 #### Options
 
