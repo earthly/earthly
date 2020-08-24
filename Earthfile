@@ -30,7 +30,7 @@ deps:
 
 code:
     FROM +deps
-    COPY --dir buildcontext builder cleanup cmd config conslogging debugger dockertar \
+    COPY --dir autocomplete buildcontext builder cleanup cmd config conslogging debugger dockertar \
         domain llbutil logging ./
     COPY --dir buildkitd/buildkitd.go buildkitd/settings.go buildkitd/
     COPY --dir earthfile2llb/antlrhandler earthfile2llb/dedup earthfile2llb/image \

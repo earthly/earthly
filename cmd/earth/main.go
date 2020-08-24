@@ -11,9 +11,11 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
+	"strconv"
 	"strings"
 	"time"
 
+	"github.com/earthly/earthly/autocomplete"
 	"github.com/earthly/earthly/buildcontext"
 	"github.com/earthly/earthly/builder"
 	"github.com/earthly/earthly/buildkitd"
@@ -79,7 +81,66 @@ var (
 	GitSha string
 )
 
+// to enable autocomplete, enter
+// complete -o nospace -C "/path/to/earth" earth
+func (app *earthApp) autoComplete() {
+	_, found := os.LookupEnv("COMP_LINE")
+	if !found {
+		return
+	}
+
+	compLine := os.Getenv("COMP_LINE")   // full command line
+	compPoint := os.Getenv("COMP_POINT") // where the cursor is
+
+	compPointInt, err := strconv.ParseUint(compPoint, 10, 64)
+	if err != nil {
+		panic(err)
+	}
+
+	flags := []string{}
+	for _, f := range app.cliApp.Flags {
+		for _, n := range f.Names() {
+			if len(n) > 1 {
+				flags = append(flags, n)
+			}
+		}
+	}
+
+	commands := []string{}
+	for _, cmd := range app.cliApp.Commands {
+		commands = append(commands, cmd.Name)
+	}
+
+	potentials, err := autocomplete.GetPotentials(compLine, int(compPointInt), flags, commands)
+	if err != nil {
+		//panic(err) // can't display error or it will show up under tab-completion
+		os.Exit(1)
+	}
+	for _, p := range potentials {
+		fmt.Printf("%s\n", p)
+	}
+
+	os.Exit(0)
+}
+
 func main() {
+	ctx := context.Background()
+
+	colorMode := conslogging.AutoColor
+	_, forceColor := os.LookupEnv("FORCE_COLOR")
+	if forceColor {
+		colorMode = conslogging.ForceColor
+		color.NoColor = false
+	}
+	_, noColor := os.LookupEnv("NO_COLOR")
+	if noColor {
+		colorMode = conslogging.NoColor
+		color.NoColor = true
+	}
+
+	app := newEarthApp(ctx, conslogging.Current(colorMode))
+	app.autoComplete()
+
 	// Set up file-based logging.
 	logrus.SetFormatter(&logrus.TextFormatter{
 		DisableColors: true,
@@ -100,19 +161,7 @@ func main() {
 		}
 	}
 
-	ctx := context.Background()
-	colorMode := conslogging.AutoColor
-	_, forceColor := os.LookupEnv("FORCE_COLOR")
-	if forceColor {
-		colorMode = conslogging.ForceColor
-		color.NoColor = false
-	}
-	_, noColor := os.LookupEnv("NO_COLOR")
-	if noColor {
-		colorMode = conslogging.NoColor
-		color.NoColor = true
-	}
-	os.Exit(newEarthApp(ctx, conslogging.Current(colorMode)).run(ctx, os.Args))
+	os.Exit(app.run(ctx, os.Args))
 }
 
 func getVersion() string {

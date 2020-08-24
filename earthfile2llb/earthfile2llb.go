@@ -164,3 +164,24 @@ func newEarthfileTree(filename string, errorListener antlr.ErrorListener, errorS
 	p.BuildParseTrees = true
 	return p.EarthFile(), nil
 }
+
+// GetTargets returns a list of targets from an Earthfile
+func GetTargets(filename string) ([]string, error) {
+	tree, err := newEarthfileTree(
+		filename, antlr.NewConsoleErrorListener(), antlr.NewBailErrorStrategy())
+	if err != nil {
+		return nil, errors.Wrap(err, "new earthfile tree")
+	}
+	tc := &targetCollector{}
+	antlr.ParseTreeWalkerDefault.Walk(tc, tree)
+	return tc.targets, nil
+}
+
+type targetCollector struct {
+	*parser.BaseEarthParserListener
+	targets []string
+}
+
+func (l *targetCollector) EnterTarget(ctx *parser.TargetContext) {
+	l.targets = append(l.targets, strings.TrimSuffix(ctx.TargetHeader().GetText(), ":"))
+}
