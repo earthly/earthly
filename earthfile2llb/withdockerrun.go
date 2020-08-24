@@ -64,6 +64,8 @@ func (wdr *withDockerRun) Run(ctx context.Context, args []string, opt WithDocker
 	runOpts = append(runOpts, mountRunOpts...)
 	runOpts = append(runOpts, llb.AddMount(
 		"/var/earthly/dind", llb.Scratch(), llb.HostBind(), llb.SourcePath("/tmp/earthly/dind")))
+	runOpts = append(runOpts, llb.AddMount(
+		"/sys/fs/cgroup", llb.Scratch(), llb.HostBind(), llb.SourcePath("/sys/fs/cgroup")))
 	var loadCmds []string
 	for index, tarContext := range wdr.tarLoads {
 		loadDir := fmt.Sprintf("/var/earthly/load-%d", index)
@@ -199,7 +201,11 @@ func dockerdWrapCmds(args []string, envVars []string, isWithShell bool, withDebu
 	var cmds []string
 	cmds = append(cmds, "#!/bin/sh")
 	cmds = append(cmds, startDockerdCmds(dockerRoot)...)
-	cmds = append(cmds, loadCmds...)
+	if len(loadCmds) > 0 {
+		cmds = append(cmds, "echo 'Loading images...'")
+		cmds = append(cmds, loadCmds...)
+		cmds = append(cmds, "echo '...done'")
+	}
 	cmds = append(cmds, strWithEnvVars(args, envVars, isWithShell, withDebugger))
 	cmds = append(cmds, "exit_code=\"\\$?\"")
 	cmds = append(cmds, stopDockerdCmds(dockerRoot)...)
@@ -212,7 +218,7 @@ func startDockerdCmds(dockerRoot string) []string {
 		// Uncomment this line for debugging.
 		// "set -x",
 		fmt.Sprintf("mkdir -p %s", dockerRoot),
-		fmt.Sprintf("dockerd-entrypoint.sh dockerd --data-root=%s &>/var/log/docker.log &", dockerRoot),
+		fmt.Sprintf("dockerd --data-root=%s &>/var/log/docker.log &", dockerRoot),
 		"dockerd_pid=\"\\$!\"",
 		"let i=1",
 		"while ! docker ps &>/dev/null ; do",
@@ -224,6 +230,7 @@ func startDockerdCmds(dockerRoot string) []string {
 		"fi",
 		"let i+=1",
 		"done",
+		"export EARTHLY_WITH_DOCKER=1",
 	}
 }
 
@@ -239,7 +246,7 @@ func stopDockerdCmds(dockerRoot string) []string {
 		"sleep 1",
 		"fi",
 		// Wipe the WITH DOCKER docker data after each run.
-		fmt.Sprintf("rm -rf %s", dockerRoot),
+		fmt.Sprintf("rm -rf %s 2>/dev/null", dockerRoot),
 		"done",
 	}
 }

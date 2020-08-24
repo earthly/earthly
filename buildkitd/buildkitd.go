@@ -204,10 +204,19 @@ func Start(ctx context.Context, image string, settings Settings, reset bool) err
 		"-e", fmt.Sprintf("ENABLE_LOOP_DEVICE=%t", !settings.DisableLoopDevice),
 		"-e", fmt.Sprintf("FORCE_LOOP_DEVICE=%t", !settings.DisableLoopDevice),
 		"-e", fmt.Sprintf("BUILDKIT_DEBUG=%t", settings.Debug),
-		"-p", fmt.Sprintf("127.0.0.1:%d:5000", settings.DebuggerPort),
 		"--label", fmt.Sprintf("dev.earthly.settingshash=%s", settingsHash),
 		"--name", ContainerName,
 		"--privileged",
+	}
+	if os.Getenv("EARTHLY_WITH_DOCKER") == "1" {
+		// Add /sys/fs/cgroup if it's earthly-in-earthly.
+		args = append(args, "-v", "/sys/fs/cgroup:/sys/fs/cgroup")
+	} else {
+		// Debugger only supported in top-most earthly.
+		// TODO: Main reason for this is port clash. This could be improved in the future,
+		//       if needed.
+		args = append(args,
+			"-p", fmt.Sprintf("127.0.0.1:%d:5000", settings.DebuggerPort))
 	}
 	// Apply some buildkitd-related settings.
 	if settings.CacheSizeMb > 0 {

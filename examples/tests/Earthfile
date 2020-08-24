@@ -39,8 +39,6 @@ dind-test-setup:
     FROM docker:19.03.12-dind
     RUN apk --update --no-cache add git
     COPY ../..+earth/earth /usr/local/bin/
-    COPY config.yaml /earthly/config.yaml
-    ENV EARTHLY_CONFIG=/earthly/config.yaml
     ENV EARTHLY_BUILDKIT_IMAGE=earthly/buildkitd:dind-test
     WORKDIR /test
     SAVE IMAGE
@@ -49,6 +47,7 @@ dind-test-setup:
 dind-config-test-todo:
     FROM +dind-test-setup
     COPY config.earth ./Earthfile
+    RUN echo aaa
     WITH DOCKER
         DOCKER LOAD ../../buildkitd+buildkitd earthly/buildkitd:dind-test
         RUN earth +test
