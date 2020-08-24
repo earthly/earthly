@@ -118,6 +118,13 @@ See the [CI integration guide](https://docs.earthly.dev/guides/ci-integration)
 ext install earthly.earthfile-syntax-highlighting
 ```
 
+### Bash Autocompletion <span title="Experimental">🧪</span>
+
+```
+echo "complete -o nospace -C `which earth` earth" >> ~/.bashrc
+. ~/.bashrc
+```
+
 <br/>
 <br/>
 <h2 align="center">Quick Start</h2>
