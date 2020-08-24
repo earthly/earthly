@@ -208,7 +208,7 @@ if the build-args differ between invocations.
 
 ##### `--with-docker` (**deprecated**)
 
-`RUN --with-docker` is deprecated. Please use `WITH DOCKER ... RUN ... END` instead.
+`RUN --with-docker` is deprecated. Please use [`WITH DOCKER`](#with-docker-experimental) instead.
 
 ## COPY
 
@@ -409,12 +409,12 @@ A number of builtin args are available and are pre-filled by Earthly. For more i
 
 #### Synopsis
 
-* ```Dockerfile
-  WITH DOCKER
-    <commands>
-    ...
-  END
-  ```
+```Dockerfile
+WITH DOCKER
+  <commands>
+  ...
+END
+```
 
 #### Description
 
@@ -422,7 +422,7 @@ The clause `WITH DOCKER` initializes a Docker daemon to be used in the context o
 
 The clause `WITH DOCKER` automatically implies the `RUN --privileged` flag.
 
-The `WITH DOCKER` clause only supports the commands `DOCKER LOAD`, `DOCKER PULL` and `RUN`. Other commands (such as `COPY`) need to be run either before or after `WITH DOCKER ... END`. In addition, only one `RUN` command is permitted within `WITH DOCKER`. However multiple shell commands may be stringed together using `;` or `&&`.
+The `WITH DOCKER` clause only supports the commands [`DOCKER LOAD`](#docker-load-experimental), [`DOCKER PULL`](#docker-pull-experimental) and [`RUN`](#run). Other commands (such as `COPY`) need to be run either before or after `WITH DOCKER ... END`. In addition, only one `RUN` command is permitted within `WITH DOCKER`. However, multiple shell commands may be stringed together using `;` or `&&`.
 
 A typical example of a `WITH DOCKER` clause might be:
 
