@@ -83,7 +83,7 @@ var (
 
 // to enable autocomplete, enter
 // complete -o nospace -C "/path/to/earth" earth
-func autoComplete(app *earthApp) {
+func (app *earthApp) autoComplete() {
 	_, found := os.LookupEnv("COMP_LINE")
 	if !found {
 		return
