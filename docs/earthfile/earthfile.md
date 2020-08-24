@@ -5,17 +5,14 @@ Earthfiles are comprised of a series of target declarations and recipe definitio
 Earthfiles have the following rough structure:
 
 ```
-...
 <base-recipe>
 ...
 
-target:
-    ...
+<target-name>:
     <recipe>
     ...
 
-target:
-    ...
+<target-name>:
     <recipe>
     ...
 ```
