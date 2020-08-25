@@ -58,6 +58,7 @@ export EARTHLY_WITH_DOCKER=1
 (
     flock -x 200
     start_dockerd
+    flock -u 200
 ) 200>/var/earthly/dind/lock
 load_images
 set +e
