@@ -5,7 +5,6 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
-	"hash/fnv"
 	"io/ioutil"
 	"os"
 	"path"
@@ -111,7 +110,7 @@ func (wdr *withDockerRun) pull(ctx context.Context, dockerTag string) error {
 	logging.GetLogger(ctx).With("dockerTag", dockerTag).Info("Applying DOCKER PULL")
 	state, image, _, err := wdr.c.internalFromClassical(
 		ctx, dockerTag,
-		llb.WithCustomNamef("%sDOCKER PULL %s", wdr.vertexPrefix(dockerTag), dockerTag),
+		llb.WithCustomNamef("%sDOCKER PULL %s", wdr.c.imageVertexPrefix(dockerTag), dockerTag),
 	)
 	if err != nil {
 		return err
@@ -134,7 +133,7 @@ func (wdr *withDockerRun) pull(ctx context.Context, dockerTag string) error {
 	}
 	return wdr.solveImage(
 		ctx, mts, dockerTag, dockerTag,
-		llb.WithCustomNamef("%sDOCKER LOAD (PULL %s)", wdr.vertexPrefix(dockerTag), dockerTag))
+		llb.WithCustomNamef("%sDOCKER LOAD (PULL %s)", wdr.c.imageVertexPrefix(dockerTag), dockerTag))
 }
 
 func (wdr *withDockerRun) load(ctx context.Context, opt DockerLoadOpt) error {
@@ -155,13 +154,7 @@ func (wdr *withDockerRun) load(ctx context.Context, opt DockerLoadOpt) error {
 	return wdr.solveImage(
 		ctx, mts, depTarget.String(), dockerTag,
 		llb.WithCustomNamef(
-			"%sDOCKER LOAD %s %s", wdr.vertexPrefix(depTarget.String()), depTarget.String(), dockerTag))
-}
-
-func (wdr *withDockerRun) vertexPrefix(id string) string {
-	h := fnv.New32a()
-	h.Write([]byte(id))
-	return fmt.Sprintf("[%s %d] ", id, h.Sum32())
+			"%sDOCKER LOAD %s %s", wdr.c.imageVertexPrefix(depTarget.String()), depTarget.String(), dockerTag))
 }
 
 func (wdr *withDockerRun) solveImage(ctx context.Context, mts *MultiTargetStates, opName string, dockerTag string, opts ...llb.RunOption) error {
