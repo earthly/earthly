@@ -7,13 +7,13 @@ import (
 	"fmt"
 	"hash/fnv"
 	"io/ioutil"
-	"math/rand"
 	"os"
 	"path"
 	"strings"
 
 	"github.com/earthly/earthly/dockertar"
 	"github.com/earthly/earthly/domain"
+	"github.com/earthly/earthly/earthfile2llb/dedup"
 	"github.com/earthly/earthly/llbutil"
 	"github.com/earthly/earthly/logging"
 	"github.com/moby/buildkit/client/llb"
@@ -117,6 +117,9 @@ func (wdr *withDockerRun) pull(ctx context.Context, dockerTag string) error {
 		FinalStates: &SingleTargetStates{
 			SideEffectsState: state,
 			SideEffectsImage: image,
+			TargetInput: dedup.TargetInput{
+				TargetCanonical: fmt.Sprintf("+@docker-pull:%s", dockerTag),
+			},
 			SaveImages: []SaveImage{
 				{
 					State:     state,
@@ -159,9 +162,17 @@ func (wdr *withDockerRun) vertexPrefix(id string) string {
 }
 
 func (wdr *withDockerRun) solveImage(ctx context.Context, mts *MultiTargetStates, opName string, dockerTag string, opts ...llb.RunOption) error {
+	solveID, err := mts.FinalStates.TargetInput.Hash()
+	if err != nil {
+		return errors.Wrap(err, "target input hash")
+	}
+	tarContext, found := wdr.c.solveCache[solveID]
+	if found {
+		wdr.tarLoads = append(wdr.tarLoads, tarContext)
+		return nil
+	}
 	// Use a builder to create docker .tar file, mount it via a local build context,
 	// then docker load it within the current side effects state.
-	// TODO: Should de-dup image solves within the same run, if the params are the same.
 	outDir, err := ioutil.TempDir("/tmp", "earthly-docker-load")
 	if err != nil {
 		return errors.Wrap(err, "mk temp dir for docker load")
@@ -185,17 +196,16 @@ func (wdr *withDockerRun) solveImage(ctx context.Context, mts *MultiTargetStates
 	sha256SessionIDKey := sha256.Sum256([]byte(sessionIDKey))
 	sessionID := hex.EncodeToString(sha256SessionIDKey[:])
 	// Add the tar to the local context.
-	// Use a random local dir key to prevent clashes with other solves of the exact same target.
-	localDirKey := fmt.Sprintf("%s-%d", sessionID, rand.Int31())
-	tarContext := llb.Local(
-		localDirKey,
+	tarContext = llb.Local(
+		solveID,
 		llb.SharedKeyHint(opName),
 		llb.SessionID(sessionID),
 		llb.Platform(llbutil.TargetPlatform),
 		llb.WithCustomNamef("[internal] docker tar context %s %s", opName, sessionID),
 	)
 	wdr.tarLoads = append(wdr.tarLoads, tarContext)
-	wdr.c.mts.FinalStates.LocalDirs[localDirKey] = outDir
+	wdr.c.mts.FinalStates.LocalDirs[solveID] = outDir
+	wdr.c.solveCache[solveID] = tarContext
 	return nil
 }
 

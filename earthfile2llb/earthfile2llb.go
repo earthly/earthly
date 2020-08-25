@@ -13,6 +13,7 @@ import (
 	"github.com/earthly/earthly/earthfile2llb/parser"
 	"github.com/earthly/earthly/earthfile2llb/variables"
 	"github.com/earthly/earthly/logging"
+	"github.com/moby/buildkit/client/llb"
 	"github.com/pkg/errors"
 )
 
@@ -35,6 +36,8 @@ type ConvertOpt struct {
 	VisitedStates map[string][]*SingleTargetStates
 	// VarCollection is a collection of build args used for overriding args in the build.
 	VarCollection *variables.Collection
+	// A cache for image solves. depTargetInputHash -> context containing image.tar.
+	SolveCache map[string]llb.State
 }
 
 // DockerBuilderFun is a function able to build a target into a docker tar file.
@@ -45,6 +48,9 @@ type ArtifactBuilderFun = func(ctx context.Context, mts *MultiTargetStates, arti
 
 // Earthfile2LLB parses a earthfile and executes the statements for a given target.
 func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt) (mts *MultiTargetStates, err error) {
+	if opt.SolveCache == nil {
+		opt.SolveCache = make(map[string]llb.State)
+	}
 	if opt.VisitedStates == nil {
 		opt.VisitedStates = make(map[string][]*SingleTargetStates)
 	}
