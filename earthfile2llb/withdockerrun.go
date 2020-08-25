@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"hash/fnv"
 	"io/ioutil"
 	"os"
 	"path"
@@ -12,11 +13,14 @@ import (
 
 	"github.com/earthly/earthly/dockertar"
 	"github.com/earthly/earthly/domain"
+	"github.com/earthly/earthly/earthfile2llb/dedup"
 	"github.com/earthly/earthly/llbutil"
 	"github.com/earthly/earthly/logging"
 	"github.com/moby/buildkit/client/llb"
 	"github.com/pkg/errors"
 )
+
+const dockerdWrapperPath = "/var/earthly/dockerd-wrapper.sh"
 
 type withDockerRun struct {
 	c        *Converter
@@ -64,12 +68,18 @@ func (wdr *withDockerRun) Run(ctx context.Context, args []string, opt WithDocker
 	runOpts = append(runOpts, mountRunOpts...)
 	runOpts = append(runOpts, llb.AddMount(
 		"/var/earthly/dind", llb.Scratch(), llb.HostBind(), llb.SourcePath("/tmp/earthly/dind")))
-	var loadCmds []string
+	runOpts = append(runOpts, llb.AddMount(
+		dockerdWrapperPath, llb.Scratch(), llb.HostBind(), llb.SourcePath(dockerdWrapperPath)))
+	// This seems to make earthly-in-earthly work
+	// (and docker run --privileged, together with -v /sys/fs/cgroup:/sys/fs/cgroup),
+	// however, it breaks regular cases.
+	//runOpts = append(runOpts, llb.AddMount(
+	//"/sys/fs/cgroup", llb.Scratch(), llb.HostBind(), llb.SourcePath("/sys/fs/cgroup")))
+	var tarPaths []string
 	for index, tarContext := range wdr.tarLoads {
 		loadDir := fmt.Sprintf("/var/earthly/load-%d", index)
 		runOpts = append(runOpts, llb.AddMount(loadDir, tarContext, llb.Readonly))
-		loadTar := path.Join(loadDir, "image.tar")
-		loadCmds = append(loadCmds, fmt.Sprintf("docker load -i %s", loadTar))
+		tarPaths = append(tarPaths, path.Join(loadDir, "image.tar"))
 	}
 
 	finalArgs := args
@@ -92,7 +102,7 @@ func (wdr *withDockerRun) Run(ctx context.Context, args []string, opt WithDocker
 	if err != nil {
 		return errors.Wrap(err, "compute dind id")
 	}
-	shellWrap := makeWithDockerdWrapFun(dindID, loadCmds)
+	shellWrap := makeWithDockerdWrapFun(dindID, tarPaths)
 	return wdr.c.internalRun(ctx, finalArgs, opt.Secrets, opt.WithShell, shellWrap, false, runStr, runOpts...)
 }
 
@@ -101,7 +111,7 @@ func (wdr *withDockerRun) pull(ctx context.Context, dockerTag string) error {
 	logging.GetLogger(ctx).With("dockerTag", dockerTag).Info("Applying DOCKER PULL")
 	state, image, _, err := wdr.c.internalFromClassical(
 		ctx, dockerTag,
-		llb.WithCustomNamef("%sDOCKER PULL %s", wdr.c.vertexPrefix(), dockerTag),
+		llb.WithCustomNamef("%sDOCKER PULL %s", wdr.vertexPrefix(dockerTag), dockerTag),
 	)
 	if err != nil {
 		return err
@@ -110,6 +120,9 @@ func (wdr *withDockerRun) pull(ctx context.Context, dockerTag string) error {
 		FinalStates: &SingleTargetStates{
 			SideEffectsState: state,
 			SideEffectsImage: image,
+			TargetInput: dedup.TargetInput{
+				TargetCanonical: fmt.Sprintf("+@docker-pull:%s", dockerTag),
+			},
 			SaveImages: []SaveImage{
 				{
 					State:     state,
@@ -121,7 +134,7 @@ func (wdr *withDockerRun) pull(ctx context.Context, dockerTag string) error {
 	}
 	return wdr.solveImage(
 		ctx, mts, dockerTag, dockerTag,
-		llb.WithCustomNamef("%sDOCKER LOAD (PULL %s)", wdr.c.vertexPrefix(), dockerTag))
+		llb.WithCustomNamef("%sDOCKER LOAD (PULL %s)", wdr.vertexPrefix(dockerTag), dockerTag))
 }
 
 func (wdr *withDockerRun) load(ctx context.Context, opt DockerLoadOpt) error {
@@ -142,10 +155,25 @@ func (wdr *withDockerRun) load(ctx context.Context, opt DockerLoadOpt) error {
 	return wdr.solveImage(
 		ctx, mts, depTarget.String(), dockerTag,
 		llb.WithCustomNamef(
-			"%sDOCKER LOAD %s %s", wdr.c.vertexPrefix(), depTarget.String(), dockerTag))
+			"%sDOCKER LOAD %s %s", wdr.vertexPrefix(depTarget.String()), depTarget.String(), dockerTag))
+}
+
+func (wdr *withDockerRun) vertexPrefix(id string) string {
+	h := fnv.New32a()
+	h.Write([]byte(id))
+	return fmt.Sprintf("[%s %d] ", id, h.Sum32())
 }
 
 func (wdr *withDockerRun) solveImage(ctx context.Context, mts *MultiTargetStates, opName string, dockerTag string, opts ...llb.RunOption) error {
+	solveID, err := mts.FinalStates.TargetInput.Hash()
+	if err != nil {
+		return errors.Wrap(err, "target input hash")
+	}
+	tarContext, found := wdr.c.solveCache[solveID]
+	if found {
+		wdr.tarLoads = append(wdr.tarLoads, tarContext)
+		return nil
+	}
 	// Use a builder to create docker .tar file, mount it via a local build context,
 	// then docker load it within the current side effects state.
 	outDir, err := ioutil.TempDir("/tmp", "earthly-docker-load")
@@ -171,75 +199,33 @@ func (wdr *withDockerRun) solveImage(ctx context.Context, mts *MultiTargetStates
 	sha256SessionIDKey := sha256.Sum256([]byte(sessionIDKey))
 	sessionID := hex.EncodeToString(sha256SessionIDKey[:])
 	// Add the tar to the local context.
-	tarContext := llb.Local(
-		opName,
+	tarContext = llb.Local(
+		solveID,
 		llb.SharedKeyHint(opName),
 		llb.SessionID(sessionID),
 		llb.Platform(llbutil.TargetPlatform),
 		llb.WithCustomNamef("[internal] docker tar context %s %s", opName, sessionID),
 	)
 	wdr.tarLoads = append(wdr.tarLoads, tarContext)
-	wdr.c.mts.FinalStates.LocalDirs[opName] = outDir
+	wdr.c.mts.FinalStates.LocalDirs[solveID] = outDir
+	wdr.c.solveCache[solveID] = tarContext
 	return nil
 }
 
-func makeWithDockerdWrapFun(dindID string, loadCmds []string) shellWrapFun {
+func makeWithDockerdWrapFun(dindID string, tarPaths []string) shellWrapFun {
+	dockerRoot := path.Join("/var/earthly/dind", dindID)
+	params := []string{
+		fmt.Sprintf("EARTHLY_DOCKERD_DATA_ROOT=\"%s\"", dockerRoot),
+		fmt.Sprintf("EARTHLY_DOCKER_LOAD_IMAGES=\"%s\"", strings.Join(tarPaths, " ")),
+	}
 	return func(args []string, envVars []string, isWithShell bool, withDebugger bool) []string {
 		return []string{
 			"/bin/sh", "-c",
 			fmt.Sprintf(
-				"/bin/sh <<EOF\n%s\nEOF",
-				dockerdWrapCmds(args, envVars, isWithShell, withDebugger, dindID, loadCmds)),
+				"%s %s %s",
+				strings.Join(params, " "),
+				dockerdWrapperPath,
+				strWithEnvVars(args, envVars, isWithShell, withDebugger)),
 		}
-	}
-}
-
-func dockerdWrapCmds(args []string, envVars []string, isWithShell bool, withDebugger bool, dindID string, loadCmds []string) string {
-	dockerRoot := path.Join("/var/earthly/dind", dindID)
-	var cmds []string
-	cmds = append(cmds, "#!/bin/sh")
-	cmds = append(cmds, startDockerdCmds(dockerRoot)...)
-	cmds = append(cmds, loadCmds...)
-	cmds = append(cmds, strWithEnvVars(args, envVars, isWithShell, withDebugger))
-	cmds = append(cmds, "exit_code=\"\\$?\"")
-	cmds = append(cmds, stopDockerdCmds(dockerRoot)...)
-	cmds = append(cmds, "exit \"\\$exit_code\"")
-	return strings.Join(cmds, "\n")
-}
-
-func startDockerdCmds(dockerRoot string) []string {
-	return []string{
-		// Uncomment this line for debugging.
-		// "set -x",
-		fmt.Sprintf("mkdir -p %s", dockerRoot),
-		fmt.Sprintf("dockerd-entrypoint.sh dockerd --data-root=%s &>/var/log/docker.log &", dockerRoot),
-		"dockerd_pid=\"\\$!\"",
-		"let i=1",
-		"while ! docker ps &>/dev/null ; do",
-		"sleep 1",
-		"if [ \"\\$i\" -gt \"30\" ] ; then",
-		// Print logs on dockerd start failure.
-		"cat /var/log/docker.log",
-		"exit 1",
-		"fi",
-		"let i+=1",
-		"done",
-	}
-}
-
-func stopDockerdCmds(dockerRoot string) []string {
-	return []string{
-		"kill \"\\$dockerd_pid\" &>/dev/null",
-		"let i=1",
-		"while kill -0 \"\\$dockerd_pid\" &>/dev/null ; do",
-		"sleep 1",
-		"let i+=1",
-		"if [ \"\\$i\" -gt \"10\" ]; then",
-		"kill -9 \"\\$dockerd_pid\" &>/dev/null",
-		"sleep 1",
-		"fi",
-		// Wipe the WITH DOCKER docker data after each run.
-		fmt.Sprintf("rm -rf %s", dockerRoot),
-		"done",
 	}
 }

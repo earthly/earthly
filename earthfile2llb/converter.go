@@ -49,6 +49,7 @@ type Converter struct {
 	artifactBuilderFun ArtifactBuilderFun
 	cleanCollection    *cleanup.Collection
 	nextArgIndex       int
+	solveCache         map[string]llb.State
 }
 
 // NewConverter constructs a new converter for a given earth target.
@@ -81,6 +82,7 @@ func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Da
 		dockerBuilderFun:   opt.DockerBuilderFun,
 		artifactBuilderFun: opt.ArtifactBuilderFun,
 		cleanCollection:    opt.CleanCollection,
+		solveCache:         opt.SolveCache,
 	}, nil
 }
 
@@ -483,7 +485,9 @@ func (c *Converter) Build(ctx context.Context, fullTargetName string, buildArgs 
 			DockerBuilderFun: c.dockerBuilderFun,
 			CleanCollection:  c.cleanCollection,
 			VisitedStates:    c.mts.VisitedStates,
-			VarCollection:    newVarCollection})
+			VarCollection:    newVarCollection,
+			SolveCache:       c.solveCache,
+		})
 	if err != nil {
 		return nil, errors.Wrapf(err, "earthfile2llb for %s", fullTargetName)
 	}
