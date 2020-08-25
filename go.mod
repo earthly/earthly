@@ -57,6 +57,7 @@ require (
 	github.com/smartystreets/goconvey v0.0.0-20190330032615-68dc04aab96a // indirect
 	github.com/spf13/cobra v0.0.3 // indirect
 	github.com/stretchr/testify v1.5.1
+	github.com/urfave/cli v1.22.2
 	github.com/urfave/cli/v2 v2.1.1
 	github.com/xeipuuv/gojsonpointer v0.0.0-20180127040702-4e3ac2762d5f // indirect
 	github.com/xeipuuv/gojsonreference v0.0.0-20180127040603-bd5ef7bd5415 // indirect
@@ -82,3 +83,5 @@ replace (
 	github.com/jaguilar/vt100 => github.com/tonistiigi/vt100 v0.0.0-20190402012908-ad4c4a574305
 	github.com/moby/buildkit => github.com/earthly/buildkit v0.7.1-0.20200818031448-40e935c0a18c
 )
+
+replace github.com/urfave/cli/v2 => github.com/alexcb/cli/v2 v2.2.1-0.20200824212017-2ae03fa69ce7
