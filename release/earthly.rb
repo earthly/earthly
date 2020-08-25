@@ -1,24 +1,27 @@
 class Earthly < Formula
   desc "Build automation tool for the post-container era"
   homepage "https://earthly.dev/"
-  url ":URL:"
-  sha256 ":SHA256:"
+  url "https://github.com/earthly/earthly/archive/v0.3.2.tar.gz"
+  sha256 "11ea5a1ca7f9f78197cb2ec374b030e9f6844081c37a81f1e3788814d0ba05c8"
   license "MPL-2.0"
   head "https://github.com/earthly/earthly.git"
 
   bottle do
     cellar :any_skip_relocation
-    sha256 "5929dc77833f8c3df5401ac67fb3cd6f519b9f24152d6c8e52d8675919826934" => :catalina
-    sha256 "b6d2e459b9d8d12033899bb16acb33b5db19119f8bb198983ecb051bb367ab2a" => :mojave
-    sha256 "5d6412cc573aebf07cf98b90d755964747d4868135f2ca721761d30e7133d53d" => :high_sierra
+    sha256 "da9d4f4c382ea6380c4c5ee82f9b7b42efd9be7f6e7c019eea5bfd97f7a63479" => :catalina
+    sha256 "709ec0a0a31a4b0c10f571bc384fe3c75b49ca50d19eba28061156307746bbd0" => :mojave
+    sha256 "ca13dba89290ac229a849a4c3f6acb6f598e69471260893fddd9e32dae89aeb5" => :high_sierra
   end
 
   depends_on "go" => :build
 
   def install
+    ldflags = "-X main.DefaultBuildkitdImage=earthly/buildkitd:v0.3.2 " \
+              "-X main.Version=v0.3.2 -X main.GitSha=71a2f1746a3ffc15bb95260a6270edcdda7138eba"
+    tags = "dfrunmount dfrunsecurity dfsecrets dfssh dfrunnetwork"
     system "go", "build",
-        "-tags", ":TAGS:",
-        "-ldflags", ":LDFLAGS:",
+        "-tags", tags,
+        "-ldflags", ldflags,
         *std_go_args,
         "-o", bin/"earth",
         "./cmd/earth/main.go"
@@ -26,7 +29,6 @@ class Earthly < Formula
 
   test do
     (testpath/"build.earth").write <<~EOS
-
       default:
       \tRUN echo Homebrew
     EOS

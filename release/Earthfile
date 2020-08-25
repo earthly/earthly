@@ -96,20 +96,26 @@ release-homebrew:
     RUN git checkout -b "release-$RELEASE_TAG"
     RUN mkdir -p /params
     RUN curl -L "$NEW_URL" | sha256sum | cut -f 1 -d ' ' > /params/downloadsha256
-    COPY ./earthly.rb ./Formula/earthly.rb
     COPY --build-arg VERSION=$RELEASE_TAG \
         --build-arg GOOS=darwin \
         --build-arg GOARCH=amd64 \
         --build-arg GO_EXTRA_LDFLAGS= \
         ../+earth/tags ../+earth/ldflags /params/
+    # Split /params/ldflags over two lines (to satisfy ruby linter).
+    RUN split --numeric-suffixes=1 --suffix-length=1 --bytes=80 /params/ldflags /params/ldflags && \
+        touch /params/ldflags2 && \
+        if [ -f "/params/ldflags3" ]; then \
+            echo "More than two lines for ldflags not supported" && \
+            exit 1 ;\
+        fi
     RUN sed -i \
-        -e 's^:URL:^'"$NEW_URL"'^g' \
-        -e 's^:SHA256:^'"$(cat /params/downloadsha256)"'^g' \
-        -e 's^:TAGS:^'"$(cat /params/tags)"'^g' \
-        -e 's^:LDFLAGS:^'"$(cat /params/ldflags)"'^g' \
+        -e 's^url ".*"^url "'"$NEW_URL"'"^' \
+        -e 's^sha256 ".*"$^sha256 "'$(cat /params/downloadsha256)'"^' \
+        -e 's^tags = ".*"^tags = "'"$(cat /params/tags)"'"^' \
+        -e 's^ldflags = ".*"^ldflags = "'"$(cat /params/ldflags1)"'"^' \
+        -e '/ldflags = ".*"/{n;s^".*"^"'"$(cat /params/ldflags2)"'"^}' \
         ./Formula/earthly.rb
-    RUN echo "Resulting formula:" && cat ./Formula/earthly.rb && \
-        echo "Diff:" && git diff
+    RUN echo "Diff:" && git diff
     RUN version=${RELEASE_TAG#v} ;\
         echo version=$version ;\
         git commit -a -m "earthly $version"
@@ -147,7 +153,9 @@ release-homebrew:
             -m '* `NEW_URL='"$NEW_URL"'`' \
             -m '* `NEW_SHA256='"$(cat /params/downloadsha256)"'`' \
             -m '* `TAGS='"$(cat /params/tags)"'`' \
-            -m '* `LDFLAGS='"$(cat /params/ldflags)"'`'
+            -m '* `LDFLAGS='"$(cat /params/ldflags)"'`' \
+            -m '* `LDFLAGS1='"$(cat /params/ldflags1)"'`' \
+            -m '* `LDFLAGS2='"$(cat /params/ldflags2)"'`'
 
 release-vscode-syntax-highlighting:
     ARG VSCODE_RELEASE_TAG
