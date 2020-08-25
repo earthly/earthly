@@ -42,7 +42,7 @@ code:
 
 lintscripts:
     FROM +deps
-    COPY ./buildkitd/entrypoint.sh ./shell_scripts/.
+    COPY ./earth ./buildkitd/entrypoint.sh ./shell_scripts/.
     RUN shellcheck shell_scripts/*
 
 lint:
