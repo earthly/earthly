@@ -20,6 +20,8 @@ import (
 	"github.com/pkg/errors"
 )
 
+const dockerdWrapperPath = "/var/earthly/dockerd-wrapper.sh"
+
 type withDockerRun struct {
 	c        *Converter
 	tarLoads []llb.State
@@ -66,17 +68,18 @@ func (wdr *withDockerRun) Run(ctx context.Context, args []string, opt WithDocker
 	runOpts = append(runOpts, mountRunOpts...)
 	runOpts = append(runOpts, llb.AddMount(
 		"/var/earthly/dind", llb.Scratch(), llb.HostBind(), llb.SourcePath("/tmp/earthly/dind")))
+	runOpts = append(runOpts, llb.AddMount(
+		dockerdWrapperPath, llb.Scratch(), llb.HostBind(), llb.SourcePath(dockerdWrapperPath)))
 	// This seems to make earthly-in-earthly work
 	// (and docker run --privileged, together with -v /sys/fs/cgroup:/sys/fs/cgroup),
 	// however, it breaks regular cases.
 	//runOpts = append(runOpts, llb.AddMount(
 	//"/sys/fs/cgroup", llb.Scratch(), llb.HostBind(), llb.SourcePath("/sys/fs/cgroup")))
-	var loadCmds []string
+	var tarPaths []string
 	for index, tarContext := range wdr.tarLoads {
 		loadDir := fmt.Sprintf("/var/earthly/load-%d", index)
 		runOpts = append(runOpts, llb.AddMount(loadDir, tarContext, llb.Readonly))
-		loadTar := path.Join(loadDir, "image.tar")
-		loadCmds = append(loadCmds, fmt.Sprintf("docker load -i %s", loadTar))
+		tarPaths = append(tarPaths, path.Join(loadDir, "image.tar"))
 	}
 
 	finalArgs := args
@@ -99,7 +102,7 @@ func (wdr *withDockerRun) Run(ctx context.Context, args []string, opt WithDocker
 	if err != nil {
 		return errors.Wrap(err, "compute dind id")
 	}
-	shellWrap := makeWithDockerdWrapFun(dindID, loadCmds)
+	shellWrap := makeWithDockerdWrapFun(dindID, tarPaths)
 	return wdr.c.internalRun(ctx, finalArgs, opt.Secrets, opt.WithShell, shellWrap, false, runStr, runOpts...)
 }
 
@@ -209,79 +212,20 @@ func (wdr *withDockerRun) solveImage(ctx context.Context, mts *MultiTargetStates
 	return nil
 }
 
-func makeWithDockerdWrapFun(dindID string, loadCmds []string) shellWrapFun {
+func makeWithDockerdWrapFun(dindID string, tarPaths []string) shellWrapFun {
+	dockerRoot := path.Join("/var/earthly/dind", dindID)
+	params := []string{
+		fmt.Sprintf("EARTHLY_DOCKERD_DATA_ROOT=\"%s\"", dockerRoot),
+		fmt.Sprintf("EARTHLY_DOCKER_LOAD_IMAGES=\"%s\"", strings.Join(tarPaths, " ")),
+	}
 	return func(args []string, envVars []string, isWithShell bool, withDebugger bool) []string {
 		return []string{
 			"/bin/sh", "-c",
 			fmt.Sprintf(
-				"/bin/sh <<EOF\n%s\nEOF",
-				dockerdWrapCmds(args, envVars, isWithShell, withDebugger, dindID, loadCmds)),
+				"%s %s %s",
+				strings.Join(params, " "),
+				dockerdWrapperPath,
+				strWithEnvVars(args, envVars, isWithShell, withDebugger)),
 		}
-	}
-}
-
-func dockerdWrapCmds(args []string, envVars []string, isWithShell bool, withDebugger bool, dindID string, loadCmds []string) string {
-	dockerRoot := path.Join("/var/earthly/dind", dindID)
-	var cmds []string
-	cmds = append(cmds, "#!/bin/sh")
-	cmds = append(cmds, startDockerdCmds(dockerRoot)...)
-	if len(loadCmds) > 0 {
-		cmds = append(cmds, "echo 'Loading images...'")
-		cmds = append(cmds, loadCmds...)
-		cmds = append(cmds, "echo '...done'")
-	}
-	cmds = append(cmds, strWithEnvVars(args, envVars, isWithShell, withDebugger))
-	cmds = append(cmds, "exit_code=\"\\$?\"")
-	cmds = append(cmds, stopDockerdCmds(dockerRoot)...)
-	cmds = append(cmds, "exit \"\\$exit_code\"")
-	return strings.Join(cmds, "\n")
-}
-
-// TODO: This wrapper script should be bind-mounted, to prevent cache loss in case they
-//       need to be changed over time.
-func startDockerdCmds(dockerRoot string) []string {
-	return []string{
-		// Uncomment this line for debugging.
-		// "set -x",
-		fmt.Sprintf("mkdir -p %s", dockerRoot),
-		// Lock the creation of the docker daemon - only one daemon can be started at a time
-		// (dockerd race conditions in handling networking setup).
-		"flock -x /var/earthly/dind/lock /bin/sh <<FLOCKEND",
-		"#!/bin/sh",
-		// Uncomment this line for debugging.
-		// "set -x",
-		fmt.Sprintf("dockerd --data-root=%s &>/var/log/docker.log &", dockerRoot),
-		"let i=1",
-		"while ! docker ps &>/dev/null ; do",
-		"sleep 1",
-		"if [ \"\\\\\\$i\" -gt \"30\" ] ; then",
-		// Print logs on dockerd start failure.
-		"cat /var/log/docker.log",
-		"exit 1",
-		"fi",
-		"let i+=1",
-		"done",
-		"FLOCKEND",
-		"export EARTHLY_WITH_DOCKER=1",
-	}
-}
-
-func stopDockerdCmds(dockerRoot string) []string {
-	return []string{
-		"dockerd_pid=\"\\$(cat /var/run/docker.pid)\"",
-		"if [ -n \"\\$dockerd_pid\" ]; then",
-		"kill \"\\$dockerd_pid\" &>/dev/null",
-		"let i=1",
-		"while kill -0 \"\\$dockerd_pid\" &>/dev/null ; do",
-		"sleep 1",
-		"let i+=1",
-		"if [ \"\\$i\" -gt \"10\" ]; then",
-		"kill -9 \"\\$dockerd_pid\" &>/dev/null",
-		"sleep 1",
-		"fi",
-		"done",
-		"fi",
-		// Wipe the WITH DOCKER docker data after each run.
-		fmt.Sprintf("rm -rf %s", dockerRoot),
 	}
 }

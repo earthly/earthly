@@ -17,6 +17,7 @@ buildkitd:
 
     COPY ../+shellrepeater/shellrepeater /usr/bin/shellrepeater
     COPY ../+debugger/earth_debugger /usr/bin/earth_debugger
+    COPY ./dockerd-wrapper.sh /var/earthly/dockerd-wrapper.sh
 
     ENV EARTHLY_RESET_TMP_DIR=false
     ENV EARTHLY_TMP_DIR=/tmp/earthly
