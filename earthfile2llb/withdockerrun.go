@@ -5,7 +5,9 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"hash/fnv"
 	"io/ioutil"
+	"math/rand"
 	"os"
 	"path"
 	"strings"
@@ -64,8 +66,11 @@ func (wdr *withDockerRun) Run(ctx context.Context, args []string, opt WithDocker
 	runOpts = append(runOpts, mountRunOpts...)
 	runOpts = append(runOpts, llb.AddMount(
 		"/var/earthly/dind", llb.Scratch(), llb.HostBind(), llb.SourcePath("/tmp/earthly/dind")))
-	runOpts = append(runOpts, llb.AddMount(
-		"/sys/fs/cgroup", llb.Scratch(), llb.HostBind(), llb.SourcePath("/sys/fs/cgroup")))
+	// This seems to make earthly-in-earthly work
+	// (and docker run --privileged, together with -v /sys/fs/cgroup:/sys/fs/cgroup),
+	// however, it breaks regular cases.
+	//runOpts = append(runOpts, llb.AddMount(
+	//"/sys/fs/cgroup", llb.Scratch(), llb.HostBind(), llb.SourcePath("/sys/fs/cgroup")))
 	var loadCmds []string
 	for index, tarContext := range wdr.tarLoads {
 		loadDir := fmt.Sprintf("/var/earthly/load-%d", index)
@@ -103,7 +108,7 @@ func (wdr *withDockerRun) pull(ctx context.Context, dockerTag string) error {
 	logging.GetLogger(ctx).With("dockerTag", dockerTag).Info("Applying DOCKER PULL")
 	state, image, _, err := wdr.c.internalFromClassical(
 		ctx, dockerTag,
-		llb.WithCustomNamef("%sDOCKER PULL %s", wdr.c.vertexPrefix(), dockerTag),
+		llb.WithCustomNamef("%sDOCKER PULL %s", wdr.vertexPrefix(dockerTag), dockerTag),
 	)
 	if err != nil {
 		return err
@@ -123,7 +128,7 @@ func (wdr *withDockerRun) pull(ctx context.Context, dockerTag string) error {
 	}
 	return wdr.solveImage(
 		ctx, mts, dockerTag, dockerTag,
-		llb.WithCustomNamef("%sDOCKER LOAD (PULL %s)", wdr.c.vertexPrefix(), dockerTag))
+		llb.WithCustomNamef("%sDOCKER LOAD (PULL %s)", wdr.vertexPrefix(dockerTag), dockerTag))
 }
 
 func (wdr *withDockerRun) load(ctx context.Context, opt DockerLoadOpt) error {
@@ -144,12 +149,19 @@ func (wdr *withDockerRun) load(ctx context.Context, opt DockerLoadOpt) error {
 	return wdr.solveImage(
 		ctx, mts, depTarget.String(), dockerTag,
 		llb.WithCustomNamef(
-			"%sDOCKER LOAD %s %s", wdr.c.vertexPrefix(), depTarget.String(), dockerTag))
+			"%sDOCKER LOAD %s %s", wdr.vertexPrefix(depTarget.String()), depTarget.String(), dockerTag))
+}
+
+func (wdr *withDockerRun) vertexPrefix(id string) string {
+	h := fnv.New32a()
+	h.Write([]byte(id))
+	return fmt.Sprintf("[%s %d] ", id, h.Sum32())
 }
 
 func (wdr *withDockerRun) solveImage(ctx context.Context, mts *MultiTargetStates, opName string, dockerTag string, opts ...llb.RunOption) error {
 	// Use a builder to create docker .tar file, mount it via a local build context,
 	// then docker load it within the current side effects state.
+	// TODO: Should de-dup image solves within the same run, if the params are the same.
 	outDir, err := ioutil.TempDir("/tmp", "earthly-docker-load")
 	if err != nil {
 		return errors.Wrap(err, "mk temp dir for docker load")
@@ -173,15 +185,17 @@ func (wdr *withDockerRun) solveImage(ctx context.Context, mts *MultiTargetStates
 	sha256SessionIDKey := sha256.Sum256([]byte(sessionIDKey))
 	sessionID := hex.EncodeToString(sha256SessionIDKey[:])
 	// Add the tar to the local context.
+	// Use a random local dir key to prevent clashes with other solves of the exact same target.
+	localDirKey := fmt.Sprintf("%s-%d", sessionID, rand.Int31())
 	tarContext := llb.Local(
-		opName,
+		localDirKey,
 		llb.SharedKeyHint(opName),
 		llb.SessionID(sessionID),
 		llb.Platform(llbutil.TargetPlatform),
 		llb.WithCustomNamef("[internal] docker tar context %s %s", opName, sessionID),
 	)
 	wdr.tarLoads = append(wdr.tarLoads, tarContext)
-	wdr.c.mts.FinalStates.LocalDirs[opName] = outDir
+	wdr.c.mts.FinalStates.LocalDirs[localDirKey] = outDir
 	return nil
 }
 
@@ -213,29 +227,39 @@ func dockerdWrapCmds(args []string, envVars []string, isWithShell bool, withDebu
 	return strings.Join(cmds, "\n")
 }
 
+// TODO: This wrapper script should be bind-mounted, to prevent cache loss in case they
+//       need to be changed over time.
 func startDockerdCmds(dockerRoot string) []string {
 	return []string{
 		// Uncomment this line for debugging.
 		// "set -x",
 		fmt.Sprintf("mkdir -p %s", dockerRoot),
+		// Lock the creation of the docker daemon - only one daemon can be started at a time
+		// (dockerd race conditions in handling networking setup).
+		"flock -x /var/earthly/dind/lock /bin/sh <<FLOCKEND",
+		"#!/bin/sh",
+		// Uncomment this line for debugging.
+		// "set -x",
 		fmt.Sprintf("dockerd --data-root=%s &>/var/log/docker.log &", dockerRoot),
-		"dockerd_pid=\"\\$!\"",
 		"let i=1",
 		"while ! docker ps &>/dev/null ; do",
 		"sleep 1",
-		"if [ \"\\$i\" -gt \"30\" ] ; then",
+		"if [ \"\\\\\\$i\" -gt \"30\" ] ; then",
 		// Print logs on dockerd start failure.
 		"cat /var/log/docker.log",
 		"exit 1",
 		"fi",
 		"let i+=1",
 		"done",
+		"FLOCKEND",
 		"export EARTHLY_WITH_DOCKER=1",
 	}
 }
 
 func stopDockerdCmds(dockerRoot string) []string {
 	return []string{
+		"dockerd_pid=\"\\$(cat /var/run/docker.pid)\"",
+		"if [ -n \"\\$dockerd_pid\" ]; then",
 		"kill \"\\$dockerd_pid\" &>/dev/null",
 		"let i=1",
 		"while kill -0 \"\\$dockerd_pid\" &>/dev/null ; do",
@@ -245,8 +269,9 @@ func stopDockerdCmds(dockerRoot string) []string {
 		"kill -9 \"\\$dockerd_pid\" &>/dev/null",
 		"sleep 1",
 		"fi",
-		// Wipe the WITH DOCKER docker data after each run.
-		fmt.Sprintf("rm -rf %s 2>/dev/null", dockerRoot),
 		"done",
+		"fi",
+		// Wipe the WITH DOCKER docker data after each run.
+		fmt.Sprintf("rm -rf %s", dockerRoot),
 	}
 }

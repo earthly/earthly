@@ -19,6 +19,7 @@ ga:
     BUILD +scratch-test
     BUILD +build-earth-test
     BUILD +host-bind-test
+    BUILD +remote-test
     BUILD +star-test
     BUILD +dockerfile-test
     BUILD +fail-test
@@ -31,27 +32,10 @@ experimental:
     BUILD +docker-load-test
     BUILD +dind-test
     BUILD +docker-pull-test
+    BUILD +load-parallel-test
     BUILD +docker-load-test-old
     BUILD +dind-test-old
     BUILD +docker-pull-test-old
-
-dind-test-setup:
-    FROM docker:19.03.12-dind
-    RUN apk --update --no-cache add git
-    COPY ../..+earth/earth /usr/local/bin/
-    ENV EARTHLY_BUILDKIT_IMAGE=earthly/buildkitd:dind-test
-    WORKDIR /test
-    SAVE IMAGE
-
-# TODO: This does not work due to docker run --privileged not being supported yet.
-dind-config-test-todo:
-    FROM +dind-test-setup
-    COPY config.earth ./Earthfile
-    RUN echo aaa
-    WITH DOCKER
-        DOCKER LOAD ../../buildkitd+buildkitd earthly/buildkitd:dind-test
-        RUN earth +test
-    END
 
 privileged-test:
     COPY privileged.earth ./Earthfile
@@ -157,13 +141,12 @@ host-bind-test:
     RUN test -f /bind-test/b.txt
     RUN cat /bind-test/b.txt
 
-# TODO: This does not pass, due to space on device limitation (dind caused).
 remote-test:
     ENV GIT_URL_INSTEAD_OF="https://github.com/=git@github.com:"
     RUN --privileged \
         --entrypoint \
         --mount=type=tmpfs,target=/tmp/earthly \
-        -- --no-output github.com/earthly/earthly+earth-docker
+        -- --no-output github.com/earthly/hello-world+hello
 
 # TODO: This does not pass.
 transitive-args-test-todo:
@@ -217,6 +200,13 @@ dind-test:
 
 docker-pull-test:
     COPY docker-pull.earth ./Earthfile
+    RUN --privileged \
+        --entrypoint \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        -- --allow-privileged +test
+
+load-parallel-test:
+    COPY load-parallel.earth ./Earthfile
     RUN --privileged \
         --entrypoint \
         --mount=type=tmpfs,target=/tmp/earthly \
@@ -298,3 +288,27 @@ chown-test:
     --entrypoint \
     --mount=type=tmpfs,target=/tmp/earthly \
     -- --no-output +test
+
+eine-test-base:
+    FROM docker:19.03.12-dind
+    RUN apk --update --no-cache add git
+    COPY ../..+earth/earth /usr/local/bin/
+    ENV EARTHLY_BUILDKIT_IMAGE=earthly/buildkitd:dind-test
+    WORKDIR /test
+    SAVE IMAGE
+
+eine-config-test:
+    FROM +eine-test-base
+    COPY config.earth ./Earthfile
+    WITH DOCKER
+        DOCKER LOAD ../../buildkitd+buildkitd earthly/buildkitd:dind-test
+        RUN earth +test
+    END
+
+eine-privileged-test:
+    FROM +eine-test-base
+    COPY privileged.earth ./Earthfile
+    WITH DOCKER
+        DOCKER LOAD ../../buildkitd+buildkitd earthly/buildkitd:dind-test
+        RUN earth --allow-privileged +test
+    END

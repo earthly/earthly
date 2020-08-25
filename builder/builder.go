@@ -182,7 +182,7 @@ func (b *Builder) buildCommon(ctx context.Context, mts *earthfile2llb.MultiTarge
 			existingValue, alreadyExists := localDirs[key]
 			if alreadyExists && existingValue != value {
 				return "", nil, fmt.Errorf(
-					"Inconsistent local dirs. For dir entry %s found both %s and %s",
+					"inconsistent local dirs. For dir entry %s found both %s and %s",
 					key, value, existingValue)
 			}
 			localDirs[key] = value
