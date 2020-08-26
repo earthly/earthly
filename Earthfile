@@ -14,6 +14,7 @@ RUN apk add --update --no-cache \
     less \
     make \
     openssl \
+    shellcheck \
     util-linux
 
 WORKDIR /earthly
@@ -36,7 +37,13 @@ code:
     COPY --dir earthfile2llb/antlrhandler earthfile2llb/dedup earthfile2llb/image \
         earthfile2llb/imr earthfile2llb/variables earthfile2llb/*.go earthfile2llb/
     COPY ./earthfile2llb/parser+parser/*.go ./earthfile2llb/parser/
+    COPY ./earthfile2llb/parser+parser/*.go ./earthfile2llb/parser/
     SAVE IMAGE
+
+lintscripts:
+    FROM +deps
+    COPY ./buildkitd/entrypoint.sh ./shell_scripts/.
+    RUN shellcheck shell_scripts/*
 
 lint:
     FROM +code
@@ -161,6 +168,7 @@ all:
 
 test:
     BUILD +lint
+    BUILD +lintscripts
     BUILD +unittest
     BUILD ./examples/tests+ga
 
