@@ -1,0 +1,11 @@
+FROM alpine:3.11
+
+test:
+    ARG TEST_ENV_1=incorrect
+    RUN test "$TEST_ENV_1" == "abracadabra"
+    RUN --secret MY_SECRET=+secrets/TEST_ENV_2 test "$MY_SECRET" == "foo"
+    # Not pre-declared - should not be overriden by .env.
+    RUN test "$TEST_ENV_3" == ""
+
+test-no-dotenv:
+    RUN true
