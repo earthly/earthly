@@ -36,5 +36,6 @@ while kill -0 "$buildkitd_pid" >/dev/null 2>&1 ; do
         kill -9 "$buildkitd_pid" >/dev/null 2>&1
     fi
 done
+rm -f "/run/buildkit/buildkitd.sock"
 
 exit "$exit_code"
