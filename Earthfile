@@ -37,7 +37,6 @@ code:
     COPY --dir earthfile2llb/antlrhandler earthfile2llb/dedup earthfile2llb/image \
         earthfile2llb/imr earthfile2llb/variables earthfile2llb/*.go earthfile2llb/
     COPY ./earthfile2llb/parser+parser/*.go ./earthfile2llb/parser/
-    COPY ./earthfile2llb/parser+parser/*.go ./earthfile2llb/parser/
     SAVE IMAGE
 
 lintscripts:
