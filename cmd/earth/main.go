@@ -44,6 +44,8 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
+var dotEnvPath = ".env"
+
 type earthApp struct {
 	cliApp    *cli.App
 	console   conslogging.ConsoleLogger
@@ -68,7 +70,6 @@ type cliFlags struct {
 	buildkitdImage       string
 	remoteCache          string
 	configPath           string
-	dotEnvPath           string
 	gitUsernameOverride  string
 	gitPasswordOverride  string
 	interactiveDebugging bool
@@ -129,6 +130,16 @@ func (app *earthApp) autoComplete() {
 
 func main() {
 	ctx := context.Background()
+
+	// Load .env into current global env's. This is mainly for applying Earthly settings.
+	// Separate call is made for build args and secrets.
+	if fileExists(dotEnvPath) {
+		err := godotenv.Load(dotEnvPath)
+		if err != nil {
+			fmt.Printf("Error loading dot-env file %s: %s", dotEnvPath, err.Error())
+			os.Exit(1)
+		}
+	}
 
 	colorMode := conslogging.AutoColor
 	_, forceColor := os.LookupEnv("FORCE_COLOR")
@@ -263,13 +274,6 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 			Destination: &app.configPath,
 		},
 		&cli.StringFlag{
-			Name:        "dotenv",
-			Value:       ".env",
-			EnvVars:     []string{"EARTHLY_DOTENV"},
-			Usage:       "Path to .env file",
-			Destination: &app.dotEnvPath,
-		},
-		&cli.StringFlag{
 			Name:        "ssh-auth-sock",
 			Value:       defaultSSHAuthSock(),
 			EnvVars:     []string{"EARTHLY_SSH_AUTH_SOCK"},
@@ -388,21 +392,6 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 }
 
 func (app *earthApp) before(context *cli.Context) error {
-	if context.IsSet("dotenv") {
-		if !fileExists(app.dotEnvPath) {
-			return fmt.Errorf("dot-env file not found %s", app.dotEnvPath)
-		}
-		app.console.Printf("loading dot-env values from %s\n", app.dotEnvPath)
-	}
-	// Load .env into current global env's. This is mainly for applying Earthly settings.
-	// Separate call is made for build args and secrets.
-	if fileExists(app.dotEnvPath) {
-		err := godotenv.Load(app.dotEnvPath)
-		if err != nil {
-			return errors.Wrapf(err, "load dot-env file %s", app.dotEnvPath)
-		}
-	}
-
 	if context.IsSet("config") {
 		app.console.Printf("loading config values from %q\n", app.configPath)
 	}
@@ -692,10 +681,10 @@ func (app *earthApp) actionBuild(c *cli.Context) error {
 	//interactive debugger settings are passed as secrets to avoid having it affect the cache hash
 
 	dotEnvMap := make(map[string]string)
-	if fileExists(app.dotEnvPath) {
-		dotEnvMap, err = godotenv.Read(app.dotEnvPath)
+	if fileExists(dotEnvPath) {
+		dotEnvMap, err = godotenv.Read(dotEnvPath)
 		if err != nil {
-			return errors.Wrapf(err, "read %s", app.dotEnvPath)
+			return errors.Wrapf(err, "read %s", dotEnvPath)
 		}
 	}
 	secretsMap, err := processSecrets(secrets, dotEnvMap)

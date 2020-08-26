@@ -27,6 +27,7 @@ ga:
     BUILD +push-test
     BUILD +gen-dockerfile-test
     BUILD +chown-test
+    BUILD +dotenv-test
 
 experimental:
     BUILD +docker-load-test
@@ -277,17 +278,33 @@ private-image-test:
 gen-dockerfile-test:
     COPY gen-dockerfile.earth ./Earthfile
     RUN --privileged \
-    --entrypoint \
-    --mount=type=tmpfs,target=/tmp/earthly \
-    -- --no-output +test
+        --entrypoint \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        -- --no-output +test
 
 chown-test:
     COPY chown.earth ./Earthfile
     RUN echo "test" > ./a.txt
     RUN --privileged \
-    --entrypoint \
-    --mount=type=tmpfs,target=/tmp/earthly \
-    -- --no-output +test
+        --entrypoint \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        -- --no-output +test
+
+dotenv-test:
+    COPY dotenv.earth ./Earthfile
+    RUN echo "TEST_ENV_1=abracadabra" >.env
+    RUN echo "TEST_ENV_2=foo" >>.env
+    RUN echo "TEST_ENV_3=bar" >>.env
+    RUN --privileged \
+        --entrypoint \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        -- --no-output +test
+    # Smoke test that no .env file does not result in an error.
+    RUN rm .env
+    RUN --privileged \
+        --entrypoint \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        -- --no-output +test-no-dotenv
 
 eine-test-base:
     FROM docker:19.03.12-dind
