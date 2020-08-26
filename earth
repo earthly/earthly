@@ -18,7 +18,7 @@ get_latest_binary() {
 
 last=$(cat "$last_check_state_path" 2>/dev/null || echo 0)
 now=$(date +%s)
-since=$(( "$now" - "$last" ))
+since=$(( now - last ))
 
 if [ "$since" -ge 3600 ]; then
     echo checking for latest earth pre-release binaries
