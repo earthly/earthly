@@ -140,7 +140,7 @@ Loop:
 					vm.logger.Info("Vertex started or cached")
 				}
 				if vertex.Error != "" {
-					if strings.Contains(vertex.Error, "context canceled: context canceled") {
+					if strings.Contains(vertex.Error, "context canceled") {
 						if !vm.isInternal {
 							vm.console.Printf("WARN: Canceled\n")
 						}
@@ -194,8 +194,6 @@ Loop:
 				}
 
 			}
-		case <-ctx.Done():
-			break Loop
 		}
 	}
 	if errVertex != nil {
