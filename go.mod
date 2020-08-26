@@ -38,6 +38,7 @@ require (
 	github.com/hashicorp/yamux v0.0.0-20200609203250-aecfd211c9ce
 	github.com/ianlancetaylor/demangle v0.0.0-20181102032728-5e5cf60278f6 // indirect
 	github.com/jmespath/go-jmespath v0.0.0-20160803190731-bd40a432e4c7 // indirect
+	github.com/joho/godotenv v1.3.0
 	github.com/marstr/guid v1.1.0 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.1 // indirect
 	github.com/mitchellh/mapstructure v1.1.2 // indirect

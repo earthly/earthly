@@ -30,6 +30,7 @@ import (
 	"github.com/earthly/earthly/logging"
 
 	"github.com/fatih/color"
+	"github.com/joho/godotenv"
 	"github.com/moby/buildkit/client"
 	_ "github.com/moby/buildkit/client/connhelper/dockercontainer" // Load "docker-container://" helper.
 	"github.com/moby/buildkit/client/llb"
@@ -67,6 +68,7 @@ type cliFlags struct {
 	buildkitdImage       string
 	remoteCache          string
 	configPath           string
+	dotEnvPath           string
 	gitUsernameOverride  string
 	gitPasswordOverride  string
 	interactiveDebugging bool
@@ -261,6 +263,13 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 			Destination: &app.configPath,
 		},
 		&cli.StringFlag{
+			Name:        "dotenv",
+			Value:       ".env",
+			EnvVars:     []string{"EARTHLY_DOTENV"},
+			Usage:       "Path to .env file",
+			Destination: &app.dotEnvPath,
+		},
+		&cli.StringFlag{
 			Name:        "ssh-auth-sock",
 			Value:       defaultSSHAuthSock(),
 			EnvVars:     []string{"EARTHLY_SSH_AUTH_SOCK"},
@@ -374,11 +383,26 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 		},
 	}
 
-	app.cliApp.Before = app.parseConfigFile
+	app.cliApp.Before = app.before
 	return app
 }
 
-func (app *earthApp) parseConfigFile(context *cli.Context) error {
+func (app *earthApp) before(context *cli.Context) error {
+	if context.IsSet("dotenv") {
+		if !fileExists(app.dotEnvPath) {
+			return fmt.Errorf("dot-env file not found %s", app.dotEnvPath)
+		}
+		app.console.Printf("loading dot-env values from %s\n", app.dotEnvPath)
+	}
+	// Load .env into current global env's. This is mainly for applying Earthly settings.
+	// Separate call is made for build args and secrets.
+	if fileExists(app.dotEnvPath) {
+		err := godotenv.Load(app.dotEnvPath)
+		if err != nil {
+			return errors.Wrapf(err, "Error loading dot-env file %s", app.dotEnvPath)
+		}
+	}
+
 	if context.IsSet("config") {
 		app.console.Printf("loading config values from %q\n", app.configPath)
 	}
@@ -667,7 +691,14 @@ func (app *earthApp) actionBuild(c *cli.Context) error {
 	secrets := app.secrets.Value()
 	//interactive debugger settings are passed as secrets to avoid having it affect the cache hash
 
-	secretsMap, err := processSecrets(secrets)
+	dotEnvMap := make(map[string]string)
+	if fileExists(app.dotEnvPath) {
+		dotEnvMap, err = godotenv.Read(app.dotEnvPath)
+		if err != nil {
+			return errors.Wrapf(err, "read %s", app.dotEnvPath)
+		}
+	}
+	secretsMap, err := processSecrets(secrets, dotEnvMap)
 	if err != nil {
 		return err
 	}
@@ -702,7 +733,7 @@ func (app *earthApp) actionBuild(c *cli.Context) error {
 		go terminal.ConnectTerm(c.Context, fmt.Sprintf("127.0.0.1:%d", app.buildkitdSettings.DebuggerPort))
 	}
 
-	varCollection, err := variables.ParseCommandLineBuildArgs(app.buildArgs.Value())
+	varCollection, err := variables.ParseCommandLineBuildArgs(app.buildArgs.Value(), dotEnvMap)
 	if err != nil {
 		return errors.Wrap(err, "parse build args")
 	}
@@ -767,8 +798,11 @@ func (app *earthApp) newBuildkitdClient(ctx context.Context, opts ...client.Clie
 	return bkClient, nil
 }
 
-func processSecrets(secrets []string) (map[string][]byte, error) {
+func processSecrets(secrets []string, dotEnvMap map[string]string) (map[string][]byte, error) {
 	finalSecrets := make(map[string][]byte)
+	for k, v := range dotEnvMap {
+		finalSecrets[k] = []byte(v)
+	}
 	for _, secret := range secrets {
 		parts := strings.SplitN(secret, "=", 2)
 		if len(parts) == 2 {
@@ -791,4 +825,12 @@ func defaultSSHAuthSock() string {
 		return "/run/host-services/ssh-auth.sock"
 	}
 	return os.Getenv("SSH_AUTH_SOCK")
+}
+
+func fileExists(filename string) bool {
+	info, err := os.Stat(filename)
+	if os.IsNotExist(err) {
+		return false
+	}
+	return !info.IsDir()
 }

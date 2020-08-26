@@ -34,8 +34,11 @@ func NewCollection() *Collection {
 }
 
 // ParseCommandLineBuildArgs parses a slice of constant build args and returns a new collection.
-func ParseCommandLineBuildArgs(args []string) (*Collection, error) {
+func ParseCommandLineBuildArgs(args []string, dotEnvMap map[string]string) (*Collection, error) {
 	ret := NewCollection()
+	for k, v := range dotEnvMap {
+		ret.variables[k] = NewConstant(v)
+	}
 	for _, arg := range args {
 		splitArg := strings.SplitN(arg, "=", 2)
 		if len(splitArg) < 1 {
