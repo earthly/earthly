@@ -7,41 +7,41 @@ if [ -z "$EARTHLY_DOCKERD_DATA_ROOT" ]; then
     exit 1
 fi
 
-function start_dockerd() {
+start_dockerd() {
     mkdir -p "$EARTHLY_DOCKERD_DATA_ROOT"
-    dockerd --data-root="$EARTHLY_DOCKERD_DATA_ROOT" &>/var/log/docker.log &
-    let i=1
+    dockerd --data-root="$EARTHLY_DOCKERD_DATA_ROOT" >/var/log/docker.log 2>&1 &
+    i=1
     timeout=30
-    while ! docker ps &>/dev/null; do
+    while ! docker ps >/dev/null 2>&1; do
         sleep 1
         if [ "$i" -gt "$timeout" ]; then
             # Print dockerd logs on start failure.
             cat /var/log/docker.log
             exit 1
         fi
-        let i+=1
+        i=$((i+1))
     done
 }
 
-function stop_dockerd() {
+stop_dockerd() {
     dockerd_pid="$(cat /var/run/docker.pid)"
     timeout=10
     if [ -n "$dockerd_pid" ]; then
-        kill "$dockerd_pid" &>/dev/null
-        let i=1
-        while kill -0 "$dockerd_pid" &>/dev/null; do
+        kill "$dockerd_pid" >/dev/null 2>&1
+        i=1
+        while kill -0 "$dockerd_pid" >/dev/null 2>&1; do
             sleep 1
             if [ "$i" -gt "$timeout" ]; then
-                kill -9 "$dockerd_pid" &>/dev/null || true
+                kill -9 "$dockerd_pid" >/dev/null 2>&1 || true
             fi
-            let i+=1
+            i=$((i+1))
         done
     fi
     # Wipe dockerd data when done.
     rm -rf "$EARTHLY_DOCKERD_DATA_ROOT"
 }
 
-function load_images() {
+load_images() {
     if [ -n "$EARTHLY_DOCKER_LOAD_IMAGES" ]; then
         echo "Loading images..."
         for img in $EARTHLY_DOCKER_LOAD_IMAGES; do
@@ -55,6 +55,7 @@ export EARTHLY_WITH_DOCKER=1
 
 # Lock the creation of the docker daemon - only one daemon can be started at a time
 # (dockerd race conditions in handling networking setup).
+# shellcheck disable=SC2039
 (
     flock -x 200
     start_dockerd

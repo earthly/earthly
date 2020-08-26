@@ -41,7 +41,9 @@ code:
 
 lintscripts:
     FROM +deps
-    COPY ./earth ./buildkitd/entrypoint.sh ./shell_scripts/.
+    COPY ./earth ./buildkitd/entrypoint.sh ./earth-buildkitd-wrapper.sh \
+        ./buildkitd/dockerd-wrapper.sh ./release/envcredhelper.sh \
+        ./shell_scripts/
     RUN shellcheck shell_scripts/*
 
 lint:
