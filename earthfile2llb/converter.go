@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"hash/fnv"
 	"io/ioutil"
 	"math/rand"
 	"os"
@@ -50,6 +51,7 @@ type Converter struct {
 	cleanCollection    *cleanup.Collection
 	nextArgIndex       int
 	solveCache         map[string]llb.State
+	imageResolveMode   llb.ResolveMode
 }
 
 // NewConverter constructs a new converter for a given earth target.
@@ -75,6 +77,7 @@ func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Da
 	return &Converter{
 		gitMeta:            bc.GitMetadata,
 		resolver:           opt.Resolver,
+		imageResolveMode:   opt.ImageResolveMode,
 		mts:                mts,
 		buildContext:       bc.BuildContext,
 		cacheContext:       makeCacheContext(target),
@@ -229,6 +232,7 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 		BuildContext:     &buildContext,
 		ContextLocalName: c.mts.FinalTarget().String(),
 		MetaResolver:     imr.Default(),
+		ImageResolveMode: c.imageResolveMode,
 		Target:           dfTarget,
 		TargetPlatform:   &llbutil.TargetPlatform,
 		LLBCaps:          &caps,
@@ -482,6 +486,7 @@ func (c *Converter) Build(ctx context.Context, fullTargetName string, buildArgs 
 	mts, err := Earthfile2LLB(
 		ctx, target, ConvertOpt{
 			Resolver:         c.resolver,
+			ImageResolveMode: c.imageResolveMode,
 			DockerBuilderFun: c.dockerBuilderFun,
 			CleanCollection:  c.cleanCollection,
 			VisitedStates:    c.mts.VisitedStates,
@@ -901,7 +906,8 @@ func (c *Converter) internalFromClassical(ctx context.Context, imageName string,
 		ctx, baseImageName,
 		llb.ResolveImageConfigOpt{
 			Platform:    &llbutil.TargetPlatform,
-			ResolveMode: llb.ResolveModePreferLocal.String(),
+			ResolveMode: c.imageResolveMode.String(),
+			LogName:     fmt.Sprintf("%sLoad metadata", c.imageVertexPrefix(imageName)),
 		})
 	if err != nil {
 		return llb.State{}, nil, nil, errors.Wrapf(err, "resolve image config for %s", imageName)
@@ -917,7 +923,7 @@ func (c *Converter) internalFromClassical(ctx context.Context, imageName string,
 			return llb.State{}, nil, nil, errors.Wrapf(err, "reference add digest %v for %s", dgst, imageName)
 		}
 	}
-	allOpts := append(opts, llb.Platform(llbutil.TargetPlatform))
+	allOpts := append(opts, llb.Platform(llbutil.TargetPlatform), c.imageResolveMode)
 	state := llb.Image(ref.String(), allOpts...)
 	state, img2, newVarCollection := c.applyFromImage(state, &img)
 	return state, img2, newVarCollection, nil
@@ -993,6 +999,12 @@ func (c *Converter) processNonConstantBuildArgFunc(ctx context.Context) variable
 
 func (c *Converter) vertexPrefix() string {
 	return fmt.Sprintf("[%s %s] ", c.mts.FinalStates.Target.String(), c.mts.FinalStates.Salt)
+}
+
+func (c *Converter) imageVertexPrefix(id string) string {
+	h := fnv.New32a()
+	h.Write([]byte(id))
+	return fmt.Sprintf("[%s %d] ", id, h.Sum32())
 }
 
 func (c *Converter) vertexPrefixWithURL(url string) string {

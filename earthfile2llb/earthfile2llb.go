@@ -21,6 +21,8 @@ import (
 type ConvertOpt struct {
 	// Resolver is the build context resolver.
 	Resolver *buildcontext.Resolver
+	// The resolve mode for referenced images (force pull or prefer local).
+	ImageResolveMode llb.ResolveMode
 	// DockerBuilderFun is a fun that can be used to execute an image build. This
 	// is used as part of operations like DOCKER LOAD and DOCKER PULL, where
 	// a tar image is needed in the middle of a build.

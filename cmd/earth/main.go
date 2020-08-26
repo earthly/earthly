@@ -32,6 +32,7 @@ import (
 	"github.com/fatih/color"
 	"github.com/moby/buildkit/client"
 	_ "github.com/moby/buildkit/client/connhelper/dockercontainer" // Load "docker-container://" helper.
+	"github.com/moby/buildkit/client/llb"
 	"github.com/moby/buildkit/session"
 	"github.com/moby/buildkit/session/auth/authprovider"
 	"github.com/moby/buildkit/session/secrets/secretsprovider"
@@ -54,6 +55,7 @@ type cliFlags struct {
 	secrets              cli.StringSlice
 	artifactMode         bool
 	imageMode            bool
+	pull                 bool
 	push                 bool
 	noOutput             bool
 	noCache              bool
@@ -225,6 +227,13 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 			Name:        "image",
 			Usage:       "Output only docker image of the specified target",
 			Destination: &app.imageMode,
+		},
+		&cli.BoolFlag{
+			Name:        "pull",
+			EnvVars:     []string{"EARTHLY_PULL"},
+			Usage:       "Force pull any referenced Docker images",
+			Destination: &app.pull,
+			Hidden:      true, // Experimental.
 		},
 		&cli.BoolFlag{
 			Name:        "push",
@@ -697,11 +706,16 @@ func (app *earthApp) actionBuild(c *cli.Context) error {
 	if err != nil {
 		return errors.Wrap(err, "parse build args")
 	}
+	imageResolveMode := llb.ResolveModePreferLocal
+	if app.pull {
+		imageResolveMode = llb.ResolveModeForcePull
+	}
 	cleanCollection := cleanup.NewCollection()
 	defer cleanCollection.Close()
 	mts, err := earthfile2llb.Earthfile2LLB(
 		c.Context, target, earthfile2llb.ConvertOpt{
 			Resolver:           resolver,
+			ImageResolveMode:   imageResolveMode,
 			DockerBuilderFun:   b.MakeImageAsTarBuilderFun(),
 			ArtifactBuilderFun: b.MakeArtifactBuilderFun(),
 			CleanCollection:    cleanCollection,
