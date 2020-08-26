@@ -5,18 +5,18 @@
     buildkitd \
     --allow-insecure-entitlement=security.insecure \
     --config=/etc/buildkitd.toml \
-    &>/var/log/buildkitd.log \
+    >/var/log/buildkitd.log 2>&1 \
     &
 buildkitd_pid="$!"
 export EARTHLY_BUILDKIT_HOST="unix:///run/buildkit/buildkitd.sock"
 
 # Poll for buildkitd readiness.
-let i=1
+i=1
 while [ ! -S "/run/buildkit/buildkitd.sock" ]; do
     sleep 1
-    let i+=1
+    i=$((i+1))
     if [ "$i" -gt "10" ]; then
-        kill -9 "$buildkitd_pid" &>/dev/null
+        kill -9 "$buildkitd_pid" >/dev/null 2>&1
         echo "Buildkitd did not start within 10 seconds"
         exit 1
     fi
@@ -27,15 +27,14 @@ earth "$@"
 exit_code="$?"
 
 # Shut down buildkitd.
-kill "$buildkitd_pid" &>/dev/null
-let i=1
-while kill -0 "$buildkitd_pid" &>/dev/null ; do
+kill "$buildkitd_pid" >/dev/null 2>&1
+i=1
+while kill -0 "$buildkitd_pid" >/dev/null 2>&1 ; do
     sleep 1
-    let i+=1
+    i=$((i+1))
     if [ "$i" -gt "10" ]; then
-        kill -9 "$buildkitd_pid" &>/dev/null
+        kill -9 "$buildkitd_pid" >/dev/null 2>&1
     fi
 done
-rm -f "/run/buildkit/buildkitd.sock"
 
 exit "$exit_code"
