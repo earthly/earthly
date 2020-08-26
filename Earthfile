@@ -42,7 +42,7 @@ code:
 
 lintscripts:
     FROM +deps
-    COPY ./buildkitd/entrypoint.sh ./shell_scripts/.
+    COPY ./earth ./buildkitd/entrypoint.sh ./shell_scripts/.
     RUN shellcheck shell_scripts/*
 
 lint:
@@ -153,6 +153,15 @@ earth-docker:
     COPY --build-arg VERSION=$TAG +earth/earth /usr/bin/earth
     SAVE IMAGE --push earthly/earth:$TAG
 
+# we abuse docker here to distribute our binaries
+prerelease-docker:
+    COPY +earth/earth /earth-linux-amd64
+    COPY --build-arg GOOS=darwin \
+        --build-arg GOARCH=amd64 \
+        --build-arg GO_EXTRA_LDFLAGS= \
+    +earth/earth /earth-darwin-amd64
+    SAVE IMAGE --push earthly/earthlybinaries:latest
+
 for-linux:
     BUILD +buildkitd
     BUILD +earth
@@ -165,6 +174,7 @@ all:
     BUILD +buildkitd
     BUILD +earth-all
     BUILD +earth-docker
+    BUILD +prerelease-docker
 
 test:
     BUILD +lint

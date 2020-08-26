@@ -1,0 +1,29 @@
+#!/bin/bash
+set -e
+
+last_check_state_path=/tmp/last-earth-prerelease-check
+
+function get_latest_binary {
+    docker pull earthly/earthlybinaries:latest
+    docker create --name earthly_binary earthly/earthlybinaries
+
+    earth_bin_path=/earth-linux-amd64
+    if [ "$(uname)" == "Darwin" ]; then
+        earth_bin_path=/earth-darwin-amd64
+    fi
+
+    docker cp earthly_binary:"$earth_bin_path" ~/bin/earth-bin
+    docker rm earthly_binary
+}
+
+last=$(cat "$last_check_state_path" 2>/dev/null || echo 0)
+now=$(date +%s)
+since=$(( "$now" - "$last" ))
+
+if [ "$since" -ge 3600 ]; then
+    echo checking for latest earth pre-release binaries
+    get_latest_binary
+    echo "$now" > $last_check_state_path
+fi
+
+~/bin/earth-bin "$@"
