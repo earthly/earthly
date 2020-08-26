@@ -155,6 +155,7 @@ earth-docker:
 
 # we abuse docker here to distribute our binaries
 prerelease-docker:
+    FROM alpine:3.11
     COPY +earth/earth /earth-linux-amd64
     COPY --build-arg GOOS=darwin \
         --build-arg GOARCH=amd64 \
