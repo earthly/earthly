@@ -17,9 +17,9 @@ if [ -z "$EARTHLY_TMP_DIR" ]; then
     exit 1
 fi
 
-if [ "$EARTHLY_RESET_TMP_DIR" == "true" ]; then
+if [ "$EARTHLY_RESET_TMP_DIR" = "true" ]; then
     echo "Resetting dir $EARTHLY_TMP_DIR"
-    rm -rf "$EARTHLY_TMP_DIR"/* || true
+    rm -rf "${EARTHLY_TMP_DIR:?}"/* || true
 fi
 
 # clear any leftovers in the dind dir
@@ -32,6 +32,7 @@ while true
 do
     varname=GIT_CREDENTIALS_"$i"
     eval data=\$$varname
+    # shellcheck disable=SC2154
     if [ -n "$data" ]
     then
         echo 'echo $'$varname' | base64 -d' > /usr/bin/git_credentials_"$i"
@@ -65,11 +66,12 @@ sed 's^:BUILDKIT_ROOT_DIR:^'"$BUILDKIT_ROOT_DIR"'^g; s/:CACHE_SIZE_MB:/'"$CACHE_
 echo "ENABLE_LOOP_DEVICE=$ENABLE_LOOP_DEVICE"
 echo "FORCE_LOOP_DEVICE=$FORCE_LOOP_DEVICE"
 use_loop_device=false
-if [ "$FORCE_LOOP_DEVICE" == "true" ]; then
+if [ "$FORCE_LOOP_DEVICE" = "true" ]; then
     use_loop_device=true
 else
-    if [ "$ENABLE_LOOP_DEVICE" == "true" ]; then
-        tmp_dir_fs="$(df -T $BUILDKIT_ROOT_DIR | awk '{print $2}' | tail -1)"
+    if [ "$ENABLE_LOOP_DEVICE" = "true" ]; then
+        # shellcheck disable=SC2086
+        tmp_dir_fs="$(df -T ${BUILDKIT_ROOT_DIR} | awk '{print $2}' | tail -1)"
         echo "Buildkit dir $BUILDKIT_ROOT_DIR fs type is $tmp_dir_fs"
         if [ "$tmp_dir_fs" != "ext4" ]; then
             echo "Using a loop device, because fs is not ext4"
@@ -78,20 +80,20 @@ else
     fi
 fi
 echo "use_loop_device=$use_loop_device"
-if [ "$use_loop_device" == "true" ]; then
+if [ "$use_loop_device" = "true" ]; then
     # Create an ext4 fs in a pre-allocated file. Ext4 will allow
     # us to use overlayfs snapshotter even when running on mac.
     image_file="$EARTHLY_TMP_DIR"/buildkit.img
     mount_point="$BUILDKIT_ROOT_DIR"
 
-    function do_mount {
+    do_mount() {
         echo "Mounting loop device"
         ret=0
         mount -n -o loop,noatime,nodiratime,noexec,noauto "$image_file" "$mount_point" || ret=1
         return "$ret"
     }
 
-    function init_mount {
+    init_mount() {
         echo "Creating loop device"
         mkdir -p "$mount_point"
         # We use quadruple the cache size for the loop device. This uses
@@ -103,7 +105,7 @@ if [ "$use_loop_device" == "true" ]; then
         mkfs.ext4 "$image_file"
     }
 
-    function reset_mount {
+    reset_mount() {
         echo "Resetting loop device"
         umount "$mount_point" || true
         rm -rf "$image_file"
@@ -120,7 +122,6 @@ fi
 
 # start shell repeater server
 echo starting shellrepeater
-which shellrepeater
 shellrepeater &
 shellrepeaterpid=$!
 
