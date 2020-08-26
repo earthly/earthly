@@ -6,6 +6,8 @@ require (
 	github.com/Azure/azure-sdk-for-go v16.2.1+incompatible // indirect
 	github.com/Azure/go-autorest v10.8.1+incompatible // indirect
 	github.com/Shopify/logrus-bugsnag v0.0.0-20171204204709-577dee27f20d // indirect
+	github.com/alecthomas/template v0.0.0-20190718012654-fb15b899a751 // indirect
+	github.com/alecthomas/units v0.0.0-20190924025748-f65c72e2690d // indirect
 	github.com/antlr/antlr4 v0.0.0-20200225173536-225249fdaef5
 	github.com/armon/circbuf v0.0.0-20190214190532-5111143e8da2
 	github.com/aws/aws-sdk-go v1.15.11 // indirect
@@ -51,7 +53,7 @@ require (
 	github.com/otiai10/copy v1.1.1
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v0.0.0-20180209125602-c332b6f63c06 // indirect
-	github.com/prometheus/common v0.0.0-20180110214958-89604d197083 // indirect
+	github.com/prometheus/common v0.0.0-20180110214958-89604d197083
 	github.com/prometheus/procfs v0.0.5 // indirect
 	github.com/satori/go.uuid v1.2.0 // indirect
 	github.com/sirupsen/logrus v1.6.0
@@ -73,6 +75,7 @@ require (
 	golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e
 	google.golang.org/api v0.0.0-20160322025152-9bf6e6e569ff // indirect
 	google.golang.org/cloud v0.0.0-20151119220103-975617b05ea8 // indirect
+	gopkg.in/alecthomas/kingpin.v2 v2.2.6 // indirect
 	gopkg.in/yaml.v2 v2.2.8
 	k8s.io/kubernetes v1.13.0 // indirect
 )

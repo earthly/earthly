@@ -7,6 +7,7 @@ import (
 	"net"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 
 	"github.com/earthly/earthly/debugger/common"
@@ -68,9 +69,9 @@ func ConnectTerm(ctx context.Context, addr string) error {
 	writeCh := make(chan []byte, 10)
 
 	ctx, cancel := context.WithCancel(ctx)
-	go func() {
-		var oldState *terminal.State
 
+	ts := &termState{}
+	go func() {
 	outer:
 		for {
 			connDataType, data, err := common.ReadDataPacket(conn)
@@ -80,23 +81,17 @@ func ConnectTerm(ctx context.Context, addr string) error {
 			}
 			switch connDataType {
 			case common.StartShellSession:
-				if oldState == nil {
-					var err error
-					oldState, err = terminal.MakeRaw(int(os.Stdin.Fd()))
-					if err != nil {
-						log.Error(errors.Wrap(err, "failed to initialize terminal in raw mode"))
-						break outer
-					}
+				err := ts.makeRaw()
+				if err != nil {
+					log.Error(err)
+					break outer
 				}
 				sigs <- syscall.SIGWINCH
 			case common.EndShellSession:
-				if oldState != nil {
-					err := terminal.Restore(int(os.Stdin.Fd()), oldState)
-					if err != nil {
-						log.Error(errors.Wrap(err, "failed to restore terminal mode"))
-						break outer
-					}
-					oldState = nil
+				err := ts.restore()
+				if err != nil {
+					log.Error(err)
+					break outer
 				}
 			case common.PtyData:
 				err := handlePtyData(data)
@@ -163,7 +158,41 @@ func ConnectTerm(ctx context.Context, addr string) error {
 	}()
 
 	<-ctx.Done()
-
 	fmt.Fprintf(os.Stderr, "exiting interactive debugger shell\n")
+	err = ts.restore()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+type termState struct {
+	oldState *terminal.State
+	mu       sync.Mutex
+}
+
+func (ts *termState) makeRaw() error {
+	ts.mu.Lock()
+	defer ts.mu.Unlock()
+	if ts.oldState == nil {
+		var err error
+		ts.oldState, err = terminal.MakeRaw(int(os.Stdin.Fd()))
+		if err != nil {
+			return errors.Wrap(err, "failed to initialize terminal in raw mode")
+		}
+	}
+	return nil
+}
+
+func (ts *termState) restore() error {
+	ts.mu.Lock()
+	defer ts.mu.Unlock()
+	if ts.oldState != nil {
+		err := terminal.Restore(int(os.Stdin.Fd()), ts.oldState)
+		if err != nil {
+			return errors.Wrap(err, "failed to restore terminal mode")
+		}
+		ts.oldState = nil
+	}
 	return nil
 }
