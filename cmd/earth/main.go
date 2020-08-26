@@ -399,7 +399,7 @@ func (app *earthApp) before(context *cli.Context) error {
 	if fileExists(app.dotEnvPath) {
 		err := godotenv.Load(app.dotEnvPath)
 		if err != nil {
-			return errors.Wrapf(err, "Error loading dot-env file %s", app.dotEnvPath)
+			return errors.Wrapf(err, "load dot-env file %s", app.dotEnvPath)
 		}
 	}
 
