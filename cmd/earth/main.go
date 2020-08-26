@@ -8,11 +8,13 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"os/signal"
 	"path/filepath"
 	"regexp"
 	"runtime"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/earthly/earthly/autocomplete"
@@ -130,6 +132,35 @@ func (app *earthApp) autoComplete() {
 
 func main() {
 	ctx := context.Background()
+	ctx, cancel := context.WithCancel(ctx)
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, syscall.SIGINT, syscall.SIGTERM)
+	defer func() {
+		signal.Stop(c)
+		cancel()
+	}()
+	go func() {
+		receivedSignal := false
+		for {
+			select {
+			case sig := <-c:
+				cancel()
+				if receivedSignal {
+					// This is the second time we have received a signal. Quit immediately.
+					fmt.Printf("Received second signal %s. Forcing exit.\n", sig.String())
+					os.Exit(9)
+				}
+				receivedSignal = true
+				fmt.Printf("Received signal %s. Cleaning up before exiting...\n", sig.String())
+				go func() {
+					// Wait for 30 seconds before forcing an exit.
+					time.Sleep(30 * time.Second)
+					fmt.Printf("Timed out cleaning up. Forcing exit.\n")
+					os.Exit(9)
+				}()
+			}
+		}
+	}()
 
 	// Load .env into current global env's. This is mainly for applying Earthly settings.
 	// Separate call is made for build args and secrets.
@@ -525,6 +556,9 @@ func (app *earthApp) run(ctx context.Context, args []string) int {
 					"For more information see https://docs.earthly.dev/guides/auth\n")
 		} else {
 			app.console.Warnf("Error: %v\n", err)
+		}
+		if errors.Is(err, context.Canceled) {
+			return 2
 		}
 		return 1
 	}
