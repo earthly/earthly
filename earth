@@ -3,7 +3,7 @@ set -e
 
 last_check_state_path=/tmp/last-earth-prerelease-check
 
-function get_latest_binary {
+get_latest_binary() {
     docker pull earthly/earthlybinaries:latest
     docker create --name earthly_binary earthly/earthlybinaries
 
@@ -23,7 +23,7 @@ since=$(( "$now" - "$last" ))
 if [ "$since" -ge 3600 ]; then
     echo checking for latest earth pre-release binaries
     get_latest_binary
-    echo "$now" > $last_check_state_path
+    echo "$now" >"$last_check_state_path"
 fi
 
 ~/bin/earth-bin "$@"
