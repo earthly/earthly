@@ -56,17 +56,6 @@ func (wdr *withDockerRun) Run(ctx context.Context, args []string, opt WithDocker
 			return errors.Wrap(err, "load")
 		}
 	}
-
-	// TODO: This does not work, because it strips away some quotes, which are valuable to the shell.
-	//       In any case, this is probably working as intended as is.
-	// if !isWithShell {
-	// 	for i := range args {
-	// 		args[i] = wdr.c.ExpandArgs(args[i])
-	// 	}
-	// }
-	for i := range opt.Mounts {
-		opt.Mounts[i] = wdr.c.ExpandArgs(opt.Mounts[i])
-	}
 	logging.GetLogger(ctx).
 		With("args", args).
 		With("mounts", opt.Mounts).
@@ -123,7 +112,6 @@ func (wdr *withDockerRun) Run(ctx context.Context, args []string, opt WithDocker
 }
 
 func (wdr *withDockerRun) pull(ctx context.Context, dockerTag string) error {
-	dockerTag = wdr.c.ExpandArgs(dockerTag)
 	logging.GetLogger(ctx).With("dockerTag", dockerTag).Info("Applying DOCKER PULL")
 	state, image, _, err := wdr.c.internalFromClassical(
 		ctx, dockerTag,
@@ -154,24 +142,19 @@ func (wdr *withDockerRun) pull(ctx context.Context, dockerTag string) error {
 }
 
 func (wdr *withDockerRun) load(ctx context.Context, opt DockerLoadOpt) error {
-	targetName := wdr.c.ExpandArgs(opt.Target)
-	dockerTag := wdr.c.ExpandArgs(opt.ImageName)
-	for i := range opt.BuildArgs {
-		opt.BuildArgs[i] = wdr.c.ExpandArgs(opt.BuildArgs[i])
-	}
-	logging.GetLogger(ctx).With("target-name", targetName).With("dockerTag", dockerTag).Info("Applying DOCKER LOAD")
-	depTarget, err := domain.ParseTarget(targetName)
+	logging.GetLogger(ctx).With("target-name", opt.Target).With("dockerTag", opt.ImageName).Info("Applying DOCKER LOAD")
+	depTarget, err := domain.ParseTarget(opt.Target)
 	if err != nil {
-		return errors.Wrapf(err, "parse target %s", targetName)
+		return errors.Wrapf(err, "parse target %s", opt.Target)
 	}
 	mts, err := wdr.c.Build(ctx, depTarget.String(), opt.BuildArgs)
 	if err != nil {
 		return err
 	}
 	return wdr.solveImage(
-		ctx, mts, depTarget.String(), dockerTag,
+		ctx, mts, depTarget.String(), opt.ImageName,
 		llb.WithCustomNamef(
-			"%sDOCKER LOAD %s %s", wdr.c.imageVertexPrefix(depTarget.String()), depTarget.String(), dockerTag))
+			"%sDOCKER LOAD %s %s", wdr.c.imageVertexPrefix(depTarget.String()), depTarget.String(), opt.ImageName))
 }
 
 func (wdr *withDockerRun) solveImage(ctx context.Context, mts *MultiTargetStates, opName string, dockerTag string, opts ...llb.RunOption) error {
