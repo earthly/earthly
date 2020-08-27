@@ -21,6 +21,23 @@ import (
 
 const dockerdWrapperPath = "/var/earthly/dockerd-wrapper.sh"
 
+// DockerLoadOpt holds parameters for DOCKER LOAD commands.
+type DockerLoadOpt struct {
+	Target    string
+	ImageName string
+	BuildArgs []string
+}
+
+// WithDockerOpt holds parameters for WITH DOCKER run.
+type WithDockerOpt struct {
+	Mounts         []string
+	Secrets        []string
+	WithShell      bool
+	WithEntrypoint bool
+	Pulls          []string
+	Loads          []DockerLoadOpt
+}
+
 type withDockerRun struct {
 	c        *Converter
 	tarLoads []llb.State
@@ -44,11 +61,11 @@ func (wdr *withDockerRun) Run(ctx context.Context, args []string, opt WithDocker
 	//       In any case, this is probably working as intended as is.
 	// if !isWithShell {
 	// 	for i := range args {
-	// 		args[i] = c.expandArgs(args[i])
+	// 		args[i] = wdr.c.ExpandArgs(args[i])
 	// 	}
 	// }
 	for i := range opt.Mounts {
-		opt.Mounts[i] = wdr.c.expandArgs(opt.Mounts[i])
+		opt.Mounts[i] = wdr.c.ExpandArgs(opt.Mounts[i])
 	}
 	logging.GetLogger(ctx).
 		With("args", args).
@@ -106,7 +123,7 @@ func (wdr *withDockerRun) Run(ctx context.Context, args []string, opt WithDocker
 }
 
 func (wdr *withDockerRun) pull(ctx context.Context, dockerTag string) error {
-	dockerTag = wdr.c.expandArgs(dockerTag)
+	dockerTag = wdr.c.ExpandArgs(dockerTag)
 	logging.GetLogger(ctx).With("dockerTag", dockerTag).Info("Applying DOCKER PULL")
 	state, image, _, err := wdr.c.internalFromClassical(
 		ctx, dockerTag,
@@ -137,10 +154,10 @@ func (wdr *withDockerRun) pull(ctx context.Context, dockerTag string) error {
 }
 
 func (wdr *withDockerRun) load(ctx context.Context, opt DockerLoadOpt) error {
-	targetName := wdr.c.expandArgs(opt.Target)
-	dockerTag := wdr.c.expandArgs(opt.ImageName)
+	targetName := wdr.c.ExpandArgs(opt.Target)
+	dockerTag := wdr.c.ExpandArgs(opt.ImageName)
 	for i := range opt.BuildArgs {
-		opt.BuildArgs[i] = wdr.c.expandArgs(opt.BuildArgs[i])
+		opt.BuildArgs[i] = wdr.c.ExpandArgs(opt.BuildArgs[i])
 	}
 	logging.GetLogger(ctx).With("target-name", targetName).With("dockerTag", dockerTag).Info("Applying DOCKER LOAD")
 	depTarget, err := domain.ParseTarget(targetName)

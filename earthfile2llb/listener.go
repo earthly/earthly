@@ -17,8 +17,8 @@ var _ parser.EarthParserListener = &listener{}
 
 type listener struct {
 	*parser.BaseEarthParserListener
-	interpreter commandInterpreter
-	ctx         context.Context
+	converter *Converter
+	ctx       context.Context
 
 	executeTarget   string
 	currentTarget   string
@@ -40,10 +40,10 @@ type listener struct {
 	err error
 }
 
-func newListener(ctx context.Context, interpreter commandInterpreter, executeTarget string) *listener {
+func newListener(ctx context.Context, converter *Converter, executeTarget string) *listener {
 	return &listener{
 		ctx:           ctx,
-		interpreter:   interpreter,
+		converter:     converter,
 		executeTarget: executeTarget,
 		currentTarget: "base",
 		targetFound:   (executeTarget == "base"),
@@ -64,7 +64,7 @@ func (l *listener) EnterTargetHeader(c *parser.TargetHeaderContext) {
 	// Apply implicit SAVE IMAGE for +base.
 	if l.executeTarget == "base" {
 		if !l.saveImageExists {
-			l.interpreter.SaveImage(l.ctx, []string{}, false)
+			l.converter.SaveImage(l.ctx, []string{}, false)
 		}
 		l.saveImageExists = true
 	}
@@ -85,7 +85,7 @@ func (l *listener) EnterTargetHeader(c *parser.TargetHeaderContext) {
 		return
 	}
 	// Apply implicit FROM +base
-	err := l.interpreter.From(l.ctx, "+base", nil)
+	err := l.converter.From(l.ctx, "+base", nil)
 	if err != nil {
 		l.err = errors.Wrap(err, "apply implicit FROM +base")
 		return
@@ -143,7 +143,7 @@ func (l *listener) ExitFromStmt(c *parser.FromStmtContext) {
 		return
 	}
 	imageName := fs.Arg(0)
-	err = l.interpreter.From(l.ctx, imageName, buildArgs.Args)
+	err = l.converter.From(l.ctx, imageName, buildArgs.Args)
 	if err != nil {
 		l.err = errors.Wrapf(err, "apply FROM %s", imageName)
 		return
@@ -173,7 +173,7 @@ func (l *listener) ExitFromDockerfileStmt(c *parser.FromDockerfileStmtContext) {
 		return
 	}
 	path := fs.Arg(0)
-	err = l.interpreter.FromDockerfile(l.ctx, path, *dfPath, *dfTarget, buildArgs.Args)
+	err = l.converter.FromDockerfile(l.ctx, path, *dfPath, *dfTarget, buildArgs.Args)
 	if err != nil {
 		l.err = errors.Wrap(err, "from dockerfile")
 		return
@@ -224,7 +224,7 @@ func (l *listener) ExitCopyStmt(c *parser.CopyStmtContext) {
 	}
 	if allArtifacts {
 		for _, src := range srcs {
-			err = l.interpreter.CopyArtifact(l.ctx, src, dest, buildArgs.Args, *isDirCopy, *chown)
+			err = l.converter.CopyArtifact(l.ctx, src, dest, buildArgs.Args, *isDirCopy, *chown)
 			if err != nil {
 				l.err = errors.Wrapf(err, "copy artifact")
 				return
@@ -235,7 +235,7 @@ func (l *listener) ExitCopyStmt(c *parser.CopyStmtContext) {
 			l.err = fmt.Errorf("build args not supported for non +artifact arguments case %v", l.stmtWords)
 			return
 		}
-		l.interpreter.CopyClassical(l.ctx, srcs, dest, *isDirCopy, *chown)
+		l.converter.CopyClassical(l.ctx, srcs, dest, *isDirCopy, *chown)
 	}
 }
 
@@ -273,7 +273,7 @@ func (l *listener) ExitRunStmt(c *parser.RunStmtContext) {
 	// TODO: In the bracket case, should flags be outside of the brackets?
 
 	if l.withDocker == nil {
-		err = l.interpreter.Run(
+		err = l.converter.Run(
 			l.ctx, fs.Args(), mounts.Args, secrets.Args, *privileged, *withEntrypoint, *withDocker,
 			withShell, *pushFlag)
 		if err != nil {
@@ -297,7 +297,7 @@ func (l *listener) ExitRunStmt(c *parser.RunStmtContext) {
 		l.withDocker.Secrets = secrets.Args
 		l.withDocker.WithShell = withShell
 		l.withDocker.WithEntrypoint = *withEntrypoint
-		err = l.interpreter.WithDockerRun(l.ctx, fs.Args(), *l.withDocker)
+		err = l.converter.WithDockerRun(l.ctx, fs.Args(), *l.withDocker)
 		if err != nil {
 			l.err = errors.Wrap(err, "with docker run")
 			return
@@ -341,7 +341,7 @@ func (l *listener) ExitSaveArtifact(c *parser.SaveArtifactContext) {
 	}
 	saveFrom := l.stmtWords[0]
 
-	err := l.interpreter.SaveArtifact(l.ctx, saveFrom, saveTo, saveAsLocalTo)
+	err := l.converter.SaveArtifact(l.ctx, saveFrom, saveTo, saveAsLocalTo)
 	if err != nil {
 		l.err = errors.Wrap(err, "apply SAVE ARTIFACT")
 		return
@@ -376,7 +376,7 @@ func (l *listener) ExitSaveImage(c *parser.SaveImageContext) {
 	}
 	imageNames := fs.Args()
 
-	l.interpreter.SaveImage(l.ctx, imageNames, *pushFlag)
+	l.converter.SaveImage(l.ctx, imageNames, *pushFlag)
 	if *pushFlag {
 		l.pushOnlyAllowed = true
 	}
@@ -403,7 +403,7 @@ func (l *listener) ExitBuildStmt(c *parser.BuildStmtContext) {
 		return
 	}
 	fullTargetName := fs.Arg(0)
-	_, err = l.interpreter.Build(l.ctx, fullTargetName, buildArgs.Args)
+	_, err = l.converter.Build(l.ctx, fullTargetName, buildArgs.Args)
 	if err != nil {
 		l.err = errors.Wrapf(err, "apply BUILD %s", fullTargetName)
 		return
@@ -423,7 +423,7 @@ func (l *listener) ExitWorkdirStmt(c *parser.WorkdirStmtContext) {
 		return
 	}
 	workdirPath := l.stmtWords[0]
-	l.interpreter.Workdir(l.ctx, workdirPath)
+	l.converter.Workdir(l.ctx, workdirPath)
 }
 
 func (l *listener) ExitUserStmt(c *parser.UserStmtContext) {
@@ -439,7 +439,7 @@ func (l *listener) ExitUserStmt(c *parser.UserStmtContext) {
 		return
 	}
 	user := l.stmtWords[0]
-	l.interpreter.User(l.ctx, user)
+	l.converter.User(l.ctx, user)
 }
 
 func (l *listener) ExitCmdStmt(c *parser.CmdStmtContext) {
@@ -451,7 +451,7 @@ func (l *listener) ExitCmdStmt(c *parser.CmdStmtContext) {
 		return
 	}
 	withShell := !l.execMode
-	l.interpreter.Cmd(l.ctx, l.stmtWords, withShell)
+	l.converter.Cmd(l.ctx, l.stmtWords, withShell)
 }
 
 func (l *listener) ExitEntrypointStmt(c *parser.EntrypointStmtContext) {
@@ -463,7 +463,7 @@ func (l *listener) ExitEntrypointStmt(c *parser.EntrypointStmtContext) {
 		return
 	}
 	withShell := !l.execMode
-	l.interpreter.Entrypoint(l.ctx, l.stmtWords, withShell)
+	l.converter.Entrypoint(l.ctx, l.stmtWords, withShell)
 }
 
 func (l *listener) ExitExposeStmt(c *parser.ExposeStmtContext) {
@@ -478,7 +478,7 @@ func (l *listener) ExitExposeStmt(c *parser.ExposeStmtContext) {
 		l.err = fmt.Errorf("no arguments provided to the EXPOSE command")
 		return
 	}
-	l.interpreter.Expose(l.ctx, l.stmtWords)
+	l.converter.Expose(l.ctx, l.stmtWords)
 }
 
 func (l *listener) ExitVolumeStmt(c *parser.VolumeStmtContext) {
@@ -493,7 +493,7 @@ func (l *listener) ExitVolumeStmt(c *parser.VolumeStmtContext) {
 		l.err = fmt.Errorf("no arguments provided to the VOLUME command")
 		return
 	}
-	l.interpreter.Volume(l.ctx, l.stmtWords)
+	l.converter.Volume(l.ctx, l.stmtWords)
 }
 
 func (l *listener) ExitEnvStmt(c *parser.EnvStmtContext) {
@@ -504,7 +504,7 @@ func (l *listener) ExitEnvStmt(c *parser.EnvStmtContext) {
 		l.err = fmt.Errorf("no non-push commands allowed after a --push: %s", c.GetText())
 		return
 	}
-	l.interpreter.Env(l.ctx, l.envArgKey, l.envArgValue)
+	l.converter.Env(l.ctx, l.envArgKey, l.envArgValue)
 }
 
 func (l *listener) ExitArgStmt(c *parser.ArgStmtContext) {
@@ -515,7 +515,7 @@ func (l *listener) ExitArgStmt(c *parser.ArgStmtContext) {
 		l.err = fmt.Errorf("no non-push commands allowed after a --push: %s", c.GetText())
 		return
 	}
-	l.interpreter.Arg(l.ctx, l.envArgKey, l.envArgValue)
+	l.converter.Arg(l.ctx, l.envArgKey, l.envArgValue)
 }
 
 func (l *listener) ExitLabelStmt(c *parser.LabelStmtContext) {
@@ -538,7 +538,7 @@ func (l *listener) ExitLabelStmt(c *parser.LabelStmtContext) {
 	for i := range l.labelKeys {
 		labels[l.labelKeys[i]] = l.labelValues[i]
 	}
-	l.interpreter.Label(l.ctx, labels)
+	l.converter.Label(l.ctx, labels)
 }
 
 func (l *listener) ExitGitCloneStmt(c *parser.GitCloneStmtContext) {
@@ -562,7 +562,7 @@ func (l *listener) ExitGitCloneStmt(c *parser.GitCloneStmtContext) {
 	}
 	gitURL := fs.Arg(0)
 	gitCloneDest := fs.Arg(1)
-	err = l.interpreter.GitClone(l.ctx, gitURL, *branch, gitCloneDest)
+	err = l.converter.GitClone(l.ctx, gitURL, *branch, gitCloneDest)
 	if err != nil {
 		l.err = errors.Wrap(err, "git clone")
 		return
@@ -592,7 +592,7 @@ func (l *listener) ExitDockerLoadStmt(c *parser.DockerLoadStmtContext) {
 	fullTargetName := fs.Arg(0)
 	imageName := fs.Arg(1)
 	if l.withDocker == nil {
-		err = l.interpreter.DockerLoadOld(l.ctx, fullTargetName, imageName, buildArgs.Args)
+		err = l.converter.DockerLoadOld(l.ctx, fullTargetName, imageName, buildArgs.Args)
 		if err != nil {
 			l.err = errors.Wrap(err, "docker load")
 			return
@@ -624,7 +624,7 @@ func (l *listener) ExitDockerPullStmt(c *parser.DockerPullStmtContext) {
 	}
 	imageName := l.stmtWords[0]
 	if l.withDocker == nil {
-		err := l.interpreter.DockerPullOld(l.ctx, imageName)
+		err := l.converter.DockerPullOld(l.ctx, imageName)
 		if err != nil {
 			l.err = errors.Wrap(err, "docker pull")
 			return
@@ -683,7 +683,7 @@ func (l *listener) ExitHealthcheckStmt(c *parser.HealthcheckStmtContext) {
 		l.err = fmt.Errorf("invalid arguments for HEALTHCHECK: %s", l.stmtWords)
 		return
 	}
-	l.interpreter.Healthcheck(l.ctx, isNone, cmdArgs, *interval, *timeout, *startPeriod, *retries)
+	l.converter.Healthcheck(l.ctx, isNone, cmdArgs, *interval, *timeout, *startPeriod, *retries)
 }
 
 func (l *listener) ExitWithDockerStmt(c *parser.WithDockerStmtContext) {
