@@ -424,7 +424,7 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 
 func (app *earthApp) before(context *cli.Context) error {
 	if context.IsSet("config") {
-		app.console.Printf("loading config values from %q\n", app.configPath)
+		app.console.Printf("Loading config values from %q\n", app.configPath)
 	}
 
 	yamlData, err := ioutil.ReadFile(app.configPath)
