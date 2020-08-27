@@ -1,0 +1,16 @@
+name: macOS CI
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  tests:
+    name: +test +test-fail
+    runs-on: [self-hosted, macOS]
+    steps:
+      - uses: actions/checkout@v2
+      - name: display hostname
+        run: "hostname -f"
