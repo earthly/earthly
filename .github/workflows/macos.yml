@@ -3,8 +3,10 @@ name: macOS CI
 on:
   push:
     branches: [ master ]
-  pull_request:
-    branches: [ master ]
+  schedule:
+    - cron:  '*/30 * * * *'
+  workflow_dispatch:
+
 
 jobs:
   tests:
@@ -14,4 +16,8 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: display hostname
-        run: "hostname -f"
+        run: "brew upgrade earthly"
+      - name: "build earth"
+        run: "earth +for-darwin"
+      - name: "test built earth"
+        run: "./build/darwin/amd64/earth -P github.com/earthly/earthly+test-all"
