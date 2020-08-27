@@ -37,9 +37,10 @@ code:
     COPY --dir earthfile2llb/antlrhandler earthfile2llb/dedup earthfile2llb/image \
         earthfile2llb/imr earthfile2llb/variables earthfile2llb/*.go earthfile2llb/
     COPY ./earthfile2llb/parser+parser/*.go ./earthfile2llb/parser/
+    SAVE ARTIFACT . /earthly
     SAVE IMAGE
 
-lintscripts:
+lint-scripts:
     FROM +deps
     COPY ./earth ./buildkitd/entrypoint.sh ./earth-buildkitd-wrapper.sh \
         ./buildkitd/dockerd-wrapper.sh ./release/envcredhelper.sh \
@@ -65,7 +66,7 @@ lint:
             exit 1 ; \
         fi
 
-unittest:
+unit-test:
     FROM +code
     RUN go test ./...
 
@@ -129,18 +130,38 @@ earth:
             cmd/earth/*.go
     SAVE ARTIFACT ./build/tags
     SAVE ARTIFACT ./build/ldflags
-    SAVE ARTIFACT build/earth AS LOCAL "build/$GOOS/$GOARCH/earth"
+    SAVE ARTIFACT build/earth AS LOCAL "build/$GOOS-$GOARCH/earth"
 
 earth-darwin:
-    BUILD \
+    COPY \
         --build-arg GOOS=darwin \
         --build-arg GOARCH=amd64 \
         --build-arg GO_EXTRA_LDFLAGS= \
-        +earth
+        +earth/earth ./
+    SAVE ARTIFACT ./earth
+
+# earth linux binary with -race flag.
+earth-race:
+    FROM golang:1.13-buster
+    WORKDIR /earthly
+    COPY go.mod go.sum ./
+    RUN go mod download
+    COPY --dir +code/earthly /
+    COPY +earth/tags +earth/ldflags ./build/
+    ARG GOCACHE=/go-cache
+    RUN --mount=type=cache,target=$GOCACHE \
+        go build \
+            -race \
+            -ldflags "$(cat ./build/ldflags)" \
+            -tags "$(cat ./build/tags)" \
+            -o build/earth \
+            cmd/earth/*.go
+    SAVE ARTIFACT build/earth AS LOCAL ./build/linux-amd64/earth-race
 
 earth-all:
     BUILD +earth
     BUILD +earth-darwin
+    BUILD +earth-race
 
 earth-docker:
     FROM ./buildkitd+buildkitd
@@ -151,8 +172,15 @@ earth-docker:
     ENTRYPOINT ["/usr/bin/earth-buildkitd-wrapper.sh"]
     ARG EARTHLY_TARGET_TAG_DOCKER
     ARG TAG=$EARTHLY_TARGET_TAG_DOCKER
-    COPY --build-arg VERSION=$TAG +earth/earth /usr/bin/earth
+    ARG EARTH_SRC=earth/earth
+    COPY --build-arg VERSION=$TAG +$EARTH_SRC /usr/bin/earth
     SAVE IMAGE --push earthly/earth:$TAG
+
+earth-docker-race:
+    ARG EARTHLY_TARGET_TAG_DOCKER
+    ARG TAG=${EARTHLY_TARGET_TAG_DOCKER}-race
+    FROM --build-arg EARTH_SRC=earth-race/earth --build-arg TAG +earth-docker
+    SAVE IMAGE
 
 # we abuse docker here to distribute our binaries
 prerelease-docker:
@@ -166,11 +194,13 @@ prerelease-docker:
 
 for-linux:
     BUILD +buildkitd
-    BUILD +earth
+    COPY +earth/earth ./
+    SAVE ARTIFACT ./earth
 
 for-darwin:
     BUILD +buildkitd
-    BUILD +earth-darwin
+    COPY +earth-darwin/earth ./
+    SAVE ARTIFACT ./earth
 
 all:
     BUILD +buildkitd
@@ -180,8 +210,8 @@ all:
 
 test:
     BUILD +lint
-    BUILD +lintscripts
-    BUILD +unittest
+    BUILD +lint-scripts
+    BUILD +unit-test
     BUILD ./examples/tests+ga
 
 test-all:

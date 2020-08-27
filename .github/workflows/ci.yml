@@ -20,9 +20,9 @@ jobs:
       - name: Build latest earth using released earth
         run: earth +for-linux
       - name: Execute tests
-        run: ./build/linux/amd64/earth --no-output -P +test
+        run: ./build/linux-amd64/earth --no-output -P +test
       - name: Execute fail test
-        run: "! ./build/linux/amd64/earth --no-output +test-fail"
+        run: "! ./build/linux-amd64/earth --no-output +test-fail"
   misc-tests:
     name: ./examples/tests+private-image-test ./examples/tests+experimental
     runs-on: ubuntu-latest
@@ -36,12 +36,12 @@ jobs:
       - name: Build latest earth using released earth
         run: earth +for-linux
       - name: Execute experimental tests
-        run: ./build/linux/amd64/earth --no-output -P ./examples/tests+experimental
+        run: ./build/linux-amd64/earth --no-output -P ./examples/tests+experimental
       - name: Docker Login
         run: docker login --username vladaionescu --password "${{ secrets.DOCKERHUB_TOKEN }}"
         if: github.event.pull_request.head.repo.full_name == github.repository
       - name: Execute private image test
-        run: ./build/linux/amd64/earth --no-output ./examples/tests+private-image-test
+        run: ./build/linux-amd64/earth --no-output ./examples/tests+private-image-test
         if: github.event.pull_request.head.repo.full_name == github.repository
   examples:
     name: +examples
@@ -56,7 +56,7 @@ jobs:
       - name: Build latest earth using released earth
         run: earth +for-linux
       - name: Build examples
-        run: ./build/linux/amd64/earth --no-output +examples
+        run: ./build/linux-amd64/earth --no-output +examples
   push:
     name: --push +all
     if: github.event_name == 'push'
@@ -83,9 +83,9 @@ jobs:
       - name: Docker Login
         run: docker login --username vladaionescu --password "${{ secrets.DOCKERHUB_TOKEN }}"
       - name: "Reset cache (TODO: This can be removed after the next release)"
-        run: ./build/linux/amd64/earth prune --reset
+        run: ./build/linux-amd64/earth prune --reset
       - name: Rebuild and push
-        run: ./build/linux/amd64/earth --push +all
+        run: ./build/linux-amd64/earth --push +all
       - name: Save earth
         uses: actions/upload-artifact@v2
         with:
