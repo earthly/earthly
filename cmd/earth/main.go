@@ -48,6 +48,8 @@ import (
 
 var dotEnvPath = ".env"
 
+var testChange = 2
+
 type earthApp struct {
 	cliApp    *cli.App
 	console   conslogging.ConsoleLogger
