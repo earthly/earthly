@@ -442,7 +442,7 @@ func (c *Converter) Build(ctx context.Context, fullTargetName string, buildArgs 
 	newVarCollection := c.varCollection
 	if relTarget.IsExternal() {
 		// Don't allow transitive overriding variables to cross project boundaries.
-		newVarCollection = newVarCollection.WithResetOverrides()
+		newVarCollection = variables.NewCollection()
 	}
 	newVarCollection, err = newVarCollection.WithParseBuildArgs(
 		buildArgs, c.processNonConstantBuildArgFunc(ctx))

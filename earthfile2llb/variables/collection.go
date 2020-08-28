@@ -163,16 +163,6 @@ func (c *Collection) WithResetEnvVars() *Collection {
 	return ret
 }
 
-// WithResetOverrides returns a copy of the current collection with all override
-// variables removed.
-func (c *Collection) WithResetOverrides() *Collection {
-	ret := NewCollection()
-	for k, v := range c.variables {
-		ret.variables[k] = v
-	}
-	return ret
-}
-
 // WithBuiltinBuildArgs returns a new collection containing the current variables together with
 // builtin args. This operation does not modify the current collection.
 func (c *Collection) WithBuiltinBuildArgs(target domain.Target, gitMeta *buildcontext.GitMetadata) *Collection {

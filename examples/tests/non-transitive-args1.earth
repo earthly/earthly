@@ -1,0 +1,8 @@
+FROM alpine:3.11
+test:
+    BUILD +intermediate
+    BUILD --build-arg SOMEARG=abc +intermediate
+intermediate:
+    BUILD ./subdir+arg-target
+direct:
+    BUILD --build-arg SOMEARG=direct ./subdir+arg-target
