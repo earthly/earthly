@@ -15,8 +15,10 @@ jobs:
     runs-on: [self-hosted, macOS]
     steps:
       - uses: actions/checkout@v2
-      - name: display hostname
+      - name: brew upgrade earthly
         run: "brew upgrade earthly"
+      - name: get earth version
+        run: "echo ::set-env name=EARTH_VERSION::`earth --version`"
       - name: "build earth"
         run: "earth +for-darwin"
       - name: "test built earth"
@@ -25,7 +27,19 @@ jobs:
         uses: 8398a7/action-slack@v3
         with:
           status: ${{ job.status }}
-          fields: repo,message,commit,author,action,eventName,ref,workflow,job,took # selectable (default: repo,message)
+          fields: repo,commit,workflow
+
+          custom_payload: |
+          {
+            username: 'action-slack',
+            icon_emoji: ':octocat:',
+            attachments: [{
+              color: '${{ job.status }}' === 'success' ? 'good' : '${{ job.status }}' === 'failure' ? 'danger' : 'warning',
+              text: `tested with ${env.EARTH_VERSION}\n`,
+            }]
+          }
+
+          "${env.EARTH_VERSION}"
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_ALERTS_WEBHOOK_URL }}
-        if: failure()
+        if: always()
