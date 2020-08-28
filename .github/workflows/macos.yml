@@ -21,9 +21,9 @@ jobs:
         run: "brew upgrade earthly || brew install earthly"
       - name: set var
         run: echo "::set-env name=EARTH_VERSION_AFTER::`earth --version`"
-      - name: "build earth"
+      - name: "build earth with homebrew-version"
         run: "earth +for-darwin"
-      - name: "test built earth"
+      - name: "test newly built earth"
         run: "./build/darwin/amd64/earth -P github.com/earthly/earthly+test-all"
       - name: Report failure on slack
         uses: 8398a7/action-slack@v3
