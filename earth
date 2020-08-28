@@ -4,6 +4,7 @@ set -e
 last_check_state_path=/tmp/last-earth-prerelease-check
 
 get_latest_binary() {
+    docker pull earthly/buildkitd:prerelease
     docker pull earthly/earthlybinaries:prerelease
     docker create --name earthly_binary earthly/earthlybinaries:prerelease
 
