@@ -9,7 +9,7 @@ on:
 jobs:
   tests:
     name: +test +test-fail
-    runs-on: [ubuntu-latest, windows-latest]
+    runs-on: windows-latest
     env:
       GIT_URL_INSTEAD_OF: "https://github.com/=git@github.com:"
       FORCE_COLOR: 1
@@ -25,7 +25,7 @@ jobs:
         run: "! ./build/linux/amd64/earth --no-output +test-fail"
   misc-tests:
     name: ./examples/tests+private-image-test ./examples/tests+experimental
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     env:
       GIT_URL_INSTEAD_OF: "https://github.com/=git@github.com:"
       FORCE_COLOR: 1
@@ -45,7 +45,7 @@ jobs:
         if: github.event.pull_request.head.repo.full_name == github.repository
   examples:
     name: +examples
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     env:
       GIT_URL_INSTEAD_OF: "https://github.com/=git@github.com:"
       FORCE_COLOR: 1
