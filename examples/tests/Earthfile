@@ -20,6 +20,8 @@ ga:
     BUILD +build-earth-test
     BUILD +host-bind-test
     BUILD +remote-test
+    BUILD +transitive-args-test
+    BUILD +non-transitive-args-test
     BUILD +star-test
     BUILD +dockerfile-test
     BUILD +fail-test
@@ -149,8 +151,7 @@ remote-test:
         --mount=type=tmpfs,target=/tmp/earthly \
         -- --no-output github.com/earthly/hello-world+hello
 
-# TODO: This does not pass.
-transitive-args-test-todo:
+transitive-args-test:
     COPY transitive-args.earth ./Earthfile
     RUN --privileged \
         --entrypoint \
@@ -158,6 +159,31 @@ transitive-args-test-todo:
         -- --build-arg SOMEARG=def +test
     RUN ls
     RUN test -f ./abc && test -f ./def && test ! -f ./default
+
+non-transitive-args-test:
+    COPY non-transitive-args1.earth ./Earthfile
+    COPY non-transitive-args2.earth ./subdir/Earthfile
+    # Should not override if transitive and corssing project boundaries.
+    RUN --privileged \
+        --entrypoint \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        -- --build-arg SOMEARG=def +test
+    RUN ls ./subdir
+    RUN test -f ./subdir/default && test ! -f ./subdir/def && test ! -f ./subdir/abc
+    RUN rm ./subdir/default
+    # Should override, if override is direct.
+    RUN --privileged \
+        --entrypoint \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        -- --build-arg SOMEARG=xyz ./subdir+arg-target
+    RUN ls ./subdir
+    RUN test -f ./subdir/xyz && test ! -f ./subdir/default
+    RUN --privileged \
+        --entrypoint \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        -- +direct
+    RUN ls ./subdir
+    RUN test -f ./subdir/direct && test ! -f ./subdir/default
 
 star-test:
     COPY star.earth ./Earthfile

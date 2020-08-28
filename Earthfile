@@ -39,7 +39,7 @@ code:
     COPY ./earthfile2llb/parser+parser/*.go ./earthfile2llb/parser/
     SAVE IMAGE
 
-lintscripts:
+lint-scripts:
     FROM +deps
     COPY ./earth ./buildkitd/entrypoint.sh ./earth-buildkitd-wrapper.sh \
         ./buildkitd/dockerd-wrapper.sh ./release/envcredhelper.sh \
@@ -65,7 +65,7 @@ lint:
             exit 1 ; \
         fi
 
-unittest:
+unit-test:
     FROM +code
     RUN go test ./...
 
@@ -120,7 +120,7 @@ earth:
         printf ' '"$GO_EXTRA_LDFLAGS" >> ./build/ldflags && \
         echo "$(cat ./build/ldflags)"
     # Important! If you change the go build options, you may need to also change them
-    # in release/earthly.rb.
+    # in https://github.com/Homebrew/homebrew-core/blob/master/Formula/earthly.rb.
     RUN --mount=type=cache,target=$GOCACHE \
         go build \
             -tags "$(cat ./build/tags)" \
@@ -132,15 +132,17 @@ earth:
     SAVE ARTIFACT build/earth AS LOCAL "build/$GOOS/$GOARCH/earth"
 
 earth-darwin:
-    BUILD \
+    COPY \
         --build-arg GOOS=darwin \
         --build-arg GOARCH=amd64 \
         --build-arg GO_EXTRA_LDFLAGS= \
-        +earth
+        +earth/* ./
+    SAVE ARTIFACT ./*
 
 earth-all:
-    BUILD +earth
-    BUILD +earth-darwin
+    COPY +earth/earth ./earth-linux-amd64
+    COPY +earth-darwin/earth ./earth-darwin/amd64
+    SAVE ARTIFACT ./*
 
 earth-docker:
     FROM ./buildkitd+buildkitd
@@ -157,20 +159,19 @@ earth-docker:
 # we abuse docker here to distribute our binaries
 prerelease-docker:
     FROM alpine:3.11
-    COPY +earth/earth /earth-linux-amd64
-    COPY --build-arg GOOS=darwin \
-        --build-arg GOARCH=amd64 \
-        --build-arg GO_EXTRA_LDFLAGS= \
-    +earth/earth /earth-darwin-amd64
-    SAVE IMAGE --push earthly/earthlybinaries:latest
+    BUILD --build-arg TAG=prerelease ./buildkitd+buildkitd
+    COPY --build-arg VERSION=prerelease +earth-all/* ./
+    SAVE IMAGE --push earthly/earthlybinaries:prerelease
 
 for-linux:
     BUILD +buildkitd
-    BUILD +earth
+    COPY +earth/earth ./
+    SAVE ARTIFACT ./earth
 
 for-darwin:
     BUILD +buildkitd
-    BUILD +earth-darwin
+    COPY +earth-darwin/earth ./
+    SAVE ARTIFACT ./earth
 
 all:
     BUILD +buildkitd
@@ -180,8 +181,8 @@ all:
 
 test:
     BUILD +lint
-    BUILD +lintscripts
-    BUILD +unittest
+    BUILD +lint-scripts
+    BUILD +unit-test
     BUILD ./examples/tests+ga
 
 test-all:

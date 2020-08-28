@@ -70,6 +70,10 @@ func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Da
 		FinalStates:   sts,
 		VisitedStates: opt.VisitedStates,
 	}
+	for _, key := range opt.VarCollection.SortedOverridingVariables() {
+		ovVar, _, _ := opt.VarCollection.Get(key)
+		sts.TargetInput = sts.TargetInput.WithBuildArgInput(ovVar.BuildArgInput(key, ""))
+	}
 	targetStr := target.String()
 	opt.VisitedStates[targetStr] = append(opt.VisitedStates[targetStr], sts)
 	return &Converter{
@@ -427,16 +431,20 @@ func (c *Converter) Build(ctx context.Context, fullTargetName string, buildArgs 
 		With("build-args", buildArgs).
 		Info("Applying BUILD")
 
-	target, err := domain.ParseTarget(fullTargetName)
+	relTarget, err := domain.ParseTarget(fullTargetName)
 	if err != nil {
 		return nil, errors.Wrapf(err, "earth target parse %s", fullTargetName)
 	}
-
-	target, err = domain.JoinTargets(c.mts.FinalStates.Target, target)
+	target, err := domain.JoinTargets(c.mts.FinalStates.Target, relTarget)
 	if err != nil {
 		return nil, errors.Wrap(err, "join targets")
 	}
-	newVarCollection, err := c.varCollection.WithParseBuildArgs(
+	newVarCollection := c.varCollection
+	if relTarget.IsExternal() {
+		// Don't allow transitive overriding variables to cross project boundaries.
+		newVarCollection = variables.NewCollection()
+	}
+	newVarCollection, err = newVarCollection.WithParseBuildArgs(
 		buildArgs, c.processNonConstantBuildArgFunc(ctx))
 	if err != nil {
 		return nil, errors.Wrap(err, "parse build args")
@@ -532,8 +540,7 @@ func (c *Converter) Env(ctx context.Context, envKey string, envValue string) {
 func (c *Converter) Arg(ctx context.Context, argKey string, defaultArgValue string) {
 	logging.GetLogger(ctx).With("arg-key", argKey).With("arg-value", defaultArgValue).Info("Applying ARG")
 	effective := c.varCollection.AddActive(argKey, variables.NewConstant(defaultArgValue), false)
-	c.mts.FinalStates.TargetInput.BuildArgs = append(
-		c.mts.FinalStates.TargetInput.BuildArgs,
+	c.mts.FinalStates.TargetInput = c.mts.FinalStates.TargetInput.WithBuildArgInput(
 		effective.BuildArgInput(argKey, defaultArgValue))
 }
 
@@ -815,7 +822,7 @@ func (c *Converter) internalFromClassical(ctx context.Context, imageName string,
 	if imageName == "scratch" {
 		// FROM scratch
 		return llb.Scratch().Platform(llbutil.TargetPlatform), image.NewImage(),
-			variables.NewCollection(), nil
+			c.varCollection.WithResetEnvVars(), nil
 	}
 	ref, err := reference.ParseNormalizedNamed(imageName)
 	if err != nil {

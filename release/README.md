@@ -1,7 +1,7 @@
 # Releasing instructions
 
 ### earth
-* Test on Mac using `earth --build-arg GOOS=darwin --build-arg GOARCH=amd64 --build-arg GO_EXTRA_LDFLAGS= --artifact github.com/earthly/earthly+earth/earth ./earth && docker pull earthly/buildkitd:master && ./earth -P github.com/earthly/earthly+test-all`
+* Test on Mac using `earth --artifact github.com/earthly/earthly+for-darwin/earth ./earth && docker pull earthly/buildkitd:master && ./earth -P github.com/earthly/earthly+test-all`
 * Make sure you have a GITHUB_TOKEN set. If you don't have a GITHUB_TOKEN, generate one [here](https://github.com/settings/tokens) with scope `repo`.
   ```bash
   export GITHUB_TOKEN="..."

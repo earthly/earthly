@@ -1,9 +1,4 @@
 FROM alpine:3.11
-test:
-    BUILD +intermediate
-    BUILD --build-arg SOMEARG=abc +intermediate
-intermediate:
-    BUILD +arg-target
 arg-target:
     ARG SOMEARG=default
     RUN echo content >file.txt

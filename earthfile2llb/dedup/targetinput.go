@@ -17,6 +17,21 @@ type TargetInput struct {
 	BuildArgs []BuildArgInput `json:"buildArgs"`
 }
 
+// WithBuildArgInput returns a clone of the current target input, with a
+// BuildArgInput added to it.
+func (ti TargetInput) WithBuildArgInput(bai BuildArgInput) TargetInput {
+	tiClone := ti.clone()
+	for index, existingBai := range tiClone.BuildArgs {
+		if existingBai.Name == bai.Name {
+			// Existing build arg. Remove it so we can re-add it.
+			tiClone.BuildArgs = append(tiClone.BuildArgs[:index], tiClone.BuildArgs[index+1:]...)
+			break
+		}
+	}
+	tiClone.BuildArgs = append(tiClone.BuildArgs, bai)
+	return tiClone
+}
+
 // Equals compares to another TargetInput for equality.
 func (ti TargetInput) Equals(other TargetInput) bool {
 	if ti.TargetCanonical != other.TargetCanonical {
@@ -31,6 +46,18 @@ func (ti TargetInput) Equals(other TargetInput) bool {
 		}
 	}
 	return true
+}
+
+func (ti TargetInput) clone() TargetInput {
+	tiCopy := TargetInput{
+		TargetCanonical: ti.TargetCanonical,
+		BuildArgs:       make([]BuildArgInput, 0, len(ti.BuildArgs)),
+	}
+	for _, bai := range ti.BuildArgs {
+		baiCopy := bai.clone()
+		tiCopy.BuildArgs = append(tiCopy.BuildArgs, baiCopy)
+	}
+	return tiCopy
 }
 
 func (ti TargetInput) cloneNoTag() (TargetInput, error) {
@@ -122,6 +149,17 @@ func (bai BuildArgInput) Equals(other BuildArgInput) bool {
 	return true
 }
 
+func (bai BuildArgInput) clone() BuildArgInput {
+	vfiCopy := bai.VariableFromInput.clone()
+	return BuildArgInput{
+		Name:              bai.Name,
+		IsConstant:        bai.IsConstant,
+		ConstantValue:     bai.ConstantValue,
+		DefaultValue:      bai.DefaultValue,
+		VariableFromInput: vfiCopy,
+	}
+}
+
 func (bai BuildArgInput) cloneNoTag() (BuildArgInput, error) {
 	vfiCopy, err := bai.VariableFromInput.cloneNoTag()
 	if err != nil {
@@ -153,6 +191,14 @@ func (vfi VariableFromInput) Equals(other VariableFromInput) bool {
 		return false
 	}
 	return true
+}
+
+func (vfi VariableFromInput) clone() VariableFromInput {
+	tiCopy := vfi.TargetInput.clone()
+	return VariableFromInput{
+		TargetInput: tiCopy,
+		Index:       vfi.Index,
+	}
 }
 
 func (vfi VariableFromInput) cloneNoTag() (VariableFromInput, error) {
