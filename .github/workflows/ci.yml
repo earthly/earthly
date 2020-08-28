@@ -16,7 +16,8 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Download released earth
-        run: "(new-object System.Net.WebClient).DownloadFile('https://github.com/earthly/earthly/releases/latest/download/earth-linux-amd64','earth')"
+        #run: "(new-object System.Net.WebClient).DownloadFile('https://github.com/earthly/earthly/releases/latest/download/earth-linux-amd64','earth')"
+        run: "curl.exe -o earth https://github.com/earthly/earthly/releases/latest/download/earth-linux-amd64"
         # run: "wget https://github.com/earthly/earthly/releases/latest/download/earth-linux-amd64 -O ./earth && chmod +x ./earth"
       - name: Build latest earth using released earth
         run: .\\earth +for-linux
