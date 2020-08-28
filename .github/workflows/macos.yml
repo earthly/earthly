@@ -15,28 +15,31 @@ jobs:
     runs-on: [self-hosted, macOS]
     steps:
       - uses: actions/checkout@v2
+      - name: set var
+        run: echo "::set-env name=EARTH_VERSION_BEFORE::`earth --version`"
       - name: brew upgrade earthly
-        run: "brew upgrade earthly"
-      - name: get earth version
-        run: "echo ::set-env name=EARTH_VERSION::`earth --version`"
+        run: "brew upgrade earthly || brew install earthly"
+      - name: set var
+        run: echo "::set-env name=EARTH_VERSION_AFTER::`earth --version`"
       - name: "build earth"
         run: "earth +for-darwin"
       - name: "test built earth"
         run: "./build/darwin/amd64/earth -P github.com/earthly/earthly+test-all"
-      - name: Report on slack
+      - name: Report failure on slack
         uses: 8398a7/action-slack@v3
         with:
           status: ${{ job.status }}
           fields: repo,commit,workflow
-          custom_payload: |
-          {
-            username: 'action-slack',
-            icon_emoji: ':octocat:',
-            attachments: [{
-              color: '${{ job.status }}' === 'success' ? 'good' : '${{ job.status }}' === 'failure' ? 'danger' : 'warning',
-              text: `tested with ${env.EARTH_VERSION}\n`,
-            }]
-          }
+          text: ":no_entry: failed running test on macOS with ${{ env.EARTH_VERSION_AFTER }}"
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_ALERTS_WEBHOOK_URL }}
-        if: always()
+        if: failure()
+      - name: Report upgrade on slack
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          fields: repo,commit,workflow
+          text: ":heavy_check_mark: success testing with upgrade from ${{ env.EARTH_VERSION_BEFORE }} to ${{ env.EARTH_VERSION_AFTER }}"
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_ALERTS_WEBHOOK_URL }}
+        if: "${{ env.EARTH_VERSION_BEFORE != env.EARTH_VERSION_AFTER && success() }}"
