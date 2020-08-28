@@ -36,10 +36,8 @@ jobs:
           (( i )) && printf '\n'
           
           echo "-- Docker is ready."
-      - name: Run container
-        run: |
-         eval "$(docker-machine env default)"
-         docker run --rm hello-world
+      - name: Run hello-world
+        run: docker run --rm hello-world
       - uses: actions/checkout@v2
       - name: Download released earth
         run: "wget https://github.com/earthly/earthly/releases/latest/download/earth-darwin-amd64 -O /usr/local/bin/earth && chmod +x /usr/local/bin/earth"
