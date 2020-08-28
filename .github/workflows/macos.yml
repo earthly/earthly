@@ -28,7 +28,6 @@ jobs:
         with:
           status: ${{ job.status }}
           fields: repo,commit,workflow
-
           custom_payload: |
           {
             username: 'action-slack',
@@ -38,8 +37,6 @@ jobs:
               text: `tested with ${env.EARTH_VERSION}\n`,
             }]
           }
-
-          "${env.EARTH_VERSION}"
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_ALERTS_WEBHOOK_URL }}
         if: always()
