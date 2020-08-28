@@ -4,8 +4,8 @@ set -e
 last_check_state_path=/tmp/last-earth-prerelease-check
 
 get_latest_binary() {
-    docker pull earthly/earthlybinaries:latest
-    docker create --name earthly_binary earthly/earthlybinaries
+    docker pull earthly/earthlybinaries:master
+    docker create --name earthly_binary earthly/earthlybinaries:master
 
     earth_bin_path=/earth-linux-amd64
     if [ "$(uname)" == "Darwin" ]; then
