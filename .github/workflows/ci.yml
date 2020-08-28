@@ -15,7 +15,7 @@ jobs:
       FORCE_COLOR: 1
     steps:
       - uses: actions/checkout@v2
-      - name: Install Ubuntu and Docker
+      - name: Install Ubuntu
         run: |
           $url = "https://aka.ms/wsl-ubuntu-1804"
           $output = ".\Ubuntu.zip"
@@ -24,16 +24,24 @@ jobs:
           Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Windows-Subsystem-Linux
           .\Ubuntu\ubuntu1804.exe install --root
 
-          wsl -u root -d Ubuntu-18.04 -- apt-get update
-          wsl -u root -d Ubuntu-18.04 -- apt-get install -y apt-transport-https ca-certificates curl software-properties-common
+      - name: Install Docker
+        shell: wsl -u root -d Ubuntu-18.04 -- bash --noprofile --norc -euo pipefail "$(script="$(wslpath '{0}')" && sed -i 's/\r$//' "$script" && echo "$script")"
+        run: |
+          echo Install Docker pre-reqs
+          apt-get update
+          apt-get install -y apt-transport-https ca-certificates curl software-properties-common
 
-          wsl -u root -d Ubuntu-18.04 -- curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add -
-          wsl -u root -d Ubuntu-18.04 -- apt-key fingerprint 0EBFCD88
-          wsl -u root -d Ubuntu-18.04 -- add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
-          wsl -u root -d Ubuntu-18.04 -- apt-get update
-          wsl -u root -d Ubuntu-18.04 -- apt install -y docker-ce docker-compose putty
-          wsl -u root -d Ubuntu-18.04 -- rm /c
-          wsl -u root -d Ubuntu-18.04 -- ln -s /mnt/c /c
+          echo Add Docker repository
+          curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add -
+          apt-key fingerprint 0EBFCD88
+          add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+          echo Update
+          apt-get update
+          echo Install Docker
+          apt install -y docker-ce docker-compose putty
+          rm /c
+          ln -s /mnt/c /c
+          echo Done
 
       - name: Download released earth
         run: "(new-object System.Net.WebClient).DownloadFile('https://github.com/earthly/earthly/releases/latest/download/earth-linux-amd64','earth')"
