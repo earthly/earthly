@@ -7,56 +7,46 @@ on:
     branches: [ master ]
 
 jobs:
-  tests:
-    name: +test +test-fail
-    runs-on: windows-latest
+  test-mac:
+    runs-on: 'macos-latest'
     env:
       GIT_URL_INSTEAD_OF: "https://github.com/=git@github.com:"
       FORCE_COLOR: 1
     steps:
+      - name: Install docker
+        run: |
+          brew cask install docker
+          # allow the app to run without confirmation
+          xattr -d -r com.apple.quarantine /Applications/Docker.app
+          
+          # preemptively do docker.app's setup to avoid any gui prompts
+          sudo /bin/cp /Applications/Docker.app/Contents/Library/LaunchServices/com.docker.vmnetd /Library/PrivilegedHelperTools
+          sudo /bin/cp /Applications/Docker.app/Contents/Resources/com.docker.vmnetd.plist /Library/LaunchDaemons/
+          sudo /bin/chmod 544 /Library/PrivilegedHelperTools/com.docker.vmnetd
+          sudo /bin/chmod 644 /Library/LaunchDaemons/com.docker.vmnetd.plist
+          sudo /bin/launchctl load /Library/LaunchDaemons/com.docker.vmnetd.plist
+          open -g -a Docker.app
+          
+          # Wait for the server to start up, if applicable.
+          i=0
+          while ! docker system info &>/dev/null; do
+            (( i++ == 0 )) && printf %s '-- Waiting for Docker to finish starting up...' || printf '.'
+            sleep 1
+          done
+          (( i )) && printf '\n'
+          
+          echo "-- Docker is ready."
+      - name: Run container
+        run: |
+         eval "$(docker-machine env default)"
+         docker run --rm hello-world
       - uses: actions/checkout@v2
-      - name: Install Ubuntu
-        run: |
-          $url = "https://waterlan.home.xs4all.nl/dos2unix/dos2unix-7.4.1-win64.zip"
-          $output = ".\dos2unix.zip"
-          (New-Object System.Net.WebClient).DownloadFile($url, $output)
-          Expand-Archive .\dos2unix.zip .\dos2unix
-
-          $url = "https://aka.ms/wsl-ubuntu-1804"
-          $output = ".\Ubuntu.zip"
-          (New-Object System.Net.WebClient).DownloadFile($url, $output)
-          Expand-Archive .\Ubuntu.zip .\Ubuntu
-          Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Windows-Subsystem-Linux
-          .\Ubuntu\ubuntu1804.exe install --root
-
-      - name: Install Docker
-        shell: wsl -u root -d Ubuntu-18.04 -- bash --noprofile --norc -euo pipefail "$(script="$(wslpath '{0}')" && sed -i 's/\r$//' "$script" && echo "$script")"
-        run: |
-          echo Install Docker pre-reqs
-          apt-get update
-          apt-get install -y apt-transport-https ca-certificates curl software-properties-common
-
-          echo Add Docker repository
-          curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add -
-          apt-key fingerprint 0EBFCD88
-          add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
-          echo Update
-          apt-get update
-          echo Install Docker
-          apt install -y docker-ce docker-compose putty
-          rm /c
-          ln -s /mnt/c /c
-          echo Done
-
       - name: Download released earth
-        run: "(new-object System.Net.WebClient).DownloadFile('https://github.com/earthly/earthly/releases/latest/download/earth-linux-amd64','earth')"
-        # run: "curl.exe -o earth https://github.com/earthly/earthly/releases/latest/download/earth-linux-amd64"
+        run: "wget https://github.com/earthly/earthly/releases/latest/download/earth-darwin-amd64 -O /usr/local/bin/earth && chmod +x /usr/local/bin/earth"
       - name: Build latest earth using released earth
-        run: wsl -u root -d Ubuntu-18.04 -- ./earth +for-linux
+        run: earth +for-darwin
       - name: Execute tests
-        run: wsl -u root -d Ubuntu-18.04 -- ./build/linux/amd64/earth --no-output -P +test
-      - name: Execute fail test
-        run: "wsl -u root -d Ubuntu-18.04 -- ! ./build/linux/amd64/earth --no-output +test-fail"
+        run: ./build/darwin/amd64/earth --no-output +test
   # misc-tests:
   #   name: ./examples/tests+private-image-test ./examples/tests+experimental
   #   runs-on: windows-latest
