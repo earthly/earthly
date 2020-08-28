@@ -19,7 +19,7 @@ jobs:
         run: "(new-object System.Net.WebClient).DownloadFile('https://github.com/earthly/earthly/releases/latest/download/earth-linux-amd64','earth')"
         # run: "wget https://github.com/earthly/earthly/releases/latest/download/earth-linux-amd64 -O ./earth && chmod +x ./earth"
       - name: Build latest earth using released earth
-        run: ./earth +for-linux
+        run: .\\earth +for-linux
       - name: Execute tests
         run: ./build/linux/amd64/earth --no-output -P +test
       - name: Execute fail test
