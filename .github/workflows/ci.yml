@@ -17,6 +17,7 @@ jobs:
         run: |
           brew cask install docker
           # allow the app to run without confirmation
+          ls -al /Applications/
           xattr -d -r com.apple.quarantine /Applications/Docker.app
           
           # preemptively do docker.app's setup to avoid any gui prompts
