@@ -3,7 +3,7 @@ FROM alpine:3.11
 release:
     ARG RELEASE_TAG
     RUN test -n "$RELEASE_TAG"
-    BUILD ../+test
+    BUILD ../+test-all
     BUILD --build-arg RELEASE_TAG="$RELEASE_TAG" +release-dockerhub
     BUILD --build-arg RELEASE_TAG="$RELEASE_TAG" +release-github
 
@@ -23,7 +23,7 @@ release-github:
     ARG EARTHLY_GIT_HASH
     RUN test -n "$RELEASE_TAG" && test -n "$EARTHLY_GIT_HASH"
     COPY --build-arg VERSION=$RELEASE_TAG \
-        ../+earth-all/* ./
+        ../+earth-all/* ./release/
     ARG BODY="No details provided"
     RUN --secret GITHUB_TOKEN=+secrets/GITHUB_TOKEN test -n "$GITHUB_TOKEN"
     RUN --push \
@@ -35,7 +35,7 @@ release-github:
         --tag "$RELEASE_TAG" \
         --name "$RELEASE_TAG" \
         --body "$BODY" \
-        ./*
+        ./release/*
 
 release-homebrew:
     RUN apk add --update --no-cache \
