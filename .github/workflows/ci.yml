@@ -20,11 +20,11 @@ jobs:
         run: "curl.exe -o earth https://github.com/earthly/earthly/releases/latest/download/earth-linux-amd64"
         # run: "wget https://github.com/earthly/earthly/releases/latest/download/earth-linux-amd64 -O ./earth && chmod +x ./earth"
       - name: Build latest earth using released earth
-        run: .\\earth +for-linux
+        run: wsl ./earth +for-linux
       - name: Execute tests
-        run: ./build/linux/amd64/earth --no-output -P +test
+        run: wsl ./build/linux/amd64/earth --no-output -P +test
       - name: Execute fail test
-        run: "! ./build/linux/amd64/earth --no-output +test-fail"
+        run: "wsl ! ./build/linux/amd64/earth --no-output +test-fail"
   # misc-tests:
   #   name: ./examples/tests+private-image-test ./examples/tests+experimental
   #   runs-on: windows-latest
