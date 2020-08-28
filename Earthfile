@@ -159,10 +159,9 @@ earth-docker:
 # we abuse docker here to distribute our binaries
 prerelease-docker:
     FROM alpine:3.11
-    ARG EARTHLY_TARGET_TAG_DOCKER
-    ARG TAG=$EARTHLY_TARGET_TAG_DOCKER
-    COPY --build-arg VERSION=$TAG +earth-all/* ./
-    SAVE IMAGE --push earthly/earthlybinaries:$TAG
+    BUILD --build-arg TAG=prerelease ./buildkitd+buildkitd
+    COPY --build-arg VERSION=prerelease +earth-all/* ./
+    SAVE IMAGE --push earthly/earthlybinaries:prerelease
 
 for-linux:
     BUILD +buildkitd
