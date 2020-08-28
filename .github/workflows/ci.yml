@@ -9,7 +9,7 @@ on:
 jobs:
   tests:
     name: +test +test-fail
-    runs-on: ubuntu-latest
+    runs-on: [ubuntu-latest, windows-latest]
     env:
       GIT_URL_INSTEAD_OF: "https://github.com/=git@github.com:"
       FORCE_COLOR: 1
