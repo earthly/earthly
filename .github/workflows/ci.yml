@@ -18,7 +18,7 @@ jobs:
           brew cask install docker
           # allow the app to run without confirmation
           #ls -al /Applications/
-          #sudo xattr -d -r com.apple.quarantine /Applications/Docker.app || true
+          xattr -d -r com.apple.quarantine /Applications/Docker.app
           
           # preemptively do docker.app's setup to avoid any gui prompts
           sudo /bin/cp /Applications/Docker.app/Contents/Library/LaunchServices/com.docker.vmnetd /Library/PrivilegedHelperTools
@@ -26,7 +26,7 @@ jobs:
           sudo /bin/chmod 544 /Library/PrivilegedHelperTools/com.docker.vmnetd
           sudo /bin/chmod 644 /Library/LaunchDaemons/com.docker.vmnetd.plist
           sudo /bin/launchctl load /Library/LaunchDaemons/com.docker.vmnetd.plist
-          open -g -a Docker.app
+          open -g -a /Applications/Docker.app
           
           # Wait for the server to start up, if applicable.
           i=0
