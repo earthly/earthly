@@ -15,7 +15,7 @@ jobs:
       FORCE_COLOR: 1
     steps:
       - uses: actions/checkout@v2
-      - name: Install WSL Ubuntu
+      - name: Install Ubuntu and Docker
         run: |
           $url = "https://aka.ms/wsl-ubuntu-1804"
           $output = ".\Ubuntu.zip"
@@ -23,6 +23,18 @@ jobs:
           Expand-Archive .\Ubuntu.zip .\Ubuntu
           Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Windows-Subsystem-Linux
           .\Ubuntu\ubuntu1804.exe install --root
+
+          wsl -u root -d Ubuntu-18.04 -- apt-get update
+          wsl -u root -d Ubuntu-18.04 -- apt-get install apt-transport-https ca-certificates curl software-properties-common
+
+          wsl -u root -d Ubuntu-18.04 -- curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+          wsl -u root -d Ubuntu-18.04 -- apt-key fingerprint 0EBFCD88
+          wsl -u root -d Ubuntu-18.04 -- add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+          wsl -u root -d Ubuntu-18.04 -- apt-get update
+          wsl -u root -d Ubuntu-18.04 -- apt -q install -y docker-ce docker-compose putty
+          wsl -u root -d Ubuntu-18.04 -- usermod -aG docker $USER
+          wsl -u root -d Ubuntu-18.04 -- rm /c
+          wsl -u root -d Ubuntu-18.04 -- ln -s /mnt/c /c
 
       - name: Download released earth
         run: "(new-object System.Net.WebClient).DownloadFile('https://github.com/earthly/earthly/releases/latest/download/earth-linux-amd64','earth')"
