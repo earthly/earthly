@@ -17,6 +17,11 @@ jobs:
       - uses: actions/checkout@v2
       - name: Install Ubuntu
         run: |
+          $url = "https://waterlan.home.xs4all.nl/dos2unix/dos2unix-7.4.1-win64.zip"
+          $output = ".\dos2unix.zip"
+          (New-Object System.Net.WebClient).DownloadFile($url, $output)
+          Expand-Archive .\dos2unix.zip .\dos2unix
+
           $url = "https://aka.ms/wsl-ubuntu-2004"
           $output = ".\Ubuntu.zip"
           (New-Object System.Net.WebClient).DownloadFile($url, $output)
@@ -25,7 +30,7 @@ jobs:
           .\Ubuntu\ubuntu1804.exe install --root
 
       - name: Install Docker
-        shell: wsl -u root -d Ubuntu-18.04 -- bash --noprofile --norc -euo pipefail "$(script="$(wslpath '{0}')" && sed -i 's/\r$//' "$script" && echo "$script")"
+        shell: wsl bash --noprofile --norc -euo pipefail "$(script="$(wslpath '{0}')" && .\dos2unix\bin\dos2unix.exe -q "$script" && echo "$script")"
         run: |
           echo Install Docker pre-reqs
           apt-get update
