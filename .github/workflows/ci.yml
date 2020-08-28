@@ -22,7 +22,7 @@ jobs:
           (New-Object System.Net.WebClient).DownloadFile($url, $output)
           Expand-Archive .\dos2unix.zip .\dos2unix
 
-          $url = "https://aka.ms/wsl-ubuntu-2004"
+          $url = "https://aka.ms/wsl-ubuntu-1804"
           $output = ".\Ubuntu.zip"
           (New-Object System.Net.WebClient).DownloadFile($url, $output)
           Expand-Archive .\Ubuntu.zip .\Ubuntu
