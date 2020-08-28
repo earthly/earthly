@@ -15,16 +15,24 @@ jobs:
       FORCE_COLOR: 1
     steps:
       - uses: actions/checkout@v2
+      - name: Install WSL Ubuntu
+        run: |
+          $url = "https://aka.ms/wsl-ubuntu-1804"
+          $output = ".\Ubuntu.zip"
+          (New-Object System.Net.WebClient).DownloadFile($url, $output)
+          Expand-Archive .\Ubuntu.zip .\Ubuntu
+          Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Windows-Subsystem-Linux
+          .\Ubuntu\ubuntu1804.exe install --root
+
       - name: Download released earth
-        #run: "(new-object System.Net.WebClient).DownloadFile('https://github.com/earthly/earthly/releases/latest/download/earth-linux-amd64','earth')"
-        run: "curl.exe -o earth https://github.com/earthly/earthly/releases/latest/download/earth-linux-amd64"
-        # run: "wget https://github.com/earthly/earthly/releases/latest/download/earth-linux-amd64 -O ./earth && chmod +x ./earth"
+        run: "(new-object System.Net.WebClient).DownloadFile('https://github.com/earthly/earthly/releases/latest/download/earth-linux-amd64','earth')"
+        # run: "curl.exe -o earth https://github.com/earthly/earthly/releases/latest/download/earth-linux-amd64"
       - name: Build latest earth using released earth
-        run: wsl ./earth +for-linux
+        run: wsl -u root -d Ubuntu-18.04 -- ./earth +for-linux
       - name: Execute tests
-        run: wsl ./build/linux/amd64/earth --no-output -P +test
+        run: wsl -u root -d Ubuntu-18.04 -- ./build/linux/amd64/earth --no-output -P +test
       - name: Execute fail test
-        run: "wsl ! ./build/linux/amd64/earth --no-output +test-fail"
+        run: "wsl -u root -d Ubuntu-18.04 -- ! ./build/linux/amd64/earth --no-output +test-fail"
   # misc-tests:
   #   name: ./examples/tests+private-image-test ./examples/tests+experimental
   #   runs-on: windows-latest
