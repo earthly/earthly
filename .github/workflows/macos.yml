@@ -1,6 +1,7 @@
 name: macOS CI
 
 on:
+  # WARNING: don't allow this on PRs, we only want to run on trusted code out of master
   push:
     branches: [ master ]
   schedule:
@@ -11,7 +12,6 @@ on:
 jobs:
   tests:
     name: test on macOS
-    #if: github.event_name == 'push'
     runs-on: [self-hosted, macOS]
     steps:
       - uses: actions/checkout@v2
@@ -21,3 +21,11 @@ jobs:
         run: "earth +for-darwin"
       - name: "test built earth"
         run: "./build/darwin/amd64/earth -P github.com/earthly/earthly+test-all"
+      - name: Report on slack
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          fields: repo,message,commit,author,action,eventName,ref,workflow,job,took # selectable (default: repo,message)
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_ALERTS_WEBHOOK_URL }}
+        if: failure()
