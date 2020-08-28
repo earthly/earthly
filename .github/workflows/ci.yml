@@ -25,14 +25,13 @@ jobs:
           .\Ubuntu\ubuntu1804.exe install --root
 
           wsl -u root -d Ubuntu-18.04 -- apt-get update
-          wsl -u root -d Ubuntu-18.04 -- apt-get install -q -y apt-transport-https ca-certificates curl software-properties-common
+          wsl -u root -d Ubuntu-18.04 -- apt-get install -y apt-transport-https ca-certificates curl software-properties-common
 
           wsl -u root -d Ubuntu-18.04 -- curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add -
           wsl -u root -d Ubuntu-18.04 -- apt-key fingerprint 0EBFCD88
           wsl -u root -d Ubuntu-18.04 -- add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
           wsl -u root -d Ubuntu-18.04 -- apt-get update
-          wsl -u root -d Ubuntu-18.04 -- apt install -q -y docker-ce docker-compose putty
-          wsl -u root -d Ubuntu-18.04 -- usermod -aG docker $USER
+          wsl -u root -d Ubuntu-18.04 -- apt install -y docker-ce docker-compose putty
           wsl -u root -d Ubuntu-18.04 -- rm /c
           wsl -u root -d Ubuntu-18.04 -- ln -s /mnt/c /c
 
