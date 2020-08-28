@@ -30,7 +30,7 @@ jobs:
           .\Ubuntu\ubuntu1804.exe install --root
 
       - name: Install Docker
-        shell: wsl bash --noprofile --norc -euo pipefail "$(script="$(wslpath '{0}')" && .\\dos2unix\\bin\\dos2unix.exe -q "$script" && echo "$script")"
+        shell: wsl bash --noprofile --norc -euo pipefail "$(script="$(wslpath '{0}')" && ./dos2unix/bin/dos2unix.exe -q "$script" && echo "$script")"
         run: |
           echo Install Docker pre-reqs
           apt-get update
