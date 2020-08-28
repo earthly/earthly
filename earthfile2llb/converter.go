@@ -70,9 +70,7 @@ func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Da
 		FinalStates:   sts,
 		VisitedStates: opt.VisitedStates,
 	}
-	fmt.Printf("@# Entering %s:\n", target.String())
 	for _, key := range opt.VarCollection.SortedOverridingVariables() {
-		fmt.Printf("\t@# overriding %s\n", key)
 		ovVar, _, _ := opt.VarCollection.Get(key)
 		sts.TargetInput = sts.TargetInput.WithBuildArgInput(ovVar.BuildArgInput(key, ""))
 	}
