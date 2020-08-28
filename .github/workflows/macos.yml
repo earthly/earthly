@@ -10,8 +10,8 @@ on:
 
 jobs:
   tests:
-    name: test mac hostname
-    if: github.event_name == 'push'
+    name: test on macOS
+    #if: github.event_name == 'push'
     runs-on: [self-hosted, macOS]
     steps:
       - uses: actions/checkout@v2
