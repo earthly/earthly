@@ -23,12 +23,7 @@ release-github:
     ARG EARTHLY_GIT_HASH
     RUN test -n "$RELEASE_TAG" && test -n "$EARTHLY_GIT_HASH"
     COPY --build-arg VERSION=$RELEASE_TAG \
-        ../+earth/earth ./earth-linux-amd64
-    COPY --build-arg VERSION=$RELEASE_TAG \
-        --build-arg GOOS=darwin \
-        --build-arg GOARCH=amd64 \
-        --build-arg GO_EXTRA_LDFLAGS= \
-        ../+earth/earth ./earth-darwin-amd64
+        ../+earth-all/* ./
     ARG BODY="No details provided"
     RUN --secret GITHUB_TOKEN=+secrets/GITHUB_TOKEN test -n "$GITHUB_TOKEN"
     RUN --push \
@@ -40,7 +35,7 @@ release-github:
         --tag "$RELEASE_TAG" \
         --name "$RELEASE_TAG" \
         --body "$BODY" \
-        earth-linux-amd64 earth-darwin-amd64
+        ./*
 
 release-homebrew:
     RUN apk add --update --no-cache \
@@ -97,10 +92,7 @@ release-homebrew:
     RUN mkdir -p /params
     RUN curl -L "$NEW_URL" | sha256sum | cut -f 1 -d ' ' > /params/downloadsha256
     COPY --build-arg VERSION=$RELEASE_TAG \
-        --build-arg GOOS=darwin \
-        --build-arg GOARCH=amd64 \
-        --build-arg GO_EXTRA_LDFLAGS= \
-        ../+earth/tags ../+earth/ldflags /params/
+        ../+earth-darwin/tags ../+earth-darwin/ldflags /params/
     # Split /params/ldflags over two lines (to satisfy ruby linter).
     RUN split --numeric-suffixes=1 --suffix-length=1 --bytes=80 /params/ldflags /params/ldflags && \
         touch /params/ldflags2 && \

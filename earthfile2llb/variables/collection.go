@@ -21,15 +21,20 @@ type ProcessNonConstantVariableFunc func(name string, expression string) (argSta
 
 // Collection is a collection of variables.
 type Collection struct {
-	variables       map[string]Variable
+	variables map[string]Variable
+	// activeVariables are variables that are active right now as we have passed the point of
+	// their declaration.
 	activeVariables map[string]bool
+	// overridingVariables represent variables that should be passed in deep to override.
+	overridingVariables map[string]bool
 }
 
 // NewCollection returns a new collection.
 func NewCollection() *Collection {
 	return &Collection{
-		variables:       make(map[string]Variable),
-		activeVariables: make(map[string]bool),
+		variables:           make(map[string]Variable),
+		activeVariables:     make(map[string]bool),
+		overridingVariables: make(map[string]bool),
 	}
 }
 
@@ -59,6 +64,7 @@ func ParseCommandLineBuildArgs(args []string, dotEnvMap map[string]string) (*Col
 			}
 		}
 		ret.variables[key] = NewConstant(value)
+		ret.overridingVariables[key] = true
 	}
 	return ret, nil
 }
@@ -114,6 +120,16 @@ func (c *Collection) SortedActiveVariables() []string {
 	return varNames
 }
 
+// SortedOverridingVariables returns the overriding variable names in a sorted slice.
+func (c *Collection) SortedOverridingVariables() []string {
+	varNames := make([]string, 0, len(c.overridingVariables))
+	for varName := range c.overridingVariables {
+		varNames = append(varNames, varName)
+	}
+	sort.Strings(varNames)
+	return varNames
+}
+
 // AddActive adds and activates a variable in the collection. It returns the effective variable. The
 // effective variable may be different from the one being added, when override is false.
 func (c *Collection) AddActive(name string, variable Variable, override bool) Variable {
@@ -141,6 +157,19 @@ func (c *Collection) WithResetEnvVars() *Collection {
 			ret.variables[k] = v
 		}
 	}
+	for k := range c.overridingVariables {
+		ret.overridingVariables[k] = true
+	}
+	return ret
+}
+
+// WithResetOverrides returns a copy of the current collection with all override
+// variables removed.
+func (c *Collection) WithResetOverrides() *Collection {
+	ret := NewCollection()
+	for k, v := range c.variables {
+		ret.variables[k] = v
+	}
 	return ret
 }
 
@@ -151,6 +180,9 @@ func (c *Collection) WithBuiltinBuildArgs(target domain.Target, gitMeta *buildco
 	// Copy existing variables.
 	for k, v := range c.variables {
 		ret.variables[k] = v
+	}
+	for k := range c.overridingVariables {
+		ret.overridingVariables[k] = true
 	}
 	// Add the builtin build args.
 	ret.variables["EARTHLY_TARGET"] = NewConstant(target.StringCanonical())
@@ -220,6 +252,7 @@ func (c *Collection) WithParseBuildArgs(args []string, pncvf ProcessNonConstantV
 			finalValue = ba
 		}
 		ret.variables[key] = finalValue
+		ret.overridingVariables[key] = true
 	}
 	return ret, nil
 }

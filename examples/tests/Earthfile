@@ -20,6 +20,7 @@ ga:
     BUILD +build-earth-test
     BUILD +host-bind-test
     BUILD +remote-test
+    BUILD +transitive-args-test
     BUILD +star-test
     BUILD +dockerfile-test
     BUILD +fail-test
@@ -149,8 +150,7 @@ remote-test:
         --mount=type=tmpfs,target=/tmp/earthly \
         -- --no-output github.com/earthly/hello-world+hello
 
-# TODO: This does not pass.
-transitive-args-test-todo:
+transitive-args-test:
     COPY transitive-args.earth ./Earthfile
     RUN --privileged \
         --entrypoint \
