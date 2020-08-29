@@ -4,6 +4,7 @@ WORKDIR /test
 all:
     BUILD +ga
     BUILD +experimental
+    BUILD +experimental-old
 
 ga:
     BUILD +privileged-test
@@ -36,6 +37,8 @@ experimental:
     BUILD +dind-test
     BUILD +docker-pull-test
     BUILD +load-parallel-test
+
+experimental-old:
     BUILD +docker-load-test-old
     BUILD +dind-test-old
     BUILD +docker-pull-test-old
