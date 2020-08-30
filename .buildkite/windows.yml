@@ -2,8 +2,8 @@
 steps:
   - label: Test
     commands:
-      - wsl -- bash ls
-      - wsl -- bash pwd
-      - wsl -- bash ls ..
+      - wsl -- bash -c 'ls'
+      - wsl -- bash -c 'pwd'
+      - wsl -- bash -c 'ls ..'
     agents:
       os: windows
