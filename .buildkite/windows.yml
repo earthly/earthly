@@ -2,6 +2,8 @@
 steps:
   - label: Test
     commands:
-      - wsl -- bash ./.buildkite/tests.sh
+      - wsl -- bash ls
+      - wsl -- bash pwd
+      - wsl -- bash ls ..
     agents:
       os: windows
