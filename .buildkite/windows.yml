@@ -3,7 +3,8 @@ steps:
   - label: Test
     commands:
       - wsl -- bash -c 'ls'
-      - wsl -- bash -c 'pwd'
-      - wsl -- bash -c 'ls ..'
+      - wsl -- bash -c 'ls ./.buidkite/'
+      - wsl -- bash -c 'ls -l ./.buidkite/tests.sh'
+      - wsl -- bash ./.buidkite/tests.sh
     agents:
       os: windows
