@@ -1,7 +1,4 @@
 
 steps:
-  - label: Pipeline upload
-    command: buildkite-agent pipeline upload .buildkite/windows.yml
-  - wait
   - label: Test
     command: echo "Hello"
