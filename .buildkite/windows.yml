@@ -2,6 +2,6 @@
 steps:
   - label: Test
     commands:
-      - "wsl -- bash --noprofile --norc -euo pipefail \"$(script=\"$(wslpath '{0}')\" && sed -i 's/\r$//' \"$script\" && echo \"$script\")\" echo \"Hello wsl\""
+      - "wsl -- bash echo Hello wsl"
     agents:
       os: windows
