@@ -3,4 +3,4 @@ steps:
   - label: Test
     command: echo "Hello"
     agents:
-      platform: windows
+      os: windows
