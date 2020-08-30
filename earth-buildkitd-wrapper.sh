@@ -15,7 +15,7 @@ i=1
 while [ ! -S "/run/buildkit/buildkitd.sock" ]; do
     sleep 1
     i=$((i+1))
-    if [ "$i" -gt "10" ]; then
+    if [ "$i" -gt "30" ]; then
         kill -9 "$buildkitd_pid" >/dev/null 2>&1
         echo "Buildkitd did not start within 10 seconds"
         exit 1
