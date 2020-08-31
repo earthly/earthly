@@ -130,6 +130,38 @@ func (app *earthApp) autoComplete() {
 	os.Exit(0)
 }
 
+func (app *earthApp) insertBashCompleteEntry() error {
+	var path string
+	if runtime.GOOS == "darwin" {
+		path = "/usr/local/etc/bash_completion.d/earth"
+	} else {
+		path = "/usr/share/bash-completion/completions/earth"
+	}
+	dirPath := filepath.Dir(path)
+
+	if _, err := os.Stat(dirPath); os.IsNotExist(err) {
+		fmt.Fprintf(os.Stderr, "Warning: unable to enable bash-completion: %s does not exist\n", dirPath)
+		return nil // bash-completion isn't available, silently fail.
+	}
+
+	if _, err := os.Stat(path); err != nil {
+		return nil // file already exists, don't update it.
+	}
+
+	// create the completion file
+	f, err := os.Create(path)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	_, err = f.Write([]byte("complete -o nospace -C '/usr/local/bin/earth' earth\n"))
+	if err != nil {
+		return err
+	}
+	fmt.Fprintf(os.Stderr, "bash auto completion bootstrapping complete; you may need to run \"source ~/.bashrc\" (or restart your terminal) before continuing.\n")
+	return nil
+}
+
 func main() {
 	ctx := context.Background()
 	ctx, cancel := context.WithCancel(ctx)
@@ -167,7 +199,7 @@ func main() {
 	if fileExists(dotEnvPath) {
 		err := godotenv.Load(dotEnvPath)
 		if err != nil {
-			fmt.Printf("Error loading dot-env file %s: %s", dotEnvPath, err.Error())
+			fmt.Printf("Error loading dot-env file %s: %s\n", dotEnvPath, err.Error())
 			os.Exit(1)
 		}
 	}
@@ -388,6 +420,13 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 
 	app.cliApp.Commands = []*cli.Command{
 		{
+			Name:        "bootstrap",
+			Usage:       "Bootstraps earth bash autocompletion",
+			Description: "Performs initial earth bootstrapping for bash autocompletion",
+			Hidden:      false,
+			Action:      app.actionBootstrap,
+		},
+		{
 			Name:        "debug",
 			Usage:       "Print debug information about an Earthfile",
 			Description: "Print debug information about an Earthfile",
@@ -563,6 +602,10 @@ func (app *earthApp) run(ctx context.Context, args []string) int {
 		return 1
 	}
 	return 0
+}
+
+func (app *earthApp) actionBootstrap(c *cli.Context) error {
+	return app.insertBashCompleteEntry()
 }
 
 func (app *earthApp) actionDebug(c *cli.Context) error {
