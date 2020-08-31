@@ -2,6 +2,6 @@
 steps:
   - label: Test
     commands:
-      - hostname -f
+      - bash ./.buildkite/tests.sh
     agents:
       os: macOS
