@@ -1,0 +1,7 @@
+
+steps:
+  - label: Test
+    commands:
+      - hostname -f
+    agents:
+      os: macOS
