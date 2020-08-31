@@ -12,12 +12,13 @@ export EARTHLY_BUILDKIT_HOST="unix:///run/buildkit/buildkitd.sock"
 
 # Poll for buildkitd readiness.
 i=1
+timeout=30
 while [ ! -S "/run/buildkit/buildkitd.sock" ]; do
     sleep 1
     i=$((i+1))
-    if [ "$i" -gt "10" ]; then
+    if [ "$i" -gt "$timeout" ]; then
         kill -9 "$buildkitd_pid" >/dev/null 2>&1
-        echo "Buildkitd did not start within 10 seconds"
+        echo "Buildkitd did not start within $timeout seconds"
         exit 1
     fi
 done
@@ -29,10 +30,11 @@ exit_code="$?"
 # Shut down buildkitd.
 kill "$buildkitd_pid" >/dev/null 2>&1
 i=1
+timeout=10
 while kill -0 "$buildkitd_pid" >/dev/null 2>&1 ; do
     sleep 1
     i=$((i+1))
-    if [ "$i" -gt "10" ]; then
+    if [ "$i" -gt "$timeout" ]; then
         kill -9 "$buildkitd_pid" >/dev/null 2>&1
     fi
 done
