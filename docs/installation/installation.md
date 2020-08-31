@@ -32,9 +32,13 @@ wget https://github.com/earthly/earthly/releases/latest/download/earth-darwin-am
 
 Alternatively, you may also download the darwin binary from [the releases page](https://github.com/earthly/earthly/releases), rename it to `earth` and place it in your `bin`.
 
-### Windows [experimental]
+### Windows via WSL (**beta**)
 
-Windows native version coming soon. The linux version has been reported to just work on WSL.
+Earthly on Windows requires [Docker Desktop WSL2 backend](https://docs.docker.com/docker-for-windows/wsl/). Under `wsl`, run the following to install `earth`.
+
+```bash
+sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/latest/download/earth-linux-amd64 -O /usr/local/bin/earth && chmod +x /usr/local/bin/earth'
+```
 
 ### CI
 
