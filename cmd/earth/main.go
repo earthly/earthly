@@ -299,7 +299,7 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 		},
 		&cli.StringFlag{
 			Name:        "config",
-			Value:       filepath.Join(os.Getenv("HOME"), ".earthly", "config.yaml"),
+			Value:       defaultConfigPath(),
 			EnvVars:     []string{"EARTHLY_CONFIG"},
 			Usage:       "Path to config file for",
 			Destination: &app.configPath,
@@ -491,7 +491,7 @@ func (app *earthApp) processDeprecatedCommandOptions(context *cli.Context, cfg *
 
 	// command line overrides the config file
 	if app.gitUsernameOverride != "" || app.gitPasswordOverride != "" {
-		app.console.Warnf("Warning: the --git-username and --git-password command flags are deprecated and are now configured in the ~/.earthly/config.yaml file under the git section; see https://docs.earthly.dev/earth-config for reference.\n")
+		app.console.Warnf("Warning: the --git-username and --git-password command flags are deprecated and are now configured in the ~/.earthly/config.yml file under the git section; see https://docs.earthly.dev/earth-config for reference.\n")
 		if _, ok := cfg.Git["github.com"]; !ok {
 			cfg.Git["github.com"] = config.GitConfig{}
 		}
@@ -512,7 +512,7 @@ func (app *earthApp) processDeprecatedCommandOptions(context *cli.Context, cfg *
 	}
 
 	if context.IsSet("git-url-instead-of") {
-		app.console.Warnf("Warning: the --git-url-instead-of command flag is deprecated and is now configured in the ~/.earthly/config.yaml file under the git global url_instead_of setting; see https://docs.earthly.dev/earth-config for reference.\n")
+		app.console.Warnf("Warning: the --git-url-instead-of command flag is deprecated and is now configured in the ~/.earthly/config.yml file under the git global url_instead_of setting; see https://docs.earthly.dev/earth-config for reference.\n")
 	} else {
 		if gitGlobal, ok := cfg.Git["global"]; ok {
 			if gitGlobal.GitURLInsteadOf != "" {
@@ -522,13 +522,13 @@ func (app *earthApp) processDeprecatedCommandOptions(context *cli.Context, cfg *
 	}
 
 	if context.IsSet("no-loop-device") {
-		app.console.Warnf("Warning: the --no-loop-device command flag is deprecated and is now configured in the ~/.earthly/config.yaml file under the no_loop_device setting; see https://docs.earthly.dev/earth-config for reference.\n")
+		app.console.Warnf("Warning: the --no-loop-device command flag is deprecated and is now configured in the ~/.earthly/config.yml file under the no_loop_device setting; see https://docs.earthly.dev/earth-config for reference.\n")
 	} else {
 		app.buildkitdSettings.DisableLoopDevice = cfg.Global.DisableLoopDevice
 	}
 
 	if context.IsSet("buildkit-cache-size-mb") {
-		app.console.Warnf("Warning: the --buildkit-cache-size-mb command flag is deprecated and is now configured in the ~/.earthly/config.yaml file under the buildkit_cache_size setting; see https://docs.earthly.dev/earth-config for reference.\n")
+		app.console.Warnf("Warning: the --buildkit-cache-size-mb command flag is deprecated and is now configured in the ~/.earthly/config.yml file under the buildkit_cache_size setting; see https://docs.earthly.dev/earth-config for reference.\n")
 	} else {
 		app.buildkitdSettings.CacheSizeMb = cfg.Global.BuildkitCacheSizeMb
 	}
@@ -552,7 +552,7 @@ func (app *earthApp) run(ctx context.Context, args []string) int {
 			app.console.Warnf("Error: %v\n", err)
 			app.console.Printf(
 				"Check your git auth settings.\n" +
-					"Did you ssh-add today? Need to configure ~/earthly/config.yaml?\n" +
+					"Did you ssh-add today? Need to configure ~/earthly/config.yml?\n" +
 					"For more information see https://docs.earthly.dev/guides/auth\n")
 		} else {
 			app.console.Warnf("Error: %v\n", err)
@@ -848,6 +848,16 @@ func defaultSSHAuthSock() string {
 		return "/run/host-services/ssh-auth.sock"
 	}
 	return os.Getenv("SSH_AUTH_SOCK")
+}
+
+func defaultConfigPath() string {
+	home := os.Getenv("HOME")
+	oldConfig := filepath.Join(home, ".earthly", "config.yaml")
+	newConfig := filepath.Join(home, ".earthly", "config.yml")
+	if fileExists(oldConfig) && !fileExists(newConfig) {
+		return oldConfig
+	}
+	return newConfig
 }
 
 func fileExists(filename string) bool {
