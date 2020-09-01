@@ -53,7 +53,7 @@ load_images() {
 
 export EARTHLY_WITH_DOCKER=1
 
-# Lock the creation of the docker daemon - only one daemon can be started at a time
+# Lock the creation and destruction of the docker daemon - only one daemon can be started at a time
 # (dockerd race conditions in handling networking setup).
 # shellcheck disable=SC2039
 (
@@ -61,10 +61,19 @@ export EARTHLY_WITH_DOCKER=1
     start_dockerd
     flock -u 200
 ) 200>/var/earthly/dind/lock
+
 load_images
+
 set +e
 "$@"
 exit_code="$?"
 set -e
-stop_dockerd
+
+# shellcheck disable=SC2039
+(
+    flock -x 200
+    stop_dockerd
+    flock -u 200
+) 200>/var/earthly/dind/lock
+
 exit "$exit_code"
