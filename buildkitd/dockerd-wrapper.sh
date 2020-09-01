@@ -61,14 +61,19 @@ export EARTHLY_WITH_DOCKER=1
     start_dockerd
     flock -u 200
 ) 200>/var/earthly/dind/lock
+
 load_images
+
 set +e
 "$@"
 exit_code="$?"
 set -e
+
+# shellcheck disable=SC2039
 (
     flock -x 200
     stop_dockerd
     flock -u 200
 ) 200>/var/earthly/dind/lock
+
 exit "$exit_code"
