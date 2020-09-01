@@ -42,7 +42,7 @@ type GitConfig struct {
 	Password string `yaml:"password"`
 }
 
-// Config contains user's configuration values from ~/earthly/config.yaml
+// Config contains user's configuration values from ~/earthly/config.yml
 type Config struct {
 	Global GlobalConfig         `yaml:"global"`
 	Git    map[string]GitConfig `yaml:"git"`

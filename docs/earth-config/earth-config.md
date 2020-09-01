@@ -2,7 +2,7 @@
 
 Global configuration values for earth can be stored on disk in the configuration file.
 
-By default, earth reads the configuration file `~/.earthly/config.yaml`; however, it can also be
+By default, earth reads the configuration file `~/.earthly/config.yml`; however, it can also be
 overridden with the `--config` command flag option.
 
 ## Format
