@@ -139,12 +139,12 @@ func (app *earthApp) insertBashCompleteEntry() error {
 	}
 	dirPath := filepath.Dir(path)
 
-	if _, err := os.Stat(dirPath); os.IsNotExist(err) {
+	if !dirExists(dirPath) {
 		fmt.Fprintf(os.Stderr, "Warning: unable to enable bash-completion: %s does not exist\n", dirPath)
 		return nil // bash-completion isn't available, silently fail.
 	}
 
-	if _, err := os.Stat(path); err != nil {
+	if fileExists(path) {
 		return nil // file already exists, don't update it.
 	}
 
@@ -155,11 +155,42 @@ func (app *earthApp) insertBashCompleteEntry() error {
 	}
 	defer f.Close()
 	_, err = f.Write([]byte("complete -o nospace -C '/usr/local/bin/earth' earth\n"))
+	return err
+}
+
+// If debugging this, it might be required to run `rm ~/.zcompdump*` to remove the cache
+func (app *earthApp) insertZSHCompleteEntry() error {
+	// should be the same on linux and macOS
+	path := "/usr/local/share/zsh/site-functions/_earth"
+	dirPath := filepath.Dir(path)
+
+	if !dirExists(dirPath) {
+		fmt.Fprintf(os.Stderr, "Warning: unable to enable zsh-completion: %s does not exist\n", dirPath)
+		return nil // zsh-completion isn't available, silently fail.
+	}
+
+	if fileExists(path) {
+		return nil // file already exists, don't update it.
+	}
+
+	// create the completion file
+	f, err := os.Create(path)
 	if err != nil {
 		return err
 	}
-	fmt.Fprintf(os.Stderr, "bash auto completion bootstrapping complete; you may need to run \"source ~/.bashrc\" (or restart your terminal) before continuing.\n")
-	return nil
+	defer f.Close()
+
+	data := `#compdef _earth earth
+
+function _earth {
+    autoload -Uz bashcompinit
+    bashcompinit
+    complete -o nospace -C '/usr/local/bin/earth' earth
+}
+`
+
+	_, err = f.Write([]byte(data))
+	return err
 }
 
 func main() {
@@ -605,7 +636,20 @@ func (app *earthApp) run(ctx context.Context, args []string) int {
 }
 
 func (app *earthApp) actionBootstrap(c *cli.Context) error {
-	return app.insertBashCompleteEntry()
+
+	err := app.insertBashCompleteEntry()
+	if err != nil {
+		return err
+	}
+
+	err = app.insertZSHCompleteEntry()
+	if err != nil {
+		return err
+	}
+
+	fmt.Fprintf(os.Stderr, "Bootstrapping successful; you may have to restart your shell for autocomplete to get initialized (e.g. run \"exec $SHELL\")\n")
+
+	return nil
 }
 
 func (app *earthApp) actionDebug(c *cli.Context) error {
@@ -909,4 +953,12 @@ func fileExists(filename string) bool {
 		return false
 	}
 	return !info.IsDir()
+}
+
+func dirExists(filename string) bool {
+	info, err := os.Stat(filename)
+	if os.IsNotExist(err) {
+		return false
+	}
+	return info.IsDir()
 }
