@@ -17,13 +17,14 @@ For a full list of installation options see the [Installation page](./installati
 ### Linux
 
 ```bash
-sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/latest/download/earth-linux-amd64 -O /usr/local/bin/earth && chmod +x /usr/local/bin/earth'
+sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/latest/download/earth-linux-amd64 -O /usr/local/bin/earth && chmod +x /usr/local/bin/earth && /usr/local/bin/earth bootstrap'
 ```
 
 ### Mac
 
 ```bash
 brew install earthly
+earth bootstrap
 ```
 
 ### VS Code Syntax Highlighting

@@ -93,13 +93,14 @@ For a full list of installation options see the [Installation page](https://docs
 ### Linux
 
 ```bash
-sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/latest/download/earth-linux-amd64 -O /usr/local/bin/earth && chmod +x /usr/local/bin/earth'
+sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/latest/download/earth-linux-amd64 -O /usr/local/bin/earth && chmod +x /usr/local/bin/earth && /usr/local/bin/earth bootstrap'
 ```
 
 ### Mac
 
 ```bash
 brew install earthly
+earth bootstrap
 ```
 
 ### Windows via WSL (**beta**)
@@ -120,13 +121,6 @@ See the [CI integration guide](https://docs.earthly.dev/guides/ci-integration)
 
 ```
 ext install earthly.earthfile-syntax-highlighting
-```
-
-### Bash Autocompletion <span title="Experimental">🧪</span>
-
-```
-echo "complete -o nospace -C `which earth` earth" >> ~/.bashrc
-. ~/.bashrc
 ```
 
 <br/>
