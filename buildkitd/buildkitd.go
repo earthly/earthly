@@ -23,6 +23,8 @@ const (
 	VolumeName = "earthly-cache"
 )
 
+var startStopTimeout = 60 * time.Second
+
 // Address is the address at which the daemon is available.
 var Address = fmt.Sprintf("docker-container://%s", ContainerName)
 
@@ -286,7 +288,7 @@ func IsStarted(ctx context.Context) (bool, error) {
 
 // WaitUntilStarted waits until the buildkitd daemon has started and is healthy.
 func WaitUntilStarted(ctx context.Context, address string) error {
-	ctxTimeout, cancel := context.WithTimeout(ctx, 30*time.Second)
+	ctxTimeout, cancel := context.WithTimeout(ctx, startStopTimeout)
 	defer cancel()
 	for {
 		select {
@@ -314,7 +316,7 @@ func WaitUntilStarted(ctx context.Context, address string) error {
 
 // WaitUntilStopped waits until the buildkitd daemon has stopped.
 func WaitUntilStopped(ctx context.Context) error {
-	ctxTimeout, cancel := context.WithTimeout(ctx, 30*time.Second)
+	ctxTimeout, cancel := context.WithTimeout(ctx, startStopTimeout)
 	defer cancel()
 	for {
 		select {
