@@ -24,6 +24,9 @@ release-github:
     RUN test -n "$RELEASE_TAG" && test -n "$EARTHLY_GIT_HASH"
     COPY --build-arg VERSION=$RELEASE_TAG \
         ../+earth-all/* ./release/
+    RUN ls ./release
+    RUN test -f ./release/earth-linux-amd64 && \
+        test -f ./release/earth-darwin-amd64
     ARG BODY="No details provided"
     RUN --secret GITHUB_TOKEN=+secrets/GITHUB_TOKEN test -n "$GITHUB_TOKEN"
     RUN --push \
