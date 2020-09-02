@@ -11,7 +11,7 @@
 ### Linux
 
 ```bash
-sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/latest/download/earth-linux-amd64 -O /usr/local/bin/earth && chmod +x /usr/local/bin/earth'
+sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/latest/download/earth-linux-amd64 -O /usr/local/bin/earth && chmod +x /usr/local/bin/earth && /usr/local/bin/earth bootstrap'
 ```
 
 Alternatively, you may also download the linux binary from [the releases page](https://github.com/earthly/earthly/releases), rename it to `earth` and place it in your `bin`.
@@ -22,12 +22,13 @@ Alternatively, you may also download the linux binary from [the releases page](h
 
 ```bash
 brew install earthly
+earth bootstrap
 ```
 
 #### Script
 
 ```bash
-wget https://github.com/earthly/earthly/releases/latest/download/earth-darwin-amd64 -O /usr/local/bin/earth && chmod +x /usr/local/bin/earth
+wget https://github.com/earthly/earthly/releases/latest/download/earth-darwin-amd64 -O /usr/local/bin/earth && chmod +x /usr/local/bin/earth && /usr/local/bin/earth bootstrap
 ```
 
 Alternatively, you may also download the darwin binary from [the releases page](https://github.com/earthly/earthly/releases), rename it to `earth` and place it in your `bin`.
