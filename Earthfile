@@ -142,7 +142,7 @@ earth-darwin:
 
 earth-all:
     COPY +earth/earth ./earth-linux-amd64
-    COPY +earth-darwin/earth ./earth-darwin/amd64
+    COPY +earth-darwin/earth ./earth-darwin-amd64
     SAVE ARTIFACT ./*
 
 earth-docker:
