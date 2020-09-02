@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"os"
 	"os/signal"
+	"os/user"
 	"path/filepath"
 	"regexp"
 	"runtime"
@@ -256,9 +257,14 @@ func main() {
 		FullTimestamp: true,
 	})
 	logrus.SetLevel(logrus.InfoLevel)
-	logDir := filepath.Join(os.Getenv("HOME"), ".earthly")
+	currentUser, err := user.Current()
+	if err != nil {
+		fmt.Printf("Error looking up current user: %s\n", err.Error())
+		os.Exit(1)
+	}
+	logDir := filepath.Join(currentUser.HomeDir, ".earthly")
 	logFile := filepath.Join(logDir, "earth.log")
-	err := os.MkdirAll(logDir, 0755)
+	err = os.MkdirAll(logDir, 0755)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Warning: cannot create dir %s\n", logDir)
 	} else {
@@ -938,9 +944,13 @@ func defaultSSHAuthSock() string {
 }
 
 func defaultConfigPath() string {
-	home := os.Getenv("HOME")
-	oldConfig := filepath.Join(home, ".earthly", "config.yaml")
-	newConfig := filepath.Join(home, ".earthly", "config.yml")
+	currentUser, err := user.Current()
+	if err != nil {
+		panic(err)
+	}
+
+	oldConfig := filepath.Join(currentUser.HomeDir, ".earthly", "config.yaml")
+	newConfig := filepath.Join(currentUser.HomeDir, ".earthly", "config.yml")
 	if fileExists(oldConfig) && !fileExists(newConfig) {
 		return oldConfig
 	}

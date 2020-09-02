@@ -68,14 +68,14 @@ func getPotentialTarget(prefix string) ([]string, error) {
 	}
 	dirPath := splits[0]
 
-	user, err := user.Current()
+	currentUser, err := user.Current()
 	if err != nil {
 		return nil, err
 	}
 
 	realDirPath := dirPath
 	if strings.HasPrefix(prefix, "~/") {
-		realDirPath = user.HomeDir + "/" + dirPath[2:]
+		realDirPath = currentUser.HomeDir + "/" + dirPath[2:]
 	}
 
 	targets, err := earthfile2llb.GetTargets(path.Join(realDirPath, "Earthfile"))
@@ -98,7 +98,7 @@ func getPotentialPaths(prefix string) ([]string, error) {
 	if prefix == "." {
 		return []string{"./", "../"}, nil
 	}
-	user, err := user.Current()
+	currentUser, err := user.Current()
 	if err != nil {
 		return nil, err
 	}
@@ -110,11 +110,11 @@ func getPotentialPaths(prefix string) ([]string, error) {
 
 	expandedHomeLen := 0
 	if strings.HasPrefix(prefix, "~") {
-		expandedHomeLen = len(user.HomeDir) + 1
+		expandedHomeLen = len(currentUser.HomeDir) + 1
 		if len(prefix) > 2 {
-			prefix = user.HomeDir + "/" + prefix[2:]
+			prefix = currentUser.HomeDir + "/" + prefix[2:]
 		} else {
-			prefix = user.HomeDir + "/"
+			prefix = currentUser.HomeDir + "/"
 		}
 	}
 
