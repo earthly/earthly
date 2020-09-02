@@ -165,26 +165,26 @@ func (app *earthApp) deleteZcompdump() error {
 	if !found {
 		currentUser, err := user.Current()
 		if err != nil {
-			return err
+			return errors.Wrapf(err, "failed to lookup current user")
 		}
 		homeDir = currentUser.HomeDir
 	} else {
 		currentUser, err := user.Lookup(sudoUser)
 		if err != nil {
-			return err
+			return errors.Wrapf(err, "failed to lookup user %s", sudoUser)
 		}
 		homeDir = currentUser.HomeDir
 	}
 	files, err := ioutil.ReadDir(homeDir)
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "failed to read dir %s", homeDir)
 	}
 	for _, f := range files {
 		if strings.HasPrefix(f.Name(), ".zcompdump") {
 			path := filepath.Join(homeDir, f.Name())
 			err := os.Remove(path)
 			if err != nil {
-				return err
+				return errors.Wrapf(err, "failed to remove %s", path)
 			}
 		}
 	}
