@@ -1,5 +1,0 @@
-FROM docker:19.03.7-dind
-test:
-    WITH DOCKER
-        RUN docker run hello-world
-    END

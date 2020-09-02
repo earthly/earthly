@@ -36,7 +36,7 @@ jobs:
       - name: Build latest earth using released earth
         run: earth +for-linux
       - name: Execute experimental tests
-        run: ./build/linux/amd64/earth --no-output -P ./examples/tests+experimental
+        run: ./build/linux/amd64/earth --no-output -P ./examples/tests/with-docker+all
       - name: Docker Login
         run: docker login --username vladaionescu --password "${{ secrets.DOCKERHUB_TOKEN }}"
         if: github.event.pull_request.head.repo.full_name == github.repository
