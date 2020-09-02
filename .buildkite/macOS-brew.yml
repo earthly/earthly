@@ -2,6 +2,6 @@
 steps:
   - label: Test
     commands:
-      - bash ./brew-upgrade-test.sh
+      - bash ./.buildkite/brew-upgrade-test.sh
     agents:
       os: macOS
