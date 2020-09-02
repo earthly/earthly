@@ -181,6 +181,19 @@ Instructs earth to issue a "prune all" command to the buildkit daemon.
 
 Restarts the buildkit daemon and completely resets the cache directory.
 
+## earth bootstrap
+
+#### Synopsis
+
+* ```
+  earth bootstrap
+  ```
+
+#### Description
+
+Installs bash and zsh shell completion for earth.
+
+
 ## earth --help
 
 #### Synopsis
