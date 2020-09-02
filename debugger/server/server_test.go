@@ -19,22 +19,22 @@ func TestServer(t *testing.T) {
 	// first open terminal
 	termConn, err := net.Dial("tcp", addr)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 	_, err = termConn.Write([]byte{common.TermID})
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	// then the shell terminal
 	shellConn, err := net.Dial("tcp", addr)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	_, err = shellConn.Write([]byte{common.ShellID})
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	inputStr := "hello world"
@@ -42,18 +42,18 @@ func TestServer(t *testing.T) {
 	// send data from shell to term
 	_, err = shellConn.Write([]byte(inputStr))
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	buf := make([]byte, 100)
 	n, err := termConn.Read(buf)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 	outputStr := string(buf[:n])
 
 	if inputStr != outputStr {
-		t.Error(fmt.Sprintf("want %v; got %v", inputStr, outputStr))
+		t.Fatal(fmt.Sprintf("want %v; got %v", inputStr, outputStr))
 	}
 
 }
