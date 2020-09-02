@@ -102,9 +102,13 @@ sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/latest/downloa
 brew install earthly
 ```
 
-### Windows <span title="Experimental">🧪</span>
+### Windows via WSL (**beta**)
   
-Use the Linux version via WSL. Note that support for Windows is experimental for now.
+Earthly on Windows requires [Docker Desktop WSL2 backend](https://docs.docker.com/docker-for-windows/wsl/). Under `wsl`, run the following to install `earth`.
+
+```bash
+sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/latest/download/earth-linux-amd64 -O /usr/local/bin/earth && chmod +x /usr/local/bin/earth'
+```
 
 ### Your CI
 
