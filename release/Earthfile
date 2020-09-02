@@ -29,8 +29,6 @@ release-github:
         test -f ./release/earth-darwin-amd64
     ARG BODY="No details provided"
     RUN --secret GITHUB_TOKEN=+secrets/GITHUB_TOKEN test -n "$GITHUB_TOKEN"
-    RUN ls -la ./release
-    RUN asdf
     RUN --push \
         --secret GITHUB_TOKEN=+secrets/GITHUB_TOKEN \
         github-release upload \
