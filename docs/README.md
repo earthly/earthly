@@ -27,6 +27,14 @@ brew install earthly
 earth bootstrap
 ```
 
+### Windows via WSL (**beta**)
+
+Earthly on Windows requires [Docker Desktop WSL2 backend](https://docs.docker.com/docker-for-windows/wsl/). Under `wsl`, run the following to install `earth`.
+
+```bash
+sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/latest/download/earth-linux-amd64 -O /usr/local/bin/earth && chmod +x /usr/local/bin/earth && /usr/local/bin/earth bootstrap'
+```
+
 ### VS Code Syntax Highlighting
 
 Visit [Earthfile Syntax Highlighting](https://marketplace.visualstudio.com/items?itemName=earthly.earthfile-syntax-highlighting) or issue the VS Code command
