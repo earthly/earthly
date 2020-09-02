@@ -33,10 +33,7 @@ ga:
     BUILD +dotenv-test
 
 experimental:
-    BUILD +docker-load-test
-    BUILD +dind-test
-    BUILD +docker-pull-test
-    BUILD +load-parallel-test
+    BUILD ./with-docker+all
 
 experimental-old:
     BUILD +docker-load-test-old
@@ -213,34 +210,6 @@ star-test-todo:
     RUN cached_lines=$(cat output.txt | grep cached | wc -l); \
         echo "cached_lines=$cached_lines"; \
         test "$cached_lines" == "6"
-
-docker-load-test:
-    COPY docker-load.earth ./Earthfile
-    RUN --privileged \
-        --entrypoint \
-        --mount=type=tmpfs,target=/tmp/earthly \
-        -- --allow-privileged +test
-
-dind-test:
-    COPY dind.earth ./Earthfile
-    RUN --privileged \
-        --entrypoint \
-        --mount=type=tmpfs,target=/tmp/earthly \
-        -- --allow-privileged +test
-
-docker-pull-test:
-    COPY docker-pull.earth ./Earthfile
-    RUN --privileged \
-        --entrypoint \
-        --mount=type=tmpfs,target=/tmp/earthly \
-        -- --allow-privileged +test
-
-load-parallel-test:
-    COPY load-parallel.earth ./Earthfile
-    RUN --privileged \
-        --entrypoint \
-        --mount=type=tmpfs,target=/tmp/earthly \
-        -- --allow-privileged +test
 
 docker-load-test-old:
     COPY docker-load-old.earth ./Earthfile
