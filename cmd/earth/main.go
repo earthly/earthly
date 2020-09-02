@@ -159,6 +159,38 @@ func (app *earthApp) insertBashCompleteEntry() error {
 	return err
 }
 
+func (app *earthApp) deleteZcompdump() error {
+	var homeDir string
+	sudoUser, found := os.LookupEnv("SUDO_USER")
+	if !found {
+		currentUser, err := user.Current()
+		if err != nil {
+			return errors.Wrapf(err, "failed to lookup current user")
+		}
+		homeDir = currentUser.HomeDir
+	} else {
+		currentUser, err := user.Lookup(sudoUser)
+		if err != nil {
+			return errors.Wrapf(err, "failed to lookup user %s", sudoUser)
+		}
+		homeDir = currentUser.HomeDir
+	}
+	files, err := ioutil.ReadDir(homeDir)
+	if err != nil {
+		return errors.Wrapf(err, "failed to read dir %s", homeDir)
+	}
+	for _, f := range files {
+		if strings.HasPrefix(f.Name(), ".zcompdump") {
+			path := filepath.Join(homeDir, f.Name())
+			err := os.Remove(path)
+			if err != nil {
+				return errors.Wrapf(err, "failed to remove %s", path)
+			}
+		}
+	}
+	return nil
+}
+
 // If debugging this, it might be required to run `rm ~/.zcompdump*` to remove the cache
 func (app *earthApp) insertZSHCompleteEntry() error {
 	// should be the same on linux and macOS
@@ -189,9 +221,12 @@ function _earth {
     complete -o nospace -C '/usr/local/bin/earth' earth
 }
 `
-
 	_, err = f.Write([]byte(data))
-	return err
+	if err != nil {
+		return err
+	}
+
+	return app.deleteZcompdump()
 }
 
 func main() {
