@@ -2,7 +2,7 @@
 
 set -xeuo pipefail
 
-brew upgrade earth
+brew upgrade earthly
 earth bootstrap
 
 earth --version
