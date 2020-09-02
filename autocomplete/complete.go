@@ -3,6 +3,7 @@ package autocomplete
 import (
 	"io/ioutil"
 	"os"
+	"os/user"
 	"path"
 	"strings"
 
@@ -52,7 +53,7 @@ func trimFlag(prefix string) (string, bool) {
 }
 
 func isLocalPath(path string) bool {
-	for _, prefix := range []string{".", "..", "/"} {
+	for _, prefix := range []string{".", "..", "/", "~"} {
 		if strings.HasPrefix(path, prefix) {
 			return true
 		}
@@ -67,7 +68,17 @@ func getPotentialTarget(prefix string) ([]string, error) {
 	}
 	dirPath := splits[0]
 
-	targets, err := earthfile2llb.GetTargets(path.Join(dirPath, "Earthfile"))
+	currentUser, err := user.Current()
+	if err != nil {
+		return nil, err
+	}
+
+	realDirPath := dirPath
+	if strings.HasPrefix(prefix, "~/") {
+		realDirPath = currentUser.HomeDir + "/" + dirPath[2:]
+	}
+
+	targets, err := earthfile2llb.GetTargets(path.Join(realDirPath, "Earthfile"))
 	if err != nil {
 		return nil, err
 	}
@@ -87,7 +98,34 @@ func getPotentialPaths(prefix string) ([]string, error) {
 	if prefix == "." {
 		return []string{"./", "../"}, nil
 	}
+	currentUser, err := user.Current()
+	if err != nil {
+		return nil, err
+	}
+
+	// TODO expand this logic to support other users
+	if prefix == "~" {
+		prefix = "~/"
+	}
+
+	expandedHomeLen := 0
+	if strings.HasPrefix(prefix, "~") {
+		expandedHomeLen = len(currentUser.HomeDir) + 1
+		if len(prefix) > 2 {
+			prefix = currentUser.HomeDir + "/" + prefix[2:]
+		} else {
+			prefix = currentUser.HomeDir + "/"
+		}
+	}
+
 	dir, f := path.Split(prefix)
+
+	replaceHomePrefix := func(s string) string {
+		if expandedHomeLen == 0 {
+			return s
+		}
+		return "~/" + s[expandedHomeLen:]
+	}
 
 	files, err := ioutil.ReadDir(dir)
 	if err != nil {
@@ -103,10 +141,10 @@ func getPotentialPaths(prefix string) ([]string, error) {
 					s = "./" + s
 				}
 				if hasEarthfile(s) {
-					paths = append(paths, s+"+")
+					paths = append(paths, replaceHomePrefix(s)+"+")
 				}
 				if hasSubDirs(s) {
-					paths = append(paths, s+"/")
+					paths = append(paths, replaceHomePrefix(s)+"/")
 				}
 			}
 		}
