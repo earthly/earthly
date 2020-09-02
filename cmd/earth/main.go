@@ -581,8 +581,8 @@ func (app *earthApp) before(context *cli.Context) error {
 		}
 	}
 
-	if _, err := os.Stat(cfg.Global.RunPath); os.IsNotExist(err) {
-		err := os.Mkdir(cfg.Global.RunPath, 0755)
+	if !dirExists(cfg.Global.RunPath) {
+		err := os.MkdirAll(cfg.Global.RunPath, 0755)
 		if err != nil {
 			return errors.Wrapf(err, "failed to create run directory %s", cfg.Global.RunPath)
 		}
