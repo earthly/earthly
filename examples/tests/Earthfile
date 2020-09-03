@@ -1,4 +1,8 @@
 FROM ../..+earth-docker
+
+RUN apk add --update --no-cache \
+    perl
+
 WORKDIR /test
 
 all:
@@ -246,7 +250,7 @@ fail-test:
     # test that the 'failed with exit code' text is printed out
     RUN --privileged \
         --mount=type=tmpfs,target=/tmp/earthly \
-        /usr/bin/earth-buildkitd-wrapper.sh +test 2>&1 | grep 'this-will-fail'
+        /usr/bin/earth-buildkitd-wrapper.sh +test 2>&1 | perl -pe 'BEGIN {$status=1} END {exit $status} $status=0 if /this-will-fail/;'
 
 fail-push-test:
     COPY fail.earth ./Earthfile
@@ -257,7 +261,7 @@ fail-push-test:
     # test that the 'failed with exit code' text is printed out
     RUN --privileged \
         --mount=type=tmpfs,target=/tmp/earthly \
-        /usr/bin/earth-buildkitd-wrapper.sh --push +test-push 2>&1 | grep 'this-too-will-fail'
+        /usr/bin/earth-buildkitd-wrapper.sh --push +test-push 2>&1 | perl -pe 'BEGIN {$status=1} END {exit $status} $status=0 if /this-too-will-fail/;'
     RUN echo hello world
 
 push-test:
