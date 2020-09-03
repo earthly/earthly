@@ -2,7 +2,7 @@ package config
 
 import (
 	"fmt"
-	"os/user"
+	"os"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -155,9 +155,9 @@ func CreateGitConfig(config *Config) (string, []string, error) {
 }
 
 func defaultRunPath() string {
-	currentUser, err := user.Current()
+	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		panic(err)
 	}
-	return filepath.Join(currentUser.HomeDir, ".earthly/run")
+	return filepath.Join(homeDir, ".earthly/run")
 }

@@ -163,11 +163,11 @@ func (app *earthApp) deleteZcompdump() error {
 	var homeDir string
 	sudoUser, found := os.LookupEnv("SUDO_USER")
 	if !found {
-		currentUser, err := user.Current()
+		var err error
+		homeDir, err = os.UserHomeDir()
 		if err != nil {
-			return errors.Wrapf(err, "failed to lookup current user")
+			return errors.Wrapf(err, "failed to lookup current user home dir")
 		}
-		homeDir = currentUser.HomeDir
 	} else {
 		currentUser, err := user.Lookup(sudoUser)
 		if err != nil {
@@ -292,12 +292,12 @@ func main() {
 		FullTimestamp: true,
 	})
 	logrus.SetLevel(logrus.InfoLevel)
-	currentUser, err := user.Current()
+	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		fmt.Printf("Error looking up current user: %s\n", err.Error())
 		os.Exit(1)
 	}
-	logDir := filepath.Join(currentUser.HomeDir, ".earthly")
+	logDir := filepath.Join(homeDir, ".earthly")
 	logFile := filepath.Join(logDir, "earth.log")
 	err = os.MkdirAll(logDir, 0755)
 	if err != nil {
@@ -979,13 +979,13 @@ func defaultSSHAuthSock() string {
 }
 
 func defaultConfigPath() string {
-	currentUser, err := user.Current()
+	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		panic(err)
 	}
 
-	oldConfig := filepath.Join(currentUser.HomeDir, ".earthly", "config.yaml")
-	newConfig := filepath.Join(currentUser.HomeDir, ".earthly", "config.yml")
+	oldConfig := filepath.Join(homeDir, ".earthly", "config.yaml")
+	newConfig := filepath.Join(homeDir, ".earthly", "config.yml")
 	if fileExists(oldConfig) && !fileExists(newConfig) {
 		return oldConfig
 	}
