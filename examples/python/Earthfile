@@ -1,16 +1,22 @@
-FROM python
+FROM python:3
 WORKDIR /code
 
+deps:
+    RUN pip install wheel
+    COPY requirements.txt ./
+    RUN pip wheel -r requirements.txt --wheel-dir=wheels
+    SAVE IMAGE
+
 build:
-    COPY setup.py ./
+    FROM +deps
     COPY src src
-    RUN pip3 install --user .
-    SAVE ARTIFACT ~/.local ~/.local 
-    SAVE ARTIFACT src /dist AS LOCAL dist
+    SAVE ARTIFACT src /src
+    SAVE ARTIFACT wheels /wheels
 
 docker:
-    COPY +build/dist dist
-    COPY +build/root/.local root/.local
-    ENV PATH=/root/.local/bin:$PATH
-    ENTRYPOINT ["python3", "./dist/hello.py"]
+    COPY +build/src src
+    COPY +build/wheels wheels
+    COPY requirements.txt ./
+    RUN pip install --no-index --find-links=wheels -r requirements.txt
+    ENTRYPOINT ["python3", "./src/hello.py"]
     SAVE IMAGE python-example:latest
