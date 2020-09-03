@@ -1,0 +1,16 @@
+FROM python
+WORKDIR /code
+
+build:
+    COPY setup.py ./
+    COPY src src
+    RUN pip3 install --user .
+    SAVE ARTIFACT ~/.local ~/.local 
+    SAVE ARTIFACT src /dist AS LOCAL dist
+
+docker:
+    COPY +build/dist dist
+    COPY +build/root/.local root/.local
+    ENV PATH=/root/.local/bin:$PATH
+    ENTRYPOINT ["python3", "./dist/hello.py"]
+    SAVE IMAGE python-example:latest
