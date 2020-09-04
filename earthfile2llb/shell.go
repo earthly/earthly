@@ -7,6 +7,8 @@ import (
 	"strings"
 )
 
+const debuggerPath = "/usr/bin/earth_debugger"
+
 func splitWildcards(name string) (string, string) {
 	i := 0
 	for ; i < len(name); i++ {
@@ -28,38 +30,42 @@ func splitWildcards(name string) (string, string) {
 	return path.Dir(name[:i]), base + name[i:]
 }
 
-func withShell(args []string, isWithShell bool) []string {
-	if isWithShell {
+func withShell(args []string, withShell bool) []string {
+	if withShell {
 		return []string{"/bin/sh", "-c", strings.Join(args, " ")}
 	}
 	return args
 }
 
-func strWithEnvVars(args []string, envVars []string, isWithShell bool) string {
-	if isWithShell {
+func strWithEnvVars(args []string, envVars []string, withShell bool, withDebugger bool) string {
+	var cmdParts []string
+	cmdParts = append(cmdParts, strings.Join(envVars, " "))
+	if withDebugger {
+		cmdParts = append(cmdParts, debuggerPath)
+	}
+	if withShell {
 		var escapedArgs []string
 		for _, arg := range args {
 			escapedArgs = append(escapedArgs, escapeShellSingleQuotes(arg))
 		}
-		return strings.Join(
-			[]string{
-				strings.Join(envVars, " "),
-				"/bin/sh", "-c",
-				fmt.Sprintf("'%s'", strings.Join(escapedArgs, " ")),
-			}, " ")
+		cmdParts = append(cmdParts, "/bin/sh", "-c")
+		cmdParts = append(cmdParts, fmt.Sprintf("'%s'", strings.Join(escapedArgs, " ")))
+	} else {
+		cmdParts = append(cmdParts, args...)
 	}
-	return strings.Join(append([]string{strings.Join(envVars, " ")}, args...), " ")
-
+	return strings.Join(cmdParts, " ")
 }
 
-func withShellAndEnvVars(args []string, envVars []string, isWithShell bool) []string {
+type shellWrapFun func(args []string, envVars []string, withShell bool, withDebugger bool) []string
+
+func withShellAndEnvVars(args []string, envVars []string, withShell bool, withDebugger bool) []string {
 	return []string{
 		"/bin/sh", "-c",
-		strWithEnvVars(args, envVars, isWithShell),
+		strWithEnvVars(args, envVars, withShell, withDebugger),
 	}
 }
 
-func withDockerdWrap(args []string, envVars []string, isWithShell bool) []string {
+func withDockerdWrapOld(args []string, envVars []string, withShell bool, withDebugger bool) []string {
 	return []string{
 		"/bin/sh", "-c",
 		"/bin/sh <<EOF" +
@@ -81,7 +87,7 @@ func withDockerdWrap(args []string, envVars []string, isWithShell bool) []string
 			"let i+=1\n" +
 			"done\n" +
 			// Run provided args.
-			strWithEnvVars(args, envVars, isWithShell) + "\n" +
+			strWithEnvVars(args, envVars, withShell, withDebugger) + "\n" +
 			"exit_code=\"\\$?\"\n" +
 			// Shut down dockerd.
 			"kill \"\\$dockerd_pid\" &>/dev/null\n" +
@@ -93,11 +99,6 @@ func withDockerdWrap(args []string, envVars []string, isWithShell bool) []string
 			"kill -9 \"\\$dockerd_pid\" &>/dev/null\n" +
 			"fi\n" +
 			"done\n" +
-			"rm -f /var/run/docker.sock\n" +
-			// TODO: This should not be necessary.
-			"rm -rf /var/lib/docker/tmp\n" +
-			"rm -rf /var/lib/docker/runtimes\n" +
-			"find /tmp/earthly -type f -name '*.sock' -rm\n" +
 			// Exit with right code.
 			"exit \"\\$exit_code\"\n" +
 			"EOF",
@@ -106,31 +107,4 @@ func withDockerdWrap(args []string, envVars []string, isWithShell bool) []string
 
 func escapeShellSingleQuotes(arg string) string {
 	return strings.Replace(arg, "'", "'\"'\"'", -1)
-}
-
-func parseKeyValue(env string) (string, string) {
-	parts := strings.SplitN(env, "=", 2)
-	v := ""
-	if len(parts) > 1 {
-		v = parts[1]
-	}
-
-	return parts[0], v
-}
-
-func addEnv(envVars []string, key, value string) []string {
-	// Note that this mutates the original slice.
-	found := false
-	for i, envVar := range envVars {
-		k, _ := parseKeyValue(envVar)
-		if k == key {
-			envVars[i] = fmt.Sprintf("%s=%s", key, value)
-			found = true
-			break
-		}
-	}
-	if !found {
-		envVars = append(envVars, fmt.Sprintf("%s=%s", key, value))
-	}
-	return envVars
 }

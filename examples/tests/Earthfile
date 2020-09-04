@@ -1,0 +1,333 @@
+FROM ../..+earth-docker
+
+RUN apk add --update --no-cache \
+    perl
+
+WORKDIR /test
+
+all:
+    BUILD +ga
+    BUILD +experimental
+    BUILD +experimental-old
+
+ga:
+    BUILD +privileged-test
+    BUILD +cache-test
+    BUILD +git-clone-test
+    BUILD +builtin-args-test
+    BUILD +config-test
+    BUILD +excludes-test
+    BUILD +secrets-test
+    BUILD +build-arg-test
+    BUILD +lc-test
+    BUILD +from-expose-test
+    BUILD +scratch-test
+    BUILD +build-earth-test
+    BUILD +host-bind-test
+    BUILD +remote-test
+    BUILD +transitive-args-test
+    BUILD +non-transitive-args-test
+    BUILD +star-test
+    BUILD +dockerfile-test
+    BUILD +fail-test
+    BUILD +fail-push-test
+    BUILD +push-test
+    BUILD +gen-dockerfile-test
+    BUILD +chown-test
+    BUILD +dotenv-test
+
+experimental:
+    BUILD ./with-docker+all
+
+experimental-old:
+    BUILD +docker-load-test-old
+    BUILD +dind-test-old
+    BUILD +docker-pull-test-old
+
+privileged-test:
+    COPY privileged.earth ./Earthfile
+    RUN --privileged \
+        --entrypoint \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        -- --allow-privileged +test
+
+cache-test:
+    COPY cache1.earth ./Earthfile
+    RUN --privileged \
+        --entrypoint \
+        -- +test
+    COPY cache2.earth ./Earthfile
+    RUN --privileged \
+        --entrypoint \
+        -- +test
+
+git-clone-test:
+    COPY git-clone.earth ./Earthfile
+    RUN --privileged \
+        --entrypoint \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        -- +test
+
+builtin-args-test:
+    COPY builtin-args.earth ./Earthfile
+    RUN --privileged \
+        --entrypoint \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        -- +builtin-args-test
+
+config-test:
+    COPY config.earth ./Earthfile
+    RUN --privileged \
+        --entrypoint \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        -- +test
+
+excludes-test:
+    COPY excludes.earth ./Earthfile
+    RUN touch exclude-me.txt
+    RUN touch do-not-exclude-me.txt
+    RUN echo 'exclude-me.txt' > .earthignore
+    RUN --privileged \
+        --entrypoint \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        -- +test
+
+secrets-test:
+    COPY secrets.earth ./Earthfile
+    ENV SECRET1=foo
+    ENV SECRET2=wrong
+    RUN --privileged \
+        --entrypoint \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        -- --secret SECRET1 --secret SECRET2=bar +test
+
+build-arg-test:
+    COPY build-arg.earth ./Earthfile
+    RUN --privileged \
+        --entrypoint \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        -- +test
+
+lc-test:
+    COPY lc.earth ./Earthfile
+    RUN --privileged \
+        --entrypoint \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        -- +test
+
+from-expose-test:
+    COPY from-expose.earth ./Earthfile
+    RUN --privileged \
+        --entrypoint \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        -- --no-output +test
+
+scratch-test:
+    COPY scratch-test.earth ./Earthfile
+    RUN --privileged \
+        --entrypoint \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        -- --no-output +test
+
+build-earth-test:
+    # Test that build.earth is supported.
+    COPY config.earth ./build.earth
+    RUN --privileged \
+        --entrypoint \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        -- +test
+
+host-bind-test:
+    RUN mkdir /bind-test
+    RUN echo "a" > /bind-test/a.txt
+    COPY host-bind.earth ./Earthfile
+    RUN --privileged \
+        --entrypoint \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        -- +test
+    RUN test -f /bind-test/b.txt
+    RUN cat /bind-test/b.txt
+
+remote-test:
+    ENV GIT_URL_INSTEAD_OF="https://github.com/=git@github.com:"
+    RUN --privileged \
+        --entrypoint \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        -- --no-output github.com/earthly/hello-world+hello
+
+transitive-args-test:
+    COPY transitive-args.earth ./Earthfile
+    RUN --privileged \
+        --entrypoint \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        -- --build-arg SOMEARG=def +test
+    RUN ls
+    RUN test -f ./abc && test -f ./def && test ! -f ./default
+
+non-transitive-args-test:
+    COPY non-transitive-args1.earth ./Earthfile
+    COPY non-transitive-args2.earth ./subdir/Earthfile
+    # Should not override if transitive and corssing project boundaries.
+    RUN --privileged \
+        --entrypoint \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        -- --build-arg SOMEARG=def +test
+    RUN ls ./subdir
+    RUN test -f ./subdir/default && test ! -f ./subdir/def && test ! -f ./subdir/abc
+    RUN rm ./subdir/default
+    # Should override, if override is direct.
+    RUN --privileged \
+        --entrypoint \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        -- --build-arg SOMEARG=xyz ./subdir+arg-target
+    RUN ls ./subdir
+    RUN test -f ./subdir/xyz && test ! -f ./subdir/default
+    RUN --privileged \
+        --entrypoint \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        -- +direct
+    RUN ls ./subdir
+    RUN test -f ./subdir/direct && test ! -f ./subdir/default
+
+star-test:
+    COPY star.earth ./Earthfile
+    RUN touch a.txt b.txt c.nottxt
+    RUN --privileged \
+        --entrypoint \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        -- +test
+
+# TODO: This does not pass.
+star-test-todo:
+    COPY star.earth ./Earthfile
+    RUN touch a.txt b.txt c.nottxt
+    RUN --privileged \
+        --entrypoint \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        -- +test
+    RUN echo "a change" > c.nottxt
+    RUN --privileged \
+        --entrypoint \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        -- +test >output.txt
+    RUN cat output.txt
+    RUN cached_lines=$(cat output.txt | grep cached | wc -l); \
+        echo "cached_lines=$cached_lines"; \
+        test "$cached_lines" == "6"
+
+docker-load-test-old:
+    COPY docker-load-old.earth ./Earthfile
+    RUN --privileged \
+        --entrypoint \
+        -- --allow-privileged +test
+
+dind-test-old:
+    COPY dind-old.earth ./Earthfile
+    RUN --privileged \
+        --entrypoint \
+        -- --allow-privileged +test
+
+docker-pull-test-old:
+    COPY docker-pull-old.earth ./Earthfile
+    RUN --privileged \
+        --entrypoint \
+        -- --allow-privileged +test
+
+dockerfile-test:
+    COPY --dir dockerfile ./
+    WORKDIR /test/dockerfile
+    RUN --privileged \
+        --entrypoint \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        -- --no-output +test
+
+fail-test:
+    COPY fail.earth ./Earthfile
+    # test that an error code is correctly returned
+    RUN --privileged \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        ! /usr/bin/earth-buildkitd-wrapper.sh +test
+    # test that the 'failed with exit code' text is printed out
+    RUN --privileged \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        /usr/bin/earth-buildkitd-wrapper.sh +test 2>&1 | perl -pe 'BEGIN {$status=1} END {exit $status} $status=0 if /this-will-fail/;'
+
+fail-push-test:
+    COPY fail.earth ./Earthfile
+    # test that an error code is correctly returned
+    RUN --privileged \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        ! /usr/bin/earth-buildkitd-wrapper.sh --push +test-push
+    # test that the 'failed with exit code' text is printed out
+    RUN --privileged \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        /usr/bin/earth-buildkitd-wrapper.sh --push +test-push 2>&1 | perl -pe 'BEGIN {$status=1} END {exit $status} $status=0 if /this-too-will-fail/;'
+    RUN echo hello world
+
+push-test:
+    COPY push.earth ./Earthfile
+    RUN --privileged \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        /usr/bin/earth-buildkitd-wrapper.sh +push-test | grep 'Use earth --push to enable pushing'
+    RUN --privileged \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        /usr/bin/earth-buildkitd-wrapper.sh --push +push-test | grep 'hello world'
+
+private-image-test:
+    FROM vladaionescu/private-test:latest
+    RUN --entrypoint echo hello world
+
+gen-dockerfile-test:
+    COPY gen-dockerfile.earth ./Earthfile
+    RUN --privileged \
+        --entrypoint \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        -- --no-output +test
+
+chown-test:
+    COPY chown.earth ./Earthfile
+    RUN echo "test" > ./a.txt
+    RUN --privileged \
+        --entrypoint \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        -- --no-output +test
+
+dotenv-test:
+    COPY dotenv.earth ./Earthfile
+    RUN echo "TEST_ENV_1=abracadabra" >.env
+    RUN echo "TEST_ENV_2=foo" >>.env
+    RUN echo "TEST_ENV_3=bar" >>.env
+    RUN --privileged \
+        --entrypoint \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        -- --no-output +test
+    # Smoke test that no .env file does not result in an error.
+    RUN rm .env
+    RUN --privileged \
+        --entrypoint \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        -- --no-output +test-no-dotenv
+
+eine-test-base:
+    FROM docker:19.03.12-dind
+    RUN apk --update --no-cache add git
+    COPY ../..+earth/earth /usr/local/bin/
+    ENV EARTHLY_BUILDKIT_IMAGE=earthly/buildkitd:dind-test
+    WORKDIR /test
+    SAVE IMAGE
+
+eine-config-test:
+    FROM +eine-test-base
+    COPY config.earth ./Earthfile
+    WITH DOCKER
+        DOCKER LOAD ../../buildkitd+buildkitd earthly/buildkitd:dind-test
+        RUN earth +test
+    END
+
+eine-privileged-test:
+    FROM +eine-test-base
+    COPY privileged.earth ./Earthfile
+    WITH DOCKER
+        DOCKER LOAD ../../buildkitd+buildkitd earthly/buildkitd:dind-test
+        RUN earth --allow-privileged +test
+    END

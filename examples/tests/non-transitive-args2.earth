@@ -1,0 +1,5 @@
+FROM alpine:3.11
+arg-target:
+    ARG SOMEARG=default
+    RUN echo content >file.txt
+    SAVE ARTIFACT file.txt AS LOCAL "$SOMEARG"

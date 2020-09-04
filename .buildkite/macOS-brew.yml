@@ -1,0 +1,7 @@
+
+steps:
+  - label: Test
+    commands:
+      - bash ./.buildkite/brew-upgrade-test.sh
+    agents:
+      os: macOS

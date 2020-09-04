@@ -5,7 +5,7 @@ In this example, we will walk through a simple C++ app that uses CMake.
 Let's assume our code is structured as follows:
 ```
 .
-├── build.earth
+├── Earthfile
 └── src
     ├── CMakeLists.txt
     ├── fib.cpp
@@ -55,10 +55,10 @@ add_executable(fibonacci main.cpp fib.cpp)
 
 CMake caches object files under CMakeFiles which allows CMake to only recompile objects when the corresponding
 source code changes. We will use a [mount-based cache](../guides/advanced-caching.md) to cache these temporary
-files to allow for faster builds on a local machine. Here's a sample `build.earth` file:
+files to allow for faster builds on a local machine. Here's a sample `Earthfile`:
 
 ```Dockerfile
-# build.earth
+# Earthfile
 FROM ubuntu:20.10
 
 # configure apt to be noninteractive

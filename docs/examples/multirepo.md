@@ -8,12 +8,12 @@ In this example, we will walk through a simple multirepo setup that can be used 
 
 In this example, let's assume that we have a web application where HTML files are held in one repository and JS file are held in another. The complete application is a combination of both.
 
-As such, each repository might have its self-contained `build.earth` file, specific to the programming language and setup of the repository. A third, main, repository might want to tie everything together in a complete web application.
+As such, each repository might have its self-contained `Earthfile`, specific to the programming language and setup of the repository. A third, main, repository might want to tie everything together in a complete web application.
 
-Here is an example of what the main repository's `build.earth` might look like
+Here is an example of what the main repository's `Earthfile` might look like
 
 ```Dockerfile
-# build.earth
+# Earthfile
 
 FROM node:13.10.1-alpine3.11
 WORKDIR /example-multirepo

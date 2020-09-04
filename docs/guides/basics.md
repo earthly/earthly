@@ -6,7 +6,7 @@ First, a few concepts:
 
 * Earthly - the build automation system as a whole
 * `earth` - the CLI tool used to interact with Earthly
-* earthfile - a file named `build.earth`, which contains a series of targets and their respective recipes
+* Earthfile - a file (named literally `Earthfile`) which contains a series of targets and their respective recipes
 * buildkitd - a [daemon built by the Docker team](https://github.com/moby/buildkit) and used by Earthly to execute builds. It executes LLB, the same low-level primitives used when building Dockerfiles. The buildkitd daemon is started automatically in a docker container, by `earth`, when executing builds.
 * recipe - a specific series of build steps
 * target - the label used to identify a recipe. 'Target' is also used to refer to a build of a specific target.
@@ -22,16 +22,20 @@ A key difference from a Dockerfile build is that Earthly can be used to build no
 
 One of the key principles of Earthly is that the best build tooling of a specific language is built by the community of that language itself. Earthly does not intend to replace that tooling, but rather to leverage and augment it.
 
+## Installation
+
+Before going any further, it is advisable that you install `earth` on your computer, so you can follow along and try out the examples. See the [installation page](../installation/installation.md).
+
 ## A simple Earthfile
 
-Earthfiles are always named `build.earth`, regardless of their location in the codebase.
+Earthfiles are always named `Earthfile`, regardless of their location in the codebase.
 
 {% method %}
 {% sample lang="Go" %}
 Here is a sample earthfile of a Go app
 
 ```Dockerfile
-# build.earth
+# Earthfile
 
 FROM golang:1.13-alpine3.11
 WORKDIR /go-example
@@ -65,7 +69,7 @@ func main() {
 Here is a sample earthfile of a JS app
 
 ```Dockerfile
-# build.earth
+# Earthfile
 
 FROM node:13.10.1-alpine3.11
 WORKDIR /js-example
@@ -74,7 +78,7 @@ build:
     # In JS, there's nothing to build in this simple form.
     # The source is also the artifact used in production.
     COPY index.js .
-    SAVE ARTIFACT index.js /dist/index.js AS LOCAL /dist/index.js
+    SAVE ARTIFACT index.js /dist/index.js AS LOCAL ./dist/index.js
 
 docker:
     COPY +build/dist dist
@@ -94,7 +98,7 @@ console.log("hello world");
 Here is a sample earthfile of a Java app
 
 ```Dockerfile
-# build.earth
+# Earthfile
 
 FROM openjdk:8-jdk-alpine
 RUN apk add --update --no-cache gradle
@@ -128,7 +132,33 @@ public class HelloWorld {
     }
 }
 ```
+{% sample lang="Python" %}
+Here is a sample earthfile of a Python app
 
+```Dockerfile
+# Earthfile
+
+FROM python:3
+WORKDIR /code
+
+build:
+     # In Python, there's nothing to build.
+    COPY src src
+    SAVE ARTIFACT src /src
+
+docker:
+    COPY +build/src src
+    ENTRYPOINT ["python3", "./src/hello.py"]
+    SAVE IMAGE python-example:latest
+```
+
+The code of the app might look like this
+
+```python
+// src/hello.py
+
+print("hello world")
+```
 {% endmethod %}
 
 You will notice that the recipes look very much like Dockerfiles. This is an intentional design decision. Existing Dockerfiles can be ported to earthfiles by copy-pasting them over and then tweaking them slightly. Compared to Dockerfile syntax, some commands are new (like `SAVE ARTIFACT`), others have additional semantics (like `COPY +target/some-artifact`) and other semantics are removed (like `FROM ... AS ...` and `COPY --from`).
@@ -179,12 +209,17 @@ hello world
 $ docker run --rm java-example:latest
 hello world
 ```
+{% sample lang="Python" %}
+```
+$ docker run --rm python-example:latest
+hello world
+```
 {% endmethod %}
 
 {% hint style='info' %}
 ##### Note
 
-Targets have a particular referencing convention which helps Earthly to identify which recipe to execute. In the simplest form, targets are referenced by `+<target-name>` - for example, `+build`. For more details see the [target referencing page](./target-ref.md).
+Targets have a particular referencing convention which helps Earthly to identify which recipe to execute. In the simplest form, targets are referenced by `+<target-name>`.  For example, `+build`. For more details see the [target referencing page](./target-ref.md).
 {% endhint %}
 
 ## Detailed explanation
@@ -194,7 +229,7 @@ Going back to the example earthfile definition, here is what each command does:
 {% method %}
 {% sample lang="Go" %}
 ```Dockerfile
-# build.earth
+# Earthfile
 
 # The build starts from a docker image: golang:1.13-alpine3.11
 FROM golang:1.13-alpine3.11
@@ -236,7 +271,7 @@ docker:
 ```
 {% sample lang="JavaScript" %}
 ```Dockerfile
-# build.earth
+# Earthfile
 
 # The build starts from a docker image: node:13.10.1-alpine3.11
 FROM node:13.10.1-alpine3.11
@@ -257,7 +292,7 @@ build:
     # referenced as +build/dist). In addition, store the artifact as a
     # local file (on the host) named dist/index.js. This local file is only
     # written if the entire build succeeds.
-    SAVE ARTIFACT index.js /dist/index.js AS LOCAL /dist/index.js
+    SAVE ARTIFACT index.js /dist/index.js AS LOCAL ./dist/index.js
 
 # Declare a target, docker.
 docker:
@@ -275,7 +310,7 @@ docker:
 ```
 {% sample lang="Java" %}
 ```Dockerfile
-# build.earth
+# Earthfile
 
 # The build starts from a docker image: openjdk:8-jdk-alpine
 FROM openjdk:8-jdk-alpine
@@ -323,9 +358,43 @@ docker:
     # docker if the entire build succeeds.
     SAVE IMAGE java-example:latest
 ```
+{% sample lang="Python" %}
+```Dockerfile
+# Earthfile
+
+# The build starts from a python 3 docker image
+FROM python:3
+# We change the current working directory
+WORKDIR /code
+
+# The above commands are inherited implicitly by all targets below
+# (as if they started with FROM +base).
+
+#Declare a target, build
+build:
+     # Copy the source files from build context to the build enviroment as a layer
+    COPY src src
+    # Save the python source in an artifact dir called src (it can be later
+    SAVE ARTIFACT src /src
+
+#Declare a target, docker
+docker:
+    #Define the recipe of the target docker as follows:
+
+    # Copy the artifact /src from the target +build into the current directory with the build container
+    COPY +build/src src
+
+    #Set the entrypoint for the resulting docker image
+    ENTRYPOINT ["python3", "./src/hello.py"]
+    # Save the current state as a docker image, which will have the docker tag
+    # python-example:latest. This image is only made available to the host's docker
+    # if the entire build succeeds.
+    SAVE IMAGE python-example:latest
+
+```
 {% endmethod %}
 
-## Adding dependecies in the mix
+## Adding dependencies in the mix
 
 Let's imagine now that in our simple app, we now want to add a programming language dependency. Here's how our build might look like as a result
 
@@ -358,7 +427,7 @@ func main() {
 The build then might become
 
 ```Dockerfile
-# build.earth
+# Earthfile
 
 FROM golang:1.13-alpine3.11
 WORKDIR /go-example
@@ -432,7 +501,7 @@ document.body.appendChild(component());
 The build then might become
 
 ```Dockerfile
-# build.earth
+# Earthfile
 
 FROM node:13.10.1-alpine3.11
 WORKDIR /js-example
@@ -443,7 +512,7 @@ build:
     COPY dist dist
     RUN npm install
     RUN npx webpack
-    SAVE ARTIFACT dist /dist AS LOCAL /dist
+    SAVE ARTIFACT dist /dist AS LOCAL ./dist
 
 docker:
     COPY package.json package-lock.json ./
@@ -496,10 +565,10 @@ public class HelloWorld {
 }
 ```
 
-The build.earth file would not change
+The Earthfile file would not change
 
 ```Dockerfile
-# build.earth
+# Earthfile
 
 FROM openjdk:8-jdk-alpine
 RUN apk add --update --no-cache gradle
@@ -519,6 +588,47 @@ docker:
     ENTRYPOINT ["/java-example/bin/java-example"]
     SAVE IMAGE java-example:latest
 ```
+{% sample lang="Python" %}
+```
+// Requirements.txt
+
+Markdown==3.2.2
+```
+The code of the app would now look like this
+```python
+# src/hello.py
+
+from markdown import markdown
+
+def hello():
+    return markdown("Hello *Earthly*")
+
+print(hello())
+```
+The build might then become as follows.  
+```Docker
+# EarthFile
+
+FROM python:3
+WORKDIR /code
+
+build:
+    # Use Python Wheels to produce package files into /wheels
+    RUN pip install wheel
+    COPY requirements.txt ./
+    RUN pip wheel -r requirements.txt --wheel-dir=wheels
+    COPY src src
+    SAVE ARTIFACT src /src
+    SAVE ARTIFACT wheels /wheels
+
+docker:
+    COPY +build/src src
+    COPY +build/wheels wheels
+    COPY requirements.txt ./
+    RUN pip install --no-index --find-links=wheels -r requirements.txt
+    ENTRYPOINT ["python3", "./src/hello.py"]
+    SAVE IMAGE python-example:latest
+```
 {% endmethod %}
 
 However, as we build this new setup and make changes to the main source code, we notice that the dependencies are downloaded every single time we change the source code. While the build is not necessarily incorrect, it is inefficient for proper development speed.
@@ -532,7 +642,7 @@ If, however, we could first download the dependencies and only afterwards copy a
 {% method %}
 {% sample lang="Go" %}
 ```Dockerfile
-# build.earth
+# Earthfile
 
 FROM golang:1.13-alpine3.11
 WORKDIR /go-example
@@ -556,7 +666,7 @@ docker:
 ```
 {% sample lang="JavaScript" %}
 ```Dockerfile
-# build.earth
+# Earthfile
 
 FROM node:13.10.1-alpine3.11
 WORKDIR /js-example
@@ -572,7 +682,7 @@ build:
     COPY src src
     COPY dist dist
     RUN npx webpack
-    SAVE ARTIFACT dist /dist AS LOCAL /dist
+    SAVE ARTIFACT dist /dist AS LOCAL ./dist
 
 docker:
     COPY package.json package-lock.json ./
@@ -583,7 +693,7 @@ docker:
 ```
 {% sample lang="Java" %}
 ```Dockerfile
-# build.earth
+# Earthfile
 
 FROM openjdk:8-jdk-alpine
 RUN apk add --update --no-cache gradle
@@ -606,6 +716,31 @@ docker:
     ENTRYPOINT ["/java-example/bin/java-example"]
     SAVE IMAGE java-example:latest
 ```
+{% sample lang="Python" %}
+```Docker
+# EarthFile
+FROM python:3
+WORKDIR /code
+
+build:
+    RUN pip install wheel
+    COPY requirements.txt ./
+    RUN pip wheel -r requirements.txt --wheel-dir=wheels
+
+    #save wheels before copy source, for cache efficiency 
+    SAVE ARTIFACT wheels /wheels
+
+    COPY src src
+    SAVE ARTIFACT src /src
+
+docker:
+    COPY +build/src src
+    COPY +build/wheels wheels
+    COPY requirements.txt ./
+    RUN pip install --no-index --find-links=wheels -r requirements.txt
+    ENTRYPOINT ["python3", "./src/hello.py"]
+    SAVE IMAGE python-example:latest
+```
 {% endmethod %}
 
 For a primer into Dockerfile layer caching see [this article](https://pythonspeed.com/articles/docker-caching-model/). The same principles apply to Earthfiles.
@@ -619,7 +754,7 @@ Note that in our case, only the JavaScript version has an example where `FROM +d
 {% method %}
 {% sample lang="Go" %}
 ```Dockerfile
-# build.earth
+# Earthfile
 
 FROM golang:1.13-alpine3.11
 WORKDIR /go-example
@@ -644,7 +779,7 @@ docker:
 ```
 {% sample lang="JavaScript" %}
 ```Dockerfile
-# build.earth
+# Earthfile
 
 FROM node:13.10.1-alpine3.11
 WORKDIR /js-example
@@ -673,7 +808,7 @@ docker:
 ```
 {% sample lang="Java" %}
 ```Dockerfile
-# build.earth
+# Earthfile
 
 FROM openjdk:8-jdk-alpine
 RUN apk add --update --no-cache gradle
@@ -698,6 +833,33 @@ docker:
     ENTRYPOINT ["/java-example/bin/java-example"]
     SAVE IMAGE java-example:latest
 ```
+{% sample lang="Python" %}
+```Dockerfile
+# Earthfile
+
+FROM python:3
+WORKDIR /code
+
+deps:
+    RUN pip install wheel
+    COPY requirements.txt ./
+    RUN pip wheel -r requirements.txt --wheel-dir=wheels
+    SAVE IMAGE
+
+build:
+    FROM +deps
+    COPY src src
+    SAVE ARTIFACT src /src
+    SAVE ARTIFACT wheels /wheels
+
+docker:
+    COPY +build/src src
+    COPY +build/wheels wheels
+    COPY requirements.txt ./
+    RUN pip install --no-index --find-links=wheels -r requirements.txt
+    ENTRYPOINT ["python3", "./src/hello.py"]
+    SAVE IMAGE python-example:latest
+```
 {% endmethod %}
 
 Notice how at the end of the `deps` recipe, we issued a `SAVE IMAGE` command. In this case, it is not for the purpose of saving as an image that would be used outside of the build: the command has no docker tag associated with it. Instead, it is for the purpose of reusing the image within the build, from another target (via `FROM +deps`).
@@ -711,6 +873,7 @@ To learn more about Earthly, take a look at the [examples directory on GitHub](h
 * [Go](https://github.com/earthly/earthly/tree/master/examples/go)
 * [JavaScript](https://github.com/earthly/earthly/tree/master/examples/js)
 * [Java](https://github.com/earthly/earthly/tree/master/examples/java)
+* [Python](https://github.com/earthly/earthly/tree/master/examples/python)
 
 ## See also
 

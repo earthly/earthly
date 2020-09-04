@@ -30,7 +30,7 @@ type gitResolver struct {
 }
 
 type resolvedGitProject struct {
-	// localGitDir is where the git dir exists locally (only build.earth files).
+	// localGitDir is where the git dir exists locally (only Earthfile and build.earth files).
 	localGitDir string
 	// gitProject is the git project identifier. For GitHub, this is <username>/<project>.
 	gitProject string
@@ -61,15 +61,19 @@ func (gr *gitResolver) resolveEarthProject(ctx context.Context, target domain.Ta
 	} else {
 		buildContext = llb.Scratch().Platform(llbutil.TargetPlatform)
 		buildContext = llbutil.CopyOp(
-			rgp.state, []string{subDir}, buildContext, "./", false, false,
+			rgp.state, []string{subDir}, buildContext, "./", false, false, "",
 			llb.WithCustomNamef("[internal] COPY git context %s", target.String()))
 	}
 
 	// TODO: Apply excludes / .earthignore.
+	localEarthfileDir := filepath.Join(rgp.localGitDir, filepath.FromSlash(subDir))
+	buildFilePath, err := detectBuildFile(target, localEarthfileDir)
+	if err != nil {
+		return nil, err
+	}
 	return &Data{
-		EarthfilePath: filepath.Join(
-			rgp.localGitDir, filepath.FromSlash(subDir), "build.earth"),
-		BuildContext: buildContext,
+		BuildFilePath: buildFilePath,
+		BuildContext:  buildContext,
 		GitMetadata: &GitMetadata{
 			BaseDir:    "",
 			RelDir:     subDir,
@@ -84,9 +88,6 @@ func (gr *gitResolver) resolveEarthProject(ctx context.Context, target domain.Ta
 }
 
 func (gr *gitResolver) resolveGitProject(ctx context.Context, target domain.Target) (rgp *resolvedGitProject, gitURL string, subDir string, finalErr error) {
-	if target.Registry != "github.com" {
-		return nil, "", "", fmt.Errorf("Registry %s not supported", target.Registry)
-	}
 	projectPathParts := strings.Split(target.ProjectPath, "/")
 	if len(projectPathParts) < 2 {
 		return nil, "", "", fmt.Errorf("Invalid github project path %s", target.ProjectPath)
@@ -94,7 +95,7 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, target domain.Targ
 	githubUsername := projectPathParts[0]
 	githubProject := projectPathParts[1]
 	subDir = strings.Join(projectPathParts[2:], "/")
-	gitURL = fmt.Sprintf("git@github.com:%s/%s.git", githubUsername, githubProject)
+	gitURL = fmt.Sprintf("git@%s:%s/%s.git", target.Registry, githubUsername, githubProject)
 	ref := target.Tag
 
 	// Check the cache first.
@@ -105,9 +106,9 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, target domain.Targ
 	}
 	// Not cached.
 
-	// Copy all build.earth files.
+	// Copy all Earthfile, build.earth and Dockerfile files.
 	gitOpts := []llb.GitOption{
-		llb.WithCustomNamef("[context] GIT CLONE %s", gitURL),
+		llb.WithCustomNamef("[context %s] GIT CLONE %s", gitURL, gitURL),
 		llb.KeepGitDir(),
 	}
 	gitState := llbgit.Git(gitURL, ref, gitOpts...)
@@ -115,13 +116,13 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, target domain.Targ
 		llb.Args([]string{
 			"find",
 			"-type", "f",
-			"-name", "build.earth",
+			"(", "-name", "build.earth", "-o", "-name", "Earthfile", "-o", "-name", "Dockerfile", ")",
 			"-exec", "cp", "--parents", "{}", "/dest", ";",
 		}),
 		llb.Dir("/git-src"),
 		llb.ReadonlyRootFS(),
 		llb.AddMount("/git-src", gitState, llb.Readonly),
-		llb.WithCustomNamef("COPY GIT CLONE %s build.earth", target.ProjectCanonical()),
+		llb.WithCustomNamef("COPY GIT CLONE %s Earthfile", target.ProjectCanonical()),
 	}
 	opImg := llb.Image(
 		defaultGitImage, llb.MarkImageInternal,
@@ -146,13 +147,13 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, target domain.Targ
 	gitMetaAndEarthfileState := gitHashOp.AddMount("/dest", earthfileState)
 
 	// Build.
-	dt, err := gitMetaAndEarthfileState.Marshal(llb.LinuxAmd64)
+	dt, err := gitMetaAndEarthfileState.Marshal(ctx, llb.LinuxAmd64)
 	if err != nil {
-		return nil, "", "", errors.Wrapf(err, "get build.earth from %s", target.ProjectCanonical())
+		return nil, "", "", errors.Wrapf(err, "get Earthfile from %s", target.ProjectCanonical())
 	}
 	earthfileTmpDir, err := ioutil.TempDir("/tmp", "earthly-git")
 	if err != nil {
-		return nil, "", "", errors.Wrap(err, "create temp dir for build.earth")
+		return nil, "", "", errors.Wrap(err, "create temp dir for Earthfile")
 	}
 	defer func() {
 		if finalErr != nil {
@@ -178,7 +179,8 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, target domain.Targ
 				}
 				for _, vertex := range ss.Vertexes {
 					if vertex.Error != "" {
-						gr.console.Printf("ERROR: %s\n", vertex.Error)
+						// TODO: Should also print full logs in case of error.
+						gr.console.Warnf("ERROR: %s\n", vertex.Error)
 					}
 				}
 			case <-ctx.Done():
@@ -242,7 +244,7 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, target domain.Targ
 		state: llbgit.Git(
 			gitURL,
 			gitHash,
-			llb.WithCustomNamef("[context] git context %s", target.StringCanonical()),
+			llb.WithCustomNamef("[context %s] git context %s", gitURL, target.StringCanonical()),
 		),
 	}
 	gr.projectCache[cacheKey] = resolved
@@ -262,7 +264,10 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, target domain.Targ
 func (gr *gitResolver) close() error {
 	var lastErr error
 	for _, rgp := range gr.projectCache {
-		lastErr = os.RemoveAll(rgp.localGitDir)
+		err := os.RemoveAll(rgp.localGitDir)
+		if err != nil {
+			lastErr = err
+		}
 	}
 	if lastErr != nil {
 		return errors.Wrap(lastErr, "remove temp git dir")

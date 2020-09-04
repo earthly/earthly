@@ -49,15 +49,19 @@ func (lr *localResolver) resolveLocal(ctx context.Context, target domain.Target)
 		lr.gitMetaCache[target.LocalPath] = metadata
 	}
 
+	buildFilePath, err := detectBuildFile(target, filepath.FromSlash(target.LocalPath))
+	if err != nil {
+		return nil, err
+	}
 	return &Data{
-		EarthfilePath: filepath.Join(filepath.FromSlash(target.LocalPath), "build.earth"),
+		BuildFilePath: buildFilePath,
 		BuildContext: llb.Local(
 			target.LocalPath,
 			llb.SharedKeyHint(target.LocalPath),
 			llb.ExcludePatterns(excludes),
 			llb.SessionID(lr.sessionID),
 			llb.Platform(llbutil.TargetPlatform),
-			llb.WithCustomNamef("[context] local context %s", target.LocalPath),
+			llb.WithCustomNamef("[context %s] local context %s", target.LocalPath, target.LocalPath),
 		),
 		GitMetadata: metadata,
 	}, nil

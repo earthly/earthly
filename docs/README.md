@@ -12,9 +12,36 @@ One of the key principles of Earthly is that the best build tooling of a specifi
 
 ## Installation
 
-To install `earth` (the Earthly CLI) on your system, see [instructions on the Earthly GitHub page](https://github.com/earthly/earthly#installation).
+For a full list of installation options see the [Installation page](./installation/installation.md).
 
-You may optionally also install the [VS Code Syntax Highlighting extension](https://marketplace.visualstudio.com/items?itemName=earthly.earthfile-syntax-highlighting).
+### Linux
+
+```bash
+sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/latest/download/earth-linux-amd64 -O /usr/local/bin/earth && chmod +x /usr/local/bin/earth && /usr/local/bin/earth bootstrap'
+```
+
+### Mac
+
+```bash
+brew install earthly
+earth bootstrap
+```
+
+### Windows via WSL (**beta**)
+
+Earthly on Windows requires [Docker Desktop WSL2 backend](https://docs.docker.com/docker-for-windows/wsl/). Under `wsl`, run the following to install `earth`.
+
+```bash
+sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/latest/download/earth-linux-amd64 -O /usr/local/bin/earth && chmod +x /usr/local/bin/earth && /usr/local/bin/earth bootstrap'
+```
+
+### VS Code Syntax Highlighting
+
+Visit [Earthfile Syntax Highlighting](https://marketplace.visualstudio.com/items?itemName=earthly.earthfile-syntax-highlighting) or issue the VS Code command
+
+```
+ext install earthly.earthfile-syntax-highlighting
+```
 
 ## Getting started
 
@@ -25,7 +52,9 @@ A high-level overview is available on [the Earthly GitHub page](https://github.c
 ## Quick Links
 
 * [Earthly GitHub page](https://github.com/earthly/earthly)
+* [Full installation instructions](./installation/installation.md)
 * [Earthly basics](./guides/basics.md)
 * [Earthfile reference](./earthfile/earthfile.md)
 * [earth command reference](./earth-command/earth-command.md)
+* [Configuration reference](./earth-config/earth-config.md)
 * [Earthfile examples](./examples/examples.md)

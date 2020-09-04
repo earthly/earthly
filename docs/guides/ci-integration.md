@@ -2,9 +2,11 @@
 
 Integrating Earthly into your CI is simply a matter of automating the same steps you would use for your local installation. In this guide, we will walk through this process.
 
-## Step 1: Ensure Docker and Git are available
+## Step 1: Ensure pre-requisited are available
 
-The first step is to ensure that Earthly's pre-requisites are available. On many CI systems both of these are available in the default base image or environment. Refer to your provider's documentation.
+### Docker and Git
+
+The first step is to ensure that Earthly's pre-requisites, Docker and Git, are available. On many CI systems both of these already exist in the default base image or environment. Refer to your provider's documentation.
 
 Vendors known to include these dependencies:
 
@@ -15,13 +17,25 @@ Vendors known to include these dependencies:
 * Azure DevOps vmImage `Ubuntu-16.04`
 * AWS CodeBuild image `aws/codebuild/amazonlinux2-x86_64-standard:3.0`
 
+### Privileged mode
+
+In addition to Docker and Git, Earthly also requires privileged mode as it executes container builds under the hood. In most linux-based CI environments, this is readily available and no special setting is necessary. GitLab CI requires using a compatible runner (eg Docker) and explicitly enabling [privileged mode](https://docs.gitlab.com/runner/executors/docker.html#the-privileged-mode).
+
 ## Step 2: Install earth command
 
 The next step is to install the `earth` command. For this, you need to run the command:
 
 ```bash
-sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/latest/download/earth-linux-amd64 -O /usr/local/bin/earth && chmod +x /usr/local/bin/earth'
+sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/download/v0.3.5/earth-linux-amd64 -O /usr/local/bin/earth && chmod +x /usr/local/bin/earth'
 ```
+
+{% hint style='info' %}
+##### Note
+
+The above command installs a specific version of `earth`. It is not advisable to always download the very latest, as any possible backwards incompatible changes of Earthly (rare) could cause your builds to fail unexpectedly. Pinning to a specific version, as shown here, is recommended.
+{% endhint %}
+
+In certain CI environments, such as Jenkins, where you have access to the host, it may be more convenient to install Earthly on the host in advance, so that your builds do not need to download `earth` every time they run.
 
 ## Step 3: Configure earth
 
@@ -47,7 +61,19 @@ docker login --username '<username>' --password '<password>'
 Make sure that secrets (like `<password>` above) are not exposed in plain text. You may need to configure an environment variable with your CI vendor.
 {% endhint %}
 
-## Step 4: Run the build
+## Step 4: (Optional) Force or disable color output
+
+The CLI `earth` automatically detects the presence of a TTY for the purpose of deciding whether to use colorized output or not. In some CI environments, this kind of detection is not enough in order to infer support for colorized output. However, two environment variables can be used to either disable or force it:
+
+* `NO_COLOR=1` disables the use of color.
+* `FORCE_COLOR=1` forces the use of color.
+
+The following environments are known to require additional settings:
+
+* GitHub Actions: requires `FORCE_COLOR=1`
+* Jenkins: requires `NO_COLOR=1`
+
+## Step 5: Run the build
 
 This is often as simple as
 

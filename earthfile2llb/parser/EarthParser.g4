@@ -14,6 +14,7 @@ stmts: WS? stmt (NL+ WS? stmt)*;
 
 stmt:
 	fromStmt
+	| fromDockerfileStmt
 	| copyStmt
 	| saveStmt
 	| runStmt
@@ -35,9 +36,13 @@ stmt:
 	| onbuildStmt
 	| healthcheckStmt
 	| shellStmt
+	| withDockerStmt
+	| endStmt
 	| genericCommandStmt;
 
 fromStmt: FROM (WS stmtWords)?;
+
+fromDockerfileStmt: FROM_DOCKERFILE (WS stmtWords)?;
 
 copyStmt: COPY (WS stmtWords)?;
 
@@ -81,6 +86,9 @@ stopsignalStmt: STOPSIGNAL (WS stmtWords)?;
 onbuildStmt: ONBUILD (WS stmtWords)?;
 healthcheckStmt: HEALTHCHECK (WS stmtWords)?;
 shellStmt: SHELL (WS stmtWords)?;
+
+withDockerStmt: WITH_DOCKER (WS stmtWords)?;
+endStmt: END (WS stmtWords)?;
 
 genericCommandStmt: commandName (WS stmtWords)?;
 commandName: Command;

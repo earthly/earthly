@@ -1,3 +1,4 @@
+debug = :BUILDKIT_DEBUG:
 root = ":BUILDKIT_ROOT_DIR:"
 insecure-entitlements = [ "security.insecure" ]
 

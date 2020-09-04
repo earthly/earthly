@@ -1,0 +1,7 @@
+
+steps:
+  - label: Test
+    commands:
+      - bash ./.buildkite/tests.sh
+    agents:
+      os: macOS

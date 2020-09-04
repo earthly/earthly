@@ -1,0 +1,7 @@
+
+steps:
+  - label: Test
+    commands:
+      - wsl -- bash ./.buildkite/tests.sh
+    agents:
+      os: windows

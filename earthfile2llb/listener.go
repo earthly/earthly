@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/earthly/earthly/earthfile2llb/parser"
 	"github.com/pkg/errors"
@@ -29,6 +30,9 @@ type listener struct {
 	envArgValue string
 	labelKeys   []string
 	labelValues []string
+
+	withDocker    *WithDockerOpt
+	withDockerRan bool
 
 	execMode  bool
 	stmtWords []string
@@ -89,6 +93,16 @@ func (l *listener) EnterTargetHeader(c *parser.TargetHeaderContext) {
 	l.pushOnlyAllowed = false
 }
 
+func (l *listener) ExitStmts(c *parser.StmtsContext) {
+	if l.shouldSkip() {
+		return
+	}
+	if l.withDocker != nil {
+		l.err = errors.New("no matching END found for WITH DOCKER")
+		return
+	}
+}
+
 //
 // Commands.
 
@@ -128,10 +142,48 @@ func (l *listener) ExitFromStmt(c *parser.FromStmtContext) {
 		}
 		return
 	}
-	imageName := fs.Arg(0)
+	imageName := l.expandArgs(fs.Arg(0))
+	for i, ba := range buildArgs.Args {
+		buildArgs.Args[i] = l.expandArgs(ba)
+	}
 	err = l.converter.From(l.ctx, imageName, buildArgs.Args)
 	if err != nil {
 		l.err = errors.Wrapf(err, "apply FROM %s", imageName)
+		return
+	}
+}
+
+func (l *listener) ExitFromDockerfileStmt(c *parser.FromDockerfileStmtContext) {
+	if l.shouldSkip() {
+		return
+	}
+	if l.pushOnlyAllowed {
+		l.err = fmt.Errorf("no non-push commands allowed after a --push: %s", c.GetText())
+		return
+	}
+	fs := flag.NewFlagSet("FROM DOCKERFILE", flag.ContinueOnError)
+	buildArgs := new(StringSliceFlag)
+	fs.Var(buildArgs, "build-arg", "")
+	dfTarget := fs.String("target", "", "")
+	dfPath := fs.String("f", "", "")
+	err := fs.Parse(l.stmtWords)
+	if err != nil {
+		l.err = errors.Wrapf(err, "invalid FROM DOCKERFILE arguments %v", l.stmtWords)
+		return
+	}
+	if fs.NArg() != 1 {
+		l.err = errors.New("invalid number of arguments for FROM DOCKERFILE")
+		return
+	}
+	path := l.expandArgs(fs.Arg(0))
+	for i, ba := range buildArgs.Args {
+		buildArgs.Args[i] = l.expandArgs(ba)
+	}
+	*dfPath = l.expandArgs(*dfPath)
+	*dfTarget = l.expandArgs(*dfTarget)
+	err = l.converter.FromDockerfile(l.ctx, path, *dfPath, *dfTarget, buildArgs.Args)
+	if err != nil {
+		l.err = errors.Wrap(err, "from dockerfile")
 		return
 	}
 }
@@ -147,6 +199,7 @@ func (l *listener) ExitCopyStmt(c *parser.CopyStmtContext) {
 	fs := flag.NewFlagSet("COPY", flag.ContinueOnError)
 	from := fs.String("from", "", "")
 	isDirCopy := fs.Bool("dir", false, "")
+	chown := fs.String("chown", "", "")
 	buildArgs := new(StringSliceFlag)
 	fs.Var(buildArgs, "build-arg", "")
 	err := fs.Parse(l.stmtWords)
@@ -163,7 +216,14 @@ func (l *listener) ExitCopyStmt(c *parser.CopyStmtContext) {
 		return
 	}
 	srcs := fs.Args()[:fs.NArg()-1]
-	dest := fs.Arg(fs.NArg() - 1)
+	for i, src := range srcs {
+		srcs[i] = l.expandArgs(src)
+	}
+	dest := l.expandArgs(fs.Arg(fs.NArg() - 1))
+	for i, ba := range buildArgs.Args {
+		buildArgs.Args[i] = l.expandArgs(ba)
+	}
+	*chown = l.expandArgs(*chown)
 	allClassical := true
 	allArtifacts := true
 	for _, src := range srcs {
@@ -179,7 +239,7 @@ func (l *listener) ExitCopyStmt(c *parser.CopyStmtContext) {
 	}
 	if allArtifacts {
 		for _, src := range srcs {
-			err = l.converter.CopyArtifact(l.ctx, src, dest, buildArgs.Args, *isDirCopy)
+			err = l.converter.CopyArtifact(l.ctx, src, dest, buildArgs.Args, *isDirCopy, *chown)
 			if err != nil {
 				l.err = errors.Wrapf(err, "copy artifact")
 				return
@@ -190,7 +250,7 @@ func (l *listener) ExitCopyStmt(c *parser.CopyStmtContext) {
 			l.err = fmt.Errorf("build args not supported for non +artifact arguments case %v", l.stmtWords)
 			return
 		}
-		l.converter.CopyClassical(l.ctx, srcs, dest, *isDirCopy)
+		l.converter.CopyClassical(l.ctx, srcs, dest, *isDirCopy, *chown)
 	}
 }
 
@@ -227,13 +287,41 @@ func (l *listener) ExitRunStmt(c *parser.RunStmtContext) {
 	}
 	// TODO: In the bracket case, should flags be outside of the brackets?
 
-	err = l.converter.Run(l.ctx, fs.Args(), mounts.Args, secrets.Args, *privileged, *withEntrypoint, *withDocker, withShell, *pushFlag)
-	if err != nil {
-		l.err = errors.Wrap(err, "run")
-		return
+	for i, m := range mounts.Args {
+		mounts.Args[i] = l.expandArgs(m)
 	}
-	if *pushFlag {
-		l.pushOnlyAllowed = true
+	// Note: Not expanding args for the run itself, as that will be take care of by the shell.
+
+	if l.withDocker == nil {
+		err = l.converter.Run(
+			l.ctx, fs.Args(), mounts.Args, secrets.Args, *privileged, *withEntrypoint, *withDocker,
+			withShell, *pushFlag)
+		if err != nil {
+			l.err = errors.Wrap(err, "run")
+			return
+		}
+		if *pushFlag {
+			l.pushOnlyAllowed = true
+		}
+	} else {
+		if *pushFlag {
+			l.err = fmt.Errorf("RUN --push not allowed in WITH DOCKER")
+			return
+		}
+		if l.withDockerRan {
+			l.err = fmt.Errorf("Only one RUN command allowed in WITH DOCKER")
+			return
+		}
+		l.withDockerRan = true
+		l.withDocker.Mounts = mounts.Args
+		l.withDocker.Secrets = secrets.Args
+		l.withDocker.WithShell = withShell
+		l.withDocker.WithEntrypoint = *withEntrypoint
+		err = l.converter.WithDockerRun(l.ctx, fs.Args(), *l.withDocker)
+		if err != nil {
+			l.err = errors.Wrap(err, "with docker run")
+			return
+		}
 	}
 }
 
@@ -271,9 +359,15 @@ func (l *listener) ExitSaveArtifact(c *parser.SaveArtifactContext) {
 		l.err = fmt.Errorf("invalid arguments for SAVE ARTIFACT command: %v", l.stmtWords)
 		return
 	}
-	saveFrom := l.stmtWords[0]
 
-	l.converter.SaveArtifact(l.ctx, saveFrom, saveTo, saveAsLocalTo)
+	saveFrom := l.expandArgs(l.stmtWords[0])
+	saveTo = l.expandArgs(saveTo)
+	saveAsLocalTo = l.expandArgs(saveAsLocalTo)
+	err := l.converter.SaveArtifact(l.ctx, saveFrom, saveTo, saveAsLocalTo)
+	if err != nil {
+		l.err = errors.Wrap(err, "apply SAVE ARTIFACT")
+		return
+	}
 }
 
 func (l *listener) ExitSaveImage(c *parser.SaveImageContext) {
@@ -302,8 +396,11 @@ func (l *listener) ExitSaveImage(c *parser.SaveImageContext) {
 		l.err = errors.Wrapf(err, "invalid number of arguments for SAVE IMAGE --push: %v", l.stmtWords)
 		return
 	}
-	imageNames := fs.Args()
 
+	imageNames := fs.Args()
+	for i, img := range imageNames {
+		imageNames[i] = l.expandArgs(img)
+	}
 	l.converter.SaveImage(l.ctx, imageNames, *pushFlag)
 	if *pushFlag {
 		l.pushOnlyAllowed = true
@@ -330,7 +427,10 @@ func (l *listener) ExitBuildStmt(c *parser.BuildStmtContext) {
 		l.err = fmt.Errorf("invalid number of arguments for BUILD: %s", l.stmtWords)
 		return
 	}
-	fullTargetName := fs.Arg(0)
+	fullTargetName := l.expandArgs(fs.Arg(0))
+	for i, arg := range buildArgs.Args {
+		buildArgs.Args[i] = l.expandArgs(arg)
+	}
 	_, err = l.converter.Build(l.ctx, fullTargetName, buildArgs.Args)
 	if err != nil {
 		l.err = errors.Wrapf(err, "apply BUILD %s", fullTargetName)
@@ -350,7 +450,7 @@ func (l *listener) ExitWorkdirStmt(c *parser.WorkdirStmtContext) {
 		l.err = fmt.Errorf("invalid number of arguments for WORKDIR: %v", l.stmtWords)
 		return
 	}
-	workdirPath := l.stmtWords[0]
+	workdirPath := l.expandArgs(l.stmtWords[0])
 	l.converter.Workdir(l.ctx, workdirPath)
 }
 
@@ -366,7 +466,7 @@ func (l *listener) ExitUserStmt(c *parser.UserStmtContext) {
 		l.err = fmt.Errorf("invalid number of arguments for USER: %v", l.stmtWords)
 		return
 	}
-	user := l.stmtWords[0]
+	user := l.expandArgs(l.stmtWords[0])
 	l.converter.User(l.ctx, user)
 }
 
@@ -379,7 +479,13 @@ func (l *listener) ExitCmdStmt(c *parser.CmdStmtContext) {
 		return
 	}
 	withShell := !l.execMode
-	l.converter.Cmd(l.ctx, l.stmtWords, withShell)
+	cmdArgs := l.stmtWords
+	if !withShell {
+		for i, arg := range cmdArgs {
+			cmdArgs[i] = l.expandArgs(arg)
+		}
+	}
+	l.converter.Cmd(l.ctx, cmdArgs, withShell)
 }
 
 func (l *listener) ExitEntrypointStmt(c *parser.EntrypointStmtContext) {
@@ -391,7 +497,13 @@ func (l *listener) ExitEntrypointStmt(c *parser.EntrypointStmtContext) {
 		return
 	}
 	withShell := !l.execMode
-	l.converter.Entrypoint(l.ctx, l.stmtWords, withShell)
+	entArgs := l.stmtWords
+	if !withShell {
+		for i, arg := range entArgs {
+			entArgs[i] = l.expandArgs(arg)
+		}
+	}
+	l.converter.Entrypoint(l.ctx, entArgs, withShell)
 }
 
 func (l *listener) ExitExposeStmt(c *parser.ExposeStmtContext) {
@@ -406,7 +518,11 @@ func (l *listener) ExitExposeStmt(c *parser.ExposeStmtContext) {
 		l.err = fmt.Errorf("no arguments provided to the EXPOSE command")
 		return
 	}
-	l.converter.Expose(l.ctx, l.stmtWords)
+	ports := l.stmtWords
+	for i, port := range ports {
+		ports[i] = l.expandArgs(port)
+	}
+	l.converter.Expose(l.ctx, ports)
 }
 
 func (l *listener) ExitVolumeStmt(c *parser.VolumeStmtContext) {
@@ -421,7 +537,11 @@ func (l *listener) ExitVolumeStmt(c *parser.VolumeStmtContext) {
 		l.err = fmt.Errorf("no arguments provided to the VOLUME command")
 		return
 	}
-	l.converter.Volume(l.ctx, l.stmtWords)
+	volumes := l.stmtWords
+	for i, volume := range volumes {
+		volumes[i] = l.expandArgs(volume)
+	}
+	l.converter.Volume(l.ctx, volumes)
 }
 
 func (l *listener) ExitEnvStmt(c *parser.EnvStmtContext) {
@@ -432,7 +552,9 @@ func (l *listener) ExitEnvStmt(c *parser.EnvStmtContext) {
 		l.err = fmt.Errorf("no non-push commands allowed after a --push: %s", c.GetText())
 		return
 	}
-	l.converter.Env(l.ctx, l.envArgKey, l.envArgValue)
+	key := l.envArgKey // Note: Not expanding args for key.
+	value := l.expandArgs(l.envArgValue)
+	l.converter.Env(l.ctx, key, value)
 }
 
 func (l *listener) ExitArgStmt(c *parser.ArgStmtContext) {
@@ -443,7 +565,9 @@ func (l *listener) ExitArgStmt(c *parser.ArgStmtContext) {
 		l.err = fmt.Errorf("no non-push commands allowed after a --push: %s", c.GetText())
 		return
 	}
-	l.converter.Arg(l.ctx, l.envArgKey, l.envArgValue)
+	key := l.envArgKey // Note: Not expanding args for key.
+	value := l.expandArgs(l.envArgValue)
+	l.converter.Arg(l.ctx, key, value)
 }
 
 func (l *listener) ExitLabelStmt(c *parser.LabelStmtContext) {
@@ -464,7 +588,7 @@ func (l *listener) ExitLabelStmt(c *parser.LabelStmtContext) {
 	}
 	labels := make(map[string]string)
 	for i := range l.labelKeys {
-		labels[l.labelKeys[i]] = l.labelValues[i]
+		labels[l.expandArgs(l.labelKeys[i])] = l.expandArgs(l.labelValues[i])
 	}
 	l.converter.Label(l.ctx, labels)
 }
@@ -488,8 +612,9 @@ func (l *listener) ExitGitCloneStmt(c *parser.GitCloneStmtContext) {
 		l.err = fmt.Errorf("invalid number of arguments for GIT CLONE: %s", l.stmtWords)
 		return
 	}
-	gitURL := fs.Arg(0)
-	gitCloneDest := fs.Arg(1)
+	gitURL := l.expandArgs(fs.Arg(0))
+	gitCloneDest := l.expandArgs(fs.Arg(1))
+	*branch = l.expandArgs(*branch)
 	err = l.converter.GitClone(l.ctx, gitURL, *branch, gitCloneDest)
 	if err != nil {
 		l.err = errors.Wrap(err, "git clone")
@@ -517,12 +642,27 @@ func (l *listener) ExitDockerLoadStmt(c *parser.DockerLoadStmtContext) {
 		l.err = fmt.Errorf("invalid number of arguments for DOCKER LOAD: %s", l.stmtWords)
 		return
 	}
-	fullTargetName := fs.Arg(0)
-	imageName := fs.Arg(1)
-	err = l.converter.DockerLoad(l.ctx, fullTargetName, imageName, buildArgs.Args)
-	if err != nil {
-		l.err = errors.Wrap(err, "docker load")
-		return
+	fullTargetName := l.expandArgs(fs.Arg(0))
+	imageName := l.expandArgs(fs.Arg(1))
+	for i, arg := range buildArgs.Args {
+		buildArgs.Args[i] = l.expandArgs(arg)
+	}
+	if l.withDocker == nil {
+		err = l.converter.DockerLoadOld(l.ctx, fullTargetName, imageName, buildArgs.Args)
+		if err != nil {
+			l.err = errors.Wrap(err, "docker load")
+			return
+		}
+	} else {
+		if l.withDockerRan {
+			l.err = fmt.Errorf("cannot DOCKER LOAD after the RUN command in a WITH DOCKER clause")
+			return
+		}
+		l.withDocker.Loads = append(l.withDocker.Loads, DockerLoadOpt{
+			Target:    fullTargetName,
+			ImageName: imageName,
+			BuildArgs: buildArgs.Args,
+		})
 	}
 }
 
@@ -538,12 +678,110 @@ func (l *listener) ExitDockerPullStmt(c *parser.DockerPullStmtContext) {
 		l.err = fmt.Errorf("invalid number of arguments for DOCKER PULL: %s", l.stmtWords)
 		return
 	}
-	imageName := l.stmtWords[0]
-	err := l.converter.DockerPull(l.ctx, imageName)
-	if err != nil {
-		l.err = errors.Wrap(err, "docker pull")
+	imageName := l.expandArgs(l.stmtWords[0])
+	if l.withDocker == nil {
+		err := l.converter.DockerPullOld(l.ctx, imageName)
+		if err != nil {
+			l.err = errors.Wrap(err, "docker pull")
+			return
+		}
+	} else {
+		if l.withDockerRan {
+			l.err = fmt.Errorf("cannot DOCKER PULL after the RUN command in a WITH DOCKER clause")
+			return
+		}
+		l.withDocker.Pulls = append(l.withDocker.Pulls, imageName)
+	}
+}
+
+func (l *listener) ExitHealthcheckStmt(c *parser.HealthcheckStmtContext) {
+	if l.shouldSkip() {
 		return
 	}
+	if l.pushOnlyAllowed {
+		l.err = fmt.Errorf("no non-push commands allowed after a --push: %s", c.GetText())
+		return
+	}
+	fs := flag.NewFlagSet("HEALTHCHECK", flag.ContinueOnError)
+	interval := fs.Duration("interval", 30*time.Second, "")
+	timeout := fs.Duration("timeout", 30*time.Second, "")
+	startPeriod := fs.Duration("start-period", 0, "")
+	retries := fs.Int("retries", 3, "")
+	err := fs.Parse(l.stmtWords)
+	if err != nil {
+		l.err = errors.Wrapf(err, "invalid HEALTHCHECK arguments %v", l.stmtWords)
+		return
+	}
+	if fs.NArg() == 0 {
+		l.err = fmt.Errorf("invalid number of arguments for HEALTHCHECK: %s", l.stmtWords)
+		return
+	}
+	isNone := false
+	var cmdArgs []string
+	switch fs.Arg(0) {
+	case "NONE":
+		if fs.NArg() != 1 {
+			l.err = fmt.Errorf("invalid arguments for HEALTHCHECK: %s", l.stmtWords)
+			return
+		}
+		isNone = true
+	case "CMD":
+		if fs.NArg() == 1 {
+			l.err = fmt.Errorf("invalid number of arguments for HEALTHCHECK CMD: %s", l.stmtWords)
+			return
+		}
+		cmdArgs = fs.Args()[1:]
+	default:
+		if strings.HasPrefix(fs.Arg(0), "[") {
+			l.err = fmt.Errorf("exec form not yet supported for HEALTHCHECK CMD: %s", l.stmtWords)
+			return
+		}
+		l.err = fmt.Errorf("invalid arguments for HEALTHCHECK: %s", l.stmtWords)
+		return
+	}
+	for i, arg := range cmdArgs {
+		cmdArgs[i] = l.expandArgs(arg)
+	}
+	l.converter.Healthcheck(l.ctx, isNone, cmdArgs, *interval, *timeout, *startPeriod, *retries)
+}
+
+func (l *listener) ExitWithDockerStmt(c *parser.WithDockerStmtContext) {
+	if l.shouldSkip() {
+		return
+	}
+	if l.pushOnlyAllowed {
+		l.err = fmt.Errorf("no non-push commands allowed after a --push: %s", c.GetText())
+		return
+	}
+	if len(l.stmtWords) != 0 {
+		l.err = fmt.Errorf("WITH DOCKER does not take any arguments: %s", c.GetText())
+		return
+	}
+	if l.withDocker != nil {
+		l.err = fmt.Errorf("cannot use WITH DOCKER within WITH DOCKER")
+		return
+	}
+	l.withDocker = new(WithDockerOpt)
+}
+
+func (l *listener) ExitEndStmt(c *parser.EndStmtContext) {
+	if l.shouldSkip() {
+		return
+	}
+	if len(l.stmtWords) != 0 {
+		l.err = fmt.Errorf("END does not take any arguments: %s", c.GetText())
+		return
+	}
+	if l.withDocker == nil {
+		l.err = fmt.Errorf("END can only be used to end a WITH DOCKER clause")
+		return
+	}
+	if !l.withDockerRan {
+		l.err = fmt.Errorf("No RUN command found in WITH DOCKER")
+		return
+	}
+	l.withDocker = nil
+	l.withDockerRan = false
 }
 
 func (l *listener) ExitAddStmt(c *parser.AddStmtContext) {
@@ -565,13 +803,6 @@ func (l *listener) ExitOnbuildStmt(c *parser.OnbuildStmtContext) {
 		return
 	}
 	l.err = fmt.Errorf("Command ONBUILD not supported")
-}
-
-func (l *listener) ExitHealthcheckStmt(c *parser.HealthcheckStmtContext) {
-	if l.shouldSkip() {
-		return
-	}
-	l.err = fmt.Errorf("Command HEALTHCHECK not yet supported")
 }
 
 func (l *listener) ExitShellStmt(c *parser.ShellStmtContext) {
@@ -641,6 +872,10 @@ func (l *listener) EnterStmtWord(c *parser.StmtWordContext) {
 
 func (l *listener) shouldSkip() bool {
 	return l.err != nil || l.currentTarget != l.executeTarget
+}
+
+func (l *listener) expandArgs(word string) string {
+	return l.converter.ExpandArgs(word)
 }
 
 // StringSliceFlag is a flag backed by a string slice.
