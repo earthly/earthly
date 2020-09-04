@@ -157,7 +157,6 @@ The code of the app might look like this
 ```python
 // src/hello.py
 
-
 print("hello world")
 ```
 {% endmethod %}
@@ -589,7 +588,7 @@ docker:
     ENTRYPOINT ["/java-example/bin/java-example"]
     SAVE IMAGE java-example:latest
 ```
-{% sample lang="Python" %
+{% sample lang="Python" %}
 ```
 // Requirements.txt
 
@@ -612,7 +611,7 @@ FROM python:3
 WORKDIR /code
 
 build:
-    # Use Python Wheels to produce package files
+    # Use Python Wheels to produce package files into /wheels
     RUN pip install wheel
     COPY requirements.txt ./
     RUN pip wheel -r requirements.txt --wheel-dir=wheels
@@ -714,6 +713,30 @@ docker:
     COPY +build/lib lib
     ENTRYPOINT ["/java-example/bin/java-example"]
     SAVE IMAGE java-example:latest
+```
+{% sample lang="Python" %}
+```Docker
+# EarthFile
+FROM python:3
+WORKDIR /code
+
+build:
+    RUN pip install wheel
+    COPY requirements.txt ./
+    RUN pip wheel -r requirements.txt --wheel-dir=wheels
+    #save
+    SAVE ARTIFACT wheels /wheels
+
+    COPY src src
+    SAVE ARTIFACT src /src
+
+docker:
+    COPY +build/src src
+    COPY +build/wheels wheels
+    COPY requirements.txt ./
+    RUN pip install --no-index --find-links=wheels -r requirements.txt
+    ENTRYPOINT ["python3", "./src/hello.py"]
+    SAVE IMAGE python-example:latest
 ```
 {% endmethod %}
 
