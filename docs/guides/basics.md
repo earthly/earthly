@@ -597,6 +597,7 @@ Markdown==3.2.2
 The code of the app would now look like this
 ```python
 # src/hello.py
+
 from markdown import markdown
 
 def hello():
@@ -607,6 +608,7 @@ print(hello())
 The build might then become as follows.  
 ```Docker
 # EarthFile
+
 FROM python:3
 WORKDIR /code
 
@@ -724,7 +726,8 @@ build:
     RUN pip install wheel
     COPY requirements.txt ./
     RUN pip wheel -r requirements.txt --wheel-dir=wheels
-    #save
+
+    #save wheels before copy source, for cache efficiency 
     SAVE ARTIFACT wheels /wheels
 
     COPY src src
@@ -829,6 +832,33 @@ docker:
     COPY +build/lib lib
     ENTRYPOINT ["/java-example/bin/java-example"]
     SAVE IMAGE java-example:latest
+```
+{% sample lang="Python" %}
+```Dockerfile
+# Earthfile
+
+FROM python:3
+WORKDIR /code
+
+deps:
+    RUN pip install wheel
+    COPY requirements.txt ./
+    RUN pip wheel -r requirements.txt --wheel-dir=wheels
+    SAVE IMAGE
+
+build:
+    FROM +deps
+    COPY src src
+    SAVE ARTIFACT src /src
+    SAVE ARTIFACT wheels /wheels
+
+docker:
+    COPY +build/src src
+    COPY +build/wheels wheels
+    COPY requirements.txt ./
+    RUN pip install --no-index --find-links=wheels -r requirements.txt
+    ENTRYPOINT ["python3", "./src/hello.py"]
+    SAVE IMAGE python-example:latest
 ```
 {% endmethod %}
 
