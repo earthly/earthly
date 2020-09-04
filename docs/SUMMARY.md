@@ -23,3 +23,4 @@
     * [Earthly](examples/earthly.md)
     * [Circle CI](examples/circle-integration.md)
     * [GitHub Actions](examples/gh-actions-integration.md)
+    * [AWS CodeBuild](examples/codebuild-integration.md)

@@ -8,6 +8,7 @@
 [![Docker Hub](https://img.shields.io/badge/docker%20hub-earthly-blue)](https://hub.docker.com/u/earthly)
 [![License](https://img.shields.io/badge/license-MPL--2.0-blue.svg)](http://www.apache.org/licenses/LICENSE-2.0)
 
+
 **🐳 Build anything via containers** - *build images or standalone artifacts (binaries, packages, arbitrary files)*
 
 **🛠 Programming language agnostic** - *allows use of language-specific build tooling*
