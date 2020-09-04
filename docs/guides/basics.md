@@ -394,7 +394,7 @@ docker:
 ```
 {% endmethod %}
 
-## Adding dependecies in the mix
+## Adding dependencies in the mix
 
 Let's imagine now that in our simple app, we now want to add a programming language dependency. Here's how our build might look like as a result
 
@@ -873,6 +873,7 @@ To learn more about Earthly, take a look at the [examples directory on GitHub](h
 * [Go](https://github.com/earthly/earthly/tree/master/examples/go)
 * [JavaScript](https://github.com/earthly/earthly/tree/master/examples/js)
 * [Java](https://github.com/earthly/earthly/tree/master/examples/java)
+* [Python](https://github.com/earthly/earthly/tree/master/examples/python)
 
 ## See also
 
