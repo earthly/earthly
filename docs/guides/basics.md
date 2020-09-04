@@ -132,7 +132,33 @@ public class HelloWorld {
     }
 }
 ```
+{% sample lang="Python" %}
+Here is a sample earthfile of a Python app
 
+```Dockerfile
+# Earthfile
+
+FROM python:3
+WORKDIR /code
+
+build:
+     # In Python, there's nothing to build.
+    COPY src src
+    SAVE ARTIFACT src /src
+
+docker:
+    COPY +build/src src
+    ENTRYPOINT ["python3", "./src/hello.py"]
+    SAVE IMAGE python-example:latest
+```
+
+The code of the app might look like this
+
+```python
+// src/hello.py
+
+print("hello world")
+```
 {% endmethod %}
 
 You will notice that the recipes look very much like Dockerfiles. This is an intentional design decision. Existing Dockerfiles can be ported to earthfiles by copy-pasting them over and then tweaking them slightly. Compared to Dockerfile syntax, some commands are new (like `SAVE ARTIFACT`), others have additional semantics (like `COPY +target/some-artifact`) and other semantics are removed (like `FROM ... AS ...` and `COPY --from`).
@@ -183,12 +209,17 @@ hello world
 $ docker run --rm java-example:latest
 hello world
 ```
+{% sample lang="Python" %}
+```
+$ docker run --rm python-example:latest
+hello world
+```
 {% endmethod %}
 
 {% hint style='info' %}
 ##### Note
 
-Targets have a particular referencing convention which helps Earthly to identify which recipe to execute. In the simplest form, targets are referenced by `+<target-name>` - for example, `+build`. For more details see the [target referencing page](./target-ref.md).
+Targets have a particular referencing convention which helps Earthly to identify which recipe to execute. In the simplest form, targets are referenced by `+<target-name>`.  For example, `+build`. For more details see the [target referencing page](./target-ref.md).
 {% endhint %}
 
 ## Detailed explanation
@@ -327,9 +358,43 @@ docker:
     # docker if the entire build succeeds.
     SAVE IMAGE java-example:latest
 ```
+{% sample lang="Python" %}
+```Dockerfile
+# Earthfile
+
+# The build starts from a python 3 docker image
+FROM python:3
+# We change the current working directory
+WORKDIR /code
+
+# The above commands are inherited implicitly by all targets below
+# (as if they started with FROM +base).
+
+#Declare a target, build
+build:
+     # Copy the source files from build context to the build enviroment as a layer
+    COPY src src
+    # Save the python source in an artifact dir called src (it can be later
+    SAVE ARTIFACT src /src
+
+#Declare a target, docker
+docker:
+    #Define the recipe of the target docker as follows:
+
+    # Copy the artifact /src from the target +build into the current directory with the build container
+    COPY +build/src src
+
+    #Set the entrypoint for the resulting docker image
+    ENTRYPOINT ["python3", "./src/hello.py"]
+    # Save the current state as a docker image, which will have the docker tag
+    # python-example:latest. This image is only made available to the host's docker
+    # if the entire build succeeds.
+    SAVE IMAGE python-example:latest
+
+```
 {% endmethod %}
 
-## Adding dependecies in the mix
+## Adding dependencies in the mix
 
 Let's imagine now that in our simple app, we now want to add a programming language dependency. Here's how our build might look like as a result
 
@@ -523,6 +588,47 @@ docker:
     ENTRYPOINT ["/java-example/bin/java-example"]
     SAVE IMAGE java-example:latest
 ```
+{% sample lang="Python" %}
+```
+// Requirements.txt
+
+Markdown==3.2.2
+```
+The code of the app would now look like this
+```python
+# src/hello.py
+
+from markdown import markdown
+
+def hello():
+    return markdown("Hello *Earthly*")
+
+print(hello())
+```
+The build might then become as follows.  
+```Docker
+# EarthFile
+
+FROM python:3
+WORKDIR /code
+
+build:
+    # Use Python Wheels to produce package files into /wheels
+    RUN pip install wheel
+    COPY requirements.txt ./
+    RUN pip wheel -r requirements.txt --wheel-dir=wheels
+    COPY src src
+    SAVE ARTIFACT src /src
+    SAVE ARTIFACT wheels /wheels
+
+docker:
+    COPY +build/src src
+    COPY +build/wheels wheels
+    COPY requirements.txt ./
+    RUN pip install --no-index --find-links=wheels -r requirements.txt
+    ENTRYPOINT ["python3", "./src/hello.py"]
+    SAVE IMAGE python-example:latest
+```
 {% endmethod %}
 
 However, as we build this new setup and make changes to the main source code, we notice that the dependencies are downloaded every single time we change the source code. While the build is not necessarily incorrect, it is inefficient for proper development speed.
@@ -609,6 +715,31 @@ docker:
     COPY +build/lib lib
     ENTRYPOINT ["/java-example/bin/java-example"]
     SAVE IMAGE java-example:latest
+```
+{% sample lang="Python" %}
+```Docker
+# EarthFile
+FROM python:3
+WORKDIR /code
+
+build:
+    RUN pip install wheel
+    COPY requirements.txt ./
+    RUN pip wheel -r requirements.txt --wheel-dir=wheels
+
+    #save wheels before copy source, for cache efficiency 
+    SAVE ARTIFACT wheels /wheels
+
+    COPY src src
+    SAVE ARTIFACT src /src
+
+docker:
+    COPY +build/src src
+    COPY +build/wheels wheels
+    COPY requirements.txt ./
+    RUN pip install --no-index --find-links=wheels -r requirements.txt
+    ENTRYPOINT ["python3", "./src/hello.py"]
+    SAVE IMAGE python-example:latest
 ```
 {% endmethod %}
 
@@ -702,6 +833,33 @@ docker:
     ENTRYPOINT ["/java-example/bin/java-example"]
     SAVE IMAGE java-example:latest
 ```
+{% sample lang="Python" %}
+```Dockerfile
+# Earthfile
+
+FROM python:3
+WORKDIR /code
+
+deps:
+    RUN pip install wheel
+    COPY requirements.txt ./
+    RUN pip wheel -r requirements.txt --wheel-dir=wheels
+    SAVE IMAGE
+
+build:
+    FROM +deps
+    COPY src src
+    SAVE ARTIFACT src /src
+    SAVE ARTIFACT wheels /wheels
+
+docker:
+    COPY +build/src src
+    COPY +build/wheels wheels
+    COPY requirements.txt ./
+    RUN pip install --no-index --find-links=wheels -r requirements.txt
+    ENTRYPOINT ["python3", "./src/hello.py"]
+    SAVE IMAGE python-example:latest
+```
 {% endmethod %}
 
 Notice how at the end of the `deps` recipe, we issued a `SAVE IMAGE` command. In this case, it is not for the purpose of saving as an image that would be used outside of the build: the command has no docker tag associated with it. Instead, it is for the purpose of reusing the image within the build, from another target (via `FROM +deps`).
@@ -715,6 +873,7 @@ To learn more about Earthly, take a look at the [examples directory on GitHub](h
 * [Go](https://github.com/earthly/earthly/tree/master/examples/go)
 * [JavaScript](https://github.com/earthly/earthly/tree/master/examples/js)
 * [Java](https://github.com/earthly/earthly/tree/master/examples/java)
+* [Python](https://github.com/earthly/earthly/tree/master/examples/python)
 
 ## See also
 
