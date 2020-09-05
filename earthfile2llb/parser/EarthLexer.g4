@@ -85,8 +85,7 @@ fragment QuotedAtomPart: ('"' (~'"' | '\\"')* '"');
 fragment RegularAtomPart: ~([ \t\r\n\\"]) | EscapedAtomPart;
 fragment EscapedAtomPart: ('\\' .) | (LC [ \t]*);
 
-// Note; Comments not allowed in command lines.
-NL_C: WS? CRLF -> type(NL), popMode;
+NL_C: NL -> type(NL), popMode;
 WS_C: WS -> type(WS);
 
 mode COMMAND_ARGS_KEY_VALUE;
@@ -98,8 +97,7 @@ EQUALS: '=' -> mode(COMMAND_ARGS);
 Atom_CAKV: (RegularAtomPart_CAKV | QuotedAtomPart)+ -> type(Atom);
 fragment RegularAtomPart_CAKV: ~([ \t\r\n"=]) | EscapedAtomPart;
 
-// Note; Comments not allowed in command lines.
-NL_CAKV: WS? CRLF -> type(NL), popMode;
+NL_CAKV: NL -> type(NL), popMode;
 WS_CAKV: WS -> type(WS);
 
 mode COMMAND_ARGS_KEY_VALUE_LABEL;
@@ -109,6 +107,5 @@ EQUALS_L: '=' -> type(EQUALS);
 // Similar Atom, but don't allow '=' as part of it, unless it's in quotes.
 Atom_CAKVL: Atom_CAKV -> type(Atom);
 
-// Note; Comments not allowed in command lines.
 NL_CAKVL: NL_CAKV -> type(NL), popMode;
 WS_CAKVL: WS_CAKV -> type(WS);
