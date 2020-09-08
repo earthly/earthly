@@ -7,6 +7,7 @@ In this section, you will find some examples of Earthfiles for
 * [Java](./java.md)
 * [JS](./js.md)
 * [C++](./cpp.md)
+* [Python](./python.md)
 * [Mono-repos](./monorepo.md)
 * [Multi-repos](./multirepo.md)
 * [Earthly](./earthly.md)
