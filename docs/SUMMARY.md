@@ -18,6 +18,7 @@
     * [Java](examples/java.md)
     * [JS](examples/js.md)
     * [C++](examples/cpp.md)
+    * [Python](examples/python.md)
     * [Monorepo](examples/monorepo.md)
     * [Multirepo](examples/multirepo.md)
     * [Earthly](examples/earthly.md)
