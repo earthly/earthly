@@ -40,6 +40,7 @@ import (
 	"github.com/moby/buildkit/session"
 	"github.com/moby/buildkit/session/auth/authprovider"
 	"github.com/moby/buildkit/session/secrets/secretsprovider"
+	"github.com/moby/buildkit/session/sshforward/sshprovider"
 	"github.com/moby/buildkit/util/entitlements"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -870,6 +871,20 @@ func (app *earthApp) actionBuild(c *cli.Context) error {
 		secretsprovider.FromMap(secretsMap),
 		authprovider.NewDockerAuthProvider(os.Stderr),
 	}
+
+	var withSSH bool
+	sshPath := defaultSSHAuthSock()
+	if sshPath != "" {
+		ssh, err := sshprovider.NewSSHAgentProvider([]sshprovider.AgentConfig{{
+			Paths: []string{sshPath},
+		}})
+		if err != nil {
+			return errors.Wrap(err, "ssh agent provider")
+		}
+		attachables = append(attachables, ssh)
+		withSSH = true
+	}
+
 	var enttlmnts []entitlements.Entitlement
 	if app.allowPrivileged {
 		enttlmnts = append(enttlmnts, entitlements.EntitlementSecurityInsecure)
@@ -902,6 +917,7 @@ func (app *earthApp) actionBuild(c *cli.Context) error {
 			ArtifactBuilderFun: b.MakeArtifactBuilderFun(),
 			CleanCollection:    cleanCollection,
 			VarCollection:      varCollection,
+			WithSSH:            withSSH,
 		})
 	if err != nil {
 		return err

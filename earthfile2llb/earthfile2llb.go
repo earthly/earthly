@@ -40,6 +40,8 @@ type ConvertOpt struct {
 	VarCollection *variables.Collection
 	// A cache for image solves. depTargetInputHash -> context containing image.tar.
 	SolveCache map[string]llb.State
+	// WithSSH will pass along the ssh auth agent socket when true
+	WithSSH bool
 }
 
 // DockerBuilderFun is a function able to build a target into a docker tar file.

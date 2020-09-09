@@ -50,6 +50,7 @@ type Converter struct {
 	nextArgIndex       int
 	solveCache         map[string]llb.State
 	imageResolveMode   llb.ResolveMode
+	withSSH            bool
 }
 
 // NewConverter constructs a new converter for a given earth target.
@@ -88,6 +89,7 @@ func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Da
 		artifactBuilderFun: opt.ArtifactBuilderFun,
 		cleanCollection:    opt.CleanCollection,
 		solveCache:         opt.SolveCache,
+		withSSH:            opt.WithSSH,
 	}, nil
 }
 
@@ -318,6 +320,7 @@ func (c *Converter) Run(ctx context.Context, args []string, mounts []string, sec
 		With("withEntrypoint", withEntrypoint).
 		With("withDocker", withDocker).
 		With("push", pushFlag).
+		With("withSSH", c.withSSH).
 		Info("Applying RUN")
 	var opts []llb.RunOption
 	mountRunOpts, err := parseMounts(mounts, c.mts.FinalStates.Target, c.mts.FinalStates.TargetInput, c.cacheContext)
@@ -724,6 +727,9 @@ func (c *Converter) internalRun(ctx context.Context, args []string, secretKeyVal
 	runEarthlyMount := llb.AddMount("/run/earthly", llb.Scratch(),
 		llb.HostBind(), llb.SourcePath("/run/earthly"))
 	finalOpts = append(finalOpts, debuggerSecretMount, debuggerMount, runEarthlyMount)
+	if c.withSSH {
+		finalOpts = append(finalOpts, llb.AddSSHSocket())
+	}
 	// Shell and debugger wrap.
 	finalArgs := shellWrap(args, extraEnvVars, isWithShell, true)
 	finalOpts = append(finalOpts, llb.Args(finalArgs))
