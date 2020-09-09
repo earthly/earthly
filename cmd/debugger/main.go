@@ -213,7 +213,12 @@ func main() {
 			// Take a brief pause and issue a new line as a work around.
 			time.Sleep(time.Millisecond * 5)
 
-			err := interactiveMode(ctx, remoteConsoleAddr)
+			err := os.Setenv("TERM", debuggerSettings.Term)
+			if err != nil {
+				conslogger.Warnf("Failed to set term: %v", err)
+			}
+
+			err = interactiveMode(ctx, remoteConsoleAddr)
 			if err != nil {
 				log.Error(err)
 			}
