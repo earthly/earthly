@@ -663,7 +663,7 @@ func (app *earthApp) run(ctx context.Context, args []string) int {
 			app.console.Warnf("Error: %v\n", err)
 			app.console.Printf(
 				"Check your git auth settings.\n" +
-					"Did you ssh-add today? Need to configure ~/earthly/config.yml?\n" +
+					"Did you ssh-add today? Need to configure ~/.earthly/config.yml?\n" +
 					"For more information see https://docs.earthly.dev/guides/auth\n")
 		} else {
 			app.console.Warnf("Error: %v\n", err)
