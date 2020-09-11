@@ -1,9 +1,18 @@
 #!/bin/bash
 set -e
 
+bindir="$HOME/bin"
+
+if [ ! -d "$bindir" ]; then
+  echo "Please create the directory $bindir before continuing"
+  exit 1
+fi
+
 last_check_state_path=/tmp/last-earth-prerelease-check
 
 get_latest_binary() {
+    docker rm --force earthly_binary 2>/dev/null || true
+
     docker pull earthly/buildkitd:prerelease
     docker pull earthly/earthlybinaries:prerelease
     docker create --name earthly_binary earthly/earthlybinaries:prerelease
@@ -13,7 +22,7 @@ get_latest_binary() {
         earth_bin_path=/earth-darwin-amd64
     fi
 
-    docker cp earthly_binary:"$earth_bin_path" ~/bin/earth-bin
+    docker cp earthly_binary:"$earth_bin_path" "$bindir/earth-bin"
     docker rm earthly_binary
 }
 
@@ -27,4 +36,4 @@ if [ "$since" -ge 3600 ] && [ -z "$COMP_LINE" ]; then
     echo "$now" >"$last_check_state_path"
 fi
 
-~/bin/earth-bin "$@"
+"$bindir/earth-bin" "$@"
