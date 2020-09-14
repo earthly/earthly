@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
+	"runtime/debug"
 	"strconv"
 	"strings"
 	"syscall"
@@ -97,12 +98,42 @@ func (app *earthApp) autoComplete() {
 		return
 	}
 
+	err := app.autoCompleteImp()
+	if err != nil {
+		errToLog := err
+		homeDir, err := os.UserHomeDir()
+		if err != nil {
+			os.Exit(1)
+		}
+		logDir := filepath.Join(homeDir, ".earthly")
+		logFile := filepath.Join(logDir, "autocomplete.log")
+		err = os.MkdirAll(logDir, 0755)
+		if err != nil {
+			os.Exit(1)
+		}
+		f, err := os.OpenFile(logFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0755)
+		if err != nil {
+			os.Exit(1)
+		}
+		fmt.Fprintf(f, "error during autocomplete: %s\n", errToLog)
+		os.Exit(1)
+	}
+	os.Exit(0)
+}
+
+func (app *earthApp) autoCompleteImp() (err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("recovered panic in autocomplete %s: %s", r, debug.Stack())
+		}
+	}()
+
 	compLine := os.Getenv("COMP_LINE")   // full command line
 	compPoint := os.Getenv("COMP_POINT") // where the cursor is
 
 	compPointInt, err := strconv.ParseUint(compPoint, 10, 64)
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	flags := []string{}
@@ -121,14 +152,13 @@ func (app *earthApp) autoComplete() {
 
 	potentials, err := autocomplete.GetPotentials(compLine, int(compPointInt), flags, commands)
 	if err != nil {
-		//panic(err) // can't display error or it will show up under tab-completion
-		os.Exit(1)
+		return err
 	}
 	for _, p := range potentials {
 		fmt.Printf("%s\n", p)
 	}
 
-	os.Exit(0)
+	return err
 }
 
 func (app *earthApp) insertBashCompleteEntry() error {
