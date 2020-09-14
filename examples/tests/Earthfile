@@ -284,6 +284,13 @@ gen-dockerfile-test:
         --mount=type=tmpfs,target=/tmp/earthly \
         -- --no-output +test
 
+comments-test:
+    COPY comments.earth ./Earthfile
+    RUN --privileged \
+        --entrypoint \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        -- --no-output +test
+
 chown-test:
     COPY chown.earth ./Earthfile
     RUN echo "test" > ./a.txt
