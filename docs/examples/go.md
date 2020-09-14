@@ -124,5 +124,5 @@ hello world
 
 * The [Earthly basics page](../guides/basics.md), which includes an extended Go example
 * The [Earthfile reference](../earthfile/earthfile.md)
-* The [earth command reference](../earth-command/earth-command.md)
+* The [Earth command reference](../earth-command/earth-command.md)
 * More [examples](../examples/examples.md)

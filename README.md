@@ -146,7 +146,7 @@ See also the [full documentation](https://docs.earthly.dev).
 Reference pages
 
 * 📑 [Earthfile reference](https://docs.earthly.dev/earthfile)
-* #️⃣ [earth command reference](https://docs.earthly.dev/earth-command)
+* #️⃣ [Earth command reference](https://docs.earthly.dev/earth-command)
 * ⚙️ [Configuration reference](https://docs.earthly.dev/earth-config)
 
 ### A simple example (for Go)
