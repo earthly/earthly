@@ -108,7 +108,7 @@ func (wdr *withDockerRun) Run(ctx context.Context, args []string, opt WithDocker
 		return errors.Wrap(err, "compute dind id")
 	}
 	shellWrap := makeWithDockerdWrapFun(dindID, tarPaths)
-	return wdr.c.internalRun(ctx, finalArgs, opt.Secrets, opt.WithShell, shellWrap, false, runStr, runOpts...)
+	return wdr.c.internalRun(ctx, finalArgs, opt.Secrets, opt.WithShell, shellWrap, false, false, runStr, runOpts...)
 }
 
 func (wdr *withDockerRun) pull(ctx context.Context, dockerTag string) error {

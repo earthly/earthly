@@ -306,7 +306,7 @@ func (c *Converter) CopyClassical(ctx context.Context, srcs []string, dest strin
 }
 
 // Run applies the earth RUN command.
-func (c *Converter) Run(ctx context.Context, args []string, mounts []string, secretKeyValues []string, privileged bool, withEntrypoint bool, withDocker bool, isWithShell bool, pushFlag bool) error {
+func (c *Converter) Run(ctx context.Context, args []string, mounts []string, secretKeyValues []string, privileged bool, withEntrypoint bool, withDocker bool, isWithShell bool, pushFlag bool, withSSH bool) error {
 	if withDocker {
 		fmt.Printf("Warning: RUN --with-docker is deprecated. Use WITH DOCKER ... RUN ... END instead\n")
 	}
@@ -318,6 +318,7 @@ func (c *Converter) Run(ctx context.Context, args []string, mounts []string, sec
 		With("withEntrypoint", withEntrypoint).
 		With("withDocker", withDocker).
 		With("push", pushFlag).
+		With("withSSH", withSSH).
 		Info("Applying RUN")
 	var opts []llb.RunOption
 	mountRunOpts, err := parseMounts(mounts, c.mts.FinalStates.Target, c.mts.FinalStates.TargetInput, c.cacheContext)
@@ -351,7 +352,7 @@ func (c *Converter) Run(ctx context.Context, args []string, mounts []string, sec
 		shellWrap = withDockerdWrapOld
 	}
 	opts = append(opts, llb.WithCustomNamef("%s%s", c.vertexPrefix(), runStr))
-	return c.internalRun(ctx, finalArgs, secretKeyValues, isWithShell, shellWrap, pushFlag, runStr, opts...)
+	return c.internalRun(ctx, finalArgs, secretKeyValues, isWithShell, shellWrap, pushFlag, withSSH, runStr, opts...)
 }
 
 // SaveArtifact applies the earth SAVE ARTIFACT command.
@@ -672,7 +673,7 @@ func (c *Converter) FinalizeStates() *MultiTargetStates {
 	return c.mts
 }
 
-func (c *Converter) internalRun(ctx context.Context, args []string, secretKeyValues []string, isWithShell bool, shellWrap shellWrapFun, pushFlag bool, commandStr string, opts ...llb.RunOption) error {
+func (c *Converter) internalRun(ctx context.Context, args []string, secretKeyValues []string, isWithShell bool, shellWrap shellWrapFun, pushFlag bool, withSSH bool, commandStr string, opts ...llb.RunOption) error {
 	finalOpts := opts
 	var extraEnvVars []string
 	// Secrets.
@@ -724,6 +725,9 @@ func (c *Converter) internalRun(ctx context.Context, args []string, secretKeyVal
 	runEarthlyMount := llb.AddMount("/run/earthly", llb.Scratch(),
 		llb.HostBind(), llb.SourcePath("/run/earthly"))
 	finalOpts = append(finalOpts, debuggerSecretMount, debuggerMount, runEarthlyMount)
+	if withSSH {
+		finalOpts = append(finalOpts, llb.AddSSHSocket())
+	}
 	// Shell and debugger wrap.
 	finalArgs := shellWrap(args, extraEnvVars, isWithShell, true)
 	finalOpts = append(finalOpts, llb.Args(finalArgs))
@@ -903,7 +907,7 @@ func (c *Converter) processNonConstantBuildArgFunc(ctx context.Context) variable
 		buildArgPath := path.Join("/run/buildargs", name)
 		args := strings.Split(fmt.Sprintf("echo \"%s\" >%s", expression, srcBuildArgPath), " ")
 		err := c.internalRun(
-			ctx, args, []string{}, true, withShellAndEnvVars, false, expression,
+			ctx, args, []string{}, true, withShellAndEnvVars, false, false, expression,
 			llb.WithCustomNamef("%sRUN %s", c.vertexPrefix(), expression))
 		if err != nil {
 			return llb.State{}, dedup.TargetInput{}, 0, errors.Wrapf(err, "run %v", expression)

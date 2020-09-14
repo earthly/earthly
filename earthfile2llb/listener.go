@@ -268,6 +268,7 @@ func (l *listener) ExitRunStmt(c *parser.RunStmtContext) {
 	privileged := fs.Bool("privileged", false, "")
 	withEntrypoint := fs.Bool("entrypoint", false, "")
 	withDocker := fs.Bool("with-docker", false, "")
+	withSSH := fs.Bool("ssh", false, "")
 	secrets := new(StringSliceFlag)
 	fs.Var(secrets, "secret", "")
 	mounts := new(StringSliceFlag)
@@ -295,7 +296,7 @@ func (l *listener) ExitRunStmt(c *parser.RunStmtContext) {
 	if l.withDocker == nil {
 		err = l.converter.Run(
 			l.ctx, fs.Args(), mounts.Args, secrets.Args, *privileged, *withEntrypoint, *withDocker,
-			withShell, *pushFlag)
+			withShell, *pushFlag, *withSSH)
 		if err != nil {
 			l.err = errors.Wrap(err, "run")
 			return
