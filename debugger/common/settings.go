@@ -8,4 +8,5 @@ type DebuggerSettings struct {
 	DebugLevelLogging bool   `json:"debugLevel"`
 	Enabled           bool   `json:"enabled"`
 	SockPath          string `json:"sockPath"`
+	Term              string `json:"term"`
 }

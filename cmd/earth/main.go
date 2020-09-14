@@ -858,6 +858,7 @@ func (app *earthApp) actionBuild(c *cli.Context) error {
 		DebugLevelLogging: app.buildkitdSettings.Debug,
 		Enabled:           app.interactiveDebugging,
 		SockPath:          fmt.Sprintf("/run/earthly/%s", sockName),
+		Term:              os.Getenv("TERM"),
 	}
 
 	debuggerSettingsData, err := json.Marshal(&debuggerSettings)
