@@ -1,4 +1,4 @@
-# earth command reference
+# Earth command reference
 
 ## earth
 

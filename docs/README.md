@@ -55,6 +55,6 @@ A high-level overview is available on [the Earthly GitHub page](https://github.c
 * [Full installation instructions](./installation/installation.md)
 * [Earthly basics](./guides/basics.md)
 * [Earthfile reference](./earthfile/earthfile.md)
-* [earth command reference](./earth-command/earth-command.md)
+* [Earth command reference](./earth-command/earth-command.md)
 * [Configuration reference](./earth-config/earth-config.md)
 * [Earthfile examples](./examples/examples.md)
