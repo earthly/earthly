@@ -12,6 +12,7 @@
 * [Earthfile reference](earthfile/earthfile.md)
     * [Builtin args](earthfile/builtin-args.md)
 * [Earth command reference](earth-command/earth-command.md)
+* [Definitions](definitions/definitions.md)
 * [Configuration reference](earth-config/earth-config.md)
 * [Examples](examples/examples.md)
     * [Go](examples/go.md)
