@@ -145,8 +145,6 @@ print("hello world")
 
 You will notice that the recipes look very much like Dockerfiles. This is an intentional design decision. Existing Dockerfiles can be ported to earthfiles by copy-pasting them over and then tweaking them slightly. Compared to Dockerfile syntax, some commands are new (like `SAVE ARTIFACT`), others have additional semantics (like `COPY +target/some-artifact`) and other semantics are removed (like `FROM ... AS ...` and `COPY --from`).
 
-All earthfiles start with a base recipe. This is the only recipe which does not have an explicit target name - the name is always implied to be `base`. All other target implicitly inherit from `base`. You can imagine that all recipes start with an implicit `FROM +base`.
-
 ## Executing a build
 
 In this particular example, we can see two explicit targets: `build` and `docker`. In order to execute the build, we can run, for example:
@@ -225,9 +223,9 @@ WORKDIR /go-example
 build:
     # Define the recipe of the target build as follows:
 
-    # Copy main.go from the build context to the build environment, as a layer.
+    # Copy main.go from the build context to the build environment.
     COPY main.go .
-    # Run a go build command as a layer.
+    # Run a go build command.
     # This uses the previously copied main.go file.
     RUN go build -o build/go-example main.go
     # Save the output of the build command as an artifact. Call this
@@ -267,8 +265,7 @@ WORKDIR /js-example
 build:
     # Define the recipe of the target build as follows:
 
-    # Copy index.js from the build context to the build environment, as a
-    # layer.
+    # Copy index.js from the build context to the build environment.
     COPY index.js .
     # Save the index.js in an artifact dir called dist (it can be later
     # referenced as +build/dist). In addition, store the artifact as a
@@ -309,10 +306,10 @@ build:
     # Define the recipe of the target build as follows:
 
     # Copy build.gradle and src from the build context to the build
-    # environment, as layers.
+    # environment.
     COPY build.gradle ./
     COPY src src
-    # Run the gradle build and gradle install commands as layers.
+    # Run the gradle build and gradle install commands.
     # These use the previously copied src dir.
     RUN gradle build
     RUN gradle install
@@ -354,7 +351,7 @@ WORKDIR /code
 
 #Declare a target, build
 build:
-     # Copy the source files from build context to the build enviroment as a layer
+     # Copy the source files from build context to the build enviroment 
     COPY src src
     # Save the python source in an artifact dir called src (it can be later
     SAVE ARTIFACT src /src
@@ -617,7 +614,7 @@ However, as we build this new setup and make changes to the main source code, we
 
 ## Efficient caching of dependencies
 
-The reason the build is inefficient is because we have not made proper use of layer caching. When a file changes, the corresponding `COPY` command is re-executed without cache, causing all commands after it to also re-execute without cache.
+The reason the build is inefficient is because we have not made proper use of caching. When a file changes, the corresponding `COPY` command is re-executed without cache, causing all commands after it to also re-execute without cache.
 
 If, however, we could first download the dependencies and only afterwards copy and build the code, then the cache would be reused every time we changed the code.
 

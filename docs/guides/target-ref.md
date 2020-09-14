@@ -47,6 +47,21 @@ or
 
 `github.com/earthly/earthly:v0.1.0+all`
 
+
+### Implicit Base Target ###
+
+All earthfiles start with a base recipe. This is the only recipe which does not have an explicit target name - the name is always implied to be `base`. All other target implicitly inherit from `base`. You can imagine that all recipes start with an implicit `FROM +base`
+
+```
+# base recipe
+FROM golang:1.13-alpine3.11
+WORKDIR /go-example
+
+build:
+    # implicit FROM +base
+    RUN echo "Hello World"
+```
+
 ### Canonical form
 
 Most target references have a canonical form. It is essentially the remote form of the same target, with repository and tag inferred. The canonical form can be useful as a universal identifier for a target.
