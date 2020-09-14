@@ -1,11 +1,10 @@
 #!/bin/bash
 set -e
 
-bindir="$HOME/bin"
+bindir="$HOME/.earthly"
 
 if [ ! -d "$bindir" ]; then
-  echo "Please create the directory $bindir before continuing"
-  exit 1
+  mkdir -p "$bindir"
 fi
 
 last_check_state_path=/tmp/last-earth-prerelease-check
@@ -22,7 +21,7 @@ get_latest_binary() {
         earth_bin_path=/earth-darwin-amd64
     fi
 
-    docker cp earthly_binary:"$earth_bin_path" "$bindir/earth-bin"
+    docker cp earthly_binary:"$earth_bin_path" "$bindir/earth-prerelease"
     docker rm earthly_binary
 }
 
@@ -36,4 +35,4 @@ if [ "$since" -ge 3600 ] && [ -z "$COMP_LINE" ]; then
     echo "$now" >"$last_check_state_path"
 fi
 
-"$bindir/earth-bin" "$@"
+"$bindir/earth-prerelease" "$@"
