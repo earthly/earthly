@@ -1,26 +1,8 @@
 # Basics
 
-You're here to learn how to use Earthly. Welcome! Earthly is a build automation tool based upon modern development technologies available today, like Docker.
+Earthly is a build automation tool where docker containers are used to enforce reproducibility. Earthly is meant to be run on your local system and in your CI.  Implicit caching and parallelism mean your build will be reproducible and fast.
 
-First, a few concepts:
-
-* Earthly - the build automation system as a whole
-* `earth` - the CLI tool used to interact with Earthly
-* Earthfile - a file (named literally `Earthfile`) which contains a series of targets and their respective recipes
-* buildkitd - a [daemon built by the Docker team](https://github.com/moby/buildkit) and used by Earthly to execute builds. It executes LLB, the same low-level primitives used when building Dockerfiles. The buildkitd daemon is started automatically in a docker container, by `earth`, when executing builds.
-* recipe - a specific series of build steps
-* target - the label used to identify a recipe. 'Target' is also used to refer to a build of a specific target.
-* build context - the main directory made available to the build for copying files from
-* artifact - a file resulting from executing a target (not all targets have artifacts)
-* image - a docker image resulting from executing a target (not all targets have images)
-
-Now that we got that out of the way, we can now be more specific:
-
-Earthly is a build automation tool where all recipes are executed in docker containers, with layer caching principles similar to Dockerfiles, and where the only thing shared between recipes are declared artifacts and images.
-
-A key difference from a Dockerfile build is that Earthly can be used to build not just images, but also artifacts - regular files or directories that can be written back onto the host filesystem.
-
-One of the key principles of Earthly is that the best build tooling of a specific language is built by the community of that language itself. Earthly does not intend to replace that tooling, but rather to leverage and augment it.
+Let's walk through a basic example of using Earthly.
 
 ## Installation
 
