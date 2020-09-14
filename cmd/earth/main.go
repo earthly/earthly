@@ -873,10 +873,9 @@ func (app *earthApp) actionBuild(c *cli.Context) error {
 	}
 
 	var withSSH bool
-	sshPath := defaultSSHAuthSock()
-	if sshPath != "" {
+	if app.buildkitdSettings.SSHAuthSock != "" {
 		ssh, err := sshprovider.NewSSHAgentProvider([]sshprovider.AgentConfig{{
-			Paths: []string{sshPath},
+			Paths: []string{app.buildkitdSettings.SSHAuthSock},
 		}})
 		if err != nil {
 			return errors.Wrap(err, "ssh agent provider")
