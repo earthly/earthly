@@ -48,7 +48,7 @@ or
 `github.com/earthly/earthly:v0.1.0+all`
 
 
-### Implicit Base Target ###
+### Implicit Base Target Reference
 
 All earthfiles start with a base recipe. This is the only recipe which does not have an explicit target name - the name is always implied to be `base`. All other target implicitly inherit from `base`. You can imagine that all recipes start with an implicit `FROM +base`
 
