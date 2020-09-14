@@ -872,7 +872,6 @@ func (app *earthApp) actionBuild(c *cli.Context) error {
 		authprovider.NewDockerAuthProvider(os.Stderr),
 	}
 
-	var withSSH bool
 	if app.buildkitdSettings.SSHAuthSock != "" {
 		ssh, err := sshprovider.NewSSHAgentProvider([]sshprovider.AgentConfig{{
 			Paths: []string{app.buildkitdSettings.SSHAuthSock},
@@ -881,7 +880,6 @@ func (app *earthApp) actionBuild(c *cli.Context) error {
 			return errors.Wrap(err, "ssh agent provider")
 		}
 		attachables = append(attachables, ssh)
-		withSSH = true
 	}
 
 	var enttlmnts []entitlements.Entitlement
@@ -916,7 +914,6 @@ func (app *earthApp) actionBuild(c *cli.Context) error {
 			ArtifactBuilderFun: b.MakeArtifactBuilderFun(),
 			CleanCollection:    cleanCollection,
 			VarCollection:      varCollection,
-			WithSSH:            withSSH,
 		})
 	if err != nil {
 		return err

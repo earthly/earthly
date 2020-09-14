@@ -26,7 +26,6 @@ type BuildOpt struct {
 	PrintSuccess bool
 	NoOutput     bool
 	Push         bool
-	WithSSH      bool
 }
 
 // Builder provides a earth commands executor.
