@@ -185,6 +185,21 @@ release:
 earth --secret GH_TOKEN="the-actual-secret-token-value" +release
 ```
 
+##### `--ssh`
+
+Allows a command to access the ssh authentication client running on the host via the socket which is referenced by the environment variable `SSH_AUTH_SOCK`.
+
+Here is an example:
+
+```Dockerfile
+git-clone:
+    RUN --ssh git clone git@host.com:user/private-repo.git
+```
+
+```bash
+earth --secret GH_TOKEN="the-actual-secret-token-value" +release
+```
+
 ##### `--mount <mount-spec>`
 
 Mounts a file or directory in the context of the build environment.
