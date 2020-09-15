@@ -19,11 +19,14 @@ require (
 	github.com/opencontainers/image-spec v1.0.1
 	github.com/otiai10/copy v1.1.1
 	github.com/pkg/errors v0.9.1
+	github.com/seehuhn/password v0.0.0-20131211191456-9ed6612376fa // indirect
 	github.com/sirupsen/logrus v1.6.0
 	github.com/stretchr/testify v1.5.1
 	github.com/urfave/cli/v2 v2.1.1
 	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
 	golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e
+	google.golang.org/grpc v1.28.1
+	google.golang.org/protobuf v1.24.0
 	gopkg.in/yaml.v2 v2.2.8
 )
 

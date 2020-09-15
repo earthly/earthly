@@ -32,7 +32,7 @@ deps:
 code:
     FROM +deps
     COPY --dir autocomplete buildcontext builder cleanup cmd config conslogging debugger dockertar \
-        domain llbutil logging ./
+        domain llbutil logging secretsclient ./
     COPY --dir buildkitd/buildkitd.go buildkitd/settings.go buildkitd/
     COPY --dir earthfile2llb/antlrhandler earthfile2llb/dedup earthfile2llb/image \
         earthfile2llb/imr earthfile2llb/variables earthfile2llb/*.go earthfile2llb/
@@ -54,7 +54,7 @@ lint:
             echo "$output" ; \
             exit 1 ; \
         fi
-    RUN output="$(goimports -d . 2>&1)" ; \
+    RUN output="$(goimports -d . 2>&1)" | grep -v '.*\.pb\.go' ; \
         if [ -n "$output" ]; then \
             echo "$output" ; \
             exit 1 ; \
