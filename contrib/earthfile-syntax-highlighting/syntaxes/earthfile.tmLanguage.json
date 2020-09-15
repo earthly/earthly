@@ -213,11 +213,11 @@
 		"entity": {
 			"patterns": [
 				{
-					"match": "(\\S*\\+[a-zA-Z0-9.\\-]+(/\\S*)+)",
+					"match": "([a-zA-Z0-9._\\-/:]*\\+[a-zA-Z0-9.\\-]+(/\\S*)+)",
 					"name": "entity.name.variable.target.earthfile"
 				},
 				{
-					"match": "(\\S*\\+[a-zA-Z0-9.\\-]+)",
+					"match": "([a-zA-Z0-9._\\-/:]*\\+[a-zA-Z0-9.\\-]+)",
 					"name": "entity.name.type.target.earthfile"
 				}
 			]
