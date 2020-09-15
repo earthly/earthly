@@ -78,6 +78,7 @@ type cliFlags struct {
 	gitUsernameOverride  string
 	gitPasswordOverride  string
 	interactiveDebugging bool
+	sshAuthSock          string
 }
 
 var (
@@ -441,10 +442,10 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 		},
 		&cli.StringFlag{
 			Name:        "ssh-auth-sock",
-			Value:       defaultSSHAuthSock(),
+			Value:       os.Getenv("SSH_AUTH_SOCK"),
 			EnvVars:     []string{"EARTHLY_SSH_AUTH_SOCK"},
 			Usage:       "The SSH auth socket to use for ssh-agent forwarding",
-			Destination: &app.buildkitdSettings.SSHAuthSock,
+			Destination: &app.sshAuthSock,
 		},
 		&cli.StringFlag{
 			Name:        "git-username",
@@ -600,6 +601,12 @@ func (app *earthApp) before(context *cli.Context) error {
 		app.buildkitdImage = cfg.Global.BuildkitImage
 	}
 
+	if runtime.GOOS == "darwin" {
+		// on darwin buildkit is running inside a docker container and must reference this sock instead
+		app.buildkitdSettings.SSHAuthSock = "/run/host-services/ssh-auth.sock"
+	} else {
+		app.buildkitdSettings.SSHAuthSock = app.sshAuthSock
+	}
 	if app.buildkitdSettings.SSHAuthSock != "" {
 		// EvalSymlinks evaluates "" as "." which then breaks docker volume mounting
 		realSSHSocketPath, err := filepath.EvalSymlinks(app.buildkitdSettings.SSHAuthSock)
@@ -903,9 +910,9 @@ func (app *earthApp) actionBuild(c *cli.Context) error {
 		authprovider.NewDockerAuthProvider(os.Stderr),
 	}
 
-	if app.buildkitdSettings.SSHAuthSock != "" {
+	if app.sshAuthSock != "" {
 		ssh, err := sshprovider.NewSSHAgentProvider([]sshprovider.AgentConfig{{
-			Paths: []string{app.buildkitdSettings.SSHAuthSock},
+			Paths: []string{app.sshAuthSock},
 		}})
 		if err != nil {
 			return errors.Wrap(err, "ssh agent provider")
@@ -1012,22 +1019,6 @@ func processSecrets(secrets []string, dotEnvMap map[string]string) (map[string][
 		}
 	}
 	return finalSecrets, nil
-}
-
-func defaultSSHAuthSock() string {
-	var sshPath string
-	if runtime.GOOS == "darwin" {
-		sshPath = "/run/host-services/ssh-auth.sock"
-	} else {
-		sshPath = os.Getenv("SSH_AUTH_SOCK")
-	}
-
-	if !fileExists(sshPath) {
-		// darwin path doesn't always exist, reset to "" to skip ssh auth sock passthrough
-		sshPath = ""
-	}
-
-	return sshPath
 }
 
 func defaultConfigPath() string {
