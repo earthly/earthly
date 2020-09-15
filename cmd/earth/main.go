@@ -1015,10 +1015,19 @@ func processSecrets(secrets []string, dotEnvMap map[string]string) (map[string][
 }
 
 func defaultSSHAuthSock() string {
+	var sshPath string
 	if runtime.GOOS == "darwin" {
-		return "/run/host-services/ssh-auth.sock"
+		sshPath = "/run/host-services/ssh-auth.sock"
+	} else {
+		sshPath = os.Getenv("SSH_AUTH_SOCK")
 	}
-	return os.Getenv("SSH_AUTH_SOCK")
+
+	if !fileExists(sshPath) {
+		// darwin path doesn't always exist, reset to "" to skip ssh auth sock passthrough
+		sshPath = ""
+	}
+
+	return sshPath
 }
 
 func defaultConfigPath() string {
