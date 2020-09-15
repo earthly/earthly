@@ -111,7 +111,7 @@ In a multi-stage Dockerfile, sets the target to be used for the build. This opti
 
 #### Synopsis
 
-* `RUN [--push] [--entrypoint] [--privileged] [--secret <env-var>=<secret-ref>] [--mount <mount-spec>] [--] <command>` (shell form)
+* `RUN [--push] [--entrypoint] [--privileged] [--secret <env-var>=<secret-ref>] [--ssh] [--mount <mount-spec>] [--] <command>` (shell form)
 * `RUN [[<flags>...], "<executable>", "<arg1>", "<arg2>", ...]` (exec form)
 
 #### Description
@@ -179,6 +179,18 @@ Here is an example:
 ```Dockerfile
 release:
     RUN --push --secret GITHUB_TOKEN=+secrets/GH_TOKEN github-release upload
+```
+
+##### `--ssh`
+
+Allows a command to access the ssh authentication client running on the host via the socket which is referenced by the environment variable `SSH_AUTH_SOCK`.
+
+Here is an example:
+
+```Dockerfile
+git-clone:
+    RUN --ssh git config --global url."git@github.com:".insteadOf "https://github.com/" && go mod download
+
 ```
 
 ```bash
