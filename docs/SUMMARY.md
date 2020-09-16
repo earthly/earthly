@@ -7,6 +7,7 @@
     * [Target, artifact and image referencing](guides/target-ref.md)
     * [Managing cache](guides/cache.md)
     * [Advanced caching techniques](guides/advanced-caching.md)
+    * [Debugging techniques](guides/debugging.md)
     * [Experimental features](guides/experimental.md)
     * [CI integration](guides/ci-integration.md)
 * [Earthfile reference](earthfile/earthfile.md)
