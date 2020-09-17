@@ -181,6 +181,10 @@ release:
     RUN --push --secret GITHUB_TOKEN=+secrets/GH_TOKEN github-release upload
 ```
 
+```bash
+earth --secret GH_TOKEN="the-actual-secret-token-value" +release
+```
+
 ##### `--ssh`
 
 Allows a command to access the ssh authentication client running on the host via the socket which is referenced by the environment variable `SSH_AUTH_SOCK`.
@@ -191,10 +195,6 @@ Here is an example:
 git-clone:
     RUN --ssh git config --global url."git@github.com:".insteadOf "https://github.com/" && go mod download
 
-```
-
-```bash
-earth --secret GH_TOKEN="the-actual-secret-token-value" +release
 ```
 
 ##### `--mount <mount-spec>`
