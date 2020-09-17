@@ -7,7 +7,7 @@ This can be slow and cumbersome.
 Earthly provides an interactive mode which gives you access to a root shell when an error occurs, which we'll
 cover in this guide.
 
-Let's consider a build example:
+Let's consider a test example that prints out a randomly generated phrase:
 
 ```Dockerfile
 # Earthfile
@@ -15,7 +15,7 @@ Let's consider a build example:
 FROM python:3
 WORKDIR /code
 
-build:
+test:
   RUN curl https://raw.githubusercontent.com/jsvine/markovify/master/test/texts/sherlock.txt > /sherlock.txt
   COPY generate_phrase.py .
   RUN pip3 install markovify
@@ -33,33 +33,33 @@ print(text_model.make_sentence())
 ```
 
 
-Now we can run it with `earth +test`, and we'll see a failure has occured:
+Now we can run it with `earth +test`, and we'll see a failure has occurred:
 
 ```
 =========================== FAILURE ===========================
-+build *failed* | --> RUN python3 generate_phrase.py
-+build *failed* | Traceback (most recent call last):
-+build *failed* |   File "generate_phrase.py", line 3, in <module>
-+build *failed* |     text = open('sherlock.txt').read()
-+build *failed* | FileNotFoundError: [Errno 2] No such file or directory: 'sherlock.txt'
-+build *failed* | Command /bin/sh -c python3 generate_phrase.py failed with exit code 1
-+build *failed* | +build *failed* | ERROR: Command exited with non-zero code: RUN python3 generate_phrase.py
++test *failed* | --> RUN python3 generate_phrase.py
++test *failed* | Traceback (most recent call last):
++test *failed* |   File "generate_phrase.py", line 3, in <module>
++test *failed* |     text = open('sherlock.txt').read()
++test *failed* | FileNotFoundError: [Errno 2] No such file or directory: 'sherlock.txt'
++test *failed* | Command /bin/sh -c python3 generate_phrase.py failed with exit code 1
++test *failed* | +test *failed* | ERROR: Command exited with non-zero code: RUN python3 generate_phrase.py
 Error: solve side effects: solve: failed to solve: rpc error: code = Unknown desc = executor failed running [/bin/sh -c  /usr/bin/earth_debugger /bin/sh -c 'python3 generate_phrase.py']: buildkit-runc did not terminate successfully
 ```
 
 Why can't it find the sherlock.txt file? Let's re-run `earth` with the `--interactive` (or `-i`) flag: `earth -i +test`
 
-This time we see a slighly different message:
+This time we see a slightly different message:
 
 ```
-+build | --> RUN python3 generate_phrase.py
-+build | Traceback (most recent call last):
-+build |   File "generate_phrase.py", line 3, in <module>
-+build |     text = open('sherlock.txt').read()
-+build | FileNotFoundError: [Errno 2] No such file or directory: 'sherlock.txt'
-+build | Command /bin/sh -c python3 generate_phrase.py failed with exit code 1
-+build | Entering interactive debugger (**Warning: only a single debugger per host is supported**)
-+build | root@buildkitsandbox:/code#
++test | --> RUN python3 generate_phrase.py
++test | Traceback (most recent call last):
++test |   File "generate_phrase.py", line 3, in <module>
++test |     text = open('sherlock.txt').read()
++test | FileNotFoundError: [Errno 2] No such file or directory: 'sherlock.txt'
++test | Command /bin/sh -c python3 generate_phrase.py failed with exit code 1
++test | Entering interactive debugger (**Warning: only a single debugger per host is supported**)
++test | root@buildkitsandbox:/code#
 ```
 
 This time rather than exiting, earth will drop us into an interactive root shell within the container of the build environment.
@@ -84,12 +84,12 @@ root@buildkitsandbox:/code# python3 generate_phrase.py
 I struck him down with the servants and with the lantern and left a fragment in the midst of my work during the last three years, although he has cruelly wronged.
 ```
 
-At this point we know what needs to be done to fix the build, so we can type exit (or ctrl-D), to exit the interactive shell.
+At this point we know what needs to be done to fix the test, so we can type exit (or ctrl-D), to exit the interactive shell.
 
 ```
-+build | time="2020-09-16T22:23:53Z" level=error msg="failed to read from ptmx: read /dev/ptmx: input/output error"
-+build | time="2020-09-16T22:23:53Z" level=error msg="failed to read data from conn: read tcp 127.0.0.1:36672->127.0.0.1:5000: use of closed network connection"
-+build | ERROR: Command exited with non-zero code: RUN python3 generate_phrase.py
++test | time="2020-09-16T22:23:53Z" level=error msg="failed to read from ptmx: read /dev/ptmx: input/output error"
++test | time="2020-09-16T22:23:53Z" level=error msg="failed to read data from conn: read tcp 127.0.0.1:36672->127.0.0.1:5000: use of closed network connection"
++test | ERROR: Command exited with non-zero code: RUN python3 generate_phrase.py
 ```
 
 Note that even though we fixed the problem during debugging, the image will not have been saved, so we must go back to our Earthfile and fix the problem there:
@@ -100,7 +100,7 @@ Note that even though we fixed the problem during debugging, the image will not 
 FROM python:3
 WORKDIR /code
 
-build:
+test:
   RUN curl https://raw.githubusercontent.com/jsvine/markovify/master/test/texts/sherlock.txt > /code/sherlock.txt
   COPY generate_phrase.py .
   RUN pip3 install markovify
@@ -215,7 +215,7 @@ Then when we re-run our test we get:
 =========================== SUCCESS ===========================
 ```
 
-With the use of the interactive debugger; we were able to examine the state of the embeded containerized 
+With the use of the interactive debugger; we were able to examine the state of the embedded containerized 
 
 ## Final tips
 
