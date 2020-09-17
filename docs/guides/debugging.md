@@ -1,8 +1,11 @@
 # Debugging techniques
 
-Errors will happen, be it during builds, unit tests, integration testing, or somewhere else in your pipeline. Earthly provides an interactive debugger to aid debugging command failures.
+Traditional debugging of errors during image builds often require a developer to place various print
+commands through out the build commands to help reason about the state of the system before the failure occurs.
+This can be slow and cumbersome.
 
-Debugging an error can be challenging during a traditional image build, since the container state disappears as soon as the build error occurs. A developer may then inject various print commands through out the build to help reason about the state of the system before the failure occurs.
+Earthly provides an interactive mode which gives you access to a root shell when an error occurs, which we'll
+cover in this guide.
 
 Let's consider a build example:
 
@@ -59,7 +62,8 @@ This time we see a slighly different message:
 +build | root@buildkitsandbox:/code#
 ```
 
-This time rather than exiting, earth will drop us into an interactive root shell, where we can type in arbitrary commands to figure out the problem:
+This time rather than exiting, earth will drop us into an interactive root shell within the container of the build environment.
+This root shell will allow us to execute arbitrary commands within the container to figure out the problem:
 
 ```
 root@buildkitsandbox:/code# ls
@@ -221,6 +225,7 @@ If you ever want to jump into an interactive debugging session at any point in y
   RUN false
 ```
 
-which will cause the debugger to launch an interactive shell at that location.
+and run earth with the `--interactive` (or `-i`) flag.
+
 
 Hopefully you won't run into failures, but if you do the interactive debugger may help you discover the root cause more easily. Happy coding.
