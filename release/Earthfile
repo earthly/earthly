@@ -96,6 +96,11 @@ release-homebrew:
     RUN curl -L "$NEW_URL" | sha256sum | cut -f 1 -d ' ' > /params/downloadsha256
     COPY --build-arg VERSION=$RELEASE_TAG \
         ../+earth-darwin/tags ../+earth-darwin/ldflags /params/
+
+    # replace version with #{version} variable to conform to homebrew PR requests
+    RUN escapedversion=`echo "${RELEASE_TAG}" | sed 's/\./\\\./g'`; \
+        sed -i -e "s/${escapedversion}/v#{version}/g" /params/ldflags
+
     # Split /params/ldflags over two lines (to satisfy ruby linter).
     RUN split --numeric-suffixes=1 --suffix-length=1 --bytes=80 /params/ldflags /params/ldflags && \
         touch /params/ldflags2 && \
