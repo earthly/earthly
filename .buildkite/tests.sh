@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -xeuo pipefail
+set -xeu
 
 echo "Add branch info back to git (Earthly uses it for tagging)"
 git checkout -b "$BUILDKITE_BRANCH" || true
