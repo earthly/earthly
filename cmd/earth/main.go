@@ -79,6 +79,7 @@ type cliFlags struct {
 	gitPasswordOverride  string
 	interactiveDebugging bool
 	sshAuthSock          string
+	homebrewSource       string
 }
 
 var (
@@ -163,6 +164,8 @@ func (app *earthApp) autoCompleteImp() (err error) {
 	return err
 }
 
+const bashCompleteEntry = "complete -o nospace -C '/usr/local/bin/earth' earth\n"
+
 func (app *earthApp) insertBashCompleteEntry() error {
 	var path string
 	if runtime.GOOS == "darwin" {
@@ -187,7 +190,7 @@ func (app *earthApp) insertBashCompleteEntry() error {
 		return err
 	}
 	defer f.Close()
-	_, err = f.Write([]byte("complete -o nospace -C '/usr/local/bin/earth' earth\n"))
+	_, err = f.Write([]byte(bashCompleteEntry))
 	return err
 }
 
@@ -223,6 +226,15 @@ func (app *earthApp) deleteZcompdump() error {
 	return nil
 }
 
+const zshCompleteEntry = `#compdef _earth earth
+
+function _earth {
+    autoload -Uz bashcompinit
+    bashcompinit
+    complete -o nospace -C '/usr/local/bin/earth' earth
+}
+`
+
 // If debugging this, it might be required to run `rm ~/.zcompdump*` to remove the cache
 func (app *earthApp) insertZSHCompleteEntry() error {
 	// should be the same on linux and macOS
@@ -245,15 +257,7 @@ func (app *earthApp) insertZSHCompleteEntry() error {
 	}
 	defer f.Close()
 
-	data := `#compdef _earth earth
-
-function _earth {
-    autoload -Uz bashcompinit
-    bashcompinit
-    complete -o nospace -C '/usr/local/bin/earth' earth
-}
-`
-	_, err = f.Write([]byte(data))
+	_, err = f.Write([]byte(zshCompleteEntry))
 	if err != nil {
 		return err
 	}
@@ -529,6 +533,14 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 			Description: "Performs initial earth bootstrapping for bash autocompletion",
 			Hidden:      false,
 			Action:      app.actionBootstrap,
+			Flags: []cli.Flag{
+				&cli.StringFlag{
+					Name:        "source",
+					Usage:       "output source file (for use in homebrew install)",
+					Hidden:      true, // only meant for use with homebrew formula
+					Destination: &app.homebrewSource,
+				},
+			},
 		},
 		{
 			Name:        "debug",
@@ -715,6 +727,19 @@ func (app *earthApp) run(ctx context.Context, args []string) int {
 }
 
 func (app *earthApp) actionBootstrap(c *cli.Context) error {
+
+	switch app.homebrewSource {
+	case "bash":
+		fmt.Printf(bashCompleteEntry)
+		return nil
+	case "zsh":
+		fmt.Printf(zshCompleteEntry)
+		return nil
+	case "":
+		break
+	default:
+		return fmt.Errorf("unhandled source %q", app.homebrewSource)
+	}
 
 	err := app.insertBashCompleteEntry()
 	if err != nil {
