@@ -97,10 +97,6 @@ release-homebrew:
     COPY --build-arg VERSION=$RELEASE_TAG \
         ../+earth-darwin/tags ../+earth-darwin/ldflags /params/
 
-    # replace version with #{version} variable to conform to homebrew PR requests
-    RUN escapedversion=`echo "${RELEASE_TAG}" | sed 's/\./\\\./g'`; \
-        sed -i -e "s/${escapedversion}/v#{version}/g" /params/ldflags
-
     # Split /params/ldflags over two lines (to satisfy ruby linter).
     RUN split --numeric-suffixes=1 --suffix-length=1 --bytes=80 /params/ldflags /params/ldflags && \
         touch /params/ldflags2 && \
@@ -108,6 +104,11 @@ release-homebrew:
             echo "More than two lines for ldflags not supported" && \
             exit 1 ;\
         fi
+
+    # replace version with #{version} variable to conform to homebrew PR requests
+    RUN escapedversion=`echo "${RELEASE_TAG}" | sed 's/\./\\\./g'`; \
+        sed -i -e "s/${escapedversion}/v#{version}/g" /params/ldflags*
+
     RUN sed -i \
         -e 's^url ".*"^url "'"$NEW_URL"'"^' \
         -e 's^sha256 ".*"$^sha256 "'$(cat /params/downloadsha256)'"^' \
