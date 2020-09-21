@@ -12,6 +12,10 @@ echo "Build latest earth using released earth"
 ./earth-released +for-"$EARTH_OS"
 
 echo "Execute tests"
+# DO NOT MERGE
+printenv
+printenv EARTHLY_CONFIG
+# DO NOT MERGE
 ./build/"$EARTH_OS"/amd64/earth --no-output -P +test
 
 echo "Execute fail test"
