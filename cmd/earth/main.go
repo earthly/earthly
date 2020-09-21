@@ -54,6 +54,7 @@ var dotEnvPath = ".env"
 type earthApp struct {
 	cliApp    *cli.App
 	console   conslogging.ConsoleLogger
+	cfg       *config.Config
 	sessionID string
 	cliFlags
 }
@@ -589,28 +590,28 @@ func (app *earthApp) before(context *cli.Context) error {
 		return errors.Wrapf(err, "failed to read from %s", app.configPath)
 	}
 
-	cfg, err := config.ParseConfigFile(yamlData)
+	app.cfg, err = config.ParseConfigFile(yamlData)
 	if err != nil {
 		return errors.Wrapf(err, "failed to parse %s", app.configPath)
 	}
 
-	if cfg.Git == nil {
-		cfg.Git = map[string]config.GitConfig{}
+	if app.cfg.Git == nil {
+		app.cfg.Git = map[string]config.GitConfig{}
 	}
 
-	err = app.processDeprecatedCommandOptions(context, cfg)
+	err = app.processDeprecatedCommandOptions(context, app.cfg)
 	if err != nil {
 		return err
 	}
 
-	gitConfig, gitCredentials, err := config.CreateGitConfig(cfg)
+	gitConfig, gitCredentials, err := config.CreateGitConfig(app.cfg)
 	if err != nil {
 		return errors.Wrapf(err, "failed to create git config from %s", app.configPath)
 	}
 
 	// command line option overrides the config which overrides the default value
-	if !context.IsSet("buildkit-image") && cfg.Global.BuildkitImage != "" {
-		app.buildkitdImage = cfg.Global.BuildkitImage
+	if !context.IsSet("buildkit-image") && app.cfg.Global.BuildkitImage != "" {
+		app.buildkitdImage = app.cfg.Global.BuildkitImage
 	}
 
 	if runtime.GOOS == "darwin" {
@@ -631,15 +632,15 @@ func (app *earthApp) before(context *cli.Context) error {
 		}
 	}
 
-	if !dirExists(cfg.Global.RunPath) {
-		err := os.MkdirAll(cfg.Global.RunPath, 0755)
+	if !dirExists(app.cfg.Global.RunPath) {
+		err := os.MkdirAll(app.cfg.Global.RunPath, 0755)
 		if err != nil {
-			return errors.Wrapf(err, "failed to create run directory %s", cfg.Global.RunPath)
+			return errors.Wrapf(err, "failed to create run directory %s", app.cfg.Global.RunPath)
 		}
 	}
 
-	app.buildkitdSettings.DebuggerPort = cfg.Global.DebuggerPort
-	app.buildkitdSettings.RunDir = cfg.Global.RunPath
+	app.buildkitdSettings.DebuggerPort = app.cfg.Global.DebuggerPort
+	app.buildkitdSettings.RunDir = app.cfg.Global.RunPath
 	app.buildkitdSettings.GitConfig = gitConfig
 	app.buildkitdSettings.GitCredentials = gitCredentials
 	return nil
@@ -782,8 +783,12 @@ func (app *earthApp) actionPrune(c *cli.Context) error {
 		if app.buildkitHost != "" {
 			return errors.New("Cannot use prune --reset on non-default buildkit-host setting")
 		}
+		// Use twice the restart timeout for reset operations
+		// (needs extra time to also remove the files).
+		opTimeout := 2 * time.Duration(app.cfg.Global.BuildkitRestartTimeoutS) * time.Second
 		err := buildkitd.ResetCache(
-			c.Context, app.console, app.buildkitdImage, app.buildkitdSettings)
+			c.Context, app.console, app.buildkitdImage, app.buildkitdSettings,
+			opTimeout)
 		if err != nil {
 			return errors.Wrap(err, "reset cache")
 		}
@@ -1009,7 +1014,9 @@ func (app *earthApp) actionBuild(c *cli.Context) error {
 func (app *earthApp) newBuildkitdClient(ctx context.Context, opts ...client.ClientOpt) (*client.Client, error) {
 	if app.buildkitHost == "" {
 		// Start our own.
-		bkClient, err := buildkitd.NewClient(ctx, app.console, app.buildkitdImage, app.buildkitdSettings)
+		opTimeout := time.Duration(app.cfg.Global.BuildkitRestartTimeoutS) * time.Second
+		bkClient, err := buildkitd.NewClient(
+			ctx, app.console, app.buildkitdImage, app.buildkitdSettings, opTimeout)
 		if err != nil {
 			return nil, errors.Wrap(err, "buildkitd new client (own)")
 		}
