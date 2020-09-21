@@ -1,0 +1,2 @@
+global:
+    buildkit_restart_timeout_s: 120

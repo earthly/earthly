@@ -3,5 +3,7 @@ steps:
   - label: Test
     commands:
       - wsl -- bash ./.buildkite/tests.sh
+    env:
+      EARTHLY_CONFIG: ./.buildkite/earthly-config-win.yml
     agents:
       os: windows
