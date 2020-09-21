@@ -579,22 +579,12 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 }
 
 func (app *earthApp) before(context *cli.Context) error {
-	configIsSet := false
 	if context.IsSet("config") {
-		configIsSet = true
-	} else {
-		configEnv, ok := os.LookupEnv("EARTHLY_CONFIG")
-		if ok {
-			app.configPath = configEnv
-			configIsSet = true
-		}
-	}
-	if configIsSet {
 		app.console.Printf("loading config values from %q\n", app.configPath)
 	}
 
 	yamlData, err := ioutil.ReadFile(app.configPath)
-	if os.IsNotExist(err) && !configIsSet {
+	if os.IsNotExist(err) && !context.IsSet("config") {
 		yamlData = []byte{}
 	} else if err != nil {
 		return errors.Wrapf(err, "failed to read from %s", app.configPath)
