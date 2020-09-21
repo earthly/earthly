@@ -12,7 +12,8 @@ echo "Build latest earth using released earth"
 ./earth-released +for-"$EARTH_OS"
 
 echo "Execute tests"
-./build/"$EARTH_OS"/amd64/earth --no-output -P +test
+# DO NOT MERGE: Remove the config flag.
+./build/"$EARTH_OS"/amd64/earth --config ./.buildkite/earthly-config-win.yml --no-output -P +test
 
 echo "Execute fail test"
 bash -c "! ./build/$EARTH_OS/amd64/earth --no-output +test-fail"
