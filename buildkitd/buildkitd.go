@@ -23,16 +23,14 @@ const (
 	VolumeName = "earthly-cache"
 )
 
-var startStopTimeout = 60 * time.Second
-
 // Address is the address at which the daemon is available.
 var Address = fmt.Sprintf("docker-container://%s", ContainerName)
 
 // TODO: Implement all this properly with the docker client.
 
 // NewClient returns a new buildkitd client.
-func NewClient(ctx context.Context, console conslogging.ConsoleLogger, image string, settings Settings, opts ...client.ClientOpt) (*client.Client, error) {
-	address, err := MaybeStart(ctx, console, image, settings)
+func NewClient(ctx context.Context, console conslogging.ConsoleLogger, image string, settings Settings, opTimeout time.Duration, opts ...client.ClientOpt) (*client.Client, error) {
+	address, err := MaybeStart(ctx, console, image, settings, opTimeout)
 	if err != nil {
 		console.WithPrefix("buildkitd").Printf("Is docker installed and running? Are you part of the docker group?\n")
 		return nil, errors.Wrap(err, "maybe start buildkitd")
@@ -45,7 +43,7 @@ func NewClient(ctx context.Context, console conslogging.ConsoleLogger, image str
 }
 
 // ResetCache restarts the buildkitd daemon with the reset command.
-func ResetCache(ctx context.Context, console conslogging.ConsoleLogger, image string, settings Settings) error {
+func ResetCache(ctx context.Context, console conslogging.ConsoleLogger, image string, settings Settings, opTimeout time.Duration) error {
 	console.
 		WithPrefix("buildkitd").
 		Printf("Restarting buildkit daemon with reset command...\n")
@@ -58,7 +56,7 @@ func ResetCache(ctx context.Context, console conslogging.ConsoleLogger, image st
 		if err != nil {
 			return err
 		}
-		err = WaitUntilStopped(ctx)
+		err = WaitUntilStopped(ctx, opTimeout)
 		if err != nil {
 			return err
 		}
@@ -67,7 +65,7 @@ func ResetCache(ctx context.Context, console conslogging.ConsoleLogger, image st
 	if err != nil {
 		return err
 	}
-	err = WaitUntilStarted(ctx, Address)
+	err = WaitUntilStarted(ctx, Address, opTimeout)
 	if err != nil {
 		return err
 	}
@@ -79,7 +77,7 @@ func ResetCache(ctx context.Context, console conslogging.ConsoleLogger, image st
 
 // MaybeStart ensures that the buildkitd daemon is started. It returns the URL
 // that can be used to connect to it.
-func MaybeStart(ctx context.Context, console conslogging.ConsoleLogger, image string, settings Settings) (string, error) {
+func MaybeStart(ctx context.Context, console conslogging.ConsoleLogger, image string, settings Settings, opTimeout time.Duration) (string, error) {
 	isStarted, err := IsStarted(ctx)
 	if err != nil {
 		return "", errors.Wrap(err, "check is started buildkitd")
@@ -88,7 +86,7 @@ func MaybeStart(ctx context.Context, console conslogging.ConsoleLogger, image st
 		console.
 			WithPrefix("buildkitd").
 			Printf("Found buildkit daemon as docker container (%s)\n", ContainerName)
-		err := MaybeRestart(ctx, console, image, settings)
+		err := MaybeRestart(ctx, console, image, settings, opTimeout)
 		if err != nil {
 			return "", errors.Wrap(err, "maybe restart")
 		}
@@ -100,7 +98,7 @@ func MaybeStart(ctx context.Context, console conslogging.ConsoleLogger, image st
 		if err != nil {
 			return "", errors.Wrap(err, "start")
 		}
-		err = WaitUntilStarted(ctx, Address)
+		err = WaitUntilStarted(ctx, Address, opTimeout)
 		if err != nil {
 			return "", errors.Wrap(err, "wait until started")
 		}
@@ -114,7 +112,7 @@ func MaybeStart(ctx context.Context, console conslogging.ConsoleLogger, image st
 // MaybeRestart checks whether the there is a different buildkitd image available locally or if
 // settings of the current container are different from the provided settings. In either case,
 // the container is restarted.
-func MaybeRestart(ctx context.Context, console conslogging.ConsoleLogger, image string, settings Settings) error {
+func MaybeRestart(ctx context.Context, console conslogging.ConsoleLogger, image string, settings Settings, opTimeout time.Duration) error {
 	containerImageID, err := GetContainerImageID(ctx)
 	if err != nil {
 		return err
@@ -155,7 +153,7 @@ func MaybeRestart(ctx context.Context, console conslogging.ConsoleLogger, image 
 	if err != nil {
 		return err
 	}
-	err = WaitUntilStopped(ctx)
+	err = WaitUntilStopped(ctx, opTimeout)
 	if err != nil {
 		return err
 	}
@@ -163,7 +161,7 @@ func MaybeRestart(ctx context.Context, console conslogging.ConsoleLogger, image 
 	if err != nil {
 		return err
 	}
-	err = WaitUntilStarted(ctx, Address)
+	err = WaitUntilStarted(ctx, Address, opTimeout)
 	if err != nil {
 		return err
 	}
@@ -287,8 +285,8 @@ func IsStarted(ctx context.Context) (bool, error) {
 }
 
 // WaitUntilStarted waits until the buildkitd daemon has started and is healthy.
-func WaitUntilStarted(ctx context.Context, address string) error {
-	ctxTimeout, cancel := context.WithTimeout(ctx, startStopTimeout)
+func WaitUntilStarted(ctx context.Context, address string, opTimeout time.Duration) error {
+	ctxTimeout, cancel := context.WithTimeout(ctx, opTimeout)
 	defer cancel()
 	for {
 		select {
@@ -315,8 +313,8 @@ func WaitUntilStarted(ctx context.Context, address string) error {
 }
 
 // WaitUntilStopped waits until the buildkitd daemon has stopped.
-func WaitUntilStopped(ctx context.Context) error {
-	ctxTimeout, cancel := context.WithTimeout(ctx, startStopTimeout)
+func WaitUntilStopped(ctx context.Context, opTimeout time.Duration) error {
+	ctxTimeout, cancel := context.WithTimeout(ctx, opTimeout)
 	defer cancel()
 	for {
 		select {

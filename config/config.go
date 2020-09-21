@@ -21,11 +21,12 @@ var (
 
 // GlobalConfig contains global config values
 type GlobalConfig struct {
-	RunPath             string `yaml:"run_path"`
-	DisableLoopDevice   bool   `yaml:"no_loop_device"`
-	BuildkitCacheSizeMb int    `yaml:"cache_size_mb"`
-	BuildkitImage       string `yaml:"buildkit_image"`
-	DebuggerPort        int    `yaml:"debugger_port"`
+	RunPath                 string `yaml:"run_path"`
+	DisableLoopDevice       bool   `yaml:"no_loop_device"`
+	BuildkitCacheSizeMb     int    `yaml:"cache_size_mb"`
+	BuildkitImage           string `yaml:"buildkit_image"`
+	DebuggerPort            int    `yaml:"debugger_port"`
+	BuildkitRestartTimeoutS int    `yaml:"buildkit_restart_timeout_s"`
 
 	// Obsolete.
 	CachePath string `yaml:"cache_path"`
@@ -60,12 +61,14 @@ func ensureTransport(s, transport string) (string, error) {
 
 // ParseConfigFile parse config data
 func ParseConfigFile(yamlData []byte) (*Config, error) {
+	// pre-populate defaults
 	config := Config{
 		Global: GlobalConfig{
-			RunPath:             defaultRunPath(),
-			DisableLoopDevice:   true,
-			BuildkitCacheSizeMb: 10000,
-			DebuggerPort:        5000,
+			RunPath:                 defaultRunPath(),
+			DisableLoopDevice:       true,
+			BuildkitCacheSizeMb:     10000,
+			DebuggerPort:            5000,
+			BuildkitRestartTimeoutS: 60,
 		},
 	}
 
