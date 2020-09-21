@@ -8,13 +8,13 @@ import (
 	"net"
 	"os"
 	"os/exec"
-	"strings"
 	"time"
 
 	"github.com/earthly/earthly/conslogging"
 	"github.com/earthly/earthly/debugger/common"
 	"github.com/earthly/earthly/logging"
 
+	"github.com/alessio/shellescape"
 	"github.com/creack/pty"
 	"github.com/fatih/color"
 	"github.com/pkg/errors"
@@ -36,7 +36,7 @@ const remoteConsoleAddr = "127.0.0.1:5000"
 
 func getShellPath() (string, bool) {
 	for _, sh := range []string{
-		"bash", "ksh", "zsh", "sh",
+		"bash", "ksh", "zsh", "ash", "sh",
 	} {
 		if path, err := exec.LookPath(sh); err == nil {
 			return path, true
@@ -67,7 +67,17 @@ func handleWinChangeData(ptmx *os.File, data []byte) error {
 	return nil
 }
 
-func interactiveMode(ctx context.Context, remoteConsoleAddr string) error {
+func populateShellHistory(cmd string) error {
+	f, err := os.Create("/root/.bash_history")
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	f.Write([]byte(cmd + "\n"))
+	return nil
+}
+
+func interactiveMode(ctx context.Context, remoteConsoleAddr, cmd string) error {
 	log := logging.GetLogger(ctx)
 
 	conn, err := net.Dial("tcp", remoteConsoleAddr)
@@ -90,6 +100,8 @@ func interactiveMode(ctx context.Context, remoteConsoleAddr string) error {
 	if err != nil {
 		return err
 	}
+
+	_ = populateShellHistory(cmd) // best effort
 
 	shellPath, ok := getShellPath()
 	if !ok {
@@ -126,6 +138,7 @@ func interactiveMode(ctx context.Context, remoteConsoleAddr string) error {
 		cancel()
 	}()
 	go func() {
+		initialData := true
 		for {
 			buf := make([]byte, 100)
 			n, err := ptmx.Read(buf)
@@ -134,6 +147,10 @@ func interactiveMode(ctx context.Context, remoteConsoleAddr string) error {
 				break
 			}
 			buf = buf[:n]
+			if initialData {
+				buf = append([]byte("\r\n"), buf...)
+				initialData = false
+			}
 			common.WriteDataPacket(conn, common.PtyData, buf)
 
 		}
@@ -197,12 +214,15 @@ func main() {
 	cmd.Stderr = os.Stderr
 	err = cmd.Run()
 	if err != nil {
+
+		quotedCmd := shellescape.QuoteCommand(args)
+
 		exitCode := 1
 		if exitErr, ok := err.(*exec.ExitError); ok {
 			exitCode = exitErr.ExitCode()
-			conslogger.Warnf("Command %v failed with exit code %d\n", strings.Join(args, " "), exitCode)
+			conslogger.Warnf("Command %s failed with exit code %d\n", quotedCmd, exitCode)
 		} else {
-			conslogger.Warnf("Command %v failed with unexpected execution error %v\n", strings.Join(args, " "), err)
+			conslogger.Warnf("Command %s failed with unexpected execution error %v\n", quotedCmd, err)
 		}
 
 		if debuggerSettings.Enabled {
@@ -218,7 +238,7 @@ func main() {
 				conslogger.Warnf("Failed to set term: %v", err)
 			}
 
-			err = interactiveMode(ctx, remoteConsoleAddr)
+			err = interactiveMode(ctx, remoteConsoleAddr, quotedCmd)
 			if err != nil {
 				log.Error(err)
 			}
