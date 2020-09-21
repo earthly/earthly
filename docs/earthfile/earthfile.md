@@ -220,7 +220,7 @@ if the build-args differ between invocations.
 
 ##### `--with-docker` (**deprecated**)
 
-`RUN --with-docker` is deprecated. Please use [`WITH DOCKER`](#with-docker-experimental) instead.
+`RUN --with-docker` is deprecated. Please use [`WITH DOCKER`](#with-docker-beta) instead.
 
 ## COPY
 
@@ -413,11 +413,7 @@ FROM --build-arg NAME=john +docker-image
 
 A number of builtin args are available and are pre-filled by Earthly. For more information see [builtin args](./builtin-args.md).
 
-## WITH DOCKER (**experimental**)
-
-{% hint style='danger' %}
-`WITH DOCKER` is experimental and is subject to change.
-{% endhint %}
+## WITH DOCKER (**beta**)
 
 #### Synopsis
 
@@ -434,7 +430,7 @@ The clause `WITH DOCKER` initializes a Docker daemon to be used in the context o
 
 The clause `WITH DOCKER` automatically implies the `RUN --privileged` flag.
 
-The `WITH DOCKER` clause only supports the commands [`DOCKER LOAD`](#docker-load-experimental), [`DOCKER PULL`](#docker-pull-experimental) and [`RUN`](#run). Other commands (such as `COPY`) need to be run either before or after `WITH DOCKER ... END`. In addition, only one `RUN` command is permitted within `WITH DOCKER`. However, multiple shell commands may be stringed together using `;` or `&&`.
+The `WITH DOCKER` clause only supports the commands [`DOCKER LOAD`](#docker-load-beta), [`DOCKER PULL`](#docker-pull-beta) and [`RUN`](#run). Other commands (such as `COPY`) need to be run either before or after `WITH DOCKER ... END`. In addition, only one `RUN` command is permitted within `WITH DOCKER`. However, multiple shell commands may be stringed together using `;` or `&&`.
 
 A typical example of a `WITH DOCKER` clause might be:
 
@@ -460,11 +456,7 @@ In order to use `WITH DOCKER`, a base image containing a supported `dockerd` exe
 Currently only [`docker:dind`](https://hub.docker.com/_/docker) variants are supported.
 {% endhint %}
 
-## DOCKER PULL (**experimental**)
-
-{% hint style='danger' %}
-`DOCKER PULL` is experimental and is subject to change.
-{% endhint %}
+## DOCKER PULL (**beta**)
 
 #### Synopsis
 
@@ -485,11 +477,7 @@ The use of `DOCKER PULL` outside of a `WITH DOCKER` clause is deperected and wil
 {% endhint %}
 
 
-## DOCKER LOAD (**experimental**)
-
-{% hint style='danger' %}
-`DOCKER LOAD` is experimental and is subject to change.
-{% endhint %}
+## DOCKER LOAD (**beta**)
 
 #### Synopsis
 
