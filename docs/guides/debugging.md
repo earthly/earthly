@@ -217,6 +217,10 @@ Then when we re-run our test we get:
 
 With the use of the interactive debugger; we were able to examine the state of the embedded containerized 
 
+## Demo
+
+[![asciicast](https://asciinema.org/a/361170.svg)](https://asciinema.org/a/361170?speed=2)
+
 ## Final tips
 
 If you ever want to jump into an interactive debugging session at any point in your Earthfile, you can simply add a command that will fail such as:
