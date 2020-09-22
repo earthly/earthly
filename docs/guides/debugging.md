@@ -219,7 +219,7 @@ With the use of the interactive debugger; we were able to examine the state of t
 
 ## Demo
 
-[![asciicast](https://asciinema.org/a/Q6dKRpnuyl7IpnnF4e3fHhYoi.svg)](https://asciinema.org/a/Q6dKRpnuyl7IpnnF4e3fHhYoi)
+[![asciicast](https://asciinema.org/a/Q6dKRpnuyl7IpnnF4e3fHhYoi.svg)](https://asciinema.org/a/Q6dKRpnuyl7IpnnF4e3fHhYoi?speed=2)
 
 ## Final tips
 
