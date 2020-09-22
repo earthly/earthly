@@ -12,7 +12,7 @@ export EARTHLY_BUILDKIT_HOST="unix:///run/buildkit/buildkitd.sock"
 
 # Poll for buildkitd readiness.
 i=1
-timeout=30
+timeout=120
 while [ ! -S "/run/buildkit/buildkitd.sock" ]; do
     sleep 1
     i=$((i+1))
