@@ -94,178 +94,6 @@ var (
 	GitSha string
 )
 
-// to enable autocomplete, enter
-// complete -o nospace -C "/path/to/earth" earth
-func (app *earthApp) autoComplete() {
-	_, found := os.LookupEnv("COMP_LINE")
-	if !found {
-		return
-	}
-
-	err := app.autoCompleteImp()
-	if err != nil {
-		errToLog := err
-		homeDir, err := os.UserHomeDir()
-		if err != nil {
-			os.Exit(1)
-		}
-		logDir := filepath.Join(homeDir, ".earthly")
-		logFile := filepath.Join(logDir, "autocomplete.log")
-		err = os.MkdirAll(logDir, 0755)
-		if err != nil {
-			os.Exit(1)
-		}
-		f, err := os.OpenFile(logFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0755)
-		if err != nil {
-			os.Exit(1)
-		}
-		fmt.Fprintf(f, "error during autocomplete: %s\n", errToLog)
-		os.Exit(1)
-	}
-	os.Exit(0)
-}
-
-func (app *earthApp) autoCompleteImp() (err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			err = fmt.Errorf("recovered panic in autocomplete %s: %s", r, debug.Stack())
-		}
-	}()
-
-	compLine := os.Getenv("COMP_LINE")   // full command line
-	compPoint := os.Getenv("COMP_POINT") // where the cursor is
-
-	compPointInt, err := strconv.ParseUint(compPoint, 10, 64)
-	if err != nil {
-		return err
-	}
-
-	flags := []string{}
-	for _, f := range app.cliApp.Flags {
-		for _, n := range f.Names() {
-			if len(n) > 1 {
-				flags = append(flags, n)
-			}
-		}
-	}
-
-	commands := []string{}
-	for _, cmd := range app.cliApp.Commands {
-		commands = append(commands, cmd.Name)
-	}
-
-	potentials, err := autocomplete.GetPotentials(compLine, int(compPointInt), flags, commands)
-	if err != nil {
-		return err
-	}
-	for _, p := range potentials {
-		fmt.Printf("%s\n", p)
-	}
-
-	return err
-}
-
-const bashCompleteEntry = "complete -o nospace -C '/usr/local/bin/earth' earth\n"
-
-func (app *earthApp) insertBashCompleteEntry() error {
-	var path string
-	if runtime.GOOS == "darwin" {
-		path = "/usr/local/etc/bash_completion.d/earth"
-	} else {
-		path = "/usr/share/bash-completion/completions/earth"
-	}
-	dirPath := filepath.Dir(path)
-
-	if !dirExists(dirPath) {
-		fmt.Fprintf(os.Stderr, "Warning: unable to enable bash-completion: %s does not exist\n", dirPath)
-		return nil // bash-completion isn't available, silently fail.
-	}
-
-	if fileExists(path) {
-		return nil // file already exists, don't update it.
-	}
-
-	// create the completion file
-	f, err := os.Create(path)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-	_, err = f.Write([]byte(bashCompleteEntry))
-	return err
-}
-
-func (app *earthApp) deleteZcompdump() error {
-	var homeDir string
-	sudoUser, found := os.LookupEnv("SUDO_USER")
-	if !found {
-		var err error
-		homeDir, err = os.UserHomeDir()
-		if err != nil {
-			return errors.Wrapf(err, "failed to lookup current user home dir")
-		}
-	} else {
-		currentUser, err := user.Lookup(sudoUser)
-		if err != nil {
-			return errors.Wrapf(err, "failed to lookup user %s", sudoUser)
-		}
-		homeDir = currentUser.HomeDir
-	}
-	files, err := ioutil.ReadDir(homeDir)
-	if err != nil {
-		return errors.Wrapf(err, "failed to read dir %s", homeDir)
-	}
-	for _, f := range files {
-		if strings.HasPrefix(f.Name(), ".zcompdump") {
-			path := filepath.Join(homeDir, f.Name())
-			err := os.Remove(path)
-			if err != nil {
-				return errors.Wrapf(err, "failed to remove %s", path)
-			}
-		}
-	}
-	return nil
-}
-
-const zshCompleteEntry = `#compdef _earth earth
-
-function _earth {
-    autoload -Uz bashcompinit
-    bashcompinit
-    complete -o nospace -C '/usr/local/bin/earth' earth
-}
-`
-
-// If debugging this, it might be required to run `rm ~/.zcompdump*` to remove the cache
-func (app *earthApp) insertZSHCompleteEntry() error {
-	// should be the same on linux and macOS
-	path := "/usr/local/share/zsh/site-functions/_earth"
-	dirPath := filepath.Dir(path)
-
-	if !dirExists(dirPath) {
-		fmt.Fprintf(os.Stderr, "Warning: unable to enable zsh-completion: %s does not exist\n", dirPath)
-		return nil // zsh-completion isn't available, silently fail.
-	}
-
-	if fileExists(path) {
-		return nil // file already exists, don't update it.
-	}
-
-	// create the completion file
-	f, err := os.Create(path)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-
-	_, err = f.Write([]byte(zshCompleteEntry))
-	if err != nil {
-		return err
-	}
-
-	return app.deleteZcompdump()
-}
-
 func main() {
 	ctx := context.Background()
 	ctx, cancel := context.WithCancel(ctx)
@@ -696,7 +524,178 @@ func (app *earthApp) processDeprecatedCommandOptions(context *cli.Context, cfg *
 	}
 
 	return nil
+}
 
+// to enable autocomplete, enter
+// complete -o nospace -C "/path/to/earth" earth
+func (app *earthApp) autoComplete() {
+	_, found := os.LookupEnv("COMP_LINE")
+	if !found {
+		return
+	}
+
+	err := app.autoCompleteImp()
+	if err != nil {
+		errToLog := err
+		homeDir, err := os.UserHomeDir()
+		if err != nil {
+			os.Exit(1)
+		}
+		logDir := filepath.Join(homeDir, ".earthly")
+		logFile := filepath.Join(logDir, "autocomplete.log")
+		err = os.MkdirAll(logDir, 0755)
+		if err != nil {
+			os.Exit(1)
+		}
+		f, err := os.OpenFile(logFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0755)
+		if err != nil {
+			os.Exit(1)
+		}
+		fmt.Fprintf(f, "error during autocomplete: %s\n", errToLog)
+		os.Exit(1)
+	}
+	os.Exit(0)
+}
+
+func (app *earthApp) autoCompleteImp() (err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("recovered panic in autocomplete %s: %s", r, debug.Stack())
+		}
+	}()
+
+	compLine := os.Getenv("COMP_LINE")   // full command line
+	compPoint := os.Getenv("COMP_POINT") // where the cursor is
+
+	compPointInt, err := strconv.ParseUint(compPoint, 10, 64)
+	if err != nil {
+		return err
+	}
+
+	flags := []string{}
+	for _, f := range app.cliApp.Flags {
+		for _, n := range f.Names() {
+			if len(n) > 1 {
+				flags = append(flags, n)
+			}
+		}
+	}
+
+	commands := []string{}
+	for _, cmd := range app.cliApp.Commands {
+		commands = append(commands, cmd.Name)
+	}
+
+	potentials, err := autocomplete.GetPotentials(compLine, int(compPointInt), flags, commands)
+	if err != nil {
+		return err
+	}
+	for _, p := range potentials {
+		fmt.Printf("%s\n", p)
+	}
+
+	return err
+}
+
+const bashCompleteEntry = "complete -o nospace -C '/usr/local/bin/earth' earth\n"
+
+func (app *earthApp) insertBashCompleteEntry() error {
+	var path string
+	if runtime.GOOS == "darwin" {
+		path = "/usr/local/etc/bash_completion.d/earth"
+	} else {
+		path = "/usr/share/bash-completion/completions/earth"
+	}
+	dirPath := filepath.Dir(path)
+
+	if !dirExists(dirPath) {
+		fmt.Fprintf(os.Stderr, "Warning: unable to enable bash-completion: %s does not exist\n", dirPath)
+		return nil // bash-completion isn't available, silently fail.
+	}
+
+	if fileExists(path) {
+		return nil // file already exists, don't update it.
+	}
+
+	// create the completion file
+	f, err := os.Create(path)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	_, err = f.Write([]byte(bashCompleteEntry))
+	return err
+}
+
+func (app *earthApp) deleteZcompdump() error {
+	var homeDir string
+	sudoUser, found := os.LookupEnv("SUDO_USER")
+	if !found {
+		var err error
+		homeDir, err = os.UserHomeDir()
+		if err != nil {
+			return errors.Wrapf(err, "failed to lookup current user home dir")
+		}
+	} else {
+		currentUser, err := user.Lookup(sudoUser)
+		if err != nil {
+			return errors.Wrapf(err, "failed to lookup user %s", sudoUser)
+		}
+		homeDir = currentUser.HomeDir
+	}
+	files, err := ioutil.ReadDir(homeDir)
+	if err != nil {
+		return errors.Wrapf(err, "failed to read dir %s", homeDir)
+	}
+	for _, f := range files {
+		if strings.HasPrefix(f.Name(), ".zcompdump") {
+			path := filepath.Join(homeDir, f.Name())
+			err := os.Remove(path)
+			if err != nil {
+				return errors.Wrapf(err, "failed to remove %s", path)
+			}
+		}
+	}
+	return nil
+}
+
+const zshCompleteEntry = `#compdef _earth earth
+
+function _earth {
+    autoload -Uz bashcompinit
+    bashcompinit
+    complete -o nospace -C '/usr/local/bin/earth' earth
+}
+`
+
+// If debugging this, it might be required to run `rm ~/.zcompdump*` to remove the cache
+func (app *earthApp) insertZSHCompleteEntry() error {
+	// should be the same on linux and macOS
+	path := "/usr/local/share/zsh/site-functions/_earth"
+	dirPath := filepath.Dir(path)
+
+	if !dirExists(dirPath) {
+		fmt.Fprintf(os.Stderr, "Warning: unable to enable zsh-completion: %s does not exist\n", dirPath)
+		return nil // zsh-completion isn't available, silently fail.
+	}
+
+	if fileExists(path) {
+		return nil // file already exists, don't update it.
+	}
+
+	// create the completion file
+	f, err := os.Create(path)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	_, err = f.Write([]byte(zshCompleteEntry))
+	if err != nil {
+		return err
+	}
+
+	return app.deleteZcompdump()
 }
 
 func (app *earthApp) run(ctx context.Context, args []string) int {
