@@ -49,7 +49,7 @@ Remote targets only output images and no artifacts, by default.
 
 If the build phase does not succeed, not output is produced and no push instruction is executed. In this case, the command exits with a non-zero exit code.
 
-The output of the two phases are separated by a `=== SUCCESS ===` marker.
+The printout of the two phases are separated by a `=== SUCCESS ===` marker.
 
 #### Target and Artifact Reference
 
@@ -73,6 +73,45 @@ The `<artifact-ref>` can reference artifacts built by targets. `<target-ref>/<ar
 ##### Examples
 
 See the [Target, artifact, and image referencing guide](../guides/target-ref) for more details and examples.
+
+#### Environment Variables and .env File
+
+As specified under the [options section](#options), all flag options have an environment variable equivalent, which can be used as an alternative.
+
+Furthermore, additional environment variables are also read from a file named `.env`, if one exists in the current directory. The syntax of the `.env` file is of the form
+
+```.env
+<NAME_OF_ENV_VAR>=<value>
+...
+```
+
+as one variable per line, without any surrounding quotes. If quotes are included, they will become part of the value. Lines beginning with `#` are treated as comments. Blank lines are allowed. Here is a simple example:
+
+```.env
+# Settings
+EARTHLY_ALLOW_PRIVILEGED=true
+MY_SETTING=a setting which contains spaces
+
+# Secrets
+MY_SECRET=MmQ1MjFlY2UtYzhlNi00YjJkLWI5YTMtNjIzNzJmYjcwOTJk
+ANOTHER_SECRET=MjA5YjU2ZTItYmIxOS00MDQ3LWFlNzYtNmQ5NGEyZDFlYTQx
+```
+
+{% hint style='info' %}
+##### Note
+The directory used for loading the `.env` file is the directory where `earth` is called from and not necessarily the directory where the Earthfile is located in.
+{% endhint %}
+
+The additional environment variables specified in the `.env` file are loaded by `earth` in three distinct ways:
+
+* **Setting options for `earth` itself** - the settings are loaded if they match the environment variable equivalent of an `earth` option.
+* **Build args** - the settings are passed on to the build and are used to override any [`ARG`](../earthfile/earthfile.md#arg) declaration.
+* **Secrets** - the settings are passed on to the build to be referenced via the [`RUN --secret`](../earthfile/earthfile.md#secret) option.
+
+{% hint style='danger' %}
+##### Important
+The `.env` file is meant for settings which are specific to the local environment the build executes in. These settings may cause inconsistencies in the way the build executes on different systems, leading to builds that are difficult to reproduce. Keep the contents of `.env` files to a minimum to avoid such issues.
+{% endhint %}
 
 #### Options
 
@@ -146,12 +185,11 @@ Also available as an env var setting: `GIT_URL_INSTEAD_OF=<git-instead-of>`.
 
 This option is now deprecated. Please use the [configuration file](../earth-config/earth-config.md) instead.
 
-##### `--interactive|-i` (**experimental**)
+##### `--interactive|-i` (**beta**)
 
 Also available as an env var setting: `EARTHLY_INTERACTIVE=true`.
 
-Enable interactive debugging mode. By default when a RUN command fails, earth will display the error and exit. If the interactive mode is enabled and an error occurs, an
-interactive shell is presented which can be used for investigating the error interactively. Due to technical limitations, only a single interactive shell can be used on the system at any given time. This feature is experimental and may change over time.
+Enable interactive debugging mode. By default when a `RUN` command fails, earth will display the error and exit. If the interactive mode is enabled and an error occurs, an interactive shell is presented which can be used for investigating the error interactively. Due to technical limitations, only a single interactive shell can be used on the system at any given time.
 
 
 ## earth prune
