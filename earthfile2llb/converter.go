@@ -146,6 +146,10 @@ func (c *Converter) fromTarget(ctx context.Context, targetName string, buildArgs
 	for dirKey, dirValue := range relevantDepState.LocalDirs {
 		c.mts.FinalStates.LocalDirs[dirKey] = dirValue
 	}
+	for _, kv := range saveImage.Image.Config.Env {
+		k, v := variables.ParseKeyValue(kv)
+		c.varCollection.AddActive(k, variables.NewConstantEnvVar(v), true)
+	}
 	c.mts.FinalStates.SideEffectsImage = saveImage.Image.Clone()
 	return nil
 }

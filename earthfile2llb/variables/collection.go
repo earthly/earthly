@@ -85,7 +85,7 @@ func (c *Collection) Expand(word string) string {
 	argsMap := make(map[string]string)
 	for varName := range c.activeVariables {
 		variable := c.variables[varName]
-		if !variable.IsConstant() || variable.IsEnvVar() {
+		if !variable.IsConstant() {
 			continue
 		}
 		argsMap[varName] = variable.ConstantValue()

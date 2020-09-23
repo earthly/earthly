@@ -35,6 +35,7 @@ ga:
     BUILD +gen-dockerfile-test
     BUILD +chown-test
     BUILD +dotenv-test
+    BUILD +env-test
 
 experimental:
     BUILD ./with-docker+all
@@ -314,6 +315,13 @@ dotenv-test:
         --entrypoint \
         --mount=type=tmpfs,target=/tmp/earthly \
         -- --no-output +test-no-dotenv
+
+env-test:
+    COPY env.earth ./Earthfile
+    RUN --privileged \
+        --entrypoint \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        -- --no-output +test
 
 eine-test-base:
     FROM docker:19.03.12-dind
