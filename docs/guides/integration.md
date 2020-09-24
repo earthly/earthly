@@ -168,6 +168,8 @@ build:
 
 {% sample lang="Unit Test Target" %}
 
+For unit tests, we copy in the source and run the tests.
+
 ``` Dockerfile
 
 unit-test:
@@ -179,6 +181,12 @@ unit-test:
 [Full file](https://github.com/earthly/earthly-example-scala/blob/master/integration/Earthfile)
 
 {% sample lang="Docker Target" %}
+
+A Dockerfile is built using the output of `sbt assembly`. 
+
+{% hint style='info' %}
+If minimal docker image size is important, other approaches, such as `sbt package` should be considered.
+{% endhint %}
 ``` Dockerfile
 docker:
     FROM +build
