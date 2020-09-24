@@ -408,8 +408,8 @@ all:
 =========================== SUCCESS ===========================
 ```
 
-There we have it, a reproducible integration process.  The full example can be found [here]().  If you have questions about the example, (ask them here)[https://gitter.im/earthly-room/community]
-
+There we have it, a reproducible integration process.  The full example can be found [here]().  If you have questions about the example, [ask them here](https://gitter.im/earthly-room/community)
 
 ## See also
 * [Docker In Earthly](./docker-in-earthly.md)
+* [Source code for example](https://github.com/earthly/earthly-example-scala/tree/master/integration)
