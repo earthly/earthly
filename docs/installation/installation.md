@@ -22,7 +22,6 @@ Alternatively, you may also download the linux binary from [the releases page](h
 
 ```bash
 brew install earthly
-earth bootstrap
 ```
 
 #### Script
