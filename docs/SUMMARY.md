@@ -10,6 +10,7 @@
     * [Using Docker in Earthly](guides/docker-in-earthly.md)
     * [Debugging techniques](guides/debugging.md)
     * [CI integration](guides/ci-integration.md)
+    * [Integration Testing](guides/integration.md)
 * [Earthfile reference](earthfile/earthfile.md)
     * [Builtin args](earthfile/builtin-args.md)
 * [Earth command reference](earth-command/earth-command.md)
