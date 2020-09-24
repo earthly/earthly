@@ -17,7 +17,7 @@ release-dockerhub:
 
 release-github:
     FROM node:13.10.1-alpine3.11
-    RUN npm install -g github-release-cli
+    RUN npm install -g github-release-cli@v1.3.1
     WORKDIR /earthly
     ARG RELEASE_TAG
     ARG EARTHLY_GIT_HASH
