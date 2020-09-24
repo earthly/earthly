@@ -24,7 +24,6 @@ sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/latest/downloa
 
 ```bash
 brew install earthly
-earth bootstrap
 ```
 
 ### Windows via WSL (**beta**)

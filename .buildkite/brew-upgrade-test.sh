@@ -3,7 +3,6 @@
 set -xeuo pipefail
 
 brew upgrade earthly
-earth bootstrap
 
 earth --version
 
