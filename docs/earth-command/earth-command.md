@@ -106,7 +106,7 @@ The additional environment variables specified in the `.env` file are loaded by 
 
 * **Setting options for `earth` itself** - the settings are loaded if they match the environment variable equivalent of an `earth` option.
 * **Build args** - the settings are passed on to the build and are used to override any [`ARG`](../earthfile/earthfile.md#arg) declaration.
-* **Secrets** - the settings are passed on to the build to be referenced via the [`RUN --secret`](../earthfile/earthfile.md#secret) option.
+* **Secrets** - the settings are passed on to the build to be referenced via the [`RUN --secret`](../earthfile/earthfile.md#secret-less-than-env-var-greater-than-less-than-secret-ref-greater-than) option.
 
 {% hint style='danger' %}
 ##### Important
