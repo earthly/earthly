@@ -7,7 +7,7 @@ Running unit tests in a build pipeline is relatively simple.  By definition, uni
 
 Imagine this scenario: You work on a team that owns a service, that, in production runs containerized as part of a microservice architecture.  The totality of the services that make-up production are too numerous reasonably run on a developer machine but thankfully your service only depends on a handful of other services.  You have unit tests but need ways to test your points of integration with your dependencies.  You also want ways to test your service externally, that is you want to exercise it in ways a service consumer might. 
 
-For simplicity's sake, this guide will use a scala application with a very simple set of dependencies.  In principle, these steps will work with any service whos dependencies can be specified in a docker-compose file. 
+For simplicity's sake, this guide will use a Scala application with a very simple set of dependencies.  In principle, these steps will work with any service whose dependencies can be specified in a docker-compose file.
 
 ## The Example App
 
