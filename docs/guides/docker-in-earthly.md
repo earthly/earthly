@@ -50,11 +50,9 @@ smoke-test:
 
 Notice that the image name produced as output is `my-image:latest`. This image name is not available in the `WITH DOCKER` environment, however, as it is only used to tag for use outside of Earthly. The name `test:latest` is used instead.
 
-<!--
 ## Integration testing
 
-TODO: Link to the integration testing example (docker-compose example in Earthly) when ready.
--->
+For more information on integration testing and working with service dependencies see our [tutorial on integration testing in earthly](./integration.md).
 
 ## Limitations of Docker in Earthly
 

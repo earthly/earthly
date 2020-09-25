@@ -1,19 +1,18 @@
 # Integration Testing With Earthly
 
-## Why a workflow for integration tests is important
-Running unit tests in a build pipeline is relatively simple.  By definition, unit tests have no external dependencies.  Things get more interesting when we want to test how our service integrates with other services and external systems.  A service may have dependencies on external file systems, on databases, on external message queues, or other services. An ergonomic and effective development environment should have simple ways to construct and run integration tests.  It should be easy to run these tests locally on the developer machine and in the build pipeline.  
+Running unit tests in a build pipeline is relatively simple. By definition, unit tests have no external dependencies. Things get more interesting when we want to test how our service integrates with other services and external systems. A service may have dependencies on external file systems, on databases, on external message queues, or other services. An ergonomic and effective development environment should have simple ways to construct and run integration tests. It should be easy to run these tests locally on the developer machine and in the build pipeline. 
 
 ## A Scenario
 
-Imagine this scenario: You work on a team that owns a service, that, in production runs containerized as part of a microservice architecture.  The totality of the services that make-up production are too numerous reasonably run on a developer machine but thankfully your service only depends on a handful of other services.  You have unit tests but need ways to test your points of integration with your dependencies.  You also want ways to test your service externally, that is you want to exercise it in ways a service consumer might. 
+Imagine this scenario: You work on a team that owns a service, that, in production runs containerized as part of a microservice architecture. The totality of the services that make-up production are too numerous reasonably run on a developer machine but thankfully your service only depends on a handful of other services. You have unit tests but need ways to test your points of integration with your dependencies. You also want ways to test your service end to end, that is you want to exercise it in ways a service consumer might. 
 
-For simplicity's sake, this guide will use a Scala application with a very simple set of dependencies.  In principle, these steps will work with any service whose dependencies can be specified in a docker-compose file.
+For simplicity's sake, this guide will use a Scala application with a very simple set of dependencies. In principle, these steps will work with any service whose dependencies can be specified in a docker-compose file.
 
 ## The Example App
 
-The app has one purpose, it returns the first 5 countries alphabetically via standard out.  To do this it connects to a database through a data access layer and returns the results from a Postgres table.  The specifics of the app are not relevant to the testing method but are outlined here for clarity.
+The app has one purpose, it returns the first 5 countries alphabetically via standard out. To do this it connects to a database through a data access layer and returns the results from a Postgres table. The specifics of the app are not relevant to the testing method but are outlined here for clarity.
 
-The app has unit tests that don't require any dependencies and integration tests that exercise the data access layer and the connection to the database. 
+The application has unit tests that don't require any dependencies. Additionally it has integration tests that exercise the data access layer and the connection to the database. 
 
 {% method %}
 {% sample lang="App" %}
@@ -101,18 +100,18 @@ Ouput:
 
 ## The Earthfile
 
-We start with a simple earthly file that can build and create a docker file for our app.  See [Basic]() guide for more details on that.
+We start with a simple earthly file that can build and create a docker file for our app. See [Basic](./basics) guide for more details on that.
 
 {% hint style='info' %}
 ##### Note
-This guide assumes you are using a docker image based on [docker:dind]() or have installed docker in docker into your base container.  It is possible in the future that earthly will not require the dind for `WITH DOCKER` commands and at the time any base image will work successfully.  
+This guide assumes you are using a docker image based on [docker:dind](https://hub.docker.com/_/docker) or have installed docker in docker into your base container. It is possible in the future that earthly will not require the dind for `WITH DOCKER` commands and at the time any base image will work successfully. 
 {% endhint %}
 
 
 {% method %}
 {% sample lang="Base Earth Target" %}
 
-We start from an alpine docker in docker image and the dependencies we need to build and test our app.  These include the jdk and docker-compose. 
+We start from an alpine docker in docker image and the dependencies we need to build and test our app. These include the jdk and docker-compose. 
 ``` Dockerfile
 FROM docker:19.03.7-dind
     
@@ -144,7 +143,7 @@ sbt:
     SAVE IMAGE 
 ```
 
-[Full file](https://github.com/earthly/earthly-example-scala/blob/master/integration/Earthfile)
+[Full file](https://github.com/earthly/earthly/blob/master/examples/integration/Earthfile)
 
 {% sample lang="Build Target" %}
 
@@ -164,7 +163,7 @@ build:
     RUN sbt compile
     SAVE IMAGE 
 ```
-[Full file](https://github.com/earthly/earthly-example-scala/blob/master/integration/Earthfile)
+[Full file](https://github.com/earthly/earthly/blob/master/examples/integration/Earthfile)
 
 {% sample lang="Unit Test Target" %}
 
@@ -178,7 +177,7 @@ unit-test:
     RUN sbt test
 
 ```
-[Full file](https://github.com/earthly/earthly-example-scala/blob/master/integration/Earthfile)
+[Full file](https://github.com/earthly/earthly/blob/master/examples/integration/Earthfile)
 
 {% sample lang="Docker Target" %}
 
@@ -199,12 +198,12 @@ docker:
 
 {% endmethod %}
 
- See [Basics Guide]() for more details on these steps, including how they might differ in Go, Javascript, Java and Python.
+ See [Basics Guide](./basics.md) for more details on these steps, including how they might differ in Go, Javascript, Java and Python.
 
 
 ## Integration Testing Step 1 - Define Your Dependencies
 
-The first step of integration testing in earthly is to define all the service dependencies in a docker-compose file.  
+The first step of integration testing in earthly is to define all the service dependencies in a docker-compose file. 
 
 #### Docker Compose:
 ``` yaml
@@ -235,7 +234,7 @@ This docker-compose file is essential for our integration testing, but it is als
 {% hint style='info' %}
 #### SQL Data
 
-In a real-world example, we would likely use a tool like [Flyway](https://flywaydb.org/) to manage our database structure and base data.  For simplicity here, however, we are using a Postgres image with country data included `aa8y/postgres-dataset:iso3166`.
+In a real-world example, we would likely use a tool like [Flyway](https://flywaydb.org/) to manage our database structure and base data. For simplicity here, however, we are using a Postgres image with country data included `aa8y/postgres-dataset:iso3166`.
 {% endhint %}
 
 {% hint style='info' %}
@@ -245,7 +244,7 @@ Our example application has one direct dependency, Postgres, and a helper app `a
 
 ## Integration Testing Step 2 - Run your tests
 
-With our docker-compose ready, we can now add an integration test step to our Earthfile.  
+With our docker-compose ready, we can now add an integration test step to our Earthfile. 
 
 Our integration target needs to copy in our source code and our docker file before it starts the tests:
 ``` Dockerfile
@@ -261,13 +260,13 @@ Next, we use the `WITH DOCKER` statement to start up the docker daemon in our bu
    ...
    END
 ```
-Following that, we pull each of our images into the build context using `DOCKER PULL`.  While strictly not necessary, using the `DOCKER PULL` command ensures our image pulls are cached by earthly and ensures faster builds.
+Following that, we pull each of our images into the build context using `DOCKER PULL`. While strictly not necessary, using the `DOCKER PULL` command ensures our image pulls are cached by earthly and ensures faster builds.
 
 ```
  DOCKER PULL aa8y/postgres-dataset:iso3166
  DOCKER PULL adminer:latest 
 ```
-To run our integration tests, we now start up our docker-compose, wait for it to start up, run our test, and then stop it. We do this in a single run command.  
+To run our integration tests, we now start up our docker-compose, wait for it to start up, run our test, and then stop it. We do this in a single run command. 
 
 ```
    RUN docker-compose up -d && \
@@ -278,12 +277,12 @@ To run our integration tests, we now start up our docker-compose, wait for it to
 {% hint style='info' %}
 #### About netcat (nc)
 
-This statement is a simple loop, that will block for up to 30 seconds or until we can read from port 5432 on localhost.  
+This statement is a simple loop, that will block for up to 30 seconds or until we can read from port 5432 on localhost. 
 ```
 for i in {1..30}; do nc -z localhost 5432 && break; sleep 1; done; \
 ```
 
-Our application will connect to Postgres via localhost:5432.  This step, therefore, ensures that don't run our tests until the database is up. There are many other ways to accomplish this, including READY checks, application-specific code, and scripts like [wait for it](https://github.com/vishnubob/wait-for-it).  
+Our application will connect to Postgres via localhost:5432. This step, therefore, ensures that don't run our tests until the database is up. There are many other ways to accomplish this, including READY checks, application-specific code, and scripts like [wait for it](https://github.com/vishnubob/wait-for-it). 
 
  Coordinating in among services is a complicated area out of the scope of this guide.
 
@@ -333,11 +332,11 @@ We can now run our it tests both locally and in the CI pipeline, in a reproducib
 This means that if an integration test fails in the build pipeline, you can easily reproduce it locally.  
 
 
-## Running Blackbox Integration Tests
+## Running End to End Integration Tests
 
-Our first integration test run used a testing harness inside the service under test.  This is one way to exercise integration code paths and could be called whitebox integration testing.  Another useful form of integration testing is blackbox integration testing.  In this form of integration testing, we start up the application and test it from the outside.  
+Our first integration test run used a testing harness inside the service under test. This is one way to exercise integration code paths and could be called whitebox integration testing. Another useful form of integration testing is end to end integration testing. In this form of integration testing, we start up the application and test it from the outside. 
 
-In our simplified case example, with a single code path, a smoke test is sufficient.  We start up the application, with its dependencies, and verify it runs successfully.
+In our simplified case example, with a single code path, a smoke test is sufficient. We start up the application, with its dependencies, and verify it runs successfully.
 
 
 ```
@@ -348,7 +347,7 @@ In our simplified case example, with a single code path, a smoke test is suffici
 ```
 {% hint style='info' %}
 #### Docker Networking
-Note the `-network=host` flag passed to `docker run`.  
+Note the `-network=host` flag passed to `docker run`. 
 ```
 docker run --network=host scala-example:latest 
 ```
@@ -395,11 +394,11 @@ Output:
 ...
 ```
 
-In more complex scenarios, this example could be extended to run tests against the service under test.  Making http calls and verifying outputs using your preferred testing framework.
+In more complex scenarios, this example could be extended to run tests against the service under test. Making http calls and verifying outputs using your preferred testing framework.
 
 ## Bringing It All Together
 
-Adding these testing targets to an all target, we now can unit test, integration test, and dockerize and push our software in a single command.  Using this approach, integration tests that fail sporadically for environmental reasons and can't be reproduced consistently should be a thing of the past.  
+Adding these testing targets to an all target, we now can unit test, integration test, and dockerize and push our software in a single command. Using this approach, integration tests that fail sporadically for environmental reasons and can't be reproduced consistently should be a thing of the past. 
 
 ``` Dockerfile
 all:
@@ -416,8 +415,8 @@ all:
 =========================== SUCCESS ===========================
 ```
 
-There we have it, a reproducible integration process.  The full example can be found [here]().  If you have questions about the example, [ask them here](https://gitter.im/earthly-room/community)
+There we have it, a reproducible integration process. The full example can be found [here](). If you have questions about the example, [ask them here](https://gitter.im/earthly-room/community)
 
 ## See also
 * [Docker In Earthly](./docker-in-earthly.md)
-* [Source code for example](https://github.com/earthly/earthly-example-scala/tree/master/integration)
+* [Source code for example](https://github.com/earthly/earthly/tree/master/examples/integration)
