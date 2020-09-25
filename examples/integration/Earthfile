@@ -1,0 +1,78 @@
+FROM docker:19.03.7-dind
+WORKDIR /scala-example
+RUN apk add openjdk11 docker-compose bash wget
+
+
+sbt: 
+    #Scala
+    # Defaults if not specified in --build-arg
+    ARG sbt_version=1.3.2
+    ARG sbt_home=/usr/local/sbt
+
+    # Download and extract from archive
+    RUN mkdir -pv "$sbt_home"
+    RUN wget -qO - "https://github.com/sbt/sbt/releases/download/v$sbt_version/sbt-$sbt_version.tgz" >/tmp/sbt.tgz
+    RUN tar xzf /tmp/sbt.tgz -C "$sbt_home" --strip-components=1
+    RUN ln -sv "$sbt_home"/bin/sbt /usr/bin/
+
+    # This triggers a bunch of useful downloads.
+    RUN sbt sbtVersion
+    SAVE IMAGE
+
+project-files:
+    FROM +sbt
+    COPY build.sbt ./
+    COPY project project
+    # Run sbt for caching purposes.
+    RUN touch a.scala && sbt compile && rm a.scala
+    SAVE IMAGE
+
+build:
+    FROM +project-files
+    COPY src src
+    RUN sbt compile
+    SAVE IMAGE
+
+unit-test:
+    FROM +build
+    COPY src src
+    RUN sbt test
+
+integration-test:
+    FROM +build
+    COPY src src
+    COPY docker-compose.yml ./ 
+    WITH DOCKER 
+        DOCKER PULL aa8y/postgres-dataset:iso3166
+        DOCKER PULL adminer:latest
+        RUN docker-compose up -d && \
+            for i in {1..30}; do nc -z localhost 5432 && break; sleep 1; done; \
+            sbt it:test && \
+            docker-compose down 
+    END
+
+docker:
+    FROM +build
+    COPY src src
+    RUN sbt assembly
+    ENTRYPOINT ["java","-cp","target/scala-2.12/scala-example-assembly-1.0.jar","Main"]
+    SAVE IMAGE scala-example:latest
+
+smoke-test:
+    FROM +base
+    COPY docker-compose.yml ./ 
+    WITH DOCKER
+        DOCKER PULL aa8y/postgres-dataset:iso3166
+        DOCKER PULL adminer:latest
+        DOCKER LOAD +docker scala-example:latest
+        RUN docker-compose up -d && \ 
+            for i in {1..30}; do nc -z localhost 5432 && break; sleep 1; done; \
+            docker run --network=host scala-example:latest && \
+            docker-compose down 
+    END
+    
+all:
+  BUILD +build
+  BUILD +unit-test
+  BUILD +integration-test
+  BUILD +smoke-test

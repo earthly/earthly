@@ -8,6 +8,7 @@
     * [Managing cache](guides/cache.md)
     * [Advanced caching techniques](guides/advanced-caching.md)
     * [Using Docker in Earthly](guides/docker-in-earthly.md)
+    * [Integration Testing](guides/integration.md)
     * [Debugging techniques](guides/debugging.md)
     * [CI integration](guides/ci-integration.md)
 * [Earthfile reference](earthfile/earthfile.md)
