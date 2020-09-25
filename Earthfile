@@ -201,7 +201,7 @@ examples:
     BUILD ./examples/python+docker
     BUILD ./examples/monorepo+all
     BUILD ./examples/multirepo+docker
-    BUILD ./examples/integration+integration-test
+    BUILD ./examples/integration-test+integration-test
     BUILD ./examples/readme/go1+all
     BUILD ./examples/readme/go2+all
     BUILD ./examples/readme/go3+build
