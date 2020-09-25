@@ -100,7 +100,7 @@ Ouput:
 
 ## The Earthfile
 
-We start with a simple earthly file that can build and create a docker file for our app. See [Basic](./basics) guide for more details on that.
+We start with a simple Earthfile that can build and create a docker image for our app. See [Basic](./basics) guide for more details on that.
 
 {% hint style='info' %}
 ##### Note
