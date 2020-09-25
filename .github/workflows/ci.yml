@@ -58,7 +58,7 @@ jobs:
       - name: Build latest earth using released earth
         run: earth +for-linux
       - name: Build examples
-        run: ./build/linux/amd64/earth --no-output +examples
+        run: ./build/linux/amd64/earth --no-output --allow-privileged +examples
   push:
     name: --push +all
     if: github.event_name == 'push'
