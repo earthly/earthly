@@ -104,7 +104,7 @@ We start with a simple Earthfile that can build and create a docker image for ou
 
 {% hint style='info' %}
 ##### Note
-This guide assumes you are using a docker image based on [docker:dind](https://hub.docker.com/_/docker) or have installed docker in docker into your base container. It is possible in the future that earthly will not require the dind for `WITH DOCKER` commands and at the time any base image will work successfully. 
+This guide assumes you are using a Docker image based on [docker:dind](https://hub.docker.com/_/docker) or have installed docker in docker into your base container. It is possible in the future that earthly will not require the dind for `WITH DOCKER` commands and at the time any base image will work successfully. 
 {% endhint %}
 
 
@@ -143,7 +143,7 @@ sbt:
     SAVE IMAGE 
 ```
 
-[Full file](https://github.com/earthly/earthly/blob/master/examples/integration/Earthfile)
+[Full file](https://github.com/earthly/earthly/blob/master/examples/integration-test/Earthfile)
 
 {% sample lang="Build Target" %}
 
@@ -163,7 +163,7 @@ build:
     RUN sbt compile
     SAVE IMAGE 
 ```
-[Full file](https://github.com/earthly/earthly/blob/master/examples/integration/Earthfile)
+[Full file](https://github.com/earthly/earthly/blob/master/examples/integration-test/Earthfile)
 
 {% sample lang="Unit Test Target" %}
 
@@ -177,7 +177,7 @@ unit-test:
     RUN sbt test
 
 ```
-[Full file](https://github.com/earthly/earthly/blob/master/examples/integration/Earthfile)
+[Full file](https://github.com/earthly/earthly/blob/master/examples/integration-test/Earthfile)
 
 {% sample lang="Docker Target" %}
 
@@ -419,4 +419,4 @@ There we have it, a reproducible integration process. The full example can be fo
 
 ## See also
 * [Docker In Earthly](./docker-in-earthly.md)
-* [Source code for example](https://github.com/earthly/earthly/tree/master/examples/integration)
+* [Source code for example](https://github.com/earthly/earthly/tree/master/examples/integration-test)
