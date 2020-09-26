@@ -36,8 +36,6 @@ ga:
     BUILD +chown-test
     BUILD +dotenv-test
     BUILD +env-test
-
-experimental:
     BUILD ./with-docker+all
 
 experimental-old:

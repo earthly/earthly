@@ -312,7 +312,7 @@ func (c *Converter) CopyClassical(ctx context.Context, srcs []string, dest strin
 // Run applies the earth RUN command.
 func (c *Converter) Run(ctx context.Context, args []string, mounts []string, secretKeyValues []string, privileged bool, withEntrypoint bool, withDocker bool, isWithShell bool, pushFlag bool, withSSH bool) error {
 	if withDocker {
-		fmt.Printf("Warning: RUN --with-docker is deprecated. Use WITH DOCKER ... RUN ... END instead\n")
+		fmt.Printf("Warning: RUN --with-docker is deprecated. Please use WITH DOCKER ... RUN ... END instead\n")
 	}
 	logging.GetLogger(ctx).
 		With("args", args).
@@ -584,7 +584,7 @@ func (c *Converter) WithDockerRun(ctx context.Context, args []string, opt WithDo
 
 // DockerLoadOld applies the DOCKER LOAD command (outside of WITH DOCKER).
 func (c *Converter) DockerLoadOld(ctx context.Context, targetName string, dockerTag string, buildArgs []string) error {
-	fmt.Printf("Warning: DOCKER LOAD outside of WITH DOCKER is deprecated\n")
+	fmt.Printf("Warning: DOCKER LOAD is deprecated. Please use WITH DOCKER --load\n")
 	logging.GetLogger(ctx).With("target-name", targetName).With("dockerTag", dockerTag).Info("Applying DOCKER LOAD")
 	depTarget, err := domain.ParseTarget(targetName)
 	if err != nil {
@@ -606,7 +606,7 @@ func (c *Converter) DockerLoadOld(ctx context.Context, targetName string, docker
 
 // DockerPullOld applies the DOCKER PULL command (outside of WITH DOCKER).
 func (c *Converter) DockerPullOld(ctx context.Context, dockerTag string) error {
-	fmt.Printf("Warning: DOCKER PULL outside of WITH DOCKER is deprecated\n")
+	fmt.Printf("Warning: DOCKER PULL is deprecated. Please use WITH DOCKER --pull\n")
 	logging.GetLogger(ctx).With("dockerTag", dockerTag).Info("Applying DOCKER PULL")
 	state, image, _, err := c.internalFromClassical(
 		ctx, dockerTag,

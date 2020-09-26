@@ -21,7 +21,7 @@ import (
 
 const dockerdWrapperPath = "/var/earthly/dockerd-wrapper.sh"
 
-// DockerLoadOpt holds parameters for DOCKER LOAD commands.
+// DockerLoadOpt holds parameters for WITH DOCKER --load parameter.
 type DockerLoadOpt struct {
 	Target    string
 	ImageName string
@@ -30,12 +30,14 @@ type DockerLoadOpt struct {
 
 // WithDockerOpt holds parameters for WITH DOCKER run.
 type WithDockerOpt struct {
-	Mounts         []string
-	Secrets        []string
-	WithShell      bool
-	WithEntrypoint bool
-	Pulls          []string
-	Loads          []DockerLoadOpt
+	Mounts          []string
+	Secrets         []string
+	WithShell       bool
+	WithEntrypoint  bool
+	Pulls           []string
+	Loads           []DockerLoadOpt
+	ComposeFiles    []string
+	ComposeServices []string
 }
 
 type withDockerRun struct {

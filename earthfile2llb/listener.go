@@ -754,15 +754,65 @@ func (l *listener) ExitWithDockerStmt(c *parser.WithDockerStmtContext) {
 		l.err = fmt.Errorf("no non-push commands allowed after a --push: %s", c.GetText())
 		return
 	}
-	if len(l.stmtWords) != 0 {
-		l.err = fmt.Errorf("WITH DOCKER does not take any arguments: %s", c.GetText())
-		return
-	}
 	if l.withDocker != nil {
 		l.err = fmt.Errorf("cannot use WITH DOCKER within WITH DOCKER")
 		return
 	}
-	l.withDocker = new(WithDockerOpt)
+
+	fs := flag.NewFlagSet("WITH DOCKER", flag.ContinueOnError)
+	composeFiles := new(StringSliceFlag)
+	fs.Var(composeFiles, "compose", "")
+	composeServices := new(StringSliceFlag)
+	fs.Var(composeServices, "service", "")
+	loads := new(StringSliceFlag)
+	fs.Var(loads, "load", "")
+	buildArgs := new(StringSliceFlag)
+	fs.Var(buildArgs, "build-arg", "")
+	pulls := new(StringSliceFlag)
+	fs.Var(pulls, "pull", "")
+	err := fs.Parse(l.stmtWords)
+	if err != nil {
+		l.err = errors.Wrapf(err, "invalid WITH DOCKER arguments %v", l.stmtWords)
+		return
+	}
+	if len(fs.Args()) != 0 {
+		l.err = errors.Wrapf(err, "invalid WITH DOCKER arguments %v", fs.Args())
+		return
+	}
+
+	for i, cf := range composeFiles.Args {
+		composeFiles.Args[i] = l.expandArgs(cf)
+	}
+	for i, cs := range composeServices.Args {
+		composeServices.Args[i] = l.expandArgs(cs)
+	}
+	for i, load := range loads.Args {
+		loads.Args[i] = l.expandArgs(load)
+	}
+	for i, ba := range buildArgs.Args {
+		buildArgs.Args[i] = l.expandArgs(ba)
+	}
+	for i, p := range pulls.Args {
+		pulls.Args[i] = l.expandArgs(p)
+	}
+
+	l.withDocker = &WithDockerOpt{
+		Pulls:           pulls.Args,
+		ComposeFiles:    composeFiles.Args,
+		ComposeServices: composeServices.Args,
+	}
+	for _, loadStr := range loads.Args {
+		loadImg, loadTarget, err := parseLoad(loadStr)
+		if err != nil {
+			l.err = err
+			return
+		}
+		l.withDocker.Loads = append(l.withDocker.Loads, DockerLoadOpt{
+			Target:    loadTarget,
+			ImageName: loadImg,
+			BuildArgs: buildArgs.Args,
+		})
+	}
 }
 
 func (l *listener) ExitEndStmt(c *parser.EndStmtContext) {
@@ -902,4 +952,12 @@ var lineContinuationRegexp = regexp.MustCompile("\\\\(\\n|(\\r\\n))[\\t ]*")
 
 func replaceEscape(str string) string {
 	return lineContinuationRegexp.ReplaceAllString(str, "")
+}
+
+func parseLoad(loadStr string) (string, string, error) {
+	splitLoad := strings.SplitN(loadStr, "=", 2)
+	if len(splitLoad) < 1 {
+		return "", "", fmt.Errorf("invalid load syntax %s", loadStr)
+	}
+	return splitLoad[0], splitLoad[1], nil
 }
