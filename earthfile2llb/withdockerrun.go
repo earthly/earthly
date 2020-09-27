@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
+	"sort"
 	"strings"
 
 	"github.com/earthly/earthly/dockertar"
@@ -46,16 +47,42 @@ type withDockerRun struct {
 }
 
 func (wdr *withDockerRun) Run(ctx context.Context, args []string, opt WithDockerOpt) error {
+	if len(opt.ComposeFiles) > 0 {
+		err := wdr.installDeps(ctx)
+		if err != nil {
+			return err
+		}
+	}
+	// Grab relevant images from compose file(s).
+	composeImages, err := wdr.getComposeImages(ctx, opt)
+	if err != nil {
+		return err
+	}
+	composeImagesSet := make(map[string]bool)
+	for _, composeImg := range composeImages {
+		composeImagesSet[composeImg] = true
+	}
+	for _, loadOpt := range opt.Loads {
+		// Make sure we don't pull a compose image which is loaded.
+		if composeImagesSet[loadOpt.ImageName] {
+			delete(composeImagesSet, loadOpt.ImageName)
+		}
+		// Load.
+		err := wdr.load(ctx, loadOpt)
+		if err != nil {
+			return errors.Wrap(err, "load")
+		}
+	}
+	// Add compose images (what's left of them) to the pull list.
+	for composeImg := range composeImagesSet {
+		opt.Pulls = append(opt.Pulls, composeImg)
+	}
+	// Sort to make the operation consistent.
+	sort.Strings(opt.Pulls)
 	for _, pullImageName := range opt.Pulls {
 		err := wdr.pull(ctx, pullImageName)
 		if err != nil {
 			return errors.Wrap(err, "pull")
-		}
-	}
-	for _, loadOpt := range opt.Loads {
-		err := wdr.load(ctx, loadOpt)
-		if err != nil {
-			return errors.Wrap(err, "load")
 		}
 	}
 	logging.GetLogger(ctx).
@@ -109,8 +136,41 @@ func (wdr *withDockerRun) Run(ctx context.Context, args []string, opt WithDocker
 	if err != nil {
 		return errors.Wrap(err, "compute dind id")
 	}
-	shellWrap := makeWithDockerdWrapFun(dindID, tarPaths)
+	shellWrap := makeWithDockerdWrapFun(dindID, tarPaths, opt)
 	return wdr.c.internalRun(ctx, finalArgs, opt.Secrets, opt.WithShell, shellWrap, false, false, runStr, runOpts...)
+}
+
+func (wdr *withDockerRun) installDeps(ctx context.Context) error {
+	var runOpts []llb.RunOption
+	runOpts = append(runOpts, llb.AddMount(
+		dockerdWrapperPath, llb.Scratch(), llb.HostBind(), llb.SourcePath(dockerdWrapperPath)))
+	args := []string{dockerdWrapperPath, "install-deps"}
+	runStr := fmt.Sprintf("WITH DOCKER (install deps)")
+	return wdr.c.internalRun(ctx, args, nil, true, withShellAndEnvVars, false, false, runStr, runOpts...)
+}
+
+func (wdr *withDockerRun) getComposeImages(ctx context.Context, opt WithDockerOpt) ([]string, error) {
+	var runOpts []llb.RunOption
+	runOpts = append(runOpts, llb.AddMount(
+		dockerdWrapperPath, llb.Scratch(), llb.HostBind(), llb.SourcePath(dockerdWrapperPath)))
+	params := composeParams(opt)
+	args := []string{
+		"/bin/sh", "-c",
+		fmt.Sprintf(
+			"%s %s get-compose-config",
+			strings.Join(params, " "),
+			dockerdWrapperPath),
+	}
+	runStr := fmt.Sprintf("WITH DOCKER (detect docker-compose images)")
+	// TODO: internalRun is not necessary here. Could use state.Run directly.
+	err := wdr.c.internalRun(ctx, args, nil, true, withShellAndEnvVars, false, false, runStr, runOpts...)
+	if err != nil {
+		return nil, err
+	}
+	// TODO: Solve.
+	// TODO: Parse & fetch service -> image map.
+	// TODO: Filter out images from services not specified.
+	return nil, nil
 }
 
 func (wdr *withDockerRun) pull(ctx context.Context, dockerTag string) error {
@@ -207,16 +267,13 @@ func (wdr *withDockerRun) solveImage(ctx context.Context, mts *MultiTargetStates
 	return nil
 }
 
-func makeWithDockerdWrapFun(dindID string, tarPaths []string) shellWrapFun {
+func makeWithDockerdWrapFun(dindID string, tarPaths []string, opt WithDockerOpt) shellWrapFun {
 	dockerRoot := path.Join("/var/earthly/dind", dindID)
 	params := []string{
 		fmt.Sprintf("EARTHLY_DOCKERD_DATA_ROOT=\"%s\"", dockerRoot),
 		fmt.Sprintf("EARTHLY_DOCKER_LOAD_FILES=\"%s\"", strings.Join(tarPaths, " ")),
-		// TODO
-		fmt.Sprintf("EARTHLY_START_COMPOSE=\"%t\"", false),
-		fmt.Sprintf("EARTHLY_COMPOSE_FILES=\"%s\"", strings.Join([]string{}, " ")),
-		fmt.Sprintf("EARTHLY_COMPOSE_SERVICES=\"%s\"", strings.Join([]string{}, " ")),
 	}
+	params = append(params, composeParams(opt)...)
 	return func(args []string, envVars []string, isWithShell bool, withDebugger bool) []string {
 		return []string{
 			"/bin/sh", "-c",
@@ -226,5 +283,13 @@ func makeWithDockerdWrapFun(dindID string, tarPaths []string) shellWrapFun {
 				dockerdWrapperPath,
 				strWithEnvVars(args, envVars, isWithShell, withDebugger)),
 		}
+	}
+}
+
+func composeParams(opt WithDockerOpt) []string {
+	return []string{
+		fmt.Sprintf("EARTHLY_START_COMPOSE=\"%t\"", (len(opt.ComposeFiles) > 0)),
+		fmt.Sprintf("EARTHLY_COMPOSE_FILES=\"%s\"", strings.Join(opt.ComposeFiles, " ")),
+		fmt.Sprintf("EARTHLY_COMPOSE_SERVICES=\"%s\"", strings.Join(opt.ComposeServices, " ")),
 	}
 }
