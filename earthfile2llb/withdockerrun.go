@@ -211,13 +211,17 @@ func makeWithDockerdWrapFun(dindID string, tarPaths []string) shellWrapFun {
 	dockerRoot := path.Join("/var/earthly/dind", dindID)
 	params := []string{
 		fmt.Sprintf("EARTHLY_DOCKERD_DATA_ROOT=\"%s\"", dockerRoot),
-		fmt.Sprintf("EARTHLY_DOCKER_LOAD_IMAGES=\"%s\"", strings.Join(tarPaths, " ")),
+		fmt.Sprintf("EARTHLY_DOCKER_LOAD_FILES=\"%s\"", strings.Join(tarPaths, " ")),
+		// TODO
+		fmt.Sprintf("EARTHLY_START_COMPOSE=\"%t\"", false),
+		fmt.Sprintf("EARTHLY_COMPOSE_FILES=\"%s\"", strings.Join([]string{}, " ")),
+		fmt.Sprintf("EARTHLY_COMPOSE_SERVICES=\"%s\"", strings.Join([]string{}, " ")),
 	}
 	return func(args []string, envVars []string, isWithShell bool, withDebugger bool) []string {
 		return []string{
 			"/bin/sh", "-c",
 			fmt.Sprintf(
-				"%s %s %s",
+				"%s %s execute %s",
 				strings.Join(params, " "),
 				dockerdWrapperPath,
 				strWithEnvVars(args, envVars, isWithShell, withDebugger)),

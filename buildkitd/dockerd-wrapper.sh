@@ -1,11 +1,25 @@
 #!/bin/sh
 
-set -e
+set -eu
 
-if [ -z "$EARTHLY_DOCKERD_DATA_ROOT" ]; then
-    echo "EARTHLY_DOCKERD_DATA_ROOT not set"
-    exit 1
-fi
+install_deps() {
+    apk add --update --no-cache docker-compose
+}
+
+# Runs docker-compose with the right -f flags.
+docker_compose_cmd() {
+    compose_file_flags=""
+    for f in $EARTHLY_COMPOSE_FILES; do
+        compose_file_flags="$compose_file_flags -f $f"
+    done
+    # shellcheck disable=SC2086
+    docker-compose $compose_file_flags "$@"
+}
+
+write_compose_config() {
+    mkdir -p /tmp/earthly
+    docker_compose_cmd config >/tmp/earthly/compose-config.yml
+}
 
 start_dockerd() {
     mkdir -p "$EARTHLY_DOCKERD_DATA_ROOT"
@@ -42,14 +56,40 @@ stop_dockerd() {
 }
 
 load_images() {
-    if [ -n "$EARTHLY_DOCKER_LOAD_IMAGES" ]; then
+    if [ -n "$EARTHLY_DOCKER_LOAD_FILES" ]; then
         echo "Loading images..."
-        for img in $EARTHLY_DOCKER_LOAD_IMAGES; do
+        for img in $EARTHLY_DOCKER_LOAD_FILES; do
             docker load -i "$img" || (stop_dockerd; exit 1)
         done
         echo "...done"
     fi
 }
+
+case "$1" in
+    install-deps)
+        install_deps
+        exit 0
+        ;;
+    
+    get-compose-config)
+        write_compose_config
+        exit 0
+        ;;
+    
+    execute)
+        # Continue execution.
+        ;;
+    
+    *)
+        echo "Invalid command $1"
+        exit 1
+        ;;
+esac
+
+if [ -z "$EARTHLY_DOCKERD_DATA_ROOT" ]; then
+    echo "EARTHLY_DOCKERD_DATA_ROOT not set"
+    exit 1
+fi
 
 export EARTHLY_WITH_DOCKER=1
 
@@ -64,10 +104,20 @@ export EARTHLY_WITH_DOCKER=1
 
 load_images
 
+if [ "$EARTHLY_START_COMPOSE" = "true" ]; then
+    # shellcheck disable=SC2086
+    docker_compose_cmd up -d $EARTHLY_COMPOSE_SERVICES
+fi
+
+shift
 set +e
 "$@"
 exit_code="$?"
 set -e
+
+if [ "$EARTHLY_START_COMPOSE" = "true" ]; then
+    docker_compose_cmd down --remove-orphans
+fi
 
 # shellcheck disable=SC2039
 (
