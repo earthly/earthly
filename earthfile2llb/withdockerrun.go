@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
+	"path/filepath"
 	"sort"
 	"strings"
 
@@ -18,9 +19,13 @@ import (
 	"github.com/earthly/earthly/logging"
 	"github.com/moby/buildkit/client/llb"
 	"github.com/pkg/errors"
+	"gopkg.in/yaml.v2"
 )
 
-const dockerdWrapperPath = "/var/earthly/dockerd-wrapper.sh"
+const (
+	dockerdWrapperPath = "/var/earthly/dockerd-wrapper.sh"
+	composeConfigFile  = "compose-config.yml"
+)
 
 // DockerLoadOpt holds parameters for WITH DOCKER --load parameter.
 type DockerLoadOpt struct {
@@ -150,9 +155,11 @@ func (wdr *withDockerRun) installDeps(ctx context.Context) error {
 }
 
 func (wdr *withDockerRun) getComposeImages(ctx context.Context, opt WithDockerOpt) ([]string, error) {
-	var runOpts []llb.RunOption
-	runOpts = append(runOpts, llb.AddMount(
-		dockerdWrapperPath, llb.Scratch(), llb.HostBind(), llb.SourcePath(dockerdWrapperPath)))
+	if len(opt.ComposeFiles) == 0 {
+		// Quick way out.
+		return nil, nil
+	}
+	// Add the right run to fetch the docker compose config.
 	params := composeParams(opt)
 	args := []string{
 		"/bin/sh", "-c",
@@ -161,16 +168,83 @@ func (wdr *withDockerRun) getComposeImages(ctx context.Context, opt WithDockerOp
 			strings.Join(params, " "),
 			dockerdWrapperPath),
 	}
-	runStr := fmt.Sprintf("WITH DOCKER (detect docker-compose images)")
-	// TODO: internalRun is not necessary here. Could use state.Run directly.
-	err := wdr.c.internalRun(ctx, args, nil, true, withShellAndEnvVars, false, false, runStr, runOpts...)
-	if err != nil {
-		return nil, err
+	runOpts := []llb.RunOption{
+		llb.AddMount(
+			dockerdWrapperPath, llb.Scratch(), llb.HostBind(), llb.SourcePath(dockerdWrapperPath)),
+		llb.Args(args),
+		llb.WithCustomNamef("%sWITH DOCKER (docker-compose config)", wdr.c.vertexPrefix()),
 	}
-	// TODO: Solve.
-	// TODO: Parse & fetch service -> image map.
-	// TODO: Filter out images from services not specified.
-	return nil, nil
+	state := wdr.c.mts.FinalStates.SideEffectsState.Run(runOpts...).Root()
+
+	// Perform solve to output compose config. We will use that compose config to read in images.
+	composeConfigState := llbutil.CopyOp(
+		state, []string{fmt.Sprintf("/tmp/earthly/%s", composeConfigFile)},
+		llb.Scratch().Platform(llbutil.TargetPlatform), fmt.Sprintf("/%s", composeConfigFile),
+		false, false, "",
+		llb.WithCustomNamef("[internal] copy %s", composeConfigFile))
+	mts := &MultiTargetStates{
+		VisitedStates: wdr.c.mts.VisitedStates,
+		FinalStates: &SingleTargetStates{
+			Target:           wdr.c.mts.FinalStates.Target,
+			SideEffectsImage: wdr.c.mts.FinalStates.SideEffectsImage,
+			SideEffectsState: state,
+			ArtifactsState:   composeConfigState,
+			LocalDirs:        wdr.c.mts.FinalStates.LocalDirs,
+		},
+	}
+	composeConfigArtifact := domain.Artifact{
+		Target:   wdr.c.mts.FinalStates.Target,
+		Artifact: composeConfigFile,
+	}
+	outDir, err := ioutil.TempDir("/tmp", "earthly-compose-config")
+	if err != nil {
+		return nil, errors.Wrap(err, "mk temp dir for solve compose config")
+	}
+	wdr.c.cleanCollection.Add(func() error {
+		return os.RemoveAll(outDir)
+	})
+	err = wdr.c.artifactBuilderFun(ctx, mts, composeConfigArtifact, fmt.Sprintf("%s/", outDir))
+	if err != nil {
+		return nil, errors.Wrapf(err, "build artifact %s", composeConfigArtifact.String())
+	}
+	outComposeConfig := filepath.Join(outDir, composeConfigFile)
+	composeConfigDt, err := ioutil.ReadFile(outComposeConfig)
+	if err != nil {
+		return nil, errors.Wrapf(err, "read %s", outComposeConfig)
+	}
+	type composeService struct {
+		Image string `yaml:"image"`
+	}
+	type composeData struct {
+		Services map[string]composeService `yaml:"services"`
+	}
+	var config composeData
+	err = yaml.Unmarshal(composeConfigDt, &config)
+	if err != nil {
+		return nil, errors.Wrapf(err, "parse compose config from %s", outComposeConfig)
+	}
+
+	// Collect relevant images from the comopose config.
+	composeServicesSet := make(map[string]bool)
+	for _, composeService := range opt.ComposeServices {
+		composeServicesSet[composeService] = true
+	}
+	var images []string
+	for serviceName, serviceInfo := range config.Services {
+		if serviceInfo.Image == "" {
+			// Image not specified in yaml.
+			continue
+		}
+		if len(opt.ComposeServices) > 0 {
+			if composeServicesSet[serviceName] {
+				images = append(images, serviceInfo.Image)
+			}
+		} else {
+			// No services specified. Special case: collect all.
+			images = append(images, serviceInfo.Image)
+		}
+	}
+	return images, nil
 }
 
 func (wdr *withDockerRun) pull(ctx context.Context, dockerTag string) error {
