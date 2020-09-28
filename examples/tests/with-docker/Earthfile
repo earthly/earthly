@@ -15,6 +15,9 @@ a-test-image:
     SAVE IMAGE
 
 docker-load-test:
+    # Index is used to create parallel tests.
+    ARG INDEX=0
+    RUN echo "$INDEX"
     WITH DOCKER
         DOCKER LOAD +a-test-image test-img:xyz
         DOCKER PULL hello-world
@@ -35,22 +38,9 @@ docker-pull-test:
         RUN docker run hello-world
     END
 
-load1:
-    WITH DOCKER \
-            --load test-img:xyz=+a-test-image \
-            --pull hello-world
-        RUN docker run test-img:xyz && \
-            docker run hello-world
-    END
-
-load2:
-    WITH DOCKER \
-            --load test-img:xyz=+a-test-image \
-            --pull hello-world
-        RUN docker run test-img:xyz && \
-            docker run hello-world
-    END
-
 load-parallel-test:
-    BUILD +load1
-    BUILD +load2
+    BUILD --build-arg INDEX=1 +docker-load-test
+    BUILD --build-arg INDEX=2 +docker-load-test
+    BUILD --build-arg INDEX=3 +docker-load-test
+    BUILD --build-arg INDEX=4 +docker-load-test
+    BUILD --build-arg INDEX=5 +docker-load-test

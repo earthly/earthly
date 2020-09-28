@@ -37,9 +37,12 @@ func withShell(args []string, withShell bool) []string {
 	return args
 }
 
-func strWithEnvVars(args []string, envVars []string, withShell bool, withDebugger bool) string {
+func strWithEnvVarsAndDocker(args []string, envVars []string, withShell bool, withDebugger bool, withDocker bool) string {
 	var cmdParts []string
 	cmdParts = append(cmdParts, strings.Join(envVars, " "))
+	if withDocker {
+		cmdParts = append(cmdParts, dockerdWrapperPath, "execute")
+	}
 	if withDebugger {
 		cmdParts = append(cmdParts, debuggerPath)
 	}
@@ -61,7 +64,7 @@ type shellWrapFun func(args []string, envVars []string, withShell bool, withDebu
 func withShellAndEnvVars(args []string, envVars []string, withShell bool, withDebugger bool) []string {
 	return []string{
 		"/bin/sh", "-c",
-		strWithEnvVars(args, envVars, withShell, withDebugger),
+		strWithEnvVarsAndDocker(args, envVars, withShell, withDebugger, false),
 	}
 }
 
@@ -87,7 +90,7 @@ func withDockerdWrapOld(args []string, envVars []string, withShell bool, withDeb
 			"let i+=1\n" +
 			"done\n" +
 			// Run provided args.
-			strWithEnvVars(args, envVars, withShell, withDebugger) + "\n" +
+			strWithEnvVarsAndDocker(args, envVars, withShell, withDebugger, false) + "\n" +
 			"exit_code=\"\\$?\"\n" +
 			// Shut down dockerd.
 			"kill \"\\$dockerd_pid\" &>/dev/null\n" +

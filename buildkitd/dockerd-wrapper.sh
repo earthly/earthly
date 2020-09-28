@@ -21,6 +21,49 @@ write_compose_config() {
     docker_compose_cmd config >/tmp/earthly/compose-config.yml
 }
 
+execute() {
+    if [ -z "$EARTHLY_DOCKERD_DATA_ROOT" ]; then
+        echo "EARTHLY_DOCKERD_DATA_ROOT not set"
+        exit 1
+    fi
+
+    # Lock the creation and destruction of the docker daemon - only one daemon can be started at a time
+    # (dockerd race conditions in handling networking setup).
+    # shellcheck disable=SC2039
+    (
+        flock -x 200
+        start_dockerd
+        flock -u 200
+    ) 200>/var/earthly/dind/lock
+
+    load_images
+
+    if [ "$EARTHLY_START_COMPOSE" = "true" ]; then
+        # shellcheck disable=SC2086
+        docker_compose_cmd up -d $EARTHLY_COMPOSE_SERVICES
+    fi
+
+    shift
+    export EARTHLY_WITH_DOCKER=1
+    set +e
+    "$@"
+    exit_code="$?"
+    set -e
+
+    if [ "$EARTHLY_START_COMPOSE" = "true" ]; then
+        docker_compose_cmd down --remove-orphans
+    fi
+
+    # shellcheck disable=SC2039
+    (
+        flock -x 200
+        stop_dockerd
+        flock -u 200
+    ) 200>/var/earthly/dind/lock
+
+    return "$exit_code"
+}
+
 start_dockerd() {
     mkdir -p "$EARTHLY_DOCKERD_DATA_ROOT"
     dockerd --data-root="$EARTHLY_DOCKERD_DATA_ROOT" >/var/log/docker.log 2>&1 &
@@ -77,7 +120,8 @@ case "$1" in
         ;;
     
     execute)
-        # Continue execution.
+        execute "$@"
+        exit "$?"
         ;;
     
     *)
@@ -85,45 +129,3 @@ case "$1" in
         exit 1
         ;;
 esac
-
-if [ -z "$EARTHLY_DOCKERD_DATA_ROOT" ]; then
-    echo "EARTHLY_DOCKERD_DATA_ROOT not set"
-    exit 1
-fi
-
-export EARTHLY_WITH_DOCKER=1
-
-# Lock the creation and destruction of the docker daemon - only one daemon can be started at a time
-# (dockerd race conditions in handling networking setup).
-# shellcheck disable=SC2039
-(
-    flock -x 200
-    start_dockerd
-    flock -u 200
-) 200>/var/earthly/dind/lock
-
-load_images
-
-if [ "$EARTHLY_START_COMPOSE" = "true" ]; then
-    # shellcheck disable=SC2086
-    docker_compose_cmd up -d $EARTHLY_COMPOSE_SERVICES
-fi
-
-shift
-set +e
-"$@"
-exit_code="$?"
-set -e
-
-if [ "$EARTHLY_START_COMPOSE" = "true" ]; then
-    docker_compose_cmd down --remove-orphans
-fi
-
-# shellcheck disable=SC2039
-(
-    flock -x 200
-    stop_dockerd
-    flock -u 200
-) 200>/var/earthly/dind/lock
-
-exit "$exit_code"

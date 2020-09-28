@@ -457,13 +457,14 @@ func (c *Converter) Build(ctx context.Context, fullTargetName string, buildArgs 
 	// Recursion.
 	mts, err := Earthfile2LLB(
 		ctx, target, ConvertOpt{
-			Resolver:         c.resolver,
-			ImageResolveMode: c.imageResolveMode,
-			DockerBuilderFun: c.dockerBuilderFun,
-			CleanCollection:  c.cleanCollection,
-			VisitedStates:    c.mts.VisitedStates,
-			VarCollection:    newVarCollection,
-			SolveCache:       c.solveCache,
+			Resolver:           c.resolver,
+			ImageResolveMode:   c.imageResolveMode,
+			DockerBuilderFun:   c.dockerBuilderFun,
+			ArtifactBuilderFun: c.artifactBuilderFun,
+			CleanCollection:    c.cleanCollection,
+			VisitedStates:      c.mts.VisitedStates,
+			VarCollection:      newVarCollection,
+			SolveCache:         c.solveCache,
 		})
 	if err != nil {
 		return nil, errors.Wrapf(err, "earthfile2llb for %s", fullTargetName)
