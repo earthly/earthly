@@ -27,17 +27,17 @@ execute() {
         exit 1
     fi
 
-    # Lock the creation and destruction of the docker daemon - only one daemon can be started at a time
+    # Lock entire execution of a docker daemon - only one daemon can be used at a time
     # (dockerd race conditions in handling networking setup).
     # shellcheck disable=SC2039
     (
         flock -x 200
         start_dockerd
-        flock -u 200
+        # Note that the lock will continue to be held after this subshell finishes,
+        # becasue it spawns the dockerd background process. This is intentional.
+        # The lock is meant to be held until dockerd exits.
     ) 200>/var/earthly/dind/lock
-
     load_images
-
     if [ "$EARTHLY_START_COMPOSE" = "true" ]; then
         # shellcheck disable=SC2086
         docker_compose_cmd up -d $EARTHLY_COMPOSE_SERVICES
@@ -53,14 +53,7 @@ execute() {
     if [ "$EARTHLY_START_COMPOSE" = "true" ]; then
         docker_compose_cmd down --remove-orphans
     fi
-
-    # shellcheck disable=SC2039
-    (
-        flock -x 200
-        stop_dockerd
-        flock -u 200
-    ) 200>/var/earthly/dind/lock
-
+    stop_dockerd
     return "$exit_code"
 }
 
