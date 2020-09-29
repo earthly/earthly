@@ -138,12 +138,10 @@ func (s *solver) solveDockerTar(ctx context.Context, localDirs map[string]string
 		return nil
 	})
 	go func() {
-		for {
-			select {
-			case <-ctx.Done():
-				// Close read pipe on cancels, otherwise the whole thing hangs.
-				pipeR.Close()
-			}
+		select {
+		case <-ctx.Done():
+			// Close read pipe on cancels, otherwise the whole thing hangs.
+			pipeR.Close()
 		}
 	}()
 	err = eg.Wait()
