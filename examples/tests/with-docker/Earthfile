@@ -41,6 +41,3 @@ docker-pull-test:
 load-parallel-test:
     BUILD --build-arg INDEX=1 +docker-load-test
     BUILD --build-arg INDEX=2 +docker-load-test
-    BUILD --build-arg INDEX=3 +docker-load-test
-    BUILD --build-arg INDEX=4 +docker-load-test
-    BUILD --build-arg INDEX=5 +docker-load-test
