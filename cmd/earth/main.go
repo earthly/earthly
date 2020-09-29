@@ -7,6 +7,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"net/http"
+	_ "net/http/pprof" // enable pprof handlers on net/http listener
 	"os"
 	"os/signal"
 	"os/user"
@@ -72,6 +74,7 @@ type cliFlags struct {
 	pruneReset           bool
 	buildkitdSettings    buildkitd.Settings
 	allowPrivileged      bool
+	enableProfiler       bool
 	buildkitHost         string
 	buildkitdImage       string
 	remoteCache          string
@@ -93,6 +96,12 @@ var (
 	// GitSha contains the git sha used to build this app
 	GitSha string
 )
+
+func profhandler() {
+	addr := "127.0.0.1:6060"
+	fmt.Printf("listening for pprof on %s\n", addr)
+	http.ListenAndServe(addr, nil)
+}
 
 func main() {
 	ctx := context.Background()
@@ -306,6 +315,13 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 			Usage:       "Allow build to use the --privileged flag in RUN commands",
 			Destination: &app.allowPrivileged,
 		},
+		&cli.BoolFlag{
+			Name:        "profiler",
+			EnvVars:     []string{"EARTHLY_PROFILER"},
+			Usage:       "Enable the profiler",
+			Destination: &app.enableProfiler,
+			Hidden:      true, // for use in dev debugging
+		},
 		&cli.StringFlag{
 			Name:        "buildkit-host",
 			EnvVars:     []string{"EARTHLY_BUILDKIT_HOST"},
@@ -407,6 +423,10 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 }
 
 func (app *earthApp) before(context *cli.Context) error {
+	if app.enableProfiler {
+		go profhandler()
+	}
+
 	if context.IsSet("config") {
 		app.console.Printf("loading config values from %q\n", app.configPath)
 	}
