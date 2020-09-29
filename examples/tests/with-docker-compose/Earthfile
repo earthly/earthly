@@ -23,6 +23,6 @@ test:
             --service postgres \
             --load print-countries:latest=+print-countries
         RUN for i in {1..30}; do nc -z localhost 5432 && break; sleep 1; done; \
-            sleep 20 ;\
+            sleep 30 ;\
             docker-compose up --exit-code-from print-countries print-countries | grep Brazil
     END
