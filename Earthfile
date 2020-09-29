@@ -189,7 +189,6 @@ test:
 test-all:
     BUILD +examples
     BUILD +test
-    BUILD ./examples/tests+experimental
 
 examples:
     BUILD ./examples/go+docker

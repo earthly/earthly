@@ -7,7 +7,6 @@ WORKDIR /test
 
 all:
     BUILD +ga
-    BUILD +experimental
     BUILD +experimental-old
 
 ga:
@@ -36,9 +35,8 @@ ga:
     BUILD +chown-test
     BUILD +dotenv-test
     BUILD +env-test
-
-experimental:
     BUILD ./with-docker+all
+    BUILD ./with-docker-compose+all
 
 experimental-old:
     BUILD +docker-load-test-old

@@ -8,6 +8,8 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
+	"path/filepath"
+	"sort"
 	"strings"
 
 	"github.com/earthly/earthly/dockertar"
@@ -17,11 +19,15 @@ import (
 	"github.com/earthly/earthly/logging"
 	"github.com/moby/buildkit/client/llb"
 	"github.com/pkg/errors"
+	"gopkg.in/yaml.v2"
 )
 
-const dockerdWrapperPath = "/var/earthly/dockerd-wrapper.sh"
+const (
+	dockerdWrapperPath = "/var/earthly/dockerd-wrapper.sh"
+	composeConfigFile  = "compose-config.yml"
+)
 
-// DockerLoadOpt holds parameters for DOCKER LOAD commands.
+// DockerLoadOpt holds parameters for WITH DOCKER --load parameter.
 type DockerLoadOpt struct {
 	Target    string
 	ImageName string
@@ -30,12 +36,14 @@ type DockerLoadOpt struct {
 
 // WithDockerOpt holds parameters for WITH DOCKER run.
 type WithDockerOpt struct {
-	Mounts         []string
-	Secrets        []string
-	WithShell      bool
-	WithEntrypoint bool
-	Pulls          []string
-	Loads          []DockerLoadOpt
+	Mounts          []string
+	Secrets         []string
+	WithShell       bool
+	WithEntrypoint  bool
+	Pulls           []string
+	Loads           []DockerLoadOpt
+	ComposeFiles    []string
+	ComposeServices []string
 }
 
 type withDockerRun struct {
@@ -44,16 +52,42 @@ type withDockerRun struct {
 }
 
 func (wdr *withDockerRun) Run(ctx context.Context, args []string, opt WithDockerOpt) error {
+	if len(opt.ComposeFiles) > 0 {
+		err := wdr.installDeps(ctx)
+		if err != nil {
+			return err
+		}
+	}
+	// Grab relevant images from compose file(s).
+	composeImages, err := wdr.getComposeImages(ctx, opt)
+	if err != nil {
+		return err
+	}
+	composeImagesSet := make(map[string]bool)
+	for _, composeImg := range composeImages {
+		composeImagesSet[composeImg] = true
+	}
+	for _, loadOpt := range opt.Loads {
+		// Make sure we don't pull a compose image which is loaded.
+		if composeImagesSet[loadOpt.ImageName] {
+			delete(composeImagesSet, loadOpt.ImageName)
+		}
+		// Load.
+		err := wdr.load(ctx, loadOpt)
+		if err != nil {
+			return errors.Wrap(err, "load")
+		}
+	}
+	// Add compose images (what's left of them) to the pull list.
+	for composeImg := range composeImagesSet {
+		opt.Pulls = append(opt.Pulls, composeImg)
+	}
+	// Sort to make the operation consistent.
+	sort.Strings(opt.Pulls)
 	for _, pullImageName := range opt.Pulls {
 		err := wdr.pull(ctx, pullImageName)
 		if err != nil {
 			return errors.Wrap(err, "pull")
-		}
-	}
-	for _, loadOpt := range opt.Loads {
-		err := wdr.load(ctx, loadOpt)
-		if err != nil {
-			return errors.Wrap(err, "load")
 		}
 	}
 	logging.GetLogger(ctx).
@@ -107,8 +141,62 @@ func (wdr *withDockerRun) Run(ctx context.Context, args []string, opt WithDocker
 	if err != nil {
 		return errors.Wrap(err, "compute dind id")
 	}
-	shellWrap := makeWithDockerdWrapFun(dindID, tarPaths)
+	shellWrap := makeWithDockerdWrapFun(dindID, tarPaths, opt)
 	return wdr.c.internalRun(ctx, finalArgs, opt.Secrets, opt.WithShell, shellWrap, false, false, runStr, runOpts...)
+}
+
+func (wdr *withDockerRun) installDeps(ctx context.Context) error {
+	var runOpts []llb.RunOption
+	runOpts = append(runOpts, llb.AddMount(
+		dockerdWrapperPath, llb.Scratch(), llb.HostBind(), llb.SourcePath(dockerdWrapperPath)))
+	args := []string{dockerdWrapperPath, "install-deps"}
+	runStr := fmt.Sprintf("WITH DOCKER (install deps)")
+	return wdr.c.internalRun(ctx, args, nil, true, withShellAndEnvVars, false, false, runStr, runOpts...)
+}
+
+func (wdr *withDockerRun) getComposeImages(ctx context.Context, opt WithDockerOpt) ([]string, error) {
+	if len(opt.ComposeFiles) == 0 {
+		// Quick way out. Compose not used.
+		return nil, nil
+	}
+	// Get compose images from compose config.
+	composeConfigDt, err := wdr.getComposeConfig(ctx, opt)
+	if err != nil {
+		return nil, err
+	}
+	type composeService struct {
+		Image string `yaml:"image"`
+	}
+	type composeData struct {
+		Services map[string]composeService `yaml:"services"`
+	}
+	var config composeData
+	err = yaml.Unmarshal(composeConfigDt, &config)
+	if err != nil {
+		return nil, errors.Wrapf(err, "parse compose config for %v", opt.ComposeFiles)
+	}
+
+	// Collect relevant images from the comopose config.
+	composeServicesSet := make(map[string]bool)
+	for _, composeService := range opt.ComposeServices {
+		composeServicesSet[composeService] = true
+	}
+	var images []string
+	for serviceName, serviceInfo := range config.Services {
+		if serviceInfo.Image == "" {
+			// Image not specified in yaml.
+			continue
+		}
+		if len(opt.ComposeServices) > 0 {
+			if composeServicesSet[serviceName] {
+				images = append(images, serviceInfo.Image)
+			}
+		} else {
+			// No services specified. Special case: collect all.
+			images = append(images, serviceInfo.Image)
+		}
+	}
+	return images, nil
 }
 
 func (wdr *withDockerRun) pull(ctx context.Context, dockerTag string) error {
@@ -205,20 +293,83 @@ func (wdr *withDockerRun) solveImage(ctx context.Context, mts *MultiTargetStates
 	return nil
 }
 
-func makeWithDockerdWrapFun(dindID string, tarPaths []string) shellWrapFun {
+func makeWithDockerdWrapFun(dindID string, tarPaths []string, opt WithDockerOpt) shellWrapFun {
 	dockerRoot := path.Join("/var/earthly/dind", dindID)
 	params := []string{
 		fmt.Sprintf("EARTHLY_DOCKERD_DATA_ROOT=\"%s\"", dockerRoot),
-		fmt.Sprintf("EARTHLY_DOCKER_LOAD_IMAGES=\"%s\"", strings.Join(tarPaths, " ")),
+		fmt.Sprintf("EARTHLY_DOCKER_LOAD_FILES=\"%s\"", strings.Join(tarPaths, " ")),
 	}
+	params = append(params, composeParams(opt)...)
 	return func(args []string, envVars []string, isWithShell bool, withDebugger bool) []string {
+		envVars2 := append(params, envVars...)
 		return []string{
 			"/bin/sh", "-c",
-			fmt.Sprintf(
-				"%s %s %s",
-				strings.Join(params, " "),
-				dockerdWrapperPath,
-				strWithEnvVars(args, envVars, isWithShell, withDebugger)),
+			strWithEnvVarsAndDocker(args, envVars2, isWithShell, withDebugger, true),
 		}
+	}
+}
+
+func (wdr *withDockerRun) getComposeConfig(ctx context.Context, opt WithDockerOpt) ([]byte, error) {
+	// Add the right run to fetch the docker compose config.
+	params := composeParams(opt)
+	args := []string{
+		"/bin/sh", "-c",
+		fmt.Sprintf(
+			"%s %s get-compose-config",
+			strings.Join(params, " "),
+			dockerdWrapperPath),
+	}
+	runOpts := []llb.RunOption{
+		llb.AddMount(
+			dockerdWrapperPath, llb.Scratch(), llb.HostBind(), llb.SourcePath(dockerdWrapperPath)),
+		llb.Args(args),
+		llb.WithCustomNamef("%sWITH DOCKER (docker-compose config)", wdr.c.vertexPrefix()),
+	}
+	state := wdr.c.mts.FinalStates.SideEffectsState.Run(runOpts...).Root()
+
+	// Perform solve to output compose config. We will use that compose config to read in images.
+	composeConfigState := llbutil.CopyOp(
+		state, []string{fmt.Sprintf("/tmp/earthly/%s", composeConfigFile)},
+		llb.Scratch().Platform(llbutil.TargetPlatform), fmt.Sprintf("/%s", composeConfigFile),
+		false, false, "",
+		llb.WithCustomNamef("[internal] copy %s", composeConfigFile))
+	mts := &MultiTargetStates{
+		VisitedStates: wdr.c.mts.VisitedStates,
+		FinalStates: &SingleTargetStates{
+			Target:           wdr.c.mts.FinalStates.Target,
+			SideEffectsImage: wdr.c.mts.FinalStates.SideEffectsImage,
+			SideEffectsState: state,
+			ArtifactsState:   composeConfigState,
+			LocalDirs:        wdr.c.mts.FinalStates.LocalDirs,
+		},
+	}
+	composeConfigArtifact := domain.Artifact{
+		Target:   wdr.c.mts.FinalStates.Target,
+		Artifact: composeConfigFile,
+	}
+	outDir, err := ioutil.TempDir("/tmp", "earthly-compose-config")
+	if err != nil {
+		return nil, errors.Wrap(err, "mk temp dir for solve compose config")
+	}
+	wdr.c.cleanCollection.Add(func() error {
+		return os.RemoveAll(outDir)
+	})
+	err = wdr.c.artifactBuilderFun(ctx, mts, composeConfigArtifact, fmt.Sprintf("%s/", outDir))
+	if err != nil {
+		return nil, errors.Wrapf(err, "build artifact %s", composeConfigArtifact.String())
+	}
+	outComposeConfig := filepath.Join(outDir, composeConfigFile)
+	composeConfigDt, err := ioutil.ReadFile(outComposeConfig)
+	if err != nil {
+		return nil, errors.Wrapf(err, "read %s", outComposeConfig)
+	}
+	return composeConfigDt, nil
+}
+
+func composeParams(opt WithDockerOpt) []string {
+	return []string{
+		fmt.Sprintf("EARTHLY_START_COMPOSE=\"%t\"", (len(opt.ComposeFiles) > 0)),
+		fmt.Sprintf("EARTHLY_COMPOSE_FILES=\"%s\"", strings.Join(opt.ComposeFiles, " ")),
+		fmt.Sprintf("EARTHLY_COMPOSE_SERVICES=\"%s\"", strings.Join(opt.ComposeServices, " ")),
 	}
 }

@@ -251,7 +251,7 @@ func (c *Collection) parseBuildArg(arg string, pncvf ProcessNonConstantVariableF
 	var name string
 	splitArg := strings.SplitN(arg, "=", 2)
 	if len(splitArg) < 1 {
-		return "", Variable{}, false, fmt.Errorf("Invalid build arg %s", splitArg)
+		return "", Variable{}, false, fmt.Errorf("invalid build arg %s", splitArg)
 	}
 	name = splitArg[0]
 	value := ""
