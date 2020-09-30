@@ -128,7 +128,7 @@ func (l *listener) ExitFromStmt(c *parser.FromStmtContext) {
 	}
 	fs := flag.NewFlagSet("FROM", flag.ContinueOnError)
 	buildArgs := new(StringSliceFlag)
-	fs.Var(buildArgs, "build-arg", "")
+	fs.Var(buildArgs, "build-arg", "A build arg override passed on to a referenced Earthly target")
 	err := fs.Parse(l.stmtWords)
 	if err != nil {
 		l.err = errors.Wrapf(err, "invalid FROM arguments %v", l.stmtWords)
@@ -163,9 +163,9 @@ func (l *listener) ExitFromDockerfileStmt(c *parser.FromDockerfileStmtContext) {
 	}
 	fs := flag.NewFlagSet("FROM DOCKERFILE", flag.ContinueOnError)
 	buildArgs := new(StringSliceFlag)
-	fs.Var(buildArgs, "build-arg", "")
-	dfTarget := fs.String("target", "", "")
-	dfPath := fs.String("f", "", "")
+	fs.Var(buildArgs, "build-arg", "A build arg override passed on to a referenced Earthly target and also to the Dockerfile build")
+	dfTarget := fs.String("target", "", "The Dockerfile target to inherit from")
+	dfPath := fs.String("f", "", "Not supported")
 	err := fs.Parse(l.stmtWords)
 	if err != nil {
 		l.err = errors.Wrapf(err, "invalid FROM DOCKERFILE arguments %v", l.stmtWords)
@@ -197,11 +197,11 @@ func (l *listener) ExitCopyStmt(c *parser.CopyStmtContext) {
 		return
 	}
 	fs := flag.NewFlagSet("COPY", flag.ContinueOnError)
-	from := fs.String("from", "", "")
-	isDirCopy := fs.Bool("dir", false, "")
-	chown := fs.String("chown", "", "")
+	from := fs.String("from", "", "Not supported")
+	isDirCopy := fs.Bool("dir", false, "Copy entire directories, not just the contents")
+	chown := fs.String("chown", "", "Apply a specific group and/or owner to the copied files and directories")
 	buildArgs := new(StringSliceFlag)
-	fs.Var(buildArgs, "build-arg", "")
+	fs.Var(buildArgs, "build-arg", "A build arg override passed on to a referenced Earthly target")
 	err := fs.Parse(l.stmtWords)
 	if err != nil {
 		l.err = errors.Wrapf(err, "invalid COPY arguments %v", l.stmtWords)
@@ -264,15 +264,19 @@ func (l *listener) ExitRunStmt(c *parser.RunStmtContext) {
 	}
 
 	fs := flag.NewFlagSet("RUN", flag.ContinueOnError)
-	pushFlag := fs.Bool("push", false, "")
-	privileged := fs.Bool("privileged", false, "")
-	withEntrypoint := fs.Bool("entrypoint", false, "")
-	withDocker := fs.Bool("with-docker", false, "")
-	withSSH := fs.Bool("ssh", false, "")
+	pushFlag := fs.Bool(
+		"push", false,
+		"Execute this command only if the build succeeds and also if earth is invoked in push mode")
+	privileged := fs.Bool("privileged", false, "Enable privileged mode")
+	withEntrypoint := fs.Bool(
+		"entrypoint", false,
+		"Include the entrypoint of the image when running the command")
+	withDocker := fs.Bool("with-docker", false, "Deprecated")
+	withSSH := fs.Bool("ssh", false, "Make available the SSH agent of the host")
 	secrets := new(StringSliceFlag)
-	fs.Var(secrets, "secret", "")
+	fs.Var(secrets, "secret", "Make available a secret")
 	mounts := new(StringSliceFlag)
-	fs.Var(mounts, "mount", "")
+	fs.Var(mounts, "mount", "Mount a file or directory")
 	err := fs.Parse(l.stmtWords)
 	if err != nil {
 		l.err = errors.Wrapf(err, "invalid RUN arguments %v", l.stmtWords)
@@ -383,7 +387,9 @@ func (l *listener) ExitSaveImage(c *parser.SaveImageContext) {
 	l.saveImageExists = true
 
 	fs := flag.NewFlagSet("SAVE IMAGE", flag.ContinueOnError)
-	pushFlag := fs.Bool("push", false, "")
+	pushFlag := fs.Bool(
+		"push", false,
+		"Push the image to the remote registry provided that the build succeeds and also that earth is invoked in push mode")
 	err := fs.Parse(l.stmtWords)
 	if err != nil {
 		l.err = errors.Wrapf(err, "invalid SAVE IMAGE arguments %v", l.stmtWords)
@@ -418,7 +424,7 @@ func (l *listener) ExitBuildStmt(c *parser.BuildStmtContext) {
 	}
 	fs := flag.NewFlagSet("BUILD", flag.ContinueOnError)
 	buildArgs := new(StringSliceFlag)
-	fs.Var(buildArgs, "build-arg", "")
+	fs.Var(buildArgs, "build-arg", "A build arg override passed on to a referenced Earthly target")
 	err := fs.Parse(l.stmtWords)
 	if err != nil {
 		l.err = errors.Wrapf(err, "invalid BUILD arguments %v", l.stmtWords)
@@ -603,7 +609,7 @@ func (l *listener) ExitGitCloneStmt(c *parser.GitCloneStmtContext) {
 		return
 	}
 	fs := flag.NewFlagSet("GIT CLONE", flag.ContinueOnError)
-	branch := fs.String("branch", "", "")
+	branch := fs.String("branch", "", "The git ref to use when cloning")
 	err := fs.Parse(l.stmtWords)
 	if err != nil {
 		l.err = errors.Wrapf(err, "invalid GIT CLONE arguments %v", l.stmtWords)
@@ -633,7 +639,7 @@ func (l *listener) ExitDockerLoadStmt(c *parser.DockerLoadStmtContext) {
 	}
 	fs := flag.NewFlagSet("DOCKER LOAD", flag.ContinueOnError)
 	buildArgs := new(StringSliceFlag)
-	fs.Var(buildArgs, "build-arg", "")
+	fs.Var(buildArgs, "build-arg", "A build arg override passed on to a referenced Earthly target")
 	err := fs.Parse(l.stmtWords)
 	if err != nil {
 		l.err = errors.Wrapf(err, "invalid DOCKER LOAD arguments %v", l.stmtWords)
@@ -704,10 +710,18 @@ func (l *listener) ExitHealthcheckStmt(c *parser.HealthcheckStmtContext) {
 		return
 	}
 	fs := flag.NewFlagSet("HEALTHCHECK", flag.ContinueOnError)
-	interval := fs.Duration("interval", 30*time.Second, "")
-	timeout := fs.Duration("timeout", 30*time.Second, "")
-	startPeriod := fs.Duration("start-period", 0, "")
-	retries := fs.Int("retries", 3, "")
+	interval := fs.Duration(
+		"interval", 30*time.Second,
+		"The interval between healthchecks")
+	timeout := fs.Duration(
+		"timeout", 30*time.Second,
+		"The timeout before the command is considered failed")
+	startPeriod := fs.Duration(
+		"start-period", 0,
+		"An initialization time period in which failures are not counted towards the maximum number of retries")
+	retries := fs.Int(
+		"retries", 3,
+		"The number of retries before a container is considered unhealthy")
 	err := fs.Parse(l.stmtWords)
 	if err != nil {
 		l.err = errors.Wrapf(err, "invalid HEALTHCHECK arguments %v", l.stmtWords)
@@ -761,15 +775,15 @@ func (l *listener) ExitWithDockerStmt(c *parser.WithDockerStmtContext) {
 
 	fs := flag.NewFlagSet("WITH DOCKER", flag.ContinueOnError)
 	composeFiles := new(StringSliceFlag)
-	fs.Var(composeFiles, "compose", "")
+	fs.Var(composeFiles, "compose", "A compose file used to bring up services from")
 	composeServices := new(StringSliceFlag)
-	fs.Var(composeServices, "service", "")
+	fs.Var(composeServices, "service", "A compose service to bring up")
 	loads := new(StringSliceFlag)
-	fs.Var(loads, "load", "")
+	fs.Var(loads, "load", "An image produced by Earthly which is loaded as a Docker image")
 	buildArgs := new(StringSliceFlag)
-	fs.Var(buildArgs, "build-arg", "")
+	fs.Var(buildArgs, "build-arg", "A build arg override passed on to a referenced Earthly target")
 	pulls := new(StringSliceFlag)
-	fs.Var(pulls, "pull", "")
+	fs.Var(pulls, "pull", "An image which is pulled and made available in the docker cache")
 	err := fs.Parse(l.stmtWords)
 	if err != nil {
 		l.err = errors.Wrapf(err, "invalid WITH DOCKER arguments %v", l.stmtWords)
