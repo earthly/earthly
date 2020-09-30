@@ -32,7 +32,7 @@ var (
 	ErrNoShellFound = fmt.Errorf("no shell found")
 )
 
-const remoteConsoleAddr = "127.0.0.1:5000"
+const remoteConsoleAddr = "127.0.0.1:8373"
 
 func getShellPath() (string, bool) {
 	for _, sh := range []string{
