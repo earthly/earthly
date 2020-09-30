@@ -198,6 +198,7 @@ github.com/eapache/queue v1.1.0/go.mod h1:6eCeP0CKFpHLu8blIFXhExK/dRa7WDZfr6jVFP
 github.com/earthly/buildkit v0.7.1-0.20200818031448-40e935c0a18c h1:Slf4pv6E2bXwRnoSzYi/g6IM8zFYAJy1jKR0WjLlIro=
 github.com/earthly/buildkit v0.7.1-0.20200818031448-40e935c0a18c/go.mod h1:o+4kSYviOtac1GJz4L9Td+oCDS4CAu0l1+Bm/2QIQRA=
 github.com/earthly/buildkit v0.7.1-0.20200930010539-9c5f4afebf8e/go.mod h1:1Whs/5ueNdTNZDg5rl8TXviT98lBjtQUHyR0JMtvpMU=
+github.com/earthly/buildkit v0.7.1-0.20200930175532-2b6c843f0e3e/go.mod h1:1Whs/5ueNdTNZDg5rl8TXviT98lBjtQUHyR0JMtvpMU=
 github.com/elazarl/goproxy v0.0.0-20170405201442-c4fc26588b6e/go.mod h1:/Zj4wYkgs4iZTTu3o/KG3Itv/qCCa8VVMlb3i9OVuzc=
 github.com/elazarl/goproxy v0.0.0-20180725130230-947c36da3153/go.mod h1:/Zj4wYkgs4iZTTu3o/KG3Itv/qCCa8VVMlb3i9OVuzc=
 github.com/emicklei/go-restful v0.0.0-20170410110728-ff4f55a20633/go.mod h1:otzb+WCGbkyDHkqmQmT5YD2WR4BBwUdeQoFo8l/7tVs=

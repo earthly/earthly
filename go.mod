@@ -33,6 +33,6 @@ replace (
 	github.com/docker/docker => github.com/docker/docker v17.12.0-ce-rc1.0.20200310163718-4634ce647cf2+incompatible
 	github.com/hashicorp/go-immutable-radix => github.com/tonistiigi/go-immutable-radix v0.0.0-20170803185627-826af9ccf0fe
 	github.com/jaguilar/vt100 => github.com/tonistiigi/vt100 v0.0.0-20190402012908-ad4c4a574305
-	github.com/moby/buildkit => github.com/earthly/buildkit v0.7.1-0.20200930010539-9c5f4afebf8e
+	github.com/moby/buildkit => github.com/earthly/buildkit v0.7.1-0.20200930175532-2b6c843f0e3e
 	github.com/urfave/cli/v2 => github.com/alexcb/cli/v2 v2.2.1-0.20200824212017-2ae03fa69ce7
 )
