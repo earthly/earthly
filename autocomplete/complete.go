@@ -127,6 +127,11 @@ func lookupUsers(prefix string) ([]string, error) {
 		}
 		res = append(res, fmt.Sprintf("~%s", u.Username))
 	}
+
+	if prefix == "~" {
+		return res, nil
+	}
+
 	return res, nil
 }
 
@@ -138,13 +143,29 @@ func getUserFromPrefix(prefix string) (*user.User, error) {
 	}
 	return user.Lookup(username)
 }
-func getPotentialPaths(prefix string) ([]string, error) {
-	if prefix == "." {
-		return []string{"./", "../"}, nil
-	}
 
-	if prefix == "~" {
+func filterUsers(prefix string, lUsers []string) []string {
+	var filter []string
+	for _, l := range lUsers {
+		if strings.HasPrefix(l, prefix) {
+			filter = append(filter, l)
+		}
+	}
+	return filter
+}
+
+func getPotentialPaths(prefix string) ([]string, error) {
+	switch {
+	case prefix == ".":
+		return []string{"./", "../"}, nil
+	case prefix == "~":
 		return lookupUsers(strings.Replace(prefix, "~", "", 1))
+	case strings.HasPrefix(prefix, "~") && !strings.Contains(prefix, "/"):
+		lUser, err := lookupUsers("")
+		if err != nil {
+			return nil, err
+		}
+		return filterUsers(prefix, lUser), nil
 	}
 
 	expandedHomeLen := 0
