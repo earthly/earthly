@@ -1,6 +1,8 @@
 package autocomplete
 
 import (
+	"errors"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"os/user"
@@ -94,27 +96,69 @@ func getPotentialTarget(prefix string) ([]string, error) {
 	return potentials, nil
 }
 
-func getPotentialPaths(prefix string) ([]string, error) {
-	if prefix == "." {
-		return []string{"./", "../"}, nil
-	}
-	currentUser, err := user.Current()
+func lookupUsers(prefix string) ([]string, error) {
+	u, err := user.Current()
 	if err != nil {
 		return nil, err
 	}
 
-	// TODO expand this logic to support other users
+	lPath := strings.Split(u.HomeDir, "/")
+	if len(lPath) < 2 {
+		return nil, errors.New("users not found")
+	}
+
+	directoryList, err := ioutil.ReadDir(fmt.Sprintf("/%s", lPath[1]))
+	if err != nil {
+		return nil, err
+	}
+	var res []string
+	for _, s := range directoryList {
+		if prefix != "" && !strings.HasPrefix(s.Name(), prefix) {
+			continue
+		}
+
+		if !s.IsDir() {
+			continue
+		}
+
+		u, err := user.Lookup(s.Name())
+		if err != nil {
+			continue
+		}
+		res = append(res, fmt.Sprintf("~%s", u.Username))
+	}
+	return res, nil
+}
+
+func getUserFromPrefix(prefix string) (*user.User, error) {
+	username := strings.Replace(prefix, "~", "", 1)
+	spl := strings.Split(username, "/")
+	if len(spl) != 1 {
+		username = spl[0]
+	}
+	return user.Lookup(username)
+}
+func getPotentialPaths(prefix string) ([]string, error) {
+	if prefix == "." {
+		return []string{"./", "../"}, nil
+	}
+
 	if prefix == "~" {
-		prefix = "~/"
+		return lookupUsers(strings.Replace(prefix, "~", "", 1))
 	}
 
 	expandedHomeLen := 0
 	if strings.HasPrefix(prefix, "~") {
+		// get user from prefix
+		currentUser, err := getUserFromPrefix(prefix)
+		if err != nil {
+			return nil, err
+		}
+
 		expandedHomeLen = len(currentUser.HomeDir) + 1
-		if len(prefix) > 2 {
-			prefix = currentUser.HomeDir + "/" + prefix[2:]
-		} else {
-			prefix = currentUser.HomeDir + "/"
+		prefix = strings.Replace(prefix, "~", strings.Replace(currentUser.HomeDir, currentUser.Username, "", 1), 1)
+		if strings.HasSuffix(prefix, currentUser.Username) {
+			prefix = fmt.Sprintf("%s/", prefix)
 		}
 	}
 
