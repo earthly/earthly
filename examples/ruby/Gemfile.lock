@@ -1,0 +1,13 @@
+GEM
+  remote: https://rubygems.org/
+  specs:
+    colorize (0.8.1)
+
+PLATFORMS
+  ruby
+
+DEPENDENCIES
+  colorize
+
+BUNDLED WITH
+   2.1.4
