@@ -21,6 +21,7 @@ jobs:
       DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
       DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
       GIT_URL_INSTEAD_OF: "https://github.com/=git@github.com:"
+      FORCE_COLOR: 1
     steps:
     - uses: actions/checkout@v2
     - name: Put back the git branch into git (Earthly uses it for tagging)
@@ -35,7 +36,7 @@ jobs:
     - name: Docker Login
       run: docker login --username "$DOCKERHUB_USERNAME" --password "$DOCKERHUB_TOKEN"
     - name: Download latest earth
-      run: "sudo /bin/sh -c 'curl -s https://api.github.com/repos/earthly/earthly/releases/latest | grep browser_download_url | grep linux-amd64 | cut -d : -f 2- | tr -d \\\" | wget -P /usr/local/bin/ -i - && mv /usr/local/bin/earth-linux-amd64 /usr/local/bin/earth && chmod +x /usr/local/bin/earth'"
+      run: "sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/download/v0.3.6/earth-linux-amd64 -O /usr/local/bin/earth && chmod +x /usr/local/bin/earth'"
     - name: Earth version
       run: earth --version
     - name: Run build

@@ -1,4 +1,4 @@
-# earth command reference
+# Earth command reference
 
 ## earth
 
@@ -9,10 +9,8 @@
   earth [--build-arg <key>[=<value>]] [--secret|-s <secret-id>[=<value>]]
         [--push] [--no-output] [--no-cache] [--allow-privileged|-P]
         [--ssh-auth-sock <path-to-sock>]
-        [--git-username <git-user>] [--git-password <git-pass>]
-        [--git-url-instead-of <git-instead-of>]
-        [--buildkit-host <bk-host>] [--buildkit-cache-size-mb <cache-size-mb>]
-        [--buildkit-image <bk-image>]
+        [--buildkit-host <bk-host>]
+        [--interactive|-i]
         <target-ref>
   ```
 * Artifact form
@@ -20,10 +18,8 @@
   earth [--build-arg <key>[=<value>]] [--secret|-s <secret-id>[=<value>]]
         [--push] [--no-cache] [--allow-privileged|-P]
         [--ssh-auth-sock <path-to-sock>]
-        [--git-username <git-user>] [--git-password <git-pass>]
-        [--git-url-instead-of <git-instead-of>]
-        [--buildkit-host <bk-host>] [--buildkit-cache-size-mb <cache-size-mb>]
-        [--buildkit-image <bk-image>]
+        [--buildkit-host <bk-host>]
+        [--interactive|-i]
         --artifact|-a <artifact-ref> [<dest-path>]
   ```
 * Image form
@@ -31,11 +27,9 @@
   earth [--build-arg <key>[=<value>]] [--secret|-s <secret-id>[=<value>]]
         [--push] [--no-cache] [--allow-privileged|-P]
         [--ssh-auth-sock <path-to-sock>]
-        [--git-username <git-user>] [--git-password <git-pass>]
-        [--git-url-instead-of <git-instead-of>]
-        [--buildkit-host <bk-host>] [--buildkit-cache-size-mb <cache-size-mb>]
-        [--buildkit-image <bk-image>]
-        --image|-i <target-ref>
+        [--buildkit-host <bk-host>]
+        [--interactive|-i]
+        --image <target-ref>
   ```
 
 #### Description
@@ -55,7 +49,69 @@ Remote targets only output images and no artifacts, by default.
 
 If the build phase does not succeed, not output is produced and no push instruction is executed. In this case, the command exits with a non-zero exit code.
 
-The output of the two phases are separated by a `=== SUCCESS ===` marker.
+The printout of the two phases are separated by a `=== SUCCESS ===` marker.
+
+#### Target and Artifact Reference
+
+The `<target-ref>` can reference both local and remote targets.
+
+##### Local Reference
+
+`+<target-name>` will reference a target in the local earthfile in the current directory.
+
+`<local-path>+<target-name>` will reference a local earthfile in a different directory as
+specified by `<local-path>`, which must start with `./`, `../`, or `/`.
+
+##### Remote Reference
+
+`<gitvendor>/<namespace>/<project>/path/in/project[:some-tag]+<target-name>` will access a remote git repository.
+
+##### Artifact Reference
+
+The `<artifact-ref>` can reference artifacts built by targets. `<target-ref>/<artifact-path>` will reference a build target's artifact.
+
+##### Examples
+
+See the [Target, artifact, and image referencing guide](../guides/target-ref) for more details and examples.
+
+#### Environment Variables and .env File
+
+As specified under the [options section](#options), all flag options have an environment variable equivalent, which can be used as an alternative.
+
+Furthermore, additional environment variables are also read from a file named `.env`, if one exists in the current directory. The syntax of the `.env` file is of the form
+
+```.env
+<NAME_OF_ENV_VAR>=<value>
+...
+```
+
+as one variable per line, without any surrounding quotes. If quotes are included, they will become part of the value. Lines beginning with `#` are treated as comments. Blank lines are allowed. Here is a simple example:
+
+```.env
+# Settings
+EARTHLY_ALLOW_PRIVILEGED=true
+MY_SETTING=a setting which contains spaces
+
+# Secrets
+MY_SECRET=MmQ1MjFlY2UtYzhlNi00YjJkLWI5YTMtNjIzNzJmYjcwOTJk
+ANOTHER_SECRET=MjA5YjU2ZTItYmIxOS00MDQ3LWFlNzYtNmQ5NGEyZDFlYTQx
+```
+
+{% hint style='info' %}
+##### Note
+The directory used for loading the `.env` file is the directory where `earth` is called from and not necessarily the directory where the Earthfile is located in.
+{% endhint %}
+
+The additional environment variables specified in the `.env` file are loaded by `earth` in three distinct ways:
+
+* **Setting options for `earth` itself** - the settings are loaded if they match the environment variable equivalent of an `earth` option.
+* **Build args** - the settings are passed on to the build and are used to override any [`ARG`](../earthfile/earthfile.md#arg) declaration.
+* **Secrets** - the settings are passed on to the build to be referenced via the [`RUN --secret`](../earthfile/earthfile.md#secret-less-than-env-var-greater-than-less-than-secret-ref-greater-than) option.
+
+{% hint style='danger' %}
+##### Important
+The `.env` file is meant for settings which are specific to the local environment the build executes in. These settings may cause inconsistencies in the way the build executes on different systems, leading to builds that are difficult to reproduce. Keep the contents of `.env` files to a minimum to avoid such issues.
+{% endhint %}
 
 #### Options
 
@@ -111,66 +167,30 @@ On Mac systems, this setting defaults to `/run/host-services/ssh-auth.sock` to m
 
 For more information see the [Authentication page](../guides/auth.md).
 
-##### `--git-username <git-user>`
+##### `--git-username <git-user>` (deprecated)
 
 Also available as an env var setting: `GIT_USERNAME=<git-user>`.
 
-Sets the git username to use for non-SSH git authentication. For more information see the [Authentication page](../guides/auth.md).
+This option is now deprecated. Please use the [configuration file](../earth-config/earth-config.md) instead.
 
-To prevent the need to specify this option on every `earth` invocation, it is recommended to specify the env var form in a file like `.bashrc` or `.profile`.
-
-##### `--git-password <git-pass>`
+##### `--git-password <git-pass>` (deprecated)
 
 Also available as an env var setting: `GIT_PASSWORD=<git-pass>`.
 
-Sets the git password to use for non-SSH git authentication. For more information see the [Authentication page](../guides/auth.md).
+This option is now deprecated. Please use the [configuration file](../earth-config/earth-config.md) instead.
 
-{% hint style='danger' %}
-##### Important
-
-For security reasons, it is strongly recommended to use the env var form of this setting and not the flag form.
-{% endhint %}
-
-##### `--git-url-instead-of <git-instead-of>`
+##### `--git-url-instead-of <git-instead-of>` (deprecated)
 
 Also available as an env var setting: `GIT_URL_INSTEAD_OF=<git-instead-of>`.
 
-Rewrites git URLs of a certain pattern. Similar to [`git-config url.<base>.insteadOf`](https://git-scm.com/docs/git-config#Documentation/git-config.txt-urlltbasegtinsteadOf). Format: `<base>=<instead-of>`.
+This option is now deprecated. Please use the [configuration file](../earth-config/earth-config.md) instead.
 
-This setting allows rewriting all git URLs of the form `https://...` into `git@github.com:...`, or vice-versa.
+##### `--interactive|-i` (**beta**)
 
-For example:
+Also available as an env var setting: `EARTHLY_INTERACTIVE=true`.
 
-* `--git-url-instead-of='git@github.com:=https://github.com/'` forces use of SSH-based URLs for GitHub (default)
-* `--git-url-instead-of='https://github.com/=git@github.com:'` forces use of HTTPS-based URLs for GitHub
+Enable interactive debugging mode. By default when a `RUN` command fails, earth will display the error and exit. If the interactive mode is enabled and an error occurs, an interactive shell is presented which can be used for investigating the error interactively. Due to technical limitations, only a single interactive shell can be used on the system at any given time.
 
-Currently, only one such pattern is allowed to be specified.
-
-To prevent the need to specify this option on every `earth` invocation, it is recommended to specify the env var form in a file like `.bashrc` or `.profile`.
-
-##### `--buildkit-host <bk-host>`
-
-Also available as an env var setting: `EARTHLY_BUILDKIT_HOST=<bk-host>`.
-
-Instructs `earth` to use an alternate buildkit host. When this option is specified, `earth` does not manage (starts/restarts as necessary) the buildkit daemon.
-
-##### `--buildkit-cache-size-mb <cache-size-mb>`
-
-Also available as an env var setting: `EARTHLY_BUILDKIT_CACHE_SIZE_MB=<cache-size-mb>`.
-
-The total size of the buildkit cache, in MB. The buildkit daemon will allocate disk space for this size. Size less than `1000` (1GB) is not recommended. The default size if this option is not set is `10000` (10GB).
-
-This setting is only used when the buildkit daemon is started (or restarted). In order to apply the setting immediately, issue the command
-
-```bash
-earth --buildkit-cache-size-mb <cache-size-mb> prune --reset
-```
-
-##### `--buildkit-image <bk-image>`
-
-Also available as an env var setting: `EARTHLY_BUILDKIT_IMAGE=<bk-image>`.
-
-Instructs earth to use an alternate image for buildkitd. The default image used is `earthly/buildkitd:<earth-version>`.
 
 ## earth prune
 
@@ -178,11 +198,11 @@ Instructs earth to use an alternate image for buildkitd. The default image used 
 
 * Standard form
   ```
-  earth [options] [--all|-a] prune
+  earth [options] prune [--all|-a]
   ```
 * Reset form
   ```
-  earth [options] --reset prune
+  earth [options] prune --reset
   ```
 
 #### Description
@@ -198,6 +218,19 @@ Instructs earth to issue a "prune all" command to the buildkit daemon.
 ##### `--reset`
 
 Restarts the buildkit daemon and completely resets the cache directory.
+
+## earth bootstrap
+
+#### Synopsis
+
+* ```
+  earth bootstrap
+  ```
+
+#### Description
+
+Installs bash and zsh shell completion for earth.
+
 
 ## earth --help
 

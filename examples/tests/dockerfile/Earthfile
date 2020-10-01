@@ -1,0 +1,6 @@
+FROM alpine:3.11
+
+test:
+    FROM DOCKERFILE .
+    RUN --entrypoint
+    SAVE IMAGE test-dockerfile:latest

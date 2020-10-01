@@ -1,0 +1,8 @@
+FROM alpine:3.11
+test:
+    # intentionally cause a failure (this test is to ensure failures are caught)
+    RUN ls /this-will-fail
+
+test-push:
+    # intentionally cause a failure (this test is to ensure failures are caught)
+    RUN --push ls /this-too-will-fail

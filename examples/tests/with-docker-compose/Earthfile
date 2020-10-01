@@ -1,0 +1,25 @@
+FROM docker:19.03.7-dind
+WORKDIR /test
+
+all:
+    BUILD --build-arg INDEX=1 +test
+    BUILD --build-arg INDEX=2 +test
+
+print-countries:
+    FROM jbergknoff/postgresql-client:latest
+    CMD ["-c", "SELECT * FROM country WHERE country_id = '76'"]
+    SAVE IMAGE
+
+test:
+    COPY docker-compose.yml .
+    # Index is used to create parallel tests.
+    ARG INDEX=0
+    RUN echo "$INDEX"
+    WITH DOCKER \
+            --compose docker-compose.yml \
+            --service postgres \
+            --load print-countries:latest=+print-countries
+        RUN for i in {1..30}; do nc -z localhost 5432 && break; sleep 1; done; \
+            sleep 60 ;\
+            docker-compose up --exit-code-from print-countries print-countries | grep Brazil
+    END

@@ -8,6 +8,7 @@ tokens {
 Target: ([a-zA-Z0-9.] | '-')+ ':' -> pushMode(RECIPE);
 
 FROM: 'FROM' -> pushMode(COMMAND_ARGS);
+FROM_DOCKERFILE: 'FROM DOCKERFILE' -> pushMode(COMMAND_ARGS);
 COPY: 'COPY' -> pushMode(COMMAND_ARGS);
 SAVE_ARTIFACT: 'SAVE ARTIFACT' -> pushMode(COMMAND_ARGS);
 SAVE_IMAGE: 'SAVE IMAGE' -> pushMode(COMMAND_ARGS);
@@ -30,6 +31,8 @@ STOPSIGNAL: 'STOPSIGNAL' -> pushMode(COMMAND_ARGS);
 ONBUILD: 'ONBUILD' -> pushMode(COMMAND_ARGS);
 HEALTHCHECK: 'HEALTHCHECK' -> pushMode(COMMAND_ARGS);
 SHELL: 'SHELL' -> pushMode(COMMAND_ARGS);
+WITH_DOCKER: 'WITH DOCKER' -> pushMode(COMMAND_ARGS);
+END: 'END' -> pushMode(COMMAND_ARGS);
 Command: [A-Z]+ -> pushMode(COMMAND_ARGS);
 
 NL: WS? COMMENT? CRLF;
@@ -45,6 +48,7 @@ mode RECIPE;
 Target_R: Target -> type(Target), pushMode(RECIPE);
 
 FROM_R: FROM -> type(FROM), pushMode(COMMAND_ARGS);
+FROM_DOCKERFILE_R: FROM_DOCKERFILE -> type(FROM_DOCKERFILE), pushMode(COMMAND_ARGS);
 COPY_R: COPY -> type(COPY), pushMode(COMMAND_ARGS);
 SAVE_ARTIFACT_R: SAVE_ARTIFACT -> type(SAVE_ARTIFACT), pushMode(COMMAND_ARGS);
 SAVE_IMAGE_R: SAVE_IMAGE -> type(SAVE_IMAGE), pushMode(COMMAND_ARGS);
@@ -67,6 +71,8 @@ STOPSIGNAL_R: STOPSIGNAL -> type(STOPSIGNAL), pushMode(COMMAND_ARGS);
 ONBUILD_R: ONBUILD -> type(ONBUILD), pushMode(COMMAND_ARGS);
 HEALTHCHECK_R: HEALTHCHECK -> type(HEALTHCHECK), pushMode(COMMAND_ARGS);
 SHELL_R: SHELL -> type(SHELL), pushMode(COMMAND_ARGS);
+WITH_DOCKER_R: WITH_DOCKER -> type(WITH_DOCKER), pushMode(COMMAND_ARGS);
+END_R: END -> type(END), pushMode(COMMAND_ARGS);
 Command_R: Command -> type(Command), pushMode(COMMAND_ARGS);
 
 NL_R: NL -> type(NL);
@@ -79,8 +85,7 @@ fragment QuotedAtomPart: ('"' (~'"' | '\\"')* '"');
 fragment RegularAtomPart: ~([ \t\r\n\\"]) | EscapedAtomPart;
 fragment EscapedAtomPart: ('\\' .) | (LC [ \t]*);
 
-// Note; Comments not allowed in command lines.
-NL_C: WS? CRLF -> type(NL), popMode;
+NL_C: NL -> type(NL), popMode;
 WS_C: WS -> type(WS);
 
 mode COMMAND_ARGS_KEY_VALUE;
@@ -92,8 +97,7 @@ EQUALS: '=' -> mode(COMMAND_ARGS);
 Atom_CAKV: (RegularAtomPart_CAKV | QuotedAtomPart)+ -> type(Atom);
 fragment RegularAtomPart_CAKV: ~([ \t\r\n"=]) | EscapedAtomPart;
 
-// Note; Comments not allowed in command lines.
-NL_CAKV: WS? CRLF -> type(NL), popMode;
+NL_CAKV: NL -> type(NL), popMode;
 WS_CAKV: WS -> type(WS);
 
 mode COMMAND_ARGS_KEY_VALUE_LABEL;
@@ -103,6 +107,5 @@ EQUALS_L: '=' -> type(EQUALS);
 // Similar Atom, but don't allow '=' as part of it, unless it's in quotes.
 Atom_CAKVL: Atom_CAKV -> type(Atom);
 
-// Note; Comments not allowed in command lines.
 NL_CAKVL: NL_CAKV -> type(NL), popMode;
 WS_CAKVL: WS_CAKV -> type(WS);

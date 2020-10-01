@@ -29,6 +29,9 @@ type EarthParserListener interface {
 	// EnterFromStmt is called when entering the fromStmt production.
 	EnterFromStmt(c *FromStmtContext)
 
+	// EnterFromDockerfileStmt is called when entering the fromDockerfileStmt production.
+	EnterFromDockerfileStmt(c *FromDockerfileStmtContext)
+
 	// EnterCopyStmt is called when entering the copyStmt production.
 	EnterCopyStmt(c *CopyStmtContext)
 
@@ -110,6 +113,12 @@ type EarthParserListener interface {
 	// EnterShellStmt is called when entering the shellStmt production.
 	EnterShellStmt(c *ShellStmtContext)
 
+	// EnterWithDockerStmt is called when entering the withDockerStmt production.
+	EnterWithDockerStmt(c *WithDockerStmtContext)
+
+	// EnterEndStmt is called when entering the endStmt production.
+	EnterEndStmt(c *EndStmtContext)
+
 	// EnterGenericCommandStmt is called when entering the genericCommandStmt production.
 	EnterGenericCommandStmt(c *GenericCommandStmtContext)
 
@@ -145,6 +154,9 @@ type EarthParserListener interface {
 
 	// ExitFromStmt is called when exiting the fromStmt production.
 	ExitFromStmt(c *FromStmtContext)
+
+	// ExitFromDockerfileStmt is called when exiting the fromDockerfileStmt production.
+	ExitFromDockerfileStmt(c *FromDockerfileStmtContext)
 
 	// ExitCopyStmt is called when exiting the copyStmt production.
 	ExitCopyStmt(c *CopyStmtContext)
@@ -226,6 +238,12 @@ type EarthParserListener interface {
 
 	// ExitShellStmt is called when exiting the shellStmt production.
 	ExitShellStmt(c *ShellStmtContext)
+
+	// ExitWithDockerStmt is called when exiting the withDockerStmt production.
+	ExitWithDockerStmt(c *WithDockerStmtContext)
+
+	// ExitEndStmt is called when exiting the endStmt production.
+	ExitEndStmt(c *EndStmtContext)
 
 	// ExitGenericCommandStmt is called when exiting the genericCommandStmt production.
 	ExitGenericCommandStmt(c *GenericCommandStmtContext)

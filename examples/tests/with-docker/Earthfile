@@ -1,0 +1,43 @@
+FROM docker:19.03.7-dind
+
+all:
+    BUILD +docker-load-test
+    BUILD +dind-test
+    BUILD +docker-pull-test
+    BUILD +load-parallel-test
+
+a-test-image:
+    FROM alpine:3.11
+    RUN mkdir /abc
+    WORKDIR /abc
+    RUN echo "hello world" >def.txt
+    ENTRYPOINT cat /abc/def.txt && pwd
+    SAVE IMAGE
+
+docker-load-test:
+    # Index is used to create parallel tests.
+    ARG INDEX=0
+    RUN echo "$INDEX"
+    WITH DOCKER
+        DOCKER LOAD +a-test-image test-img:xyz
+        DOCKER PULL hello-world
+        RUN docker run test-img:xyz && \
+            docker run hello-world
+    END
+
+dind-test:
+    WITH DOCKER
+        RUN docker run hello-world
+    END
+
+docker-pull-test:
+    # Note that this is mainly a smoke test, because the RUN command
+    # works even in absence of the --pull (it pull automatically if image
+    # not present).
+    WITH DOCKER --pull hello-world
+        RUN docker run hello-world
+    END
+
+load-parallel-test:
+    BUILD --build-arg INDEX=1 +docker-load-test
+    BUILD --build-arg INDEX=2 +docker-load-test

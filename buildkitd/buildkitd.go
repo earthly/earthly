@@ -2,9 +2,12 @@ package buildkitd
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"os"
 	"os/exec"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/earthly/earthly/conslogging"
@@ -16,8 +19,8 @@ import (
 const (
 	// ContainerName is the name of the buildkitd container.
 	ContainerName = "earthly-buildkitd"
-	// TempDir is the directory used for buildkitd cache.
-	TempDir = "/tmp/earthly"
+	// VolumeName is the name of the docker volume used for storing the cache.
+	VolumeName = "earthly-cache"
 )
 
 // Address is the address at which the daemon is available.
@@ -26,8 +29,8 @@ var Address = fmt.Sprintf("docker-container://%s", ContainerName)
 // TODO: Implement all this properly with the docker client.
 
 // NewClient returns a new buildkitd client.
-func NewClient(ctx context.Context, console conslogging.ConsoleLogger, image string, settings Settings, opts ...client.ClientOpt) (*client.Client, error) {
-	address, err := MaybeStart(ctx, console, image, settings)
+func NewClient(ctx context.Context, console conslogging.ConsoleLogger, image string, settings Settings, opTimeout time.Duration, opts ...client.ClientOpt) (*client.Client, error) {
+	address, err := MaybeStart(ctx, console, image, settings, opTimeout)
 	if err != nil {
 		console.WithPrefix("buildkitd").Printf("Is docker installed and running? Are you part of the docker group?\n")
 		return nil, errors.Wrap(err, "maybe start buildkitd")
@@ -40,7 +43,7 @@ func NewClient(ctx context.Context, console conslogging.ConsoleLogger, image str
 }
 
 // ResetCache restarts the buildkitd daemon with the reset command.
-func ResetCache(ctx context.Context, console conslogging.ConsoleLogger, image string, settings Settings) error {
+func ResetCache(ctx context.Context, console conslogging.ConsoleLogger, image string, settings Settings, opTimeout time.Duration) error {
 	console.
 		WithPrefix("buildkitd").
 		Printf("Restarting buildkit daemon with reset command...\n")
@@ -53,7 +56,7 @@ func ResetCache(ctx context.Context, console conslogging.ConsoleLogger, image st
 		if err != nil {
 			return err
 		}
-		err = WaitUntilStopped(ctx)
+		err = WaitUntilStopped(ctx, opTimeout)
 		if err != nil {
 			return err
 		}
@@ -62,7 +65,7 @@ func ResetCache(ctx context.Context, console conslogging.ConsoleLogger, image st
 	if err != nil {
 		return err
 	}
-	err = WaitUntilStarted(ctx, Address)
+	err = WaitUntilStarted(ctx, Address, opTimeout)
 	if err != nil {
 		return err
 	}
@@ -74,7 +77,7 @@ func ResetCache(ctx context.Context, console conslogging.ConsoleLogger, image st
 
 // MaybeStart ensures that the buildkitd daemon is started. It returns the URL
 // that can be used to connect to it.
-func MaybeStart(ctx context.Context, console conslogging.ConsoleLogger, image string, settings Settings) (string, error) {
+func MaybeStart(ctx context.Context, console conslogging.ConsoleLogger, image string, settings Settings, opTimeout time.Duration) (string, error) {
 	isStarted, err := IsStarted(ctx)
 	if err != nil {
 		return "", errors.Wrap(err, "check is started buildkitd")
@@ -83,7 +86,7 @@ func MaybeStart(ctx context.Context, console conslogging.ConsoleLogger, image st
 		console.
 			WithPrefix("buildkitd").
 			Printf("Found buildkit daemon as docker container (%s)\n", ContainerName)
-		err := MaybeRestart(ctx, console, image, settings)
+		err := MaybeRestart(ctx, console, image, settings, opTimeout)
 		if err != nil {
 			return "", errors.Wrap(err, "maybe restart")
 		}
@@ -95,7 +98,7 @@ func MaybeStart(ctx context.Context, console conslogging.ConsoleLogger, image st
 		if err != nil {
 			return "", errors.Wrap(err, "start")
 		}
-		err = WaitUntilStarted(ctx, Address)
+		err = WaitUntilStarted(ctx, Address, opTimeout)
 		if err != nil {
 			return "", errors.Wrap(err, "wait until started")
 		}
@@ -109,7 +112,7 @@ func MaybeStart(ctx context.Context, console conslogging.ConsoleLogger, image st
 // MaybeRestart checks whether the there is a different buildkitd image available locally or if
 // settings of the current container are different from the provided settings. In either case,
 // the container is restarted.
-func MaybeRestart(ctx context.Context, console conslogging.ConsoleLogger, image string, settings Settings) error {
+func MaybeRestart(ctx context.Context, console conslogging.ConsoleLogger, image string, settings Settings, opTimeout time.Duration) error {
 	containerImageID, err := GetContainerImageID(ctx)
 	if err != nil {
 		return err
@@ -150,7 +153,7 @@ func MaybeRestart(ctx context.Context, console conslogging.ConsoleLogger, image 
 	if err != nil {
 		return err
 	}
-	err = WaitUntilStopped(ctx)
+	err = WaitUntilStopped(ctx, opTimeout)
 	if err != nil {
 		return err
 	}
@@ -158,7 +161,7 @@ func MaybeRestart(ctx context.Context, console conslogging.ConsoleLogger, image 
 	if err != nil {
 		return err
 	}
-	err = WaitUntilStarted(ctx, Address)
+	err = WaitUntilStarted(ctx, Address, opTimeout)
 	if err != nil {
 		return err
 	}
@@ -168,21 +171,52 @@ func MaybeRestart(ctx context.Context, console conslogging.ConsoleLogger, image 
 	return nil
 }
 
+// RemoveExited removes any stopped or exited buildkitd containers
+func RemoveExited(ctx context.Context) error {
+	cmd := exec.CommandContext(ctx, "docker", "ps", "-a", "-q", "-f", fmt.Sprintf("name=%s", ContainerName))
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return errors.Wrap(err, "get combined output")
+	}
+	if len(output) == 0 {
+		return nil
+	}
+	return exec.CommandContext(ctx, "docker", "rm", ContainerName).Run()
+}
+
 // Start starts the buildkitd daemon.
 func Start(ctx context.Context, image string, settings Settings, reset bool) error {
 	settingsHash, err := settings.Hash()
 	if err != nil {
 		return errors.Wrap(err, "settings hash")
 	}
+	err = RemoveExited(ctx)
+	if err != nil {
+		return err
+	}
 	env := os.Environ()
-	cacheMount := fmt.Sprintf("%s:%s:delegated", TempDir, TempDir)
+	runMount := fmt.Sprintf("%s:/run/earthly:consistent", settings.RunDir)
 	args := []string{
 		"run",
-		"-d", "--rm",
-		"-v", cacheMount,
+		"-d",
+		"-v", fmt.Sprintf("%s:/tmp/earthly:rw", VolumeName),
+		"-v", runMount,
+		"-e", fmt.Sprintf("ENABLE_LOOP_DEVICE=%t", !settings.DisableLoopDevice),
+		"-e", fmt.Sprintf("FORCE_LOOP_DEVICE=%t", !settings.DisableLoopDevice),
+		"-e", fmt.Sprintf("BUILDKIT_DEBUG=%t", settings.Debug),
 		"--label", fmt.Sprintf("dev.earthly.settingshash=%s", settingsHash),
 		"--name", ContainerName,
 		"--privileged",
+	}
+	if os.Getenv("EARTHLY_WITH_DOCKER") == "1" {
+		// Add /sys/fs/cgroup if it's earthly-in-earthly.
+		args = append(args, "-v", "/sys/fs/cgroup:/sys/fs/cgroup")
+	} else {
+		// Debugger only supported in top-most earthly.
+		// TODO: Main reason for this is port clash. This could be improved in the future,
+		//       if needed.
+		args = append(args,
+			"-p", fmt.Sprintf("127.0.0.1:%d:8373", settings.DebuggerPort))
 	}
 	// Apply some buildkitd-related settings.
 	if settings.CacheSizeMb > 0 {
@@ -197,24 +231,24 @@ func Start(ctx context.Context, image string, settings Settings, reset bool) err
 			"-e", "SSH_AUTH_SOCK=/ssh-agent.sock",
 		)
 	}
-	if len(settings.GitSettings) > 0 {
-		// TODO: Only the first GitSettings entry is used, and it is not bound
-		//       to the specified domain.
+
+	args = append(args,
+		"-e", "EARTHLY_GIT_CONFIG",
+		"-e", fmt.Sprintf("GIT_URL_INSTEAD_OF=%s", settings.GitURLInsteadOf),
+	)
+	env = append(env,
+		fmt.Sprintf("EARTHLY_GIT_CONFIG=%s", base64.StdEncoding.EncodeToString([]byte(settings.GitConfig))),
+	)
+
+	for i, data := range settings.GitCredentials {
 		args = append(args,
-			"-e", "GIT_USERNAME",
-			"-e", "GIT_PASSWORD",
+			"-e", fmt.Sprintf("GIT_CREDENTIALS_%d", i),
 		)
-		// Pass secrets via env vars, not via command-line.
 		env = append(env,
-			fmt.Sprintf("GIT_USERNAME=%s", settings.GitSettings[0].Username),
-			fmt.Sprintf("GIT_PASSWORD=%s", settings.GitSettings[0].Password),
+			fmt.Sprintf("GIT_CREDENTIALS_%d=%s", i, base64.StdEncoding.EncodeToString([]byte("password="+data))),
 		)
 	}
-	if settings.GitURLInsteadOf != "" {
-		args = append(args,
-			"-e", fmt.Sprintf("GIT_URL_INSTEAD_OF=%s", settings.GitURLInsteadOf),
-		)
-	}
+
 	// Apply reset.
 	if reset {
 		args = append(args, "-e", "EARTHLY_RESET_TMP_DIR=true")
@@ -251,8 +285,8 @@ func IsStarted(ctx context.Context) (bool, error) {
 }
 
 // WaitUntilStarted waits until the buildkitd daemon has started and is healthy.
-func WaitUntilStarted(ctx context.Context, address string) error {
-	ctxTimeout, cancel := context.WithTimeout(ctx, 30*time.Second)
+func WaitUntilStarted(ctx context.Context, address string, opTimeout time.Duration) error {
+	ctxTimeout, cancel := context.WithTimeout(ctx, opTimeout)
 	defer cancel()
 	for {
 		select {
@@ -279,18 +313,24 @@ func WaitUntilStarted(ctx context.Context, address string) error {
 }
 
 // WaitUntilStopped waits until the buildkitd daemon has stopped.
-func WaitUntilStopped(ctx context.Context) error {
-	ctxTimeout, cancel := context.WithTimeout(ctx, 30*time.Second)
+func WaitUntilStopped(ctx context.Context, opTimeout time.Duration) error {
+	ctxTimeout, cancel := context.WithTimeout(ctx, opTimeout)
 	defer cancel()
 	for {
 		select {
 		case <-time.After(1 * time.Second):
 			cmd := exec.CommandContext(
 				ctx, "docker", "inspect", "--format={{.State.Running}}", ContainerName)
-			_, err := cmd.CombinedOutput()
+			output, err := cmd.CombinedOutput()
 			if err != nil {
-				// The container has stopped successfully when this command returns an error
-				// (container can no longer be found).
+				// The container can no longer be found at all.
+				return nil
+			}
+			isRunning, err := strconv.ParseBool(strings.TrimSpace(string(output)))
+			if err != nil {
+				return errors.Wrapf(err, "cannot interpret output %s", output)
+			}
+			if !isRunning {
 				return nil
 			}
 		case <-ctxTimeout.Done():

@@ -2,6 +2,8 @@
 
 This page describes the different types of references used in Earthly.
 
+<img src="img/ref-infographic.png" alt="Target and artifact reference syntax" title="Reference targets using +" width="800px" />
+
 ## Target reference
 
 Targets have a particular referencing convention which helps Earthly to identify which recipe to execute.
@@ -44,6 +46,21 @@ For example:
 or
 
 `github.com/earthly/earthly:v0.1.0+all`
+
+
+### Implicit Base Target Reference
+
+All earthfiles start with a base recipe. This is the only recipe which does not have an explicit target name - the name is always implied to be `base`. All other target implicitly inherit from `base`. You can imagine that all recipes start with an implicit `FROM +base`
+
+```
+# base recipe
+FROM golang:1.13-alpine3.11
+WORKDIR /go-example
+
+build:
+    # implicit FROM +base
+    RUN echo "Hello World"
+```
 
 ### Canonical form
 

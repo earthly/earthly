@@ -1,4 +1,4 @@
-name: CI
+name: GitHub Actions CI
 
 on:
   push:
@@ -7,27 +7,84 @@ on:
     branches: [ master ]
 
 jobs:
-  build:
+  tests:
+    name: +test +test-fail
     runs-on: ubuntu-latest
     env:
-      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
       GIT_URL_INSTEAD_OF: "https://github.com/=git@github.com:"
+      FORCE_COLOR: 1
     steps:
-    - uses: actions/checkout@v2
-    - name: Put back the git branch into git (Earthly uses it for tagging)
-      run: |
-        branch=""
-        if [ -n "$GITHUB_HEAD_REF" ]; then
-          branch="$GITHUB_HEAD_REF"
-        else
-          branch="${GITHUB_REF##*/}"
-        fi
-        git checkout -b "$branch" || true
-    - name: Docker Login
-      run: docker login --username vladaionescu --password "$DOCKERHUB_TOKEN"
-    - name: Download latest earth
-      run: "sudo /bin/sh -c 'curl -s https://api.github.com/repos/earthly/earthly/releases/latest | grep browser_download_url | grep linux-amd64 | cut -d : -f 2- | tr -d \\\" | wget -P /usr/local/bin/ -i - && mv /usr/local/bin/earth-linux-amd64 /usr/local/bin/earth && chmod +x /usr/local/bin/earth'"
-    - name: Earth version
-      run: earth --version
-    - name: Run build
-      run: earth --push -P +test
+      - uses: actions/checkout@v2
+      - name: Download released earth
+        run: "sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/latest/download/earth-linux-amd64 -O /usr/local/bin/earth && chmod +x /usr/local/bin/earth'"
+      - name: Build latest earth using released earth
+        run: earth +for-linux
+      - name: Execute tests
+        run: ./build/linux/amd64/earth --no-output -P +test
+      - name: Execute fail test
+        run: "! ./build/linux/amd64/earth --no-output +test-fail"
+  misc-tests:
+    name: ./examples/tests+private-image-test ./examples/tests+experimental
+    runs-on: ubuntu-latest
+    env:
+      GIT_URL_INSTEAD_OF: "https://github.com/=git@github.com:"
+      FORCE_COLOR: 1
+    steps:
+      - uses: actions/checkout@v2
+      - name: Download released earth
+        run: "sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/latest/download/earth-linux-amd64 -O /usr/local/bin/earth && chmod +x /usr/local/bin/earth'"
+      - name: Build latest earth using released earth
+        run: earth +for-linux
+      - name: Execute experimental tests
+        run: ./build/linux/amd64/earth --no-output -P ./examples/tests/with-docker+all
+      - name: Execute test similar to homebrew test in https://github.com/Homebrew/homebrew-core/blob/master/Formula/earthly.rb
+        run: ./build/linux/amd64/earth --buildkit-host 127.0.0.1 ./examples/tests/with-docker+all | grep 'Error while dialing invalid address 127.0.0.1'
+      - name: Docker Login
+        run: docker login --username vladaionescu --password "${{ secrets.DOCKERHUB_TOKEN }}"
+        if: github.event.pull_request.head.repo.full_name == github.repository
+      - name: Execute private image test
+        run: ./build/linux/amd64/earth --no-output ./examples/tests+private-image-test
+        if: github.event.pull_request.head.repo.full_name == github.repository
+  examples:
+    name: +examples
+    runs-on: ubuntu-latest
+    env:
+      GIT_URL_INSTEAD_OF: "https://github.com/=git@github.com:"
+      FORCE_COLOR: 1
+    steps:
+      - uses: actions/checkout@v2
+      - name: Download released earth
+        run: "sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/latest/download/earth-linux-amd64 -O /usr/local/bin/earth && chmod +x /usr/local/bin/earth'"
+      - name: Build latest earth using released earth
+        run: earth +for-linux
+      - name: Build examples
+        run: ./build/linux/amd64/earth --no-output --allow-privileged +examples
+  push:
+    name: --push +all
+    if: github.event_name == 'push'
+    needs: ["tests", "misc-tests", "examples"]
+    runs-on: ubuntu-latest
+    env:
+      GIT_URL_INSTEAD_OF: "https://github.com/=git@github.com:"
+      FORCE_COLOR: 1
+    steps:
+      - uses: actions/checkout@v2
+      - name: "Put back the git branch into git (Earthly uses it for tagging)"
+        run: |
+          branch=""
+          if [ -n "$GITHUB_HEAD_REF" ]; then
+            branch="$GITHUB_HEAD_REF"
+          else
+            branch="${GITHUB_REF##*/}"
+          fi
+          git checkout -b "$branch" || true
+      - name: Download released earth
+        run: "sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/latest/download/earth-linux-amd64 -O /usr/local/bin/earth && chmod +x /usr/local/bin/earth'"
+      - name: Build latest earth using released earth
+        run: earth +for-linux
+      - name: Docker Login
+        run: docker login --username vladaionescu --password "${{ secrets.DOCKERHUB_TOKEN }}"
+      - name: "Reset cache (TODO: This can be removed after the next release)"
+        run: ./build/linux/amd64/earth prune --reset
+      - name: Rebuild and push
+        run: ./build/linux/amd64/earth --push +all

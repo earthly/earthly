@@ -1,0 +1,13 @@
+FROM docker:19.03.7-dind
+
+some-image:
+    FROM alpine:3.11
+    RUN mkdir /abc
+    WORKDIR /abc
+    RUN echo "hello world" >def.txt
+    ENTRYPOINT cat /abc/def.txt && pwd
+    SAVE IMAGE
+
+test:
+    DOCKER LOAD +some-image test-img:xyz
+    RUN --with-docker docker run --rm test-img:xyz

@@ -7,7 +7,23 @@ jobs:
       - GIT_URL_INSTEAD_OF: "https://github.com/=git@github.com:"
     steps:
       - checkout
-      - run: docker login --username vladaionescu --password "$DOCKERHUB_TOKEN"
-      - run: "sudo /bin/sh -c 'curl -s https://api.github.com/repos/earthly/earthly/releases/latest | grep browser_download_url | grep linux-amd64 | cut -d : -f 2- | tr -d \\\" | wget -P /usr/local/bin/ -i - && mv /usr/local/bin/earth-linux-amd64 /usr/local/bin/earth && chmod +x /usr/local/bin/earth'"
-      - run: earth --version
-      - run: earth -P +test
+      - run:
+          name: Install released earth
+          command: "sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/latest/download/earth-linux-amd64 -O /usr/local/bin/earth && chmod +x /usr/local/bin/earth'"
+      - run:
+          name: Build latest earth
+          command: earth +for-linux
+      - run:
+          name: Run tests
+          command: ./build/linux/amd64/earth -P --no-output +test
+      - run:
+          name: Run experimental tests
+          command: ./build/linux/amd64/earth -P --no-output ./examples/tests/with-docker+all
+      - run:
+          name: Execute fail test
+          command: "! ./build/linux/amd64/earth --no-output +test-fail"
+workflows:
+  version: 2
+  circle-ci:
+    jobs:
+      - build

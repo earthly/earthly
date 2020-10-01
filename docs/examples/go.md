@@ -21,10 +21,10 @@ In order to build it, you would normally run something like
 go build -o build/go-example main.go
 ```
 
-In our case, we will use a `build.earth` file to build it. We will create a target called `build`, and we will copy the necessary files within it (in this case, just `main.go`) and then execute the `go build` command. We will also need a base Docker image that has go pre-installed: `golang:1.13-alpine3.11`.
+In our case, we will use a `Earthfile` to build it. We will create a target called `build`, and we will copy the necessary files within it (in this case, just `main.go`) and then execute the `go build` command. We will also need a base Docker image that has go pre-installed: `golang:1.13-alpine3.11`.
 
 ```Dockerfile
-# build.earth
+# Earthfile
 
 FROM golang:1.13-alpine3.11
 
@@ -69,7 +69,7 @@ hello world
 Finally, let's say that we want to build a Docker image for this program. For this, we can add another target, which depends on `build` and uses the built program.
 
 ```Dockerfile
-# build.earth
+# Earthfile
 
 # ...
 
@@ -124,5 +124,5 @@ hello world
 
 * The [Earthly basics page](../guides/basics.md), which includes an extended Go example
 * The [Earthfile reference](../earthfile/earthfile.md)
-* The [earth command reference](../earth-command/earth-command.md)
+* The [Earth command reference](../earth-command/earth-command.md)
 * More [examples](../examples/examples.md)

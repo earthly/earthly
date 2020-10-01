@@ -1,10 +1,18 @@
-# <img src="images/logo.png" alt="Earthly Logo" align="left" /><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="" height="42" width="1" />Earthly - run all your builds containerized
+<h1 align="center"><a href="https://earthly.dev"><img src="img/logo-banner-white-bg.png" alt="Earthly" align="center" width="700px" /></a></h1>
 
-**🐳 Build anything via containers** - *build container images or standalone artifacts (eg binaries, packages, arbitrary files)*
+![CI](https://github.com/earthly/earthly/workflows/CI/badge.svg)
+[![Join the chat at https://gitter.im/earthly-room/community](https://badges.gitter.im/earthly-room.svg)](https://gitter.im/earthly-room/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+[![Docs](https://img.shields.io/badge/docs-git%20book-blue)](https://docs.earthly.dev)
+[![Website](https://img.shields.io/badge/website-earthly.dev-blue)](https://earthly.dev)
+[![Docker Hub](https://img.shields.io/badge/docker%20hub-earthly-blue)](https://hub.docker.com/u/earthly)
+[![License](https://img.shields.io/badge/license-MPL--2.0-blue.svg)](http://www.apache.org/licenses/LICENSE-2.0)
+<a href="https://www.producthunt.com/posts/earthly-2?utm_source=badge-featured&utm_medium=badge&utm_souce=badge-earthly-2" target="_blank"><img src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=266617&theme=dark" alt="Earthly - Build anything via containers | Product Hunt" width="93" height="20" /></a>
+
+**🐳 Build anything via containers** - *build images or standalone artifacts (binaries, packages, arbitrary files)*
 
 **🛠 Programming language agnostic** - *allows use of language-specific build tooling*
 
-**♻️ Reproducible builds** - *does not depend on user's local installation. Runs the same locally, as in CI*
+**🔁 Reproducible builds** - *does not depend on user's local installation. Runs the same locally, as in CI*
 
 **⛓ Parallelism that just works** - *builds in parallel without special considerations the user has to make*
 
@@ -12,323 +20,359 @@
 
 **🏘 Multi-repo friendly** - *ability to import builds or artifacts from other repositories*
 
-----------------------------
-![CI](https://github.com/earthly/earthly/workflows/CI/badge.svg)
-[![Go Report Card](https://goreportcard.com/badge/github.com/earthly/earthly)](https://goreportcard.com/report/github.com/earthly/earthly)
-[![Join the chat at https://gitter.im/earthly-room/community](https://badges.gitter.im/earthly-room.svg)](https://gitter.im/earthly-room/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
-[![Docs](https://img.shields.io/badge/docs-git%20book-blue)](https://docs.earthly.dev)
-[![Docker Hub](https://img.shields.io/badge/docker%20hub-earthly-blue)](https://hub.docker.com/u/earthly)
-[![License](https://img.shields.io/badge/license-MPL--2.0-blue.svg)](http://www.apache.org/licenses/LICENSE-2.0)
+---------------------------------
 
-Earthly is a build automation tool from the same era as your code. It allows you to execute all your builds in containers. This makes them self-contained, reproducible, portable and parallel. You can use Earthly to create Docker images and artifacts (eg binaries, packages, arbitrary files).
+[🌍 Earthly](https://earthly.dev) is a build automation tool for the post-container era. It allows you to execute all your builds in containers. This makes them self-contained, reproducible, portable and parallel. You can use Earthly to create Docker images and artifacts (eg binaries, packages, arbitrary files).
 
-Earthly can run on top of popular CI systems (like Jenkins, [Circle](https://docs.earthly.dev/examples/circle-integration), [GitHub Actions](https://docs.earthly.dev/examples/gh-actions-integration)). It is typically the [layer](https://docs.earthly.dev) between language-specific tooling (like maven, gradle, npm, pip, go build) and the CI build spec.
+<br/>
+<br/>
+<h2 align="center">Table of Contents</h2>
 
-<img src="images/integration-diagram-horizontal.png" alt="Earthly fits between language-specific tooling and the CI" />
+* [Why use Earthly?](#why-use-earthly)
+* [Where Does Earthly Fit?](#where-does-earthly-fit)
+* [How Does It Work?](#how-does-it-work)
+* [Installation](#installation)
+* [Quick Start](#quick-start)
+* [Features](#features)
+* [FAQ](#faq)
+* [Contributing](#contributing)
+* [Licensing](#licensing)
 
-Read the [launch blog post](https://vladaionescu.com/introducing-earthly-build-automation-for-the-container-era-55619c63c3e) for the motivation behind Earthly. To learn how to use Earthly, check out the [getting started guide](https://docs.earthly.dev/guides/basics).
+<br/>
+<br/>
+<h2 align="center">Why Use Earthly?</h2>
 
-For some examples, see [Go](https://docs.earthly.dev/examples/go), [Java](https://docs.earthly.dev/examples/java), [JS](https://docs.earthly.dev/examples/js), [Mono-repo](https://docs.earthly.dev/examples/monorepo), [Multi-repo](https://docs.earthly.dev/examples/multirepo), [Earthly's own build](https://docs.earthly.dev/examples/earthly) or the [examples dir](./examples).
+### 🔁 Reproduce CI failures
 
+Earthly builds are self-contained, isolated and reproducible. Regardless of whether Earthly runs in your CI or on your laptop, there is a degree of guarantee that the build will run the same way. This allows for faster iteration on the build scripts and easier debugging when something goes wrong. No more `git commit -m "try again"`.
+
+### 🤲 Builds that run the same for everyone
+
+Reproducible builds also means that your build will run the same on your colleagues laptop without any additional project-specific or language-specific setup. This fosters better developer collaboration and mitigates works-for-me type of issues.
+
+### 🚀 From zero to working build in minutes
+
+Jump from project to project with ease, regardless of the language they are written in. Running the project's test suites is simply a matter of running an Earthly target (without fiddling with project configuration to make it compile and run on your system). Contribute across teams with confidence.
+
+### 📦 Reusability
+
+A simple, yet powerful import system allows for reusability of builds across directories or even across repositories. Importing other builds does not have hidden environment-specific implications - it just works.
+
+### ❤️ It's like Makefile and Dockerfile had a baby
+
+Taking some of the best ideas from Makefiles and Dockerfiles, Earthly combines two build specifications into one.
+
+<br/>
+<br/>
+<h2 align="center">Where Does Earthly Fit?</h2>
+
+<div align="center"><img src="docs/img/integration-diagram.png" alt="Earthly fits between language-specific tooling and the CI" width="700px" /></div>
+<br/>
+
+Earthly is meant to be used both on your development machine and in CI. It can run on top of popular CI systems (like Jenkins, [Circle](https://docs.earthly.dev/examples/circle-integration), [GitHub Actions](https://docs.earthly.dev/examples/gh-actions-integration)). It is typically the layer between language-specific tooling (like maven, gradle, npm, pip, go build) and the CI build spec.
+
+<br/>
+<br/>
+<h2 align="center">How Does It Work?</h2>
+
+In short: **containers**, **layer caching** and **complex build graphs**!
+
+Earthly executes builds in containers, where execution is isolated. The dependencies of the build are explicitly specified in the build definition, thus making the build self-sufficient.
+
+We use a target-based system to help users break-up complex builds into reusable parts. Nothing is shared between targets, other than clearly declared dependencies. Nothing shared means no unexpected race conditions. In fact, the build is executed in parallel whenever possible, without any need for the user to take care of any locking or unexpected environment interactions.
+
+| ℹ️ Note <br/><br/> Earthfiles might seem very similar to Dockerfile multi-stage builds. In fact, the [same technology](https://github.com/moby/buildkit) is used underneath. However, a key difference is that Earthly is designed to be a general purpose build system, not just a Docker image specification. Read more about [how Earthly is different from Dockerfiles](#how-is-earthly-different-from-dockerfiles). |
+| :--- |
+
+<br/>
+<br/>
 <h2 align="center">Installation</h2>
 
-##### Pre-requisites (all platforms)
+For a full list of installation options see the [Installation page](https://docs.earthly.dev/installation).
 
-* [Docker](https://docs.docker.com/install/)
-* [Git](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git)
-
-##### Linux
+### Linux
 
 ```bash
-sudo /bin/sh -c 'curl -s https://api.github.com/repos/earthly/earthly/releases/latest | grep browser_download_url | grep linux-amd64 | cut -d : -f 2- | tr -d \" | wget -P /usr/local/bin/ -i - && mv /usr/local/bin/earth-linux-amd64 /usr/local/bin/earth && chmod +x /usr/local/bin/earth'
+sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/latest/download/earth-linux-amd64 -O /usr/local/bin/earth && chmod +x /usr/local/bin/earth && /usr/local/bin/earth bootstrap'
 ```
 
-##### Mac
-
-###### Homebrew
+### Mac
 
 ```bash
 brew install earthly
+earth bootstrap
 ```
 
-###### Script
+### Windows via WSL (**beta**)
+  
+Earthly on Windows requires [Docker Desktop WSL2 backend](https://docs.docker.com/docker-for-windows/wsl/). Under `wsl`, run the following to install `earth`.
 
 ```bash
-curl -s https://api.github.com/repos/earthly/earthly/releases/latest | grep browser_download_url | grep darwin-amd64 | cut -d : -f 2- | tr -d \" | wget -P /usr/local/bin/ -i - && mv /usr/local/bin/earth-darwin-amd64 /usr/local/bin/earth && chmod +x /usr/local/bin/earth
+sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/latest/download/earth-linux-amd64 -O /usr/local/bin/earth && chmod +x /usr/local/bin/earth && /usr/local/bin/earth bootstrap'
 ```
 
-##### Alternative Linux & Mac
+### Your CI
 
-You may also download the binary from [the releases page](https://github.com/earthly/earthly/releases) and place it in your `bin`.
+See the [CI integration guide](https://docs.earthly.dev/guides/ci-integration)
 
-##### Windows
+### Syntax highlighting
 
-Windows native version coming soon. The linux version has been reported to just work on WSL [experimental].
-
-##### Note
-
-If you use SSH-based git authentication, then your git credentials will just work with Earthly. Read more about [git auth](https://docs.earthly.dev/guides/auth).
-
-##### VS Code extension for syntax highlighting
-
-[<img src="images/vscode-plugin.png" alt="Earthfile Syntax Highlighting" width="457" />](https://marketplace.visualstudio.com/items?itemName=earthly.earthfile-syntax-highlighting)
-
-Add [Earthfile Syntax Highlighting](https://marketplace.visualstudio.com/items?itemName=earthly.earthfile-syntax-highlighting) to VS Code.
+[Install](https://marketplace.visualstudio.com/items?itemName=earthly.earthfile-syntax-highlighting) for VS code.
 
 ```
 ext install earthly.earthfile-syntax-highlighting
 ```
 
-<h2 align="center">Core features</h2>
+<br/>
+<br/>
+<h2 align="center">Quick Start</h2>
 
-#### 🐳 Dockerfile-like syntax
+Here are some resources to get you started with Earthly
+
+* 🏁 [Getting started guide](https://docs.earthly.dev/guides/basics)
+* 👀 [Examples](https://docs.earthly.dev/examples)
+  * [Go](https://docs.earthly.dev/examples/go)
+  * [Java](https://docs.earthly.dev/examples/java)
+  * [JS](https://docs.earthly.dev/examples/js)
+  * [C++](https://docs.earthly.dev/examples/cpp)
+  * [Mono-repo](https://docs.earthly.dev/examples/monorepo)
+  * [Multi-repo](https://docs.earthly.dev/examples/multirepo)
+  * The [examples](./examples) dir
+* 🔍 Explore [Earthly's own build](https://docs.earthly.dev/examples/earthly)
+
+See also the [full documentation](https://docs.earthly.dev).
+
+Reference pages
+
+* 📑 [Earthfile reference](https://docs.earthly.dev/earthfile)
+* #️⃣ [Earth command reference](https://docs.earthly.dev/earth-command)
+* ⚙️ [Configuration reference](https://docs.earthly.dev/earth-config)
+
+### A simple example (for Go)
 
 ```Dockerfile
-# Initialize the build environment - this applies to all targets.
+# Earthfile
 FROM golang:1.13-alpine3.11
+RUN apk --update --no-cache add git
 WORKDIR /go-example
 
+all:
+  BUILD +lint
+  BUILD +docker
+
 build:
-  # Copy source from local dir into the build environment,
-  # run go build and save the resulting binary.
   COPY main.go .
   RUN go build -o build/go-example main.go
   SAVE ARTIFACT build/go-example AS LOCAL build/go-example
 
+lint:
+  RUN go get golang.org/x/lint/golint
+  COPY main.go .
+  RUN golint -set_exit_status ./...
+
 docker:
-  # Copy an artifact from target +build,
-  # set an entrypoint for the image and save it.
   COPY +build/go-example .
   ENTRYPOINT ["/go-example/go-example"]
   SAVE IMAGE go-example:latest
 ```
 
-Invoke the build using either `earth +build` (to build the binary) or `earth +docker` (to build the docker image).
+```go
+// main.go
+package main
 
-#### 🔨 Reference targets using +
+import "fmt"
+
+func main() {
+  fmt.Println("hello world")
+}
+```
+
+Invoke the build using `earth +all`.
+
+<div align="center"><a href="https://asciinema.org/a/351683?speed=2"><img src="img/demo-351683.gif" alt="Demonstration of a simple Earthly build" title="View on asciinema.org" width="600px" /></a></div>
+
+Examples for other languages are available on the [examples page](https://docs.earthly.dev/examples).
+
+<br/>
+<br/>
+<h2 align="center">Features</h2>
+
+### 📦 Modern import system
+
+Earthly can be used to reference and build targets from other directories or even other repositories. For example, if we wanted to build [an example target from the `github.com/earthly/earthly` repository](./examples/go/Earthfile#L17-L20), we could issue
+
+```bash
+# Try it yourself! No need to clone.
+earth github.com/earthly/earthly/examples/go+docker
+# Run the resulting image.
+docker run --rm go-example:latest
+```
+
+### 🔨 Reference other targets using +
+
+Use `+` to reference other targets and create complex build inter-dependencies.
+
+<div align="center"><a href="https://docs.earthly.dev/guides/target-ref"><img src="docs/guides/img/ref-infographic.png" alt="Target and artifact reference syntax" title="Reference targets using +" width="600px" /></a></div>
+
+Examples
+
+* Same directory (same Earthfile)
+  
+  ```Dockerfile
+  BUILD +some-target
+  FROM +some-target
+  COPY +some-target/my-artifact ./
+  ```
+
+* Other directories
+
+  ```Dockerfile
+  BUILD ./some/local/path+some-target
+  FROM ./some/local/path+some-target
+  COPY ./some/local/path+some-target/my-artifact ./
+  ```
+
+* Other repositories
+
+  ```Dockerfile
+  BUILD github.com/someone/someproject:v1.2.3+some-target
+  FROM github.com/someone/someproject:v1.2.3+some-target
+  COPY github.com/someone/someproject:v1.2.3+some-target/my-artifact ./
+  ```
+
+### 💾 Caching that works the same as docker builds
+
+<div align="center"><a href="https://asciinema.org/a/351674?speed=2"><img src="img/demo-351674.gif" alt="Demonstration of Earthly's caching" title="View on asciinema.org" width="600px" /></a></div>
+
+### 🛠 Reusability with build args
+
+Here is an example where building for multiple platforms can leverage build args.
 
 ```Dockerfile
+FROM golang:1.13-alpine3.11
+RUN apk add --update --no-cache g++
+WORKDIR /go-example
+
+all:
+  BUILD \
+    --build-arg GOOS=linux \
+    --build-arg GOARCH=amd64 \
+    --build-arg GO_LDFLAGS="-linkmode external -extldflags -static" \
+    +build
+  BUILD \
+    --build-arg GOOS=darwin \
+    --build-arg GOARCH=amd64 \
+    +build
+  BUILD \
+    --build-arg GOOS=windows \
+    --build-arg GOARCH=amd64 \
+    +build
+
 build:
-  # Build the target lint (defined in the same build.earth file).
-  BUILD +lint
-  # Inherit image from target +some-image available in ./some/deep/dir.
-  FROM ./some/deep/dir+some-image
-  # Execute the build of project github.com/some-user/some-project, with
-  # the target +some-binary, copying the artifact out.
-  COPY github.com/some-user/some-project+some-binary/out ./
-  # Execute the build within the local directory ./some/deep/dir, with
-  # the target +my-binary, copying the artifact bin.
-  COPY ./some/deep/dir+my-binary/bin ./
-
-lint:
-  # ...
+  COPY main.go .
+  ARG GOOS
+  ARG GOARCH
+  ARG GO_LDFLAGS
+  RUN go build -ldflags "$GO_LDFLAGS" -o build/go-example main.go && \
+      echo "Build for $GOOS/$GOARCH was successful"
+  SAVE ARTIFACT build/go-example AS LOCAL "build/$GOOS/$GOARCH/go-example"
 ```
 
-#### 📦 Nothing is shared between build targets, other than images and artifacts
+### ⛓ Parallelization that just works
 
-The container isolation prevents use of any resources specific to the local system. This allows Earthly to completely parallelize the building of independent targets, without any additional effort.
+Whenever possible, Earthly automatically executes targets in parallel.
+
+<div align="center"><a href="https://asciinema.org/a/351678?speed=2"><img src="img/demo-351678.gif" alt="Demonstration of Earthly's parallelization" title="View on asciinema.org" width="600px" /></a></div>
+
+### 🤲 Make use of build tools that work everywhere
+
+No need to ask your team to install `protoc`, a specific version of Python, Java 1.6 or the .NET Core ecosystem. You only install once, in your Earthfile, and it works for everyone. Or even better, you can just make use of the rich Docker Hub ecosystem.
 
 ```Dockerfile
-a-target:
-  # Something complex and time-consuming.
+FROM golang:1.13-alpine3.11
+WORKDIR /proto-example
 
-another-target:
-  # Something else complex and time-consuming.
+proto:
+  FROM namely/protoc-all:1.29_4
+  COPY api.proto /defs
+  RUN --entrypoint -- -f api.proto -l go
+  SAVE ARTIFACT ./gen/pb-go /pb AS LOCAL pb
 
-final-target:
-  # This will build the two targets in parallel.
-  BUILD +a-target
-  BUILD +another-target
-  # So would this.
-  COPY +a-target/an-artifact ./
-  COPY +another-target/another-artifact ./
-  # And so would this (or some other combination).
-  FROM +a-target
-  COPY +another-target/another-artifact ./
+build:
+  COPY go.mod go.sum .
+  RUN go mod download
+  COPY +proto/pb pb
+  COPY main.go ./
+  RUN go build -o build/proto-example main.go
+  SAVE ARTIFACT build/proto-example
 ```
 
-#### ⛓ Parallelization that just works
+See full [example code](./examples/readme/proto).
 
-![Parallel output](images/parallel.png)
-
-*Interleaved output shows execution of targets in parallel*
-
-#### ✔️ A build either completely succeeds or completely fails
-
-If some artifacts or images succeed, but others fail, the system does not ouptut any of them. It also does not push partial results to registries or artifactories (unless the pushing operation itself fails).
-
-![Success output](images/fail-success.png)
-
-*Outputting only takes place below the `=== SUCCESS ===` line*
-
-#### 💾 Caching that works the same as docker builds
-
-... in fact, the same [technology](https://github.com/moby/buildkit) is used underneath.
-
-![Cached output](images/cache.png)
-
-*The build picks up from the point it notices a difference in the code*
-
-#### 🛠 Reusability with build args
-
-```Dockerfile
-lint:
-  FROM golang:1.13-alpine3.11
-  RUN go get golang.org/x/lint/golint
-  ARG COPY_SRC
-  COPY "$COPY_SRC" ./
-  RUN golint -set_exit_status .
-
-lint-project-a:
-  BUILD --build-arg COPY_SRC=./project-a +lint
-
-lint-project-b:
-  BUILD --build-arg COPY_SRC=./project-b +lint
-```
-
-#### 🔑 Secrets support built-in
+### 🔑 Secrets support built-in
 
 Secrets are never stored within an image's layers and they are only available to the commands that need them.
 
 ```Dockerfile
-some-target:
+release:
   RUN --push --secret GITHUB_TOKEN=+secrets/GITHUB_TOKEN github-release upload file.bin
 ```
 
 ```bash
-earth --secret GITHUB_TOKEN --push +some-target
+earth --secret GITHUB_TOKEN --push +release
 ```
 
-<h2 align="center">Example usage of earth command</h2>
-
-Write your own `build.earth` file, then build any target via
-
-```bash
-earth +target-name
-```
-
-You can also reference targets from other directories.
-
-```bash
-earth ./path/to/a/deep/dir+target-name
-```
-
-... or from other repositories.
-
-```bash
-# Try it yourself! No need to clone.
-earth github.com/earthly/earthly+earth-docker
-```
-
-... or from a subdir of some repository.
-
-```bash
-# Try it yourself! No need to clone.
-earth github.com/earthly/earthly/buildkitd+buildkitd
-```
-
-[<img src="https://asciinema.org/a/314104.svg" alt="Earthly demo" width="457" />](https://asciinema.org/a/314104)
-
-For more details on using the `earth` command, see `earth --help`.
-
-
-<h2 align="center">Commands beyond Dockerfile syntax</h2>
-
-
-##### `FROM`
-
-> Allows the classical syntax, as well as the additional `FROM +some-target` syntax, which allows target inheritance.
-
-##### `COPY`
-
-> Allows the classical syntax for copying files from the build context, as well as the additional `COPY +some-target/artifact-name ./dest/path` syntax, which allows copying artifacts resulting from another target.
-
-##### `COPY --dir`
-
-> Behaves more like `cp -r` (copies the directories themselves, not just the contents).
-
-##### `RUN --secret SOME_ENV_VAR=+secrets/SOME_SECRET`
-
-> Allows running with a secret as an env var. The secret is not stored in the image's layers and is only available to that command.
-
-##### `RUN --entrypoint`
-
-> Runs the entrypoint of the image (useful when inheriting other targets, in order to run the images as part of the build).
-
-##### `RUN --push`
-
-> Defines a push command. It never uses cache and only executes if the rest of the build succeeds. Useful for triggering state change in remote environments (eg production) or for pushing artifacts to artifactories.
-
-##### `BUILD +target`
-
-> Builds another target as part of the execution.
-
-##### `BUILD --build-arg SOME_ARG=some-value +target`
-
-> Builds another target, with specified value for a build arg. The `--build-arg` flag is also available for `FROM +target` and `COPY +target/artifact` commands.
-
-##### `BUILD --build-arg SOME_ARG=$(some command) +target`
-
-> Builds another target, with a build arg value specified as the output of a command.
-
-##### `SAVE ARTIFACT ./artifact/path [/artifact-name] [AS LOCAL ./local/artifact/path]`
-
-> Saves an artifact for later use. It is stored as a target artifact, to be used by other targets (`/artifact-name`) and optionally, as a local file which will be written to the host system at `./local/artifact/path`.
-
-##### `SAVE IMAGE [image/name:tag]`
-
-> Saves the current target as an image. It can be used by other targets and also, optionally made available to the local system as docker image name `image/name:tag`.
-
-##### `SAVE IMAGE --push image/name:tag`
-
-> Similar to above, but it additionally pushes the image to the image registry.
-
-##### `GIT CLONE git@github.com:some-user/some-project.git dest-dir`
-
-> Clones the git project into directory `dest-dir`. The difference from doing `RUN git clone ...` is that it is cache-aware, thus building again when the git hash is different.
-
-##### `RUN --with-docker docker ...` [**experimental**]
-
-> Allows running commands in the presence of a docker daemon, as part of the build. The main use-case for this is running complex integration tests where several containers need to be running in parallel.
-
-##### `DOCKER PULL some-image` [**experimental**]
-
-> Allows pulling a remote image into the context of the build. (Can then run the image via `RUN --with-docker docker run some-image`). This command is cache-aware compared to `RUN --with-docker docker pull some-image`.
-
-##### `DOCKER LOAD +some-target AS image-name` [**experimental**]
-
-> Allows using an Earthly target as a docker image loaded into the context of the build.
-
-For more details see the [Earthfile reference](https://docs.earthly.dev/earthfile).
-
-<h2 align="center">What's next?</h2>
-
-To learn more about using Earthly, check the [full documentation](https://docs.earthly.dev/), which includes
-
-* [Getting started](https://docs.earthly.dev/guides/basics)
-* [Earthfile reference](https://docs.earthly.dev/earthfile)
-* [earth command reference](https://docs.earthly.dev/earth-command)
-* [Examples](https://docs.earthly.dev/examples)
-* [CI integration guide](https://docs.earthly.dev/guides/ci-integration)
-
+<br/>
+<br/>
 <h2 align="center">FAQ</h2>
 
-##### How do I tell apart classical Dockerfile commands from Earthly commands
+### How is Earthly different from Dockerfiles?
 
-Check out the [Earthfile reference doc page](https://docs.earthly.dev/earthfile). It has all the commands there and it specifies which commands are the same as Dockerfile commands and which are new. A summary of the differences are also shown [above here](#commands-beyond-dockerfile-syntax).
+[Dockerfiles](https://docs.docker.com/engine/reference/builder/) were designed for specifying the make-up of Docker images and that's where Dockerfiles stop. Earthly takes some key principles of Dockerfiles (like layer caching), but expands on the use-cases. For example, Earthly can output regular artifacts, run unit and integration tests and also create several Docker images at a time - all of which are outside the scope of Dockerfiles.
 
-##### Can Earthly build Dockerfiles
+It is possible to use Dockerfiles in combination with other technologies (eg Makefiles or bash files) in order to solve for such use-cases. However, these combinations are difficult to parallelize, difficult to scale across repositories as they lack a robust import system and also they often vary in style from one team to another. Earthly does not have these limitations as it was designed as a general purpose build system.
 
-It cannot - however, translating Dockerfiles to Earthfiles (`build.earth`) is usually a matter of copy-pasting and making small adjustments. See the [getting started page](https://docs.earthly.dev/guides/basics) for some Earthfile examples.
+As an example, Earthly introduces a richer target, artifact and image [referencing system](https://docs.earthly.dev/guides/target-ref), which allows for better reuse in complex builds spanning a single large repository or multiple repositories. Because Dockerfiles are only meant to describe one image at a time, such features are outside the scope of applicability of Dockerfiles.
 
+### How do I tell apart classical Dockerfile commands from Earthly commands?
+
+Check out the [Earthfile reference doc page](https://docs.earthly.dev/earthfile). It has all the commands there and it specifies which commands are the same as Dockerfile commands and which are new.
+
+### Can Earthly build Dockerfiles?
+
+Yes! You can use the command `FROM DOCKERFILE` to inherit the commands in an existing Dockerfile.
+
+```Dockerfile
+build:
+  FROM DOCKERFILE .
+  SAVE IMAGE some-image:latest
+```
+
+You may also optionally port your Dockerfiles to Earthly entirely. Translating Dockerfiles to Earthfiles is usually a matter of copy-pasting and making small adjustments. See the [getting started page](https://docs.earthly.dev/guides/basics) for some Earthfile examples.
+
+### How is Earthly different from Bazel?
+
+[Bazel](https://bazel.build) is a build tool developed by Google for the purpose of optimizing speed, correctness and reproducibility of their internal monorepo codebase. Earthly draws inspiration from some of the principles of Bazel (mainly reproducibility), but it is different in a few key ways:
+
+* Earthly does not replace language-specific tools, like Maven, Gradle, Webpack etc. Instead, it leverages and integrates with them. Adopting Bazel usually means that all build files need to be completely rewritten. This is not the case with Earthly as it mainly acts as the glue between builds.
+* The learning curve of Earthly is more accessible, especially if the user already has experience with Dockerfiles. Bazel, on the other hand, introduces some completely new concepts.
+* Bazel has a purely descriptive specification language. Earthly is a mix of descriptive and imperative language.
+* Bazel uses tight control of compiler tool chain to achieve consistent builds, whereas Earthly uses containers and well-defined inputs.
+
+Overall, compared to Bazel, Earthly sacrifices a little correctness and reproducibility in favor of significantly better usability and composability with existing open-source technologies.
+
+<br/>
+<br/>
 <h2 align="center">Contributing</h2>
 
 * Please report bugs as [GitHub issues](https://github.com/earthly/earthly/issues).
 * Join us on [Gitter](https://gitter.im/earthly-room/community)!
 * Questions via GitHub issues are welcome!
 * PRs welcome! But please give a heads-up in GitHub issue before starting work. If there is no GitHub issue for what you want to do, please create one.
-* To build from source, you will need the `earth` binary ([Earthly builds itself](https://docs.earthly.dev/examples/earthly)). Git clone the code and run `earth +all`.
+* To build from source, you will need the `earth` binary ([Earthly builds itself](https://docs.earthly.dev/examples/earthly)). Git clone the code and run `earth +all`. To run the tests, run `earth -P +test`.
 
+<br/>
+<br/>
 <h2 align="center">Licensing</h2>
 
 Earthly is licensed under the Mozilla Public License Version 2.0. See [LICENSE](./LICENSE) for the full license text.
