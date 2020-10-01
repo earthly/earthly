@@ -1,0 +1,19 @@
+FROM ruby:2.7.1
+WORKDIR /ruby-example
+
+deps:
+    COPY Gemfile Gemfile.lock ./
+    RUN  bundle install
+    SAVE ARTIFACT Gemfile.lock AS LOCAL ./Gemfile.lock
+    SAVE IMAGE
+
+build:
+    FROM +deps
+    COPY src src
+    SAVE ARTIFACT src /src
+
+docker:
+    FROM +deps
+    COPY +build/src src
+    ENTRYPOINT ["ruby", "./src/hello.rb"]
+    SAVE IMAGE ruby-example:latest
