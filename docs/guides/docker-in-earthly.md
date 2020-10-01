@@ -52,7 +52,7 @@ Notice that the image name produced as output is `my-image:latest`. This image n
 
 ## Integration testing
 
-For more information on integration testing and working with service dependencies see our [tutorial on integration testing in earthly](./integration.md).
+For more information on integration testing and working with service dependencies see our [tutorial on integration testing in Earthly](./integration.md).
 
 ## Limitations of Docker in Earthly
 
@@ -80,6 +80,7 @@ The current implementation of Docker in Earthly has a number of limitations:
 * `docker build` cannot be used to build Dockerfiles. However, the Earthly command `FROM DOCKERFILE` can be used instead. See [alternative to docker build](#alternative-to-docker-build) below.
 * The state of the Docker daemon within Earthly cannot be inspected on the host (e.g. for debugging purposes). For example, if a `docker-compose` stack fails, you cannot execute commands like `docker-compose logs` or `docker logs` on the host. However, you may use the interactive mode to drop into a shell within the build environment and execute such commands there. For more information, see the [debugging guide](./debugging.md).
 * It is currently not possible to mount `/var/run/docker.sock` in order to use the host Docker daemon. This goes against Earthly's principles of keeping execution reproducible. Using the host Docker socket may cause builds to depend on the host Daemon state (e.g. pre-cached images) in ways that may not be obvious or easy to reproduce if the build were executed in another environment.
+* Only one `WITH DOCKER ... END` clause may run at a time on a given host. If multiple such clauses are used in a build, Earthly will run them one by one sequentially. This is a temporary limitation and may be lifted in future versions of Earthly.
 
 ## Alternatives to Docker in Earthly
 
