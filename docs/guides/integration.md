@@ -239,7 +239,7 @@ In a real-world example, we would likely use a tool like [Flyway](https://flyway
 
 {% hint style='info' %}
 #### Adminer
-Our example application has one direct dependency, Postgres, and a helper app `adminer` which is a web UI for postgres. It is strictly not nessary for running our integration tests but useful in local development and serves to show how this solution scales to multiple dependencies.
+Our example application has one direct dependency, Postgres, and a helper app `adminer` which is a web UI for postgres. It is strictly not necessary for running our integration tests but useful in local development and serves to show how this solution scales to multiple dependencies.
 {% endhint %}
 
 ## Integration Testing Step 2 - Run your tests

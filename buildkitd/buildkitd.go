@@ -216,7 +216,7 @@ func Start(ctx context.Context, image string, settings Settings, reset bool) err
 		// TODO: Main reason for this is port clash. This could be improved in the future,
 		//       if needed.
 		args = append(args,
-			"-p", fmt.Sprintf("127.0.0.1:%d:5000", settings.DebuggerPort))
+			"-p", fmt.Sprintf("127.0.0.1:%d:8373", settings.DebuggerPort))
 	}
 	// Apply some buildkitd-related settings.
 	if settings.CacheSizeMb > 0 {
