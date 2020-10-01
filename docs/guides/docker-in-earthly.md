@@ -108,7 +108,7 @@ This, of course, has limitations, such as not being able to mount volumes the sa
 
 ### Alternative to docker build
 
-Running `docker build` within Earthly is discouraged, as it has a number of key limitaitons:
+Running `docker build` within Earthly is discouraged, as it has a number of key limitations:
 
 * Layer caching does not work. This is because `WITH DOCKER` does not preserve Docker cache between runs (other than `DOCKER PULL`).
 * Once an image is created, it cannot be exported as a build output in a form other than a TAR archive (e.g. it cannot be automatically loaded onto the host Docker daemon).

@@ -473,7 +473,7 @@ It is recommended that you avoid issuing `RUN docker pull ...` and use `DOCKER P
 {% endhint %}
 
 {% hint style='danger' %}
-The use of `DOCKER PULL` outside of a `WITH DOCKER` clause is deperected and will not be supported in future versions of Earthly.
+The use of `DOCKER PULL` outside of a `WITH DOCKER` clause is deprecated and will not be supported in future versions of Earthly.
 {% endhint %}
 
 
@@ -488,7 +488,7 @@ The use of `DOCKER PULL` outside of a `WITH DOCKER` clause is deperected and wil
 The command `DOCKER LOAD` builds the image referenced by `<target-ref>` and then loads it into the temporary docker daemon created by `WITH DOCKER`. The image can be referenced as `<image-name>` within `WITH DOCKER`. `DOCKER LOAD` can be used in conjunction with `RUN docker run ...` to execute docker images that are produced by other targets of the build.
 
 {% hint style='danger' %}
-The use of `DOCKER LOAD` outside of a `WITH DOCKER` clause is deperected and will not be supported in future versions of Earthly.
+The use of `DOCKER LOAD` outside of a `WITH DOCKER` clause is deprecated and will not be supported in future versions of Earthly.
 {% endhint %}
 
 #### Options
