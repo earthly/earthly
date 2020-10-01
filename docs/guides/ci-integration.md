@@ -2,7 +2,7 @@
 
 Integrating Earthly into your CI is simply a matter of automating the same steps you would use for your local installation. In this guide, we will walk through this process.
 
-## Step 1: Ensure pre-requisited are available
+## Step 1: Ensure pre-requisites are available
 
 ### Docker and Git
 

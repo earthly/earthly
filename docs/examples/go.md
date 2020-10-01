@@ -2,7 +2,7 @@
 
 This page will walk you through an example of how to build a hello-world application using Earthly.
 
-First, let's assume that you have written a Hello Wolrd app in `./main.go`:
+First, let's assume that you have written a Hello World app in `./main.go`:
 
 ```go
 // main.go

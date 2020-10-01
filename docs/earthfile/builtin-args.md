@@ -2,7 +2,7 @@
 
 Builtin args are variables with values automatically filled-in by Earthly.
 
-The value of a builtin arg can never be overriden. However, you can always have an additional `ARG`, which takes as the default value, the value of the builtin arg. The additional arg can be overriden. Example
+The value of a builtin arg can never be overridden. However, you can always have an additional `ARG`, which takes as the default value, the value of the builtin arg. The additional arg can be overridden. Example
 
 ```Dockerfile
 ARG EARTHLY_TARGET_TAG
