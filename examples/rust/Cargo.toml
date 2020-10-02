@@ -1,0 +1,6 @@
+[package]
+name = "rust-earthly"
+version = "0.1.0"
+authors = ["Vaibhav Bhardwaj <bhardwajvbhv@gmail.com>"]
+
+[dependencies]

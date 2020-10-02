@@ -1,0 +1,13 @@
+FROM rust:1.24.0
+
+WORKDIR /usr/src/app
+
+build:
+    COPY . .
+    RUN cargo install
+    SAVE ARTIFACT /usr/src/app /usr/src/app
+
+docker:
+    COPY +build/usr/src/app /usr/src/app
+    CMD ["./target/release/rust-earthly"]
+    SAVE IMAGE rust-earthly:latest
