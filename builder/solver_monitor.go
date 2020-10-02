@@ -180,8 +180,8 @@ Loop:
 						vm.printHeader()
 					}
 					logger.Info(vs.ID)
-					vm.console.Printf("%s\n", vs.ID)
 					on.Do(func() {
+						vm.console.Printf("%s\n", vs.ID)
 						progressBar.Start()
 					})
 					progressBar.SetCurrent(int64(progress))
