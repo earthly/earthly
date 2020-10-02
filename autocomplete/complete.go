@@ -96,7 +96,12 @@ func getPotentialTarget(prefix string) ([]string, error) {
 	return potentials, nil
 }
 
-func lookupUsers(prefix string) ([]string, error) {
+func getUser(username string) (*user.User, error) {
+	username = strings.Replace(username, "~", "", 1)
+	return user.Lookup(username)
+}
+
+func getUsers() ([]string, error) {
 	u, err := user.Current()
 	if err != nil {
 		return nil, err
@@ -113,108 +118,137 @@ func lookupUsers(prefix string) ([]string, error) {
 	}
 	var res []string
 	for _, s := range directoryList {
-		if prefix != "" && !strings.HasPrefix(s.Name(), prefix) {
-			continue
-		}
-
 		if !s.IsDir() {
 			continue
 		}
-
 		u, err := user.Lookup(s.Name())
 		if err != nil {
 			continue
 		}
 		res = append(res, fmt.Sprintf("~%s", u.Username))
 	}
-
-	if prefix == "~" {
-		return res, nil
-	}
-
 	return res, nil
 }
 
-func getUserFromPrefix(prefix string) (*user.User, error) {
-	username := strings.Replace(prefix, "~", "", 1)
-	spl := strings.Split(username, "/")
-	if len(spl) != 1 {
-		username = spl[0]
+func matchAndFilterUser(users []string, prefix string) (match bool, filter []string) {
+	for _, s := range users {
+		if s == prefix {
+			match = true
+			return
+		}
+		if strings.HasPrefix(s, prefix) {
+			filter = append(filter, s)
+		}
 	}
-	return user.Lookup(username)
+	return
 }
 
-func filterUsers(prefix string, lUsers []string) []string {
-	var filter []string
-	for _, l := range lUsers {
-		if strings.HasPrefix(l, prefix) {
-			filter = append(filter, l)
-		}
-	}
-	return filter
-}
-
-func getPotentialPaths(prefix string) ([]string, error) {
-	switch {
-	case prefix == ".":
-		return []string{"./", "../"}, nil
-	case prefix == "~":
-		return lookupUsers(strings.Replace(prefix, "~", "", 1))
-	case strings.HasPrefix(prefix, "~") && !strings.Contains(prefix, "/"):
-		lUser, err := lookupUsers("")
-		if err != nil {
-			return nil, err
-		}
-		return filterUsers(prefix, lUser), nil
-	}
-
-	expandedHomeLen := 0
-	if strings.HasPrefix(prefix, "~") {
-		// get user from prefix
-		currentUser, err := getUserFromPrefix(prefix)
-		if err != nil {
-			return nil, err
-		}
-
-		expandedHomeLen = len(currentUser.HomeDir) + 1
-		prefix = strings.Replace(prefix, "~", strings.Replace(currentUser.HomeDir, currentUser.Username, "", 1), 1)
-		if strings.HasSuffix(prefix, currentUser.Username) {
-			prefix = fmt.Sprintf("%s/", prefix)
-		}
-	}
-
-	dir, f := path.Split(prefix)
-
-	replaceHomePrefix := func(s string) string {
-		if expandedHomeLen == 0 {
-			return s
-		}
-		return "~/" + s[expandedHomeLen:]
-	}
-
-	files, err := ioutil.ReadDir(dir)
+func resolveUserPath(prefix string) ([]string, error) {
+	users, err := getUsers()
 	if err != nil {
 		return nil, err
 	}
 
-	paths := []string{}
+	if prefix == "~" {
+		return users, nil
+	}
+
+	// match and filter
+	sl := strings.Split(prefix, "/")
+	username := sl[0]
+	match, filters := matchAndFilterUser(users, username)
+	// filter users by prefix
+	if !match {
+		return filters, nil
+	}
+
+	u, err := getUser(username)
+	if err != nil {
+		return nil, err
+	}
+
+	prefix = strings.Replace(prefix, username, u.HomeDir, 1)
+	paths, err := lsPath(prefix)
+	if err != nil {
+		return nil, err
+	}
+	res := make([]string, len(paths))
+	for i, p := range paths {
+		res[i] = strings.Replace(p, u.HomeDir, username, 1)
+	}
+	return res, nil
+}
+
+func filterPath(p, filter string) ([]string, error) {
+	fi, err := os.Stat(p)
+	if err != nil {
+		return nil, err
+	}
+	if !fi.IsDir() {
+		return nil, errors.New("not a directory")
+	}
+
+	lDir, err := printDirectory(p)
+	if err != nil {
+		return nil, err
+	}
+	var res []string
+	for _, s := range lDir {
+		if strings.HasPrefix(s, path.Join(p, filter)) {
+			res = append(res, s)
+		}
+	}
+	return res, nil
+}
+
+func printDirectory(prefix string) ([]string, error) {
+	files, err := ioutil.ReadDir(prefix)
+	if err != nil {
+		return nil, err
+	}
+	var paths []string
+
 	for _, file := range files {
-		if strings.HasPrefix(file.Name(), f) {
-			if file.IsDir() {
-				s := path.Join(dir, file.Name())
-				if strings.HasPrefix(prefix, "./") {
-					s = "./" + s
-				}
-				if hasEarthfile(s) {
-					paths = append(paths, replaceHomePrefix(s)+"+")
-				}
-				if hasSubDirs(s) {
-					paths = append(paths, replaceHomePrefix(s)+"/")
-				}
-			}
+		s := path.Join(prefix, file.Name())
+		if hasEarthfile(s) {
+			paths = append(paths, s+"+")
+		}
+		if hasSubDirs(s) {
+			paths = append(paths, s+"/")
 		}
 	}
 	return paths, nil
+}
+
+func lsPath(prefix string) ([]string, error) {
+	fi, err := os.Stat(prefix)
+	if err != nil {
+		d, f := path.Split(prefix)
+		return filterPath(d, f)
+	}
+
+	switch mode := fi.Mode(); {
+	case mode.IsDir():
+		return printDirectory(prefix)
+	case mode.IsRegular():
+		// do file stuff
+		return nil, errors.New("it is not a directory")
+	default:
+		return nil, errors.New("it is not a directory")
+	}
+}
+
+func getPotentialPaths(prefix string) ([]string, error) {
+	if prefix == "." {
+		return []string{"./", "../"}, nil
+	}
+
+	// users implementation
+	if strings.HasPrefix(prefix, "~") {
+		return resolveUserPath(prefix)
+	}
+	// generic folder
+	return lsPath(prefix)
 }
 
 // GetPotentials returns a list of potential arguments for shell auto completion
