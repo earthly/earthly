@@ -6,7 +6,7 @@ Syntax highlighting for [Earthly](https://earthly.dev) Earthfiles for Sublime Te
 
 For an introduction of Earthly see the [Earthly GitHub repository](https://github.com/earthly/earthly) or the [Earthly documentation](https://docs.earthly.dev).
 
-![alt tag](https://raw.githubusercontent.com/vishnugt/earthly/master/Screenshot.png)
+![alt tag](https://raw.githubusercontent.com/vishnugt/earthly/master/contrib/earthfile-syntax-highlighting-sublime/Screenshot.png)
 
 ## Installation Notes
 
