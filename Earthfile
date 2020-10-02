@@ -208,6 +208,7 @@ examples:
     BUILD ./examples/readme/go3+build
     BUILD ./examples/readme/proto+docker
     BUILD github.com/earthly/hello-world+hello
+    BUILD ./example/rust+docker
 
 test-fail:
     RUN false
