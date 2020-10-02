@@ -4,6 +4,10 @@
   <dict>
     <key>$schema</key>
     <string>https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json</string>
+    <key>fileTypes</key>
+      <array>
+        <string>Earthfile</string>
+      </array>
     <key>name</key>
     <string>Earthfile</string>
     <key>patterns</key>
