@@ -894,7 +894,8 @@ func (l *listener) EnterEnvArgKey(c *parser.EnvArgKeyContext) {
 	var envKey = c.GetText()
 	var matchedEnvKey = checkEnvVarName(envKey)
 	if matchedEnvKey != envKey {
-		l.err = fmt.Errorf("Invalid env key definition %s", envKey)
+		l.err = fmt.Errorf("invalid env key definition %s", envKey)
+		return
 	}
 	l.envArgKey = envKey
 }
