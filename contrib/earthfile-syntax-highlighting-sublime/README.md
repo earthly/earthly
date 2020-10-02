@@ -6,8 +6,6 @@ Syntax highlighting for [Earthly](https://earthly.dev) Earthfiles for Sublime Te
 
 For an introduction of Earthly see the [Earthly GitHub repository](https://github.com/earthly/earthly) or the [Earthly documentation](https://docs.earthly.dev).
 
-![alt tag](https://raw.githubusercontent.com/vishnugt/earthly/master/contrib/earthfile-syntax-highlighting-sublime/Screenshot.png)
-
 ## Installation Notes
 
 ### For Sublime 3
@@ -22,6 +20,10 @@ For an introduction of Earthly see the [Earthly GitHub repository](https://githu
 * It will open a directory similar to `<Installation Directory>\Data\Packages`
 * It will have a lot of dircetories with language names such as `C++`, `Java`, `Python` and many more.  We need to create a folder called `Earthfile` and copy the `Earthfile.tmLanguage` inside the newly created directory
 * Now you can go to your earthly file in Sublime, `View` -> `Syntax` -> `Earthfile`
+
+## Screenshot
+
+![alt tag](https://raw.githubusercontent.com/vishnugt/earthly/master/contrib/earthfile-syntax-highlighting-sublime/Screenshot.png)
 
 
 ## Release Notes
