@@ -12,14 +12,14 @@ For an introduction of Earthly see the [Earthly GitHub repository](https://githu
 
 * From Sublime -> `Preferences` -> `Browse Packages` -> This will open a directory
 * Copy the `Earthfile.tmLanguage` inside this directory and the syntax will be added to Sublime
-* Now you can go to your earthly file in Sublime, `View` -> `Syntax` -> `Earthfile`
+* After this, new Earthfiles that you open will have the syntax highlighted, and for the already opened earthfiles, either reopen it, or restart sublime, or select `View` -> `Syntax` -> `Earthfile`
 
 ### For Sublime 2
 
 * From Sublime -> `Preferences` -> `Browse Packages`
 * It will open a directory similar to `<Installation Directory>\Data\Packages`
 * It will have a lot of dircetories with language names such as `C++`, `Java`, `Python` and many more.  We need to create a folder called `Earthfile` and copy the `Earthfile.tmLanguage` inside the newly created directory
-* Now you can go to your earthly file in Sublime, `View` -> `Syntax` -> `Earthfile`
+* After this, new Earthfiles that you open will have the syntax highlighted, and for the already opened earthfiles, either reopen it, or restart sublime, or select `View` -> `Syntax` -> `Earthfile`
 
 ## Screenshot
 
