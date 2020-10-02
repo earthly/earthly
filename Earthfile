@@ -198,6 +198,7 @@ examples:
     BUILD ./examples/scala+docker
     BUILD ./examples/dotnet+docker
     BUILD ./examples/python+docker
+    BUILD ./examples/django+docker
     BUILD ./examples/ruby+docker
     BUILD ./examples/elixir+docker
     BUILD ./examples/monorepo+all

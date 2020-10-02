@@ -1,0 +1,15 @@
+FROM python:3.8.5-slim
+WORKDIR /django-app
+
+build:
+    COPY src src
+    SAVE ARTIFACT src /src
+
+docker:
+    COPY +build/src src
+    COPY requirements.txt ./
+    RUN pip install -r requirements.txt
+    RUN python3 ./src/manage.py migrate --noinput
+    EXPOSE 8000
+    CMD ["python3", "./src/manage.py", "runserver", "0.0.0.0:8000"]
+    SAVE IMAGE django-example:latest
