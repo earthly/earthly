@@ -892,7 +892,7 @@ func (l *listener) EnterEnvArgKey(c *parser.EnvArgKeyContext) {
 		return
 	}
 	var envKey = c.GetText()
-	var matchedEnvKey = checkShellName(envKey)
+	var matchedEnvKey = checkEnvVarName(envKey)
 	if matchedEnvKey != envKey {
 		l.err = fmt.Errorf("Invalid env key definition %s", envKey)
 	}
@@ -969,7 +969,7 @@ func (ssf *StringSliceFlag) Set(arg string) error {
 
 var shellNameStringRegexp = regexp.MustCompile("^[a-zA-Z_]+[a-zA-Z0-9_]*")
 
-func checkShellName(str string) string {
+func checkEnvVarName(str string) string {
 	return shellNameStringRegexp.FindString(str)
 }
 
