@@ -167,7 +167,6 @@ Loop:
 				progress := int(0)
 				if vs.Total != 0 {
 					progress = int(100.0 * float32(vs.Current) / float32(vs.Total))
-					println("\n\n\nProgress", progress)
 				}
 				if vs.Completed != nil {
 					progress = 100
