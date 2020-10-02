@@ -6,6 +6,7 @@ require (
 	github.com/alessio/shellescape v0.0.0-00010101000000-000000000000
 	github.com/antlr/antlr4 v0.0.0-20200225173536-225249fdaef5
 	github.com/armon/circbuf v0.0.0-20190214190532-5111143e8da2
+	github.com/cheggaaa/pb/v3 v3.0.5
 	github.com/containerd/containerd v1.4.1-0.20200903181227-d4e78200d6da
 	github.com/creack/pty v1.1.11
 	github.com/docker/cli v0.0.0-20200227165822-2298e6a3fe24

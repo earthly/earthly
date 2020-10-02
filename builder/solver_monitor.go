@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/armon/circbuf"
+	"github.com/cheggaaa/pb/v3"
 	"github.com/earthly/earthly/conslogging"
 	"github.com/earthly/earthly/logging"
 	"github.com/moby/buildkit/client"
@@ -154,6 +155,7 @@ Loop:
 					vm.logger.Error(errors.New(vertex.Error))
 				}
 			}
+			progressBar := pb.StartNew(100)
 			for _, vs := range ss.Statuses {
 				vm, ok := sm.vertices[vs.Vertex]
 				if !ok || vm.isInternal {
@@ -163,9 +165,12 @@ Loop:
 				progress := int(0)
 				if vs.Total != 0 {
 					progress = int(100.0 * float32(vs.Current) / float32(vs.Total))
+					println("\n\n\nProgress", progress)
+					progressBar.SetCurrent(int64(progress))
 				}
 				if vs.Completed != nil {
 					progress = 100
+					progressBar.SetCurrent(int64(progress))
 				}
 				if vm.shouldPrintProgress(progress) {
 					logger := vm.logger.
@@ -174,10 +179,12 @@ Loop:
 					if !vm.headerPrinted {
 						vm.printHeader()
 					}
+          progressBar.SetCurrent(int64(progress))
 					logger.Info(vs.ID)
-					vm.console.Printf("%s %d%%\n", vs.ID, progress)
+					// vm.console.Printf("%s %d%%\n", vs.ID, progress)
 				}
 			}
+			progressBar.Finish()
 			for _, logLine := range ss.Logs {
 				vm, ok := sm.vertices[logLine.Vertex]
 				if !ok || vm.isInternal {
