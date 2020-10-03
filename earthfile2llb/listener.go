@@ -892,9 +892,9 @@ func (l *listener) EnterEnvArgKey(c *parser.EnvArgKeyContext) {
 		return
 	}
 	var envKey = c.GetText()
-	var matchedEnvKey = checkEnvVarName(envKey)
-	if matchedEnvKey != envKey {
-		l.err = fmt.Errorf("invalid env key definition %s", envKey)
+	var _, err = checkEnvVarName(envKey)
+	if err != nil {
+		l.err = err
 		return
 	}
 	l.envArgKey = envKey
@@ -970,8 +970,12 @@ func (ssf *StringSliceFlag) Set(arg string) error {
 
 var shellNameStringRegexp = regexp.MustCompile("^[a-zA-Z_]+[a-zA-Z0-9_]*")
 
-func checkEnvVarName(str string) string {
-	return shellNameStringRegexp.FindString(str)
+func checkEnvVarName(str string) (string, error) {
+	matchedString := shellNameStringRegexp.FindString(str)
+	if matchedString == "" {
+		return "", fmt.Errorf("invalid env key definition %s", str)
+	}
+	return matchedString, nil
 }
 
 var lineContinuationRegexp = regexp.MustCompile("\\\\(\\n|(\\r\\n))[\\t ]*")
