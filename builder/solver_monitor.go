@@ -156,9 +156,9 @@ Loop:
 					vm.logger.Error(errors.New(vertex.Error))
 				}
 			}
-			var on sync.Once
-			progressBar := pb.New(100)
 			for _, vs := range ss.Statuses {
+				var on sync.Once
+				progressBar := pb.New(100)
 				vm, ok := sm.vertices[vs.Vertex]
 				if !ok || vm.isInternal {
 					// No logging for internal operations.
@@ -185,8 +185,8 @@ Loop:
 					})
 					progressBar.SetCurrent(int64(progress))
 				}
+				progressBar.Finish()
 			}
-			progressBar.Finish()
 			for _, logLine := range ss.Logs {
 				vm, ok := sm.vertices[logLine.Vertex]
 				if !ok || vm.isInternal {
