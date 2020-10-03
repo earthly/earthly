@@ -32,6 +32,9 @@
 * [Where Does Earthly Fit?](#where-does-earthly-fit)
 * [How Does It Work?](#how-does-it-work)
 * [Installation](#installation)
+    + [Linux](#linux)
+    + [Mac](#mac)
+    + [Windows](#windows)
 * [Quick Start](#quick-start)
 * [Features](#features)
 * [FAQ](#faq)
@@ -103,7 +106,8 @@ brew install earthly
 earth bootstrap
 ```
 
-### Windows via WSL (**beta**)
+### Windows
+[via WSL (**beta**)]
   
 Earthly on Windows requires [Docker Desktop WSL2 backend](https://docs.docker.com/docker-for-windows/wsl/). Under `wsl`, run the following to install `earth`.
 
