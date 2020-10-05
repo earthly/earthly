@@ -58,6 +58,7 @@ install_dockerd() {
         *)
             echo "Warning: Distribution $distro not yet supported for Docker-in-Earthly."
             echo "Will attempt to treat like Debian."
+            echo "If you would like this distribution to be supported, please open a GitHub issue: https://github.com/earthly/earthly/issues"
             install_dockerd_debian_like
             ;;
     esac
