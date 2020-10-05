@@ -71,12 +71,13 @@ func getPotentialTarget(prefix string) ([]string, error) {
 	dirPath := splits[0]
 
 	realDirPath := dirPath
-	if strings.HasPrefix(prefix, "~") {
-		currentUser, err := user.Lookup(strings.Replace(strings.Split(prefix, "/")[0], "~", "", 1))
+	if strings.HasPrefix(realDirPath, "~") {
+		username := strings.Replace(strings.Split(prefix, "/")[0], "~", "", 1)
+		currentUser, err := user.Lookup(username)
 		if err != nil {
 			return nil, err
 		}
-		realDirPath = currentUser.HomeDir + "/" + dirPath[2:]
+		realDirPath = strings.Replace(realDirPath, fmt.Sprintf("~%s", username), currentUser.HomeDir, 1)
 	}
 
 	targets, err := earthfile2llb.GetTargets(path.Join(realDirPath, "Earthfile"))
