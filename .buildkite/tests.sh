@@ -22,8 +22,5 @@ echo "Execute tests"
 echo "Execute fail test"
 bash -c "! ./build/$EARTH_OS/amd64/earth --no-output +test-fail"
 
-echo "Execute experimental tests"
-./build/"$EARTH_OS"/amd64/earth --no-output -P --no-cache ./examples/tests/with-docker+all
-
 echo "Build examples"
 ./build/"$EARTH_OS"/amd64/earth --no-output -P +examples
