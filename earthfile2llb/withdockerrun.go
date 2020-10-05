@@ -380,6 +380,6 @@ func composeParams(opt WithDockerOpt) []string {
 		fmt.Sprintf("EARTHLY_START_COMPOSE=\"%t\"", (len(opt.ComposeFiles) > 0)),
 		fmt.Sprintf("EARTHLY_COMPOSE_FILES=\"%s\"", strings.Join(opt.ComposeFiles, " ")),
 		fmt.Sprintf("EARTHLY_COMPOSE_SERVICES=\"%s\"", strings.Join(opt.ComposeServices, " ")),
-		fmt.Sprintf("EARTHLY_DEBUG=\"true\""), // @#
+		// fmt.Sprintf("EARTHLY_DEBUG=\"true\""),
 	}
 }

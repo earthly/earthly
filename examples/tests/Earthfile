@@ -7,6 +7,7 @@ WORKDIR /test
 
 all:
     BUILD +ga
+    BUILD +experimental
 
 ga:
     BUILD +privileged-test
@@ -36,6 +37,9 @@ ga:
     BUILD +env-test
     BUILD ./with-docker+all
     BUILD ./with-docker-compose+all
+
+experimental:
+    BUILD ./dind-auto-install+all
 
 privileged-test:
     COPY privileged.earth ./Earthfile

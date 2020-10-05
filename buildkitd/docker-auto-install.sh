@@ -64,6 +64,7 @@ install_dockerd() {
 }
 
 install_dockerd_debian_like() {
+    apt-get remove -y docker docker-engine docker.io containerd runc || true
     apt-get update
     apt-get install -y \
         apt-transport-https \
@@ -94,7 +95,9 @@ else
     print_debug "dockerd already installed"
 fi
 
-if [ "$EARTHLY_START_COMPOSE" = "true" ]; then
+set +u
+if [ "$EARTHLY_START_COMPOSE" = "true" ] || [ "$EARTHLY_START_COMPOSE" = "" ]; then
+    set -u
     if ! detect_docker_compose; then
         echo "Docker Compose is missing. Attempting to install automatically."
         install_docker_compose

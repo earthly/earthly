@@ -1,0 +1,17 @@
+
+all:
+    BUILD --build-arg BASE_IMAGE=docker:dind +test
+    BUILD --build-arg BASE_IMAGE=alpine:latest +test
+    BUILD --build-arg BASE_IMAGE=debian:stable +test
+    BUILD --build-arg BASE_IMAGE=debian:stable-slim +test
+    BUILD --build-arg BASE_IMAGE=ubuntu:latest +test
+    BUILD --build-arg BASE_IMAGE=../../..+dind-alpine +test
+    BUILD --build-arg BASE_IMAGE=../../..+dind-ubuntu +test
+
+test:
+    ARG BASE_IMAGE
+    FROM $BASE_IMAGE
+    COPY ./docker-compose.yml ./
+    WITH DOCKER --compose docker-compose.yml
+        RUN true
+    END
