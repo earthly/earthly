@@ -43,6 +43,7 @@ lint-scripts:
     FROM +deps
     COPY ./earth ./buildkitd/entrypoint.sh ./earth-buildkitd-wrapper.sh \
         ./buildkitd/dockerd-wrapper.sh ./release/envcredhelper.sh \
+        ./contrib/earthfile-syntax-highlighting-vim/install.sh \
         ./.buildkite/*.sh \
         ./shell_scripts/
     RUN shellcheck shell_scripts/*

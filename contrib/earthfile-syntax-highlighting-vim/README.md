@@ -23,7 +23,9 @@ au BufRead,BufNewFile Earthfile set filetype=Earthfile
 au BufRead,BufNewFile build.earth set filetype=Earthfile
 ```
 
-Note in future versions `build.earth` will be removed.
+#### Neovim
+
+Neovim users will have to change the `~/.vim/` prefix in the above steps to `~/.config/nvim`.
 
 ## Screenshot
 
