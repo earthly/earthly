@@ -70,13 +70,12 @@ func getPotentialTarget(prefix string) ([]string, error) {
 	}
 	dirPath := splits[0]
 
-	currentUser, err := user.Current()
-	if err != nil {
-		return nil, err
-	}
-
 	realDirPath := dirPath
-	if strings.HasPrefix(prefix, "~/") {
+	if strings.HasPrefix(prefix, "~") {
+		currentUser, err := user.Lookup(strings.Replace(strings.Split(prefix, "/")[0], "~", "", 1))
+		if err != nil {
+			return nil, err
+		}
 		realDirPath = currentUser.HomeDir + "/" + dirPath[2:]
 	}
 
