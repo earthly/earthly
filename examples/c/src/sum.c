@@ -1,14 +1,7 @@
-#include <stdio.h>
-int main()
+#include "sum.h"
+
+int sum(int n1, int n2)
 {
-  int x, y, z;
+return (n1+n2);
 
-  printf("Enter two numbers to add: \n");
-  scanf("%d %d", &x, &y);
-
-  z = x + y;
-
-  printf("Sum of the numbers : %d\n", z);
-
-  return 0;
 }
