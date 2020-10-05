@@ -106,7 +106,7 @@ func newSolverMonitor(console conslogging.ConsoleLogger) *solverMonitor {
 	}
 }
 
-func (sm *solverMonitor) monitorProgress(ctx context.Context, ch chan *client.SolveStatus) error {
+func (sm *solverMonitor) monitorProgress(ctx context.Context, ch chan *client.SolveStatus, mutex *sync.Mutex) error {
 	var errVertex *vertexMonitor
 Loop:
 	for {
@@ -178,12 +178,14 @@ Loop:
 					if !vm.headerPrinted {
 						vm.printHeader()
 					}
+					mutex.Lock()
 					logger.Info(vs.ID)
 					on.Do(func() {
 						vm.console.Printf("%s\n", vs.ID)
 						progressBar.Start()
 					})
 					progressBar.SetCurrent(int64(progress))
+					mutex.Unlock()
 				}
 				progressBar.Finish()
 			}

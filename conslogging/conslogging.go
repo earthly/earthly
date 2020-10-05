@@ -25,6 +25,7 @@ const (
 )
 
 var currentConsoleMutex sync.Mutex
+var printMutex sync.Mutex
 
 // ConsoleLogger is a writer for consoles.
 type ConsoleLogger struct {
@@ -106,22 +107,26 @@ func (cl ConsoleLogger) WithFailed(isFailed bool) ConsoleLogger {
 
 // PrintSuccess prints the success message.
 func (cl ConsoleLogger) PrintSuccess() {
-	cl.mu.Lock()
-	defer cl.mu.Unlock()
+	printMutex.Lock()
+	// cl.mu.Lock()
 	cl.color(successColor).Fprintf(cl.w, "=========================== SUCCESS ===========================\n")
+	// cl.mu.Unlock()
+	printMutex.Unlock()
 }
 
 // PrintFailure prints the failure message.
 func (cl ConsoleLogger) PrintFailure() {
-	cl.mu.Lock()
-	defer cl.mu.Unlock()
+	printMutex.Lock()
+	// cl.mu.Lock()
 	cl.color(warnColor).Fprintf(cl.w, "=========================== FAILURE ===========================\n")
+	// cl.mu.Unlock()
+	printMutex.Unlock()
 }
 
 // Warnf prints a warning message in red
 func (cl ConsoleLogger) Warnf(format string, args ...interface{}) {
-	cl.mu.Lock()
-	defer cl.mu.Unlock()
+	printMutex.Lock()
+	// cl.mu.Lock()
 
 	c := cl.color(warnColor)
 	text := fmt.Sprintf(format, args...)
@@ -131,12 +136,14 @@ func (cl ConsoleLogger) Warnf(format string, args ...interface{}) {
 		cl.printPrefix()
 		c.Fprintf(cl.w, "%s\n", line)
 	}
+	// cl.mu.Unlock()
+	printMutex.Unlock()
 }
 
 // Printf prints formatted text to the console.
 func (cl ConsoleLogger) Printf(format string, args ...interface{}) {
-	cl.mu.Lock()
-	defer cl.mu.Unlock()
+	printMutex.Lock()
+	// cl.mu.Lock()
 	text := fmt.Sprintf(format, args...)
 	text = strings.TrimSuffix(text, "\n")
 	for _, line := range strings.Split(text, "\n") {
@@ -144,12 +151,14 @@ func (cl ConsoleLogger) Printf(format string, args ...interface{}) {
 		cl.w.Write([]byte(line))
 		cl.w.Write([]byte("\n"))
 	}
+	// cl.mu.Unlock()
+	printMutex.Unlock()
 }
 
 // PrintBytes prints bytes directly to the console.
 func (cl ConsoleLogger) PrintBytes(data []byte) {
-	cl.mu.Lock()
-	defer cl.mu.Unlock()
+	printMutex.Lock()
+	// cl.mu.Lock()
 
 	output := make([]byte, 0, len(data))
 	for len(data) > 0 {
@@ -179,10 +188,14 @@ func (cl ConsoleLogger) PrintBytes(data []byte) {
 		cl.w.Write(output)
 		output = output[:0]
 	}
+	// cl.mu.Unlock()
+	printMutex.Unlock()
 }
 
 func (cl ConsoleLogger) printPrefix() {
 	// Assumes mu locked.
+	// printMutex.Lock()
+
 	if cl.prefix == "" {
 		return
 	}
@@ -205,6 +218,7 @@ func (cl ConsoleLogger) printPrefix() {
 		cl.color(cachedColor).Fprintf(cl.w, "cached")
 		cl.w.Write([]byte("* "))
 	}
+	// printMutex.Unlock()
 }
 
 func (cl ConsoleLogger) color(c *color.Color) *color.Color {

@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"sync"
 
 	"github.com/earthly/earthly/earthfile2llb/image"
 	"github.com/earthly/earthly/llbutil"
@@ -28,6 +29,8 @@ type solver struct {
 	enttlmnts   []entitlements.Entitlement
 	remoteCache string
 }
+
+var printingMutex sync.Mutex
 
 func (s *solver) solveDocker(ctx context.Context, localDirs map[string]string, state llb.State, img *image.Image, dockerTag string, push bool) error {
 	dt, err := state.Marshal(ctx, llb.Platform(llbutil.TargetPlatform))
@@ -53,7 +56,7 @@ func (s *solver) solveDocker(ctx context.Context, localDirs map[string]string, s
 		return nil
 	})
 	eg.Go(func() error {
-		return s.sm.monitorProgress(ctx, ch)
+		return s.sm.monitorProgress(ctx, ch, &printingMutex)
 	})
 	eg.Go(func() error {
 		defer pipeR.Close()
@@ -111,7 +114,7 @@ func (s *solver) solveDockerTar(ctx context.Context, localDirs map[string]string
 		return nil
 	})
 	eg.Go(func() error {
-		return s.sm.monitorProgress(ctx, ch)
+		return s.sm.monitorProgress(ctx, ch, &printingMutex)
 	})
 	eg.Go(func() error {
 		file, err := os.Create(outFile)
@@ -174,7 +177,7 @@ func (s *solver) solveArtifacts(ctx context.Context, localDirs map[string]string
 		return nil
 	})
 	eg.Go(func() error {
-		return s.sm.monitorProgress(ctx, ch)
+		return s.sm.monitorProgress(ctx, ch, &printingMutex)
 	})
 	err = eg.Wait()
 	if err != nil {
@@ -228,7 +231,7 @@ func (s *solver) solveSideEffects(ctx context.Context, localDirs map[string]stri
 		return nil
 	})
 	eg.Go(func() error {
-		return s.sm.monitorProgress(ctx, ch)
+		return s.sm.monitorProgress(ctx, ch, &printingMutex)
 	})
 	err = eg.Wait()
 	if err != nil {
