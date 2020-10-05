@@ -7,7 +7,6 @@ WORKDIR /test
 
 all:
     BUILD +ga
-    BUILD +experimental-old
 
 ga:
     BUILD +privileged-test
@@ -37,11 +36,6 @@ ga:
     BUILD +env-test
     BUILD ./with-docker+all
     BUILD ./with-docker-compose+all
-
-experimental-old:
-    BUILD +docker-load-test-old
-    BUILD +dind-test-old
-    BUILD +docker-pull-test-old
 
 privileged-test:
     COPY privileged.earth ./Earthfile
@@ -213,24 +207,6 @@ star-test-todo:
     RUN cached_lines=$(cat output.txt | grep cached | wc -l); \
         echo "cached_lines=$cached_lines"; \
         test "$cached_lines" == "6"
-
-docker-load-test-old:
-    COPY docker-load-old.earth ./Earthfile
-    RUN --privileged \
-        --entrypoint \
-        -- --allow-privileged +test
-
-dind-test-old:
-    COPY dind-old.earth ./Earthfile
-    RUN --privileged \
-        --entrypoint \
-        -- --allow-privileged +test
-
-docker-pull-test-old:
-    COPY docker-pull-old.earth ./Earthfile
-    RUN --privileged \
-        --entrypoint \
-        -- --allow-privileged +test
 
 dockerfile-test:
     COPY --dir dockerfile ./

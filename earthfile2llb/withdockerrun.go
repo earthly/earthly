@@ -23,8 +23,9 @@ import (
 )
 
 const (
-	dockerdWrapperPath = "/var/earthly/dockerd-wrapper.sh"
-	composeConfigFile  = "compose-config.yml"
+	dockerdWrapperPath          = "/var/earthly/dockerd-wrapper.sh"
+	dockerAutoInstallScriptPath = "/var/earthly/docker-auto-install.sh"
+	composeConfigFile           = "compose-config.yml"
 )
 
 // DockerLoadOpt holds parameters for WITH DOCKER --load parameter.
@@ -148,8 +149,8 @@ func (wdr *withDockerRun) Run(ctx context.Context, args []string, opt WithDocker
 func (wdr *withDockerRun) installDeps(ctx context.Context) error {
 	var runOpts []llb.RunOption
 	runOpts = append(runOpts, llb.AddMount(
-		dockerdWrapperPath, llb.Scratch(), llb.HostBind(), llb.SourcePath(dockerdWrapperPath)))
-	args := []string{dockerdWrapperPath, "install-deps"}
+		dockerAutoInstallScriptPath, llb.Scratch(), llb.HostBind(), llb.SourcePath(dockerAutoInstallScriptPath)))
+	args := []string{dockerAutoInstallScriptPath}
 	runStr := fmt.Sprintf("WITH DOCKER (install deps)")
 	return wdr.c.internalRun(ctx, args, nil, true, withShellAndEnvVars, false, false, runStr, runOpts...)
 }

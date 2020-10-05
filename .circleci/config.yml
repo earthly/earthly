@@ -17,9 +17,6 @@ jobs:
           name: Run tests
           command: ./build/linux/amd64/earth -P --no-output +test
       - run:
-          name: Run experimental tests
-          command: ./build/linux/amd64/earth -P --no-output ./examples/tests/with-docker+all
-      - run:
           name: Execute fail test
           command: "! ./build/linux/amd64/earth --no-output +test-fail"
 workflows:

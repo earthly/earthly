@@ -2,10 +2,6 @@
 
 set -eu
 
-install_deps() {
-    apk add --update --no-cache docker-compose
-}
-
 # Runs docker-compose with the right -f flags.
 docker_compose_cmd() {
     compose_file_flags=""
@@ -102,11 +98,6 @@ load_images() {
 }
 
 case "$1" in
-    install-deps)
-        install_deps
-        exit 0
-        ;;
-    
     get-compose-config)
         write_compose_config
         exit 0
