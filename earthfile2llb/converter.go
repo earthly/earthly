@@ -19,7 +19,6 @@ import (
 	"github.com/earthly/earthly/buildcontext"
 	"github.com/earthly/earthly/cleanup"
 	"github.com/earthly/earthly/debugger/common"
-	"github.com/earthly/earthly/dockertar"
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/earthfile2llb/dedup"
 	"github.com/earthly/earthly/earthfile2llb/image"
@@ -312,7 +311,7 @@ func (c *Converter) CopyClassical(ctx context.Context, srcs []string, dest strin
 // Run applies the earth RUN command.
 func (c *Converter) Run(ctx context.Context, args []string, mounts []string, secretKeyValues []string, privileged bool, withEntrypoint bool, withDocker bool, isWithShell bool, pushFlag bool, withSSH bool) error {
 	if withDocker {
-		fmt.Printf("Warning: RUN --with-docker is deprecated. Please use WITH DOCKER ... RUN ... END instead\n")
+		return errors.New("RUN --with-docker is obsolete. Please use WITH DOCKER ... RUN ... END instead")
 	}
 	logging.GetLogger(ctx).
 		With("args", args).
@@ -352,9 +351,6 @@ func (c *Converter) Run(ctx context.Context, args []string, mounts []string, sec
 		strIf(pushFlag, "--push "),
 		strings.Join(finalArgs, " "))
 	shellWrap := withShellAndEnvVars
-	if withDocker {
-		shellWrap = withDockerdWrapOld
-	}
 	opts = append(opts, llb.WithCustomNamef("%s%s", c.vertexPrefix(), runStr))
 	return c.internalRun(ctx, finalArgs, secretKeyValues, isWithShell, shellWrap, pushFlag, withSSH, runStr, opts...)
 }
@@ -585,57 +581,12 @@ func (c *Converter) WithDockerRun(ctx context.Context, args []string, opt WithDo
 
 // DockerLoadOld applies the DOCKER LOAD command (outside of WITH DOCKER).
 func (c *Converter) DockerLoadOld(ctx context.Context, targetName string, dockerTag string, buildArgs []string) error {
-	fmt.Printf("Warning: DOCKER LOAD is deprecated. Please use WITH DOCKER --load\n")
-	logging.GetLogger(ctx).With("target-name", targetName).With("dockerTag", dockerTag).Info("Applying DOCKER LOAD")
-	depTarget, err := domain.ParseTarget(targetName)
-	if err != nil {
-		return errors.Wrapf(err, "parse target %s", targetName)
-	}
-	mts, err := c.Build(ctx, depTarget.String(), buildArgs)
-	if err != nil {
-		return err
-	}
-	err = c.solveAndLoadOld(
-		ctx, mts, depTarget.String(), dockerTag,
-		llb.WithCustomNamef(
-			"%sDOCKER LOAD %s %s", c.vertexPrefix(), depTarget.String(), dockerTag))
-	if err != nil {
-		return err
-	}
-	return nil
+	return errors.New("DOCKER LOAD is obsolete. Please use WITH DOCKER --load")
 }
 
 // DockerPullOld applies the DOCKER PULL command (outside of WITH DOCKER).
 func (c *Converter) DockerPullOld(ctx context.Context, dockerTag string) error {
-	fmt.Printf("Warning: DOCKER PULL is deprecated. Please use WITH DOCKER --pull\n")
-	logging.GetLogger(ctx).With("dockerTag", dockerTag).Info("Applying DOCKER PULL")
-	state, image, _, err := c.internalFromClassical(
-		ctx, dockerTag,
-		llb.WithCustomNamef("%sDOCKER PULL %s", c.vertexPrefix(), dockerTag),
-	)
-	if err != nil {
-		return err
-	}
-	mts := &MultiTargetStates{
-		FinalStates: &SingleTargetStates{
-			SideEffectsState: state,
-			SideEffectsImage: image,
-			SaveImages: []SaveImage{
-				{
-					State:     state,
-					Image:     image,
-					DockerTag: dockerTag,
-				},
-			},
-		},
-	}
-	err = c.solveAndLoadOld(
-		ctx, mts, dockerTag, dockerTag,
-		llb.WithCustomNamef("%sDOCKER LOAD (PULL %s)", c.vertexPrefix(), dockerTag))
-	if err != nil {
-		return err
-	}
-	return nil
+	return errors.New("DOCKER PULL is obsolete. Please use WITH DOCKER --pull")
 }
 
 // Healthcheck applies the HEALTHCHECK command.
@@ -753,61 +704,6 @@ func (c *Converter) internalRun(ctx context.Context, args []string, secretKeyVal
 	} else {
 		c.mts.FinalStates.SideEffectsState = c.mts.FinalStates.SideEffectsState.Run(finalOpts...).Root()
 	}
-	return nil
-}
-
-func (c *Converter) solveAndLoadOld(ctx context.Context, mts *MultiTargetStates, opName string, dockerTag string, opts ...llb.RunOption) error {
-	// Use a builder to create docker .tar file, mount it via a local build context,
-	// then docker load it within the current side effects state.
-	outDir, err := ioutil.TempDir("/tmp", "earthly-docker-load")
-	if err != nil {
-		return errors.Wrap(err, "mk temp dir for docker load")
-	}
-	c.cleanCollection.Add(func() error {
-		return os.RemoveAll(outDir)
-	})
-	outFile := path.Join(outDir, "image.tar")
-	err = c.dockerBuilderFun(ctx, mts, dockerTag, outFile)
-	if err != nil {
-		return errors.Wrapf(err, "build target %s for docker load", opName)
-	}
-	dockerImageID, err := dockertar.GetID(outFile)
-	if err != nil {
-		return errors.Wrap(err, "inspect docker tar after build")
-	}
-	// Use the docker image ID + dockerTag as sessionID. This will cause
-	// buildkit to use cache when these are the same as before (eg a docker image
-	// that is identical as before).
-	sessionIDKey := fmt.Sprintf("%s-%s", dockerTag, dockerImageID)
-	sha256SessionIDKey := sha256.Sum256([]byte(sessionIDKey))
-	sessionID := hex.EncodeToString(sha256SessionIDKey[:])
-	// Add the tar to the local context.
-	tarContext := llb.Local(
-		opName,
-		llb.SharedKeyHint(opName),
-		llb.SessionID(sessionID),
-		llb.Platform(llbutil.TargetPlatform),
-		llb.WithCustomNamef("[internal] docker tar context %s %s", opName, sessionID),
-	)
-	c.mts.FinalStates.LocalDirs[opName] = outDir
-
-	c.mts.FinalStates.SideEffectsState = c.mts.FinalStates.SideEffectsState.File(
-		llb.Mkdir("/var/lib/docker", 0755, llb.WithParents(true)),
-		llb.WithCustomNamef("[internal] mkdir /var/lib/docker"),
-	)
-	loadOpts := []llb.RunOption{
-		llb.Args(
-			withDockerdWrapOld(
-				[]string{"docker", "load", "</src/image.tar"}, []string{}, true, false)),
-		llb.AddMount("/src", tarContext, llb.Readonly),
-		llb.Dir("/src"),
-		llb.Security(llb.SecurityModeInsecure),
-	}
-	loadOpts = append(loadOpts, opts...)
-	loadOp := c.mts.FinalStates.SideEffectsState.Run(loadOpts...)
-	c.mts.FinalStates.SideEffectsState = loadOp.AddMount(
-		"/var/lib/docker", c.mts.FinalStates.SideEffectsState,
-		llb.SourcePath("/var/lib/docker"))
 	return nil
 }
 

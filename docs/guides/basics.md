@@ -317,7 +317,7 @@ build:
     # artifacts bin and lib (they can be later referenced as +build/bin and
     # +build/lib respectively).
     # In addition, store the artifacts as local dirs (on the host) named
-    # build/bin and build/lib. This local dirs are only written if the entire
+    # build/bin and build/lib. These local dirs are only written if the entire
     # build succeeds.
     SAVE ARTIFACT build/install/java-example/bin /bin AS LOCAL build/bin
     SAVE ARTIFACT build/install/java-example/lib /lib AS LOCAL build/lib
@@ -351,7 +351,7 @@ WORKDIR /code
 
 #Declare a target, build
 build:
-     # Copy the source files from build context to the build enviroment 
+     # Copy the source files from build context to the build environment 
     COPY src src
     # Save the python source in an artifact dir called src (it can be later
     SAVE ARTIFACT src /src
@@ -726,7 +726,7 @@ For a primer into Dockerfile layer caching see [this article](https://pythonspee
 
 ## Reduce code duplication
 
-In some cases, the dependencies might be used in more than one build target. For this usecase, we might want to separate dependency downloading and reuse it. For this reason, let's consider breaking this out into a separate build target, called `deps`. We can then inherit from `deps` by using the command `FROM +deps`.
+In some cases, the dependencies might be used in more than one build target. For this use case, we might want to separate dependency downloading and reuse it. For this reason, let's consider breaking this out into a separate build target, called `deps`. We can then inherit from `deps` by using the command `FROM +deps`.
 
 Note that in our case, only the JavaScript version has an example where `FROM +deps` is used in more than one place: both in `build` and in `docker`. Nevertheless, all versions show how dependencies may be separated.
 
