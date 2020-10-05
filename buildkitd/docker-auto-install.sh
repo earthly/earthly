@@ -2,6 +2,8 @@
 
 set -eu
 
+distro=$(sed -n -e 's/^ID=\(.*\)/\1/p' /etc/os-release)
+
 detect_dockerd() {
     set +e
     command -v dockerd
@@ -26,92 +28,82 @@ print_debug() {
     set -u
 }
 
-for_alpine() {
-    if ! detect_dockerd; then
-        echo "Docker Engine is missing. Attempting to install automatically."
-        apk add --update --no-cache docker
-        echo "Docker Engine was missing. It has been installed automatically by Earthly."
-        dockerd --version
-        echo "For better use of cache, try using the official earthly/dind image for WITH DOCKER."
-    else
-        print_debug "dockerd already installed"
-    fi
-    if [ "$EARTHLY_START_COMPOSE" = "true" ]; then
-        if ! detect_docker_compose; then
-            echo "Docker Compose is missing. Attempting to install automatically."
+install_docker_compose() {
+    case "$distro" in
+        alpine)
             apk add --update --no-cache docker-compose
-            echo "Docker Compose was missing. It has been installed automatically by Earthly."
-            docker-compose --version
-            echo "For better use of cache, try using the official earthly/dind image for WITH DOCKER."
-        else
-            print_debug "docker-compose already installed"
-        fi
-    else
-        print_debug "docker-compose not needed"
-    fi
-}
+            ;;
 
-for_debian() {
-    if ! detect_dockerd; then
-        echo "Docker Engine is missing. Attempting to install automatically."
-        apt-get update
-        apt-get install -y \
-            apt-transport-https \
-            ca-certificates \
-            curl \
-            gnupg-agent \
-            software-properties-common
-        curl -fsSL https://download.docker.com/linux/debian/gpg | apt-key add -
-        add-apt-repository \
-            "deb [arch=amd64] https://download.docker.com/linux/debian \
-            $(lsb_release -cs) \
-            stable"
-        apt-get update
-        apt-get install -y docker-ce docker-ce-cli containerd.io
-        echo "Docker Engine was missing. It has been installed automatically by Earthly."
-        dockerd --version
-        echo "For better use of cache, try using the official earthly/dind image for WITH DOCKER."
-    else
-        print_debug "dockerd already installed"
-    fi
-
-    if [ "$EARTHLY_START_COMPOSE" = "true" ]; then
-        if ! detect_docker_compose; then
-            echo "Docker Compose is missing. Attempting to install automatically."
+        *)
             curl -L "https://github.com/docker/compose/releases/download/1.27.4/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
             chmod +x /usr/local/bin/docker-compose
-            echo "Docker Compose was missing. It has been installed automatically by Earthly."
-            docker-compose --version
-            echo "For better use of cache, try using the official earthly/dind image for WITH DOCKER."
-        else
-            print_debug "docker-compose already installed"
-        fi
-    else
-        print_debug "docker-compose not needed"
-    fi
+            ;;
+    esac
+}
+
+install_dockerd() {
+    case "$distro" in
+        alpine)
+            apk add --update --no-cache docker
+            ;;
+
+        ubuntu)
+            install_dockerd_debian_like
+            ;;
+
+        debian)
+            install_dockerd_debian_like
+            ;;
+
+        *)
+            echo "Warning: Distribution $distro not yet supported for Docker-in-Earthly."
+            echo "Will attempt to treat like Debian."
+            install_dockerd_debian_like
+            ;;
+    esac
+}
+
+install_dockerd_debian_like() {
+    apt-get update
+    apt-get install -y \
+        apt-transport-https \
+        ca-certificates \
+        curl \
+        gnupg-agent \
+        software-properties-common
+    curl -fsSL "https://download.docker.com/linux/$distro/gpg" | apt-key add -
+    add-apt-repository \
+        "deb [arch=$(dpkg --print-architecture)] https://download.docker.com/linux/$distro \
+        $(lsb_release -cs) \
+        stable"
+    apt-get update
+    apt-get install -y docker-ce docker-ce-cli containerd.io
 }
 
 if [ "$(id -u)" != 0 ]; then
     echo "Warning: Docker-in-Earthly needs to be run as root user"
 fi
 
-distro=$(sed -n -e 's/^ID=\(.*\)/\1/p' /etc/os-release)
-case "$distro" in
-    alpine)
-        for_alpine
-        ;;
+if ! detect_dockerd; then
+    echo "Docker Engine is missing. Attempting to install automatically."
+    install_dockerd
+    echo "Docker Engine was missing. It has been installed automatically by Earthly."
+    dockerd --version
+    echo "For better use of cache, try using the official earthly/dind image for WITH DOCKER."
+else
+    print_debug "dockerd already installed"
+fi
 
-    ubuntu)
-        for_debian
-        ;;
-
-    debian)
-        for_debian
-        ;;
-
-    *)
-        echo "Warning: Distribution $distro not yet supported for Docker-in-Earthly."
-        echo "Will attempt to treat like Debian."
-        for_debian
-        ;;
-esac
+if [ "$EARTHLY_START_COMPOSE" = "true" ]; then
+    if ! detect_docker_compose; then
+        echo "Docker Compose is missing. Attempting to install automatically."
+        install_docker_compose
+        echo "Docker Compose was missing. It has been installed automatically by Earthly."
+        docker-compose --version
+        echo "For better use of cache, try using the official earthly/dind image for WITH DOCKER."
+    else
+        print_debug "docker-compose already installed"
+    fi
+else
+    print_debug "docker-compose not needed"
+fi
