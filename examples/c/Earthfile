@@ -25,3 +25,61 @@ docker:
   COPY +build/sum /bin/sum
   ENTRYPOINT ["/bin/sum"]
   SAVE IMAGE c-example:latest
+
+test:
+ For Automated testing:
+  ADD +cunit_test.c
+    #include <CUnit/Automated.h>
+    void         CU_automated_run_tests(void)
+    CU_ErrorCode CU_list_tests_to_file(void)
+    void         CU_set_output_filename(const char* szFilenameRoot)
+    # The Header Files are installed in the root Library Directory.
+  RUN 
+
+  For Basic testing:
+    ADD +cunit_test.c
+      #include <CUnit/Basic.h>
+      typedef enum    CU_BasicRunMode
+      CU_ErrorCode    CU_basic_run_tests(void)
+      CU_ErrorCode    CU_basic_run_suite(CU_pSuite pSuite)
+      CU_ErrorCode    CU_basic_run_test(CU_pSuite pSuite, CU_pTest pTest)
+      void            CU_basic_set_mode(CU_BasicRunMode mode)
+      CU_BasicRunMode CU_basic_get_mode(void)
+      void            CU_basic_show_failures(CU_pFailureRecord pFailure)
+      # The Header Files are installed in the root Library Directory.
+    RUN
+
+  For Interactive Console Mode Testing:
+    ADD +cunit_test.c
+      #include <CUnit/Console.h>
+      void CU_console_run_tests(void)
+      # The Header Files are installed in the root Library Directory.
+    RUN
+
+  For Interactive Curses Mode Testing:
+    ADD +cunit_test.c
+      #include <CUnit/CUCurses.h>
+      void CU_curses_run_tests(void)
+      # The Header Files are installed in the root Library Directory.
+    RUN
+  
+  Accessing TEST RESULTS:
+
+    unsigned int CU_get_number_of_suites_run(void)
+    unsigned int CU_get_number_of_suites_failed(void)
+    unsigned int CU_get_number_of_tests_run(void)
+    unsigned int CU_get_number_of_tests_failed(void)
+    unsigned int CU_get_number_of_asserts(void)
+    unsigned int CU_get_number_of_successes(void)
+    unsigned int CU_get_number_of_failures(void)
+
+
+
+  
+
+
+  
+
+
+
+  
