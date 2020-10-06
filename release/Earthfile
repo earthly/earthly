@@ -10,6 +10,9 @@ release:
 release-dockerhub:
     ARG RELEASE_TAG
     RUN test -n "$RELEASE_TAG"
+    BUILD --build-arg DIND_ALPINE_TAG=alpine ../+dind-alpine
+    BUILD --build-arg DIND_ALPINE_TAG=latest ../+dind-alpine
+    BUILD --build-arg DIND_UBUNTU_TAG=ubuntu ../+dind-ubuntu
     BUILD --build-arg TAG="$RELEASE_TAG" ../+earth-docker
     BUILD --build-arg TAG="$RELEASE_TAG" ../buildkitd+buildkitd
     BUILD --build-arg TAG=latest ../+earth-docker

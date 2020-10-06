@@ -665,6 +665,7 @@ func (l *listener) ExitDockerLoadStmt(c *parser.DockerLoadStmtContext) {
 			l.err = fmt.Errorf("cannot DOCKER LOAD after the RUN command in a WITH DOCKER clause")
 			return
 		}
+		fmt.Printf("Warning: DOCKER LOAD is deprecated. Please use WITH DOCKER --load %s=%s instead\n", imageName, fullTargetName)
 		l.withDocker.Loads = append(l.withDocker.Loads, DockerLoadOpt{
 			Target:    fullTargetName,
 			ImageName: imageName,
@@ -697,6 +698,7 @@ func (l *listener) ExitDockerPullStmt(c *parser.DockerPullStmtContext) {
 			l.err = fmt.Errorf("cannot DOCKER PULL after the RUN command in a WITH DOCKER clause")
 			return
 		}
+		fmt.Printf("Warning: DOCKER PULL is deprecated. Please use WITH DOCKER --pull %s instead\n", imageName)
 		l.withDocker.Pulls = append(l.withDocker.Pulls, imageName)
 	}
 }
