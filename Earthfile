@@ -179,7 +179,7 @@ dind-ubuntu:
     FROM ubuntu:latest
     COPY ./buildkitd/docker-auto-install.sh /usr/local/bin/docker-auto-install.sh
     RUN docker-auto-install.sh
-    ARG DIND_ALPINE_TAG=ubuntu-$EARTHLY_TARGET_TAG_DOCKER
+    ARG DIND_UBUNTU_TAG=ubuntu-$EARTHLY_TARGET_TAG_DOCKER
     SAVE IMAGE --push earthly/dind:$DIND_UBUNTU_TAG
 
 for-linux:
