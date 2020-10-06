@@ -1,0 +1,95 @@
+Summary:  A unit testing framework for 'C'
+Name:     @PACKAGE@
+Version:  @VERSION@
+Release:  @RELEASE@
+Source:   http://www.sourceforge.net/projects/cunit/@PACKAGE@-@VERSION@-@RELEASE@.tar.gz
+Group:    Development/Tools
+License:  GPL
+URL:      http://cunit.sourceforge.net
+Packager: Jerry St. Clair <jds2@users.sourceforge.net>
+
+%description
+CUnit is a unit testing framework for C.
+This package installs the CUnit static library,
+headers, and documentation files.
+
+%prep
+echo "Preparing for Installation."
+%setup -q -n @PACKAGE@-@VERSION@-@RELEASE@
+
+%build
+echo "Preparing for Building."
+./configure --prefix=%{_prefix} --enable-automated --enable-basic --enable-console --enable-curses --enable-examples --enable-test && \
+make
+
+%install
+echo "Preparing for Make install."
+make DESTDIR=$RPM_BUILD_ROOT install
+
+%clean
+
+%files
+%defattr(-,root,root)
+
+########### Include Files
+%{_prefix}/include/CUnit/Automated.h
+%{_prefix}/include/CUnit/Basic.h
+%{_prefix}/include/CUnit/Console.h
+%{_prefix}/include/CUnit/CUError.h
+%{_prefix}/include/CUnit/CUnit.h
+%{_prefix}/include/CUnit/CUnit_intl.h
+%{_prefix}/include/CUnit/CUCurses.h
+%{_prefix}/include/CUnit/MyMem.h
+%{_prefix}/include/CUnit/TestDB.h
+%{_prefix}/include/CUnit/TestRun.h
+%{_prefix}/include/CUnit/Util.h
+
+########## Library Files
+%{_prefix}/lib/libcunit.a
+%{_prefix}/lib/libcunit.so.@LIBTOOL_SUFFIX@
+
+########## doc Files
+%{_prefix}/doc/@PACKAGE@/CUnit_doc.css
+%{_prefix}/doc/@PACKAGE@/error_handling.html
+%{_prefix}/doc/@PACKAGE@/fdl.html
+%{_prefix}/doc/@PACKAGE@/index.html
+%{_prefix}/doc/@PACKAGE@/introduction.html
+%{_prefix}/doc/@PACKAGE@/managing_tests.html
+%{_prefix}/doc/@PACKAGE@/running_tests.html
+%{_prefix}/doc/@PACKAGE@/test_registry.html
+%{_prefix}/doc/@PACKAGE@/writing_tests.html
+%{_prefix}/doc/@PACKAGE@/headers/Automated.h
+%{_prefix}/doc/@PACKAGE@/headers/Basic.h
+%{_prefix}/doc/@PACKAGE@/headers/Console.h
+%{_prefix}/doc/@PACKAGE@/headers/CUError.h
+%{_prefix}/doc/@PACKAGE@/headers/CUnit.h
+%{_prefix}/doc/@PACKAGE@/headers/CUnit_intl.h
+%{_prefix}/doc/@PACKAGE@/headers/CUCurses.h
+%{_prefix}/doc/@PACKAGE@/headers/MyMem.h
+%{_prefix}/doc/@PACKAGE@/headers/TestDB.h
+%{_prefix}/doc/@PACKAGE@/headers/TestRun.h
+%{_prefix}/doc/@PACKAGE@/headers/Util.h
+%{_prefix}/doc/@PACKAGE@/headers/Win.h
+
+########## Manpage Files
+%{_prefix}/man/man3/CUnit.3*
+
+########## Share information and Example Files
+%{_prefix}/share/@PACKAGE@/Examples/Automated/README
+%{_prefix}/share/@PACKAGE@/Examples/Automated/AutomatedTest
+%{_prefix}/share/@PACKAGE@/Examples/Basic/README
+%{_prefix}/share/@PACKAGE@/Examples/Basic/BasicTest
+%{_prefix}/share/@PACKAGE@/Examples/Console/README
+%{_prefix}/share/@PACKAGE@/Examples/Console/ConsoleTest
+%{_prefix}/share/@PACKAGE@/Examples/Curses/README
+%{_prefix}/share/@PACKAGE@/Examples/Curses/CursesTest
+%{_prefix}/share/@PACKAGE@/Test/test_cunit
+%{_prefix}/share/@PACKAGE@/CUnit-List.dtd
+%{_prefix}/share/@PACKAGE@/CUnit-List.xsl
+%{_prefix}/share/@PACKAGE@/CUnit-Run.dtd
+%{_prefix}/share/@PACKAGE@/CUnit-Run.xsl
+%{_prefix}/share/@PACKAGE@/Memory-Dump.dtd
+%{_prefix}/share/@PACKAGE@/Memory-Dump.xsl
+
+# Add the change log in ChangeLog file located under source home directory.
+# The same file is used internally to populate the change log for the RPM creation.

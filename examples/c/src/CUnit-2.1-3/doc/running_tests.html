@@ -1,0 +1,407 @@
+<HTML>
+<HEAD>
+  <TITLE>CUnit - Running Tests</TITLE>
+  <LINK REL=StyleSheet HREF="CUnit_doc.css" TYPE="text/css" TITLE="CUnit Basic Style" />
+</HEAD>
+<BODY>
+<DIV CLASS="NAVHEADER" >
+<TABLE SUMMARY="Header navigation table" WIDTH="100%" BORDER="0" CELLPADDING="0" CELLSPACING="0">
+  <TR>
+    <TH COLSPAN="3" ALIGN="center"><H3>CUnit Progammers Guide</H3></TH>
+  </TR>
+  <TR>
+    <TD WIDTH="10%" ALIGN="left" VALIGN="bottom"><A HREF="managing_tests.html" ACCESSKEY="P" >Prev</A></TD>
+    <TD WIDTH="80%" ALIGN="center" VALIGN="bottom"><A HREF="index.html" ACCESSKEY="H" >Home</A></TD>
+    <TD WIDTH="10%" ALIGN="right" VALIGN="bottom"><A HREF="error_handling.html" ACCESSKEY="N" >Next</A></TD>
+  </TR>
+</TABLE>
+<HR ALIGN="LEFT" WIDTH="100%">
+
+<H2>5. Running Tests</H2>
+
+<H3 ID="synopsis">5.1. Synopsis</H3>
+#include &lt;<A HREF="headers/Automated.h">CUnit/Automated.h</A>&gt;
+<PRE>
+  void         <A HREF="#automated">CU_automated_run_tests</A>(void)
+  CU_ErrorCode <A HREF="#automated">CU_list_tests_to_file</A>(void)
+  void         <A HREF="#automated">CU_set_output_filename</A>(const char* szFilenameRoot)
+</PRE>
+<P />
+
+#include &lt;<A HREF="headers/basic.h">CUnit/Basic.h</A>&gt;
+<PRE>
+  typedef enum    <A HREF="#basic">CU_BasicRunMode</A>
+  CU_ErrorCode    <A HREF="#basic">CU_basic_run_tests</A>(void)
+  CU_ErrorCode    <A HREF="#basic">CU_basic_run_suite</A>(CU_pSuite pSuite)
+  CU_ErrorCode    <A HREF="#basic">CU_basic_run_test</A>(CU_pSuite pSuite, CU_pTest pTest)
+  void            <A HREF="#basic">CU_basic_set_mode</A>(CU_BasicRunMode mode)
+  CU_BasicRunMode <A HREF="#basic">CU_basic_get_mode</A>(void)
+  void            <A HREF="#basic">CU_basic_show_failures</A>(CU_pFailureRecord pFailure)
+</PRE>
+<P />
+
+#include &lt;<A HREF="headers/Console.h">CUnit/Console.h</A>&gt;
+<PRE>
+  void <A HREF="#console">CU_console_run_tests</A>(void)
+</PRE>
+<P />
+
+#include &lt;<A HREF="headers/CUCurses.h">CUnit/CUCurses.h</A>&gt;
+<PRE>
+  void <A HREF="#curses">CU_curses_run_tests</A>(void)
+</PRE>
+
+<P />
+#include &lt;<A HREF="headers/TestRun.h">CUnit/TestRun.h</A>&gt;
+(included automatically by &lt;<A HREF="headers/CUnit.h">CUnit/CUnit.h</A>&gt;)
+<PRE>
+  unsigned int <A HREF="#results">CU_get_number_of_suites_run</A>(void)
+  unsigned int <A HREF="#results">CU_get_number_of_suites_failed</A>(void)
+  unsigned int <A HREF="#results">CU_get_number_of_tests_run</A>(void)
+  unsigned int <A HREF="#results">CU_get_number_of_tests_failed</A>(void)
+  unsigned int <A HREF="#results">CU_get_number_of_asserts</A>(void)
+  unsigned int <A HREF="#results">CU_get_number_of_successes</A>(void)
+  unsigned int <A HREF="#results">CU_get_number_of_failures</A>(void)
+
+  typedef struct <A HREF="#results">CU_RunSummary</A>
+  typedef CU_Runsummary* <A HREF="#results">CU_pRunSummary</A>
+  const CU_pRunSummary <A HREF="#results">CU_get_run_summary</A>(void)
+
+  typedef struct <A HREF="#results">CU_FailureRecord</A>
+  typedef CU_FailureRecord*  <A HREF="#results">CU_pFailureRecord</A>
+  const CU_pFailureRecord <A HREF="#results">CU_get_failure_list</A>(void)
+  unsigned int <A HREF="#results">CU_get_number_of_failure_records</A>(void)
+
+  void <A HREF="#modifying-inactive">CU_set_fail_on_inactive</A>(CU_BOOL new_inactive)
+  CU_BOOL <A HREF="#modifying-inactive">CU_get_fail_on_inactive</A>(void)
+</PRE>
+<P />
+
+<H3 ID="overview">5.2. Running Tests in CUnit</H3>
+CUnit supports running all tests in all registered suites, but individual tests
+or suites can also be run.  During each run, the framework keeps track of the 
+number of suites, tests, and assertions run, passed, and failed.  Note that the
+previous results are cleared each time a test run is initiated (even if it fails).
+Individual suites or tests can be <A HREF="managing_tests.html#activation">deactivated</A> 
+if the client wishes to exclude them from a particular test run.  However, it is
+a <A HREF="error_handling.html#errorhandling">framework error</A> to deactivate a 
+suite or test and then explicitly request that it be run.
+<P />
+While CUnit provides primitive functions for running suites and tests, most
+users will want to use one of the simplified user interfaces.  These
+interfaces handle the details of interaction with the framework and provide
+output of test details and results for the user.
+<P />
+The following interfaces are included in the CUnit library:
+<P CLASS="indent5">
+<TABLE CELLPADDING=3 BORDER=1>
+  <TR>
+    <TD><B>Interface</B></TD>
+    <TD ALIGN="center"><B>Platform</B></TD>
+    <TD><B>Description</B></TD>
+  </TR>
+  <TR>
+    <TD><A HREF="#automated">Automated</A></TD>
+    <TD ALIGN="center">all</TD>
+    <TD>non-interactive with output to xml files</TD>
+  </TR>
+  <TR>
+    <TD><A HREF="#basic">Basic</A></TD>
+    <TD ALIGN="center">all</TD>
+    <TD>non-interactive with optional output to stdout</TD>
+  </TR>
+  <TR>
+    <TD><A HREF="#console">Console</A></TD>
+    <TD ALIGN="center">all</TD>
+    <TD>interactive console mode under user control</TD>
+  </TR>
+  <TR>
+    <TD><A HREF="#curses">Curses</A></TD>
+    <TD ALIGN="center">Linux/Unix</TD>
+    <TD>interactive curses mode under user control</TD>
+  </TR>
+</TABLE>
+</P>
+If these interfaces are not sufficient, clients can also use
+the primitive framework API defined in
+&lt;<A HREF="headers/TestRun.h">CUnit/TestRun.h</A>&gt;.  See the source
+code for the various interfaces for examples of how to interact with
+the primitive API directly.
+
+<H3 ID="automated">5.3. Automated Mode</H3>
+The automated interface is non-interactive.  Clients initiate a test run,
+and the results are output to an XML file.  A listing of the registered tests
+and suites can also be reported to an XML file.
+<P />
+The following functions comprise the automated interface API:
+
+<P ID="auto-run" CLASS="indent2"><CITE>void <B>CU_automated_run_tests</B>(void)</CITE></P>
+<P CLASS="indent5">Runs all tests in all registered (and active) suites.  Test results 
+are output to a file named <I>ROOT-Results.xml</I>.  The filename <I>ROOT</I> can
+be set using <A HREF="#auto-setroot">CU_set_output_filename()</A>, or else the default
+<I>CUnitAutomated-Results.xml</I> is used.  Note that if a distict filename <I>ROOT</I>
+is not set before each run, the results file will be overwritten.
+<BR /><BR />
+The results file is supported by both a document type definition
+file (<I>CUnit-Run.dtd</I>) and XSL stylesheet (<I>CUnit-Run.xsl</I>).
+These are provided in the <I>Share</I> subdirectory of the source and installation
+trees.</P>
+
+<P ID="auto-list" CLASS="indent2"><CITE>CU_ErrorCode <B>CU_list_tests_to_file</B>(void)</CITE></P>
+<P CLASS="indent5">Lists the registered suites and associated tests to file.
+The listing file is named <I>ROOT-Listing.xml</I>. The filename <I>ROOT</I>
+can be set using <A HREF="#auto-setroot">CU_set_output_filename()</A>, or else the default
+<I>CUnitAutomated</I> is used.  Note that if a distict filename <I>ROOT</I>
+is not set before each run, the listing file will be overwritten.
+<BR /><BR />
+The listing file is supported by both a document type definition
+file (<I>CUnit-List.dtd</I>) and XSL stylesheet (<I>CUnit-List.xsl</I>).
+These are provided in the <I>Share</I> subdirectory of the source and installation
+trees.
+<BR /><BR />
+Note also that a listing file is not generated automatically by
+<A HREF="#auto-run">CU_automated_run_tests()</A>.  Client code must explicitly request a
+listing when one is desired.</P>
+
+<P ID="auto-setroot" CLASS="indent2"><CITE>void <B>CU_set_output_filename</B>(const char* szFilenameRoot)</CITE></P>
+<P CLASS="indent5">Sets the output filenames for the results and listing files.
+<I>szFilenameRoot</I> is used to construct the filenames by appending
+<I>-Results.xml</I> and <I>-Listing.xml</I>, respectively.
+
+<H3 ID="basic">5.4. Basic Mode</H3>
+The basic interface is also non-interactive, with results output to stdout. This
+interface supports running individual suites or tests, and allows client code to
+control the type of output displayed during each run.  This interface provides the
+most flexibility to clients desiring simplified access to the CUnit API.
+<P />
+The following public functions are provided:
+
+<P ID="basic-runall" CLASS="indent2"><CITE>CU_ErrorCode <B>CU_basic_run_tests</B>(void)</CITE></P>
+<P CLASS="indent5">Runs all tests in all registered suites.  Only active 
+suites are executed, and it is not considered an error if inactive suites
+are encountered and skipped.  Returns the 1st error code occurring during 
+the test run.  The type of output is controlled by the current run mode, 
+which can be set using <A HREF="#basic-setmode">CU_basic_set_mode()</A>.
+
+<P ID="basic-runsuite" CLASS="indent2"><CITE>CU_ErrorCode <B>CU_basic_run_suite</B>(CU_pSuite pSuite)</CITE></P>
+<P CLASS="indent5">Runs all tests in single specified suite.  Returns the 1st
+error code occurring during the test run.  <CITE>CU_basic_run_suite</CITE> itself
+sets <CITE>CUE_NOSUITE</CITE> if pSuite is <CODE>NULL</CODE> and 
+<CITE>CUE_SUITE_INACTIVE</CITE> if pSuite is not active for execution.
+The type of output is controlled by the current run mode, which can be set using 
+<A HREF="#basic-setmode">CU_basic_set_mode()</A>.
+
+<P ID="basic-runtest" CLASS="indent2"><CITE>CU_ErrorCode <B>CU_basic_run_test</B>(CU_pSuite pSuite, CU_pTest pTest)</CITE></P>
+<P CLASS="indent5">Runs a single test in a specified suite.  Returns the 1st
+error code occurring during the test run.  <CITE>CU_basic_run_test</CITE> itself
+sets <CITE>CUE_NOSUITE</CITE> if pSuite is <CODE>NULL</CODE>, <CITE>CUE_NOTEST</CITE>
+if pTest is <CODE>NULL</CODE>, <CITE>CUE_SUITE_INACTIVE</CITE> if pSuite is not
+active, <CITE>CUE_TEST_NOT_IN_SUITE</CITE> if pTest is not a registered test in
+pSuite, and <CITE>CUE_TEST_INACTIVE</CITE> if pTest is not active.  The type of 
+output is controlled by the current run mode, which can be set using 
+<A HREF="#basic-setmode">CU_basic_set_mode()</A>.
+
+<P ID="basic-setmode" CLASS="indent2"><CITE>void <B>CU_basic_set_mode</B>(CU_BasicRunMode mode)</CITE></P>
+<P CLASS="indent5">Sets the basic run mode, which controls the output during
+test runs.  Choices are:
+<P CLASS="indent10">
+<TABLE CELLPADDING=1>
+  <TR>
+    <TD><CITE>CU_BRM_NORMAL</CITE></TD>
+    <TD>Failures and run summary are printed.</TD>
+  </TR>
+  <TR>
+    <TD><CITE>CU_BRM_SILENT</CITE></TD>
+    <TD>No output is printed except error messages.</TD>
+  </TR>
+  <TR>
+    <TD><CITE>CU_BRM_VERBOSE</CITE></TD>
+    <TD>Maximum output of run details.</TD>
+  </TR>
+</TABLE>
+</P>
+
+<P ID="basic-getmode" CLASS="indent2"><CITE>CU_BasicRunMode <B>CU_basic_get_mode</B>(void)</CITE></P>
+<P CLASS="indent5">Retrieves the current basic run mode code.
+
+<P ID="basic-failure" CLASS="indent2"><CITE>void <B>CU_basic_show_failures</B>(CU_pFailureRecord pFailure)</CITE></P>
+<P CLASS="indent5">Prints a summary of all failures to stdout.
+Does not depend on the run mode.
+
+<H3 ID="console">5.5. Interactive Console Mode</H3>
+The console interface is interactive.  All the client needs to do is
+initiate the console session, and the user controls the test run
+interactively.  This includes selection & running of registered suites
+and tests, and viewing test results.  To start a console session, use
+<P ID="console-run" CLASS="indent2"><CITE>void <B>CU_console_run_tests</B>(void)</CITE></P>
+
+<H3 ID="curses">5.6. Interactive Curses Mode</H3>
+The curses interface is interactive.  All the client needs to do is
+initiate the curses session, and the user controls the test run
+interactively.  This include selection & running of registered suites 
+and tests, and viewing test results.  Use of this interface requires 
+linking the ncurses library into the application.  To start a curses 
+session, use
+<P ID="curses-run" CLASS="indent2"><CITE>void <B>CU_curses_run_tests</B>(void)</CITE></P>
+
+<H3 ID="modifying">5.7. Modifying General Runtime Behavior</H3>
+The following functions allow the client to modify the behavior of the 
+framework during a test run:
+<P ID="modifying-inactive" CLASS="indent2"><CITE>
+  void <B>CU_set_fail_on_inactive</B>(CU_BOOL new_inactive)<BR />
+  CU_BOOL <B>CU_get_fail_on_inactive</B>(void)<BR />
+</CITE></P>                                                 
+<P CLASS="indent5">The default runtime behavior is for inactive suites and
+tests to be reported as failures.  This is so the client is aware that their 
+test structure has been partially deactivated.  If the client prefers to have
+inactive suites and tests ignored, the behavior can be modified using these
+functions.  A value of <CODE>CU_FALSE</CODE> indicates that the framework 
+will ignore inactive entities; <CODE>CU_TRUE</CODE> will have them treated as
+failures.</P>
+
+<H3 ID="results">5.8. Getting Test Results</H3>
+The interfaces present results of test runs, but client code may sometimes need
+to access the results directly.  These results include various run counts, as
+well as a linked list of failure records holding the failure details. Note that
+test results are overwritten each time a new test run is started, or when the
+registry is <A HREF="test_registry.html#init">initialized</A> or
+<A HREF="test_registry.html#cleanup">cleaned up</A>.
+<P />
+Functions for accessing the test results are:
+
+<P ID="results-counts" CLASS="indent2"><CITE>
+  unsigned int <B>CU_get_number_of_suites_run</B>(void)<BR />
+  unsigned int <B>CU_get_number_of_suites_failed</B>(void)<BR />
+  unsigned int <B>CU_get_number_of_tests_run</B>(void)<BR />
+  unsigned int <B>CU_get_number_of_tests_failed</B>(void)<BR />
+  unsigned int <B>CU_get_number_of_asserts</B>(void)<BR />
+  unsigned int <B>CU_get_number_of_successes</B>(void)<BR />
+  unsigned int <B>CU_get_number_of_failures</B>(void)
+</CITE></P>                                                 
+<P CLASS="indent5">These functions report the number of suites, tests, and
+assertions that ran or failed during the last run.  A suite is considered failed
+if its initialization or cleanup function returned non-<CODE>NULL</CODE>, or if
+it was inactive and the framework was set to <A href="#modifying-inactive">treat
+inactive suites/tests as failures</A>.  A test fails if any of its assertions 
+failed or if it was inactive under the same conditions.  The last 3 functions 
+all refer to individual assertions.  An inactive suite (or test) is not counted
+among the number of suites (tests) run.  A consequence of this is that a suite
+(or test) can fail even though it is not reported as having been run.
+<BR /><BR />
+To retrieve the total number of registered suites and tests, use
+<A HREF="test_registry.html#stuct">CU_get_registry()&minus;&gt;uiNumberOfSuites</A>
+and <A HREF="test_registry.html#stuct">CU_get_registry()&minus;&gt;uiNumberOfTests</A>,
+respectively.</P>
+
+<P ID="results-getsummary" CLASS="indent2"><CITE>const CU_pRunSummary <B>CU_get_run_summary</B>(void)</CITE></P>
+<P CLASS="indent5">Retrieves all test result counts at once.  The return value is
+a pointer to a saved structure containing the counts.  This data type is defined in
+&lt;<A HREF="headers/TestRun.h">CUnit/TestRun.h</A>&gt; (included automatically by
+&lt;<A HREF="headers/CUnit.h">CUnit/CUnit.h</A>&gt;):
+</P>
+<PRE CLASS="indent10">
+typedef struct CU_RunSummary
+{
+  unsigned int nSuitesRun;
+  unsigned int nSuitesFailed;
+  unsigned int nTestsRun;
+  unsigned int nTestsFailed;
+  unsigned int nAsserts;
+  unsigned int nAssertsFailed;
+  unsigned int nFailureRecords;
+} <CITE><B>CU_RunSummary</B></CITE>;
+
+
+typedef CU_Runsummary* <CITE><B>CU_pRunSummary</B></CITE>;
+</PRE>
+<P CLASS="indent5">The structure variable associated with the returned pointer is owned
+by the framework, so the user should not free or otherwise change it.  <I>Note that the
+pointer may be invalidated once another test run is initiated.</I>
+</P>
+
+<P ID="results-getfailures" CLASS="indent2"><CITE>const CU_pFailureRecord <B>CU_get_failure_list</B>(void)</CITE></P>
+<P CLASS="indent5">Retrieves a linked list recording any failures occurring during the
+last test run (<CODE>NULL</CODE> for no failures).  The data type of the return value
+is declared in &lt;<A HREF="headers/TestRun.h">CUnit/TestRun.h</A>&gt; (included
+automatically by &lt;<A HREF="headers/CUnit.h">CUnit/CUnit.h</A>&gt;).  Each failure
+record contains information about the location and nature of the failure:
+</P>
+<PRE CLASS="indent10">
+typedef struct CU_FailureRecord
+{
+  unsigned int  uiLineNumber;
+  char*         strFileName;
+  char*         strCondition;
+  CU_pTest      pTest;
+  CU_pSuite     pSuite;
+
+  struct CU_FailureRecord* pNext;
+  struct CU_FailureRecord* pPrev;
+
+} <CITE><B>CU_FailureRecord</B></CITE>;
+
+typedef CU_FailureRecord*  <CITE><B>CU_pFailureRecord</B></CITE>;
+</PRE>
+<P CLASS="indent5">The structure variable associated with the returned pointer is owned
+by the framework, so the user should not free or otherwise change it.  <I>Note that the
+pointer may be invalidated once another test run is initiated.</I>
+</P>
+
+<P ID="results-failurecount" CLASS="indent2"><CITE>
+  unsigned int <B>CU_get_number_of_failure_records</B>(void)<BR />
+</CITE></P>
+<P CLASS="indent5">Retrieves the number of <CITE>CU_FailureRecords</CITE> in
+the linked list of failures returned by <CITE>CU_get_failure_list()</CITE>.  Note
+that this can be more than the number of failed assertions, since suite
+initialization and cleanup failures are included.</P>
+
+<H3 ID="deprecated">5.9. Deprecated v1 Data Types & Functions</H3>
+The following data types and functions are deprecated as of version 2.
+To use these deprecated names, user code must be compiled with
+<CITE>USE_DEPRECATED_CUNIT_NAMES</CITE> defined.
+<P />
+<TABLE CELLPADDING=5 BORDER=2>
+  <TR VALIGN="top">
+    <TD><B>Deprecated Name</B></TD>
+    <TD><B>Equivalent New Name</B></TD>
+  </TR>
+  <TR VALIGN="top">
+    <TD><CODE>automated_run_tests()</CODE></TD>
+    <TD>
+      <A HREF="#auto-run">CU_automated_run_tests()</A> plus<BR />
+      <A HREF="#auto-list">CU_list_tests_to_file()</A>
+    </TD>
+  </TR>
+  <TR VALIGN="top">
+    <TD><CODE>set_output_filename()</CODE></TD>
+    <TD><A HREF="#auto-setroot">CU_set_output_filename()</A></TD>
+  </TR>
+  <TR VALIGN="top">
+    <TD><CODE>console_run_tests()</CODE></TD>
+    <TD><A HREF="#console-run">CU_console_run_tests()</A></TD>
+  </TR>
+  <TR VALIGN="top">
+    <TD><CODE>curses_run_tests()</CODE></TD>
+    <TD><A HREF="#curses-run">CU_curses_run_tests()</A></TD>
+  </TR>
+</TABLE>
+
+<DIV CLASS="NAVFOOTER">
+<HR ALIGN="LEFT" WIDTH="100%">
+<TABLE SUMMARY="Footer navigation table" WIDTH="100%" BORDER="0" CELLPADDING="0" CELLSPACING="0">
+  <TR>
+    <TD WIDTH="33%" ALIGN="left" VALIGN="top"><A HREF="managing_tests.html" ACCESSKEY="P">Prev</A></TD>
+    <TD WIDTH="34%" ALIGN="center" VALIGN="top"><A HREF="index.html" ACCESSKEY="H" >Home</A></TD>
+    <TD WIDTH="33%" ALIGN="right" VALIGN="top"><A HREF="error_handling.html" ACCESSKEY="N" >Next</A></TD>
+  </TR>
+  <TR>
+    <TD WIDTH="33%" ALIGN="left" VALIGN="top">Managing Tests & Suites</TD>
+    <TD WIDTH="34%" ALIGN="center" VALIGN="top">&nbsp;</TD>
+    <TD WIDTH="33%" ALIGN="right" VALIGN="top">Error Handling</TD>
+  </TR>
+</TABLE>
+</DIV>
+
+</BODY>
+</HTML>
+

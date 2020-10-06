@@ -1,0 +1,144 @@
+<HTML>
+<HEAD>
+  <TITLE>CUnit - Introduction</TITLE>
+  <LINK REL=StyleSheet HREF="CUnit_doc.css" TYPE="text/css" TITLE="CUnit Basic Style" />
+</HEAD>
+<BODY>
+<DIV CLASS="NAVHEADER" >
+<TABLE SUMMARY="Header navigation table" WIDTH="100%" BORDER="0" CELLPADDING="0" CELLSPACING="0">
+  <TR>
+    <TH COLSPAN="3" ALIGN="center"><H3>CUnit Progammers Guide</H3></TH>
+  </TR>
+  <TR>
+    <TD WIDTH="10%" ALIGN="left" VALIGN="bottom"><A HREF="index.html" ACCESSKEY="P" >Prev</A></TD>
+    <TD WIDTH="80%" ALIGN="center" VALIGN="bottom"><A HREF="index.html" ACCESSKEY="H" >Home</A></TD>
+    <TD WIDTH="10%" ALIGN="right" VALIGN="bottom"><A HREF="writing_tests.html" ACCESSKEY="N" >Next</A></TD>
+  </TR>
+</TABLE>
+<HR ALIGN="LEFT" WIDTH="100%">
+
+<H2>1. Introduction to Unit Testing with CUnit</H2>
+
+<H3 ID="description">1.1. Description</H3>
+CUnit is a system for writing, administering, and running unit tests in C.
+It is built as a library (static or dynamic) which is linked with the 
+user's testing code.
+<P />
+CUnit uses a simple framework for building test structures, and provides a
+rich set of assertions for testing common data types.  In addition, several
+different interfaces are provided for running tests and reporting results.
+These include automated interfaces for code-controlled testing and reporting,
+as well as interactive interfaces allowing the user to run tests and view
+results dynamically.
+<P />
+The data types and functions useful to the typical user are declared in the following header files:
+<P />
+<TABLE CELLPADDING=4>
+  <TR VALIGN="top">
+    <TH><U>Header File</U></TH>
+    <TH><U>Description</U></TH>
+  </TR>
+  <TR VALIGN="top">
+    <TD><B>#include&nbsp;&lt;<A HREF="headers/CUnit.h">CUnit/CUnit.h</A>&gt;</B></TD>
+    <TD>ASSERT macros for use in test cases, and includes other framework headers.</TD>
+  </TR>
+  <TR VALIGN="top">
+    <TD><B>#include&nbsp;&lt;<A HREF="headers/CUError.h">CUnit/CUError.h</A>&gt;</B></TD>
+    <TD>Error handing functions and data types. <I>Included automatically by CUnit.h.</I></TD>
+  </TR>
+  <TR VALIGN="top">
+    <TD><B>#include&nbsp;&lt;<A HREF="headers/TestDB.h">CUnit/TestDB.h</A>&gt;</B></TD>
+    <TD>Data type definitions and manipulation functions for the test registry, suites, and tests.
+        <I>Included automatically by CUnit.h.</I>
+    </TD>
+  </TR>
+  <TR VALIGN="top">
+    <TD><B>#include&nbsp;&lt;<A HREF="headers/TestRun.h">CUnit/TestRun.h</A>&gt;</B></TD>
+    <TD>Data type definitions and functions for running tests and retrieving results.
+        <I>Included automatically by CUnit.h.</I>
+    </TD>
+  </TR>
+  <TR VALIGN="top">
+    <TD><B>#include&nbsp;&lt;<A HREF="headers/Automated.h">CUnit/Automated.h</A>&gt;</B></TD>
+    <TD>Automated interface with xml output.</TD>
+  </TR>
+  <TR VALIGN="top">
+    <TD><B>#include&nbsp;&lt;<A HREF="headers/Basic.h">CUnit/Basic.h</A>&gt;</B></TD>
+    <TD>Basic interface with non-interactive output to stdout.</TD>
+  </TR>
+  <TR VALIGN="top">
+    <TD><B>#include&nbsp;&lt;<A HREF="headers/Console.h">CUnit/Console.h</A>&gt;</B></TD>
+    <TD>Interactive console interface.</TD>
+  </TR>
+  <TR VALIGN="top">
+    <TD><B>#include&nbsp;&lt;<A HREF="headers/CUCurses.h">CUnit/CUCurses.h</A>&gt;</B></TD>
+    <TD>Interactive console interface (*nix).</TD>
+  </TR>
+  <TR VALIGN="top">
+    <TD><B>#include&nbsp;&lt;<A HREF="headers/Win.h">CUnit/Win.h</A>&gt;</B></TD>
+    <TD>Windows interface (not yet implemented).</TD>
+  </TR>
+</TABLE>
+
+<H3 ID="structure">1.2. Structure</H3>
+CUnit is a combination of a platform-independent framework with various
+user interfaces. The core framework provides basic support for managing
+a test registry, suites, and test cases. The user interfaces facilitate
+interaction with the framework to run tests and view results.
+<P />
+CUnit is organized like a conventional unit testing framework:
+<PRE>
+                      Test Registry
+                            |
+             ------------------------------
+             |                            |
+          Suite '1'      . . . .       Suite 'N'
+             |                            |
+       ---------------             ---------------
+       |             |             |             |
+    Test '11' ... Test '1M'     Test 'N1' ... Test 'NM'
+</PRE>
+Individual test cases are packaged into suites, which are registered
+with the active test registry.  Suites can have setup and teardown
+functions which are automatically called before and after running the
+suite's tests. All suites/tests in the registry may be run using a
+single function call, or selected suites or tests can be run.
+<H3 ID="usage">1.3. General Usage</H3>
+A typical sequence of steps for using the CUnit framework is:
+<OL>
+  <LI><A HREF="writing_tests.html">Write functions</A> for tests (and suite init/cleanup if necessary).</LI>
+  <LI>Initialize the test registry - <A HREF="test_registry.html#init">CU_initialize_registry()</A></LI>
+  <LI>Add suites to the test registry - <A HREF="managing_tests.html#addsuite">CU_add_suite()</A></LI>
+  <LI>Add tests to the suites - <A HREF="managing_tests.html#addtest">CU_add_test()</A></LI>
+  <LI>Run tests using an appropriate interface, e.g. <A HREF="running_tests.html#console">CU_console_run_tests</A></LI>
+  <LI>Cleanup the test registry - <A HREF="test_registry.html#cleanup">CU_cleanup_registry</A></LI>
+</OL>
+
+<H3 ID="changes">1.4. Changes to the CUnit API in Version 2</H3>
+All public names in CUnit are now prefixed with 'CU_'.  This helps
+minimize clashes with names in user code.  Note that earlier versions
+of CUnit used different names without this prefix.  The older API names
+are deprecated but still supported.  To use the older names, user code
+must now be compiled with <CITE>USE_DEPRECATED_CUNIT_NAMES</CITE> defined.
+<P />
+The deprecated API functions are described in the appropriate sections of
+the documentation.
+
+<DIV CLASS="NAVFOOTER">
+<HR ALIGN="LEFT" WIDTH="100%">
+<TABLE SUMMARY="Footer navigation table" WIDTH="100%" BORDER="0" CELLPADDING="0" CELLSPACING="0">
+  <TR>
+    <TD WIDTH="33%" ALIGN="left" VALIGN="top"><A HREF="index.html" ACCESSKEY="P">Prev</A></TD>
+    <TD WIDTH="34%" ALIGN="center" VALIGN="top"><A HREF="index.html" ACCESSKEY="H" >Home</A></TD>
+    <TD WIDTH="33%" ALIGN="right" VALIGN="top"><A HREF="writing_tests.html" ACCESSKEY="N" >Next</A></TD>
+  </TR>
+  <TR>
+    <TD WIDTH="33%" ALIGN="left" VALIGN="top">Table of Contents</TD>
+    <TD WIDTH="34%" ALIGN="center" VALIGN="top">&nbsp;</TD>
+    <TD WIDTH="33%" ALIGN="right" VALIGN="top">Writing CUnit Test Cases</TD>
+  </TR>
+</TABLE>
+</DIV>
+
+</BODY>
+</HTML>

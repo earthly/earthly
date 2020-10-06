@@ -1,0 +1,209 @@
+<HTML>
+<HEAD>
+  <TITLE>CUnit - Error Handling</TITLE>
+  <LINK REL=StyleSheet HREF="CUnit_doc.css" TYPE="text/css" TITLE="CUnit Basic Style" />
+</HEAD>
+<BODY>
+<DIV CLASS="NAVHEADER" >
+<TABLE SUMMARY="Header navigation table" WIDTH="100%" BORDER="0" CELLPADDING="0" CELLSPACING="0">
+  <TR>
+    <TH COLSPAN="3" ALIGN="center"><H3>CUnit Progammers Guide</H3></TH>
+  </TR>
+  <TR>
+    <TD WIDTH="10%" ALIGN="left" VALIGN="bottom"><A HREF="running_tests.html" ACCESSKEY="P" >Prev</A></TD>
+    <TD WIDTH="80%" ALIGN="center" VALIGN="bottom"><A HREF="index.html" ACCESSKEY="H" >Home</A></TD>
+    <TD WIDTH="10%" ALIGN="right" VALIGN="bottom"><A HREF="index.html" ACCESSKEY="N" >Home</A></TD>
+  </TR>
+</TABLE>
+<HR ALIGN="LEFT" WIDTH="100%">
+
+<H2>6. Error Handling</H2>
+
+<H3 ID="synopsis">6.1. Synopsis</H3>
+#include &lt;<A HREF="headers/CUError.h">CUnit/CUError.h</A>&gt;
+(included automatically by &lt;<A HREF="headers/CUnit.h">CUnit/CUnit.h</A>&gt;)
+<PRE>
+  typedef enum <A HREF="#errorcodes">CU_ErrorCode</A>
+  CU_ErrorCode   <A HREF="#geterror">CU_get_error</A>(void);
+  const char*    <A HREF="#getmsg">CU_get_error_msg</A>(void);
+
+  typedef enum <A HREF="#actioncodes">CU_ErrorAction</A>
+  void           <A HREF="#setaction">CU_set_error_action</A>(CU_ErrorAction action);
+  CU_ErrorAction <A HREF="#getaction">CU_get_error_action</A>(void);
+</PRE>
+<P />
+
+<H3 ID="errorhandling">6.2. CUnit Error Handling</H3>
+Most CUnit functions set an error code indicating the framework
+error status.  Some functions return the code, while others just
+set the code and return some other value.  Two functions are
+provided for examining the framework error status:
+<P CLASS="indent2">
+  <CITE ID="geterror">CU_ErrorCode <B>CU_get_error</B>(void)</CITE><BR />
+  <CITE ID="getmsg">const char* <B>CU_get_error_msg</B>(void)</CITE>
+</P>
+The first returns the error code itself, while the second returns a
+message describing the error status.  The error code is an
+<CODE>enum</CODE> of type <CITE>CU_ErrorCode</CITE> defined in
+&lt;<A HREF="headers/CUError.h">CUnit/CUError.h</A>&gt;.
+The following error code values are defined:
+<P CLASS="indent5">
+<TABLE CELLPADDING=2>
+  <TR>
+    <TD><B>Error Value</B></TD>
+    <TD><B>Description</B></TD>
+  </TR>
+  <TR>
+    <TD><CITE>CUE_SUCCESS</CITE></TD>
+    <TD>No error condition.</TD>
+  </TR>
+  <TR>
+    <TD><CITE>CUE_NOMEMORY</CITE></TD>
+    <TD>Memory allocation failed.</TD>
+  </TR>
+  <TR>
+    <TD><CITE>CUE_NOREGISTRY</CITE></TD>
+    <TD>Test registry not initialized.</TD>
+  </TR>
+  <TR>
+    <TD><CITE>CUE_REGISTRY_EXISTS</CITE></TD>
+    <TD>Attempt to CU_set_registry() without CU_cleanup_registry().</TD>
+  </TR>
+  <TR>
+    <TD><CITE>CUE_NOSUITE</CITE></TD>
+    <TD>A required CU_pSuite pointer was NULL.</TD>
+  </TR>
+  <TR>
+    <TD><CITE>CUE_NO_SUITENAME</CITE></TD>
+    <TD>Required CU_Suite name not provided.</TD>
+  </TR>
+  <TR>
+    <TD><CITE>CUE_SINIT_FAILED</CITE></TD>
+    <TD>Suite initialization failed.</TD>
+  </TR>
+  <TR>
+    <TD><CITE>CUE_SCLEAN_FAILED</CITE></TD>
+    <TD>Suite cleanup failed.</TD>
+  </TR>
+  <TR>
+    <TD><CITE>CUE_DUP_SUITE</CITE></TD>
+    <TD>Duplicate suite name not allowed.</TD>
+  </TR>
+  <TR>
+    <TD><CITE>CUE_SUITE_INACTIVE</CITE></TD>
+    <TD>A test run was requested for an inactive suite.</TD>
+  </TR>
+  <TR>
+    <TD><CITE>CUE_NOTEST</CITE></TD>
+    <TD>A required CU_pTest of CU_TestFunc pointer was NULL.</TD>
+  </TR>
+  <TR>
+    <TD><CITE>CUE_NO_TESTNAME</CITE></TD>
+    <TD>Required CU_Test name not provided.</TD>
+  </TR>
+  <TR>
+    <TD><CITE>CUE_DUP_TEST</CITE></TD>
+    <TD>Duplicate test case name not allowed.</TD>
+  </TR>
+  <TR>
+    <TD><CITE>CUE_TEST_NOT_IN_SUITE</CITE></TD>
+    <TD>Test is not registered in the specified suite.</TD>
+  </TR>
+  <TR>
+    <TD><CITE>CUE_TEST_INACTIVE</CITE></TD>
+    <TD>A test run was requested for an inactive test.</TD>
+  </TR>
+  <TR>
+    <TD><CITE>CUE_FOPEN_FAILED</CITE></TD>
+    <TD>An error occurred opening a file.</TD>
+  </TR>
+  <TR>
+    <TD><CITE>CUE_FCLOSE_FAILED</CITE></TD>
+    <TD>An error occurred closing a file.</TD>
+  </TR>
+  <TR>
+    <TD><CITE>CUE_BAD_FILENAME</CITE></TD>
+    <TD>A bad filename was requested (NULL, empty, nonexistent, etc.).</TD>
+  </TR>
+  <TR>
+    <TD><CITE>CUE_WRITE_ERROR</CITE></TD>
+    <TD>An error occurred during a write to a file.</TD>
+  </TR>
+</TABLE>
+</P>
+
+<H3 ID="erroraction">6.3. Behavior Upon Framework Errors</H3>
+The default behavior when an error condition is encountered is for the
+error code to be set and execution continued.  In this context, failed 
+assertions are not considered "framework errors".  All other error conditions
+including suite initialization or cleanup failures, inactive suites or tests
+which are run explicitly, etc. are included.  There may be times when clients 
+prefer for a test run to stop on a framework error, or even for the test 
+application to exit.  This behavior can be set by the user, for which the 
+following functions are provided:
+<P CLASS="indent2">
+  <CITE ID="setaction">void <B>CU_set_error_action</B>(CU_ErrorAction action)</CITE><BR />
+  <CITE ID="getaction">CU_ErrorAction <B>CU_get_error_action</B>(void)</CITE>
+</P>
+The error action code is an <CODE>enum</CODE> of type <CITE>CU_ErrorAction</CITE>
+defined in &lt;<A HREF="headers/CUError.h">CUnit/CUError.h</A>&gt;.
+The following error action codes are defined:
+<P CLASS="indent5">
+<TABLE CELLPADDING=2>
+  <TR>
+    <TD><B>Error Value</B></TD>
+    <TD><B>Description</B></TD>
+  </TR>
+  <TR>
+    <TD><CITE>CUEA_IGNORE</CITE></TD>
+    <TD>Run should be continued when an error condition occurs (default)</TD>
+  </TR>
+  <TR>
+    <TD><CITE>CUEA_FAIL</CITE></TD>
+    <TD>Run should be stopped when an error condition occurs</TD>
+  </TR>
+  <TR>
+    <TD><CITE>CUEA_ABORT</CITE></TD>
+    <TD>The application should exit() when an error conditions occurs</TD>
+  </TR>
+</TABLE>
+
+<H3 ID="deprecated">6.4. Deprecated v1 Variables & Functions</H3>
+The following variables and functions are deprecated as of version 2.
+To use these deprecated names, user code must be compiled with
+<CITE>USE_DEPRECATED_CUNIT_NAMES</CITE> defined.
+<P />
+<TABLE CELLPADDING=5 BORDER=2>
+  <TR VALIGN="top">
+    <TD><B>Deprecated Name</B></TD>
+    <TD><B>Equivalent New Name</B></TD>
+  </TR>
+  <TR VALIGN="top">
+    <TD><CODE>get_error()</CODE></TD>
+    <TD><A HREF="#getmsg">CU_get_error_msg()</A></TD>
+  </TR>
+  <TR VALIGN="top">
+    <TD><CODE>error_code</CODE></TD>
+    <TD>None.  Use <A HREF="#getcode">CU_get_error()</A></TD>
+  </TR>
+</TABLE>
+
+<DIV CLASS="NAVFOOTER">
+<HR ALIGN="LEFT" WIDTH="100%">
+<TABLE SUMMARY="Footer navigation table" WIDTH="100%" BORDER="0" CELLPADDING="0" CELLSPACING="0">
+  <TR>
+    <TD WIDTH="33%" ALIGN="left" VALIGN="top"><A HREF="running_tests.html" ACCESSKEY="P">Prev</A></TD>
+    <TD WIDTH="34%" ALIGN="center" VALIGN="top"><A HREF="index.html" ACCESSKEY="H" >Home</A></TD>
+    <TD WIDTH="33%" ALIGN="right" VALIGN="top">&nbsp;</TD>
+  </TR>
+  <TR>
+    <TD WIDTH="33%" ALIGN="left" VALIGN="top">Running Tests</TD>
+    <TD WIDTH="34%" ALIGN="center" VALIGN="top">&nbsp;</TD>
+    <TD WIDTH="33%" ALIGN="right" VALIGN="top">&nbsp;</TD>
+  </TR>
+</TABLE>
+</DIV>
+
+</BODY>
+</HTML>
+

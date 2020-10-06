@@ -1,0 +1,265 @@
+* Wed Apr 23 2014 Anil Kumar <anilsaharan@users.sourceforge.net>
+  - Ability to build with a non-source directory build root
+  - Fixed files included in the download source file
+
+* Tue Oct 14 2010 Martin Gerhardy <tlh2000@users.sourceforge.net>
+  - release 2.1.1
+
+* Wed Oct 13 2010 Martin Gerhardy <tlh2000@users.sourceforge.net>
+  - fixed bug #2976958
+  - fixed other const related warnings
+
+* Wed May 10 2006 Jerry St.Clair <jds2@users.sourceforge.net>
+  - modified dtd and xsl files to support inactive suites/tests.
+  - instrumented entire framework/interfaces for gettext
+    (not activated yet, just instrumented source).
+
+* Sun Apr 30 2006 Jerry St.Clair <jds2@users.sourceforge.net>
+  - Added ability to deactivate suite/tests dynamically.
+  - Removed constraint that suite/test names be unique.
+  - Added lookup functions to TestDB.[ch]
+  - Changed test run behavior so suite is run even if it has
+    no tests - user may expect init & cleanup functions to
+    be run as long as suite is active.
+  - Modified console:  suites/tests selected by number, 
+    inactive tests/suites reported, added help function,
+    added option menu.
+  - Modified curses:  suites/tests selected by number, 
+    inactive tests/suites reported, added help function,
+    added option menu.
+  - Modified automated:  inactive suites/tests reported.
+  - Modified docs and internal unit tests for these changes.
+  - Moved doxygen comments for public functions to headers.
+    This will make them more accessible to clients without
+    having to generate doxygen docs.
+
+* Wed Mar 22 2006 Jerry St.Clair <jds2@users.sourceforge.net>
+  - release 2.1.0
+
+* Sat Mar 17 2006 Jerry St.Clair <jds2@users.sourceforge.net>
+  - Finalized upgrade of configure.in, Makefile.am.
+  - Upgraded Jamfile set to build shared library on Linux.
+  - Minor changes to repository management strategy.
+
+* Mon Feb 13 2006 Anil Kumar (anilsaharan@users.sourceforge.net)
+  - Modified XSL for bgcolor properties and other tags
+
+* Sun Jan 28 2006 Jerry St.Clair <jds2@users.sourceforge.net>
+  - Upgraded source based on splint analysis.
+  - Added VC8 project file set.
+  - Changed defaults of some options in configure.in.
+  - Added variables to configure.in and upgraded Jamrules.in conversion.
+  - Updated copyright & change log information in source files.
+
+* Wed Aug 03 2005 Anil Kumar <anilsaharan@users.sourceforge.net>
+  - Applied patch (1239181) for building shared library targets.
+  - Applied patch (1250604) for enable options in configure.in.
+  - Modified Makefile.am in various directories for conditional
+    building based on the configuration options selection. Added
+  	new selections for the Basic and Console also.
+
+* Sun May 08 2005 Jerry St.Clair <jds2@users.sourceforge.net>
+  - Added 'CU_' prefix to BOOL, TRUE, FALSE in Headers/CUnit.h.
+  - Added jam system option to build dll's on Windows.
+
+* Sun May 01 2005 Jerry St.Clair <jds2@users.sourceforge.net>
+  - Added callback for suite cleanup failure to TestRun.
+  - Added processing of suite failure to interfaces.
+  - Added output of version number from interfaces.
+
+* Sun Apr 24 2005 Jerry St.Clair <jds2@users.sourceforge.net>
+  - Streamlined jam build system.
+  - jam now builds in compiler- and debug-specific subdirectories.
+  - Bug fixes:
+    - minor errors in doc/managing_tests.html. (cunit-Bugs-1161520)
+    - fixed CU_ADD_TEST() macro definition in TestDB.h.
+      (cunit-Bugs-1161527)
+    - changed header Curses.h to CUCurses.h to avoid conflict
+      with system curses.h on Windows.  (cunit-Bugs-1185382)
+    - removed const qualifier from CU_get_failure_list() and
+      and CU_get_run_summary() return values. (cunit-Bugs-1106644)
+
+* Sun Jan 08 2005 Jerry St.Clair <jds2@users.sourceforge.net>
+  - Bug fix: failures reported incorrectly in Basic interface
+    from basic.c::basic_test_complete_message_handler()
+    (bug report cunit-Bugs-1093861).
+
+* Sat Oct 02 2004 Jerry St.Clair <jds2@users.sourceforge.net>
+  - Bug fix: update pReg after registry intialization in
+    TestDB.c::test_CU_add_test().
+    
+* Sun Sep 26 2004 Jerry St.Clair <jds2@users.sourceforge.net>
+  - Bug fixes found in internal unit testing.
+  - Update Linux build files.
+  - Add Visual Studio 2003/VC7 solution & project files.
+
+* Sun Sep 19 2004 Jerry St.Clair <jds2@users.sourceforge.net>
+  - Changed test message handlers to pass test and suite (not
+    just their names).  This is for future use.
+  - Clarified behavior of CU_translate_special_characters() when
+    szDest is too small to hold converted string (found in testing!).
+  - Split out suite and test creation into distinct functions
+    create_suite() & create_test() in TestDB.c.
+  - Moved CU_get_suite_by_name() & CU_get_test_by_name() to TestDB.
+  - Removed need for registry to be initialized for CU_run_suite() and
+    CU_run_test() in TestRun.c (registry no longer holds result info,
+    so this dependence is no longer needed).
+  - Provided functions to turn on & off memory allocation in MyMem.c
+    for use in internal testing.
+  - Initial implementation of internal CUnit testing.
+  - Implement modified registration system (based on Cheung/Aurema code).
+
+* Wed Sep 01 2004 Jerry St.Clair <jds2@users.sourceforge.net>
+  - Implemented setjmp/longjmp mechanism for aborting test runs.
+  - Add assertion to CU_assertImplementation() to trap calls
+    outside a registered test function during a test run.
+  - Added CU_PASS and CU_FAIL to assertions in CUnit.h.
+
+* Sat Aug 28 2004 Jerry St.Clair <jds2@users.sourceforge.net>
+  - Html documentation implemented.
+  - Jamfile and Makefile.am included for html doc installation.
+
+* Sat Aug 21 2004 Jerry St.Clair <jds2@users.sourceforge.net>
+  - initial implementation of jds-v2-expt experimental version
+    containing the following changes.
+
+  Wed 18-Aug-2004 Jerry St.Clair <jds2@users.sourceforge.net>
+    - Updated manpages, consolidating all docs in CUnit.3.
+    - Jamfiles now only install lib, headers, man, and docs.
+    - Initial shot at having configure generate custom Jamrules
+      from Jamrules.in.
+    - Library & examples now build on Linux (Mandrake 9.1).
+
+  Wed 11-Aug-2004 Jerry St.Clair <jds2@users.sourceforge.net>
+    - Added new Basic interface and example.
+
+  Sun  8-Aug-2004 Jerry St.Clair <jds2@users.sourceforge.net>
+    - Bug had been introduced when test functions were allowed to have
+      more than one assertion failure (in v1.1-1 a failed assertion would
+      always return, so max failure = 1).  The automated result file
+      was not writing any failure records except the last one.  Fixed
+      by changing the behavior of TestRun::run_single_test so that it
+      now sends a pointer to the 1st failure record belonging to the
+      test in question.  The handler then only has to walk the rest
+      of the linked list to visit all failures for its test.
+    - Consolidated all test result handling in TestRun.  This included
+      moving the failure list head out of CU_TestRegistry into a static
+      variable in TestRun.c and moving assertImplementation into TestRun.c.
+    - Created a structure (CU_RunSummary) and static variable in TestRun.c
+      to hold the run counts and head of the failure record list.
+    - Added tracking of assertions in addition to tests and suites.  The
+      counts are now reported in Automated, Console, and Curses.
+    - Added function for retrieval of the entire run summary at once.
+    - Consolidated example test functions in a single function called
+      by each of the example interface programs.  Modified Jamfiles.
+    - Made all curses constants & functions static.
+
+  Fri 30-Jul-2004 Jerry St.Clair <jds2@users.sourceforge.net>
+    - Created new function CU_list_all_to_file() in Automated.c
+      to allow users & other modules to generate a test list file.
+      Consolidated automated_list_all_tests() and
+      automated_list_group_tests() into this new function.
+    - Changed default output file root to "CUnitTest" and name endings
+      for xml files to "-Listing.xml" and "-Results.xml".  This makes
+      the names more generic and descriptive.
+    - CU_automated_run_tests no longer automatically generates a
+      listing file.  Users should generate a listing explicitly
+      when needed.
+    - Added assertion to protect against file writes when the
+      file pointer is NULL.
+    - xml bug fixes based on xml validation report (</CUNIT_RESULT_LISTING>
+      must come before <CUNIT_RUN_SUMMARY> in Automated.c; wrong
+      top element in document type declaration, incorrect element
+      ordering in <MD_SUMMARY> in MyMem.c).
+
+  Tue 27-Jul-2004 Jerry St.Clair <jds2@users.sourceforge.net>
+    - fixed bugs in converted curses.c, MyMem.c
+    - removed f_bCleanupResultSet from TestRun.c, since presence of
+      results to be cleaned is indicated by non-null pRegistry->pResult.
+
+  Sun 18-Jul-2004 Jerry St.Clair <jds2@users.sourceforge.net>
+    - Provided a set of jam build files
+      (ftjam preferred - http://www.freetype.org/jam/index.html)
+      which build on Linux and Windows (Borland and VC++7).
+    - Converted all public names to CU_ prefixed names to minimize potential
+      for name clashes with client code.
+    - Provided support for old interface names when needed.
+    - Modified terminology: 'Test Group' = 'Suite', 'Test Case' = 'Test'.
+      Changed function & variable names, comments, DTD, and xml output to reflect
+      the new terminology.
+    - Eliminated global variables (except in deprecated interface).
+    - Fixed direct references to 'global' test registry (mostly in TestDB.c)
+      in cases where a specified pRegistry is meant to be used.
+    - Changed CU_set_registry() so that existing registry is not destroyed.  The
+      functions running suites in the interface modules (automated, console,
+      curses) take a pRegistry argument which was being ignored.  These functions
+      now set the registry (if it is different from the active one) and
+      restore it after the tests are complete.
+    - Added functions for creating and destroying a test registry independent
+      of the CUnit internal system.  Convenience, mostly for testing.
+    - Added assertions preventing modification of the test registry during a test run.
+    - Moved add_failure prototype to TestRun.h since implemented in TestRun.c.
+    - Changed 'Errno.h' to 'CUError.h' to avoid confusion with standard header.
+    - Error codes made an enum CU_ErrorCode.  Changed signatures of functions
+      returning an error code accordingly.
+    - Moved all error-related code to new source file 'CUError.c'.
+    - Made all local functions & callbacks static to minimize global names.
+    - Modified assertions so that standard assertions do not include a 'return'
+      statement.  Provided new assertions with '_FATAL' suffix to allow user
+      to request this when test function should return on a failure.
+    - Modified XSL for list to more compact format.
+    - Restructured memory tracking code so reallocations and multiple deletions tracked.
+    - CU_dump_memory_usage now takes an argument specifying the filename for the
+      memory dump output.  The original version always overwrote the same output
+      file, making tracking multiple dumps difficult.  A default filename is used
+      if a NULL or empty char* is specified.
+    - Modified DTD and XSL for memory dump output to reflect new structure.
+    - Initial doxygen comments added to code, and 'Doxyfile' configuration file
+      added to base directory.
+    - Restructured code to be more top-down (still have multiple returns in
+      a couple of cases).
+    - Provided default file name to automated interface in case user doesn't specify one.
+    - Modified Automated::CU_set_output_filename to avoid buffer overrun for large szFileName.
+    - Converted Examples to new interface.  Old examples renamed 'xxx_v1.c' and
+      building of the old examples under the deprecated interface added to Jam files.
+    - Modified makefile.am set to reflect above changes (not working yet).
+
+* Sat Jul 26 2003 Anil Kumar <anilsaharan@users.sourceforge.net>
+- Applied a patch for correct XML output for first/last group display.
+
+* Mon Mar 17 2003 Anil Kumar <anilsaharan@users.sourceforge.net>
+- Added Macro's for different kind of comparisons.
+
+* Tue Jul 23 2002 Anil Kumar <anilsaharan@users.sourceforge.net>
+- Changed HTML to XML Format file generation for Automated Tests.
+
+* Tue Jun 25 2002 Anil Kumar <anilsaharan@users.sourceforge.net>
+- Added Memory Tracing Functions to check if there is any unreleased Memory.
+
+* Sat Apr 07 2002 Anil Kumar <anilsaharan@users.sourceforge.net>
+- Added #ifdef conditions to include extern "C" linkage directive in the header files.
+- Corrected Makefile.am for Headers Directory.
+
+* Sun Mar 24 2002 Anil Kumar <anilsaharan@users.sourceforge.net>
+- Added interface for automated run test. It generates HTML file.
+
+* Sun Feb 03 2002 Anil Kumar <anilsaharan@users.sourceforge.net>
+- Made modifications for moving RPM Creation in the root directory.
+- Cleaned up configure.in for checks not required and added some additonal header and library checks.
+- Made separate options for gzip, tar, zip and rpm creation in root directory. 
+- Fixed Workspace file for Windows Build.
+
+* Sun Dec 23 2001 Anil Kumar <anilsaharan@users.sourceforge.net>
+- Made modifications for change in Directory Structure and Linking Options.
+- Included GPL Headers in all the files. 
+
+* Sun Nov 25 2001 Anil Kumar <anilsaharan@users.sourceforge.net>
+- Added Curses based interface to the Package.
+- Modified some options for the Console Based Interface.
+
+* Sun Oct 28 2001 Anil Kumar <anilsaharan@users.sourceforge.net>
+- Integrated RPM creation in the package configuration. 
+
+* Sun Oct 21 2001 Anil Kumar <anilsaharan@users.sourceforge.net>
+- Added a few Error Codes and respective description.
+- Added code for handling duplicate group/test name.

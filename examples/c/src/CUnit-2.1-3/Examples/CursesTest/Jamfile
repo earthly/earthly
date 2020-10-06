@@ -1,0 +1,64 @@
+#
+# Jamfile to build CUnit - Examples/CursesTest
+# (see http://www.freetype.org/jam/index.html)
+#
+# Copyright (C) 2004-2006  Jerry St.Clair
+#
+# This library is free software; you can redistribute it and/or
+# modify it under the terms of the GNU Library General Public
+# License as published by the Free Software Foundation; either
+# version 2 of the License, or (at your option) any later version.
+#
+# This library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# Library General Public License for more details.
+#
+# You should have received a copy of the GNU Library General Public
+# License along with this library; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+#---------------------------------------------------------------------------
+
+SubDir TOP Examples CursesTest ;
+
+if $(BUILD_EXAMPLES) && $(BUILD_CURSES)
+{
+  SubDirHdrs $(CUNIT_HDR_DIR) $(CUNIT_WIN_DIR) ;
+
+  # set location for temporary files
+  LOCATE_TARGET = $(BUILD_DIR)$(SLASH)Examples$(SLASH)CursesTest ;
+  SEARCH_SOURCE += $(EXAMPLES_DIR) ;
+
+  Main CursesTest : CursesTest.c ExampleTests.c ;
+  LinkLibraries CursesTest$(SUFEXE) : $(CUNIT_LIB_NAME)$(SUFLIB) ;
+  LINKLIBS on CursesTest$(SUFEXE) += $(SYS_LIBS) ;
+  
+  MakeLocate CursesTest$(SUFEXE) : $(BUILD_DIR) ;
+  LOCATE on libncurses$(SUFLIB) = $(SYS_LIB_DIR) ;
+
+  if $(USE_DEPRECATED_NAMES)
+  {
+    Main CursesTest_v1 : CursesTest_v1.c ;
+    LinkLibraries CursesTest_v1$(SUFEXE) : $(CUNIT_LIB_NAME)$(SUFLIB) ;
+    LINKLIBS on CursesTest_v1$(SUFEXE) += $(SYS_LIBS) ;
+    MakeLocate CursesTest_v1$(SUFEXE) : $(BUILD_DIR) ;
+
+    ObjectCcFlags CursesTest_v1.c : $(USE_DEPRECATED_NAMES) ;
+  }
+
+  if $(NT) && ($(BCCROOT) || ($(TOOLSET) = BORLANDC))
+  {
+    # need to fix Borland to include library location
+    LINKFLAGS on CursesTest$(SUFEXE) += -L$(STDLIBPATH) -tW ;
+    if $(USE_DEPRECATED_NAMES)InstallCunitFile 
+      { LINKFLAGS on CursesTest_v1$(SUFEXE) += -L$(STDLIBPATH) -tW ; }
+  }
+
+  if $(INSTALL_EXAM_DIR)
+  {
+    InstallCUnitBin $(INSTALL_EXAM_DIR)$(SLASH)Curses : CursesTest$(SUFEXE) ;
+    InstallCUnitFile $(INSTALL_EXAM_DIR)$(SLASH)Curses : README ;
+    if $(USE_DEPRECATED_NAMES)
+      { InstallCUnitBin $(INSTALL_EXAM_DIR)$(SLASH)Curses : CursesTest_v1$(SUFEXE) ; }
+  }
+}

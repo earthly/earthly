@@ -1,0 +1,350 @@
+<HTML>
+<HEAD>
+  <TITLE>CUnit - Writing CUnit Test Cases</TITLE>
+  <LINK REL=StyleSheet HREF="CUnit_doc.css" TYPE="text/css" TITLE="CUnit Basic Style" />
+</HEAD>
+<BODY>
+<DIV CLASS="NAVHEADER" >
+<TABLE SUMMARY="Header navigation table" WIDTH="100%" BORDER="0" CELLPADDING="0" CELLSPACING="0">
+  <TR>
+    <TH COLSPAN="3" ALIGN="center"><H3>CUnit Progammers Guide</H3></TH>
+  </TR>
+  <TR>
+    <TD WIDTH="10%" ALIGN="left" VALIGN="bottom"><A HREF="introduction.html" ACCESSKEY="P" >Prev</A></TD>
+    <TD WIDTH="80%" ALIGN="center" VALIGN="bottom"><A HREF="index.html" ACCESSKEY="H" >Home</A></TD>
+    <TD WIDTH="10%" ALIGN="right" VALIGN="bottom"><A HREF="test_registry.html" ACCESSKEY="N" >Next</A></TD>
+  </TR>
+</TABLE>
+<HR ALIGN="LEFT" WIDTH="100%">
+
+<H2>2. Writing CUnit Test Cases</H2>
+
+<H3 ID="tests">2.1. Test Functions</H3>
+A CUnit &quot;test&quot; is a C function having the signature:<BR /><BR />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<B><I>void test_func(void)</I></B>
+<P />
+There are no restrictions on the content of a test function, except
+that it should not modify the CUnit framework (e.g. add suites or tests,
+modify the test registry, or initiate a test run).  A test function may
+call other functions (which also may not modify the framework).
+Registering a test will cause its function to be run when the
+test is run.
+<P />
+An example test function for a routine that returns the maximum of 2
+integers might look like:
+<PRE><CODE>
+    int maxi(int i1, int i2)
+    {
+      return (i1 > i2) ? i1 : i2;
+    }
+
+    void test_maxi(void)
+    {
+      CU_ASSERT(maxi(0,2) == 2);
+      CU_ASSERT(maxi(0,-2) == 0);
+      CU_ASSERT(maxi(2,2) == 2);
+    }
+</CODE></PRE>
+<H3 ID="assertions">2.2. CUnit Assertions</H3>
+CUnit provides a set of assertions for testing logical conditions.  The
+success or failure of these assertions is tracked by the framework,
+and can be viewed when a test run is complete.  
+<P />
+Each assertion tests a single logical condition, and fails if the
+condition evaluates to <CODE>CU_FALSE</CODE>.  Upon assertion failure, 
+the test function continues unless the user chooses the 'xxx_FATAL' version 
+of an assertion.  In that case, the test function is aborted and returns 
+immediately.  <B>FATAL versions of assertions should be used with caution!</B>  
+There is no opportunity for the test function to clean up after itself once a
+FATAL assertion fails.  The normal <A HREF="managing_tests.html#addsuite">suite 
+cleanup function</A> is not affected, however, and will be run in either case.
+<P />
+There are also special "assertions" for registering a 
+<A HREF="#pass">pass</A> or <A HREF="#fail">fail</A> with the framework 
+without performing a logical test.  These are useful for testing flow 
+of control or other conditions not requiring a logical test:
+<PRE><CODE>
+    void test_longjmp(void)
+    {
+      jmp_buf buf;
+      int i;
+
+      i = setjmp(buf);
+      if (i == 0) {
+        run_other_func();
+        CU_PASS("run_other_func() succeeded.");
+      }
+      else
+        CU_FAIL("run_other_func() issued longjmp.");
+    }
+</CODE></PRE>
+<P />
+Other functions called by a registered test function may use the CUnit
+assertions freely.  These assertions will be counted for the calling
+function.  They may also use FATAL versions of assertions - failure
+will abort the original test function and its entire call chain.
+<P />
+The assertions defined by CUnit are:
+<P />
+<B>#include&nbsp;&lt;<A HREF="headers/CUnit.h">CUnit/CUnit.h</A>&gt;</B>
+<P />
+<TABLE CELLPADDING=5 BORDER=2>
+  <TR VALIGN="top">
+    <TD>
+      <CODE>
+        <CITE><B>CU_ASSERT</B>(int expression)</CITE><BR />
+        <CITE><B>CU_ASSERT_FATAL</B>(int expression)</CITE><BR />
+        <CITE><B>CU_TEST</B>(int expression)</CITE><BR />
+        <CITE><B>CU_TEST_FATAL</B>(int expression)</CITE>
+      </CODE>
+    </TD>
+    <TD>Assert that <I>expression</I> is <CODE>CU_TRUE</CODE> (non-zero)</TD>
+  </TR>
+  <TR VALIGN="top">
+    <TD>
+      <CODE>
+        <CITE><B>CU_ASSERT_TRUE</B>(value)</CITE><BR />
+        <CITE><B>CU_ASSERT_TRUE_FATAL</B>(value)</CITE>
+      </CODE>
+    </TD>
+    <TD>Assert that <I>value</I> is <CODE>CU_TRUE (non-zero)</TD>
+  </TR>
+  <TR VALIGN="top">
+    <TD>
+      <CODE>
+        <CITE><B>CU_ASSERT_FALSE</B>(value)</CITE><BR />
+        <CITE><B>CU_ASSERT_FALSE_FATAL</B>(value)</CITE>
+      </CODE>
+    </TD>
+    <TD>Assert that <I>value</I> is <CODE>CU_FALSE</CODE> (zero)</TD>
+  </TR>
+  <TR VALIGN="top">
+    <TD>
+      <CODE>
+        <CITE><B>CU_ASSERT_EQUAL</B>(actual, expected)</CITE><BR />
+        <CITE><B>CU_ASSERT_EQUAL_FATAL</B>(actual, expected)</CITE>
+      </CODE>
+    </TD>
+    <TD>Assert that <I>actual</I> = = <I>expected</I></TD>
+  </TR>
+  <TR VALIGN="top">
+    <TD>
+      <CODE>
+        <CITE><B>CU_ASSERT_NOT_EQUAL</B>(actual, expected))</CITE><BR />
+        <CITE><B>CU_ASSERT_NOT_EQUAL_FATAL</B>(actual, expected)</CITE>
+      </CODE>
+    </TD>
+    <TD>Assert that <I>actual</I> != <I>expected</I></TD>
+  </TR>
+  <TR VALIGN="top">
+    <TD>
+      <CODE>
+        <CITE><B>CU_ASSERT_PTR_EQUAL</B>(actual, expected)</CITE><BR />
+        <CITE><B>CU_ASSERT_PTR_EQUAL_FATAL</B>(actual, expected)</CITE>
+      </CODE>
+    </TD>
+    <TD>Assert that pointers <I>actual</I> = = <I>expected</I></TD>
+  </TR>
+  <TR VALIGN="top">
+    <TD>
+      <CODE>
+        <CITE><B>CU_ASSERT_PTR_NOT_EQUAL</B>(actual, expected)</CITE><BR />
+        <CITE><B>CU_ASSERT_PTR_NOT_EQUAL_FATAL</B>(actual, expected)</CITE>
+      </CODE>
+    </TD>
+    <TD>Assert that pointers <I>actual</I> != <I>expected</I></TD>
+  </TR>
+  <TR VALIGN="top">
+    <TD>
+      <CODE>
+        <CITE><B>CU_ASSERT_PTR_NULL</B>(value)</CITE><BR />
+        <CITE><B>CU_ASSERT_PTR_NULL_FATAL</B>(value)</CITE>
+      </CODE>
+    </TD>
+    <TD>Assert that pointer <I>value</I> == NULL</TD>
+  </TR>
+  <TR VALIGN="top">
+    <TD>
+      <CODE>
+        <CITE><B>CU_ASSERT_PTR_NOT_NULL</B>(value)</CITE><BR />
+        <CITE><B>CU_ASSERT_PTR_NOT_NULL_FATAL</B>(value)</CITE>
+      </CODE>
+    </TD>
+    <TD>Assert that pointer <I>value</I> != NULL</TD>
+  </TR>
+  <TR VALIGN="top">
+    <TD>
+      <CODE>
+        <CITE><B>CU_ASSERT_STRING_EQUAL</B>(actual, expected)</CITE><BR />
+        <CITE><B>CU_ASSERT_STRING_EQUAL_FATAL</B>(actual, expected)</CITE>
+      </CODE>
+    </TD>
+    <TD>Assert that strings <I>actual</I> and <I>expected</I> are equivalent</TD>
+  </TR>
+  <TR VALIGN="top">
+    <TD>
+      <CODE>
+        <CITE><B>CU_ASSERT_STRING_NOT_EQUAL</B>(actual, expected)</CITE><BR />
+        <CITE><B>CU_ASSERT_STRING_NOT_EQUAL_FATAL</B>(actual, expected)</CITE>
+      </CODE>
+    </TD>
+    <TD>Assert that strings <I>actual</I> and <I>expected</I> differ</TD>
+  </TR>
+  <TR VALIGN="top">
+    <TD>
+      <CODE>
+        <CITE><B>CU_ASSERT_NSTRING_EQUAL</B>(actual, expected, count)</CITE><BR />
+        <CITE><B>CU_ASSERT_NSTRING_EQUAL_FATAL</B>(actual, expected, count)</CITE>
+      </CODE>
+    </TD>
+    <TD>Assert that 1st count chars of <I>actual</I> and <I>expected</I> are the same</TD>
+  </TR>
+  <TR VALIGN="top">
+    <TD>
+      <CODE>
+        <CITE><B>CU_ASSERT_NSTRING_NOT_EQUAL</B>(actual, expected, count)</CITE><BR />
+        <CITE><B>CU_ASSERT_NSTRING_NOT_EQUAL_FATAL</B>(actual, expected, count)</CITE>
+      </CODE>
+    </TD>
+    <TD>Assert that 1st count chars of <I>actual</I> and <I>expected</I> differ</TD>
+  </TR>
+  <TR VALIGN="top">
+    <TD>
+      <CODE>
+        <CITE><B>CU_ASSERT_DOUBLE_EQUAL</B>(actual, expected, granularity)</CITE><BR />
+        <CITE><B>CU_ASSERT_DOUBLE_EQUAL_FATAL</B>(actual, expected, granularity)</CITE>
+      </CODE>
+    </TD>
+    <TD>
+      Assert that |<I>actual</I> - <I>expected</I>| &lt;= |<I>granularity</I>|<BR />
+      <I>Math library must be linked in for this assertion.</I>
+    </TD>
+  </TR>
+  <TR VALIGN="top">
+    <TD>
+      <CODE>
+        <CITE><B>CU_ASSERT_DOUBLE_NOT_EQUAL</B>(actual, expected, granularity)</CITE><BR />
+        <CITE><B>CU_ASSERT_DOUBLE_NOT_EQUAL_FATAL</B>(actual, expected, granularity)</CITE>
+      </CODE>
+    </TD>
+    <TD>
+      Assert that |<I>actual</I> - <I>expected</I>| &gt; |<I>granularity</I>|<BR />
+      <I>Math library must be linked in for this assertion.</I>
+    </TD>
+  </TR>
+  <TR VALIGN="top" ID="pass">
+    <TD>
+      <CODE>
+        <CITE><B>CU_PASS</B>(message)</CITE>
+      </CODE>
+    </TD>
+    <TD>
+      Register a passing assertion with the specified message.  No logical test is performed.
+    </TD>
+  </TR>
+  <TR VALIGN="top" ID="fail">
+    <TD>
+      <CODE>
+        <CITE><B>CU_FAIL</B>(message)</CITE><BR />
+        <CITE><B>CU_FAIL_FATAL</B>(message)</CITE>
+      </CODE>
+    </TD>
+    <TD>
+      Register a failed assertion with the specified message.  No logical test is performed.
+    </TD>
+  </TR>
+</TABLE>
+<P />
+<H3 ID="deprecated">2.3. Depecated v1 Assertions</H3>
+The following assertions are deprecated as of version 2.  To use these assertions,
+user code must be compiled with <CITE>USE_DEPRECATED_CUNIT_NAMES</CITE> defined.
+Note that they behave the same as in version 1 (issue a 'return' statement
+upon failure).
+<P />
+<B>#include&nbsp;&lt;<A HREF="headers/CUnit.h">CUnit/CUnit.h</A>&gt;</B>
+<P />
+<TABLE CELLPADDING=5 BORDER=2>
+  <TR VALIGN="top">
+    <TD><B>Deprecated Name</B></TD>
+    <TD><B>Equivalent New Name</B></TD>
+  </TR>
+  <TR VALIGN="top">
+    <TD><CODE>ASSERT</CODE></TD>
+    <TD><CODE>CU_ASSERT_FATAL</CODE></TD>
+  </TR>
+  <TR VALIGN="top">
+    <TD><CODE>ASSERT_TRUE</CODE></TD>
+    <TD><CODE>CU_ASSERT_TRUE_FATAL</CODE></TD>
+  </TR>
+  <TR VALIGN="top">
+    <TD><CODE>ASSERT_FALSE</CODE></TD>
+    <TD><CODE>CU_ASSERT_FALSE_FATAL</CODE></TD>
+  </TR>
+  <TR VALIGN="top">
+    <TD><CODE>ASSERT_EQUAL</CODE></TD>
+    <TD><CODE>CU_ASSERT_EQUAL_FATAL</CODE></TD>
+  </TR>
+  <TR VALIGN="top">
+    <TD><CODE>ASSERT_NOT_EQUAL</CODE></TD>
+    <TD><CODE>CU_ASSERT_NOT_EQUAL_FATAL</CODE></TD>
+  </TR>
+  <TR VALIGN="top">
+    <TD><CODE>ASSERT_PTR_EQUAL</CODE></TD>
+    <TD><CODE>CU_ASSERT_PTR_EQUAL_FATAL</CODE></TD>
+  </TR>
+  <TR VALIGN="top">
+    <TD><CODE>ASSERT_PTR_NOT_EQUAL</CODE></TD>
+    <TD><CODE>CU_ASSERT_PTR_NOT_EQUAL_FATAL</CODE></TD>
+  </TR>
+  <TR VALIGN="top">
+    <TD><CODE>ASSERT_PTR_NULL</CODE></TD>
+    <TD><CODE>CU_ASSERT_PTR_NULL_FATAL</CODE></TD>
+  </TR>
+  <TR VALIGN="top">
+    <TD><CODE>ASSERT_PTR_NOT_NULL</CODE></TD>
+    <TD><CODE>CU_ASSERT_PTR_NOT_NULL_FATAL</CODE></TD>
+  </TR>
+  <TR VALIGN="top">
+    <TD><CODE>ASSERT_STRING_EQUAL</CODE></TD>
+    <TD><CODE>CU_ASSERT_STRING_EQUAL_FATAL</CODE></TD>
+  </TR>
+  <TR VALIGN="top">
+    <TD><CODE>ASSERT_STRING_NOT_EQUAL</CODE></TD>
+    <TD><CODE>CU_ASSERT_STRING_NOT_EQUAL_FATAL</CODE></TD>
+  </TR>
+  <TR VALIGN="top">
+    <TD><CODE>ASSERT_NSTRING_EQUAL</CODE></TD>
+    <TD><CODE>CU_ASSERT_NSTRING_EQUAL_FATAL</CODE></TD>
+  </TR>
+  <TR VALIGN="top">
+    <TD><CODE>ASSERT_NSTRING_NOT_EQUAL</CODE></TD>
+    <TD><CODE>CU_ASSERT_NSTRING_NOT_EQUAL_FATAL</CODE></TD>
+  </TR>
+  <TR VALIGN="top">
+    <TD><CODE>ASSERT_DOUBLE_EQUAL</CODE></TD>
+    <TD><CODE>CU_ASSERT_DOUBLE_EQUAL_FATAL</CODE></TD>
+  </TR>
+  <TR VALIGN="top">
+    <TD><CODE>ASSERT_DOUBLE_NOT_EQUAL</CODE></TD>
+    <TD><CODE>CU_ASSERT_DOUBLE_NOT_EQUAL_FATAL</CODE></TD>
+  </TR>
+</TABLE>
+
+<DIV CLASS="NAVFOOTER">
+<HR ALIGN="LEFT" WIDTH="100%">
+<TABLE SUMMARY="Footer navigation table" WIDTH="100%" BORDER="0" CELLPADDING="0" CELLSPACING="0">
+  <TR>
+    <TD WIDTH="33%" ALIGN="left" VALIGN="top"><A HREF="introduction.html" ACCESSKEY="P">Prev</A></TD>
+    <TD WIDTH="34%" ALIGN="center" VALIGN="top"><A HREF="index.html" ACCESSKEY="H" >Home</A></TD>
+    <TD WIDTH="33%" ALIGN="right" VALIGN="top"><A HREF="test_registry.html" ACCESSKEY="N" >Next</A></TD>
+  </TR>
+  <TR>
+    <TD WIDTH="33%" ALIGN="left" VALIGN="top">Introduction</TD>
+    <TD WIDTH="34%" ALIGN="center" VALIGN="top">&nbsp;</TD>
+    <TD WIDTH="33%" ALIGN="right" VALIGN="top">The Test Registry</TD>
+  </TR>
+</TABLE>
+</DIV>
+
+</BODY>
+</HTML>

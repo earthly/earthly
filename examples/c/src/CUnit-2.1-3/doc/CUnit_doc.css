@@ -1,0 +1,38 @@
+A:link { color: blue }
+A:active { color: blue; font-weight: bold }
+A:visited { color: blue }
+
+BODY {
+  background: white;
+  color: black;
+  font-family: Arial, Helvetica, sans-serif;
+  margin-right: 20px;
+  margin-left: 20px;
+}
+
+CITE {
+  color: maroon;
+  font-family: "Times New Roman", Times, serif;
+  font-style: normal;
+  font-weight: normal;
+  font-size: 105%;
+}
+
+P.indent2 { margin-left: +2%; }
+P.indent5 { margin-left: +5%; }
+P.indent10 { margin-left: +10%; }
+
+B.cite { color: maroon; }
+
+PRE.indent2 { margin-left: +2%; }
+PRE.indent5 { margin-left: +5%; }
+PRE.indent10 { margin-left: +10%; }
+
+.copyright {
+  font-size: 70%;
+  font-style: italic;
+}
+
+DT.H1 {
+  margin-top: +1%;
+}

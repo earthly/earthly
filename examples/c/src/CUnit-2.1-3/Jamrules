@@ -1,0 +1,345 @@
+#
+# Jamrules file to build CUnit - Root Directory
+# (see http://www.freetype.org/jam/index.html)
+#
+# Copyright (C) 2004-2006  Jerry St.Clair
+#
+# This library is free software; you can redistribute it and/or
+# modify it under the terms of the GNU Library General Public
+# License as published by the Free Software Foundation; either
+# version 2 of the License, or (at your option) any later version.
+#
+# This library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# Library General Public License for more details.
+#
+# You should have received a copy of the GNU Library General Public
+# License along with this library; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+#---------------------------------------------------------------------------
+
+# On Linux, basic build options are set by configure.  
+# See else clause below for other platforms.
+if $(OS) = LINUX || $(UNIX)
+{
+  SLASH = / ;
+  VERSION = 2.1 ;
+  RELEASE = 3 ;
+  VERSION_MAJOR = 2 ;
+  VERSION_MINOR = 1 ;
+  
+  # root of install path
+  prefix = /Users/aks/CUnitHome ;
+
+  # choice of interfaces to build into library
+  if TRUE = TRUE
+    { BUILD_AUTOMATED = 1 ; }
+  if TRUE = TRUE
+    { BUILD_BASIC = 1 ; }
+  if TRUE = TRUE
+    { BUILD_CONSOLE = 1 ; }
+  if FALSE != FALSE
+  { 
+    BUILD_CURSES = 1 ; 
+    SYS_LIBS = -l ;
+  }
+#  BUILD_WINDOWS = 1 ;
+  
+  # choice of whether to build examples
+  if TRUE = TRUE
+    { BUILD_EXAMPLES = 1 ; }
+  
+  # choice of whether to build test program
+  if TRUE = TRUE
+    { BUILD_TEST = 1 ; }
+  
+  # choice of whether to build shared library
+  if @ENABLE_SHARED@ = TRUE
+    { BUILD_SHARED_LIB = 1 ; }
+
+  # choice of whether to build static library
+  if @ENABLE_STATIC@ = TRUE
+    { BUILD_STATIC_LIB = 1 ; }
+
+  # debug compilation mode
+  if TRUE = FALSE
+    { NODEBUG = 1 ; }
+
+  # Use memory tracing
+  if TRUE = TRUE
+    { USE_MEMTRACE = -DMEMTRACE ; }
+
+  # Recognize deprecated version 1.1 function names and build V1.1 examples
+  if FALSE = TRUE
+    { USE_DEPRECATED_NAMES = -DUSE_DEPRECATED_CUNIT_NAMES ; }
+}
+
+# On other platforms, comment out the option to disable it
+else
+{
+  SLASH = \\ ;
+  
+  # Version number set manually so may be out-of-date
+  VERSION = 2.1 ;
+  RELEASE = 0 ;
+  VERSION_MAJOR = 2 ;
+  VERSION_MINOR = 1 ;
+
+  # Set the root of install path
+  prefix = c:\\dev\\CUnit_install ;
+
+  # Comment to not include interface in library
+  BUILD_AUTOMATED = 1 ; 
+  BUILD_BASIC = 1 ; 
+  BUILD_CONSOLE = 1 ; 
+#  BUILD_CURSES = 1 ; 
+  BUILD_WINDOWS = 1 ;
+    
+  # Comment to not build examples
+  BUILD_EXAMPLES = 1 ; 
+  
+  # Comment to not build test program
+  BUILD_TEST = 1 ; 
+  
+  # Comment to not build CUnit shared library
+  BUILD_SHARED_LIB = 1 ; 
+
+  # Comment to not build CUnit static library
+  BUILD_STATIC_LIB = 1 ; 
+  
+  # Comment to compile with debugging & assertions enabled
+  NODEBUG = 1 ;
+
+  # Uncomment to perform memory tracing
+  #USE_MEMTRACE = -DMEMTRACE ;
+
+  # Uncomment to recognize deprecated version 1.1 function names
+  # and build V1.1 examples
+  #USE_DEPRECATED_NAMES = -DUSE_DEPRECATED_CUNIT_NAMES ;
+}
+
+#---------------------------------------------------------------------------
+# Options from here on should not require routine tweaking
+
+PACKAGE = CUnit ;
+
+# Install locations - comment out to not install that class of file
+INSTALL_BIN_DIR   = $(prefix)$(SLASH)bin ;
+INSTALL_LIB_DIR   = $(prefix)$(SLASH)lib ;
+INSTALL_INC_DIR   = $(prefix)$(SLASH)include$(SLASH)CUnit ;
+INSTALL_DOC_DIR   = $(prefix)$(SLASH)doc$(SLASH)CUnit ;
+INSTALL_MAN_DIR   = $(prefix)$(SLASH)man ;
+INSTALL_SHARE_DIR = $(prefix)$(SLASH)share$(SLASH)CUnit ;
+#INSTALL_EXAM_DIR  = $(prefix)$(SLASH)share$(SLASH)CUnit$(SLASH)Examples ;
+#INSTALL_TEST_DIR  = $(prefix)$(SLASH)share$(SLASH)CUnit$(SLASH)Test ;
+
+# Build directory - - will be qualified for compiler & build type
+BUILD_DIR_ROOT = $(TOP) ;
+
+EXAMPLES_DIR   = $(TOP)$(SLASH)Examples ;
+
+CUNIT_HDR_DIR  = $(TOP)$(SLASH)CUnit$(SLASH)Headers ;
+CUNIT_LIB_NAME = libcunit ;
+
+# Comment for normal jam deletion of object files after building targets
+KEEPOBJS = true ;
+
+if $(NODEBUG)
+{
+  CCFLAGS += -DNDEBUG ;
+  BUILD_SUBDIR = $(SLASH)Release ;
+}
+else
+{
+  BUILD_SUBDIR = $(SLASH)Debug ;
+}
+
+if $(NT)
+{
+  # variables not set properly for Windows/Win9x in Jambase 2.3
+  RM = del ;
+  MV = move /Y ;
+
+  SUFSHR = .dll ;
+
+  # Windows-specific defines
+  CCFLAGS = -DWIN32 -D_LIB -D_MBCS -D_DELAYTEST ;
+  CUNIT_WIN_DIR = $(TOP)$(SLASH)CUnit$(SLASH)Sources$(SLASH)Win ;
+
+  if $(BCCROOT) || ( $(TOOLSET) = BORLANDC )
+  {
+    CCFLAGS   += -q -d -g0 -j0 ;
+    CCWARN    = -w -w-8004 ;
+    if $(NODEBUG)
+    {
+      CCDEBUG = -v- -O2 ;
+    }
+    else
+    {
+      CCDEBUG = -v -y -Od ;
+    }
+    BUILD_SUBDIR = $(BUILD_SUBDIR)$(SLASH)bcc ;
+  }
+
+  else if $(MSVCNT) || ( $(TOOLSET) = VISUALC )
+  {
+    CCFLAGS   += /Ze ;
+    CCWARN    = /W4 ;
+    if $(NODEBUG)
+    {
+      CCDEBUG = /O2 ;
+    }
+    else
+    {
+      CCDEBUG = /Zi /Od ;
+    }
+    # Libraries are in different paths depending on VC version
+    LINKFLAGS += /LIBPATH:$(VISUALC)\\lib /LIBPATH:$(VISUALC)\\PlatformSDK\\lib\\ ;
+    LINKLIBS = advapi32.lib
+               libc.lib
+               oldnames.lib
+               gdi32.lib
+               user32.lib
+               kernel32.lib ;
+    BUILD_SUBDIR = $(BUILD_SUBDIR)$(SLASH)msvc ;
+  }
+
+
+  else if $(MINGW) || ( $(TOOLSET) = MINGW )
+  {
+    # uncomment to select desired warning level and ansi-strictness
+    CCWARN += -Wall ;
+    CCWARN += -W ;
+    CCWARN += -pedantic ;
+    CCWARN += -Wshadow ;
+    CCWARN += -ansi ;
+
+    if $(NODEBUG)
+    {
+      CCDEBUG = -O3 ;
+    }
+    else
+    {
+      CCDEBUG = -g -O0 ;
+    }
+    BUILD_SUBDIR = $(BUILD_SUBDIR)$(SLASH)mingw ;
+  }
+
+  else if $(WATCOM) || ( $(TOOLSET) = WATCOM )
+  {
+    CCFLAGS += /fr ;
+    CCWARN    = /wx ;
+    if $(NODEBUG)
+    {
+      CCDEBUG = /ox ;
+    }
+    else
+    {
+      CCDEBUG = /od /d2 ;
+    }
+    BUILD_SUBDIR = $(BUILD_SUBDIR)$(SLASH)watcom ;
+  }
+}
+
+else if $(OS) = LINUX
+{
+  SUFSHR = .so ;
+
+  # uncomment to select desired warning level and ansi-strictness
+  CCWARN += -Wall ;
+  CCWARN += -W ;
+  CCWARN += -pedantic ;
+  CCWARN += -Wshadow ;
+  CCWARN += -ansi ;
+
+  if $(NODEBUG)
+  {
+    CCDEBUG = -O3 ;
+  }
+  else
+  {
+    CCDEBUG = -g -O0 ;
+  }
+  BUILD_SUBDIR = $(BUILD_SUBDIR)$(SLASH)linux ;
+}
+
+CCFLAGS  += $(USE_MEMTRACE) $(CCWARN) $(CCDEBUG) ;
+C++FLAGS += $(CCFLAGS) ;
+BUILD_DIR = $(BUILD_DIR_ROOT)$(BUILD_SUBDIR) ;
+
+#----------------------------------------------------------------------
+# CUnit-specific rules & actions
+#----------------------------------------------------------------------
+# If anyone can figure out a better way, good for you
+# (and let me (jds) know)!  Here's the problem...
+# The built-in Jam install rules all convert the grist of
+# the source file to (:G=installed).  As a result, they
+# seem unable to handle files having the same name in
+# different directories.  If we want to install such files
+# as the Jamfile's or Makefile.am's or README's, the built-ins
+# can't handle it (in my hands, anyway).  As a workaround,
+# we define a new rule which does not monkey with the grist
+# in this way.  Duplicate file names will need to explicitly
+# use grist so Jam knows the difference, but the standard
+# <$(SOURCE_GRIST)> works in most cases.
+#
+rule DoInstallCUnitFile
+{
+    local i t ;
+
+    t = $(>:D=$(<)) ;
+
+    DEPENDS install : $(t) ;
+    DEPENDS $(t) : $(>) ;
+    SEARCH on $(>) = $(SEARCH_SOURCE) ;
+    MakeLocate $(t) : $(<) ;
+
+    # Arrange for jam uninstall
+
+    Clean uninstall : $(t) ;
+
+    for i in $(>)
+    {
+        Install $(i:D=$(<)) : $(i) ;
+        Chmod $(i:D=$(<)) ;
+    }
+
+    if $(UNIX)
+    {
+        if $(OWNER) { Chown $(t) ; OWNER on $(t) = $(OWNER) ; }
+        if $(GROUP) { Chgrp $(t) ; GROUP on $(t) = $(GROUP) ; }
+    }
+}
+
+rule InstallCUnitBin
+{
+    DoInstallCUnitFile $(<) : $(>) ;
+    MODE on $(>:D=$(<)) = $(EXEMODE) ;
+}
+
+rule InstallCUnitFile
+{
+    DoInstallCUnitFile $(<) : $(>) ;
+    MODE on $(>:D=$(<)) = $(FILEMODE) ;
+}
+
+#----------------------------------------------------------
+# MakeImportLibrary
+#
+# This is a dummy rule.  Import libraries are built in
+# the dll linking directive.  However, jam doesn't know
+# that, so we provide a rule which does nothing more
+# than define a dependency.
+#
+# Parameters:
+#
+# 1 - name of the dll
+# 2 - name of the import library
+#----------------------------------------------------------
+rule MakeImportLibrary
+{
+  DEPENDS $(>) : $(<) ;
+  LOCATE on $(>) = $(BUILD_DIR) ;
+}
+

@@ -1,0 +1,10 @@
+prefix=/Users/aks/CUnitHome
+exec_prefix=${prefix}
+libdir=${exec_prefix}/lib
+includedir=${prefix}/include
+
+Name: CUnit
+Description: C Unit Testing Framework
+Version: 2.1-3
+Libs: -L${libdir} -lcunit
+Cflags: -I${includedir}

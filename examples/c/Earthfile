@@ -28,7 +28,7 @@ docker:
 
 test:
  For Automated testing:
-  ADD +cunit_test.c
+  ADD +code
     #include <CUnit/Automated.h>
     void         CU_automated_run_tests(void)
     CU_ErrorCode CU_list_tests_to_file(void)
@@ -37,7 +37,7 @@ test:
   RUN 
 
   For Basic testing:
-    ADD +cunit_test.c
+    ADD +code
       #include <CUnit/Basic.h>
       typedef enum    CU_BasicRunMode
       CU_ErrorCode    CU_basic_run_tests(void)
@@ -50,14 +50,14 @@ test:
     RUN
 
   For Interactive Console Mode Testing:
-    ADD +cunit_test.c
+    ADD +code
       #include <CUnit/Console.h>
       void CU_console_run_tests(void)
       # The Header Files are installed in the root Library Directory.
     RUN
 
   For Interactive Curses Mode Testing:
-    ADD +cunit_test.c
+    ADD +code
       #include <CUnit/CUCurses.h>
       void CU_curses_run_tests(void)
       # The Header Files are installed in the root Library Directory.

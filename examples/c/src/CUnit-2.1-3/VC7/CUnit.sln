@@ -1,0 +1,74 @@
+Microsoft Visual Studio Solution File, Format Version 8.00
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libcunit", "libcunit\libcunit.vcproj", "{E88E5D8B-FAA8-41FA-B0A5-77C924300C0E}"
+	ProjectSection(ProjectDependencies) = postProject
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "test_cunit", "test_cunit\test_cunit.vcproj", "{0336E4F1-B2E5-4E56-AA33-2709A75004F8}"
+	ProjectSection(ProjectDependencies) = postProject
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "AutomatedTest", "AutomatedTest\AutomatedTest.vcproj", "{479DCA79-9205-4958-A75B-51F6C2E75D61}"
+	ProjectSection(ProjectDependencies) = postProject
+		{E88E5D8B-FAA8-41FA-B0A5-77C924300C0E} = {E88E5D8B-FAA8-41FA-B0A5-77C924300C0E}
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "BasicTest", "BasicTest\BasicTest.vcproj", "{479DCA79-9205-4958-A75B-51F6C2E75D61}"
+	ProjectSection(ProjectDependencies) = postProject
+		{E88E5D8B-FAA8-41FA-B0A5-77C924300C0E} = {E88E5D8B-FAA8-41FA-B0A5-77C924300C0E}
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ConsoleTest", "ConsoleTest\ConsoleTest.vcproj", "{479DCA79-9205-4958-A75B-51F6C2E75D61}"
+	ProjectSection(ProjectDependencies) = postProject
+		{E88E5D8B-FAA8-41FA-B0A5-77C924300C0E} = {E88E5D8B-FAA8-41FA-B0A5-77C924300C0E}
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "AutomatedTest_v1", "AutomatedTest_v1\AutomatedTest_v1.vcproj", "{479DCA79-9205-4958-A75B-51F6C2E75D61}"
+	ProjectSection(ProjectDependencies) = postProject
+		{E88E5D8B-FAA8-41FA-B0A5-77C924300C0E} = {E88E5D8B-FAA8-41FA-B0A5-77C924300C0E}
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ConsoleTest_v1", "ConsoleTest_v1\ConsoleTest_v1.vcproj", "{479DCA79-9205-4958-A75B-51F6C2E75D61}"
+	ProjectSection(ProjectDependencies) = postProject
+		{E88E5D8B-FAA8-41FA-B0A5-77C924300C0E} = {E88E5D8B-FAA8-41FA-B0A5-77C924300C0E}
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfiguration) = preSolution
+		Debug = Debug
+		Release = Release
+	EndGlobalSection
+	GlobalSection(ProjectConfiguration) = postSolution
+		{E88E5D8B-FAA8-41FA-B0A5-77C924300C0E}.Debug.ActiveCfg = Debug|Win32
+		{E88E5D8B-FAA8-41FA-B0A5-77C924300C0E}.Debug.Build.0 = Debug|Win32
+		{E88E5D8B-FAA8-41FA-B0A5-77C924300C0E}.Release.ActiveCfg = Release|Win32
+		{E88E5D8B-FAA8-41FA-B0A5-77C924300C0E}.Release.Build.0 = Release|Win32
+		{0336E4F1-B2E5-4E56-AA33-2709A75004F8}.Debug.ActiveCfg = Debug|Win32
+		{0336E4F1-B2E5-4E56-AA33-2709A75004F8}.Debug.Build.0 = Debug|Win32
+		{0336E4F1-B2E5-4E56-AA33-2709A75004F8}.Release.ActiveCfg = Release|Win32
+		{0336E4F1-B2E5-4E56-AA33-2709A75004F8}.Release.Build.0 = Release|Win32
+		{479DCA79-9205-4958-A75B-51F6C2E75D61}.Debug.ActiveCfg = Debug|Win32
+		{479DCA79-9205-4958-A75B-51F6C2E75D61}.Debug.Build.0 = Debug|Win32
+		{479DCA79-9205-4958-A75B-51F6C2E75D61}.Release.ActiveCfg = Release|Win32
+		{479DCA79-9205-4958-A75B-51F6C2E75D61}.Release.Build.0 = Release|Win32
+		{479DCA79-9205-4958-A75B-51F6C2E75D61}.Debug.ActiveCfg = Debug|Win32
+		{479DCA79-9205-4958-A75B-51F6C2E75D61}.Debug.Build.0 = Debug|Win32
+		{479DCA79-9205-4958-A75B-51F6C2E75D61}.Release.ActiveCfg = Release|Win32
+		{479DCA79-9205-4958-A75B-51F6C2E75D61}.Release.Build.0 = Release|Win32
+		{479DCA79-9205-4958-A75B-51F6C2E75D61}.Debug.ActiveCfg = Debug|Win32
+		{479DCA79-9205-4958-A75B-51F6C2E75D61}.Debug.Build.0 = Debug|Win32
+		{479DCA79-9205-4958-A75B-51F6C2E75D61}.Release.ActiveCfg = Release|Win32
+		{479DCA79-9205-4958-A75B-51F6C2E75D61}.Release.Build.0 = Release|Win32
+		{479DCA79-9205-4958-A75B-51F6C2E75D61}.Debug.ActiveCfg = Debug|Win32
+		{479DCA79-9205-4958-A75B-51F6C2E75D61}.Debug.Build.0 = Debug|Win32
+		{479DCA79-9205-4958-A75B-51F6C2E75D61}.Release.ActiveCfg = Release|Win32
+		{479DCA79-9205-4958-A75B-51F6C2E75D61}.Release.Build.0 = Release|Win32
+		{479DCA79-9205-4958-A75B-51F6C2E75D61}.Debug.ActiveCfg = Debug|Win32
+		{479DCA79-9205-4958-A75B-51F6C2E75D61}.Debug.Build.0 = Debug|Win32
+		{479DCA79-9205-4958-A75B-51F6C2E75D61}.Release.ActiveCfg = Release|Win32
+		{479DCA79-9205-4958-A75B-51F6C2E75D61}.Release.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+	EndGlobalSection
+	GlobalSection(ExtensibilityAddIns) = postSolution
+	EndGlobalSection
+EndGlobal

@@ -1,0 +1,460 @@
+<HTML>
+<HEAD>
+  <TITLE>CUnit - Managing Tests & Suites</TITLE>
+  <LINK REL=StyleSheet HREF="CUnit_doc.css" TYPE="text/css" TITLE="CUnit Basic Style" />
+</HEAD>
+<BODY>
+<DIV CLASS="NAVHEADER" >
+<TABLE SUMMARY="Header navigation table" WIDTH="100%" BORDER="0" CELLPADDING="0" CELLSPACING="0">
+  <TR>
+    <TH COLSPAN="3" ALIGN="center"><H3>CUnit Progammers Guide</H3></TH>
+  </TR>
+  <TR>
+    <TD WIDTH="10%" ALIGN="left" VALIGN="bottom"><A HREF="test_registry.html" ACCESSKEY="P" >Prev</A></TD>
+    <TD WIDTH="80%" ALIGN="center" VALIGN="bottom"><A HREF="index.html" ACCESSKEY="H" >Home</A></TD>
+    <TD WIDTH="10%" ALIGN="right" VALIGN="bottom"><A HREF="running_tests.html" ACCESSKEY="N" >Next</A></TD>
+  </TR>
+</TABLE>
+<HR ALIGN="LEFT" WIDTH="100%">
+
+<H2>4. Managing Tests & Suites</H2>
+
+In order for a test to be run by CUnit, it must be added to a test
+collection (suite) which is registered with the 
+<A HREF="test_registry.html">test registry</A>.
+
+<H3 ID="synopsis">4.1. Synopsis</H3>
+#include &lt;<A HREF="headers/TestDB.h">CUnit/TestDB.h</A>&gt;
+(included automatically by &lt;<A HREF="headers/CUnit.h">CUnit/CUnit.h</A>&gt;)
+<P />
+<PRE>
+  typedef struct <B CLASS="cite">CU_Suite</B>
+  typedef CU_Suite*  <B CLASS="cite">CU_pSuite</B>
+
+  typedef struct <B CLASS="cite">CU_Test</B>
+  typedef CU_Test*  <B CLASS="cite">CU_pTest</B>
+
+  typedef void (*<B CLASS="cite">CU_TestFunc</B>)(void)
+  typedef int  (*<B CLASS="cite">CU_InitializeFunc</B>)(void)
+  typedef int  (*<B CLASS="cite">CU_CleanupFunc</B>)(void)
+
+  CU_pSuite <A HREF="#addsuite">CU_add_suite</A>(const char* strName,
+                         CU_InitializeFunc pInit,
+                         CU_CleanupFunc pClean);
+
+  CU_pTest  <A HREF="#addtest">CU_add_test</A>(CU_pSuite pSuite,
+                        const char* strName,
+                        CU_TestFunc pTestFunc);
+
+  typedef struct <B CLASS="cite">CU_TestInfo</B>
+  typedef struct <B CLASS="cite">CU_SuiteInfo</B>
+
+  CU_ErrorCode <A HREF="#regsuites">CU_register_suites</A>(CU_SuiteInfo suite_info[]);
+  CU_ErrorCode <A HREF="#regsuites">CU_register_nsuites</A>(int suite_count, ...);
+
+  CU_ErrorCode <A HREF="#activation">CU_set_suite_active</A>(CU_pSuite pSuite, CU_BOOL fNewActive)
+  CU_ErrorCode <A HREF="#activation">CU_set_test_active</A>(CU_pTest, CU_BOOL fNewActive)
+
+  CU_ErrorCode <A HREF="#modification">CU_set_suite_name</A>(CU_pSuite pSuite, const char *strNewName)
+  CU_ErrorCode <A HREF="#modification">CU_set_suite_initfunc</A>(CU_pSuite pSuite, CU_InitializeFunc pNewInit)
+  CU_ErrorCode <A HREF="#modification">CU_set_suite_cleanupfunc</A>(CU_pSuite pSuite, CU_CleanupFunc pNewClean)
+
+  CU_ErrorCode <A HREF="#modification">CU_set_test_name</A>(CU_pTest pTest, const char *strNewName)
+  CU_ErrorCode <A HREF="#modification">CU_set_test_func</A>(CU_pTest pTest, CU_TestFunc pNewFunc)
+
+  CU_pSuite <A HREF="#lookup">CU_get_suite</A>(const char* strName)
+  CU_pSuite <A HREF="#lookup">CU_get_suite_at_pos</A>(unsigned int pos)
+  unsigned int <A HREF="#lookup">CU_get_suite_pos</A>(CU_pSuite pSuite)
+  unsigned int <A HREF="#lookup">CU_get_suite_pos_by_name</A>(const char* strName)
+
+  CU_pTest <A HREF="#lookup">CU_get_test</A>(CU_pSuite pSuite, const char *strName)
+  CU_pTest <A HREF="#lookup">CU_get_test_at_pos</A>(CU_pSuite pSuite, unsigned int pos)
+  unsigned int <A HREF="#lookup">CU_get_test_pos</A>(CU_pSuite pSuite, CU_pTest pTest)
+  unsigned int <A HREF="#lookup">CU_get_test_pos_by_name</A>(CU_pSuite pSuite, const char *strName)
+</PRE>
+
+<H3 ID="addsuite">4.2. Adding Suites to the Registry</H3>
+<P CLASS="indent2"><CITE>CU_pSuite <B>CU_add_suite</B>(const char* strName, CU_InitializeFunc pInit, CU_CleanupFunc pClean)</CITE></P>
+<P CLASS="indent5">Creates a new test collection (suite) having
+the specified name, initialization function, and cleanup function.
+The new suite is registered with (and owned by) the
+<A HREF="test_registry.html">test registry</A>, so the registry must be
+<A HREF="test_registry.html#init">initialized</A> before adding any suites.
+The current implementation does not support the creation of suites 
+independent of the test registry.  This function may not be called 
+during a test run (i.e. from a test function or suite 
+initialization/cleanup function).
+<BR /><BR />
+It is recommended that the suite's name be unique among all suites in 
+the registry.  This facilitates suite lookup by name, which only finds 
+the first suite having a given name.  The initialization and cleanup 
+functions are optional, and are passed as pointers to functions to be 
+called before and after running the tests contained in the suite.  This 
+allows the suite to set up and tear down temporary fixtures to support 
+running the tests.  These functions take no arguments and should return 
+zero if they are completed successfully (non-zero otherwise).  If a 
+suite does not require one or both of these functions, pass 
+<CODE>NULL</CODE> to <CITE>CU_add_suite()</CITE>.
+<BR /><BR />
+A pointer to the new suite is returned, which is needed for adding
+tests to the suite.  The pointer will be <CODE>NULL</CODE> if a fatal
+error occurs.  In addition, the framework 
+<A HREF="error_handling.html">error code</A> is set to one
+of the following:
+</P>
+<P CLASS="indent10">
+<TABLE CELLPADDING=1>
+  <TR>
+    <TD><CITE>CUE_SUCCESS</CITE></TD>
+    <TD>suite creation was successful.</TD>
+  </TR>
+  <TR>
+    <TD><CITE>CUE_NOREGISTRY</CITE></TD>
+    <TD>Error: the registry has not been initialized.</TD>
+  </TR>
+  <TR>
+    <TD><CITE>CUE_NO_SUITENAME</CITE></TD>
+    <TD>Error: strName was <CODE>NULL</CODE>.</TD>
+  </TR>
+  <TR>
+    <TD><CITE>CUE_DUP_SUITE</CITE></TD>
+    <TD>Warning: the suite's name was not unique.</TD>
+  </TR>
+  <TR>
+    <TD><CITE>CUE_NOMEMORY</CITE></TD>
+    <TD>Error: memory allocation failed.</TD>
+  </TR>
+</TABLE>
+</P>
+
+<H3 ID="addtest">4.3. Adding Tests to Suites</H3>
+<P CLASS="indent2"><CITE>CU_pTest <B>CU_add_test</B>(CU_pSuite pSuite, const char* strName, CU_TestFunc pTestFunc)</CITE></P>
+<P CLASS="indent5">Creates a new test having the specified name and
+test function, and registers it with the specified suite.  The suite
+must already have been created using <A HREF="#addsuite">CU_add_suite()</A>.
+The current implementation does not support the creation of tests
+independent of a registered suite.  This function may not be called 
+during a test run (i.e. from a test function or suite 
+initialization/cleanup function).
+<BR /><BR />
+It is recommended that the test's name be unique among all tests added 
+to a single suite.  This facilitates lookup of the test by name, which
+will find only the 1st test having a given name.  The test function cannot 
+be <CODE>NULL</CODE>, and points to a function to be called when the test 
+is run. Test functions have neither arguments nor return values.
+<BR /><BR />
+A pointer to the new test is returned.  If a fatal error occurs during
+creation of the test, <CODE>NULL</CODE> is returned.  In addition. the 
+framework <A HREF="error_handling.html">error code</A> is set to one of 
+the following:
+</P>
+<P CLASS="indent10">
+<TABLE CELLPADDING=1>
+  <TR>
+    <TD><CITE>CUE_SUCCESS</CITE></TD>
+    <TD>suite creation was successful.</TD>
+  </TR>
+  <TR>
+    <TD><CITE>CUE_NOREGISTRY</CITE></TD>
+    <TD>Error: the registry has not been initialized.</TD>
+  </TR>
+  <TR>
+    <TD><CITE>CUE_NOSUITE</CITE></TD>
+    <TD>Error: the specified suite was <CODE>NULL</CODE> or invalid.</TD>
+  </TR>
+  <TR>
+    <TD><CITE>CUE_NO_TESTNAME</CITE></TD>
+    <TD>Error: strName was <CODE>NULL</CODE>.</TD>
+  </TR>
+  <TR>
+    <TD><CITE>CUE_NO_TEST</CITE></TD>
+    <TD>Error: pTestFunc was <CODE>NULL</CODE> or invalid.</TD>
+  </TR>
+  <TR>
+    <TD><CITE>CUE_DUP_TEST</CITE></TD>
+    <TD>Warning: the test's name was not unique.</TD>
+  </TR>
+  <TR>
+    <TD><CITE>CUE_NOMEMORY</CITE></TD>
+    <TD>Error: memory allocation failed.</TD>
+  </TR>
+</TABLE>
+</P>
+
+<H3 ID="shortcuts">4.4. Shortcut Methods for Managing Tests</H3>
+<P CLASS="indent2"><CITE>#define <B>CU_ADD_TEST</B>(suite, test) (CU_add_test(suite, #test, (CU_TestFunc)test))</CITE></P>
+<P CLASS="indent5">This macro automatically generates a unique test name
+based on the test function name, and adds it to the specified suite.  The return 
+value should be checked by the user to verify success.</P>
+<P CLASS="indent2" ID="regsuites">
+<CITE>CU_ErrorCode <B>CU_register_suites</B>(CU_SuiteInfo suite_info[])</CITE><BR />
+<CITE>CU_ErrorCode <B>CU_register_nsuites</B>(int suite_count, ...)</CITE>
+</P>
+<P CLASS="indent5">For large test structures with many tests and suites,
+managing test/suite associations and registration is tedious and error-prone.
+CUnit provides a special registration system to help manage suites and tests.
+Its primary benefit is to centralize the registration of suites and associated
+tests, and to minimize the amount of error checking code the user needs to write.
+<BR /><BR />
+Test cases are first grouped into arrays of <CITE>CU_TestInfo</CITE> instances
+(defined in &lt;<A HREF="headers/TestDB.h">CUnit/TestDB.h</A>&gt;):</P>
+<PRE CLASS="indent10">
+CU_TestInfo test_array1[] = {
+  { "testname1", test_func1 },
+  { "testname2", test_func2 },
+  { "testname3", test_func3 },
+  CU_TEST_INFO_NULL,
+};
+</PRE>
+<P CLASS="indent5">Each array element contains the (unique) name and test
+function for a single test case.  The array must end with an element
+holding <CODE>NULL</CODE> values, which the macro <CITE>CU_TEST_INFO_NULL</CITE>
+conveniently defines.  The test cases included in a single
+<CITE>CU_TestInfo</CITE> array form the set of tests that will be registered
+with a single test suite.
+<BR /><BR />
+Suite information is then defined in one or more arrays of 
+<CITE>CU_SuiteInfo</CITE> instances (defined in 
+&lt;<A HREF="headers/TestDB.h">CUnit/TestDB.h</A>&gt;):</P>
+<PRE CLASS="indent10">
+CU_SuiteInfo suites[] = {
+  { "suitename1", suite1_init-func, suite1_cleanup_func, test_array1 },
+  { "suitename2", suite2_init-func, suite2_cleanup_func, test_array2 },
+  CU_SUITE_INFO_NULL,
+};
+</PRE>
+<P CLASS="indent5">Each of these array elements contain the (unique) name,
+suite initialization function, suite cleanup function, and
+<CITE>CU_TestInfo</CITE> array for a single suite.  As usual,
+<CODE>NULL</CODE> may be used for the initialization or cleanup
+function if the given suite does not need it. The array must end
+with an all-<CODE>NULL</CODE> element, for which the macro
+<CITE>CU_SUITE_INFO_NULL</CITE> may be used.
+<BR /><BR />
+All suites defined in a <CITE>CU_SuiteInfo</CITE> array can then be
+registered in a single statement:</P>
+<P CLASS="indent10">
+<CODE>CU_ErrorCode error = CU_register_suites(suites);</CODE>
+</P>
+<P CLASS="indent5">If an error occurs during the registration of any suite or
+test, an error code is returned.  The error codes are the same as those returned
+by normal <A HREF="#addsuite">suite registration</A> and
+<A HREF="#addtest">test addition</A> operations.  The function
+<CITE>CU_register_nsuites()</CITE> is provided for situations in which
+the user wishes to register multiple <CITE>CU_SuiteInfo</CITE> arrays
+in a single statement:</P>
+<P CLASS="indent10">
+<CODE>CU_ErrorCode error = CU_register_nsuites(2, suites1, suites2);</CODE>
+</P>
+<P CLASS="indent5">
+This function accepts a variable number of <CITE>CU_SuiteInfo</CITE> arrays.
+The first argument indicates the actual number ot arrays being passed.
+</P>
+
+<H3 ID="activation">4.5. Activation of Suites and Tests</H3>
+<P CLASS="indent2">
+  <CITE>CU_ErrorCode <B>CU_set_suite_active</B>(CU_pSuite pSuite, CU_BOOL fNewActive)</CITE><BR />
+  <CITE>CU_ErrorCode <B>CU_set_test_active</B>(CU_pTest pTest, CU_BOOL fNewActive)</CITE>
+</P>
+<P CLASS="indent5">These functions may be used to deactivate or reactivate
+individual tests and suites.  A suite or test will not be executed during a
+test run unless it is active.  All suites and tests are active by default 
+upon creation.  The current active state is available as <I>pSuite->fActive</I> 
+and <I>pTest->fActive</I>, respectively.  The flag will be <CODE>CU_TRUE</CODE> 
+if active and <CODE>CU_FALSE</CODE> if not.  This gives the client the ability to 
+choose subsets of tests to run dynamically.  Note that it is a framework error 
+to deactivate a test or suite and then specifically request that it be 
+<A HREF="running_test/html#overview">run</A>.  These functions return
+<CODE>CUE_SUCCESS</CODE> on success, and <CODE>CUE_NOSUITE</CODE> (or
+<CODE>CUE_NOTEST</CODE>) if the corresponding suite (or test) is <CODE>NULL</CODE>.
+</P>
+
+<H3 ID="modification">4.6. Modifying Other Attributes of Suites and Tests</H3>
+<P CLASS="indent2">Normally the attributes of suites and tests are set at creation time.  
+In some cases, a client may wish to manipulate these to modify the test structure 
+dynamically.  The following functions are provided for this purpose, and should
+be used instead of directly setting the value of the data structure members.  All
+return <CODE>CUE_SUCCESS</CODE> on success, and the indicated error code on failure.
+<A HREF="#lookup">Lookup functions</A> are provided to assist clients in locating
+specific tests and suites.
+</P>
+<P CLASS="indent2">
+  <CITE>CU_ErrorCode <B>CU_set_suite_name</B>(CU_pSuite pSuite, const char *strNewName)</CITE><BR />
+  <CITE>CU_ErrorCode <B>CU_set_test_name</B>(CU_pTest pTest, const char *strNewName)</CITE>
+</P>
+<P CLASS="indent5">These functions change the name of registered suites and tests.  
+The current names are available as the <I>pSuite->pName</I> and 
+<I>pTest->pName</I> data structure members.  If the suite or test is <CODE>NULL</CODE>,
+then <CODE>CUE_NOSUITE</CODE> or <CODE>CUE_NOTEST</CODE> is returned, respectively.  If
+strNewName is <CODE>NULL</CODE>, then <CODE>CUE_NO_SUITENAME</CODE> or
+<CODE>CUE_NO_TESTNAME</CODE> is returned, respectively.
+</P>
+<P CLASS="indent2">
+  <CITE>CU_ErrorCode <B>CU_set_suite_initfunc</B>(CU_pSuite pSuite, CU_InitializeFunc pNewInit)</CITE><BR />
+  <CITE>CU_ErrorCode <B>CU_set_suite_cleanupfunc</B>(CU_pSuite pSuite, CU_CleanupFunc pNewClean)</CITE>
+</P>
+<P CLASS="indent5">These functions change the initialization and cleanup
+functions for a registered suite.  The current functions are available as the 
+<I>pSuite->pInitializeFunc</I> and <I>pSuite->pCleanupFunc</I> data structure 
+members.  If the suite is <CODE>NULL</CODE> then <CODE>CUE_NOSUITE</CODE> is
+returned.
+</P>
+<P CLASS="indent2">
+  <CITE>CU_ErrorCode <B>CU_set_test_func</B>(CU_pTest pTest, CU_TestFunc pNewFunc)</CITE>
+</P>
+<P CLASS="indent5">This function changes the test function for a registered test.  
+The current test function is available as the <I>pTest->pTestFunc</I> data 
+structure member.  If either pTest or pNewFunc is <CODE>NULL</CODE>, then
+<CODE>CUE_NOTEST</CODE> is returned.
+</P>
+
+<H3 ID="lookup">4.7. Lookup of Individual Suites and Tests</H3>
+<P CLASS="indent2">In most cases, clients will have references to registered 
+suites and tests as pointers returned from <A HREF="#addsuite">CU_add_suite()</A>
+and <A HREF="#addtest">CU_add_test()</A>.  Occassionally, a client may need to be
+able to retrieve a reference to a suite or test.  The following functions are
+provided to assist clients with this when the client has some information about
+the entity (name or order of registration).  In cases where nothing is known about
+the suite or test, the client will need to iterate the internal data structures to
+enumerate the suites and tests.  This is not directly supported in the client API.
+</P>
+<P CLASS="indent2">
+  <CITE>CU_pSuite <B>CU_get_suite</B>(const char* strName)</CITE><BR />
+  <CITE>CU_pSuite <B>CU_get_suite_at_pos</B>(unsigned int pos)</CITE><BR />
+  <CITE>unsigned int <B>CU_get_suite_pos</B>(CU_pSuite pSuite)</CITE><BR />
+  <CITE>unsigned int <B>CU_get_suite_pos_by_name</B>(const char* strName)</CITE>
+</P>
+<P CLASS="indent5">These functions facilitate lookup of suites registered in the
+active <A HREF="test_registry.html">test registry</A>.  The first 2 functions allow 
+lookup of the suite by name or position and return <CODE>NULL</CODE> if the suite cannot
+be found.  The position is a 1-based index in the range 
+[1 .. <A HREF="test_registry.html#otherfuncs">CU_get_registry()</A>->uiNumberOfSuites].
+This may be helpful when suites having duplicate names are registered, in which case
+lookup by name can only retrieve the 1st suite having that name.  The second 2 functions
+help the client identify the position of a registered suite.  These return 0 if the suite 
+cannot be found.  In addition, all these functions set the CUnit error state to
+<CODE>CUE_NOREGISTRY</CODE> if the registry is not <A HREF="test_registry.html#init">
+initialized</A>.  As appropriate, <CODE>CUE_NO_SUITENAME</CODE> is set if <CODE>strName</CODE>
+is <CODE>NULL</CODE>, and <CODE>CUE_NOSUITE</CODE> is set if <CODE>pSuite</CODE>
+is <CODE>NULL</CODE>.
+</P>
+<P CLASS="indent2">
+  <CITE>CU_pTest <B>CU_get_test</B>(CU_pSuite pSuite, const char *strName)</CITE><BR />
+  <CITE>CU_pTest <B>CU_get_test_at_pos</B>(CU_pSuite pSuite, unsigned int pos)</CITE><BR />
+  <CITE>unsigned int <B>CU_get_test_pos</B>(CU_pSuite pSuite, CU_pTest pTest)</CITE><BR />
+  <CITE>unsigned int <B>CU_get_test_pos_by_name</B>(CU_pSuite pSuite, const char *strName)</CITE>
+</P>
+<P CLASS="indent5">These functions facilitate lookup of tests registered in suites.  The first 
+2 functions allow lookup of the test by name or position and return <CODE>NULL</CODE> if the 
+test cannot found.  The position is a 1-based index in the range [1 .. pSuite->uiNumberOfSuites].
+This may be helpful when tests having duplicate names are registered, in which case
+lookup by name can only retrieve the 1st test having that name.  The second 2 functions
+help the client identify the position of a test in a suite.  These return 0 if the test  
+cannot be found.  In addition, all these functions set the CUnit error state to
+<CODE>CUE_NOREGISTRY</CODE> if the registry is not <A HREF="test_registry.html#init">
+initialized</A>, and to <CODE>CUE_NOSUITE</CODE> if <CODE>pSuite</CODE> is <CODE>NULL</CODE>.
+As appropriate, <CODE>CUE_NO_TESTNAME</CODE> is set if <CODE>strName</CODE> is 
+<CODE>NULL</CODE>, and <CODE>CUE_NOTEST</CODE> is set if <CODE>pTest</CODE> is <CODE>NULL</CODE>.
+</P>
+	
+<H3 ID="deprecated">4.8. Deprecated v1 Data Types & Functions</H3>
+The following data types and functions are deprecated as of version 2.
+To use these deprecated names, user code must be compiled with
+<CITE>USE_DEPRECATED_CUNIT_NAMES</CITE> defined.
+<P />
+<B>#include&nbsp;&lt;<A HREF="headers/TestDB.h">CUnit/TestDB.h</A>&gt;</B>
+(included automatically by <A HREF="headers/CUnit.h">CUnit/CUnit.h</A>&gt;).
+<P />
+<TABLE CELLPADDING=5 BORDER=2>
+  <TR VALIGN="top">
+    <TD><B>Deprecated Name</B></TD>
+    <TD><B>Equivalent New Name</B></TD>
+  </TR>
+  <TR VALIGN="top">
+    <TD><CODE>TestFunc</CODE></TD>
+    <TD><A HREF="#synopsis">CU_TestFunc</A></TD>
+  </TR>
+  <TR VALIGN="top">
+    <TD><CODE>InitializeFunc</CODE></TD>
+    <TD><A HREF="#synopsis">CU_InitializeFunc</A></TD>
+  </TR>
+  <TR VALIGN="top">
+    <TD><CODE>CleanupFunc</CODE></TD>
+    <TD><A HREF="#synopsis">CU_CleanupFunc</A></TD>
+  </TR>
+  <TR VALIGN="top">
+    <TD><CODE>_TestCase</CODE></TD>
+    <TD><A HREF="#synopsis">CU_Test</A></TD>
+  </TR>
+  <TR VALIGN="top">
+    <TD><CODE>PTestCase</CODE></TD>
+    <TD><A HREF="#synopsis">CU_pTest</A></TD>
+  </TR>
+  <TR VALIGN="top">
+    <TD><CODE>_TestGroup</CODE></TD>
+    <TD><A HREF="#synopsis">CU_Suite</A></TD>
+  </TR>
+  <TR VALIGN="top">
+    <TD><CODE>PTestGroup</CODE></TD>
+    <TD><A HREF="#synopsis">CU_pSuite</A></TD>
+  </TR>
+  <TR VALIGN="top">
+    <TD><CODE>add_test_group()</CODE></TD>
+    <TD><A HREF="#addsuite">CU_add_suite()</A></TD>
+  </TR>
+  <TR VALIGN="top">
+    <TD><CODE>add_test_case()</CODE></TD>
+    <TD><A HREF="#addtest">CU_add_test()</A></TD>
+  </TR>
+  <TR VALIGN="top">
+    <TD><CODE>ADD_TEST_TO_GROUP()</CODE></TD>
+    <TD><A HREF="#shortcuts">CU_ADD_TEST()</A></TD>
+  </TR>
+  <TR VALIGN="top">
+    <TD><CODE>test_case_t</CODE></TD>
+    <TD><A HREF="#regsuites">CU_TestInfo</A></TD>
+  </TR>
+  <TR VALIGN="top">
+    <TD><CODE>test_group_t</CODE></TD>
+    <TD><A HREF="#regsuites">CU_SuiteInfo</A></TD>
+  </TR>
+  <TR VALIGN="top">
+    <TD><CODE>test_suite_t</CODE></TD>
+    <TD>no equivalent - use <A HREF="#regsuites">CU_SuiteInfo</A></TD>
+  </TR>
+  <TR VALIGN="top">
+    <TD><CODE>TEST_CASE_NULL</CODE></TD>
+    <TD><A HREF="#regsuites">CU_TEST_INFO_NULL</A></TD>
+  </TR>
+  <TR VALIGN="top">
+    <TD><CODE>TEST_GROUP_NULL</CODE></TD>
+    <TD><A HREF="#regsuites">CU_SUITE_INFO_NULL</A></TD>
+  </TR>
+  <TR VALIGN="top">
+    <TD><CODE>test_group_register</CODE></TD>
+    <TD><A HREF="#regsuites">CU_register_suites()</A></TD>
+  </TR>
+  <TR VALIGN="top">
+    <TD><CODE>test_suite_register</CODE></TD>
+    <TD>no equivalent - use <A HREF="#regsuites">CU_register_suites()</A></TD>
+  </TR>
+</TABLE>
+
+<DIV CLASS="NAVFOOTER">
+<HR ALIGN="LEFT" WIDTH="100%">
+<TABLE SUMMARY="Footer navigation table" WIDTH="100%" BORDER="0" CELLPADDING="0" CELLSPACING="0">
+  <TR>
+    <TD WIDTH="33%" ALIGN="left" VALIGN="top"><A HREF="test_registry.html" ACCESSKEY="P">Prev</A></TD>
+    <TD WIDTH="34%" ALIGN="center" VALIGN="top"><A HREF="index.html" ACCESSKEY="H" >Home</A></TD>
+    <TD WIDTH="33%" ALIGN="right" VALIGN="top"><A HREF="running_tests.html" ACCESSKEY="N" >Next</A></TD>
+  </TR>
+  <TR>
+    <TD WIDTH="33%" ALIGN="left" VALIGN="top">The Test Registry</TD>
+    <TD WIDTH="34%" ALIGN="center" VALIGN="top">&nbsp;</TD>
+    <TD WIDTH="33%" ALIGN="right" VALIGN="top">Running Tests</TD>
+  </TR>
+</TABLE>
+</DIV>
+
+</BODY>
+</HTML>

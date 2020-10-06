@@ -1,0 +1,258 @@
+<HTML>
+<HEAD>
+  <TITLE>CUnit - The Test Registry</TITLE>
+  <LINK REL=StyleSheet HREF="CUnit_doc.css" TYPE="text/css" TITLE="CUnit Basic Style" />
+</HEAD>
+<BODY>
+<DIV CLASS="NAVHEADER" >
+<TABLE SUMMARY="Header navigation table" WIDTH="100%" BORDER="0" CELLPADDING="0" CELLSPACING="0">
+  <TR>
+    <TH COLSPAN="3" ALIGN="center"><H3>CUnit Progammers Guide</H3></TH>
+  </TR>
+  <TR>
+    <TD WIDTH="10%" ALIGN="left" VALIGN="bottom"><A HREF="writing_tests.html" ACCESSKEY="P" >Prev</A></TD>
+    <TD WIDTH="80%" ALIGN="center" VALIGN="bottom"><A HREF="index.html" ACCESSKEY="H" >Home</A></TD>
+    <TD WIDTH="10%" ALIGN="right" VALIGN="bottom"><A HREF="managing_tests.html" ACCESSKEY="N" >Next</A></TD>
+  </TR>
+</TABLE>
+<HR ALIGN="LEFT" WIDTH="100%">
+
+<H2>3. The Test Registry</H2>
+
+<H3 ID="synopsis">3.1. Synopsis</H3>
+#include &lt;<A HREF="headers/TestDB.h">CUnit/TestDB.h</A>&gt;
+(included automatically by &lt;<A HREF="headers/CUnit.h">CUnit/CUnit.h</A>&gt;)
+<P />
+<PRE>
+  typedef struct <A HREF="#CU_TestRegistry">CU_TestRegistry</A>
+  typedef CU_TestRegistry*  <A HREF="#CU_TestRegistry">CU_pTestRegistry</A>
+
+  CU_ErrorCode     <A HREF="#init">CU_initialize_registry</A>(void)
+
+  void             <A HREF="#cleanup">CU_cleanup_registry</A>(void)
+
+  CU_BOOL          <A HREF="#init">CU_registry_initialized</A>(void)
+
+  CU_pTestRegistry <A HREF="#otherfuncs">CU_get_registry</A>(void)
+
+  CU_pTestRegistry <A HREF="#otherfuncs">CU_set_registry</A>(CU_pTestRegistry pTestRegistry)
+
+  CU_pTestRegistry <A HREF="#otherfuncs">CU_create_new_registry</A>(void)
+
+  void             <A HREF="#otherfuncs">CU_destroy_existing_registry</A>(CU_pTestRegistry* ppRegistry)
+</PRE>
+
+<H3 ID="struct">3.2. Internal Structure</H3>
+The test registry is the repository for suites and associated tests.
+CUnit maintains an active test registry which is updated when the user
+adds a suite or test.  The suites in this active registry are the ones
+run when the user chooses to run all tests.
+<P />
+The CUnit test registry is a data structure <CITE>CU_TestRegistry</CITE>
+declared in <A HREF="headers/TestDB.h">&lt;CUnit/TestDB.h&gt;</A>.  It
+includes fields for the total numbers of suites and tests stored in the
+registry, as well as a pointer to the head of the linked list of
+registered suites.
+<PRE ID="CU_TestRegistry">
+  typedef struct CU_TestRegistry
+  {
+    unsigned int uiNumberOfSuites;
+    unsigned int uiNumberOfTests;
+    CU_pSuite    pSuite;
+  } <CITE><B>CU_TestRegistry</B></CITE>;
+
+  typedef CU_TestRegistry* <CITE><B>CU_pTestRegistry</B></CITE>;
+</PRE>
+<P />
+The user normally only needs to initialize the registry before use and
+clean up afterwards.  However, other functions are provided to
+manipulate the registry when necessary.
+
+<H3 ID="init">3.3. Initialization</H3>
+<P CLASS="indent2"><CITE>CU_ErrorCode <B>CU_initialize_registry</B>(void)</CITE></P>
+<P CLASS="indent5">The active CUnit test registry must be initialized
+before use.  The user should call <CITE>CU_initialize_registry()</CITE>
+before calling any other CUnit functions.  Failure to do so will
+likely result in a crash.  If this function is called more than once,
+any existing registry will be cleaned up (i.e. destroyed!) before 
+creating the new registry.  This function may not be called during a
+test run (i.e. from a test function or suite initialization/cleanup 
+function).
+<BR /><BR />
+An error status code is returned:
+<P CLASS="indent10">
+<TABLE CELLPADDING=1>
+  <TR>
+    <TD><CITE>CUE_SUCCESS</CITE></TD>
+    <TD>initialization was successful.</TD>
+  </TR>
+  <TR>
+    <TD><CITE>CUE_NOMEMORY</CITE></TD>
+    <TD>memory allocation failed.</TD>
+  </TR>
+</TABLE>
+</P>
+<P CLASS="indent2"><CITE>CU_BOOL <B>CU_registry_initialized</B>(void)</CITE></P>
+<P CLASS="indent5">This function can be used to check whether the registry has 
+been initialized.  This may be useful if the registry setup is distributed over 
+multiple files that need to make sure the registry is ready for test registration.
+</P>
+
+<H3 ID="cleanup">3.4. Cleanup</H3>
+<P CLASS="indent2"><CITE>void <B>CU_cleanup_registry</B>(void)</CITE></P>
+<P CLASS="indent5">When testing is complete, the user should call this
+function to clean up and release memory used by the framework.  This
+should be the last CUnit function called (except for restoring the
+test registry using <A HREF="#init">CU_initialize_registry()</A> or
+<A HREF="#setreg">CU_set_registry()</A>).
+<BR /><BR />
+Failure to call <CITE>CU_cleanup_registry()</CITE> will result in
+memory leaks.  It may be called more than once without creating an
+error condition.  <I>Note that this function will destroy all
+suites (and associated tests) in the registry.</I> Pointers to
+registered suites and tests should not be dereferenced after
+cleaning up the registry.  This function may not be called during a
+test run (i.e. from a test function or suite initialization/cleanup 
+function).
+<BR /><BR />
+Calling <CITE>CU_cleanup_registry()</CITE> will only affect the internal
+<A HREF="#CU_TestRegistry">CU_TestRegistry</A> maintained by the CUnit
+framework.  Destruction of any other test registries owned by the user
+are the responsibility of the user.  This can be done explictly by
+calling <A HREF="#destroy">CU_destroy_existing_registry()</A>, or
+implicitly by making the registry active using
+<A HREF="#setreg">CU_set_registry()</A> and calling
+<CITE>CU_cleanup_registry()</CITE> again.
+</P>
+
+<H3 ID="otherfuncs">3.5. Other Registry Functions</H3>
+Other registry functions are provided primarily for internal and
+testing purposes. However, general users may find use for them and
+should be aware of them.
+<P />
+These include:
+<P />
+<P CLASS="indent2"><CITE ID="getreg">CU_pTestRegistry <B>CU_get_registry</B>(void)</CITE></P>
+<P CLASS="indent5">Returns a pointer to the active test registry.  The registry is a
+variable of data type <A HREF="#CU_TestRegistry">CU_TestRegistry</A>.
+Direct manipulation of the internal test registry is not
+recommended - API functions should be used instead.  The framework
+maintains ownership of the registry, so the returned pointer will be
+invalidated by a call to <A HREF="#cleanup">CU_cleanup_registry()</A>
+or <A HREF="#init">CU_initialize_registry()</A>.
+</P>
+<P CLASS="indent2"><CITE ID="setreg">CU_pTestRegistry <B>CU_set_registry</B>(CU_pTestRegistry pTestRegistry)</CITE></P>
+<P CLASS="indent5">Replaces the active registry with the specified one.  A pointer to the
+previous registry is returned.  <B><I>It is the caller's responsibility
+to destroy the old registry</I></B>.  This can be done explictly by
+calling <A HREF="#destroy">CU_destroy_existing_registry()</A> for the
+returned pointer.  Alternatively, the registry can be made active using
+<A HREF="#setreg">CU_set_registry()</A> and destroyed implicitly when
+<A HREF="#cleanup">CU_cleanup_registry()</A> is called. Care should be 
+taken not to explicitly destroy a registry that is set as the active one.  
+This can result in multiple frees of the same memory and a likely crash.
+</P>
+<P CLASS="indent2"><CITE ID="create">CU_pTestRegistry <B>CU_create_new_registry</B>(void)</CITE></P>
+<P CLASS="indent5">Creates a new registry and returns a pointer to it.
+The new registry will not contain any suites or tests.  It is the
+caller's responsibility to destroy the new registry by one of the
+mechanisms described previously.
+</P>
+<P CLASS="indent2"><CITE ID="destroy">void <B>CU_destroy_existing_registry</B>(CU_pTestRegistry* ppRegistry)</CITE></P>
+<P CLASS="indent5">Destroys and frees all memory for the specified test
+registry, including any registered suites and tests.  This function 
+should not be called for a registry which is set as the active test 
+registry (e.g. a  <CITE>CU_pTestRegistry</CITE> pointer retrieved using
+<A HREF="#getreg">CU_get_registry()</A>).  This will result in a
+multiple free of the same memory when
+<A HREF="#cleanup">CU_cleanup_registry()</A> is called.  ppRegistry
+may not be <code>NULL</code>, but the pointer it points to may be.  In
+that case, the function has no effect.  Note that *ppRegistry will be
+set to <code>NULL</code> upon return.
+</P>
+
+<H3 ID="deprecated">3.6. Deprecated v1 Data Types & Functions</H3>
+The following data types and functions are deprecated as of version 2.
+To use these deprecated names, user code must be compiled with
+<CITE>USE_DEPRECATED_CUNIT_NAMES</CITE> defined.
+<P />
+<B>#include&nbsp;&lt;<A HREF="headers/TestDB.h">CUnit/TestDB.h</A>&gt;</B>
+(included automatically by <A HREF="headers/CUnit.h">CUnit/CUnit.h</A>&gt;).
+<P />
+<TABLE CELLPADDING=5 BORDER=2>
+  <TR VALIGN="top">
+    <TD><B>Deprecated Name</B></TD>
+    <TD><B>Equivalent New Name</B></TD>
+  </TR>
+  <TR VALIGN="top">
+    <TD><CODE>_TestRegistry</CODE></TD>
+    <TD><A HREF="#CU_TestRegistry">CU_TestRegistry</A></TD>
+  </TR>
+  <TR VALIGN="top">
+    <TD>
+      <CODE>
+        _TestRegistry.uiNumberOfGroups<BR />
+        PTestRegistry->uiNumberOfGroups
+      </CODE>
+    </TD>
+    <TD>
+      <CODE>
+        CU_TestRegistry.uiNumberOfSuites<BR />
+        CU_pTestRegistry->uiNumberOfSuites<BR />
+      </CODE>
+    </TD>
+  </TR>
+  <TR VALIGN="top">
+    <TD>
+      <CODE>
+        _TestRegistry.pGroup<BR />
+        PTestRegistry->pGroup
+      </CODE>
+    </TD>
+    <TD>
+      <CODE>
+        CU_TestRegistry.pSuite<BR />
+        CU_pTestRegistry->pSuite
+      </CODE>
+    </TD>
+  </TR>
+  <TR VALIGN="top">
+    <TD><CODE>PTestRegistry</CODE></TD>
+    <TD><A HREF="#CU_TestRegistry">CU_pTestRegistry</A></TD>
+  </TR>
+  <TR VALIGN="top">
+    <TD><CODE>initialize_registry()</CODE></TD>
+    <TD><A HREF="#init">CU_initialize_registry()</A></TD>
+  </TR>
+  <TR VALIGN="top">
+    <TD><CODE>cleanup_registry()</CODE></TD>
+    <TD><A HREF="#cleanup">CU_cleanup_registry()</A></TD>
+  </TR>
+  <TR VALIGN="top">
+    <TD><CODE>get_registry()</CODE></TD>
+    <TD><A HREF="#getreg">CU_get_registry()</A></TD>
+  </TR>
+  <TR VALIGN="top">
+    <TD><CODE>set_registry()</CODE></TD>
+    <TD><A HREF="#setreg">CU_set_registry()</A></TD>
+  </TR>
+</TABLE>
+
+<DIV CLASS="NAVFOOTER">
+<HR ALIGN="LEFT" WIDTH="100%">
+<TABLE SUMMARY="Footer navigation table" WIDTH="100%" BORDER="0" CELLPADDING="0" CELLSPACING="0">
+  <TR>
+    <TD WIDTH="33%" ALIGN="left" VALIGN="top"><A HREF="writing_tests.html" ACCESSKEY="P">Prev</A></TD>
+    <TD WIDTH="34%" ALIGN="center" VALIGN="top"><A HREF="index.html" ACCESSKEY="H" >Home</A></TD>
+    <TD WIDTH="33%" ALIGN="right" VALIGN="top"><A HREF="managing_tests.html" ACCESSKEY="N" >Next</A></TD>
+  </TR>
+  <TR>
+    <TD WIDTH="33%" ALIGN="left" VALIGN="top">Introduction</TD>
+    <TD WIDTH="34%" ALIGN="center" VALIGN="top">&nbsp;</TD>
+    <TD WIDTH="33%" ALIGN="right" VALIGN="top">Managing Tests & Suites</TD>
+  </TR>
+</TABLE>
+</DIV>
+
+</BODY>
+</HTML>
