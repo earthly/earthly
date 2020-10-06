@@ -39,7 +39,7 @@ NL: WS? COMMENT? CRLF;
 WS: [ \t] ([ \t] | LC)*;
 fragment CRLF: ('\r' | '\n' | '\r\n');
 fragment COMMENT: '#' (~[\r\n])*;
-fragment LC: '\\' [ \t]* CRLF;
+fragment LC: '\\' [ \t]* COMMENT? CRLF LC*;
 
 mode RECIPE;
 

@@ -270,6 +270,20 @@ comments-test:
         --mount=type=tmpfs,target=/tmp/earthly \
         -- --no-output +test
 
+empty-line-after-continuation-test:
+    COPY empty-line-after-continuation.earth ./Earthfile
+    RUN --privileged \
+        --entrypoint \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        -- --no-output +test
+
+commented-continuation-line-test:
+    COPY commented-continuation-line.earth ./Earthfile
+    RUN --privileged \
+        --entrypoint \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        -- --no-output +test
+
 chown-test:
     COPY chown.earth ./Earthfile
     RUN echo "test" > ./a.txt

@@ -1,0 +1,14 @@
+FROM alpine:3.11 #The image to use
+WORKDIR /test #the work dir
+
+test: #the target
+    RUN echo "hello world" > /my-file
+    RUN cat /my-file
+    RUN test \
+        
+        
+        -f /my-file
+    RUN ! test \
+    
+        -f /file-which-doesnt-exist
+
