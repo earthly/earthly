@@ -48,6 +48,22 @@ smoke-test:
 
 Notice that the image name produced as output is `my-image:latest`. This image name is not available in the `WITH DOCKER` environment, however, as it is only used to tag for use outside of Earthly. The name `test:latest` is used instead.
 
+## Running docker-compose
+
+It is possible to run `docker-compose` via `WITH DOCKER`, either explicitly, simply by running the `docker-compose` tool, or implicitly, via the `--compose` flag. The `--compose` flag allows you to specify a Docker compose stack that needs to be brough up before the execution of the `RUN` command. For example:
+
+```Dockerfile
+FROM earthly/dind:alpine
+WITH DOCKER \
+        --compose docker-compose.yml \
+        --service db \
+        --service api
+    RUN docker run some-integration-test:latest
+END
+```
+
+Using the `--compose` flag has the added benefit that any images needed by the compose stack will be automatically added to the pull list by Earthly, thus using cache efficiently.
+
 ## Integration testing
 
 For more information on integration testing and working with service dependencies see our [tutorial on integration testing in Earthly](./integration.md).

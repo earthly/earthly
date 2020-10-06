@@ -438,12 +438,12 @@ FROM earthly/dind:alpine
 WORKDIR /test
 COPY docker-compose.yml ./
 WITH DOCKER \
-    --compose docker-compose.yml \
-    --load image-name:latest=+some-target \
-    --pull some-image:latest
-  RUN docker run ... && \
-    docker run ... && \
-    ...
+        --compose docker-compose.yml \
+        --load image-name:latest=+some-target \
+        --pull some-image:latest
+    RUN docker run ... && \
+        docker run ... && \
+        ...
 END
 ```
 
