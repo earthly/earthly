@@ -163,8 +163,8 @@ func (cl ConsoleLogger) PrintProgress(progress int64) {
 	cl.progressBar.SetCurrent(progress)
 	if progress == 100 {
 		cl.progressBar.Finish()
+    cl.mu.Unlock()
 	}
-	cl.mu.Unlock()
 }
 
 // PrintBytes prints bytes directly to the console.
