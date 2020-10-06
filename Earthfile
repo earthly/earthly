@@ -165,6 +165,21 @@ prerelease-docker:
     COPY --build-arg VERSION=prerelease +earth-all/* ./
     SAVE IMAGE --push earthly/earthlybinaries:prerelease
 
+dind:
+    BUILD +dind-alpine
+    BUILD +dind-ubuntu
+
+dind-alpine:
+    FROM docker:dind
+    RUN apk add --update --no-cache docker-compose
+    SAVE IMAGE --push earthly/dind:alpine earthly/dind:latest
+
+dind-ubuntu:
+    FROM ubuntu:latest
+    COPY ./buildkitd/docker-auto-install.sh /usr/local/bin/docker-auto-install.sh
+    RUN docker-auto-install.sh
+    SAVE IMAGE --push earthly/dind:ubuntu
+
 for-linux:
     BUILD +buildkitd
     COPY +earth/earth ./
@@ -180,6 +195,7 @@ all:
     BUILD +earth-all
     BUILD +earth-docker
     BUILD +prerelease-docker
+    BUILD +dind
 
 test:
     BUILD +lint
@@ -190,6 +206,7 @@ test:
 test-all:
     BUILD +examples
     BUILD +test
+    BUILD ./examples/tests+experimental
 
 examples:
     BUILD ./examples/go+docker
