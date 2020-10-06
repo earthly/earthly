@@ -72,12 +72,20 @@ func getPotentialTarget(prefix string) ([]string, error) {
 
 	realDirPath := dirPath
 	if strings.HasPrefix(realDirPath, "~") {
-		username := strings.Replace(strings.Split(prefix, "/")[0], "~", "", 1)
-		currentUser, err := user.Lookup(username)
-		if err != nil {
-			return nil, err
+		if strings.HasPrefix(realDirPath, "~/") {
+			currentUser, err := user.Current()
+			if err != nil {
+				return nil, err
+			}
+			realDirPath = strings.Replace(realDirPath, "~", currentUser.HomeDir, 1)
+		} else {
+			username := strings.Replace(strings.Split(prefix, "/")[0], "~", "", 1)
+			currentUser, err := user.Lookup(username)
+			if err != nil {
+				return nil, err
+			}
+			realDirPath = strings.Replace(realDirPath, fmt.Sprintf("~%s", username), currentUser.HomeDir, 1)
 		}
-		realDirPath = strings.Replace(realDirPath, fmt.Sprintf("~%s", username), currentUser.HomeDir, 1)
 	}
 
 	targets, err := earthfile2llb.GetTargets(path.Join(realDirPath, "Earthfile"))
@@ -153,8 +161,10 @@ func resolveUserPath(prefix string) ([]string, error) {
 		return users, nil
 	}
 
+	replacer := ""
 	username := ""
-	if prefix == "~/" {
+	if strings.HasPrefix(prefix, "~/") {
+		replacer = "~"
 		u, err := user.Current()
 		if err != nil {
 			return nil, err
@@ -164,6 +174,7 @@ func resolveUserPath(prefix string) ([]string, error) {
 		// match and filter
 		sl := strings.Split(prefix, "/")
 		username = sl[0]
+		replacer = username
 		match, filters := matchAndFilterUser(users, username)
 		// filter users by prefix
 		if !match {
@@ -176,14 +187,14 @@ func resolveUserPath(prefix string) ([]string, error) {
 		return nil, err
 	}
 
-	if prefix == "~/" {
-		prefix = u.HomeDir
+	if strings.HasPrefix(prefix, "~/") {
+		prefix = strings.Replace(prefix, "~", u.HomeDir, 1)
 	} else {
 		prefix = strings.Replace(prefix, username, u.HomeDir, 1)
 	}
 	var result []string
 	if hasEarthfile(prefix) {
-		x := strings.Replace(prefix, u.HomeDir, username, 1)
+		x := strings.Replace(prefix, u.HomeDir, replacer, 1)
 		result = append(result, fmt.Sprintf("%s+", x))
 	}
 
@@ -193,7 +204,7 @@ func resolveUserPath(prefix string) ([]string, error) {
 	}
 
 	for _, p := range paths {
-		result = append(result, strings.Replace(p, u.HomeDir, username, 1))
+		result = append(result, strings.Replace(p, u.HomeDir, replacer, 1))
 	}
 	return result, nil
 }
