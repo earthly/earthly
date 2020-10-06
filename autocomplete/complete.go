@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/user"
 	"path"
+	"path/filepath"
 	"strings"
 
 	"github.com/earthly/earthly/earthfile2llb"
@@ -115,12 +116,8 @@ func getUsers() ([]string, error) {
 		return nil, err
 	}
 
-	lPath := strings.Split(u.HomeDir, "/")
-	if len(lPath) < 2 {
-		return nil, errors.New("users not found")
-	}
-
-	directoryList, err := ioutil.ReadDir(fmt.Sprintf("/%s", lPath[1]))
+	home := filepath.Dir(u.HomeDir)
+	directoryList, err := ioutil.ReadDir(home)
 	if err != nil {
 		return nil, err
 	}
@@ -218,7 +215,7 @@ func filterPath(p, filter string) ([]string, error) {
 		return nil, errors.New("not a directory")
 	}
 
-	lDir, err := printDirectory(p)
+	lDir, err := listDirectory(p)
 	if err != nil {
 		return nil, err
 	}
@@ -231,7 +228,7 @@ func filterPath(p, filter string) ([]string, error) {
 	return res, nil
 }
 
-func printDirectory(prefix string) ([]string, error) {
+func listDirectory(prefix string) ([]string, error) {
 	files, err := ioutil.ReadDir(prefix)
 	if err != nil {
 		return nil, err
@@ -259,7 +256,7 @@ func lsPath(prefix string) ([]string, error) {
 
 	switch mode := fi.Mode(); {
 	case mode.IsDir():
-		return printDirectory(prefix)
+		return listDirectory(prefix)
 	case mode.IsRegular():
 		// do file stuff
 		return nil, errors.New("it is not a directory")
