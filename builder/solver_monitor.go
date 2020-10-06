@@ -4,11 +4,9 @@ import (
 	"context"
 	"regexp"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/armon/circbuf"
-	"github.com/cheggaaa/pb/v3"
 	"github.com/earthly/earthly/conslogging"
 	"github.com/earthly/earthly/logging"
 	"github.com/moby/buildkit/client"
@@ -106,7 +104,7 @@ func newSolverMonitor(console conslogging.ConsoleLogger) *solverMonitor {
 	}
 }
 
-func (sm *solverMonitor) monitorProgress(ctx context.Context, ch chan *client.SolveStatus, mutex *sync.Mutex) error {
+func (sm *solverMonitor) monitorProgress(ctx context.Context, ch chan *client.SolveStatus) error {
 	var errVertex *vertexMonitor
 Loop:
 	for {
@@ -157,8 +155,6 @@ Loop:
 				}
 			}
 			for _, vs := range ss.Statuses {
-				var on sync.Once
-				progressBar := pb.New(100)
 				vm, ok := sm.vertices[vs.Vertex]
 				if !ok || vm.isInternal {
 					// No logging for internal operations.
@@ -178,16 +174,10 @@ Loop:
 					if !vm.headerPrinted {
 						vm.printHeader()
 					}
-					mutex.Lock()
 					logger.Info(vs.ID)
-					on.Do(func() {
-						vm.console.Printf("%s\n", vs.ID)
-						progressBar.Start()
-					})
-					progressBar.SetCurrent(int64(progress))
-					mutex.Unlock()
+					vm.console.Printf("%s\n", vs.ID)
+					vm.console.PrintProgress(int64(progress))
 				}
-				progressBar.Finish()
 			}
 			for _, logLine := range ss.Logs {
 				vm, ok := sm.vertices[logLine.Vertex]

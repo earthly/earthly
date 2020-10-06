@@ -56,7 +56,7 @@ func (s *solver) solveDocker(ctx context.Context, localDirs map[string]string, s
 		return nil
 	})
 	eg.Go(func() error {
-		return s.sm.monitorProgress(ctx, ch, &printingMutex)
+		return s.sm.monitorProgress(ctx, ch)
 	})
 	eg.Go(func() error {
 		defer pipeR.Close()
@@ -114,7 +114,7 @@ func (s *solver) solveDockerTar(ctx context.Context, localDirs map[string]string
 		return nil
 	})
 	eg.Go(func() error {
-		return s.sm.monitorProgress(ctx, ch, &printingMutex)
+		return s.sm.monitorProgress(ctx, ch)
 	})
 	eg.Go(func() error {
 		file, err := os.Create(outFile)
@@ -177,7 +177,7 @@ func (s *solver) solveArtifacts(ctx context.Context, localDirs map[string]string
 		return nil
 	})
 	eg.Go(func() error {
-		return s.sm.monitorProgress(ctx, ch, &printingMutex)
+		return s.sm.monitorProgress(ctx, ch)
 	})
 	err = eg.Wait()
 	if err != nil {
@@ -231,7 +231,7 @@ func (s *solver) solveSideEffects(ctx context.Context, localDirs map[string]stri
 		return nil
 	})
 	eg.Go(func() error {
-		return s.sm.monitorProgress(ctx, ch, &printingMutex)
+		return s.sm.monitorProgress(ctx, ch)
 	})
 	err = eg.Wait()
 	if err != nil {
