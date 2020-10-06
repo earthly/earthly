@@ -7,7 +7,6 @@ import (
 	"io"
 	"os"
 	"os/exec"
-	"sync"
 
 	"github.com/earthly/earthly/earthfile2llb/image"
 	"github.com/earthly/earthly/llbutil"
@@ -29,8 +28,6 @@ type solver struct {
 	enttlmnts   []entitlements.Entitlement
 	remoteCache string
 }
-
-var printingMutex sync.Mutex
 
 func (s *solver) solveDocker(ctx context.Context, localDirs map[string]string, state llb.State, img *image.Image, dockerTag string, push bool) error {
 	dt, err := state.Marshal(ctx, llb.Platform(llbutil.TargetPlatform))

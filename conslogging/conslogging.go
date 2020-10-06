@@ -9,7 +9,6 @@ import (
 	"unicode/utf8"
 
 	"github.com/cheggaaa/pb/v3"
-
 	"github.com/fatih/color"
 )
 
@@ -46,8 +45,9 @@ type ConsoleLogger struct {
 	trailingLine   bool
 
 	// Progress bar variables
-	progressBar   *pb.ProgressBar
-	progressIsSet bool
+	progressBar     *pb.ProgressBar
+	progressIsSet   bool
+	currentProgress int64
 }
 
 // Current returns the current console.
@@ -113,20 +113,21 @@ func (cl ConsoleLogger) WithFailed(isFailed bool) ConsoleLogger {
 // PrintSuccess prints the success message.
 func (cl ConsoleLogger) PrintSuccess() {
 	cl.mu.Lock()
+	defer cl.mu.Unlock()
 	cl.color(successColor).Fprintf(cl.w, "=========================== SUCCESS ===========================\n")
-	cl.mu.Unlock()
 }
 
 // PrintFailure prints the failure message.
 func (cl ConsoleLogger) PrintFailure() {
 	cl.mu.Lock()
+	defer cl.mu.Unlock()
 	cl.color(warnColor).Fprintf(cl.w, "=========================== FAILURE ===========================\n")
-	cl.mu.Unlock()
 }
 
 // Warnf prints a warning message in red
 func (cl ConsoleLogger) Warnf(format string, args ...interface{}) {
 	cl.mu.Lock()
+	defer cl.mu.Unlock()
 
 	c := cl.color(warnColor)
 	text := fmt.Sprintf(format, args...)
@@ -136,12 +137,12 @@ func (cl ConsoleLogger) Warnf(format string, args ...interface{}) {
 		cl.printPrefix()
 		c.Fprintf(cl.w, "%s\n", line)
 	}
-	cl.mu.Unlock()
 }
 
 // Printf prints formatted text to the console.
 func (cl ConsoleLogger) Printf(format string, args ...interface{}) {
 	cl.mu.Lock()
+	defer cl.mu.Unlock()
 	text := fmt.Sprintf(format, args...)
 	text = strings.TrimSuffix(text, "\n")
 	for _, line := range strings.Split(text, "\n") {
@@ -149,7 +150,6 @@ func (cl ConsoleLogger) Printf(format string, args ...interface{}) {
 		cl.w.Write([]byte(line))
 		cl.w.Write([]byte("\n"))
 	}
-	cl.mu.Unlock()
 }
 
 // PrintProgress attempts to initialise a progress bar. If already started, it updates the progress value.
@@ -160,7 +160,12 @@ func (cl ConsoleLogger) PrintProgress(progress int64) {
 		cl.progressBar.Start()
 		cl.progressIsSet = true
 	}
-	cl.progressBar.SetCurrent(progress)
+
+	if progress > cl.currentProgress {
+		cl.progressBar.SetCurrent(progress)
+		cl.currentProgress = progress
+	}
+
 	if progress == 100 {
 		cl.progressBar.Finish()
 		cl.mu.Unlock()
@@ -170,6 +175,7 @@ func (cl ConsoleLogger) PrintProgress(progress int64) {
 // PrintBytes prints bytes directly to the console.
 func (cl ConsoleLogger) PrintBytes(data []byte) {
 	cl.mu.Lock()
+	defer cl.mu.Unlock()
 
 	output := make([]byte, 0, len(data))
 	for len(data) > 0 {
@@ -199,7 +205,6 @@ func (cl ConsoleLogger) PrintBytes(data []byte) {
 		cl.w.Write(output)
 		output = output[:0]
 	}
-	cl.mu.Unlock()
 }
 
 func (cl ConsoleLogger) printPrefix() {
