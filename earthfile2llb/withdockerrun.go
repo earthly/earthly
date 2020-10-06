@@ -53,11 +53,9 @@ type withDockerRun struct {
 }
 
 func (wdr *withDockerRun) Run(ctx context.Context, args []string, opt WithDockerOpt) error {
-	if len(opt.ComposeFiles) > 0 {
-		err := wdr.installDeps(ctx)
-		if err != nil {
-			return err
-		}
+	err := wdr.installDeps(ctx, opt)
+	if err != nil {
+		return err
 	}
 	// Grab relevant images from compose file(s).
 	composeImages, err := wdr.getComposeImages(ctx, opt)
@@ -146,13 +144,23 @@ func (wdr *withDockerRun) Run(ctx context.Context, args []string, opt WithDocker
 	return wdr.c.internalRun(ctx, finalArgs, opt.Secrets, opt.WithShell, shellWrap, false, false, runStr, runOpts...)
 }
 
-func (wdr *withDockerRun) installDeps(ctx context.Context) error {
-	var runOpts []llb.RunOption
-	runOpts = append(runOpts, llb.AddMount(
-		dockerAutoInstallScriptPath, llb.Scratch(), llb.HostBind(), llb.SourcePath(dockerAutoInstallScriptPath)))
-	args := []string{dockerAutoInstallScriptPath}
-	runStr := fmt.Sprintf("WITH DOCKER (install deps)")
-	return wdr.c.internalRun(ctx, args, nil, true, withShellAndEnvVars, false, false, runStr, runOpts...)
+func (wdr *withDockerRun) installDeps(ctx context.Context, opt WithDockerOpt) error {
+	params := composeParams(opt)
+	args := []string{
+		"/bin/sh", "-c",
+		fmt.Sprintf(
+			"%s %s",
+			strings.Join(params, " "),
+			dockerAutoInstallScriptPath),
+	}
+	runOpts := []llb.RunOption{
+		llb.AddMount(
+			dockerAutoInstallScriptPath, llb.Scratch(), llb.HostBind(), llb.SourcePath(dockerAutoInstallScriptPath)),
+		llb.Args(args),
+		llb.WithCustomNamef("%sWITH DOCKER (install deps)", wdr.c.vertexPrefix()),
+	}
+	wdr.c.mts.FinalStates.SideEffectsState = wdr.c.mts.FinalStates.SideEffectsState.Run(runOpts...).Root()
+	return nil
 }
 
 func (wdr *withDockerRun) getComposeImages(ctx context.Context, opt WithDockerOpt) ([]string, error) {
@@ -372,5 +380,6 @@ func composeParams(opt WithDockerOpt) []string {
 		fmt.Sprintf("EARTHLY_START_COMPOSE=\"%t\"", (len(opt.ComposeFiles) > 0)),
 		fmt.Sprintf("EARTHLY_COMPOSE_FILES=\"%s\"", strings.Join(opt.ComposeFiles, " ")),
 		fmt.Sprintf("EARTHLY_COMPOSE_SERVICES=\"%s\"", strings.Join(opt.ComposeServices, " ")),
+		// fmt.Sprintf("EARTHLY_DEBUG=\"true\""),
 	}
 }
