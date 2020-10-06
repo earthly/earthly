@@ -153,13 +153,22 @@ func resolveUserPath(prefix string) ([]string, error) {
 		return users, nil
 	}
 
-	// match and filter
-	sl := strings.Split(prefix, "/")
-	username := sl[0]
-	match, filters := matchAndFilterUser(users, username)
-	// filter users by prefix
-	if !match {
-		return filters, nil
+	username := ""
+	if prefix == "~/" {
+		u, err := user.Current()
+		if err != nil {
+			return nil, err
+		}
+		username = fmt.Sprintf("~%s", u.Username)
+	} else {
+		// match and filter
+		sl := strings.Split(prefix, "/")
+		username = sl[0]
+		match, filters := matchAndFilterUser(users, username)
+		// filter users by prefix
+		if !match {
+			return filters, nil
+		}
 	}
 
 	u, err := getUser(username)
@@ -167,16 +176,26 @@ func resolveUserPath(prefix string) ([]string, error) {
 		return nil, err
 	}
 
-	prefix = strings.Replace(prefix, username, u.HomeDir, 1)
+	if prefix == "~/" {
+		prefix = u.HomeDir
+	} else {
+		prefix = strings.Replace(prefix, username, u.HomeDir, 1)
+	}
+	var result []string
+	if hasEarthfile(prefix) {
+		x := strings.Replace(prefix, u.HomeDir, username, 1)
+		result = append(result, fmt.Sprintf("%s+", x))
+	}
+
 	paths, err := lsPath(prefix)
 	if err != nil {
 		return nil, err
 	}
-	res := make([]string, len(paths))
-	for i, p := range paths {
-		res[i] = strings.Replace(p, u.HomeDir, username, 1)
+
+	for _, p := range paths {
+		result = append(result, strings.Replace(p, u.HomeDir, username, 1))
 	}
-	return res, nil
+	return result, nil
 }
 
 func filterPath(p, filter string) ([]string, error) {
@@ -248,7 +267,12 @@ func getPotentialPaths(prefix string) ([]string, error) {
 		return resolveUserPath(prefix)
 	}
 	// generic folder
-	return lsPath(prefix)
+	var res []string
+	if hasEarthfile(prefix) {
+		res = append(res, fmt.Sprintf("%s+", prefix))
+	}
+	l, _ := lsPath(prefix)
+	return append(res, l...), nil
 }
 
 // GetPotentials returns a list of potential arguments for shell auto completion
