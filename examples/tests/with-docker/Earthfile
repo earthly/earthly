@@ -1,4 +1,4 @@
-FROM docker:19.03.7-dind
+FROM earthly/dind:alpine
 
 all:
     BUILD +docker-load-test
@@ -18,9 +18,9 @@ docker-load-test:
     # Index is used to create parallel tests.
     ARG INDEX=0
     RUN echo "$INDEX"
-    WITH DOCKER
-        DOCKER LOAD +a-test-image test-img:xyz
-        DOCKER PULL hello-world
+    WITH DOCKER \
+            --pull hello-world \
+            --load test-img:xyz=+a-test-image
         RUN docker run test-img:xyz && \
             docker run hello-world
     END

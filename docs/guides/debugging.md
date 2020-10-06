@@ -122,8 +122,7 @@ server:
 test:
   FROM docker:19.03.12-dind
   RUN apk add curl
-  WITH DOCKER
-    DOCKER LOAD +server server:latest
+  WITH DOCKER --load server:latest=+server
     RUN docker run --rm -d --network=host server:latest python3 server.py && sleep 5 && curl -s localhost:8000 | grep hello
   END
 
@@ -196,8 +195,7 @@ server:
 test:
   FROM docker:19.03.12-dind
   RUN apk add curl
-  WITH DOCKER
-    DOCKER LOAD +server server:latest
+  WITH DOCKER --load server:latest=+server
     RUN docker run --rm -d --network=host server:latest python3 server.py && sleep 5 && curl -s localhost:8000 | grep Hello
   END
 ```
