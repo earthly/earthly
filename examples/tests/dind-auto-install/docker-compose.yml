@@ -1,0 +1,5 @@
+version: "3"
+
+services:
+  hello:
+    image: hello-world:latest
