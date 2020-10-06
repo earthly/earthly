@@ -172,13 +172,15 @@ dind:
 dind-alpine:
     FROM docker:dind
     RUN apk add --update --no-cache docker-compose
-    SAVE IMAGE --push earthly/dind:alpine earthly/dind:latest
+    ARG DIND_ALPINE_TAG=alpine-$EARTHLY_TARGET_TAG_DOCKER
+    SAVE IMAGE --push earthly/dind:$DIND_ALPINE_TAG
 
 dind-ubuntu:
     FROM ubuntu:latest
     COPY ./buildkitd/docker-auto-install.sh /usr/local/bin/docker-auto-install.sh
     RUN docker-auto-install.sh
-    SAVE IMAGE --push earthly/dind:ubuntu
+    ARG DIND_ALPINE_TAG=ubuntu-$EARTHLY_TARGET_TAG_DOCKER
+    SAVE IMAGE --push earthly/dind:$DIND_UBUNTU_TAG
 
 for-linux:
     BUILD +buildkitd
