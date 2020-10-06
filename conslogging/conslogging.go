@@ -152,7 +152,7 @@ func (cl ConsoleLogger) Printf(format string, args ...interface{}) {
 	cl.mu.Unlock()
 }
 
-// The function attempts to initialise a progress bar. If already started, it updates the progress value.
+// PrintProgress attempts to initialise a progress bar. If already started, it updates the progress value.
 func (cl ConsoleLogger) PrintProgress(progress int64) {
 	cl.mu.Lock()
 	if !cl.progressIsSet {
