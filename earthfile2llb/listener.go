@@ -970,8 +970,8 @@ func (ssf *StringSliceFlag) Set(arg string) error {
 var shellNameStringRegexp = regexp.MustCompile("^[a-zA-Z_]+[a-zA-Z0-9_]*$")
 
 func checkEnvVarName(str string) error {
-	matchedString := shellNameStringRegexp.FindString(str)
-	if matchedString == "" {
+	itMatch := shellNameStringRegexp.MatchString(str)
+	if !itMatch {
 		return fmt.Errorf("invalid env key definition %s", str)
 	}
 	return nil
