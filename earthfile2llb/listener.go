@@ -968,7 +968,7 @@ func (ssf *StringSliceFlag) Set(arg string) error {
 	return nil
 }
 
-var shellNameStringRegexp = regexp.MustCompile("^[a-zA-Z_]+[a-zA-Z0-9_]*")
+var shellNameStringRegexp = regexp.MustCompile("^[a-zA-Z_]+[a-zA-Z0-9_]*$")
 
 func checkEnvVarName(str string) error {
 	matchedString := shellNameStringRegexp.FindString(str)
