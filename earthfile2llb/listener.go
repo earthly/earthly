@@ -891,13 +891,12 @@ func (l *listener) EnterEnvArgKey(c *parser.EnvArgKeyContext) {
 	if l.shouldSkip() {
 		return
 	}
-	var envKey = c.GetText()
-	var err = checkEnvVarName(envKey)
+	l.envArgKey = c.GetText()
+	err := checkEnvVarName(l.envArgKey)
 	if err != nil {
 		l.err = err
 		return
 	}
-	l.envArgKey = envKey
 }
 
 func (l *listener) EnterEnvArgValue(c *parser.EnvArgValueContext) {
