@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"crypto/rand"
 	"encoding/base64"
@@ -34,6 +35,7 @@ import (
 	"github.com/earthly/earthly/earthfile2llb"
 	"github.com/earthly/earthly/earthfile2llb/variables"
 	"github.com/earthly/earthly/logging"
+	"github.com/earthly/earthly/secretsclient"
 
 	"github.com/fatih/color"
 	"github.com/joho/godotenv"
@@ -46,6 +48,7 @@ import (
 	"github.com/moby/buildkit/session/sshforward/sshprovider"
 	"github.com/moby/buildkit/util/entitlements"
 	"github.com/pkg/errors"
+	"github.com/seehuhn/password"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
 	"golang.org/x/sync/errgroup"
@@ -84,6 +87,11 @@ type cliFlags struct {
 	interactiveDebugging bool
 	sshAuthSock          string
 	homebrewSource       string
+	email                string
+	verificationToken    string
+	password             string
+	publicKey            string
+	disableNewLine       bool
 }
 
 var (
@@ -384,6 +392,72 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 					Usage:       "output source file (for use in homebrew install)",
 					Hidden:      true, // only meant for use with homebrew formula
 					Destination: &app.homebrewSource,
+				},
+			},
+		},
+		{
+			Name:   "org",
+			Usage:  "Earthly organization administration",
+			Hidden: true,
+			Subcommands: []*cli.Command{
+				{
+					Name:   "create",
+					Action: app.actionOrgCreate,
+				},
+			},
+		},
+		{
+			Name:        "secrets",
+			Usage:       "Earthly secrets",
+			Description: "Access and modify secrets",
+			Hidden:      true,
+			Subcommands: []*cli.Command{
+				{
+					Name:   "get",
+					Action: app.actionSecretsGet,
+					Flags: []cli.Flag{
+						&cli.BoolFlag{
+							Aliases:     []string{"n"},
+							Usage:       "Disable newline at the end of the secret",
+							Destination: &app.disableNewLine,
+						},
+					},
+				},
+				{
+					Name:   "set",
+					Action: app.actionSecretsSet,
+					// TODO expand flags to allow reading secret from stdin or a file
+				},
+			},
+		},
+		{
+			Name:        "register",
+			Usage:       "Register for an earthly account",
+			Description: "Register for an earthly account",
+			Hidden:      true,
+			Action:      app.actionRegister,
+			Flags: []cli.Flag{
+				&cli.StringFlag{
+					Name:        "email",
+					Usage:       "Email address",
+					Destination: &app.email,
+				},
+				&cli.StringFlag{
+					Name:        "token",
+					Usage:       "Email verification token",
+					Destination: &app.verificationToken,
+				},
+				&cli.StringFlag{
+					Name:        "password",
+					EnvVars:     []string{"EARTHLY_PASSWORD"},
+					Usage:       "Specify password on the command line instead of interactively being asked",
+					Destination: &app.password,
+				},
+				&cli.StringFlag{
+					Name:        "public-key",
+					EnvVars:     []string{"EARTHLY_PUBLIC_KEY"},
+					Usage:       "Path to public key to register",
+					Destination: &app.publicKey, // TODO hook this up to override the interactive prompt when specified
 				},
 			},
 		},
@@ -773,6 +847,152 @@ func (app *earthApp) actionBootstrap(c *cli.Context) error {
 
 	fmt.Fprintf(os.Stderr, "Bootstrapping successful; you may have to restart your shell for autocomplete to get initialized (e.g. run \"exec $SHELL\")\n")
 
+	return nil
+}
+
+func promptInput(question string) string {
+	fmt.Printf(question)
+	rbuf := bufio.NewReader(os.Stdin)
+	line, err := rbuf.ReadString('\n')
+	if err != nil {
+		return ""
+	}
+	return strings.TrimRight(line, "\n")
+}
+
+func (app *earthApp) actionOrgCreate(c *cli.Context) error {
+	if c.NArg() != 1 {
+		return errors.New("invalid number of arguments provided")
+	}
+
+	org := c.Args().Get(0)
+
+	sc, err := secretsclient.NewClient()
+	if err != nil {
+		return err
+	}
+	err = sc.CreateOrg(org)
+	if err != nil {
+		return errors.Wrap(err, "failed to create org")
+	}
+	return nil
+}
+
+func (app *earthApp) actionSecretsGet(c *cli.Context) error {
+	if c.NArg() != 1 {
+		return errors.New("invalid number of arguments provided")
+	}
+
+	path := c.Args().Get(0)
+
+	sc, err := secretsclient.NewClient()
+	if err != nil {
+		return err
+	}
+	data, err := sc.Get(path)
+	if err != nil {
+		return errors.Wrap(err, "failed to get secret")
+	}
+
+	fmt.Printf("%s", data)
+	if !app.disableNewLine {
+		fmt.Printf("\n")
+	}
+
+	return nil
+}
+
+func (app *earthApp) actionSecretsSet(c *cli.Context) error {
+	if c.NArg() != 2 {
+		return errors.New("invalid number of arguments provided")
+	}
+
+	path := c.Args().Get(0)
+	value := c.Args().Get(1)
+
+	sc, err := secretsclient.NewClient()
+	if err != nil {
+		return err
+	}
+	err = sc.Set(path, []byte(value))
+	if err != nil {
+		return errors.Wrap(err, "failed to set secret")
+	}
+	return nil
+}
+
+func (app *earthApp) actionRegister(c *cli.Context) error {
+	if app.email == "" {
+		return errors.New("no email given")
+	}
+
+	if !strings.Contains(app.email, "@") {
+		return errors.New("email is invalid")
+	}
+
+	sc, err := secretsclient.NewClient()
+	if err != nil {
+		return err
+	}
+
+	if app.verificationToken == "" {
+		err = sc.RegisterEmail(app.email)
+		if err != nil {
+			return errors.Wrap(err, "failed to register email")
+		}
+		fmt.Printf("An email has been sent to %q containing a registration token\n", app.email)
+		return nil
+	}
+
+	publicKeys, err := sc.GetPublicKeys()
+	if err != nil {
+		return err
+	}
+	if len(publicKeys) == 0 {
+		return fmt.Errorf("failed to find any public keys; did you forget to ssh-add your key?")
+	}
+
+	// Our signal handling under main() doesn't cause reading from stdin to cancel
+	// as there's no way to pass app.ctx to stdin read calls.
+	signal.Reset(syscall.SIGINT, syscall.SIGTERM)
+
+	pword := app.password
+	if app.password == "" {
+		enteredPassword, err := password.Read("pick a password: ")
+		if err != nil {
+			return err
+		}
+		enteredPassword2, err := password.Read("confirm password: ")
+		if err != nil {
+			return err
+		}
+		if string(enteredPassword) != string(enteredPassword2) {
+			return fmt.Errorf("passwords do not match")
+		}
+		pword = string(enteredPassword)
+	}
+
+	fmt.Printf("Which of the following keys do you want to register?\n")
+	for i, key := range publicKeys {
+		fmt.Printf("%d) %s\n", i+1, key.String())
+	}
+	keyNum := promptInput("enter key number: ")
+	i, err := strconv.Atoi(keyNum)
+	if err != nil {
+		return errors.Wrap(err, "invalid key number")
+	}
+	if i <= 0 || i > len(publicKeys) {
+		return fmt.Errorf("invalid key number")
+	}
+
+	publicKey := publicKeys[i-1]
+
+	err = sc.CreateAccount(app.email, app.verificationToken, pword, publicKey.String())
+	if err != nil {
+		return errors.Wrap(err, "failed to create account")
+	}
+
+	fmt.Println("Account registration complete")
 	return nil
 }
 
