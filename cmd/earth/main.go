@@ -397,7 +397,7 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 		},
 		{
 			Name:   "org",
-			Usage:  "earthly organization administration",
+			Usage:  "Earthly organization administration",
 			Hidden: true,
 			Subcommands: []*cli.Command{
 				{
@@ -408,8 +408,8 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 		},
 		{
 			Name:        "secrets",
-			Usage:       "earthly secrets",
-			Description: "access and modify secrets",
+			Usage:       "Earthly secrets",
+			Description: "Access and modify secrets",
 			Hidden:      true,
 			Subcommands: []*cli.Command{
 				{
@@ -418,7 +418,7 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 					Flags: []cli.Flag{
 						&cli.BoolFlag{
 							Aliases:     []string{"n"},
-							Usage:       "disable newline at the end of the secret",
+							Usage:       "Disable newline at the end of the secret",
 							Destination: &app.disableNewLine,
 						},
 					},
@@ -432,31 +432,31 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 		},
 		{
 			Name:        "register",
-			Usage:       "register for an earthly account",
-			Description: "register for an earthly account",
+			Usage:       "Register for an earthly account",
+			Description: "Register for an earthly account",
 			Hidden:      true,
 			Action:      app.actionRegister,
 			Flags: []cli.Flag{
 				&cli.StringFlag{
 					Name:        "email",
-					Usage:       "email address",
+					Usage:       "Email address",
 					Destination: &app.email,
 				},
 				&cli.StringFlag{
 					Name:        "token",
-					Usage:       "email verification token",
+					Usage:       "Email verification token",
 					Destination: &app.verificationToken,
 				},
 				&cli.StringFlag{
 					Name:        "password",
 					EnvVars:     []string{"EARTHLY_PASSWORD"},
-					Usage:       "specify password on the command line instead of interactively being asked",
+					Usage:       "Specify password on the command line instead of interactively being asked",
 					Destination: &app.password,
 				},
 				&cli.StringFlag{
 					Name:        "public-key",
 					EnvVars:     []string{"EARTHLY_PUBLIC_KEY"},
-					Usage:       "path to public key to register",
+					Usage:       "Path to public key to register",
 					Destination: &app.publicKey, // TODO hook this up to override the interactive prompt when specified
 				},
 			},

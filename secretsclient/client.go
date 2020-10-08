@@ -104,7 +104,7 @@ func (c *client) doCall(method, url string, opts ...requestOpt) (int, string, er
 
 	client := &http.Client{}
 
-	resp, err := client.Do(req)
+	resp, err := client.Do(req) // TODO add in auto-retry logic for any 500 errors
 	if err != nil {
 		return 0, "", err
 	}
