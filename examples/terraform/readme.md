@@ -10,6 +10,8 @@ This target runs localstack and applies the Terraform to it. This is easy to do 
 
 Requires priveleged mode to spin up the Localstack using DIND.
 
+Saves the `.tfstate` to show how it can work with Earthly. It will not work on the next go around; because the localstack instance it was created in is gone.
+
 ## +plan
 
 `earthly --build_arg AWS_ACCESS_KEY_ID --build_arg AWS_SECRET_ACCESS_KEY +plan`

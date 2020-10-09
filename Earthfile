@@ -207,7 +207,7 @@ examples:
     BUILD ./examples/readme/go2+all
     BUILD ./examples/readme/go3+build
     BUILD ./examples/readme/proto+docker
-    BUILD ./examples/readme/terraform+build
+    BUILD ./examples/terraform+localstack
     BUILD github.com/earthly/hello-world+hello
 
 test-fail:
