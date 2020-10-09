@@ -215,6 +215,7 @@ examples:
     BUILD ./examples/java+docker
     BUILD ./examples/js+docker
     BUILD ./examples/cpp+docker
+    BUILD ./examples/c+docker
     BUILD ./examples/scala+docker
     BUILD ./examples/dotnet+docker
     BUILD ./examples/python+docker
