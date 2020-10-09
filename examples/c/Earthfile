@@ -4,7 +4,7 @@ FROM ubuntu:20.10
 ENV DEBIAN_FRONTEND noninteractive
 ENV DEBCONF_NONINTERACTIVE_SEEN true
 
-RUN apt-get update && apt-get install -y build-essential cmake
+RUN apt-get update && apt-get install -y build-essential cmake libcunit1-dev
 
 WORKDIR /code
 
@@ -16,9 +16,9 @@ build:
   FROM +code
   RUN cmake src
   RUN --mount=type=cache,target=/code/CMakeFiles make
-  SAVE ARTIFACT hello-world AS LOCAL "hello-world"
+  SAVE ARTIFACT fibonacci AS LOCAL "fibonacci"
 
 docker:
-  COPY +build/hello-world /bin/hello-world
-  ENTRYPOINT ["/bin/hello-world"]
+  COPY +build/fibonacci /bin/fibonacci
+  ENTRYPOINT ["/bin/fibonacci"]
   SAVE IMAGE c-example:latest
