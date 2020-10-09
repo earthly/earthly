@@ -10,7 +10,7 @@ if [ "$BUILDKITE_AGENT_META_DATA_OS" == "windows" ]; then
 fi
 
 echo "Download latest Earthly binary"
-curl -o ./earth-released https://github.com/earthly/earthly/releases/latest/download/earth-"$EARTH_OS"-amd64 && chmod +x ./earth-released
+curl -o ./earth-released -L https://github.com/earthly/earthly/releases/latest/download/earth-"$EARTH_OS"-amd64 && chmod +x ./earth-released
 
 echo "Build latest earth using released earth"
 ./earth-released +for-"$EARTH_OS"
