@@ -7,12 +7,10 @@ git checkout -B "$BUILDKITE_BRANCH" || true
 
 if [ "$BUILDKITE_AGENT_META_DATA_OS" == "windows" ]; then
     # This is necessary on Windows.
-    if [ -f ./earth-released ]; then
-        lsof ./earth-released || true
-        lsof ./earth-released | awk 'NR > 1 {print $2}' | xargs ps -Flw -p || true
-        echo "Killing processes still using ./earth-released"
-        lsof ./earth-released | awk 'NR > 1 {print $2}' | xargs kill -9 || true
-    fi
+    lsof ./earth-released || true
+    lsof ./earth-released | awk 'NR > 1 {print $2}' | xargs ps -Flw -p || true
+    echo "Killing processes still using ./earth-released"
+    lsof ./earth-released | awk 'NR > 1 {print $2}' | xargs kill -9 || true
 fi
 
 echo "Download latest Earthly binary"
