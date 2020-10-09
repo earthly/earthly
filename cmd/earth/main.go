@@ -51,6 +51,7 @@ import (
 	"github.com/seehuhn/password"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
+	"golang.org/x/crypto/ssh"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -1001,22 +1002,42 @@ func (app *earthApp) actionRegister(c *cli.Context) error {
 		pword = string(enteredPassword)
 	}
 
-	fmt.Printf("Which of the following keys do you want to register?\n")
-	for i, key := range publicKeys {
-		fmt.Printf("%d) %s\n", i+1, key.String())
-	}
-	keyNum := promptInput("enter key number: ")
-	i, err := strconv.Atoi(keyNum)
-	if err != nil {
-		return errors.Wrap(err, "invalid key number")
-	}
-	if i <= 0 || i > len(publicKeys) {
-		return fmt.Errorf("invalid key number")
+	var publicKey string
+	if app.publicKey == "" {
+		fmt.Printf("Which of the following keys do you want to register?\n")
+		for i, key := range publicKeys {
+			fmt.Printf("%d) %s\n", i+1, key.String())
+		}
+		keyNum := promptInput("enter key number: ")
+		i, err := strconv.Atoi(keyNum)
+		if err != nil {
+			return errors.Wrap(err, "invalid key number")
+		}
+		if i <= 0 || i > len(publicKeys) {
+			return fmt.Errorf("invalid key number")
+		}
+
+		publicKey = publicKeys[i-1].String()
+	} else {
+		_, _, _, _, err := ssh.ParseAuthorizedKey([]byte(app.publicKey))
+		if err == nil {
+			// supplied public key is valid
+			publicKey = app.publicKey
+		} else {
+			// otherwise see if it matches the name (Comment) of a key known by the ssh agent
+			for _, key := range publicKeys {
+				if key.Comment == app.publicKey {
+					publicKey = key.String()
+					break
+				}
+			}
+			if publicKey == "" {
+				return fmt.Errorf("failed to find key in ssh agent's known keys")
+			}
+		}
 	}
 
-	publicKey := publicKeys[i-1]
-
-	err = sc.CreateAccount(app.email, app.verificationToken, pword, publicKey.String())
+	err = sc.CreateAccount(app.email, app.verificationToken, pword, publicKey)
 	if err != nil {
 		return errors.Wrap(err, "failed to create account")
 	}
