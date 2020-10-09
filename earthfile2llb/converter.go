@@ -44,8 +44,8 @@ type Converter struct {
 	buildContext       llb.State
 	cacheContext       llb.State
 	varCollection      *variables.Collection
-	dockerBuilderFun   DockerBuilderFun
-	artifactBuilderFun ArtifactBuilderFun
+	dockerBuilderFun   states.DockerBuilderFun
+	artifactBuilderFun states.ArtifactBuilderFun
 	cleanCollection    *cleanup.Collection
 	nextArgIndex       int
 	solveCache         map[string]llb.State

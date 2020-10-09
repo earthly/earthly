@@ -8,14 +8,14 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/earthly/earthly/conslogging"
+	"github.com/earthly/earthly/cleanup"
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/llbutil"
 	"github.com/earthly/earthly/llbutil/llbgit"
+	"github.com/earthly/earthly/states"
 	"github.com/moby/buildkit/client"
 	"github.com/moby/buildkit/client/llb"
 	"github.com/pkg/errors"
-	"golang.org/x/sync/errgroup"
 )
 
 const (
@@ -23,9 +23,9 @@ const (
 )
 
 type gitResolver struct {
-	bkClient *client.Client
-	console  conslogging.ConsoleLogger
-	verbose  bool
+	bkClient           *client.Client
+	cleanCollection    *cleanup.Collection
+	artifactBuilderFun states.ArtifactBuilderFun
 
 	projectCache map[string]*resolvedGitProject
 }
@@ -109,7 +109,7 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, target domain.Targ
 
 	// Copy all Earthfile, build.earth and Dockerfile files.
 	gitOpts := []llb.GitOption{
-		llb.WithCustomNamef("[context %s] GIT CLONE %s", gitURL, gitURL),
+		llb.WithCustomNamef("[internal] GIT CLONE %s", gitURL),
 		llb.KeepGitDir(),
 	}
 	gitState := llbgit.Git(gitURL, ref, gitOpts...)
@@ -123,7 +123,7 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, target domain.Targ
 		llb.Dir("/git-src"),
 		llb.ReadonlyRootFS(),
 		llb.AddMount("/git-src", gitState, llb.Readonly),
-		llb.WithCustomNamef("COPY GIT CLONE %s Earthfile", target.ProjectCanonical()),
+		llb.WithCustomNamef("[internal] COPY GIT CLONE %s Earthfile", target.ProjectCanonical()),
 	}
 	opImg := llb.Image(
 		defaultGitImage, llb.MarkImageInternal,
@@ -142,56 +142,29 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, target domain.Targ
 		llb.Dir("/git-src"),
 		llb.ReadonlyRootFS(),
 		llb.AddMount("/git-src", gitState, llb.Readonly),
-		llb.WithCustomNamef("GET GIT META %s", target.ProjectCanonical()),
+		llb.WithCustomNamef("[internal] GET GIT META %s", target.ProjectCanonical()),
 	}
 	gitHashOp := opImg.Run(gitHashOpts...)
 	gitMetaAndEarthfileState := gitHashOp.AddMount("/dest", earthfileState)
 
 	// Build.
-	dt, err := gitMetaAndEarthfileState.Marshal(ctx, llb.LinuxAmd64)
-	if err != nil {
-		return nil, "", "", errors.Wrapf(err, "get Earthfile from %s", target.ProjectCanonical())
+	mts := &states.MultiTarget{
+		Final: &states.SingleTarget{
+			MainState:      gitMetaAndEarthfileState,
+			ArtifactsState: gitMetaAndEarthfileState,
+		},
 	}
+	artifact := domain.Artifact{Artifact: "."}
 	earthfileTmpDir, err := ioutil.TempDir("/tmp", "earthly-git")
 	if err != nil {
 		return nil, "", "", errors.Wrap(err, "create temp dir for Earthfile")
 	}
-	defer func() {
-		if finalErr != nil {
-			os.RemoveAll(earthfileTmpDir)
-		}
-	}()
-	solveOpt := newSolveOptGit(earthfileTmpDir)
-	ch := make(chan *client.SolveStatus)
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
-	eg, ctx := errgroup.WithContext(ctx)
-	eg.Go(func() error {
-		var err error
-		_, err = gr.bkClient.Solve(ctx, dt, *solveOpt, ch)
-		return err
+	gr.cleanCollection.Add(func() error {
+		return os.RemoveAll(earthfileTmpDir)
 	})
-	eg.Go(func() error {
-		for {
-			select {
-			case ss, ok := <-ch:
-				if !ok {
-					return nil
-				}
-				for _, vertex := range ss.Vertexes {
-					if vertex.Error != "" {
-						// TODO: Should also print full logs in case of error.
-						gr.console.Warnf("ERROR: %s\n", vertex.Error)
-					}
-				}
-			case <-ctx.Done():
-				return nil
-			}
-		}
-	})
-	err = eg.Wait()
+	err = gr.artifactBuilderFun(ctx, mts, artifact, fmt.Sprintf("%s/", earthfileTmpDir))
 	if err != nil {
-		return nil, "", "", err
+		return nil, "", "", errors.Wrap(err, "build git")
 	}
 
 	// Use built files.
@@ -260,20 +233,6 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, target domain.Targ
 		gr.projectCache[cacheKey4] = resolved
 	}
 	return resolved, gitURL, subDir, nil
-}
-
-func (gr *gitResolver) close() error {
-	var lastErr error
-	for _, rgp := range gr.projectCache {
-		err := os.RemoveAll(rgp.localGitDir)
-		if err != nil {
-			lastErr = err
-		}
-	}
-	if lastErr != nil {
-		return errors.Wrap(lastErr, "remove temp git dir")
-	}
-	return nil
 }
 
 func newSolveOptGit(outDir string) *client.SolveOpt {

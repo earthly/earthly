@@ -1152,11 +1152,9 @@ func (app *earthApp) actionBuild(c *cli.Context) error {
 		return errors.Wrap(err, "buildkitd new client")
 	}
 	defer bkClient.Close()
-	resolver := buildcontext.NewResolver(bkClient, app.console, app.verbose, app.sessionID)
-	defer resolver.Close()
+
 	secrets := app.secrets.Value()
 	//interactive debugger settings are passed as secrets to avoid having it affect the cache hash
-
 	dotEnvMap := make(map[string]string)
 	if fileExists(dotEnvPath) {
 		dotEnvMap, err = godotenv.Read(dotEnvPath)
@@ -1207,6 +1205,10 @@ func (app *earthApp) actionBuild(c *cli.Context) error {
 	if err != nil {
 		return errors.Wrap(err, "new builder")
 	}
+	cleanCollection := cleanup.NewCollection()
+	defer cleanCollection.Close()
+	resolver := buildcontext.NewResolver(
+		bkClient, app.sessionID, cleanCollection, b.MakeArtifactBuilderFun())
 
 	if app.interactiveDebugging {
 		go terminal.ConnectTerm(c.Context, fmt.Sprintf("127.0.0.1:%d", app.buildkitdSettings.DebuggerPort))
@@ -1220,8 +1222,6 @@ func (app *earthApp) actionBuild(c *cli.Context) error {
 	if app.pull {
 		imageResolveMode = llb.ResolveModeForcePull
 	}
-	cleanCollection := cleanup.NewCollection()
-	defer cleanCollection.Close()
 	mts, err := earthfile2llb.Earthfile2LLB(
 		c.Context, target, earthfile2llb.ConvertOpt{
 			Resolver:           resolver,
