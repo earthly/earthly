@@ -6,15 +6,11 @@ echo "Add branch info back to git (Earthly uses it for tagging)"
 git checkout -B "$BUILDKITE_BRANCH" || true
 
 if [ "$BUILDKITE_AGENT_META_DATA_OS" == "windows" ]; then
-    # This is necessary on Windows.
     lsof ./earth-released || true
-    lsof ./earth-released | awk 'NR > 1 {print $2}' | xargs ps -Flw -p || true
-    echo "Killing processes still using ./earth-released"
-    lsof ./earth-released | awk 'NR > 1 {print $2}' | xargs kill -9 || true
 fi
 
 echo "Download latest Earthly binary"
-wget https://github.com/earthly/earthly/releases/latest/download/earth-"$EARTH_OS"-amd64 -O ./earth-released && chmod +x ./earth-released
+curl -o ./earth-released https://github.com/earthly/earthly/releases/latest/download/earth-"$EARTH_OS"-amd64 && chmod +x ./earth-released
 
 echo "Build latest earth using released earth"
 ./earth-released +for-"$EARTH_OS"
