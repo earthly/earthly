@@ -86,6 +86,8 @@ type cliFlags struct {
 	gitPasswordOverride  string
 	interactiveDebugging bool
 	sshAuthSock          string
+	verbose              bool
+	debug                bool
 	homebrewSource       string
 	email                string
 	verificationToken    string
@@ -374,8 +376,15 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 			Name:        "verbose",
 			Aliases:     []string{"V"},
 			EnvVars:     []string{"EARTHLY_VERBOSE"},
-			Usage:       "enable verbose logging of the earthly-buildkitd container",
-			Destination: &app.buildkitdSettings.Debug,
+			Usage:       "Enable verbose logging",
+			Destination: &app.verbose,
+		},
+		&cli.BoolFlag{
+			Name:        "debug",
+			Aliases:     []string{"D"},
+			EnvVars:     []string{"EARTHLY_DEBUG"},
+			Usage:       "Enable debug mode",
+			Destination: &app.debug,
 		},
 	}
 
@@ -821,7 +830,6 @@ func (app *earthApp) run(ctx context.Context, args []string) int {
 }
 
 func (app *earthApp) actionBootstrap(c *cli.Context) error {
-
 	switch app.homebrewSource {
 	case "bash":
 		fmt.Printf(bashCompleteEntry)
@@ -1144,7 +1152,7 @@ func (app *earthApp) actionBuild(c *cli.Context) error {
 		return errors.Wrap(err, "buildkitd new client")
 	}
 	defer bkClient.Close()
-	resolver := buildcontext.NewResolver(bkClient, app.console, app.sessionID)
+	resolver := buildcontext.NewResolver(bkClient, app.console, app.verbose, app.sessionID)
 	defer resolver.Close()
 	secrets := app.secrets.Value()
 	//interactive debugger settings are passed as secrets to avoid having it affect the cache hash
@@ -1162,7 +1170,7 @@ func (app *earthApp) actionBuild(c *cli.Context) error {
 	}
 
 	debuggerSettings := debuggercommon.DebuggerSettings{
-		DebugLevelLogging: app.buildkitdSettings.Debug,
+		DebugLevelLogging: app.debug,
 		Enabled:           app.interactiveDebugging,
 		SockPath:          fmt.Sprintf("/run/earthly/%s", sockName),
 		Term:              os.Getenv("TERM"),
@@ -1194,7 +1202,8 @@ func (app *earthApp) actionBuild(c *cli.Context) error {
 		enttlmnts = append(enttlmnts, entitlements.EntitlementSecurityInsecure)
 	}
 	b, err := builder.NewBuilder(
-		c.Context, bkClient, app.console, attachables, enttlmnts, app.noCache, app.remoteCache)
+		c.Context, bkClient, app.console, app.verbose, attachables, enttlmnts,
+		app.noCache, app.remoteCache)
 	if err != nil {
 		return errors.Wrap(err, "new builder")
 	}
@@ -1253,6 +1262,7 @@ func (app *earthApp) actionBuild(c *cli.Context) error {
 func (app *earthApp) newBuildkitdClient(ctx context.Context, opts ...client.ClientOpt) (*client.Client, error) {
 	if app.buildkitHost == "" {
 		// Start our own.
+		app.buildkitdSettings.Debug = app.debug
 		opTimeout := time.Duration(app.cfg.Global.BuildkitRestartTimeoutS) * time.Second
 		bkClient, err := buildkitd.NewClient(
 			ctx, app.console, app.buildkitdImage, app.buildkitdSettings, opTimeout)

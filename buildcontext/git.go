@@ -25,6 +25,7 @@ const (
 type gitResolver struct {
 	bkClient *client.Client
 	console  conslogging.ConsoleLogger
+	verbose  bool
 
 	projectCache map[string]*resolvedGitProject
 }

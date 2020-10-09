@@ -32,9 +32,9 @@ deps:
 code:
     FROM +deps
     COPY --dir autocomplete buildcontext builder cleanup cmd config conslogging debugger dockertar \
-        domain llbutil logging secretsclient ./
+        domain llbutil logging secretsclient states ./
     COPY --dir buildkitd/buildkitd.go buildkitd/settings.go buildkitd/
-    COPY --dir earthfile2llb/antlrhandler earthfile2llb/dedup earthfile2llb/image \
+    COPY --dir earthfile2llb/antlrhandler \
         earthfile2llb/imr earthfile2llb/variables earthfile2llb/*.go earthfile2llb/
     COPY ./earthfile2llb/parser+parser/*.go ./earthfile2llb/parser/
     SAVE IMAGE

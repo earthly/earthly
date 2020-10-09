@@ -8,9 +8,9 @@ import (
 	"os"
 	"os/exec"
 
-	"github.com/earthly/earthly/earthfile2llb/image"
 	"github.com/earthly/earthly/llbutil"
 	"github.com/earthly/earthly/logging"
+	"github.com/earthly/earthly/states/image"
 	"github.com/golang/protobuf/proto"
 	"github.com/moby/buildkit/client"
 	"github.com/moby/buildkit/client/llb"

@@ -14,9 +14,10 @@ import (
 
 	"github.com/earthly/earthly/dockertar"
 	"github.com/earthly/earthly/domain"
-	"github.com/earthly/earthly/earthfile2llb/dedup"
 	"github.com/earthly/earthly/llbutil"
 	"github.com/earthly/earthly/logging"
+	"github.com/earthly/earthly/states"
+	"github.com/earthly/earthly/states/dedup"
 	"github.com/moby/buildkit/client/llb"
 	"github.com/pkg/errors"
 	"gopkg.in/yaml.v2"
@@ -217,14 +218,14 @@ func (wdr *withDockerRun) pull(ctx context.Context, dockerTag string) error {
 	if err != nil {
 		return err
 	}
-	mts := &MultiTargetStates{
-		FinalStates: &SingleTargetStates{
+	mts := &states.MultiTarget{
+		FinalStates: &states.SingleTarget{
 			SideEffectsState: state,
 			SideEffectsImage: image,
 			TargetInput: dedup.TargetInput{
 				TargetCanonical: fmt.Sprintf("+@docker-pull:%s", dockerTag),
 			},
-			SaveImages: []SaveImage{
+			SaveImages: []states.SaveImage{
 				{
 					State:     state,
 					Image:     image,
@@ -254,7 +255,7 @@ func (wdr *withDockerRun) load(ctx context.Context, opt DockerLoadOpt) error {
 			"%sDOCKER LOAD %s %s", wdr.c.imageVertexPrefix(depTarget.String()), depTarget.String(), opt.ImageName))
 }
 
-func (wdr *withDockerRun) solveImage(ctx context.Context, mts *MultiTargetStates, opName string, dockerTag string, opts ...llb.RunOption) error {
+func (wdr *withDockerRun) solveImage(ctx context.Context, mts *states.MultiTarget, opName string, dockerTag string, opts ...llb.RunOption) error {
 	solveID, err := mts.FinalStates.TargetInput.Hash()
 	if err != nil {
 		return errors.Wrap(err, "target input hash")
@@ -342,9 +343,9 @@ func (wdr *withDockerRun) getComposeConfig(ctx context.Context, opt WithDockerOp
 		llb.Scratch().Platform(llbutil.TargetPlatform), fmt.Sprintf("/%s", composeConfigFile),
 		false, false, "",
 		llb.WithCustomNamef("[internal] copy %s", composeConfigFile))
-	mts := &MultiTargetStates{
+	mts := &states.MultiTarget{
 		VisitedStates: wdr.c.mts.VisitedStates,
-		FinalStates: &SingleTargetStates{
+		FinalStates: &states.SingleTarget{
 			Target:           wdr.c.mts.FinalStates.Target,
 			SideEffectsImage: wdr.c.mts.FinalStates.SideEffectsImage,
 			SideEffectsState: state,

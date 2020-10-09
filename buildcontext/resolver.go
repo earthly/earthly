@@ -34,11 +34,12 @@ type Resolver struct {
 }
 
 // NewResolver returns a new NewResolver.
-func NewResolver(bkClient *client.Client, console conslogging.ConsoleLogger, sessionID string) *Resolver {
+func NewResolver(bkClient *client.Client, console conslogging.ConsoleLogger, verbose bool, sessionID string) *Resolver {
 	return &Resolver{
 		gr: &gitResolver{
 			bkClient:     bkClient,
 			console:      console,
+			verbose:      verbose,
 			projectCache: make(map[string]*resolvedGitProject),
 		},
 		lr: &localResolver{

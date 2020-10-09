@@ -1,39 +1,39 @@
-package earthfile2llb
+package states
 
 import (
 	"github.com/earthly/earthly/domain"
-	"github.com/earthly/earthly/earthfile2llb/dedup"
-	"github.com/earthly/earthly/earthfile2llb/image"
+	"github.com/earthly/earthly/states/dedup"
+	"github.com/earthly/earthly/states/image"
 	"github.com/moby/buildkit/client/llb"
 )
 
-// MultiTargetStates holds LLB states representing multiple earth targets,
+// MultiTarget holds LLB states representing multiple earth targets,
 // in the order in which they should be built.
-type MultiTargetStates struct {
+type MultiTarget struct {
 	// VisitedStates represents the previously visited states, grouped by target
 	// name. Duplicate targets are possible if same target is called with different
 	// build args.
-	VisitedStates map[string][]*SingleTargetStates
+	VisitedStates map[string][]*SingleTarget
 	// FinalStates is the main target to be built.
-	FinalStates *SingleTargetStates
+	FinalStates *SingleTarget
 }
 
 // FinalTarget returns the final target of the states.
-func (mts *MultiTargetStates) FinalTarget() domain.Target {
+func (mts *MultiTarget) FinalTarget() domain.Target {
 	return mts.FinalStates.Target
 }
 
-// AllStates returns all SingleTargetStates contained within.
-func (mts *MultiTargetStates) AllStates() []*SingleTargetStates {
-	var ret []*SingleTargetStates
+// AllStates returns all SingleTarget contained within.
+func (mts *MultiTarget) AllStates() []*SingleTarget {
+	var ret []*SingleTarget
 	for _, stss := range mts.VisitedStates {
 		ret = append(ret, stss...)
 	}
 	return ret
 }
 
-// SingleTargetStates holds LLB states representing a earth target.
-type SingleTargetStates struct {
+// SingleTarget holds LLB states representing a earth target.
+type SingleTarget struct {
 	Target                 domain.Target
 	TargetInput            dedup.TargetInput
 	SideEffectsImage       *image.Image
@@ -49,7 +49,7 @@ type SingleTargetStates struct {
 }
 
 // LastSaveImage returns the last save image available (if any).
-func (sts *SingleTargetStates) LastSaveImage() (SaveImage, bool) {
+func (sts *SingleTarget) LastSaveImage() (SaveImage, bool) {
 	if len(sts.SaveImages) == 0 {
 		return SaveImage{}, false
 	}

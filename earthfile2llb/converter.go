@@ -20,13 +20,14 @@ import (
 	"github.com/earthly/earthly/cleanup"
 	"github.com/earthly/earthly/debugger/common"
 	"github.com/earthly/earthly/domain"
-	"github.com/earthly/earthly/earthfile2llb/dedup"
-	"github.com/earthly/earthly/earthfile2llb/image"
 	"github.com/earthly/earthly/earthfile2llb/imr"
 	"github.com/earthly/earthly/earthfile2llb/variables"
 	"github.com/earthly/earthly/llbutil"
 	"github.com/earthly/earthly/llbutil/llbgit"
 	"github.com/earthly/earthly/logging"
+	"github.com/earthly/earthly/states"
+	"github.com/earthly/earthly/states/dedup"
+	"github.com/earthly/earthly/states/image"
 	"github.com/moby/buildkit/client/llb"
 	"github.com/moby/buildkit/frontend/dockerfile/dockerfile2llb"
 	solverpb "github.com/moby/buildkit/solver/pb"
@@ -37,8 +38,8 @@ import (
 type Converter struct {
 	gitMeta            *buildcontext.GitMetadata
 	resolver           *buildcontext.Resolver
-	mts                *MultiTargetStates
-	directDeps         []*SingleTargetStates
+	mts                *states.MultiTarget
+	directDeps         []*states.SingleTarget
 	directDepIndices   []int
 	buildContext       llb.State
 	cacheContext       llb.State
@@ -53,7 +54,7 @@ type Converter struct {
 
 // NewConverter constructs a new converter for a given earth target.
 func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Data, opt ConvertOpt) (*Converter, error) {
-	sts := &SingleTargetStates{
+	sts := &states.SingleTarget{
 		Target: target,
 		TargetInput: dedup.TargetInput{
 			TargetCanonical: target.StringCanonical(),
@@ -65,7 +66,7 @@ func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Da
 		Ongoing:          true,
 		Salt:             fmt.Sprintf("%d", rand.Int()),
 	}
-	mts := &MultiTargetStates{
+	mts := &states.MultiTarget{
 		FinalStates:   sts,
 		VisitedStates: opt.VisitedStates,
 	}
@@ -397,7 +398,7 @@ func (c *Converter) SaveArtifact(ctx context.Context, saveFrom string, saveTo st
 				"%sSAVE ARTIFACT %s %s AS LOCAL %s",
 				c.vertexPrefix(), saveFrom, artifact.String(), saveAsLocalTo))
 		c.mts.FinalStates.SeparateArtifactsState = append(c.mts.FinalStates.SeparateArtifactsState, separateArtifactsState)
-		c.mts.FinalStates.SaveLocals = append(c.mts.FinalStates.SaveLocals, SaveLocal{
+		c.mts.FinalStates.SaveLocals = append(c.mts.FinalStates.SaveLocals, states.SaveLocal{
 			DestPath:     saveAsLocalTo,
 			ArtifactPath: artifactPath,
 			Index:        len(c.mts.FinalStates.SeparateArtifactsState) - 1,
@@ -416,7 +417,7 @@ func (c *Converter) SaveImage(ctx context.Context, imageNames []string, pushImag
 		imageNames = []string{""}
 	}
 	for _, imageName := range imageNames {
-		c.mts.FinalStates.SaveImages = append(c.mts.FinalStates.SaveImages, SaveImage{
+		c.mts.FinalStates.SaveImages = append(c.mts.FinalStates.SaveImages, states.SaveImage{
 			State:     c.mts.FinalStates.SideEffectsState,
 			Image:     c.mts.FinalStates.SideEffectsImage.Clone(),
 			DockerTag: imageName,
@@ -426,7 +427,7 @@ func (c *Converter) SaveImage(ctx context.Context, imageNames []string, pushImag
 }
 
 // Build applies the earth BUILD command.
-func (c *Converter) Build(ctx context.Context, fullTargetName string, buildArgs []string) (*MultiTargetStates, error) {
+func (c *Converter) Build(ctx context.Context, fullTargetName string, buildArgs []string) (*states.MultiTarget, error) {
 	logging.GetLogger(ctx).
 		With("full-target-name", fullTargetName).
 		With("build-args", buildArgs).
@@ -615,7 +616,7 @@ func (c *Converter) Healthcheck(ctx context.Context, isNone bool, cmdArgs []stri
 }
 
 // FinalizeStates returns the LLB states.
-func (c *Converter) FinalizeStates() *MultiTargetStates {
+func (c *Converter) FinalizeStates() *states.MultiTarget {
 	// Create an artificial bond to depStates so that side-effects of deps are built automatically.
 	for _, depStates := range c.directDeps {
 		c.mts.FinalStates.SideEffectsState = withDependency(
@@ -707,7 +708,7 @@ func (c *Converter) internalRun(ctx context.Context, args []string, secretKeyVal
 	return nil
 }
 
-func (c *Converter) solveArtifact(ctx context.Context, mts *MultiTargetStates, artifact domain.Artifact) (string, error) {
+func (c *Converter) solveArtifact(ctx context.Context, mts *states.MultiTarget, artifact domain.Artifact) (string, error) {
 	outDir, err := ioutil.TempDir("/tmp", "earthly-solve-artifact")
 	if err != nil {
 		return "", errors.Wrap(err, "mk temp dir for solve artifact")
