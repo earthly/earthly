@@ -34,9 +34,9 @@ type ConvertOpt struct {
 	ArtifactBuilderFun ArtifactBuilderFun
 	// CleanCollection is a collection of cleanup functions.
 	CleanCollection *cleanup.Collection
-	// VisitedStates is a collection of target states which have been converted to LLB.
+	// Visited is a collection of target states which have been converted to LLB.
 	// This is used for deduplication and infinite cycle detection.
-	VisitedStates map[string][]*states.SingleTarget
+	Visited map[string][]*states.SingleTarget
 	// VarCollection is a collection of build args used for overriding args in the build.
 	VarCollection *variables.Collection
 	// A cache for image solves. depTargetInputHash -> context containing image.tar.
@@ -54,12 +54,12 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt) (m
 	if opt.SolveCache == nil {
 		opt.SolveCache = make(map[string]llb.State)
 	}
-	if opt.VisitedStates == nil {
-		opt.VisitedStates = make(map[string][]*states.SingleTarget)
+	if opt.Visited == nil {
+		opt.Visited = make(map[string][]*states.SingleTarget)
 	}
 	// Check if we have previously converted this target, with the same build args.
 	targetStr := target.String()
-	for _, sts := range opt.VisitedStates[targetStr] {
+	for _, sts := range opt.Visited[targetStr] {
 		same := true
 		for _, bai := range sts.TargetInput.BuildArgs {
 			if sts.Ongoing && !bai.IsConstant {
@@ -86,8 +86,8 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt) (m
 			}
 			// Use the already built states.
 			return &states.MultiTarget{
-				FinalStates:   sts,
-				VisitedStates: opt.VisitedStates,
+				Final:   sts,
+				Visited: opt.Visited,
 			}, nil
 		}
 	}

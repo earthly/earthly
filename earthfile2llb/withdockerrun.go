@@ -100,7 +100,7 @@ func (wdr *withDockerRun) Run(ctx context.Context, args []string, opt WithDocker
 		Info("Applying WITH DOCKER RUN")
 	var runOpts []llb.RunOption
 	mountRunOpts, err := parseMounts(
-		opt.Mounts, wdr.c.mts.FinalStates.Target, wdr.c.mts.FinalStates.TargetInput, wdr.c.cacheContext)
+		opt.Mounts, wdr.c.mts.Final.Target, wdr.c.mts.Final.TargetInput, wdr.c.cacheContext)
 	if err != nil {
 		return errors.Wrap(err, "parse mounts")
 	}
@@ -125,10 +125,10 @@ func (wdr *withDockerRun) Run(ctx context.Context, args []string, opt WithDocker
 	if opt.WithEntrypoint {
 		if len(args) == 0 {
 			// No args provided. Use the image's CMD.
-			args := make([]string, len(wdr.c.mts.FinalStates.SideEffectsImage.Config.Cmd))
-			copy(args, wdr.c.mts.FinalStates.SideEffectsImage.Config.Cmd)
+			args := make([]string, len(wdr.c.mts.Final.MainImage.Config.Cmd))
+			copy(args, wdr.c.mts.Final.MainImage.Config.Cmd)
 		}
-		finalArgs = append(wdr.c.mts.FinalStates.SideEffectsImage.Config.Entrypoint, args...)
+		finalArgs = append(wdr.c.mts.Final.MainImage.Config.Entrypoint, args...)
 		opt.WithShell = false // Don't use shell when --entrypoint is passed.
 	}
 	runOpts = append(runOpts, llb.Security(llb.SecurityModeInsecure))
@@ -137,7 +137,7 @@ func (wdr *withDockerRun) Run(ctx context.Context, args []string, opt WithDocker
 		strIf(opt.WithEntrypoint, "--entrypoint "),
 		strings.Join(finalArgs, " "))
 	runOpts = append(runOpts, llb.WithCustomNamef("%s%s", wdr.c.vertexPrefix(), runStr))
-	dindID, err := wdr.c.mts.FinalStates.TargetInput.Hash()
+	dindID, err := wdr.c.mts.Final.TargetInput.Hash()
 	if err != nil {
 		return errors.Wrap(err, "compute dind id")
 	}
@@ -160,7 +160,7 @@ func (wdr *withDockerRun) installDeps(ctx context.Context, opt WithDockerOpt) er
 		llb.Args(args),
 		llb.WithCustomNamef("%sWITH DOCKER (install deps)", wdr.c.vertexPrefix()),
 	}
-	wdr.c.mts.FinalStates.SideEffectsState = wdr.c.mts.FinalStates.SideEffectsState.Run(runOpts...).Root()
+	wdr.c.mts.Final.MainState = wdr.c.mts.Final.MainState.Run(runOpts...).Root()
 	return nil
 }
 
@@ -219,9 +219,9 @@ func (wdr *withDockerRun) pull(ctx context.Context, dockerTag string) error {
 		return err
 	}
 	mts := &states.MultiTarget{
-		FinalStates: &states.SingleTarget{
-			SideEffectsState: state,
-			SideEffectsImage: image,
+		Final: &states.SingleTarget{
+			MainState: state,
+			MainImage: image,
 			TargetInput: dedup.TargetInput{
 				TargetCanonical: fmt.Sprintf("+@docker-pull:%s", dockerTag),
 			},
@@ -256,7 +256,7 @@ func (wdr *withDockerRun) load(ctx context.Context, opt DockerLoadOpt) error {
 }
 
 func (wdr *withDockerRun) solveImage(ctx context.Context, mts *states.MultiTarget, opName string, dockerTag string, opts ...llb.RunOption) error {
-	solveID, err := mts.FinalStates.TargetInput.Hash()
+	solveID, err := mts.Final.TargetInput.Hash()
 	if err != nil {
 		return errors.Wrap(err, "target input hash")
 	}
@@ -298,7 +298,7 @@ func (wdr *withDockerRun) solveImage(ctx context.Context, mts *states.MultiTarge
 		llb.WithCustomNamef("[internal] docker tar context %s %s", opName, sessionID),
 	)
 	wdr.tarLoads = append(wdr.tarLoads, tarContext)
-	wdr.c.mts.FinalStates.LocalDirs[solveID] = outDir
+	wdr.c.mts.Final.LocalDirs[solveID] = outDir
 	wdr.c.solveCache[solveID] = tarContext
 	return nil
 }
@@ -335,7 +335,7 @@ func (wdr *withDockerRun) getComposeConfig(ctx context.Context, opt WithDockerOp
 		llb.Args(args),
 		llb.WithCustomNamef("%sWITH DOCKER (docker-compose config)", wdr.c.vertexPrefix()),
 	}
-	state := wdr.c.mts.FinalStates.SideEffectsState.Run(runOpts...).Root()
+	state := wdr.c.mts.Final.MainState.Run(runOpts...).Root()
 
 	// Perform solve to output compose config. We will use that compose config to read in images.
 	composeConfigState := llbutil.CopyOp(
@@ -344,17 +344,17 @@ func (wdr *withDockerRun) getComposeConfig(ctx context.Context, opt WithDockerOp
 		false, false, "",
 		llb.WithCustomNamef("[internal] copy %s", composeConfigFile))
 	mts := &states.MultiTarget{
-		VisitedStates: wdr.c.mts.VisitedStates,
-		FinalStates: &states.SingleTarget{
-			Target:           wdr.c.mts.FinalStates.Target,
-			SideEffectsImage: wdr.c.mts.FinalStates.SideEffectsImage,
-			SideEffectsState: state,
+		Visited: wdr.c.mts.Visited,
+		Final: &states.SingleTarget{
+			Target:           wdr.c.mts.Final.Target,
+			MainImage: wdr.c.mts.Final.MainImage,
+			MainState: state,
 			ArtifactsState:   composeConfigState,
-			LocalDirs:        wdr.c.mts.FinalStates.LocalDirs,
+			LocalDirs:        wdr.c.mts.Final.LocalDirs,
 		},
 	}
 	composeConfigArtifact := domain.Artifact{
-		Target:   wdr.c.mts.FinalStates.Target,
+		Target:   wdr.c.mts.Final.Target,
 		Artifact: composeConfigFile,
 	}
 	outDir, err := ioutil.TempDir("/tmp", "earthly-compose-config")

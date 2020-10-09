@@ -10,23 +10,23 @@ import (
 // MultiTarget holds LLB states representing multiple earth targets,
 // in the order in which they should be built.
 type MultiTarget struct {
-	// VisitedStates represents the previously visited states, grouped by target
+	// Visited represents the previously visited states, grouped by target
 	// name. Duplicate targets are possible if same target is called with different
 	// build args.
-	VisitedStates map[string][]*SingleTarget
-	// FinalStates is the main target to be built.
-	FinalStates *SingleTarget
+	Visited map[string][]*SingleTarget
+	// Final is the main target to be built.
+	Final *SingleTarget
 }
 
 // FinalTarget returns the final target of the states.
 func (mts *MultiTarget) FinalTarget() domain.Target {
-	return mts.FinalStates.Target
+	return mts.Final.Target
 }
 
-// AllStates returns all SingleTarget contained within.
-func (mts *MultiTarget) AllStates() []*SingleTarget {
+// All returns all SingleTarget contained within.
+func (mts *MultiTarget) All() []*SingleTarget {
 	var ret []*SingleTarget
-	for _, stss := range mts.VisitedStates {
+	for _, stss := range mts.Visited {
 		ret = append(ret, stss...)
 	}
 	return ret
@@ -36,8 +36,8 @@ func (mts *MultiTarget) AllStates() []*SingleTarget {
 type SingleTarget struct {
 	Target                 domain.Target
 	TargetInput            dedup.TargetInput
-	SideEffectsImage       *image.Image
-	SideEffectsState       llb.State
+	MainImage              *image.Image
+	MainState              llb.State
 	ArtifactsState         llb.State
 	SeparateArtifactsState []llb.State
 	SaveLocals             []SaveLocal

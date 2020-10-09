@@ -69,7 +69,7 @@ func (b *Builder) Build(ctx context.Context, mts *states.MultiTarget, opt BuildO
 
 	// Then output images and artifacts.
 	if !opt.NoOutput {
-		for _, states := range mts.AllStates() {
+		for _, states := range mts.All() {
 			err = b.buildOutputs(ctx, localDirs, states, opt)
 			if err != nil {
 				return err
@@ -82,9 +82,9 @@ func (b *Builder) Build(ctx context.Context, mts *states.MultiTarget, opt BuildO
 // BuildOnlyLastImageAsTar performs the build for the given multi target states,
 // and outputs only a docker tar of the last saved image.
 func (b *Builder) BuildOnlyLastImageAsTar(ctx context.Context, mts *states.MultiTarget, dockerTag string, outFile string, opt BuildOpt) error {
-	saveImage, ok := mts.FinalStates.LastSaveImage()
+	saveImage, ok := mts.Final.LastSaveImage()
 	if !ok {
-		return fmt.Errorf("No save image exists for %s", mts.FinalStates.Target.String())
+		return fmt.Errorf("No save image exists for %s", mts.Final.Target.String())
 	}
 
 	cacheLocalDir, localDirs, err := b.buildCommon(ctx, mts, opt)
@@ -124,7 +124,7 @@ func (b *Builder) BuildOnlyImages(ctx context.Context, mts *states.MultiTarget, 
 		b.console.PrintSuccess()
 	}
 
-	err = b.buildImages(ctx, localDirs, mts.FinalStates, opt)
+	err = b.buildImages(ctx, localDirs, mts.Final, opt)
 	if err != nil {
 		return err
 	}
@@ -154,7 +154,7 @@ func (b *Builder) BuildOnlyArtifact(ctx context.Context, mts *states.MultiTarget
 	defer os.RemoveAll(outDir)
 	solvedStates := make(map[int]bool)
 	err = b.buildSpecifiedArtifact(
-		ctx, artifact, destPath, outDir, solvedStates, localDirs, mts.FinalStates, opt)
+		ctx, artifact, destPath, outDir, solvedStates, localDirs, mts.Final, opt)
 	if err != nil {
 		return err
 	}
@@ -177,7 +177,7 @@ func (b *Builder) buildCommon(ctx context.Context, mts *states.MultiTarget, opt 
 	// Collect all local dirs.
 	localDirs := make(map[string]string)
 	localDirs["earthly-cache"] = cacheLocalDir
-	for _, states := range mts.AllStates() {
+	for _, states := range mts.All() {
 		for key, value := range states.LocalDirs {
 			existingValue, alreadyExists := localDirs[key]
 			if alreadyExists && existingValue != value {
@@ -189,9 +189,9 @@ func (b *Builder) buildCommon(ctx context.Context, mts *states.MultiTarget, opt 
 		}
 	}
 
-	finalTarget := mts.FinalStates.Target
-	finalTargetConsole := b.console.WithPrefixAndSalt(finalTarget.String(), mts.FinalStates.Salt)
-	err = b.buildSideEffects(ctx, localDirs, mts.FinalStates)
+	finalTarget := mts.Final.Target
+	finalTargetConsole := b.console.WithPrefixAndSalt(finalTarget.String(), mts.Final.Salt)
+	err = b.buildMain(ctx, localDirs, mts.Final)
 	if err != nil {
 		return "", nil, err
 	}
@@ -201,14 +201,14 @@ func (b *Builder) buildCommon(ctx context.Context, mts *states.MultiTarget, opt 
 	return cacheLocalDir, localDirs, nil
 }
 
-func (b *Builder) buildSideEffects(ctx context.Context, localDirs map[string]string, states *states.SingleTarget) error {
+func (b *Builder) buildMain(ctx context.Context, localDirs map[string]string, states *states.SingleTarget) error {
 	targetCtx := logging.With(ctx, "target", states.Target.String())
 	solveCtx := logging.With(targetCtx, "solve", "side-effects")
-	state := states.SideEffectsState
+	state := states.MainState
 	if b.noCache {
 		state = state.SetMarshalDefaults(llb.IgnoreCache)
 	}
-	err := b.s.solveSideEffects(solveCtx, localDirs, state)
+	err := b.s.solveMain(solveCtx, localDirs, state)
 	if err != nil {
 		return errors.Wrapf(err, "solve side effects")
 	}
@@ -255,7 +255,7 @@ func (b *Builder) buildRunPush(ctx context.Context, localDirs map[string]string,
 	}
 	targetCtx := logging.With(ctx, "target", states.Target.String())
 	solveCtx := logging.With(targetCtx, "solve", "run-push")
-	err := b.s.solveSideEffects(solveCtx, localDirs, states.RunPush.State)
+	err := b.s.solveMain(solveCtx, localDirs, states.RunPush.State)
 	if err != nil {
 		return errors.Wrapf(err, "solve run-push")
 	}
