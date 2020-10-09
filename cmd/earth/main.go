@@ -34,6 +34,7 @@ import (
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/earthfile2llb"
 	"github.com/earthly/earthly/earthfile2llb/variables"
+	"github.com/earthly/earthly/llbutil"
 	"github.com/earthly/earthly/logging"
 	"github.com/earthly/earthly/secretsclient"
 
@@ -44,7 +45,6 @@ import (
 	"github.com/moby/buildkit/client/llb"
 	"github.com/moby/buildkit/session"
 	"github.com/moby/buildkit/session/auth/authprovider"
-	"github.com/moby/buildkit/session/secrets/secretsprovider"
 	"github.com/moby/buildkit/session/sshforward/sshprovider"
 	"github.com/moby/buildkit/util/entitlements"
 	"github.com/pkg/errors"
@@ -1201,8 +1201,13 @@ func (app *earthApp) actionBuild(c *cli.Context) error {
 	}
 	secretsMap[debuggercommon.DebuggerSettingsSecretsKey] = debuggerSettingsData
 
+	sc, err := secretsclient.NewClient()
+	if err != nil {
+		app.console.Warnf("failed to create secrets client: %v\n", err)
+	}
+
 	attachables := []session.Attachable{
-		secretsprovider.FromMap(secretsMap),
+		llbutil.NewSecretProvider(sc, secretsMap),
 		authprovider.NewDockerAuthProvider(os.Stderr),
 	}
 
