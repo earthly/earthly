@@ -435,6 +435,10 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 					},
 				},
 				{
+					Name:   "rm",
+					Action: app.actionSecretsRemove,
+				},
+				{
 					Name:   "set",
 					Action: app.actionSecretsSet,
 					Flags: []cli.Flag{
@@ -914,6 +918,25 @@ func (app *earthApp) actionSecretsGet(c *cli.Context) error {
 	fmt.Printf("%s", data)
 	if !app.disableNewLine {
 		fmt.Printf("\n")
+	}
+
+	return nil
+}
+
+func (app *earthApp) actionSecretsRemove(c *cli.Context) error {
+	if c.NArg() != 1 {
+		return errors.New("invalid number of arguments provided")
+	}
+
+	path := c.Args().Get(0)
+
+	sc, err := secretsclient.NewClient()
+	if err != nil {
+		return err
+	}
+	err = sc.Remove(path)
+	if err != nil {
+		return errors.Wrap(err, "failed to remove secret")
 	}
 
 	return nil
