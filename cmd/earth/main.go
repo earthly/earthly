@@ -1008,7 +1008,7 @@ func (app *earthApp) actionRegister(c *cli.Context) error {
 		for i, key := range publicKeys {
 			fmt.Printf("%d) %s\n", i+1, key.String())
 		}
-		keyNum := promptInput("enter key number: ")
+		keyNum := promptInput("enter key number (1=default): ")
 		if keyNum == "" {
 			keyNum = "1"
 		}
