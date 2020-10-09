@@ -8,8 +8,9 @@ git checkout -B "$BUILDKITE_BRANCH" || true
 echo "Download latest Earthly binary"
 # The use of a UUID here is necessary due to random "Text file busy" errors on Windows.
 latest_earth="./earth-released-$BUILDKITE_BUILD_ID"
-echo "abc" > "$latest_earth"
-sleep 10
+while ! echo "abc" >"$latest_earth"; do
+    sleep 1
+done
 curl -o "$latest_earth" -L https://github.com/earthly/earthly/releases/latest/download/earth-"$EARTH_OS"-amd64 && chmod +x "$latest_earth"
 
 echo "Build latest earth using released earth"
