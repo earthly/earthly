@@ -9,7 +9,7 @@ import (
 
 	"github.com/earthly/earthly/buildcontext"
 	"github.com/earthly/earthly/domain"
-	"github.com/earthly/earthly/earthfile2llb/dedup"
+	"github.com/earthly/earthly/states/dedup"
 	"github.com/moby/buildkit/client/llb"
 	dfShell "github.com/moby/buildkit/frontend/dockerfile/shell"
 	"github.com/pkg/errors"

@@ -14,9 +14,10 @@ import (
 
 	"github.com/earthly/earthly/dockertar"
 	"github.com/earthly/earthly/domain"
-	"github.com/earthly/earthly/earthfile2llb/dedup"
 	"github.com/earthly/earthly/llbutil"
 	"github.com/earthly/earthly/logging"
+	"github.com/earthly/earthly/states"
+	"github.com/earthly/earthly/states/dedup"
 	"github.com/moby/buildkit/client/llb"
 	"github.com/pkg/errors"
 	"gopkg.in/yaml.v2"
@@ -99,7 +100,7 @@ func (wdr *withDockerRun) Run(ctx context.Context, args []string, opt WithDocker
 		Info("Applying WITH DOCKER RUN")
 	var runOpts []llb.RunOption
 	mountRunOpts, err := parseMounts(
-		opt.Mounts, wdr.c.mts.FinalStates.Target, wdr.c.mts.FinalStates.TargetInput, wdr.c.cacheContext)
+		opt.Mounts, wdr.c.mts.Final.Target, wdr.c.mts.Final.TargetInput, wdr.c.cacheContext)
 	if err != nil {
 		return errors.Wrap(err, "parse mounts")
 	}
@@ -124,10 +125,10 @@ func (wdr *withDockerRun) Run(ctx context.Context, args []string, opt WithDocker
 	if opt.WithEntrypoint {
 		if len(args) == 0 {
 			// No args provided. Use the image's CMD.
-			args := make([]string, len(wdr.c.mts.FinalStates.SideEffectsImage.Config.Cmd))
-			copy(args, wdr.c.mts.FinalStates.SideEffectsImage.Config.Cmd)
+			args := make([]string, len(wdr.c.mts.Final.MainImage.Config.Cmd))
+			copy(args, wdr.c.mts.Final.MainImage.Config.Cmd)
 		}
-		finalArgs = append(wdr.c.mts.FinalStates.SideEffectsImage.Config.Entrypoint, args...)
+		finalArgs = append(wdr.c.mts.Final.MainImage.Config.Entrypoint, args...)
 		opt.WithShell = false // Don't use shell when --entrypoint is passed.
 	}
 	runOpts = append(runOpts, llb.Security(llb.SecurityModeInsecure))
@@ -136,7 +137,7 @@ func (wdr *withDockerRun) Run(ctx context.Context, args []string, opt WithDocker
 		strIf(opt.WithEntrypoint, "--entrypoint "),
 		strings.Join(finalArgs, " "))
 	runOpts = append(runOpts, llb.WithCustomNamef("%s%s", wdr.c.vertexPrefix(), runStr))
-	dindID, err := wdr.c.mts.FinalStates.TargetInput.Hash()
+	dindID, err := wdr.c.mts.Final.TargetInput.Hash()
 	if err != nil {
 		return errors.Wrap(err, "compute dind id")
 	}
@@ -159,7 +160,7 @@ func (wdr *withDockerRun) installDeps(ctx context.Context, opt WithDockerOpt) er
 		llb.Args(args),
 		llb.WithCustomNamef("%sWITH DOCKER (install deps)", wdr.c.vertexPrefix()),
 	}
-	wdr.c.mts.FinalStates.SideEffectsState = wdr.c.mts.FinalStates.SideEffectsState.Run(runOpts...).Root()
+	wdr.c.mts.Final.MainState = wdr.c.mts.Final.MainState.Run(runOpts...).Root()
 	return nil
 }
 
@@ -217,14 +218,14 @@ func (wdr *withDockerRun) pull(ctx context.Context, dockerTag string) error {
 	if err != nil {
 		return err
 	}
-	mts := &MultiTargetStates{
-		FinalStates: &SingleTargetStates{
-			SideEffectsState: state,
-			SideEffectsImage: image,
+	mts := &states.MultiTarget{
+		Final: &states.SingleTarget{
+			MainState: state,
+			MainImage: image,
 			TargetInput: dedup.TargetInput{
 				TargetCanonical: fmt.Sprintf("+@docker-pull:%s", dockerTag),
 			},
-			SaveImages: []SaveImage{
+			SaveImages: []states.SaveImage{
 				{
 					State:     state,
 					Image:     image,
@@ -254,8 +255,8 @@ func (wdr *withDockerRun) load(ctx context.Context, opt DockerLoadOpt) error {
 			"%sDOCKER LOAD %s %s", wdr.c.imageVertexPrefix(depTarget.String()), depTarget.String(), opt.ImageName))
 }
 
-func (wdr *withDockerRun) solveImage(ctx context.Context, mts *MultiTargetStates, opName string, dockerTag string, opts ...llb.RunOption) error {
-	solveID, err := mts.FinalStates.TargetInput.Hash()
+func (wdr *withDockerRun) solveImage(ctx context.Context, mts *states.MultiTarget, opName string, dockerTag string, opts ...llb.RunOption) error {
+	solveID, err := mts.Final.TargetInput.Hash()
 	if err != nil {
 		return errors.Wrap(err, "target input hash")
 	}
@@ -297,7 +298,7 @@ func (wdr *withDockerRun) solveImage(ctx context.Context, mts *MultiTargetStates
 		llb.WithCustomNamef("[internal] docker tar context %s %s", opName, sessionID),
 	)
 	wdr.tarLoads = append(wdr.tarLoads, tarContext)
-	wdr.c.mts.FinalStates.LocalDirs[solveID] = outDir
+	wdr.c.mts.Final.LocalDirs[solveID] = outDir
 	wdr.c.solveCache[solveID] = tarContext
 	return nil
 }
@@ -334,7 +335,7 @@ func (wdr *withDockerRun) getComposeConfig(ctx context.Context, opt WithDockerOp
 		llb.Args(args),
 		llb.WithCustomNamef("%sWITH DOCKER (docker-compose config)", wdr.c.vertexPrefix()),
 	}
-	state := wdr.c.mts.FinalStates.SideEffectsState.Run(runOpts...).Root()
+	state := wdr.c.mts.Final.MainState.Run(runOpts...).Root()
 
 	// Perform solve to output compose config. We will use that compose config to read in images.
 	composeConfigState := llbutil.CopyOp(
@@ -342,18 +343,18 @@ func (wdr *withDockerRun) getComposeConfig(ctx context.Context, opt WithDockerOp
 		llb.Scratch().Platform(llbutil.TargetPlatform), fmt.Sprintf("/%s", composeConfigFile),
 		false, false, "",
 		llb.WithCustomNamef("[internal] copy %s", composeConfigFile))
-	mts := &MultiTargetStates{
-		VisitedStates: wdr.c.mts.VisitedStates,
-		FinalStates: &SingleTargetStates{
-			Target:           wdr.c.mts.FinalStates.Target,
-			SideEffectsImage: wdr.c.mts.FinalStates.SideEffectsImage,
-			SideEffectsState: state,
-			ArtifactsState:   composeConfigState,
-			LocalDirs:        wdr.c.mts.FinalStates.LocalDirs,
+	mts := &states.MultiTarget{
+		Visited: wdr.c.mts.Visited,
+		Final: &states.SingleTarget{
+			Target:         wdr.c.mts.Final.Target,
+			MainImage:      wdr.c.mts.Final.MainImage,
+			MainState:      state,
+			ArtifactsState: composeConfigState,
+			LocalDirs:      wdr.c.mts.Final.LocalDirs,
 		},
 	}
 	composeConfigArtifact := domain.Artifact{
-		Target:   wdr.c.mts.FinalStates.Target,
+		Target:   wdr.c.mts.Final.Target,
 		Artifact: composeConfigFile,
 	}
 	outDir, err := ioutil.TempDir("/tmp", "earthly-compose-config")

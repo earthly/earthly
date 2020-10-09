@@ -8,9 +8,9 @@ import (
 	"os"
 	"os/exec"
 
-	"github.com/earthly/earthly/earthfile2llb/image"
 	"github.com/earthly/earthly/llbutil"
 	"github.com/earthly/earthly/logging"
+	"github.com/earthly/earthly/states/image"
 	"github.com/golang/protobuf/proto"
 	"github.com/moby/buildkit/client"
 	"github.com/moby/buildkit/client/llb"
@@ -184,7 +184,7 @@ func (s *solver) solveArtifacts(ctx context.Context, localDirs map[string]string
 }
 
 // when printDetailed is false, we only print non-cached items
-func (s *solver) solveSideEffects(ctx context.Context, localDirs map[string]string, state llb.State) error {
+func (s *solver) solveMain(ctx context.Context, localDirs map[string]string, state llb.State) error {
 	dt, err := state.Marshal(ctx, llb.Platform(llbutil.TargetPlatform))
 	if err != nil {
 		return errors.Wrap(err, "state marshal")
@@ -210,7 +210,7 @@ func (s *solver) solveSideEffects(ctx context.Context, localDirs map[string]stri
 		With("ops", string(opsBytes)).
 		With("dt", string(dtBytes)).
 		Debug("Side effectsLLB")
-	solveOpt, err := s.newSolveOptSideEffects(localDirs)
+	solveOpt, err := s.newSolveOptMain(localDirs)
 	if err != nil {
 		return errors.Wrap(err, "new solve opt")
 	}
@@ -275,7 +275,7 @@ func (s *solver) newSolveOptArtifacts(outDir string, localDirs map[string]string
 	}, nil
 }
 
-func (s *solver) newSolveOptSideEffects(localDirs map[string]string) (*client.SolveOpt, error) {
+func (s *solver) newSolveOptMain(localDirs map[string]string) (*client.SolveOpt, error) {
 	var cacheImportExport []client.CacheOptionsEntry
 	if s.remoteCache != "" {
 		cacheImportExport = append(cacheImportExport, newRegistryCacheOpt(s.remoteCache))

@@ -92,14 +92,15 @@ func (vm *vertexMonitor) printError() {
 }
 
 type solverMonitor struct {
-	console conslogging.ConsoleLogger
-
+	console  conslogging.ConsoleLogger
+	verbose  bool
 	vertices map[digest.Digest]*vertexMonitor
 }
 
-func newSolverMonitor(console conslogging.ConsoleLogger) *solverMonitor {
+func newSolverMonitor(console conslogging.ConsoleLogger, verbose bool) *solverMonitor {
 	return &solverMonitor{
 		console:  console,
+		verbose:  verbose,
 		vertices: make(map[digest.Digest]*vertexMonitor),
 	}
 }
@@ -128,7 +129,7 @@ Loop:
 						salt:       salt,
 						operation:  operation,
 						logger:     vertexLogger,
-						isInternal: (targetStr == "internal"),
+						isInternal: (targetStr == "internal" && !sm.verbose),
 						console:    sm.console.WithPrefixAndSalt(targetStr, salt),
 					}
 					sm.vertices[vertex.Digest] = vm

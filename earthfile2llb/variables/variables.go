@@ -1,7 +1,7 @@
 package variables
 
 import (
-	"github.com/earthly/earthly/earthfile2llb/dedup"
+	"github.com/earthly/earthly/states/dedup"
 	"github.com/moby/buildkit/client/llb"
 )
 
