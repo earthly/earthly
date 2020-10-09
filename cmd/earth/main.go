@@ -1008,7 +1008,10 @@ func (app *earthApp) actionRegister(c *cli.Context) error {
 		for i, key := range publicKeys {
 			fmt.Printf("%d) %s\n", i+1, key.String())
 		}
-		keyNum := promptInput("enter key number: ")
+		keyNum := promptInput("enter key number (1=default): ")
+		if keyNum == "" {
+			keyNum = "1"
+		}
 		i, err := strconv.Atoi(keyNum)
 		if err != nil {
 			return errors.Wrap(err, "invalid key number")
@@ -1016,7 +1019,6 @@ func (app *earthApp) actionRegister(c *cli.Context) error {
 		if i <= 0 || i > len(publicKeys) {
 			return fmt.Errorf("invalid key number")
 		}
-
 		publicKey = publicKeys[i-1].String()
 	} else {
 		_, _, _, _, err := ssh.ParseAuthorizedKey([]byte(app.publicKey))
