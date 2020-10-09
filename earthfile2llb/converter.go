@@ -59,12 +59,12 @@ func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Da
 		TargetInput: dedup.TargetInput{
 			TargetCanonical: target.StringCanonical(),
 		},
-		MainState: llb.Scratch().Platform(llbutil.TargetPlatform),
-		MainImage: image.NewImage(),
-		ArtifactsState:   llb.Scratch().Platform(llbutil.TargetPlatform),
-		LocalDirs:        bc.LocalDirs,
-		Ongoing:          true,
-		Salt:             fmt.Sprintf("%d", rand.Int()),
+		MainState:      llb.Scratch().Platform(llbutil.TargetPlatform),
+		MainImage:      image.NewImage(),
+		ArtifactsState: llb.Scratch().Platform(llbutil.TargetPlatform),
+		LocalDirs:      bc.LocalDirs,
+		Ongoing:        true,
+		Salt:           fmt.Sprintf("%d", rand.Int()),
 	}
 	mts := &states.MultiTarget{
 		Final:   sts,
@@ -459,7 +459,7 @@ func (c *Converter) Build(ctx context.Context, fullTargetName string, buildArgs 
 			DockerBuilderFun:   c.dockerBuilderFun,
 			ArtifactBuilderFun: c.artifactBuilderFun,
 			CleanCollection:    c.cleanCollection,
-			Visited:      c.mts.Visited,
+			Visited:            c.mts.Visited,
 			VarCollection:      newVarCollection,
 			SolveCache:         c.solveCache,
 		})

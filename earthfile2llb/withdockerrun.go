@@ -346,11 +346,11 @@ func (wdr *withDockerRun) getComposeConfig(ctx context.Context, opt WithDockerOp
 	mts := &states.MultiTarget{
 		Visited: wdr.c.mts.Visited,
 		Final: &states.SingleTarget{
-			Target:           wdr.c.mts.Final.Target,
-			MainImage: wdr.c.mts.Final.MainImage,
-			MainState: state,
-			ArtifactsState:   composeConfigState,
-			LocalDirs:        wdr.c.mts.Final.LocalDirs,
+			Target:         wdr.c.mts.Final.Target,
+			MainImage:      wdr.c.mts.Final.MainImage,
+			MainState:      state,
+			ArtifactsState: composeConfigState,
+			LocalDirs:      wdr.c.mts.Final.LocalDirs,
 		},
 	}
 	composeConfigArtifact := domain.Artifact{
