@@ -92,6 +92,7 @@ type cliFlags struct {
 	password             string
 	publicKey            string
 	disableNewLine       bool
+	secretFile           string
 }
 
 var (
@@ -426,7 +427,14 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 				{
 					Name:   "set",
 					Action: app.actionSecretsSet,
-					// TODO expand flags to allow reading secret from stdin or a file
+					Flags: []cli.Flag{
+						&cli.StringFlag{
+							Name:        "file",
+							Aliases:     []string{"f"},
+							Usage:       "Stores secret stored in file",
+							Destination: &app.secretFile,
+						},
+					},
 				},
 			},
 		},
@@ -903,12 +911,25 @@ func (app *earthApp) actionSecretsGet(c *cli.Context) error {
 }
 
 func (app *earthApp) actionSecretsSet(c *cli.Context) error {
-	if c.NArg() != 2 {
-		return errors.New("invalid number of arguments provided")
+	var path string
+	var value string
+	if app.secretFile == "" {
+		if c.NArg() != 2 {
+			return errors.New("invalid number of arguments provided")
+		}
+		path = c.Args().Get(0)
+		value = c.Args().Get(1)
+	} else {
+		if c.NArg() != 1 {
+			return errors.New("invalid number of arguments provided")
+		}
+		path = c.Args().Get(0)
+		data, err := ioutil.ReadFile(app.secretFile)
+		if err != nil {
+			return errors.Wrap(err, "failed to read secret from file")
+		}
+		value = string(data)
 	}
-
-	path := c.Args().Get(0)
-	value := c.Args().Get(1)
 
 	sc, err := secretsclient.NewClient()
 	if err != nil {
