@@ -6,6 +6,9 @@ echo "Add branch info back to git (Earthly uses it for tagging)"
 git checkout -B "$BUILDKITE_BRANCH" || true
 
 echo "Download latest Earthly binary"
+# This strange workaround is needed to avoid "Text file busy" errors on Windows.
+# It's essentially a busy-waiting loop that waits for the error to go away.
+# It typically takes less than three minutes to right itself.
 SECONDS=0
 do_reset=false
 while ! echo "." >./earth-released; do
