@@ -5,7 +5,13 @@ set -xeu
 echo "Add branch info back to git (Earthly uses it for tagging)"
 git checkout -B "$BUILDKITE_BRANCH" || true
 
-echo "Download latest Earthly binary"
+# This is needed when Windows first starts up.
+SECONDS=0
+while ! docker ps; do
+    echo "Waiting for docker to be ready..."
+    echo "Time elapsed: $SECONDS seconds"
+    sleep 1
+done
 # This strange workaround is needed to avoid "Text file busy" errors on Windows.
 # It's essentially a busy-waiting loop that waits for the error to go away.
 # It typically takes less than three minutes to right itself.
@@ -20,6 +26,8 @@ done
 if [ "$do_reset" = "true" ]; then
     docker stop earthly-buildkitd || true
 fi
+
+echo "Download latest Earthly binary"
 curl -o ./earth-released -L https://github.com/earthly/earthly/releases/latest/download/earth-"$EARTH_OS"-amd64 && chmod +x ./earth-released
 
 echo "Build latest earth using released earth"
