@@ -30,6 +30,7 @@ type Client interface {
 	RegisterEmail(email string) error
 	CreateAccount(email, verificationToken, password, publicKey string) error
 	Get(path string) ([]byte, error)
+	Remove(path string) error
 	Set(path string, data []byte) error
 	GetPublicKeys() ([]*agent.Key, error)
 	CreateOrg(org string) error
@@ -347,6 +348,24 @@ func (c *client) CreateOrg(org string) error {
 			return errors.Wrap(err, fmt.Sprintf("failed to decode response body (status code: %d)", status))
 		}
 		return fmt.Errorf("failed to create org: %s", msg)
+	}
+	return nil
+}
+
+func (c *client) Remove(path string) error {
+	if path == "" || path[0] != '/' {
+		return fmt.Errorf("invalid path")
+	}
+	status, body, err := c.doCall("DELETE", fmt.Sprintf("/api/v0/secrets%s", path), withPublicKeyAuth())
+	if err != nil {
+		return err
+	}
+	if status != http.StatusNoContent {
+		msg, err := getMessageFromJSON(bytes.NewReader([]byte(body)))
+		if err != nil {
+			return errors.Wrap(err, fmt.Sprintf("failed to decode response body (status code: %d)", status))
+		}
+		return fmt.Errorf("failed to remove secret: %s", msg)
 	}
 	return nil
 }
