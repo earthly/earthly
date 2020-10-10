@@ -10,6 +10,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/earthly/earthly/secretsclient/api"
 
@@ -32,6 +33,7 @@ type Client interface {
 	Get(path string) ([]byte, error)
 	Remove(path string) error
 	Set(path string, data []byte) error
+	List(path string) ([]string, error)
 	GetPublicKeys() ([]*agent.Key, error)
 	CreateOrg(org string) error
 }
@@ -370,8 +372,29 @@ func (c *client) Remove(path string) error {
 	return nil
 }
 
+func (c *client) List(path string) ([]string, error) {
+	if path != "" && !strings.HasSuffix(path, "/") {
+		return nil, fmt.Errorf("invalid path")
+	}
+	status, body, err := c.doCall("GET", fmt.Sprintf("/api/v0/secrets%s", path), withPublicKeyAuth())
+	if err != nil {
+		return nil, err
+	}
+	if status != http.StatusOK {
+		msg, err := getMessageFromJSON(bytes.NewReader([]byte(body)))
+		if err != nil {
+			return nil, errors.Wrap(err, fmt.Sprintf("failed to decode response body (status code: %d)", status))
+		}
+		return nil, fmt.Errorf("failed to list secrets: %s", msg)
+	}
+	if body == "" {
+		return []string{}, nil
+	}
+	return strings.Split(body, "\n"), nil
+}
+
 func (c *client) Get(path string) ([]byte, error) {
-	if path == "" || path[0] != '/' {
+	if path == "" || path[0] != '/' || strings.HasSuffix(path, "/") {
 		return nil, fmt.Errorf("invalid path")
 	}
 	status, body, err := c.doCall("GET", fmt.Sprintf("/api/v0/secrets%s", path), withPublicKeyAuth())
