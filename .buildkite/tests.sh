@@ -5,13 +5,30 @@ set -xeu
 echo "Add branch info back to git (Earthly uses it for tagging)"
 git checkout -B "$BUILDKITE_BRANCH" || true
 
-if [ "$BUILDKITE_AGENT_META_DATA_OS" == "windows" ]; then
-    # This is necessary on Windows.
-    sleep 5
+# This is needed when Windows first starts up.
+SECONDS=0
+while ! docker ps; do
+    echo "Waiting for docker to be ready..."
+    echo "Time elapsed: $SECONDS seconds"
+    sleep 1
+done
+# This strange workaround is needed to avoid "Text file busy" errors on Windows.
+# It's essentially a busy-waiting loop that waits for the error to go away.
+# It typically takes less than three minutes to right itself.
+SECONDS=0
+do_reset=false
+while ! echo "." >./earth-released; do
+    do_reset=true
+    echo "Waiting for ./earth-released to become available for writing..."
+    echo "Time elapsed: $SECONDS seconds"
+    sleep 1
+done
+if [ "$do_reset" = "true" ]; then
+    docker stop earthly-buildkitd || true
 fi
 
 echo "Download latest Earthly binary"
-wget https://github.com/earthly/earthly/releases/latest/download/earth-"$EARTH_OS"-amd64 -O ./earth-released && chmod +x ./earth-released
+curl -o ./earth-released -L https://github.com/earthly/earthly/releases/latest/download/earth-"$EARTH_OS"-amd64 && chmod +x ./earth-released
 
 echo "Build latest earth using released earth"
 ./earth-released +for-"$EARTH_OS"
