@@ -11,22 +11,27 @@ deps:
     RUN bundle check || bundle install
     SAVE ARTIFACT Gemfile.lock AS LOCAL ./Gemfile.lock
     SAVE IMAGE
+
 build:
     FROM +deps
     COPY . .
     SAVE ARTIFACT . /.
     SAVE IMAGE
+
 docker:
     FROM +build
     EXPOSE 3000
     CMD ["bundle", "exec", "rails", "server", "-b", "0.0.0.0"]
     SAVE IMAGE ruby-on-rails-example:latest
+
 migrate:
     FROM +build
-    RUN bundle exec rails db:migrate
+    RUN --push bundle exec rails db:migrate
+
 test:
     FROM +build
-    RUN bundle exec rails test
+    RUN --push bundle exec rails test
+
 console:
     FROM +build
-    RUN bundle exec rails console
+    RUN --push bundle exec rails console
