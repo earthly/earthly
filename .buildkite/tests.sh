@@ -2,6 +2,8 @@
 
 set -xeu
 
+trap 'kill $(jobs -p); wait' SIGINT SIGTERM
+
 echo "Add branch info back to git (Earthly uses it for tagging)"
 git checkout -B "$BUILDKITE_BRANCH" || true
 
