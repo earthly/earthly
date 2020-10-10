@@ -435,6 +435,10 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 					},
 				},
 				{
+					Name:   "ls",
+					Action: app.actionSecretsList,
+				},
+				{
 					Name:   "rm",
 					Action: app.actionSecretsRemove,
 				},
@@ -885,9 +889,7 @@ func (app *earthApp) actionOrgCreate(c *cli.Context) error {
 	if c.NArg() != 1 {
 		return errors.New("invalid number of arguments provided")
 	}
-
 	org := c.Args().Get(0)
-
 	sc, err := secretsclient.NewClient()
 	if err != nil {
 		return err
@@ -899,13 +901,33 @@ func (app *earthApp) actionOrgCreate(c *cli.Context) error {
 	return nil
 }
 
+func (app *earthApp) actionSecretsList(c *cli.Context) error {
+	if c.NArg() != 1 {
+		return errors.New("invalid number of arguments provided")
+	}
+	path := c.Args().Get(0)
+	if !strings.HasSuffix(path, "/") {
+		path += "/"
+	}
+	sc, err := secretsclient.NewClient()
+	if err != nil {
+		return err
+	}
+	paths, err := sc.List(path)
+	if err != nil {
+		return errors.Wrap(err, "failed to remove secret")
+	}
+	for _, path := range paths {
+		fmt.Println(path)
+	}
+	return nil
+}
+
 func (app *earthApp) actionSecretsGet(c *cli.Context) error {
 	if c.NArg() != 1 {
 		return errors.New("invalid number of arguments provided")
 	}
-
 	path := c.Args().Get(0)
-
 	sc, err := secretsclient.NewClient()
 	if err != nil {
 		return err
@@ -914,12 +936,10 @@ func (app *earthApp) actionSecretsGet(c *cli.Context) error {
 	if err != nil {
 		return errors.Wrap(err, "failed to get secret")
 	}
-
 	fmt.Printf("%s", data)
 	if !app.disableNewLine {
 		fmt.Printf("\n")
 	}
-
 	return nil
 }
 
@@ -927,9 +947,7 @@ func (app *earthApp) actionSecretsRemove(c *cli.Context) error {
 	if c.NArg() != 1 {
 		return errors.New("invalid number of arguments provided")
 	}
-
 	path := c.Args().Get(0)
-
 	sc, err := secretsclient.NewClient()
 	if err != nil {
 		return err
@@ -938,7 +956,6 @@ func (app *earthApp) actionSecretsRemove(c *cli.Context) error {
 	if err != nil {
 		return errors.Wrap(err, "failed to remove secret")
 	}
-
 	return nil
 }
 
