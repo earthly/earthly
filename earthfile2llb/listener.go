@@ -894,6 +894,11 @@ func (l *listener) EnterEnvArgKey(c *parser.EnvArgKeyContext) {
 		return
 	}
 	l.envArgKey = c.GetText()
+	err := checkEnvVarName(l.envArgKey)
+	if err != nil {
+		l.err = err
+		return
+	}
 }
 
 func (l *listener) EnterEnvArgValue(c *parser.EnvArgValueContext) {
@@ -961,6 +966,16 @@ func (ssf *StringSliceFlag) String() string {
 // Set adds a flag value to the string slice.
 func (ssf *StringSliceFlag) Set(arg string) error {
 	ssf.Args = append(ssf.Args, arg)
+	return nil
+}
+
+var envVarNameRegexp = regexp.MustCompile("^[a-zA-Z_]+[a-zA-Z0-9_]*$")
+
+func checkEnvVarName(str string) error {
+	itMatch := envVarNameRegexp.MatchString(str)
+	if !itMatch {
+		return fmt.Errorf("invalid env key definition %s", str)
+	}
 	return nil
 }
 
