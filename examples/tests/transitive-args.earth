@@ -6,5 +6,5 @@ intermediate:
     BUILD +arg-target
 arg-target:
     ARG SOMEARG=default
-    RUN echo content >file.txt
+    RUN echo "$SOMEARG" >file.txt
     SAVE ARTIFACT file.txt AS LOCAL "$SOMEARG"

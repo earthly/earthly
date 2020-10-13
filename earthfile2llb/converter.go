@@ -218,7 +218,7 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 	if err != nil {
 		return errors.Wrapf(err, "read file %s", dfPath)
 	}
-	newVarCollection, err := c.varCollection.WithParseBuildArgs(
+	newVarCollection, _, err := c.varCollection.WithParseBuildArgs(
 		buildArgs, c.processNonConstantBuildArgFunc(ctx))
 	if err != nil {
 		return err
@@ -446,7 +446,8 @@ func (c *Converter) Build(ctx context.Context, fullTargetName string, buildArgs 
 		// Don't allow transitive overriding variables to cross project boundaries.
 		newVarCollection = variables.NewCollection()
 	}
-	newVarCollection, err = newVarCollection.WithParseBuildArgs(
+	var newVars map[string]bool
+	newVarCollection, newVars, err = newVarCollection.WithParseBuildArgs(
 		buildArgs, c.processNonConstantBuildArgFunc(ctx))
 	if err != nil {
 		return nil, errors.Wrap(err, "parse build args")
@@ -467,6 +468,17 @@ func (c *Converter) Build(ctx context.Context, fullTargetName string, buildArgs 
 		return nil, errors.Wrapf(err, "earthfile2llb for %s", fullTargetName)
 	}
 	c.directDeps = append(c.directDeps, mts.Final)
+	// Propagate build arg inputs upwards (a child target depending on a build arg means
+	// that the parent also depends on that build arg).
+	for _, bai := range mts.Final.TargetInput.BuildArgs {
+		// Check if the build arg has been overridden. If it has, it can no longer be an input
+		// directly, so skip it.
+		_, found := newVars[bai.Name]
+		if found {
+			continue
+		}
+		c.mts.Final.TargetInput = c.mts.Final.TargetInput.WithBuildArgInput(bai)
+	}
 	return mts, nil
 }
 

@@ -88,5 +88,3 @@ jobs:
         run: ./build/linux/amd64/earth prune --reset
       - name: Rebuild and push
         run: ./build/linux/amd64/earth --push +all
-      - name: Push prerelease
-        run: ./build/linux/amd64/earth --push +prerelease-docker
