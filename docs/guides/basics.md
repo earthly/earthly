@@ -743,7 +743,6 @@ deps:
 	RUN go mod download
 	SAVE ARTIFACT go.mod AS LOCAL go.mod
 	SAVE ARTIFACT go.sum AS LOCAL go.sum
-	SAVE IMAGE
 
 build:
     FROM +deps
@@ -769,7 +768,6 @@ deps:
     RUN npm install
     SAVE ARTIFACT package.json AS LOCAL ./package.json
     SAVE ARTIFACT package-lock.json AS LOCAL ./package-lock.json
-    SAVE IMAGE
 
 build:
     FROM +deps
@@ -796,7 +794,6 @@ WORKDIR /java-example
 deps:
     COPY build.gradle ./
     RUN gradle build
-    SAVE IMAGE
 
 build:
     FROM +deps
@@ -823,7 +820,6 @@ deps:
     RUN pip install wheel
     COPY requirements.txt ./
     RUN pip wheel -r requirements.txt --wheel-dir=wheels
-    SAVE IMAGE
 
 build:
     FROM +deps

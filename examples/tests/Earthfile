@@ -321,7 +321,6 @@ eine-test-base:
     COPY ../..+earth/earth /usr/local/bin/
     ENV EARTHLY_BUILDKIT_IMAGE=earthly/buildkitd:dind-test
     WORKDIR /test
-    SAVE IMAGE
 
 eine-config-test:
     FROM +eine-test-base

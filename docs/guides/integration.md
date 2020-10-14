@@ -149,7 +149,6 @@ project-files:
     COPY project project
     # Run sbt for caching purposes.
     RUN touch a.scala && sbt compile && rm a.scala
-    SAVE IMAGE
 ```
 
 [Full file](https://github.com/earthly/earthly/blob/master/examples/integration-test/Earthfile)
@@ -162,7 +161,6 @@ build:
     FROM +project-files
     COPY src src
     RUN sbt compile
-    SAVE IMAGE 
 ```
 [Full file](https://github.com/earthly/earthly/blob/master/examples/integration-test/Earthfile)
 

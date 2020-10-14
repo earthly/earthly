@@ -12,7 +12,6 @@ deps:
     COPY package.json package-lock.json ./
     RUN npm install
     SAVE ARTIFACT package-lock.json AS LOCAL ./package-lock.json
-    SAVE IMAGE
 
 build:
     FROM +deps
