@@ -1,7 +1,6 @@
 
 * [Introduction](README.md)
 * [Installation](installation/installation.md)
-    * [From source](installation/source.md)
 * [Guides](guides/guides.md)
     * [Basics](guides/basics.md)
     * [Authenticating Git and image registries](guides/auth.md)
