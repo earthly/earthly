@@ -102,21 +102,15 @@ Ouput:
 
 We start with a simple Earthfile that can build and create a docker image for our app. See [Basic](./basics) guide for more details on that.
 
-{% hint style='info' %}
-##### Note
-This guide assumes you are using a Docker image based on [docker:dind](https://hub.docker.com/_/docker) or have installed docker in docker into your base container. It is possible in the future that earthly will not require the dind for `WITH DOCKER` commands and at the time any base image will work successfully. 
-{% endhint %}
-
-
 {% method %}
 {% sample lang="Base Earth Target" %}
 
 We start from an alpine docker in docker image and the dependencies we need to build and test our app. These include the jdk and docker-compose. 
 ``` Dockerfile
-FROM docker:19.03.7-dind
+FROM earthly/dind:alpine
     
 WORKDIR /scala-example
-RUN apk add openjdk11 docker-compose bash wget
+RUN apk add openjdk11 bash wget
 ```
 
 [Full file](https://github.com/earthly/earthly-example-scala/blob/master/integration/Earthfile)
@@ -260,19 +254,16 @@ Next, we use the `WITH DOCKER` statement to start up the docker daemon in our bu
    ...
    END
 ```
-Following that, we pull each of our images into the build context using `DOCKER PULL`. While strictly not necessary, using the `DOCKER PULL` command ensures our image pulls are cached by earthly and ensures faster builds.
+We also specify our Docker compose file using the option `--compose`. This ensures that the images within are pulled and cached by Earthly automatically and also that the compose stack is brought up for us before the `RUN` command.
 
 ```
- DOCKER PULL aa8y/postgres-dataset:iso3166
- DOCKER PULL adminer:latest 
+--compose docker-compose.yml
 ```
-To run our integration tests, we now start up our docker-compose, wait for it to start up, run our test, and then stop it. We do this in a single run command. 
+To run our integration tests, we wait for the docker-compose stack to start up and run our test. We do this in a single run command. 
 
-```
-   RUN docker-compose up -d && \
-            for i in {1..30}; do nc -z localhost 5432 && break; sleep 1; done; \
-            sbt it:test && \
-            docker-compose down 
+```Dockerfile
+  RUN for i in {1..30}; do nc -z localhost 5432 && break; sleep 1; done; \
+      sbt it:test
 ```
 {% hint style='info' %}
 #### About netcat (nc)
@@ -284,9 +275,7 @@ for i in {1..30}; do nc -z localhost 5432 && break; sleep 1; done; \
 
 Our application will connect to Postgres via localhost:5432. This step, therefore, ensures that don't run our tests until the database is up. There are many other ways to accomplish this, including READY checks, application-specific code, and scripts like [wait for it](https://github.com/vishnubob/wait-for-it). 
 
- Coordinating in among services is a complicated area out of the scope of this guide.
-
-
+Coordinating in among services is a complicated area out of the scope of this guide.
 {% endhint %}
 
 
@@ -299,15 +288,10 @@ integration-test:
     FROM +build
     COPY src src
     COPY docker-compose.yml ./ 
-    WITH DOCKER 
-        DOCKER PULL aa8y/postgres-dataset:iso3166
-        DOCKER PULL adminer:latest
-        RUN docker-compose up -d && \
-            for i in {1..30}; do nc -z localhost 5432 && break; sleep 1; done; \
-            sbt it:test && \
-            docker-compose down 
+    WITH DOCKER --compose docker-compose.yml
+        RUN for i in {1..30}; do nc -z localhost 5432 && break; sleep 1; done; \
+            sbt it:test
     END
-
 ```
 We can now run our it tests both locally and in the CI pipeline, in a reproducible way:
 
@@ -339,11 +323,9 @@ Our first integration test run used a testing harness inside the service under t
 In our simplified case example, with a single code path, a smoke test is sufficient. We start up the application, with its dependencies, and verify it runs successfully.
 
 
-```
-        RUN docker-compose up -d && \ 
-            for i in {1..30}; do nc -z localhost 5432 && break; sleep 1; done; \
-            docker run --network=host scala-example:latest && \
-            docker-compose down
+```Dockerfile
+RUN for i in {1..30}; do nc -z localhost 5432 && break; sleep 1; done; \
+    docker run --network=host scala-example:latest
 ```
 {% hint style='info' %}
 #### Docker Networking
@@ -352,7 +334,6 @@ Note the `-network=host` flag passed to `docker run`.
 docker run --network=host scala-example:latest 
 ```
 This tells docker to share the host network with this container, allowing it to access docker-compose ports using localhost.
-
 {% endhint %}
 
 Full Example:
@@ -360,21 +341,18 @@ Full Example:
 smoke-test:
     FROM +base
     COPY docker-compose.yml ./ 
-    WITH DOCKER
-        DOCKER PULL aa8y/postgres-dataset:iso3166
-        DOCKER PULL adminer:latest
-        DOCKER LOAD +docker scala-example:latest
-        RUN docker-compose up -d && \ 
-            for i in {1..30}; do nc -z localhost 5432 && break; sleep 1; done; \
-            docker run --network=host scala-example:latest && \
-            docker-compose down 
+    WITH DOCKER \
+            --compose docker-compose.yml \
+            --load scala-example:latest=+docker
+        RUN for i in {1..30}; do nc -z localhost 5432 && break; sleep 1; done; \
+            docker run --network=host scala-example:latest
     END
 ```
 
 Output:
 ``` Dockerfile
 > earth -P +smoke-test
-+smoke-test | --> WITH DOCKER RUN docker-compose up -d && for i in {1..30}; do nc -z localhost 5432 && break; sleep 1; done; docker run --network=host scala-example:latest && docker-compose down
++smoke-test | --> WITH DOCKER RUN for i in {1..30}; do nc -z localhost 5432 && break; sleep 1; done; docker run --network=host scala-example:latest
 +smoke-test | Loading images...
 +smoke-test | Loaded image: aa8y/postgres-dataset:iso3166
 +smoke-test | Loaded image: adminer:latest
