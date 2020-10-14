@@ -132,6 +132,11 @@ func NewClient() (Client, error) {
 		return nil, fmt.Errorf("SSH_AUTH_SOCK is not set; is ssh-agent running?")
 	}
 
+	secretServer, ok := os.LookupEnv("EARTHLY_SECRETS_SERVER")
+	if !ok {
+		secretServer = "https://api.earthly.dev"
+	}
+
 	agentSock, err := net.Dial("unix", agentSockPath)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to connect to ssh-agent")
@@ -140,7 +145,7 @@ func NewClient() (Client, error) {
 	sshAgent := agent.NewClient(agentSock)
 
 	c := client{
-		secretServer: "http://localhost:10000",
+		secretServer: secretServer,
 		sshAgent:     sshAgent,
 	}
 	return &c, nil
