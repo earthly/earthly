@@ -61,4 +61,4 @@ After starting a run of `earth +all` the console displays a green line which sta
 =========================== SUCCESS ===========================
 ```
 
-It does not denote the end of the build process however and some additional work might still be required. However it might take a while to be displayed.
+The message does not denote the end of the build process as some additional work might be required before displaying the final output and cleanly exiting with a status code of 0.
