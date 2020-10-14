@@ -312,15 +312,13 @@ eine-test-base:
 eine-config-test:
     FROM +eine-test-base
     COPY config.earth ./Earthfile
-    WITH DOCKER
-        DOCKER LOAD ../../buildkitd+buildkitd earthly/buildkitd:dind-test
+    WITH DOCKER --load earthly/buildkitd:dind-test=../../buildkitd+buildkitd
         RUN earth +test
     END
 
 eine-privileged-test:
     FROM +eine-test-base
     COPY privileged.earth ./Earthfile
-    WITH DOCKER
-        DOCKER LOAD ../../buildkitd+buildkitd earthly/buildkitd:dind-test
+    WITH DOCKER --load earthly/buildkitd:dind-test=../../buildkitd+buildkitd
         RUN earth --allow-privileged +test
     END
