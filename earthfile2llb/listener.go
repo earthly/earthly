@@ -987,8 +987,11 @@ func replaceEscape(str string) string {
 
 func parseLoad(loadStr string) (string, string, error) {
 	splitLoad := strings.SplitN(loadStr, "=", 2)
-	if len(splitLoad) < 1 {
-		return "", "", fmt.Errorf("invalid load syntax %s", loadStr)
+	if len(splitLoad) < 2 {
+		// --load <target-name>
+		// (will infer image name from SAVE IMAGE of that target)
+		return "", loadStr, nil
 	}
+	// --load <image-name>=<target-name>
 	return splitLoad[0], splitLoad[1], nil
 }
