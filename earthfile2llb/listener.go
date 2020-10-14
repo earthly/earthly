@@ -23,7 +23,6 @@ type listener struct {
 	executeTarget   string
 	currentTarget   string
 	targetFound     bool
-	saveImageExists bool
 	pushOnlyAllowed bool
 
 	envArgKey   string
@@ -85,6 +84,13 @@ func (l *listener) EnterTargetHeader(c *parser.TargetHeaderContext) {
 	l.pushOnlyAllowed = false
 }
 
+func (l *listener) EnterStmts(c *parser.StmtsContext) {
+	if l.shouldSkip() {
+		return
+	}
+	l.pushOnlyAllowed = false
+}
+
 func (l *listener) ExitStmts(c *parser.StmtsContext) {
 	if l.shouldSkip() {
 		return
@@ -93,11 +99,6 @@ func (l *listener) ExitStmts(c *parser.StmtsContext) {
 		l.err = errors.New("no matching END found for WITH DOCKER")
 		return
 	}
-	// Apply implicit SAVE IMAGE.
-	if !l.saveImageExists {
-		l.converter.SaveImage(l.ctx, []string{}, false)
-	}
-	l.saveImageExists = true
 }
 
 //
@@ -376,12 +377,6 @@ func (l *listener) ExitSaveImage(c *parser.SaveImageContext) {
 	if l.shouldSkip() {
 		return
 	}
-	if l.saveImageExists {
-		l.err = fmt.Errorf(
-			"more than one SAVE IMAGE statement per target not allowed: %s", c.GetText())
-		return
-	}
-	l.saveImageExists = true
 
 	fs := flag.NewFlagSet("SAVE IMAGE", flag.ContinueOnError)
 	pushFlag := fs.Bool(
@@ -407,8 +402,13 @@ func (l *listener) ExitSaveImage(c *parser.SaveImageContext) {
 	}
 	if len(imageNames) == 0 {
 		fmt.Printf("Deprecation: using SAVE IMAGE with no arguments is no longer necessary and can be safely removed\n")
+		return
 	}
-	l.converter.SaveImage(l.ctx, imageNames, *pushFlag)
+	err = l.converter.SaveImage(l.ctx, imageNames, *pushFlag)
+	if err != nil {
+		l.err = errors.Wrap(err, "save image")
+		return
+	}
 	if *pushFlag {
 		l.pushOnlyAllowed = true
 	}

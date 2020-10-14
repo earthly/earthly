@@ -134,15 +134,9 @@ func (c *Converter) fromTarget(ctx context.Context, targetName string, buildArgs
 	}
 	// Look for the built state in the dep states, after we've built it.
 	relevantDepState := mts.Final
-	saveImage, ok := relevantDepState.LastSaveImage()
-	if !ok {
-		return fmt.Errorf(
-			"FROM statement: referenced target %s does not contain a SAVE IMAGE statement",
-			depTarget.String())
-	}
-
+	saveImage := relevantDepState.LastSaveImage()
 	// Pass on dep state over to this state.
-	c.mts.Final.MainState = saveImage.State
+	c.mts.Final.MainState = relevantDepState.MainState
 	for dirKey, dirValue := range relevantDepState.LocalDirs {
 		c.mts.Final.LocalDirs[dirKey] = dirValue
 	}
@@ -408,13 +402,10 @@ func (c *Converter) SaveArtifact(ctx context.Context, saveFrom string, saveTo st
 }
 
 // SaveImage applies the earth SAVE IMAGE command.
-func (c *Converter) SaveImage(ctx context.Context, imageNames []string, pushImages bool) {
+func (c *Converter) SaveImage(ctx context.Context, imageNames []string, pushImages bool) error {
 	logging.GetLogger(ctx).With("image", imageNames).With("push", pushImages).Info("Applying SAVE IMAGE")
 	if len(imageNames) == 0 {
-		// Use an empty image name if none provided. This will not be exported
-		// as docker image, but will allow for importing / referencing within
-		// earthfiles.
-		imageNames = []string{""}
+		return errors.New("no docker tags provided")
 	}
 	for _, imageName := range imageNames {
 		c.mts.Final.SaveImages = append(c.mts.Final.SaveImages, states.SaveImage{
@@ -424,6 +415,7 @@ func (c *Converter) SaveImage(ctx context.Context, imageNames []string, pushImag
 			Push:      pushImages,
 		})
 	}
+	return nil
 }
 
 // Build applies the earth BUILD command.
