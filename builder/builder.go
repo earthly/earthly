@@ -82,11 +82,7 @@ func (b *Builder) Build(ctx context.Context, mts *states.MultiTarget, opt BuildO
 // BuildOnlyLastImageAsTar performs the build for the given multi target states,
 // and outputs only a docker tar of the last saved image.
 func (b *Builder) BuildOnlyLastImageAsTar(ctx context.Context, mts *states.MultiTarget, dockerTag string, outFile string, opt BuildOpt) error {
-	saveImage, ok := mts.Final.LastSaveImage()
-	if !ok {
-		return fmt.Errorf("No save image exists for %s", mts.Final.Target.String())
-	}
-
+	saveImage := mts.Final.LastSaveImage()
 	cacheLocalDir, localDirs, err := b.buildCommon(ctx, mts, opt)
 	if err != nil {
 		return err

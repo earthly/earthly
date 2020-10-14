@@ -49,11 +49,15 @@ type SingleTarget struct {
 }
 
 // LastSaveImage returns the last save image available (if any).
-func (sts *SingleTarget) LastSaveImage() (SaveImage, bool) {
+func (sts *SingleTarget) LastSaveImage() SaveImage {
 	if len(sts.SaveImages) == 0 {
-		return SaveImage{}, false
+		// Use main state / image if no save image exists.
+		return SaveImage{
+			State: sts.MainState,
+			Image: sts.MainImage,
+		}
 	}
-	return sts.SaveImages[len(sts.SaveImages)-1], true
+	return sts.SaveImages[len(sts.SaveImages)-1]
 }
 
 // SaveLocal is an artifact path to be saved to local disk.
