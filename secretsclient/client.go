@@ -26,6 +26,9 @@ var ErrAccountExists = fmt.Errorf("account already exists")
 // ErrUnauthorized occurs when a user is unauthorized to access a resource
 var ErrUnauthorized = fmt.Errorf("unauthorized")
 
+// ErrNoAuthorizedPublicKeys
+var ErrNoAuthorizedPublicKeys = fmt.Errorf("no authorized public keys found")
+
 // Client provides a client to the shared secrets service
 type Client interface {
 	RegisterEmail(email string) error
@@ -336,7 +339,7 @@ func (c *client) getAuthToken() (*agent.Key, string, error) {
 		c.savePublicKey(key.String())
 		return key, authToken, nil
 	}
-	return nil, "", ErrUnauthorized
+	return nil, "", ErrNoAuthorizedPublicKeys
 }
 
 func (c *client) CreateOrg(org string) error {
