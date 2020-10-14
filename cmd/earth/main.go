@@ -96,6 +96,7 @@ type cliFlags struct {
 	publicKey            string
 	disableNewLine       bool
 	secretFile           string
+	secretsServer        string
 }
 
 var (
@@ -387,6 +388,13 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 			EnvVars:     []string{"EARTHLY_DEBUG"},
 			Usage:       "Enable debug mode",
 			Destination: &app.debug,
+		},
+		&cli.StringFlag{
+			Name:        "secrets-server",
+			Value:       "https://api.earthly.dev",
+			EnvVars:     []string{"EARTHLY_SECRETS_SERVER"},
+			Usage:       "Secrets server override for dev purposes",
+			Destination: &app.secretsServer,
 		},
 	}
 
@@ -890,7 +898,7 @@ func (app *earthApp) actionOrgCreate(c *cli.Context) error {
 		return errors.New("invalid number of arguments provided")
 	}
 	org := c.Args().Get(0)
-	sc, err := secretsclient.NewClient()
+	sc, err := secretsclient.NewClient(app.secretsServer, app.sshAuthSock)
 	if err != nil {
 		return err
 	}
@@ -909,7 +917,7 @@ func (app *earthApp) actionSecretsList(c *cli.Context) error {
 	if !strings.HasSuffix(path, "/") {
 		path += "/"
 	}
-	sc, err := secretsclient.NewClient()
+	sc, err := secretsclient.NewClient(app.secretsServer, app.sshAuthSock)
 	if err != nil {
 		return err
 	}
@@ -928,7 +936,7 @@ func (app *earthApp) actionSecretsGet(c *cli.Context) error {
 		return errors.New("invalid number of arguments provided")
 	}
 	path := c.Args().Get(0)
-	sc, err := secretsclient.NewClient()
+	sc, err := secretsclient.NewClient(app.secretsServer, app.sshAuthSock)
 	if err != nil {
 		return err
 	}
@@ -948,7 +956,7 @@ func (app *earthApp) actionSecretsRemove(c *cli.Context) error {
 		return errors.New("invalid number of arguments provided")
 	}
 	path := c.Args().Get(0)
-	sc, err := secretsclient.NewClient()
+	sc, err := secretsclient.NewClient(app.secretsServer, app.sshAuthSock)
 	if err != nil {
 		return err
 	}
@@ -980,7 +988,7 @@ func (app *earthApp) actionSecretsSet(c *cli.Context) error {
 		value = string(data)
 	}
 
-	sc, err := secretsclient.NewClient()
+	sc, err := secretsclient.NewClient(app.secretsServer, app.sshAuthSock)
 	if err != nil {
 		return err
 	}
@@ -1000,7 +1008,7 @@ func (app *earthApp) actionRegister(c *cli.Context) error {
 		return errors.New("email is invalid")
 	}
 
-	sc, err := secretsclient.NewClient()
+	sc, err := secretsclient.NewClient(app.secretsServer, app.sshAuthSock)
 	if err != nil {
 		return err
 	}
@@ -1264,7 +1272,7 @@ func (app *earthApp) actionBuild(c *cli.Context) error {
 	}
 	secretsMap[debuggercommon.DebuggerSettingsSecretsKey] = debuggerSettingsData
 
-	sc, err := secretsclient.NewClient()
+	sc, err := secretsclient.NewClient(app.secretsServer, app.sshAuthSock)
 	if err != nil {
 		app.console.Warnf("failed to create secrets client: %v\n", err)
 	}
