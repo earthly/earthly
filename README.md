@@ -369,7 +369,7 @@ Overall, compared to Bazel, Earthly sacrifices a little correctness and reproduc
 * Join us on [Gitter](https://gitter.im/earthly-room/community)!
 * Questions via GitHub issues are welcome!
 * PRs welcome! But please give a heads-up in GitHub issue before starting work. If there is no GitHub issue for what you want to do, please create one.
-* To build from source, you will need the `earth` binary ([Earthly builds itself](https://docs.earthly.dev/examples/earthly)). Git clone the code and run `earth +all`. To run the tests, run `earth -P +test`.
+* To build from source, check the [contributing page](./CONTRIBUTING.md).
 
 <br/>
 <br/>

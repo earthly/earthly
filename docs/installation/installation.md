@@ -44,6 +44,10 @@ sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/latest/downloa
 
 For instructions on how to install `earth` for CI use, see the [CI integration guide](../guides/ci-integration.md).
 
+### Installing from source
+
+To install from source, see the [contributing page](https://github.com/earthly/earthly/blob/master/CONTRIBUTING.md).
+
 ## Configuration
 
 If you use SSH-based git authentication, then your git credentials will just work with Earthly. Read more about [git auth](../guides/auth).
