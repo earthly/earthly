@@ -72,7 +72,6 @@ WORKDIR /code
 
 code:
   COPY src src
-  SAVE IMAGE
 
 build:
   FROM +code

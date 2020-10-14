@@ -5,7 +5,6 @@ deps:
     COPY Gemfile Gemfile.lock ./
     RUN  bundle install
     SAVE ARTIFACT Gemfile.lock AS LOCAL ./Gemfile.lock
-    SAVE IMAGE
 
 build:
     FROM +deps

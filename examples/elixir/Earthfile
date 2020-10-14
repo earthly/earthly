@@ -6,7 +6,6 @@ deps:
     RUN mix local.rebar --force \
         && mix local.hex --force \
         && mix deps.get
-    SAVE IMAGE
 
 build:
     FROM +deps
