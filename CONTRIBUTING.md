@@ -19,7 +19,7 @@ To build Earthly from source for your target system, use
 
 This builds the earth binary in `./build/<platform>/amd64/earth` and also the buildkitd image.
 
-The buildkitd image is tagged with your current branch name and also the built binary defaults to using that built image. The built binary will always check on startup whether it has the latest buildkitd running for its configured image name and will restart buildkitd automatically to update. So if during your development you end up making changes to just the buildkitd image, the binary will pick up the change on its next run.
+The buildkitd image is tagged with your current branch name and also the built binary defaults to using that built image. The built binary will always check on startup whether it has the latest buildkitd running for its configured image name and will restart buildkitd automatically to update. If during your development you end up making changes to just the buildkitd image, the binary will pick up the change on its next run.
 
 For development purposes, you may use the built `earth` binary to rebuild itself. It's usually faster than switching between the built binary and the prerelease binary because it avoids constant buildkitd restarts. After the first initial build, you'll end up using:
 
