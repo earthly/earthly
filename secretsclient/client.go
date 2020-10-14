@@ -126,12 +126,7 @@ type client struct {
 }
 
 // NewClient provides a new client
-func NewClient() (Client, error) {
-	agentSockPath, ok := os.LookupEnv("SSH_AUTH_SOCK")
-	if !ok {
-		return nil, fmt.Errorf("SSH_AUTH_SOCK is not set; is ssh-agent running?")
-	}
-
+func NewClient(secretServer, agentSockPath string) (Client, error) {
 	agentSock, err := net.Dial("unix", agentSockPath)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to connect to ssh-agent")
@@ -140,7 +135,7 @@ func NewClient() (Client, error) {
 	sshAgent := agent.NewClient(agentSock)
 
 	c := client{
-		secretServer: "http://localhost:10000",
+		secretServer: secretServer,
 		sshAgent:     sshAgent,
 	}
 	return &c, nil
