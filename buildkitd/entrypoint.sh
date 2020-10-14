@@ -67,8 +67,6 @@ if [ "$CACHE_SIZE_MB" -gt "0" ]; then
 fi
 export CACHE_SETTINGS
 cat /etc/buildkitd.toml.template | envsubst >/etc/buildkitd.toml
-# sed 's^:BUILDKIT_ROOT_DIR:^'"$BUILDKIT_ROOT_DIR"'^g; s/:BUILDKIT_DEBUG:/'"$BUILDKIT_DEBUG"'/g' \
-#     /etc/buildkitd.toml.template >/etc/buildkitd.toml
 echo "BUILDKIT_ROOT_DIR=$BUILDKIT_ROOT_DIR"
 echo "CACHE_SIZE_MB=$CACHE_SIZE_MB"
 echo "Buildkitd config"
