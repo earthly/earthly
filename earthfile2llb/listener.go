@@ -61,14 +61,6 @@ func (l *listener) Err() error {
 }
 
 func (l *listener) EnterTargetHeader(c *parser.TargetHeaderContext) {
-	// Apply implicit SAVE IMAGE for +base.
-	if l.executeTarget == "base" {
-		if !l.saveImageExists {
-			l.converter.SaveImage(l.ctx, []string{}, false)
-		}
-		l.saveImageExists = true
-	}
-
 	l.currentTarget = strings.TrimSuffix(c.GetText(), ":")
 	if l.currentTarget == l.executeTarget {
 		if l.targetFound {
@@ -80,8 +72,8 @@ func (l *listener) EnterTargetHeader(c *parser.TargetHeaderContext) {
 	if l.shouldSkip() {
 		return
 	}
-	if l.currentTarget == "base" {
-		l.err = errors.New("target name cannot be base")
+	if l.currentTarget == "base" || l.currentTarget == "secrets" {
+		l.err = errors.New("target name cannot be \"base\" or \"secrets\"")
 		return
 	}
 	// Apply implicit FROM +base
@@ -101,6 +93,11 @@ func (l *listener) ExitStmts(c *parser.StmtsContext) {
 		l.err = errors.New("no matching END found for WITH DOCKER")
 		return
 	}
+	// Apply implicit SAVE IMAGE.
+	if !l.saveImageExists {
+		l.converter.SaveImage(l.ctx, []string{}, false)
+	}
+	l.saveImageExists = true
 }
 
 //
@@ -400,13 +397,16 @@ func (l *listener) ExitSaveImage(c *parser.SaveImageContext) {
 		return
 	}
 	if *pushFlag && fs.NArg() == 0 {
-		l.err = errors.Wrapf(err, "invalid number of arguments for SAVE IMAGE --push: %v", l.stmtWords)
+		l.err = fmt.Errorf("invalid number of arguments for SAVE IMAGE --push: %v", l.stmtWords)
 		return
 	}
 
 	imageNames := fs.Args()
 	for i, img := range imageNames {
 		imageNames[i] = l.expandArgs(img)
+	}
+	if len(imageNames) == 0 {
+		fmt.Printf("Deprecation: using SAVE IMAGE with no arguments is no longer necessary and can be safely removed\n")
 	}
 	l.converter.SaveImage(l.ctx, imageNames, *pushFlag)
 	if *pushFlag {
@@ -792,7 +792,7 @@ func (l *listener) ExitWithDockerStmt(c *parser.WithDockerStmtContext) {
 		return
 	}
 	if len(fs.Args()) != 0 {
-		l.err = errors.Wrapf(err, "invalid WITH DOCKER arguments %v", fs.Args())
+		l.err = fmt.Errorf("invalid WITH DOCKER arguments %v", fs.Args())
 		return
 	}
 
