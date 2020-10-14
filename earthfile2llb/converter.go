@@ -24,7 +24,6 @@ import (
 	"github.com/earthly/earthly/earthfile2llb/variables"
 	"github.com/earthly/earthly/llbutil"
 	"github.com/earthly/earthly/llbutil/llbgit"
-	"github.com/earthly/earthly/logging"
 	"github.com/earthly/earthly/states"
 	"github.com/earthly/earthly/states/dedup"
 	"github.com/earthly/earthly/states/image"
@@ -119,8 +118,6 @@ func (c *Converter) fromClassical(ctx context.Context, imageName string) error {
 }
 
 func (c *Converter) fromTarget(ctx context.Context, targetName string, buildArgs []string) error {
-	logger := logging.GetLogger(ctx).With("from-target", targetName).With("build-args", buildArgs)
-	logger.Info("Applying FROM target")
 	depTarget, err := domain.ParseTarget(targetName)
 	if err != nil {
 		return errors.Wrapf(err, "parse target name %s", targetName)
@@ -251,13 +248,6 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 
 // CopyArtifact applies the earth COPY artifact command.
 func (c *Converter) CopyArtifact(ctx context.Context, artifactName string, dest string, buildArgs []string, isDir bool, chown string) error {
-	logging.GetLogger(ctx).
-		With("srcArtifact", artifactName).
-		With("dest", dest).
-		With("build-args", buildArgs).
-		With("dir", isDir).
-		With("chown", chown).
-		Info("Applying COPY (artifact)")
 	artifact, err := domain.ParseArtifact(artifactName)
 	if err != nil {
 		return errors.Wrapf(err, "parse artifact name %s", artifactName)
@@ -287,12 +277,6 @@ func (c *Converter) CopyArtifact(ctx context.Context, artifactName string, dest 
 
 // CopyClassical applies the earth COPY command, with classical args.
 func (c *Converter) CopyClassical(ctx context.Context, srcs []string, dest string, isDir bool, chown string) {
-	logging.GetLogger(ctx).
-		With("srcs", srcs).
-		With("dest", dest).
-		With("dir", isDir).
-		With("chown", chown).
-		Info("Applying COPY (classical)")
 	c.mts.Final.MainState = llbutil.CopyOp(
 		c.buildContext, srcs, c.mts.Final.MainState, dest, true, isDir, chown,
 		llb.WithCustomNamef(
@@ -308,16 +292,6 @@ func (c *Converter) Run(ctx context.Context, args []string, mounts []string, sec
 	if withDocker {
 		return errors.New("RUN --with-docker is obsolete. Please use WITH DOCKER ... RUN ... END instead")
 	}
-	logging.GetLogger(ctx).
-		With("args", args).
-		With("mounts", mounts).
-		With("secrets", secretKeyValues).
-		With("privileged", privileged).
-		With("withEntrypoint", withEntrypoint).
-		With("withDocker", withDocker).
-		With("push", pushFlag).
-		With("withSSH", withSSH).
-		Info("Applying RUN")
 	var opts []llb.RunOption
 	mountRunOpts, err := parseMounts(mounts, c.mts.Final.Target, c.mts.Final.TargetInput, c.cacheContext)
 	if err != nil {
@@ -352,11 +326,6 @@ func (c *Converter) Run(ctx context.Context, args []string, mounts []string, sec
 
 // SaveArtifact applies the earth SAVE ARTIFACT command.
 func (c *Converter) SaveArtifact(ctx context.Context, saveFrom string, saveTo string, saveAsLocalTo string) error {
-	logging.GetLogger(ctx).
-		With("saveFrom", saveFrom).
-		With("saveTo", saveTo).
-		With("saveAsLocalTo", saveAsLocalTo).
-		Info("Applying SAVE ARTIFACT")
 	saveToAdjusted := saveTo
 	if saveTo == "" || saveTo == "." || strings.HasSuffix(saveTo, "/") {
 		absSaveFrom, err := llbutil.Abs(ctx, c.mts.Final.MainState, saveFrom)
@@ -403,7 +372,6 @@ func (c *Converter) SaveArtifact(ctx context.Context, saveFrom string, saveTo st
 
 // SaveImage applies the earth SAVE IMAGE command.
 func (c *Converter) SaveImage(ctx context.Context, imageNames []string, pushImages bool) error {
-	logging.GetLogger(ctx).With("image", imageNames).With("push", pushImages).Info("Applying SAVE IMAGE")
 	if len(imageNames) == 0 {
 		return errors.New("no docker tags provided")
 	}
@@ -420,11 +388,6 @@ func (c *Converter) SaveImage(ctx context.Context, imageNames []string, pushImag
 
 // Build applies the earth BUILD command.
 func (c *Converter) Build(ctx context.Context, fullTargetName string, buildArgs []string) (*states.MultiTarget, error) {
-	logging.GetLogger(ctx).
-		With("full-target-name", fullTargetName).
-		With("build-args", buildArgs).
-		Info("Applying BUILD")
-
 	relTarget, err := domain.ParseTarget(fullTargetName)
 	if err != nil {
 		return nil, errors.Wrapf(err, "earth target parse %s", fullTargetName)
@@ -479,7 +442,6 @@ func (c *Converter) Build(ctx context.Context, fullTargetName string, buildArgs 
 
 // Workdir applies the WORKDIR command.
 func (c *Converter) Workdir(ctx context.Context, workdirPath string) {
-	logging.GetLogger(ctx).With("workdir", workdirPath).Info("Applying WORKDIR")
 	c.mts.Final.MainState = c.mts.Final.MainState.Dir(workdirPath)
 	workdirAbs := workdirPath
 	if !path.IsAbs(workdirAbs) {
@@ -504,26 +466,22 @@ func (c *Converter) Workdir(ctx context.Context, workdirPath string) {
 
 // User applies the USER command.
 func (c *Converter) User(ctx context.Context, user string) {
-	logging.GetLogger(ctx).With("user", user).Info("Applying USER")
 	c.mts.Final.MainState = c.mts.Final.MainState.User(user)
 	c.mts.Final.MainImage.Config.User = user
 }
 
 // Cmd applies the CMD command.
 func (c *Converter) Cmd(ctx context.Context, cmdArgs []string, isWithShell bool) {
-	logging.GetLogger(ctx).With("cmd", cmdArgs).Info("Applying CMD")
 	c.mts.Final.MainImage.Config.Cmd = withShell(cmdArgs, isWithShell)
 }
 
 // Entrypoint applies the ENTRYPOINT command.
 func (c *Converter) Entrypoint(ctx context.Context, entrypointArgs []string, isWithShell bool) {
-	logging.GetLogger(ctx).With("entrypoint", entrypointArgs).Info("Applying ENTRYPOINT")
 	c.mts.Final.MainImage.Config.Entrypoint = withShell(entrypointArgs, isWithShell)
 }
 
 // Expose applies the EXPOSE command.
 func (c *Converter) Expose(ctx context.Context, ports []string) {
-	logging.GetLogger(ctx).With("ports", ports).Info("Applying EXPOSE")
 	for _, port := range ports {
 		c.mts.Final.MainImage.Config.ExposedPorts[port] = struct{}{}
 	}
@@ -531,7 +489,6 @@ func (c *Converter) Expose(ctx context.Context, ports []string) {
 
 // Volume applies the VOLUME command.
 func (c *Converter) Volume(ctx context.Context, volumes []string) {
-	logging.GetLogger(ctx).With("volumes", volumes).Info("Applying VOLUME")
 	for _, volume := range volumes {
 		c.mts.Final.MainImage.Config.Volumes[volume] = struct{}{}
 	}
@@ -539,7 +496,6 @@ func (c *Converter) Volume(ctx context.Context, volumes []string) {
 
 // Env applies the ENV command.
 func (c *Converter) Env(ctx context.Context, envKey string, envValue string) {
-	logging.GetLogger(ctx).With("env-key", envKey).With("env-value", envValue).Info("Applying ENV")
 	c.varCollection.AddActive(envKey, variables.NewConstantEnvVar(envValue), true)
 	c.mts.Final.MainState = c.mts.Final.MainState.AddEnv(envKey, envValue)
 	c.mts.Final.MainImage.Config.Env = variables.AddEnv(
@@ -548,7 +504,6 @@ func (c *Converter) Env(ctx context.Context, envKey string, envValue string) {
 
 // Arg applies the ARG command.
 func (c *Converter) Arg(ctx context.Context, argKey string, defaultArgValue string) {
-	logging.GetLogger(ctx).With("arg-key", argKey).With("arg-value", defaultArgValue).Info("Applying ARG")
 	effective := c.varCollection.AddActive(argKey, variables.NewConstant(defaultArgValue), false)
 	c.mts.Final.TargetInput = c.mts.Final.TargetInput.WithBuildArgInput(
 		effective.BuildArgInput(argKey, defaultArgValue))
@@ -556,7 +511,6 @@ func (c *Converter) Arg(ctx context.Context, argKey string, defaultArgValue stri
 
 // Label applies the LABEL command.
 func (c *Converter) Label(ctx context.Context, labels map[string]string) {
-	logging.GetLogger(ctx).With("labels", labels).Info("Applying LABEL")
 	for key, value := range labels {
 		c.mts.Final.MainImage.Config.Labels[key] = value
 	}
@@ -564,7 +518,6 @@ func (c *Converter) Label(ctx context.Context, labels map[string]string) {
 
 // GitClone applies the GIT CLONE command.
 func (c *Converter) GitClone(ctx context.Context, gitURL string, branch string, dest string) error {
-	logging.GetLogger(ctx).With("git-url", gitURL).With("branch", branch).Info("Applying GIT CLONE")
 	gitOpts := []llb.GitOption{
 		llb.WithCustomNamef(
 			"%sGIT CLONE (--branch %s) %s", c.vertexPrefixWithURL(gitURL), branch, gitURL),
@@ -599,14 +552,6 @@ func (c *Converter) DockerPullOld(ctx context.Context, dockerTag string) error {
 
 // Healthcheck applies the HEALTHCHECK command.
 func (c *Converter) Healthcheck(ctx context.Context, isNone bool, cmdArgs []string, interval time.Duration, timeout time.Duration, startPeriod time.Duration, retries int) {
-	logging.GetLogger(ctx).
-		With("isNone", isNone).
-		With("cmdArgs", cmdArgs).
-		With("interval", interval).
-		With("timeout", timeout).
-		With("startPeriod", startPeriod).
-		With("retries", retries).
-		Info("Applying HEALTHCHECK")
 	hc := &dockerfile2llb.HealthConfig{}
 	if isNone {
 		hc.Test = []string{"NONE"}
@@ -731,7 +676,6 @@ func (c *Converter) solveArtifact(ctx context.Context, mts *states.MultiTarget, 
 }
 
 func (c *Converter) internalFromClassical(ctx context.Context, imageName string, opts ...llb.ImageOption) (llb.State, *image.Image, *variables.Collection, error) {
-	logging.GetLogger(ctx).With("image", imageName).Info("Applying FROM")
 	if imageName == "scratch" {
 		// FROM scratch
 		return llb.Scratch().Platform(llbutil.TargetPlatform), image.NewImage(),
