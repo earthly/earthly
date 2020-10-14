@@ -42,7 +42,7 @@ git:
 
 ### cache_size_mb
 
-Specifies the total size of the BuildKit cache, in MB. The BuildKit daemon uses this setting to configure automatic garbage collection of old cache. A value of 0 causes the size to be adaptive depending on how much space is available on your system. The default is 0.
+Specifies the total size of the BuildKit cache, in MB. The BuildKit daemon uses this setting to configure automatic garbage collection of old cache.
 
 ### no_loop_device (deprecated)
 
