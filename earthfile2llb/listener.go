@@ -81,7 +81,6 @@ func (l *listener) EnterTargetHeader(c *parser.TargetHeaderContext) {
 		l.err = errors.Wrap(err, "apply implicit FROM +base")
 		return
 	}
-	l.pushOnlyAllowed = false
 }
 
 func (l *listener) EnterStmts(c *parser.StmtsContext) {
