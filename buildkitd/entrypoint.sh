@@ -1,7 +1,7 @@
 #!/bin/sh
 
 set -e
-if [ "$BUILDKIT_DEBUG" == "true" ]; then
+if [ "$BUILDKIT_DEBUG" = "true" ]; then
     set -x
 fi
 
@@ -63,10 +63,10 @@ export BUILDKIT_ROOT_DIR="$EARTHLY_TMP_DIR"/buildkit
 mkdir -p "$BUILDKIT_ROOT_DIR"
 CACHE_SETTINGS=
 if [ "$CACHE_SIZE_MB" -gt "0" ]; then
-    CACHE_SETTINGS="$(cat /etc/buildkitd.cache.template | envsubst)"
+    CACHE_SETTINGS="$(envsubst </etc/buildkitd.cache.template)"
 fi
 export CACHE_SETTINGS
-cat /etc/buildkitd.toml.template | envsubst >/etc/buildkitd.toml
+envsubst </etc/buildkitd.toml.template >/etc/buildkitd.toml
 echo "BUILDKIT_ROOT_DIR=$BUILDKIT_ROOT_DIR"
 echo "CACHE_SIZE_MB=$CACHE_SIZE_MB"
 echo "Buildkitd config"
