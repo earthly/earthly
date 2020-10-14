@@ -202,7 +202,7 @@ docker:
 
 Since our service has a docker-compose file of dependencies, running integration tests is easy.
 
-Our integration target needs to copy in our source code and our docker file and then inside a `WITH DOCKER` start the tests:
+Our integration target needs to copy in our source code and our Dockerfile and then inside a `WITH DOCKER` start the tests:
 ``` Dockerfile
 integration-test:
     FROM +project-files
