@@ -1,18 +1,9 @@
-debug = :BUILDKIT_DEBUG:
-root = ":BUILDKIT_ROOT_DIR:"
+debug = ${BUILDKIT_DEBUG}
+root = "${BUILDKIT_ROOT_DIR}"
 insecure-entitlements = [ "security.insecure" ]
 
 [worker.oci]
   enabled = true
   snapshotter = "auto"
   gc = true
-  # 1/100 of total cache size.
-  gckeepstorage = :CACHE_SIZE_MB:0000
-  [[worker.oci.gcpolicy]]
-    # 1/10 of total cache size.
-    keepBytes = :CACHE_SIZE_MB:00000
-    filters = [ "type==source.local", "type==source.git.checkout"]
-  [[worker.oci.gcpolicy]]
-    all = true
-    # Cache size MB with 6 zeros, to turn it into bytes.
-    keepBytes = :CACHE_SIZE_MB:000000
+  ${CACHE_SETTINGS}
