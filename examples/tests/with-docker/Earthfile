@@ -12,7 +12,7 @@ a-test-image:
     WORKDIR /abc
     RUN echo "hello world" >def.txt
     ENTRYPOINT cat /abc/def.txt && pwd
-    SAVE IMAGE
+    SAVE IMAGE test-img:xyz
 
 docker-load-test:
     # Index is used to create parallel tests.
@@ -20,7 +20,7 @@ docker-load-test:
     RUN echo "$INDEX"
     WITH DOCKER \
             --pull hello-world \
-            --load test-img:xyz=+a-test-image
+            --load +a-test-image
         RUN docker run test-img:xyz && \
             docker run hello-world
     END
