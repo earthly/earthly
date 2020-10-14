@@ -4,16 +4,17 @@ buildkitd:
     FROM $BUILDKIT_BASE_IMAGE
 
     # Install some missing binaries.
-    RUN apk add --update --no-cache openssh-client pigz xz fuse3 e2fsprogs util-linux
+    RUN apk add --update --no-cache openssh-client gettext pigz xz e2fsprogs util-linux
 
     # Add github and gitlab to known hosts.
     RUN mkdir -p ~/.ssh
     RUN echo "github.com ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEAq2A7hRGmdnm9tUDbO9IDSwBK6TbQa+PXYPCPy6rbTrTtw7PHkccKrpp0yVhp5HdEIcKr6pLlVDBfOLX9QUsyCOV0wzfjIJNlGEYsdlLJizHhbn2mUjvSAHQqZETYP81eFzLQNnPHt4EVVUh7VfDESU84KezmD5QlWpXLmvU31/yMf+Se8xhHTvKSCZIFImWwoG6mbUoWf9nzpIoaSjB+weqqUUmpaaasXVal72J+UX2B+2RPW3RcT0eOzQgqlJL3RKrTJvdsjE3JEAvGq3lGHSZXy28G3skua2SmVi/w4yCE6gbODqnTWlg7+wC604ydGXA8VJiS5ap43JXiUFFAaQ==" >> ~/.ssh/known_hosts
     RUN echo "gitlab.com ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCsj2bNKTBSpIYDEGk9KxsGh3mySTRgMtXL583qmBpzeQ+jqCMRgBqB98u3z++J1sKlXHWfM9dyhSevkMwSbhoR8XIq/U0tCNyokEi/ueaBMCvbcTHhO7FcwzY92WK4Yt0aGROY5qX2UKSeOvuP4D6TPqKF1onrSzH9bx9XUf2lEdWT/ia1NEKjunUqu1xOB/StKDHMoX4/OKyIzuS0q/T1zOATthvasJFoPrAjkohTyaDUz2LN5JoH839hViyEG82yB+MjcFV5MU3N1l1QL3cVUCh93xSaua1N85qivl+siMkPGbO5xR/En4iEY6K2XPASUEMaieWVNTRCtJ4S8H+9" >> ~/.ssh/known_hosts
 
-    # Add the config and our own wrapper script.
+    # Add the config templates and our own wrapper script.
     COPY ./entrypoint.sh /usr/bin/entrypoint.sh
     COPY ./buildkitd.toml.template /etc/buildkitd.toml.template
+    COPY ./buildkitd.cache.template /etc/buildkitd.cache.template
 
     COPY ../+shellrepeater/shellrepeater /usr/bin/shellrepeater
     COPY ../+debugger/earth_debugger /usr/bin/earth_debugger
@@ -25,8 +26,7 @@ buildkitd:
     ENV ENABLE_LOOP_DEVICE=true
     ENV FORCE_LOOP_DEVICE=true
     ENV BUILDKIT_DEBUG=false
-    # 10GB
-    ENV CACHE_SIZE_MB=10000
+    ENV CACHE_SIZE_MB=0
     VOLUME /tmp/earthly
     ENTRYPOINT ["/usr/bin/entrypoint.sh", "buildkitd", "--config=/etc/buildkitd.toml"]
     ARG EARTHLY_TARGET_TAG_DOCKER
