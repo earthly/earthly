@@ -249,6 +249,19 @@ func (wdr *withDockerRun) load(ctx context.Context, opt DockerLoadOpt) error {
 	if err != nil {
 		return err
 	}
+	if opt.ImageName == "" {
+		// Infer image name from the SAVE IMAGE statement.
+		if len(mts.Final.SaveImages) == 0 || mts.Final.SaveImages[0].DockerTag == "" {
+			return errors.New(
+				"no docker image tag specified in load and it cannot be inferred from the SAVE IMAGE statement")
+		}
+		if len(mts.Final.SaveImages) > 1 {
+			return errors.New(
+				"no docker image tag specified in load and it cannot be inferred from the SAVE IMAGE statement: " +
+					"multiple tags mentioned in SAVE IMAGE")
+		}
+		opt.ImageName = mts.Final.SaveImages[0].DockerTag
+	}
 	return wdr.solveImage(
 		ctx, mts, depTarget.String(), opt.ImageName,
 		llb.WithCustomNamef(
