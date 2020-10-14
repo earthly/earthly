@@ -26,7 +26,7 @@ var ErrAccountExists = fmt.Errorf("account already exists")
 // ErrUnauthorized occurs when a user is unauthorized to access a resource
 var ErrUnauthorized = fmt.Errorf("unauthorized")
 
-// ErrNoAuthorizedPublicKeys
+// ErrNoAuthorizedPublicKeys occurs when no authorized public keys are found
 var ErrNoAuthorizedPublicKeys = fmt.Errorf("no authorized public keys found")
 
 // Client provides a client to the shared secrets service
