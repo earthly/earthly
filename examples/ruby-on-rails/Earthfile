@@ -30,8 +30,8 @@ migrate:
 
 test:
     FROM +build
-    RUN --push bundle exec rails test
+    RUN bundle exec rails test
 
 console:
     FROM +build
-    RUN --push bundle exec rails console
+    RUN bundle exec rails console
