@@ -442,8 +442,9 @@ func (c *Converter) Build(ctx context.Context, fullTargetName string, buildArgs 
 		return nil, errors.Wrap(err, "join targets")
 	}
 	newVarCollection := c.varCollection
-	if relTarget.IsExternal() {
-		// Don't allow transitive overriding variables to cross project boundaries.
+	// Don't allow transitive overriding variables to cross project boundaries.
+	propagateBuildArgs := !relTarget.IsExternal()
+	if !propagateBuildArgs {
 		newVarCollection = variables.NewCollection()
 	}
 	var newVars map[string]bool
@@ -468,16 +469,18 @@ func (c *Converter) Build(ctx context.Context, fullTargetName string, buildArgs 
 		return nil, errors.Wrapf(err, "earthfile2llb for %s", fullTargetName)
 	}
 	c.directDeps = append(c.directDeps, mts.Final)
-	// Propagate build arg inputs upwards (a child target depending on a build arg means
-	// that the parent also depends on that build arg).
-	for _, bai := range mts.Final.TargetInput.BuildArgs {
-		// Check if the build arg has been overridden. If it has, it can no longer be an input
-		// directly, so skip it.
-		_, found := newVars[bai.Name]
-		if found {
-			continue
+	if propagateBuildArgs {
+		// Propagate build arg inputs upwards (a child target depending on a build arg means
+		// that the parent also depends on that build arg).
+		for _, bai := range mts.Final.TargetInput.BuildArgs {
+			// Check if the build arg has been overridden. If it has, it can no longer be an input
+			// directly, so skip it.
+			_, found := newVars[bai.Name]
+			if found {
+				continue
+			}
+			c.mts.Final.TargetInput = c.mts.Final.TargetInput.WithBuildArgInput(bai)
 		}
-		c.mts.Final.TargetInput = c.mts.Final.TargetInput.WithBuildArgInput(bai)
 	}
 	return mts, nil
 }
