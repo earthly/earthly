@@ -923,7 +923,7 @@ func (app *earthApp) actionSecretsList(c *cli.Context) error {
 	}
 	paths, err := sc.List(path)
 	if err != nil {
-		return errors.Wrap(err, "failed to remove secret")
+		return errors.Wrap(err, "failed to list secret")
 	}
 	for _, path := range paths {
 		fmt.Println(path)
