@@ -15,12 +15,12 @@ build:
     SAVE IMAGE
 
 unit-test:
-    FROM +build
+    FROM +project-files
     COPY src src
     RUN sbt test
 
 integration-test:
-    FROM +build
+    FROM +project-files
     COPY src src
     COPY docker-compose.yml ./ 
     WITH DOCKER --compose docker-compose.yml
@@ -28,19 +28,18 @@ integration-test:
     END
 
 docker:
-    FROM +build
+    FROM +project-files
     COPY src src
-    RUN sbt assembly
+    RUN sbt 'set test in assembly := {}' assembly
     ENTRYPOINT ["java","-cp","target/scala-2.12/scala-example-assembly-1.0.jar","Main"]
     SAVE IMAGE scala-example:latest
 
 smoke-test:
+    FROM +project-files
     COPY docker-compose.yml ./ 
-    WITH DOCKER \
-            --compose docker-compose.yml \
-            --load scala-example:latest=+docker
-        RUN for i in {1..30}; do nc -z localhost 5432 && break; sleep 1; done; \
-            docker run --network=host scala-example:latest
+    COPY src/smoketest ./ 
+    WITH DOCKER --compose docker-compose.yml --load scala-example:latest=+docker
+        RUN ./smoketest.sh
     END
     
 all:
