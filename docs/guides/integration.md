@@ -95,7 +95,7 @@ Ouput:
 ```
 {% sample lang="Service Dependencies" %}
 
-The Docker compose specifies the application's dependencies.  It is useful for local development. It can be started and stopped using `docker-compose up -d` and `docker-compose down`.
+The Docker compose configuration specifies the application's dependencies.  It is useful for local development and can be started and stopped using `docker-compose up -d` and `docker-compose down`.
 This will also be essential for our Earthly integration tests.
 
 Docker Compose:
