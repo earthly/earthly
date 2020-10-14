@@ -13,6 +13,10 @@ while ! docker ps; do
     echo "Waiting for docker to be ready..."
     echo "Time elapsed: $SECONDS seconds"
     sleep 1
+    if [ "$SECONDS" -gt "600" ]; then
+        echo "Timed out"
+        exit 1
+    fi
 done
 # This strange workaround is needed to avoid "Text file busy" errors on Windows.
 # It's essentially a busy-waiting loop that waits for the error to go away.
@@ -24,6 +28,10 @@ while ! echo "." >./earth-released; do
     echo "Waiting for ./earth-released to become available for writing..."
     echo "Time elapsed: $SECONDS seconds"
     sleep 1
+    if [ "$SECONDS" -gt "600" ]; then
+        echo "Timed out"
+        exit 1
+    fi
 done
 if [ "$do_reset" = "true" ]; then
     docker stop earthly-buildkitd || true

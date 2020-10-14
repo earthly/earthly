@@ -172,6 +172,7 @@ dind:
 dind-alpine:
     FROM docker:dind
     RUN apk add --update --no-cache docker-compose
+    ARG EARTHLY_TARGET_TAG_DOCKER
     ARG DIND_ALPINE_TAG=alpine-$EARTHLY_TARGET_TAG_DOCKER
     SAVE IMAGE --push earthly/dind:$DIND_ALPINE_TAG
 
@@ -196,7 +197,6 @@ all:
     BUILD +buildkitd
     BUILD +earth-all
     BUILD +earth-docker
-    BUILD +prerelease-docker
     BUILD +dind
 
 test:
