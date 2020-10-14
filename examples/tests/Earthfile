@@ -25,6 +25,7 @@ ga:
     BUILD +host-bind-test
     BUILD +remote-test
     BUILD +transitive-args-test
+    BUILD +transitive-args-test2
     BUILD +non-transitive-args-test
     BUILD +star-test
     BUILD +dockerfile-test
@@ -157,9 +158,22 @@ transitive-args-test:
     RUN --privileged \
         --entrypoint \
         --mount=type=tmpfs,target=/tmp/earthly \
-        -- --build-arg SOMEARG=def +test
+        -- --build-arg SOMEARG=xyz +test
     RUN ls
-    RUN test -f ./abc && test -f ./def && test ! -f ./default
+    RUN test -f ./abc && test -f ./xyz && test ! -f ./default
+    RUN cat ./abc | grep abc
+    RUN cat ./xyz | grep xyz
+
+transitive-args-test2:
+    COPY transitive-args.earth ./Earthfile
+    RUN --privileged \
+        --entrypoint \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        -- +test
+    RUN ls
+    RUN test -f ./abc && test -f ./default
+    RUN cat ./abc | grep abc
+    RUN cat ./default | grep default
 
 non-transitive-args-test:
     COPY non-transitive-args1.earth ./Earthfile

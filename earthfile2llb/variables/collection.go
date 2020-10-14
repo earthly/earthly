@@ -202,14 +202,14 @@ func (c *Collection) WithBuiltinBuildArgs(target domain.Target, gitMeta *buildco
 // WithParseBuildArgs takes in a slice of build args to be parsed and returns another collection
 // containing the current build args, together with the newly parsed build args. This operation does
 // not modify the current collection.
-func (c *Collection) WithParseBuildArgs(args []string, pncvf ProcessNonConstantVariableFunc) (*Collection, error) {
+func (c *Collection) WithParseBuildArgs(args []string, pncvf ProcessNonConstantVariableFunc) (*Collection, map[string]bool, error) {
 	// First, parse.
 	toAdd := make(map[string]Variable)
 	haveValues := make(map[string]bool)
 	for _, arg := range args {
 		name, variable, hasValue, err := c.parseBuildArg(arg, pncvf)
 		if err != nil {
-			return nil, errors.Wrapf(err, "parse build arg %s", arg)
+			return nil, nil, errors.Wrapf(err, "parse build arg %s", arg)
 		}
 		toAdd[name] = variable
 		if hasValue {
@@ -219,7 +219,8 @@ func (c *Collection) WithParseBuildArgs(args []string, pncvf ProcessNonConstantV
 
 	// Merge into a new collection.
 	// Copy existing, without env vars.
-	ret := c.WithResetEnvVars()
+	newC := c.WithResetEnvVars()
+	newVars := make(map[string]bool)
 	// Add the parsed ones too.
 	for key, ba := range toAdd {
 		if ba.IsEnvVar() {
@@ -235,16 +236,17 @@ func (c *Collection) WithParseBuildArgs(args []string, pncvf ProcessNonConstantV
 					finalValue = existing
 				}
 			} else {
-				return nil, fmt.Errorf(
+				return nil, nil, fmt.Errorf(
 					"Value not specified for build arg %s and no value can be inferred", key)
 			}
 		} else {
 			finalValue = ba
 		}
-		ret.variables[key] = finalValue
-		ret.overridingVariables[key] = true
+		newVars[key] = true
+		newC.variables[key] = finalValue
+		newC.overridingVariables[key] = true
 	}
-	return ret, nil
+	return newC, newVars, nil
 }
 
 func (c *Collection) parseBuildArg(arg string, pncvf ProcessNonConstantVariableFunc) (string, Variable, bool, error) {

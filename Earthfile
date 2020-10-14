@@ -158,8 +158,7 @@ earth-docker:
     COPY --build-arg VERSION=$TAG +earth/earth /usr/bin/earth
     SAVE IMAGE --push earthly/earth:$TAG
 
-# we abuse docker here to distribute our binaries
-prerelease-docker:
+prerelease:
     FROM alpine:3.11
     BUILD --build-arg TAG=prerelease ./buildkitd+buildkitd
     COPY --build-arg VERSION=prerelease +earth-all/* ./
@@ -197,6 +196,7 @@ all:
     BUILD +buildkitd
     BUILD +earth-all
     BUILD +earth-docker
+    BUILD +prerelease
     BUILD +dind
 
 test:
