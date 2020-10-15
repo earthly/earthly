@@ -910,11 +910,8 @@ func (app *earthApp) actionOrgCreate(c *cli.Context) error {
 		return errors.New("invalid number of arguments provided")
 	}
 	org := c.Args().Get(0)
-	sc, err := secretsclient.NewClient(app.apiServer, app.sshAuthSock)
-	if err != nil {
-		return err
-	}
-	err = sc.CreateOrg(org)
+	sc := secretsclient.NewClient(app.apiServer, app.sshAuthSock)
+	err := sc.CreateOrg(org)
 	if err != nil {
 		return errors.Wrap(err, "failed to create org")
 	}
@@ -950,10 +947,7 @@ func (app *earthApp) actionSecretsList(c *cli.Context) error {
 	if !strings.HasSuffix(path, "/") {
 		path += "/"
 	}
-	sc, err := secretsclient.NewClient(app.apiServer, app.sshAuthSock)
-	if err != nil {
-		return err
-	}
+	sc := secretsclient.NewClient(app.apiServer, app.sshAuthSock)
 	paths, err := sc.List(path)
 	if err != nil {
 		return errors.Wrap(err, "failed to list secret")
@@ -969,10 +963,7 @@ func (app *earthApp) actionSecretsGet(c *cli.Context) error {
 		return errors.New("invalid number of arguments provided")
 	}
 	path := c.Args().Get(0)
-	sc, err := secretsclient.NewClient(app.apiServer, app.sshAuthSock)
-	if err != nil {
-		return err
-	}
+	sc := secretsclient.NewClient(app.apiServer, app.sshAuthSock)
 	data, err := sc.Get(path)
 	if err != nil {
 		return errors.Wrap(err, "failed to get secret")
@@ -989,11 +980,8 @@ func (app *earthApp) actionSecretsRemove(c *cli.Context) error {
 		return errors.New("invalid number of arguments provided")
 	}
 	path := c.Args().Get(0)
-	sc, err := secretsclient.NewClient(app.apiServer, app.sshAuthSock)
-	if err != nil {
-		return err
-	}
-	err = sc.Remove(path)
+	sc := secretsclient.NewClient(app.apiServer, app.sshAuthSock)
+	err := sc.Remove(path)
 	if err != nil {
 		return errors.Wrap(err, "failed to remove secret")
 	}
@@ -1021,11 +1009,8 @@ func (app *earthApp) actionSecretsSet(c *cli.Context) error {
 		value = string(data)
 	}
 
-	sc, err := secretsclient.NewClient(app.apiServer, app.sshAuthSock)
-	if err != nil {
-		return err
-	}
-	err = sc.Set(path, []byte(value))
+	sc := secretsclient.NewClient(app.apiServer, app.sshAuthSock)
+	err := sc.Set(path, []byte(value))
 	if err != nil {
 		return errors.Wrap(err, "failed to set secret")
 	}
@@ -1041,13 +1026,10 @@ func (app *earthApp) actionRegister(c *cli.Context) error {
 		return errors.New("email is invalid")
 	}
 
-	sc, err := secretsclient.NewClient(app.apiServer, app.sshAuthSock)
-	if err != nil {
-		return err
-	}
+	sc := secretsclient.NewClient(app.apiServer, app.sshAuthSock)
 
 	if app.verificationToken == "" {
-		err = sc.RegisterEmail(app.email)
+		err := sc.RegisterEmail(app.email)
 		if err != nil {
 			return errors.Wrap(err, "failed to register email")
 		}
@@ -1305,10 +1287,7 @@ func (app *earthApp) actionBuild(c *cli.Context) error {
 	}
 	secretsMap[debuggercommon.DebuggerSettingsSecretsKey] = debuggerSettingsData
 
-	sc, err := secretsclient.NewClient(app.apiServer, app.sshAuthSock)
-	if err != nil {
-		app.console.Warnf("failed to create secrets client: %v\n", err)
-	}
+	sc := secretsclient.NewClient(app.apiServer, app.sshAuthSock)
 
 	attachables := []session.Attachable{
 		llbutil.NewSecretProvider(sc, secretsMap),
