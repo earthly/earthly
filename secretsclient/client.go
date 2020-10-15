@@ -39,6 +39,7 @@ type Client interface {
 	List(path string) ([]string, error)
 	GetPublicKeys() ([]*agent.Key, error)
 	CreateOrg(org string) error
+	Invite(org, user string, write bool) error
 }
 
 type request struct {
@@ -423,6 +424,44 @@ func (c *client) Set(path string, data []byte) error {
 			return errors.Wrap(err, fmt.Sprintf("failed to decode response body (status code: %d)", status))
 		}
 		return fmt.Errorf("failed to set secret: %s", msg)
+	}
+	return nil
+}
+
+func getOrgFromPath(path string) (string, bool) {
+	if path == "" || path[0] != '/' {
+		return "", false
+	}
+
+	parts := strings.SplitN(path, "/", 3)
+	if len(parts) < 2 {
+		return "", false
+	}
+	return parts[1], true
+}
+
+func (c *client) Invite(path, user string, write bool) error {
+	orgName, ok := getOrgFromPath(path)
+	if !ok {
+		return fmt.Errorf("invalid path")
+	}
+
+	permission := api.OrgPermissions{
+		Path:  path,
+		Email: user,
+		Write: write,
+	}
+
+	status, body, err := c.doCall("PUT", fmt.Sprintf("/api/v0/admin/organizations/%s/permissions", orgName), withPublicKeyAuth(), withJSONBody(&permission))
+	if err != nil {
+		return err
+	}
+	if status != http.StatusCreated {
+		msg, err := getMessageFromJSON(bytes.NewReader([]byte(body)))
+		if err != nil {
+			return errors.Wrap(err, fmt.Sprintf("failed to decode response body (status code: %d)", status))
+		}
+		return fmt.Errorf("failed to invite user into org: %s", msg)
 	}
 	return nil
 }

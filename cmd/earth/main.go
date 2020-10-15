@@ -97,6 +97,7 @@ type cliFlags struct {
 	disableNewLine       bool
 	secretFile           string
 	apiServer            string
+	writePermission      bool
 }
 
 var (
@@ -422,6 +423,17 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 				{
 					Name:   "create",
 					Action: app.actionOrgCreate,
+				},
+				{
+					Name:   "invite",
+					Action: app.actionOrgInvite,
+					Flags: []cli.Flag{
+						&cli.BoolFlag{
+							Name:        "write",
+							Usage:       "Grant write permissions in addition to read",
+							Destination: &app.writePermission,
+						},
+					},
 				},
 			},
 		},
@@ -905,6 +917,27 @@ func (app *earthApp) actionOrgCreate(c *cli.Context) error {
 	err = sc.CreateOrg(org)
 	if err != nil {
 		return errors.Wrap(err, "failed to create org")
+	}
+	return nil
+}
+
+func (app *earthApp) actionOrgInvite(c *cli.Context) error {
+	if c.NArg() < 2 {
+		return errors.New("invalid number of arguments provided")
+	}
+	path := c.Args().Get(0)
+	if !strings.HasSuffix(path, "/") {
+		return errors.New("invitation paths must end with a slash (/)")
+	}
+
+	sc, err := secretsclient.NewClient(app.apiServer, app.sshAuthSock)
+	if err != nil {
+		return err
+	}
+	userEmail := c.Args().Get(1)
+	err = sc.Invite(path, userEmail, app.writePermission)
+	if err != nil {
+		return errors.Wrap(err, "failed to invite user into org")
 	}
 	return nil
 }
