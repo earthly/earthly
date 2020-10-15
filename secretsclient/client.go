@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"net"
 	"net/http"
 	"os"
 	"strings"
@@ -129,19 +128,13 @@ type client struct {
 }
 
 // NewClient provides a new client
-func NewClient(secretServer, agentSockPath string) (Client, error) {
-	agentSock, err := net.Dial("unix", agentSockPath)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to connect to ssh-agent")
-	}
-
-	sshAgent := agent.NewClient(agentSock)
-
-	c := client{
+func NewClient(secretServer, agentSockPath string) Client {
+	return &client{
 		secretServer: secretServer,
-		sshAgent:     sshAgent,
+		sshAgent: &lazySSHAgent{
+			sockPath: agentSockPath,
+		},
 	}
-	return &c, nil
 }
 
 func (c *client) GetPublicKeys() ([]*agent.Key, error) {
