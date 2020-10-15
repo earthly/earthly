@@ -398,6 +398,10 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 					Action: app.actionOrgCreate,
 				},
 				{
+					Name:   "list",
+					Action: app.actionOrgList,
+				},
+				{
 					Name:   "invite",
 					Action: app.actionOrgInvite,
 					Flags: []cli.Flag{
@@ -885,6 +889,22 @@ func (app *earthApp) actionOrgCreate(c *cli.Context) error {
 	return nil
 }
 
+func (app *earthApp) actionOrgList(c *cli.Context) error {
+	sc := secretsclient.NewClient(app.apiServer, app.sshAuthSock)
+	orgs, err := sc.ListOrgs()
+	if err != nil {
+		return errors.Wrap(err, "failed to create org")
+	}
+	for _, org := range orgs {
+		fmt.Printf("%s", org.Name)
+		if org.Admin {
+			fmt.Printf(" (admin)")
+		}
+		fmt.Printf("\n")
+	}
+	return nil
+}
+
 func (app *earthApp) actionOrgInvite(c *cli.Context) error {
 	if c.NArg() < 2 {
 		return errors.New("invalid number of arguments provided")
@@ -894,12 +914,9 @@ func (app *earthApp) actionOrgInvite(c *cli.Context) error {
 		return errors.New("invitation paths must end with a slash (/)")
 	}
 
-	sc, err := secretsclient.NewClient(app.apiServer, app.sshAuthSock)
-	if err != nil {
-		return err
-	}
+	sc := secretsclient.NewClient(app.apiServer, app.sshAuthSock)
 	userEmail := c.Args().Get(1)
-	err = sc.Invite(path, userEmail, app.writePermission)
+	err := sc.Invite(path, userEmail, app.writePermission)
 	if err != nil {
 		return errors.Wrap(err, "failed to invite user into org")
 	}

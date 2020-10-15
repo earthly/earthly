@@ -28,6 +28,12 @@ var ErrUnauthorized = fmt.Errorf("unauthorized")
 // ErrNoAuthorizedPublicKeys occurs when no authorized public keys are found
 var ErrNoAuthorizedPublicKeys = fmt.Errorf("no authorized public keys found")
 
+// OrgDetail contains an organization and details
+type OrgDetail struct {
+	Name  string
+	Admin bool
+}
+
 // Client provides a client to the shared secrets service
 type Client interface {
 	RegisterEmail(email string) error
@@ -39,6 +45,7 @@ type Client interface {
 	GetPublicKeys() ([]*agent.Key, error)
 	CreateOrg(org string) error
 	Invite(org, user string, write bool) error
+	ListOrgs() ([]*OrgDetail, error)
 }
 
 type request struct {
@@ -457,4 +464,34 @@ func (c *client) Invite(path, user string, write bool) error {
 		return fmt.Errorf("failed to invite user into org: %s", msg)
 	}
 	return nil
+}
+
+func (c *client) ListOrgs() ([]*OrgDetail, error) {
+	status, body, err := c.doCall("GET", "/api/v0/admin/organizations", withPublicKeyAuth())
+	if err != nil {
+		return nil, err
+	}
+	if status != http.StatusOK {
+		msg, err := getMessageFromJSON(bytes.NewReader([]byte(body)))
+		if err != nil {
+			return nil, errors.Wrap(err, fmt.Sprintf("failed to decode response body (status code: %d)", status))
+		}
+		return nil, fmt.Errorf("failed to invite user into org: %s", msg)
+	}
+
+	var listOrgsResponse api.ListOrgsResponse
+	err = jsonpb.Unmarshal(bytes.NewReader([]byte(body)), &listOrgsResponse)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to unmarshal list orgs response")
+	}
+
+	res := []*OrgDetail{}
+	for _, org := range listOrgsResponse.Details {
+		res = append(res, &OrgDetail{
+			Name:  org.Name,
+			Admin: org.Admin,
+		})
+	}
+
+	return res, nil
 }
