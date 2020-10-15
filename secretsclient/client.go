@@ -34,6 +34,13 @@ type OrgDetail struct {
 	Admin bool
 }
 
+// OrgPermissions contains permission details within an org
+type OrgPermissions struct {
+	User  string
+	Path  string
+	Write bool
+}
+
 // Client provides a client to the shared secrets service
 type Client interface {
 	RegisterEmail(email string) error
@@ -46,6 +53,7 @@ type Client interface {
 	CreateOrg(org string) error
 	Invite(org, user string, write bool) error
 	ListOrgs() ([]*OrgDetail, error)
+	ListOrgPermissions(path string) ([]*OrgPermissions, error)
 }
 
 type request struct {
@@ -464,6 +472,44 @@ func (c *client) Invite(path, user string, write bool) error {
 		return fmt.Errorf("failed to invite user into org: %s", msg)
 	}
 	return nil
+}
+
+func (c *client) ListOrgPermissions(path string) ([]*OrgPermissions, error) {
+	orgName, ok := getOrgFromPath(path)
+	if !ok {
+		return nil, fmt.Errorf("invalid path")
+	}
+
+	status, body, err := c.doCall("GET", fmt.Sprintf("/api/v0/admin/organizations/%s/permissions", orgName), withPublicKeyAuth())
+	if err != nil {
+		return nil, err
+	}
+	if status != http.StatusOK {
+		msg, err := getMessageFromJSON(bytes.NewReader([]byte(body)))
+		if err != nil {
+			return nil, errors.Wrap(err, fmt.Sprintf("failed to decode response body (status code: %d)", status))
+		}
+		return nil, fmt.Errorf("failed to invite user into org: %s", msg)
+	}
+
+	var listOrgPermissionsResponse api.ListOrgPermissionsResponse
+	err = jsonpb.Unmarshal(bytes.NewReader([]byte(body)), &listOrgPermissionsResponse)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to unmarshal list org permissions response")
+	}
+
+	res := []*OrgPermissions{}
+	for _, perm := range listOrgPermissionsResponse.Permissions {
+		if strings.Contains(perm.Path, path) {
+			res = append(res, &OrgPermissions{
+				Path:  perm.Path,
+				User:  perm.Email,
+				Write: perm.Write,
+			})
+		}
+	}
+
+	return res, nil
 }
 
 func (c *client) ListOrgs() ([]*OrgDetail, error) {
