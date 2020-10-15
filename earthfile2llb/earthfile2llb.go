@@ -12,7 +12,6 @@ import (
 	"github.com/earthly/earthly/earthfile2llb/antlrhandler"
 	"github.com/earthly/earthly/earthfile2llb/parser"
 	"github.com/earthly/earthly/earthfile2llb/variables"
-	"github.com/earthly/earthly/logging"
 	"github.com/earthly/earthly/states"
 	"github.com/moby/buildkit/client/llb"
 	"github.com/pkg/errors"
@@ -91,18 +90,17 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt) (m
 		return nil, errors.Wrapf(err, "resolve build context for target %s", target.String())
 	}
 	// Convert.
-	targetCtx := logging.With(ctx, "target", target)
 	errorListener := antlrhandler.NewReturnErrorListener()
 	errorStrategy := antlrhandler.NewReturnErrorStrategy()
 	tree, err := newEarthfileTree(bc.BuildFilePath, errorListener, errorStrategy)
 	if err != nil {
 		return nil, err
 	}
-	converter, err := NewConverter(targetCtx, bc.Target, bc, opt)
+	converter, err := NewConverter(ctx, bc.Target, bc, opt)
 	if err != nil {
 		return nil, err
 	}
-	walkErr := walkTree(newListener(targetCtx, converter, target.Target), tree)
+	walkErr := walkTree(newListener(ctx, converter, target.Target), tree)
 	if len(errorListener.Errs) > 0 {
 		var errString []string
 		for _, err := range errorListener.Errs {

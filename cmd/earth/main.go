@@ -35,7 +35,6 @@ import (
 	"github.com/earthly/earthly/earthfile2llb"
 	"github.com/earthly/earthly/earthfile2llb/variables"
 	"github.com/earthly/earthly/llbutil"
-	"github.com/earthly/earthly/logging"
 	"github.com/earthly/earthly/secretsclient"
 
 	"github.com/fatih/color"
@@ -49,7 +48,6 @@ import (
 	"github.com/moby/buildkit/util/entitlements"
 	"github.com/pkg/errors"
 	"github.com/seehuhn/password"
-	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/sync/errgroup"
@@ -173,31 +171,6 @@ func main() {
 
 	app := newEarthApp(ctx, conslogging.Current(colorMode))
 	app.autoComplete()
-
-	// Set up file-based logging.
-	logrus.SetFormatter(&logrus.TextFormatter{
-		DisableColors: true,
-		FullTimestamp: true,
-	})
-	logrus.SetLevel(logrus.InfoLevel)
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		fmt.Printf("Error looking up current user: %s\n", err.Error())
-		os.Exit(1)
-	}
-	logDir := filepath.Join(homeDir, ".earthly")
-	logFile := filepath.Join(logDir, "earth.log")
-	err = os.MkdirAll(logDir, 0755)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Warning: cannot create dir %s\n", logDir)
-	} else {
-		f, err := os.OpenFile(logFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0755)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Warning: cannot open log file for writing %s\n", logFile)
-		} else {
-			logrus.SetOutput(f)
-		}
-	}
 
 	os.Exit(app.run(ctx, os.Args))
 }
@@ -839,14 +812,8 @@ func (app *earthApp) insertZSHCompleteEntry() error {
 }
 
 func (app *earthApp) run(ctx context.Context, args []string) int {
-	joinedArgs := ""
-	if len(args) > 2 {
-		joinedArgs = strings.Join(args[2:], " ")
-	}
-	ctx = logging.With(ctx, logging.COMMAND, fmt.Sprintf("earth %s", joinedArgs))
 	err := app.cliApp.RunContext(ctx, args)
 	if err != nil {
-		logging.GetLogger(ctx).Error(err)
 		if strings.Contains(err.Error(), "security.insecure is not allowed") {
 			app.console.Warnf("Error: --allow-privileged (-P) flag is required\n")
 		} else if strings.Contains(err.Error(), "failed to fetch remote") {

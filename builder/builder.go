@@ -11,7 +11,6 @@ import (
 
 	"github.com/earthly/earthly/conslogging"
 	"github.com/earthly/earthly/domain"
-	"github.com/earthly/earthly/logging"
 	"github.com/earthly/earthly/states"
 	"github.com/moby/buildkit/client"
 	"github.com/moby/buildkit/client/llb"
@@ -198,13 +197,11 @@ func (b *Builder) buildCommon(ctx context.Context, mts *states.MultiTarget, opt 
 }
 
 func (b *Builder) buildMain(ctx context.Context, localDirs map[string]string, states *states.SingleTarget) error {
-	targetCtx := logging.With(ctx, "target", states.Target.String())
-	solveCtx := logging.With(targetCtx, "solve", "side-effects")
 	state := states.MainState
 	if b.noCache {
 		state = state.SetMarshalDefaults(llb.IgnoreCache)
 	}
-	err := b.s.solveMain(solveCtx, localDirs, state)
+	err := b.s.solveMain(ctx, localDirs, state)
 	if err != nil {
 		return errors.Wrapf(err, "solve side effects")
 	}
@@ -212,16 +209,14 @@ func (b *Builder) buildMain(ctx context.Context, localDirs map[string]string, st
 }
 
 func (b *Builder) buildOutputs(ctx context.Context, localDirs map[string]string, states *states.SingleTarget, opt BuildOpt) error {
-	targetCtx := logging.With(ctx, "target", states.Target.String())
-
 	// Run --push commands.
-	err := b.buildRunPush(targetCtx, localDirs, states, opt)
+	err := b.buildRunPush(ctx, localDirs, states, opt)
 	if err != nil {
 		return err
 	}
 
 	// Images.
-	err = b.buildImages(targetCtx, localDirs, states, opt)
+	err = b.buildImages(ctx, localDirs, states, opt)
 	if err != nil {
 		return err
 	}
@@ -229,7 +224,7 @@ func (b *Builder) buildOutputs(ctx context.Context, localDirs map[string]string,
 	// Artifacts.
 	if !states.Target.IsRemote() {
 		// Don't output artifacts for remote images.
-		err = b.buildArtifacts(targetCtx, localDirs, states, opt)
+		err = b.buildArtifacts(ctx, localDirs, states, opt)
 		if err != nil {
 			return err
 		}
@@ -249,9 +244,7 @@ func (b *Builder) buildRunPush(ctx context.Context, localDirs map[string]string,
 		}
 		return nil
 	}
-	targetCtx := logging.With(ctx, "target", states.Target.String())
-	solveCtx := logging.With(targetCtx, "solve", "run-push")
-	err := b.s.solveMain(solveCtx, localDirs, states.RunPush.State)
+	err := b.s.solveMain(ctx, localDirs, states.RunPush.State)
 	if err != nil {
 		return errors.Wrapf(err, "solve run-push")
 	}
@@ -275,9 +268,7 @@ func (b *Builder) buildImages(ctx context.Context, localDirs map[string]string, 
 func (b *Builder) buildImage(ctx context.Context, imageToSave states.SaveImage, localDirs map[string]string, states *states.SingleTarget, opt BuildOpt) error {
 	shouldPush := opt.Push && imageToSave.Push
 	console := b.console.WithPrefixAndSalt(states.Target.String(), states.Salt)
-	solveCtx := logging.With(ctx, "image", imageToSave.DockerTag)
-	solveCtx = logging.With(solveCtx, "solve", "image")
-	err := b.s.solveDocker(solveCtx, localDirs, imageToSave.State, imageToSave.Image, imageToSave.DockerTag, shouldPush)
+	err := b.s.solveDocker(ctx, localDirs, imageToSave.State, imageToSave.Image, imageToSave.DockerTag, shouldPush)
 	if err != nil {
 		return errors.Wrapf(err, "solve image %s", imageToSave.DockerTag)
 	}
@@ -293,9 +284,7 @@ func (b *Builder) buildImage(ctx context.Context, imageToSave states.SaveImage, 
 }
 
 func (b *Builder) buildImageTar(ctx context.Context, localDirs map[string]string, saveImage states.SaveImage, dockerTag string, outFile string) error {
-	solveCtx := logging.With(ctx, "image", outFile)
-	solveCtx = logging.With(solveCtx, "solve", "image-tar")
-	err := b.s.solveDockerTar(solveCtx, localDirs, saveImage.State, saveImage.Image, dockerTag, outFile)
+	err := b.s.solveDockerTar(ctx, localDirs, saveImage.State, saveImage.Image, dockerTag, outFile)
 	if err != nil {
 		return errors.Wrapf(err, "solve image tar %s", outFile)
 	}
@@ -320,15 +309,13 @@ func (b *Builder) buildArtifacts(ctx context.Context, localDirs map[string]strin
 }
 
 func (b *Builder) buildSpecifiedArtifact(ctx context.Context, artifact domain.Artifact, destPath string, outDir string, solvedStates map[int]bool, localDirs map[string]string, states *states.SingleTarget, opt BuildOpt) error {
-	solveCtx := logging.With(ctx, "solve", "artifacts")
-	solveCtx = logging.With(solveCtx, "index", "combined")
 	indexOutDir := filepath.Join(outDir, "combined")
 	err := os.Mkdir(indexOutDir, 0755)
 	if err != nil {
 		return errors.Wrap(err, "mk index dir")
 	}
 	artifactsState := states.ArtifactsState
-	err = b.s.solveArtifacts(solveCtx, localDirs, artifactsState, indexOutDir)
+	err = b.s.solveArtifacts(ctx, localDirs, artifactsState, indexOutDir)
 	if err != nil {
 		return errors.Wrap(err, "solve combined artifacts")
 	}
@@ -342,8 +329,6 @@ func (b *Builder) buildSpecifiedArtifact(ctx context.Context, artifact domain.Ar
 
 func (b *Builder) buildArtifact(ctx context.Context, artifactToSaveLocally states.SaveLocal, outDir string, solvedStates map[int]bool, localDirs map[string]string, states *states.SingleTarget, opt BuildOpt) error {
 	index := artifactToSaveLocally.Index
-	solveCtx := logging.With(ctx, "solve", "artifacts")
-	solveCtx = logging.With(solveCtx, "index", index)
 	indexOutDir := filepath.Join(outDir, fmt.Sprintf("index-%d", index))
 	if !solvedStates[index] {
 		solvedStates[index] = true
@@ -352,7 +337,7 @@ func (b *Builder) buildArtifact(ctx context.Context, artifactToSaveLocally state
 		if err != nil {
 			return errors.Wrap(err, "mk index dir")
 		}
-		err = b.s.solveArtifacts(solveCtx, localDirs, artifactsState, indexOutDir)
+		err = b.s.solveArtifacts(ctx, localDirs, artifactsState, indexOutDir)
 		if err != nil {
 			return errors.Wrap(err, "solve artifacts")
 		}
@@ -430,10 +415,6 @@ func (b *Builder) saveArtifactLocally(ctx context.Context, artifact domain.Artif
 			}
 		}
 
-		logging.GetLogger(ctx).
-			With("from", from).
-			With("to", to).
-			Info("Copying artifact")
 		toDir := path.Dir(to)
 		err = os.MkdirAll(toDir, 0755)
 		if err != nil {
