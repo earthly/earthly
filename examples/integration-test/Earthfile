@@ -1,4 +1,4 @@
-FROM hseeberger/scala-sbt:8u265_1.4.0_2.12.12
+FROM intenthq/sbt-alpine
 WORKDIR /scala-example
 
 project-files:
