@@ -20,6 +20,7 @@ import (
 	"strconv"
 	"strings"
 	"syscall"
+	"text/tabwriter"
 	"time"
 
 	"github.com/earthly/earthly/autocomplete"
@@ -400,6 +401,10 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 				{
 					Name:   "list",
 					Action: app.actionOrgList,
+				},
+				{
+					Name:   "list-permissions",
+					Action: app.actionOrgListPermissions,
 				},
 				{
 					Name:   "invite",
@@ -902,6 +907,34 @@ func (app *earthApp) actionOrgList(c *cli.Context) error {
 		}
 		fmt.Printf("\n")
 	}
+	return nil
+}
+
+func (app *earthApp) actionOrgListPermissions(c *cli.Context) error {
+	if c.NArg() != 1 {
+		return errors.New("invalid number of arguments provided")
+	}
+	path := c.Args().Get(0)
+	if !strings.HasSuffix(path, "/") {
+		path += "/"
+	}
+	sc := secretsclient.NewClient(app.apiServer, app.sshAuthSock)
+	orgs, err := sc.ListOrgPermissions(path)
+	if err != nil {
+		return errors.Wrap(err, "failed to create org")
+	}
+
+	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
+	for _, org := range orgs {
+		fmt.Fprintf(w, "%s\t%s", org.Path, org.User)
+		if org.Write {
+			fmt.Fprintf(w, "\trw")
+		} else {
+			fmt.Fprintf(w, "\tr")
+		}
+		fmt.Fprintf(w, "\n")
+	}
+	w.Flush()
 	return nil
 }
 
