@@ -65,38 +65,39 @@ type earthApp struct {
 }
 
 type cliFlags struct {
-	buildArgs            cli.StringSlice
-	secrets              cli.StringSlice
-	artifactMode         bool
-	imageMode            bool
-	pull                 bool
-	push                 bool
-	noOutput             bool
-	noCache              bool
-	pruneAll             bool
-	pruneReset           bool
-	buildkitdSettings    buildkitd.Settings
-	allowPrivileged      bool
-	enableProfiler       bool
-	buildkitHost         string
-	buildkitdImage       string
-	remoteCache          string
-	configPath           string
-	gitUsernameOverride  string
-	gitPasswordOverride  string
-	interactiveDebugging bool
-	sshAuthSock          string
-	verbose              bool
-	debug                bool
-	homebrewSource       string
-	email                string
-	verificationToken    string
-	password             string
-	publicKey            string
-	disableNewLine       bool
-	secretFile           string
-	apiServer            string
-	writePermission      bool
+	buildArgs             cli.StringSlice
+	secrets               cli.StringSlice
+	artifactMode          bool
+	imageMode             bool
+	pull                  bool
+	push                  bool
+	noOutput              bool
+	noCache               bool
+	pruneAll              bool
+	pruneReset            bool
+	buildkitdSettings     buildkitd.Settings
+	allowPrivileged       bool
+	enableProfiler        bool
+	buildkitHost          string
+	buildkitdImage        string
+	remoteCache           string
+	configPath            string
+	gitUsernameOverride   string
+	gitPasswordOverride   string
+	interactiveDebugging  bool
+	sshAuthSock           string
+	verbose               bool
+	debug                 bool
+	homebrewSource        string
+	email                 string
+	verificationToken     string
+	password              string
+	disableNewLine        bool
+	secretFile            string
+	apiServer             string
+	writePermission       bool
+	publicKey             string
+	registrationPublicKey string
 }
 
 var (
@@ -343,6 +344,13 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 			Destination: &app.remoteCache,
 			Hidden:      true, // Experimental.
 		},
+		&cli.StringFlag{
+			Name:        "ssh-key",
+			EnvVars:     []string{"EARTHLY_SSH_KEY"},
+			Usage:       "Force the use of a particular ssh key when authenticating",
+			Destination: &app.publicKey,
+			Hidden:      true, // Experimental.
+		},
 		&cli.BoolFlag{
 			Name:        "interactive",
 			Aliases:     []string{"i"},
@@ -489,7 +497,7 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 					Name:        "public-key",
 					EnvVars:     []string{"EARTHLY_PUBLIC_KEY"},
 					Usage:       "Path to public key to register",
-					Destination: &app.publicKey, // TODO hook this up to override the interactive prompt when specified
+					Destination: &app.registrationPublicKey,
 				},
 			},
 		},
@@ -890,7 +898,7 @@ func (app *earthApp) actionOrgCreate(c *cli.Context) error {
 		return errors.New("invalid number of arguments provided")
 	}
 	org := c.Args().Get(0)
-	sc := secretsclient.NewClient(app.apiServer, app.sshAuthSock)
+	sc := secretsclient.NewClient(app.apiServer, app.sshAuthSock, app.publicKey)
 	err := sc.CreateOrg(org)
 	if err != nil {
 		return errors.Wrap(err, "failed to create org")
@@ -899,7 +907,7 @@ func (app *earthApp) actionOrgCreate(c *cli.Context) error {
 }
 
 func (app *earthApp) actionOrgList(c *cli.Context) error {
-	sc := secretsclient.NewClient(app.apiServer, app.sshAuthSock)
+	sc := secretsclient.NewClient(app.apiServer, app.sshAuthSock, app.publicKey)
 	orgs, err := sc.ListOrgs()
 	if err != nil {
 		return errors.Wrap(err, "failed to create org")
@@ -922,7 +930,7 @@ func (app *earthApp) actionOrgListPermissions(c *cli.Context) error {
 	if !strings.HasSuffix(path, "/") {
 		path += "/"
 	}
-	sc := secretsclient.NewClient(app.apiServer, app.sshAuthSock)
+	sc := secretsclient.NewClient(app.apiServer, app.sshAuthSock, app.publicKey)
 	orgs, err := sc.ListOrgPermissions(path)
 	if err != nil {
 		return errors.Wrap(err, "failed to create org")
@@ -951,7 +959,7 @@ func (app *earthApp) actionOrgInvite(c *cli.Context) error {
 		return errors.New("invitation paths must end with a slash (/)")
 	}
 
-	sc := secretsclient.NewClient(app.apiServer, app.sshAuthSock)
+	sc := secretsclient.NewClient(app.apiServer, app.sshAuthSock, app.publicKey)
 	userEmail := c.Args().Get(1)
 	err := sc.Invite(path, userEmail, app.writePermission)
 	if err != nil {
@@ -969,7 +977,7 @@ func (app *earthApp) actionOrgRevoke(c *cli.Context) error {
 		return errors.New("revoked paths must end with a slash (/)")
 	}
 
-	sc := secretsclient.NewClient(app.apiServer, app.sshAuthSock)
+	sc := secretsclient.NewClient(app.apiServer, app.sshAuthSock, app.publicKey)
 	userEmail := c.Args().Get(1)
 	err := sc.RevokePermission(path, userEmail)
 	if err != nil {
@@ -986,7 +994,7 @@ func (app *earthApp) actionSecretsList(c *cli.Context) error {
 	if !strings.HasSuffix(path, "/") {
 		path += "/"
 	}
-	sc := secretsclient.NewClient(app.apiServer, app.sshAuthSock)
+	sc := secretsclient.NewClient(app.apiServer, app.sshAuthSock, app.publicKey)
 	paths, err := sc.List(path)
 	if err != nil {
 		return errors.Wrap(err, "failed to list secret")
@@ -1002,7 +1010,7 @@ func (app *earthApp) actionSecretsGet(c *cli.Context) error {
 		return errors.New("invalid number of arguments provided")
 	}
 	path := c.Args().Get(0)
-	sc := secretsclient.NewClient(app.apiServer, app.sshAuthSock)
+	sc := secretsclient.NewClient(app.apiServer, app.sshAuthSock, app.publicKey)
 	data, err := sc.Get(path)
 	if err != nil {
 		return errors.Wrap(err, "failed to get secret")
@@ -1019,7 +1027,7 @@ func (app *earthApp) actionSecretsRemove(c *cli.Context) error {
 		return errors.New("invalid number of arguments provided")
 	}
 	path := c.Args().Get(0)
-	sc := secretsclient.NewClient(app.apiServer, app.sshAuthSock)
+	sc := secretsclient.NewClient(app.apiServer, app.sshAuthSock, app.publicKey)
 	err := sc.Remove(path)
 	if err != nil {
 		return errors.Wrap(err, "failed to remove secret")
@@ -1048,7 +1056,7 @@ func (app *earthApp) actionSecretsSet(c *cli.Context) error {
 		value = string(data)
 	}
 
-	sc := secretsclient.NewClient(app.apiServer, app.sshAuthSock)
+	sc := secretsclient.NewClient(app.apiServer, app.sshAuthSock, app.publicKey)
 	err := sc.Set(path, []byte(value))
 	if err != nil {
 		return errors.Wrap(err, "failed to set secret")
@@ -1065,7 +1073,11 @@ func (app *earthApp) actionRegister(c *cli.Context) error {
 		return errors.New("email is invalid")
 	}
 
-	sc := secretsclient.NewClient(app.apiServer, app.sshAuthSock)
+	if app.publicKey != "" && app.publicKey != app.registrationPublicKey {
+		app.console.Warnf("the --ssh-key option should be listed after the registration command, the global setting is ignored during registration\n")
+	}
+
+	sc := secretsclient.NewClient(app.apiServer, app.sshAuthSock, "")
 
 	if app.verificationToken == "" {
 		err := sc.RegisterEmail(app.email)
@@ -1105,7 +1117,7 @@ func (app *earthApp) actionRegister(c *cli.Context) error {
 	}
 
 	var publicKey string
-	if app.publicKey == "" {
+	if app.registrationPublicKey == "" {
 		fmt.Printf("Which of the following keys do you want to register?\n")
 		for i, key := range publicKeys {
 			fmt.Printf("%d) %s\n", i+1, key.String())
@@ -1123,14 +1135,14 @@ func (app *earthApp) actionRegister(c *cli.Context) error {
 		}
 		publicKey = publicKeys[i-1].String()
 	} else {
-		_, _, _, _, err := ssh.ParseAuthorizedKey([]byte(app.publicKey))
+		_, _, _, _, err := ssh.ParseAuthorizedKey([]byte(app.registrationPublicKey))
 		if err == nil {
 			// supplied public key is valid
-			publicKey = app.publicKey
+			publicKey = app.registrationPublicKey
 		} else {
 			// otherwise see if it matches the name (Comment) of a key known by the ssh agent
 			for _, key := range publicKeys {
-				if key.Comment == app.publicKey {
+				if key.Comment == app.registrationPublicKey {
 					publicKey = key.String()
 					break
 				}
@@ -1326,7 +1338,7 @@ func (app *earthApp) actionBuild(c *cli.Context) error {
 	}
 	secretsMap[debuggercommon.DebuggerSettingsSecretsKey] = debuggerSettingsData
 
-	sc := secretsclient.NewClient(app.apiServer, app.sshAuthSock)
+	sc := secretsclient.NewClient(app.apiServer, app.sshAuthSock, app.publicKey)
 
 	attachables := []session.Attachable{
 		llbutil.NewSecretProvider(sc, secretsMap),
