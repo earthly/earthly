@@ -54,6 +54,7 @@ type Client interface {
 	Invite(org, user string, write bool) error
 	ListOrgs() ([]*OrgDetail, error)
 	ListOrgPermissions(path string) ([]*OrgPermissions, error)
+	RevokePermission(path, user string) error
 }
 
 type request struct {
@@ -470,6 +471,31 @@ func (c *client) Invite(path, user string, write bool) error {
 			return errors.Wrap(err, fmt.Sprintf("failed to decode response body (status code: %d)", status))
 		}
 		return fmt.Errorf("failed to invite user into org: %s", msg)
+	}
+	return nil
+}
+
+func (c *client) RevokePermission(path, user string) error {
+	orgName, ok := getOrgFromPath(path)
+	if !ok {
+		return fmt.Errorf("invalid path")
+	}
+
+	permission := api.OrgPermissions{
+		Path:  path,
+		Email: user,
+	}
+
+	status, body, err := c.doCall("DELETE", fmt.Sprintf("/api/v0/admin/organizations/%s/permissions", orgName), withPublicKeyAuth(), withJSONBody(&permission))
+	if err != nil {
+		return err
+	}
+	if status != http.StatusOK {
+		msg, err := getMessageFromJSON(bytes.NewReader([]byte(body)))
+		if err != nil {
+			return errors.Wrap(err, fmt.Sprintf("failed to decode response body (status code: %d)", status))
+		}
+		return fmt.Errorf("failed to revoke user from org: %s", msg)
 	}
 	return nil
 }

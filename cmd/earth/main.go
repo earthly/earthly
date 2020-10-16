@@ -417,6 +417,10 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 						},
 					},
 				},
+				{
+					Name:   "revoke",
+					Action: app.actionOrgRevoke,
+				},
 			},
 		},
 		{
@@ -952,6 +956,24 @@ func (app *earthApp) actionOrgInvite(c *cli.Context) error {
 	err := sc.Invite(path, userEmail, app.writePermission)
 	if err != nil {
 		return errors.Wrap(err, "failed to invite user into org")
+	}
+	return nil
+}
+
+func (app *earthApp) actionOrgRevoke(c *cli.Context) error {
+	if c.NArg() < 2 {
+		return errors.New("invalid number of arguments provided")
+	}
+	path := c.Args().Get(0)
+	if !strings.HasSuffix(path, "/") {
+		return errors.New("revoked paths must end with a slash (/)")
+	}
+
+	sc := secretsclient.NewClient(app.apiServer, app.sshAuthSock)
+	userEmail := c.Args().Get(1)
+	err := sc.RevokePermission(path, userEmail)
+	if err != nil {
+		return errors.Wrap(err, "failed to revoke user from org")
 	}
 	return nil
 }
