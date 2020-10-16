@@ -133,23 +133,42 @@ We start with a simple Earthfile that can build and create a docker image for ou
 
 We start from an appropriate docker image and set up a working directory. 
 ``` Dockerfile
-FROM hseeberger/scala-sbt:8u265_1.4.0_2.12.12
+FROM earthly/dind:alpine
 WORKDIR /scala-example
+RUN apk add openjdk11 bash wget
 ```
 
 [Full file](https://github.com/earthly/earthly-example-scala/blob/master/integration/Earthfile)
 
 {% sample lang="Project Files" %}
+We then install SBT
+
+``` Dockerfile
+sbt: 
+    #Scala
+    # Defaults if not specified in --build-arg
+    ARG sbt_version=1.3.2
+    ARG sbt_home=/usr/local/sbt
+
+    # Download and extract from archive
+    RUN mkdir -pv "$sbt_home"
+    RUN wget -qO - "https://github.com/sbt/sbt/releases/download/v$sbt_version/sbt-$sbt_version.tgz" >/tmp/sbt.tgz
+    RUN tar xzf /tmp/sbt.tgz -C "$sbt_home" --strip-components=1
+    RUN ln -sv "$sbt_home"/bin/sbt /usr/bin/
+
+    # This triggers a bunch of useful downloads.
+    RUN sbt sbtVersion
+```
 
 We then copy in our build files and run Scala Build Tool, so that we can cache our dependencies
 
 ``` Dockerfile
 project-files:
+    FROM +sbt
     COPY build.sbt ./
     COPY project project
     # Run sbt for caching purposes.
     RUN touch a.scala && sbt compile && rm a.scala
-    SAVE IMAGE
 ```
 
 [Full file](https://github.com/earthly/earthly/blob/master/examples/integration-test/Earthfile)
@@ -162,7 +181,6 @@ build:
     FROM +project-files
     COPY src src
     RUN sbt compile
-    SAVE IMAGE 
 ```
 [Full file](https://github.com/earthly/earthly/blob/master/examples/integration-test/Earthfile)
 

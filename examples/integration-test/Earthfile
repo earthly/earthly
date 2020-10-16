@@ -1,7 +1,26 @@
-FROM hseeberger/scala-sbt:8u265_1.4.0_2.12.12
+FROM earthly/dind:alpine
 WORKDIR /scala-example
+RUN apk add openjdk11 bash wget
+
+
+sbt: 
+    #Scala
+    # Defaults if not specified in --build-arg
+    ARG sbt_version=1.3.2
+    ARG sbt_home=/usr/local/sbt
+
+    # Download and extract from archive
+    RUN mkdir -pv "$sbt_home"
+    RUN wget -qO - "https://github.com/sbt/sbt/releases/download/v$sbt_version/sbt-$sbt_version.tgz" >/tmp/sbt.tgz
+    RUN tar xzf /tmp/sbt.tgz -C "$sbt_home" --strip-components=1
+    RUN ln -sv "$sbt_home"/bin/sbt /usr/bin/
+
+    # This triggers a bunch of useful downloads.
+    RUN sbt sbtVersion
+    SAVE IMAGE
 
 project-files:
+    FROM +sbt
     COPY build.sbt ./
     COPY project project
     # Run sbt for caching purposes.
