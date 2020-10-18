@@ -140,18 +140,34 @@ func (c *client) doCall(method, url string, opts ...requestOpt) (int, string, er
 
 type client struct {
 	secretServer          string
+	sshKey                string
 	lastUsedPublicKeyPath string
 	sshAgent              agent.ExtendedAgent
 }
 
 // NewClient provides a new client
-func NewClient(secretServer, agentSockPath string) Client {
+func NewClient(secretServer, agentSockPath, sshKey string) Client {
 	return &client{
 		secretServer: secretServer,
+		sshKey:       sshKey,
 		sshAgent: &lazySSHAgent{
 			sockPath: agentSockPath,
 		},
 	}
+}
+
+func (c *client) filterKeys(keys []*agent.Key) []*agent.Key {
+	if c.sshKey == "" {
+		return keys
+	}
+
+	keys2 := []*agent.Key{}
+	for _, k := range keys {
+		if k.String() == c.sshKey || k.Comment == c.sshKey {
+			keys2 = append(keys2, k)
+		}
+	}
+	return keys2
 }
 
 func (c *client) GetPublicKeys() ([]*agent.Key, error) {
@@ -159,6 +175,7 @@ func (c *client) GetPublicKeys() ([]*agent.Key, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to list ssh keys")
 	}
+	keys = c.filterKeys(keys)
 
 	key, err := c.getLastUsedPublicKey()
 	if err != nil {
