@@ -614,7 +614,7 @@ func (c *Converter) internalRun(ctx context.Context, args []string, secretKeyVal
 			continue
 		}
 		if ba.IsConstant() {
-			extraEnvVars = append(extraEnvVars, fmt.Sprintf("%s=\"%s\"", buildArgName, ba.ConstantValue()))
+			extraEnvVars = append(extraEnvVars, fmt.Sprintf("%s=%s", buildArgName, ba.ConstantValue()))
 		} else {
 			buildArgPath := path.Join("/run/buildargs", buildArgName)
 			finalOpts = append(finalOpts, llb.AddMount(buildArgPath, ba.VariableState(), llb.SourcePath(buildArgPath)))

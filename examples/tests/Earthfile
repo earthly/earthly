@@ -36,6 +36,7 @@ ga:
     BUILD +chown-test
     BUILD +dotenv-test
     BUILD +env-test
+    BUILD +single-double-quote
     BUILD ./with-docker+all
     BUILD ./with-docker-compose+all
 
@@ -336,3 +337,10 @@ eine-privileged-test:
     WITH DOCKER --load earthly/buildkitd:dind-test=../../buildkitd+buildkitd
         RUN earth --allow-privileged +test
     END
+
+single-double-quote:
+    COPY singledoublequote.earth ./Earthfile
+    RUN --privileged \
+        --entrypoint \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        -- +test

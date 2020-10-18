@@ -81,7 +81,9 @@ WS_R: WS -> type(WS);
 mode COMMAND_ARGS;
 
 Atom: (RegularAtomPart | QuotedAtomPart)+;
-fragment QuotedAtomPart: ('"' (~'"' | '\\"')* '"');
+fragment QuotedAtomPart: SingleQuotedAtomPart | DoubleQuotedAtomPart;
+fragment SingleQuotedAtomPart: ('\'' (~'\'' | '\\\'')* '\'');
+fragment DoubleQuotedAtomPart: ('"' (~'"' | '\\"')* '"');
 fragment RegularAtomPart: ~([ \t\r\n\\"]) | EscapedAtomPart;
 fragment EscapedAtomPart: ('\\' .) | (LC [ \t]*);
 

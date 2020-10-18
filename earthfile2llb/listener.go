@@ -434,9 +434,6 @@ func (l *listener) ExitBuildStmt(c *parser.BuildStmtContext) {
 		return
 	}
 	fullTargetName := l.expandArgs(fs.Arg(0))
-	for i, arg := range buildArgs.Args {
-		buildArgs.Args[i] = l.expandArgs(arg)
-	}
 	_, err = l.converter.Build(l.ctx, fullTargetName, buildArgs.Args)
 	if err != nil {
 		l.err = errors.Wrapf(err, "apply BUILD %s", fullTargetName)

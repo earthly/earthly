@@ -1,0 +1,12 @@
+FROM alpine:3.11
+WORKDIR /builder
+
+build:
+    ARG ACTUAL=unset_a
+    ARG EXPECTED=unset_e
+    RUN echo "ACTUAL = $ACTUAL | Expected = $EXPECTED"
+    RUN echo $ACTUAL | grep -Eq $EXPECTED
+
+test:
+    BUILD --build-arg ACTUAL="$(whoami)" --build-arg EXPECTED='^root$ ' +build
+    BUILD --build-arg ACTUAL=' $(whoami) ' --build-arg EXPECTED='^\$\(whoami\)$' +build
