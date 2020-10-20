@@ -1,6 +1,6 @@
 FROM ../../..+earth-docker
 
-test1:
+test-root-commands:
     RUN echo "./
 bootstrap 
 org 
@@ -11,7 +11,7 @@ prune " > expected
     RUN COMP_LINE="earth " COMP_POINT=6 earth > actual
     RUN diff expected actual
 
-test2:
+test-targets:
     COPY fake.earth ./Earthfile
     RUN echo "+mytarget 
 +othertarget " > expected
@@ -21,6 +21,19 @@ test2:
     RUN COMP_LINE="earth +m" COMP_POINT=8 earth > actual
     RUN diff expected actual
 
-test:
-    BUILD +test1
-    BUILD +test2
+test-relative-dir-targets:
+    RUN mkdir -p /test/foo
+    COPY fake.earth /test/foo/Earthfile
+    WORKDIR /test/
+    RUN echo "./foo+" > expected
+    RUN COMP_LINE="earth ./" COMP_POINT=8 earth > actual
+    RUN diff expected actual
+    RUN echo "./foo+mytarget 
+./foo+othertarget " > expected
+    RUN COMP_LINE="earth ./foo+" COMP_POINT=12 earth > actual
+    RUN diff expected actual
+
+test-all:
+    BUILD +test-root-commands
+    BUILD +test-targets
+    BUILD +test-relative-dir-targets
