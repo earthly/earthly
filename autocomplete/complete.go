@@ -5,9 +5,12 @@ import (
 	"os"
 	"os/user"
 	"path"
+	"reflect"
 	"strings"
 
 	"github.com/earthly/earthly/earthfile2llb"
+
+	"github.com/urfave/cli/v2"
 )
 
 func hasTargetOrCommand(line string) bool {
@@ -152,9 +155,41 @@ func getPotentialPaths(prefix string) ([]string, error) {
 	return paths, nil
 }
 
+// isHidden returns if a flag is hidden or not
+// this code comes from https://github.com/urfave/cli/blob/d648edd48d89ef3a841b1ec75c2ebbd4de5f748f/flag.go#L136
+func isVisibleFlag(fl cli.Flag) bool {
+	fv := reflect.ValueOf(fl)
+	for fv.Kind() == reflect.Ptr {
+		fv = reflect.Indirect(fv)
+	}
+	field := fv.FieldByName("Hidden")
+	if !field.IsValid() || !field.Bool() {
+		return true
+	}
+	return false
+}
+
 // GetPotentials returns a list of potential arguments for shell auto completion
-func GetPotentials(compLine string, compPoint int, flags, commands []string) ([]string, error) {
+func GetPotentials(compLine string, compPoint int, app *cli.App) ([]string, error) {
 	potentials := []string{}
+
+	flags := []string{}
+	for _, f := range app.Flags {
+		if isVisibleFlag(f) {
+			for _, n := range f.Names() {
+				if len(n) > 1 {
+					flags = append(flags, n)
+				}
+			}
+		}
+	}
+
+	commands := []string{}
+	for _, cmd := range app.Commands {
+		if !cmd.Hidden {
+			commands = append(commands, cmd.Name)
+		}
+	}
 
 	prefix := parseLine(compLine, compPoint)
 

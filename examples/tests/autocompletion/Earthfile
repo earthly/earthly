@@ -3,10 +3,6 @@ FROM ../../..+earth-docker
 test-root-commands:
     RUN echo "./
 bootstrap 
-org 
-secrets 
-register 
-debug 
 prune " > expected
     RUN COMP_LINE="earth " COMP_POINT=6 earth > actual
     RUN diff expected actual

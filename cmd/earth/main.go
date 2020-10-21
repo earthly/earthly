@@ -706,21 +706,7 @@ func (app *earthApp) autoCompleteImp() (err error) {
 		return err
 	}
 
-	flags := []string{}
-	for _, f := range app.cliApp.Flags {
-		for _, n := range f.Names() {
-			if len(n) > 1 {
-				flags = append(flags, n)
-			}
-		}
-	}
-
-	commands := []string{}
-	for _, cmd := range app.cliApp.Commands {
-		commands = append(commands, cmd.Name)
-	}
-
-	potentials, err := autocomplete.GetPotentials(compLine, int(compPointInt), flags, commands)
+	potentials, err := autocomplete.GetPotentials(compLine, int(compPointInt), app.cliApp)
 	if err != nil {
 		return err
 	}
