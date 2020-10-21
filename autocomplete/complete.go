@@ -8,6 +8,8 @@ import (
 	"strings"
 
 	"github.com/earthly/earthly/earthfile2llb"
+
+	"github.com/urfave/cli/v2"
 )
 
 func hasTargetOrCommand(line string) bool {
@@ -153,8 +155,22 @@ func getPotentialPaths(prefix string) ([]string, error) {
 }
 
 // GetPotentials returns a list of potential arguments for shell auto completion
-func GetPotentials(compLine string, compPoint int, flags, commands []string) ([]string, error) {
+func GetPotentials(compLine string, compPoint int, app *cli.App) ([]string, error) {
 	potentials := []string{}
+
+	flags := []string{}
+	for _, f := range app.Flags {
+		for _, n := range f.Names() {
+			if len(n) > 1 {
+				flags = append(flags, n)
+			}
+		}
+	}
+
+	commands := []string{}
+	for _, cmd := range app.Commands {
+		commands = append(commands, cmd.Name)
+	}
 
 	prefix := parseLine(compLine, compPoint)
 
