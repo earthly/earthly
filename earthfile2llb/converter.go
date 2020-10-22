@@ -17,6 +17,7 @@ import (
 
 	"github.com/docker/distribution/reference"
 	"github.com/earthly/earthly/buildcontext"
+	"github.com/earthly/earthly/buildcontext/provider"
 	"github.com/earthly/earthly/cleanup"
 	"github.com/earthly/earthly/debugger/common"
 	"github.com/earthly/earthly/domain"
@@ -35,20 +36,21 @@ import (
 
 // Converter turns earth commands to buildkit LLB representation.
 type Converter struct {
-	gitMeta            *buildcontext.GitMetadata
-	resolver           *buildcontext.Resolver
-	mts                *states.MultiTarget
-	directDeps         []*states.SingleTarget
-	directDepIndices   []int
-	buildContext       llb.State
-	cacheContext       llb.State
-	varCollection      *variables.Collection
-	dockerBuilderFun   states.DockerBuilderFun
-	artifactBuilderFun states.ArtifactBuilderFun
-	cleanCollection    *cleanup.Collection
-	nextArgIndex       int
-	solveCache         map[string]llb.State
-	imageResolveMode   llb.ResolveMode
+	gitMeta              *buildcontext.GitMetadata
+	resolver             *buildcontext.Resolver
+	mts                  *states.MultiTarget
+	directDeps           []*states.SingleTarget
+	directDepIndices     []int
+	buildContext         llb.State
+	cacheContext         llb.State
+	varCollection        *variables.Collection
+	dockerBuilderFun     states.DockerBuilderFun
+	artifactBuilderFun   states.ArtifactBuilderFun
+	cleanCollection      *cleanup.Collection
+	nextArgIndex         int
+	solveCache           map[string]llb.State
+	imageResolveMode     llb.ResolveMode
+	buildContextProvider *provider.BuildContextProvider
 }
 
 // NewConverter constructs a new converter for a given earth target.
@@ -76,17 +78,18 @@ func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Da
 	targetStr := target.String()
 	opt.Visited[targetStr] = append(opt.Visited[targetStr], sts)
 	return &Converter{
-		gitMeta:            bc.GitMetadata,
-		resolver:           opt.Resolver,
-		imageResolveMode:   opt.ImageResolveMode,
-		mts:                mts,
-		buildContext:       bc.BuildContext,
-		cacheContext:       makeCacheContext(target),
-		varCollection:      opt.VarCollection.WithBuiltinBuildArgs(target, bc.GitMetadata),
-		dockerBuilderFun:   opt.DockerBuilderFun,
-		artifactBuilderFun: opt.ArtifactBuilderFun,
-		cleanCollection:    opt.CleanCollection,
-		solveCache:         opt.SolveCache,
+		gitMeta:              bc.GitMetadata,
+		resolver:             opt.Resolver,
+		imageResolveMode:     opt.ImageResolveMode,
+		mts:                  mts,
+		buildContext:         bc.BuildContext,
+		cacheContext:         makeCacheContext(target),
+		varCollection:        opt.VarCollection.WithBuiltinBuildArgs(target, bc.GitMetadata),
+		dockerBuilderFun:     opt.DockerBuilderFun,
+		artifactBuilderFun:   opt.ArtifactBuilderFun,
+		cleanCollection:      opt.CleanCollection,
+		solveCache:           opt.SolveCache,
+		buildContextProvider: opt.BuildContextProvider,
 	}, nil
 }
 
@@ -411,14 +414,15 @@ func (c *Converter) Build(ctx context.Context, fullTargetName string, buildArgs 
 	// Recursion.
 	mts, err := Earthfile2LLB(
 		ctx, target, ConvertOpt{
-			Resolver:           c.resolver,
-			ImageResolveMode:   c.imageResolveMode,
-			DockerBuilderFun:   c.dockerBuilderFun,
-			ArtifactBuilderFun: c.artifactBuilderFun,
-			CleanCollection:    c.cleanCollection,
-			Visited:            c.mts.Visited,
-			VarCollection:      newVarCollection,
-			SolveCache:         c.solveCache,
+			Resolver:             c.resolver,
+			ImageResolveMode:     c.imageResolveMode,
+			DockerBuilderFun:     c.dockerBuilderFun,
+			ArtifactBuilderFun:   c.artifactBuilderFun,
+			CleanCollection:      c.cleanCollection,
+			Visited:              c.mts.Visited,
+			VarCollection:        newVarCollection,
+			SolveCache:           c.solveCache,
+			BuildContextProvider: c.buildContextProvider,
 		})
 	if err != nil {
 		return nil, errors.Wrapf(err, "earthfile2llb for %s", fullTargetName)
@@ -578,6 +582,7 @@ func (c *Converter) FinalizeStates() *states.MultiTarget {
 			depStates.Target)
 	}
 
+	c.buildContextProvider.AddDirs(c.mts.Final.LocalDirs)
 	c.mts.Final.Ongoing = false
 	return c.mts
 }

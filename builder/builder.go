@@ -57,11 +57,10 @@ func NewBuilder(ctx context.Context, bkClient *client.Client, console consloggin
 func (b *Builder) Build(ctx context.Context, mts *states.MultiTarget, opt BuildOpt) error {
 	// Start with final side-effects. This will automatically trigger the dependency builds too,
 	// in parallel.
-	cacheLocalDir, localDirs, err := b.buildCommon(ctx, mts, opt)
+	err := b.buildCommon(ctx, mts, opt)
 	if err != nil {
 		return err
 	}
-	defer os.RemoveAll(cacheLocalDir)
 	if opt.PrintSuccess {
 		b.console.PrintSuccess()
 	}
@@ -69,7 +68,7 @@ func (b *Builder) Build(ctx context.Context, mts *states.MultiTarget, opt BuildO
 	// Then output images and artifacts.
 	if !opt.NoOutput {
 		for _, states := range mts.All() {
-			err = b.buildOutputs(ctx, localDirs, states, opt)
+			err = b.buildOutputs(ctx, states, opt)
 			if err != nil {
 				return err
 			}
@@ -82,16 +81,15 @@ func (b *Builder) Build(ctx context.Context, mts *states.MultiTarget, opt BuildO
 // and outputs only a docker tar of the last saved image.
 func (b *Builder) BuildOnlyLastImageAsTar(ctx context.Context, mts *states.MultiTarget, dockerTag string, outFile string, opt BuildOpt) error {
 	saveImage := mts.Final.LastSaveImage()
-	cacheLocalDir, localDirs, err := b.buildCommon(ctx, mts, opt)
+	err := b.buildCommon(ctx, mts, opt)
 	if err != nil {
 		return err
 	}
-	defer os.RemoveAll(cacheLocalDir)
 	if opt.PrintSuccess {
 		b.console.PrintSuccess()
 	}
 
-	err = b.buildImageTar(ctx, localDirs, saveImage, dockerTag, outFile)
+	err = b.buildImageTar(ctx, saveImage, dockerTag, outFile)
 	if err != nil {
 		return err
 	}
@@ -110,16 +108,15 @@ func (b *Builder) MakeImageAsTarBuilderFun() func(context.Context, *states.Multi
 func (b *Builder) BuildOnlyImages(ctx context.Context, mts *states.MultiTarget, opt BuildOpt) error {
 	// Start with final side-effects. This will automatically trigger the dependency builds too,
 	// in parallel.
-	cacheLocalDir, localDirs, err := b.buildCommon(ctx, mts, opt)
+	err := b.buildCommon(ctx, mts, opt)
 	if err != nil {
 		return err
 	}
-	defer os.RemoveAll(cacheLocalDir)
 	if opt.PrintSuccess {
 		b.console.PrintSuccess()
 	}
 
-	err = b.buildImages(ctx, localDirs, mts.Final, opt)
+	err = b.buildImages(ctx, mts.Final, opt)
 	if err != nil {
 		return err
 	}
@@ -131,11 +128,10 @@ func (b *Builder) BuildOnlyImages(ctx context.Context, mts *states.MultiTarget, 
 func (b *Builder) BuildOnlyArtifact(ctx context.Context, mts *states.MultiTarget, artifact domain.Artifact, destPath string, opt BuildOpt) error {
 	// Start with final side-effects. This will automatically trigger the dependency builds too,
 	// in parallel.
-	cacheLocalDir, localDirs, err := b.buildCommon(ctx, mts, opt)
+	err := b.buildCommon(ctx, mts, opt)
 	if err != nil {
 		return err
 	}
-	defer os.RemoveAll(cacheLocalDir)
 	if opt.PrintSuccess {
 		b.console.PrintSuccess()
 	}
@@ -149,7 +145,7 @@ func (b *Builder) BuildOnlyArtifact(ctx context.Context, mts *states.MultiTarget
 	defer os.RemoveAll(outDir)
 	solvedStates := make(map[int]bool)
 	err = b.buildSpecifiedArtifact(
-		ctx, artifact, destPath, outDir, solvedStates, localDirs, mts.Final, opt)
+		ctx, artifact, destPath, outDir, solvedStates, mts.Final, opt)
 	if err != nil {
 		return err
 	}
@@ -164,59 +160,40 @@ func (b *Builder) MakeArtifactBuilderFun() func(context.Context, *states.MultiTa
 	}
 }
 
-func (b *Builder) buildCommon(ctx context.Context, mts *states.MultiTarget, opt BuildOpt) (string, map[string]string, error) {
-	cacheLocalDir, err := ioutil.TempDir("/tmp", "earthly-cache")
-	if err != nil {
-		return "", nil, errors.Wrap(err, "make temp dir for cache")
-	}
-	// Collect all local dirs.
-	localDirs := make(map[string]string)
-	localDirs["earthly-cache"] = cacheLocalDir
-	for _, states := range mts.All() {
-		for key, value := range states.LocalDirs {
-			existingValue, alreadyExists := localDirs[key]
-			if alreadyExists && existingValue != value {
-				return "", nil, fmt.Errorf(
-					"inconsistent local dirs. For dir entry %s found both %s and %s",
-					key, value, existingValue)
-			}
-			localDirs[key] = value
-		}
-	}
-
+func (b *Builder) buildCommon(ctx context.Context, mts *states.MultiTarget, opt BuildOpt) error {
 	finalTarget := mts.Final.Target
 	finalTargetConsole := b.console.WithPrefixAndSalt(finalTarget.String(), mts.Final.Salt)
-	err = b.buildMain(ctx, localDirs, mts.Final)
+	err := b.buildMain(ctx, mts.Final)
 	if err != nil {
-		return "", nil, err
+		return err
 	}
 	if opt.PrintSuccess {
 		finalTargetConsole.Printf("Target %s built successfully\n", finalTarget.StringCanonical())
 	}
-	return cacheLocalDir, localDirs, nil
+	return nil
 }
 
-func (b *Builder) buildMain(ctx context.Context, localDirs map[string]string, states *states.SingleTarget) error {
+func (b *Builder) buildMain(ctx context.Context, states *states.SingleTarget) error {
 	state := states.MainState
 	if b.noCache {
 		state = state.SetMarshalDefaults(llb.IgnoreCache)
 	}
-	err := b.s.solveMain(ctx, localDirs, state)
+	err := b.s.solveMain(ctx, state)
 	if err != nil {
 		return errors.Wrapf(err, "solve side effects")
 	}
 	return nil
 }
 
-func (b *Builder) buildOutputs(ctx context.Context, localDirs map[string]string, states *states.SingleTarget, opt BuildOpt) error {
+func (b *Builder) buildOutputs(ctx context.Context, states *states.SingleTarget, opt BuildOpt) error {
 	// Run --push commands.
-	err := b.buildRunPush(ctx, localDirs, states, opt)
+	err := b.buildRunPush(ctx, states, opt)
 	if err != nil {
 		return err
 	}
 
 	// Images.
-	err = b.buildImages(ctx, localDirs, states, opt)
+	err = b.buildImages(ctx, states, opt)
 	if err != nil {
 		return err
 	}
@@ -224,7 +201,7 @@ func (b *Builder) buildOutputs(ctx context.Context, localDirs map[string]string,
 	// Artifacts.
 	if !states.Target.IsRemote() {
 		// Don't output artifacts for remote images.
-		err = b.buildArtifacts(ctx, localDirs, states, opt)
+		err = b.buildArtifacts(ctx, states, opt)
 		if err != nil {
 			return err
 		}
@@ -232,7 +209,7 @@ func (b *Builder) buildOutputs(ctx context.Context, localDirs map[string]string,
 	return nil
 }
 
-func (b *Builder) buildRunPush(ctx context.Context, localDirs map[string]string, states *states.SingleTarget, opt BuildOpt) error {
+func (b *Builder) buildRunPush(ctx context.Context, states *states.SingleTarget, opt BuildOpt) error {
 	if !states.RunPush.Initialized {
 		// No run --push commands here. Quick way out.
 		return nil
@@ -244,20 +221,20 @@ func (b *Builder) buildRunPush(ctx context.Context, localDirs map[string]string,
 		}
 		return nil
 	}
-	err := b.s.solveMain(ctx, localDirs, states.RunPush.State)
+	err := b.s.solveMain(ctx, states.RunPush.State)
 	if err != nil {
 		return errors.Wrapf(err, "solve run-push")
 	}
 	return nil
 }
 
-func (b *Builder) buildImages(ctx context.Context, localDirs map[string]string, states *states.SingleTarget, opt BuildOpt) error {
+func (b *Builder) buildImages(ctx context.Context, states *states.SingleTarget, opt BuildOpt) error {
 	for _, imageToSave := range states.SaveImages {
 		if imageToSave.DockerTag == "" {
 			// Not a docker export. Skip.
 			continue
 		}
-		err := b.buildImage(ctx, imageToSave, localDirs, states, opt)
+		err := b.buildImage(ctx, imageToSave, states, opt)
 		if err != nil {
 			return err
 		}
@@ -265,10 +242,10 @@ func (b *Builder) buildImages(ctx context.Context, localDirs map[string]string, 
 	return nil
 }
 
-func (b *Builder) buildImage(ctx context.Context, imageToSave states.SaveImage, localDirs map[string]string, states *states.SingleTarget, opt BuildOpt) error {
+func (b *Builder) buildImage(ctx context.Context, imageToSave states.SaveImage, states *states.SingleTarget, opt BuildOpt) error {
 	shouldPush := opt.Push && imageToSave.Push
 	console := b.console.WithPrefixAndSalt(states.Target.String(), states.Salt)
-	err := b.s.solveDocker(ctx, localDirs, imageToSave.State, imageToSave.Image, imageToSave.DockerTag, shouldPush)
+	err := b.s.solveDocker(ctx, imageToSave.State, imageToSave.Image, imageToSave.DockerTag, shouldPush)
 	if err != nil {
 		return errors.Wrapf(err, "solve image %s", imageToSave.DockerTag)
 	}
@@ -283,15 +260,15 @@ func (b *Builder) buildImage(ctx context.Context, imageToSave states.SaveImage, 
 	return nil
 }
 
-func (b *Builder) buildImageTar(ctx context.Context, localDirs map[string]string, saveImage states.SaveImage, dockerTag string, outFile string) error {
-	err := b.s.solveDockerTar(ctx, localDirs, saveImage.State, saveImage.Image, dockerTag, outFile)
+func (b *Builder) buildImageTar(ctx context.Context, saveImage states.SaveImage, dockerTag string, outFile string) error {
+	err := b.s.solveDockerTar(ctx, saveImage.State, saveImage.Image, dockerTag, outFile)
 	if err != nil {
 		return errors.Wrapf(err, "solve image tar %s", outFile)
 	}
 	return nil
 }
 
-func (b *Builder) buildArtifacts(ctx context.Context, localDirs map[string]string, states *states.SingleTarget, opt BuildOpt) error {
+func (b *Builder) buildArtifacts(ctx context.Context, states *states.SingleTarget, opt BuildOpt) error {
 	outDir, err := ioutil.TempDir(".", ".tmp-earth-out")
 	if err != nil {
 		return errors.Wrap(err, "mk temp dir for artifacts")
@@ -300,7 +277,7 @@ func (b *Builder) buildArtifacts(ctx context.Context, localDirs map[string]strin
 	solvedStates := make(map[int]bool)
 	for _, artifactToSaveLocally := range states.SaveLocals {
 		err = b.buildArtifact(
-			ctx, artifactToSaveLocally, outDir, solvedStates, localDirs, states, opt)
+			ctx, artifactToSaveLocally, outDir, solvedStates, states, opt)
 		if err != nil {
 			return err
 		}
@@ -308,14 +285,14 @@ func (b *Builder) buildArtifacts(ctx context.Context, localDirs map[string]strin
 	return nil
 }
 
-func (b *Builder) buildSpecifiedArtifact(ctx context.Context, artifact domain.Artifact, destPath string, outDir string, solvedStates map[int]bool, localDirs map[string]string, states *states.SingleTarget, opt BuildOpt) error {
+func (b *Builder) buildSpecifiedArtifact(ctx context.Context, artifact domain.Artifact, destPath string, outDir string, solvedStates map[int]bool, states *states.SingleTarget, opt BuildOpt) error {
 	indexOutDir := filepath.Join(outDir, "combined")
 	err := os.Mkdir(indexOutDir, 0755)
 	if err != nil {
 		return errors.Wrap(err, "mk index dir")
 	}
 	artifactsState := states.ArtifactsState
-	err = b.s.solveArtifacts(ctx, localDirs, artifactsState, indexOutDir)
+	err = b.s.solveArtifacts(ctx, artifactsState, indexOutDir)
 	if err != nil {
 		return errors.Wrap(err, "solve combined artifacts")
 	}
@@ -327,7 +304,7 @@ func (b *Builder) buildSpecifiedArtifact(ctx context.Context, artifact domain.Ar
 	return nil
 }
 
-func (b *Builder) buildArtifact(ctx context.Context, artifactToSaveLocally states.SaveLocal, outDir string, solvedStates map[int]bool, localDirs map[string]string, states *states.SingleTarget, opt BuildOpt) error {
+func (b *Builder) buildArtifact(ctx context.Context, artifactToSaveLocally states.SaveLocal, outDir string, solvedStates map[int]bool, states *states.SingleTarget, opt BuildOpt) error {
 	index := artifactToSaveLocally.Index
 	indexOutDir := filepath.Join(outDir, fmt.Sprintf("index-%d", index))
 	if !solvedStates[index] {
@@ -337,7 +314,7 @@ func (b *Builder) buildArtifact(ctx context.Context, artifactToSaveLocally state
 		if err != nil {
 			return errors.Wrap(err, "mk index dir")
 		}
-		err = b.s.solveArtifacts(ctx, localDirs, artifactsState, indexOutDir)
+		err = b.s.solveArtifacts(ctx, artifactsState, indexOutDir)
 		if err != nil {
 			return errors.Wrap(err, "solve artifacts")
 		}

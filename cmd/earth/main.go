@@ -25,6 +25,7 @@ import (
 
 	"github.com/earthly/earthly/autocomplete"
 	"github.com/earthly/earthly/buildcontext"
+	"github.com/earthly/earthly/buildcontext/provider"
 	"github.com/earthly/earthly/builder"
 	"github.com/earthly/earthly/buildkitd"
 	"github.com/earthly/earthly/cleanup"
@@ -1326,9 +1327,19 @@ func (app *earthApp) actionBuild(c *cli.Context) error {
 
 	sc := secretsclient.NewClient(app.apiServer, app.sshAuthSock, app.publicKey)
 
+	cacheLocalDir, err := ioutil.TempDir("/tmp", "earthly-cache")
+	if err != nil {
+		return errors.Wrap(err, "make temp dir for cache")
+	}
+	defer os.RemoveAll(cacheLocalDir)
+	defaultLocalDirs := make(map[string]string)
+	defaultLocalDirs["earthly-cache"] = cacheLocalDir
+	buildContextProvider := provider.NewBuildContextProvider()
+	buildContextProvider.AddDirs(defaultLocalDirs)
 	attachables := []session.Attachable{
 		llbutil.NewSecretProvider(sc, secretsMap),
 		authprovider.NewDockerAuthProvider(os.Stderr),
+		buildContextProvider,
 	}
 
 	if app.sshAuthSock != "" {
@@ -1354,7 +1365,7 @@ func (app *earthApp) actionBuild(c *cli.Context) error {
 	cleanCollection := cleanup.NewCollection()
 	defer cleanCollection.Close()
 	resolver := buildcontext.NewResolver(
-		bkClient, app.sessionID, cleanCollection, b.MakeArtifactBuilderFun())
+		app.sessionID, cleanCollection, b.MakeArtifactBuilderFun())
 
 	if app.interactiveDebugging {
 		go terminal.ConnectTerm(c.Context, fmt.Sprintf("127.0.0.1:%d", app.buildkitdSettings.DebuggerPort))
@@ -1370,12 +1381,13 @@ func (app *earthApp) actionBuild(c *cli.Context) error {
 	}
 	mts, err := earthfile2llb.Earthfile2LLB(
 		c.Context, target, earthfile2llb.ConvertOpt{
-			Resolver:           resolver,
-			ImageResolveMode:   imageResolveMode,
-			DockerBuilderFun:   b.MakeImageAsTarBuilderFun(),
-			ArtifactBuilderFun: b.MakeArtifactBuilderFun(),
-			CleanCollection:    cleanCollection,
-			VarCollection:      varCollection,
+			Resolver:             resolver,
+			ImageResolveMode:     imageResolveMode,
+			DockerBuilderFun:     b.MakeImageAsTarBuilderFun(),
+			ArtifactBuilderFun:   b.MakeArtifactBuilderFun(),
+			CleanCollection:      cleanCollection,
+			VarCollection:        varCollection,
+			BuildContextProvider: buildContextProvider,
 		})
 	if err != nil {
 		return err

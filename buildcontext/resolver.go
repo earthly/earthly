@@ -6,7 +6,6 @@ import (
 	"github.com/earthly/earthly/cleanup"
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/states"
-	"github.com/moby/buildkit/client"
 	"github.com/moby/buildkit/client/llb"
 )
 
@@ -35,10 +34,9 @@ type Resolver struct {
 }
 
 // NewResolver returns a new NewResolver.
-func NewResolver(bkClient *client.Client, sessionID string, cleanCollection *cleanup.Collection, artifactBuilderFun states.ArtifactBuilderFun) *Resolver {
+func NewResolver(sessionID string, cleanCollection *cleanup.Collection, artifactBuilderFun states.ArtifactBuilderFun) *Resolver {
 	return &Resolver{
 		gr: &gitResolver{
-			bkClient:           bkClient,
 			cleanCollection:    cleanCollection,
 			artifactBuilderFun: artifactBuilderFun,
 			projectCache:       make(map[string]*resolvedGitProject),

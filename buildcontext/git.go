@@ -13,7 +13,6 @@ import (
 	"github.com/earthly/earthly/llbutil"
 	"github.com/earthly/earthly/llbutil/llbgit"
 	"github.com/earthly/earthly/states"
-	"github.com/moby/buildkit/client"
 	"github.com/moby/buildkit/client/llb"
 	"github.com/pkg/errors"
 )
@@ -23,7 +22,6 @@ const (
 )
 
 type gitResolver struct {
-	bkClient           *client.Client
 	cleanCollection    *cleanup.Collection
 	artifactBuilderFun states.ArtifactBuilderFun
 
@@ -233,16 +231,4 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, target domain.Targ
 		gr.projectCache[cacheKey4] = resolved
 	}
 	return resolved, gitURL, subDir, nil
-}
-
-func newSolveOptGit(outDir string) *client.SolveOpt {
-	return &client.SolveOpt{
-		Exports: []client.ExportEntry{
-			{
-				Type:      client.ExporterLocal,
-				OutputDir: outDir,
-			},
-		},
-		LocalDirs: make(map[string]string),
-	}
 }

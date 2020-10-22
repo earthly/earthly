@@ -28,13 +28,13 @@ type solver struct {
 	remoteCache string
 }
 
-func (s *solver) solveDocker(ctx context.Context, localDirs map[string]string, state llb.State, img *image.Image, dockerTag string, push bool) error {
+func (s *solver) solveDocker(ctx context.Context, state llb.State, img *image.Image, dockerTag string, push bool) error {
 	dt, err := state.Marshal(ctx, llb.Platform(llbutil.TargetPlatform))
 	if err != nil {
 		return errors.Wrap(err, "state marshal")
 	}
 	pipeR, pipeW := io.Pipe()
-	solveOpt, err := s.newSolveOptDocker(img, dockerTag, localDirs, pipeW)
+	solveOpt, err := s.newSolveOptDocker(img, dockerTag, pipeW)
 	if err != nil {
 		return errors.Wrap(err, "new solve opt")
 	}
@@ -83,13 +83,13 @@ func (s *solver) solveDocker(ctx context.Context, localDirs map[string]string, s
 	return nil
 }
 
-func (s *solver) solveDockerTar(ctx context.Context, localDirs map[string]string, state llb.State, img *image.Image, dockerTag string, outFile string) error {
+func (s *solver) solveDockerTar(ctx context.Context, state llb.State, img *image.Image, dockerTag string, outFile string) error {
 	dt, err := state.Marshal(ctx, llb.Platform(llbutil.TargetPlatform))
 	if err != nil {
 		return errors.Wrap(err, "state marshal")
 	}
 	pipeR, pipeW := io.Pipe()
-	solveOpt, err := s.newSolveOptDocker(img, dockerTag, localDirs, pipeW)
+	solveOpt, err := s.newSolveOptDocker(img, dockerTag, pipeW)
 	if err != nil {
 		return errors.Wrap(err, "new solve opt")
 	}
@@ -146,12 +146,12 @@ func (s *solver) solveDockerTar(ctx context.Context, localDirs map[string]string
 	return nil
 }
 
-func (s *solver) solveArtifacts(ctx context.Context, localDirs map[string]string, state llb.State, outDir string) error {
+func (s *solver) solveArtifacts(ctx context.Context, state llb.State, outDir string) error {
 	dt, err := state.Marshal(ctx, llb.Platform(llbutil.TargetPlatform))
 	if err != nil {
 		return errors.Wrap(err, "state marshal")
 	}
-	solveOpt, err := s.newSolveOptArtifacts(outDir, localDirs)
+	solveOpt, err := s.newSolveOptArtifacts(outDir)
 	if err != nil {
 		return errors.Wrap(err, "new solve opt")
 	}
@@ -178,7 +178,7 @@ func (s *solver) solveArtifacts(ctx context.Context, localDirs map[string]string
 }
 
 // when printDetailed is false, we only print non-cached items
-func (s *solver) solveMain(ctx context.Context, localDirs map[string]string, state llb.State) error {
+func (s *solver) solveMain(ctx context.Context, state llb.State) error {
 	dt, err := state.Marshal(ctx, llb.Platform(llbutil.TargetPlatform))
 	if err != nil {
 		return errors.Wrap(err, "state marshal")
@@ -192,7 +192,7 @@ func (s *solver) solveMain(ctx context.Context, localDirs map[string]string, sta
 		}
 		ops = append(ops, &op)
 	}
-	solveOpt, err := s.newSolveOptMain(localDirs)
+	solveOpt, err := s.newSolveOptMain()
 	if err != nil {
 		return errors.Wrap(err, "new solve opt")
 	}
@@ -218,7 +218,7 @@ func (s *solver) solveMain(ctx context.Context, localDirs map[string]string, sta
 	return nil
 }
 
-func (s *solver) newSolveOptDocker(img *image.Image, dockerTag string, localDirs map[string]string, w io.WriteCloser) (*client.SolveOpt, error) {
+func (s *solver) newSolveOptDocker(img *image.Image, dockerTag string, w io.WriteCloser) (*client.SolveOpt, error) {
 	imgJSON, err := json.Marshal(img)
 	if err != nil {
 		return nil, errors.Wrap(err, "image json marshal")
@@ -238,11 +238,10 @@ func (s *solver) newSolveOptDocker(img *image.Image, dockerTag string, localDirs
 		},
 		Session:             s.attachables,
 		AllowedEntitlements: s.enttlmnts,
-		LocalDirs:           localDirs,
 	}, nil
 }
 
-func (s *solver) newSolveOptArtifacts(outDir string, localDirs map[string]string) (*client.SolveOpt, error) {
+func (s *solver) newSolveOptArtifacts(outDir string) (*client.SolveOpt, error) {
 	return &client.SolveOpt{
 		Exports: []client.ExportEntry{
 			{
@@ -252,11 +251,10 @@ func (s *solver) newSolveOptArtifacts(outDir string, localDirs map[string]string
 		},
 		Session:             s.attachables,
 		AllowedEntitlements: s.enttlmnts,
-		LocalDirs:           localDirs,
 	}, nil
 }
 
-func (s *solver) newSolveOptMain(localDirs map[string]string) (*client.SolveOpt, error) {
+func (s *solver) newSolveOptMain() (*client.SolveOpt, error) {
 	var cacheImportExport []client.CacheOptionsEntry
 	if s.remoteCache != "" {
 		cacheImportExport = append(cacheImportExport, newRegistryCacheOpt(s.remoteCache))
@@ -264,7 +262,6 @@ func (s *solver) newSolveOptMain(localDirs map[string]string) (*client.SolveOpt,
 	return &client.SolveOpt{
 		Session:             s.attachables,
 		AllowedEntitlements: s.enttlmnts,
-		LocalDirs:           localDirs,
 		CacheImports:        cacheImportExport,
 		CacheExports:        cacheImportExport,
 	}, nil
