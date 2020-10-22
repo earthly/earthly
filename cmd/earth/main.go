@@ -1327,7 +1327,7 @@ func (app *earthApp) actionBuild(c *cli.Context) error {
 
 	sc := secretsclient.NewClient(app.apiServer, app.sshAuthSock, app.publicKey)
 
-	cacheLocalDir, err := ioutil.TempDir("/tmp", "earthly-cache")
+	cacheLocalDir, err := ioutil.TempDir("", "earthly-cache")
 	if err != nil {
 		return errors.Wrap(err, "make temp dir for cache")
 	}
