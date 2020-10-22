@@ -103,8 +103,8 @@ func withBody(body string) requestOpt {
 	}
 }
 
-const maxAttempt = 5
-const maxSleepBeforeRetry = time.Second
+const maxAttempt = 10
+const maxSleepBeforeRetry = time.Second * 3
 
 func (c *client) doCall(method, url string, opts ...requestOpt) (int, string, error) {
 	var r request
@@ -118,11 +118,21 @@ func (c *client) doCall(method, url string, opts ...requestOpt) (int, string, er
 	var status int
 	var body string
 	var err error
-	duration := time.Millisecond
+	duration := time.Millisecond * 100
 	for attempt := 0; attempt < maxAttempt; attempt++ {
 		status, body, err = c.doCallImp(r, method, url, opts...)
 		if err == nil && status < 500 {
 			return status, body, err
+		}
+		if err != nil {
+			c.warnFunc("retring http request due to %v", err)
+		} else {
+			msg, err := getMessageFromJSON(bytes.NewReader([]byte(body)))
+			if err == nil {
+				c.warnFunc("retring http request due to unexpected status code %v: %v", status, msg)
+			} else {
+				c.warnFunc("retring http request due to unexpected status code %v", status)
+			}
 		}
 		if duration > maxSleepBeforeRetry {
 			duration = maxSleepBeforeRetry
@@ -158,7 +168,7 @@ func (c *client) doCallImp(r request, method, url string, opts ...requestOpt) (i
 
 	client := &http.Client{}
 
-	resp, err := client.Do(req) // TODO add in auto-retry logic for any 500 errors
+	resp, err := client.Do(req)
 	if err != nil {
 		return 0, "", err
 	}
@@ -175,16 +185,18 @@ type client struct {
 	sshKey                string
 	lastUsedPublicKeyPath string
 	sshAgent              agent.ExtendedAgent
+	warnFunc              func(string, ...interface{})
 }
 
 // NewClient provides a new client
-func NewClient(secretServer, agentSockPath, sshKey string) Client {
+func NewClient(secretServer, agentSockPath, sshKey string, warnFunc func(string, ...interface{})) Client {
 	return &client{
 		secretServer: secretServer,
 		sshKey:       sshKey,
 		sshAgent: &lazySSHAgent{
 			sockPath: agentSockPath,
 		},
+		warnFunc: warnFunc,
 	}
 }
 
