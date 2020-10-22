@@ -169,36 +169,73 @@ func isVisibleFlag(fl cli.Flag) bool {
 	return false
 }
 
-// GetPotentials returns a list of potential arguments for shell auto completion
-func GetPotentials(compLine string, compPoint int, app *cli.App) ([]string, error) {
-	potentials := []string{}
+func getCmd(name string, cmds []*cli.Command) *cli.Command {
+	for _, c := range cmds {
+		if name == c.Name {
+			return c
+		}
+	}
+	return nil
+}
 
-	flags := []string{}
-	for _, f := range app.Flags {
+func getVisibleFlags(flags []cli.Flag) []string {
+	visibleFlags := []string{}
+	for _, f := range flags {
 		if isVisibleFlag(f) {
 			for _, n := range f.Names() {
 				if len(n) > 1 {
-					flags = append(flags, n)
+					visibleFlags = append(visibleFlags, n)
 				}
 			}
 		}
 	}
+	return visibleFlags
+}
 
-	commands := []string{}
-	for _, cmd := range app.Commands {
+func getVisibleCommands(commands []*cli.Command) []string {
+	visibleCommands := []string{}
+	for _, cmd := range commands {
 		if !cmd.Hidden {
-			commands = append(commands, cmd.Name)
+			visibleCommands = append(visibleCommands, cmd.Name)
 		}
 	}
+	return visibleCommands
+}
 
-	prefix := parseLine(compLine, compPoint)
+// GetPotentials returns a list of potential arguments for shell auto completion
+func GetPotentials(compLine string, compPoint int, app *cli.App) ([]string, error) {
+	potentials := []string{}
 
-	// already has a full command or target (we're done now)
-	if hasTargetOrCommand(compLine) && prefix == "" {
-		return potentials, nil
+	compLine = compLine[:compPoint]
+	subCommands := app.Commands
+
+	// determine sub command
+	parts := strings.Split(compLine, " ")
+	var cmd *cli.Command
+	for _, word := range parts[1 : len(parts)-1] {
+		foundCmd := getCmd(word, subCommands)
+		if foundCmd != nil {
+			subCommands = foundCmd.Subcommands
+			cmd = foundCmd
+		}
+	}
+	lastWord := parts[len(parts)-1]
+
+	var flags []string
+	if cmd != nil {
+		flags = getVisibleFlags(cmd.Flags)
+	} else {
+		flags = getVisibleFlags(app.Flags)
 	}
 
-	if flagPrefix, ok := trimFlag(prefix); ok {
+	var commands []string
+	if cmd != nil {
+		commands = getVisibleCommands(cmd.Subcommands)
+	} else {
+		commands = getVisibleCommands(app.Commands)
+	}
+
+	if flagPrefix, ok := trimFlag(lastWord); ok {
 		for _, s := range flags {
 			if strings.HasPrefix(s, flagPrefix) {
 				potentials = append(potentials, "--"+s+" ")
@@ -207,22 +244,24 @@ func GetPotentials(compLine string, compPoint int, app *cli.App) ([]string, erro
 		return potentials, nil
 	}
 
-	if isLocalPath(prefix) || strings.HasPrefix(prefix, "+") {
-		if strings.Contains(prefix, "+") {
-			return getPotentialTarget(prefix)
+	if isLocalPath(lastWord) || strings.HasPrefix(lastWord, "+") {
+		if strings.Contains(lastWord, "+") {
+			return getPotentialTarget(lastWord)
 		}
-		return getPotentialPaths(prefix)
+		return getPotentialPaths(lastWord)
 	}
 
-	if prefix == "" {
+	if lastWord == "" && cmd == nil {
 		if hasEarthfile(".") {
 			potentials = append(potentials, "+")
 		}
-		potentials = append(potentials, "./")
+		if hasSubDirs(".") {
+			potentials = append(potentials, "./")
+		}
 	}
 
 	for _, cmd := range commands {
-		if strings.HasPrefix(cmd, prefix) {
+		if strings.HasPrefix(cmd, lastWord) {
 			potentials = append(potentials, cmd+" ")
 		}
 	}
