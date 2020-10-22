@@ -1,6 +1,8 @@
 package autocomplete
 
 import (
+	"bufio"
+	"io"
 	"io/ioutil"
 	"os"
 	"os/user"
@@ -10,6 +12,7 @@ import (
 
 	"github.com/earthly/earthly/earthfile2llb"
 
+	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
 )
 
@@ -64,37 +67,33 @@ func isLocalPath(path string) bool {
 	return false
 }
 
-func getPotentialTarget(prefix string) ([]string, error) {
-	splits := strings.SplitN(prefix, "+", 2)
-	if len(splits) < 2 {
-		return []string{}, nil
-	}
-	dirPath := splits[0]
-
-	currentUser, err := user.Current()
+func getUsers() (map[string]string, error) {
+	users := map[string]string{}
+	fp, err := os.Open("/etc/passwd")
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to open /etc/passwd")
 	}
-
-	realDirPath := dirPath
-	if strings.HasPrefix(prefix, "~/") {
-		realDirPath = currentUser.HomeDir + "/" + dirPath[2:]
-	}
-
-	targets, err := earthfile2llb.GetTargets(path.Join(realDirPath, "Earthfile"))
-	if err != nil {
-		return nil, err
-	}
-
-	potentials := []string{}
-	for _, target := range targets {
-		s := dirPath + "+" + target + " "
-		if strings.HasPrefix(s, prefix) {
-			potentials = append(potentials, s)
+	reader := bufio.NewReader(fp)
+	for {
+		line, err := reader.ReadString('\n')
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+			return nil, errors.Wrap(err, "failed to read line")
+		}
+		line = strings.TrimSpace(line)
+		if strings.HasPrefix(line, "#") {
+			continue
+		}
+		parts := strings.Split(line, ":")
+		if len(parts) >= 6 {
+			user := parts[0]
+			home := parts[5]
+			users[user] = home
 		}
 	}
-
-	return potentials, nil
+	return users, nil
 }
 
 func getPotentialPaths(prefix string) ([]string, error) {
@@ -106,29 +105,74 @@ func getPotentialPaths(prefix string) ([]string, error) {
 		return nil, err
 	}
 
-	// TODO expand this logic to support other users
-	if prefix == "~" {
-		prefix = "~/"
-	}
-
+	var user string
 	expandedHomeLen := 0
 	if strings.HasPrefix(prefix, "~") {
-		expandedHomeLen = len(currentUser.HomeDir) + 1
-		if len(prefix) > 2 {
-			prefix = currentUser.HomeDir + "/" + prefix[2:]
-		} else {
-			prefix = currentUser.HomeDir + "/"
+		users, err := getUsers()
+		if err != nil {
+			return nil, err
 		}
-	}
 
-	dir, f := path.Split(prefix)
+		// handle username completion
+		if !strings.Contains(prefix, "/") {
+			potentials := []string{}
+			for user := range users {
+				if strings.HasPrefix(user, prefix[1:]) {
+					potentials = append(potentials, "~"+user+"/")
+				}
+			}
+			return potentials, nil
+		}
+
+		// otherwise expand ~ into complete path
+		parts := strings.SplitN(prefix[1:], "/", 2)
+		user = parts[0]
+		rest := parts[1]
+
+		var homeDir string
+		if len(user) == 0 {
+			homeDir = currentUser.HomeDir
+		} else {
+			homeDir = users[user]
+		}
+
+		expandedHomeLen = len(currentUser.HomeDir) + 1
+		prefix = homeDir + "/" + rest
+	}
 
 	replaceHomePrefix := func(s string) string {
 		if expandedHomeLen == 0 {
 			return s
 		}
-		return "~/" + s[expandedHomeLen:]
+		return "~" + user + "/" + s[expandedHomeLen:]
 	}
+
+	// handle targets
+	if strings.Contains(prefix, "+") {
+		splits := strings.SplitN(prefix, "+", 2)
+		if len(splits) < 2 {
+			return []string{}, nil
+		}
+		dirPath := splits[0]
+
+		targets, err := earthfile2llb.GetTargets(path.Join(dirPath, "Earthfile"))
+		if err != nil {
+			return nil, err
+		}
+
+		potentials := []string{}
+		for _, target := range targets {
+			s := dirPath + "+" + target + " "
+			if strings.HasPrefix(s, prefix) {
+				potentials = append(potentials, replaceHomePrefix(s))
+			}
+		}
+
+		return potentials, nil
+	}
+
+	// handle paths
+	dir, f := path.Split(prefix)
 
 	files, err := ioutil.ReadDir(dir)
 	if err != nil {
@@ -152,6 +196,7 @@ func getPotentialPaths(prefix string) ([]string, error) {
 			}
 		}
 	}
+
 	return paths, nil
 }
 
@@ -245,9 +290,6 @@ func GetPotentials(compLine string, compPoint int, app *cli.App) ([]string, erro
 	}
 
 	if isLocalPath(lastWord) || strings.HasPrefix(lastWord, "+") {
-		if strings.Contains(lastWord, "+") {
-			return getPotentialTarget(lastWord)
-		}
 		return getPotentialPaths(lastWord)
 	}
 
