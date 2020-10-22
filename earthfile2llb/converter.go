@@ -21,7 +21,6 @@ import (
 	"github.com/earthly/earthly/cleanup"
 	"github.com/earthly/earthly/debugger/common"
 	"github.com/earthly/earthly/domain"
-	"github.com/earthly/earthly/earthfile2llb/imr"
 	"github.com/earthly/earthly/earthfile2llb/variables"
 	"github.com/earthly/earthly/llbutil"
 	"github.com/earthly/earthly/llbutil/llbgit"
@@ -51,6 +50,7 @@ type Converter struct {
 	solveCache           map[string]llb.State
 	imageResolveMode     llb.ResolveMode
 	buildContextProvider *provider.BuildContextProvider
+	metaResolver         llb.ImageMetaResolver
 }
 
 // NewConverter constructs a new converter for a given earth target.
@@ -90,6 +90,7 @@ func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Da
 		cleanCollection:      opt.CleanCollection,
 		solveCache:           opt.SolveCache,
 		buildContextProvider: opt.BuildContextProvider,
+		metaResolver:         opt.MetaResolver,
 	}, nil
 }
 
@@ -221,7 +222,7 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 	state, dfImg, err := dockerfile2llb.Dockerfile2LLB(ctx, dfData, dockerfile2llb.ConvertOpt{
 		BuildContext:     &buildContext,
 		ContextLocalName: c.mts.FinalTarget().String(),
-		MetaResolver:     imr.Default(),
+		MetaResolver:     c.metaResolver,
 		ImageResolveMode: c.imageResolveMode,
 		Target:           dfTarget,
 		TargetPlatform:   &llbutil.TargetPlatform,
@@ -423,6 +424,7 @@ func (c *Converter) Build(ctx context.Context, fullTargetName string, buildArgs 
 			VarCollection:        newVarCollection,
 			SolveCache:           c.solveCache,
 			BuildContextProvider: c.buildContextProvider,
+			MetaResolver:         c.metaResolver,
 		})
 	if err != nil {
 		return nil, errors.Wrapf(err, "earthfile2llb for %s", fullTargetName)
@@ -691,8 +693,7 @@ func (c *Converter) internalFromClassical(ctx context.Context, imageName string,
 		return llb.State{}, nil, nil, errors.Wrapf(err, "parse normalized named %s", imageName)
 	}
 	baseImageName := reference.TagNameOnly(ref).String()
-	metaResolver := imr.Default()
-	dgst, dt, err := metaResolver.ResolveImageConfig(
+	dgst, dt, err := c.metaResolver.ResolveImageConfig(
 		ctx, baseImageName,
 		llb.ResolveImageConfigOpt{
 			Platform:    &llbutil.TargetPlatform,

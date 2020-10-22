@@ -11,6 +11,7 @@ import (
 	"github.com/earthly/earthly/cleanup"
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/earthfile2llb/antlrhandler"
+	"github.com/earthly/earthly/earthfile2llb/imr"
 	"github.com/earthly/earthly/earthfile2llb/parser"
 	"github.com/earthly/earthly/earthfile2llb/variables"
 	"github.com/earthly/earthly/states"
@@ -43,6 +44,8 @@ type ConvertOpt struct {
 	SolveCache map[string]llb.State
 	// BuildContextProvider is the provider used for local build context files.
 	BuildContextProvider *provider.BuildContextProvider
+	// MetaResolver is the image meta resolver to use for resolving image metadata.
+	MetaResolver llb.ImageMetaResolver
 }
 
 // Earthfile2LLB parses a earthfile and executes the statements for a given target.
@@ -52,6 +55,9 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt) (m
 	}
 	if opt.Visited == nil {
 		opt.Visited = make(map[string][]*states.SingleTarget)
+	}
+	if opt.MetaResolver == nil {
+		opt.MetaResolver = imr.Default()
 	}
 	// Check if we have previously converted this target, with the same build args.
 	targetStr := target.String()
