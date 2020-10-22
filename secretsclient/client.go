@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/earthly/earthly/secretsclient/api"
 
@@ -62,12 +63,20 @@ type request struct {
 	body    []byte
 
 	hasAuth bool
+	retry   bool
 }
 type requestOpt func(*request) error
 
 func withPublicKeyAuth() requestOpt {
 	return func(r *request) error {
 		r.hasAuth = true
+		return nil
+	}
+}
+
+func withRetry() requestOpt {
+	return func(r *request) error {
+		r.retry = true
 		return nil
 	}
 }
@@ -94,6 +103,9 @@ func withBody(body string) requestOpt {
 	}
 }
 
+const maxAttempt = 10
+const maxSleepBeforeRetry = time.Second * 3
+
 func (c *client) doCall(method, url string, opts ...requestOpt) (int, string, error) {
 	var r request
 	for _, opt := range opts {
@@ -102,6 +114,36 @@ func (c *client) doCall(method, url string, opts ...requestOpt) (int, string, er
 			return 0, "", err
 		}
 	}
+
+	var status int
+	var body string
+	var err error
+	duration := time.Millisecond * 100
+	for attempt := 0; attempt < maxAttempt; attempt++ {
+		status, body, err = c.doCallImp(r, method, url, opts...)
+		if err == nil && status < 500 {
+			return status, body, err
+		}
+		if err != nil {
+			c.warnFunc("retring http request due to %v", err)
+		} else {
+			msg, err := getMessageFromJSON(bytes.NewReader([]byte(body)))
+			if err == nil {
+				c.warnFunc("retring http request due to unexpected status code %v: %v", status, msg)
+			} else {
+				c.warnFunc("retring http request due to unexpected status code %v", status)
+			}
+		}
+		if duration > maxSleepBeforeRetry {
+			duration = maxSleepBeforeRetry
+		}
+		time.Sleep(duration)
+		duration *= 2
+	}
+	return status, body, err
+}
+
+func (c *client) doCallImp(r request, method, url string, opts ...requestOpt) (int, string, error) {
 	var bodyReader io.Reader
 	var bodyLen int64
 	if r.hasBody {
@@ -126,7 +168,7 @@ func (c *client) doCall(method, url string, opts ...requestOpt) (int, string, er
 
 	client := &http.Client{}
 
-	resp, err := client.Do(req) // TODO add in auto-retry logic for any 500 errors
+	resp, err := client.Do(req)
 	if err != nil {
 		return 0, "", err
 	}
@@ -143,16 +185,18 @@ type client struct {
 	sshKey                string
 	lastUsedPublicKeyPath string
 	sshAgent              agent.ExtendedAgent
+	warnFunc              func(string, ...interface{})
 }
 
 // NewClient provides a new client
-func NewClient(secretServer, agentSockPath, sshKey string) Client {
+func NewClient(secretServer, agentSockPath, sshKey string, warnFunc func(string, ...interface{})) Client {
 	return &client{
 		secretServer: secretServer,
 		sshKey:       sshKey,
 		sshAgent: &lazySSHAgent{
 			sockPath: agentSockPath,
 		},
+		warnFunc: warnFunc,
 	}
 }
 
@@ -422,7 +466,7 @@ func (c *client) Get(path string) ([]byte, error) {
 	if path == "" || path[0] != '/' || strings.HasSuffix(path, "/") {
 		return nil, fmt.Errorf("invalid path")
 	}
-	status, body, err := c.doCall("GET", fmt.Sprintf("/api/v0/secrets%s", path), withPublicKeyAuth())
+	status, body, err := c.doCall("GET", fmt.Sprintf("/api/v0/secrets%s", path), withPublicKeyAuth(), withRetry())
 	if err != nil {
 		return nil, err
 	}
