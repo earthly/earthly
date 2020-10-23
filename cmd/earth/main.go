@@ -1391,25 +1391,27 @@ func (app *earthApp) actionBuild(c *cli.Context) error {
 	buildOpts := builder.BuildOpt{
 		PrintSuccess: true,
 		Push:         app.push,
-		NoOutput:     app.noOutput,
 	}
-	// if app.imageMode {
-	// 	err = b.BuildOnlyImages(c.Context, mts, opts)
-	// 	if err != nil {
-	// 		return err
-	// 	}
-	// } else if app.artifactMode {
-	_ = destPath
-	// 	err = b.BuildOnlyArtifact(c.Context, mts, artifact, destPath, opts)
-	// 	if err != nil {
-	// 		return err
-	// 	}
-	// } else {
-	err = b.BuildTarget(c.Context, target, buildOpts)
+	mts, err := b.BuildTarget(c.Context, target, buildOpts)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "build target")
 	}
-	// }
+	if app.imageMode {
+		err = b.OutputImages(c.Context, mts.Final, buildOpts)
+		if err != nil {
+			return errors.Wrap(err, "output images")
+		}
+	} else if app.artifactMode {
+		err = b.OutputArtifact(c.Context, mts, artifact, destPath, buildOpts)
+		if err != nil {
+			return errors.Wrap(err, "output artifact")
+		}
+	} else if !app.noOutput {
+		err = b.Output(c.Context, mts, buildOpts)
+		if err != nil {
+			return errors.Wrap(err, "output")
+		}
+	}
 	return nil
 }
 
