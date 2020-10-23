@@ -164,6 +164,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 	bf := func(ctx context.Context, gwClient gwclient.Client) (*gwclient.Result, error) {
 		var err error
 		mts, err = earthfile2llb.Earthfile2LLB(ctx, target, earthfile2llb.ConvertOpt{
+			GwClient:             gwClient,
 			Resolver:             b.resolver,
 			ImageResolveMode:     b.opt.ImageResolveMode,
 			DockerBuilderFun:     b.MakeImageAsTarBuilderFun(),
@@ -171,7 +172,6 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 			CleanCollection:      b.opt.CleanCollection,
 			VarCollection:        b.opt.VarCollection,
 			BuildContextProvider: b.opt.BuildContextProvider,
-			MetaResolver:         gwClient,
 		})
 		if err != nil {
 			return nil, err

@@ -29,6 +29,7 @@ import (
 	"github.com/earthly/earthly/states/image"
 	"github.com/moby/buildkit/client/llb"
 	"github.com/moby/buildkit/frontend/dockerfile/dockerfile2llb"
+	gwclient "github.com/moby/buildkit/frontend/gateway/client"
 	solverpb "github.com/moby/buildkit/solver/pb"
 	"github.com/pkg/errors"
 )
@@ -36,6 +37,7 @@ import (
 // Converter turns earth commands to buildkit LLB representation.
 type Converter struct {
 	gitMeta              *buildcontext.GitMetadata
+	gwClient             gwclient.Client
 	resolver             *buildcontext.Resolver
 	mts                  *states.MultiTarget
 	directDeps           []*states.SingleTarget
@@ -79,6 +81,7 @@ func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Da
 	opt.Visited[targetStr] = append(opt.Visited[targetStr], sts)
 	return &Converter{
 		gitMeta:              bc.GitMetadata,
+		gwClient:             opt.GwClient,
 		resolver:             opt.Resolver,
 		imageResolveMode:     opt.ImageResolveMode,
 		mts:                  mts,
@@ -415,6 +418,7 @@ func (c *Converter) Build(ctx context.Context, fullTargetName string, buildArgs 
 	// Recursion.
 	mts, err := Earthfile2LLB(
 		ctx, target, ConvertOpt{
+			GwClient:             c.gwClient,
 			Resolver:             c.resolver,
 			ImageResolveMode:     c.imageResolveMode,
 			DockerBuilderFun:     c.dockerBuilderFun,

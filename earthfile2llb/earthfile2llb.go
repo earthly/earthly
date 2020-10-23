@@ -15,11 +15,14 @@ import (
 	"github.com/earthly/earthly/earthfile2llb/variables"
 	"github.com/earthly/earthly/states"
 	"github.com/moby/buildkit/client/llb"
+	gwclient "github.com/moby/buildkit/frontend/gateway/client"
 	"github.com/pkg/errors"
 )
 
 // ConvertOpt holds conversion parameters needed for conversion.
 type ConvertOpt struct {
+	// GwClient is the BuildKit gateway client.
+	GwClient gwclient.Client
 	// Resolver is the build context resolver.
 	Resolver *buildcontext.Resolver
 	// The resolve mode for referenced images (force pull or prefer local).
@@ -54,6 +57,9 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt) (m
 	}
 	if opt.Visited == nil {
 		opt.Visited = make(map[string][]*states.SingleTarget)
+	}
+	if opt.MetaResolver == nil {
+		opt.MetaResolver = opt.GwClient
 	}
 	// Check if we have previously converted this target, with the same build args.
 	targetStr := target.String()
