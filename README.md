@@ -22,7 +22,7 @@
 
 ---------------------------------
 
-[🌍 Earthly](https://earthly.dev) is a build automation tool for the post-container era. It allows you to execute all your builds in containers. This makes them self-contained, reproducible, portable and parallel. You can use Earthly to create Docker images and artifacts (eg binaries, packages, arbitrary files).
+[🌍 Earthly](https://earthly.dev) is a build automation tool for the container era. It allows you to execute all your builds in containers. This makes them self-contained, reproducible, portable and parallel. You can use Earthly to create Docker images and artifacts (eg binaries, packages, arbitrary files).
 
 <br/>
 <br/>

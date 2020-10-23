@@ -36,6 +36,7 @@ ga:
     BUILD +chown-test
     BUILD +dotenv-test
     BUILD +env-test
+    BUILD ./autocompletion+test-all
     BUILD ./with-docker+all
     BUILD ./with-docker-compose+all
 

@@ -217,6 +217,7 @@ examples:
     BUILD ./examples/dotnet+docker
     BUILD ./examples/python+docker
     BUILD ./examples/ruby+docker
+    BUILD ./examples/ruby-on-rails+docker
     BUILD ./examples/elixir+docker
     BUILD ./examples/monorepo+all
     BUILD ./examples/multirepo+docker

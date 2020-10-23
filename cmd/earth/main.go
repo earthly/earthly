@@ -20,6 +20,7 @@ import (
 	"strconv"
 	"strings"
 	"syscall"
+	"text/tabwriter"
 	"time"
 
 	"github.com/earthly/earthly/autocomplete"
@@ -35,7 +36,6 @@ import (
 	"github.com/earthly/earthly/earthfile2llb"
 	"github.com/earthly/earthly/earthfile2llb/variables"
 	"github.com/earthly/earthly/llbutil"
-	"github.com/earthly/earthly/logging"
 	"github.com/earthly/earthly/secretsclient"
 
 	"github.com/fatih/color"
@@ -49,7 +49,6 @@ import (
 	"github.com/moby/buildkit/util/entitlements"
 	"github.com/pkg/errors"
 	"github.com/seehuhn/password"
-	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/sync/errgroup"
@@ -66,37 +65,39 @@ type earthApp struct {
 }
 
 type cliFlags struct {
-	buildArgs            cli.StringSlice
-	secrets              cli.StringSlice
-	artifactMode         bool
-	imageMode            bool
-	pull                 bool
-	push                 bool
-	noOutput             bool
-	noCache              bool
-	pruneAll             bool
-	pruneReset           bool
-	buildkitdSettings    buildkitd.Settings
-	allowPrivileged      bool
-	enableProfiler       bool
-	buildkitHost         string
-	buildkitdImage       string
-	remoteCache          string
-	configPath           string
-	gitUsernameOverride  string
-	gitPasswordOverride  string
-	interactiveDebugging bool
-	sshAuthSock          string
-	verbose              bool
-	debug                bool
-	homebrewSource       string
-	email                string
-	verificationToken    string
-	password             string
-	publicKey            string
-	disableNewLine       bool
-	secretFile           string
-	apiServer            string
+	buildArgs             cli.StringSlice
+	secrets               cli.StringSlice
+	artifactMode          bool
+	imageMode             bool
+	pull                  bool
+	push                  bool
+	noOutput              bool
+	noCache               bool
+	pruneAll              bool
+	pruneReset            bool
+	buildkitdSettings     buildkitd.Settings
+	allowPrivileged       bool
+	enableProfiler        bool
+	buildkitHost          string
+	buildkitdImage        string
+	remoteCache           string
+	configPath            string
+	gitUsernameOverride   string
+	gitPasswordOverride   string
+	interactiveDebugging  bool
+	sshAuthSock           string
+	verbose               bool
+	debug                 bool
+	homebrewSource        string
+	email                 string
+	verificationToken     string
+	password              string
+	disableNewLine        bool
+	secretFile            string
+	apiServer             string
+	writePermission       bool
+	publicKey             string
+	registrationPublicKey string
 }
 
 var (
@@ -170,33 +171,22 @@ func main() {
 		color.NoColor = true
 	}
 
-	app := newEarthApp(ctx, conslogging.Current(colorMode))
-	app.autoComplete()
-
-	// Set up file-based logging.
-	logrus.SetFormatter(&logrus.TextFormatter{
-		DisableColors: true,
-		FullTimestamp: true,
-	})
-	logrus.SetLevel(logrus.InfoLevel)
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		fmt.Printf("Error looking up current user: %s\n", err.Error())
-		os.Exit(1)
-	}
-	logDir := filepath.Join(homeDir, ".earthly")
-	logFile := filepath.Join(logDir, "earth.log")
-	err = os.MkdirAll(logDir, 0755)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Warning: cannot create dir %s\n", logDir)
-	} else {
-		f, err := os.OpenFile(logFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0755)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Warning: cannot open log file for writing %s\n", logFile)
-		} else {
-			logrus.SetOutput(f)
+	padding := conslogging.DefaultPadding
+	customPadding, ok := os.LookupEnv("TARGET_PADDING")
+	if ok {
+		targetPadding, err := strconv.Atoi(customPadding)
+		if err == nil {
+			padding = targetPadding
 		}
 	}
+
+	_, fullTarget := os.LookupEnv("FULL_TARGET")
+	if fullTarget {
+		padding = conslogging.NoPadding
+	}
+
+	app := newEarthApp(ctx, conslogging.Current(colorMode, padding))
+	app.autoComplete()
 
 	os.Exit(app.run(ctx, os.Args))
 }
@@ -368,6 +358,13 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 			Destination: &app.remoteCache,
 			Hidden:      true, // Experimental.
 		},
+		&cli.StringFlag{
+			Name:        "ssh-key",
+			EnvVars:     []string{"EARTHLY_SSH_KEY"},
+			Usage:       "Force the use of a particular ssh key when authenticating",
+			Destination: &app.publicKey,
+			Hidden:      true, // Experimental.
+		},
 		&cli.BoolFlag{
 			Name:        "interactive",
 			Aliases:     []string{"i"},
@@ -422,6 +419,29 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 				{
 					Name:   "create",
 					Action: app.actionOrgCreate,
+				},
+				{
+					Name:   "list",
+					Action: app.actionOrgList,
+				},
+				{
+					Name:   "list-permissions",
+					Action: app.actionOrgListPermissions,
+				},
+				{
+					Name:   "invite",
+					Action: app.actionOrgInvite,
+					Flags: []cli.Flag{
+						&cli.BoolFlag{
+							Name:        "write",
+							Usage:       "Grant write permissions in addition to read",
+							Destination: &app.writePermission,
+						},
+					},
+				},
+				{
+					Name:   "revoke",
+					Action: app.actionOrgRevoke,
 				},
 			},
 		},
@@ -491,7 +511,7 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 					Name:        "public-key",
 					EnvVars:     []string{"EARTHLY_PUBLIC_KEY"},
 					Usage:       "Path to public key to register",
-					Destination: &app.publicKey, // TODO hook this up to override the interactive prompt when specified
+					Destination: &app.registrationPublicKey,
 				},
 			},
 		},
@@ -700,21 +720,7 @@ func (app *earthApp) autoCompleteImp() (err error) {
 		return err
 	}
 
-	flags := []string{}
-	for _, f := range app.cliApp.Flags {
-		for _, n := range f.Names() {
-			if len(n) > 1 {
-				flags = append(flags, n)
-			}
-		}
-	}
-
-	commands := []string{}
-	for _, cmd := range app.cliApp.Commands {
-		commands = append(commands, cmd.Name)
-	}
-
-	potentials, err := autocomplete.GetPotentials(compLine, int(compPointInt), flags, commands)
+	potentials, err := autocomplete.GetPotentials(compLine, int(compPointInt), app.cliApp)
 	if err != nil {
 		return err
 	}
@@ -827,14 +833,8 @@ func (app *earthApp) insertZSHCompleteEntry() error {
 }
 
 func (app *earthApp) run(ctx context.Context, args []string) int {
-	joinedArgs := ""
-	if len(args) > 2 {
-		joinedArgs = strings.Join(args[2:], " ")
-	}
-	ctx = logging.With(ctx, logging.COMMAND, fmt.Sprintf("earth %s", joinedArgs))
 	err := app.cliApp.RunContext(ctx, args)
 	if err != nil {
-		logging.GetLogger(ctx).Error(err)
 		if strings.Contains(err.Error(), "security.insecure is not allowed") {
 			app.console.Warnf("Error: --allow-privileged (-P) flag is required\n")
 		} else if strings.Contains(err.Error(), "failed to fetch remote") {
@@ -898,13 +898,90 @@ func (app *earthApp) actionOrgCreate(c *cli.Context) error {
 		return errors.New("invalid number of arguments provided")
 	}
 	org := c.Args().Get(0)
-	sc, err := secretsclient.NewClient(app.apiServer, app.sshAuthSock)
-	if err != nil {
-		return err
-	}
-	err = sc.CreateOrg(org)
+	sc := secretsclient.NewClient(app.apiServer, app.sshAuthSock, app.publicKey, app.console.Warnf)
+	err := sc.CreateOrg(org)
 	if err != nil {
 		return errors.Wrap(err, "failed to create org")
+	}
+	return nil
+}
+
+func (app *earthApp) actionOrgList(c *cli.Context) error {
+	sc := secretsclient.NewClient(app.apiServer, app.sshAuthSock, app.publicKey, app.console.Warnf)
+	orgs, err := sc.ListOrgs()
+	if err != nil {
+		return errors.Wrap(err, "failed to create org")
+	}
+	for _, org := range orgs {
+		fmt.Printf("%s", org.Name)
+		if org.Admin {
+			fmt.Printf(" (admin)")
+		}
+		fmt.Printf("\n")
+	}
+	return nil
+}
+
+func (app *earthApp) actionOrgListPermissions(c *cli.Context) error {
+	if c.NArg() != 1 {
+		return errors.New("invalid number of arguments provided")
+	}
+	path := c.Args().Get(0)
+	if !strings.HasSuffix(path, "/") {
+		path += "/"
+	}
+	sc := secretsclient.NewClient(app.apiServer, app.sshAuthSock, app.publicKey, app.console.Warnf)
+	orgs, err := sc.ListOrgPermissions(path)
+	if err != nil {
+		return errors.Wrap(err, "failed to create org")
+	}
+
+	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
+	for _, org := range orgs {
+		fmt.Fprintf(w, "%s\t%s", org.Path, org.User)
+		if org.Write {
+			fmt.Fprintf(w, "\trw")
+		} else {
+			fmt.Fprintf(w, "\tr")
+		}
+		fmt.Fprintf(w, "\n")
+	}
+	w.Flush()
+	return nil
+}
+
+func (app *earthApp) actionOrgInvite(c *cli.Context) error {
+	if c.NArg() < 2 {
+		return errors.New("invalid number of arguments provided")
+	}
+	path := c.Args().Get(0)
+	if !strings.HasSuffix(path, "/") {
+		return errors.New("invitation paths must end with a slash (/)")
+	}
+
+	sc := secretsclient.NewClient(app.apiServer, app.sshAuthSock, app.publicKey, app.console.Warnf)
+	userEmail := c.Args().Get(1)
+	err := sc.Invite(path, userEmail, app.writePermission)
+	if err != nil {
+		return errors.Wrap(err, "failed to invite user into org")
+	}
+	return nil
+}
+
+func (app *earthApp) actionOrgRevoke(c *cli.Context) error {
+	if c.NArg() < 2 {
+		return errors.New("invalid number of arguments provided")
+	}
+	path := c.Args().Get(0)
+	if !strings.HasSuffix(path, "/") {
+		return errors.New("revoked paths must end with a slash (/)")
+	}
+
+	sc := secretsclient.NewClient(app.apiServer, app.sshAuthSock, app.publicKey, app.console.Warnf)
+	userEmail := c.Args().Get(1)
+	err := sc.RevokePermission(path, userEmail)
+	if err != nil {
+		return errors.Wrap(err, "failed to revoke user from org")
 	}
 	return nil
 }
@@ -917,10 +994,7 @@ func (app *earthApp) actionSecretsList(c *cli.Context) error {
 	if !strings.HasSuffix(path, "/") {
 		path += "/"
 	}
-	sc, err := secretsclient.NewClient(app.apiServer, app.sshAuthSock)
-	if err != nil {
-		return err
-	}
+	sc := secretsclient.NewClient(app.apiServer, app.sshAuthSock, app.publicKey, app.console.Warnf)
 	paths, err := sc.List(path)
 	if err != nil {
 		return errors.Wrap(err, "failed to list secret")
@@ -936,10 +1010,7 @@ func (app *earthApp) actionSecretsGet(c *cli.Context) error {
 		return errors.New("invalid number of arguments provided")
 	}
 	path := c.Args().Get(0)
-	sc, err := secretsclient.NewClient(app.apiServer, app.sshAuthSock)
-	if err != nil {
-		return err
-	}
+	sc := secretsclient.NewClient(app.apiServer, app.sshAuthSock, app.publicKey, app.console.Warnf)
 	data, err := sc.Get(path)
 	if err != nil {
 		return errors.Wrap(err, "failed to get secret")
@@ -956,11 +1027,8 @@ func (app *earthApp) actionSecretsRemove(c *cli.Context) error {
 		return errors.New("invalid number of arguments provided")
 	}
 	path := c.Args().Get(0)
-	sc, err := secretsclient.NewClient(app.apiServer, app.sshAuthSock)
-	if err != nil {
-		return err
-	}
-	err = sc.Remove(path)
+	sc := secretsclient.NewClient(app.apiServer, app.sshAuthSock, app.publicKey, app.console.Warnf)
+	err := sc.Remove(path)
 	if err != nil {
 		return errors.Wrap(err, "failed to remove secret")
 	}
@@ -988,11 +1056,8 @@ func (app *earthApp) actionSecretsSet(c *cli.Context) error {
 		value = string(data)
 	}
 
-	sc, err := secretsclient.NewClient(app.apiServer, app.sshAuthSock)
-	if err != nil {
-		return err
-	}
-	err = sc.Set(path, []byte(value))
+	sc := secretsclient.NewClient(app.apiServer, app.sshAuthSock, app.publicKey, app.console.Warnf)
+	err := sc.Set(path, []byte(value))
 	if err != nil {
 		return errors.Wrap(err, "failed to set secret")
 	}
@@ -1008,13 +1073,14 @@ func (app *earthApp) actionRegister(c *cli.Context) error {
 		return errors.New("email is invalid")
 	}
 
-	sc, err := secretsclient.NewClient(app.apiServer, app.sshAuthSock)
-	if err != nil {
-		return err
+	if app.publicKey != "" && app.publicKey != app.registrationPublicKey {
+		app.console.Warnf("the --ssh-key option should be listed after the registration command, the global setting is ignored during registration\n")
 	}
 
+	sc := secretsclient.NewClient(app.apiServer, app.sshAuthSock, "", app.console.Warnf)
+
 	if app.verificationToken == "" {
-		err = sc.RegisterEmail(app.email)
+		err := sc.RegisterEmail(app.email)
 		if err != nil {
 			return errors.Wrap(err, "failed to register email")
 		}
@@ -1051,7 +1117,7 @@ func (app *earthApp) actionRegister(c *cli.Context) error {
 	}
 
 	var publicKey string
-	if app.publicKey == "" {
+	if app.registrationPublicKey == "" {
 		fmt.Printf("Which of the following keys do you want to register?\n")
 		for i, key := range publicKeys {
 			fmt.Printf("%d) %s\n", i+1, key.String())
@@ -1069,14 +1135,14 @@ func (app *earthApp) actionRegister(c *cli.Context) error {
 		}
 		publicKey = publicKeys[i-1].String()
 	} else {
-		_, _, _, _, err := ssh.ParseAuthorizedKey([]byte(app.publicKey))
+		_, _, _, _, err := ssh.ParseAuthorizedKey([]byte(app.registrationPublicKey))
 		if err == nil {
 			// supplied public key is valid
-			publicKey = app.publicKey
+			publicKey = app.registrationPublicKey
 		} else {
 			// otherwise see if it matches the name (Comment) of a key known by the ssh agent
 			for _, key := range publicKeys {
-				if key.Comment == app.publicKey {
+				if key.Comment == app.registrationPublicKey {
 					publicKey = key.String()
 					break
 				}
@@ -1272,10 +1338,7 @@ func (app *earthApp) actionBuild(c *cli.Context) error {
 	}
 	secretsMap[debuggercommon.DebuggerSettingsSecretsKey] = debuggerSettingsData
 
-	sc, err := secretsclient.NewClient(app.apiServer, app.sshAuthSock)
-	if err != nil {
-		app.console.Warnf("failed to create secrets client: %v\n", err)
-	}
+	sc := secretsclient.NewClient(app.apiServer, app.sshAuthSock, app.publicKey, app.console.Warnf)
 
 	attachables := []session.Attachable{
 		llbutil.NewSecretProvider(sc, secretsMap),

@@ -23,7 +23,6 @@ type listener struct {
 	executeTarget   string
 	currentTarget   string
 	targetFound     bool
-	saveImageExists bool
 	pushOnlyAllowed bool
 
 	envArgKey   string
@@ -61,14 +60,6 @@ func (l *listener) Err() error {
 }
 
 func (l *listener) EnterTargetHeader(c *parser.TargetHeaderContext) {
-	// Apply implicit SAVE IMAGE for +base.
-	if l.executeTarget == "base" {
-		if !l.saveImageExists {
-			l.converter.SaveImage(l.ctx, []string{}, false)
-		}
-		l.saveImageExists = true
-	}
-
 	l.currentTarget = strings.TrimSuffix(c.GetText(), ":")
 	if l.currentTarget == l.executeTarget {
 		if l.targetFound {
@@ -80,14 +71,20 @@ func (l *listener) EnterTargetHeader(c *parser.TargetHeaderContext) {
 	if l.shouldSkip() {
 		return
 	}
-	if l.currentTarget == "base" {
-		l.err = errors.New("target name cannot be base")
+	if l.currentTarget == "base" || l.currentTarget == "secrets" {
+		l.err = errors.New("target name cannot be \"base\" or \"secrets\"")
 		return
 	}
 	// Apply implicit FROM +base
 	err := l.converter.From(l.ctx, "+base", nil)
 	if err != nil {
 		l.err = errors.Wrap(err, "apply implicit FROM +base")
+		return
+	}
+}
+
+func (l *listener) EnterStmts(c *parser.StmtsContext) {
+	if l.shouldSkip() {
 		return
 	}
 	l.pushOnlyAllowed = false
@@ -379,12 +376,6 @@ func (l *listener) ExitSaveImage(c *parser.SaveImageContext) {
 	if l.shouldSkip() {
 		return
 	}
-	if l.saveImageExists {
-		l.err = fmt.Errorf(
-			"more than one SAVE IMAGE statement per target not allowed: %s", c.GetText())
-		return
-	}
-	l.saveImageExists = true
 
 	fs := flag.NewFlagSet("SAVE IMAGE", flag.ContinueOnError)
 	pushFlag := fs.Bool(
@@ -400,7 +391,7 @@ func (l *listener) ExitSaveImage(c *parser.SaveImageContext) {
 		return
 	}
 	if *pushFlag && fs.NArg() == 0 {
-		l.err = errors.Wrapf(err, "invalid number of arguments for SAVE IMAGE --push: %v", l.stmtWords)
+		l.err = fmt.Errorf("invalid number of arguments for SAVE IMAGE --push: %v", l.stmtWords)
 		return
 	}
 
@@ -408,7 +399,15 @@ func (l *listener) ExitSaveImage(c *parser.SaveImageContext) {
 	for i, img := range imageNames {
 		imageNames[i] = l.expandArgs(img)
 	}
-	l.converter.SaveImage(l.ctx, imageNames, *pushFlag)
+	if len(imageNames) == 0 {
+		fmt.Printf("Deprecation: using SAVE IMAGE with no arguments is no longer necessary and can be safely removed\n")
+		return
+	}
+	err = l.converter.SaveImage(l.ctx, imageNames, *pushFlag)
+	if err != nil {
+		l.err = errors.Wrap(err, "save image")
+		return
+	}
 	if *pushFlag {
 		l.pushOnlyAllowed = true
 	}
@@ -792,7 +791,7 @@ func (l *listener) ExitWithDockerStmt(c *parser.WithDockerStmtContext) {
 		return
 	}
 	if len(fs.Args()) != 0 {
-		l.err = errors.Wrapf(err, "invalid WITH DOCKER arguments %v", fs.Args())
+		l.err = fmt.Errorf("invalid WITH DOCKER arguments %v", fs.Args())
 		return
 	}
 

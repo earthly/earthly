@@ -15,7 +15,6 @@ import (
 	"github.com/earthly/earthly/dockertar"
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/llbutil"
-	"github.com/earthly/earthly/logging"
 	"github.com/earthly/earthly/states"
 	"github.com/earthly/earthly/states/dedup"
 	"github.com/moby/buildkit/client/llb"
@@ -90,14 +89,6 @@ func (wdr *withDockerRun) Run(ctx context.Context, args []string, opt WithDocker
 			return errors.Wrap(err, "pull")
 		}
 	}
-	logging.GetLogger(ctx).
-		With("args", args).
-		With("mounts", opt.Mounts).
-		With("secrets", opt.Secrets).
-		With("privileged", true).
-		With("withEntrypoint", opt.WithEntrypoint).
-		With("push", false).
-		Info("Applying WITH DOCKER RUN")
 	var runOpts []llb.RunOption
 	mountRunOpts, err := parseMounts(
 		opt.Mounts, wdr.c.mts.Final.Target, wdr.c.mts.Final.TargetInput, wdr.c.cacheContext)
@@ -210,7 +201,6 @@ func (wdr *withDockerRun) getComposeImages(ctx context.Context, opt WithDockerOp
 }
 
 func (wdr *withDockerRun) pull(ctx context.Context, dockerTag string) error {
-	logging.GetLogger(ctx).With("dockerTag", dockerTag).Info("Applying DOCKER PULL")
 	state, image, _, err := wdr.c.internalFromClassical(
 		ctx, dockerTag,
 		llb.WithCustomNamef("%sDOCKER PULL %s", wdr.c.imageVertexPrefix(dockerTag), dockerTag),
@@ -240,7 +230,6 @@ func (wdr *withDockerRun) pull(ctx context.Context, dockerTag string) error {
 }
 
 func (wdr *withDockerRun) load(ctx context.Context, opt DockerLoadOpt) error {
-	logging.GetLogger(ctx).With("target-name", opt.Target).With("dockerTag", opt.ImageName).Info("Applying DOCKER LOAD")
 	depTarget, err := domain.ParseTarget(opt.Target)
 	if err != nil {
 		return errors.Wrapf(err, "parse target %s", opt.Target)

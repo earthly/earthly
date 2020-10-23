@@ -9,7 +9,6 @@ import (
 	"os/exec"
 
 	"github.com/earthly/earthly/llbutil"
-	"github.com/earthly/earthly/logging"
 	"github.com/earthly/earthly/states/image"
 	"github.com/golang/protobuf/proto"
 	"github.com/moby/buildkit/client"
@@ -49,7 +48,6 @@ func (s *solver) solveDocker(ctx context.Context, localDirs map[string]string, s
 		if err != nil {
 			return errors.Wrap(err, "solve")
 		}
-		logging.GetLogger(ctx).Info("Solve successful")
 		return nil
 	})
 	eg.Go(func() error {
@@ -61,13 +59,11 @@ func (s *solver) solveDocker(ctx context.Context, localDirs map[string]string, s
 		if err != nil {
 			return errors.Wrapf(err, "load docker tar for %s", dockerTag)
 		}
-		logging.GetLogger(ctx).Info("Docker load success")
 		if push {
 			err := pushDockerImage(ctx, dockerTag)
 			if err != nil {
 				return err
 			}
-			logging.GetLogger(ctx).Info("Docker push success")
 		}
 		return nil
 	})
@@ -107,7 +103,6 @@ func (s *solver) solveDockerTar(ctx context.Context, localDirs map[string]string
 		if err != nil {
 			return errors.Wrap(err, "solve")
 		}
-		logging.GetLogger(ctx).Info("Solve successful")
 		return nil
 	})
 	eg.Go(func() error {
@@ -170,7 +165,6 @@ func (s *solver) solveArtifacts(ctx context.Context, localDirs map[string]string
 		if err != nil {
 			return errors.Wrap(err, "solve")
 		}
-		logging.GetLogger(ctx).Info("Solve successful")
 		return nil
 	})
 	eg.Go(func() error {
@@ -189,10 +183,6 @@ func (s *solver) solveMain(ctx context.Context, localDirs map[string]string, sta
 	if err != nil {
 		return errors.Wrap(err, "state marshal")
 	}
-	dtBytes, err := json.Marshal(dt)
-	if err != nil {
-		return errors.Wrap(err, "json marshal of state")
-	}
 	var ops []*pb.Op
 	for _, opDef := range dt.Def {
 		var op pb.Op
@@ -202,14 +192,6 @@ func (s *solver) solveMain(ctx context.Context, localDirs map[string]string, sta
 		}
 		ops = append(ops, &op)
 	}
-	opsBytes, err := json.Marshal(&ops)
-	if err != nil {
-		return errors.Wrap(err, "json marshal of ops")
-	}
-	logging.GetLogger(ctx).
-		With("ops", string(opsBytes)).
-		With("dt", string(dtBytes)).
-		Debug("Side effectsLLB")
 	solveOpt, err := s.newSolveOptMain(localDirs)
 	if err != nil {
 		return errors.Wrap(err, "new solve opt")
@@ -224,7 +206,6 @@ func (s *solver) solveMain(ctx context.Context, localDirs map[string]string, sta
 		if err != nil {
 			return errors.Wrap(err, "solve")
 		}
-		logging.GetLogger(ctx).Info("Solve successful")
 		return nil
 	})
 	eg.Go(func() error {
