@@ -35,7 +35,7 @@ code:
         domain llbutil logging secretsclient states ./
     COPY --dir buildkitd/buildkitd.go buildkitd/settings.go buildkitd/
     COPY --dir earthfile2llb/antlrhandler \
-        earthfile2llb/imr earthfile2llb/variables earthfile2llb/*.go earthfile2llb/
+        earthfile2llb/variables earthfile2llb/*.go earthfile2llb/
     COPY ./earthfile2llb/parser+parser/*.go ./earthfile2llb/parser/
     SAVE IMAGE
 

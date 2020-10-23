@@ -204,6 +204,10 @@ github.com/earthly/buildkit v0.7.1-0.20200818031448-40e935c0a18c/go.mod h1:o+4kS
 github.com/earthly/buildkit v0.7.1-0.20200930010539-9c5f4afebf8e/go.mod h1:1Whs/5ueNdTNZDg5rl8TXviT98lBjtQUHyR0JMtvpMU=
 github.com/earthly/buildkit v0.7.1-0.20200930175532-2b6c843f0e3e h1:n074oMGdxmSkulXE8EUfg+KrUSyKJhh17Nh8yU4q3aE=
 github.com/earthly/buildkit v0.7.1-0.20200930175532-2b6c843f0e3e/go.mod h1:1Whs/5ueNdTNZDg5rl8TXviT98lBjtQUHyR0JMtvpMU=
+github.com/earthly/buildkit v0.7.1-0.20201022230831-316425965ede h1:Qk7/DMHO+irJ1k/bNXslXiPpuieSR27NygUA20vRZ4I=
+github.com/earthly/buildkit v0.7.1-0.20201022230831-316425965ede/go.mod h1:1Whs/5ueNdTNZDg5rl8TXviT98lBjtQUHyR0JMtvpMU=
+github.com/earthly/buildkit v0.7.1-0.20201022233159-4f9057a0a3a7 h1:5I0QYrf79m2FPc00c0vJkSVDZN9ffesqMr8lRhVl7L4=
+github.com/earthly/buildkit v0.7.1-0.20201022233159-4f9057a0a3a7/go.mod h1:1Whs/5ueNdTNZDg5rl8TXviT98lBjtQUHyR0JMtvpMU=
 github.com/elazarl/goproxy v0.0.0-20170405201442-c4fc26588b6e/go.mod h1:/Zj4wYkgs4iZTTu3o/KG3Itv/qCCa8VVMlb3i9OVuzc=
 github.com/elazarl/goproxy v0.0.0-20180725130230-947c36da3153/go.mod h1:/Zj4wYkgs4iZTTu3o/KG3Itv/qCCa8VVMlb3i9OVuzc=
 github.com/emicklei/go-restful v0.0.0-20170410110728-ff4f55a20633/go.mod h1:otzb+WCGbkyDHkqmQmT5YD2WR4BBwUdeQoFo8l/7tVs=

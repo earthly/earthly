@@ -17,10 +17,10 @@ import (
 
 	"github.com/docker/distribution/reference"
 	"github.com/earthly/earthly/buildcontext"
+	"github.com/earthly/earthly/buildcontext/provider"
 	"github.com/earthly/earthly/cleanup"
 	"github.com/earthly/earthly/debugger/common"
 	"github.com/earthly/earthly/domain"
-	"github.com/earthly/earthly/earthfile2llb/imr"
 	"github.com/earthly/earthly/earthfile2llb/variables"
 	"github.com/earthly/earthly/llbutil"
 	"github.com/earthly/earthly/llbutil/llbgit"
@@ -35,20 +35,22 @@ import (
 
 // Converter turns earth commands to buildkit LLB representation.
 type Converter struct {
-	gitMeta            *buildcontext.GitMetadata
-	resolver           *buildcontext.Resolver
-	mts                *states.MultiTarget
-	directDeps         []*states.SingleTarget
-	directDepIndices   []int
-	buildContext       llb.State
-	cacheContext       llb.State
-	varCollection      *variables.Collection
-	dockerBuilderFun   states.DockerBuilderFun
-	artifactBuilderFun states.ArtifactBuilderFun
-	cleanCollection    *cleanup.Collection
-	nextArgIndex       int
-	solveCache         map[string]llb.State
-	imageResolveMode   llb.ResolveMode
+	gitMeta              *buildcontext.GitMetadata
+	resolver             *buildcontext.Resolver
+	mts                  *states.MultiTarget
+	directDeps           []*states.SingleTarget
+	directDepIndices     []int
+	buildContext         llb.State
+	cacheContext         llb.State
+	varCollection        *variables.Collection
+	dockerBuilderFun     states.DockerBuilderFun
+	artifactBuilderFun   states.ArtifactBuilderFun
+	cleanCollection      *cleanup.Collection
+	nextArgIndex         int
+	solveCache           map[string]llb.State
+	imageResolveMode     llb.ResolveMode
+	buildContextProvider *provider.BuildContextProvider
+	metaResolver         llb.ImageMetaResolver
 }
 
 // NewConverter constructs a new converter for a given earth target.
@@ -76,17 +78,19 @@ func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Da
 	targetStr := target.String()
 	opt.Visited[targetStr] = append(opt.Visited[targetStr], sts)
 	return &Converter{
-		gitMeta:            bc.GitMetadata,
-		resolver:           opt.Resolver,
-		imageResolveMode:   opt.ImageResolveMode,
-		mts:                mts,
-		buildContext:       bc.BuildContext,
-		cacheContext:       makeCacheContext(target),
-		varCollection:      opt.VarCollection.WithBuiltinBuildArgs(target, bc.GitMetadata),
-		dockerBuilderFun:   opt.DockerBuilderFun,
-		artifactBuilderFun: opt.ArtifactBuilderFun,
-		cleanCollection:    opt.CleanCollection,
-		solveCache:         opt.SolveCache,
+		gitMeta:              bc.GitMetadata,
+		resolver:             opt.Resolver,
+		imageResolveMode:     opt.ImageResolveMode,
+		mts:                  mts,
+		buildContext:         bc.BuildContext,
+		cacheContext:         makeCacheContext(target),
+		varCollection:        opt.VarCollection.WithBuiltinBuildArgs(target, bc.GitMetadata),
+		dockerBuilderFun:     opt.DockerBuilderFun,
+		artifactBuilderFun:   opt.ArtifactBuilderFun,
+		cleanCollection:      opt.CleanCollection,
+		solveCache:           opt.SolveCache,
+		buildContextProvider: opt.BuildContextProvider,
+		metaResolver:         opt.MetaResolver,
 	}, nil
 }
 
@@ -218,7 +222,7 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 	state, dfImg, err := dockerfile2llb.Dockerfile2LLB(ctx, dfData, dockerfile2llb.ConvertOpt{
 		BuildContext:     &buildContext,
 		ContextLocalName: c.mts.FinalTarget().String(),
-		MetaResolver:     imr.Default(),
+		MetaResolver:     c.metaResolver,
 		ImageResolveMode: c.imageResolveMode,
 		Target:           dfTarget,
 		TargetPlatform:   &llbutil.TargetPlatform,
@@ -411,14 +415,16 @@ func (c *Converter) Build(ctx context.Context, fullTargetName string, buildArgs 
 	// Recursion.
 	mts, err := Earthfile2LLB(
 		ctx, target, ConvertOpt{
-			Resolver:           c.resolver,
-			ImageResolveMode:   c.imageResolveMode,
-			DockerBuilderFun:   c.dockerBuilderFun,
-			ArtifactBuilderFun: c.artifactBuilderFun,
-			CleanCollection:    c.cleanCollection,
-			Visited:            c.mts.Visited,
-			VarCollection:      newVarCollection,
-			SolveCache:         c.solveCache,
+			Resolver:             c.resolver,
+			ImageResolveMode:     c.imageResolveMode,
+			DockerBuilderFun:     c.dockerBuilderFun,
+			ArtifactBuilderFun:   c.artifactBuilderFun,
+			CleanCollection:      c.cleanCollection,
+			Visited:              c.mts.Visited,
+			VarCollection:        newVarCollection,
+			SolveCache:           c.solveCache,
+			BuildContextProvider: c.buildContextProvider,
+			MetaResolver:         c.metaResolver,
 		})
 	if err != nil {
 		return nil, errors.Wrapf(err, "earthfile2llb for %s", fullTargetName)
@@ -578,6 +584,7 @@ func (c *Converter) FinalizeStates() *states.MultiTarget {
 			depStates.Target)
 	}
 
+	c.buildContextProvider.AddDirs(c.mts.Final.LocalDirs)
 	c.mts.Final.Ongoing = false
 	return c.mts
 }
@@ -686,8 +693,7 @@ func (c *Converter) internalFromClassical(ctx context.Context, imageName string,
 		return llb.State{}, nil, nil, errors.Wrapf(err, "parse normalized named %s", imageName)
 	}
 	baseImageName := reference.TagNameOnly(ref).String()
-	metaResolver := imr.Default()
-	dgst, dt, err := metaResolver.ResolveImageConfig(
+	dgst, dt, err := c.metaResolver.ResolveImageConfig(
 		ctx, baseImageName,
 		llb.ResolveImageConfigOpt{
 			Platform:    &llbutil.TargetPlatform,

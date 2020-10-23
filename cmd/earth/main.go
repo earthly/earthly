@@ -24,7 +24,7 @@ import (
 	"time"
 
 	"github.com/earthly/earthly/autocomplete"
-	"github.com/earthly/earthly/buildcontext"
+	"github.com/earthly/earthly/buildcontext/provider"
 	"github.com/earthly/earthly/builder"
 	"github.com/earthly/earthly/buildkitd"
 	"github.com/earthly/earthly/cleanup"
@@ -258,7 +258,6 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 			EnvVars:     []string{"EARTHLY_PULL"},
 			Usage:       "Force pull any referenced Docker images",
 			Destination: &app.pull,
-			Hidden:      true, // Experimental.
 		},
 		&cli.BoolFlag{
 			Name:        "push",
@@ -1340,9 +1339,19 @@ func (app *earthApp) actionBuild(c *cli.Context) error {
 
 	sc := secretsclient.NewClient(app.apiServer, app.sshAuthSock, app.publicKey, app.console.Warnf)
 
+	cacheLocalDir, err := ioutil.TempDir("", "earthly-cache")
+	if err != nil {
+		return errors.Wrap(err, "make temp dir for cache")
+	}
+	defer os.RemoveAll(cacheLocalDir)
+	defaultLocalDirs := make(map[string]string)
+	defaultLocalDirs["earthly-cache"] = cacheLocalDir
+	buildContextProvider := provider.NewBuildContextProvider()
+	buildContextProvider.AddDirs(defaultLocalDirs)
 	attachables := []session.Attachable{
 		llbutil.NewSecretProvider(sc, secretsMap),
 		authprovider.NewDockerAuthProvider(os.Stderr),
+		buildContextProvider,
 	}
 
 	if app.sshAuthSock != "" {
@@ -1359,16 +1368,8 @@ func (app *earthApp) actionBuild(c *cli.Context) error {
 	if app.allowPrivileged {
 		enttlmnts = append(enttlmnts, entitlements.EntitlementSecurityInsecure)
 	}
-	b, err := builder.NewBuilder(
-		c.Context, bkClient, app.console, app.verbose, attachables, enttlmnts,
-		app.noCache, app.remoteCache)
-	if err != nil {
-		return errors.Wrap(err, "new builder")
-	}
 	cleanCollection := cleanup.NewCollection()
 	defer cleanCollection.Close()
-	resolver := buildcontext.NewResolver(
-		bkClient, app.sessionID, cleanCollection, b.MakeArtifactBuilderFun())
 
 	if app.interactiveDebugging {
 		go terminal.ConnectTerm(c.Context, fmt.Sprintf("127.0.0.1:%d", app.buildkitdSettings.DebuggerPort))
@@ -1382,38 +1383,47 @@ func (app *earthApp) actionBuild(c *cli.Context) error {
 	if app.pull {
 		imageResolveMode = llb.ResolveModeForcePull
 	}
-	mts, err := earthfile2llb.Earthfile2LLB(
-		c.Context, target, earthfile2llb.ConvertOpt{
-			Resolver:           resolver,
-			ImageResolveMode:   imageResolveMode,
-			DockerBuilderFun:   b.MakeImageAsTarBuilderFun(),
-			ArtifactBuilderFun: b.MakeArtifactBuilderFun(),
-			CleanCollection:    cleanCollection,
-			VarCollection:      varCollection,
-		})
+	builderOpts := builder.Opt{
+		BkClient:             bkClient,
+		Console:              app.console,
+		Verbose:              app.verbose,
+		Attachables:          attachables,
+		Enttlmnts:            enttlmnts,
+		NoCache:              app.noCache,
+		RemoteCache:          app.remoteCache,
+		SessionID:            app.sessionID,
+		ImageResolveMode:     imageResolveMode,
+		CleanCollection:      cleanCollection,
+		VarCollection:        varCollection,
+		BuildContextProvider: buildContextProvider,
+	}
+	b, err := builder.NewBuilder(c.Context, builderOpts)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "new builder")
 	}
 
-	opts := builder.BuildOpt{
+	buildOpts := builder.BuildOpt{
 		PrintSuccess: true,
 		Push:         app.push,
-		NoOutput:     app.noOutput,
+	}
+	mts, err := b.BuildTarget(c.Context, target, buildOpts)
+	if err != nil {
+		return errors.Wrap(err, "build target")
 	}
 	if app.imageMode {
-		err = b.BuildOnlyImages(c.Context, mts, opts)
+		err = b.OutputImages(c.Context, mts.Final, buildOpts)
 		if err != nil {
-			return err
+			return errors.Wrap(err, "output images")
 		}
 	} else if app.artifactMode {
-		err = b.BuildOnlyArtifact(c.Context, mts, artifact, destPath, opts)
+		err = b.OutputArtifact(c.Context, mts, artifact, destPath, buildOpts)
 		if err != nil {
-			return err
+			return errors.Wrap(err, "output artifact")
 		}
-	} else {
-		err = b.Build(c.Context, mts, opts)
+	} else if !app.noOutput {
+		err = b.Output(c.Context, mts, buildOpts)
 		if err != nil {
-			return err
+			return errors.Wrap(err, "output")
 		}
 	}
 	return nil

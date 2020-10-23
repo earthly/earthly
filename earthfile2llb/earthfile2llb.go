@@ -7,6 +7,7 @@ import (
 
 	"github.com/antlr/antlr4/runtime/Go/antlr"
 	"github.com/earthly/earthly/buildcontext"
+	"github.com/earthly/earthly/buildcontext/provider"
 	"github.com/earthly/earthly/cleanup"
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/earthfile2llb/antlrhandler"
@@ -40,6 +41,10 @@ type ConvertOpt struct {
 	VarCollection *variables.Collection
 	// A cache for image solves. depTargetInputHash -> context containing image.tar.
 	SolveCache map[string]llb.State
+	// BuildContextProvider is the provider used for local build context files.
+	BuildContextProvider *provider.BuildContextProvider
+	// MetaResolver is the image meta resolver to use for resolving image metadata.
+	MetaResolver llb.ImageMetaResolver
 }
 
 // Earthfile2LLB parses a earthfile and executes the statements for a given target.
