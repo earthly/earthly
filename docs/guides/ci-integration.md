@@ -61,11 +61,7 @@ docker login --username '<username>' --password '<password>'
 Make sure that secrets (like `<password>` above) are not exposed in plain text. You may need to configure an environment variable with your CI vendor.
 {% endhint %}
 
-## Step 4: (Optional) Choose log formatting options
-
-There are a few options you can configure to make the log formatting look best in your CI environment.
-
-### Force or disable color output
+## Step 4: (Optional) Force or disable color output
 
 The CLI `earth` automatically detects the presence of a TTY for the purpose of deciding whether to use colorized output or not. In some CI environments, this kind of detection is not enough in order to infer support for colorized output. However, two environment variables can be used to either disable or force it:
 
@@ -77,15 +73,7 @@ The following environments are known to require additional settings:
 * GitHub Actions: requires `FORCE_COLOR=1`
 * Jenkins: requires `NO_COLOR=1`
 
-### Adjust target name column
-
-The CLI defaults to a right-aligned, 20-character width to display the name of the target that the log originated from. When a target name exceeds 20 characters, the name is truncated and the last 20 characters are used.
-
- * `EARTHLY_TARGET_PADDING=n` will set the column to the width of `n` characters.
- * `EARTHLY_FULL_TARGET=1` will always print the full target name, and nothing more. This may result in unaligned logs.
-
-
-This is often as simple as
+## Step 5: Run the build
 
 ```bash
 earth +target-name

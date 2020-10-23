@@ -191,6 +191,16 @@ Also available as an env var setting: `EARTHLY_INTERACTIVE=true`.
 
 Enable interactive debugging mode. By default when a `RUN` command fails, earth will display the error and exit. If the interactive mode is enabled and an error occurs, an interactive shell is presented which can be used for investigating the error interactively. Due to technical limitations, only a single interactive shell can be used on the system at any given time.
 
+#### Log formatting options
+
+These options can only be set via environment variables, and have no command line equivalent.
+
+| Variable               | Usage                                                                                                                                                                                                      |
+|------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| NO_COLOR               | `NO_COLOR=1` disables the use of color.                                                                                                                                                                    |
+| FORCE_COLOR            | `FORCE_COLOR=1` forces the use of color.                                                                                                                                                                   |
+| EARTHLY_TARGET_PADDING | `EARTHLY_TARGET_PADDING=n` will set the column to the width of `n` characters. If a name is longer than `n`, its path will be truncated and and remaining extra length will cause the column to go ragged. |
+| EARTHLY_FULL_TARGET    | `EARTHLY_FULL_TARGET=1` will always print the full target name, and leave the target name column ragged.                                                                                                   |
 
 ## earth prune
 
