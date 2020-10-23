@@ -172,7 +172,7 @@ func main() {
 	}
 
 	padding := conslogging.DefaultPadding
-	customPadding, ok := os.LookupEnv("TARGET_PADDING")
+	customPadding, ok := os.LookupEnv("EARTHLY_TARGET_PADDING")
 	if ok {
 		targetPadding, err := strconv.Atoi(customPadding)
 		if err == nil {
@@ -180,7 +180,7 @@ func main() {
 		}
 	}
 
-	_, fullTarget := os.LookupEnv("FULL_TARGET")
+	_, fullTarget := os.LookupEnv("EARTHLY_FULL_TARGET")
 	if fullTarget {
 		padding = conslogging.NoPadding
 	}
