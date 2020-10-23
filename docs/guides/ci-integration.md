@@ -81,8 +81,8 @@ The following environments are known to require additional settings:
 
 The CLI defaults to a right-aligned, 20-character width to display the name of the target that the log originated from. When a target name exceeds 20 characters, the name is truncated and the last 20 characters are used.
 
- * `TARGET_PADDING=n` will set the column to the width of `n` characters.
- * `FULL_TARGET=1` will always print the full target name, and nothing more. This may result in unaligned logs.
+ * `EARTHLY_TARGET_PADDING=n` will set the column to the width of `n` characters.
+ * `EARTHLY_FULL_TARGET=1` will always print the full target name, and nothing more. This may result in unaligned logs.
 
 
 This is often as simple as
