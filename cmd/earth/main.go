@@ -24,7 +24,6 @@ import (
 	"time"
 
 	"github.com/earthly/earthly/autocomplete"
-	"github.com/earthly/earthly/buildcontext"
 	"github.com/earthly/earthly/buildcontext/provider"
 	"github.com/earthly/earthly/builder"
 	"github.com/earthly/earthly/buildkitd"
@@ -245,7 +244,6 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 			EnvVars:     []string{"EARTHLY_PULL"},
 			Usage:       "Force pull any referenced Docker images",
 			Destination: &app.pull,
-			Hidden:      true, // Experimental.
 		},
 		&cli.BoolFlag{
 			Name:        "push",
@@ -1356,16 +1354,8 @@ func (app *earthApp) actionBuild(c *cli.Context) error {
 	if app.allowPrivileged {
 		enttlmnts = append(enttlmnts, entitlements.EntitlementSecurityInsecure)
 	}
-	b, err := builder.NewBuilder(
-		c.Context, bkClient, app.console, app.verbose, attachables, enttlmnts,
-		app.noCache, app.remoteCache)
-	if err != nil {
-		return errors.Wrap(err, "new builder")
-	}
 	cleanCollection := cleanup.NewCollection()
 	defer cleanCollection.Close()
-	resolver := buildcontext.NewResolver(
-		app.sessionID, cleanCollection, b.MakeArtifactBuilderFun())
 
 	if app.interactiveDebugging {
 		go terminal.ConnectTerm(c.Context, fmt.Sprintf("127.0.0.1:%d", app.buildkitdSettings.DebuggerPort))
@@ -1379,41 +1369,47 @@ func (app *earthApp) actionBuild(c *cli.Context) error {
 	if app.pull {
 		imageResolveMode = llb.ResolveModeForcePull
 	}
-	mts, err := earthfile2llb.Earthfile2LLB(
-		c.Context, target, earthfile2llb.ConvertOpt{
-			Resolver:             resolver,
-			ImageResolveMode:     imageResolveMode,
-			DockerBuilderFun:     b.MakeImageAsTarBuilderFun(),
-			ArtifactBuilderFun:   b.MakeArtifactBuilderFun(),
-			CleanCollection:      cleanCollection,
-			VarCollection:        varCollection,
-			BuildContextProvider: buildContextProvider,
-		})
+	builderOpts := builder.Opt{
+		BkClient:             bkClient,
+		Console:              app.console,
+		Verbose:              app.verbose,
+		Attachables:          attachables,
+		Enttlmnts:            enttlmnts,
+		NoCache:              app.noCache,
+		RemoteCache:          app.remoteCache,
+		SessionID:            app.sessionID,
+		ImageResolveMode:     imageResolveMode,
+		CleanCollection:      cleanCollection,
+		VarCollection:        varCollection,
+		BuildContextProvider: buildContextProvider,
+	}
+	b, err := builder.NewBuilder(c.Context, builderOpts)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "new builder")
 	}
 
-	opts := builder.BuildOpt{
+	buildOpts := builder.BuildOpt{
 		PrintSuccess: true,
 		Push:         app.push,
 		NoOutput:     app.noOutput,
 	}
-	if app.imageMode {
-		err = b.BuildOnlyImages(c.Context, mts, opts)
-		if err != nil {
-			return err
-		}
-	} else if app.artifactMode {
-		err = b.BuildOnlyArtifact(c.Context, mts, artifact, destPath, opts)
-		if err != nil {
-			return err
-		}
-	} else {
-		err = b.Build(c.Context, mts, opts)
-		if err != nil {
-			return err
-		}
+	// if app.imageMode {
+	// 	err = b.BuildOnlyImages(c.Context, mts, opts)
+	// 	if err != nil {
+	// 		return err
+	// 	}
+	// } else if app.artifactMode {
+	_ = destPath
+	// 	err = b.BuildOnlyArtifact(c.Context, mts, artifact, destPath, opts)
+	// 	if err != nil {
+	// 		return err
+	// 	}
+	// } else {
+	err = b.BuildTarget(c.Context, target, buildOpts)
+	if err != nil {
+		return err
 	}
+	// }
 	return nil
 }
 

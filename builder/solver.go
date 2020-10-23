@@ -10,11 +10,10 @@ import (
 
 	"github.com/earthly/earthly/llbutil"
 	"github.com/earthly/earthly/states/image"
-	"github.com/golang/protobuf/proto"
 	"github.com/moby/buildkit/client"
 	"github.com/moby/buildkit/client/llb"
+	gwclient "github.com/moby/buildkit/frontend/gateway/client"
 	"github.com/moby/buildkit/session"
-	"github.com/moby/buildkit/solver/pb"
 	"github.com/moby/buildkit/util/entitlements"
 	"github.com/pkg/errors"
 	"golang.org/x/sync/errgroup"
@@ -177,20 +176,37 @@ func (s *solver) solveArtifacts(ctx context.Context, state llb.State, outDir str
 	return nil
 }
 
-// when printDetailed is false, we only print non-cached items
+func (s *solver) buildMain(ctx context.Context, bf gwclient.BuildFunc) error {
+	solveOpt, err := s.newSolveOptMain()
+	if err != nil {
+		return errors.Wrap(err, "new solve opt")
+	}
+	ch := make(chan *client.SolveStatus)
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	eg, ctx := errgroup.WithContext(ctx)
+	eg.Go(func() error {
+		var err error
+		_, err = s.bkClient.Build(ctx, *solveOpt, "", bf, ch)
+		if err != nil {
+			return errors.Wrap(err, "bkClient.Build")
+		}
+		return nil
+	})
+	eg.Go(func() error {
+		return s.sm.monitorProgress(ctx, ch)
+	})
+	err = eg.Wait()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func (s *solver) solveMain(ctx context.Context, state llb.State) error {
 	dt, err := state.Marshal(ctx, llb.Platform(llbutil.TargetPlatform))
 	if err != nil {
 		return errors.Wrap(err, "state marshal")
-	}
-	var ops []*pb.Op
-	for _, opDef := range dt.Def {
-		var op pb.Op
-		err = proto.Unmarshal(opDef, &op)
-		if err != nil {
-			return errors.Wrap(err, "proto unmarshal of op")
-		}
-		ops = append(ops, &op)
 	}
 	solveOpt, err := s.newSolveOptMain()
 	if err != nil {
