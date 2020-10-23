@@ -247,8 +247,8 @@ func (cl ConsoleLogger) prettyPrefix() string {
 
 		truncated := ""
 		for _, part := range parts[:len(parts)-1] {
-			letter := ""
-			if len(part) > 0 {
+			letter := part
+			if len(part) > 0 && part != ".." {
 				letter = string(part[0])
 			}
 
