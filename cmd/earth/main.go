@@ -171,7 +171,21 @@ func main() {
 		color.NoColor = true
 	}
 
-	app := newEarthApp(ctx, conslogging.Current(colorMode))
+	padding := conslogging.DefaultPadding
+	customPadding, ok := os.LookupEnv("TARGET_PADDING")
+	if ok {
+		targetPadding, err := strconv.Atoi(customPadding)
+		if err == nil {
+			padding = targetPadding
+		}
+	}
+
+	_, fullTarget := os.LookupEnv("FULL_TARGET")
+	if fullTarget {
+		padding = conslogging.NoPadding
+	}
+
+	app := newEarthApp(ctx, conslogging.Current(colorMode, padding))
 	app.autoComplete()
 
 	os.Exit(app.run(ctx, os.Args))

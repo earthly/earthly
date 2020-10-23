@@ -190,7 +190,7 @@ func main() {
 		return
 	}
 
-	conslogger := conslogging.Current(conslogging.ForceColor)
+	conslogger := conslogging.Current(conslogging.ForceColor, conslogging.NoPadding)
 	color.NoColor = false
 
 	debuggerSettings, err := getSettings(fmt.Sprintf("/run/secrets/%s", common.DebuggerSettingsSecretsKey))
