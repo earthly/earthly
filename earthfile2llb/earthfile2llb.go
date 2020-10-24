@@ -134,7 +134,7 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt) (m
 	if walkErr != nil {
 		return nil, walkErr
 	}
-	return converter.FinalizeStates(), nil
+	return converter.FinalizeStates(ctx)
 }
 
 func walkTree(l *listener, tree parser.IEarthFileContext) (err error) {
