@@ -589,54 +589,8 @@ func (c *Converter) FinalizeStates(ctx context.Context) (*states.MultiTarget, er
 	}
 	c.buildContextProvider.AddDirs(c.mts.Final.LocalDirs)
 
-	// @#
-	// var err error
-	// c.mts.Final.MainState, _, err = c.stateToRefToState(ctx, c.mts.Final.MainState)
-	// if err != nil {
-	// 	return nil, err
-	// }
-	// for i, st := range c.mts.Final.SeparateArtifactsState {
-	// 	c.mts.Final.SeparateArtifactsState[i], _, err = c.stateToRefToState(ctx, st)
-	// 	if err != nil {
-	// 		return nil, err
-	// 	}
-	// }
-	// for _, si := range c.mts.Final.SaveImages {
-	// 	si.State, _, err = c.stateToRefToState(ctx, si.State)
-	// 	if err != nil {
-	// 		return nil, err
-	// 	}
-	// }
-
 	c.mts.Final.Ongoing = false
 	return c.mts, nil
-}
-
-// @#
-func (c *Converter) stateToRefToState(ctx context.Context, state llb.State) (llb.State, gwclient.Reference, error) {
-	if state.Output() == nil {
-		// Scratch image. Skip.
-		return state, nil, nil
-	}
-	def, err := state.Marshal(ctx)
-	if err != nil {
-		return llb.State{}, nil, errors.Wrap(err, "marshal state")
-	}
-	resp, err := c.gwClient.Solve(ctx, gwclient.SolveRequest{Definition: def.ToPB()})
-	if err != nil {
-		return llb.State{}, nil, errors.Wrap(err, "solve state")
-	}
-	ref, err := resp.SingleRef()
-	if err != nil {
-		return llb.State{}, nil, errors.Wrap(err, "single ref from state solve")
-	}
-	state2, err := ref.ToState()
-	if err != nil {
-		return llb.State{}, nil, errors.Wrap(err, "ref to state")
-	}
-	// TODO: I suspect that ref.ToState() isn't applying the image config too. Only uses the
-	//       root and that's it.
-	return state2, ref, nil
 }
 
 func (c *Converter) internalRun(ctx context.Context, args []string, secretKeyValues []string, isWithShell bool, shellWrap shellWrapFun, pushFlag bool, withSSH bool, commandStr string, opts ...llb.RunOption) error {
