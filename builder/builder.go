@@ -4,11 +4,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
+	"os/exec"
 	"path"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"github.com/earthly/earthly/buildcontext"
 	"github.com/earthly/earthly/buildcontext/provider"
@@ -26,6 +29,7 @@ import (
 	"github.com/moby/buildkit/util/entitlements"
 	reccopy "github.com/otiai10/copy"
 	"github.com/pkg/errors"
+	"golang.org/x/sync/errgroup"
 )
 
 // Opt represent builder options.
@@ -80,11 +84,6 @@ func (b *Builder) BuildTarget(ctx context.Context, target domain.Target, opt Bui
 	mts, err := b.convertAndBuild(ctx, target, opt)
 	if err != nil {
 		return nil, err
-	}
-	// @#
-	// TODO: This is no longer the best place for printing success.
-	if opt.PrintSuccess {
-		b.opt.Console.PrintSuccess()
 	}
 	return mts, nil
 }
@@ -162,6 +161,18 @@ func (b *Builder) OutputArtifacts(ctx context.Context, states *states.SingleTarg
 }
 
 func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt BuildOpt) (*states.MultiTarget, error) {
+	outDir, err := ioutil.TempDir(".", ".tmp-earth-out")
+	if err != nil {
+		return nil, errors.Wrap(err, "mk temp dir for artifacts")
+	}
+	defer os.RemoveAll(outDir)
+	var successOnce sync.Once
+	successFun := func() {
+		if opt.PrintSuccess {
+			b.opt.Console.PrintSuccess()
+		}
+	}
+	destPathWhitelist := make(map[string]bool)
 	var mts *states.MultiTarget
 	bf := func(ctx context.Context, gwClient gwclient.Client) (*gwclient.Result, error) {
 		var err error
@@ -199,7 +210,8 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 		res := gwclient.NewResult()
 		res.AddRef("earthly-main", ref)
 
-		index := 0
+		imageIndex := 0
+		dirIndex := 0
 		for _, sts := range mts.All() {
 			for _, saveImage := range sts.SaveImages {
 				def, err := saveImage.State.Marshal(ctx)
@@ -218,20 +230,67 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 					return nil, errors.Wrapf(err, "marshal save image config")
 				}
 				// TODO: Support multiple docker tags at the same time (improves export speed).
-				res.AddMeta(fmt.Sprintf("image.name/%d", index), []byte(saveImage.DockerTag))
-				res.AddMeta(fmt.Sprintf("%s/%d", exptypes.ExporterImageConfigKey, index), config)
-				refKey := fmt.Sprintf("earthly-%d", index)
+				res.AddMeta(fmt.Sprintf("image.name/%d", imageIndex), []byte(saveImage.DockerTag))
+				res.AddMeta(fmt.Sprintf("%s/%d", exptypes.ExporterImageConfigKey, imageIndex), config)
+				refKey := fmt.Sprintf("earthly-image-%d", imageIndex)
 				res.AddRef(refKey, ref)
-				index++
+				imageIndex++
+			}
+			for _, saveLocal := range sts.SaveLocals {
+				def, err := sts.SeparateArtifactsState[saveLocal.Index].Marshal(ctx)
+				if err != nil {
+					return nil, errors.Wrap(err, "marshal save img state")
+				}
+				r, err := gwClient.Solve(ctx, gwclient.SolveRequest{
+					Definition: def.ToPB(),
+				})
+				ref, err := r.SingleRef()
+				if err != nil {
+					return nil, err
+				}
+				refKey := fmt.Sprintf("earthly-dir-%d", dirIndex)
+				res.AddRef(refKey, ref)
+				artifact := domain.Artifact{
+					Target:   sts.Target,
+					Artifact: saveLocal.ArtifactPath,
+				}
+				res.AddMeta(fmt.Sprintf("earthly-artifact/%d", dirIndex), []byte(artifact.String()))
+				res.AddMeta(fmt.Sprintf("earthly-src-path/%d", dirIndex), []byte(saveLocal.ArtifactPath))
+				res.AddMeta(fmt.Sprintf("earthly-dest-path/%d", dirIndex), []byte(saveLocal.DestPath))
+				destPathWhitelist[saveLocal.DestPath] = true
+				dirIndex++
 			}
 		}
-		res.AddMeta("earthly-num-exports", []byte(fmt.Sprintf("%d", index)))
+		res.AddMeta("earthly-num-images", []byte(fmt.Sprintf("%d", imageIndex)))
+		res.AddMeta("earthly-num-dirs", []byte(fmt.Sprintf("%d", dirIndex)))
 		return res, nil
 	}
-	err := b.s.buildMainMulti(ctx, bf)
+	onImage := func(ctx context.Context, eg *errgroup.Group, index int, imageName string, digest string) (io.WriteCloser, error) {
+		successOnce.Do(successFun)
+		pipeR, pipeW := io.Pipe()
+		eg.Go(func() error {
+			defer pipeR.Close()
+			err := loadDockerTar(ctx, pipeR)
+			if err != nil {
+				return errors.Wrapf(err, "load docker tar")
+			}
+			return nil
+		})
+		return pipeW, nil
+	}
+	onArtifact := func(ctx context.Context, index int, artifact domain.Artifact, artifactPath string, destPath string) (string, error) {
+		successOnce.Do(successFun)
+		if !destPathWhitelist[destPath] {
+			return "", errors.Errorf("dest path %s is not in the whitelist: %+v", destPath, destPathWhitelist)
+		}
+		fmt.Printf("@#@#@# received onArtifact(%d, %s, %s, %s)\n", index, artifact.String(), artifactPath, destPath)
+		return outDir, nil
+	}
+	err = b.s.buildMainMulti(ctx, bf, onImage, onArtifact)
 	if err != nil {
 		return nil, errors.Wrapf(err, "build main")
 	}
+	successOnce.Do(successFun)
 	return mts, nil
 }
 
@@ -240,9 +299,6 @@ func (b *Builder) buildOnlyLastImageAsTar(ctx context.Context, mts *states.Multi
 	err := b.buildMain(ctx, mts, opt)
 	if err != nil {
 		return err
-	}
-	if opt.PrintSuccess {
-		b.opt.Console.PrintSuccess()
 	}
 
 	err = b.outputImageTar(ctx, saveImage, dockerTag, outFile)
@@ -256,9 +312,6 @@ func (b *Builder) buildOnlyArtifact(ctx context.Context, mts *states.MultiTarget
 	err := b.buildMain(ctx, mts, opt)
 	if err != nil {
 		return err
-	}
-	if opt.PrintSuccess {
-		b.opt.Console.PrintSuccess()
 	}
 
 	return b.OutputArtifact(ctx, mts, artifact, destPath, opt)
@@ -291,13 +344,13 @@ func (b *Builder) outputs(ctx context.Context, states *states.SingleTarget, opt 
 	// if err != nil {
 	// 	return err
 	// }
-	if !states.Target.IsRemote() {
-		// Don't output artifacts for remote images.
-		err = b.OutputArtifacts(ctx, states, opt)
-		if err != nil {
-			return err
-		}
-	}
+	// if !states.Target.IsRemote() {
+	// 	// Don't output artifacts for remote images.
+	// 	err = b.OutputArtifacts(ctx, states, opt)
+	// 	if err != nil {
+	// 		return err
+	// 	}
+	// }
 	return nil
 }
 
@@ -484,6 +537,19 @@ func (b *Builder) saveArtifactLocally(ctx context.Context, artifact domain.Artif
 		if opt.PrintSuccess {
 			console.Printf("Artifact %s as local %s\n", artifact2.StringCanonical(), destPath2)
 		}
+	}
+	return nil
+}
+
+func loadDockerTar(ctx context.Context, r io.ReadCloser) error {
+	// TODO: This is a gross hack - should use proper docker client.
+	cmd := exec.CommandContext(ctx, "docker", "load")
+	cmd.Stdin = r
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	err := cmd.Run()
+	if err != nil {
+		return errors.Wrap(err, "docker load")
 	}
 	return nil
 }
