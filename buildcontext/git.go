@@ -124,7 +124,7 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, target domain.Targ
 		llb.WithCustomNamef("[internal] COPY GIT CLONE %s Earthfile", target.ProjectCanonical()),
 	}
 	opImg := llb.Image(
-		defaultGitImage, llb.MarkImageInternal,
+		defaultGitImage, llb.MarkImageInternal, llb.ResolveModePreferLocal,
 		llb.Platform(llbutil.TargetPlatform))
 	copyOp := opImg.Run(copyOpts...)
 	earthfileState := copyOp.AddMount("/dest", llb.Scratch().Platform(llbutil.TargetPlatform))
