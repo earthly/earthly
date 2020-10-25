@@ -186,14 +186,19 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 		if err != nil {
 			return nil, errors.Wrap(err, "marshal main state")
 		}
-		_, err = gwClient.Solve(ctx, gwclient.SolveRequest{
+		r, err := gwClient.Solve(ctx, gwclient.SolveRequest{
 			Definition: def.ToPB(),
 		})
 		if err != nil {
 			return nil, errors.Wrap(err, "solve main state")
 		}
-
+		ref, err := r.SingleRef()
+		if err != nil {
+			return nil, err
+		}
 		res := gwclient.NewResult()
+		res.AddRef("earthly-main", ref)
+
 		index := 0
 		for _, sts := range mts.All() {
 			for _, saveImage := range sts.SaveImages {
