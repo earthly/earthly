@@ -210,9 +210,15 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 		res := gwclient.NewResult()
 		res.AddRef("main", ref)
 
+		depIndex := 0
 		imageIndex := 0
 		dirIndex := 0
 		for _, sts := range mts.All() {
+			for _, depRef := range sts.DepsRefs {
+				refKey := fmt.Sprintf("dep-%d", depIndex)
+				res.AddRef(refKey, depRef)
+				depIndex++
+			}
 			for _, saveImage := range sts.SaveImages {
 				def, err := saveImage.State.Marshal(ctx)
 				if err != nil {

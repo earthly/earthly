@@ -579,13 +579,20 @@ func (c *Converter) Healthcheck(ctx context.Context, isNone bool, cmdArgs []stri
 
 // FinalizeStates returns the LLB states.
 func (c *Converter) FinalizeStates(ctx context.Context) (*states.MultiTarget, error) {
-	// Create an artificial bond to depStates so that side-effects of deps are built automatically.
+	// Store refs for all dep states.
 	for _, depStates := range c.directDeps {
-		c.mts.Final.MainState = withDependency(
-			c.mts.Final.MainState,
-			c.mts.Final.Target,
-			depStates.MainState,
-			depStates.Target)
+		def, err := depStates.MainState.Marshal(ctx)
+		if err != nil {
+			return nil, errors.Wrapf(err, "marshal dep %s", depStates.Target.String())
+		}
+		r, err := c.gwClient.Solve(ctx, gwclient.SolveRequest{
+			Definition: def.ToPB(),
+		})
+		ref, err := r.SingleRef()
+		if err != nil {
+			return nil, err
+		}
+		c.mts.Final.DepsRefs = append(c.mts.Final.DepsRefs, ref)
 	}
 	c.buildContextProvider.AddDirs(c.mts.Final.LocalDirs)
 
@@ -805,14 +812,6 @@ func (c *Converter) imageVertexPrefix(id string) string {
 
 func (c *Converter) vertexPrefixWithURL(url string) string {
 	return fmt.Sprintf("[%s(%s) %s] ", c.mts.Final.Target.String(), url, url)
-}
-
-func withDependency(state llb.State, target domain.Target, depState llb.State, depTarget domain.Target) llb.State {
-	return llbutil.WithDependency(
-		state, depState,
-		llb.WithCustomNamef(
-			"[internal] create artificial dependency: %s depends on %s",
-			target.String(), depTarget.String()))
 }
 
 func makeCacheContext(target domain.Target) llb.State {

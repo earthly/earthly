@@ -5,6 +5,7 @@ import (
 	"github.com/earthly/earthly/states/dedup"
 	"github.com/earthly/earthly/states/image"
 	"github.com/moby/buildkit/client/llb"
+	gwclient "github.com/moby/buildkit/frontend/gateway/client"
 )
 
 // MultiTarget holds LLB states representing multiple earth targets,
@@ -42,6 +43,7 @@ type SingleTarget struct {
 	LocalDirs              map[string]string
 	Ongoing                bool
 	Salt                   string
+	DepsRefs               []gwclient.Reference
 }
 
 // LastSaveImage returns the last save image available (if any).
