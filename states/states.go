@@ -13,7 +13,7 @@ type MultiTarget struct {
 	// Visited represents the previously visited states, grouped by target
 	// name. Duplicate targets are possible if same target is called with different
 	// build args.
-	Visited map[string][]*SingleTarget
+	Visited *VisitedCollection
 	// Final is the main target to be built.
 	Final *SingleTarget
 }
@@ -25,11 +25,7 @@ func (mts *MultiTarget) FinalTarget() domain.Target {
 
 // All returns all SingleTarget contained within.
 func (mts *MultiTarget) All() []*SingleTarget {
-	var ret []*SingleTarget
-	for _, stss := range mts.Visited {
-		ret = append(ret, stss...)
-	}
-	return ret
+	return mts.Visited.VisitedList
 }
 
 // SingleTarget holds LLB states representing a earth target.

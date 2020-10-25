@@ -78,7 +78,7 @@ func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Da
 		sts.TargetInput = sts.TargetInput.WithBuildArgInput(ovVar.BuildArgInput(key, ""))
 	}
 	targetStr := target.String()
-	opt.Visited[targetStr] = append(opt.Visited[targetStr], sts)
+	opt.Visited.Add(targetStr, sts)
 	return &Converter{
 		gitMeta:              bc.GitMetadata,
 		gwClient:             opt.GwClient,
