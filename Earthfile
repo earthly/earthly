@@ -24,6 +24,8 @@ deps:
     RUN go get golang.org/x/lint/golint
     RUN go get github.com/gordonklaus/ineffassign
     COPY go.mod go.sum ./
+    # @#
+    COPY --dir ../buildkit+code/buildkit /buildkit
     RUN go mod download
     SAVE ARTIFACT go.mod AS LOCAL go.mod
     SAVE ARTIFACT go.sum AS LOCAL go.sum
@@ -232,3 +234,12 @@ examples:
 
 test-fail:
     RUN false
+
+test-test:
+    # @#
+    SAVE IMAGE test:latest
+
+test-test2:
+    FROM alpine:3.11
+    BUILD +test-test
+    SAVE IMAGE test2:latest

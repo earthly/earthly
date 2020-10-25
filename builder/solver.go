@@ -176,15 +176,15 @@ func (s *solver) solveArtifacts(ctx context.Context, state llb.State, outDir str
 	return nil
 }
 
-func (s *solver) buildMain(ctx context.Context, bf gwclient.BuildFunc) error {
-	solveOpt, err := s.newSolveOptMain()
-	if err != nil {
-		return errors.Wrap(err, "new solve opt")
-	}
+func (s *solver) buildMainMulti(ctx context.Context, bf gwclient.BuildFunc) error {
 	ch := make(chan *client.SolveStatus)
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 	eg, ctx := errgroup.WithContext(ctx)
+	solveOpt, err := s.newSolveOptMulti(ctx, eg)
+	if err != nil {
+		return errors.Wrap(err, "new solve opt")
+	}
 	eg.Go(func() error {
 		var err error
 		_, err = s.bkClient.Build(ctx, *solveOpt, "", bf, ch)
@@ -263,6 +263,36 @@ func (s *solver) newSolveOptArtifacts(outDir string) (*client.SolveOpt, error) {
 			{
 				Type:      client.ExporterLocal,
 				OutputDir: outDir,
+			},
+		},
+		Session:             s.attachables,
+		AllowedEntitlements: s.enttlmnts,
+	}, nil
+}
+
+func (s *solver) newSolveOptMulti(ctx context.Context, eg *errgroup.Group) (*client.SolveOpt, error) {
+	return &client.SolveOpt{
+		Exports: []client.ExportEntry{
+			{
+				Type:  client.ExporterEarthly,
+				Attrs: map[string]string{},
+				Output: func(md map[string]string) (io.WriteCloser, error) {
+					pipeR, pipeW := io.Pipe()
+					// indexStr := md["earthly-export-index"]
+					// index, err := strconv.Atoi(indexStr)
+					// if err != nil {
+					// 	return nil, errors.Wrapf(err, "parse earthly-export-index %s", indexStr)
+					// }
+					eg.Go(func() error {
+						defer pipeR.Close()
+						err := loadDockerTar(ctx, pipeR)
+						if err != nil {
+							return errors.Wrapf(err, "load docker tar")
+						}
+						return nil
+					})
+					return pipeW, nil
+				},
 			},
 		},
 		Session:             s.attachables,

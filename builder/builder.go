@@ -81,6 +81,8 @@ func (b *Builder) BuildTarget(ctx context.Context, target domain.Target, opt Bui
 	if err != nil {
 		return nil, err
 	}
+	// @#
+	// TODO: This is no longer the best place for printing success.
 	if opt.PrintSuccess {
 		b.opt.Console.PrintSuccess()
 	}
@@ -184,33 +186,46 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 		if err != nil {
 			return nil, errors.Wrap(err, "marshal main state")
 		}
-		r, err := gwClient.Solve(ctx, gwclient.SolveRequest{
+		_, err = gwClient.Solve(ctx, gwclient.SolveRequest{
 			Definition: def.ToPB(),
 		})
 		if err != nil {
 			return nil, errors.Wrap(err, "solve main state")
 		}
-		ref, err := r.SingleRef()
-		if err != nil {
-			return nil, err
-		}
-		config, err := json.Marshal(mts.Final.MainImage)
-		if err != nil {
-			return nil, errors.Wrapf(err, "marshal image config")
-		}
 
 		res := gwclient.NewResult()
-		res.AddMeta(exptypes.ExporterImageConfigKey, config)
-		res.SetRef(ref)
+		index := 0
+		for _, sts := range mts.All() {
+			for _, saveImage := range sts.SaveImages {
+				def, err := saveImage.State.Marshal(ctx)
+				if err != nil {
+					return nil, errors.Wrap(err, "marshal save img state")
+				}
+				r, err := gwClient.Solve(ctx, gwclient.SolveRequest{
+					Definition: def.ToPB(),
+				})
+				ref, err := r.SingleRef()
+				if err != nil {
+					return nil, err
+				}
+				config, err := json.Marshal(saveImage.Image)
+				if err != nil {
+					return nil, errors.Wrapf(err, "marshal save image config")
+				}
+				// TODO: Support multiple docker tags at the same time (improves export speed).
+				res.AddMeta(fmt.Sprintf("image.name/%d", index), []byte(saveImage.DockerTag))
+				res.AddMeta(fmt.Sprintf("%s/%d", exptypes.ExporterImageConfigKey, index), config)
+				refKey := fmt.Sprintf("earthly-%d", index)
+				res.AddRef(refKey, ref)
+				index++
+			}
+		}
+		res.AddMeta("earthly-num-exports", []byte(fmt.Sprintf("%d", index)))
 		return res, nil
 	}
-	err := b.s.buildMain(ctx, bf)
+	err := b.s.buildMainMulti(ctx, bf)
 	if err != nil {
 		return nil, errors.Wrapf(err, "build main")
-	}
-	if opt.PrintSuccess {
-		targetConsole := b.opt.Console.WithPrefixAndSalt(target.String(), mts.Final.Salt)
-		targetConsole.Printf("Target %s built successfully\n", target.StringCanonical())
 	}
 	return mts, nil
 }
@@ -266,10 +281,11 @@ func (b *Builder) outputs(ctx context.Context, states *states.SingleTarget, opt 
 	if err != nil {
 		return err
 	}
-	err = b.OutputImages(ctx, states, opt)
-	if err != nil {
-		return err
-	}
+	// @#
+	// err = b.OutputImages(ctx, states, opt)
+	// if err != nil {
+	// 	return err
+	// }
 	if !states.Target.IsRemote() {
 		// Don't output artifacts for remote images.
 		err = b.OutputArtifacts(ctx, states, opt)
