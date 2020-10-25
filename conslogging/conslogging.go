@@ -239,12 +239,24 @@ func (cl ConsoleLogger) prettyPrefix() string {
 	}
 
 	formatString := fmt.Sprintf("%%%vv", cl.prefixPadding)
-	substringStart := len(cl.prefix) - cl.prefixPadding
 
-	clampedPadding := substringStart
-	if clampedPadding < 0 {
-		clampedPadding = 0
+	prettyPrefix := cl.prefix
+	if len(cl.prefix) > cl.prefixPadding {
+		parts := strings.Split(cl.prefix, "/")
+		target := parts[len(parts)-1]
+
+		truncated := ""
+		for _, part := range parts[:len(parts)-1] {
+			letter := part
+			if len(part) > 0 && part != ".." {
+				letter = string(part[0])
+			}
+
+			truncated += letter + "/"
+		}
+
+		prettyPrefix = truncated + target
 	}
 
-	return fmt.Sprintf(formatString, cl.prefix[clampedPadding:])
+	return fmt.Sprintf(formatString, prettyPrefix)
 }
