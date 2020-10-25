@@ -287,14 +287,53 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 		if !destPathWhitelist[destPath] {
 			return "", errors.Errorf("dest path %s is not in the whitelist: %+v", destPath, destPathWhitelist)
 		}
-		fmt.Printf("@#@#@# received onArtifact(%d, %s, %s, %s)\n", index, artifact.String(), artifactPath, destPath)
-		return outDir, nil
+		artifactDir := filepath.Join(outDir, fmt.Sprintf("index-%d", index))
+		err := os.MkdirAll(artifactDir, 0755)
+		if err != nil {
+			return "", errors.Wrapf(err, "create dir %s", artifactDir)
+		}
+		return artifactDir, nil
 	}
 	err = b.s.buildMainMulti(ctx, bf, onImage, onArtifact)
 	if err != nil {
 		return nil, errors.Wrapf(err, "build main")
 	}
 	successOnce.Do(successFun)
+	// This needs to match with the same index used during output.
+	// TODO: This is a little brittle.
+	dirIndex := 0
+	for _, sts := range mts.All() {
+		for _, saveImage := range sts.SaveImages {
+			shouldPush := opt.Push && saveImage.Push
+			console := b.opt.Console.WithPrefixAndSalt(sts.Target.String(), sts.Salt)
+			if shouldPush {
+				err := pushDockerImage(ctx, saveImage.DockerTag)
+				if err != nil {
+					return nil, err
+				}
+			}
+			pushStr := ""
+			if shouldPush {
+				pushStr = " (pushed)"
+			}
+			console.Printf("Image %s as %s%s\n", sts.Target.StringCanonical(), saveImage.DockerTag, pushStr)
+			if saveImage.Push && !opt.Push {
+				console.Printf("Did not push %s. Use earth --push to enable pushing\n", saveImage.DockerTag)
+			}
+		}
+		for _, saveLocal := range sts.SaveLocals {
+			artifactDir := filepath.Join(outDir, fmt.Sprintf("index-%d", dirIndex))
+			artifact := domain.Artifact{
+				Target:   sts.Target,
+				Artifact: saveLocal.ArtifactPath,
+			}
+			err := b.saveArtifactLocally(ctx, artifact, artifactDir, saveLocal.DestPath, sts.Salt, opt)
+			if err != nil {
+				return nil, err
+			}
+			dirIndex++
+		}
+	}
 	return mts, nil
 }
 
@@ -554,6 +593,17 @@ func loadDockerTar(ctx context.Context, r io.ReadCloser) error {
 	err := cmd.Run()
 	if err != nil {
 		return errors.Wrap(err, "docker load")
+	}
+	return nil
+}
+
+func pushDockerImage(ctx context.Context, imageName string) error {
+	cmd := exec.CommandContext(ctx, "docker", "push", imageName)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	err := cmd.Run()
+	if err != nil {
+		return errors.Wrapf(err, "docker push %s", imageName)
 	}
 	return nil
 }

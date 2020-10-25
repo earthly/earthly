@@ -23,6 +23,6 @@ func WithDependency(state llb.State, depState llb.State, opts ...llb.RunOption) 
 	opImg := llb.Image(
 		fakeDepImg, llb.MarkImageInternal, llb.Platform(TargetPlatform),
 		llb.ResolveModePreferLocal,
-		llb.WithCustomNamef("[internal] helper image for fake dep operations"))
+		llb.WithCustomNamef("[internal] mark dependency"))
 	return opImg.Run(runOpts...).AddMount("/fake", state)
 }

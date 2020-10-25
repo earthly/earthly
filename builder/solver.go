@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"io"
 	"os"
-	"os/exec"
 	"strconv"
 
 	"github.com/earthly/earthly/domain"
@@ -338,15 +337,4 @@ func newRegistryCacheOpt(ref string) client.CacheOptionsEntry {
 		Type:  "registry",
 		Attrs: registryCacheOptAttrs,
 	}
-}
-
-func pushDockerImage(ctx context.Context, imageName string) error {
-	cmd := exec.CommandContext(ctx, "docker", "push", imageName)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	err := cmd.Run()
-	if err != nil {
-		return errors.Wrapf(err, "docker push %s", imageName)
-	}
-	return nil
 }
