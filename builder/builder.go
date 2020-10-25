@@ -208,7 +208,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 			return nil, err
 		}
 		res := gwclient.NewResult()
-		res.AddRef("earthly-main", ref)
+		res.AddRef("main", ref)
 
 		imageIndex := 0
 		dirIndex := 0
@@ -230,9 +230,12 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 					return nil, errors.Wrapf(err, "marshal save image config")
 				}
 				// TODO: Support multiple docker tags at the same time (improves export speed).
-				res.AddMeta(fmt.Sprintf("image.name/%d", imageIndex), []byte(saveImage.DockerTag))
-				res.AddMeta(fmt.Sprintf("%s/%d", exptypes.ExporterImageConfigKey, imageIndex), config)
-				refKey := fmt.Sprintf("earthly-image-%d", imageIndex)
+				refKey := fmt.Sprintf("image-%d", imageIndex)
+				refPrefix := fmt.Sprintf("ref/%s", refKey)
+				res.AddMeta(fmt.Sprintf("%s/image.name", refPrefix), []byte(saveImage.DockerTag))
+				res.AddMeta(fmt.Sprintf("%s/%s", refPrefix, exptypes.ExporterImageConfigKey), config)
+				res.AddMeta(fmt.Sprintf("%s/export-image", refPrefix), []byte("true"))
+				res.AddMeta(fmt.Sprintf("%s/image-index", refPrefix), []byte(fmt.Sprintf("%d", imageIndex)))
 				res.AddRef(refKey, ref)
 				imageIndex++
 			}
@@ -248,21 +251,22 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 				if err != nil {
 					return nil, err
 				}
-				refKey := fmt.Sprintf("earthly-dir-%d", dirIndex)
+				refKey := fmt.Sprintf("dir-%d", dirIndex)
+				refPrefix := fmt.Sprintf("ref/%s", refKey)
 				res.AddRef(refKey, ref)
 				artifact := domain.Artifact{
 					Target:   sts.Target,
 					Artifact: saveLocal.ArtifactPath,
 				}
-				res.AddMeta(fmt.Sprintf("earthly-artifact/%d", dirIndex), []byte(artifact.String()))
-				res.AddMeta(fmt.Sprintf("earthly-src-path/%d", dirIndex), []byte(saveLocal.ArtifactPath))
-				res.AddMeta(fmt.Sprintf("earthly-dest-path/%d", dirIndex), []byte(saveLocal.DestPath))
+				res.AddMeta(fmt.Sprintf("%s/artifact", refPrefix), []byte(artifact.String()))
+				res.AddMeta(fmt.Sprintf("%s/src-path", refPrefix), []byte(saveLocal.ArtifactPath))
+				res.AddMeta(fmt.Sprintf("%s/dest-path", refPrefix), []byte(saveLocal.DestPath))
+				res.AddMeta(fmt.Sprintf("%s/export-dir", refPrefix), []byte("true"))
+				res.AddMeta(fmt.Sprintf("%s/dir-index", refPrefix), []byte(fmt.Sprintf("%d", dirIndex)))
 				destPathWhitelist[saveLocal.DestPath] = true
 				dirIndex++
 			}
 		}
-		res.AddMeta("earthly-num-images", []byte(fmt.Sprintf("%d", imageIndex)))
-		res.AddMeta("earthly-num-dirs", []byte(fmt.Sprintf("%d", dirIndex)))
 		return res, nil
 	}
 	onImage := func(ctx context.Context, eg *errgroup.Group, index int, imageName string, digest string) (io.WriteCloser, error) {

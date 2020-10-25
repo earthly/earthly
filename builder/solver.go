@@ -282,28 +282,28 @@ func (s *solver) newSolveOptMulti(ctx context.Context, eg *errgroup.Group, onIma
 				Type:  client.ExporterEarthly,
 				Attrs: map[string]string{},
 				Output: func(md map[string]string) (io.WriteCloser, error) {
-					indexStr := md["earthly-image-index"]
+					indexStr := md["image-index"]
 					index, err := strconv.Atoi(indexStr)
 					if err != nil {
-						return nil, errors.Wrapf(err, "parse earthly-image-index %s", indexStr)
+						return nil, errors.Wrapf(err, "parse image-index %s", indexStr)
 					}
 					imageName := md["image.name"]
 					digest := md["containerimage.digest"]
 					return onImage(ctx, eg, index, imageName, digest)
 				},
 				OutputDirFunc: func(md map[string]string) (string, error) {
-					if md["earthly-image-index"] != "" {
+					if md["export-dir"] != "true" {
 						// Use the other fun for images.
 						return "", nil
 					}
-					indexStr := md["earthly-dir-index"]
+					indexStr := md["dir-index"]
 					index, err := strconv.Atoi(indexStr)
 					if err != nil {
-						return "", errors.Wrapf(err, "parse earthly-dir-index %s", indexStr)
+						return "", errors.Wrapf(err, "parse dir-index %s", indexStr)
 					}
-					artifactStr := md["earthly-artifact"]
-					srcPath := md["earthly-src-path"]
-					destPath := md["earthly-dest-path"]
+					artifactStr := md["artifact"]
+					srcPath := md["src-path"]
+					destPath := md["dest-path"]
 					artifact, err := domain.ParseArtifact(artifactStr)
 					if err != nil {
 						return "", errors.Wrapf(err, "parse artifact %s", artifactStr)
