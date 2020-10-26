@@ -15,19 +15,23 @@ require (
 	github.com/golang/protobuf v1.4.2
 	github.com/joho/godotenv v1.3.0
 	github.com/moby/buildkit v0.7.1-0.20200708233707-488130002abb
+	github.com/nu7hatch/gouuid v0.0.0-20131221200532-179d4d0c4d8d // indirect
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/opencontainers/image-spec v1.0.1
 	github.com/otiai10/copy v1.1.1
 	github.com/pkg/errors v0.9.1
 	github.com/seehuhn/password v0.0.0-20131211191456-9ed6612376fa
+	github.com/segmentio/backo-go v0.0.0-20200129164019-23eae7c10bd3 // indirect
 	github.com/sirupsen/logrus v1.6.0
 	github.com/stretchr/testify v1.5.1
 	github.com/tonistiigi/fsutil v0.0.0-20200724193237-c3ed55f3b481
 	github.com/urfave/cli/v2 v2.1.1
+	github.com/xtgo/uuid v0.0.0-20140804021211-a0b114877d4c // indirect
 	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
 	golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e
 	google.golang.org/grpc v1.28.1
 	google.golang.org/protobuf v1.24.0
+	gopkg.in/segmentio/analytics-go.v3 v3.1.0 // indirect
 	gopkg.in/yaml.v2 v2.2.8
 )
 

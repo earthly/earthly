@@ -47,20 +47,23 @@ import (
 	"github.com/moby/buildkit/session/auth/authprovider"
 	"github.com/moby/buildkit/session/sshforward/sshprovider"
 	"github.com/moby/buildkit/util/entitlements"
+	uuid "github.com/nu7hatch/gouuid"
 	"github.com/pkg/errors"
 	"github.com/seehuhn/password"
 	"github.com/urfave/cli/v2"
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/sync/errgroup"
+	"gopkg.in/segmentio/analytics-go.v3"
 )
 
 var dotEnvPath = ".env"
 
 type earthApp struct {
-	cliApp    *cli.App
-	console   conslogging.ConsoleLogger
-	cfg       *config.Config
-	sessionID string
+	cliApp      *cli.App
+	console     conslogging.ConsoleLogger
+	cfg         *config.Config
+	sessionID   string
+	commandName string
 	cliFlags
 }
 
@@ -118,6 +121,7 @@ func profhandler() {
 }
 
 func main() {
+	startTime := time.Now()
 	ctx := context.Background()
 	ctx, cancel := context.WithCancel(ctx)
 	c := make(chan os.Signal, 1)
@@ -188,7 +192,9 @@ func main() {
 	app := newEarthApp(ctx, conslogging.Current(colorMode, padding))
 	app.autoComplete()
 
-	os.Exit(app.run(ctx, os.Args))
+	exitCode := app.run(ctx, os.Args)
+	app.collectAnalytics(exitCode, time.Since(startTime))
+	os.Exit(exitCode)
 }
 
 func getVersion() string {
@@ -854,6 +860,7 @@ func (app *earthApp) run(ctx context.Context, args []string) int {
 }
 
 func (app *earthApp) actionBootstrap(c *cli.Context) error {
+	app.commandName = "bootstrap"
 	switch app.homebrewSource {
 	case "bash":
 		fmt.Printf(bashCompleteEntry)
@@ -893,6 +900,7 @@ func promptInput(question string) string {
 }
 
 func (app *earthApp) actionOrgCreate(c *cli.Context) error {
+	app.commandName = "orgCreate"
 	if c.NArg() != 1 {
 		return errors.New("invalid number of arguments provided")
 	}
@@ -906,6 +914,7 @@ func (app *earthApp) actionOrgCreate(c *cli.Context) error {
 }
 
 func (app *earthApp) actionOrgList(c *cli.Context) error {
+	app.commandName = "orgList"
 	sc := secretsclient.NewClient(app.apiServer, app.sshAuthSock, app.publicKey, app.console.Warnf)
 	orgs, err := sc.ListOrgs()
 	if err != nil {
@@ -922,6 +931,7 @@ func (app *earthApp) actionOrgList(c *cli.Context) error {
 }
 
 func (app *earthApp) actionOrgListPermissions(c *cli.Context) error {
+	app.commandName = "orgListPermissions"
 	if c.NArg() != 1 {
 		return errors.New("invalid number of arguments provided")
 	}
@@ -950,6 +960,7 @@ func (app *earthApp) actionOrgListPermissions(c *cli.Context) error {
 }
 
 func (app *earthApp) actionOrgInvite(c *cli.Context) error {
+	app.commandName = "orgInvite"
 	if c.NArg() < 2 {
 		return errors.New("invalid number of arguments provided")
 	}
@@ -968,6 +979,7 @@ func (app *earthApp) actionOrgInvite(c *cli.Context) error {
 }
 
 func (app *earthApp) actionOrgRevoke(c *cli.Context) error {
+	app.commandName = "orgRevoke"
 	if c.NArg() < 2 {
 		return errors.New("invalid number of arguments provided")
 	}
@@ -986,6 +998,7 @@ func (app *earthApp) actionOrgRevoke(c *cli.Context) error {
 }
 
 func (app *earthApp) actionSecretsList(c *cli.Context) error {
+	app.commandName = "secretsList"
 	if c.NArg() != 1 {
 		return errors.New("invalid number of arguments provided")
 	}
@@ -1005,6 +1018,7 @@ func (app *earthApp) actionSecretsList(c *cli.Context) error {
 }
 
 func (app *earthApp) actionSecretsGet(c *cli.Context) error {
+	app.commandName = "secretsGet"
 	if c.NArg() != 1 {
 		return errors.New("invalid number of arguments provided")
 	}
@@ -1022,6 +1036,7 @@ func (app *earthApp) actionSecretsGet(c *cli.Context) error {
 }
 
 func (app *earthApp) actionSecretsRemove(c *cli.Context) error {
+	app.commandName = "secretsRemove"
 	if c.NArg() != 1 {
 		return errors.New("invalid number of arguments provided")
 	}
@@ -1035,6 +1050,7 @@ func (app *earthApp) actionSecretsRemove(c *cli.Context) error {
 }
 
 func (app *earthApp) actionSecretsSet(c *cli.Context) error {
+	app.commandName = "secretsSet"
 	var path string
 	var value string
 	if app.secretFile == "" {
@@ -1064,6 +1080,7 @@ func (app *earthApp) actionSecretsSet(c *cli.Context) error {
 }
 
 func (app *earthApp) actionRegister(c *cli.Context) error {
+	app.commandName = "secretsRegister"
 	if app.email == "" {
 		return errors.New("no email given")
 	}
@@ -1162,6 +1179,7 @@ func (app *earthApp) actionRegister(c *cli.Context) error {
 }
 
 func (app *earthApp) actionDebug(c *cli.Context) error {
+	app.commandName = "debug"
 	if c.NArg() > 1 {
 		return errors.New("invalid number of arguments provided")
 	}
@@ -1179,6 +1197,7 @@ func (app *earthApp) actionDebug(c *cli.Context) error {
 }
 
 func (app *earthApp) actionPrune(c *cli.Context) error {
+	app.commandName = "prune"
 	if c.NArg() != 0 {
 		return errors.New("invalid arguments")
 	}
@@ -1240,6 +1259,7 @@ func (app *earthApp) actionPrune(c *cli.Context) error {
 }
 
 func (app *earthApp) actionBuild(c *cli.Context) error {
+	app.commandName = "build"
 	sockName := fmt.Sprintf("debugger.sock.%d", time.Now().UnixNano())
 
 	if app.imageMode && app.artifactMode {
@@ -1450,6 +1470,41 @@ func (app *earthApp) newBuildkitdClient(ctx context.Context, opts ...client.Clie
 	return bkClient, nil
 }
 
+func (app *earthApp) collectAnalytics(exitCode int, realtime time.Duration) {
+	if app.cfg.Global.DisableAnalytics {
+		return
+	}
+	installID, ci := os.LookupEnv("CI")
+	if !ci {
+		var err error
+		installID, err = getInstallID()
+		if err != nil {
+			installID = "unknown"
+		}
+	}
+	segmentClient := analytics.New("RtwJaMBswcW3CNMZ7Ops79dV6lEZqsXf")
+	segmentClient.Enqueue(analytics.Track{
+		Event:  "cli-" + app.commandName,
+		UserId: installID,
+		Properties: analytics.NewProperties().
+			Set("version", Version).
+			Set("gitsha", GitSha).
+			Set("exitcode", exitCode).
+			Set("ci", ci).
+			Set("realtime", realtime.Seconds()),
+	})
+	done := make(chan bool, 1)
+	go func() {
+		segmentClient.Close()
+		done <- true
+	}()
+	select {
+	case <-time.After(time.Millisecond * 500):
+	case <-done:
+	}
+
+}
+
 func processSecrets(secrets []string, dotEnvMap map[string]string) (map[string][]byte, error) {
 	finalSecrets := make(map[string][]byte)
 	for k, v := range dotEnvMap {
@@ -1484,6 +1539,36 @@ func defaultConfigPath() string {
 		return oldConfig
 	}
 	return newConfig
+}
+
+func getInstallID() (string, error) {
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return "", errors.Wrap(err, "failed to get user home dir")
+	}
+
+	path := filepath.Join(homeDir, ".earthly", "install_id")
+	if !fileExists(path) {
+
+		u, err := uuid.NewV4()
+		if err != nil {
+			return "", errors.Wrap(err, "failed to generate uuid")
+		}
+
+		ID := u.String()
+
+		err = ioutil.WriteFile(path, []byte(ID), 0644)
+		if err != nil {
+			return "", errors.Wrapf(err, "failed to write %q", path)
+		}
+		return ID, nil
+	}
+
+	s, err := ioutil.ReadFile(path)
+	if err != nil {
+		return "", errors.Wrapf(err, "failed to read %q", path)
+	}
+	return string(s), nil
 }
 
 func fileExists(filename string) bool {
