@@ -1,7 +1,6 @@
 # Releasing instructions
 
 ### earth
-* Test on Mac using `earth --artifact github.com/earthly/earthly+for-darwin/earth ./earth && docker pull earthly/buildkitd:master && ./earth -P github.com/earthly/earthly+test-all`
 * Make sure you have a GITHUB_TOKEN set. If you don't have a GITHUB_TOKEN, generate one [here](https://github.com/settings/tokens) with scope `repo`.
   ```bash
   export GITHUB_TOKEN="..."
@@ -18,17 +17,21 @@
   ```bash
   git checkout master && git pull
   ```
+* Make sure that master build is green for all platforms.
 * Run
   ```bash
-  earth \
+  ./earth reset
+  ```
+* Run
+  ```bash
+  ./earth \
     --build-arg RELEASE_TAG \
     --secret GITHUB_TOKEN \
     --push -P ./release+release
   ```
-* Once pushed, download and install the released earth locally for both linux and mac and test it using `earth -P github.com/earthly/earthly+test-all`
 * Run
   ```bash
-  earth \
+  ./earth \
     --build-arg RELEASE_TAG \
     --build-arg GIT_USERNAME \
     --build-arg GIT_NAME="$(git config user.name)" \
@@ -42,11 +45,8 @@
   * [circle-integration.md](../docs/examples/circle-integration.md)
   * [gh-actions-integration.md](../docs/examples/gh-actions-integration.md)
 * Go to the [releases page](https://github.com/earthly/earthly/releases) and edit the latest release to add release notes. Use a comparison such as https://github.com/earthly/earthly/compare/v0.3.0...v0.3.1 (replace the right versions in the URL) to see which PRs went into this release.
-* Keep an eye on the Homebrew PR and once merged, test it out on a mac using
-  ```bash
-  brew upgrade earthly
-  earth -P github.com/earthly/earthly+test-all
-  ```
+* Post link to release & homebrew PR in the `#release` channel on internal Slack.
+* Ask Adam to tweet about the release.
 
 ### VS Code syntax highlighting
 
@@ -67,7 +67,7 @@ VSCE_TOKEN=.....
 
 Then publish it:
 ```bash
-earth \
+./earth \
   --build-arg VSCODE_RELEASE_TAG \
   --secret VSCE_TOKEN \
   --push \
