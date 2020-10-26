@@ -47,11 +47,14 @@ import (
 	"github.com/moby/buildkit/session/auth/authprovider"
 	"github.com/moby/buildkit/session/sshforward/sshprovider"
 	"github.com/moby/buildkit/util/entitlements"
+	uuid "github.com/nu7hatch/gouuid"
 	"github.com/pkg/errors"
 	"github.com/seehuhn/password"
 	"github.com/urfave/cli/v2"
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/sync/errgroup"
+
+	"gopkg.in/segmentio/analytics-go.v3"
 )
 
 var dotEnvPath = ".env"
@@ -188,7 +191,10 @@ func main() {
 	app := newEarthApp(ctx, conslogging.Current(colorMode, padding))
 	app.autoComplete()
 
-	os.Exit(app.run(ctx, os.Args))
+	startTime := time.Now()
+	exitCode := app.run(ctx, os.Args)
+	app.collectAnalytics(exitCode, time.Since(startTime))
+	os.Exit(exitCode)
 }
 
 func getVersion() string {
@@ -1450,6 +1456,36 @@ func (app *earthApp) newBuildkitdClient(ctx context.Context, opts ...client.Clie
 	return bkClient, nil
 }
 
+func (app *earthApp) collectAnalytics(exitCode int, realtime time.Duration) {
+	if app.cfg.Global.DisableAnalytics {
+		return
+	}
+	installID, err := getInstallID()
+	if err != nil {
+		installID = "unknown"
+	}
+	segmentClient := analytics.New("RtwJaMBswcW3CNMZ7Ops79dV6lEZqsXf")
+	segmentClient.Enqueue(analytics.Track{
+		Event:  "exit",
+		UserId: installID,
+		Properties: analytics.NewProperties().
+			Set("version", Version).
+			Set("gitsha", GitSha).
+			Set("exitcode", exitCode).
+			Set("realtime", realtime.Seconds()),
+	})
+	done := make(chan bool, 1)
+	go func() {
+		segmentClient.Close()
+		done <- true
+	}()
+	select {
+	case <-time.After(time.Millisecond * 500):
+	case <-done:
+	}
+
+}
+
 func processSecrets(secrets []string, dotEnvMap map[string]string) (map[string][]byte, error) {
 	finalSecrets := make(map[string][]byte)
 	for k, v := range dotEnvMap {
@@ -1484,6 +1520,36 @@ func defaultConfigPath() string {
 		return oldConfig
 	}
 	return newConfig
+}
+
+func getInstallID() (string, error) {
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return "", errors.Wrap(err, "failed to get user home dir")
+	}
+
+	path := filepath.Join(homeDir, ".earthly", "install_id")
+	if !fileExists(path) {
+
+		u, err := uuid.NewV4()
+		if err != nil {
+			return "", errors.Wrap(err, "failed to generate uuid")
+		}
+
+		ID := u.String()
+
+		err = ioutil.WriteFile(path, []byte(ID), 0644)
+		if err != nil {
+			return "", errors.Wrapf(err, "failed to write %q", path)
+		}
+		return ID, nil
+	}
+
+	s, err := ioutil.ReadFile(path)
+	if err != nil {
+		return "", errors.Wrapf(err, "failed to read %q", path)
+	}
+	return string(s), nil
 }
 
 func fileExists(filename string) bool {

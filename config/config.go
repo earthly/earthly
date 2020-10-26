@@ -23,6 +23,7 @@ var (
 type GlobalConfig struct {
 	RunPath                 string `yaml:"run_path"`
 	DisableLoopDevice       bool   `yaml:"no_loop_device"`
+	DisableAnalytics        bool   `yaml:"disable_analytics"`
 	BuildkitCacheSizeMb     int    `yaml:"cache_size_mb"`
 	BuildkitImage           string `yaml:"buildkit_image"`
 	DebuggerPort            int    `yaml:"debugger_port"`
