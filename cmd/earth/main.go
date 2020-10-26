@@ -1405,6 +1405,7 @@ func (app *earthApp) actionBuild(c *cli.Context) error {
 	buildOpts := builder.BuildOpt{
 		PrintSuccess: true,
 		Push:         app.push,
+		NoOutput:     app.noOutput,
 	}
 	mts, err := b.BuildTarget(c.Context, target, buildOpts)
 	if err != nil {

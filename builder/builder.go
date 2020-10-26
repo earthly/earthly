@@ -52,6 +52,7 @@ type Opt struct {
 type BuildOpt struct {
 	PrintSuccess bool
 	Push         bool
+	NoOutput     bool
 }
 
 // Builder executes Earthly builds.
@@ -277,6 +278,9 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 	}
 	onImage := func(ctx context.Context, eg *errgroup.Group, index int, imageName string, digest string) (io.WriteCloser, error) {
 		successOnce.Do(successFun)
+		if opt.NoOutput {
+			return nil, nil
+		}
 		pipeR, pipeW := io.Pipe()
 		eg.Go(func() error {
 			defer pipeR.Close()
@@ -290,6 +294,9 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 	}
 	onArtifact := func(ctx context.Context, index int, artifact domain.Artifact, artifactPath string, destPath string) (string, error) {
 		successOnce.Do(successFun)
+		if opt.NoOutput {
+			return "", nil
+		}
 		if !destPathWhitelist[destPath] {
 			return "", errors.Errorf("dest path %s is not in the whitelist: %+v", destPath, destPathWhitelist)
 		}

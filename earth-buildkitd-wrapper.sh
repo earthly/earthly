@@ -1,6 +1,11 @@
 #!/bin/sh
 
+set -eu
+# @#
+set -x
+
 # Start buildkitd.
+rm -f "/run/buildkit/buildkitd.sock"
 /usr/bin/entrypoint.sh \
     buildkitd \
     --allow-insecure-entitlement=security.insecure \
@@ -17,27 +22,38 @@ while [ ! -S "/run/buildkit/buildkitd.sock" ]; do
     sleep 1
     i=$((i+1))
     if [ "$i" -gt "$timeout" ]; then
-        kill -9 "$buildkitd_pid" >/dev/null 2>&1
+        kill -9 "$buildkitd_pid" >/dev/null 2>&1 || true
         echo "Buildkitd did not start within $timeout seconds"
+        echo "Buildkitd log"
+        echo "=============="
+        cat /var/log/buildkitd.log
+        echo "=============="
         exit 1
     fi
 done
 
 # Run earth with given args.
+set +e
 earth "$@"
 exit_code="$?"
+set -e
+
+# @#
+echo "Buildkitd log"
+echo "=============="
+cat /var/log/buildkitd.log
+echo "=============="
 
 # Shut down buildkitd.
-kill "$buildkitd_pid" >/dev/null 2>&1
+kill "$buildkitd_pid" >/dev/null 2>&1 || true
 i=1
 timeout=10
 while kill -0 "$buildkitd_pid" >/dev/null 2>&1 ; do
     sleep 1
     i=$((i+1))
     if [ "$i" -gt "$timeout" ]; then
-        kill -9 "$buildkitd_pid" >/dev/null 2>&1
+        kill -9 "$buildkitd_pid" >/dev/null 2>&1 || true
     fi
 done
-rm -f "/run/buildkit/buildkitd.sock"
 
 exit "$exit_code"
