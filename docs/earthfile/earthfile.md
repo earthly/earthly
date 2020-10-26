@@ -57,7 +57,6 @@ build:
     FROM alpine:3.11
     # ... instructions for build
     SAVE ARTIFACT ./a-file
-    SAVE IMAGE
 
 another:
     FROM +build
@@ -316,18 +315,11 @@ Files within the artifact environment are also known as "artifacts". Once a file
 
 #### Synopsis
 
-* `SAVE IMAGE [[--push] <image-name>...]`
+* `SAVE IMAGE [--push] <image-name>...`
 
 #### Description
 
-The command `SAVE IMAGE` marks the current build environment as the image of the target. The image can then be referenced using an [image reference](../guides/target-ref.md) in other parts of the build (for example in a `FROM` command).
-
-If one ore more `<image-name>`'s are specified, the command also marks the image to be loaded within the docker daemon available on the host.
-
-{% hint style='info' %}
-##### Note
-It is an error to issue the command `SAVE IMAGE` twice within the same recipe. In addition, the `SAVE IMAGE` command is always implied at the end of the `base` target, thus issuing `SAVE IMAGE` within the recipe of the `base` target is also an error.
-{% endhint %}
+The command `SAVE IMAGE` marks the current build environment as the image of the target and assigns an output image name.
 
 #### Options
 

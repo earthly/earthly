@@ -29,7 +29,6 @@ deps:
     RUN go mod download
     SAVE ARTIFACT go.mod AS LOCAL go.mod
     SAVE ARTIFACT go.sum AS LOCAL go.sum
-    SAVE IMAGE
 
 code:
     FROM +deps
@@ -39,7 +38,6 @@ code:
     COPY --dir earthfile2llb/antlrhandler \
         earthfile2llb/variables earthfile2llb/*.go earthfile2llb/
     COPY ./earthfile2llb/parser+parser/*.go ./earthfile2llb/parser/
-    SAVE IMAGE
 
 lint-scripts:
     FROM +deps
@@ -228,6 +226,7 @@ examples:
     BUILD ./examples/readme/go2+all
     BUILD ./examples/readme/go3+build
     BUILD ./examples/readme/proto+docker
+    BUILD ./examples/terraform+localstack
     BUILD ./examples/ruby+docker
     BUILD ./examples/ruby-on-rails+docker
     BUILD ./examples/scala+docker

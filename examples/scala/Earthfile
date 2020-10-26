@@ -5,7 +5,6 @@ deps:
     COPY build.sbt ./
     COPY project project
     RUN sbt update
-    SAVE IMAGE
 
 build:
     FROM +deps

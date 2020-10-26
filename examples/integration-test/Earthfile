@@ -25,13 +25,11 @@ project-files:
     COPY project project
     # Run sbt for caching purposes.
     RUN touch a.scala && sbt compile && rm a.scala
-    SAVE IMAGE
 
 build:
     FROM +project-files
     COPY src src
     RUN sbt compile
-    SAVE IMAGE
 
 unit-test:
     FROM +project-files
