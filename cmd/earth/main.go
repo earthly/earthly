@@ -121,6 +121,7 @@ func profhandler() {
 }
 
 func main() {
+	startTime := time.Now()
 	ctx := context.Background()
 	ctx, cancel := context.WithCancel(ctx)
 	c := make(chan os.Signal, 1)
@@ -191,7 +192,6 @@ func main() {
 	app := newEarthApp(ctx, conslogging.Current(colorMode, padding))
 	app.autoComplete()
 
-	startTime := time.Now()
 	exitCode := app.run(ctx, os.Args)
 	app.collectAnalytics(exitCode, time.Since(startTime))
 	os.Exit(exitCode)
@@ -1484,7 +1484,7 @@ func (app *earthApp) collectAnalytics(exitCode int, realtime time.Duration) {
 	}
 	segmentClient := analytics.New("RtwJaMBswcW3CNMZ7Ops79dV6lEZqsXf")
 	segmentClient.Enqueue(analytics.Track{
-		Event:  app.commandName,
+		Event:  "cli-" + app.commandName,
 		UserId: installID,
 		Properties: analytics.NewProperties().
 			Set("version", Version).
