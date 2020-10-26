@@ -117,7 +117,6 @@ Let's consider a more complicated example where we are running integration tests
 
 server:
   COPY server.py .
-  SAVE IMAGE
 
 test:
   FROM docker:19.03.12-dind
@@ -190,7 +189,6 @@ Ah ha! The problem is our test is expecting a lowercase `h`, so we can fix our g
 
 server:
   COPY server.py .
-  SAVE IMAGE
 
 test:
   FROM docker:19.03.12-dind

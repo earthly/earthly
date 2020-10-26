@@ -75,8 +75,6 @@ The following environments are known to require additional settings:
 
 ## Step 5: Run the build
 
-This is often as simple as
-
 ```bash
 earth +target-name
 ```

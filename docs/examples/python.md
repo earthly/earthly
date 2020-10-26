@@ -10,7 +10,6 @@ deps:
     RUN pip install wheel
     COPY requirements.txt ./
     RUN pip wheel -r requirements.txt --wheel-dir=wheels
-    SAVE IMAGE
 
 build:
     FROM +deps

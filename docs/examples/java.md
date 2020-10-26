@@ -12,7 +12,6 @@ WORKDIR /java-example
 deps:
     COPY build.gradle ./
     RUN gradle build
-    SAVE IMAGE
 
 build:
     FROM +deps
