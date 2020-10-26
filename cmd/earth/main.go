@@ -53,17 +53,17 @@ import (
 	"github.com/urfave/cli/v2"
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/sync/errgroup"
-
 	"gopkg.in/segmentio/analytics-go.v3"
 )
 
 var dotEnvPath = ".env"
 
 type earthApp struct {
-	cliApp    *cli.App
-	console   conslogging.ConsoleLogger
-	cfg       *config.Config
-	sessionID string
+	cliApp      *cli.App
+	console     conslogging.ConsoleLogger
+	cfg         *config.Config
+	sessionID   string
+	commandName string
 	cliFlags
 }
 
@@ -552,6 +552,7 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 	}
 
 	app.cliApp.Before = app.before
+	app.cliApp.After = app.after
 	return app
 }
 
@@ -624,6 +625,11 @@ func (app *earthApp) before(context *cli.Context) error {
 	app.buildkitdSettings.RunDir = app.cfg.Global.RunPath
 	app.buildkitdSettings.GitConfig = gitConfig
 	app.buildkitdSettings.GitCredentials = gitCredentials
+	return nil
+}
+
+func (app *earthApp) after(context *cli.Context) error {
+	app.commandName = context.Command.Name
 	return nil
 }
 
@@ -1460,18 +1466,24 @@ func (app *earthApp) collectAnalytics(exitCode int, realtime time.Duration) {
 	if app.cfg.Global.DisableAnalytics {
 		return
 	}
-	installID, err := getInstallID()
-	if err != nil {
-		installID = "unknown"
+	installID, ci := os.LookupEnv("CI")
+	if !ci {
+		var err error
+		installID, err = getInstallID()
+		if err != nil {
+			installID = "unknown"
+		}
 	}
 	segmentClient := analytics.New("RtwJaMBswcW3CNMZ7Ops79dV6lEZqsXf")
 	segmentClient.Enqueue(analytics.Track{
 		Event:  "exit",
 		UserId: installID,
 		Properties: analytics.NewProperties().
+			Set("command", app.commandName).
 			Set("version", Version).
 			Set("gitsha", GitSha).
 			Set("exitcode", exitCode).
+			Set("ci", ci).
 			Set("realtime", realtime.Seconds()),
 	})
 	done := make(chan bool, 1)
