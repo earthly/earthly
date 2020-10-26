@@ -1484,10 +1484,9 @@ func (app *earthApp) collectAnalytics(exitCode int, realtime time.Duration) {
 	}
 	segmentClient := analytics.New("RtwJaMBswcW3CNMZ7Ops79dV6lEZqsXf")
 	segmentClient.Enqueue(analytics.Track{
-		Event:  "exit",
+		Event:  app.commandName,
 		UserId: installID,
 		Properties: analytics.NewProperties().
-			Set("command", app.commandName).
 			Set("version", Version).
 			Set("gitsha", GitSha).
 			Set("exitcode", exitCode).
