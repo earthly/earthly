@@ -232,11 +232,15 @@ func gitRelDir(basePath string, path string) (string, bool, error) {
 	if err != nil {
 		return "", false, errors.Wrapf(err, "get abs path for %s", path)
 	}
+	absPath2, err := filepath.EvalSymlinks(absPath)
+	if err != nil {
+		return "", false, errors.Wrapf(err, "eval symlinks for %s", absPath)
+	}
 	if !filepath.IsAbs(basePath) {
 		return "", false, fmt.Errorf("Git base path %s is not absolute", basePath)
 	}
 	basePathSlash := filepath.ToSlash(basePath)
-	pathSlash := filepath.ToSlash(absPath)
+	pathSlash := filepath.ToSlash(absPath2)
 	basePathParts := strings.Split(basePathSlash, "/")
 	pathParts := strings.Split(pathSlash, "/")
 	if len(pathParts) < len(basePathParts) {
