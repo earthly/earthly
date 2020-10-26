@@ -552,7 +552,6 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 	}
 
 	app.cliApp.Before = app.before
-	app.cliApp.After = app.after
 	return app
 }
 
@@ -625,11 +624,6 @@ func (app *earthApp) before(context *cli.Context) error {
 	app.buildkitdSettings.RunDir = app.cfg.Global.RunPath
 	app.buildkitdSettings.GitConfig = gitConfig
 	app.buildkitdSettings.GitCredentials = gitCredentials
-	return nil
-}
-
-func (app *earthApp) after(context *cli.Context) error {
-	app.commandName = context.Command.Name
 	return nil
 }
 
@@ -866,6 +860,7 @@ func (app *earthApp) run(ctx context.Context, args []string) int {
 }
 
 func (app *earthApp) actionBootstrap(c *cli.Context) error {
+	app.commandName = "bootstrap"
 	switch app.homebrewSource {
 	case "bash":
 		fmt.Printf(bashCompleteEntry)
@@ -905,6 +900,7 @@ func promptInput(question string) string {
 }
 
 func (app *earthApp) actionOrgCreate(c *cli.Context) error {
+	app.commandName = "orgCreate"
 	if c.NArg() != 1 {
 		return errors.New("invalid number of arguments provided")
 	}
@@ -918,6 +914,7 @@ func (app *earthApp) actionOrgCreate(c *cli.Context) error {
 }
 
 func (app *earthApp) actionOrgList(c *cli.Context) error {
+	app.commandName = "orgList"
 	sc := secretsclient.NewClient(app.apiServer, app.sshAuthSock, app.publicKey, app.console.Warnf)
 	orgs, err := sc.ListOrgs()
 	if err != nil {
@@ -934,6 +931,7 @@ func (app *earthApp) actionOrgList(c *cli.Context) error {
 }
 
 func (app *earthApp) actionOrgListPermissions(c *cli.Context) error {
+	app.commandName = "orgListPermissions"
 	if c.NArg() != 1 {
 		return errors.New("invalid number of arguments provided")
 	}
@@ -962,6 +960,7 @@ func (app *earthApp) actionOrgListPermissions(c *cli.Context) error {
 }
 
 func (app *earthApp) actionOrgInvite(c *cli.Context) error {
+	app.commandName = "orgInvite"
 	if c.NArg() < 2 {
 		return errors.New("invalid number of arguments provided")
 	}
@@ -980,6 +979,7 @@ func (app *earthApp) actionOrgInvite(c *cli.Context) error {
 }
 
 func (app *earthApp) actionOrgRevoke(c *cli.Context) error {
+	app.commandName = "orgRevoke"
 	if c.NArg() < 2 {
 		return errors.New("invalid number of arguments provided")
 	}
@@ -998,6 +998,7 @@ func (app *earthApp) actionOrgRevoke(c *cli.Context) error {
 }
 
 func (app *earthApp) actionSecretsList(c *cli.Context) error {
+	app.commandName = "secretsList"
 	if c.NArg() != 1 {
 		return errors.New("invalid number of arguments provided")
 	}
@@ -1017,6 +1018,7 @@ func (app *earthApp) actionSecretsList(c *cli.Context) error {
 }
 
 func (app *earthApp) actionSecretsGet(c *cli.Context) error {
+	app.commandName = "secretsGet"
 	if c.NArg() != 1 {
 		return errors.New("invalid number of arguments provided")
 	}
@@ -1034,6 +1036,7 @@ func (app *earthApp) actionSecretsGet(c *cli.Context) error {
 }
 
 func (app *earthApp) actionSecretsRemove(c *cli.Context) error {
+	app.commandName = "secretsRemove"
 	if c.NArg() != 1 {
 		return errors.New("invalid number of arguments provided")
 	}
@@ -1047,6 +1050,7 @@ func (app *earthApp) actionSecretsRemove(c *cli.Context) error {
 }
 
 func (app *earthApp) actionSecretsSet(c *cli.Context) error {
+	app.commandName = "secretsSet"
 	var path string
 	var value string
 	if app.secretFile == "" {
@@ -1076,6 +1080,7 @@ func (app *earthApp) actionSecretsSet(c *cli.Context) error {
 }
 
 func (app *earthApp) actionRegister(c *cli.Context) error {
+	app.commandName = "secretsRegister"
 	if app.email == "" {
 		return errors.New("no email given")
 	}
@@ -1174,6 +1179,7 @@ func (app *earthApp) actionRegister(c *cli.Context) error {
 }
 
 func (app *earthApp) actionDebug(c *cli.Context) error {
+	app.commandName = "debug"
 	if c.NArg() > 1 {
 		return errors.New("invalid number of arguments provided")
 	}
@@ -1191,6 +1197,7 @@ func (app *earthApp) actionDebug(c *cli.Context) error {
 }
 
 func (app *earthApp) actionPrune(c *cli.Context) error {
+	app.commandName = "prune"
 	if c.NArg() != 0 {
 		return errors.New("invalid arguments")
 	}
@@ -1252,6 +1259,7 @@ func (app *earthApp) actionPrune(c *cli.Context) error {
 }
 
 func (app *earthApp) actionBuild(c *cli.Context) error {
+	app.commandName = "build"
 	sockName := fmt.Sprintf("debugger.sock.%d", time.Now().UnixNano())
 
 	if app.imageMode && app.artifactMode {
