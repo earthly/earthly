@@ -1,6 +1,6 @@
-FROM docker:19.03.7-dind
+FROM earthly/dind:alpine
 WORKDIR /scala-example
-RUN apk add openjdk11 docker-compose bash wget
+RUN apk add openjdk11 bash wget
 
 
 sbt: 
@@ -34,41 +34,31 @@ build:
     SAVE IMAGE
 
 unit-test:
-    FROM +build
+    FROM +project-files
     COPY src src
     RUN sbt test
 
 integration-test:
-    FROM +build
+    FROM +project-files
     COPY src src
     COPY docker-compose.yml ./ 
-    WITH DOCKER 
-        DOCKER PULL aa8y/postgres-dataset:iso3166
-        DOCKER PULL adminer:latest
-        RUN docker-compose up -d && \
-            for i in {1..30}; do nc -z localhost 5432 && break; sleep 1; done; \
-            sbt it:test && \
-            docker-compose down 
+    WITH DOCKER --compose docker-compose.yml
+       RUN sbt it:test
     END
 
 docker:
-    FROM +build
+    FROM +project-files
     COPY src src
-    RUN sbt assembly
+    RUN sbt 'set test in assembly := {}' assembly
     ENTRYPOINT ["java","-cp","target/scala-2.12/scala-example-assembly-1.0.jar","Main"]
     SAVE IMAGE scala-example:latest
 
 smoke-test:
-    FROM +base
+    FROM +project-files
     COPY docker-compose.yml ./ 
-    WITH DOCKER
-        DOCKER PULL aa8y/postgres-dataset:iso3166
-        DOCKER PULL adminer:latest
-        DOCKER LOAD +docker scala-example:latest
-        RUN docker-compose up -d && \ 
-            for i in {1..30}; do nc -z localhost 5432 && break; sleep 1; done; \
-            docker run --network=host scala-example:latest && \
-            docker-compose down 
+    COPY src/smoketest ./ 
+    WITH DOCKER --compose docker-compose.yml --load scala-example:latest=+docker
+        RUN ./smoketest.sh
     END
     
 all:

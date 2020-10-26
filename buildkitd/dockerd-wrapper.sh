@@ -2,10 +2,6 @@
 
 set -eu
 
-install_deps() {
-    apk add --update --no-cache docker-compose
-}
-
 # Runs docker-compose with the right -f flags.
 docker_compose_cmd() {
     compose_file_flags=""
@@ -29,14 +25,13 @@ execute() {
 
     # Lock entire execution of a docker daemon - only one daemon can be used at a time
     # (dockerd race conditions in handling networking setup).
-    # shellcheck disable=SC2039
     (
-        flock -x 200
+        flock -x 8
         start_dockerd
         # Note that the lock will continue to be held after this subshell finishes,
         # becasue it spawns the dockerd background process. This is intentional.
         # The lock is meant to be held until dockerd exits.
-    ) 200>/var/earthly/dind/lock
+    ) 8>/var/earthly/dind/lock
     load_images
     if [ "$EARTHLY_START_COMPOSE" = "true" ]; then
         # shellcheck disable=SC2086
@@ -66,7 +61,10 @@ start_dockerd() {
         sleep 1
         if [ "$i" -gt "$timeout" ]; then
             # Print dockerd logs on start failure.
+            echo "==== Begin dockerd logs ===="
             cat /var/log/docker.log
+            echo "==== End dockerd logs ===="
+            echo "If you are having trouble running docker, try using the official earthly/dind image instead"
             exit 1
         fi
         i=$((i+1))
@@ -102,11 +100,6 @@ load_images() {
 }
 
 case "$1" in
-    install-deps)
-        install_deps
-        exit 0
-        ;;
-    
     get-compose-config)
         write_compose_config
         exit 0

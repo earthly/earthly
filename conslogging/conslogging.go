@@ -24,6 +24,14 @@ const (
 	ForceColor
 )
 
+const (
+	// NoPadding means the old behavior of printing the full target only.
+	NoPadding int = -1
+	// DefaultPadding always prints 20 characters for the target, right
+	// justified. If it is longer, it prints the right 20 characters.
+	DefaultPadding int = 20
+)
+
 var currentConsoleMutex sync.Mutex
 
 // ConsoleLogger is a writer for consoles.
@@ -42,15 +50,17 @@ type ConsoleLogger struct {
 	nextColorIndex *int
 	w              io.Writer
 	trailingLine   bool
+	prefixPadding  int
 }
 
 // Current returns the current console.
-func Current(colorMode ColorMode) ConsoleLogger {
+func Current(colorMode ColorMode, prefixPadding int) ConsoleLogger {
 	return ConsoleLogger{
 		w:              os.Stdout,
 		colorMode:      colorMode,
 		saltColors:     make(map[string]*color.Color),
 		nextColorIndex: new(int),
+		prefixPadding:  prefixPadding,
 		mu:             &currentConsoleMutex,
 	}
 }
@@ -65,6 +75,7 @@ func (cl ConsoleLogger) clone() ConsoleLogger {
 		saltColors:     cl.saltColors,
 		colorMode:      cl.colorMode,
 		nextColorIndex: cl.nextColorIndex,
+		prefixPadding:  cl.prefixPadding,
 		mu:             cl.mu,
 	}
 }
@@ -193,7 +204,7 @@ func (cl ConsoleLogger) printPrefix() {
 		*cl.nextColorIndex = (*cl.nextColorIndex + 1) % len(availablePrefixColors)
 	}
 	c = cl.color(c)
-	c.Fprintf(cl.w, "%s", cl.prefix)
+	c.Fprintf(cl.w, cl.prettyPrefix())
 	if cl.isFailed {
 		cl.w.Write([]byte(" *"))
 		cl.color(warnColor).Fprintf(cl.w, "failed")
@@ -220,4 +231,32 @@ func (cl ConsoleLogger) color(c *color.Color) *color.Color {
 		return c
 	}
 	return noColor
+}
+
+func (cl ConsoleLogger) prettyPrefix() string {
+	if cl.prefixPadding == NoPadding {
+		return cl.prefix
+	}
+
+	formatString := fmt.Sprintf("%%%vv", cl.prefixPadding)
+
+	prettyPrefix := cl.prefix
+	if len(cl.prefix) > cl.prefixPadding {
+		parts := strings.Split(cl.prefix, "/")
+		target := parts[len(parts)-1]
+
+		truncated := ""
+		for _, part := range parts[:len(parts)-1] {
+			letter := part
+			if len(part) > 0 && part != ".." {
+				letter = string(part[0])
+			}
+
+			truncated += letter + "/"
+		}
+
+		prettyPrefix = truncated + target
+	}
+
+	return fmt.Sprintf(formatString, prettyPrefix)
 }

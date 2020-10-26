@@ -7,7 +7,7 @@ WORKDIR /test
 
 all:
     BUILD +ga
-    BUILD +experimental-old
+    BUILD +experimental
 
 ga:
     BUILD +privileged-test
@@ -25,6 +25,7 @@ ga:
     BUILD +host-bind-test
     BUILD +remote-test
     BUILD +transitive-args-test
+    BUILD +transitive-args-test2
     BUILD +non-transitive-args-test
     BUILD +star-test
     BUILD +dockerfile-test
@@ -35,13 +36,12 @@ ga:
     BUILD +chown-test
     BUILD +dotenv-test
     BUILD +env-test
+    BUILD ./autocompletion+test-all
     BUILD ./with-docker+all
     BUILD ./with-docker-compose+all
 
-experimental-old:
-    BUILD +docker-load-test-old
-    BUILD +dind-test-old
-    BUILD +docker-pull-test-old
+experimental:
+    BUILD ./dind-auto-install+all
 
 privileged-test:
     COPY privileged.earth ./Earthfile
@@ -159,9 +159,22 @@ transitive-args-test:
     RUN --privileged \
         --entrypoint \
         --mount=type=tmpfs,target=/tmp/earthly \
-        -- --build-arg SOMEARG=def +test
+        -- --build-arg SOMEARG=xyz +test
     RUN ls
-    RUN test -f ./abc && test -f ./def && test ! -f ./default
+    RUN test -f ./abc && test -f ./xyz && test ! -f ./default
+    RUN cat ./abc | grep abc
+    RUN cat ./xyz | grep xyz
+
+transitive-args-test2:
+    COPY transitive-args.earth ./Earthfile
+    RUN --privileged \
+        --entrypoint \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        -- +test
+    RUN ls
+    RUN test -f ./abc && test -f ./default
+    RUN cat ./abc | grep abc
+    RUN cat ./default | grep default
 
 non-transitive-args-test:
     COPY non-transitive-args1.earth ./Earthfile
@@ -213,24 +226,6 @@ star-test-todo:
     RUN cached_lines=$(cat output.txt | grep cached | wc -l); \
         echo "cached_lines=$cached_lines"; \
         test "$cached_lines" == "6"
-
-docker-load-test-old:
-    COPY docker-load-old.earth ./Earthfile
-    RUN --privileged \
-        --entrypoint \
-        -- --allow-privileged +test
-
-dind-test-old:
-    COPY dind-old.earth ./Earthfile
-    RUN --privileged \
-        --entrypoint \
-        -- --allow-privileged +test
-
-docker-pull-test-old:
-    COPY docker-pull-old.earth ./Earthfile
-    RUN --privileged \
-        --entrypoint \
-        -- --allow-privileged +test
 
 dockerfile-test:
     COPY --dir dockerfile ./
@@ -332,15 +327,13 @@ eine-test-base:
 eine-config-test:
     FROM +eine-test-base
     COPY config.earth ./Earthfile
-    WITH DOCKER
-        DOCKER LOAD ../../buildkitd+buildkitd earthly/buildkitd:dind-test
+    WITH DOCKER --load earthly/buildkitd:dind-test=../../buildkitd+buildkitd
         RUN earth +test
     END
 
 eine-privileged-test:
     FROM +eine-test-base
     COPY privileged.earth ./Earthfile
-    WITH DOCKER
-        DOCKER LOAD ../../buildkitd+buildkitd earthly/buildkitd:dind-test
+    WITH DOCKER --load earthly/buildkitd:dind-test=../../buildkitd+buildkitd
         RUN earth --allow-privileged +test
     END

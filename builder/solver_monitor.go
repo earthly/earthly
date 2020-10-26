@@ -8,7 +8,6 @@ import (
 
 	"github.com/armon/circbuf"
 	"github.com/earthly/earthly/conslogging"
-	"github.com/earthly/earthly/logging"
 	"github.com/moby/buildkit/client"
 	"github.com/opencontainers/go-digest"
 	"github.com/pkg/errors"
@@ -26,7 +25,6 @@ type vertexMonitor struct {
 	operation      string
 	lastOutput     time.Time
 	lastPercentage int
-	logger         logging.Logger
 	console        conslogging.ConsoleLogger
 	headerPrinted  bool
 	isInternal     bool
@@ -92,14 +90,15 @@ func (vm *vertexMonitor) printError() {
 }
 
 type solverMonitor struct {
-	console conslogging.ConsoleLogger
-
+	console  conslogging.ConsoleLogger
+	verbose  bool
 	vertices map[digest.Digest]*vertexMonitor
 }
 
-func newSolverMonitor(console conslogging.ConsoleLogger) *solverMonitor {
+func newSolverMonitor(console conslogging.ConsoleLogger, verbose bool) *solverMonitor {
 	return &solverMonitor{
 		console:  console,
+		verbose:  verbose,
 		vertices: make(map[digest.Digest]*vertexMonitor),
 	}
 }
@@ -117,18 +116,12 @@ Loop:
 				vm, ok := sm.vertices[vertex.Digest]
 				if !ok {
 					targetStr, salt, operation := parseVertexName(vertex.Name)
-					vertexLogger := logging.GetLogger(ctx).
-						With("target", targetStr).
-						With("vertex", shortDigest(vertex.Digest)).
-						With("cached", vertex.Cached).
-						With("operation", operation)
 					vm = &vertexMonitor{
 						vertex:     vertex,
 						targetStr:  targetStr,
 						salt:       salt,
 						operation:  operation,
-						logger:     vertexLogger,
-						isInternal: (targetStr == "internal"),
+						isInternal: (targetStr == "internal" && !sm.verbose),
 						console:    sm.console.WithPrefixAndSalt(targetStr, salt),
 					}
 					sm.vertices[vertex.Digest] = vm
@@ -137,7 +130,6 @@ Loop:
 				if !vm.headerPrinted &&
 					((!vm.isInternal && (vertex.Cached || vertex.Started != nil)) || vertex.Error != "") {
 					vm.printHeader()
-					vm.logger.Info("Vertex started or cached")
 				}
 				if vertex.Error != "" {
 					if strings.Contains(vertex.Error, "context canceled") {
@@ -151,7 +143,6 @@ Loop:
 						}
 						vm.printError()
 					}
-					vm.logger.Error(errors.New(vertex.Error))
 				}
 			}
 			for _, vs := range ss.Statuses {
@@ -168,13 +159,9 @@ Loop:
 					progress = 100
 				}
 				if vm.shouldPrintProgress(progress) {
-					logger := vm.logger.
-						With("progress", progress).
-						With("name", vs.Name)
 					if !vm.headerPrinted {
 						vm.printHeader()
 					}
-					logger.Info(vs.ID)
 					vm.console.Printf("%s %d%%\n", vs.ID, progress)
 				}
 			}
@@ -187,7 +174,6 @@ Loop:
 				if !vm.headerPrinted {
 					vm.printHeader()
 				}
-				vm.logger.Info(string(logLine.Data))
 				err := vm.printOutput(logLine.Data)
 				if err != nil {
 					return err

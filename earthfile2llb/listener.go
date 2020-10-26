@@ -23,7 +23,6 @@ type listener struct {
 	executeTarget   string
 	currentTarget   string
 	targetFound     bool
-	saveImageExists bool
 	pushOnlyAllowed bool
 
 	envArgKey   string
@@ -61,14 +60,6 @@ func (l *listener) Err() error {
 }
 
 func (l *listener) EnterTargetHeader(c *parser.TargetHeaderContext) {
-	// Apply implicit SAVE IMAGE for +base.
-	if l.executeTarget == "base" {
-		if !l.saveImageExists {
-			l.converter.SaveImage(l.ctx, []string{}, false)
-		}
-		l.saveImageExists = true
-	}
-
 	l.currentTarget = strings.TrimSuffix(c.GetText(), ":")
 	if l.currentTarget == l.executeTarget {
 		if l.targetFound {
@@ -80,14 +71,20 @@ func (l *listener) EnterTargetHeader(c *parser.TargetHeaderContext) {
 	if l.shouldSkip() {
 		return
 	}
-	if l.currentTarget == "base" {
-		l.err = errors.New("target name cannot be base")
+	if l.currentTarget == "base" || l.currentTarget == "secrets" {
+		l.err = errors.New("target name cannot be \"base\" or \"secrets\"")
 		return
 	}
 	// Apply implicit FROM +base
 	err := l.converter.From(l.ctx, "+base", nil)
 	if err != nil {
 		l.err = errors.Wrap(err, "apply implicit FROM +base")
+		return
+	}
+}
+
+func (l *listener) EnterStmts(c *parser.StmtsContext) {
+	if l.shouldSkip() {
 		return
 	}
 	l.pushOnlyAllowed = false
@@ -379,12 +376,6 @@ func (l *listener) ExitSaveImage(c *parser.SaveImageContext) {
 	if l.shouldSkip() {
 		return
 	}
-	if l.saveImageExists {
-		l.err = fmt.Errorf(
-			"more than one SAVE IMAGE statement per target not allowed: %s", c.GetText())
-		return
-	}
-	l.saveImageExists = true
 
 	fs := flag.NewFlagSet("SAVE IMAGE", flag.ContinueOnError)
 	pushFlag := fs.Bool(
@@ -400,7 +391,7 @@ func (l *listener) ExitSaveImage(c *parser.SaveImageContext) {
 		return
 	}
 	if *pushFlag && fs.NArg() == 0 {
-		l.err = errors.Wrapf(err, "invalid number of arguments for SAVE IMAGE --push: %v", l.stmtWords)
+		l.err = fmt.Errorf("invalid number of arguments for SAVE IMAGE --push: %v", l.stmtWords)
 		return
 	}
 
@@ -408,7 +399,15 @@ func (l *listener) ExitSaveImage(c *parser.SaveImageContext) {
 	for i, img := range imageNames {
 		imageNames[i] = l.expandArgs(img)
 	}
-	l.converter.SaveImage(l.ctx, imageNames, *pushFlag)
+	if len(imageNames) == 0 {
+		fmt.Printf("Deprecation: using SAVE IMAGE with no arguments is no longer necessary and can be safely removed\n")
+		return
+	}
+	err = l.converter.SaveImage(l.ctx, imageNames, *pushFlag)
+	if err != nil {
+		l.err = errors.Wrap(err, "save image")
+		return
+	}
 	if *pushFlag {
 		l.pushOnlyAllowed = true
 	}
@@ -665,6 +664,7 @@ func (l *listener) ExitDockerLoadStmt(c *parser.DockerLoadStmtContext) {
 			l.err = fmt.Errorf("cannot DOCKER LOAD after the RUN command in a WITH DOCKER clause")
 			return
 		}
+		fmt.Printf("Warning: DOCKER LOAD is deprecated. Please use WITH DOCKER --load %s=%s instead\n", imageName, fullTargetName)
 		l.withDocker.Loads = append(l.withDocker.Loads, DockerLoadOpt{
 			Target:    fullTargetName,
 			ImageName: imageName,
@@ -697,6 +697,7 @@ func (l *listener) ExitDockerPullStmt(c *parser.DockerPullStmtContext) {
 			l.err = fmt.Errorf("cannot DOCKER PULL after the RUN command in a WITH DOCKER clause")
 			return
 		}
+		fmt.Printf("Warning: DOCKER PULL is deprecated. Please use WITH DOCKER --pull %s instead\n", imageName)
 		l.withDocker.Pulls = append(l.withDocker.Pulls, imageName)
 	}
 }
@@ -790,7 +791,7 @@ func (l *listener) ExitWithDockerStmt(c *parser.WithDockerStmtContext) {
 		return
 	}
 	if len(fs.Args()) != 0 {
-		l.err = errors.Wrapf(err, "invalid WITH DOCKER arguments %v", fs.Args())
+		l.err = fmt.Errorf("invalid WITH DOCKER arguments %v", fs.Args())
 		return
 	}
 
@@ -892,6 +893,11 @@ func (l *listener) EnterEnvArgKey(c *parser.EnvArgKeyContext) {
 		return
 	}
 	l.envArgKey = c.GetText()
+	err := checkEnvVarName(l.envArgKey)
+	if err != nil {
+		l.err = err
+		return
+	}
 }
 
 func (l *listener) EnterEnvArgValue(c *parser.EnvArgValueContext) {
@@ -962,6 +968,16 @@ func (ssf *StringSliceFlag) Set(arg string) error {
 	return nil
 }
 
+var envVarNameRegexp = regexp.MustCompile("^[a-zA-Z_]+[a-zA-Z0-9_]*$")
+
+func checkEnvVarName(str string) error {
+	itMatch := envVarNameRegexp.MatchString(str)
+	if !itMatch {
+		return fmt.Errorf("invalid env key definition %s", str)
+	}
+	return nil
+}
+
 var lineContinuationRegexp = regexp.MustCompile("\\\\(\\n|(\\r\\n))[\\t ]*")
 
 func replaceEscape(str string) string {
@@ -970,8 +986,11 @@ func replaceEscape(str string) string {
 
 func parseLoad(loadStr string) (string, string, error) {
 	splitLoad := strings.SplitN(loadStr, "=", 2)
-	if len(splitLoad) < 1 {
-		return "", "", fmt.Errorf("invalid load syntax %s", loadStr)
+	if len(splitLoad) < 2 {
+		// --load <target-name>
+		// (will infer image name from SAVE IMAGE of that target)
+		return "", loadStr, nil
 	}
+	// --load <image-name>=<target-name>
 	return splitLoad[0], splitLoad[1], nil
 }

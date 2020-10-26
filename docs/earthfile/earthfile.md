@@ -220,10 +220,6 @@ RUN --mount=type=cache,target=/go-cache go build main.go
 Note that mounts cannot be shared between targets, nor can they be shared within the same target,
 if the build-args differ between invocations.
 
-##### `--with-docker` (**deprecated**)
-
-`RUN --with-docker` is deprecated. Please use [`WITH DOCKER`](#with-docker-beta) instead.
-
 ## COPY
 
 #### Synopsis
@@ -420,7 +416,8 @@ A number of builtin args are available and are pre-filled by Earthly. For more i
 #### Synopsis
 
 ```Dockerfile
-WITH DOCKER
+WITH DOCKER [--pull <image-name>] [--load <image-name>=<target-ref>] [--compose <compose-file>]
+            [--service <compose-service>] [--build-arg <key>=<value>]
   <commands>
   ...
 END
@@ -428,37 +425,75 @@ END
 
 #### Description
 
-The clause `WITH DOCKER` initializes a Docker daemon to be used in the context of a `RUN` command. The Docker daemon can be pre-loaded with a set of images using the commands `DOCKER PULL` and `DOCKER LOAD`. Once the execution of the `RUN` command has completed, the Docker daemon is stopped and all of its data is deleted, including any volumes and network configuration.
+The clause `WITH DOCKER` initializes a Docker daemon to be used in the context of a `RUN` command. The Docker daemon can be pre-loaded with a set of images using options such as `-pull` and `--load`. Once the execution of the `RUN` command has completed, the Docker daemon is stopped and all of its data is deleted, including any volumes and network configuration.
 
 The clause `WITH DOCKER` automatically implies the `RUN --privileged` flag.
 
-The `WITH DOCKER` clause only supports the commands [`DOCKER LOAD`](#docker-load-beta), [`DOCKER PULL`](#docker-pull-beta) and [`RUN`](#run). Other commands (such as `COPY`) need to be run either before or after `WITH DOCKER ... END`. In addition, only one `RUN` command is permitted within `WITH DOCKER`. However, multiple shell commands may be stringed together using `;` or `&&`.
+The `WITH DOCKER` clause only supports the command [`RUN`](#run). Other commands (such as `COPY`) need to be run either before or after `WITH DOCKER ... END`. In addition, only one `RUN` command is permitted within `WITH DOCKER`. However, multiple shell commands may be stringed together using `;` or `&&`.
 
 A typical example of a `WITH DOCKER` clause might be:
 
 ```Dockerfile
-FROM docker:19.03.12-dind
-RUN apk --update --no-cache add docker-compose
+FROM earthly/dind:alpine
 WORKDIR /test
 COPY docker-compose.yml ./
-WITH DOCKER
-  DOCKER LOAD +some-target image-name:latest
-  DOCKER PULL some-image:latest
-  RUN docker-compose up -d ;\
-    docker run ... &&\
-    docker run ... &&\
-    docker-compose down
+WITH DOCKER \
+        --compose docker-compose.yml \
+        --load image-name:latest=+some-target \
+        --pull some-image:latest
+    RUN docker run ... && \
+        docker run ... && \
+        ...
 END
 ```
 
+For more examples, see the [Docker in Earthly guide](../guides/docker-in-earthly.md) and the [Integration testing guide](../guides/integration.md).
+
 {% hint style='info' %}
 ##### Note
-In order to use `WITH DOCKER`, a base image containing a supported `dockerd` executable must be used.
+For performance reasons, it is recommended to use a Docker image that already contains `dockerd`. If `dockerd` is not found, Earthly will attempt to install it.
 
-Currently only [`docker:dind`](https://hub.docker.com/_/docker) variants are supported.
+Earthly provides officially supported images such as `earthly/dind:alpine` and `earthly/dind:ubuntu` to be used together with `WITH DOCKER`.
 {% endhint %}
 
-## DOCKER PULL (**beta**)
+#### Options
+
+##### `--pull <image-name>`
+
+Pulls the Docker image `<image-name>` from a remote registry and then loads it into the temporary Docker daemon created by `WITH DOCKER`.
+
+This option may be repeated in order to provide multiple images to be pulled.
+
+{% hint style='info' %}
+##### Note
+It is recommended that you avoid issuing `RUN docker pull ...` and use `WITH DOCKER --pull ...` instead. The classical `docker pull` command does not take into account Earthly caching and so it would redownload the image much more frequently than necessary.
+{% endhint %}
+
+##### `--load <image-name>=<target-ref>`
+
+Builds the image referenced by `<target-ref>` and then loads it into the temporary Docker daemon created by `WITH DOCKER`. The image can be referenced as `<image-name>` within `WITH DOCKER`.
+
+This option may be repeated in order to provide multiple images to be loaded.
+
+##### `--compose <compose-file>`
+
+Loads the compose definition defined in `<compose-file>`, adds all applicable images to the pull list and starts up all applicable compose services within.
+
+This option may be repeated, thus having the same effect as repeating the `-f` flag in the `docker-compose` command.
+
+##### `--service <compose-service>`
+
+Specifies which compose service to pull and start up. If no services are specified and `--compose` is used, then all services are pulled and started up.
+
+This option can only be used if `--compose` has been specified.
+
+This option may be repeated in order to specify multiple services.
+
+##### `--build-arg <key>=<value>`
+
+Sets a value override of `<value>` for the build arg identified by `<key>`, when building a `<target-ref>` (specified via `--load`). See also [BUILD](#build) for more details about the `--build-arg` option.
+
+## DOCKER PULL (**deprecated**)
 
 #### Synopsis
 
@@ -466,20 +501,11 @@ Currently only [`docker:dind`](https://hub.docker.com/_/docker) variants are sup
 
 #### Description
 
-The command `DOCKER PULL` pulls a docker image from a remote registry and then loads it into the temporary docker daemon created by `WITH DOCKER`. It can be used in conjunction with `RUN --with-docker docker run ...` to execute docker images in the context of the 
-build environment. `DOCKER PULL` can be used in conjunction with `RUN docker run ...` in a `WITH DOCKER` clause.
-
-{% hint style='info' %}
-##### Note
-It is recommended that you avoid issuing `RUN docker pull ...` and use `DOCKER PULL ...` instead. The classical `docker pull` command does not take into account Earthly caching and so it would redownload the image much more frequently than necessary.
-{% endhint %}
-
 {% hint style='danger' %}
-The use of `DOCKER PULL` outside of a `WITH DOCKER` clause is deprecated and will not be supported in future versions of Earthly.
+`DOCKER PULL` is now deprecated and will not be supported in future versions of Earthly. Please use `WITH DOCKER --pull <image-name>` instead.
 {% endhint %}
 
-
-## DOCKER LOAD (**beta**)
+## DOCKER LOAD (**deprecated**)
 
 #### Synopsis
 
@@ -487,17 +513,9 @@ The use of `DOCKER PULL` outside of a `WITH DOCKER` clause is deprecated and wil
 
 #### Description
 
-The command `DOCKER LOAD` builds the image referenced by `<target-ref>` and then loads it into the temporary docker daemon created by `WITH DOCKER`. The image can be referenced as `<image-name>` within `WITH DOCKER`. `DOCKER LOAD` can be used in conjunction with `RUN docker run ...` to execute docker images that are produced by other targets of the build.
-
 {% hint style='danger' %}
-The use of `DOCKER LOAD` outside of a `WITH DOCKER` clause is deprecated and will not be supported in future versions of Earthly.
+`DOCKER LOAD` is now deprecated and will not be supported in future versions of Earthly. Please use `WITH DOCKER --load <image-name>=<target-ref>` instead.
 {% endhint %}
-
-#### Options
-
-##### `--build-arg <key>=<value>`
-
-Sets a value override of `<value>` for the build arg identified by `<key>`, when invoking the build referenced by `<target-ref>`. See also [BUILD](#build) for more details about the `--build-arg` option.
 
 ## CMD (same as Dockerfile CMD)
 

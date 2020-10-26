@@ -218,12 +218,6 @@ func Start(ctx context.Context, image string, settings Settings, reset bool) err
 		args = append(args,
 			"-p", fmt.Sprintf("127.0.0.1:%d:8373", settings.DebuggerPort))
 	}
-	// Apply some buildkitd-related settings.
-	if settings.CacheSizeMb > 0 {
-		args = append(args,
-			"-e", fmt.Sprintf("CACHE_SIZE_MB=%d", settings.CacheSizeMb),
-		)
-	}
 	// Apply some git-related settings.
 	if settings.SSHAuthSock != "" {
 		args = append(args,
@@ -233,6 +227,7 @@ func Start(ctx context.Context, image string, settings Settings, reset bool) err
 	}
 
 	args = append(args,
+		"-e", fmt.Sprintf("CACHE_SIZE_MB=%d", settings.CacheSizeMb),
 		"-e", "EARTHLY_GIT_CONFIG",
 		"-e", fmt.Sprintf("GIT_URL_INSTEAD_OF=%s", settings.GitURLInsteadOf),
 	)

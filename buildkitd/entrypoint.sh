@@ -1,6 +1,9 @@
 #!/bin/sh
 
 set -e
+if [ "$BUILDKIT_DEBUG" = "true" ]; then
+    set -x
+fi
 
 if [ -z "$CACHE_SIZE_MB" ]; then
     echo "CACHE_SIZE_MB not set"
@@ -35,14 +38,14 @@ do
     # shellcheck disable=SC2154
     if [ -n "$data" ]
     then
-        echo 'echo $'$varname' | base64 -d' > /usr/bin/git_credentials_"$i"
+        echo 'echo $'$varname' | base64 -d' >/usr/bin/git_credentials_"$i"
         chmod +x /usr/bin/git_credentials_"$i"
     else
         break
     fi
     i=$((i+1))
 done
-echo "$EARTHLY_GIT_CONFIG" | base64 -d > /root/.gitconfig
+echo "$EARTHLY_GIT_CONFIG" | base64 -d >/root/.gitconfig
 
 if [ -n "$GIT_URL_INSTEAD_OF" ]; then
     # GIT_URL_INSTEAD_OF can support multiple comma-separated values
@@ -56,13 +59,20 @@ if [ -n "$GIT_URL_INSTEAD_OF" ]; then
 fi
 
 # Set up buildkit cache.
-BUILDKIT_ROOT_DIR="$EARTHLY_TMP_DIR"/buildkit
+export BUILDKIT_ROOT_DIR="$EARTHLY_TMP_DIR"/buildkit
 mkdir -p "$BUILDKIT_ROOT_DIR"
+CACHE_SETTINGS=
+if [ "$CACHE_SIZE_MB" -gt "0" ]; then
+    CACHE_SETTINGS="$(envsubst </etc/buildkitd.cache.template)"
+fi
+export CACHE_SETTINGS
+envsubst </etc/buildkitd.toml.template >/etc/buildkitd.toml
 echo "BUILDKIT_ROOT_DIR=$BUILDKIT_ROOT_DIR"
 echo "CACHE_SIZE_MB=$CACHE_SIZE_MB"
-sed 's^:BUILDKIT_ROOT_DIR:^'"$BUILDKIT_ROOT_DIR"'^g; s/:CACHE_SIZE_MB:/'"$CACHE_SIZE_MB"'/g; s/:BUILDKIT_DEBUG:/'"$BUILDKIT_DEBUG"'/g' \
-    /etc/buildkitd.toml.template > /etc/buildkitd.toml
-
+echo "Buildkitd config"
+echo "=================="
+cat /etc/buildkitd.toml
+echo "=================="
 echo "ENABLE_LOOP_DEVICE=$ENABLE_LOOP_DEVICE"
 echo "FORCE_LOOP_DEVICE=$FORCE_LOOP_DEVICE"
 use_loop_device=false
@@ -129,13 +139,14 @@ shellrepeaterpid=$!
 execpid=$!
 
 # quit if either buildkit or shellrepeater die
+set +x
 while true
 do
-    if ! kill -0 $shellrepeaterpid > /dev/null 2>&1; then
+    if ! kill -0 $shellrepeaterpid >/dev/null 2>&1; then
         echo "Error: shellrepeater process has exited"
         exit 1
     fi
-    if ! kill -0 $execpid > /dev/null 2>&1; then
+    if ! kill -0 $execpid >/dev/null 2>&1; then
         echo "Error: buildkit process has exited"
         exit 1
     fi

@@ -1,0 +1,9 @@
+FROM alpine:latest
+
+RUN apk add --update --no-cache bash
+
+mytarget:
+    RUN echo this wont be run by this test.
+
+othertarget:
+    RUN echo we are only testing the autocompletion can extract targets

@@ -32,18 +32,19 @@ deps:
 code:
     FROM +deps
     COPY --dir autocomplete buildcontext builder cleanup cmd config conslogging debugger dockertar \
-        domain llbutil logging ./
+        domain llbutil logging secretsclient states ./
     COPY --dir buildkitd/buildkitd.go buildkitd/settings.go buildkitd/
-    COPY --dir earthfile2llb/antlrhandler earthfile2llb/dedup earthfile2llb/image \
-        earthfile2llb/imr earthfile2llb/variables earthfile2llb/*.go earthfile2llb/
+    COPY --dir earthfile2llb/antlrhandler \
+        earthfile2llb/variables earthfile2llb/*.go earthfile2llb/
     COPY ./earthfile2llb/parser+parser/*.go ./earthfile2llb/parser/
     SAVE IMAGE
 
 lint-scripts:
     FROM +deps
     COPY ./earth ./buildkitd/entrypoint.sh ./earth-buildkitd-wrapper.sh \
-        ./buildkitd/dockerd-wrapper.sh ./release/envcredhelper.sh \
-        ./.buildkite/*.sh \
+        ./buildkitd/dockerd-wrapper.sh ./buildkitd/docker-auto-install.sh \
+        ./contrib/earthfile-syntax-highlighting-vim/install.sh \
+        ./release/envcredhelper.sh ./.buildkite/*.sh \
         ./shell_scripts/
     RUN shellcheck shell_scripts/*
 
@@ -54,7 +55,7 @@ lint:
             echo "$output" ; \
             exit 1 ; \
         fi
-    RUN output="$(goimports -d . 2>&1)" ; \
+    RUN output="$(goimports -d $(find . -type f -name '*.go' | grep -v \.pb\.go) 2>&1)"  ; \
         if [ -n "$output" ]; then \
             echo "$output" ; \
             exit 1 ; \
@@ -157,12 +158,29 @@ earth-docker:
     COPY --build-arg VERSION=$TAG +earth/earth /usr/bin/earth
     SAVE IMAGE --push earthly/earth:$TAG
 
-# we abuse docker here to distribute our binaries
-prerelease-docker:
+prerelease:
     FROM alpine:3.11
     BUILD --build-arg TAG=prerelease ./buildkitd+buildkitd
     COPY --build-arg VERSION=prerelease +earth-all/* ./
     SAVE IMAGE --push earthly/earthlybinaries:prerelease
+
+dind:
+    BUILD +dind-alpine
+    BUILD +dind-ubuntu
+
+dind-alpine:
+    FROM docker:dind
+    RUN apk add --update --no-cache docker-compose
+    ARG EARTHLY_TARGET_TAG_DOCKER
+    ARG DIND_ALPINE_TAG=alpine-$EARTHLY_TARGET_TAG_DOCKER
+    SAVE IMAGE --push earthly/dind:$DIND_ALPINE_TAG
+
+dind-ubuntu:
+    FROM ubuntu:latest
+    COPY ./buildkitd/docker-auto-install.sh /usr/local/bin/docker-auto-install.sh
+    RUN docker-auto-install.sh
+    ARG DIND_UBUNTU_TAG=ubuntu-$EARTHLY_TARGET_TAG_DOCKER
+    SAVE IMAGE --push earthly/dind:$DIND_UBUNTU_TAG
 
 for-linux:
     BUILD +buildkitd
@@ -178,7 +196,8 @@ all:
     BUILD +buildkitd
     BUILD +earth-all
     BUILD +earth-docker
-    BUILD +prerelease-docker
+    BUILD +prerelease
+    BUILD +dind
 
 test:
     BUILD +lint
@@ -189,25 +208,28 @@ test:
 test-all:
     BUILD +examples
     BUILD +test
+    BUILD ./examples/tests+experimental
 
 examples:
+    BUILD ./examples/cpp+docker
+    BUILD ./examples/dotnet+docker
+    BUILD ./examples/elixir+docker
     BUILD ./examples/go+docker
+    BUILD ./examples/grpc+test
+    BUILD ./examples/integration-test+integration-test
     BUILD ./examples/java+docker
     BUILD ./examples/js+docker
-    BUILD ./examples/cpp+docker
-    BUILD ./examples/scala+docker
-    BUILD ./examples/dotnet+docker
-    BUILD ./examples/python+docker
-    BUILD ./examples/ruby+docker
-    BUILD ./examples/elixir+docker
     BUILD ./examples/monorepo+all
     BUILD ./examples/multirepo+docker
-    BUILD ./examples/integration-test+integration-test
+    BUILD ./examples/python+docker
     BUILD ./examples/readme/go1+all
     BUILD ./examples/readme/go2+all
     BUILD ./examples/readme/go3+build
     BUILD ./examples/readme/proto+docker
     BUILD ./examples/terraform+localstack
+    BUILD ./examples/ruby+docker
+    BUILD ./examples/ruby-on-rails+docker
+    BUILD ./examples/scala+docker
     BUILD github.com/earthly/hello-world+hello
 
 test-fail:

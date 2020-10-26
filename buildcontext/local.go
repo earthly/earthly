@@ -8,7 +8,6 @@ import (
 
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/llbutil"
-	"github.com/earthly/earthly/logging"
 	"github.com/moby/buildkit/client/llb"
 )
 
@@ -35,7 +34,6 @@ func (lr *localResolver) resolveLocal(ctx context.Context, target domain.Target)
 				errors.Is(err, ErrCouldNotDetectRemote) {
 				// Keep going anyway. Either not a git dir, or git not installed, or
 				// remote not detected.
-				logging.GetLogger(ctx).Warning(err.Error())
 				if errors.Is(err, ErrNoGitBinary) ||
 					errors.Is(err, ErrCouldNotDetectRemote) {
 					// TODO: Log this properly in the console.

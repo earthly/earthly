@@ -17,17 +17,16 @@ import (
 
 	"github.com/docker/distribution/reference"
 	"github.com/earthly/earthly/buildcontext"
+	"github.com/earthly/earthly/buildcontext/provider"
 	"github.com/earthly/earthly/cleanup"
 	"github.com/earthly/earthly/debugger/common"
-	"github.com/earthly/earthly/dockertar"
 	"github.com/earthly/earthly/domain"
-	"github.com/earthly/earthly/earthfile2llb/dedup"
-	"github.com/earthly/earthly/earthfile2llb/image"
-	"github.com/earthly/earthly/earthfile2llb/imr"
 	"github.com/earthly/earthly/earthfile2llb/variables"
 	"github.com/earthly/earthly/llbutil"
 	"github.com/earthly/earthly/llbutil/llbgit"
-	"github.com/earthly/earthly/logging"
+	"github.com/earthly/earthly/states"
+	"github.com/earthly/earthly/states/dedup"
+	"github.com/earthly/earthly/states/image"
 	"github.com/moby/buildkit/client/llb"
 	"github.com/moby/buildkit/frontend/dockerfile/dockerfile2llb"
 	solverpb "github.com/moby/buildkit/solver/pb"
@@ -36,58 +35,62 @@ import (
 
 // Converter turns earth commands to buildkit LLB representation.
 type Converter struct {
-	gitMeta            *buildcontext.GitMetadata
-	resolver           *buildcontext.Resolver
-	mts                *MultiTargetStates
-	directDeps         []*SingleTargetStates
-	directDepIndices   []int
-	buildContext       llb.State
-	cacheContext       llb.State
-	varCollection      *variables.Collection
-	dockerBuilderFun   DockerBuilderFun
-	artifactBuilderFun ArtifactBuilderFun
-	cleanCollection    *cleanup.Collection
-	nextArgIndex       int
-	solveCache         map[string]llb.State
-	imageResolveMode   llb.ResolveMode
+	gitMeta              *buildcontext.GitMetadata
+	resolver             *buildcontext.Resolver
+	mts                  *states.MultiTarget
+	directDeps           []*states.SingleTarget
+	directDepIndices     []int
+	buildContext         llb.State
+	cacheContext         llb.State
+	varCollection        *variables.Collection
+	dockerBuilderFun     states.DockerBuilderFun
+	artifactBuilderFun   states.ArtifactBuilderFun
+	cleanCollection      *cleanup.Collection
+	nextArgIndex         int
+	solveCache           map[string]llb.State
+	imageResolveMode     llb.ResolveMode
+	buildContextProvider *provider.BuildContextProvider
+	metaResolver         llb.ImageMetaResolver
 }
 
 // NewConverter constructs a new converter for a given earth target.
 func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Data, opt ConvertOpt) (*Converter, error) {
-	sts := &SingleTargetStates{
+	sts := &states.SingleTarget{
 		Target: target,
 		TargetInput: dedup.TargetInput{
 			TargetCanonical: target.StringCanonical(),
 		},
-		SideEffectsState: llb.Scratch().Platform(llbutil.TargetPlatform),
-		SideEffectsImage: image.NewImage(),
-		ArtifactsState:   llb.Scratch().Platform(llbutil.TargetPlatform),
-		LocalDirs:        bc.LocalDirs,
-		Ongoing:          true,
-		Salt:             fmt.Sprintf("%d", rand.Int()),
+		MainState:      llb.Scratch().Platform(llbutil.TargetPlatform),
+		MainImage:      image.NewImage(),
+		ArtifactsState: llb.Scratch().Platform(llbutil.TargetPlatform),
+		LocalDirs:      bc.LocalDirs,
+		Ongoing:        true,
+		Salt:           fmt.Sprintf("%d", rand.Int()),
 	}
-	mts := &MultiTargetStates{
-		FinalStates:   sts,
-		VisitedStates: opt.VisitedStates,
+	mts := &states.MultiTarget{
+		Final:   sts,
+		Visited: opt.Visited,
 	}
 	for _, key := range opt.VarCollection.SortedOverridingVariables() {
 		ovVar, _, _ := opt.VarCollection.Get(key)
 		sts.TargetInput = sts.TargetInput.WithBuildArgInput(ovVar.BuildArgInput(key, ""))
 	}
 	targetStr := target.String()
-	opt.VisitedStates[targetStr] = append(opt.VisitedStates[targetStr], sts)
+	opt.Visited[targetStr] = append(opt.Visited[targetStr], sts)
 	return &Converter{
-		gitMeta:            bc.GitMetadata,
-		resolver:           opt.Resolver,
-		imageResolveMode:   opt.ImageResolveMode,
-		mts:                mts,
-		buildContext:       bc.BuildContext,
-		cacheContext:       makeCacheContext(target),
-		varCollection:      opt.VarCollection.WithBuiltinBuildArgs(target, bc.GitMetadata),
-		dockerBuilderFun:   opt.DockerBuilderFun,
-		artifactBuilderFun: opt.ArtifactBuilderFun,
-		cleanCollection:    opt.CleanCollection,
-		solveCache:         opt.SolveCache,
+		gitMeta:              bc.GitMetadata,
+		resolver:             opt.Resolver,
+		imageResolveMode:     opt.ImageResolveMode,
+		mts:                  mts,
+		buildContext:         bc.BuildContext,
+		cacheContext:         makeCacheContext(target),
+		varCollection:        opt.VarCollection.WithBuiltinBuildArgs(target, bc.GitMetadata),
+		dockerBuilderFun:     opt.DockerBuilderFun,
+		artifactBuilderFun:   opt.ArtifactBuilderFun,
+		cleanCollection:      opt.CleanCollection,
+		solveCache:           opt.SolveCache,
+		buildContextProvider: opt.BuildContextProvider,
+		metaResolver:         opt.MetaResolver,
 	}, nil
 }
 
@@ -112,15 +115,13 @@ func (c *Converter) fromClassical(ctx context.Context, imageName string) error {
 	if err != nil {
 		return err
 	}
-	c.mts.FinalStates.SideEffectsState = state
-	c.mts.FinalStates.SideEffectsImage = img
+	c.mts.Final.MainState = state
+	c.mts.Final.MainImage = img
 	c.varCollection = newVariables
 	return nil
 }
 
 func (c *Converter) fromTarget(ctx context.Context, targetName string, buildArgs []string) error {
-	logger := logging.GetLogger(ctx).With("from-target", targetName).With("build-args", buildArgs)
-	logger.Info("Applying FROM target")
 	depTarget, err := domain.ParseTarget(targetName)
 	if err != nil {
 		return errors.Wrapf(err, "parse target name %s", targetName)
@@ -130,27 +131,21 @@ func (c *Converter) fromTarget(ctx context.Context, targetName string, buildArgs
 		return errors.Wrapf(err, "apply build %s", depTarget.String())
 	}
 	if depTarget.IsLocalInternal() {
-		depTarget.LocalPath = c.mts.FinalStates.Target.LocalPath
+		depTarget.LocalPath = c.mts.Final.Target.LocalPath
 	}
 	// Look for the built state in the dep states, after we've built it.
-	relevantDepState := mts.FinalStates
-	saveImage, ok := relevantDepState.LastSaveImage()
-	if !ok {
-		return fmt.Errorf(
-			"FROM statement: referenced target %s does not contain a SAVE IMAGE statement",
-			depTarget.String())
-	}
-
+	relevantDepState := mts.Final
+	saveImage := relevantDepState.LastSaveImage()
 	// Pass on dep state over to this state.
-	c.mts.FinalStates.SideEffectsState = saveImage.State
+	c.mts.Final.MainState = relevantDepState.MainState
 	for dirKey, dirValue := range relevantDepState.LocalDirs {
-		c.mts.FinalStates.LocalDirs[dirKey] = dirValue
+		c.mts.Final.LocalDirs[dirKey] = dirValue
 	}
 	for _, kv := range saveImage.Image.Config.Env {
 		k, v := variables.ParseKeyValue(kv)
 		c.varCollection.AddActive(k, variables.NewConstantEnvVar(v), true)
 	}
-	c.mts.FinalStates.SideEffectsImage = saveImage.Image.Clone()
+	c.mts.Final.MainImage = saveImage.Image.Clone()
 	return nil
 }
 
@@ -183,7 +178,7 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 		dfPath = filepath.Join(pathArtifact, "Dockerfile")
 		buildContext = llb.Scratch().Platform(llbutil.TargetPlatform)
 		buildContext = llbutil.CopyOp(
-			mts.FinalStates.ArtifactsState, []string{contextArtifact.Artifact},
+			mts.Final.ArtifactsState, []string{contextArtifact.Artifact},
 			buildContext, "/", true, true, "",
 			llb.WithCustomNamef(
 				"[internal] FROM DOCKERFILE (copy build context from) %s%s",
@@ -209,7 +204,7 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 			return errors.Wrap(err, "resolve build context for dockerfile")
 		}
 		for ldk, ld := range data.LocalDirs {
-			c.mts.FinalStates.LocalDirs[ldk] = ld
+			c.mts.Final.LocalDirs[ldk] = ld
 		}
 		dfPath = data.BuildFilePath
 		buildContext = data.BuildContext
@@ -218,7 +213,7 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 	if err != nil {
 		return errors.Wrapf(err, "read file %s", dfPath)
 	}
-	newVarCollection, err := c.varCollection.WithParseBuildArgs(
+	newVarCollection, _, err := c.varCollection.WithParseBuildArgs(
 		buildArgs, c.processNonConstantBuildArgFunc(ctx))
 	if err != nil {
 		return err
@@ -227,7 +222,7 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 	state, dfImg, err := dockerfile2llb.Dockerfile2LLB(ctx, dfData, dockerfile2llb.ConvertOpt{
 		BuildContext:     &buildContext,
 		ContextLocalName: c.mts.FinalTarget().String(),
-		MetaResolver:     imr.Default(),
+		MetaResolver:     c.metaResolver,
 		ImageResolveMode: c.imageResolveMode,
 		Target:           dfTarget,
 		TargetPlatform:   &llbutil.TargetPlatform,
@@ -249,21 +244,14 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 		return errors.Wrap(err, "unmarshal dockerfile image")
 	}
 	state2, img2, newVarCollection := c.applyFromImage(*state, &img)
-	c.mts.FinalStates.SideEffectsState = state2
-	c.mts.FinalStates.SideEffectsImage = img2
+	c.mts.Final.MainState = state2
+	c.mts.Final.MainImage = img2
 	c.varCollection = newVarCollection
 	return nil
 }
 
 // CopyArtifact applies the earth COPY artifact command.
 func (c *Converter) CopyArtifact(ctx context.Context, artifactName string, dest string, buildArgs []string, isDir bool, chown string) error {
-	logging.GetLogger(ctx).
-		With("srcArtifact", artifactName).
-		With("dest", dest).
-		With("build-args", buildArgs).
-		With("dir", isDir).
-		With("chown", chown).
-		Info("Applying COPY (artifact)")
 	artifact, err := domain.ParseArtifact(artifactName)
 	if err != nil {
 		return errors.Wrapf(err, "parse artifact name %s", artifactName)
@@ -273,14 +261,14 @@ func (c *Converter) CopyArtifact(ctx context.Context, artifactName string, dest 
 		return errors.Wrapf(err, "apply build %s", artifact.Target.String())
 	}
 	if artifact.Target.IsLocalInternal() {
-		artifact.Target.LocalPath = c.mts.FinalStates.Target.LocalPath
+		artifact.Target.LocalPath = c.mts.Final.Target.LocalPath
 	}
 	// Grab the artifacts state in the dep states, after we've built it.
-	relevantDepState := mts.FinalStates
+	relevantDepState := mts.Final
 	// Copy.
-	c.mts.FinalStates.SideEffectsState = llbutil.CopyOp(
+	c.mts.Final.MainState = llbutil.CopyOp(
 		relevantDepState.ArtifactsState, []string{artifact.Artifact},
-		c.mts.FinalStates.SideEffectsState, dest, true, isDir, chown,
+		c.mts.Final.MainState, dest, true, isDir, chown,
 		llb.WithCustomNamef(
 			"%sCOPY %s%s%s %s",
 			c.vertexPrefix(),
@@ -293,14 +281,8 @@ func (c *Converter) CopyArtifact(ctx context.Context, artifactName string, dest 
 
 // CopyClassical applies the earth COPY command, with classical args.
 func (c *Converter) CopyClassical(ctx context.Context, srcs []string, dest string, isDir bool, chown string) {
-	logging.GetLogger(ctx).
-		With("srcs", srcs).
-		With("dest", dest).
-		With("dir", isDir).
-		With("chown", chown).
-		Info("Applying COPY (classical)")
-	c.mts.FinalStates.SideEffectsState = llbutil.CopyOp(
-		c.buildContext, srcs, c.mts.FinalStates.SideEffectsState, dest, true, isDir, chown,
+	c.mts.Final.MainState = llbutil.CopyOp(
+		c.buildContext, srcs, c.mts.Final.MainState, dest, true, isDir, chown,
 		llb.WithCustomNamef(
 			"%sCOPY %s%s %s",
 			c.vertexPrefix(),
@@ -312,20 +294,10 @@ func (c *Converter) CopyClassical(ctx context.Context, srcs []string, dest strin
 // Run applies the earth RUN command.
 func (c *Converter) Run(ctx context.Context, args []string, mounts []string, secretKeyValues []string, privileged bool, withEntrypoint bool, withDocker bool, isWithShell bool, pushFlag bool, withSSH bool) error {
 	if withDocker {
-		fmt.Printf("Warning: RUN --with-docker is deprecated. Please use WITH DOCKER ... RUN ... END instead\n")
+		return errors.New("RUN --with-docker is obsolete. Please use WITH DOCKER ... RUN ... END instead")
 	}
-	logging.GetLogger(ctx).
-		With("args", args).
-		With("mounts", mounts).
-		With("secrets", secretKeyValues).
-		With("privileged", privileged).
-		With("withEntrypoint", withEntrypoint).
-		With("withDocker", withDocker).
-		With("push", pushFlag).
-		With("withSSH", withSSH).
-		Info("Applying RUN")
 	var opts []llb.RunOption
-	mountRunOpts, err := parseMounts(mounts, c.mts.FinalStates.Target, c.mts.FinalStates.TargetInput, c.cacheContext)
+	mountRunOpts, err := parseMounts(mounts, c.mts.Final.Target, c.mts.Final.TargetInput, c.cacheContext)
 	if err != nil {
 		return errors.Wrap(err, "parse mounts")
 	}
@@ -335,10 +307,10 @@ func (c *Converter) Run(ctx context.Context, args []string, mounts []string, sec
 	if withEntrypoint {
 		if len(args) == 0 {
 			// No args provided. Use the image's CMD.
-			args := make([]string, len(c.mts.FinalStates.SideEffectsImage.Config.Cmd))
-			copy(args, c.mts.FinalStates.SideEffectsImage.Config.Cmd)
+			args := make([]string, len(c.mts.Final.MainImage.Config.Cmd))
+			copy(args, c.mts.Final.MainImage.Config.Cmd)
 		}
-		finalArgs = append(c.mts.FinalStates.SideEffectsImage.Config.Entrypoint, args...)
+		finalArgs = append(c.mts.Final.MainImage.Config.Entrypoint, args...)
 		isWithShell = false // Don't use shell when --entrypoint is passed.
 	}
 	if privileged {
@@ -352,23 +324,15 @@ func (c *Converter) Run(ctx context.Context, args []string, mounts []string, sec
 		strIf(pushFlag, "--push "),
 		strings.Join(finalArgs, " "))
 	shellWrap := withShellAndEnvVars
-	if withDocker {
-		shellWrap = withDockerdWrapOld
-	}
 	opts = append(opts, llb.WithCustomNamef("%s%s", c.vertexPrefix(), runStr))
 	return c.internalRun(ctx, finalArgs, secretKeyValues, isWithShell, shellWrap, pushFlag, withSSH, runStr, opts...)
 }
 
 // SaveArtifact applies the earth SAVE ARTIFACT command.
 func (c *Converter) SaveArtifact(ctx context.Context, saveFrom string, saveTo string, saveAsLocalTo string) error {
-	logging.GetLogger(ctx).
-		With("saveFrom", saveFrom).
-		With("saveTo", saveTo).
-		With("saveAsLocalTo", saveAsLocalTo).
-		Info("Applying SAVE ARTIFACT")
 	saveToAdjusted := saveTo
 	if saveTo == "" || saveTo == "." || strings.HasSuffix(saveTo, "/") {
-		absSaveFrom, err := llbutil.Abs(ctx, c.mts.FinalStates.SideEffectsState, saveFrom)
+		absSaveFrom, err := llbutil.Abs(ctx, c.mts.Final.MainState, saveFrom)
 		if err != nil {
 			return err
 		}
@@ -384,72 +348,66 @@ func (c *Converter) SaveArtifact(ctx context.Context, saveFrom string, saveTo st
 		artifactPath = path.Join(saveToAdjusted, saveToF)
 	}
 	artifact := domain.Artifact{
-		Target:   c.mts.FinalStates.Target,
+		Target:   c.mts.Final.Target,
 		Artifact: artifactPath,
 	}
-	c.mts.FinalStates.ArtifactsState = llbutil.CopyOp(
-		c.mts.FinalStates.SideEffectsState, []string{saveFrom}, c.mts.FinalStates.ArtifactsState,
+	c.mts.Final.ArtifactsState = llbutil.CopyOp(
+		c.mts.Final.MainState, []string{saveFrom}, c.mts.Final.ArtifactsState,
 		saveToAdjusted, true, true, "",
 		llb.WithCustomNamef(
 			"%sSAVE ARTIFACT %s %s", c.vertexPrefix(), saveFrom, artifact.String()))
 	if saveAsLocalTo != "" {
 		separateArtifactsState := llb.Scratch().Platform(llbutil.TargetPlatform)
 		separateArtifactsState = llbutil.CopyOp(
-			c.mts.FinalStates.SideEffectsState, []string{saveFrom}, separateArtifactsState,
+			c.mts.Final.MainState, []string{saveFrom}, separateArtifactsState,
 			saveToAdjusted, true, false, "",
 			llb.WithCustomNamef(
 				"%sSAVE ARTIFACT %s %s AS LOCAL %s",
 				c.vertexPrefix(), saveFrom, artifact.String(), saveAsLocalTo))
-		c.mts.FinalStates.SeparateArtifactsState = append(c.mts.FinalStates.SeparateArtifactsState, separateArtifactsState)
-		c.mts.FinalStates.SaveLocals = append(c.mts.FinalStates.SaveLocals, SaveLocal{
+		c.mts.Final.SeparateArtifactsState = append(c.mts.Final.SeparateArtifactsState, separateArtifactsState)
+		c.mts.Final.SaveLocals = append(c.mts.Final.SaveLocals, states.SaveLocal{
 			DestPath:     saveAsLocalTo,
 			ArtifactPath: artifactPath,
-			Index:        len(c.mts.FinalStates.SeparateArtifactsState) - 1,
+			Index:        len(c.mts.Final.SeparateArtifactsState) - 1,
 		})
 	}
 	return nil
 }
 
 // SaveImage applies the earth SAVE IMAGE command.
-func (c *Converter) SaveImage(ctx context.Context, imageNames []string, pushImages bool) {
-	logging.GetLogger(ctx).With("image", imageNames).With("push", pushImages).Info("Applying SAVE IMAGE")
+func (c *Converter) SaveImage(ctx context.Context, imageNames []string, pushImages bool) error {
 	if len(imageNames) == 0 {
-		// Use an empty image name if none provided. This will not be exported
-		// as docker image, but will allow for importing / referencing within
-		// earthfiles.
-		imageNames = []string{""}
+		return errors.New("no docker tags provided")
 	}
 	for _, imageName := range imageNames {
-		c.mts.FinalStates.SaveImages = append(c.mts.FinalStates.SaveImages, SaveImage{
-			State:     c.mts.FinalStates.SideEffectsState,
-			Image:     c.mts.FinalStates.SideEffectsImage.Clone(),
+		c.mts.Final.SaveImages = append(c.mts.Final.SaveImages, states.SaveImage{
+			State:     c.mts.Final.MainState,
+			Image:     c.mts.Final.MainImage.Clone(),
 			DockerTag: imageName,
 			Push:      pushImages,
 		})
 	}
+	return nil
 }
 
 // Build applies the earth BUILD command.
-func (c *Converter) Build(ctx context.Context, fullTargetName string, buildArgs []string) (*MultiTargetStates, error) {
-	logging.GetLogger(ctx).
-		With("full-target-name", fullTargetName).
-		With("build-args", buildArgs).
-		Info("Applying BUILD")
-
+func (c *Converter) Build(ctx context.Context, fullTargetName string, buildArgs []string) (*states.MultiTarget, error) {
 	relTarget, err := domain.ParseTarget(fullTargetName)
 	if err != nil {
 		return nil, errors.Wrapf(err, "earth target parse %s", fullTargetName)
 	}
-	target, err := domain.JoinTargets(c.mts.FinalStates.Target, relTarget)
+	target, err := domain.JoinTargets(c.mts.Final.Target, relTarget)
 	if err != nil {
 		return nil, errors.Wrap(err, "join targets")
 	}
 	newVarCollection := c.varCollection
-	if relTarget.IsExternal() {
-		// Don't allow transitive overriding variables to cross project boundaries.
+	// Don't allow transitive overriding variables to cross project boundaries.
+	propagateBuildArgs := !relTarget.IsExternal()
+	if !propagateBuildArgs {
 		newVarCollection = variables.NewCollection()
 	}
-	newVarCollection, err = newVarCollection.WithParseBuildArgs(
+	var newVars map[string]bool
+	newVarCollection, newVars, err = newVarCollection.WithParseBuildArgs(
 		buildArgs, c.processNonConstantBuildArgFunc(ctx))
 	if err != nil {
 		return nil, errors.Wrap(err, "parse build args")
@@ -457,118 +415,123 @@ func (c *Converter) Build(ctx context.Context, fullTargetName string, buildArgs 
 	// Recursion.
 	mts, err := Earthfile2LLB(
 		ctx, target, ConvertOpt{
-			Resolver:           c.resolver,
-			ImageResolveMode:   c.imageResolveMode,
-			DockerBuilderFun:   c.dockerBuilderFun,
-			ArtifactBuilderFun: c.artifactBuilderFun,
-			CleanCollection:    c.cleanCollection,
-			VisitedStates:      c.mts.VisitedStates,
-			VarCollection:      newVarCollection,
-			SolveCache:         c.solveCache,
+			Resolver:             c.resolver,
+			ImageResolveMode:     c.imageResolveMode,
+			DockerBuilderFun:     c.dockerBuilderFun,
+			ArtifactBuilderFun:   c.artifactBuilderFun,
+			CleanCollection:      c.cleanCollection,
+			Visited:              c.mts.Visited,
+			VarCollection:        newVarCollection,
+			SolveCache:           c.solveCache,
+			BuildContextProvider: c.buildContextProvider,
+			MetaResolver:         c.metaResolver,
 		})
 	if err != nil {
 		return nil, errors.Wrapf(err, "earthfile2llb for %s", fullTargetName)
 	}
-	c.directDeps = append(c.directDeps, mts.FinalStates)
+	c.directDeps = append(c.directDeps, mts.Final)
+	if propagateBuildArgs {
+		// Propagate build arg inputs upwards (a child target depending on a build arg means
+		// that the parent also depends on that build arg).
+		for _, bai := range mts.Final.TargetInput.BuildArgs {
+			// Check if the build arg has been overridden. If it has, it can no longer be an input
+			// directly, so skip it.
+			_, found := newVars[bai.Name]
+			if found {
+				continue
+			}
+			c.mts.Final.TargetInput = c.mts.Final.TargetInput.WithBuildArgInput(bai)
+		}
+	}
 	return mts, nil
 }
 
 // Workdir applies the WORKDIR command.
 func (c *Converter) Workdir(ctx context.Context, workdirPath string) {
-	logging.GetLogger(ctx).With("workdir", workdirPath).Info("Applying WORKDIR")
-	c.mts.FinalStates.SideEffectsState = c.mts.FinalStates.SideEffectsState.Dir(workdirPath)
+	c.mts.Final.MainState = c.mts.Final.MainState.Dir(workdirPath)
 	workdirAbs := workdirPath
 	if !path.IsAbs(workdirAbs) {
-		workdirAbs = path.Join("/", c.mts.FinalStates.SideEffectsImage.Config.WorkingDir, workdirAbs)
+		workdirAbs = path.Join("/", c.mts.Final.MainImage.Config.WorkingDir, workdirAbs)
 	}
-	c.mts.FinalStates.SideEffectsImage.Config.WorkingDir = workdirAbs
+	c.mts.Final.MainImage.Config.WorkingDir = workdirAbs
 	if workdirAbs != "/" {
 		// Mkdir.
 		mkdirOpts := []llb.MkdirOption{
 			llb.WithParents(true),
 		}
-		if c.mts.FinalStates.SideEffectsImage.Config.User != "" {
-			mkdirOpts = append(mkdirOpts, llb.WithUser(c.mts.FinalStates.SideEffectsImage.Config.User))
+		if c.mts.Final.MainImage.Config.User != "" {
+			mkdirOpts = append(mkdirOpts, llb.WithUser(c.mts.Final.MainImage.Config.User))
 		}
 		opts := []llb.ConstraintsOpt{
 			llb.WithCustomNamef("%sWORKDIR %s", c.vertexPrefix(), workdirPath),
 		}
-		c.mts.FinalStates.SideEffectsState = c.mts.FinalStates.SideEffectsState.File(
+		c.mts.Final.MainState = c.mts.Final.MainState.File(
 			llb.Mkdir(workdirAbs, 0755, mkdirOpts...), opts...)
 	}
 }
 
 // User applies the USER command.
 func (c *Converter) User(ctx context.Context, user string) {
-	logging.GetLogger(ctx).With("user", user).Info("Applying USER")
-	c.mts.FinalStates.SideEffectsState = c.mts.FinalStates.SideEffectsState.User(user)
-	c.mts.FinalStates.SideEffectsImage.Config.User = user
+	c.mts.Final.MainState = c.mts.Final.MainState.User(user)
+	c.mts.Final.MainImage.Config.User = user
 }
 
 // Cmd applies the CMD command.
 func (c *Converter) Cmd(ctx context.Context, cmdArgs []string, isWithShell bool) {
-	logging.GetLogger(ctx).With("cmd", cmdArgs).Info("Applying CMD")
-	c.mts.FinalStates.SideEffectsImage.Config.Cmd = withShell(cmdArgs, isWithShell)
+	c.mts.Final.MainImage.Config.Cmd = withShell(cmdArgs, isWithShell)
 }
 
 // Entrypoint applies the ENTRYPOINT command.
 func (c *Converter) Entrypoint(ctx context.Context, entrypointArgs []string, isWithShell bool) {
-	logging.GetLogger(ctx).With("entrypoint", entrypointArgs).Info("Applying ENTRYPOINT")
-	c.mts.FinalStates.SideEffectsImage.Config.Entrypoint = withShell(entrypointArgs, isWithShell)
+	c.mts.Final.MainImage.Config.Entrypoint = withShell(entrypointArgs, isWithShell)
 }
 
 // Expose applies the EXPOSE command.
 func (c *Converter) Expose(ctx context.Context, ports []string) {
-	logging.GetLogger(ctx).With("ports", ports).Info("Applying EXPOSE")
 	for _, port := range ports {
-		c.mts.FinalStates.SideEffectsImage.Config.ExposedPorts[port] = struct{}{}
+		c.mts.Final.MainImage.Config.ExposedPorts[port] = struct{}{}
 	}
 }
 
 // Volume applies the VOLUME command.
 func (c *Converter) Volume(ctx context.Context, volumes []string) {
-	logging.GetLogger(ctx).With("volumes", volumes).Info("Applying VOLUME")
 	for _, volume := range volumes {
-		c.mts.FinalStates.SideEffectsImage.Config.Volumes[volume] = struct{}{}
+		c.mts.Final.MainImage.Config.Volumes[volume] = struct{}{}
 	}
 }
 
 // Env applies the ENV command.
 func (c *Converter) Env(ctx context.Context, envKey string, envValue string) {
-	logging.GetLogger(ctx).With("env-key", envKey).With("env-value", envValue).Info("Applying ENV")
 	c.varCollection.AddActive(envKey, variables.NewConstantEnvVar(envValue), true)
-	c.mts.FinalStates.SideEffectsState = c.mts.FinalStates.SideEffectsState.AddEnv(envKey, envValue)
-	c.mts.FinalStates.SideEffectsImage.Config.Env = variables.AddEnv(
-		c.mts.FinalStates.SideEffectsImage.Config.Env, envKey, envValue)
+	c.mts.Final.MainState = c.mts.Final.MainState.AddEnv(envKey, envValue)
+	c.mts.Final.MainImage.Config.Env = variables.AddEnv(
+		c.mts.Final.MainImage.Config.Env, envKey, envValue)
 }
 
 // Arg applies the ARG command.
 func (c *Converter) Arg(ctx context.Context, argKey string, defaultArgValue string) {
-	logging.GetLogger(ctx).With("arg-key", argKey).With("arg-value", defaultArgValue).Info("Applying ARG")
 	effective := c.varCollection.AddActive(argKey, variables.NewConstant(defaultArgValue), false)
-	c.mts.FinalStates.TargetInput = c.mts.FinalStates.TargetInput.WithBuildArgInput(
+	c.mts.Final.TargetInput = c.mts.Final.TargetInput.WithBuildArgInput(
 		effective.BuildArgInput(argKey, defaultArgValue))
 }
 
 // Label applies the LABEL command.
 func (c *Converter) Label(ctx context.Context, labels map[string]string) {
-	logging.GetLogger(ctx).With("labels", labels).Info("Applying LABEL")
 	for key, value := range labels {
-		c.mts.FinalStates.SideEffectsImage.Config.Labels[key] = value
+		c.mts.Final.MainImage.Config.Labels[key] = value
 	}
 }
 
 // GitClone applies the GIT CLONE command.
 func (c *Converter) GitClone(ctx context.Context, gitURL string, branch string, dest string) error {
-	logging.GetLogger(ctx).With("git-url", gitURL).With("branch", branch).Info("Applying GIT CLONE")
 	gitOpts := []llb.GitOption{
 		llb.WithCustomNamef(
 			"%sGIT CLONE (--branch %s) %s", c.vertexPrefixWithURL(gitURL), branch, gitURL),
 		llb.KeepGitDir(),
 	}
 	gitState := llbgit.Git(gitURL, branch, gitOpts...)
-	c.mts.FinalStates.SideEffectsState = llbutil.CopyOp(
-		gitState, []string{"."}, c.mts.FinalStates.SideEffectsState, dest, false, false, "",
+	c.mts.Final.MainState = llbutil.CopyOp(
+		gitState, []string{"."}, c.mts.Final.MainState, dest, false, false, "",
 		llb.WithCustomNamef(
 			"%sCOPY GIT CLONE (--branch %s) %s TO %s", c.vertexPrefix(),
 			branch, gitURL, dest))
@@ -585,69 +548,16 @@ func (c *Converter) WithDockerRun(ctx context.Context, args []string, opt WithDo
 
 // DockerLoadOld applies the DOCKER LOAD command (outside of WITH DOCKER).
 func (c *Converter) DockerLoadOld(ctx context.Context, targetName string, dockerTag string, buildArgs []string) error {
-	fmt.Printf("Warning: DOCKER LOAD is deprecated. Please use WITH DOCKER --load\n")
-	logging.GetLogger(ctx).With("target-name", targetName).With("dockerTag", dockerTag).Info("Applying DOCKER LOAD")
-	depTarget, err := domain.ParseTarget(targetName)
-	if err != nil {
-		return errors.Wrapf(err, "parse target %s", targetName)
-	}
-	mts, err := c.Build(ctx, depTarget.String(), buildArgs)
-	if err != nil {
-		return err
-	}
-	err = c.solveAndLoadOld(
-		ctx, mts, depTarget.String(), dockerTag,
-		llb.WithCustomNamef(
-			"%sDOCKER LOAD %s %s", c.vertexPrefix(), depTarget.String(), dockerTag))
-	if err != nil {
-		return err
-	}
-	return nil
+	return errors.New("DOCKER LOAD is obsolete. Please use WITH DOCKER --load")
 }
 
 // DockerPullOld applies the DOCKER PULL command (outside of WITH DOCKER).
 func (c *Converter) DockerPullOld(ctx context.Context, dockerTag string) error {
-	fmt.Printf("Warning: DOCKER PULL is deprecated. Please use WITH DOCKER --pull\n")
-	logging.GetLogger(ctx).With("dockerTag", dockerTag).Info("Applying DOCKER PULL")
-	state, image, _, err := c.internalFromClassical(
-		ctx, dockerTag,
-		llb.WithCustomNamef("%sDOCKER PULL %s", c.vertexPrefix(), dockerTag),
-	)
-	if err != nil {
-		return err
-	}
-	mts := &MultiTargetStates{
-		FinalStates: &SingleTargetStates{
-			SideEffectsState: state,
-			SideEffectsImage: image,
-			SaveImages: []SaveImage{
-				{
-					State:     state,
-					Image:     image,
-					DockerTag: dockerTag,
-				},
-			},
-		},
-	}
-	err = c.solveAndLoadOld(
-		ctx, mts, dockerTag, dockerTag,
-		llb.WithCustomNamef("%sDOCKER LOAD (PULL %s)", c.vertexPrefix(), dockerTag))
-	if err != nil {
-		return err
-	}
-	return nil
+	return errors.New("DOCKER PULL is obsolete. Please use WITH DOCKER --pull")
 }
 
 // Healthcheck applies the HEALTHCHECK command.
 func (c *Converter) Healthcheck(ctx context.Context, isNone bool, cmdArgs []string, interval time.Duration, timeout time.Duration, startPeriod time.Duration, retries int) {
-	logging.GetLogger(ctx).
-		With("isNone", isNone).
-		With("cmdArgs", cmdArgs).
-		With("interval", interval).
-		With("timeout", timeout).
-		With("startPeriod", startPeriod).
-		With("retries", retries).
-		Info("Applying HEALTHCHECK")
 	hc := &dockerfile2llb.HealthConfig{}
 	if isNone {
 		hc.Test = []string{"NONE"}
@@ -660,21 +570,22 @@ func (c *Converter) Healthcheck(ctx context.Context, isNone bool, cmdArgs []stri
 		hc.StartPeriod = startPeriod
 		hc.Retries = retries
 	}
-	c.mts.FinalStates.SideEffectsImage.Config.Healthcheck = hc
+	c.mts.Final.MainImage.Config.Healthcheck = hc
 }
 
 // FinalizeStates returns the LLB states.
-func (c *Converter) FinalizeStates() *MultiTargetStates {
+func (c *Converter) FinalizeStates() *states.MultiTarget {
 	// Create an artificial bond to depStates so that side-effects of deps are built automatically.
 	for _, depStates := range c.directDeps {
-		c.mts.FinalStates.SideEffectsState = withDependency(
-			c.mts.FinalStates.SideEffectsState,
-			c.mts.FinalStates.Target,
-			depStates.SideEffectsState,
+		c.mts.Final.MainState = withDependency(
+			c.mts.Final.MainState,
+			c.mts.Final.Target,
+			depStates.MainState,
 			depStates.Target)
 	}
 
-	c.mts.FinalStates.Ongoing = false
+	c.buildContextProvider.AddDirs(c.mts.Final.LocalDirs)
+	c.mts.Final.Ongoing = false
 	return c.mts
 }
 
@@ -739,79 +650,24 @@ func (c *Converter) internalRun(ctx context.Context, args []string, secretKeyVal
 	if pushFlag {
 		// For push-flagged commands, make sure they run every time - don't use cache.
 		finalOpts = append(finalOpts, llb.IgnoreCache)
-		if !c.mts.FinalStates.RunPush.Initialized {
+		if !c.mts.Final.RunPush.Initialized {
 			// If this is the first push-flagged command, initialize the state with the latest
 			// side-effects state.
-			c.mts.FinalStates.RunPush.State = c.mts.FinalStates.SideEffectsState
-			c.mts.FinalStates.RunPush.Initialized = true
+			c.mts.Final.RunPush.State = c.mts.Final.MainState
+			c.mts.Final.RunPush.Initialized = true
 		}
-		// Don't run on SideEffectsState. We want push-flagged commands to be executed only
+		// Don't run on MainState. We want push-flagged commands to be executed only
 		// *after* the build. Save this for later.
-		c.mts.FinalStates.RunPush.State = c.mts.FinalStates.RunPush.State.Run(finalOpts...).Root()
-		c.mts.FinalStates.RunPush.CommandStrs = append(
-			c.mts.FinalStates.RunPush.CommandStrs, commandStr)
+		c.mts.Final.RunPush.State = c.mts.Final.RunPush.State.Run(finalOpts...).Root()
+		c.mts.Final.RunPush.CommandStrs = append(
+			c.mts.Final.RunPush.CommandStrs, commandStr)
 	} else {
-		c.mts.FinalStates.SideEffectsState = c.mts.FinalStates.SideEffectsState.Run(finalOpts...).Root()
+		c.mts.Final.MainState = c.mts.Final.MainState.Run(finalOpts...).Root()
 	}
 	return nil
 }
 
-func (c *Converter) solveAndLoadOld(ctx context.Context, mts *MultiTargetStates, opName string, dockerTag string, opts ...llb.RunOption) error {
-	// Use a builder to create docker .tar file, mount it via a local build context,
-	// then docker load it within the current side effects state.
-	outDir, err := ioutil.TempDir("/tmp", "earthly-docker-load")
-	if err != nil {
-		return errors.Wrap(err, "mk temp dir for docker load")
-	}
-	c.cleanCollection.Add(func() error {
-		return os.RemoveAll(outDir)
-	})
-	outFile := path.Join(outDir, "image.tar")
-	err = c.dockerBuilderFun(ctx, mts, dockerTag, outFile)
-	if err != nil {
-		return errors.Wrapf(err, "build target %s for docker load", opName)
-	}
-	dockerImageID, err := dockertar.GetID(outFile)
-	if err != nil {
-		return errors.Wrap(err, "inspect docker tar after build")
-	}
-	// Use the docker image ID + dockerTag as sessionID. This will cause
-	// buildkit to use cache when these are the same as before (eg a docker image
-	// that is identical as before).
-	sessionIDKey := fmt.Sprintf("%s-%s", dockerTag, dockerImageID)
-	sha256SessionIDKey := sha256.Sum256([]byte(sessionIDKey))
-	sessionID := hex.EncodeToString(sha256SessionIDKey[:])
-	// Add the tar to the local context.
-	tarContext := llb.Local(
-		opName,
-		llb.SharedKeyHint(opName),
-		llb.SessionID(sessionID),
-		llb.Platform(llbutil.TargetPlatform),
-		llb.WithCustomNamef("[internal] docker tar context %s %s", opName, sessionID),
-	)
-	c.mts.FinalStates.LocalDirs[opName] = outDir
-
-	c.mts.FinalStates.SideEffectsState = c.mts.FinalStates.SideEffectsState.File(
-		llb.Mkdir("/var/lib/docker", 0755, llb.WithParents(true)),
-		llb.WithCustomNamef("[internal] mkdir /var/lib/docker"),
-	)
-	loadOpts := []llb.RunOption{
-		llb.Args(
-			withDockerdWrapOld(
-				[]string{"docker", "load", "</src/image.tar"}, []string{}, true, false)),
-		llb.AddMount("/src", tarContext, llb.Readonly),
-		llb.Dir("/src"),
-		llb.Security(llb.SecurityModeInsecure),
-	}
-	loadOpts = append(loadOpts, opts...)
-	loadOp := c.mts.FinalStates.SideEffectsState.Run(loadOpts...)
-	c.mts.FinalStates.SideEffectsState = loadOp.AddMount(
-		"/var/lib/docker", c.mts.FinalStates.SideEffectsState,
-		llb.SourcePath("/var/lib/docker"))
-	return nil
-}
-
-func (c *Converter) solveArtifact(ctx context.Context, mts *MultiTargetStates, artifact domain.Artifact) (string, error) {
+func (c *Converter) solveArtifact(ctx context.Context, mts *states.MultiTarget, artifact domain.Artifact) (string, error) {
 	outDir, err := ioutil.TempDir("/tmp", "earthly-solve-artifact")
 	if err != nil {
 		return "", errors.Wrap(err, "mk temp dir for solve artifact")
@@ -827,7 +683,6 @@ func (c *Converter) solveArtifact(ctx context.Context, mts *MultiTargetStates, a
 }
 
 func (c *Converter) internalFromClassical(ctx context.Context, imageName string, opts ...llb.ImageOption) (llb.State, *image.Image, *variables.Collection, error) {
-	logging.GetLogger(ctx).With("image", imageName).Info("Applying FROM")
 	if imageName == "scratch" {
 		// FROM scratch
 		return llb.Scratch().Platform(llbutil.TargetPlatform), image.NewImage(),
@@ -838,8 +693,7 @@ func (c *Converter) internalFromClassical(ctx context.Context, imageName string,
 		return llb.State{}, nil, nil, errors.Wrapf(err, "parse normalized named %s", imageName)
 	}
 	baseImageName := reference.TagNameOnly(ref).String()
-	metaResolver := imr.Default()
-	dgst, dt, err := metaResolver.ResolveImageConfig(
+	dgst, dt, err := c.metaResolver.ResolveImageConfig(
 		ctx, baseImageName,
 		llb.ResolveImageConfigOpt{
 			Platform:    &llbutil.TargetPlatform,
@@ -906,7 +760,7 @@ func (c *Converter) processNonConstantBuildArgFunc(ctx context.Context) variable
 		// Run the expression on the side effects state.
 		srcBuildArgDir := "/run/buildargs-src"
 		srcBuildArgPath := path.Join(srcBuildArgDir, name)
-		c.mts.FinalStates.SideEffectsState = c.mts.FinalStates.SideEffectsState.File(
+		c.mts.Final.MainState = c.mts.Final.MainState.File(
 			llb.Mkdir(srcBuildArgDir, 0755, llb.WithParents(true)),
 			llb.WithCustomNamef("[internal] mkdir %s", srcBuildArgDir))
 		buildArgPath := path.Join("/run/buildargs", name)
@@ -920,23 +774,23 @@ func (c *Converter) processNonConstantBuildArgFunc(ctx context.Context) variable
 		// Copy the result of the expression into a separate, isolated state.
 		buildArgState := llb.Scratch().Platform(llbutil.TargetPlatform)
 		buildArgState = llbutil.CopyOp(
-			c.mts.FinalStates.SideEffectsState, []string{srcBuildArgPath},
+			c.mts.Final.MainState, []string{srcBuildArgPath},
 			buildArgState, buildArgPath, false, false, "",
 			llb.WithCustomNamef("[internal] copy buildarg %s", name))
 		// Store the state with the expression result for later use.
 		argIndex := c.nextArgIndex
 		c.nextArgIndex++
 		// Remove intermediary file from side effects state.
-		c.mts.FinalStates.SideEffectsState = c.mts.FinalStates.SideEffectsState.File(
+		c.mts.Final.MainState = c.mts.Final.MainState.File(
 			llb.Rm(srcBuildArgPath, llb.WithAllowNotFound(true)),
 			llb.WithCustomNamef("[internal] rm %s", srcBuildArgPath))
 
-		return buildArgState, c.mts.FinalStates.TargetInput, argIndex, nil
+		return buildArgState, c.mts.Final.TargetInput, argIndex, nil
 	}
 }
 
 func (c *Converter) vertexPrefix() string {
-	return fmt.Sprintf("[%s %s] ", c.mts.FinalStates.Target.String(), c.mts.FinalStates.Salt)
+	return fmt.Sprintf("[%s %s] ", c.mts.Final.Target.String(), c.mts.Final.Salt)
 }
 
 func (c *Converter) imageVertexPrefix(id string) string {
@@ -946,7 +800,7 @@ func (c *Converter) imageVertexPrefix(id string) string {
 }
 
 func (c *Converter) vertexPrefixWithURL(url string) string {
-	return fmt.Sprintf("[%s(%s) %s] ", c.mts.FinalStates.Target.String(), url, url)
+	return fmt.Sprintf("[%s(%s) %s] ", c.mts.Final.Target.String(), url, url)
 }
 
 func withDependency(state llb.State, target domain.Target, depState llb.State, depTarget domain.Target) llb.State {

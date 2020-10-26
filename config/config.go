@@ -66,7 +66,7 @@ func ParseConfigFile(yamlData []byte) (*Config, error) {
 		Global: GlobalConfig{
 			RunPath:                 defaultRunPath(),
 			DisableLoopDevice:       true,
-			BuildkitCacheSizeMb:     10000,
+			BuildkitCacheSizeMb:     0,
 			DebuggerPort:            8373,
 			BuildkitRestartTimeoutS: 60,
 		},

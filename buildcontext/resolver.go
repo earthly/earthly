@@ -3,9 +3,9 @@ package buildcontext
 import (
 	"context"
 
-	"github.com/earthly/earthly/conslogging"
+	"github.com/earthly/earthly/cleanup"
 	"github.com/earthly/earthly/domain"
-	"github.com/moby/buildkit/client"
+	"github.com/earthly/earthly/states"
 	"github.com/moby/buildkit/client/llb"
 )
 
@@ -34,12 +34,12 @@ type Resolver struct {
 }
 
 // NewResolver returns a new NewResolver.
-func NewResolver(bkClient *client.Client, console conslogging.ConsoleLogger, sessionID string) *Resolver {
+func NewResolver(sessionID string, cleanCollection *cleanup.Collection, artifactBuilderFun states.ArtifactBuilderFun) *Resolver {
 	return &Resolver{
 		gr: &gitResolver{
-			bkClient:     bkClient,
-			console:      console,
-			projectCache: make(map[string]*resolvedGitProject),
+			cleanCollection:    cleanCollection,
+			artifactBuilderFun: artifactBuilderFun,
+			projectCache:       make(map[string]*resolvedGitProject),
 		},
 		lr: &localResolver{
 			gitMetaCache: make(map[string]*GitMetadata),
@@ -72,9 +72,4 @@ func (r *Resolver) Resolve(ctx context.Context, target domain.Target) (*Data, er
 	d.Target = TargetWithGitMeta(target, d.GitMetadata)
 	d.LocalDirs = localDirs
 	return d, nil
-}
-
-// Close closes the resolver, freeing up any internal resources.
-func (r *Resolver) Close() error {
-	return r.gr.close()
 }

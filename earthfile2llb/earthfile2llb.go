@@ -7,12 +7,13 @@ import (
 
 	"github.com/antlr/antlr4/runtime/Go/antlr"
 	"github.com/earthly/earthly/buildcontext"
+	"github.com/earthly/earthly/buildcontext/provider"
 	"github.com/earthly/earthly/cleanup"
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/earthfile2llb/antlrhandler"
 	"github.com/earthly/earthly/earthfile2llb/parser"
 	"github.com/earthly/earthly/earthfile2llb/variables"
-	"github.com/earthly/earthly/logging"
+	"github.com/earthly/earthly/states"
 	"github.com/moby/buildkit/client/llb"
 	"github.com/pkg/errors"
 )
@@ -26,39 +27,37 @@ type ConvertOpt struct {
 	// DockerBuilderFun is a fun that can be used to execute an image build. This
 	// is used as part of operations like DOCKER LOAD and DOCKER PULL, where
 	// a tar image is needed in the middle of a build.
-	DockerBuilderFun DockerBuilderFun
+	DockerBuilderFun states.DockerBuilderFun
 	// ArtifactBuilderFun is a fun that can be used to execute build of an artifact.
 	// This is used as part of operations like FROM DOCKERFILE +.../..., where
 	// a generated Dockerfile is needed in the middle of a build.
-	ArtifactBuilderFun ArtifactBuilderFun
+	ArtifactBuilderFun states.ArtifactBuilderFun
 	// CleanCollection is a collection of cleanup functions.
 	CleanCollection *cleanup.Collection
-	// VisitedStates is a collection of target states which have been converted to LLB.
+	// Visited is a collection of target states which have been converted to LLB.
 	// This is used for deduplication and infinite cycle detection.
-	VisitedStates map[string][]*SingleTargetStates
+	Visited map[string][]*states.SingleTarget
 	// VarCollection is a collection of build args used for overriding args in the build.
 	VarCollection *variables.Collection
 	// A cache for image solves. depTargetInputHash -> context containing image.tar.
 	SolveCache map[string]llb.State
+	// BuildContextProvider is the provider used for local build context files.
+	BuildContextProvider *provider.BuildContextProvider
+	// MetaResolver is the image meta resolver to use for resolving image metadata.
+	MetaResolver llb.ImageMetaResolver
 }
 
-// DockerBuilderFun is a function able to build a target into a docker tar file.
-type DockerBuilderFun = func(ctx context.Context, mts *MultiTargetStates, dockerTag string, outFile string) error
-
-// ArtifactBuilderFun is a function able to build an artifact and output it locally.
-type ArtifactBuilderFun = func(ctx context.Context, mts *MultiTargetStates, artifact domain.Artifact, outFile string) error
-
 // Earthfile2LLB parses a earthfile and executes the statements for a given target.
-func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt) (mts *MultiTargetStates, err error) {
+func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt) (mts *states.MultiTarget, err error) {
 	if opt.SolveCache == nil {
 		opt.SolveCache = make(map[string]llb.State)
 	}
-	if opt.VisitedStates == nil {
-		opt.VisitedStates = make(map[string][]*SingleTargetStates)
+	if opt.Visited == nil {
+		opt.Visited = make(map[string][]*states.SingleTarget)
 	}
 	// Check if we have previously converted this target, with the same build args.
 	targetStr := target.String()
-	for _, sts := range opt.VisitedStates[targetStr] {
+	for _, sts := range opt.Visited[targetStr] {
 		same := true
 		for _, bai := range sts.TargetInput.BuildArgs {
 			if sts.Ongoing && !bai.IsConstant {
@@ -84,9 +83,9 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt) (m
 					"Infinite recursion detected for target %s", targetStr)
 			}
 			// Use the already built states.
-			return &MultiTargetStates{
-				FinalStates:   sts,
-				VisitedStates: opt.VisitedStates,
+			return &states.MultiTarget{
+				Final:   sts,
+				Visited: opt.Visited,
 			}, nil
 		}
 	}
@@ -96,18 +95,17 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt) (m
 		return nil, errors.Wrapf(err, "resolve build context for target %s", target.String())
 	}
 	// Convert.
-	targetCtx := logging.With(ctx, "target", target)
 	errorListener := antlrhandler.NewReturnErrorListener()
 	errorStrategy := antlrhandler.NewReturnErrorStrategy()
 	tree, err := newEarthfileTree(bc.BuildFilePath, errorListener, errorStrategy)
 	if err != nil {
 		return nil, err
 	}
-	converter, err := NewConverter(targetCtx, bc.Target, bc, opt)
+	converter, err := NewConverter(ctx, bc.Target, bc, opt)
 	if err != nil {
 		return nil, err
 	}
-	walkErr := walkTree(newListener(targetCtx, converter, target.Target), tree)
+	walkErr := walkTree(newListener(ctx, converter, target.Target), tree)
 	if len(errorListener.Errs) > 0 {
 		var errString []string
 		for _, err := range errorListener.Errs {

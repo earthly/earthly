@@ -2,7 +2,6 @@
 set -e
 
 bindir="$HOME/.earthly"
-
 if [ ! -d "$bindir" ]; then
   mkdir -p "$bindir"
 fi
@@ -25,14 +24,32 @@ get_latest_binary() {
     docker rm earthly_binary
 }
 
-last=$(cat "$last_check_state_path" 2>/dev/null || echo 0)
-now=$(date +%s)
-since=$(( now - last ))
+do_reset() {
+    rm -f "$last_check_state_path"
+    docker stop earthly-buildkitd || true
+    docker rm -f earthly-buildkitd || true
+    rm -f "$bindir/earth-prerelease"
+    docker rm --force earthly_binary 2>/dev/null || true
+    docker rmi -f earthly/buildkitd:prerelease || true
+    docker rmi -f earthly/earthlybinaries:prerelease || true
+}
 
-if [ "$since" -ge 3600 ] && [ -z "$COMP_LINE" ]; then
-    echo checking for latest earth pre-release binaries
-    get_latest_binary
-    echo "$now" >"$last_check_state_path"
-fi
+case "$1" in
+    reset)
+        do_reset
+        ;;
+    
+    *)
+        last=$(cat "$last_check_state_path" 2>/dev/null || echo 0)
+        now=$(date +%s)
+        since=$(( now - last ))
 
-"$bindir/earth-prerelease" "$@"
+        if [ "$since" -ge 3600 ] && [ -z "$COMP_LINE" ]; then
+            echo checking for latest earth pre-release binaries
+            get_latest_binary
+            echo "$now" >"$last_check_state_path"
+        fi
+
+        "$bindir/earth-prerelease" "$@"
+        ;;
+esac

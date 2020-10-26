@@ -2,17 +2,14 @@
 
 Running unit tests in a build pipeline is relatively simple. By definition, unit tests have no external dependencies. Things get more interesting when we want to test how our service integrates with other services and external systems. A service may have dependencies on external file systems, on databases, on external message queues, or other services. An ergonomic and effective development environment should have simple ways to construct and run integration tests. It should be easy to run these tests locally on the developer machine and in the build pipeline. 
 
-## A Scenario
+** This guide will take an existing application with integration tests and show how they can be easily run inside earthly, both in the local development environment as well as in the build pipeline. **
+## Prerequisites 
 
-Imagine this scenario: You work on a team that owns a service, that, in production runs containerized as part of a microservice architecture. The totality of the services that make-up production are too numerous reasonably run on a developer machine but thankfully your service only depends on a handful of other services. You have unit tests but need ways to test your points of integration with your dependencies. You also want ways to test your service end to end, that is you want to exercise it in ways a service consumer might. 
+*This integration approach can work with most applications and development stacks. See [examples](https://github.com/earthly/earthly/tree/master/examples) for guidance on using earthly in other languages.*
 
-For simplicity's sake, this guide will use a Scala application with a very simple set of dependencies. In principle, these steps will work with any service whose dependencies can be specified in a docker-compose file.
+### Our Application
 
-## The Example App
-
-The app has one purpose, it returns the first 5 countries alphabetically via standard out. To do this it connects to a database through a data access layer and returns the results from a Postgres table. The specifics of the app are not relevant to the testing method but are outlined here for clarity.
-
-The application has unit tests that don't require any dependencies. Additionally it has integration tests that exercise the data access layer and the connection to the database. 
+The application we start with is simple.  It returns the first 5 countries alphabetically via standard out. It has unit tests and integration tests.  The integration tests require a datastore with the correct data in place.  
 
 {% method %}
 {% sample lang="App" %}
@@ -96,116 +93,12 @@ Ouput:
 [info] Run completed in 2 seconds, 954 milliseconds.
 [info] Total number of tests run: 1
 ```
-{% endmethod %}
+{% sample lang="Service Dependencies" %}
 
-## The Earthfile
+The Docker compose configuration specifies the application's dependencies.  It is useful for local development and can be started and stopped using `docker-compose up -d` and `docker-compose down`.
+This will also be essential for our Earthly integration tests.
 
-We start with a simple Earthfile that can build and create a docker image for our app. See [Basic](./basics) guide for more details on that.
-
-{% hint style='info' %}
-##### Note
-This guide assumes you are using a Docker image based on [docker:dind](https://hub.docker.com/_/docker) or have installed docker in docker into your base container. It is possible in the future that earthly will not require the dind for `WITH DOCKER` commands and at the time any base image will work successfully. 
-{% endhint %}
-
-
-{% method %}
-{% sample lang="Base Earth Target" %}
-
-We start from an alpine docker in docker image and the dependencies we need to build and test our app. These include the jdk and docker-compose. 
-``` Dockerfile
-FROM docker:19.03.7-dind
-    
-WORKDIR /scala-example
-RUN apk add openjdk11 docker-compose bash wget
-```
-
-[Full file](https://github.com/earthly/earthly-example-scala/blob/master/integration/Earthfile)
-
-{% sample lang="SBT" %}
-
-We then install SBT, Scala Build Tool, for building our application.
-
-``` Dockerfile
-sbt: 
-    #Scala
-    # Defaults if not specified in --build-arg
-    ARG sbt_version=1.3.2
-    ARG sbt_home=/usr/local/sbt
-
-    # Download and extract from archive
-    RUN mkdir -pv "$sbt_home"
-    RUN wget -qO - "https://github.com/sbt/sbt/releases/download/v$sbt_version/sbt-$sbt_version.tgz" >/tmp/sbt.tgz
-    RUN tar xzf /tmp/sbt.tgz -C "$sbt_home" --strip-components=1
-    RUN ln -sv "$sbt_home"/bin/sbt /usr/bin/
-
-    # This triggers a bunch of useful downloads.
-    RUN sbt sbtVersion
-    SAVE IMAGE 
-```
-
-[Full file](https://github.com/earthly/earthly/blob/master/examples/integration-test/Earthfile)
-
-{% sample lang="Build Target" %}
-
-We also copy in our project files and setup our build target.  
-``` Dockerfile
-project-files:
-    FROM +sbt
-    COPY build.sbt ./
-    COPY project project
-    # Run sbt for caching purposes.
-    RUN touch a.scala && sbt compile && rm a.scala
-    SAVE IMAGE
-
-build:
-    FROM +project-files
-    COPY src src
-    RUN sbt compile
-    SAVE IMAGE 
-```
-[Full file](https://github.com/earthly/earthly/blob/master/examples/integration-test/Earthfile)
-
-{% sample lang="Unit Test Target" %}
-
-For unit tests, we copy in the source and run the tests.
-
-``` Dockerfile
-
-unit-test:
-    FROM +build
-    COPY src src
-    RUN sbt test
-
-```
-[Full file](https://github.com/earthly/earthly/blob/master/examples/integration-test/Earthfile)
-
-{% sample lang="Docker Target" %}
-
-A Dockerfile is built using the output of `sbt assembly`. 
-
-{% hint style='info' %}
-If minimal docker image size is important, other approaches, such as `sbt package` should be considered.
-{% endhint %}
-``` Dockerfile
-docker:
-    FROM +build
-    COPY src src
-    RUN sbt assembly
-    ENTRYPOINT ["java","-cp","target/scala-2.12/scala-example-assembly-1.0.jar","Main"]
-    SAVE IMAGE scala-example:lates 
-```
-[Full file](https://github.com/earthly/earthly-example-scala/blob/master/integration/Earthfile)
-
-{% endmethod %}
-
- See [Basics Guide](./basics.md) for more details on these steps, including how they might differ in Go, Javascript, Java and Python.
-
-
-## Integration Testing Step 1 - Define Your Dependencies
-
-The first step of integration testing in earthly is to define all the service dependencies in a docker-compose file. 
-
-#### Docker Compose:
+Docker Compose:
 ``` yaml
 version: "3"
 services:
@@ -228,87 +121,124 @@ services:
     hostname: postgres-ui
 ```
 
-This docker-compose file is essential for our integration testing, but it is also useful for local development. It can be started and stopped using `docker-compose up -d` and `docker-compose down`.
 
+{% endmethod %}
 
-{% hint style='info' %}
-#### SQL Data
+### The Basic Earthfile
 
-In a real-world example, we would likely use a tool like [Flyway](https://flywaydb.org/) to manage our database structure and base data. For simplicity here, however, we are using a Postgres image with country data included `aa8y/postgres-dataset:iso3166`.
-{% endhint %}
+We start with a simple Earthfile that can build and create a docker image for our app. See the [Basic](./basics) guide for more details, as well as examples in many programming languages.
 
-{% hint style='info' %}
-#### Adminer
-Our example application has one direct dependency, Postgres, and a helper app `adminer` which is a web UI for postgres. It is strictly not necessary for running our integration tests but useful in local development and serves to show how this solution scales to multiple dependencies.
-{% endhint %}
+{% method %}
+{% sample lang="Base Earth Target" %}
 
-## Integration Testing Step 2 - Run your tests
-
-With our docker-compose ready, we can now add an integration test step to our Earthfile. 
-
-Our integration target needs to copy in our source code and our docker file before it starts the tests:
+We start from an appropriate docker image and set up a working directory. 
 ``` Dockerfile
-integration-test:
-    FROM +build
-    COPY src src
-    COPY docker-compose.yml ./ 
-```
-Next, we use the `WITH DOCKER` statement to start up the docker daemon in our build context.
-
-```
-   WITH DOCKER 
-   ...
-   END
-```
-Following that, we pull each of our images into the build context using `DOCKER PULL`. While strictly not necessary, using the `DOCKER PULL` command ensures our image pulls are cached by earthly and ensures faster builds.
-
-```
- DOCKER PULL aa8y/postgres-dataset:iso3166
- DOCKER PULL adminer:latest 
-```
-To run our integration tests, we now start up our docker-compose, wait for it to start up, run our test, and then stop it. We do this in a single run command. 
-
-```
-   RUN docker-compose up -d && \
-            for i in {1..30}; do nc -z localhost 5432 && break; sleep 1; done; \
-            sbt it:test && \
-            docker-compose down 
-```
-{% hint style='info' %}
-#### About netcat (nc)
-
-This statement is a simple loop, that will block for up to 30 seconds or until we can read from port 5432 on localhost. 
-```
-for i in {1..30}; do nc -z localhost 5432 && break; sleep 1; done; \
+FROM earthly/dind:alpine
+WORKDIR /scala-example
+RUN apk add openjdk11 bash wget
 ```
 
-Our application will connect to Postgres via localhost:5432. This step, therefore, ensures that don't run our tests until the database is up. There are many other ways to accomplish this, including READY checks, application-specific code, and scripts like [wait for it](https://github.com/vishnubob/wait-for-it). 
+[Full file](https://github.com/earthly/earthly-example-scala/blob/master/integration/Earthfile)
 
- Coordinating in among services is a complicated area out of the scope of this guide.
-
-
-{% endhint %}
-
-
-### Combined
-
-Putting this all together we get:
+{% sample lang="Project Files" %}
+We then install SBT
 
 ``` Dockerfile
+sbt: 
+    #Scala
+    # Defaults if not specified in --build-arg
+    ARG sbt_version=1.3.2
+    ARG sbt_home=/usr/local/sbt
+
+    # Download and extract from archive
+    RUN mkdir -pv "$sbt_home"
+    RUN wget -qO - "https://github.com/sbt/sbt/releases/download/v$sbt_version/sbt-$sbt_version.tgz" >/tmp/sbt.tgz
+    RUN tar xzf /tmp/sbt.tgz -C "$sbt_home" --strip-components=1
+    RUN ln -sv "$sbt_home"/bin/sbt /usr/bin/
+
+    # This triggers a bunch of useful downloads.
+    RUN sbt sbtVersion
+```
+
+We then copy in our build files and run Scala Build Tool, so that we can cache our dependencies
+
+``` Dockerfile
+project-files:
+    FROM +sbt
+    COPY build.sbt ./
+    COPY project project
+    # Run sbt for caching purposes.
+    RUN touch a.scala && sbt compile && rm a.scala
+```
+
+[Full file](https://github.com/earthly/earthly/blob/master/examples/integration-test/Earthfile)
+
+{% sample lang="Compile" %}
+
+We also set up our build target.  
+``` Dockerfile
+build:
+    FROM +project-files
+    COPY src src
+    RUN sbt compile
+```
+[Full file](https://github.com/earthly/earthly/blob/master/examples/integration-test/Earthfile)
+
+{% sample lang="Unit Test" %}
+
+For unit tests, we copy in the source and run the tests.
+
+``` Dockerfile
+
+unit-test:
+    FROM +project-file
+    COPY src src
+    RUN sbt test
+
+```
+[Full file](https://github.com/earthly/earthly/blob/master/examples/integration-test/Earthfile)
+
+{% sample lang="Docker" %}
+
+We then build a Dockerfile.
+
+``` Dockerfile
+docker:
+    FROM +project-file
+    COPY src src
+    RUN sbt assembly
+    ENTRYPOINT ["java","-cp","target/scala-2.12/scala-example-assembly-1.0.jar","Main"]
+    SAVE IMAGE scala-example:lates 
+```
+[Full file](https://github.com/earthly/earthly-example-scala/blob/master/integration/Earthfile)
+
+{% endmethod %}
+
+ See [Basics Guide](./basics.md) for more details on these steps, including how they might differ in Go, Javascript, Java, and Python.
+
+## In-App Integration Testing 
+
+Since our service has a docker-compose file of dependencies, running integration tests is easy.
+
+Our integration target needs to copy in our source code and our Dockerfile and then inside a `WITH DOCKER` start the tests:
+``` Dockerfile
 integration-test:
-    FROM +build
+    FROM +project-files
     COPY src src
     COPY docker-compose.yml ./ 
-    WITH DOCKER 
-        DOCKER PULL aa8y/postgres-dataset:iso3166
-        DOCKER PULL adminer:latest
-        RUN docker-compose up -d && \
-            for i in {1..30}; do nc -z localhost 5432 && break; sleep 1; done; \
-            sbt it:test && \
-            docker-compose down 
+    WITH DOCKER --compose docker-compose.yml
+       RUN sbt it:test
     END
-
 ```
+The `WITH DOCKER` has a `--compose` flag that we use to start up our docker-compose and run our integration tests in that context.
+
+<!-- {% hint style='info' %}
+
+ Coordinating service start-ups can be complicated and is out of the scope of this document.  If you need to coordinate service start-ups, scripts like [wait for it](https://github.com/vishnubob/wait-for-it) may help. 
+
+{% endhint %} -->
+
+
 We can now run our it tests both locally and in the CI pipeline, in a reproducible way:
 
 ``` bash
@@ -331,50 +261,41 @@ We can now run our it tests both locally and in the CI pipeline, in a reproducib
 ```
 This means that if an integration test fails in the build pipeline, you can easily reproduce it locally.  
 
+## End to End Integration Tests
 
-## Running End to End Integration Tests
+Our first integration test used was part of the service we were testing. This is one way to exercise integration code paths. Another useful form of integration testing is end-to-end testing. In this form of integration testing, we start up the application and test it from the outside. 
 
-Our first integration test run used a testing harness inside the service under test. This is one way to exercise integration code paths and could be called whitebox integration testing. Another useful form of integration testing is end to end integration testing. In this form of integration testing, we start up the application and test it from the outside. 
+In our simplified case example, with a single code path, a test that verifies the application starts and produces the desired output is sufficient. 
 
-In our simplified case example, with a single code path, a smoke test is sufficient. We start up the application, with its dependencies, and verify it runs successfully.
+{% method %}
+{% sample lang="Test Script" %}
+``` bash
+source "./assert.sh"
+set -v
+results=$(docker run --network=host scala-example:latest)
+expected="The first 5 countries alphabetically are: Afghanistan, Albania, Algeria, American Samoa, Andorra"
 
-
+assert_eq "$expected" "$results"n
 ```
-        RUN docker-compose up -d && \ 
-            for i in {1..30}; do nc -z localhost 5432 && break; sleep 1; done; \
-            docker run --network=host scala-example:latest && \
-            docker-compose down
-```
-{% hint style='info' %}
-#### Docker Networking
-Note the `-network=host` flag passed to `docker run`. 
-```
-docker run --network=host scala-example:latest 
-```
-This tells docker to share the host network with this container, allowing it to access docker-compose ports using localhost.
 
-{% endhint %}
-
-Full Example:
-``` Dockerfile
+{% sample lang="Earth File" %}
+``` dockerfile
 smoke-test:
-    FROM +base
+    FROM +project-files
     COPY docker-compose.yml ./ 
-    WITH DOCKER
-        DOCKER PULL aa8y/postgres-dataset:iso3166
-        DOCKER PULL adminer:latest
-        DOCKER LOAD +docker scala-example:latest
-        RUN docker-compose up -d && \ 
-            for i in {1..30}; do nc -z localhost 5432 && break; sleep 1; done; \
-            docker run --network=host scala-example:latest && \
-            docker-compose down 
+    COPY src/smoketest ./ 
+    WITH DOCKER --compose docker-compose.yml --load scala-example:latest=+docker
+        RUN ./smoketest.sh
     END
 ```
+{% endmethod %}
 
 Output:
+We can then run this and check that our application with its dependencies, produces the correct output.
+
 ``` Dockerfile
 > earth -P +smoke-test
-+smoke-test | --> WITH DOCKER RUN docker-compose up -d && for i in {1..30}; do nc -z localhost 5432 && break; sleep 1; done; docker run --network=host scala-example:latest && docker-compose down
++smoke-test | --> WITH DOCKER RUN for i in {1..30}; do nc -z localhost 5432 && break; sleep 1; done; docker run --network=host scala-example:latest
 +smoke-test | Loading images...
 +smoke-test | Loaded image: aa8y/postgres-dataset:iso3166
 +smoke-test | Loaded image: adminer:latest
@@ -393,8 +314,6 @@ Output:
 =========================== SUCCESS ===========================
 ...
 ```
-
-In more complex scenarios, this example could be extended to run tests against the service under test. Making http calls and verifying outputs using your preferred testing framework.
 
 ## Bringing It All Together
 
