@@ -50,9 +50,11 @@ type Opt struct {
 
 // BuildOpt is a collection of build options.
 type BuildOpt struct {
-	PrintSuccess bool
-	Push         bool
-	NoOutput     bool
+	PrintSuccess          bool
+	Push                  bool
+	NoOutput              bool
+	OnlyFinalTargetImages bool
+	OnlyArtifact          *domain.Artifact
 }
 
 // Builder executes Earthly builds.
@@ -190,21 +192,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 		if err != nil {
 			return nil, err
 		}
-		state := mts.Final.MainState
-		if b.opt.NoCache {
-			state = state.SetMarshalDefaults(llb.IgnoreCache)
-		}
-		def, err := state.Marshal(ctx)
-		if err != nil {
-			return nil, errors.Wrap(err, "marshal main state")
-		}
-		r, err := gwClient.Solve(ctx, gwclient.SolveRequest{
-			Definition: def.ToPB(),
-		})
-		if err != nil {
-			return nil, errors.Wrap(err, "solve main state")
-		}
-		ref, err := r.SingleRef()
+		ref, err := b.stateToRef(ctx, gwClient, mts.Final.MainState)
 		if err != nil {
 			return nil, err
 		}
@@ -221,14 +209,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 				depIndex++
 			}
 			for _, saveImage := range sts.SaveImages {
-				def, err := saveImage.State.Marshal(ctx)
-				if err != nil {
-					return nil, errors.Wrap(err, "marshal save img state")
-				}
-				r, err := gwClient.Solve(ctx, gwclient.SolveRequest{
-					Definition: def.ToPB(),
-				})
-				ref, err := r.SingleRef()
+				ref, err := b.stateToRef(ctx, gwClient, saveImage.State)
 				if err != nil {
 					return nil, err
 				}
@@ -247,14 +228,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 				imageIndex++
 			}
 			for _, saveLocal := range sts.SaveLocals {
-				def, err := sts.SeparateArtifactsState[saveLocal.Index].Marshal(ctx)
-				if err != nil {
-					return nil, errors.Wrap(err, "marshal save img state")
-				}
-				r, err := gwClient.Solve(ctx, gwclient.SolveRequest{
-					Definition: def.ToPB(),
-				})
-				ref, err := r.SingleRef()
+				ref, err := b.stateToRef(ctx, gwClient, sts.SeparateArtifactsState[saveLocal.Index])
 				if err != nil {
 					return nil, err
 				}
@@ -312,42 +286,70 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 		return nil, errors.Wrapf(err, "build main")
 	}
 	successOnce.Do(successFun)
+	if opt.NoOutput {
+		return mts, nil
+	}
 	// This needs to match with the same index used during output.
-	// TODO: This is a little brittle.
+	// TODO: This is a little brittle to future code changes.
 	dirIndex := 0
 	for _, sts := range mts.All() {
-		for _, saveImage := range sts.SaveImages {
-			shouldPush := opt.Push && saveImage.Push
-			console := b.opt.Console.WithPrefixAndSalt(sts.Target.String(), sts.Salt)
-			if shouldPush {
-				err := pushDockerImage(ctx, saveImage.DockerTag)
+		if opt.OnlyArtifact == nil {
+			for _, saveImage := range sts.SaveImages {
+				shouldPush := opt.Push && saveImage.Push
+				console := b.opt.Console.WithPrefixAndSalt(sts.Target.String(), sts.Salt)
+				if shouldPush {
+					err := pushDockerImage(ctx, saveImage.DockerTag)
+					if err != nil {
+						return nil, err
+					}
+				}
+				pushStr := ""
+				if shouldPush {
+					pushStr = " (pushed)"
+				}
+				console.Printf("Image %s as %s%s\n", sts.Target.StringCanonical(), saveImage.DockerTag, pushStr)
+				if saveImage.Push && !opt.Push {
+					console.Printf("Did not push %s. Use earth --push to enable pushing\n", saveImage.DockerTag)
+				}
+			}
+		}
+		if !opt.OnlyFinalTargetImages {
+			for _, saveLocal := range sts.SaveLocals {
+				artifactDir := filepath.Join(outDir, fmt.Sprintf("index-%d", dirIndex))
+				artifact := domain.Artifact{
+					Target:   sts.Target,
+					Artifact: saveLocal.ArtifactPath,
+				}
+				err := b.saveArtifactLocally(ctx, artifact, artifactDir, saveLocal.DestPath, sts.Salt, opt)
 				if err != nil {
 					return nil, err
 				}
+				dirIndex++
 			}
-			pushStr := ""
-			if shouldPush {
-				pushStr = " (pushed)"
-			}
-			console.Printf("Image %s as %s%s\n", sts.Target.StringCanonical(), saveImage.DockerTag, pushStr)
-			if saveImage.Push && !opt.Push {
-				console.Printf("Did not push %s. Use earth --push to enable pushing\n", saveImage.DockerTag)
-			}
-		}
-		for _, saveLocal := range sts.SaveLocals {
-			artifactDir := filepath.Join(outDir, fmt.Sprintf("index-%d", dirIndex))
-			artifact := domain.Artifact{
-				Target:   sts.Target,
-				Artifact: saveLocal.ArtifactPath,
-			}
-			err := b.saveArtifactLocally(ctx, artifact, artifactDir, saveLocal.DestPath, sts.Salt, opt)
-			if err != nil {
-				return nil, err
-			}
-			dirIndex++
 		}
 	}
 	return mts, nil
+}
+
+func (b *Builder) stateToRef(ctx context.Context, gwClient gwclient.Client, state llb.State) (gwclient.Reference, error) {
+	if b.opt.NoCache {
+		state = state.SetMarshalDefaults(llb.IgnoreCache)
+	}
+	def, err := state.Marshal(ctx)
+	if err != nil {
+		return nil, errors.Wrap(err, "marshal main state")
+	}
+	r, err := gwClient.Solve(ctx, gwclient.SolveRequest{
+		Definition: def.ToPB(),
+	})
+	if err != nil {
+		return nil, errors.Wrap(err, "solve main state")
+	}
+	ref, err := r.SingleRef()
+	if err != nil {
+		return nil, errors.Wrap(err, "single ref")
+	}
+	return ref, nil
 }
 
 func (b *Builder) buildOnlyLastImageAsTar(ctx context.Context, mts *states.MultiTarget, dockerTag string, outFile string, opt BuildOpt) error {

@@ -242,4 +242,16 @@ test-test:
 test-test2:
     FROM alpine:3.11
     BUILD +test-test
+    RUN echo "hi" >/hi3
+    RUN echo "hi2" >/hi4
+    SAVE ARTIFACT /hi3 AS LOCAL ./build/hi3
+    SAVE ARTIFACT /hi4 AS LOCAL ./build/hi4
     SAVE IMAGE test2:latest
+
+test-test3:
+    FROM alpine:3.11
+    BUILD +test-test2
+    RUN echo "hi" >/hi
+    RUN echo "hi2" >/hi2
+    SAVE ARTIFACT /hi AS LOCAL ./build/hi
+    SAVE ARTIFACT /hi2 AS LOCAL ./build/hi2

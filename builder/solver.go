@@ -281,6 +281,9 @@ func (s *solver) newSolveOptMulti(ctx context.Context, eg *errgroup.Group, onIma
 				Type:  client.ExporterEarthly,
 				Attrs: map[string]string{},
 				Output: func(md map[string]string) (io.WriteCloser, error) {
+					if md["export-image"] != "true" {
+						return nil, nil
+					}
 					indexStr := md["image-index"]
 					index, err := strconv.Atoi(indexStr)
 					if err != nil {
