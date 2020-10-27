@@ -8,7 +8,6 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
-	"path/filepath"
 	"sort"
 	"strings"
 
@@ -18,6 +17,7 @@ import (
 	"github.com/earthly/earthly/states"
 	"github.com/earthly/earthly/states/dedup"
 	"github.com/moby/buildkit/client/llb"
+	gwclient "github.com/moby/buildkit/frontend/gateway/client"
 	"github.com/pkg/errors"
 	"gopkg.in/yaml.v2"
 )
@@ -338,42 +338,15 @@ func (wdr *withDockerRun) getComposeConfig(ctx context.Context, opt WithDockerOp
 		llb.WithCustomNamef("%sWITH DOCKER (docker-compose config)", wdr.c.vertexPrefix()),
 	}
 	state := wdr.c.mts.Final.MainState.Run(runOpts...).Root()
-
-	// Perform solve to output compose config. We will use that compose config to read in images.
-	composeConfigState := llbutil.CopyOp(
-		state, []string{fmt.Sprintf("/tmp/earthly/%s", composeConfigFile)},
-		llb.Scratch().Platform(llbutil.TargetPlatform), fmt.Sprintf("/%s", composeConfigFile),
-		false, false, "",
-		llb.WithCustomNamef("[internal] copy %s", composeConfigFile))
-	mts := &states.MultiTarget{
-		Visited: wdr.c.mts.Visited,
-		Final: &states.SingleTarget{
-			Target:         wdr.c.mts.Final.Target,
-			MainImage:      wdr.c.mts.Final.MainImage,
-			MainState:      state,
-			ArtifactsState: composeConfigState,
-			LocalDirs:      wdr.c.mts.Final.LocalDirs,
-		},
-	}
-	composeConfigArtifact := domain.Artifact{
-		Target:   wdr.c.mts.Final.Target,
-		Artifact: composeConfigFile,
-	}
-	outDir, err := ioutil.TempDir("/tmp", "earthly-compose-config")
+	ref, err := llbutil.StateToRef(ctx, wdr.c.gwClient, state)
 	if err != nil {
-		return nil, errors.Wrap(err, "mk temp dir for solve compose config")
+		return nil, errors.Wrap(err, "state to ref compose config")
 	}
-	wdr.c.cleanCollection.Add(func() error {
-		return os.RemoveAll(outDir)
+	composeConfigDt, err := ref.ReadFile(ctx, gwclient.ReadRequest{
+		Filename: fmt.Sprintf("/tmp/earthly/%s", composeConfigFile),
 	})
-	err = wdr.c.artifactBuilderFun(ctx, mts, composeConfigArtifact, fmt.Sprintf("%s/", outDir))
 	if err != nil {
-		return nil, errors.Wrapf(err, "build artifact %s", composeConfigArtifact.String())
-	}
-	outComposeConfig := filepath.Join(outDir, composeConfigFile)
-	composeConfigDt, err := ioutil.ReadFile(outComposeConfig)
-	if err != nil {
-		return nil, errors.Wrapf(err, "read %s", outComposeConfig)
+		return nil, errors.Wrap(err, "read compose config file")
 	}
 	return composeConfigDt, nil
 }

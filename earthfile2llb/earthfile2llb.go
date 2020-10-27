@@ -31,10 +31,6 @@ type ConvertOpt struct {
 	// is used as part of operations like DOCKER LOAD and DOCKER PULL, where
 	// a tar image is needed in the middle of a build.
 	DockerBuilderFun states.DockerBuilderFun
-	// ArtifactBuilderFun is a fun that can be used to execute build of an artifact.
-	// This is used as part of operations like FROM DOCKERFILE +.../..., where
-	// a generated Dockerfile is needed in the middle of a build.
-	ArtifactBuilderFun states.ArtifactBuilderFun
 	// CleanCollection is a collection of cleanup functions.
 	CleanCollection *cleanup.Collection
 	// Visited is a collection of target states which have been converted to LLB.

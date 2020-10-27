@@ -9,9 +9,7 @@ import (
 	"hash/fnv"
 	"io/ioutil"
 	"math/rand"
-	"os"
 	"path"
-	"path/filepath"
 	"strings"
 	"time"
 
@@ -46,7 +44,6 @@ type Converter struct {
 	cacheContext         llb.State
 	varCollection        *variables.Collection
 	dockerBuilderFun     states.DockerBuilderFun
-	artifactBuilderFun   states.ArtifactBuilderFun
 	cleanCollection      *cleanup.Collection
 	nextArgIndex         int
 	solveCache           map[string]llb.State
@@ -89,7 +86,6 @@ func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Da
 		cacheContext:         makeCacheContext(target),
 		varCollection:        opt.VarCollection.WithBuiltinBuildArgs(target, bc.GitMetadata),
 		dockerBuilderFun:     opt.DockerBuilderFun,
-		artifactBuilderFun:   opt.ArtifactBuilderFun,
 		cleanCollection:      opt.CleanCollection,
 		solveCache:           opt.SolveCache,
 		buildContextProvider: opt.BuildContextProvider,
@@ -162,6 +158,7 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 		return errors.New("FROM DOCKERFILE -f not yet supported")
 	}
 	var buildContext llb.State
+	var dfData []byte
 	if strings.Contains(contextPath, "+") {
 		// The Dockerfile and build context are from a target's artifact.
 		contextArtifact, err := domain.ParseArtifact(contextPath)
@@ -174,11 +171,12 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 		if err != nil {
 			return err
 		}
-		pathArtifact, err := c.solveArtifact(ctx, mts, contextArtifact)
+		dfArtifact := contextArtifact
+		dfArtifact.Artifact = path.Join(dfArtifact.Artifact, "Dockerfile")
+		dfData, err = c.readArtifact(ctx, mts, dfArtifact)
 		if err != nil {
 			return err
 		}
-		dfPath = filepath.Join(pathArtifact, "Dockerfile")
 		buildContext = llb.Scratch().Platform(llbutil.TargetPlatform)
 		buildContext = llbutil.CopyOp(
 			mts.Final.ArtifactsState, []string{contextArtifact.Artifact},
@@ -210,11 +208,11 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 			c.mts.Final.LocalDirs[ldk] = ld
 		}
 		dfPath = data.BuildFilePath
+		dfData, err = ioutil.ReadFile(dfPath)
+		if err != nil {
+			return errors.Wrapf(err, "read file %s", dfPath)
+		}
 		buildContext = data.BuildContext
-	}
-	dfData, err := ioutil.ReadFile(dfPath)
-	if err != nil {
-		return errors.Wrapf(err, "read file %s", dfPath)
 	}
 	newVarCollection, _, err := c.varCollection.WithParseBuildArgs(
 		buildArgs, c.processNonConstantBuildArgFunc(ctx))
@@ -422,7 +420,6 @@ func (c *Converter) Build(ctx context.Context, fullTargetName string, buildArgs 
 			Resolver:             c.resolver,
 			ImageResolveMode:     c.imageResolveMode,
 			DockerBuilderFun:     c.dockerBuilderFun,
-			ArtifactBuilderFun:   c.artifactBuilderFun,
 			CleanCollection:      c.cleanCollection,
 			Visited:              c.mts.Visited,
 			VarCollection:        newVarCollection,
@@ -681,19 +678,18 @@ func (c *Converter) internalRun(ctx context.Context, args []string, secretKeyVal
 	return nil
 }
 
-func (c *Converter) solveArtifact(ctx context.Context, mts *states.MultiTarget, artifact domain.Artifact) (string, error) {
-	outDir, err := ioutil.TempDir("/tmp", "earthly-solve-artifact")
+func (c *Converter) readArtifact(ctx context.Context, mts *states.MultiTarget, artifact domain.Artifact) ([]byte, error) {
+	ref, err := llbutil.StateToRef(ctx, c.gwClient, mts.Final.ArtifactsState)
 	if err != nil {
-		return "", errors.Wrap(err, "mk temp dir for solve artifact")
+		return nil, errors.Wrap(err, "state to ref solve artifact")
 	}
-	c.cleanCollection.Add(func() error {
-		return os.RemoveAll(outDir)
+	artDt, err := ref.ReadFile(ctx, gwclient.ReadRequest{
+		Filename: artifact.Artifact,
 	})
-	err = c.artifactBuilderFun(ctx, mts, artifact, fmt.Sprintf("%s/", outDir))
 	if err != nil {
-		return "", errors.Wrapf(err, "build artifact %s", artifact.String())
+		return nil, errors.Wrapf(err, "read artifact %s", artifact.Artifact)
 	}
-	return outDir, nil
+	return artDt, nil
 }
 
 func (c *Converter) internalFromClassical(ctx context.Context, imageName string, opts ...llb.ImageOption) (llb.State, *image.Image, *variables.Collection, error) {

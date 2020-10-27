@@ -92,27 +92,6 @@ func (b *Builder) BuildTarget(ctx context.Context, target domain.Target, opt Bui
 	return mts, nil
 }
 
-// OutputArtifact outputs a specific artifact found in an mts's final target.
-func (b *Builder) OutputArtifact(ctx context.Context, mts *states.MultiTarget, artifact domain.Artifact, destPath string, opt BuildOpt) error {
-	// TODO: Should double check that the last state is the same as the one
-	//       referenced in artifact.Target.
-	outDir, err := ioutil.TempDir(".", ".tmp-earth-out")
-	if err != nil {
-		return errors.Wrap(err, "mk temp dir for artifacts")
-	}
-	defer os.RemoveAll(outDir)
-	solvedStates := make(map[int]bool)
-	return b.outputSpecifiedArtifact(
-		ctx, artifact, destPath, outDir, solvedStates, mts.Final, opt)
-}
-
-// MakeArtifactBuilderFun returns a function that can be used to build artifacts.
-func (b *Builder) MakeArtifactBuilderFun() states.ArtifactBuilderFun {
-	return func(ctx context.Context, mts *states.MultiTarget, artifact domain.Artifact, destPath string) error {
-		return b.buildOnlyArtifact(ctx, mts, artifact, destPath, BuildOpt{})
-	}
-}
-
 // MakeImageAsTarBuilderFun returns a function which can be used to build an image as a tar.
 func (b *Builder) MakeImageAsTarBuilderFun() states.DockerBuilderFun {
 	return func(ctx context.Context, mts *states.MultiTarget, dockerTag string, outFile string) error {
@@ -141,7 +120,6 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 			Resolver:             b.resolver,
 			ImageResolveMode:     b.opt.ImageResolveMode,
 			DockerBuilderFun:     b.MakeImageAsTarBuilderFun(),
-			ArtifactBuilderFun:   b.MakeArtifactBuilderFun(),
 			CleanCollection:      b.opt.CleanCollection,
 			VarCollection:        b.opt.VarCollection,
 			BuildContextProvider: b.opt.BuildContextProvider,
@@ -354,15 +332,6 @@ func (b *Builder) buildOnlyLastImageAsTar(ctx context.Context, mts *states.Multi
 	return nil
 }
 
-func (b *Builder) buildOnlyArtifact(ctx context.Context, mts *states.MultiTarget, artifact domain.Artifact, destPath string, opt BuildOpt) error {
-	err := b.buildMain(ctx, mts, opt)
-	if err != nil {
-		return err
-	}
-
-	return b.OutputArtifact(ctx, mts, artifact, destPath, opt)
-}
-
 func (b *Builder) buildMain(ctx context.Context, mts *states.MultiTarget, opt BuildOpt) error {
 	state := mts.Final.MainState
 	if b.opt.NoCache {
@@ -398,25 +367,6 @@ func (b *Builder) outputImageTar(ctx context.Context, saveImage states.SaveImage
 	err := b.s.solveDockerTar(ctx, saveImage.State, saveImage.Image, dockerTag, outFile)
 	if err != nil {
 		return errors.Wrapf(err, "solve image tar %s", outFile)
-	}
-	return nil
-}
-
-func (b *Builder) outputSpecifiedArtifact(ctx context.Context, artifact domain.Artifact, destPath string, outDir string, solvedStates map[int]bool, states *states.SingleTarget, opt BuildOpt) error {
-	indexOutDir := filepath.Join(outDir, "combined")
-	err := os.Mkdir(indexOutDir, 0755)
-	if err != nil {
-		return errors.Wrap(err, "mk index dir")
-	}
-	artifactsState := states.ArtifactsState
-	err = b.s.solveArtifacts(ctx, artifactsState, indexOutDir)
-	if err != nil {
-		return errors.Wrap(err, "solve combined artifacts")
-	}
-
-	err = b.saveArtifactLocally(ctx, artifact, indexOutDir, destPath, states.Salt, opt)
-	if err != nil {
-		return err
 	}
 	return nil
 }
