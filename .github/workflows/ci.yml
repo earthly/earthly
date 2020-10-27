@@ -13,6 +13,7 @@ jobs:
     env:
       GIT_URL_INSTEAD_OF: "https://github.com/=git@github.com:"
       FORCE_COLOR: 1
+      EARTHLY_INSTALL_ID: ghactions-earthly
     steps:
       - uses: actions/checkout@v2
       - name: Download released earth
@@ -31,6 +32,7 @@ jobs:
     env:
       GIT_URL_INSTEAD_OF: "https://github.com/=git@github.com:"
       FORCE_COLOR: 1
+      EARTHLY_INSTALL_ID: ghactions-earthly
     steps:
       - uses: actions/checkout@v2
       - name: Download released earth
@@ -53,6 +55,7 @@ jobs:
     env:
       GIT_URL_INSTEAD_OF: "https://github.com/=git@github.com:"
       FORCE_COLOR: 1
+      EARTHLY_INSTALL_ID: ghactions-earthly
     steps:
       - uses: actions/checkout@v2
       - name: Download released earth
@@ -69,6 +72,7 @@ jobs:
     env:
       GIT_URL_INSTEAD_OF: "https://github.com/=git@github.com:"
       FORCE_COLOR: 1
+      EARTHLY_INSTALL_ID: ghactions-earthly
     steps:
       - uses: actions/checkout@v2
       - name: "Put back the git branch into git (Earthly uses it for tagging)"

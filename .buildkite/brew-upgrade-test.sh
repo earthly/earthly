@@ -1,6 +1,7 @@
 #!/bin/bash
-
 set -xeuo pipefail
+
+export EARTHLY_INSTALL_ID=buildkite-earthly-mac
 
 brew upgrade earthly
 

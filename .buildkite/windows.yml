@@ -6,8 +6,9 @@ steps:
     env:
       GIT_URL_INSTEAD_OF: "https://github.com/=git@github.com:"
       FORCE_COLOR: 1
+      EARTHLY_INSTALL_ID: buildkite-earthly-win
       EARTH_OS: linux
       EARTHLY_CONFIG: "./.buildkite/earthly-config-win.yml"
-      WSLENV: "GIT_URL_INSTEAD_OF:FORCE_COLOR:BUILDKITE_BRANCH:EARTH_OS:EARTHLY_CONFIG:BUILDKITE_BUILD_ID"
+      WSLENV: "GIT_URL_INSTEAD_OF:FORCE_COLOR:EARTHLY_INSTALL_ID:BUILDKITE_BRANCH:EARTH_OS:EARTHLY_CONFIG:BUILDKITE_BUILD_ID"
     agents:
       os: windows
