@@ -321,12 +321,10 @@ no-cache-local-artifact-test:
     COPY no-cache-local-artifact.earth ./Earthfile
     RUN --privileged \
         --entrypoint \
-        --mount=type=tmpfs,target=/tmp/earthly \
         -- --no-cache +test
     RUN mv file.txt old.txt
     RUN --privileged \
         --entrypoint \
-        --mount=type=tmpfs,target=/tmp/earthly \
         -- --no-cache +test
     RUN ! diff file.txt old.txt
 
