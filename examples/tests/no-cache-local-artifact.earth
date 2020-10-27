@@ -6,4 +6,3 @@ test:
         cat file.txt
 
     SAVE ARTIFACT file.txt AS LOCAL file.txt
-    SAVE IMAGE
