@@ -36,9 +36,9 @@ import (
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/earthfile2llb"
 	"github.com/earthly/earthly/earthfile2llb/variables"
+	"github.com/earthly/earthly/fileutils"
 	"github.com/earthly/earthly/llbutil"
 	"github.com/earthly/earthly/secretsclient"
-	"github.com/earthly/earthly/utils"
 
 	"github.com/fatih/color"
 	"github.com/joho/godotenv"
@@ -155,7 +155,7 @@ func main() {
 
 	// Load .env into current global env's. This is mainly for applying Earthly settings.
 	// Separate call is made for build args and secrets.
-	if utils.FileExists(dotEnvPath) {
+	if fileutils.FileExists(dotEnvPath) {
 		err := godotenv.Load(dotEnvPath)
 		if err != nil {
 			fmt.Printf("Error loading dot-env file %s: %s\n", dotEnvPath, err.Error())
@@ -615,7 +615,7 @@ func (app *earthApp) before(context *cli.Context) error {
 		}
 	}
 
-	if !utils.DirExists(app.cfg.Global.RunPath) {
+	if !fileutils.DirExists(app.cfg.Global.RunPath) {
 		err := os.MkdirAll(app.cfg.Global.RunPath, 0755)
 		if err != nil {
 			return errors.Wrapf(err, "failed to create run directory %s", app.cfg.Global.RunPath)
@@ -749,12 +749,12 @@ func (app *earthApp) insertBashCompleteEntry() error {
 	}
 	dirPath := filepath.Dir(path)
 
-	if !utils.DirExists(dirPath) {
+	if !fileutils.DirExists(dirPath) {
 		fmt.Fprintf(os.Stderr, "Warning: unable to enable bash-completion: %s does not exist\n", dirPath)
 		return nil // bash-completion isn't available, silently fail.
 	}
 
-	if utils.FileExists(path) {
+	if fileutils.FileExists(path) {
 		return nil // file already exists, don't update it.
 	}
 
@@ -815,12 +815,12 @@ func (app *earthApp) insertZSHCompleteEntry() error {
 	path := "/usr/local/share/zsh/site-functions/_earth"
 	dirPath := filepath.Dir(path)
 
-	if !utils.DirExists(dirPath) {
+	if !fileutils.DirExists(dirPath) {
 		fmt.Fprintf(os.Stderr, "Warning: unable to enable zsh-completion: %s does not exist\n", dirPath)
 		return nil // zsh-completion isn't available, silently fail.
 	}
 
-	if utils.FileExists(path) {
+	if fileutils.FileExists(path) {
 		return nil // file already exists, don't update it.
 	}
 
@@ -1335,7 +1335,7 @@ func (app *earthApp) actionBuild(c *cli.Context) error {
 	secrets := app.secrets.Value()
 	//interactive debugger settings are passed as secrets to avoid having it affect the cache hash
 	dotEnvMap := make(map[string]string)
-	if utils.FileExists(dotEnvPath) {
+	if fileutils.FileExists(dotEnvPath) {
 		dotEnvMap, err = godotenv.Read(dotEnvPath)
 		if err != nil {
 			return errors.Wrapf(err, "read %s", dotEnvPath)
@@ -1492,7 +1492,7 @@ func defaultConfigPath() string {
 
 	oldConfig := filepath.Join(homeDir, ".earthly", "config.yaml")
 	newConfig := filepath.Join(homeDir, ".earthly", "config.yml")
-	if utils.FileExists(oldConfig) && !utils.FileExists(newConfig) {
+	if fileutils.FileExists(oldConfig) && !fileutils.FileExists(newConfig) {
 		return oldConfig
 	}
 	return newConfig
