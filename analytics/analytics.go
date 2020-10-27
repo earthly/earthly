@@ -109,6 +109,7 @@ func getInstallID() (string, error) {
 	return string(s), nil
 }
 
+// CollectAnalytics sends analytics to segment.io
 func CollectAnalytics(version, gitSha, commandName string, exitCode int, realtime time.Duration) {
 	var err error
 	ciName, ci := detectCI()
