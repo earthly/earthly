@@ -36,6 +36,7 @@ ga:
     BUILD +chown-test
     BUILD +dotenv-test
     BUILD +env-test
+    BUILD +no-cache-local-artifact-test
     BUILD ./autocompletion+test-all
     BUILD ./with-docker+all
     BUILD ./with-docker-compose+all
@@ -315,6 +316,20 @@ env-test:
         --entrypoint \
         --mount=type=tmpfs,target=/tmp/earthly \
         -- --no-output +test
+
+no-cache-local-artifact-test:
+    COPY no-cache-local-artifact.earth ./Earthfile
+    RUN --privileged \
+        --entrypoint \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        -- --no-cache +test
+    RUN mv file.txt old.txt
+    RUN --privileged \
+        --entrypoint \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        -- --no-cache +test
+    RUN ! diff file.txt old.txt
+
 
 eine-test-base:
     FROM docker:19.03.12-dind
