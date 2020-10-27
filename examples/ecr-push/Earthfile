@@ -6,7 +6,7 @@ ecr-push:
     FROM ubuntu:20.04
 
     ARG AWS_DEFAULT_REGION=us-west-2
-    ARG AWS_ACCOUNT_ID=404851345508
+    ARG AWS_ACCOUNT_ID
 
     RUN apt update && \
         apt -y install curl jq unzip && \
@@ -22,3 +22,11 @@ ecr-push:
             aws ecr get-login-password | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com && \
             docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/test-repo:latest
     END
+
+some-thing-pre-logged-in:
+    FROM hashicorp/http-echo:latest
+
+    ARG AWS_DEFAULT_REGION=us-west-2
+    ARG AWS_ACCOUNT_ID
+
+    SAVE IMAGE $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/test-repo:latest

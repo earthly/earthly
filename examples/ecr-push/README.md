@@ -26,3 +26,17 @@ If you do not have the environment variables, you can set the AWS credentials li
     --secret AWS_SESSION_TOKEN=$(aws configure get default.aws_session_token)
 ...
 ```
+
+Here, you do not have to have the `aws` tool installed! But you cannot pull from the same ECR registry.
+
+## Alternative method
+
+`earth` uses the hosts docker credentials. You can also login on the host, and then invoke `earth` like so:
+
+```
+$ aws ecr get-login-password | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com
+$ earth -P +some-thing-pre-logged-in
+
+```
+
+This has the advantage that you can also pull images from your ECR registry! But, it also requires the user to also have the `aws` CLI tool set up and configured.
