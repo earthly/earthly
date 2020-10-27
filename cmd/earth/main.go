@@ -1461,7 +1461,7 @@ func (app *earthApp) newBuildkitdClient(ctx context.Context, opts ...client.Clie
 }
 
 func (app *earthApp) collectAnalytics(exitCode int, realtime time.Duration) {
-	if app.cfg.Global.DisableAnalytics {
+	if app.cfg == nil || app.cfg.Global.DisableAnalytics {
 		return
 	}
 	installID, ci := os.LookupEnv("CI")
