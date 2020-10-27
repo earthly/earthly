@@ -4,11 +4,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
+	"os/exec"
 	"path"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"github.com/earthly/earthly/buildcontext"
 	"github.com/earthly/earthly/buildcontext/provider"
@@ -26,6 +29,7 @@ import (
 	"github.com/moby/buildkit/util/entitlements"
 	reccopy "github.com/otiai10/copy"
 	"github.com/pkg/errors"
+	"golang.org/x/sync/errgroup"
 )
 
 // Opt represent builder options.
@@ -46,8 +50,12 @@ type Opt struct {
 
 // BuildOpt is a collection of build options.
 type BuildOpt struct {
-	PrintSuccess bool
-	Push         bool
+	PrintSuccess          bool
+	Push                  bool
+	NoOutput              bool
+	OnlyFinalTargetImages bool
+	OnlyArtifact          *domain.Artifact
+	OnlyArtifactDestPath  string
 }
 
 // Builder executes Earthly builds.
@@ -81,21 +89,7 @@ func (b *Builder) BuildTarget(ctx context.Context, target domain.Target, opt Bui
 	if err != nil {
 		return nil, err
 	}
-	if opt.PrintSuccess {
-		b.opt.Console.PrintSuccess()
-	}
 	return mts, nil
-}
-
-// Output produces the output for all targets provided.
-func (b *Builder) Output(ctx context.Context, mts *states.MultiTarget, opt BuildOpt) error {
-	for _, states := range mts.All() {
-		err := b.outputs(ctx, states, opt)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
 }
 
 // OutputArtifact outputs a specific artifact found in an mts's final target.
@@ -126,44 +120,25 @@ func (b *Builder) MakeImageAsTarBuilderFun() states.DockerBuilderFun {
 	}
 }
 
-// OutputImages outputs the images of a single target.
-func (b *Builder) OutputImages(ctx context.Context, states *states.SingleTarget, opt BuildOpt) error {
-	for _, imageToSave := range states.SaveImages {
-		if imageToSave.DockerTag == "" {
-			// Not a docker export. Skip.
-			continue
-		}
-		err := b.outputImage(ctx, imageToSave, states, opt)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-// OutputArtifacts outputs the artifacts of a single target.
-func (b *Builder) OutputArtifacts(ctx context.Context, states *states.SingleTarget, opt BuildOpt) error {
+func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt BuildOpt) (*states.MultiTarget, error) {
 	outDir, err := ioutil.TempDir(".", ".tmp-earth-out")
 	if err != nil {
-		return errors.Wrap(err, "mk temp dir for artifacts")
+		return nil, errors.Wrap(err, "mk temp dir for artifacts")
 	}
 	defer os.RemoveAll(outDir)
-	solvedStates := make(map[int]bool)
-	for _, artifactToSaveLocally := range states.SaveLocals {
-		err = b.outputArtifact(
-			ctx, artifactToSaveLocally, outDir, solvedStates, states, opt)
-		if err != nil {
-			return err
+	var successOnce sync.Once
+	successFun := func() {
+		if opt.PrintSuccess {
+			b.opt.Console.PrintSuccess()
 		}
 	}
-	return nil
-}
-
-func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt BuildOpt) (*states.MultiTarget, error) {
+	destPathWhitelist := make(map[string]bool)
 	var mts *states.MultiTarget
+	finalTargetImageIndices := make(map[int]bool)
 	bf := func(ctx context.Context, gwClient gwclient.Client) (*gwclient.Result, error) {
 		var err error
 		mts, err = earthfile2llb.Earthfile2LLB(ctx, target, earthfile2llb.ConvertOpt{
+			GwClient:             gwClient,
 			Resolver:             b.resolver,
 			ImageResolveMode:     b.opt.ImageResolveMode,
 			DockerBuilderFun:     b.MakeImageAsTarBuilderFun(),
@@ -171,48 +146,225 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 			CleanCollection:      b.opt.CleanCollection,
 			VarCollection:        b.opt.VarCollection,
 			BuildContextProvider: b.opt.BuildContextProvider,
-			MetaResolver:         gwClient,
 		})
 		if err != nil {
 			return nil, err
 		}
-		state := mts.Final.MainState
-		if b.opt.NoCache {
-			state = state.SetMarshalDefaults(llb.IgnoreCache)
-		}
-		def, err := state.Marshal(ctx)
-		if err != nil {
-			return nil, errors.Wrap(err, "marshal main state")
-		}
-		r, err := gwClient.Solve(ctx, gwclient.SolveRequest{
-			Definition: def.ToPB(),
-		})
-		if err != nil {
-			return nil, errors.Wrap(err, "solve main state")
-		}
-		ref, err := r.SingleRef()
+		ref, err := b.stateToRef(ctx, gwClient, mts.Final.MainState)
 		if err != nil {
 			return nil, err
 		}
-		config, err := json.Marshal(mts.Final.MainImage)
-		if err != nil {
-			return nil, errors.Wrapf(err, "marshal image config")
-		}
-
 		res := gwclient.NewResult()
-		res.AddMeta(exptypes.ExporterImageConfigKey, config)
-		res.SetRef(ref)
+		res.AddRef("main", ref)
+		ref, err = b.stateToRef(ctx, gwClient, mts.Final.ArtifactsState)
+		if err != nil {
+			return nil, err
+		}
+		refKey := "final-artifact"
+		refPrefix := fmt.Sprintf("ref/%s", refKey)
+		res.AddRef(refKey, ref)
+		res.AddMeta(fmt.Sprintf("%s/export-dir", refPrefix), []byte("true"))
+		res.AddMeta(fmt.Sprintf("%s/final-artifact", refPrefix), []byte("true"))
+
+		depIndex := 0
+		imageIndex := 0
+		dirIndex := 0
+		for _, sts := range mts.All() {
+			for _, depRef := range sts.DepsRefs {
+				refKey := fmt.Sprintf("dep-%d", depIndex)
+				res.AddRef(refKey, depRef)
+				depIndex++
+			}
+			for _, saveImage := range sts.SaveImages {
+				ref, err := b.stateToRef(ctx, gwClient, saveImage.State)
+				if err != nil {
+					return nil, err
+				}
+				config, err := json.Marshal(saveImage.Image)
+				if err != nil {
+					return nil, errors.Wrapf(err, "marshal save image config")
+				}
+				// TODO: Support multiple docker tags at the same time (improves export speed).
+				refKey := fmt.Sprintf("image-%d", imageIndex)
+				refPrefix := fmt.Sprintf("ref/%s", refKey)
+				res.AddMeta(fmt.Sprintf("%s/image.name", refPrefix), []byte(saveImage.DockerTag))
+				res.AddMeta(fmt.Sprintf("%s/%s", refPrefix, exptypes.ExporterImageConfigKey), config)
+				res.AddMeta(fmt.Sprintf("%s/export-image", refPrefix), []byte("true"))
+				res.AddMeta(fmt.Sprintf("%s/image-index", refPrefix), []byte(fmt.Sprintf("%d", imageIndex)))
+				res.AddRef(refKey, ref)
+				if sts == mts.Final {
+					finalTargetImageIndices[imageIndex] = true
+				}
+				imageIndex++
+			}
+			if sts.Target.IsRemote() {
+				// Don't do save local's for remote targets.
+				continue
+			}
+			for _, saveLocal := range sts.SaveLocals {
+				ref, err := b.stateToRef(ctx, gwClient, sts.SeparateArtifactsState[saveLocal.Index])
+				if err != nil {
+					return nil, err
+				}
+				refKey := fmt.Sprintf("dir-%d", dirIndex)
+				refPrefix := fmt.Sprintf("ref/%s", refKey)
+				res.AddRef(refKey, ref)
+				artifact := domain.Artifact{
+					Target:   sts.Target,
+					Artifact: saveLocal.ArtifactPath,
+				}
+				res.AddMeta(fmt.Sprintf("%s/artifact", refPrefix), []byte(artifact.String()))
+				res.AddMeta(fmt.Sprintf("%s/src-path", refPrefix), []byte(saveLocal.ArtifactPath))
+				res.AddMeta(fmt.Sprintf("%s/dest-path", refPrefix), []byte(saveLocal.DestPath))
+				res.AddMeta(fmt.Sprintf("%s/export-dir", refPrefix), []byte("true"))
+				res.AddMeta(fmt.Sprintf("%s/dir-index", refPrefix), []byte(fmt.Sprintf("%d", dirIndex)))
+				destPathWhitelist[saveLocal.DestPath] = true
+				dirIndex++
+			}
+		}
 		return res, nil
 	}
-	err := b.s.buildMain(ctx, bf)
+	onImage := func(ctx context.Context, eg *errgroup.Group, index int, imageName string, digest string) (io.WriteCloser, error) {
+		successOnce.Do(successFun)
+		if opt.NoOutput || opt.OnlyArtifact != nil {
+			return nil, nil
+		}
+		if opt.OnlyFinalTargetImages && !finalTargetImageIndices[index] {
+			return nil, nil
+		}
+		pipeR, pipeW := io.Pipe()
+		eg.Go(func() error {
+			defer pipeR.Close()
+			err := loadDockerTar(ctx, pipeR)
+			if err != nil {
+				return errors.Wrapf(err, "load docker tar")
+			}
+			return nil
+		})
+		return pipeW, nil
+	}
+	onArtifact := func(ctx context.Context, index int, artifact domain.Artifact, artifactPath string, destPath string) (string, error) {
+		successOnce.Do(successFun)
+		if opt.NoOutput || opt.OnlyFinalTargetImages || opt.OnlyArtifact != nil {
+			return "", nil
+		}
+		if !destPathWhitelist[destPath] {
+			return "", errors.Errorf("dest path %s is not in the whitelist: %+v", destPath, destPathWhitelist)
+		}
+		artifactDir := filepath.Join(outDir, fmt.Sprintf("index-%d", index))
+		err := os.MkdirAll(artifactDir, 0755)
+		if err != nil {
+			return "", errors.Wrapf(err, "create dir %s", artifactDir)
+		}
+		return artifactDir, nil
+	}
+	onFinalArtifact := func(ctx context.Context) (string, error) {
+		successOnce.Do(successFun)
+		if opt.NoOutput || opt.OnlyFinalTargetImages {
+			return "", nil
+		}
+		if opt.OnlyArtifact == nil {
+			return "", nil
+		}
+		return outDir, nil
+	}
+	err = b.s.buildMainMulti(ctx, bf, onImage, onArtifact, onFinalArtifact)
 	if err != nil {
 		return nil, errors.Wrapf(err, "build main")
 	}
-	if opt.PrintSuccess {
-		targetConsole := b.opt.Console.WithPrefixAndSalt(target.String(), mts.Final.Salt)
-		targetConsole.Printf("Target %s built successfully\n", target.StringCanonical())
+	successOnce.Do(successFun)
+	if opt.NoOutput {
+		// Nothing.
+	} else if opt.OnlyArtifact != nil {
+		err := b.saveArtifactLocally(ctx, *opt.OnlyArtifact, outDir, opt.OnlyArtifactDestPath, mts.Final.Salt, opt)
+		if err != nil {
+			return nil, err
+		}
+	} else if opt.OnlyFinalTargetImages {
+		for _, saveImage := range mts.Final.SaveImages {
+			shouldPush := opt.Push && saveImage.Push
+			console := b.opt.Console.WithPrefixAndSalt(mts.Final.Target.String(), mts.Final.Salt)
+			if shouldPush {
+				err := pushDockerImage(ctx, saveImage.DockerTag)
+				if err != nil {
+					return nil, err
+				}
+			}
+			pushStr := ""
+			if shouldPush {
+				pushStr = " (pushed)"
+			}
+			console.Printf("Image %s as %s%s\n", mts.Final.Target.StringCanonical(), saveImage.DockerTag, pushStr)
+			if saveImage.Push && !opt.Push {
+				console.Printf("Did not push %s. Use earth --push to enable pushing\n", saveImage.DockerTag)
+			}
+		}
+	} else {
+		// This needs to match with the same index used during output.
+		// TODO: This is a little brittle to future code changes.
+		dirIndex := 0
+		for _, sts := range mts.All() {
+			for _, saveImage := range sts.SaveImages {
+				shouldPush := opt.Push && saveImage.Push && !sts.Target.IsRemote()
+				console := b.opt.Console.WithPrefixAndSalt(sts.Target.String(), sts.Salt)
+				if shouldPush {
+					err := pushDockerImage(ctx, saveImage.DockerTag)
+					if err != nil {
+						return nil, err
+					}
+				}
+				pushStr := ""
+				if shouldPush {
+					pushStr = " (pushed)"
+				}
+				console.Printf("Image %s as %s%s\n", sts.Target.StringCanonical(), saveImage.DockerTag, pushStr)
+				if saveImage.Push && !opt.Push && !sts.Target.IsRemote() {
+					console.Printf("Did not push %s. Use earth --push to enable pushing\n", saveImage.DockerTag)
+				}
+			}
+			for _, saveLocal := range sts.SaveLocals {
+				artifactDir := filepath.Join(outDir, fmt.Sprintf("index-%d", dirIndex))
+				artifact := domain.Artifact{
+					Target:   sts.Target,
+					Artifact: saveLocal.ArtifactPath,
+				}
+				err := b.saveArtifactLocally(ctx, artifact, artifactDir, saveLocal.DestPath, sts.Salt, opt)
+				if err != nil {
+					return nil, err
+				}
+				dirIndex++
+			}
+			if !sts.Target.IsRemote() {
+				err = b.executeRunPush(ctx, sts, opt)
+				if err != nil {
+					return nil, err
+				}
+			}
+		}
 	}
+
 	return mts, nil
+}
+
+func (b *Builder) stateToRef(ctx context.Context, gwClient gwclient.Client, state llb.State) (gwclient.Reference, error) {
+	if b.opt.NoCache {
+		state = state.SetMarshalDefaults(llb.IgnoreCache)
+	}
+	def, err := state.Marshal(ctx)
+	if err != nil {
+		return nil, errors.Wrap(err, "marshal main state")
+	}
+	r, err := gwClient.Solve(ctx, gwclient.SolveRequest{
+		Definition: def.ToPB(),
+	})
+	if err != nil {
+		return nil, errors.Wrap(err, "solve main state")
+	}
+	ref, err := r.SingleRef()
+	if err != nil {
+		return nil, errors.Wrap(err, "single ref")
+	}
+	return ref, nil
 }
 
 func (b *Builder) buildOnlyLastImageAsTar(ctx context.Context, mts *states.MultiTarget, dockerTag string, outFile string, opt BuildOpt) error {
@@ -220,9 +372,6 @@ func (b *Builder) buildOnlyLastImageAsTar(ctx context.Context, mts *states.Multi
 	err := b.buildMain(ctx, mts, opt)
 	if err != nil {
 		return err
-	}
-	if opt.PrintSuccess {
-		b.opt.Console.PrintSuccess()
 	}
 
 	err = b.outputImageTar(ctx, saveImage, dockerTag, outFile)
@@ -237,16 +386,11 @@ func (b *Builder) buildOnlyArtifact(ctx context.Context, mts *states.MultiTarget
 	if err != nil {
 		return err
 	}
-	if opt.PrintSuccess {
-		b.opt.Console.PrintSuccess()
-	}
 
 	return b.OutputArtifact(ctx, mts, artifact, destPath, opt)
 }
 
 func (b *Builder) buildMain(ctx context.Context, mts *states.MultiTarget, opt BuildOpt) error {
-	finalTarget := mts.Final.Target
-	finalTargetConsole := b.opt.Console.WithPrefixAndSalt(finalTarget.String(), mts.Final.Salt)
 	state := mts.Final.MainState
 	if b.opt.NoCache {
 		state = state.SetMarshalDefaults(llb.IgnoreCache)
@@ -254,28 +398,6 @@ func (b *Builder) buildMain(ctx context.Context, mts *states.MultiTarget, opt Bu
 	err := b.s.solveMain(ctx, state)
 	if err != nil {
 		return errors.Wrapf(err, "solve side effects")
-	}
-	if opt.PrintSuccess {
-		finalTargetConsole.Printf("Target %s built successfully\n", finalTarget.StringCanonical())
-	}
-	return nil
-}
-
-func (b *Builder) outputs(ctx context.Context, states *states.SingleTarget, opt BuildOpt) error {
-	err := b.executeRunPush(ctx, states, opt)
-	if err != nil {
-		return err
-	}
-	err = b.OutputImages(ctx, states, opt)
-	if err != nil {
-		return err
-	}
-	if !states.Target.IsRemote() {
-		// Don't output artifacts for remote images.
-		err = b.OutputArtifacts(ctx, states, opt)
-		if err != nil {
-			return err
-		}
 	}
 	return nil
 }
@@ -295,24 +417,6 @@ func (b *Builder) executeRunPush(ctx context.Context, states *states.SingleTarge
 	err := b.s.solveMain(ctx, states.RunPush.State)
 	if err != nil {
 		return errors.Wrapf(err, "solve run-push")
-	}
-	return nil
-}
-
-func (b *Builder) outputImage(ctx context.Context, imageToSave states.SaveImage, states *states.SingleTarget, opt BuildOpt) error {
-	shouldPush := opt.Push && imageToSave.Push
-	console := b.opt.Console.WithPrefixAndSalt(states.Target.String(), states.Salt)
-	err := b.s.solveDocker(ctx, imageToSave.State, imageToSave.Image, imageToSave.DockerTag, shouldPush)
-	if err != nil {
-		return errors.Wrapf(err, "solve image %s", imageToSave.DockerTag)
-	}
-	pushStr := ""
-	if shouldPush {
-		pushStr = " (pushed)"
-	}
-	console.Printf("Image %s as %s%s\n", states.Target.StringCanonical(), imageToSave.DockerTag, pushStr)
-	if imageToSave.Push && !opt.Push {
-		console.Printf("Did not push %s. Use earth --push to enable pushing\n", imageToSave.DockerTag)
 	}
 	return nil
 }
@@ -338,33 +442,6 @@ func (b *Builder) outputSpecifiedArtifact(ctx context.Context, artifact domain.A
 	}
 
 	err = b.saveArtifactLocally(ctx, artifact, indexOutDir, destPath, states.Salt, opt)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func (b *Builder) outputArtifact(ctx context.Context, artifactToSaveLocally states.SaveLocal, outDir string, solvedStates map[int]bool, states *states.SingleTarget, opt BuildOpt) error {
-	index := artifactToSaveLocally.Index
-	indexOutDir := filepath.Join(outDir, fmt.Sprintf("index-%d", index))
-	if !solvedStates[index] {
-		solvedStates[index] = true
-		artifactsState := states.SeparateArtifactsState[artifactToSaveLocally.Index]
-		err := os.Mkdir(indexOutDir, 0755)
-		if err != nil {
-			return errors.Wrap(err, "mk index dir")
-		}
-		err = b.s.solveArtifacts(ctx, artifactsState, indexOutDir)
-		if err != nil {
-			return errors.Wrap(err, "solve artifacts")
-		}
-	}
-
-	artifact := domain.Artifact{
-		Target:   states.Target,
-		Artifact: artifactToSaveLocally.ArtifactPath,
-	}
-	err := b.saveArtifactLocally(ctx, artifact, indexOutDir, artifactToSaveLocally.DestPath, states.Salt, opt)
 	if err != nil {
 		return err
 	}
@@ -463,6 +540,30 @@ func (b *Builder) saveArtifactLocally(ctx context.Context, artifact domain.Artif
 		if opt.PrintSuccess {
 			console.Printf("Artifact %s as local %s\n", artifact2.StringCanonical(), destPath2)
 		}
+	}
+	return nil
+}
+
+func loadDockerTar(ctx context.Context, r io.ReadCloser) error {
+	// TODO: This is a gross hack - should use proper docker client.
+	cmd := exec.CommandContext(ctx, "docker", "load")
+	cmd.Stdin = r
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	err := cmd.Run()
+	if err != nil {
+		return errors.Wrap(err, "docker load")
+	}
+	return nil
+}
+
+func pushDockerImage(ctx context.Context, imageName string) error {
+	cmd := exec.CommandContext(ctx, "docker", "push", imageName)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	err := cmd.Run()
+	if err != nil {
+		return errors.Wrapf(err, "docker push %s", imageName)
 	}
 	return nil
 }

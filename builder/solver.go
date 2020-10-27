@@ -6,8 +6,9 @@ import (
 	"encoding/json"
 	"io"
 	"os"
-	"os/exec"
+	"strconv"
 
+	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/llbutil"
 	"github.com/earthly/earthly/states/image"
 	"github.com/moby/buildkit/client"
@@ -19,67 +20,16 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
+type onImageFunc func(context.Context, *errgroup.Group, int, string, string) (io.WriteCloser, error)
+type onArtifactFunc func(context.Context, int, domain.Artifact, string, string) (string, error)
+type onFinalArtifactFunc func(context.Context) (string, error)
+
 type solver struct {
 	sm          *solverMonitor
 	bkClient    *client.Client
 	attachables []session.Attachable
 	enttlmnts   []entitlements.Entitlement
 	remoteCache string
-}
-
-func (s *solver) solveDocker(ctx context.Context, state llb.State, img *image.Image, dockerTag string, push bool) error {
-	dt, err := state.Marshal(ctx, llb.Platform(llbutil.TargetPlatform))
-	if err != nil {
-		return errors.Wrap(err, "state marshal")
-	}
-	pipeR, pipeW := io.Pipe()
-	solveOpt, err := s.newSolveOptDocker(img, dockerTag, pipeW)
-	if err != nil {
-		return errors.Wrap(err, "new solve opt")
-	}
-	ch := make(chan *client.SolveStatus)
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
-	eg, ctx := errgroup.WithContext(ctx)
-	eg.Go(func() error {
-		var err error
-		_, err = s.bkClient.Solve(ctx, dt, *solveOpt, ch)
-		if err != nil {
-			return errors.Wrap(err, "solve")
-		}
-		return nil
-	})
-	eg.Go(func() error {
-		return s.sm.monitorProgress(ctx, ch)
-	})
-	eg.Go(func() error {
-		defer pipeR.Close()
-		err := loadDockerTar(ctx, pipeR)
-		if err != nil {
-			return errors.Wrapf(err, "load docker tar for %s", dockerTag)
-		}
-		if push {
-			err := pushDockerImage(ctx, dockerTag)
-			if err != nil {
-				return err
-			}
-		}
-		return nil
-	})
-	go func() {
-		for {
-			select {
-			case <-ctx.Done():
-				// Close read pipe on cancels, otherwise the whole thing hangs.
-				pipeR.Close()
-			}
-		}
-	}()
-	err = eg.Wait()
-	if err != nil {
-		return err
-	}
-	return nil
 }
 
 func (s *solver) solveDockerTar(ctx context.Context, state llb.State, img *image.Image, dockerTag string, outFile string) error {
@@ -176,15 +126,15 @@ func (s *solver) solveArtifacts(ctx context.Context, state llb.State, outDir str
 	return nil
 }
 
-func (s *solver) buildMain(ctx context.Context, bf gwclient.BuildFunc) error {
-	solveOpt, err := s.newSolveOptMain()
-	if err != nil {
-		return errors.Wrap(err, "new solve opt")
-	}
+func (s *solver) buildMainMulti(ctx context.Context, bf gwclient.BuildFunc, onImage onImageFunc, onArtifact onArtifactFunc, onFinalArtifact onFinalArtifactFunc) error {
 	ch := make(chan *client.SolveStatus)
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 	eg, ctx := errgroup.WithContext(ctx)
+	solveOpt, err := s.newSolveOptMulti(ctx, eg, onImage, onArtifact, onFinalArtifact)
+	if err != nil {
+		return errors.Wrap(err, "new solve opt")
+	}
 	eg.Go(func() error {
 		var err error
 		_, err = s.bkClient.Build(ctx, *solveOpt, "", bf, ch)
@@ -270,6 +220,54 @@ func (s *solver) newSolveOptArtifacts(outDir string) (*client.SolveOpt, error) {
 	}, nil
 }
 
+func (s *solver) newSolveOptMulti(ctx context.Context, eg *errgroup.Group, onImage onImageFunc, onArtifact onArtifactFunc, onFinalArtifact onFinalArtifactFunc) (*client.SolveOpt, error) {
+	return &client.SolveOpt{
+		Exports: []client.ExportEntry{
+			{
+				Type:  client.ExporterEarthly,
+				Attrs: map[string]string{},
+				Output: func(md map[string]string) (io.WriteCloser, error) {
+					if md["export-image"] != "true" {
+						return nil, nil
+					}
+					indexStr := md["image-index"]
+					index, err := strconv.Atoi(indexStr)
+					if err != nil {
+						return nil, errors.Wrapf(err, "parse image-index %s", indexStr)
+					}
+					imageName := md["image.name"]
+					digest := md["containerimage.digest"]
+					return onImage(ctx, eg, index, imageName, digest)
+				},
+				OutputDirFunc: func(md map[string]string) (string, error) {
+					if md["export-dir"] != "true" {
+						// Use the other fun for images.
+						return "", nil
+					}
+					if md["final-artifact"] == "true" {
+						return onFinalArtifact(ctx)
+					}
+					indexStr := md["dir-index"]
+					index, err := strconv.Atoi(indexStr)
+					if err != nil {
+						return "", errors.Wrapf(err, "parse dir-index %s", indexStr)
+					}
+					artifactStr := md["artifact"]
+					srcPath := md["src-path"]
+					destPath := md["dest-path"]
+					artifact, err := domain.ParseArtifact(artifactStr)
+					if err != nil {
+						return "", errors.Wrapf(err, "parse artifact %s", artifactStr)
+					}
+					return onArtifact(ctx, index, artifact, srcPath, destPath)
+				},
+			},
+		},
+		Session:             s.attachables,
+		AllowedEntitlements: s.enttlmnts,
+	}, nil
+}
+
 func (s *solver) newSolveOptMain() (*client.SolveOpt, error) {
 	var cacheImportExport []client.CacheOptionsEntry
 	if s.remoteCache != "" {
@@ -291,28 +289,4 @@ func newRegistryCacheOpt(ref string) client.CacheOptionsEntry {
 		Type:  "registry",
 		Attrs: registryCacheOptAttrs,
 	}
-}
-
-func loadDockerTar(ctx context.Context, r io.ReadCloser) error {
-	// TODO: This is a gross hack - should use proper docker client.
-	cmd := exec.CommandContext(ctx, "docker", "load")
-	cmd.Stdin = r
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	err := cmd.Run()
-	if err != nil {
-		return errors.Wrap(err, "docker load")
-	}
-	return nil
-}
-
-func pushDockerImage(ctx context.Context, imageName string) error {
-	cmd := exec.CommandContext(ctx, "docker", "push", imageName)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	err := cmd.Run()
-	if err != nil {
-		return errors.Wrapf(err, "docker push %s", imageName)
-	}
-	return nil
 }

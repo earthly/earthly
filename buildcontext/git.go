@@ -124,7 +124,7 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, target domain.Targ
 		llb.WithCustomNamef("[internal] COPY GIT CLONE %s Earthfile", target.ProjectCanonical()),
 	}
 	opImg := llb.Image(
-		defaultGitImage, llb.MarkImageInternal,
+		defaultGitImage, llb.MarkImageInternal, llb.ResolveModePreferLocal,
 		llb.Platform(llbutil.TargetPlatform))
 	copyOp := opImg.Run(copyOpts...)
 	earthfileState := copyOp.AddMount("/dest", llb.Scratch().Platform(llbutil.TargetPlatform))
@@ -160,6 +160,7 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, target domain.Targ
 	gr.cleanCollection.Add(func() error {
 		return os.RemoveAll(earthfileTmpDir)
 	})
+	// TODO: Use gwClient to download solved files instead of executing a full build like this.
 	err = gr.artifactBuilderFun(ctx, mts, artifact, fmt.Sprintf("%s/", earthfileTmpDir))
 	if err != nil {
 		return nil, "", "", errors.Wrap(err, "build git")

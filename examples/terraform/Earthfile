@@ -5,8 +5,6 @@ prep:
     COPY aws/ .
     RUN terraform init
 
-    SAVE IMAGE
-
 localstack:
     FROM +prep
 

@@ -15,11 +15,14 @@ import (
 	"github.com/earthly/earthly/earthfile2llb/variables"
 	"github.com/earthly/earthly/states"
 	"github.com/moby/buildkit/client/llb"
+	gwclient "github.com/moby/buildkit/frontend/gateway/client"
 	"github.com/pkg/errors"
 )
 
 // ConvertOpt holds conversion parameters needed for conversion.
 type ConvertOpt struct {
+	// GwClient is the BuildKit gateway client.
+	GwClient gwclient.Client
 	// Resolver is the build context resolver.
 	Resolver *buildcontext.Resolver
 	// The resolve mode for referenced images (force pull or prefer local).
@@ -36,7 +39,7 @@ type ConvertOpt struct {
 	CleanCollection *cleanup.Collection
 	// Visited is a collection of target states which have been converted to LLB.
 	// This is used for deduplication and infinite cycle detection.
-	Visited map[string][]*states.SingleTarget
+	Visited *states.VisitedCollection
 	// VarCollection is a collection of build args used for overriding args in the build.
 	VarCollection *variables.Collection
 	// A cache for image solves. depTargetInputHash -> context containing image.tar.
@@ -53,11 +56,14 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt) (m
 		opt.SolveCache = make(map[string]llb.State)
 	}
 	if opt.Visited == nil {
-		opt.Visited = make(map[string][]*states.SingleTarget)
+		opt.Visited = states.NewVisitedCollection()
+	}
+	if opt.MetaResolver == nil {
+		opt.MetaResolver = opt.GwClient
 	}
 	// Check if we have previously converted this target, with the same build args.
 	targetStr := target.String()
-	for _, sts := range opt.Visited[targetStr] {
+	for _, sts := range opt.Visited.Visited[targetStr] {
 		same := true
 		for _, bai := range sts.TargetInput.BuildArgs {
 			if sts.Ongoing && !bai.IsConstant {
@@ -128,7 +134,7 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt) (m
 	if walkErr != nil {
 		return nil, walkErr
 	}
-	return converter.FinalizeStates(), nil
+	return converter.FinalizeStates(ctx)
 }
 
 func walkTree(l *listener, tree parser.IEarthFileContext) (err error) {

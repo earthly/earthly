@@ -5,6 +5,7 @@ import (
 	"github.com/earthly/earthly/states/dedup"
 	"github.com/earthly/earthly/states/image"
 	"github.com/moby/buildkit/client/llb"
+	gwclient "github.com/moby/buildkit/frontend/gateway/client"
 )
 
 // MultiTarget holds LLB states representing multiple earth targets,
@@ -13,7 +14,7 @@ type MultiTarget struct {
 	// Visited represents the previously visited states, grouped by target
 	// name. Duplicate targets are possible if same target is called with different
 	// build args.
-	Visited map[string][]*SingleTarget
+	Visited *VisitedCollection
 	// Final is the main target to be built.
 	Final *SingleTarget
 }
@@ -25,11 +26,7 @@ func (mts *MultiTarget) FinalTarget() domain.Target {
 
 // All returns all SingleTarget contained within.
 func (mts *MultiTarget) All() []*SingleTarget {
-	var ret []*SingleTarget
-	for _, stss := range mts.Visited {
-		ret = append(ret, stss...)
-	}
-	return ret
+	return mts.Visited.VisitedList
 }
 
 // SingleTarget holds LLB states representing a earth target.
@@ -46,6 +43,7 @@ type SingleTarget struct {
 	LocalDirs              map[string]string
 	Ongoing                bool
 	Salt                   string
+	DepsRefs               []gwclient.Reference
 }
 
 // LastSaveImage returns the last save image available (if any).

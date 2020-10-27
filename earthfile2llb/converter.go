@@ -29,6 +29,7 @@ import (
 	"github.com/earthly/earthly/states/image"
 	"github.com/moby/buildkit/client/llb"
 	"github.com/moby/buildkit/frontend/dockerfile/dockerfile2llb"
+	gwclient "github.com/moby/buildkit/frontend/gateway/client"
 	solverpb "github.com/moby/buildkit/solver/pb"
 	"github.com/pkg/errors"
 )
@@ -36,6 +37,7 @@ import (
 // Converter turns earth commands to buildkit LLB representation.
 type Converter struct {
 	gitMeta              *buildcontext.GitMetadata
+	gwClient             gwclient.Client
 	resolver             *buildcontext.Resolver
 	mts                  *states.MultiTarget
 	directDeps           []*states.SingleTarget
@@ -76,9 +78,10 @@ func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Da
 		sts.TargetInput = sts.TargetInput.WithBuildArgInput(ovVar.BuildArgInput(key, ""))
 	}
 	targetStr := target.String()
-	opt.Visited[targetStr] = append(opt.Visited[targetStr], sts)
+	opt.Visited.Add(targetStr, sts)
 	return &Converter{
 		gitMeta:              bc.GitMetadata,
+		gwClient:             opt.GwClient,
 		resolver:             opt.Resolver,
 		imageResolveMode:     opt.ImageResolveMode,
 		mts:                  mts,
@@ -415,6 +418,7 @@ func (c *Converter) Build(ctx context.Context, fullTargetName string, buildArgs 
 	// Recursion.
 	mts, err := Earthfile2LLB(
 		ctx, target, ConvertOpt{
+			GwClient:             c.gwClient,
 			Resolver:             c.resolver,
 			ImageResolveMode:     c.imageResolveMode,
 			DockerBuilderFun:     c.dockerBuilderFun,
@@ -574,19 +578,29 @@ func (c *Converter) Healthcheck(ctx context.Context, isNone bool, cmdArgs []stri
 }
 
 // FinalizeStates returns the LLB states.
-func (c *Converter) FinalizeStates() *states.MultiTarget {
-	// Create an artificial bond to depStates so that side-effects of deps are built automatically.
+func (c *Converter) FinalizeStates(ctx context.Context) (*states.MultiTarget, error) {
+	// Store refs for all dep states.
 	for _, depStates := range c.directDeps {
-		c.mts.Final.MainState = withDependency(
-			c.mts.Final.MainState,
-			c.mts.Final.Target,
-			depStates.MainState,
-			depStates.Target)
+		def, err := depStates.MainState.Marshal(ctx)
+		if err != nil {
+			return nil, errors.Wrapf(err, "marshal dep %s", depStates.Target.String())
+		}
+		r, err := c.gwClient.Solve(ctx, gwclient.SolveRequest{
+			Definition: def.ToPB(),
+		})
+		if err != nil {
+			return nil, errors.Wrap(err, "gw solve")
+		}
+		ref, err := r.SingleRef()
+		if err != nil {
+			return nil, errors.Wrap(err, "single ref")
+		}
+		c.mts.Final.DepsRefs = append(c.mts.Final.DepsRefs, ref)
 	}
-
 	c.buildContextProvider.AddDirs(c.mts.Final.LocalDirs)
+
 	c.mts.Final.Ongoing = false
-	return c.mts
+	return c.mts, nil
 }
 
 func (c *Converter) internalRun(ctx context.Context, args []string, secretKeyValues []string, isWithShell bool, shellWrap shellWrapFun, pushFlag bool, withSSH bool, commandStr string, opts ...llb.RunOption) error {
@@ -801,14 +815,6 @@ func (c *Converter) imageVertexPrefix(id string) string {
 
 func (c *Converter) vertexPrefixWithURL(url string) string {
 	return fmt.Sprintf("[%s(%s) %s] ", c.mts.Final.Target.String(), url, url)
-}
-
-func withDependency(state llb.State, target domain.Target, depState llb.State, depTarget domain.Target) llb.State {
-	return llbutil.WithDependency(
-		state, depState,
-		llb.WithCustomNamef(
-			"[internal] create artificial dependency: %s depends on %s",
-			target.String(), depTarget.String()))
 }
 
 func makeCacheContext(target domain.Target) llb.State {

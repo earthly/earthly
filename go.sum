@@ -208,6 +208,16 @@ github.com/earthly/buildkit v0.7.1-0.20201022230831-316425965ede h1:Qk7/DMHO+irJ
 github.com/earthly/buildkit v0.7.1-0.20201022230831-316425965ede/go.mod h1:1Whs/5ueNdTNZDg5rl8TXviT98lBjtQUHyR0JMtvpMU=
 github.com/earthly/buildkit v0.7.1-0.20201022233159-4f9057a0a3a7 h1:5I0QYrf79m2FPc00c0vJkSVDZN9ffesqMr8lRhVl7L4=
 github.com/earthly/buildkit v0.7.1-0.20201022233159-4f9057a0a3a7/go.mod h1:1Whs/5ueNdTNZDg5rl8TXviT98lBjtQUHyR0JMtvpMU=
+github.com/earthly/buildkit v0.7.1-0.20201024183456-ffada3a1cbd3 h1:srvRQmMjlI/xO0pSd0aXpV6T+wqV0aLgLlx8SIvhy9k=
+github.com/earthly/buildkit v0.7.1-0.20201024183456-ffada3a1cbd3/go.mod h1:1Whs/5ueNdTNZDg5rl8TXviT98lBjtQUHyR0JMtvpMU=
+github.com/earthly/buildkit v0.7.1-0.20201024185454-67705c8589bd h1:LKTLyOBzz+BEGjf+nUUGVNbcFae1ymb4mem+s58ODqQ=
+github.com/earthly/buildkit v0.7.1-0.20201024185454-67705c8589bd/go.mod h1:1Whs/5ueNdTNZDg5rl8TXviT98lBjtQUHyR0JMtvpMU=
+github.com/earthly/buildkit v0.7.1-0.20201024195616-094f5b9dd40b h1:+fvcX8c0hg6SKQA6/1Y5BuJr8QbtYss9lQUjuSBLZ8s=
+github.com/earthly/buildkit v0.7.1-0.20201024195616-094f5b9dd40b/go.mod h1:1Whs/5ueNdTNZDg5rl8TXviT98lBjtQUHyR0JMtvpMU=
+github.com/earthly/buildkit v0.7.1-0.20201026225007-c9bab88a1c61 h1:u2hLEYnshUfPoa16szaep3mMpZNgF5X5v2uwiZpMcw4=
+github.com/earthly/buildkit v0.7.1-0.20201026225007-c9bab88a1c61/go.mod h1:1Whs/5ueNdTNZDg5rl8TXviT98lBjtQUHyR0JMtvpMU=
+github.com/earthly/buildkit v0.7.1-0.20201027004549-b3b1aa8fc1d5 h1:47ZAFcxMZyDrjkxuatTIP2bi5pTeM60g1ZStT0kXekI=
+github.com/earthly/buildkit v0.7.1-0.20201027004549-b3b1aa8fc1d5/go.mod h1:1Whs/5ueNdTNZDg5rl8TXviT98lBjtQUHyR0JMtvpMU=
 github.com/elazarl/goproxy v0.0.0-20170405201442-c4fc26588b6e/go.mod h1:/Zj4wYkgs4iZTTu3o/KG3Itv/qCCa8VVMlb3i9OVuzc=
 github.com/elazarl/goproxy v0.0.0-20180725130230-947c36da3153/go.mod h1:/Zj4wYkgs4iZTTu3o/KG3Itv/qCCa8VVMlb3i9OVuzc=
 github.com/emicklei/go-restful v0.0.0-20170410110728-ff4f55a20633/go.mod h1:otzb+WCGbkyDHkqmQmT5YD2WR4BBwUdeQoFo8l/7tVs=
@@ -708,6 +718,7 @@ golang.org/x/sync v0.0.0-20190227155943-e225da77a7e6/go.mod h1:RxMgew5VJxzue5/jJ
 golang.org/x/sync v0.0.0-20190423024810-112230192c58/go.mod h1:RxMgew5VJxzue5/jJTE5uejpjVlOe/izrB70Jof72aM=
 golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e h1:vcxGaoTs7kV8m5Np9uUNQin4BrLOthgV7252N8V+FwY=
 golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e/go.mod h1:RxMgew5VJxzue5/jJTE5uejpjVlOe/izrB70Jof72aM=
+golang.org/x/sync v0.0.0-20201020160332-67f06af15bc9 h1:SQFwaSi55rU7vdNs9Yr0Z324VNlrF+0wMqRXT4St8ck=
 golang.org/x/sys v0.0.0-20170830134202-bb24a47a89ea/go.mod h1:STP8DvDyc/dI5b8T5hshtkjS+E42TnysNCUPdjciGhY=
 golang.org/x/sys v0.0.0-20180830151530-49385e6e1522/go.mod h1:STP8DvDyc/dI5b8T5hshtkjS+E42TnysNCUPdjciGhY=
 golang.org/x/sys v0.0.0-20180905080454-ebe1bf3edb33/go.mod h1:STP8DvDyc/dI5b8T5hshtkjS+E42TnysNCUPdjciGhY=
