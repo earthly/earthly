@@ -224,7 +224,8 @@ examples:
     BUILD ./examples/readme/go2+all
     BUILD ./examples/readme/go3+build
     BUILD ./examples/readme/proto+docker
-    BUILD ./examples/terraform+localstack
+    # TODO: This example is flaky for some reason.
+    #BUILD ./examples/terraform+localstack
     BUILD ./examples/ruby+docker
     BUILD ./examples/ruby-on-rails+docker
     BUILD ./examples/scala+docker
