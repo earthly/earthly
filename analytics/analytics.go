@@ -133,7 +133,7 @@ func CollectAnalytics(version, gitSha, commandName string, exitCode int, realtim
 			Set("gitsha", gitSha).
 			Set("exitcode", exitCode).
 			Set("ci", ciName).
-			Set("repo", repoHash).
+			Set("repohash", repoHash).
 			Set("realtime", realtime.Seconds()),
 	})
 	done := make(chan bool, 1)
