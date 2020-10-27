@@ -90,14 +90,11 @@ func getInstallID() (string, error) {
 
 	path := filepath.Join(homeDir, ".earthly", "install_id")
 	if !utils.FileExists(path) {
-
 		u, err := uuid.NewV4()
 		if err != nil {
 			return "", errors.Wrap(err, "failed to generate uuid")
 		}
-
 		ID := u.String()
-
 		err = ioutil.WriteFile(path, []byte(ID), 0644)
 		if err != nil {
 			return "", errors.Wrapf(err, "failed to write %q", path)
