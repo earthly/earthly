@@ -32,61 +32,6 @@ type solver struct {
 	remoteCache string
 }
 
-func (s *solver) solveDocker(ctx context.Context, state llb.State, img *image.Image, dockerTag string, push bool) error {
-	dt, err := state.Marshal(ctx, llb.Platform(llbutil.TargetPlatform))
-	if err != nil {
-		return errors.Wrap(err, "state marshal")
-	}
-	pipeR, pipeW := io.Pipe()
-	solveOpt, err := s.newSolveOptDocker(img, dockerTag, pipeW)
-	if err != nil {
-		return errors.Wrap(err, "new solve opt")
-	}
-	ch := make(chan *client.SolveStatus)
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
-	eg, ctx := errgroup.WithContext(ctx)
-	eg.Go(func() error {
-		var err error
-		_, err = s.bkClient.Solve(ctx, dt, *solveOpt, ch)
-		if err != nil {
-			return errors.Wrap(err, "solve")
-		}
-		return nil
-	})
-	eg.Go(func() error {
-		return s.sm.monitorProgress(ctx, ch)
-	})
-	eg.Go(func() error {
-		defer pipeR.Close()
-		err := loadDockerTar(ctx, pipeR)
-		if err != nil {
-			return errors.Wrapf(err, "load docker tar for %s", dockerTag)
-		}
-		if push {
-			err := pushDockerImage(ctx, dockerTag)
-			if err != nil {
-				return err
-			}
-		}
-		return nil
-	})
-	go func() {
-		for {
-			select {
-			case <-ctx.Done():
-				// Close read pipe on cancels, otherwise the whole thing hangs.
-				pipeR.Close()
-			}
-		}
-	}()
-	err = eg.Wait()
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
 func (s *solver) solveDockerTar(ctx context.Context, state llb.State, img *image.Image, dockerTag string, outFile string) error {
 	dt, err := state.Marshal(ctx, llb.Platform(llbutil.TargetPlatform))
 	if err != nil {
