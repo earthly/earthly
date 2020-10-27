@@ -17,7 +17,6 @@ sbt:
 
     # This triggers a bunch of useful downloads.
     RUN sbt sbtVersion
-    SAVE IMAGE
 
 project-files:
     FROM +sbt

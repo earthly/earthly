@@ -1,7 +1,6 @@
 
 buildkitd:
-    # @#
-    ARG BUILDKIT_BASE_IMAGE=../../buildkit+build
+    ARG BUILDKIT_BASE_IMAGE=github.com/earthly/buildkit:vlad/exporters+build
     FROM $BUILDKIT_BASE_IMAGE
 
     # Install some missing binaries.

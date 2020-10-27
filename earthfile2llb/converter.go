@@ -588,9 +588,12 @@ func (c *Converter) FinalizeStates(ctx context.Context) (*states.MultiTarget, er
 		r, err := c.gwClient.Solve(ctx, gwclient.SolveRequest{
 			Definition: def.ToPB(),
 		})
+		if err != nil {
+			return nil, errors.Wrap(err, "gw solve")
+		}
 		ref, err := r.SingleRef()
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrap(err, "single ref")
 		}
 		c.mts.Final.DepsRefs = append(c.mts.Final.DepsRefs, ref)
 	}
