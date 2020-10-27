@@ -96,7 +96,7 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt) (m
 		}
 	}
 	// Resolve build context.
-	bc, err := opt.Resolver.Resolve(ctx, target)
+	bc, err := opt.Resolver.Resolve(ctx, opt.GwClient, target)
 	if err != nil {
 		return nil, errors.Wrapf(err, "resolve build context for target %s", target.String())
 	}

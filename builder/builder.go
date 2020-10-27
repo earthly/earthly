@@ -20,6 +20,7 @@ import (
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/earthfile2llb"
 	"github.com/earthly/earthly/earthfile2llb/variables"
+	"github.com/earthly/earthly/llbutil"
 	"github.com/earthly/earthly/states"
 	"github.com/moby/buildkit/client"
 	"github.com/moby/buildkit/client/llb"
@@ -78,8 +79,7 @@ func NewBuilder(ctx context.Context, opt Opt) (*Builder, error) {
 		opt:      opt,
 		resolver: nil, // initialized below
 	}
-	b.resolver = buildcontext.NewResolver(
-		opt.SessionID, opt.CleanCollection, b.MakeArtifactBuilderFun())
+	b.resolver = buildcontext.NewResolver(opt.SessionID, opt.CleanCollection)
 	return b, nil
 }
 
@@ -134,7 +134,6 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 	}
 	destPathWhitelist := make(map[string]bool)
 	var mts *states.MultiTarget
-	finalTargetImageIndices := make(map[int]bool)
 	bf := func(ctx context.Context, gwClient gwclient.Client) (*gwclient.Result, error) {
 		var err error
 		mts, err = earthfile2llb.Earthfile2LLB(ctx, target, earthfile2llb.ConvertOpt{
@@ -163,7 +162,9 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 		refKey := "final-artifact"
 		refPrefix := fmt.Sprintf("ref/%s", refKey)
 		res.AddRef(refKey, ref)
-		res.AddMeta(fmt.Sprintf("%s/export-dir", refPrefix), []byte("true"))
+		if !opt.NoOutput && opt.OnlyArtifact != nil && !opt.OnlyFinalTargetImages {
+			res.AddMeta(fmt.Sprintf("%s/export-dir", refPrefix), []byte("true"))
+		}
 		res.AddMeta(fmt.Sprintf("%s/final-artifact", refPrefix), []byte("true"))
 
 		depIndex := 0
@@ -189,12 +190,11 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 				refPrefix := fmt.Sprintf("ref/%s", refKey)
 				res.AddMeta(fmt.Sprintf("%s/image.name", refPrefix), []byte(saveImage.DockerTag))
 				res.AddMeta(fmt.Sprintf("%s/%s", refPrefix, exptypes.ExporterImageConfigKey), config)
-				res.AddMeta(fmt.Sprintf("%s/export-image", refPrefix), []byte("true"))
+				if !opt.NoOutput && opt.OnlyArtifact == nil && !(opt.OnlyFinalTargetImages && sts != mts.Final) {
+					res.AddMeta(fmt.Sprintf("%s/export-image", refPrefix), []byte("true"))
+				}
 				res.AddMeta(fmt.Sprintf("%s/image-index", refPrefix), []byte(fmt.Sprintf("%d", imageIndex)))
 				res.AddRef(refKey, ref)
-				if sts == mts.Final {
-					finalTargetImageIndices[imageIndex] = true
-				}
 				imageIndex++
 			}
 			if sts.Target.IsRemote() {
@@ -216,7 +216,9 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 				res.AddMeta(fmt.Sprintf("%s/artifact", refPrefix), []byte(artifact.String()))
 				res.AddMeta(fmt.Sprintf("%s/src-path", refPrefix), []byte(saveLocal.ArtifactPath))
 				res.AddMeta(fmt.Sprintf("%s/dest-path", refPrefix), []byte(saveLocal.DestPath))
-				res.AddMeta(fmt.Sprintf("%s/export-dir", refPrefix), []byte("true"))
+				if !opt.NoOutput && !opt.OnlyFinalTargetImages && opt.OnlyArtifact == nil {
+					res.AddMeta(fmt.Sprintf("%s/export-dir", refPrefix), []byte("true"))
+				}
 				res.AddMeta(fmt.Sprintf("%s/dir-index", refPrefix), []byte(fmt.Sprintf("%d", dirIndex)))
 				destPathWhitelist[saveLocal.DestPath] = true
 				dirIndex++
@@ -226,12 +228,6 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 	}
 	onImage := func(ctx context.Context, eg *errgroup.Group, index int, imageName string, digest string) (io.WriteCloser, error) {
 		successOnce.Do(successFun)
-		if opt.NoOutput || opt.OnlyArtifact != nil {
-			return nil, nil
-		}
-		if opt.OnlyFinalTargetImages && !finalTargetImageIndices[index] {
-			return nil, nil
-		}
 		pipeR, pipeW := io.Pipe()
 		eg.Go(func() error {
 			defer pipeR.Close()
@@ -245,9 +241,6 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 	}
 	onArtifact := func(ctx context.Context, index int, artifact domain.Artifact, artifactPath string, destPath string) (string, error) {
 		successOnce.Do(successFun)
-		if opt.NoOutput || opt.OnlyFinalTargetImages || opt.OnlyArtifact != nil {
-			return "", nil
-		}
 		if !destPathWhitelist[destPath] {
 			return "", errors.Errorf("dest path %s is not in the whitelist: %+v", destPath, destPathWhitelist)
 		}
@@ -260,12 +253,6 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 	}
 	onFinalArtifact := func(ctx context.Context) (string, error) {
 		successOnce.Do(successFun)
-		if opt.NoOutput || opt.OnlyFinalTargetImages {
-			return "", nil
-		}
-		if opt.OnlyArtifact == nil {
-			return "", nil
-		}
 		return outDir, nil
 	}
 	err = b.s.buildMainMulti(ctx, bf, onImage, onArtifact, onFinalArtifact)
@@ -350,21 +337,7 @@ func (b *Builder) stateToRef(ctx context.Context, gwClient gwclient.Client, stat
 	if b.opt.NoCache {
 		state = state.SetMarshalDefaults(llb.IgnoreCache)
 	}
-	def, err := state.Marshal(ctx)
-	if err != nil {
-		return nil, errors.Wrap(err, "marshal main state")
-	}
-	r, err := gwClient.Solve(ctx, gwclient.SolveRequest{
-		Definition: def.ToPB(),
-	})
-	if err != nil {
-		return nil, errors.Wrap(err, "solve main state")
-	}
-	ref, err := r.SingleRef()
-	if err != nil {
-		return nil, errors.Wrap(err, "single ref")
-	}
-	return ref, nil
+	return llbutil.StateToRef(ctx, gwClient, state)
 }
 
 func (b *Builder) buildOnlyLastImageAsTar(ctx context.Context, mts *states.MultiTarget, dockerTag string, outFile string, opt BuildOpt) error {

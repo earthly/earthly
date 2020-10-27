@@ -51,6 +51,7 @@ import (
 	"github.com/moby/buildkit/util/entitlements"
 	"github.com/pkg/errors"
 	"github.com/seehuhn/password"
+	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/sync/errgroup"
@@ -152,6 +153,8 @@ func main() {
 			}
 		}
 	}()
+	// Occasional spurious warnings show up - these are coming from imported libraries. Discard them.
+	logrus.StandardLogger().Out = ioutil.Discard
 
 	// Load .env into current global env's. This is mainly for applying Earthly settings.
 	// Separate call is made for build args and secrets.
