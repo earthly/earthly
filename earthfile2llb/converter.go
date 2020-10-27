@@ -202,7 +202,7 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 		if err != nil {
 			return errors.Wrap(err, "join targets")
 		}
-		data, err := c.resolver.Resolve(ctx, dockerfileMetaTarget)
+		data, err := c.resolver.Resolve(ctx, c.gwClient, dockerfileMetaTarget)
 		if err != nil {
 			return errors.Wrap(err, "resolve build context for dockerfile")
 		}

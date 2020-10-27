@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 
@@ -12,8 +13,8 @@ import (
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/llbutil"
 	"github.com/earthly/earthly/llbutil/llbgit"
-	"github.com/earthly/earthly/states"
 	"github.com/moby/buildkit/client/llb"
+	gwclient "github.com/moby/buildkit/frontend/gateway/client"
 	"github.com/pkg/errors"
 )
 
@@ -22,15 +23,14 @@ const (
 )
 
 type gitResolver struct {
-	cleanCollection    *cleanup.Collection
-	artifactBuilderFun states.ArtifactBuilderFun
+	cleanCollection *cleanup.Collection
 
 	projectCache map[string]*resolvedGitProject
 }
 
 type resolvedGitProject struct {
-	// localGitDir is where the git dir exists locally (only Earthfile and build.earth files).
-	localGitDir string
+	// gitMetaAndEarthfileRef is the ref containing the git metadata and build files.
+	gitMetaAndEarthfileRef gwclient.Reference
 	// gitProject is the git project identifier. For GitHub, this is <username>/<project>.
 	gitProject string
 	// hash is the git hash.
@@ -43,11 +43,11 @@ type resolvedGitProject struct {
 	state llb.State
 }
 
-func (gr *gitResolver) resolveEarthProject(ctx context.Context, target domain.Target) (*Data, error) {
+func (gr *gitResolver) resolveEarthProject(ctx context.Context, gwClient gwclient.Client, target domain.Target) (*Data, error) {
 	if !target.IsRemote() {
 		return nil, fmt.Errorf("Unexpected local target %s", target.String())
 	}
-	rgp, gitURL, subDir, err := gr.resolveGitProject(ctx, target)
+	rgp, gitURL, subDir, err := gr.resolveGitProject(ctx, gwClient, target)
 	if err != nil {
 		return nil, err
 	}
@@ -64,14 +64,32 @@ func (gr *gitResolver) resolveEarthProject(ctx context.Context, target domain.Ta
 			llb.WithCustomNamef("[internal] COPY git context %s", target.String()))
 	}
 
-	// TODO: Apply excludes / .earthignore.
-	localEarthfileDir := filepath.Join(rgp.localGitDir, filepath.FromSlash(subDir))
-	buildFilePath, err := detectBuildFile(target, localEarthfileDir)
+	earthfileTmpDir, err := ioutil.TempDir("/tmp", "earthly-git")
+	if err != nil {
+		return nil, errors.Wrap(err, "create temp dir for Earthfile")
+	}
+	gr.cleanCollection.Add(func() error {
+		return os.RemoveAll(earthfileTmpDir)
+	})
+	buildFile, err := detectBuildFileInRef(ctx, target, rgp.gitMetaAndEarthfileRef, subDir)
 	if err != nil {
 		return nil, err
 	}
+	buildFileBytes, err := rgp.gitMetaAndEarthfileRef.ReadFile(ctx, gwclient.ReadRequest{
+		Filename: buildFile,
+	})
+	if err != nil {
+		return nil, errors.Wrap(err, "read build file")
+	}
+	localBuildFilePath := filepath.Join(earthfileTmpDir, path.Base(buildFile))
+	err = ioutil.WriteFile(localBuildFilePath, buildFileBytes, 0700)
+	if err != nil {
+		return nil, errors.Wrapf(err, "write build file to tmp dir at %s", localBuildFilePath)
+	}
+
+	// TODO: Apply excludes / .earthignore.
 	return &Data{
-		BuildFilePath: buildFilePath,
+		BuildFilePath: localBuildFilePath,
 		BuildContext:  buildContext,
 		GitMetadata: &GitMetadata{
 			BaseDir:    "",
@@ -86,7 +104,7 @@ func (gr *gitResolver) resolveEarthProject(ctx context.Context, target domain.Ta
 	}, nil
 }
 
-func (gr *gitResolver) resolveGitProject(ctx context.Context, target domain.Target) (rgp *resolvedGitProject, gitURL string, subDir string, finalErr error) {
+func (gr *gitResolver) resolveGitProject(ctx context.Context, gwClient gwclient.Client, target domain.Target) (rgp *resolvedGitProject, gitURL string, subDir string, finalErr error) {
 	projectPathParts := strings.Split(target.ProjectPath, "/")
 	if len(projectPathParts) < 2 {
 		return nil, "", "", fmt.Errorf("Invalid github project path %s", target.ProjectPath)
@@ -121,7 +139,7 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, target domain.Targ
 		llb.Dir("/git-src"),
 		llb.ReadonlyRootFS(),
 		llb.AddMount("/git-src", gitState, llb.Readonly),
-		llb.WithCustomNamef("[internal] COPY GIT CLONE %s Earthfile", target.ProjectCanonical()),
+		llb.WithCustomNamef("[internal] COPY GIT CLONE %s Metadata", target.ProjectCanonical()),
 	}
 	opImg := llb.Image(
 		defaultGitImage, llb.MarkImageInternal, llb.ResolveModePreferLocal,
@@ -145,59 +163,36 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, target domain.Targ
 	gitHashOp := opImg.Run(gitHashOpts...)
 	gitMetaAndEarthfileState := gitHashOp.AddMount("/dest", earthfileState)
 
-	// Build.
-	mts := &states.MultiTarget{
-		Final: &states.SingleTarget{
-			MainState:      gitMetaAndEarthfileState,
-			ArtifactsState: gitMetaAndEarthfileState,
-		},
-	}
-	artifact := domain.Artifact{Artifact: "."}
-	earthfileTmpDir, err := ioutil.TempDir("/tmp", "earthly-git")
+	gitMetaAndEarthfileRef, err := llbutil.StateToRef(ctx, gwClient, gitMetaAndEarthfileState)
 	if err != nil {
-		return nil, "", "", errors.Wrap(err, "create temp dir for Earthfile")
+		return nil, "", "", errors.Wrap(err, "state to ref git meta")
 	}
-	gr.cleanCollection.Add(func() error {
-		return os.RemoveAll(earthfileTmpDir)
+	gitHashBytes, err := gitMetaAndEarthfileRef.ReadFile(ctx, gwclient.ReadRequest{
+		Filename: "git-hash",
 	})
-	// TODO: Use gwClient to download solved files instead of executing a full build like this.
-	err = gr.artifactBuilderFun(ctx, mts, artifact, fmt.Sprintf("%s/", earthfileTmpDir))
 	if err != nil {
-		return nil, "", "", errors.Wrap(err, "build git")
+		return nil, "", "", errors.Wrap(err, "read git-hash")
+	}
+	gitBranchBytes, err := gitMetaAndEarthfileRef.ReadFile(ctx, gwclient.ReadRequest{
+		Filename: "git-branch",
+	})
+	if err != nil {
+		return nil, "", "", errors.Wrap(err, "read git-branch")
+	}
+	gitTagsBytes, err := gitMetaAndEarthfileRef.ReadFile(ctx, gwclient.ReadRequest{
+		Filename: "git-tags",
+	})
+	if err != nil {
+		return nil, "", "", errors.Wrap(err, "read git-tags")
 	}
 
-	// Use built files.
-	gitHashFile, err := os.Open(filepath.Join(earthfileTmpDir, "git-hash"))
-	if err != nil {
-		return nil, "", "", errors.Wrap(err, "open git hash file after solve")
-	}
-	gitHashBytes, err := ioutil.ReadAll(gitHashFile)
-	if err != nil {
-		return nil, "", "", errors.Wrap(err, "read git hash after solve")
-	}
 	gitHash := strings.SplitN(string(gitHashBytes), "\n", 2)[0]
-	gitBranchFile, err := os.Open(filepath.Join(earthfileTmpDir, "git-branch"))
-	if err != nil {
-		return nil, "", "", errors.Wrap(err, "open git branch file after solve")
-	}
-	gitBranchBytes, err := ioutil.ReadAll(gitBranchFile)
-	if err != nil {
-		return nil, "", "", errors.Wrap(err, "read git branch after solve")
-	}
 	gitBranches := strings.SplitN(string(gitBranchBytes), "\n", 2)
 	var gitBranches2 []string
 	for _, gitBranch := range gitBranches {
 		if gitBranch != "" {
 			gitBranches2 = append(gitBranches2, gitBranch)
 		}
-	}
-	gitTagsFile, err := os.Open(filepath.Join(earthfileTmpDir, "git-tags"))
-	if err != nil {
-		return nil, "", "", errors.Wrap(err, "open git tags file after solve")
-	}
-	gitTagsBytes, err := ioutil.ReadAll(gitTagsFile)
-	if err != nil {
-		return nil, "", "", errors.Wrap(err, "read git tags after solve")
 	}
 	gitTags := strings.SplitN(string(gitTagsBytes), "\n", 2)
 	var gitTags2 []string
@@ -209,11 +204,11 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, target domain.Targ
 
 	// Add to cache.
 	resolved := &resolvedGitProject{
-		localGitDir: earthfileTmpDir,
-		hash:        gitHash,
-		branches:    gitBranches2,
-		tags:        gitTags2,
-		gitProject:  fmt.Sprintf("%s/%s", githubUsername, githubProject),
+		gitMetaAndEarthfileRef: gitMetaAndEarthfileRef,
+		hash:                   gitHash,
+		branches:               gitBranches2,
+		tags:                   gitTags2,
+		gitProject:             fmt.Sprintf("%s/%s", githubUsername, githubProject),
 		state: llbgit.Git(
 			gitURL,
 			gitHash,
