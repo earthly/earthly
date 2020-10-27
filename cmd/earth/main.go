@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"crypto/rand"
+	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -11,6 +12,7 @@ import (
 	"net/http"
 	_ "net/http/pprof" // enable pprof handlers on net/http listener
 	"os"
+	"os/exec"
 	"os/signal"
 	"os/user"
 	"path/filepath"
@@ -1460,17 +1462,78 @@ func (app *earthApp) newBuildkitdClient(ctx context.Context, opts ...client.Clie
 	return bkClient, nil
 }
 
+func detectCI() string {
+	for k, v := range map[string]string{
+		"GITHUB_WORKFLOW": "github-actions",
+		"CIRCLECI":        "circle-ci",
+		"JENKINS_HOME":    "jenkins",
+		"BUILDKITE":       "buildkite",
+		"DRONE_BRANCH":    "drone",
+		"TRAVIS":          "travis",
+	} {
+		if _, ok := os.LookupEnv(k); ok {
+			return v
+		}
+	}
+
+	// default catch-all
+	if v, ok := os.LookupEnv("CI"); ok {
+		if strings.ToLower(v) == "true" {
+			return "unknown"
+		}
+		return v
+	}
+
+	return "false"
+}
+
+func getRepo() string {
+	cmd := exec.Command("git", "config", "--get", "remote.origin.url")
+	out, err := cmd.Output()
+	if err == nil {
+		return string(out)
+	}
+
+	for _, k := range []string{
+		"GITHUB_REPOSITORY",
+		"CIRCLE_PROJECT_REPONAME",
+		"GIT_URL",
+		"BUILDKITE_REPO",
+		"DRONE_REPO",
+		"TRAVIS_REPO_SLUG",
+	} {
+		if v, ok := os.LookupEnv(k); ok {
+			return v
+		}
+	}
+
+	for _, e := range os.Environ() {
+		pair := strings.SplitN(e, "=", 2)
+		if len(pair) == 2 {
+			if strings.Contains(pair[1], "git") {
+				return pair[1]
+			}
+		}
+	}
+
+	return "unknown"
+}
+
+func getRepoHash() string {
+	repo := getRepo()
+	if repo == "unknown" || repo == "" {
+		return repo
+	}
+	return fmt.Sprintf("%x", sha256.Sum256([]byte(repo)))
+}
+
 func (app *earthApp) collectAnalytics(exitCode int, realtime time.Duration) {
 	if app.cfg != nil && app.cfg.Global.DisableAnalytics {
 		return
 	}
-	installID, ci := os.LookupEnv("CI")
-	if !ci {
-		var err error
-		installID, err = getInstallID()
-		if err != nil {
-			installID = "unknown"
-		}
+	installID, err := getInstallID()
+	if err != nil {
+		installID = "unknown"
 	}
 	segmentClient := analytics.New("RtwJaMBswcW3CNMZ7Ops79dV6lEZqsXf")
 	segmentClient.Enqueue(analytics.Track{
@@ -1480,7 +1543,8 @@ func (app *earthApp) collectAnalytics(exitCode int, realtime time.Duration) {
 			Set("version", Version).
 			Set("gitsha", GitSha).
 			Set("exitcode", exitCode).
-			Set("ci", ci).
+			Set("ci", detectCI()).
+			Set("repo", getRepoHash()).
 			Set("realtime", realtime.Seconds()),
 	})
 	done := make(chan bool, 1)
@@ -1532,6 +1596,11 @@ func defaultConfigPath() string {
 }
 
 func getInstallID() (string, error) {
+	installID, ok := os.LookupEnv("EARTHLY_INSTALL_ID")
+	if ok {
+		return installID, nil
+	}
+
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		return "", errors.Wrap(err, "failed to get user home dir")
