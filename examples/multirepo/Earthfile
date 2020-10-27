@@ -4,8 +4,8 @@ WORKDIR /example-multirepo
 
 docker:
     RUN npm install -g http-server
-    COPY github.com/earthly/earthly-example-multirepo-static+html/* ./
-    COPY github.com/earthly/earthly-example-multirepo-js+build/* ./
+    COPY github.com/earthly/earthly-example-multirepo-static:main+html/* ./
+    COPY github.com/earthly/earthly-example-multirepo-js:main+build/* ./
     EXPOSE 8080
     ENTRYPOINT ["http-server", "."]
     SAVE IMAGE example-multirepo:latest

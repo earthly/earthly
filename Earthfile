@@ -228,7 +228,7 @@ examples:
     BUILD ./examples/ruby+docker
     BUILD ./examples/ruby-on-rails+docker
     BUILD ./examples/scala+docker
-    BUILD github.com/earthly/hello-world+hello
+    BUILD github.com/earthly/hello-world:main+hello
 
 test-fail:
     RUN false
