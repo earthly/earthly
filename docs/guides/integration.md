@@ -5,7 +5,7 @@ Running unit tests in a build pipeline is relatively simple. By definition, unit
 ** This guide will take an existing application with integration tests and show how they can be easily run inside earthly, both in the local development environment as well as in the build pipeline. **
 ## Prerequisites 
 
-*This integration approach can work with most applications and development stacks. See [examples](https://github.com/earthly/earthly/tree/master/examples) for guidance on using earthly in other languages.*
+*This integration approach can work with most applications and development stacks. See [examples](https://github.com/earthly/earthly/tree/main/examples) for guidance on using earthly in other languages.*
 
 ### Our Application
 
@@ -138,7 +138,7 @@ WORKDIR /scala-example
 RUN apk add openjdk11 bash wget
 ```
 
-[Full file](https://github.com/earthly/earthly-example-scala/blob/master/integration/Earthfile)
+[Full file](https://github.com/earthly/earthly-example-scala/blob/main/integration/Earthfile)
 
 {% sample lang="Project Files" %}
 We then install SBT
@@ -171,7 +171,7 @@ project-files:
     RUN touch a.scala && sbt compile && rm a.scala
 ```
 
-[Full file](https://github.com/earthly/earthly/blob/master/examples/integration-test/Earthfile)
+[Full file](https://github.com/earthly/earthly/blob/main/examples/integration-test/Earthfile)
 
 {% sample lang="Compile" %}
 
@@ -182,7 +182,7 @@ build:
     COPY src src
     RUN sbt compile
 ```
-[Full file](https://github.com/earthly/earthly/blob/master/examples/integration-test/Earthfile)
+[Full file](https://github.com/earthly/earthly/blob/main/examples/integration-test/Earthfile)
 
 {% sample lang="Unit Test" %}
 
@@ -196,7 +196,7 @@ unit-test:
     RUN sbt test
 
 ```
-[Full file](https://github.com/earthly/earthly/blob/master/examples/integration-test/Earthfile)
+[Full file](https://github.com/earthly/earthly/blob/main/examples/integration-test/Earthfile)
 
 {% sample lang="Docker" %}
 
@@ -210,7 +210,7 @@ docker:
     ENTRYPOINT ["java","-cp","target/scala-2.12/scala-example-assembly-1.0.jar","Main"]
     SAVE IMAGE scala-example:lates 
 ```
-[Full file](https://github.com/earthly/earthly-example-scala/blob/master/integration/Earthfile)
+[Full file](https://github.com/earthly/earthly-example-scala/blob/main/integration/Earthfile)
 
 {% endmethod %}
 
@@ -256,7 +256,7 @@ We can now run our it tests both locally and in the CI pipeline, in a reproducib
 +integration-test | Removing local-postgres-ui ... done
 +integration-test | Removing local-postgres    ... done
 +integration-test | Removing network scala-example_default
-+integration-test | Target github.com/earthly/earthly-example-scala/integration:master+integration-test built successfully
++integration-test | Target github.com/earthly/earthly-example-scala/integration:main+integration-test built successfully
 ...
 ```
 This means that if an integration test fails in the build pipeline, you can easily reproduce it locally.  
@@ -310,7 +310,7 @@ We can then run this and check that our application with its dependencies, produ
 +smoke-test | Removing local-postgres-ui ... done
 +smoke-test | Removing local-postgres    ... done
 +smoke-test | Removing network scala-example_default
-+smoke-test | Target github.com/earthly/earthly-example-scala/integration:master+smoke-test built successfully
++smoke-test | Target github.com/earthly/earthly-example-scala/integration:main+smoke-test built successfully
 =========================== SUCCESS ===========================
 ...
 ```
@@ -330,7 +330,7 @@ all:
 ``` bash
 > earth -P +all
 ...
-+all | Target github.com/earthly/earthly-example-scala/integration:master+all built successfully
++all | Target github.com/earthly/earthly-example-scala/integration:main+all built successfully
 =========================== SUCCESS ===========================
 ```
 
@@ -338,4 +338,4 @@ There we have it, a reproducible integration process. The full example can be fo
 
 ## See also
 * [Docker In Earthly](./docker-in-earthly.md)
-* [Source code for example](https://github.com/earthly/earthly/tree/master/examples/integration-test)
+* [Source code for example](https://github.com/earthly/earthly/tree/main/examples/integration-test)

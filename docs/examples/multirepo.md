@@ -2,7 +2,7 @@
 
 In this example, we will walk through a simple multirepo setup that can be used with Earthly. The entire code of this exercise is available in the
 
-* [examples/multirepo directory on GitHub](https://github.com/earthly/earthly/tree/master/examples/multirepo)
+* [examples/multirepo directory on GitHub](https://github.com/earthly/earthly/tree/main/examples/multirepo)
 * This referenced [project of HTML static files](https://github.com/earthly/earthly-example-multirepo-static)
 * This referenced [project of JS files](https://github.com/earthly/earthly-example-multirepo-js)
 
@@ -45,4 +45,4 @@ COPY github.com/earthly/earthly-example-multirepo-static:v0.1.1+html/* ./
 
 where `v0.1.1` is a tag or branch specifier.
 
-To review this example with its complete code, check out the [examples/multirepo directory on GitHub](https://github.com/earthly/earthly/tree/master/examples/multirepo).
+To review this example with its complete code, check out the [examples/multirepo directory on GitHub](https://github.com/earthly/earthly/tree/main/examples/multirepo).

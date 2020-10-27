@@ -123,4 +123,4 @@ fib(3) = 2
 fib(4) = 3
 ```
 
-For the complete code see the [examples/cpp GitHub directory](https://github.com/earthly/earthly/tree/master/examples/cpp).
+For the complete code see the [examples/cpp GitHub directory](https://github.com/earthly/earthly/tree/main/examples/cpp).

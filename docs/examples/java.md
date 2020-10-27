@@ -28,4 +28,4 @@ docker:
     SAVE IMAGE java-example:latest
 ```
 
-For the complete code see the [examples/java GitHub directory](https://github.com/earthly/earthly/tree/master/examples/java).
+For the complete code see the [examples/java GitHub directory](https://github.com/earthly/earthly/tree/main/examples/java).

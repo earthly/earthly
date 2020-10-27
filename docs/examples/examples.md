@@ -18,4 +18,4 @@ In addition, there are also examples of how to integrate Earthly in CI
 * [GitHub Actions](./gh-actions-integration.md)
 * [AWS CodeBuild](./codebuild-integration.md)
 
-The code for all the examples is available in the [examples GitHub directory](https://github.com/earthly/earthly/tree/master/examples).
+The code for all the examples is available in the [examples GitHub directory](https://github.com/earthly/earthly/tree/main/examples).

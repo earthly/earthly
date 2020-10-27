@@ -46,7 +46,7 @@ For instructions on how to install `earth` for CI use, see the [CI integration g
 
 ### Installing from source
 
-To install from source, see the [contributing page](https://github.com/earthly/earthly/blob/master/CONTRIBUTING.md).
+To install from source, see the [contributing page](https://github.com/earthly/earthly/blob/main/CONTRIBUTING.md).
 
 ## Configuration
 
@@ -59,15 +59,15 @@ For a full list of configuration options, see the [Configuration reference](../e
 To verify that the installation works correctly, you can issue a simple build of an existing hello-world project
 
 ```bash
-earth github.com/earthly/hello-world+hello
+earth github.com/earthly/hello-world:main+hello
 ```
 
 You should see the output
 
 ```
-github.com/earthly/hello-world:master+hello | --> RUN [echo 'Hello, world!']
-github.com/earthly/hello-world:master+hello | Hello, world!
-github.com/earthly/hello-world:master+hello | Target github.com/earthly/hello-world:master+hello built successfully
+github.com/earthly/hello-world:main+hello | --> RUN [echo 'Hello, world!']
+github.com/earthly/hello-world:main+hello | Hello, world!
+github.com/earthly/hello-world:main+hello | Target github.com/earthly/hello-world:main+hello built successfully
 =========================== SUCCESS ===========================
 ```
 

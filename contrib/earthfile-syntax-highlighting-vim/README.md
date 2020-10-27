@@ -1,6 +1,6 @@
 # earthfile-syntax-highlighting-vim README
 
-<div align="center"><img alt="Earthly" width="700px" src="https://github.com/earthly/earthly/raw/master/img/logo-banner-white-bg.png" /></div>
+<div align="center"><img alt="Earthly" width="700px" src="https://github.com/earthly/earthly/raw/main/img/logo-banner-white-bg.png" /></div>
 
 Syntax highlighting for [Earthly](https://earthly.dev) Earthfiles for Vim.
 
@@ -29,4 +29,4 @@ Neovim users will have to change the `~/.vim/` prefix in the above steps to `~/.
 
 ## Screenshot
 
-![Java example Earthfile in Vim](https://raw.githubusercontent.com/vishnugt/earthly/master/contrib/earthfile-syntax-highlighting-vim/Screenshot.png)
+![Java example Earthfile in Vim](https://raw.githubusercontent.com/vishnugt/earthly/main/contrib/earthfile-syntax-highlighting-vim/Screenshot.png)

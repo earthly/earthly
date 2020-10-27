@@ -1,6 +1,6 @@
 # earthfile-syntax-highlighting README
 
-<div align="center"><img alt="Earthly" width="700px" src="https://github.com/earthly/earthly/raw/master/img/logo-banner-white-bg.png" /></div>
+<div align="center"><img alt="Earthly" width="700px" src="https://github.com/earthly/earthly/raw/main/img/logo-banner-white-bg.png" /></div>
 
 Syntax highlighting for [Earthly](https://earthly.dev) Earthfiles.
 

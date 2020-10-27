@@ -26,4 +26,4 @@ docker:
     SAVE IMAGE python-example:latest
 ```
 
-For the complete code see the [examples/python GitHub directory](https://github.com/earthly/earthly/tree/master/examples/python).
+For the complete code see the [examples/python GitHub directory](https://github.com/earthly/earthly/tree/main/examples/python).

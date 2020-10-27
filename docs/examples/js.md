@@ -28,4 +28,4 @@ docker:
     SAVE IMAGE js-example:latest
 ```
 
-For the complete code see the [examples/js GitHub directory](https://github.com/earthly/earthly/tree/master/examples/js).
+For the complete code see the [examples/js GitHub directory](https://github.com/earthly/earthly/tree/main/examples/js).

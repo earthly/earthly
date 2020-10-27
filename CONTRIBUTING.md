@@ -2,7 +2,7 @@
 
 ## Using Earthly pre-release
 
-To build Earthly from source, you need the same requirements as Earthly. We recommend that you use the pre-prelease version of Earthly for development purposes. To launch the pre-release Earthly, simply use the `./earth` script provided in the root of the earthly repository. The pre-release Earthly tracks the version on master. You can use `./earth --version` to identify which Git hash was used to build it.
+To build Earthly from source, you need the same requirements as Earthly. We recommend that you use the pre-prelease version of Earthly for development purposes. To launch the pre-release Earthly, simply use the `./earth` script provided in the root of the earthly repository. The pre-release Earthly tracks the version on main. You can use `./earth --version` to identify which Git hash was used to build it.
 
 ## Building from source
 
