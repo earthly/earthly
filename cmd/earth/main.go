@@ -23,6 +23,7 @@ import (
 	"text/tabwriter"
 	"time"
 
+	"github.com/earthly/earthly/analytics"
 	"github.com/earthly/earthly/autocomplete"
 	"github.com/earthly/earthly/buildcontext/provider"
 	"github.com/earthly/earthly/builder"
@@ -35,6 +36,7 @@ import (
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/earthfile2llb"
 	"github.com/earthly/earthly/earthfile2llb/variables"
+	"github.com/earthly/earthly/fileutils"
 	"github.com/earthly/earthly/llbutil"
 	"github.com/earthly/earthly/secretsclient"
 
@@ -47,13 +49,11 @@ import (
 	"github.com/moby/buildkit/session/auth/authprovider"
 	"github.com/moby/buildkit/session/sshforward/sshprovider"
 	"github.com/moby/buildkit/util/entitlements"
-	uuid "github.com/nu7hatch/gouuid"
 	"github.com/pkg/errors"
 	"github.com/seehuhn/password"
 	"github.com/urfave/cli/v2"
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/sync/errgroup"
-	"gopkg.in/segmentio/analytics-go.v3"
 )
 
 var dotEnvPath = ".env"
@@ -155,7 +155,7 @@ func main() {
 
 	// Load .env into current global env's. This is mainly for applying Earthly settings.
 	// Separate call is made for build args and secrets.
-	if fileExists(dotEnvPath) {
+	if fileutils.FileExists(dotEnvPath) {
 		err := godotenv.Load(dotEnvPath)
 		if err != nil {
 			fmt.Printf("Error loading dot-env file %s: %s\n", dotEnvPath, err.Error())
@@ -193,7 +193,9 @@ func main() {
 	app.autoComplete()
 
 	exitCode := app.run(ctx, os.Args)
-	app.collectAnalytics(exitCode, time.Since(startTime))
+	if app.cfg == nil || !app.cfg.Global.DisableAnalytics {
+		analytics.CollectAnalytics(Version, GitSha, app.commandName, exitCode, time.Since(startTime))
+	}
 	os.Exit(exitCode)
 }
 
@@ -613,7 +615,7 @@ func (app *earthApp) before(context *cli.Context) error {
 		}
 	}
 
-	if !dirExists(app.cfg.Global.RunPath) {
+	if !fileutils.DirExists(app.cfg.Global.RunPath) {
 		err := os.MkdirAll(app.cfg.Global.RunPath, 0755)
 		if err != nil {
 			return errors.Wrapf(err, "failed to create run directory %s", app.cfg.Global.RunPath)
@@ -747,12 +749,12 @@ func (app *earthApp) insertBashCompleteEntry() error {
 	}
 	dirPath := filepath.Dir(path)
 
-	if !dirExists(dirPath) {
+	if !fileutils.DirExists(dirPath) {
 		fmt.Fprintf(os.Stderr, "Warning: unable to enable bash-completion: %s does not exist\n", dirPath)
 		return nil // bash-completion isn't available, silently fail.
 	}
 
-	if fileExists(path) {
+	if fileutils.FileExists(path) {
 		return nil // file already exists, don't update it.
 	}
 
@@ -813,12 +815,12 @@ func (app *earthApp) insertZSHCompleteEntry() error {
 	path := "/usr/local/share/zsh/site-functions/_earth"
 	dirPath := filepath.Dir(path)
 
-	if !dirExists(dirPath) {
+	if !fileutils.DirExists(dirPath) {
 		fmt.Fprintf(os.Stderr, "Warning: unable to enable zsh-completion: %s does not exist\n", dirPath)
 		return nil // zsh-completion isn't available, silently fail.
 	}
 
-	if fileExists(path) {
+	if fileutils.FileExists(path) {
 		return nil // file already exists, don't update it.
 	}
 
@@ -1333,7 +1335,7 @@ func (app *earthApp) actionBuild(c *cli.Context) error {
 	secrets := app.secrets.Value()
 	//interactive debugger settings are passed as secrets to avoid having it affect the cache hash
 	dotEnvMap := make(map[string]string)
-	if fileExists(dotEnvPath) {
+	if fileutils.FileExists(dotEnvPath) {
 		dotEnvMap, err = godotenv.Read(dotEnvPath)
 		if err != nil {
 			return errors.Wrapf(err, "read %s", dotEnvPath)
@@ -1460,41 +1462,6 @@ func (app *earthApp) newBuildkitdClient(ctx context.Context, opts ...client.Clie
 	return bkClient, nil
 }
 
-func (app *earthApp) collectAnalytics(exitCode int, realtime time.Duration) {
-	if app.cfg != nil && app.cfg.Global.DisableAnalytics {
-		return
-	}
-	installID, ci := os.LookupEnv("CI")
-	if !ci {
-		var err error
-		installID, err = getInstallID()
-		if err != nil {
-			installID = "unknown"
-		}
-	}
-	segmentClient := analytics.New("RtwJaMBswcW3CNMZ7Ops79dV6lEZqsXf")
-	segmentClient.Enqueue(analytics.Track{
-		Event:  "cli-" + app.commandName,
-		UserId: installID,
-		Properties: analytics.NewProperties().
-			Set("version", Version).
-			Set("gitsha", GitSha).
-			Set("exitcode", exitCode).
-			Set("ci", ci).
-			Set("realtime", realtime.Seconds()),
-	})
-	done := make(chan bool, 1)
-	go func() {
-		segmentClient.Close()
-		done <- true
-	}()
-	select {
-	case <-time.After(time.Millisecond * 500):
-	case <-done:
-	}
-
-}
-
 func processSecrets(secrets []string, dotEnvMap map[string]string) (map[string][]byte, error) {
 	finalSecrets := make(map[string][]byte)
 	for k, v := range dotEnvMap {
@@ -1525,54 +1492,8 @@ func defaultConfigPath() string {
 
 	oldConfig := filepath.Join(homeDir, ".earthly", "config.yaml")
 	newConfig := filepath.Join(homeDir, ".earthly", "config.yml")
-	if fileExists(oldConfig) && !fileExists(newConfig) {
+	if fileutils.FileExists(oldConfig) && !fileutils.FileExists(newConfig) {
 		return oldConfig
 	}
 	return newConfig
-}
-
-func getInstallID() (string, error) {
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		return "", errors.Wrap(err, "failed to get user home dir")
-	}
-
-	path := filepath.Join(homeDir, ".earthly", "install_id")
-	if !fileExists(path) {
-
-		u, err := uuid.NewV4()
-		if err != nil {
-			return "", errors.Wrap(err, "failed to generate uuid")
-		}
-
-		ID := u.String()
-
-		err = ioutil.WriteFile(path, []byte(ID), 0644)
-		if err != nil {
-			return "", errors.Wrapf(err, "failed to write %q", path)
-		}
-		return ID, nil
-	}
-
-	s, err := ioutil.ReadFile(path)
-	if err != nil {
-		return "", errors.Wrapf(err, "failed to read %q", path)
-	}
-	return string(s), nil
-}
-
-func fileExists(filename string) bool {
-	info, err := os.Stat(filename)
-	if os.IsNotExist(err) {
-		return false
-	}
-	return !info.IsDir()
-}
-
-func dirExists(filename string) bool {
-	info, err := os.Stat(filename)
-	if os.IsNotExist(err) {
-		return false
-	}
-	return info.IsDir()
 }
