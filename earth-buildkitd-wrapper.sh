@@ -1,8 +1,6 @@
 #!/bin/sh
 
 set -eu
-# @#
-set -x
 
 # Start buildkitd.
 rm -f "/run/buildkit/buildkitd.sock"
@@ -37,12 +35,6 @@ set +e
 earth "$@"
 exit_code="$?"
 set -e
-
-# @#
-echo "Buildkitd log"
-echo "=============="
-cat /var/log/buildkitd.log
-echo "=============="
 
 # Shut down buildkitd.
 kill "$buildkitd_pid" >/dev/null 2>&1 || true

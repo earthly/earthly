@@ -22,6 +22,7 @@ import (
 
 type onImageFunc func(context.Context, *errgroup.Group, int, string, string) (io.WriteCloser, error)
 type onArtifactFunc func(context.Context, int, domain.Artifact, string, string) (string, error)
+type onFinalArtifactFunc func(context.Context) (string, error)
 
 type solver struct {
 	sm          *solverMonitor
@@ -180,12 +181,12 @@ func (s *solver) solveArtifacts(ctx context.Context, state llb.State, outDir str
 	return nil
 }
 
-func (s *solver) buildMainMulti(ctx context.Context, bf gwclient.BuildFunc, onImage onImageFunc, onArtifact onArtifactFunc) error {
+func (s *solver) buildMainMulti(ctx context.Context, bf gwclient.BuildFunc, onImage onImageFunc, onArtifact onArtifactFunc, onFinalArtifact onFinalArtifactFunc) error {
 	ch := make(chan *client.SolveStatus)
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 	eg, ctx := errgroup.WithContext(ctx)
-	solveOpt, err := s.newSolveOptMulti(ctx, eg, onImage, onArtifact)
+	solveOpt, err := s.newSolveOptMulti(ctx, eg, onImage, onArtifact, onFinalArtifact)
 	if err != nil {
 		return errors.Wrap(err, "new solve opt")
 	}
@@ -274,7 +275,7 @@ func (s *solver) newSolveOptArtifacts(outDir string) (*client.SolveOpt, error) {
 	}, nil
 }
 
-func (s *solver) newSolveOptMulti(ctx context.Context, eg *errgroup.Group, onImage onImageFunc, onArtifact onArtifactFunc) (*client.SolveOpt, error) {
+func (s *solver) newSolveOptMulti(ctx context.Context, eg *errgroup.Group, onImage onImageFunc, onArtifact onArtifactFunc, onFinalArtifact onFinalArtifactFunc) (*client.SolveOpt, error) {
 	return &client.SolveOpt{
 		Exports: []client.ExportEntry{
 			{
@@ -297,6 +298,9 @@ func (s *solver) newSolveOptMulti(ctx context.Context, eg *errgroup.Group, onIma
 					if md["export-dir"] != "true" {
 						// Use the other fun for images.
 						return "", nil
+					}
+					if md["final-artifact"] == "true" {
+						return onFinalArtifact(ctx)
 					}
 					indexStr := md["dir-index"]
 					index, err := strconv.Atoi(indexStr)
