@@ -17,7 +17,7 @@ import (
 	"gopkg.in/segmentio/analytics-go.v3"
 )
 
-func detectCI() string {
+func detectCI() (string, bool) {
 	for k, v := range map[string]string{
 		"GITHUB_WORKFLOW": "github-actions",
 		"CIRCLECI":        "circle-ci",
@@ -27,19 +27,19 @@ func detectCI() string {
 		"TRAVIS":          "travis",
 	} {
 		if _, ok := os.LookupEnv(k); ok {
-			return v
+			return v, true
 		}
 	}
 
 	// default catch-all
 	if v, ok := os.LookupEnv("CI"); ok {
 		if strings.ToLower(v) == "true" {
-			return "unknown"
+			return "unknown", true
 		}
-		return v
+		return v, true
 	}
 
-	return "false"
+	return "false", false
 }
 
 func getRepo() string {
@@ -83,11 +83,6 @@ func getRepoHash() string {
 }
 
 func getInstallID() (string, error) {
-	installID, ok := os.LookupEnv("EARTHLY_INSTALL_ID")
-	if ok {
-		return installID, nil
-	}
-
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		return "", errors.Wrap(err, "failed to get user home dir")
@@ -118,9 +113,19 @@ func getInstallID() (string, error) {
 }
 
 func CollectAnalytics(version, gitSha, commandName string, exitCode int, realtime time.Duration) {
-	installID, err := getInstallID()
-	if err != nil {
-		installID = "unknown"
+	var err error
+	ciName, ci := detectCI()
+	installID, overrideInstallID := os.LookupEnv("EARTHLY_INSTALL_ID")
+	repoHash := getRepoHash()
+	if !overrideInstallID {
+		if ci {
+			installID = fmt.Sprintf("%x", sha256.Sum256([]byte(ciName+repoHash)))
+		} else {
+			installID, err = getInstallID()
+			if err != nil {
+				installID = "unknown"
+			}
+		}
 	}
 	segmentClient := analytics.New("RtwJaMBswcW3CNMZ7Ops79dV6lEZqsXf")
 	segmentClient.Enqueue(analytics.Track{
@@ -130,8 +135,8 @@ func CollectAnalytics(version, gitSha, commandName string, exitCode int, realtim
 			Set("version", version).
 			Set("gitsha", gitSha).
 			Set("exitcode", exitCode).
-			Set("ci", detectCI()).
-			Set("repo", getRepoHash()).
+			Set("ci", ciName).
+			Set("repo", repoHash).
 			Set("realtime", realtime.Seconds()),
 	})
 	done := make(chan bool, 1)
