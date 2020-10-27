@@ -1,0 +1,24 @@
+
+some-thing:
+    FROM hashicorp/http-echo:latest
+
+ecr-push:
+    FROM ubuntu:20.04
+
+    ARG AWS_DEFAULT_REGION=us-west-2
+    ARG AWS_ACCOUNT_ID=404851345508
+
+    RUN apt update && \
+        apt -y install curl jq unzip && \
+        curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip" && \
+        unzip awscliv2.zip && \
+        ./aws/install
+
+    WITH DOCKER --load $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/test-repo=+some-thing
+        RUN \
+            --secret AWS_ACCESS_KEY_ID=+secrets/AWS_ACCESS_KEY_ID \
+            --secret AWS_SECRET_ACCESS_KEY=+secrets/AWS_SECRET_ACCESS_KEY \
+            --secret AWS_SESSION_TOKEN=+secrets/AWS_SESSION_TOKEN \
+            aws ecr get-login-password | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com && \
+            docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/test-repo:latest
+    END
