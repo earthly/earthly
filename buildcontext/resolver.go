@@ -5,8 +5,8 @@ import (
 
 	"github.com/earthly/earthly/cleanup"
 	"github.com/earthly/earthly/domain"
-	"github.com/earthly/earthly/states"
 	"github.com/moby/buildkit/client/llb"
+	gwclient "github.com/moby/buildkit/frontend/gateway/client"
 )
 
 // DockerfileMetaTarget is a target name which signals the resolver that the build file is a
@@ -34,12 +34,11 @@ type Resolver struct {
 }
 
 // NewResolver returns a new NewResolver.
-func NewResolver(sessionID string, cleanCollection *cleanup.Collection, artifactBuilderFun states.ArtifactBuilderFun) *Resolver {
+func NewResolver(sessionID string, cleanCollection *cleanup.Collection) *Resolver {
 	return &Resolver{
 		gr: &gitResolver{
-			cleanCollection:    cleanCollection,
-			artifactBuilderFun: artifactBuilderFun,
-			projectCache:       make(map[string]*resolvedGitProject),
+			cleanCollection: cleanCollection,
+			projectCache:    make(map[string]*resolvedGitProject),
 		},
 		lr: &localResolver{
 			gitMetaCache: make(map[string]*GitMetadata),
@@ -49,11 +48,11 @@ func NewResolver(sessionID string, cleanCollection *cleanup.Collection, artifact
 }
 
 // Resolve returns resolved build context data.
-func (r *Resolver) Resolve(ctx context.Context, target domain.Target) (*Data, error) {
+func (r *Resolver) Resolve(ctx context.Context, gwClient gwclient.Client, target domain.Target) (*Data, error) {
 	localDirs := make(map[string]string)
 	if target.IsRemote() {
 		// Remote.
-		d, err := r.gr.resolveEarthProject(ctx, target)
+		d, err := r.gr.resolveEarthProject(ctx, gwClient, target)
 		if err != nil {
 			return nil, err
 		}

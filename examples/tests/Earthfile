@@ -153,7 +153,7 @@ remote-test:
     RUN --privileged \
         --entrypoint \
         --mount=type=tmpfs,target=/tmp/earthly \
-        -- --no-output github.com/earthly/hello-world+hello
+        -- --no-output github.com/earthly/hello-world:main+hello
 
 transitive-args-test:
     COPY transitive-args.earth ./Earthfile

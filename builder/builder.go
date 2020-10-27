@@ -20,6 +20,7 @@ import (
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/earthfile2llb"
 	"github.com/earthly/earthly/earthfile2llb/variables"
+	"github.com/earthly/earthly/llbutil"
 	"github.com/earthly/earthly/states"
 	"github.com/moby/buildkit/client"
 	"github.com/moby/buildkit/client/llb"
@@ -78,8 +79,7 @@ func NewBuilder(ctx context.Context, opt Opt) (*Builder, error) {
 		opt:      opt,
 		resolver: nil, // initialized below
 	}
-	b.resolver = buildcontext.NewResolver(
-		opt.SessionID, opt.CleanCollection, b.MakeArtifactBuilderFun())
+	b.resolver = buildcontext.NewResolver(opt.SessionID, opt.CleanCollection)
 	return b, nil
 }
 
@@ -350,21 +350,7 @@ func (b *Builder) stateToRef(ctx context.Context, gwClient gwclient.Client, stat
 	if b.opt.NoCache {
 		state = state.SetMarshalDefaults(llb.IgnoreCache)
 	}
-	def, err := state.Marshal(ctx)
-	if err != nil {
-		return nil, errors.Wrap(err, "marshal main state")
-	}
-	r, err := gwClient.Solve(ctx, gwclient.SolveRequest{
-		Definition: def.ToPB(),
-	})
-	if err != nil {
-		return nil, errors.Wrap(err, "solve main state")
-	}
-	ref, err := r.SingleRef()
-	if err != nil {
-		return nil, errors.Wrap(err, "single ref")
-	}
-	return ref, nil
+	return llbutil.StateToRef(ctx, gwClient, state)
 }
 
 func (b *Builder) buildOnlyLastImageAsTar(ctx context.Context, mts *states.MultiTarget, dockerTag string, outFile string, opt BuildOpt) error {
