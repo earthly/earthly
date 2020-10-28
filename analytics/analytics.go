@@ -21,7 +21,6 @@ func detectCI() (string, bool) {
 	for k, v := range map[string]string{
 		"GITHUB_WORKFLOW": "github-actions",
 		"CIRCLECI":        "circle-ci",
-		"EARTHLY":         "earthly",
 		"JENKINS_HOME":    "jenkins",
 		"BUILDKITE":       "buildkite",
 		"DRONE_BRANCH":    "drone",

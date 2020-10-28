@@ -175,7 +175,6 @@ func (c *Collection) WithBuiltinBuildArgs(target domain.Target, gitMeta *buildco
 		ret.overridingVariables[k] = true
 	}
 	// Add the builtin build args.
-	ret.variables["EARTHLY"] = NewConstant("true")
 	ret.variables["EARTHLY_TARGET"] = NewConstant(target.StringCanonical())
 	ret.variables["EARTHLY_TARGET_PROJECT"] = NewConstant(target.ProjectCanonical())
 	ret.variables["EARTHLY_TARGET_NAME"] = NewConstant(target.Target)
