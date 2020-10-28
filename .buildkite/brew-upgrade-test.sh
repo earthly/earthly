@@ -6,4 +6,4 @@ brew upgrade earthly
 
 earth --version
 
-earth github.com/earthly/earthly/examples/go+docker
+earth github.com/earthly/earthly/examples/go:main+docker
