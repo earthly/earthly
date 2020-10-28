@@ -56,6 +56,7 @@ func getRepo() string {
 		"BUILDKITE_REPO",
 		"DRONE_REPO",
 		"TRAVIS_REPO_SLUG",
+		"EARTHLY_GIT_ORIGIN_URL",
 	} {
 		if v, ok := os.LookupEnv(k); ok {
 			return v
@@ -116,12 +117,16 @@ func CollectAnalytics(version, gitSha, commandName string, exitCode int, realtim
 	installID, overrideInstallID := os.LookupEnv("EARTHLY_INSTALL_ID")
 	repoHash := getRepoHash()
 	if !overrideInstallID {
-		if ci {
-			installID = fmt.Sprintf("%x", sha256.Sum256([]byte(ciName+repoHash)))
+		if repoHash == "unknown" {
+			installID = "unknown"
 		} else {
-			installID, err = getInstallID()
-			if err != nil {
-				installID = "unknown"
+			if ci {
+				installID = fmt.Sprintf("%x", sha256.Sum256([]byte(ciName+repoHash)))
+			} else {
+				installID, err = getInstallID()
+				if err != nil {
+					installID = "unknown"
+				}
 			}
 		}
 	}
