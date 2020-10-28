@@ -5,6 +5,8 @@ all:
     BUILD --build-arg BASE_IMAGE=debian:stable +test
     BUILD --build-arg BASE_IMAGE=debian:stable-slim +test
     BUILD --build-arg BASE_IMAGE=ubuntu:latest +test
+    BUILD --build-arg BASE_IMAGE=amazonlinux:1 +test
+    BUILD --build-arg BASE_IMAGE=amazonlinux:2 +test
     BUILD --build-arg BASE_IMAGE=../../..+dind-alpine +test
     BUILD --build-arg BASE_IMAGE=../../..+dind-ubuntu +test
 

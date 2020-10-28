@@ -2,7 +2,7 @@
 
 set -eu
 
-distro=$(sed -n -e 's/^ID=\(.*\)/\1/p' /etc/os-release)
+distro=$(sed -n -e 's/^ID="\?\([^\"]*\)"\?/\1/p' /etc/os-release)
 
 detect_dockerd() {
     set +e
@@ -47,6 +47,10 @@ install_dockerd() {
             apk add --update --no-cache docker
             ;;
 
+        amzn)
+            install_dockerd_amazon
+            ;;
+
         ubuntu)
             install_dockerd_debian_like
             ;;
@@ -80,6 +84,19 @@ install_dockerd_debian_like() {
         stable"
     apt-get update
     apt-get install -y docker-ce docker-ce-cli containerd.io
+}
+
+install_dockerd_amazon() {
+    version=$(sed -n -e 's/^VERSION="\?\([^\"]*\)"\?/\1/p' /etc/os-release)
+    case "$version" in
+        2)
+            yes | amazon-linux-extras install docker
+        ;;
+
+        *)  # Amazon Linux 1 uses versions like "2018.3" here, so dont bother enumerating
+            yum -y install docker
+        ;;
+    esac
 }
 
 if [ "$(id -u)" != 0 ]; then
