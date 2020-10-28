@@ -64,6 +64,7 @@ func getRepo() string {
 	}
 
 	for _, e := range os.Environ() {
+		fmt.Printf("detect repo try3: %v\n", e)
 		pair := strings.SplitN(e, "=", 2)
 		if len(pair) == 2 {
 			if strings.Contains(pair[1], "git") {
@@ -77,6 +78,7 @@ func getRepo() string {
 
 func getRepoHash() string {
 	repo := getRepo()
+	fmt.Printf("repo: %v\n", repo)
 	if repo == "unknown" || repo == "" {
 		return repo
 	}
@@ -116,20 +118,28 @@ func CollectAnalytics(version, gitSha, commandName string, exitCode int, realtim
 	ciName, ci := detectCI()
 	installID, overrideInstallID := os.LookupEnv("EARTHLY_INSTALL_ID")
 	repoHash := getRepoHash()
+	fmt.Printf("repohash: %v\n", repoHash)
+	fmt.Printf("ciName: %v\n", ciName)
+	fmt.Printf("isntallID: %v\n", installID)
 	if !overrideInstallID {
 		if repoHash == "unknown" {
 			installID = "unknown"
+			fmt.Printf("here1\n")
 		} else {
 			if ci {
+				fmt.Printf("here2\n")
 				installID = fmt.Sprintf("%x", sha256.Sum256([]byte(ciName+repoHash)))
 			} else {
+				fmt.Printf("here3\n")
 				installID, err = getInstallID()
 				if err != nil {
+					fmt.Printf("here4\n")
 					installID = "unknown"
 				}
 			}
 		}
 	}
+	fmt.Printf("isntallID3: %v\n", installID)
 	segmentClient := analytics.New("RtwJaMBswcW3CNMZ7Ops79dV6lEZqsXf")
 	segmentClient.Enqueue(analytics.Track{
 		Event:  "cli-" + commandName,
