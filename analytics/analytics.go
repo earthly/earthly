@@ -21,6 +21,7 @@ func detectCI() (string, bool) {
 	for k, v := range map[string]string{
 		"GITHUB_WORKFLOW": "github-actions",
 		"CIRCLECI":        "circle-ci",
+		"EARTHLY":         "earthly",
 		"JENKINS_HOME":    "jenkins",
 		"BUILDKITE":       "buildkite",
 		"DRONE_BRANCH":    "drone",
@@ -56,6 +57,7 @@ func getRepo() string {
 		"BUILDKITE_REPO",
 		"DRONE_REPO",
 		"TRAVIS_REPO_SLUG",
+		"EARTHLY_GIT_ORIGIN_URL",
 	} {
 		if v, ok := os.LookupEnv(k); ok {
 			return v
