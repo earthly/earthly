@@ -196,7 +196,9 @@ func main() {
 	app.autoComplete()
 
 	exitCode := app.run(ctx, os.Args)
-	if app.cfg == nil || !app.cfg.Global.DisableAnalytics {
+	// app.cfg will be nil when a user runs `earth --version`;
+	// however in all other regular commands app.cfg will be set in app.Before
+	if app.cfg != nil && !app.cfg.Global.DisableAnalytics {
 		analytics.CollectAnalytics(Version, GitSha, app.commandName, exitCode, time.Since(startTime))
 	}
 	os.Exit(exitCode)
