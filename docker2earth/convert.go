@@ -3,7 +3,6 @@ package docker2earth
 import (
 	"fmt"
 	"os"
-	"strconv"
 	"strings"
 
 	"github.com/earthly/earthly/fileutils"
@@ -51,21 +50,17 @@ func Docker2Earth() error {
 		return errors.Wrap(err, "failed to parse Dockerfile")
 	}
 
-	//shlex := shell.NewLex(dockerfile.EscapeToken)
-
-	//for _, cmd := range metaArgs {
-	//	for _, metaArg := range cmd.Args {
-	//		if metaArg.Value != nil {
-	//			*metaArg.Value, _ = shlex.ProcessWordWithMap(*metaArg.Value, metaArgsToMap(optMetaArgs))
-	//		}
-	//		optMetaArgs = append(optMetaArgs, setKVValue(metaArg, opt.BuildArgs))
-	//	}
-	//}
+	names := map[string]int{}
 
 	for i, stage := range stages {
 		targets = append(targets, []string{
 			fmt.Sprintf("FROM %s", stage.BaseName),
 		})
+		if stage.Name == "" {
+			names[fmt.Sprintf("%d", i)] = i
+		} else {
+			names[stage.Name] = i
+		}
 
 		for _, cmd := range stage.Commands {
 			l := fmt.Sprintf("%v", cmd)
@@ -78,13 +73,9 @@ func Docker2Earth() error {
 				if len(kv) != 2 {
 					return fmt.Errorf("failed to parse %q", l)
 				}
-				n, err := strconv.Atoi(kv[1])
-				if err != nil {
-					return fmt.Errorf("failed to parse %q", l)
-				}
+				fromStageName := kv[1]
+				n := names[fromStageName]
 				artifactName := getArtifactName(parts[2])
-				_ = n
-				_ = artifactName
 				l = fmt.Sprintf("COPY +subbuild%d/%s %s", n+1, artifactName, parts[3])
 				targets[n+1] = append(targets[n+1], fmt.Sprintf("SAVE ARTIFACT %s %s\n", parts[2], artifactName))
 			}
