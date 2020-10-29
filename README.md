@@ -48,7 +48,7 @@ Earthly builds are self-contained, isolated and reproducible. Regardless of whet
 
 ### 🤲 Builds that run the same for everyone
 
-Reproducible builds also means that your build will run the same on your colleagues laptop without any additional project-specific or language-specific setup. This fosters better developer collaboration and mitigates works-for-me type of issues.
+Reproducible builds also mean that your build will run the same on your colleagues' laptop without any additional project-specific or language-specific setup. This fosters better developer collaboration and mitigates works-for-me type of issues.
 
 ### 🚀 From zero to working build in minutes
 
@@ -357,7 +357,7 @@ You may also optionally port your Dockerfiles to Earthly entirely. Translating D
 * Earthly does not replace language-specific tools, like Maven, Gradle, Webpack etc. Instead, it leverages and integrates with them. Adopting Bazel usually means that all build files need to be completely rewritten. This is not the case with Earthly as it mainly acts as the glue between builds.
 * The learning curve of Earthly is more accessible, especially if the user already has experience with Dockerfiles. Bazel, on the other hand, introduces some completely new concepts.
 * Bazel has a purely descriptive specification language. Earthly is a mix of descriptive and imperative language.
-* Bazel uses tight control of compiler tool chain to achieve consistent builds, whereas Earthly uses containers and well-defined inputs.
+* Bazel uses tight control of compiler toolchain to achieve consistent builds, whereas Earthly uses containers and well-defined inputs.
 
 Overall, compared to Bazel, Earthly sacrifices a little correctness and reproducibility in favor of significantly better usability and composability with existing open-source technologies.
 
