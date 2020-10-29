@@ -1,7 +1,9 @@
 package docker2earth
 
 import (
+	"bufio"
 	"fmt"
+	"io"
 	"os"
 	"strings"
 
@@ -20,16 +22,22 @@ func getArtifactName(s string) string {
 
 // Docker2Earth converts an existing Dockerfile in the current directory and writes out an Earthfile in the current directory
 // and error is returned if an Earthfile already exists.
-func Docker2Earth() error {
-	if fileutils.FileExists("Earthfile") {
+func Docker2Earth(dockerfilePath, EarthfilePath string) error {
+	if fileutils.FileExists(EarthfilePath) {
 		return fmt.Errorf("Earthfile already exists; please delete it if you wish to continue")
 	}
 
-	in, err := os.Open("Dockerfile")
-	if err != nil {
-		return errors.Wrap(err, "failed to open ./Dockerfile")
+	var in io.Reader
+	if dockerfilePath == "-" {
+		in = bufio.NewReader(os.Stdin)
+	} else {
+		in2, err := os.Open(dockerfilePath)
+		if err != nil {
+			return errors.Wrapf(err, "failed to open %q", dockerfilePath)
+		}
+		defer in2.Close()
+		in = in2
 	}
-	defer in.Close()
 
 	targets := [][]string{
 		{
@@ -42,12 +50,12 @@ func Docker2Earth() error {
 
 	dockerfile, err := parser.Parse(in)
 	if err != nil {
-		return errors.Wrap(err, "failed to parse Dockerfile")
+		return errors.Wrapf(err, "failed to parse Dockerfile located at %q", dockerfilePath)
 	}
 
 	stages, _, err := instructions.Parse(dockerfile.AST)
 	if err != nil {
-		return errors.Wrap(err, "failed to parse Dockerfile")
+		return errors.Wrapf(err, "failed to parse Dockerfile located at %q", dockerfilePath)
 	}
 
 	names := map[string]int{}
@@ -88,11 +96,19 @@ func Docker2Earth() error {
 	i := len(targets) - 1
 	targets[i] = append(targets[i], "SAVE IMAGE myimage:latest")
 
-	out, err := os.Create("Earthfile")
-	if err != nil {
-		return errors.Wrap(err, "failed to create Earthfile")
+	var out io.Writer
+	if EarthfilePath == "-" {
+		out2 := bufio.NewWriter(os.Stdout)
+		defer out2.Flush()
+		out = out2
+	} else {
+		out2, err := os.Create(EarthfilePath)
+		if err != nil {
+			return errors.Wrap(err, "failed to create Earthfile")
+		}
+		defer out2.Close()
+		out = out2
 	}
-	defer out.Close()
 
 	fmt.Fprintf(out, "\n")
 
@@ -111,6 +127,6 @@ func Docker2Earth() error {
 
 	fmt.Fprintf(out, "\nbuild:\n    BUILD +subbuild%d\n", i)
 
-	fmt.Printf("An Earthfile has been generated; to run it use: earth +build; then run with docker run -ti myimage:latest\n")
+	fmt.Fprintf(os.Stderr, "An Earthfile has been generated; to run it use: earth +build; then run with docker run -ti myimage:latest\n")
 	return nil
 }

@@ -103,6 +103,8 @@ type cliFlags struct {
 	writePermission       bool
 	publicKey             string
 	registrationPublicKey string
+	dockerfilePath        string
+	earthfilePath         string
 }
 
 var (
@@ -430,6 +432,20 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 			Description: "Converts an existing dockerfile into an Earthfile",
 			Hidden:      true,
 			Action:      app.actionDocker2Earth,
+			Flags: []cli.Flag{
+				&cli.StringFlag{
+					Name:        "dockerfile",
+					Usage:       "Path to dockerfile input, or - for stdin",
+					Value:       "Dockerfile",
+					Destination: &app.dockerfilePath,
+				},
+				&cli.StringFlag{
+					Name:        "earthfile",
+					Usage:       "Path to earthfile output, or - for stdout",
+					Value:       "Earthfile",
+					Destination: &app.earthfilePath,
+				},
+			},
 		},
 		{
 			Name:   "org",
@@ -1274,7 +1290,7 @@ func (app *earthApp) actionPrune(c *cli.Context) error {
 }
 
 func (app *earthApp) actionDocker2Earth(c *cli.Context) error {
-	return docker2earth.Docker2Earth()
+	return docker2earth.Docker2Earth(app.dockerfilePath, app.earthfilePath)
 }
 
 func (app *earthApp) actionBuild(c *cli.Context) error {
