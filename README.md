@@ -48,7 +48,7 @@ Earthly builds are self-contained, isolated and reproducible. Regardless of whet
 
 ### 🤲 Builds that run the same for everyone
 
-Reproducible builds also means that your build will run the same on your colleagues laptop without any additional project-specific or language-specific setup. This fosters better developer collaboration and mitigates works-for-me type of issues.
+Reproducible builds also mean that your build will run the same on your colleagues laptop without any additional project-specific or language-specific setup. This fosters better developer collaboration and mitigates works-for-me type of issues.
 
 ### 🚀 From zero to working build in minutes
 
