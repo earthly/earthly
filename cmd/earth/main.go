@@ -33,6 +33,7 @@ import (
 	"github.com/earthly/earthly/conslogging"
 	debuggercommon "github.com/earthly/earthly/debugger/common"
 	"github.com/earthly/earthly/debugger/terminal"
+	"github.com/earthly/earthly/docker2earth"
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/earthfile2llb"
 	"github.com/earthly/earthly/earthfile2llb/variables"
@@ -422,6 +423,13 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 					Destination: &app.homebrewSource,
 				},
 			},
+		},
+		{
+			Name:        "docker2earth",
+			Usage:       "Convert a Dockerfile into Earthfile",
+			Description: "Converts an existing dockerfile into an Earthfile",
+			Hidden:      true,
+			Action:      app.actionDocker2Earth,
 		},
 		{
 			Name:   "org",
@@ -1263,6 +1271,10 @@ func (app *earthApp) actionPrune(c *cli.Context) error {
 		return errors.Wrap(err, "err group")
 	}
 	return nil
+}
+
+func (app *earthApp) actionDocker2Earth(c *cli.Context) error {
+	return docker2earth.Docker2Earth()
 }
 
 func (app *earthApp) actionBuild(c *cli.Context) error {

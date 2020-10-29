@@ -25,6 +25,8 @@ jobs:
         run: "! ./build/linux/amd64/earth --no-output +test-fail"
       - name: Execute version test
         run: "./build/linux/amd64/earth --version"
+      - name: Execute docker2earth test
+        run: "./examples/tests/docker2earth/test.sh"
   misc-tests:
     name: Misc tests
     runs-on: ubuntu-latest
