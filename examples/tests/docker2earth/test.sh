@@ -15,8 +15,7 @@ docker run --rm myimage:latest say-hi | grep hello
 echo === Testing Dockerfile2 ===
 cd $(mktemp -d)
 echo "working out of $(pwd)"
-cp $dockerfiles/Dockerfile2 Dockerfile
+cat $dockerfiles/Dockerfile2 | $earth docker2earth --dockerfile - --tag myotherimage:test
 cp $dockerfiles/app.go .
-$earth docker2earth
 $earth +build
-docker run --rm myimage:latest | grep greetings
+docker run --rm myotherimage:test | grep greetings

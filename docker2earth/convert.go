@@ -22,7 +22,7 @@ func getArtifactName(s string) string {
 
 // Docker2Earth converts an existing Dockerfile in the current directory and writes out an Earthfile in the current directory
 // and error is returned if an Earthfile already exists.
-func Docker2Earth(dockerfilePath, EarthfilePath string) error {
+func Docker2Earth(dockerfilePath, EarthfilePath, imageTag string) error {
 	if fileutils.FileExists(EarthfilePath) {
 		return fmt.Errorf("Earthfile already exists; please delete it if you wish to continue")
 	}
@@ -94,7 +94,7 @@ func Docker2Earth(dockerfilePath, EarthfilePath string) error {
 		}
 	}
 	i := len(targets) - 1
-	targets[i] = append(targets[i], "SAVE IMAGE myimage:latest")
+	targets[i] = append(targets[i], fmt.Sprintf("SAVE IMAGE %s", imageTag))
 
 	var out io.Writer
 	if EarthfilePath == "-" {
@@ -127,6 +127,6 @@ func Docker2Earth(dockerfilePath, EarthfilePath string) error {
 
 	fmt.Fprintf(out, "\nbuild:\n    BUILD +subbuild%d\n", i)
 
-	fmt.Fprintf(os.Stderr, "An Earthfile has been generated; to run it use: earth +build; then run with docker run -ti myimage:latest\n")
+	fmt.Fprintf(os.Stderr, "An Earthfile has been generated; to run it use: earth +build; then run with docker run -ti %s\n", imageTag)
 	return nil
 }
