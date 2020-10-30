@@ -82,3 +82,11 @@ Add [Earthfile Syntax Highlighting](https://marketplace.visualstudio.com/items?i
 ```
 ext install earthly.earthfile-syntax-highlighting
 ```
+
+### Vim Plugin
+
+Visit [https://github.com/earthly/earthly.vim](https://github.com/earthly/earthly.vim) for details.
+
+### Sublime Text Package
+
+Visit [https://github.com/earthly/sublimetext-earthly-syntax](https://github.com/earthly/sublimetext-earthly-syntax) for details.
