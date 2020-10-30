@@ -105,6 +105,7 @@ type cliFlags struct {
 	registrationPublicKey string
 	dockerfilePath        string
 	earthfilePath         string
+	earthfileFinalImage   string
 }
 
 var (
@@ -444,6 +445,12 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 					Usage:       "Path to earthfile output, or - for stdout",
 					Value:       "Earthfile",
 					Destination: &app.earthfilePath,
+				},
+				&cli.StringFlag{
+					Name:        "tag",
+					Usage:       "Name and tag for the built image; formatted as 'name:tag'",
+					Value:       "myimage:latest",
+					Destination: &app.earthfileFinalImage,
 				},
 			},
 		},
@@ -1290,7 +1297,7 @@ func (app *earthApp) actionPrune(c *cli.Context) error {
 }
 
 func (app *earthApp) actionDocker2Earth(c *cli.Context) error {
-	return docker2earth.Docker2Earth(app.dockerfilePath, app.earthfilePath)
+	return docker2earth.Docker2Earth(app.dockerfilePath, app.earthfilePath, app.earthfileFinalImage)
 }
 
 func (app *earthApp) actionBuild(c *cli.Context) error {
