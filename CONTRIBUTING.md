@@ -1,5 +1,9 @@
 # Contributing
 
+## Code of Conduct
+
+Please refer to [code-of-conduct.md](./code-of-conduct.md) for details.
+
 ## Using Earthly pre-release
 
 To build Earthly from source, you need the same requirements as Earthly. We recommend that you use the pre-prelease version of Earthly for development purposes. To launch the pre-release Earthly, simply use the `./earth` script provided in the root of the earthly repository. The pre-release Earthly tracks the version on main. You can use `./earth --version` to identify which Git hash was used to build it.
@@ -52,13 +56,3 @@ To also build the examples, you can run
 ### Auth
 
 If you have issues with git-related features or with private docker registries, make sure you have configured auth correctly. See the [auth page](https://docs.earthly.dev/guides/auth) for more details.
-
-### Running a full build stops after `SUCCESS`, but does not exit
-
-After starting a run of `earth +all` the console displays a green line which states
-
-```
-=========================== SUCCESS ===========================
-```
-
-The message does not denote the end of the build process as some additional work might be required before displaying the final output and cleanly exiting with a status code of 0.
