@@ -1,4 +1,4 @@
-FROM docker:19.03.7-dind
+FROM earthly/dind
 WORKDIR /test
 
 all:
