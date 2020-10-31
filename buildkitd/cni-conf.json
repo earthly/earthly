@@ -1,5 +1,5 @@
 {
-	"cniVersion": "0.2.0",
+	"cniVersion": "0.3.0",
 	"name": "buildkitbuild",
 	"type": "bridge",
 	"bridge": "cni0",
