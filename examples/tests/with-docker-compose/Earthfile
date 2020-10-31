@@ -1,9 +1,12 @@
-FROM docker:19.03.7-dind
+FROM earthly/dind
 WORKDIR /test
 
 all:
     BUILD --build-arg INDEX=1 +test
     BUILD --build-arg INDEX=2 +test
+    BUILD --build-arg INDEX=3 +test
+    BUILD --build-arg INDEX=4 +test
+    BUILD --build-arg INDEX=5 +test
 
 print-countries:
     FROM jbergknoff/postgresql-client:latest

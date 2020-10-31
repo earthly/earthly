@@ -6,4 +6,7 @@ insecure-entitlements = [ "security.insecure" ]
   enabled = true
   snapshotter = "auto"
   gc = true
+  networkMode = "cni"
+  cniBinaryPath = "/usr/libexec/cni"
+  cniConfigPath = "/etc/cni/cni-conf.json"
   ${CACHE_SETTINGS}

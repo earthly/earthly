@@ -23,15 +23,7 @@ execute() {
         exit 1
     fi
 
-    # Lock entire execution of a docker daemon - only one daemon can be used at a time
-    # (dockerd race conditions in handling networking setup).
-    (
-        flock -x 8
-        start_dockerd
-        # Note that the lock will continue to be held after this subshell finishes,
-        # becasue it spawns the dockerd background process. This is intentional.
-        # The lock is meant to be held until dockerd exits.
-    ) 8>/var/earthly/dind/lock
+    start_dockerd
     load_images
     if [ "$EARTHLY_START_COMPOSE" = "true" ]; then
         # shellcheck disable=SC2086

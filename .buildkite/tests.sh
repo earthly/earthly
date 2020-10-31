@@ -46,9 +46,8 @@ echo "Build latest earth using released earth"
 echo "Execute tests"
 ./build/"$EARTH_OS"/amd64/earth --no-output -P +test
 
-# Temporarily disable until failure is addressed.
-#echo "Execute experimental tests"
-#./build/"$EARTH_OS"/amd64/earth --no-output -P ./examples/tests+experimental
+echo "Execute experimental tests"
+./build/"$EARTH_OS"/amd64/earth --no-output -P ./examples/tests+experimental
 
 echo "Execute fail test"
 bash -c "! ./build/$EARTH_OS/amd64/earth --no-output +test-fail"
