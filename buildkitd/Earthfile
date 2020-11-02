@@ -2,9 +2,16 @@
 buildkitd:
     ARG BUILDKIT_BASE_IMAGE=github.com/earthly/buildkit:earthly-main+build
     FROM $BUILDKIT_BASE_IMAGE
-
-    # Install some missing binaries.
-    RUN apk add --update --no-cache openssh-client gettext pigz xz e2fsprogs util-linux
+    RUN echo "@edge-community http://dl-cdn.alpinelinux.org/alpine/edge/community" >> /etc/apk/repositories
+    RUN apk add --update --no-cache \
+        cni-plugins@edge-community \
+        e2fsprogs \
+        gettext \
+        iptables \
+        openssh-client \
+        pigz \
+        util-linux \
+        xz
 
     # Add github and gitlab to known hosts.
     RUN mkdir -p ~/.ssh
@@ -15,7 +22,9 @@ buildkitd:
     COPY ./entrypoint.sh /usr/bin/entrypoint.sh
     COPY ./buildkitd.toml.template /etc/buildkitd.toml.template
     COPY ./buildkitd.cache.template /etc/buildkitd.cache.template
+    COPY ./cni-conf.json /etc/cni/cni-conf.json
 
+    # Scripts and binaries used for the builds.
     COPY ../+shellrepeater/shellrepeater /usr/bin/shellrepeater
     COPY ../+debugger/earth_debugger /usr/bin/earth_debugger
     COPY ./dockerd-wrapper.sh /var/earthly/dockerd-wrapper.sh
@@ -27,6 +36,7 @@ buildkitd:
     ENV FORCE_LOOP_DEVICE=true
     ENV BUILDKIT_DEBUG=false
     ENV CACHE_SIZE_MB=0
+    ENV NETWORK_MODE=cni
     VOLUME /tmp/earthly
     ENTRYPOINT ["/usr/bin/entrypoint.sh", "buildkitd", "--config=/etc/buildkitd.toml"]
     ARG EARTHLY_TARGET_TAG_DOCKER

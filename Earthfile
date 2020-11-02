@@ -148,6 +148,7 @@ earth-docker:
     RUN apk add --update --no-cache docker-cli
     ENV ENABLE_LOOP_DEVICE=false
     ENV FORCE_LOOP_DEVICE=false
+    ENV NETWORK_MODE=host
     COPY earth-buildkitd-wrapper.sh /usr/bin/earth-buildkitd-wrapper.sh
     ENTRYPOINT ["/usr/bin/earth-buildkitd-wrapper.sh"]
     ARG EARTHLY_TARGET_TAG_DOCKER

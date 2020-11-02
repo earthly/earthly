@@ -20,6 +20,11 @@ if [ -z "$EARTHLY_TMP_DIR" ]; then
     exit 1
 fi
 
+if [ -z "$NETWORK_MODE" ]; then
+    echo "NETWORK_MODE not set"
+    exit 1
+fi
+
 if [ "$EARTHLY_RESET_TMP_DIR" = "true" ]; then
     echo "Resetting dir $EARTHLY_TMP_DIR"
     rm -rf "${EARTHLY_TMP_DIR:?}"/* || true
