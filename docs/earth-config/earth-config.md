@@ -44,6 +44,10 @@ git:
 
 Specifies the total size of the BuildKit cache, in MB. The BuildKit daemon uses this setting to configure automatic garbage collection of old cache. A value of 0 causes the size to be adaptive depending on how much space is available on your system. The default is 0.
 
+### disable_analytics
+
+When set to true, disables the collecting command line analytics; otherwise, earth will report anonymized analytics for invokation of the earth command. For more information see the [data collection page](../data-collection/data-collection.md).
+
 ### no_loop_device (deprecated)
 
 When set to true, disables the use of a loop device for storing the cache. This setting is now set to `true` by default and will be removed in a future version of Earthly.
