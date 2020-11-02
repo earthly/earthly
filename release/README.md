@@ -13,11 +13,11 @@
   ```bash
   export GIT_USERNAME="..."
   ```
-* Make sure you are on master
+* Make sure you are on main
   ```bash
-  git checkout master && git pull
+  git checkout main && git pull
   ```
-* Make sure that master build is green for all platforms.
+* Make sure that main build is green for all platforms (check build status for the latest commit on GitHub).
 * Run
   ```bash
   ./earth reset
@@ -39,7 +39,7 @@
     --secret GITHUB_TOKEN \
     --push ./release+release-homebrew
   ```
-* Merge branch `next` into `master`.
+* Merge branch `next` into `main`.
 * Update the version for the installation command in the following places:
   * [ci-integration.md](../docs/guides/ci-integration.md)
   * [circle-integration.md](../docs/examples/circle-integration.md)
