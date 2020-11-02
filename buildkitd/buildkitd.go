@@ -201,8 +201,6 @@ func Start(ctx context.Context, image string, settings Settings, reset bool) err
 		"-d",
 		"-v", fmt.Sprintf("%s:/tmp/earthly:rw", VolumeName),
 		"-v", runMount,
-		"-e", fmt.Sprintf("ENABLE_LOOP_DEVICE=%t", !settings.DisableLoopDevice),
-		"-e", fmt.Sprintf("FORCE_LOOP_DEVICE=%t", !settings.DisableLoopDevice),
 		"-e", fmt.Sprintf("BUILDKIT_DEBUG=%t", settings.Debug),
 		"--label", fmt.Sprintf("dev.earthly.settingshash=%s", settingsHash),
 		"--name", ContainerName,

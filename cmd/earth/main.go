@@ -361,12 +361,6 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 			Usage:       "The docker image to use for the buildkit daemon",
 			Destination: &app.buildkitdImage,
 		},
-		&cli.BoolFlag{
-			Name:        "no-loop-device",
-			EnvVars:     []string{"EARTHLY_NO_LOOP_DEVICE"},
-			Usage:       "Disables the use of a loop device for storing the cache contents",
-			Destination: &app.buildkitdSettings.DisableLoopDevice,
-		},
 		&cli.StringFlag{
 			Name:        "remote-cache",
 			EnvVars:     []string{"EARTHLY_REMOTE_CACHE"},
@@ -700,12 +694,6 @@ func (app *earthApp) processDeprecatedCommandOptions(context *cli.Context, cfg *
 				app.buildkitdSettings.GitURLInsteadOf = gitGlobal.GitURLInsteadOf
 			}
 		}
-	}
-
-	if context.IsSet("no-loop-device") {
-		app.console.Warnf("Warning: the --no-loop-device command flag is deprecated and is now configured in the ~/.earthly/config.yml file under the no_loop_device setting; see https://docs.earthly.dev/earth-config for reference.\n")
-	} else {
-		app.buildkitdSettings.DisableLoopDevice = cfg.Global.DisableLoopDevice
 	}
 
 	if context.IsSet("buildkit-cache-size-mb") {

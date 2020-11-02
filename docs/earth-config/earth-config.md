@@ -12,7 +12,6 @@ The earthly config file is a [yaml](https://yaml.org/) formatted file that looks
 ```yaml
 global:
   cache_size_mb: <cache_size_mb>
-  no_loop_device: false|true
 git:
     global:
         url_instead_of: <url_instead_of>
@@ -44,9 +43,9 @@ git:
 
 Specifies the total size of the BuildKit cache, in MB. The BuildKit daemon uses this setting to configure automatic garbage collection of old cache. A value of 0 causes the size to be adaptive depending on how much space is available on your system. The default is 0.
 
-### no_loop_device (deprecated)
+### no_loop_device (obsolete)
 
-When set to true, disables the use of a loop device for storing the cache. This setting is now set to `true` by default and will be removed in a future version of Earthly.
+This option is obsolete and it is ignored. Earthly no longer uses a loop device for its cache.
 
 ### cache_path (obsolete)
 
