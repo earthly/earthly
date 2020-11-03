@@ -78,62 +78,6 @@ echo "Buildkitd config"
 echo "=================="
 cat /etc/buildkitd.toml
 echo "=================="
-echo "ENABLE_LOOP_DEVICE=$ENABLE_LOOP_DEVICE"
-echo "FORCE_LOOP_DEVICE=$FORCE_LOOP_DEVICE"
-use_loop_device=false
-if [ "$FORCE_LOOP_DEVICE" = "true" ]; then
-    use_loop_device=true
-else
-    if [ "$ENABLE_LOOP_DEVICE" = "true" ]; then
-        # shellcheck disable=SC2086
-        tmp_dir_fs="$(df -T ${BUILDKIT_ROOT_DIR} | awk '{print $2}' | tail -1)"
-        echo "Buildkit dir $BUILDKIT_ROOT_DIR fs type is $tmp_dir_fs"
-        if [ "$tmp_dir_fs" != "ext4" ]; then
-            echo "Using a loop device, because fs is not ext4"
-            use_loop_device=true
-        fi
-    fi
-fi
-echo "use_loop_device=$use_loop_device"
-if [ "$use_loop_device" = "true" ]; then
-    # Create an ext4 fs in a pre-allocated file. Ext4 will allow
-    # us to use overlayfs snapshotter even when running on mac.
-    image_file="$EARTHLY_TMP_DIR"/buildkit.img
-    mount_point="$BUILDKIT_ROOT_DIR"
-
-    do_mount() {
-        echo "Mounting loop device"
-        ret=0
-        mount -n -o loop,noatime,nodiratime,noexec,noauto "$image_file" "$mount_point" || ret=1
-        return "$ret"
-    }
-
-    init_mount() {
-        echo "Creating loop device"
-        mkdir -p "$mount_point"
-        # We use quadruple the cache size for the loop device. This uses
-        # a sparse file for the allocation, meaning that the space is not
-        # actually occupied until the cache grows.
-        sparse_loop_device_size_mb=$(( CACHE_SIZE_MB * 4 ))
-        echo "sparse_loop_device_size_mb=$sparse_loop_device_size_mb"
-        dd if=/dev/zero of="$image_file" bs=1M count=0 seek="$sparse_loop_device_size_mb"
-        mkfs.ext4 "$image_file"
-    }
-
-    reset_mount() {
-        echo "Resetting loop device"
-        umount "$mount_point" || true
-        rm -rf "$image_file"
-        rm -rf "$mount_point"
-    }
-
-    if [ -f "$image_file" ]; then
-        do_mount || (reset_mount && init_mount && do_mount)
-    else
-        init_mount
-        do_mount
-    fi
-fi
 
 # start shell repeater server
 echo starting shellrepeater

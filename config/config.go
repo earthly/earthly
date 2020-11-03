@@ -22,7 +22,6 @@ var (
 // GlobalConfig contains global config values
 type GlobalConfig struct {
 	RunPath                 string `yaml:"run_path"`
-	DisableLoopDevice       bool   `yaml:"no_loop_device"`
 	DisableAnalytics        bool   `yaml:"disable_analytics"`
 	BuildkitCacheSizeMb     int    `yaml:"cache_size_mb"`
 	BuildkitImage           string `yaml:"buildkit_image"`
@@ -66,7 +65,6 @@ func ParseConfigFile(yamlData []byte) (*Config, error) {
 	config := Config{
 		Global: GlobalConfig{
 			RunPath:                 defaultRunPath(),
-			DisableLoopDevice:       true,
 			BuildkitCacheSizeMb:     0,
 			DebuggerPort:            8373,
 			BuildkitRestartTimeoutS: 60,

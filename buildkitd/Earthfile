@@ -5,7 +5,6 @@ buildkitd:
     RUN echo "@edge-community http://dl-cdn.alpinelinux.org/alpine/edge/community" >> /etc/apk/repositories
     RUN apk add --update --no-cache \
         cni-plugins@edge-community \
-        e2fsprogs \
         gettext \
         iptables \
         openssh-client \
@@ -32,8 +31,6 @@ buildkitd:
 
     ENV EARTHLY_RESET_TMP_DIR=false
     ENV EARTHLY_TMP_DIR=/tmp/earthly
-    ENV ENABLE_LOOP_DEVICE=true
-    ENV FORCE_LOOP_DEVICE=true
     ENV BUILDKIT_DEBUG=false
     ENV CACHE_SIZE_MB=0
     ENV NETWORK_MODE=cni
