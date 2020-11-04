@@ -7,6 +7,6 @@ const DebuggerSettingsSecretsKey = "earthly_debugger_settings"
 type DebuggerSettings struct {
 	DebugLevelLogging bool   `json:"debugLevel"`
 	Enabled           bool   `json:"enabled"`
-	SockPath          string `json:"sockPath"`
+	RepeaterAddr      string `json:"repeaterAddr"`
 	Term              string `json:"term"`
 }

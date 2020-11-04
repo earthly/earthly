@@ -1386,10 +1386,12 @@ func (app *earthApp) actionBuild(c *cli.Context) error {
 		return err
 	}
 
+	repeaterAddr := "ifconfig it here"
+
 	debuggerSettings := debuggercommon.DebuggerSettings{
 		DebugLevelLogging: app.debug,
 		Enabled:           app.interactiveDebugging,
-		SockPath:          fmt.Sprintf("/run/earthly/%s", sockName),
+		RepeaterAddr:      repeaterAddr,
 		Term:              os.Getenv("TERM"),
 	}
 
