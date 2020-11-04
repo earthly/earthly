@@ -1,4 +1,4 @@
-# Earthignore reference
+# Excluding patterns
 
 When a build takes place, the `earth` command sends any necessary local build contexts to the BuildKit daemon. In order to avoid sending unwanted files as part of the build context, you may exclude certain patterns by specifying an `.earthignore` file.
 

@@ -238,7 +238,7 @@ Note that the Dockerfile form of `COPY` whereby you can reference a source as a 
 
 {% hint style='info' %}
 ##### Note
-To prevent Earthly from copying unwanted files from the build context, you may specify file patterns to be ignore using an [`.earthignore`](./earthignore.md) file. This file has the same syntax as a [`.dockerignore` file](https://docs.docker.com/engine/reference/builder/#dockerignore-file).
+To prevent Earthly from copying unwanted files, you may specify file patterns to be excluded from the build context using an [`.earthignore`](./earthignore.md) file. This file has the same syntax as a [`.dockerignore` file](https://docs.docker.com/engine/reference/builder/#dockerignore-file).
 {% endhint %}
 
 #### Options

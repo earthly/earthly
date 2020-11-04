@@ -13,7 +13,7 @@
     * [CI integration](guides/ci-integration.md)
 * [Earthfile reference](earthfile/earthfile.md)
     * [Builtin args](earthfile/builtin-args.md)
-    * [.earthignore](earthfile/builtin-args.md)
+    * [Excluding patterns](earthfile/earthignore.md)
 * [Earth command reference](earth-command/earth-command.md)
 * [Definitions](definitions/definitions.md)
 * [Configuration reference](earth-config/earth-config.md)
