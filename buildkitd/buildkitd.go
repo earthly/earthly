@@ -1,6 +1,7 @@
 package buildkitd
 
 import (
+	"bytes"
 	"context"
 	"encoding/base64"
 	"fmt"
@@ -305,6 +306,16 @@ func WaitUntilStarted(ctx context.Context, address string, opTimeout time.Durati
 			return errors.New("Timeout: Buildkitd did not start")
 		}
 	}
+}
+
+// GetContainerIP returns the IP of the buildkit container.
+func GetContainerIP(ctx context.Context) (string, error) {
+	cmd := exec.CommandContext(ctx, "docker", "inspect", "-f", "{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}", ContainerName)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return "", errors.Wrap(err, "get combined output ip")
+	}
+	return string(bytes.TrimSpace(output)), nil
 }
 
 // WaitUntilStopped waits until the buildkitd daemon has stopped.

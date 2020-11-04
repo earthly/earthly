@@ -1257,7 +1257,7 @@ func (app *earthApp) actionPrune(c *cli.Context) error {
 	}
 
 	// Prune via API.
-	bkClient, err := app.newBuildkitdClient(c.Context)
+	bkClient, _, err := app.newBuildkitdClient(c.Context)
 	if err != nil {
 		return errors.Wrap(err, "buildkitd new client")
 	}
@@ -1302,7 +1302,6 @@ func (app *earthApp) actionDocker2Earth(c *cli.Context) error {
 
 func (app *earthApp) actionBuild(c *cli.Context) error {
 	app.commandName = "build"
-	sockName := fmt.Sprintf("debugger.sock.%d", time.Now().UnixNano())
 
 	if app.imageMode && app.artifactMode {
 		return errors.New("both image and artifact modes cannot be active at the same time")
@@ -1366,7 +1365,7 @@ func (app *earthApp) actionBuild(c *cli.Context) error {
 			return errors.Wrapf(err, "parse target name %s", targetName)
 		}
 	}
-	bkClient, err := app.newBuildkitdClient(c.Context)
+	bkClient, bkIP, err := app.newBuildkitdClient(c.Context)
 	if err != nil {
 		return errors.Wrap(err, "buildkitd new client")
 	}
@@ -1386,12 +1385,10 @@ func (app *earthApp) actionBuild(c *cli.Context) error {
 		return err
 	}
 
-	repeaterAddr := "ifconfig it here"
-
 	debuggerSettings := debuggercommon.DebuggerSettings{
 		DebugLevelLogging: app.debug,
 		Enabled:           app.interactiveDebugging,
-		RepeaterAddr:      repeaterAddr,
+		RepeaterAddr:      fmt.Sprintf("%s:8373", bkIP),
 		Term:              os.Getenv("TERM"),
 	}
 
@@ -1483,7 +1480,7 @@ func (app *earthApp) actionBuild(c *cli.Context) error {
 	return nil
 }
 
-func (app *earthApp) newBuildkitdClient(ctx context.Context, opts ...client.ClientOpt) (*client.Client, error) {
+func (app *earthApp) newBuildkitdClient(ctx context.Context, opts ...client.ClientOpt) (*client.Client, string, error) {
 	if app.buildkitHost == "" {
 		// Start our own.
 		app.buildkitdSettings.Debug = app.debug
@@ -1491,17 +1488,21 @@ func (app *earthApp) newBuildkitdClient(ctx context.Context, opts ...client.Clie
 		bkClient, err := buildkitd.NewClient(
 			ctx, app.console, app.buildkitdImage, app.buildkitdSettings, opTimeout)
 		if err != nil {
-			return nil, errors.Wrap(err, "buildkitd new client (own)")
+			return nil, "", errors.Wrap(err, "buildkitd new client (own)")
 		}
-		return bkClient, nil
+		bkIP, err := buildkitd.GetContainerIP(ctx)
+		if err != nil {
+			return nil, "", errors.Wrap(err, "get container ip")
+		}
+		return bkClient, bkIP, nil
 	}
 
 	// Use provided.
 	bkClient, err := client.New(ctx, app.buildkitHost, opts...)
 	if err != nil {
-		return nil, errors.Wrap(err, "buildkitd new client (provided)")
+		return nil, "", errors.Wrap(err, "buildkitd new client (provided)")
 	}
-	return bkClient, nil
+	return bkClient, "", nil
 }
 
 func processSecrets(secrets []string, dotEnvMap map[string]string) (map[string][]byte, error) {
