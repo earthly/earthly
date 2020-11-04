@@ -32,8 +32,6 @@ var (
 	ErrNoShellFound = fmt.Errorf("no shell found")
 )
 
-const remoteConsoleAddr = "127.0.0.1:8373"
-
 func getShellPath() (string, bool) {
 	for _, sh := range []string{
 		"bash", "ksh", "zsh", "ash", "sh",
@@ -238,7 +236,7 @@ func main() {
 				conslogger.Warnf("Failed to set term: %v", err)
 			}
 
-			err = interactiveMode(ctx, remoteConsoleAddr, quotedCmd)
+			err = interactiveMode(ctx, debuggerSettings.RepeaterAddr, quotedCmd)
 			if err != nil {
 				log.Error(err)
 			}
