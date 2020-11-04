@@ -24,3 +24,8 @@ character-range:
 	'\\' c      matches character c
 	lo '-' hi   matches character c for lo <= c <= hi
 ```
+
+{% hint style='info' %}
+##### Note
+Currently `.earthignore` is only applied to local targets. If an `.earthignore` file is specified within the context of a remote target, it will be silently ignored and exclusions would not take place.
+{% endhint %}
