@@ -236,6 +236,11 @@ The parameter `<src-artifact>` is an artifact reference and is generally of the 
 
 Note that the Dockerfile form of `COPY` whereby you can reference a source as a URL is not yet supported in Earthfiles.
 
+{% hint style='info' %}
+##### Note
+To prevent Earthly from copying unwanted files from the build context, you may specify file patterns to be ignore using an [`.earthignore`](./earthignore.md) file. This file has the same syntax as a [`.dockerignore` file](https://docs.docker.com/engine/reference/builder/#dockerignore-file).
+{% endhint %}
+
 #### Options
 
 ##### `--dir`
