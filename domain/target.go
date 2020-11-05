@@ -3,15 +3,16 @@ package domain
 import (
 	"fmt"
 	"path"
+	"regexp"
 	"strings"
 )
 
 // Target is a earth target identifier.
 type Target struct {
 	// Remote and canonical representation.
-	Registry    string `json:"registry"`
-	ProjectPath string `json:"projectPath"`
-	Tag         string `json:"tag"`
+	GitURL  string // "github.com/earthly/earthly"
+	GitPath string // "examples/go"
+	Tag     string // "main"
 
 	// Local representation.
 	LocalPath string `json:"localPath"`
@@ -46,11 +47,15 @@ func (et Target) String() string {
 		return fmt.Sprintf("%s+%s", et.LocalPath, et.Target)
 	}
 	if et.IsRemote() {
-		tag := fmt.Sprintf(":%s", et.Tag)
-		if et.Tag == "" {
-			tag = ""
+		s := et.GitURL
+		if et.GitPath != "" {
+			s += "/" + et.GitPath
 		}
-		return fmt.Sprintf("%s/%s%s+%s", et.Registry, et.ProjectPath, tag, et.Target)
+		if et.Tag != "" {
+			s += ":" + et.Tag
+		}
+		s += "+" + et.Target
+		return s
 	}
 	// Local internal.
 	return fmt.Sprintf("+%s", et.Target)
@@ -58,29 +63,135 @@ func (et Target) String() string {
 
 // StringCanonical returns a string representation of the Target, in canonical form.
 func (et Target) StringCanonical() string {
-	if et.ProjectPath != "" {
+	if et.GitURL != "" {
 		tag := fmt.Sprintf(":%s", et.Tag)
 		if et.Tag == "" {
 			tag = ""
 		}
-		return fmt.Sprintf("%s/%s%s+%s", et.Registry, et.ProjectPath, tag, et.Target)
+		return fmt.Sprintf("%s/%s%s+%s", et.GitURL, et.GitPath, tag, et.Target)
 	}
 	return et.String()
 }
 
 // ProjectCanonical returns a string representation of the project of the target, in canonical form.
 func (et Target) ProjectCanonical() string {
-	if et.ProjectPath != "" {
+	if et.GitURL != "" {
 		tag := fmt.Sprintf(":%s", et.Tag)
 		if et.Tag == "" {
 			tag = ""
 		}
-		return fmt.Sprintf("%s/%s%s", et.Registry, et.ProjectPath, tag)
+		return fmt.Sprintf("%s/%s%s", et.GitURL, et.GitPath, tag)
 	}
 	if et.LocalPath == "." {
 		return ""
 	}
 	return path.Base(et.LocalPath)
+}
+
+type gitMatcher struct {
+	pattern string
+	user    string
+	suffix  string
+}
+
+// GitLookup looksup gits
+type GitLookup struct {
+	matchers []gitMatcher
+}
+
+// NewGitLookup creates new lookuper
+func NewGitLookup() *GitLookup {
+	matchers := []gitMatcher{
+		{
+			pattern: "github.com/[^/]+/[^/]+",
+			user:    "git",
+			suffix:  ".git",
+		},
+		{
+			pattern: "gitlab.com/[^/]+/[^/]+",
+			user:    "git",
+			suffix:  ".git",
+		},
+		{
+			pattern: "bitbucket.com/[^/]+/[^/]+",
+			user:    "git",
+			suffix:  ".git",
+		},
+		{
+			pattern: "192.168.0.116/my/test/path/[^/]+",
+			user:    "alex",
+			suffix:  ".git",
+		},
+	}
+
+	gl := &GitLookup{
+		matchers: matchers,
+	}
+	return gl
+}
+
+// TODO needs fixing
+var TODO = NewGitLookup()
+
+// ParseGitURLandPath returns git path in the form user@host:path/to/repo.git, and any subdir
+func (gl *GitLookup) ParseGitURLandPath(path string) (string, string, error) {
+	fmt.Printf("ParseGitURLandPath(%q)\n", path)
+	for _, m := range gl.matchers {
+		r, err := regexp.Compile(m.pattern)
+		if err != nil {
+			panic(err)
+		}
+		match := r.FindString(path)
+		if match != "" {
+			n := len(match) + 1
+			subPath := ""
+			if len(path) > n {
+				subPath = path[n:]
+			}
+			if strings.HasSuffix(match, "/") {
+				panic("bad")
+			}
+			if strings.HasPrefix(subPath, "/") {
+				fmt.Println(subPath)
+				panic("bad1")
+			}
+			fmt.Printf("parsed %q into %q and %q\n", path, match, subPath)
+			return match, subPath, nil
+		}
+	}
+	fmt.Printf("failed to parse %q\n", path)
+	return "", "", nil
+}
+
+// GetCloneURL returns a string
+func (gl *GitLookup) GetCloneURL(path string) (string, error) {
+	for _, m := range gl.matchers {
+		r, err := regexp.Compile(m.pattern)
+		if err != nil {
+			panic(err)
+		}
+		match := r.FindString(path)
+		if match == "" {
+			continue
+		}
+		subPath := path[len(match):]
+		if strings.HasSuffix(match, "/") {
+			panic("bad2")
+		}
+		if subPath != "" {
+			panic("bad3")
+		}
+
+		parts := strings.SplitN(match, "/", 2)
+		if len(parts) != 2 {
+			panic("bad4")
+		}
+
+		s := fmt.Sprintf("%s@%s:%s", m.user, parts[0], parts[1])
+		return s, nil
+	}
+	fmt.Printf("failed to parse %q\n", path)
+	return "", nil
 }
 
 // ParseTarget parses a string into a Target.
@@ -118,22 +229,17 @@ func ParseTarget(fullTargetName string) (Target, error) {
 		if len(partsColon) == 2 {
 			tag = partsColon[1]
 		}
-		registry := ""
-		projectPath := ""
-		if partsColon[0] != "" {
-			partsSlash := strings.Split(partsColon[0], "/")
-			if len(partsSlash) == 1 {
-				projectPath = partsSlash[0]
-			} else {
-				registry = partsSlash[0]
-				projectPath = strings.Join(partsSlash[1:], "/")
-			}
+
+		gitURL, gitPath, err := TODO.ParseGitURLandPath(partsColon[0])
+		if err != nil {
+			return Target{}, err
 		}
+
 		return Target{
-			Registry:    registry,
-			ProjectPath: projectPath,
-			Tag:         tag,
-			Target:      partsPlus[1],
+			GitURL:  gitURL,
+			GitPath: gitPath,
+			Tag:     tag,
+			Target:  partsPlus[1],
 		}, nil
 	}
 }
@@ -144,16 +250,15 @@ func JoinTargets(target1 Target, target2 Target) (Target, error) {
 	if target1.IsRemote() {
 		// target1 is remote. Turn relative targets into remote targets.
 		if !ret.IsRemote() {
-			ret.Registry = target1.Registry
-			ret.ProjectPath = target1.ProjectPath
+			ret.GitURL = target1.GitURL
+			ret.GitPath = target1.GitPath
 			ret.Tag = target1.Tag
 			if ret.IsLocalExternal() {
 				if path.IsAbs(ret.LocalPath) {
 					return Target{}, fmt.Errorf(
 						"Absolute path %s not supported as reference in external target context", ret.LocalPath)
 				}
-				ret.ProjectPath = path.Join(
-					target1.ProjectPath, ret.LocalPath)
+				ret.GitPath = path.Join(target1.GitPath, ret.LocalPath)
 				ret.LocalPath = ""
 			} else if ret.IsLocalInternal() {
 				ret.LocalPath = ""

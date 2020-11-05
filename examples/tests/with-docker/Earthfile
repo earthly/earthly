@@ -2,7 +2,7 @@ FROM earthly/dind:alpine
 
 all:
     BUILD +docker-load-test
-    BUILD +dind-test
+    #BUILD +dind-test
     BUILD +docker-pull-test
     BUILD +load-parallel-test
 

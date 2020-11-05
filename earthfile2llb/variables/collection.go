@@ -194,7 +194,7 @@ func (c *Collection) WithBuiltinBuildArgs(target domain.Target, gitMeta *buildco
 		}
 		ret.variables["EARTHLY_GIT_TAG"] = NewConstant(tag)
 		ret.variables["EARTHLY_GIT_ORIGIN_URL"] = NewConstant(gitMeta.RemoteURL)
-		ret.variables["EARTHLY_GIT_PROJECT_NAME"] = NewConstant(gitMeta.GitProject)
+		//ret.variables["EARTHLY_GIT_PROJECT_NAME"] = NewConstant(gitMeta.GitProject)
 	}
 	return ret
 }
