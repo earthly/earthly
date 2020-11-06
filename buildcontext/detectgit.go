@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"os/exec"
-	"path"
 	"path/filepath"
 	"strings"
 
@@ -252,7 +251,6 @@ func TargetWithGitMeta(target domain.Target, gitMeta *GitMetadata) domain.Target
 		return target
 	}
 	targetRet := target
-	_ = path.Join
 	if targetRet.Tag == "" {
 		if len(gitMeta.Tags) > 0 {
 			targetRet.Tag = gitMeta.Tags[0]
