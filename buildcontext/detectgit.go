@@ -26,11 +26,9 @@ type GitMetadata struct {
 	BaseDir   string
 	RelDir    string
 	RemoteURL string
-	//GitVendor string
-	//GitProject string
-	Hash   string
-	Branch []string
-	Tags   []string
+	Hash      string
+	Branch    []string
+	Tags      []string
 }
 
 // Metadata performs git metadata detection on the provided directory.
@@ -47,17 +45,10 @@ func Metadata(ctx context.Context, dir string) (*GitMetadata, error) {
 	if err != nil {
 		return nil, err
 	}
-	//remoteURL, err := detectGitRemoteURL(ctx, dir)
-	//if err != nil {
-	//	return nil, err
-	//}
-	//var vendor, project string
-	//if remoteURL != "" {
-	//	vendor, project, err = parseGitRemoteURL(remoteURL)
-	//	if err != nil {
-	//		return nil, err
-	//	}
-	//}
+	remoteURL, err := detectGitRemoteURL(ctx, dir)
+	if err != nil {
+		return nil, err
+	}
 	hash, err := detectGitHash(ctx, dir)
 	if err != nil {
 		return nil, err
@@ -81,13 +72,12 @@ func Metadata(ctx context.Context, dir string) (*GitMetadata, error) {
 	}
 
 	return &GitMetadata{
-		BaseDir: filepath.ToSlash(baseDir),
-		RelDir:  filepath.ToSlash(relDir),
-		//GitVendor: vendor,
-		//GitProject: project,
-		Hash:   hash,
-		Branch: branch,
-		Tags:   tags,
+		BaseDir:   filepath.ToSlash(baseDir),
+		RelDir:    filepath.ToSlash(relDir),
+		RemoteURL: remoteURL,
+		Hash:      hash,
+		Branch:    branch,
+		Tags:      tags,
 	}, nil
 }
 
@@ -96,11 +86,9 @@ func (gm *GitMetadata) Clone() *GitMetadata {
 	return &GitMetadata{
 		BaseDir: gm.BaseDir,
 		RelDir:  gm.RelDir,
-		//GitVendor: gm.GitVendor,
-		//GitProject: gm.GitProject,
-		Hash:   gm.Hash,
-		Branch: gm.Branch,
-		Tags:   gm.Tags,
+		Hash:    gm.Hash,
+		Branch:  gm.Branch,
+		Tags:    gm.Tags,
 	}
 }
 
@@ -265,8 +253,6 @@ func TargetWithGitMeta(target domain.Target, gitMeta *GitMetadata) domain.Target
 	}
 	targetRet := target
 	_ = path.Join
-	//targetRet.Registry = gitMeta.GitVendor
-	//targetRet.ProjectPath = path.Join(gitMeta.GitProject, gitMeta.RelDir)
 	if targetRet.Tag == "" {
 		if len(gitMeta.Tags) > 0 {
 			targetRet.Tag = gitMeta.Tags[0]

@@ -31,8 +31,6 @@ type gitResolver struct {
 type resolvedGitProject struct {
 	// gitMetaAndEarthfileRef is the ref containing the git metadata and build files.
 	gitMetaAndEarthfileRef gwclient.Reference
-	// gitProject is the git project identifier. For GitHub, this is <username>/<project>.
-	//gitProject string
 	// hash is the git hash.
 	hash string
 	// branches is the git branches.
@@ -95,11 +93,9 @@ func (gr *gitResolver) resolveEarthProject(ctx context.Context, gwClient gwclien
 			BaseDir:   "",
 			RelDir:    subDir,
 			RemoteURL: gitURL,
-			//GitVendor:  target.Registry,
-			//GitProject: rgp.gitProject,
-			Hash:   rgp.hash,
-			Branch: rgp.branches,
-			Tags:   rgp.tags,
+			Hash:      rgp.hash,
+			Branch:    rgp.branches,
+			Tags:      rgp.tags,
 		},
 	}, nil
 }
@@ -203,7 +199,6 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, gwClient gwclient.
 		hash:                   gitHash,
 		branches:               gitBranches2,
 		tags:                   gitTags2,
-		//gitProject:             "thishere" + gitURL, //fmt.Sprintf("%s/%s", githubUsername, githubProject),
 		state: llbgit.Git(
 			gitURL,
 			gitHash,
