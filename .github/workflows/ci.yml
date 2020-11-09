@@ -44,7 +44,7 @@ jobs:
       - name: Execute test similar to homebrew test in https://github.com/Homebrew/homebrew-core/blob/master/Formula/earthly.rb
         run: ./build/linux/amd64/earth --buildkit-host 127.0.0.1 ./examples/tests/with-docker+all | grep 'Error while dialing invalid address 127.0.0.1'
       - name: Docker Login
-        run: docker login --username vladaionescu --password "${{ secrets.DOCKERHUB_TOKEN }}"
+        run: docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password "${{ secrets.DOCKERHUB_TOKEN }}"
         if: github.event.pull_request.head.repo.full_name == github.repository
       - name: Execute private image test
         run: ./build/linux/amd64/earth --no-output ./examples/tests+private-image-test

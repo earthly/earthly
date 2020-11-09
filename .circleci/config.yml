@@ -8,6 +8,9 @@ jobs:
     steps:
       - checkout
       - run:
+          name: Docker Login
+          command: "docker login --username $DOCKERHUB_USERNAME --password $DOCKERHUB_TOKEN"
+      - run:
           name: Install released earth
           command: "sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/latest/download/earth-linux-amd64 -O /usr/local/bin/earth && chmod +x /usr/local/bin/earth'"
       - run:
