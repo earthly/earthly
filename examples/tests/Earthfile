@@ -269,7 +269,7 @@ push-test:
         /usr/bin/earth-buildkitd-wrapper.sh --push +push-test | grep 'hello world'
 
 private-image-test:
-    FROM vladaionescu/private-test:latest
+    FROM earthly/private-test:latest
     RUN --entrypoint echo hello world
 
 gen-dockerfile-test:

@@ -87,7 +87,7 @@ jobs:
       - name: Build latest earth using released earth
         run: earth +for-linux
       - name: Docker Login
-        run: docker login --username vladaionescu --password "${{ secrets.DOCKERHUB_TOKEN }}"
+        run: docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password "${{ secrets.DOCKERHUB_TOKEN }}"
       - name: "Reset cache (TODO: This can be removed after the next release)"
         run: ./build/linux/amd64/earth prune --reset
       - name: Rebuild and push
