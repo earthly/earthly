@@ -19,6 +19,10 @@ var (
 	ErrNotAGitDir = errors.New("Not a git directory")
 	// ErrCouldNotDetectRemote is an error returned when git remote could not be detected or parsed.
 	ErrCouldNotDetectRemote = errors.New("Could not auto-detect or parse Git remote URL")
+	// ErrCouldNotDetectGitHash is an error returned when git hash could not be detected.
+	ErrCouldNotDetectGitHash = errors.New("Could not auto-detect or parse Git hash")
+	// ErrCouldNotDetectGitBranch is an error returned when git branch could not be detected.
+	ErrCouldNotDetectGitBranch = errors.New("Could not auto-detect or parse Git branch")
 )
 
 // GitMetadata is a collection of git information about a certain directory.
@@ -47,9 +51,11 @@ func Metadata(ctx context.Context, dir string) (*GitMetadata, error) {
 	if err != nil {
 		return nil, err
 	}
+	var retErr error
 	remoteURL, err := detectGitRemoteURL(ctx, dir)
 	if err != nil {
-		return nil, err
+		retErr = err
+		// Keep going.
 	}
 	var vendor, project string
 	if remoteURL != "" {
@@ -60,11 +66,13 @@ func Metadata(ctx context.Context, dir string) (*GitMetadata, error) {
 	}
 	hash, err := detectGitHash(ctx, dir)
 	if err != nil {
-		return nil, err
+		retErr = err
+		// Keep going.
 	}
 	branch, err := detectGitBranch(ctx, dir)
 	if err != nil {
-		return nil, err
+		retErr = err
+		// Keep going.
 	}
 	tags, err := detectGitTags(ctx, dir)
 	if err != nil {
@@ -77,18 +85,19 @@ func Metadata(ctx context.Context, dir string) (*GitMetadata, error) {
 		return nil, errors.Wrapf(err, "get rel dir for %s when base git path is %s", dir, baseDir)
 	}
 	if !isRel {
-		return nil, errors.New("Unexpected non-relative path within git dir")
+		return nil, errors.New("unexpected non-relative path within git dir")
 	}
 
 	return &GitMetadata{
 		BaseDir:    filepath.ToSlash(baseDir),
 		RelDir:     filepath.ToSlash(relDir),
+		RemoteURL:  remoteURL,
 		GitVendor:  vendor,
 		GitProject: project,
 		Hash:       hash,
 		Branch:     branch,
 		Tags:       tags,
-	}, nil
+	}, retErr
 }
 
 // Clone returns a copy of the GitMetadata object.
@@ -190,11 +199,11 @@ func detectGitHash(ctx context.Context, dir string) (string, error) {
 	cmd.Dir = dir
 	out, err := cmd.Output()
 	if err != nil {
-		return "", errors.Wrap(err, "detect git hash")
+		return "", errors.Wrapf(ErrCouldNotDetectGitHash, "returned error %s: %s", err.Error(), string(out))
 	}
 	outStr := string(out)
 	if outStr == "" {
-		return "", errors.New("No output returned for git hash")
+		return "", errors.Wrapf(ErrCouldNotDetectGitHash, "no remote origin url output")
 	}
 	return strings.SplitN(outStr, "\n", 2)[0], nil
 }
@@ -204,7 +213,7 @@ func detectGitBranch(ctx context.Context, dir string) ([]string, error) {
 	cmd.Dir = dir
 	out, err := cmd.Output()
 	if err != nil {
-		return nil, errors.Wrap(err, "detect git current branch")
+		return nil, errors.Wrapf(ErrCouldNotDetectGitBranch, "returned error %s: %s", err.Error(), string(out))
 	}
 	outStr := string(out)
 	if outStr != "" {
@@ -260,7 +269,7 @@ func gitRelDir(basePath string, path string) (string, bool, error) {
 
 // TargetWithGitMeta applies git metadata to the target naming.
 func TargetWithGitMeta(target domain.Target, gitMeta *GitMetadata) domain.Target {
-	if gitMeta == nil {
+	if gitMeta == nil || gitMeta.GitVendor == "" || gitMeta.GitProject == "" {
 		return target
 	}
 	targetRet := target

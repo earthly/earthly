@@ -37,6 +37,7 @@ ga:
     BUILD +dotenv-test
     BUILD +env-test
     BUILD +no-cache-local-artifact-test
+    BUILD +empty-git-test
     BUILD ./autocompletion+test-all
     BUILD ./with-docker+all
     BUILD ./with-docker-compose+all
@@ -328,6 +329,18 @@ no-cache-local-artifact-test:
         -- --no-cache +test
     RUN ! diff file.txt old.txt
 
+empty-git-test:
+    RUN git init
+    COPY empty-git.earth ./Earthfile
+    RUN --privileged \
+        --entrypoint \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        -- --no-output +test-empty
+    RUN git remote add origin https://github.com/earthly/earthly.git
+    RUN --privileged \
+        --entrypoint \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        -- --no-output +test-origin-no-hash
 
 eine-test-base:
     FROM docker:19.03.12-dind
