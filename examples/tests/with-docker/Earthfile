@@ -2,7 +2,8 @@ FROM earthly/dind:alpine
 
 all:
     BUILD +docker-load-test
-    BUILD +dind-test
+    # Temporarily disabled.
+    # BUILD +undeclared-pull-test
     BUILD +docker-pull-test
     BUILD +load-parallel-test
 
@@ -25,10 +26,12 @@ docker-load-test:
             docker run hello-world
     END
 
-dind-test:
-    WITH DOCKER
-        RUN docker run hello-world
-    END
+# This test is testing whether a pull within a WITH DOCKER would work.
+# Currently it fails occasionally due to DockerHub rate limiting.
+# undeclared-pull-test:
+#     WITH DOCKER
+#         RUN docker run hello-world
+#     END
 
 docker-pull-test:
     # Note that this is mainly a smoke test, because the RUN command
