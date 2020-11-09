@@ -31,11 +31,12 @@ func (lr *localResolver) resolveLocal(ctx context.Context, target domain.Target)
 		if err != nil {
 			if errors.Is(err, ErrNoGitBinary) ||
 				errors.Is(err, ErrNotAGitDir) ||
-				errors.Is(err, ErrCouldNotDetectRemote) {
+				errors.Is(err, ErrCouldNotDetectRemote) ||
+				errors.Is(err, ErrCouldNotDetectGitHash) ||
+				errors.Is(err, ErrCouldNotDetectGitBranch) {
 				// Keep going anyway. Either not a git dir, or git not installed, or
 				// remote not detected.
-				if errors.Is(err, ErrNoGitBinary) ||
-					errors.Is(err, ErrCouldNotDetectRemote) {
+				if errors.Is(err, ErrNoGitBinary) {
 					// TODO: Log this properly in the console.
 					fmt.Printf("Warning: %s\n", err.Error())
 				}
