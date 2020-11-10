@@ -12,7 +12,7 @@
 
 **🛠 Programming language agnostic** - *allows use of language-specific build tooling*
 
-**🔁 Reproducible builds** - *does not depend on user's local installation. Runs the same locally, as in CI*
+**🔁 Repeatable builds** - *does not depend on user's local installation. Runs the same locally, as in CI*
 
 **⛓ Parallelism that just works** - *builds in parallel without special considerations the user has to make*
 
@@ -22,7 +22,7 @@
 
 ---------------------------------
 
-[🌍 Earthly](https://earthly.dev) is a build automation tool for the container era. It allows you to execute all your builds in containers. This makes them self-contained, reproducible, portable and parallel. You can use Earthly to create Docker images and artifacts (eg binaries, packages, arbitrary files).
+[🌍 Earthly](https://earthly.dev) is a build automation tool for the container era. It allows you to execute all your builds in containers. This makes them self-contained, repeatable, portable and parallel. You can use Earthly to create Docker images and artifacts (eg binaries, packages, arbitrary files).
 
 <br/>
 <br/>
@@ -44,11 +44,11 @@
 
 ### 🔁 Reproduce CI failures
 
-Earthly builds are self-contained, isolated and reproducible. Regardless of whether Earthly runs in your CI or on your laptop, there is a degree of guarantee that the build will run the same way. This allows for faster iteration on the build scripts and easier debugging when something goes wrong. No more `git commit -m "try again"`.
+Earthly builds are self-contained, isolated and repeatable. Regardless of whether Earthly runs in your CI or on your laptop, there is a degree of guarantee that the build will run the same way. This allows for faster iteration on the build scripts and easier debugging when something goes wrong. No more `git commit -m "try again"`.
 
 ### 🤲 Builds that run the same for everyone
 
-Reproducible builds also mean that your build will run the same on your colleagues' laptop without any additional project-specific or language-specific setup. This fosters better developer collaboration and mitigates works-for-me type of issues.
+Repeatable builds also mean that your build will run the same on your colleagues' laptop without any additional project-specific or language-specific setup. This fosters better developer collaboration and mitigates works-for-me type of issues.
 
 ### 🚀 From zero to working build in minutes
 
@@ -352,14 +352,14 @@ You may also optionally port your Dockerfiles to Earthly entirely. Translating D
 
 ### How is Earthly different from Bazel?
 
-[Bazel](https://bazel.build) is a build tool developed by Google for the purpose of optimizing speed, correctness and reproducibility of their internal monorepo codebase. Earthly draws inspiration from some of the principles of Bazel (mainly reproducibility), but it is different in a few key ways:
+[Bazel](https://bazel.build) is a build tool developed by Google for the purpose of optimizing speed, correctness and reproducibility of their internal monorepo codebase. Earthly draws inspiration from some of the principles of Bazel (mainly the idea of repeatable builds), but it is different in a few key ways:
 
 * Earthly does not replace language-specific tools, like Maven, Gradle, Webpack etc. Instead, it leverages and integrates with them. Adopting Bazel usually means that all build files need to be completely rewritten. This is not the case with Earthly as it mainly acts as the glue between builds.
 * The learning curve of Earthly is more accessible, especially if the user already has experience with Dockerfiles. Bazel, on the other hand, introduces some completely new concepts.
 * Bazel has a purely descriptive specification language. Earthly is a mix of descriptive and imperative language.
-* Bazel uses tight control of compiler toolchain to achieve consistent builds, whereas Earthly uses containers and well-defined inputs.
+* Bazel uses tight control of compiler toolchain to achieve true hermetic builds, whereas Earthly uses containers and well-defined inputs.
 
-Overall, compared to Bazel, Earthly sacrifices a little correctness and reproducibility in favor of significantly better usability and composability with existing open-source technologies.
+Overall, compared to Bazel, Earthly sacrifices some correctness and reproducibility in favor of significantly better usability and composability with existing open-source technologies.
 
 <br/>
 <br/>
