@@ -679,6 +679,10 @@ func (c *Converter) internalRun(ctx context.Context, args []string, secretKeyVal
 }
 
 func (c *Converter) readArtifact(ctx context.Context, mts *states.MultiTarget, artifact domain.Artifact) ([]byte, error) {
+	if mts.Final.ArtifactsState.Output() == nil {
+		// ArtifactsState is scratch - no artifact has been copied.
+		return nil, errors.Errorf("artifact %s not found; no SAVE ARTIFACT command was issued in %s", artifact.String(), artifact.Target.String())
+	}
 	ref, err := llbutil.StateToRef(ctx, c.gwClient, mts.Final.ArtifactsState)
 	if err != nil {
 		return nil, errors.Wrap(err, "state to ref solve artifact")
@@ -687,7 +691,7 @@ func (c *Converter) readArtifact(ctx context.Context, mts *states.MultiTarget, a
 		Filename: artifact.Artifact,
 	})
 	if err != nil {
-		return nil, errors.Wrapf(err, "read artifact %s", artifact.Artifact)
+		return nil, errors.Wrapf(err, "read artifact %s", artifact.String())
 	}
 	return artDt, nil
 }
