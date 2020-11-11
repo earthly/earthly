@@ -1,0 +1,35 @@
+FROM alpine:3.11
+WORKDIR /test
+
+all:
+    BUILD +test-copy-build-context
+    BUILD +test-copy-artifact1
+    BUILD +test-copy-artifact2
+    BUILD +test-copy-artifact3
+
+test-copy-build-context:
+    COPY file-with-\+.txt ./
+    RUN test "content" == "$(cat file-with-+.txt)"
+
+test-copy-artifact1:
+    COPY artifact-with-plus1+another-file-with-\+.txt ./
+    RUN test "test" == "$(cat another-file-with-+.txt)"
+
+test-copy-artifact2:
+    COPY artifact-with-plus2+yet-another-file-with-\+.txt ./
+    RUN test "test" == "$(cat yet-another-file-with-+.txt)"
+
+test-copy-artifact3:
+    BUILD +artifact-with-plus3
+
+artifact-with-plus1:
+    RUN echo "test" >another-file-with-+.txt
+    SAVE ARTIFACT ./another-file-with-+.txt
+
+artifact-with-plus2:
+    RUN echo "test" >file.txt
+    SAVE ARTIFACT ./file.txt ./yet-another-file-with-+.txt
+
+artifact-with-plus3:
+    RUN echo "test" >file.txt
+    SAVE ARTIFACT ./file.txt AS LOCAL ./still-+.txt

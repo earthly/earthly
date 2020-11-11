@@ -38,6 +38,7 @@ ga:
     BUILD +env-test
     BUILD +no-cache-local-artifact-test
     BUILD +empty-git-test
+    BUILD +escape-test
     BUILD ./autocompletion+test-all
     BUILD ./with-docker+all
     BUILD ./with-docker-compose+all
@@ -341,6 +342,15 @@ empty-git-test:
         --entrypoint \
         --mount=type=tmpfs,target=/tmp/earthly \
         -- --no-output +test-origin-no-hash
+
+escape-test:
+    COPY escape.earth ./Earthfile
+    RUN echo "content" >file-with-+.txt
+    RUN --privileged \
+        --entrypoint \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        -- --no-output +all
+    RUN test "test" == "$(cat ./still-+.txt)"
 
 eine-test-base:
     FROM docker:19.03.12-dind
