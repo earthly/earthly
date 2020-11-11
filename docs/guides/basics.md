@@ -1,6 +1,6 @@
 # Basics
 
-Earthly is a build automation tool where docker containers are used to enforce reproducibility. Earthly is meant to be run on your local system and in your CI.  Implicit caching and parallelism mean your build will be reproducible and fast.
+Earthly is a build automation tool where docker containers are used to enforce build repeatability. Earthly is meant to be run on your local system and in your CI. Implicit caching and parallelism mean your build will be repeatable and fast.
 
 Let's walk through a basic example of using Earthly.
 
