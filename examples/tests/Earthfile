@@ -350,7 +350,7 @@ escape-test:
     RUN --privileged \
         --entrypoint \
         --mount=type=tmpfs,target=/tmp/earthly \
-        -- --no-output +all
+        -- +all
     RUN test "test" == "$(cat ./still-+.txt)"
 
 escape-dir-test:

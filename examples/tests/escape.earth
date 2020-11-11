@@ -12,11 +12,11 @@ test-copy-build-context:
     RUN test "content" == "$(cat file-with-+.txt)"
 
 test-copy-artifact1:
-    COPY artifact-with-plus1+another-file-with-\+.txt ./
+    COPY +artifact-with-plus1/another-file-with-\+.txt ./
     RUN test "test" == "$(cat another-file-with-+.txt)"
 
 test-copy-artifact2:
-    COPY artifact-with-plus2+yet-another-file-with-\+.txt ./
+    COPY +artifact-with-plus2/yet-another-file-with-\+.txt ./
     RUN test "test" == "$(cat yet-another-file-with-+.txt)"
 
 test-copy-artifact3:
