@@ -23,13 +23,13 @@ test-copy-artifact3:
     BUILD +artifact-with-plus3
 
 artifact-with-plus1:
-    RUN echo "test" >another-file-with-+.txt
+    RUN printf "test" >another-file-with-+.txt
     SAVE ARTIFACT ./another-file-with-+.txt
 
 artifact-with-plus2:
-    RUN echo "test" >file.txt
+    RUN printf "test" >file.txt
     SAVE ARTIFACT ./file.txt ./yet-another-file-with-+.txt
 
 artifact-with-plus3:
-    RUN echo "test" >file.txt
+    RUN printf "test" >file.txt
     SAVE ARTIFACT ./file.txt AS LOCAL ./still-+.txt
