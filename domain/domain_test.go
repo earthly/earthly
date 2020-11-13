@@ -2,6 +2,8 @@ package domain
 
 import (
 	"testing"
+
+	. "github.com/stretchr/testify/assert"
 )
 
 var targetTests = []struct {
@@ -28,12 +30,8 @@ func TestTargetParser(t *testing.T) {
 	for _, tt := range targetTests {
 		t.Run(tt.in, func(t *testing.T) {
 			out, err := ParseTarget(tt.in)
-			if err != nil {
-				t.Fatal(err)
-			}
-			if out != tt.out {
-				t.Errorf("got %+v, want %+v", out, tt.out)
-			}
+			NoError(t, err, "parse target failed")
+			Equal(t, tt.out, out)
 		})
 	}
 }
@@ -42,9 +40,7 @@ func TestTargetToString(t *testing.T) {
 	for _, tt := range targetTests {
 		t.Run(tt.in, func(t *testing.T) {
 			str := tt.out.String()
-			if tt.in != str {
-				t.Errorf("got %+v, want %+v", str, tt.in)
-			}
+			Equal(t, tt.in, str)
 		})
 	}
 }
@@ -83,12 +79,8 @@ func TestArtifactParser(t *testing.T) {
 	for _, tt := range artifactTests {
 		t.Run(tt.in, func(t *testing.T) {
 			out, err := ParseArtifact(tt.in)
-			if err != nil {
-				t.Fatal(err)
-			}
-			if out != tt.out {
-				t.Errorf("got %+v, want %+v", out, tt.out)
-			}
+			NoError(t, err, "parse artifact failed")
+			Equal(t, tt.out, out)
 		})
 	}
 }
@@ -97,9 +89,7 @@ func TestArtifactToString(t *testing.T) {
 	for _, tt := range artifactTests {
 		t.Run(tt.in, func(t *testing.T) {
 			str := tt.out.String()
-			if tt.in != str {
-				t.Errorf("got %+v, want %+v", str, tt.in)
-			}
+			Equal(t, tt.in, str)
 		})
 	}
 }
