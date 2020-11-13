@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/earthfile2llb/parser"
 	"github.com/pkg/errors"
 )
@@ -139,7 +140,7 @@ func (l *listener) ExitFromStmt(c *parser.FromStmtContext) {
 		}
 		return
 	}
-	imageName := l.expandArgs(fs.Arg(0))
+	imageName := l.expandArgs(escapeSlashPlus(fs.Arg(0)))
 	for i, ba := range buildArgs.Args {
 		buildArgs.Args[i] = l.expandArgs(ba)
 	}
@@ -172,7 +173,12 @@ func (l *listener) ExitFromDockerfileStmt(c *parser.FromDockerfileStmtContext) {
 		l.err = errors.New("invalid number of arguments for FROM DOCKERFILE")
 		return
 	}
-	path := l.expandArgs(fs.Arg(0))
+	path := l.expandArgs(escapeSlashPlus(fs.Arg(0)))
+	_, parseErr := domain.ParseArtifact(path)
+	if parseErr != nil {
+		// Treat as context path, not artifact path.
+		path = l.expandArgs(fs.Arg(0))
+	}
 	for i, ba := range buildArgs.Args {
 		buildArgs.Args[i] = l.expandArgs(ba)
 	}
@@ -213,9 +219,6 @@ func (l *listener) ExitCopyStmt(c *parser.CopyStmtContext) {
 		return
 	}
 	srcs := fs.Args()[:fs.NArg()-1]
-	for i, src := range srcs {
-		srcs[i] = l.expandArgs(src)
-	}
 	dest := l.expandArgs(fs.Arg(fs.NArg() - 1))
 	for i, ba := range buildArgs.Args {
 		buildArgs.Args[i] = l.expandArgs(ba)
@@ -223,15 +226,18 @@ func (l *listener) ExitCopyStmt(c *parser.CopyStmtContext) {
 	*chown = l.expandArgs(*chown)
 	allClassical := true
 	allArtifacts := true
-	for _, src := range srcs {
-		if strings.Contains(src, "+") {
+	for i, src := range srcs {
+		// If it parses as an artifact, treat as artifact.
+		_, parseErr := domain.ParseArtifact(l.expandArgs(escapeSlashPlus(src)))
+		if parseErr == nil {
 			allClassical = false
 		} else {
+			srcs[i] = l.expandArgs(src)
 			allArtifacts = false
 		}
 	}
 	if !allClassical && !allArtifacts {
-		l.err = fmt.Errorf("Combining artifacts and build context arguments in a single COPY command is not allowed: %v", srcs)
+		l.err = fmt.Errorf("combining artifacts and build context arguments in a single COPY command is not allowed: %v", srcs)
 		return
 	}
 	if allArtifacts {
@@ -433,7 +439,7 @@ func (l *listener) ExitBuildStmt(c *parser.BuildStmtContext) {
 		l.err = fmt.Errorf("invalid number of arguments for BUILD: %s", l.stmtWords)
 		return
 	}
-	fullTargetName := l.expandArgs(fs.Arg(0))
+	fullTargetName := l.expandArgs(escapeSlashPlus(fs.Arg(0)))
 	for i, arg := range buildArgs.Args {
 		buildArgs.Args[i] = l.expandArgs(arg)
 	}
@@ -802,7 +808,7 @@ func (l *listener) ExitWithDockerStmt(c *parser.WithDockerStmtContext) {
 		composeServices.Args[i] = l.expandArgs(cs)
 	}
 	for i, load := range loads.Args {
-		loads.Args[i] = l.expandArgs(load)
+		loads.Args[i] = l.expandArgs(escapeSlashPlus(load))
 	}
 	for i, ba := range buildArgs.Args {
 		buildArgs.Args[i] = l.expandArgs(ba)
@@ -993,4 +999,9 @@ func parseLoad(loadStr string) (string, string, error) {
 	}
 	// --load <image-name>=<target-name>
 	return splitLoad[0], splitLoad[1], nil
+}
+
+func escapeSlashPlus(str string) string {
+	// TODO: This is not entirely correct in a string like "\\\\+".
+	return strings.ReplaceAll(str, "\\+", "\\\\+")
 }

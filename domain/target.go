@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"path"
 	"strings"
+
+	"github.com/pkg/errors"
 )
 
 // Target is a earth target identifier.
@@ -43,14 +45,14 @@ func (et Target) IsRemote() bool {
 // String returns a string representation of the Target.
 func (et Target) String() string {
 	if et.IsLocalExternal() {
-		return fmt.Sprintf("%s+%s", et.LocalPath, et.Target)
+		return fmt.Sprintf("%s+%s", escapePlus(et.LocalPath), et.Target)
 	}
 	if et.IsRemote() {
-		tag := fmt.Sprintf(":%s", et.Tag)
+		tag := fmt.Sprintf(":%s", escapePlus(et.Tag))
 		if et.Tag == "" {
 			tag = ""
 		}
-		return fmt.Sprintf("%s/%s%s+%s", et.Registry, et.ProjectPath, tag, et.Target)
+		return fmt.Sprintf("%s/%s%s+%s", escapePlus(et.Registry), escapePlus(et.ProjectPath), tag, et.Target)
 	}
 	// Local internal.
 	return fmt.Sprintf("+%s", et.Target)
@@ -59,11 +61,11 @@ func (et Target) String() string {
 // StringCanonical returns a string representation of the Target, in canonical form.
 func (et Target) StringCanonical() string {
 	if et.ProjectPath != "" {
-		tag := fmt.Sprintf(":%s", et.Tag)
+		tag := fmt.Sprintf(":%s", escapePlus(et.Tag))
 		if et.Tag == "" {
 			tag = ""
 		}
-		return fmt.Sprintf("%s/%s%s+%s", et.Registry, et.ProjectPath, tag, et.Target)
+		return fmt.Sprintf("%s/%s%s+%s", escapePlus(et.Registry), escapePlus(et.ProjectPath), tag, et.Target)
 	}
 	return et.String()
 }
@@ -71,21 +73,24 @@ func (et Target) StringCanonical() string {
 // ProjectCanonical returns a string representation of the project of the target, in canonical form.
 func (et Target) ProjectCanonical() string {
 	if et.ProjectPath != "" {
-		tag := fmt.Sprintf(":%s", et.Tag)
+		tag := fmt.Sprintf(":%s", escapePlus(et.Tag))
 		if et.Tag == "" {
 			tag = ""
 		}
-		return fmt.Sprintf("%s/%s%s", et.Registry, et.ProjectPath, tag)
+		return fmt.Sprintf("%s/%s%s", escapePlus(et.Registry), escapePlus(et.ProjectPath), tag)
 	}
 	if et.LocalPath == "." {
 		return ""
 	}
-	return path.Base(et.LocalPath)
+	return escapePlus(path.Base(et.LocalPath))
 }
 
 // ParseTarget parses a string into a Target.
 func ParseTarget(fullTargetName string) (Target, error) {
-	partsPlus := strings.SplitN(fullTargetName, "+", 2)
+	partsPlus, err := splitUnescapePlus(fullTargetName)
+	if err != nil {
+		return Target{}, err
+	}
 	if len(partsPlus) != 2 {
 		return Target{}, fmt.Errorf("Invalid target ref %s", fullTargetName)
 	}
@@ -174,4 +179,39 @@ func JoinTargets(target1 Target, target2 Target) (Target, error) {
 		}
 	}
 	return ret, nil
+}
+
+// splitUnescapePlus performs a split on "+", but it accounts for escaping as "\+".
+func splitUnescapePlus(str string) ([]string, error) {
+	escape := false
+	ret := make([]string, 0, 2)
+	word := make([]rune, 0, len(str))
+	for _, c := range str {
+		if escape {
+			word = append(word, c)
+			escape = false
+			continue
+		}
+
+		switch c {
+		case '\\':
+			escape = true
+		case '+':
+			ret = append(ret, string(word))
+			word = word[:0]
+		default:
+			word = append(word, c)
+		}
+	}
+	if escape {
+		return nil, errors.Errorf("cannot split by +: unterminated escape sequence at the end of %s", str)
+	}
+	if len(word) > 0 {
+		ret = append(ret, string(word))
+	}
+	return ret, nil
+}
+
+func escapePlus(str string) string {
+	return strings.ReplaceAll(str, "+", "\\+")
 }

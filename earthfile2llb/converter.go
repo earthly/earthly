@@ -159,12 +159,9 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 	}
 	var buildContext llb.State
 	var dfData []byte
-	if strings.Contains(contextPath, "+") {
+	contextArtifact, parseErr := domain.ParseArtifact(contextPath)
+	if parseErr == nil {
 		// The Dockerfile and build context are from a target's artifact.
-		contextArtifact, err := domain.ParseArtifact(contextPath)
-		if err != nil {
-			return errors.Wrapf(err, "parse artifact %s", contextPath)
-		}
 		// TODO: The build args are used for both the artifact and the Dockerfile. This could be
 		//       confusing to the user.
 		mts, err := c.Build(ctx, contextArtifact.Target.String(), buildArgs)

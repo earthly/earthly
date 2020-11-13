@@ -1,0 +1,5 @@
+FROM alpine:3.11
+
+test:
+    COPY ./dir-with-\+-in-it+test/file.txt ./
+    RUN test "test" == "$(cat ./file.txt)"
