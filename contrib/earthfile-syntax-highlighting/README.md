@@ -1,4 +1,4 @@
-# earthfile-syntax-highlighting README
+# earthfile-syntax-highlighting
 
 <div align="center"><img alt="Earthly" width="700px" src="https://github.com/earthly/earthly/raw/main/img/logo-banner-white-bg.png" /></div>
 
@@ -7,6 +7,14 @@ Syntax highlighting for [Earthly](https://earthly.dev) Earthfiles.
 For an introduction of Earthly see the [Earthly GitHub repository](https://github.com/earthly/earthly) or the [Earthly documentation](https://docs.earthly.dev).
 
 ## Release Notes
+
+### 0.0.7
+
+* Fix README image.
+
+### 0.0.6
+
+* Fix quote escaping.
 
 ### 0.0.5
 
