@@ -29,7 +29,10 @@ release-github:
         ../+earth-all/* ./release/
     RUN ls ./release
     RUN test -f ./release/earth-linux-amd64 && \
-        test -f ./release/earth-darwin-amd64
+        test -f ./release/earth-darwin-amd64 && \
+        test -f ./release/earth-linux-arm5 && \
+        test -f ./release/earth-linux-arm6 && \
+        test -f ./release/earth-linux-arm7
     ARG BODY="No details provided"
     RUN --secret GITHUB_TOKEN=+secrets/GITHUB_TOKEN test -n "$GITHUB_TOKEN"
     RUN --push \
