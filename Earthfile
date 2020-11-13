@@ -106,6 +106,7 @@ earth:
     ARG GOARM
     ARG GO_EXTRA_LDFLAGS="-linkmode external -extldflags -static"
     RUN test -n "$GOOS" && test -n "$GOARCH"
+    RUN test "$GOARCH" != "ARM" || test -n "$GOARM"
     ARG EARTHLY_TARGET_TAG_DOCKER
     ARG VERSION=$EARTHLY_TARGET_TAG_DOCKER
     ARG EARTHLY_GIT_HASH
@@ -129,12 +130,28 @@ earth:
             cmd/earth/*.go
     SAVE ARTIFACT ./build/tags
     SAVE ARTIFACT ./build/ldflags
-    SAVE ARTIFACT build/earth AS LOCAL "build/$GOOS/$GOARCH/earth"
+    SAVE ARTIFACT build/earth AS LOCAL "build/$GOOS/$GOARCH$GOARM/earth"
 
 earth-arm5:
     COPY \
         --build-arg GOARCH=arm \
         --build-arg GOARM=5 \
+        --build-arg GO_EXTRA_LDFLAGS= \
+        +earth/* ./
+    SAVE ARTIFACT ./*
+
+earth-arm6:
+    COPY \
+        --build-arg GOARCH=arm \
+        --build-arg GOARM=6 \
+        --build-arg GO_EXTRA_LDFLAGS= \
+        +earth/* ./
+    SAVE ARTIFACT ./*
+
+earth-arm7:
+    COPY \
+        --build-arg GOARCH=arm \
+        --build-arg GOARM=7 \
         --build-arg GO_EXTRA_LDFLAGS= \
         +earth/* ./
     SAVE ARTIFACT ./*
@@ -151,6 +168,8 @@ earth-all:
     COPY +earth/earth ./earth-linux-amd64
     COPY +earth-darwin/earth ./earth-darwin-amd64
     COPY +earth-arm5/earth ./earth-linux-arm5
+    COPY +earth-arm6/earth ./earth-linux-arm6
+    COPY +earth-arm7/earth ./earth-linux-arm7
     SAVE ARTIFACT ./*
 
 earth-docker:
