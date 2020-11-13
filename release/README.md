@@ -50,26 +50,28 @@
 
 ### VS Code syntax highlighting
 
-First set the version to publish:
+* First set the version to publish:
+  ```bash
+  export VSCODE_RELEASE_TAG=...
+  ```
+  (You can see what is already published [here](https://marketplace.visualstudio.com/items?itemName=earthly.earthfile-syntax-highlighting))
+* Make sure that the version has release notes already in the [README](../contrib/earthfile-syntax-highlighting/README.md)
+* Ask Vlad for a token
+  ```bash
+  VSCE_TOKEN=.....
+  ```
+  (Vlad can generate one following [this guide](https://code.visualstudio.com/api/working-with-extensions/publishing-extension#get-a-personal-access-token))
 
-```bash
-export VSCODE_RELEASE_TAG=v0.0.3
-```
-
-(you can see what is already published at https://marketplace.visualstudio.com/items?itemName=earthly.earthfile-syntax-highlighting )
-
-Ask Vlad for a token
-
-```bash
-VSCE_TOKEN=.....
-```
-(vlad can generate one following this guide: https://code.visualstudio.com/api/working-with-extensions/publishing-extension#get-a-personal-access-token )
-
-Then publish it:
-```bash
-./earth \
-  --build-arg VSCODE_RELEASE_TAG \
-  --secret VSCE_TOKEN \
-  --push \
-  +release-vscode-syntax-highlighting
-```
+* Then publish it:
+  ```bash
+  ./earth \
+    --build-arg VSCODE_RELEASE_TAG \
+    --secret VSCE_TOKEN \
+    --push \
+    ./release+release-vscode-syntax-highlighting
+  ```
+* Finally, tag git for future reference
+  ```bash
+  git tag "vscode-syntax-highlighting-$VSCODE_RELEASE_TAG"
+  git push origin "vscode-syntax-highlighting-$VSCODE_RELEASE_TAG"
+  ```
