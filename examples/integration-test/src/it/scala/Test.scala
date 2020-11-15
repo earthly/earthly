@@ -14,7 +14,7 @@ class DatabaseIntegrationTest extends FlatSpec {
     "postgres"
   )
 
-  "An table" should "have country data" in {
+  "A table" should "have country data" in {
     val dal = new DataAccessLayer()
     assert(dal.countries(5).transact(xa).unsafeRunSync.size == 5)
   }

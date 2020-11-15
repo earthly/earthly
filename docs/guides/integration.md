@@ -78,7 +78,7 @@ class DatabaseIntegrationTest extends FlatSpec {
     "postgres"
   )
 
-  "An table" should "have country data" in {
+  "A table" should "have country data" in {
     val dal = new DataAccessLayer()
     assert(dal.countries(5).transact(xa).unsafeRunSync.size == 5)
   }
@@ -88,7 +88,7 @@ Ouput:
 ``` bash
 >sbt it:test
 [info] DatabaseIntegrationTest:
-[info] An table
+[info] A table
 [info] - should have country data
 [info] Run completed in 2 seconds, 954 milliseconds.
 [info] Total number of tests run: 1
@@ -247,7 +247,7 @@ We can now run our it tests both locally and in the CI pipeline, in a reproducib
 +integration-test | Creating local-postgres-ui ... done
 +integration-test | +integration-test | [info] Loading settings for project scala-example-build from plugins.sbt ...
 +integration-test | [info] DatabaseIntegrationTest:
-+integration-test | [info] An table
++integration-test | [info] A table
 +integration-test | [info] - should have country data
 +integration-test | [info] Run completed in 7 seconds, 923 milliseconds.
 +integration-test | [info] Tests: succeeded 1, failed 0, canceled 0, ignored 0, pending 0
