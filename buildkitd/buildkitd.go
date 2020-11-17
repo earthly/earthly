@@ -3,7 +3,6 @@ package buildkitd
 import (
 	"bytes"
 	"context"
-	"encoding/base64"
 	"fmt"
 	"os"
 	"os/exec"
@@ -217,31 +216,10 @@ func Start(ctx context.Context, image string, settings Settings, reset bool) err
 		args = append(args,
 			"-p", fmt.Sprintf("127.0.0.1:%d:8373", settings.DebuggerPort))
 	}
-	// Apply some git-related settings.
-	if settings.SSHAuthSock != "" {
-		args = append(args,
-			"-v", fmt.Sprintf("%s:/ssh-agent.sock", settings.SSHAuthSock),
-			"-e", "SSH_AUTH_SOCK=/ssh-agent.sock",
-		)
-	}
 
 	args = append(args,
 		"-e", fmt.Sprintf("CACHE_SIZE_MB=%d", settings.CacheSizeMb),
-		"-e", "EARTHLY_GIT_CONFIG",
-		"-e", fmt.Sprintf("GIT_URL_INSTEAD_OF=%s", settings.GitURLInsteadOf),
 	)
-	env = append(env,
-		fmt.Sprintf("EARTHLY_GIT_CONFIG=%s", base64.StdEncoding.EncodeToString([]byte(settings.GitConfig))),
-	)
-
-	for i, data := range settings.GitCredentials {
-		args = append(args,
-			"-e", fmt.Sprintf("GIT_CREDENTIALS_%d", i),
-		)
-		env = append(env,
-			fmt.Sprintf("GIT_CREDENTIALS_%d=%s", i, base64.StdEncoding.EncodeToString([]byte("password="+data))),
-		)
-	}
 
 	// Apply reset.
 	if reset {

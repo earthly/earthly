@@ -22,7 +22,6 @@ import (
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/earthfile2llb/variables"
 	"github.com/earthly/earthly/llbutil"
-	"github.com/earthly/earthly/llbutil/llbgit"
 	"github.com/earthly/earthly/states"
 	"github.com/earthly/earthly/states/dedup"
 	"github.com/earthly/earthly/states/image"
@@ -528,7 +527,7 @@ func (c *Converter) GitClone(ctx context.Context, gitURL string, branch string, 
 			"%sGIT CLONE (--branch %s) %s", c.vertexPrefixWithURL(gitURL), branch, gitURL),
 		llb.KeepGitDir(),
 	}
-	gitState := llbgit.Git(gitURL, branch, gitOpts...)
+	gitState := llb.Git(gitURL, branch, gitOpts...)
 	c.mts.Final.MainState = llbutil.CopyOp(
 		gitState, []string{"."}, c.mts.Final.MainState, dest, false, false, "",
 		llb.WithCustomNamef(

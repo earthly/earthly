@@ -12,7 +12,6 @@ import (
 	"github.com/earthly/earthly/cleanup"
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/llbutil"
-	"github.com/earthly/earthly/llbutil/llbgit"
 	"github.com/moby/buildkit/client/llb"
 	gwclient "github.com/moby/buildkit/frontend/gateway/client"
 	"github.com/pkg/errors"
@@ -26,13 +25,12 @@ type gitResolver struct {
 	cleanCollection *cleanup.Collection
 
 	projectCache map[string]*resolvedGitProject
+	gitLookup    *GitLookup
 }
 
 type resolvedGitProject struct {
 	// gitMetaAndEarthfileRef is the ref containing the git metadata and build files.
 	gitMetaAndEarthfileRef gwclient.Reference
-	// gitProject is the git project identifier. For GitHub, this is <username>/<project>.
-	gitProject string
 	// hash is the git hash.
 	hash string
 	// branches is the git branches.
@@ -92,28 +90,25 @@ func (gr *gitResolver) resolveEarthProject(ctx context.Context, gwClient gwclien
 		BuildFilePath: localBuildFilePath,
 		BuildContext:  buildContext,
 		GitMetadata: &GitMetadata{
-			BaseDir:    "",
-			RelDir:     subDir,
-			RemoteURL:  gitURL,
-			GitVendor:  target.Registry,
-			GitProject: rgp.gitProject,
-			Hash:       rgp.hash,
-			Branch:     rgp.branches,
-			Tags:       rgp.tags,
+			BaseDir:   "",
+			RelDir:    subDir,
+			RemoteURL: gitURL,
+			Hash:      rgp.hash,
+			Branch:    rgp.branches,
+			Tags:      rgp.tags,
 		},
 	}, nil
 }
 
 func (gr *gitResolver) resolveGitProject(ctx context.Context, gwClient gwclient.Client, target domain.Target) (rgp *resolvedGitProject, gitURL string, subDir string, finalErr error) {
-	projectPathParts := strings.Split(target.ProjectPath, "/")
-	if len(projectPathParts) < 2 {
-		return nil, "", "", fmt.Errorf("Invalid github project path %s", target.ProjectPath)
-	}
-	githubUsername := projectPathParts[0]
-	githubProject := projectPathParts[1]
-	subDir = strings.Join(projectPathParts[2:], "/")
-	gitURL = fmt.Sprintf("git@%s:%s/%s.git", target.Registry, githubUsername, githubProject)
 	ref := target.Tag
+
+	var err error
+	var keyScan string
+	gitURL, subDir, keyScan, err = gr.gitLookup.GetCloneURL(target.GitURL)
+	if err != nil {
+		return nil, "", "", errors.Wrap(err, "failed to get url for cloning")
+	}
 
 	// Check the cache first.
 	cacheKey := fmt.Sprintf("%s#%s", gitURL, ref)
@@ -128,7 +123,10 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, gwClient gwclient.
 		llb.WithCustomNamef("[internal] GIT CLONE %s", gitURL),
 		llb.KeepGitDir(),
 	}
-	gitState := llbgit.Git(gitURL, ref, gitOpts...)
+	if keyScan != "" {
+		gitOpts = append(gitOpts, llb.KnownSSHHosts(keyScan))
+	}
+	gitState := llb.Git(gitURL, ref, gitOpts...)
 	copyOpts := []llb.RunOption{
 		llb.Args([]string{
 			"find",
@@ -208,8 +206,7 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, gwClient gwclient.
 		hash:                   gitHash,
 		branches:               gitBranches2,
 		tags:                   gitTags2,
-		gitProject:             fmt.Sprintf("%s/%s", githubUsername, githubProject),
-		state: llbgit.Git(
+		state: llb.Git(
 			gitURL,
 			gitHash,
 			llb.WithCustomNamef("[context %s] git context %s", gitURL, target.StringCanonical()),

@@ -10,10 +10,8 @@ import (
 
 // Target is a earth target identifier.
 type Target struct {
-	// Remote and canonical representation.
-	Registry    string `json:"registry"`
-	ProjectPath string `json:"projectPath"`
-	Tag         string `json:"tag"`
+	GitURL string // e.g. "github.com/earthly/earthly/examples/go"
+	Tag    string // e.g. "main"
 
 	// Local representation.
 	LocalPath string `json:"localPath"`
@@ -42,17 +40,23 @@ func (et Target) IsRemote() bool {
 	return !et.IsLocalExternal() && !et.IsLocalInternal()
 }
 
+// DebugString returns a string that can be printed out for debugging purposes
+func (et Target) DebugString() string {
+	return fmt.Sprintf("gitURL: %q; tag: %q; LocalPath: %q; Target: %q", et.GitURL, et.Tag, et.LocalPath, et.Target)
+}
+
 // String returns a string representation of the Target.
 func (et Target) String() string {
 	if et.IsLocalExternal() {
 		return fmt.Sprintf("%s+%s", escapePlus(et.LocalPath), et.Target)
 	}
 	if et.IsRemote() {
-		tag := fmt.Sprintf(":%s", escapePlus(et.Tag))
-		if et.Tag == "" {
-			tag = ""
+		s := escapePlus(et.GitURL)
+		if et.Tag != "" {
+			s += ":" + escapePlus(et.Tag)
 		}
-		return fmt.Sprintf("%s/%s%s+%s", escapePlus(et.Registry), escapePlus(et.ProjectPath), tag, et.Target)
+		s += "+" + escapePlus(et.Target)
+		return s
 	}
 	// Local internal.
 	return fmt.Sprintf("+%s", et.Target)
@@ -60,24 +64,25 @@ func (et Target) String() string {
 
 // StringCanonical returns a string representation of the Target, in canonical form.
 func (et Target) StringCanonical() string {
-	if et.ProjectPath != "" {
-		tag := fmt.Sprintf(":%s", escapePlus(et.Tag))
-		if et.Tag == "" {
-			tag = ""
+	if et.GitURL != "" {
+		s := escapePlus(et.GitURL)
+		if et.Tag != "" {
+			s += ":" + escapePlus(et.Tag)
 		}
-		return fmt.Sprintf("%s/%s%s+%s", escapePlus(et.Registry), escapePlus(et.ProjectPath), tag, et.Target)
+		s += "+" + escapePlus(et.Target)
+		return s
 	}
 	return et.String()
 }
 
 // ProjectCanonical returns a string representation of the project of the target, in canonical form.
 func (et Target) ProjectCanonical() string {
-	if et.ProjectPath != "" {
-		tag := fmt.Sprintf(":%s", escapePlus(et.Tag))
-		if et.Tag == "" {
-			tag = ""
+	if et.GitURL != "" {
+		s := escapePlus(et.GitURL)
+		if et.Tag != "" {
+			s += ":" + escapePlus(et.Tag)
 		}
-		return fmt.Sprintf("%s/%s%s", escapePlus(et.Registry), escapePlus(et.ProjectPath), tag)
+		return s
 	}
 	if et.LocalPath == "." {
 		return ""
@@ -123,22 +128,11 @@ func ParseTarget(fullTargetName string) (Target, error) {
 		if len(partsColon) == 2 {
 			tag = partsColon[1]
 		}
-		registry := ""
-		projectPath := ""
-		if partsColon[0] != "" {
-			partsSlash := strings.Split(partsColon[0], "/")
-			if len(partsSlash) == 1 {
-				projectPath = partsSlash[0]
-			} else {
-				registry = partsSlash[0]
-				projectPath = strings.Join(partsSlash[1:], "/")
-			}
-		}
+
 		return Target{
-			Registry:    registry,
-			ProjectPath: projectPath,
-			Tag:         tag,
-			Target:      partsPlus[1],
+			GitURL: partsColon[0],
+			Tag:    tag,
+			Target: partsPlus[1],
 		}, nil
 	}
 }
@@ -149,18 +143,17 @@ func JoinTargets(target1 Target, target2 Target) (Target, error) {
 	if target1.IsRemote() {
 		// target1 is remote. Turn relative targets into remote targets.
 		if !ret.IsRemote() {
-			ret.Registry = target1.Registry
-			ret.ProjectPath = target1.ProjectPath
 			ret.Tag = target1.Tag
 			if ret.IsLocalExternal() {
 				if path.IsAbs(ret.LocalPath) {
 					return Target{}, fmt.Errorf(
 						"Absolute path %s not supported as reference in external target context", ret.LocalPath)
 				}
-				ret.ProjectPath = path.Join(
-					target1.ProjectPath, ret.LocalPath)
+
+				ret.GitURL = path.Join(target1.GitURL, ret.LocalPath)
 				ret.LocalPath = ""
 			} else if ret.IsLocalInternal() {
+				ret.GitURL = target1.GitURL
 				ret.LocalPath = ""
 			}
 		}

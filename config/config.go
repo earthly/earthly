@@ -38,9 +38,12 @@ type GitConfig struct {
 	GitURLInsteadOf string `yaml:"url_instead_of"`
 
 	// these are used for git vendors (e.g. github, gitlab)
-	Auth     string `yaml:"auth"`
+	Pattern  string `yaml:"pattern"`
+	Suffix   string `yaml:"suffix"` // .git
+	Auth     string `yaml:"auth"`   // http, https, ssh
 	User     string `yaml:"user"`
 	Password string `yaml:"password"`
+	KeyScan  string `yaml:"serverkey"`
 }
 
 // Config contains user's configuration values from ~/earthly/config.yml
@@ -91,7 +94,8 @@ func CreateGitConfig(config *Config) (string, []string, error) {
 	for _, k := range defaultSites {
 		if _, ok := config.Git[k]; !ok {
 			config.Git[k] = GitConfig{
-				Auth: "ssh",
+				Auth:   "ssh",
+				Suffix: ".git",
 			}
 		}
 	}

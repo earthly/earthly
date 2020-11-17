@@ -47,6 +47,7 @@ type Opt struct {
 	CleanCollection      *cleanup.Collection
 	VarCollection        *variables.Collection
 	BuildContextProvider *provider.BuildContextProvider
+	GitLookup            *buildcontext.GitLookup
 }
 
 // BuildOpt is a collection of build options.
@@ -79,7 +80,7 @@ func NewBuilder(ctx context.Context, opt Opt) (*Builder, error) {
 		opt:      opt,
 		resolver: nil, // initialized below
 	}
-	b.resolver = buildcontext.NewResolver(opt.SessionID, opt.CleanCollection)
+	b.resolver = buildcontext.NewResolver(opt.SessionID, opt.CleanCollection, opt.GitLookup)
 	return b, nil
 }
 

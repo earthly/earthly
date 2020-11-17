@@ -25,6 +25,7 @@ import (
 
 	"github.com/earthly/earthly/analytics"
 	"github.com/earthly/earthly/autocomplete"
+	"github.com/earthly/earthly/buildcontext"
 	"github.com/earthly/earthly/buildcontext/provider"
 	"github.com/earthly/earthly/builder"
 	"github.com/earthly/earthly/buildkitd"
@@ -329,13 +330,13 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 			Usage:       "The git password to use for git HTTPS authentication",
 			Destination: &app.gitPasswordOverride,
 		},
-		&cli.StringFlag{
-			Name:        "git-url-instead-of",
-			Value:       "",
-			EnvVars:     []string{"GIT_URL_INSTEAD_OF"},
-			Usage:       "Rewrite git URLs of a certain pattern. Similar to git-config url.<base>.insteadOf (https://git-scm.com/docs/git-config#Documentation/git-config.txt-urlltbasegtinsteadOf). Multiple values can be separated by commas. Format: <base>=<instead-of>[,...]. For example: 'https://github.com/=git@github.com:'",
-			Destination: &app.buildkitdSettings.GitURLInsteadOf,
-		},
+		//&cli.StringFlag{
+		//	Name:        "git-url-instead-of",
+		//	Value:       "",
+		//	EnvVars:     []string{"GIT_URL_INSTEAD_OF"},
+		//	Usage:       "Rewrite git URLs of a certain pattern. Similar to git-config url.<base>.insteadOf (https://git-scm.com/docs/git-config#Documentation/git-config.txt-urlltbasegtinsteadOf). Multiple values can be separated by commas. Format: <base>=<instead-of>[,...]. For example: 'https://github.com/=git@github.com:'",
+		//	Destination: &app.buildkitdSettings.GitURLInsteadOf,
+		//},
 		&cli.BoolFlag{
 			Name:        "allow-privileged",
 			Aliases:     []string{"P"},
@@ -733,38 +734,28 @@ func (app *earthApp) before(context *cli.Context) error {
 		app.cfg.Git = map[string]config.GitConfig{}
 	}
 
-	err = app.processDeprecatedCommandOptions(context, app.cfg)
-	if err != nil {
-		return err
-	}
-
-	gitConfig, gitCredentials, err := config.CreateGitConfig(app.cfg)
-	if err != nil {
-		return errors.Wrapf(err, "failed to create git config from %s", app.configPath)
-	}
-
 	// command line option overrides the config which overrides the default value
 	if !context.IsSet("buildkit-image") && app.cfg.Global.BuildkitImage != "" {
 		app.buildkitdImage = app.cfg.Global.BuildkitImage
 	}
 
-	if runtime.GOOS == "darwin" {
-		// on darwin buildkit is running inside a docker container and must reference this sock instead
-		app.buildkitdSettings.SSHAuthSock = "/run/host-services/ssh-auth.sock"
-	} else {
-		app.buildkitdSettings.SSHAuthSock = app.sshAuthSock
-	}
-	if app.buildkitdSettings.SSHAuthSock != "" {
-		// EvalSymlinks evaluates "" as "." which then breaks docker volume mounting
-		realSSHSocketPath, err := filepath.EvalSymlinks(app.buildkitdSettings.SSHAuthSock)
-		if err != nil {
-			if runtime.GOOS != "darwin" {
-				app.console.Warnf("failed to evaluate potential symbolic links in ssh auth socket %q: %v\n", app.buildkitdSettings.SSHAuthSock, err)
-			} // else ignore the error on mac
-		} else {
-			app.buildkitdSettings.SSHAuthSock = realSSHSocketPath
-		}
-	}
+	//if runtime.GOOS == "darwin" {
+	//	// on darwin buildkit is running inside a docker container and must reference this sock instead
+	//	app.buildkitdSettings.SSHAuthSock = "/run/host-services/ssh-auth.sock"
+	//} else {
+	//	app.buildkitdSettings.SSHAuthSock = app.sshAuthSock
+	//}
+	//if app.buildkitdSettings.SSHAuthSock != "" {
+	//	// EvalSymlinks evaluates "" as "." which then breaks docker volume mounting
+	//	realSSHSocketPath, err := filepath.EvalSymlinks(app.buildkitdSettings.SSHAuthSock)
+	//	if err != nil {
+	//		if runtime.GOOS != "darwin" {
+	//			app.console.Warnf("failed to evaluate potential symbolic links in ssh auth socket %q: %v\n", app.buildkitdSettings.SSHAuthSock, err)
+	//		} // else ignore the error on mac
+	//	} else {
+	//		app.buildkitdSettings.SSHAuthSock = realSSHSocketPath
+	//	}
+	//}
 
 	if !fileutils.DirExists(app.cfg.Global.RunPath) {
 		err := os.MkdirAll(app.cfg.Global.RunPath, 0755)
@@ -775,54 +766,6 @@ func (app *earthApp) before(context *cli.Context) error {
 
 	app.buildkitdSettings.DebuggerPort = app.cfg.Global.DebuggerPort
 	app.buildkitdSettings.RunDir = app.cfg.Global.RunPath
-	app.buildkitdSettings.GitConfig = gitConfig
-	app.buildkitdSettings.GitCredentials = gitCredentials
-	return nil
-}
-
-func (app *earthApp) processDeprecatedCommandOptions(context *cli.Context, cfg *config.Config) error {
-	if cfg.Global.CachePath != "" {
-		app.console.Warnf("Warning: the setting cache_path is now obsolete and will be ignored")
-	}
-
-	// command line overrides the config file
-	if app.gitUsernameOverride != "" || app.gitPasswordOverride != "" {
-		app.console.Warnf("Warning: the --git-username and --git-password command flags are deprecated and are now configured in the ~/.earthly/config.yml file under the git section; see https://docs.earthly.dev/earth-config for reference.\n")
-		if _, ok := cfg.Git["github.com"]; !ok {
-			cfg.Git["github.com"] = config.GitConfig{}
-		}
-		if _, ok := cfg.Git["gitlab.com"]; !ok {
-			cfg.Git["gitlab.com"] = config.GitConfig{}
-		}
-
-		for k, v := range cfg.Git {
-			v.Auth = "https"
-			if app.gitUsernameOverride != "" {
-				v.User = app.gitUsernameOverride
-			}
-			if app.gitPasswordOverride != "" {
-				v.Password = app.gitPasswordOverride
-			}
-			cfg.Git[k] = v
-		}
-	}
-
-	if context.IsSet("git-url-instead-of") {
-		app.console.Warnf("Warning: the --git-url-instead-of command flag is deprecated and is now configured in the ~/.earthly/config.yml file under the git global url_instead_of setting; see https://docs.earthly.dev/earth-config for reference.\n")
-	} else {
-		if gitGlobal, ok := cfg.Git["global"]; ok {
-			if gitGlobal.GitURLInsteadOf != "" {
-				app.buildkitdSettings.GitURLInsteadOf = gitGlobal.GitURLInsteadOf
-			}
-		}
-	}
-
-	if context.IsSet("buildkit-cache-size-mb") {
-		app.console.Warnf("Warning: the --buildkit-cache-size-mb command flag is deprecated and is now configured in the ~/.earthly/config.yml file under the buildkit_cache_size setting; see https://docs.earthly.dev/earth-config for reference.\n")
-	} else {
-		app.buildkitdSettings.CacheSizeMb = cfg.Global.BuildkitCacheSizeMb
-	}
-
 	return nil
 }
 
@@ -1855,6 +1798,26 @@ func (app *earthApp) actionBuild(c *cli.Context) error {
 		buildContextProvider,
 	}
 
+	gitLookup := buildcontext.NewGitLookup()
+	for k, v := range app.cfg.Git {
+		if k == "github" || k == "gitlab" || k == "bitbucket" {
+			app.console.Warnf("git configuration for %q found, did you mean %q?\n", k, k+".com")
+		}
+		pattern := v.Pattern
+		if pattern == "" {
+			// if empty, assume it will be of the form host.com/user/repo.git
+			host := k
+			if !strings.Contains(host, ".") {
+				host += ".com"
+			}
+			pattern = host + "/[^/]+/[^/]+"
+		}
+		err := gitLookup.AddMatcher(k, pattern, v.User, v.Password, v.Suffix, v.Auth, v.KeyScan)
+		if err != nil {
+			return errors.Wrap(err, "gitlookup")
+		}
+	}
+
 	if app.sshAuthSock != "" {
 		ssh, err := sshprovider.NewSSHAgentProvider([]sshprovider.AgentConfig{{
 			Paths: []string{app.sshAuthSock},
@@ -1863,6 +1826,9 @@ func (app *earthApp) actionBuild(c *cli.Context) error {
 			return errors.Wrap(err, "ssh agent provider")
 		}
 		attachables = append(attachables, ssh)
+	} else {
+		app.console.Printf("No ssh auth socket detected; all git clone commands will use https\n")
+		gitLookup.DisableSSH()
 	}
 
 	var enttlmnts []entitlements.Entitlement
@@ -1897,6 +1863,7 @@ func (app *earthApp) actionBuild(c *cli.Context) error {
 		CleanCollection:      cleanCollection,
 		VarCollection:        varCollection,
 		BuildContextProvider: buildContextProvider,
+		GitLookup:            gitLookup,
 	}
 	b, err := builder.NewBuilder(c.Context, builderOpts)
 	if err != nil {
