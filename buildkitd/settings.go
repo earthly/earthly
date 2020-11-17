@@ -11,7 +11,7 @@ import (
 
 // Settings represents the buildkitd settings used to start up the daemon with.
 type Settings struct {
-	SSHAuthSock     string   `json:"sshAuthSock"`
+	//SSHAuthSock     string   `json:"sshAuthSock"`
 	GitURLInsteadOf string   `json:"gitUrlInsteadOf"`
 	CacheSizeMb     int      `json:"cacheSizeMb"`
 	GitConfig       string   `json:"gitConfig"`

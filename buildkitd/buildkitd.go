@@ -218,12 +218,12 @@ func Start(ctx context.Context, image string, settings Settings, reset bool) err
 			"-p", fmt.Sprintf("127.0.0.1:%d:8373", settings.DebuggerPort))
 	}
 	// Apply some git-related settings.
-	if settings.SSHAuthSock != "" {
-		args = append(args,
-			"-v", fmt.Sprintf("%s:/ssh-agent.sock", settings.SSHAuthSock),
-			"-e", "SSH_AUTH_SOCK=/ssh-agent.sock",
-		)
-	}
+	//if settings.SSHAuthSock != "" {
+	//	args = append(args,
+	//		"-v", fmt.Sprintf("%s:/ssh-agent.sock", settings.SSHAuthSock),
+	//		"-e", "SSH_AUTH_SOCK=/ssh-agent.sock",
+	//	)
+	//}
 
 	args = append(args,
 		"-e", fmt.Sprintf("CACHE_SIZE_MB=%d", settings.CacheSizeMb),

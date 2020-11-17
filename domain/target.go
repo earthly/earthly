@@ -48,6 +48,10 @@ func (et Target) IsRemote() bool {
 	return !et.IsLocalExternal() && !et.IsLocalInternal()
 }
 
+func (et Target) DebugString() string {
+	return fmt.Sprintf("gitURL: %q; gitPath: %q; tag: %q; LocalPath: %q; Target: %q", et.GitURL, et.GitPath, et.Tag, et.LocalPath, et.Target)
+}
+
 // String returns a string representation of the Target.
 func (et Target) String() string {
 	if et.IsLocalExternal() {
@@ -97,6 +101,7 @@ func (et Target) ProjectCanonical() string {
 
 // ParseTarget parses a string into a Target.
 func ParseTarget(fullTargetName string) (Target, error) {
+	fmt.Printf("ParseTarget(%q)\n", fullTargetName)
 	partsPlus, err := splitUnescapePlus(fullTargetName)
 	if err != nil {
 		return Target{}, err
@@ -149,6 +154,7 @@ func ParseTarget(fullTargetName string) (Target, error) {
 
 // JoinTargets returns the result of interpreting target2 as relative to target1.
 func JoinTargets(target1 Target, target2 Target) (Target, error) {
+	//fmt.Printf("JoinTargets(%q, %q)\n", target1.DebugString(), target2.DebugString())
 	ret := target2
 	if target1.IsRemote() {
 		// target1 is remote. Turn relative targets into remote targets.
@@ -161,10 +167,10 @@ func JoinTargets(target1 Target, target2 Target) (Target, error) {
 					return Target{}, fmt.Errorf(
 						"Absolute path %s not supported as reference in external target context", ret.LocalPath)
 				}
-				//ret.ProjectPath = path.Join(
-				//	target1.ProjectPath, ret.LocalPath)
+
+				ret.GitPath = path.Join(target1.GitPath, ret.LocalPath)
 				ret.LocalPath = ""
-				panic(fmt.Sprintf("join %q and %q", target1.GitPath, ret.GitPath))
+				//panic(fmt.Sprintf("join %q and %q", target1.GitPath, ret.GitPath))
 			} else if ret.IsLocalInternal() {
 				ret.LocalPath = ""
 			}
@@ -222,9 +228,10 @@ func escapePlus(str string) string {
 }
 
 type gitMatcher struct {
-	pattern string
-	user    string
-	suffix  string
+	pattern  string
+	user     string
+	suffix   string
+	protocol string
 }
 
 // GitLookup looksup gits
@@ -236,24 +243,28 @@ type GitLookup struct {
 func NewGitLookup() *GitLookup {
 	matchers := []gitMatcher{
 		{
-			pattern: "github.com/[^/]+/[^/]+",
-			user:    "git",
-			suffix:  ".git",
+			pattern:  "github.com/[^/]+/[^/]+",
+			user:     "git",
+			suffix:   ".git",
+			protocol: "ssh",
 		},
 		{
-			pattern: "gitlab.com/[^/]+/[^/]+",
-			user:    "git",
-			suffix:  ".git",
+			pattern:  "gitlab.com/[^/]+/[^/]+",
+			user:     "git",
+			suffix:   ".git",
+			protocol: "ssh",
 		},
 		{
-			pattern: "bitbucket.com/[^/]+/[^/]+",
-			user:    "git",
-			suffix:  ".git",
+			pattern:  "bitbucket.com/[^/]+/[^/]+",
+			user:     "git",
+			suffix:   ".git",
+			protocol: "ssh",
 		},
 		{
-			pattern: "192.168.0.116/my/test/path/[^/]+",
-			user:    "alex",
-			suffix:  ".git",
+			pattern:  "192.168.0.116/my/test/path/[^/]+",
+			user:     "alex",
+			suffix:   ".git",
+			protocol: "ssh",
 		},
 	}
 
@@ -266,8 +277,17 @@ func NewGitLookup() *GitLookup {
 // TODO needs fixing
 var TODO = NewGitLookup()
 
-// ParseGitURLandPath returns git path in the form user@host:path/to/repo.git, and any subdir
-func (gl *GitLookup) ParseGitURLandPath(path string) (string, string, error) {
+var ErrNoMatch = fmt.Errorf("no git match found")
+
+func (gl *GitLookup) DisableSSH() {
+	for i, m := range gl.matchers {
+		if m.protocol == "ssh" {
+			gl.matchers[i].protocol = "https"
+		}
+	}
+}
+
+func (gl *GitLookup) getGitMatcher(path string) (string, *gitMatcher, error) {
 	fmt.Printf("ParseGitURLandPath(%q)\n", path)
 	for _, m := range gl.matchers {
 		r, err := regexp.Compile(m.pattern)
@@ -288,41 +308,60 @@ func (gl *GitLookup) ParseGitURLandPath(path string) (string, string, error) {
 				fmt.Println(subPath)
 				panic("bad1")
 			}
-			fmt.Printf("parsed %q into %q and %q\n", path, match, subPath)
-			return match, subPath, nil
+			return match, &m, nil
 		}
 	}
-	fmt.Printf("failed to parse %q\n", path)
-	return "", "", nil
+	return "", nil, ErrNoMatch
+}
+
+// BAD COMMENT: ParseGitURLandPath returns git path in the form user@host:path/to/repo.git (or https://host/path/to/repo.git), and any subdir
+
+// ParseGitURLandPath transforms data like this:
+//   "github.com/earthly/earthly"             ---> ("github.com/earthly/earthly", "")
+//   "github.com/earthly/earthly/examples"    ---> ("github.com/earthly/earthly", "examples")
+//   "github.com/earthly/earthly/examples/go" ---> ("github.com/earthly/earthly", "examples/go")
+// TODO rename this to SplitTargetIntoRepoAndPath (or something like that)
+func (gl *GitLookup) ParseGitURLandPath(path string) (string, string, error) {
+	fmt.Printf("ParseGitURLandPath(%q)\n", path)
+	match, _, err := gl.getGitMatcher(path)
+	if err != nil {
+		fmt.Printf("failed to parse %q\n", path)
+		return "", "", err
+	}
+	n := len(match) + 1
+	subPath := ""
+	if len(path) > n {
+		subPath = path[n:]
+	}
+	if strings.HasSuffix(match, "/") {
+		panic("bad")
+	}
+	if strings.HasPrefix(subPath, "/") {
+		fmt.Println(subPath)
+		panic("bad1")
+	}
+	fmt.Printf("parsed %q into %q and %q\n", path, match, subPath)
+	return match, subPath, nil
 }
 
 // GetCloneURL returns a string
 func (gl *GitLookup) GetCloneURL(path string) (string, error) {
-	for _, m := range gl.matchers {
-		r, err := regexp.Compile(m.pattern)
-		if err != nil {
-			panic(err)
-		}
-		match := r.FindString(path)
-		if match == "" {
-			continue
-		}
-		subPath := path[len(match):]
-		if strings.HasSuffix(match, "/") {
-			panic("bad2")
-		}
-		if subPath != "" {
-			panic("bad3")
-		}
-
-		parts := strings.SplitN(match, "/", 2)
-		if len(parts) != 2 {
-			panic("bad4")
-		}
-
-		s := fmt.Sprintf("%s@%s:%s", m.user, parts[0], parts[1])
-		return s, nil
+	fmt.Printf("GetCloneURL(%q)\n", path)
+	match, m, err := gl.getGitMatcher(path)
+	if err != nil {
+		fmt.Printf("failed to parse %q\n", path)
+		return "", err
 	}
-	fmt.Printf("failed to parse %q\n", path)
-	return "", nil
+	var gitURL string
+	switch m.protocol {
+	case "ssh":
+		gitURL = m.user + "@" + strings.Replace(match, "/", ":", 1) + m.suffix
+	case "http":
+		gitURL = "http://" + match + m.suffix
+	case "https":
+		gitURL = "https://" + match + m.suffix
+	default:
+		return "", fmt.Errorf("unsupported protocol: %s", m.protocol)
+	}
+	return gitURL, nil
 }

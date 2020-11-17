@@ -627,23 +627,27 @@ func (app *earthApp) before(context *cli.Context) error {
 		app.buildkitdImage = app.cfg.Global.BuildkitImage
 	}
 
-	if runtime.GOOS == "darwin" {
-		// on darwin buildkit is running inside a docker container and must reference this sock instead
-		app.buildkitdSettings.SSHAuthSock = "/run/host-services/ssh-auth.sock"
-	} else {
-		app.buildkitdSettings.SSHAuthSock = app.sshAuthSock
+	if app.sshAuthSock == "" {
+		domain.TODO.DisableSSH()
 	}
-	if app.buildkitdSettings.SSHAuthSock != "" {
-		// EvalSymlinks evaluates "" as "." which then breaks docker volume mounting
-		realSSHSocketPath, err := filepath.EvalSymlinks(app.buildkitdSettings.SSHAuthSock)
-		if err != nil {
-			if runtime.GOOS != "darwin" {
-				app.console.Warnf("failed to evaluate potential symbolic links in ssh auth socket %q: %v\n", app.buildkitdSettings.SSHAuthSock, err)
-			} // else ignore the error on mac
-		} else {
-			app.buildkitdSettings.SSHAuthSock = realSSHSocketPath
-		}
-	}
+
+	//if runtime.GOOS == "darwin" {
+	//	// on darwin buildkit is running inside a docker container and must reference this sock instead
+	//	app.buildkitdSettings.SSHAuthSock = "/run/host-services/ssh-auth.sock"
+	//} else {
+	//	app.buildkitdSettings.SSHAuthSock = app.sshAuthSock
+	//}
+	//if app.buildkitdSettings.SSHAuthSock != "" {
+	//	// EvalSymlinks evaluates "" as "." which then breaks docker volume mounting
+	//	realSSHSocketPath, err := filepath.EvalSymlinks(app.buildkitdSettings.SSHAuthSock)
+	//	if err != nil {
+	//		if runtime.GOOS != "darwin" {
+	//			app.console.Warnf("failed to evaluate potential symbolic links in ssh auth socket %q: %v\n", app.buildkitdSettings.SSHAuthSock, err)
+	//		} // else ignore the error on mac
+	//	} else {
+	//		app.buildkitdSettings.SSHAuthSock = realSSHSocketPath
+	//	}
+	//}
 
 	if !fileutils.DirExists(app.cfg.Global.RunPath) {
 		err := os.MkdirAll(app.cfg.Global.RunPath, 0755)
