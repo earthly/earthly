@@ -139,7 +139,7 @@ func ParseTarget(fullTargetName string) (Target, error) {
 			tag = partsColon[1]
 		}
 
-		gitURL, gitPath, err := TODO.ParseGitURLandPath(partsColon[0])
+		gitURL, gitPath, err := TODO.SplitGitTarget(partsColon[0])
 		if err != nil {
 			return Target{}, err
 		}
@@ -277,8 +277,10 @@ func NewGitLookup() *GitLookup {
 // TODO needs fixing
 var TODO = NewGitLookup()
 
+// ErrNoMatch occurs when no git matcher is found
 var ErrNoMatch = fmt.Errorf("no git match found")
 
+// DisableSSH changes all git matchers from ssh to https
 func (gl *GitLookup) DisableSSH() {
 	for i, m := range gl.matchers {
 		if m.protocol == "ssh" {
@@ -288,7 +290,7 @@ func (gl *GitLookup) DisableSSH() {
 }
 
 func (gl *GitLookup) getGitMatcher(path string) (string, *gitMatcher, error) {
-	fmt.Printf("ParseGitURLandPath(%q)\n", path)
+	fmt.Printf("getGitMatcher(%q)\n", path)
 	for _, m := range gl.matchers {
 		r, err := regexp.Compile(m.pattern)
 		if err != nil {
@@ -314,15 +316,12 @@ func (gl *GitLookup) getGitMatcher(path string) (string, *gitMatcher, error) {
 	return "", nil, ErrNoMatch
 }
 
-// BAD COMMENT: ParseGitURLandPath returns git path in the form user@host:path/to/repo.git (or https://host/path/to/repo.git), and any subdir
-
-// ParseGitURLandPath transforms data like this:
+// SplitGitTarget splits a git repo target into base repo and relative repo path; for example:
 //   "github.com/earthly/earthly"             ---> ("github.com/earthly/earthly", "")
 //   "github.com/earthly/earthly/examples"    ---> ("github.com/earthly/earthly", "examples")
 //   "github.com/earthly/earthly/examples/go" ---> ("github.com/earthly/earthly", "examples/go")
-// TODO rename this to SplitTargetIntoRepoAndPath (or something like that)
-func (gl *GitLookup) ParseGitURLandPath(path string) (string, string, error) {
-	fmt.Printf("ParseGitURLandPath(%q)\n", path)
+func (gl *GitLookup) SplitGitTarget(path string) (string, string, error) {
+	fmt.Printf("SplitGitTarget(%q)\n", path)
 	match, _, err := gl.getGitMatcher(path)
 	if err != nil {
 		fmt.Printf("failed to parse %q\n", path)
@@ -363,5 +362,6 @@ func (gl *GitLookup) GetCloneURL(path string) (string, error) {
 	default:
 		return "", fmt.Errorf("unsupported protocol: %s", m.protocol)
 	}
+	fmt.Printf("GetCloneURL(%q) returning %q\n", path, gitURL)
 	return gitURL, nil
 }
