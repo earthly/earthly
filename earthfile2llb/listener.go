@@ -627,6 +627,7 @@ func (l *listener) ExitGitCloneStmt(c *parser.GitCloneStmtContext) {
 	gitURL := l.expandArgs(fs.Arg(0))
 	gitCloneDest := l.expandArgs(fs.Arg(1))
 	*branch = l.expandArgs(*branch)
+	fmt.Printf("=== GIT CLONE %q ===\n", gitURL)
 	err = l.converter.GitClone(l.ctx, gitURL, *branch, gitCloneDest)
 	if err != nil {
 		l.err = errors.Wrap(err, "git clone")

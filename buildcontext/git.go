@@ -112,6 +112,7 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, gwClient gwclient.
 	githubProject := projectPathParts[1]
 	subDir = strings.Join(projectPathParts[2:], "/")
 	gitURL = fmt.Sprintf("git@%s:%s/%s.git", target.Registry, githubUsername, githubProject)
+	gitURL = fmt.Sprintf("https://%s/%s/%s.git", target.Registry, githubUsername, githubProject)
 	ref := target.Tag
 
 	// Check the cache first.
@@ -127,6 +128,7 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, gwClient gwclient.
 		llb.WithCustomNamef("[internal] GIT CLONE %s", gitURL),
 		llb.KeepGitDir(),
 	}
+	fmt.Printf("=== llb.Git %q ===\n", gitURL)
 	gitState := llb.Git(gitURL, ref, gitOpts...)
 	copyOpts := []llb.RunOption{
 		llb.Args([]string{
@@ -201,6 +203,7 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, gwClient gwclient.
 		}
 	}
 
+	fmt.Printf("=== llb.Git2 %q ===\n", gitURL)
 	// Add to cache.
 	resolved := &resolvedGitProject{
 		gitMetaAndEarthfileRef: gitMetaAndEarthfileRef,
