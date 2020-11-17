@@ -12,7 +12,6 @@ import (
 	"github.com/earthly/earthly/cleanup"
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/llbutil"
-	"github.com/earthly/earthly/llbutil/llbgit"
 	"github.com/moby/buildkit/client/llb"
 	gwclient "github.com/moby/buildkit/frontend/gateway/client"
 	"github.com/pkg/errors"
@@ -128,7 +127,7 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, gwClient gwclient.
 		llb.WithCustomNamef("[internal] GIT CLONE %s", gitURL),
 		llb.KeepGitDir(),
 	}
-	gitState := llbgit.Git(gitURL, ref, gitOpts...)
+	gitState := llb.Git(gitURL, ref, gitOpts...)
 	copyOpts := []llb.RunOption{
 		llb.Args([]string{
 			"find",
@@ -209,7 +208,7 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, gwClient gwclient.
 		branches:               gitBranches2,
 		tags:                   gitTags2,
 		gitProject:             fmt.Sprintf("%s/%s", githubUsername, githubProject),
-		state: llbgit.Git(
+		state: llb.Git(
 			gitURL,
 			gitHash,
 			llb.WithCustomNamef("[context %s] git context %s", gitURL, target.StringCanonical()),
