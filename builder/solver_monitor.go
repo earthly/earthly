@@ -2,6 +2,7 @@ package builder
 
 import (
 	"context"
+	"encoding/base64"
 	"regexp"
 	"strings"
 	"time"
@@ -21,6 +22,7 @@ const (
 type vertexMonitor struct {
 	vertex         *client.Vertex
 	targetStr      string
+	targetBrackets string
 	salt           string
 	operation      string
 	lastOutput     time.Time
@@ -37,13 +39,18 @@ func (vm *vertexMonitor) printHeader() {
 	if vm.operation == "" {
 		return
 	}
-	out := []string{"-->"}
-	out = append(out, vm.operation)
 	c := vm.console
+	out := []string{}
+	out = append(out, "-->")
+	out = append(out, vm.operation)
 	if vm.vertex.Cached {
 		c = c.WithCached(true)
 	}
 	c.Printf("%s\n", strings.Join(out, " "))
+	if vm.targetBrackets != "" {
+		c = c.WithParams(vm.targetBrackets)
+		c.Printf("\n")
+	}
 }
 
 func (vm *vertexMonitor) shouldPrintProgress(percent int) bool {
@@ -115,14 +122,15 @@ Loop:
 			for _, vertex := range ss.Vertexes {
 				vm, ok := sm.vertices[vertex.Digest]
 				if !ok {
-					targetStr, salt, operation := parseVertexName(vertex.Name)
+					targetStr, targetBrackets, salt, operation := parseVertexName(vertex.Name)
 					vm = &vertexMonitor{
-						vertex:     vertex,
-						targetStr:  targetStr,
-						salt:       salt,
-						operation:  operation,
-						isInternal: (targetStr == "internal" && !sm.verbose),
-						console:    sm.console.WithPrefixAndSalt(targetStr, salt),
+						vertex:         vertex,
+						targetStr:      targetStr,
+						targetBrackets: targetBrackets,
+						salt:           salt,
+						operation:      operation,
+						isInternal:     (targetStr == "internal" && !sm.verbose),
+						console:        sm.console.WithPrefixAndSalt(targetStr, salt),
 					}
 					sm.vertices[vertex.Digest] = vm
 				}
@@ -209,29 +217,39 @@ func (sm *solverMonitor) reprintFailure(errVertex *vertexMonitor) {
 	errVertex.printError()
 }
 
-var bracketsRegexp = regexp.MustCompile("^\\[([^\\]]*)\\] (.*)$")
+var vertexRegexp = regexp.MustCompile("^\\[([^\\]]*)\\] (.*)$")
+var targetAndSaltRegexp = regexp.MustCompile("^([^\\(]*)(\\(([^\\)]*)\\))? (.*)$")
 
-func parseVertexName(vertexName string) (string, string, string) {
+func parseVertexName(vertexName string) (string, string, string, string) {
 	target := ""
+	targetBrackets := ""
 	operation := ""
 	salt := ""
-	match := bracketsRegexp.FindStringSubmatch(vertexName)
+	match := vertexRegexp.FindStringSubmatch(vertexName)
 	if len(match) < 2 {
-		return target, salt, operation
+		return "internal", targetBrackets, "internal", vertexName
 	}
 	targetAndSalt := match[1]
-	targetAndSaltSlice := strings.SplitN(targetAndSalt, " ", 2)
-	if len(targetAndSaltSlice) == 2 {
-		target = targetAndSaltSlice[0]
-		salt = targetAndSaltSlice[1]
-	} else {
-		target = targetAndSalt
-	}
-	if len(match) < 3 {
-		return target, salt, operation
-	}
 	operation = match[2]
-	return target, salt, operation
+	targetAndSaltMatch := targetAndSaltRegexp.FindStringSubmatch(targetAndSalt)
+	if targetAndSaltMatch == nil {
+		return targetAndSalt, targetBrackets, targetAndSalt, operation
+	}
+	target = targetAndSaltMatch[1]
+	salt = targetAndSaltMatch[len(targetAndSaltMatch)-1]
+	if salt == "" {
+		salt = targetAndSalt
+	}
+	if targetAndSaltMatch[3] != "" {
+		targetBracketsDt, err := base64.StdEncoding.DecodeString(targetAndSaltMatch[3])
+		if err != nil {
+			targetBrackets = targetAndSaltMatch[3]
+		} else {
+			targetBrackets = string(targetBracketsDt)
+		}
+	}
+
+	return target, targetBrackets, salt, operation
 }
 
 func shortDigest(d digest.Digest) string {

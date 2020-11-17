@@ -3,6 +3,7 @@ package earthfile2llb
 import (
 	"context"
 	"crypto/sha256"
+	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -801,7 +802,27 @@ func (c *Converter) processNonConstantBuildArgFunc(ctx context.Context) variable
 }
 
 func (c *Converter) vertexPrefix() string {
-	return fmt.Sprintf("[%s %s] ", c.mts.Final.Target.String(), c.mts.Final.Salt)
+	overriding := c.varCollection.SortedOverridingVariables()
+	varStrBuilder := make([]string, 0, len(overriding))
+	for _, key := range overriding {
+		variable, _, _ := c.varCollection.Get(key)
+		if variable.IsEnvVar() {
+			continue
+		}
+		var value string
+		if variable.IsConstant() {
+			value = variable.ConstantValue()
+		} else {
+			value = "<expr>"
+		}
+		varStrBuilder = append(varStrBuilder, fmt.Sprintf("%s=%s", key, value))
+	}
+	var varStr string
+	if len(varStrBuilder) > 0 {
+		b64VarStr := base64.StdEncoding.EncodeToString([]byte(strings.Join(varStrBuilder, " ")))
+		varStr = fmt.Sprintf("(%s)", b64VarStr)
+	}
+	return fmt.Sprintf("[%s%s %s] ", c.mts.Final.Target.String(), varStr, c.mts.Final.Salt)
 }
 
 func (c *Converter) imageVertexPrefix(id string) string {

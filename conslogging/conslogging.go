@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"regexp"
 	"strings"
 	"sync"
 	"unicode/utf8"
@@ -37,6 +38,8 @@ var currentConsoleMutex sync.Mutex
 // ConsoleLogger is a writer for consoles.
 type ConsoleLogger struct {
 	prefix string
+	// params are printed right after the prefix delimiter.
+	params string
 	// salt is a salt used for color consistency
 	// (the same salt will get the same color).
 	salt      string
@@ -69,6 +72,7 @@ func (cl ConsoleLogger) clone() ConsoleLogger {
 	return ConsoleLogger{
 		w:              cl.w,
 		prefix:         cl.prefix,
+		params:         cl.params,
 		salt:           cl.salt,
 		isCached:       cl.isCached,
 		isFailed:       cl.isFailed,
@@ -85,6 +89,13 @@ func (cl ConsoleLogger) WithPrefix(prefix string) ConsoleLogger {
 	ret := cl.clone()
 	ret.prefix = prefix
 	ret.salt = prefix
+	return ret
+}
+
+// WithParams returns a ConsoleLogger with params added.
+func (cl ConsoleLogger) WithParams(params string) ConsoleLogger {
+	ret := cl.clone()
+	ret.params = params
 	return ret
 }
 
@@ -216,6 +227,10 @@ func (cl ConsoleLogger) printPrefix() {
 		cl.color(cachedColor).Fprintf(cl.w, "cached")
 		cl.w.Write([]byte("* "))
 	}
+	if cl.params != "" {
+		cl.color(paramsColor).Fprintf(cl.w, cl.params)
+		cl.w.Write([]byte(" "))
+	}
 }
 
 func (cl ConsoleLogger) color(c *color.Color) *color.Color {
@@ -233,14 +248,19 @@ func (cl ConsoleLogger) color(c *color.Color) *color.Color {
 	return noColor
 }
 
+var bracketsRegexp = regexp.MustCompile("\\(([^\\]]*)\\)")
+
 func (cl ConsoleLogger) prettyPrefix() string {
 	if cl.prefixPadding == NoPadding {
 		return cl.prefix
 	}
 
-	formatString := fmt.Sprintf("%%%vv", cl.prefixPadding)
-
-	prettyPrefix := cl.prefix
+	var brackets string
+	bracketParts := strings.SplitN(cl.prefix, "(", 2)
+	if len(bracketParts) > 1 {
+		brackets = fmt.Sprintf("(%s", bracketParts[1])
+	}
+	prettyPrefix := bracketParts[0]
 	if len(cl.prefix) > cl.prefixPadding {
 		parts := strings.Split(cl.prefix, "/")
 		target := parts[len(parts)-1]
@@ -258,5 +278,6 @@ func (cl ConsoleLogger) prettyPrefix() string {
 		prettyPrefix = truncated + target
 	}
 
-	return fmt.Sprintf(formatString, prettyPrefix)
+	formatString := fmt.Sprintf("%%%vv", cl.prefixPadding)
+	return fmt.Sprintf(formatString, fmt.Sprintf("%s%s", prettyPrefix, brackets))
 }
