@@ -1904,6 +1904,25 @@ func (app *earthApp) actionBuild(c *cli.Context) error {
 		return err
 	}
 
+	for k, v := range app.cfg.Git {
+		if k == "github" || k == "gitlab" || k == "bitbucket" {
+			app.console.Warnf("git configuration for %q found, did you mean %q?\n", k, k+".com")
+		}
+		pattern := v.Pattern
+		if pattern == "" {
+			// if empty, assume it will be of the form host.com/user/repo.git
+			host := k
+			if !strings.Contains(host, ".") {
+				host += ".com"
+			}
+			pattern = host + "/[^/]+/[^/]+"
+		}
+		err := gitLookup.AddMatcher(k, pattern, v.User, v.Password, v.Suffix, v.Auth, v.KeyScan)
+		if err != nil {
+			return errors.Wrap(err, "gitlookup")
+		}
+	}
+
 	if app.sshAuthSock != "" {
 		ssh, err := sshprovider.NewSSHAgentProvider([]sshprovider.AgentConfig{{
 			Paths: []string{app.sshAuthSock},
