@@ -107,7 +107,7 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, gwClient gwclient.
 	subDir = target.GitPath
 
 	var err error
-	gitURL, err = domain.TODO.GetCloneURL(target.GitURL)
+	gitURL, err = domain.GlobalGitLookup.GetCloneURL(target.GitURL)
 	if err != nil {
 		return nil, "", "", errors.Wrap(err, "failed to get url for cloning")
 	}

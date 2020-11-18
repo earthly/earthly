@@ -140,7 +140,7 @@ func ParseTarget(fullTargetName string) (Target, error) {
 			tag = partsColon[1]
 		}
 
-		gitURL, gitPath, err := TODO.SplitGitTarget(partsColon[0])
+		gitURL, gitPath, err := GlobalGitLookup.SplitGitTarget(partsColon[0])
 		if err != nil {
 			return Target{}, err
 		}
@@ -273,8 +273,8 @@ func NewGitLookup() *GitLookup {
 	return gl
 }
 
-// TODO needs fixing
-var TODO = NewGitLookup()
+// GlobalGitLookup allows for converting git urls
+var GlobalGitLookup = NewGitLookup()
 
 // ErrNoMatch occurs when no git matcher is found
 var ErrNoMatch = fmt.Errorf("no git match found")

@@ -627,11 +627,6 @@ func (app *earthApp) before(context *cli.Context) error {
 		app.buildkitdImage = app.cfg.Global.BuildkitImage
 	}
 
-	if app.sshAuthSock == "" {
-		app.console.Printf("No ssh auth socket detected; all git clone commands will use https\n")
-		domain.TODO.DisableSSH()
-	}
-
 	//if runtime.GOOS == "darwin" {
 	//	// on darwin buildkit is running inside a docker container and must reference this sock instead
 	//	app.buildkitdSettings.SSHAuthSock = "/run/host-services/ssh-auth.sock"
@@ -1416,6 +1411,9 @@ func (app *earthApp) actionBuild(c *cli.Context) error {
 			return errors.Wrap(err, "ssh agent provider")
 		}
 		attachables = append(attachables, ssh)
+	} else {
+		app.console.Printf("No ssh auth socket detected; all git clone commands will use https\n")
+		domain.GlobalGitLookup.DisableSSH()
 	}
 
 	var enttlmnts []entitlements.Entitlement

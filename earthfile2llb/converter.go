@@ -521,13 +521,6 @@ func (c *Converter) Label(ctx context.Context, labels map[string]string) {
 
 // GitClone applies the GIT CLONE command.
 func (c *Converter) GitClone(ctx context.Context, gitURL string, branch string, dest string) error {
-	fmt.Printf("GitClone(%q)\n", gitURL)
-	//var err error
-	//gitURL, err = domain.TODO.GetCloneURL(gitURL)
-	//if err != nil {
-	//	return errors.Wrap(err, "failed to get url for cloning")
-	//}
-
 	gitOpts := []llb.GitOption{
 		llb.WithCustomNamef(
 			"%sGIT CLONE (--branch %s) %s", c.vertexPrefixWithURL(gitURL), branch, gitURL),
