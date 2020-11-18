@@ -628,6 +628,7 @@ func (app *earthApp) before(context *cli.Context) error {
 	}
 
 	if app.sshAuthSock == "" {
+		app.console.Printf("No ssh auth socket detected; all git clone commands will use https\n")
 		domain.TODO.DisableSSH()
 	}
 
