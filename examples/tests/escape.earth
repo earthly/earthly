@@ -3,7 +3,7 @@ WORKDIR /test
 
 all:
     BUILD +test-copy-build-context
-    # TODO: FILE_IN_RUN shuoldn't need to be different. This is a bug.
+    # TODO: FILE_IN_RUN shouldn't need to be different. This is a bug.
     BUILD \
         --build-arg FILE="file-with-\+.txt" \
         --build-arg FILE_IN_RUN="file-with-+.txt" \
@@ -12,7 +12,7 @@ all:
     BUILD +test-copy-artifact1
     BUILD +test-copy-artifact2
     BUILD +test-copy-artifact3
-    # TODO: FILE_IN_RUN shuoldn't need to be different. This is a bug.
+    # TODO: FILE_IN_RUN shouldn't need to be different. This is a bug.
     BUILD \
         --build-arg FILE="another-file-with-\+.txt" \
         --build-arg FILE_IN_RUN="another-file-with-+.txt" \
