@@ -1,8 +1,9 @@
 package buildcontext
 
 import (
-	. "github.com/stretchr/testify/assert"
 	"testing"
+
+	. "github.com/stretchr/testify/assert"
 )
 
 func TestParseGitRemoteURL(t *testing.T) {
