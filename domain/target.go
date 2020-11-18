@@ -61,12 +61,12 @@ func (et Target) String() string {
 	if et.IsRemote() {
 		s := et.GitURL
 		if et.GitPath != "" {
-			s += "/" + et.GitPath
+			s += "/" + escapePlus(et.GitPath)
 		}
 		if et.Tag != "" {
-			s += ":" + et.Tag
+			s += ":" + escapePlus(et.Tag)
 		}
-		s += "+" + et.Target
+		s += "+" + escapePlus(et.Target)
 		return s
 	}
 	// Local internal.
@@ -80,7 +80,7 @@ func (et Target) StringCanonical() string {
 		if et.Tag == "" {
 			tag = ""
 		}
-		return fmt.Sprintf("%s/%s%s+%s", et.GitURL, et.GitPath, tag, et.Target)
+		return fmt.Sprintf("%s/%s%s+%s", escapePlus(et.GitURL), escapePlus(et.GitPath), tag, escapePlus(et.Target))
 	}
 	return et.String()
 }
@@ -92,7 +92,7 @@ func (et Target) ProjectCanonical() string {
 		if et.Tag == "" {
 			tag = ""
 		}
-		return fmt.Sprintf("%s/%s%s", et.GitURL, et.GitPath, tag)
+		return fmt.Sprintf("%s/%s%s", escapePlus(et.GitURL), escapePlus(et.GitPath), tag)
 	}
 	if et.LocalPath == "." {
 		return ""
