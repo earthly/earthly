@@ -34,12 +34,15 @@ type vertexMonitor struct {
 	tailOutput     *circbuf.Buffer
 }
 
-func (vm *vertexMonitor) printHeader() {
+func (vm *vertexMonitor) printHeader(printMetadata bool) {
 	vm.headerPrinted = true
 	if vm.operation == "" {
 		return
 	}
 	c := vm.console
+	if vm.targetBrackets != "" && printMetadata {
+		c.WithMetadataMode(true).Printf("%s\n", vm.targetBrackets)
+	}
 	out := []string{}
 	out = append(out, "-->")
 	out = append(out, vm.operation)
@@ -47,10 +50,6 @@ func (vm *vertexMonitor) printHeader() {
 		c = c.WithCached(true)
 	}
 	c.Printf("%s\n", strings.Join(out, " "))
-	if vm.targetBrackets != "" {
-		c = c.WithParams(vm.targetBrackets)
-		c.Printf("\n")
-	}
 }
 
 func (vm *vertexMonitor) shouldPrintProgress(percent int) bool {
@@ -100,6 +99,7 @@ type solverMonitor struct {
 	console  conslogging.ConsoleLogger
 	verbose  bool
 	vertices map[digest.Digest]*vertexMonitor
+	saltSeen map[string]bool
 }
 
 func newSolverMonitor(console conslogging.ConsoleLogger, verbose bool) *solverMonitor {
@@ -107,6 +107,7 @@ func newSolverMonitor(console conslogging.ConsoleLogger, verbose bool) *solverMo
 		console:  console,
 		verbose:  verbose,
 		vertices: make(map[digest.Digest]*vertexMonitor),
+		saltSeen: make(map[string]bool),
 	}
 }
 
@@ -137,7 +138,7 @@ Loop:
 				vm.vertex = vertex
 				if !vm.headerPrinted &&
 					((!vm.isInternal && (vertex.Cached || vertex.Started != nil)) || vertex.Error != "") {
-					vm.printHeader()
+					sm.printHeader(vm)
 				}
 				if vertex.Error != "" {
 					if strings.Contains(vertex.Error, "context canceled") {
@@ -168,7 +169,7 @@ Loop:
 				}
 				if vm.shouldPrintProgress(progress) {
 					if !vm.headerPrinted {
-						vm.printHeader()
+						sm.printHeader(vm)
 					}
 					vm.console.Printf("%s %d%%\n", vs.ID, progress)
 				}
@@ -180,7 +181,7 @@ Loop:
 					continue
 				}
 				if !vm.headerPrinted {
-					vm.printHeader()
+					sm.printHeader(vm)
 				}
 				err := vm.printOutput(logLine.Data)
 				if err != nil {
@@ -196,11 +197,19 @@ Loop:
 	return nil
 }
 
+func (sm *solverMonitor) printHeader(vm *vertexMonitor) {
+	seen := sm.saltSeen[vm.salt]
+	if !seen {
+		sm.saltSeen[vm.salt] = true
+	}
+	vm.printHeader(!seen)
+}
+
 func (sm *solverMonitor) reprintFailure(errVertex *vertexMonitor) {
 	sm.console.Warnf("Repeating the output of the command that caused the failure\n")
 	sm.console.PrintFailure()
 	errVertex.console = errVertex.console.WithFailed(true)
-	errVertex.printHeader()
+	errVertex.printHeader(true)
 	if errVertex.tailOutput != nil {
 		isTruncated := (errVertex.tailOutput.TotalWritten() > errVertex.tailOutput.Size())
 		if errVertex.tailOutput.TotalWritten() == 0 {

@@ -4,7 +4,7 @@ import "github.com/fatih/color"
 
 var noColor = makeNoColor()
 var cachedColor = makeColor(color.FgHiGreen)
-var paramsColor = makeColor(color.FgHiBlack)
+var metadataModeColor = makeColor(color.FgHiBlack)
 var successColor = makeColor(color.FgHiGreen)
 var warnColor = makeColor(color.FgHiRed)
 

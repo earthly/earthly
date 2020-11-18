@@ -38,8 +38,8 @@ var currentConsoleMutex sync.Mutex
 // ConsoleLogger is a writer for consoles.
 type ConsoleLogger struct {
 	prefix string
-	// params are printed right after the prefix delimiter.
-	params string
+	// metadataMode are printed in a different color.
+	metadataMode bool
 	// salt is a salt used for color consistency
 	// (the same salt will get the same color).
 	salt      string
@@ -72,7 +72,7 @@ func (cl ConsoleLogger) clone() ConsoleLogger {
 	return ConsoleLogger{
 		w:              cl.w,
 		prefix:         cl.prefix,
-		params:         cl.params,
+		metadataMode:   cl.metadataMode,
 		salt:           cl.salt,
 		isCached:       cl.isCached,
 		isFailed:       cl.isFailed,
@@ -92,10 +92,10 @@ func (cl ConsoleLogger) WithPrefix(prefix string) ConsoleLogger {
 	return ret
 }
 
-// WithParams returns a ConsoleLogger with params added.
-func (cl ConsoleLogger) WithParams(params string) ConsoleLogger {
+// WithMetadataMode returns a ConsoleLogger with metadata printing mode set.
+func (cl ConsoleLogger) WithMetadataMode(metadataMode bool) ConsoleLogger {
 	ret := cl.clone()
-	ret.params = params
+	ret.metadataMode = metadataMode
 	return ret
 }
 
@@ -159,12 +159,15 @@ func (cl ConsoleLogger) Warnf(format string, args ...interface{}) {
 func (cl ConsoleLogger) Printf(format string, args ...interface{}) {
 	cl.mu.Lock()
 	defer cl.mu.Unlock()
+	c := cl.color(noColor)
+	if cl.metadataMode {
+		c = cl.color(metadataModeColor)
+	}
 	text := fmt.Sprintf(format, args...)
 	text = strings.TrimSuffix(text, "\n")
 	for _, line := range strings.Split(text, "\n") {
 		cl.printPrefix()
-		cl.w.Write([]byte(line))
-		cl.w.Write([]byte("\n"))
+		c.Fprintf(cl.w, "%s\n", line)
 	}
 }
 
@@ -172,6 +175,10 @@ func (cl ConsoleLogger) Printf(format string, args ...interface{}) {
 func (cl ConsoleLogger) PrintBytes(data []byte) {
 	cl.mu.Lock()
 	defer cl.mu.Unlock()
+	c := cl.color(noColor)
+	if cl.metadataMode {
+		c = cl.color(metadataModeColor)
+	}
 
 	output := make([]byte, 0, len(data))
 	for len(data) > 0 {
@@ -188,7 +195,7 @@ func (cl ConsoleLogger) PrintBytes(data []byte) {
 		default:
 			if !cl.trailingLine {
 				if len(output) > 0 {
-					cl.w.Write(output)
+					c.Fprintf(cl.w, "%s", string(output))
 					output = output[:0]
 				}
 				cl.printPrefix()
@@ -198,7 +205,7 @@ func (cl ConsoleLogger) PrintBytes(data []byte) {
 		}
 	}
 	if len(output) > 0 {
-		cl.w.Write(output)
+		c.Fprintf(cl.w, "%s", string(output))
 		output = output[:0]
 	}
 }
@@ -226,10 +233,6 @@ func (cl ConsoleLogger) printPrefix() {
 		cl.w.Write([]byte("*"))
 		cl.color(cachedColor).Fprintf(cl.w, "cached")
 		cl.w.Write([]byte("* "))
-	}
-	if cl.params != "" {
-		cl.color(paramsColor).Fprintf(cl.w, cl.params)
-		cl.w.Write([]byte(" "))
 	}
 }
 
