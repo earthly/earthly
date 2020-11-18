@@ -76,11 +76,15 @@ func (et Target) String() string {
 // StringCanonical returns a string representation of the Target, in canonical form.
 func (et Target) StringCanonical() string {
 	if et.GitURL != "" {
-		tag := fmt.Sprintf(":%s", escapePlus(et.Tag))
-		if et.Tag == "" {
-			tag = ""
+		s := et.GitURL
+		if et.GitPath != "" {
+			s += "/" + escapePlus(et.GitPath)
 		}
-		return fmt.Sprintf("%s/%s%s+%s", escapePlus(et.GitURL), escapePlus(et.GitPath), tag, escapePlus(et.Target))
+		if et.Tag != "" {
+			s += ":" + escapePlus(et.Tag)
+		}
+		s += "+" + escapePlus(et.Target)
+		return s
 	}
 	return et.String()
 }
@@ -88,11 +92,14 @@ func (et Target) StringCanonical() string {
 // ProjectCanonical returns a string representation of the project of the target, in canonical form.
 func (et Target) ProjectCanonical() string {
 	if et.GitURL != "" {
-		tag := fmt.Sprintf(":%s", escapePlus(et.Tag))
-		if et.Tag == "" {
-			tag = ""
+		s := escapePlus(et.GitURL)
+		if et.GitPath != "" {
+			s += "/" + escapePlus(et.GitPath)
 		}
-		return fmt.Sprintf("%s/%s%s", escapePlus(et.GitURL), escapePlus(et.GitPath), tag)
+		if et.Tag != "" {
+			s += ":" + escapePlus(et.Tag)
+		}
+		return s
 	}
 	if et.LocalPath == "." {
 		return ""

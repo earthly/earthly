@@ -175,6 +175,7 @@ func (c *Collection) WithBuiltinBuildArgs(target domain.Target, gitMeta *buildco
 		ret.overridingVariables[k] = true
 	}
 	// Add the builtin build args.
+	fmt.Printf("WithBuiltinBuildArgs debug %s\n", target.DebugString())
 	ret.variables["EARTHLY_TARGET"] = NewConstant(target.StringCanonical())
 	ret.variables["EARTHLY_TARGET_PROJECT"] = NewConstant(target.ProjectCanonical())
 	ret.variables["EARTHLY_TARGET_NAME"] = NewConstant(target.Target)

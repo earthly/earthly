@@ -38,5 +38,5 @@ test-origin-no-hash:
     RUN test "$EARTHLY_TARGET_PROJECT" == "github.com/earthly/earthly"
     RUN test "$EARTHLY_TARGET_NAME" == "test-origin-no-hash"
     RUN test "$EARTHLY_GIT_ORIGIN_URL" == "https://github.com/earthly/earthly.git"
-    RUN test "$EARTHLY_GIT_PROJECT_NAME" == "earthly/earthly"
+    #TODO is this needed? RUN test "$EARTHLY_GIT_PROJECT_NAME" == "earthly/earthly"
     RUN test "$EARTHLY_GIT_HASH" == ""
