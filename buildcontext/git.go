@@ -31,8 +31,6 @@ type gitResolver struct {
 type resolvedGitProject struct {
 	// gitMetaAndEarthfileRef is the ref containing the git metadata and build files.
 	gitMetaAndEarthfileRef gwclient.Reference
-	// gitProject is the git project identifier. For GitHub, this is <username>/<project>.
-	// gitProject string
 	// hash is the git hash.
 	hash string
 	// branches is the git branches.
@@ -95,25 +93,14 @@ func (gr *gitResolver) resolveEarthProject(ctx context.Context, gwClient gwclien
 			BaseDir:   "",
 			RelDir:    subDir,
 			RemoteURL: gitURL,
-			//GitVendor: target.Registry,
-			//GitProject: rgp.gitProject,
-			Hash:   rgp.hash,
-			Branch: rgp.branches,
-			Tags:   rgp.tags,
+			Hash:      rgp.hash,
+			Branch:    rgp.branches,
+			Tags:      rgp.tags,
 		},
 	}, nil
 }
 
 func (gr *gitResolver) resolveGitProject(ctx context.Context, gwClient gwclient.Client, target domain.Target) (rgp *resolvedGitProject, gitURL string, subDir string, finalErr error) {
-	//projectPathParts := strings.Split(target.ProjectPath, "/")
-	//if len(projectPathParts) < 2 {
-	//	return nil, "", "", fmt.Errorf("Invalid github project path %s", target.ProjectPath)
-	//}
-	//githubUsername := projectPathParts[0]
-	//githubProject := projectPathParts[1]
-	//subDir = strings.Join(projectPathParts[2:], "/")
-	//gitURL = fmt.Sprintf("git@%s:%s/%s.git", target.Registry, githubUsername, githubProject)
-	//gitURL = fmt.Sprintf("https://%s/%s/%s.git", target.Registry, githubUsername, githubProject)
 	ref := target.Tag
 
 	gitURL = target.GitURL
@@ -138,7 +125,6 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, gwClient gwclient.
 		llb.WithCustomNamef("[internal] GIT CLONE %s", gitURL),
 		llb.KeepGitDir(),
 	}
-	fmt.Printf("=== llb.Git %q ===\n", gitURL)
 	gitState := llb.Git(gitURL, ref, gitOpts...)
 	copyOpts := []llb.RunOption{
 		llb.Args([]string{
@@ -213,14 +199,12 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, gwClient gwclient.
 		}
 	}
 
-	fmt.Printf("=== llb.Git2 %q ===\n", gitURL)
 	// Add to cache.
 	resolved := &resolvedGitProject{
 		gitMetaAndEarthfileRef: gitMetaAndEarthfileRef,
 		hash:                   gitHash,
 		branches:               gitBranches2,
 		tags:                   gitTags2,
-		//gitProject:             fmt.Sprintf("%s/%s", githubUsername, githubProject),
 		state: llb.Git(
 			gitURL,
 			gitHash,
@@ -249,7 +233,6 @@ type gitMatcher struct {
 
 // returns git path in the form user@host:path/to/repo.git, and any subdir
 func (gr *gitResolver) getGitClonePath(ctx context.Context, path string) (string, string, error) {
-	fmt.Printf("getGitClonePath(%q)\n", path)
 	matchers := []gitMatcher{
 		{
 			pattern: "github.com/[^/]+/[^/]+",
@@ -272,7 +255,6 @@ func (gr *gitResolver) getGitClonePath(ctx context.Context, path string) (string
 			suffix:  ".git",
 		},
 	}
-	fmt.Println(path)
 	for _, m := range matchers {
 		r, err := regexp.Compile(m.pattern)
 		if err != nil {
@@ -283,10 +265,8 @@ func (gr *gitResolver) getGitClonePath(ctx context.Context, path string) (string
 			parts := strings.SplitN(match, "/", 2)
 			gitURL := fmt.Sprintf("%s@%s:%s%s", m.user, parts[0], parts[1], m.suffix)
 			subPath := path[len(match):]
-			fmt.Printf("returning %q %q\n", gitURL, subPath)
 			return gitURL, subPath, nil
 		}
-		fmt.Println()
 	}
 	return "", "", nil
 }

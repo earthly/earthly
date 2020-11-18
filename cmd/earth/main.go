@@ -320,13 +320,13 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 			Usage:       "The git password to use for git HTTPS authentication",
 			Destination: &app.gitPasswordOverride,
 		},
-		&cli.StringFlag{
-			Name:        "git-url-instead-of",
-			Value:       "",
-			EnvVars:     []string{"GIT_URL_INSTEAD_OF"},
-			Usage:       "Rewrite git URLs of a certain pattern. Similar to git-config url.<base>.insteadOf (https://git-scm.com/docs/git-config#Documentation/git-config.txt-urlltbasegtinsteadOf). Multiple values can be separated by commas. Format: <base>=<instead-of>[,...]. For example: 'https://github.com/=git@github.com:'",
-			Destination: &app.buildkitdSettings.GitURLInsteadOf,
-		},
+		//&cli.StringFlag{
+		//	Name:        "git-url-instead-of",
+		//	Value:       "",
+		//	EnvVars:     []string{"GIT_URL_INSTEAD_OF"},
+		//	Usage:       "Rewrite git URLs of a certain pattern. Similar to git-config url.<base>.insteadOf (https://git-scm.com/docs/git-config#Documentation/git-config.txt-urlltbasegtinsteadOf). Multiple values can be separated by commas. Format: <base>=<instead-of>[,...]. For example: 'https://github.com/=git@github.com:'",
+		//	Destination: &app.buildkitdSettings.GitURLInsteadOf,
+		//},
 		&cli.BoolFlag{
 			Name:        "allow-privileged",
 			Aliases:     []string{"P"},
@@ -691,15 +691,15 @@ func (app *earthApp) processDeprecatedCommandOptions(context *cli.Context, cfg *
 		}
 	}
 
-	if context.IsSet("git-url-instead-of") {
-		app.console.Warnf("Warning: the --git-url-instead-of command flag is deprecated and is now configured in the ~/.earthly/config.yml file under the git global url_instead_of setting; see https://docs.earthly.dev/earth-config for reference.\n")
-	} else {
-		if gitGlobal, ok := cfg.Git["global"]; ok {
-			if gitGlobal.GitURLInsteadOf != "" {
-				app.buildkitdSettings.GitURLInsteadOf = gitGlobal.GitURLInsteadOf
-			}
-		}
-	}
+	//if context.IsSet("git-url-instead-of") {
+	//	app.console.Warnf("Warning: the --git-url-instead-of command flag is deprecated and is now configured in the ~/.earthly/config.yml file under the git global url_instead_of setting; see https://docs.earthly.dev/earth-config for reference.\n")
+	//} else {
+	//	if gitGlobal, ok := cfg.Git["global"]; ok {
+	//		if gitGlobal.GitURLInsteadOf != "" {
+	//			app.buildkitdSettings.GitURLInsteadOf = gitGlobal.GitURLInsteadOf
+	//		}
+	//	}
+	//}
 
 	if context.IsSet("buildkit-cache-size-mb") {
 		app.console.Warnf("Warning: the --buildkit-cache-size-mb command flag is deprecated and is now configured in the ~/.earthly/config.yml file under the buildkit_cache_size setting; see https://docs.earthly.dev/earth-config for reference.\n")

@@ -11,12 +11,6 @@ import (
 
 // Target is a earth target identifier.
 type Target struct {
-	// old way
-	//Registry    string `json:"registry"`    // github.com
-	//ProjectPath string `json:"projectPath"` // earthly/earthly/examples/go
-	//Tag         string `json:"tag"`         // main
-
-	// new way
 	GitURL  string // "github.com/earthly/earthly"
 	GitPath string // "examples/go"
 	Tag     string // "main"

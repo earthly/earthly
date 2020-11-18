@@ -163,6 +163,17 @@ func (c *Collection) WithResetEnvVars() *Collection {
 	return ret
 }
 
+// getProjectName returns the depricated PROJECT_NAME value
+func getProjectName(s string) string {
+	s = strings.Replace(s, ":", "/", 1)
+	s = strings.TrimSuffix(s, ".git")
+	parts := strings.SplitN(s, "/", 2)
+	if len(parts) > 1 {
+		s = parts[1]
+	}
+	return s
+}
+
 // WithBuiltinBuildArgs returns a new collection containing the current variables together with
 // builtin args. This operation does not modify the current collection.
 func (c *Collection) WithBuiltinBuildArgs(target domain.Target, gitMeta *buildcontext.GitMetadata) *Collection {
@@ -175,7 +186,6 @@ func (c *Collection) WithBuiltinBuildArgs(target domain.Target, gitMeta *buildco
 		ret.overridingVariables[k] = true
 	}
 	// Add the builtin build args.
-	fmt.Printf("WithBuiltinBuildArgs debug %s\n", target.DebugString())
 	ret.variables["EARTHLY_TARGET"] = NewConstant(target.StringCanonical())
 	ret.variables["EARTHLY_TARGET_PROJECT"] = NewConstant(target.ProjectCanonical())
 	ret.variables["EARTHLY_TARGET_NAME"] = NewConstant(target.Target)
@@ -195,7 +205,7 @@ func (c *Collection) WithBuiltinBuildArgs(target domain.Target, gitMeta *buildco
 		}
 		ret.variables["EARTHLY_GIT_TAG"] = NewConstant(tag)
 		ret.variables["EARTHLY_GIT_ORIGIN_URL"] = NewConstant(gitMeta.RemoteURL)
-		//ret.variables["EARTHLY_GIT_PROJECT_NAME"] = NewConstant(gitMeta.GitProject)
+		ret.variables["EARTHLY_GIT_PROJECT_NAME"] = NewConstant(getProjectName(gitMeta.RemoteURL))
 	}
 	return ret
 }

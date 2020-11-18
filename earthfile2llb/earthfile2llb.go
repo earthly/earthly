@@ -48,7 +48,6 @@ type ConvertOpt struct {
 
 // Earthfile2LLB parses a earthfile and executes the statements for a given target.
 func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt) (mts *states.MultiTarget, err error) {
-	fmt.Printf("Earthfile2LLB on %s\n", target.DebugString())
 	if opt.SolveCache == nil {
 		opt.SolveCache = make(map[string]llb.State)
 	}

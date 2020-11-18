@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"os/exec"
-	"path"
 	"path/filepath"
 	"strings"
 
@@ -31,10 +30,9 @@ type GitMetadata struct {
 	RelDir    string
 	RemoteURL string
 	GitURL    string
-	//GitPath   string this is the same as RelDir
-	Hash   string
-	Branch []string
-	Tags   []string
+	Hash      string
+	Branch    []string
+	Tags      []string
 }
 
 // Metadata performs git metadata detection on the provided directory.
@@ -130,7 +128,7 @@ func detectIsGitDir(ctx context.Context, dir string) error {
 	return nil
 }
 
-// parseGitRemoteURL converts user@host.com:path/to.git to host.com/path/to  TODO this should be moved into the gitMatcher code
+// parseGitRemoteURL converts a gitURL like user@host.com:path/to.git or https://host.com/path/to.git to host.com/path/to
 func parseGitRemoteURL(gitURL string) (string, error) {
 	s := gitURL
 
@@ -255,24 +253,14 @@ func gitRelDir(basePath string, path string) (string, bool, error) {
 
 // TargetWithGitMeta applies git metadata to the target naming.
 func TargetWithGitMeta(target domain.Target, gitMeta *GitMetadata) domain.Target {
-	fmt.Printf("TargetWithGitMeta(%s)\n", target.DebugString())
-	if gitMeta != nil {
-		fmt.Printf("%v\n", gitMeta)
-		fmt.Printf("gitUrl: %v\n", gitMeta.GitURL)
-		fmt.Printf("relDir: %v\n", gitMeta.RelDir)
-	}
-
 	if gitMeta == nil || gitMeta.GitURL == "" {
 		return target
 	}
 	targetRet := target
-	_ = path.Join
 	targetRet.GitURL = gitMeta.GitURL
 	if gitMeta.RelDir != "/." && gitMeta.RelDir != "." {
 		targetRet.GitPath = strings.TrimPrefix(gitMeta.RelDir, "/")
 	}
-	//targetRet.Registry = gitMeta.GitVendor
-	//targetRet.ProjectPath = path.Join(gitMeta.GitProject, gitMeta.RelDir)
 	if targetRet.Tag == "" {
 		if len(gitMeta.Tags) > 0 {
 			targetRet.Tag = gitMeta.Tags[0]
@@ -282,6 +270,5 @@ func TargetWithGitMeta(target domain.Target, gitMeta *GitMetadata) domain.Target
 			targetRet.Tag = gitMeta.Hash
 		}
 	}
-	fmt.Printf("returning %s -> %s\n", target.DebugString(), targetRet.DebugString())
 	return targetRet
 }
