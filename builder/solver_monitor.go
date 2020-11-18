@@ -202,7 +202,7 @@ func (sm *solverMonitor) printHeader(vm *vertexMonitor) {
 	if !seen {
 		sm.saltSeen[vm.salt] = true
 	}
-	vm.printHeader(!seen)
+	vm.printHeader(!seen || sm.verbose)
 }
 
 func (sm *solverMonitor) reprintFailure(errVertex *vertexMonitor) {
