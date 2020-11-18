@@ -15,15 +15,15 @@ var targetTests = []struct {
 	{"./a/local/dir+target", Target{Target: "target", LocalPath: "./a/local/dir"}},
 	{"/abs/local/dir+target", Target{Target: "target", LocalPath: "/abs/local/dir"}},
 	{"../rel/local/dir+target", Target{Target: "target", LocalPath: "../rel/local/dir"}},
-	//{"github.com/foo/bar+target", Target{Target: "target", Registry: "github.com", ProjectPath: "foo/bar"}},
-	//{"github.com/foo/bar:tag+target", Target{Target: "target", Registry: "github.com", ProjectPath: "foo/bar", Tag: "tag"}},
-	//{"github.com/foo/bar:tag/with/slash+target", Target{Target: "target", Registry: "github.com", ProjectPath: "foo/bar", Tag: "tag/with/slash"}},
+	{"github.com/foo/bar+target", Target{Target: "target", GitURL: "github.com/foo/bar"}},
+	{"github.com/foo/bar:tag+target", Target{Target: "target", GitURL: "github.com/foo/bar", Tag: "tag"}},
+	{"github.com/foo/bar:tag/with/slash+target", Target{Target: "target", GitURL: "github.com/foo/bar", Tag: "tag/with/slash"}},
 	// \+
 	{"./a/local/dir-with-\\+-in-it+target", Target{Target: "target", LocalPath: "./a/local/dir-with-+-in-it"}},
 	{"/abs/local/dir-with-\\+-in+target", Target{Target: "target", LocalPath: "/abs/local/dir-with-+-in"}},
 	{"../rel/local/dir-with-\\+-in+target", Target{Target: "target", LocalPath: "../rel/local/dir-with-+-in"}},
-	//{"github.com/foo/bar/dir-with-\\+-in+target", Target{Target: "target", Registry: "github.com", ProjectPath: "foo/bar/dir-with-+-in"}},
-	//{"github.com/foo/bar:tag-with-\\+-in+target", Target{Target: "target", Registry: "github.com", ProjectPath: "foo/bar", Tag: "tag-with-+-in"}},
+	{"github.com/foo/bar/dir-with-\\+-in+target", Target{Target: "target", GitURL: "github.com/foo/bar", GitPath: "dir-with-+-in"}},
+	{"github.com/foo/bar:tag-with-\\+-in+target", Target{Target: "target", GitURL: "github.com/foo/bar", Tag: "tag-with-+-in"}},
 }
 
 func TestTargetParser(t *testing.T) {
