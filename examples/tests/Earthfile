@@ -347,6 +347,7 @@ empty-git-test:
 escape-test:
     COPY escape.earth ./Earthfile
     RUN printf "content" >file-with-+.txt
+    RUN printf "content" >regular-file.txt
     RUN --privileged \
         --entrypoint \
         --mount=type=tmpfs,target=/tmp/earthly \
