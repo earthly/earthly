@@ -103,7 +103,6 @@ func (et Target) ProjectCanonical() string {
 
 // ParseTarget parses a string into a Target.
 func ParseTarget(fullTargetName string) (Target, error) {
-	fmt.Printf("ParseTarget(%q)\n", fullTargetName)
 	partsPlus, err := splitUnescapePlus(fullTargetName)
 	if err != nil {
 		return Target{}, err
@@ -156,7 +155,6 @@ func ParseTarget(fullTargetName string) (Target, error) {
 
 // JoinTargets returns the result of interpreting target2 as relative to target1.
 func JoinTargets(target1 Target, target2 Target) (Target, error) {
-	//fmt.Printf("JoinTargets(%q, %q)\n", target1.DebugString(), target2.DebugString())
 	ret := target2
 	if target1.IsRemote() {
 		// target1 is remote. Turn relative targets into remote targets.
@@ -172,7 +170,6 @@ func JoinTargets(target1 Target, target2 Target) (Target, error) {
 
 				ret.GitPath = path.Join(target1.GitPath, ret.LocalPath)
 				ret.LocalPath = ""
-				//panic(fmt.Sprintf("join %q and %q", target1.GitPath, ret.GitPath))
 			} else if ret.IsLocalInternal() {
 				ret.LocalPath = ""
 			}
@@ -292,26 +289,13 @@ func (gl *GitLookup) DisableSSH() {
 }
 
 func (gl *GitLookup) getGitMatcher(path string) (string, *gitMatcher, error) {
-	fmt.Printf("getGitMatcher(%q)\n", path)
 	for _, m := range gl.matchers {
 		r, err := regexp.Compile(m.pattern)
 		if err != nil {
-			panic(err)
+			return "", nil, errors.Wrapf(err, "failed to compile regex %s", m.pattern)
 		}
 		match := r.FindString(path)
 		if match != "" {
-			n := len(match) + 1
-			subPath := ""
-			if len(path) > n {
-				subPath = path[n:]
-			}
-			if strings.HasSuffix(match, "/") {
-				panic("bad")
-			}
-			if strings.HasPrefix(subPath, "/") {
-				fmt.Println(subPath)
-				panic("bad1")
-			}
 			return match, &m, nil
 		}
 	}
@@ -323,10 +307,8 @@ func (gl *GitLookup) getGitMatcher(path string) (string, *gitMatcher, error) {
 //   "github.com/earthly/earthly/examples"    ---> ("github.com/earthly/earthly", "examples")
 //   "github.com/earthly/earthly/examples/go" ---> ("github.com/earthly/earthly", "examples/go")
 func (gl *GitLookup) SplitGitTarget(path string) (string, string, error) {
-	fmt.Printf("SplitGitTarget(%q)\n", path)
 	match, _, err := gl.getGitMatcher(path)
 	if err != nil {
-		fmt.Printf("failed to parse %q\n", path)
 		return "", "", err
 	}
 	n := len(match) + 1
@@ -334,23 +316,13 @@ func (gl *GitLookup) SplitGitTarget(path string) (string, string, error) {
 	if len(path) > n {
 		subPath = path[n:]
 	}
-	if strings.HasSuffix(match, "/") {
-		panic("bad")
-	}
-	if strings.HasPrefix(subPath, "/") {
-		fmt.Println(subPath)
-		panic("bad1")
-	}
-	fmt.Printf("parsed %q into %q and %q\n", path, match, subPath)
 	return match, subPath, nil
 }
 
 // GetCloneURL returns a string
 func (gl *GitLookup) GetCloneURL(path string) (string, error) {
-	fmt.Printf("GetCloneURL(%q)\n", path)
 	match, m, err := gl.getGitMatcher(path)
 	if err != nil {
-		fmt.Printf("failed to parse %q\n", path)
 		return "", err
 	}
 	var gitURL string
@@ -364,6 +336,5 @@ func (gl *GitLookup) GetCloneURL(path string) (string, error) {
 	default:
 		return "", fmt.Errorf("unsupported protocol: %s", m.protocol)
 	}
-	fmt.Printf("GetCloneURL(%q) returning %q\n", path, gitURL)
 	return gitURL, nil
 }
