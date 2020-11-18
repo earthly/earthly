@@ -1,6 +1,7 @@
 package builder
 
 import (
+	"bytes"
 	"context"
 	"encoding/base64"
 	"regexp"
@@ -32,6 +33,8 @@ type vertexMonitor struct {
 	isInternal     bool
 	isError        bool
 	tailOutput     *circbuf.Buffer
+	// Line of output that has not yet been terminated with a \n.
+	openLine []byte
 }
 
 func (vm *vertexMonitor) printHeader(printMetadata bool) {
@@ -72,7 +75,25 @@ func (vm *vertexMonitor) shouldPrintProgress(percent int) bool {
 }
 
 func (vm *vertexMonitor) printOutput(output []byte) error {
-	vm.console.PrintBytes(output)
+	// Prepend the open line to the output.
+	printOutput := make([]byte, len(vm.openLine))
+	copy(printOutput, vm.openLine)
+	printOutput = append(printOutput, output...)
+	// Look for the last \n to update the open line.
+	lastNewLine := bytes.LastIndexByte(printOutput, '\n')
+	if lastNewLine != -1 {
+		// Ends up being empty slice if output ends in \n.
+		vm.openLine = printOutput[(lastNewLine + 1):]
+	} else {
+		// No \n found - update vm.openLine to printOutput, which is
+		// the previous open line + new output.
+		vm.openLine = printOutput
+	}
+	if !bytes.HasSuffix(printOutput, []byte{'\n'}) {
+		// If output doesn't terminate in \n, add our own.
+		printOutput = append(printOutput, '\n')
+	}
+	vm.console.PrintBytes(printOutput)
 	if vm.tailOutput == nil {
 		var err error
 		vm.tailOutput, err = circbuf.NewBuffer(tailErrorBufferSizeBytes)
@@ -80,6 +101,7 @@ func (vm *vertexMonitor) printOutput(output []byte) error {
 			return errors.Wrap(err, "allocate buffer for output")
 		}
 	}
+	// Use the raw output for the tail buffer.
 	_, err := vm.tailOutput.Write(output)
 	if err != nil {
 		return errors.Wrap(err, "write to in-memory output buffer")
