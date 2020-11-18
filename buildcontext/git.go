@@ -7,7 +7,6 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"regexp"
 	"strings"
 
 	"github.com/earthly/earthly/cleanup"
@@ -104,10 +103,10 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, gwClient gwclient.
 	ref := target.Tag
 
 	gitURL = target.GitURL
-	subDir = target.GitPath
+	//subDir = target.GitPath
 
 	var err error
-	gitURL, err = domain.GlobalGitLookup.GetCloneURL(target.GitURL)
+	gitURL, subDir, err = GlobalGitLookup.GetCloneURL(target.GitURL)
 	if err != nil {
 		return nil, "", "", errors.Wrap(err, "failed to get url for cloning")
 	}
@@ -223,50 +222,4 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, gwClient gwclient.
 		gr.projectCache[cacheKey4] = resolved
 	}
 	return resolved, gitURL, subDir, nil
-}
-
-type gitMatcher struct {
-	pattern string
-	user    string
-	suffix  string
-}
-
-// returns git path in the form user@host:path/to/repo.git, and any subdir
-func (gr *gitResolver) getGitClonePath(ctx context.Context, path string) (string, string, error) {
-	matchers := []gitMatcher{
-		{
-			pattern: "github.com/[^/]+/[^/]+",
-			user:    "git",
-			suffix:  ".git",
-		},
-		{
-			pattern: "gitlab.com/[^/]+/[^/]+",
-			user:    "git",
-			suffix:  ".git",
-		},
-		{
-			pattern: "bitbucket.com/[^/]+/[^/]+",
-			user:    "git",
-			suffix:  ".git",
-		},
-		{
-			pattern: "192.168.0.116/my/test/path/[^/]+",
-			user:    "alex",
-			suffix:  ".git",
-		},
-	}
-	for _, m := range matchers {
-		r, err := regexp.Compile(m.pattern)
-		if err != nil {
-			panic(err)
-		}
-		match := r.FindString(path)
-		if match != "" {
-			parts := strings.SplitN(match, "/", 2)
-			gitURL := fmt.Sprintf("%s@%s:%s%s", m.user, parts[0], parts[1], m.suffix)
-			subPath := path[len(match):]
-			return gitURL, subPath, nil
-		}
-	}
-	return "", "", nil
 }

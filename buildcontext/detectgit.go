@@ -259,7 +259,8 @@ func TargetWithGitMeta(target domain.Target, gitMeta *GitMetadata) domain.Target
 	targetRet := target
 	targetRet.GitURL = gitMeta.GitURL
 	if gitMeta.RelDir != "/." && gitMeta.RelDir != "." {
-		targetRet.GitPath = strings.TrimPrefix(gitMeta.RelDir, "/")
+		panic("here")
+		//targetRet.GitPath = strings.TrimPrefix(gitMeta.RelDir, "/")
 	}
 	if targetRet.Tag == "" {
 		if len(gitMeta.Tags) > 0 {

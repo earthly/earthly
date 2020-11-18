@@ -22,7 +22,7 @@ var targetTests = []struct {
 	{"./a/local/dir-with-\\+-in-it+target", Target{Target: "target", LocalPath: "./a/local/dir-with-+-in-it"}},
 	{"/abs/local/dir-with-\\+-in+target", Target{Target: "target", LocalPath: "/abs/local/dir-with-+-in"}},
 	{"../rel/local/dir-with-\\+-in+target", Target{Target: "target", LocalPath: "../rel/local/dir-with-+-in"}},
-	{"github.com/foo/bar/dir-with-\\+-in+target", Target{Target: "target", GitURL: "github.com/foo/bar", GitPath: "dir-with-+-in"}},
+	{"github.com/foo/bar/dir-with-\\+-in+target", Target{Target: "target", GitURL: "github.com/foo/bar/dir-with-+-in"}},
 	{"github.com/foo/bar:tag-with-\\+-in+target", Target{Target: "target", GitURL: "github.com/foo/bar", Tag: "tag-with-+-in"}},
 }
 
@@ -61,7 +61,7 @@ var artifactTests = []struct {
 	{"./a/local/dir-with-\\+-in-it+target/artifact", Artifact{Target: Target{Target: "target", LocalPath: "./a/local/dir-with-+-in-it"}, Artifact: "/artifact"}},
 	{"/abs/local/dir-with-\\+-in+target/artifact", Artifact{Target: Target{Target: "target", LocalPath: "/abs/local/dir-with-+-in"}, Artifact: "/artifact"}},
 	{"../rel/local/dir-with-\\+-in+target/artifact", Artifact{Target: Target{Target: "target", LocalPath: "../rel/local/dir-with-+-in"}, Artifact: "/artifact"}},
-	{"github.com/foo/bar/dir-with-\\+-in+target/artifact", Artifact{Target: Target{Target: "target", GitURL: "github.com/foo/bar", GitPath: "dir-with-+-in"}, Artifact: "/artifact"}},
+	{"github.com/foo/bar/dir-with-\\+-in+target/artifact", Artifact{Target: Target{Target: "target", GitURL: "github.com/foo/bar/dir-with-+-in"}, Artifact: "/artifact"}},
 	{"github.com/foo/bar:tag-with-\\+-in+target/artifact", Artifact{Target: Target{Target: "target", GitURL: "github.com/foo/bar", Tag: "tag-with-+-in"}, Artifact: "/artifact"}},
 	// \+ in artifact
 	{"+target/artifact-with-\\+", Artifact{Target: Target{Target: "target", LocalPath: "."}, Artifact: "/artifact-with-+"}},
@@ -71,7 +71,7 @@ var artifactTests = []struct {
 	{"./a/local/dir-with-\\+-in-it+target/artifact-with-\\+/in/it", Artifact{Target: Target{Target: "target", LocalPath: "./a/local/dir-with-+-in-it"}, Artifact: "/artifact-with-+/in/it"}},
 	{"/abs/local/dir-with-\\+-in+target/artifact-with-\\+/in/it", Artifact{Target: Target{Target: "target", LocalPath: "/abs/local/dir-with-+-in"}, Artifact: "/artifact-with-+/in/it"}},
 	{"../rel/local/dir-with-\\+-in+target/artifact-with-\\+/in/it", Artifact{Target: Target{Target: "target", LocalPath: "../rel/local/dir-with-+-in"}, Artifact: "/artifact-with-+/in/it"}},
-	{"github.com/foo/bar/dir-with-\\+-in+target/artifact-with-\\+/in/it", Artifact{Target: Target{Target: "target", GitURL: "github.com/foo/bar", GitPath: "dir-with-+-in"}, Artifact: "/artifact-with-+/in/it"}},
+	{"github.com/foo/bar/dir-with-\\+-in+target/artifact-with-\\+/in/it", Artifact{Target: Target{Target: "target", GitURL: "github.com/foo/bar/dir-with-+-in"}, Artifact: "/artifact-with-+/in/it"}},
 	{"github.com/foo/bar:tag-with-\\+-in+target/artifact-with-\\+/in/it", Artifact{Target: Target{Target: "target", GitURL: "github.com/foo/bar", Tag: "tag-with-+-in"}, Artifact: "/artifact-with-+/in/it"}},
 }
 

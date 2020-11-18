@@ -25,6 +25,7 @@ import (
 
 	"github.com/earthly/earthly/analytics"
 	"github.com/earthly/earthly/autocomplete"
+	"github.com/earthly/earthly/buildcontext"
 	"github.com/earthly/earthly/buildcontext/provider"
 	"github.com/earthly/earthly/builder"
 	"github.com/earthly/earthly/buildkitd"
@@ -1413,7 +1414,7 @@ func (app *earthApp) actionBuild(c *cli.Context) error {
 		attachables = append(attachables, ssh)
 	} else {
 		app.console.Printf("No ssh auth socket detected; all git clone commands will use https\n")
-		domain.GlobalGitLookup.DisableSSH()
+		buildcontext.GlobalGitLookup.DisableSSH()
 	}
 
 	var enttlmnts []entitlements.Entitlement

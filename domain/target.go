@@ -10,9 +10,8 @@ import (
 
 // Target is a earth target identifier.
 type Target struct {
-	GitURL  string // "github.com/earthly/earthly"
-	GitPath string // "examples/go"
-	Tag     string // "main"
+	GitURL string // e.g. "github.com/earthly/earthly/examples/go"
+	Tag    string // e.g. "main"
 
 	// Local representation.
 	LocalPath string `json:"localPath"`
@@ -43,7 +42,7 @@ func (et Target) IsRemote() bool {
 
 // DebugString returns a string that can be printed out for debugging purposes
 func (et Target) DebugString() string {
-	return fmt.Sprintf("gitURL: %q; gitPath: %q; tag: %q; LocalPath: %q; Target: %q", et.GitURL, et.GitPath, et.Tag, et.LocalPath, et.Target)
+	return fmt.Sprintf("gitURL: %q; tag: %q; LocalPath: %q; Target: %q", et.GitURL, et.Tag, et.LocalPath, et.Target)
 }
 
 // String returns a string representation of the Target.
@@ -52,10 +51,7 @@ func (et Target) String() string {
 		return fmt.Sprintf("%s+%s", escapePlus(et.LocalPath), et.Target)
 	}
 	if et.IsRemote() {
-		s := et.GitURL
-		if et.GitPath != "" {
-			s += "/" + escapePlus(et.GitPath)
-		}
+		s := escapePlus(et.GitURL)
 		if et.Tag != "" {
 			s += ":" + escapePlus(et.Tag)
 		}
@@ -69,10 +65,7 @@ func (et Target) String() string {
 // StringCanonical returns a string representation of the Target, in canonical form.
 func (et Target) StringCanonical() string {
 	if et.GitURL != "" {
-		s := et.GitURL
-		if et.GitPath != "" {
-			s += "/" + escapePlus(et.GitPath)
-		}
+		s := escapePlus(et.GitURL)
 		if et.Tag != "" {
 			s += ":" + escapePlus(et.Tag)
 		}
@@ -86,9 +79,6 @@ func (et Target) StringCanonical() string {
 func (et Target) ProjectCanonical() string {
 	if et.GitURL != "" {
 		s := escapePlus(et.GitURL)
-		if et.GitPath != "" {
-			s += "/" + escapePlus(et.GitPath)
-		}
 		if et.Tag != "" {
 			s += ":" + escapePlus(et.Tag)
 		}
@@ -139,15 +129,11 @@ func ParseTarget(fullTargetName string) (Target, error) {
 			tag = partsColon[1]
 		}
 
-		gitURL, gitPath, err := GlobalGitLookup.SplitGitTarget(partsColon[0])
-		if err != nil {
-			return Target{}, err
-		}
+		//partsColon[0] // github.com/user/repo  <--- keep it in this format.
 		return Target{
-			GitURL:  gitURL,
-			GitPath: gitPath,
-			Tag:     tag,
-			Target:  partsPlus[1],
+			GitURL: partsColon[0],
+			Tag:    tag,
+			Target: partsPlus[1],
 		}, nil
 	}
 }
@@ -158,8 +144,6 @@ func JoinTargets(target1 Target, target2 Target) (Target, error) {
 	if target1.IsRemote() {
 		// target1 is remote. Turn relative targets into remote targets.
 		if !ret.IsRemote() {
-			ret.GitURL = target1.GitURL
-			ret.GitPath = target1.GitPath
 			ret.Tag = target1.Tag
 			if ret.IsLocalExternal() {
 				if path.IsAbs(ret.LocalPath) {
@@ -167,7 +151,7 @@ func JoinTargets(target1 Target, target2 Target) (Target, error) {
 						"Absolute path %s not supported as reference in external target context", ret.LocalPath)
 				}
 
-				ret.GitPath = path.Join(target1.GitPath, ret.LocalPath)
+				ret.GitURL = path.Join(target1.GitURL, ret.LocalPath)
 				ret.LocalPath = ""
 			} else if ret.IsLocalInternal() {
 				ret.LocalPath = ""
