@@ -256,9 +256,11 @@ func gitRelDir(basePath string, path string) (string, bool, error) {
 // TargetWithGitMeta applies git metadata to the target naming.
 func TargetWithGitMeta(target domain.Target, gitMeta *GitMetadata) domain.Target {
 	fmt.Printf("TargetWithGitMeta(%s)\n", target.DebugString())
-	fmt.Printf("%v\n", gitMeta)
-	fmt.Printf("gitUrl: %v\n", gitMeta.GitURL)
-	fmt.Printf("relDir: %v\n", gitMeta.RelDir)
+	if gitMeta != nil {
+		fmt.Printf("%v\n", gitMeta)
+		fmt.Printf("gitUrl: %v\n", gitMeta.GitURL)
+		fmt.Printf("relDir: %v\n", gitMeta.RelDir)
+	}
 
 	if gitMeta == nil || gitMeta.GitURL == "" {
 		return target
