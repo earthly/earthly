@@ -45,6 +45,8 @@ execute() {
 }
 
 start_dockerd() {
+    # Start with a rm -rf to make sure a previous interrupted build did not leave its state around.
+    rm -rf "$EARTHLY_DOCKERD_DATA_ROOT"
     mkdir -p "$EARTHLY_DOCKERD_DATA_ROOT"
     dockerd --data-root="$EARTHLY_DOCKERD_DATA_ROOT" >/var/log/docker.log 2>&1 &
     i=1
