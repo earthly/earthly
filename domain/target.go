@@ -48,6 +48,7 @@ func (et Target) IsRemote() bool {
 	return !et.IsLocalExternal() && !et.IsLocalInternal()
 }
 
+// DebugString returns a string that can be printed out for debugging purposes
 func (et Target) DebugString() string {
 	return fmt.Sprintf("gitURL: %q; gitPath: %q; tag: %q; LocalPath: %q; Target: %q", et.GitURL, et.GitPath, et.Tag, et.LocalPath, et.Target)
 }
