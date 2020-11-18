@@ -48,6 +48,5 @@ func TestParseGitRemoteURL(t *testing.T) {
 		}
 		NoError(t, err, "parseGitRemoteURL failed")
 		Equal(t, test.expectedGitURL, gitURL)
-
 	}
 }
