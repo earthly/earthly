@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"regexp"
 	"strings"
 	"sync"
 	"unicode/utf8"
@@ -37,6 +38,8 @@ var currentConsoleMutex sync.Mutex
 // ConsoleLogger is a writer for consoles.
 type ConsoleLogger struct {
 	prefix string
+	// metadataMode are printed in a different color.
+	metadataMode bool
 	// salt is a salt used for color consistency
 	// (the same salt will get the same color).
 	salt      string
@@ -69,6 +72,7 @@ func (cl ConsoleLogger) clone() ConsoleLogger {
 	return ConsoleLogger{
 		w:              cl.w,
 		prefix:         cl.prefix,
+		metadataMode:   cl.metadataMode,
 		salt:           cl.salt,
 		isCached:       cl.isCached,
 		isFailed:       cl.isFailed,
@@ -85,6 +89,13 @@ func (cl ConsoleLogger) WithPrefix(prefix string) ConsoleLogger {
 	ret := cl.clone()
 	ret.prefix = prefix
 	ret.salt = prefix
+	return ret
+}
+
+// WithMetadataMode returns a ConsoleLogger with metadata printing mode set.
+func (cl ConsoleLogger) WithMetadataMode(metadataMode bool) ConsoleLogger {
+	ret := cl.clone()
+	ret.metadataMode = metadataMode
 	return ret
 }
 
@@ -148,12 +159,15 @@ func (cl ConsoleLogger) Warnf(format string, args ...interface{}) {
 func (cl ConsoleLogger) Printf(format string, args ...interface{}) {
 	cl.mu.Lock()
 	defer cl.mu.Unlock()
+	c := cl.color(noColor)
+	if cl.metadataMode {
+		c = cl.color(metadataModeColor)
+	}
 	text := fmt.Sprintf(format, args...)
 	text = strings.TrimSuffix(text, "\n")
 	for _, line := range strings.Split(text, "\n") {
 		cl.printPrefix()
-		cl.w.Write([]byte(line))
-		cl.w.Write([]byte("\n"))
+		c.Fprintf(cl.w, "%s\n", line)
 	}
 }
 
@@ -161,6 +175,10 @@ func (cl ConsoleLogger) Printf(format string, args ...interface{}) {
 func (cl ConsoleLogger) PrintBytes(data []byte) {
 	cl.mu.Lock()
 	defer cl.mu.Unlock()
+	c := cl.color(noColor)
+	if cl.metadataMode {
+		c = cl.color(metadataModeColor)
+	}
 
 	output := make([]byte, 0, len(data))
 	for len(data) > 0 {
@@ -177,7 +195,7 @@ func (cl ConsoleLogger) PrintBytes(data []byte) {
 		default:
 			if !cl.trailingLine {
 				if len(output) > 0 {
-					cl.w.Write(output)
+					c.Fprintf(cl.w, "%s", string(output))
 					output = output[:0]
 				}
 				cl.printPrefix()
@@ -187,7 +205,7 @@ func (cl ConsoleLogger) PrintBytes(data []byte) {
 		}
 	}
 	if len(output) > 0 {
-		cl.w.Write(output)
+		c.Fprintf(cl.w, "%s", string(output))
 		output = output[:0]
 	}
 }
@@ -233,14 +251,19 @@ func (cl ConsoleLogger) color(c *color.Color) *color.Color {
 	return noColor
 }
 
+var bracketsRegexp = regexp.MustCompile("\\(([^\\]]*)\\)")
+
 func (cl ConsoleLogger) prettyPrefix() string {
 	if cl.prefixPadding == NoPadding {
 		return cl.prefix
 	}
 
-	formatString := fmt.Sprintf("%%%vv", cl.prefixPadding)
-
-	prettyPrefix := cl.prefix
+	var brackets string
+	bracketParts := strings.SplitN(cl.prefix, "(", 2)
+	if len(bracketParts) > 1 {
+		brackets = fmt.Sprintf("(%s", bracketParts[1])
+	}
+	prettyPrefix := bracketParts[0]
 	if len(cl.prefix) > cl.prefixPadding {
 		parts := strings.Split(cl.prefix, "/")
 		target := parts[len(parts)-1]
@@ -258,5 +281,6 @@ func (cl ConsoleLogger) prettyPrefix() string {
 		prettyPrefix = truncated + target
 	}
 
-	return fmt.Sprintf(formatString, prettyPrefix)
+	formatString := fmt.Sprintf("%%%vv", cl.prefixPadding)
+	return fmt.Sprintf(formatString, fmt.Sprintf("%s%s", prettyPrefix, brackets))
 }

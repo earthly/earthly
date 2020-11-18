@@ -1,7 +1,10 @@
 package builder
 
 import (
+	"bytes"
 	"context"
+	"encoding/base64"
+	"fmt"
 	"regexp"
 	"strings"
 	"time"
@@ -21,6 +24,7 @@ const (
 type vertexMonitor struct {
 	vertex         *client.Vertex
 	targetStr      string
+	targetBrackets string
 	salt           string
 	operation      string
 	lastOutput     time.Time
@@ -30,16 +34,22 @@ type vertexMonitor struct {
 	isInternal     bool
 	isError        bool
 	tailOutput     *circbuf.Buffer
+	// Line of output that has not yet been terminated with a \n.
+	openLine []byte
 }
 
-func (vm *vertexMonitor) printHeader() {
+func (vm *vertexMonitor) printHeader(printMetadata bool) {
 	vm.headerPrinted = true
 	if vm.operation == "" {
 		return
 	}
-	out := []string{"-->"}
-	out = append(out, vm.operation)
 	c := vm.console
+	if vm.targetBrackets != "" && printMetadata {
+		c.WithMetadataMode(true).Printf("%s\n", vm.targetBrackets)
+	}
+	out := []string{}
+	out = append(out, "-->")
+	out = append(out, vm.operation)
 	if vm.vertex.Cached {
 		c = c.WithCached(true)
 	}
@@ -65,8 +75,34 @@ func (vm *vertexMonitor) shouldPrintProgress(percent int) bool {
 	return true
 }
 
-func (vm *vertexMonitor) printOutput(output []byte) error {
-	vm.console.PrintBytes(output)
+const esc = 27
+
+var ansiClearLine = []byte(fmt.Sprintf("%c[A", esc))
+
+func (vm *vertexMonitor) printOutput(output []byte, sameAsLast bool) error {
+	printOutput := make([]byte, 0, len(output)+10)
+	if sameAsLast && len(vm.openLine) > 0 {
+		// Prettiness optimization: if there is an open line and the previous print out
+		// was of the same vertex, then use ANSI control char to go up one line and overwrite it.
+		printOutput = append(printOutput, ansiClearLine...)
+	}
+	// Prepend the open line to the output.
+	printOutput = append(printOutput, vm.openLine...)
+	printOutput = append(printOutput, output...)
+	// Look for the last \n to update the open line.
+	lastNewLine := bytes.LastIndexByte(printOutput, '\n')
+	if lastNewLine != -1 {
+		// Ends up being empty slice if output ends in \n.
+		vm.openLine = printOutput[(lastNewLine + 1):]
+	} else {
+		// No \n found - update vm.openLine to append the new output.
+		vm.openLine = append(vm.openLine, output...)
+	}
+	if !bytes.HasSuffix(printOutput, []byte{'\n'}) {
+		// If output doesn't terminate in \n, add our own.
+		printOutput = append(printOutput, '\n')
+	}
+	vm.console.PrintBytes(printOutput)
 	if vm.tailOutput == nil {
 		var err error
 		vm.tailOutput, err = circbuf.NewBuffer(tailErrorBufferSizeBytes)
@@ -74,6 +110,7 @@ func (vm *vertexMonitor) printOutput(output []byte) error {
 			return errors.Wrap(err, "allocate buffer for output")
 		}
 	}
+	// Use the raw output for the tail buffer.
 	_, err := vm.tailOutput.Write(output)
 	if err != nil {
 		return errors.Wrap(err, "write to in-memory output buffer")
@@ -90,9 +127,11 @@ func (vm *vertexMonitor) printError() {
 }
 
 type solverMonitor struct {
-	console  conslogging.ConsoleLogger
-	verbose  bool
-	vertices map[digest.Digest]*vertexMonitor
+	console          conslogging.ConsoleLogger
+	verbose          bool
+	vertices         map[digest.Digest]*vertexMonitor
+	saltSeen         map[string]bool
+	lastVertexOutput *vertexMonitor
 }
 
 func newSolverMonitor(console conslogging.ConsoleLogger, verbose bool) *solverMonitor {
@@ -100,6 +139,7 @@ func newSolverMonitor(console conslogging.ConsoleLogger, verbose bool) *solverMo
 		console:  console,
 		verbose:  verbose,
 		vertices: make(map[digest.Digest]*vertexMonitor),
+		saltSeen: make(map[string]bool),
 	}
 }
 
@@ -115,21 +155,22 @@ Loop:
 			for _, vertex := range ss.Vertexes {
 				vm, ok := sm.vertices[vertex.Digest]
 				if !ok {
-					targetStr, salt, operation := parseVertexName(vertex.Name)
+					targetStr, targetBrackets, salt, operation := parseVertexName(vertex.Name)
 					vm = &vertexMonitor{
-						vertex:     vertex,
-						targetStr:  targetStr,
-						salt:       salt,
-						operation:  operation,
-						isInternal: (targetStr == "internal" && !sm.verbose),
-						console:    sm.console.WithPrefixAndSalt(targetStr, salt),
+						vertex:         vertex,
+						targetStr:      targetStr,
+						targetBrackets: targetBrackets,
+						salt:           salt,
+						operation:      operation,
+						isInternal:     (targetStr == "internal" && !sm.verbose),
+						console:        sm.console.WithPrefixAndSalt(targetStr, salt),
 					}
 					sm.vertices[vertex.Digest] = vm
 				}
 				vm.vertex = vertex
 				if !vm.headerPrinted &&
 					((!vm.isInternal && (vertex.Cached || vertex.Started != nil)) || vertex.Error != "") {
-					vm.printHeader()
+					sm.printHeader(vm)
 				}
 				if vertex.Error != "" {
 					if strings.Contains(vertex.Error, "context canceled") {
@@ -160,7 +201,7 @@ Loop:
 				}
 				if vm.shouldPrintProgress(progress) {
 					if !vm.headerPrinted {
-						vm.printHeader()
+						sm.printHeader(vm)
 					}
 					vm.console.Printf("%s %d%%\n", vs.ID, progress)
 				}
@@ -172,9 +213,9 @@ Loop:
 					continue
 				}
 				if !vm.headerPrinted {
-					vm.printHeader()
+					sm.printHeader(vm)
 				}
-				err := vm.printOutput(logLine.Data)
+				err := sm.printOutput(vm, logLine.Data)
 				if err != nil {
 					return err
 				}
@@ -188,11 +229,25 @@ Loop:
 	return nil
 }
 
+func (sm *solverMonitor) printOutput(vm *vertexMonitor, data []byte) error {
+	sameAsLast := (sm.lastVertexOutput == vm)
+	sm.lastVertexOutput = vm
+	return vm.printOutput(data, sameAsLast)
+}
+
+func (sm *solverMonitor) printHeader(vm *vertexMonitor) {
+	seen := sm.saltSeen[vm.salt]
+	if !seen {
+		sm.saltSeen[vm.salt] = true
+	}
+	vm.printHeader(!seen || sm.verbose)
+}
+
 func (sm *solverMonitor) reprintFailure(errVertex *vertexMonitor) {
 	sm.console.Warnf("Repeating the output of the command that caused the failure\n")
 	sm.console.PrintFailure()
 	errVertex.console = errVertex.console.WithFailed(true)
-	errVertex.printHeader()
+	errVertex.printHeader(true)
 	if errVertex.tailOutput != nil {
 		isTruncated := (errVertex.tailOutput.TotalWritten() > errVertex.tailOutput.Size())
 		if errVertex.tailOutput.TotalWritten() == 0 {
@@ -209,29 +264,39 @@ func (sm *solverMonitor) reprintFailure(errVertex *vertexMonitor) {
 	errVertex.printError()
 }
 
-var bracketsRegexp = regexp.MustCompile("^\\[([^\\]]*)\\] (.*)$")
+var vertexRegexp = regexp.MustCompile("^\\[([^\\]]*)\\] (.*)$")
+var targetAndSaltRegexp = regexp.MustCompile("^([^\\(]*)(\\(([^\\)]*)\\))? (.*)$")
 
-func parseVertexName(vertexName string) (string, string, string) {
+func parseVertexName(vertexName string) (string, string, string, string) {
 	target := ""
+	targetBrackets := ""
 	operation := ""
 	salt := ""
-	match := bracketsRegexp.FindStringSubmatch(vertexName)
+	match := vertexRegexp.FindStringSubmatch(vertexName)
 	if len(match) < 2 {
-		return target, salt, operation
+		return "internal", targetBrackets, "internal", vertexName
 	}
 	targetAndSalt := match[1]
-	targetAndSaltSlice := strings.SplitN(targetAndSalt, " ", 2)
-	if len(targetAndSaltSlice) == 2 {
-		target = targetAndSaltSlice[0]
-		salt = targetAndSaltSlice[1]
-	} else {
-		target = targetAndSalt
-	}
-	if len(match) < 3 {
-		return target, salt, operation
-	}
 	operation = match[2]
-	return target, salt, operation
+	targetAndSaltMatch := targetAndSaltRegexp.FindStringSubmatch(targetAndSalt)
+	if targetAndSaltMatch == nil {
+		return targetAndSalt, targetBrackets, targetAndSalt, operation
+	}
+	target = targetAndSaltMatch[1]
+	salt = targetAndSaltMatch[len(targetAndSaltMatch)-1]
+	if salt == "" {
+		salt = targetAndSalt
+	}
+	if targetAndSaltMatch[3] != "" {
+		targetBracketsDt, err := base64.StdEncoding.DecodeString(targetAndSaltMatch[3])
+		if err != nil {
+			targetBrackets = targetAndSaltMatch[3]
+		} else {
+			targetBrackets = string(targetBracketsDt)
+		}
+	}
+
+	return target, targetBrackets, salt, operation
 }
 
 func shortDigest(d digest.Digest) string {
