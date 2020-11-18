@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/base64"
+	"fmt"
 	"regexp"
 	"strings"
 	"time"
@@ -74,10 +75,19 @@ func (vm *vertexMonitor) shouldPrintProgress(percent int) bool {
 	return true
 }
 
-func (vm *vertexMonitor) printOutput(output []byte) error {
+const esc = 27
+
+var ansiClearLine = []byte(fmt.Sprintf("%c[A", esc))
+
+func (vm *vertexMonitor) printOutput(output []byte, sameAsLast bool) error {
+	printOutput := make([]byte, 0, len(output)+10)
+	if sameAsLast && len(vm.openLine) > 0 {
+		// Prettiness optimization: if there is an open line and the previous print out
+		// was of the same vertex, then use ANSI control char to go up one line and overwrite it.
+		printOutput = append(printOutput, ansiClearLine...)
+	}
 	// Prepend the open line to the output.
-	printOutput := make([]byte, len(vm.openLine))
-	copy(printOutput, vm.openLine)
+	printOutput = append(printOutput, vm.openLine...)
 	printOutput = append(printOutput, output...)
 	// Look for the last \n to update the open line.
 	lastNewLine := bytes.LastIndexByte(printOutput, '\n')
@@ -85,9 +95,8 @@ func (vm *vertexMonitor) printOutput(output []byte) error {
 		// Ends up being empty slice if output ends in \n.
 		vm.openLine = printOutput[(lastNewLine + 1):]
 	} else {
-		// No \n found - update vm.openLine to printOutput, which is
-		// the previous open line + new output.
-		vm.openLine = printOutput
+		// No \n found - update vm.openLine to append the new output.
+		vm.openLine = append(vm.openLine, output...)
 	}
 	if !bytes.HasSuffix(printOutput, []byte{'\n'}) {
 		// If output doesn't terminate in \n, add our own.
@@ -118,10 +127,11 @@ func (vm *vertexMonitor) printError() {
 }
 
 type solverMonitor struct {
-	console  conslogging.ConsoleLogger
-	verbose  bool
-	vertices map[digest.Digest]*vertexMonitor
-	saltSeen map[string]bool
+	console          conslogging.ConsoleLogger
+	verbose          bool
+	vertices         map[digest.Digest]*vertexMonitor
+	saltSeen         map[string]bool
+	lastVertexOutput *vertexMonitor
 }
 
 func newSolverMonitor(console conslogging.ConsoleLogger, verbose bool) *solverMonitor {
@@ -205,7 +215,7 @@ Loop:
 				if !vm.headerPrinted {
 					sm.printHeader(vm)
 				}
-				err := vm.printOutput(logLine.Data)
+				err := sm.printOutput(vm, logLine.Data)
 				if err != nil {
 					return err
 				}
@@ -217,6 +227,12 @@ Loop:
 		sm.reprintFailure(errVertex)
 	}
 	return nil
+}
+
+func (sm *solverMonitor) printOutput(vm *vertexMonitor, data []byte) error {
+	sameAsLast := (sm.lastVertexOutput == vm)
+	sm.lastVertexOutput = vm
+	return vm.printOutput(data, sameAsLast)
 }
 
 func (sm *solverMonitor) printHeader(vm *vertexMonitor) {
