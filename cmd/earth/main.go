@@ -106,6 +106,8 @@ type cliFlags struct {
 	dockerfilePath        string
 	earthfilePath         string
 	earthfileFinalImage   string
+	termsConditions       bool
+	privacyPolicy         bool
 }
 
 var (
@@ -549,6 +551,18 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 					EnvVars:     []string{"EARTHLY_PUBLIC_KEY"},
 					Usage:       "Path to public key to register",
 					Destination: &app.registrationPublicKey,
+				},
+				&cli.BoolFlag{
+					Name:        "accept-terms-conditions",
+					EnvVars:     []string{"EARTHLY_ACCEPT_TERMS_CONDITITONS"},
+					Usage:       "Accept the Terms & Conditions.",
+					Destination: &app.termsConditions,
+				},
+				&cli.BoolFlag{
+					Name:        "accept-privacy-policy",
+					EnvVars:     []string{"EARTHLY_ACCEPT_PRIVACY_POLICY"},
+					Usage:       "Accept the Privacy Policy.",
+					Destination: &app.privacyPolicy,
 				},
 			},
 		},
@@ -1195,7 +1209,7 @@ func (app *earthApp) actionRegister(c *cli.Context) error {
 		}
 	}
 
-	err = sc.CreateAccount(app.email, app.verificationToken, pword, publicKey)
+	err = sc.CreateAccount(app.email, app.verificationToken, pword, publicKey, app.termsConditions, app.privacyPolicy)
 	if err != nil {
 		return errors.Wrap(err, "failed to create account")
 	}
