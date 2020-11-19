@@ -219,6 +219,7 @@ func Start(ctx context.Context, image string, settings Settings, reset bool) err
 
 	args = append(args,
 		"-e", fmt.Sprintf("CACHE_SIZE_MB=%d", settings.CacheSizeMb),
+		"-e", fmt.Sprintf("GIT_URL_INSTEAD_OF=%s", settings.GitURLInsteadOf),
 	)
 
 	// Apply reset.

@@ -330,13 +330,13 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 			Usage:       "The git password to use for git HTTPS authentication",
 			Destination: &app.gitPasswordOverride,
 		},
-		//&cli.StringFlag{
-		//	Name:        "git-url-instead-of",
-		//	Value:       "",
-		//	EnvVars:     []string{"GIT_URL_INSTEAD_OF"},
-		//	Usage:       "Rewrite git URLs of a certain pattern. Similar to git-config url.<base>.insteadOf (https://git-scm.com/docs/git-config#Documentation/git-config.txt-urlltbasegtinsteadOf). Multiple values can be separated by commas. Format: <base>=<instead-of>[,...]. For example: 'https://github.com/=git@github.com:'",
-		//	Destination: &app.buildkitdSettings.GitURLInsteadOf,
-		//},
+		&cli.StringFlag{
+			Name:        "git-url-instead-of",
+			Value:       "",
+			EnvVars:     []string{"GIT_URL_INSTEAD_OF"},
+			Usage:       "Rewrite git URLs of a certain pattern. Similar to git-config url.<base>.insteadOf (https://git-scm.com/docs/git-config#Documentation/git-config.txt-urlltbasegtinsteadOf). Multiple values can be separated by commas. Format: <base>=<instead-of>[,...]. For example: 'https://github.com/=git@github.com:'",
+			Destination: &app.buildkitdSettings.GitURLInsteadOf,
+		},
 		&cli.BoolFlag{
 			Name:        "allow-privileged",
 			Aliases:     []string{"P"},
@@ -734,6 +734,11 @@ func (app *earthApp) before(context *cli.Context) error {
 		app.cfg.Git = map[string]config.GitConfig{}
 	}
 
+	err = app.processDeprecatedCommandOptions(context, app.cfg)
+	if err != nil {
+		return err
+	}
+
 	// command line option overrides the config which overrides the default value
 	if !context.IsSet("buildkit-image") && app.cfg.Global.BuildkitImage != "" {
 		app.buildkitdImage = app.cfg.Global.BuildkitImage
@@ -748,6 +753,52 @@ func (app *earthApp) before(context *cli.Context) error {
 
 	app.buildkitdSettings.DebuggerPort = app.cfg.Global.DebuggerPort
 	app.buildkitdSettings.RunDir = app.cfg.Global.RunPath
+	return nil
+}
+
+func (app *earthApp) processDeprecatedCommandOptions(context *cli.Context, cfg *config.Config) error {
+	if cfg.Global.CachePath != "" {
+		app.console.Warnf("Warning: the setting cache_path is now obsolete and will be ignored")
+	}
+
+	// command line overrides the config file
+	if app.gitUsernameOverride != "" || app.gitPasswordOverride != "" {
+		app.console.Warnf("Warning: the --git-username and --git-password command flags are deprecated and are now configured in the ~/.earthly/config.yml file under the git section; see https://docs.earthly.dev/earth-config for reference.\n")
+		if _, ok := cfg.Git["github.com"]; !ok {
+			cfg.Git["github.com"] = config.GitConfig{}
+		}
+		if _, ok := cfg.Git["gitlab.com"]; !ok {
+			cfg.Git["gitlab.com"] = config.GitConfig{}
+		}
+
+		for k, v := range cfg.Git {
+			v.Auth = "https"
+			if app.gitUsernameOverride != "" {
+				v.User = app.gitUsernameOverride
+			}
+			if app.gitPasswordOverride != "" {
+				v.Password = app.gitPasswordOverride
+			}
+			cfg.Git[k] = v
+		}
+	}
+
+	if context.IsSet("git-url-instead-of") {
+		app.console.Warnf("Warning: the --git-url-instead-of command flag is deprecated and is now configured in the ~/.earthly/config.yml file under the git global url_instead_of setting; see https://docs.earthly.dev/earth-config for reference.\n")
+	} else {
+		if gitGlobal, ok := cfg.Git["global"]; ok {
+			if gitGlobal.GitURLInsteadOf != "" {
+				app.buildkitdSettings.GitURLInsteadOf = gitGlobal.GitURLInsteadOf
+			}
+		}
+	}
+
+	if context.IsSet("buildkit-cache-size-mb") {
+		app.console.Warnf("Warning: the --buildkit-cache-size-mb command flag is deprecated and is now configured in the ~/.earthly/config.yml file under the buildkit_cache_size setting; see https://docs.earthly.dev/earth-config for reference.\n")
+	} else {
+		app.buildkitdSettings.CacheSizeMb = cfg.Global.BuildkitCacheSizeMb
+	}
+
 	return nil
 }
 
