@@ -36,8 +36,9 @@ type vertexMonitor struct {
 	isError        bool
 	tailOutput     *circbuf.Buffer
 	// Line of output that has not yet been terminated with a \n.
-	openLine           []byte
-	lastOpenLineUpdate time.Time
+	openLine            []byte
+	lastOpenLineUpdate  time.Time
+	lastOpenLineSkipped bool
 }
 
 func (vm *vertexMonitor) printHeader(printMetadata bool) {
@@ -95,6 +96,14 @@ func (vm *vertexMonitor) printOutput(output []byte, sameAsLast bool) error {
 		return errors.Wrap(err, "write to in-memory output buffer")
 	}
 	printOutput := make([]byte, 0, len(vm.openLine)+len(output)+10)
+	if bytes.HasPrefix(output, []byte{'\n'}) && len(vm.openLine) > 0 && !vm.lastOpenLineSkipped {
+		// Optimization for cases where ansi control sequences are not supported:
+		// if the output starts with a \n, then treat the open line as closed and
+		// just keep going after that.
+		vm.openLine = nil
+		output = output[1:]
+		vm.lastOpenLineUpdate = time.Time{}
+	}
 	if sameAsLast && len(vm.openLine) > 0 {
 		// Prettiness optimization: if there is an open line and the previous print out
 		// was of the same vertex, then use ANSI control sequence to go up one line and
@@ -118,12 +127,14 @@ func (vm *vertexMonitor) printOutput(output []byte, sameAsLast bool) error {
 	if !bytes.HasSuffix(printOutput, []byte{'\n'}) {
 		if vm.lastOpenLineUpdate.Add(durationBetweenOpenLineUpdate).After(time.Now()) {
 			// Skip printing if trying to update the same line too frequently.
+			vm.lastOpenLineSkipped = true
 			return nil
 		}
 		vm.lastOpenLineUpdate = time.Now()
 		// If output doesn't terminate in \n, add our own.
 		printOutput = append(printOutput, '\n')
 	}
+	vm.lastOpenLineSkipped = false
 	vm.console.PrintBytes(printOutput)
 	return nil
 }
