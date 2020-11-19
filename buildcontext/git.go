@@ -200,6 +200,13 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, gwClient gwclient.
 		}
 	}
 
+	gitOpts = []llb.GitOption{
+		llb.WithCustomNamef("[context %s] git context %s", gitURL, target.StringCanonical()),
+	}
+	if keyScan != "" {
+		gitOpts = append(gitOpts, llb.KnownSSHHosts(keyScan))
+	}
+
 	// Add to cache.
 	resolved := &resolvedGitProject{
 		gitMetaAndEarthfileRef: gitMetaAndEarthfileRef,
@@ -209,7 +216,7 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, gwClient gwclient.
 		state: llb.Git(
 			gitURL,
 			gitHash,
-			llb.WithCustomNamef("[context %s] git context %s", gitURL, target.StringCanonical()),
+			gitOpts...,
 		),
 	}
 	gr.projectCache[cacheKey] = resolved
