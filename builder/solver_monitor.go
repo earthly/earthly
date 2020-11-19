@@ -18,6 +18,7 @@ import (
 
 const (
 	durationBetweenProgressUpdate = time.Second * 5
+	durationBetweenOpenLineUpdate = time.Second
 	tailErrorBufferSizeBytes      = 80 * 1024 // About as much as 1024 lines of 80 chars each.
 )
 
@@ -35,7 +36,9 @@ type vertexMonitor struct {
 	isError        bool
 	tailOutput     *circbuf.Buffer
 	// Line of output that has not yet been terminated with a \n.
-	openLine []byte
+	openLine            []byte
+	lastOpenLineUpdate  time.Time
+	lastOpenLineSkipped bool
 }
 
 func (vm *vertexMonitor) printHeader(printMetadata bool) {
@@ -77,32 +80,9 @@ func (vm *vertexMonitor) shouldPrintProgress(percent int) bool {
 
 const esc = 27
 
-var ansiClearLine = []byte(fmt.Sprintf("%c[A", esc))
+var ansiUp = []byte(fmt.Sprintf("%c[A", esc))
 
 func (vm *vertexMonitor) printOutput(output []byte, sameAsLast bool) error {
-	printOutput := make([]byte, 0, len(output)+10)
-	if sameAsLast && len(vm.openLine) > 0 {
-		// Prettiness optimization: if there is an open line and the previous print out
-		// was of the same vertex, then use ANSI control char to go up one line and overwrite it.
-		printOutput = append(printOutput, ansiClearLine...)
-	}
-	// Prepend the open line to the output.
-	printOutput = append(printOutput, vm.openLine...)
-	printOutput = append(printOutput, output...)
-	// Look for the last \n to update the open line.
-	lastNewLine := bytes.LastIndexByte(printOutput, '\n')
-	if lastNewLine != -1 {
-		// Ends up being empty slice if output ends in \n.
-		vm.openLine = printOutput[(lastNewLine + 1):]
-	} else {
-		// No \n found - update vm.openLine to append the new output.
-		vm.openLine = append(vm.openLine, output...)
-	}
-	if !bytes.HasSuffix(printOutput, []byte{'\n'}) {
-		// If output doesn't terminate in \n, add our own.
-		printOutput = append(printOutput, '\n')
-	}
-	vm.console.PrintBytes(printOutput)
 	if vm.tailOutput == nil {
 		var err error
 		vm.tailOutput, err = circbuf.NewBuffer(tailErrorBufferSizeBytes)
@@ -115,6 +95,47 @@ func (vm *vertexMonitor) printOutput(output []byte, sameAsLast bool) error {
 	if err != nil {
 		return errors.Wrap(err, "write to in-memory output buffer")
 	}
+	printOutput := make([]byte, 0, len(vm.openLine)+len(output)+10)
+	if bytes.HasPrefix(output, []byte{'\n'}) && len(vm.openLine) > 0 && !vm.lastOpenLineSkipped {
+		// Optimization for cases where ansi control sequences are not supported:
+		// if the output starts with a \n, then treat the open line as closed and
+		// just keep going after that.
+		vm.openLine = nil
+		output = output[1:]
+		vm.lastOpenLineUpdate = time.Time{}
+	}
+	if sameAsLast && len(vm.openLine) > 0 {
+		// Prettiness optimization: if there is an open line and the previous print out
+		// was of the same vertex, then use ANSI control sequence to go up one line and
+		// keep writing there.
+		printOutput = append(printOutput, ansiUp...)
+	}
+	// Prepend the open line to the output.
+	printOutput = append(printOutput, vm.openLine...)
+	printOutput = append(printOutput, output...)
+	// Look for the last \n to update the open line.
+	lastNewLine := bytes.LastIndexByte(printOutput, '\n')
+	if lastNewLine != -1 {
+		// Ends up being empty slice if output ends in \n.
+		vm.openLine = printOutput[(lastNewLine + 1):]
+		// A \n exists - reset the open line timer.
+		vm.lastOpenLineUpdate = time.Time{}
+	} else {
+		// No \n found - update vm.openLine to append the new output.
+		vm.openLine = append(vm.openLine, output...)
+	}
+	if !bytes.HasSuffix(printOutput, []byte{'\n'}) {
+		if vm.lastOpenLineUpdate.Add(durationBetweenOpenLineUpdate).After(time.Now()) {
+			// Skip printing if trying to update the same line too frequently.
+			vm.lastOpenLineSkipped = true
+			return nil
+		}
+		vm.lastOpenLineUpdate = time.Now()
+		// If output doesn't terminate in \n, add our own.
+		printOutput = append(printOutput, '\n')
+	}
+	vm.lastOpenLineSkipped = false
+	vm.console.PrintBytes(printOutput)
 	return nil
 }
 
