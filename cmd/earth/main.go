@@ -1025,10 +1025,13 @@ func (app *earthApp) actionOrgRevoke(c *cli.Context) error {
 
 func (app *earthApp) actionSecretsList(c *cli.Context) error {
 	app.commandName = "secretsList"
-	if c.NArg() != 1 {
+
+	path := "/"
+	if c.NArg() > 1 {
 		return errors.New("invalid number of arguments provided")
+	} else if c.NArg() == 1 {
+		path = c.Args().Get(0)
 	}
-	path := c.Args().Get(0)
 	if !strings.HasSuffix(path, "/") {
 		path += "/"
 	}
