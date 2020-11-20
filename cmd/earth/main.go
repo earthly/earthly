@@ -70,44 +70,43 @@ type earthApp struct {
 }
 
 type cliFlags struct {
-	buildArgs             cli.StringSlice
-	secrets               cli.StringSlice
-	artifactMode          bool
-	imageMode             bool
-	pull                  bool
-	push                  bool
-	noOutput              bool
-	noCache               bool
-	pruneAll              bool
-	pruneReset            bool
-	buildkitdSettings     buildkitd.Settings
-	allowPrivileged       bool
-	enableProfiler        bool
-	buildkitHost          string
-	buildkitdImage        string
-	remoteCache           string
-	configPath            string
-	gitUsernameOverride   string
-	gitPasswordOverride   string
-	interactiveDebugging  bool
-	sshAuthSock           string
-	verbose               bool
-	debug                 bool
-	homebrewSource        string
-	email                 string
-	verificationToken     string
-	password              string
-	disableNewLine        bool
-	secretFile            string
-	apiServer             string
-	writePermission       bool
-	publicKey             string
-	registrationPublicKey string
-	dockerfilePath        string
-	earthfilePath         string
-	earthfileFinalImage   string
-	termsConditions       bool
-	privacyPolicy         bool
+	buildArgs              cli.StringSlice
+	secrets                cli.StringSlice
+	artifactMode           bool
+	imageMode              bool
+	pull                   bool
+	push                   bool
+	noOutput               bool
+	noCache                bool
+	pruneAll               bool
+	pruneReset             bool
+	buildkitdSettings      buildkitd.Settings
+	allowPrivileged        bool
+	enableProfiler         bool
+	buildkitHost           string
+	buildkitdImage         string
+	remoteCache            string
+	configPath             string
+	gitUsernameOverride    string
+	gitPasswordOverride    string
+	interactiveDebugging   bool
+	sshAuthSock            string
+	verbose                bool
+	debug                  bool
+	homebrewSource         string
+	email                  string
+	verificationToken      string
+	password               string
+	disableNewLine         bool
+	secretFile             string
+	apiServer              string
+	writePermission        bool
+	publicKey              string
+	registrationPublicKey  string
+	dockerfilePath         string
+	earthfilePath          string
+	earthfileFinalImage    string
+	termsConditionsPrivacy bool
 }
 
 var (
@@ -553,16 +552,10 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 					Destination: &app.registrationPublicKey,
 				},
 				&cli.BoolFlag{
-					Name:        "accept-terms-conditions",
-					EnvVars:     []string{"EARTHLY_ACCEPT_TERMS_CONDITITONS"},
-					Usage:       "Accept the Terms & Conditions.",
-					Destination: &app.termsConditions,
-				},
-				&cli.BoolFlag{
-					Name:        "accept-privacy-policy",
-					EnvVars:     []string{"EARTHLY_ACCEPT_PRIVACY_POLICY"},
-					Usage:       "Accept the Privacy Policy.",
-					Destination: &app.privacyPolicy,
+					Name:        "accept-terms-conditions-privacy",
+					EnvVars:     []string{"EARTHLY_ACCEPT_TERMS_CONDITITONS_PRIVACY"},
+					Usage:       "Accept the Terms & Conditions, and Privacy Policy",
+					Destination: &app.termsConditionsPrivacy,
 				},
 			},
 		},
@@ -1173,7 +1166,7 @@ func (app *earthApp) actionRegister(c *cli.Context) error {
 	}
 
 	var interactiveAccept bool
-	if !app.termsConditions {
+	if !app.termsConditionsPrivacy {
 		// TODO: add link when we have one
 		rawAccept := promptInput("Do you accept Earthly's T&Cs <link> and Privacy Policy <link>? [y/N]")
 		if rawAccept == "" {
@@ -1183,8 +1176,7 @@ func (app *earthApp) actionRegister(c *cli.Context) error {
 
 		interactiveAccept = accept == 'y'
 	}
-	termsConditions := app.termsConditions || interactiveAccept
-	privacyPolicy := app.privacyPolicy || interactiveAccept
+	termsConditionsPrivacy := app.termsConditionsPrivacy || interactiveAccept
 
 	var publicKey string
 	if app.registrationPublicKey == "" {
@@ -1223,7 +1215,7 @@ func (app *earthApp) actionRegister(c *cli.Context) error {
 		}
 	}
 
-	err = sc.CreateAccount(app.email, app.verificationToken, pword, publicKey, termsConditions, privacyPolicy)
+	err = sc.CreateAccount(app.email, app.verificationToken, pword, publicKey, termsConditionsPrivacy)
 	if err != nil {
 		return errors.Wrap(err, "failed to create account")
 	}

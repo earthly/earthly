@@ -45,7 +45,7 @@ type OrgPermissions struct {
 // Client provides a client to the shared secrets service
 type Client interface {
 	RegisterEmail(email string) error
-	CreateAccount(email, verificationToken, password, publicKey string, termsConditions, privacyPolicy bool) error
+	CreateAccount(email, verificationToken, password, publicKey string, termsConditionsPrivacy bool) error
 	Get(path string) ([]byte, error)
 	Remove(path string) error
 	Set(path string, data []byte) error
@@ -290,14 +290,14 @@ func (c *client) savePublicKey(publicKey string) error {
 	return nil
 }
 
-func (c *client) CreateAccount(email, verificationToken, password, publicKey string, termsConditions, privacyPolicy bool) error {
+func (c *client) CreateAccount(email, verificationToken, password, publicKey string, termsConditionsPrivacy bool) error {
 	createAccountRequest := api.CreateAccountRequest{
 		Email:                 email,
 		VerificationToken:     verificationToken,
 		PublicKey:             publicKey,
 		Password:              password,
-		AcceptTermsConditions: termsConditions,
-		AcceptPrivacyPolicy:   privacyPolicy,
+		AcceptTermsConditions: termsConditionsPrivacy,
+		AcceptPrivacyPolicy:   termsConditionsPrivacy,
 	}
 	status, body, err := c.doCall("PUT", "/api/v0/account/create", withJSONBody(&createAccountRequest))
 	if err != nil {
