@@ -962,6 +962,9 @@ func (app *earthApp) actionOrgListPermissions(c *cli.Context) error {
 		return errors.New("invalid number of arguments provided")
 	}
 	path := c.Args().Get(0)
+	if !strings.HasPrefix(path, "/") {
+		path = "/" + path
+	}
 	if !strings.HasSuffix(path, "/") {
 		path += "/"
 	}
