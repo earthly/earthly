@@ -1172,29 +1172,19 @@ func (app *earthApp) actionRegister(c *cli.Context) error {
 		pword = string(enteredPassword)
 	}
 
-	var interactiveTermsConditions bool
+	var interactiveAccept bool
 	if !app.termsConditions {
-		rawAccept := promptInput("Do you accept the Earthly Terms & Conditions? [y/N]")
+		// TODO: add link when we have one
+		rawAccept := promptInput("Do you accept Earthly's T&Cs <link> and Privacy Policy <link>? [y/N]")
 		if rawAccept == "" {
 			rawAccept = "n"
 		}
 		accept := strings.ToLower(rawAccept)[0]
 
-		interactiveTermsConditions = accept == 'y'
+		interactiveAccept = accept == 'y'
 	}
-	termsConditions := app.termsConditions || interactiveTermsConditions
-
-	var interactivePrivacyPolicy bool
-	if !app.termsConditions {
-		rawAccept := promptInput("Do you accept the Earthly Privacy Policy? [y/N]")
-		if rawAccept == "" {
-			rawAccept = "n"
-		}
-		accept := strings.ToLower(rawAccept)[0]
-
-		interactivePrivacyPolicy = accept == 'y'
-	}
-	privacyPolicy := app.privacyPolicy || interactivePrivacyPolicy
+	termsConditions := app.termsConditions || interactiveAccept
+	privacyPolicy := app.privacyPolicy || interactiveAccept
 
 	var publicKey string
 	if app.registrationPublicKey == "" {
