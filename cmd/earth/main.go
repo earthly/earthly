@@ -455,25 +455,25 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 			Subcommands: []*cli.Command{
 				{
 					Name:      "create",
-					Usage:     "create a new organization",
+					Usage:     "Create a new organization",
 					UsageText: "earth [options] org create <org-name>",
 					Action:    app.actionOrgCreate,
 				},
 				{
 					Name:      "list",
-					Usage:     "list organizations you belong to",
+					Usage:     "List organizations you belong to",
 					UsageText: "earth [options] org list",
 					Action:    app.actionOrgList,
 				},
 				{
 					Name:      "list-permissions",
-					Usage:     "list permissions and membership of an organization",
+					Usage:     "List permissions and membership of an organization",
 					UsageText: "earth [options] org list-permissions <org-name>",
 					Action:    app.actionOrgListPermissions,
 				},
 				{
 					Name:      "invite",
-					Usage:     "invite accounts to your organization",
+					Usage:     "Invite accounts to your organization",
 					UsageText: "earth [options] org invite [options] <org-name> <email> [<email> ...]",
 					Action:    app.actionOrgInvite,
 					Flags: []cli.Flag{
@@ -486,7 +486,7 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 				},
 				{
 					Name:      "revoke",
-					Usage:     "remove accounts from your organization",
+					Usage:     "Remove accounts from your organization",
 					UsageText: "earth [options] org revoke <org-name> <email> [<email> ...]",
 					Action:    app.actionOrgRevoke,
 				},
@@ -501,7 +501,7 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 				{
 					Name:      "get",
 					Action:    app.actionSecretsGet,
-					Usage:     "retrieve a secret from the secrets store",
+					Usage:     "Retrieve a secret from the secrets store",
 					UsageText: "earth [options] secrets get [options] <path>",
 					Flags: []cli.Flag{
 						&cli.BoolFlag{
@@ -513,19 +513,19 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 				},
 				{
 					Name:      "ls",
-					Usage:     "list secrets in the secrets store",
+					Usage:     "List secrets in the secrets store",
 					UsageText: "earth [options] secrets ls <path>",
 					Action:    app.actionSecretsList,
 				},
 				{
 					Name:      "rm",
-					Usage:     "removes a secret from the secrets store",
+					Usage:     "Removes a secret from the secrets store",
 					UsageText: "earth [options] secrets rm <path>",
 					Action:    app.actionSecretsRemove,
 				},
 				{
 					Name:  "set",
-					Usage: "stores a secret in the secrets store",
+					Usage: "Stores a secret in the secrets store",
 					UsageText: "earth [options] secrets set <path> <value>\n" +
 						"   earth [options] secrets set --file <local-path> <path>",
 					Action: app.actionSecretsSet,
