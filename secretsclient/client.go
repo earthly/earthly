@@ -121,17 +121,17 @@ func (c *client) doCall(method, url string, opts ...requestOpt) (int, string, er
 	duration := time.Millisecond * 100
 	for attempt := 0; attempt < maxAttempt; attempt++ {
 		status, body, err = c.doCallImp(r, method, url, opts...)
-		if err == nil && status < 500 {
+		if (err == nil && status < 500) || err == ErrNoAuthorizedPublicKeys {
 			return status, body, err
 		}
 		if err != nil {
-			c.warnFunc("retring http request due to %v", err)
+			c.warnFunc("retrying http request due to %v", err)
 		} else {
 			msg, err := getMessageFromJSON(bytes.NewReader([]byte(body)))
 			if err == nil {
-				c.warnFunc("retring http request due to unexpected status code %v: %v", status, msg)
+				c.warnFunc("retrying http request due to unexpected status code %v: %v", status, msg)
 			} else {
-				c.warnFunc("retring http request due to unexpected status code %v", status)
+				c.warnFunc("retrying http request due to unexpected status code %v", status)
 			}
 		}
 		if duration > maxSleepBeforeRetry {
