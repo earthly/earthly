@@ -1192,7 +1192,7 @@ func (app *earthApp) actionRegister(c *cli.Context) error {
 		}
 		accept := strings.ToLower(rawAccept)[0]
 
-		interactiveTermsConditions = accept == 'y'
+		interactivePrivacyPolicy = accept == 'y'
 	}
 	privacyPolicy := app.privacyPolicy || interactivePrivacyPolicy
 
