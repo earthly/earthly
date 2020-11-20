@@ -160,6 +160,9 @@ func (c *Collection) WithResetEnvVars() *Collection {
 	for k := range c.overridingVariables {
 		ret.overridingVariables[k] = true
 	}
+	for k := range c.activeVariables {
+		ret.activeVariables[k] = true
+	}
 	return ret
 }
 

@@ -109,7 +109,7 @@ build-arg-test:
     RUN --privileged \
         --entrypoint \
         --mount=type=tmpfs,target=/tmp/earthly \
-        -- +test
+        -- +all
 
 lc-test:
     COPY lc.earth ./Earthfile
