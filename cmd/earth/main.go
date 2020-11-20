@@ -454,20 +454,28 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 			Hidden: true,
 			Subcommands: []*cli.Command{
 				{
-					Name:   "create",
-					Action: app.actionOrgCreate,
+					Name:      "create",
+					Usage:     "Create a new organization",
+					UsageText: "earth [options] org create <org-name>",
+					Action:    app.actionOrgCreate,
 				},
 				{
-					Name:   "list",
-					Action: app.actionOrgList,
+					Name:      "list",
+					Usage:     "List organizations you belong to",
+					UsageText: "earth [options] org list",
+					Action:    app.actionOrgList,
 				},
 				{
-					Name:   "list-permissions",
-					Action: app.actionOrgListPermissions,
+					Name:      "list-permissions",
+					Usage:     "List permissions and membership of an organization",
+					UsageText: "earth [options] org list-permissions <org-name>",
+					Action:    app.actionOrgListPermissions,
 				},
 				{
-					Name:   "invite",
-					Action: app.actionOrgInvite,
+					Name:      "invite",
+					Usage:     "Invite accounts to your organization",
+					UsageText: "earth [options] org invite [options] <org-name> <email> [<email> ...]",
+					Action:    app.actionOrgInvite,
 					Flags: []cli.Flag{
 						&cli.BoolFlag{
 							Name:        "write",
@@ -477,8 +485,10 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 					},
 				},
 				{
-					Name:   "revoke",
-					Action: app.actionOrgRevoke,
+					Name:      "revoke",
+					Usage:     "Remove accounts from your organization",
+					UsageText: "earth [options] org revoke <org-name> <email> [<email> ...]",
+					Action:    app.actionOrgRevoke,
 				},
 			},
 		},
@@ -489,8 +499,10 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 			Hidden:      true,
 			Subcommands: []*cli.Command{
 				{
-					Name:   "get",
-					Action: app.actionSecretsGet,
+					Name:      "get",
+					Action:    app.actionSecretsGet,
+					Usage:     "Retrieve a secret from the secrets store",
+					UsageText: "earth [options] secrets get [options] <path>",
 					Flags: []cli.Flag{
 						&cli.BoolFlag{
 							Aliases:     []string{"n"},
@@ -500,15 +512,22 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 					},
 				},
 				{
-					Name:   "ls",
-					Action: app.actionSecretsList,
+					Name:      "ls",
+					Usage:     "List secrets in the secrets store",
+					UsageText: "earth [options] secrets ls <path>",
+					Action:    app.actionSecretsList,
 				},
 				{
-					Name:   "rm",
-					Action: app.actionSecretsRemove,
+					Name:      "rm",
+					Usage:     "Removes a secret from the secrets store",
+					UsageText: "earth [options] secrets rm <path>",
+					Action:    app.actionSecretsRemove,
 				},
 				{
-					Name:   "set",
+					Name:  "set",
+					Usage: "Stores a secret in the secrets store",
+					UsageText: "earth [options] secrets set <path> <value>\n" +
+						"   earth [options] secrets set --file <local-path> <path>",
 					Action: app.actionSecretsSet,
 					Flags: []cli.Flag{
 						&cli.StringFlag{
@@ -525,8 +544,13 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 			Name:        "register",
 			Usage:       "Register for an earthly account",
 			Description: "Register for an earthly account",
-			Hidden:      true,
-			Action:      app.actionRegister,
+			UsageText: "first, request a token with:\n" +
+				"     earth [options] register --email <email>\n" +
+				"\n" +
+				"   then check your email to retrieve the token, then continue by running:\n" +
+				"     earth [options] register --email <email> --token <token>",
+			Hidden: true,
+			Action: app.actionRegister,
 			Flags: []cli.Flag{
 				&cli.StringFlag{
 					Name:        "email",
