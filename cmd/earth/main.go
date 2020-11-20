@@ -1172,6 +1172,30 @@ func (app *earthApp) actionRegister(c *cli.Context) error {
 		pword = string(enteredPassword)
 	}
 
+	var interactiveTermsConditions bool
+	if !app.termsConditions {
+		rawAccept := promptInput("Do you accept the Earthly Terms & Conditions? [y/N]")
+		if rawAccept == "" {
+			rawAccept = "n"
+		}
+		accept := strings.ToLower(rawAccept)[0]
+
+		interactiveTermsConditions = accept == 'y'
+	}
+	termsConditions := app.termsConditions || interactiveTermsConditions
+
+	var interactivePrivacyPolicy bool
+	if !app.termsConditions {
+		rawAccept := promptInput("Do you accept the Earthly Privacy Policy? [y/N]")
+		if rawAccept == "" {
+			rawAccept = "n"
+		}
+		accept := strings.ToLower(rawAccept)[0]
+
+		interactiveTermsConditions = accept == 'y'
+	}
+	privacyPolicy := app.privacyPolicy || interactivePrivacyPolicy
+
 	var publicKey string
 	if app.registrationPublicKey == "" {
 		fmt.Printf("Which of the following keys do you want to register?\n")
@@ -1209,7 +1233,7 @@ func (app *earthApp) actionRegister(c *cli.Context) error {
 		}
 	}
 
-	err = sc.CreateAccount(app.email, app.verificationToken, pword, publicKey, app.termsConditions, app.privacyPolicy)
+	err = sc.CreateAccount(app.email, app.verificationToken, pword, publicKey, termsConditions, privacyPolicy)
 	if err != nil {
 		return errors.Wrap(err, "failed to create account")
 	}
