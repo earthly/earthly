@@ -12,6 +12,8 @@ import (
 	"github.com/earthly/earthly/cleanup"
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/llbutil"
+	"github.com/earthly/earthly/stringutil"
+
 	"github.com/moby/buildkit/client/llb"
 	gwclient "github.com/moby/buildkit/frontend/gateway/client"
 	"github.com/pkg/errors"
@@ -120,7 +122,7 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, gwClient gwclient.
 
 	// Copy all Earthfile, build.earth and Dockerfile files.
 	gitOpts := []llb.GitOption{
-		llb.WithCustomNamef("[internal] GIT CLONE %s", gitURL),
+		llb.WithCustomNamef("[internal] GIT CLONE %s", stringutil.ScrubCredentials(gitURL)),
 		llb.KeepGitDir(),
 	}
 	if keyScan != "" {

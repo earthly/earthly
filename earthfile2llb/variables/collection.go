@@ -10,6 +10,8 @@ import (
 	"github.com/earthly/earthly/buildcontext"
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/states/dedup"
+	"github.com/earthly/earthly/stringutil"
+
 	"github.com/moby/buildkit/client/llb"
 	dfShell "github.com/moby/buildkit/frontend/dockerfile/shell"
 	"github.com/pkg/errors"
@@ -212,6 +214,7 @@ func (c *Collection) WithBuiltinBuildArgs(target domain.Target, gitMeta *buildco
 		}
 		ret.variables["EARTHLY_GIT_TAG"] = NewConstant(tag)
 		ret.variables["EARTHLY_GIT_ORIGIN_URL"] = NewConstant(gitMeta.RemoteURL)
+		ret.variables["EARTHLY_GIT_ORIGIN_URL_SCRUBBED"] = NewConstant(stringutil.ScrubCredentials(gitMeta.RemoteURL))
 		ret.variables["EARTHLY_GIT_PROJECT_NAME"] = NewConstant(getProjectName(gitMeta.RemoteURL))
 	}
 	return ret
