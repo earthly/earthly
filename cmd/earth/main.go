@@ -1879,7 +1879,7 @@ func (app *earthApp) newBuildkitdClient(ctx context.Context, opts ...client.Clie
 
 func (app *earthApp) updateGitLookupConfig(gitLookup *buildcontext.GitLookup) error {
 	autoProtocol := "ssh"
-	if app.sshAuthSock != "" {
+	if app.sshAuthSock == "" {
 		app.console.Printf("No ssh auth socket detected; falling back to https for auto auth values\n")
 		autoProtocol = "https"
 
