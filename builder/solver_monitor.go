@@ -302,11 +302,6 @@ func (sm *solverMonitor) recordTiming(targetStr, targetBrackets, salt string, ve
 	sm.timingTable[key] += dur
 }
 
-type durationAndKey struct {
-	dur time.Duration
-	key timingKey
-}
-
 func (sm *solverMonitor) PrintTiming() {
 	if !sm.verbose {
 		return
@@ -316,10 +311,14 @@ func (sm *solverMonitor) PrintTiming() {
 		Printf("Summary of timing information\n" +
 			"Note that the times do not include the expansion of commands like BUILD, FROM, COPY (artifact).")
 	var total time.Duration
+	type durationAndKey struct {
+		dur time.Duration
+		key timingKey
+	}
 	durs := make([]durationAndKey, 0, len(sm.timingTable))
 	for key, dur := range sm.timingTable {
 		durs = append(durs, durationAndKey{
-			d:   dur,
+			dur: dur,
 			key: key,
 		})
 		total += dur
@@ -327,6 +326,12 @@ func (sm *solverMonitor) PrintTiming() {
 	sort.Slice(durs, func(i, j int) bool {
 		return durs[i].dur > durs[j].dur
 	})
+	for _, d := range durs {
+		sm.console.
+			WithPrefixAndSalt(d.key.targetStr, d.key.salt).
+			WithMetadataMode(true).
+			Printf("(%s) %s\n", d.key.targetBrackets, d.dur)
+	}
 	sm.console.
 		WithMetadataMode(true).
 		Printf("===============================================================\n")
