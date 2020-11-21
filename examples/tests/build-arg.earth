@@ -1,12 +1,19 @@
 FROM alpine:3.11
 WORKDIR /test
+
+all:
+    BUILD +test1
+    BUILD +test2
+    BUILD +test3
+
 file-exists:
     ARG VAR1=nope.txt
     ARG VAR2=dummy
     RUN touch "$VAR2"
     RUN touch "existing-file.txt"
     RUN test -f "$VAR1"
-test:
+
+test1:
     BUILD --build-arg=VAR1=existing-file.txt +file-exists
     BUILD --build-arg=VAR1=dummy +file-exists
     BUILD --build-arg=VAR1=dummy2 --build-arg=VAR2=dummy2 +file-exists
@@ -15,3 +22,17 @@ test:
     RUN rm dummy
     RUN touch existing-file.txt
     BUILD --build-arg=VAR1=$(ls) +file-exists
+
+test2:
+    ARG ALPINE=3.11
+    FROM alpine:$ALPINE
+    RUN echo $ALPINE
+    RUN test "$ALPINE" == "3.11"
+
+dummy:
+    FROM alpine:3.11
+
+test3:
+    ARG VAR1="test"
+    FROM +dummy
+    RUN test "$VAR1" == "test"

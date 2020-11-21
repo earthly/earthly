@@ -155,6 +155,9 @@ func (c *Collection) WithResetEnvVars() *Collection {
 	for k, v := range c.variables {
 		if !v.IsEnvVar() {
 			ret.variables[k] = v
+			if c.activeVariables[k] {
+				ret.activeVariables[k] = true
+			}
 		}
 	}
 	for k := range c.overridingVariables {
