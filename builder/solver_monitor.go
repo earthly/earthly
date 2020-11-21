@@ -300,7 +300,7 @@ func (sm *solverMonitor) recordTiming(targetStr, targetBrackets, salt string, ve
 		targetBrackets: targetBrackets,
 		salt:           salt,
 	}
-	sm.timingTable[key] = sm.timingTable[key] + dur
+	sm.timingTable[key] += dur
 }
 
 func (sm *solverMonitor) PrintTiming() {
