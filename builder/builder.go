@@ -109,6 +109,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 	successFun := func() {
 		if opt.PrintSuccess {
 			b.opt.Console.PrintSuccess()
+			b.s.sm.PrintTiming()
 		}
 	}
 	destPathWhitelist := make(map[string]bool)

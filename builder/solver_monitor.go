@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"regexp"
+	"sort"
 	"strings"
 	"time"
 
@@ -147,20 +148,38 @@ func (vm *vertexMonitor) printError() {
 	}
 }
 
+func (vm *vertexMonitor) printTimingInfo() {
+	if vm.vertex.Started == nil || vm.vertex.Completed == nil {
+		return
+	}
+	vm.console.WithMetadataMode(true).
+		Printf("Completed in %s\n", vm.vertex.Completed.Sub(*vm.vertex.Started))
+}
+
 type solverMonitor struct {
 	console          conslogging.ConsoleLogger
 	verbose          bool
 	vertices         map[digest.Digest]*vertexMonitor
 	saltSeen         map[string]bool
 	lastVertexOutput *vertexMonitor
+	timingTable      map[timingKey]time.Duration
+	startTime        time.Time
+}
+
+type timingKey struct {
+	targetStr      string
+	targetBrackets string
+	salt           string
 }
 
 func newSolverMonitor(console conslogging.ConsoleLogger, verbose bool) *solverMonitor {
 	return &solverMonitor{
-		console:  console,
-		verbose:  verbose,
-		vertices: make(map[digest.Digest]*vertexMonitor),
-		saltSeen: make(map[string]bool),
+		console:     console,
+		verbose:     verbose,
+		vertices:    make(map[digest.Digest]*vertexMonitor),
+		saltSeen:    make(map[string]bool),
+		timingTable: make(map[timingKey]time.Duration),
+		startTime:   time.Now(),
 	}
 }
 
@@ -206,6 +225,10 @@ Loop:
 						vm.printError()
 					}
 				}
+				if sm.verbose {
+					vm.printTimingInfo()
+					sm.recordTiming(vm.targetStr, vm.targetBrackets, vm.salt, vertex)
+				}
 			}
 			for _, vs := range ss.Statuses {
 				vm, ok := sm.vertices[vs.Vertex]
@@ -240,7 +263,6 @@ Loop:
 				if err != nil {
 					return err
 				}
-
 			}
 		}
 	}
@@ -262,6 +284,63 @@ func (sm *solverMonitor) printHeader(vm *vertexMonitor) {
 		sm.saltSeen[vm.salt] = true
 	}
 	vm.printHeader(!seen || sm.verbose)
+}
+
+func (sm *solverMonitor) recordTiming(targetStr, targetBrackets, salt string, vertex *client.Vertex) {
+	if vertex.Started == nil || vertex.Completed == nil {
+		return
+	}
+	dur := vertex.Completed.Sub(*vertex.Started)
+	if dur == 0 {
+		return
+	}
+	key := timingKey{
+		targetStr:      targetStr,
+		targetBrackets: targetBrackets,
+		salt:           salt,
+	}
+	sm.timingTable[key] += dur
+}
+
+func (sm *solverMonitor) PrintTiming() {
+	if !sm.verbose {
+		return
+	}
+	sm.console.
+		WithMetadataMode(true).
+		Printf("Summary of timing information\n" +
+			"Note that the times do not include the expansion of commands like BUILD, FROM, COPY (artifact).")
+	var total time.Duration
+	type durationAndKey struct {
+		dur time.Duration
+		key timingKey
+	}
+	durs := make([]durationAndKey, 0, len(sm.timingTable))
+	for key, dur := range sm.timingTable {
+		durs = append(durs, durationAndKey{
+			dur: dur,
+			key: key,
+		})
+		total += dur
+	}
+	sort.Slice(durs, func(i, j int) bool {
+		return durs[i].dur > durs[j].dur
+	})
+	for _, d := range durs {
+		sm.console.
+			WithPrefixAndSalt(d.key.targetStr, d.key.salt).
+			WithMetadataMode(true).
+			Printf("(%s) %s\n", d.key.targetBrackets, d.dur)
+	}
+	sm.console.
+		WithMetadataMode(true).
+		Printf("===============================================================\n")
+	sm.console.
+		WithMetadataMode(true).
+		Printf("Total       \t%s\n", total)
+	sm.console.
+		WithMetadataMode(true).
+		Printf("Total (real)\t%s\n", time.Now().Sub(sm.startTime))
 }
 
 func (sm *solverMonitor) reprintFailure(errVertex *vertexMonitor) {
