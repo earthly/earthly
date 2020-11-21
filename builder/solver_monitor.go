@@ -162,9 +162,8 @@ type solverMonitor struct {
 	vertices         map[digest.Digest]*vertexMonitor
 	saltSeen         map[string]bool
 	lastVertexOutput *vertexMonitor
-	// timingTable is a map of target+salt string -> total duration.
-	timingTable map[timingKey]time.Duration
-	startTime   time.Time
+	timingTable      map[timingKey]time.Duration
+	startTime        time.Time
 }
 
 type timingKey struct {
