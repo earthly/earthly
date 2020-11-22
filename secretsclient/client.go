@@ -121,7 +121,8 @@ func (c *client) doCall(method, url string, opts ...requestOpt) (int, string, er
 	duration := time.Millisecond * 100
 	for attempt := 0; attempt < maxAttempt; attempt++ {
 		status, body, err = c.doCallImp(r, method, url, opts...)
-		if (err == nil && status < 500) || err == ErrNoAuthorizedPublicKeys {
+		if (err == nil && status < 500) || err == ErrNoAuthorizedPublicKeys ||
+			strings.Contains(err.Error(), "failed to connect to ssh-agent") {
 			return status, body, err
 		}
 		if err != nil {
