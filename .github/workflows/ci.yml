@@ -65,6 +65,21 @@ jobs:
         run: earth +for-linux
       - name: Build examples
         run: ./build/linux/amd64/earth --no-output --allow-privileged +examples
+  secrets:
+    name: secrets-integration
+    runs-on: ubuntu-latest
+    env:
+      GIT_URL_INSTEAD_OF: "https://github.com/=git@github.com:"
+      FORCE_COLOR: 1
+      EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
+    steps:
+      - uses: actions/checkout@v2
+      - name: Download released earth
+        run: "sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/latest/download/earth-linux-amd64 -O /usr/local/bin/earth && chmod +x /usr/local/bin/earth'"
+      - name: Build latest earth using released earth
+        run: earth +for-linux
+      - name: run ssh-based tests
+        run: env -u GIT_URL_INSTEAD_OF earth=./build/linux/amd64/earth .tests/private-repo.sh
   push:
     name: --push +all
     if: github.event_name == 'push'
