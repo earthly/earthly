@@ -968,15 +968,21 @@ func (app *earthApp) actionOrgList(c *cli.Context) error {
 	sc := secretsclient.NewClient(app.apiServer, app.sshAuthSock, app.publicKey, app.console.Warnf)
 	orgs, err := sc.ListOrgs()
 	if err != nil {
-		return errors.Wrap(err, "failed to create org")
+		return errors.Wrap(err, "failed to list orgs")
 	}
+
+	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
 	for _, org := range orgs {
-		fmt.Printf("%s", org.Name)
+		fmt.Fprintf(w, "/%s/", org.Name)
 		if org.Admin {
-			fmt.Printf(" (admin)")
+			fmt.Fprintf(w, "\tadmin")
+		} else {
+			fmt.Fprintf(w, "\tmember")
 		}
-		fmt.Printf("\n")
+		fmt.Fprintf(w, "\n")
 	}
+	w.Flush()
+
 	return nil
 }
 
