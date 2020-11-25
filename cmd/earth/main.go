@@ -55,6 +55,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
 	"golang.org/x/crypto/ssh"
+	"golang.org/x/crypto/ssh/agent"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -95,17 +96,17 @@ type cliFlags struct {
 	debug                  bool
 	homebrewSource         string
 	email                  string
-	verificationToken      string
+	token                  string
 	password               string
 	disableNewLine         bool
 	secretFile             string
 	apiServer              string
 	writePermission        bool
-	publicKey              string
 	registrationPublicKey  string
 	dockerfilePath         string
 	earthfilePath          string
 	earthfileFinalImage    string
+	expiry                 time.Time
 	termsConditionsPrivacy bool
 }
 
@@ -369,13 +370,6 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 			Destination: &app.remoteCache,
 			Hidden:      true, // Experimental.
 		},
-		&cli.StringFlag{
-			Name:        "ssh-key",
-			EnvVars:     []string{"EARTHLY_SSH_KEY"},
-			Usage:       "Force the use of a particular ssh key when authenticating",
-			Destination: &app.publicKey,
-			Hidden:      true, // Experimental.
-		},
 		&cli.BoolFlag{
 			Name:        "interactive",
 			Aliases:     []string{"i"},
@@ -542,44 +536,134 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 			},
 		},
 		{
-			Name:        "register",
-			Usage:       "Register for an earthly account",
-			Description: "Register for an earthly account",
-			UsageText: "first, request a token with:\n" +
-				"     earth [options] register --email <email>\n" +
-				"\n" +
-				"   then check your email to retrieve the token, then continue by running:\n" +
-				"     earth [options] register --email <email> --token <token>",
+			Name:   "account",
+			Usage:  "Create or manage an earthly account",
 			Hidden: true,
-			Action: app.actionRegister,
-			Flags: []cli.Flag{
-				&cli.StringFlag{
-					Name:        "email",
-					Usage:       "Email address",
-					Destination: &app.email,
+			Subcommands: []*cli.Command{
+				{
+					Name:        "register",
+					Aliases:     []string{"create"},
+					Usage:       "Register for an earthly account",
+					Description: "Register for an earthly account",
+					UsageText: "first, request a token with:\n" +
+						"     earth [options] account register --email <email>\n" +
+						"\n" +
+						"   then check your email to retrieve the token, then continue by running:\n" +
+						"     earth [options] account register --email <email> --token <token>",
+					Action: app.actionRegister,
+					Flags: []cli.Flag{
+						&cli.StringFlag{
+							Name:        "email",
+							Usage:       "Email address",
+							Destination: &app.email,
+						},
+						&cli.StringFlag{
+							Name:        "token",
+							Usage:       "Email verification token",
+							Destination: &app.token,
+						},
+						&cli.StringFlag{
+							Name:        "password",
+							EnvVars:     []string{"EARTHLY_PASSWORD"},
+							Usage:       "Specify password on the command line instead of interactively being asked",
+							Destination: &app.password,
+						},
+						&cli.StringFlag{
+							Name:        "public-key",
+							EnvVars:     []string{"EARTHLY_PUBLIC_KEY"},
+							Usage:       "Path to public key to register",
+							Destination: &app.registrationPublicKey,
+						},
+						&cli.BoolFlag{
+							Name:        "accept-terms-conditions-privacy",
+							EnvVars:     []string{"EARTHLY_ACCEPT_TERMS_CONDITITONS_PRIVACY"},
+							Usage:       "Accept the Terms & Conditions, and Privacy Policy",
+							Destination: &app.termsConditionsPrivacy,
+						},
+					},
 				},
-				&cli.StringFlag{
-					Name:        "token",
-					Usage:       "Email verification token",
-					Destination: &app.verificationToken,
+				{
+					Name:      "list-keys",
+					Usage:     "List associated public keys used for authentication",
+					UsageText: "earth [options] account list-keys",
+					Action:    app.actionAccountListKeys,
 				},
-				&cli.StringFlag{
-					Name:        "password",
-					EnvVars:     []string{"EARTHLY_PASSWORD"},
-					Usage:       "Specify password on the command line instead of interactively being asked",
-					Destination: &app.password,
+				{
+					Name:      "add-key",
+					Usage:     "Associate a new public key with your account",
+					UsageText: "earth [options] add-key <key>",
+					Action:    app.actionAccountAddKey,
 				},
-				&cli.StringFlag{
-					Name:        "public-key",
-					EnvVars:     []string{"EARTHLY_PUBLIC_KEY"},
-					Usage:       "Path to public key to register",
-					Destination: &app.registrationPublicKey,
+				{
+					Name:      "remove-key",
+					Usage:     "Removes an existing public key from your account",
+					UsageText: "earth [options] remove-key <key>",
+					Action:    app.actionAccountRemoveKey,
 				},
-				&cli.BoolFlag{
-					Name:        "accept-terms-conditions-privacy",
-					EnvVars:     []string{"EARTHLY_ACCEPT_TERMS_CONDITITONS_PRIVACY"},
-					Usage:       "Accept the Terms & Conditions, and Privacy Policy",
-					Destination: &app.termsConditionsPrivacy,
+				{
+					Name:      "list-tokens",
+					Usage:     "List associated tokens used for authentication",
+					UsageText: "earth [options] account list-tokens",
+					Action:    app.actionAccountListTokens,
+				},
+				{
+					Name:      "create-token",
+					Usage:     "Create a new authentication token for your account",
+					UsageText: "earth [options] account create-token",
+					Action:    app.actionAccountCreateToken,
+					Flags: []cli.Flag{
+						&cli.BoolFlag{
+							Name:        "write",
+							Usage:       "Grant write permissions in addition to read",
+							Destination: &app.writePermission,
+						},
+						&cli.TimestampFlag{
+							Name:   "expiry",
+							Layout: "2006-01-02T15:04",
+							Usage:  "Set token expiry date",
+							Value:  cli.NewTimestamp(time.Now().UTC().Add(time.Hour * 24 * 365)),
+						},
+					},
+				},
+				{
+					Name:      "remove-token",
+					Usage:     "Remove an authentication token from your account",
+					UsageText: "earth [options] account remove-token",
+					Action:    app.actionAccountRemoveToken,
+				},
+				{
+					Name:        "login",
+					Usage:       "Login to an earthly account",
+					Description: "Login to an earthly account",
+					UsageText: "earth [options] account login\n" +
+						"   earth [options] account login --email <email>\n" +
+						"   earth [options] account login --email <email> --password <password>\n" +
+						"   earth [options] account login --token <token>\n",
+					Action: app.actionAccountLogin,
+					Flags: []cli.Flag{
+						&cli.StringFlag{
+							Name:        "email",
+							Usage:       "Email address",
+							Destination: &app.email,
+						},
+						&cli.StringFlag{
+							Name:        "token",
+							Usage:       "Authentication token",
+							Destination: &app.token,
+						},
+						&cli.StringFlag{
+							Name:        "password",
+							EnvVars:     []string{"EARTHLY_PASSWORD"},
+							Usage:       "Specify password on the command line instead of interactively being asked",
+							Destination: &app.password,
+						},
+					},
+				},
+				{
+					Name:        "logout",
+					Usage:       "Logout of an earthly account",
+					Description: "Logout of an earthly account; this has no effect for ssh-based authentication",
+					Action:      app.actionAccountLogout,
 				},
 			},
 		},
@@ -962,7 +1046,7 @@ func (app *earthApp) actionOrgCreate(c *cli.Context) error {
 		return errors.New("invalid number of arguments provided")
 	}
 	org := c.Args().Get(0)
-	sc := secretsclient.NewClient(app.apiServer, app.sshAuthSock, app.publicKey, app.console.Warnf)
+	sc, _ := secretsclient.NewClient(app.apiServer, app.sshAuthSock, app.console.Warnf)
 	err := sc.CreateOrg(org)
 	if err != nil {
 		return errors.Wrap(err, "failed to create org")
@@ -972,7 +1056,7 @@ func (app *earthApp) actionOrgCreate(c *cli.Context) error {
 
 func (app *earthApp) actionOrgList(c *cli.Context) error {
 	app.commandName = "orgList"
-	sc := secretsclient.NewClient(app.apiServer, app.sshAuthSock, app.publicKey, app.console.Warnf)
+	sc, _ := secretsclient.NewClient(app.apiServer, app.sshAuthSock, app.console.Warnf)
 	orgs, err := sc.ListOrgs()
 	if err != nil {
 		return errors.Wrap(err, "failed to list orgs")
@@ -1002,10 +1086,10 @@ func (app *earthApp) actionOrgListPermissions(c *cli.Context) error {
 	if !strings.HasSuffix(path, "/") {
 		path += "/"
 	}
-	sc := secretsclient.NewClient(app.apiServer, app.sshAuthSock, app.publicKey, app.console.Warnf)
+	sc, _ := secretsclient.NewClient(app.apiServer, app.sshAuthSock, app.console.Warnf)
 	orgs, err := sc.ListOrgPermissions(path)
 	if err != nil {
-		return errors.Wrap(err, "failed to create org")
+		return errors.Wrap(err, "failed to list org permissions")
 	}
 
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
@@ -1032,7 +1116,7 @@ func (app *earthApp) actionOrgInvite(c *cli.Context) error {
 		return errors.New("invitation paths must end with a slash (/)")
 	}
 
-	sc := secretsclient.NewClient(app.apiServer, app.sshAuthSock, app.publicKey, app.console.Warnf)
+	sc, _ := secretsclient.NewClient(app.apiServer, app.sshAuthSock, app.console.Warnf)
 	userEmail := c.Args().Get(1)
 	err := sc.Invite(path, userEmail, app.writePermission)
 	if err != nil {
@@ -1051,7 +1135,7 @@ func (app *earthApp) actionOrgRevoke(c *cli.Context) error {
 		return errors.New("revoked paths must end with a slash (/)")
 	}
 
-	sc := secretsclient.NewClient(app.apiServer, app.sshAuthSock, app.publicKey, app.console.Warnf)
+	sc, _ := secretsclient.NewClient(app.apiServer, app.sshAuthSock, app.console.Warnf)
 	userEmail := c.Args().Get(1)
 	err := sc.RevokePermission(path, userEmail)
 	if err != nil {
@@ -1072,7 +1156,7 @@ func (app *earthApp) actionSecretsList(c *cli.Context) error {
 	if !strings.HasSuffix(path, "/") {
 		path += "/"
 	}
-	sc := secretsclient.NewClient(app.apiServer, app.sshAuthSock, app.publicKey, app.console.Warnf)
+	sc, _ := secretsclient.NewClient(app.apiServer, app.sshAuthSock, app.console.Warnf)
 	paths, err := sc.List(path)
 	if err != nil {
 		return errors.Wrap(err, "failed to list secret")
@@ -1089,7 +1173,7 @@ func (app *earthApp) actionSecretsGet(c *cli.Context) error {
 		return errors.New("invalid number of arguments provided")
 	}
 	path := c.Args().Get(0)
-	sc := secretsclient.NewClient(app.apiServer, app.sshAuthSock, app.publicKey, app.console.Warnf)
+	sc, _ := secretsclient.NewClient(app.apiServer, app.sshAuthSock, app.console.Warnf)
 	data, err := sc.Get(path)
 	if err != nil {
 		return errors.Wrap(err, "failed to get secret")
@@ -1107,7 +1191,7 @@ func (app *earthApp) actionSecretsRemove(c *cli.Context) error {
 		return errors.New("invalid number of arguments provided")
 	}
 	path := c.Args().Get(0)
-	sc := secretsclient.NewClient(app.apiServer, app.sshAuthSock, app.publicKey, app.console.Warnf)
+	sc, _ := secretsclient.NewClient(app.apiServer, app.sshAuthSock, app.console.Warnf)
 	err := sc.Remove(path)
 	if err != nil {
 		return errors.Wrap(err, "failed to remove secret")
@@ -1137,7 +1221,7 @@ func (app *earthApp) actionSecretsSet(c *cli.Context) error {
 		value = string(data)
 	}
 
-	sc := secretsclient.NewClient(app.apiServer, app.sshAuthSock, app.publicKey, app.console.Warnf)
+	sc, _ := secretsclient.NewClient(app.apiServer, app.sshAuthSock, app.console.Warnf)
 	err := sc.Set(path, []byte(value))
 	if err != nil {
 		return errors.Wrap(err, "failed to set secret")
@@ -1155,13 +1239,9 @@ func (app *earthApp) actionRegister(c *cli.Context) error {
 		return errors.New("email is invalid")
 	}
 
-	if app.publicKey != "" && app.publicKey != app.registrationPublicKey {
-		app.console.Warnf("the --ssh-key option should be listed after the registration command, the global setting is ignored during registration\n")
-	}
+	sc, _ := secretsclient.NewClient(app.apiServer, app.sshAuthSock, app.console.Warnf)
 
-	sc := secretsclient.NewClient(app.apiServer, app.sshAuthSock, "", app.console.Warnf)
-
-	if app.verificationToken == "" {
+	if app.token == "" {
 		err := sc.RegisterEmail(app.email)
 		if err != nil {
 			return errors.Wrap(err, "failed to register email")
@@ -1170,13 +1250,17 @@ func (app *earthApp) actionRegister(c *cli.Context) error {
 		return nil
 	}
 
-	publicKeys, err := sc.GetPublicKeys()
-	if err != nil {
-		return err
+	var publicKeys []*agent.Key
+	if app.sshAuthSock != "" {
+		var err error
+		publicKeys, err = sc.GetPublicKeys()
+		if err != nil {
+			return err
+		}
 	}
-	if len(publicKeys) == 0 {
-		return fmt.Errorf("failed to find any public keys; did you forget to ssh-add your key?")
-	}
+	//if len(publicKeys) == 0 {
+	//	return fmt.Errorf("failed to find any public keys; did you forget to ssh-add your key?")
+	//}
 
 	// Our signal handling under main() doesn't cause reading from stdin to cancel
 	// as there's no way to pass app.ctx to stdin read calls.
@@ -1213,22 +1297,24 @@ func (app *earthApp) actionRegister(c *cli.Context) error {
 
 	var publicKey string
 	if app.registrationPublicKey == "" {
-		fmt.Printf("Which of the following keys do you want to register?\n")
-		for i, key := range publicKeys {
-			fmt.Printf("%d) %s\n", i+1, key.String())
+		if len(publicKeys) > 0 {
+			fmt.Printf("Which of the following keys do you want to register?\n")
+			for i, key := range publicKeys {
+				fmt.Printf("%d) %s\n", i+1, key.String())
+			}
+			keyNum := promptInput("enter key number (1=default): ")
+			if keyNum == "" {
+				keyNum = "1"
+			}
+			i, err := strconv.Atoi(keyNum)
+			if err != nil {
+				return errors.Wrap(err, "invalid key number")
+			}
+			if i <= 0 || i > len(publicKeys) {
+				return fmt.Errorf("invalid key number")
+			}
+			publicKey = publicKeys[i-1].String()
 		}
-		keyNum := promptInput("enter key number (1=default): ")
-		if keyNum == "" {
-			keyNum = "1"
-		}
-		i, err := strconv.Atoi(keyNum)
-		if err != nil {
-			return errors.Wrap(err, "invalid key number")
-		}
-		if i <= 0 || i > len(publicKeys) {
-			return fmt.Errorf("invalid key number")
-		}
-		publicKey = publicKeys[i-1].String()
 	} else {
 		_, _, _, _, err := ssh.ParseAuthorizedKey([]byte(app.registrationPublicKey))
 		if err == nil {
@@ -1248,12 +1334,255 @@ func (app *earthApp) actionRegister(c *cli.Context) error {
 		}
 	}
 
-	err = sc.CreateAccount(app.email, app.verificationToken, pword, publicKey, termsConditionsPrivacy)
+	err := sc.CreateAccount(app.email, app.token, pword, publicKey, termsConditionsPrivacy)
 	if err != nil {
 		return errors.Wrap(err, "failed to create account")
 	}
 
 	fmt.Println("Account registration complete")
+	return nil
+}
+
+func (app *earthApp) actionAccountListKeys(c *cli.Context) error {
+	app.commandName = "accountListKeys"
+	sc, _ := secretsclient.NewClient(app.apiServer, app.sshAuthSock, app.console.Warnf)
+	keys, err := sc.ListPublicKeys()
+	if err != nil {
+		return errors.Wrap(err, "failed to list account keys")
+	}
+	for _, key := range keys {
+		fmt.Printf("%s\n", key)
+	}
+	return nil
+}
+
+func (app *earthApp) actionAccountAddKey(c *cli.Context) error {
+	app.commandName = "accountAddKey"
+	sc, _ := secretsclient.NewClient(app.apiServer, app.sshAuthSock, app.console.Warnf)
+	if c.NArg() > 1 {
+		for _, k := range c.Args().Slice() {
+			err := sc.AddPublickKey(k)
+			if err != nil {
+				return errors.Wrap(err, "failed to add public key to account")
+			}
+		}
+		return nil
+	}
+
+	publicKeys, err := sc.GetPublicKeys()
+	if err != nil {
+		return err
+	}
+	if len(publicKeys) == 0 {
+		return fmt.Errorf("unable to list available public keys, is ssh-agent running?; do you need to run ssh-add?")
+	}
+
+	// Our signal handling under main() doesn't cause reading from stdin to cancel
+	// as there's no way to pass app.ctx to stdin read calls.
+	signal.Reset(syscall.SIGINT, syscall.SIGTERM)
+
+	fmt.Printf("Which of the following keys do you want to register?\n")
+	for i, key := range publicKeys {
+		fmt.Printf("%d) %s\n", i+1, key.String())
+	}
+	keyNum := promptInput("enter key number (1=default): ")
+	if keyNum == "" {
+		keyNum = "1"
+	}
+	i, err := strconv.Atoi(keyNum)
+	if err != nil {
+		return errors.Wrap(err, "invalid key number")
+	}
+	if i <= 0 || i > len(publicKeys) {
+		return fmt.Errorf("invalid key number")
+	}
+	publicKey := publicKeys[i-1].String()
+
+	err = sc.AddPublickKey(publicKey)
+	if err != nil {
+		return errors.Wrap(err, "failed to add public key to account")
+	}
+
+	return nil
+}
+
+func (app *earthApp) actionAccountRemoveKey(c *cli.Context) error {
+	app.commandName = "accountRemoveKey"
+	sc, _ := secretsclient.NewClient(app.apiServer, app.sshAuthSock, app.console.Warnf)
+	for _, k := range c.Args().Slice() {
+		err := sc.RemovePublickKey(k)
+		if err != nil {
+			return errors.Wrap(err, "failed to add public key to account")
+		}
+	}
+	return nil
+}
+func (app *earthApp) actionAccountListTokens(c *cli.Context) error {
+	app.commandName = "accounListTokens"
+	sc, _ := secretsclient.NewClient(app.apiServer, app.sshAuthSock, app.console.Warnf)
+	tokens, err := sc.ListTokens()
+	if err != nil {
+		return errors.Wrap(err, "failed to list account tokens")
+	}
+
+	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
+	fmt.Fprintf(w, "Token Name\tRead/Write\tExpiry\n")
+	for _, token := range tokens {
+		fmt.Fprintf(w, "%s", token.Name)
+		if token.Write {
+			fmt.Fprintf(w, "\trw")
+		} else {
+			fmt.Fprintf(w, "\tr")
+		}
+		fmt.Fprintf(w, "\t%s UTC", token.Expiry.UTC().Format("2006-01-02T15:04"))
+		fmt.Fprintf(w, "\n")
+	}
+	w.Flush()
+	return nil
+}
+func (app *earthApp) actionAccountCreateToken(c *cli.Context) error {
+	app.commandName = "accounCreateToken"
+	if c.NArg() != 1 {
+		return errors.New("invalid number of arguments provided")
+	}
+	expiry := c.Timestamp("expiry")
+	sc, _ := secretsclient.NewClient(app.apiServer, app.sshAuthSock, app.console.Warnf)
+	name := c.Args().First()
+	token, err := sc.CreateToken(name, app.writePermission, expiry)
+	if err != nil {
+		return errors.Wrap(err, "failed to create token")
+	}
+	fmt.Printf("token: %q; save this token somewhere, it can't be viewed again (only reset)\n", token)
+	return nil
+}
+func (app *earthApp) actionAccountRemoveToken(c *cli.Context) error {
+	app.commandName = "accounRemoveToken"
+	if c.NArg() != 1 {
+		return errors.New("invalid number of arguments provided")
+	}
+	name := c.Args().First()
+	sc, _ := secretsclient.NewClient(app.apiServer, app.sshAuthSock, app.console.Warnf)
+	err := sc.RemoveToken(name)
+	if err != nil {
+		return errors.Wrap(err, "failed to remove account tokens")
+	}
+	return nil
+}
+
+func (app *earthApp) actionAccountLogin(c *cli.Context) error {
+	app.commandName = "actionAccountLogin"
+	email := app.email
+	token := app.token
+	pass := app.password
+
+	if c.NArg() == 1 {
+		emailOrToken := c.Args().First()
+		if token == "" && email == "" {
+			if secretsclient.IsValidEmail(emailOrToken) {
+				email = emailOrToken
+			} else {
+				token = emailOrToken
+			}
+
+		} else {
+			return errors.New("invalid number of arguments provided")
+		}
+	} else if c.NArg() > 1 {
+		return errors.New("invalid number of arguments provided")
+	}
+
+	if token != "" && (email != "" || pass != "") {
+		return errors.New("--token can not be used in conjuction with --email or --password")
+	}
+	sc, err := secretsclient.NewClient(app.apiServer, app.sshAuthSock, app.console.Warnf)
+	if err != nil {
+		return err
+	}
+
+	if token != "" || pass != "" {
+		err := sc.DeleteCachedCredentials()
+		if err != nil {
+			return errors.Wrap(err, "failed to clear cached credentials")
+		}
+		sc.DisableSSHKeyGuessing()
+	} else if email != "" {
+		foundSSHKeys, err := sc.FindSSHAuth()
+		if err == nil {
+			if keys, ok := foundSSHKeys[email]; ok {
+				if len(keys) > 0 {
+					foundSSHKey := keys[0]
+					err := sc.SetLoginSSH(email, foundSSHKey)
+					if err != nil {
+						return err
+					}
+					fmt.Printf("Logged in as %q using ssh auth\n", email)
+					return nil
+				}
+			}
+		}
+	}
+
+	loggedInEmail, authType, err := sc.WhoAmI()
+	switch errors.Cause(err) {
+	case secretsclient.ErrNoAuthorizedPublicKeys, secretsclient.ErrNoSSHAgent:
+		break
+	case nil:
+		if email != "" && email != loggedInEmail {
+			break // case where a user has multiple emails and wants to switch
+		}
+		fmt.Printf("Logged in as %q using %s auth\n", loggedInEmail, authType)
+		return nil
+	default:
+		return err
+	}
+
+	if email == "" && token == "" {
+		emailOrToken := promptInput("enter your email or auth token: ")
+		if strings.Contains(emailOrToken, "@") {
+			email = emailOrToken
+		} else {
+			token = emailOrToken
+		}
+	}
+
+	if email != "" && pass == "" {
+		passwordBytes, err := password.Read("enter your password: ")
+		if err != nil {
+			return err
+		}
+		pass = string(passwordBytes)
+		if pass == "" {
+			return fmt.Errorf("no password entered")
+		}
+	}
+
+	if token != "" {
+		email, err = sc.SetLoginToken(token)
+		if err != nil {
+			return err
+		}
+		fmt.Printf("Logged in as %q using token auth\n", email) // TODO display if using read-only token
+	} else {
+		err = sc.SetLoginCredentials(email, string(pass))
+		if err != nil {
+			return err
+		}
+		fmt.Printf("Logged in as %q using password auth\n", email)
+		fmt.Printf("Warning unencrypted password has been stored under ~/.earthly/auth.token; consider using ssh-based auth to prevent this.\n")
+	}
+	return nil
+}
+
+func (app *earthApp) actionAccountLogout(c *cli.Context) error {
+	app.commandName = "actionAccountLogout"
+	sc, err := secretsclient.NewClient(app.apiServer, app.sshAuthSock, app.console.Warnf)
+	if err != nil {
+		return err
+	}
+	err = sc.DeleteCachedCredentials()
+	if err != nil {
+		return errors.Wrap(err, "failed to logout")
+	}
 	return nil
 }
 
@@ -1439,7 +1768,7 @@ func (app *earthApp) actionBuild(c *cli.Context) error {
 	}
 	secretsMap[debuggercommon.DebuggerSettingsSecretsKey] = debuggerSettingsData
 
-	sc := secretsclient.NewClient(app.apiServer, app.sshAuthSock, app.publicKey, app.console.Warnf)
+	sc, _ := secretsclient.NewClient(app.apiServer, app.sshAuthSock, app.console.Warnf)
 
 	cacheLocalDir, err := ioutil.TempDir("", "earthly-cache")
 	if err != nil {
