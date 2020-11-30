@@ -70,42 +70,43 @@ type earthApp struct {
 }
 
 type cliFlags struct {
-	buildArgs             cli.StringSlice
-	secrets               cli.StringSlice
-	artifactMode          bool
-	imageMode             bool
-	pull                  bool
-	push                  bool
-	noOutput              bool
-	noCache               bool
-	pruneAll              bool
-	pruneReset            bool
-	buildkitdSettings     buildkitd.Settings
-	allowPrivileged       bool
-	enableProfiler        bool
-	buildkitHost          string
-	buildkitdImage        string
-	remoteCache           string
-	configPath            string
-	gitUsernameOverride   string
-	gitPasswordOverride   string
-	interactiveDebugging  bool
-	sshAuthSock           string
-	verbose               bool
-	debug                 bool
-	homebrewSource        string
-	email                 string
-	verificationToken     string
-	password              string
-	disableNewLine        bool
-	secretFile            string
-	apiServer             string
-	writePermission       bool
-	publicKey             string
-	registrationPublicKey string
-	dockerfilePath        string
-	earthfilePath         string
-	earthfileFinalImage   string
+	buildArgs              cli.StringSlice
+	secrets                cli.StringSlice
+	artifactMode           bool
+	imageMode              bool
+	pull                   bool
+	push                   bool
+	noOutput               bool
+	noCache                bool
+	pruneAll               bool
+	pruneReset             bool
+	buildkitdSettings      buildkitd.Settings
+	allowPrivileged        bool
+	enableProfiler         bool
+	buildkitHost           string
+	buildkitdImage         string
+	remoteCache            string
+	configPath             string
+	gitUsernameOverride    string
+	gitPasswordOverride    string
+	interactiveDebugging   bool
+	sshAuthSock            string
+	verbose                bool
+	debug                  bool
+	homebrewSource         string
+	email                  string
+	verificationToken      string
+	password               string
+	disableNewLine         bool
+	secretFile             string
+	apiServer              string
+	writePermission        bool
+	publicKey              string
+	registrationPublicKey  string
+	dockerfilePath         string
+	earthfilePath          string
+	earthfileFinalImage    string
+	termsConditionsPrivacy bool
 }
 
 var (
@@ -573,6 +574,12 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 					EnvVars:     []string{"EARTHLY_PUBLIC_KEY"},
 					Usage:       "Path to public key to register",
 					Destination: &app.registrationPublicKey,
+				},
+				&cli.BoolFlag{
+					Name:        "accept-terms-conditions-privacy",
+					EnvVars:     []string{"EARTHLY_ACCEPT_TERMS_CONDITITONS_PRIVACY"},
+					Usage:       "Accept the Terms & Conditions, and Privacy Policy",
+					Destination: &app.termsConditionsPrivacy,
 				},
 			},
 		},
@@ -1191,6 +1198,19 @@ func (app *earthApp) actionRegister(c *cli.Context) error {
 		pword = string(enteredPassword)
 	}
 
+	var interactiveAccept bool
+	if !app.termsConditionsPrivacy {
+		// TODO: add link when we have one
+		rawAccept := promptInput("Do you accept Earthly's T&Cs <link> and Privacy Policy <link>? [y/N]")
+		if rawAccept == "" {
+			rawAccept = "n"
+		}
+		accept := strings.ToLower(rawAccept)[0]
+
+		interactiveAccept = accept == 'y'
+	}
+	termsConditionsPrivacy := app.termsConditionsPrivacy || interactiveAccept
+
 	var publicKey string
 	if app.registrationPublicKey == "" {
 		fmt.Printf("Which of the following keys do you want to register?\n")
@@ -1228,7 +1248,7 @@ func (app *earthApp) actionRegister(c *cli.Context) error {
 		}
 	}
 
-	err = sc.CreateAccount(app.email, app.verificationToken, pword, publicKey)
+	err = sc.CreateAccount(app.email, app.verificationToken, pword, publicKey, termsConditionsPrivacy)
 	if err != nil {
 		return errors.Wrap(err, "failed to create account")
 	}
