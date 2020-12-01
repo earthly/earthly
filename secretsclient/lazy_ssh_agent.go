@@ -1,12 +1,16 @@
 package secretsclient
 
 import (
+	"fmt"
 	"net"
 
 	"github.com/pkg/errors"
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/agent"
 )
+
+// ErrNoSSHAgent occurs when no ssh auth agent exists
+var ErrNoSSHAgent = fmt.Errorf("no ssh auth agent socket")
 
 type lazySSHAgent struct {
 	sockPath string
@@ -16,6 +20,9 @@ type lazySSHAgent struct {
 func (lsa *lazySSHAgent) maybeInit() error {
 	if lsa.sshAgent != nil {
 		return nil
+	}
+	if lsa.sockPath == "" {
+		return ErrNoSSHAgent
 	}
 	agentSock, err := net.Dial("unix", lsa.sockPath)
 	if err != nil {
