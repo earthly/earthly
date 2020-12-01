@@ -108,6 +108,7 @@ type cliFlags struct {
 	earthfileFinalImage    string
 	expiry                 time.Time
 	termsConditionsPrivacy bool
+	authToken              string
 }
 
 var (
@@ -309,6 +310,12 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 			EnvVars:     []string{"EARTHLY_SSH_AUTH_SOCK"},
 			Usage:       "The SSH auth socket to use for ssh-agent forwarding",
 			Destination: &app.sshAuthSock,
+		},
+		&cli.StringFlag{
+			Name:        "auth-token",
+			EnvVars:     []string{"EARTHLY_TOKEN"},
+			Usage:       "Force Earthly account login to authetnicate with supplied token",
+			Destination: &app.authToken,
 		},
 		&cli.StringFlag{
 			Name:        "git-username",
@@ -1045,7 +1052,7 @@ func (app *earthApp) actionOrgCreate(c *cli.Context) error {
 		return errors.New("invalid number of arguments provided")
 	}
 	org := c.Args().Get(0)
-	sc, err := secretsclient.NewClient(app.apiServer, app.sshAuthSock, app.console.Warnf)
+	sc, err := secretsclient.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
 	if err != nil {
 		return errors.Wrap(err, "failed to create secretsclient")
 	}
@@ -1058,7 +1065,7 @@ func (app *earthApp) actionOrgCreate(c *cli.Context) error {
 
 func (app *earthApp) actionOrgList(c *cli.Context) error {
 	app.commandName = "orgList"
-	sc, err := secretsclient.NewClient(app.apiServer, app.sshAuthSock, app.console.Warnf)
+	sc, err := secretsclient.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
 	if err != nil {
 		return errors.Wrap(err, "failed to create secretsclient")
 	}
@@ -1091,7 +1098,7 @@ func (app *earthApp) actionOrgListPermissions(c *cli.Context) error {
 	if !strings.HasSuffix(path, "/") {
 		path += "/"
 	}
-	sc, err := secretsclient.NewClient(app.apiServer, app.sshAuthSock, app.console.Warnf)
+	sc, err := secretsclient.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
 	if err != nil {
 		return errors.Wrap(err, "failed to create secretsclient")
 	}
@@ -1124,7 +1131,7 @@ func (app *earthApp) actionOrgInvite(c *cli.Context) error {
 		return errors.New("invitation paths must end with a slash (/)")
 	}
 
-	sc, err := secretsclient.NewClient(app.apiServer, app.sshAuthSock, app.console.Warnf)
+	sc, err := secretsclient.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
 	if err != nil {
 		return errors.Wrap(err, "failed to create secretsclient")
 	}
@@ -1146,7 +1153,7 @@ func (app *earthApp) actionOrgRevoke(c *cli.Context) error {
 		return errors.New("revoked paths must end with a slash (/)")
 	}
 
-	sc, err := secretsclient.NewClient(app.apiServer, app.sshAuthSock, app.console.Warnf)
+	sc, err := secretsclient.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
 	if err != nil {
 		return errors.Wrap(err, "failed to create secretsclient")
 	}
@@ -1170,7 +1177,7 @@ func (app *earthApp) actionSecretsList(c *cli.Context) error {
 	if !strings.HasSuffix(path, "/") {
 		path += "/"
 	}
-	sc, err := secretsclient.NewClient(app.apiServer, app.sshAuthSock, app.console.Warnf)
+	sc, err := secretsclient.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
 	if err != nil {
 		return errors.Wrap(err, "failed to create secretsclient")
 	}
@@ -1190,7 +1197,7 @@ func (app *earthApp) actionSecretsGet(c *cli.Context) error {
 		return errors.New("invalid number of arguments provided")
 	}
 	path := c.Args().Get(0)
-	sc, err := secretsclient.NewClient(app.apiServer, app.sshAuthSock, app.console.Warnf)
+	sc, err := secretsclient.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
 	if err != nil {
 		return errors.Wrap(err, "failed to create secretsclient")
 	}
@@ -1211,7 +1218,7 @@ func (app *earthApp) actionSecretsRemove(c *cli.Context) error {
 		return errors.New("invalid number of arguments provided")
 	}
 	path := c.Args().Get(0)
-	sc, err := secretsclient.NewClient(app.apiServer, app.sshAuthSock, app.console.Warnf)
+	sc, err := secretsclient.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
 	if err != nil {
 		return errors.Wrap(err, "failed to create secretsclient")
 	}
@@ -1244,7 +1251,7 @@ func (app *earthApp) actionSecretsSet(c *cli.Context) error {
 		value = string(data)
 	}
 
-	sc, err := secretsclient.NewClient(app.apiServer, app.sshAuthSock, app.console.Warnf)
+	sc, err := secretsclient.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
 	if err != nil {
 		return errors.Wrap(err, "failed to create secretsclient")
 	}
@@ -1265,7 +1272,7 @@ func (app *earthApp) actionRegister(c *cli.Context) error {
 		return errors.New("email is invalid")
 	}
 
-	sc, err := secretsclient.NewClient(app.apiServer, app.sshAuthSock, app.console.Warnf)
+	sc, err := secretsclient.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
 	if err != nil {
 		return errors.Wrap(err, "failed to create secretsclient")
 	}
@@ -1371,7 +1378,7 @@ func (app *earthApp) actionRegister(c *cli.Context) error {
 
 func (app *earthApp) actionAccountListKeys(c *cli.Context) error {
 	app.commandName = "accountListKeys"
-	sc, err := secretsclient.NewClient(app.apiServer, app.sshAuthSock, app.console.Warnf)
+	sc, err := secretsclient.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
 	if err != nil {
 		return errors.Wrap(err, "failed to create secretsclient")
 	}
@@ -1387,7 +1394,7 @@ func (app *earthApp) actionAccountListKeys(c *cli.Context) error {
 
 func (app *earthApp) actionAccountAddKey(c *cli.Context) error {
 	app.commandName = "accountAddKey"
-	sc, err := secretsclient.NewClient(app.apiServer, app.sshAuthSock, app.console.Warnf)
+	sc, err := secretsclient.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
 	if err != nil {
 		return errors.Wrap(err, "failed to create secretsclient")
 	}
@@ -1440,7 +1447,7 @@ func (app *earthApp) actionAccountAddKey(c *cli.Context) error {
 
 func (app *earthApp) actionAccountRemoveKey(c *cli.Context) error {
 	app.commandName = "accountRemoveKey"
-	sc, err := secretsclient.NewClient(app.apiServer, app.sshAuthSock, app.console.Warnf)
+	sc, err := secretsclient.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
 	if err != nil {
 		return errors.Wrap(err, "failed to create secretsclient")
 	}
@@ -1454,7 +1461,7 @@ func (app *earthApp) actionAccountRemoveKey(c *cli.Context) error {
 }
 func (app *earthApp) actionAccountListTokens(c *cli.Context) error {
 	app.commandName = "accountListTokens"
-	sc, err := secretsclient.NewClient(app.apiServer, app.sshAuthSock, app.console.Warnf)
+	sc, err := secretsclient.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
 	if err != nil {
 		return errors.Wrap(err, "failed to create secretsclient")
 	}
@@ -1484,7 +1491,7 @@ func (app *earthApp) actionAccountCreateToken(c *cli.Context) error {
 		return errors.New("invalid number of arguments provided")
 	}
 	expiry := c.Timestamp("expiry")
-	sc, err := secretsclient.NewClient(app.apiServer, app.sshAuthSock, app.console.Warnf)
+	sc, err := secretsclient.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
 	if err != nil {
 		return errors.Wrap(err, "failed to create secretsclient")
 	}
@@ -1502,7 +1509,7 @@ func (app *earthApp) actionAccountRemoveToken(c *cli.Context) error {
 		return errors.New("invalid number of arguments provided")
 	}
 	name := c.Args().First()
-	sc, err := secretsclient.NewClient(app.apiServer, app.sshAuthSock, app.console.Warnf)
+	sc, err := secretsclient.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
 	if err != nil {
 		return errors.Wrap(err, "failed to create secretsclient")
 	}
@@ -1538,9 +1545,22 @@ func (app *earthApp) actionAccountLogin(c *cli.Context) error {
 	if token != "" && (email != "" || pass != "") {
 		return errors.New("--token can not be used in conjuction with --email or --password")
 	}
-	sc, err := secretsclient.NewClient(app.apiServer, app.sshAuthSock, app.console.Warnf)
+	sc, err := secretsclient.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
 	if err != nil {
 		return errors.Wrap(err, "failed to create secretsclient")
+	}
+
+	// special case where global auth token overrides login logic
+	if app.authToken != "" {
+		if email != "" || token != "" || pass != "" {
+			return errors.New("account login flags have no effect when --auth-token (or the EARTHLY_TOKEN environment variable) is set")
+		}
+		loggedInEmail, authType, err := sc.WhoAmI()
+		if err != nil {
+			return errors.Wrap(err, "failed to validate auth token")
+		}
+		fmt.Printf("Logged in as %q using %s auth\n", loggedInEmail, authType)
+		return nil
 	}
 
 	if token != "" || pass != "" {
@@ -1619,7 +1639,7 @@ func (app *earthApp) actionAccountLogin(c *cli.Context) error {
 
 func (app *earthApp) actionAccountLogout(c *cli.Context) error {
 	app.commandName = "accountLogout"
-	sc, err := secretsclient.NewClient(app.apiServer, app.sshAuthSock, app.console.Warnf)
+	sc, err := secretsclient.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
 	if err != nil {
 		return err
 	}
@@ -1812,7 +1832,7 @@ func (app *earthApp) actionBuild(c *cli.Context) error {
 	}
 	secretsMap[debuggercommon.DebuggerSettingsSecretsKey] = debuggerSettingsData
 
-	sc, err := secretsclient.NewClient(app.apiServer, app.sshAuthSock, app.console.Warnf)
+	sc, err := secretsclient.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
 	if err != nil {
 		return errors.Wrap(err, "failed to create secretsclient")
 	}
