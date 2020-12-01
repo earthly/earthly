@@ -537,13 +537,13 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 		},
 		{
 			Name:   "account",
-			Usage:  "Create or manage an earthly account",
+			Usage:  "Create or manage an Earthly account",
 			Hidden: true,
 			Subcommands: []*cli.Command{
 				{
 					Name:        "register",
-					Usage:       "Register for an earthly account",
-					Description: "Register for an earthly account",
+					Usage:       "Register for an Earthly account",
+					Description: "Register for an Earthly account",
 					UsageText: "first, request a token with:\n" +
 						"     earth [options] account register --email <email>\n" +
 						"\n" +
@@ -632,8 +632,8 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 				},
 				{
 					Name:        "login",
-					Usage:       "Login to an earthly account",
-					Description: "Login to an earthly account",
+					Usage:       "Login to an Earthly account",
+					Description: "Login to an Earthly account",
 					UsageText: "earth [options] account login\n" +
 						"   earth [options] account login --email <email>\n" +
 						"   earth [options] account login --email <email> --password <password>\n" +
@@ -660,8 +660,8 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 				},
 				{
 					Name:        "logout",
-					Usage:       "Logout of an earthly account",
-					Description: "Logout of an earthly account; this has no effect for ssh-based authentication",
+					Usage:       "Logout of an Earthly account",
+					Description: "Logout of an Earthly account; this has no effect for ssh-based authentication",
 					Action:      app.actionAccountLogout,
 				},
 			},
