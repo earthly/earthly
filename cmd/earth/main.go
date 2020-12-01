@@ -1462,6 +1462,9 @@ func (app *earthApp) actionAccountListTokens(c *cli.Context) error {
 	if err != nil {
 		return errors.Wrap(err, "failed to list account tokens")
 	}
+	if len(tokens) == 0 {
+		return nil // avoid printing header columns when there are no tokens
+	}
 
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
 	fmt.Fprintf(w, "Token Name\tRead/Write\tExpiry\n")
