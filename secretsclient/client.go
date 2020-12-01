@@ -219,7 +219,7 @@ type client struct {
 }
 
 // NewClient provides a new client
-func NewClient(secretServer, agentSockPath string, warnFunc func(string, ...interface{})) (Client, error) {
+func NewClient(secretServer, agentSockPath, authTokenOverride string, warnFunc func(string, ...interface{})) (Client, error) {
 	c := &client{
 		secretServer: secretServer,
 		sshAgent: &lazySSHAgent{
@@ -227,9 +227,13 @@ func NewClient(secretServer, agentSockPath string, warnFunc func(string, ...inte
 		},
 		warnFunc: warnFunc,
 	}
-	err := c.loadAuthToken()
-	if err != nil {
-		return nil, err
+	if authTokenOverride != "" {
+		c.authToken = authTokenOverride
+	} else {
+		err := c.loadAuthToken()
+		if err != nil {
+			return nil, err
+		}
 	}
 	return c, nil
 }
