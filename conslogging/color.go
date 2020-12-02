@@ -4,7 +4,7 @@ import "github.com/fatih/color"
 
 var noColor = makeNoColor()
 var cachedColor = makeColor(color.FgHiGreen)
-var metadataModeColor = makeColor(color.FgHiBlack)
+var metadataModeColor = makeColor(color.FgHiWhite, color.BgHiBlack)
 var successColor = makeColor(color.FgHiGreen)
 var warnColor = makeColor(color.FgHiRed)
 
@@ -21,9 +21,11 @@ var availablePrefixColors = []*color.Color{
 	makeColor(color.FgHiWhite),
 }
 
-func makeColor(att color.Attribute) *color.Color {
+func makeColor(attrs ...color.Attribute) *color.Color {
 	c := color.New()
-	c.Add(att)
+	for _, attr := range attrs {
+		c.Add(attr)
+	}
 	return c
 }
 
