@@ -51,7 +51,8 @@ type ConsoleLogger struct {
 	mu             *sync.Mutex
 	saltColors     map[string]*color.Color
 	nextColorIndex *int
-	w              io.Writer
+	outW           io.Writer
+	errW           io.Writer
 	trailingLine   bool
 	prefixPadding  int
 }
@@ -59,7 +60,8 @@ type ConsoleLogger struct {
 // Current returns the current console.
 func Current(colorMode ColorMode, prefixPadding int) ConsoleLogger {
 	return ConsoleLogger{
-		w:              os.Stdout,
+		outW:           os.Stdout,
+		errW:           os.Stderr,
 		colorMode:      colorMode,
 		saltColors:     make(map[string]*color.Color),
 		nextColorIndex: new(int),
@@ -70,7 +72,8 @@ func Current(colorMode ColorMode, prefixPadding int) ConsoleLogger {
 
 func (cl ConsoleLogger) clone() ConsoleLogger {
 	return ConsoleLogger{
-		w:              cl.w,
+		outW:           cl.outW,
+		errW:           cl.errW,
 		prefix:         cl.prefix,
 		metadataMode:   cl.metadataMode,
 		salt:           cl.salt,
@@ -130,17 +133,17 @@ func (cl ConsoleLogger) WithFailed(isFailed bool) ConsoleLogger {
 func (cl ConsoleLogger) PrintSuccess() {
 	cl.mu.Lock()
 	defer cl.mu.Unlock()
-	cl.color(successColor).Fprintf(cl.w, "=========================== SUCCESS ===========================\n")
+	cl.color(successColor).Fprintf(cl.outW, "=========================== SUCCESS ===========================\n")
 }
 
 // PrintFailure prints the failure message.
 func (cl ConsoleLogger) PrintFailure() {
 	cl.mu.Lock()
 	defer cl.mu.Unlock()
-	cl.color(warnColor).Fprintf(cl.w, "=========================== FAILURE ===========================\n")
+	cl.color(warnColor).Fprintf(cl.outW, "=========================== FAILURE ===========================\n")
 }
 
-// Warnf prints a warning message in red
+// Warnf prints a warning message in red to errWriter
 func (cl ConsoleLogger) Warnf(format string, args ...interface{}) {
 	cl.mu.Lock()
 	defer cl.mu.Unlock()
@@ -150,8 +153,8 @@ func (cl ConsoleLogger) Warnf(format string, args ...interface{}) {
 	text = strings.TrimSuffix(text, "\n")
 
 	for _, line := range strings.Split(text, "\n") {
-		cl.printPrefix()
-		c.Fprintf(cl.w, "%s\n", line)
+		cl.printPrefix(true)
+		c.Fprintf(cl.errW, "%s\n", line)
 	}
 }
 
@@ -166,8 +169,8 @@ func (cl ConsoleLogger) Printf(format string, args ...interface{}) {
 	text := fmt.Sprintf(format, args...)
 	text = strings.TrimSuffix(text, "\n")
 	for _, line := range strings.Split(text, "\n") {
-		cl.printPrefix()
-		c.Fprintf(cl.w, "%s\n", line)
+		cl.printPrefix(false)
+		c.Fprintf(cl.outW, "%s\n", line)
 	}
 }
 
@@ -195,22 +198,29 @@ func (cl ConsoleLogger) PrintBytes(data []byte) {
 		default:
 			if !cl.trailingLine {
 				if len(output) > 0 {
-					c.Fprintf(cl.w, "%s", string(output))
+					c.Fprintf(cl.outW, "%s", string(output))
 					output = output[:0]
 				}
-				cl.printPrefix()
+				cl.printPrefix(false)
 				cl.trailingLine = true
 			}
 			output = append(output, ch...)
 		}
 	}
 	if len(output) > 0 {
-		c.Fprintf(cl.w, "%s", string(output))
+		c.Fprintf(cl.outW, "%s", string(output))
 		output = output[:0]
 	}
 }
 
-func (cl ConsoleLogger) printPrefix() {
+func (cl ConsoleLogger) printPrefix(useErrWriter bool) {
+	var w io.Writer
+	if useErrWriter {
+		w = cl.errW
+	} else {
+		w = cl.outW
+	}
+
 	// Assumes mu locked.
 	if cl.prefix == "" {
 		return
@@ -222,17 +232,17 @@ func (cl ConsoleLogger) printPrefix() {
 		*cl.nextColorIndex = (*cl.nextColorIndex + 1) % len(availablePrefixColors)
 	}
 	c = cl.color(c)
-	c.Fprintf(cl.w, cl.prettyPrefix())
+	c.Fprintf(w, cl.prettyPrefix())
 	if cl.isFailed {
-		cl.w.Write([]byte(" *"))
-		cl.color(warnColor).Fprintf(cl.w, "failed")
-		cl.w.Write([]byte("*"))
+		w.Write([]byte(" *"))
+		cl.color(warnColor).Fprintf(w, "failed")
+		w.Write([]byte("*"))
 	}
-	cl.w.Write([]byte(" | "))
+	w.Write([]byte(" | "))
 	if cl.isCached {
-		cl.w.Write([]byte("*"))
-		cl.color(cachedColor).Fprintf(cl.w, "cached")
-		cl.w.Write([]byte("* "))
+		w.Write([]byte("*"))
+		cl.color(cachedColor).Fprintf(w, "cached")
+		w.Write([]byte("* "))
 	}
 }
 
