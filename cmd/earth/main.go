@@ -1332,6 +1332,7 @@ func (app *earthApp) actionRegister(c *cli.Context) error {
 	if app.registrationPublicKey == "" {
 		if len(publicKeys) > 0 {
 			fmt.Printf("Which of the following keys do you want to register?\n")
+			fmt.Printf("0) none\n")
 			for i, key := range publicKeys {
 				fmt.Printf("%d) %s\n", i+1, key.String())
 			}
@@ -1343,10 +1344,12 @@ func (app *earthApp) actionRegister(c *cli.Context) error {
 			if err != nil {
 				return errors.Wrap(err, "invalid key number")
 			}
-			if i <= 0 || i > len(publicKeys) {
+			if i < 0 || i > len(publicKeys) {
 				return fmt.Errorf("invalid key number")
 			}
-			publicKey = publicKeys[i-1].String()
+			if i > 0 {
+				publicKey = publicKeys[i-1].String()
+			}
 		}
 	} else {
 		_, _, _, _, err := ssh.ParseAuthorizedKey([]byte(app.registrationPublicKey))
