@@ -274,7 +274,7 @@ func (c *client) GetPublicKeys() ([]*agent.Key, error) {
 }
 
 func (c *client) RegisterEmail(email string) error {
-	status, body, err := c.doCall("PUT", fmt.Sprintf("/api/v0/account/create/%s", email))
+	status, body, err := c.doCall("PUT", fmt.Sprintf("/api/v0/account/create/%s", url.QueryEscape(email)))
 	if err != nil {
 		return err
 	}
@@ -479,7 +479,7 @@ func (c *client) getAuthToken() (string, error) {
 }
 
 func (c *client) CreateOrg(org string) error {
-	status, body, err := c.doCall("PUT", fmt.Sprintf("/api/v0/admin/organizations/%s", org), withAuth())
+	status, body, err := c.doCall("PUT", fmt.Sprintf("/api/v0/admin/organizations/%s", url.QueryEscape(org)), withAuth())
 	if err != nil {
 		return err
 	}
@@ -592,7 +592,7 @@ func (c *client) Invite(path, user string, write bool) error {
 		Write: write,
 	}
 
-	status, body, err := c.doCall("PUT", fmt.Sprintf("/api/v0/admin/organizations/%s/permissions", orgName), withAuth(), withJSONBody(&permission))
+	status, body, err := c.doCall("PUT", fmt.Sprintf("/api/v0/admin/organizations/%s/permissions", url.QueryEscape(orgName)), withAuth(), withJSONBody(&permission))
 	if err != nil {
 		return err
 	}
@@ -617,7 +617,7 @@ func (c *client) RevokePermission(path, user string) error {
 		Email: user,
 	}
 
-	status, body, err := c.doCall("DELETE", fmt.Sprintf("/api/v0/admin/organizations/%s/permissions", orgName), withAuth(), withJSONBody(&permission))
+	status, body, err := c.doCall("DELETE", fmt.Sprintf("/api/v0/admin/organizations/%s/permissions", url.QueryEscape(orgName)), withAuth(), withJSONBody(&permission))
 	if err != nil {
 		return err
 	}
@@ -637,7 +637,7 @@ func (c *client) ListOrgPermissions(path string) ([]*OrgPermissions, error) {
 		return nil, fmt.Errorf("invalid path")
 	}
 
-	status, body, err := c.doCall("GET", fmt.Sprintf("/api/v0/admin/organizations/%s/permissions", orgName), withAuth())
+	status, body, err := c.doCall("GET", fmt.Sprintf("/api/v0/admin/organizations/%s/permissions", url.QueryEscape(orgName)), withAuth())
 	if err != nil {
 		return nil, err
 	}
