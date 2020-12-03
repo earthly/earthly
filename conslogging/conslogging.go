@@ -170,7 +170,9 @@ func (cl ConsoleLogger) Printf(format string, args ...interface{}) {
 	text = strings.TrimSuffix(text, "\n")
 	for _, line := range strings.Split(text, "\n") {
 		cl.printPrefix(false)
-		c.Fprintf(cl.outW, "%s\n", line)
+		c.Fprintf(cl.outW, "%s", line)
+		// Don't use a background color for \n.
+		cl.color(noColor).Fprintf(cl.outW, "\n")
 	}
 }
 
