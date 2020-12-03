@@ -607,21 +607,25 @@ func (c *Converter) internalRun(ctx context.Context, args []string, secretKeyVal
 		if len(parts) != 2 {
 			return fmt.Errorf("Invalid secret definition %s", secretKeyValue)
 		}
-		if !strings.HasPrefix(parts[1], "+secrets/") {
-			return fmt.Errorf("Secret definition %s not supported. Must start with +secrets/", secretKeyValue)
+		if strings.HasPrefix(parts[1], "+secrets/") {
+			envVar := parts[0]
+			secretID := strings.TrimPrefix(parts[1], "+secrets/")
+			secretPath := path.Join("/run/secrets", secretID)
+			secretOpts := []llb.SecretOption{
+				llb.SecretID(secretID),
+				// TODO: Perhaps this should just default to the current user automatically from
+				//       buildkit side. Then we wouldn't need to open this up to everyone.
+				llb.SecretFileOpt(0, 0, 0444),
+			}
+			finalOpts = append(finalOpts, llb.AddSecret(secretPath, secretOpts...))
+			// TODO: The use of cat here might not be portable.
+			extraEnvVars = append(extraEnvVars, fmt.Sprintf("%s=\"$(cat %s)\"", envVar, secretPath))
+		} else {
+			// Secret does not start with +secrets/. Use as literal.
+			// TODO: This should be an actual secret (with the right literal value set accordingly),
+			//       so that the cache works correctly.
+			extraEnvVars = append(extraEnvVars, fmt.Sprintf("%s=\"%s\"", parts[0], parts[1]))
 		}
-		envVar := parts[0]
-		secretID := strings.TrimPrefix(parts[1], "+secrets/")
-		secretPath := path.Join("/run/secrets", secretID)
-		secretOpts := []llb.SecretOption{
-			llb.SecretID(secretID),
-			// TODO: Perhaps this should just default to the current user automatically from
-			//       buildkit side. Then we wouldn't need to open this up to everyone.
-			llb.SecretFileOpt(0, 0, 0444),
-		}
-		finalOpts = append(finalOpts, llb.AddSecret(secretPath, secretOpts...))
-		// TODO: The use of cat here might not be portable.
-		extraEnvVars = append(extraEnvVars, fmt.Sprintf("%s=\"$(cat %s)\"", envVar, secretPath))
 	}
 	// Build args.
 	for _, buildArgName := range c.varCollection.SortedActiveVariables() {

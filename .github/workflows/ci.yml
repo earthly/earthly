@@ -13,6 +13,8 @@ jobs:
     env:
       GIT_URL_INSTEAD_OF: "https://github.com/=git@github.com:"
       FORCE_COLOR: 1
+      EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
+      EARTHLY_BUILD_ARGS: "DOCKERHUB_USER_SECRET=+secrets/user/dockerhub_user,DOCKERHUB_TOKEN_SECRET=+secrets/user/dockerhub_token"
     steps:
       - uses: actions/checkout@v2
       - name: Download released earth
@@ -35,6 +37,8 @@ jobs:
     env:
       GIT_URL_INSTEAD_OF: "https://github.com/=git@github.com:"
       FORCE_COLOR: 1
+      EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
+      EARTHLY_BUILD_ARGS: "DOCKERHUB_USER_SECRET=+secrets/user/dockerhub_user,DOCKERHUB_TOKEN_SECRET=+secrets/user/dockerhub_token"
     steps:
       - uses: actions/checkout@v2
       - name: Download released earth
@@ -57,6 +61,8 @@ jobs:
     env:
       GIT_URL_INSTEAD_OF: "https://github.com/=git@github.com:"
       FORCE_COLOR: 1
+      EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
+      EARTHLY_BUILD_ARGS: "DOCKERHUB_USER_SECRET=+secrets/user/dockerhub_user,DOCKERHUB_TOKEN_SECRET=+secrets/user/dockerhub_token"
     steps:
       - uses: actions/checkout@v2
       - name: Download released earth
@@ -73,6 +79,8 @@ jobs:
     env:
       GIT_URL_INSTEAD_OF: "https://github.com/=git@github.com:"
       FORCE_COLOR: 1
+      EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
+      EARTHLY_BUILD_ARGS: "DOCKERHUB_USER_SECRET=+secrets/user/dockerhub_user,DOCKERHUB_TOKEN_SECRET=+secrets/user/dockerhub_token"
     steps:
       - uses: actions/checkout@v2
       - name: "Put back the git branch into git (Earthly uses it for tagging)"

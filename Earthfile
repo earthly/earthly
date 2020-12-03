@@ -228,12 +228,22 @@ test:
     BUILD +lint
     BUILD +lint-scripts
     BUILD +unit-test
-    BUILD ./examples/tests+ga
+    ARG DOCKERHUB_USER_SECRET
+    ARG DOCKERHUB_TOKEN_SECRET
+    BUILD \
+        --build-arg DOCKERHUB_USER_SECRET \
+        --build-arg DOCKERHUB_TOKEN_SECRET \
+        ./examples/tests+ga
 
 test-all:
     BUILD +examples
     BUILD +test
-    BUILD ./examples/tests+experimental
+    ARG DOCKERHUB_USER_SECRET
+    ARG DOCKERHUB_TOKEN_SECRET
+    BUILD \
+        --build-arg DOCKERHUB_USER_SECRET \
+        --build-arg DOCKERHUB_TOKEN_SECRET \
+        ./examples/tests+experimental
 
 examples:
     BUILD ./examples/cpp+docker
