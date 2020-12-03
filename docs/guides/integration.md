@@ -135,7 +135,7 @@ We start from an appropriate docker image and set up a working directory.
 ``` Dockerfile
 FROM earthly/dind:alpine
 WORKDIR /scala-example
-RUN apk add openjdk11 bash wget
+RUN apk add openjdk11 bash wget postgresql-client
 ```
 
 [Full file](https://github.com/earthly/earthly-example-scala/blob/main/integration/Earthfile)
@@ -227,17 +227,11 @@ integration-test:
     COPY src src
     COPY docker-compose.yml ./ 
     WITH DOCKER --compose docker-compose.yml
-       RUN sbt it:test
+        RUN while ! pg_isready --host=localhost --port=5432 --dbname=iso3166 --username=postgres; do sleep 1; done ;\
+            sbt it:test
     END
 ```
 The `WITH DOCKER` has a `--compose` flag that we use to start up our docker-compose and run our integration tests in that context.
-
-<!-- {% hint style='info' %}
-
- Coordinating service start-ups can be complicated and is out of the scope of this document.  If you need to coordinate service start-ups, scripts like [wait for it](https://github.com/vishnubob/wait-for-it) may help. 
-
-{% endhint %} -->
-
 
 We can now run our it tests both locally and in the CI pipeline, in a reproducible way:
 
@@ -285,7 +279,8 @@ smoke-test:
     COPY docker-compose.yml ./ 
     COPY src/smoketest ./ 
     WITH DOCKER --compose docker-compose.yml --load scala-example:latest=+docker
-        RUN ./smoketest.sh
+        RUN while ! pg_isready --host=localhost --port=5432 --dbname=iso3166 --username=postgres; do sleep 1; done ;\
+            ./smoketest.sh
     END
 ```
 {% endmethod %}
