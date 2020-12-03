@@ -39,7 +39,7 @@
     --secret GITHUB_TOKEN \
     --push ./release+release-homebrew
   ```
-* Merge branch `next` into `main`.
+* Merge branch `main` into `next`, then merge branch `next` into `main`.
 * Update the version for the installation command in the following places:
   * [ci-integration.md](../docs/guides/ci-integration.md)
   * [circle-integration.md](../docs/examples/circle-integration.md)
