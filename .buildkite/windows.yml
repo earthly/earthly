@@ -2,7 +2,7 @@
 steps:
   - label: Test
     commands:
-      - bash ./.buildkite/tests.sh
+      - ./.buildkite/tests.sh
     env:
       GIT_URL_INSTEAD_OF: "https://github.com/=git@github.com:"
       FORCE_COLOR: 1
