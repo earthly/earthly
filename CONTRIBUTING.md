@@ -56,3 +56,23 @@ To also build the examples, you can run
 ### Auth
 
 If you have issues with git-related features or with private docker registries, make sure you have configured auth correctly. See the [auth page](https://docs.earthly.dev/guides/auth) for more details.
+
+## CLA
+
+### Individual
+
+All contributions must indicate agreement to the [Earthly Contributor License Agreement](https://earthly.dev/cla) by signing off all commits. The sign-off is a simple line at the end of the explanation for the patch.
+
+```
+Signed-off-by: John Doe <john.doe@email.com>
+```
+
+Using your real name is a requirement. If you set your `user.name` and `user.email` git configs, you can sign your commit automatically with
+
+```
+git commit -s
+```
+
+### Entity
+
+If you are an entity, please use the [Earthly Contributor License Agreement form](https://earthly.dev/cla-form) in addition to requiring individual contributors to sign off all contributions.
