@@ -620,11 +620,12 @@ func (c *Converter) internalRun(ctx context.Context, args []string, secretKeyVal
 			finalOpts = append(finalOpts, llb.AddSecret(secretPath, secretOpts...))
 			// TODO: The use of cat here might not be portable.
 			extraEnvVars = append(extraEnvVars, fmt.Sprintf("%s=\"$(cat %s)\"", envVar, secretPath))
-		} else {
-			// Secret does not start with +secrets/. Use as literal.
-			// TODO: This should be an actual secret (with the right literal value set accordingly),
+		} else if parts[1] == "" {
+			// If empty string, don't use (used for optional secrets).
+			// TODO: This should be an actual secret (with an empty value),
 			//       so that the cache works correctly.
-			extraEnvVars = append(extraEnvVars, fmt.Sprintf("%s=\"%s\"", parts[0], parts[1]))
+		} else {
+			return fmt.Errorf("Secret definition %s not supported. Must start with +secrets/ or be an empty string", secretKeyValue)
 		}
 	}
 	// Build args.
