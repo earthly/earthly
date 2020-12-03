@@ -1318,7 +1318,7 @@ func (app *earthApp) actionRegister(c *cli.Context) error {
 	var interactiveAccept bool
 	if !app.termsConditionsPrivacy {
 		// TODO: add link when we have one
-		rawAccept := promptInput("Do you accept Earthly's Terms & Conditions (https://earthly.dev/tos) and Privacy Policy (https://earthly.dev/privacy-policy) [y/N]")
+		rawAccept := promptInput("I acknowledge Earthly Technologies’ Privacy Policy (https://earthly.dev/privacy-policy) and agree to Earthly Technologies Terms of Service (https://earthly.dev/tos)")
 		if rawAccept == "" {
 			rawAccept = "n"
 		}
