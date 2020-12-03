@@ -1442,6 +1442,20 @@ func (app *earthApp) actionAccountAddKey(c *cli.Context) error {
 		return errors.Wrap(err, "failed to add public key to account")
 	}
 
+	//switch over to new key if the user is currently using password-based auth
+	email, authType, err := sc.WhoAmI()
+	if err != nil {
+		return errors.Wrap(err, "failed to validate auth token")
+	}
+	if authType == "password" {
+		err = sc.SetLoginSSH(email, publicKey)
+		if err != nil {
+			app.console.Warnf("failed to authenticate using newly added public key: %s", err.Error())
+			return nil
+		}
+		fmt.Printf("Switching from password-based login to ssh-based login\n")
+	}
+
 	return nil
 }
 
