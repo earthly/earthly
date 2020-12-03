@@ -6,7 +6,7 @@ services:
     container_name: local-postgres
     image: aa8y/postgres-dataset:iso3166
     ports:
-      - 5432:5432
+      - 127.0.0.1:5432:5432
     hostname: postgres
     environment:
       - POSTGRES_USER=postgres
@@ -19,7 +19,7 @@ services:
     depends_on:
       - postgres
     ports:
-      - 8080:8080
+      - 127.0.0.1:8080:8080
     hostname: postgres-ui
     environment:
       - ADMINER_DEFAULT_SERVER=postgres
