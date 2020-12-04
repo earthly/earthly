@@ -213,7 +213,7 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 		buildContext = data.BuildContext
 	}
 	newVarCollection, _, err := c.varCollection.WithParseBuildArgs(
-		buildArgs, c.processNonConstantBuildArgFunc(ctx))
+		buildArgs, c.processNonConstantBuildArgFunc(ctx), false)
 	if err != nil {
 		return err
 	}
@@ -399,15 +399,11 @@ func (c *Converter) Build(ctx context.Context, fullTargetName string, buildArgs 
 	if err != nil {
 		return nil, errors.Wrap(err, "join targets")
 	}
-	newVarCollection := c.varCollection
 	// Don't allow transitive overriding variables to cross project boundaries.
 	propagateBuildArgs := !relTarget.IsExternal()
-	if !propagateBuildArgs {
-		newVarCollection = variables.NewCollection()
-	}
 	var newVars map[string]bool
-	newVarCollection, newVars, err = newVarCollection.WithParseBuildArgs(
-		buildArgs, c.processNonConstantBuildArgFunc(ctx))
+	newVarCollection, newVars, err := c.varCollection.WithParseBuildArgs(
+		buildArgs, c.processNonConstantBuildArgFunc(ctx), propagateBuildArgs)
 	if err != nil {
 		return nil, errors.Wrap(err, "parse build args")
 	}

@@ -296,6 +296,9 @@ func (l *listener) ExitRunStmt(c *parser.RunStmtContext) {
 	}
 	// TODO: In the bracket case, should flags be outside of the brackets?
 
+	for i, s := range secrets.Args {
+		secrets.Args[i] = l.expandArgs(s, true)
+	}
 	for i, m := range mounts.Args {
 		mounts.Args[i] = l.expandArgs(m, false)
 	}
