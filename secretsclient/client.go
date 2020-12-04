@@ -216,6 +216,7 @@ type client struct {
 	password              string
 	authToken             string
 	disableSSHKeyGuessing bool
+	jm                    *jsonpb.Unmarshaler
 }
 
 // NewClient provides a new client
@@ -226,6 +227,9 @@ func NewClient(secretServer, agentSockPath, authTokenOverride string, warnFunc f
 			sockPath: agentSockPath,
 		},
 		warnFunc: warnFunc,
+		jm: &jsonpb.Unmarshaler{
+			AllowUnknownFields: true,
+		},
 	}
 	if authTokenOverride != "" {
 		c.authToken = authTokenOverride
@@ -379,7 +383,7 @@ func (c *client) getChallenge() (string, error) {
 	}
 
 	var challengeResponse api.AuthChallengeResponse
-	err = jsonpb.Unmarshal(bytes.NewReader([]byte(body)), &challengeResponse)
+	err = c.jm.Unmarshal(bytes.NewReader([]byte(body)), &challengeResponse)
 	if err != nil {
 		return "", errors.Wrap(err, "failed to unmarshal challenge response")
 	}
@@ -422,7 +426,7 @@ func (c *client) tryAuth(challenge string, key *agent.Key) (string, string, erro
 	}
 
 	var pingResponse api.PingResponse
-	err = jsonpb.Unmarshal(resp.Body, &pingResponse)
+	err = c.jm.Unmarshal(resp.Body, &pingResponse)
 	if err != nil {
 		return "", "", errors.Wrap(err, "failed to unmarshal challenge response")
 	}
@@ -650,7 +654,7 @@ func (c *client) ListOrgPermissions(path string) ([]*OrgPermissions, error) {
 	}
 
 	var listOrgPermissionsResponse api.ListOrgPermissionsResponse
-	err = jsonpb.Unmarshal(bytes.NewReader([]byte(body)), &listOrgPermissionsResponse)
+	err = c.jm.Unmarshal(bytes.NewReader([]byte(body)), &listOrgPermissionsResponse)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to unmarshal list org permissions response")
 	}
@@ -683,7 +687,7 @@ func (c *client) ListOrgs() ([]*OrgDetail, error) {
 	}
 
 	var listOrgsResponse api.ListOrgsResponse
-	err = jsonpb.Unmarshal(bytes.NewReader([]byte(body)), &listOrgsResponse)
+	err = c.jm.Unmarshal(bytes.NewReader([]byte(body)), &listOrgsResponse)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to unmarshal list orgs response")
 	}
@@ -793,7 +797,7 @@ func (c *client) ListTokens() ([]*TokenDetail, error) {
 	}
 
 	var listTokensResponse api.ListAuthTokensResponse
-	err = jsonpb.Unmarshal(bytes.NewReader([]byte(body)), &listTokensResponse)
+	err = c.jm.Unmarshal(bytes.NewReader([]byte(body)), &listTokensResponse)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to unmarshal listTokens response")
 	}
@@ -843,7 +847,7 @@ func (c *client) WhoAmI() (string, string, error) {
 	}
 
 	var pingResponse api.PingResponse
-	err = jsonpb.Unmarshal(bytes.NewReader([]byte(body)), &pingResponse)
+	err = c.jm.Unmarshal(bytes.NewReader([]byte(body)), &pingResponse)
 	if err != nil {
 		return "", "", errors.Wrap(err, "failed to unmarshal ping response")
 	}
