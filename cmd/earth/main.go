@@ -1626,6 +1626,10 @@ func (app *earthApp) actionAccountLogin(c *cli.Context) error {
 	}
 
 	if email == "" && token == "" {
+		if app.sshAuthSock == "" {
+			app.console.Warnf("No ssh auth socket detected; falling back to password-based login\n")
+		}
+
 		emailOrToken := promptInput("enter your email or auth token: ")
 		if strings.Contains(emailOrToken, "@") {
 			email = emailOrToken
