@@ -1,11 +1,16 @@
 
 FROM alpine:3.11
 
+RUN apk add --update --no-cache \
+    curl
+
 release:
     ARG RELEASE_TAG
     RUN test -n "$RELEASE_TAG"
     BUILD --build-arg RELEASE_TAG="$RELEASE_TAG" +release-dockerhub
     BUILD --build-arg RELEASE_TAG="$RELEASE_TAG" +release-github
+    RUN --push --secret SLACK_WEBHOOK_URL=+secrets/earthly-technologies/slack/release-webhook \
+        curl -X POST -H 'Content-type: application/json' --data '{"text":"Successfully released `'$RELEASE_TAG'`"}' $SLACK_WEBHOOK_URL
 
 release-dockerhub:
     ARG RELEASE_TAG
@@ -133,7 +138,7 @@ release-homebrew:
         --secret GITHUB_TOKEN=+secrets/GITHUB_TOKEN \
         -- \
         hub fork
-    # Force use of https st we can use GITHUB_TOKEN via envcredhelper.sh.
+    # Force use of https so we can use GITHUB_TOKEN via envcredhelper.sh.
     RUN --push \
         -- \
         git remote set-url "$GIT_USERNAME" "https://github.com/$GIT_USERNAME/homebrew-core.git" && \
@@ -145,10 +150,11 @@ release-homebrew:
     RUN --push \
         --secret GIT_PASSWORD=+secrets/GITHUB_TOKEN \
         --secret GITHUB_TOKEN=+secrets/GITHUB_TOKEN \
+        --secret SLACK_WEBHOOK_URL=+secrets/earthly-technologies/slack/release-webhook \
         -- \
         version=${RELEASE_TAG#v} ;\
         echo version=$version ;\
-        hub pull-request --no-edit \
+        output=$(hub pull-request --no-edit \
             -h "$GIT_USERNAME":"release-$RELEASE_TAG" \
             -b "$REPO_OWNER:master" \
             -m "earthly $version" \
@@ -162,7 +168,9 @@ release-homebrew:
             -m '* `TAGS='"$(cat /params/tags)"'`' \
             -m '* `LDFLAGS='"$(cat /params/ldflags)"'`' \
             -m '* `LDFLAGS1='"$(cat /params/ldflags1)"'`' \
-            -m '* `LDFLAGS2='"$(cat /params/ldflags2)"'`'
+            -m '* `LDFLAGS2='"$(cat /params/ldflags2)"'`') && \
+        echo $output && \
+        curl -X POST -H 'Content-type: application/json' --data '{"text":"Successfully released homebrew PR for `$RELEASE_TAG`: `$output`"}' $SLACK_WEBHOOK_URL
 
 release-vscode-syntax-highlighting:
     ARG VSCODE_RELEASE_TAG
