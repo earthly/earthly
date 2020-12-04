@@ -31,7 +31,7 @@ deps:
 code:
     FROM +deps
     COPY --dir analytics autocomplete buildcontext builder cleanup cmd config conslogging debugger dockertar \
-        docker2earth domain fileutils llbutil logging secretsclient states ./
+        docker2earth domain fileutils llbutil logging secretsclient stringutil states ./
     COPY --dir buildkitd/buildkitd.go buildkitd/settings.go buildkitd/
     COPY --dir earthfile2llb/antlrhandler \
         earthfile2llb/variables earthfile2llb/*.go earthfile2llb/

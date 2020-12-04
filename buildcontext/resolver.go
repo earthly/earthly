@@ -34,11 +34,12 @@ type Resolver struct {
 }
 
 // NewResolver returns a new NewResolver.
-func NewResolver(sessionID string, cleanCollection *cleanup.Collection) *Resolver {
+func NewResolver(sessionID string, cleanCollection *cleanup.Collection, gitLookup *GitLookup) *Resolver {
 	return &Resolver{
 		gr: &gitResolver{
 			cleanCollection: cleanCollection,
 			projectCache:    make(map[string]*resolvedGitProject),
+			gitLookup:       gitLookup,
 		},
 		lr: &localResolver{
 			gitMetaCache: make(map[string]*GitMetadata),

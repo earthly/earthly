@@ -25,6 +25,7 @@ import (
 
 	"github.com/earthly/earthly/analytics"
 	"github.com/earthly/earthly/autocomplete"
+	"github.com/earthly/earthly/buildcontext"
 	"github.com/earthly/earthly/buildcontext/provider"
 	"github.com/earthly/earthly/builder"
 	"github.com/earthly/earthly/buildkitd"
@@ -738,32 +739,9 @@ func (app *earthApp) before(context *cli.Context) error {
 		return err
 	}
 
-	gitConfig, gitCredentials, err := config.CreateGitConfig(app.cfg)
-	if err != nil {
-		return errors.Wrapf(err, "failed to create git config from %s", app.configPath)
-	}
-
 	// command line option overrides the config which overrides the default value
 	if !context.IsSet("buildkit-image") && app.cfg.Global.BuildkitImage != "" {
 		app.buildkitdImage = app.cfg.Global.BuildkitImage
-	}
-
-	if runtime.GOOS == "darwin" {
-		// on darwin buildkit is running inside a docker container and must reference this sock instead
-		app.buildkitdSettings.SSHAuthSock = "/run/host-services/ssh-auth.sock"
-	} else {
-		app.buildkitdSettings.SSHAuthSock = app.sshAuthSock
-	}
-	if app.buildkitdSettings.SSHAuthSock != "" {
-		// EvalSymlinks evaluates "" as "." which then breaks docker volume mounting
-		realSSHSocketPath, err := filepath.EvalSymlinks(app.buildkitdSettings.SSHAuthSock)
-		if err != nil {
-			if runtime.GOOS != "darwin" {
-				app.console.Warnf("failed to evaluate potential symbolic links in ssh auth socket %q: %v\n", app.buildkitdSettings.SSHAuthSock, err)
-			} // else ignore the error on mac
-		} else {
-			app.buildkitdSettings.SSHAuthSock = realSSHSocketPath
-		}
 	}
 
 	if !fileutils.DirExists(app.cfg.Global.RunPath) {
@@ -775,8 +753,6 @@ func (app *earthApp) before(context *cli.Context) error {
 
 	app.buildkitdSettings.DebuggerPort = app.cfg.Global.DebuggerPort
 	app.buildkitdSettings.RunDir = app.cfg.Global.RunPath
-	app.buildkitdSettings.GitConfig = gitConfig
-	app.buildkitdSettings.GitCredentials = gitCredentials
 	return nil
 }
 
@@ -1871,6 +1847,12 @@ func (app *earthApp) actionBuild(c *cli.Context) error {
 		buildContextProvider,
 	}
 
+	gitLookup := buildcontext.NewGitLookup()
+	err = app.updateGitLookupConfig(gitLookup)
+	if err != nil {
+		return err
+	}
+
 	if app.sshAuthSock != "" {
 		ssh, err := sshprovider.NewSSHAgentProvider([]sshprovider.AgentConfig{{
 			Paths: []string{app.sshAuthSock},
@@ -1913,6 +1895,7 @@ func (app *earthApp) actionBuild(c *cli.Context) error {
 		CleanCollection:      cleanCollection,
 		VarCollection:        varCollection,
 		BuildContextProvider: buildContextProvider,
+		GitLookup:            gitLookup,
 	}
 	b, err := builder.NewBuilder(c.Context, builderOpts)
 	if err != nil {
@@ -1959,6 +1942,42 @@ func (app *earthApp) newBuildkitdClient(ctx context.Context, opts ...client.Clie
 		return nil, "", errors.Wrap(err, "buildkitd new client (provided)")
 	}
 	return bkClient, "", nil
+}
+
+func (app *earthApp) updateGitLookupConfig(gitLookup *buildcontext.GitLookup) error {
+
+	autoProtocol := "ssh"
+	if app.sshAuthSock == "" {
+		app.console.Printf("No ssh auth socket detected; falling back to https for auto auth values\n")
+		autoProtocol = "https"
+
+		// convert all ssh to https for pre-configured instances
+		gitLookup.DisableSSH()
+	}
+
+	for k, v := range app.cfg.Git {
+		if k == "github" || k == "gitlab" || k == "bitbucket" {
+			app.console.Warnf("git configuration for %q found, did you mean %q?\n", k, k+".com")
+		}
+		pattern := v.Pattern
+		if pattern == "" {
+			// if empty, assume it will be of the form host.com/user/repo.git
+			host := k
+			if !strings.Contains(host, ".") {
+				host += ".com"
+			}
+			pattern = host + "/[^/]+/[^/]+"
+		}
+		auth := v.Auth
+		if auth == "auto" {
+			auth = autoProtocol
+		}
+		err := gitLookup.AddMatcher(k, pattern, v.User, v.Password, v.Suffix, auth, v.KeyScan)
+		if err != nil {
+			return errors.Wrap(err, "gitlookup")
+		}
+	}
+	return nil
 }
 
 func processSecrets(secrets []string, dotEnvMap map[string]string) (map[string][]byte, error) {
