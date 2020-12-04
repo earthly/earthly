@@ -1,7 +1,6 @@
 FROM earthly/dind:alpine
 WORKDIR /scala-example
-RUN apk add openjdk11 bash wget
-
+RUN apk add openjdk11 bash wget postgresql-client
 
 sbt: 
     #Scala
@@ -40,7 +39,8 @@ integration-test:
     COPY src src
     COPY docker-compose.yml ./ 
     WITH DOCKER --compose docker-compose.yml
-       RUN sbt it:test
+        RUN while ! pg_isready --host=localhost --port=5432 --dbname=iso3166 --username=postgres; do sleep 1; done ;\
+            sbt it:test
     END
 
 docker:
@@ -55,7 +55,8 @@ smoke-test:
     COPY docker-compose.yml ./ 
     COPY src/smoketest ./ 
     WITH DOCKER --compose docker-compose.yml --load scala-example:latest=+docker
-        RUN ./smoketest.sh
+        RUN while ! pg_isready --host=localhost --port=5432 --dbname=iso3166 --username=postgres; do sleep 1; done ;\
+            ./smoketest.sh
     END
     
 all:
