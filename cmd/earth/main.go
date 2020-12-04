@@ -42,6 +42,7 @@ import (
 	"github.com/earthly/earthly/llbutil"
 	"github.com/earthly/earthly/secretsclient"
 
+	humanize "github.com/dustin/go-humanize"
 	"github.com/fatih/color"
 	"github.com/joho/godotenv"
 	"github.com/moby/buildkit/client"
@@ -107,7 +108,7 @@ type cliFlags struct {
 	dockerfilePath         string
 	earthfilePath          string
 	earthfileFinalImage    string
-	expiry                 time.Time
+	expiry                 string
 	termsConditionsPrivacy bool
 	authToken              string
 }
@@ -624,11 +625,10 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 							Usage:       "Grant write permissions in addition to read",
 							Destination: &app.writePermission,
 						},
-						&cli.TimestampFlag{
-							Name:   "expiry",
-							Layout: "2006-01-02T15:04",
-							Usage:  "Set token expiry date",
-							Value:  cli.NewTimestamp(time.Now().UTC().Add(time.Hour * 24 * 365)),
+						&cli.StringFlag{
+							Name:        "expiry",
+							Usage:       "Set token expiry date in the form YYYY-MM-DD or never (default 1year)",
+							Destination: &app.expiry,
 						},
 					},
 				},
@@ -1491,17 +1491,41 @@ func (app *earthApp) actionAccountCreateToken(c *cli.Context) error {
 	if c.NArg() != 1 {
 		return errors.New("invalid number of arguments provided")
 	}
-	expiry := c.Timestamp("expiry")
+
+	var expiry time.Time
+	if app.expiry == "" {
+		expiry = time.Now().Add(time.Hour * 24 * 365)
+	} else if app.expiry == "never" {
+		expiry = time.Now().Add(time.Hour * 24 * 365 * 100) // TODO save this some other way
+	} else {
+		layouts := []string{
+			"2006-01-02",
+			time.RFC3339,
+		}
+
+		var err error
+		for _, layout := range layouts {
+			expiry, err = time.Parse(layout, app.expiry)
+			if err == nil {
+				break
+			}
+		}
+		if err != nil {
+			return fmt.Errorf("failed to parse expiry %q", app.expiry)
+		}
+	}
+
 	sc, err := secretsclient.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
 	if err != nil {
 		return errors.Wrap(err, "failed to create secretsclient")
 	}
 	name := c.Args().First()
-	token, err := sc.CreateToken(name, app.writePermission, expiry)
+	token, err := sc.CreateToken(name, app.writePermission, &expiry)
 	if err != nil {
 		return errors.Wrap(err, "failed to create token")
 	}
-	fmt.Printf("token: %q; save this token somewhere, it can't be viewed again (only reset)\n", token)
+	expiryStr := humanize.Time(expiry)
+	fmt.Printf("created token %q which will expire in %s; save this token somewhere, it can't be viewed again (only reset)\n", token, expiryStr)
 	return nil
 }
 func (app *earthApp) actionAccountRemoveToken(c *cli.Context) error {
