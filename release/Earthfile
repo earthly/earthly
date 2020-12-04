@@ -10,7 +10,7 @@ release:
     BUILD --build-arg RELEASE_TAG="$RELEASE_TAG" +release-dockerhub
     BUILD --build-arg RELEASE_TAG="$RELEASE_TAG" +release-github
     RUN --push --secret SLACK_WEBHOOK_URL=+secrets/earthly-technologies/slack/release-webhook \
-        curl -X POST -H 'Content-type: application/json' --data '{"text":"Successfully released '$RELEASE_TAG'"}' $SLACK_WEBHOOK_URL
+        curl -X POST -H 'Content-type: application/json' --data '{"text":"Successfully released `'$RELEASE_TAG'`"}' $SLACK_WEBHOOK_URL
 
 release-dockerhub:
     ARG RELEASE_TAG
