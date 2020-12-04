@@ -1,11 +1,16 @@
 
 FROM alpine:3.11
 
+RUN apk add --update --no-cache \
+    curl
+
 release:
     ARG RELEASE_TAG
     RUN test -n "$RELEASE_TAG"
     BUILD --build-arg RELEASE_TAG="$RELEASE_TAG" +release-dockerhub
     BUILD --build-arg RELEASE_TAG="$RELEASE_TAG" +release-github
+    RUN --push --secret SLACK_WEBHOOK_URL=+secrets/earthly-technologies/slack/release-webhook \
+        curl -X POST -H 'Content-type: application/json' --data '{"text":"Successfully released '$RELEASE_TAG'"}' $SLACK_WEBHOOK_URL
 
 release-dockerhub:
     ARG RELEASE_TAG
