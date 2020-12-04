@@ -1317,8 +1317,7 @@ func (app *earthApp) actionRegister(c *cli.Context) error {
 
 	var interactiveAccept bool
 	if !app.termsConditionsPrivacy {
-		// TODO: add link when we have one
-		rawAccept := promptInput("Do you accept Earthly's T&Cs <link> and Privacy Policy <link>? [y/N]")
+		rawAccept := promptInput("I acknowledge Earthly Technologies’ Privacy Policy (https://earthly.dev/privacy-policy) and agree to Earthly Technologies Terms of Service (https://earthly.dev/tos)")
 		if rawAccept == "" {
 			rawAccept = "n"
 		}
@@ -1332,6 +1331,7 @@ func (app *earthApp) actionRegister(c *cli.Context) error {
 	if app.registrationPublicKey == "" {
 		if len(publicKeys) > 0 {
 			fmt.Printf("Which of the following keys do you want to register?\n")
+			fmt.Printf("0) none\n")
 			for i, key := range publicKeys {
 				fmt.Printf("%d) %s\n", i+1, key.String())
 			}
@@ -1343,10 +1343,12 @@ func (app *earthApp) actionRegister(c *cli.Context) error {
 			if err != nil {
 				return errors.Wrap(err, "invalid key number")
 			}
-			if i <= 0 || i > len(publicKeys) {
+			if i < 0 || i > len(publicKeys) {
 				return fmt.Errorf("invalid key number")
 			}
-			publicKey = publicKeys[i-1].String()
+			if i > 0 {
+				publicKey = publicKeys[i-1].String()
+			}
 		}
 	} else {
 		_, _, _, _, err := ssh.ParseAuthorizedKey([]byte(app.registrationPublicKey))
@@ -1440,6 +1442,20 @@ func (app *earthApp) actionAccountAddKey(c *cli.Context) error {
 	err = sc.AddPublickKey(publicKey)
 	if err != nil {
 		return errors.Wrap(err, "failed to add public key to account")
+	}
+
+	//switch over to new key if the user is currently using password-based auth
+	email, authType, err := sc.WhoAmI()
+	if err != nil {
+		return errors.Wrap(err, "failed to validate auth token")
+	}
+	if authType == "password" {
+		err = sc.SetLoginSSH(email, publicKey)
+		if err != nil {
+			app.console.Warnf("failed to authenticate using newly added public key: %s", err.Error())
+			return nil
+		}
+		fmt.Printf("Switching from password-based login to ssh-based login\n")
 	}
 
 	return nil

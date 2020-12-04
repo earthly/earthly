@@ -2,13 +2,12 @@
 steps:
   - label: Test
     commands:
-      - wsl -- bash ./.buildkite/tests.sh
+      - ./.buildkite/tests.sh
     env:
       EARTHLY_BUILD_ARGS: "DOCKERHUB_USER_SECRET=+secrets/earthly-technologies/dockerhub/user,DOCKERHUB_TOKEN_SECRET=+secrets/earthly-technologies/dockerhub/token"
       GIT_URL_INSTEAD_OF: "https://github.com/=git@github.com:"
       FORCE_COLOR: 1
       EARTH_OS: linux
       EARTHLY_CONFIG: "./.buildkite/earthly-config-win.yml"
-      WSLENV: "GIT_URL_INSTEAD_OF:FORCE_COLOR:BUILDKITE_BRANCH:EARTH_OS:EARTHLY_CONFIG:BUILDKITE_BUILD_ID:EARTHLY_TOKEN"
     agents:
-      os: windows
+      os: wsl2
