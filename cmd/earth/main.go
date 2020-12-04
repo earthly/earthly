@@ -517,7 +517,7 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 				{
 					Name:      "ls",
 					Usage:     "List secrets in the secrets store",
-					UsageText: "earth [options] secrets ls <path>",
+					UsageText: "earth [options] secrets ls [<path>]",
 					Action:    app.actionSecretsList,
 				},
 				{
@@ -556,7 +556,7 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 						"     earth [options] account register --email <email>\n" +
 						"\n" +
 						"   then check your email to retrieve the token, then continue by running:\n" +
-						"     earth [options] account register --email <email> --token <token>",
+						"     earth [options] account register --email <email> --token <token> [options]",
 					Action: app.actionRegister,
 					Flags: []cli.Flag{
 						&cli.StringFlag{
@@ -598,7 +598,7 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 				{
 					Name:      "add-key",
 					Usage:     "Associate a new public key with your account",
-					UsageText: "earth [options] add-key <key>",
+					UsageText: "earth [options] add-key [<key>]",
 					Action:    app.actionAccountAddKey,
 				},
 				{
@@ -616,7 +616,7 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 				{
 					Name:      "create-token",
 					Usage:     "Create a new authentication token for your account",
-					UsageText: "earth [options] account create-token",
+					UsageText: "earth [options] account create-token [options] <token name>",
 					Action:    app.actionAccountCreateToken,
 					Flags: []cli.Flag{
 						&cli.BoolFlag{
@@ -635,7 +635,7 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 				{
 					Name:      "remove-token",
 					Usage:     "Remove an authentication token from your account",
-					UsageText: "earth [options] account remove-token",
+					UsageText: "earth [options] account remove-token <token>",
 					Action:    app.actionAccountRemoveToken,
 				},
 				{
