@@ -4,6 +4,7 @@ steps:
     commands:
       - ./.buildkite/tests.sh
     env:
+      EARTHLY_BUILD_ARGS: "DOCKERHUB_USER_SECRET=+secrets/earthly-technologies/dockerhub/user,DOCKERHUB_TOKEN_SECRET=+secrets/earthly-technologies/dockerhub/token"
       GIT_URL_INSTEAD_OF: "https://github.com/=git@github.com:"
       FORCE_COLOR: 1
       EARTH_OS: linux

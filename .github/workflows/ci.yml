@@ -13,14 +13,24 @@ jobs:
     env:
       GIT_URL_INSTEAD_OF: "https://github.com/=git@github.com:"
       FORCE_COLOR: 1
+      EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
     steps:
       - uses: actions/checkout@v2
       - name: Download released earth
         run: "sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/latest/download/earth-linux-amd64 -O /usr/local/bin/earth && chmod +x /usr/local/bin/earth'"
+      - name: Docker Login (non fork only)
+        run: docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password "${{ secrets.DOCKERHUB_TOKEN }}"
+        if: github.event.pull_request.head.repo.full_name == github.repository
       - name: Build latest earth using released earth
         run: earth +for-linux
-      - name: Execute tests
+      - name: Execute tests (not a fork)
+        run: |
+          export EARTHLY_BUILD_ARGS="DOCKERHUB_USER_SECRET=+secrets/earthly-technologies/dockerhub/user,DOCKERHUB_TOKEN_SECRET=+secrets/earthly-technologies/dockerhub/token"
+          ./build/linux/amd64/earth --no-output -P +test
+        if: github.event.pull_request.head.repo.full_name == github.repository
+      - name: Execute tests (fork)
         run: ./build/linux/amd64/earth --no-output -P +test
+        if: github.event.pull_request.head.repo.full_name != github.repository
       - name: Execute fail test
         run: "! ./build/linux/amd64/earth --no-output +test-fail"
       - name: Execute interactive debugger test
@@ -35,14 +45,24 @@ jobs:
     env:
       GIT_URL_INSTEAD_OF: "https://github.com/=git@github.com:"
       FORCE_COLOR: 1
+      EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
     steps:
       - uses: actions/checkout@v2
       - name: Download released earth
         run: "sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/latest/download/earth-linux-amd64 -O /usr/local/bin/earth && chmod +x /usr/local/bin/earth'"
+      - name: Docker Login (non fork only)
+        run: docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password "${{ secrets.DOCKERHUB_TOKEN }}"
+        if: github.event.pull_request.head.repo.full_name == github.repository
       - name: Build latest earth using released earth
         run: earth +for-linux
-      - name: "Experimental tests"
+      - name: "Experimental tests (not a fork)"
+        run: |
+          export EARTHLY_BUILD_ARGS="DOCKERHUB_USER_SECRET=+secrets/earthly-technologies/dockerhub/user,DOCKERHUB_TOKEN_SECRET=+secrets/earthly-technologies/dockerhub/token"
+          ./build/linux/amd64/earth -P ./examples/tests+experimental
+        if: github.event.pull_request.head.repo.full_name == github.repository
+      - name: "Experimental tests (fork)"
         run: ./build/linux/amd64/earth -P ./examples/tests+experimental
+        if: github.event.pull_request.head.repo.full_name != github.repository
       - name: Execute test similar to homebrew test in https://github.com/Homebrew/homebrew-core/blob/master/Formula/earthly.rb
         run: ./build/linux/amd64/earth --buildkit-host 127.0.0.1 ./examples/tests/with-docker+all 2>&1 | grep 'Error while dialing invalid address 127.0.0.1'
       - name: Docker Login
@@ -57,10 +77,14 @@ jobs:
     env:
       GIT_URL_INSTEAD_OF: "https://github.com/=git@github.com:"
       FORCE_COLOR: 1
+      EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
     steps:
       - uses: actions/checkout@v2
       - name: Download released earth
         run: "sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/latest/download/earth-linux-amd64 -O /usr/local/bin/earth && chmod +x /usr/local/bin/earth'"
+      - name: Docker Login (non fork only)
+        run: docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password "${{ secrets.DOCKERHUB_TOKEN }}"
+        if: github.event.pull_request.head.repo.full_name == github.repository
       - name: Build latest earth using released earth
         run: earth +for-linux
       - name: Build examples
@@ -76,6 +100,9 @@ jobs:
       - uses: actions/checkout@v2
       - name: Download released earth
         run: "sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/latest/download/earth-linux-amd64 -O /usr/local/bin/earth && chmod +x /usr/local/bin/earth'"
+      - name: Docker Login (non fork only)
+        run: docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password "${{ secrets.DOCKERHUB_TOKEN }}"
+        if: github.event.pull_request.head.repo.full_name == github.repository
       - name: Build latest earth using released earth
         run: earth +for-linux
       - name: run ssh-based tests
@@ -88,6 +115,7 @@ jobs:
     env:
       GIT_URL_INSTEAD_OF: "https://github.com/=git@github.com:"
       FORCE_COLOR: 1
+      EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
     steps:
       - uses: actions/checkout@v2
       - name: "Put back the git branch into git (Earthly uses it for tagging)"
@@ -101,9 +129,9 @@ jobs:
           git checkout -b "$branch" || true
       - name: Download released earth
         run: "sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/latest/download/earth-linux-amd64 -O /usr/local/bin/earth && chmod +x /usr/local/bin/earth'"
-      - name: Build latest earth using released earth
-        run: earth +for-linux
       - name: Docker Login
         run: docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password "${{ secrets.DOCKERHUB_TOKEN }}"
+      - name: Build latest earth using released earth
+        run: earth +for-linux
       - name: Rebuild and push
         run: ./build/linux/amd64/earth --push +all

@@ -184,6 +184,18 @@ release:
 earth --secret GH_TOKEN="the-actual-secret-token-value" +release
 ```
 
+An empty string is also allowed for `<secret-ref>`, allowing for optional secrets, should it need to be disabled.
+
+```Dockerfile
+release:
+    ARG SECRET_ID=+secrets/GH_TOKEN
+    RUN --push --secret GITHUB_TOKEN=$SECRET_ID github-release upload
+```
+
+```bash
+earth --build-arg SECRET_ID="" +release
+```
+
 ##### `--ssh`
 
 Allows a command to access the ssh authentication client running on the host via the socket which is referenced by the environment variable `SSH_AUTH_SOCK`.

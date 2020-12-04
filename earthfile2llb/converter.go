@@ -213,7 +213,7 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 		buildContext = data.BuildContext
 	}
 	newVarCollection, _, err := c.varCollection.WithParseBuildArgs(
-		buildArgs, c.processNonConstantBuildArgFunc(ctx))
+		buildArgs, c.processNonConstantBuildArgFunc(ctx), false)
 	if err != nil {
 		return err
 	}
@@ -399,15 +399,11 @@ func (c *Converter) Build(ctx context.Context, fullTargetName string, buildArgs 
 	if err != nil {
 		return nil, errors.Wrap(err, "join targets")
 	}
-	newVarCollection := c.varCollection
 	// Don't allow transitive overriding variables to cross project boundaries.
 	propagateBuildArgs := !relTarget.IsExternal()
-	if !propagateBuildArgs {
-		newVarCollection = variables.NewCollection()
-	}
 	var newVars map[string]bool
-	newVarCollection, newVars, err = newVarCollection.WithParseBuildArgs(
-		buildArgs, c.processNonConstantBuildArgFunc(ctx))
+	newVarCollection, newVars, err := c.varCollection.WithParseBuildArgs(
+		buildArgs, c.processNonConstantBuildArgFunc(ctx), propagateBuildArgs)
 	if err != nil {
 		return nil, errors.Wrap(err, "parse build args")
 	}
@@ -607,21 +603,26 @@ func (c *Converter) internalRun(ctx context.Context, args []string, secretKeyVal
 		if len(parts) != 2 {
 			return fmt.Errorf("Invalid secret definition %s", secretKeyValue)
 		}
-		if !strings.HasPrefix(parts[1], "+secrets/") {
-			return fmt.Errorf("Secret definition %s not supported. Must start with +secrets/", secretKeyValue)
+		if strings.HasPrefix(parts[1], "+secrets/") {
+			envVar := parts[0]
+			secretID := strings.TrimPrefix(parts[1], "+secrets/")
+			secretPath := path.Join("/run/secrets", secretID)
+			secretOpts := []llb.SecretOption{
+				llb.SecretID(secretID),
+				// TODO: Perhaps this should just default to the current user automatically from
+				//       buildkit side. Then we wouldn't need to open this up to everyone.
+				llb.SecretFileOpt(0, 0, 0444),
+			}
+			finalOpts = append(finalOpts, llb.AddSecret(secretPath, secretOpts...))
+			// TODO: The use of cat here might not be portable.
+			extraEnvVars = append(extraEnvVars, fmt.Sprintf("%s=\"$(cat %s)\"", envVar, secretPath))
+		} else if parts[1] == "" {
+			// If empty string, don't use (used for optional secrets).
+			// TODO: This should be an actual secret (with an empty value),
+			//       so that the cache works correctly.
+		} else {
+			return fmt.Errorf("Secret definition %s not supported. Must start with +secrets/ or be an empty string", secretKeyValue)
 		}
-		envVar := parts[0]
-		secretID := strings.TrimPrefix(parts[1], "+secrets/")
-		secretPath := path.Join("/run/secrets", secretID)
-		secretOpts := []llb.SecretOption{
-			llb.SecretID(secretID),
-			// TODO: Perhaps this should just default to the current user automatically from
-			//       buildkit side. Then we wouldn't need to open this up to everyone.
-			llb.SecretFileOpt(0, 0, 0444),
-		}
-		finalOpts = append(finalOpts, llb.AddSecret(secretPath, secretOpts...))
-		// TODO: The use of cat here might not be portable.
-		extraEnvVars = append(extraEnvVars, fmt.Sprintf("%s=\"$(cat %s)\"", envVar, secretPath))
 	}
 	// Build args.
 	for _, buildArgName := range c.varCollection.SortedActiveVariables() {

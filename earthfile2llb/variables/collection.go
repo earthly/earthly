@@ -205,7 +205,7 @@ func (c *Collection) WithBuiltinBuildArgs(target domain.Target, gitMeta *buildco
 // WithParseBuildArgs takes in a slice of build args to be parsed and returns another collection
 // containing the current build args, together with the newly parsed build args. This operation does
 // not modify the current collection.
-func (c *Collection) WithParseBuildArgs(args []string, pncvf ProcessNonConstantVariableFunc) (*Collection, map[string]bool, error) {
+func (c *Collection) WithParseBuildArgs(args []string, pncvf ProcessNonConstantVariableFunc, propagate bool) (*Collection, map[string]bool, error) {
 	// First, parse.
 	toAdd := make(map[string]Variable)
 	haveValues := make(map[string]bool)
@@ -222,7 +222,12 @@ func (c *Collection) WithParseBuildArgs(args []string, pncvf ProcessNonConstantV
 
 	// Merge into a new collection.
 	// Copy existing, without env vars.
-	newC := c.WithResetEnvVars()
+	var newC *Collection
+	if propagate {
+		newC = c.WithResetEnvVars()
+	} else {
+		newC = NewCollection()
+	}
 	newVars := make(map[string]bool)
 	// Add the parsed ones too.
 	for key, ba := range toAdd {
@@ -231,8 +236,8 @@ func (c *Collection) WithParseBuildArgs(args []string, pncvf ProcessNonConstantV
 		}
 		var finalValue Variable
 		if ba.IsConstant() && !haveValues[key] {
-			existing, _, found := c.Get(key)
-			if found {
+			existing, active, found := c.Get(key)
+			if found && active {
 				if existing.IsEnvVar() {
 					finalValue = NewConstant(existing.ConstantValue())
 				} else {
