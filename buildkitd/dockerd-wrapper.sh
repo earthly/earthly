@@ -50,11 +50,21 @@ start_dockerd() {
     rm -rf "$EARTHLY_DOCKERD_DATA_ROOT"
     mkdir -p "$EARTHLY_DOCKERD_DATA_ROOT"
     dockerd --data-root="$EARTHLY_DOCKERD_DATA_ROOT" >/var/log/docker.log 2>&1 &
+    dockerd_pid="$!"
     i=1
-    timeout=30
+    timeout=300
     while ! docker ps >/dev/null 2>&1; do
         sleep 1
+        fail=false
         if [ "$i" -gt "$timeout" ]; then
+            echo "ERROR: dockerd start timeout (${timeout}s)"
+            fail=true
+        fi
+        if ! kill -0 "$dockerd_pid" >/dev/null 2>&1; then
+            echo "ERROR: dockerd crashed on startup"
+            fail=true
+        fi
+        if [ "$fail" = "true" ]; then
             # Print dockerd logs on start failure.
             echo "==== Begin dockerd logs ===="
             cat /var/log/docker.log
@@ -68,7 +78,7 @@ start_dockerd() {
 
 stop_dockerd() {
     dockerd_pid="$(cat /var/run/docker.pid)"
-    timeout=10
+    timeout=30
     if [ -n "$dockerd_pid" ]; then
         kill "$dockerd_pid" >/dev/null 2>&1
         i=1
