@@ -1465,9 +1465,12 @@ func (app *earthApp) actionAccountListTokens(c *cli.Context) error {
 		return nil // avoid printing header columns when there are no tokens
 	}
 
+	now := time.Now()
+
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
 	fmt.Fprintf(w, "Token Name\tRead/Write\tExpiry\n")
 	for _, token := range tokens {
+		expired := now.After(token.Expiry)
 		fmt.Fprintf(w, "%s", token.Name)
 		if token.Write {
 			fmt.Fprintf(w, "\trw")
@@ -1475,6 +1478,9 @@ func (app *earthApp) actionAccountListTokens(c *cli.Context) error {
 			fmt.Fprintf(w, "\tr")
 		}
 		fmt.Fprintf(w, "\t%s UTC", token.Expiry.UTC().Format("2006-01-02T15:04"))
+		if expired {
+			fmt.Fprintf(w, " *expired*")
+		}
 		fmt.Fprintf(w, "\n")
 	}
 	w.Flush()
