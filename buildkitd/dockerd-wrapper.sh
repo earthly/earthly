@@ -8,6 +8,7 @@ docker_compose_cmd() {
     for f in $EARTHLY_COMPOSE_FILES; do
         compose_file_flags="$compose_file_flags -f $f"
     done
+    export COMPOSE_HTTP_TIMEOUT=600
     # shellcheck disable=SC2086
     docker-compose $compose_file_flags "$@"
 }
