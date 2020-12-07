@@ -406,6 +406,7 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 			EnvVars:     []string{"EARTHLY_SERVER"},
 			Usage:       "API server override for dev purposes",
 			Destination: &app.apiServer,
+			Hidden:      true, // Experimental.
 		},
 	}
 
