@@ -81,6 +81,7 @@ type Client interface {
 	SetLoginSSH(email, sshKey string) error
 	DeleteCachedCredentials() error
 	DisableSSHKeyGuessing()
+	SetAuthTokenDir(path string)
 }
 
 type request struct {
@@ -215,6 +216,7 @@ type client struct {
 	email                 string
 	password              string
 	authToken             string
+	authTokenDir          string
 	disableSSHKeyGuessing bool
 	jm                    *jsonpb.Unmarshaler
 }
@@ -863,19 +865,20 @@ func (c *client) WhoAmI() (string, string, error) {
 }
 
 func (c *client) getAuthTokenPath(create bool) (string, error) {
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		return "", errors.Wrapf(err, "failed to get home dir")
-	}
-
-	confDirPath := filepath.Join(homeDir, ".earthly")
-	if !fileutils.DirExists(confDirPath) && create {
-		err := os.MkdirAll(confDirPath, 0755)
+	confDirPath := c.authTokenDir
+	if confDirPath == "" {
+		homeDir, err := os.UserHomeDir()
 		if err != nil {
-			return "", errors.Wrapf(err, "failed to create run directory %s", confDirPath)
+			return "", errors.Wrapf(err, "failed to get home dir")
+		}
+		confDirPath := filepath.Join(homeDir, ".earthly")
+		if !fileutils.DirExists(confDirPath) && create {
+			err := os.MkdirAll(confDirPath, 0755)
+			if err != nil {
+				return "", errors.Wrapf(err, "failed to create run directory %s", confDirPath)
+			}
 		}
 	}
-
 	tokenPath := filepath.Join(confDirPath, "auth.token")
 	return tokenPath, nil
 }
@@ -1027,6 +1030,10 @@ func (c *client) SetLoginPublicKey(email, key string) (string, error) {
 
 func (c *client) DisableSSHKeyGuessing() {
 	c.disableSSHKeyGuessing = true
+}
+
+func (c *client) SetAuthTokenDir(path string) {
+	c.authTokenDir = path
 }
 
 func (c *client) DeleteCachedCredentials() error {
