@@ -137,7 +137,7 @@ func (c *Collection) SortedOverridingVariables() []string {
 
 // AddActive adds and activates a variable in the collection. It returns the effective variable. The
 // effective variable may be different from the one being added, when override is false.
-func (c *Collection) AddActive(name string, variable Variable, override bool, global bool) Variable {
+func (c *Collection) AddActive(name string, variable Variable, override, global bool) Variable {
 	effective := variable
 	c.activeVariables[name] = true
 	if override {
