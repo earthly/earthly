@@ -328,6 +328,9 @@ func (c *client) savePublicKey(publicKey string) error {
 }
 
 func (c *client) CreateAccount(email, verificationToken, password, publicKey string, termsConditionsPrivacy bool) error {
+	if !IsValidEmail(email) {
+		return fmt.Errorf("invalid email: %q", email)
+	}
 	if publicKey != "" {
 		var err error
 		_, _, _, err = parseSSHKey(publicKey)
