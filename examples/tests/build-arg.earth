@@ -1,10 +1,16 @@
 FROM alpine:3.11
 WORKDIR /test
 
+ARG global1=abc
+ARG global2=def
+
 all:
     BUILD +test1
     BUILD +test2
     BUILD +test3
+    BUILD +test-global1
+    BUILD +test-global2
+    BUILD +test-global3
 
 file-exists:
     ARG VAR1=nope.txt
@@ -36,3 +42,17 @@ test3:
     ARG VAR1="test"
     FROM +dummy
     RUN test "$VAR1" == "test"
+
+test-global1:
+    RUN test "$global1" == "abc"
+    RUN test "$global2" == "def"
+
+test-global2:
+    FROM alpine:latest
+    RUN test "$global1" == "abc"
+    RUN test "$global2" == "def"
+
+test-global3:
+    FROM +dummy
+    RUN test "$global1" == "abc"
+    RUN test "$global2" == "def"

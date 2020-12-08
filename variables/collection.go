@@ -29,6 +29,8 @@ type Collection struct {
 	activeVariables map[string]bool
 	// overridingVariables represent variables that should be passed in deep to override.
 	overridingVariables map[string]bool
+	// globalVariables represent variables that are passed to all targets in a file.
+	globalVariables map[string]bool
 }
 
 // NewCollection returns a new collection.
@@ -37,6 +39,7 @@ func NewCollection() *Collection {
 		variables:           make(map[string]Variable),
 		activeVariables:     make(map[string]bool),
 		overridingVariables: make(map[string]bool),
+		globalVariables:     make(map[string]bool),
 	}
 }
 
@@ -134,7 +137,7 @@ func (c *Collection) SortedOverridingVariables() []string {
 
 // AddActive adds and activates a variable in the collection. It returns the effective variable. The
 // effective variable may be different from the one being added, when override is false.
-func (c *Collection) AddActive(name string, variable Variable, override bool) Variable {
+func (c *Collection) AddActive(name string, variable Variable, override, global bool) Variable {
 	effective := variable
 	c.activeVariables[name] = true
 	if override {
@@ -146,6 +149,9 @@ func (c *Collection) AddActive(name string, variable Variable, override bool) Va
 		} else {
 			c.variables[name] = variable
 		}
+	}
+	if global {
+		c.globalVariables[name] = true
 	}
 	return effective
 }
@@ -164,6 +170,20 @@ func (c *Collection) WithResetEnvVars() *Collection {
 	}
 	for k := range c.overridingVariables {
 		ret.overridingVariables[k] = true
+	}
+	for k := range c.globalVariables {
+		ret.globalVariables[k] = true
+	}
+	return ret
+}
+
+// WithOnlyGlobals returns a copy of the current collection, keeping only the global variables.
+func (c *Collection) WithOnlyGlobals() *Collection {
+	ret := NewCollection()
+	for k := range c.globalVariables {
+		ret.globalVariables[k] = true
+		ret.activeVariables[k] = true
+		ret.variables[k] = c.variables[k]
 	}
 	return ret
 }
@@ -193,6 +213,10 @@ func (c *Collection) WithBuiltinBuildArgs(target domain.Target, gitMeta *buildco
 	}
 	for k := range c.overridingVariables {
 		ret.overridingVariables[k] = true
+	}
+	for k := range c.globalVariables {
+		ret.globalVariables[k] = true
+		ret.activeVariables[k] = true
 	}
 	// Add the builtin build args.
 	ret.variables["EARTHLY_TARGET"] = NewConstant(target.StringCanonical())

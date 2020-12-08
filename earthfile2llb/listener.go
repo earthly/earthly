@@ -583,7 +583,9 @@ func (l *listener) ExitArgStmt(c *parser.ArgStmtContext) {
 	}
 	key := l.envArgKey // Note: Not expanding args for key.
 	value := l.expandArgs(l.envArgValue, true)
-	l.converter.Arg(l.ctx, key, value)
+	// Args declared in the base target are global.
+	global := (l.currentTarget == "base")
+	l.converter.Arg(l.ctx, key, value, global)
 }
 
 func (l *listener) ExitLabelStmt(c *parser.LabelStmtContext) {

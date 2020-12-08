@@ -4,6 +4,7 @@ import (
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/states/dedup"
 	"github.com/earthly/earthly/states/image"
+	"github.com/earthly/earthly/variables"
 	"github.com/moby/buildkit/client/llb"
 	gwclient "github.com/moby/buildkit/frontend/gateway/client"
 )
@@ -39,6 +40,7 @@ type SingleTarget struct {
 	SeparateArtifactsState []llb.State
 	SaveLocals             []SaveLocal
 	SaveImages             []SaveImage
+	VarCollection          *variables.Collection
 	RunPush                RunPush
 	LocalDirs              map[string]string
 	Ongoing                bool
