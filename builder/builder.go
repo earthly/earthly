@@ -19,7 +19,7 @@ import (
 	"github.com/earthly/earthly/conslogging"
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/earthfile2llb"
-	"github.com/earthly/earthly/earthfile2llb/variables"
+	"github.com/earthly/earthly/variables"
 	"github.com/earthly/earthly/llbutil"
 	"github.com/earthly/earthly/states"
 	"github.com/moby/buildkit/client"

@@ -20,11 +20,11 @@ import (
 	"github.com/earthly/earthly/cleanup"
 	"github.com/earthly/earthly/debugger/common"
 	"github.com/earthly/earthly/domain"
-	"github.com/earthly/earthly/earthfile2llb/variables"
 	"github.com/earthly/earthly/llbutil"
 	"github.com/earthly/earthly/states"
 	"github.com/earthly/earthly/states/dedup"
 	"github.com/earthly/earthly/states/image"
+	"github.com/earthly/earthly/variables"
 	"github.com/moby/buildkit/client/llb"
 	"github.com/moby/buildkit/frontend/dockerfile/dockerfile2llb"
 	gwclient "github.com/moby/buildkit/frontend/gateway/client"
@@ -142,7 +142,7 @@ func (c *Converter) fromTarget(ctx context.Context, targetName string, buildArgs
 	}
 	for _, kv := range saveImage.Image.Config.Env {
 		k, v := variables.ParseKeyValue(kv)
-		c.varCollection.AddActive(k, variables.NewConstantEnvVar(v), true)
+		c.varCollection.AddActive(k, variables.NewConstantEnvVar(v), true, false)
 	}
 	c.mts.Final.MainImage = saveImage.Image.Clone()
 	return nil
@@ -436,6 +436,14 @@ func (c *Converter) Build(ctx context.Context, fullTargetName string, buildArgs 
 			}
 			c.mts.Final.TargetInput = c.mts.Final.TargetInput.WithBuildArgInput(bai)
 		}
+		// Propagate globals.
+		globals := mts.Final.VarCollection.WithOnlyGlobals()
+		for _, k := range globals.SortedActiveVariables() {
+			v, _, _ := globals.Get(k)
+			effective := c.varCollection.AddActive(k, v, false, false)
+			c.mts.Final.TargetInput = c.mts.Final.TargetInput.WithBuildArgInput(
+				effective.BuildArgInput(k, "")) // TODO: Set coorect default value for bai.
+		}
 	}
 	return mts, nil
 }
@@ -496,15 +504,15 @@ func (c *Converter) Volume(ctx context.Context, volumes []string) {
 
 // Env applies the ENV command.
 func (c *Converter) Env(ctx context.Context, envKey string, envValue string) {
-	c.varCollection.AddActive(envKey, variables.NewConstantEnvVar(envValue), true)
+	c.varCollection.AddActive(envKey, variables.NewConstantEnvVar(envValue), true, false)
 	c.mts.Final.MainState = c.mts.Final.MainState.AddEnv(envKey, envValue)
 	c.mts.Final.MainImage.Config.Env = variables.AddEnv(
 		c.mts.Final.MainImage.Config.Env, envKey, envValue)
 }
 
 // Arg applies the ARG command.
-func (c *Converter) Arg(ctx context.Context, argKey string, defaultArgValue string) {
-	effective := c.varCollection.AddActive(argKey, variables.NewConstant(defaultArgValue), false)
+func (c *Converter) Arg(ctx context.Context, argKey string, defaultArgValue string, global bool) {
+	effective := c.varCollection.AddActive(argKey, variables.NewConstant(defaultArgValue), false, global)
 	c.mts.Final.TargetInput = c.mts.Final.TargetInput.WithBuildArgInput(
 		effective.BuildArgInput(argKey, defaultArgValue))
 }
@@ -588,6 +596,7 @@ func (c *Converter) FinalizeStates(ctx context.Context) (*states.MultiTarget, er
 		c.mts.Final.DepsRefs = append(c.mts.Final.DepsRefs, ref)
 	}
 	c.buildContextProvider.AddDirs(c.mts.Final.LocalDirs)
+	c.mts.Final.VarCollection = c.varCollection
 
 	c.mts.Final.Ongoing = false
 	return c.mts, nil
@@ -737,7 +746,7 @@ func (c *Converter) applyFromImage(state llb.State, img *image.Image) (llb.State
 	newVarCollection := c.varCollection.WithResetEnvVars()
 	for _, envVar := range img.Config.Env {
 		k, v := variables.ParseKeyValue(envVar)
-		newVarCollection.AddActive(k, variables.NewConstantEnvVar(v), true)
+		newVarCollection.AddActive(k, variables.NewConstantEnvVar(v), true, false)
 		state = state.AddEnv(k, v)
 	}
 	// Init config maps if not already initialized.

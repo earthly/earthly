@@ -37,7 +37,7 @@ import (
 	"github.com/earthly/earthly/docker2earth"
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/earthfile2llb"
-	"github.com/earthly/earthly/earthfile2llb/variables"
+	"github.com/earthly/earthly/variables"
 	"github.com/earthly/earthly/fileutils"
 	"github.com/earthly/earthly/llbutil"
 	"github.com/earthly/earthly/secretsclient"
