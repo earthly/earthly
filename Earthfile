@@ -39,7 +39,7 @@ code:
 
 lint-scripts:
     FROM +deps
-    COPY ./earth ./buildkitd/entrypoint.sh ./earth-buildkitd-wrapper.sh \
+    COPY ./earth ./scripts/install-all-versions.sh ./buildkitd/entrypoint.sh ./earth-buildkitd-wrapper.sh \
         ./buildkitd/dockerd-wrapper.sh ./buildkitd/docker-auto-install.sh \
         ./release/envcredhelper.sh ./.buildkite/*.sh \
         ./.tests/private-repo.sh \
