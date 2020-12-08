@@ -963,6 +963,9 @@ func (app *earthApp) insertZSHCompleteEntry() error {
 
 func (app *earthApp) run(ctx context.Context, args []string) int {
 	err := app.cliApp.RunContext(ctx, args)
+
+	rpcRegex := regexp.MustCompile(`rpc error: code = .+ desc = .+:\s`)
+
 	if err != nil {
 		if strings.Contains(err.Error(), "security.insecure is not allowed") {
 			app.console.Warnf("Error: --allow-privileged (-P) flag is required\n")
@@ -972,6 +975,11 @@ func (app *earthApp) run(ctx context.Context, args []string) int {
 				"Check your git auth settings.\n" +
 					"Did you ssh-add today? Need to configure ~/.earthly/config.yml?\n" +
 					"For more information see https://docs.earthly.dev/guides/auth\n")
+		} else if !app.verbose && rpcRegex.MatchString(err.Error()) {
+			baseErr := errors.Cause(err)
+			baseErrMsg := rpcRegex.ReplaceAll([]byte(baseErr.Error()), []byte(""))
+
+			app.console.Warnf("Error: %v\n", string(baseErrMsg))
 		} else {
 			app.console.Warnf("Error: %v\n", err)
 		}
