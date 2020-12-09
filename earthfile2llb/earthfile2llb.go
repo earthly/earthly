@@ -44,6 +44,8 @@ type ConvertOpt struct {
 	BuildContextProvider *provider.BuildContextProvider
 	// MetaResolver is the image meta resolver to use for resolving image metadata.
 	MetaResolver llb.ImageMetaResolver
+	// CacheImport is the docker tag that can be used to import cache.
+	CacheImport string
 }
 
 // Earthfile2LLB parses a earthfile and executes the statements for a given target.

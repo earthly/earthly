@@ -338,7 +338,7 @@ func (wdr *withDockerRun) getComposeConfig(ctx context.Context, opt WithDockerOp
 		llb.WithCustomNamef("%sWITH DOCKER (docker-compose config)", wdr.c.vertexPrefix()),
 	}
 	state := wdr.c.mts.Final.MainState.Run(runOpts...).Root()
-	ref, err := llbutil.StateToRef(ctx, wdr.c.gwClient, state)
+	ref, err := llbutil.StateToRef(ctx, wdr.c.gwClient, state, wdr.c.cacheImport)
 	if err != nil {
 		return nil, errors.Wrap(err, "state to ref compose config")
 	}

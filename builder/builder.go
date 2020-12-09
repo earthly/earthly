@@ -42,7 +42,8 @@ type Opt struct {
 	Attachables          []session.Attachable
 	Enttlmnts            []entitlements.Entitlement
 	NoCache              bool
-	RemoteCache          string
+	CacheImport          string
+	CacheExport          string
 	ImageResolveMode     llb.ResolveMode
 	CleanCollection      *cleanup.Collection
 	VarCollection        *variables.Collection
@@ -73,7 +74,8 @@ func NewBuilder(ctx context.Context, opt Opt) (*Builder, error) {
 		s: &solver{
 			sm:          newSolverMonitor(opt.Console, opt.Verbose),
 			bkClient:    opt.BkClient,
-			remoteCache: opt.RemoteCache,
+			cacheImport: opt.CacheImport,
+			cacheExport: opt.CacheExport,
 			attachables: opt.Attachables,
 			enttlmnts:   opt.Enttlmnts,
 		},
@@ -125,6 +127,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 			CleanCollection:      b.opt.CleanCollection,
 			VarCollection:        b.opt.VarCollection,
 			BuildContextProvider: b.opt.BuildContextProvider,
+			CacheImport:          b.opt.CacheImport,
 		})
 		if err != nil {
 			return nil, err
@@ -317,7 +320,7 @@ func (b *Builder) stateToRef(ctx context.Context, gwClient gwclient.Client, stat
 	if b.opt.NoCache {
 		state = state.SetMarshalDefaults(llb.IgnoreCache)
 	}
-	return llbutil.StateToRef(ctx, gwClient, state)
+	return llbutil.StateToRef(ctx, gwClient, state, b.opt.CacheImport)
 }
 
 func (b *Builder) buildOnlyLastImageAsTar(ctx context.Context, mts *states.MultiTarget, dockerTag string, outFile string, opt BuildOpt) error {

@@ -29,7 +29,8 @@ type solver struct {
 	bkClient    *client.Client
 	attachables []session.Attachable
 	enttlmnts   []entitlements.Entitlement
-	remoteCache string
+	cacheImport string
+	cacheExport string
 }
 
 func (s *solver) solveDockerTar(ctx context.Context, state llb.State, img *image.Image, dockerTag string, outFile string) error {
@@ -88,37 +89,6 @@ func (s *solver) solveDockerTar(ctx context.Context, state llb.State, img *image
 			pipeR.Close()
 		}
 	}()
-	err = eg.Wait()
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func (s *solver) solveArtifacts(ctx context.Context, state llb.State, outDir string) error {
-	dt, err := state.Marshal(ctx, llb.Platform(llbutil.TargetPlatform))
-	if err != nil {
-		return errors.Wrap(err, "state marshal")
-	}
-	solveOpt, err := s.newSolveOptArtifacts(outDir)
-	if err != nil {
-		return errors.Wrap(err, "new solve opt")
-	}
-	ch := make(chan *client.SolveStatus)
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
-	eg, ctx := errgroup.WithContext(ctx)
-	eg.Go(func() error {
-		var err error
-		_, err = s.bkClient.Solve(ctx, dt, *solveOpt, ch)
-		if err != nil {
-			return errors.Wrap(err, "solve")
-		}
-		return nil
-	})
-	eg.Go(func() error {
-		return s.sm.monitorProgress(ctx, ch)
-	})
 	err = eg.Wait()
 	if err != nil {
 		return err
@@ -189,6 +159,10 @@ func (s *solver) newSolveOptDocker(img *image.Image, dockerTag string, w io.Writ
 	if err != nil {
 		return nil, errors.Wrap(err, "image json marshal")
 	}
+	var cacheImports []client.CacheOptionsEntry
+	if s.cacheImport != "" {
+		cacheImports = append(cacheImports, newRegistryCacheOpt(s.cacheImport))
+	}
 	return &client.SolveOpt{
 		Exports: []client.ExportEntry{
 			{
@@ -202,25 +176,21 @@ func (s *solver) newSolveOptDocker(img *image.Image, dockerTag string, w io.Writ
 				},
 			},
 		},
-		Session:             s.attachables,
-		AllowedEntitlements: s.enttlmnts,
-	}, nil
-}
-
-func (s *solver) newSolveOptArtifacts(outDir string) (*client.SolveOpt, error) {
-	return &client.SolveOpt{
-		Exports: []client.ExportEntry{
-			{
-				Type:      client.ExporterLocal,
-				OutputDir: outDir,
-			},
-		},
+		CacheImports:        cacheImports,
 		Session:             s.attachables,
 		AllowedEntitlements: s.enttlmnts,
 	}, nil
 }
 
 func (s *solver) newSolveOptMulti(ctx context.Context, eg *errgroup.Group, onImage onImageFunc, onArtifact onArtifactFunc, onFinalArtifact onFinalArtifactFunc) (*client.SolveOpt, error) {
+	var cacheImports []client.CacheOptionsEntry
+	if s.cacheImport != "" {
+		cacheImports = append(cacheImports, newRegistryCacheOpt(s.cacheImport))
+	}
+	var cacheExports []client.CacheOptionsEntry
+	if s.cacheExport != "" {
+		cacheExports = append(cacheExports, newRegistryCacheOpt(s.cacheExport))
+	}
 	return &client.SolveOpt{
 		Exports: []client.ExportEntry{
 			{
@@ -263,21 +233,27 @@ func (s *solver) newSolveOptMulti(ctx context.Context, eg *errgroup.Group, onIma
 				},
 			},
 		},
+		CacheImports:        cacheImports,
+		CacheExports:        cacheExports,
 		Session:             s.attachables,
 		AllowedEntitlements: s.enttlmnts,
 	}, nil
 }
 
 func (s *solver) newSolveOptMain() (*client.SolveOpt, error) {
-	var cacheImportExport []client.CacheOptionsEntry
-	if s.remoteCache != "" {
-		cacheImportExport = append(cacheImportExport, newRegistryCacheOpt(s.remoteCache))
+	var cacheImports []client.CacheOptionsEntry
+	if s.cacheImport != "" {
+		cacheImports = append(cacheImports, newRegistryCacheOpt(s.cacheImport))
+	}
+	var cacheExports []client.CacheOptionsEntry
+	if s.cacheExport != "" {
+		cacheExports = append(cacheExports, newRegistryCacheOpt(s.cacheExport))
 	}
 	return &client.SolveOpt{
 		Session:             s.attachables,
 		AllowedEntitlements: s.enttlmnts,
-		CacheImports:        cacheImportExport,
-		CacheExports:        cacheImportExport,
+		CacheImports:        cacheImports,
+		CacheExports:        cacheExports,
 	}, nil
 }
 

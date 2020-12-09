@@ -140,12 +140,13 @@ func (vm *vertexMonitor) printOutput(output []byte, sameAsLast bool) error {
 	return nil
 }
 
-func (vm *vertexMonitor) printError() {
+func (vm *vertexMonitor) printError() bool {
 	if strings.Contains(vm.vertex.Error, "executor failed running") {
 		vm.console.Warnf("ERROR: Command exited with non-zero code: %s\n", vm.operation)
-	} else {
-		vm.console.Warnf("ERROR: (%s) %s\n", vm.operation, vm.vertex.Error)
+		return true
 	}
+	vm.console.Printf("WARN: (%s) %s\n", vm.operation, vm.vertex.Error)
+	return false
 }
 
 func (vm *vertexMonitor) printTimingInfo() {
@@ -218,11 +219,10 @@ Loop:
 							vm.console.Printf("WARN: Canceled\n")
 						}
 					} else {
-						vm.isError = true
-						if errVertex == nil {
+						vm.isError = vm.printError()
+						if errVertex == nil && vm.isError {
 							errVertex = vm
 						}
-						vm.printError()
 					}
 				}
 				if sm.verbose {
@@ -372,6 +372,11 @@ func parseVertexName(vertexName string) (string, string, string, string) {
 	targetBrackets := ""
 	operation := ""
 	salt := ""
+	if strings.HasPrefix(vertexName, "importing cache manifest") ||
+		strings.HasPrefix(vertexName, "preparing build cache for export") ||
+		strings.HasPrefix(vertexName, "exporting cache") {
+		return "cache", targetBrackets, "cache", vertexName
+	}
 	match := vertexRegexp.FindStringSubmatch(vertexName)
 	if len(match) < 2 {
 		return "internal", targetBrackets, "internal", vertexName
