@@ -109,6 +109,27 @@ jobs:
         run: earth +for-linux
       - name: run ssh-based tests
         run: env -u GIT_URL_INSTEAD_OF earth=./build/linux/amd64/earth .tests/private-repo.sh
+  private-repo-test:
+    services:
+      sshd:
+        image: rastasheep/ubuntu-sshd:18.04
+        ports:
+          - 22
+    name: private repo test
+    runs-on: ubuntu-latest
+    env:
+      GIT_URL_INSTEAD_OF: "https://github.com/=git@github.com:"
+      FORCE_COLOR: 1
+      EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
+      SSH_PORT: ${{ job.services.sshd.ports[22] }}
+    steps:
+      - uses: actions/checkout@v2
+      - name: install sshpass
+        run: apt-get -yq sshpass
+      - name: hostanem
+        run: hostname
+      - name: try to ssh to server
+        run: sshpass -p "root" ssh -o StrictHostKeyChecking=no root@sshd -p $SSH_PORT hostname
   push:
     name: --push +all
     if: github.event_name == 'push'
