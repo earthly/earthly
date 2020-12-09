@@ -49,6 +49,7 @@ ga:
     BUILD +empty-git-test
     BUILD +escape-test
     BUILD +escape-dir-test
+    BUILD +fail-invalid-artifact-test
     BUILD ./autocompletion+test-all
     BUILD ./with-docker+all
     BUILD ./with-docker-compose+all
@@ -270,6 +271,18 @@ fail-push-test:
         --mount=type=tmpfs,target=/tmp/earthly \
         /usr/bin/earth-buildkitd-wrapper.sh --push +test-push 2>&1 | perl -pe 'BEGIN {$status=1} END {exit $status} $status=0 if /this-too-will-fail/;'
     RUN echo hello world
+
+fail-invalid-artifact-test:
+    # test that the artifact fails to be copied
+    COPY fail-invalid-artifact.earth ./Earthfile
+    RUN --privileged \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        ! /usr/bin/earth-buildkitd-wrapper.sh --artifact +test/foo /tmp/stuff
+    # test that we echo a message containing the invalid artifact name
+    COPY fail-invalid-artifact.earth ./Earthfile
+    RUN --privileged \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        /usr/bin/earth-buildkitd-wrapper.sh --artifact +test/foo /tmp/stuff 2>&1 | perl -pe 'BEGIN {$status=1} END {exit $status} $status=0 if /\+test\/foo/;'
 
 push-test:
     COPY push.earth ./Earthfile
