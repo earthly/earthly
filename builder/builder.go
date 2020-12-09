@@ -382,6 +382,8 @@ func (b *Builder) saveArtifactLocally(ctx context.Context, artifact domain.Artif
 	fromGlobMatches, err := filepath.Glob(fromPattern)
 	if err != nil {
 		return errors.Wrapf(err, "glob")
+	} else if len(fromGlobMatches) <= 0 {
+		return fmt.Errorf("cannot save artifact %s, since it does not exist", artifact.StringCanonical())
 	}
 	isWildcard := (len(fromGlobMatches) > 1)
 	for _, from := range fromGlobMatches {
