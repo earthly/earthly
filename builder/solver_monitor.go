@@ -144,10 +144,9 @@ func (vm *vertexMonitor) printError() bool {
 	if strings.Contains(vm.vertex.Error, "executor failed running") {
 		vm.console.Warnf("ERROR: Command exited with non-zero code: %s\n", vm.operation)
 		return true
-	} else {
-		vm.console.Printf("WARN: (%s) %s\n", vm.operation, vm.vertex.Error)
-		return false
 	}
+	vm.console.Printf("WARN: (%s) %s\n", vm.operation, vm.vertex.Error)
+	return false
 }
 
 func (vm *vertexMonitor) printTimingInfo() {
