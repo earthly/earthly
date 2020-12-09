@@ -50,6 +50,7 @@ ga:
     BUILD +escape-test
     BUILD +escape-dir-test
     BUILD +fail-invalid-artifact-test
+    BUILD +target-first-line
     BUILD ./autocompletion+test-all
     BUILD ./with-docker+all
     BUILD ./with-docker-compose+all
@@ -405,3 +406,10 @@ eine-privileged-test:
     WITH DOCKER --load earthly/buildkitd:dind-test=../../buildkitd+buildkitd
         RUN earth --allow-privileged +test
     END
+
+target-first-line:
+    COPY target-first-line.earth ./Earthfile
+    RUN --privileged \
+        --entrypoint \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        -- --no-output +test
