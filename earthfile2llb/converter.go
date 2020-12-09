@@ -50,6 +50,7 @@ type Converter struct {
 	imageResolveMode     llb.ResolveMode
 	buildContextProvider *provider.BuildContextProvider
 	metaResolver         llb.ImageMetaResolver
+	cacheImport          string
 }
 
 // NewConverter constructs a new converter for a given earth target.
@@ -90,6 +91,7 @@ func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Da
 		solveCache:           opt.SolveCache,
 		buildContextProvider: opt.BuildContextProvider,
 		metaResolver:         opt.MetaResolver,
+		cacheImport:          opt.CacheImport,
 	}, nil
 }
 
@@ -419,6 +421,7 @@ func (c *Converter) Build(ctx context.Context, fullTargetName string, buildArgs 
 			SolveCache:           c.solveCache,
 			BuildContextProvider: c.buildContextProvider,
 			MetaResolver:         c.metaResolver,
+			CacheImport:          c.cacheImport,
 		})
 	if err != nil {
 		return nil, errors.Wrapf(err, "earthfile2llb for %s", fullTargetName)
@@ -579,19 +582,9 @@ func (c *Converter) Healthcheck(ctx context.Context, isNone bool, cmdArgs []stri
 func (c *Converter) FinalizeStates(ctx context.Context) (*states.MultiTarget, error) {
 	// Store refs for all dep states.
 	for _, depStates := range c.directDeps {
-		def, err := depStates.MainState.Marshal(ctx)
+		ref, err := llbutil.StateToRef(ctx, c.gwClient, depStates.MainState, c.cacheImport)
 		if err != nil {
-			return nil, errors.Wrapf(err, "marshal dep %s", depStates.Target.String())
-		}
-		r, err := c.gwClient.Solve(ctx, gwclient.SolveRequest{
-			Definition: def.ToPB(),
-		})
-		if err != nil {
-			return nil, errors.Wrap(err, "gw solve")
-		}
-		ref, err := r.SingleRef()
-		if err != nil {
-			return nil, errors.Wrap(err, "single ref")
+			return nil, errors.Wrap(err, "state2ref")
 		}
 		c.mts.Final.DepsRefs = append(c.mts.Final.DepsRefs, ref)
 	}
@@ -690,7 +683,7 @@ func (c *Converter) readArtifact(ctx context.Context, mts *states.MultiTarget, a
 		// ArtifactsState is scratch - no artifact has been copied.
 		return nil, errors.Errorf("artifact %s not found; no SAVE ARTIFACT command was issued in %s", artifact.String(), artifact.Target.String())
 	}
-	ref, err := llbutil.StateToRef(ctx, c.gwClient, mts.Final.ArtifactsState)
+	ref, err := llbutil.StateToRef(ctx, c.gwClient, mts.Final.ArtifactsState, c.cacheImport)
 	if err != nil {
 		return nil, errors.Wrap(err, "state to ref solve artifact")
 	}

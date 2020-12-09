@@ -79,6 +79,7 @@ type cliFlags struct {
 	imageMode              bool
 	pull                   bool
 	push                   bool
+	ci                     bool
 	noOutput               bool
 	noCache                bool
 	pruneAll               bool
@@ -286,6 +287,13 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 			EnvVars:     []string{"EARTHLY_PUSH"},
 			Usage:       "Push docker images and execute RUN --push commands",
 			Destination: &app.push,
+		},
+		&cli.BoolFlag{
+			Name:        "ci",
+			EnvVars:     []string{"EARTHLY_CI"},
+			Usage:       "Execute in CI mode (upload remote cache)",
+			Destination: &app.ci,
+			Hidden:      true, // Experimental.
 		},
 		&cli.BoolFlag{
 			Name:        "no-output",
@@ -1917,6 +1925,11 @@ func (app *earthApp) actionBuild(c *cli.Context) error {
 	if app.pull {
 		imageResolveMode = llb.ResolveModeForcePull
 	}
+
+	var cacheExport string
+	if app.ci {
+		cacheExport = app.remoteCache
+	}
 	builderOpts := builder.Opt{
 		BkClient:             bkClient,
 		Console:              app.console,
@@ -1924,7 +1937,8 @@ func (app *earthApp) actionBuild(c *cli.Context) error {
 		Attachables:          attachables,
 		Enttlmnts:            enttlmnts,
 		NoCache:              app.noCache,
-		RemoteCache:          app.remoteCache,
+		CacheImport:          app.remoteCache,
+		CacheExport:          cacheExport,
 		SessionID:            app.sessionID,
 		ImageResolveMode:     imageResolveMode,
 		CleanCollection:      cleanCollection,
