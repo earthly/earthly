@@ -2061,7 +2061,11 @@ func (app *earthApp) updateGitLookupConfig(gitLookup *buildcontext.GitLookup) er
 		if auth == "auto" {
 			auth = autoProtocol
 		}
-		err := gitLookup.AddMatcher(k, pattern, v.User, v.Password, v.Suffix, auth, v.KeyScan)
+		suffix := v.Suffix
+		if suffix == "" {
+			suffix = ".git"
+		}
+		err := gitLookup.AddMatcher(k, pattern, v.Substitute, v.User, v.Password, suffix, auth, v.KeyScan)
 		if err != nil {
 			return errors.Wrap(err, "gitlookup")
 		}

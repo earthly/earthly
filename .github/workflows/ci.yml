@@ -109,6 +109,32 @@ jobs:
         run: earth +for-linux
       - name: run ssh-based tests
         run: env -u GIT_URL_INSTEAD_OF earth=./build/linux/amd64/earth .tests/private-repo.sh
+  private-repo-test:
+    services:
+      sshd:
+        image: rastasheep/ubuntu-sshd:18.04
+        ports:
+          - 2222:22
+    name: private repo test
+    runs-on: ubuntu-latest
+    env:
+      GIT_URL_INSTEAD_OF: "https://github.com/=git@github.com:"
+      FORCE_COLOR: 1
+      EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
+      SSH_PORT: "2222"
+    steps:
+      - uses: actions/checkout@v2
+      - name: install sshpass
+        run: sudo apt-get install -y sshpass
+      - name: Download released earth
+        run: "sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/latest/download/earth-linux-amd64 -O /usr/local/bin/earth && chmod +x /usr/local/bin/earth'"
+      - name: Docker Login
+        run: docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password "${{ secrets.DOCKERHUB_TOKEN }}"
+      - name: Build latest earth using released earth
+        run: earth +for-linux
+      - name: run ssh-based tests
+        run: env -u GIT_URL_INSTEAD_OF earth=./build/linux/amd64/earth .tests/self-hosted-private-repo.sh
+
   push:
     name: --push +all
     if: github.event_name == 'push'
