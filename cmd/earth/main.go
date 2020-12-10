@@ -90,6 +90,7 @@ type cliFlags struct {
 	buildkitHost           string
 	buildkitdImage         string
 	remoteCache            string
+	inlineCache            bool
 	configPath             string
 	gitUsernameOverride    string
 	gitPasswordOverride    string
@@ -385,6 +386,13 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 			EnvVars:     []string{"EARTHLY_REMOTE_CACHE"},
 			Usage:       "A remote docker image repository to be used as build cache",
 			Destination: &app.remoteCache,
+			Hidden:      true, // Experimental.
+		},
+		&cli.BoolFlag{
+			Name:        "inline-cache",
+			EnvVars:     []string{"EARTHLY_INLINE_CACHE"},
+			Usage:       "Enable cache inlining in Earthly",
+			Destination: &app.inlineCache,
 			Hidden:      true, // Experimental.
 		},
 		&cli.BoolFlag{
@@ -1938,6 +1946,10 @@ func (app *earthApp) actionBuild(c *cli.Context) error {
 	if app.ci {
 		cacheExport = app.remoteCache
 	}
+	var cacheImports []string
+	if app.remoteCache != "" {
+		cacheImports = append(cacheImports, app.remoteCache)
+	}
 	builderOpts := builder.Opt{
 		BkClient:             bkClient,
 		Console:              app.console,
@@ -1945,8 +1957,9 @@ func (app *earthApp) actionBuild(c *cli.Context) error {
 		Attachables:          attachables,
 		Enttlmnts:            enttlmnts,
 		NoCache:              app.noCache,
-		CacheImport:          app.remoteCache,
+		CacheImports:         cacheImports,
 		CacheExport:          cacheExport,
+		InlineCache:          app.inlineCache,
 		SessionID:            app.sessionID,
 		ImageResolveMode:     imageResolveMode,
 		CleanCollection:      cleanCollection,

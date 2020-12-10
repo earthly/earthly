@@ -42,8 +42,9 @@ type Opt struct {
 	Attachables          []session.Attachable
 	Enttlmnts            []entitlements.Entitlement
 	NoCache              bool
-	CacheImport          string
+	CacheImports         []string
 	CacheExport          string
+	InlineCache          bool
 	ImageResolveMode     llb.ResolveMode
 	CleanCollection      *cleanup.Collection
 	VarCollection        *variables.Collection
@@ -72,12 +73,12 @@ type Builder struct {
 func NewBuilder(ctx context.Context, opt Opt) (*Builder, error) {
 	b := &Builder{
 		s: &solver{
-			sm:          newSolverMonitor(opt.Console, opt.Verbose),
-			bkClient:    opt.BkClient,
-			cacheImport: opt.CacheImport,
-			cacheExport: opt.CacheExport,
-			attachables: opt.Attachables,
-			enttlmnts:   opt.Enttlmnts,
+			sm:           newSolverMonitor(opt.Console, opt.Verbose),
+			bkClient:     opt.BkClient,
+			cacheImports: opt.CacheImports,
+			cacheExport:  opt.CacheExport,
+			attachables:  opt.Attachables,
+			enttlmnts:    opt.Enttlmnts,
 		},
 		opt:      opt,
 		resolver: nil, // initialized below
@@ -127,7 +128,8 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 			CleanCollection:      b.opt.CleanCollection,
 			VarCollection:        b.opt.VarCollection,
 			BuildContextProvider: b.opt.BuildContextProvider,
-			CacheImport:          b.opt.CacheImport,
+			CacheImports:         b.opt.CacheImports,
+			InlineCache:          b.opt.InlineCache,
 		})
 		if err != nil {
 			return nil, err
@@ -172,6 +174,9 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 				refKey := fmt.Sprintf("image-%d", imageIndex)
 				refPrefix := fmt.Sprintf("ref/%s", refKey)
 				res.AddMeta(fmt.Sprintf("%s/image.name", refPrefix), []byte(saveImage.DockerTag))
+				if opt.Push && saveImage.Push && !sts.Target.IsRemote() {
+					res.AddMeta(fmt.Sprintf("%s/push", refPrefix), []byte("true"))
+				}
 				res.AddMeta(fmt.Sprintf("%s/%s", refPrefix, exptypes.ExporterImageConfigKey), config)
 				if !opt.NoOutput && opt.OnlyArtifact == nil && !(opt.OnlyFinalTargetImages && sts != mts.Final) {
 					res.AddMeta(fmt.Sprintf("%s/export-image", refPrefix), []byte("true"))
@@ -254,12 +259,6 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 		for _, saveImage := range mts.Final.SaveImages {
 			shouldPush := opt.Push && saveImage.Push
 			console := b.opt.Console.WithPrefixAndSalt(mts.Final.Target.String(), mts.Final.Salt)
-			if shouldPush {
-				err := pushDockerImage(ctx, saveImage.DockerTag)
-				if err != nil {
-					return nil, err
-				}
-			}
 			pushStr := ""
 			if shouldPush {
 				pushStr = " (pushed)"
@@ -277,12 +276,6 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 			for _, saveImage := range sts.SaveImages {
 				shouldPush := opt.Push && saveImage.Push && !sts.Target.IsRemote()
 				console := b.opt.Console.WithPrefixAndSalt(sts.Target.String(), sts.Salt)
-				if shouldPush {
-					err := pushDockerImage(ctx, saveImage.DockerTag)
-					if err != nil {
-						return nil, err
-					}
-				}
 				pushStr := ""
 				if shouldPush {
 					pushStr = " (pushed)"
@@ -320,7 +313,7 @@ func (b *Builder) stateToRef(ctx context.Context, gwClient gwclient.Client, stat
 	if b.opt.NoCache {
 		state = state.SetMarshalDefaults(llb.IgnoreCache)
 	}
-	return llbutil.StateToRef(ctx, gwClient, state, b.opt.CacheImport)
+	return llbutil.StateToRef(ctx, gwClient, state, b.opt.CacheImports)
 }
 
 func (b *Builder) buildOnlyLastImageAsTar(ctx context.Context, mts *states.MultiTarget, dockerTag string, outFile string, opt BuildOpt) error {
@@ -481,17 +474,6 @@ func loadDockerTar(ctx context.Context, r io.ReadCloser) error {
 	err := cmd.Run()
 	if err != nil {
 		return errors.Wrap(err, "docker load")
-	}
-	return nil
-}
-
-func pushDockerImage(ctx context.Context, imageName string) error {
-	cmd := exec.CommandContext(ctx, "docker", "push", imageName)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	err := cmd.Run()
-	if err != nil {
-		return errors.Wrapf(err, "docker push %s", imageName)
 	}
 	return nil
 }

@@ -25,12 +25,12 @@ type onArtifactFunc func(context.Context, int, domain.Artifact, string, string) 
 type onFinalArtifactFunc func(context.Context) (string, error)
 
 type solver struct {
-	sm          *solverMonitor
-	bkClient    *client.Client
-	attachables []session.Attachable
-	enttlmnts   []entitlements.Entitlement
-	cacheImport string
-	cacheExport string
+	sm           *solverMonitor
+	bkClient     *client.Client
+	attachables  []session.Attachable
+	enttlmnts    []entitlements.Entitlement
+	cacheImports []string
+	cacheExport  string
 }
 
 func (s *solver) solveDockerTar(ctx context.Context, state llb.State, img *image.Image, dockerTag string, outFile string) error {
@@ -160,8 +160,8 @@ func (s *solver) newSolveOptDocker(img *image.Image, dockerTag string, w io.Writ
 		return nil, errors.Wrap(err, "image json marshal")
 	}
 	var cacheImports []client.CacheOptionsEntry
-	if s.cacheImport != "" {
-		cacheImports = append(cacheImports, newRegistryCacheOpt(s.cacheImport))
+	for _, ci := range s.cacheImports {
+		cacheImports = append(cacheImports, newRegistryCacheOpt(ci))
 	}
 	return &client.SolveOpt{
 		Exports: []client.ExportEntry{
@@ -184,13 +184,14 @@ func (s *solver) newSolveOptDocker(img *image.Image, dockerTag string, w io.Writ
 
 func (s *solver) newSolveOptMulti(ctx context.Context, eg *errgroup.Group, onImage onImageFunc, onArtifact onArtifactFunc, onFinalArtifact onFinalArtifactFunc) (*client.SolveOpt, error) {
 	var cacheImports []client.CacheOptionsEntry
-	if s.cacheImport != "" {
-		cacheImports = append(cacheImports, newRegistryCacheOpt(s.cacheImport))
+	for _, ci := range s.cacheImports {
+		cacheImports = append(cacheImports, newRegistryCacheOpt(ci))
 	}
 	var cacheExports []client.CacheOptionsEntry
 	if s.cacheExport != "" {
 		cacheExports = append(cacheExports, newRegistryCacheOpt(s.cacheExport))
 	}
+	cacheExports = append(cacheExports, newInlineCacheOpt())
 	return &client.SolveOpt{
 		Exports: []client.ExportEntry{
 			{
@@ -242,8 +243,8 @@ func (s *solver) newSolveOptMulti(ctx context.Context, eg *errgroup.Group, onIma
 
 func (s *solver) newSolveOptMain() (*client.SolveOpt, error) {
 	var cacheImports []client.CacheOptionsEntry
-	if s.cacheImport != "" {
-		cacheImports = append(cacheImports, newRegistryCacheOpt(s.cacheImport))
+	for _, ci := range s.cacheImports {
+		cacheImports = append(cacheImports, newRegistryCacheOpt(ci))
 	}
 	var cacheExports []client.CacheOptionsEntry
 	if s.cacheExport != "" {
@@ -260,9 +261,14 @@ func (s *solver) newSolveOptMain() (*client.SolveOpt, error) {
 func newRegistryCacheOpt(ref string) client.CacheOptionsEntry {
 	registryCacheOptAttrs := make(map[string]string)
 	registryCacheOptAttrs["ref"] = ref
-	registryCacheOptAttrs["mode"] = "max"
 	return client.CacheOptionsEntry{
 		Type:  "registry",
 		Attrs: registryCacheOptAttrs,
+	}
+}
+
+func newInlineCacheOpt() client.CacheOptionsEntry {
+	return client.CacheOptionsEntry{
+		Type: "inline",
 	}
 }

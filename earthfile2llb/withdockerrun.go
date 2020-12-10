@@ -262,7 +262,7 @@ func (wdr *withDockerRun) solveImage(ctx context.Context, mts *states.MultiTarge
 	if err != nil {
 		return errors.Wrap(err, "target input hash")
 	}
-	tarContext, found := wdr.c.solveCache[solveID]
+	tarContext, found := wdr.c.opt.SolveCache[solveID]
 	if found {
 		wdr.tarLoads = append(wdr.tarLoads, tarContext)
 		return nil
@@ -273,11 +273,11 @@ func (wdr *withDockerRun) solveImage(ctx context.Context, mts *states.MultiTarge
 	if err != nil {
 		return errors.Wrap(err, "mk temp dir for docker load")
 	}
-	wdr.c.cleanCollection.Add(func() error {
+	wdr.c.opt.CleanCollection.Add(func() error {
 		return os.RemoveAll(outDir)
 	})
 	outFile := path.Join(outDir, "image.tar")
-	err = wdr.c.dockerBuilderFun(ctx, mts, dockerTag, outFile)
+	err = wdr.c.opt.DockerBuilderFun(ctx, mts, dockerTag, outFile)
 	if err != nil {
 		return errors.Wrapf(err, "build target %s for docker load", opName)
 	}
@@ -301,7 +301,7 @@ func (wdr *withDockerRun) solveImage(ctx context.Context, mts *states.MultiTarge
 	)
 	wdr.tarLoads = append(wdr.tarLoads, tarContext)
 	wdr.c.mts.Final.LocalDirs[solveID] = outDir
-	wdr.c.solveCache[solveID] = tarContext
+	wdr.c.opt.SolveCache[solveID] = tarContext
 	return nil
 }
 
@@ -338,7 +338,7 @@ func (wdr *withDockerRun) getComposeConfig(ctx context.Context, opt WithDockerOp
 		llb.WithCustomNamef("%sWITH DOCKER (docker-compose config)", wdr.c.vertexPrefix()),
 	}
 	state := wdr.c.mts.Final.MainState.Run(runOpts...).Root()
-	ref, err := llbutil.StateToRef(ctx, wdr.c.gwClient, state, wdr.c.cacheImport)
+	ref, err := llbutil.StateToRef(ctx, wdr.c.opt.GwClient, state, wdr.c.cacheImports)
 	if err != nil {
 		return nil, errors.Wrap(err, "state to ref compose config")
 	}
