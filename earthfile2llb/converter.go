@@ -41,7 +41,6 @@ type Converter struct {
 	cacheContext     llb.State
 	varCollection    *variables.Collection
 	nextArgIndex     int
-	cacheImports     []string
 }
 
 // NewConverter constructs a new converter for a given earth target.
@@ -75,7 +74,6 @@ func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Da
 		buildContext:  bc.BuildContext,
 		cacheContext:  makeCacheContext(target),
 		varCollection: opt.VarCollection.WithBuiltinBuildArgs(target, bc.GitMetadata),
-		cacheImports:  opt.CacheImports[:],
 	}, nil
 }
 
@@ -371,7 +369,8 @@ func (c *Converter) SaveImage(ctx context.Context, imageNames []string, pushImag
 			Push:      pushImages,
 		})
 		if pushImages && imageName != "" && c.opt.InlineCache {
-			c.cacheImports = append(c.cacheImports, imageName)
+			// Use this image tag as cache import too.
+			c.opt.CacheImports[imageName] = true
 		}
 	}
 	return nil
@@ -557,14 +556,6 @@ func (c *Converter) Healthcheck(ctx context.Context, isNone bool, cmdArgs []stri
 
 // FinalizeStates returns the LLB states.
 func (c *Converter) FinalizeStates(ctx context.Context) (*states.MultiTarget, error) {
-	// Store refs for all dep states.
-	for _, depStates := range c.directDeps {
-		ref, err := llbutil.StateToRef(ctx, c.opt.GwClient, depStates.MainState, c.cacheImports)
-		if err != nil {
-			return nil, errors.Wrap(err, "state2ref")
-		}
-		c.mts.Final.DepsRefs = append(c.mts.Final.DepsRefs, ref)
-	}
 	c.opt.BuildContextProvider.AddDirs(c.mts.Final.LocalDirs)
 	c.mts.Final.VarCollection = c.varCollection
 
@@ -660,7 +651,7 @@ func (c *Converter) readArtifact(ctx context.Context, mts *states.MultiTarget, a
 		// ArtifactsState is scratch - no artifact has been copied.
 		return nil, errors.Errorf("artifact %s not found; no SAVE ARTIFACT command was issued in %s", artifact.String(), artifact.Target.String())
 	}
-	ref, err := llbutil.StateToRef(ctx, c.opt.GwClient, mts.Final.ArtifactsState, c.cacheImports)
+	ref, err := llbutil.StateToRef(ctx, c.opt.GwClient, mts.Final.ArtifactsState, c.opt.CacheImports)
 	if err != nil {
 		return nil, errors.Wrap(err, "state to ref solve artifact")
 	}

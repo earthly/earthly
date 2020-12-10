@@ -2,6 +2,8 @@ package llbutil
 
 import (
 	"context"
+	"fmt"
+	"sort"
 
 	"github.com/moby/buildkit/client/llb"
 	gwclient "github.com/moby/buildkit/frontend/gateway/client"
@@ -9,9 +11,15 @@ import (
 )
 
 // StateToRef takes an LLB state, solves it using gateway and returns the ref.
-func StateToRef(ctx context.Context, gwClient gwclient.Client, state llb.State, cacheImports []string) (gwclient.Reference, error) {
+func StateToRef(ctx context.Context, gwClient gwclient.Client, state llb.State, cacheImports map[string]bool) (gwclient.Reference, error) {
+	cacheImportsSlice := make([]string, 0, len(cacheImports))
+	for ci := range cacheImports {
+		cacheImportsSlice = append(cacheImportsSlice, ci)
+	}
+	sort.Strings(cacheImportsSlice)
+	fmt.Printf("@#@#@#@# statetoref with cacheImports %+v\n", cacheImportsSlice)
 	var coes []gwclient.CacheOptionsEntry
-	for _, ci := range cacheImports {
+	for _, ci := range cacheImportsSlice {
 		coe := gwclient.CacheOptionsEntry{
 			Type:  "registry",
 			Attrs: map[string]string{"ref": ci},

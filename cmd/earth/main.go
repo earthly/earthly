@@ -1946,9 +1946,9 @@ func (app *earthApp) actionBuild(c *cli.Context) error {
 	if app.ci {
 		cacheExport = app.remoteCache
 	}
-	var cacheImports []string
+	cacheImports := make(map[string]bool)
 	if app.remoteCache != "" {
-		cacheImports = append(cacheImports, app.remoteCache)
+		cacheImports[app.remoteCache] = true
 	}
 	builderOpts := builder.Opt{
 		BkClient:             bkClient,

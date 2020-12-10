@@ -29,8 +29,9 @@ type solver struct {
 	bkClient     *client.Client
 	attachables  []session.Attachable
 	enttlmnts    []entitlements.Entitlement
-	cacheImports []string
+	cacheImports map[string]bool
 	cacheExport  string
+	inlineCache  bool
 }
 
 func (s *solver) solveDockerTar(ctx context.Context, state llb.State, img *image.Image, dockerTag string, outFile string) error {
@@ -160,7 +161,7 @@ func (s *solver) newSolveOptDocker(img *image.Image, dockerTag string, w io.Writ
 		return nil, errors.Wrap(err, "image json marshal")
 	}
 	var cacheImports []client.CacheOptionsEntry
-	for _, ci := range s.cacheImports {
+	for ci := range s.cacheImports {
 		cacheImports = append(cacheImports, newRegistryCacheOpt(ci))
 	}
 	return &client.SolveOpt{
@@ -184,14 +185,16 @@ func (s *solver) newSolveOptDocker(img *image.Image, dockerTag string, w io.Writ
 
 func (s *solver) newSolveOptMulti(ctx context.Context, eg *errgroup.Group, onImage onImageFunc, onArtifact onArtifactFunc, onFinalArtifact onFinalArtifactFunc) (*client.SolveOpt, error) {
 	var cacheImports []client.CacheOptionsEntry
-	for _, ci := range s.cacheImports {
+	for ci := range s.cacheImports {
 		cacheImports = append(cacheImports, newRegistryCacheOpt(ci))
 	}
 	var cacheExports []client.CacheOptionsEntry
 	if s.cacheExport != "" {
 		cacheExports = append(cacheExports, newRegistryCacheOpt(s.cacheExport))
 	}
-	cacheExports = append(cacheExports, newInlineCacheOpt())
+	if s.inlineCache {
+		cacheExports = append(cacheExports, newInlineCacheOpt())
+	}
 	return &client.SolveOpt{
 		Exports: []client.ExportEntry{
 			{
@@ -243,7 +246,7 @@ func (s *solver) newSolveOptMulti(ctx context.Context, eg *errgroup.Group, onIma
 
 func (s *solver) newSolveOptMain() (*client.SolveOpt, error) {
 	var cacheImports []client.CacheOptionsEntry
-	for _, ci := range s.cacheImports {
+	for ci := range s.cacheImports {
 		cacheImports = append(cacheImports, newRegistryCacheOpt(ci))
 	}
 	var cacheExports []client.CacheOptionsEntry

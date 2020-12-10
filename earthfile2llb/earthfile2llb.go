@@ -44,8 +44,9 @@ type ConvertOpt struct {
 	BuildContextProvider *provider.BuildContextProvider
 	// MetaResolver is the image meta resolver to use for resolving image metadata.
 	MetaResolver llb.ImageMetaResolver
-	// CacheImports are docker tags that can be used to import cache.
-	CacheImports []string
+	// CacheImports is a set of docker tags that can be used to import cache. Note that this
+	// set is modified by the converter if InlineCache is enabled.
+	CacheImports map[string]bool
 	// InlineCache enables the inline caching feature (use any SAVE IMAGE --push declaration as
 	// cache import).
 	InlineCache bool

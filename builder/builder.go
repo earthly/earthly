@@ -42,7 +42,7 @@ type Opt struct {
 	Attachables          []session.Attachable
 	Enttlmnts            []entitlements.Entitlement
 	NoCache              bool
-	CacheImports         []string
+	CacheImports         map[string]bool
 	CacheExport          string
 	InlineCache          bool
 	ImageResolveMode     llb.ResolveMode
@@ -79,6 +79,7 @@ func NewBuilder(ctx context.Context, opt Opt) (*Builder, error) {
 			cacheExport:  opt.CacheExport,
 			attachables:  opt.Attachables,
 			enttlmnts:    opt.Enttlmnts,
+			inlineCache:  opt.InlineCache,
 		},
 		opt:      opt,
 		resolver: nil, // initialized below
@@ -156,11 +157,14 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 		imageIndex := 0
 		dirIndex := 0
 		for _, sts := range mts.All() {
-			for _, depRef := range sts.DepsRefs {
-				refKey := fmt.Sprintf("dep-%d", depIndex)
-				res.AddRef(refKey, depRef)
-				depIndex++
+			depRef, err := b.stateToRef(ctx, gwClient, sts.MainState)
+			if err != nil {
+				return nil, err
 			}
+			refKey := fmt.Sprintf("dep-%d", depIndex)
+			res.AddRef(refKey, depRef)
+			depIndex++
+
 			for _, saveImage := range sts.SaveImages {
 				ref, err := b.stateToRef(ctx, gwClient, saveImage.State)
 				if err != nil {
