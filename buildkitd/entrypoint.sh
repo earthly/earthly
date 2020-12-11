@@ -1,6 +1,7 @@
 #!/bin/sh
-
 set -e
+echo "starting earthly-buildkit with EARTHLY_GIT_HASH=$EARTHLY_GIT_HASH BUILDKIT_BASE_IMAGE=$BUILDKIT_BASE_IMAGE"
+
 if [ "$BUILDKIT_DEBUG" = "true" ]; then
     set -x
 fi
