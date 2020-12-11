@@ -41,6 +41,7 @@ type Converter struct {
 	cacheContext     llb.State
 	varCollection    *variables.Collection
 	nextArgIndex     int
+	ranSave          bool
 }
 
 // NewConverter constructs a new converter for a given earth target.
@@ -79,6 +80,7 @@ func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Da
 
 // From applies the earth FROM command.
 func (c *Converter) From(ctx context.Context, imageName string, buildArgs []string) error {
+	c.nonSaveCommand()
 	if strings.Contains(imageName, "+") {
 		// Target-based FROM.
 		return c.fromTarget(ctx, imageName, buildArgs)
@@ -109,7 +111,7 @@ func (c *Converter) fromTarget(ctx context.Context, targetName string, buildArgs
 	if err != nil {
 		return errors.Wrapf(err, "parse target name %s", targetName)
 	}
-	mts, err := c.Build(ctx, depTarget.String(), buildArgs)
+	mts, err := c.buildTarget(ctx, depTarget.String(), buildArgs, false)
 	if err != nil {
 		return errors.Wrapf(err, "apply build %s", depTarget.String())
 	}
@@ -134,6 +136,7 @@ func (c *Converter) fromTarget(ctx context.Context, targetName string, buildArgs
 
 // FromDockerfile applies the earth FROM DOCKERFILE command.
 func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPath string, dfTarget string, buildArgs []string) error {
+	c.nonSaveCommand()
 	if dfPath != "" {
 		// TODO: It's not yet very clear what -f should do. Should it be referencing a Dockerfile
 		//       from the build context or the build environment?
@@ -148,7 +151,7 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 		// The Dockerfile and build context are from a target's artifact.
 		// TODO: The build args are used for both the artifact and the Dockerfile. This could be
 		//       confusing to the user.
-		mts, err := c.Build(ctx, contextArtifact.Target.String(), buildArgs)
+		mts, err := c.buildTarget(ctx, contextArtifact.Target.String(), buildArgs, false)
 		if err != nil {
 			return err
 		}
@@ -234,11 +237,12 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 
 // CopyArtifact applies the earth COPY artifact command.
 func (c *Converter) CopyArtifact(ctx context.Context, artifactName string, dest string, buildArgs []string, isDir bool, chown string) error {
+	c.nonSaveCommand()
 	artifact, err := domain.ParseArtifact(artifactName)
 	if err != nil {
 		return errors.Wrapf(err, "parse artifact name %s", artifactName)
 	}
-	mts, err := c.Build(ctx, artifact.Target.String(), buildArgs)
+	mts, err := c.buildTarget(ctx, artifact.Target.String(), buildArgs, false)
 	if err != nil {
 		return errors.Wrapf(err, "apply build %s", artifact.Target.String())
 	}
@@ -263,6 +267,7 @@ func (c *Converter) CopyArtifact(ctx context.Context, artifactName string, dest 
 
 // CopyClassical applies the earth COPY command, with classical args.
 func (c *Converter) CopyClassical(ctx context.Context, srcs []string, dest string, isDir bool, chown string) {
+	c.nonSaveCommand()
 	c.mts.Final.MainState = llbutil.CopyOp(
 		c.buildContext, srcs, c.mts.Final.MainState, dest, true, isDir, chown,
 		llb.WithCustomNamef(
@@ -275,6 +280,7 @@ func (c *Converter) CopyClassical(ctx context.Context, srcs []string, dest strin
 
 // Run applies the earth RUN command.
 func (c *Converter) Run(ctx context.Context, args []string, mounts []string, secretKeyValues []string, privileged bool, withEntrypoint bool, withDocker bool, isWithShell bool, pushFlag bool, withSSH bool) error {
+	c.nonSaveCommand()
 	if withDocker {
 		return errors.New("RUN --with-docker is obsolete. Please use WITH DOCKER ... RUN ... END instead")
 	}
@@ -353,6 +359,7 @@ func (c *Converter) SaveArtifact(ctx context.Context, saveFrom string, saveTo st
 			Index:        len(c.mts.Final.SeparateArtifactsState) - 1,
 		})
 	}
+	c.ranSave = true
 	return nil
 }
 
@@ -368,67 +375,25 @@ func (c *Converter) SaveImage(ctx context.Context, imageNames []string, pushImag
 			DockerTag: imageName,
 			Push:      pushImages,
 		})
-		if pushImages && imageName != "" && c.opt.InlineCache {
+		if pushImages && imageName != "" && c.opt.UseInlineCache {
 			// Use this image tag as cache import too.
 			c.opt.CacheImports[imageName] = true
 		}
 	}
+	c.ranSave = true
 	return nil
 }
 
 // Build applies the earth BUILD command.
-func (c *Converter) Build(ctx context.Context, fullTargetName string, buildArgs []string) (*states.MultiTarget, error) {
-	relTarget, err := domain.ParseTarget(fullTargetName)
-	if err != nil {
-		return nil, errors.Wrapf(err, "earth target parse %s", fullTargetName)
-	}
-	target, err := domain.JoinTargets(c.mts.Final.Target, relTarget)
-	if err != nil {
-		return nil, errors.Wrap(err, "join targets")
-	}
-	// Don't allow transitive overriding variables to cross project boundaries.
-	propagateBuildArgs := !relTarget.IsExternal()
-	var newVars map[string]bool
-	newVarCollection, newVars, err := c.varCollection.WithParseBuildArgs(
-		buildArgs, c.processNonConstantBuildArgFunc(ctx), propagateBuildArgs)
-	if err != nil {
-		return nil, errors.Wrap(err, "parse build args")
-	}
-	// Recursion.
-	opt := c.opt
-	opt.Visited = c.mts.Visited
-	opt.VarCollection = newVarCollection
-	mts, err := Earthfile2LLB(ctx, target, opt)
-	if err != nil {
-		return nil, errors.Wrapf(err, "earthfile2llb for %s", fullTargetName)
-	}
-	c.directDeps = append(c.directDeps, mts.Final)
-	if propagateBuildArgs {
-		// Propagate build arg inputs upwards (a child target depending on a build arg means
-		// that the parent also depends on that build arg).
-		for _, bai := range mts.Final.TargetInput.BuildArgs {
-			// Check if the build arg has been overridden. If it has, it can no longer be an input
-			// directly, so skip it.
-			_, found := newVars[bai.Name]
-			if found {
-				continue
-			}
-			c.mts.Final.TargetInput = c.mts.Final.TargetInput.WithBuildArgInput(bai)
-		}
-		// Propagate globals.
-		globals := mts.Final.VarCollection.WithOnlyGlobals()
-		for _, k := range globals.SortedActiveVariables() {
-			v, _, _ := globals.Get(k)
-			effective := c.varCollection.AddActive(k, v, false, false)
-			c.mts.Final.TargetInput = c.mts.Final.TargetInput.WithBuildArgInput(
-				effective.BuildArgInput(k, "")) // TODO: Set coorect default value for bai.
-		}
-	}
-	return mts, nil
+func (c *Converter) Build(ctx context.Context, fullTargetName string, buildArgs []string) error {
+	c.nonSaveCommand()
+	_, err := c.buildTarget(ctx, fullTargetName, buildArgs, true)
+	return err
 }
 
 // Workdir applies the WORKDIR command.
 func (c *Converter) Workdir(ctx context.Context, workdirPath string) {
+	c.nonSaveCommand()
 	c.mts.Final.MainState = c.mts.Final.MainState.Dir(workdirPath)
 	workdirAbs := workdirPath
 	if !path.IsAbs(workdirAbs) {
@@ -453,22 +418,26 @@ func (c *Converter) Workdir(ctx context.Context, workdirPath string) {
 
 // User applies the USER command.
 func (c *Converter) User(ctx context.Context, user string) {
+	c.nonSaveCommand()
 	c.mts.Final.MainState = c.mts.Final.MainState.User(user)
 	c.mts.Final.MainImage.Config.User = user
 }
 
 // Cmd applies the CMD command.
 func (c *Converter) Cmd(ctx context.Context, cmdArgs []string, isWithShell bool) {
+	c.nonSaveCommand()
 	c.mts.Final.MainImage.Config.Cmd = withShell(cmdArgs, isWithShell)
 }
 
 // Entrypoint applies the ENTRYPOINT command.
 func (c *Converter) Entrypoint(ctx context.Context, entrypointArgs []string, isWithShell bool) {
+	c.nonSaveCommand()
 	c.mts.Final.MainImage.Config.Entrypoint = withShell(entrypointArgs, isWithShell)
 }
 
 // Expose applies the EXPOSE command.
 func (c *Converter) Expose(ctx context.Context, ports []string) {
+	c.nonSaveCommand()
 	for _, port := range ports {
 		c.mts.Final.MainImage.Config.ExposedPorts[port] = struct{}{}
 	}
@@ -476,6 +445,7 @@ func (c *Converter) Expose(ctx context.Context, ports []string) {
 
 // Volume applies the VOLUME command.
 func (c *Converter) Volume(ctx context.Context, volumes []string) {
+	c.nonSaveCommand()
 	for _, volume := range volumes {
 		c.mts.Final.MainImage.Config.Volumes[volume] = struct{}{}
 	}
@@ -483,6 +453,7 @@ func (c *Converter) Volume(ctx context.Context, volumes []string) {
 
 // Env applies the ENV command.
 func (c *Converter) Env(ctx context.Context, envKey string, envValue string) {
+	c.nonSaveCommand()
 	c.varCollection.AddActive(envKey, variables.NewConstantEnvVar(envValue), true, false)
 	c.mts.Final.MainState = c.mts.Final.MainState.AddEnv(envKey, envValue)
 	c.mts.Final.MainImage.Config.Env = variables.AddEnv(
@@ -491,6 +462,7 @@ func (c *Converter) Env(ctx context.Context, envKey string, envValue string) {
 
 // Arg applies the ARG command.
 func (c *Converter) Arg(ctx context.Context, argKey string, defaultArgValue string, global bool) {
+	c.nonSaveCommand()
 	effective := c.varCollection.AddActive(argKey, variables.NewConstant(defaultArgValue), false, global)
 	c.mts.Final.TargetInput = c.mts.Final.TargetInput.WithBuildArgInput(
 		effective.BuildArgInput(argKey, defaultArgValue))
@@ -498,6 +470,7 @@ func (c *Converter) Arg(ctx context.Context, argKey string, defaultArgValue stri
 
 // Label applies the LABEL command.
 func (c *Converter) Label(ctx context.Context, labels map[string]string) {
+	c.nonSaveCommand()
 	for key, value := range labels {
 		c.mts.Final.MainImage.Config.Labels[key] = value
 	}
@@ -505,6 +478,7 @@ func (c *Converter) Label(ctx context.Context, labels map[string]string) {
 
 // GitClone applies the GIT CLONE command.
 func (c *Converter) GitClone(ctx context.Context, gitURL string, branch string, dest string) error {
+	c.nonSaveCommand()
 	gitOpts := []llb.GitOption{
 		llb.WithCustomNamef(
 			"%sGIT CLONE (--branch %s) %s", c.vertexPrefixWithURL(gitURL), branch, gitURL),
@@ -521,6 +495,7 @@ func (c *Converter) GitClone(ctx context.Context, gitURL string, branch string, 
 
 // WithDockerRun applies an entire WITH DOCKER ... RUN ... END clause.
 func (c *Converter) WithDockerRun(ctx context.Context, args []string, opt WithDockerOpt) error {
+	c.nonSaveCommand()
 	wdr := &withDockerRun{
 		c: c,
 	}
@@ -539,6 +514,7 @@ func (c *Converter) DockerPullOld(ctx context.Context, dockerTag string) error {
 
 // Healthcheck applies the HEALTHCHECK command.
 func (c *Converter) Healthcheck(ctx context.Context, isNone bool, cmdArgs []string, interval time.Duration, timeout time.Duration, startPeriod time.Duration, retries int) {
+	c.nonSaveCommand()
 	hc := &dockerfile2llb.HealthConfig{}
 	if isNone {
 		hc.Test = []string{"NONE"}
@@ -561,6 +537,64 @@ func (c *Converter) FinalizeStates(ctx context.Context) (*states.MultiTarget, er
 
 	c.mts.Final.Ongoing = false
 	return c.mts, nil
+}
+
+// ExpandArgs expands args in the provided word.
+func (c *Converter) ExpandArgs(word string) string {
+	return c.varCollection.Expand(word)
+}
+
+func (c *Converter) buildTarget(ctx context.Context, fullTargetName string, buildArgs []string, mandatory bool) (*states.MultiTarget, error) {
+	relTarget, err := domain.ParseTarget(fullTargetName)
+	if err != nil {
+		return nil, errors.Wrapf(err, "earth target parse %s", fullTargetName)
+	}
+	target, err := domain.JoinTargets(c.mts.Final.Target, relTarget)
+	if err != nil {
+		return nil, errors.Wrap(err, "join targets")
+	}
+	// Don't allow transitive overriding variables to cross project boundaries.
+	propagateBuildArgs := !relTarget.IsExternal()
+	var newVars map[string]bool
+	newVarCollection, newVars, err := c.varCollection.WithParseBuildArgs(
+		buildArgs, c.processNonConstantBuildArgFunc(ctx), propagateBuildArgs)
+	if err != nil {
+		return nil, errors.Wrap(err, "parse build args")
+	}
+	// Recursion.
+	opt := c.opt
+	opt.Visited = c.mts.Visited
+	opt.VarCollection = newVarCollection
+	mts, err := Earthfile2LLB(ctx, target, opt)
+	if err != nil {
+		return nil, errors.Wrapf(err, "earthfile2llb for %s", fullTargetName)
+	}
+	if mandatory {
+		mts.Final.IsMandatory = true
+	}
+	c.directDeps = append(c.directDeps, mts.Final)
+	if propagateBuildArgs {
+		// Propagate build arg inputs upwards (a child target depending on a build arg means
+		// that the parent also depends on that build arg).
+		for _, bai := range mts.Final.TargetInput.BuildArgs {
+			// Check if the build arg has been overridden. If it has, it can no longer be an input
+			// directly, so skip it.
+			_, found := newVars[bai.Name]
+			if found {
+				continue
+			}
+			c.mts.Final.TargetInput = c.mts.Final.TargetInput.WithBuildArgInput(bai)
+		}
+		// Propagate globals.
+		globals := mts.Final.VarCollection.WithOnlyGlobals()
+		for _, k := range globals.SortedActiveVariables() {
+			v, _, _ := globals.Get(k)
+			effective := c.varCollection.AddActive(k, v, false, false)
+			c.mts.Final.TargetInput = c.mts.Final.TargetInput.WithBuildArgInput(
+				effective.BuildArgInput(k, "")) // TODO: Set coorect default value for bai.
+		}
+	}
+	return mts, nil
 }
 
 func (c *Converter) internalRun(ctx context.Context, args []string, secretKeyValues []string, isWithShell bool, shellWrap shellWrapFun, pushFlag bool, withSSH bool, commandStr string, opts ...llb.RunOption) error {
@@ -732,9 +766,10 @@ func (c *Converter) applyFromImage(state llb.State, img *image.Image) (llb.State
 	return state, img, newVarCollection
 }
 
-// ExpandArgs expands args in the provided word.
-func (c *Converter) ExpandArgs(word string) string {
-	return c.varCollection.Expand(word)
+func (c *Converter) nonSaveCommand() {
+	if c.ranSave {
+		c.mts.Final.IsMandatory = true
+	}
 }
 
 func (c *Converter) processNonConstantBuildArgFunc(ctx context.Context) variables.ProcessNonConstantVariableFunc {

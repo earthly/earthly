@@ -44,6 +44,9 @@ type SingleTarget struct {
 	LocalDirs              map[string]string
 	Ongoing                bool
 	Salt                   string
+	// IsMandatory represents whether there are any non-SAVE commands after the first SAVE command,
+	// or if the target is invoked via BUILD command (not COPY nor FROM).
+	IsMandatory bool
 }
 
 // LastSaveImage returns the last save image available (if any).

@@ -47,9 +47,9 @@ type ConvertOpt struct {
 	// CacheImports is a set of docker tags that can be used to import cache. Note that this
 	// set is modified by the converter if InlineCache is enabled.
 	CacheImports map[string]bool
-	// InlineCache enables the inline caching feature (use any SAVE IMAGE --push declaration as
+	// UseInlineCache enables the inline caching feature (use any SAVE IMAGE --push declaration as
 	// cache import).
-	InlineCache bool
+	UseInlineCache bool
 }
 
 // Earthfile2LLB parses a earthfile and executes the statements for a given target.
