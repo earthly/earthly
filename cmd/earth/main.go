@@ -115,6 +115,7 @@ type cliFlags struct {
 	expiry                 string
 	termsConditionsPrivacy bool
 	authToken              string
+	useFakeDep             bool
 }
 
 var (
@@ -438,7 +439,14 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 			EnvVars:     []string{"EARTHLY_SERVER"},
 			Usage:       "API server override for dev purposes",
 			Destination: &app.apiServer,
-			Hidden:      true, // Experimental.
+			Hidden:      true, // Internal.
+		},
+		&cli.BoolFlag{
+			Name:        "fake-dep",
+			EnvVars:     []string{"EARTHLY_FAKE_DEP"},
+			Usage:       "Internal feature flag for fake-dep",
+			Destination: &app.useFakeDep,
+			Hidden:      true, // Internal.
 		},
 	}
 
@@ -1985,6 +1993,7 @@ func (app *earthApp) actionBuild(c *cli.Context) error {
 		VarCollection:        varCollection,
 		BuildContextProvider: buildContextProvider,
 		GitLookup:            gitLookup,
+		UseFakeDep:           app.useFakeDep,
 	}
 	b, err := builder.NewBuilder(c.Context, builderOpts)
 	if err != nil {

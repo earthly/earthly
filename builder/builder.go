@@ -51,6 +51,7 @@ type Opt struct {
 	VarCollection        *variables.Collection
 	BuildContextProvider *provider.BuildContextProvider
 	GitLookup            *buildcontext.GitLookup
+	UseFakeDep           bool
 }
 
 // BuildOpt is a collection of build options.
@@ -132,6 +133,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 			BuildContextProvider: b.opt.BuildContextProvider,
 			CacheImports:         b.opt.CacheImports,
 			UseInlineCache:       b.opt.UseInlineCache,
+			UseFakeDep:           b.opt.UseFakeDep,
 		})
 		if err != nil {
 			return nil, err
@@ -158,7 +160,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 		imageIndex := 0
 		dirIndex := 0
 		for _, sts := range mts.All() {
-			if sts.IsMandatory {
+			if sts.IsMandatory && !b.opt.UseFakeDep {
 				depRef, err := b.stateToRef(ctx, gwClient, sts.MainState)
 				if err != nil {
 					return nil, err

@@ -360,6 +360,7 @@ func (c *Converter) SaveArtifact(ctx context.Context, saveFrom string, saveTo st
 		})
 	}
 	c.ranSave = true
+	c.markFakeDeps()
 	return nil
 }
 
@@ -381,6 +382,7 @@ func (c *Converter) SaveImage(ctx context.Context, imageNames []string, pushImag
 		}
 	}
 	c.ranSave = true
+	c.markFakeDeps()
 	return nil
 }
 
@@ -532,9 +534,10 @@ func (c *Converter) Healthcheck(ctx context.Context, isNone bool, cmdArgs []stri
 
 // FinalizeStates returns the LLB states.
 func (c *Converter) FinalizeStates(ctx context.Context) (*states.MultiTarget, error) {
+	c.markFakeDeps()
+
 	c.opt.BuildContextProvider.AddDirs(c.mts.Final.LocalDirs)
 	c.mts.Final.VarCollection = c.varCollection
-
 	c.mts.Final.Ongoing = false
 	return c.mts, nil
 }
@@ -828,6 +831,20 @@ func (c *Converter) vertexPrefix() string {
 		varStr = fmt.Sprintf("(%s)", b64VarStr)
 	}
 	return fmt.Sprintf("[%s%s %s] ", c.mts.Final.Target.String(), varStr, c.mts.Final.Salt)
+}
+
+func (c *Converter) markFakeDeps() {
+	if !c.opt.UseFakeDep {
+		return
+	}
+	for _, dep := range c.directDeps {
+		if dep.IsMandatory {
+			c.mts.Final.MainState = llbutil.WithDependency(
+				c.mts.Final.MainState, dep.MainState, c.mts.Final.Target.String(), dep.Target.String())
+		}
+	}
+	// Clear the direct deps so we don't do this again.
+	c.directDeps = nil
 }
 
 func (c *Converter) imageVertexPrefix(id string) string {
