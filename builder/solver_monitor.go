@@ -18,7 +18,7 @@ import (
 )
 
 const (
-	durationBetweenProgressUpdate = time.Second * 5
+	durationBetweenProgressUpdate = time.Second
 	durationBetweenOpenLineUpdate = time.Second
 	tailErrorBufferSizeBytes      = 80 * 1024 // About as much as 1024 lines of 80 chars each.
 )
@@ -29,8 +29,8 @@ type vertexMonitor struct {
 	targetBrackets string
 	salt           string
 	operation      string
-	lastOutput     time.Time
-	lastPercentage int
+	lastProgress   map[string]time.Time
+	lastPercentage map[string]int
 	console        conslogging.ConsoleLogger
 	headerPrinted  bool
 	isInternal     bool
@@ -60,22 +60,43 @@ func (vm *vertexMonitor) printHeader(printMetadata bool) {
 	c.Printf("%s\n", strings.Join(out, " "))
 }
 
-func (vm *vertexMonitor) shouldPrintProgress(percent int) bool {
+var internalProgress = map[string]bool{
+	"exporting manifest": true,
+	"sending tarballs":   true,
+	"exporting config":   true,
+	"exporting layers":   true,
+	"copying files":      true,
+}
+
+func (vm *vertexMonitor) shouldPrintProgress(id string, percent int, verbose bool) bool {
 	if !vm.headerPrinted {
 		return false
 	}
 	if vm.targetStr == "" {
 		return false
 	}
+	if !verbose {
+		for prefix := range internalProgress {
+			if strings.HasPrefix(id, prefix) {
+				return false
+			}
+		}
+	}
 	now := time.Now()
-	if now.Sub(vm.lastOutput) < durationBetweenProgressUpdate && percent < 100 {
+	lastProgress := vm.lastProgress[id]
+	lastPercentage := -1
+	lastPercentageStored, ok := vm.lastPercentage[id]
+	if ok {
+		lastPercentage = lastPercentageStored
+	}
+	if now.Sub(lastProgress) < durationBetweenProgressUpdate && percent < 100 {
 		return false
 	}
-	if vm.lastPercentage >= percent {
+	if lastPercentage >= percent {
 		return false
 	}
-	vm.lastOutput = now
-	vm.lastPercentage = percent
+	vm.lastProgress[id] = now
+	vm.lastPercentage[id] = percent
 	return true
 }
 
@@ -205,6 +226,8 @@ Loop:
 						operation:      operation,
 						isInternal:     (targetStr == "internal" && !sm.verbose),
 						console:        sm.console.WithPrefixAndSalt(targetStr, salt),
+						lastPercentage: make(map[string]int),
+						lastProgress:   make(map[string]time.Time),
 					}
 					sm.vertices[vertex.Digest] = vm
 				}
@@ -243,11 +266,11 @@ Loop:
 				if vs.Completed != nil {
 					progress = 100
 				}
-				if vm.shouldPrintProgress(progress) {
+				if vm.shouldPrintProgress(vs.ID, progress, sm.verbose) {
 					if !vm.headerPrinted {
 						sm.printHeader(vm)
 					}
-					vm.console.Printf("%s %d%%\n", vs.ID, progress)
+					vm.console.Printf("%s ... %d%%\n", vs.ID, progress)
 				}
 			}
 			for _, logLine := range ss.Logs {
