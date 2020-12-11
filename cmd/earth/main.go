@@ -294,7 +294,7 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 		&cli.BoolFlag{
 			Name:        "ci",
 			EnvVars:     []string{"EARTHLY_CI"},
-			Usage:       "Execute in CI mode (implies --use-inline-cache --save-inline-cache --push --no-output)",
+			Usage:       "Execute in CI mode (implies --use-inline-cache --save-inline-cache --no-output)",
 			Destination: &app.ci,
 			Hidden:      true, // Experimental.
 		},
@@ -1811,7 +1811,6 @@ func (app *earthApp) actionBuild(c *cli.Context) error {
 		app.useInlineCache = true
 		app.saveInlineCache = true
 		app.noOutput = true
-		app.push = true
 	}
 	if app.imageMode && app.artifactMode {
 		return errors.New("both image and artifact modes cannot be active at the same time")
