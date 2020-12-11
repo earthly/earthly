@@ -270,7 +270,7 @@ Loop:
 					if !vm.headerPrinted {
 						sm.printHeader(vm)
 					}
-					vm.console.Printf("%s %d%%\n", vs.ID, progress)
+					vm.console.Printf("%s ... %d%%\n", vs.ID, progress)
 				}
 			}
 			for _, logLine := range ss.Logs {
