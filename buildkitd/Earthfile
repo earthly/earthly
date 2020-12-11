@@ -1,5 +1,6 @@
 
 buildkitd:
+    ARG EARTHLY_GIT_HASH
     ARG BUILDKIT_BASE_IMAGE=github.com/earthly/buildkit:earthly-main+build
     FROM $BUILDKIT_BASE_IMAGE
     RUN echo "@edge-community http://dl-cdn.alpinelinux.org/alpine/edge/community" >> /etc/apk/repositories
@@ -34,6 +35,8 @@ buildkitd:
     ENV BUILDKIT_DEBUG=false
     ENV CACHE_SIZE_MB=0
     ENV NETWORK_MODE=cni
+    ENV EARTHLY_GIT_HASH=$EARTHLY_GIT_HASH
+    ENV BUILDKIT_BASE_IMAGE=$BUILDKIT_BASE_IMAGE
     VOLUME /tmp/earthly
     ENTRYPOINT ["/usr/bin/entrypoint.sh", "buildkitd", "--config=/etc/buildkitd.toml"]
     ARG EARTHLY_TARGET_TAG_DOCKER
