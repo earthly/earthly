@@ -18,9 +18,10 @@ import (
 )
 
 const (
-	durationBetweenProgressUpdate = time.Second
-	durationBetweenOpenLineUpdate = time.Second
-	tailErrorBufferSizeBytes      = 80 * 1024 // About as much as 1024 lines of 80 chars each.
+	durationBetweenSha256ProgressUpdate = 3 * time.Second
+	durationBetweenProgressUpdate       = time.Second
+	durationBetweenOpenLineUpdate       = time.Second
+	tailErrorBufferSizeBytes            = 80 * 1024 // About as much as 1024 lines of 80 chars each.
 )
 
 type vertexMonitor struct {
@@ -82,6 +83,11 @@ func (vm *vertexMonitor) shouldPrintProgress(id string, percent int, verbose boo
 			}
 		}
 	}
+	minDelta := durationBetweenProgressUpdate
+	if strings.HasPrefix(id, "sha256:") || strings.HasPrefix(id, "extracting sha256:") {
+		// These progress updates are a bit more annoying - do them more rarely.
+		minDelta = durationBetweenSha256ProgressUpdate
+	}
 	now := time.Now()
 	lastProgress := vm.lastProgress[id]
 	lastPercentage := -1
@@ -89,7 +95,7 @@ func (vm *vertexMonitor) shouldPrintProgress(id string, percent int, verbose boo
 	if ok {
 		lastPercentage = lastPercentageStored
 	}
-	if now.Sub(lastProgress) < durationBetweenProgressUpdate && percent < 100 {
+	if now.Sub(lastProgress) < minDelta && percent < 100 {
 		return false
 	}
 	if lastPercentage >= percent {
@@ -396,7 +402,6 @@ func parseVertexName(vertexName string) (string, string, string, string) {
 	operation := ""
 	salt := ""
 	if strings.HasPrefix(vertexName, "importing cache manifest") ||
-		strings.HasPrefix(vertexName, "preparing build cache for export") ||
 		strings.HasPrefix(vertexName, "exporting cache") {
 		return "cache", targetBrackets, "cache", vertexName
 	}

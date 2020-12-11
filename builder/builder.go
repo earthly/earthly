@@ -44,7 +44,8 @@ type Opt struct {
 	NoCache              bool
 	CacheImports         map[string]bool
 	CacheExport          string
-	InlineCache          bool
+	UseInlineCache       bool
+	SaveInlineCache      bool
 	ImageResolveMode     llb.ResolveMode
 	CleanCollection      *cleanup.Collection
 	VarCollection        *variables.Collection
@@ -73,13 +74,13 @@ type Builder struct {
 func NewBuilder(ctx context.Context, opt Opt) (*Builder, error) {
 	b := &Builder{
 		s: &solver{
-			sm:           newSolverMonitor(opt.Console, opt.Verbose),
-			bkClient:     opt.BkClient,
-			cacheImports: opt.CacheImports,
-			cacheExport:  opt.CacheExport,
-			attachables:  opt.Attachables,
-			enttlmnts:    opt.Enttlmnts,
-			inlineCache:  opt.InlineCache,
+			sm:              newSolverMonitor(opt.Console, opt.Verbose),
+			bkClient:        opt.BkClient,
+			cacheImports:    opt.CacheImports,
+			cacheExport:     opt.CacheExport,
+			attachables:     opt.Attachables,
+			enttlmnts:       opt.Enttlmnts,
+			saveInlineCache: opt.SaveInlineCache,
 		},
 		opt:      opt,
 		resolver: nil, // initialized below
@@ -130,42 +131,50 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 			VarCollection:        b.opt.VarCollection,
 			BuildContextProvider: b.opt.BuildContextProvider,
 			CacheImports:         b.opt.CacheImports,
-			InlineCache:          b.opt.InlineCache,
+			UseInlineCache:       b.opt.UseInlineCache,
 		})
 		if err != nil {
 			return nil, err
 		}
+		res := gwclient.NewResult()
 		ref, err := b.stateToRef(ctx, gwClient, mts.Final.MainState)
 		if err != nil {
 			return nil, err
 		}
-		res := gwclient.NewResult()
 		res.AddRef("main", ref)
-		ref, err = b.stateToRef(ctx, gwClient, mts.Final.ArtifactsState)
-		if err != nil {
-			return nil, err
-		}
-		refKey := "final-artifact"
-		refPrefix := fmt.Sprintf("ref/%s", refKey)
-		res.AddRef(refKey, ref)
 		if !opt.NoOutput && opt.OnlyArtifact != nil && !opt.OnlyFinalTargetImages {
+			ref, err = b.stateToRef(ctx, gwClient, mts.Final.ArtifactsState)
+			if err != nil {
+				return nil, err
+			}
+			refKey := "final-artifact"
+			refPrefix := fmt.Sprintf("ref/%s", refKey)
+			res.AddRef(refKey, ref)
 			res.AddMeta(fmt.Sprintf("%s/export-dir", refPrefix), []byte("true"))
+			res.AddMeta(fmt.Sprintf("%s/final-artifact", refPrefix), []byte("true"))
 		}
-		res.AddMeta(fmt.Sprintf("%s/final-artifact", refPrefix), []byte("true"))
 
 		depIndex := 0
 		imageIndex := 0
 		dirIndex := 0
 		for _, sts := range mts.All() {
-			depRef, err := b.stateToRef(ctx, gwClient, sts.MainState)
-			if err != nil {
-				return nil, err
+			if sts.IsMandatory {
+				depRef, err := b.stateToRef(ctx, gwClient, sts.MainState)
+				if err != nil {
+					return nil, err
+				}
+				refKey := fmt.Sprintf("dep-%d", depIndex)
+				res.AddRef(refKey, depRef)
+				depIndex++
 			}
-			refKey := fmt.Sprintf("dep-%d", depIndex)
-			res.AddRef(refKey, depRef)
-			depIndex++
 
 			for _, saveImage := range sts.SaveImages {
+				shouldPush := opt.Push && saveImage.Push && !sts.Target.IsRemote()
+				shouldExport := !opt.NoOutput && opt.OnlyArtifact == nil && !(opt.OnlyFinalTargetImages && sts != mts.Final)
+				if !shouldPush && !shouldExport {
+					// Short-circuit.
+					continue
+				}
 				ref, err := b.stateToRef(ctx, gwClient, saveImage.State)
 				if err != nil {
 					return nil, err
@@ -178,42 +187,38 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 				refKey := fmt.Sprintf("image-%d", imageIndex)
 				refPrefix := fmt.Sprintf("ref/%s", refKey)
 				res.AddMeta(fmt.Sprintf("%s/image.name", refPrefix), []byte(saveImage.DockerTag))
-				if opt.Push && saveImage.Push && !sts.Target.IsRemote() {
-					res.AddMeta(fmt.Sprintf("%s/push", refPrefix), []byte("true"))
+				if shouldPush {
+					res.AddMeta(fmt.Sprintf("%s/export-image-push", refPrefix), []byte("true"))
 				}
 				res.AddMeta(fmt.Sprintf("%s/%s", refPrefix, exptypes.ExporterImageConfigKey), config)
-				if !opt.NoOutput && opt.OnlyArtifact == nil && !(opt.OnlyFinalTargetImages && sts != mts.Final) {
+				if shouldExport {
 					res.AddMeta(fmt.Sprintf("%s/export-image", refPrefix), []byte("true"))
 				}
 				res.AddMeta(fmt.Sprintf("%s/image-index", refPrefix), []byte(fmt.Sprintf("%d", imageIndex)))
 				res.AddRef(refKey, ref)
 				imageIndex++
 			}
-			if sts.Target.IsRemote() {
-				// Don't do save local's for remote targets.
-				continue
-			}
-			for _, saveLocal := range sts.SaveLocals {
-				ref, err := b.stateToRef(ctx, gwClient, sts.SeparateArtifactsState[saveLocal.Index])
-				if err != nil {
-					return nil, err
-				}
-				refKey := fmt.Sprintf("dir-%d", dirIndex)
-				refPrefix := fmt.Sprintf("ref/%s", refKey)
-				res.AddRef(refKey, ref)
-				artifact := domain.Artifact{
-					Target:   sts.Target,
-					Artifact: saveLocal.ArtifactPath,
-				}
-				res.AddMeta(fmt.Sprintf("%s/artifact", refPrefix), []byte(artifact.String()))
-				res.AddMeta(fmt.Sprintf("%s/src-path", refPrefix), []byte(saveLocal.ArtifactPath))
-				res.AddMeta(fmt.Sprintf("%s/dest-path", refPrefix), []byte(saveLocal.DestPath))
-				if !opt.NoOutput && !opt.OnlyFinalTargetImages && opt.OnlyArtifact == nil {
+			if !sts.Target.IsRemote() && !opt.NoOutput && !opt.OnlyFinalTargetImages && opt.OnlyArtifact == nil {
+				for _, saveLocal := range sts.SaveLocals {
+					ref, err := b.stateToRef(ctx, gwClient, sts.SeparateArtifactsState[saveLocal.Index])
+					if err != nil {
+						return nil, err
+					}
+					refKey := fmt.Sprintf("dir-%d", dirIndex)
+					refPrefix := fmt.Sprintf("ref/%s", refKey)
+					res.AddRef(refKey, ref)
+					artifact := domain.Artifact{
+						Target:   sts.Target,
+						Artifact: saveLocal.ArtifactPath,
+					}
+					res.AddMeta(fmt.Sprintf("%s/artifact", refPrefix), []byte(artifact.String()))
+					res.AddMeta(fmt.Sprintf("%s/src-path", refPrefix), []byte(saveLocal.ArtifactPath))
+					res.AddMeta(fmt.Sprintf("%s/dest-path", refPrefix), []byte(saveLocal.DestPath))
 					res.AddMeta(fmt.Sprintf("%s/export-dir", refPrefix), []byte("true"))
+					res.AddMeta(fmt.Sprintf("%s/dir-index", refPrefix), []byte(fmt.Sprintf("%d", dirIndex)))
+					destPathWhitelist[saveLocal.DestPath] = true
+					dirIndex++
 				}
-				res.AddMeta(fmt.Sprintf("%s/dir-index", refPrefix), []byte(fmt.Sprintf("%d", dirIndex)))
-				destPathWhitelist[saveLocal.DestPath] = true
-				dirIndex++
 			}
 		}
 		return res, nil
@@ -289,19 +294,19 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 					console.Printf("Did not push %s. Use earth --push to enable pushing\n", saveImage.DockerTag)
 				}
 			}
-			for _, saveLocal := range sts.SaveLocals {
-				artifactDir := filepath.Join(outDir, fmt.Sprintf("index-%d", dirIndex))
-				artifact := domain.Artifact{
-					Target:   sts.Target,
-					Artifact: saveLocal.ArtifactPath,
-				}
-				err := b.saveArtifactLocally(ctx, artifact, artifactDir, saveLocal.DestPath, sts.Salt, opt)
-				if err != nil {
-					return nil, err
-				}
-				dirIndex++
-			}
 			if !sts.Target.IsRemote() {
+				for _, saveLocal := range sts.SaveLocals {
+					artifactDir := filepath.Join(outDir, fmt.Sprintf("index-%d", dirIndex))
+					artifact := domain.Artifact{
+						Target:   sts.Target,
+						Artifact: saveLocal.ArtifactPath,
+					}
+					err := b.saveArtifactLocally(ctx, artifact, artifactDir, saveLocal.DestPath, sts.Salt, opt)
+					if err != nil {
+						return nil, err
+					}
+					dirIndex++
+				}
 				err = b.executeRunPush(ctx, sts, opt)
 				if err != nil {
 					return nil, err

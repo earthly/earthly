@@ -89,8 +89,10 @@ type cliFlags struct {
 	enableProfiler         bool
 	buildkitHost           string
 	buildkitdImage         string
-	remoteCache            string
-	inlineCache            bool
+	cacheFrom              cli.StringSlice
+	cacheTo                string
+	saveInlineCache        bool
+	useInlineCache         bool
 	configPath             string
 	gitUsernameOverride    string
 	gitPasswordOverride    string
@@ -292,14 +294,14 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 		&cli.BoolFlag{
 			Name:        "ci",
 			EnvVars:     []string{"EARTHLY_CI"},
-			Usage:       "Execute in CI mode (upload remote cache)",
+			Usage:       "Execute in CI mode (implies --use-inline-cache --save-inline-cache --push --no-output)",
 			Destination: &app.ci,
 			Hidden:      true, // Experimental.
 		},
 		&cli.BoolFlag{
 			Name:        "no-output",
 			EnvVars:     []string{"EARTHLY_NO_OUTPUT"},
-			Usage:       "Do not output artifacts or images",
+			Usage:       "Do not output artifacts or images (using --push is still allowed)",
 			Destination: &app.noOutput,
 		},
 		&cli.BoolFlag{
@@ -382,17 +384,31 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 			Destination: &app.buildkitdImage,
 		},
 		&cli.StringFlag{
-			Name:        "remote-cache",
-			EnvVars:     []string{"EARTHLY_REMOTE_CACHE"},
-			Usage:       "A remote docker image repository to be used as build cache",
-			Destination: &app.remoteCache,
+			Name:        "cache-to",
+			EnvVars:     []string{"EARTHLY_CACHE_TO"},
+			Usage:       "A remote docker image tag to save build cache to",
+			Destination: &app.cacheTo,
+			Hidden:      true, // Experimental.
+		},
+		&cli.StringSliceFlag{
+			Name:    "cache-from",
+			EnvVars: []string{"EARTHLY_CACHE_FROM"},
+			Usage:   "A remote docker image tag to be used as build cache",
+			Value:   &app.cacheFrom,
+			Hidden:  true, // Experimental.
+		},
+		&cli.BoolFlag{
+			Name:        "save-inline-cache",
+			EnvVars:     []string{"EARTHLY_SAVE_INLINE_CACHE"},
+			Usage:       "Enable cache inlining when pushing images",
+			Destination: &app.saveInlineCache,
 			Hidden:      true, // Experimental.
 		},
 		&cli.BoolFlag{
-			Name:        "inline-cache",
-			EnvVars:     []string{"EARTHLY_INLINE_CACHE"},
-			Usage:       "Enable cache inlining in Earthly",
-			Destination: &app.inlineCache,
+			Name:        "use-inline-cache",
+			EnvVars:     []string{"EARTHLY_USE_INLINE_CACHE"},
+			Usage:       "Attempt to use any inline cache that may have been previously pushed (uses image tags referenced by SAVE IMAGE --push)",
+			Destination: &app.useInlineCache,
 			Hidden:      true, // Experimental.
 		},
 		&cli.BoolFlag{
@@ -1791,14 +1807,21 @@ func (app *earthApp) actionDocker2Earth(c *cli.Context) error {
 func (app *earthApp) actionBuild(c *cli.Context) error {
 	app.commandName = "build"
 
+	if app.ci {
+		app.useInlineCache = true
+		app.saveInlineCache = true
+		app.noOutput = true
+		app.push = true
+	}
 	if app.imageMode && app.artifactMode {
 		return errors.New("both image and artifact modes cannot be active at the same time")
 	}
 	if (app.imageMode && app.noOutput) || (app.artifactMode && app.noOutput) {
-		return errors.New("cannot use --no-output with image or artifact modes")
-	}
-	if app.push && app.noOutput {
-		return errors.New("cannot use --no-output with --push")
+		if app.ci {
+			app.noOutput = false
+		} else {
+			return errors.New("cannot use --no-output with image or artifact modes")
+		}
 	}
 	var target domain.Target
 	var artifact domain.Artifact
@@ -1942,13 +1965,9 @@ func (app *earthApp) actionBuild(c *cli.Context) error {
 		imageResolveMode = llb.ResolveModeForcePull
 	}
 
-	var cacheExport string
-	if app.ci {
-		cacheExport = app.remoteCache
-	}
 	cacheImports := make(map[string]bool)
-	if app.remoteCache != "" {
-		cacheImports[app.remoteCache] = true
+	for _, cf := range app.cacheFrom.Value() {
+		cacheImports[cf] = true
 	}
 	builderOpts := builder.Opt{
 		BkClient:             bkClient,
@@ -1958,8 +1977,9 @@ func (app *earthApp) actionBuild(c *cli.Context) error {
 		Enttlmnts:            enttlmnts,
 		NoCache:              app.noCache,
 		CacheImports:         cacheImports,
-		CacheExport:          cacheExport,
-		InlineCache:          app.inlineCache,
+		CacheExport:          app.cacheTo,
+		UseInlineCache:       app.useInlineCache,
+		SaveInlineCache:      app.saveInlineCache,
 		SessionID:            app.sessionID,
 		ImageResolveMode:     imageResolveMode,
 		CleanCollection:      cleanCollection,

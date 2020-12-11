@@ -25,13 +25,13 @@ type onArtifactFunc func(context.Context, int, domain.Artifact, string, string) 
 type onFinalArtifactFunc func(context.Context) (string, error)
 
 type solver struct {
-	sm           *solverMonitor
-	bkClient     *client.Client
-	attachables  []session.Attachable
-	enttlmnts    []entitlements.Entitlement
-	cacheImports map[string]bool
-	cacheExport  string
-	inlineCache  bool
+	sm              *solverMonitor
+	bkClient        *client.Client
+	attachables     []session.Attachable
+	enttlmnts       []entitlements.Entitlement
+	cacheImports    map[string]bool
+	cacheExport     string
+	saveInlineCache bool
 }
 
 func (s *solver) solveDockerTar(ctx context.Context, state llb.State, img *image.Image, dockerTag string, outFile string) error {
@@ -192,7 +192,7 @@ func (s *solver) newSolveOptMulti(ctx context.Context, eg *errgroup.Group, onIma
 	if s.cacheExport != "" {
 		cacheExports = append(cacheExports, newRegistryCacheOpt(s.cacheExport))
 	}
-	if s.inlineCache {
+	if s.saveInlineCache {
 		cacheExports = append(cacheExports, newInlineCacheOpt())
 	}
 	return &client.SolveOpt{
@@ -264,6 +264,7 @@ func (s *solver) newSolveOptMain() (*client.SolveOpt, error) {
 func newRegistryCacheOpt(ref string) client.CacheOptionsEntry {
 	registryCacheOptAttrs := make(map[string]string)
 	registryCacheOptAttrs["ref"] = ref
+	registryCacheOptAttrs["mode"] = "max"
 	return client.CacheOptionsEntry{
 		Type:  "registry",
 		Attrs: registryCacheOptAttrs,
