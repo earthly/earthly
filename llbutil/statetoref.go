@@ -2,7 +2,6 @@ package llbutil
 
 import (
 	"context"
-	"fmt"
 	"sort"
 
 	"github.com/moby/buildkit/client/llb"
@@ -17,7 +16,6 @@ func StateToRef(ctx context.Context, gwClient gwclient.Client, state llb.State, 
 		cacheImportsSlice = append(cacheImportsSlice, ci)
 	}
 	sort.Strings(cacheImportsSlice)
-	fmt.Printf("@#@#@#@# statetoref with cacheImports %+v\n", cacheImportsSlice)
 	var coes []gwclient.CacheOptionsEntry
 	for _, ci := range cacheImportsSlice {
 		coe := gwclient.CacheOptionsEntry{
