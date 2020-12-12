@@ -44,9 +44,10 @@ type SingleTarget struct {
 	LocalDirs              map[string]string
 	Ongoing                bool
 	Salt                   string
-	// IsMandatory represents whether there are any non-SAVE commands after the first SAVE command,
+	// HasDangling represents whether the target has dangling instructions -
+	// ie if there are any non-SAVE commands after the first SAVE command,
 	// or if the target is invoked via BUILD command (not COPY nor FROM).
-	IsMandatory bool
+	HasDangling bool
 }
 
 // LastSaveImage returns the last save image available (if any).
@@ -77,6 +78,9 @@ type SaveImage struct {
 	Image     *image.Image
 	DockerTag string
 	Push      bool
+	// CacheHint instructs Earthly to save a separate ref for this image, even if no tag is
+	// provided.
+	CacheHint bool
 }
 
 // RunPush is a series of RUN --push commands to be run after the build has been deemed as

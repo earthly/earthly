@@ -30,18 +30,18 @@ deps:
 
 code:
     FROM +deps
+    COPY ./earthfile2llb/parser+parser/*.go ./earthfile2llb/parser/
     COPY --dir analytics autocomplete buildcontext builder cleanup cmd config conslogging debugger dockertar \
         docker2earth domain fileutils llbutil logging secretsclient stringutil states variables ./
     COPY --dir buildkitd/buildkitd.go buildkitd/settings.go buildkitd/
     COPY --dir earthfile2llb/antlrhandler earthfile2llb/*.go earthfile2llb/
-    COPY ./earthfile2llb/parser+parser/*.go ./earthfile2llb/parser/
 
 lint-scripts:
     FROM +deps
     COPY ./earth ./scripts/install-all-versions.sh ./buildkitd/entrypoint.sh ./earth-buildkitd-wrapper.sh \
         ./buildkitd/dockerd-wrapper.sh ./buildkitd/docker-auto-install.sh \
         ./release/envcredhelper.sh ./.buildkite/*.sh \
-        ./.tests/private-repo.sh \
+        ./scripts/tests/private-repo.sh ./scripts/tests/self-hosted-private-repo.sh \
         ./shell_scripts/
     RUN shellcheck shell_scripts/*
 

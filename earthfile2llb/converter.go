@@ -360,13 +360,19 @@ func (c *Converter) SaveArtifact(ctx context.Context, saveFrom string, saveTo st
 		})
 	}
 	c.ranSave = true
+	c.markFakeDeps()
 	return nil
 }
 
 // SaveImage applies the earth SAVE IMAGE command.
-func (c *Converter) SaveImage(ctx context.Context, imageNames []string, pushImages bool) error {
-	if len(imageNames) == 0 {
-		return errors.New("no docker tags provided")
+func (c *Converter) SaveImage(ctx context.Context, imageNames []string, pushImages bool, cacheHint bool, cacheFrom []string) error {
+	for _, cf := range cacheFrom {
+		c.opt.CacheImports[cf] = true
+	}
+	justCacheHint := false
+	if len(imageNames) == 0 && cacheHint {
+		imageNames = []string{""}
+		justCacheHint = true
 	}
 	for _, imageName := range imageNames {
 		c.mts.Final.SaveImages = append(c.mts.Final.SaveImages, states.SaveImage{
@@ -374,13 +380,17 @@ func (c *Converter) SaveImage(ctx context.Context, imageNames []string, pushImag
 			Image:     c.mts.Final.MainImage.Clone(),
 			DockerTag: imageName,
 			Push:      pushImages,
+			CacheHint: cacheHint,
 		})
 		if pushImages && imageName != "" && c.opt.UseInlineCache {
 			// Use this image tag as cache import too.
 			c.opt.CacheImports[imageName] = true
 		}
 	}
-	c.ranSave = true
+	if !justCacheHint {
+		c.ranSave = true
+		c.markFakeDeps()
+	}
 	return nil
 }
 
@@ -532,9 +542,10 @@ func (c *Converter) Healthcheck(ctx context.Context, isNone bool, cmdArgs []stri
 
 // FinalizeStates returns the LLB states.
 func (c *Converter) FinalizeStates(ctx context.Context) (*states.MultiTarget, error) {
+	c.markFakeDeps()
+
 	c.opt.BuildContextProvider.AddDirs(c.mts.Final.LocalDirs)
 	c.mts.Final.VarCollection = c.varCollection
-
 	c.mts.Final.Ongoing = false
 	return c.mts, nil
 }
@@ -544,7 +555,7 @@ func (c *Converter) ExpandArgs(word string) string {
 	return c.varCollection.Expand(word)
 }
 
-func (c *Converter) buildTarget(ctx context.Context, fullTargetName string, buildArgs []string, mandatory bool) (*states.MultiTarget, error) {
+func (c *Converter) buildTarget(ctx context.Context, fullTargetName string, buildArgs []string, isDangling bool) (*states.MultiTarget, error) {
 	relTarget, err := domain.ParseTarget(fullTargetName)
 	if err != nil {
 		return nil, errors.Wrapf(err, "earth target parse %s", fullTargetName)
@@ -569,8 +580,8 @@ func (c *Converter) buildTarget(ctx context.Context, fullTargetName string, buil
 	if err != nil {
 		return nil, errors.Wrapf(err, "earthfile2llb for %s", fullTargetName)
 	}
-	if mandatory {
-		mts.Final.IsMandatory = true
+	if isDangling {
+		mts.Final.HasDangling = true
 	}
 	c.directDeps = append(c.directDeps, mts.Final)
 	if propagateBuildArgs {
@@ -768,7 +779,7 @@ func (c *Converter) applyFromImage(state llb.State, img *image.Image) (llb.State
 
 func (c *Converter) nonSaveCommand() {
 	if c.ranSave {
-		c.mts.Final.IsMandatory = true
+		c.mts.Final.HasDangling = true
 	}
 }
 
@@ -828,6 +839,20 @@ func (c *Converter) vertexPrefix() string {
 		varStr = fmt.Sprintf("(%s)", b64VarStr)
 	}
 	return fmt.Sprintf("[%s%s %s] ", c.mts.Final.Target.String(), varStr, c.mts.Final.Salt)
+}
+
+func (c *Converter) markFakeDeps() {
+	if !c.opt.UseFakeDep {
+		return
+	}
+	for _, dep := range c.directDeps {
+		if dep.HasDangling {
+			c.mts.Final.MainState = llbutil.WithDependency(
+				c.mts.Final.MainState, dep.MainState, c.mts.Final.Target.String(), dep.Target.String())
+		}
+	}
+	// Clear the direct deps so we don't do this again.
+	c.directDeps = nil
 }
 
 func (c *Converter) imageVertexPrefix(id string) string {

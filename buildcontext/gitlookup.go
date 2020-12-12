@@ -2,9 +2,14 @@ package buildcontext
 
 import (
 	"fmt"
+	"io/ioutil"
 	"net/url"
+	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
+
+	"github.com/earthly/earthly/fileutils"
 
 	"github.com/pkg/errors"
 )
@@ -12,6 +17,7 @@ import (
 type gitMatcher struct {
 	name     string
 	re       *regexp.Regexp
+	sub      string
 	user     string
 	suffix   string
 	protocol string
@@ -83,7 +89,7 @@ func (gl *GitLookup) DisableSSH() {
 }
 
 // AddMatcher adds a new matcher for looking up git repos
-func (gl *GitLookup) AddMatcher(name, pattern, user, password, suffix, protocol, keyScan string) error {
+func (gl *GitLookup) AddMatcher(name, pattern, sub, user, password, suffix, protocol, keyScan string) error {
 	if protocol == "http" && password != "" {
 		return fmt.Errorf("using a password with http for %s is insecure", name)
 	}
@@ -102,6 +108,7 @@ func (gl *GitLookup) AddMatcher(name, pattern, user, password, suffix, protocol,
 	gm := &gitMatcher{
 		name:     name,
 		re:       re,
+		sub:      sub,
 		user:     user,
 		password: password,
 		suffix:   suffix,
@@ -175,5 +182,36 @@ func (gl *GitLookup) GetCloneURL(path string) (string, string, string, error) {
 	default:
 		return "", "", "", fmt.Errorf("unsupported protocol: %s", m.protocol)
 	}
+
+	if m.sub != "" {
+		gitURL = m.re.ReplaceAllString(path, m.sub)
+	}
+
+	if keyScan == "" {
+		keyScan, err = loadKnownHosts()
+		if err != nil {
+			return "", "", "", err
+		}
+	}
+
 	return gitURL, subPath, keyScan, nil
+}
+
+func loadKnownHosts() (string, error) {
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return "", errors.Wrap(err, "failed to get user home dir")
+	}
+
+	knownHosts := filepath.Join(homeDir, ".ssh/known_hosts")
+
+	if !fileutils.FileExists(knownHosts) {
+		return "", nil
+	}
+
+	b, err := ioutil.ReadFile(knownHosts)
+	if err != nil {
+		return "", errors.Wrapf(err, "failed to read %s", knownHosts)
+	}
+	return string(b), nil
 }

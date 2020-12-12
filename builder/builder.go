@@ -44,6 +44,7 @@ type Opt struct {
 	NoCache              bool
 	CacheImports         map[string]bool
 	CacheExport          string
+	MaxCacheExport       string
 	UseInlineCache       bool
 	SaveInlineCache      bool
 	ImageResolveMode     llb.ResolveMode
@@ -51,6 +52,7 @@ type Opt struct {
 	VarCollection        *variables.Collection
 	BuildContextProvider *provider.BuildContextProvider
 	GitLookup            *buildcontext.GitLookup
+	UseFakeDep           bool
 }
 
 // BuildOpt is a collection of build options.
@@ -78,6 +80,7 @@ func NewBuilder(ctx context.Context, opt Opt) (*Builder, error) {
 			bkClient:        opt.BkClient,
 			cacheImports:    opt.CacheImports,
 			cacheExport:     opt.CacheExport,
+			maxCacheExport:  opt.MaxCacheExport,
 			attachables:     opt.Attachables,
 			enttlmnts:       opt.Enttlmnts,
 			saveInlineCache: opt.SaveInlineCache,
@@ -132,6 +135,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 			BuildContextProvider: b.opt.BuildContextProvider,
 			CacheImports:         b.opt.CacheImports,
 			UseInlineCache:       b.opt.UseInlineCache,
+			UseFakeDep:           b.opt.UseFakeDep,
 		})
 		if err != nil {
 			return nil, err
@@ -158,7 +162,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 		imageIndex := 0
 		dirIndex := 0
 		for _, sts := range mts.All() {
-			if sts.IsMandatory {
+			if sts.HasDangling && !b.opt.UseFakeDep {
 				depRef, err := b.stateToRef(ctx, gwClient, sts.MainState)
 				if err != nil {
 					return nil, err
@@ -171,7 +175,8 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 			for _, saveImage := range sts.SaveImages {
 				shouldPush := opt.Push && saveImage.Push && !sts.Target.IsRemote()
 				shouldExport := !opt.NoOutput && opt.OnlyArtifact == nil && !(opt.OnlyFinalTargetImages && sts != mts.Final)
-				if !shouldPush && !shouldExport {
+				useCacheHint := saveImage.CacheHint && b.opt.CacheExport != ""
+				if !shouldPush && !shouldExport && !useCacheHint {
 					// Short-circuit.
 					continue
 				}
