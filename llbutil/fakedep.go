@@ -4,8 +4,6 @@ import (
 	"github.com/moby/buildkit/client/llb"
 )
 
-const fakeDepImg = "busybox:1.31.1"
-
 // WithDependency creates a fake dependency between two states.
 func WithDependency(state llb.State, depState llb.State, stateStr, depStr string, opts ...llb.RunOption) llb.State {
 	// TODO: Is there a better way to mark two states as depending on each other?
@@ -14,26 +12,26 @@ func WithDependency(state llb.State, depState llb.State, stateStr, depStr string
 		return state
 	}
 
-	// Copy a file that is known to exist in (almost) all images.
-	// (The copy is necessary to prevent situation where BuildKit needs to re-hash the entire
-	// depState).
+	// Copy a wildcard that could never exist.
+	// (And allow for the wildcard to match nothing).
 	interm := llb.Scratch().Platform(TargetPlatform)
-	interm = CopyOp(
-		depState, []string{"/bin/sh"}, interm, "/bin/sh", false, true, "",
-		llb.WithCustomNamef("[internal] (copy) %s depends on %s", stateStr, depStr))
+	interm = interm.File(llb.Copy(
+		depState, "/fake-745cb405-fbfb-4ea7-83b0-a85c26b4aff0-*", "/tmp/",
+		&llb.CopyInfo{
+			CreateDestPath:      true,
+			AllowWildcard:       true,
+			AllowEmptyWildcard:  true,
+			CopyDirContentsOnly: true,
+		}), llb.WithCustomNamef("[internal] (fakecopy1) %s depends on %s", stateStr, depStr))
 
-	// Execute a command which doesn't do anything (but it creates a new layer, which casues it
-	// to depend on depState).
-	runOpts := []llb.RunOption{
-		llb.Args([]string{"/bin/sh", "-c", "true"}),
-		llb.Dir("/"),
-		llb.ReadonlyRootFS(),
-		llb.AddMount("/fake-dep", interm, llb.Readonly),
-		llb.WithCustomNamef("[internal] (run) %s depends on %s", stateStr, depStr),
-	}
-	runOpts = append(runOpts, opts...)
-	opImg := llb.Image(
-		fakeDepImg, llb.MarkImageInternal, llb.Platform(TargetPlatform),
-		llb.WithCustomNamef("[internal] helper image for fake dep operations"))
-	return opImg.Run(runOpts...).AddMount("/fake", state)
+	// Do this again. The extra step is needed to prevent the need for BuildKit
+	// to re-hash the input in certain cases (can be slow if depState is large).
+	return state.File(llb.Copy(
+		depState, "/fake-5fa01e05-ca9e-45c9-8721-05b9183a2914-*", "/tmp/",
+		&llb.CopyInfo{
+			CreateDestPath:      true,
+			AllowWildcard:       true,
+			AllowEmptyWildcard:  true,
+			CopyDirContentsOnly: true,
+		}), llb.WithCustomNamef("[internal] (fakecopy2) %s depends on %s", stateStr, depStr))
 }
