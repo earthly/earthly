@@ -108,7 +108,7 @@ jobs:
       - name: Build latest earth using released earth
         run: earth +for-linux
       - name: run ssh-based tests
-        run: env -u GIT_URL_INSTEAD_OF earth=./build/linux/amd64/earth .tests/private-repo.sh
+        run: env -u GIT_URL_INSTEAD_OF earth=./build/linux/amd64/earth scripts/tests/private-repo.sh
   private-repo-test:
     services:
       sshd:
@@ -133,7 +133,7 @@ jobs:
       - name: Build latest earth using released earth
         run: earth +for-linux
       - name: run ssh-based tests
-        run: env -u GIT_URL_INSTEAD_OF earth=./build/linux/amd64/earth .tests/self-hosted-private-repo.sh
+        run: env -u GIT_URL_INSTEAD_OF earth=./build/linux/amd64/earth scripts/tests/self-hosted-private-repo.sh
 
   push:
     name: --push +all
