@@ -140,11 +140,45 @@ Also available as an env var setting: `EARTHLY_ALLOW_PRIVILEGED=true`.
 
 Permits the build to use the --privileged flag in RUN commands. For more information see the [`RUN --privileged` command](../earthfile/earthfile.md#run).
 
-##### `--use-inline-cache`
+##### `--use-inline-cache` (**experimental**)
 
-Also available as an env var settings: ``
+Also available as an env var settings: `EARTHLY_USE_INLINE_CACHE=true`
 
-TODO
+Enables use of inline cache, if available. Any `SAVE IMAGE --push` command is used to inform the system of possible inline cache sources. For more information see the [shared caching guide](../guides/shared-cache.md).
+
+##### `--save-inline-cache` (**experimental**)
+
+Also available as an env var settings: `EARTHLY_SAVE_INLINE_CACHE=true`
+
+Enables embedding inline cache in any pushed images. This cache can be used on other systems, if enabled via `--use-inline-cache`. For more information see the [shared caching guide](../guides/shared-cache.md).
+
+##### `--remote-cache <image-tag>` (**experimental**)
+
+Also available as an env var settings: `EARTHLY_REMOTE_CACHE=<tag>`
+
+Enables use of explicit cache. The provided `<image-tag>` is used for storing and retrieving the cache to/from a Docker registry. Storing explicit cache is only enabled if the option `--push` is also passed in. For more information see the [shared caching guide](../guides/shared-cache.md).
+
+##### `--max-remote-cache` (**experimental**)
+
+Also available as an env var settings: `EARTHLY_MAX_REMOTE_CACHE=true`
+
+Enables storing all intermediate layers as part of the explicit cache. Note that this setting is rarely effective due to the excessive upload overhead. For more information see the [shared caching guide](../guides/shared-cache.md).
+
+##### `--ci` (**experimental**)
+
+Also available as an env var settings: `EARTHLY_CI=true`
+
+In *target mode*, this option is an alias for
+
+```
+--use-inline-cache --save-inline-cache --no-output
+```
+
+In *artifact* and *image modes* , this option is an alias for
+
+```
+--use-inline-cache --save-inline-cache
+```
 
 ##### `--ssh-auth-sock <path-to-sock>`
 

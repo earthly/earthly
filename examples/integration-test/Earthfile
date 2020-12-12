@@ -23,6 +23,7 @@ project-files:
     COPY project project
     # Run sbt for caching purposes.
     RUN touch a.scala && sbt compile && rm a.scala
+    SAVE IMAGE --cache-hint
 
 build:
     FROM +project-files

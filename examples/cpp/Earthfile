@@ -22,4 +22,4 @@ build:
 docker:
   COPY +build/fibonacci /bin/fibonacci
   ENTRYPOINT ["/bin/fibonacci"]
-  SAVE IMAGE cpp-example:latest
+  SAVE IMAGE --push earthly/examples:cpp
