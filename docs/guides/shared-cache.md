@@ -1,0 +1,175 @@
+# Shared cache
+
+{% hint style='danger' %}
+##### Important
+
+This feature is currently in **Experimental** stage.
+
+The feature may break, be changed drastically with no warning, or be removed altogether in future versions of Earthly.
+{% endhint %}
+
+Earthly has the ability to share cache between different isolated CI runs and even with developers. This page goes through the available features, common use-cases and situations where shared cache is most useful.
+
+Shared caching is made possible by storing intermediate steps of a build in a cloud-based Docker registry. This cache can then be downloaded on another machine in order to skip common parts.
+
+## Where to use shared cache
+
+There are several situations where shared caching can provide a significant performance boost. The following are only a few examples of how to get a feel for its usefulness.
+
+### Compute-heavy vs Download-heavy
+
+In general shared cache is very useful when there is a significant computation overhead during the execution of your build. Assuming that the inputs of that computation do not change regularly, then shared caching could be a good candidate in that case. If a time-consuming operation, however, is not compute-heavy, but rather download-heavy, then shared cache may not be as effective (it's one download versus another).
+
+As an example of this distinction, consider the use of the `apk` tool shipped in `alpine` images. Installing packages via `apk` is download-heavy, but usually not very compute-heavy, and so using shared caching to offset `apk` download times might not be as effective. On the other hand, consider `apt-get` tool shipped in `ubuntu` images. Besides performing downloads, `apt-get` also performs additional post-download steps which tend to be compute-intensive. For this reason, shared caching is usually very effective here.
+
+Similarly to the comparision between `apk` and `apt-get`, similar arguments can be made about the various language-specific dependency management tools. Some will be pure download-based (eg `go mod download`), while others will be a mix of download and computation (eg `sbt`).
+
+### Final result is small and doesn't change much
+
+An area where shared cache is particularly impactful are cases where a rare-changing pre-requisite requires many dependencies and/or compute to be generated, but the end result is relatively small (eg a single binary). Passing this pre-requisitve over the wire as part of the shared cache is very fast, whereas re-generating it requires a lot of work.
+
+### CIs that operate in a sandbox
+
+Modern CIs execute in a sandbox. They start with a blank slate and need to download and regenerate everything from scratch. Examples of such CIs: GitHub Actions, Circle CI, DroneCI, GitLab CI. Such CIs benefit greatly from being able to share pre-computed steps between runs.
+
+If, however, you are using a CI which reuses the same environment (eg Jenkins, BuildKite - depending on how they are configured), then simply relying on the local cache is enough.
+
+### Shared cache for developers
+
+It is possible to use cache in read-only mode for developers to speed up local development. This can be achieved by enabling read-write shared caching in CI and read-only cache for individual developers. Since all Earthly cache is kept in Docker registries, managing access to the cache can be controlled by managing access to individual Docker images.
+
+Note, however that there is small performance penalty for regularly checking the remote registry on every run.
+
+## Types of shared cache
+
+Earthly makes available two types of shared caches:
+
+* [Inline cache](#inline-cache)
+* [Explicit cache](#explicit-cache-advanced) (advanced)
+
+### Inline cache
+
+Inline caching is the easiest to configure. It essentially makes use of any image already being pushed to the registry and adds some very small metadata as part of its configuration about how Earthly is able to reuse that image for future runs.
+
+The key benefit of this approach is that you get the upload for free if you anyway push images to the registry.
+
+#### How to use inline caching
+
+In order to enable inline caching, simply add `--ci` in your invocation of `earth` in your CI, or `--use-inline-cache` on individual developer's machines. If the `--push` command is also specified, the use of the cache will be read-write.
+
+In CI, read-only inline cache (typically in PR builds):
+
+```bash
+earth --ci +some-target
+```
+
+In CI, read-write inline cache (typically in master/main branch builds):
+
+```bash
+earth --ci --push +some-target
+```
+
+On developer's computer (optional):
+
+```bash
+earth --use-inline-cache +some-target
+```
+
+The options mentioned above are also available as environment variables. See [Earth command reference](../earth-command/earth-command.md) for more information.
+
+The way this works underneath is that Earthly uses `SAVE IMAGE --push` declarations as source and destination for any inline cache.
+
+In case different Docker tags are used in branch or PR builds, it is possible to use additional cache sources via [`SAVE IMAGE --cache-from=...`](TODO). Here is a simple example:
+
+```Dockerfile
+FROM ...
+...
+ARG BRANCH=master
+SAVE IMAGE --cache-from=mycompany/myimage:master --push mycompany/myimage:$BRANCH
+```
+
+#### Optimizing inline cache performance (advanced)
+
+Inline caching is very easy to use, however it can also turn out to be ineffective for some builds. One limitation is that only the layers that end up in uploaded images are actually used. Certain intermediate layers (eg targets only used for compiling binaries) will not exist.
+
+If you find that certain steps could benefit from being cached but are not, you may consider creating additional images for those steps specifically. All you need to do is add the following at the end. Use a Docker tag that is not used for anything else.
+
+```Dockerfile
+SAVE IMAGE --push <docker-tag>
+```
+
+Note however that adding more images to the build results in additional time spent uploading them. Disregard the performance of the very first upload, as a fresh push is always less performant because there is no commonality with any previous run.
+
+#### Key benefits of inline caching
+
+* Very easy to use (just add `--ci` to your `earth` invokations in CI)
+* It is usually effective right away, with little modifications
+* Upload is for free if you are pushing images anyway
+
+#### Example of using inline caching
+
+TODO (cpp example, scala example)
+
+### Explicit cache (advanced)
+
+Explicit caching requires that you dedicate a Docker tag specifically for cache storage. Unlike inline caching, this tag is not meant to be used for anything else. For this reason, uploading the cache is an added step in your runs, which may affect performance.
+
+#### How to use explicit caching
+
+To enable explicit caching, use the flag `--remote-cache=...` to specify the Docker tag to use as cache. Make sure that this Docker tag is not used for anything else (eg DO NOT use `myimage:latest`, in case `latest` is used in a critical workflow).
+
+For example, if the Docker tag used for explicit caching is `mycompany/myimage:cache`, then the flag can be used as follows.
+
+In CI, read-only inline cache (typically in PR builds):
+
+```bash
+earth --ci --remote-cache=mycompany/myimage:cache +some-target
+```
+
+In CI, read-write inline cache (typically in master/main branch builds):
+
+```bash
+earth --ci --remote-cache=mycompany/myimage:cache --push +some-target
+```
+
+On developer's computer (optional):
+
+```bash
+earth --remote-cache=mycompany/myimage:cache +some-target
+```
+
+The options mentioned above are also available as environment variables. See [Earth command reference](../earth-command/earth-command.md) for more information.
+
+{% hint style='info' %}
+##### Note
+
+If a project has multiple CI pipelines or `earth` invocations, it is recommended to use different `--remote-cache` Docker tags for each pipeline or invocation. This will prevent the cache from being overwritten in ways in which it makes it less effective.
+{% endhint %}
+
+{% hint style='info' %}
+##### Note
+
+It is currently not possible to push both inline and implicit caches currently.
+{% endhint %}
+
+#### Optimizing explicit cache performance (advanced)
+
+Explicit caching works by storing a cache containing all the layers of the final target, plus any target containing `SAVE IMAGE --push ...`. If additional targets need to be added as part of the cache, it is possible to add `SAVE IMAGE --cache-hint` (no Docker tag necessary) at the end, in order to mark them for explicit caching.
+
+```Dockerfile
+deps:
+  COPY go.mod go.sum ./
+  RUN go mod download
+  SAVE IMAGE --cache-hint
+```
+
+Making use of explicit caching effectively may not always be possible. Sometimes the overhead of uploading and redownloading the cache defeats the purpose of gaining build performance. Oftentimes, multiple iterations of trial-and-error need to be attempted in order to optimize its effectiveness. Keep in mind that caching compute-heavy targets is more likely to yield results, rather than download-heavy targets.
+
+#### Key benefits of explicit caching
+
+* The only available choice if no images are already pushed during the build
+* More control over what is being cached and what is not. However it often requires some level of experimentation to get right.
+
+#### Example of using explicit caching
+
+TODO (integration-testing example)

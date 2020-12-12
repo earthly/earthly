@@ -45,4 +45,4 @@ which restarts the daemon and resets the contents of the cache volume.
 
 ## See also
 
-* [Advanced caching techniques](./advanced-caching.md)
+* [Advanced caching techniques](./advanced-local-caching.md)

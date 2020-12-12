@@ -6,30 +6,15 @@
 
 * Target form
   ```
-  earth [--build-arg <key>[=<value>]] [--secret|-s <secret-id>[=<value>]]
-        [--push] [--no-output] [--no-cache] [--allow-privileged|-P]
-        [--ssh-auth-sock <path-to-sock>]
-        [--buildkit-host <bk-host>]
-        [--interactive|-i]
-        <target-ref>
+  earth [options...] <target-ref>
   ```
 * Artifact form
   ```
-  earth [--build-arg <key>[=<value>]] [--secret|-s <secret-id>[=<value>]]
-        [--push] [--no-cache] [--allow-privileged|-P]
-        [--ssh-auth-sock <path-to-sock>]
-        [--buildkit-host <bk-host>]
-        [--interactive|-i]
-        --artifact|-a <artifact-ref> [<dest-path>]
+  earth [options...] --artifact|-a <artifact-ref> [<dest-path>]
   ```
 * Image form
   ```
-  earth [--build-arg <key>[=<value>]] [--secret|-s <secret-id>[=<value>]]
-        [--push] [--no-cache] [--allow-privileged|-P]
-        [--ssh-auth-sock <path-to-sock>]
-        [--buildkit-host <bk-host>]
-        [--interactive|-i]
-        --image <target-ref>
+  earth [options...] --image <target-ref>
   ```
 
 #### Description
@@ -154,6 +139,12 @@ Instructs Earthly to ignore any cache when building. It does, however, continue 
 Also available as an env var setting: `EARTHLY_ALLOW_PRIVILEGED=true`.
 
 Permits the build to use the --privileged flag in RUN commands. For more information see the [`RUN --privileged` command](../earthfile/earthfile.md#run).
+
+##### `--use-inline-cache`
+
+Also available as an env var settings: ``
+
+TODO
 
 ##### `--ssh-auth-sock <path-to-sock>`
 
