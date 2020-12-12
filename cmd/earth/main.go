@@ -89,8 +89,8 @@ type cliFlags struct {
 	enableProfiler         bool
 	buildkitHost           string
 	buildkitdImage         string
-	cacheFrom              cli.StringSlice
-	cacheTo                string
+	remoteCache            string
+	maxRemoteCache         bool
 	saveInlineCache        bool
 	useInlineCache         bool
 	configPath             string
@@ -115,7 +115,7 @@ type cliFlags struct {
 	expiry                 string
 	termsConditionsPrivacy bool
 	authToken              string
-	useFakeDep             bool
+	noFakeDep              bool
 }
 
 var (
@@ -385,18 +385,18 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 			Destination: &app.buildkitdImage,
 		},
 		&cli.StringFlag{
-			Name:        "cache-to",
-			EnvVars:     []string{"EARTHLY_CACHE_TO"},
-			Usage:       "A remote docker image tag to save build cache to",
-			Destination: &app.cacheTo,
+			Name:        "remote-cache",
+			EnvVars:     []string{"EARTHLY_REMOTE_CACHE"},
+			Usage:       "A remote docker image tag use as explicit cache",
+			Destination: &app.remoteCache,
 			Hidden:      true, // Experimental.
 		},
-		&cli.StringSliceFlag{
-			Name:    "cache-from",
-			EnvVars: []string{"EARTHLY_CACHE_FROM"},
-			Usage:   "A remote docker image tag to be used as build cache",
-			Value:   &app.cacheFrom,
-			Hidden:  true, // Experimental.
+		&cli.BoolFlag{
+			Name:        "max-remote-cache",
+			EnvVars:     []string{"EARTHLY_MAX_REMOTE_CACHE"},
+			Usage:       "Saves all intermediate images too in the remove cache",
+			Destination: &app.maxRemoteCache,
+			Hidden:      true, // Experimental.
 		},
 		&cli.BoolFlag{
 			Name:        "save-inline-cache",
@@ -408,7 +408,7 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 		&cli.BoolFlag{
 			Name:        "use-inline-cache",
 			EnvVars:     []string{"EARTHLY_USE_INLINE_CACHE"},
-			Usage:       "Attempt to use any inline cache that may have been previously pushed (uses image tags referenced by SAVE IMAGE --push)",
+			Usage:       "Attempt to use any inline cache that may have been previously pushed (uses image tags referenced by SAVE IMAGE --push or SAVE IMAGE --cache-from)",
 			Destination: &app.useInlineCache,
 			Hidden:      true, // Experimental.
 		},
@@ -442,10 +442,10 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 			Hidden:      true, // Internal.
 		},
 		&cli.BoolFlag{
-			Name:        "fake-dep",
-			EnvVars:     []string{"EARTHLY_FAKE_DEP"},
+			Name:        "no-fake-dep",
+			EnvVars:     []string{"EARTHLY_NO_FAKE_DEP"},
 			Usage:       "Internal feature flag for fake-dep",
-			Destination: &app.useFakeDep,
+			Destination: &app.noFakeDep,
 			Hidden:      true, // Internal.
 		},
 	}
@@ -1817,8 +1817,10 @@ func (app *earthApp) actionBuild(c *cli.Context) error {
 
 	if app.ci {
 		app.useInlineCache = true
-		app.saveInlineCache = true
 		app.noOutput = true
+		if app.remoteCache == "" && app.push {
+			app.saveInlineCache = true
+		}
 	}
 	if app.imageMode && app.artifactMode {
 		return errors.New("both image and artifact modes cannot be active at the same time")
@@ -1973,8 +1975,17 @@ func (app *earthApp) actionBuild(c *cli.Context) error {
 	}
 
 	cacheImports := make(map[string]bool)
-	for _, cf := range app.cacheFrom.Value() {
-		cacheImports[cf] = true
+	if app.remoteCache != "" {
+		cacheImports[app.remoteCache] = true
+	}
+	var cacheExport string
+	var maxCacheExport string
+	if app.remoteCache != "" && app.push {
+		if app.maxRemoteCache {
+			maxCacheExport = app.remoteCache
+		} else {
+			cacheExport = app.remoteCache
+		}
 	}
 	builderOpts := builder.Opt{
 		BkClient:             bkClient,
@@ -1984,7 +1995,8 @@ func (app *earthApp) actionBuild(c *cli.Context) error {
 		Enttlmnts:            enttlmnts,
 		NoCache:              app.noCache,
 		CacheImports:         cacheImports,
-		CacheExport:          app.cacheTo,
+		CacheExport:          cacheExport,
+		MaxCacheExport:       maxCacheExport,
 		UseInlineCache:       app.useInlineCache,
 		SaveInlineCache:      app.saveInlineCache,
 		SessionID:            app.sessionID,
@@ -1993,7 +2005,7 @@ func (app *earthApp) actionBuild(c *cli.Context) error {
 		VarCollection:        varCollection,
 		BuildContextProvider: buildContextProvider,
 		GitLookup:            gitLookup,
-		UseFakeDep:           app.useFakeDep,
+		UseFakeDep:           !app.noFakeDep,
 	}
 	b, err := builder.NewBuilder(c.Context, builderOpts)
 	if err != nil {

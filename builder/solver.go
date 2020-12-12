@@ -31,6 +31,7 @@ type solver struct {
 	enttlmnts       []entitlements.Entitlement
 	cacheImports    map[string]bool
 	cacheExport     string
+	maxCacheExport  string
 	saveInlineCache bool
 }
 
@@ -162,7 +163,7 @@ func (s *solver) newSolveOptDocker(img *image.Image, dockerTag string, w io.Writ
 	}
 	var cacheImports []client.CacheOptionsEntry
 	for ci := range s.cacheImports {
-		cacheImports = append(cacheImports, newRegistryCacheOpt(ci))
+		cacheImports = append(cacheImports, newCacheImportOpt(ci))
 	}
 	return &client.SolveOpt{
 		Exports: []client.ExportEntry{
@@ -186,11 +187,14 @@ func (s *solver) newSolveOptDocker(img *image.Image, dockerTag string, w io.Writ
 func (s *solver) newSolveOptMulti(ctx context.Context, eg *errgroup.Group, onImage onImageFunc, onArtifact onArtifactFunc, onFinalArtifact onFinalArtifactFunc) (*client.SolveOpt, error) {
 	var cacheImports []client.CacheOptionsEntry
 	for ci := range s.cacheImports {
-		cacheImports = append(cacheImports, newRegistryCacheOpt(ci))
+		cacheImports = append(cacheImports, newCacheImportOpt(ci))
 	}
 	var cacheExports []client.CacheOptionsEntry
 	if s.cacheExport != "" {
-		cacheExports = append(cacheExports, newRegistryCacheOpt(s.cacheExport))
+		cacheExports = append(cacheExports, newCacheExportOpt(s.cacheExport, false))
+	}
+	if s.maxCacheExport != "" {
+		cacheExports = append(cacheExports, newCacheExportOpt(s.cacheExport, true))
 	}
 	if s.saveInlineCache {
 		cacheExports = append(cacheExports, newInlineCacheOpt())
@@ -247,24 +251,30 @@ func (s *solver) newSolveOptMulti(ctx context.Context, eg *errgroup.Group, onIma
 func (s *solver) newSolveOptMain() (*client.SolveOpt, error) {
 	var cacheImports []client.CacheOptionsEntry
 	for ci := range s.cacheImports {
-		cacheImports = append(cacheImports, newRegistryCacheOpt(ci))
-	}
-	var cacheExports []client.CacheOptionsEntry
-	if s.cacheExport != "" {
-		cacheExports = append(cacheExports, newRegistryCacheOpt(s.cacheExport))
+		cacheImports = append(cacheImports, newCacheImportOpt(ci))
 	}
 	return &client.SolveOpt{
 		Session:             s.attachables,
 		AllowedEntitlements: s.enttlmnts,
 		CacheImports:        cacheImports,
-		CacheExports:        cacheExports,
 	}, nil
 }
 
-func newRegistryCacheOpt(ref string) client.CacheOptionsEntry {
+func newCacheImportOpt(ref string) client.CacheOptionsEntry {
 	registryCacheOptAttrs := make(map[string]string)
 	registryCacheOptAttrs["ref"] = ref
-	registryCacheOptAttrs["mode"] = "max"
+	return client.CacheOptionsEntry{
+		Type:  "registry",
+		Attrs: registryCacheOptAttrs,
+	}
+}
+
+func newCacheExportOpt(ref string, max bool) client.CacheOptionsEntry {
+	registryCacheOptAttrs := make(map[string]string)
+	registryCacheOptAttrs["ref"] = ref
+	if max {
+		registryCacheOptAttrs["mode"] = "max"
+	}
 	return client.CacheOptionsEntry{
 		Type:  "registry",
 		Attrs: registryCacheOptAttrs,

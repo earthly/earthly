@@ -365,9 +365,14 @@ func (c *Converter) SaveArtifact(ctx context.Context, saveFrom string, saveTo st
 }
 
 // SaveImage applies the earth SAVE IMAGE command.
-func (c *Converter) SaveImage(ctx context.Context, imageNames []string, pushImages bool) error {
-	if len(imageNames) == 0 {
-		return errors.New("no docker tags provided")
+func (c *Converter) SaveImage(ctx context.Context, imageNames []string, pushImages bool, cacheHint bool, cacheFrom []string) error {
+	for _, cf := range cacheFrom {
+		c.opt.CacheImports[cf] = true
+	}
+	justCacheHint := false
+	if len(imageNames) == 0 && cacheHint {
+		imageNames = []string{""}
+		justCacheHint = true
 	}
 	for _, imageName := range imageNames {
 		c.mts.Final.SaveImages = append(c.mts.Final.SaveImages, states.SaveImage{
@@ -375,14 +380,17 @@ func (c *Converter) SaveImage(ctx context.Context, imageNames []string, pushImag
 			Image:     c.mts.Final.MainImage.Clone(),
 			DockerTag: imageName,
 			Push:      pushImages,
+			CacheHint: cacheHint,
 		})
 		if pushImages && imageName != "" && c.opt.UseInlineCache {
 			// Use this image tag as cache import too.
 			c.opt.CacheImports[imageName] = true
 		}
 	}
-	c.ranSave = true
-	c.markFakeDeps()
+	if !justCacheHint {
+		c.ranSave = true
+		c.markFakeDeps()
+	}
 	return nil
 }
 
@@ -547,7 +555,7 @@ func (c *Converter) ExpandArgs(word string) string {
 	return c.varCollection.Expand(word)
 }
 
-func (c *Converter) buildTarget(ctx context.Context, fullTargetName string, buildArgs []string, mandatory bool) (*states.MultiTarget, error) {
+func (c *Converter) buildTarget(ctx context.Context, fullTargetName string, buildArgs []string, isDangling bool) (*states.MultiTarget, error) {
 	relTarget, err := domain.ParseTarget(fullTargetName)
 	if err != nil {
 		return nil, errors.Wrapf(err, "earth target parse %s", fullTargetName)
@@ -572,8 +580,8 @@ func (c *Converter) buildTarget(ctx context.Context, fullTargetName string, buil
 	if err != nil {
 		return nil, errors.Wrapf(err, "earthfile2llb for %s", fullTargetName)
 	}
-	if mandatory {
-		mts.Final.IsMandatory = true
+	if isDangling {
+		mts.Final.HasDangling = true
 	}
 	c.directDeps = append(c.directDeps, mts.Final)
 	if propagateBuildArgs {
@@ -771,7 +779,7 @@ func (c *Converter) applyFromImage(state llb.State, img *image.Image) (llb.State
 
 func (c *Converter) nonSaveCommand() {
 	if c.ranSave {
-		c.mts.Final.IsMandatory = true
+		c.mts.Final.HasDangling = true
 	}
 }
 
@@ -838,7 +846,7 @@ func (c *Converter) markFakeDeps() {
 		return
 	}
 	for _, dep := range c.directDeps {
-		if dep.IsMandatory {
+		if dep.HasDangling {
 			c.mts.Final.MainState = llbutil.WithDependency(
 				c.mts.Final.MainState, dep.MainState, c.mts.Final.Target.String(), dep.Target.String())
 		}
