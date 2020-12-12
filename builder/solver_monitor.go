@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"os"
 	"regexp"
 	"sort"
 	"strings"
@@ -12,14 +13,16 @@ import (
 
 	"github.com/armon/circbuf"
 	"github.com/earthly/earthly/conslogging"
+	"github.com/mattn/go-isatty"
 	"github.com/moby/buildkit/client"
 	"github.com/opencontainers/go-digest"
 	"github.com/pkg/errors"
 )
 
 const (
-	durationBetweenSha256ProgressUpdate = 3 * time.Second
-	durationBetweenProgressUpdate       = time.Second
+	durationBetweenSha256ProgressUpdate = 5 * time.Second
+	durationBetweenProgressUpdate       = 3 * time.Second
+	durationBetweenProgressUpdateIfSame = 30 * time.Millisecond
 	durationBetweenOpenLineUpdate       = time.Second
 	tailErrorBufferSizeBytes            = 80 * 1024 // About as much as 1024 lines of 80 chars each.
 )
@@ -69,46 +72,11 @@ var internalProgress = map[string]bool{
 	"copying files":      true,
 }
 
-func (vm *vertexMonitor) shouldPrintProgress(id string, percent int, verbose bool) bool {
-	if !vm.headerPrinted {
-		return false
-	}
-	if vm.targetStr == "" {
-		return false
-	}
-	if !verbose {
-		for prefix := range internalProgress {
-			if strings.HasPrefix(id, prefix) {
-				return false
-			}
-		}
-	}
-	minDelta := durationBetweenProgressUpdate
-	if strings.HasPrefix(id, "sha256:") || strings.HasPrefix(id, "extracting sha256:") {
-		// These progress updates are a bit more annoying - do them more rarely.
-		minDelta = durationBetweenSha256ProgressUpdate
-	}
-	now := time.Now()
-	lastProgress := vm.lastProgress[id]
-	lastPercentage := -1
-	lastPercentageStored, ok := vm.lastPercentage[id]
-	if ok {
-		lastPercentage = lastPercentageStored
-	}
-	if now.Sub(lastProgress) < minDelta && percent < 100 {
-		return false
-	}
-	if lastPercentage >= percent {
-		return false
-	}
-	vm.lastProgress[id] = now
-	vm.lastPercentage[id] = percent
-	return true
-}
-
 const esc = 27
 
 var ansiUp = []byte(fmt.Sprintf("%c[A", esc))
+var ansiSupported = os.Getenv("TERM") != "dumb" &&
+	(isatty.IsTerminal(os.Stdout.Fd()) || isatty.IsCygwinTerminal(os.Stdout.Fd()))
 
 func (vm *vertexMonitor) printOutput(output []byte, sameAsLast bool) error {
 	if vm.tailOutput == nil {
@@ -167,6 +135,53 @@ func (vm *vertexMonitor) printOutput(output []byte, sameAsLast bool) error {
 	return nil
 }
 
+func (vm *vertexMonitor) shouldPrintProgress(id string, percent int, verbose bool, sameAsLast bool) bool {
+	if !vm.headerPrinted {
+		return false
+	}
+	if !verbose && !ansiSupported {
+		for prefix := range internalProgress {
+			if strings.HasPrefix(id, prefix) {
+				return false
+			}
+		}
+	}
+	minDelta := durationBetweenProgressUpdate
+	if sameAsLast && ansiSupported {
+		minDelta = durationBetweenProgressUpdateIfSame
+	} else if strings.HasPrefix(id, "sha256:") || strings.HasPrefix(id, "extracting sha256:") {
+		// These progress updates are a bit more annoying - do them more rarely.
+		minDelta = durationBetweenSha256ProgressUpdate
+	}
+	now := time.Now()
+	lastProgress := vm.lastProgress[id]
+	lastPercentage := -1
+	lastPercentageStored, ok := vm.lastPercentage[id]
+	if ok {
+		lastPercentage = lastPercentageStored
+	}
+	if now.Sub(lastProgress) < minDelta && percent < 100 {
+		return false
+	}
+	if lastPercentage == percent {
+		return false
+	}
+	vm.lastProgress[id] = now
+	vm.lastPercentage[id] = percent
+	return true
+}
+
+func (vm *vertexMonitor) printProgress(id string, progress int, verbose bool, sameAsLast bool) {
+	builder := make([]string, 0, 2)
+	if sameAsLast {
+		// Overwrite previous line if this update is for the same thing as the previous one.
+		builder = append(builder, string(ansiUp))
+	}
+	progressBar := progressBar(progress, 10)
+	builder = append(builder, fmt.Sprintf("[%s] %s ... %d%%\n", progressBar, id, progress))
+	vm.console.Printf("%s", strings.Join(builder, ""))
+}
+
 func (vm *vertexMonitor) printError() bool {
 	if strings.Contains(vm.vertex.Error, "executor failed running") {
 		vm.console.Warnf("ERROR: Command exited with non-zero code: %s\n", vm.operation)
@@ -190,8 +205,10 @@ type solverMonitor struct {
 	vertices         map[digest.Digest]*vertexMonitor
 	saltSeen         map[string]bool
 	lastVertexOutput *vertexMonitor
+	lastProgressID   string
 	timingTable      map[timingKey]time.Duration
 	startTime        time.Time
+	success          bool
 }
 
 type timingKey struct {
@@ -272,12 +289,7 @@ Loop:
 				if vs.Completed != nil {
 					progress = 100
 				}
-				if vm.shouldPrintProgress(vs.ID, progress, sm.verbose) {
-					if !vm.headerPrinted {
-						sm.printHeader(vm)
-					}
-					vm.console.Printf("%s ... %d%%\n", vs.ID, progress)
-				}
+				sm.printProgress(vm, vs.ID, progress)
 			}
 			for _, logLine := range ss.Logs {
 				vm, ok := sm.vertices[logLine.Vertex]
@@ -298,13 +310,30 @@ Loop:
 	if errVertex != nil {
 		sm.reprintFailure(errVertex)
 	}
+	if sm.success {
+		sm.console.PrintSuccess()
+	}
+	sm.PrintTiming()
 	return nil
 }
 
 func (sm *solverMonitor) printOutput(vm *vertexMonitor, data []byte) error {
-	sameAsLast := (sm.lastVertexOutput == vm)
+	sameAsLast := (sm.lastVertexOutput == vm && sm.lastProgressID == "")
 	sm.lastVertexOutput = vm
+	sm.lastProgressID = ""
 	return vm.printOutput(data, sameAsLast)
+}
+
+func (sm *solverMonitor) printProgress(vm *vertexMonitor, id string, progress int) {
+	sameAsLast := (sm.lastVertexOutput == vm && sm.lastProgressID == id)
+	if vm.shouldPrintProgress(id, progress, sm.verbose, sameAsLast) {
+		if !vm.headerPrinted {
+			sm.printHeader(vm)
+		}
+		sm.lastVertexOutput = vm
+		sm.lastProgressID = id
+		vm.printProgress(id, progress, sm.verbose, sameAsLast)
+	}
 }
 
 func (sm *solverMonitor) printHeader(vm *vertexMonitor) {
@@ -329,6 +358,10 @@ func (sm *solverMonitor) recordTiming(targetStr, targetBrackets, salt string, ve
 		salt:           salt,
 	}
 	sm.timingTable[key] += dur
+}
+
+func (sm *solverMonitor) SetSuccess() {
+	sm.success = true
 }
 
 func (sm *solverMonitor) PrintTiming() {
@@ -434,4 +467,31 @@ func parseVertexName(vertexName string) (string, string, string, string) {
 
 func shortDigest(d digest.Digest) string {
 	return d.Hex()[:12]
+}
+
+var progressChars = []string{
+	" ", "▏", "▎", "▍", "▌", "▋", "▊", "▉", "█",
+}
+
+func progressBar(progress, width int) string {
+	if progress > 100 {
+		progress = 100
+	}
+	if progress < 0 {
+		progress = 0
+	}
+	builder := make([]string, 0, width)
+	fullChars := progress * width / 100
+	blankChars := width - fullChars - 1
+	deltaProgress := ((progress * width) % 100) * len(progressChars) / 100
+	for i := 0; i < fullChars; i++ {
+		builder = append(builder, progressChars[len(progressChars)-1])
+	}
+	if progress != 100 {
+		builder = append(builder, progressChars[deltaProgress])
+	}
+	for i := 0; i < blankChars; i++ {
+		builder = append(builder, progressChars[0])
+	}
+	return strings.Join(builder, "")
 }
