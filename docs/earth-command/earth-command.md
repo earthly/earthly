@@ -154,7 +154,7 @@ Enables embedding inline cache in any pushed images. This cache can be used on o
 
 ##### `--remote-cache <image-tag>` (**experimental**)
 
-Also available as an env var settings: `EARTHLY_REMOTE_CACHE=<tag>`
+Also available as an env var settings: `EARTHLY_REMOTE_CACHE=<image-tag>`
 
 Enables use of explicit cache. The provided `<image-tag>` is used for storing and retrieving the cache to/from a Docker registry. Storing explicit cache is only enabled if the option `--push` is also passed in. For more information see the [shared caching guide](../guides/shared-cache.md).
 

@@ -349,7 +349,7 @@ The `--push` options marks the image to be pushed to an external registry after 
 
 If inline caching is enabled, the `--push` option also instructs Earthly to use the specified image names as cache sources.
 
-Push commands are not run by default. Add the --push flag to the earth invocation to enable pushing. For example
+The actual push is not executed by default. Add the `--push` flag to the earth invocation to enable pushing. For example
 
 ```bash
 earth --push +docker-image

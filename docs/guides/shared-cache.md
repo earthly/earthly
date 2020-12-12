@@ -18,15 +18,21 @@ There are several situations where shared caching can provide a significant perf
 
 ### Compute-heavy vs Download-heavy
 
-In general shared cache is very useful when there is a significant computation overhead during the execution of your build. Assuming that the inputs of that computation do not change regularly, then shared caching could be a good candidate in that case. If a time-consuming operation, however, is not compute-heavy, but rather download-heavy, then shared cache may not be as effective (it's one download versus another).
+In general shared cache is very useful when there is a significant computation overhead during the execution of your build. Assuming that the inputs of that computation do not change regularly, then shared caching could be a good candidate. If a time-consuming operation, however, is not compute-heavy, but rather download-heavy, then shared cache may not be as effective (it's one download versus another).
 
 As an example of this distinction, consider the use of the `apk` tool shipped in `alpine` images. Installing packages via `apk` is download-heavy, but usually not very compute-heavy, and so using shared caching to offset `apk` download times might not be as effective. On the other hand, consider `apt-get` tool shipped in `ubuntu` images. Besides performing downloads, `apt-get` also performs additional post-download steps which tend to be compute-intensive. For this reason, shared caching is usually very effective here.
 
-Similarly to the comparision between `apk` and `apt-get`, similar arguments can be made about the various language-specific dependency management tools. Some will be pure download-based (e.g. `go mod download`), while others will be a mix of download and computation (.e.g `sbt`).
+Similarly to the comparision between `apk` and `apt-get`, similar remarks can be made about the various language-specific dependency management tools. Some will be pure download-based (e.g. `go mod download`), while others will be a mix of download and computation (.e.g `sbt`).
 
 ### An intermediate result is small and doesn't change much
 
-An area where shared cache is particularly impactful are cases where a rare-changing pre-requisite requires many dependencies and/or compute to be generated, but the end result is relatively small (e.g. a single binary). Passing this pre-requisitve over the wire as part of the shared cache is very fast, whereas re-generating it requires a lot of work.
+An area where shared cache is particularly impactful are cases where a rare-changing pre-requisite downloads many dependencies and/or performs intensive computation, but the end result is relatively small (e.g. a single binary). Passing this pre-requisitve over the wire as part of the shared cache is very fast (especially if the downloads required to generate it are not used anywhere else), whereas regenerating it requires a lot of work.
+
+### Monorepo and Polyrepo setups
+
+An excellent example of the above are typical inter-project dependencies. Regardless of whether your layout is a monorepo or a polyrepo, if projects reference artifacts or images from each other, then whatever tools used to generate those artifacts or images are usually not required across projects. In such cases it is possible to prevent entire target trees of downloads and computation and simply download the final result using the shared cache.
+
+A simple way to visualize this use-case is comparing the performance of a build that takes place behind a `FROM +some-target` instruction versus just using the previously built image directly. If `+some-target` has a `SAVE IMAGE --push myimage:latest` instruction, then the performance becomes almost the same to using `FROM myimage:latest` directly.
 
 ### CIs that operate in a sandbox
 
@@ -38,7 +44,7 @@ If, however, you are using a CI which reuses the same environment (e.g. Jenkins,
 
 It is possible to use cache in read-only mode for developers to speed up local development. This can be achieved by enabling read-write shared caching in CI and read-only cache for individual developers. Since all Earthly cache is kept in Docker registries, managing access to the cache can be controlled by managing access to individual Docker images.
 
-Note, however that there is small performance penalty for regularly checking the remote registry on every run.
+Note however that there is small performance penalty for regularly checking the remote registry on every run.
 
 ## Types of shared cache
 
@@ -79,7 +85,7 @@ The options mentioned above are also available as environment variables. See [Ea
 
 The way this works underneath is that Earthly uses `SAVE IMAGE --push` declarations as source and destination for any inline cache.
 
-In case different Docker tags are used in branch or PR builds, it is possible to use additional cache sources via [`SAVE IMAGE --cache-from=...`](../earthfile/earthfile.md#save-image). Here is a simple example:
+In case different Docker tags are used in branch or PR builds, it is possible to use additional cache sources via [`SAVE IMAGE --cache-from=...`](../earthfile/earthfile.md#save-image). This may be useful so that PR builds are able to use the main branch cache. Here is a simple example:
 
 ```Dockerfile
 FROM ...
@@ -110,7 +116,7 @@ Note however that adding more images to the build results in additional time spe
 
 Good example uses of inline caching are the Earthly [C++](https://github.com/earthly/earthly/tree/main/examples/cpp) and [Scala](https://github.com/earthly/earthly/tree/main/examples/scala) samples.
 
-In the C++ case, a lot of computation is saved as a result of the `apt-get install` command. Reusing the cache results in a 4X performance improvement.
+In the C++ case, a lot of computation is saved as a result of the `apt-get install` command. Reusing the cache improves performance by a factor of 4X.
 
 In the Scala case, time is saved from processing the dependencies, resulting in a 3X performance improvement.
 
@@ -189,5 +195,5 @@ A good example of using explicit caching is this [integration test example](http
 A typical invocation of the build to make use of the explicit cache:
 
 ```bash
-earth --ci --remote-cache=mycompany/scala-example:cache --push +all
+earth --ci --remote-cache=mycompany/integration-example:cache --push +all
 ```
