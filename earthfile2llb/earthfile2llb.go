@@ -50,6 +50,8 @@ type ConvertOpt struct {
 	// UseInlineCache enables the inline caching feature (use any SAVE IMAGE --push declaration as
 	// cache import).
 	UseInlineCache bool
+	// UseFakeDep is an internal feature flag for fake dep.
+	UseFakeDep bool
 }
 
 // Earthfile2LLB parses a earthfile and executes the statements for a given target.

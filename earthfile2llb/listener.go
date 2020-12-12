@@ -391,10 +391,18 @@ func (l *listener) ExitSaveImage(c *parser.SaveImageContext) {
 	pushFlag := fs.Bool(
 		"push", false,
 		"Push the image to the remote registry provided that the build succeeds and also that earth is invoked in push mode")
+	cacheHint := fs.Bool(
+		"cache-hint", false,
+		"Instruct Earthly that the current target shuold be saved entirely as part of the remote cache")
+	cacheFrom := new(StringSliceFlag)
+	fs.Var(cacheFrom, "cache-from", "Declare additional cache import as a Docker tag")
 	err := fs.Parse(l.stmtWords)
 	if err != nil {
 		l.err = errors.Wrapf(err, "invalid SAVE IMAGE arguments %v", l.stmtWords)
 		return
+	}
+	for i, cf := range cacheFrom.Args {
+		cacheFrom.Args[i] = l.expandArgs(cf, false)
 	}
 	if !*pushFlag && l.pushOnlyAllowed {
 		l.err = fmt.Errorf("no non-push commands allowed after a --push: %s", c.GetText())
@@ -409,11 +417,11 @@ func (l *listener) ExitSaveImage(c *parser.SaveImageContext) {
 	for i, img := range imageNames {
 		imageNames[i] = l.expandArgs(img, false)
 	}
-	if len(imageNames) == 0 {
+	if len(imageNames) == 0 && !*cacheHint && len(cacheFrom.Args) == 0 {
 		fmt.Printf("Deprecation: using SAVE IMAGE with no arguments is no longer necessary and can be safely removed\n")
 		return
 	}
-	err = l.converter.SaveImage(l.ctx, imageNames, *pushFlag)
+	err = l.converter.SaveImage(l.ctx, imageNames, *pushFlag, *cacheHint, cacheFrom.Args)
 	if err != nil {
 		l.err = errors.Wrap(err, "save image")
 		return
