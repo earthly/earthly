@@ -22,7 +22,7 @@ import (
 const (
 	durationBetweenSha256ProgressUpdate = 5 * time.Second
 	durationBetweenProgressUpdate       = 3 * time.Second
-	durationBetweenProgressUpdateIfSame = 30 * time.Millisecond
+	durationBetweenProgressUpdateIfSame = 5 * time.Millisecond
 	durationBetweenOpenLineUpdate       = time.Second
 	tailErrorBufferSizeBytes            = 80 * 1024 // About as much as 1024 lines of 80 chars each.
 )
@@ -75,6 +75,7 @@ var internalProgress = map[string]bool{
 const esc = 27
 
 var ansiUp = []byte(fmt.Sprintf("%c[A", esc))
+var ansiEraseRestLine = []byte(fmt.Sprintf("%c[K", esc))
 var ansiSupported = os.Getenv("TERM") != "dumb" &&
 	(isatty.IsTerminal(os.Stdout.Fd()) || isatty.IsCygwinTerminal(os.Stdout.Fd()))
 
@@ -178,8 +179,8 @@ func (vm *vertexMonitor) printProgress(id string, progress int, verbose bool, sa
 		builder = append(builder, string(ansiUp))
 	}
 	progressBar := progressBar(progress, 10)
-	builder = append(builder, fmt.Sprintf("[%s] %s ... %d%%\n", progressBar, id, progress))
-	vm.console.Printf("%s", strings.Join(builder, ""))
+	builder = append(builder, fmt.Sprintf("[%s] %s ... %d%%%s\n", progressBar, id, progress, string(ansiEraseRestLine)))
+	vm.console.PrintBytes([]byte(strings.Join(builder, "")))
 }
 
 func (vm *vertexMonitor) printError() bool {
@@ -200,15 +201,15 @@ func (vm *vertexMonitor) printTimingInfo() {
 }
 
 type solverMonitor struct {
-	console          conslogging.ConsoleLogger
-	verbose          bool
-	vertices         map[digest.Digest]*vertexMonitor
-	saltSeen         map[string]bool
-	lastVertexOutput *vertexMonitor
-	lastProgressID   string
-	timingTable      map[timingKey]time.Duration
-	startTime        time.Time
-	success          bool
+	console                      conslogging.ConsoleLogger
+	verbose                      bool
+	vertices                     map[digest.Digest]*vertexMonitor
+	saltSeen                     map[string]bool
+	lastVertexOutput             *vertexMonitor
+	lastOutputWasOngoingProgress bool
+	timingTable                  map[timingKey]time.Duration
+	startTime                    time.Time
+	success                      bool
 }
 
 type timingKey struct {
@@ -318,21 +319,19 @@ Loop:
 }
 
 func (sm *solverMonitor) printOutput(vm *vertexMonitor, data []byte) error {
-	sameAsLast := (sm.lastVertexOutput == vm && sm.lastProgressID == "")
+	sameAsLast := (sm.lastVertexOutput == vm && !sm.lastOutputWasOngoingProgress)
 	sm.lastVertexOutput = vm
-	sm.lastProgressID = ""
+	sm.lastOutputWasOngoingProgress = false
 	return vm.printOutput(data, sameAsLast)
 }
 
 func (sm *solverMonitor) printProgress(vm *vertexMonitor, id string, progress int) {
-	sameAsLast := (sm.lastVertexOutput == vm && sm.lastProgressID == id)
-	if vm.shouldPrintProgress(id, progress, sm.verbose, sameAsLast) {
+	if vm.shouldPrintProgress(id, progress, sm.verbose, sm.lastOutputWasOngoingProgress) {
 		if !vm.headerPrinted {
 			sm.printHeader(vm)
 		}
-		sm.lastVertexOutput = vm
-		sm.lastProgressID = id
-		vm.printProgress(id, progress, sm.verbose, sameAsLast)
+		vm.printProgress(id, progress, sm.verbose, sm.lastOutputWasOngoingProgress)
+		sm.lastOutputWasOngoingProgress = (progress != 100)
 	}
 }
 
