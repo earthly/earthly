@@ -180,5 +180,31 @@ func (gl *GitLookup) GetCloneURL(path string) (string, string, string, error) {
 	default:
 		return "", "", "", fmt.Errorf("unsupported protocol: %s", m.protocol)
 	}
+
+	if m.sub != "" {
+		gitURL = m.re.ReplaceAllString(path, m.sub)
+	}
+
+	if keyScan == "" {
+		keyScan, _ = loadKnownHosts()
+		//if err != nil {
+		//	return "", "", "", err
+		//}
+	}
+
 	return gitURL, subPath, keyScan, nil
+}
+
+func loadKnownHosts() (string, error) {
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return "", errors.Wrap(err, "failed to get user home dir")
+	}
+
+	knownHosts := filepath.Join(homeDir, ".ssh/known_hosts")
+	b, err := ioutil.ReadFile(knownHosts)
+	if err != nil {
+		return "", errors.Wrapf(err, "failed to read %s", knownHosts)
+	}
+	return string(b), nil
 }
