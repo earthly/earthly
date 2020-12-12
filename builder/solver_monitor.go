@@ -9,6 +9,7 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/armon/circbuf"
@@ -209,7 +210,10 @@ type solverMonitor struct {
 	lastOutputWasOngoingProgress bool
 	timingTable                  map[timingKey]time.Duration
 	startTime                    time.Time
-	success                      bool
+
+	mu      sync.Mutex
+	success bool
+	ongoing bool
 }
 
 type timingKey struct {
@@ -230,6 +234,9 @@ func newSolverMonitor(console conslogging.ConsoleLogger, verbose bool) *solverMo
 }
 
 func (sm *solverMonitor) monitorProgress(ctx context.Context, ch chan *client.SolveStatus) error {
+	sm.mu.Lock()
+	sm.ongoing = true
+	sm.mu.Unlock()
 	var errVertex *vertexMonitor
 Loop:
 	for {
@@ -311,9 +318,12 @@ Loop:
 	if errVertex != nil {
 		sm.reprintFailure(errVertex)
 	}
+	sm.mu.Lock()
 	if sm.success {
 		sm.console.PrintSuccess()
 	}
+	sm.ongoing = false
+	sm.mu.Unlock()
 	sm.PrintTiming()
 	return nil
 }
@@ -360,7 +370,12 @@ func (sm *solverMonitor) recordTiming(targetStr, targetBrackets, salt string, ve
 }
 
 func (sm *solverMonitor) SetSuccess() {
+	sm.mu.Lock()
+	defer sm.mu.Unlock()
 	sm.success = true
+	if !sm.ongoing {
+		sm.console.PrintSuccess()
+	}
 }
 
 func (sm *solverMonitor) PrintTiming() {
