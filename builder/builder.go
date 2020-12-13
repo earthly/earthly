@@ -117,8 +117,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 	var successOnce sync.Once
 	successFun := func() {
 		if opt.PrintSuccess {
-			b.opt.Console.PrintSuccess()
-			b.s.sm.PrintTiming()
+			b.s.sm.SetSuccess()
 		}
 	}
 	destPathWhitelist := make(map[string]bool)
