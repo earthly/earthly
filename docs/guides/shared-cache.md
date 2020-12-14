@@ -12,46 +12,14 @@ Earthly has the ability to share cache between different isolated CI runs and ev
 
 Shared caching is made possible by storing intermediate steps of a build in a cloud-based Docker registry. This cache can then be downloaded on another machine in order to skip common parts.
 
-## Where to use shared cache
-
-There are several situations where shared caching can provide a significant performance boost. The following are only a few examples of how to get a feel for its usefulness.
-
-### Compute-heavy vs Download-heavy
-
-In general shared cache is very useful when there is a significant computation overhead during the execution of your build. Assuming that the inputs of that computation do not change regularly, then shared caching could be a good candidate. If a time-consuming operation, however, is not compute-heavy, but rather download-heavy, then shared cache may not be as effective (it's one download versus another).
-
-As an example of this distinction, consider the use of the `apk` tool shipped in `alpine` images. Installing packages via `apk` is download-heavy, but usually not very compute-heavy, and so using shared caching to offset `apk` download times might not be as effective. On the other hand, consider `apt-get` tool shipped in `ubuntu` images. Besides performing downloads, `apt-get` also performs additional post-download steps which tend to be compute-intensive. For this reason, shared caching is usually very effective here.
-
-Similarly to the comparision between `apk` and `apt-get`, similar remarks can be made about the various language-specific dependency management tools. Some will be pure download-based (e.g. `go mod download`), while others will be a mix of download and computation (.e.g `sbt`).
-
-### An intermediate result is small and doesn't change much
-
-An area where shared cache is particularly impactful are cases where a rare-changing pre-requisite downloads many dependencies and/or performs intensive computation, but the end result is relatively small (e.g. a single binary). Passing this pre-requisitve over the wire as part of the shared cache is very fast (especially if the downloads required to generate it are not used anywhere else), whereas regenerating it requires a lot of work.
-
-### Monorepo and Polyrepo setups
-
-An excellent example of the above are typical inter-project dependencies. Regardless of whether your layout is a monorepo or a polyrepo, if projects reference artifacts or images from each other, then whatever tools used to generate those artifacts or images are usually not required across projects. In such cases it is possible to prevent entire target trees of downloads and computation and simply download the final result using the shared cache.
-
-A simple way to visualize this use-case is comparing the performance of a build that takes place behind a `FROM +some-target` instruction versus just using the previously built image directly. If `+some-target` has a `SAVE IMAGE --push myimage:latest` instruction, then the performance becomes almost the same to using `FROM myimage:latest` directly.
-
-### CIs that operate in a sandbox
-
-Modern CIs execute in a sandbox. They start with a blank slate and need to download and regenerate everything from scratch. Examples of such CIs: GitHub Actions, Circle CI, DroneCI, GitLab CI. Such CIs benefit greatly from being able to share pre-computed steps between runs.
-
-If, however, you are using a CI which reuses the same environment (e.g. Jenkins, BuildKite - depending on how they are configured), then simply relying on the local cache is enough.
-
-### Shared cache for developers
-
-It is possible to use cache in read-only mode for developers to speed up local development. This can be achieved by enabling read-write shared caching in CI and read-only cache for individual developers. Since all Earthly cache is kept in Docker registries, managing access to the cache can be controlled by managing access to individual Docker images.
-
-Note however that there is small performance penalty for regularly checking the remote registry on every run.
-
 ## Types of shared cache
 
 Earthly makes available two types of shared caches:
 
 * [Inline cache](#inline-cache)
 * [Explicit cache](#explicit-cache-advanced) (advanced)
+
+For a summary of the differences see [comparison between inline and explicit cache](#comparison-between-inline-and-explicit-cache).
 
 ### Inline cache
 
@@ -105,12 +73,6 @@ SAVE IMAGE --push <docker-tag>
 ```
 
 Note however that adding more images to the build results in additional time spent uploading them. Disregard the performance of the very first upload, as a fresh push is always less performant because there is no commonality with any previous run.
-
-#### Key benefits of inline caching
-
-* Very easy to use (just add `--ci` to your `earth` invokations in CI)
-* It is usually effective right away, with little modifications
-* Upload is for free if you are pushing images anyway
 
 #### Example of using inline caching
 
@@ -183,11 +145,6 @@ Making use of explicit caching effectively may not always be possible. Sometimes
 
 As an additional setting available, Earthly can be instructed to save all intermediary steps as part of the explicit cache. The setting `--max-remote-cache` can be used to enable this. Note, however that this setting is rarely effective due to the significant upload overhead.
 
-#### Key benefits of explicit caching
-
-* The only available choice if no images are already pushed during the build
-* More control over what is being cached and what is not. However it often requires some level of experimentation to get right.
-
 #### Example of using explicit caching
 
 A good example of using explicit caching is this [integration test example](https://github.com/earthly/earthly/tree/main/examples/integration-test). The target `+project-files` is perfect for introducing a cache hint via `SAVE IMAGE --cache-hint`. The processing that takes place as part of installing Scala and compiling the dependencies is sufficiently compute-intensive to save ~2 min from the total build time in CI. In addition, these dependencies change rarely enough that the cache can be utilized consistently.
@@ -197,3 +154,65 @@ A typical invocation of the build to make use of the explicit cache:
 ```bash
 earth --ci --remote-cache=mycompany/integration-example:cache --push +all
 ```
+
+### Comparison between inline and explicit cache
+
+Inline and explicit caching have similar traits, but they also have a number of fundamental differences.
+
+The key similarity is that both types of caches make use of Docker tags being pushed to an image registry in order to store the cache.
+
+The most important difference is that in the inline cache case, it relies on image uploads that are already being made. And as such, the cache may be split across multiple separate images. Every `SAVE IMAGE --push` command adds more cacheable targets in the form of separate images. However, in the case of explicit cahing, the entire cache is stored as part of a single Docker tag and every `SAVE IMAGE --cache-hint` command adds more cacheable targets within the image. This final image containing all the explicit cache cannot be used for anything else. So as a user, you incur the performance cost of both the upload and the subsequent download.
+
+Below is a summary of the different characteristics of each of the type of cache.
+
+#### Key take-aways for inline caching
+
+* It embeds the cache within the images that are already being pushed
+* Very easy to use (just add `--ci` to your `earth` invokations in CI)
+* It is usually effective right away, with little modifications
+* Typically you incur the performance cost only for the subsequent download. Upload is for free if you are pushing images anyway
+* By default, caches only the images being pushed
+* Add more cache via additional `SAVE IMAGE --push` commands
+
+#### Key take-aways for explicit caching
+
+* It embeds the cache as part of a new Docker tag that should not be used for anything else
+* The only available choice if no images are already pushed during the build
+* More control over what is being cached and what is not. However it often requires some level of experimentation to get right.
+* Incur the performance cost for both the upload and the download
+* By default, caches only the layers of the target being built, and not of any other referenced targets
+* Cache other targets too via additional `SAVE IMAGE --cache-hint` commands
+
+## When to use shared cache
+
+There are several situations where shared caching can provide a significant performance boost. The following are only a few examples of how to get a feel for its usefulness.
+
+### Compute-heavy vs Download-heavy
+
+In general shared cache is very useful when there is a significant computation overhead during the execution of your build. Assuming that the inputs of that computation do not change regularly, then shared caching could be a good candidate. If a time-consuming operation, however, is not compute-heavy, but rather download-heavy, then shared cache may not be as effective (it's one download versus another).
+
+As an example of this distinction, consider the use of the `apk` tool shipped in `alpine` images. Installing packages via `apk` is download-heavy, but usually not very compute-heavy, and so using shared caching to offset `apk` download times might not be as effective. On the other hand, consider `apt-get` tool shipped in `ubuntu` images. Besides performing downloads, `apt-get` also performs additional post-download steps which tend to be compute-intensive. For this reason, shared caching is usually very effective here.
+
+Similarly to the comparision between `apk` and `apt-get`, similar remarks can be made about the various language-specific dependency management tools. Some will be pure download-based (e.g. `go mod download`), while others will be a mix of download and computation (.e.g `sbt`).
+
+### An intermediate result is small and doesn't change much
+
+An area where shared cache is particularly impactful are cases where a rare-changing pre-requisite downloads many dependencies and/or performs intensive computation, but the end result is relatively small (e.g. a single binary). Passing this pre-requisitve over the wire as part of the shared cache is very fast (especially if the downloads required to generate it are not used anywhere else), whereas regenerating it requires a lot of work.
+
+### Monorepo and Polyrepo setups
+
+An excellent example of the above are typical inter-project dependencies. Regardless of whether your layout is a monorepo or a polyrepo, if projects reference artifacts or images from each other, then whatever tools used to generate those artifacts or images are usually not required across projects. In such cases it is possible to prevent entire target trees of downloads and computation and simply download the final result using the shared cache.
+
+A simple way to visualize this use-case is comparing the performance of a build that takes place behind a `FROM +some-target` instruction versus just using the previously built image directly. If `+some-target` has a `SAVE IMAGE --push myimage:latest` instruction, then the performance becomes almost the same to using `FROM myimage:latest` directly.
+
+### CIs that operate in a sandbox
+
+Modern CIs execute in a sandbox. They start with a blank slate and need to download and regenerate everything from scratch. Examples of such CIs: GitHub Actions, Circle CI, DroneCI, GitLab CI. Such CIs benefit greatly from being able to share pre-computed steps between runs.
+
+If, however, you are using a CI which reuses the same environment (e.g. Jenkins, BuildKite - depending on how they are configured), then simply relying on the local cache is enough.
+
+### Shared cache for developers
+
+It is possible to use cache in read-only mode for developers to speed up local development. This can be achieved by enabling read-write shared caching in CI and read-only cache for individual developers. Since all Earthly cache is kept in Docker registries, managing access to the cache can be controlled by managing access to individual Docker images.
+
+Note however that there is small performance penalty for regularly checking the remote registry on every run.
