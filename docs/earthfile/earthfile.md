@@ -196,6 +196,8 @@ release:
 earth --build-arg SECRET_ID="" +release
 ```
 
+See also the [Cloud secrets guide](../guides/cloud-secrets.md).
+
 ##### `--ssh`
 
 Allows a command to access the ssh authentication client running on the host via the socket which is referenced by the environment variable `SSH_AUTH_SOCK`.
