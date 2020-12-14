@@ -18,7 +18,7 @@ release:
     ARG VSCODE_RELEASE_TAG
     RUN test -n "$VSCODE_RELEASE_TAG"
     COPY --build-arg VSCODE_RELEASE_TAG="$VSCODE_RELEASE_TAG" +package/earthfile-syntax-highlighting-$VSCODE_RELEASE_TAG.vsix ./
-    RUN --secret VSCE_TOKEN=+secrets/VSCE_TOKEN test -n "$VSCE_TOKEN"
+    RUN --secret VSCE_TOKEN=+secrets/earthly-technologies/vsce/token test -n "$VSCE_TOKEN"
     RUN --push \
-        --secret VSCE_TOKEN=+secrets/VSCE_TOKEN \
+        --secret VSCE_TOKEN=+secrets/earthly-technologies/vsce/token \
         vsce publish --pat "$VSCE_TOKEN" --packagePath ./earthfile-syntax-highlighting-$VSCODE_RELEASE_TAG.vsix

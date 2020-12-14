@@ -14,6 +14,7 @@ require (
 	github.com/fatih/color v1.9.0
 	github.com/golang/protobuf v1.4.2
 	github.com/joho/godotenv v1.3.0
+	github.com/mattn/go-isatty v0.0.12
 	github.com/moby/buildkit v0.7.1-0.20200708233707-488130002abb
 	github.com/nu7hatch/gouuid v0.0.0-20131221200532-179d4d0c4d8d
 	github.com/opencontainers/go-digest v1.0.0
