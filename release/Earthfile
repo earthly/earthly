@@ -39,9 +39,9 @@ release-github:
         test -f ./release/earth-linux-arm6 && \
         test -f ./release/earth-linux-arm7
     ARG BODY="No details provided"
-    RUN --secret GITHUB_TOKEN=+secrets/GITHUB_TOKEN test -n "$GITHUB_TOKEN"
+    RUN --secret GITHUB_TOKEN=+secrets/earthly-technologies/github/griswoldthecat/token test -n "$GITHUB_TOKEN"
     RUN --push \
-        --secret GITHUB_TOKEN=+secrets/GITHUB_TOKEN \
+        --secret GITHUB_TOKEN=+secrets/earthly-technologies/github/griswoldthecat/token \
         github-release upload \
         --owner earthly \
         --repo earthly \
@@ -71,9 +71,9 @@ release-homebrew:
     
     # Deps and preconditions.
     ARG RELEASE_TAG
-    ARG GIT_USERNAME
-    ARG GIT_NAME
-    ARG GIT_EMAIL
+    ARG GIT_USERNAME="griswoldthecat"
+    ARG GIT_NAME="griswoldthecat"
+    ARG GIT_EMAIL="griswoldthecat@users.noreply.github.com"
     ARG REPO_OWNER=Homebrew
     ARG HOMEBREW_CORE_URL="https://github.com/$REPO_OWNER/homebrew-core"
     RUN test -n "$RELEASE_TAG" && \
@@ -91,7 +91,7 @@ release-homebrew:
     # Force use of https.
     RUN git remote set-url origin "$HOMEBREW_CORE_URL" && \
         git remote -v
-    RUN --secret GIT_PASSWORD=+secrets/GITHUB_TOKEN \
+    RUN --secret GIT_PASSWORD=+secrets/earthly-technologies/github/griswoldthecat/token \
         git fetch --unshallow origin master
     RUN git branch -f master && \
         git checkout master && \
@@ -133,9 +133,9 @@ release-homebrew:
         git commit -a -m "earthly $version"
     
     # Fork, push branch to fork and create upstream PR.
-    RUN --secret GITHUB_TOKEN=+secrets/GITHUB_TOKEN test -n "$GITHUB_TOKEN"
+    RUN --secret GITHUB_TOKEN=+secrets/earthly-technologies/github/griswoldthecat/token test -n "$GITHUB_TOKEN"
     RUN --push \
-        --secret GITHUB_TOKEN=+secrets/GITHUB_TOKEN \
+        --secret GITHUB_TOKEN=+secrets/earthly-technologies/github/griswoldthecat/token \
         -- \
         hub fork
     # Force use of https so we can use GITHUB_TOKEN via envcredhelper.sh.
@@ -144,17 +144,17 @@ release-homebrew:
         git remote set-url "$GIT_USERNAME" "https://github.com/$GIT_USERNAME/homebrew-core.git" && \
         git remote -v
     RUN --push \
-        --secret GIT_PASSWORD=+secrets/GITHUB_TOKEN \
+        --secret GIT_PASSWORD=+secrets/earthly-technologies/github/griswoldthecat/token \
         -- \
         git push "$GIT_USERNAME" "release-$RELEASE_TAG"
     RUN --push \
-        --secret GIT_PASSWORD=+secrets/GITHUB_TOKEN \
-        --secret GITHUB_TOKEN=+secrets/GITHUB_TOKEN \
+        --secret GIT_PASSWORD=+secrets/earthly-technologies/github/griswoldthecat/token \
+        --secret GITHUB_TOKEN=+secrets/earthly-technologies/github/griswoldthecat/token \
         --secret SLACK_WEBHOOK_URL=+secrets/earthly-technologies/slack/release-webhook \
         -- \
         version=${RELEASE_TAG#v} ;\
         echo version=$version ;\
-        output=$(hub pull-request --no-edit \
+        output=$(hub pull-request --no-edit --draft \
             -h "$GIT_USERNAME":"release-$RELEASE_TAG" \
             -b "$REPO_OWNER:master" \
             -m "earthly $version" \
