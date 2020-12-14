@@ -314,7 +314,7 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 			Name:        "config",
 			Value:       defaultConfigPath(),
 			EnvVars:     []string{"EARTHLY_CONFIG"},
-			Usage:       "Path to config file for",
+			Usage:       "Path to config file",
 			Destination: &app.configPath,
 		},
 		&cli.StringFlag{
