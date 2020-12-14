@@ -62,4 +62,4 @@
   git push origin "vscode-syntax-highlighting-$VSCODE_RELEASE_TAG"
   ```
 
-* (If token has expired, Vlad can regenerate one following [this guide](https://code.visualstudio.com/api/working-with-extensions/publishing-extension#get-a-personal-access-token)). The set it using `./earth secrets set /earthly-technologies/vsce/token '...'`
+(If token has expired, Vlad can regenerate one following [this guide](https://code.visualstudio.com/api/working-with-extensions/publishing-extension#get-a-personal-access-token) and then setting it using `./earth secrets set /earthly-technologies/vsce/token '...'`)
