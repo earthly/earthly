@@ -70,49 +70,49 @@ func getApp() *cli.App {
 
 func TestFlagCompletion(t *testing.T) {
 
-	matches, err := GetPotentials("earth --fl", 10, getApp())
+	matches, err := GetPotentials("earthly --fl", 12, getApp())
 	NoError(t, err, "GetPotentials failed")
 	Equal(t, []string{"--flag ", "--fleet "}, matches)
 }
 
 func TestCommandCompletion(t *testing.T) {
-	matches, err := GetPotentials("earth pru", 9, getApp())
+	matches, err := GetPotentials("earthly pru", 11, getApp())
 	NoError(t, err, "GetPotentials failed")
 	Equal(t, []string{"prune "}, matches)
 }
 
 func TestCommandCompletionHidden(t *testing.T) {
-	matches, err := GetPotentials("earth hid", 9, getApp())
+	matches, err := GetPotentials("earthly hid", 11, getApp())
 	NoError(t, err, "GetPotentials failed")
 	Equal(t, []string{}, matches)
 }
 
 func TestCommandSubCompletion(t *testing.T) {
-	matches, err := GetPotentials("earth sub -", 11, getApp())
+	matches, err := GetPotentials("earthly sub -", 13, getApp())
 	NoError(t, err, "GetPotentials failed")
 	Equal(t, []string{"--subflag "}, matches)
 }
 
 func TestCommandSubCompletion2(t *testing.T) {
-	matches, err := GetPotentials("earth sub --subflag abba --s", 28, getApp())
+	matches, err := GetPotentials("earthly sub --subflag abba --s", 30, getApp())
 	NoError(t, err, "GetPotentials failed")
 	Equal(t, []string{"--subsubflag ", "--surf-the-internet "}, matches)
 }
 
 func TestCommandSubSubCompletion(t *testing.T) {
-	matches, err := GetPotentials("earth sub --subflag abba --sub", 30, getApp())
+	matches, err := GetPotentials("earthly sub --subflag abba --sub", 32, getApp())
 	NoError(t, err, "GetPotentials failed")
 	Equal(t, []string{"--subsubflag "}, matches)
 }
 
 func TestCommandSubSubCompletion2(t *testing.T) {
-	matches, err := GetPotentials("earth sub --subflag abba ", 25, getApp())
+	matches, err := GetPotentials("earthly sub --subflag abba ", 27, getApp())
 	NoError(t, err, "GetPotentials failed")
 	Equal(t, []string{"dancing-queen "}, matches)
 }
 
 func TestPathCompletion(t *testing.T) {
-	matches, err := GetPotentials("earth .", 7, getApp())
+	matches, err := GetPotentials("earthly .", 9, getApp())
 	NoError(t, err, "GetPotentials failed")
 	Equal(t, []string{"./", "../"}, matches)
 }

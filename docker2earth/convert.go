@@ -127,6 +127,6 @@ func Docker2Earth(dockerfilePath, EarthfilePath, imageTag string) error {
 
 	fmt.Fprintf(out, "\nbuild:\n    BUILD +subbuild%d\n", i)
 
-	fmt.Fprintf(os.Stderr, "An Earthfile has been generated; to run it use: earth +build; then run with docker run -ti %s\n", imageTag)
+	fmt.Fprintf(os.Stderr, "An Earthfile has been generated; to run it use: earthly +build; then run with docker run -ti %s\n", imageTag)
 	return nil
 }

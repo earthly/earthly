@@ -22,7 +22,7 @@ func hasTargetOrCommand(line string) bool {
 	splits := strings.Split(line, " ")
 	for i, s := range splits {
 		if i == 0 {
-			continue // skip earth command
+			continue // skip earthly command
 		}
 		if len(s) == 0 {
 			continue // skip empty commands
@@ -36,7 +36,7 @@ func hasTargetOrCommand(line string) bool {
 }
 
 // parseLine parses a bash COMP_LINE and COMP_POINT variables into the argument to expand
-// e.g. line="earth --argum", cursorLoc=10; this will return "--ar"
+// e.g. line="earthly --argum", cursorLoc=10; this will return "--ar"
 func parseLine(line string, cursorLoc int) string {
 	var i int
 	for i = cursorLoc; i > 0; i-- {
