@@ -332,11 +332,14 @@ Files within the artifact environment are also known as "artifacts". Once a file
 
 #### Synopsis
 
-* `SAVE IMAGE [--push] <image-name>...`
+* `SAVE IMAGE [--cache-from=<cache-image>] [--push] <image-name>...` (output form)
+* `SAVE IMAGE --cache-hint` (cache hint form)
 
 #### Description
 
-The command `SAVE IMAGE` marks the current build environment as the image of the target and assigns an output image name.
+In the *output form*, the command `SAVE IMAGE` marks the current build environment as the image of the target and assigns an output image name.
+
+In the *cache hint form*, it instructs Earthly that the current target should be included as part of the explicit cache. For more information see the [shared caching guide](../guides/shared-cache.md).
 
 #### Options
 
@@ -344,11 +347,21 @@ The command `SAVE IMAGE` marks the current build environment as the image of the
 
 The `--push` options marks the image to be pushed to an external registry after it has been loaded within the docker daemon available on the host.
 
-Push commands are not run by default. Add the --push flag to the earth invocation to enable pushing. For example
+If inline caching is enabled, the `--push` option also instructs Earthly to use the specified image names as cache sources.
+
+The actual push is not executed by default. Add the `--push` flag to the earth invocation to enable pushing. For example
 
 ```bash
 earth --push +docker-image
 ```
+
+##### `--cache-from=<cache-image>` (**experimental**)
+
+Adds additional cache sources to be used when `--use-inline-cache` is enabled. For more information see the [shared caching guide](../guides/shared-cache.md).
+
+##### `--cache-hint` (**experimental**)
+
+Instructs Earthly that the current target should be included as part of the explicit cache. For more information see the [shared caching guide](../guides/shared-cache.md).
 
 ## BUILD
 
