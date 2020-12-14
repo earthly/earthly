@@ -2,7 +2,7 @@
 
 set -xeuo pipefail
 
-earth --version
+earthly --version
 
-earth github.com/earthly/earthly-example-scala/simple:main+test
-earth github.com/earthly/earthly-example-scala/simple:main+docker
+earthly github.com/earthly/earthly-example-scala/simple:main+test
+earthly github.com/earthly/earthly-example-scala/simple:main+docker

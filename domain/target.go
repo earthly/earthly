@@ -8,7 +8,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-// Target is a earth target identifier.
+// Target is an earthly target identifier.
 type Target struct {
 	GitURL string // e.g. "github.com/earthly/earthly/examples/go"
 	Tag    string // e.g. "main"

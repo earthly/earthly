@@ -18,9 +18,9 @@ release-dockerhub:
     BUILD --build-arg DIND_ALPINE_TAG=alpine ../+dind-alpine
     BUILD --build-arg DIND_ALPINE_TAG=latest ../+dind-alpine
     BUILD --build-arg DIND_UBUNTU_TAG=ubuntu ../+dind-ubuntu
-    BUILD --build-arg TAG="$RELEASE_TAG" ../+earth-docker
+    BUILD --build-arg TAG="$RELEASE_TAG" ../+earthly-docker
     BUILD --build-arg TAG="$RELEASE_TAG" ../buildkitd+buildkitd
-    BUILD --build-arg TAG=latest ../+earth-docker
+    BUILD --build-arg TAG=latest ../+earthly-docker
     BUILD --build-arg TAG=latest ../buildkitd+buildkitd
 
 release-github:
@@ -31,13 +31,13 @@ release-github:
     ARG EARTHLY_GIT_HASH
     RUN test -n "$RELEASE_TAG" && test -n "$EARTHLY_GIT_HASH"
     COPY --build-arg VERSION=$RELEASE_TAG \
-        ../+earth-all/* ./release/
+        ../+earthly-all/* ./release/
     RUN ls ./release
-    RUN test -f ./release/earth-linux-amd64 && \
-        test -f ./release/earth-darwin-amd64 && \
-        test -f ./release/earth-linux-arm5 && \
-        test -f ./release/earth-linux-arm6 && \
-        test -f ./release/earth-linux-arm7
+    RUN test -f ./release/earthly-linux-amd64 && \
+        test -f ./release/earthly-darwin-amd64 && \
+        test -f ./release/earthly-linux-arm5 && \
+        test -f ./release/earthly-linux-arm6 && \
+        test -f ./release/earthly-linux-arm7
     ARG BODY="No details provided"
     RUN --secret GITHUB_TOKEN=+secrets/earthly-technologies/github/griswoldthecat/token test -n "$GITHUB_TOKEN"
     RUN --push \
@@ -106,7 +106,7 @@ release-homebrew:
     RUN mkdir -p /params
     RUN curl -L "$NEW_URL" | sha256sum | cut -f 1 -d ' ' > /params/downloadsha256
     COPY --build-arg VERSION=$RELEASE_TAG \
-        ../+earth-darwin/tags ../+earth-darwin/ldflags /params/
+        ../+earthly-darwin/tags ../+earthly-darwin/ldflags /params/
 
     # Split /params/ldflags over two lines (to satisfy ruby linter).
     RUN split --numeric-suffixes=1 --suffix-length=1 --bytes=80 /params/ldflags /params/ldflags && \

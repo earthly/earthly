@@ -8,7 +8,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-// Artifact is a earth artifact identifier.
+// Artifact is an earthly artifact identifier.
 type Artifact struct {
 	Target   Target
 	Artifact string
