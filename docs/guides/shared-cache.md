@@ -161,27 +161,27 @@ Inline and explicit caching have similar traits, but they also have a number of 
 
 The key similarity is that both types of caches make use of Docker tags being pushed to an image registry in order to store the cache.
 
-The most important difference is that in the inline cache case, it relies on image uploads that are already being made. And as such, the cache may be split across multiple separate images. Every `SAVE IMAGE --push` command adds more cacheable targets in the form of separate images. However, in the case of explicit cahing, the entire cache is stored as part of a single Docker tag and every `SAVE IMAGE --cache-hint` command adds more cacheable targets within the image. This final image containing all the explicit cache cannot be used for anything else. So as a user, you incur the performance cost of both the upload and the subsequent download.
+The most important difference is that inline caching relies on image uploads that are already being made. And as such, the cache may be split across multiple separate images. Every `SAVE IMAGE --push` command adds more cacheable targets in the form of separate images. However, in the case of explicit caching, the entire cache is stored as part of a single Docker tag and every `SAVE IMAGE --cache-hint` command adds more cacheable targets within the image. This final image containing all the explicit cache cannot be used for anything else. So as a user, you incur the performance cost of both the upload and the subsequent download.
 
-Below is a summary of the different characteristics of each of the type of cache.
+Below is a summary of the different characteristics of each type of cache.
 
-#### Key take-aways for inline caching
+#### Key takeaways for inline caching
 
-* It embeds the cache within the images that are already being pushed
-* Very easy to use (just add `--ci` to your `earth` invokations in CI)
+* Cache is embedded within images that are already being pushed
+* Very easy to use (just add `--ci` to your `earth` invocations in CI)
 * It is usually effective right away, with little modifications
 * Typically you incur the performance cost only for the subsequent download. Upload is for free if you are pushing images anyway
 * By default, caches only the images being pushed
-* Add more cache via additional `SAVE IMAGE --push` commands
+* You can add more cache via additional `SAVE IMAGE --push` commands
 
-#### Key take-aways for explicit caching
+#### Key takeaways for explicit caching
 
-* It embeds the cache as part of a new Docker tag that should not be used for anything else
+* Cache is uploaded as part of a new Docker tag that should not be used for anything else
 * The only available choice if no images are already pushed during the build
 * More control over what is being cached and what is not. However it often requires some level of experimentation to get right.
 * Incur the performance cost for both the upload and the download
 * By default, caches only the layers of the target being built, and not of any other referenced targets
-* Cache other targets too via additional `SAVE IMAGE --cache-hint` commands
+* You can cache additional targets by adding `SAVE IMAGE --cache-hint` commands
 
 ## When to use shared cache
 
