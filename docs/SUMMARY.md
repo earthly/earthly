@@ -9,6 +9,7 @@
     * [Advanced local caching](guides/advanced-local-caching.md)
     * [Shared cache](guides/shared-cache.md)
     * [Using Docker in Earthly](guides/docker-in-earthly.md)
+    * [Cloud secrets](guides/cloud-secrets.md)
     * [Integration Testing](guides/integration.md)
     * [Debugging techniques](guides/debugging.md)
     * [CI integration](guides/ci-integration.md)

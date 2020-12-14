@@ -309,17 +309,17 @@ build:
 
 See full [example code](./examples/readme/proto).
 
-### 🔑 Secrets support built-in
+### 🔑 Cloud secrets support built-in
 
 Secrets are never stored within an image's layers and they are only available to the commands that need them.
 
-```Dockerfile
-release:
-  RUN --push --secret GITHUB_TOKEN=+secrets/GITHUB_TOKEN github-release upload file.bin
+```bash
+earth set /user/github/token 'shhh...'
 ```
 
-```bash
-earth --secret GITHUB_TOKEN --push +release
+```Dockerfile
+release:
+  RUN --push --secret GITHUB_TOKEN=+secrets/user/github/token github-release upload file.bin
 ```
 
 <br/>
