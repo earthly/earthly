@@ -34,7 +34,7 @@ import (
 	"github.com/earthly/earthly/conslogging"
 	debuggercommon "github.com/earthly/earthly/debugger/common"
 	"github.com/earthly/earthly/debugger/terminal"
-	"github.com/earthly/earthly/docker2earth"
+	"github.com/earthly/earthly/docker2earthly"
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/earthfile2llb"
 	"github.com/earthly/earthly/fileutils"
@@ -461,11 +461,11 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 			},
 		},
 		{
-			Name:        "docker2earth",
+			Name:        "docker2earthly",
 			Usage:       "Convert a Dockerfile into Earthfile",
 			Description: "Converts an existing dockerfile into an Earthfile",
 			Hidden:      true, // Experimental.
-			Action:      app.actionDocker2Earth,
+			Action:      app.actionDocker2Earthly,
 			Flags: []cli.Flag{
 				&cli.StringFlag{
 					Name:        "dockerfile",
@@ -1804,8 +1804,8 @@ func (app *earthlyApp) actionPrune(c *cli.Context) error {
 	return nil
 }
 
-func (app *earthlyApp) actionDocker2Earth(c *cli.Context) error {
-	return docker2earth.Docker2Earth(app.dockerfilePath, app.earthfilePath, app.earthfileFinalImage)
+func (app *earthlyApp) actionDocker2Earthly(c *cli.Context) error {
+	return docker2earthly.Docker2Earthly(app.dockerfilePath, app.earthfilePath, app.earthfileFinalImage)
 }
 
 func (app *earthlyApp) actionBuild(c *cli.Context) error {
