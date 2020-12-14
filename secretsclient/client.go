@@ -874,7 +874,7 @@ func (c *client) getAuthTokenPath(create bool) (string, error) {
 		if err != nil {
 			return "", errors.Wrapf(err, "failed to get home dir")
 		}
-		confDirPath := filepath.Join(homeDir, ".earthly")
+		confDirPath = filepath.Join(homeDir, ".earthly")
 		if !fileutils.DirExists(confDirPath) && create {
 			err := os.MkdirAll(confDirPath, 0755)
 			if err != nil {
