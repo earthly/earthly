@@ -8,7 +8,7 @@ echo === Testing Dockerfile1 ===
 cd $(mktemp -d)
 echo "working out of $(pwd)"
 cp $dockerfiles/Dockerfile1 Dockerfile
-$earth --tag myimage:latest docker2earth
+$earth docker2earth --tag=myimage:latest
 $earth +build
 docker run --rm myimage:latest say-hi | grep hello
 

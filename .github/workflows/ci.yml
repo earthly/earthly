@@ -33,14 +33,6 @@ jobs:
         if: github.event.pull_request.head.repo.full_name != github.repository
       - name: Execute fail test
         run: "! ./build/linux/amd64/earth --no-output +test-fail"
-      - name: Execute interactive debugger test
-        run: ./build/linux/amd64/earth --interactive -P +test-interactive
-      - name: Execute interactive debugger test (docker)
-        run: ./build/linux/amd64/earth --interactive -P +test-interactive-docker
-      - name: Execute version test
-        run: "./build/linux/amd64/earth --version"
-      - name: Execute docker2earth test
-        run: "./examples/tests/docker2earth/test.sh"
   misc-tests:
     name: Misc tests
     runs-on: ubuntu-latest
@@ -57,6 +49,22 @@ jobs:
         if: github.event.pull_request.head.repo.full_name == github.repository
       - name: Build latest earth using released earth
         run: earth +for-linux
+      - name: Docker Login
+        run: docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password "${{ secrets.DOCKERHUB_TOKEN }}"
+        if: github.event.pull_request.head.repo.full_name == github.repository
+      - name: Execute docker2earth test
+        run: "./examples/tests/docker2earth/test.sh"
+      - name: Execute test similar to homebrew test in https://github.com/Homebrew/homebrew-core/blob/master/Formula/earthly.rb
+        run: ./build/linux/amd64/earth --buildkit-host 127.0.0.1 ./examples/tests/with-docker+all 2>&1 | grep 'Error while dialing invalid address 127.0.0.1'
+      - name: Execute interactive debugger test
+        run: ./build/linux/amd64/earth --interactive -P +test-interactive
+      - name: Execute interactive debugger test (docker)
+        run: ./build/linux/amd64/earth --interactive -P +test-interactive-docker
+      - name: Execute version test
+        run: "./build/linux/amd64/earth --version"
+      - name: Execute private image test
+        run: ./build/linux/amd64/earth --no-output ./examples/tests+private-image-test
+        if: github.event.pull_request.head.repo.full_name == github.repository
       - name: "Experimental tests (not a fork)"
         run: |
           export EARTHLY_BUILD_ARGS="DOCKERHUB_USER_SECRET=+secrets/earthly-technologies/dockerhub/user,DOCKERHUB_TOKEN_SECRET=+secrets/earthly-technologies/dockerhub/token"
@@ -65,14 +73,6 @@ jobs:
       - name: "Experimental tests (fork)"
         run: ./build/linux/amd64/earth -P ./examples/tests+experimental
         if: github.event.pull_request.head.repo.full_name != github.repository
-      - name: Execute test similar to homebrew test in https://github.com/Homebrew/homebrew-core/blob/master/Formula/earthly.rb
-        run: ./build/linux/amd64/earth --buildkit-host 127.0.0.1 ./examples/tests/with-docker+all 2>&1 | grep 'Error while dialing invalid address 127.0.0.1'
-      - name: Docker Login
-        run: docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password "${{ secrets.DOCKERHUB_TOKEN }}"
-        if: github.event.pull_request.head.repo.full_name == github.repository
-      - name: Execute private image test
-        run: ./build/linux/amd64/earth --no-output ./examples/tests+private-image-test
-        if: github.event.pull_request.head.repo.full_name == github.repository
   examples:
     name: +examples
     runs-on: ubuntu-latest
