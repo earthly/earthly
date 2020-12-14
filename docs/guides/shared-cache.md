@@ -23,7 +23,7 @@ For a summary of the differences see [comparison between inline and explicit cac
 
 ### Inline cache
 
-Inline caching is the easiest to configure. It essentially makes use of any image already being pushed to the registry and adds some very small metadata as part of its configuration about how Earthly is able to reuse that image for future runs.
+Inline caching is the easiest to configure. It essentially makes use of any image already being pushed to the registry and adds some very small metadata (a few KiB) as part of its configuration about how Earthly is able to reuse that image for future runs.
 
 The key benefit of this approach is that you get the upload for free if you anyway push images to the registry.
 
@@ -167,7 +167,7 @@ Below is a summary of the different characteristics of each type of cache.
 
 #### Key takeaways for inline caching
 
-* Cache is embedded within images that are already being pushed
+* Cache is embedded within images that are already being pushed. No new layers are added to the images, only a few KiB of metadata.
 * Very easy to use (just add `--ci` to your `earth` invocations in CI)
 * It is usually effective right away, with little modifications
 * Typically you incur the performance cost only for the subsequent download. Upload is for free if you are pushing images anyway
