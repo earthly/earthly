@@ -73,49 +73,50 @@ type earthApp struct {
 }
 
 type cliFlags struct {
-	buildArgs              cli.StringSlice
-	secrets                cli.StringSlice
-	artifactMode           bool
-	imageMode              bool
-	pull                   bool
-	push                   bool
-	ci                     bool
-	noOutput               bool
-	noCache                bool
-	pruneAll               bool
-	pruneReset             bool
-	buildkitdSettings      buildkitd.Settings
-	allowPrivileged        bool
-	enableProfiler         bool
-	buildkitHost           string
-	buildkitdImage         string
-	remoteCache            string
-	maxRemoteCache         bool
-	saveInlineCache        bool
-	useInlineCache         bool
-	configPath             string
-	gitUsernameOverride    string
-	gitPasswordOverride    string
-	interactiveDebugging   bool
-	sshAuthSock            string
-	verbose                bool
-	debug                  bool
-	homebrewSource         string
-	email                  string
-	token                  string
-	password               string
-	disableNewLine         bool
-	secretFile             string
-	apiServer              string
-	writePermission        bool
-	registrationPublicKey  string
-	dockerfilePath         string
-	earthfilePath          string
-	earthfileFinalImage    string
-	expiry                 string
-	termsConditionsPrivacy bool
-	authToken              string
-	noFakeDep              bool
+	buildArgs               cli.StringSlice
+	secrets                 cli.StringSlice
+	artifactMode            bool
+	imageMode               bool
+	pull                    bool
+	push                    bool
+	ci                      bool
+	noOutput                bool
+	noCache                 bool
+	pruneAll                bool
+	pruneReset              bool
+	buildkitdSettings       buildkitd.Settings
+	allowPrivileged         bool
+	enableProfiler          bool
+	buildkitHost            string
+	buildkitdImage          string
+	remoteCache             string
+	maxRemoteCache          bool
+	saveInlineCache         bool
+	useInlineCache          bool
+	configPath              string
+	gitUsernameOverride     string
+	gitPasswordOverride     string
+	interactiveDebugging    bool
+	sshAuthSock             string
+	verbose                 bool
+	debug                   bool
+	homebrewSource          string
+	email                   string
+	token                   string
+	password                string
+	disableNewLine          bool
+	secretFile              string
+	apiServer               string
+	writePermission         bool
+	registrationPublicKey   string
+	dockerfilePath          string
+	earthfilePath           string
+	earthfileFinalImage     string
+	expiry                  string
+	termsConditionsPrivacy  bool
+	authToken               string
+	noFakeDep               bool
+	buildkitdAdditionalArgs cli.StringSlice
 }
 
 var (
@@ -447,6 +448,13 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 			Usage:       "Internal feature flag for fake-dep",
 			Destination: &app.noFakeDep,
 			Hidden:      true, // Internal.
+		},
+		&cli.StringSliceFlag{
+			Name:        "buildkitd-additional-args",
+			Aliases:     []string{"bkd-arg"},
+			EnvVars:     []string{"EARTHLY_BUILDKITD_ADDITIONAL_ARGS"},
+			Usage:       "Run buildkit with additional args to configure for non-standard environments",
+			Destination: &app.buildkitdAdditionalArgs,
 		},
 	}
 
@@ -794,6 +802,8 @@ func (app *earthApp) before(context *cli.Context) error {
 
 	app.buildkitdSettings.DebuggerPort = app.cfg.Global.DebuggerPort
 	app.buildkitdSettings.RunDir = app.cfg.Global.RunPath
+	app.buildkitdSettings.AdditionalArgs = app.buildkitdAdditionalArgs.Value()
+
 	return nil
 }
 

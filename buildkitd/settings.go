@@ -11,11 +11,12 @@ import (
 
 // Settings represents the buildkitd settings used to start up the daemon with.
 type Settings struct {
-	CacheSizeMb     int    `json:"cacheSizeMb"`
-	GitURLInsteadOf string `json:"gitUrlInsteadOf"`
-	RunDir          string `json:"runDir"`
-	Debug           bool   `json:"debug"`
-	DebuggerPort    int    `json:"debuggerPort"`
+	CacheSizeMb     int      `json:"cacheSizeMb"`
+	GitURLInsteadOf string   `json:"gitUrlInsteadOf"`
+	RunDir          string   `json:"runDir"`
+	Debug           bool     `json:"debug"`
+	DebuggerPort    int      `json:"debuggerPort"`
+	AdditionalArgs  []string `json:"additionalArgs"`
 }
 
 // Hash returns a secure hash of the settings.
