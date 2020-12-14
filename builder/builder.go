@@ -72,7 +72,7 @@ type Builder struct {
 	resolver *buildcontext.Resolver
 }
 
-// NewBuilder returns a new earth Builder.
+// NewBuilder returns a new earthly Builder.
 func NewBuilder(ctx context.Context, opt Opt) (*Builder, error) {
 	b := &Builder{
 		s: &solver{
@@ -109,7 +109,7 @@ func (b *Builder) MakeImageAsTarBuilderFun() states.DockerBuilderFun {
 }
 
 func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt BuildOpt) (*states.MultiTarget, error) {
-	outDir, err := ioutil.TempDir(".", ".tmp-earth-out")
+	outDir, err := ioutil.TempDir(".", ".tmp-earthly-out")
 	if err != nil {
 		return nil, errors.Wrap(err, "mk temp dir for artifacts")
 	}
@@ -278,7 +278,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 			}
 			console.Printf("Image %s as %s%s\n", mts.Final.Target.StringCanonical(), saveImage.DockerTag, pushStr)
 			if saveImage.Push && !opt.Push {
-				console.Printf("Did not push %s. Use earth --push to enable pushing\n", saveImage.DockerTag)
+				console.Printf("Did not push %s. Use earthly --push to enable pushing\n", saveImage.DockerTag)
 			}
 		}
 	} else {
@@ -295,7 +295,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 				}
 				console.Printf("Image %s as %s%s\n", sts.Target.StringCanonical(), saveImage.DockerTag, pushStr)
 				if saveImage.Push && !opt.Push && !sts.Target.IsRemote() {
-					console.Printf("Did not push %s. Use earth --push to enable pushing\n", saveImage.DockerTag)
+					console.Printf("Did not push %s. Use earthly --push to enable pushing\n", saveImage.DockerTag)
 				}
 			}
 			if !sts.Target.IsRemote() {
@@ -363,7 +363,7 @@ func (b *Builder) executeRunPush(ctx context.Context, states *states.SingleTarge
 	console := b.opt.Console.WithPrefixAndSalt(states.Target.String(), states.Salt)
 	if !opt.Push {
 		for _, commandStr := range states.RunPush.CommandStrs {
-			console.Printf("Did not execute push command %s. Use earth --push to enable pushing\n", commandStr)
+			console.Printf("Did not execute push command %s. Use earthly --push to enable pushing\n", commandStr)
 		}
 		return nil
 	}

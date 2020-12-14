@@ -30,7 +30,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-// Converter turns earth commands to buildkit LLB representation.
+// Converter turns earthly commands to buildkit LLB representation.
 type Converter struct {
 	gitMeta          *buildcontext.GitMetadata
 	opt              ConvertOpt
@@ -44,7 +44,7 @@ type Converter struct {
 	ranSave          bool
 }
 
-// NewConverter constructs a new converter for a given earth target.
+// NewConverter constructs a new converter for a given earthly target.
 func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Data, opt ConvertOpt) (*Converter, error) {
 	sts := &states.SingleTarget{
 		Target: target,
@@ -78,7 +78,7 @@ func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Da
 	}, nil
 }
 
-// From applies the earth FROM command.
+// From applies the earthly FROM command.
 func (c *Converter) From(ctx context.Context, imageName string, buildArgs []string) error {
 	c.nonSaveCommand()
 	if strings.Contains(imageName, "+") {
@@ -134,7 +134,7 @@ func (c *Converter) fromTarget(ctx context.Context, targetName string, buildArgs
 	return nil
 }
 
-// FromDockerfile applies the earth FROM DOCKERFILE command.
+// FromDockerfile applies the earthly FROM DOCKERFILE command.
 func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPath string, dfTarget string, buildArgs []string) error {
 	c.nonSaveCommand()
 	if dfPath != "" {
@@ -235,7 +235,7 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 	return nil
 }
 
-// CopyArtifact applies the earth COPY artifact command.
+// CopyArtifact applies the earthly COPY artifact command.
 func (c *Converter) CopyArtifact(ctx context.Context, artifactName string, dest string, buildArgs []string, isDir bool, chown string) error {
 	c.nonSaveCommand()
 	artifact, err := domain.ParseArtifact(artifactName)
@@ -265,7 +265,7 @@ func (c *Converter) CopyArtifact(ctx context.Context, artifactName string, dest 
 	return nil
 }
 
-// CopyClassical applies the earth COPY command, with classical args.
+// CopyClassical applies the earthly COPY command, with classical args.
 func (c *Converter) CopyClassical(ctx context.Context, srcs []string, dest string, isDir bool, chown string) {
 	c.nonSaveCommand()
 	c.mts.Final.MainState = llbutil.CopyOp(
@@ -278,7 +278,7 @@ func (c *Converter) CopyClassical(ctx context.Context, srcs []string, dest strin
 			dest))
 }
 
-// Run applies the earth RUN command.
+// Run applies the earthly RUN command.
 func (c *Converter) Run(ctx context.Context, args []string, mounts []string, secretKeyValues []string, privileged bool, withEntrypoint bool, withDocker bool, isWithShell bool, pushFlag bool, withSSH bool) error {
 	c.nonSaveCommand()
 	if withDocker {
@@ -316,7 +316,7 @@ func (c *Converter) Run(ctx context.Context, args []string, mounts []string, sec
 	return c.internalRun(ctx, finalArgs, secretKeyValues, isWithShell, shellWrap, pushFlag, withSSH, runStr, opts...)
 }
 
-// SaveArtifact applies the earth SAVE ARTIFACT command.
+// SaveArtifact applies the earthly SAVE ARTIFACT command.
 func (c *Converter) SaveArtifact(ctx context.Context, saveFrom string, saveTo string, saveAsLocalTo string) error {
 	saveToAdjusted := saveTo
 	if saveTo == "" || saveTo == "." || strings.HasSuffix(saveTo, "/") {
@@ -364,7 +364,7 @@ func (c *Converter) SaveArtifact(ctx context.Context, saveFrom string, saveTo st
 	return nil
 }
 
-// SaveImage applies the earth SAVE IMAGE command.
+// SaveImage applies the earthly SAVE IMAGE command.
 func (c *Converter) SaveImage(ctx context.Context, imageNames []string, pushImages bool, cacheHint bool, cacheFrom []string) error {
 	for _, cf := range cacheFrom {
 		c.opt.CacheImports[cf] = true
@@ -394,7 +394,7 @@ func (c *Converter) SaveImage(ctx context.Context, imageNames []string, pushImag
 	return nil
 }
 
-// Build applies the earth BUILD command.
+// Build applies the earthly BUILD command.
 func (c *Converter) Build(ctx context.Context, fullTargetName string, buildArgs []string) error {
 	c.nonSaveCommand()
 	_, err := c.buildTarget(ctx, fullTargetName, buildArgs, true)
@@ -558,7 +558,7 @@ func (c *Converter) ExpandArgs(word string) string {
 func (c *Converter) buildTarget(ctx context.Context, fullTargetName string, buildArgs []string, isDangling bool) (*states.MultiTarget, error) {
 	relTarget, err := domain.ParseTarget(fullTargetName)
 	if err != nil {
-		return nil, errors.Wrapf(err, "earth target parse %s", fullTargetName)
+		return nil, errors.Wrapf(err, "earthly target parse %s", fullTargetName)
 	}
 	target, err := domain.JoinTargets(c.mts.Final.Target, relTarget)
 	if err != nil {

@@ -270,7 +270,7 @@ func (l *listener) ExitRunStmt(c *parser.RunStmtContext) {
 	fs := flag.NewFlagSet("RUN", flag.ContinueOnError)
 	pushFlag := fs.Bool(
 		"push", false,
-		"Execute this command only if the build succeeds and also if earth is invoked in push mode")
+		"Execute this command only if the build succeeds and also if earthly is invoked in push mode")
 	privileged := fs.Bool("privileged", false, "Enable privileged mode")
 	withEntrypoint := fs.Bool(
 		"entrypoint", false,
@@ -390,7 +390,7 @@ func (l *listener) ExitSaveImage(c *parser.SaveImageContext) {
 	fs := flag.NewFlagSet("SAVE IMAGE", flag.ContinueOnError)
 	pushFlag := fs.Bool(
 		"push", false,
-		"Push the image to the remote registry provided that the build succeeds and also that earth is invoked in push mode")
+		"Push the image to the remote registry provided that the build succeeds and also that earthly is invoked in push mode")
 	cacheHint := fs.Bool(
 		"cache-hint", false,
 		"Instruct Earthly that the current target shuold be saved entirely as part of the remote cache")
