@@ -62,7 +62,7 @@ ARG BRANCH=master
 SAVE IMAGE --cache-from=mycompany/myimage:master --push mycompany/myimage:$BRANCH
 ```
 
-#### Optimizing inline cache performance (advanced)
+#### Optimizing inline cache performance
 
 Inline caching is very easy to use, however it can also turn out to be ineffective for some builds. One limitation is that only the layers that end up in uploaded images are actually used. Certain intermediate layers (e.g. targets only used for compiling binaries) will not exist.
 
@@ -172,7 +172,7 @@ Below is a summary of the different characteristics of each type of cache.
 * It is usually effective right away, with little modifications
 * Typically you incur the performance cost only for the subsequent download. Upload is for free if you are pushing images anyway
 * By default, caches only the images being pushed
-* You can add more cache via additional `SAVE IMAGE --push` commands
+* You can add more cache via additional `SAVE IMAGE --push <docker-tag>` commands
 
 #### Key takeaways for explicit caching
 
