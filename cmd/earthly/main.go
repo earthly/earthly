@@ -63,7 +63,7 @@ import (
 
 var dotEnvPath = ".env"
 
-type earthApp struct {
+type earthlyApp struct {
 	cliApp      *cli.App
 	console     conslogging.ConsoleLogger
 	cfg         *config.Config
@@ -206,11 +206,11 @@ func main() {
 		padding = conslogging.NoPadding
 	}
 
-	app := newEarthApp(ctx, conslogging.Current(colorMode, padding))
+	app := newEarthlyApp(ctx, conslogging.Current(colorMode, padding))
 	app.autoComplete()
 
 	exitCode := app.run(ctx, os.Args)
-	// app.cfg will be nil when a user runs `earth --version`;
+	// app.cfg will be nil when a user runs `earthly --version`;
 	// however in all other regular commands app.cfg will be set in app.Before
 	if app.cfg != nil && !app.cfg.Global.DisableAnalytics {
 		analytics.CollectAnalytics(Version, GitSha, app.commandName, exitCode, time.Since(startTime))
@@ -226,13 +226,13 @@ func getVersion() string {
 	return fmt.Sprintf("%s-%s", Version, GitSha)
 }
 
-func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthApp {
+func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *earthlyApp {
 	sessionIDBytes := make([]byte, 64)
 	_, err := rand.Read(sessionIDBytes)
 	if err != nil {
 		panic(err)
 	}
-	app := &earthApp{
+	app := &earthlyApp{
 		cliApp:    cli.NewApp(),
 		console:   console,
 		sessionID: base64.StdEncoding.EncodeToString(sessionIDBytes),
@@ -250,7 +250,7 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 		"\n" +
 		"   \tearth [options] command [command options]\n" +
 		"\n" +
-		"Executes Earthly builds. For more information see https://docs.earthly.dev/earth-command.\n" +
+		"Executes Earthly builds. For more information see https://docs.earthly.dev/earthly-command.\n" +
 		"To get started with using Earthly, check out the getting started guide at https://docs.earthly.dev/guides/basics."
 	app.cliApp.UseShortOptionHandling = true
 	app.cliApp.Action = app.actionBuild
@@ -295,9 +295,8 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 		&cli.BoolFlag{
 			Name:        "ci",
 			EnvVars:     []string{"EARTHLY_CI"},
-			Usage:       "Execute in CI mode (implies --use-inline-cache --save-inline-cache --no-output)",
+			Usage:       "Execute in CI mode (implies --use-inline-cache --save-inline-cache --no-output) *experimental*",
 			Destination: &app.ci,
-			Hidden:      true, // Experimental.
 		},
 		&cli.BoolFlag{
 			Name:        "no-output",
@@ -315,7 +314,7 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 			Name:        "config",
 			Value:       defaultConfigPath(),
 			EnvVars:     []string{"EARTHLY_CONFIG"},
-			Usage:       "Path to config file for",
+			Usage:       "Path to config file",
 			Destination: &app.configPath,
 		},
 		&cli.StringFlag{
@@ -328,7 +327,7 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 		&cli.StringFlag{
 			Name:        "auth-token",
 			EnvVars:     []string{"EARTHLY_TOKEN"},
-			Usage:       "Force Earthly account login to authetnicate with supplied token",
+			Usage:       "Force Earthly account login to authenticate with supplied token",
 			Destination: &app.authToken,
 		},
 		&cli.StringFlag{
@@ -362,12 +361,12 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 			EnvVars:     []string{"EARTHLY_PROFILER"},
 			Usage:       "Enable the profiler",
 			Destination: &app.enableProfiler,
-			Hidden:      true, // for use in dev debugging
+			Hidden:      true, // Dev purposes only.
 		},
 		&cli.StringFlag{
 			Name:        "buildkit-host",
 			EnvVars:     []string{"EARTHLY_BUILDKIT_HOST"},
-			Usage:       "The URL to use for connecting to a buildkit host. If empty, earth will attempt to start a buildkitd instance via docker run",
+			Usage:       "The URL to use for connecting to a buildkit host. If empty, earthly will attempt to start a buildkitd instance via docker run",
 			Destination: &app.buildkitHost,
 		},
 		&cli.IntFlag{
@@ -387,30 +386,26 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 		&cli.StringFlag{
 			Name:        "remote-cache",
 			EnvVars:     []string{"EARTHLY_REMOTE_CACHE"},
-			Usage:       "A remote docker image tag use as explicit cache",
+			Usage:       "A remote docker image tag use as explicit cache *experimental*",
 			Destination: &app.remoteCache,
-			Hidden:      true, // Experimental.
 		},
 		&cli.BoolFlag{
 			Name:        "max-remote-cache",
 			EnvVars:     []string{"EARTHLY_MAX_REMOTE_CACHE"},
-			Usage:       "Saves all intermediate images too in the remove cache",
+			Usage:       "Saves all intermediate images too in the remove cache *experimental*",
 			Destination: &app.maxRemoteCache,
-			Hidden:      true, // Experimental.
 		},
 		&cli.BoolFlag{
 			Name:        "save-inline-cache",
 			EnvVars:     []string{"EARTHLY_SAVE_INLINE_CACHE"},
-			Usage:       "Enable cache inlining when pushing images",
+			Usage:       "Enable cache inlining when pushing images *experimental*",
 			Destination: &app.saveInlineCache,
-			Hidden:      true, // Experimental.
 		},
 		&cli.BoolFlag{
 			Name:        "use-inline-cache",
 			EnvVars:     []string{"EARTHLY_USE_INLINE_CACHE"},
-			Usage:       "Attempt to use any inline cache that may have been previously pushed (uses image tags referenced by SAVE IMAGE --push or SAVE IMAGE --cache-from)",
+			Usage:       "Attempt to use any inline cache that may have been previously pushed (uses image tags referenced by SAVE IMAGE --push or SAVE IMAGE --cache-from) *experimental*",
 			Destination: &app.useInlineCache,
-			Hidden:      true, // Experimental.
 		},
 		&cli.BoolFlag{
 			Name:        "interactive",
@@ -453,9 +448,8 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 	app.cliApp.Commands = []*cli.Command{
 		{
 			Name:        "bootstrap",
-			Usage:       "Bootstraps earth bash autocompletion",
-			Description: "Performs initial earth bootstrapping for bash autocompletion",
-			Hidden:      false,
+			Usage:       "Bootstraps earthly bash autocompletion",
+			Description: "Performs initial earthly bootstrapping for bash autocompletion",
 			Action:      app.actionBootstrap,
 			Flags: []cli.Flag{
 				&cli.StringFlag{
@@ -470,7 +464,7 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 			Name:        "docker2earth",
 			Usage:       "Convert a Dockerfile into Earthfile",
 			Description: "Converts an existing dockerfile into an Earthfile",
-			Hidden:      true,
+			Hidden:      true, // Experimental.
 			Action:      app.actionDocker2Earth,
 			Flags: []cli.Flag{
 				&cli.StringFlag{
@@ -488,38 +482,36 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 				&cli.StringFlag{
 					Name:        "tag",
 					Usage:       "Name and tag for the built image; formatted as 'name:tag'",
-					Value:       "myimage:latest",
 					Destination: &app.earthfileFinalImage,
 				},
 			},
 		},
 		{
-			Name:   "org",
-			Usage:  "Earthly organization administration",
-			Hidden: true,
+			Name:  "org",
+			Usage: "Earthly organization administration *experimental*",
 			Subcommands: []*cli.Command{
 				{
 					Name:      "create",
 					Usage:     "Create a new organization",
-					UsageText: "earth [options] org create <org-name>",
+					UsageText: "earthly [options] org create <org-name>",
 					Action:    app.actionOrgCreate,
 				},
 				{
 					Name:      "list",
 					Usage:     "List organizations you belong to",
-					UsageText: "earth [options] org list",
+					UsageText: "earthly [options] org list",
 					Action:    app.actionOrgList,
 				},
 				{
 					Name:      "list-permissions",
 					Usage:     "List permissions and membership of an organization",
-					UsageText: "earth [options] org list-permissions <org-name>",
+					UsageText: "earthly [options] org list-permissions <org-name>",
 					Action:    app.actionOrgListPermissions,
 				},
 				{
 					Name:      "invite",
 					Usage:     "Invite accounts to your organization",
-					UsageText: "earth [options] org invite [options] <org-name> <email> [<email> ...]",
+					UsageText: "earthly [options] org invite [options] <org-name> <email> [<email> ...]",
 					Action:    app.actionOrgInvite,
 					Flags: []cli.Flag{
 						&cli.BoolFlag{
@@ -532,7 +524,7 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 				{
 					Name:      "revoke",
 					Usage:     "Remove accounts from your organization",
-					UsageText: "earth [options] org revoke <org-name> <email> [<email> ...]",
+					UsageText: "earthly [options] org revoke <org-name> <email> [<email> ...]",
 					Action:    app.actionOrgRevoke,
 				},
 			},
@@ -540,14 +532,13 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 		{
 			Name:        "secrets",
 			Usage:       "Earthly secrets",
-			Description: "Access and modify secrets",
-			Hidden:      true,
+			Description: "Manage cloud secrets *experimental*",
 			Subcommands: []*cli.Command{
 				{
 					Name:      "get",
 					Action:    app.actionSecretsGet,
 					Usage:     "Retrieve a secret from the secrets store",
-					UsageText: "earth [options] secrets get [options] <path>",
+					UsageText: "earthly [options] secrets get [options] <path>",
 					Flags: []cli.Flag{
 						&cli.BoolFlag{
 							Aliases:     []string{"n"},
@@ -559,20 +550,20 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 				{
 					Name:      "ls",
 					Usage:     "List secrets in the secrets store",
-					UsageText: "earth [options] secrets ls [<path>]",
+					UsageText: "earthly [options] secrets ls [<path>]",
 					Action:    app.actionSecretsList,
 				},
 				{
 					Name:      "rm",
 					Usage:     "Removes a secret from the secrets store",
-					UsageText: "earth [options] secrets rm <path>",
+					UsageText: "earthly [options] secrets rm <path>",
 					Action:    app.actionSecretsRemove,
 				},
 				{
 					Name:  "set",
 					Usage: "Stores a secret in the secrets store",
-					UsageText: "earth [options] secrets set <path> <value>\n" +
-						"   earth [options] secrets set --file <local-path> <path>",
+					UsageText: "earthly [options] secrets set <path> <value>\n" +
+						"   earthly [options] secrets set --file <local-path> <path>",
 					Action: app.actionSecretsSet,
 					Flags: []cli.Flag{
 						&cli.StringFlag{
@@ -586,19 +577,18 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 			},
 		},
 		{
-			Name:   "account",
-			Usage:  "Create or manage an Earthly account",
-			Hidden: true,
+			Name:  "account",
+			Usage: "Create or manage an Earthly account *experimental*",
 			Subcommands: []*cli.Command{
 				{
 					Name:        "register",
 					Usage:       "Register for an Earthly account",
 					Description: "Register for an Earthly account",
 					UsageText: "first, request a token with:\n" +
-						"     earth [options] account register --email <email>\n" +
+						"     earthly [options] account register --email <email>\n" +
 						"\n" +
 						"   then check your email to retrieve the token, then continue by running:\n" +
-						"     earth [options] account register --email <email> --token <token> [options]",
+						"     earthly [options] account register --email <email> --token <token> [options]",
 					Action: app.actionRegister,
 					Flags: []cli.Flag{
 						&cli.StringFlag{
@@ -624,8 +614,8 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 							Destination: &app.registrationPublicKey,
 						},
 						&cli.BoolFlag{
-							Name:        "accept-terms-conditions-privacy",
-							EnvVars:     []string{"EARTHLY_ACCEPT_TERMS_CONDITITONS_PRIVACY"},
+							Name:        "accept-terms-of-service-privacy",
+							EnvVars:     []string{"EARTHLY_ACCEPT_TERMS_OF_SERVICE_PRIVACY"},
 							Usage:       "Accept the Terms & Conditions, and Privacy Policy",
 							Destination: &app.termsConditionsPrivacy,
 						},
@@ -634,31 +624,31 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 				{
 					Name:      "list-keys",
 					Usage:     "List associated public keys used for authentication",
-					UsageText: "earth [options] account list-keys",
+					UsageText: "earthly [options] account list-keys",
 					Action:    app.actionAccountListKeys,
 				},
 				{
 					Name:      "add-key",
 					Usage:     "Associate a new public key with your account",
-					UsageText: "earth [options] add-key [<key>]",
+					UsageText: "earthly [options] add-key [<key>]",
 					Action:    app.actionAccountAddKey,
 				},
 				{
 					Name:      "remove-key",
 					Usage:     "Removes an existing public key from your account",
-					UsageText: "earth [options] remove-key <key>",
+					UsageText: "earthly [options] remove-key <key>",
 					Action:    app.actionAccountRemoveKey,
 				},
 				{
 					Name:      "list-tokens",
 					Usage:     "List associated tokens used for authentication",
-					UsageText: "earth [options] account list-tokens",
+					UsageText: "earthly [options] account list-tokens",
 					Action:    app.actionAccountListTokens,
 				},
 				{
 					Name:      "create-token",
 					Usage:     "Create a new authentication token for your account",
-					UsageText: "earth [options] account create-token [options] <token name>",
+					UsageText: "earthly [options] account create-token [options] <token name>",
 					Action:    app.actionAccountCreateToken,
 					Flags: []cli.Flag{
 						&cli.BoolFlag{
@@ -676,17 +666,17 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 				{
 					Name:      "remove-token",
 					Usage:     "Remove an authentication token from your account",
-					UsageText: "earth [options] account remove-token <token>",
+					UsageText: "earthly [options] account remove-token <token>",
 					Action:    app.actionAccountRemoveToken,
 				},
 				{
 					Name:        "login",
 					Usage:       "Login to an Earthly account",
 					Description: "Login to an Earthly account",
-					UsageText: "earth [options] account login\n" +
-						"   earth [options] account login --email <email>\n" +
-						"   earth [options] account login --email <email> --password <password>\n" +
-						"   earth [options] account login --token <token>\n",
+					UsageText: "earthly [options] account login\n" +
+						"   earthly [options] account login --email <email>\n" +
+						"   earthly [options] account login --email <email> --password <password>\n" +
+						"   earthly [options] account login --token <token>\n",
 					Action: app.actionAccountLogin,
 					Flags: []cli.Flag{
 						&cli.StringFlag{
@@ -720,13 +710,13 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 			Usage:       "Print debug information about an Earthfile",
 			Description: "Print debug information about an Earthfile",
 			ArgsUsage:   "[<path>]",
-			Hidden:      true,
+			Hidden:      true, // Dev purposes only.
 			Action:      app.actionDebug,
 		},
 		{
 			Name:        "prune",
-			Usage:       "Prune earthly build cache",
-			Description: "Prune earthly build cache",
+			Usage:       "Prune Earthly build cache",
+			Description: "Prune Earthly build cache",
 			Action:      app.actionPrune,
 			Flags: []cli.Flag{
 				&cli.BoolFlag{
@@ -750,7 +740,7 @@ func newEarthApp(ctx context.Context, console conslogging.ConsoleLogger) *earthA
 	return app
 }
 
-func (app *earthApp) before(context *cli.Context) error {
+func (app *earthlyApp) before(context *cli.Context) error {
 	if app.enableProfiler {
 		go profhandler()
 	}
@@ -799,14 +789,14 @@ func (app *earthApp) before(context *cli.Context) error {
 	return nil
 }
 
-func (app *earthApp) processDeprecatedCommandOptions(context *cli.Context, cfg *config.Config) error {
+func (app *earthlyApp) processDeprecatedCommandOptions(context *cli.Context, cfg *config.Config) error {
 	if cfg.Global.CachePath != "" {
 		app.console.Warnf("Warning: the setting cache_path is now obsolete and will be ignored")
 	}
 
 	// command line overrides the config file
 	if app.gitUsernameOverride != "" || app.gitPasswordOverride != "" {
-		app.console.Warnf("Warning: the --git-username and --git-password command flags are deprecated and are now configured in the ~/.earthly/config.yml file under the git section; see https://docs.earthly.dev/earth-config for reference.\n")
+		app.console.Warnf("Warning: the --git-username and --git-password command flags are deprecated and are now configured in the ~/.earthly/config.yml file under the git section; see https://docs.earthly.dev/earthly-config for reference.\n")
 		if _, ok := cfg.Git["github.com"]; !ok {
 			cfg.Git["github.com"] = config.GitConfig{}
 		}
@@ -827,7 +817,7 @@ func (app *earthApp) processDeprecatedCommandOptions(context *cli.Context, cfg *
 	}
 
 	if context.IsSet("git-url-instead-of") {
-		app.console.Warnf("Warning: the --git-url-instead-of command flag is deprecated and is now configured in the ~/.earthly/config.yml file under the git global url_instead_of setting; see https://docs.earthly.dev/earth-config for reference.\n")
+		app.console.Warnf("Warning: the --git-url-instead-of command flag is deprecated and is now configured in the ~/.earthly/config.yml file under the git global url_instead_of setting; see https://docs.earthly.dev/earthly-config for reference.\n")
 	} else {
 		if gitGlobal, ok := cfg.Git["global"]; ok {
 			if gitGlobal.GitURLInsteadOf != "" {
@@ -837,7 +827,7 @@ func (app *earthApp) processDeprecatedCommandOptions(context *cli.Context, cfg *
 	}
 
 	if context.IsSet("buildkit-cache-size-mb") {
-		app.console.Warnf("Warning: the --buildkit-cache-size-mb command flag is deprecated and is now configured in the ~/.earthly/config.yml file under the buildkit_cache_size setting; see https://docs.earthly.dev/earth-config for reference.\n")
+		app.console.Warnf("Warning: the --buildkit-cache-size-mb command flag is deprecated and is now configured in the ~/.earthly/config.yml file under the buildkit_cache_size setting; see https://docs.earthly.dev/earthly-config for reference.\n")
 	} else {
 		app.buildkitdSettings.CacheSizeMb = cfg.Global.BuildkitCacheSizeMb
 	}
@@ -846,8 +836,8 @@ func (app *earthApp) processDeprecatedCommandOptions(context *cli.Context, cfg *
 }
 
 // to enable autocomplete, enter
-// complete -o nospace -C "/path/to/earth" earth
-func (app *earthApp) autoComplete() {
+// complete -o nospace -C "/path/to/earthly" earthly
+func (app *earthlyApp) autoComplete() {
 	_, found := os.LookupEnv("COMP_LINE")
 	if !found {
 		return
@@ -876,7 +866,7 @@ func (app *earthApp) autoComplete() {
 	os.Exit(0)
 }
 
-func (app *earthApp) autoCompleteImp() (err error) {
+func (app *earthlyApp) autoCompleteImp() (err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("recovered panic in autocomplete %s: %s", r, debug.Stack())
@@ -902,14 +892,14 @@ func (app *earthApp) autoCompleteImp() (err error) {
 	return err
 }
 
-const bashCompleteEntry = "complete -o nospace -C '/usr/local/bin/earth' earth\n"
+const bashCompleteEntry = "complete -o nospace -C '/usr/local/bin/earthly' earthly\n"
 
-func (app *earthApp) insertBashCompleteEntry() error {
+func (app *earthlyApp) insertBashCompleteEntry() error {
 	var path string
 	if runtime.GOOS == "darwin" {
-		path = "/usr/local/etc/bash_completion.d/earth"
+		path = "/usr/local/etc/bash_completion.d/earthly"
 	} else {
-		path = "/usr/share/bash-completion/completions/earth"
+		path = "/usr/share/bash-completion/completions/earthly"
 	}
 	dirPath := filepath.Dir(path)
 
@@ -932,7 +922,7 @@ func (app *earthApp) insertBashCompleteEntry() error {
 	return err
 }
 
-func (app *earthApp) deleteZcompdump() error {
+func (app *earthlyApp) deleteZcompdump() error {
 	var homeDir string
 	sudoUser, found := os.LookupEnv("SUDO_USER")
 	if !found {
@@ -964,17 +954,17 @@ func (app *earthApp) deleteZcompdump() error {
 	return nil
 }
 
-const zshCompleteEntry = `#compdef _earth earth
+const zshCompleteEntry = `#compdef _earth earthly
 
 function _earth {
     autoload -Uz bashcompinit
     bashcompinit
-    complete -o nospace -C '/usr/local/bin/earth' earth
+    complete -o nospace -C '/usr/local/bin/earthly' earthly
 }
 `
 
 // If debugging this, it might be required to run `rm ~/.zcompdump*` to remove the cache
-func (app *earthApp) insertZSHCompleteEntry() error {
+func (app *earthlyApp) insertZSHCompleteEntry() error {
 	// should be the same on linux and macOS
 	path := "/usr/local/share/zsh/site-functions/_earth"
 	dirPath := filepath.Dir(path)
@@ -1003,7 +993,7 @@ func (app *earthApp) insertZSHCompleteEntry() error {
 	return app.deleteZcompdump()
 }
 
-func (app *earthApp) run(ctx context.Context, args []string) int {
+func (app *earthlyApp) run(ctx context.Context, args []string) int {
 	err := app.cliApp.RunContext(ctx, args)
 
 	rpcRegex := regexp.MustCompile(`rpc error: code = .+ desc = .+:\s`)
@@ -1033,7 +1023,7 @@ func (app *earthApp) run(ctx context.Context, args []string) int {
 	return 0
 }
 
-func (app *earthApp) actionBootstrap(c *cli.Context) error {
+func (app *earthlyApp) actionBootstrap(c *cli.Context) error {
 	app.commandName = "bootstrap"
 	switch app.homebrewSource {
 	case "bash":
@@ -1073,7 +1063,7 @@ func promptInput(question string) string {
 	return strings.TrimRight(line, "\n")
 }
 
-func (app *earthApp) actionOrgCreate(c *cli.Context) error {
+func (app *earthlyApp) actionOrgCreate(c *cli.Context) error {
 	app.commandName = "orgCreate"
 	if c.NArg() != 1 {
 		return errors.New("invalid number of arguments provided")
@@ -1090,7 +1080,7 @@ func (app *earthApp) actionOrgCreate(c *cli.Context) error {
 	return nil
 }
 
-func (app *earthApp) actionOrgList(c *cli.Context) error {
+func (app *earthlyApp) actionOrgList(c *cli.Context) error {
 	app.commandName = "orgList"
 	sc, err := secretsclient.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
 	if err != nil {
@@ -1116,7 +1106,7 @@ func (app *earthApp) actionOrgList(c *cli.Context) error {
 	return nil
 }
 
-func (app *earthApp) actionOrgListPermissions(c *cli.Context) error {
+func (app *earthlyApp) actionOrgListPermissions(c *cli.Context) error {
 	app.commandName = "orgListPermissions"
 	if c.NArg() != 1 {
 		return errors.New("invalid number of arguments provided")
@@ -1148,7 +1138,7 @@ func (app *earthApp) actionOrgListPermissions(c *cli.Context) error {
 	return nil
 }
 
-func (app *earthApp) actionOrgInvite(c *cli.Context) error {
+func (app *earthlyApp) actionOrgInvite(c *cli.Context) error {
 	app.commandName = "orgInvite"
 	if c.NArg() < 2 {
 		return errors.New("invalid number of arguments provided")
@@ -1170,7 +1160,7 @@ func (app *earthApp) actionOrgInvite(c *cli.Context) error {
 	return nil
 }
 
-func (app *earthApp) actionOrgRevoke(c *cli.Context) error {
+func (app *earthlyApp) actionOrgRevoke(c *cli.Context) error {
 	app.commandName = "orgRevoke"
 	if c.NArg() < 2 {
 		return errors.New("invalid number of arguments provided")
@@ -1192,7 +1182,7 @@ func (app *earthApp) actionOrgRevoke(c *cli.Context) error {
 	return nil
 }
 
-func (app *earthApp) actionSecretsList(c *cli.Context) error {
+func (app *earthlyApp) actionSecretsList(c *cli.Context) error {
 	app.commandName = "secretsList"
 
 	path := "/"
@@ -1218,7 +1208,7 @@ func (app *earthApp) actionSecretsList(c *cli.Context) error {
 	return nil
 }
 
-func (app *earthApp) actionSecretsGet(c *cli.Context) error {
+func (app *earthlyApp) actionSecretsGet(c *cli.Context) error {
 	app.commandName = "secretsGet"
 	if c.NArg() != 1 {
 		return errors.New("invalid number of arguments provided")
@@ -1239,7 +1229,7 @@ func (app *earthApp) actionSecretsGet(c *cli.Context) error {
 	return nil
 }
 
-func (app *earthApp) actionSecretsRemove(c *cli.Context) error {
+func (app *earthlyApp) actionSecretsRemove(c *cli.Context) error {
 	app.commandName = "secretsRemove"
 	if c.NArg() != 1 {
 		return errors.New("invalid number of arguments provided")
@@ -1256,7 +1246,7 @@ func (app *earthApp) actionSecretsRemove(c *cli.Context) error {
 	return nil
 }
 
-func (app *earthApp) actionSecretsSet(c *cli.Context) error {
+func (app *earthlyApp) actionSecretsSet(c *cli.Context) error {
 	app.commandName = "secretsSet"
 	var path string
 	var value string
@@ -1289,7 +1279,7 @@ func (app *earthApp) actionSecretsSet(c *cli.Context) error {
 	return nil
 }
 
-func (app *earthApp) actionRegister(c *cli.Context) error {
+func (app *earthlyApp) actionRegister(c *cli.Context) error {
 	app.commandName = "secretsRegister"
 	if app.email == "" {
 		return errors.New("no email given")
@@ -1405,7 +1395,7 @@ func (app *earthApp) actionRegister(c *cli.Context) error {
 	return nil
 }
 
-func (app *earthApp) actionAccountListKeys(c *cli.Context) error {
+func (app *earthlyApp) actionAccountListKeys(c *cli.Context) error {
 	app.commandName = "accountListKeys"
 	sc, err := secretsclient.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
 	if err != nil {
@@ -1421,7 +1411,7 @@ func (app *earthApp) actionAccountListKeys(c *cli.Context) error {
 	return nil
 }
 
-func (app *earthApp) actionAccountAddKey(c *cli.Context) error {
+func (app *earthlyApp) actionAccountAddKey(c *cli.Context) error {
 	app.commandName = "accountAddKey"
 	sc, err := secretsclient.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
 	if err != nil {
@@ -1472,7 +1462,7 @@ func (app *earthApp) actionAccountAddKey(c *cli.Context) error {
 	}
 
 	//switch over to new key if the user is currently using password-based auth
-	email, authType, err := sc.WhoAmI()
+	email, authType, _, err := sc.WhoAmI()
 	if err != nil {
 		return errors.Wrap(err, "failed to validate auth token")
 	}
@@ -1488,7 +1478,7 @@ func (app *earthApp) actionAccountAddKey(c *cli.Context) error {
 	return nil
 }
 
-func (app *earthApp) actionAccountRemoveKey(c *cli.Context) error {
+func (app *earthlyApp) actionAccountRemoveKey(c *cli.Context) error {
 	app.commandName = "accountRemoveKey"
 	sc, err := secretsclient.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
 	if err != nil {
@@ -1502,7 +1492,7 @@ func (app *earthApp) actionAccountRemoveKey(c *cli.Context) error {
 	}
 	return nil
 }
-func (app *earthApp) actionAccountListTokens(c *cli.Context) error {
+func (app *earthlyApp) actionAccountListTokens(c *cli.Context) error {
 	app.commandName = "accountListTokens"
 	sc, err := secretsclient.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
 	if err != nil {
@@ -1537,7 +1527,7 @@ func (app *earthApp) actionAccountListTokens(c *cli.Context) error {
 	w.Flush()
 	return nil
 }
-func (app *earthApp) actionAccountCreateToken(c *cli.Context) error {
+func (app *earthlyApp) actionAccountCreateToken(c *cli.Context) error {
 	app.commandName = "accountCreateToken"
 	if c.NArg() != 1 {
 		return errors.New("invalid number of arguments provided")
@@ -1579,7 +1569,7 @@ func (app *earthApp) actionAccountCreateToken(c *cli.Context) error {
 	fmt.Printf("created token %q which will expire in %s; save this token somewhere, it can't be viewed again (only reset)\n", token, expiryStr)
 	return nil
 }
-func (app *earthApp) actionAccountRemoveToken(c *cli.Context) error {
+func (app *earthlyApp) actionAccountRemoveToken(c *cli.Context) error {
 	app.commandName = "accountRemoveToken"
 	if c.NArg() != 1 {
 		return errors.New("invalid number of arguments provided")
@@ -1596,7 +1586,7 @@ func (app *earthApp) actionAccountRemoveToken(c *cli.Context) error {
 	return nil
 }
 
-func (app *earthApp) actionAccountLogin(c *cli.Context) error {
+func (app *earthlyApp) actionAccountLogin(c *cli.Context) error {
 	app.commandName = "accountLogin"
 	email := app.email
 	token := app.token
@@ -1631,9 +1621,12 @@ func (app *earthApp) actionAccountLogin(c *cli.Context) error {
 		if email != "" || token != "" || pass != "" {
 			return errors.New("account login flags have no effect when --auth-token (or the EARTHLY_TOKEN environment variable) is set")
 		}
-		loggedInEmail, authType, err := sc.WhoAmI()
+		loggedInEmail, authType, writeAccess, err := sc.WhoAmI()
 		if err != nil {
 			return errors.Wrap(err, "failed to validate auth token")
+		}
+		if !writeAccess {
+			authType = "read-only-" + authType
 		}
 		fmt.Printf("Logged in as %q using %s auth\n", loggedInEmail, authType)
 		return nil
@@ -1662,13 +1655,16 @@ func (app *earthApp) actionAccountLogin(c *cli.Context) error {
 		}
 	}
 
-	loggedInEmail, authType, err := sc.WhoAmI()
+	loggedInEmail, authType, writeAccess, err := sc.WhoAmI()
 	switch errors.Cause(err) {
 	case secretsclient.ErrNoAuthorizedPublicKeys, secretsclient.ErrNoSSHAgent:
 		break
 	case nil:
 		if email != "" && email != loggedInEmail {
 			break // case where a user has multiple emails and wants to switch
+		}
+		if !writeAccess {
+			authType = "read-only-" + authType
 		}
 		fmt.Printf("Logged in as %q using %s auth\n", loggedInEmail, authType)
 		return nil
@@ -1717,7 +1713,7 @@ func (app *earthApp) actionAccountLogin(c *cli.Context) error {
 	return nil
 }
 
-func (app *earthApp) actionAccountLogout(c *cli.Context) error {
+func (app *earthlyApp) actionAccountLogout(c *cli.Context) error {
 	app.commandName = "accountLogout"
 	sc, err := secretsclient.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
 	if err != nil {
@@ -1730,7 +1726,7 @@ func (app *earthApp) actionAccountLogout(c *cli.Context) error {
 	return nil
 }
 
-func (app *earthApp) actionDebug(c *cli.Context) error {
+func (app *earthlyApp) actionDebug(c *cli.Context) error {
 	app.commandName = "debug"
 	if c.NArg() > 1 {
 		return errors.New("invalid number of arguments provided")
@@ -1748,7 +1744,7 @@ func (app *earthApp) actionDebug(c *cli.Context) error {
 	return nil
 }
 
-func (app *earthApp) actionPrune(c *cli.Context) error {
+func (app *earthlyApp) actionPrune(c *cli.Context) error {
 	app.commandName = "prune"
 	if c.NArg() != 0 {
 		return errors.New("invalid arguments")
@@ -1810,11 +1806,11 @@ func (app *earthApp) actionPrune(c *cli.Context) error {
 	return nil
 }
 
-func (app *earthApp) actionDocker2Earth(c *cli.Context) error {
+func (app *earthlyApp) actionDocker2Earth(c *cli.Context) error {
 	return docker2earth.Docker2Earth(app.dockerfilePath, app.earthfilePath, app.earthfileFinalImage)
 }
 
-func (app *earthApp) actionBuild(c *cli.Context) error {
+func (app *earthlyApp) actionBuild(c *cli.Context) error {
 	app.commandName = "build"
 
 	if app.ci {
@@ -2031,7 +2027,7 @@ func (app *earthApp) actionBuild(c *cli.Context) error {
 	return nil
 }
 
-func (app *earthApp) newBuildkitdClient(ctx context.Context, opts ...client.ClientOpt) (*client.Client, string, error) {
+func (app *earthlyApp) newBuildkitdClient(ctx context.Context, opts ...client.ClientOpt) (*client.Client, string, error) {
 	if app.buildkitHost == "" {
 		// Start our own.
 		app.buildkitdSettings.Debug = app.debug
@@ -2056,7 +2052,7 @@ func (app *earthApp) newBuildkitdClient(ctx context.Context, opts ...client.Clie
 	return bkClient, "", nil
 }
 
-func (app *earthApp) updateGitLookupConfig(gitLookup *buildcontext.GitLookup) error {
+func (app *earthlyApp) updateGitLookupConfig(gitLookup *buildcontext.GitLookup) error {
 
 	autoProtocol := "ssh"
 	if app.sshAuthSock == "" {

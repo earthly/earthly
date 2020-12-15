@@ -8,12 +8,12 @@ import (
 	"github.com/pkg/errors"
 )
 
-// EarthIgnoreFile is the name of the earth ignore file.
+// EarthIgnoreFile is the name of the earthly ignore file.
 const EarthIgnoreFile = ".earthignore"
 
 // ImplicitExcludes is a list of implicit patterns to exclude.
 var ImplicitExcludes = []string{
-	".tmp-earth-out/",
+	".tmp-earthly-out/",
 	"build.earth",
 	"Earthfile",
 	EarthIgnoreFile,

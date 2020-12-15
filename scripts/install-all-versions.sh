@@ -1,15 +1,16 @@
 #!/usr/bin/env bash
 #
-# This script will install all released versions of earth under ~/bin/earth-v<X.Y.Z>
-# It is intended for earth developers who need to test against previous versions of earth
+# This script will install all released versions of earthly under ~/bin/earthly-v<X.Y.Z>
+# It is intended for earthly developers who need to test against previous versions of earthly
 # (e.g. making sure a new change doesn't break older versions, or testing out bug reports
 # against older versions).
 set -e
 
-release_name="earth-linux-amd64"
+os="linux"
 if [ "$(uname)" == "Darwin" ]; then
-    release_name="earth-darwin-amd64"
+    os="darwin"
 fi
+release_name="earth\\(ly\\)\\?-$os-amd64"
 
 curl -s -L "https://api.github.com/repos/earthly/earthly/releases" > "/tmp/releases.1"
 
@@ -31,7 +32,12 @@ for row in $releases; do
     pattern="$version/$release_name"
     url=$(echo "$row" | base64 -d | jq -r '.assets' | jq -r '.[] | [.browser_download_url] | @csv' | grep "$pattern" | jq -r .)
 
-    outfile="$HOME/bin/earth-$version"
+    earthlybin="earthly"
+    if echo "$url" | grep -w "earth"; then
+        earthlybin="earth"
+    fi
+    outfile="$HOME/bin/$earthlybin-$version"
+
     if [ ! -f "$outfile" ]; then
         wget "$url" -O "$outfile"
         chmod +x "$outfile"

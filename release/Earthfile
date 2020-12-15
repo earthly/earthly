@@ -18,9 +18,9 @@ release-dockerhub:
     BUILD --build-arg DIND_ALPINE_TAG=alpine ../+dind-alpine
     BUILD --build-arg DIND_ALPINE_TAG=latest ../+dind-alpine
     BUILD --build-arg DIND_UBUNTU_TAG=ubuntu ../+dind-ubuntu
-    BUILD --build-arg TAG="$RELEASE_TAG" ../+earth-docker
+    BUILD --build-arg TAG="$RELEASE_TAG" ../+earthly-docker
     BUILD --build-arg TAG="$RELEASE_TAG" ../buildkitd+buildkitd
-    BUILD --build-arg TAG=latest ../+earth-docker
+    BUILD --build-arg TAG=latest ../+earthly-docker
     BUILD --build-arg TAG=latest ../buildkitd+buildkitd
 
 release-github:
@@ -31,20 +31,21 @@ release-github:
     ARG EARTHLY_GIT_HASH
     RUN test -n "$RELEASE_TAG" && test -n "$EARTHLY_GIT_HASH"
     COPY --build-arg VERSION=$RELEASE_TAG \
-        ../+earth-all/* ./release/
+        ../+earthly-all/* ./release/
     RUN ls ./release
-    RUN test -f ./release/earth-linux-amd64 && \
-        test -f ./release/earth-darwin-amd64 && \
-        test -f ./release/earth-linux-arm5 && \
-        test -f ./release/earth-linux-arm6 && \
-        test -f ./release/earth-linux-arm7
+    RUN test -f ./release/earthly-linux-amd64 && \
+        test -f ./release/earthly-darwin-amd64 && \
+        test -f ./release/earthly-linux-arm5 && \
+        test -f ./release/earthly-linux-arm6 && \
+        test -f ./release/earthly-linux-arm7
     ARG BODY="No details provided"
-    RUN --secret GITHUB_TOKEN=+secrets/GITHUB_TOKEN test -n "$GITHUB_TOKEN"
+    RUN --secret GITHUB_TOKEN=+secrets/earthly-technologies/github/griswoldthecat/token test -n "$GITHUB_TOKEN"
     RUN --push \
-        --secret GITHUB_TOKEN=+secrets/GITHUB_TOKEN \
+        --secret GITHUB_TOKEN=+secrets/earthly-technologies/github/griswoldthecat/token \
         github-release upload \
         --owner earthly \
         --repo earthly \
+        --prerelease true \
         --commitish "$EARTHLY_GIT_HASH" \
         --tag "$RELEASE_TAG" \
         --name "$RELEASE_TAG" \
@@ -71,9 +72,9 @@ release-homebrew:
     
     # Deps and preconditions.
     ARG RELEASE_TAG
-    ARG GIT_USERNAME
-    ARG GIT_NAME
-    ARG GIT_EMAIL
+    ARG GIT_USERNAME="griswoldthecat"
+    ARG GIT_NAME="griswoldthecat"
+    ARG GIT_EMAIL="griswoldthecat@users.noreply.github.com"
     ARG REPO_OWNER=Homebrew
     ARG HOMEBREW_CORE_URL="https://github.com/$REPO_OWNER/homebrew-core"
     RUN test -n "$RELEASE_TAG" && \
@@ -91,7 +92,7 @@ release-homebrew:
     # Force use of https.
     RUN git remote set-url origin "$HOMEBREW_CORE_URL" && \
         git remote -v
-    RUN --secret GIT_PASSWORD=+secrets/GITHUB_TOKEN \
+    RUN --secret GIT_PASSWORD=+secrets/earthly-technologies/github/griswoldthecat/token \
         git fetch --unshallow origin master
     RUN git branch -f master && \
         git checkout master && \
@@ -106,7 +107,7 @@ release-homebrew:
     RUN mkdir -p /params
     RUN curl -L "$NEW_URL" | sha256sum | cut -f 1 -d ' ' > /params/downloadsha256
     COPY --build-arg VERSION=$RELEASE_TAG \
-        ../+earth-darwin/tags ../+earth-darwin/ldflags /params/
+        ../+earthly-darwin/tags ../+earthly-darwin/ldflags /params/
 
     # Split /params/ldflags over two lines (to satisfy ruby linter).
     RUN split --numeric-suffixes=1 --suffix-length=1 --bytes=80 /params/ldflags /params/ldflags && \
@@ -133,9 +134,9 @@ release-homebrew:
         git commit -a -m "earthly $version"
     
     # Fork, push branch to fork and create upstream PR.
-    RUN --secret GITHUB_TOKEN=+secrets/GITHUB_TOKEN test -n "$GITHUB_TOKEN"
+    RUN --secret GITHUB_TOKEN=+secrets/earthly-technologies/github/griswoldthecat/token test -n "$GITHUB_TOKEN"
     RUN --push \
-        --secret GITHUB_TOKEN=+secrets/GITHUB_TOKEN \
+        --secret GITHUB_TOKEN=+secrets/earthly-technologies/github/griswoldthecat/token \
         -- \
         hub fork
     # Force use of https so we can use GITHUB_TOKEN via envcredhelper.sh.
@@ -144,12 +145,12 @@ release-homebrew:
         git remote set-url "$GIT_USERNAME" "https://github.com/$GIT_USERNAME/homebrew-core.git" && \
         git remote -v
     RUN --push \
-        --secret GIT_PASSWORD=+secrets/GITHUB_TOKEN \
+        --secret GIT_PASSWORD=+secrets/earthly-technologies/github/griswoldthecat/token \
         -- \
         git push "$GIT_USERNAME" "release-$RELEASE_TAG"
     RUN --push \
-        --secret GIT_PASSWORD=+secrets/GITHUB_TOKEN \
-        --secret GITHUB_TOKEN=+secrets/GITHUB_TOKEN \
+        --secret GIT_PASSWORD=+secrets/earthly-technologies/github/griswoldthecat/token \
+        --secret GITHUB_TOKEN=+secrets/earthly-technologies/github/griswoldthecat/token \
         --secret SLACK_WEBHOOK_URL=+secrets/earthly-technologies/slack/release-webhook \
         -- \
         version=${RELEASE_TAG#v} ;\

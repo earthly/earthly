@@ -4,6 +4,6 @@ set -xeuo pipefail
 
 brew upgrade earthly
 
-earth --version
+earthly --version
 
-earth github.com/earthly/earthly/examples/go:main+docker
+earthly github.com/earthly/earthly/examples/go:main+docker

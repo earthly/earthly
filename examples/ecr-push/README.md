@@ -5,7 +5,7 @@ We are still making this easier, we hope it gets much shorter!
 The steps to build your image go in the `+some-thing` target. The `+ecr-push` target will push it to ECS. Assuming you keep your AWS credentials in the standard environment variables, you can build your image and push it to ECR like this:
 
 ```
-earth -P \
+earthly -P \
     --secret AWS_ACCESS_KEY_ID \
     --secret AWS_SECRET_ACCESS_KEY \
     --secret AWS_SESSION_TOKEN \
@@ -31,11 +31,11 @@ Here, you do not have to have the `aws` tool installed! But you cannot pull from
 
 ## Alternative method
 
-`earth` uses the hosts docker credentials. You can also login on the host, and then invoke `earth` like so:
+`earthly` uses the hosts docker credentials. You can also login on the host, and then invoke `earthly` like so:
 
 ```
 $ aws ecr get-login-password | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com
-$ earth -P +some-thing-pre-logged-in
+$ earthly -P +some-thing-pre-logged-in
 
 ```
 
