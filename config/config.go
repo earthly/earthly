@@ -21,12 +21,13 @@ var (
 
 // GlobalConfig contains global config values
 type GlobalConfig struct {
-	RunPath                 string `yaml:"run_path"`
-	DisableAnalytics        bool   `yaml:"disable_analytics"`
-	BuildkitCacheSizeMb     int    `yaml:"cache_size_mb"`
-	BuildkitImage           string `yaml:"buildkit_image"`
-	DebuggerPort            int    `yaml:"debugger_port"`
-	BuildkitRestartTimeoutS int    `yaml:"buildkit_restart_timeout_s"`
+	RunPath                 string   `yaml:"run_path"`
+	DisableAnalytics        bool     `yaml:"disable_analytics"`
+	BuildkitCacheSizeMb     int      `yaml:"cache_size_mb"`
+	BuildkitImage           string   `yaml:"buildkit_image"`
+	DebuggerPort            int      `yaml:"debugger_port"`
+	BuildkitRestartTimeoutS int      `yaml:"buildkit_restart_timeout_s"`
+	BuildkitAdditionalArgs  []string `yaml:"buildkit_additional_args"`
 
 	// Obsolete.
 	CachePath string `yaml:"cache_path"`
@@ -72,6 +73,7 @@ func ParseConfigFile(yamlData []byte) (*Config, error) {
 			BuildkitCacheSizeMb:     0,
 			DebuggerPort:            8373,
 			BuildkitRestartTimeoutS: 60,
+			BuildkitAdditionalArgs:  []string{},
 		},
 	}
 

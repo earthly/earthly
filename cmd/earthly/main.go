@@ -784,6 +784,8 @@ func (app *earthlyApp) before(context *cli.Context) error {
 
 	app.buildkitdSettings.DebuggerPort = app.cfg.Global.DebuggerPort
 	app.buildkitdSettings.RunDir = app.cfg.Global.RunPath
+	app.buildkitdSettings.AdditionalArgs = app.cfg.Global.BuildkitAdditionalArgs
+
 	return nil
 }
 
