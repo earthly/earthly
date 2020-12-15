@@ -38,10 +38,10 @@ build:
 
 The `SAVE ARTIFACT` line is necessary to inform Earthly that the resulting file `go-example` is important to us. This will output the file in a local directory at `build/go-example`.
 
-To execute the build, we can run `earth +build`:
+To execute the build, we can run `earthly +build`:
 
 ```
-~/workspace/earthly/examples/go ❯ earth +build
+~/workspace/earthly/examples/go ❯ earthly +build
 buildkitd | Found buildkit daemon as docker container (earthly-buildkitd)
 context | --> local context .
 +base | --> FROM golang:1.13-alpine3.11
@@ -79,10 +79,10 @@ docker:
     SAVE IMAGE go-example:latest
 ```
 
-We can then run `earth +docker` to build this target:
+We can then run `earthly +docker` to build this target:
 
 ```
-~/workspace/earthly/examples/go ❯ earth +docker     
+~/workspace/earthly/examples/go ❯ earthly +docker     
 buildkitd | Found buildkit daemon as docker container (earthly-buildkitd)
 context | --> local context .
 +base | --> FROM golang:1.13-alpine3.11
@@ -124,5 +124,5 @@ hello world
 
 * The [Earthly basics page](../guides/basics.md), which includes an extended Go example
 * The [Earthfile reference](../earthfile/earthfile.md)
-* The [Earth command reference](../earth-command/earth-command.md)
+* The [Earthly command reference](../earthly-command/earthly-command.md)
 * More [examples](../examples/examples.md)

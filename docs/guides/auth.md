@@ -34,7 +34,7 @@ If you need to override the SSH agent socket, you can set the environment variab
 
 In order for the SSH agent to have the right credentials available, make sure you run `ssh-add` before executing Earthly builds.
 
-Another key setting is the `auth` mode for the git site that hosts the repository. By default `github.com` and `gitlab.com` automatically default to `ssh` authentication, making SSH-based authentication work out of the box. Other sites will have to be explicitly added to the [earthly config file](../earth-config/earth-config.md) under the git section:
+Another key setting is the `auth` mode for the git site that hosts the repository. By default `github.com` and `gitlab.com` automatically default to `ssh` authentication, making SSH-based authentication work out of the box. Other sites will have to be explicitly added to the [earthly config file](../earthly-config/earthly-config.md) under the git section:
 
 ```yaml
 git:
@@ -44,7 +44,7 @@ git:
 
 #### Username-password authentication
 
-Username-password based authentication can be configured in the [earthly config file](../earth-config/earth-config.md) under the git section: 
+Username-password based authentication can be configured in the [earthly config file](../earthly-config/earthly-config.md) under the git section: 
 
 ```yaml
 git:
@@ -77,8 +77,8 @@ All you have to do as a user is issue the command
 docker login --username <username>
 ```
 
-before issuing earth commands, if you have not already done so in the past.
+before issuing earthly commands, if you have not already done so in the past.
 
 ## See also
 
-* The [earth command reference](../earth-command/earth-command.md)
+* The [earthly command reference](../earthly-command/earthly-command.md)

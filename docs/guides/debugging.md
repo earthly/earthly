@@ -33,7 +33,7 @@ print(text_model.make_sentence())
 ```
 
 
-Now we can run it with `earth +test`, and we'll see a failure has occurred:
+Now we can run it with `earthly +test`, and we'll see a failure has occurred:
 
 ```
 =========================== FAILURE ===========================
@@ -47,7 +47,7 @@ Now we can run it with `earth +test`, and we'll see a failure has occurred:
 Error: solve side effects: solve: failed to solve: rpc error: code = Unknown desc = executor failed running [/bin/sh -c  /usr/bin/earth_debugger /bin/sh -c 'python3 generate_phrase.py']: buildkit-runc did not terminate successfully
 ```
 
-Why can't it find the sherlock.txt file? Let's re-run `earth` with the `--interactive` (or `-i`) flag: `earth -i +test`
+Why can't it find the sherlock.txt file? Let's re-run `earthly` with the `--interactive` (or `-i`) flag: `earthly -i +test`
 
 This time we see a slightly different message:
 
@@ -62,7 +62,7 @@ This time we see a slightly different message:
 +test | root@buildkitsandbox:/code#
 ```
 
-This time rather than exiting, earth will drop us into an interactive root shell within the container of the build environment.
+This time rather than exiting, earthly will drop us into an interactive root shell within the container of the build environment.
 This root shell will allow us to execute arbitrary commands within the container to figure out the problem:
 
 ```
@@ -142,7 +142,7 @@ httpd = HTTPServer(('localhost', 8000), SimpleHTTPRequestHandler)
 httpd.serve_forever()
 ```
 
-Let's fire up our integration test with `earth -P -i +test`:
+Let's fire up our integration test with `earthly -P -i +test`:
 
 ```
 buildkitd | Found buildkit daemon as docker container (earthly-buildkitd)
@@ -225,7 +225,7 @@ If you ever want to jump into an interactive debugging session at any point in y
   RUN false
 ```
 
-and run earth with the `--interactive` (or `-i`) flag.
+and run earthly with the `--interactive` (or `-i`) flag.
 
 
 Hopefully you won't run into failures, but if you do the interactive debugger may help you discover the root cause more easily. Happy coding.

@@ -29,27 +29,27 @@ The key benefit of this approach is that you get the upload for free if you anyw
 
 #### How to use inline caching
 
-In order to enable inline caching, simply add `--ci` in your invocation of `earth` in your CI, or `--use-inline-cache` on individual developer's machines. If the `--push` command is also specified, the use of the cache will be read-write.
+In order to enable inline caching, simply add `--ci` in your invocation of `earthly` in your CI, or `--use-inline-cache` on individual developer's machines. If the `--push` command is also specified, the use of the cache will be read-write.
 
 In CI, read-only inline cache (typically in PR builds):
 
 ```bash
-earth --ci +some-target
+earthly --ci +some-target
 ```
 
 In CI, read-write inline cache (typically in master/main branch builds):
 
 ```bash
-earth --ci --push +some-target
+earthly --ci --push +some-target
 ```
 
 On developer's computer (optional):
 
 ```bash
-earth --use-inline-cache +some-target
+earthly --use-inline-cache +some-target
 ```
 
-The options mentioned above are also available as environment variables. See [Earth command reference](../earth-command/earth-command.md) for more information.
+The options mentioned above are also available as environment variables. See [Earthly command reference](../earthly-command/earthly-command.md) for more information.
 
 The way this works underneath is that Earthly uses `SAVE IMAGE --push` declarations as source and destination for any inline cache.
 
@@ -85,7 +85,7 @@ In the Scala case, time is saved from processing the dependencies, resulting in 
 In both cases, a major benefit is that we are anyway pushing the images to the cloud via the `SAVE IMAGE --push` commands. So there is no performance penalty on the cache upload side. The command that would be used in the CI to execute the builds together with inline caching is
 
 ```bash
-earth --ci --push +docker
+earthly --ci --push +docker
 ```
 
 ### Explicit cache (advanced)
@@ -101,27 +101,27 @@ For example, if the Docker tag used for explicit caching is `mycompany/myimage:c
 In CI, read-only inline cache (typically in PR builds):
 
 ```bash
-earth --ci --remote-cache=mycompany/myimage:cache +some-target
+earthly --ci --remote-cache=mycompany/myimage:cache +some-target
 ```
 
 In CI, read-write inline cache (typically in master/main branch builds):
 
 ```bash
-earth --ci --remote-cache=mycompany/myimage:cache --push +some-target
+earthly --ci --remote-cache=mycompany/myimage:cache --push +some-target
 ```
 
 On developer's computer (optional):
 
 ```bash
-earth --remote-cache=mycompany/myimage:cache +some-target
+earthly --remote-cache=mycompany/myimage:cache +some-target
 ```
 
-The options mentioned above are also available as environment variables. See [Earth command reference](../earth-command/earth-command.md) for more information.
+The options mentioned above are also available as environment variables. See [Earthly command reference](../earthly-command/earthly-command.md) for more information.
 
 {% hint style='info' %}
 ##### Note
 
-If a project has multiple CI pipelines or `earth` invocations, it is recommended to use different `--remote-cache` Docker tags for each pipeline or invocation. This will prevent the cache from being overwritten in ways in which it makes it less effective.
+If a project has multiple CI pipelines or `earthly` invocations, it is recommended to use different `--remote-cache` Docker tags for each pipeline or invocation. This will prevent the cache from being overwritten in ways in which it makes it less effective.
 {% endhint %}
 
 {% hint style='info' %}
@@ -152,7 +152,7 @@ A good example of using explicit caching is this [integration test example](http
 A typical invocation of the build to make use of the explicit cache:
 
 ```bash
-earth --ci --remote-cache=mycompany/integration-example:cache --push +all
+earthly --ci --remote-cache=mycompany/integration-example:cache --push +all
 ```
 
 ### Comparison between inline and explicit cache
@@ -168,7 +168,7 @@ Below is a summary of the different characteristics of each type of cache.
 #### Key takeaways for inline caching
 
 * Cache is embedded within images that are already being pushed. No new layers are added to the images, only a few KiB of metadata.
-* Very easy to use (just add `--ci` to your `earth` invocations in CI)
+* Very easy to use (just add `--ci` to your `earthly` invocations in CI)
 * It is usually effective right away, with little modifications
 * Typically you incur the performance cost only for the subsequent download. Upload is for free if you are pushing images anyway
 * By default, caches only the images being pushed

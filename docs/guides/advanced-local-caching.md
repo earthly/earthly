@@ -74,7 +74,7 @@ This allows the Gradle command to reuse dependencies downloaded in a previous ru
 
 Although this approach works for many situations, it also has some possible downsides. For example, removing a dependency from the gradle spec, will not remove it from the cache. A mild problem can be that the cache becomes bloated over time. A worse possible problem can surface due to build inconsistencies created by the contents of the cache. Although some build tools are smart enough to ignore those cached dependencies if they have been removed from the spec, the behavior will vary from tool to tool and from language to language. In some cases, the build may continue to use a cached but removed dependency, yet if the build is executed on another system, it breaks or behaves differently.
 
-To manage these situations you can elect to reset the cache of a build, by simply running the build again with the flag `--no-cache`: `earth --no-cache +build`. Or, you can eliminate the entire cache altogether using [`earth prune`](../earth-command/earth-command.md#earth-prune).
+To manage these situations you can elect to reset the cache of a build, by simply running the build again with the flag `--no-cache`: `earthly --no-cache +build`. Or, you can eliminate the entire cache altogether using [`earthly prune`](../earthly-command/earthly-command.md#earthly-prune).
 
 Cache mounts are a leaky abstraction on top of the Earthly base principles by which nothing is shared. Although they are necessary to help optimize builds in some situations, care must be taken of possible edge cases whereby a build behaves differently because of the cache mount alone.
 

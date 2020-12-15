@@ -31,7 +31,7 @@ This command will prompt you to set a password, and to optionally register a pub
 ### Login / Logout
 
 It is recommended that you register a public RSA key during registration; if this is done, you will be logged in automatically whenever
-earth needs to authenticate you. If you did not supply a public key, then your plain-text password will be cached on your local disk under
+earthly needs to authenticate you. If you did not supply a public key, then your plain-text password will be cached on your local disk under
 `~/.earthly/auth-token`, which will be used to log you in. If this file is deleted, you will need to run `earthly account login` to re-create it.
 
 To logout, you can run `earthly account logout`, which deletes the `~/.earthly/auth-token` file from your disk.

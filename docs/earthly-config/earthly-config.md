@@ -1,8 +1,8 @@
 # Earthly configuration file
 
-Global configuration values for earth can be stored on disk in the configuration file.
+Global configuration values for earthly can be stored on disk in the configuration file.
 
-By default, earth reads the configuration file `~/.earthly/config.yml`; however, it can also be
+By default, earthly reads the configuration file `~/.earthly/config.yml`; however, it can also be
 overridden with the `--config` command flag option.
 
 ## Format
@@ -45,7 +45,7 @@ Specifies the total size of the BuildKit cache, in MB. The BuildKit daemon uses 
 
 ### disable_analytics
 
-When set to true, disables collecting command line analytics; otherwise, earth will report anonymized analytics for invokation of the earth command. For more information see the [data collection page](../data-collection/data-collection.md).
+When set to true, disables collecting command line analytics; otherwise, earthly will report anonymized analytics for invokation of the earthly command. For more information see the [data collection page](../data-collection/data-collection.md).
 
 ### no_loop_device (obsolete)
 
