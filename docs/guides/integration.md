@@ -266,7 +266,7 @@ In our simplified case example, with a single code path, a test that verifies th
 ``` bash
 source "./assert.sh"
 set -v
-results=$(docker run --network=host scala-example:latest)
+results=$(docker run --network=host earthly/examples:integration)
 expected="The first 5 countries alphabetically are: Afghanistan, Albania, Algeria, American Samoa, Andorra"
 
 assert_eq "$expected" "$results"n
@@ -278,7 +278,7 @@ smoke-test:
     FROM +project-files
     COPY docker-compose.yml ./ 
     COPY src/smoketest ./ 
-    WITH DOCKER --compose docker-compose.yml --load scala-example:latest=+docker
+    WITH DOCKER --compose docker-compose.yml --load=+docker
         RUN while ! pg_isready --host=localhost --port=5432 --dbname=iso3166 --username=postgres; do sleep 1; done ;\
             ./smoketest.sh
     END
@@ -290,11 +290,11 @@ We can then run this and check that our application with its dependencies, produ
 
 ``` Dockerfile
 > earth -P +smoke-test
-+smoke-test | --> WITH DOCKER RUN for i in {1..30}; do nc -z localhost 5432 && break; sleep 1; done; docker run --network=host scala-example:latest
++smoke-test | --> WITH DOCKER RUN for i in {1..30}; do nc -z localhost 5432 && break; sleep 1; done; docker run --network=host earthly/examples:integration
 +smoke-test | Loading images...
 +smoke-test | Loaded image: aa8y/postgres-dataset:iso3166
 +smoke-test | Loaded image: adminer:latest
-+smoke-test | Loaded image: scala-example:latest
++smoke-test | Loaded image: earthly/examples:integration
 +smoke-test | ...done
 +smoke-test | Creating network "scala-example_default" with the default driver
 +smoke-test | Creating local-postgres ... done

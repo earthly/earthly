@@ -41,4 +41,4 @@ buildkitd:
     ENTRYPOINT ["/usr/bin/entrypoint.sh", "buildkitd", "--config=/etc/buildkitd.toml"]
     ARG EARTHLY_TARGET_TAG_DOCKER
     ARG TAG=$EARTHLY_TARGET_TAG_DOCKER
-    SAVE IMAGE --push earthly/buildkitd:$TAG
+    SAVE IMAGE --push --cache-from=earthly/buildkitd:main earthly/buildkitd:$TAG

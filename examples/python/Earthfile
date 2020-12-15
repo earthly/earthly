@@ -18,4 +18,4 @@ docker:
     COPY requirements.txt ./
     RUN pip install --no-index --find-links=wheels -r requirements.txt
     ENTRYPOINT ["python3", "./src/hello.py"]
-    SAVE IMAGE python-example:latest
+    SAVE IMAGE --push earthly/examples:python

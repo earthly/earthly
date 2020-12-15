@@ -20,7 +20,7 @@ docker:
     FROM +build
     EXPOSE 3000
     CMD ["bundle", "exec", "rails", "server", "-b", "0.0.0.0"]
-    SAVE IMAGE ruby-on-rails-example:latest
+    SAVE IMAGE --push earthly/examples:ruby-on-rails
 
 migrate:
     FROM +build

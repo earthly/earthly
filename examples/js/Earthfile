@@ -19,4 +19,4 @@ docker:
     COPY +build/dist ./dist
     EXPOSE 8080
     ENTRYPOINT ["/js-example/node_modules/http-server/bin/http-server", "./dist"]
-    SAVE IMAGE js-example:latest
+    SAVE IMAGE --push earthly/examples:js

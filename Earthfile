@@ -181,7 +181,7 @@ earthly-docker:
     ARG EARTHLY_TARGET_TAG_DOCKER
     ARG TAG=$EARTHLY_TARGET_TAG_DOCKER
     COPY --build-arg VERSION=$TAG +earthly/earthly /usr/bin/earthly
-    SAVE IMAGE --push earthly/earthly:$TAG
+    SAVE IMAGE --push --cache-from=earthly/earthly:main earthly/earthly:$TAG
 
 prerelease:
     FROM alpine:3.11
@@ -198,14 +198,14 @@ dind-alpine:
     RUN apk add --update --no-cache docker-compose
     ARG EARTHLY_TARGET_TAG_DOCKER
     ARG DIND_ALPINE_TAG=alpine-$EARTHLY_TARGET_TAG_DOCKER
-    SAVE IMAGE --push earthly/dind:$DIND_ALPINE_TAG
+    SAVE IMAGE --push --cache-from=earthly/dind:main earthly/dind:$DIND_ALPINE_TAG
 
 dind-ubuntu:
     FROM ubuntu:latest
     COPY ./buildkitd/docker-auto-install.sh /usr/local/bin/docker-auto-install.sh
     RUN docker-auto-install.sh
     ARG DIND_UBUNTU_TAG=ubuntu-$EARTHLY_TARGET_TAG_DOCKER
-    SAVE IMAGE --push earthly/dind:$DIND_UBUNTU_TAG
+    SAVE IMAGE --push --cache-from=earthly/dind:ubuntu-main earthly/dind:$DIND_UBUNTU_TAG
 
 for-linux:
     BUILD +buildkitd

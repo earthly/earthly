@@ -84,7 +84,7 @@ build:
 docker:
   COPY +build/fibonacci /bin/fibonacci
   ENTRYPOINT ["/bin/fibonacci"]
-  SAVE IMAGE cpp-example:latest
+  SAVE IMAGE --push earthly/examples:cpp
 ```
 
 If you run `earth +build` for the first time you should see:
@@ -115,7 +115,7 @@ this will also rebuild the entire base docker images.
 And finally, the fibonacci program can be run via docker:
 
 ```
-~/workspace/earthly/examples/cpp ❯ docker run --rm cpp-example:latest
+~/workspace/earthly/examples/cpp ❯ docker run --rm earthly/examples:cpp
 fib(0) = 0
 fib(1) = 1
 fib(2) = 1

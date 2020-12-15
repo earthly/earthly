@@ -48,13 +48,13 @@ docker:
     COPY src src
     RUN sbt 'set test in assembly := {}' assembly
     ENTRYPOINT ["java","-cp","target/scala-2.12/scala-example-assembly-1.0.jar","Main"]
-    SAVE IMAGE scala-example:latest
+    SAVE IMAGE --push earthly/examples:integration
 
 smoke-test:
     FROM +project-files
     COPY docker-compose.yml ./ 
     COPY src/smoketest ./ 
-    WITH DOCKER --compose docker-compose.yml --load scala-example:latest=+docker
+    WITH DOCKER --compose docker-compose.yml --load=+docker
         RUN while ! pg_isready --host=localhost --port=5432 --dbname=iso3166 --username=postgres; do sleep 1; done ;\
             ./smoketest.sh
     END

@@ -15,4 +15,4 @@ build:
 docker:
     COPY +build/bin build/bin
     ENTRYPOINT ["java","-cp","build/bin/scala-example-assembly-1.0.jar","Main"]
-    SAVE IMAGE scala-example:latest
+    SAVE IMAGE --push earthly/examples:scala

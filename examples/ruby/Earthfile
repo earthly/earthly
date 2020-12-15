@@ -15,4 +15,4 @@ docker:
     FROM +deps
     COPY +build/src src
     ENTRYPOINT ["ruby", "./src/hello.rb"]
-    SAVE IMAGE ruby-example:latest
+    SAVE IMAGE --push earthly/examples:ruby
