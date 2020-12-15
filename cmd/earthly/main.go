@@ -792,7 +792,31 @@ func (app *earthlyApp) before(context *cli.Context) error {
 	return nil
 }
 
+func (app *earthlyApp) warnIfEarth() {
+	if len(os.Args) == 0 {
+		return
+	}
+	binPath := os.Args[0] // can't use os.Executable() here; because it will give us earthly if executed via the earth symlink
+
+	baseName := path.Base(binPath)
+	if baseName == "earth" {
+		app.console.Warnf("Warning: the earth binary has been renamed to earthly; the earth command is currently symlinked, but is deprecated and will one day be removed.")
+	}
+
+	absPath, err := filepath.Abs(binPath)
+	if err != nil {
+		return
+	}
+	earthlyPath := path.Join(path.Dir(absPath), "earthly")
+	if fileutils.FileExists(earthlyPath) {
+		app.console.Warnf("Once you are ready to switch over to earthly, you can `rm %s`", absPath)
+	}
+
+}
+
 func (app *earthlyApp) processDeprecatedCommandOptions(context *cli.Context, cfg *config.Config) error {
+	app.warnIfEarth()
+
 	if cfg.Global.CachePath != "" {
 		app.console.Warnf("Warning: the setting cache_path is now obsolete and will be ignored")
 	}
