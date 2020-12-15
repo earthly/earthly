@@ -295,9 +295,8 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 		&cli.BoolFlag{
 			Name:        "ci",
 			EnvVars:     []string{"EARTHLY_CI"},
-			Usage:       "Execute in CI mode (implies --use-inline-cache --save-inline-cache --no-output)",
+			Usage:       "Execute in CI mode (implies --use-inline-cache --save-inline-cache --no-output) *experimental*",
 			Destination: &app.ci,
-			Hidden:      true, // Experimental.
 		},
 		&cli.BoolFlag{
 			Name:        "no-output",
@@ -315,7 +314,7 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 			Name:        "config",
 			Value:       defaultConfigPath(),
 			EnvVars:     []string{"EARTHLY_CONFIG"},
-			Usage:       "Path to config file for",
+			Usage:       "Path to config file",
 			Destination: &app.configPath,
 		},
 		&cli.StringFlag{
@@ -328,7 +327,7 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 		&cli.StringFlag{
 			Name:        "auth-token",
 			EnvVars:     []string{"EARTHLY_TOKEN"},
-			Usage:       "Force Earthly account login to authetnicate with supplied token",
+			Usage:       "Force Earthly account login to authenticate with supplied token",
 			Destination: &app.authToken,
 		},
 		&cli.StringFlag{
@@ -362,7 +361,7 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 			EnvVars:     []string{"EARTHLY_PROFILER"},
 			Usage:       "Enable the profiler",
 			Destination: &app.enableProfiler,
-			Hidden:      true, // for use in dev debugging
+			Hidden:      true, // Dev purposes only.
 		},
 		&cli.StringFlag{
 			Name:        "buildkit-host",
@@ -387,30 +386,26 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 		&cli.StringFlag{
 			Name:        "remote-cache",
 			EnvVars:     []string{"EARTHLY_REMOTE_CACHE"},
-			Usage:       "A remote docker image tag use as explicit cache",
+			Usage:       "A remote docker image tag use as explicit cache *experimental*",
 			Destination: &app.remoteCache,
-			Hidden:      true, // Experimental.
 		},
 		&cli.BoolFlag{
 			Name:        "max-remote-cache",
 			EnvVars:     []string{"EARTHLY_MAX_REMOTE_CACHE"},
-			Usage:       "Saves all intermediate images too in the remove cache",
+			Usage:       "Saves all intermediate images too in the remove cache *experimental*",
 			Destination: &app.maxRemoteCache,
-			Hidden:      true, // Experimental.
 		},
 		&cli.BoolFlag{
 			Name:        "save-inline-cache",
 			EnvVars:     []string{"EARTHLY_SAVE_INLINE_CACHE"},
-			Usage:       "Enable cache inlining when pushing images",
+			Usage:       "Enable cache inlining when pushing images *experimental*",
 			Destination: &app.saveInlineCache,
-			Hidden:      true, // Experimental.
 		},
 		&cli.BoolFlag{
 			Name:        "use-inline-cache",
 			EnvVars:     []string{"EARTHLY_USE_INLINE_CACHE"},
-			Usage:       "Attempt to use any inline cache that may have been previously pushed (uses image tags referenced by SAVE IMAGE --push or SAVE IMAGE --cache-from)",
+			Usage:       "Attempt to use any inline cache that may have been previously pushed (uses image tags referenced by SAVE IMAGE --push or SAVE IMAGE --cache-from) *experimental*",
 			Destination: &app.useInlineCache,
-			Hidden:      true, // Experimental.
 		},
 		&cli.BoolFlag{
 			Name:        "interactive",
@@ -455,7 +450,6 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 			Name:        "bootstrap",
 			Usage:       "Bootstraps earthly bash autocompletion",
 			Description: "Performs initial earthly bootstrapping for bash autocompletion",
-			Hidden:      false,
 			Action:      app.actionBootstrap,
 			Flags: []cli.Flag{
 				&cli.StringFlag{
@@ -470,7 +464,7 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 			Name:        "docker2earth",
 			Usage:       "Convert a Dockerfile into Earthfile",
 			Description: "Converts an existing dockerfile into an Earthfile",
-			Hidden:      true,
+			Hidden:      true, // Experimental.
 			Action:      app.actionDocker2Earth,
 			Flags: []cli.Flag{
 				&cli.StringFlag{
@@ -488,15 +482,13 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 				&cli.StringFlag{
 					Name:        "tag",
 					Usage:       "Name and tag for the built image; formatted as 'name:tag'",
-					Value:       "myimage:latest",
 					Destination: &app.earthfileFinalImage,
 				},
 			},
 		},
 		{
-			Name:   "org",
-			Usage:  "Earthly organization administration",
-			Hidden: true,
+			Name:  "org",
+			Usage: "Earthly organization administration *experimental*",
 			Subcommands: []*cli.Command{
 				{
 					Name:      "create",
@@ -540,8 +532,7 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 		{
 			Name:        "secrets",
 			Usage:       "Earthly secrets",
-			Description: "Access and modify secrets",
-			Hidden:      true,
+			Description: "Manage cloud secrets *experimental*",
 			Subcommands: []*cli.Command{
 				{
 					Name:      "get",
@@ -586,9 +577,8 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 			},
 		},
 		{
-			Name:   "account",
-			Usage:  "Create or manage an Earthly account",
-			Hidden: true,
+			Name:  "account",
+			Usage: "Create or manage an Earthly account *experimental*",
 			Subcommands: []*cli.Command{
 				{
 					Name:        "register",
@@ -624,8 +614,8 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 							Destination: &app.registrationPublicKey,
 						},
 						&cli.BoolFlag{
-							Name:        "accept-terms-conditions-privacy",
-							EnvVars:     []string{"EARTHLY_ACCEPT_TERMS_CONDITITONS_PRIVACY"},
+							Name:        "accept-terms-of-service-privacy",
+							EnvVars:     []string{"EARTHLY_ACCEPT_TERMS_OF_SERVICE_PRIVACY"},
 							Usage:       "Accept the Terms & Conditions, and Privacy Policy",
 							Destination: &app.termsConditionsPrivacy,
 						},
@@ -720,13 +710,13 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 			Usage:       "Print debug information about an Earthfile",
 			Description: "Print debug information about an Earthfile",
 			ArgsUsage:   "[<path>]",
-			Hidden:      true,
+			Hidden:      true, // Dev purposes only.
 			Action:      app.actionDebug,
 		},
 		{
 			Name:        "prune",
-			Usage:       "Prune earthly build cache",
-			Description: "Prune earthly build cache",
+			Usage:       "Prune Earthly build cache",
+			Description: "Prune Earthly build cache",
 			Action:      app.actionPrune,
 			Flags: []cli.Flag{
 				&cli.BoolFlag{

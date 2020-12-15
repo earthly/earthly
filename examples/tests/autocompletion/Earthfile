@@ -3,6 +3,9 @@ FROM ../../..+earthly-docker
 test-root-commands:
     RUN echo "./
 bootstrap 
+org 
+secrets 
+account 
 prune " > expected
     RUN COMP_LINE="earthly " COMP_POINT=8 earthly > actual
     RUN diff expected actual
