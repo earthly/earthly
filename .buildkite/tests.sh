@@ -20,7 +20,7 @@ while ! docker ps; do
 done
 
 echo "Download latest Earthly binary"
-curl -o ./earthly-released -L https://github.com/earthly/earthly/releases/latest/download/earth-"$EARTH_OS"-amd64 && chmod +x ./earthly-released
+curl -o ./earthly-released -L https://github.com/earthly/earthly/releases/download/v0.4.0-rc0/earthly-"$EARTH_OS"-amd64 && chmod +x ./earthly-released
 
 echo "Build latest earthly using released earthly"
 ./earthly-released +for-"$EARTH_OS"
