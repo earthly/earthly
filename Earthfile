@@ -265,7 +265,7 @@ examples:
     # #BUILD ./examples/terraform+localstack
     BUILD ./examples/ruby+docker
     BUILD ./examples/ruby-on-rails+docker
-    BUILD ./examples/scala+docker
+    # BUILD ./examples/scala+docker
     BUILD ./examples/cobol+docker
     BUILD github.com/earthly/hello-world:main+hello
 
