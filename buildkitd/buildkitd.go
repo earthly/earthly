@@ -367,14 +367,14 @@ func GetAvailableImageID(ctx context.Context, image string) (string, error) {
 func CheckCompatibility(ctx context.Context, settings Settings) error {
 	isNamespaced, err := isNamespacedDocker(ctx)
 	if isNamespaced {
-		return errors.New(`user namespaces are enabled, run with --bkd-arg "--userns=host" to disable`)
+		return errors.New(`user namespaces are enabled, set "buildkit_additional_args" in ~/.earthly/config.yml to ["--userns", "host"] to disable`)
 	} else if err != nil {
 		return errors.Wrap(err, "failed compatibilty check")
 	}
 
 	isRootless, err := isRootlessDocker(ctx)
 	if isRootless {
-		return errors.New(`rootless docker detected. Compatibility is limited. Run with --bkd-arg "" to give it a shot`)
+		return errors.New(`rootless docker detected. Compatibility is limited. Configure "buildkit_additional_args" in ~/.earthly/config.yml with some additional arguments like ["--log-opt"] to give it a shot`)
 	} else if err != nil {
 		return errors.Wrap(err, "failed compatibilty check")
 	}
