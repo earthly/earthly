@@ -3,7 +3,7 @@
 ### earth
 * Make sure you have access to the `earthly-technologies` organization secrets.
   ```bash
-  ./earth secrets ls /earthly-technologies
+  ./earthly secrets ls /earthly-technologies
   ```
 * Choose the next [release tag](https://github.com/earthly/earthly/releases).
   ```bash
@@ -16,17 +16,17 @@
 * Make sure that main build is green for all platforms (check build status for the latest commit on GitHub).
 * Run
   ```bash
-  ./earth reset
+  ./earthly reset
   ```
 * Run
   ```bash
-  ./earth \
+  ./earthly \
     --build-arg RELEASE_TAG \
     --push -P ./release+release
   ```
 * Run
   ```bash
-  ./earth \
+  ./earthly \
     --build-arg RELEASE_TAG \
     --push ./release+release-homebrew
   ```
@@ -51,7 +51,7 @@
 * Make sure that the version has release notes already in the [README](../contrib/earthfile-syntax-highlighting/README.md)
 * Then publish it:
   ```bash
-  ./earth \
+  ./earthly \
     --build-arg VSCODE_RELEASE_TAG \
     --push \
     ./release+release-vscode-syntax-highlighting
@@ -62,4 +62,4 @@
   git push origin "vscode-syntax-highlighting-$VSCODE_RELEASE_TAG"
   ```
 
-(If token has expired, Vlad can regenerate one following [this guide](https://code.visualstudio.com/api/working-with-extensions/publishing-extension#get-a-personal-access-token) and then setting it using `./earth secrets set /earthly-technologies/vsce/token '...'`)
+(If token has expired, Vlad can regenerate one following [this guide](https://code.visualstudio.com/api/working-with-extensions/publishing-extension#get-a-personal-access-token) and then setting it using `./earthly secrets set /earthly-technologies/vsce/token '...'`)

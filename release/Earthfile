@@ -45,7 +45,7 @@ release-github:
         github-release upload \
         --owner earthly \
         --repo earthly \
-        --pre-release \
+        --prerelease true \
         --commitish "$EARTHLY_GIT_HASH" \
         --tag "$RELEASE_TAG" \
         --name "$RELEASE_TAG" \
