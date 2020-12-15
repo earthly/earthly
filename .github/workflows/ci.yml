@@ -33,6 +33,10 @@ jobs:
         if: github.event_name != 'push' && github.event.pull_request.head.repo.full_name != github.repository
       - name: Execute fail test
         run: "! ./build/linux/amd64/earthly --ci +test-fail"
+      - name: Buildkit logs (runs on failure)
+        run: docker logs earthly-buildkitd
+        if: ${{ failure() }}
+
   misc-tests:
     name: Misc tests
     runs-on: ubuntu-latest
@@ -70,6 +74,10 @@ jobs:
       - name: "Experimental tests (fork)"
         run: ./build/linux/amd64/earthly --ci -P ./examples/tests+experimental
         if: github.event_name != 'push' && github.event.pull_request.head.repo.full_name != github.repository
+      - name: Buildkit logs (runs on failure)
+        run: docker logs earthly-buildkitd
+        if: ${{ failure() }}
+
   examples:
     name: +examples
     runs-on: ubuntu-latest
@@ -92,6 +100,10 @@ jobs:
       - name: Build examples (main build)
         run: ./build/linux/amd64/earthly --ci --push -P +examples
         if: github.event_name == 'push'
+      - name: Buildkit logs (runs on failure)
+        run: docker logs earthly-buildkitd
+        if: ${{ failure() }}
+
   secrets:
     name: secrets-integration
     runs-on: ubuntu-latest
@@ -110,6 +122,10 @@ jobs:
         run: earthly --use-inline-cache +for-linux
       - name: run ssh-based tests
         run: env -u GIT_URL_INSTEAD_OF earthly=./build/linux/amd64/earthly scripts/tests/private-repo.sh
+      - name: Buildkit logs (runs on failure)
+        run: docker logs earthly-buildkitd
+        if: ${{ failure() }}
+
   private-repo-test:
     services:
       sshd:
@@ -135,6 +151,9 @@ jobs:
         run: earthly --use-inline-cache +for-linux
       - name: run ssh-based tests
         run: env -u GIT_URL_INSTEAD_OF earthly=./build/linux/amd64/earthly scripts/tests/self-hosted-private-repo.sh
+      - name: Buildkit logs (runs on failure)
+        run: docker logs earthly-buildkitd
+        if: ${{ failure() }}
 
   push:
     name: --push +all
@@ -164,3 +183,6 @@ jobs:
         run: earthly --use-inline-cache +for-linux
       - name: Rebuild and push
         run: ./build/linux/amd64/earthly --ci --push +all
+      - name: Buildkit logs (runs on failure)
+        run: docker logs earthly-buildkitd
+        if: ${{ failure() }}
