@@ -76,7 +76,7 @@ git:
     auth: ssh
 EOF
 
-if ! $earthly myserver/project:trunk+docker; then
+if ! $earthly -V myserver/project:trunk+docker; then
     docker ps -a
     docker logs earthly-buildkitd
     exit 1
