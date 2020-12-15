@@ -6,10 +6,11 @@
 # against older versions).
 set -e
 
-release_name="earthly-linux-amd64"
+os="linux"
 if [ "$(uname)" == "Darwin" ]; then
-    release_name="earthly-darwin-amd64"
+    os="darwin"
 fi
+release_name="earth\\(ly\\)\\?-$os-amd64"
 
 curl -s -L "https://api.github.com/repos/earthly/earthly/releases" > "/tmp/releases.1"
 
@@ -31,7 +32,12 @@ for row in $releases; do
     pattern="$version/$release_name"
     url=$(echo "$row" | base64 -d | jq -r '.assets' | jq -r '.[] | [.browser_download_url] | @csv' | grep "$pattern" | jq -r .)
 
-    outfile="$HOME/bin/earthly-$version"
+    earthlybin="earthly"
+    if echo "$url" | grep -w "earth"; then
+        earthlybin="earth"
+    fi
+    outfile="$HOME/bin/$earthlybin-$version"
+
     if [ ! -f "$outfile" ]; then
         wget "$url" -O "$outfile"
         chmod +x "$outfile"
