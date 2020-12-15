@@ -13,7 +13,7 @@ jobs:
           command: "docker login --username $DOCKERHUB_USERNAME --password $DOCKERHUB_TOKEN"
       - run:
           name: Install released earthly
-          command: "sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/v0.4.0-rc0/download/earthly-linux-amd64 -O /usr/local/bin/earthly && chmod +x /usr/local/bin/earthly'"
+          command: "sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/download/v0.4.0-rc0/earthly-linux-amd64 -O /usr/local/bin/earthly && chmod +x /usr/local/bin/earthly'"
       - run:
           name: Build latest earthly
           command: earthly --use-inline-cache +for-linux
