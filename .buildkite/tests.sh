@@ -26,14 +26,14 @@ echo "Build latest earthly using released earthly"
 ./earthly-released +for-"$EARTH_OS"
 
 echo "Execute tests"
-./build/"$EARTH_OS"/amd64/earthly --no-output -P +test
+./build/"$EARTH_OS"/amd64/earthly --ci -P +test
 
 # Temporarily disable until failure is addressed.
 #echo "Execute experimental tests"
-#./build/"$EARTH_OS"/amd64/earthly --no-output -P ./examples/tests+experimental
+#./build/"$EARTH_OS"/amd64/earthly --ci -P ./examples/tests+experimental
 
 echo "Execute fail test"
-bash -c "! ./build/$EARTH_OS/amd64/earthly --no-output +test-fail"
+bash -c "! ./build/$EARTH_OS/amd64/earthly --ci +test-fail"
 
 echo "Build examples"
-./build/"$EARTH_OS"/amd64/earthly --no-output -P +examples
+./build/"$EARTH_OS"/amd64/earthly --ci -P +examples

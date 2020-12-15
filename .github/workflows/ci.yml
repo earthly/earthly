@@ -86,8 +86,12 @@ jobs:
         if: github.event.pull_request.head.repo.full_name == github.repository
       - name: Build latest earthly using released earthly
         run: earthly --use-inline-cache +for-linux
-      - name: Build examples
-        run: ./build/linux/amd64/earthly --no-output --allow-privileged +examples
+      - name: Build examples (no push)
+        run: ./build/linux/amd64/earthly --ci -P +examples
+        if: github.event_name != 'push'
+      - name: Build examples (push)
+        run: ./build/linux/amd64/earthly --ci --push -P +examples
+        if: github.event_name == 'push'
   secrets:
     name: secrets-integration
     runs-on: ubuntu-latest

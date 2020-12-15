@@ -18,4 +18,4 @@ docker:
     COPY +build/bin bin
     COPY +build/lib lib
     ENTRYPOINT ["/java-example/bin/java-example"]
-    SAVE IMAGE java-example:latest
+    SAVE IMAGE --push earthly/examples:java

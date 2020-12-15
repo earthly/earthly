@@ -16,4 +16,4 @@ build:
 docker:
     COPY +build/go-example .
     ENTRYPOINT ["/go-example/go-example"]
-    SAVE IMAGE go-example:latest
+    SAVE IMAGE --push earthly/examples:go
