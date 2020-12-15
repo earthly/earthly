@@ -90,6 +90,7 @@ func (gl *GitLookup) DisableSSH() {
 
 // AddMatcher adds a new matcher for looking up git repos
 func (gl *GitLookup) AddMatcher(name, pattern, sub, user, password, suffix, protocol, keyScan string) error {
+	fmt.Printf("AddMatcher(%q, %q, %q, %q, *****, %q, %q, %q\n", name, pattern, sub, user, suffix, protocol, keyScan)
 	if protocol == "http" && password != "" {
 		return fmt.Errorf("using a password with http for %s is insecure", name)
 	}

@@ -107,6 +107,7 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, gwClient gwclient.
 
 	var err error
 	var keyScan string
+	fmt.Printf("target is %q\n", target.GitURL)
 	gitURL, subDir, keyScan, err = gr.gitLookup.GetCloneURL(target.GitURL)
 	if err != nil {
 		return nil, "", "", errors.Wrap(err, "failed to get url for cloning")
@@ -128,6 +129,7 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, gwClient gwclient.
 	if keyScan != "" {
 		gitOpts = append(gitOpts, llb.KnownSSHHosts(keyScan))
 	}
+	fmt.Printf("adding2 %q\n", gitURL)
 	gitState := llb.Git(gitURL, ref, gitOpts...)
 	copyOpts := []llb.RunOption{
 		llb.Args([]string{

@@ -494,6 +494,7 @@ func (c *Converter) GitClone(ctx context.Context, gitURL string, branch string, 
 			"%sGIT CLONE (--branch %s) %s", c.vertexPrefixWithURL(gitURL), branch, gitURL),
 		llb.KeepGitDir(),
 	}
+	fmt.Printf("adding %q\n", gitURL)
 	gitState := llb.Git(gitURL, branch, gitOpts...)
 	c.mts.Final.MainState = llbutil.CopyOp(
 		gitState, []string{"."}, c.mts.Final.MainState, dest, false, false, "",
