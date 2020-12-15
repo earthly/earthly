@@ -20,17 +20,17 @@ jobs:
         run: "sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/download/v0.4.0-rc0/earthly-linux-amd64 -O /usr/local/bin/earthly && chmod +x /usr/local/bin/earthly'"
       - name: Docker Login (non fork only)
         run: docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password "${{ secrets.DOCKERHUB_TOKEN }}"
-        if: github.event.pull_request.head.repo.full_name == github.repository
+        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: Build latest earthly using released earthly
         run: earthly --use-inline-cache +for-linux
       - name: Execute tests (not a fork)
         run: |
           export EARTHLY_BUILD_ARGS="DOCKERHUB_USER_SECRET=+secrets/earthly-technologies/dockerhub/user,DOCKERHUB_TOKEN_SECRET=+secrets/earthly-technologies/dockerhub/token"
           ./build/linux/amd64/earthly --ci -P +test
-        if: github.event.pull_request.head.repo.full_name == github.repository
+        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: Execute tests (fork)
         run: ./build/linux/amd64/earthly --ci -P +test
-        if: github.event.pull_request.head.repo.full_name != github.repository
+        if: github.event_name != 'push' && github.event.pull_request.head.repo.full_name != github.repository
       - name: Execute fail test
         run: "! ./build/linux/amd64/earthly --ci +test-fail"
   misc-tests:
@@ -46,7 +46,7 @@ jobs:
         run: "sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/download/v0.4.0-rc0/earthly-linux-amd64 -O /usr/local/bin/earthly && chmod +x /usr/local/bin/earthly'"
       - name: Docker Login (non fork only)
         run: docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password "${{ secrets.DOCKERHUB_TOKEN }}"
-        if: github.event.pull_request.head.repo.full_name == github.repository
+        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: Build latest earthly using released earthly
         run: earthly --use-inline-cache +for-linux
       - name: Execute interactive debugger test
@@ -59,17 +59,17 @@ jobs:
         run: "./examples/tests/docker2earth/test.sh"
       - name: Execute test similar to homebrew test in https://github.com/Homebrew/homebrew-core/blob/master/Formula/earthly.rb
         run: ./build/linux/amd64/earthly --buildkit-host 127.0.0.1 ./examples/tests/with-docker+all 2>&1 | grep 'Error while dialing invalid address 127.0.0.1'
-      - name: Execute private image test
+      - name: Execute private image test (non fork only)
         run: ./build/linux/amd64/earthly --ci ./examples/tests+private-image-test
-        if: github.event.pull_request.head.repo.full_name == github.repository
+        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: "Experimental tests (not a fork)"
         run: |
           export EARTHLY_BUILD_ARGS="DOCKERHUB_USER_SECRET=+secrets/earthly-technologies/dockerhub/user,DOCKERHUB_TOKEN_SECRET=+secrets/earthly-technologies/dockerhub/token"
           ./build/linux/amd64/earthly --ci -P ./examples/tests+experimental
-        if: github.event.pull_request.head.repo.full_name == github.repository
+        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: "Experimental tests (fork)"
         run: ./build/linux/amd64/earthly --ci -P ./examples/tests+experimental
-        if: github.event.pull_request.head.repo.full_name != github.repository
+        if: github.event_name != 'push' && github.event.pull_request.head.repo.full_name != github.repository
   examples:
     name: +examples
     runs-on: ubuntu-latest
@@ -83,13 +83,13 @@ jobs:
         run: "sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/download/v0.4.0-rc0/earthly-linux-amd64 -O /usr/local/bin/earthly && chmod +x /usr/local/bin/earthly'"
       - name: Docker Login (non fork only)
         run: docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password "${{ secrets.DOCKERHUB_TOKEN }}"
-        if: github.event.pull_request.head.repo.full_name == github.repository
+        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: Build latest earthly using released earthly
         run: earthly --use-inline-cache +for-linux
-      - name: Build examples (no push)
+      - name: Build examples (PR build)
         run: ./build/linux/amd64/earthly --ci -P +examples
         if: github.event_name != 'push'
-      - name: Build examples (push)
+      - name: Build examples (main build)
         run: ./build/linux/amd64/earthly --ci --push -P +examples
         if: github.event_name == 'push'
   secrets:
@@ -105,7 +105,7 @@ jobs:
         run: "sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/download/v0.4.0-rc0/earthly-linux-amd64 -O /usr/local/bin/earthly && chmod +x /usr/local/bin/earthly'"
       - name: Docker Login (non fork only)
         run: docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password "${{ secrets.DOCKERHUB_TOKEN }}"
-        if: github.event.pull_request.head.repo.full_name == github.repository
+        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: Build latest earthly using released earthly
         run: earthly --use-inline-cache +for-linux
       - name: run ssh-based tests
