@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"crypto/rand"
 	"encoding/base64"
@@ -13,6 +14,7 @@ import (
 	"os"
 	"os/signal"
 	"os/user"
+	"path"
 	"path/filepath"
 	"regexp"
 	"runtime"
@@ -40,6 +42,7 @@ import (
 	"github.com/earthly/earthly/fileutils"
 	"github.com/earthly/earthly/llbutil"
 	"github.com/earthly/earthly/secretsclient"
+	"github.com/earthly/earthly/termutil"
 	"github.com/earthly/earthly/variables"
 
 	humanize "github.com/dustin/go-humanize"
@@ -1023,6 +1026,58 @@ func (app *earthlyApp) run(ctx context.Context, args []string) int {
 	return 0
 }
 
+// apply heuristics to see if binary is a version of earthly
+func isEarthlyBinary(path string) bool {
+	data, err := ioutil.ReadFile(path)
+	if err != nil {
+		return false
+	}
+	if !bytes.Contains(data, []byte("docs.earthly.dev")) {
+		return false
+	}
+	if !bytes.Contains(data, []byte("api.earthly.dev")) {
+		return false
+	}
+	if !bytes.Contains(data, []byte("Earthfile")) {
+		return false
+	}
+	return true
+}
+
+func symlinkEarthlyToEarth() error {
+	binPath, err := os.Executable()
+	if err != nil {
+		return errors.Wrap(err, "failed to get current executable path")
+	}
+
+	baseName := path.Base(binPath)
+	if baseName != "earthly" {
+		return nil
+	}
+
+	earthPath := path.Join(path.Dir(binPath), "earth")
+
+	if !fileutils.FileExists(earthPath) && termutil.IsTTY() {
+		return nil // legacy earth binary doesn't exist, don't create it (unless we're under a non-tty system e.g. CI)
+	}
+
+	if !isEarthlyBinary(earthPath) {
+		return nil // file exists but is not an earthly binary, leave it alone.
+	}
+
+	// otherwise legacy earth command has been detected, remove it and symlink
+	// to the new earthly command.
+	err = os.Remove(earthPath)
+	if err != nil {
+		return errors.Wrapf(err, "failed to remove old install at %s", earthPath)
+	}
+	err = os.Symlink(binPath, earthPath)
+	if err != nil {
+		return errors.Wrapf(err, "failed to symlink %s to %s", binPath, earthPath)
+	}
+	return nil
+}
+
 func (app *earthlyApp) actionBootstrap(c *cli.Context) error {
 	app.commandName = "bootstrap"
 	switch app.homebrewSource {
@@ -1038,7 +1093,12 @@ func (app *earthlyApp) actionBootstrap(c *cli.Context) error {
 		return fmt.Errorf("unhandled source %q", app.homebrewSource)
 	}
 
-	err := app.insertBashCompleteEntry()
+	err := symlinkEarthlyToEarth()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Warning: %s\n", err.Error())
+	}
+
+	err = app.insertBashCompleteEntry()
 	if err != nil {
 		return err
 	}

@@ -32,7 +32,7 @@ code:
     FROM +deps
     COPY ./earthfile2llb/parser+parser/*.go ./earthfile2llb/parser/
     COPY --dir analytics autocomplete buildcontext builder cleanup cmd config conslogging debugger dockertar \
-        docker2earthly domain fileutils llbutil logging secretsclient stringutil states variables ./
+        docker2earthly domain fileutils llbutil logging secretsclient stringutil states termutil variables ./
     COPY --dir buildkitd/buildkitd.go buildkitd/settings.go buildkitd/
     COPY --dir earthfile2llb/antlrhandler earthfile2llb/*.go earthfile2llb/
 
