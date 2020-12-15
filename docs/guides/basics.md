@@ -6,7 +6,7 @@ Let's walk through a basic example of using Earthly.
 
 ## Installation
 
-Before going any further, it is advisable that you install `earth` on your computer, so you can follow along and try out the examples. See the [installation page](../installation/installation.md).
+Before going any further, it is advisable that you install `earthly` on your computer, so you can follow along and try out the examples. See the [installation page](../installation/installation.md).
 
 ## A simple Earthfile
 
@@ -150,18 +150,18 @@ You will notice that the recipes look very much like Dockerfiles. This is an int
 In this particular example, we can see two explicit targets: `build` and `docker`. In order to execute the build, we can run, for example:
 
 ```bash
-earth +build
+earthly +build
 ```
 
 or
 
 ```bash
-earth +docker
+earthly +docker
 ```
 
 The output might look like this:
 
-![Earth build output](img/go-example.png)
+![Earthly build output](img/go-example.png)
 
 Notice how to the left of `|`, within the output, we can see some targets like `+base`, `+build` and `+docker` . Notice how the output is interleaved between `+docker` and `+build`. This is because the system executes independent build steps in parallel. The reason this is possible effortlessly is because only very few things are shared between the builds of the recipes and those things are declared and obvious. The rest is completely isolated.
 
@@ -853,5 +853,5 @@ To learn more about Earthly, take a look at the [examples directory on GitHub](h
 ## See also
 
 * The [Earthfile reference](../earthfile/earthfile.md)
-* The [earth command reference](../earth-command/earth-command.md)
+* The [earthly command reference](../earthly-command/earthly-command.md)
 * More [examples](../examples/examples.md)

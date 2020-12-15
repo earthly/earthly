@@ -11,7 +11,7 @@ As a distinct example of a complete build, you can take a look at Earthly's own 
 To invoke Earthly's build, check out the code and then run the following in the root of the repository
 
 ```bash
-earth +all
+earthly +all
 ```
 
 [![asciicast](https://asciinema.org/a/313845.svg)](https://asciinema.org/a/313845)

@@ -1,20 +1,20 @@
-# Earth command reference
+# Earthly command reference
 
-## earth
+## earthly
 
 #### Synopsis
 
 * Target form
   ```
-  earth [options...] <target-ref>
+  earthly [options...] <target-ref>
   ```
 * Artifact form
   ```
-  earth [options...] --artifact|-a <artifact-ref> [<dest-path>]
+  earthly [options...] --artifact|-a <artifact-ref> [<dest-path>]
   ```
 * Image form
   ```
-  earth [options...] --image <target-ref>
+  earthly [options...] --image <target-ref>
   ```
 
 #### Description
@@ -84,12 +84,12 @@ ANOTHER_SECRET=MjA5YjU2ZTItYmIxOS00MDQ3LWFlNzYtNmQ5NGEyZDFlYTQx
 
 {% hint style='info' %}
 ##### Note
-The directory used for loading the `.env` file is the directory where `earth` is called from and not necessarily the directory where the Earthfile is located in.
+The directory used for loading the `.env` file is the directory where `earthly` is called from and not necessarily the directory where the Earthfile is located in.
 {% endhint %}
 
-The additional environment variables specified in the `.env` file are loaded by `earth` in three distinct ways:
+The additional environment variables specified in the `.env` file are loaded by `earthly` in three distinct ways:
 
-* **Setting options for `earth` itself** - the settings are loaded if they match the environment variable equivalent of an `earth` option.
+* **Setting options for `earthly` itself** - the settings are loaded if they match the environment variable equivalent of an `earthly` option.
 * **Build args** - the settings are passed on to the build and are used to override any [`ARG`](../earthfile/earthfile.md#arg) declaration.
 * **Secrets** - the settings are passed on to the build to be referenced via the [`RUN --secret`](../earthfile/earthfile.md#secret-less-than-env-var-greater-than-less-than-secret-ref-greater-than) option.
 
@@ -196,25 +196,25 @@ For more information see the [Authentication page](../guides/auth.md).
 
 Also available as an env var setting: `GIT_USERNAME=<git-user>`.
 
-This option is now deprecated. Please use the [configuration file](../earth-config/earth-config.md) instead.
+This option is now deprecated. Please use the [configuration file](../earthly-config/earthly-config.md) instead.
 
 ##### `--git-password <git-pass>` (deprecated)
 
 Also available as an env var setting: `GIT_PASSWORD=<git-pass>`.
 
-This option is now deprecated. Please use the [configuration file](../earth-config/earth-config.md) instead.
+This option is now deprecated. Please use the [configuration file](../earthly-config/earthly-config.md) instead.
 
 ##### `--git-url-instead-of <git-instead-of>` (deprecated)
 
 Also available as an env var setting: `GIT_URL_INSTEAD_OF=<git-instead-of>`.
 
-This option is now deprecated. Please use the [configuration file](../earth-config/earth-config.md) instead.
+This option is now deprecated. Please use the [configuration file](../earthly-config/earthly-config.md) instead.
 
 ##### `--interactive|-i` (**beta**)
 
 Also available as an env var setting: `EARTHLY_INTERACTIVE=true`.
 
-Enable interactive debugging mode. By default when a `RUN` command fails, earth will display the error and exit. If the interactive mode is enabled and an error occurs, an interactive shell is presented which can be used for investigating the error interactively. Due to technical limitations, only a single interactive shell can be used on the system at any given time.
+Enable interactive debugging mode. By default when a `RUN` command fails, earthly will display the error and exit. If the interactive mode is enabled and an error occurs, an interactive shell is presented which can be used for investigating the error interactively. Due to technical limitations, only a single interactive shell can be used on the system at any given time.
 
 #### Log formatting options
 
@@ -227,69 +227,69 @@ These options can only be set via environment variables, and have no command lin
 | EARTHLY_TARGET_PADDING | `EARTHLY_TARGET_PADDING=n` will set the column to the width of `n` characters. If a name is longer than `n`, its path will be truncated and and remaining extra length will cause the column to go ragged. |
 | EARTHLY_FULL_TARGET    | `EARTHLY_FULL_TARGET=1` will always print the full target name, and leave the target name column ragged.                                                                                                   |
 
-## earth prune
+## earthly prune
 
 #### Synopsis
 
 * Standard form
   ```
-  earth [options] prune [--all|-a]
+  earthly [options] prune [--all|-a]
   ```
 * Reset form
   ```
-  earth [options] prune --reset
+  earthly [options] prune --reset
   ```
 
 #### Description
 
-The command `earth prune` eliminates Earthly cache. In the *standard form* it issues a prune command to the buildkit daemon. In the *reset form* it restarts the buildkit daemon, instructing it to completely delete the cache directory on startup, thus forcing it to start from scratch.
+The command `earthly prune` eliminates Earthly cache. In the *standard form* it issues a prune command to the buildkit daemon. In the *reset form* it restarts the buildkit daemon, instructing it to completely delete the cache directory on startup, thus forcing it to start from scratch.
 
 #### Options
 
 ##### `--all|-a`
 
-Instructs earth to issue a "prune all" command to the buildkit daemon.
+Instructs earthly to issue a "prune all" command to the buildkit daemon.
 
 ##### `--reset`
 
 Restarts the buildkit daemon and completely resets the cache directory.
 
-## earth bootstrap
+## earthly bootstrap
 
 #### Synopsis
 
 * ```
-  earth bootstrap
+  earthly bootstrap
   ```
 
 #### Description
 
-Installs bash and zsh shell completion for earth.
+Installs bash and zsh shell completion for earthly.
 
 
-## earth --help
+## earthly --help
 
 #### Synopsis
 
 * ```
-  earth --help
+  earthly --help
   ```
 * ```
-  earth <command> --help
+  earthly <command> --help
   ```
 
 #### Description
 
-Prints help information about earth.
+Prints help information about earthly.
 
-## earth --version
+## earthly --version
 
 #### Synopsis
 
 * ```
-  earth --version
+  earthly --version
   ```
 
 #### Description
 
-Prints version information about earth.
+Prints version information about earthly.

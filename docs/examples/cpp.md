@@ -87,7 +87,7 @@ docker:
   SAVE IMAGE cpp-example:latest
 ```
 
-If you run `earth +build` for the first time you should see:
+If you run `earthly +build` for the first time you should see:
 
 ```
 ...
@@ -109,7 +109,7 @@ However on the next run since the object files were cached you should only see
 ...
 ```
 
-If you need to force a full rebuild, you can run earth `--no-cache +build` to trigger a clean build; however
+If you need to force a full rebuild, you can run earthly `--no-cache +build` to trigger a clean build; however
 this will also rebuild the entire base docker images.
 
 And finally, the fibonacci program can be run via docker:

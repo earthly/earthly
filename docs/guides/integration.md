@@ -129,7 +129,7 @@ services:
 We start with a simple Earthfile that can build and create a docker image for our app. See the [Basic](./basics) guide for more details, as well as examples in many programming languages.
 
 {% method %}
-{% sample lang="Base Earth Target" %}
+{% sample lang="Base Earthly Target" %}
 
 We start from an appropriate docker image and set up a working directory. 
 ``` Dockerfile
@@ -236,7 +236,7 @@ The `WITH DOCKER` has a `--compose` flag that we use to start up our docker-comp
 We can now run our it tests both locally and in the CI pipeline, in a reproducible way:
 
 ``` bash
-> earth -P +integration-test
+> earthly -P +integration-test
 +integration-test | Creating local-postgres ... done
 +integration-test | Creating local-postgres-ui ... done
 +integration-test | +integration-test | [info] Loading settings for project scala-example-build from plugins.sbt ...
@@ -289,7 +289,7 @@ Output:
 We can then run this and check that our application with its dependencies, produces the correct output.
 
 ``` Dockerfile
-> earth -P +smoke-test
+> earthly -P +smoke-test
 +smoke-test | --> WITH DOCKER RUN for i in {1..30}; do nc -z localhost 5432 && break; sleep 1; done; docker run --network=host scala-example:latest
 +smoke-test | Loading images...
 +smoke-test | Loaded image: aa8y/postgres-dataset:iso3166
@@ -323,7 +323,7 @@ all:
 ```
 
 ``` bash
-> earth -P +all
+> earthly -P +all
 ...
 +all | Target github.com/earthly/earthly-example-scala/integration:main+all built successfully
 =========================== SUCCESS ===========================

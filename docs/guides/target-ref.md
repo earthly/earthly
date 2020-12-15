@@ -85,7 +85,7 @@ Here are some examples:
 * `+build/my-artifact`
 * `+build/some/artifact/deep/in/a/dir`
 * `./js+build/dist`
-* `github.com/earthly/earthly:v0.1.0+earth/earth`
+* `github.com/earthly/earthly:v0.1.0+earthly/earthly`
 
 ## Image reference
 

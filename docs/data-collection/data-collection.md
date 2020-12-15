@@ -1,6 +1,6 @@
 # Earthly data collection
 
-By default, Earthly collects anonymized data which we use for measuring performance of the earth command.
+By default, Earthly collects anonymized data which we use for measuring performance of the earthly command.
 
 ## Installation ID
 
@@ -34,4 +34,4 @@ global:
     disable_analytics: true
 ```
 
-This option is documented in the [Earthly configuration file page](../earth-config/earth-config.md).
+This option is documented in the [Earthly configuration file page](../earthly-config/earthly-config.md).
