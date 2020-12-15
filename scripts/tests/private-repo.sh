@@ -44,9 +44,9 @@ docker run --rm test-private:latest | grep "Salut Lume"
 
 # Test public repo can be cloned without ssh, when GIT_URL_INSTEAD_OF is set as recommended by our CI docs
 echo === Test 2 ===
-docker image rm -f cpp-example:latest
+docker image rm -f earthly/examples:cpp
 SSH_AUTH_SOCK="" GIT_URL_INSTEAD_OF="https://github.com/=git@github.com:" $earthly -VD github.com/earthly/earthly/examples/cpp:main+docker
-docker run --rm cpp-example:latest | grep fib
+docker run --rm earthly/examples:cpp | grep fib
 
 # Test a private repo can be cloned using https
 echo === Test 3 ===
