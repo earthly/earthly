@@ -74,7 +74,7 @@ type Client interface {
 	CreateToken(string, bool, *time.Time) (string, error)
 	ListTokens() ([]*TokenDetail, error)
 	RemoveToken(string) error
-	WhoAmI() (string, string, error)
+	WhoAmI() (string, string, bool, error)
 	FindSSHAuth() (map[string][]string, error)
 	SetLoginCredentials(string, string) error
 	SetLoginToken(token string) (string, error)
@@ -838,23 +838,23 @@ func (c *client) RemoveToken(name string) error {
 	return nil
 }
 
-func (c *client) WhoAmI() (string, string, error) {
+func (c *client) WhoAmI() (string, string, bool, error) {
 	status, body, err := c.doCall("GET", "/api/v0/account/ping", withAuth())
 	if err != nil {
-		return "", "", err
+		return "", "", false, err
 	}
 	if status != http.StatusOK {
 		msg, err := getMessageFromJSON(bytes.NewReader([]byte(body)))
 		if err != nil {
-			return "", "", errors.Wrap(err, fmt.Sprintf("failed to decode response body (status code: %d)", status))
+			return "", "", false, errors.Wrap(err, fmt.Sprintf("failed to decode response body (status code: %d)", status))
 		}
-		return "", "", fmt.Errorf("failed to authenticate: %s", msg)
+		return "", "", false, fmt.Errorf("failed to authenticate: %s", msg)
 	}
 
 	var pingResponse api.PingResponse
 	err = c.jm.Unmarshal(bytes.NewReader([]byte(body)), &pingResponse)
 	if err != nil {
-		return "", "", errors.Wrap(err, "failed to unmarshal ping response")
+		return "", "", false, errors.Wrap(err, "failed to unmarshal ping response")
 	}
 
 	authType := "ssh"
@@ -864,7 +864,7 @@ func (c *client) WhoAmI() (string, string, error) {
 		authType = "token"
 	}
 
-	return pingResponse.Email, authType, nil
+	return pingResponse.Email, authType, pingResponse.WriteAccess, nil
 }
 
 func (c *client) getAuthTokenPath(create bool) (string, error) {
@@ -982,7 +982,7 @@ func (c *client) SetLoginCredentials(email, password string) error {
 	c.authToken = ""
 	c.email = email
 	c.password = password
-	_, _, err := c.WhoAmI()
+	_, _, _, err := c.WhoAmI()
 	if err != nil {
 		return err
 	}
@@ -993,7 +993,7 @@ func (c *client) SetLoginToken(token string) (string, error) {
 	c.email = ""
 	c.password = ""
 	c.authToken = token
-	email, _, err := c.WhoAmI()
+	email, _, _, err := c.WhoAmI()
 	if err != nil {
 		return "", err
 	}
@@ -1021,7 +1021,7 @@ func (c *client) SetLoginPublicKey(email, key string) (string, error) {
 		return "", errors.Wrap(err, "base64 decode failed")
 	}
 
-	returnedEmail, _, err := c.WhoAmI()
+	returnedEmail, _, _, err := c.WhoAmI()
 	if err != nil {
 		return "", err
 	}
@@ -1072,7 +1072,7 @@ func (c *client) SetLoginSSH(email, sshKey string) error {
 		return errors.Wrap(err, "base64 decode failed")
 	}
 
-	authedEmail, _, err := c.WhoAmI()
+	authedEmail, _, _, err := c.WhoAmI()
 	if err != nil {
 		return err
 	}

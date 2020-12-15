@@ -1460,7 +1460,7 @@ func (app *earthlyApp) actionAccountAddKey(c *cli.Context) error {
 	}
 
 	//switch over to new key if the user is currently using password-based auth
-	email, authType, err := sc.WhoAmI()
+	email, authType, _, err := sc.WhoAmI()
 	if err != nil {
 		return errors.Wrap(err, "failed to validate auth token")
 	}
@@ -1619,9 +1619,12 @@ func (app *earthlyApp) actionAccountLogin(c *cli.Context) error {
 		if email != "" || token != "" || pass != "" {
 			return errors.New("account login flags have no effect when --auth-token (or the EARTHLY_TOKEN environment variable) is set")
 		}
-		loggedInEmail, authType, err := sc.WhoAmI()
+		loggedInEmail, authType, writeAccess, err := sc.WhoAmI()
 		if err != nil {
 			return errors.Wrap(err, "failed to validate auth token")
+		}
+		if !writeAccess {
+			authType = "read-only-" + authType
 		}
 		fmt.Printf("Logged in as %q using %s auth\n", loggedInEmail, authType)
 		return nil
@@ -1650,13 +1653,16 @@ func (app *earthlyApp) actionAccountLogin(c *cli.Context) error {
 		}
 	}
 
-	loggedInEmail, authType, err := sc.WhoAmI()
+	loggedInEmail, authType, writeAccess, err := sc.WhoAmI()
 	switch errors.Cause(err) {
 	case secretsclient.ErrNoAuthorizedPublicKeys, secretsclient.ErrNoSSHAgent:
 		break
 	case nil:
 		if email != "" && email != loggedInEmail {
 			break // case where a user has multiple emails and wants to switch
+		}
+		if !writeAccess {
+			authType = "read-only-" + authType
 		}
 		fmt.Printf("Logged in as %q using %s auth\n", loggedInEmail, authType)
 		return nil
