@@ -13,16 +13,16 @@ jobs:
           command: "docker login --username $DOCKERHUB_USERNAME --password $DOCKERHUB_TOKEN"
       - run:
           name: Install released earthly
-          command: "sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/latest/download/earth-linux-amd64 -O /usr/local/bin/earthly && chmod +x /usr/local/bin/earthly'"
+          command: "sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/v0.4.0-rc0/download/earth-linux-amd64 -O /usr/local/bin/earthly && chmod +x /usr/local/bin/earthly'"
       - run:
           name: Build latest earthly
-          command: earthly +for-linux
+          command: earthly --use-inline-cache +for-linux
       - run:
           name: Run tests
-          command: ./build/linux/amd64/earthly -P --no-output +test
+          command: ./build/linux/amd64/earthly --ci -P +test
       - run:
           name: Execute fail test
-          command: "! ./build/linux/amd64/earthly --no-output +test-fail"
+          command: "! ./build/linux/amd64/earthly --ci +test-fail"
 workflows:
   version: 2
   circle-ci:
