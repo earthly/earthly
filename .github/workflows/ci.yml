@@ -87,7 +87,8 @@ jobs:
       - name: Build latest earthly using released earthly
         run: earthly --use-inline-cache +for-linux
       - name: Build examples (PR build)
-        run: ./build/linux/amd64/earthly --ci -P +examples
+        # Enable pushing temporarily.
+        run: ./build/linux/amd64/earthly --ci --push -P +examples
         if: github.event_name != 'push'
       - name: Build examples (main build)
         run: ./build/linux/amd64/earthly --ci --push -P +examples

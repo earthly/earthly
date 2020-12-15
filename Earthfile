@@ -246,28 +246,28 @@ test-all:
         ./examples/tests+experimental
 
 examples:
-    BUILD ./examples/cpp+docker
-    BUILD ./examples/dotnet+docker
-    BUILD ./examples/elixir+docker
+    # BUILD ./examples/cpp+docker
+    # BUILD ./examples/dotnet+docker
+    # BUILD ./examples/elixir+docker
     BUILD ./examples/go+docker
-    BUILD ./examples/grpc+test
-    BUILD ./examples/integration-test+integration-test
-    BUILD ./examples/java+docker
-    BUILD ./examples/js+docker
-    BUILD ./examples/monorepo+all
-    BUILD ./examples/multirepo+docker
-    BUILD ./examples/python+docker
-    BUILD ./examples/readme/go1+all
-    BUILD ./examples/readme/go2+all
-    BUILD ./examples/readme/go3+build
-    BUILD ./examples/readme/proto+docker
-    # TODO: This example is flaky for some reason.
-    #BUILD ./examples/terraform+localstack
-    BUILD ./examples/ruby+docker
-    BUILD ./examples/ruby-on-rails+docker
-    BUILD ./examples/scala+docker
-    BUILD ./examples/cobol+docker
-    BUILD github.com/earthly/hello-world:main+hello
+    # BUILD ./examples/grpc+test
+    # BUILD ./examples/integration-test+integration-test
+    # BUILD ./examples/java+docker
+    # BUILD ./examples/js+docker
+    # BUILD ./examples/monorepo+all
+    # BUILD ./examples/multirepo+docker
+    # BUILD ./examples/python+docker
+    # BUILD ./examples/readme/go1+all
+    # BUILD ./examples/readme/go2+all
+    # BUILD ./examples/readme/go3+build
+    # BUILD ./examples/readme/proto+docker
+    # # TODO: This example is flaky for some reason.
+    # #BUILD ./examples/terraform+localstack
+    # BUILD ./examples/ruby+docker
+    # BUILD ./examples/ruby-on-rails+docker
+    # BUILD ./examples/scala+docker
+    # BUILD ./examples/cobol+docker
+    # BUILD github.com/earthly/hello-world:main+hello
 
 test-fail:
     RUN false
