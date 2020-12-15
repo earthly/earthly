@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"net/http"
 	_ "net/http/pprof" // enable pprof handlers on net/http listener
 	"os"
@@ -2112,11 +2113,30 @@ func (app *earthlyApp) newBuildkitdClient(ctx context.Context, opts ...client.Cl
 	return bkClient, "", nil
 }
 
+func (app *earthlyApp) hasSSHKeys() bool {
+	if app.sshAuthSock == "" {
+		return false
+	}
+
+	agentSock, err := net.Dial("unix", app.sshAuthSock)
+	if err != nil {
+		return false
+	}
+
+	sshAgent := agent.NewClient(agentSock)
+	keys, err := sshAgent.List()
+	if err != nil {
+		return false
+	}
+
+	return len(keys) > 0
+}
+
 func (app *earthlyApp) updateGitLookupConfig(gitLookup *buildcontext.GitLookup) error {
 
 	autoProtocol := "ssh"
-	if app.sshAuthSock == "" {
-		app.console.Printf("No ssh auth socket detected; falling back to https for auto auth values\n")
+	if !app.hasSSHKeys() {
+		app.console.Printf("No ssh auth socket detected or zero keys loaded; falling back to https for auto auth values\n")
 		autoProtocol = "https"
 
 		// convert all ssh to https for pre-configured instances
