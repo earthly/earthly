@@ -295,13 +295,13 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 		&cli.BoolFlag{
 			Name:        "ci",
 			EnvVars:     []string{"EARTHLY_CI"},
-			Usage:       "Execute in CI mode (implies --use-inline-cache --save-inline-cache --no-output) *experimental*",
+			Usage:       wrap([]string{"Execute in CI mode (implies --use-inline-cache --save-inline-cache --no-output)", "*experimental*"}),
 			Destination: &app.ci,
 		},
 		&cli.BoolFlag{
 			Name:        "no-output",
 			EnvVars:     []string{"EARTHLY_NO_OUTPUT"},
-			Usage:       "Do not output artifacts or images (using --push is still allowed)",
+			Usage:       wrap([]string{"Do not output artifacts or images", "(using --push is still allowed)"}),
 			Destination: &app.noOutput,
 		},
 		&cli.BoolFlag{
@@ -321,7 +321,7 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 			Name:        "ssh-auth-sock",
 			Value:       os.Getenv("SSH_AUTH_SOCK"),
 			EnvVars:     []string{"EARTHLY_SSH_AUTH_SOCK"},
-			Usage:       "The SSH auth socket to use for ssh-agent forwarding",
+			Usage:       wrap([]string{"The SSH auth socket to use for ssh-agent forwarding", ""}),
 			Destination: &app.sshAuthSock,
 		},
 		&cli.StringFlag{
@@ -346,7 +346,7 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 			Name:        "git-url-instead-of",
 			Value:       "",
 			EnvVars:     []string{"GIT_URL_INSTEAD_OF"},
-			Usage:       "Rewrite git URLs of a certain pattern. Similar to git-config url.<base>.insteadOf (https://git-scm.com/docs/git-config#Documentation/git-config.txt-urlltbasegtinsteadOf). Multiple values can be separated by commas. Format: <base>=<instead-of>[,...]. For example: 'https://github.com/=git@github.com:'",
+			Usage:       wrap([]string{"Rewrite git URLs of a certain pattern. Similar to git-config url.", "<base>.insteadOf (https://git-scm.com/docs/git-config#Documentation/git-config.txt-urlltbasegtinsteadOf).", "Multiple values can be separated by commas. Format: <base>=<instead-of>[,...]. ", "For example: 'https://github.com/=git@github.com:'"}),
 			Destination: &app.buildkitdSettings.GitURLInsteadOf,
 		},
 		&cli.BoolFlag{
@@ -366,7 +366,7 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 		&cli.StringFlag{
 			Name:        "buildkit-host",
 			EnvVars:     []string{"EARTHLY_BUILDKIT_HOST"},
-			Usage:       "The URL to use for connecting to a buildkit host. If empty, earthly will attempt to start a buildkitd instance via docker run",
+			Usage:       wrap([]string{"The URL to use for connecting to a buildkit host. ", "If empty, earthly will attempt to start a buildkitd instance via docker run"}),
 			Destination: &app.buildkitHost,
 		},
 		&cli.IntFlag{
@@ -404,7 +404,7 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 		&cli.BoolFlag{
 			Name:        "use-inline-cache",
 			EnvVars:     []string{"EARTHLY_USE_INLINE_CACHE"},
-			Usage:       "Attempt to use any inline cache that may have been previously pushed (uses image tags referenced by SAVE IMAGE --push or SAVE IMAGE --cache-from) *experimental*",
+			Usage:       wrap([]string{"Attempt to use any inline cache that may have been previously pushed ", "uses image tags referenced by SAVE IMAGE --push or SAVE IMAGE --cache-from", "*experimental*"}),
 			Destination: &app.useInlineCache,
 		},
 		&cli.BoolFlag{
@@ -738,6 +738,10 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 
 	app.cliApp.Before = app.before
 	return app
+}
+
+func wrap(s []string) string {
+	return strings.Join(s, "\n\t")
 }
 
 func (app *earthlyApp) before(context *cli.Context) error {
