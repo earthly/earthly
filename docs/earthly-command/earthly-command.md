@@ -255,6 +255,127 @@ Instructs earthly to issue a "prune all" command to the buildkit daemon.
 
 Restarts the buildkit daemon and completely resets the cache directory.
 
+## earthly account
+
+Contains sub-commands for registering and administration an Earthly account.
+
+#### earthly account register
+
+###### Synopsis
+
+* ```
+  earthly account register --email <email>
+  earthly account register --email <email> --token <email-verification-token> [--password <password>] [--public-key <public-key>] [--accept-terms-conditions-privacy]
+  ```
+
+###### Description
+
+Register for an Earthly account. Regristration is done in two steps: first run the register command with only the --email argument, this will then send an email to the
+supplied email address with a registration token (which is used to verify your email address), second re-run the register command with both the --email and --token arguments
+to complete the registration process.
+
+#### earthly account login
+
+###### Synopsis
+
+* ```
+  earthly [options] account login
+  earthly [options] account login --email <email>
+  earthly [options] account login --email <email> --password <password>
+  earthly [options] account login --token <token>
+  ```
+
+###### Description
+
+Login to an existing Earthly account. If no email or token is given, earthly will attempt to login using registered public keys.
+
+#### earthly account logout
+
+###### Synopsis
+
+* ```
+  earthly [options] account logout
+  ```
+
+###### Description
+
+Removes cached login information from `~/.earthly/auth.token`.
+
+#### earthly account list-keys
+
+###### Synopsis
+
+* ```
+  earthly account list-keys
+  ```
+
+###### Description
+
+Lists all public keys that are authorized to login to the current Earthly account.
+
+#### earthly account add-key
+
+###### Synopsis
+
+* ```
+  earthly account add-key [<key>]
+  ```
+
+###### Description
+
+Authorize a new ssh-rsa public key to login to the current Earthly account. If `key` is omitted, an interactive prompt is displayed
+to select a key to add.
+
+#### earthly account remove-key
+
+###### Synopsis
+
+* ```
+  earthly account remove-key <key>
+  ```
+
+###### Description
+
+Removes an authorized ssh-rsa key from accessing the current Earthly account.
+
+#### earthly account list-tokens
+
+###### Synopsis
+
+* ```
+  earthly account list-tokens
+  ```
+
+###### Description
+
+List account tokens associated with Earthly account. A token is useful for environments where the ssh-agent is not accessible (e.g. a CI system).
+
+#### earthly account create-token
+
+###### Synopsis
+
+* ```
+  earthly account create-token [--write] [--expiry <expiry>]
+  ```
+
+###### Description
+
+Creates a new authentication token. A read-only token is created by default, If the `--write` flag is specified the token will have read+write access.
+The token will expire in 1 year from creation date unless a different date is supplied via the `--expiry` option.
+
+#### earthly account remove-token
+
+###### Synopsis
+
+* ```
+  earthly account remove-token <token>
+  ```
+
+###### Description
+
+Removes a token from the current Earthly account.
+
+
 ## earthly bootstrap
 
 #### Synopsis
