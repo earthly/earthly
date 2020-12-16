@@ -655,7 +655,7 @@ func (c *client) ListOrgPermissions(path string) ([]*OrgPermissions, error) {
 		if err != nil {
 			return nil, errors.Wrap(err, fmt.Sprintf("failed to decode response body (status code: %d)", status))
 		}
-		return nil, fmt.Errorf("failed to invite user into org: %s", msg)
+		return nil, fmt.Errorf("failed to list org permissions: %s", msg)
 	}
 
 	var listOrgPermissionsResponse api.ListOrgPermissionsResponse
