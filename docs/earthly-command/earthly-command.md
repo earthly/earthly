@@ -204,11 +204,12 @@ Also available as an env var setting: `GIT_PASSWORD=<git-pass>`.
 
 This option is now deprecated. Please use the [configuration file](../earthly-config/earthly-config.md) instead.
 
-##### `--git-url-instead-of <git-instead-of>` (deprecated)
+##### `--git-url-instead-of <git-instead-of>` (obsolete)
 
-Also available as an env var setting: `GIT_URL_INSTEAD_OF=<git-instead-of>`.
+Also used to be available as an env var setting: `GIT_URL_INSTEAD_OF=<git-instead-of>`.
 
-This option is now deprecated. Please use the [configuration file](../earthly-config/earthly-config.md) instead.
+This option is now obsolete. By default, `earthly` will automatically switch from ssh to https when no keys are found or the ssh-agent isn't running.
+Please use the [configuration file](../earthly-config/earthly-config.md) to override the default behavior.
 
 ##### `--interactive|-i` (**beta**)
 

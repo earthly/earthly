@@ -11,8 +11,6 @@ jobs:
   build:
     machine:
       image: ubuntu-1604:201903-01
-    environment:
-      - GIT_URL_INSTEAD_OF: "https://github.com/=git@github.com:"
     steps:
       - checkout
       - run: docker login --username "$DOCKERHUB_USERNAME" --password "$DOCKERHUB_TOKEN"
