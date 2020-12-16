@@ -376,6 +376,125 @@ The token will expire in 1 year from creation date unless a different date is su
 Removes a token from the current Earthly account.
 
 
+## earthly org
+
+Contains sub-commands for creating and managing Earthly organizations.
+
+#### earthly org create
+
+###### Synopsis
+
+* ```
+  earthly org create <org-name>
+  ```
+
+###### Description
+
+Create a new organization, which can be used to share secrets between different user accounts.
+
+#### earthly org list
+
+###### Synopsis
+
+* ```
+  earthly org list
+  ```
+
+###### Description
+
+List all organizations the current account is a member, or administrator of.
+
+#### earthly org list-permissions
+
+###### Synopsis
+
+* ```
+  earthly org list-permissions <org-name>
+  ```
+
+###### Description
+
+List all accounts and the paths they have permission to access under a particular organization.
+
+#### earthly org invite
+
+###### Synopsis
+
+* ```
+  earthly org invite [--write] <org-path> <email> [<email>, ...]
+  ```
+
+###### Description
+
+Invites a user into an organization; `<org-path>` can either be a top-level org access by granting permission on `/<org-name>/`, or finer-grained access can be granted to a subpath e.g. `/<org-name>/path/to/share/`.
+By default users are granted read-only access unless the `--write` flag is given.
+
+#### earthly org revoke
+
+###### Synopsis
+
+* ```
+  earthly org revoke <org-path> <email> [<email>, ...]
+  ```
+
+###### Description
+
+Revokes a previously invited user from an organization.
+
+## earthly secrets
+
+Contains sub-commands for creating and managing Earthly secrets.
+
+#### earthly secrets set
+
+###### Synopsis
+
+* ```
+  earthly secrets set <path> <value>
+  earthly secrets set --file <local-path> <path>
+  ```
+
+###### Description
+
+Stores a secret in the secrets store
+
+#### earthly secrets get
+
+###### Synopsis
+
+* ```
+  earthly secrets get [-n] <path>
+  ```
+
+###### Description
+
+Retrieve a secret from the secrets store. If `-n` is given, no newline is printed after the contents of the secret.
+
+#### earthly secrets ls
+
+###### Synopsis
+
+* ```
+  earthly secrets ls [<path>]
+  ```
+
+###### Description
+
+List secrets the current account has access to.
+
+#### earthly secrets rm
+
+###### Synopsis
+
+* ```
+  earthly secrets rm <path>
+  ```
+
+###### Description
+
+Removes a secret from the secrets store.
+
+
 ## earthly bootstrap
 
 #### Synopsis
