@@ -15,12 +15,6 @@ A number of Earthly features use Git credentials to perform remote Git operation
 * Resolving a build context when referencing remote targets
 * The `GIT CLONE` command
 
-{% hint style='info' %}
-##### Note
-
-Currently, only `github.com`, and `gitlab.com` have been tested as SCM providers. If you need support for others, please [open a new GitHub issue](https://github.com/earthly/earthly/issues/new).
-{% endhint %}
-
 There are two possible ways to pass Git authentication to Earthly builds:
 
 * Via SSH agent socket (for SSH-based authentication)
@@ -34,7 +28,9 @@ If you need to override the SSH agent socket, you can set the environment variab
 
 In order for the SSH agent to have the right credentials available, make sure you run `ssh-add` before executing Earthly builds.
 
-Another key setting is the `auth` mode for the git site that hosts the repository. By default `github.com` and `gitlab.com` automatically default to `ssh` authentication, making SSH-based authentication work out of the box. Other sites will have to be explicitly added to the [earthly config file](../earthly-config/earthly-config.md) under the git section:
+Another key setting is the `auth` mode for the git site that hosts the repository. By default earthly automatically default to `ssh` authentication if the ssh auth agent is running and has at least 1 key loaded, otherwise `earthly` will fallback to using non-authenticated https.
+
+Sites can be explicitly added to the [earthly config file](../earthly-config/earthly-config.md) under the git section in order to override the auto-authentication mode:
 
 ```yaml
 git:
@@ -64,6 +60,19 @@ Alternatively, environment variables can be set which will be override all host 
 * `GIT_PASSWORD`
 
 However, environment variable authentication are now deprecated in favor of using the configuration file instead.
+
+#### Self-hosted and private Git Repositories
+
+Currently, `github.com`, `gitlab.com`, and `bitbucket.org` have been tested as SCM providers; we have experimental support for self-hosted git repositories
+such as github enterprise which will need to be configured using a regular expression:
+
+```yaml
+git:
+    ghe.internal.mycompany.com:
+        pattern: 'ghe.internal.mycompany.com/([^/]+)/([^/]+)'
+        substitute: 'ssh://git@ghe.internal.mycompany.com:22/\$1/\$2.git'
+        auth: ssh
+```
 
 ## Docker authentication
 

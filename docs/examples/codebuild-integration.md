@@ -15,10 +15,6 @@ in order to allow Earthly build Docker images.
 # ./buildspec.yml
 version: 0.2
 
-env:
-  variables:
-    GIT_URL_INSTEAD_OF: "https://github.com/=git@github.com:"
-
 phases:
   install:
     commands:

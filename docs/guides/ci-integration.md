@@ -41,13 +41,7 @@ In certain CI environments, such as Jenkins, where you have access to the host, 
 
 Depending on your needs, you may need to ensure that Git has authenticated access and / or that Docker is logged in so that it has access to private repositories.
 
-To authenticate Git, you may either use SSH-based authentication, or username-password-based authentication. See the [Authentication page for more information](./auth.md). In case you don't need any Git authentication, you might want to force all GitHub URLs to be transformed to `https://github.com/...` instead of `git@github.com:...`. For this, you can add an environment variable to configure this behavior:
-
-```bash
-export GIT_URL_INSTEAD_OF="https://github.com/=git@github.com:"
-```
-
-The way you configure environment variables in your CI will vary.
+To authenticate Git, you may either use SSH-based authentication, or username-password-based authentication. See the [Authentication page for more information](./auth.md). If no authentication is configured, `earthly` will fall back to using public https access.
 
 To log in Docker, simply run
 

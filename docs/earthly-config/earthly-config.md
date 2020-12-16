@@ -85,8 +85,10 @@ The git repository hostname. For example `github.com`, or `gitlab.com`
 
 #### auth
 
-Either `https` or `ssh` (default). If https is specified, user and password fields are used
-to authenticate over https when pulling from git for the corresponding site.
+Either `ssh`, `https`, or `auto` (default). If https is specified, user and password fields are used
+to authenticate over https when pulling from git for the corresponding site. If `auto` is specified
+earthly will use `ssh` when the ssh-agent is running and has at least one key loaded, and will fallback
+to using `https` when no ssh-keys are present.
 
 See the [Authentication guide](../guides/auth.md) for a guide on setting up authentication.
 
