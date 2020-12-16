@@ -203,6 +203,8 @@ func (l *listener) ExitCopyStmt(c *parser.CopyStmtContext) {
 	from := fs.String("from", "", "Not supported")
 	isDirCopy := fs.Bool("dir", false, "Copy entire directories, not just the contents")
 	chown := fs.String("chown", "", "Apply a specific group and/or owner to the copied files and directories")
+	keepTs := fs.Bool("keep-ts", false, "Keep created time file timestamps")
+	keepOwn := fs.Bool("keep-own", false, "Keep owner info")
 	buildArgs := new(StringSliceFlag)
 	fs.Var(buildArgs, "build-arg", "A build arg override passed on to a referenced Earthly target")
 	err := fs.Parse(l.stmtWords)
@@ -243,7 +245,7 @@ func (l *listener) ExitCopyStmt(c *parser.CopyStmtContext) {
 	}
 	if allArtifacts {
 		for _, src := range srcs {
-			err = l.converter.CopyArtifact(l.ctx, src, dest, buildArgs.Args, *isDirCopy, *chown)
+			err = l.converter.CopyArtifact(l.ctx, src, dest, buildArgs.Args, *isDirCopy, *keepTs, *keepOwn, *chown)
 			if err != nil {
 				l.err = errors.Wrapf(err, "copy artifact")
 				return
@@ -254,7 +256,7 @@ func (l *listener) ExitCopyStmt(c *parser.CopyStmtContext) {
 			l.err = fmt.Errorf("build args not supported for non +artifact arguments case %v", l.stmtWords)
 			return
 		}
-		l.converter.CopyClassical(l.ctx, srcs, dest, *isDirCopy, *chown)
+		l.converter.CopyClassical(l.ctx, srcs, dest, *isDirCopy, *keepTs, *keepOwn, *chown)
 	}
 }
 
@@ -345,37 +347,46 @@ func (l *listener) ExitSaveArtifact(c *parser.SaveArtifactContext) {
 		l.err = fmt.Errorf("no non-push commands allowed after a --push: %s", c.GetText())
 		return
 	}
-	if len(l.stmtWords) == 0 {
+	fs := flag.NewFlagSet("SAVE ARTIFACT", flag.ContinueOnError)
+	keepTs := fs.Bool("keep-ts", false, "Keep created time file timestamps")
+	keepOwn := fs.Bool("keep-own", false, "Keep owner info")
+	err := fs.Parse(l.stmtWords)
+	if err != nil {
+		l.err = errors.Wrapf(err, "invalid SAVE arguments %v", l.stmtWords)
+		return
+	}
+
+	if fs.NArg() == 0 {
 		l.err = fmt.Errorf("no arguments provided to the SAVE ARTIFACT command")
 		return
 	}
-	if len(l.stmtWords) > 5 {
+	if fs.NArg() > 5 {
 		l.err = fmt.Errorf("too many arguments provided to the SAVE ARTIFACT command: %v", l.stmtWords)
 		return
 	}
 	saveAsLocalTo := ""
 	saveTo := "./"
-	if len(l.stmtWords) >= 4 {
-		if strings.Join(l.stmtWords[len(l.stmtWords)-3:len(l.stmtWords)-1], " ") == "AS LOCAL" {
-			saveAsLocalTo = l.stmtWords[len(l.stmtWords)-1]
-			if len(l.stmtWords) == 5 {
-				saveTo = l.stmtWords[1]
+	if fs.NArg() >= 4 {
+		if strings.Join(fs.Args()[fs.NArg()-3:fs.NArg()-1], " ") == "AS LOCAL" {
+			saveAsLocalTo = fs.Args()[fs.NArg()-1]
+			if fs.NArg() == 5 {
+				saveTo = fs.Args()[1]
 			}
 		} else {
 			l.err = fmt.Errorf("invalid arguments for SAVE ARTIFACT command: %v", l.stmtWords)
 			return
 		}
-	} else if len(l.stmtWords) == 2 {
-		saveTo = l.stmtWords[1]
-	} else if len(l.stmtWords) == 3 {
+	} else if fs.NArg() == 2 {
+		saveTo = fs.Args()[1]
+	} else if fs.NArg() == 3 {
 		l.err = fmt.Errorf("invalid arguments for SAVE ARTIFACT command: %v", l.stmtWords)
 		return
 	}
 
-	saveFrom := l.expandArgs(l.stmtWords[0], false)
+	saveFrom := l.expandArgs(fs.Args()[0], false)
 	saveTo = l.expandArgs(saveTo, false)
 	saveAsLocalTo = l.expandArgs(saveAsLocalTo, false)
-	err := l.converter.SaveArtifact(l.ctx, saveFrom, saveTo, saveAsLocalTo)
+	err = l.converter.SaveArtifact(l.ctx, saveFrom, saveTo, saveAsLocalTo, *keepTs, *keepOwn)
 	if err != nil {
 		l.err = errors.Wrap(err, "apply SAVE ARTIFACT")
 		return
@@ -629,6 +640,7 @@ func (l *listener) ExitGitCloneStmt(c *parser.GitCloneStmtContext) {
 	}
 	fs := flag.NewFlagSet("GIT CLONE", flag.ContinueOnError)
 	branch := fs.String("branch", "", "The git ref to use when cloning")
+	keepTs := fs.Bool("keep-ts", false, "Keep created time file timestamps")
 	err := fs.Parse(l.stmtWords)
 	if err != nil {
 		l.err = errors.Wrapf(err, "invalid GIT CLONE arguments %v", l.stmtWords)
@@ -641,7 +653,7 @@ func (l *listener) ExitGitCloneStmt(c *parser.GitCloneStmtContext) {
 	gitURL := l.expandArgs(fs.Arg(0), false)
 	gitCloneDest := l.expandArgs(fs.Arg(1), false)
 	*branch = l.expandArgs(*branch, false)
-	err = l.converter.GitClone(l.ctx, gitURL, *branch, gitCloneDest)
+	err = l.converter.GitClone(l.ctx, gitURL, *branch, gitCloneDest, *keepTs)
 	if err != nil {
 		l.err = errors.Wrap(err, "git clone")
 		return

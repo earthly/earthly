@@ -4,13 +4,15 @@ import (
 	"context"
 	"path/filepath"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/moby/buildkit/client/llb"
 	"github.com/pkg/errors"
 )
 
 // CopyOp is a simplified llb copy operation.
-func CopyOp(srcState llb.State, srcs []string, destState llb.State, dest string, allowWildcard bool, isDir bool, chown string, opts ...llb.ConstraintsOpt) llb.State {
+func CopyOp(srcState llb.State, srcs []string, destState llb.State, dest string, allowWildcard bool, isDir bool, keepTs bool, chown string, opts ...llb.ConstraintsOpt) llb.State {
 	destAdjusted := dest
 	if dest == "." || dest == "" || strings.HasSuffix(dest, string(filepath.Separator)) {
 		destAdjusted += string(filepath.Separator)
@@ -20,6 +22,9 @@ func CopyOp(srcState llb.State, srcs []string, destState llb.State, dest string,
 		baseCopyOpts = append(baseCopyOpts, llb.WithUser(chown))
 	}
 	var fa *llb.FileAction
+	if !keepTs {
+		baseCopyOpts = append(baseCopyOpts, llb.WithCreatedTime(*defaultTs()))
+	}
 	for _, src := range srcs {
 		copyOpts := append([]llb.CopyOption{
 			&llb.CopyInfo{
@@ -54,4 +59,18 @@ func Abs(ctx context.Context, s llb.State, p string) (string, error) {
 		return "", errors.Wrap(err, "get dir")
 	}
 	return filepath.Join(dir, p), nil
+}
+
+var defaultTsValue time.Time
+var defaultTsParse sync.Once
+
+func defaultTs() *time.Time {
+	defaultTsParse.Do(func() {
+		var err error
+		defaultTsValue, err = time.Parse(time.RFC3339, "2020-04-16T12:00:00+00:00")
+		if err != nil {
+			panic(err)
+		}
+	})
+	return &defaultTsValue
 }

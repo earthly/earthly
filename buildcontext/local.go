@@ -56,7 +56,6 @@ func (lr *localResolver) resolveLocal(ctx context.Context, target domain.Target)
 		BuildFilePath: buildFilePath,
 		BuildContext: llb.Local(
 			target.LocalPath,
-			llb.SharedKeyHint(target.LocalPath),
 			llb.ExcludePatterns(excludes),
 			llb.SessionID(lr.sessionID),
 			llb.Platform(llbutil.TargetPlatform),
