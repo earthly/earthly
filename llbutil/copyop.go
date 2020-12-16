@@ -25,8 +25,6 @@ func CopyOp(srcState llb.State, srcs []string, destState llb.State, dest string,
 	if !keepTs {
 		baseCopyOpts = append(baseCopyOpts, llb.WithCreatedTime(*defaultTs()))
 	}
-	// mode := os.FileMode(0700)                                      // @#
-	baseCopyOpts = append(baseCopyOpts, llb.WithUser("root:root")) // @#
 	for _, src := range srcs {
 		copyOpts := append([]llb.CopyOption{
 			&llb.CopyInfo{
@@ -36,7 +34,6 @@ func CopyOp(srcState llb.State, srcs []string, destState llb.State, dest string,
 				CreateDestPath:      true,
 				AllowWildcard:       allowWildcard,
 				AllowEmptyWildcard:  false,
-				// Mode:                &mode,
 			},
 		}, baseCopyOpts...)
 		if fa == nil {
