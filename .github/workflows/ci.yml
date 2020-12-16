@@ -11,7 +11,6 @@ jobs:
     name: +test +test-fail
     runs-on: ubuntu-latest
     env:
-      GIT_URL_INSTEAD_OF: "https://github.com/=git@github.com:"
       FORCE_COLOR: 1
       EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
     steps:
@@ -41,7 +40,6 @@ jobs:
     name: Misc tests
     runs-on: ubuntu-latest
     env:
-      GIT_URL_INSTEAD_OF: "https://github.com/=git@github.com:"
       FORCE_COLOR: 1
       EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
     steps:
@@ -82,7 +80,6 @@ jobs:
     name: +examples
     runs-on: ubuntu-latest
     env:
-      GIT_URL_INSTEAD_OF: "https://github.com/=git@github.com:"
       FORCE_COLOR: 1
       EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
     steps:
@@ -112,7 +109,6 @@ jobs:
     name: secrets-integration
     runs-on: ubuntu-latest
     env:
-      GIT_URL_INSTEAD_OF: "https://github.com/=git@github.com:"
       FORCE_COLOR: 1
       EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
     steps:
@@ -125,7 +121,7 @@ jobs:
       - name: Build latest earthly using released earthly
         run: earthly --use-inline-cache +for-linux
       - name: run ssh-based tests
-        run: env -u GIT_URL_INSTEAD_OF earthly=./build/linux/amd64/earthly scripts/tests/private-repo.sh
+        run: env earthly=./build/linux/amd64/earthly scripts/tests/private-repo.sh
       - name: Buildkit logs (runs on failure)
         run: docker logs earthly-buildkitd
         if: ${{ failure() }}
@@ -139,7 +135,6 @@ jobs:
     name: private repo test
     runs-on: ubuntu-latest
     env:
-      GIT_URL_INSTEAD_OF: "https://github.com/=git@github.com:"
       FORCE_COLOR: 1
       EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
       SSH_PORT: "2222"
@@ -154,7 +149,7 @@ jobs:
       - name: Build latest earthly using released earthly
         run: earthly --use-inline-cache +for-linux
       - name: run ssh-based tests
-        run: env -u GIT_URL_INSTEAD_OF earthly=./build/linux/amd64/earthly scripts/tests/self-hosted-private-repo.sh
+        run: env earthly=./build/linux/amd64/earthly scripts/tests/self-hosted-private-repo.sh
       - name: Buildkit logs (runs on failure)
         run: docker logs earthly-buildkitd
         if: ${{ failure() }}
@@ -165,7 +160,6 @@ jobs:
     needs: ["tests", "misc-tests", "examples"]
     runs-on: ubuntu-latest
     env:
-      GIT_URL_INSTEAD_OF: "https://github.com/=git@github.com:"
       FORCE_COLOR: 1
       EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
     steps:
