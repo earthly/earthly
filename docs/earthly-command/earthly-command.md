@@ -441,6 +441,59 @@ By default users are granted read-only access unless the `--write` flag is given
 
 Revokes a previously invited user from an organization.
 
+## earthly secrets
+
+Contains sub-commands for creating and managing Earthly secrets.
+
+#### earthly secrets set
+
+###### Synopsis
+
+* ```
+  earthly secrets set <path> <value>
+  earthly secrets set --file <local-path> <path>
+  ```
+
+###### Description
+
+Stores a secret in the secrets store
+
+#### earthly secrets get
+
+###### Synopsis
+
+* ```
+  earthly secrets get [-n] <path>
+  ```
+
+###### Description
+
+Retrieve a secret from the secrets store. If `-n` is given, no newline is printed after the contents of the secret.
+
+#### earthly secrets ls
+
+###### Synopsis
+
+* ```
+  earthly secrets ls [<path>]
+  ```
+
+###### Description
+
+List secrets the current account has access to.
+
+#### earthly secrets rm
+
+###### Synopsis
+
+* ```
+  earthly secrets rm <path>
+  ```
+
+###### Description
+
+Removes a secret from the secrets store.
+
 
 ## earthly bootstrap
 
