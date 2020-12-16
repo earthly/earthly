@@ -515,7 +515,7 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 				{
 					Name:      "invite",
 					Usage:     "Invite accounts to your organization",
-					UsageText: "earthly [options] org invite [options] <org-name> <email> [<email> ...]",
+					UsageText: "earthly [options] org invite [options] <path> <email> [<email> ...]",
 					Action:    app.actionOrgInvite,
 					Flags: []cli.Flag{
 						&cli.BoolFlag{
@@ -528,7 +528,7 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 				{
 					Name:      "revoke",
 					Usage:     "Remove accounts from your organization",
-					UsageText: "earthly [options] org revoke <org-name> <email> [<email> ...]",
+					UsageText: "earthly [options] org revoke <path> <email> [<email> ...]",
 					Action:    app.actionOrgRevoke,
 				},
 			},
@@ -538,6 +538,21 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 			Usage:       "Earthly secrets",
 			Description: "Manage cloud secrets *experimental*",
 			Subcommands: []*cli.Command{
+				{
+					Name:  "set",
+					Usage: "Stores a secret in the secrets store",
+					UsageText: "earthly [options] secrets set <path> <value>\n" +
+						"   earthly [options] secrets set --file <local-path> <path>",
+					Action: app.actionSecretsSet,
+					Flags: []cli.Flag{
+						&cli.StringFlag{
+							Name:        "file",
+							Aliases:     []string{"f"},
+							Usage:       "Stores secret stored in file",
+							Destination: &app.secretFile,
+						},
+					},
+				},
 				{
 					Name:      "get",
 					Action:    app.actionSecretsGet,
@@ -562,21 +577,6 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 					Usage:     "Removes a secret from the secrets store",
 					UsageText: "earthly [options] secrets rm <path>",
 					Action:    app.actionSecretsRemove,
-				},
-				{
-					Name:  "set",
-					Usage: "Stores a secret in the secrets store",
-					UsageText: "earthly [options] secrets set <path> <value>\n" +
-						"   earthly [options] secrets set --file <local-path> <path>",
-					Action: app.actionSecretsSet,
-					Flags: []cli.Flag{
-						&cli.StringFlag{
-							Name:        "file",
-							Aliases:     []string{"f"},
-							Usage:       "Stores secret stored in file",
-							Destination: &app.secretFile,
-						},
-					},
 				},
 			},
 		},
@@ -626,6 +626,40 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 					},
 				},
 				{
+					Name:        "login",
+					Usage:       "Login to an Earthly account",
+					Description: "Login to an Earthly account",
+					UsageText: "earthly [options] account login\n" +
+						"   earthly [options] account login --email <email>\n" +
+						"   earthly [options] account login --email <email> --password <password>\n" +
+						"   earthly [options] account login --token <token>\n",
+					Action: app.actionAccountLogin,
+					Flags: []cli.Flag{
+						&cli.StringFlag{
+							Name:        "email",
+							Usage:       "Email address",
+							Destination: &app.email,
+						},
+						&cli.StringFlag{
+							Name:        "token",
+							Usage:       "Authentication token",
+							Destination: &app.token,
+						},
+						&cli.StringFlag{
+							Name:        "password",
+							EnvVars:     []string{"EARTHLY_PASSWORD"},
+							Usage:       "Specify password on the command line instead of interactively being asked",
+							Destination: &app.password,
+						},
+					},
+				},
+				{
+					Name:        "logout",
+					Usage:       "Logout of an Earthly account",
+					Description: "Logout of an Earthly account; this has no effect for ssh-based authentication",
+					Action:      app.actionAccountLogout,
+				},
+				{
 					Name:      "list-keys",
 					Usage:     "List associated public keys used for authentication",
 					UsageText: "earthly [options] account list-keys",
@@ -672,40 +706,6 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 					Usage:     "Remove an authentication token from your account",
 					UsageText: "earthly [options] account remove-token <token>",
 					Action:    app.actionAccountRemoveToken,
-				},
-				{
-					Name:        "login",
-					Usage:       "Login to an Earthly account",
-					Description: "Login to an Earthly account",
-					UsageText: "earthly [options] account login\n" +
-						"   earthly [options] account login --email <email>\n" +
-						"   earthly [options] account login --email <email> --password <password>\n" +
-						"   earthly [options] account login --token <token>\n",
-					Action: app.actionAccountLogin,
-					Flags: []cli.Flag{
-						&cli.StringFlag{
-							Name:        "email",
-							Usage:       "Email address",
-							Destination: &app.email,
-						},
-						&cli.StringFlag{
-							Name:        "token",
-							Usage:       "Authentication token",
-							Destination: &app.token,
-						},
-						&cli.StringFlag{
-							Name:        "password",
-							EnvVars:     []string{"EARTHLY_PASSWORD"},
-							Usage:       "Specify password on the command line instead of interactively being asked",
-							Destination: &app.password,
-						},
-					},
-				},
-				{
-					Name:        "logout",
-					Usage:       "Logout of an Earthly account",
-					Description: "Logout of an Earthly account; this has no effect for ssh-based authentication",
-					Action:      app.actionAccountLogout,
 				},
 			},
 		},
