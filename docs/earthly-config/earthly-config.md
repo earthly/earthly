@@ -85,7 +85,7 @@ The https password to use when auth is set to `https`. This setting is ignored w
 #### pattern
 
 A regular expression defined to match git URLs, defaults to the `<site>/([^/]+)/([^/]+)`. For example if the site is `github.com`, then the default pattern will
-match which match `github.com/<user>/<repo>`.
+match `github.com/<user>/<repo>`.
 
 See the [Authentication guide](../guides/auth.md) for a guide on setting up authentication with self-hosted git repositories.
 
