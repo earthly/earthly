@@ -101,6 +101,7 @@ debugger:
 
 earthly:
     FROM +code
+    RUN echo "@#@#@#@#@#@ ====================================> $(ls -l go.sum)"
     ARG GOOS=linux
     ARG GOARCH=amd64
     ARG GOARM

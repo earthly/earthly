@@ -294,7 +294,6 @@ func (wdr *withDockerRun) solveImage(ctx context.Context, mts *states.MultiTarge
 	// Add the tar to the local context.
 	tarContext = llb.Local(
 		solveID,
-		llb.SharedKeyHint(opName),
 		llb.SessionID(sessionID),
 		llb.Platform(llbutil.TargetPlatform),
 		llb.WithCustomNamef("[internal] docker tar context %s %s", opName, sessionID),
