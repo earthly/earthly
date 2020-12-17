@@ -46,6 +46,24 @@ execute() {
 }
 
 start_dockerd() {
+    # Use a specific IP range to avoid collision with host dockerd (we need to also connect to host
+    # docker containers for the debugger).
+    mkdir -p /etc/docker
+    cat <<'EOF' >/etc/docker/daemon.json
+{
+    "default-address-pools" : [
+        {
+            "base" : "172.21.0.0/16",
+            "size" : 24
+        },
+        {
+            "base" : "172.22.0.0/16",
+            "size" : 24
+        }
+    ]
+}
+EOF
+
     # Start with a rm -rf to make sure a previous interrupted build did not leave its state around.
     rm -rf "$EARTHLY_DOCKERD_DATA_ROOT"
     mkdir -p "$EARTHLY_DOCKERD_DATA_ROOT"

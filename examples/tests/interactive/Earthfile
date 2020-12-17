@@ -1,0 +1,28 @@
+FROM earthly/dind:alpine
+RUN apk add --update --no-cache \
+    jq
+
+all:
+    BUILD +test-interactive
+    BUILD +test-interactive-docker
+    BUILD +test-interactive-docker-compose
+
+test-interactive:
+    RUN cat /run/secrets/earthly_debugger_settings | jq -r .repeaterAddr | xargs nc
+
+test-interactive-docker:
+    WITH DOCKER
+        RUN docker ps && \
+            cat /run/secrets/earthly_debugger_settings | jq -r .repeaterAddr | xargs nc
+    END
+
+test-interactive-docker-compose:
+    WORKDIR /test
+    COPY docker-compose.yml ./
+    WITH DOCKER --compose=docker-compose.yml
+        RUN ifconfig && \
+            docker network inspect test_default && \
+            docker ps && \
+            docker-compose ps | grep postgres && \
+            cat /run/secrets/earthly_debugger_settings | jq -r .repeaterAddr | xargs nc
+    END
