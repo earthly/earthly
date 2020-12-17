@@ -25,7 +25,7 @@
     --push -P ./release+release
   ```
 * Go to the [releases page](https://github.com/earthly/earthly/releases) and edit the latest release to add release notes. Use a comparison such as https://github.com/earthly/earthly/compare/v0.3.0...v0.3.1 (replace the right versions in the URL) to see which PRs went into this release.
-* Once everything looks good, uncheck the "pre-release" checkbox on the GitHub release page. This will make this release the "latest" when people install Earthly with the one-liner. Important: You **have** to do this before the next ste.
+* Once everything looks good, uncheck the "pre-release" checkbox on the GitHub release page. This will make this release the "latest" when people install Earthly with the one-liner. Important: You **have** to do this before the next step.
 * Run
   ```bash
   ./earthly \
