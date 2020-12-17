@@ -6,6 +6,8 @@ if [ ! -d "$bindir" ]; then
   mkdir -p "$bindir"
 fi
 
+scriptname=$(basename "$0")
+
 last_check_state_path=/tmp/last-earthly-prerelease-check
 
 get_latest_binary() {
@@ -34,9 +36,43 @@ do_reset() {
     docker rmi -f earthly/earthlybinaries:prerelease || true
 }
 
+
+do_upgrade() {
+    do_reset
+    get_latest_binary
+}
+
+do_help() {
+    if ! command -v "$bindir/earthly-prerelease"; then
+        get_latest_binary
+    fi
+
+    echo "------------------- earthly pre-release script help -------------------"
+    echo "NAME:"
+    echo "   $scriptname - A wraper around the earthly binary that checks for updates once an hour"
+    echo ""
+    echo "COMMANDS:"
+    echo "   reset     Removes prerelease binary and associated docker containers"
+    echo "   upgrade   Forces a new check for the latest version"
+    echo ""
+    echo ""
+    echo "---------------------------- earthly help -----------------------------"
+    exec -a "$scriptname" "$bindir/earthly-prerelease" --help
+}
+
 case "$1" in
     reset)
         do_reset
+        ;;
+
+    upgrade)
+        do_upgrade
+        ;;
+
+    -h)
+        ;&
+    --help)
+        do_help
         ;;
     
     *)
@@ -52,6 +88,6 @@ case "$1" in
             echo "$now" >"$last_check_state_path"
         fi
 
-        "$bindir/earthly-prerelease" "$@"
+        exec -a "$scriptname" "$bindir/earthly-prerelease" "$@"
         ;;
 esac
