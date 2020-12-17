@@ -272,18 +272,3 @@ examples:
 
 test-fail:
     RUN false
-
-test-interactive:
-    FROM earthly/dind:alpine
-    RUN apk add --update --no-cache \
-        jq
-    RUN cat /run/secrets/earthly_debugger_settings | jq -r .repeaterAddr | xargs nc
-
-test-interactive-docker:
-    FROM earthly/dind:alpine
-    RUN apk add --update --no-cache \
-        jq
-    WITH DOCKER
-        RUN docker ps && \
-            cat /run/secrets/earthly_debugger_settings | jq -r .repeaterAddr | xargs nc
-    END
