@@ -3,7 +3,7 @@
 {% hint style='danger' %}
 ##### Important
 
-This feature is currently in **Experimental** stage.
+This feature is currently in **Experimental** stage. Check the [GitHub tracking issue](https://github.com/earthly/earthly/issues/575) for any known problems.
 
 The feature may break, be changed drastically with no warning, or be removed altogether in future versions of Earthly.
 {% endhint %}
