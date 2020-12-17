@@ -237,8 +237,8 @@ if the build-args differ between invocations.
 
 #### Synopsis
 
-* `COPY [--dir] <src>... <dest>` (classical form)
-* `COPY [--dir] [--build-arg <key>=<value>] <src-artifact>... <dest>` (artifact form)
+* `COPY [options...] <src>... <dest>` (classical form)
+* `COPY [options...] <src-artifact>... <dest>` (artifact form)
 
 #### Description
 
@@ -275,6 +275,14 @@ COPY --dir dir1 dir2 dir3 ./
 
 Sets a value override of `<value>` for the build arg identified by `<key>`, when building the target containing the mentioned artifact. See also [BUILD](#build) for more details about the `--build-arg` option.
 
+##### `--keep-ts`
+
+Instructs Earthly to not overwrite the file creation timestamps with a constant.
+
+##### `--keep-own`
+
+Instructs Earthly to keep file ownership information. This applies only to the *artifact form* and has no effect otherwise.
+
 ##### `--from`
 
 Although this option is present in classical Dockerfile syntax, it is not supported by Earthfiles. You may instead use a combination of `SAVE ARTIFACT` and `COPY` *artifact form* commands to achieve similar effects. For example, the following Dockerfile
@@ -300,7 +308,7 @@ final-target:
 
 #### Synopsis
 
-* `GIT CLONE [--branch <git-ref>] <git-url> <dest-path>`
+* `GIT CLONE [--branch <git-ref>] [--keep-ts] <git-url> <dest-path>`
 
 #### Description
 
@@ -314,11 +322,15 @@ In contrast to an operation like `RUN git clone <git-url> <dest-path>`, the comm
 
 Points the `HEAD` to the git reference specified by `<git-ref>`. If this option is not specified, then the remote `HEAD` is used instead.
 
+##### `--keep-ts`
+
+Instructs Earthly to not overwrite the file creation timestamps with a constant.
+
 ## SAVE ARTIFACT
 
 #### Synopsis
 
-* `SAVE ARTIFACT <src> [<artifact-dest-path>] [AS LOCAL <local-path>]`
+* `SAVE ARTIFACT [--keep-ts] [--keep-own] <src> [<artifact-dest-path>] [AS LOCAL <local-path>]`
 
 #### Description
 
@@ -329,6 +341,16 @@ If `AS LOCAL ...` is also specified, it additionally marks the artifact to be co
 If `<artifact-dest-path>` is not specified, it is inferred as `/`.
 
 Files within the artifact environment are also known as "artifacts". Once a file has been copied into the artifact environment, it can be referenced in other places of the build (for example in a `COPY` command), using an [artifact reference](../guides/target-ref.md).
+
+#### Options
+
+##### `--keep-ts`
+
+Instructs Earthly to not overwrite the file creation timestamps with a constant.
+
+##### `--keep-own`
+
+Instructs Earthly to keep file ownership information.
 
 ## SAVE IMAGE
 
