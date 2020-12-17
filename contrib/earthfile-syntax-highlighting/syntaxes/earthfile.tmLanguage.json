@@ -46,6 +46,14 @@
 				{
 					"name": "comment.line.earthfile",
 					"match": "(\\s+)((#).*$\\n?)"
+				},
+				{
+					"captures": {
+						"2": {
+							"name": "comment.line.number-sign.earthfile"
+						}
+					},
+					"match": "([\\\\\\s]+)((#).*$\\n?)"
 				}
 			]
 		},
