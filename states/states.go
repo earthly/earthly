@@ -8,7 +8,7 @@ import (
 	"github.com/moby/buildkit/client/llb"
 )
 
-// MultiTarget holds LLB states representing multiple earth targets,
+// MultiTarget holds LLB states representing multiple earthly targets,
 // in the order in which they should be built.
 type MultiTarget struct {
 	// Visited represents the previously visited states, grouped by target
@@ -29,7 +29,7 @@ func (mts *MultiTarget) All() []*SingleTarget {
 	return mts.Visited.VisitedList
 }
 
-// SingleTarget holds LLB states representing a earth target.
+// SingleTarget holds LLB states representing an earthly target.
 type SingleTarget struct {
 	Target                 domain.Target
 	TargetInput            dedup.TargetInput

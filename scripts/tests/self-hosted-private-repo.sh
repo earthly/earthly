@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 set -eu
 
-earth=${earth:=earth}
-earth=$(realpath $earth)
-echo "running tests with $earth"
+earthly=${earthly:=earthly}
+earthly=$(realpath $earthly)
+echo "running tests with $earthly"
 
 # use host IP, otherwise earthly-buildkit won't be able to connect to it
 ip=$(ifconfig eth0 | grep -w 'inet' | awk '{print $2}')
@@ -76,7 +76,7 @@ git:
     auth: ssh
 EOF
 
-if ! $earth myserver/project:trunk+docker; then
+if ! $earthly -V myserver/project:trunk+docker; then
     docker ps -a
     docker logs earthly-buildkitd
     exit 1

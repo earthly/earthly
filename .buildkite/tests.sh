@@ -20,20 +20,20 @@ while ! docker ps; do
 done
 
 echo "Download latest Earthly binary"
-curl -o ./earth-released -L https://github.com/earthly/earthly/releases/latest/download/earth-"$EARTH_OS"-amd64 && chmod +x ./earth-released
+curl -o ./earthly-released -L https://github.com/earthly/earthly/releases/download/v0.4.0-rc1/earthly-"$EARTH_OS"-amd64 && chmod +x ./earthly-released
 
-echo "Build latest earth using released earth"
-./earth-released +for-"$EARTH_OS"
+echo "Build latest earthly using released earthly"
+./earthly-released +for-"$EARTH_OS"
 
 echo "Execute tests"
-./build/"$EARTH_OS"/amd64/earth --no-output -P +test
+./build/"$EARTH_OS"/amd64/earthly --ci -P +test
 
 # Temporarily disable until failure is addressed.
 #echo "Execute experimental tests"
-#./build/"$EARTH_OS"/amd64/earth --no-output -P ./examples/tests+experimental
+#./build/"$EARTH_OS"/amd64/earthly --ci -P ./examples/tests+experimental
 
 echo "Execute fail test"
-bash -c "! ./build/$EARTH_OS/amd64/earth --no-output +test-fail"
+bash -c "! ./build/$EARTH_OS/amd64/earthly --ci +test-fail"
 
 echo "Build examples"
-./build/"$EARTH_OS"/amd64/earth --no-output -P +examples
+./build/"$EARTH_OS"/amd64/earthly --ci -P +examples

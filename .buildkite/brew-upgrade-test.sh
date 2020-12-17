@@ -1,9 +1,13 @@
 #!/bin/bash
-
 set -xeuo pipefail
+
+earthly="earthly"
+if ! command -v "$earthly"; then
+    earthly="earth"
+fi
 
 brew upgrade earthly
 
-earth --version
+$earthly --version
 
-earth github.com/earthly/earthly/examples/go:main+docker
+$earthly github.com/earthly/earthly/examples/go:main+docker

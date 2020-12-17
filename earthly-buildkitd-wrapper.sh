@@ -30,9 +30,9 @@ while [ ! -S "/run/buildkit/buildkitd.sock" ]; do
     fi
 done
 
-# Run earth with given args.
+# Run earthly with given args.
 set +e
-earth "$@"
+earthly "$@"
 exit_code="$?"
 set -e
 

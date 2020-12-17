@@ -19,4 +19,4 @@ build:
 docker:
   COPY +build/fibonacci /bin/fibonacci
   ENTRYPOINT ["/bin/fibonacci"]
-  SAVE IMAGE cobol-example:latest
+  SAVE IMAGE --push earthly/examples:cobol

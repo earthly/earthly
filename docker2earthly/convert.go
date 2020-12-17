@@ -1,4 +1,4 @@
-package docker2earth
+package docker2earthly
 
 import (
 	"bufio"
@@ -20,9 +20,9 @@ func getArtifactName(s string) string {
 	return split[n-1]
 }
 
-// Docker2Earth converts an existing Dockerfile in the current directory and writes out an Earthfile in the current directory
+// Docker2Earthly converts an existing Dockerfile in the current directory and writes out an Earthfile in the current directory
 // and error is returned if an Earthfile already exists.
-func Docker2Earth(dockerfilePath, EarthfilePath, imageTag string) error {
+func Docker2Earthly(dockerfilePath, EarthfilePath, imageTag string) error {
 	if fileutils.FileExists(EarthfilePath) {
 		return fmt.Errorf("Earthfile already exists; please delete it if you wish to continue")
 	}
@@ -41,7 +41,7 @@ func Docker2Earth(dockerfilePath, EarthfilePath, imageTag string) error {
 
 	targets := [][]string{
 		{
-			"# This Earthfile was generated using docker2earth",
+			"# This Earthfile was generated using docker2earthly",
 			"# the conversion is done on a best-effort basis",
 			"# and might not follow best practices, please",
 			"# visit http://docs.earthly.dev for Earthfile guides",
@@ -127,6 +127,6 @@ func Docker2Earth(dockerfilePath, EarthfilePath, imageTag string) error {
 
 	fmt.Fprintf(out, "\nbuild:\n    BUILD +subbuild%d\n", i)
 
-	fmt.Fprintf(os.Stderr, "An Earthfile has been generated; to run it use: earth +build; then run with docker run -ti %s\n", imageTag)
+	fmt.Fprintf(os.Stderr, "An Earthfile has been generated; to run it use: earthly +build; then run with docker run -ti %s\n", imageTag)
 	return nil
 }

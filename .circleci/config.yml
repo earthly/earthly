@@ -4,7 +4,6 @@ jobs:
     machine:
       image: ubuntu-1604:201903-01
     environment:
-      - GIT_URL_INSTEAD_OF: "https://github.com/=git@github.com:"
       - EARTHLY_BUILD_ARGS: "DOCKERHUB_USER_SECRET=+secrets/earthly-technologies/dockerhub/user,DOCKERHUB_TOKEN_SECRET=+secrets/earthly-technologies/dockerhub/token"
     steps:
       - checkout
@@ -12,17 +11,17 @@ jobs:
           name: Docker Login
           command: "docker login --username $DOCKERHUB_USERNAME --password $DOCKERHUB_TOKEN"
       - run:
-          name: Install released earth
-          command: "sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/latest/download/earth-linux-amd64 -O /usr/local/bin/earth && chmod +x /usr/local/bin/earth'"
+          name: Install released earthly
+          command: "sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/download/v0.4.0-rc1/earthly-linux-amd64 -O /usr/local/bin/earthly && chmod +x /usr/local/bin/earthly'"
       - run:
-          name: Build latest earth
-          command: earth +for-linux
+          name: Build latest earthly
+          command: earthly --use-inline-cache +for-linux
       - run:
           name: Run tests
-          command: ./build/linux/amd64/earth -P --no-output +test
+          command: ./build/linux/amd64/earthly --ci -P +test
       - run:
           name: Execute fail test
-          command: "! ./build/linux/amd64/earth --no-output +test-fail"
+          command: "! ./build/linux/amd64/earthly --ci +test-fail"
 workflows:
   version: 2
   circle-ci:

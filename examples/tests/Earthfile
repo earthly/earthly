@@ -1,4 +1,4 @@
-FROM ../..+earth-docker
+FROM ../..+earthly-docker
 
 RUN apk add --update --no-cache \
     perl
@@ -30,7 +30,7 @@ ga:
     BUILD +lc-test
     BUILD +from-expose-test
     BUILD +scratch-test
-    BUILD +build-earth-test
+    BUILD +build-earthly-test
     BUILD +host-bind-test
     BUILD +remote-test
     BUILD +transitive-args-test
@@ -143,7 +143,7 @@ scratch-test:
         --mount=type=tmpfs,target=/tmp/earthly \
         -- --no-output +test
 
-build-earth-test:
+build-earthly-test:
     # Test that build.earth is supported.
     COPY config.earth ./build.earth
     RUN --privileged \
@@ -255,22 +255,22 @@ fail-test:
     # test that an error code is correctly returned
     RUN --privileged \
         --mount=type=tmpfs,target=/tmp/earthly \
-        ! /usr/bin/earth-buildkitd-wrapper.sh +test
+        ! /usr/bin/earthly-buildkitd-wrapper.sh +test
     # test that the 'failed with exit code' text is printed out
     RUN --privileged \
         --mount=type=tmpfs,target=/tmp/earthly \
-        /usr/bin/earth-buildkitd-wrapper.sh +test 2>&1 | perl -pe 'BEGIN {$status=1} END {exit $status} $status=0 if /this-will-fail/;'
+        /usr/bin/earthly-buildkitd-wrapper.sh +test 2>&1 | perl -pe 'BEGIN {$status=1} END {exit $status} $status=0 if /this-will-fail/;'
 
 fail-push-test:
     COPY fail.earth ./Earthfile
     # test that an error code is correctly returned
     RUN --privileged \
         --mount=type=tmpfs,target=/tmp/earthly \
-        ! /usr/bin/earth-buildkitd-wrapper.sh --push +test-push
+        ! /usr/bin/earthly-buildkitd-wrapper.sh --push +test-push
     # test that the 'failed with exit code' text is printed out
     RUN --privileged \
         --mount=type=tmpfs,target=/tmp/earthly \
-        /usr/bin/earth-buildkitd-wrapper.sh --push +test-push 2>&1 | perl -pe 'BEGIN {$status=1} END {exit $status} $status=0 if /this-too-will-fail/;'
+        /usr/bin/earthly-buildkitd-wrapper.sh --push +test-push 2>&1 | perl -pe 'BEGIN {$status=1} END {exit $status} $status=0 if /this-too-will-fail/;'
     RUN echo hello world
 
 fail-invalid-artifact-test:
@@ -278,21 +278,21 @@ fail-invalid-artifact-test:
     COPY fail-invalid-artifact.earth ./Earthfile
     RUN --privileged \
         --mount=type=tmpfs,target=/tmp/earthly \
-        ! /usr/bin/earth-buildkitd-wrapper.sh --artifact +test/foo /tmp/stuff
+        ! /usr/bin/earthly-buildkitd-wrapper.sh --artifact +test/foo /tmp/stuff
     # test that we echo a message containing the invalid artifact name
     COPY fail-invalid-artifact.earth ./Earthfile
     RUN --privileged \
         --mount=type=tmpfs,target=/tmp/earthly \
-        /usr/bin/earth-buildkitd-wrapper.sh --artifact +test/foo /tmp/stuff 2>&1 | perl -pe 'BEGIN {$status=1} END {exit $status} $status=0 if /\+test\/foo/;'
+        /usr/bin/earthly-buildkitd-wrapper.sh --artifact +test/foo /tmp/stuff 2>&1 | perl -pe 'BEGIN {$status=1} END {exit $status} $status=0 if /\+test\/foo/;'
 
 push-test:
     COPY push.earth ./Earthfile
     RUN --privileged \
         --mount=type=tmpfs,target=/tmp/earthly \
-        /usr/bin/earth-buildkitd-wrapper.sh +push-test | grep 'Use earth --push to enable pushing'
+        /usr/bin/earthly-buildkitd-wrapper.sh +push-test | grep 'Use earthly --push to enable pushing'
     RUN --privileged \
         --mount=type=tmpfs,target=/tmp/earthly \
-        /usr/bin/earth-buildkitd-wrapper.sh --push +push-test | grep 'hello world'
+        /usr/bin/earthly-buildkitd-wrapper.sh --push +push-test | grep 'hello world'
 
 private-image-test:
     FROM earthly/private-test:latest
@@ -389,7 +389,7 @@ escape-dir-test:
 eine-test-base:
     FROM docker:19.03.12-dind
     RUN apk --update --no-cache add git
-    COPY ../..+earth/earth /usr/local/bin/
+    COPY ../..+earthly/earthly /usr/local/bin/
     ENV EARTHLY_BUILDKIT_IMAGE=earthly/buildkitd:dind-test
     WORKDIR /test
 
@@ -397,14 +397,14 @@ eine-config-test:
     FROM +eine-test-base
     COPY config.earth ./Earthfile
     WITH DOCKER --load earthly/buildkitd:dind-test=../../buildkitd+buildkitd
-        RUN earth +test
+        RUN earthly +test
     END
 
 eine-privileged-test:
     FROM +eine-test-base
     COPY privileged.earth ./Earthfile
     WITH DOCKER --load earthly/buildkitd:dind-test=../../buildkitd+buildkitd
-        RUN earth --allow-privileged +test
+        RUN earthly --allow-privileged +test
     END
 
 target-first-line:

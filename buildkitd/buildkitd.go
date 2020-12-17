@@ -186,6 +186,11 @@ func RemoveExited(ctx context.Context) error {
 
 // Start starts the buildkitd daemon.
 func Start(ctx context.Context, image string, settings Settings, reset bool) error {
+	err := CheckCompatibility(ctx, settings)
+	if len(settings.AdditionalArgs) == 0 && err != nil {
+		return errors.Wrap(err, "compatibility")
+	}
+
 	settingsHash, err := settings.Hash()
 	if err != nil {
 		return errors.Wrap(err, "settings hash")
@@ -206,6 +211,7 @@ func Start(ctx context.Context, image string, settings Settings, reset bool) err
 		"--name", ContainerName,
 		"--privileged",
 	}
+	args = append(args, settings.AdditionalArgs...)
 	if os.Getenv("EARTHLY_WITH_DOCKER") == "1" {
 		// Add /sys/fs/cgroup if it's earthly-in-earthly.
 		args = append(args, "-v", "/sys/fs/cgroup:/sys/fs/cgroup")
@@ -355,4 +361,45 @@ func GetAvailableImageID(ctx context.Context, image string) (string, error) {
 		return "", errors.Wrap(err, "get output for available image ID")
 	}
 	return string(output), nil
+}
+
+// CheckCompatibility runs all avaliable compatibility checks before starting the buildkitd daemon.
+func CheckCompatibility(ctx context.Context, settings Settings) error {
+	isNamespaced, err := isNamespacedDocker(ctx)
+	if isNamespaced {
+		return errors.New(`user namespaces are enabled, set "buildkit_additional_args" in ~/.earthly/config.yml to ["--userns", "host"] to disable`)
+	} else if err != nil {
+		return errors.Wrap(err, "failed compatibilty check")
+	}
+
+	isRootless, err := isRootlessDocker(ctx)
+	if isRootless {
+		return errors.New(`rootless docker detected. Compatibility is limited. Configure "buildkit_additional_args" in ~/.earthly/config.yml with some additional arguments like ["--log-opt"] to give it a shot`)
+	} else if err != nil {
+		return errors.Wrap(err, "failed compatibilty check")
+	}
+
+	return nil
+}
+
+func isNamespacedDocker(ctx context.Context) (bool, error) {
+	cmd := exec.CommandContext(ctx,
+		"docker", "info", "--format={{.SecurityOptions}}")
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return false, errors.Wrap(err, "get docker security info")
+	}
+
+	return strings.Contains(string(output), "name=userns"), nil
+}
+
+func isRootlessDocker(ctx context.Context) (bool, error) {
+	cmd := exec.CommandContext(ctx,
+		"docker", "info", "--format={{.SecurityOptions}}")
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return false, errors.Wrap(err, "get docker security info")
+	}
+
+	return strings.Contains(string(output), "rootless"), nil
 }

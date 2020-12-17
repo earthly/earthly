@@ -32,13 +32,13 @@ code:
     FROM +deps
     COPY ./earthfile2llb/parser+parser/*.go ./earthfile2llb/parser/
     COPY --dir analytics autocomplete buildcontext builder cleanup cmd config conslogging debugger dockertar \
-        docker2earth domain fileutils llbutil logging secretsclient stringutil states variables ./
+        docker2earthly domain fileutils llbutil logging secretsclient stringutil states termutil variables ./
     COPY --dir buildkitd/buildkitd.go buildkitd/settings.go buildkitd/
     COPY --dir earthfile2llb/antlrhandler earthfile2llb/*.go earthfile2llb/
 
 lint-scripts:
     FROM +deps
-    COPY ./earth ./scripts/install-all-versions.sh ./buildkitd/entrypoint.sh ./earth-buildkitd-wrapper.sh \
+    COPY ./earthly ./scripts/install-all-versions.sh ./buildkitd/entrypoint.sh ./earthly-buildkitd-wrapper.sh \
         ./buildkitd/dockerd-wrapper.sh ./buildkitd/docker-auto-install.sh \
         ./release/envcredhelper.sh ./.buildkite/*.sh \
         ./scripts/tests/private-repo.sh ./scripts/tests/self-hosted-private-repo.sh \
@@ -99,7 +99,7 @@ debugger:
             cmd/debugger/*.go
     SAVE ARTIFACT build/earth_debugger
 
-earth:
+earthly:
     FROM +code
     ARG GOOS=linux
     ARG GOARCH=amd64
@@ -126,67 +126,67 @@ earth:
         go build \
             -tags "$(cat ./build/tags)" \
             -ldflags "$(cat ./build/ldflags)" \
-            -o build/earth \
-            cmd/earth/*.go
+            -o build/earthly \
+            cmd/earthly/*.go
     SAVE ARTIFACT ./build/tags
     SAVE ARTIFACT ./build/ldflags
-    SAVE ARTIFACT build/earth AS LOCAL "build/$GOOS/$GOARCH$GOARM/earth"
+    SAVE ARTIFACT build/earthly AS LOCAL "build/$GOOS/$GOARCH$GOARM/earthly"
 
-earth-arm5:
+earthly-arm5:
     COPY \
         --build-arg GOARCH=arm \
         --build-arg GOARM=5 \
         --build-arg GO_EXTRA_LDFLAGS= \
-        +earth/* ./
+        +earthly/* ./
     SAVE ARTIFACT ./*
 
-earth-arm6:
+earthly-arm6:
     COPY \
         --build-arg GOARCH=arm \
         --build-arg GOARM=6 \
         --build-arg GO_EXTRA_LDFLAGS= \
-        +earth/* ./
+        +earthly/* ./
     SAVE ARTIFACT ./*
 
-earth-arm7:
+earthly-arm7:
     COPY \
         --build-arg GOARCH=arm \
         --build-arg GOARM=7 \
         --build-arg GO_EXTRA_LDFLAGS= \
-        +earth/* ./
+        +earthly/* ./
     SAVE ARTIFACT ./*
 
-earth-darwin:
+earthly-darwin:
     COPY \
         --build-arg GOOS=darwin \
         --build-arg GOARCH=amd64 \
         --build-arg GO_EXTRA_LDFLAGS= \
-        +earth/* ./
+        +earthly/* ./
     SAVE ARTIFACT ./*
 
-earth-all:
-    COPY +earth/earth ./earth-linux-amd64
-    COPY +earth-darwin/earth ./earth-darwin-amd64
-    COPY +earth-arm5/earth ./earth-linux-arm5
-    COPY +earth-arm6/earth ./earth-linux-arm6
-    COPY +earth-arm7/earth ./earth-linux-arm7
+earthly-all:
+    COPY +earthly/earthly ./earthly-linux-amd64
+    COPY +earthly-darwin/earthly ./earthly-darwin-amd64
+    COPY +earthly-arm5/earthly ./earthly-linux-arm5
+    COPY +earthly-arm6/earthly ./earthly-linux-arm6
+    COPY +earthly-arm7/earthly ./earthly-linux-arm7
     SAVE ARTIFACT ./*
 
-earth-docker:
+earthly-docker:
     FROM ./buildkitd+buildkitd
     RUN apk add --update --no-cache docker-cli
     ENV NETWORK_MODE=host
-    COPY earth-buildkitd-wrapper.sh /usr/bin/earth-buildkitd-wrapper.sh
-    ENTRYPOINT ["/usr/bin/earth-buildkitd-wrapper.sh"]
+    COPY earthly-buildkitd-wrapper.sh /usr/bin/earthly-buildkitd-wrapper.sh
+    ENTRYPOINT ["/usr/bin/earthly-buildkitd-wrapper.sh"]
     ARG EARTHLY_TARGET_TAG_DOCKER
     ARG TAG=$EARTHLY_TARGET_TAG_DOCKER
-    COPY --build-arg VERSION=$TAG +earth/earth /usr/bin/earth
-    SAVE IMAGE --push earthly/earth:$TAG
+    COPY --build-arg VERSION=$TAG +earthly/earthly /usr/bin/earthly
+    SAVE IMAGE --push --cache-from=earthly/earthly:main earthly/earthly:$TAG
 
 prerelease:
     FROM alpine:3.11
     BUILD --build-arg TAG=prerelease ./buildkitd+buildkitd
-    COPY --build-arg VERSION=prerelease +earth-all/* ./
+    COPY --build-arg VERSION=prerelease +earthly-all/* ./
     SAVE IMAGE --push earthly/earthlybinaries:prerelease
 
 dind:
@@ -198,29 +198,29 @@ dind-alpine:
     RUN apk add --update --no-cache docker-compose
     ARG EARTHLY_TARGET_TAG_DOCKER
     ARG DIND_ALPINE_TAG=alpine-$EARTHLY_TARGET_TAG_DOCKER
-    SAVE IMAGE --push earthly/dind:$DIND_ALPINE_TAG
+    SAVE IMAGE --push --cache-from=earthly/dind:main earthly/dind:$DIND_ALPINE_TAG
 
 dind-ubuntu:
     FROM ubuntu:latest
     COPY ./buildkitd/docker-auto-install.sh /usr/local/bin/docker-auto-install.sh
     RUN docker-auto-install.sh
     ARG DIND_UBUNTU_TAG=ubuntu-$EARTHLY_TARGET_TAG_DOCKER
-    SAVE IMAGE --push earthly/dind:$DIND_UBUNTU_TAG
+    SAVE IMAGE --push --cache-from=earthly/dind:ubuntu-main earthly/dind:$DIND_UBUNTU_TAG
 
 for-linux:
     BUILD +buildkitd
-    COPY +earth/earth ./
-    SAVE ARTIFACT ./earth
+    COPY +earthly/earthly ./
+    SAVE ARTIFACT ./earthly
 
 for-darwin:
     BUILD +buildkitd
-    COPY +earth-darwin/earth ./
-    SAVE ARTIFACT ./earth
+    COPY +earthly-darwin/earthly ./
+    SAVE ARTIFACT ./earthly
 
 all:
     BUILD +buildkitd
-    BUILD +earth-all
-    BUILD +earth-docker
+    BUILD +earthly-all
+    BUILD +earthly-docker
     BUILD +prerelease
     BUILD +dind
 
@@ -253,7 +253,8 @@ examples:
     BUILD ./examples/grpc+test
     BUILD ./examples/integration-test+integration-test
     BUILD ./examples/java+docker
-    BUILD ./examples/js+docker
+    # Disable until https://github.com/moby/buildkit/issues/1902 is addressed.
+    # BUILD ./examples/js+docker
     BUILD ./examples/monorepo+all
     BUILD ./examples/multirepo+docker
     BUILD ./examples/python+docker

@@ -8,4 +8,4 @@ docker:
     COPY github.com/earthly/earthly-example-multirepo-js:main+build/* ./
     EXPOSE 8080
     ENTRYPOINT ["http-server", "."]
-    SAVE IMAGE example-multirepo:latest
+    SAVE IMAGE --push earthly/examples:multirepo

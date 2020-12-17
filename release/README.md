@@ -37,7 +37,6 @@
   * [gh-actions-integration.md](../docs/examples/gh-actions-integration.md)
 * Go to the [releases page](https://github.com/earthly/earthly/releases) and edit the latest release to add release notes. Use a comparison such as https://github.com/earthly/earthly/compare/v0.3.0...v0.3.1 (replace the right versions in the URL) to see which PRs went into this release.
 * Once everything looks good, uncheck the "pre-release" checkbox on the GitHub release page. This will make this release the "latest" when people install Earthly with the one-liner.
-* Post link to release & homebrew PR in the `#release` channel on internal Slack.
 * Copy the release notes you have written before and paste them in the Earthly Community slack channel `#announcements`, together with a link to the release's GitHub page. If you have Slack markdown editing activated, you can copy the markdown version of the text.
 * Ask Adam to tweet about the release.
 
