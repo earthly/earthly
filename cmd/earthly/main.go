@@ -79,6 +79,7 @@ type earthlyApp struct {
 type cliFlags struct {
 	buildArgs              cli.StringSlice
 	secrets                cli.StringSlice
+	secretFiles            cli.StringSlice
 	artifactMode           bool
 	imageMode              bool
 	pull                   bool
@@ -272,6 +273,12 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 			EnvVars: []string{"EARTHLY_SECRETS"},
 			Usage:   "A secret override, specified as <key>=[<value>]",
 			Value:   &app.secrets,
+		},
+		&cli.StringSliceFlag{
+			Name:    "secret-file",
+			EnvVars: []string{"EARTHLY_SECRET_FILES"},
+			Usage:   "A secret override, specified as <key>=<path>",
+			Value:   &app.secretFiles,
 		},
 		&cli.BoolFlag{
 			Name:        "artifact",
@@ -1977,7 +1984,6 @@ func (app *earthlyApp) actionBuild(c *cli.Context) error {
 	}
 	defer bkClient.Close()
 
-	secrets := app.secrets.Value()
 	//interactive debugger settings are passed as secrets to avoid having it affect the cache hash
 	dotEnvMap := make(map[string]string)
 	if fileutils.FileExists(dotEnvPath) {
@@ -1986,7 +1992,7 @@ func (app *earthlyApp) actionBuild(c *cli.Context) error {
 			return errors.Wrapf(err, "read %s", dotEnvPath)
 		}
 	}
-	secretsMap, err := processSecrets(secrets, dotEnvMap)
+	secretsMap, err := processSecrets(app.secrets.Value(), app.secretFiles.Value(), dotEnvMap)
 	if err != nil {
 		return err
 	}
@@ -2199,24 +2205,46 @@ func (app *earthlyApp) updateGitLookupConfig(gitLookup *buildcontext.GitLookup) 
 	return nil
 }
 
-func processSecrets(secrets []string, dotEnvMap map[string]string) (map[string][]byte, error) {
+func processSecrets(secrets, secretFiles []string, dotEnvMap map[string]string) (map[string][]byte, error) {
 	finalSecrets := make(map[string][]byte)
 	for k, v := range dotEnvMap {
 		finalSecrets[k] = []byte(v)
 	}
 	for _, secret := range secrets {
 		parts := strings.SplitN(secret, "=", 2)
+		key := parts[0]
+		var data []byte
 		if len(parts) == 2 {
-			// Already set.
-			finalSecrets[parts[0]] = []byte(parts[1])
+			// secret value passed as argument
+			data = []byte(parts[1])
 		} else {
 			// Not set. Use environment to fetch it.
 			value, found := os.LookupEnv(secret)
 			if !found {
 				return nil, fmt.Errorf("env var %s not set", secret)
 			}
-			finalSecrets[secret] = []byte(value)
+			data = []byte(value)
 		}
+		if _, ok := finalSecrets[key]; ok {
+			return nil, fmt.Errorf("secret %q already contains a value", key)
+		}
+		finalSecrets[key] = data
+	}
+	for _, secret := range secretFiles {
+		parts := strings.SplitN(secret, "=", 2)
+		if len(parts) != 2 {
+			return nil, fmt.Errorf("unable to parse --secret-file argument: %q", secret)
+		}
+		k := parts[0]
+		path := parts[1]
+		data, err := ioutil.ReadFile(path)
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to open %q", path)
+		}
+		if _, ok := finalSecrets[k]; ok {
+			return nil, fmt.Errorf("secret %q already contains a value", k)
+		}
+		finalSecrets[k] = []byte(data)
 	}
 	return finalSecrets, nil
 }
