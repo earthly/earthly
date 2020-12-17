@@ -32,6 +32,7 @@
     --build-arg RELEASE_TAG \
     --push ./release+release-homebrew
   ```
+* Important: Subscribe to the PR that griswoldthecat created in homebrew-core, so that you can address any review comments that may come up.
 * Merge branch `main` into `next`, then merge branch `next` into `main`.
 * Update the version for the installation command in the following places:
   * [ci-integration.md](../docs/guides/ci-integration.md)
