@@ -45,7 +45,7 @@
 
 * First set the version to publish:
   ```bash
-  export VSCODE_RELEASE_TAG=...
+  export VSCODE_RELEASE_TAG="v..."
   ```
   (You can see what is already published [here](https://marketplace.visualstudio.com/items?itemName=earthly.earthfile-syntax-highlighting))
 * Make sure that the version has release notes already in the [README](../contrib/earthfile-syntax-highlighting/README.md)
