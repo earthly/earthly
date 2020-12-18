@@ -74,10 +74,10 @@ export CACHE_SETTINGS
 envsubst </etc/buildkitd.toml.template >/etc/buildkitd.toml
 echo "BUILDKIT_ROOT_DIR=$BUILDKIT_ROOT_DIR"
 echo "CACHE_SIZE_MB=$CACHE_SIZE_MB"
-echo "Buildkitd config"
-echo "=================="
+echo "EARTHLY_ADDITIONAL_BUILDKIT_CONFIG=$EARTHLY_ADDITIONAL_BUILDKIT_CONFIG"
+echo "======== Buildkitd config =========="
 cat /etc/buildkitd.toml
-echo "=================="
+echo "======== End buildkitd config =========="
 
 # start shell repeater server
 echo starting shellrepeater

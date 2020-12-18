@@ -6,5 +6,5 @@ test1:
     RUN echo "execute-test1-run-before-copy"
     COPY ./input ./
     RUN echo "execute-test1-run-after-copy"
-    RUN echo "IMAGE NAME:" $REGISTRY/test/test1:latest
-    SAVE IMAGE --push $REGISTRY/test/test1:latest
+    RUN echo "IMAGE NAME:" $REGISTRY/test1:latest
+    SAVE IMAGE --push --insecure $REGISTRY/test1:latest

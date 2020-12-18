@@ -74,10 +74,11 @@ type SaveLocal struct {
 
 // SaveImage is a docker image to be saved.
 type SaveImage struct {
-	State     llb.State
-	Image     *image.Image
-	DockerTag string
-	Push      bool
+	State        llb.State
+	Image        *image.Image
+	DockerTag    string
+	Push         bool
+	InsecurePush bool
 	// CacheHint instructs Earthly to save a separate ref for this image, even if no tag is
 	// provided.
 	CacheHint bool

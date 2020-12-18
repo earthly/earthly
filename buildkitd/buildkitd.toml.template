@@ -10,3 +10,5 @@ insecure-entitlements = [ "security.insecure" ]
   cniBinaryPath = "/usr/libexec/cni"
   cniConfigPath = "/etc/cni/cni-conf.json"
   ${CACHE_SETTINGS}
+
+${EARTHLY_ADDITIONAL_BUILDKIT_CONFIG}

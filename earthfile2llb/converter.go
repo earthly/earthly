@@ -369,7 +369,7 @@ func (c *Converter) SaveArtifact(ctx context.Context, saveFrom string, saveTo st
 }
 
 // SaveImage applies the earthly SAVE IMAGE command.
-func (c *Converter) SaveImage(ctx context.Context, imageNames []string, pushImages bool, cacheHint bool, cacheFrom []string) error {
+func (c *Converter) SaveImage(ctx context.Context, imageNames []string, pushImages bool, insecurePush bool, cacheHint bool, cacheFrom []string) error {
 	for _, cf := range cacheFrom {
 		c.opt.CacheImports[cf] = true
 	}
@@ -380,11 +380,12 @@ func (c *Converter) SaveImage(ctx context.Context, imageNames []string, pushImag
 	}
 	for _, imageName := range imageNames {
 		c.mts.Final.SaveImages = append(c.mts.Final.SaveImages, states.SaveImage{
-			State:     c.mts.Final.MainState,
-			Image:     c.mts.Final.MainImage.Clone(),
-			DockerTag: imageName,
-			Push:      pushImages,
-			CacheHint: cacheHint,
+			State:        c.mts.Final.MainState,
+			Image:        c.mts.Final.MainImage.Clone(),
+			DockerTag:    imageName,
+			Push:         pushImages,
+			InsecurePush: insecurePush,
+			CacheHint:    cacheHint,
 		})
 		if pushImages && imageName != "" && c.opt.UseInlineCache {
 			// Use this image tag as cache import too.

@@ -1,47 +1,44 @@
 FROM ../../..+earthly-docker
 WORKDIR /test
 ARG REGISTRY
-ARG REGISTRY_IP
 ARG EARTHLY_BUILD_ARGS="REGISTRY"
-ARG EARTHLY_CI="true"
+ARG EARTHLY_ADDITIONAL_BUILDKIT_CONFIG="
+[registry.\\\"$REGISTRY\\\"]
+  http = true
+  insecure = true
+"
+
+# The inner buildkit requires Docker hub creds to prevent rate-limiting issues.
+ARG DOCKERHUB_USER_SECRET
+ARG DOCKERHUB_TOKEN_SECRET
+RUN --secret USERNAME=$DOCKERHUB_USER_SECRET \
+    --secret TOKEN=$DOCKERHUB_TOKEN_SECRET \
+    if [ "$USERNAME" != "" ]; then \
+        docker login --username="$USERNAME" --password="$TOKEN" ;\
+    fi
 
 test:
-    COPY ./certs/* /usr/local/share/ca-certificates/
-    RUN update-ca-certificates
-    # TODO:   THIS DOES NOT WORK. Use RUN --extra-host .....
-    # (Need to add feature to Earthly using llb.AddExtraHost).
-    RUN echo "$REGISTRY_IP $REGISTRY" >> /etc/hosts
     COPY test.earth ./Earthfile
     RUN echo "content" >./input
     # Running with tmpfs mount = no local cache.
     RUN --privileged \
         --entrypoint \
         --mount=type=tmpfs,target=/tmp/earthly \
-        -- --push +test1 | tee >./output
+        -- --ci --push +test1 | tee ./output
     # Not cached.
-    RUN nl=$(echo "$output" | grep "execute-test1-run-before-copy" | wc -l) && \
+    RUN nl=$(cat ./output | grep "execute-test1-run-before-copy" | wc -l) && \
         test "$nl" -eq 2
     # Not cached.
-    RUN nl=$(echo "$output" | grep "execute-test1-run-after-copy" | wc -l) && \
+    RUN nl=$(cat ./output | grep "execute-test1-run-after-copy" | wc -l) && \
         test "$nl" -eq 2
     RUN echo "other content" >./input
     RUN --privileged \
         --entrypoint \
         --mount=type=tmpfs,target=/tmp/earthly \
-        -- +test1 | tee >./output
+        -- --ci +test1 | tee ./output
     # Cached.
-    RUN nl=$(echo "$output" | grep "execute-test1-run-before-copy" | wc -l) && \
+    RUN nl=$(cat ./output | grep "execute-test1-run-before-copy" | wc -l) && \
         test "$nl" -eq 1
     # Not cached.
-    RUN nl=$(echo "$output" | grep "execute-test1-run-after-copy" | wc -l) && \
+    RUN nl=$(cat ./output | grep "execute-test1-run-after-copy" | wc -l) && \
         test "$nl" -eq 2
-
-certs:
-    FROM alpine:3.11
-    RUN apk add --update --no-cache openssl
-    WORKDIR /certs
-    RUN openssl \
-        req -newkey rsa:2048 -keyout "./domain.key" \
-        -nodes -out "./domain.crt" \
-        -subj "/CN=$REGISTRY" -x509 -days 30
-    SAVE ARTIFACT ./* AS LOCAL ./certs/

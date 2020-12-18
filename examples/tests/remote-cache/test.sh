@@ -1,4 +1,5 @@
 #!/bin/bash
+# Note: Most of this test runs as Earthly-in-Earthly so that we can easily send local cache to a tmpfs.
 
 set -uxe
 set -o pipefail
@@ -10,30 +11,19 @@ earthly=${earthly-"../../../build/linux/amd64/earthly"}
 # Cleanup previous run.
 docker stop registry || true
 docker rm registry || true
-docker network rm registry-net || true
-
-# Use a specific network so we can assign specific IP (needed for certificates).
-docker network create --subnet=172.25.0.0/16 registry-net
-export REGISTRY_IP="172.25.0.2"
-export REGISTRY="registry.local"
-
-# Generate certificates.
-"$earthly" --build-arg REGISTRY --artifact '+certs/*' ./certs/
 
 # Run registry.
-docker run --rm -d -v "$(pwd)"/certs:/certs \
-    -p "127.0.0.1:5443:443" \
-    --net=registry-net \
-    --ip="$REGISTRY_IP" \
-    -e REGISTRY_HTTP_ADDR=0.0.0.0:443 \
-    -e REGISTRY_HTTP_TLS_CERTIFICATE=/certs/domain.crt \
-    -e REGISTRY_HTTP_TLS_KEY=/certs/domain.key \
+docker run --rm -d \
+    -p "127.0.0.1:5000:5000" \
     --name registry registry:2
+
+export REGISTRY_IP="$(docker inspect -f {{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}} registry)"
+export REGISTRY="$REGISTRY_IP:5000"
 
 # Test.
 set +e
 "$earthly" --allow-privileged \
-    --build-arg REGISTRY_IP \
+    --ci \
     --build-arg REGISTRY \
     +test
 exit_code="$?"
@@ -41,7 +31,5 @@ set -e
 
 # Cleanup.
 docker stop registry
-docker network rm registry-net
-rm -rf ./certs
 
 exit "$exit_code"
