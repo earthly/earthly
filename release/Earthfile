@@ -170,7 +170,7 @@ release-homebrew:
             -m '* `LDFLAGS2='"$(cat /params/ldflags2)"'`') && \
         echo $output && \
         curl -X POST -H 'Content-type: application/json' --data '{"text":"Successfully released `'$RELEASE_TAG'`: https://github.com/earthly/earthly/releases/tag/'$RELEASE_TAG'"}' $SLACK_WEBHOOK_URL && \
-        curl -X POST -H 'Content-type: application/json' --data '{"text":"Successfully released homebrew PR for `'$RELEASE_TAG'`: `'"$output"'`"}' $SLACK_WEBHOOK_URL
+        curl -X POST -H 'Content-type: application/json' --data '{"text":"Successfully released homebrew PR for `'$RELEASE_TAG'`: '"$output"'"}' $SLACK_WEBHOOK_URL
 
 release-vscode-syntax-highlighting:
     ARG VSCODE_RELEASE_TAG
