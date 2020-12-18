@@ -1,11 +1,16 @@
 FROM ../../..+earthly-docker
 WORKDIR /test
 ARG REGISTRY
+ARG REGISTRY_IP
 ARG EARTHLY_BUILD_ARGS="REGISTRY"
 ARG EARTHLY_CI="true"
 
 test:
     COPY ./certs/* /usr/local/share/ca-certificates/
+    RUN update-ca-certificates
+    # TODO:   THIS DOES NOT WORK. Use RUN --extra-host .....
+    # (Need to add feature to Earthly using llb.AddExtraHost).
+    RUN echo "$REGISTRY_IP $REGISTRY" >> /etc/hosts
     COPY test.earth ./Earthfile
     RUN echo "content" >./input
     # Running with tmpfs mount = no local cache.
