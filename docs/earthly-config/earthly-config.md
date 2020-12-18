@@ -1,8 +1,8 @@
 # Earthly configuration file
 
-Global configuration values for earth can be stored on disk in the configuration file.
+Global configuration values for earthly can be stored on disk in the configuration file.
 
-By default, earth reads the configuration file `~/.earthly/config.yml`; however, it can also be
+By default, earthly reads the configuration file `~/.earthly/config.yml`; however, it can also be
 overridden with the `--config` command flag option.
 
 ## Format
@@ -45,7 +45,7 @@ Specifies the total size of the BuildKit cache, in MB. The BuildKit daemon uses 
 
 ### disable_analytics
 
-When set to true, disables collecting command line analytics; otherwise, earth will report anonymized analytics for invokation of the earth command. For more information see the [data collection page](../data-collection/data-collection.md).
+When set to true, disables collecting command line analytics; otherwise, earthly will report anonymized analytics for invokation of the earthly command. For more information see the [data collection page](../data-collection/data-collection.md).
 
 ### no_loop_device (obsolete)
 
@@ -57,25 +57,7 @@ This option is obsolete and it is ignored. Earthly cache has moved to a Docker v
 
 ## Git configuration reference
 
-The git configuration is split up into global config options, or site-specific options.
-
-### global options
-
-The global git options.
-
-#### url_instead_of
-
-Rewrites git URLs of a certain pattern. Similar to [`git-config url.<base>.insteadOf`](https://git-scm.com/docs/git-config#Documentation/git-config.txt-urlltbasegtinsteadOf).
-Multiple values can be separated by commas. Format: `<base>=<instead-of>[,...]`.
-
-This setting allows rewriting all git URLs of the form `https://example...` into `git@example.com:...`, or vice-versa.
-
-For example:
-
-* `--git-url-instead-of='git@example.com:=https://example.com/'` forces use of SSH-based URLs rather than HTTPS
-* `--git-url-instead-of='https://localmirror.example.com/=git@example.com:'` forces use of HTTPS-based local mirror for ssh-based example.com repositories
-
-NOTE: if the `auth` option is configured under a site-specific configuration, then the appropriate rewriting rule will be automatically applied.
+All git configuration is contained under site-specific options.
 
 ### site-specific options
 
@@ -85,8 +67,10 @@ The git repository hostname. For example `github.com`, or `gitlab.com`
 
 #### auth
 
-Either `https` or `ssh` (default). If https is specified, user and password fields are used
-to authenticate over https when pulling from git for the corresponding site.
+Either `ssh`, `https`, or `auto` (default). If `https` is specified, user and password fields are used
+to authenticate over https when pulling from git for the corresponding site. If `auto` is specified
+earthly will use `ssh` when the ssh-agent is running and has at least one key loaded, and will fallback
+to using `https` when no ssh-keys are present.
 
 See the [Authentication guide](../guides/auth.md) for a guide on setting up authentication.
 
@@ -97,3 +81,20 @@ The https username to use when auth is set to `https`. This setting is ignored w
 #### password
 
 The https password to use when auth is set to `https`. This setting is ignored when auth is `ssh`.
+
+#### pattern
+
+A regular expression defined to match git URLs, defaults to the `<site>/([^/]+)/([^/]+)`. For example if the site is `github.com`, then the default pattern will
+match `github.com/<user>/<repo>`.
+
+See the [Authentication guide](../guides/auth.md) for a guide on setting up authentication with self-hosted git repositories.
+
+See the [RE2 docs](https://github.com/google/re2/wiki/Syntax) for a complete definition of the supported regular expression syntax.
+
+
+#### substitute
+
+If specified, a regular expression substitution will be preformed to determine which URL is cloned by git. Values like `$1`, `$2`, ... will be replaced
+with matched subgroup data. If no substitute is given, a URL will be created based on the requested SSH authentication mode.
+
+See the [Authentication guide](../guides/auth.md) for a guide on setting up authentication with self-hosted git repositories.

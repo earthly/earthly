@@ -1,6 +1,6 @@
 # Releasing instructions
 
-### earth
+### earthly
 * Make sure you have access to the `earthly-technologies` organization secrets.
   ```bash
   ./earthly secrets ls /earthly-technologies
@@ -24,19 +24,20 @@
     --build-arg RELEASE_TAG \
     --push -P ./release+release
   ```
+* Go to the [releases page](https://github.com/earthly/earthly/releases) and edit the latest release to add release notes. Use a comparison such as https://github.com/earthly/earthly/compare/v0.3.0...v0.3.1 (replace the right versions in the URL) to see which PRs went into this release.
+* Once everything looks good, uncheck the "pre-release" checkbox on the GitHub release page. This will make this release the "latest" when people install Earthly with the one-liner. Important: You **have** to do this before the next step.
 * Run
   ```bash
   ./earthly \
     --build-arg RELEASE_TAG \
     --push ./release+release-homebrew
   ```
+* Important: Subscribe to the PR that griswoldthecat created in homebrew-core, so that you can address any review comments that may come up.
 * Merge branch `main` into `next`, then merge branch `next` into `main`.
 * Update the version for the installation command in the following places:
   * [ci-integration.md](../docs/guides/ci-integration.md)
   * [circle-integration.md](../docs/examples/circle-integration.md)
   * [gh-actions-integration.md](../docs/examples/gh-actions-integration.md)
-* Go to the [releases page](https://github.com/earthly/earthly/releases) and edit the latest release to add release notes. Use a comparison such as https://github.com/earthly/earthly/compare/v0.3.0...v0.3.1 (replace the right versions in the URL) to see which PRs went into this release.
-* Once everything looks good, uncheck the "pre-release" checkbox on the GitHub release page. This will make this release the "latest" when people install Earthly with the one-liner.
 * Copy the release notes you have written before and paste them in the Earthly Community slack channel `#announcements`, together with a link to the release's GitHub page. If you have Slack markdown editing activated, you can copy the markdown version of the text.
 * Ask Adam to tweet about the release.
 
@@ -44,7 +45,7 @@
 
 * First set the version to publish:
   ```bash
-  export VSCODE_RELEASE_TAG=...
+  export VSCODE_RELEASE_TAG="v..."
   ```
   (You can see what is already published [here](https://marketplace.visualstudio.com/items?itemName=earthly.earthfile-syntax-highlighting))
 * Make sure that the version has release notes already in the [README](../contrib/earthfile-syntax-highlighting/README.md)

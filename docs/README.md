@@ -17,7 +17,7 @@ For a full list of installation options see the [Installation page](./installati
 ### Linux
 
 ```bash
-sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/latest/download/earth-linux-amd64 -O /usr/local/bin/earth && chmod +x /usr/local/bin/earth && /usr/local/bin/earth bootstrap'
+sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/latest/download/earthly-linux-amd64 -O /usr/local/bin/earthly && chmod +x /usr/local/bin/earthly && /usr/local/bin/earthly bootstrap'
 ```
 
 ### Mac
@@ -28,10 +28,10 @@ brew install earthly
 
 ### Windows via WSL (**beta**)
 
-Earthly on Windows requires [Docker Desktop WSL2 backend](https://docs.docker.com/docker-for-windows/wsl/). Under `wsl`, run the following to install `earth`.
+Earthly on Windows requires [Docker Desktop WSL2 backend](https://docs.docker.com/docker-for-windows/wsl/). Under `wsl`, run the following to install `earthly`.
 
 ```bash
-sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/latest/download/earth-linux-amd64 -O /usr/local/bin/earth && chmod +x /usr/local/bin/earth && /usr/local/bin/earth bootstrap'
+sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/latest/download/earthly-linux-amd64 -O /usr/local/bin/earthly && chmod +x /usr/local/bin/earthly && /usr/local/bin/earthly bootstrap'
 ```
 
 ### VS Code Syntax Highlighting
@@ -54,6 +54,6 @@ A high-level overview is available on [the Earthly GitHub page](https://github.c
 * [Full installation instructions](./installation/installation.md)
 * [Earthly basics](./guides/basics.md)
 * [Earthfile reference](./earthfile/earthfile.md)
-* [Earth command reference](./earth-command/earth-command.md)
-* [Configuration reference](./earth-config/earth-config.md)
+* [Earthly command reference](./earthly-command/earthly-command.md)
+* [Configuration reference](./earthly-config/earthly-config.md)
 * [Earthfile examples](./examples/examples.md)

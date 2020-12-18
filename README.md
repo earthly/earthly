@@ -93,22 +93,22 @@ For a full list of installation options see the [Installation page](https://docs
 ### Linux
 
 ```bash
-sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/latest/download/earth-linux-amd64 -O /usr/local/bin/earth && chmod +x /usr/local/bin/earth && /usr/local/bin/earth bootstrap'
+sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/latest/download/earthly-linux-amd64 -O /usr/local/bin/earthly && chmod +x /usr/local/bin/earthly && /usr/local/bin/earthly bootstrap'
 ```
 
 ### Mac
 
 ```bash
 brew install earthly
-earth bootstrap
+earthly bootstrap
 ```
 
 ### Windows via WSL (**beta**)
   
-Earthly on Windows requires [Docker Desktop WSL2 backend](https://docs.docker.com/docker-for-windows/wsl/). Under `wsl`, run the following to install `earth`.
+Earthly on Windows requires [Docker Desktop WSL2 backend](https://docs.docker.com/docker-for-windows/wsl/). Under `wsl`, run the following to install `earthly`.
 
 ```bash
-sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/latest/download/earth-linux-amd64 -O /usr/local/bin/earth && chmod +x /usr/local/bin/earth && /usr/local/bin/earth bootstrap'
+sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/latest/download/earthly-linux-amd64 -O /usr/local/bin/earthly && chmod +x /usr/local/bin/earthly && /usr/local/bin/earthly bootstrap'
 ```
 
 ### Your CI
@@ -145,8 +145,8 @@ See also the [full documentation](https://docs.earthly.dev).
 Reference pages
 
 * 📑 [Earthfile reference](https://docs.earthly.dev/earthfile)
-* #️⃣ [Earth command reference](https://docs.earthly.dev/earth-command)
-* ⚙️ [Configuration reference](https://docs.earthly.dev/earth-config)
+* #️⃣ [Earthly command reference](https://docs.earthly.dev/earthly-command)
+* ⚙️ [Configuration reference](https://docs.earthly.dev/earthly-config)
 
 ### A simple example (for Go)
 
@@ -187,7 +187,7 @@ func main() {
 }
 ```
 
-Invoke the build using `earth +all`.
+Invoke the build using `earthly +all`.
 
 <div align="center"><a href="https://asciinema.org/a/351683?speed=2"><img src="img/demo-351683.gif" alt="Demonstration of a simple Earthly build" title="View on asciinema.org" width="600px" /></a></div>
 
@@ -203,7 +203,7 @@ Earthly can be used to reference and build targets from other directories or eve
 
 ```bash
 # Try it yourself! No need to clone.
-earth github.com/earthly/earthly/examples/go:main+docker
+earthly github.com/earthly/earthly/examples/go:main+docker
 # Run the resulting image.
 docker run --rm go-example:latest
 ```
@@ -309,17 +309,17 @@ build:
 
 See full [example code](./examples/readme/proto).
 
-### 🔑 Secrets support built-in
+### 🔑 Cloud secrets support built-in
 
 Secrets are never stored within an image's layers and they are only available to the commands that need them.
 
-```Dockerfile
-release:
-  RUN --push --secret GITHUB_TOKEN=+secrets/GITHUB_TOKEN github-release upload file.bin
+```bash
+earthly set /user/github/token 'shhh...'
 ```
 
-```bash
-earth --secret GITHUB_TOKEN --push +release
+```Dockerfile
+release:
+  RUN --push --secret GITHUB_TOKEN=+secrets/user/github/token github-release upload file.bin
 ```
 
 <br/>

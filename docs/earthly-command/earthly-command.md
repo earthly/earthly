@@ -1,35 +1,20 @@
-# Earth command reference
+# Earthly command reference
 
-## earth
+## earthly
 
 #### Synopsis
 
 * Target form
   ```
-  earth [--build-arg <key>[=<value>]] [--secret|-s <secret-id>[=<value>]]
-        [--push] [--no-output] [--no-cache] [--allow-privileged|-P]
-        [--ssh-auth-sock <path-to-sock>]
-        [--buildkit-host <bk-host>]
-        [--interactive|-i]
-        <target-ref>
+  earthly [options...] <target-ref>
   ```
 * Artifact form
   ```
-  earth [--build-arg <key>[=<value>]] [--secret|-s <secret-id>[=<value>]]
-        [--push] [--no-cache] [--allow-privileged|-P]
-        [--ssh-auth-sock <path-to-sock>]
-        [--buildkit-host <bk-host>]
-        [--interactive|-i]
-        --artifact|-a <artifact-ref> [<dest-path>]
+  earthly [options...] --artifact|-a <artifact-ref> [<dest-path>]
   ```
 * Image form
   ```
-  earth [--build-arg <key>[=<value>]] [--secret|-s <secret-id>[=<value>]]
-        [--push] [--no-cache] [--allow-privileged|-P]
-        [--ssh-auth-sock <path-to-sock>]
-        [--buildkit-host <bk-host>]
-        [--interactive|-i]
-        --image <target-ref>
+  earthly [options...] --image <target-ref>
   ```
 
 #### Description
@@ -99,12 +84,12 @@ ANOTHER_SECRET=MjA5YjU2ZTItYmIxOS00MDQ3LWFlNzYtNmQ5NGEyZDFlYTQx
 
 {% hint style='info' %}
 ##### Note
-The directory used for loading the `.env` file is the directory where `earth` is called from and not necessarily the directory where the Earthfile is located in.
+The directory used for loading the `.env` file is the directory where `earthly` is called from and not necessarily the directory where the Earthfile is located in.
 {% endhint %}
 
-The additional environment variables specified in the `.env` file are loaded by `earth` in three distinct ways:
+The additional environment variables specified in the `.env` file are loaded by `earthly` in three distinct ways:
 
-* **Setting options for `earth` itself** - the settings are loaded if they match the environment variable equivalent of an `earth` option.
+* **Setting options for `earthly` itself** - the settings are loaded if they match the environment variable equivalent of an `earthly` option.
 * **Build args** - the settings are passed on to the build and are used to override any [`ARG`](../earthfile/earthfile.md#arg) declaration.
 * **Secrets** - the settings are passed on to the build to be referenced via the [`RUN --secret`](../earthfile/earthfile.md#secret-less-than-env-var-greater-than-less-than-secret-ref-greater-than) option.
 
@@ -155,6 +140,46 @@ Also available as an env var setting: `EARTHLY_ALLOW_PRIVILEGED=true`.
 
 Permits the build to use the --privileged flag in RUN commands. For more information see the [`RUN --privileged` command](../earthfile/earthfile.md#run).
 
+##### `--use-inline-cache` (**experimental**)
+
+Also available as an env var settings: `EARTHLY_USE_INLINE_CACHE=true`
+
+Enables use of inline cache, if available. Any `SAVE IMAGE --push` command is used to inform the system of possible inline cache sources. For more information see the [shared caching guide](../guides/shared-cache.md).
+
+##### `--save-inline-cache` (**experimental**)
+
+Also available as an env var settings: `EARTHLY_SAVE_INLINE_CACHE=true`
+
+Enables embedding inline cache in any pushed images. This cache can be used on other systems, if enabled via `--use-inline-cache`. For more information see the [shared caching guide](../guides/shared-cache.md).
+
+##### `--remote-cache <image-tag>` (**experimental**)
+
+Also available as an env var settings: `EARTHLY_REMOTE_CACHE=<image-tag>`
+
+Enables use of explicit cache. The provided `<image-tag>` is used for storing and retrieving the cache to/from a Docker registry. Storing explicit cache is only enabled if the option `--push` is also passed in. For more information see the [shared caching guide](../guides/shared-cache.md).
+
+##### `--max-remote-cache` (**experimental**)
+
+Also available as an env var settings: `EARTHLY_MAX_REMOTE_CACHE=true`
+
+Enables storing all intermediate layers as part of the explicit cache. Note that this setting is rarely effective due to the excessive upload overhead. For more information see the [shared caching guide](../guides/shared-cache.md).
+
+##### `--ci` (**experimental**)
+
+Also available as an env var settings: `EARTHLY_CI=true`
+
+In *target mode*, this option is an alias for
+
+```
+--use-inline-cache --save-inline-cache --no-output
+```
+
+In *artifact* and *image modes* , this option is an alias for
+
+```
+--use-inline-cache --save-inline-cache
+```
+
 ##### `--ssh-auth-sock <path-to-sock>`
 
 Also available as an env var setting: `EARTHLY_SSH_AUTH_SOCK=<path-to-sock>`.
@@ -171,25 +196,26 @@ For more information see the [Authentication page](../guides/auth.md).
 
 Also available as an env var setting: `GIT_USERNAME=<git-user>`.
 
-This option is now deprecated. Please use the [configuration file](../earth-config/earth-config.md) instead.
+This option is now deprecated. Please use the [configuration file](../earthly-config/earthly-config.md) instead.
 
 ##### `--git-password <git-pass>` (deprecated)
 
 Also available as an env var setting: `GIT_PASSWORD=<git-pass>`.
 
-This option is now deprecated. Please use the [configuration file](../earth-config/earth-config.md) instead.
+This option is now deprecated. Please use the [configuration file](../earthly-config/earthly-config.md) instead.
 
-##### `--git-url-instead-of <git-instead-of>` (deprecated)
+##### `--git-url-instead-of <git-instead-of>` (obsolete)
 
-Also available as an env var setting: `GIT_URL_INSTEAD_OF=<git-instead-of>`.
+Also used to be available as an env var setting: `GIT_URL_INSTEAD_OF=<git-instead-of>`.
 
-This option is now deprecated. Please use the [configuration file](../earth-config/earth-config.md) instead.
+This option is now obsolete. By default, `earthly` will automatically switch from ssh to https when no keys are found or the ssh-agent isn't running.
+Please use the [configuration file](../earthly-config/earthly-config.md) to override the default behavior.
 
 ##### `--interactive|-i` (**beta**)
 
 Also available as an env var setting: `EARTHLY_INTERACTIVE=true`.
 
-Enable interactive debugging mode. By default when a `RUN` command fails, earth will display the error and exit. If the interactive mode is enabled and an error occurs, an interactive shell is presented which can be used for investigating the error interactively. Due to technical limitations, only a single interactive shell can be used on the system at any given time.
+Enable interactive debugging mode. By default when a `RUN` command fails, earthly will display the error and exit. If the interactive mode is enabled and an error occurs, an interactive shell is presented which can be used for investigating the error interactively. Due to technical limitations, only a single interactive shell can be used on the system at any given time.
 
 #### Log formatting options
 
@@ -202,69 +228,309 @@ These options can only be set via environment variables, and have no command lin
 | EARTHLY_TARGET_PADDING | `EARTHLY_TARGET_PADDING=n` will set the column to the width of `n` characters. If a name is longer than `n`, its path will be truncated and and remaining extra length will cause the column to go ragged. |
 | EARTHLY_FULL_TARGET    | `EARTHLY_FULL_TARGET=1` will always print the full target name, and leave the target name column ragged.                                                                                                   |
 
-## earth prune
+## earthly prune
 
 #### Synopsis
 
 * Standard form
   ```
-  earth [options] prune [--all|-a]
+  earthly [options] prune [--all|-a]
   ```
 * Reset form
   ```
-  earth [options] prune --reset
+  earthly [options] prune --reset
   ```
 
 #### Description
 
-The command `earth prune` eliminates Earthly cache. In the *standard form* it issues a prune command to the buildkit daemon. In the *reset form* it restarts the buildkit daemon, instructing it to completely delete the cache directory on startup, thus forcing it to start from scratch.
+The command `earthly prune` eliminates Earthly cache. In the *standard form* it issues a prune command to the buildkit daemon. In the *reset form* it restarts the buildkit daemon, instructing it to completely delete the cache directory on startup, thus forcing it to start from scratch.
 
 #### Options
 
 ##### `--all|-a`
 
-Instructs earth to issue a "prune all" command to the buildkit daemon.
+Instructs earthly to issue a "prune all" command to the buildkit daemon.
 
 ##### `--reset`
 
 Restarts the buildkit daemon and completely resets the cache directory.
 
-## earth bootstrap
+## earthly account
+
+Contains sub-commands for registering and administration an Earthly account.
+
+#### earthly account register
+
+###### Synopsis
+
+* ```
+  earthly account register --email <email>
+  earthly account register --email <email> --token <email-verification-token> [--password <password>] [--public-key <public-key>] [--accept-terms-conditions-privacy]
+  ```
+
+###### Description
+
+Register for an Earthly account. Regristration is done in two steps: first run the register command with only the --email argument, this will then send an email to the
+supplied email address with a registration token (which is used to verify your email address), second re-run the register command with both the --email and --token arguments
+to complete the registration process.
+
+#### earthly account login
+
+###### Synopsis
+
+* ```
+  earthly [options] account login
+  earthly [options] account login --email <email>
+  earthly [options] account login --email <email> --password <password>
+  earthly [options] account login --token <token>
+  ```
+
+###### Description
+
+Login to an existing Earthly account. If no email or token is given, earthly will attempt to login using registered public keys.
+
+#### earthly account logout
+
+###### Synopsis
+
+* ```
+  earthly [options] account logout
+  ```
+
+###### Description
+
+Removes cached login information from `~/.earthly/auth.token`.
+
+#### earthly account list-keys
+
+###### Synopsis
+
+* ```
+  earthly account list-keys
+  ```
+
+###### Description
+
+Lists all public keys that are authorized to login to the current Earthly account.
+
+#### earthly account add-key
+
+###### Synopsis
+
+* ```
+  earthly account add-key [<key>]
+  ```
+
+###### Description
+
+Authorize a new ssh-rsa public key to login to the current Earthly account. If `key` is omitted, an interactive prompt is displayed
+to select a key to add.
+
+#### earthly account remove-key
+
+###### Synopsis
+
+* ```
+  earthly account remove-key <key>
+  ```
+
+###### Description
+
+Removes an authorized ssh-rsa key from accessing the current Earthly account.
+
+#### earthly account list-tokens
+
+###### Synopsis
+
+* ```
+  earthly account list-tokens
+  ```
+
+###### Description
+
+List account tokens associated with Earthly account. A token is useful for environments where the ssh-agent is not accessible (e.g. a CI system).
+
+#### earthly account create-token
+
+###### Synopsis
+
+* ```
+  earthly account create-token [--write] [--expiry <expiry>]
+  ```
+
+###### Description
+
+Creates a new authentication token. A read-only token is created by default, If the `--write` flag is specified the token will have read+write access.
+The token will expire in 1 year from creation date unless a different date is supplied via the `--expiry` option.
+
+#### earthly account remove-token
+
+###### Synopsis
+
+* ```
+  earthly account remove-token <token>
+  ```
+
+###### Description
+
+Removes a token from the current Earthly account.
+
+
+## earthly org
+
+Contains sub-commands for creating and managing Earthly organizations.
+
+#### earthly org create
+
+###### Synopsis
+
+* ```
+  earthly org create <org-name>
+  ```
+
+###### Description
+
+Create a new organization, which can be used to share secrets between different user accounts.
+
+#### earthly org list
+
+###### Synopsis
+
+* ```
+  earthly org list
+  ```
+
+###### Description
+
+List all organizations the current account is a member, or administrator of.
+
+#### earthly org list-permissions
+
+###### Synopsis
+
+* ```
+  earthly org list-permissions <org-name>
+  ```
+
+###### Description
+
+List all accounts and the paths they have permission to access under a particular organization.
+
+#### earthly org invite
+
+###### Synopsis
+
+* ```
+  earthly org invite [--write] <org-path> <email> [<email>, ...]
+  ```
+
+###### Description
+
+Invites a user into an organization; `<org-path>` can either be a top-level org access by granting permission on `/<org-name>/`, or finer-grained access can be granted to a subpath e.g. `/<org-name>/path/to/share/`.
+By default users are granted read-only access unless the `--write` flag is given.
+
+#### earthly org revoke
+
+###### Synopsis
+
+* ```
+  earthly org revoke <org-path> <email> [<email>, ...]
+  ```
+
+###### Description
+
+Revokes a previously invited user from an organization.
+
+## earthly secrets
+
+Contains sub-commands for creating and managing Earthly secrets.
+
+#### earthly secrets set
+
+###### Synopsis
+
+* ```
+  earthly secrets set <path> <value>
+  earthly secrets set --file <local-path> <path>
+  ```
+
+###### Description
+
+Stores a secret in the secrets store
+
+#### earthly secrets get
+
+###### Synopsis
+
+* ```
+  earthly secrets get [-n] <path>
+  ```
+
+###### Description
+
+Retrieve a secret from the secrets store. If `-n` is given, no newline is printed after the contents of the secret.
+
+#### earthly secrets ls
+
+###### Synopsis
+
+* ```
+  earthly secrets ls [<path>]
+  ```
+
+###### Description
+
+List secrets the current account has access to.
+
+#### earthly secrets rm
+
+###### Synopsis
+
+* ```
+  earthly secrets rm <path>
+  ```
+
+###### Description
+
+Removes a secret from the secrets store.
+
+
+## earthly bootstrap
 
 #### Synopsis
 
 * ```
-  earth bootstrap
+  earthly bootstrap
   ```
 
 #### Description
 
-Installs bash and zsh shell completion for earth.
+Installs bash and zsh shell completion for earthly.
 
 
-## earth --help
+## earthly --help
 
 #### Synopsis
 
 * ```
-  earth --help
+  earthly --help
   ```
 * ```
-  earth <command> --help
+  earthly <command> --help
   ```
 
 #### Description
 
-Prints help information about earth.
+Prints help information about earthly.
 
-## earth --version
+## earthly --version
 
 #### Synopsis
 
 * ```
-  earth --version
+  earthly --version
   ```
 
 #### Description
 
-Prints version information about earth.
+Prints version information about earthly.

@@ -8,6 +8,10 @@ For an introduction of Earthly see the [Earthly GitHub repository](https://githu
 
 ## Release Notes
 
+### 0.0.8
+
+* Properly handle comments in conjunction with line continuation.
+
 ### 0.0.7
 
 * Fix README image.

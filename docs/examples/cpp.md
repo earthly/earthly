@@ -54,7 +54,7 @@ add_executable(fibonacci main.cpp fib.cpp)
 ```
 
 CMake caches object files under CMakeFiles which allows CMake to only recompile objects when the corresponding
-source code changes. We will use a [mount-based cache](../guides/advanced-caching.md) to cache these temporary
+source code changes. We will use a [mount-based cache](../guides/advanced-local-caching.md) to cache these temporary
 files to allow for faster builds on a local machine. Here's a sample `Earthfile`:
 
 ```Dockerfile
@@ -87,7 +87,7 @@ docker:
   SAVE IMAGE --push earthly/examples:cpp
 ```
 
-If you run `earth +build` for the first time you should see:
+If you run `earthly +build` for the first time you should see:
 
 ```
 ...
@@ -109,7 +109,7 @@ However on the next run since the object files were cached you should only see
 ...
 ```
 
-If you need to force a full rebuild, you can run earth `--no-cache +build` to trigger a clean build; however
+If you need to force a full rebuild, you can run earthly `--no-cache +build` to trigger a clean build; however
 this will also rebuild the entire base docker images.
 
 And finally, the fibonacci program can be run via docker:

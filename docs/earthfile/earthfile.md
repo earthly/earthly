@@ -129,10 +129,10 @@ To avoid any ambiguity regarding whether an argument is a `RUN` flag option or p
 
 Marks the command as a "push command". Push commands are only executed if all other non-push instructions succeed. In addition, push commands are never cached, thus they are executed on every applicable invocation of the build.
 
-Push commands are not run by default. Add the `--push` flag to the `earth` invocation to enable pushing. For example
+Push commands are not run by default. Add the `--push` flag to the `earthly` invocation to enable pushing. For example
 
 ```bash
-earth --push +deploy
+earthly --push +deploy
 ```
 
 Push commands were introduced to allow the user to define commands that have an effect external to the build. This kind of effects are only allowed to take place if the entire build succeeds. Good candidates for push commands are uploads of artifacts to artifactories, commands that make a change to an external environment, like a production or staging environment.
@@ -161,17 +161,17 @@ RUN --entrypoint .
 
 Allows the command to use privileged capabilities.
 
-Note that privileged mode is not enabled by default. In order to use this option, you need to additionally pass the flag `--allow-privileged` (or `-P`) to the `earth` command. Example:
+Note that privileged mode is not enabled by default. In order to use this option, you need to additionally pass the flag `--allow-privileged` (or `-P`) to the `earthly` command. Example:
 
 ```bash
-earth --allow-privileged +some-target
+earthly --allow-privileged +some-target
 ```
 
 ##### `--secret <env-var>=<secret-ref>`
 
 Makes available a secret, in the form of an env var (its name is defined by `<env-var>`), to the command being executed.
 
-The `<secret-ref>` needs to be of the form `+secrets/<secret-id>`, where `<secret-id>` is the identifier passed to the `earth` command when passing the secret: `earth --secret <secret-id>=<value>`.
+The `<secret-ref>` needs to be of the form `+secrets/<secret-id>`, where `<secret-id>` is the identifier passed to the `earthly` command when passing the secret: `earthly --secret <secret-id>=<value>`.
 
 Here is an example:
 
@@ -181,7 +181,7 @@ release:
 ```
 
 ```bash
-earth --secret GH_TOKEN="the-actual-secret-token-value" +release
+earthly --secret GH_TOKEN="the-actual-secret-token-value" +release
 ```
 
 An empty string is also allowed for `<secret-ref>`, allowing for optional secrets, should it need to be disabled.
@@ -193,8 +193,10 @@ release:
 ```
 
 ```bash
-earth --build-arg SECRET_ID="" +release
+earthly --build-arg SECRET_ID="" +release
 ```
+
+See also the [Cloud secrets guide](../guides/cloud-secrets.md).
 
 ##### `--ssh`
 
@@ -304,7 +306,7 @@ final-target:
 
 The command `GIT CLONE` clones a git repository from `<git-url>`, optionally referenced by `<git-ref>`, into the build environment, within the `<dest-path>`.
 
-In contrast to an operation like `RUN git clone <git-url> <dest-path>`, the command `GIT CLONE` is cache-aware and correctly distinguishes between different git commit IDs when deciding to reuse a previous cache or not. In addition, `GIT CLONE` can also use [Git authentication configuration](../guides/auth.md) passed on to `earth`, whereas `RUN git clone` would require additional secrets passing, if the repository is not publicly accessible.
+In contrast to an operation like `RUN git clone <git-url> <dest-path>`, the command `GIT CLONE` is cache-aware and correctly distinguishes between different git commit IDs when deciding to reuse a previous cache or not. In addition, `GIT CLONE` can also use [Git authentication configuration](../guides/auth.md) passed on to `earthly`, whereas `RUN git clone` would require additional secrets passing, if the repository is not publicly accessible.
 
 #### Options
 
@@ -332,11 +334,14 @@ Files within the artifact environment are also known as "artifacts". Once a file
 
 #### Synopsis
 
-* `SAVE IMAGE [--push] <image-name>...`
+* `SAVE IMAGE [--cache-from=<cache-image>] [--push] <image-name>...` (output form)
+* `SAVE IMAGE --cache-hint` (cache hint form)
 
 #### Description
 
-The command `SAVE IMAGE` marks the current build environment as the image of the target and assigns an output image name.
+In the *output form*, the command `SAVE IMAGE` marks the current build environment as the image of the target and assigns an output image name.
+
+In the *cache hint form*, it instructs Earthly that the current target should be included as part of the explicit cache. For more information see the [shared caching guide](../guides/shared-cache.md).
 
 #### Options
 
@@ -344,11 +349,21 @@ The command `SAVE IMAGE` marks the current build environment as the image of the
 
 The `--push` options marks the image to be pushed to an external registry after it has been loaded within the docker daemon available on the host.
 
-Push commands are not run by default. Add the --push flag to the earth invocation to enable pushing. For example
+If inline caching is enabled, the `--push` option also instructs Earthly to use the specified image names as cache sources.
+
+The actual push is not executed by default. Add the `--push` flag to the earthly invocation to enable pushing. For example
 
 ```bash
-earth --push +docker-image
+earthly --push +docker-image
 ```
+
+##### `--cache-from=<cache-image>` (**experimental**)
+
+Adds additional cache sources to be used when `--use-inline-cache` is enabled. For more information see the [shared caching guide](../guides/shared-cache.md).
+
+##### `--cache-hint` (**experimental**)
+
+Instructs Earthly that the current target should be included as part of the explicit cache. For more information see the [shared caching guide](../guides/shared-cache.md).
 
 ## BUILD
 
@@ -396,10 +411,10 @@ The command `ARG` declares a variable (or arg) with the name `<name>` and with a
 
 This command works similarly to the [Dockerfile `ARG` command](https://docs.docker.com/engine/reference/builder/#arg), with a few differences regarding the scope and the predefined args (called builtin args in Earthly). The variable's scope is always limited to the current target's recipe and only from the point it is declared onwards. For more information regarding builtin args, see the [builtin args page](./builtin-args.md).
 
-The value of an arg can be overridden either from the `earth` command
+The value of an arg can be overridden either from the `earthly` command
 
 ```bash
-earth --build-arg <name>=<override-value>
+earthly --build-arg <name>=<override-value>
 ```
 
 or from a command from another target, when implicitly or explicitly invoking the target containing the `ARG`

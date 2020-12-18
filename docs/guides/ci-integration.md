@@ -21,33 +21,27 @@ Vendors known to include these dependencies:
 
 In addition to Docker and Git, Earthly also requires privileged mode as it executes container builds under the hood. In most linux-based CI environments, this is readily available and no special setting is necessary. GitLab CI requires using a compatible runner (eg Docker) and explicitly enabling [privileged mode](https://docs.gitlab.com/runner/executors/docker.html#the-privileged-mode).
 
-## Step 2: Install earth command
+## Step 2: Install earthly command
 
-The next step is to install the `earth` command. For this, you need to run the command:
+The next step is to install the `earthly` command. For this, you need to run the command:
 
 ```bash
-sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/download/v0.3.19/earth-linux-amd64 -O /usr/local/bin/earth && chmod +x /usr/local/bin/earth'
+sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/download/v0.4.0/earthly-linux-amd64 -O /usr/local/bin/earthly && chmod +x /usr/local/bin/earthly'
 ```
 
 {% hint style='info' %}
 ##### Note
 
-The above command installs a specific version of `earth`. It is not advisable to always download the very latest, as any possible backwards incompatible changes of Earthly (rare) could cause your builds to fail unexpectedly. Pinning to a specific version, as shown here, is recommended.
+The above command installs a specific version of `earthly`. It is not advisable to always download the very latest, as any possible backwards incompatible changes of Earthly (rare) could cause your builds to fail unexpectedly. Pinning to a specific version, as shown here, is recommended.
 {% endhint %}
 
-In certain CI environments, such as Jenkins, where you have access to the host, it may be more convenient to install Earthly on the host in advance, so that your builds do not need to download `earth` every time they run.
+In certain CI environments, such as Jenkins, where you have access to the host, it may be more convenient to install Earthly on the host in advance, so that your builds do not need to download `earthly` every time they run.
 
-## Step 3: Configure earth
+## Step 3: Configure earthly
 
 Depending on your needs, you may need to ensure that Git has authenticated access and / or that Docker is logged in so that it has access to private repositories.
 
-To authenticate Git, you may either use SSH-based authentication, or username-password-based authentication. See the [Authentication page for more information](./auth.md). In case you don't need any Git authentication, you might want to force all GitHub URLs to be transformed to `https://github.com/...` instead of `git@github.com:...`. For this, you can add an environment variable to configure this behavior:
-
-```bash
-export GIT_URL_INSTEAD_OF="https://github.com/=git@github.com:"
-```
-
-The way you configure environment variables in your CI will vary.
+To authenticate Git, you may either use SSH-based authentication, or username-password-based authentication. See the [Authentication page for more information](./auth.md). If no authentication is configured, `earthly` will fall back to using public https access.
 
 To log in Docker, simply run
 
@@ -63,7 +57,7 @@ Make sure that secrets (like `<password>` above) are not exposed in plain text. 
 
 ## Step 4: (Optional) Force or disable color output
 
-The CLI `earth` automatically detects the presence of a TTY for the purpose of deciding whether to use colorized output or not. In some CI environments, this kind of detection is not enough in order to infer support for colorized output. However, two environment variables can be used to either disable or force it:
+The CLI `earthly` automatically detects the presence of a TTY for the purpose of deciding whether to use colorized output or not. In some CI environments, this kind of detection is not enough in order to infer support for colorized output. However, two environment variables can be used to either disable or force it:
 
 * `NO_COLOR=1` disables the use of color.
 * `FORCE_COLOR=1` forces the use of color.
@@ -76,22 +70,22 @@ The following environments are known to require additional settings:
 ## Step 5: Run the build
 
 ```bash
-earth +target-name
+earthly +target-name
 ```
 
 If you would like to enable pushing Docker images to registries and also running `RUN --push` commands, you might use
 
 ```bash
-earth --push +target-name
+earthly --push +target-name
 ```
 
 If you need to pass secrets to the Earthly build, you might also use the `--secret` flag, mentioning the env var where the secret is kept.
 
 ```bash
-earth --secret SOME_SECRET_ENV_VAR +target-name
+earthly --secret SOME_SECRET_ENV_VAR +target-name
 ```
 
-For more information see the [earth command reference](../earth-command/earth-command.md).
+For more information see the [earthly command reference](../earthly-command/earthly-command.md).
 
 ## Complete examples
 

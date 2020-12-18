@@ -15,22 +15,18 @@ in order to allow Earthly build Docker images.
 # ./buildspec.yml
 version: 0.2
 
-env:
-  variables:
-    GIT_URL_INSTEAD_OF: "https://github.com/=git@github.com:"
-
 phases:
   install:
     commands:
-      - wget https://github.com/earthly/earthly/releases/latest/download/earth-linux-amd64 -O /usr/local/bin/earth && chmod +x /usr/local/bin/earth
+      - wget https://github.com/earthly/earthly/releases/latest/download/earthly-linux-amd64 -O /usr/local/bin/earthly && chmod +x /usr/local/bin/earthly
   pre_build:
     commands:
       - echo Logging in to Docker
       - docker login --username "$DOCKERHUB_USERNAME" --password "$DOCKERHUB_TOKEN"
   build:
     commands:
-      - earth --version
-      - earth --push +build
+      - earthly --version
+      - earthly --push +build
 ```
 
 For a complete guide on CI integration see the [CI integration guide](../guides/ci-integration.md).
