@@ -47,6 +47,15 @@ Specifies the total size of the BuildKit cache, in MB. The BuildKit daemon uses 
 
 When set to true, disables collecting command line analytics; otherwise, earthly will report anonymized analytics for invokation of the earthly command. For more information see the [data collection page](../data-collection/data-collection.md).
 
+### buildkit_additional_args
+
+This option allows you to pass additional options to Docker when starting up the Earthly buildkit daemon. For example, this can be used to bypass user namespacing like so:
+
+```yaml
+global:
+  buildkit_additional_args: ["--userns", "host"]
+```
+
 ### no_loop_device (obsolete)
 
 This option is obsolete and it is ignored. Earthly no longer uses a loop device for its cache.
