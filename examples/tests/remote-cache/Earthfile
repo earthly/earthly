@@ -1,9 +1,42 @@
+FROM ../../..+earthly-docker
+WORKDIR /test
+ARG REGISTRY
+ARG EARTHLY_BUILD_ARGS="REGISTRY"
+ARG EARTHLY_CI="true"
 
-ARG REGISTRY="127.0.0.1:5000"
+test:
+    COPY ./certs/* /usr/local/share/ca-certificates/
+    COPY test.earth ./Earthfile
+    RUN echo "content" >./input
+    # Running with tmpfs mount = no local cache.
+    RUN --privileged \
+        --entrypoint \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        -- --push +test1 | tee >./output
+    # Not cached.
+    RUN nl=$(echo "$output" | grep "execute-test1-run-before-copy" | wc -l) && \
+        test "$nl" -eq 2
+    # Not cached.
+    RUN nl=$(echo "$output" | grep "execute-test1-run-after-copy" | wc -l) && \
+        test "$nl" -eq 2
+    RUN echo "other content" >./input
+    RUN --privileged \
+        --entrypoint \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        -- +test1 | tee >./output
+    # Cached.
+    RUN nl=$(echo "$output" | grep "execute-test1-run-before-copy" | wc -l) && \
+        test "$nl" -eq 1
+    # Not cached.
+    RUN nl=$(echo "$output" | grep "execute-test1-run-after-copy" | wc -l) && \
+        test "$nl" -eq 2
 
-test1:
+certs:
     FROM alpine:3.11
-    RUN echo "execute-test1-run-before-copy"
-    COPY ./input ./
-    RUN echo "execute-test1-run-after-copy"
-    SAVE IMAGE --push $REGSITRY/test1:latest
+    RUN apk add --update --no-cache openssl
+    WORKDIR /certs
+    RUN openssl \
+        req -newkey rsa:2048 -keyout "./domain.key" \
+        -nodes -out "./domain.crt" \
+        -subj "/CN=$REGISTRY" -x509 -days 30
+    SAVE ARTIFACT ./* AS LOCAL ./certs/
