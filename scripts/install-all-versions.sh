@@ -30,16 +30,20 @@ releases=$(jq -r '.[] | @base64' < "/tmp/releases")
 for row in $releases; do
     version=$(echo "$row" | base64 -d | jq -r '.name')
     pattern="$version/$release_name"
-    url=$(echo "$row" | base64 -d | jq -r '.assets' | jq -r '.[] | [.browser_download_url] | @csv' | grep "$pattern" | jq -r .)
+    urls=$(echo "$row" | base64 -d | jq -r '.assets' | jq -r '.[] | .browser_download_url' | grep "$pattern")
+    for  url in $urls; do
+        earthlybin="earthly"
+        if echo "$url" | grep -w "earth" >/dev/null; then
+            earthlybin="earth"
+        fi
+        outfile="$HOME/bin/$earthlybin-$version"
 
-    earthlybin="earthly"
-    if echo "$url" | grep -w "earth"; then
-        earthlybin="earth"
-    fi
-    outfile="$HOME/bin/$earthlybin-$version"
-
-    if [ ! -f "$outfile" ]; then
-        wget "$url" -O "$outfile"
-        chmod +x "$outfile"
-    fi
+        if [ ! -f "$outfile" ]; then
+            echo "Downloading $url"
+            wget -L "$url" -O "$outfile" || ( rm -f "$outfile"; exit 1)
+            chmod +x "$outfile"
+        else
+            echo "$url has already been downloaded to $outfile"
+        fi
+    done
 done
