@@ -6,7 +6,6 @@ set -eu
 rm -f "/run/buildkit/buildkitd.sock"
 /usr/bin/entrypoint.sh \
     buildkitd \
-    --allow-insecure-entitlement=security.insecure \
     --config=/etc/buildkitd.toml \
     >/var/log/buildkitd.log 2>&1 \
     &
@@ -22,10 +21,9 @@ while [ ! -S "/run/buildkit/buildkitd.sock" ]; do
     if [ "$i" -gt "$timeout" ]; then
         kill -9 "$buildkitd_pid" >/dev/null 2>&1 || true
         echo "Buildkitd did not start within $timeout seconds"
-        echo "Buildkitd log"
-        echo "=============="
+        echo "======= Buildkitd log ======="
         cat /var/log/buildkitd.log
-        echo "=============="
+        echo "======= End buildkitd log ======="
         exit 1
     fi
 done

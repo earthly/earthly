@@ -193,6 +193,9 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 				res.AddMeta(fmt.Sprintf("%s/image.name", refPrefix), []byte(saveImage.DockerTag))
 				if shouldPush {
 					res.AddMeta(fmt.Sprintf("%s/export-image-push", refPrefix), []byte("true"))
+					if saveImage.InsecurePush {
+						res.AddMeta(fmt.Sprintf("%s/insecure-push", refPrefix), []byte("true"))
+					}
 				}
 				res.AddMeta(fmt.Sprintf("%s/%s", refPrefix, exptypes.ExporterImageConfigKey), config)
 				if shouldExport {

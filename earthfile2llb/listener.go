@@ -405,6 +405,9 @@ func (l *listener) ExitSaveImage(c *parser.SaveImageContext) {
 	cacheHint := fs.Bool(
 		"cache-hint", false,
 		"Instruct Earthly that the current target shuold be saved entirely as part of the remote cache")
+	insecure := fs.Bool(
+		"insecure", false,
+		"Use unencrypted connection for the push")
 	cacheFrom := new(StringSliceFlag)
 	fs.Var(cacheFrom, "cache-from", "Declare additional cache import as a Docker tag")
 	err := fs.Parse(l.stmtWords)
@@ -432,7 +435,7 @@ func (l *listener) ExitSaveImage(c *parser.SaveImageContext) {
 		fmt.Printf("Deprecation: using SAVE IMAGE with no arguments is no longer necessary and can be safely removed\n")
 		return
 	}
-	err = l.converter.SaveImage(l.ctx, imageNames, *pushFlag, *cacheHint, cacheFrom.Args)
+	err = l.converter.SaveImage(l.ctx, imageNames, *pushFlag, *insecure, *cacheHint, cacheFrom.Args)
 	if err != nil {
 		l.err = errors.Wrap(err, "save image")
 		return

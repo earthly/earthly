@@ -1,0 +1,44 @@
+FROM ../../..+earthly-docker
+WORKDIR /test
+ARG REGISTRY
+ARG EARTHLY_BUILD_ARGS="REGISTRY"
+ARG EARTHLY_ADDITIONAL_BUILDKIT_CONFIG="
+[registry.\\\"$REGISTRY\\\"]
+  http = true
+  insecure = true
+"
+
+# The inner buildkit requires Docker hub creds to prevent rate-limiting issues.
+ARG DOCKERHUB_USER_SECRET
+ARG DOCKERHUB_TOKEN_SECRET
+RUN --secret USERNAME=$DOCKERHUB_USER_SECRET \
+    --secret TOKEN=$DOCKERHUB_TOKEN_SECRET \
+    if [ "$USERNAME" != "" ]; then \
+        docker login --username="$USERNAME" --password="$TOKEN" ;\
+    fi
+
+test:
+    COPY test.earth ./Earthfile
+    RUN echo "content" >./input
+    # Running with tmpfs mount = no local cache.
+    RUN --privileged \
+        --entrypoint \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        -- --ci --push +test1 | tee ./output
+    # Not cached.
+    RUN nl=$(cat ./output | grep "execute-test1-run-before-copy" | wc -l) && \
+        test "$nl" -eq 2
+    # Not cached.
+    RUN nl=$(cat ./output | grep "execute-test1-run-after-copy" | wc -l) && \
+        test "$nl" -eq 2
+    RUN echo "other content" >./input
+    RUN --privileged \
+        --entrypoint \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        -- --ci +test1 | tee ./output
+    # Cached.
+    RUN nl=$(cat ./output | grep "execute-test1-run-before-copy" | wc -l) && \
+        test "$nl" -eq 1
+    # Not cached.
+    RUN nl=$(cat ./output | grep "execute-test1-run-after-copy" | wc -l) && \
+        test "$nl" -eq 2
