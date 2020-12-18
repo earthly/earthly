@@ -13,6 +13,7 @@ jobs:
     env:
       FORCE_COLOR: 1
       EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
+      EARTHLY_INSTALL_ID: "earthly-githubactions"
     steps:
       - uses: actions/checkout@v2
       - name: Download released earthly
@@ -42,6 +43,7 @@ jobs:
     env:
       FORCE_COLOR: 1
       EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
+      EARTHLY_INSTALL_ID: "earthly-githubactions"
     steps:
       - uses: actions/checkout@v2
       - name: Download released earthly
@@ -80,6 +82,7 @@ jobs:
     env:
       FORCE_COLOR: 1
       EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
+      EARTHLY_INSTALL_ID: "earthly-githubactions"
     steps:
       - uses: actions/checkout@v2
       - name: Download released earthly
@@ -107,6 +110,7 @@ jobs:
     env:
       FORCE_COLOR: 1
       EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
+      EARTHLY_INSTALL_ID: "earthly-githubactions"
     steps:
       - uses: actions/checkout@v2
       - name: Download released earthly
@@ -133,6 +137,7 @@ jobs:
     env:
       FORCE_COLOR: 1
       EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
+      EARTHLY_INSTALL_ID: "earthly-githubactions"
       SSH_PORT: "2222"
     steps:
       - uses: actions/checkout@v2
@@ -158,6 +163,7 @@ jobs:
     env:
       FORCE_COLOR: 1
       EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
+      EARTHLY_INSTALL_ID: "earthly-githubactions"
     steps:
       - uses: actions/checkout@v2
       - name: "Put back the git branch into git (Earthly uses it for tagging)"
