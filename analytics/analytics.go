@@ -1,16 +1,22 @@
 package analytics
 
 import (
+	"bytes"
+	"context"
 	"crypto/sha256"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/earthly/earthly/fileutils"
+	"github.com/earthly/earthly/syncutil"
 
 	uuid "github.com/nu7hatch/gouuid"
 	"github.com/pkg/errors"
@@ -110,8 +116,46 @@ func getInstallID() (string, error) {
 	return string(s), nil
 }
 
+// EarthlyAnalytics contains analytical data which is sent to api.earthly.dev
+type EarthlyAnalytics struct {
+	Key              string  `json:"key"`
+	InstallID        string  `json:"install_id"`
+	Version          string  `json:"version"`
+	GitSHA           string  `json:"git_sha"`
+	ExitCode         int     `json:"exit_code"`
+	CI               string  `json:"ci_name"`
+	RepoHash         string  `json:"repo_hash"`
+	ExecutionSeconds float64 `json:"execution_seconds"`
+}
+
+func saveData(server string, data *EarthlyAnalytics) error {
+	payload, err := json.Marshal(data)
+	if err != nil {
+		return errors.Wrap(err, "failed to marshal data")
+	}
+
+	client := &http.Client{
+		Timeout: time.Millisecond * 500,
+	}
+
+	// set the HTTP method, url, and request body
+	url := server + "/analytics"
+	req, err := http.NewRequest(http.MethodPut, url, bytes.NewBuffer(payload))
+	if err != nil {
+		return errors.Wrap(err, "failed to create request for sending analytics")
+	}
+
+	req.Header.Set("Content-Type", "application/json; charset=utf-8")
+	_, err = client.Do(req)
+	if err != nil {
+		return errors.Wrap(err, "failed to send analytics")
+	}
+
+	return nil
+}
+
 // CollectAnalytics sends analytics to segment.io
-func CollectAnalytics(version, gitSha, commandName string, exitCode int, realtime time.Duration) {
+func CollectAnalytics(ctx context.Context, earthlyServer string, displayErrors bool, version, gitSha, commandName string, exitCode int, realtime time.Duration) {
 	var err error
 	ciName, ci := detectCI()
 	installID, overrideInstallID := os.LookupEnv("EARTHLY_INSTALL_ID")
@@ -130,25 +174,54 @@ func CollectAnalytics(version, gitSha, commandName string, exitCode int, realtim
 			}
 		}
 	}
-	segmentClient := analytics.New("RtwJaMBswcW3CNMZ7Ops79dV6lEZqsXf")
-	segmentClient.Enqueue(analytics.Track{
-		Event:  "cli-" + commandName,
-		UserId: installID,
-		Properties: analytics.NewProperties().
-			Set("version", version).
-			Set("gitsha", gitSha).
-			Set("exitcode", exitCode).
-			Set("ci", ciName).
-			Set("repohash", repoHash).
-			Set("realtime", realtime.Seconds()),
-	})
-	done := make(chan bool, 1)
+
+	key := "cli-" + commandName
+
+	var wg sync.WaitGroup
+
+	// send data to api.earthly.dev
+	wg.Add(1)
 	go func() {
-		segmentClient.Close()
-		done <- true
+		defer wg.Done()
+		err := saveData(earthlyServer, &EarthlyAnalytics{
+			Key:              key,
+			InstallID:        installID,
+			Version:          version,
+			GitSHA:           gitSha,
+			ExitCode:         exitCode,
+			CI:               ciName,
+			RepoHash:         repoHash,
+			ExecutionSeconds: realtime.Seconds(),
+		})
+		if err != nil && displayErrors {
+			fmt.Fprintf(os.Stderr, "error while sending analytics to earthly: %s\n", err.Error())
+		}
 	}()
-	select {
-	case <-time.After(time.Millisecond * 500):
-	case <-done:
+
+	// send data to segment
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		segmentClient := analytics.New("RtwJaMBswcW3CNMZ7Ops79dV6lEZqsXf")
+		segmentClient.Enqueue(analytics.Track{
+			Event:  key,
+			UserId: installID,
+			Properties: analytics.NewProperties().
+				Set("version", version).
+				Set("gitsha", gitSha).
+				Set("exitcode", exitCode).
+				Set("ci", ciName).
+				Set("repohash", repoHash).
+				Set("realtime", realtime.Seconds()),
+		})
+		err := segmentClient.Close()
+		if err != nil && displayErrors {
+			fmt.Fprintf(os.Stderr, "error while sending analytics to segment: %s\n", err.Error())
+		}
+	}()
+
+	ok := syncutil.WaitContext(ctx, &wg)
+	if !ok && displayErrors {
+		fmt.Fprintf(os.Stderr, "Warning: timedout while sending analytics\n")
 	}
 }

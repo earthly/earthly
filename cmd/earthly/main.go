@@ -218,7 +218,10 @@ func main() {
 	// app.cfg will be nil when a user runs `earthly --version`;
 	// however in all other regular commands app.cfg will be set in app.Before
 	if app.cfg != nil && !app.cfg.Global.DisableAnalytics {
-		analytics.CollectAnalytics(Version, GitSha, app.commandName, exitCode, time.Since(startTime))
+		ctxTimeout, cancel := context.WithTimeout(ctx, time.Millisecond*500)
+		defer cancel()
+		displayErrors := app.verbose
+		analytics.CollectAnalytics(ctxTimeout, app.apiServer, displayErrors, Version, GitSha, app.commandName, exitCode, time.Since(startTime))
 	}
 	os.Exit(exitCode)
 }
