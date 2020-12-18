@@ -25,7 +25,7 @@ set +e
 "$earthly" --allow-privileged \
     --ci \
     --build-arg REGISTRY \
-    +test
+    +all
 exit_code="$?"
 set -e
 
