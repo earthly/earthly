@@ -43,10 +43,10 @@ func GetID(tarFilePath string) (string, error) {
 				return "", errors.Wrapf(err, "unmarshal json tar manifest for %s", tarFilePath)
 			}
 			if len(jsonData) != 1 {
-				return "", fmt.Errorf("Unexpected len != 1 docker manifest in %s", tarFilePath)
+				return "", fmt.Errorf("unexpected len != 1 docker manifest in %s", tarFilePath)
 			}
 			return strings.TrimSuffix(jsonData[0].Config, ".json"), nil
 		}
 	}
-	return "", fmt.Errorf("Docker tar manifest.json not found in tar %s", tarFilePath)
+	return "", fmt.Errorf("docker tar manifest.json not found in tar %s", tarFilePath)
 }

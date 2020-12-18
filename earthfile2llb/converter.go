@@ -621,7 +621,7 @@ func (c *Converter) internalRun(ctx context.Context, args []string, secretKeyVal
 	for _, secretKeyValue := range secretKeyValues {
 		parts := strings.SplitN(secretKeyValue, "=", 2)
 		if len(parts) != 2 {
-			return fmt.Errorf("Invalid secret definition %s", secretKeyValue)
+			return fmt.Errorf("invalid secret definition %s", secretKeyValue)
 		}
 		if strings.HasPrefix(parts[1], "+secrets/") {
 			envVar := parts[0]
@@ -641,7 +641,7 @@ func (c *Converter) internalRun(ctx context.Context, args []string, secretKeyVal
 			// TODO: This should be an actual secret (with an empty value),
 			//       so that the cache works correctly.
 		} else {
-			return fmt.Errorf("Secret definition %s not supported. Must start with +secrets/ or be an empty string", secretKeyValue)
+			return fmt.Errorf("secret definition %s not supported. Must start with +secrets/ or be an empty string", secretKeyValue)
 		}
 	}
 	// Build args.

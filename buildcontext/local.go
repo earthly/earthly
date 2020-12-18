@@ -18,7 +18,7 @@ type localResolver struct {
 
 func (lr *localResolver) resolveLocal(ctx context.Context, target domain.Target) (*Data, error) {
 	if target.IsRemote() {
-		return nil, fmt.Errorf("Unexpected remote target %s", target.String())
+		return nil, fmt.Errorf("unexpected remote target %s", target.String())
 	}
 	excludes, err := readExcludes(target.LocalPath)
 	if err != nil {

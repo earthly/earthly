@@ -323,7 +323,7 @@ func (l *listener) ExitRunStmt(c *parser.RunStmtContext) {
 			return
 		}
 		if l.withDockerRan {
-			l.err = fmt.Errorf("Only one RUN command allowed in WITH DOCKER")
+			l.err = fmt.Errorf("only one RUN command allowed in WITH DOCKER")
 			return
 		}
 		l.withDockerRan = true
@@ -878,7 +878,7 @@ func (l *listener) ExitEndStmt(c *parser.EndStmtContext) {
 		return
 	}
 	if !l.withDockerRan {
-		l.err = fmt.Errorf("No RUN command found in WITH DOCKER")
+		l.err = fmt.Errorf("no RUN command found in WITH DOCKER")
 		return
 	}
 	l.withDocker = nil
@@ -889,35 +889,35 @@ func (l *listener) ExitAddStmt(c *parser.AddStmtContext) {
 	if l.shouldSkip() {
 		return
 	}
-	l.err = fmt.Errorf("Command ADD not yet supported")
+	l.err = fmt.Errorf("command ADD not yet supported")
 }
 
 func (l *listener) ExitStopsignalStmt(c *parser.StopsignalStmtContext) {
 	if l.shouldSkip() {
 		return
 	}
-	l.err = fmt.Errorf("Command STOPSIGNAL not yet supported")
+	l.err = fmt.Errorf("command STOPSIGNAL not yet supported")
 }
 
 func (l *listener) ExitOnbuildStmt(c *parser.OnbuildStmtContext) {
 	if l.shouldSkip() {
 		return
 	}
-	l.err = fmt.Errorf("Command ONBUILD not supported")
+	l.err = fmt.Errorf("command ONBUILD not supported")
 }
 
 func (l *listener) ExitShellStmt(c *parser.ShellStmtContext) {
 	if l.shouldSkip() {
 		return
 	}
-	l.err = fmt.Errorf("Command SHELL not yet supported")
+	l.err = fmt.Errorf("command SHELL not yet supported")
 }
 
 func (l *listener) ExitGenericCommandStmt(c *parser.GenericCommandStmtContext) {
 	if l.shouldSkip() {
 		return
 	}
-	l.err = fmt.Errorf("Invalid command %s", c.GetText())
+	l.err = fmt.Errorf("invalid command %s", c.GetText())
 }
 
 //
