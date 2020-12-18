@@ -17,8 +17,13 @@ RUN --secret USERNAME=$DOCKERHUB_USER_SECRET \
         docker login --username="$USERNAME" --password="$TOKEN" ;\
     fi
 
-test:
-    COPY test.earth ./Earthfile
+COPY test.earth ./Earthfile
+
+all:
+    BUILD +test1
+    BUILD +test2
+
+test1:
     RUN echo "content" >./input
     # Running with tmpfs mount = no local cache.
     RUN --privileged \
@@ -31,6 +36,18 @@ test:
     # Not cached.
     RUN nl=$(cat ./output | grep "execute-test1-run-after-copy" | wc -l) && \
         test "$nl" -eq 2
+    # No change & re-run.
+    RUN --privileged \
+        --entrypoint \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        -- --ci +test1 | tee ./output
+    # Cached.
+    RUN nl=$(cat ./output | grep "execute-test1-run-before-copy" | wc -l) && \
+        test "$nl" -eq 1
+    # Cached.
+    RUN nl=$(cat ./output | grep "execute-test1-run-after-copy" | wc -l) && \
+        test "$nl" -eq 1
+    # Change input & re-run.
     RUN echo "other content" >./input
     RUN --privileged \
         --entrypoint \
@@ -42,3 +59,20 @@ test:
     # Not cached.
     RUN nl=$(cat ./output | grep "execute-test1-run-after-copy" | wc -l) && \
         test "$nl" -eq 2
+
+test2:
+    RUN echo "a"
+    COPY --dir test2 test2
+    # Running with tmpfs mount = no local cache.
+    RUN --privileged \
+        --entrypoint \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        -- --ci --push +test2
+    RUN --privileged \
+        --entrypoint \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        -- --ci +test2 | tee ./output
+    RUN cat ./output | grep '\*cached\* --> RUN npm install'
+    RUN cat ./output | grep '\*cached\* --> COPY test2/dist dist'
+    RUN cat ./output | grep '\*cached\* --> SAVE ARTIFACT dist +test2-build/dist'
+    RUN cat ./output | grep '\*cached\* --> COPY +test2-build/dist ./dist'
