@@ -161,7 +161,9 @@ func CollectAnalytics(ctx context.Context, earthlyServer string, displayErrors b
 	installID, overrideInstallID := os.LookupEnv("EARTHLY_INSTALL_ID")
 	repoHash := getRepoHash()
 	if !overrideInstallID {
-		if repoHash == "unknown" {
+		if ciName != "false" {
+			installID = "ci"
+		} else if repoHash == "unknown" {
 			installID = "unknown"
 		} else {
 			if ci {
