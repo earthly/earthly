@@ -97,7 +97,7 @@ func ParseTarget(fullTargetName string) (Target, error) {
 		return Target{}, err
 	}
 	if len(partsPlus) != 2 {
-		return Target{}, fmt.Errorf("Invalid target ref %s", fullTargetName)
+		return Target{}, fmt.Errorf("invalid target ref %s", fullTargetName)
 	}
 	if partsPlus[0] == "" {
 		// Local target.

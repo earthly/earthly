@@ -36,69 +36,69 @@ func parseMount(mount string, target domain.Target, ti dedup.TargetInput, cacheC
 	for _, kvPair := range kvPairs {
 		kvSplit := strings.SplitN(kvPair, "=", 2)
 		if len(kvSplit) == 0 {
-			return nil, fmt.Errorf("Invalid mount arg %s", kvPair)
+			return nil, fmt.Errorf("invalid mount arg %s", kvPair)
 		}
 		switch kvSplit[0] {
 		case "id":
 			if len(kvSplit) != 2 {
-				return nil, fmt.Errorf("Invalid mount arg %s", kvPair)
+				return nil, fmt.Errorf("invalid mount arg %s", kvPair)
 			}
 			mountID = kvSplit[1]
 		case "type":
 			if len(kvSplit) != 2 {
-				return nil, fmt.Errorf("Invalid mount arg %s", kvPair)
+				return nil, fmt.Errorf("invalid mount arg %s", kvPair)
 			}
 			mountType = kvSplit[1]
 		case "source":
 			if len(kvSplit) != 2 {
-				return nil, fmt.Errorf("Invalid mount arg %s", kvPair)
+				return nil, fmt.Errorf("invalid mount arg %s", kvPair)
 			}
 			mountSource = kvSplit[1]
 		case "target":
 			if len(kvSplit) != 2 {
-				return nil, fmt.Errorf("Invalid mount arg %s", kvPair)
+				return nil, fmt.Errorf("invalid mount arg %s", kvPair)
 			}
 			mountTarget = kvSplit[1]
 		case "ro", "readonly":
 			if len(kvSplit) != 1 {
-				return nil, fmt.Errorf("Invalid mount arg %s", kvPair)
+				return nil, fmt.Errorf("invalid mount arg %s", kvPair)
 			}
 			mountOpts = append(mountOpts, llb.Readonly)
 		case "uid":
-			return nil, fmt.Errorf("Not yet supported %s", kvPair)
+			return nil, fmt.Errorf("not yet supported %s", kvPair)
 			// if len(kvSplit) != 2 {
-			// 	return nil, fmt.Errorf("Invalid mount arg %s", kvPair)
+			// 	return nil, fmt.Errorf("invalid mount arg %s", kvPair)
 			// }
 			// var err error
 			// uid, err = strconv.ParseInt(kvSplit[1], 10, 64)
 			// if err != nil {
-			// 	return nil, fmt.Errorf("Invalid mount arg %s", kvPair)
+			// 	return nil, fmt.Errorf("invalid mount arg %s", kvPair)
 			// }
 		case "gid":
-			return nil, fmt.Errorf("Not yet supported %s", kvPair)
+			return nil, fmt.Errorf("not yet supported %s", kvPair)
 			// if len(kvSplit) != 2 {
-			// 	return nil, fmt.Errorf("Invalid mount arg %s", kvPair)
+			// 	return nil, fmt.Errorf("invalid mount arg %s", kvPair)
 			// }
 			// var err error
 			// gid, err = strconv.ParseInt(kvSplit[1], 10, 64)
 			// if err != nil {
-			// 	return nil, fmt.Errorf("Invalid mount arg %s", kvPair)
+			// 	return nil, fmt.Errorf("invalid mount arg %s", kvPair)
 			// }
 		case "mode":
-			return nil, fmt.Errorf("Not yet supported %s", kvPair)
+			return nil, fmt.Errorf("not yet supported %s", kvPair)
 			// if len(kvSplit) != 2 {
-			// 	return nil, fmt.Errorf("Invalid mount arg %s", kvPair)
+			// 	return nil, fmt.Errorf("invalid mount arg %s", kvPair)
 			// }
 			// var err error
 			// var mode64 int64
 			// mode64, err = strconv.ParseInt(kvSplit[1], 8, 64)
 			// if err != nil {
-			// 	return nil, fmt.Errorf("Invalid mount arg %s", kvPair)
+			// 	return nil, fmt.Errorf("invalid mount arg %s", kvPair)
 			// }
 			// mode = int(mode64)
 		case "sharing":
 			if len(kvSplit) != 2 {
-				return nil, fmt.Errorf("Invalid mount arg %s", kvPair)
+				return nil, fmt.Errorf("invalid mount arg %s", kvPair)
 			}
 			switch kvSplit[1] {
 			case "shared":
@@ -108,16 +108,16 @@ func parseMount(mount string, target domain.Target, ti dedup.TargetInput, cacheC
 			case "locked":
 				sharingMode = llb.CacheMountLocked
 			default:
-				return nil, fmt.Errorf("Invalid mount arg %s", kvPair)
+				return nil, fmt.Errorf("invalid mount arg %s", kvPair)
 			}
 		case "from":
-			return nil, fmt.Errorf("Not yet supported %s", kvPair)
+			return nil, fmt.Errorf("not yet supported %s", kvPair)
 		default:
-			return nil, fmt.Errorf("Invalid mount arg %s", kvPair)
+			return nil, fmt.Errorf("invalid mount arg %s", kvPair)
 		}
 	}
 	if mountType == "" {
-		return nil, fmt.Errorf("Mount type not specified")
+		return nil, fmt.Errorf("mount type not specified")
 	}
 	if mountID == "" {
 		mountID = path.Clean(mountTarget)
@@ -126,16 +126,16 @@ func parseMount(mount string, target domain.Target, ti dedup.TargetInput, cacheC
 	switch mountType {
 	case "bind-experimental":
 		if mountSource == "" {
-			return nil, fmt.Errorf("Mount source not specified")
+			return nil, fmt.Errorf("mount source not specified")
 		}
 		if mountTarget == "" {
-			return nil, fmt.Errorf("Mount target not specified")
+			return nil, fmt.Errorf("mount target not specified")
 		}
 		mountOpts = append(mountOpts, llb.HostBind(), llb.SourcePath(mountSource))
 		return []llb.RunOption{llb.AddMount(mountTarget, llb.Scratch(), mountOpts...)}, nil
 	case "cache":
 		if mountTarget == "" {
-			return nil, fmt.Errorf("Mount target not specified")
+			return nil, fmt.Errorf("mount target not specified")
 		}
 		key, err := cacheKeyTargetInput(ti)
 		if err != nil {
@@ -147,7 +147,7 @@ func parseMount(mount string, target domain.Target, ti dedup.TargetInput, cacheC
 		return []llb.RunOption{llb.AddMount(mountTarget, state, mountOpts...)}, nil
 	case "tmpfs":
 		if mountTarget == "" {
-			return nil, fmt.Errorf("Mount target not specified")
+			return nil, fmt.Errorf("mount target not specified")
 		}
 		state = llb.Scratch().Platform(llbutil.TargetPlatform)
 		mountOpts = append(mountOpts, llb.Tmpfs())
@@ -159,7 +159,7 @@ func parseMount(mount string, target domain.Target, ti dedup.TargetInput, cacheC
 		}
 		return []llb.RunOption{llb.AddSSHSocket(sshOpts...)}, nil
 	default:
-		return nil, fmt.Errorf("Invalid mount type %s", mountType)
+		return nil, fmt.Errorf("invalid mount type %s", mountType)
 	}
 }
 

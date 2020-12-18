@@ -45,7 +45,7 @@ type resolvedGitProject struct {
 
 func (gr *gitResolver) resolveEarthProject(ctx context.Context, gwClient gwclient.Client, target domain.Target) (*Data, error) {
 	if !target.IsRemote() {
-		return nil, fmt.Errorf("Unexpected local target %s", target.String())
+		return nil, fmt.Errorf("unexpected local target %s", target.String())
 	}
 	rgp, gitURL, subDir, err := gr.resolveGitProject(ctx, gwClient, target)
 	if err != nil {
