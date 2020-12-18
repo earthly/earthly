@@ -70,7 +70,8 @@ case "$1" in
         ;;
 
     -h)
-        ;&
+        do_help
+        ;; # using a ;& fallthrough won't work on macOS
     --help)
         do_help
         ;;
