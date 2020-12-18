@@ -234,6 +234,15 @@ func getVersion() string {
 	return fmt.Sprintf("%s-%s", Version, GitSha)
 }
 
+func getBinaryName() string {
+	if len(os.Args) == 0 {
+		return "earthly"
+	}
+	binPath := os.Args[0] // can't use os.Executable() here; because it will give us earthly if executed via the earth symlink
+	baseName := path.Base(binPath)
+	return baseName
+}
+
 func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *earthlyApp {
 	sessionIDBytes := make([]byte, 64)
 	_, err := rand.Read(sessionIDBytes)
@@ -249,14 +258,16 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 		},
 	}
 
+	earthly := getBinaryName()
+
 	app.cliApp.Usage = "A build automation tool for the container era"
-	app.cliApp.UsageText = "\tearth [options] <target-ref>\n" +
+	app.cliApp.UsageText = "\t" + earthly + " [options] <target-ref>\n" +
 		"\n" +
-		"   \tearth [options] --image <target-ref>\n" +
+		"   \t" + earthly + " [options] --image <target-ref>\n" +
 		"\n" +
-		"   \tearth [options] --artifact <artifact-ref> [<dest-path>]\n" +
+		"   \t" + earthly + " [options] --artifact <artifact-ref> [<dest-path>]\n" +
 		"\n" +
-		"   \tearth [options] command [command options]\n" +
+		"   \t" + earthly + " [options] command [command options]\n" +
 		"\n" +
 		"Executes Earthly builds. For more information see https://docs.earthly.dev/earthly-command.\n" +
 		"To get started with using Earthly, check out the getting started guide at https://docs.earthly.dev/guides/basics."
