@@ -3,9 +3,11 @@
 {% hint style='danger' %}
 ##### Important
 
-This feature is currently in **Experimental** stage.
+This feature is currently in **Experimental** stage
 
-The feature may break, be changed drastically with no warning, or be removed altogether in future versions of Earthly.
+* The feature may break, be changed drastically with no warning, or be removed altogether in future versions of Earthly.
+* Check the [GitHub tracking issue](https://github.com/earthly/earthly/issues/11) for any known problems.
+* Give us feedback on [Slack](https://join.slack.com/t/earthlycommunity/shared_invite/zt-ix9rtuv8-DUFl8uxe5bFULxyCGGbqJQ) in the `#shared-cache` channel.
 {% endhint %}
 
 Earthly has the ability to share cache between different isolated CI runs and even with developers. This page goes through the available features, common use-cases and situations where shared cache is most useful.
@@ -143,7 +145,7 @@ deps:
 
 Making use of explicit caching effectively may not always be possible. Sometimes the overhead of uploading and redownloading the cache defeats the purpose of gaining build performance. Oftentimes, multiple iterations of trial-and-error need to be attempted in order to optimize its effectiveness. Keep in mind that caching compute-heavy targets is more likely to yield results, rather than download-heavy targets.
 
-As an additional setting available, Earthly can be instructed to save all intermediary steps as part of the explicit cache. The setting `--max-remote-cache` can be used to enable this. Note, however that this setting is rarely effective due to the significant upload overhead.
+As an additional setting available, Earthly can be instructed to save all intermediary steps as part of the explicit cache. The setting `--max-remote-cache` can be used to enable this. Note that this results in large uploads and is usually not very effective. An example where this feature is useful, however, is when you would like to optimize CI run times in PRs, and are willing to sacrifice CI run times in default branch builds. This can be achieved by enabling `--push` and `--max-remote-cache` on the default branch builds only.
 
 #### Example of using explicit caching
 
