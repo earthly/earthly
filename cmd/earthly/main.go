@@ -111,6 +111,7 @@ type cliFlags struct {
 	password               string
 	disableNewLine         bool
 	secretFile             string
+	secretStdin            bool
 	apiServer              string
 	writePermission        bool
 	registrationPublicKey  string
@@ -563,6 +564,7 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 					Name:  "set",
 					Usage: "Stores a secret in the secrets store",
 					UsageText: "earthly [options] secrets set <path> <value>\n" +
+						"   earthly [options] secrets set --file <local-path> <path>\n" +
 						"   earthly [options] secrets set --file <local-path> <path>",
 					Action: app.actionSecretsSet,
 					Flags: []cli.Flag{
@@ -571,6 +573,12 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 							Aliases:     []string{"f"},
 							Usage:       "Stores secret stored in file",
 							Destination: &app.secretFile,
+						},
+						&cli.BoolFlag{
+							Name:        "stdin",
+							Aliases:     []string{"i"},
+							Usage:       "Stores secret read from stdin",
+							Destination: &app.secretStdin,
 						},
 					},
 				},
@@ -1359,12 +1367,25 @@ func (app *earthlyApp) actionSecretsSet(c *cli.Context) error {
 	app.commandName = "secretsSet"
 	var path string
 	var value string
-	if app.secretFile == "" {
+	if app.secretFile == "" && !app.secretStdin {
 		if c.NArg() != 2 {
 			return errors.New("invalid number of arguments provided")
 		}
 		path = c.Args().Get(0)
 		value = c.Args().Get(1)
+	} else if app.secretStdin {
+		if app.secretFile != "" {
+			return errors.New("only one of --file or --stdin can be used at a time")
+		}
+		if c.NArg() != 1 {
+			return errors.New("invalid number of arguments provided")
+		}
+		path = c.Args().Get(0)
+		data, err := ioutil.ReadAll(os.Stdin)
+		if err != nil {
+			return errors.Wrap(err, "failed to read from stdin")
+		}
+		value = string(data)
 	} else {
 		if c.NArg() != 1 {
 			return errors.New("invalid number of arguments provided")
@@ -1372,7 +1393,7 @@ func (app *earthlyApp) actionSecretsSet(c *cli.Context) error {
 		path = c.Args().Get(0)
 		data, err := ioutil.ReadFile(app.secretFile)
 		if err != nil {
-			return errors.Wrap(err, "failed to read secret from file")
+			return errors.Wrapf(err, "failed to read secret from %s", app.secretFile)
 		}
 		value = string(data)
 	}
