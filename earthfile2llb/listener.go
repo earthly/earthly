@@ -9,8 +9,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/containerd/containerd/platforms"
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/earthfile2llb/parser"
+	specs "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
 )
 
@@ -77,7 +79,7 @@ func (l *listener) EnterTargetHeader(c *parser.TargetHeaderContext) {
 		return
 	}
 	// Apply implicit FROM +base
-	err := l.converter.From(l.ctx, "+base", nil)
+	err := l.converter.From(l.ctx, "+base", nil, nil)
 	if err != nil {
 		l.err = errors.Wrap(err, "apply implicit FROM +base")
 		return
@@ -127,6 +129,7 @@ func (l *listener) ExitFromStmt(c *parser.FromStmtContext) {
 	fs := flag.NewFlagSet("FROM", flag.ContinueOnError)
 	buildArgs := new(StringSliceFlag)
 	fs.Var(buildArgs, "build-arg", "A build arg override passed on to a referenced Earthly target")
+	platformStr := fs.String("platform", "", "The platform to use")
 	err := fs.Parse(l.stmtWords)
 	if err != nil {
 		l.err = errors.Wrapf(err, "invalid FROM arguments %v", l.stmtWords)
@@ -141,10 +144,20 @@ func (l *listener) ExitFromStmt(c *parser.FromStmtContext) {
 		return
 	}
 	imageName := l.expandArgs(fs.Arg(0), true)
+	*platformStr = l.expandArgs(*platformStr, false)
+	var platform *specs.Platform
+	if *platformStr != "" {
+		p, err := platforms.Parse(*platformStr)
+		if err != nil {
+			l.err = errors.Wrapf(err, "parse platform %s", *platformStr)
+			return
+		}
+		platform = &p
+	}
 	for i, ba := range buildArgs.Args {
 		buildArgs.Args[i] = l.expandArgs(ba, true)
 	}
-	err = l.converter.From(l.ctx, imageName, buildArgs.Args)
+	err = l.converter.From(l.ctx, imageName, platform, buildArgs.Args)
 	if err != nil {
 		l.err = errors.Wrapf(err, "apply FROM %s", imageName)
 		return
@@ -162,6 +175,7 @@ func (l *listener) ExitFromDockerfileStmt(c *parser.FromDockerfileStmtContext) {
 	fs := flag.NewFlagSet("FROM DOCKERFILE", flag.ContinueOnError)
 	buildArgs := new(StringSliceFlag)
 	fs.Var(buildArgs, "build-arg", "A build arg override passed on to a referenced Earthly target and also to the Dockerfile build")
+	platformStr := fs.String("platform", "", "The platform to use")
 	dfTarget := fs.String("target", "", "The Dockerfile target to inherit from")
 	dfPath := fs.String("f", "", "Not supported")
 	err := fs.Parse(l.stmtWords)
@@ -182,9 +196,19 @@ func (l *listener) ExitFromDockerfileStmt(c *parser.FromDockerfileStmtContext) {
 	for i, ba := range buildArgs.Args {
 		buildArgs.Args[i] = l.expandArgs(ba, true)
 	}
+	*platformStr = l.expandArgs(*platformStr, false)
+	var platform *specs.Platform
+	if *platformStr != "" {
+		p, err := platforms.Parse(*platformStr)
+		if err != nil {
+			l.err = errors.Wrapf(err, "parse platform %s", *platformStr)
+			return
+		}
+		platform = &p
+	}
 	*dfPath = l.expandArgs(*dfPath, false)
 	*dfTarget = l.expandArgs(*dfTarget, false)
-	err = l.converter.FromDockerfile(l.ctx, path, *dfPath, *dfTarget, buildArgs.Args)
+	err = l.converter.FromDockerfile(l.ctx, path, *dfPath, *dfTarget, platform, buildArgs.Args)
 	if err != nil {
 		l.err = errors.Wrap(err, "from dockerfile")
 		return
@@ -205,6 +229,7 @@ func (l *listener) ExitCopyStmt(c *parser.CopyStmtContext) {
 	chown := fs.String("chown", "", "Apply a specific group and/or owner to the copied files and directories")
 	keepTs := fs.Bool("keep-ts", false, "Keep created time file timestamps")
 	keepOwn := fs.Bool("keep-own", false, "Keep owner info")
+	platformStr := fs.String("platform", "", "The platform to use")
 	buildArgs := new(StringSliceFlag)
 	fs.Var(buildArgs, "build-arg", "A build arg override passed on to a referenced Earthly target")
 	err := fs.Parse(l.stmtWords)
@@ -226,6 +251,16 @@ func (l *listener) ExitCopyStmt(c *parser.CopyStmtContext) {
 		buildArgs.Args[i] = l.expandArgs(ba, true)
 	}
 	*chown = l.expandArgs(*chown, false)
+	*platformStr = l.expandArgs(*platformStr, false)
+	var platform *specs.Platform
+	if *platformStr != "" {
+		p, err := platforms.Parse(*platformStr)
+		if err != nil {
+			l.err = errors.Wrapf(err, "parse platform %s", *platformStr)
+			return
+		}
+		platform = &p
+	}
 	allClassical := true
 	allArtifacts := true
 	for i, src := range srcs {
@@ -245,7 +280,7 @@ func (l *listener) ExitCopyStmt(c *parser.CopyStmtContext) {
 	}
 	if allArtifacts {
 		for _, src := range srcs {
-			err = l.converter.CopyArtifact(l.ctx, src, dest, buildArgs.Args, *isDirCopy, *keepTs, *keepOwn, *chown)
+			err = l.converter.CopyArtifact(l.ctx, src, dest, platform, buildArgs.Args, *isDirCopy, *keepTs, *keepOwn, *chown)
 			if err != nil {
 				l.err = errors.Wrapf(err, "copy artifact")
 				return
@@ -454,6 +489,8 @@ func (l *listener) ExitBuildStmt(c *parser.BuildStmtContext) {
 		return
 	}
 	fs := flag.NewFlagSet("BUILD", flag.ContinueOnError)
+	platformsStr := new(StringSliceFlag)
+	fs.Var(platformsStr, "platform", "The platform to build")
 	buildArgs := new(StringSliceFlag)
 	fs.Var(buildArgs, "build-arg", "A build arg override passed on to a referenced Earthly target")
 	err := fs.Parse(l.stmtWords)
@@ -466,13 +503,28 @@ func (l *listener) ExitBuildStmt(c *parser.BuildStmtContext) {
 		return
 	}
 	fullTargetName := l.expandArgs(fs.Arg(0), true)
+	platformsSlice := make([]*specs.Platform, 0, len(platformsStr.Args))
+	for i, p := range platformsStr.Args {
+		platformsStr.Args[i] = l.expandArgs(p, false)
+		platform, err := platforms.Parse(p)
+		if err != nil {
+			l.err = errors.Wrapf(err, "parse platform %s", p)
+			return
+		}
+		platformsSlice = append(platformsSlice, &platform)
+	}
 	for i, arg := range buildArgs.Args {
 		buildArgs.Args[i] = l.expandArgs(arg, true)
 	}
-	err = l.converter.Build(l.ctx, fullTargetName, buildArgs.Args)
-	if err != nil {
-		l.err = errors.Wrapf(err, "apply BUILD %s", fullTargetName)
-		return
+	if len(platformsSlice) == 0 {
+		platformsSlice = []*specs.Platform{nil}
+	}
+	for _, platform := range platformsSlice {
+		err = l.converter.Build(l.ctx, fullTargetName, platform, buildArgs.Args)
+		if err != nil {
+			l.err = errors.Wrapf(err, "apply BUILD %s", fullTargetName)
+			return
+		}
 	}
 }
 
@@ -667,74 +719,14 @@ func (l *listener) ExitDockerLoadStmt(c *parser.DockerLoadStmtContext) {
 	if l.shouldSkip() {
 		return
 	}
-	if l.pushOnlyAllowed {
-		l.err = fmt.Errorf("no non-push commands allowed after a --push: %s", c.GetText())
-		return
-	}
-	fs := flag.NewFlagSet("DOCKER LOAD", flag.ContinueOnError)
-	buildArgs := new(StringSliceFlag)
-	fs.Var(buildArgs, "build-arg", "A build arg override passed on to a referenced Earthly target")
-	err := fs.Parse(l.stmtWords)
-	if err != nil {
-		l.err = errors.Wrapf(err, "invalid DOCKER LOAD arguments %v", l.stmtWords)
-		return
-	}
-	if fs.NArg() != 2 {
-		l.err = fmt.Errorf("invalid number of arguments for DOCKER LOAD: %s", l.stmtWords)
-		return
-	}
-	fullTargetName := l.expandArgs(fs.Arg(0), true)
-	imageName := l.expandArgs(fs.Arg(1), false)
-	for i, arg := range buildArgs.Args {
-		buildArgs.Args[i] = l.expandArgs(arg, true)
-	}
-	if l.withDocker == nil {
-		err = l.converter.DockerLoadOld(l.ctx, fullTargetName, imageName, buildArgs.Args)
-		if err != nil {
-			l.err = errors.Wrap(err, "docker load")
-			return
-		}
-	} else {
-		if l.withDockerRan {
-			l.err = fmt.Errorf("cannot DOCKER LOAD after the RUN command in a WITH DOCKER clause")
-			return
-		}
-		fmt.Printf("Warning: DOCKER LOAD is deprecated. Please use WITH DOCKER --load %s=%s instead\n", imageName, fullTargetName)
-		l.withDocker.Loads = append(l.withDocker.Loads, DockerLoadOpt{
-			Target:    fullTargetName,
-			ImageName: imageName,
-			BuildArgs: buildArgs.Args,
-		})
-	}
+	l.err = errors.New("DOCKER LOAD is obsolete. Please use WITH DOCKER --load")
 }
 
 func (l *listener) ExitDockerPullStmt(c *parser.DockerPullStmtContext) {
 	if l.shouldSkip() {
 		return
 	}
-	if l.pushOnlyAllowed {
-		l.err = fmt.Errorf("no non-push commands allowed after a --push: %s", c.GetText())
-		return
-	}
-	if len(l.stmtWords) != 1 {
-		l.err = fmt.Errorf("invalid number of arguments for DOCKER PULL: %s", l.stmtWords)
-		return
-	}
-	imageName := l.expandArgs(l.stmtWords[0], false)
-	if l.withDocker == nil {
-		err := l.converter.DockerPullOld(l.ctx, imageName)
-		if err != nil {
-			l.err = errors.Wrap(err, "docker pull")
-			return
-		}
-	} else {
-		if l.withDockerRan {
-			l.err = fmt.Errorf("cannot DOCKER PULL after the RUN command in a WITH DOCKER clause")
-			return
-		}
-		fmt.Printf("Warning: DOCKER PULL is deprecated. Please use WITH DOCKER --pull %s instead\n", imageName)
-		l.withDocker.Pulls = append(l.withDocker.Pulls, imageName)
-	}
+	l.err = errors.New("DOCKER PULL is obsolete. Please use WITH DOCKER --pull")
 }
 
 func (l *listener) ExitHealthcheckStmt(c *parser.HealthcheckStmtContext) {
@@ -816,6 +808,7 @@ func (l *listener) ExitWithDockerStmt(c *parser.WithDockerStmtContext) {
 	fs.Var(composeServices, "service", "A compose service to bring up")
 	loads := new(StringSliceFlag)
 	fs.Var(loads, "load", "An image produced by Earthly which is loaded as a Docker image")
+	platformStr := fs.String("platform", "", "The platform to use")
 	buildArgs := new(StringSliceFlag)
 	fs.Var(buildArgs, "build-arg", "A build arg override passed on to a referenced Earthly target")
 	pulls := new(StringSliceFlag)
@@ -830,6 +823,16 @@ func (l *listener) ExitWithDockerStmt(c *parser.WithDockerStmtContext) {
 		return
 	}
 
+	*platformStr = l.expandArgs(*platformStr, false)
+	var platform *specs.Platform
+	if *platformStr != "" {
+		p, err := platforms.Parse(*platformStr)
+		if err != nil {
+			l.err = errors.Wrapf(err, "parse platform %s", *platformStr)
+			return
+		}
+		platform = &p
+	}
 	for i, cf := range composeFiles.Args {
 		composeFiles.Args[i] = l.expandArgs(cf, false)
 	}
@@ -847,9 +850,14 @@ func (l *listener) ExitWithDockerStmt(c *parser.WithDockerStmtContext) {
 	}
 
 	l.withDocker = &WithDockerOpt{
-		Pulls:           pulls.Args,
 		ComposeFiles:    composeFiles.Args,
 		ComposeServices: composeServices.Args,
+	}
+	for _, pullStr := range pulls.Args {
+		l.withDocker.Pulls = append(l.withDocker.Pulls, DockerPullOpt{
+			ImageName: pullStr,
+			Platform:  platform,
+		})
 	}
 	for _, loadStr := range loads.Args {
 		loadImg, loadTarget, err := parseLoad(loadStr)
@@ -860,6 +868,7 @@ func (l *listener) ExitWithDockerStmt(c *parser.WithDockerStmtContext) {
 		l.withDocker.Loads = append(l.withDocker.Loads, DockerLoadOpt{
 			Target:    loadTarget,
 			ImageName: loadImg,
+			Platform:  platform,
 			BuildArgs: buildArgs.Args,
 		})
 	}

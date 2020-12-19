@@ -7,6 +7,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/containerd/containerd/platforms"
 	"github.com/earthly/earthly/buildcontext"
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/states/dedup"
@@ -14,6 +15,7 @@ import (
 
 	"github.com/moby/buildkit/client/llb"
 	dfShell "github.com/moby/buildkit/frontend/dockerfile/shell"
+	specs "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
 )
 
@@ -205,7 +207,7 @@ func getProjectName(s string) string {
 
 // WithBuiltinBuildArgs returns a new collection containing the current variables together with
 // builtin args. This operation does not modify the current collection.
-func (c *Collection) WithBuiltinBuildArgs(target domain.Target, gitMeta *buildcontext.GitMetadata) *Collection {
+func (c *Collection) WithBuiltinBuildArgs(target domain.Target, platform specs.Platform, gitMeta *buildcontext.GitMetadata) *Collection {
 	ret := NewCollection()
 	// Copy existing variables.
 	for k, v := range c.variables {
@@ -224,6 +226,11 @@ func (c *Collection) WithBuiltinBuildArgs(target domain.Target, gitMeta *buildco
 	ret.variables["EARTHLY_TARGET_NAME"] = NewConstant(target.Target)
 	ret.variables["EARTHLY_TARGET_TAG"] = NewConstant(target.Tag)
 	ret.variables["EARTHLY_TARGET_TAG_DOCKER"] = NewConstant(dockerTagSafe(target.Tag))
+
+	ret.variables["TARGETPLATFORM"] = NewConstant(platforms.Format(platform))
+	ret.variables["TARGETOS"] = NewConstant(platform.OS)
+	ret.variables["TARGETARCH"] = NewConstant(platform.Architecture)
+	ret.variables["TARGETVARIANT"] = NewConstant(platform.Variant)
 
 	if gitMeta != nil {
 		ret.variables["EARTHLY_GIT_HASH"] = NewConstant(gitMeta.Hash)

@@ -26,6 +26,7 @@ import (
 	"text/tabwriter"
 	"time"
 
+	"github.com/containerd/containerd/platforms"
 	"github.com/earthly/earthly/analytics"
 	"github.com/earthly/earthly/autocomplete"
 	"github.com/earthly/earthly/buildcontext"
@@ -56,6 +57,7 @@ import (
 	"github.com/moby/buildkit/session/auth/authprovider"
 	"github.com/moby/buildkit/session/sshforward/sshprovider"
 	"github.com/moby/buildkit/util/entitlements"
+	specs "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
 	"github.com/seehuhn/password"
 	"github.com/sirupsen/logrus"
@@ -77,6 +79,7 @@ type earthlyApp struct {
 }
 
 type cliFlags struct {
+	platformsStr           cli.StringSlice
 	buildArgs              cli.StringSlice
 	secrets                cli.StringSlice
 	secretFiles            cli.StringSlice
@@ -276,6 +279,12 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 	app.cliApp.Action = app.actionBuild
 	app.cliApp.Version = getVersion()
 	app.cliApp.Flags = []cli.Flag{
+		&cli.StringSliceFlag{
+			Name:    "platform",
+			EnvVars: []string{"EARTHLY_PLATFORMS"},
+			Usage:   "Specify the target platform to build for *experimental*",
+			Value:   &app.platformsStr,
+		},
 		&cli.StringSliceFlag{
 			Name:    "build-arg",
 			EnvVars: []string{"EARTHLY_BUILD_ARGS"},
@@ -2019,7 +2028,18 @@ func (app *earthlyApp) actionBuild(c *cli.Context) error {
 	}
 	defer bkClient.Close()
 
-	//interactive debugger settings are passed as secrets to avoid having it affect the cache hash
+	platformsSlice := make([]specs.Platform, 0, len(app.platformsStr.Value()))
+	for _, p := range app.platformsStr.Value() {
+		platform, err := platforms.Parse(p)
+		if err != nil {
+			return errors.Wrapf(err, "parse platform %s", p)
+		}
+		platformsSlice = append(platformsSlice, platform)
+	}
+	if len(platformsSlice) == 0 {
+		platformsSlice = []specs.Platform{llbutil.DefaultPlatform()}
+	}
+
 	dotEnvMap := make(map[string]string)
 	if fileutils.FileExists(dotEnvPath) {
 		dotEnvMap, err = godotenv.Read(dotEnvPath)
@@ -2139,11 +2159,15 @@ func (app *earthlyApp) actionBuild(c *cli.Context) error {
 		return errors.Wrap(err, "new builder")
 	}
 
+	if len(platformsSlice) != 1 {
+		return errors.Errorf("multi-platform builds are not yet supported on the command line. You may, however, create a target with the instruction BUILD --plaform ... --platform ... %s", target)
+	}
 	buildOpts := builder.BuildOpt{
 		PrintSuccess:          true,
 		Push:                  app.push,
 		NoOutput:              app.noOutput,
 		OnlyFinalTargetImages: app.imageMode,
+		Platform:              platformsSlice[0],
 	}
 	if app.artifactMode {
 		buildOpts.OnlyArtifact = &artifact

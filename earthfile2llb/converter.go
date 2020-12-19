@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/containerd/containerd/platforms"
 	"github.com/docker/distribution/reference"
 	"github.com/earthly/earthly/buildcontext"
 	"github.com/earthly/earthly/debugger/common"
@@ -27,6 +28,7 @@ import (
 	"github.com/moby/buildkit/frontend/dockerfile/dockerfile2llb"
 	gwclient "github.com/moby/buildkit/frontend/gateway/client"
 	solverpb "github.com/moby/buildkit/solver/pb"
+	specs "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
 )
 
@@ -51,9 +53,9 @@ func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Da
 		TargetInput: dedup.TargetInput{
 			TargetCanonical: target.StringCanonical(),
 		},
-		MainState:      llb.Scratch().Platform(llbutil.TargetPlatform),
+		MainState:      llbutil.ScratchWithPlatform(),
 		MainImage:      image.NewImage(),
-		ArtifactsState: llb.Scratch().Platform(llbutil.TargetPlatform),
+		ArtifactsState: llbutil.ScratchWithPlatform(),
 		LocalDirs:      bc.LocalDirs,
 		Ongoing:        true,
 		Salt:           fmt.Sprintf("%d", rand.Int()),
@@ -74,28 +76,28 @@ func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Da
 		mts:           mts,
 		buildContext:  bc.BuildContext,
 		cacheContext:  makeCacheContext(target),
-		varCollection: opt.VarCollection.WithBuiltinBuildArgs(target, bc.GitMetadata),
+		varCollection: opt.VarCollection.WithBuiltinBuildArgs(target, opt.Platform, bc.GitMetadata),
 	}, nil
 }
 
 // From applies the earthly FROM command.
-func (c *Converter) From(ctx context.Context, imageName string, buildArgs []string) error {
+func (c *Converter) From(ctx context.Context, imageName string, platform *specs.Platform, buildArgs []string) error {
 	c.nonSaveCommand()
 	if strings.Contains(imageName, "+") {
 		// Target-based FROM.
-		return c.fromTarget(ctx, imageName, buildArgs)
+		return c.fromTarget(ctx, imageName, platform, buildArgs)
 	}
 
 	// Docker image based FROM.
 	if len(buildArgs) != 0 {
 		return errors.New("--build-arg not supported in non-target FROM")
 	}
-	return c.fromClassical(ctx, imageName)
+	return c.fromClassical(ctx, imageName, platform)
 }
 
-func (c *Converter) fromClassical(ctx context.Context, imageName string) error {
+func (c *Converter) fromClassical(ctx context.Context, imageName string, platform *specs.Platform) error {
 	state, img, newVariables, err := c.internalFromClassical(
-		ctx, imageName,
+		ctx, imageName, platform,
 		llb.WithCustomNamef("%sFROM %s", c.vertexPrefix(), imageName))
 	if err != nil {
 		return err
@@ -106,12 +108,12 @@ func (c *Converter) fromClassical(ctx context.Context, imageName string) error {
 	return nil
 }
 
-func (c *Converter) fromTarget(ctx context.Context, targetName string, buildArgs []string) error {
+func (c *Converter) fromTarget(ctx context.Context, targetName string, platform *specs.Platform, buildArgs []string) error {
 	depTarget, err := domain.ParseTarget(targetName)
 	if err != nil {
 		return errors.Wrapf(err, "parse target name %s", targetName)
 	}
-	mts, err := c.buildTarget(ctx, depTarget.String(), buildArgs, false)
+	mts, err := c.buildTarget(ctx, depTarget.String(), platform, buildArgs, false)
 	if err != nil {
 		return errors.Wrapf(err, "apply build %s", depTarget.String())
 	}
@@ -135,7 +137,7 @@ func (c *Converter) fromTarget(ctx context.Context, targetName string, buildArgs
 }
 
 // FromDockerfile applies the earthly FROM DOCKERFILE command.
-func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPath string, dfTarget string, buildArgs []string) error {
+func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPath string, dfTarget string, platform *specs.Platform, buildArgs []string) error {
 	c.nonSaveCommand()
 	if dfPath != "" {
 		// TODO: It's not yet very clear what -f should do. Should it be referencing a Dockerfile
@@ -151,7 +153,7 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 		// The Dockerfile and build context are from a target's artifact.
 		// TODO: The build args are used for both the artifact and the Dockerfile. This could be
 		//       confusing to the user.
-		mts, err := c.buildTarget(ctx, contextArtifact.Target.String(), buildArgs, false)
+		mts, err := c.buildTarget(ctx, contextArtifact.Target.String(), platform, buildArgs, false)
 		if err != nil {
 			return err
 		}
@@ -161,7 +163,7 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 		if err != nil {
 			return err
 		}
-		buildContext = llb.Scratch().Platform(llbutil.TargetPlatform)
+		buildContext = llbutil.ScratchWithPlatform()
 		buildContext = llbutil.CopyOp(
 			mts.Final.ArtifactsState, []string{contextArtifact.Artifact},
 			buildContext, "/", true, true, false, "",
@@ -210,7 +212,7 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 		MetaResolver:     c.opt.MetaResolver,
 		ImageResolveMode: c.opt.ImageResolveMode,
 		Target:           dfTarget,
-		TargetPlatform:   &llbutil.TargetPlatform,
+		TargetPlatform:   platform,
 		LLBCaps:          &caps,
 		BuildArgs:        newVarCollection.AsMap(),
 		Excludes:         nil, // TODO: Need to process this correctly.
@@ -236,13 +238,13 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 }
 
 // CopyArtifact applies the earthly COPY artifact command.
-func (c *Converter) CopyArtifact(ctx context.Context, artifactName string, dest string, buildArgs []string, isDir bool, keepTs bool, keepOwn bool, chown string) error {
+func (c *Converter) CopyArtifact(ctx context.Context, artifactName string, dest string, platform *specs.Platform, buildArgs []string, isDir bool, keepTs bool, keepOwn bool, chown string) error {
 	c.nonSaveCommand()
 	artifact, err := domain.ParseArtifact(artifactName)
 	if err != nil {
 		return errors.Wrapf(err, "parse artifact name %s", artifactName)
 	}
-	mts, err := c.buildTarget(ctx, artifact.Target.String(), buildArgs, false)
+	mts, err := c.buildTarget(ctx, artifact.Target.String(), platform, buildArgs, false)
 	if err != nil {
 		return errors.Wrapf(err, "apply build %s", artifact.Target.String())
 	}
@@ -349,7 +351,7 @@ func (c *Converter) SaveArtifact(ctx context.Context, saveFrom string, saveTo st
 		llb.WithCustomNamef(
 			"%sSAVE ARTIFACT %s %s", c.vertexPrefix(), saveFrom, artifact.String()))
 	if saveAsLocalTo != "" {
-		separateArtifactsState := llb.Scratch().Platform(llbutil.TargetPlatform)
+		separateArtifactsState := llbutil.ScratchWithPlatform()
 		separateArtifactsState = llbutil.CopyOp(
 			c.mts.Final.MainState, []string{saveFrom}, separateArtifactsState,
 			saveToAdjusted, true, false, keepTs, "root:root",
@@ -400,9 +402,9 @@ func (c *Converter) SaveImage(ctx context.Context, imageNames []string, pushImag
 }
 
 // Build applies the earthly BUILD command.
-func (c *Converter) Build(ctx context.Context, fullTargetName string, buildArgs []string) error {
+func (c *Converter) Build(ctx context.Context, fullTargetName string, platform *specs.Platform, buildArgs []string) error {
 	c.nonSaveCommand()
-	_, err := c.buildTarget(ctx, fullTargetName, buildArgs, true)
+	_, err := c.buildTarget(ctx, fullTargetName, platform, buildArgs, true)
 	return err
 }
 
@@ -518,16 +520,6 @@ func (c *Converter) WithDockerRun(ctx context.Context, args []string, opt WithDo
 	return wdr.Run(ctx, args, opt)
 }
 
-// DockerLoadOld applies the DOCKER LOAD command (outside of WITH DOCKER).
-func (c *Converter) DockerLoadOld(ctx context.Context, targetName string, dockerTag string, buildArgs []string) error {
-	return errors.New("DOCKER LOAD is obsolete. Please use WITH DOCKER --load")
-}
-
-// DockerPullOld applies the DOCKER PULL command (outside of WITH DOCKER).
-func (c *Converter) DockerPullOld(ctx context.Context, dockerTag string) error {
-	return errors.New("DOCKER PULL is obsolete. Please use WITH DOCKER --pull")
-}
-
 // Healthcheck applies the HEALTHCHECK command.
 func (c *Converter) Healthcheck(ctx context.Context, isNone bool, cmdArgs []string, interval time.Duration, timeout time.Duration, startPeriod time.Duration, retries int) {
 	c.nonSaveCommand()
@@ -561,7 +553,10 @@ func (c *Converter) ExpandArgs(word string) string {
 	return c.varCollection.Expand(word)
 }
 
-func (c *Converter) buildTarget(ctx context.Context, fullTargetName string, buildArgs []string, isDangling bool) (*states.MultiTarget, error) {
+func (c *Converter) buildTarget(ctx context.Context, fullTargetName string, platform *specs.Platform, buildArgs []string, isDangling bool) (*states.MultiTarget, error) {
+	if platform == nil {
+		platform = &c.opt.Platform
+	}
 	relTarget, err := domain.ParseTarget(fullTargetName)
 	if err != nil {
 		return nil, errors.Wrapf(err, "earthly target parse %s", fullTargetName)
@@ -582,6 +577,7 @@ func (c *Converter) buildTarget(ctx context.Context, fullTargetName string, buil
 	opt := c.opt
 	opt.Visited = c.mts.Visited
 	opt.VarCollection = newVarCollection
+	opt.Platform = *platform
 	mts, err := Earthfile2LLB(ctx, target, opt)
 	if err != nil {
 		return nil, errors.Wrapf(err, "earthfile2llb for %s", fullTargetName)
@@ -715,10 +711,13 @@ func (c *Converter) readArtifact(ctx context.Context, mts *states.MultiTarget, a
 	return artDt, nil
 }
 
-func (c *Converter) internalFromClassical(ctx context.Context, imageName string, opts ...llb.ImageOption) (llb.State, *image.Image, *variables.Collection, error) {
+func (c *Converter) internalFromClassical(ctx context.Context, imageName string, platform *specs.Platform, opts ...llb.ImageOption) (llb.State, *image.Image, *variables.Collection, error) {
+	if platform == nil {
+		platform = &c.opt.Platform
+	}
 	if imageName == "scratch" {
 		// FROM scratch
-		return llb.Scratch().Platform(llbutil.TargetPlatform), image.NewImage(),
+		return llb.Scratch().Platform(*platform), image.NewImage(),
 			c.varCollection.WithResetEnvVars(), nil
 	}
 	ref, err := reference.ParseNormalizedNamed(imageName)
@@ -729,7 +728,7 @@ func (c *Converter) internalFromClassical(ctx context.Context, imageName string,
 	dgst, dt, err := c.opt.MetaResolver.ResolveImageConfig(
 		ctx, baseImageName,
 		llb.ResolveImageConfigOpt{
-			Platform:    &llbutil.TargetPlatform,
+			Platform:    platform,
 			ResolveMode: c.opt.ImageResolveMode.String(),
 			LogName:     fmt.Sprintf("%sLoad metadata", c.imageVertexPrefix(imageName)),
 		})
@@ -747,7 +746,7 @@ func (c *Converter) internalFromClassical(ctx context.Context, imageName string,
 			return llb.State{}, nil, nil, errors.Wrapf(err, "reference add digest %v for %s", dgst, imageName)
 		}
 	}
-	allOpts := append(opts, llb.Platform(llbutil.TargetPlatform), c.opt.ImageResolveMode)
+	allOpts := append(opts, llb.Platform(*platform), c.opt.ImageResolveMode)
 	state := llb.Image(ref.String(), allOpts...)
 	state, img2, newVarCollection := c.applyFromImage(state, &img)
 	return state, img2, newVarCollection, nil
@@ -806,7 +805,7 @@ func (c *Converter) processNonConstantBuildArgFunc(ctx context.Context) variable
 			return llb.State{}, dedup.TargetInput{}, 0, errors.Wrapf(err, "run %v", expression)
 		}
 		// Copy the result of the expression into a separate, isolated state.
-		buildArgState := llb.Scratch().Platform(llbutil.TargetPlatform)
+		buildArgState := llb.Scratch().Platform(c.opt.Platform)
 		buildArgState = llbutil.CopyOp(
 			c.mts.Final.MainState, []string{srcBuildArgPath},
 			buildArgState, buildArgPath, false, false, false, "root:root",
@@ -825,7 +824,10 @@ func (c *Converter) processNonConstantBuildArgFunc(ctx context.Context) variable
 
 func (c *Converter) vertexPrefix() string {
 	overriding := c.varCollection.SortedOverridingVariables()
-	varStrBuilder := make([]string, 0, len(overriding))
+	varStrBuilder := make([]string, 0, len(overriding)+1)
+	if platforms.Format(llbutil.DefaultPlatform()) != platforms.Format(c.opt.Platform) {
+		varStrBuilder = append(varStrBuilder, fmt.Sprintf("platform=%s", platforms.Format(c.opt.Platform)))
+	}
 	for _, key := range overriding {
 		variable, _, _ := c.varCollection.Get(key)
 		if variable.IsEnvVar() {
@@ -876,7 +878,7 @@ func makeCacheContext(target domain.Target) llb.State {
 	opts := []llb.LocalOption{
 		llb.SharedKeyHint(target.ProjectCanonical()),
 		llb.SessionID(sessionID),
-		llb.Platform(llbutil.TargetPlatform),
+		llb.Platform(llbutil.DefaultPlatform()),
 		llb.WithCustomNamef("[internal] cache context %s", target.ProjectCanonical()),
 	}
 	return llb.Local("earthly-cache", opts...)

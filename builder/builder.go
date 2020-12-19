@@ -28,6 +28,7 @@ import (
 	gwclient "github.com/moby/buildkit/frontend/gateway/client"
 	"github.com/moby/buildkit/session"
 	"github.com/moby/buildkit/util/entitlements"
+	specs "github.com/opencontainers/image-spec/specs-go/v1"
 	reccopy "github.com/otiai10/copy"
 	"github.com/pkg/errors"
 	"golang.org/x/sync/errgroup"
@@ -57,6 +58,7 @@ type Opt struct {
 
 // BuildOpt is a collection of build options.
 type BuildOpt struct {
+	Platform              specs.Platform
 	PrintSuccess          bool
 	Push                  bool
 	NoOutput              bool
@@ -130,6 +132,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 			ImageResolveMode:     b.opt.ImageResolveMode,
 			DockerBuilderFun:     b.MakeImageAsTarBuilderFun(),
 			CleanCollection:      b.opt.CleanCollection,
+			Platform:             opt.Platform,
 			VarCollection:        b.opt.VarCollection,
 			BuildContextProvider: b.opt.BuildContextProvider,
 			CacheImports:         b.opt.CacheImports,

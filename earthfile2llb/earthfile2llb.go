@@ -16,6 +16,7 @@ import (
 	"github.com/earthly/earthly/variables"
 	"github.com/moby/buildkit/client/llb"
 	gwclient "github.com/moby/buildkit/frontend/gateway/client"
+	specs "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
 )
 
@@ -36,6 +37,8 @@ type ConvertOpt struct {
 	// Visited is a collection of target states which have been converted to LLB.
 	// This is used for deduplication and infinite cycle detection.
 	Visited *states.VisitedCollection
+	// Platform is the target platform of the build.
+	Platform specs.Platform
 	// VarCollection is a collection of build args used for overriding args in the build.
 	VarCollection *variables.Collection
 	// A cache for image solves. depTargetInputHash -> context containing image.tar.

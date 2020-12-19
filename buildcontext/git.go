@@ -58,7 +58,7 @@ func (gr *gitResolver) resolveEarthProject(ctx context.Context, gwClient gwclien
 		// Optimization.
 		buildContext = rgp.state
 	} else {
-		buildContext = llb.Scratch().Platform(llbutil.TargetPlatform)
+		buildContext = llbutil.ScratchWithPlatform()
 		buildContext = llbutil.CopyOp(
 			rgp.state, []string{subDir}, buildContext, "./", false, false, false, "root:root",
 			llb.WithCustomNamef("[internal] COPY git context %s", target.String()))
@@ -143,9 +143,9 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, gwClient gwclient.
 	}
 	opImg := llb.Image(
 		defaultGitImage, llb.MarkImageInternal, llb.ResolveModePreferLocal,
-		llb.Platform(llbutil.TargetPlatform))
+		llb.Platform(llbutil.DefaultPlatform()))
 	copyOp := opImg.Run(copyOpts...)
-	earthfileState := copyOp.AddMount("/dest", llb.Scratch().Platform(llbutil.TargetPlatform))
+	earthfileState := copyOp.AddMount("/dest", llbutil.ScratchWithPlatform())
 
 	// Get git hash.
 	gitHashOpts := []llb.RunOption{

@@ -9,7 +9,6 @@ import (
 	"strconv"
 
 	"github.com/earthly/earthly/domain"
-	"github.com/earthly/earthly/llbutil"
 	"github.com/earthly/earthly/states/image"
 	"github.com/moby/buildkit/client"
 	"github.com/moby/buildkit/client/llb"
@@ -36,7 +35,7 @@ type solver struct {
 }
 
 func (s *solver) solveDockerTar(ctx context.Context, state llb.State, img *image.Image, dockerTag string, outFile string) error {
-	dt, err := state.Marshal(ctx, llb.Platform(llbutil.TargetPlatform))
+	dt, err := state.Marshal(ctx)
 	if err != nil {
 		return errors.Wrap(err, "state marshal")
 	}
@@ -126,7 +125,7 @@ func (s *solver) buildMainMulti(ctx context.Context, bf gwclient.BuildFunc, onIm
 }
 
 func (s *solver) solveMain(ctx context.Context, state llb.State) error {
-	dt, err := state.Marshal(ctx, llb.Platform(llbutil.TargetPlatform))
+	dt, err := state.Marshal(ctx)
 	if err != nil {
 		return errors.Wrap(err, "state marshal")
 	}
