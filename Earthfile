@@ -253,8 +253,7 @@ examples:
     BUILD ./examples/grpc+test
     BUILD ./examples/integration-test+integration-test
     BUILD ./examples/java+docker
-    # Disable until https://github.com/moby/buildkit/issues/1902 is addressed.
-    # BUILD ./examples/js+docker
+    BUILD ./examples/js+docker
     BUILD ./examples/monorepo+all
     BUILD ./examples/multirepo+docker
     BUILD ./examples/python+docker

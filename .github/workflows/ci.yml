@@ -98,9 +98,7 @@ jobs:
         run: ./build/linux/amd64/earthly --ci -P +examples
         if: github.event_name != 'push'
       - name: Build examples (main build)
-        # Disable push temporarily.
-        # run: ./build/linux/amd64/earthly --ci --push -P +examples
-        run: ./build/linux/amd64/earthly --ci -P +examples
+        run: ./build/linux/amd64/earthly --ci --push -P +examples
         if: github.event_name == 'push'
       - name: Buildkit logs (runs on failure)
         run: docker logs earthly-buildkitd
