@@ -730,7 +730,7 @@ func (c *Converter) internalFromClassical(ctx context.Context, imageName string,
 		llb.ResolveImageConfigOpt{
 			Platform:    platform,
 			ResolveMode: c.opt.ImageResolveMode.String(),
-			LogName:     fmt.Sprintf("%sLoad metadata", c.imageVertexPrefix(imageName)),
+			LogName:     fmt.Sprintf("%sLoad metadata (%s)", c.imageVertexPrefix(imageName), llbutil.PlatformToString(platform)),
 		})
 	if err != nil {
 		return llb.State{}, nil, nil, errors.Wrapf(err, "resolve image config for %s", imageName)
