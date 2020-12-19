@@ -138,6 +138,9 @@ func (c *Converter) fromTarget(ctx context.Context, targetName string, platform 
 
 // FromDockerfile applies the earthly FROM DOCKERFILE command.
 func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPath string, dfTarget string, platform *specs.Platform, buildArgs []string) error {
+	if platform == nil {
+		platform = &c.opt.Platform
+	}
 	c.nonSaveCommand()
 	if dfPath != "" {
 		// TODO: It's not yet very clear what -f should do. Should it be referencing a Dockerfile
