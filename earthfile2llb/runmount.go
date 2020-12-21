@@ -149,7 +149,7 @@ func parseMount(mount string, target domain.Target, ti dedup.TargetInput, cacheC
 		if mountTarget == "" {
 			return nil, fmt.Errorf("mount target not specified")
 		}
-		state = llb.Scratch().Platform(llbutil.TargetPlatform)
+		state = llbutil.ScratchWithPlatform()
 		mountOpts = append(mountOpts, llb.Tmpfs())
 		return []llb.RunOption{llb.AddMount(mountTarget, state, mountOpts...)}, nil
 	case "ssh-experimental":

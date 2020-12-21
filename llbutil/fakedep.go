@@ -14,7 +14,7 @@ func WithDependency(state llb.State, depState llb.State, stateStr, depStr string
 
 	// Copy a wildcard that could never exist.
 	// (And allow for the wildcard to match nothing).
-	interm := llb.Scratch().Platform(TargetPlatform)
+	interm := ScratchWithPlatform()
 	interm = interm.File(llb.Copy(
 		depState, "/fake-745cb405-fbfb-4ea7-83b0-a85c26b4aff0-*", "/tmp/",
 		&llb.CopyInfo{

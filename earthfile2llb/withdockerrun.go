@@ -11,6 +11,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/containerd/containerd/platforms"
 	"github.com/earthly/earthly/dockertar"
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/llbutil"
@@ -18,6 +19,7 @@ import (
 	"github.com/earthly/earthly/states/dedup"
 	"github.com/moby/buildkit/client/llb"
 	gwclient "github.com/moby/buildkit/frontend/gateway/client"
+	specs "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
 	"gopkg.in/yaml.v2"
 )
@@ -32,7 +34,14 @@ const (
 type DockerLoadOpt struct {
 	Target    string
 	ImageName string
+	Platform  *specs.Platform
 	BuildArgs []string
+}
+
+// DockerPullOpt holds parameters for the WITH DOCKER --pull parameter.
+type DockerPullOpt struct {
+	ImageName string
+	Platform  *specs.Platform
 }
 
 // WithDockerOpt holds parameters for WITH DOCKER run.
@@ -41,7 +50,7 @@ type WithDockerOpt struct {
 	Secrets         []string
 	WithShell       bool
 	WithEntrypoint  bool
-	Pulls           []string
+	Pulls           []DockerPullOpt
 	Loads           []DockerLoadOpt
 	ComposeFiles    []string
 	ComposeServices []string
@@ -58,18 +67,29 @@ func (wdr *withDockerRun) Run(ctx context.Context, args []string, opt WithDocker
 		return err
 	}
 	// Grab relevant images from compose file(s).
-	composeImages, err := wdr.getComposeImages(ctx, opt)
+	composePulls, err := wdr.getComposePulls(ctx, opt)
 	if err != nil {
 		return err
 	}
-	composeImagesSet := make(map[string]bool)
-	for _, composeImg := range composeImages {
-		composeImagesSet[composeImg] = true
+	type setKey struct {
+		imageName   string
+		platformStr string
+	}
+	composeImagesSet := make(map[setKey]bool)
+	for _, pull := range composePulls {
+		composeImagesSet[setKey{
+			imageName:   pull.ImageName,
+			platformStr: llbutil.PlatformToString(pull.Platform),
+		}] = true
 	}
 	for _, loadOpt := range opt.Loads {
 		// Make sure we don't pull a compose image which is loaded.
-		if composeImagesSet[loadOpt.ImageName] {
-			delete(composeImagesSet, loadOpt.ImageName)
+		key := setKey{
+			imageName:   loadOpt.ImageName,
+			platformStr: llbutil.PlatformToString(loadOpt.Platform),
+		}
+		if composeImagesSet[key] {
+			delete(composeImagesSet, key)
 		}
 		// Load.
 		err := wdr.load(ctx, loadOpt)
@@ -78,11 +98,22 @@ func (wdr *withDockerRun) Run(ctx context.Context, args []string, opt WithDocker
 		}
 	}
 	// Add compose images (what's left of them) to the pull list.
-	for composeImg := range composeImagesSet {
-		opt.Pulls = append(opt.Pulls, composeImg)
+	for _, pull := range composePulls {
+		key := setKey{
+			imageName:   pull.ImageName,
+			platformStr: llbutil.PlatformToString(pull.Platform),
+		}
+		if composeImagesSet[key] {
+			opt.Pulls = append(opt.Pulls, pull)
+		}
 	}
 	// Sort to make the operation consistent.
-	sort.Strings(opt.Pulls)
+	sort.Slice(opt.Pulls, func(i, j int) bool {
+		if opt.Pulls[i].ImageName == opt.Pulls[i].ImageName {
+			return llbutil.PlatformToString(opt.Pulls[i].Platform) < llbutil.PlatformToString(opt.Pulls[i].Platform)
+		}
+		return opt.Pulls[i].ImageName < opt.Pulls[i].ImageName
+	})
 	for _, pullImageName := range opt.Pulls {
 		err := wdr.pull(ctx, pullImageName)
 		if err != nil {
@@ -155,7 +186,7 @@ func (wdr *withDockerRun) installDeps(ctx context.Context, opt WithDockerOpt) er
 	return nil
 }
 
-func (wdr *withDockerRun) getComposeImages(ctx context.Context, opt WithDockerOpt) ([]string, error) {
+func (wdr *withDockerRun) getComposePulls(ctx context.Context, opt WithDockerOpt) ([]DockerPullOpt, error) {
 	if len(opt.ComposeFiles) == 0 {
 		// Quick way out. Compose not used.
 		return nil, nil
@@ -166,7 +197,8 @@ func (wdr *withDockerRun) getComposeImages(ctx context.Context, opt WithDockerOp
 		return nil, err
 	}
 	type composeService struct {
-		Image string `yaml:"image"`
+		Image    string `yaml:"image"`
+		Platform string `yaml:"platform"`
 	}
 	type composeData struct {
 		Services map[string]composeService `yaml:"services"`
@@ -182,28 +214,43 @@ func (wdr *withDockerRun) getComposeImages(ctx context.Context, opt WithDockerOp
 	for _, composeService := range opt.ComposeServices {
 		composeServicesSet[composeService] = true
 	}
-	var images []string
+	var pulls []DockerPullOpt
 	for serviceName, serviceInfo := range config.Services {
 		if serviceInfo.Image == "" {
 			// Image not specified in yaml.
 			continue
 		}
+		platform := &wdr.c.opt.Platform
+		if serviceInfo.Platform != "" {
+			p, err := platforms.Parse(serviceInfo.Platform)
+			if err != nil {
+				return nil, errors.Wrapf(
+					err, "parse platform for image %s: %s", serviceInfo.Image, serviceInfo.Platform)
+			}
+			platform = &p
+		}
 		if len(opt.ComposeServices) > 0 {
 			if composeServicesSet[serviceName] {
-				images = append(images, serviceInfo.Image)
+				pulls = append(pulls, DockerPullOpt{
+					ImageName: serviceInfo.Image,
+					Platform:  platform,
+				})
 			}
 		} else {
 			// No services specified. Special case: collect all.
-			images = append(images, serviceInfo.Image)
+			pulls = append(pulls, DockerPullOpt{
+				ImageName: serviceInfo.Image,
+				Platform:  platform,
+			})
 		}
 	}
-	return images, nil
+	return pulls, nil
 }
 
-func (wdr *withDockerRun) pull(ctx context.Context, dockerTag string) error {
+func (wdr *withDockerRun) pull(ctx context.Context, opt DockerPullOpt) error {
 	state, image, _, err := wdr.c.internalFromClassical(
-		ctx, dockerTag,
-		llb.WithCustomNamef("%sDOCKER PULL %s", wdr.c.imageVertexPrefix(dockerTag), dockerTag),
+		ctx, opt.ImageName, opt.Platform,
+		llb.WithCustomNamef("%sDOCKER PULL %s", wdr.c.imageVertexPrefix(opt.ImageName), opt.ImageName),
 	)
 	if err != nil {
 		return err
@@ -213,20 +260,20 @@ func (wdr *withDockerRun) pull(ctx context.Context, dockerTag string) error {
 			MainState: state,
 			MainImage: image,
 			TargetInput: dedup.TargetInput{
-				TargetCanonical: fmt.Sprintf("+@docker-pull:%s", dockerTag),
+				TargetCanonical: fmt.Sprintf("+@docker-pull:%s", opt.ImageName),
 			},
 			SaveImages: []states.SaveImage{
 				{
 					State:     state,
 					Image:     image,
-					DockerTag: dockerTag,
+					DockerTag: opt.ImageName,
 				},
 			},
 		},
 	}
 	return wdr.solveImage(
-		ctx, mts, dockerTag, dockerTag,
-		llb.WithCustomNamef("%sDOCKER LOAD (PULL %s)", wdr.c.imageVertexPrefix(dockerTag), dockerTag))
+		ctx, mts, opt.ImageName, opt.ImageName,
+		llb.WithCustomNamef("%sDOCKER LOAD (PULL %s)", wdr.c.imageVertexPrefix(opt.ImageName), opt.ImageName))
 }
 
 func (wdr *withDockerRun) load(ctx context.Context, opt DockerLoadOpt) error {
@@ -234,7 +281,7 @@ func (wdr *withDockerRun) load(ctx context.Context, opt DockerLoadOpt) error {
 	if err != nil {
 		return errors.Wrapf(err, "parse target %s", opt.Target)
 	}
-	mts, err := wdr.c.buildTarget(ctx, depTarget.String(), opt.BuildArgs, false)
+	mts, err := wdr.c.buildTarget(ctx, depTarget.String(), opt.Platform, opt.BuildArgs, false)
 	if err != nil {
 		return err
 	}
@@ -295,7 +342,7 @@ func (wdr *withDockerRun) solveImage(ctx context.Context, mts *states.MultiTarge
 	tarContext = llb.Local(
 		solveID,
 		llb.SessionID(sessionID),
-		llb.Platform(llbutil.TargetPlatform),
+		llb.Platform(llbutil.DefaultPlatform()),
 		llb.WithCustomNamef("[internal] docker tar context %s %s", opName, sessionID),
 	)
 	wdr.tarLoads = append(wdr.tarLoads, tarContext)
