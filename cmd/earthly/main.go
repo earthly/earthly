@@ -26,7 +26,6 @@ import (
 	"text/tabwriter"
 	"time"
 
-	"github.com/containerd/containerd/platforms"
 	"github.com/earthly/earthly/analytics"
 	"github.com/earthly/earthly/autocomplete"
 	"github.com/earthly/earthly/buildcontext"
@@ -47,6 +46,7 @@ import (
 	"github.com/earthly/earthly/termutil"
 	"github.com/earthly/earthly/variables"
 
+	"github.com/containerd/containerd/platforms"
 	humanize "github.com/dustin/go-humanize"
 	"github.com/fatih/color"
 	"github.com/joho/godotenv"
