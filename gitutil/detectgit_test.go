@@ -1,4 +1,4 @@
-package buildcontext
+package gitutil
 
 import (
 	"testing"
@@ -39,14 +39,14 @@ func TestParseGitRemoteURL(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		gitURL, err := parseGitRemoteURL(test.gitURL)
+		gitURL, err := ParseGitRemoteURL(test.gitURL)
 		if !test.valid {
 			if err == nil {
 				t.Errorf("expected error did not occur")
 			}
 			continue
 		}
-		NoError(t, err, "parseGitRemoteURL failed")
+		NoError(t, err, "ParseGitRemoteURL failed")
 		Equal(t, test.expectedGitURL, gitURL)
 	}
 }

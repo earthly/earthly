@@ -5,6 +5,8 @@ import (
 
 	"github.com/earthly/earthly/cleanup"
 	"github.com/earthly/earthly/domain"
+	"github.com/earthly/earthly/gitutil"
+
 	"github.com/moby/buildkit/client/llb"
 	gwclient "github.com/moby/buildkit/frontend/gateway/client"
 )
@@ -20,7 +22,7 @@ type Data struct {
 	// BuildContext is the state to use for the build.
 	BuildContext llb.State
 	// GitMetadata contains git metadata information.
-	GitMetadata *GitMetadata
+	GitMetadata *gitutil.GitMetadata
 	// Target is the earthly target.
 	Target domain.Target
 	// LocalDirs is the local dirs map to be passed as part of the buildkit solve.
@@ -42,7 +44,7 @@ func NewResolver(sessionID string, cleanCollection *cleanup.Collection, gitLooku
 			gitLookup:       gitLookup,
 		},
 		lr: &localResolver{
-			gitMetaCache: make(map[string]*GitMetadata),
+			gitMetaCache: make(map[string]*gitutil.GitMetadata),
 			sessionID:    sessionID,
 		},
 	}
@@ -58,7 +60,7 @@ func (r *Resolver) Resolve(ctx context.Context, gwClient gwclient.Client, target
 			return nil, err
 		}
 
-		d.Target = TargetWithGitMeta(target, d.GitMetadata)
+		d.Target = gitutil.TargetWithGitMeta(target, d.GitMetadata)
 		d.LocalDirs = localDirs
 		return d, nil
 	}
@@ -69,7 +71,7 @@ func (r *Resolver) Resolve(ctx context.Context, gwClient gwclient.Client, target
 	if err != nil {
 		return nil, err
 	}
-	d.Target = TargetWithGitMeta(target, d.GitMetadata)
+	d.Target = gitutil.TargetWithGitMeta(target, d.GitMetadata)
 	d.LocalDirs = localDirs
 	return d, nil
 }

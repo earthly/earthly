@@ -7,8 +7,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/earthly/earthly/buildcontext"
 	"github.com/earthly/earthly/domain"
+	"github.com/earthly/earthly/gitutil"
 	"github.com/earthly/earthly/states/dedup"
 	"github.com/earthly/earthly/stringutil"
 
@@ -205,7 +205,7 @@ func getProjectName(s string) string {
 
 // WithBuiltinBuildArgs returns a new collection containing the current variables together with
 // builtin args. This operation does not modify the current collection.
-func (c *Collection) WithBuiltinBuildArgs(target domain.Target, gitMeta *buildcontext.GitMetadata) *Collection {
+func (c *Collection) WithBuiltinBuildArgs(target domain.Target, gitMeta *gitutil.GitMetadata) *Collection {
 	ret := NewCollection()
 	// Copy existing variables.
 	for k, v := range c.variables {
