@@ -15,7 +15,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/earthly/earthly/fileutils"
+	"github.com/earthly/earthly/fileutil"
 	"github.com/earthly/earthly/secretsclient/api"
 
 	"github.com/golang/protobuf/jsonpb"
@@ -875,7 +875,7 @@ func (c *client) getAuthTokenPath(create bool) (string, error) {
 			return "", errors.Wrapf(err, "failed to get home dir")
 		}
 		confDirPath = filepath.Join(homeDir, ".earthly")
-		if !fileutils.DirExists(confDirPath) && create {
+		if !fileutil.DirExists(confDirPath) && create {
 			err := os.MkdirAll(confDirPath, 0755)
 			if err != nil {
 				return "", errors.Wrapf(err, "failed to create run directory %s", confDirPath)
@@ -894,7 +894,7 @@ func (c *client) loadAuthToken() error {
 	if err != nil {
 		return err
 	}
-	if !fileutils.FileExists(tokenPath) {
+	if !fileutil.FileExists(tokenPath) {
 		return nil
 	}
 	data, err := ioutil.ReadFile(tokenPath)
@@ -1047,7 +1047,7 @@ func (c *client) DeleteCachedCredentials() error {
 	if err != nil {
 		return err
 	}
-	if !fileutils.FileExists(tokenPath) {
+	if !fileutil.FileExists(tokenPath) {
 		return nil
 	}
 	err = os.Remove(tokenPath)

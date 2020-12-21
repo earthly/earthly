@@ -9,7 +9,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/earthly/earthly/fileutils"
+	"github.com/earthly/earthly/fileutil"
 
 	"github.com/pkg/errors"
 )
@@ -205,7 +205,7 @@ func loadKnownHosts() (string, error) {
 
 	knownHosts := filepath.Join(homeDir, ".ssh/known_hosts")
 
-	if !fileutils.FileExists(knownHosts) {
+	if !fileutil.FileExists(knownHosts) {
 		return "", nil
 	}
 

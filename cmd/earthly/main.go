@@ -40,7 +40,7 @@ import (
 	"github.com/earthly/earthly/docker2earthly"
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/earthfile2llb"
-	"github.com/earthly/earthly/fileutils"
+	"github.com/earthly/earthly/fileutil"
 	"github.com/earthly/earthly/llbutil"
 	"github.com/earthly/earthly/secretsclient"
 	"github.com/earthly/earthly/termutil"
@@ -181,7 +181,7 @@ func main() {
 
 	// Load .env into current global env's. This is mainly for applying Earthly settings.
 	// Separate call is made for build args and secrets.
-	if fileutils.FileExists(dotEnvPath) {
+	if fileutil.FileExists(dotEnvPath) {
 		err := godotenv.Load(dotEnvPath)
 		if err != nil {
 			fmt.Printf("Error loading dot-env file %s: %s\n", dotEnvPath, err.Error())
@@ -821,7 +821,7 @@ func (app *earthlyApp) before(context *cli.Context) error {
 		app.buildkitdImage = app.cfg.Global.BuildkitImage
 	}
 
-	if !fileutils.DirExists(app.cfg.Global.RunPath) {
+	if !fileutil.DirExists(app.cfg.Global.RunPath) {
 		err := os.MkdirAll(app.cfg.Global.RunPath, 0755)
 		if err != nil {
 			return errors.Wrapf(err, "failed to create run directory %s", app.cfg.Global.RunPath)
@@ -850,7 +850,7 @@ func (app *earthlyApp) warnIfEarth() {
 			return
 		}
 		earthlyPath := path.Join(path.Dir(absPath), "earthly")
-		if fileutils.FileExists(earthlyPath) {
+		if fileutil.FileExists(earthlyPath) {
 			app.console.Warnf("Once you are ready to switch over to earthly, you can `rm %s`", absPath)
 		}
 	}
@@ -972,12 +972,12 @@ func (app *earthlyApp) insertBashCompleteEntry() error {
 	}
 	dirPath := filepath.Dir(path)
 
-	if !fileutils.DirExists(dirPath) {
+	if !fileutil.DirExists(dirPath) {
 		fmt.Fprintf(os.Stderr, "Warning: unable to enable bash-completion: %s does not exist\n", dirPath)
 		return nil // bash-completion isn't available, silently fail.
 	}
 
-	if fileutils.FileExists(path) {
+	if fileutil.FileExists(path) {
 		return nil // file already exists, don't update it.
 	}
 
@@ -1038,12 +1038,12 @@ func (app *earthlyApp) insertZSHCompleteEntry() error {
 	path := "/usr/local/share/zsh/site-functions/_earth"
 	dirPath := filepath.Dir(path)
 
-	if !fileutils.DirExists(dirPath) {
+	if !fileutil.DirExists(dirPath) {
 		fmt.Fprintf(os.Stderr, "Warning: unable to enable zsh-completion: %s does not exist\n", dirPath)
 		return nil // zsh-completion isn't available, silently fail.
 	}
 
-	if fileutils.FileExists(path) {
+	if fileutil.FileExists(path) {
 		return nil // file already exists, don't update it.
 	}
 
@@ -1123,7 +1123,7 @@ func symlinkEarthlyToEarth() error {
 
 	earthPath := path.Join(path.Dir(binPath), "earth")
 
-	if !fileutils.FileExists(earthPath) && termutil.IsTTY() {
+	if !fileutil.FileExists(earthPath) && termutil.IsTTY() {
 		return nil // legacy earth binary doesn't exist, don't create it (unless we're under a non-tty system e.g. CI)
 	}
 
@@ -2041,7 +2041,7 @@ func (app *earthlyApp) actionBuild(c *cli.Context) error {
 	}
 
 	dotEnvMap := make(map[string]string)
-	if fileutils.FileExists(dotEnvPath) {
+	if fileutil.FileExists(dotEnvPath) {
 		dotEnvMap, err = godotenv.Read(dotEnvPath)
 		if err != nil {
 			return errors.Wrapf(err, "read %s", dotEnvPath)
@@ -2316,7 +2316,7 @@ func defaultConfigPath() string {
 
 	oldConfig := filepath.Join(homeDir, ".earthly", "config.yaml")
 	newConfig := filepath.Join(homeDir, ".earthly", "config.yml")
-	if fileutils.FileExists(oldConfig) && !fileutils.FileExists(newConfig) {
+	if fileutil.FileExists(oldConfig) && !fileutil.FileExists(newConfig) {
 		return oldConfig
 	}
 	return newConfig
