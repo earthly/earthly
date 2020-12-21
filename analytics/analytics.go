@@ -15,8 +15,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/earthly/earthly/buildcontext"
 	"github.com/earthly/earthly/fileutils"
+	"github.com/earthly/earthly/gitutil"
 	"github.com/earthly/earthly/syncutil"
 
 	uuid "github.com/nu7hatch/gouuid"
@@ -87,7 +87,7 @@ func getRepoHash() string {
 	if repo == "unknown" || repo == "" {
 		return repo
 	}
-	consistentRepo, err := buildcontext.ParseGitRemoteURL(repo)
+	consistentRepo, err := gitutil.ParseGitRemoteURL(repo)
 	if err == nil {
 		repo = consistentRepo
 	}

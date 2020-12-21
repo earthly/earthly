@@ -11,6 +11,7 @@ import (
 
 	"github.com/earthly/earthly/cleanup"
 	"github.com/earthly/earthly/domain"
+	"github.com/earthly/earthly/gitutil"
 	"github.com/earthly/earthly/llbutil"
 	"github.com/earthly/earthly/stringutil"
 
@@ -91,7 +92,7 @@ func (gr *gitResolver) resolveEarthProject(ctx context.Context, gwClient gwclien
 	return &Data{
 		BuildFilePath: localBuildFilePath,
 		BuildContext:  buildContext,
-		GitMetadata: &GitMetadata{
+		GitMetadata: &gitutil.GitMetadata{
 			BaseDir:   "",
 			RelDir:    subDir,
 			RemoteURL: gitURL,

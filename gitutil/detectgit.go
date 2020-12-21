@@ -1,4 +1,4 @@
-package buildcontext
+package gitutil
 
 import (
 	"context"
