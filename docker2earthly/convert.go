@@ -7,7 +7,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/earthly/earthly/fileutils"
+	"github.com/earthly/earthly/fileutil"
 
 	"github.com/moby/buildkit/frontend/dockerfile/instructions"
 	"github.com/moby/buildkit/frontend/dockerfile/parser"
@@ -23,7 +23,7 @@ func getArtifactName(s string) string {
 // Docker2Earthly converts an existing Dockerfile in the current directory and writes out an Earthfile in the current directory
 // and error is returned if an Earthfile already exists.
 func Docker2Earthly(dockerfilePath, EarthfilePath, imageTag string) error {
-	if fileutils.FileExists(EarthfilePath) {
+	if fileutil.FileExists(EarthfilePath) {
 		return fmt.Errorf("Earthfile already exists; please delete it if you wish to continue")
 	}
 
