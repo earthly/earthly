@@ -334,3 +334,4 @@ There we have it, a reproducible integration process. The full example can be fo
 ## See also
 * [Docker In Earthly](./docker-in-earthly.md)
 * [Source code for example](https://github.com/earthly/earthly/tree/main/examples/integration-test)
+* [Integration Testing vs Unit Testing](https://blog.earthly.dev/unit-vs-integration/)
