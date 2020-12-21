@@ -7,12 +7,12 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/containerd/containerd/platforms"
-	"github.com/earthly/earthly/buildcontext"
 	"github.com/earthly/earthly/domain"
+	"github.com/earthly/earthly/gitutil"
 	"github.com/earthly/earthly/states/dedup"
 	"github.com/earthly/earthly/stringutil"
 
+	"github.com/containerd/containerd/platforms"
 	"github.com/moby/buildkit/client/llb"
 	dfShell "github.com/moby/buildkit/frontend/dockerfile/shell"
 	specs "github.com/opencontainers/image-spec/specs-go/v1"
@@ -207,7 +207,7 @@ func getProjectName(s string) string {
 
 // WithBuiltinBuildArgs returns a new collection containing the current variables together with
 // builtin args. This operation does not modify the current collection.
-func (c *Collection) WithBuiltinBuildArgs(target domain.Target, platform specs.Platform, gitMeta *buildcontext.GitMetadata) *Collection {
+func (c *Collection) WithBuiltinBuildArgs(target domain.Target, platform specs.Platform, gitMeta *gitutil.GitMetadata) *Collection {
 	ret := NewCollection()
 	// Copy existing variables.
 	for k, v := range c.variables {

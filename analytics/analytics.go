@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/earthly/earthly/fileutils"
+	"github.com/earthly/earthly/gitutil"
 	"github.com/earthly/earthly/syncutil"
 
 	uuid "github.com/nu7hatch/gouuid"
@@ -85,6 +86,10 @@ func getRepoHash() string {
 	repo := getRepo()
 	if repo == "unknown" || repo == "" {
 		return repo
+	}
+	consistentRepo, err := gitutil.ParseGitRemoteURL(repo)
+	if err == nil {
+		repo = consistentRepo
 	}
 	return fmt.Sprintf("%x", sha256.Sum256([]byte(repo)))
 }

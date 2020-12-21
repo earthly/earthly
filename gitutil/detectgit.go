@@ -1,4 +1,4 @@
-package buildcontext
+package gitutil
 
 import (
 	"context"
@@ -57,7 +57,7 @@ func Metadata(ctx context.Context, dir string) (*GitMetadata, error) {
 	}
 	var gitURL string
 	if remoteURL != "" {
-		gitURL, err = parseGitRemoteURL(remoteURL)
+		gitURL, err = ParseGitRemoteURL(remoteURL)
 		if err != nil {
 			return nil, err
 		}
@@ -128,8 +128,8 @@ func detectIsGitDir(ctx context.Context, dir string) error {
 	return nil
 }
 
-// parseGitRemoteURL converts a gitURL like user@host.com:path/to.git or https://host.com/path/to.git to host.com/path/to
-func parseGitRemoteURL(gitURL string) (string, error) {
+// ParseGitRemoteURL converts a gitURL like user@host.com:path/to.git or https://host.com/path/to.git to host.com/path/to
+func ParseGitRemoteURL(gitURL string) (string, error) {
 	s := gitURL
 
 	// remove transport

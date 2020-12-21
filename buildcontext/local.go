@@ -7,12 +7,14 @@ import (
 	"path/filepath"
 
 	"github.com/earthly/earthly/domain"
+	"github.com/earthly/earthly/gitutil"
 	"github.com/earthly/earthly/llbutil"
+
 	"github.com/moby/buildkit/client/llb"
 )
 
 type localResolver struct {
-	gitMetaCache map[string]*GitMetadata
+	gitMetaCache map[string]*gitutil.GitMetadata
 	sessionID    string
 }
 
@@ -27,16 +29,16 @@ func (lr *localResolver) resolveLocal(ctx context.Context, target domain.Target)
 
 	metadata, found := lr.gitMetaCache[target.LocalPath]
 	if !found {
-		metadata, err = Metadata(ctx, target.LocalPath)
+		metadata, err = gitutil.Metadata(ctx, target.LocalPath)
 		if err != nil {
-			if errors.Is(err, ErrNoGitBinary) ||
-				errors.Is(err, ErrNotAGitDir) ||
-				errors.Is(err, ErrCouldNotDetectRemote) ||
-				errors.Is(err, ErrCouldNotDetectGitHash) ||
-				errors.Is(err, ErrCouldNotDetectGitBranch) {
+			if errors.Is(err, gitutil.ErrNoGitBinary) ||
+				errors.Is(err, gitutil.ErrNotAGitDir) ||
+				errors.Is(err, gitutil.ErrCouldNotDetectRemote) ||
+				errors.Is(err, gitutil.ErrCouldNotDetectGitHash) ||
+				errors.Is(err, gitutil.ErrCouldNotDetectGitBranch) {
 				// Keep going anyway. Either not a git dir, or git not installed, or
 				// remote not detected.
-				if errors.Is(err, ErrNoGitBinary) {
+				if errors.Is(err, gitutil.ErrNoGitBinary) {
 					// TODO: Log this properly in the console.
 					fmt.Printf("Warning: %s\n", err.Error())
 				}

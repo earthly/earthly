@@ -14,16 +14,18 @@ import (
 	"strings"
 	"time"
 
-	"github.com/containerd/containerd/platforms"
-	"github.com/docker/distribution/reference"
 	"github.com/earthly/earthly/buildcontext"
 	"github.com/earthly/earthly/debugger/common"
 	"github.com/earthly/earthly/domain"
+	"github.com/earthly/earthly/gitutil"
 	"github.com/earthly/earthly/llbutil"
 	"github.com/earthly/earthly/states"
 	"github.com/earthly/earthly/states/dedup"
 	"github.com/earthly/earthly/states/image"
 	"github.com/earthly/earthly/variables"
+
+	"github.com/containerd/containerd/platforms"
+	"github.com/docker/distribution/reference"
 	"github.com/moby/buildkit/client/llb"
 	"github.com/moby/buildkit/frontend/dockerfile/dockerfile2llb"
 	gwclient "github.com/moby/buildkit/frontend/gateway/client"
@@ -34,7 +36,7 @@ import (
 
 // Converter turns earthly commands to buildkit LLB representation.
 type Converter struct {
-	gitMeta          *buildcontext.GitMetadata
+	gitMeta          *gitutil.GitMetadata
 	opt              ConvertOpt
 	mts              *states.MultiTarget
 	directDeps       []*states.SingleTarget
