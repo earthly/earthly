@@ -15,6 +15,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/earthly/earthly/buildcontext"
 	"github.com/earthly/earthly/fileutils"
 	"github.com/earthly/earthly/syncutil"
 
@@ -85,6 +86,10 @@ func getRepoHash() string {
 	repo := getRepo()
 	if repo == "unknown" || repo == "" {
 		return repo
+	}
+	consistentRepo, err := buildcontext.ParseGitRemoteURL(repo)
+	if err == nil {
+		repo = consistentRepo
 	}
 	return fmt.Sprintf("%x", sha256.Sum256([]byte(repo)))
 }
