@@ -51,9 +51,11 @@ type Converter struct {
 // NewConverter constructs a new converter for a given earthly target.
 func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Data, opt ConvertOpt) (*Converter, error) {
 	sts := &states.SingleTarget{
-		Target: target,
+		Target:   target,
+		Platform: opt.Platform,
 		TargetInput: dedup.TargetInput{
 			TargetCanonical: target.StringCanonical(),
+			Platform:        llbutil.PlatformToString(&opt.Platform),
 		},
 		MainState:      llbutil.ScratchWithPlatform(),
 		MainImage:      image.NewImage(),

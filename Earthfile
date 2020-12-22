@@ -132,6 +132,7 @@ earthly:
     SAVE ARTIFACT ./build/tags
     SAVE ARTIFACT ./build/ldflags
     SAVE ARTIFACT build/earthly AS LOCAL "build/$GOOS/$GOARCH$GOARM/earthly"
+    SAVE IMAGE --cache-from=earthly/earthly:main
 
 earthly-arm5:
     COPY \
@@ -272,3 +273,16 @@ examples:
 
 test-fail:
     RUN false
+
+test-platform-multi:
+    BUILD \
+        --platform=linux/amd64 \
+        --platform=linux/arm64 \
+        --platform=linux/arm/v7 \
+        +test-platform
+
+test-platform:
+    FROM alpine:3.11
+    RUN uname -m
+    CMD ["uname", "-m"]
+    SAVE IMAGE --push earthly/test-cache:mplat

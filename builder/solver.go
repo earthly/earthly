@@ -19,7 +19,7 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-type onImageFunc func(context.Context, *errgroup.Group, int, string, string) (io.WriteCloser, error)
+type onImageFunc func(context.Context, *errgroup.Group, string) (io.WriteCloser, error)
 type onArtifactFunc func(context.Context, int, domain.Artifact, string, string) (string, error)
 type onFinalArtifactFunc func(context.Context) (string, error)
 
@@ -207,14 +207,8 @@ func (s *solver) newSolveOptMulti(ctx context.Context, eg *errgroup.Group, onIma
 					if md["export-image"] != "true" {
 						return nil, nil
 					}
-					indexStr := md["image-index"]
-					index, err := strconv.Atoi(indexStr)
-					if err != nil {
-						return nil, errors.Wrapf(err, "parse image-index %s", indexStr)
-					}
 					imageName := md["image.name"]
-					digest := md["containerimage.digest"]
-					return onImage(ctx, eg, index, imageName, digest)
+					return onImage(ctx, eg, imageName)
 				},
 				OutputDirFunc: func(md map[string]string) (string, error) {
 					if md["export-dir"] != "true" {

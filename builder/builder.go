@@ -13,6 +13,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/containerd/containerd/platforms"
 	"github.com/earthly/earthly/buildcontext"
 	"github.com/earthly/earthly/buildcontext/provider"
 	"github.com/earthly/earthly/cleanup"
@@ -194,6 +195,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 				refKey := fmt.Sprintf("image-%d", imageIndex)
 				refPrefix := fmt.Sprintf("ref/%s", refKey)
 				res.AddMeta(fmt.Sprintf("%s/image.name", refPrefix), []byte(saveImage.DockerTag))
+				res.AddMeta(fmt.Sprintf("%s/platform", refPrefix), []byte(platforms.Format(sts.Platform)))
 				if shouldPush {
 					res.AddMeta(fmt.Sprintf("%s/export-image-push", refPrefix), []byte("true"))
 					if saveImage.InsecurePush {
@@ -233,7 +235,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 		}
 		return res, nil
 	}
-	onImage := func(ctx context.Context, eg *errgroup.Group, index int, imageName string, digest string) (io.WriteCloser, error) {
+	onImage := func(ctx context.Context, eg *errgroup.Group, imageName string) (io.WriteCloser, error) {
 		successOnce.Do(successFun)
 		pipeR, pipeW := io.Pipe()
 		eg.Go(func() error {
@@ -489,6 +491,8 @@ func (b *Builder) saveArtifactLocally(ctx context.Context, artifact domain.Artif
 func loadDockerTar(ctx context.Context, r io.ReadCloser) error {
 	// TODO: This is a gross hack - should use proper docker client.
 	cmd := exec.CommandContext(ctx, "docker", "load")
+	// @#
+	// cmd := exec.CommandContext(ctx, "tee", "test.tar")
 	cmd.Stdin = r
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
