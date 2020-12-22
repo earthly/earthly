@@ -1,6 +1,10 @@
 package variables
 
-import "testing"
+import (
+	"testing"
+
+	. "github.com/stretchr/testify/assert"
+)
 
 func TestDockerTagSafe(t *testing.T) {
 	var tests = []struct {
@@ -23,8 +27,28 @@ func TestDockerTagSafe(t *testing.T) {
 
 	for _, tt := range tests {
 		ans := dockerTagSafe(tt.tag)
-		if ans != tt.safe {
-			t.Errorf("got %s, want %s", ans, tt.safe)
-		}
+		Equal(t, tt.safe, ans)
+	}
+}
+
+func TestGetProjectName(t *testing.T) {
+	var tests = []struct {
+		tag  string
+		safe string
+	}{
+		{"http://github.com/earthly/earthly", "earthly/earthly"},
+		{"http://gitlab.com/earthly/earthly", "earthly/earthly"},
+		{"https://github.com/earthly/earthly", "earthly/earthly"},
+		{"https://user@github.com/earthly/earthly", "earthly/earthly"},
+		{"https://user:password@github.com/earthly/earthly", "earthly/earthly"},
+		{"git@github.com:earthly/earthly", "earthly/earthly"},
+		{"git@bitbucket.com:earthly/earthly", "earthly/earthly"},
+		{"ssh://git@github.com/earthly/earthly", "earthly/earthly"},
+		{"ssh://git@github.com:22/earthly/earthly", "earthly/earthly"},
+	}
+
+	for _, tt := range tests {
+		ans := getProjectName(tt.tag)
+		Equal(t, tt.safe, ans)
 	}
 }
