@@ -110,10 +110,11 @@ secrets-test:
     COPY secrets.earth ./Earthfile
     ENV SECRET1=foo
     ENV SECRET2=wrong
+    RUN echo -n "secretfilecontents" > /my-secret-file
     RUN --privileged \
         --entrypoint \
         --mount=type=tmpfs,target=/tmp/earthly \
-        -- --secret SECRET1 --secret SECRET2=bar +test
+        -- --secret SECRET1 --secret SECRET2=bar --secret-file SECRET3=/my-secret-file +test
 
 build-arg-test:
     COPY build-arg.earth ./Earthfile
