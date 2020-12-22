@@ -15,6 +15,7 @@ import (
 	gwclient "github.com/moby/buildkit/frontend/gateway/client"
 	"github.com/moby/buildkit/session"
 	"github.com/moby/buildkit/util/entitlements"
+	specs "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
 	"golang.org/x/sync/errgroup"
 )
@@ -34,8 +35,8 @@ type solver struct {
 	saveInlineCache bool
 }
 
-func (s *solver) solveDockerTar(ctx context.Context, state llb.State, img *image.Image, dockerTag string, outFile string) error {
-	dt, err := state.Marshal(ctx)
+func (s *solver) solveDockerTar(ctx context.Context, state llb.State, platform specs.Platform, img *image.Image, dockerTag string, outFile string) error {
+	dt, err := state.Marshal(ctx, llb.Platform(platform))
 	if err != nil {
 		return errors.Wrap(err, "state marshal")
 	}
@@ -124,8 +125,8 @@ func (s *solver) buildMainMulti(ctx context.Context, bf gwclient.BuildFunc, onIm
 	return nil
 }
 
-func (s *solver) solveMain(ctx context.Context, state llb.State) error {
-	dt, err := state.Marshal(ctx)
+func (s *solver) solveMain(ctx context.Context, state llb.State, platform specs.Platform) error {
+	dt, err := state.Marshal(ctx, llb.Platform(platform))
 	if err != nil {
 		return errors.Wrap(err, "state marshal")
 	}

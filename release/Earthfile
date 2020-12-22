@@ -35,7 +35,8 @@ release-github:
         test -f ./release/earthly-darwin-amd64 && \
         test -f ./release/earthly-linux-arm5 && \
         test -f ./release/earthly-linux-arm6 && \
-        test -f ./release/earthly-linux-arm7
+        test -f ./release/earthly-linux-arm7 && \
+        test -f ./release/earthly-linux-arm64
     ARG BODY="No details provided"
     RUN --secret GITHUB_TOKEN=+secrets/earthly-technologies/github/griswoldthecat/token test -n "$GITHUB_TOKEN"
     RUN --push \

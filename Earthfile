@@ -158,6 +158,13 @@ earthly-arm7:
         +earthly/* ./
     SAVE ARTIFACT ./*
 
+earthly-arm64:
+    COPY \
+        --build-arg GOARCH=arm64 \
+        --build-arg GO_EXTRA_LDFLAGS= \
+        +earthly/* ./
+    SAVE ARTIFACT ./*
+
 earthly-darwin:
     COPY \
         --build-arg GOOS=darwin \
@@ -172,6 +179,7 @@ earthly-all:
     COPY +earthly-arm5/earthly ./earthly-linux-arm5
     COPY +earthly-arm6/earthly ./earthly-linux-arm6
     COPY +earthly-arm7/earthly ./earthly-linux-arm7
+    COPY +earthly-arm64/earthly ./earthly-linux-arm64
     SAVE ARTIFACT ./*
 
 earthly-docker:

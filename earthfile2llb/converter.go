@@ -24,7 +24,6 @@ import (
 	"github.com/earthly/earthly/states/image"
 	"github.com/earthly/earthly/variables"
 
-	"github.com/containerd/containerd/platforms"
 	"github.com/docker/distribution/reference"
 	"github.com/moby/buildkit/client/llb"
 	"github.com/moby/buildkit/frontend/dockerfile/dockerfile2llb"
@@ -55,7 +54,7 @@ func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Da
 		Platform: opt.Platform,
 		TargetInput: dedup.TargetInput{
 			TargetCanonical: target.StringCanonical(),
-			Platform:        llbutil.PlatformToString(&opt.Platform),
+			Platform:        llbutil.PlatformToString(opt.Platform),
 		},
 		MainState:      llbutil.ScratchWithPlatform(),
 		MainImage:      image.NewImage(),
@@ -75,18 +74,24 @@ func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Da
 	targetStr := target.String()
 	opt.Visited.Add(targetStr, sts)
 	return &Converter{
-		gitMeta:       bc.GitMetadata,
-		opt:           opt,
-		mts:           mts,
-		buildContext:  bc.BuildContext,
-		cacheContext:  makeCacheContext(target),
-		varCollection: opt.VarCollection.WithBuiltinBuildArgs(target, opt.Platform, bc.GitMetadata),
+		gitMeta:      bc.GitMetadata,
+		opt:          opt,
+		mts:          mts,
+		buildContext: bc.BuildContext,
+		cacheContext: makeCacheContext(target),
+		varCollection: opt.VarCollection.WithBuiltinBuildArgs(
+			target, llbutil.PlatformWithDefault(opt.Platform), bc.GitMetadata),
 	}, nil
 }
 
 // From applies the earthly FROM command.
 func (c *Converter) From(ctx context.Context, imageName string, platform *specs.Platform, buildArgs []string) error {
 	c.nonSaveCommand()
+	platform, err := llbutil.ResolvePlatform(platform, c.opt.Platform)
+	if err != nil {
+		return err
+	}
+	c.setPlatform(platform)
 	if strings.Contains(imageName, "+") {
 		// Target-based FROM.
 		return c.fromTarget(ctx, imageName, platform, buildArgs)
@@ -100,8 +105,9 @@ func (c *Converter) From(ctx context.Context, imageName string, platform *specs.
 }
 
 func (c *Converter) fromClassical(ctx context.Context, imageName string, platform *specs.Platform) error {
+	plat := llbutil.PlatformWithDefault(platform)
 	state, img, newVariables, err := c.internalFromClassical(
-		ctx, imageName, platform,
+		ctx, imageName, plat,
 		llb.WithCustomNamef("%sFROM %s", c.vertexPrefix(), imageName))
 	if err != nil {
 		return err
@@ -142,9 +148,12 @@ func (c *Converter) fromTarget(ctx context.Context, targetName string, platform 
 
 // FromDockerfile applies the earthly FROM DOCKERFILE command.
 func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPath string, dfTarget string, platform *specs.Platform, buildArgs []string) error {
-	if platform == nil {
-		platform = &c.opt.Platform
+	platform, err := llbutil.ResolvePlatform(platform, c.opt.Platform)
+	if err != nil {
+		return err
 	}
+	c.setPlatform(platform)
+	plat := llbutil.PlatformWithDefault(platform)
 	c.nonSaveCommand()
 	if dfPath != "" {
 		// TODO: It's not yet very clear what -f should do. Should it be referencing a Dockerfile
@@ -219,7 +228,7 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 		MetaResolver:     c.opt.MetaResolver,
 		ImageResolveMode: c.opt.ImageResolveMode,
 		Target:           dfTarget,
-		TargetPlatform:   platform,
+		TargetPlatform:   &plat,
 		LLBCaps:          &caps,
 		BuildArgs:        newVarCollection.AsMap(),
 		Excludes:         nil, // TODO: Need to process this correctly.
@@ -561,9 +570,6 @@ func (c *Converter) ExpandArgs(word string) string {
 }
 
 func (c *Converter) buildTarget(ctx context.Context, fullTargetName string, platform *specs.Platform, buildArgs []string, isDangling bool) (*states.MultiTarget, error) {
-	if platform == nil {
-		platform = &c.opt.Platform
-	}
 	relTarget, err := domain.ParseTarget(fullTargetName)
 	if err != nil {
 		return nil, errors.Wrapf(err, "earthly target parse %s", fullTargetName)
@@ -584,7 +590,15 @@ func (c *Converter) buildTarget(ctx context.Context, fullTargetName string, plat
 	opt := c.opt
 	opt.Visited = c.mts.Visited
 	opt.VarCollection = newVarCollection
-	opt.Platform = *platform
+	if propagateBuildArgs {
+		opt.Platform, err = llbutil.ResolvePlatform(platform, c.opt.Platform)
+		if err != nil {
+			// Contradiction allowed. You can BUILD another target with different platform.
+			opt.Platform = platform
+		}
+	} else {
+		opt.Platform = platform
+	}
 	mts, err := Earthfile2LLB(ctx, target, opt)
 	if err != nil {
 		return nil, errors.Wrapf(err, "earthfile2llb for %s", fullTargetName)
@@ -705,7 +719,7 @@ func (c *Converter) readArtifact(ctx context.Context, mts *states.MultiTarget, a
 		// ArtifactsState is scratch - no artifact has been copied.
 		return nil, errors.Errorf("artifact %s not found; no SAVE ARTIFACT command was issued in %s", artifact.String(), artifact.Target.String())
 	}
-	ref, err := llbutil.StateToRef(ctx, c.opt.GwClient, mts.Final.ArtifactsState, c.opt.CacheImports)
+	ref, err := llbutil.StateToRef(ctx, c.opt.GwClient, mts.Final.ArtifactsState, mts.Final.Platform, c.opt.CacheImports)
 	if err != nil {
 		return nil, errors.Wrap(err, "state to ref solve artifact")
 	}
@@ -718,13 +732,13 @@ func (c *Converter) readArtifact(ctx context.Context, mts *states.MultiTarget, a
 	return artDt, nil
 }
 
-func (c *Converter) internalFromClassical(ctx context.Context, imageName string, platform *specs.Platform, opts ...llb.ImageOption) (llb.State, *image.Image, *variables.Collection, error) {
-	if platform == nil {
-		platform = &c.opt.Platform
-	}
+func (c *Converter) internalFromClassical(ctx context.Context, imageName string, platform specs.Platform, opts ...llb.ImageOption) (llb.State, *image.Image, *variables.Collection, error) {
 	if imageName == "scratch" {
 		// FROM scratch
-		return llb.Scratch().Platform(*platform), image.NewImage(),
+		img := image.NewImage()
+		img.OS = platform.OS
+		img.Architecture = platform.Architecture
+		return llb.Scratch().Platform(platform), img,
 			c.varCollection.WithResetEnvVars(), nil
 	}
 	ref, err := reference.ParseNormalizedNamed(imageName)
@@ -732,12 +746,15 @@ func (c *Converter) internalFromClassical(ctx context.Context, imageName string,
 		return llb.State{}, nil, nil, errors.Wrapf(err, "parse normalized named %s", imageName)
 	}
 	baseImageName := reference.TagNameOnly(ref).String()
+	logName := fmt.Sprintf(
+		"%sLoad metadata %s",
+		c.imageVertexPrefix(imageName), llbutil.PlatformToString(&platform))
 	dgst, dt, err := c.opt.MetaResolver.ResolveImageConfig(
 		ctx, baseImageName,
 		llb.ResolveImageConfigOpt{
-			Platform:    platform,
+			Platform:    &platform,
 			ResolveMode: c.opt.ImageResolveMode.String(),
-			LogName:     fmt.Sprintf("%sLoad metadata (%s)", c.imageVertexPrefix(imageName), llbutil.PlatformToString(platform)),
+			LogName:     logName,
 		})
 	if err != nil {
 		return llb.State{}, nil, nil, errors.Wrapf(err, "resolve image config for %s", imageName)
@@ -753,7 +770,7 @@ func (c *Converter) internalFromClassical(ctx context.Context, imageName string,
 			return llb.State{}, nil, nil, errors.Wrapf(err, "reference add digest %v for %s", dgst, imageName)
 		}
 	}
-	allOpts := append(opts, llb.Platform(*platform), c.opt.ImageResolveMode)
+	allOpts := append(opts, llb.Platform(platform), c.opt.ImageResolveMode)
 	state := llb.Image(ref.String(), allOpts...)
 	state, img2, newVarCollection := c.applyFromImage(state, &img)
 	return state, img2, newVarCollection, nil
@@ -812,7 +829,7 @@ func (c *Converter) processNonConstantBuildArgFunc(ctx context.Context) variable
 			return llb.State{}, dedup.TargetInput{}, 0, errors.Wrapf(err, "run %v", expression)
 		}
 		// Copy the result of the expression into a separate, isolated state.
-		buildArgState := llb.Scratch().Platform(c.opt.Platform)
+		buildArgState := llb.Scratch().Platform(llbutil.PlatformWithDefault(c.opt.Platform))
 		buildArgState = llbutil.CopyOp(
 			c.mts.Final.MainState, []string{srcBuildArgPath},
 			buildArgState, buildArgPath, false, false, false, "root:root",
@@ -832,8 +849,10 @@ func (c *Converter) processNonConstantBuildArgFunc(ctx context.Context) variable
 func (c *Converter) vertexPrefix() string {
 	overriding := c.varCollection.SortedOverridingVariables()
 	varStrBuilder := make([]string, 0, len(overriding)+1)
-	if platforms.Format(llbutil.DefaultPlatform()) != platforms.Format(c.opt.Platform) {
-		varStrBuilder = append(varStrBuilder, fmt.Sprintf("platform=%s", platforms.Format(c.opt.Platform)))
+	if c.opt.Platform != nil {
+		varStrBuilder = append(
+			varStrBuilder,
+			fmt.Sprintf("platform=%s", llbutil.PlatformToString(c.opt.Platform)))
 	}
 	for _, key := range overriding {
 		variable, _, _ := c.varCollection.Get(key)
@@ -880,6 +899,26 @@ func (c *Converter) vertexPrefixWithURL(url string) string {
 	return fmt.Sprintf("[%s(%s) %s] ", c.mts.Final.Target.String(), url, url)
 }
 
+func (c *Converter) copyOwner(keepOwn bool, chown string) string {
+	own := c.mts.Final.MainImage.Config.User
+	if own == "" {
+		own = "root:root"
+	}
+	if keepOwn {
+		own = ""
+	}
+	if chown != "" {
+		own = chown
+	}
+	return own
+}
+
+func (c *Converter) setPlatform(platform *specs.Platform) {
+	c.opt.Platform = platform
+	c.mts.Final.Platform = platform
+	c.varCollection.SetPlatformArgs(llbutil.PlatformWithDefault(platform))
+}
+
 func makeCacheContext(target domain.Target) llb.State {
 	sessionID := cacheKey(target)
 	opts := []llb.LocalOption{
@@ -911,18 +950,4 @@ func strIf(condition bool, str string) string {
 		return str
 	}
 	return ""
-}
-
-func (c *Converter) copyOwner(keepOwn bool, chown string) string {
-	own := c.mts.Final.MainImage.Config.User
-	if own == "" {
-		own = "root:root"
-	}
-	if keepOwn {
-		own = ""
-	}
-	if chown != "" {
-		own = chown
-	}
-	return own
 }

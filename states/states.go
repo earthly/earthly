@@ -33,7 +33,7 @@ func (mts *MultiTarget) All() []*SingleTarget {
 // SingleTarget holds LLB states representing an earthly target.
 type SingleTarget struct {
 	Target                 domain.Target
-	Platform               specs.Platform
+	Platform               *specs.Platform
 	TargetInput            dedup.TargetInput
 	MainImage              *image.Image
 	MainState              llb.State

@@ -226,11 +226,7 @@ func (c *Collection) WithBuiltinBuildArgs(target domain.Target, platform specs.P
 	ret.variables["EARTHLY_TARGET_NAME"] = NewConstant(target.Target)
 	ret.variables["EARTHLY_TARGET_TAG"] = NewConstant(target.Tag)
 	ret.variables["EARTHLY_TARGET_TAG_DOCKER"] = NewConstant(dockerTagSafe(target.Tag))
-
-	ret.variables["TARGETPLATFORM"] = NewConstant(platforms.Format(platform))
-	ret.variables["TARGETOS"] = NewConstant(platform.OS)
-	ret.variables["TARGETARCH"] = NewConstant(platform.Architecture)
-	ret.variables["TARGETVARIANT"] = NewConstant(platform.Variant)
+	ret.SetPlatformArgs(platform)
 
 	if gitMeta != nil {
 		ret.variables["EARTHLY_GIT_HASH"] = NewConstant(gitMeta.Hash)
@@ -249,6 +245,14 @@ func (c *Collection) WithBuiltinBuildArgs(target domain.Target, platform specs.P
 		ret.variables["EARTHLY_GIT_PROJECT_NAME"] = NewConstant(getProjectName(gitMeta.RemoteURL))
 	}
 	return ret
+}
+
+// SetPlatformArgs set the platform-specific built-in args to a specific platform.
+func (c *Collection) SetPlatformArgs(platform specs.Platform) {
+	c.variables["TARGETPLATFORM"] = NewConstant(platforms.Format(platform))
+	c.variables["TARGETOS"] = NewConstant(platform.OS)
+	c.variables["TARGETARCH"] = NewConstant(platform.Architecture)
+	c.variables["TARGETVARIANT"] = NewConstant(platform.Variant)
 }
 
 // WithParseBuildArgs takes in a slice of build args to be parsed and returns another collection
