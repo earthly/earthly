@@ -192,11 +192,19 @@ func (c *Collection) WithOnlyGlobals() *Collection {
 
 // getProjectName returns the depricated PROJECT_NAME value
 func getProjectName(s string) string {
+	protocol := "unknown"
 	parts := strings.SplitN(s, "://", 2)
+	if len(parts) > 1 {
+		protocol = parts[0]
+		s = parts[1]
+	}
+	parts = strings.SplitN(s, "@", 2)
 	if len(parts) > 1 {
 		s = parts[1]
 	}
-	s = strings.Replace(s, ":", "/", 1)
+	if protocol == "unknown" {
+		s = strings.Replace(s, ":", "/", 1)
+	}
 	s = strings.TrimSuffix(s, ".git")
 	parts = strings.SplitN(s, "/", 2)
 	if len(parts) > 1 {
