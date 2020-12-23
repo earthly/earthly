@@ -1,6 +1,8 @@
 package llbutil
 
-import "testing"
+import (
+	"testing"
+)
 
 func TestDockerTagSafe(t *testing.T) {
 	var tests = []struct {

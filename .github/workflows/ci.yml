@@ -133,6 +133,8 @@ jobs:
         run: earthly --use-inline-cache +for-linux
       - name: run ssh-based tests
         run: env earthly=./build/linux/amd64/earthly scripts/tests/private-repo.sh
+      - name: run secrets-integration
+        run: env earthly=./build/linux/amd64/earthly scripts/tests/secrets-integration.sh
       - name: Buildkit logs (runs on failure)
         run: docker logs earthly-buildkitd
         if: ${{ failure() }}

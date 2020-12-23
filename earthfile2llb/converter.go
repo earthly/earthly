@@ -139,7 +139,7 @@ func (c *Converter) fromTarget(ctx context.Context, targetName string, platform 
 		c.mts.Final.LocalDirs[dirKey] = dirValue
 	}
 	for _, kv := range saveImage.Image.Config.Env {
-		k, v := variables.ParseKeyValue(kv)
+		k, v, _ := variables.ParseKeyValue(kv)
 		c.varCollection.AddActive(k, variables.NewConstantEnvVar(v), true, false)
 	}
 	c.mts.Final.MainImage = saveImage.Image.Clone()
@@ -297,7 +297,7 @@ func (c *Converter) CopyClassical(ctx context.Context, srcs []string, dest strin
 }
 
 // Run applies the earthly RUN command.
-func (c *Converter) Run(ctx context.Context, args []string, mounts []string, secretKeyValues []string, privileged bool, withEntrypoint bool, withDocker bool, isWithShell bool, pushFlag bool, withSSH bool) error {
+func (c *Converter) Run(ctx context.Context, args, mounts, secretKeyValues []string, privileged, withEntrypoint, withDocker, isWithShell, pushFlag, withSSH bool) error {
 	c.nonSaveCommand()
 	if withDocker {
 		return errors.New("RUN --with-docker is obsolete. Please use WITH DOCKER ... RUN ... END instead")
@@ -631,7 +631,7 @@ func (c *Converter) buildTarget(ctx context.Context, fullTargetName string, plat
 	return mts, nil
 }
 
-func (c *Converter) internalRun(ctx context.Context, args []string, secretKeyValues []string, isWithShell bool, shellWrap shellWrapFun, pushFlag bool, withSSH bool, commandStr string, opts ...llb.RunOption) error {
+func (c *Converter) internalRun(ctx context.Context, args, secretKeyValues []string, isWithShell bool, shellWrap shellWrapFun, pushFlag, withSSH bool, commandStr string, opts ...llb.RunOption) error {
 	finalOpts := opts
 	var extraEnvVars []string
 	// Secrets.
@@ -780,7 +780,7 @@ func (c *Converter) applyFromImage(state llb.State, img *image.Image) (llb.State
 	// Reset variables.
 	newVarCollection := c.varCollection.WithResetEnvVars()
 	for _, envVar := range img.Config.Env {
-		k, v := variables.ParseKeyValue(envVar)
+		k, v, _ := variables.ParseKeyValue(envVar)
 		newVarCollection.AddActive(k, variables.NewConstantEnvVar(v), true, false)
 		state = state.AddEnv(k, v)
 	}

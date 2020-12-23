@@ -158,6 +158,18 @@ func parseMount(mount string, target domain.Target, ti dedup.TargetInput, cacheC
 			sshOpts = append(sshOpts, llb.SSHSocketTarget(mountTarget))
 		}
 		return []llb.RunOption{llb.AddSSHSocket(sshOpts...)}, nil
+	case "secret":
+		if mountTarget == "" {
+			return nil, fmt.Errorf("mount target not specified")
+		}
+		secretID := strings.TrimPrefix(mountID, "+secrets/")
+		secretOpts := []llb.SecretOption{
+			llb.SecretID(secretID),
+			// TODO: Perhaps this should just default to the current user automatically from
+			//       buildkit side. Then we wouldn't need to open this up to everyone.
+			llb.SecretFileOpt(0, 0, 0444),
+		}
+		return []llb.RunOption{llb.AddSecret(mountTarget, secretOpts...)}, nil
 	default:
 		return nil, fmt.Errorf("invalid mount type %s", mountType)
 	}
