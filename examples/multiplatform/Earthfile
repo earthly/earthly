@@ -11,21 +11,23 @@ all:
 # This target definition will produce images for different platforms,
 # depending on the --platform flag used in the call to BUILD.
 #
-# To try this out, if you are using the Docker Desktop app, you are ready to try this example immediately.
-# On linux, make sure your system has QEMU set up. On Ubuntu you can run the following:
+# If you are using the Docker Desktop app (Mac and Windows), then you are ready
+# to try this example immediately.
+# On linux, you need to make sure that your system has QEMU set up. On Ubuntu you
+# can run the following:
 #
 #     sudo apt-get install qemu binfmt-support qemu-user-static
 #     docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
 #     docker stop earthly-buildkitd || true
 #
-# Then test this example:
+# Then try this example:
 #
 #     earthly +all
-#     docker run --it --rm earthly/examples:multiplatform
-#     docker run --it --rm earthly/examples:multiplatform_linux_amd64
-#     docker run --it --rm earthly/examples:multiplatform_linux_arm64
-#     docker run --it --rm earthly/examples:multiplatform_linux_arm_v7
-#     docker run --it --rm earthly/examples:multiplatform_linux_arm_v6
+#     docker run --rm earthly/examples:multiplatform
+#     docker run --rm earthly/examples:multiplatform_linux_amd64
+#     docker run --rm earthly/examples:multiplatform_linux_arm64
+#     docker run --rm earthly/examples:multiplatform_linux_arm_v7
+#     docker run --rm earthly/examples:multiplatform_linux_arm_v6
 #
 docker:
     FROM alpine:3.11
