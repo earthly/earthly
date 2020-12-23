@@ -2028,16 +2028,16 @@ func (app *earthlyApp) actionBuild(c *cli.Context) error {
 	}
 	defer bkClient.Close()
 
-	platformsSlice := make([]specs.Platform, 0, len(app.platformsStr.Value()))
+	platformsSlice := make([]*specs.Platform, 0, len(app.platformsStr.Value()))
 	for _, p := range app.platformsStr.Value() {
 		platform, err := platforms.Parse(p)
 		if err != nil {
 			return errors.Wrapf(err, "parse platform %s", p)
 		}
-		platformsSlice = append(platformsSlice, platform)
+		platformsSlice = append(platformsSlice, &platform)
 	}
 	if len(platformsSlice) == 0 {
-		platformsSlice = []specs.Platform{llbutil.DefaultPlatform()}
+		platformsSlice = []*specs.Platform{nil}
 	}
 
 	dotEnvMap := make(map[string]string)

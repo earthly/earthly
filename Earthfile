@@ -132,6 +132,7 @@ earthly:
     SAVE ARTIFACT ./build/tags
     SAVE ARTIFACT ./build/ldflags
     SAVE ARTIFACT build/earthly AS LOCAL "build/$GOOS/$GOARCH$GOARM/earthly"
+    SAVE IMAGE --cache-from=earthly/earthly:main
 
 earthly-arm5:
     COPY \
@@ -157,6 +158,13 @@ earthly-arm7:
         +earthly/* ./
     SAVE ARTIFACT ./*
 
+earthly-arm64:
+    COPY \
+        --build-arg GOARCH=arm64 \
+        --build-arg GO_EXTRA_LDFLAGS= \
+        +earthly/* ./
+    SAVE ARTIFACT ./*
+
 earthly-darwin:
     COPY \
         --build-arg GOOS=darwin \
@@ -171,6 +179,7 @@ earthly-all:
     COPY +earthly-arm5/earthly ./earthly-linux-arm5
     COPY +earthly-arm6/earthly ./earthly-linux-arm6
     COPY +earthly-arm7/earthly ./earthly-linux-arm7
+    COPY +earthly-arm64/earthly ./earthly-linux-arm64
     SAVE ARTIFACT ./*
 
 earthly-docker:
@@ -268,6 +277,7 @@ examples:
     BUILD ./examples/ruby-on-rails+docker
     BUILD ./examples/scala+docker
     BUILD ./examples/cobol+docker
+    BUILD ./examples/multiplatform+all
     BUILD github.com/earthly/hello-world:main+hello
 
 test-fail:

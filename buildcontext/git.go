@@ -164,7 +164,7 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, gwClient gwclient.
 	gitHashOp := opImg.Run(gitHashOpts...)
 	gitMetaAndEarthfileState := gitHashOp.AddMount("/dest", earthfileState)
 
-	gitMetaAndEarthfileRef, err := llbutil.StateToRef(ctx, gwClient, gitMetaAndEarthfileState, nil)
+	gitMetaAndEarthfileRef, err := llbutil.StateToRef(ctx, gwClient, gitMetaAndEarthfileState, nil, nil)
 	if err != nil {
 		return nil, "", "", errors.Wrap(err, "state to ref git meta")
 	}

@@ -12,6 +12,7 @@ import (
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/earthfile2llb/antlrhandler"
 	"github.com/earthly/earthly/earthfile2llb/parser"
+	"github.com/earthly/earthly/llbutil"
 	"github.com/earthly/earthly/states"
 	"github.com/earthly/earthly/variables"
 	"github.com/moby/buildkit/client/llb"
@@ -38,7 +39,7 @@ type ConvertOpt struct {
 	// This is used for deduplication and infinite cycle detection.
 	Visited *states.VisitedCollection
 	// Platform is the target platform of the build.
-	Platform specs.Platform
+	Platform *specs.Platform
 	// VarCollection is a collection of build args used for overriding args in the build.
 	VarCollection *variables.Collection
 	// A cache for image solves. depTargetInputHash -> context containing image.tar.
@@ -71,29 +72,31 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt) (m
 	// Check if we have previously converted this target, with the same build args.
 	targetStr := target.String()
 	for _, sts := range opt.Visited.Visited[targetStr] {
-		same := true
-		for _, bai := range sts.TargetInput.BuildArgs {
-			if sts.Ongoing && !bai.IsConstant {
-				return nil, fmt.Errorf(
-					"Use of recursive targets with variable build args is not supported: %s", targetStr)
-			}
-			variable, _, found := opt.VarCollection.Get(bai.Name)
-			if found {
-				if !variable.BuildArgInput(bai.Name, bai.DefaultValue).Equals(bai) {
-					same = false
-					break
+		same := (sts.TargetInput.Platform == llbutil.PlatformToString(opt.Platform))
+		if same {
+			for _, bai := range sts.TargetInput.BuildArgs {
+				if sts.Ongoing && !bai.IsConstant {
+					return nil, fmt.Errorf(
+						"Use of recursive targets with variable build args is not supported: %s", targetStr)
 				}
-			} else {
-				if !bai.IsDefaultValue() {
-					same = false
-					break
+				variable, _, found := opt.VarCollection.Get(bai.Name)
+				if found {
+					if !variable.BuildArgInput(bai.Name, bai.DefaultValue).Equals(bai) {
+						same = false
+						break
+					}
+				} else {
+					if !bai.IsDefaultValue() {
+						same = false
+						break
+					}
 				}
 			}
 		}
 		if same {
 			if sts.Ongoing {
 				return nil, fmt.Errorf(
-					"Infinite recursion detected for target %s", targetStr)
+					"infinite recursion detected for target %s", targetStr)
 			}
 			// Use the already built states.
 			return &states.MultiTarget{
@@ -130,10 +133,9 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt) (m
 		var errString []string
 		errString = append(errString,
 			fmt.Sprintf(
-				"Syntax error: line %d:%d when parsing %s",
+				"syntax error: line %d:%d",
 				errorStrategy.RE.GetOffendingToken().GetLine(),
-				errorStrategy.RE.GetOffendingToken().GetColumn(),
-				errorStrategy.ErrContext.GetText()))
+				errorStrategy.RE.GetOffendingToken().GetColumn()))
 		errString = append(errString,
 			fmt.Sprintf("Details: %s", errorStrategy.RE.GetMessage()))
 		return nil, errors.Wrapf(errorStrategy.Err, "%s", strings.Join(errString, "\n"))

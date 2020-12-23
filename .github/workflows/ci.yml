@@ -87,6 +87,13 @@ jobs:
       EARTHLY_INSTALL_ID: "earthly-githubactions"
     steps:
       - uses: actions/checkout@v2
+      -
+        name: Set up QEMU
+        id: qemu
+        uses: docker/setup-qemu-action@v1
+        with:
+          image: tonistiigi/binfmt:latest
+          platforms: all
       - name: Download released earthly
         run: "sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/latest/download/earthly-linux-amd64 -O /usr/local/bin/earthly && chmod +x /usr/local/bin/earthly'"
       - name: Docker Login (non fork only)
@@ -100,6 +107,10 @@ jobs:
       - name: Build examples (main build)
         run: ./build/linux/amd64/earthly --ci --push -P +examples
         if: github.event_name == 'push'
+      - name: Build and test multi-platform example
+        run: |
+          ./build/linux/amd64/earthly ./examples/multiplatform+all
+          docker run --rm earthly/examples:multiplatform_linux_arm64 | grep aarch64
       - name: Buildkit logs (runs on failure)
         run: docker logs earthly-buildkitd
         if: ${{ failure() }}

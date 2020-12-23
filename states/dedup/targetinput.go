@@ -15,6 +15,8 @@ type TargetInput struct {
 	TargetCanonical string `json:"targetCanonical"`
 	// BuildArgs are the build args used to build this target.
 	BuildArgs []BuildArgInput `json:"buildArgs"`
+	// Platform is the target platform of the target.
+	Platform string `json:"platform"`
 }
 
 // WithBuildArgInput returns a clone of the current target input, with a
@@ -37,6 +39,9 @@ func (ti TargetInput) Equals(other TargetInput) bool {
 	if ti.TargetCanonical != other.TargetCanonical {
 		return false
 	}
+	if ti.Platform != other.Platform {
+		return false
+	}
 	if len(ti.BuildArgs) != len(other.BuildArgs) {
 		return false
 	}
@@ -52,6 +57,7 @@ func (ti TargetInput) clone() TargetInput {
 	tiCopy := TargetInput{
 		TargetCanonical: ti.TargetCanonical,
 		BuildArgs:       make([]BuildArgInput, 0, len(ti.BuildArgs)),
+		Platform:        ti.Platform,
 	}
 	for _, bai := range ti.BuildArgs {
 		baiCopy := bai.clone()
@@ -73,6 +79,7 @@ func (ti TargetInput) cloneNoTag() (TargetInput, error) {
 	tiCopy := TargetInput{
 		TargetCanonical: targetStr,
 		BuildArgs:       make([]BuildArgInput, 0, len(ti.BuildArgs)),
+		Platform:        ti.Platform,
 	}
 	for _, bai := range ti.BuildArgs {
 		baiCopy, err := bai.cloneNoTag()

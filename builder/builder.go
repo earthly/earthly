@@ -7,7 +7,6 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
-	"os/exec"
 	"path"
 	"path/filepath"
 	"strings"
@@ -58,7 +57,7 @@ type Opt struct {
 
 // BuildOpt is a collection of build options.
 type BuildOpt struct {
-	Platform              specs.Platform
+	Platform              *specs.Platform
 	PrintSuccess          bool
 	Push                  bool
 	NoOutput              bool
@@ -123,6 +122,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 		}
 	}
 	destPathWhitelist := make(map[string]bool)
+	manifestLists := make(map[string][]manifest) // parent image -> child images
 	var mts *states.MultiTarget
 	bf := func(ctx context.Context, gwClient gwclient.Client) (*gwclient.Result, error) {
 		var err error
@@ -143,13 +143,13 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 			return nil, err
 		}
 		res := gwclient.NewResult()
-		ref, err := b.stateToRef(ctx, gwClient, mts.Final.MainState)
+		ref, err := b.stateToRef(ctx, gwClient, mts.Final.MainState, mts.Final.Platform)
 		if err != nil {
 			return nil, err
 		}
 		res.AddRef("main", ref)
 		if !opt.NoOutput && opt.OnlyArtifact != nil && !opt.OnlyFinalTargetImages {
-			ref, err = b.stateToRef(ctx, gwClient, mts.Final.ArtifactsState)
+			ref, err = b.stateToRef(ctx, gwClient, mts.Final.ArtifactsState, mts.Final.Platform)
 			if err != nil {
 				return nil, err
 			}
@@ -165,7 +165,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 		dirIndex := 0
 		for _, sts := range mts.All() {
 			if sts.HasDangling && !b.opt.UseFakeDep {
-				depRef, err := b.stateToRef(ctx, gwClient, sts.MainState)
+				depRef, err := b.stateToRef(ctx, gwClient, sts.MainState, sts.Platform)
 				if err != nil {
 					return nil, err
 				}
@@ -182,7 +182,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 					// Short-circuit.
 					continue
 				}
-				ref, err := b.stateToRef(ctx, gwClient, saveImage.State)
+				ref, err := b.stateToRef(ctx, gwClient, saveImage.State, sts.Platform)
 				if err != nil {
 					return nil, err
 				}
@@ -190,27 +190,64 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 				if err != nil {
 					return nil, errors.Wrapf(err, "marshal save image config")
 				}
-				// TODO: Support multiple docker tags at the same time (improves export speed).
 				refKey := fmt.Sprintf("image-%d", imageIndex)
 				refPrefix := fmt.Sprintf("ref/%s", refKey)
-				res.AddMeta(fmt.Sprintf("%s/image.name", refPrefix), []byte(saveImage.DockerTag))
-				if shouldPush {
-					res.AddMeta(fmt.Sprintf("%s/export-image-push", refPrefix), []byte("true"))
-					if saveImage.InsecurePush {
-						res.AddMeta(fmt.Sprintf("%s/insecure-push", refPrefix), []byte("true"))
+				imageIndex++
+				if sts.Platform == nil {
+					res.AddMeta(fmt.Sprintf("%s/image.name", refPrefix), []byte(saveImage.DockerTag))
+					if shouldPush {
+						res.AddMeta(fmt.Sprintf("%s/export-image-push", refPrefix), []byte("true"))
+						if saveImage.InsecurePush {
+							res.AddMeta(fmt.Sprintf("%s/insecure-push", refPrefix), []byte("true"))
+						}
+					}
+					res.AddMeta(fmt.Sprintf("%s/%s", refPrefix, exptypes.ExporterImageConfigKey), config)
+					if shouldExport {
+						res.AddMeta(fmt.Sprintf("%s/export-image", refPrefix), []byte("true"))
+					}
+					res.AddMeta(fmt.Sprintf("%s/image-index", refPrefix), []byte(fmt.Sprintf("%d", imageIndex)))
+					res.AddRef(refKey, ref)
+				} else {
+					// Image has platform set - need to use manifest lists.
+					// Need to push as a single multi-manifest image, but output locally as
+					// separate images.
+					// (docker load does not support tars with manifest lists).
+
+					// For push.
+					if shouldPush {
+						res.AddMeta(fmt.Sprintf("%s/image.name", refPrefix), []byte(saveImage.DockerTag))
+						res.AddMeta(fmt.Sprintf("%s/platform", refPrefix), []byte(llbutil.PlatformToString(sts.Platform)))
+						res.AddMeta(fmt.Sprintf("%s/export-image-push", refPrefix), []byte("true"))
+						if saveImage.InsecurePush {
+							res.AddMeta(fmt.Sprintf("%s/insecure-push", refPrefix), []byte("true"))
+						}
+						res.AddMeta(fmt.Sprintf("%s/%s", refPrefix, exptypes.ExporterImageConfigKey), config)
+						res.AddMeta(fmt.Sprintf("%s/image-index", refPrefix), []byte(fmt.Sprintf("%d", imageIndex)))
+						res.AddRef(refKey, ref)
+					}
+
+					// For local.
+					if shouldExport {
+						platformImgName, err := platformSpecificImageName(saveImage.DockerTag, *sts.Platform)
+						if err != nil {
+							return nil, err
+						}
+						res.AddMeta(fmt.Sprintf("%s/image.name", refPrefix), []byte(platformImgName))
+						res.AddMeta(fmt.Sprintf("%s/%s", refPrefix, exptypes.ExporterImageConfigKey), config)
+						res.AddMeta(fmt.Sprintf("%s/export-image", refPrefix), []byte("true"))
+						res.AddMeta(fmt.Sprintf("%s/image-index", refPrefix), []byte(fmt.Sprintf("%d", imageIndex)))
+						res.AddRef(refKey, ref)
+						manifestLists[saveImage.DockerTag] = append(
+							manifestLists[saveImage.DockerTag], manifest{
+								imageName: platformImgName,
+								platform:  *sts.Platform,
+							})
 					}
 				}
-				res.AddMeta(fmt.Sprintf("%s/%s", refPrefix, exptypes.ExporterImageConfigKey), config)
-				if shouldExport {
-					res.AddMeta(fmt.Sprintf("%s/export-image", refPrefix), []byte("true"))
-				}
-				res.AddMeta(fmt.Sprintf("%s/image-index", refPrefix), []byte(fmt.Sprintf("%d", imageIndex)))
-				res.AddRef(refKey, ref)
-				imageIndex++
 			}
 			if !sts.Target.IsRemote() && !opt.NoOutput && !opt.OnlyFinalTargetImages && opt.OnlyArtifact == nil {
 				for _, saveLocal := range sts.SaveLocals {
-					ref, err := b.stateToRef(ctx, gwClient, sts.SeparateArtifactsState[saveLocal.Index])
+					ref, err := b.stateToRef(ctx, gwClient, sts.SeparateArtifactsState[saveLocal.Index], sts.Platform)
 					if err != nil {
 						return nil, err
 					}
@@ -233,7 +270,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 		}
 		return res, nil
 	}
-	onImage := func(ctx context.Context, eg *errgroup.Group, index int, imageName string, digest string) (io.WriteCloser, error) {
+	onImage := func(ctx context.Context, eg *errgroup.Group, imageName string) (io.WriteCloser, error) {
 		successOnce.Do(successFun)
 		pipeR, pipeW := io.Pipe()
 		eg.Go(func() error {
@@ -324,15 +361,21 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 			}
 		}
 	}
+	for parentImageName, children := range manifestLists {
+		err = loadDockerManifest(ctx, b.opt.Console, parentImageName, children)
+		if err != nil {
+			return nil, err
+		}
+	}
 
 	return mts, nil
 }
 
-func (b *Builder) stateToRef(ctx context.Context, gwClient gwclient.Client, state llb.State) (gwclient.Reference, error) {
+func (b *Builder) stateToRef(ctx context.Context, gwClient gwclient.Client, state llb.State, platform *specs.Platform) (gwclient.Reference, error) {
 	if b.opt.NoCache {
 		state = state.SetMarshalDefaults(llb.IgnoreCache)
 	}
-	return llbutil.StateToRef(ctx, gwClient, state, b.opt.CacheImports)
+	return llbutil.StateToRef(ctx, gwClient, state, platform, b.opt.CacheImports)
 }
 
 func (b *Builder) buildOnlyLastImageAsTar(ctx context.Context, mts *states.MultiTarget, dockerTag string, outFile string, opt BuildOpt) error {
@@ -342,7 +385,12 @@ func (b *Builder) buildOnlyLastImageAsTar(ctx context.Context, mts *states.Multi
 		return err
 	}
 
-	err = b.outputImageTar(ctx, saveImage, dockerTag, outFile)
+	platform, err := llbutil.ResolvePlatform(mts.Final.Platform, opt.Platform)
+	if err != nil {
+		platform = mts.Final.Platform
+	}
+	plat := llbutil.PlatformWithDefault(platform)
+	err = b.outputImageTar(ctx, saveImage, plat, dockerTag, outFile)
 	if err != nil {
 		return err
 	}
@@ -354,34 +402,44 @@ func (b *Builder) buildMain(ctx context.Context, mts *states.MultiTarget, opt Bu
 	if b.opt.NoCache {
 		state = state.SetMarshalDefaults(llb.IgnoreCache)
 	}
-	err := b.s.solveMain(ctx, state)
+	platform, err := llbutil.ResolvePlatform(mts.Final.Platform, opt.Platform)
+	if err != nil {
+		platform = mts.Final.Platform
+	}
+	plat := llbutil.PlatformWithDefault(platform)
+	err = b.s.solveMain(ctx, state, plat)
 	if err != nil {
 		return errors.Wrapf(err, "solve side effects")
 	}
 	return nil
 }
 
-func (b *Builder) executeRunPush(ctx context.Context, states *states.SingleTarget, opt BuildOpt) error {
-	if !states.RunPush.Initialized {
+func (b *Builder) executeRunPush(ctx context.Context, sts *states.SingleTarget, opt BuildOpt) error {
+	if !sts.RunPush.Initialized {
 		// No run --push commands here. Quick way out.
 		return nil
 	}
-	console := b.opt.Console.WithPrefixAndSalt(states.Target.String(), states.Salt)
+	console := b.opt.Console.WithPrefixAndSalt(sts.Target.String(), sts.Salt)
 	if !opt.Push {
-		for _, commandStr := range states.RunPush.CommandStrs {
+		for _, commandStr := range sts.RunPush.CommandStrs {
 			console.Printf("Did not execute push command %s. Use earthly --push to enable pushing\n", commandStr)
 		}
 		return nil
 	}
-	err := b.s.solveMain(ctx, states.RunPush.State)
+	platform, err := llbutil.ResolvePlatform(sts.Platform, opt.Platform)
+	if err != nil {
+		platform = sts.Platform
+	}
+	plat := llbutil.PlatformWithDefault(platform)
+	err = b.s.solveMain(ctx, sts.RunPush.State, plat)
 	if err != nil {
 		return errors.Wrapf(err, "solve run-push")
 	}
 	return nil
 }
 
-func (b *Builder) outputImageTar(ctx context.Context, saveImage states.SaveImage, dockerTag string, outFile string) error {
-	err := b.s.solveDockerTar(ctx, saveImage.State, saveImage.Image, dockerTag, outFile)
+func (b *Builder) outputImageTar(ctx context.Context, saveImage states.SaveImage, platform specs.Platform, dockerTag string, outFile string) error {
+	err := b.s.solveDockerTar(ctx, saveImage.State, platform, saveImage.Image, dockerTag, outFile)
 	if err != nil {
 		return errors.Wrapf(err, "solve image tar %s", outFile)
 	}
@@ -482,19 +540,6 @@ func (b *Builder) saveArtifactLocally(ctx context.Context, artifact domain.Artif
 		if opt.PrintSuccess {
 			console.Printf("Artifact %s as local %s\n", artifact2.StringCanonical(), destPath2)
 		}
-	}
-	return nil
-}
-
-func loadDockerTar(ctx context.Context, r io.ReadCloser) error {
-	// TODO: This is a gross hack - should use proper docker client.
-	cmd := exec.CommandContext(ctx, "docker", "load")
-	cmd.Stdin = r
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	err := cmd.Run()
-	if err != nil {
-		return errors.Wrap(err, "docker load")
 	}
 	return nil
 }

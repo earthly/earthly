@@ -6,6 +6,7 @@ import (
 	"github.com/earthly/earthly/states/image"
 	"github.com/earthly/earthly/variables"
 	"github.com/moby/buildkit/client/llb"
+	specs "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
 // MultiTarget holds LLB states representing multiple earthly targets,
@@ -32,6 +33,7 @@ func (mts *MultiTarget) All() []*SingleTarget {
 // SingleTarget holds LLB states representing an earthly target.
 type SingleTarget struct {
 	Target                 domain.Target
+	Platform               *specs.Platform
 	TargetInput            dedup.TargetInput
 	MainImage              *image.Image
 	MainState              llb.State

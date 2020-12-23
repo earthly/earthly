@@ -15,11 +15,12 @@ import (
 	gwclient "github.com/moby/buildkit/frontend/gateway/client"
 	"github.com/moby/buildkit/session"
 	"github.com/moby/buildkit/util/entitlements"
+	specs "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
 	"golang.org/x/sync/errgroup"
 )
 
-type onImageFunc func(context.Context, *errgroup.Group, int, string, string) (io.WriteCloser, error)
+type onImageFunc func(context.Context, *errgroup.Group, string) (io.WriteCloser, error)
 type onArtifactFunc func(context.Context, int, domain.Artifact, string, string) (string, error)
 type onFinalArtifactFunc func(context.Context) (string, error)
 
@@ -34,8 +35,8 @@ type solver struct {
 	saveInlineCache bool
 }
 
-func (s *solver) solveDockerTar(ctx context.Context, state llb.State, img *image.Image, dockerTag string, outFile string) error {
-	dt, err := state.Marshal(ctx)
+func (s *solver) solveDockerTar(ctx context.Context, state llb.State, platform specs.Platform, img *image.Image, dockerTag string, outFile string) error {
+	dt, err := state.Marshal(ctx, llb.Platform(platform))
 	if err != nil {
 		return errors.Wrap(err, "state marshal")
 	}
@@ -124,8 +125,8 @@ func (s *solver) buildMainMulti(ctx context.Context, bf gwclient.BuildFunc, onIm
 	return nil
 }
 
-func (s *solver) solveMain(ctx context.Context, state llb.State) error {
-	dt, err := state.Marshal(ctx)
+func (s *solver) solveMain(ctx context.Context, state llb.State, platform specs.Platform) error {
+	dt, err := state.Marshal(ctx, llb.Platform(platform))
 	if err != nil {
 		return errors.Wrap(err, "state marshal")
 	}
@@ -207,14 +208,8 @@ func (s *solver) newSolveOptMulti(ctx context.Context, eg *errgroup.Group, onIma
 					if md["export-image"] != "true" {
 						return nil, nil
 					}
-					indexStr := md["image-index"]
-					index, err := strconv.Atoi(indexStr)
-					if err != nil {
-						return nil, errors.Wrapf(err, "parse image-index %s", indexStr)
-					}
 					imageName := md["image.name"]
-					digest := md["containerimage.digest"]
-					return onImage(ctx, eg, index, imageName, digest)
+					return onImage(ctx, eg, imageName)
 				},
 				OutputDirFunc: func(md map[string]string) (string, error) {
 					if md["export-dir"] != "true" {
