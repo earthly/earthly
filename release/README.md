@@ -38,8 +38,18 @@
   * [ci-integration.md](../docs/guides/ci-integration.md)
   * [circle-integration.md](../docs/examples/circle-integration.md)
   * [gh-actions-integration.md](../docs/examples/gh-actions-integration.md)
+  * you can try doing that with:
+    ```
+    find . -name '*integration.md' | xargs -n1 sed -i 's/\(earthly\/releases\/download\/\)v[0-9]\+\.[0-9]\+\.[0-9]\+\(\/\)/\1'$RELEASE_TAG'\2/g'
+    ```
 * Copy the release notes you have written before and paste them in the Earthly Community slack channel `#announcements`, together with a link to the release's GitHub page. If you have Slack markdown editing activated, you can copy the markdown version of the text.
 * Ask Adam to tweet about the release.
+
+#### Troubleshooting
+
+If the release-homebrew fails with a rejected git push, you may have to delete the remote branch by running the following under the interactive debugger:
+
+    git push "$GIT_USERNAME" --delete "release-$RELEASE_TAG"
 
 ### VS Code syntax highlighting
 
