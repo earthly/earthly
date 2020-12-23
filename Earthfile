@@ -277,20 +277,8 @@ examples:
     BUILD ./examples/ruby-on-rails+docker
     BUILD ./examples/scala+docker
     BUILD ./examples/cobol+docker
+    BUILD ./examples/multiplatform+all
     BUILD github.com/earthly/hello-world:main+hello
 
 test-fail:
     RUN false
-
-test-platform-multi:
-    BUILD \
-        --platform=linux/amd64 \
-        --platform=linux/arm64 \
-        --platform=linux/arm/v7 \
-        +test-platform
-
-test-platform:
-    FROM alpine:3.11
-    RUN uname -m
-    CMD ["uname", "-m"]
-    SAVE IMAGE --push earthly/test-cache:mplat
