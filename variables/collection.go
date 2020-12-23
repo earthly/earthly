@@ -3,12 +3,12 @@ package variables
 import (
 	"fmt"
 	"os"
-	"regexp"
 	"sort"
 	"strings"
 
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/gitutil"
+	"github.com/earthly/earthly/llbutil"
 	"github.com/earthly/earthly/states/dedup"
 	"github.com/earthly/earthly/stringutil"
 
@@ -225,7 +225,7 @@ func (c *Collection) WithBuiltinBuildArgs(target domain.Target, platform specs.P
 	ret.variables["EARTHLY_TARGET_PROJECT"] = NewConstant(target.ProjectCanonical())
 	ret.variables["EARTHLY_TARGET_NAME"] = NewConstant(target.Target)
 	ret.variables["EARTHLY_TARGET_TAG"] = NewConstant(target.Tag)
-	ret.variables["EARTHLY_TARGET_TAG_DOCKER"] = NewConstant(dockerTagSafe(target.Tag))
+	ret.variables["EARTHLY_TARGET_TAG_DOCKER"] = NewConstant(llbutil.DockerTagSafe(target.Tag))
 	ret.SetPlatformArgs(platform)
 
 	if gitMeta != nil {
@@ -335,22 +335,4 @@ func (c *Collection) parseBuildArg(arg string, pncvf ProcessNonConstantVariableF
 	}
 	ret := NewVariable(argState, ti, argIndex)
 	return name, ret, hasValue, nil
-}
-
-var invalidDockerTagCharsBeginningRe = regexp.MustCompile(`^[^\w]`)
-var invalidDockerTagCharsMiddleRe = regexp.MustCompile(`[^\w.-]`)
-
-func dockerTagSafe(tag string) string {
-	if len(tag) == 0 {
-		return "latest"
-	}
-	newTag := tag
-	if len(tag) > 128 {
-		newTag = newTag[:128]
-	}
-	newTag = invalidDockerTagCharsBeginningRe.ReplaceAllString(newTag, "_")
-	if len(newTag) > 1 {
-		newTag = string(newTag[0]) + invalidDockerTagCharsMiddleRe.ReplaceAllString(newTag[1:], "_")
-	}
-	return newTag
 }
