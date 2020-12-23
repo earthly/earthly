@@ -110,7 +110,7 @@ jobs:
       - name: Build and test multi-platform example
         run: |
           ./build/linux/amd64/earthly ./examples/multiplatform+all
-          docker run --it --rm earthly/examples:multiplatform_linux_arm64 | grep aarch64
+          docker run -it --rm earthly/examples:multiplatform_linux_arm64 | grep aarch64
       - name: Buildkit logs (runs on failure)
         run: docker logs earthly-buildkitd
         if: ${{ failure() }}
