@@ -1,4 +1,4 @@
-package variables
+package llbutil
 
 import "testing"
 
@@ -22,7 +22,7 @@ func TestDockerTagSafe(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		ans := dockerTagSafe(tt.tag)
+		ans := DockerTagSafe(tt.tag)
 		if ans != tt.safe {
 			t.Errorf("got %s, want %s", ans, tt.safe)
 		}
