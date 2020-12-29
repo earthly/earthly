@@ -163,21 +163,19 @@ func saveData(server string, data *EarthlyAnalytics) error {
 func CollectAnalytics(ctx context.Context, earthlyServer string, displayErrors bool, version, gitSha, commandName string, exitCode int, realtime time.Duration) {
 	var err error
 	ciName, ci := detectCI()
-	installID, overrideInstallID := os.LookupEnv("EARTHLY_INSTALL_ID")
 	repoHash := getRepoHash()
+	installID, overrideInstallID := os.LookupEnv("EARTHLY_INSTALL_ID")
 	if !overrideInstallID {
-		if ciName != "false" {
-			installID = "ci"
-		} else if repoHash == "unknown" {
-			installID = "unknown"
-		} else {
-			if ci {
-				installID = fmt.Sprintf("%x", sha256.Sum256([]byte(ciName+repoHash)))
+		if ci {
+			if repoHash == "unknown" {
+				installID = "unknown"
 			} else {
-				installID, err = getInstallID()
-				if err != nil {
-					installID = "unknown"
-				}
+				installID = fmt.Sprintf("%x", sha256.Sum256([]byte(ciName+repoHash)))
+			}
+		} else {
+			installID, err = getInstallID()
+			if err != nil {
+				installID = "unknown"
 			}
 		}
 	}
