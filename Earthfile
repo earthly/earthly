@@ -233,7 +233,12 @@ for-linux:
 
 for-darwin:
     BUILD ./buildkitd+buildkitd
-    COPY +earthly-darwin/earthly ./
+    COPY +earthly-darwin-amd64/earthly ./
+    SAVE ARTIFACT ./earthly
+
+for-darwin-m1:
+    BUILD ./buildkitd+buildkitd
+    COPY +earthly-darwin-arm64/earthly ./
     SAVE ARTIFACT ./earthly
 
 all:
