@@ -14,7 +14,6 @@ RUN apk add --update --no-cache \
     less \
     make \
     openssl \
-    shellcheck \
     util-linux
 
 WORKDIR /earthly
@@ -38,7 +37,8 @@ code:
     COPY --dir earthfile2llb/antlrhandler earthfile2llb/*.go earthfile2llb/
 
 lint-scripts:
-    FROM +deps
+    FROM alpine:3.11
+    RUN apk add --update --no-cache shellcheck
     COPY ./earthly ./scripts/install-all-versions.sh ./buildkitd/entrypoint.sh ./earthly-buildkitd-wrapper.sh \
         ./buildkitd/dockerd-wrapper.sh ./buildkitd/docker-auto-install.sh \
         ./release/envcredhelper.sh ./.buildkite/*.sh \
@@ -68,9 +68,6 @@ lint:
 unit-test:
     FROM +code
     RUN go test ./...
-
-buildkitd:
-    BUILD ./buildkitd+buildkitd
 
 shellrepeater:
     FROM +code
@@ -165,7 +162,7 @@ earthly-arm64:
         +earthly/* ./
     SAVE ARTIFACT ./*
 
-earthly-darwin:
+earthly-darwin-amd64:
     COPY \
         --build-arg GOOS=darwin \
         --build-arg GOARCH=amd64 \
@@ -173,9 +170,18 @@ earthly-darwin:
         +earthly/* ./
     SAVE ARTIFACT ./*
 
+earthly-darwin-arm64:
+    COPY \
+        --build-arg GOOS=darwin \
+        --build-arg GOARCH=arm64 \
+        --build-arg GO_EXTRA_LDFLAGS= \
+        +earthly/* ./
+    SAVE ARTIFACT ./*
+
 earthly-all:
     COPY +earthly/earthly ./earthly-linux-amd64
-    COPY +earthly-darwin/earthly ./earthly-darwin-amd64
+    COPY +earthly-darwin-amd64/earthly ./earthly-darwin-amd64
+    COPY +earthly-darwin-arm64/earthly ./earthly-darwin-arm64
     COPY +earthly-arm5/earthly ./earthly-linux-arm5
     COPY +earthly-arm6/earthly ./earthly-linux-arm6
     COPY +earthly-arm7/earthly ./earthly-linux-arm7
@@ -195,7 +201,10 @@ earthly-docker:
 
 prerelease:
     FROM alpine:3.11
-    BUILD --build-arg TAG=prerelease ./buildkitd+buildkitd
+    BUILD --build-arg TAG=prerelease \
+        --platform=linux/amd64 \
+        --platform=linux/arm64 \
+        ./buildkitd+buildkitd
     COPY --build-arg VERSION=prerelease +earthly-all/* ./
     SAVE IMAGE --push earthly/earthlybinaries:prerelease
 
@@ -218,17 +227,17 @@ dind-ubuntu:
     SAVE IMAGE --push --cache-from=earthly/dind:ubuntu-main earthly/dind:$DIND_UBUNTU_TAG
 
 for-linux:
-    BUILD +buildkitd
+    BUILD ./buildkitd+buildkitd
     COPY +earthly/earthly ./
     SAVE ARTIFACT ./earthly
 
 for-darwin:
-    BUILD +buildkitd
+    BUILD ./buildkitd+buildkitd
     COPY +earthly-darwin/earthly ./
     SAVE ARTIFACT ./earthly
 
 all:
-    BUILD +buildkitd
+    BUILD ./buildkitd+buildkitd
     BUILD +earthly-all
     BUILD +earthly-docker
     BUILD +prerelease
