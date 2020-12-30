@@ -237,7 +237,10 @@ for-darwin:
     SAVE ARTIFACT ./earthly
 
 all:
-    BUILD ./buildkitd+buildkitd
+    BUILD \
+        --platform=linux/amd64 \
+        --platform=linux/arm64 \
+        ./buildkitd+buildkitd
     BUILD +earthly-all
     BUILD +earthly-docker
     BUILD +prerelease
