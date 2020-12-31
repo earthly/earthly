@@ -17,9 +17,17 @@ release-dockerhub:
     BUILD --build-arg DIND_ALPINE_TAG=latest ../+dind-alpine
     BUILD --build-arg DIND_UBUNTU_TAG=ubuntu ../+dind-ubuntu
     BUILD --build-arg TAG="$RELEASE_TAG" ../+earthly-docker
-    BUILD --build-arg TAG="$RELEASE_TAG" ../buildkitd+buildkitd
+    BUILD \
+        --platform=linux/amd64 \
+        --platform=linux/arm64 \
+        --build-arg TAG="$RELEASE_TAG" \
+        ../buildkitd+buildkitd
     BUILD --build-arg TAG=latest ../+earthly-docker
-    BUILD --build-arg TAG=latest ../buildkitd+buildkitd
+    BUILD \
+        --platform=linux/amd64 \
+        --platform=linux/arm64 \
+        --build-arg TAG=latest \
+        ../buildkitd+buildkitd
 
 release-github:
     FROM node:13.10.1-alpine3.11
@@ -33,6 +41,7 @@ release-github:
     RUN ls ./release
     RUN test -f ./release/earthly-linux-amd64 && \
         test -f ./release/earthly-darwin-amd64 && \
+        test -f ./release/earthly-darwin-arm64 && \
         test -f ./release/earthly-linux-arm5 && \
         test -f ./release/earthly-linux-arm6 && \
         test -f ./release/earthly-linux-arm7 && \

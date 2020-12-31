@@ -190,10 +190,12 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 				if err != nil {
 					return nil, errors.Wrapf(err, "marshal save image config")
 				}
-				refKey := fmt.Sprintf("image-%d", imageIndex)
-				refPrefix := fmt.Sprintf("ref/%s", refKey)
-				imageIndex++
+
 				if sts.Platform == nil {
+					refKey := fmt.Sprintf("image-%d", imageIndex)
+					refPrefix := fmt.Sprintf("ref/%s", refKey)
+					imageIndex++
+
 					res.AddMeta(fmt.Sprintf("%s/image.name", refPrefix), []byte(saveImage.DockerTag))
 					if shouldPush {
 						res.AddMeta(fmt.Sprintf("%s/export-image-push", refPrefix), []byte("true"))
@@ -215,6 +217,10 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 
 					// For push.
 					if shouldPush {
+						refKey := fmt.Sprintf("image-%d", imageIndex)
+						refPrefix := fmt.Sprintf("ref/%s", refKey)
+						imageIndex++
+
 						res.AddMeta(fmt.Sprintf("%s/image.name", refPrefix), []byte(saveImage.DockerTag))
 						res.AddMeta(fmt.Sprintf("%s/platform", refPrefix), []byte(llbutil.PlatformToString(sts.Platform)))
 						res.AddMeta(fmt.Sprintf("%s/export-image-push", refPrefix), []byte("true"))
@@ -228,6 +234,10 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 
 					// For local.
 					if shouldExport {
+						refKey := fmt.Sprintf("image-%d", imageIndex)
+						refPrefix := fmt.Sprintf("ref/%s", refKey)
+						imageIndex++
+
 						platformImgName, err := platformSpecificImageName(saveImage.DockerTag, *sts.Platform)
 						if err != nil {
 							return nil, err
