@@ -229,6 +229,7 @@ func (l *listener) ExitCopyStmt(c *parser.CopyStmtContext) {
 	chown := fs.String("chown", "", "Apply a specific group and/or owner to the copied files and directories")
 	keepTs := fs.Bool("keep-ts", false, "Keep created time file timestamps")
 	keepOwn := fs.Bool("keep-own", false, "Keep owner info")
+	ifExists := fs.Bool("if-exists", false, "Do not fail if the artifact does not exist")
 	platformStr := fs.String("platform", "", "The platform to use")
 	buildArgs := new(StringSliceFlag)
 	fs.Var(buildArgs, "build-arg", "A build arg override passed on to a referenced Earthly target")
@@ -280,7 +281,7 @@ func (l *listener) ExitCopyStmt(c *parser.CopyStmtContext) {
 	}
 	if allArtifacts {
 		for _, src := range srcs {
-			err = l.converter.CopyArtifact(l.ctx, src, dest, platform, buildArgs.Args, *isDirCopy, *keepTs, *keepOwn, *chown)
+			err = l.converter.CopyArtifact(l.ctx, src, dest, platform, buildArgs.Args, *isDirCopy, *keepTs, *keepOwn, *chown, *ifExists)
 			if err != nil {
 				l.err = errors.Wrapf(err, "copy artifact")
 				return
@@ -385,6 +386,7 @@ func (l *listener) ExitSaveArtifact(c *parser.SaveArtifactContext) {
 	fs := flag.NewFlagSet("SAVE ARTIFACT", flag.ContinueOnError)
 	keepTs := fs.Bool("keep-ts", false, "Keep created time file timestamps")
 	keepOwn := fs.Bool("keep-own", false, "Keep owner info")
+	ifExists := fs.Bool("if-exists", false, "Do not fail if the artifact does not exist")
 	err := fs.Parse(l.stmtWords)
 	if err != nil {
 		l.err = errors.Wrapf(err, "invalid SAVE arguments %v", l.stmtWords)
@@ -395,7 +397,7 @@ func (l *listener) ExitSaveArtifact(c *parser.SaveArtifactContext) {
 		l.err = fmt.Errorf("no arguments provided to the SAVE ARTIFACT command")
 		return
 	}
-	if fs.NArg() > 5 {
+	if fs.NArg() > 6 {
 		l.err = fmt.Errorf("too many arguments provided to the SAVE ARTIFACT command: %v", l.stmtWords)
 		return
 	}
@@ -421,7 +423,7 @@ func (l *listener) ExitSaveArtifact(c *parser.SaveArtifactContext) {
 	saveFrom := l.expandArgs(fs.Args()[0], false)
 	saveTo = l.expandArgs(saveTo, false)
 	saveAsLocalTo = l.expandArgs(saveAsLocalTo, false)
-	err = l.converter.SaveArtifact(l.ctx, saveFrom, saveTo, saveAsLocalTo, *keepTs, *keepOwn)
+	err = l.converter.SaveArtifact(l.ctx, saveFrom, saveTo, saveAsLocalTo, *keepTs, *keepOwn, *ifExists)
 	if err != nil {
 		l.err = errors.Wrap(err, "apply SAVE ARTIFACT")
 		return
