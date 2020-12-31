@@ -274,9 +274,10 @@ func (c *Converter) CopyArtifact(ctx context.Context, artifactName string, dest 
 		relevantDepState.ArtifactsState, []string{artifact.Artifact},
 		c.mts.Final.MainState, dest, true, isDir, keepTs, c.copyOwner(keepOwn, chown), ifExists,
 		llb.WithCustomNamef(
-			"%sCOPY %s%s%s %s",
+			"%sCOPY %s%s%s%s %s",
 			c.vertexPrefix(),
 			strIf(isDir, "--dir "),
+			strIf(ifExists, "--if-exists "),
 			joinWrap(buildArgs, "(", " ", ") "),
 			artifact.String(),
 			dest))
@@ -365,15 +366,15 @@ func (c *Converter) SaveArtifact(ctx context.Context, saveFrom string, saveTo st
 		c.mts.Final.MainState, []string{saveFrom}, c.mts.Final.ArtifactsState,
 		saveToAdjusted, true, true, keepTs, own, ifExists,
 		llb.WithCustomNamef(
-			"%sSAVE ARTIFACT %s %s", c.vertexPrefix(), saveFrom, artifact.String()))
+			"%sSAVE ARTIFACT %s %s %s", c.vertexPrefix(), strIf(ifExists, "--if-exists"), saveFrom, artifact.String()))
 	if saveAsLocalTo != "" {
 		separateArtifactsState := llbutil.ScratchWithPlatform()
 		separateArtifactsState = llbutil.CopyOp(
 			c.mts.Final.MainState, []string{saveFrom}, separateArtifactsState,
 			saveToAdjusted, true, false, keepTs, "root:root", ifExists,
 			llb.WithCustomNamef(
-				"%sSAVE ARTIFACT %s %s AS LOCAL %s",
-				c.vertexPrefix(), saveFrom, artifact.String(), saveAsLocalTo))
+				"%sSAVE ARTIFACT %s %s %s AS LOCAL %s",
+				c.vertexPrefix(), strIf(ifExists, "--if-exists"), saveFrom, artifact.String(), saveAsLocalTo))
 		c.mts.Final.SeparateArtifactsState = append(c.mts.Final.SeparateArtifactsState, separateArtifactsState)
 		c.mts.Final.SaveLocals = append(c.mts.Final.SaveLocals, states.SaveLocal{
 			DestPath:     saveAsLocalTo,
