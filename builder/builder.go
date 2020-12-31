@@ -317,7 +317,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 	if opt.NoOutput {
 		// Nothing.
 	} else if opt.OnlyArtifact != nil {
-		err := b.saveArtifactLocally(ctx, *opt.OnlyArtifact, outDir, opt.OnlyArtifactDestPath, mts.Final.Salt, opt)
+		err := b.saveArtifactLocally(ctx, *opt.OnlyArtifact, outDir, opt.OnlyArtifactDestPath, mts.Final.Salt, opt, false)
 		if err != nil {
 			return nil, err
 		}
@@ -358,7 +358,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 						Target:   sts.Target,
 						Artifact: saveLocal.ArtifactPath,
 					}
-					err := b.saveArtifactLocally(ctx, artifact, artifactDir, saveLocal.DestPath, sts.Salt, opt)
+					err := b.saveArtifactLocally(ctx, artifact, artifactDir, saveLocal.DestPath, sts.Salt, opt, saveLocal.IfExists)
 					if err != nil {
 						return nil, err
 					}
@@ -456,7 +456,7 @@ func (b *Builder) outputImageTar(ctx context.Context, saveImage states.SaveImage
 	return nil
 }
 
-func (b *Builder) saveArtifactLocally(ctx context.Context, artifact domain.Artifact, indexOutDir string, destPath string, salt string, opt BuildOpt) error {
+func (b *Builder) saveArtifactLocally(ctx context.Context, artifact domain.Artifact, indexOutDir string, destPath string, salt string, opt BuildOpt, ifExists bool) error {
 	console := b.opt.Console.WithPrefixAndSalt(artifact.Target.String(), salt)
 	fromPattern := filepath.Join(indexOutDir, filepath.FromSlash(artifact.Artifact))
 	// Resolve possible wildcards.
@@ -466,6 +466,9 @@ func (b *Builder) saveArtifactLocally(ctx context.Context, artifact domain.Artif
 	if err != nil {
 		return errors.Wrapf(err, "glob")
 	} else if !artifact.Target.IsRemote() && len(fromGlobMatches) <= 0 {
+		if ifExists {
+			return nil
+		}
 		return fmt.Errorf("cannot save artifact %s, since it does not exist", artifact.StringCanonical())
 	}
 	isWildcard := (len(fromGlobMatches) > 1)

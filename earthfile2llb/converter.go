@@ -380,6 +380,7 @@ func (c *Converter) SaveArtifact(ctx context.Context, saveFrom string, saveTo st
 			DestPath:     saveAsLocalTo,
 			ArtifactPath: artifactPath,
 			Index:        len(c.mts.Final.SeparateArtifactsState) - 1,
+			IfExists:     ifExists,
 		})
 	}
 	c.ranSave = true
