@@ -4,7 +4,7 @@ options {
 	tokenVocab = EarthLexer;
 }
 
-earthFile: NL* (stmts NL)? NL* targets? NL* WS? EOF;
+earthFile: NL* (stmts NL)? NL* targets? NL*? EOF;
 
 targets: target WS? (NL+ DEDENT target WS?)* NL* DEDENT?;
 target: targetHeader NL+ WS? INDENT stmts?;
