@@ -36,3 +36,11 @@ save-not-exist:
 copy-not-exist:
     FROM +save
     COPY +save/not_ok not_ok
+
+bad-wildcard-copy:
+    FROM +save
+    COPY +save/baddir/* .
+
+bad-wildcard-save:
+    FROM +save
+    SAVE ARTIFACT baddir/* AS LOCAL baddir
