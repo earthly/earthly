@@ -51,6 +51,7 @@ ga:
     BUILD +escape-dir-test
     BUILD +fail-invalid-artifact-test
     BUILD +target-first-line
+    BUILD +end-comment
     BUILD ./autocompletion+test-all
     BUILD ./with-docker+all
     BUILD ./with-docker-compose+all
@@ -414,3 +415,10 @@ target-first-line:
         --entrypoint \
         --mount=type=tmpfs,target=/tmp/earthly \
         -- --no-output +test
+
+end-comment:
+    COPY end-comment.earth ./Earthfile
+    RUN --privileged \
+        --entrypoint \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        -- +test
