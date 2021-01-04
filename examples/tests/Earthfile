@@ -51,6 +51,7 @@ ga:
     BUILD +escape-dir-test
     BUILD +fail-invalid-artifact-test
     BUILD +target-first-line
+    BUILD +if-exists
     BUILD ./autocompletion+test-all
     BUILD ./with-docker+all
     BUILD ./with-docker-compose+all
