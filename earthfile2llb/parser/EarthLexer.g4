@@ -35,7 +35,7 @@ WITH_DOCKER: 'WITH DOCKER' -> pushMode(COMMAND_ARGS);
 END: 'END' -> pushMode(COMMAND_ARGS);
 Command: [A-Z]+ -> pushMode(COMMAND_ARGS);
 
-NL: WS? COMMENT? CRLF;
+NL: WS? COMMENT? (EOF | CRLF);
 WS: [ \t] ([ \t] | LC)*;
 fragment CRLF: ('\r' | '\n' | '\r\n');
 fragment COMMENT: '#' (~[\r\n])*;
