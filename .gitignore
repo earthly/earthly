@@ -4,3 +4,4 @@
 *.interp
 .antlr/
 .env
+.vscode
