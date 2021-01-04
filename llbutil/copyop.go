@@ -2,6 +2,7 @@ package llbutil
 
 import (
 	"context"
+	"fmt"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -12,7 +13,7 @@ import (
 )
 
 // CopyOp is a simplified llb copy operation.
-func CopyOp(srcState llb.State, srcs []string, destState llb.State, dest string, allowWildcard bool, isDir bool, keepTs bool, chown string, opts ...llb.ConstraintsOpt) llb.State {
+func CopyOp(srcState llb.State, srcs []string, destState llb.State, dest string, allowWildcard bool, isDir bool, keepTs bool, chown string, ifExists bool, opts ...llb.ConstraintsOpt) llb.State {
 	destAdjusted := dest
 	if dest == "." || dest == "" || strings.HasSuffix(dest, string(filepath.Separator)) {
 		destAdjusted += string(filepath.Separator)
@@ -26,6 +27,14 @@ func CopyOp(srcState llb.State, srcs []string, destState llb.State, dest string,
 		baseCopyOpts = append(baseCopyOpts, llb.WithCreatedTime(*defaultTs()))
 	}
 	for _, src := range srcs {
+		if ifExists {
+			// If the copy came in as optional (ifExists), then we need to trigger the
+			// underlying wildcard matching and allow empty wildcards. The matching uses
+			// the filepath.Match syntax, so by simply creating a wildcard where the
+			// first letter needs to match the current first letter gets us the single
+			// match; and no error if it is missing.
+			src = fmt.Sprintf("[%s]%s", string(src[0]), string(src[1:]))
+		}
 		copyOpts := append([]llb.CopyOption{
 			&llb.CopyInfo{
 				FollowSymlinks:      true,
@@ -33,7 +42,7 @@ func CopyOp(srcState llb.State, srcs []string, destState llb.State, dest string,
 				AttemptUnpack:       false,
 				CreateDestPath:      true,
 				AllowWildcard:       allowWildcard,
-				AllowEmptyWildcard:  false,
+				AllowEmptyWildcard:  ifExists,
 			},
 		}, baseCopyOpts...)
 		if fa == nil {

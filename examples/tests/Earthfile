@@ -52,6 +52,7 @@ ga:
     BUILD +fail-invalid-artifact-test
     BUILD +target-first-line
     BUILD +end-comment
+    BUILD +if-exists
     BUILD ./autocompletion+test-all
     BUILD ./with-docker+all
     BUILD ./with-docker-compose+all
@@ -422,3 +423,26 @@ end-comment:
         --entrypoint \
         --mount=type=tmpfs,target=/tmp/earthly \
         -- +test
+
+if-exists:
+    COPY if-exists.earth ./Earthfile
+    RUN --privileged \
+        --entrypoint \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        -- +save-exist-local
+
+    RUN --privileged \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        /usr/bin/earthly-buildkitd-wrapper.sh +save-not-exist 2>&1 | perl -pe 'BEGIN {$status=1} END {exit $status} $status=0 if /save-not-exist/;'
+
+    RUN --privileged \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        /usr/bin/earthly-buildkitd-wrapper.sh +copy-not-exist 2>&1 | perl -pe 'BEGIN {$status=1} END {exit $status} $status=0 if /copy-not-exist/;'
+
+    RUN --privileged \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        /usr/bin/earthly-buildkitd-wrapper.sh +bad-wildcard-copy 2>&1 | perl -pe 'BEGIN {$status=1} END {exit $status} $status=0 if /bad-wildcard-copy/;'
+
+    RUN --privileged \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        /usr/bin/earthly-buildkitd-wrapper.sh +bad-wildcard-save 2>&1 | perl -pe 'BEGIN {$status=1} END {exit $status} $status=0 if /bad-wildcard-save/;'

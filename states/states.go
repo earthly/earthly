@@ -72,6 +72,8 @@ type SaveLocal struct {
 	ArtifactPath string
 	// Index is the index number of the "save as local" command encountered. Starts as 0.
 	Index int
+	// IfExists allows the artifact to be optional.
+	IfExists bool
 }
 
 // SaveImage is a docker image to be saved.

@@ -1,0 +1,46 @@
+FROM alpine:3.11
+
+save:
+    RUN echo "aaa" > ok
+
+    RUN mkdir testdir
+    RUN echo "bbb" > testdir/1
+    RUN echo "ccc" > testdir/2
+
+    SAVE ARTIFACT ok
+    SAVE ARTIFACT --if-exists not_ok
+
+    SAVE ARTIFACT testdir/*
+
+save-exist-local:
+    FROM +save
+
+    COPY +save/ok ok
+    COPY --if-exists +save/not_ok not_ok
+
+    COPY +save/1 1
+    COPY +save/2 2
+    COPY --if-exists +save/3 3
+
+    SAVE ARTIFACT ok AS LOCAL ok
+    SAVE ARTIFACT --if-exists not_ok AS LOCAL not_ok
+
+    SAVE ARTIFACT 1 AS LOCAL 1
+    SAVE ARTIFACT 2 AS LOCAL 2
+    SAVE ARTIFACT --if-exists 3 AS LOCAL 3
+
+save-not-exist:
+    FROM +save
+    SAVE ARTIFACT not_ok AS LOCAL not_ok
+
+copy-not-exist:
+    FROM +save
+    COPY +save/not_ok not_ok
+
+bad-wildcard-copy:
+    FROM +save
+    COPY +save/baddir/* .
+
+bad-wildcard-save:
+    FROM +save
+    SAVE ARTIFACT baddir/* AS LOCAL baddir
