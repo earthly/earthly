@@ -397,7 +397,7 @@ func (l *listener) ExitSaveArtifact(c *parser.SaveArtifactContext) {
 		l.err = fmt.Errorf("no arguments provided to the SAVE ARTIFACT command")
 		return
 	}
-	if fs.NArg() > 6 {
+	if fs.NArg() > 5 {
 		l.err = fmt.Errorf("too many arguments provided to the SAVE ARTIFACT command: %v", l.stmtWords)
 		return
 	}
