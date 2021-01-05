@@ -306,11 +306,11 @@ func (wdr *withDockerRun) load(ctx context.Context, opt DockerLoadOpt) error {
 }
 
 func (wdr *withDockerRun) solveImage(ctx context.Context, mts *states.MultiTarget, opName string, dockerTag string, opts ...llb.RunOption) error {
-	solveID, err := mts.Final.TargetInput.Hash()
+	solveID, err := states.KeyFromHashAndTag(mts.Final, dockerTag)
 	if err != nil {
-		return errors.Wrap(err, "target input hash")
+		return errors.Wrap(err, "state key func")
 	}
-	tarContext, found := wdr.c.opt.SolveCache[solveID]
+	tarContext, found := wdr.c.opt.SolveCache.Get(solveID)
 	if found {
 		wdr.tarLoads = append(wdr.tarLoads, tarContext)
 		return nil
@@ -341,14 +341,14 @@ func (wdr *withDockerRun) solveImage(ctx context.Context, mts *states.MultiTarge
 	sessionID := hex.EncodeToString(sha256SessionIDKey[:])
 	// Add the tar to the local context.
 	tarContext = llb.Local(
-		solveID,
+		string(solveID),
 		llb.SessionID(sessionID),
 		llb.Platform(llbutil.DefaultPlatform()),
 		llb.WithCustomNamef("[internal] docker tar context %s %s", opName, sessionID),
 	)
 	wdr.tarLoads = append(wdr.tarLoads, tarContext)
-	wdr.c.mts.Final.LocalDirs[solveID] = outDir
-	wdr.c.opt.SolveCache[solveID] = tarContext
+	wdr.c.mts.Final.LocalDirs[string(solveID)] = outDir
+	wdr.c.opt.SolveCache.Set(solveID, tarContext)
 	return nil
 }
 

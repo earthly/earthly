@@ -42,8 +42,8 @@ type ConvertOpt struct {
 	Platform *specs.Platform
 	// VarCollection is a collection of build args used for overriding args in the build.
 	VarCollection *variables.Collection
-	// A cache for image solves. depTargetInputHash -> context containing image.tar.
-	SolveCache map[string]llb.State
+	// A cache for image solves. (maybe dockerTag +) depTargetInputHash -> context containing image.tar.
+	SolveCache *states.SolveCache
 	// BuildContextProvider is the provider used for local build context files.
 	BuildContextProvider *provider.BuildContextProvider
 	// MetaResolver is the image meta resolver to use for resolving image metadata.
@@ -61,7 +61,7 @@ type ConvertOpt struct {
 // Earthfile2LLB parses a earthfile and executes the statements for a given target.
 func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt) (mts *states.MultiTarget, err error) {
 	if opt.SolveCache == nil {
-		opt.SolveCache = make(map[string]llb.State)
+		opt.SolveCache = states.NewSolveCache()
 	}
 	if opt.Visited == nil {
 		opt.Visited = states.NewVisitedCollection()
