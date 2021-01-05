@@ -82,7 +82,7 @@ case "$1" in
         since=$(( now - last ))
 
         if [ "$since" -ge 3600 ] && [ -z "$COMP_LINE" ]; then
-            echo checking for latest earth pre-release binaries
+            echo checking for latest earthly pre-release binaries
             get_latest_binary
             echo "Updated prerelease binary. Version:"
             "$bindir/earthly-prerelease" --version
