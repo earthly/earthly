@@ -515,10 +515,10 @@ func (b *Builder) saveArtifactLocally(ctx context.Context, artifact domain.Artif
 				}
 			} else {
 				// Remove pre-existing dest dir.
-				// err = os.RemoveAll(to)
-				// if err != nil {
-				// 	return errors.Wrapf(err, "rm -rf %s", to)
-				// }
+				err = os.RemoveAll(to)
+				if err != nil {
+					return errors.Wrapf(err, "rm -rf %s", to)
+				}
 			}
 		}
 
