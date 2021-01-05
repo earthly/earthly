@@ -1,0 +1,22 @@
+multi-from-base:
+    FROM hello-world
+
+multi-from-two:
+    FROM alpine:latest
+
+test:
+    FROM earthly/dind:alpine
+    WITH DOCKER \
+            --load a:latest=+multi-from-base \  # Test that there can be multiple names assigned to an image from a single target
+            --load b:latest=+multi-from-base \
+            --load c:latest=+multi-from-two \   # Test that nothing else broke, load from another target
+            --load d:latest=ubuntu:latest       # Test that we can load other images easily
+        RUN docker images && \
+            docker run a:latest && \
+            echo "-----" && \
+            docker run b:latest && \
+            echo "-----" && \
+            docker run c:latest uname -a && \
+            echo "-----" && \
+            docker run d:latest uname-a
+    END
