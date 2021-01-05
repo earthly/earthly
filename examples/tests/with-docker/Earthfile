@@ -6,6 +6,7 @@ all:
     # BUILD +undeclared-pull-test
     BUILD +docker-pull-test
     BUILD +load-parallel-test
+    BUILD +one-target-many-names
 
 a-test-image:
     FROM alpine:3.11
@@ -47,3 +48,24 @@ load-parallel-test:
     BUILD --build-arg INDEX=3 +docker-load-test
     BUILD --build-arg INDEX=4 +docker-load-test
     BUILD --build-arg INDEX=5 +docker-load-test
+
+
+multi-from-one:
+    FROM hello-world
+
+multi-from-two:
+    FROM alpine:latest
+
+one-target-many-names:
+    FROM earthly/dind:alpine
+    WITH DOCKER \
+            --load a:latest=+multi-from-one \  # Test that there can be multiple names assigned to an image from a single target
+            --load b:latest=+multi-from-one \
+            --load c:latest=+multi-from-two    # Test that nothing else broke, load from another target
+        RUN docker images && \
+            docker run a:latest && \
+            echo "-----" && \
+            docker run b:latest && \
+            echo "-----" && \
+            docker run c:latest uname -a
+    END

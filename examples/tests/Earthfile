@@ -53,7 +53,6 @@ ga:
     BUILD +target-first-line
     BUILD +end-comment
     BUILD +if-exists
-    BUILD +single-target-load-multi-name
     BUILD ./autocompletion+test-all
     BUILD ./with-docker+all
     BUILD ./with-docker-compose+all
@@ -447,10 +446,3 @@ if-exists:
     RUN --privileged \
         --mount=type=tmpfs,target=/tmp/earthly \
         /usr/bin/earthly-buildkitd-wrapper.sh +bad-wildcard-save 2>&1 | perl -pe 'BEGIN {$status=1} END {exit $status} $status=0 if /bad-wildcard-save/;'
-
-single-target-load-multi-name:
-    COPY single-target-load-multi-name.earth ./Earthfile
-    RUN --privileged \
-        --entrypoint \
-        --mount=type=tmpfs,target=/tmp/earthly \
-        -- +test
