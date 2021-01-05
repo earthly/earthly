@@ -179,6 +179,13 @@ jobs:
       EARTHLY_INSTALL_ID: "earthly-githubactions"
     steps:
       - uses: actions/checkout@v2
+      -
+        name: Set up QEMU
+        id: qemu
+        uses: docker/setup-qemu-action@v1
+        with:
+          image: tonistiigi/binfmt:latest
+          platforms: all
       - name: "Put back the git branch into git (Earthly uses it for tagging)"
         run: |
           branch=""
