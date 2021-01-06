@@ -52,7 +52,7 @@ func getRepo() string {
 	cmd := exec.Command("git", "config", "--get", "remote.origin.url")
 	out, err := cmd.Output()
 	if err == nil {
-		return string(out)
+		return strings.TrimSpace(string(out))
 	}
 
 	for _, k := range []string{
@@ -65,7 +65,7 @@ func getRepo() string {
 		"EARTHLY_GIT_ORIGIN_URL",
 	} {
 		if v, ok := os.LookupEnv(k); ok {
-			return v
+			return strings.TrimSpace(v)
 		}
 	}
 
@@ -73,7 +73,7 @@ func getRepo() string {
 		pair := strings.SplitN(e, "=", 2)
 		if len(pair) == 2 {
 			if strings.Contains(pair[1], "git") {
-				return pair[1]
+				return strings.TrimSpace(pair[1])
 			}
 		}
 	}
