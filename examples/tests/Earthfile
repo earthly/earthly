@@ -53,6 +53,7 @@ ga:
     BUILD +target-first-line
     BUILD +end-comment
     BUILD +if-exists
+    BUILD +multi-subdirectory-wildcard
     BUILD ./autocompletion+test-all
     BUILD ./with-docker+all
     BUILD ./with-docker-compose+all
@@ -446,3 +447,15 @@ if-exists:
     RUN --privileged \
         --mount=type=tmpfs,target=/tmp/earthly \
         /usr/bin/earthly-buildkitd-wrapper.sh +bad-wildcard-save 2>&1 | perl -pe 'BEGIN {$status=1} END {exit $status} $status=0 if /bad-wildcard-save/;'
+
+multi-subdirectory-wildcard:
+    COPY multi-subdirectory-wildcard.earth ./Earthfile
+    RUN --privileged \
+        --entrypoint \
+        -- +test
+    RUN ls -la out
+    # Each file is own run so it will break on a specific case
+    RUN [ -f out/root ]   && [ "$(cat out/root)"   = "root" ]
+    RUN [ -f out/file ]   && [ "$(cat out/file)"   = "sub" ]
+    RUN [ -f out/1/file ] && [ "$(cat out/1/file)" = "1" ]
+    RUN [ -f out/2/file ] && [ "$(cat out/2/file)" = "2" ]
