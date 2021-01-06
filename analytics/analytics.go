@@ -21,7 +21,6 @@ import (
 
 	uuid "github.com/nu7hatch/gouuid"
 	"github.com/pkg/errors"
-	"gopkg.in/segmentio/analytics-go.v3"
 )
 
 func detectCI() (string, bool) {
@@ -159,7 +158,7 @@ func saveData(server string, data *EarthlyAnalytics) error {
 	return nil
 }
 
-// CollectAnalytics sends analytics to segment.io
+// CollectAnalytics sends analytics to api.earthly.dev
 func CollectAnalytics(ctx context.Context, earthlyServer string, displayErrors bool, version, gitSha, commandName string, exitCode int, realtime time.Duration) {
 	var err error
 	ciName, ci := detectCI()
@@ -200,28 +199,6 @@ func CollectAnalytics(ctx context.Context, earthlyServer string, displayErrors b
 		})
 		if err != nil && displayErrors {
 			fmt.Fprintf(os.Stderr, "error while sending analytics to earthly: %s\n", err.Error())
-		}
-	}()
-
-	// send data to segment
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		segmentClient := analytics.New("RtwJaMBswcW3CNMZ7Ops79dV6lEZqsXf")
-		segmentClient.Enqueue(analytics.Track{
-			Event:  key,
-			UserId: installID,
-			Properties: analytics.NewProperties().
-				Set("version", version).
-				Set("gitsha", gitSha).
-				Set("exitcode", exitCode).
-				Set("ci", ciName).
-				Set("repohash", repoHash).
-				Set("realtime", realtime.Seconds()),
-		})
-		err := segmentClient.Close()
-		if err != nil && displayErrors {
-			fmt.Fprintf(os.Stderr, "error while sending analytics to segment: %s\n", err.Error())
 		}
 	}()
 
