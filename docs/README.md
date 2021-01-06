@@ -34,13 +34,11 @@ Earthly on Windows requires [Docker Desktop WSL2 backend](https://docs.docker.co
 sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/latest/download/earthly-linux-amd64 -O /usr/local/bin/earthly && chmod +x /usr/local/bin/earthly && /usr/local/bin/earthly bootstrap'
 ```
 
-### VS Code Syntax Highlighting
+### Syntax highlighting
 
-Visit [Earthfile Syntax Highlighting](https://marketplace.visualstudio.com/items?itemName=earthly.earthfile-syntax-highlighting) or issue the VS Code command
-
-```
-ext install earthly.earthfile-syntax-highlighting
-```
+* [VS Code](https://marketplace.visualstudio.com/items?itemName=earthly.earthfile-syntax-highlighting)
+* [Vim](https://github.com/earthly/earthly.vim)
+* [Sublime Text](https://packagecontrol.io/packages/Earthly%20Earthfile)
 
 ## Getting started
 
