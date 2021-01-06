@@ -117,11 +117,9 @@ See the [CI integration guide](https://docs.earthly.dev/guides/ci-integration)
 
 ### Syntax highlighting
 
-[Install](https://marketplace.visualstudio.com/items?itemName=earthly.earthfile-syntax-highlighting) for VS code.
-
-```
-ext install earthly.earthfile-syntax-highlighting
-```
+* [VS Code](https://marketplace.visualstudio.com/items?itemName=earthly.earthfile-syntax-highlighting)
+* [Vim](https://github.com/earthly/earthly.vim)
+* [Sublime Text](https://packagecontrol.io/packages/Earthly%20Earthfile)
 
 <br/>
 <br/>

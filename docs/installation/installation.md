@@ -73,7 +73,7 @@ github.com/earthly/hello-world:main+hello | Target github.com/earthly/hello-worl
 
 ## Syntax highlighting
 
-### VS Code extension
+### VS Code Extension
 
 [<img src="./img/vscode-plugin.png" alt="Earthfile Syntax Highlighting" width="457" />](https://marketplace.visualstudio.com/items?itemName=earthly.earthfile-syntax-highlighting)
 
@@ -89,4 +89,7 @@ Visit [https://github.com/earthly/earthly.vim](https://github.com/earthly/earthl
 
 ### Sublime Text Package
 
-Visit [https://github.com/earthly/sublimetext-earthly-syntax](https://github.com/earthly/sublimetext-earthly-syntax) for details.
+Add the [Earthly Earthfile package](https://packagecontrol.io/packages/Earthly%20Earthfile) via Package Control:
+
+1. Press `Ctrl+Shift+P` (or `Cmd+Shift+P` on Mac) to bring up the Command Palette, and select **Install Package control** (if you haven't already installed Package Control).
+2. Press `Ctrl+Shift+P` (or `Cmd+Shift+P` on Mac) again, select "Package Control: Install Package" and select **Earthly Earthfile** to install.
