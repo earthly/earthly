@@ -19,12 +19,14 @@ release-dockerhub:
     BUILD --build-arg TAG="$RELEASE_TAG" ../+earthly-docker
     BUILD \
         --platform=linux/amd64 \
+        --platform=linux/arm/v7 \
         --platform=linux/arm64 \
         --build-arg TAG="$RELEASE_TAG" \
         ../buildkitd+buildkitd
     BUILD --build-arg TAG=latest ../+earthly-docker
     BUILD \
         --platform=linux/amd64 \
+        --platform=linux/arm/v7 \
         --platform=linux/arm64 \
         --build-arg TAG=latest \
         ../buildkitd+buildkitd
@@ -41,9 +43,6 @@ release-github:
     RUN ls ./release
     RUN test -f ./release/earthly-linux-amd64 && \
         test -f ./release/earthly-darwin-amd64 && \
-        test -f ./release/earthly-darwin-arm64 && \
-        test -f ./release/earthly-linux-arm5 && \
-        test -f ./release/earthly-linux-arm6 && \
         test -f ./release/earthly-linux-arm7 && \
         test -f ./release/earthly-linux-arm64
     ARG BODY="No details provided"

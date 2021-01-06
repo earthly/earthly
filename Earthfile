@@ -131,22 +131,6 @@ earthly:
     SAVE ARTIFACT build/earthly AS LOCAL "build/$GOOS/$GOARCH$GOARM/earthly"
     SAVE IMAGE --cache-from=earthly/earthly:main
 
-earthly-arm5:
-    COPY \
-        --build-arg GOARCH=arm \
-        --build-arg GOARM=5 \
-        --build-arg GO_EXTRA_LDFLAGS= \
-        +earthly/* ./
-    SAVE ARTIFACT ./*
-
-earthly-arm6:
-    COPY \
-        --build-arg GOARCH=arm \
-        --build-arg GOARM=6 \
-        --build-arg GO_EXTRA_LDFLAGS= \
-        +earthly/* ./
-    SAVE ARTIFACT ./*
-
 earthly-arm7:
     COPY \
         --build-arg GOARCH=arm \
@@ -171,6 +155,7 @@ earthly-darwin-amd64:
     SAVE ARTIFACT ./*
 
 earthly-darwin-arm64:
+    # TODO: This doesn't work yet. https://github.com/golang/go/issues/40698#issuecomment-680134833
     COPY \
         --build-arg GOOS=darwin \
         --build-arg GOARCH=arm64 \
@@ -181,9 +166,7 @@ earthly-darwin-arm64:
 earthly-all:
     COPY +earthly/earthly ./earthly-linux-amd64
     COPY +earthly-darwin-amd64/earthly ./earthly-darwin-amd64
-    COPY +earthly-darwin-arm64/earthly ./earthly-darwin-arm64
-    COPY +earthly-arm5/earthly ./earthly-linux-arm5
-    COPY +earthly-arm6/earthly ./earthly-linux-arm6
+    #COPY +earthly-darwin-arm64/earthly ./earthly-darwin-arm64
     COPY +earthly-arm7/earthly ./earthly-linux-arm7
     COPY +earthly-arm64/earthly ./earthly-linux-arm64
     SAVE ARTIFACT ./*
@@ -203,6 +186,7 @@ prerelease:
     FROM alpine:3.11
     BUILD --build-arg TAG=prerelease \
         --platform=linux/amd64 \
+        --platform=linux/arm/v7 \
         --platform=linux/arm64 \
         ./buildkitd+buildkitd
     COPY --build-arg VERSION=prerelease +earthly-all/* ./
@@ -238,12 +222,14 @@ for-darwin:
 
 for-darwin-m1:
     BUILD ./buildkitd+buildkitd
-    COPY +earthly-darwin-arm64/earthly ./
+    # amd64 works on arm64 via rosetta 2.
+    COPY +earthly-darwin-amd64/earthly ./
     SAVE ARTIFACT ./earthly
 
 all:
     BUILD \
         --platform=linux/amd64 \
+        --platform=linux/arm/v7 \
         --platform=linux/arm64 \
         ./buildkitd+buildkitd
     BUILD +earthly-all
