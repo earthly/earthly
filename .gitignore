@@ -5,3 +5,4 @@
 .antlr/
 .env
 .vscode
+.tmp-earthly-out*
