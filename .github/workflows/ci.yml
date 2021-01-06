@@ -39,7 +39,7 @@ jobs:
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: Build latest earthly using released earthly
         run: earthly --use-inline-cache +for-linux
-      - name: Rebuild and push
+      - name: Build +all
         run: ./build/linux/amd64/earthly --ci +all
       - name: Buildkit logs (runs on failure)
         run: docker logs earthly-buildkitd
