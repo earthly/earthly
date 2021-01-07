@@ -41,4 +41,4 @@ docker:
 
     EXPOSE 9091
     ENTRYPOINT ["./example-rust"]
-    SAVE IMAGE example-rust:latest # use SAVE IMAGE --push myuser/myrepo:latest to push to Docker Hub
+    SAVE IMAGE --push earthly/examples:rust
