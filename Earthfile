@@ -280,6 +280,7 @@ examples:
     BUILD ./examples/ruby-on-rails+docker
     BUILD ./examples/scala+docker
     BUILD ./examples/cobol+docker
+    BUILD ./examples/rust+docker
     BUILD ./examples/multiplatform+all
     BUILD github.com/earthly/hello-world:main+hello
 
