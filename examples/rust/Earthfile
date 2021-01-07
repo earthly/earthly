@@ -32,14 +32,14 @@ build:
 
 docker:
     FROM debian:buster-slim
-    
-    COPY +build/example-rust example-rust
-    
+        
     RUN apt-get update -y \
         && apt-get install -y --no-install-recommends openssl libcurl4 ca-certificates \
         # Clean up
         && apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
 
+    COPY +build/example-rust example-rust
+    
     EXPOSE 9091
     ENTRYPOINT ["./example-rust"]
     SAVE IMAGE --push earthly/examples:rust
