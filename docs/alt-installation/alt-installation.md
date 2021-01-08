@@ -1,6 +1,6 @@
 # Alternative Installation
 
-This page outlines manual or alternative installation instructions for the `earthly` build tool. The main instructions that most people need are available on the [installation intructions page](https://earthly.dev/get-earthly).
+This page outlines alternative installation instructions for the `earthly` build tool. The main instructions that most users need are available on the [installation intructions page](https://earthly.dev/get-earthly).
 
 ## Pre-requisites
 
@@ -10,13 +10,13 @@ This page outlines manual or alternative installation instructions for the `eart
 
 ## Install earthly
 
-Download the linux binary relevant to your platform from [the releases page](https://github.com/earthly/earthly/releases), rename it to `earthly` and place it in your `bin`.
+Download the binary relevant to your platform from [the releases page](https://github.com/earthly/earthly/releases), rename it to `earthly` and place it in your `bin`.
 
 {% hint style='info' %}
 ##### Note
 To install `earthly` on the new Apple M1, we recommend using `brew install earthly`.
 
-Alternatively, you may download the darwin-amd64 variant of the `earthly` binary and run it via Rosetta 2. Although the binary will be emulated, the builds themselves will run natively. The performance impact is not noticeable.
+Alternatively, you may download the `darwin-amd64` variant of the `earthly` binary and run it via Rosetta 2 (`/usr/sbin/softwareupdate --install-rosetta --agree-to-license`). Although the binary will be emulated, the builds themselves will run natively. The performance impact is not noticeable.
 {% endhint %}
 
 To initialize auto-completion, run
