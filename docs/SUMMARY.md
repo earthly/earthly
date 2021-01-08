@@ -1,7 +1,6 @@
 
 * [Introduction](README.md)
 * [Installation](https://earthly.dev/get-earthly)
-    * [Moved](installation/installation.md)
 * [Alternative installation](alt-installation/alt-installation.md)
 * [Guides](guides/guides.md)
     * [Basics](guides/basics.md)
