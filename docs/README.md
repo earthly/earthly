@@ -12,33 +12,9 @@ One of the key principles of Earthly is that the best build tooling of a specifi
 
 ## Installation
 
+See [installation instructions](https://earthly.dev/get-earthly).
+
 For a full list of installation options see the [Installation page](./installation/installation.md).
-
-### Linux
-
-```bash
-sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/latest/download/earthly-linux-amd64 -O /usr/local/bin/earthly && chmod +x /usr/local/bin/earthly && /usr/local/bin/earthly bootstrap'
-```
-
-### Mac
-
-```bash
-brew install earthly
-```
-
-### Windows via WSL (**beta**)
-
-Earthly on Windows requires [Docker Desktop WSL2 backend](https://docs.docker.com/docker-for-windows/wsl/). Under `wsl`, run the following to install `earthly`.
-
-```bash
-sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/latest/download/earthly-linux-amd64 -O /usr/local/bin/earthly && chmod +x /usr/local/bin/earthly && /usr/local/bin/earthly bootstrap'
-```
-
-### Syntax highlighting
-
-* [VS Code](https://marketplace.visualstudio.com/items?itemName=earthly.earthfile-syntax-highlighting)
-* [Vim](https://github.com/earthly/earthly.vim)
-* [Sublime Text](https://packagecontrol.io/packages/Earthly%20Earthfile)
 
 ## Getting started
 
@@ -49,7 +25,7 @@ A high-level overview is available on [the Earthly GitHub page](https://github.c
 ## Quick Links
 
 * [Earthly GitHub page](https://github.com/earthly/earthly)
-* [Full installation instructions](./installation/installation.md)
+* [Installation instructions](https://earthly.dev/get-earthly)
 * [Earthly basics](./guides/basics.md)
 * [Earthfile reference](./earthfile/earthfile.md)
 * [Earthly command reference](./earthly-command/earthly-command.md)

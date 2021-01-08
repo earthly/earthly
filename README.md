@@ -1,7 +1,7 @@
 <h1 align="center"><a href="https://earthly.dev"><img src="img/logo-banner-white-bg.png" alt="Earthly" align="center" width="700px" /></a></h1>
 
 ![CI](https://github.com/earthly/earthly/workflows/CI/badge.svg)
-[![Join the chat on slack](https://img.shields.io/badge/slack-join%20chat-red.svg)](https://join.slack.com/t/earthlycommunity/shared_invite/zt-ix9rtuv8-DUFl8uxe5bFULxyCGGbqJQ)
+[![Join the chat on slack](https://img.shields.io/badge/slack-join%20chat-red.svg)](https://earthly.dev/slack)
 [![Docs](https://img.shields.io/badge/docs-git%20book-blue)](https://docs.earthly.dev)
 [![Website](https://img.shields.io/badge/website-earthly.dev-blue)](https://earthly.dev)
 [![Docker Hub](https://img.shields.io/badge/docker%20hub-earthly-blue)](https://hub.docker.com/u/earthly)
@@ -23,6 +23,12 @@
 ---------------------------------
 
 [🌍 Earthly](https://earthly.dev) is a build automation tool for the container era. It allows you to execute all your builds in containers. This makes them self-contained, repeatable, portable and parallel. You can use Earthly to create Docker images and artifacts (eg binaries, packages, arbitrary files).
+
+<br/>
+<div align="center"><a href="https://earthly.dev/get-earthly"><img src="docs/img/get-earthly-button.png" alt="Get Earthly" title="Get Earthly" /></a></div>
+<br/>
+
+---------------------------------
 
 <br/>
 <br/>
@@ -88,38 +94,9 @@ We use a target-based system to help users break-up complex builds into reusable
 <br/>
 <h2 align="center">Installation</h2>
 
-For a full list of installation options see the [Installation page](https://docs.earthly.dev/installation).
+See [installation instructions](https://earthly.dev/get-earthly).
 
-### Linux
-
-```bash
-sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/latest/download/earthly-linux-amd64 -O /usr/local/bin/earthly && chmod +x /usr/local/bin/earthly && /usr/local/bin/earthly bootstrap'
-```
-
-### Mac
-
-```bash
-brew install earthly
-earthly bootstrap
-```
-
-### Windows via WSL (**beta**)
-  
-Earthly on Windows requires [Docker Desktop WSL2 backend](https://docs.docker.com/docker-for-windows/wsl/). Under `wsl`, run the following to install `earthly`.
-
-```bash
-sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/latest/download/earthly-linux-amd64 -O /usr/local/bin/earthly && chmod +x /usr/local/bin/earthly && /usr/local/bin/earthly bootstrap'
-```
-
-### Your CI
-
-See the [CI integration guide](https://docs.earthly.dev/guides/ci-integration)
-
-### Syntax highlighting
-
-* [VS Code](https://marketplace.visualstudio.com/items?itemName=earthly.earthfile-syntax-highlighting)
-* [Vim](https://github.com/earthly/earthly.vim)
-* [Sublime Text](https://packagecontrol.io/packages/Earthly%20Earthfile)
+To build from source, check the [contributing page](./CONTRIBUTING.md).
 
 <br/>
 <br/>
@@ -364,7 +341,7 @@ Overall, compared to Bazel, Earthly sacrifices some correctness and reproducibil
 <h2 align="center">Contributing</h2>
 
 * Please report bugs as [GitHub issues](https://github.com/earthly/earthly/issues).
-* Join us on [Slack](https://join.slack.com/t/earthlycommunity/shared_invite/zt-ix9rtuv8-DUFl8uxe5bFULxyCGGbqJQ)!
+* Join us on [Slack](https://earthly.dev/slack)!
 * Questions via GitHub issues are welcome!
 * PRs welcome! But please give a heads-up in GitHub issue before starting work. If there is no GitHub issue for what you want to do, please create one.
 * To build from source, check the [contributing page](./CONTRIBUTING.md).
