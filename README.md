@@ -16,7 +16,7 @@
 
 **⛓ Parallelism that just works** - *builds in parallel without special considerations the user has to make*
 
-**🏘 Mono and Poly-repo friendly** - *ability to split the build definitions across a vast project hierarchy*
+**🏘 Mono and Poly-repo friendly** - *ability to split the build definitions across vast project hierarchies*
 
 **💾 Shared caching** - *share build cache between CI runners*
 
