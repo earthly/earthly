@@ -6,7 +6,7 @@ Let's walk through a basic example of using Earthly.
 
 ## Installation
 
-Before going any further, it is advisable that you install `earthly` on your computer, so you can follow along and try out the examples. See the [installation page](../installation/installation.md).
+Before going any further, it is advisable that you install `earthly` on your computer, so you can follow along and try out the examples. See the [installation instructions](https://earthly.dev/get-earthly).
 
 ## A simple Earthfile
 

@@ -7,7 +7,7 @@ This feature is currently in **Experimental** stage
 
 * The feature may break, be changed drastically with no warning, or be removed altogether in future versions of Earthly.
 * Check the [GitHub tracking issue](https://github.com/earthly/earthly/issues/575) for any known problems.
-* Give us feedback on [Slack](https://join.slack.com/t/earthlycommunity/shared_invite/zt-ix9rtuv8-DUFl8uxe5bFULxyCGGbqJQ) in the `#cloud-secrets` channel.
+* Give us feedback on [Slack](https://earthly.dev/slack) in the `#cloud-secrets` channel.
 {% endhint %}
 
 Earthly has the ability to use secure cloud-based storage for build secrets. This page goes through the basic setup and usage examples.
@@ -165,4 +165,4 @@ where running an ssh-agent is impractical.
 # Feedback
 
 The secrets store is still an experimental feature, we would love to hear feedback in our 
-[Slack](https://join.slack.com/t/earthlycommunity/shared_invite/zt-ix9rtuv8-DUFl8uxe5bFULxyCGGbqJQ) community.
+[Slack](https://earthly.dev/slack) community.

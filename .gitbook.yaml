@@ -7,3 +7,4 @@ structure:
 redirects:
     earth-command: earthly-command/earthly-command.md
     earth-config: earthly-config/earthly-config.md
+    installation: https://earthly.dev/get-earthly
