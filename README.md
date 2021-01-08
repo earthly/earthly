@@ -16,9 +16,11 @@
 
 **⛓ Parallelism that just works** - *builds in parallel without special considerations the user has to make*
 
-**🏠 Mono-repo friendly** - *ability to split the build definitions across a vast directory hierarchy*
+**🏘 Mono and Poly-repo friendly** - *ability to split the build definitions across a vast project hierarchy*
 
-**🏘 Multi-repo friendly** - *ability to import builds or artifacts from other repositories*
+**💾 Shared caching** - *share build cache between CI runners*
+
+**🔀 Multi-platform** - *build for multiple platforms in parallel*
 
 ---------------------------------
 
@@ -215,42 +217,29 @@ Examples
   COPY github.com/someone/someproject:v1.2.3+some-target/my-artifact ./
   ```
 
-### 💾 Caching that works the same as docker builds
+### 💾 Caching that works the same as Docker builds
 
 <div align="center"><a href="https://asciinema.org/a/351674?speed=2"><img src="img/demo-351674.gif" alt="Demonstration of Earthly's caching" title="View on asciinema.org" width="600px" /></a></div>
 
-### 🛠 Reusability with build args
+Cut down build times in CI through [Shared Caching](https://docs.earthly.dev/guides/shared-cache).
 
-Here is an example where building for multiple platforms can leverage build args.
+### 🛠 Multi-platform support
+
+Build for multiple platforms in parallel.
 
 ```Dockerfile
-FROM golang:1.13-alpine3.11
-RUN apk add --update --no-cache g++
-WORKDIR /go-example
-
 all:
-  BUILD \
-    --build-arg GOOS=linux \
-    --build-arg GOARCH=amd64 \
-    --build-arg GO_LDFLAGS="-linkmode external -extldflags -static" \
-    +build
-  BUILD \
-    --build-arg GOOS=darwin \
-    --build-arg GOARCH=amd64 \
-    +build
-  BUILD \
-    --build-arg GOOS=windows \
-    --build-arg GOARCH=amd64 \
-    +build
+    BUILD \
+        --platform=linux/amd64 \
+        --platform=linux/arm64 \
+        --platform=linux/arm/v7 \
+        --platform=linux/arm/v6 \
+        +build
 
 build:
-  COPY main.go .
-  ARG GOOS
-  ARG GOARCH
-  ARG GO_LDFLAGS
-  RUN go build -ldflags "$GO_LDFLAGS" -o build/go-example main.go && \
-      echo "Build for $GOOS/$GOARCH was successful"
-  SAVE ARTIFACT build/go-example AS LOCAL "build/$GOOS/$GOARCH/go-example"
+    FROM alpine:3.11
+    CMD ["uname", "-m"]
+    SAVE IMAGE multiplatform-image
 ```
 
 ### ⛓ Parallelization that just works
