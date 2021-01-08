@@ -33,3 +33,4 @@
     * [GitHub Actions](examples/gh-actions-integration.md)
     * [AWS CodeBuild](examples/codebuild-integration.md)
 * [Data collection](data-collection/data-collection.md)
+* [Installation (old)](installation/installation.md)
