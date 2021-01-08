@@ -7,4 +7,4 @@ structure:
 redirects:
     earth-command: earthly-command/earthly-command.md
     earth-config: earthly-config/earthly-config.md
-    installation: alt-installation/alt-installation.md
+    installation: ./README.md
