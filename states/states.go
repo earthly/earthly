@@ -89,7 +89,7 @@ func (sts *SingleTarget) NextPhase(state llb.State) error {
 	}
 
 	sts.States[nextState] = state
-	sts.Images[nextState] = sts.Images[sts.CurrentPhase]
+	sts.Images[nextState] = sts.Images[sts.CurrentPhase].Clone()
 
 	sts.CurrentPhase = nextState
 
