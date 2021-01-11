@@ -67,8 +67,8 @@ func (sts *SingleTarget) LastSaveImage() SaveImage {
 	if len(sts.SaveImages) == 0 {
 		// Use main state / image if no save image exists.
 		return SaveImage{
-			State: sts.StateForPhase(PhaseMain),
-			Image: sts.ImageForPhase(PhaseMain),
+			State: sts.StateForPhase(sts.CurrentPhase),
+			Image: sts.ImageForPhase(sts.CurrentPhase),
 		}
 	}
 	return sts.SaveImages[len(sts.SaveImages)-1]
