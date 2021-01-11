@@ -182,7 +182,7 @@ func (wdr *withDockerRun) installDeps(ctx context.Context, opt WithDockerOpt) er
 		llb.Args(args),
 		llb.WithCustomNamef("%sWITH DOCKER (install deps)", wdr.c.vertexPrefix()),
 	}
-	wdr.c.mts.Final.MainState = wdr.c.mts.Final.MainState.Run(runOpts...).Root()
+	wdr.c.mts.Final.SetCurrentState(wdr.c.mts.Final.CurrentState().Run(runOpts...).Root())
 	return nil
 }
 
@@ -258,7 +258,9 @@ func (wdr *withDockerRun) pull(ctx context.Context, opt DockerPullOpt) error {
 	}
 	mts := &states.MultiTarget{
 		Final: &states.SingleTarget{
-			MainState: state,
+			States: map[states.Phase]llb.State{
+				states.PhaseMain: llbutil.ScratchWithPlatform(),
+			},
 			MainImage: image,
 			TargetInput: dedup.TargetInput{
 				TargetCanonical: fmt.Sprintf("+@docker-pull:%s", opt.ImageName),
@@ -384,7 +386,7 @@ func (wdr *withDockerRun) getComposeConfig(ctx context.Context, opt WithDockerOp
 		llb.Args(args),
 		llb.WithCustomNamef("%sWITH DOCKER (docker-compose config)", wdr.c.vertexPrefix()),
 	}
-	state := wdr.c.mts.Final.MainState.Run(runOpts...).Root()
+	state := wdr.c.mts.Final.CurrentState().Run(runOpts...).Root()
 	ref, err := llbutil.StateToRef(ctx, wdr.c.opt.GwClient, state, wdr.c.opt.Platform, wdr.c.opt.CacheImports)
 	if err != nil {
 		return nil, errors.Wrap(err, "state to ref compose config")

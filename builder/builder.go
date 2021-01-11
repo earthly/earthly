@@ -143,7 +143,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 			return nil, err
 		}
 		res := gwclient.NewResult()
-		ref, err := b.stateToRef(ctx, gwClient, mts.Final.MainState, mts.Final.Platform)
+		ref, err := b.stateToRef(ctx, gwClient, mts.Final.StateForPhase(states.PhaseMain), mts.Final.Platform)
 		if err != nil {
 			return nil, err
 		}
@@ -165,7 +165,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 		dirIndex := 0
 		for _, sts := range mts.All() {
 			if sts.HasDangling && !b.opt.UseFakeDep {
-				depRef, err := b.stateToRef(ctx, gwClient, sts.MainState, sts.Platform)
+				depRef, err := b.stateToRef(ctx, gwClient, sts.StateForPhase(states.PhaseMain), sts.Platform)
 				if err != nil {
 					return nil, err
 				}
@@ -364,11 +364,11 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 					}
 					dirIndex++
 				}
-				err = b.executeRunPush(ctx, sts, opt)
+				err = b.executeNonMainPhase(ctx, states.PhasePush, sts, opt)
 				if err != nil {
 					return nil, err
 				}
-				err = b.executePostPush(ctx, sts, opt)
+				err = b.executeNonMainPhase(ctx, states.PhasePostPush, sts, opt)
 				if err != nil {
 					return nil, err
 				}
@@ -412,7 +412,7 @@ func (b *Builder) buildOnlyLastImageAsTar(ctx context.Context, mts *states.Multi
 }
 
 func (b *Builder) buildMain(ctx context.Context, mts *states.MultiTarget, opt BuildOpt) error {
-	state := mts.Final.MainState
+	state := mts.Final.StateForPhase(states.PhaseMain)
 	if b.opt.NoCache {
 		state = state.SetMarshalDefaults(llb.IgnoreCache)
 	}
@@ -428,14 +428,14 @@ func (b *Builder) buildMain(ctx context.Context, mts *states.MultiTarget, opt Bu
 	return nil
 }
 
-func (b *Builder) executeRunPush(ctx context.Context, sts *states.SingleTarget, opt BuildOpt) error {
-	if !sts.IsRunPush {
-		// No run --push commands here. Quick way out.
+func (b *Builder) executeNonMainPhase(ctx context.Context, phase states.Phase, sts *states.SingleTarget, opt BuildOpt) error {
+	if !sts.HasPhase(phase) {
+		// No relevant phase here. Quick way out.
 		return nil
 	}
 	console := b.opt.Console.WithPrefixAndSalt(sts.Target.String(), sts.Salt)
 	if !opt.Push {
-		rawCommandStrs, _ := sts.RunPush.Value(ctx, "commandStr")
+		rawCommandStrs, _ := sts.StateForPhase(phase).Value(ctx, "commandStr")
 		commandStrs := rawCommandStrs.([]string)
 		for _, commandStr := range commandStrs {
 			console.Printf("Did not execute push command %s. Use earthly --push to enable pushing\n", commandStr)
@@ -447,35 +447,9 @@ func (b *Builder) executeRunPush(ctx context.Context, sts *states.SingleTarget, 
 		platform = sts.Platform
 	}
 	plat := llbutil.PlatformWithDefault(platform)
-	err = b.s.solveMain(ctx, sts.RunPush, plat)
+	err = b.s.solveMain(ctx, sts.StateForPhase(phase), plat)
 	if err != nil {
 		return errors.Wrapf(err, "solve run-push")
-	}
-	return nil
-}
-
-func (b *Builder) executePostPush(ctx context.Context, sts *states.SingleTarget, opt BuildOpt) error {
-	if !sts.IsPostPush {
-		// No run --push commands here. Quick way out.
-		return nil
-	}
-	console := b.opt.Console.WithPrefixAndSalt(sts.Target.String(), sts.Salt)
-	if !opt.Push {
-		rawCommandStrs, _ := sts.PostPush.Value(ctx, "commandStr")
-		commandStrs := rawCommandStrs.([]string)
-		for _, commandStr := range commandStrs {
-			console.Printf("Did not execute post-push command %s. Use earthly --push to enable pushing\n", commandStr)
-		}
-		return nil
-	}
-	platform, err := llbutil.ResolvePlatform(sts.Platform, opt.Platform)
-	if err != nil {
-		platform = sts.Platform
-	}
-	plat := llbutil.PlatformWithDefault(platform)
-	err = b.s.solveMain(ctx, sts.PostPush, plat)
-	if err != nil {
-		return errors.Wrapf(err, "solve post-push")
 	}
 	return nil
 }

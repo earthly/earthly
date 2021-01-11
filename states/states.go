@@ -46,13 +46,13 @@ type SingleTarget struct {
 	Platform               *specs.Platform
 	TargetInput            dedup.TargetInput
 	MainImage              *image.Image
-	MainState              llb.State
+	CurrentPhase           Phase
+	States                 map[Phase]llb.State
 	ArtifactsState         llb.State
 	SeparateArtifactsState []llb.State
 	SaveLocals             []SaveLocal
 	SaveImages             []SaveImage
 	VarCollection          *variables.Collection
-	RunPush                llb.State
 	LocalDirs              map[string]string
 	Ongoing                bool
 	Salt                   string
@@ -60,9 +60,6 @@ type SingleTarget struct {
 	// ie if there are any non-SAVE commands after the first SAVE command,
 	// or if the target is invoked via BUILD command (not COPY nor FROM).
 	HasDangling bool
-
-	CurrentPhase Phase
-	States       map[Phase]llb.State
 }
 
 // LastSaveImage returns the last save image available (if any).
@@ -70,7 +67,7 @@ func (sts *SingleTarget) LastSaveImage() SaveImage {
 	if len(sts.SaveImages) == 0 {
 		// Use main state / image if no save image exists.
 		return SaveImage{
-			State: sts.MainState,
+			State: sts.StateForPhase(PhaseMain),
 			Image: sts.MainImage,
 		}
 	}
@@ -83,7 +80,7 @@ func (sts *SingleTarget) StateForPhase(p Phase) llb.State {
 
 func (sts *SingleTarget) NextPhase(state llb.State) error {
 	nextState := Phase(int(sts.CurrentPhase + 1))
-	if nextState >= PhasePostPush {
+	if nextState > PhasePostPush {
 		return errors.New("already in end phase")
 	}
 

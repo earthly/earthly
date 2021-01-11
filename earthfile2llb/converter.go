@@ -56,7 +56,9 @@ func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Da
 			TargetCanonical: target.StringCanonical(),
 			Platform:        llbutil.PlatformToString(opt.Platform),
 		},
-		MainState:      llbutil.ScratchWithPlatform(),
+		States: map[states.Phase]llb.State{
+			states.PhaseMain: llbutil.ScratchWithPlatform(),
+		},
 		MainImage:      image.NewImage(),
 		ArtifactsState: llbutil.ScratchWithPlatform(),
 		LocalDirs:      bc.LocalDirs,
@@ -87,6 +89,11 @@ func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Da
 // From applies the earthly FROM command.
 func (c *Converter) From(ctx context.Context, imageName string, platform *specs.Platform, buildArgs []string) error {
 	c.nonSaveCommand()
+
+	if c.mts.Final.CurrentPhase == states.PhasePush {
+		return errors.New("FROM is not supported with --push")
+	}
+
 	platform, err := llbutil.ResolvePlatform(platform, c.opt.Platform)
 	if err != nil {
 		return err
@@ -112,7 +119,7 @@ func (c *Converter) fromClassical(ctx context.Context, imageName string, platfor
 	if err != nil {
 		return err
 	}
-	c.mts.Final.MainState = state
+	c.mts.Final.SetCurrentState(state)
 	c.mts.Final.MainImage = img
 	c.varCollection = newVariables
 	return nil
@@ -133,8 +140,8 @@ func (c *Converter) fromTarget(ctx context.Context, targetName string, platform 
 	// Look for the built state in the dep states, after we've built it.
 	relevantDepState := mts.Final
 	saveImage := relevantDepState.LastSaveImage()
-	// Pass on dep state over to this state.
-	c.mts.Final.MainState = relevantDepState.MainState
+	// Pass on dep states over to this state.
+	c.mts.Final.States = relevantDepState.States
 	for dirKey, dirValue := range relevantDepState.LocalDirs {
 		c.mts.Final.LocalDirs[dirKey] = dirValue
 	}
@@ -155,6 +162,11 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 	c.setPlatform(platform)
 	plat := llbutil.PlatformWithDefault(platform)
 	c.nonSaveCommand()
+
+	if c.mts.Final.CurrentPhase == states.PhasePush {
+		return errors.New("FROM DOCKERFILE is not supported with --push")
+	}
+
 	if dfPath != "" {
 		// TODO: It's not yet very clear what -f should do. Should it be referencing a Dockerfile
 		//       from the build context or the build environment?
@@ -247,7 +259,7 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 		return errors.Wrap(err, "unmarshal dockerfile image")
 	}
 	state2, img2, newVarCollection := c.applyFromImage(*state, &img)
-	c.mts.Final.MainState = state2
+	c.mts.Final.SetCurrentState(state2)
 	c.mts.Final.MainImage = img2
 	c.varCollection = newVarCollection
 	return nil
@@ -256,6 +268,11 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 // CopyArtifact applies the earthly COPY artifact command.
 func (c *Converter) CopyArtifact(ctx context.Context, artifactName string, dest string, platform *specs.Platform, buildArgs []string, isDir bool, keepTs bool, keepOwn bool, chown string, ifExists bool) error {
 	c.nonSaveCommand()
+
+	if c.mts.Final.CurrentPhase == states.PhasePush {
+		return errors.New("COPY is not supported with --push")
+	}
+
 	artifact, err := domain.ParseArtifact(artifactName)
 	if err != nil {
 		return errors.Wrapf(err, "parse artifact name %s", artifactName)
@@ -270,31 +287,40 @@ func (c *Converter) CopyArtifact(ctx context.Context, artifactName string, dest 
 	// Grab the artifacts state in the dep states, after we've built it.
 	relevantDepState := mts.Final
 	// Copy.
-	c.mts.Final.MainState = llbutil.CopyOp(
-		relevantDepState.ArtifactsState, []string{artifact.Artifact},
-		c.mts.Final.MainState, dest, true, isDir, keepTs, c.copyOwner(keepOwn, chown), ifExists,
-		llb.WithCustomNamef(
-			"%sCOPY %s%s%s%s %s",
-			c.vertexPrefix(),
-			strIf(isDir, "--dir "),
-			strIf(ifExists, "--if-exists "),
-			joinWrap(buildArgs, "(", " ", ") "),
-			artifact.String(),
-			dest))
+	c.mts.Final.SetCurrentState(
+		llbutil.CopyOp(
+			relevantDepState.ArtifactsState, []string{artifact.Artifact},
+			c.mts.Final.CurrentState(), dest, true, isDir, keepTs, c.copyOwner(keepOwn, chown), ifExists,
+			llb.WithCustomNamef(
+				"%sCOPY %s%s%s%s %s",
+				c.vertexPrefix(),
+				strIf(isDir, "--dir "),
+				strIf(ifExists, "--if-exists "),
+				joinWrap(buildArgs, "(", " ", ") "),
+				artifact.String(),
+				dest)))
 	return nil
 }
 
 // CopyClassical applies the earthly COPY command, with classical args.
-func (c *Converter) CopyClassical(ctx context.Context, srcs []string, dest string, isDir bool, keepTs bool, keepOwn bool, chown string) {
+func (c *Converter) CopyClassical(ctx context.Context, srcs []string, dest string, isDir bool, keepTs bool, keepOwn bool, chown string) error {
 	c.nonSaveCommand()
-	c.mts.Final.MainState = llbutil.CopyOp(
-		c.buildContext, srcs, c.mts.Final.MainState, dest, true, isDir, keepTs, c.copyOwner(keepOwn, chown), false,
-		llb.WithCustomNamef(
-			"%sCOPY %s%s %s",
-			c.vertexPrefix(),
-			strIf(isDir, "--dir "),
-			strings.Join(srcs, " "),
-			dest))
+
+	if c.mts.Final.CurrentPhase == states.PhasePush {
+		return errors.New("COPY is not supported with --push")
+	}
+
+	c.mts.Final.SetCurrentState(
+		llbutil.CopyOp(
+			c.buildContext, srcs, c.mts.Final.CurrentState(), dest, true, isDir, keepTs, c.copyOwner(keepOwn, chown), false,
+			llb.WithCustomNamef(
+				"%sCOPY %s%s %s",
+				c.vertexPrefix(),
+				strIf(isDir, "--dir "),
+				strings.Join(srcs, " "),
+				dest)))
+
+	return nil
 }
 
 // Run applies the earthly RUN command.
@@ -337,9 +363,13 @@ func (c *Converter) Run(ctx context.Context, args, mounts, secretKeyValues []str
 
 // SaveArtifact applies the earthly SAVE ARTIFACT command.
 func (c *Converter) SaveArtifact(ctx context.Context, saveFrom string, saveTo string, saveAsLocalTo string, keepTs bool, keepOwn bool, ifExists bool) error {
+	if c.mts.Final.CurrentPhase == states.PhasePush {
+		return errors.New("SAVE ARTIFACT is not supported with --push")
+	}
+
 	saveToAdjusted := saveTo
 	if saveTo == "" || saveTo == "." || strings.HasSuffix(saveTo, "/") {
-		absSaveFrom, err := llbutil.Abs(ctx, c.mts.Final.MainState, saveFrom)
+		absSaveFrom, err := llbutil.Abs(ctx, c.mts.Final.CurrentState(), saveFrom)
 		if err != nil {
 			return err
 		}
@@ -363,14 +393,14 @@ func (c *Converter) SaveArtifact(ctx context.Context, saveFrom string, saveTo st
 		own = ""
 	}
 	c.mts.Final.ArtifactsState = llbutil.CopyOp(
-		c.mts.Final.MainState, []string{saveFrom}, c.mts.Final.ArtifactsState,
+		c.mts.Final.CurrentState(), []string{saveFrom}, c.mts.Final.ArtifactsState,
 		saveToAdjusted, true, true, keepTs, own, ifExists,
 		llb.WithCustomNamef(
 			"%sSAVE ARTIFACT %s%s %s", c.vertexPrefix(), strIf(ifExists, "--if-exists "), saveFrom, artifact.String()))
 	if saveAsLocalTo != "" {
 		separateArtifactsState := llbutil.ScratchWithPlatform()
 		separateArtifactsState = llbutil.CopyOp(
-			c.mts.Final.MainState, []string{saveFrom}, separateArtifactsState,
+			c.mts.Final.CurrentState(), []string{saveFrom}, separateArtifactsState,
 			saveToAdjusted, true, false, keepTs, "root:root", ifExists,
 			llb.WithCustomNamef(
 				"%sSAVE ARTIFACT %s%s %s AS LOCAL %s",
@@ -398,9 +428,29 @@ func (c *Converter) SaveImage(ctx context.Context, imageNames []string, pushImag
 		imageNames = []string{""}
 		justCacheHint = true
 	}
+
+	var targetPhase states.Phase
+	switch {
+	case pushImages:
+		targetPhase = states.PhasePush
+		// case postPushImages:
+		// 	targetPhase = states.PhasePostPush
+	}
+
+	if pushImages {
+
+		if !c.mts.Final.HasPhase(targetPhase) {
+			// If this is the first push-flagged command, initialize the state with the latest
+			// side-effects state.
+			nextPhaseState := c.mts.Final.CurrentState()
+			c.mts.Final.NextPhase(nextPhaseState)
+		}
+
+		c.mts.Final.SetCurrentState(c.mts.Final.CurrentState().Run(llb.IgnoreCache).Root())
+	}
 	for _, imageName := range imageNames {
 		c.mts.Final.SaveImages = append(c.mts.Final.SaveImages, states.SaveImage{
-			State:        c.mts.Final.MainState,
+			State:        c.mts.Final.CurrentState(),
 			Image:        c.mts.Final.MainImage.Clone(),
 			DockerTag:    imageName,
 			Push:         pushImages,
@@ -427,9 +477,14 @@ func (c *Converter) Build(ctx context.Context, fullTargetName string, platform *
 }
 
 // Workdir applies the WORKDIR command.
-func (c *Converter) Workdir(ctx context.Context, workdirPath string) {
+func (c *Converter) Workdir(ctx context.Context, workdirPath string) error {
 	c.nonSaveCommand()
-	c.mts.Final.MainState = c.mts.Final.MainState.Dir(workdirPath)
+
+	if c.mts.Final.CurrentPhase == states.PhasePush {
+		return errors.New("WORKDIR is not supported with --push")
+	}
+
+	c.mts.Final.SetCurrentState(c.mts.Final.CurrentState().Dir(workdirPath))
 	workdirAbs := workdirPath
 	if !path.IsAbs(workdirAbs) {
 		workdirAbs = path.Join("/", c.mts.Final.MainImage.Config.WorkingDir, workdirAbs)
@@ -446,92 +501,159 @@ func (c *Converter) Workdir(ctx context.Context, workdirPath string) {
 		opts := []llb.ConstraintsOpt{
 			llb.WithCustomNamef("%sWORKDIR %s", c.vertexPrefix(), workdirPath),
 		}
-		c.mts.Final.MainState = c.mts.Final.MainState.File(
-			llb.Mkdir(workdirAbs, 0755, mkdirOpts...), opts...)
+		c.mts.Final.SetCurrentState(c.mts.Final.CurrentState().File(llb.Mkdir(workdirAbs, 0755, mkdirOpts...), opts...))
 	}
+
+	return nil
 }
 
 // User applies the USER command.
-func (c *Converter) User(ctx context.Context, user string) {
+func (c *Converter) User(ctx context.Context, user string) error {
 	c.nonSaveCommand()
-	c.mts.Final.MainState = c.mts.Final.MainState.User(user)
+
+	if c.mts.Final.CurrentPhase == states.PhasePush {
+		return errors.New("USER is not supported with --push")
+	}
+
+	c.mts.Final.SetCurrentState(c.mts.Final.CurrentState().User(user))
 	c.mts.Final.MainImage.Config.User = user
+
+	return nil
 }
 
 // Cmd applies the CMD command.
-func (c *Converter) Cmd(ctx context.Context, cmdArgs []string, isWithShell bool) {
+func (c *Converter) Cmd(ctx context.Context, cmdArgs []string, isWithShell bool) error {
 	c.nonSaveCommand()
+
+	if c.mts.Final.CurrentPhase == states.PhasePush {
+		return errors.New("CMD is not supported with --push")
+	}
+
 	c.mts.Final.MainImage.Config.Cmd = withShell(cmdArgs, isWithShell)
+
+	return nil
 }
 
 // Entrypoint applies the ENTRYPOINT command.
-func (c *Converter) Entrypoint(ctx context.Context, entrypointArgs []string, isWithShell bool) {
+func (c *Converter) Entrypoint(ctx context.Context, entrypointArgs []string, isWithShell bool) error {
 	c.nonSaveCommand()
+
+	if c.mts.Final.CurrentPhase == states.PhasePush {
+		return errors.New("ENTRYPOINT is not supported with --push")
+	}
+
 	c.mts.Final.MainImage.Config.Entrypoint = withShell(entrypointArgs, isWithShell)
+
+	return nil
 }
 
 // Expose applies the EXPOSE command.
-func (c *Converter) Expose(ctx context.Context, ports []string) {
+func (c *Converter) Expose(ctx context.Context, ports []string) error {
 	c.nonSaveCommand()
+
+	if c.mts.Final.CurrentPhase == states.PhasePush {
+		return errors.New("EXPOSE is not supported with --push")
+	}
+
 	for _, port := range ports {
 		c.mts.Final.MainImage.Config.ExposedPorts[port] = struct{}{}
 	}
+
+	return nil
 }
 
 // Volume applies the VOLUME command.
-func (c *Converter) Volume(ctx context.Context, volumes []string) {
+func (c *Converter) Volume(ctx context.Context, volumes []string) error {
 	c.nonSaveCommand()
+
+	if c.mts.Final.CurrentPhase == states.PhasePush {
+		return errors.New("VOLUME is not supported with --push")
+	}
+
 	for _, volume := range volumes {
 		c.mts.Final.MainImage.Config.Volumes[volume] = struct{}{}
 	}
+
+	return nil
 }
 
 // Env applies the ENV command.
-func (c *Converter) Env(ctx context.Context, envKey string, envValue string) {
+func (c *Converter) Env(ctx context.Context, envKey string, envValue string) error {
 	c.nonSaveCommand()
+
+	if c.mts.Final.CurrentPhase == states.PhasePush {
+		return errors.New("ENV is not supported with --push")
+	}
+
 	c.varCollection.AddActive(envKey, variables.NewConstantEnvVar(envValue), true, false)
-	c.mts.Final.MainState = c.mts.Final.MainState.AddEnv(envKey, envValue)
+	c.mts.Final.SetCurrentState(c.mts.Final.CurrentState().AddEnv(envKey, envValue))
 	c.mts.Final.MainImage.Config.Env = variables.AddEnv(
 		c.mts.Final.MainImage.Config.Env, envKey, envValue)
+
+	return nil
 }
 
 // Arg applies the ARG command.
-func (c *Converter) Arg(ctx context.Context, argKey string, defaultArgValue string, global bool) {
+func (c *Converter) Arg(ctx context.Context, argKey string, defaultArgValue string, global bool) error {
 	c.nonSaveCommand()
+
+	if c.mts.Final.CurrentPhase == states.PhasePush {
+		return errors.New("ARG is not supported with --push")
+	}
+
 	effective := c.varCollection.AddActive(argKey, variables.NewConstant(defaultArgValue), false, global)
 	c.mts.Final.TargetInput = c.mts.Final.TargetInput.WithBuildArgInput(
 		effective.BuildArgInput(argKey, defaultArgValue))
+
+	return nil
 }
 
 // Label applies the LABEL command.
-func (c *Converter) Label(ctx context.Context, labels map[string]string) {
-	c.nonSaveCommand()
+func (c *Converter) Label(ctx context.Context, labels map[string]string) error {
+
+	if c.mts.Final.CurrentPhase == states.PhasePush {
+		return errors.New("LABEL is not supported with --push")
+	}
+
 	for key, value := range labels {
 		c.mts.Final.MainImage.Config.Labels[key] = value
 	}
+
+	return nil
 }
 
 // GitClone applies the GIT CLONE command.
 func (c *Converter) GitClone(ctx context.Context, gitURL string, branch string, dest string, keepTs bool) error {
 	c.nonSaveCommand()
+
+	if c.mts.Final.CurrentPhase == states.PhasePush {
+		return errors.New("GIT CLONE is not supported with --push")
+	}
+
 	gitOpts := []llb.GitOption{
 		llb.WithCustomNamef(
 			"%sGIT CLONE (--branch %s) %s", c.vertexPrefixWithURL(gitURL), branch, gitURL),
 		llb.KeepGitDir(),
 	}
 	gitState := llb.Git(gitURL, branch, gitOpts...)
-	c.mts.Final.MainState = llbutil.CopyOp(
-		gitState, []string{"."}, c.mts.Final.MainState, dest, false, false, keepTs,
-		c.mts.Final.MainImage.Config.User, false,
-		llb.WithCustomNamef(
-			"%sCOPY GIT CLONE (--branch %s) %s TO %s", c.vertexPrefix(),
-			branch, gitURL, dest))
+	c.mts.Final.SetCurrentState(
+		llbutil.CopyOp(
+			gitState, []string{"."}, c.mts.Final.CurrentState(), dest, false, false, keepTs,
+			c.mts.Final.MainImage.Config.User, false,
+			llb.WithCustomNamef(
+				"%sCOPY GIT CLONE (--branch %s) %s TO %s", c.vertexPrefix(),
+				branch, gitURL, dest)))
 	return nil
 }
 
 // WithDockerRun applies an entire WITH DOCKER ... RUN ... END clause.
 func (c *Converter) WithDockerRun(ctx context.Context, args []string, opt WithDockerOpt) error {
 	c.nonSaveCommand()
+
+	if c.mts.Final.CurrentPhase == states.PhasePush || c.mts.Final.CurrentPhase == states.PhasePostPush {
+		return errors.New("WITH DOCKER is not supported with OR after --push")
+	}
+
 	wdr := &withDockerRun{
 		c: c,
 	}
@@ -708,7 +830,7 @@ func (c *Converter) internalRun(ctx context.Context, args, secretKeyValues []str
 
 	switch targetPhase {
 	case states.PhaseMain:
-		c.mts.Final.SetCurrentState(c.mts.Final.MainState.Run(finalOpts...).Root())
+		c.mts.Final.SetCurrentState(c.mts.Final.CurrentState().Run(finalOpts...).Root())
 	default:
 		// For push-flagged commands, make sure they run every time - don't use cache.
 		finalOpts = append(finalOpts, llb.IgnoreCache)
@@ -834,9 +956,10 @@ func (c *Converter) processNonConstantBuildArgFunc(ctx context.Context) variable
 		// Run the expression on the side effects state.
 		srcBuildArgDir := "/run/buildargs-src"
 		srcBuildArgPath := path.Join(srcBuildArgDir, name)
-		c.mts.Final.MainState = c.mts.Final.MainState.File(
-			llb.Mkdir(srcBuildArgDir, 0755, llb.WithParents(true)),
-			llb.WithCustomNamef("[internal] mkdir %s", srcBuildArgDir))
+		c.mts.Final.SetCurrentState(
+			c.mts.Final.CurrentState().File(
+				llb.Mkdir(srcBuildArgDir, 0755, llb.WithParents(true)),
+				llb.WithCustomNamef("[internal] mkdir %s", srcBuildArgDir)))
 		buildArgPath := path.Join("/run/buildargs", name)
 		args := strings.Split(fmt.Sprintf("echo \"%s\" >%s", expression, srcBuildArgPath), " ")
 		err := c.internalRun(
@@ -848,16 +971,17 @@ func (c *Converter) processNonConstantBuildArgFunc(ctx context.Context) variable
 		// Copy the result of the expression into a separate, isolated state.
 		buildArgState := llb.Scratch().Platform(llbutil.PlatformWithDefault(c.opt.Platform))
 		buildArgState = llbutil.CopyOp(
-			c.mts.Final.MainState, []string{srcBuildArgPath},
+			c.mts.Final.CurrentState(), []string{srcBuildArgPath},
 			buildArgState, buildArgPath, false, false, false, "root:root", false,
 			llb.WithCustomNamef("[internal] copy buildarg %s", name))
 		// Store the state with the expression result for later use.
 		argIndex := c.nextArgIndex
 		c.nextArgIndex++
 		// Remove intermediary file from side effects state.
-		c.mts.Final.MainState = c.mts.Final.MainState.File(
-			llb.Rm(srcBuildArgPath, llb.WithAllowNotFound(true)),
-			llb.WithCustomNamef("[internal] rm %s", srcBuildArgPath))
+		c.mts.Final.SetCurrentState(
+			c.mts.Final.CurrentState().File(
+				llb.Rm(srcBuildArgPath, llb.WithAllowNotFound(true)),
+				llb.WithCustomNamef("[internal] rm %s", srcBuildArgPath)))
 
 		return buildArgState, c.mts.Final.TargetInput, argIndex, nil
 	}
@@ -898,8 +1022,9 @@ func (c *Converter) markFakeDeps() {
 	}
 	for _, dep := range c.directDeps {
 		if dep.HasDangling {
-			c.mts.Final.MainState = llbutil.WithDependency(
-				c.mts.Final.MainState, dep.MainState, c.mts.Final.Target.String(), dep.Target.String())
+			c.mts.Final.SetCurrentState(
+				llbutil.WithDependency(
+					c.mts.Final.CurrentState(), dep.CurrentState(), c.mts.Final.Target.String(), dep.Target.String()))
 		}
 	}
 	// Clear the direct deps so we don't do this again.

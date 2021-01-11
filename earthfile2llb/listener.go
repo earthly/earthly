@@ -292,7 +292,11 @@ func (l *listener) ExitCopyStmt(c *parser.CopyStmtContext) {
 			l.err = fmt.Errorf("build args not supported for non +artifact arguments case %v", l.stmtWords)
 			return
 		}
-		l.converter.CopyClassical(l.ctx, srcs, dest, *isDirCopy, *keepTs, *keepOwn, *chown)
+		err = l.converter.CopyClassical(l.ctx, srcs, dest, *isDirCopy, *keepTs, *keepOwn, *chown)
+		if err != nil {
+			l.err = errors.Wrapf(err, "copy classical")
+			return
+		}
 	}
 }
 
