@@ -91,13 +91,16 @@ func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Da
 // From applies the earthly FROM command.
 func (c *Converter) From(ctx context.Context, imageName string, platform *specs.Platform, buildArgs []string) error {
 	c.nonSaveCommand()
-	c.handlePhase()
+	err := c.handlePhase()
+	if err != nil {
+		return errors.Wrap(err, "from phase")
+	}
 
 	if c.mts.Final.CurrentPhase == states.PhasePush {
 		return errors.New("FROM is not supported with --push")
 	}
 
-	platform, err := llbutil.ResolvePlatform(platform, c.opt.Platform)
+	platform, err = llbutil.ResolvePlatform(platform, c.opt.Platform)
 	if err != nil {
 		return err
 	}
@@ -165,7 +168,10 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 	c.setPlatform(platform)
 	plat := llbutil.PlatformWithDefault(platform)
 	c.nonSaveCommand()
-	c.handlePhase()
+	err = c.handlePhase()
+	if err != nil {
+		return errors.Wrap(err, "from dockerfile phase")
+	}
 
 	if c.mts.Final.CurrentPhase == states.PhasePush {
 		return errors.New("FROM DOCKERFILE is not supported with --push")
@@ -272,7 +278,10 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 // CopyArtifact applies the earthly COPY artifact command.
 func (c *Converter) CopyArtifact(ctx context.Context, artifactName string, dest string, platform *specs.Platform, buildArgs []string, isDir bool, keepTs bool, keepOwn bool, chown string, ifExists bool) error {
 	c.nonSaveCommand()
-	c.handlePhase()
+	err := c.handlePhase()
+	if err != nil {
+		return errors.Wrap(err, "copy artifact phase")
+	}
 
 	if c.mts.Final.CurrentPhase == states.PhasePush {
 		return errors.New("COPY is not supported with --push")
@@ -310,7 +319,10 @@ func (c *Converter) CopyArtifact(ctx context.Context, artifactName string, dest 
 // CopyClassical applies the earthly COPY command, with classical args.
 func (c *Converter) CopyClassical(ctx context.Context, srcs []string, dest string, isDir bool, keepTs bool, keepOwn bool, chown string) error {
 	c.nonSaveCommand()
-	c.handlePhase()
+	err := c.handlePhase()
+	if err != nil {
+		return errors.Wrap(err, "copy classical phase")
+	}
 
 	if c.mts.Final.CurrentPhase == states.PhasePush {
 		return errors.New("COPY is not supported with --push")
@@ -369,7 +381,10 @@ func (c *Converter) Run(ctx context.Context, args, mounts, secretKeyValues []str
 
 // SaveArtifact applies the earthly SAVE ARTIFACT command.
 func (c *Converter) SaveArtifact(ctx context.Context, saveFrom string, saveTo string, saveAsLocalTo string, keepTs bool, keepOwn bool, ifExists bool) error {
-	c.handlePhase()
+	err := c.handlePhase()
+	if err != nil {
+		return errors.Wrap(err, "save artifact phase")
+	}
 
 	if c.mts.Final.CurrentPhase == states.PhasePush {
 		return errors.New("SAVE ARTIFACT is not supported with --push")
@@ -449,7 +464,11 @@ func (c *Converter) SaveImage(ctx context.Context, imageNames []string, pushImag
 	case states.PhasePush, states.PhasePostPush:
 		if !c.mts.Final.HasPhase(targetPhase) {
 			nextPhaseState := c.mts.Final.CurrentState()
-			c.mts.Final.NextPhase(nextPhaseState)
+
+			err := c.mts.Final.NextPhase(nextPhaseState)
+			if err != nil {
+				return errors.Wrap(err, "save image phase")
+			}
 		}
 	}
 
@@ -484,7 +503,10 @@ func (c *Converter) Build(ctx context.Context, fullTargetName string, platform *
 // Workdir applies the WORKDIR command.
 func (c *Converter) Workdir(ctx context.Context, workdirPath string) error {
 	c.nonSaveCommand()
-	c.handlePhase()
+	err := c.handlePhase()
+	if err != nil {
+		return errors.Wrap(err, "workdir phase")
+	}
 
 	if c.mts.Final.CurrentPhase == states.PhasePush {
 		return errors.New("WORKDIR is not supported with --push")
@@ -516,7 +538,10 @@ func (c *Converter) Workdir(ctx context.Context, workdirPath string) error {
 // User applies the USER command.
 func (c *Converter) User(ctx context.Context, user string) error {
 	c.nonSaveCommand()
-	c.handlePhase()
+	err := c.handlePhase()
+	if err != nil {
+		return errors.Wrap(err, "user phase")
+	}
 
 	if c.mts.Final.CurrentPhase == states.PhasePush {
 		return errors.New("USER is not supported with --push")
@@ -531,7 +556,10 @@ func (c *Converter) User(ctx context.Context, user string) error {
 // Cmd applies the CMD command.
 func (c *Converter) Cmd(ctx context.Context, cmdArgs []string, isWithShell bool) error {
 	c.nonSaveCommand()
-	c.handlePhase()
+	err := c.handlePhase()
+	if err != nil {
+		return errors.Wrap(err, "cmd phase")
+	}
 
 	if c.mts.Final.CurrentPhase == states.PhasePush {
 		return errors.New("CMD is not supported with --push")
@@ -545,7 +573,10 @@ func (c *Converter) Cmd(ctx context.Context, cmdArgs []string, isWithShell bool)
 // Entrypoint applies the ENTRYPOINT command.
 func (c *Converter) Entrypoint(ctx context.Context, entrypointArgs []string, isWithShell bool) error {
 	c.nonSaveCommand()
-	c.handlePhase()
+	err := c.handlePhase()
+	if err != nil {
+		return errors.Wrap(err, "entrypoint phase")
+	}
 
 	if c.mts.Final.CurrentPhase == states.PhasePush {
 		return errors.New("ENTRYPOINT is not supported with --push")
@@ -559,7 +590,10 @@ func (c *Converter) Entrypoint(ctx context.Context, entrypointArgs []string, isW
 // Expose applies the EXPOSE command.
 func (c *Converter) Expose(ctx context.Context, ports []string) error {
 	c.nonSaveCommand()
-	c.handlePhase()
+	err := c.handlePhase()
+	if err != nil {
+		return errors.Wrap(err, "expose phase")
+	}
 
 	if c.mts.Final.CurrentPhase == states.PhasePush {
 		return errors.New("EXPOSE is not supported with --push")
@@ -575,7 +609,10 @@ func (c *Converter) Expose(ctx context.Context, ports []string) error {
 // Volume applies the VOLUME command.
 func (c *Converter) Volume(ctx context.Context, volumes []string) error {
 	c.nonSaveCommand()
-	c.handlePhase()
+	err := c.handlePhase()
+	if err != nil {
+		return errors.Wrap(err, "volume phase")
+	}
 
 	if c.mts.Final.CurrentPhase == states.PhasePush {
 		return errors.New("VOLUME is not supported with --push")
@@ -591,7 +628,10 @@ func (c *Converter) Volume(ctx context.Context, volumes []string) error {
 // Env applies the ENV command.
 func (c *Converter) Env(ctx context.Context, envKey string, envValue string) error {
 	c.nonSaveCommand()
-	c.handlePhase()
+	err := c.handlePhase()
+	if err != nil {
+		return errors.Wrap(err, "env phase")
+	}
 
 	if c.mts.Final.CurrentPhase == states.PhasePush {
 		return errors.New("ENV is not supported with --push")
@@ -608,7 +648,10 @@ func (c *Converter) Env(ctx context.Context, envKey string, envValue string) err
 // Arg applies the ARG command.
 func (c *Converter) Arg(ctx context.Context, argKey string, defaultArgValue string, global bool) error {
 	c.nonSaveCommand()
-	c.handlePhase()
+	err := c.handlePhase()
+	if err != nil {
+		return errors.Wrap(err, "arg phase")
+	}
 
 	if c.mts.Final.CurrentPhase == states.PhasePush {
 		return errors.New("ARG is not supported with --push")
@@ -623,7 +666,10 @@ func (c *Converter) Arg(ctx context.Context, argKey string, defaultArgValue stri
 
 // Label applies the LABEL command.
 func (c *Converter) Label(ctx context.Context, labels map[string]string) error {
-	c.handlePhase()
+	err := c.handlePhase()
+	if err != nil {
+		return errors.Wrap(err, "label phase")
+	}
 
 	if c.mts.Final.CurrentPhase == states.PhasePush {
 		return errors.New("LABEL is not supported with --push")
@@ -639,7 +685,10 @@ func (c *Converter) Label(ctx context.Context, labels map[string]string) error {
 // GitClone applies the GIT CLONE command.
 func (c *Converter) GitClone(ctx context.Context, gitURL string, branch string, dest string, keepTs bool) error {
 	c.nonSaveCommand()
-	c.handlePhase()
+	err := c.handlePhase()
+	if err != nil {
+		return errors.Wrap(err, "git clone phase")
+	}
 
 	if c.mts.Final.CurrentPhase == states.PhasePush {
 		return errors.New("GIT CLONE is not supported with --push")
@@ -860,7 +909,10 @@ func (c *Converter) internalRun(ctx context.Context, args, secretKeyValues []str
 			// If this is the first push-flagged command, initialize the state with the latest
 			// side-effects state.
 			nextPhaseState := c.mts.Final.CurrentState().WithValue("commandStr", []string{})
-			c.mts.Final.NextPhase(nextPhaseState)
+			err := c.mts.Final.NextPhase(nextPhaseState)
+			if err != nil {
+				return errors.Wrap(err, "run phase")
+			}
 		}
 		// Don't run on MainState. We want (post)push-flagged commands to be executed only
 		// *after* the push commands. Save this for later.
@@ -1116,9 +1168,11 @@ func strIf(condition bool, str string) string {
 	return ""
 }
 
-func (c *Converter) handlePhase() {
+func (c *Converter) handlePhase() error {
 	if c.mts.Final.CurrentPhase == states.PhasePush {
 		nextPhaseState := c.mts.Final.CurrentState()
-		c.mts.Final.NextPhase(nextPhaseState)
+		return c.mts.Final.NextPhase(nextPhaseState)
 	}
+
+	return nil
 }
