@@ -26,7 +26,7 @@ type listener struct {
 	executeTarget   string
 	currentTarget   string
 	targetFound     bool
-	pushOnlyAllowed bool
+	pushEncountered bool
 
 	envArgKey   string
 	envArgValue string
@@ -90,7 +90,7 @@ func (l *listener) EnterStmts(c *parser.StmtsContext) {
 	if l.shouldSkip() {
 		return
 	}
-	l.pushOnlyAllowed = false
+	l.pushEncountered = false
 }
 
 func (l *listener) ExitStmts(c *parser.StmtsContext) {
@@ -120,10 +120,6 @@ func (l *listener) EnterStmt(c *parser.StmtContext) {
 
 func (l *listener) ExitFromStmt(c *parser.FromStmtContext) {
 	if l.shouldSkip() {
-		return
-	}
-	if l.pushOnlyAllowed {
-		l.err = fmt.Errorf("no non-push commands allowed after a --push: %s", c.GetText())
 		return
 	}
 	fs := flag.NewFlagSet("FROM", flag.ContinueOnError)
@@ -166,10 +162,6 @@ func (l *listener) ExitFromStmt(c *parser.FromStmtContext) {
 
 func (l *listener) ExitFromDockerfileStmt(c *parser.FromDockerfileStmtContext) {
 	if l.shouldSkip() {
-		return
-	}
-	if l.pushOnlyAllowed {
-		l.err = fmt.Errorf("no non-push commands allowed after a --push: %s", c.GetText())
 		return
 	}
 	fs := flag.NewFlagSet("FROM DOCKERFILE", flag.ContinueOnError)
@@ -217,10 +209,6 @@ func (l *listener) ExitFromDockerfileStmt(c *parser.FromDockerfileStmtContext) {
 
 func (l *listener) ExitCopyStmt(c *parser.CopyStmtContext) {
 	if l.shouldSkip() {
-		return
-	}
-	if l.pushOnlyAllowed {
-		l.err = fmt.Errorf("no non-push commands allowed after a --push: %s", c.GetText())
 		return
 	}
 	fs := flag.NewFlagSet("COPY", flag.ContinueOnError)
@@ -332,7 +320,7 @@ func (l *listener) ExitRunStmt(c *parser.RunStmtContext) {
 	if *withDocker {
 		*privileged = true
 	}
-	postPush := !*pushFlag && l.pushOnlyAllowed
+	postPush := !*pushFlag && l.pushEncountered
 	// TODO: In the bracket case, should flags be outside of the brackets?
 
 	for i, s := range secrets.Args {
@@ -352,7 +340,7 @@ func (l *listener) ExitRunStmt(c *parser.RunStmtContext) {
 			return
 		}
 		if *pushFlag {
-			l.pushOnlyAllowed = true
+			l.pushEncountered = true
 		}
 	} else {
 		if *pushFlag {
@@ -380,10 +368,7 @@ func (l *listener) ExitSaveArtifact(c *parser.SaveArtifactContext) {
 	if l.shouldSkip() {
 		return
 	}
-	if l.pushOnlyAllowed {
-		l.err = fmt.Errorf("no non-push commands allowed after a --push: %s", c.GetText())
-		return
-	}
+
 	fs := flag.NewFlagSet("SAVE ARTIFACT", flag.ContinueOnError)
 	keepTs := fs.Bool("keep-ts", false, "Keep created time file timestamps")
 	keepOwn := fs.Bool("keep-own", false, "Keep owner info")
@@ -456,10 +441,7 @@ func (l *listener) ExitSaveImage(c *parser.SaveImageContext) {
 	for i, cf := range cacheFrom.Args {
 		cacheFrom.Args[i] = l.expandArgs(cf, false)
 	}
-	if !*pushFlag && l.pushOnlyAllowed {
-		l.err = fmt.Errorf("no non-push commands allowed after a --push: %s", c.GetText())
-		return
-	}
+	postPush := !*pushFlag && l.pushEncountered
 	if *pushFlag && fs.NArg() == 0 {
 		l.err = fmt.Errorf("invalid number of arguments for SAVE IMAGE --push: %v", l.stmtWords)
 		return
@@ -473,22 +455,18 @@ func (l *listener) ExitSaveImage(c *parser.SaveImageContext) {
 		fmt.Printf("Deprecation: using SAVE IMAGE with no arguments is no longer necessary and can be safely removed\n")
 		return
 	}
-	err = l.converter.SaveImage(l.ctx, imageNames, *pushFlag, *insecure, *cacheHint, cacheFrom.Args)
+	err = l.converter.SaveImage(l.ctx, imageNames, *pushFlag, postPush, *insecure, *cacheHint, cacheFrom.Args)
 	if err != nil {
 		l.err = errors.Wrap(err, "save image")
 		return
 	}
 	if *pushFlag {
-		l.pushOnlyAllowed = true
+		l.pushEncountered = true
 	}
 }
 
 func (l *listener) ExitBuildStmt(c *parser.BuildStmtContext) {
 	if l.shouldSkip() {
-		return
-	}
-	if l.pushOnlyAllowed {
-		l.err = fmt.Errorf("no non-push commands allowed after a --push: %s", c.GetText())
 		return
 	}
 	fs := flag.NewFlagSet("BUILD", flag.ContinueOnError)
@@ -535,24 +513,19 @@ func (l *listener) ExitWorkdirStmt(c *parser.WorkdirStmtContext) {
 	if l.shouldSkip() {
 		return
 	}
-	if l.pushOnlyAllowed {
-		l.err = fmt.Errorf("no non-push commands allowed after a --push: %s", c.GetText())
-		return
-	}
 	if len(l.stmtWords) != 1 {
 		l.err = fmt.Errorf("invalid number of arguments for WORKDIR: %v", l.stmtWords)
 		return
 	}
 	workdirPath := l.expandArgs(l.stmtWords[0], false)
-	l.converter.Workdir(l.ctx, workdirPath)
+	err := l.converter.Workdir(l.ctx, workdirPath)
+	if err != nil {
+		l.err = errors.Wrapf(err, "WORKDIR %s", l.stmtWords)
+	}
 }
 
 func (l *listener) ExitUserStmt(c *parser.UserStmtContext) {
 	if l.shouldSkip() {
-		return
-	}
-	if l.pushOnlyAllowed {
-		l.err = fmt.Errorf("no non-push commands allowed after a --push: %s", c.GetText())
 		return
 	}
 	if len(l.stmtWords) != 1 {
@@ -560,15 +533,14 @@ func (l *listener) ExitUserStmt(c *parser.UserStmtContext) {
 		return
 	}
 	user := l.expandArgs(l.stmtWords[0], false)
-	l.converter.User(l.ctx, user)
+	err := l.converter.User(l.ctx, user)
+	if err != nil {
+		l.err = errors.Wrapf(err, "USER %v", l.stmtWords)
+	}
 }
 
 func (l *listener) ExitCmdStmt(c *parser.CmdStmtContext) {
 	if l.shouldSkip() {
-		return
-	}
-	if l.pushOnlyAllowed {
-		l.err = fmt.Errorf("no non-push commands allowed after a --push: %s", c.GetText())
 		return
 	}
 	withShell := !l.execMode
@@ -578,15 +550,14 @@ func (l *listener) ExitCmdStmt(c *parser.CmdStmtContext) {
 			cmdArgs[i] = l.expandArgs(arg, false)
 		}
 	}
-	l.converter.Cmd(l.ctx, cmdArgs, withShell)
+	err := l.converter.Cmd(l.ctx, cmdArgs, withShell)
+	if err != nil {
+		l.err = errors.Wrapf(err, "CMD %s", l.stmtWords)
+	}
 }
 
 func (l *listener) ExitEntrypointStmt(c *parser.EntrypointStmtContext) {
 	if l.shouldSkip() {
-		return
-	}
-	if l.pushOnlyAllowed {
-		l.err = fmt.Errorf("no non-push commands allowed after a --push: %s", c.GetText())
 		return
 	}
 	withShell := !l.execMode
@@ -596,15 +567,14 @@ func (l *listener) ExitEntrypointStmt(c *parser.EntrypointStmtContext) {
 			entArgs[i] = l.expandArgs(arg, false)
 		}
 	}
-	l.converter.Entrypoint(l.ctx, entArgs, withShell)
+	err := l.converter.Entrypoint(l.ctx, entArgs, withShell)
+	if err != nil {
+		l.err = errors.Wrapf(err, "ENTRYPOINT %s", l.stmtWords)
+	}
 }
 
 func (l *listener) ExitExposeStmt(c *parser.ExposeStmtContext) {
 	if l.shouldSkip() {
-		return
-	}
-	if l.pushOnlyAllowed {
-		l.err = fmt.Errorf("no non-push commands allowed after a --push: %s", c.GetText())
 		return
 	}
 	if len(l.stmtWords) == 0 {
@@ -615,15 +585,14 @@ func (l *listener) ExitExposeStmt(c *parser.ExposeStmtContext) {
 	for i, port := range ports {
 		ports[i] = l.expandArgs(port, false)
 	}
-	l.converter.Expose(l.ctx, ports)
+	err := l.converter.Expose(l.ctx, ports)
+	if err != nil {
+		l.err = errors.Wrapf(err, "EXPOSE %s", l.stmtWords)
+	}
 }
 
 func (l *listener) ExitVolumeStmt(c *parser.VolumeStmtContext) {
 	if l.shouldSkip() {
-		return
-	}
-	if l.pushOnlyAllowed {
-		l.err = fmt.Errorf("no non-push commands allowed after a --push: %s", c.GetText())
 		return
 	}
 	if len(l.stmtWords) == 0 {
@@ -634,43 +603,40 @@ func (l *listener) ExitVolumeStmt(c *parser.VolumeStmtContext) {
 	for i, volume := range volumes {
 		volumes[i] = l.expandArgs(volume, false)
 	}
-	l.converter.Volume(l.ctx, volumes)
+	err := l.converter.Volume(l.ctx, volumes)
+	if err != nil {
+		l.err = errors.Wrapf(err, "VOLUME %s", l.stmtWords)
+	}
 }
 
 func (l *listener) ExitEnvStmt(c *parser.EnvStmtContext) {
 	if l.shouldSkip() {
 		return
 	}
-	if l.pushOnlyAllowed {
-		l.err = fmt.Errorf("no non-push commands allowed after a --push: %s", c.GetText())
-		return
-	}
 	key := l.envArgKey // Note: Not expanding args for key.
 	value := l.expandArgs(l.envArgValue, false)
-	l.converter.Env(l.ctx, key, value)
+	err := l.converter.Env(l.ctx, key, value)
+	if err != nil {
+		l.err = errors.Wrapf(err, "ENV %s", l.stmtWords)
+	}
 }
 
 func (l *listener) ExitArgStmt(c *parser.ArgStmtContext) {
 	if l.shouldSkip() {
 		return
 	}
-	if l.pushOnlyAllowed {
-		l.err = fmt.Errorf("no non-push commands allowed after a --push: %s", c.GetText())
-		return
-	}
 	key := l.envArgKey // Note: Not expanding args for key.
 	value := l.expandArgs(l.envArgValue, true)
 	// Args declared in the base target are global.
 	global := (l.currentTarget == "base")
-	l.converter.Arg(l.ctx, key, value, global)
+	err := l.converter.Arg(l.ctx, key, value, global)
+	if err != nil {
+		l.err = errors.Wrapf(err, "ARG %s", l.stmtWords)
+	}
 }
 
 func (l *listener) ExitLabelStmt(c *parser.LabelStmtContext) {
 	if l.shouldSkip() {
-		return
-	}
-	if l.pushOnlyAllowed {
-		l.err = fmt.Errorf("no non-push commands allowed after a --push: %s", c.GetText())
 		return
 	}
 	if len(l.labelKeys) == 0 {
@@ -685,15 +651,14 @@ func (l *listener) ExitLabelStmt(c *parser.LabelStmtContext) {
 	for i := range l.labelKeys {
 		labels[l.expandArgs(l.labelKeys[i], false)] = l.expandArgs(l.labelValues[i], false)
 	}
-	l.converter.Label(l.ctx, labels)
+	err := l.converter.Label(l.ctx, labels)
+	if err != nil {
+		l.err = errors.Wrapf(err, "LABEL %s", l.stmtWords)
+	}
 }
 
 func (l *listener) ExitGitCloneStmt(c *parser.GitCloneStmtContext) {
 	if l.shouldSkip() {
-		return
-	}
-	if l.pushOnlyAllowed {
-		l.err = fmt.Errorf("no non-push commands allowed after a --push: %s", c.GetText())
 		return
 	}
 	fs := flag.NewFlagSet("GIT CLONE", flag.ContinueOnError)
@@ -734,10 +699,6 @@ func (l *listener) ExitDockerPullStmt(c *parser.DockerPullStmtContext) {
 
 func (l *listener) ExitHealthcheckStmt(c *parser.HealthcheckStmtContext) {
 	if l.shouldSkip() {
-		return
-	}
-	if l.pushOnlyAllowed {
-		l.err = fmt.Errorf("no non-push commands allowed after a --push: %s", c.GetText())
 		return
 	}
 	fs := flag.NewFlagSet("HEALTHCHECK", flag.ContinueOnError)
@@ -788,15 +749,14 @@ func (l *listener) ExitHealthcheckStmt(c *parser.HealthcheckStmtContext) {
 	for i, arg := range cmdArgs {
 		cmdArgs[i] = l.expandArgs(arg, false)
 	}
-	l.converter.Healthcheck(l.ctx, isNone, cmdArgs, *interval, *timeout, *startPeriod, *retries)
+	err = l.converter.Healthcheck(l.ctx, isNone, cmdArgs, *interval, *timeout, *startPeriod, *retries)
+	if err != nil {
+		l.err = errors.Wrapf(err, "HEALTHCHECK %s", l.stmtWords)
+	}
 }
 
 func (l *listener) ExitWithDockerStmt(c *parser.WithDockerStmtContext) {
 	if l.shouldSkip() {
-		return
-	}
-	if l.pushOnlyAllowed {
-		l.err = fmt.Errorf("no non-push commands allowed after a --push: %s", c.GetText())
 		return
 	}
 	if l.withDocker != nil {

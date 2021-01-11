@@ -419,7 +419,7 @@ func (c *Converter) SaveArtifact(ctx context.Context, saveFrom string, saveTo st
 }
 
 // SaveImage applies the earthly SAVE IMAGE command.
-func (c *Converter) SaveImage(ctx context.Context, imageNames []string, pushImages bool, insecurePush bool, cacheHint bool, cacheFrom []string) error {
+func (c *Converter) SaveImage(ctx context.Context, imageNames []string, pushImages, postPushImages bool, insecurePush bool, cacheHint bool, cacheFrom []string) error {
 	for _, cf := range cacheFrom {
 		c.opt.CacheImports[cf] = true
 	}
@@ -433,8 +433,8 @@ func (c *Converter) SaveImage(ctx context.Context, imageNames []string, pushImag
 	switch {
 	case pushImages:
 		targetPhase = states.PhasePush
-		// case postPushImages:
-		// 	targetPhase = states.PhasePostPush
+	case postPushImages:
+		targetPhase = states.PhasePostPush
 	}
 
 	if pushImages {
@@ -661,8 +661,13 @@ func (c *Converter) WithDockerRun(ctx context.Context, args []string, opt WithDo
 }
 
 // Healthcheck applies the HEALTHCHECK command.
-func (c *Converter) Healthcheck(ctx context.Context, isNone bool, cmdArgs []string, interval time.Duration, timeout time.Duration, startPeriod time.Duration, retries int) {
+func (c *Converter) Healthcheck(ctx context.Context, isNone bool, cmdArgs []string, interval time.Duration, timeout time.Duration, startPeriod time.Duration, retries int) error {
 	c.nonSaveCommand()
+
+	if c.mts.Final.CurrentPhase == states.PhasePush || c.mts.Final.CurrentPhase == states.PhasePostPush {
+		return errors.New("HEALTHCHECK is not supported with OR after --push")
+	}
+
 	hc := &dockerfile2llb.HealthConfig{}
 	if isNone {
 		hc.Test = []string{"NONE"}
@@ -676,6 +681,8 @@ func (c *Converter) Healthcheck(ctx context.Context, isNone bool, cmdArgs []stri
 		hc.Retries = retries
 	}
 	c.mts.Final.MainImage.Config.Healthcheck = hc
+
+	return nil
 }
 
 // FinalizeStates returns the LLB states.
