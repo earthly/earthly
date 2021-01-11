@@ -173,8 +173,8 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 		return errors.Wrap(err, "from dockerfile phase")
 	}
 
-	if c.mts.Final.CurrentPhase == states.PhasePush {
-		return errors.New("FROM DOCKERFILE is not supported with --push")
+	if c.mts.Final.CurrentPhase == states.PhasePush || c.mts.Final.CurrentPhase == states.PhasePostPush {
+		return errors.New("FROM DOCKERFILE is not supported with OR after --push")
 	}
 
 	if dfPath != "" {
@@ -728,8 +728,8 @@ func (c *Converter) WithDockerRun(ctx context.Context, args []string, opt WithDo
 func (c *Converter) Healthcheck(ctx context.Context, isNone bool, cmdArgs []string, interval time.Duration, timeout time.Duration, startPeriod time.Duration, retries int) error {
 	c.nonSaveCommand()
 
-	if c.mts.Final.CurrentPhase == states.PhasePush || c.mts.Final.CurrentPhase == states.PhasePostPush {
-		return errors.New("HEALTHCHECK is not supported with OR after --push")
+	if c.mts.Final.CurrentPhase == states.PhasePush {
+		return errors.New("HEALTHCHECK is not supported with --push")
 	}
 
 	hc := &dockerfile2llb.HealthConfig{}
@@ -908,8 +908,12 @@ func (c *Converter) internalRun(ctx context.Context, args, secretKeyValues []str
 		if !c.mts.Final.HasPhase(targetPhase) {
 			// If this is the first push-flagged command, initialize the state with the latest
 			// side-effects state.
+
+			// stateToRef
+			// get state from that
+
 			nextPhaseState := c.mts.Final.CurrentState().WithValue("commandStr", []string{})
-			err := c.mts.Final.NextPhase(nextPhaseState)
+			err := c.mts.Final.NextPhase(nextPhaseState) // use state from ref to initalize state for new phase
 			if err != nil {
 				return errors.Wrap(err, "run phase")
 			}
