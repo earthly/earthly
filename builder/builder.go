@@ -425,13 +425,15 @@ func (b *Builder) buildMain(ctx context.Context, mts *states.MultiTarget, opt Bu
 }
 
 func (b *Builder) executeRunPush(ctx context.Context, sts *states.SingleTarget, opt BuildOpt) error {
-	if !sts.RunPush.Initialized {
+	if !sts.IsRunPush {
 		// No run --push commands here. Quick way out.
 		return nil
 	}
 	console := b.opt.Console.WithPrefixAndSalt(sts.Target.String(), sts.Salt)
 	if !opt.Push {
-		for _, commandStr := range sts.RunPush.CommandStrs {
+		rawCommandStrs, _ := sts.RunPush.Value(ctx, "commandStr")
+		commandStrs := rawCommandStrs.([]string)
+		for _, commandStr := range commandStrs {
 			console.Printf("Did not execute push command %s. Use earthly --push to enable pushing\n", commandStr)
 		}
 		return nil
@@ -441,7 +443,7 @@ func (b *Builder) executeRunPush(ctx context.Context, sts *states.SingleTarget, 
 		platform = sts.Platform
 	}
 	plat := llbutil.PlatformWithDefault(platform)
-	err = b.s.solveMain(ctx, sts.RunPush.State, plat)
+	err = b.s.solveMain(ctx, sts.RunPush, plat)
 	if err != nil {
 		return errors.Wrapf(err, "solve run-push")
 	}

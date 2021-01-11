@@ -699,17 +699,22 @@ func (c *Converter) internalRun(ctx context.Context, args, secretKeyValues []str
 	if pushFlag {
 		// For push-flagged commands, make sure they run every time - don't use cache.
 		finalOpts = append(finalOpts, llb.IgnoreCache)
-		if !c.mts.Final.RunPush.Initialized {
+		if !c.mts.Final.IsRunPush {
 			// If this is the first push-flagged command, initialize the state with the latest
 			// side-effects state.
-			c.mts.Final.RunPush.State = c.mts.Final.MainState
-			c.mts.Final.RunPush.Initialized = true
+			c.mts.Final.RunPush = c.mts.Final.MainState
+			c.mts.Final.RunPush = c.mts.Final.RunPush.WithValue("commandStr", []string{})
+			c.mts.Final.IsRunPush = true
 		}
 		// Don't run on MainState. We want push-flagged commands to be executed only
 		// *after* the build. Save this for later.
-		c.mts.Final.RunPush.State = c.mts.Final.RunPush.State.Run(finalOpts...).Root()
-		c.mts.Final.RunPush.CommandStrs = append(
-			c.mts.Final.RunPush.CommandStrs, commandStr)
+
+		rawCommandStrs, _ := c.mts.Final.RunPush.Value(ctx, "commandStr")
+		commandStrs := rawCommandStrs.([]string)
+		commandStrs = append(commandStrs, commandStr)
+
+		c.mts.Final.RunPush = c.mts.Final.RunPush.WithValue("commandStr", commandStrs).Run(finalOpts...).Root()
+		// c.mts.Final.RunPush.CommandStrs = append(c.mts.Final.RunPush.CommandStrs, commandStr)
 	} else {
 		c.mts.Final.MainState = c.mts.Final.MainState.Run(finalOpts...).Root()
 	}

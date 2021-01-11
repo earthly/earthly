@@ -42,7 +42,8 @@ type SingleTarget struct {
 	SaveLocals             []SaveLocal
 	SaveImages             []SaveImage
 	VarCollection          *variables.Collection
-	RunPush                RunPush
+	RunPush                llb.State
+	PostPush               llb.State
 	LocalDirs              map[string]string
 	Ongoing                bool
 	Salt                   string
@@ -50,6 +51,7 @@ type SingleTarget struct {
 	// ie if there are any non-SAVE commands after the first SAVE command,
 	// or if the target is invoked via BUILD command (not COPY nor FROM).
 	HasDangling bool
+	IsRunPush   bool
 }
 
 // LastSaveImage returns the last save image available (if any).
@@ -86,12 +88,4 @@ type SaveImage struct {
 	// CacheHint instructs Earthly to save a separate ref for this image, even if no tag is
 	// provided.
 	CacheHint bool
-}
-
-// RunPush is a series of RUN --push commands to be run after the build has been deemed as
-// successful.
-type RunPush struct {
-	Initialized bool
-	CommandStrs []string
-	State       llb.State
 }
