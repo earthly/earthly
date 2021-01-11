@@ -298,7 +298,7 @@ func (c *Converter) CopyClassical(ctx context.Context, srcs []string, dest strin
 }
 
 // Run applies the earthly RUN command.
-func (c *Converter) Run(ctx context.Context, args, mounts, secretKeyValues []string, privileged, withEntrypoint, withDocker, isWithShell, pushFlag, withSSH bool) error {
+func (c *Converter) Run(ctx context.Context, args, mounts, secretKeyValues []string, privileged, withEntrypoint, withDocker, isWithShell, pushFlag, postPush, withSSH bool) error {
 	c.nonSaveCommand()
 	if withDocker {
 		return errors.New("RUN --with-docker is obsolete. Please use WITH DOCKER ... RUN ... END instead")
@@ -332,7 +332,7 @@ func (c *Converter) Run(ctx context.Context, args, mounts, secretKeyValues []str
 		strings.Join(finalArgs, " "))
 	shellWrap := withShellAndEnvVars
 	opts = append(opts, llb.WithCustomNamef("%s%s", c.vertexPrefix(), runStr))
-	return c.internalRun(ctx, finalArgs, secretKeyValues, isWithShell, shellWrap, pushFlag, withSSH, runStr, opts...)
+	return c.internalRun(ctx, finalArgs, secretKeyValues, isWithShell, shellWrap, pushFlag, postPush, withSSH, runStr, opts...)
 }
 
 // SaveArtifact applies the earthly SAVE ARTIFACT command.
@@ -633,7 +633,7 @@ func (c *Converter) buildTarget(ctx context.Context, fullTargetName string, plat
 	return mts, nil
 }
 
-func (c *Converter) internalRun(ctx context.Context, args, secretKeyValues []string, isWithShell bool, shellWrap shellWrapFun, pushFlag, withSSH bool, commandStr string, opts ...llb.RunOption) error {
+func (c *Converter) internalRun(ctx context.Context, args, secretKeyValues []string, isWithShell bool, shellWrap shellWrapFun, pushFlag, postPush, withSSH bool, commandStr string, opts ...llb.RunOption) error {
 	finalOpts := opts
 	var extraEnvVars []string
 	// Secrets.
@@ -696,28 +696,38 @@ func (c *Converter) internalRun(ctx context.Context, args, secretKeyValues []str
 	// Shell and debugger wrap.
 	finalArgs := shellWrap(args, extraEnvVars, isWithShell, true)
 	finalOpts = append(finalOpts, llb.Args(finalArgs))
-	if pushFlag {
+
+	targetPhase := states.PhaseMain
+	switch {
+	case pushFlag:
+		targetPhase = states.PhasePush
+	case postPush:
+		targetPhase = states.PhasePostPush
+
+	}
+
+	switch targetPhase {
+	case states.PhaseMain:
+		c.mts.Final.SetCurrentState(c.mts.Final.MainState.Run(finalOpts...).Root())
+	default:
 		// For push-flagged commands, make sure they run every time - don't use cache.
 		finalOpts = append(finalOpts, llb.IgnoreCache)
-		if !c.mts.Final.IsRunPush {
+		if !c.mts.Final.HasPhase(targetPhase) {
 			// If this is the first push-flagged command, initialize the state with the latest
 			// side-effects state.
-			c.mts.Final.RunPush = c.mts.Final.MainState
-			c.mts.Final.RunPush = c.mts.Final.RunPush.WithValue("commandStr", []string{})
-			c.mts.Final.IsRunPush = true
+			nextPhaseState := c.mts.Final.CurrentState().WithValue("commandStr", []string{})
+			c.mts.Final.NextPhase(nextPhaseState)
 		}
-		// Don't run on MainState. We want push-flagged commands to be executed only
-		// *after* the build. Save this for later.
+		// Don't run on MainState. We want (post)push-flagged commands to be executed only
+		// *after* the push commands. Save this for later.
 
-		rawCommandStrs, _ := c.mts.Final.RunPush.Value(ctx, "commandStr")
+		rawCommandStrs, _ := c.mts.Final.CurrentState().Value(ctx, "commandStr")
 		commandStrs := rawCommandStrs.([]string)
 		commandStrs = append(commandStrs, commandStr)
 
-		c.mts.Final.RunPush = c.mts.Final.RunPush.WithValue("commandStr", commandStrs).Run(finalOpts...).Root()
-		// c.mts.Final.RunPush.CommandStrs = append(c.mts.Final.RunPush.CommandStrs, commandStr)
-	} else {
-		c.mts.Final.MainState = c.mts.Final.MainState.Run(finalOpts...).Root()
+		c.mts.Final.SetCurrentState(c.mts.Final.CurrentState().WithValue("commandStr", commandStrs).Run(finalOpts...).Root())
 	}
+
 	return nil
 }
 
@@ -830,7 +840,7 @@ func (c *Converter) processNonConstantBuildArgFunc(ctx context.Context) variable
 		buildArgPath := path.Join("/run/buildargs", name)
 		args := strings.Split(fmt.Sprintf("echo \"%s\" >%s", expression, srcBuildArgPath), " ")
 		err := c.internalRun(
-			ctx, args, []string{}, true, withShellAndEnvVars, false, false, expression,
+			ctx, args, []string{}, true, withShellAndEnvVars, false, false, false, expression,
 			llb.WithCustomNamef("%sRUN %s", c.vertexPrefix(), expression))
 		if err != nil {
 			return llb.State{}, dedup.TargetInput{}, 0, errors.Wrapf(err, "run %v", expression)

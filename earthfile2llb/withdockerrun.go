@@ -164,7 +164,7 @@ func (wdr *withDockerRun) Run(ctx context.Context, args []string, opt WithDocker
 		return errors.Wrap(err, "compute dind id")
 	}
 	shellWrap := makeWithDockerdWrapFun(dindID, tarPaths, opt)
-	return wdr.c.internalRun(ctx, finalArgs, opt.Secrets, opt.WithShell, shellWrap, false, false, runStr, runOpts...)
+	return wdr.c.internalRun(ctx, finalArgs, opt.Secrets, opt.WithShell, shellWrap, false, false, false, runStr, runOpts...)
 }
 
 func (wdr *withDockerRun) installDeps(ctx context.Context, opt WithDockerOpt) error {

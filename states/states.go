@@ -1,6 +1,8 @@
 package states
 
 import (
+	"errors"
+
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/states/dedup"
 	"github.com/earthly/earthly/states/image"
@@ -30,6 +32,14 @@ func (mts *MultiTarget) All() []*SingleTarget {
 	return mts.Visited.VisitedList
 }
 
+type Phase int
+
+const (
+	PhaseMain Phase = iota
+	PhasePush
+	PhasePostPush
+)
+
 // SingleTarget holds LLB states representing an earthly target.
 type SingleTarget struct {
 	Target                 domain.Target
@@ -43,7 +53,6 @@ type SingleTarget struct {
 	SaveImages             []SaveImage
 	VarCollection          *variables.Collection
 	RunPush                llb.State
-	PostPush               llb.State
 	LocalDirs              map[string]string
 	Ongoing                bool
 	Salt                   string
@@ -51,7 +60,9 @@ type SingleTarget struct {
 	// ie if there are any non-SAVE commands after the first SAVE command,
 	// or if the target is invoked via BUILD command (not COPY nor FROM).
 	HasDangling bool
-	IsRunPush   bool
+
+	CurrentPhase Phase
+	States       map[Phase]llb.State
 }
 
 // LastSaveImage returns the last save image available (if any).
@@ -64,6 +75,34 @@ func (sts *SingleTarget) LastSaveImage() SaveImage {
 		}
 	}
 	return sts.SaveImages[len(sts.SaveImages)-1]
+}
+
+func (sts *SingleTarget) StateForPhase(p Phase) llb.State {
+	return sts.States[p]
+}
+
+func (sts *SingleTarget) NextPhase(state llb.State) error {
+	nextState := Phase(int(sts.CurrentPhase + 1))
+	if nextState >= PhasePostPush {
+		return errors.New("already in end phase")
+	}
+
+	sts.CurrentPhase = nextState
+	sts.States[nextState] = state
+
+	return nil
+}
+
+func (sts *SingleTarget) HasPhase(p Phase) bool {
+	return p <= sts.CurrentPhase
+}
+
+func (sts *SingleTarget) CurrentState() llb.State {
+	return sts.StateForPhase(sts.CurrentPhase)
+}
+
+func (sts *SingleTarget) SetCurrentState(state llb.State) {
+	sts.States[sts.CurrentPhase] = state
 }
 
 // SaveLocal is an artifact path to be saved to local disk.

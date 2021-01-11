@@ -328,10 +328,7 @@ func (l *listener) ExitRunStmt(c *parser.RunStmtContext) {
 	if *withDocker {
 		*privileged = true
 	}
-	if !*pushFlag && l.pushOnlyAllowed {
-		l.err = fmt.Errorf("no non-push commands allowed after a --push: %s", c.GetText())
-		return
-	}
+	postPush := !*pushFlag && l.pushOnlyAllowed
 	// TODO: In the bracket case, should flags be outside of the brackets?
 
 	for i, s := range secrets.Args {
@@ -345,7 +342,7 @@ func (l *listener) ExitRunStmt(c *parser.RunStmtContext) {
 	if l.withDocker == nil {
 		err = l.converter.Run(
 			l.ctx, fs.Args(), mounts.Args, secrets.Args, *privileged, *withEntrypoint, *withDocker,
-			withShell, *pushFlag, *withSSH)
+			withShell, *pushFlag, postPush, *withSSH)
 		if err != nil {
 			l.err = errors.Wrap(err, "run")
 			return

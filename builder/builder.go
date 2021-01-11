@@ -368,6 +368,10 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 				if err != nil {
 					return nil, err
 				}
+				err = b.executePostPush(ctx, sts, opt)
+				if err != nil {
+					return nil, err
+				}
 			}
 		}
 	}
@@ -446,6 +450,32 @@ func (b *Builder) executeRunPush(ctx context.Context, sts *states.SingleTarget, 
 	err = b.s.solveMain(ctx, sts.RunPush, plat)
 	if err != nil {
 		return errors.Wrapf(err, "solve run-push")
+	}
+	return nil
+}
+
+func (b *Builder) executePostPush(ctx context.Context, sts *states.SingleTarget, opt BuildOpt) error {
+	if !sts.IsPostPush {
+		// No run --push commands here. Quick way out.
+		return nil
+	}
+	console := b.opt.Console.WithPrefixAndSalt(sts.Target.String(), sts.Salt)
+	if !opt.Push {
+		rawCommandStrs, _ := sts.PostPush.Value(ctx, "commandStr")
+		commandStrs := rawCommandStrs.([]string)
+		for _, commandStr := range commandStrs {
+			console.Printf("Did not execute post-push command %s. Use earthly --push to enable pushing\n", commandStr)
+		}
+		return nil
+	}
+	platform, err := llbutil.ResolvePlatform(sts.Platform, opt.Platform)
+	if err != nil {
+		platform = sts.Platform
+	}
+	plat := llbutil.PlatformWithDefault(platform)
+	err = b.s.solveMain(ctx, sts.PostPush, plat)
+	if err != nil {
+		return errors.Wrapf(err, "solve post-push")
 	}
 	return nil
 }
