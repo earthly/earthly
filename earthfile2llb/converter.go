@@ -59,7 +59,9 @@ func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Da
 		States: map[states.Phase]llb.State{
 			states.PhaseMain: llbutil.ScratchWithPlatform(),
 		},
-		MainImage:      image.NewImage(),
+		Images: map[states.Phase]*image.Image{
+			states.PhaseMain: image.NewImage(),
+		},
 		ArtifactsState: llbutil.ScratchWithPlatform(),
 		LocalDirs:      bc.LocalDirs,
 		Ongoing:        true,
@@ -120,7 +122,7 @@ func (c *Converter) fromClassical(ctx context.Context, imageName string, platfor
 		return err
 	}
 	c.mts.Final.SetCurrentState(state)
-	c.mts.Final.MainImage = img
+	c.mts.Final.SetCurrentImage(img)
 	c.varCollection = newVariables
 	return nil
 }
@@ -149,7 +151,7 @@ func (c *Converter) fromTarget(ctx context.Context, targetName string, platform 
 		k, v, _ := variables.ParseKeyValue(kv)
 		c.varCollection.AddActive(k, variables.NewConstantEnvVar(v), true, false)
 	}
-	c.mts.Final.MainImage = saveImage.Image.Clone()
+	c.mts.Final.SetCurrentImage(saveImage.Image.Clone())
 	return nil
 }
 
@@ -260,7 +262,7 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 	}
 	state2, img2, newVarCollection := c.applyFromImage(*state, &img)
 	c.mts.Final.SetCurrentState(state2)
-	c.mts.Final.MainImage = img2
+	c.mts.Final.SetCurrentImage(img2)
 	c.varCollection = newVarCollection
 	return nil
 }
@@ -340,10 +342,10 @@ func (c *Converter) Run(ctx context.Context, args, mounts, secretKeyValues []str
 	if withEntrypoint {
 		if len(args) == 0 {
 			// No args provided. Use the image's CMD.
-			args := make([]string, len(c.mts.Final.MainImage.Config.Cmd))
-			copy(args, c.mts.Final.MainImage.Config.Cmd)
+			args := make([]string, len(c.mts.Final.CurrentImage().Config.Cmd))
+			copy(args, c.mts.Final.CurrentImage().Config.Cmd)
 		}
-		finalArgs = append(c.mts.Final.MainImage.Config.Entrypoint, args...)
+		finalArgs = append(c.mts.Final.CurrentImage().Config.Entrypoint, args...)
 		isWithShell = false // Don't use shell when --entrypoint is passed.
 	}
 	if privileged {
@@ -451,7 +453,7 @@ func (c *Converter) SaveImage(ctx context.Context, imageNames []string, pushImag
 	for _, imageName := range imageNames {
 		c.mts.Final.SaveImages = append(c.mts.Final.SaveImages, states.SaveImage{
 			State:        c.mts.Final.CurrentState(),
-			Image:        c.mts.Final.MainImage.Clone(),
+			Image:        c.mts.Final.CurrentImage().Clone(),
 			DockerTag:    imageName,
 			Push:         pushImages,
 			InsecurePush: insecurePush,
@@ -487,16 +489,16 @@ func (c *Converter) Workdir(ctx context.Context, workdirPath string) error {
 	c.mts.Final.SetCurrentState(c.mts.Final.CurrentState().Dir(workdirPath))
 	workdirAbs := workdirPath
 	if !path.IsAbs(workdirAbs) {
-		workdirAbs = path.Join("/", c.mts.Final.MainImage.Config.WorkingDir, workdirAbs)
+		workdirAbs = path.Join("/", c.mts.Final.CurrentImage().Config.WorkingDir, workdirAbs)
 	}
-	c.mts.Final.MainImage.Config.WorkingDir = workdirAbs
+	c.mts.Final.CurrentImage().Config.WorkingDir = workdirAbs
 	if workdirAbs != "/" {
 		// Mkdir.
 		mkdirOpts := []llb.MkdirOption{
 			llb.WithParents(true),
 		}
-		if c.mts.Final.MainImage.Config.User != "" {
-			mkdirOpts = append(mkdirOpts, llb.WithUser(c.mts.Final.MainImage.Config.User))
+		if c.mts.Final.CurrentImage().Config.User != "" {
+			mkdirOpts = append(mkdirOpts, llb.WithUser(c.mts.Final.CurrentImage().Config.User))
 		}
 		opts := []llb.ConstraintsOpt{
 			llb.WithCustomNamef("%sWORKDIR %s", c.vertexPrefix(), workdirPath),
@@ -516,7 +518,7 @@ func (c *Converter) User(ctx context.Context, user string) error {
 	}
 
 	c.mts.Final.SetCurrentState(c.mts.Final.CurrentState().User(user))
-	c.mts.Final.MainImage.Config.User = user
+	c.mts.Final.CurrentImage().Config.User = user
 
 	return nil
 }
@@ -529,7 +531,7 @@ func (c *Converter) Cmd(ctx context.Context, cmdArgs []string, isWithShell bool)
 		return errors.New("CMD is not supported with --push")
 	}
 
-	c.mts.Final.MainImage.Config.Cmd = withShell(cmdArgs, isWithShell)
+	c.mts.Final.CurrentImage().Config.Cmd = withShell(cmdArgs, isWithShell)
 
 	return nil
 }
@@ -542,7 +544,7 @@ func (c *Converter) Entrypoint(ctx context.Context, entrypointArgs []string, isW
 		return errors.New("ENTRYPOINT is not supported with --push")
 	}
 
-	c.mts.Final.MainImage.Config.Entrypoint = withShell(entrypointArgs, isWithShell)
+	c.mts.Final.CurrentImage().Config.Entrypoint = withShell(entrypointArgs, isWithShell)
 
 	return nil
 }
@@ -556,7 +558,7 @@ func (c *Converter) Expose(ctx context.Context, ports []string) error {
 	}
 
 	for _, port := range ports {
-		c.mts.Final.MainImage.Config.ExposedPorts[port] = struct{}{}
+		c.mts.Final.CurrentImage().Config.ExposedPorts[port] = struct{}{}
 	}
 
 	return nil
@@ -571,7 +573,7 @@ func (c *Converter) Volume(ctx context.Context, volumes []string) error {
 	}
 
 	for _, volume := range volumes {
-		c.mts.Final.MainImage.Config.Volumes[volume] = struct{}{}
+		c.mts.Final.CurrentImage().Config.Volumes[volume] = struct{}{}
 	}
 
 	return nil
@@ -587,8 +589,8 @@ func (c *Converter) Env(ctx context.Context, envKey string, envValue string) err
 
 	c.varCollection.AddActive(envKey, variables.NewConstantEnvVar(envValue), true, false)
 	c.mts.Final.SetCurrentState(c.mts.Final.CurrentState().AddEnv(envKey, envValue))
-	c.mts.Final.MainImage.Config.Env = variables.AddEnv(
-		c.mts.Final.MainImage.Config.Env, envKey, envValue)
+	c.mts.Final.CurrentImage().Config.Env = variables.AddEnv(
+		c.mts.Final.CurrentImage().Config.Env, envKey, envValue)
 
 	return nil
 }
@@ -616,7 +618,7 @@ func (c *Converter) Label(ctx context.Context, labels map[string]string) error {
 	}
 
 	for key, value := range labels {
-		c.mts.Final.MainImage.Config.Labels[key] = value
+		c.mts.Final.CurrentImage().Config.Labels[key] = value
 	}
 
 	return nil
@@ -639,7 +641,7 @@ func (c *Converter) GitClone(ctx context.Context, gitURL string, branch string, 
 	c.mts.Final.SetCurrentState(
 		llbutil.CopyOp(
 			gitState, []string{"."}, c.mts.Final.CurrentState(), dest, false, false, keepTs,
-			c.mts.Final.MainImage.Config.User, false,
+			c.mts.Final.CurrentImage().Config.User, false,
 			llb.WithCustomNamef(
 				"%sCOPY GIT CLONE (--branch %s) %s TO %s", c.vertexPrefix(),
 				branch, gitURL, dest)))
@@ -680,7 +682,7 @@ func (c *Converter) Healthcheck(ctx context.Context, isNone bool, cmdArgs []stri
 		hc.StartPeriod = startPeriod
 		hc.Retries = retries
 	}
-	c.mts.Final.MainImage.Config.Healthcheck = hc
+	c.mts.Final.CurrentImage().Config.Healthcheck = hc
 
 	return nil
 }
@@ -1049,7 +1051,7 @@ func (c *Converter) vertexPrefixWithURL(url string) string {
 }
 
 func (c *Converter) copyOwner(keepOwn bool, chown string) string {
-	own := c.mts.Final.MainImage.Config.User
+	own := c.mts.Final.CurrentImage().Config.User
 	if own == "" {
 		own = "root:root"
 	}

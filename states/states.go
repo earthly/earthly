@@ -45,9 +45,9 @@ type SingleTarget struct {
 	Target                 domain.Target
 	Platform               *specs.Platform
 	TargetInput            dedup.TargetInput
-	MainImage              *image.Image
 	CurrentPhase           Phase
 	States                 map[Phase]llb.State
+	Images                 map[Phase]*image.Image
 	ArtifactsState         llb.State
 	SeparateArtifactsState []llb.State
 	SaveLocals             []SaveLocal
@@ -68,7 +68,7 @@ func (sts *SingleTarget) LastSaveImage() SaveImage {
 		// Use main state / image if no save image exists.
 		return SaveImage{
 			State: sts.StateForPhase(PhaseMain),
-			Image: sts.MainImage,
+			Image: sts.ImageForPhase(PhaseMain),
 		}
 	}
 	return sts.SaveImages[len(sts.SaveImages)-1]
@@ -78,14 +78,20 @@ func (sts *SingleTarget) StateForPhase(p Phase) llb.State {
 	return sts.States[p]
 }
 
+func (sts *SingleTarget) ImageForPhase(p Phase) *image.Image {
+	return sts.Images[p]
+}
+
 func (sts *SingleTarget) NextPhase(state llb.State) error {
 	nextState := Phase(int(sts.CurrentPhase + 1))
 	if nextState > PhasePostPush {
 		return errors.New("already in end phase")
 	}
 
-	sts.CurrentPhase = nextState
 	sts.States[nextState] = state
+	sts.Images[nextState] = sts.Images[sts.CurrentPhase]
+
+	sts.CurrentPhase = nextState
 
 	return nil
 }
@@ -98,8 +104,16 @@ func (sts *SingleTarget) CurrentState() llb.State {
 	return sts.StateForPhase(sts.CurrentPhase)
 }
 
+func (sts *SingleTarget) CurrentImage() *image.Image {
+	return sts.ImageForPhase(sts.CurrentPhase)
+}
+
 func (sts *SingleTarget) SetCurrentState(state llb.State) {
 	sts.States[sts.CurrentPhase] = state
+}
+
+func (sts *SingleTarget) SetCurrentImage(image *image.Image) {
+	sts.Images[sts.CurrentPhase] = image
 }
 
 // SaveLocal is an artifact path to be saved to local disk.

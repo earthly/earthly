@@ -17,6 +17,7 @@ import (
 	"github.com/earthly/earthly/llbutil"
 	"github.com/earthly/earthly/states"
 	"github.com/earthly/earthly/states/dedup"
+	"github.com/earthly/earthly/states/image"
 	"github.com/moby/buildkit/client/llb"
 	gwclient "github.com/moby/buildkit/frontend/gateway/client"
 	specs "github.com/opencontainers/image-spec/specs-go/v1"
@@ -147,10 +148,10 @@ func (wdr *withDockerRun) Run(ctx context.Context, args []string, opt WithDocker
 	if opt.WithEntrypoint {
 		if len(args) == 0 {
 			// No args provided. Use the image's CMD.
-			args := make([]string, len(wdr.c.mts.Final.MainImage.Config.Cmd))
-			copy(args, wdr.c.mts.Final.MainImage.Config.Cmd)
+			args := make([]string, len(wdr.c.mts.Final.CurrentImage().Config.Cmd))
+			copy(args, wdr.c.mts.Final.CurrentImage().Config.Cmd)
 		}
-		finalArgs = append(wdr.c.mts.Final.MainImage.Config.Entrypoint, args...)
+		finalArgs = append(wdr.c.mts.Final.CurrentImage().Config.Entrypoint, args...)
 		opt.WithShell = false // Don't use shell when --entrypoint is passed.
 	}
 	runOpts = append(runOpts, llb.Security(llb.SecurityModeInsecure))
@@ -249,7 +250,7 @@ func (wdr *withDockerRun) getComposePulls(ctx context.Context, opt WithDockerOpt
 
 func (wdr *withDockerRun) pull(ctx context.Context, opt DockerPullOpt) error {
 	plat := llbutil.PlatformWithDefault(opt.Platform)
-	state, image, _, err := wdr.c.internalFromClassical(
+	state, img, _, err := wdr.c.internalFromClassical(
 		ctx, opt.ImageName, plat,
 		llb.WithCustomNamef("%sDOCKER PULL %s", wdr.c.imageVertexPrefix(opt.ImageName), opt.ImageName),
 	)
@@ -261,14 +262,16 @@ func (wdr *withDockerRun) pull(ctx context.Context, opt DockerPullOpt) error {
 			States: map[states.Phase]llb.State{
 				states.PhaseMain: llbutil.ScratchWithPlatform(),
 			},
-			MainImage: image,
+			Images: map[states.Phase]*image.Image{
+				states.PhaseMain: img,
+			},
 			TargetInput: dedup.TargetInput{
 				TargetCanonical: fmt.Sprintf("+@docker-pull:%s", opt.ImageName),
 			},
 			SaveImages: []states.SaveImage{
 				{
 					State:     state,
-					Image:     image,
+					Image:     img,
 					DockerTag: opt.ImageName,
 				},
 			},
