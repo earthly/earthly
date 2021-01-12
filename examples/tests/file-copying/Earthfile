@@ -29,13 +29,25 @@ test-rel-single:
     FROM +setup
     SAVE ARTIFACT sub/file AS LOCAL out-rel-single/
 
-test-mixed-1:
+test-src-dest:
     FROM +setup
-    SAVE ARTIFACT sub/file sub/1 AS LOCAL out-mixed-1/
+    SAVE ARTIFACT sub/file my-dir/file AS LOCAL out-src-dest/
 
-test-mixed-2:
+test-src-dest-rename:
     FROM +setup
-    SAVE ARTIFACT sub/2 sub/file AS LOCAL out-mixed-2/
+    SAVE ARTIFACT sub/2 my-dir/my-file AS LOCAL out-src-dest-rename/
+
+test-src-dest-destpath:
+    FROM +setup
+    SAVE ARTIFACT sub/2 ./my-dir/also-my-dir/file AS LOCAL out-src-dest-destpath/
+
+test-src-dest-destdir:
+    FROM +setup
+    SAVE ARTIFACT sub/2 ./my-dir/ AS LOCAL out-src-dest-destdir/
+
+test-src-dest-srcdir:
+    FROM +setup
+    SAVE ARTIFACT sub ./my-dir AS LOCAL out-src-dest-srcdir/
 
 test:
     BUILD +test-glob
@@ -45,5 +57,8 @@ test:
     BUILD +test-sub-glob
     BUILD +test-dot-single
     BUILD +test-rel-single
-    BUILD +test-mixed-1
-    BUILD +test-mixed-2
+    BUILD +test-src-dest
+    BUILD +test-src-dest-rename
+    BUILD +test-src-dest-destpath
+    BUILD +test-src-dest-destdir
+    BUILD +test-src-dest-srcdir
