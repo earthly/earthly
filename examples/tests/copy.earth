@@ -3,24 +3,24 @@ FROM alpine:3.11
 WORKDIR /test
 
 all:
-    BUILD +copy1
-    BUILD +copy2
-    BUILD +copy3
-    BUILD +copy4
-    BUILD +copy5
-    BUILD +copy6
-    BUILD +copy-art1
-    BUILD +copy-art2
-    BUILD +copy-art3
-    BUILD +copy-art4
-    BUILD +copy-art5
-    BUILD +copy-art6
+    BUILD +copy-no-exist
+    BUILD +copy-trailing-slash
+    BUILD +copy-existing
+    BUILD +copy-multi-no-exist
+    BUILD +copy-multi-trailing-slash
+    BUILD +copy-multi-existing
+    BUILD +copy-art-no-exist
+    BUILD +copy-art-trailing-slash
+    BUILD +copy-art-existing
+    BUILD +copy-art-multi-no-exist
+    BUILD +copy-art-multi-trailing-slash
+    BUILD +copy-art-multi-existing
 
 artifact:
     COPY --dir in in
     SAVE ARTIFACT in
 
-copy1:
+copy-no-exist:
     COPY --dir in copied
     RUN find copied | sort | tee ./actual
     RUN echo "copied
@@ -33,7 +33,7 @@ copied/sub/2/file
 copied/sub/file" >./expected
     RUN diff -b ./actual ./expected
 
-copy2:
+copy-trailing-slash:
     COPY --dir in copied/
     RUN find copied | sort | tee ./actual
     RUN echo "copied
@@ -47,7 +47,7 @@ copied/in/sub/2/file
 copied/in/sub/file" >./expected
     RUN diff -b ./actual ./expected
 
-copy3:
+copy-existing:
     RUN mkdir copied
     COPY --dir in copied
     RUN find copied | sort | tee ./actual
@@ -62,7 +62,7 @@ copied/in/sub/2/file
 copied/in/sub/file" >./expected
     RUN diff -b ./actual ./expected
 
-copy4:
+copy-multi-no-exist:
     COPY --dir in/sub/1 in/sub/2 copied
     RUN find copied | sort | tee ./actual
     RUN echo "copied
@@ -72,7 +72,7 @@ copied/2
 copied/2/file" >./expected
     RUN diff -b ./actual ./expected
 
-copy5:
+copy-multi-trailing-slash:
     COPY --dir in/sub/1 in/sub/2 copied/
     RUN find copied | sort | tee ./actual
     RUN echo "copied
@@ -82,7 +82,7 @@ copied/2
 copied/2/file" >./expected
     RUN diff -b ./actual ./expected
 
-copy6:
+copy-multi-existing:
     RUN mkdir copied
     COPY --dir in/sub/1 in/sub/2 copied
     RUN find copied | sort | tee ./actual
@@ -93,7 +93,7 @@ copied/2
 copied/2/file" >./expected
     RUN diff -b ./actual ./expected
 
-copy-art1:
+copy-art-no-exist:
     COPY --dir +artifact/in copied
     RUN find copied | sort | tee ./actual
     RUN echo "copied
@@ -106,7 +106,7 @@ copied/sub/2/file
 copied/sub/file" >./expected
     RUN diff -b ./actual ./expected
 
-copy-art2:
+copy-art-trailing-slash:
     COPY --dir +artifact/in copied/
     RUN find copied | sort | tee ./actual
     RUN echo "copied
@@ -120,7 +120,7 @@ copied/in/sub/2/file
 copied/in/sub/file" >./expected
     RUN diff -b ./actual ./expected
 
-copy-art3:
+copy-art-existing:
     RUN mkdir copied
     COPY --dir +artifact/in copied
     RUN find copied | sort | tee ./actual
@@ -135,7 +135,7 @@ copied/in/sub/2/file
 copied/in/sub/file" >./expected
     RUN diff -b ./actual ./expected
 
-copy-art4:
+copy-art-multi-no-exist:
     COPY --dir +artifact/in/sub/1 +artifact/in/sub/2 copied
     RUN find copied | sort | tee ./actual
     RUN echo "copied
@@ -145,7 +145,7 @@ copied/2
 copied/2/file" >./expected
     RUN diff -b ./actual ./expected
 
-copy-art5:
+copy-art-multi-trailing-slash:
     COPY --dir +artifact/in/sub/1 +artifact/in/sub/2 copied/
     RUN find copied | sort | tee ./actual
     RUN echo "copied
@@ -155,7 +155,7 @@ copied/2
 copied/2/file" >./expected
     RUN diff -b ./actual ./expected
 
-copy-art6:
+copy-art-multi-existing:
     RUN mkdir copied
     COPY --dir +artifact/in/sub/1 +artifact/in/sub/2 copied
     RUN find copied | sort | tee ./actual
