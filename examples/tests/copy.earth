@@ -1,0 +1,167 @@
+
+FROM alpine:3.11
+WORKDIR /test
+
+all:
+    BUILD +copy1
+    BUILD +copy2
+    BUILD +copy3
+    BUILD +copy4
+    BUILD +copy5
+    BUILD +copy6
+    BUILD +copy-art1
+    BUILD +copy-art2
+    BUILD +copy-art3
+    BUILD +copy-art4
+    BUILD +copy-art5
+    BUILD +copy-art6
+
+artifact:
+    COPY --dir in in
+    SAVE ARTIFACT in
+
+copy1:
+    COPY --dir in copied
+    RUN find copied | sort | tee ./actual
+    RUN echo "copied
+copied/root
+copied/sub
+copied/sub/1
+copied/sub/1/file
+copied/sub/2
+copied/sub/2/file
+copied/sub/file" >./expected
+    RUN diff -b ./actual ./expected
+
+copy2:
+    COPY --dir in copied/
+    RUN find copied | sort | tee ./actual
+    RUN echo "copied
+copied/in
+copied/in/root
+copied/in/sub
+copied/in/sub/1
+copied/in/sub/1/file
+copied/in/sub/2
+copied/in/sub/2/file
+copied/in/sub/file" >./expected
+    RUN diff -b ./actual ./expected
+
+copy3:
+    RUN mkdir copied
+    COPY --dir in copied
+    RUN find copied | sort | tee ./actual
+    RUN echo "copied
+copied/in
+copied/in/root
+copied/in/sub
+copied/in/sub/1
+copied/in/sub/1/file
+copied/in/sub/2
+copied/in/sub/2/file
+copied/in/sub/file" >./expected
+    RUN diff -b ./actual ./expected
+
+copy4:
+    COPY --dir in/sub/1 in/sub/2 copied
+    RUN find copied | sort | tee ./actual
+    RUN echo "copied
+copied/1
+copied/1/file
+copied/2
+copied/2/file" >./expected
+    RUN diff -b ./actual ./expected
+
+copy5:
+    COPY --dir in/sub/1 in/sub/2 copied/
+    RUN find copied | sort | tee ./actual
+    RUN echo "copied
+copied/1
+copied/1/file
+copied/2
+copied/2/file" >./expected
+    RUN diff -b ./actual ./expected
+
+copy6:
+    RUN mkdir copied
+    COPY --dir in/sub/1 in/sub/2 copied
+    RUN find copied | sort | tee ./actual
+    RUN echo "copied
+copied/1
+copied/1/file
+copied/2
+copied/2/file" >./expected
+    RUN diff -b ./actual ./expected
+
+copy-art1:
+    COPY --dir +artifact/in copied
+    RUN find copied | sort | tee ./actual
+    RUN echo "copied
+copied/root
+copied/sub
+copied/sub/1
+copied/sub/1/file
+copied/sub/2
+copied/sub/2/file
+copied/sub/file" >./expected
+    RUN diff -b ./actual ./expected
+
+copy-art2:
+    COPY --dir +artifact/in copied/
+    RUN find copied | sort | tee ./actual
+    RUN echo "copied
+copied/in
+copied/in/root
+copied/in/sub
+copied/in/sub/1
+copied/in/sub/1/file
+copied/in/sub/2
+copied/in/sub/2/file
+copied/in/sub/file" >./expected
+    RUN diff -b ./actual ./expected
+
+copy-art3:
+    RUN mkdir copied
+    COPY --dir +artifact/in copied
+    RUN find copied | sort | tee ./actual
+    RUN echo "copied
+copied/in
+copied/in/root
+copied/in/sub
+copied/in/sub/1
+copied/in/sub/1/file
+copied/in/sub/2
+copied/in/sub/2/file
+copied/in/sub/file" >./expected
+    RUN diff -b ./actual ./expected
+
+copy-art4:
+    COPY --dir +artifact/in/sub/1 +artifact/in/sub/2 copied
+    RUN find copied | sort | tee ./actual
+    RUN echo "copied
+copied/1
+copied/1/file
+copied/2
+copied/2/file" >./expected
+    RUN diff -b ./actual ./expected
+
+copy-art5:
+    COPY --dir +artifact/in/sub/1 +artifact/in/sub/2 copied/
+    RUN find copied | sort | tee ./actual
+    RUN echo "copied
+copied/1
+copied/1/file
+copied/2
+copied/2/file" >./expected
+    RUN diff -b ./actual ./expected
+
+copy-art6:
+    RUN mkdir copied
+    COPY --dir +artifact/in/sub/1 +artifact/in/sub/2 copied
+    RUN find copied | sort | tee ./actual
+    RUN echo "copied
+copied/1
+copied/1/file
+copied/2
+copied/2/file" >./expected
+    RUN diff -b ./actual ./expected
