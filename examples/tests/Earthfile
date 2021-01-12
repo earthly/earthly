@@ -53,7 +53,7 @@ ga:
     BUILD +target-first-line
     BUILD +end-comment
     BUILD +if-exists
-    BUILD +multi-subdirectory-wildcard
+    BUILD ./file-copying+test
     BUILD ./autocompletion+test-all
     BUILD ./with-docker+all
     BUILD ./with-docker-compose+all

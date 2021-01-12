@@ -1,0 +1,49 @@
+setup:
+    COPY test .
+
+test-glob:
+    FROM +setup
+    SAVE ARTIFACT ./* AS LOCAL out-glob/
+
+test-dot:
+    FROM +setup
+    SAVE ARTIFACT . AS LOCAL out-dot/
+
+test-dot-slash:
+    FROM +setup
+    SAVE ARTIFACT ./ AS LOCAL out-dot-slash/
+
+test-sub:
+    FROM +setup
+    SAVE ARTIFACT ./sub AS LOCAL out-sub/
+
+test-sub-glob:
+    FROM +setup
+    SAVE ARTIFACT ./sub/* AS LOCAL out-sub-glob/
+
+test-dot-single:
+    FROM +setup
+    SAVE ARTIFACT ./sub/file AS LOCAL out-dot-single/
+
+test-rel-single:
+    FROM +setup
+    SAVE ARTIFACT sub/file AS LOCAL out-rel-single/
+
+test-mixed-1:
+    FROM +setup
+    SAVE ARTIFACT sub/file sub/1 AS LOCAL out-mixed-1/
+
+test-mixed-2:
+    FROM +setup
+    SAVE ARTIFACT sub/2 sub/file AS LOCAL out-mixed-2/
+
+test:
+    BUILD +test-glob
+    BUILD +test-dot
+    BUILD +test-dot-slash
+    BUILD +test-sub
+    BUILD +test-sub-glob
+    BUILD +test-dot-single
+    BUILD +test-rel-single
+    BUILD +test-mixed-1
+    BUILD +test-mixed-2
