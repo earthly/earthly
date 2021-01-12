@@ -1,0 +1,167 @@
+
+FROM alpine:3.11
+WORKDIR /test
+
+all:
+    BUILD +copy-no-exist
+    BUILD +copy-trailing-slash
+    BUILD +copy-existing
+    BUILD +copy-multi-no-exist
+    BUILD +copy-multi-trailing-slash
+    BUILD +copy-multi-existing
+    BUILD +copy-art-no-exist
+    BUILD +copy-art-trailing-slash
+    BUILD +copy-art-existing
+    BUILD +copy-art-multi-no-exist
+    BUILD +copy-art-multi-trailing-slash
+    BUILD +copy-art-multi-existing
+
+artifact:
+    COPY --dir in in
+    SAVE ARTIFACT in
+
+copy-no-exist:
+    COPY --dir in copied
+    RUN find copied | sort | tee ./actual
+    RUN echo "copied
+copied/root
+copied/sub
+copied/sub/1
+copied/sub/1/file
+copied/sub/2
+copied/sub/2/file
+copied/sub/file" >./expected
+    RUN diff -b ./actual ./expected
+
+copy-trailing-slash:
+    COPY --dir in copied/
+    RUN find copied | sort | tee ./actual
+    RUN echo "copied
+copied/in
+copied/in/root
+copied/in/sub
+copied/in/sub/1
+copied/in/sub/1/file
+copied/in/sub/2
+copied/in/sub/2/file
+copied/in/sub/file" >./expected
+    RUN diff -b ./actual ./expected
+
+copy-existing:
+    RUN mkdir copied
+    COPY --dir in copied
+    RUN find copied | sort | tee ./actual
+    RUN echo "copied
+copied/in
+copied/in/root
+copied/in/sub
+copied/in/sub/1
+copied/in/sub/1/file
+copied/in/sub/2
+copied/in/sub/2/file
+copied/in/sub/file" >./expected
+    RUN diff -b ./actual ./expected
+
+copy-multi-no-exist:
+    COPY --dir in/sub/1 in/sub/2 copied
+    RUN find copied | sort | tee ./actual
+    RUN echo "copied
+copied/1
+copied/1/file
+copied/2
+copied/2/file" >./expected
+    RUN diff -b ./actual ./expected
+
+copy-multi-trailing-slash:
+    COPY --dir in/sub/1 in/sub/2 copied/
+    RUN find copied | sort | tee ./actual
+    RUN echo "copied
+copied/1
+copied/1/file
+copied/2
+copied/2/file" >./expected
+    RUN diff -b ./actual ./expected
+
+copy-multi-existing:
+    RUN mkdir copied
+    COPY --dir in/sub/1 in/sub/2 copied
+    RUN find copied | sort | tee ./actual
+    RUN echo "copied
+copied/1
+copied/1/file
+copied/2
+copied/2/file" >./expected
+    RUN diff -b ./actual ./expected
+
+copy-art-no-exist:
+    COPY --dir +artifact/in copied
+    RUN find copied | sort | tee ./actual
+    RUN echo "copied
+copied/root
+copied/sub
+copied/sub/1
+copied/sub/1/file
+copied/sub/2
+copied/sub/2/file
+copied/sub/file" >./expected
+    RUN diff -b ./actual ./expected
+
+copy-art-trailing-slash:
+    COPY --dir +artifact/in copied/
+    RUN find copied | sort | tee ./actual
+    RUN echo "copied
+copied/in
+copied/in/root
+copied/in/sub
+copied/in/sub/1
+copied/in/sub/1/file
+copied/in/sub/2
+copied/in/sub/2/file
+copied/in/sub/file" >./expected
+    RUN diff -b ./actual ./expected
+
+copy-art-existing:
+    RUN mkdir copied
+    COPY --dir +artifact/in copied
+    RUN find copied | sort | tee ./actual
+    RUN echo "copied
+copied/in
+copied/in/root
+copied/in/sub
+copied/in/sub/1
+copied/in/sub/1/file
+copied/in/sub/2
+copied/in/sub/2/file
+copied/in/sub/file" >./expected
+    RUN diff -b ./actual ./expected
+
+copy-art-multi-no-exist:
+    COPY --dir +artifact/in/sub/1 +artifact/in/sub/2 copied
+    RUN find copied | sort | tee ./actual
+    RUN echo "copied
+copied/1
+copied/1/file
+copied/2
+copied/2/file" >./expected
+    RUN diff -b ./actual ./expected
+
+copy-art-multi-trailing-slash:
+    COPY --dir +artifact/in/sub/1 +artifact/in/sub/2 copied/
+    RUN find copied | sort | tee ./actual
+    RUN echo "copied
+copied/1
+copied/1/file
+copied/2
+copied/2/file" >./expected
+    RUN diff -b ./actual ./expected
+
+copy-art-multi-existing:
+    RUN mkdir copied
+    COPY --dir +artifact/in/sub/1 +artifact/in/sub/2 copied
+    RUN find copied | sort | tee ./actual
+    RUN echo "copied
+copied/1
+copied/1/file
+copied/2
+copied/2/file" >./expected
+    RUN diff -b ./actual ./expected

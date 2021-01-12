@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"path/filepath"
-	"strings"
 	"sync"
 	"time"
 
@@ -15,7 +14,7 @@ import (
 // CopyOp is a simplified llb copy operation.
 func CopyOp(srcState llb.State, srcs []string, destState llb.State, dest string, allowWildcard bool, isDir bool, keepTs bool, chown string, ifExists bool, opts ...llb.ConstraintsOpt) llb.State {
 	destAdjusted := dest
-	if dest == "." || dest == "" || strings.HasSuffix(dest, string(filepath.Separator)) {
+	if dest == "." || dest == "" || len(srcs) > 1 {
 		destAdjusted += string(filepath.Separator)
 	}
 	var baseCopyOpts []llb.CopyOption
