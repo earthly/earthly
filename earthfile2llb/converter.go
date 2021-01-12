@@ -371,7 +371,7 @@ func (c *Converter) SaveArtifact(ctx context.Context, saveFrom string, saveTo st
 		separateArtifactsState := llbutil.ScratchWithPlatform()
 		separateArtifactsState = llbutil.CopyOp(
 			c.mts.Final.MainState, []string{saveFrom}, separateArtifactsState,
-			saveToAdjusted, true, false, keepTs, "root:root", ifExists,
+			saveToAdjusted, true, true, keepTs, "root:root", ifExists,
 			llb.WithCustomNamef(
 				"%sSAVE ARTIFACT %s%s %s AS LOCAL %s",
 				c.vertexPrefix(), strIf(ifExists, "--if-exists "), saveFrom, artifact.String(), saveAsLocalTo))
