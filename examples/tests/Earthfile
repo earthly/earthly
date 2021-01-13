@@ -466,80 +466,50 @@ file-copying:
     COPY file-copying.earth ./Earthfile
 
     RUN --privileged \
+        --mount=type=tmpfs,target=/tmp/earthly \
         --entrypoint \
-        -- +test-glob
-    RUN find out -printf '%P\n' | sort > result
-    RUN ls -la out
-    RUN diff -ws expected result
-    RUN rm -rf out
+        -- +all
 
-    RUN --privileged \
-        --entrypoint \
-        -- +test-dot
-    RUN find out -printf '%P\n' | sort > result
-    RUN ls -la out
-    RUN diff -ws expected result
-    RUN rm -rf out
+    RUN find out-glob -printf '%P\n' | sort > result-glob
+    RUN ls -la out-glob
+    RUN diff -ws expected-glob result-glob
+
+    RUN find out-dot -printf '%P\n' | sort > result-dot
+    RUN ls -la out-dot
+    RUN diff -ws expected-dot result-dot
+
+    RUN find out-dot-slash -printf '%P\n' | sort > result-dot-slash
+    RUN ls -la out-dot-slash
+    RUN diff -ws expected-dot-slash result-dot-slash
+
+    RUN find out-sub -printf '%P\n' | sort > result-sub
+    RUN ls -la out-sub
+    RUN diff -ws expected-sub result-sub
+
+    RUN find out-sub-glob -printf '%P\n' | sort > result-sub-glob
+    RUN ls -la out-sub-glob
+    RUN diff -ws expected-sub-glob result-sub-glob
+
+    RUN find out-dot-single -printf '%P\n' | sort > result-dot-single
+    RUN ls -la out-dot-single
+    RUN diff -ws expected-dot-single result-dot-single
+
+    RUN find out-rel-single -printf '%P\n' | sort > result-rel-single
+    RUN ls -la out-rel-single
+    RUN diff -ws expected-rel-single result-rel-single
+
+    RUN find out-src-dest-file-rename -printf '%P\n' | sort > result-src-dest-file-rename
+    RUN ls -la out-src-dest-file-rename
+    RUN diff -ws expected-src-dest-file-rename result-src-dest-file-rename
+
+    RUN find out-src-dest-dir-rename -printf '%P\n' | sort > result-src-dest-dir-rename
+    RUN ls -la out-src-dest-dir-rename
+    RUN diff -ws expected-src-dest-dir-rename result-src-dest-dir-rename
 
     # Saving the root dir is not allowed. This should fail.
     RUN --privileged \
+        --mount=type=tmpfs,target=/tmp/earthly \
         ! /usr/bin/earthly-buildkitd-wrapper.sh +test-dot-scratch
-
-    RUN --privileged \
-        --entrypoint \
-        -- +test-dot-slash
-    RUN find out -printf '%P\n' | sort > result
-    RUN ls -la out
-    RUN diff -ws expected result
-    RUN rm -rf out
-
-    RUN --privileged \
-        --entrypoint \
-        -- +test-sub
-    RUN find out -printf '%P\n' | sort > result
-    RUN ls -la out
-    RUN diff -ws expected result
-    RUN rm -rf out
-
-    RUN --privileged \
-        --entrypoint \
-        -- +test-sub-glob
-    RUN find out -printf '%P\n' | sort > result
-    RUN ls -la out
-    RUN diff -ws expected result
-    RUN rm -rf out
-
-    RUN --privileged \
-        --entrypoint \
-        -- +test-dot-single
-    RUN find out -printf '%P\n' | sort > result
-    RUN ls -la out
-    RUN diff -ws expected result
-    RUN rm -rf out
-
-    RUN --privileged \
-        --entrypoint \
-        -- +test-rel-single
-    RUN find out -printf '%P\n' | sort > result
-    RUN ls -la out
-    RUN diff -ws expected result
-    RUN rm -rf out
-
-    RUN --privileged \
-        --entrypoint \
-        -- +test-src-dest-file-rename
-    RUN find out -printf '%P\n' | sort > result
-    RUN ls -la out
-    RUN diff -ws expected result
-    RUN rm -rf out
-
-    RUN --privileged \
-        --entrypoint \
-        -- +test-src-dest-dir-rename
-    RUN find out -printf '%P\n' | sort > result
-    RUN ls -la out
-    RUN diff -ws expected result
-    RUN rm -rf out
 
 multi-subdirectory-wildcard:
     COPY multi-subdirectory-wildcard.earth ./Earthfile
