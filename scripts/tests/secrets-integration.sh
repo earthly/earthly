@@ -2,6 +2,7 @@
 set -eu # don't use -x as it will leak the private key
 
 earthly=${earthly:=earthly}
+earthly=$(realpath $earthly)
 echo "running tests with $earthly"
 
 # prevent the self-update of earthly from running (this ensures no bogus data is printed to stdout,

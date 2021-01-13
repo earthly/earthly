@@ -2,6 +2,7 @@
 set -eu # don't use -x as it will leak the private key
 
 earthly=${earthly:=earthly}
+earthly=$(realpath $earthly)
 echo "running tests with $earthly"
 
 # prevent the self-update of earthly from running (this ensures no bogus data is printed to stdout,
@@ -70,6 +71,19 @@ echo === Test 4 ===
 docker image rm -f other-test-private:latest
 SSH_AUTH_SOCK="" $earthly -VD --git-username=cinnamonthecat --git-password="$GITHUB_PASSWORD" github.com/cinnamonthecat/another-test-private:main+docker
 docker run --rm another-test-private:latest | grep "Hola Mundo"
+
+# test an earthfile can clone the private repo
+echo === Test 5 ===
+
+mkdir /tmp/test5
+cd /tmp/test5
+cat << EOF > Earthfile
+FROM alpine:latest
+privclone:
+    GIT CLONE --branch=main git@github.com:cinnamonthecat/test-private.git .
+    RUN ls -la
+EOF
+SSH_AUTH_SOCK="" $earthly -VD --config /tmp/earthconfig.https +privclone
 
 
 echo === All private-repo.sh tests have passed ===
