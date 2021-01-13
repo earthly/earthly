@@ -20,6 +20,7 @@ all:
 
 ga:
     BUILD +privileged-test
+    BUILD +copy-test
     BUILD +cache-test
     BUILD +git-clone-test
     BUILD +builtin-args-test
