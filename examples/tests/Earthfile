@@ -54,6 +54,7 @@ ga:
     BUILD +end-comment
     BUILD +if-exists
     BUILD +file-copying
+    BUILD +multi-subdirectory-wildcard
     BUILD ./autocompletion+test-all
     BUILD ./with-docker+all
     BUILD ./with-docker-compose+all
@@ -457,6 +458,7 @@ file-copying:
     RUN find out -printf '%P\n' | sort > result
     RUN ls -la out
     RUN diff -ws expected result
+    RUN rm -rf out
 
     RUN --privileged \
         --entrypoint \
@@ -464,6 +466,11 @@ file-copying:
     RUN find out -printf '%P\n' | sort > result
     RUN ls -la out
     RUN diff -ws expected result
+    RUN rm -rf out
+
+    # Saving the root dir is not allowed. This should fail.
+    RUN --privileged \
+        ! /usr/bin/earthly-buildkitd-wrapper.sh +test-dot-scratch
 
     RUN --privileged \
         --entrypoint \
@@ -471,6 +478,7 @@ file-copying:
     RUN find out -printf '%P\n' | sort > result
     RUN ls -la out
     RUN diff -ws expected result
+    RUN rm -rf out
 
     RUN --privileged \
         --entrypoint \
@@ -478,6 +486,7 @@ file-copying:
     RUN find out -printf '%P\n' | sort > result
     RUN ls -la out
     RUN diff -ws expected result
+    RUN rm -rf out
 
     RUN --privileged \
         --entrypoint \
@@ -485,6 +494,7 @@ file-copying:
     RUN find out -printf '%P\n' | sort > result
     RUN ls -la out
     RUN diff -ws expected result
+    RUN rm -rf out
 
     RUN --privileged \
         --entrypoint \
@@ -492,6 +502,7 @@ file-copying:
     RUN find out -printf '%P\n' | sort > result
     RUN ls -la out
     RUN diff -ws expected result
+    RUN rm -rf out
 
     RUN --privileged \
         --entrypoint \
@@ -499,6 +510,7 @@ file-copying:
     RUN find out -printf '%P\n' | sort > result
     RUN ls -la out
     RUN diff -ws expected result
+    RUN rm -rf out
 
     RUN --privileged \
         --entrypoint \
@@ -506,6 +518,7 @@ file-copying:
     RUN find out -printf '%P\n' | sort > result
     RUN ls -la out
     RUN diff -ws expected result
+    RUN rm -rf out
 
     RUN --privileged \
         --entrypoint \
@@ -513,6 +526,7 @@ file-copying:
     RUN find out -printf '%P\n' | sort > result
     RUN ls -la out
     RUN diff -ws expected result
+    RUN rm -rf out
 
 multi-subdirectory-wildcard:
     COPY multi-subdirectory-wildcard.earth ./Earthfile

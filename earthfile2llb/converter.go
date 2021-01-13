@@ -337,12 +337,15 @@ func (c *Converter) Run(ctx context.Context, args, mounts, secretKeyValues []str
 
 // SaveArtifact applies the earthly SAVE ARTIFACT command.
 func (c *Converter) SaveArtifact(ctx context.Context, saveFrom string, saveTo string, saveAsLocalTo string, keepTs bool, keepOwn bool, ifExists bool) error {
+	absSaveFrom, err := llbutil.Abs(ctx, c.mts.Final.MainState, saveFrom)
+	if err != nil {
+		return err
+	}
+	if absSaveFrom == "/" || absSaveFrom == "" {
+		return errors.New("cannot save root dir as artifact")
+	}
 	saveToAdjusted := saveTo
 	if saveTo == "" || saveTo == "." || strings.HasSuffix(saveTo, "/") {
-		absSaveFrom, err := llbutil.Abs(ctx, c.mts.Final.MainState, saveFrom)
-		if err != nil {
-			return err
-		}
 		saveFromRelative := path.Join(".", absSaveFrom)
 		saveToAdjusted = path.Join(saveTo, path.Base(saveFromRelative))
 	}

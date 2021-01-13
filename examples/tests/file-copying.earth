@@ -7,7 +7,11 @@ setup:
         echo sub > sub/sub-file && \
         echo 1 > sub/1/1-file && \
         echo 2 > sub/2/2-file
-    RUN fail lol
+    SAVE ARTIFACT ./*
+
+setup-scratch:
+    FROM scratch
+    COPY +setup/* ./
 
 test-glob:
     FROM +setup
@@ -36,6 +40,10 @@ test-dot:
         base/sub/sub-file" > expected
     SAVE ARTIFACT ./expected AS LOCAL expected
 
+test-dot-scratch:
+    FROM +setup-scratch
+    SAVE ARTIFACT . AS LOCAL out/
+
 test-dot-slash:
     FROM +setup
     SAVE ARTIFACT ./ AS LOCAL out/
@@ -54,6 +62,7 @@ test-sub:
     FROM +setup
     SAVE ARTIFACT ./sub AS LOCAL out/
     RUN echo "
+        sub
         sub/1
         sub/1/1-file
         sub/2
@@ -97,6 +106,7 @@ test-src-dest-dir-rename:
     FROM +setup
     SAVE ARTIFACT sub my-dir AS LOCAL out/
     RUN echo "
+        my-dir
         my-dir/1
         my-dir/1/1-file
         my-dir/2

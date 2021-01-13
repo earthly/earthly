@@ -484,7 +484,7 @@ func (b *Builder) saveArtifactLocally(ctx context.Context, artifact domain.Artif
 			// Place within external dir.
 			to = path.Join(artifact.Target.LocalPath, to)
 		}
-		if (!srcIsDir || isWildcard) && destIsDir {
+		if destIsDir {
 			// Place within dest dir.
 			to = path.Join(to, path.Base(from))
 		}
