@@ -1,7 +1,7 @@
 FROM ../..+earthly-docker
 
 RUN apk add --update --no-cache \
-    perl
+    perl findutils
 
 WORKDIR /test
 
@@ -53,7 +53,7 @@ ga:
     BUILD +target-first-line
     BUILD +end-comment
     BUILD +if-exists
-    BUILD ./file-copying+test
+    BUILD +file-copying
     BUILD ./autocompletion+test-all
     BUILD ./with-docker+all
     BUILD ./with-docker-compose+all
@@ -447,6 +447,72 @@ if-exists:
     RUN --privileged \
         --mount=type=tmpfs,target=/tmp/earthly \
         /usr/bin/earthly-buildkitd-wrapper.sh +bad-wildcard-save 2>&1 | perl -pe 'BEGIN {$status=1} END {exit $status} $status=0 if /bad-wildcard-save/;'
+
+file-copying:
+    COPY file-copying.earth ./Earthfile
+
+    RUN --privileged \
+        --entrypoint \
+        -- +test-glob
+    RUN find out -printf '%P\n' | sort > result
+    RUN ls -la out
+    RUN diff -ws expected result
+
+    RUN --privileged \
+        --entrypoint \
+        -- +test-dot
+    RUN find out -printf '%P\n' | sort > result
+    RUN ls -la out
+    RUN diff -ws expected result
+
+    RUN --privileged \
+        --entrypoint \
+        -- +test-dot-slash
+    RUN find out -printf '%P\n' | sort > result
+    RUN ls -la out
+    RUN diff -ws expected result
+
+    RUN --privileged \
+        --entrypoint \
+        -- +test-sub
+    RUN find out -printf '%P\n' | sort > result
+    RUN ls -la out
+    RUN diff -ws expected result
+
+    RUN --privileged \
+        --entrypoint \
+        -- +test-sub-glob
+    RUN find out -printf '%P\n' | sort > result
+    RUN ls -la out
+    RUN diff -ws expected result
+
+    RUN --privileged \
+        --entrypoint \
+        -- +test-dot-single
+    RUN find out -printf '%P\n' | sort > result
+    RUN ls -la out
+    RUN diff -ws expected result
+
+    RUN --privileged \
+        --entrypoint \
+        -- +test-rel-single
+    RUN find out -printf '%P\n' | sort > result
+    RUN ls -la out
+    RUN diff -ws expected result
+
+    RUN --privileged \
+        --entrypoint \
+        -- +test-src-dest-file-rename
+    RUN find out -printf '%P\n' | sort > result
+    RUN ls -la out
+    RUN diff -ws expected result
+
+    RUN --privileged \
+        --entrypoint \
+        -- +test-src-dest-dir-rename
+    RUN find out -printf '%P\n' | sort > result
+    RUN ls -la out
+    RUN diff -ws expected result
 
 multi-subdirectory-wildcard:
     COPY multi-subdirectory-wildcard.earth ./Earthfile
