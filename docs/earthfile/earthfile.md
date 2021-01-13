@@ -392,17 +392,16 @@ test
 Here is how the following `SAVE ARTIFACT ... AS LOCAL` commands will behave:
 
 ```
-save-artifact-example:
-    WORKDIR base
-    COPY test .
+WORKDIR base
+COPY test .
 
-    # This will copy the base folder into the output directory.
-    # You would find file at out-dot/base/file.
-    SAVE ARTIFACT . AS LOCAL out-dot/
+# This will copy the base folder into the output directory.
+# You would find file at out-dot/base/file.
+SAVE ARTIFACT . AS LOCAL out-dot/
 
-    # This will copy the contents of the base folder into the output directory.
-    # You would find sub-file at out-glob/file. Note the base directory is not in the output.
-    SAVE ARTIFACT ./* AS LOCAL out-glob/
+# This will copy the contents of the base folder into the output directory.
+# You would find sub-file at out-glob/file. Note the base directory is not in the output.
+SAVE ARTIFACT ./* AS LOCAL out-glob/
 ```
 
 For detailed examples demonstrating how other scenarios may function, please see our [test suite](https://github.com/earthly/earthly/blob/main/examples/tests/file-copying.earth).
