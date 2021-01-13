@@ -20,6 +20,7 @@ all:
 
 ga:
     BUILD +privileged-test
+    BUILD +copy-test
     BUILD +cache-test
     BUILD +git-clone-test
     BUILD +builtin-args-test
@@ -68,6 +69,18 @@ privileged-test:
         --entrypoint \
         --mount=type=tmpfs,target=/tmp/earthly \
         -- --allow-privileged +test
+
+copy-test:
+    COPY copy.earth ./Earthfile
+    RUN mkdir -p in/sub/1 in/sub/2 && \
+        echo "root" > in/root && \
+        echo "1" > in/sub/1/file && \
+        echo "2" > in/sub/2/file && \
+        echo "sub" > in/sub/file
+    RUN --privileged \
+        --entrypoint \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        -- --allow-privileged +all
 
 cache-test:
     COPY cache1.earth ./Earthfile
