@@ -304,6 +304,34 @@ final-target:
     COPY +intermediate/some-file.txt ./
 ```
 
+#### Examples
+
+Assuming the following directory tree, of a folder named `test`:
+
+```
+test
+  └── file
+```
+
+Here is how the following copy commands will behave:
+
+```
+copy-example:
+    # Copies the contents of the test directory.
+    # To access the file, it would be found at ./file
+    COPY test .
+
+    # Also copies the contents of the test directory.
+    # To access the file, it would be found at ./file
+    COPY test/* .
+
+    # Copies the whole test folder.
+    # To access the file, it would be found at ./test/file
+    COPY --dir test .
+```
+
+For detailed examples demonstrating how other scenarios may function, please see our [test suite](https://github.com/earthly/earthly/blob/main/examples/tests/copy.earth).
+
 ## GIT CLONE
 
 #### Synopsis
@@ -351,6 +379,34 @@ Instructs Earthly to not overwrite the file creation timestamps with a constant.
 ##### `--keep-own`
 
 Instructs Earthly to keep file ownership information.
+
+#### Examples
+
+Assuming the following directory tree, of a folder named `test`:
+
+```
+test
+  └── file
+
+```
+
+Here is how the following `SAVE ARTIFACT ... AS LOCAL` commands will behave:
+
+```
+save-artifact-example:
+    WORKDIR base
+    COPY test .
+
+    # This will copy the base folder into the output directory.
+    # You would find file at out-dot/base/file.
+    SAVE ARTIFACT . AS LOCAL out-dot/
+
+    # This will copy the contents of the base folder into the output directory.
+    # You would find sub-file at out-glob/file. Note the base directory is not in the output.
+    SAVE ARTIFACT ./* AS LOCAL out-glob/
+```
+
+For detailed examples demonstrating how other scenarios may function, please see our [test suite](https://github.com/earthly/earthly/blob/main/examples/tests/file-copying.earth).
 
 ## SAVE IMAGE
 
