@@ -316,18 +316,17 @@ test
 Here is how the following copy commands will behave:
 
 ```
-copy-example:
-    # Copies the contents of the test directory.
-    # To access the file, it would be found at ./file
-    COPY test .
+# Copies the contents of the test directory.
+# To access the file, it would be found at ./file
+COPY test .
 
-    # Also copies the contents of the test directory.
-    # To access the file, it would be found at ./file
-    COPY test/* .
+# Also copies the contents of the test directory.
+# To access the file, it would be found at ./file
+COPY test/* .
 
-    # Copies the whole test folder.
-    # To access the file, it would be found at ./test/file
-    COPY --dir test .
+# Copies the whole test folder.
+# To access the file, it would be found at ./test/file
+COPY --dir test .
 ```
 
 For detailed examples demonstrating how other scenarios may function, please see our [test suite](https://github.com/earthly/earthly/blob/main/examples/tests/copy.earth).
