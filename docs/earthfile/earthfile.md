@@ -220,8 +220,9 @@ The `<mount-spec>` is defined as a series of comma-separated list of key-values.
 
 | Key | Description | Example |
 | --- | --- | --- |
-| `type` | The type of the mount. Currently only `cache` and `tmpfs` are allowed. | `type=cache` |
+| `type` | The type of the mount. Currently only `cache`, `tmpfs`, and `secret` are allowed. | `type=cache` |
 | `target` | The target path for the mount. | `target=/var/lib/data` |
+| `id` | The secret ID for the contents of the `target` file, only applicable for `type=secret`. | `id=+secrets/password` |
 
 Example:
 
