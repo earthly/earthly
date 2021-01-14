@@ -10,7 +10,7 @@ This feature is currently in **Experimental** stage
 * Give us feedback on [Slack](https://earthly.dev/slack) in the `#multi-platform` channel.
 {% endhint %}
 
-Earthly has the ability to perform builds for multiple platforms, in parallel.
+Earthly has the ability to perform builds for multiple platforms, in parallel. This page walks through setting up your system to support emulation as well as through a few simple examples of how to use this feature.
 
 Currently only `linux` is supported as the build platform OS. Building with Windows containers will be available in a future version of Earthly.
 
@@ -20,7 +20,7 @@ In some cases, execution of the build itself does not need to happen on the targ
 
 ## Pre-requisites for emulation
 
-In order to execute emulated build steps (usually `RUN`), QEMU needs to be installed and set up. This will allow you perform Earthly builds on non-native platforms, but also to run Docker images through `docker run --platform=...`.
+In order to execute emulated build steps (usually `RUN`), QEMU needs to be installed and set up. This will allow you perform Earthly builds on non-native platforms, but also incidentally, to run Docker images on your host system through `docker run --platform=...`.
 
 ### Windows and Mac
 
@@ -36,7 +36,13 @@ docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
 docker stop earthly-buildkitd || true
 ```
 
-However, the command `docker run --rm --privileged multiarch/qemu-user-static --reset -p yes` will need to be re-run on every system restart. For a more permanent installation of QEMU see this guide on [building multi architecture Docker images, which includes QEMU installation instructions](https://medium.com/@artur.klauser/building-multi-architecture-docker-images-with-buildx-27d80f7e2408).
+However, note that the command
+
+```
+docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+```
+
+will need to be re-run on every system restart. For a more permanent installation of QEMU see this guide on [building multi architecture Docker images, which includes QEMU installation instructions](https://medium.com/@artur.klauser/building-multi-architecture-docker-images-with-buildx-27d80f7e2408).
 
 ### GitHub Actions
 
@@ -71,7 +77,7 @@ build:
 
 If the `+build` target were invoked without the use of any flag, Earthly would simply perform the build on the native architecture of the host system.
 
-However, invoking the target `+build-all-platforms`, causes `+build` to execute twice, in parallel: one time on `linux/amd64` and another time on `linux/arm/v7`.
+However, invoking the target `+build-all-platforms` causes `+build` to execute twice, in parallel: one time on `linux/amd64` and another time on `linux/arm/v7`.
 
 You may also override the target platform when issuing the `earthly` build command. For example:
 
@@ -107,7 +113,7 @@ build-arm-v7:
     SAVE IMAGE --push org/myimage:latest
 ```
 
-When `earthly --push +build-all-platforms` is executed, the build will push a multi-manifest image to the Docker registry. The manifest will contain two images: one for `linux/amd64` and one for `linux/arm/v7`.
+When `earthly --push +build-all-platforms` is executed, the build will push a multi-manifest image to the Docker registry. The manifest will contain two images: one for `linux/amd64` and one for `linux/arm/v7`. This works as such because both targets that save images use the exact same Docker tag for the image.
 
 Of course, in some situations, the build steps are the same (except they run on different platform), so the two definitions can be merged like so:
 
