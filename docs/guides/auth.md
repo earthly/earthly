@@ -96,6 +96,7 @@ Docker can use various credential helpers to automatically generate and use cred
 
 You can see examples of configuring Docker to use these, and working with Earthly here:
 * [Pushing and Pulling Images with AWS ECR](./pushing-images-to-ECR.md)
+* [Pushing and Pulling Images with GCP Artifact Registry](./pushing-images-to-GCR.md)
 
 ## See also
 
