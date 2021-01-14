@@ -7,6 +7,7 @@ This feature is currently in **Experimental** stage
 
 * The feature may break, be changed drastically with no warning, or be removed altogether in future versions of Earthly.
 * Check the [GitHub tracking issue](https://github.com/earthly/earthly/issues/11) for any known problems.
+* Note that this feature is not supported with AWS ECR currently. See this [AWS issue](https://github.com/aws/containers-roadmap/issues/876).
 * Give us feedback on [Slack](https://earthly.dev/slack) in the `#shared-cache` channel.
 {% endhint %}
 
