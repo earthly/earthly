@@ -12,9 +12,9 @@
 
 **🛠 Programming language agnostic** - *allows use of language-specific build tooling*
 
-**🔁 Repeatable builds** - *does not depend on user's local installation. Runs the same locally, as in CI*
+**🔁 Repeatable builds** - *does not depend on user's local installation: runs the same locally, as in CI*
 
-**⛓ Parallelism that just works** - *builds in parallel without special considerations the user has to make*
+**⛓ Parallelism that just works** - *builds in parallel without special considerations*
 
 **🏘 Mono and Poly-repo friendly** - *ability to split the build definitions across vast project hierarchies*
 
