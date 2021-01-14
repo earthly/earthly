@@ -1,4 +1,4 @@
-# Pushing images to ECR
+# Pushing images to AWS ECR
 
 ## Introduction
 
