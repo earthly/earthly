@@ -12,7 +12,8 @@ No special considerations are needed in the Earthfile itself. You can use `SAVE 
 FROM alpine:3.11
 
 build:
-    ENTRYPOINT echo "Hello from Earthly!"
+    RUN echo "Hello from Earthly!" > motd
+    ENTRYPOINT cat motd
     SAVE IMAGE --push <aws_account_id>.dkr.ecr.<region>.amazonaws.com/hello-earthly:with-love
 ```
 
