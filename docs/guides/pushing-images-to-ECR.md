@@ -1,4 +1,4 @@
-# Pushing images to AWS ECR
+# Pushing and Pulling images with AWS ECR
 
 ## Introduction
 
@@ -65,7 +65,7 @@ Ensure that you have correct permissions to push the images. The ECR helper is a
 
 Additional examples for policy configuration can be found [here](https://docs.aws.amazon.com/AmazonECR/latest/userguide/repository-policy-examples.html).
 
-## Run the target
+## Run the Target
 
 With the helper installed, no special To build and push an image, simply execute the build target. Don't forget the `--push` flag!
 
@@ -89,4 +89,45 @@ Loaded image: <aws_account_id>.dkr.ecr.<region>.amazonaws.com/hello-earthly:with
 
 ```
 
+## Pulling Images
+
+Using this credential helper; you can also pull images without any special handling in an Earthfile:
+
+```
+FROM earthly/dind:alpine-main
+
+run:
+    WITH DOCKER --pull <aws_account_id>.dkr.ecr.<region>.amazonaws.com/hello-earthly:with-love
+        RUN docker run <aws_account_id>.dkr.ecr.<region>.amazonaws.com/hello-earthly:with-love
+    END
+```
+
+And here is how you would run it:
+
+```
+❯ earthly -P +run
+           buildkitd | Found buildkit daemon as docker container (earthly-buildkitd)
+ earthly/dind:alpine | --> Load metadata linux/amd64
+4/hello-earthly:with-love | --> Load metadata linux/amd64
+4/hello-earthly:with-love | --> DOCKER PULL <aws_account_id>.dkr.ecr.<region>.amazonaws.com/hello-earthly:with-love
+4/hello-earthly:with-love | [██████████] resolve <aws_account_id>.dkr.ecr.<region>.amazonaws.com/hello-earthly:with-love@sha256:9ab4df74dafa2a71d71e39e1af133d110186698c78554ab000159cfa92081de4 ... 100%
+               +base | --> FROM earthly/dind:alpine
+               +base | [██████████] resolve docker.io/earthly/dind:alpine@sha256:2cef4089960efe028de40721749e3ec6eba9f471562bf10681de729287bd78fb ... 100%
+                +run | *cached* --> WITH DOCKER (install deps)
+                +run | *cached* --> WITH DOCKER RUN docker run <aws_account_id>.dkr.ecr.<region>.amazonaws.com/hello-earthly:with-love
+              output | --> exporting outputs
+              output | [██████████] sending tarballs ... 100%
+=========================== SUCCESS ===========================
+```
+
+## Troubleshooting
+
+### Basic Credentials Not Found
+
 If you get a message saying `basic credentials not found`; your distribution may not have the most recent version installed. A simple workaround is to simply prepend `AWS_SDK_LOAD_CONFIG=true` to your Earthly invocation. This will force the helper to use the SDK over built-in config when executing. You can track this issue [here](https://github.com/awslabs/amazon-ecr-credential-helper/issues/232).
+
+### 401 Unauthorized
+
+Doublecheck your AWS credentials, to ensure you have the correct ones set up. `aws configure` can help you do this. Also, check IAM to ensure you have the correct permissions (see the [IAM](#IAM) section above). Finally, if you use IAM assumed roles, ensure that you have assumed the correct role in your terminal session.
+
+If these are in order, the same fix from [Basic Credentials Not Found](#Basic-Credentials-Not-Found) may help.
