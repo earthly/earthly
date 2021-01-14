@@ -153,6 +153,8 @@ The additional Docker tags are only available for use on the local system. When 
 
 Building multi-platform images does not necessarily require that execution of the build itself takes place on the target platform. Through the use of cross-compilation, it is possible to obtain target-platform binaries compiled on the host-native platform. At the end, these binaries may be placed in a final image which is marked for a specific platform.
 
+Note, however, that not all programming languages have support for cross-compilation. The applicability of this approach may be limited as a result. Examples of languages that *can* cross-compile for other platforms are Go and Rust.
+
 Here is an example where a multi-platform image can be created without actually executing any `RUN` on the target platform (and therefore emulation is not necessary):
 
 ```Dockerfile
