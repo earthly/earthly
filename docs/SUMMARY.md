@@ -14,6 +14,7 @@
     * [Integration Testing](guides/integration.md)
     * [Debugging techniques](guides/debugging.md)
     * [CI integration](guides/ci-integration.md)
+    * [Pushing and Pulling from AWS ECR](guides/pushing-images-to-ECR.md)
 * [Earthfile reference](earthfile/earthfile.md)
     * [Builtin args](earthfile/builtin-args.md)
     * [Excluding patterns](earthfile/earthignore.md)
