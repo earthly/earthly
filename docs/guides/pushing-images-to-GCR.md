@@ -2,7 +2,7 @@
 
 ## Introduction
 
-The GCP Artifact Registry is is a hosted docker repository that requires extra configuration for day-to-day use. This configuration is not typical of other repositories, and there are some considerations to account for when using it with Earthly. This guide will walk you through creating an Earthfile, building an image, and pushing it to Artifact Registry.
+The GCP Artifact Registry is a hosted docker repository that requires extra configuration for day-to-day use. This configuration is not typical of other repositories, and there are some considerations to account for when using it with Earthly. This guide will walk you through creating an Earthfile, building an image, and pushing it to Artifact Registry.
 
 [Artifact Registry is the successor to the GCP Container Registry (GCR)](https://cloud.google.com/artifact-registry/docs/transition/transition-from-gcr). It can accomodate more than just Docker images, but those are beyond the scope of this guide. Most of what we detail here applies to GCR as well, it will just require some small tweaks. You can see a list of tweaks you will need to make [here](https://cloud.google.com/artifact-registry/docs/transition/transition-from-gcr#compare).
 
