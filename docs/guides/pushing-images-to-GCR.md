@@ -72,8 +72,8 @@ Using this credential helper; you can also pull images without any special handl
 
 
 run:
-    WITH DOCKER --pull <aws_account_id>.dkr.ecr.<region>.amazonaws.com/hello-earthly:with-love
-        RUN docker run <aws_account_id>.dkr.ecr.<region>.amazonaws.com/hello-earthly:with-love
+    WITH DOCKER --pull <region>-docker.pkg.dev/<project>/hello-earthly/hello-earthly:with-love
+        RUN docker run <region>-docker.pkg.dev/<project>/hello-earthly/hello-earthly:with-love
     END
 ```
 
