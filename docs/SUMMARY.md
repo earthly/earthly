@@ -16,7 +16,7 @@
     * [Multi-platform builds](guides/multi-platform.md)
     * [CI integration](guides/ci-integration.md)
     * [Pushing and Pulling from AWS ECR](guides/pushing-images-to-ECR.md)
-    * [Pushing and Pulling Images with GCP Artifact Registry](./pushing-images-to-GCR.md)
+    * [Pushing and Pulling Images with GCP Artifact Registry](guides/pushing-images-to-GCR.md)
 * [Earthfile reference](earthfile/earthfile.md)
     * [Builtin args](earthfile/builtin-args.md)
     * [Excluding patterns](earthfile/earthignore.md)
