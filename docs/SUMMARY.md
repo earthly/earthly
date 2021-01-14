@@ -13,6 +13,7 @@
     * [Cloud secrets](guides/cloud-secrets.md)
     * [Integration Testing](guides/integration.md)
     * [Debugging techniques](guides/debugging.md)
+    * [Multi-platform builds](guides/multi-platform.md)
     * [CI integration](guides/ci-integration.md)
 * [Earthfile reference](earthfile/earthfile.md)
     * [Builtin args](earthfile/builtin-args.md)
