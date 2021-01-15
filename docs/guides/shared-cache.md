@@ -28,15 +28,15 @@ For a summary of the differences see [comparison between inline and explicit cac
 
 Not all registries support the needed manifest formats to allow the usage of each kind of cache. Here is a compatibility matrix for many popular registries:
 
-| Registry                  | Supports Inline Cache  | Supports Remote Cache  | Notes                                                |
-|---------------------------|:----------------------:|:----------------------:|------------------------------------------------------|
-| AWS ECR                   |           ✅           |           ❌           | https://github.com/aws/containers-roadmap/issues/876 |
-| Google GCR                |           ✅           |           ❌           |                                                      |
-| Google Artifact Registry  |           ✅           |           ✅           |                                                      |
-| Azure ACR                 |           ✅           |           ✅           |                                                      |
-| Docker Hub                |           ✅           |           ✅           |                                                      |
-| GitHub Container Registry |           ✅           |           ✅           |                                                      |
-| Self-Hosted  `registry:2` |           ✅           |           ✅           |                                                      |
+| Registry                  | Supports Inline Cache  | Supports Explicit Cache  | Notes                                                |
+|---------------------------|:----------------------:|:------------------------:|------------------------------------------------------|
+| AWS ECR                   |           ✅           |            ❌            | https://github.com/aws/containers-roadmap/issues/876 |
+| Google GCR                |           ✅           |            ❌            |                                                      |
+| Google Artifact Registry  |           ✅           |            ✅            |                                                      |
+| Azure ACR                 |           ✅           |            ✅            |                                                      |
+| Docker Hub                |           ✅           |            ✅            |                                                      |
+| GitHub Container Registry |           ✅           |            ✅            |                                                      |
+| Self-Hosted  `registry:2` |           ✅           |            ✅            |                                                      |
 
 ### Inline cache
 
