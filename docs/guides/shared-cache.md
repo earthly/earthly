@@ -24,6 +24,20 @@ Earthly makes available two types of shared caches:
 
 For a summary of the differences see [comparison between inline and explicit cache](#comparison-between-inline-and-explicit-cache).
 
+### Compatibility with major registry providers
+
+Not all registries support the needed manifest formats to allow the usage of each kind of cache. Here is a compatibility matrix for many popular registries:
+
+| Registry                  | Supports Inline Cache  | Supports Remote Cache  | Notes                                                |
+|---------------------------|:----------------------:|:----------------------:|------------------------------------------------------|
+| AWS ECR                   |           ✅           |           ❌           | https://github.com/aws/containers-roadmap/issues/876 |
+| Google GCR                |           ✅           |           ❌           |                                                      |
+| Google Artifact Registry  |           ✅           |           ✅           |                                                      |
+| Azure ACR                 |           ✅           |           ✅           |                                                      |
+| Docker Hub                |           ✅           |           ✅           |                                                      |
+| GitHub Container Registry |           ✅           |           ✅           |                                                      |
+| Self-Hosted  `registry:2` |           ✅           |           ✅           |                                                      |
+
 ### Inline cache
 
 Inline caching is the easiest to configure. It essentially makes use of any image already being pushed to the registry and adds some very small metadata (a few KiB) as part of its configuration about how Earthly is able to reuse that image for future runs.
@@ -132,21 +146,6 @@ If a project has multiple CI pipelines or `earthly` invocations, it is recommend
 
 It is currently not possible to push both inline and implicit caches currently.
 {% endhint %}
-
-### Compatibility with major registry providers
-
-Not all registries support the needed manifest formats to allow the usage of `--remote-cache`. Here is a compatibility matrix for many popular registries:
-
-| Registry                  | Supports Remote Cache | Notes                                                |
-|---------------------------|:---------------------:|------------------------------------------------------|
-| AWS ECR                   |           ❌           | https://github.com/aws/containers-roadmap/issues/876 |
-| Google GCR                |           ❌           |                                                      |
-| Google Artifact Registry  |           ✅           |                                                      |
-| Azure ACR                 |           ✅           |                                                      |
-| Docker Hub                |           ✅           |                                                      |
-| GitHub Container Registry |           ✅           |                                                      |
-| Self-Hosted  `registry:2` |           ✅           |                                                      |
-| GitHub Packages           |           ✅           |                                                      |
 
 #### Optimizing explicit cache performance (advanced)
 
