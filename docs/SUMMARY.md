@@ -15,10 +15,10 @@
     * [Debugging techniques](guides/debugging.md)
     * [Multi-platform builds](guides/multi-platform.md)
     * [CI integration](guides/ci-integration.md)
-    * Working With Cloud Providers
-        * [Pushing and Pulling from AWS ECR](guides/pushing-images-to-ECR.md)
-        * [Pushing and Pulling Images with GCP Artifact Registry](guides/pushing-images-to-GCR.md)
-        * [Pushing and Pulling Images with Azure ACR](guides/pushing-images-to-ACR.md)
+    * Pushing and Pulling Images With Cloud Providers
+        * [AWS ECR](guides/pushing-images-to-ECR.md)
+        * [GCP Artifact Registry](guides/pushing-images-to-GCR.md)
+        * [Azure ACR](guides/pushing-images-to-ACR.md)
 * [Earthfile reference](earthfile/earthfile.md)
     * [Builtin args](earthfile/builtin-args.md)
     * [Excluding patterns](earthfile/earthignore.md)
