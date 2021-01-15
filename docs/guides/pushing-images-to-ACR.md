@@ -46,7 +46,7 @@ ACR boasts many other methods of logging in, including [Service Principals](http
 
 ## RBAC
 
-Ensure that you have correct permissions to push and pull the images. Please reference the [ACR RBAC documentation](https://docs.microsoft.com/en-us/azure/container-registry/container-registry-roles) to ensure you have the correct permissions set. To complete all the activities in this guide, you wull need to have at least the permissions detailed in the built-in `Contributor` role.
+Ensure that you have correct permissions to push and pull the images. Please reference the [ACR RBAC documentation](https://docs.microsoft.com/en-us/azure/container-registry/container-registry-roles) to ensure you have the correct permissions set. To complete all the activities in this guide, you will need to have at least the permissions detailed in the built-in `Contributor` role.
 
 ## Run the Target
 
