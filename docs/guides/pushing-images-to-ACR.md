@@ -50,7 +50,7 @@ Ensure that you have correct permissions to push and pull the images. Please ref
 
 ## Run the Target
 
-Once we are logged in, and have the optional credential helper installed, there are no no special things left to do. To build and push an image, simply execute the build target. Don't forget the `--push` flag!
+Once you are logged in, and have the optional credential helper installed, there you are ready to use Earthly to access images in ACR. To build and push an image, simply execute the build target. Don't forget the `--push` flag!
 
 ```
 ❯ ../earthly/earthly --push --no-cache +build
