@@ -133,6 +133,21 @@ If a project has multiple CI pipelines or `earthly` invocations, it is recommend
 It is currently not possible to push both inline and implicit caches currently.
 {% endhint %}
 
+### Compatibility with major registry providers
+
+Not all registries support the needed manifest formats to allow the usage of `--remote-cache`. Here is a compatibility matrix for many popular registries:
+
+| Registry                  | Supports Remote Cache | Notes                                                |
+|---------------------------|:---------------------:|------------------------------------------------------|
+| AWS ECR                   |           ❌           | https://github.com/aws/containers-roadmap/issues/876 |
+| Google GCR                |           ❌           |                                                      |
+| Google Artifact Registry  |           ✅           |                                                      |
+| Azure ACR                 |           ✅           |                                                      |
+| Docker Hub                |           ✅           |                                                      |
+| GitHub Container Registry |           ✅           |                                                      |
+| Self-Hosted  `registry:2` |           ✅           |                                                      |
+| GitHub Packages           |           ✅           |                                                      |
+
 #### Optimizing explicit cache performance (advanced)
 
 Explicit caching works by storing a cache containing all the layers of the final target, plus any target containing `SAVE IMAGE --push ...`. If additional targets need to be added as part of the cache, it is possible to add `SAVE IMAGE --cache-hint` (no Docker tag necessary) at the end, in order to mark them for explicit caching.
