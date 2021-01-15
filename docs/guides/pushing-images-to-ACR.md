@@ -17,7 +17,7 @@ FROM alpine:3.11
 build:
     RUN echo "Hello from Earthly!" > motd
     ENTRYPOINT cat motd
-    SAVE IMAGE --push <region>-docker.pkg.dev/<project>/hello-earthly/hello-earthly:with-love
+    SAVE IMAGE --push helloearthly.azurecr.io/hello-earthly:with-love
 ```
 
 ## Login and Configure the ACR Credential Helper
@@ -64,12 +64,12 @@ Once we are logged in, and have the optional credential helper installed, there 
               output | [██████████] exporting manifest sha256:02df2d4600094d5550f7475b868ce9bb17d6c3a529e9669a453bbba7b2cdb659 ... 100%
               output | [██████████] exporting config sha256:722368416f5de51291ce937feac2c246d66dff351678968b1b6ebc533ceaaa0c ... 100%
               output | [██████████] pushing layers ... 100%
-              output | [██████████] pushing manifest for helloearthly.azurecr.io/hello-earthly:latest ... 100%
+              output | [██████████] pushing manifest for helloearthly.azurecr.io/hello-earthly:with-love ... 100%
               output | [██████████] sending tarballs ... 100%
 824d26cf8432: Loading layer [==================================================>]     192B/192B
 =========================== SUCCESS ===========================
-Loaded image: helloearthly.azurecr.io/hello-earthly:latest
-              +build | Image +build as helloearthly.azurecr.io/hello-earthly:latest (pushed)
+Loaded image: helloearthly.azurecr.io/hello-earthly:with-love
+              +build | Image +build as helloearthly.azurecr.io/hello-earthly:with-love (pushed)
 ```
 
 ## Pulling Images
@@ -80,8 +80,8 @@ By logging in and optionally installing the credential helper; you can also pull
 FROM earthly/dind:alpine-main
 
 run:
-    WITH DOCKER --pull helloearthly.azurecr.io/hello-earthly:latest
-        RUN docker run helloearthly.azurecr.io/hello-earthly:latest
+    WITH DOCKER --pull helloearthly.azurecr.io/hello-earthly:with-love
+        RUN docker run helloearthly.azurecr.io/hello-earthly:with-love
     END
 ```
 
@@ -91,15 +91,15 @@ And here is how you would run it:
 ❯ earthly -P +run
            buildkitd | Found buildkit daemon as docker container (earthly-buildkitd)
   e/dind:alpine-main | --> Load metadata linux/amd64
-h/hello-earthly:latest | --> Load metadata linux/amd64
-h/hello-earthly:latest | --> DOCKER PULL helloearthly.azurecr.io/hello-earthly:latest
-h/hello-earthly:latest | [██████████] resolve helloearthly.azurecr.io/hello-earthly:latest@sha256:02df2d4600094d5550f7475b868ce9bb17d6c3a529e9669a453bbba7b2cdb659 ... 100%
+h/hello-earthly:with-love | --> Load metadata linux/amd64
+h/hello-earthly:with-love | --> DOCKER PULL helloearthly.azurecr.io/hello-earthly:with-love
+h/hello-earthly:with-love | [██████████] resolve helloearthly.azurecr.io/hello-earthly:with-love@sha256:02df2d4600094d5550f7475b868ce9bb17d6c3a529e9669a453bbba7b2cdb659 ... 100%
                +base | --> FROM earthly/dind:alpine-main
                +base | [██████████] resolve docker.io/earthly/dind:alpine-main@sha256:09f497f0114de1f3ac6ce2da05568fcb50b0a4fd8b9025ed7c67dc952d092766 ... 100%
                 +run | *cached* --> WITH DOCKER (install deps)
-                +run | --> WITH DOCKER RUN docker run helloearthly.azurecr.io/hello-earthly:latest
+                +run | --> WITH DOCKER RUN docker run helloearthly.azurecr.io/hello-earthly:with-love
                 +run | Loading images...
-                +run | Loaded image: helloearthly.azurecr.io/hello-earthly:latest
+                +run | Loaded image: helloearthly.azurecr.io/hello-earthly:with-love
                 +run | ...done
                 +run | Hello from Earthly!
               output | --> exporting outputs
