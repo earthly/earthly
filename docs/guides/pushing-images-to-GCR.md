@@ -69,7 +69,7 @@ Loaded image: <region>-docker.pkg.dev/<project>/hello-earthly/hello-earthly:with
 Using this credential helper; you can also pull images without any special handling in an Earthfile:
 
 ```
-
+FROM earthly/dind:alpine-main
 
 run:
     WITH DOCKER --pull <region>-docker.pkg.dev/<project>/hello-earthly/hello-earthly:with-love
