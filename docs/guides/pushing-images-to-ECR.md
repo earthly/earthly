@@ -4,6 +4,8 @@
 
 The AWS Elastic Container Registry (ECR) is a hosted docker repository that requires extra configuration for day-to-day use. This configuration is not typical of other repositories, and there are some considerations to account for when using it with Earthly. This guide will walk you through creating an Earthfile, building an image, and pushing it to ECR.
 
+This guide assumes you have already installed the [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/install-cliv2.html), and [created a new repository named hello-earthly](https://docs.aws.amazon.com/AmazonECR/latest/userguide/repository-create.html).
+
 ## Create an Earthfile
 
 No special considerations are needed in the Earthfile itself. You can use `SAVE IMAGE` just like any other repository.

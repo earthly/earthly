@@ -11,3 +11,5 @@ A high-level overview is available on [the Earthly GitHub page](https://github.c
 ## Using Docker Repositories with Earthly
 
 * [AWS ECR](./pushing-images-to-ECR.md)
+* [GCP Artifact Registry](./pushing-images-to-GCR.md)
+* [Azure ACR](./pushing-images-to-ACR.md)
