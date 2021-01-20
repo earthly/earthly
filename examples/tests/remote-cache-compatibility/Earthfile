@@ -1,0 +1,52 @@
+FROM ../../..+earthly-docker
+WORKDIR /test
+
+RUN apk add curl python3
+
+all:
+    BUILD +google-artifact-registry
+
+google-base:    
+    RUN curl -O https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-sdk-324.0.0-linux-x86_64.tar.gz && \
+        tar -xvzf google-cloud-sdk-324.0.0-linux-x86_64.tar.gz && \
+        ./google-cloud-sdk/install.sh -q && \
+        ls -la /test/google-cloud-sdk
+    
+    ENV PATH $PATH:/test/google-cloud-sdk/bin
+
+    RUN --secret=GCP_KEY=+secrets/earthly-technologies/gcp/ci-cd-key \
+        echo $GCP_KEY > key.json
+
+    RUN gcloud auth activate-service-account --key-file /test/key.json
+
+google-artifact-registry:
+    FROM +google-base
+    COPY google-artifact-repository.earth ./Earthfile
+
+    RUN gcloud auth configure-docker us-west1-docker.pkg.dev
+
+    RUN --privileged \
+    --entrypoint \
+    --mount=type=tmpfs,target=/tmp/earthly \
+    -- --ci --push +push
+
+    RUN --privileged \
+    --entrypoint \
+    --mount=type=tmpfs,target=/tmp/earthly \
+    -- -P +pull
+
+google-container-repository:
+    FROM +google-base
+    COPY google-container-registry.earth ./Earthfile
+
+    RUN gcloud auth configure-docker
+
+    RUN --privileged \
+    --entrypoint \
+    --mount=type=tmpfs,target=/tmp/earthly \
+    -- --ci --push +push
+
+    RUN --privileged \
+    --entrypoint \
+    --mount=type=tmpfs,target=/tmp/earthly \
+    -- -P +pull
