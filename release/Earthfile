@@ -43,6 +43,7 @@ release-github:
     RUN ls ./release
     RUN test -f ./release/earthly-linux-amd64 && \
         test -f ./release/earthly-darwin-amd64 && \
+        test -f ./release/earthly-darwin-arm64 && \
         test -f ./release/earthly-linux-arm7 && \
         test -f ./release/earthly-linux-arm64
     ARG BODY="No details provided"
