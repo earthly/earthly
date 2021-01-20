@@ -390,12 +390,15 @@ func (c *Converter) SaveArtifact(ctx context.Context, saveFrom string, saveTo st
 		return errors.New("SAVE ARTIFACT is not supported with --push")
 	}
 
+	absSaveFrom, err := llbutil.Abs(ctx, c.mts.Final.MainState, saveFrom)
+	if err != nil {
+		return err
+	}
+	if absSaveFrom == "/" || absSaveFrom == "" {
+		return errors.New("cannot save root dir as artifact")
+	}
 	saveToAdjusted := saveTo
 	if saveTo == "" || saveTo == "." || strings.HasSuffix(saveTo, "/") {
-		absSaveFrom, err := llbutil.Abs(ctx, c.mts.Final.CurrentState(), saveFrom)
-		if err != nil {
-			return err
-		}
 		saveFromRelative := path.Join(".", absSaveFrom)
 		saveToAdjusted = path.Join(saveTo, path.Base(saveFromRelative))
 	}
@@ -424,7 +427,7 @@ func (c *Converter) SaveArtifact(ctx context.Context, saveFrom string, saveTo st
 		separateArtifactsState := llbutil.ScratchWithPlatform()
 		separateArtifactsState = llbutil.CopyOp(
 			c.mts.Final.CurrentState(), []string{saveFrom}, separateArtifactsState,
-			saveToAdjusted, true, false, keepTs, "root:root", ifExists,
+			saveToAdjusted, true, true, keepTs, "root:root", ifExists,
 			llb.WithCustomNamef(
 				"%sSAVE ARTIFACT %s%s %s AS LOCAL %s",
 				c.vertexPrefix(), strIf(ifExists, "--if-exists "), saveFrom, artifact.String(), saveAsLocalTo))

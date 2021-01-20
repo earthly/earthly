@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"time"
@@ -268,6 +269,9 @@ func (l *listener) ExitCopyStmt(c *parser.CopyStmtContext) {
 		return
 	}
 	if allArtifacts {
+		if dest == "" || dest == "." || len(srcs) > 1 {
+			dest += string(filepath.Separator)
+		}
 		for _, src := range srcs {
 			err = l.converter.CopyArtifact(l.ctx, src, dest, platform, buildArgs.Args, *isDirCopy, *keepTs, *keepOwn, *chown, *ifExists)
 			if err != nil {

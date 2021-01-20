@@ -115,8 +115,6 @@ func loadDockerManifestExperimental(ctx context.Context, parentImageName string,
 func loadDockerTar(ctx context.Context, r io.ReadCloser) error {
 	// TODO: This is a gross hack - should use proper docker client.
 	cmd := exec.CommandContext(ctx, "docker", "load")
-	// @#
-	// cmd := exec.CommandContext(ctx, "tee", "test.tar")
 	cmd.Stdin = r
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr

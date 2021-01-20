@@ -477,7 +477,7 @@ func (b *Builder) saveArtifactLocally(ctx context.Context, artifact domain.Artif
 		}
 		return fmt.Errorf("cannot save artifact %s, since it does not exist", artifact.StringCanonical())
 	}
-	isWildcard := (len(fromGlobMatches) > 1)
+	isWildcard := strings.ContainsAny(fromPattern, `*?[`)
 	for _, from := range fromGlobMatches {
 		fiSrc, err := os.Stat(from)
 		if err != nil {
@@ -489,7 +489,6 @@ func (b *Builder) saveArtifactLocally(ctx context.Context, artifact domain.Artif
 		if artifact.Target.IsLocalExternal() && !filepath.IsAbs(to) {
 			// Place within external dir.
 			to = path.Join(artifact.Target.LocalPath, to)
-		} else {
 		}
 		if destIsDir {
 			// Place within dest dir.

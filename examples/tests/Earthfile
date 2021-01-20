@@ -1,7 +1,7 @@
 FROM ../..+earthly-docker
 
 RUN apk add --update --no-cache \
-    perl
+    perl findutils
 
 WORKDIR /test
 
@@ -20,6 +20,7 @@ all:
 
 ga:
     BUILD +privileged-test
+    BUILD +copy-test
     BUILD +cache-test
     BUILD +git-clone-test
     BUILD +builtin-args-test
@@ -53,7 +54,7 @@ ga:
     BUILD +target-first-line
     BUILD +end-comment
     BUILD +if-exists
-    BUILD +multi-subdirectory-wildcard
+    BUILD +file-copying
     BUILD ./autocompletion+test-all
     BUILD ./with-docker+all
     BUILD ./with-docker-compose+all
@@ -67,6 +68,18 @@ privileged-test:
         --entrypoint \
         --mount=type=tmpfs,target=/tmp/earthly \
         -- --allow-privileged +test
+
+copy-test:
+    COPY copy.earth ./Earthfile
+    RUN mkdir -p in/sub/1 in/sub/2 && \
+        echo "root" > in/root && \
+        echo "1" > in/sub/1/file && \
+        echo "2" > in/sub/2/file && \
+        echo "sub" > in/sub/file
+    RUN --privileged \
+        --entrypoint \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        -- --allow-privileged +all
 
 cache-test:
     COPY cache1.earth ./Earthfile
@@ -448,14 +461,51 @@ if-exists:
         --mount=type=tmpfs,target=/tmp/earthly \
         /usr/bin/earthly-buildkitd-wrapper.sh +bad-wildcard-save 2>&1 | perl -pe 'BEGIN {$status=1} END {exit $status} $status=0 if /bad-wildcard-save/;'
 
-multi-subdirectory-wildcard:
-    COPY multi-subdirectory-wildcard.earth ./Earthfile
+file-copying:
+    COPY file-copying.earth ./Earthfile
+
     RUN --privileged \
+        --mount=type=tmpfs,target=/tmp/earthly \
         --entrypoint \
-        -- +test
-    RUN ls -la out
-    # Each file is own run so it will break on a specific case
-    RUN [ -f out/root ]   && [ "$(cat out/root)"   = "root" ]
-    RUN [ -f out/file ]   && [ "$(cat out/file)"   = "sub" ]
-    RUN [ -f out/1/file ] && [ "$(cat out/1/file)" = "1" ]
-    RUN [ -f out/2/file ] && [ "$(cat out/2/file)" = "2" ]
+        -- +all
+
+    RUN find out-glob -printf '%P\n' | sort > result-glob
+    RUN ls -la out-glob
+    RUN diff -ws expected-glob result-glob
+
+    RUN find out-dot -printf '%P\n' | sort > result-dot
+    RUN ls -la out-dot
+    RUN diff -ws expected-dot result-dot
+
+    RUN find out-dot-slash -printf '%P\n' | sort > result-dot-slash
+    RUN ls -la out-dot-slash
+    RUN diff -ws expected-dot-slash result-dot-slash
+
+    RUN find out-sub -printf '%P\n' | sort > result-sub
+    RUN ls -la out-sub
+    RUN diff -ws expected-sub result-sub
+
+    RUN find out-sub-glob -printf '%P\n' | sort > result-sub-glob
+    RUN ls -la out-sub-glob
+    RUN diff -ws expected-sub-glob result-sub-glob
+
+    RUN find out-dot-single -printf '%P\n' | sort > result-dot-single
+    RUN ls -la out-dot-single
+    RUN diff -ws expected-dot-single result-dot-single
+
+    RUN find out-rel-single -printf '%P\n' | sort > result-rel-single
+    RUN ls -la out-rel-single
+    RUN diff -ws expected-rel-single result-rel-single
+
+    RUN find out-src-dest-file-rename -printf '%P\n' | sort > result-src-dest-file-rename
+    RUN ls -la out-src-dest-file-rename
+    RUN diff -ws expected-src-dest-file-rename result-src-dest-file-rename
+
+    RUN find out-src-dest-dir-rename -printf '%P\n' | sort > result-src-dest-dir-rename
+    RUN ls -la out-src-dest-dir-rename
+    RUN diff -ws expected-src-dest-dir-rename result-src-dest-dir-rename
+
+    # Saving the root dir is not allowed. This should fail.
+    RUN --privileged \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        ! /usr/bin/earthly-buildkitd-wrapper.sh +test-dot-scratch

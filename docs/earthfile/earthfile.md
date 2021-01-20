@@ -24,7 +24,7 @@ Each recipe contains a series of commands, which are defined below. For an intro
 #### Synopsis
 
 * `FROM <image-name>`
-* `FROM [--build-arg <key>=<value>] <target-ref>`
+* `FROM [--build-arg <key>=<value>] [--platform <platform>] <target-ref>`
 
 #### Description
 
@@ -74,11 +74,17 @@ yet-another:
 
 Sets a value override of `<value>` for the build arg identified by `<key>`. See also [BUILD](#build) for more details about the `--build-arg` option.
 
+##### `--platform <platform>` (**experimental**)
+
+Specifies the platform to build on.
+
+For more information see the [multi-platform guide](../guides/multi-platform.md).
+
 ## FROM DOCKERFILE (**beta**)
 
 #### Synopsis
 
-* `FROM DOCKERFILE [--build-arg <key>=<value>] [--target <target-name>] <context-path>`
+* `FROM DOCKERFILE [--build-arg <key>=<value>] [--platform <platform>] [--target <target-name>] <context-path>`
 
 #### Description
 
@@ -105,6 +111,12 @@ Sets a value override of `<value>` for the Dockerfile build arg identified by `<
 ##### `--target <target-name>`
 
 In a multi-stage Dockerfile, sets the target to be used for the build. This option is similar to the `docker build --target <target-name>` option.
+
+##### `--platform <platform>` (**experimental**)
+
+Specifies the platform to build on.
+
+For more information see the [multi-platform guide](../guides/multi-platform.md).
 
 ## RUN
 
@@ -220,8 +232,9 @@ The `<mount-spec>` is defined as a series of comma-separated list of key-values.
 
 | Key | Description | Example |
 | --- | --- | --- |
-| `type` | The type of the mount. Currently only `cache` and `tmpfs` are allowed. | `type=cache` |
+| `type` | The type of the mount. Currently only `cache`, `tmpfs`, and `secret` are allowed. | `type=cache` |
 | `target` | The target path for the mount. | `target=/var/lib/data` |
+| `id` | The secret ID for the contents of the `target` file, only applicable for `type=secret`. | `id=+secrets/password` |
 
 Example:
 
@@ -304,6 +317,39 @@ final-target:
     COPY +intermediate/some-file.txt ./
 ```
 
+##### `--platform <platform>` (**experimental**)
+
+In *artifact form*, it specifies the platform to build the artifact on.
+
+For more information see the [multi-platform guide](../guides/multi-platform.md).
+
+#### Examples
+
+Assuming the following directory tree, of a folder named `test`:
+
+```
+test
+  └── file
+```
+
+Here is how the following copy commands will behave:
+
+```
+# Copies the contents of the test directory.
+# To access the file, it would be found at ./file
+COPY test .
+
+# Also copies the contents of the test directory.
+# To access the file, it would be found at ./file
+COPY test/* .
+
+# Copies the whole test folder.
+# To access the file, it would be found at ./test/file
+COPY --dir test .
+```
+
+For detailed examples demonstrating how other scenarios may function, please see our [test suite](https://github.com/earthly/earthly/blob/main/examples/tests/copy.earth).
+
 ## GIT CLONE
 
 #### Synopsis
@@ -352,6 +398,33 @@ Instructs Earthly to not overwrite the file creation timestamps with a constant.
 
 Instructs Earthly to keep file ownership information.
 
+#### Examples
+
+Assuming the following directory tree, of a folder named `test`:
+
+```
+test
+  └── file
+
+```
+
+Here is how the following `SAVE ARTIFACT ... AS LOCAL` commands will behave:
+
+```
+WORKDIR base
+COPY test .
+
+# This will copy the base folder into the output directory.
+# You would find file at out-dot/base/file.
+SAVE ARTIFACT . AS LOCAL out-dot/
+
+# This will copy the contents of the base folder into the output directory.
+# You would find sub-file at out-glob/file. Note the base directory is not in the output.
+SAVE ARTIFACT ./* AS LOCAL out-glob/
+```
+
+For detailed examples demonstrating how other scenarios may function, please see our [test suite](https://github.com/earthly/earthly/blob/main/examples/tests/file-copying.earth).
+
 ## SAVE IMAGE
 
 #### Synopsis
@@ -391,7 +464,7 @@ Instructs Earthly that the current target should be included as part of the expl
 
 #### Synopsis
 
-* `BUILD [--build-arg <key>=<value>] <target-ref>`
+* `BUILD [--build-arg <key>=<value>] [--platform <platform>] <target-ref>`
 
 #### Description
 
@@ -420,6 +493,19 @@ or a dynamic expression, based on the output of a command executed in the contex
 ```
 --build-arg SOME_ARG=$(find /app -type f -name '*.php')
 ```
+
+##### `--platform <platform>` (**experimental**)
+
+Specifies the platform to build on.
+
+This flag may be repeated in order to instruct the system to perform the build for multiple platforms. For example
+
+```Dockerfile
+build-all-platforms:
+    BUILD --platform=linux/amd64 --platform=linux/arm/v7 +build
+```
+
+For more information see the [multi-platform guide](../guides/multi-platform.md).
 
 ## ARG
 
@@ -538,6 +624,12 @@ This option may be repeated in order to specify multiple services.
 ##### `--build-arg <key>=<value>`
 
 Sets a value override of `<value>` for the build arg identified by `<key>`, when building a `<target-ref>` (specified via `--load`). See also [BUILD](#build) for more details about the `--build-arg` option.
+
+##### `--platform <platform>` (**experimental**)
+
+Specifies the platform for any referenced `--load` and `--pull` images.
+
+For more information see the [multi-platform guide](../guides/multi-platform.md).
 
 ## DOCKER PULL (**deprecated**)
 
