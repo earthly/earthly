@@ -1,4 +1,4 @@
-FROM earthly/dind:alpine-main
+FROM earthly/dind:alpine
 
 push:
     RUN date | md5sum | head -c 32 > motd

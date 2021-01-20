@@ -1,4 +1,4 @@
-FROM earthly/dind:alpine-main
+FROM earthly/dind:alpine
 
 push:
     ARG ACCT_ID
