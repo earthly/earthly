@@ -115,6 +115,34 @@ jobs:
         run: docker logs earthly-buildkitd
         if: ${{ failure() }}
 
+  cloud-integration:
+    name: Cloud Integration
+    runs-on: ubuntu-latest
+    env:
+      FORCE_COLOR: 1
+      EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
+      EARTHLY_INSTALL_ID: "earthly-githubactions"
+    steps:
+      - uses: actions/checkout@v2
+      - name: Download released earthly
+        run: "sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/latest/download/earthly-linux-amd64 -O /usr/local/bin/earthly && chmod +x /usr/local/bin/earthly'"
+      - name: Docker Login (non fork only)
+        run: docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password "${{ secrets.DOCKERHUB_TOKEN }}"
+        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+      - name: Build latest earthly using released earthly
+        run: earthly --use-inline-cache +for-linux
+      - name: Push and Pull Images (not a fork)
+        run: |
+          export EARTHLY_BUILD_ARGS="DOCKERHUB_USER_SECRET=+secrets/earthly-technologies/dockerhub/user,DOCKERHUB_TOKEN_SECRET=+secrets/earthly-technologies/dockerhub/token"
+          ./build/linux/amd64/earthly --ci -P ./examples/tests/cloud-push-pull+all
+        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+      - name: Push and Pull Images (fork)
+        run: ./build/linux/amd64/earthly --ci -P ./examples/tests/cloud-push-pull+all
+        if: github.event_name != 'push' && github.event.pull_request.head.repo.full_name != github.repository
+      - name: Buildkit logs (runs on failure)
+        run: docker logs earthly-buildkitd
+        if: ${{ failure() }}
+
   secrets:
     name: secrets-integration
     runs-on: ubuntu-latest
@@ -171,7 +199,7 @@ jobs:
   push:
     name: --push +all
     if: github.event_name == 'push'
-    needs: ["tests", "misc-tests", "examples"]
+    needs: ["tests", "misc-tests", "examples", "cloud-integration"]
     runs-on: ubuntu-latest
     env:
       FORCE_COLOR: 1
