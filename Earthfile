@@ -1,4 +1,5 @@
-FROM golang:1.13-alpine3.11
+ARG GO_VERSION=1.15
+FROM golang:${GO_VERSION}-alpine3.13
 
 RUN apk add --update --no-cache \
     bash \
@@ -19,6 +20,8 @@ RUN apk add --update --no-cache \
 WORKDIR /earthly
 
 deps:
+    ARG GO_VERSION=1.15
+    FROM --build-arg GO_VERSION +base
     RUN go get golang.org/x/tools/cmd/goimports
     RUN go get golang.org/x/lint/golint
     RUN go get github.com/gordonklaus/ineffassign
@@ -28,7 +31,8 @@ deps:
     SAVE ARTIFACT go.sum AS LOCAL go.sum
 
 code:
-    FROM +deps
+    ARG GO_VERSION=1.15
+    FROM --build-arg GO_VERSION +deps
     COPY ./earthfile2llb/parser+parser/*.go ./earthfile2llb/parser/
     COPY --dir analytics autocomplete buildcontext builder cleanup cmd config conslogging debugger dockertar \
         docker2earthly domain fileutil gitutil llbutil logging secretsclient stringutil states syncutil termutil \
@@ -37,7 +41,7 @@ code:
     COPY --dir earthfile2llb/antlrhandler earthfile2llb/*.go earthfile2llb/
 
 lint-scripts:
-    FROM alpine:3.11
+    FROM alpine:3.13
     RUN apk add --update --no-cache shellcheck
     COPY ./earthly ./scripts/install-all-versions.sh ./buildkitd/entrypoint.sh ./earthly-buildkitd-wrapper.sh \
         ./buildkitd/dockerd-wrapper.sh ./buildkitd/docker-auto-install.sh \
@@ -98,7 +102,8 @@ debugger:
     SAVE ARTIFACT build/earth_debugger
 
 earthly:
-    FROM +code
+    ARG GO_VERSION=1.15
+    FROM --build-arg GO_VERSION +code
     ARG GOOS=linux
     ARG TARGETARCH
     ARG TARGETVARIANT
@@ -140,7 +145,7 @@ earthly-linux-amd64:
         +earthly/* ./
     SAVE ARTIFACT ./*
 
-earthly-arm7:
+earthly-linux-arm7:
     COPY \
         --build-arg GOARCH=arm \
         --build-arg VARIANT=v7 \
@@ -148,7 +153,7 @@ earthly-arm7:
         +earthly/* ./
     SAVE ARTIFACT ./*
 
-earthly-arm64:
+earthly-linux-arm64:
     COPY \
         --build-arg GOARCH=arm64 \
         --build-arg GO_EXTRA_LDFLAGS= \
@@ -164,8 +169,8 @@ earthly-darwin-amd64:
     SAVE ARTIFACT ./*
 
 earthly-darwin-arm64:
-    # TODO: This doesn't work yet. https://github.com/golang/go/issues/40698#issuecomment-680134833
     COPY \
+        --build-arg GO_VERSION=1.16beta1 \
         --build-arg GOOS=darwin \
         --build-arg GOARCH=arm64 \
         --build-arg GO_EXTRA_LDFLAGS= \
@@ -175,9 +180,9 @@ earthly-darwin-arm64:
 earthly-all:
     COPY +earthly-linux-amd64/earthly ./earthly-linux-amd64
     COPY +earthly-darwin-amd64/earthly ./earthly-darwin-amd64
-    #COPY +earthly-darwin-arm64/earthly ./earthly-darwin-arm64
-    COPY +earthly-arm7/earthly ./earthly-linux-arm7
-    COPY +earthly-arm64/earthly ./earthly-linux-arm64
+    COPY +earthly-darwin-arm64/earthly ./earthly-darwin-arm64
+    COPY +earthly-linux-arm7/earthly ./earthly-linux-arm7
+    COPY +earthly-linux-arm64/earthly ./earthly-linux-arm64
     SAVE ARTIFACT ./*
 
 earthly-docker:
@@ -244,7 +249,11 @@ all:
     BUILD +earthly-all
     BUILD +earthly-docker
     BUILD +prerelease
-    BUILD +dind
+    BUILD \
+        --platform=linux/amd64 \
+        --platform=linux/arm/v7 \
+        --platform=linux/arm64 \
+        +dind
 
 test:
     BUILD +lint
