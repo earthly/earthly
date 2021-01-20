@@ -58,7 +58,6 @@ ga:
     BUILD ./autocompletion+test-all
     BUILD ./with-docker+all
     BUILD ./with-docker-compose+all
-    BUILD ./cloud-push-pull+all
 
 experimental:
     BUILD ./dind-auto-install+all
