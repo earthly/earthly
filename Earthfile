@@ -100,8 +100,10 @@ debugger:
 earthly:
     FROM +code
     ARG GOOS=linux
-    ARG GOARCH=amd64
-    ARG GOARM
+    ARG TARGETARCH
+    ARG TARGETVARIANT
+    ARG GOARCH=$TARGETARCH
+    ARG VARIANT=$TARGETVARIANT
     ARG GO_EXTRA_LDFLAGS="-linkmode external -extldflags -static"
     RUN test -n "$GOOS" && test -n "$GOARCH"
     RUN test "$GOARCH" != "ARM" || test -n "$GOARM"
@@ -121,7 +123,7 @@ earthly:
     # Important! If you change the go build options, you may need to also change them
     # in https://github.com/Homebrew/homebrew-core/blob/master/Formula/earthly.rb.
     RUN --mount=type=cache,target=$GOCACHE \
-        go build \
+        GOARM=${VARIANT#v} go build \
             -tags "$(cat ./build/tags)" \
             -ldflags "$(cat ./build/ldflags)" \
             -o build/earthly \
@@ -131,10 +133,17 @@ earthly:
     SAVE ARTIFACT build/earthly AS LOCAL "build/$GOOS/$GOARCH$GOARM/earthly"
     SAVE IMAGE --cache-from=earthly/earthly:main
 
+earthly-linux-amd64:
+    COPY \
+        --build-arg GOARCH=amd64 \
+        --build-arg VARIANT= \
+        +earthly/* ./
+    SAVE ARTIFACT ./*
+
 earthly-arm7:
     COPY \
         --build-arg GOARCH=arm \
-        --build-arg GOARM=7 \
+        --build-arg VARIANT=v7 \
         --build-arg GO_EXTRA_LDFLAGS= \
         +earthly/* ./
     SAVE ARTIFACT ./*
@@ -164,7 +173,7 @@ earthly-darwin-arm64:
     SAVE ARTIFACT ./*
 
 earthly-all:
-    COPY +earthly/earthly ./earthly-linux-amd64
+    COPY +earthly-linux-amd64/earthly ./earthly-linux-amd64
     COPY +earthly-darwin-amd64/earthly ./earthly-darwin-amd64
     #COPY +earthly-darwin-arm64/earthly ./earthly-darwin-arm64
     COPY +earthly-arm7/earthly ./earthly-linux-arm7
@@ -212,7 +221,7 @@ dind-ubuntu:
 
 for-linux:
     BUILD ./buildkitd+buildkitd
-    COPY +earthly/earthly ./
+    COPY +earthly-linux-amd64/earthly ./
     SAVE ARTIFACT ./earthly
 
 for-darwin:
