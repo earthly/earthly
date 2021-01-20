@@ -41,7 +41,7 @@ code:
     COPY --dir earthfile2llb/antlrhandler earthfile2llb/*.go earthfile2llb/
 
 lint-scripts:
-    FROM alpine:3.13
+    FROM --platform=linux/amd64 alpine:3.13
     RUN apk add --update --no-cache shellcheck
     COPY ./earthly ./scripts/install-all-versions.sh ./buildkitd/entrypoint.sh ./earthly-buildkitd-wrapper.sh \
         ./buildkitd/dockerd-wrapper.sh ./buildkitd/docker-auto-install.sh \
