@@ -36,7 +36,15 @@ Artifact Repository does not issue permanent credentials. Instead, it relies on 
 
 ## IAM
 
-Ensure that you have correct permissions to push and pull the images. Please reference the [GCP documentation](https://cloud.google.com/artifact-registry/docs/access-control#grant) to ensure you have the correct permissions set.
+Ensure that you have correct permissions to push and pull the images. Please reference the [GCP documentation](https://cloud.google.com/artifact-registry/docs/access-control#grant) to ensure you have the correct permissions set. You will need to add the `Artifact Registry Reader` and `Artifact Registry Writer` roles to complete the tasks in this guide.
+
+If you are using GCR; keep in mind that the needed permissions are based on the GCP storage permissions. We used the `Storage Admin` permissions to complete the guide with GCR.
+
+Service Accounts also work with Earthly. Rather than `gcloud init`, simply log in using the Google-provided key like this:
+
+```
+RUN gcloud auth activate-service-account --key-file /test/key.json
+```
 
 ## Run the Target
 

@@ -46,7 +46,15 @@ ACR boasts many other methods of logging in, including [Service Principals](http
 
 ## RBAC
 
-Ensure that you have correct permissions to push and pull the images. Please reference the [ACR RBAC documentation](https://docs.microsoft.com/en-us/azure/container-registry/container-registry-roles) to ensure you have the correct permissions set. To complete all the activities in this guide, you will need to have at least the permissions detailed in the built-in `Contributor` role.
+Ensure that you have correct permissions to push and pull the images. Please reference the [ACR RBAC documentation](https://docs.microsoft.com/en-us/azure/container-registry/container-registry-roles) to ensure you have the correct permissions set. To complete all the activities in this guide, you will need to have at least the `AcrPush` role.
+
+Earthly also works with Service Principals; and these do not require `az acr login`. You can simply login directly with `docker` like this: 
+
+```
+RUN --secret AZ_USERNAME=+secrets/earthly-technologies/azure/ci-cd-username \
+    --secret AZ_PASSWORD=+secrets/earthly-technologies/azure/ci-cd-password \
+    docker login helloearthly.azurecr.io --username $AZ_USERNAME --password $AZ_PASSWORD
+```
 
 ## Run the Target
 
@@ -111,4 +119,4 @@ h/hello-earthly:with-love | [██████████] resolve helloearthl
 
 ### 401 (authentication required)
 
-Re-run `az acr login --name` to log in again and refresh your credentials.
+Re-run `az acr login --name` to log in again and refresh your credentials. Azure recommends that you run this at the beginning o each automated script; keep this in mind for your CI runs.

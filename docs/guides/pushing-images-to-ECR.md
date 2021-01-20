@@ -23,7 +23,7 @@ build:
 
 ECR does not issue permanent credentials. Instead, it relies on your AWS credentials to issue docker credentials. You can follow [instructions to log in with generated credentials](https://docs.aws.amazon.com/cli/latest/reference/ecr/get-login.html), but the process will need to be repeated every 12 hours. In practice, this often means lots of glue code in your CI pipeline to keep credentials up to date.
 
-AWS has released a credential helper to ease logging into ECR. It may be that you already have the credential helper installed, since it has been included with Docker Desktop as of version [2.4.0.0](https://docs.docker.com/docker-for-windows/release-notes/#docker-desktop-community-2400). If not, you can follow installation instructions on their GitHub repository here. Here is a sample `.docker/config.json` to enable the usage of this helper:
+[AWS has released a credential helper to ease logging into ECR](https://github.com/awslabs/amazon-ecr-credential-helper). It may be that you already have the credential helper installed, since it has been included with Docker Desktop as of version [2.4.0.0](https://docs.docker.com/docker-for-windows/release-notes/#docker-desktop-community-2400). If not, you can follow installation instructions on their GitHub repository here. Here is a sample `.docker/config.json` to enable the usage of this helper:
 
 ```
 {
