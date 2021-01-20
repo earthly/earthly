@@ -236,8 +236,7 @@ for-darwin:
 
 for-darwin-m1:
     BUILD ./buildkitd+buildkitd
-    # amd64 works on arm64 via rosetta 2.
-    COPY +earthly-darwin-amd64/earthly ./
+    COPY +earthly-darwin-arm64/earthly ./
     SAVE ARTIFACT ./earthly
 
 all:
