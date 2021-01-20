@@ -111,7 +111,7 @@ earthly:
     ARG VARIANT=$TARGETVARIANT
     ARG GO_EXTRA_LDFLAGS="-linkmode external -extldflags -static"
     RUN test -n "$GOOS" && test -n "$GOARCH"
-    RUN test "$GOARCH" != "ARM" || test -n "$GOARM"
+    RUN test "$GOARCH" != "arm" || test -n "$VARIANT"
     ARG EARTHLY_TARGET_TAG_DOCKER
     ARG VERSION=$EARTHLY_TARGET_TAG_DOCKER
     ARG EARTHLY_GIT_HASH
@@ -135,7 +135,7 @@ earthly:
             cmd/earthly/*.go
     SAVE ARTIFACT ./build/tags
     SAVE ARTIFACT ./build/ldflags
-    SAVE ARTIFACT build/earthly AS LOCAL "build/$GOOS/$GOARCH$GOARM/earthly"
+    SAVE ARTIFACT build/earthly AS LOCAL "build/$GOOS/$GOARCH$VARIANT/earthly"
     SAVE IMAGE --cache-from=earthly/earthly:main
 
 earthly-linux-amd64:
