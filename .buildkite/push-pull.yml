@@ -7,3 +7,4 @@ steps:
       EARTHLY_INSTALL_ID: "earthly-buildkite-macos"
     agents:
       os: macOS
+      arch: amd64
