@@ -2,7 +2,7 @@
 steps:
   - label: Push and Pull
     commands:
-      - bash ./.buildkite/blog-examples-test.sh
+      - bash ./.buildkite/push-pull.sh
     env:
       EARTHLY_INSTALL_ID: "earthly-buildkite-macos"
     agents:

@@ -1,11 +1,10 @@
 #!/bin/bash
 set -xeuo pipefail
 
-earthly="earthly"
-if ! command -v "$earthly"; then
-    earthly="earth"
-fi
+echo "Download latest Earthly binary"
+curl -o ./earthly-released -L https://github.com/earthly/earthly/releases/latest/download/earthly-"$EARTH_OS"-amd64 && chmod +x ./earthly-released
 
-$earthly --version
+echo "Build latest earthly using released earthly"
+./earthly-released +for-darwin
 
-$earthly examples/tests/cloud-push-pull+all
+./build/darwin/amd64/earthly examples/tests/cloud-push-pull+all
