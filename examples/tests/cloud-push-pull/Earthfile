@@ -58,6 +58,7 @@ google-container-repository:
 azure-container-registry:
     COPY azure-container-registry.earth ./Earthfile
    
+   # Note that we dont have to install a cred helper here, also the cred helper wouldnt help here anyways
     RUN --secret AZ_USERNAME=+secrets/earthly-technologies/azure/ci-cd-username \
         --secret AZ_PASSWORD=+secrets/earthly-technologies/azure/ci-cd-password \
         docker login earthlyintegrationtest.azurecr.io --username $AZ_USERNAME --password $AZ_PASSWORD
@@ -73,8 +74,6 @@ azure-container-registry:
     -- -P +pull
 
 amazon-base:
-    RUN echo "ok"
-    
     ENV GLIBC_VER=2.31-r0
 
     # install glibc compatibility for alpine
@@ -118,6 +117,8 @@ amazon-elastic-container-registry:
 
     ENV AWS_REGION us-west-2
 
+    # Pass through Account ID this way to avoid checking it in to GitHub;
+    # its not strictly secret this way but its secret enough
     RUN --secret AWS_ACCESS_KEY_ID=+secrets/earthly-technologies/aws/ci-cd-access-key \
     --secret AWS_SECRET_ACCESS_KEY=+secrets/earthly-technologies/aws/ci-cd-access-secret \
     --secret ACCT_ID=+secrets/earthly-technologies/aws/account-id \
