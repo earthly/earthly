@@ -225,17 +225,17 @@ dind-ubuntu:
     SAVE IMAGE --push --cache-from=earthly/dind:ubuntu-main earthly/dind:$DIND_UBUNTU_TAG
 
 for-linux:
-    BUILD ./buildkitd+buildkitd
+    BUILD --platform=linux/amd64 ./buildkitd+buildkitd
     COPY +earthly-linux-amd64/earthly ./
     SAVE ARTIFACT ./earthly
 
 for-darwin:
-    BUILD ./buildkitd+buildkitd
+    BUILD --platform=linux/amd64 ./buildkitd+buildkitd
     COPY +earthly-darwin-amd64/earthly ./
     SAVE ARTIFACT ./earthly
 
 for-darwin-m1:
-    BUILD ./buildkitd+buildkitd
+    BUILD --platform=linux/arm64 ./buildkitd+buildkitd
     COPY +earthly-darwin-arm64/earthly ./
     SAVE ARTIFACT ./earthly
 
