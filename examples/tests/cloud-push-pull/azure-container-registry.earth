@@ -1,8 +1,6 @@
 FROM earthly/dind:alpine-main
 
 push:
-    FROM +base
-    
     RUN date | md5sum | head -c 32 > motd
     ENTRYPOINT cat motd
 
