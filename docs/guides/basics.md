@@ -53,7 +53,7 @@ Here is a sample earthfile of a JS app
 ```Dockerfile
 # Earthfile
 
-FROM node:13.10.1-alpine3.13
+FROM node:13.10.1-alpine3.11
 WORKDIR /js-example
 
 build:
@@ -253,8 +253,8 @@ docker:
 ```Dockerfile
 # Earthfile
 
-# The build starts from a docker image: node:13.10.1-alpine3.13
-FROM node:13.10.1-alpine3.13
+# The build starts from a docker image: node:13.10.1-alpine3.11
+FROM node:13.10.1-alpine3.11
 # We change the current working directory.
 WORKDIR /js-example
 
@@ -482,7 +482,7 @@ The build then might become
 ```Dockerfile
 # Earthfile
 
-FROM node:13.10.1-alpine3.13
+FROM node:13.10.1-alpine3.11
 WORKDIR /js-example
 
 build:
@@ -647,7 +647,7 @@ docker:
 ```Dockerfile
 # Earthfile
 
-FROM node:13.10.1-alpine3.13
+FROM node:13.10.1-alpine3.11
 WORKDIR /js-example
 
 build:
@@ -759,7 +759,7 @@ docker:
 ```Dockerfile
 # Earthfile
 
-FROM node:13.10.1-alpine3.13
+FROM node:13.10.1-alpine3.11
 WORKDIR /js-example
 
 deps:

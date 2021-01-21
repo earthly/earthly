@@ -15,7 +15,7 @@ Here is an example of what the main repository's `Earthfile` might look like
 ```Dockerfile
 # Earthfile
 
-FROM node:13.10.1-alpine3.13
+FROM node:13.10.1-alpine3.11
 WORKDIR /example-multirepo
 
 docker:
