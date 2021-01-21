@@ -1,4 +1,5 @@
-FROM golang:1.13-alpine3.11
+ARG GO_VERSION=1.15
+FROM golang:${GO_VERSION}-alpine3.13
 
 RUN apk add --update --no-cache \
     bash \
@@ -19,6 +20,8 @@ RUN apk add --update --no-cache \
 WORKDIR /earthly
 
 deps:
+    ARG GO_VERSION=1.15
+    FROM --build-arg GO_VERSION +base
     RUN go get golang.org/x/tools/cmd/goimports
     RUN go get golang.org/x/lint/golint
     RUN go get github.com/gordonklaus/ineffassign
@@ -28,7 +31,8 @@ deps:
     SAVE ARTIFACT go.sum AS LOCAL go.sum
 
 code:
-    FROM +deps
+    ARG GO_VERSION=1.15
+    FROM --build-arg GO_VERSION +deps
     COPY ./earthfile2llb/parser+parser/*.go ./earthfile2llb/parser/
     COPY --dir analytics autocomplete buildcontext builder cleanup cmd config conslogging debugger dockertar \
         docker2earthly domain fileutil gitutil llbutil logging secretsclient stringutil states syncutil termutil \
@@ -37,7 +41,7 @@ code:
     COPY --dir earthfile2llb/antlrhandler earthfile2llb/*.go earthfile2llb/
 
 lint-scripts:
-    FROM alpine:3.11
+    FROM --platform=linux/amd64 alpine:3.13
     RUN apk add --update --no-cache shellcheck
     COPY ./earthly ./scripts/install-all-versions.sh ./buildkitd/entrypoint.sh ./earthly-buildkitd-wrapper.sh \
         ./buildkitd/dockerd-wrapper.sh ./buildkitd/docker-auto-install.sh \
@@ -98,13 +102,16 @@ debugger:
     SAVE ARTIFACT build/earth_debugger
 
 earthly:
-    FROM +code
+    ARG GO_VERSION=1.15
+    FROM --build-arg GO_VERSION +code
     ARG GOOS=linux
-    ARG GOARCH=amd64
-    ARG GOARM
+    ARG TARGETARCH
+    ARG TARGETVARIANT
+    ARG GOARCH=$TARGETARCH
+    ARG VARIANT=$TARGETVARIANT
     ARG GO_EXTRA_LDFLAGS="-linkmode external -extldflags -static"
     RUN test -n "$GOOS" && test -n "$GOARCH"
-    RUN test "$GOARCH" != "ARM" || test -n "$GOARM"
+    RUN test "$GOARCH" != "arm" || test -n "$VARIANT"
     ARG EARTHLY_TARGET_TAG_DOCKER
     ARG VERSION=$EARTHLY_TARGET_TAG_DOCKER
     ARG EARTHLY_GIT_HASH
@@ -121,25 +128,32 @@ earthly:
     # Important! If you change the go build options, you may need to also change them
     # in https://github.com/Homebrew/homebrew-core/blob/master/Formula/earthly.rb.
     RUN --mount=type=cache,target=$GOCACHE \
-        go build \
+        GOARM=${VARIANT#v} go build \
             -tags "$(cat ./build/tags)" \
             -ldflags "$(cat ./build/ldflags)" \
             -o build/earthly \
             cmd/earthly/*.go
     SAVE ARTIFACT ./build/tags
     SAVE ARTIFACT ./build/ldflags
-    SAVE ARTIFACT build/earthly AS LOCAL "build/$GOOS/$GOARCH$GOARM/earthly"
+    SAVE ARTIFACT build/earthly AS LOCAL "build/$GOOS/$GOARCH$VARIANT/earthly"
     SAVE IMAGE --cache-from=earthly/earthly:main
 
-earthly-arm7:
+earthly-linux-amd64:
+    COPY \
+        --build-arg GOARCH=amd64 \
+        --build-arg VARIANT= \
+        +earthly/* ./
+    SAVE ARTIFACT ./*
+
+earthly-linux-arm7:
     COPY \
         --build-arg GOARCH=arm \
-        --build-arg GOARM=7 \
+        --build-arg VARIANT=v7 \
         --build-arg GO_EXTRA_LDFLAGS= \
         +earthly/* ./
     SAVE ARTIFACT ./*
 
-earthly-arm64:
+earthly-linux-arm64:
     COPY \
         --build-arg GOARCH=arm64 \
         --build-arg GO_EXTRA_LDFLAGS= \
@@ -155,8 +169,8 @@ earthly-darwin-amd64:
     SAVE ARTIFACT ./*
 
 earthly-darwin-arm64:
-    # TODO: This doesn't work yet. https://github.com/golang/go/issues/40698#issuecomment-680134833
     COPY \
+        --build-arg GO_VERSION=1.16beta1 \
         --build-arg GOOS=darwin \
         --build-arg GOARCH=arm64 \
         --build-arg GO_EXTRA_LDFLAGS= \
@@ -164,11 +178,11 @@ earthly-darwin-arm64:
     SAVE ARTIFACT ./*
 
 earthly-all:
-    COPY +earthly/earthly ./earthly-linux-amd64
+    COPY +earthly-linux-amd64/earthly ./earthly-linux-amd64
     COPY +earthly-darwin-amd64/earthly ./earthly-darwin-amd64
-    #COPY +earthly-darwin-arm64/earthly ./earthly-darwin-arm64
-    COPY +earthly-arm7/earthly ./earthly-linux-arm7
-    COPY +earthly-arm64/earthly ./earthly-linux-arm64
+    COPY +earthly-darwin-arm64/earthly ./earthly-darwin-arm64
+    COPY +earthly-linux-arm7/earthly ./earthly-linux-arm7
+    COPY +earthly-linux-arm64/earthly ./earthly-linux-arm64
     SAVE ARTIFACT ./*
 
 earthly-docker:
@@ -211,19 +225,18 @@ dind-ubuntu:
     SAVE IMAGE --push --cache-from=earthly/dind:ubuntu-main earthly/dind:$DIND_UBUNTU_TAG
 
 for-linux:
-    BUILD ./buildkitd+buildkitd
-    COPY +earthly/earthly ./
+    BUILD --platform=linux/amd64 ./buildkitd+buildkitd
+    COPY +earthly-linux-amd64/earthly ./
     SAVE ARTIFACT ./earthly
 
 for-darwin:
-    BUILD ./buildkitd+buildkitd
+    BUILD --platform=linux/amd64 ./buildkitd+buildkitd
     COPY +earthly-darwin-amd64/earthly ./
     SAVE ARTIFACT ./earthly
 
 for-darwin-m1:
-    BUILD ./buildkitd+buildkitd
-    # amd64 works on arm64 via rosetta 2.
-    COPY +earthly-darwin-amd64/earthly ./
+    BUILD --platform=linux/arm64 ./buildkitd+buildkitd
+    COPY +earthly-darwin-arm64/earthly ./
     SAVE ARTIFACT ./earthly
 
 all:
@@ -235,7 +248,11 @@ all:
     BUILD +earthly-all
     BUILD +earthly-docker
     BUILD +prerelease
-    BUILD +dind
+    BUILD \
+        --platform=linux/amd64 \
+        --platform=linux/arm/v7 \
+        --platform=linux/arm64 \
+        +dind
 
 test:
     BUILD +lint
