@@ -54,7 +54,7 @@ All earthfiles start with a base recipe. This is the only recipe which does not 
 
 ```
 # base recipe
-FROM golang:1.13-alpine3.13
+FROM golang:1.15-alpine3.13
 WORKDIR /go-example
 
 build:
