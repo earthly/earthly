@@ -1,5 +1,5 @@
 
-FROM alpine:3.11
+FROM alpine:3.13
 
 RUN apk add --update --no-cache \
     curl
@@ -32,7 +32,7 @@ release-dockerhub:
         ../buildkitd+buildkitd
 
 release-github:
-    FROM node:13.10.1-alpine3.11
+    FROM node:13.10.1-alpine3.13
     RUN npm install -g github-release-cli@v1.3.1
     WORKDIR /earthly
     ARG RELEASE_TAG

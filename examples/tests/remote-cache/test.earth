@@ -2,14 +2,14 @@
 ARG REGISTRY
 
 test1:
-    FROM alpine:3.11
+    FROM alpine:3.13
     RUN echo "execute-test1-run-before-copy"
     COPY ./input ./
     RUN echo "execute-test1-run-after-copy"
     SAVE IMAGE --push --insecure $REGISTRY/test1:latest
 
 test2-base:
-    FROM node:13.10.1-alpine3.11
+    FROM node:13.10.1-alpine3.13
     WORKDIR /js-example
 
 test2-deps:

@@ -38,7 +38,7 @@ $earthly account login | perl -pe 'BEGIN {$status=1} END {exit $status} $status=
 
 mkdir -p /tmp/earthtest
 cat << EOF > /tmp/earthtest/Earthfile
-FROM alpine:3.11
+FROM alpine:3.13
 test-local-secret:
     WORKDIR /test
     RUN --mount=type=secret,target=/tmp/test_file,id=+secrets/my_secret test "\$(cat /tmp/test_file)" = "secret-value"

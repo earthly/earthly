@@ -26,7 +26,7 @@ Here is an example of a possible root-level `Earthfile` file, where an `all` tar
 ```Dockerfile
 # Earthfile
 
-FROM alpine:3.11
+FROM alpine:3.13
 
 all:
     BUILD ./proj1+docker

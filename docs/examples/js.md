@@ -5,7 +5,7 @@ A complete JavaScript example is available on [the Basics page](../guides/basics
 ```Dockerfile
 # Earthfile
 
-FROM node:13.10.1-alpine3.11
+FROM node:13.10.1-alpine3.13
 WORKDIR /js-example
 
 deps:

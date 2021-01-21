@@ -21,12 +21,12 @@ In order to build it, you would normally run something like
 go build -o build/go-example main.go
 ```
 
-In our case, we will use a `Earthfile` to build it. We will create a target called `build`, and we will copy the necessary files within it (in this case, just `main.go`) and then execute the `go build` command. We will also need a base Docker image that has go pre-installed: `golang:1.13-alpine3.11`.
+In our case, we will use a `Earthfile` to build it. We will create a target called `build`, and we will copy the necessary files within it (in this case, just `main.go`) and then execute the `go build` command. We will also need a base Docker image that has go pre-installed: `golang:1.13-alpine3.13`.
 
 ```Dockerfile
 # Earthfile
 
-FROM golang:1.13-alpine3.11
+FROM golang:1.13-alpine3.13
 
 WORKDIR /go-example
 
@@ -44,9 +44,9 @@ To execute the build, we can run `earthly +build`:
 ~/workspace/earthly/examples/go ❯ earthly +build
 buildkitd | Found buildkit daemon as docker container (earthly-buildkitd)
 context | --> local context .
-+base | --> FROM golang:1.13-alpine3.11
-+base | resolve docker.io/library/golang:1.13-alpine3.11@sha256:7d45a6fc9cde63c3bf41651736996fe94a8347e726fe581926fd8c26e244e3b2 0%
-+base | resolve docker.io/library/golang:1.13-alpine3.11@sha256:7d45a6fc9cde63c3bf41651736996fe94a8347e726fe581926fd8c26e244e3b2 100%
++base | --> FROM golang:1.13-alpine3.13
++base | resolve docker.io/library/golang:1.13-alpine3.13@sha256:7d45a6fc9cde63c3bf41651736996fe94a8347e726fe581926fd8c26e244e3b2 0%
++base | resolve docker.io/library/golang:1.13-alpine3.13@sha256:7d45a6fc9cde63c3bf41651736996fe94a8347e726fe581926fd8c26e244e3b2 100%
 +base | --> WORKDIR /go-example
 context | transferring .: 0%
 context | transferring .: 0%
@@ -85,9 +85,9 @@ We can then run `earthly +docker` to build this target:
 ~/workspace/earthly/examples/go ❯ earthly +docker     
 buildkitd | Found buildkit daemon as docker container (earthly-buildkitd)
 context | --> local context .
-+base | --> FROM golang:1.13-alpine3.11
-+base | resolve docker.io/library/golang:1.13-alpine3.11@sha256:7d45a6fc9cde63c3bf41651736996fe94a8347e726fe581926fd8c26e244e3b2 0%
-+base | resolve docker.io/library/golang:1.13-alpine3.11@sha256:7d45a6fc9cde63c3bf41651736996fe94a8347e726fe581926fd8c26e244e3b2 100%
++base | --> FROM golang:1.13-alpine3.13
++base | resolve docker.io/library/golang:1.13-alpine3.13@sha256:7d45a6fc9cde63c3bf41651736996fe94a8347e726fe581926fd8c26e244e3b2 0%
++base | resolve docker.io/library/golang:1.13-alpine3.13@sha256:7d45a6fc9cde63c3bf41651736996fe94a8347e726fe581926fd8c26e244e3b2 100%
 +base | *cached* --> WORKDIR /go-example
 +build | *cached* --> FROM ([]) +base
 context | transferring .: 0%

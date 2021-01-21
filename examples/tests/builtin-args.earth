@@ -1,4 +1,4 @@
-FROM alpine:3.11
+FROM alpine:3.13
 builtin-args-test:
     ARG EARTHLY_TARGET
     ARG EARTHLY_TARGET_PROJECT

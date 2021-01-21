@@ -1,4 +1,4 @@
-FROM golang:1.13-alpine3.11
+FROM golang:1.13-alpine3.13
 RUN apk --update --no-cache add git g++ make curl wget ca-certificates
 RUN echo "Some time-consuming operation" && sleep 10 && echo "...done"
 RUN echo "Another time-consuming operation" && sleep 10 && echo "...done"

@@ -1,4 +1,4 @@
-FROM alpine:3.11
+FROM alpine:3.13
 test:
     RUN cat /proc/self/status | grep CapEff | grep 00000000a80425fb
     RUN --privileged cat /proc/self/status | grep CapEff | grep 0000003fffffffff

@@ -92,7 +92,7 @@ This would cause the build to execute on the `linux/arm64` architecture.
 The easiest way to include platform information as part of a build is through the use of `FROM --platform`. For example:
 
 ```Dockerfile
-FROM --platform=linux/arm/v7 alpine:3.11
+FROM --platform=linux/arm/v7 alpine:3.13
 ```
 
 If multiple targets create an image with the same name, but for different platforms, the images will be merged into a multi-platform image during export. For example:
@@ -103,12 +103,12 @@ build-all-platforms:
     BUILD +build-arm-v7
 
 build-amd64:
-    FROM --platform=linux/amd64 alpine:3.11
+    FROM --platform=linux/amd64 alpine:3.13
     ...
     SAVE IMAGE --push org/myimage:latest
 
 build-arm-v7:
-    FROM --platform=linux/arm/v7 alpine:3.11
+    FROM --platform=linux/arm/v7 alpine:3.13
     ...
     SAVE IMAGE --push org/myimage:latest
 ```
@@ -122,7 +122,7 @@ build-all-platforms:
     BUILD --platform=linux/amd64 --platform=linux/arm/v7 +build
 
 build:
-    FROM alpine:3.11
+    FROM alpine:3.13
     ...
     SAVE IMAGE --push org/myimage:latest
 ```
@@ -163,7 +163,7 @@ build-all-platforms:
     BUILD +build-arm-v7
 
 build:
-    FROM golang:1.13-alpine3.11
+    FROM golang:1.13-alpine3.13
     WORKDIR /example
     ARG GOOS=linux
     ARG GOARCH=amd64
@@ -173,13 +173,13 @@ build:
     SAVE ARTIFACT ./main
 
 build-amd64:
-    FROM --platform=linux/amd64 alpine:3.11
+    FROM --platform=linux/amd64 alpine:3.13
     COPY +build/main ./example/main
     ENTRYPOINT ["/example/main"]
     SAVE IMAGE --push org/myimage:latest
 
 build-arm-v7:
-    FROM --platform=linux/arm/v7 alpine:3.11
+    FROM --platform=linux/arm/v7 alpine:3.13
     COPY \
         --platform=linux/amd64 \
         --build-arg GOARCH=arm \
@@ -207,7 +207,7 @@ build-all-platforms:
     BUILD --platform=linux/amd64 --platform=linux/arm/v7 +build-image
 
 build:
-    FROM golang:1.13-alpine3.11
+    FROM golang:1.13-alpine3.13
     WORKDIR /example
     ARG GOOS=linux
     ARG GOARCH=amd64
@@ -220,7 +220,7 @@ build-image:
     ARG TARGETPLATFORM
     ARG TARGETARCH
     ARG TARGETVARIANT
-    FROM --platform=$TARGETPLATFORM alpine:3.11
+    FROM --platform=$TARGETPLATFORM alpine:3.13
     COPY \
         --platform=linux/amd64 \
         --build-arg GOARCH=$TARGETARCH \
