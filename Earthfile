@@ -285,5 +285,12 @@ examples:
     BUILD ./examples/multiplatform-cross-compile+build-all-platforms
     BUILD github.com/earthly/hello-world:main+hello
 
+test-local:
+    FROM LOCAL
+    # If run inside a container, one would expect something like 
+    # 12:cpuset:/docker/e4b6b1698e80c6a2d8ccdfcd689a1ce5828587ada1337ddcb0b9a80caf0087a4/buildkit/83zo724g6vr1ipssy0dic9kpa
+    RUN cat /proc/1/cgroup | grep '^[0-9]\+:cpuset:/$'
+    RUN --push touch /tmp/earthly-test-local
+
 test-fail:
     RUN false

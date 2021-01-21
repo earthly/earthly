@@ -55,6 +55,7 @@ import (
 	"github.com/moby/buildkit/client/llb"
 	"github.com/moby/buildkit/session"
 	"github.com/moby/buildkit/session/auth/authprovider"
+	"github.com/moby/buildkit/session/localhost/localhostprovider"
 	"github.com/moby/buildkit/session/sshforward/sshprovider"
 	"github.com/moby/buildkit/util/entitlements"
 	specs "github.com/opencontainers/image-spec/specs-go/v1"
@@ -2070,6 +2071,11 @@ func (app *earthlyApp) actionBuild(c *cli.Context) error {
 		return errors.Wrap(err, "failed to create secretsclient")
 	}
 
+	localhostProvider, err := localhostprovider.NewLocalhostProvider()
+	if err != nil {
+		return errors.Wrap(err, "failed to create localhostprovider")
+	}
+
 	cacheLocalDir, err := ioutil.TempDir("", "earthly-cache")
 	if err != nil {
 		return errors.Wrap(err, "make temp dir for cache")
@@ -2083,6 +2089,7 @@ func (app *earthlyApp) actionBuild(c *cli.Context) error {
 		llbutil.NewSecretProvider(sc, secretsMap),
 		authprovider.NewDockerAuthProvider(os.Stderr),
 		buildContextProvider,
+		localhostProvider,
 	}
 
 	gitLookup := buildcontext.NewGitLookup()

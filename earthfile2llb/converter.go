@@ -28,6 +28,7 @@ import (
 	"github.com/moby/buildkit/client/llb"
 	"github.com/moby/buildkit/frontend/dockerfile/dockerfile2llb"
 	gwclient "github.com/moby/buildkit/frontend/gateway/client"
+	"github.com/moby/buildkit/session/localhost"
 	solverpb "github.com/moby/buildkit/solver/pb"
 	specs "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
@@ -253,6 +254,13 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 	return nil
 }
 
+// FromLocal applies the earthly FROM LOCAL command.
+func (c *Converter) FromLocal(ctx context.Context, platform *specs.Platform) error {
+	imageName := "busybox:1.32.1" // this image can be anything that contains the /bin/true command
+	// it's used by our buildkit RunOnLocalHostMagicStr hack
+	return c.fromClassical(ctx, imageName, platform)
+}
+
 // CopyArtifact applies the earthly COPY artifact command.
 func (c *Converter) CopyArtifact(ctx context.Context, artifactName string, dest string, platform *specs.Platform, buildArgs []string, isDir bool, keepTs bool, keepOwn bool, chown string, ifExists bool) error {
 	c.nonSaveCommand()
@@ -297,12 +305,29 @@ func (c *Converter) CopyClassical(ctx context.Context, srcs []string, dest strin
 			dest))
 }
 
-func (c *Converter) RunLocal(ctx context.Context, args []string) {
-	c.mts.Final.MainState = c.mts.Final.MainState.Run(
-		llb.Args(args),
-		llb.AddMount("/run_on_localhost_hack", llb.Scratch()),
+func (c *Converter) RunLocal(ctx context.Context, args []string, pushFlag bool) {
+	runStr := fmt.Sprintf("RUN LOCAL %s%s", strIf(pushFlag, "--push "), strings.Join(args, " "))
+	finalArgs := withShellAndEnvVars(args, []string{}, true, false)
+	opts := []llb.RunOption{
+		llb.Args(finalArgs),
+		llb.AddMount(localhost.RunOnLocalHostMagicStr, llb.Scratch()), // hack to tell buildkit to run this locally
 		llb.IgnoreCache,
-	).Root()
+		llb.WithCustomNamef("%s%s", c.vertexPrefix(), runStr),
+	}
+
+	if pushFlag {
+		if !c.mts.Final.RunPush.Initialized {
+			// If this is the first push-flagged command, initialize the state with the latest
+			// side-effects state.
+			c.mts.Final.RunPush.State = c.mts.Final.MainState
+			c.mts.Final.RunPush.Initialized = true
+		}
+		c.mts.Final.RunPush.State = c.mts.Final.RunPush.State.Run(opts...).Root()
+		c.mts.Final.RunPush.CommandStrs = append(
+			c.mts.Final.RunPush.CommandStrs, runStr)
+	} else {
+		c.mts.Final.MainState = c.mts.Final.MainState.Run(opts...).Root()
+	}
 }
 
 // Run applies the earthly RUN command.

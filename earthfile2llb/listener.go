@@ -162,18 +162,24 @@ func (l *listener) ExitFromStmt(c *parser.FromStmtContext) {
 	}
 
 	if imageName == "LOCAL" {
-		imageName = "alpine:latest"
-		// TODO trigger local mode
 		l.local = true
+		if len(buildArgs.Args) != 0 {
+			l.err = errors.New("--build-arg not supported in FROM LOCAL")
+			return
+		}
+
+		err = l.converter.FromLocal(l.ctx, platform)
+		if err != nil {
+			l.err = errors.Wrapf(err, "apply FROM LOCAL")
+			return
+		}
 	} else {
 		l.local = false
-	}
-
-	fmt.Printf("here: %v %v %v\n", imageName, platform, buildArgs.Args)
-	err = l.converter.From(l.ctx, imageName, platform, buildArgs.Args)
-	if err != nil {
-		l.err = errors.Wrapf(err, "apply FROM %s", imageName)
-		return
+		err = l.converter.From(l.ctx, imageName, platform, buildArgs.Args)
+		if err != nil {
+			l.err = errors.Wrapf(err, "apply FROM %s", imageName)
+			return
+		}
 	}
 }
 
@@ -360,10 +366,25 @@ func (l *listener) ExitRunStmt(c *parser.RunStmtContext) {
 
 	if l.local {
 		if len(mounts.Args) > 0 {
-			panic("not supported")
+			l.err = fmt.Errorf("mounts are not supported under a FROM LOCAL target: %s", c.GetText())
+			return
 		}
-		// TODO check that other RUN options aren't included
-		l.converter.RunLocal(l.ctx, fs.Args())
+		if *withSSH {
+			l.err = fmt.Errorf("the --ssh flag has no effect under a FROM LOCAL target: %s", c.GetText())
+			return
+		}
+		if *privileged {
+			l.err = fmt.Errorf("the --privileged flag has no effect under a FROM LOCAL target: %s", c.GetText())
+			return
+		}
+
+		// TODO these should be supported, but haven't yet been implemented
+		if len(secrets.Args) > 0 {
+			l.err = fmt.Errorf("secrets need to be implemented FROM LOCAL target: %s", c.GetText())
+			return
+		}
+
+		l.converter.RunLocal(l.ctx, fs.Args(), *pushFlag)
 		return
 	}
 

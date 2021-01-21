@@ -127,6 +127,8 @@ github.com/alecthomas/units v0.0.0-20190924025748-f65c72e2690d/go.mod h1:rBZYJk5
 github.com/alessio/shellescape v1.4.1 h1:V7yhSDDn8LP4lc4jS8pFkt0zCnzVJlG5JXy9BVKJUX0=
 github.com/alessio/shellescape v1.4.1/go.mod h1:PZAiSCk0LJaZkiCSkPv8qIobYglO3FPpyFjDCtHLS30=
 github.com/alexcb/buildkit v0.7.1-0.20210121022007-fe54bbf8fefc/go.mod h1:bKMxvrnFTubnm4FL9lT8Nhz1JwYeJPEuYKN/sr7z+KA=
+github.com/alexcb/buildkit v0.7.1-0.20210121221256-5d2c84e68642/go.mod h1:bKMxvrnFTubnm4FL9lT8Nhz1JwYeJPEuYKN/sr7z+KA=
+github.com/alexcb/buildkit v0.7.1-0.20210121235835-202c7c8c0292/go.mod h1:bKMxvrnFTubnm4FL9lT8Nhz1JwYeJPEuYKN/sr7z+KA=
 github.com/alexflint/go-filemutex v0.0.0-20171022225611-72bdc8eae2ae/go.mod h1:CgnQgUtFrFz9mxFNtED3jI5tLDjKlOM+oUF/sTk6ps0=
 github.com/anmitsu/go-shlex v0.0.0-20161002113705-648efa622239/go.mod h1:2FmKhYUyUczH0OGQWaF5ceTx0UBShxjsH6f8oGKYe2c=
 github.com/antlr/antlr4 v0.0.0-20200225173536-225249fdaef5 h1:nkZ9axP+MvUFCu8JRN/MCY+DmTfs6lY7hE0QnJbxSdI=

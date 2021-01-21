@@ -169,6 +169,28 @@ jobs:
         run: docker logs earthly-buildkitd
         if: ${{ failure() }}
 
+  from-local-test:
+    name: FROM LOCAL test
+    runs-on: ubuntu-latest
+    env:
+      FORCE_COLOR: 1
+      EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
+      EARTHLY_INSTALL_ID: "earthly-githubactions"
+    steps:
+      - uses: actions/checkout@v2
+      - name: Download released earthly
+        run: "sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/latest/download/earthly-linux-amd64 -O /usr/local/bin/earthly && chmod +x /usr/local/bin/earthly'"
+      - name: Build latest earthly using released earthly
+        run: earthly --use-inline-cache +for-linux
+      - name: Execute test-local
+        run: "./build/linux/amd64/earthly --ci +test-local"
+      - name: Check --push flag works locally
+        run: "! ls /tmp/earthly-test-local"
+      - name: Execute test-local --push
+        run: "./build/linux/amd64/earthly --ci --push +test-local"
+      - name: Check --push cmd was run (and touched this file on the local disk)
+        run: "! ls /tmp/earthly-test-local"
+
   private-repo-test:
     services:
       sshd:
