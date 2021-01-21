@@ -38,7 +38,7 @@ The `FROM ... AS ...` form available in the classical Dockerfile syntax is not s
 ```Dockerfile
 # Dockerfile
 
-FROM alpine:3.11 AS build
+FROM alpine:3.13 AS build
 # ... instructions for build
 
 FROM build as another
@@ -54,7 +54,7 @@ can become
 # Earthfile
 
 build:
-    FROM alpine:3.11
+    FROM alpine:3.13
     # ... instructions for build
     SAVE ARTIFACT ./a-file
 

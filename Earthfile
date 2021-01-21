@@ -197,7 +197,7 @@ earthly-docker:
     SAVE IMAGE --push --cache-from=earthly/earthly:main earthly/earthly:$TAG
 
 prerelease:
-    FROM alpine:3.11
+    FROM alpine:3.13
     BUILD --build-arg TAG=prerelease \
         --platform=linux/amd64 \
         --platform=linux/arm/v7 \

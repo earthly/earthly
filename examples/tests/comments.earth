@@ -1,5 +1,5 @@
 
-FROM alpine:3.11 #The image to use
+FROM alpine:3.13 #The image to use
 WORKDIR /test #the work dir
 
 test: #the target

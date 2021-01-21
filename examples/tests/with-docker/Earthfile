@@ -9,7 +9,7 @@ all:
     BUILD +one-target-many-names
 
 a-test-image:
-    FROM alpine:3.11
+    FROM alpine:3.13
     RUN mkdir /abc
     WORKDIR /abc
     RUN echo "hello world" >def.txt
