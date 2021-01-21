@@ -297,6 +297,14 @@ func (c *Converter) CopyClassical(ctx context.Context, srcs []string, dest strin
 			dest))
 }
 
+func (c *Converter) RunLocal(ctx context.Context, args []string) {
+	c.mts.Final.MainState = c.mts.Final.MainState.Run(
+		llb.Args(args),
+		llb.AddMount("/run_on_localhost_hack", llb.Scratch()),
+		llb.IgnoreCache,
+	).Root()
+}
+
 // Run applies the earthly RUN command.
 func (c *Converter) Run(ctx context.Context, args, mounts, secretKeyValues []string, privileged, withEntrypoint, withDocker, isWithShell, pushFlag, withSSH bool) error {
 	c.nonSaveCommand()

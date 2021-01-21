@@ -37,6 +37,8 @@ type listener struct {
 	withDocker    *WithDockerOpt
 	withDockerRan bool
 
+	local bool
+
 	execMode  bool
 	stmtWords []string
 
@@ -158,6 +160,16 @@ func (l *listener) ExitFromStmt(c *parser.FromStmtContext) {
 	for i, ba := range buildArgs.Args {
 		buildArgs.Args[i] = l.expandArgs(ba, true)
 	}
+
+	if imageName == "LOCAL" {
+		imageName = "alpine:latest"
+		// TODO trigger local mode
+		l.local = true
+	} else {
+		l.local = false
+	}
+
+	fmt.Printf("here: %v %v %v\n", imageName, platform, buildArgs.Args)
 	err = l.converter.From(l.ctx, imageName, platform, buildArgs.Args)
 	if err != nil {
 		l.err = errors.Wrapf(err, "apply FROM %s", imageName)
@@ -345,6 +357,15 @@ func (l *listener) ExitRunStmt(c *parser.RunStmtContext) {
 		mounts.Args[i] = l.expandArgs(m, false)
 	}
 	// Note: Not expanding args for the run itself, as that will be take care of by the shell.
+
+	if l.local {
+		if len(mounts.Args) > 0 {
+			panic("not supported")
+		}
+		// TODO check that other RUN options aren't included
+		l.converter.RunLocal(l.ctx, fs.Args())
+		return
+	}
 
 	if l.withDocker == nil {
 		err = l.converter.Run(
