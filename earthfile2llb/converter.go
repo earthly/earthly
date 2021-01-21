@@ -390,7 +390,7 @@ func (c *Converter) SaveArtifact(ctx context.Context, saveFrom string, saveTo st
 		return errors.New("SAVE ARTIFACT is not supported with --push")
 	}
 
-	absSaveFrom, err := llbutil.Abs(ctx, c.mts.Final.MainState, saveFrom)
+	absSaveFrom, err := llbutil.Abs(ctx, c.mts.Final.CurrentState(), saveFrom)
 	if err != nil {
 		return err
 	}
@@ -850,6 +850,7 @@ func (c *Converter) internalRun(ctx context.Context, args, secretKeyValues []str
 			}
 			finalOpts = append(finalOpts, llb.AddSecret(secretPath, secretOpts...))
 			// TODO: The use of cat here might not be portable.
+			// NARRATOR: It wasn't.
 			extraEnvVars = append(extraEnvVars, fmt.Sprintf("%s=\"$(cat %s)\"", envVar, secretPath))
 		} else if parts[1] == "" {
 			// If empty string, don't use (used for optional secrets).
@@ -912,11 +913,8 @@ func (c *Converter) internalRun(ctx context.Context, args, secretKeyValues []str
 			// If this is the first push-flagged command, initialize the state with the latest
 			// side-effects state.
 
-			// stateToRef
-			// get state from that
-
 			nextPhaseState := c.mts.Final.CurrentState().WithValue("commandStr", []string{})
-			err := c.mts.Final.NextPhase(nextPhaseState) // use state from ref to initalize state for new phase
+			err := c.mts.Final.NextPhase(nextPhaseState)
 			if err != nil {
 				return errors.Wrap(err, "run phase")
 			}
