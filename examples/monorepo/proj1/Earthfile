@@ -1,4 +1,4 @@
-FROM python:3.8.2-alpine3.13
+FROM python:3.8.2-alpine3.11
 
 docker:
     COPY main.py ./
