@@ -25,9 +25,8 @@ buildkitd:
     COPY ./cni-conf.json /etc/cni/cni-conf.json
 
     # Scripts and binaries used for the builds.
-    ARG TARGETPLATFORM
-    COPY --platform=$TARGETPLATFORM ../+shellrepeater/shellrepeater /usr/bin/shellrepeater
-    COPY --platform=$TARGETPLATFORM ../+debugger/earth_debugger /usr/bin/earth_debugger
+    COPY ../+shellrepeater/shellrepeater /usr/bin/shellrepeater
+    COPY ../+debugger/earth_debugger /usr/bin/earth_debugger
     COPY ./dockerd-wrapper.sh /var/earthly/dockerd-wrapper.sh
     COPY ./docker-auto-install.sh /var/earthly/docker-auto-install.sh
 

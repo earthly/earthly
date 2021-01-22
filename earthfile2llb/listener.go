@@ -10,9 +10,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/containerd/containerd/platforms"
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/earthfile2llb/parser"
+	"github.com/earthly/earthly/llbutil"
 	specs "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
 )
@@ -146,14 +146,10 @@ func (l *listener) ExitFromStmt(c *parser.FromStmtContext) {
 	}
 	imageName := l.expandArgs(fs.Arg(0), true)
 	*platformStr = l.expandArgs(*platformStr, false)
-	var platform *specs.Platform
-	if *platformStr != "" {
-		p, err := platforms.Parse(*platformStr)
-		if err != nil {
-			l.err = errors.Wrapf(err, "parse platform %s", *platformStr)
-			return
-		}
-		platform = &p
+	platform, err := llbutil.ParsePlatform(*platformStr)
+	if err != nil {
+		l.err = errors.Wrapf(err, "parse platform %s", *platformStr)
+		return
 	}
 	for i, ba := range buildArgs.Args {
 		buildArgs.Args[i] = l.expandArgs(ba, true)
@@ -198,14 +194,10 @@ func (l *listener) ExitFromDockerfileStmt(c *parser.FromDockerfileStmtContext) {
 		buildArgs.Args[i] = l.expandArgs(ba, true)
 	}
 	*platformStr = l.expandArgs(*platformStr, false)
-	var platform *specs.Platform
-	if *platformStr != "" {
-		p, err := platforms.Parse(*platformStr)
-		if err != nil {
-			l.err = errors.Wrapf(err, "parse platform %s", *platformStr)
-			return
-		}
-		platform = &p
+	platform, err := llbutil.ParsePlatform(*platformStr)
+	if err != nil {
+		l.err = errors.Wrapf(err, "parse platform %s", *platformStr)
+		return
 	}
 	*dfPath = l.expandArgs(*dfPath, false)
 	*dfTarget = l.expandArgs(*dfTarget, false)
@@ -254,14 +246,10 @@ func (l *listener) ExitCopyStmt(c *parser.CopyStmtContext) {
 	}
 	*chown = l.expandArgs(*chown, false)
 	*platformStr = l.expandArgs(*platformStr, false)
-	var platform *specs.Platform
-	if *platformStr != "" {
-		p, err := platforms.Parse(*platformStr)
-		if err != nil {
-			l.err = errors.Wrapf(err, "parse platform %s", *platformStr)
-			return
-		}
-		platform = &p
+	platform, err := llbutil.ParsePlatform(*platformStr)
+	if err != nil {
+		l.err = errors.Wrapf(err, "parse platform %s", *platformStr)
+		return
 	}
 	allClassical := true
 	allArtifacts := true
@@ -512,12 +500,12 @@ func (l *listener) ExitBuildStmt(c *parser.BuildStmtContext) {
 	platformsSlice := make([]*specs.Platform, 0, len(platformsStr.Args))
 	for i, p := range platformsStr.Args {
 		platformsStr.Args[i] = l.expandArgs(p, false)
-		platform, err := platforms.Parse(p)
+		platform, err := llbutil.ParsePlatform(p)
 		if err != nil {
 			l.err = errors.Wrapf(err, "parse platform %s", p)
 			return
 		}
-		platformsSlice = append(platformsSlice, &platform)
+		platformsSlice = append(platformsSlice, platform)
 	}
 	for i, arg := range buildArgs.Args {
 		buildArgs.Args[i] = l.expandArgs(arg, true)
@@ -830,14 +818,10 @@ func (l *listener) ExitWithDockerStmt(c *parser.WithDockerStmtContext) {
 	}
 
 	*platformStr = l.expandArgs(*platformStr, false)
-	var platform *specs.Platform
-	if *platformStr != "" {
-		p, err := platforms.Parse(*platformStr)
-		if err != nil {
-			l.err = errors.Wrapf(err, "parse platform %s", *platformStr)
-			return
-		}
-		platform = &p
+	platform, err := llbutil.ParsePlatform(*platformStr)
+	if err != nil {
+		l.err = errors.Wrapf(err, "parse platform %s", *platformStr)
+		return
 	}
 	for i, cf := range composeFiles.Args {
 		composeFiles.Args[i] = l.expandArgs(cf, false)

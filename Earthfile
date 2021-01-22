@@ -227,6 +227,11 @@ dind-ubuntu:
     ARG DIND_UBUNTU_TAG=ubuntu-$EARTHLY_TARGET_TAG_DOCKER
     SAVE IMAGE --push --cache-from=earthly/dind:ubuntu-main earthly/dind:$DIND_UBUNTU_TAG
 
+for-own:
+    BUILD ./buildkitd+buildkitd
+    COPY +earthly/earthly ./
+    SAVE ARTIFACT ./earthly
+
 for-linux:
     BUILD --platform=linux/amd64 ./buildkitd+buildkitd
     COPY +earthly-linux-amd64/earthly ./

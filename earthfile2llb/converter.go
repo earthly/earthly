@@ -595,13 +595,9 @@ func (c *Converter) buildTarget(ctx context.Context, fullTargetName string, plat
 	opt := c.opt
 	opt.Visited = c.mts.Visited
 	opt.VarCollection = newVarCollection
-	if propagateBuildArgs {
-		opt.Platform, err = llbutil.ResolvePlatform(platform, c.opt.Platform)
-		if err != nil {
-			// Contradiction allowed. You can BUILD another target with different platform.
-			opt.Platform = platform
-		}
-	} else {
+	opt.Platform, err = llbutil.ResolvePlatform(platform, c.opt.Platform)
+	if err != nil {
+		// Contradiction allowed. You can BUILD another target with different platform.
 		opt.Platform = platform
 	}
 	mts, err := Earthfile2LLB(ctx, target, opt)
