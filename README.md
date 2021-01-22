@@ -5,7 +5,6 @@
 [![Docs](https://img.shields.io/badge/docs-git%20book-blue)](https://docs.earthly.dev)
 [![Website](https://img.shields.io/badge/website-earthly.dev-blue)](https://earthly.dev)
 [![Docker Hub](https://img.shields.io/badge/docker%20hub-earthly-blue)](https://hub.docker.com/u/earthly)
-[![License](https://img.shields.io/badge/license-MPL--2.0-blue.svg)](http://www.apache.org/licenses/LICENSE-2.0)
 <a href="https://www.producthunt.com/posts/earthly-2?utm_source=badge-featured&utm_medium=badge&utm_souce=badge-earthly-2" target="_blank"><img src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=266617&theme=dark" alt="Earthly - Build anything via containers | Product Hunt" width="93" height="20" /></a>
 
 **🐳 Build anything via containers** - *build images or standalone artifacts (binaries, packages, arbitrary files)*
