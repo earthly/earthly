@@ -735,7 +735,7 @@ func (c *Converter) GitClone(ctx context.Context, gitURL string, branch string, 
 func (c *Converter) WithDockerRun(ctx context.Context, args []string, opt WithDockerOpt) error {
 	c.nonSaveCommand()
 
-	if c.mts.Final.CurrentPhase == states.PhasePush || c.mts.Final.CurrentPhase == states.PhasePostPush {
+	if c.mts.Final.CurrentPhase == states.PhasePush {
 		return errors.New("WITH DOCKER is not supported with OR after --push")
 	}
 
