@@ -254,8 +254,8 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 	return nil
 }
 
-// FromLocal applies the earthly FROM LOCAL command.
-func (c *Converter) FromLocal(ctx context.Context, platform *specs.Platform) error {
+// Locally applies the earthly Locally command.
+func (c *Converter) Locally(ctx context.Context, platform *specs.Platform) error {
 	imageName := "busybox:1.32.1" // this image can be anything that contains the /bin/true command
 	// it's used by our buildkit RunOnLocalHostMagicStr hack
 	return c.fromClassical(ctx, imageName, platform)
@@ -305,6 +305,7 @@ func (c *Converter) CopyClassical(ctx context.Context, srcs []string, dest strin
 			dest))
 }
 
+// RunLocal applies a RUN statement locally rather than in a container
 func (c *Converter) RunLocal(ctx context.Context, args []string, pushFlag bool) {
 	runStr := fmt.Sprintf("RUN %s%s", strIf(pushFlag, "--push "), strings.Join(args, " "))
 	finalArgs := withShellAndEnvVars(args, []string{}, true, false)

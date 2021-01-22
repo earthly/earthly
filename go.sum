@@ -313,6 +313,7 @@ github.com/earthly/buildkit v0.7.1-0.20201204211015-b5787f368c39 h1:ZXiKOR6RaXuP
 github.com/earthly/buildkit v0.7.1-0.20201204211015-b5787f368c39/go.mod h1:/kyU1hKy/aYCuP39GZA9MaKioovHku57N6cqlKZIaiQ=
 github.com/earthly/buildkit v0.7.1-0.20201215191153-a070b6efa62d h1:SkbXmynbji+082vwCziF21i9QTukMNSnxq3r69k4a8k=
 github.com/earthly/buildkit v0.7.1-0.20201215191153-a070b6efa62d/go.mod h1:bKMxvrnFTubnm4FL9lT8Nhz1JwYeJPEuYKN/sr7z+KA=
+github.com/earthly/buildkit v0.7.1-0.20210122190119-a4122a2d8a4c/go.mod h1:bKMxvrnFTubnm4FL9lT8Nhz1JwYeJPEuYKN/sr7z+KA=
 github.com/elazarl/goproxy v0.0.0-20170405201442-c4fc26588b6e/go.mod h1:/Zj4wYkgs4iZTTu3o/KG3Itv/qCCa8VVMlb3i9OVuzc=
 github.com/elazarl/goproxy v0.0.0-20180725130230-947c36da3153/go.mod h1:/Zj4wYkgs4iZTTu3o/KG3Itv/qCCa8VVMlb3i9OVuzc=
 github.com/emicklei/go-restful v0.0.0-20170410110728-ff4f55a20633/go.mod h1:otzb+WCGbkyDHkqmQmT5YD2WR4BBwUdeQoFo8l/7tVs=
