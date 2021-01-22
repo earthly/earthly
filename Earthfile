@@ -156,6 +156,7 @@ earthly-linux-arm7:
 earthly-linux-arm64:
     COPY \
         --build-arg GOARCH=arm64 \
+        --build-arg VARIANT= \
         --build-arg GO_EXTRA_LDFLAGS= \
         +earthly/* ./
     SAVE ARTIFACT ./*
@@ -164,6 +165,7 @@ earthly-darwin-amd64:
     COPY \
         --build-arg GOOS=darwin \
         --build-arg GOARCH=amd64 \
+        --build-arg VARIANT= \
         --build-arg GO_EXTRA_LDFLAGS= \
         +earthly/* ./
     SAVE ARTIFACT ./*
@@ -173,6 +175,7 @@ earthly-darwin-arm64:
         --build-arg GO_VERSION=1.16beta1 \
         --build-arg GOOS=darwin \
         --build-arg GOARCH=arm64 \
+        --build-arg VARIANT= \
         --build-arg GO_EXTRA_LDFLAGS= \
         +earthly/* ./
     SAVE ARTIFACT ./*

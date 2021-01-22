@@ -78,6 +78,7 @@ echo "EARTHLY_ADDITIONAL_BUILDKIT_CONFIG=$EARTHLY_ADDITIONAL_BUILDKIT_CONFIG"
 echo "======== Buildkitd config =========="
 cat /etc/buildkitd.toml
 echo "======== End buildkitd config =========="
+echo "Detected container architecture is $(uname -m)"
 
 # start shell repeater server
 echo starting shellrepeater
