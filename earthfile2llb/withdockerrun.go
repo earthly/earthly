@@ -183,7 +183,10 @@ func (wdr *withDockerRun) installDeps(ctx context.Context, opt WithDockerOpt) er
 		llb.Args(args),
 		llb.WithCustomNamef("%sWITH DOCKER (install deps)", wdr.c.vertexPrefix()),
 	}
-	wdr.c.mts.Final.SetCurrentState(wdr.c.mts.Final.CurrentState().Run(runOpts...).Root())
+	wdr.c.mts.Final.SetCurrentState(
+		func(state llb.State) llb.State {
+			return state.Run(runOpts...).Root()
+		})
 	return nil
 }
 

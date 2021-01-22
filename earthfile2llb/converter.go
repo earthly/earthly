@@ -125,7 +125,7 @@ func (c *Converter) fromClassical(ctx context.Context, imageName string, platfor
 	if err != nil {
 		return err
 	}
-	c.mts.Final.SetCurrentState(state)
+	c.mts.Final.SetCurrentState(states.DirectAssign(state))
 	c.mts.Final.SetCurrentImage(img)
 	c.varCollection = newVariables
 	return nil
@@ -269,7 +269,7 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 		return errors.Wrap(err, "unmarshal dockerfile image")
 	}
 	state2, img2, newVarCollection := c.applyFromImage(*state, &img)
-	c.mts.Final.SetCurrentState(state2)
+	c.mts.Final.SetCurrentState(states.DirectAssign(state2))
 	c.mts.Final.SetCurrentImage(img2)
 	c.varCollection = newVarCollection
 	return nil
@@ -302,17 +302,19 @@ func (c *Converter) CopyArtifact(ctx context.Context, artifactName string, dest 
 	relevantDepState := mts.Final
 	// Copy.
 	c.mts.Final.SetCurrentState(
-		llbutil.CopyOp(
-			relevantDepState.ArtifactsState, []string{artifact.Artifact},
-			c.mts.Final.CurrentState(), dest, true, isDir, keepTs, c.copyOwner(keepOwn, chown), ifExists,
-			llb.WithCustomNamef(
-				"%sCOPY %s%s%s%s %s",
-				c.vertexPrefix(),
-				strIf(isDir, "--dir "),
-				strIf(ifExists, "--if-exists "),
-				joinWrap(buildArgs, "(", " ", ") "),
-				artifact.String(),
-				dest)))
+		func(state llb.State) llb.State {
+			return llbutil.CopyOp(
+				relevantDepState.ArtifactsState, []string{artifact.Artifact},
+				state, dest, true, isDir, keepTs, c.copyOwner(keepOwn, chown), ifExists,
+				llb.WithCustomNamef(
+					"%sCOPY %s%s%s%s %s",
+					c.vertexPrefix(),
+					strIf(isDir, "--dir "),
+					strIf(ifExists, "--if-exists "),
+					joinWrap(buildArgs, "(", " ", ") "),
+					artifact.String(),
+					dest))
+		})
 	return nil
 }
 
@@ -329,14 +331,16 @@ func (c *Converter) CopyClassical(ctx context.Context, srcs []string, dest strin
 	}
 
 	c.mts.Final.SetCurrentState(
-		llbutil.CopyOp(
-			c.buildContext, srcs, c.mts.Final.CurrentState(), dest, true, isDir, keepTs, c.copyOwner(keepOwn, chown), false,
-			llb.WithCustomNamef(
-				"%sCOPY %s%s %s",
-				c.vertexPrefix(),
-				strIf(isDir, "--dir "),
-				strings.Join(srcs, " "),
-				dest)))
+		func(state llb.State) llb.State {
+			return llbutil.CopyOp(
+				c.buildContext, srcs, state, dest, true, isDir, keepTs, c.copyOwner(keepOwn, chown), false,
+				llb.WithCustomNamef(
+					"%sCOPY %s%s %s",
+					c.vertexPrefix(),
+					strIf(isDir, "--dir "),
+					strings.Join(srcs, " "),
+					dest))
+		})
 
 	return nil
 }
@@ -515,7 +519,10 @@ func (c *Converter) Workdir(ctx context.Context, workdirPath string) error {
 		return errors.New("WORKDIR is not supported with --push")
 	}
 
-	c.mts.Final.SetCurrentState(c.mts.Final.CurrentState().Dir(workdirPath))
+	c.mts.Final.SetCurrentState(
+		func(state llb.State) llb.State {
+			return state.Dir(workdirPath)
+		})
 	workdirAbs := workdirPath
 	if !path.IsAbs(workdirAbs) {
 		workdirAbs = path.Join("/", c.mts.Final.CurrentImage().Config.WorkingDir, workdirAbs)
@@ -532,7 +539,9 @@ func (c *Converter) Workdir(ctx context.Context, workdirPath string) error {
 		opts := []llb.ConstraintsOpt{
 			llb.WithCustomNamef("%sWORKDIR %s", c.vertexPrefix(), workdirPath),
 		}
-		c.mts.Final.SetCurrentState(c.mts.Final.CurrentState().File(llb.Mkdir(workdirAbs, 0755, mkdirOpts...), opts...))
+		c.mts.Final.SetCurrentState(func(state llb.State) llb.State {
+			return state.File(llb.Mkdir(workdirAbs, 0755, mkdirOpts...), opts...)
+		})
 	}
 
 	return nil
@@ -550,7 +559,9 @@ func (c *Converter) User(ctx context.Context, user string) error {
 		return errors.New("USER is not supported with --push")
 	}
 
-	c.mts.Final.SetCurrentState(c.mts.Final.CurrentState().User(user))
+	c.mts.Final.SetCurrentState(func(state llb.State) llb.State {
+		return c.mts.Final.CurrentState().User(user)
+	})
 	c.mts.Final.CurrentImage().Config.User = user
 
 	return nil
@@ -641,7 +652,10 @@ func (c *Converter) Env(ctx context.Context, envKey string, envValue string) err
 	}
 
 	c.varCollection.AddActive(envKey, variables.NewConstantEnvVar(envValue), true, false)
-	c.mts.Final.SetCurrentState(c.mts.Final.CurrentState().AddEnv(envKey, envValue))
+	c.mts.Final.SetCurrentState(
+		func(state llb.State) llb.State {
+			return state.AddEnv(envKey, envValue)
+		})
 	c.mts.Final.CurrentImage().Config.Env = variables.AddEnv(
 		c.mts.Final.CurrentImage().Config.Env, envKey, envValue)
 
@@ -704,12 +718,14 @@ func (c *Converter) GitClone(ctx context.Context, gitURL string, branch string, 
 	}
 	gitState := llb.Git(gitURL, branch, gitOpts...)
 	c.mts.Final.SetCurrentState(
-		llbutil.CopyOp(
-			gitState, []string{"."}, c.mts.Final.CurrentState(), dest, false, false, keepTs,
-			c.mts.Final.CurrentImage().Config.User, false,
-			llb.WithCustomNamef(
-				"%sCOPY GIT CLONE (--branch %s) %s TO %s", c.vertexPrefix(),
-				branch, gitURL, dest)))
+		func(state llb.State) llb.State {
+			return llbutil.CopyOp(
+				gitState, []string{"."}, state, dest, false, false, keepTs,
+				c.mts.Final.CurrentImage().Config.User, false,
+				llb.WithCustomNamef(
+					"%sCOPY GIT CLONE (--branch %s) %s TO %s", c.vertexPrefix(),
+					branch, gitURL, dest))
+		})
 	return nil
 }
 
@@ -905,10 +921,16 @@ func (c *Converter) internalRun(ctx context.Context, args, secretKeyValues []str
 
 	switch targetPhase {
 	case states.PhaseMain:
-		c.mts.Final.SetCurrentState(c.mts.Final.CurrentState().Run(finalOpts...).Root())
+		c.mts.Final.SetCurrentState(
+			func(state llb.State) llb.State {
+				return state.Run(finalOpts...).Root()
+			})
 	default:
 		// For push-flagged commands, make sure they run every time - don't use cache.
-		finalOpts = append(finalOpts, llb.IgnoreCache)
+		// Except for the shadow phase, that should use cache all the time.
+		shadowFinalOpts := finalOpts
+		mainFinalOpts := append(finalOpts, llb.IgnoreCache)
+
 		if !c.mts.Final.HasPhase(targetPhase) {
 			// If this is the first push-flagged command, initialize the state with the latest
 			// side-effects state.
@@ -926,7 +948,11 @@ func (c *Converter) internalRun(ctx context.Context, args, secretKeyValues []str
 		commandStrs := rawCommandStrs.([]string)
 		commandStrs = append(commandStrs, commandStr)
 
-		c.mts.Final.SetCurrentState(c.mts.Final.CurrentState().WithValue("commandStr", commandStrs).Run(finalOpts...).Root())
+		base := c.mts.Final.CurrentState().WithValue("commandStr", commandStrs)
+		main := base.Run(mainFinalOpts...).Root()
+		shadow := base.Run(shadowFinalOpts...).Root()
+
+		c.mts.Final.SetCurrentStateWithAltShadow(main, shadow)
 	}
 
 	return nil
@@ -1036,9 +1062,11 @@ func (c *Converter) processNonConstantBuildArgFunc(ctx context.Context) variable
 		srcBuildArgDir := "/run/buildargs-src"
 		srcBuildArgPath := path.Join(srcBuildArgDir, name)
 		c.mts.Final.SetCurrentState(
-			c.mts.Final.CurrentState().File(
-				llb.Mkdir(srcBuildArgDir, 0755, llb.WithParents(true)),
-				llb.WithCustomNamef("[internal] mkdir %s", srcBuildArgDir)))
+			func(state llb.State) llb.State {
+				return state.File(
+					llb.Mkdir(srcBuildArgDir, 0755, llb.WithParents(true)),
+					llb.WithCustomNamef("[internal] mkdir %s", srcBuildArgDir))
+			})
 		buildArgPath := path.Join("/run/buildargs", name)
 		args := strings.Split(fmt.Sprintf("echo \"%s\" >%s", expression, srcBuildArgPath), " ")
 		err := c.internalRun(
@@ -1058,9 +1086,11 @@ func (c *Converter) processNonConstantBuildArgFunc(ctx context.Context) variable
 		c.nextArgIndex++
 		// Remove intermediary file from side effects state.
 		c.mts.Final.SetCurrentState(
-			c.mts.Final.CurrentState().File(
-				llb.Rm(srcBuildArgPath, llb.WithAllowNotFound(true)),
-				llb.WithCustomNamef("[internal] rm %s", srcBuildArgPath)))
+			func(state llb.State) llb.State {
+				return state.File(
+					llb.Rm(srcBuildArgPath, llb.WithAllowNotFound(true)),
+					llb.WithCustomNamef("[internal] rm %s", srcBuildArgPath))
+			})
 
 		return buildArgState, c.mts.Final.TargetInput, argIndex, nil
 	}
@@ -1102,8 +1132,10 @@ func (c *Converter) markFakeDeps() {
 	for _, dep := range c.directDeps {
 		if dep.HasDangling {
 			c.mts.Final.SetCurrentState(
-				llbutil.WithDependency(
-					c.mts.Final.CurrentState(), dep.CurrentState(), c.mts.Final.Target.String(), dep.Target.String()))
+				func(state llb.State) llb.State {
+					return llbutil.WithDependency(
+						c.mts.Final.CurrentState(), dep.CurrentState(), c.mts.Final.Target.String(), dep.Target.String())
+				})
 		}
 	}
 	// Clear the direct deps so we don't do this again.

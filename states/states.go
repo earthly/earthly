@@ -3,6 +3,8 @@ package states
 import (
 	"errors"
 
+	"github.com/earthly/earthly/llbutil"
+
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/states/dedup"
 	"github.com/earthly/earthly/states/image"
@@ -38,6 +40,10 @@ const (
 	PhaseMain Phase = iota
 	PhasePush
 	PhasePostPush
+)
+
+const (
+	phaseShadow = -(iota + 1)
 )
 
 // SingleTarget holds LLB states representing an earthly target.
@@ -108,12 +114,28 @@ func (sts *SingleTarget) CurrentImage() *image.Image {
 	return sts.ImageForPhase(sts.CurrentPhase)
 }
 
-func (sts *SingleTarget) SetCurrentState(state llb.State) {
-	sts.States[sts.CurrentPhase] = state
+func (sts *SingleTarget) SetCurrentState(f llbutil.StatesAdapter) {
+	sts.States[sts.CurrentPhase] = f(sts.States[sts.CurrentPhase])
+	sts.States[phaseShadow] = f(sts.States[phaseShadow])
+}
+
+func (sts *SingleTarget) SetCurrentStateWithAltShadow(real, shadow llb.State) {
+	sts.States[sts.CurrentPhase] = real
+	sts.States[phaseShadow] = shadow
+}
+
+func (sts *SingleTarget) ShadowState() llb.State {
+	return sts.States[phaseShadow]
 }
 
 func (sts *SingleTarget) SetCurrentImage(image *image.Image) {
 	sts.Images[sts.CurrentPhase] = image
+}
+
+func DirectAssign(new llb.State) llbutil.StatesAdapter {
+	return func(old llb.State) llb.State {
+		return new
+	}
 }
 
 // SaveLocal is an artifact path to be saved to local disk.
