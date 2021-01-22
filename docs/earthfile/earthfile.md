@@ -106,6 +106,29 @@ Sets a value override of `<value>` for the Dockerfile build arg identified by `<
 
 In a multi-stage Dockerfile, sets the target to be used for the build. This option is similar to the `docker build --target <target-name>` option.
 
+## LOCALLY (**experimental**)
+
+#### Synopsis
+
+* `LOCALLY`
+
+#### Description
+
+{% hint style='danger' %}
+##### Important
+
+This feature is currently in **Experimental** stage
+
+* The feature may break, be changed drastically with no warning, or be removed altogether in future versions of Earthly.
+* Check the [GitHub tracking issue](https://github.com/earthly/earthly/issues/580) for any known problems.
+* Give us feedback on [Slack](https://earthly.dev/slack) in the `#locally` channel.
+{% endhint %}
+
+The `LOCALLY` command instructs earthly to execute the following `RUN` commands locally on the host system.
+This feature should be used with caution as locally run commands have no guarantee they will behave the same on different systems.
+
+Only `RUN` commands are supported under a `LOCALLY` defined target; futhermore only `RUN`'s `--push` flag is supported.
+
 ## RUN
 
 #### Synopsis
