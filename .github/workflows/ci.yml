@@ -184,7 +184,7 @@ jobs:
         run: earthly --use-inline-cache +for-linux
       - name: Execute test-local
         run: "./build/linux/amd64/earthly --ci +test-local"
-      - name: Check --push flag works locally
+      - name: Check previous run without the --push flag correctly prevented the file from being touched
         run: "! ls /tmp/earthly-test-local"
       - name: Execute test-local --push
         run: "./build/linux/amd64/earthly --ci --push +test-local"
