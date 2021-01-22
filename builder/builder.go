@@ -148,6 +148,18 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 			return nil, err
 		}
 		res.AddRef("main", ref)
+		if opt.Push {
+			ref, err = b.stateToRef(ctx, gwClient, mts.Final.StateForPhase(states.PhaseMain), mts.Final.Platform)
+			if err != nil {
+				return nil, err
+			}
+			res.AddRef("push", ref)
+			ref, err = b.stateToRef(ctx, gwClient, mts.Final.StateForPhase(states.PhaseMain), mts.Final.Platform)
+			if err != nil {
+				return nil, err
+			}
+			res.AddRef("post-push", ref)
+		}
 		if !opt.NoOutput && opt.OnlyArtifact != nil && !opt.OnlyFinalTargetImages {
 			ref, err = b.stateToRef(ctx, gwClient, mts.Final.ArtifactsState, mts.Final.Platform)
 			if err != nil {
@@ -256,25 +268,30 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 				}
 			}
 			if !sts.Target.IsRemote() && !opt.NoOutput && !opt.OnlyFinalTargetImages && opt.OnlyArtifact == nil {
-				for _, saveLocal := range sts.SaveLocals {
-					ref, err := b.stateToRef(ctx, gwClient, sts.SeparateArtifactsState[saveLocal.Index], sts.Platform)
-					if err != nil {
-						return nil, err
+				for p := states.PhaseMain; p <= states.PhasePostPush; p++ {
+					if !opt.Push && p >= states.PhasePush {
+						break
 					}
-					refKey := fmt.Sprintf("dir-%d", dirIndex)
-					refPrefix := fmt.Sprintf("ref/%s", refKey)
-					res.AddRef(refKey, ref)
-					artifact := domain.Artifact{
-						Target:   sts.Target,
-						Artifact: saveLocal.ArtifactPath,
+					for _, saveLocal := range sts.SaveLocalsForPhase(p) {
+						ref, err := b.stateToRef(ctx, gwClient, sts.SeparateArtifactsState[saveLocal.Index], sts.Platform)
+						if err != nil {
+							return nil, err
+						}
+						refKey := fmt.Sprintf("dir-%d", dirIndex)
+						refPrefix := fmt.Sprintf("ref/%s", refKey)
+						res.AddRef(refKey, ref)
+						artifact := domain.Artifact{
+							Target:   sts.Target,
+							Artifact: saveLocal.ArtifactPath,
+						}
+						res.AddMeta(fmt.Sprintf("%s/artifact", refPrefix), []byte(artifact.String()))
+						res.AddMeta(fmt.Sprintf("%s/src-path", refPrefix), []byte(saveLocal.ArtifactPath))
+						res.AddMeta(fmt.Sprintf("%s/dest-path", refPrefix), []byte(saveLocal.DestPath))
+						res.AddMeta(fmt.Sprintf("%s/export-dir", refPrefix), []byte("true"))
+						res.AddMeta(fmt.Sprintf("%s/dir-index", refPrefix), []byte(fmt.Sprintf("%d", dirIndex)))
+						destPathWhitelist[saveLocal.DestPath] = true
+						dirIndex++
 					}
-					res.AddMeta(fmt.Sprintf("%s/artifact", refPrefix), []byte(artifact.String()))
-					res.AddMeta(fmt.Sprintf("%s/src-path", refPrefix), []byte(saveLocal.ArtifactPath))
-					res.AddMeta(fmt.Sprintf("%s/dest-path", refPrefix), []byte(saveLocal.DestPath))
-					res.AddMeta(fmt.Sprintf("%s/export-dir", refPrefix), []byte("true"))
-					res.AddMeta(fmt.Sprintf("%s/dir-index", refPrefix), []byte(fmt.Sprintf("%d", dirIndex)))
-					destPathWhitelist[saveLocal.DestPath] = true
-					dirIndex++
 				}
 			}
 		}
@@ -352,7 +369,11 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 				}
 			}
 			if !sts.Target.IsRemote() {
-				for _, saveLocal := range sts.SaveLocals {
+				// err = b.executeNonMainPhase(ctx, states.PhasePush, sts, opt)
+				// if err != nil {
+				// 	return nil, err
+				// }
+				for _, saveLocal := range sts.SaveLocalsForPhase(states.PhaseMain) {
 					artifactDir := filepath.Join(outDir, fmt.Sprintf("index-%d", dirIndex))
 					artifact := domain.Artifact{
 						Target:   sts.Target,
@@ -364,13 +385,36 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 					}
 					dirIndex++
 				}
-				err = b.executeNonMainPhase(ctx, states.PhasePush, sts, opt)
-				if err != nil {
-					return nil, err
-				}
-				err = b.executeNonMainPhase(ctx, states.PhasePostPush, sts, opt)
-				if err != nil {
-					return nil, err
+				if opt.Push {
+					for _, saveLocal := range sts.SaveLocalsForPhase(states.PhasePush) {
+						artifactDir := filepath.Join(outDir, fmt.Sprintf("index-%d", dirIndex))
+						artifact := domain.Artifact{
+							Target:   sts.Target,
+							Artifact: saveLocal.ArtifactPath,
+						}
+						err := b.saveArtifactLocally(ctx, artifact, artifactDir, saveLocal.DestPath, sts.Salt, opt, saveLocal.IfExists)
+						if err != nil {
+							return nil, err
+						}
+						dirIndex++
+					}
+
+					// err = b.executeNonMainPhase(ctx, states.PhasePostPush, sts, opt)
+					// if err != nil {
+					// 	return nil, err
+					// }
+					for _, saveLocal := range sts.SaveLocalsForPhase(states.PhasePostPush) {
+						artifactDir := filepath.Join(outDir, fmt.Sprintf("index-%d", dirIndex))
+						artifact := domain.Artifact{
+							Target:   sts.Target,
+							Artifact: saveLocal.ArtifactPath,
+						}
+						err := b.saveArtifactLocally(ctx, artifact, artifactDir, saveLocal.DestPath, sts.Salt, opt, saveLocal.IfExists)
+						if err != nil {
+							return nil, err
+						}
+						dirIndex++
+					}
 				}
 			}
 		}

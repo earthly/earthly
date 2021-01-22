@@ -62,6 +62,7 @@ func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Da
 		Images: map[states.Phase]*image.Image{
 			states.PhaseMain: image.NewImage(),
 		},
+		SaveLocals:     map[states.Phase][]states.SaveLocal{},
 		ArtifactsState: llbutil.ScratchWithPlatform(),
 		LocalDirs:      bc.LocalDirs,
 		Ongoing:        true,
@@ -436,12 +437,13 @@ func (c *Converter) SaveArtifact(ctx context.Context, saveFrom string, saveTo st
 				"%sSAVE ARTIFACT %s%s %s AS LOCAL %s",
 				c.vertexPrefix(), strIf(ifExists, "--if-exists "), saveFrom, artifact.String(), saveAsLocalTo))
 		c.mts.Final.SeparateArtifactsState = append(c.mts.Final.SeparateArtifactsState, separateArtifactsState)
-		c.mts.Final.SaveLocals = append(c.mts.Final.SaveLocals, states.SaveLocal{
-			DestPath:     saveAsLocalTo,
-			ArtifactPath: artifactPath,
-			Index:        len(c.mts.Final.SeparateArtifactsState) - 1,
-			IfExists:     ifExists,
-		})
+		c.mts.Final.SetCurrentSaveLocal(
+			append(c.mts.Final.CurrentSaveLocal(), states.SaveLocal{
+				DestPath:     saveAsLocalTo,
+				ArtifactPath: artifactPath,
+				Index:        len(c.mts.Final.SeparateArtifactsState) - 1,
+				IfExists:     ifExists,
+			}))
 	}
 	c.ranSave = true
 	c.markFakeDeps()

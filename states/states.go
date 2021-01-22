@@ -56,8 +56,8 @@ type SingleTarget struct {
 	Images                 map[Phase]*image.Image
 	ArtifactsState         llb.State
 	SeparateArtifactsState []llb.State
-	SaveLocals             []SaveLocal
-	SaveImages             []SaveImage
+	SaveLocals             map[Phase][]SaveLocal
+	SaveImages             []SaveImage //phase
 	VarCollection          *variables.Collection
 	LocalDirs              map[string]string
 	Ongoing                bool
@@ -130,6 +130,18 @@ func (sts *SingleTarget) ShadowState() llb.State {
 
 func (sts *SingleTarget) SetCurrentImage(image *image.Image) {
 	sts.Images[sts.CurrentPhase] = image
+}
+
+func (sts *SingleTarget) CurrentSaveLocal() []SaveLocal {
+	return sts.SaveLocals[sts.CurrentPhase]
+}
+
+func (sts *SingleTarget) SetCurrentSaveLocal(locals []SaveLocal) {
+	sts.SaveLocals[sts.CurrentPhase] = locals
+}
+
+func (sts *SingleTarget) SaveLocalsForPhase(p Phase) []SaveLocal {
+	return sts.SaveLocals[p]
 }
 
 func DirectAssign(new llb.State) llbutil.StatesAdapter {
