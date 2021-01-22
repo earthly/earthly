@@ -9,6 +9,19 @@ import (
 	"github.com/pkg/errors"
 )
 
+// ParsePlatform parses a given platform string. Empty string is a valid selection:
+// it means "the default platform".
+func ParsePlatform(str string) (*specs.Platform, error) {
+	if str == "" {
+		return nil, nil
+	}
+	p, err := platforms.Parse(str)
+	if err != nil {
+		return nil, err
+	}
+	return &p, nil
+}
+
 // DefaultPlatform returns the default platform to use if none is specified.
 func DefaultPlatform() specs.Platform {
 	p := platforms.DefaultSpec()

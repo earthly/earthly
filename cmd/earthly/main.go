@@ -46,7 +46,6 @@ import (
 	"github.com/earthly/earthly/termutil"
 	"github.com/earthly/earthly/variables"
 
-	"github.com/containerd/containerd/platforms"
 	humanize "github.com/dustin/go-humanize"
 	"github.com/fatih/color"
 	"github.com/joho/godotenv"
@@ -2030,11 +2029,11 @@ func (app *earthlyApp) actionBuild(c *cli.Context) error {
 
 	platformsSlice := make([]*specs.Platform, 0, len(app.platformsStr.Value()))
 	for _, p := range app.platformsStr.Value() {
-		platform, err := platforms.Parse(p)
+		platform, err := llbutil.ParsePlatform(p)
 		if err != nil {
 			return errors.Wrapf(err, "parse platform %s", p)
 		}
-		platformsSlice = append(platformsSlice, &platform)
+		platformsSlice = append(platformsSlice, platform)
 	}
 	if len(platformsSlice) == 0 {
 		platformsSlice = []*specs.Platform{nil}
