@@ -935,7 +935,7 @@ func (c *Converter) internalRun(ctx context.Context, args, secretKeyValues []str
 			// If this is the first push-flagged command, initialize the state with the latest
 			// side-effects state.
 
-			nextPhaseState := c.mts.Final.CurrentState().WithValue("commandStr", []string{})
+			nextPhaseState := c.mts.Final.ShadowState().WithValue("commandStr", []string{})
 			err := c.mts.Final.NextPhase(nextPhaseState)
 			if err != nil {
 				return errors.Wrap(err, "run phase")
@@ -948,9 +948,8 @@ func (c *Converter) internalRun(ctx context.Context, args, secretKeyValues []str
 		commandStrs := rawCommandStrs.([]string)
 		commandStrs = append(commandStrs, commandStr)
 
-		base := c.mts.Final.CurrentState().WithValue("commandStr", commandStrs)
-		main := base.Run(mainFinalOpts...).Root()
-		shadow := base.Run(shadowFinalOpts...).Root()
+		main := c.mts.Final.CurrentState().WithValue("commandStr", commandStrs).Run(mainFinalOpts...).Root()
+		shadow := c.mts.Final.ShadowState().WithValue("commandStr", commandStrs).Run(shadowFinalOpts...).Root()
 
 		c.mts.Final.SetCurrentStateWithAltShadow(main, shadow)
 	}
