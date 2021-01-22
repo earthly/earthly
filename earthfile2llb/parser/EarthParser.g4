@@ -15,6 +15,7 @@ stmts: WS? stmt (NL+ WS? stmt)*;
 stmt:
 	fromStmt
 	| fromDockerfileStmt
+	| locallyStmt
 	| copyStmt
 	| saveStmt
 	| runStmt
@@ -43,6 +44,8 @@ stmt:
 fromStmt: FROM (WS stmtWords)?;
 
 fromDockerfileStmt: FROM_DOCKERFILE (WS stmtWords)?;
+
+locallyStmt: LOCALLY (WS stmtWords)?;
 
 copyStmt: COPY (WS stmtWords)?;
 

@@ -28,6 +28,7 @@ import (
 	"github.com/moby/buildkit/client/llb"
 	"github.com/moby/buildkit/frontend/dockerfile/dockerfile2llb"
 	gwclient "github.com/moby/buildkit/frontend/gateway/client"
+	"github.com/moby/buildkit/session/localhost"
 	solverpb "github.com/moby/buildkit/solver/pb"
 	specs "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
@@ -108,7 +109,7 @@ func (c *Converter) fromClassical(ctx context.Context, imageName string, platfor
 	plat := llbutil.PlatformWithDefault(platform)
 	state, img, newVariables, err := c.internalFromClassical(
 		ctx, imageName, plat,
-		llb.WithCustomNamef("%sFROM %s", c.vertexPrefix(), imageName))
+		llb.WithCustomNamef("%sFROM %s", c.vertexPrefix(false), imageName))
 	if err != nil {
 		return err
 	}
@@ -253,6 +254,13 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 	return nil
 }
 
+// Locally applies the earthly Locally command.
+func (c *Converter) Locally(ctx context.Context, platform *specs.Platform) error {
+	imageName := "busybox:1.32.1" // this image can be anything that contains the /bin/true command
+	// it's used by our buildkit RunOnLocalHostMagicStr hack
+	return c.fromClassical(ctx, imageName, platform)
+}
+
 // CopyArtifact applies the earthly COPY artifact command.
 func (c *Converter) CopyArtifact(ctx context.Context, artifactName string, dest string, platform *specs.Platform, buildArgs []string, isDir bool, keepTs bool, keepOwn bool, chown string, ifExists bool) error {
 	c.nonSaveCommand()
@@ -275,7 +283,7 @@ func (c *Converter) CopyArtifact(ctx context.Context, artifactName string, dest 
 		c.mts.Final.MainState, dest, true, isDir, keepTs, c.copyOwner(keepOwn, chown), ifExists,
 		llb.WithCustomNamef(
 			"%sCOPY %s%s%s%s %s",
-			c.vertexPrefix(),
+			c.vertexPrefix(false),
 			strIf(isDir, "--dir "),
 			strIf(ifExists, "--if-exists "),
 			joinWrap(buildArgs, "(", " ", ") "),
@@ -291,10 +299,36 @@ func (c *Converter) CopyClassical(ctx context.Context, srcs []string, dest strin
 		c.buildContext, srcs, c.mts.Final.MainState, dest, true, isDir, keepTs, c.copyOwner(keepOwn, chown), false,
 		llb.WithCustomNamef(
 			"%sCOPY %s%s %s",
-			c.vertexPrefix(),
+			c.vertexPrefix(false),
 			strIf(isDir, "--dir "),
 			strings.Join(srcs, " "),
 			dest))
+}
+
+// RunLocal applies a RUN statement locally rather than in a container
+func (c *Converter) RunLocal(ctx context.Context, args []string, pushFlag bool) {
+	runStr := fmt.Sprintf("RUN %s%s", strIf(pushFlag, "--push "), strings.Join(args, " "))
+	finalArgs := withShellAndEnvVars(args, []string{}, true, false)
+	opts := []llb.RunOption{
+		llb.Args(finalArgs),
+		llb.AddMount(localhost.RunOnLocalHostMagicStr, llb.Scratch()), // hack to tell buildkit to run this locally
+		llb.IgnoreCache,
+		llb.WithCustomNamef("%s%s", c.vertexPrefix(true), runStr),
+	}
+
+	if pushFlag {
+		if !c.mts.Final.RunPush.Initialized {
+			// If this is the first push-flagged command, initialize the state with the latest
+			// side-effects state.
+			c.mts.Final.RunPush.State = c.mts.Final.MainState
+			c.mts.Final.RunPush.Initialized = true
+		}
+		c.mts.Final.RunPush.State = c.mts.Final.RunPush.State.Run(opts...).Root()
+		c.mts.Final.RunPush.CommandStrs = append(
+			c.mts.Final.RunPush.CommandStrs, runStr)
+	} else {
+		c.mts.Final.MainState = c.mts.Final.MainState.Run(opts...).Root()
+	}
 }
 
 // Run applies the earthly RUN command.
@@ -331,7 +365,7 @@ func (c *Converter) Run(ctx context.Context, args, mounts, secretKeyValues []str
 		strIf(pushFlag, "--push "),
 		strings.Join(finalArgs, " "))
 	shellWrap := withShellAndEnvVars
-	opts = append(opts, llb.WithCustomNamef("%s%s", c.vertexPrefix(), runStr))
+	opts = append(opts, llb.WithCustomNamef("%s%s", c.vertexPrefix(false), runStr))
 	return c.internalRun(ctx, finalArgs, secretKeyValues, isWithShell, shellWrap, pushFlag, withSSH, runStr, opts...)
 }
 
@@ -369,7 +403,7 @@ func (c *Converter) SaveArtifact(ctx context.Context, saveFrom string, saveTo st
 		c.mts.Final.MainState, []string{saveFrom}, c.mts.Final.ArtifactsState,
 		saveToAdjusted, true, true, keepTs, own, ifExists,
 		llb.WithCustomNamef(
-			"%sSAVE ARTIFACT %s%s %s", c.vertexPrefix(), strIf(ifExists, "--if-exists "), saveFrom, artifact.String()))
+			"%sSAVE ARTIFACT %s%s %s", c.vertexPrefix(false), strIf(ifExists, "--if-exists "), saveFrom, artifact.String()))
 	if saveAsLocalTo != "" {
 		separateArtifactsState := llbutil.ScratchWithPlatform()
 		separateArtifactsState = llbutil.CopyOp(
@@ -377,7 +411,7 @@ func (c *Converter) SaveArtifact(ctx context.Context, saveFrom string, saveTo st
 			saveToAdjusted, true, true, keepTs, "root:root", ifExists,
 			llb.WithCustomNamef(
 				"%sSAVE ARTIFACT %s%s %s AS LOCAL %s",
-				c.vertexPrefix(), strIf(ifExists, "--if-exists "), saveFrom, artifact.String(), saveAsLocalTo))
+				c.vertexPrefix(false), strIf(ifExists, "--if-exists "), saveFrom, artifact.String(), saveAsLocalTo))
 		c.mts.Final.SeparateArtifactsState = append(c.mts.Final.SeparateArtifactsState, separateArtifactsState)
 		c.mts.Final.SaveLocals = append(c.mts.Final.SaveLocals, states.SaveLocal{
 			DestPath:     saveAsLocalTo,
@@ -447,7 +481,7 @@ func (c *Converter) Workdir(ctx context.Context, workdirPath string) {
 			mkdirOpts = append(mkdirOpts, llb.WithUser(c.mts.Final.MainImage.Config.User))
 		}
 		opts := []llb.ConstraintsOpt{
-			llb.WithCustomNamef("%sWORKDIR %s", c.vertexPrefix(), workdirPath),
+			llb.WithCustomNamef("%sWORKDIR %s", c.vertexPrefix(false), workdirPath),
 		}
 		c.mts.Final.MainState = c.mts.Final.MainState.File(
 			llb.Mkdir(workdirAbs, 0755, mkdirOpts...), opts...)
@@ -527,7 +561,7 @@ func (c *Converter) GitClone(ctx context.Context, gitURL string, branch string, 
 		gitState, []string{"."}, c.mts.Final.MainState, dest, false, false, keepTs,
 		c.mts.Final.MainImage.Config.User, false,
 		llb.WithCustomNamef(
-			"%sCOPY GIT CLONE (--branch %s) %s TO %s", c.vertexPrefix(),
+			"%sCOPY GIT CLONE (--branch %s) %s TO %s", c.vertexPrefix(false),
 			branch, gitURL, dest))
 	return nil
 }
@@ -825,7 +859,7 @@ func (c *Converter) processNonConstantBuildArgFunc(ctx context.Context) variable
 		args := strings.Split(fmt.Sprintf("echo \"%s\" >%s", expression, srcBuildArgPath), " ")
 		err := c.internalRun(
 			ctx, args, []string{}, true, withShellAndEnvVars, false, false, expression,
-			llb.WithCustomNamef("%sRUN %s", c.vertexPrefix(), expression))
+			llb.WithCustomNamef("%sRUN %s", c.vertexPrefix(false), expression))
 		if err != nil {
 			return llb.State{}, dedup.TargetInput{}, 0, errors.Wrapf(err, "run %v", expression)
 		}
@@ -847,7 +881,7 @@ func (c *Converter) processNonConstantBuildArgFunc(ctx context.Context) variable
 	}
 }
 
-func (c *Converter) vertexPrefix() string {
+func (c *Converter) vertexPrefix(local bool) string {
 	overriding := c.varCollection.SortedOverridingVariables()
 	varStrBuilder := make([]string, 0, len(overriding)+1)
 	if c.opt.Platform != nil {
@@ -873,7 +907,7 @@ func (c *Converter) vertexPrefix() string {
 		b64VarStr := base64.StdEncoding.EncodeToString([]byte(strings.Join(varStrBuilder, " ")))
 		varStr = fmt.Sprintf("(%s)", b64VarStr)
 	}
-	return fmt.Sprintf("[%s%s %s] ", c.mts.Final.Target.String(), varStr, c.mts.Final.Salt)
+	return fmt.Sprintf("[%s%s%s %s] ", c.mts.Final.Target.String(), varStr, strIf(local, " *local*"), c.mts.Final.Salt)
 }
 
 func (c *Converter) markFakeDeps() {

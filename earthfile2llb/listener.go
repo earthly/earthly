@@ -37,6 +37,8 @@ type listener struct {
 	withDocker    *WithDockerOpt
 	withDockerRan bool
 
+	local bool
+
 	execMode  bool
 	stmtWords []string
 
@@ -154,11 +156,14 @@ func (l *listener) ExitFromStmt(c *parser.FromStmtContext) {
 	for i, ba := range buildArgs.Args {
 		buildArgs.Args[i] = l.expandArgs(ba, true)
 	}
+
+	l.local = false
 	err = l.converter.From(l.ctx, imageName, platform, buildArgs.Args)
 	if err != nil {
 		l.err = errors.Wrapf(err, "apply FROM %s", imageName)
 		return
 	}
+
 }
 
 func (l *listener) ExitFromDockerfileStmt(c *parser.FromDockerfileStmtContext) {
@@ -201,9 +206,27 @@ func (l *listener) ExitFromDockerfileStmt(c *parser.FromDockerfileStmtContext) {
 	}
 	*dfPath = l.expandArgs(*dfPath, false)
 	*dfTarget = l.expandArgs(*dfTarget, false)
+	l.local = false
 	err = l.converter.FromDockerfile(l.ctx, path, *dfPath, *dfTarget, platform, buildArgs.Args)
 	if err != nil {
 		l.err = errors.Wrap(err, "from dockerfile")
+		return
+	}
+}
+
+func (l *listener) ExitLocallyStmt(c *parser.LocallyStmtContext) {
+	if l.shouldSkip() {
+		return
+	}
+	if l.pushOnlyAllowed {
+		l.err = fmt.Errorf("no non-push commands allowed after a --push: %s", c.GetText())
+		return
+	}
+
+	l.local = true
+	err := l.converter.Locally(l.ctx, nil)
+	if err != nil {
+		l.err = errors.Wrapf(err, "apply LOCALLY")
 		return
 	}
 }
@@ -333,6 +356,30 @@ func (l *listener) ExitRunStmt(c *parser.RunStmtContext) {
 		mounts.Args[i] = l.expandArgs(m, false)
 	}
 	// Note: Not expanding args for the run itself, as that will be take care of by the shell.
+
+	if l.local {
+		if len(mounts.Args) > 0 {
+			l.err = fmt.Errorf("mounts are not supported in combination with the LOCALLY directive: %s", c.GetText())
+			return
+		}
+		if *withSSH {
+			l.err = fmt.Errorf("the --ssh flag has no effect when used with the  LOCALLY directive: %s", c.GetText())
+			return
+		}
+		if *privileged {
+			l.err = fmt.Errorf("the --privileged flag has no effect when used with the LOCALLY directive: %s", c.GetText())
+			return
+		}
+
+		// TODO these should be supported, but haven't yet been implemented
+		if len(secrets.Args) > 0 {
+			l.err = fmt.Errorf("secrets need to be implemented for the LOCALLY directive: %s", c.GetText())
+			return
+		}
+
+		l.converter.RunLocal(l.ctx, fs.Args(), *pushFlag)
+		return
+	}
 
 	if l.withDocker == nil {
 		err = l.converter.Run(
