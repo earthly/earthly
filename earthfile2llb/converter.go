@@ -102,14 +102,22 @@ func (c *Converter) From(ctx context.Context, imageName string, platform *specs.
 	if len(buildArgs) != 0 {
 		return errors.New("--build-arg not supported in non-target FROM")
 	}
-	return c.fromClassical(ctx, imageName, platform)
+	return c.fromClassical(ctx, imageName, platform, false)
 }
 
-func (c *Converter) fromClassical(ctx context.Context, imageName string, platform *specs.Platform) error {
+func (c *Converter) fromClassical(ctx context.Context, imageName string, platform *specs.Platform, local bool) error {
+	var prefix string
+	if local {
+		// local mode uses a fake image containing /bin/true
+		// we want to prefix this as internal so it doesn't show up in the output
+		prefix = "[internal] "
+	} else {
+		prefix = c.vertexPrefix(false)
+	}
 	plat := llbutil.PlatformWithDefault(platform)
 	state, img, newVariables, err := c.internalFromClassical(
 		ctx, imageName, plat,
-		llb.WithCustomNamef("%sFROM %s", c.vertexPrefix(false), imageName))
+		llb.WithCustomNamef("%sFROM %s", prefix, imageName))
 	if err != nil {
 		return err
 	}
@@ -258,7 +266,7 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 func (c *Converter) Locally(ctx context.Context, platform *specs.Platform) error {
 	imageName := "busybox:1.32.1" // this image can be anything that contains the /bin/true command
 	// it's used by our buildkit RunOnLocalHostMagicStr hack
-	return c.fromClassical(ctx, imageName, platform)
+	return c.fromClassical(ctx, imageName, platform, true)
 }
 
 // CopyArtifact applies the earthly COPY artifact command.
