@@ -377,7 +377,7 @@ func (l *listener) ExitRunStmt(c *parser.RunStmtContext) {
 			return
 		}
 
-		l.converter.RunLocal(l.ctx, fs.Args(), *pushFlag)
+		l.err = l.converter.RunLocal(l.ctx, fs.Args(), *pushFlag)
 		return
 	}
 

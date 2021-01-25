@@ -1,3 +1,8 @@
+test-local-with-arg:
+    LOCALLY
+    ARG pattern
+    RUN cat /proc/1/cgroup | grep -v docker | grep $pattern
+
 test-local:
     LOCALLY
     # If run inside a container, one would expect something like 
@@ -5,3 +10,4 @@ test-local:
     RUN whoami
     RUN cat /proc/1/cgroup | grep '^[0-9]\+:cpuset:/$'
     RUN --push touch /tmp/earthly-test-local
+    BUILD --build-arg pattern=memory +test-local-with-arg
