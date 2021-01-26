@@ -314,9 +314,24 @@ func (c *Converter) CopyClassical(ctx context.Context, srcs []string, dest strin
 }
 
 // RunLocal applies a RUN statement locally rather than in a container
-func (c *Converter) RunLocal(ctx context.Context, args []string, pushFlag bool) {
+func (c *Converter) RunLocal(ctx context.Context, args []string, pushFlag bool) error {
 	runStr := fmt.Sprintf("RUN %s%s", strIf(pushFlag, "--push "), strings.Join(args, " "))
-	finalArgs := withShellAndEnvVars(args, []string{}, true, false)
+
+	// Build args get propigated into env.
+	extraEnvVars := []string{}
+	for _, buildArgName := range c.varCollection.SortedActiveVariables() {
+		ba, _, _ := c.varCollection.Get(buildArgName)
+		if ba.IsEnvVar() {
+			continue
+		}
+		if ba.IsConstant() {
+			extraEnvVars = append(extraEnvVars, fmt.Sprintf("%s=\"%s\"", buildArgName, ba.ConstantValue()))
+		} else {
+			return fmt.Errorf("non-constant build arg (%s) is not supported with LOCALLY", buildArgName)
+		}
+	}
+
+	finalArgs := withShellAndEnvVars(args, extraEnvVars, true, false)
 	opts := []llb.RunOption{
 		llb.Args(finalArgs),
 		llb.AddMount(localhost.RunOnLocalHostMagicStr, llb.Scratch()), // hack to tell buildkit to run this locally
@@ -337,6 +352,7 @@ func (c *Converter) RunLocal(ctx context.Context, args []string, pushFlag bool) 
 	} else {
 		c.mts.Final.MainState = c.mts.Final.MainState.Run(opts...).Root()
 	}
+	return nil
 }
 
 // Run applies the earthly RUN command.
