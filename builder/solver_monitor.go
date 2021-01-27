@@ -233,7 +233,7 @@ func newSolverMonitor(console conslogging.ConsoleLogger, verbose bool) *solverMo
 	}
 }
 
-func (sm *solverMonitor) monitorProgress(ctx context.Context, ch chan *client.SolveStatus) error {
+func (sm *solverMonitor) monitorProgress(ctx context.Context, ch chan *client.SolveStatus, phaseText string) error {
 	sm.mu.Lock()
 	sm.ongoing = true
 	sm.mu.Unlock()
@@ -316,11 +316,11 @@ Loop:
 		}
 	}
 	if errVertex != nil {
-		sm.reprintFailure(errVertex)
+		sm.reprintFailure(errVertex, phaseText)
 	}
 	sm.mu.Lock()
 	if sm.success {
-		sm.console.PrintSuccess()
+		sm.console.PrintSuccess(phaseText)
 	}
 	sm.ongoing = false
 	sm.mu.Unlock()
@@ -374,7 +374,7 @@ func (sm *solverMonitor) SetSuccess() {
 	defer sm.mu.Unlock()
 	sm.success = true
 	if !sm.ongoing {
-		sm.console.PrintSuccess()
+		sm.console.PrintSuccess("SetSuccess")
 	}
 }
 
@@ -419,9 +419,9 @@ func (sm *solverMonitor) PrintTiming() {
 		Printf("Total (real)\t%s\n", time.Now().Sub(sm.startTime))
 }
 
-func (sm *solverMonitor) reprintFailure(errVertex *vertexMonitor) {
+func (sm *solverMonitor) reprintFailure(errVertex *vertexMonitor, phaseText string) {
 	sm.console.Warnf("Repeating the output of the command that caused the failure\n")
-	sm.console.PrintFailure()
+	sm.console.PrintFailure(phaseText)
 	errVertex.console = errVertex.console.WithFailed(true)
 	errVertex.printHeader()
 	if errVertex.tailOutput != nil {

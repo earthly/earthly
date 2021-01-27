@@ -58,7 +58,7 @@ func (s *solver) solveDockerTar(ctx context.Context, state llb.State, platform s
 		return nil
 	})
 	eg.Go(func() error {
-		return s.sm.monitorProgress(ctx, ch)
+		return s.sm.monitorProgress(ctx, ch, "docker tar")
 	})
 	eg.Go(func() error {
 		file, err := os.Create(outFile)
@@ -98,7 +98,7 @@ func (s *solver) solveDockerTar(ctx context.Context, state llb.State, platform s
 	return nil
 }
 
-func (s *solver) buildMainMulti(ctx context.Context, bf gwclient.BuildFunc, onImage onImageFunc, onArtifact onArtifactFunc, onFinalArtifact onFinalArtifactFunc) error {
+func (s *solver) buildMainMulti(ctx context.Context, bf gwclient.BuildFunc, onImage onImageFunc, onArtifact onArtifactFunc, onFinalArtifact onFinalArtifactFunc, phaseText string) error {
 	ch := make(chan *client.SolveStatus)
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
@@ -116,7 +116,7 @@ func (s *solver) buildMainMulti(ctx context.Context, bf gwclient.BuildFunc, onIm
 		return nil
 	})
 	eg.Go(func() error {
-		return s.sm.monitorProgress(ctx, ch)
+		return s.sm.monitorProgress(ctx, ch, phaseText)
 	})
 	err = eg.Wait()
 	if err != nil {
@@ -147,7 +147,7 @@ func (s *solver) solveMain(ctx context.Context, state llb.State, platform specs.
 		return nil
 	})
 	eg.Go(func() error {
-		return s.sm.monitorProgress(ctx, ch)
+		return s.sm.monitorProgress(ctx, ch, "solveMain")
 	})
 	err = eg.Wait()
 	if err != nil {

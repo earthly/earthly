@@ -309,7 +309,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 		successOnce.Do(successFun)
 		return outDir, nil
 	}
-	err = b.s.buildMainMulti(ctx, bf, onImage, onArtifact, onFinalArtifact)
+	err = b.s.buildMainMulti(ctx, bf, onImage, onArtifact, onFinalArtifact, "main")
 	if err != nil {
 		return nil, errors.Wrapf(err, "build main")
 	}
