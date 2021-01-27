@@ -221,6 +221,8 @@ jobs:
         run: "./build/linux/amd64/earthly --ci --push ./examples/tests/local+test-local"
       - name: Check --push cmd was run (and touched this file on the local disk)
         run: "ls /tmp/earthly-test-local"
+      - name: Run general local tests (TODO this is re-testing the +test-local target)
+        run: "./build/linux/amd64/earthly --ci ./examples/tests/local+all"
 
   private-repo-test:
     if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
