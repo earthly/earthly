@@ -342,9 +342,10 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 		// TODO: This is a little brittle to future code changes.
 		dirIndex := 0
 		for _, sts := range mts.All() {
+			console := b.opt.Console.WithPrefixAndSalt(sts.Target.String(), sts.Salt)
+
 			for _, saveImage := range sts.SaveImages {
 				shouldPush := opt.Push && saveImage.Push && !sts.Target.IsRemote()
-				console := b.opt.Console.WithPrefixAndSalt(sts.Target.String(), sts.Salt)
 				pushStr := ""
 				if shouldPush {
 					pushStr = " (pushed)"
@@ -368,7 +369,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 					dirIndex++
 				}
 
-				if sts.RunPush.Initialized {
+				if opt.Push && sts.RunPush.Initialized {
 					err = b.s.buildMainMulti(ctx, bf, onImage, onArtifact, onFinalArtifact)
 					if err != nil {
 						return nil, errors.Wrapf(err, "build push")
@@ -386,6 +387,10 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 							return nil, err
 						}
 						dirIndex++
+					}
+				} else if !opt.Push {
+					for _, commandStr := range sts.RunPush.CommandStrs {
+						console.Printf("Did not execute push command %s. Use earthly --push to enable pushing\n", commandStr)
 					}
 				}
 			}

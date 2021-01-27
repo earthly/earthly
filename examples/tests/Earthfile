@@ -55,6 +55,7 @@ ga:
     BUILD +end-comment
     BUILD +if-exists
     BUILD +file-copying
+    BUILD +save-artifact-after-push
     BUILD ./autocompletion+test-all
     BUILD ./with-docker+all
     BUILD ./with-docker-compose+all
