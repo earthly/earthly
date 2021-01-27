@@ -416,7 +416,7 @@ func (b *Builder) targetPhaseArtifacts(sts *states.SingleTarget) []states.SaveLo
 }
 
 func (b *Builder) stateToRef(ctx context.Context, gwClient gwclient.Client, state llb.State, platform *specs.Platform) (gwclient.Reference, error) {
-	if b.opt.NoCache || b.builtMain {
+	if b.opt.NoCache && !b.builtMain {
 		state = state.SetMarshalDefaults(llb.IgnoreCache)
 	}
 	return llbutil.StateToRef(ctx, gwClient, state, platform, b.opt.CacheImports)
