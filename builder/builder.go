@@ -369,28 +369,30 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 					dirIndex++
 				}
 
-				if opt.Push && sts.RunPush.Initialized {
-					err = b.s.buildMainMulti(ctx, bf, onImage, onArtifact, onFinalArtifact)
-					if err != nil {
-						return nil, errors.Wrapf(err, "build push")
-					}
-					successOnce.Do(successFun)
-
-					for _, saveLocal := range sts.RunPush.SaveLocals {
-						artifactDir := filepath.Join(outDir, fmt.Sprintf("index-%d", dirIndex))
-						artifact := domain.Artifact{
-							Target:   sts.Target,
-							Artifact: saveLocal.ArtifactPath,
-						}
-						err := b.saveArtifactLocally(ctx, artifact, artifactDir, saveLocal.DestPath, sts.Salt, opt, saveLocal.IfExists)
+				if sts.RunPush.Initialized {
+					if opt.Push {
+						err = b.s.buildMainMulti(ctx, bf, onImage, onArtifact, onFinalArtifact)
 						if err != nil {
-							return nil, err
+							return nil, errors.Wrapf(err, "build push")
 						}
-						dirIndex++
-					}
-				} else if !opt.Push {
-					for _, commandStr := range sts.RunPush.CommandStrs {
-						console.Printf("Did not execute push command %s. Use earthly --push to enable pushing\n", commandStr)
+						successOnce.Do(successFun)
+
+						for _, saveLocal := range sts.RunPush.SaveLocals {
+							artifactDir := filepath.Join(outDir, fmt.Sprintf("index-%d", dirIndex))
+							artifact := domain.Artifact{
+								Target:   sts.Target,
+								Artifact: saveLocal.ArtifactPath,
+							}
+							err := b.saveArtifactLocally(ctx, artifact, artifactDir, saveLocal.DestPath, sts.Salt, opt, saveLocal.IfExists)
+							if err != nil {
+								return nil, err
+							}
+							dirIndex++
+						}
+					} else {
+						for _, commandStr := range sts.RunPush.CommandStrs {
+							console.Printf("Did not execute push command %s. Use earthly --push to enable pushing\n", commandStr)
+						}
 					}
 				}
 			}
