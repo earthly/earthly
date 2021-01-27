@@ -258,7 +258,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 			}
 			if !sts.Target.IsRemote() && !opt.NoOutput && !opt.OnlyFinalTargetImages && opt.OnlyArtifact == nil {
 				for _, saveLocal := range b.targetPhaseArtifacts(sts) {
-					ref, err := b.stateToRef(ctx, gwClient, sts.SeparateArtifactsState[saveLocal.Index], sts.Platform)
+					ref, err := b.artifactStateToRef(ctx, gwClient, sts.SeparateArtifactsState[saveLocal.Index], sts.Platform)
 					if err != nil {
 						return nil, err
 					}
@@ -417,6 +417,13 @@ func (b *Builder) targetPhaseArtifacts(sts *states.SingleTarget) []states.SaveLo
 
 func (b *Builder) stateToRef(ctx context.Context, gwClient gwclient.Client, state llb.State, platform *specs.Platform) (gwclient.Reference, error) {
 	if b.opt.NoCache && !b.builtMain {
+		state = state.SetMarshalDefaults(llb.IgnoreCache)
+	}
+	return llbutil.StateToRef(ctx, gwClient, state, platform, b.opt.CacheImports)
+}
+
+func (b *Builder) artifactStateToRef(ctx context.Context, gwClient gwclient.Client, state llb.State, platform *specs.Platform) (gwclient.Reference, error) {
+	if b.opt.NoCache || b.builtMain {
 		state = state.SetMarshalDefaults(llb.IgnoreCache)
 	}
 	return llbutil.StateToRef(ctx, gwClient, state, platform, b.opt.CacheImports)
