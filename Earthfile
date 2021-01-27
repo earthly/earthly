@@ -33,7 +33,7 @@ deps:
 code:
     ARG GO_VERSION=1.15
     FROM --build-arg GO_VERSION +deps
-    COPY ./earthfile2llb/parser+parser/*.go ./earthfile2llb/parser/
+    COPY --platform=linux/amd64 ./earthfile2llb/parser+parser/*.go ./earthfile2llb/parser/
     COPY --dir analytics autocomplete buildcontext builder cleanup cmd config conslogging debugger dockertar \
         docker2earthly domain fileutil gitutil llbutil logging secretsclient stringutil states syncutil termutil \
         variables ./
