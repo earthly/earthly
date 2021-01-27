@@ -509,3 +509,17 @@ file-copying:
     RUN --privileged \
         --mount=type=tmpfs,target=/tmp/earthly \
         ! /usr/bin/earthly-buildkitd-wrapper.sh +test-dot-scratch
+
+save-artifact-after-push:
+    # test that save after push is a thing
+    COPY save-artifact-after-push.earth ./Earthfile
+    RUN --privileged \
+        --entrypoint \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        -- +test
+
+    # test that cant copy saved after push
+    RUN --privileged \
+        --entrypoint \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        -- +copy-test 2>&1 | perl -pe 'BEGIN {$status=1} END {exit $status} $status=0 if /not found/;'
