@@ -372,7 +372,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 
 				if sts.RunPush.Initialized {
 					if opt.Push {
-						err = b.s.buildMainMulti(ctx, bf, onImage, onArtifact, onFinalArtifact)
+						err = b.s.buildMainMulti(ctx, bf, onImage, onArtifact, onFinalArtifact, "--push")
 						if err != nil {
 							return nil, errors.Wrapf(err, "build push")
 						}

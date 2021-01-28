@@ -151,8 +151,14 @@ func (cl ConsoleLogger) printBar(center, extra string) {
 
 	totalWidth := 80
 	eqBar := strings.Repeat("=", (totalWidth-len(center))/2)
+	leftBar := eqBar
+	rightBar := eqBar
 
-	cl.color(successColor).Fprintf(cl.outW, "%s%s%s\n", eqBar, center, eqBar)
+	if len(center)%2 == 1 {
+		rightBar += "="
+	}
+
+	cl.color(successColor).Fprintf(cl.outW, "%s%s%s\n", leftBar, center, rightBar)
 }
 
 // Warnf prints a warning message in red to errWriter
