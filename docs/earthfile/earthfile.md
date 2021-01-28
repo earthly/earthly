@@ -162,6 +162,10 @@ Push commands were introduced to allow the user to define commands that have an 
 
 Note that non-push commands are not allowed to follow a push command within a recipe.
 
+#### `--no-cache`
+
+Force the command to run every time; ignoring any cache. Any commands following the invocation of `RUN --no-cache`, will also ignore the cache. If `--no-cache` is used as an option on the `RUN` statement within a `WITH DOCKER` statement, all commands after the `WITH DOCKER` will also ignore the cache.
+
 ##### `--entrypoint`
 
 Prepends the currently defined entrypoint to the command.
