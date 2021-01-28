@@ -330,6 +330,7 @@ func (l *listener) ExitRunStmt(c *parser.RunStmtContext) {
 		"Include the entrypoint of the image when running the command")
 	withDocker := fs.Bool("with-docker", false, "Deprecated")
 	withSSH := fs.Bool("ssh", false, "Make available the SSH agent of the host")
+	noCache := fs.Bool("no-cache", false, "Always run this specific item, ignoring cache")
 	secrets := new(StringSliceFlag)
 	fs.Var(secrets, "secret", "Make available a secret")
 	mounts := new(StringSliceFlag)
@@ -370,6 +371,10 @@ func (l *listener) ExitRunStmt(c *parser.RunStmtContext) {
 			l.err = fmt.Errorf("the --privileged flag has no effect when used with the LOCALLY directive: %s", c.GetText())
 			return
 		}
+		if *noCache {
+			l.err = fmt.Errorf("the --no-cache flag has no effect when used with the LOCALLY directive: %s", c.GetText())
+			return
+		}
 
 		// TODO these should be supported, but haven't yet been implemented
 		if len(secrets.Args) > 0 {
@@ -384,7 +389,7 @@ func (l *listener) ExitRunStmt(c *parser.RunStmtContext) {
 	if l.withDocker == nil {
 		err = l.converter.Run(
 			l.ctx, fs.Args(), mounts.Args, secrets.Args, *privileged, *withEntrypoint, *withDocker,
-			withShell, *pushFlag, *withSSH)
+			withShell, *pushFlag, *withSSH, *noCache)
 		if err != nil {
 			l.err = errors.Wrap(err, "run")
 			return
@@ -406,6 +411,7 @@ func (l *listener) ExitRunStmt(c *parser.RunStmtContext) {
 		l.withDocker.Secrets = secrets.Args
 		l.withDocker.WithShell = withShell
 		l.withDocker.WithEntrypoint = *withEntrypoint
+		l.withDocker.NoCache = *noCache
 		err = l.converter.WithDockerRun(l.ctx, fs.Args(), *l.withDocker)
 		if err != nil {
 			l.err = errors.Wrap(err, "with docker run")
@@ -416,10 +422,6 @@ func (l *listener) ExitRunStmt(c *parser.RunStmtContext) {
 
 func (l *listener) ExitSaveArtifact(c *parser.SaveArtifactContext) {
 	if l.shouldSkip() {
-		return
-	}
-	if l.pushOnlyAllowed {
-		l.err = fmt.Errorf("no non-push commands allowed after a --push: %s", c.GetText())
 		return
 	}
 	fs := flag.NewFlagSet("SAVE ARTIFACT", flag.ContinueOnError)
@@ -462,7 +464,7 @@ func (l *listener) ExitSaveArtifact(c *parser.SaveArtifactContext) {
 	saveFrom := l.expandArgs(fs.Args()[0], false)
 	saveTo = l.expandArgs(saveTo, false)
 	saveAsLocalTo = l.expandArgs(saveAsLocalTo, false)
-	err = l.converter.SaveArtifact(l.ctx, saveFrom, saveTo, saveAsLocalTo, *keepTs, *keepOwn, *ifExists)
+	err = l.converter.SaveArtifact(l.ctx, saveFrom, saveTo, saveAsLocalTo, *keepTs, *keepOwn, *ifExists, l.pushOnlyAllowed)
 	if err != nil {
 		l.err = errors.Wrap(err, "apply SAVE ARTIFACT")
 		return
@@ -493,10 +495,6 @@ func (l *listener) ExitSaveImage(c *parser.SaveImageContext) {
 	}
 	for i, cf := range cacheFrom.Args {
 		cacheFrom.Args[i] = l.expandArgs(cf, false)
-	}
-	if !*pushFlag && l.pushOnlyAllowed {
-		l.err = fmt.Errorf("no non-push commands allowed after a --push: %s", c.GetText())
-		return
 	}
 	if *pushFlag && fs.NArg() == 0 {
 		l.err = fmt.Errorf("invalid number of arguments for SAVE IMAGE --push: %v", l.stmtWords)

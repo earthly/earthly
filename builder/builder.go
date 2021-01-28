@@ -68,9 +68,10 @@ type BuildOpt struct {
 
 // Builder executes Earthly builds.
 type Builder struct {
-	s        *solver
-	opt      Opt
-	resolver *buildcontext.Resolver
+	s         *solver
+	opt       Opt
+	resolver  *buildcontext.Resolver
+	builtMain bool
 }
 
 // NewBuilder returns a new earthly Builder.
@@ -124,6 +125,9 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 	destPathWhitelist := make(map[string]bool)
 	manifestLists := make(map[string][]manifest) // parent image -> child images
 	var mts *states.MultiTarget
+	depIndex := 0
+	imageIndex := 0
+	dirIndex := 0
 	bf := func(ctx context.Context, gwClient gwclient.Client) (*gwclient.Result, error) {
 		var err error
 		mts, err = earthfile2llb.Earthfile2LLB(ctx, target, earthfile2llb.ConvertOpt{
@@ -143,7 +147,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 			return nil, err
 		}
 		res := gwclient.NewResult()
-		ref, err := b.stateToRef(ctx, gwClient, mts.Final.MainState, mts.Final.Platform)
+		ref, err := b.stateToRef(ctx, gwClient, b.targetPhaseState(mts.Final), mts.Final.Platform)
 		if err != nil {
 			return nil, err
 		}
@@ -160,12 +164,9 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 			res.AddMeta(fmt.Sprintf("%s/final-artifact", refPrefix), []byte("true"))
 		}
 
-		depIndex := 0
-		imageIndex := 0
-		dirIndex := 0
 		for _, sts := range mts.All() {
 			if sts.HasDangling && !b.opt.UseFakeDep {
-				depRef, err := b.stateToRef(ctx, gwClient, sts.MainState, sts.Platform)
+				depRef, err := b.stateToRef(ctx, gwClient, b.targetPhaseState(sts), sts.Platform)
 				if err != nil {
 					return nil, err
 				}
@@ -256,8 +257,8 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 				}
 			}
 			if !sts.Target.IsRemote() && !opt.NoOutput && !opt.OnlyFinalTargetImages && opt.OnlyArtifact == nil {
-				for _, saveLocal := range sts.SaveLocals {
-					ref, err := b.stateToRef(ctx, gwClient, sts.SeparateArtifactsState[saveLocal.Index], sts.Platform)
+				for _, saveLocal := range b.targetPhaseArtifacts(sts) {
+					ref, err := b.artifactStateToRef(ctx, gwClient, sts.SeparateArtifactsState[saveLocal.Index], sts.Platform)
 					if err != nil {
 						return nil, err
 					}
@@ -314,6 +315,8 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 		return nil, errors.Wrapf(err, "build main")
 	}
 	successOnce.Do(successFun)
+	b.builtMain = true
+
 	if opt.NoOutput {
 		// Nothing.
 	} else if opt.OnlyArtifact != nil {
@@ -339,14 +342,16 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 		// TODO: This is a little brittle to future code changes.
 		dirIndex := 0
 		for _, sts := range mts.All() {
+			console := b.opt.Console.WithPrefixAndSalt(sts.Target.String(), sts.Salt)
+
 			for _, saveImage := range sts.SaveImages {
 				shouldPush := opt.Push && saveImage.Push && !sts.Target.IsRemote()
-				console := b.opt.Console.WithPrefixAndSalt(sts.Target.String(), sts.Salt)
 				pushStr := ""
 				if shouldPush {
 					pushStr = " (pushed)"
 				}
 				console.Printf("Image %s as %s%s\n", sts.Target.StringCanonical(), saveImage.DockerTag, pushStr)
+
 				if saveImage.Push && !opt.Push && !sts.Target.IsRemote() {
 					console.Printf("Did not push %s. Use earthly --push to enable pushing\n", saveImage.DockerTag)
 				}
@@ -364,9 +369,32 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 					}
 					dirIndex++
 				}
-				err = b.executeRunPush(ctx, sts, opt)
-				if err != nil {
-					return nil, err
+
+				if sts.RunPush.Initialized {
+					if opt.Push {
+						err = b.s.buildMainMulti(ctx, bf, onImage, onArtifact, onFinalArtifact)
+						if err != nil {
+							return nil, errors.Wrapf(err, "build push")
+						}
+						successOnce.Do(successFun)
+
+						for _, saveLocal := range sts.RunPush.SaveLocals {
+							artifactDir := filepath.Join(outDir, fmt.Sprintf("index-%d", dirIndex))
+							artifact := domain.Artifact{
+								Target:   sts.Target,
+								Artifact: saveLocal.ArtifactPath,
+							}
+							err := b.saveArtifactLocally(ctx, artifact, artifactDir, saveLocal.DestPath, sts.Salt, opt, saveLocal.IfExists)
+							if err != nil {
+								return nil, err
+							}
+							dirIndex++
+						}
+					} else {
+						for _, commandStr := range sts.RunPush.CommandStrs {
+							console.Printf("Did not execute push command %s. Use earthly --push to enable pushing\n", commandStr)
+						}
+					}
 				}
 			}
 		}
@@ -381,8 +409,29 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 	return mts, nil
 }
 
+func (b *Builder) targetPhaseState(sts *states.SingleTarget) llb.State {
+	if b.builtMain {
+		return sts.RunPush.State
+	}
+	return sts.MainState
+}
+
+func (b *Builder) targetPhaseArtifacts(sts *states.SingleTarget) []states.SaveLocal {
+	if b.builtMain {
+		return sts.RunPush.SaveLocals
+	}
+	return sts.SaveLocals
+}
+
 func (b *Builder) stateToRef(ctx context.Context, gwClient gwclient.Client, state llb.State, platform *specs.Platform) (gwclient.Reference, error) {
-	if b.opt.NoCache {
+	if b.opt.NoCache && !b.builtMain {
+		state = state.SetMarshalDefaults(llb.IgnoreCache)
+	}
+	return llbutil.StateToRef(ctx, gwClient, state, platform, b.opt.CacheImports)
+}
+
+func (b *Builder) artifactStateToRef(ctx context.Context, gwClient gwclient.Client, state llb.State, platform *specs.Platform) (gwclient.Reference, error) {
+	if b.opt.NoCache || b.builtMain {
 		state = state.SetMarshalDefaults(llb.IgnoreCache)
 	}
 	return llbutil.StateToRef(ctx, gwClient, state, platform, b.opt.CacheImports)

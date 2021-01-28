@@ -1,5 +1,4 @@
-ARG GO_VERSION=1.15
-FROM golang:${GO_VERSION}-alpine3.13
+FROM golang:1.16-rc-alpine3.13
 
 RUN apk add --update --no-cache \
     bash \
@@ -20,8 +19,7 @@ RUN apk add --update --no-cache \
 WORKDIR /earthly
 
 deps:
-    ARG GO_VERSION=1.15
-    FROM --build-arg GO_VERSION +base
+    FROM +base
     RUN go get golang.org/x/tools/cmd/goimports
     RUN go get golang.org/x/lint/golint
     RUN go get github.com/gordonklaus/ineffassign
@@ -31,8 +29,7 @@ deps:
     SAVE ARTIFACT go.sum AS LOCAL go.sum
 
 code:
-    ARG GO_VERSION=1.15
-    FROM --build-arg GO_VERSION +deps
+    FROM +deps
     COPY --platform=linux/amd64 ./earthfile2llb/parser+parser/*.go ./earthfile2llb/parser/
     COPY --dir analytics autocomplete buildcontext builder cleanup cmd config conslogging debugger dockertar \
         docker2earthly domain fileutil gitutil llbutil logging secretsclient stringutil states syncutil termutil \
@@ -102,8 +99,7 @@ debugger:
     SAVE ARTIFACT build/earth_debugger
 
 earthly:
-    ARG GO_VERSION=1.15
-    FROM --build-arg GO_VERSION +code
+    FROM +code
     ARG GOOS=linux
     ARG TARGETARCH
     ARG TARGETVARIANT
@@ -172,7 +168,6 @@ earthly-darwin-amd64:
 
 earthly-darwin-arm64:
     COPY \
-        --build-arg GO_VERSION=1.16beta1 \
         --build-arg GOOS=darwin \
         --build-arg GOARCH=arm64 \
         --build-arg VARIANT= \
@@ -247,20 +242,28 @@ for-darwin-m1:
     COPY +earthly-darwin-arm64/earthly ./
     SAVE ARTIFACT ./earthly
 
-all:
+all-buildkitd:
     BUILD \
         --platform=linux/amd64 \
         --platform=linux/arm/v7 \
         --platform=linux/arm64 \
         ./buildkitd+buildkitd
+
+all-dind:
+    BUILD \
+        --platform=linux/amd64 \
+        --platform=linux/arm64 \
+        +dind
+    BUILD \
+        --platform=linux/arm/v7 \
+        +dind-alpine
+
+all:
+    BUILD +all-buildkitd
     BUILD +earthly-all
     BUILD +earthly-docker
     BUILD +prerelease
-    BUILD \
-        --platform=linux/amd64 \
-        --platform=linux/arm/v7 \
-        --platform=linux/arm64 \
-        +dind
+    BUILD +all-dind
 
 test:
     BUILD +lint

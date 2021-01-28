@@ -94,4 +94,5 @@ type RunPush struct {
 	Initialized bool
 	CommandStrs []string
 	State       llb.State
+	SaveLocals  []SaveLocal
 }
