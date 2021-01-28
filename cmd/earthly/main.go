@@ -1065,8 +1065,7 @@ func (app *earthlyApp) insertZSHCompleteEntry() error {
 func (app *earthlyApp) run(ctx context.Context, args []string) int {
 	err := app.cliApp.RunContext(ctx, args)
 
-	rpcRegex := regexp.MustCompile(`rpc error: code = .+ desc = .+:\s`)
-
+	rpcRegex := regexp.MustCompile(`(?U)rpc error: code = .+ desc = .+:\s`)
 	if err != nil {
 		if strings.Contains(err.Error(), "security.insecure is not allowed") {
 			app.console.Warnf("Error: --allow-privileged (-P) flag is required\n")
