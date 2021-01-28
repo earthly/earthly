@@ -55,6 +55,7 @@ ga:
     BUILD +end-comment
     BUILD +if-exists
     BUILD +file-copying
+    BUILD +run-no-cache
     BUILD +save-artifact-after-push
     BUILD ./autocompletion+test-all
     BUILD ./with-docker+all
@@ -510,6 +511,25 @@ file-copying:
     RUN --privileged \
         --mount=type=tmpfs,target=/tmp/earthly \
         ! /usr/bin/earthly-buildkitd-wrapper.sh +test-dot-scratch
+
+run-no-cache:
+    COPY run-no-cache.earth ./Earthfile
+
+    # Run twice to allow the second one to attempt to cache things
+    RUN --privileged \
+        --entrypoint \
+        -- +test
+    RUN --privileged \
+        --entrypoint \
+        -- +test 2>&1 | perl -pe 'BEGIN {$status=0} END {exit $status} $status=1 if /\*cached\* --> .* motd2/;'  # Fail if we cached any of the motd2 lines, which are after the --no-cache
+    
+    # Run twice to allow the second one to attempt to cache things
+    RUN --privileged \
+        --entrypoint \
+        -- +test-from
+    RUN --privileged \
+        --entrypoint \
+        -- +test-from 2>&1 | perl -pe 'BEGIN {$status=0} END {exit $status} $status=1 if /\*cached\* --> .*motd2 \.\//;'  # Fail if we cached any of the COPY motd2 lines, which are after the --no-cache
 
 save-artifact-after-push:
     # test that save after push is a thing
