@@ -330,6 +330,7 @@ func (l *listener) ExitRunStmt(c *parser.RunStmtContext) {
 		"Include the entrypoint of the image when running the command")
 	withDocker := fs.Bool("with-docker", false, "Deprecated")
 	withSSH := fs.Bool("ssh", false, "Make available the SSH agent of the host")
+	noCache := fs.Bool("no-cache", false, "Always run this specific item, ignoring cache. Like --push, but without --push on the CLI")
 	secrets := new(StringSliceFlag)
 	fs.Var(secrets, "secret", "Make available a secret")
 	mounts := new(StringSliceFlag)
@@ -370,6 +371,10 @@ func (l *listener) ExitRunStmt(c *parser.RunStmtContext) {
 			l.err = fmt.Errorf("the --privileged flag has no effect when used with the LOCALLY directive: %s", c.GetText())
 			return
 		}
+		if *noCache {
+			l.err = fmt.Errorf("the --no-cache flag has no effect when used with the LOCALLY directive: %s", c.GetText())
+			return
+		}
 
 		// TODO these should be supported, but haven't yet been implemented
 		if len(secrets.Args) > 0 {
@@ -384,7 +389,7 @@ func (l *listener) ExitRunStmt(c *parser.RunStmtContext) {
 	if l.withDocker == nil {
 		err = l.converter.Run(
 			l.ctx, fs.Args(), mounts.Args, secrets.Args, *privileged, *withEntrypoint, *withDocker,
-			withShell, *pushFlag, *withSSH)
+			withShell, *pushFlag, *withSSH, *noCache)
 		if err != nil {
 			l.err = errors.Wrap(err, "run")
 			return
