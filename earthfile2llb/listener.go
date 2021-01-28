@@ -330,7 +330,7 @@ func (l *listener) ExitRunStmt(c *parser.RunStmtContext) {
 		"Include the entrypoint of the image when running the command")
 	withDocker := fs.Bool("with-docker", false, "Deprecated")
 	withSSH := fs.Bool("ssh", false, "Make available the SSH agent of the host")
-	noCache := fs.Bool("no-cache", false, "Always run this specific item, ignoring cache. Like --push, but without --push on the CLI")
+	noCache := fs.Bool("no-cache", false, "Always run this specific item, ignoring cache")
 	secrets := new(StringSliceFlag)
 	fs.Var(secrets, "secret", "Make available a secret")
 	mounts := new(StringSliceFlag)
