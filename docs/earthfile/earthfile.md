@@ -141,13 +141,7 @@ Note that non-push commands are not allowed to follow a push command within a re
 
 #### `--no-cache`
 
-Force the command to run every time; ignoring any cache. Any commands following the invocation of `RUN --no-cache`, will also ignore the cache.
-
-If a target that uses `--no-cache` is `COPY`-ed from; all artifacts saved after the `--no-cache` will not use the cache when copying.
-
-If a target that uses `--no-cache` is used as the basis for a different target via `FROM`; all commands in that target will not use the cache either.
-
-If `--no-cache` is used as an option on the `RUN` statement within a `WITH DOCKER` statement, it behaves as if it were invoked as a regular `RUN` command, and all following commands will also ignore the cache.
+Force the command to run every time; ignoring any cache. Any commands following the invocation of `RUN --no-cache`, will also ignore the cache. If `--no-cache` is used as an option on the `RUN` statement within a `WITH DOCKER` statement, all commands after the `WITH DOCKER` will also ignore the cache.
 
 ##### `--entrypoint`
 
