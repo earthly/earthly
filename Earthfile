@@ -247,20 +247,28 @@ for-darwin-m1:
     COPY +earthly-darwin-arm64/earthly ./
     SAVE ARTIFACT ./earthly
 
-all:
+all-buildkitd:
     BUILD \
         --platform=linux/amd64 \
         --platform=linux/arm/v7 \
         --platform=linux/arm64 \
         ./buildkitd+buildkitd
+
+all-dind:
+    BUILD \
+        --platform=linux/amd64 \
+        --platform=linux/arm64 \
+        +dind
+    BUILD \
+        --platform=linux/arm/v7 \
+        +dind-alpine
+
+all:
+    BUILD +all-buildkitd
     BUILD +earthly-all
     BUILD +earthly-docker
     BUILD +prerelease
-    BUILD \
-        --platform=linux/amd64 \
-        --platform=linux/arm/v7 \
-        --platform=linux/arm64 \
-        +dind
+    BUILD +all-dind
 
 test:
     BUILD +lint
