@@ -122,7 +122,7 @@ For more information see the [multi-platform guide](../guides/multi-platform.md)
 
 #### Synopsis
 
-* `RUN [--push] [--entrypoint] [--privileged] [--secret <env-var>=<secret-ref>] [--ssh] [--mount <mount-spec>] [--] <command>` (shell form)
+* `RUN [--push] [--no-cache] [--entrypoint] [--privileged] [--secret <env-var>=<secret-ref>] [--ssh] [--mount <mount-spec>] [--] <command>` (shell form)
 * `RUN [[<flags>...], "<executable>", "<arg1>", "<arg2>", ...]` (exec form)
 
 #### Description
@@ -150,6 +150,14 @@ earthly --push +deploy
 Push commands were introduced to allow the user to define commands that have an effect external to the build. This kind of effects are only allowed to take place if the entire build succeeds. Good candidates for push commands are uploads of artifacts to artifactories, commands that make a change to an external environment, like a production or staging environment.
 
 Note that non-push commands are not allowed to follow a push command within a recipe.
+
+#### `--no-cache`
+
+Marks the command as one that will run every time; ignoring any cache. Any commands following the first invocation of a `RUN` with `--no-cache` will alos not be cached, so it is iporatnt to use this command where it will not cause a lot of duplicate work.
+
+If a target that uses `--no-cache` is `COPY`-ed from; all artifacts saved after the `--no-cache` will not be cached.
+
+If a target that uses `--no-cache` is used as the basis for a different target via `FROM`; all commands in that target will not be cached either.
 
 ##### `--entrypoint`
 
