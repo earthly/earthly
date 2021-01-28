@@ -402,6 +402,10 @@ func (l *listener) ExitRunStmt(c *parser.RunStmtContext) {
 			l.err = fmt.Errorf("RUN --push not allowed in WITH DOCKER")
 			return
 		}
+		if *noCache {
+			l.err = fmt.Errorf("RUN --no-cache has no effect in WITH DOCKER")
+			return
+		}
 		if l.withDockerRan {
 			l.err = fmt.Errorf("only one RUN command allowed in WITH DOCKER")
 			return
