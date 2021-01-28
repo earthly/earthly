@@ -141,7 +141,7 @@ Note that non-push commands are not allowed to follow a push command within a re
 
 #### `--no-cache`
 
-Force the command to run every time; ignoring any cache. Any commands following `RUN` commands regardless of the `--no-cache` will also ignore the cache.
+Force the command to run every time; ignoring any cache. Any commands following the invocation of `RUN --no-cache`, will also ignore the cache.
 
 If a target that uses `--no-cache` is `COPY`-ed from; all artifacts saved after the `--no-cache` will not be use the cache when copying.
 
