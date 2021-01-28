@@ -56,6 +56,7 @@ ga:
     BUILD +if-exists
     BUILD +file-copying
     BUILD +run-no-cache
+    BUILD +save-artifact-after-push
     BUILD ./autocompletion+test-all
     BUILD ./with-docker+all
     BUILD ./with-docker-compose+all
@@ -529,3 +530,17 @@ run-no-cache:
     RUN --privileged \
         --entrypoint \
         -- +test-from 2>&1 | perl -pe 'BEGIN {$status=0} END {exit $status} $status=1 if /\*cached\* --> .*motd2 \.\//;'  # Fail if we cached any of the COPY motd2 lines, which are after the --no-cache
+
+save-artifact-after-push:
+    # test that save after push is a thing
+    COPY save-artifact-after-push.earth ./Earthfile
+    RUN --privileged \
+        --entrypoint \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        -- +test
+
+    # test that cant copy saved after push
+    RUN --privileged \
+        --entrypoint \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        -- +copy-test 2>&1 | perl -pe 'BEGIN {$status=1} END {exit $status} $status=0 if /not found/;'

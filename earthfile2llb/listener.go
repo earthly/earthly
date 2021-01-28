@@ -427,10 +427,6 @@ func (l *listener) ExitSaveArtifact(c *parser.SaveArtifactContext) {
 	if l.shouldSkip() {
 		return
 	}
-	if l.pushOnlyAllowed {
-		l.err = fmt.Errorf("no non-push commands allowed after a --push: %s", c.GetText())
-		return
-	}
 	fs := flag.NewFlagSet("SAVE ARTIFACT", flag.ContinueOnError)
 	keepTs := fs.Bool("keep-ts", false, "Keep created time file timestamps")
 	keepOwn := fs.Bool("keep-own", false, "Keep owner info")
@@ -471,7 +467,7 @@ func (l *listener) ExitSaveArtifact(c *parser.SaveArtifactContext) {
 	saveFrom := l.expandArgs(fs.Args()[0], false)
 	saveTo = l.expandArgs(saveTo, false)
 	saveAsLocalTo = l.expandArgs(saveAsLocalTo, false)
-	err = l.converter.SaveArtifact(l.ctx, saveFrom, saveTo, saveAsLocalTo, *keepTs, *keepOwn, *ifExists)
+	err = l.converter.SaveArtifact(l.ctx, saveFrom, saveTo, saveAsLocalTo, *keepTs, *keepOwn, *ifExists, l.pushOnlyAllowed)
 	if err != nil {
 		l.err = errors.Wrap(err, "apply SAVE ARTIFACT")
 		return
@@ -502,10 +498,6 @@ func (l *listener) ExitSaveImage(c *parser.SaveImageContext) {
 	}
 	for i, cf := range cacheFrom.Args {
 		cacheFrom.Args[i] = l.expandArgs(cf, false)
-	}
-	if !*pushFlag && l.pushOnlyAllowed {
-		l.err = fmt.Errorf("no non-push commands allowed after a --push: %s", c.GetText())
-		return
 	}
 	if *pushFlag && fs.NArg() == 0 {
 		l.err = fmt.Errorf("invalid number of arguments for SAVE IMAGE --push: %v", l.stmtWords)

@@ -395,7 +395,7 @@ func (c *Converter) Run(ctx context.Context, args, mounts, secretKeyValues []str
 }
 
 // SaveArtifact applies the earthly SAVE ARTIFACT command.
-func (c *Converter) SaveArtifact(ctx context.Context, saveFrom string, saveTo string, saveAsLocalTo string, keepTs bool, keepOwn bool, ifExists bool) error {
+func (c *Converter) SaveArtifact(ctx context.Context, saveFrom string, saveTo string, saveAsLocalTo string, keepTs bool, keepOwn bool, ifExists bool, isPush bool) error {
 	absSaveFrom, err := llbutil.Abs(ctx, c.mts.Final.MainState, saveFrom)
 	if err != nil {
 		return err
@@ -431,19 +431,35 @@ func (c *Converter) SaveArtifact(ctx context.Context, saveFrom string, saveTo st
 			"%sSAVE ARTIFACT %s%s %s", c.vertexPrefix(false), strIf(ifExists, "--if-exists "), saveFrom, artifact.String()))
 	if saveAsLocalTo != "" {
 		separateArtifactsState := llbutil.ScratchWithPlatform()
-		separateArtifactsState = llbutil.CopyOp(
-			c.mts.Final.MainState, []string{saveFrom}, separateArtifactsState,
-			saveToAdjusted, true, true, keepTs, "root:root", ifExists,
-			llb.WithCustomNamef(
-				"%sSAVE ARTIFACT %s%s %s AS LOCAL %s",
-				c.vertexPrefix(false), strIf(ifExists, "--if-exists "), saveFrom, artifact.String(), saveAsLocalTo))
+		if isPush {
+			separateArtifactsState = llbutil.CopyOp(
+				c.mts.Final.RunPush.State, []string{saveFrom}, separateArtifactsState,
+				saveToAdjusted, true, true, keepTs, "root:root", ifExists,
+				llb.WithCustomNamef(
+					"%sSAVE ARTIFACT %s%s %s AS LOCAL %s",
+					c.vertexPrefix(false), strIf(ifExists, "--if-exists "), saveFrom, artifact.String(), saveAsLocalTo))
+		} else {
+			separateArtifactsState = llbutil.CopyOp(
+				c.mts.Final.MainState, []string{saveFrom}, separateArtifactsState,
+				saveToAdjusted, true, true, keepTs, "root:root", ifExists,
+				llb.WithCustomNamef(
+					"%sSAVE ARTIFACT %s%s %s AS LOCAL %s",
+					c.vertexPrefix(false), strIf(ifExists, "--if-exists "), saveFrom, artifact.String(), saveAsLocalTo))
+		}
 		c.mts.Final.SeparateArtifactsState = append(c.mts.Final.SeparateArtifactsState, separateArtifactsState)
-		c.mts.Final.SaveLocals = append(c.mts.Final.SaveLocals, states.SaveLocal{
+
+		saveLocal := states.SaveLocal{
 			DestPath:     saveAsLocalTo,
 			ArtifactPath: artifactPath,
 			Index:        len(c.mts.Final.SeparateArtifactsState) - 1,
 			IfExists:     ifExists,
-		})
+		}
+		if isPush {
+			c.mts.Final.RunPush.SaveLocals = append(c.mts.Final.RunPush.SaveLocals, saveLocal)
+		} else {
+			c.mts.Final.SaveLocals = append(c.mts.Final.SaveLocals, saveLocal)
+		}
+
 	}
 	c.ranSave = true
 	c.markFakeDeps()
