@@ -1,4 +1,3 @@
-
 FROM alpine:3.13
 
 RUN apk add --update --no-cache \
@@ -13,9 +12,16 @@ release:
 release-dockerhub:
     ARG RELEASE_TAG
     RUN test -n "$RELEASE_TAG"
-    BUILD --build-arg DIND_ALPINE_TAG=alpine ../+dind-alpine
-    BUILD --build-arg DIND_ALPINE_TAG=latest ../+dind-alpine
-    BUILD --build-arg DIND_UBUNTU_TAG=ubuntu ../+dind-ubuntu
+    BUILD \
+        --build-arg DIND_ALPINE_TAG=alpine \
+        --build-arg DIND_UBUNTU_TAG=ubuntu \
+        ../+all-dind
+    BUILD \
+        --platform=linux/amd64 \
+        --platform=linux/arm/v7 \
+        --platform=linux/arm64 \
+        --build-arg DIND_ALPINE_TAG=latest \
+        ../+dind-alpine
     BUILD --build-arg TAG="$RELEASE_TAG" ../+earthly-docker
     BUILD \
         --platform=linux/amd64 \

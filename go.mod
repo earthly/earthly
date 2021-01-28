@@ -1,6 +1,6 @@
 module github.com/earthly/earthly
 
-go 1.13
+go 1.16
 
 require (
 	github.com/alessio/shellescape v1.4.1
