@@ -266,7 +266,6 @@ jobs:
       - cloud-integration
       - secrets-integration
       - private-repo-test
-      - secrets
       - test-local
       - all
     runs-on: ubuntu-latest
