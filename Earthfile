@@ -258,9 +258,11 @@ all:
     BUILD +prerelease
     BUILD \
         --platform=linux/amd64 \
-        --platform=linux/arm/v7 \
         --platform=linux/arm64 \
         +dind
+    BUILD \
+        --platform=linux/arm/v7 \
+        +dind-alpine
 
 test:
     BUILD +lint

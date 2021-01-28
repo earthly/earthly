@@ -40,7 +40,7 @@ jobs:
         if: ${{ failure() }}
 
   misc-tests:
-    name: Misc tests
+    name: misc tests
     runs-on: ubuntu-latest
     env:
       FORCE_COLOR: 1
@@ -118,7 +118,7 @@ jobs:
         if: ${{ failure() }}
 
   cloud-integration:
-    name: Cloud Integration
+    name: cloud-integration
     runs-on: ubuntu-latest
     env:
       FORCE_COLOR: 1
@@ -169,8 +169,8 @@ jobs:
         run: docker logs earthly-buildkitd
         if: ${{ failure() }}
 
-  from-local-test:
-    name: FROM LOCAL test
+  test-local:
+    name: +test-local
     runs-on: ubuntu-latest
     env:
       FORCE_COLOR: 1
@@ -263,7 +263,16 @@ jobs:
   push:
     name: --push +all
     if: github.event_name == 'push'
-    needs: ["tests", "misc-tests", "examples", "cloud-integration"]
+    needs:
+      - tests
+      - misc-tests
+      - examples
+      - cloud-integration
+      - secrets-integration
+      - private-repo-test
+      - secrets
+      - test-local
+      - all
     runs-on: ubuntu-latest
     env:
       FORCE_COLOR: 1
