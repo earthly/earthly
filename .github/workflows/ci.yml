@@ -117,6 +117,7 @@ jobs:
         if: ${{ failure() }}
 
   cloud-integration:
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     env:
       FORCE_COLOR: 1
@@ -189,7 +190,7 @@ jobs:
         run: "! ls /tmp/earthly-test-local"
 
   private-repo-test:
-    if: github.event_name == 'push'
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
     services:
       sshd:
         image: rastasheep/ubuntu-sshd:18.04
