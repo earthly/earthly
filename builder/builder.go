@@ -351,6 +351,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 					pushStr = " (pushed)"
 				}
 				console.Printf("Image %s as %s%s\n", sts.Target.StringCanonical(), saveImage.DockerTag, pushStr)
+
 				if saveImage.Push && !opt.Push && !sts.Target.IsRemote() {
 					console.Printf("Did not push %s. Use earthly --push to enable pushing\n", saveImage.DockerTag)
 				}
