@@ -143,7 +143,13 @@ print("hello world")
 ```
 {% endmethod %}
 
-You will notice that the recipes look very much like Dockerfiles. This is an intentional design decision. Existing Dockerfiles can be ported to earthfiles by copy-pasting them over and then tweaking them slightly. Compared to Dockerfile syntax, some commands are new (like `SAVE ARTIFACT`), others have additional semantics (like `COPY +target/some-artifact`) and other semantics are removed (like `FROM ... AS ...` and `COPY --from`).
+You will notice that the recipes look very much like Dockerfiles. This is an intentional design decision. Existing Dockerfiles can be ported to earthfiles by copy-pasting them over and then tweaking them slightly. Compared to Dockerfile syntax, some commands are new (like `SAVE ARTIFACT`), others have additional semantics (like `COPY +target/some-artifact`) and other semantics have been removed (like `FROM ... AS ...` and `COPY --from`).
+
+You might notice in the example the command `COPY +build/... ...`, which has an unfamiliar form. This is a special type of `COPY` in which you can pass artifacts from one target to another. In this case, the target `build` (referenced as `+build`) produces an artifact, which is declared with `SAVE ARTIFACT`, and the target `docker` copies that artifact in its build environment.
+
+With Earthly you have the ability to pass such artifacts or images between targets within the same Earthfile, but also across different Earthfiles which may exist across directories or even across repositories. To read more about this, see the [target, artifact and image referencing guide](./target-ref.md).
+
+<a href="./target-ref.md"><img src="img/ref-infographic.png" alt="Target and artifact reference syntax" title="Reference targets using +" width="500px" /></a>
 
 ## Executing a build
 
