@@ -347,6 +347,14 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 	sp.incrementIndex()
 	b.builtMain = true
 
+	if opt.Push && opt.OnlyArtifact == nil && !opt.OnlyFinalTargetImages {
+		err = b.s.buildMainMulti(ctx, bf, onImage, onArtifact, onFinalArtifact, "--push")
+		if err != nil {
+			return nil, errors.Wrapf(err, "build push")
+		}
+		sp.printCurrentSuccess()
+	}
+
 	if opt.NoOutput {
 		// Nothing.
 	} else if opt.OnlyArtifact != nil {
@@ -410,12 +418,6 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 
 				if sts.RunPush.Initialized {
 					if opt.Push {
-						err = b.s.buildMainMulti(ctx, bf, onImage, onArtifact, onFinalArtifact, "--push")
-						if err != nil {
-							return nil, errors.Wrapf(err, "build push")
-						}
-						sp.printCurrentSuccess()
-
 						for _, saveLocal := range sts.RunPush.SaveLocals {
 							artifactDir := filepath.Join(outDir, fmt.Sprintf("index-%d", dirIndex))
 							artifact := domain.Artifact{
