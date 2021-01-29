@@ -145,9 +145,9 @@ print("hello world")
 
 You will notice that the recipes look very much like Dockerfiles. This is an intentional design decision. Existing Dockerfiles can be ported to earthfiles by copy-pasting them over and then tweaking them slightly. Compared to Dockerfile syntax, some commands are new (like `SAVE ARTIFACT`), others have additional semantics (like `COPY +target/some-artifact`) and other semantics have been removed (like `FROM ... AS ...` and `COPY --from`).
 
-You might notice in the example the command `COPY +build/... ...`, which has an unfamiliar form. This is a special type of `COPY` in which you can pass artifacts from one target to another. In this case, the target `build` (referenced as `+build`) produces an artifact, which is declared with `SAVE ARTIFACT`, and the target `docker` copies that artifact in its build environment.
+You might notice the command `COPY +build/... ...`, which has an unfamiliar form. This is a special type of `COPY`, which can be used to pass artifacts from one target to another. In this case, the target `build` (referenced as `+build`) produces an artifact, which has been declared with `SAVE ARTIFACT`, and the target `docker` copies that artifact in its build environment.
 
-With Earthly you have the ability to pass such artifacts or images between targets within the same Earthfile, but also across different Earthfiles which may exist across directories or even across repositories. To read more about this, see the [target, artifact and image referencing guide](./target-ref.md).
+With Earthly you have the ability to pass such artifacts or images between targets within the same Earthfile, but also across different Earthfiles across directories or even across repositories. To read more about this, see the [target, artifact and image referencing guide](./target-ref.md).
 
 <a href="./target-ref.md"><img src="img/ref-infographic.png" alt="Target and artifact reference syntax" title="Reference targets using +" width="500px" /></a>
 
@@ -175,7 +175,7 @@ In addition, notice how even though the base is used as part of both `build` and
 
 Furthermore, the fact that the `docker` target depends on the `build` target is visible within the command `COPY +build/...`. Through this command, the system knows that it also needs to build the target `+build`, in order to satisfy the dependency on the artifact.
 
-Finally, notice how the output of the build: the docker image `go-example:latest` and the file `build/go-example` is only written after the build is declared a success. This is due to another isolation principle of Earthly: a build either succeeds completely or it fails altogether.
+Finally, notice how the output of the build: the docker image and the file(s) is only written after the build is declared a success. This is due to another isolation principle of Earthly: a build either succeeds completely or it fails altogether.
 
 Once the build has executed, we can run the resulting docker image to try it out:
 
