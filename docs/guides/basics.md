@@ -149,7 +149,7 @@ You might notice the command `COPY +build/... ...`, which has an unfamiliar form
 
 With Earthly you have the ability to pass such artifacts or images between targets within the same Earthfile, but also across different Earthfiles across directories or even across repositories. To read more about this, see the [target, artifact and image referencing guide](./target-ref.md).
 
-<a href="./target-ref.md"><img src="img/ref-infographic.png" alt="Target and artifact reference syntax" title="Reference targets using +" width="500px" /></a>
+<img src="img/ref-infographic.png" alt="Target and artifact reference syntax" title="Reference targets using +" width="500px" />
 
 ## Executing a build
 
