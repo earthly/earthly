@@ -130,23 +130,23 @@ func (cl ConsoleLogger) WithFailed(isFailed bool) ConsoleLogger {
 }
 
 // PrintSuccess prints the success message.
-func (cl ConsoleLogger) PrintSuccess(extra string) {
+func (cl ConsoleLogger) PrintSuccess(msg string) {
 	cl.mu.Lock()
 	defer cl.mu.Unlock()
-	cl.printBar(" SUCCESS ", extra)
+	cl.printBar(" SUCCESS ", msg)
 }
 
 // PrintFailure prints the failure message.
-func (cl ConsoleLogger) PrintFailure(extra string) {
+func (cl ConsoleLogger) PrintFailure(msg string) {
 	cl.mu.Lock()
 	defer cl.mu.Unlock()
 
-	cl.printBar(" FAILURE ", extra)
+	cl.printBar(" FAILURE ", msg)
 }
 
-func (cl ConsoleLogger) printBar(center, extra string) {
-	if extra != "" {
-		center = fmt.Sprintf("%s[%s] ", center, extra)
+func (cl ConsoleLogger) printBar(center, msg string) {
+	if msg != "" {
+		center = fmt.Sprintf("%s[%s] ", center, msg)
 	}
 
 	totalWidth := 80
@@ -154,6 +154,7 @@ func (cl ConsoleLogger) printBar(center, extra string) {
 	leftBar := eqBar
 	rightBar := eqBar
 
+	// Ensure the width is always totalWidth
 	if len(center)%2 == 1 {
 		rightBar += "="
 	}

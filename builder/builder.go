@@ -116,10 +116,12 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 		return nil, errors.Wrap(err, "mk temp dir for artifacts")
 	}
 	defer os.RemoveAll(outDir)
-	var successOnce sync.Once
-	successFun := func() {
-		if opt.PrintSuccess {
-			b.s.sm.SetSuccess()
+	var successMain, successPush sync.Once
+	successFun := func(message string) func() {
+		return func() {
+			if opt.PrintSuccess {
+				b.s.sm.SetSuccess(message)
+			}
 		}
 	}
 	destPathWhitelist := make(map[string]bool)
@@ -282,7 +284,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 		return res, nil
 	}
 	onImage := func(ctx context.Context, eg *errgroup.Group, imageName string) (io.WriteCloser, error) {
-		successOnce.Do(successFun)
+		successMain.Do(successFun("main"))
 		pipeR, pipeW := io.Pipe()
 		eg.Go(func() error {
 			defer pipeR.Close()
@@ -295,7 +297,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 		return pipeW, nil
 	}
 	onArtifact := func(ctx context.Context, index int, artifact domain.Artifact, artifactPath string, destPath string) (string, error) {
-		successOnce.Do(successFun)
+		successMain.Do(successFun("main"))
 		if !destPathWhitelist[destPath] {
 			return "", errors.Errorf("dest path %s is not in the whitelist: %+v", destPath, destPathWhitelist)
 		}
@@ -307,14 +309,14 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 		return artifactDir, nil
 	}
 	onFinalArtifact := func(ctx context.Context) (string, error) {
-		successOnce.Do(successFun)
+		successMain.Do(successFun("main"))
 		return outDir, nil
 	}
 	err = b.s.buildMainMulti(ctx, bf, onImage, onArtifact, onFinalArtifact, "main")
 	if err != nil {
 		return nil, errors.Wrapf(err, "build main")
 	}
-	successOnce.Do(successFun)
+	successMain.Do(successFun("main"))
 	b.builtMain = true
 
 	if opt.NoOutput {
@@ -376,7 +378,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 						if err != nil {
 							return nil, errors.Wrapf(err, "build push")
 						}
-						successOnce.Do(successFun)
+						successPush.Do(successFun("--push"))
 
 						for _, saveLocal := range sts.RunPush.SaveLocals {
 							artifactDir := filepath.Join(outDir, fmt.Sprintf("index-%d", dirIndex))

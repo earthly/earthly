@@ -211,9 +211,10 @@ type solverMonitor struct {
 	timingTable                  map[timingKey]time.Duration
 	startTime                    time.Time
 
-	mu      sync.Mutex
-	success bool
-	ongoing bool
+	mu             sync.Mutex
+	success        bool
+	ongoing        bool
+	printedSuccess bool
 }
 
 type timingKey struct {
@@ -319,8 +320,9 @@ Loop:
 		sm.reprintFailure(errVertex, phaseText)
 	}
 	sm.mu.Lock()
-	if sm.success {
+	if sm.success && !sm.printedSuccess {
 		sm.console.PrintSuccess(phaseText)
+		sm.printedSuccess = true
 	}
 	sm.ongoing = false
 	sm.mu.Unlock()
@@ -369,12 +371,13 @@ func (sm *solverMonitor) recordTiming(targetStr, targetBrackets, salt string, ve
 	sm.timingTable[key] += dur
 }
 
-func (sm *solverMonitor) SetSuccess() {
+func (sm *solverMonitor) SetSuccess(msg string) {
 	sm.mu.Lock()
 	defer sm.mu.Unlock()
 	sm.success = true
 	if !sm.ongoing {
-		sm.console.PrintSuccess("SetSuccess")
+		sm.console.PrintSuccess(msg)
+		sm.printedSuccess = true
 	}
 }
 
