@@ -376,6 +376,7 @@ func (sm *solverMonitor) SetSuccess(msg string) {
 	defer sm.mu.Unlock()
 	sm.success = true
 	if !sm.ongoing {
+		sm.lastOutputWasOngoingProgress = false
 		sm.console.PrintSuccess(msg)
 		sm.printedSuccess = true
 	}
