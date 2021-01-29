@@ -175,7 +175,7 @@ In addition, notice how even though the base is used as part of both `build` and
 
 Furthermore, the fact that the `docker` target depends on the `build` target is visible within the command `COPY +build/...`. Through this command, the system knows that it also needs to build the target `+build`, in order to satisfy the dependency on the artifact.
 
-Finally, notice how the output of the build: the docker image and the file(s) is only written after the build is declared a success. This is due to another isolation principle of Earthly: a build either succeeds completely or it fails altogether.
+Finally, notice how the output of the build: the docker image and the file(s) are only written after the build is declared a success. This is due to another isolation principle of Earthly: a build either succeeds completely or it fails altogether.
 
 Once the build has executed, we can run the resulting docker image to try it out:
 
