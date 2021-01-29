@@ -58,7 +58,7 @@ func (s *solver) solveDockerTar(ctx context.Context, state llb.State, platform s
 		return nil
 	})
 	eg.Go(func() error {
-		return s.sm.monitorProgress(ctx, ch, "docker tar")
+		return s.sm.monitorProgress(ctx, ch, "")
 	})
 	eg.Go(func() error {
 		file, err := os.Create(outFile)
@@ -147,7 +147,7 @@ func (s *solver) solveMain(ctx context.Context, state llb.State, platform specs.
 		return nil
 	})
 	eg.Go(func() error {
-		return s.sm.monitorProgress(ctx, ch, "solveMain")
+		return s.sm.monitorProgress(ctx, ch, "")
 	})
 	err = eg.Wait()
 	if err != nil {
