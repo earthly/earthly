@@ -176,8 +176,8 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 			}
 
 			for _, saveImage := range sts.SaveImages {
-				shouldPush := opt.Push && saveImage.Push && !sts.Target.IsRemote()
-				shouldExport := !opt.NoOutput && opt.OnlyArtifact == nil && !(opt.OnlyFinalTargetImages && sts != mts.Final)
+				shouldPush := opt.Push && saveImage.Push && !sts.Target.IsRemote() && saveImage.DockerTag != ""
+				shouldExport := !opt.NoOutput && opt.OnlyArtifact == nil && !(opt.OnlyFinalTargetImages && sts != mts.Final) && saveImage.DockerTag != ""
 				useCacheHint := saveImage.CacheHint && b.opt.CacheExport != ""
 				if !shouldPush && !shouldExport && !useCacheHint {
 					// Short-circuit.
@@ -326,7 +326,11 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 		}
 	} else if opt.OnlyFinalTargetImages {
 		for _, saveImage := range mts.Final.SaveImages {
-			shouldPush := opt.Push && saveImage.Push
+			shouldPush := opt.Push && saveImage.Push && saveImage.DockerTag != ""
+			shouldExport := !opt.NoOutput && saveImage.DockerTag != ""
+			if !shouldPush && !shouldExport {
+				continue
+			}
 			console := b.opt.Console.WithPrefixAndSalt(mts.Final.Target.String(), mts.Final.Salt)
 			pushStr := ""
 			if shouldPush {
@@ -345,7 +349,11 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 			console := b.opt.Console.WithPrefixAndSalt(sts.Target.String(), sts.Salt)
 
 			for _, saveImage := range sts.SaveImages {
-				shouldPush := opt.Push && saveImage.Push && !sts.Target.IsRemote()
+				shouldPush := opt.Push && saveImage.Push && !sts.Target.IsRemote() && saveImage.DockerTag != ""
+				shouldExport := !opt.NoOutput && saveImage.DockerTag != ""
+				if !shouldPush && !shouldExport {
+					continue
+				}
 				pushStr := ""
 				if shouldPush {
 					pushStr = " (pushed)"
