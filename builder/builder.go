@@ -110,18 +110,45 @@ func (b *Builder) MakeImageAsTarBuilderFun() states.DockerBuilderFun {
 	}
 }
 
+type successPrinter struct {
+	printedOnce []sync.Once
+	printFunc   []func()
+	printIndex  int
+}
+
+func newSuccessPrinter(funcs ...func()) *successPrinter {
+	printedOnce := []sync.Once{}
+	for i := 0; i < len(funcs); i++ {
+		printedOnce = append(printedOnce, sync.Once{})
+	}
+
+	return &successPrinter{printedOnce, funcs, 0}
+}
+
+func (sp *successPrinter) printCurrentSuccess() {
+	sp.printedOnce[sp.printIndex].Do(sp.printFunc[sp.printIndex])
+}
+
+func (sp *successPrinter) incrementIndex() {
+	sp.printIndex++
+}
+
 func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt BuildOpt) (*states.MultiTarget, error) {
 	outDir, err := ioutil.TempDir(".", ".tmp-earthly-out")
 	if err != nil {
 		return nil, errors.Wrap(err, "mk temp dir for artifacts")
 	}
 	defer os.RemoveAll(outDir)
-	var successOnce sync.Once
-	successFun := func() {
-		if opt.PrintSuccess {
-			b.s.sm.SetSuccess()
+
+	successFun := func(msg string) func() {
+		return func() {
+			if opt.PrintSuccess {
+				b.s.sm.SetSuccess(msg)
+			}
 		}
 	}
+	sp := newSuccessPrinter(successFun(""), successFun("--push"))
+
 	destPathWhitelist := make(map[string]bool)
 	manifestLists := make(map[string][]manifest) // parent image -> child images
 	var mts *states.MultiTarget
@@ -282,7 +309,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 		return res, nil
 	}
 	onImage := func(ctx context.Context, eg *errgroup.Group, imageName string) (io.WriteCloser, error) {
-		successOnce.Do(successFun)
+		sp.printCurrentSuccess()
 		pipeR, pipeW := io.Pipe()
 		eg.Go(func() error {
 			defer pipeR.Close()
@@ -295,7 +322,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 		return pipeW, nil
 	}
 	onArtifact := func(ctx context.Context, index int, artifact domain.Artifact, artifactPath string, destPath string) (string, error) {
-		successOnce.Do(successFun)
+		sp.printCurrentSuccess()
 		if !destPathWhitelist[destPath] {
 			return "", errors.Errorf("dest path %s is not in the whitelist: %+v", destPath, destPathWhitelist)
 		}
@@ -307,14 +334,15 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 		return artifactDir, nil
 	}
 	onFinalArtifact := func(ctx context.Context) (string, error) {
-		successOnce.Do(successFun)
+		sp.printCurrentSuccess()
 		return outDir, nil
 	}
-	err = b.s.buildMainMulti(ctx, bf, onImage, onArtifact, onFinalArtifact)
+	err = b.s.buildMainMulti(ctx, bf, onImage, onArtifact, onFinalArtifact, "main")
 	if err != nil {
 		return nil, errors.Wrapf(err, "build main")
 	}
-	successOnce.Do(successFun)
+	sp.printCurrentSuccess()
+	sp.incrementIndex()
 	b.builtMain = true
 
 	if opt.NoOutput {
@@ -380,11 +408,11 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 
 				if sts.RunPush.Initialized {
 					if opt.Push {
-						err = b.s.buildMainMulti(ctx, bf, onImage, onArtifact, onFinalArtifact)
+						err = b.s.buildMainMulti(ctx, bf, onImage, onArtifact, onFinalArtifact, "--push")
 						if err != nil {
 							return nil, errors.Wrapf(err, "build push")
 						}
-						successOnce.Do(successFun)
+						sp.printCurrentSuccess()
 
 						for _, saveLocal := range sts.RunPush.SaveLocals {
 							artifactDir := filepath.Join(outDir, fmt.Sprintf("index-%d", dirIndex))
