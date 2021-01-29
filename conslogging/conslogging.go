@@ -144,7 +144,7 @@ func (cl ConsoleLogger) PrintFailure(msg string) {
 	cl.printBar(warnColor, " FAILURE ", msg)
 }
 
-func (cl ConsoleLogger) printBar(color *color.Color, center, msg string) {
+func (cl ConsoleLogger) printBar(c *color.Color, center, msg string) {
 	if msg != "" {
 		center = fmt.Sprintf("%s[%s] ", center, msg)
 	}
@@ -159,7 +159,7 @@ func (cl ConsoleLogger) printBar(color *color.Color, center, msg string) {
 		rightBar += "="
 	}
 
-	cl.color(color).Fprintf(cl.outW, "%s%s%s\n", leftBar, center, rightBar)
+	cl.color(c).Fprintf(cl.outW, "%s%s%s\n", leftBar, center, rightBar)
 }
 
 // Warnf prints a warning message in red to errWriter
