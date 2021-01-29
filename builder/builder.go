@@ -192,7 +192,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 		}
 
 		for _, sts := range mts.All() {
-			if sts.HasDangling && !b.opt.UseFakeDep {
+			if (sts.HasDangling && !b.opt.UseFakeDep) || b.builtMain {
 				depRef, err := b.stateToRef(ctx, gwClient, b.targetPhaseState(sts), sts.Platform)
 				if err != nil {
 					return nil, err
