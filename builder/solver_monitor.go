@@ -321,6 +321,7 @@ Loop:
 	}
 	sm.mu.Lock()
 	if sm.success && !sm.printedSuccess {
+		sm.lastOutputWasOngoingProgress = false
 		sm.console.PrintSuccess(phaseText)
 		sm.printedSuccess = true
 	}
@@ -424,6 +425,7 @@ func (sm *solverMonitor) PrintTiming() {
 }
 
 func (sm *solverMonitor) reprintFailure(errVertex *vertexMonitor, phaseText string) {
+	sm.lastOutputWasOngoingProgress = false
 	sm.console.Warnf("Repeating the output of the command that caused the failure\n")
 	sm.console.PrintFailure(phaseText)
 	errVertex.console = errVertex.console.WithFailed(true)
