@@ -140,18 +140,14 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 	}
 	defer os.RemoveAll(outDir)
 
-	sp := NewSuccessPrinter(
-		func() {
+	successFun := func(msg string) func() {
+		return func() {
 			if opt.PrintSuccess {
-				b.s.sm.SetSuccess("")
+				b.s.sm.SetSuccess(msg)
 			}
-		},
-		func() {
-			if opt.PrintSuccess {
-				b.s.sm.SetSuccess("--push")
-			}
-		},
-	)
+		}
+	}
+	sp := NewSuccessPrinter(successFun(""), successFun("--push"))
 
 	destPathWhitelist := make(map[string]bool)
 	manifestLists := make(map[string][]manifest) // parent image -> child images
