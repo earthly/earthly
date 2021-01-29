@@ -1,0 +1,17 @@
+test:
+    FROM alpine:3.13
+    WORKDIR test
+
+    RUN echo "1" > 1
+    SAVE ARTIFACT 1 AS LOCAL 1
+
+    RUN --push echo "2" > 2
+    RUN --push  echo "suprise" > 1
+
+    SAVE ARTIFACT 1 AS LOCAL suprise
+    SAVE ARTIFACT 2 AS LOCAL 2
+
+copy-test:
+    FROM alpine:3.13
+    WORKDIR test
+    COPY +test/2 .

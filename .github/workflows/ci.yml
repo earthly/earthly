@@ -3,8 +3,10 @@ name: GitHub Actions CI
 on:
   push:
     branches: [ main ]
+    paths-ignore: [ docs/** ]
   pull_request:
     branches: [ main ]
+    paths-ignore: [ docs/** ]
 
 jobs:
   tests:
@@ -32,13 +34,12 @@ jobs:
         run: ./build/linux/amd64/earthly --ci -P +test
         if: github.event_name != 'push' && github.event.pull_request.head.repo.full_name != github.repository
       - name: Execute fail test
-        run: "! ./build/linux/amd64/earthly --ci +test-fail"
+        run: "! ./build/linux/amd64/earthly --ci ./examples/tests/fail+test-fail"
       - name: Buildkit logs (runs on failure)
         run: docker logs earthly-buildkitd
         if: ${{ failure() }}
 
   misc-tests:
-    name: Misc tests
     runs-on: ubuntu-latest
     env:
       FORCE_COLOR: 1
@@ -115,8 +116,35 @@ jobs:
         run: docker logs earthly-buildkitd
         if: ${{ failure() }}
 
-  secrets:
-    name: secrets-integration
+  cloud-integration:
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    env:
+      FORCE_COLOR: 1
+      EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
+      EARTHLY_INSTALL_ID: "earthly-githubactions"
+    steps:
+      - uses: actions/checkout@v2
+      - name: Download released earthly
+        run: "sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/latest/download/earthly-linux-amd64 -O /usr/local/bin/earthly && chmod +x /usr/local/bin/earthly'"
+      - name: Docker Login (non fork only)
+        run: docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password "${{ secrets.DOCKERHUB_TOKEN }}"
+        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+      - name: Build latest earthly using released earthly
+        run: earthly --use-inline-cache +for-linux
+      - name: Push and Pull Images (not a fork)
+        run: |
+          export EARTHLY_BUILD_ARGS="DOCKERHUB_USER_SECRET=+secrets/earthly-technologies/dockerhub/user,DOCKERHUB_TOKEN_SECRET=+secrets/earthly-technologies/dockerhub/token"
+          ./build/linux/amd64/earthly --ci -P ./examples/tests/cloud-push-pull+all
+        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+      - name: Push and Pull Images (fork)
+        run: ./build/linux/amd64/earthly --ci -P ./examples/tests/cloud-push-pull+all
+        if: github.event_name != 'push' && github.event.pull_request.head.repo.full_name != github.repository
+      - name: Buildkit logs (runs on failure)
+        run: docker logs earthly-buildkitd
+        if: ${{ failure() }}
+
+  secrets-integration:
     runs-on: ubuntu-latest
     env:
       FORCE_COLOR: 1
@@ -139,13 +167,35 @@ jobs:
         run: docker logs earthly-buildkitd
         if: ${{ failure() }}
 
+  test-local:
+    name: +test-local
+    runs-on: ubuntu-latest
+    env:
+      FORCE_COLOR: 1
+      EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
+      EARTHLY_INSTALL_ID: "earthly-githubactions"
+    steps:
+      - uses: actions/checkout@v2
+      - name: Download released earthly
+        run: "sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/latest/download/earthly-linux-amd64 -O /usr/local/bin/earthly && chmod +x /usr/local/bin/earthly'"
+      - name: Build latest earthly using released earthly
+        run: earthly --use-inline-cache +for-linux
+      - name: Execute test-local
+        run: "./build/linux/amd64/earthly --ci ./examples/tests/local+test-local"
+      - name: Check previous run without the --push flag correctly prevented the file from being touched
+        run: "! ls /tmp/earthly-test-local"
+      - name: Execute test-local --push
+        run: "./build/linux/amd64/earthly --ci --push ./examples/tests/local+test-local"
+      - name: Check --push cmd was run (and touched this file on the local disk)
+        run: "! ls /tmp/earthly-test-local"
+
   private-repo-test:
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
     services:
       sshd:
         image: rastasheep/ubuntu-sshd:18.04
         ports:
           - 2222:22
-    name: private repo test
     runs-on: ubuntu-latest
     env:
       FORCE_COLOR: 1
@@ -158,8 +208,9 @@ jobs:
         run: sudo apt-get install -y sshpass
       - name: Download released earthly
         run: "sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/latest/download/earthly-linux-amd64 -O /usr/local/bin/earthly && chmod +x /usr/local/bin/earthly'"
-      - name: Docker Login
+      - name: Docker Login (non fork only)
         run: docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password "${{ secrets.DOCKERHUB_TOKEN }}"
+        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: Build latest earthly using released earthly
         run: earthly --use-inline-cache +for-linux
       - name: run ssh-based tests
@@ -168,10 +219,175 @@ jobs:
         run: docker logs earthly-buildkitd
         if: ${{ failure() }}
 
-  push:
-    name: --push +all
+  all-buildkitd:
+    name: +all-buildkitd
+    runs-on: ubuntu-latest
+    env:
+      FORCE_COLOR: 1
+      EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
+      EARTHLY_INSTALL_ID: "earthly-githubactions"
+    steps:
+      - uses: actions/checkout@v2
+      -
+        name: Set up QEMU
+        id: qemu
+        uses: docker/setup-qemu-action@v1
+        with:
+          image: tonistiigi/binfmt:latest
+          platforms: all
+      - name: "Put back the git branch into git (Earthly uses it for tagging)"
+        run: |
+          branch=""
+          if [ -n "$GITHUB_HEAD_REF" ]; then
+            branch="$GITHUB_HEAD_REF"
+          else
+            branch="${GITHUB_REF##*/}"
+          fi
+          git checkout -b "$branch" || true
+      - name: Download released earthly
+        run: "sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/latest/download/earthly-linux-amd64 -O /usr/local/bin/earthly && chmod +x /usr/local/bin/earthly'"
+      - name: Docker Login (non fork only)
+        run: docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password "${{ secrets.DOCKERHUB_TOKEN }}"
+        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+      - name: Build latest earthly using released earthly
+        run: earthly --use-inline-cache +for-linux
+      - name: Build +all-buildkitd
+        run: ./build/linux/amd64/earthly --ci +all-buildkitd
+      - name: Buildkit logs (runs on failure)
+        run: docker logs earthly-buildkitd
+        if: ${{ failure() }}
+
+  all-dind:
+    name: +all-dind
+    runs-on: ubuntu-latest
+    env:
+      FORCE_COLOR: 1
+      EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
+      EARTHLY_INSTALL_ID: "earthly-githubactions"
+    steps:
+      - uses: actions/checkout@v2
+      -
+        name: Set up QEMU
+        id: qemu
+        uses: docker/setup-qemu-action@v1
+        with:
+          image: tonistiigi/binfmt:latest
+          platforms: all
+      - name: "Put back the git branch into git (Earthly uses it for tagging)"
+        run: |
+          branch=""
+          if [ -n "$GITHUB_HEAD_REF" ]; then
+            branch="$GITHUB_HEAD_REF"
+          else
+            branch="${GITHUB_REF##*/}"
+          fi
+          git checkout -b "$branch" || true
+      - name: Download released earthly
+        run: "sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/latest/download/earthly-linux-amd64 -O /usr/local/bin/earthly && chmod +x /usr/local/bin/earthly'"
+      - name: Docker Login (non fork only)
+        run: docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password "${{ secrets.DOCKERHUB_TOKEN }}"
+        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+      - name: Build latest earthly using released earthly
+        run: earthly --use-inline-cache +for-linux
+      - name: Build +all-dind
+        run: ./build/linux/amd64/earthly --ci +all-dind
+      - name: Buildkit logs (runs on failure)
+        run: docker logs earthly-buildkitd
+        if: ${{ failure() }}
+  
+  earthly:
+    name: +earthly-all +earthly-docker
+    runs-on: ubuntu-latest
+    env:
+      FORCE_COLOR: 1
+      EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
+      EARTHLY_INSTALL_ID: "earthly-githubactions"
+    steps:
+      - uses: actions/checkout@v2
+      -
+        name: Set up QEMU
+        id: qemu
+        uses: docker/setup-qemu-action@v1
+        with:
+          image: tonistiigi/binfmt:latest
+          platforms: all
+      - name: "Put back the git branch into git (Earthly uses it for tagging)"
+        run: |
+          branch=""
+          if [ -n "$GITHUB_HEAD_REF" ]; then
+            branch="$GITHUB_HEAD_REF"
+          else
+            branch="${GITHUB_REF##*/}"
+          fi
+          git checkout -b "$branch" || true
+      - name: Download released earthly
+        run: "sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/latest/download/earthly-linux-amd64 -O /usr/local/bin/earthly && chmod +x /usr/local/bin/earthly'"
+      - name: Docker Login (non fork only)
+        run: docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password "${{ secrets.DOCKERHUB_TOKEN }}"
+        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+      - name: Build latest earthly using released earthly
+        run: earthly --use-inline-cache +for-linux
+      - name: Build +earthly-all
+        run: ./build/linux/amd64/earthly --ci +earthly-all
+      - name: Build +earthly-docker
+        run: ./build/linux/amd64/earthly --ci +earthly-docker
+      - name: Buildkit logs (runs on failure)
+        run: docker logs earthly-buildkitd
+        if: ${{ failure() }}
+
+  prerelease:
+    name: +prerelease
+    runs-on: ubuntu-latest
+    env:
+      FORCE_COLOR: 1
+      EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
+      EARTHLY_INSTALL_ID: "earthly-githubactions"
+    steps:
+      - uses: actions/checkout@v2
+      -
+        name: Set up QEMU
+        id: qemu
+        uses: docker/setup-qemu-action@v1
+        with:
+          image: tonistiigi/binfmt:latest
+          platforms: all
+      - name: "Put back the git branch into git (Earthly uses it for tagging)"
+        run: |
+          branch=""
+          if [ -n "$GITHUB_HEAD_REF" ]; then
+            branch="$GITHUB_HEAD_REF"
+          else
+            branch="${GITHUB_REF##*/}"
+          fi
+          git checkout -b "$branch" || true
+      - name: Download released earthly
+        run: "sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/latest/download/earthly-linux-amd64 -O /usr/local/bin/earthly && chmod +x /usr/local/bin/earthly'"
+      - name: Docker Login (non fork only)
+        run: docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password "${{ secrets.DOCKERHUB_TOKEN }}"
+        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+      - name: Build latest earthly using released earthly
+        run: earthly --use-inline-cache +for-linux
+      - name: Build +prerelease
+        run: ./build/linux/amd64/earthly --ci +prerelease
+      - name: Buildkit logs (runs on failure)
+        run: docker logs earthly-buildkitd
+        if: ${{ failure() }}
+
+  push-prerelease:
+    name: --push +prerelease
     if: github.event_name == 'push'
-    needs: ["tests", "misc-tests", "examples"]
+    needs:
+      - tests
+      - misc-tests
+      - examples
+      - cloud-integration
+      - secrets-integration
+      - private-repo-test
+      - test-local
+      - all-buildkitd
+      - all-dind
+      - prerelease
+      - earthly
     runs-on: ubuntu-latest
     env:
       FORCE_COLOR: 1
@@ -201,8 +417,8 @@ jobs:
         run: docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password "${{ secrets.DOCKERHUB_TOKEN }}"
       - name: Build latest earthly using released earthly
         run: earthly --use-inline-cache +for-linux
-      - name: Rebuild and push
-        run: ./build/linux/amd64/earthly --ci --push +all
+      - name: Build and push +prerelease
+        run: ./build/linux/amd64/earthly --ci --push +prerelease
       - name: Buildkit logs (runs on failure)
         run: docker logs earthly-buildkitd
         if: ${{ failure() }}

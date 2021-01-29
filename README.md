@@ -12,9 +12,9 @@
 
 **🛠 Programming language agnostic** - *allows use of language-specific build tooling*
 
-**🔁 Repeatable builds** - *does not depend on user's local installation. Runs the same locally, as in CI*
+**🔁 Repeatable builds** - *does not depend on user's local installation: runs the same locally, as in CI*
 
-**⛓ Parallelism that just works** - *builds in parallel without special considerations the user has to make*
+**⛓ Parallelism that just works** - *build in parallel without special considerations*
 
 **🏘 Mono and Poly-repo friendly** - *ability to split the build definitions across vast project hierarchies*
 
@@ -129,7 +129,7 @@ Reference pages
 
 ```Dockerfile
 # Earthfile
-FROM golang:1.13-alpine3.11
+FROM golang:1.15-alpine3.13
 RUN apk --update --no-cache add git
 WORKDIR /go-example
 
@@ -237,7 +237,7 @@ all:
         +build
 
 build:
-    FROM alpine:3.11
+    FROM alpine:3.13
     CMD ["uname", "-m"]
     SAVE IMAGE multiplatform-image
 ```
@@ -253,7 +253,7 @@ Whenever possible, Earthly automatically executes targets in parallel.
 No need to ask your team to install `protoc`, a specific version of Python, Java 1.6 or the .NET Core ecosystem. You only install once, in your Earthfile, and it works for everyone. Or even better, you can just make use of the rich Docker Hub ecosystem.
 
 ```Dockerfile
-FROM golang:1.13-alpine3.11
+FROM golang:1.15-alpine3.13
 WORKDIR /proto-example
 
 proto:

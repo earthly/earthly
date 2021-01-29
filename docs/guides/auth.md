@@ -80,13 +80,24 @@ Docker credentials are used in Earthly for inheriting from private images (via `
 
 Docker authentication works automatically out of the box. It uses the same Docker libraries to infer the location of the credentials on the system and optionally invoke any necessary credentials store helper to decrypt them.
 
+### Manually
+
 All you have to do as a user is issue the command
 
 ```bash
 docker login --username <username>
 ```
 
-before issuing earthly commands, if you have not already done so in the past.
+before issuing earthly commands, if you have not already done so in the past. If you run into troubles, [you can find out more about `docker login` here](https://docs.docker.com/engine/reference/commandline/login/).
+
+### Credential Helpers
+
+Docker can use various credential helpers to automatically generate and use credentials on your behalf. These are usually created by cloud providers to allow Docker to authenticate using the cloud provders own credentials.
+
+You can see examples of configuring Docker to use these, and working with Earthly here:
+* [Pushing and Pulling Images with AWS ECR](./pushing-images-to-ECR.md)
+* [Pushing and Pulling Images with GCP Artifact Registry](./pushing-images-to-GCR.md)
+* [Pushing and Pulling Images with Azure ACR](./pushing-images-to-ACR.md)
 
 ## See also
 

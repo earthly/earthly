@@ -24,7 +24,7 @@ Each recipe contains a series of commands, which are defined below. For an intro
 #### Synopsis
 
 * `FROM <image-name>`
-* `FROM [--build-arg <key>=<value>] <target-ref>`
+* `FROM [--build-arg <key>=<value>] [--platform <platform>] <target-ref>`
 
 #### Description
 
@@ -38,7 +38,7 @@ The `FROM ... AS ...` form available in the classical Dockerfile syntax is not s
 ```Dockerfile
 # Dockerfile
 
-FROM alpine:3.11 AS build
+FROM alpine:3.13 AS build
 # ... instructions for build
 
 FROM build as another
@@ -54,7 +54,7 @@ can become
 # Earthfile
 
 build:
-    FROM alpine:3.11
+    FROM alpine:3.13
     # ... instructions for build
     SAVE ARTIFACT ./a-file
 
@@ -74,11 +74,17 @@ yet-another:
 
 Sets a value override of `<value>` for the build arg identified by `<key>`. See also [BUILD](#build) for more details about the `--build-arg` option.
 
+##### `--platform <platform>` (**experimental**)
+
+Specifies the platform to build on.
+
+For more information see the [multi-platform guide](../guides/multi-platform.md).
+
 ## FROM DOCKERFILE (**beta**)
 
 #### Synopsis
 
-* `FROM DOCKERFILE [--build-arg <key>=<value>] [--target <target-name>] <context-path>`
+* `FROM DOCKERFILE [--build-arg <key>=<value>] [--platform <platform>] [--target <target-name>] <context-path>`
 
 #### Description
 
@@ -105,6 +111,12 @@ Sets a value override of `<value>` for the Dockerfile build arg identified by `<
 ##### `--target <target-name>`
 
 In a multi-stage Dockerfile, sets the target to be used for the build. This option is similar to the `docker build --target <target-name>` option.
+
+##### `--platform <platform>` (**experimental**)
+
+Specifies the platform to build on.
+
+For more information see the [multi-platform guide](../guides/multi-platform.md).
 
 ## LOCALLY (**experimental**)
 
@@ -332,6 +344,12 @@ final-target:
     COPY +intermediate/some-file.txt ./
 ```
 
+##### `--platform <platform>` (**experimental**)
+
+In *artifact form*, it specifies the platform to build the artifact on.
+
+For more information see the [multi-platform guide](../guides/multi-platform.md).
+
 #### Examples
 
 Assuming the following directory tree, of a folder named `test`:
@@ -473,7 +491,7 @@ Instructs Earthly that the current target should be included as part of the expl
 
 #### Synopsis
 
-* `BUILD [--build-arg <key>=<value>] <target-ref>`
+* `BUILD [--build-arg <key>=<value>] [--platform <platform>] <target-ref>`
 
 #### Description
 
@@ -502,6 +520,19 @@ or a dynamic expression, based on the output of a command executed in the contex
 ```
 --build-arg SOME_ARG=$(find /app -type f -name '*.php')
 ```
+
+##### `--platform <platform>` (**experimental**)
+
+Specifies the platform to build on.
+
+This flag may be repeated in order to instruct the system to perform the build for multiple platforms. For example
+
+```Dockerfile
+build-all-platforms:
+    BUILD --platform=linux/amd64 --platform=linux/arm/v7 +build
+```
+
+For more information see the [multi-platform guide](../guides/multi-platform.md).
 
 ## ARG
 
@@ -620,6 +651,12 @@ This option may be repeated in order to specify multiple services.
 ##### `--build-arg <key>=<value>`
 
 Sets a value override of `<value>` for the build arg identified by `<key>`, when building a `<target-ref>` (specified via `--load`). See also [BUILD](#build) for more details about the `--build-arg` option.
+
+##### `--platform <platform>` (**experimental**)
+
+Specifies the platform for any referenced `--load` and `--pull` images.
+
+For more information see the [multi-platform guide](../guides/multi-platform.md).
 
 ## DOCKER PULL (**deprecated**)
 

@@ -1,10 +1,10 @@
 
-FROM alpine:3.11
+FROM alpine:3.13
 WORKDIR /test
 
 gen-dockerfile:
     RUN echo "some build context" > bc.txt
-    RUN echo "FROM alpine:3.11" > Dockerfile
+    RUN echo "FROM alpine:3.13" > Dockerfile
     RUN echo "COPY bc.txt ./" >> Dockerfile
     RUN echo "RUN cat bc.txt" >> Dockerfile
     RUN echo 'ENTRYPOINT ["echo", "hello world"]' >> Dockerfile

@@ -19,7 +19,11 @@ get_latest_binary() {
 
     earth_bin_path=/earthly-linux-amd64
     if [ "$(uname)" == "Darwin" ]; then
-        earth_bin_path=/earthly-darwin-amd64
+        if [ "$(uname -m)" == "arm64" ]; then
+            earth_bin_path=/earthly-darwin-arm64
+        else
+            earth_bin_path=/earthly-darwin-amd64
+        fi
     fi
 
     docker cp earthly_binary:"$earth_bin_path" "$bindir/earthly-prerelease"

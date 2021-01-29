@@ -10,9 +10,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/containerd/containerd/platforms"
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/earthfile2llb/parser"
+	"github.com/earthly/earthly/llbutil"
 	specs "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
 )
@@ -36,6 +36,8 @@ type listener struct {
 
 	withDocker    *WithDockerOpt
 	withDockerRan bool
+
+	local bool
 
 	execMode  bool
 	stmtWords []string
@@ -146,23 +148,22 @@ func (l *listener) ExitFromStmt(c *parser.FromStmtContext) {
 	}
 	imageName := l.expandArgs(fs.Arg(0), true)
 	*platformStr = l.expandArgs(*platformStr, false)
-	var platform *specs.Platform
-	if *platformStr != "" {
-		p, err := platforms.Parse(*platformStr)
-		if err != nil {
-			l.err = errors.Wrapf(err, "parse platform %s", *platformStr)
-			return
-		}
-		platform = &p
+	platform, err := llbutil.ParsePlatform(*platformStr)
+	if err != nil {
+		l.err = errors.Wrapf(err, "parse platform %s", *platformStr)
+		return
 	}
 	for i, ba := range buildArgs.Args {
 		buildArgs.Args[i] = l.expandArgs(ba, true)
 	}
+
+	l.local = false
 	err = l.converter.From(l.ctx, imageName, platform, buildArgs.Args)
 	if err != nil {
 		l.err = errors.Wrapf(err, "apply FROM %s", imageName)
 		return
 	}
+
 }
 
 func (l *listener) ExitFromDockerfileStmt(c *parser.FromDockerfileStmtContext) {
@@ -198,20 +199,34 @@ func (l *listener) ExitFromDockerfileStmt(c *parser.FromDockerfileStmtContext) {
 		buildArgs.Args[i] = l.expandArgs(ba, true)
 	}
 	*platformStr = l.expandArgs(*platformStr, false)
-	var platform *specs.Platform
-	if *platformStr != "" {
-		p, err := platforms.Parse(*platformStr)
-		if err != nil {
-			l.err = errors.Wrapf(err, "parse platform %s", *platformStr)
-			return
-		}
-		platform = &p
+	platform, err := llbutil.ParsePlatform(*platformStr)
+	if err != nil {
+		l.err = errors.Wrapf(err, "parse platform %s", *platformStr)
+		return
 	}
 	*dfPath = l.expandArgs(*dfPath, false)
 	*dfTarget = l.expandArgs(*dfTarget, false)
+	l.local = false
 	err = l.converter.FromDockerfile(l.ctx, path, *dfPath, *dfTarget, platform, buildArgs.Args)
 	if err != nil {
 		l.err = errors.Wrap(err, "from dockerfile")
+		return
+	}
+}
+
+func (l *listener) ExitLocallyStmt(c *parser.LocallyStmtContext) {
+	if l.shouldSkip() {
+		return
+	}
+	if l.pushOnlyAllowed {
+		l.err = fmt.Errorf("no non-push commands allowed after a --push: %s", c.GetText())
+		return
+	}
+
+	l.local = true
+	err := l.converter.Locally(l.ctx, nil)
+	if err != nil {
+		l.err = errors.Wrapf(err, "apply LOCALLY")
 		return
 	}
 }
@@ -254,14 +269,10 @@ func (l *listener) ExitCopyStmt(c *parser.CopyStmtContext) {
 	}
 	*chown = l.expandArgs(*chown, false)
 	*platformStr = l.expandArgs(*platformStr, false)
-	var platform *specs.Platform
-	if *platformStr != "" {
-		p, err := platforms.Parse(*platformStr)
-		if err != nil {
-			l.err = errors.Wrapf(err, "parse platform %s", *platformStr)
-			return
-		}
-		platform = &p
+	platform, err := llbutil.ParsePlatform(*platformStr)
+	if err != nil {
+		l.err = errors.Wrapf(err, "parse platform %s", *platformStr)
+		return
 	}
 	allClassical := true
 	allArtifacts := true
@@ -319,6 +330,7 @@ func (l *listener) ExitRunStmt(c *parser.RunStmtContext) {
 		"Include the entrypoint of the image when running the command")
 	withDocker := fs.Bool("with-docker", false, "Deprecated")
 	withSSH := fs.Bool("ssh", false, "Make available the SSH agent of the host")
+	noCache := fs.Bool("no-cache", false, "Always run this specific item, ignoring cache")
 	secrets := new(StringSliceFlag)
 	fs.Var(secrets, "secret", "Make available a secret")
 	mounts := new(StringSliceFlag)
@@ -346,10 +358,38 @@ func (l *listener) ExitRunStmt(c *parser.RunStmtContext) {
 	}
 	// Note: Not expanding args for the run itself, as that will be take care of by the shell.
 
+	if l.local {
+		if len(mounts.Args) > 0 {
+			l.err = fmt.Errorf("mounts are not supported in combination with the LOCALLY directive: %s", c.GetText())
+			return
+		}
+		if *withSSH {
+			l.err = fmt.Errorf("the --ssh flag has no effect when used with the  LOCALLY directive: %s", c.GetText())
+			return
+		}
+		if *privileged {
+			l.err = fmt.Errorf("the --privileged flag has no effect when used with the LOCALLY directive: %s", c.GetText())
+			return
+		}
+		if *noCache {
+			l.err = fmt.Errorf("the --no-cache flag has no effect when used with the LOCALLY directive: %s", c.GetText())
+			return
+		}
+
+		// TODO these should be supported, but haven't yet been implemented
+		if len(secrets.Args) > 0 {
+			l.err = fmt.Errorf("secrets need to be implemented for the LOCALLY directive: %s", c.GetText())
+			return
+		}
+
+		l.err = l.converter.RunLocal(l.ctx, fs.Args(), *pushFlag)
+		return
+	}
+
 	if l.withDocker == nil {
 		err = l.converter.Run(
 			l.ctx, fs.Args(), mounts.Args, secrets.Args, *privileged, *withEntrypoint, *withDocker,
-			withShell, *pushFlag, *withSSH)
+			withShell, *pushFlag, *withSSH, *noCache)
 		if err != nil {
 			l.err = errors.Wrap(err, "run")
 			return
@@ -371,6 +411,7 @@ func (l *listener) ExitRunStmt(c *parser.RunStmtContext) {
 		l.withDocker.Secrets = secrets.Args
 		l.withDocker.WithShell = withShell
 		l.withDocker.WithEntrypoint = *withEntrypoint
+		l.withDocker.NoCache = *noCache
 		err = l.converter.WithDockerRun(l.ctx, fs.Args(), *l.withDocker)
 		if err != nil {
 			l.err = errors.Wrap(err, "with docker run")
@@ -381,10 +422,6 @@ func (l *listener) ExitRunStmt(c *parser.RunStmtContext) {
 
 func (l *listener) ExitSaveArtifact(c *parser.SaveArtifactContext) {
 	if l.shouldSkip() {
-		return
-	}
-	if l.pushOnlyAllowed {
-		l.err = fmt.Errorf("no non-push commands allowed after a --push: %s", c.GetText())
 		return
 	}
 	fs := flag.NewFlagSet("SAVE ARTIFACT", flag.ContinueOnError)
@@ -427,7 +464,7 @@ func (l *listener) ExitSaveArtifact(c *parser.SaveArtifactContext) {
 	saveFrom := l.expandArgs(fs.Args()[0], false)
 	saveTo = l.expandArgs(saveTo, false)
 	saveAsLocalTo = l.expandArgs(saveAsLocalTo, false)
-	err = l.converter.SaveArtifact(l.ctx, saveFrom, saveTo, saveAsLocalTo, *keepTs, *keepOwn, *ifExists)
+	err = l.converter.SaveArtifact(l.ctx, saveFrom, saveTo, saveAsLocalTo, *keepTs, *keepOwn, *ifExists, l.pushOnlyAllowed)
 	if err != nil {
 		l.err = errors.Wrap(err, "apply SAVE ARTIFACT")
 		return
@@ -458,10 +495,6 @@ func (l *listener) ExitSaveImage(c *parser.SaveImageContext) {
 	}
 	for i, cf := range cacheFrom.Args {
 		cacheFrom.Args[i] = l.expandArgs(cf, false)
-	}
-	if !*pushFlag && l.pushOnlyAllowed {
-		l.err = fmt.Errorf("no non-push commands allowed after a --push: %s", c.GetText())
-		return
 	}
 	if *pushFlag && fs.NArg() == 0 {
 		l.err = fmt.Errorf("invalid number of arguments for SAVE IMAGE --push: %v", l.stmtWords)
@@ -512,12 +545,12 @@ func (l *listener) ExitBuildStmt(c *parser.BuildStmtContext) {
 	platformsSlice := make([]*specs.Platform, 0, len(platformsStr.Args))
 	for i, p := range platformsStr.Args {
 		platformsStr.Args[i] = l.expandArgs(p, false)
-		platform, err := platforms.Parse(p)
+		platform, err := llbutil.ParsePlatform(p)
 		if err != nil {
 			l.err = errors.Wrapf(err, "parse platform %s", p)
 			return
 		}
-		platformsSlice = append(platformsSlice, &platform)
+		platformsSlice = append(platformsSlice, platform)
 	}
 	for i, arg := range buildArgs.Args {
 		buildArgs.Args[i] = l.expandArgs(arg, true)
@@ -830,14 +863,10 @@ func (l *listener) ExitWithDockerStmt(c *parser.WithDockerStmtContext) {
 	}
 
 	*platformStr = l.expandArgs(*platformStr, false)
-	var platform *specs.Platform
-	if *platformStr != "" {
-		p, err := platforms.Parse(*platformStr)
-		if err != nil {
-			l.err = errors.Wrapf(err, "parse platform %s", *platformStr)
-			return
-		}
-		platform = &p
+	platform, err := llbutil.ParsePlatform(*platformStr)
+	if err != nil {
+		l.err = errors.Wrapf(err, "parse platform %s", *platformStr)
+		return
 	}
 	for i, cf := range composeFiles.Args {
 		composeFiles.Args[i] = l.expandArgs(cf, false)

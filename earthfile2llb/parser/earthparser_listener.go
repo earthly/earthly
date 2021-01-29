@@ -32,6 +32,9 @@ type EarthParserListener interface {
 	// EnterFromDockerfileStmt is called when entering the fromDockerfileStmt production.
 	EnterFromDockerfileStmt(c *FromDockerfileStmtContext)
 
+	// EnterLocallyStmt is called when entering the locallyStmt production.
+	EnterLocallyStmt(c *LocallyStmtContext)
+
 	// EnterCopyStmt is called when entering the copyStmt production.
 	EnterCopyStmt(c *CopyStmtContext)
 
@@ -157,6 +160,9 @@ type EarthParserListener interface {
 
 	// ExitFromDockerfileStmt is called when exiting the fromDockerfileStmt production.
 	ExitFromDockerfileStmt(c *FromDockerfileStmtContext)
+
+	// ExitLocallyStmt is called when exiting the locallyStmt production.
+	ExitLocallyStmt(c *LocallyStmtContext)
 
 	// ExitCopyStmt is called when exiting the copyStmt production.
 	ExitCopyStmt(c *CopyStmtContext)

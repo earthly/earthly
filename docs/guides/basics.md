@@ -19,7 +19,7 @@ Here is a sample earthfile of a Go app
 ```Dockerfile
 # Earthfile
 
-FROM golang:1.13-alpine3.11
+FROM golang:1.15-alpine3.13
 WORKDIR /go-example
 
 build:
@@ -211,8 +211,8 @@ Going back to the example earthfile definition, here is what each command does:
 ```Dockerfile
 # Earthfile
 
-# The build starts from a docker image: golang:1.13-alpine3.11
-FROM golang:1.13-alpine3.11
+# The build starts from a docker image: golang:1.15-alpine3.13
+FROM golang:1.15-alpine3.13
 # We change the current working directory.
 WORKDIR /go-example
 
@@ -408,7 +408,7 @@ The build then might become
 ```Dockerfile
 # Earthfile
 
-FROM golang:1.13-alpine3.11
+FROM golang:1.15-alpine3.13
 WORKDIR /go-example
 
 build:
@@ -623,7 +623,7 @@ If, however, we could first download the dependencies and only afterwards copy a
 ```Dockerfile
 # Earthfile
 
-FROM golang:1.13-alpine3.11
+FROM golang:1.15-alpine3.13
 WORKDIR /go-example
 
 build:
@@ -735,7 +735,7 @@ Note that in our case, only the JavaScript version has an example where `FROM +d
 ```Dockerfile
 # Earthfile
 
-FROM golang:1.13-alpine3.11
+FROM golang:1.15-alpine3.13
 WORKDIR /go-example
 
 deps:

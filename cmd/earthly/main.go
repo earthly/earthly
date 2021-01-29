@@ -46,7 +46,6 @@ import (
 	"github.com/earthly/earthly/termutil"
 	"github.com/earthly/earthly/variables"
 
-	"github.com/containerd/containerd/platforms"
 	humanize "github.com/dustin/go-humanize"
 	"github.com/fatih/color"
 	"github.com/joho/godotenv"
@@ -55,6 +54,7 @@ import (
 	"github.com/moby/buildkit/client/llb"
 	"github.com/moby/buildkit/session"
 	"github.com/moby/buildkit/session/auth/authprovider"
+	"github.com/moby/buildkit/session/localhost/localhostprovider"
 	"github.com/moby/buildkit/session/sshforward/sshprovider"
 	"github.com/moby/buildkit/util/entitlements"
 	specs "github.com/opencontainers/image-spec/specs-go/v1"
@@ -1065,8 +1065,7 @@ func (app *earthlyApp) insertZSHCompleteEntry() error {
 func (app *earthlyApp) run(ctx context.Context, args []string) int {
 	err := app.cliApp.RunContext(ctx, args)
 
-	rpcRegex := regexp.MustCompile(`rpc error: code = .+ desc = .+:\s`)
-
+	rpcRegex := regexp.MustCompile(`(?U)rpc error: code = .+ desc = .+:\s`)
 	if err != nil {
 		if strings.Contains(err.Error(), "security.insecure is not allowed") {
 			app.console.Warnf("Error: --allow-privileged (-P) flag is required\n")
@@ -2030,11 +2029,11 @@ func (app *earthlyApp) actionBuild(c *cli.Context) error {
 
 	platformsSlice := make([]*specs.Platform, 0, len(app.platformsStr.Value()))
 	for _, p := range app.platformsStr.Value() {
-		platform, err := platforms.Parse(p)
+		platform, err := llbutil.ParsePlatform(p)
 		if err != nil {
 			return errors.Wrapf(err, "parse platform %s", p)
 		}
-		platformsSlice = append(platformsSlice, &platform)
+		platformsSlice = append(platformsSlice, platform)
 	}
 	if len(platformsSlice) == 0 {
 		platformsSlice = []*specs.Platform{nil}
@@ -2070,6 +2069,11 @@ func (app *earthlyApp) actionBuild(c *cli.Context) error {
 		return errors.Wrap(err, "failed to create secretsclient")
 	}
 
+	localhostProvider, err := localhostprovider.NewLocalhostProvider()
+	if err != nil {
+		return errors.Wrap(err, "failed to create localhostprovider")
+	}
+
 	cacheLocalDir, err := ioutil.TempDir("", "earthly-cache")
 	if err != nil {
 		return errors.Wrap(err, "make temp dir for cache")
@@ -2083,6 +2087,7 @@ func (app *earthlyApp) actionBuild(c *cli.Context) error {
 		llbutil.NewSecretProvider(sc, secretsMap),
 		authprovider.NewDockerAuthProvider(os.Stderr),
 		buildContextProvider,
+		localhostProvider,
 	}
 
 	gitLookup := buildcontext.NewGitLookup()

@@ -1,4 +1,4 @@
-FROM alpine:3.11
+FROM alpine:3.13
 test:
     RUN mkdir -p /cache-test
     RUN --mount=type=cache,target=/cache-test echo "HELLO" > /cache-test/test.txt

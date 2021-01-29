@@ -1,5 +1,4 @@
-
-FROM alpine:3.11
+FROM alpine:3.13
 
 RUN apk add --update --no-cache \
     curl
@@ -13,9 +12,16 @@ release:
 release-dockerhub:
     ARG RELEASE_TAG
     RUN test -n "$RELEASE_TAG"
-    BUILD --build-arg DIND_ALPINE_TAG=alpine ../+dind-alpine
-    BUILD --build-arg DIND_ALPINE_TAG=latest ../+dind-alpine
-    BUILD --build-arg DIND_UBUNTU_TAG=ubuntu ../+dind-ubuntu
+    BUILD \
+        --build-arg DIND_ALPINE_TAG=alpine \
+        --build-arg DIND_UBUNTU_TAG=ubuntu \
+        ../+all-dind
+    BUILD \
+        --platform=linux/amd64 \
+        --platform=linux/arm/v7 \
+        --platform=linux/arm64 \
+        --build-arg DIND_ALPINE_TAG=latest \
+        ../+dind-alpine
     BUILD --build-arg TAG="$RELEASE_TAG" ../+earthly-docker
     BUILD \
         --platform=linux/amd64 \
@@ -43,6 +49,7 @@ release-github:
     RUN ls ./release
     RUN test -f ./release/earthly-linux-amd64 && \
         test -f ./release/earthly-darwin-amd64 && \
+        test -f ./release/earthly-darwin-arm64 && \
         test -f ./release/earthly-linux-arm7 && \
         test -f ./release/earthly-linux-arm64
     ARG BODY="No details provided"

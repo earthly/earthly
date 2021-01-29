@@ -7,6 +7,7 @@ This feature is currently in **Experimental** stage
 
 * The feature may break, be changed drastically with no warning, or be removed altogether in future versions of Earthly.
 * Check the [GitHub tracking issue](https://github.com/earthly/earthly/issues/11) for any known problems.
+* Note that explicit caching is [not supported with AWS ECR](https://github.com/aws/containers-roadmap/issues/876).
 * Give us feedback on [Slack](https://earthly.dev/slack) in the `#shared-cache` channel.
 {% endhint %}
 
@@ -22,6 +23,20 @@ Earthly makes available two types of shared caches:
 * [Explicit cache](#explicit-cache-advanced) (advanced)
 
 For a summary of the differences see [comparison between inline and explicit cache](#comparison-between-inline-and-explicit-cache).
+
+### Compatibility with major registry providers
+
+Not all registries support the needed manifest formats to allow the usage of each kind of cache. Here is a compatibility matrix for many popular registries:
+
+| Registry                  | Supports Inline Cache  | Supports Explicit Cache  | Notes                                                |
+|---------------------------|:----------------------:|:------------------------:|------------------------------------------------------|
+| AWS ECR                   |           ✅           |            ❌            | https://github.com/aws/containers-roadmap/issues/876 |
+| Google GCR                |           ✅           |            ❌            |                                                      |
+| Google Artifact Registry  |           ✅           |            ✅            |                                                      |
+| Azure ACR                 |           ✅           |            ✅            |                                                      |
+| Docker Hub                |           ✅           |            ✅            |                                                      |
+| GitHub Container Registry |           ✅           |            ✅            |                                                      |
+| Self-Hosted  `registry:2` |           ✅           |            ✅            |                                                      |
 
 ### Inline cache
 

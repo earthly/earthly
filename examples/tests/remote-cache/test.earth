@@ -2,7 +2,7 @@
 ARG REGISTRY
 
 test1:
-    FROM alpine:3.11
+    FROM alpine:3.13
     RUN echo "execute-test1-run-before-copy"
     COPY ./input ./
     RUN echo "execute-test1-run-after-copy"

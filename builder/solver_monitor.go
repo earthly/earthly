@@ -47,13 +47,13 @@ type vertexMonitor struct {
 	lastOpenLineSkipped bool
 }
 
-func (vm *vertexMonitor) printHeader(printMetadata bool) {
+func (vm *vertexMonitor) printHeader() {
 	vm.headerPrinted = true
 	if vm.operation == "" {
 		return
 	}
 	c := vm.console
-	if vm.targetBrackets != "" && printMetadata {
+	if vm.targetBrackets != "" {
 		c.WithMetadataMode(true).Printf("%s\n", vm.targetBrackets)
 	}
 	out := []string{}
@@ -350,7 +350,7 @@ func (sm *solverMonitor) printHeader(vm *vertexMonitor) {
 	if !seen {
 		sm.saltSeen[vm.salt] = true
 	}
-	vm.printHeader(!seen || sm.verbose)
+	vm.printHeader()
 }
 
 func (sm *solverMonitor) recordTiming(targetStr, targetBrackets, salt string, vertex *client.Vertex) {
@@ -423,7 +423,7 @@ func (sm *solverMonitor) reprintFailure(errVertex *vertexMonitor) {
 	sm.console.Warnf("Repeating the output of the command that caused the failure\n")
 	sm.console.PrintFailure()
 	errVertex.console = errVertex.console.WithFailed(true)
-	errVertex.printHeader(true)
+	errVertex.printHeader()
 	if errVertex.tailOutput != nil {
 		isTruncated := (errVertex.tailOutput.TotalWritten() > errVertex.tailOutput.Size())
 		if errVertex.tailOutput.TotalWritten() == 0 {
