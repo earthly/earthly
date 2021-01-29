@@ -1,11 +1,10 @@
 <h1 align="center"><a href="https://earthly.dev"><img src="img/logo-banner-white-bg.png" alt="Earthly" align="center" width="700px" /></a></h1>
 
-![CI](https://github.com/earthly/earthly/workflows/CI/badge.svg)
+[![CI](https://github.com/earthly/earthly/workflows/CI/badge.svg)](https://github.com/earthly/earthly/actions?query=workflow%3A%22GitHub+Actions+CI%22)
 [![Join the chat on slack](https://img.shields.io/badge/slack-join%20chat-red.svg)](https://earthly.dev/slack)
 [![Docs](https://img.shields.io/badge/docs-git%20book-blue)](https://docs.earthly.dev)
 [![Website](https://img.shields.io/badge/website-earthly.dev-blue)](https://earthly.dev)
 [![Docker Hub](https://img.shields.io/badge/docker%20hub-earthly-blue)](https://hub.docker.com/u/earthly)
-<a href="https://www.producthunt.com/posts/earthly-2?utm_source=badge-featured&utm_medium=badge&utm_souce=badge-earthly-2" target="_blank"><img src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=266617&theme=dark" alt="Earthly - Build anything via containers | Product Hunt" width="93" height="20" /></a>
 
 **🐳 Build anything via containers** - *build images or standalone artifacts (binaries, packages, arbitrary files)*
 
