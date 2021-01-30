@@ -23,6 +23,8 @@ export REGISTRY="$REGISTRY_IP:5000"
 # Test.
 set +e
 "$earthly" --allow-privileged \
+    \ # --build-arg DOCKERHUB_USER_SECRET=+secrets/earthly-technologies/dockerhub/user \
+    \ # --build-arg DOCKERHUB_TOKEN_SECRET=+secrets/earthly-technologies/dockerhub/token \
     --ci \
     --build-arg REGISTRY \
     +all

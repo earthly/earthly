@@ -338,7 +338,7 @@ func (c *Collection) parseBuildArg(arg string, pncvf ProcessNonConstantVariableF
 }
 
 func (c *Collection) parseBuildArgValue(name, value string, pncvf ProcessNonConstantVariableFunc) (Variable, error) {
-	if !strings.HasPrefix(value, "$") {
+	if !strings.HasPrefix(value, "$(") {
 		// Constant build arg.
 		return NewConstant(value), nil
 	}

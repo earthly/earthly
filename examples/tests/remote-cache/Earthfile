@@ -3,7 +3,7 @@ WORKDIR /test
 ARG REGISTRY
 ARG EARTHLY_BUILD_ARGS="REGISTRY"
 ARG EARTHLY_ADDITIONAL_BUILDKIT_CONFIG="
-[registry.\\\"$REGISTRY\\\"]
+[registry.\"$REGISTRY\"]
   http = true
   insecure = true
 "
