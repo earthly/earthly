@@ -9,11 +9,9 @@ import (
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/gitutil"
 	"github.com/earthly/earthly/llbutil"
-	"github.com/earthly/earthly/states/dedup"
 	"github.com/earthly/earthly/stringutil"
 
 	"github.com/containerd/containerd/platforms"
-	"github.com/moby/buildkit/client/llb"
 	dfShell "github.com/moby/buildkit/frontend/dockerfile/shell"
 	specs "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
@@ -21,7 +19,7 @@ import (
 
 // ProcessNonConstantVariableFunc is a function which takes in an expression and
 // turns it into a state, target intput and arg index.
-type ProcessNonConstantVariableFunc func(name string, expression string) (argState llb.State, ti dedup.TargetInput, argIndex int, err error)
+type ProcessNonConstantVariableFunc func(name string, expression string) (value string, argIndex int, err error)
 
 // Collection is a collection of variables.
 type Collection struct {
@@ -336,11 +334,10 @@ func (c *Collection) parseBuildArg(arg string, pncvf ProcessNonConstantVariableF
 		return name, NewConstant(value), hasValue, nil
 	}
 
-	// Variable build arg.
-	argState, ti, argIndex, err := pncvf(name, value)
+	// Variable build arg - resolve value and turn it into a constant build arg.
+	value, _, err := pncvf(name, value)
 	if err != nil {
 		return "", Variable{}, false, err
 	}
-	ret := NewVariable(argState, ti, argIndex)
-	return name, ret, hasValue, nil
+	return name, NewConstant(value), true, nil
 }

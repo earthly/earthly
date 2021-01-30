@@ -1,6 +1,7 @@
 package earthfile2llb
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"encoding/base64"
@@ -893,27 +894,30 @@ func (c *Converter) nonSaveCommand() {
 }
 
 func (c *Converter) processNonConstantBuildArgFunc(ctx context.Context) variables.ProcessNonConstantVariableFunc {
-	return func(name string, expression string) (llb.State, dedup.TargetInput, int, error) {
+	return func(name string, expression string) (string, int, error) {
 		// Run the expression on the side effects state.
 		srcBuildArgDir := "/run/buildargs-src"
 		srcBuildArgPath := path.Join(srcBuildArgDir, name)
 		c.mts.Final.MainState = c.mts.Final.MainState.File(
 			llb.Mkdir(srcBuildArgDir, 0755, llb.WithParents(true)),
 			llb.WithCustomNamef("[internal] mkdir %s", srcBuildArgDir))
-		buildArgPath := path.Join("/run/buildargs", name)
 		args := strings.Split(fmt.Sprintf("echo \"%s\" >%s", expression, srcBuildArgPath), " ")
 		err := c.internalRun(
 			ctx, args, []string{}, true, withShellAndEnvVars, false, false, false, expression,
 			llb.WithCustomNamef("%sRUN %s", c.vertexPrefix(false), expression))
 		if err != nil {
-			return llb.State{}, dedup.TargetInput{}, 0, errors.Wrapf(err, "run %v", expression)
+			return "", 0, errors.Wrapf(err, "run %v", expression)
 		}
-		// Copy the result of the expression into a separate, isolated state.
-		buildArgState := llb.Scratch().Platform(llbutil.PlatformWithDefault(c.opt.Platform))
-		buildArgState = llbutil.CopyOp(
-			c.mts.Final.MainState, []string{srcBuildArgPath},
-			buildArgState, buildArgPath, false, false, false, "root:root", false,
-			llb.WithCustomNamef("[internal] copy buildarg %s", name))
+		ref, err := llbutil.StateToRef(ctx, c.opt.GwClient, c.mts.Final.MainState, c.opt.Platform, c.opt.CacheImports)
+		if err != nil {
+			return "", 0, errors.Wrapf(err, "build arg state to ref")
+		}
+		value, err := ref.ReadFile(ctx, gwclient.ReadRequest{Filename: srcBuildArgPath})
+		if err != nil {
+			return "", 0, errors.Wrapf(err, "non constant build arg read request")
+		}
+		// echo adds a trailing \n.
+		value = bytes.TrimSuffix(value, []byte("\n"))
 		// Store the state with the expression result for later use.
 		argIndex := c.nextArgIndex
 		c.nextArgIndex++
@@ -922,7 +926,7 @@ func (c *Converter) processNonConstantBuildArgFunc(ctx context.Context) variable
 			llb.Rm(srcBuildArgPath, llb.WithAllowNotFound(true)),
 			llb.WithCustomNamef("[internal] rm %s", srcBuildArgPath))
 
-		return buildArgState, c.mts.Final.TargetInput, argIndex, nil
+		return string(value), argIndex, nil
 	}
 }
 
