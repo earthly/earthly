@@ -46,7 +46,6 @@ test3:
     RUN test "$VAR1" == "test"
 
 test4:
-    RUN apk add tree
     RUN touch dummy
     ARG VAR1=$(ls)
     RUN touch should-not-be-seen
