@@ -393,7 +393,10 @@ func (c *Converter) Run(ctx context.Context, args, mounts, secretKeyValues []str
 		strings.Join(finalArgs, " "))
 	shellWrap := withShellAndEnvVars
 	opts = append(opts, llb.WithCustomNamef("%s%s", c.vertexPrefix(false), runStr))
-	return c.internalRun(ctx, finalArgs, secretKeyValues, isWithShell, shellWrap, pushFlag, withSSH, noCache, runStr, opts...)
+	_, err = c.internalRun(
+		ctx, finalArgs, secretKeyValues, isWithShell, shellWrap, pushFlag,
+		false, withSSH, noCache, runStr, opts...)
+	return err
 }
 
 // SaveArtifact applies the earthly SAVE ARTIFACT command.
@@ -718,14 +721,14 @@ func (c *Converter) buildTarget(ctx context.Context, fullTargetName string, plat
 	return mts, nil
 }
 
-func (c *Converter) internalRun(ctx context.Context, args, secretKeyValues []string, isWithShell bool, shellWrap shellWrapFun, pushFlag, withSSH, noCache bool, commandStr string, opts ...llb.RunOption) error {
+func (c *Converter) internalRun(ctx context.Context, args, secretKeyValues []string, isWithShell bool, shellWrap shellWrapFun, pushFlag, transient, withSSH, noCache bool, commandStr string, opts ...llb.RunOption) (llb.State, error) {
 	finalOpts := opts
 	var extraEnvVars []string
 	// Secrets.
 	for _, secretKeyValue := range secretKeyValues {
 		parts := strings.SplitN(secretKeyValue, "=", 2)
 		if len(parts) != 2 {
-			return fmt.Errorf("invalid secret definition %s", secretKeyValue)
+			return llb.State{}, fmt.Errorf("invalid secret definition %s", secretKeyValue)
 		}
 		if strings.HasPrefix(parts[1], "+secrets/") {
 			envVar := parts[0]
@@ -745,7 +748,7 @@ func (c *Converter) internalRun(ctx context.Context, args, secretKeyValues []str
 			// TODO: This should be an actual secret (with an empty value),
 			//       so that the cache works correctly.
 		} else {
-			return fmt.Errorf("secret definition %s not supported. Must start with +secrets/ or be an empty string", secretKeyValue)
+			return llb.State{}, fmt.Errorf("secret definition %s not supported. Must start with +secrets/ or be an empty string", secretKeyValue)
 		}
 	}
 	// Build args.
@@ -799,10 +802,14 @@ func (c *Converter) internalRun(ctx context.Context, args, secretKeyValues []str
 		c.mts.Final.RunPush.State = c.mts.Final.RunPush.State.Run(finalOpts...).Root()
 		c.mts.Final.RunPush.CommandStrs = append(
 			c.mts.Final.RunPush.CommandStrs, commandStr)
+		return c.mts.Final.RunPush.State, nil
+	} else if transient {
+		transientState := c.mts.Final.MainState.Run(finalOpts...).Root()
+		return transientState, nil
 	} else {
 		c.mts.Final.MainState = c.mts.Final.MainState.Run(finalOpts...).Root()
+		return c.mts.Final.MainState, nil
 	}
-	return nil
 }
 
 func (c *Converter) readArtifact(ctx context.Context, mts *states.MultiTarget, artifact domain.Artifact) ([]byte, error) {
@@ -905,20 +912,21 @@ func (c *Converter) nonSaveCommand() {
 
 func (c *Converter) processNonConstantBuildArgFunc(ctx context.Context) variables.ProcessNonConstantVariableFunc {
 	return func(name string, expression string) (string, int, error) {
-		// Run the expression on the main state.
+		// Run the expression on the main state, but don't alter main with the resulting state.
 		srcBuildArgDir := "/run/buildargs"
 		srcBuildArgPath := path.Join(srcBuildArgDir, name)
 		c.mts.Final.MainState = c.mts.Final.MainState.File(
 			llb.Mkdir(srcBuildArgDir, 0755, llb.WithParents(true)),
 			llb.WithCustomNamef("[internal] mkdir %s", srcBuildArgDir))
 		args := strings.Split(fmt.Sprintf("echo \"%s\" >%s", expression, srcBuildArgPath), " ")
-		err := c.internalRun(
-			ctx, args, []string{}, true, withShellAndEnvVars, false, false, false, expression,
+		transient := true
+		state, err := c.internalRun(
+			ctx, args, []string{}, true, withShellAndEnvVars, false, transient, false, false, expression,
 			llb.WithCustomNamef("%sRUN %s", c.vertexPrefix(false), expression))
 		if err != nil {
 			return "", 0, errors.Wrapf(err, "run %v", expression)
 		}
-		ref, err := llbutil.StateToRef(ctx, c.opt.GwClient, c.mts.Final.MainState, c.opt.Platform, c.opt.CacheImports)
+		ref, err := llbutil.StateToRef(ctx, c.opt.GwClient, state, c.opt.Platform, c.opt.CacheImports)
 		if err != nil {
 			return "", 0, errors.Wrapf(err, "build arg state to ref")
 		}
@@ -928,11 +936,6 @@ func (c *Converter) processNonConstantBuildArgFunc(ctx context.Context) variable
 		}
 		// echo adds a trailing \n.
 		value = bytes.TrimSuffix(value, []byte("\n"))
-		// Remove intermediary file.
-		c.mts.Final.MainState = c.mts.Final.MainState.File(
-			llb.Rm(srcBuildArgPath, llb.WithAllowNotFound(true)),
-			llb.WithCustomNamef("[internal] rm %s", srcBuildArgPath))
-
 		return string(value), 0, nil
 	}
 }
