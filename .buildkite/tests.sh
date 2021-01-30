@@ -35,5 +35,8 @@ echo "Execute tests"
 echo "Execute fail test"
 bash -c "! ./build/$EARTH_OS/amd64/earthly --ci +test-fail"
 
-echo "Build examples"
-./build/"$EARTH_OS"/amd64/earthly --ci -P +examples
+echo "Build examples1"
+./build/"$EARTH_OS"/amd64/earthly --ci -P +examples1
+
+echo "Build examples2"
+./build/"$EARTH_OS"/amd64/earthly --ci -P +examples2
