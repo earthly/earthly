@@ -90,9 +90,6 @@ func (c *Collection) Expand(word string) string {
 	argsMap := make(map[string]string)
 	for varName := range c.activeVariables {
 		variable := c.variables[varName]
-		if !variable.IsConstant() {
-			continue
-		}
 		argsMap[varName] = variable.ConstantValue()
 	}
 	ret, err := shlex.ProcessWordWithMap(word, argsMap)
@@ -107,9 +104,6 @@ func (c *Collection) Expand(word string) string {
 func (c *Collection) AsMap() map[string]string {
 	ret := make(map[string]string)
 	for varName, variable := range c.variables {
-		if !variable.IsConstant() {
-			continue
-		}
 		ret[varName] = variable.ConstantValue()
 	}
 	return ret
@@ -301,7 +295,7 @@ func (c *Collection) WithParseBuildArgs(args []string, pncvf ProcessNonConstantV
 			continue
 		}
 		var finalValue Variable
-		if ba.IsConstant() && !haveValues[key] {
+		if !haveValues[key] {
 			existing, active, found := c.Get(key)
 			if found && active {
 				if existing.IsEnvVar() {
@@ -311,7 +305,7 @@ func (c *Collection) WithParseBuildArgs(args []string, pncvf ProcessNonConstantV
 				}
 			} else {
 				return nil, nil, fmt.Errorf(
-					"Value not specified for build arg %s and no value can be inferred", key)
+					"value not specified for build arg %s and no value can be inferred", key)
 			}
 		} else {
 			finalValue = ba

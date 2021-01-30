@@ -319,18 +319,14 @@ func (c *Converter) CopyClassical(ctx context.Context, srcs []string, dest strin
 func (c *Converter) RunLocal(ctx context.Context, args []string, pushFlag bool) error {
 	runStr := fmt.Sprintf("RUN %s%s", strIf(pushFlag, "--push "), strings.Join(args, " "))
 
-	// Build args get propigated into env.
+	// Build args get propagated into env.
 	extraEnvVars := []string{}
 	for _, buildArgName := range c.varCollection.SortedActiveVariables() {
 		ba, _, _ := c.varCollection.Get(buildArgName)
 		if ba.IsEnvVar() {
 			continue
 		}
-		if ba.IsConstant() {
-			extraEnvVars = append(extraEnvVars, fmt.Sprintf("%s=\"%s\"", buildArgName, ba.ConstantValue()))
-		} else {
-			return fmt.Errorf("non-constant build arg (%s) is not supported with LOCALLY", buildArgName)
-		}
+		extraEnvVars = append(extraEnvVars, fmt.Sprintf("%s=\"%s\"", buildArgName, ba.ConstantValue()))
 	}
 
 	finalArgs := withShellAndEnvVars(args, extraEnvVars, true, false)
@@ -715,7 +711,7 @@ func (c *Converter) buildTarget(ctx context.Context, fullTargetName string, plat
 			v, _, _ := globals.Get(k)
 			c.varCollection.AddActive(k, v)
 			c.mts.Final.TargetInput = c.mts.Final.TargetInput.WithBuildArgInput(
-				v.BuildArgInput(k, "")) // TODO: Set coorect default value for bai.
+				v.BuildArgInput(k, "")) // TODO: Set correct default value for bai.
 		}
 	}
 	return mts, nil
@@ -757,14 +753,7 @@ func (c *Converter) internalRun(ctx context.Context, args, secretKeyValues []str
 		if ba.IsEnvVar() {
 			continue
 		}
-		if ba.IsConstant() {
-			extraEnvVars = append(extraEnvVars, fmt.Sprintf("%s=%s", buildArgName, shellescape.Quote(ba.ConstantValue())))
-		} else {
-			buildArgPath := path.Join("/run/buildargs", buildArgName)
-			finalOpts = append(finalOpts, llb.AddMount(buildArgPath, ba.VariableState(), llb.SourcePath(buildArgPath)))
-			// TODO: The use of cat here might not be portable.
-			extraEnvVars = append(extraEnvVars, fmt.Sprintf("%s=\"$(cat %s)\"", buildArgName, buildArgPath))
-		}
+		extraEnvVars = append(extraEnvVars, fmt.Sprintf("%s=%s", buildArgName, shellescape.Quote(ba.ConstantValue())))
 	}
 	// Debugger.
 	secretOpts := []llb.SecretOption{
@@ -953,13 +942,7 @@ func (c *Converter) vertexPrefix(local bool) string {
 		if variable.IsEnvVar() {
 			continue
 		}
-		var value string
-		if variable.IsConstant() {
-			value = variable.ConstantValue()
-		} else {
-			value = "<expr>"
-		}
-		varStrBuilder = append(varStrBuilder, fmt.Sprintf("%s=%s", key, value))
+		varStrBuilder = append(varStrBuilder, fmt.Sprintf("%s=%s", key, variable.ConstantValue()))
 	}
 	var varStr string
 	if len(varStrBuilder) > 0 {

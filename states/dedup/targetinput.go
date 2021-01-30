@@ -60,8 +60,7 @@ func (ti TargetInput) clone() TargetInput {
 		Platform:        ti.Platform,
 	}
 	for _, bai := range ti.BuildArgs {
-		baiCopy := bai.clone()
-		tiCopy.BuildArgs = append(tiCopy.BuildArgs, baiCopy)
+		tiCopy.BuildArgs = append(tiCopy.BuildArgs, bai.clone())
 	}
 	return tiCopy
 }
@@ -82,11 +81,7 @@ func (ti TargetInput) cloneNoTag() (TargetInput, error) {
 		Platform:        ti.Platform,
 	}
 	for _, bai := range ti.BuildArgs {
-		baiCopy, err := bai.cloneNoTag()
-		if err != nil {
-			return TargetInput{}, err
-		}
-		tiCopy.BuildArgs = append(tiCopy.BuildArgs, baiCopy)
+		tiCopy.BuildArgs = append(tiCopy.BuildArgs, bai.clone())
 	}
 	return tiCopy, nil
 }
@@ -119,29 +114,21 @@ func (ti TargetInput) HashNoTag() (string, error) {
 type BuildArgInput struct {
 	// Name is the name of the build arg.
 	Name string `json:"name"`
-	// IsConstant represents whether the build arg has a constant value.
-	IsConstant bool `json:"isConstant"`
-	// ConstantValue is the constant value of this build arg. Only set if IsConstant is true.
+	// ConstantValue is the constant value of this build arg.
 	ConstantValue string `json:"constantValue"`
 	// DefaultValue represents the default value of the build arg.
 	DefaultValue string `json:"defaultConstant"`
-	// VariableFromInput is the definition of the conditions in which the build arg was formed.
-	// It is only set if IsConstant is false.
-	VariableFromInput VariableFromInput `json:"variableFromInput"`
 }
 
-// IsDefaultValue returns whether the BuildArgInput is constant and its value
+// IsDefaultValue returns whether the value of the BuildArgInput
 // is set as the same as the default.
 func (bai BuildArgInput) IsDefaultValue() bool {
-	return bai.IsConstant && bai.ConstantValue == bai.DefaultValue
+	return bai.ConstantValue == bai.DefaultValue
 }
 
 // Equals compares to another BuildArgInput for equality.
 func (bai BuildArgInput) Equals(other BuildArgInput) bool {
 	if bai.Name != other.Name {
-		return false
-	}
-	if bai.IsConstant != other.IsConstant {
 		return false
 	}
 	if bai.ConstantValue != other.ConstantValue {
@@ -150,71 +137,13 @@ func (bai BuildArgInput) Equals(other BuildArgInput) bool {
 	if bai.DefaultValue != other.DefaultValue {
 		return false
 	}
-	if !bai.VariableFromInput.Equals(other.VariableFromInput) {
-		return false
-	}
 	return true
 }
 
 func (bai BuildArgInput) clone() BuildArgInput {
-	vfiCopy := bai.VariableFromInput.clone()
 	return BuildArgInput{
-		Name:              bai.Name,
-		IsConstant:        bai.IsConstant,
-		ConstantValue:     bai.ConstantValue,
-		DefaultValue:      bai.DefaultValue,
-		VariableFromInput: vfiCopy,
+		Name:          bai.Name,
+		ConstantValue: bai.ConstantValue,
+		DefaultValue:  bai.DefaultValue,
 	}
-}
-
-func (bai BuildArgInput) cloneNoTag() (BuildArgInput, error) {
-	vfiCopy, err := bai.VariableFromInput.cloneNoTag()
-	if err != nil {
-		return BuildArgInput{}, err
-	}
-	return BuildArgInput{
-		Name:              bai.Name,
-		IsConstant:        bai.IsConstant,
-		ConstantValue:     bai.ConstantValue,
-		DefaultValue:      bai.DefaultValue,
-		VariableFromInput: vfiCopy,
-	}, nil
-}
-
-// VariableFromInput represents the conditions in which a variable build arg is passed.
-type VariableFromInput struct {
-	// TargetInput is the target where this variable's expression is executed.
-	TargetInput TargetInput `json:"targetInput"`
-	// Index is the order number of the expression for the build arg. Starts at 0 for each target.
-	Index int `json:"index"`
-}
-
-// Equals compares to another VariableFromInput for equality.
-func (vfi VariableFromInput) Equals(other VariableFromInput) bool {
-	if !vfi.TargetInput.Equals(other.TargetInput) {
-		return false
-	}
-	if vfi.Index != other.Index {
-		return false
-	}
-	return true
-}
-
-func (vfi VariableFromInput) clone() VariableFromInput {
-	tiCopy := vfi.TargetInput.clone()
-	return VariableFromInput{
-		TargetInput: tiCopy,
-		Index:       vfi.Index,
-	}
-}
-
-func (vfi VariableFromInput) cloneNoTag() (VariableFromInput, error) {
-	tiCopy, err := vfi.TargetInput.cloneNoTag()
-	if err != nil {
-		return VariableFromInput{}, err
-	}
-	return VariableFromInput{
-		TargetInput: tiCopy,
-		Index:       vfi.Index,
-	}, nil
 }
