@@ -187,7 +187,7 @@ jobs:
       - name: Execute test-local --push
         run: "./build/linux/amd64/earthly --ci --push ./examples/tests/local+test-local"
       - name: Check --push cmd was run (and touched this file on the local disk)
-        run: "! ls /tmp/earthly-test-local"
+        run: "ls /tmp/earthly-test-local"
 
   private-repo-test:
     if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
