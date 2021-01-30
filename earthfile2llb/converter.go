@@ -15,6 +15,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/alessio/shellescape"
 	"github.com/earthly/earthly/buildcontext"
 	"github.com/earthly/earthly/debugger/common"
 	"github.com/earthly/earthly/domain"
@@ -150,7 +151,7 @@ func (c *Converter) fromTarget(ctx context.Context, targetName string, platform 
 	}
 	for _, kv := range saveImage.Image.Config.Env {
 		k, v, _ := variables.ParseKeyValue(kv)
-		c.varCollection.AddActive(k, variables.NewConstantEnvVar(v), true, false)
+		c.varCollection.AddActive(k, variables.NewConstantEnvVar(v))
 	}
 	c.mts.Final.MainImage = saveImage.Image.Clone()
 	return nil
@@ -568,18 +569,22 @@ func (c *Converter) Volume(ctx context.Context, volumes []string) {
 // Env applies the ENV command.
 func (c *Converter) Env(ctx context.Context, envKey string, envValue string) {
 	c.nonSaveCommand()
-	c.varCollection.AddActive(envKey, variables.NewConstantEnvVar(envValue), true, false)
+	c.varCollection.AddActive(envKey, variables.NewConstantEnvVar(envValue))
 	c.mts.Final.MainState = c.mts.Final.MainState.AddEnv(envKey, envValue)
 	c.mts.Final.MainImage.Config.Env = variables.AddEnv(
 		c.mts.Final.MainImage.Config.Env, envKey, envValue)
 }
 
 // Arg applies the ARG command.
-func (c *Converter) Arg(ctx context.Context, argKey string, defaultArgValue string, global bool) {
+func (c *Converter) Arg(ctx context.Context, argKey string, defaultArgValue string, global bool) error {
 	c.nonSaveCommand()
-	effective := c.varCollection.AddActive(argKey, variables.NewConstant(defaultArgValue), false, global)
+	effective, err := c.varCollection.DeclareActive(argKey, defaultArgValue, global, c.processNonConstantBuildArgFunc((ctx)))
+	if err != nil {
+		return err
+	}
 	c.mts.Final.TargetInput = c.mts.Final.TargetInput.WithBuildArgInput(
-		effective.BuildArgInput(argKey, defaultArgValue))
+		effective.BuildArgInput(argKey, effective.ConstantValue()))
+	return nil
 }
 
 // Label applies the LABEL command.
@@ -699,10 +704,15 @@ func (c *Converter) buildTarget(ctx context.Context, fullTargetName string, plat
 		// Propagate globals.
 		globals := mts.Final.VarCollection.WithOnlyGlobals()
 		for _, k := range globals.SortedActiveVariables() {
+			_, alreadyActive, _ := c.varCollection.Get(k)
+			if alreadyActive {
+				// Globals don't override any variables in current scope.
+				continue
+			}
 			v, _, _ := globals.Get(k)
-			effective := c.varCollection.AddActive(k, v, false, false)
+			c.varCollection.AddActive(k, v)
 			c.mts.Final.TargetInput = c.mts.Final.TargetInput.WithBuildArgInput(
-				effective.BuildArgInput(k, "")) // TODO: Set coorect default value for bai.
+				v.BuildArgInput(k, "")) // TODO: Set coorect default value for bai.
 		}
 	}
 	return mts, nil
@@ -745,7 +755,7 @@ func (c *Converter) internalRun(ctx context.Context, args, secretKeyValues []str
 			continue
 		}
 		if ba.IsConstant() {
-			extraEnvVars = append(extraEnvVars, fmt.Sprintf("%s=\"%s\"", buildArgName, ba.ConstantValue()))
+			extraEnvVars = append(extraEnvVars, fmt.Sprintf("%s=%s", buildArgName, shellescape.Quote(ba.ConstantValue())))
 		} else {
 			buildArgPath := path.Join("/run/buildargs", buildArgName)
 			finalOpts = append(finalOpts, llb.AddMount(buildArgPath, ba.VariableState(), llb.SourcePath(buildArgPath)))
@@ -862,7 +872,7 @@ func (c *Converter) applyFromImage(state llb.State, img *image.Image) (llb.State
 	newVarCollection := c.varCollection.WithResetEnvVars()
 	for _, envVar := range img.Config.Env {
 		k, v, _ := variables.ParseKeyValue(envVar)
-		newVarCollection.AddActive(k, variables.NewConstantEnvVar(v), true, false)
+		newVarCollection.AddActive(k, variables.NewConstantEnvVar(v))
 		state = state.AddEnv(k, v)
 	}
 	// Init config maps if not already initialized.
@@ -895,8 +905,8 @@ func (c *Converter) nonSaveCommand() {
 
 func (c *Converter) processNonConstantBuildArgFunc(ctx context.Context) variables.ProcessNonConstantVariableFunc {
 	return func(name string, expression string) (string, int, error) {
-		// Run the expression on the side effects state.
-		srcBuildArgDir := "/run/buildargs-src"
+		// Run the expression on the main state.
+		srcBuildArgDir := "/run/buildargs"
 		srcBuildArgPath := path.Join(srcBuildArgDir, name)
 		c.mts.Final.MainState = c.mts.Final.MainState.File(
 			llb.Mkdir(srcBuildArgDir, 0755, llb.WithParents(true)),
@@ -918,15 +928,12 @@ func (c *Converter) processNonConstantBuildArgFunc(ctx context.Context) variable
 		}
 		// echo adds a trailing \n.
 		value = bytes.TrimSuffix(value, []byte("\n"))
-		// Store the state with the expression result for later use.
-		argIndex := c.nextArgIndex
-		c.nextArgIndex++
-		// Remove intermediary file from side effects state.
+		// Remove intermediary file.
 		c.mts.Final.MainState = c.mts.Final.MainState.File(
 			llb.Rm(srcBuildArgPath, llb.WithAllowNotFound(true)),
 			llb.WithCustomNamef("[internal] rm %s", srcBuildArgPath))
 
-		return string(value), argIndex, nil
+		return string(value), 0, nil
 	}
 }
 
