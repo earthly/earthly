@@ -174,13 +174,15 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 			return nil, err
 		}
 		res := gwclient.NewResult()
-		ref, err := b.stateToRef(ctx, gwClient, b.targetPhaseState(mts.Final), mts.Final.Platform)
-		if err != nil {
-			return nil, err
+		if !b.builtMain {
+			ref, err := b.stateToRef(ctx, gwClient, b.targetPhaseState(mts.Final), mts.Final.Platform)
+			if err != nil {
+				return nil, err
+			}
+			res.AddRef("main", ref)
 		}
-		res.AddRef("main", ref)
 		if !opt.NoOutput && opt.OnlyArtifact != nil && !opt.OnlyFinalTargetImages {
-			ref, err = b.stateToRef(ctx, gwClient, mts.Final.ArtifactsState, mts.Final.Platform)
+			ref, err := b.stateToRef(ctx, gwClient, mts.Final.ArtifactsState, mts.Final.Platform)
 			if err != nil {
 				return nil, err
 			}
@@ -192,7 +194,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 		}
 
 		for _, sts := range mts.All() {
-			if sts.HasDangling && !b.opt.UseFakeDep {
+			if (sts.HasDangling && !b.opt.UseFakeDep) || (b.builtMain && sts.RunPush.Initialized) {
 				depRef, err := b.stateToRef(ctx, gwClient, b.targetPhaseState(sts), sts.Platform)
 				if err != nil {
 					return nil, err
@@ -345,6 +347,14 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 	sp.incrementIndex()
 	b.builtMain = true
 
+	if opt.Push && opt.OnlyArtifact == nil && !opt.OnlyFinalTargetImages {
+		err = b.s.buildMainMulti(ctx, bf, onImage, onArtifact, onFinalArtifact, "--push")
+		if err != nil {
+			return nil, errors.Wrapf(err, "build push")
+		}
+		sp.printCurrentSuccess()
+	}
+
 	if opt.NoOutput {
 		// Nothing.
 	} else if opt.OnlyArtifact != nil {
@@ -408,12 +418,6 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 
 				if sts.RunPush.Initialized {
 					if opt.Push {
-						err = b.s.buildMainMulti(ctx, bf, onImage, onArtifact, onFinalArtifact, "--push")
-						if err != nil {
-							return nil, errors.Wrapf(err, "build push")
-						}
-						sp.printCurrentSuccess()
-
 						for _, saveLocal := range sts.RunPush.SaveLocals {
 							artifactDir := filepath.Join(outDir, fmt.Sprintf("index-%d", dirIndex))
 							artifact := domain.Artifact{
