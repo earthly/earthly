@@ -485,12 +485,13 @@ func (c *Converter) SaveImage(ctx context.Context, imageNames []string, pushImag
 		}
 
 		c.mts.Final.SaveImages = append(c.mts.Final.SaveImages, states.SaveImage{
-			State:        st,
-			Image:        c.mts.Final.MainImage.Clone(),
-			DockerTag:    imageName,
-			Push:         pushImages,
-			InsecurePush: insecurePush,
-			CacheHint:    cacheHint,
+			State:               st,
+			Image:               c.mts.Final.MainImage.Clone(),
+			DockerTag:           imageName,
+			Push:                pushImages,
+			InsecurePush:        insecurePush,
+			CacheHint:           cacheHint,
+			HasPushDependencies: pushImages && c.mts.Final.RunPush.Initialized,
 		})
 
 		if pushImages && imageName != "" && c.opt.UseInlineCache {

@@ -85,7 +85,8 @@ type SaveImage struct {
 	InsecurePush bool
 	// CacheHint instructs Earthly to save a separate ref for this image, even if no tag is
 	// provided.
-	CacheHint bool
+	CacheHint           bool
+	HasPushDependencies bool
 }
 
 // RunPush is a series of RUN --push commands to be run after the build has been deemed as

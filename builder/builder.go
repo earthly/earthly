@@ -208,6 +208,9 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 				shouldPush := opt.Push && saveImage.Push && !sts.Target.IsRemote() && saveImage.DockerTag != ""
 				shouldExport := !opt.NoOutput && opt.OnlyArtifact == nil && !(opt.OnlyFinalTargetImages && sts != mts.Final) && saveImage.DockerTag != ""
 				useCacheHint := saveImage.CacheHint && b.opt.CacheExport != ""
+				if saveImage.HasPushDependencies && !shouldPush {
+					continue
+				}
 				if !shouldPush && !shouldExport && !useCacheHint {
 					// Short-circuit.
 					continue
@@ -398,7 +401,9 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 				}
 				console.Printf("Image %s as %s%s\n", sts.Target.StringCanonical(), saveImage.DockerTag, pushStr)
 
-				if saveImage.Push && !opt.Push && !sts.Target.IsRemote() {
+				if saveImage.HasPushDependencies && !shouldPush {
+					console.Printf("Did not push, OR save %s locally, as evaluating the image would have caused a RUN --push ...", saveImage.DockerTag)
+				} else if saveImage.Push && !opt.Push && !sts.Target.IsRemote() {
 					console.Printf("Did not push %s. Use earthly --push to enable pushing\n", saveImage.DockerTag)
 				}
 			}
