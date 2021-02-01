@@ -204,7 +204,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 				depIndex++
 			}
 
-			for _, saveImage := range sts.SaveImages {
+			for _, saveImage := range b.targetPhaseImages(sts) {
 				shouldPush := opt.Push && saveImage.Push && !sts.Target.IsRemote() && saveImage.DockerTag != ""
 				shouldExport := !opt.NoOutput && opt.OnlyArtifact == nil && !(opt.OnlyFinalTargetImages && sts != mts.Final) && saveImage.DockerTag != ""
 				useCacheHint := saveImage.CacheHint && b.opt.CacheExport != ""
@@ -461,6 +461,13 @@ func (b *Builder) targetPhaseArtifacts(sts *states.SingleTarget) []states.SaveLo
 		return sts.RunPush.SaveLocals
 	}
 	return sts.SaveLocals
+}
+
+func (b *Builder) targetPhaseImages(sts *states.SingleTarget) []states.SaveImage {
+	if b.builtMain {
+		return sts.RunPush.SaveImages
+	}
+	return sts.SaveImages
 }
 
 func (b *Builder) stateToRef(ctx context.Context, gwClient gwclient.Client, state llb.State, platform *specs.Platform) (gwclient.Reference, error) {

@@ -95,4 +95,5 @@ type RunPush struct {
 	CommandStrs []string
 	State       llb.State
 	SaveLocals  []SaveLocal
+	SaveImages  []SaveImage
 }
