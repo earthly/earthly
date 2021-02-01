@@ -1,0 +1,14 @@
+test:
+    FROM alpine:3.13
+    WORKDIR test
+
+    SAVE IMAGE earthly/sap:empty # should exist
+
+    RUN echo "1" > 1
+    ENTRYPOINT ls -la /test
+    SAVE IMAGE earthly/sap:before-push # should exist
+
+    SAVE IMAGE --push earthly/sap:first-push # should exist
+
+    RUN --push echo "2" > 2
+    SAVE IMAGE --push earthly/sap:after-push # should not exist
