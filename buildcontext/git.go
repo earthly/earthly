@@ -212,6 +212,8 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, gwClient gwclient.
 
 	// Add to cache.
 	resolved := &resolvedGitProject{
+		// TODO: This should not be a ref, in case it is accidentally reused across different
+		//       build sessions.
 		gitMetaAndEarthfileRef: gitMetaAndEarthfileRef,
 		hash:                   gitHash,
 		branches:               gitBranches2,
