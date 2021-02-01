@@ -175,7 +175,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 		}
 		res := gwclient.NewResult()
 		if !b.builtMain {
-			ref, err := b.stateToRef(ctx, gwClient, b.targetPhaseState(mts.Final), mts.Final.Platform)
+			ref, err := b.stateToRef(ctx, gwClient, mts.Final.MainState, mts.Final.Platform)
 			if err != nil {
 				return nil, err
 			}
@@ -208,7 +208,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 				shouldPush := opt.Push && saveImage.Push && !sts.Target.IsRemote() && saveImage.DockerTag != ""
 				shouldExport := !opt.NoOutput && opt.OnlyArtifact == nil && !(opt.OnlyFinalTargetImages && sts != mts.Final) && saveImage.DockerTag != ""
 				useCacheHint := saveImage.CacheHint && b.opt.CacheExport != ""
-				if !shouldPush && !shouldExport && !useCacheHint {
+				if (!shouldPush && !shouldExport && !useCacheHint) || b.builtMain {
 					// Short-circuit.
 					continue
 				}
@@ -285,7 +285,11 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 					}
 				}
 			}
-			if !sts.Target.IsRemote() && !opt.NoOutput && !opt.OnlyFinalTargetImages && opt.OnlyArtifact == nil {
+			performSaveLocals := (!sts.Target.IsRemote() &&
+				!opt.NoOutput &&
+				!opt.OnlyFinalTargetImages &&
+				opt.OnlyArtifact == nil)
+			if performSaveLocals {
 				for _, saveLocal := range b.targetPhaseArtifacts(sts) {
 					ref, err := b.artifactStateToRef(ctx, gwClient, sts.SeparateArtifactsState[saveLocal.Index], sts.Platform)
 					if err != nil {
@@ -348,9 +352,18 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 	b.builtMain = true
 
 	if opt.Push && opt.OnlyArtifact == nil && !opt.OnlyFinalTargetImages {
-		err = b.s.buildMainMulti(ctx, bf, onImage, onArtifact, onFinalArtifact, "--push")
-		if err != nil {
-			return nil, errors.Wrapf(err, "build push")
+		hasRunPush := false
+		for _, sts := range mts.All() {
+			if sts.RunPush.Initialized {
+				hasRunPush = true
+				break
+			}
+		}
+		if hasRunPush {
+			err = b.s.buildMainMulti(ctx, bf, onImage, onArtifact, onFinalArtifact, "--push")
+			if err != nil {
+				return nil, errors.Wrapf(err, "build push")
+			}
 		}
 		sp.printCurrentSuccess()
 	}
