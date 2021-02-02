@@ -7,11 +7,23 @@ cd "$(dirname "$0")"
 
 earthly=${earthly-"../../../build/linux/amd64/earthly"}
 
-"$earthly" --allow-privileged --no-cache +test | tee output
+echo "=== Test Single --push ==="
 
-if ! cat output | grep "Did not push, OR save earthly/sap:after-push locally"; then
+"$earthly" --allow-privileged --no-cache +only-push | tee single_output
+
+if  ! cat images | grep -q "earthly/sap:only-push"; then
+    echo "Missed only valid image"
+    docker images --format "{{.Repository}}:{{.Tag}}" | grep "sap:"
+    exit 1
+fi
+
+echo "=== Test All Phase Transitions ==="
+
+"$earthly" --allow-privileged --no-cache +test | tee multi_output
+
+if ! cat multi_output | grep "Did not push, OR save earthly/sap:after-push locally"; then
     echo "Invalid push text"
-    cat output
+    cat multi_output
     exit 1
 fi
 
