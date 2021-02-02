@@ -476,24 +476,31 @@ func (c *Converter) SaveImage(ctx context.Context, imageNames []string, pushImag
 		justCacheHint = true
 	}
 	for _, imageName := range imageNames {
-		var st llb.State
-		if pushImages && c.mts.Final.RunPush.Initialized() {
+		if c.mts.Final.RunPush.Initialized() {
 			// SAVE IMAGE --push when it comes before any RUN --push should be treated as if they are in the main state,
 			// since thats their only dependency. It will still be marked as a push.
-			st = c.mts.Final.RunPush.State
+			c.mts.Final.RunPush.SaveImages = append(c.mts.Final.RunPush.SaveImages,
+				states.SaveImage{
+					State:               c.mts.Final.RunPush.State,
+					Image:               c.mts.Final.MainImage.Clone(), // We can get away with this because no Image details can vary in a --push. This should be fixed before then.
+					DockerTag:           imageName,
+					Push:                pushImages,
+					InsecurePush:        insecurePush,
+					CacheHint:           cacheHint,
+					HasPushDependencies: c.mts.Final.RunPush.Initialized(),
+				})
 		} else {
-			st = c.mts.Final.MainState
+			c.mts.Final.SaveImages = append(c.mts.Final.SaveImages,
+				states.SaveImage{
+					State:               c.mts.Final.MainState,
+					Image:               c.mts.Final.MainImage.Clone(),
+					DockerTag:           imageName,
+					Push:                pushImages,
+					InsecurePush:        insecurePush,
+					CacheHint:           cacheHint,
+					HasPushDependencies: c.mts.Final.RunPush.Initialized(),
+				})
 		}
-
-		c.mts.Final.SaveImages = append(c.mts.Final.SaveImages, states.SaveImage{
-			State:               st,
-			Image:               c.mts.Final.MainImage.Clone(),
-			DockerTag:           imageName,
-			Push:                pushImages,
-			InsecurePush:        insecurePush,
-			CacheHint:           cacheHint,
-			HasPushDependencies: pushImages && c.mts.Final.RunPush.Initialized(),
-		})
 
 		if pushImages && imageName != "" && c.opt.UseInlineCache {
 			// Use this image tag as cache import too.
