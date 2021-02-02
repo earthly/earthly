@@ -557,13 +557,3 @@ push-build:
     RUN cat output | perl -pe 'BEGIN {$status=1} END {exit $status} $status=0 if /\+test \| 0\n/;'
     RUN cat output | perl -pe 'BEGIN {$status=1} END {exit $status} $status=0 if /\+run1 \| 1\n/;'
     RUN cat output | perl -pe 'BEGIN {$status=1} END {exit $status} $status=0 if /\+run2 \| 2\n/;'
-
-save-image-push:
-    COPY save-image-push.earth ./Earthfile
-
-    RUN --privileged \
-        --entrypoint \
-        --mount=type=tmpfs,target=/tmp/earthly \
-        -- +test 2>&1 | perl -pe 'BEGIN {$status=1} END {exit $status} $status=0 if /Did not push, OR save earthly\/sap:after-push locally/;'
-
-    RUN docker images
