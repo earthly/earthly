@@ -422,7 +422,7 @@ jobs:
       - misc-tests
       - examples1
       - examples2
-      - cloud-integration
+      - push-integration
       - secrets-integration
       - private-repo-test
       - test-local
@@ -464,4 +464,3 @@ jobs:
       - name: Buildkit logs (runs on failure)
         run: docker logs earthly-buildkitd
         if: ${{ failure() }}
-
