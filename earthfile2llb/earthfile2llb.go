@@ -75,10 +75,6 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt) (m
 		same := (sts.TargetInput.Platform == llbutil.PlatformToString(opt.Platform))
 		if same {
 			for _, bai := range sts.TargetInput.BuildArgs {
-				if sts.Ongoing && !bai.IsConstant {
-					return nil, fmt.Errorf(
-						"Use of recursive targets with variable build args is not supported: %s", targetStr)
-				}
 				variable, _, found := opt.VarCollection.Get(bai.Name)
 				if found {
 					if !variable.BuildArgInput(bai.Name, bai.DefaultValue).Equals(bai) {
