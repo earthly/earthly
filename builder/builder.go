@@ -196,7 +196,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 		}
 
 		for _, sts := range mts.All() {
-			if (sts.HasDangling && !b.opt.UseFakeDep) || (b.builtMain && sts.RunPush.Initialized) {
+			if (sts.HasDangling && !b.opt.UseFakeDep) || (b.builtMain && sts.RunPush.Initialized()) {
 				depRef, err := b.stateToRef(childCtx, gwClient, b.targetPhaseState(sts), sts.Platform)
 				if err != nil {
 					return nil, err
@@ -210,7 +210,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 				shouldPush := opt.Push && saveImage.Push && !sts.Target.IsRemote() && saveImage.DockerTag != ""
 				shouldExport := !opt.NoOutput && opt.OnlyArtifact == nil && !(opt.OnlyFinalTargetImages && sts != mts.Final) && saveImage.DockerTag != ""
 				useCacheHint := saveImage.CacheHint && b.opt.CacheExport != ""
-				if (!shouldPush && !shouldExport && !useCacheHint) || (saveImage.HasPushDependencies && !shouldPush) {
+				if (!shouldPush && !shouldExport && !useCacheHint) || (!shouldPush && saveImage.HasPushDependencies) {
 					// Short-circuit.
 					continue
 				}
@@ -356,7 +356,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 	if opt.Push && opt.OnlyArtifact == nil && !opt.OnlyFinalTargetImages {
 		hasRunPush := false
 		for _, sts := range mts.All() {
-			if sts.RunPush.Initialized {
+			if sts.RunPush.Initialized() {
 				hasRunPush = true
 				break
 			}
@@ -433,7 +433,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 					dirIndex++
 				}
 
-				if sts.RunPush.Initialized {
+				if sts.RunPush.Initialized() {
 					if opt.Push {
 						for _, saveLocal := range sts.RunPush.SaveLocals {
 							artifactDir := filepath.Join(outDir, fmt.Sprintf("index-%d", dirIndex))
@@ -533,30 +533,6 @@ func (b *Builder) buildMain(ctx context.Context, mts *states.MultiTarget, opt Bu
 	err = b.s.solveMain(ctx, state, plat)
 	if err != nil {
 		return errors.Wrapf(err, "solve side effects")
-	}
-	return nil
-}
-
-func (b *Builder) executeRunPush(ctx context.Context, sts *states.SingleTarget, opt BuildOpt) error {
-	if !sts.RunPush.Initialized {
-		// No run --push commands here. Quick way out.
-		return nil
-	}
-	console := b.opt.Console.WithPrefixAndSalt(sts.Target.String(), sts.Salt)
-	if !opt.Push {
-		for _, commandStr := range sts.RunPush.CommandStrs {
-			console.Printf("Did not execute push command %s. Use earthly --push to enable pushing\n", commandStr)
-		}
-		return nil
-	}
-	platform, err := llbutil.ResolvePlatform(sts.Platform, opt.Platform)
-	if err != nil {
-		platform = sts.Platform
-	}
-	plat := llbutil.PlatformWithDefault(platform)
-	err = b.s.solveMain(ctx, sts.RunPush.State, plat)
-	if err != nil {
-		return errors.Wrapf(err, "solve run-push")
 	}
 	return nil
 }

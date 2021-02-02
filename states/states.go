@@ -90,11 +90,14 @@ type SaveImage struct {
 }
 
 // RunPush is a series of RUN --push commands to be run after the build has been deemed as
-// successful.
+// successful, along with artifacts to save and images to push
 type RunPush struct {
-	Initialized bool
 	CommandStrs []string
 	State       llb.State
 	SaveLocals  []SaveLocal
 	SaveImages  []SaveImage
+}
+
+func (rp *RunPush) Initialized() bool {
+	return len(rp.CommandStrs) > 0 || len(rp.SaveLocals) > 0 || len(rp.SaveImages) > 0
 }
