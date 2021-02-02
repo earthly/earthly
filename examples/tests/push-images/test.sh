@@ -11,9 +11,17 @@ echo "=== Test Single --push ==="
 
 "$earthly" --allow-privileged --no-cache +only-push | tee single_output
 
-if  ! cat images | grep -q "earthly/sap:only-push"; then
+if ! cat single_output | grep "Did not push earthly/sap:only-push"; then
+    echo "Invalid push text"
+    cat single_output
+    exit 1
+fi
+
+docker images --format "{{.Repository}}:{{.Tag}}" | grep "earthly/sap:" > single_images
+
+if  ! cat single_images | grep -q "earthly/sap:only-push"; then
     echo "Missed only valid image"
-    docker images --format "{{.Repository}}:{{.Tag}}" | grep "sap:"
+    cat single_images
     exit 1
 fi
 
@@ -27,20 +35,20 @@ if ! cat multi_output | grep "Did not push, OR save earthly/sap:after-push local
     exit 1
 fi
 
-docker images --format "{{.Repository}}:{{.Tag}}" | grep "earthly/sap:" > images
+docker images --format "{{.Repository}}:{{.Tag}}" | grep "earthly/sap:" > multi_images
 
-if cat images | grep "earthly/sap:after-push"; then
+if cat multi_images | grep "earthly/sap:after-push"; then
     echo "Saved invalid image"
     docker images --format "{{.Repository}}:{{.Tag}}" | grep "sap:"
     exit 1
 fi
 
-if  ! cat images | grep -q "earthly/sap:empty" || \
-    ! cat images | grep -q "earthly/sap:before-push" || \
-    ! cat images | grep -q "earthly/sap:first-push"
+if  ! cat multi_images | grep -q "earthly/sap:empty" || \
+    ! cat multi_images | grep -q "earthly/sap:before-push" || \
+    ! cat multi_images | grep -q "earthly/sap:first-push"
 then
     echo "Missed valid image"
-    docker images --format "{{.Repository}}:{{.Tag}}" | grep "sap:"
+    cat multi_images
     exit 1
 fi
 
