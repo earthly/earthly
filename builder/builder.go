@@ -155,34 +155,36 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 	depIndex := 0
 	imageIndex := 0
 	dirIndex := 0
-	bf := func(ctx context.Context, gwClient gwclient.Client) (*gwclient.Result, error) {
+	bf := func(childCtx context.Context, gwClient gwclient.Client) (*gwclient.Result, error) {
 		var err error
-		mts, err = earthfile2llb.Earthfile2LLB(ctx, target, earthfile2llb.ConvertOpt{
-			GwClient:             gwClient,
-			Resolver:             b.resolver,
-			ImageResolveMode:     b.opt.ImageResolveMode,
-			DockerBuilderFun:     b.MakeImageAsTarBuilderFun(),
-			CleanCollection:      b.opt.CleanCollection,
-			Platform:             opt.Platform,
-			VarCollection:        b.opt.VarCollection,
-			BuildContextProvider: b.opt.BuildContextProvider,
-			CacheImports:         b.opt.CacheImports,
-			UseInlineCache:       b.opt.UseInlineCache,
-			UseFakeDep:           b.opt.UseFakeDep,
-		})
-		if err != nil {
-			return nil, err
+		if !b.builtMain {
+			mts, err = earthfile2llb.Earthfile2LLB(childCtx, target, earthfile2llb.ConvertOpt{
+				GwClient:             gwClient,
+				Resolver:             b.resolver,
+				ImageResolveMode:     b.opt.ImageResolveMode,
+				DockerBuilderFun:     b.MakeImageAsTarBuilderFun(),
+				CleanCollection:      b.opt.CleanCollection,
+				Platform:             opt.Platform,
+				VarCollection:        b.opt.VarCollection,
+				BuildContextProvider: b.opt.BuildContextProvider,
+				CacheImports:         b.opt.CacheImports,
+				UseInlineCache:       b.opt.UseInlineCache,
+				UseFakeDep:           b.opt.UseFakeDep,
+			})
+			if err != nil {
+				return nil, err
+			}
 		}
 		res := gwclient.NewResult()
 		if !b.builtMain {
-			ref, err := b.stateToRef(ctx, gwClient, b.targetPhaseState(mts.Final), mts.Final.Platform)
+			ref, err := b.stateToRef(childCtx, gwClient, mts.Final.MainState, mts.Final.Platform)
 			if err != nil {
 				return nil, err
 			}
 			res.AddRef("main", ref)
 		}
 		if !opt.NoOutput && opt.OnlyArtifact != nil && !opt.OnlyFinalTargetImages {
-			ref, err := b.stateToRef(ctx, gwClient, mts.Final.ArtifactsState, mts.Final.Platform)
+			ref, err := b.stateToRef(childCtx, gwClient, mts.Final.ArtifactsState, mts.Final.Platform)
 			if err != nil {
 				return nil, err
 			}
@@ -195,7 +197,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 
 		for _, sts := range mts.All() {
 			if (sts.HasDangling && !b.opt.UseFakeDep) || (b.builtMain && sts.RunPush.Initialized) {
-				depRef, err := b.stateToRef(ctx, gwClient, b.targetPhaseState(sts), sts.Platform)
+				depRef, err := b.stateToRef(childCtx, gwClient, b.targetPhaseState(sts), sts.Platform)
 				if err != nil {
 					return nil, err
 				}
@@ -208,14 +210,11 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 				shouldPush := opt.Push && saveImage.Push && !sts.Target.IsRemote() && saveImage.DockerTag != ""
 				shouldExport := !opt.NoOutput && opt.OnlyArtifact == nil && !(opt.OnlyFinalTargetImages && sts != mts.Final) && saveImage.DockerTag != ""
 				useCacheHint := saveImage.CacheHint && b.opt.CacheExport != ""
-				if saveImage.HasPushDependencies && !shouldPush {
-					continue
-				}
-				if !shouldPush && !shouldExport && !useCacheHint {
+				if (!shouldPush && !shouldExport && !useCacheHint) || (saveImage.HasPushDependencies && !shouldPush) {
 					// Short-circuit.
 					continue
 				}
-				ref, err := b.stateToRef(ctx, gwClient, saveImage.State, sts.Platform)
+				ref, err := b.stateToRef(childCtx, gwClient, saveImage.State, sts.Platform)
 				if err != nil {
 					return nil, err
 				}
@@ -288,9 +287,13 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 					}
 				}
 			}
-			if !sts.Target.IsRemote() && !opt.NoOutput && !opt.OnlyFinalTargetImages && opt.OnlyArtifact == nil {
+			performSaveLocals := (!sts.Target.IsRemote() &&
+				!opt.NoOutput &&
+				!opt.OnlyFinalTargetImages &&
+				opt.OnlyArtifact == nil)
+			if performSaveLocals {
 				for _, saveLocal := range b.targetPhaseArtifacts(sts) {
-					ref, err := b.artifactStateToRef(ctx, gwClient, sts.SeparateArtifactsState[saveLocal.Index], sts.Platform)
+					ref, err := b.artifactStateToRef(childCtx, gwClient, sts.SeparateArtifactsState[saveLocal.Index], sts.Platform)
 					if err != nil {
 						return nil, err
 					}
@@ -313,12 +316,12 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 		}
 		return res, nil
 	}
-	onImage := func(ctx context.Context, eg *errgroup.Group, imageName string) (io.WriteCloser, error) {
+	onImage := func(childCtx context.Context, eg *errgroup.Group, imageName string) (io.WriteCloser, error) {
 		sp.printCurrentSuccess()
 		pipeR, pipeW := io.Pipe()
 		eg.Go(func() error {
 			defer pipeR.Close()
-			err := loadDockerTar(ctx, pipeR)
+			err := loadDockerTar(childCtx, pipeR)
 			if err != nil {
 				return errors.Wrapf(err, "load docker tar")
 			}
@@ -326,7 +329,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 		})
 		return pipeW, nil
 	}
-	onArtifact := func(ctx context.Context, index int, artifact domain.Artifact, artifactPath string, destPath string) (string, error) {
+	onArtifact := func(childCtx context.Context, index int, artifact domain.Artifact, artifactPath string, destPath string) (string, error) {
 		sp.printCurrentSuccess()
 		if !destPathWhitelist[destPath] {
 			return "", errors.Errorf("dest path %s is not in the whitelist: %+v", destPath, destPathWhitelist)
@@ -338,7 +341,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 		}
 		return artifactDir, nil
 	}
-	onFinalArtifact := func(ctx context.Context) (string, error) {
+	onFinalArtifact := func(childCtx context.Context) (string, error) {
 		sp.printCurrentSuccess()
 		return outDir, nil
 	}
@@ -351,9 +354,18 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 	b.builtMain = true
 
 	if opt.Push && opt.OnlyArtifact == nil && !opt.OnlyFinalTargetImages {
-		err = b.s.buildMainMulti(ctx, bf, onImage, onArtifact, onFinalArtifact, "--push")
-		if err != nil {
-			return nil, errors.Wrapf(err, "build push")
+		hasRunPush := false
+		for _, sts := range mts.All() {
+			if sts.RunPush.Initialized {
+				hasRunPush = true
+				break
+			}
+		}
+		if hasRunPush {
+			err = b.s.buildMainMulti(ctx, bf, onImage, onArtifact, onFinalArtifact, "--push")
+			if err != nil {
+				return nil, errors.Wrapf(err, "build push")
+			}
 		}
 		sp.printCurrentSuccess()
 	}

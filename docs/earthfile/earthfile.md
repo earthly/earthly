@@ -118,6 +118,29 @@ Specifies the platform to build on.
 
 For more information see the [multi-platform guide](../guides/multi-platform.md).
 
+## LOCALLY (**experimental**)
+
+#### Synopsis
+
+* `LOCALLY`
+
+#### Description
+
+{% hint style='danger' %}
+##### Important
+
+This feature is currently in **Experimental** stage
+
+* The feature may break, be changed drastically with no warning, or be removed altogether in future versions of Earthly.
+* Check the [GitHub tracking issue](https://github.com/earthly/earthly/issues/580) for any known problems.
+* Give us feedback on [Slack](https://earthly.dev/slack) in the `#locally` channel.
+{% endhint %}
+
+The `LOCALLY` command instructs earthly to execute the following `RUN` commands locally on the host system.
+This feature should be used with caution as locally run commands have no guarantee they will behave the same on different systems.
+
+Only `RUN` commands are supported under a `LOCALLY` defined target; futhermore only `RUN`'s `--push` flag is supported.
+
 ## RUN
 
 #### Synopsis
@@ -150,6 +173,10 @@ earthly --push +deploy
 Push commands were introduced to allow the user to define commands that have an effect external to the build. This kind of effects are only allowed to take place if the entire build succeeds. Good candidates for push commands are uploads of artifacts to artifactories, commands that make a change to an external environment, like a production or staging environment.
 
 Note that non-push commands are not allowed to follow a push command within a recipe.
+
+#### `--no-cache`
+
+Force the command to run every time; ignoring any cache. Any commands following the invocation of `RUN --no-cache`, will also ignore the cache. If `--no-cache` is used as an option on the `RUN` statement within a `WITH DOCKER` statement, all commands after the `WITH DOCKER` will also ignore the cache.
 
 ##### `--entrypoint`
 

@@ -32,8 +32,8 @@ type gitResolver struct {
 }
 
 type resolvedGitProject struct {
-	// gitMetaAndEarthfileRef is the ref containing the git metadata and build files.
-	gitMetaAndEarthfileRef gwclient.Reference
+	// gitMetaAndEarthfileState is the state containing the git metadata and build files.
+	gitMetaAndEarthfileState llb.State
 	// hash is the git hash.
 	hash string
 	// branches is the git branches.
@@ -72,11 +72,15 @@ func (gr *gitResolver) resolveEarthProject(ctx context.Context, gwClient gwclien
 	gr.cleanCollection.Add(func() error {
 		return os.RemoveAll(earthfileTmpDir)
 	})
-	buildFile, err := detectBuildFileInRef(ctx, target, rgp.gitMetaAndEarthfileRef, subDir)
+	gitMetaAndEarthfileRef, err := llbutil.StateToRef(ctx, gwClient, rgp.gitMetaAndEarthfileState, nil, nil)
+	if err != nil {
+		return nil, errors.Wrap(err, "state to ref git meta")
+	}
+	buildFile, err := detectBuildFileInRef(ctx, target, gitMetaAndEarthfileRef, subDir)
 	if err != nil {
 		return nil, err
 	}
-	buildFileBytes, err := rgp.gitMetaAndEarthfileRef.ReadFile(ctx, gwclient.ReadRequest{
+	buildFileBytes, err := gitMetaAndEarthfileRef.ReadFile(ctx, gwclient.ReadRequest{
 		Filename: buildFile,
 	})
 	if err != nil {
@@ -212,10 +216,10 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, gwClient gwclient.
 
 	// Add to cache.
 	resolved := &resolvedGitProject{
-		gitMetaAndEarthfileRef: gitMetaAndEarthfileRef,
-		hash:                   gitHash,
-		branches:               gitBranches2,
-		tags:                   gitTags2,
+		gitMetaAndEarthfileState: gitMetaAndEarthfileState,
+		hash:                     gitHash,
+		branches:                 gitBranches2,
+		tags:                     gitTags2,
 		state: llb.Git(
 			gitURL,
 			gitHash,
