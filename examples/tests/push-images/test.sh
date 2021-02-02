@@ -15,8 +15,19 @@ if ! cat output | grep "Did not push, OR save earthly/sap:after-push locally"; t
     exit 1
 fi
 
-if ! docker images --format "{{.Repository}}:{{.Tag}}" | grep "earthly/sap:after-push"; then
+docker images --format "{{.Repository}}:{{.Tag}}" | grep "earthly/sap:" > images
+
+if cat images | grep "earthly/sap:after-push"; then
     echo "Saved invalid image"
+    docker images --format "{{.Repository}}:{{.Tag}}" | grep "sap:"
+    exit 1
+fi
+
+if  ! cat images | grep -q "earthly/sap:empty" || \
+    ! cat images | grep -q "earthly/sap:before-push" || \
+    ! cat images | grep -q "earthly/sap:first-push"
+then
+    echo "Missed valid image"
     docker images --format "{{.Repository}}:{{.Tag}}" | grep "sap:"
     exit 1
 fi
