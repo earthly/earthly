@@ -287,6 +287,10 @@ test-all:
         ./examples/tests+experimental
 
 examples:
+    BUILD +examples1
+    BUILD +examples2
+
+examples1:
     BUILD ./examples/cpp+docker
     BUILD ./examples/dotnet+docker
     BUILD ./examples/elixir+docker
@@ -298,6 +302,8 @@ examples:
     BUILD ./examples/monorepo+all
     BUILD ./examples/multirepo+docker
     BUILD ./examples/python+docker
+
+examples2:
     BUILD ./examples/readme/go1+all
     BUILD ./examples/readme/go2+all
     BUILD ./examples/readme/go3+build

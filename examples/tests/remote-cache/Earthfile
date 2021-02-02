@@ -22,6 +22,7 @@ COPY test.earth ./Earthfile
 all:
     BUILD +test1
     BUILD +test2
+    BUILD +test3
 
 test1:
     RUN echo "content" >./input
@@ -76,3 +77,10 @@ test2:
     RUN cat ./output | grep '\*cached\* --> COPY test2/dist dist'
     RUN cat ./output | grep '\*cached\* --> SAVE ARTIFACT dist +test2-build/dist'
     RUN cat ./output | grep '\*cached\* --> COPY +test2-build/dist ./dist'
+
+test3:
+    # Running with tmpfs mount = no local cache.
+    RUN --privileged \
+        --entrypoint \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        -- --ci --push +test3

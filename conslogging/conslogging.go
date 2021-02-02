@@ -130,17 +130,36 @@ func (cl ConsoleLogger) WithFailed(isFailed bool) ConsoleLogger {
 }
 
 // PrintSuccess prints the success message.
-func (cl ConsoleLogger) PrintSuccess() {
+func (cl ConsoleLogger) PrintSuccess(msg string) {
 	cl.mu.Lock()
 	defer cl.mu.Unlock()
-	cl.color(successColor).Fprintf(cl.outW, "=========================== SUCCESS ===========================\n")
+	cl.printBar(successColor, " SUCCESS ", msg)
 }
 
 // PrintFailure prints the failure message.
-func (cl ConsoleLogger) PrintFailure() {
+func (cl ConsoleLogger) PrintFailure(msg string) {
 	cl.mu.Lock()
 	defer cl.mu.Unlock()
-	cl.color(warnColor).Fprintf(cl.outW, "=========================== FAILURE ===========================\n")
+
+	cl.printBar(warnColor, " FAILURE ", msg)
+}
+
+func (cl ConsoleLogger) printBar(c *color.Color, center, msg string) {
+	if msg != "" {
+		center = fmt.Sprintf("%s[%s] ", center, msg)
+	}
+
+	totalWidth := 80
+	eqBar := strings.Repeat("=", (totalWidth-len(center))/2)
+	leftBar := eqBar
+	rightBar := eqBar
+
+	// Ensure the width is always totalWidth
+	if len(center)%2 == 1 {
+		rightBar += "="
+	}
+
+	cl.color(c).Fprintf(cl.outW, "%s%s%s\n", leftBar, center, rightBar)
 }
 
 // Warnf prints a warning message in red to errWriter

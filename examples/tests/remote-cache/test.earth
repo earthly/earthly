@@ -31,3 +31,9 @@ test2:
     EXPOSE 8080
     ENTRYPOINT ["/js-example/node_modules/http-server/bin/http-server", "./dist"]
     SAVE IMAGE --push --insecure $REGISTRY/test2:latest
+
+# Smoke test for --cache-hint.
+test3:
+    FROM alpine:3.13
+    RUN echo "content" >./file.txt
+    SAVE IMAGE --cache-hint

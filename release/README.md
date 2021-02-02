@@ -13,6 +13,11 @@
   ```bash
   git checkout main && git pull
   ```
+* If you are releasing a new major or minor version (`X.0.0` or `X.X.0`), then you need to update the license text. Under `licenses/BSL`
+  * Update the version under `Licensed Work` to point to the new version (without the `.0` suffix)
+  * Update the year (`(c) 2021`) to point to the current year
+  * Update the `Change Date` to the first April 1st after a three year period. So if today is Jan 2077, then update to 2080-04-01. If it's June 2077, then update to 2081-04-01.
+  * Commit this to the `main` branch before continuing.
 * Make sure that main build is green for all platforms (check build status for the latest commit on GitHub).
 * Run
   ```bash
