@@ -487,7 +487,7 @@ func (c *Converter) SaveImage(ctx context.Context, imageNames []string, pushImag
 					Push:                pushImages,
 					InsecurePush:        insecurePush,
 					CacheHint:           cacheHint,
-					HasPushDependencies: c.mts.Final.RunPush.Initialized(),
+					HasPushDependencies: true,
 				})
 		} else {
 			c.mts.Final.SaveImages = append(c.mts.Final.SaveImages,
@@ -498,7 +498,7 @@ func (c *Converter) SaveImage(ctx context.Context, imageNames []string, pushImag
 					Push:                pushImages,
 					InsecurePush:        insecurePush,
 					CacheHint:           cacheHint,
-					HasPushDependencies: c.mts.Final.RunPush.Initialized(),
+					HasPushDependencies: false,
 				})
 		}
 
