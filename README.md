@@ -339,4 +339,4 @@ Overall, compared to Bazel, Earthly sacrifices some correctness and reproducibil
 <br/>
 <h2 align="center">Licensing</h2>
 
-Earthly is licensed under the Mozilla Public License Version 2.0. See [LICENSE](./LICENSE) for the full license text.
+Earthly is licensed under the Business Source License 1.1. See [licenses/BSL](./licenses/BSL) for more information.
