@@ -43,12 +43,13 @@ docker-pull-test:
     END
 
 load-parallel-test:
-    BUILD --build-arg INDEX=1 +docker-load-test
-    BUILD --build-arg INDEX=2 +docker-load-test
-    BUILD --build-arg INDEX=3 +docker-load-test
-    BUILD --build-arg INDEX=4 +docker-load-test
-    BUILD --build-arg INDEX=5 +docker-load-test
-
+    BUILD \
+        --build-arg INDEX=1 \
+        --build-arg INDEX=2 \
+        --build-arg INDEX=3 \
+        --build-arg INDEX=4 \
+        --build-arg INDEX=5 \
+        +docker-load-test
 
 multi-from-one:
     FROM hello-world
