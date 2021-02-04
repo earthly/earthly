@@ -21,6 +21,8 @@ case "$EARTHLY_OS" in
         ;;
 esac
 
+echo "The detected architecture of the runner is $(uname -m)"
+
 echo "Add branch info back to git (Earthly uses it for tagging)"
 git checkout -B "$BUILDKITE_BRANCH" || true
 
