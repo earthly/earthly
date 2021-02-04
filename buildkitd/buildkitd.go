@@ -205,7 +205,6 @@ func Start(ctx context.Context, image string, settings Settings, reset bool) err
 	args := []string{
 		"run",
 		"-d",
-		platformFlag(),
 		"-v", fmt.Sprintf("%s:/tmp/earthly:rw", VolumeName),
 		"-v", runMount,
 		"-e", fmt.Sprintf("BUILDKIT_DEBUG=%t", settings.Debug),
@@ -223,6 +222,15 @@ func Start(ctx context.Context, image string, settings Settings, reset bool) err
 		//       if needed.
 		args = append(args,
 			"-p", fmt.Sprintf("127.0.0.1:%d:8373", settings.DebuggerPort))
+	}
+
+	isExp, err := isExperimentalDocker(ctx)
+	if err != nil {
+		fmt.Printf("Warning: Could not detect if Docker has the experimental flag enabled: %s\n", err.Error())
+		// Keep going.
+	}
+	if isExp {
+		args = append(args, platformFlag())
 	}
 
 	args = append(args,
@@ -404,6 +412,17 @@ func isRootlessDocker(ctx context.Context) (bool, error) {
 	}
 
 	return strings.Contains(string(output), "rootless"), nil
+}
+
+func isExperimentalDocker(ctx context.Context) (bool, error) {
+	cmd := exec.CommandContext(ctx,
+		"docker", "info", "--format={{range .ClientInfo.Plugins}}{{if (eq .Name \"app\")}}{{print .Experimental}}{{end}}{{end}}")
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return false, errors.Wrap(err, "get docker experimental flag")
+	}
+
+	return (string(bytes.TrimSpace(output)) == "true"), nil
 }
 
 func platformFlag() string {
