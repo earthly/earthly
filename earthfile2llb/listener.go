@@ -1101,13 +1101,13 @@ func unescapeSlashPlus(str string) string {
 	return strings.ReplaceAll(str, "\\+", "+")
 }
 
-type matrixEntry struct {
+type argGroup struct {
 	key    string
 	values []*string
 }
 
 func buildArgMatrix(args []string) ([][]string, error) {
-	matrix := make([]matrixEntry, 0, len(args))
+	groupedArgs := make([]argGroup, 0, len(args))
 	for _, arg := range args {
 		k, v, err := parseKeyValue(arg)
 		if err != nil {
@@ -1115,39 +1115,39 @@ func buildArgMatrix(args []string) ([][]string, error) {
 		}
 
 		found := false
-		for i, e := range matrix {
-			if e.key == k {
-				matrix[i].values = append(matrix[i].values, v)
+		for i, g := range groupedArgs {
+			if g.key == k {
+				groupedArgs[i].values = append(groupedArgs[i].values, v)
 				found = true
 				break
 			}
 		}
 		if !found {
-			matrix = append(matrix, matrixEntry{
+			groupedArgs = append(groupedArgs, argGroup{
 				key:    k,
 				values: []*string{v},
 			})
 		}
 	}
-	return crossProduct(matrix, nil), nil
+	return crossProduct(groupedArgs, nil), nil
 }
 
-func crossProduct(m []matrixEntry, prefix []string) [][]string {
-	if len(m) == 0 {
+func crossProduct(ga []argGroup, prefix []string) [][]string {
+	if len(ga) == 0 {
 		return [][]string{prefix}
 	}
 	var ret [][]string
-	for _, v := range m[0].values {
+	for _, v := range ga[0].values {
 		newPrefix := prefix[:]
 		var kv string
 		if v == nil {
-			kv = m[0].key
+			kv = ga[0].key
 		} else {
-			kv = fmt.Sprintf("%s=%s", m[0].key, *v)
+			kv = fmt.Sprintf("%s=%s", ga[0].key, *v)
 		}
 		newPrefix = append(newPrefix, kv)
 
-		cp := crossProduct(m[1:], newPrefix)
+		cp := crossProduct(ga[1:], newPrefix)
 		ret = append(ret, cp...)
 	}
 	return ret
