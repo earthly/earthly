@@ -225,17 +225,22 @@ func main() {
 		ctxTimeout, cancel := context.WithTimeout(ctx, time.Millisecond*500)
 		defer cancel()
 		displayErrors := app.verbose
-		analytics.CollectAnalytics(ctxTimeout, app.apiServer, displayErrors, Version, GitSha, app.commandName, exitCode, time.Since(startTime))
+		analytics.CollectAnalytics(ctxTimeout, app.apiServer, displayErrors, Version, getPlatform(), GitSha, app.commandName, exitCode, time.Since(startTime))
 	}
 	os.Exit(exitCode)
 }
 
-func getVersion() string {
+func getVersionPlatform() string {
 	var isRelease = regexp.MustCompile(`^v[0-9]+\.[0-9]+\.[0-9]+$`)
-	if isRelease.MatchString(Version) {
-		return Version
+	v := Version
+	if !isRelease.MatchString(Version) {
+		v = fmt.Sprintf("%s-%s", Version, GitSha)
 	}
-	return fmt.Sprintf("%s-%s", Version, GitSha)
+	return fmt.Sprintf("%s %s", v, getPlatform())
+}
+
+func getPlatform() string {
+	return fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH)
 }
 
 func getBinaryName() string {
@@ -277,7 +282,7 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 		"To get started with using Earthly, check out the getting started guide at https://docs.earthly.dev/guides/basics."
 	app.cliApp.UseShortOptionHandling = true
 	app.cliApp.Action = app.actionBuild
-	app.cliApp.Version = getVersion()
+	app.cliApp.Version = getVersionPlatform()
 	app.cliApp.Flags = []cli.Flag{
 		&cli.StringSliceFlag{
 			Name:    "platform",

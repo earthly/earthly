@@ -125,6 +125,7 @@ type EarthlyAnalytics struct {
 	Key              string  `json:"key"`
 	InstallID        string  `json:"install_id"`
 	Version          string  `json:"version"`
+	Platform         string  `json:"platform"`
 	GitSHA           string  `json:"git_sha"`
 	ExitCode         int     `json:"exit_code"`
 	CI               string  `json:"ci_name"`
@@ -159,7 +160,7 @@ func saveData(server string, data *EarthlyAnalytics) error {
 }
 
 // CollectAnalytics sends analytics to api.earthly.dev
-func CollectAnalytics(ctx context.Context, earthlyServer string, displayErrors bool, version, gitSha, commandName string, exitCode int, realtime time.Duration) {
+func CollectAnalytics(ctx context.Context, earthlyServer string, displayErrors bool, version, platform, gitSha, commandName string, exitCode int, realtime time.Duration) {
 	var err error
 	ciName, ci := detectCI()
 	repoHash := getRepoHash()
@@ -191,6 +192,7 @@ func CollectAnalytics(ctx context.Context, earthlyServer string, displayErrors b
 			Key:              key,
 			InstallID:        installID,
 			Version:          version,
+			Platform:         platform,
 			GitSHA:           gitSha,
 			ExitCode:         exitCode,
 			CI:               ciName,
