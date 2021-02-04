@@ -410,10 +410,14 @@ func isRootlessDocker(ctx context.Context) (bool, error) {
 }
 
 func supportsPlatform(ctx context.Context) bool {
+	// We can't run scratch, but the error is different depending on whether
+	// platform is supported or not. This is faster than attempting to run
+	// an actual image which may require downloading.
 	cmd := exec.CommandContext(ctx,
-		"docker", "run", "--rm", platformFlag(), "busybox:latest")
-	err := cmd.Run()
-	return err == nil
+		"docker", "run", "--rm", platformFlag(), "scratch")
+	output, _ := cmd.CombinedOutput()
+	fmt.Printf("@#@#@#@ output=%s\n", string(output))
+	return bytes.Contains(output, []byte("Unable to find image"))
 }
 
 func platformFlag() string {
