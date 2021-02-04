@@ -224,12 +224,12 @@ func Start(ctx context.Context, image string, settings Settings, reset bool) err
 			"-p", fmt.Sprintf("127.0.0.1:%d:8373", settings.DebuggerPort))
 	}
 
-	isExp, err := isExperimentalDocker(ctx)
+	supPlat, err := supportsPlatform(ctx)
 	if err != nil {
-		fmt.Printf("Warning: Could not detect if Docker has the experimental flag enabled: %s\n", err.Error())
+		fmt.Printf("Warning: Could not detect if Docker supports the --platform flag: %s\n", err.Error())
 		// Keep going.
 	}
-	if isExp {
+	if supPlat {
 		args = append(args, platformFlag())
 	}
 
@@ -414,12 +414,13 @@ func isRootlessDocker(ctx context.Context) (bool, error) {
 	return strings.Contains(string(output), "rootless"), nil
 }
 
-func isExperimentalDocker(ctx context.Context) (bool, error) {
+func supportsPlatform(ctx context.Context) (bool, error) {
+	// If it has the buildx plugin, it should also support the docker run --platform flag.
 	cmd := exec.CommandContext(ctx,
-		"docker", "info", "--format={{range .ClientInfo.Plugins}}{{if (eq .Name \"app\")}}{{print .Experimental}}{{end}}{{end}}")
+		"docker", "info", "--format={{range .ClientInfo.Plugins}}{{if (eq .Name \"buildx\")}}{{print \"true\"}}{{end}}{{end}}")
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		return false, errors.Wrap(err, "get docker experimental flag")
+		return false, errors.Wrap(err, "get docker supports platform")
 	}
 
 	return (string(bytes.TrimSpace(output)) == "true"), nil
