@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -204,6 +205,7 @@ func Start(ctx context.Context, image string, settings Settings, reset bool) err
 	args := []string{
 		"run",
 		"-d",
+		platformFlag(),
 		"-v", fmt.Sprintf("%s:/tmp/earthly:rw", VolumeName),
 		"-v", runMount,
 		"-e", fmt.Sprintf("BUILDKIT_DEBUG=%t", settings.Debug),
@@ -402,4 +404,12 @@ func isRootlessDocker(ctx context.Context) (bool, error) {
 	}
 
 	return strings.Contains(string(output), "rootless"), nil
+}
+
+func platformFlag() string {
+	arch := runtime.GOARCH
+	if runtime.GOARCH == "arm" {
+		arch = "arm/v7"
+	}
+	return fmt.Sprintf("--platform=linux/%s", arch)
 }

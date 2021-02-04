@@ -13,19 +13,21 @@ last_check_state_path=/tmp/last-earthly-prerelease-check
 get_latest_binary() {
     docker rm --force earthly_binary 2>/dev/null || true
 
-    docker pull earthly/buildkitd:prerelease
     docker pull earthly/earthlybinaries:prerelease
     docker create --name earthly_binary earthly/earthlybinaries:prerelease
 
     earth_bin_path=/earthly-linux-amd64
+    bk_platform=linux/amd64
     if [ "$(uname)" == "Darwin" ]; then
         if [ "$(uname -m)" == "arm64" ]; then
             earth_bin_path=/earthly-darwin-arm64
+            bk_platform=linux/arm64
         else
             earth_bin_path=/earthly-darwin-amd64
         fi
     fi
 
+    docker pull --platform="$bk_platform" earthly/buildkitd:prerelease
     docker cp earthly_binary:"$earth_bin_path" "$bindir/earthly-prerelease"
     docker rm earthly_binary
 }
