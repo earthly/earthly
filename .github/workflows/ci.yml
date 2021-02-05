@@ -241,15 +241,15 @@ jobs:
       #   run: $(docker ps -a | tail -n 1 | awk '{print $1}')
       - name: install sshpass
         run: sudo apt-get install -y sshpass
-      # - name: Download released earthly
-      #   run: "sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/latest/download/earthly-linux-amd64 -O /usr/local/bin/earthly && chmod +x /usr/local/bin/earthly'"
-      # - name: Docker Login (non fork only)
-      #   run: docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password "${{ secrets.DOCKERHUB_TOKEN }}"
-      #   if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+      - name: Download released earthly
+        run: "sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/latest/download/earthly-linux-amd64 -O /usr/local/bin/earthly && chmod +x /usr/local/bin/earthly'"
+      - name: Docker Login (non fork only)
+        run: docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password "${{ secrets.DOCKERHUB_TOKEN }}"
+        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       # - name: Build latest earthly using released earthly
       #   run: earthly --use-inline-cache +for-linux
       - name: run ssh-based tests
-        run: env earthly=./build/linux/amd64/earthly scripts/tests/self-hosted-private-repo.sh
+        run: env earthly=$(which earthly) scripts/tests/self-hosted-private-repo.sh
       - name: Buildkit logs (runs on failure)
         run: docker logs earthly-buildkitd
         if: ${{ failure() }}
