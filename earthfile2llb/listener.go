@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -464,6 +465,20 @@ func (l *listener) ExitSaveArtifact(c *parser.SaveArtifactContext) {
 	saveFrom := l.expandArgs(fs.Args()[0], false)
 	saveTo = l.expandArgs(saveTo, false)
 	saveAsLocalTo = l.expandArgs(saveAsLocalTo, false)
+
+	if l.local {
+		if saveAsLocalTo != "" {
+			l.err = fmt.Errorf("SAVE ARTIFACT AS LOCAL is not implemented under LOCALLY targets")
+			return
+		}
+		err = l.converter.SaveArtifactFromLocal(l.ctx, saveFrom, saveTo, *keepTs, *ifExists, "")
+		if err != nil {
+			l.err = errors.Wrap(err, "apply SAVE ARTIFACT")
+			return
+		}
+		return
+	}
+
 	err = l.converter.SaveArtifact(l.ctx, saveFrom, saveTo, saveAsLocalTo, *keepTs, *keepOwn, *ifExists, l.pushOnlyAllowed)
 	if err != nil {
 		l.err = errors.Wrap(err, "apply SAVE ARTIFACT")
@@ -506,7 +521,7 @@ func (l *listener) ExitSaveImage(c *parser.SaveImageContext) {
 		imageNames[i] = l.expandArgs(img, false)
 	}
 	if len(imageNames) == 0 && !*cacheHint && len(cacheFrom.Args) == 0 {
-		fmt.Printf("Deprecation: using SAVE IMAGE with no arguments is no longer necessary and can be safely removed\n")
+		fmt.Fprintf(os.Stderr, "Deprecation: using SAVE IMAGE with no arguments is no longer necessary and can be safely removed\n")
 		return
 	}
 	err = l.converter.SaveImage(l.ctx, imageNames, *pushFlag, *insecure, *cacheHint, cacheFrom.Args)

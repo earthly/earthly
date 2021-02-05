@@ -12,6 +12,7 @@ import (
 	"io/ioutil"
 	"math/rand"
 	"path"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -266,9 +267,7 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 
 // Locally applies the earthly Locally command.
 func (c *Converter) Locally(ctx context.Context, platform *specs.Platform) error {
-	imageName := "busybox:1.32.1" // this image can be anything that contains the /bin/true command
-	// it's used by our buildkit RunOnLocalHostMagicStr hack
-	return c.fromClassical(ctx, imageName, platform, true)
+	return c.fromClassical(ctx, "scratch", platform, true)
 }
 
 // CopyArtifact applies the earthly COPY artifact command.
@@ -329,10 +328,10 @@ func (c *Converter) RunLocal(ctx context.Context, args []string, pushFlag bool) 
 		extraEnvVars = append(extraEnvVars, fmt.Sprintf("%s=\"%s\"", buildArgName, ba.ConstantValue()))
 	}
 
-	finalArgs := withShellAndEnvVars(args, extraEnvVars, true, false)
+	// buildkit-hack in order to run locally, we prepend the command with a UUID
+	finalArgs := append([]string{localhost.RunOnLocalHostMagicStr}, withShellAndEnvVars(args, extraEnvVars, true, false)...)
 	opts := []llb.RunOption{
 		llb.Args(finalArgs),
-		llb.AddMount(localhost.RunOnLocalHostMagicStr, llb.Scratch()), // hack to tell buildkit to run this locally
 		llb.IgnoreCache,
 		llb.WithCustomNamef("%s%s", c.vertexPrefix(true), runStr),
 	}
@@ -465,6 +464,29 @@ func (c *Converter) SaveArtifact(ctx context.Context, saveFrom string, saveTo st
 	c.ranSave = true
 	c.markFakeDeps()
 	return nil
+}
+
+// SaveArtifactFromLocal saves a local file into the ArtifactsState
+func (c *Converter) SaveArtifactFromLocal(ctx context.Context, saveFrom, saveTo string, keepTs, keepOwn bool, chown string) error {
+	src, err := filepath.Abs(saveFrom)
+	if err != nil {
+		return err
+	}
+
+	if saveTo == "" || saveTo == "." || strings.HasSuffix(saveTo, "/") {
+		saveTo = path.Join(saveTo, path.Base(src))
+	}
+
+	// first load the files into a snapshot
+	opts := []llb.RunOption{
+		llb.Args([]string{localhost.CopyFileMagicStr, saveFrom, saveTo}),
+		llb.IgnoreCache,
+		llb.WithCustomNamef("[internal] CopyFileMagicStr %s %s", saveFrom, saveTo),
+	}
+	c.mts.Final.MainState = c.mts.Final.MainState.Run(opts...).Root()
+
+	// then save it via the regular SaveArtifact code since it's now in a snapshot
+	return c.SaveArtifact(ctx, saveTo, saveTo, "", keepTs, keepOwn, false, false)
 }
 
 // SaveImage applies the earthly SAVE IMAGE command.
