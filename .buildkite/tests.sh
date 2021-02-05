@@ -11,7 +11,10 @@ case "$EARTHLY_OS" in
         ;;
 
     darwin-m1)
-        download_url="https://github.com/earthly/earthly/releases/latest/download/earthly-darwin-arm64"
+        # TODO: The build doesn't yet worked with the latest released Earthly. Update this
+        #       after the next release.
+        download_url=
+        released_earthly="/Users/administrator/.earthly/earthly-prerelease"
         earthly="./build/darwin/arm64/earthly"
         ;;
 
@@ -39,10 +42,13 @@ while ! docker ps; do
 done
 
 echo "Download latest Earthly binary"
-curl -o ./earthly-released -L "$download_url" && chmod +x ./earthly-released
+if [ -n "$download_url" ]; then
+    curl -o ./earthly-released -L "$download_url" && chmod +x ./earthly-released
+    released_earthly=./earthly-released
+fi
 
 echo "Build latest earthly using released earthly"
-./earthly-released +for-"$EARTHLY_OS"
+"$released_earthly" +for-"$EARTHLY_OS"
 
 echo "Execute tests"
 "$earthly" --ci -P +test
