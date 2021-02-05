@@ -292,7 +292,7 @@ examples:
 
 examples1:
     BUILD ./examples/cpp+docker
-    BUILD ./examples/dotnet+docker
+    BUILD --platform=linux/amd64 ./examples/dotnet+docker
     BUILD ./examples/elixir+docker
     BUILD ./examples/go+docker
     BUILD ./examples/grpc+test
@@ -305,14 +305,13 @@ examples1:
 
 examples2:
     BUILD ./examples/readme/go1+all
-    BUILD ./examples/readme/go2+all
-    BUILD ./examples/readme/go3+build
+    BUILD ./examples/readme/go2+build
     BUILD ./examples/readme/proto+docker
     # TODO: This example is flaky for some reason.
     #BUILD ./examples/terraform+localstack
     BUILD ./examples/ruby+docker
     BUILD ./examples/ruby-on-rails+docker
-    BUILD ./examples/scala+docker
+    BUILD --platform=linux/amd64 ./examples/scala+docker
     BUILD ./examples/cobol+docker
     BUILD ./examples/rust+docker
     BUILD ./examples/multiplatform+all
