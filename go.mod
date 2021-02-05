@@ -33,6 +33,8 @@ require (
 	gopkg.in/yaml.v2 v2.3.0
 )
 
+// test
+
 replace (
 	// estargz: needs this replace because stargz-snapshotter git repo has two go.mod modules.
 	github.com/containerd/stargz-snapshotter/estargz => github.com/containerd/stargz-snapshotter/estargz v0.0.0-20201217071531-2b97b583765b
