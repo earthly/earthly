@@ -56,8 +56,5 @@ echo "Execute tests"
 echo "Execute fail test"
 bash -c "! $earthly --ci ./examples/tests/fail+test-fail"
 
-echo "Build examples1"
-"$earthly" --ci -P +examples1
-
-echo "Build examples2"
-"$earthly" --ci -P +examples2
+echo "Build examples"
+"$earthly" --ci -P +examples
