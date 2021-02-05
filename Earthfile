@@ -312,7 +312,7 @@ examples2:
     #BUILD ./examples/terraform+localstack
     BUILD ./examples/ruby+docker
     BUILD ./examples/ruby-on-rails+docker
-    BUILD ./examples/scala+docker
+    # BUILD ./examples/scala+docker
     BUILD ./examples/cobol+docker
     BUILD ./examples/rust+docker
     BUILD ./examples/multiplatform+all
