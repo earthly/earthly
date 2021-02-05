@@ -237,6 +237,8 @@ jobs:
       SSH_PORT: "2222"
     steps:
       - uses: actions/checkout@v2
+      - name: Debug
+        run: docker ps -a
       - name: install sshpass
         run: sudo apt-get install -y sshpass
       - name: Download released earthly
