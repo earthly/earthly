@@ -305,7 +305,7 @@ examples1:
 
 examples2:
     BUILD ./examples/readme/go1+all
-    BUILD ./examples/readme/go2+all
+    # BUILD ./examples/readme/go2+all
     BUILD ./examples/readme/go3+build
     BUILD ./examples/readme/proto+docker
     # TODO: This example is flaky for some reason.
