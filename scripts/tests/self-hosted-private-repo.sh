@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -eu
+set -x
 
 earthly=${earthly:=earthly}
 earthly=$(realpath $earthly)
@@ -16,6 +17,11 @@ eval "$(ssh-agent)"
 ssh-keygen -b 3072 -t rsa -f /tmp/sshkey -q -N "" -C "testkey"
 pubkey=$(cat /tmp/sshkey.pub)
 ssh-add /tmp/sshkey
+
+docker ps -a
+docker_id=$(docker ps -a | tail -n 1 | awk '{print $1}')
+echo "docker_id=$docker_id"
+docker logs $docker_id
 
 # add test ssh server to known hosts
 mkdir -p ~/.ssh
