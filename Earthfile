@@ -292,7 +292,7 @@ examples:
 
 examples1:
     BUILD ./examples/cpp+docker
-    BUILD ./examples/dotnet+docker
+    # BUILD ./examples/dotnet+docker
     BUILD ./examples/elixir+docker
     BUILD ./examples/go+docker
     # BUILD ./examples/grpc+test
