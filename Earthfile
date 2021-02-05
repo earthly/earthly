@@ -295,7 +295,7 @@ examples1:
     BUILD --platform=linux/amd64 ./examples/dotnet+docker
     BUILD ./examples/elixir+docker
     BUILD ./examples/go+docker
-    BUILD --platform=linux/amd64 ./examples/grpc+test
+    BUILD ./examples/grpc+test
     BUILD ./examples/integration-test+integration-test
     BUILD ./examples/java+docker
     BUILD ./examples/js+docker
