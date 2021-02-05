@@ -23,8 +23,10 @@ docker_id=$(docker ps -a | tail -n 1 | awk '{print $1}')
 echo "docker_id=$docker_id"
 docker logs $docker_id
 
-echo Telnet time
-telnet localhost 2222
+echo "SSH_PORT=$SSH_PORT"
+ssh-keyscan -p "$SSH_PORT" -H localhost
+ssh-keyscan -p "$SSH_PORT" -H 127.0.0.1
+ssh-keyscan -p "$SSH_PORT" -H "$ip"
 
 # add test ssh server to known hosts
 mkdir -p ~/.ssh
