@@ -39,11 +39,6 @@ type listener struct {
 	filePath        string
 	enableSourceMap bool
 
-	envArgKey   string
-	envArgValue string
-	labelKeys   []string
-	labelValues []string
-
 	err error
 }
 
