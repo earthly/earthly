@@ -11,8 +11,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/earthly/earthly/ast/parser"
 	"github.com/earthly/earthly/domain"
-	"github.com/earthly/earthly/earthfile2llb/parser"
 	"github.com/earthly/earthly/llbutil"
 	specs "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
@@ -780,20 +780,6 @@ func (l *listener) ExitGitCloneStmt(c *parser.GitCloneStmtContext) {
 		l.err = errors.Wrap(err, "git clone")
 		return
 	}
-}
-
-func (l *listener) ExitDockerLoadStmt(c *parser.DockerLoadStmtContext) {
-	if l.shouldSkip() {
-		return
-	}
-	l.err = errors.New("DOCKER LOAD is obsolete. Please use WITH DOCKER --load")
-}
-
-func (l *listener) ExitDockerPullStmt(c *parser.DockerPullStmtContext) {
-	if l.shouldSkip() {
-		return
-	}
-	l.err = errors.New("DOCKER PULL is obsolete. Please use WITH DOCKER --pull")
 }
 
 func (l *listener) ExitHealthcheckStmt(c *parser.HealthcheckStmtContext) {

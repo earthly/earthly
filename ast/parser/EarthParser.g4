@@ -13,6 +13,10 @@ targetHeader: Target;
 stmts: WS? stmt (NL+ WS? stmt)*;
 
 stmt:
+	command
+	| withDockerStmt;
+
+command:
 	fromStmt
 	| fromDockerfileStmt
 	| locallyStmt
@@ -30,14 +34,11 @@ stmt:
 	| argStmt
 	| labelStmt
 	| gitCloneStmt
-	| dockerLoadStmt
-	| dockerPullStmt
 	| addStmt
 	| stopsignalStmt
 	| onbuildStmt
 	| healthcheckStmt
 	| shellStmt
-	| withDockerStmt
 	| endStmt
 	| genericCommandStmt;
 
@@ -79,10 +80,6 @@ labelKey: Atom;
 labelValue: Atom;
 
 gitCloneStmt: GIT_CLONE (WS stmtWords)?;
-
-dockerLoadStmt: DOCKER_LOAD (WS stmtWords)?;
-
-dockerPullStmt: DOCKER_PULL (WS stmtWords)?;
 
 addStmt: ADD (WS stmtWords)?;
 stopsignalStmt: STOPSIGNAL (WS stmtWords)?;

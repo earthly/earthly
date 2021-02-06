@@ -27,6 +27,7 @@ import (
 	"time"
 
 	"github.com/earthly/earthly/analytics"
+	"github.com/earthly/earthly/ast"
 	"github.com/earthly/earthly/autocomplete"
 	"github.com/earthly/earthly/buildcontext"
 	"github.com/earthly/earthly/buildcontext/provider"
@@ -39,7 +40,6 @@ import (
 	"github.com/earthly/earthly/debugger/terminal"
 	"github.com/earthly/earthly/docker2earthly"
 	"github.com/earthly/earthly/domain"
-	"github.com/earthly/earthly/earthfile2llb"
 	"github.com/earthly/earthly/fileutil"
 	"github.com/earthly/earthly/llbutil"
 	"github.com/earthly/earthly/secretsclient"
@@ -125,6 +125,7 @@ type cliFlags struct {
 	termsConditionsPrivacy bool
 	authToken              string
 	noFakeDep              bool
+	enableSourceMap        bool
 }
 
 var (
@@ -758,7 +759,21 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 			Description: "Print debug information about an Earthfile",
 			ArgsUsage:   "[<path>]",
 			Hidden:      true, // Dev purposes only.
-			Action:      app.actionDebug,
+			Subcommands: []*cli.Command{
+				{
+					Name:      "ast",
+					Usage:     "Output the AST",
+					UsageText: "earthly [options] debug ast",
+					Action:    app.actionDebugAst,
+					Flags: []cli.Flag{
+						&cli.BoolFlag{
+							Name:        "source-map",
+							Usage:       "Enable outputting inline sourcemap",
+							Destination: &app.enableSourceMap,
+						},
+					},
+				},
+			},
 		},
 		{
 			Name:        "prune",
@@ -1869,8 +1884,8 @@ func (app *earthlyApp) actionAccountLogout(c *cli.Context) error {
 	return nil
 }
 
-func (app *earthlyApp) actionDebug(c *cli.Context) error {
-	app.commandName = "debug"
+func (app *earthlyApp) actionDebugAst(c *cli.Context) error {
+	app.commandName = "debugAst"
 	if c.NArg() > 1 {
 		return errors.New("invalid number of arguments provided")
 	}
@@ -1880,10 +1895,15 @@ func (app *earthlyApp) actionDebug(c *cli.Context) error {
 	}
 	path = filepath.Join(path, "Earthfile")
 
-	err := earthfile2llb.ParseDebug(path)
+	ef, err := ast.Parse(c.Context, path, app.enableSourceMap)
 	if err != nil {
 		return errors.Wrap(err, "parse debug")
 	}
+	efDt, err := json.Marshal(ef)
+	if err != nil {
+		return errors.Wrap(err, "marshal ast")
+	}
+	fmt.Print(string(efDt))
 	return nil
 }
 

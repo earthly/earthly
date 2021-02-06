@@ -1,4 +1,4 @@
-// Code generated from earthfile2llb/parser/EarthLexer.g4 by ANTLR 4.8. DO NOT EDIT.
+// Code generated from ast/parser/EarthLexer.g4 by ANTLR 4.8. DO NOT EDIT.
 
 package parser
 

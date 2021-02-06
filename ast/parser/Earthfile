@@ -12,14 +12,14 @@ RUN curl -O https://www.antlr.org/download/antlr-4.8-complete.jar
 WORKDIR /earthly
 
 parser:
-    COPY ./*.g4 ./earthfile2llb/parser/
+    COPY ./*.g4 ./ast/parser/
     RUN java \
         -Xmx500M \
         -cp "/usr/local/lib/antlr-4.8-complete.jar:$CLASSPATH" \
         org.antlr.v4.Tool \
         -Dlanguage=Go \
-        -lib earthfile2llb/parser/EarthLexer.g4 \
-        -lib earthfile2llb/parser/EarthParser.g4 \
-        earthfile2llb/parser/EarthLexer.g4 \
-        earthfile2llb/parser/EarthParser.g4
-    SAVE ARTIFACT ./earthfile2llb/parser/*.go / AS LOCAL ./
+        -lib ast/parser/EarthLexer.g4 \
+        -lib ast/parser/EarthParser.g4 \
+        ast/parser/EarthLexer.g4 \
+        ast/parser/EarthParser.g4
+    SAVE ARTIFACT ./ast/parser/*.go / AS LOCAL ./

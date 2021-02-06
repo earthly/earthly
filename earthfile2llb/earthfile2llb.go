@@ -6,12 +6,12 @@ import (
 	"strings"
 
 	"github.com/antlr/antlr4/runtime/Go/antlr"
+	"github.com/earthly/earthly/ast/antlrhandler"
+	"github.com/earthly/earthly/ast/parser"
 	"github.com/earthly/earthly/buildcontext"
 	"github.com/earthly/earthly/buildcontext/provider"
 	"github.com/earthly/earthly/cleanup"
 	"github.com/earthly/earthly/domain"
-	"github.com/earthly/earthly/earthfile2llb/antlrhandler"
-	"github.com/earthly/earthly/earthfile2llb/parser"
 	"github.com/earthly/earthly/llbutil"
 	"github.com/earthly/earthly/states"
 	"github.com/earthly/earthly/variables"
@@ -154,17 +154,6 @@ func walkTree(l *listener, tree parser.IEarthFileContext) (err error) {
 	if err != nil {
 		return errors.Wrap(err, "parse")
 	}
-	return nil
-}
-
-// ParseDebug parses a earthfile and prints debug information about it.
-func ParseDebug(filename string) error {
-	tree, err := newEarthfileTree(
-		filename, antlr.NewConsoleErrorListener(), antlr.NewBailErrorStrategy())
-	if err != nil {
-		return errors.Wrap(err, "new earthfile tree")
-	}
-	antlr.ParseTreeWalkerDefault.Walk(newDebugListener(), tree)
 	return nil
 }
 
