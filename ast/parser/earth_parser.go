@@ -34,10 +34,10 @@ var parserATN = []uint16{
 	3, 3, 4, 3, 4, 6, 4, 145, 10, 4, 13, 4, 14, 4, 146, 3, 4, 5, 4, 150, 10,
 	4, 3, 4, 3, 4, 5, 4, 154, 10, 4, 3, 5, 3, 5, 3, 6, 5, 6, 159, 10, 6, 3,
 	6, 3, 6, 6, 6, 163, 10, 6, 13, 6, 14, 6, 164, 3, 6, 5, 6, 168, 10, 6, 3,
-	6, 7, 6, 171, 10, 6, 12, 6, 14, 6, 174, 11, 6, 3, 7, 3, 7, 5, 7, 178, 10,
-	7, 3, 8, 3, 8, 3, 8, 3, 8, 3, 8, 3, 8, 3, 8, 3, 8, 3, 8, 3, 8, 3, 8, 3,
-	8, 3, 8, 3, 8, 3, 8, 3, 8, 3, 8, 3, 8, 3, 8, 3, 8, 3, 8, 3, 8, 3, 8, 3,
-	8, 5, 8, 204, 10, 8, 3, 9, 3, 9, 3, 9, 5, 9, 209, 10, 9, 3, 10, 3, 10,
+	6, 7, 6, 171, 10, 6, 12, 6, 14, 6, 174, 11, 6, 3, 7, 3, 7, 3, 7, 5, 7,
+	179, 10, 7, 3, 8, 3, 8, 3, 8, 3, 8, 3, 8, 3, 8, 3, 8, 3, 8, 3, 8, 3, 8,
+	3, 8, 3, 8, 3, 8, 3, 8, 3, 8, 3, 8, 3, 8, 3, 8, 3, 8, 3, 8, 3, 8, 3, 8,
+	3, 8, 5, 8, 204, 10, 8, 3, 9, 3, 9, 3, 9, 5, 9, 209, 10, 9, 3, 10, 3, 10,
 	3, 10, 5, 10, 214, 10, 10, 3, 11, 3, 11, 3, 11, 5, 11, 219, 10, 11, 3,
 	12, 3, 12, 3, 12, 5, 12, 224, 10, 12, 3, 13, 3, 13, 5, 13, 228, 10, 13,
 	3, 14, 3, 14, 3, 14, 5, 14, 233, 10, 14, 3, 15, 3, 15, 3, 15, 5, 15, 238,
@@ -64,7 +64,7 @@ var parserATN = []uint16{
 	28, 30, 32, 34, 36, 38, 40, 42, 44, 46, 48, 50, 52, 54, 56, 58, 60, 62,
 	64, 66, 68, 70, 72, 74, 76, 78, 80, 82, 84, 2, 2, 2, 443, 2, 89, 3, 2,
 	2, 2, 4, 114, 3, 2, 2, 2, 6, 142, 3, 2, 2, 2, 8, 155, 3, 2, 2, 2, 10, 158,
-	3, 2, 2, 2, 12, 177, 3, 2, 2, 2, 14, 203, 3, 2, 2, 2, 16, 205, 3, 2, 2,
+	3, 2, 2, 2, 12, 178, 3, 2, 2, 2, 14, 203, 3, 2, 2, 2, 16, 205, 3, 2, 2,
 	2, 18, 210, 3, 2, 2, 2, 20, 215, 3, 2, 2, 2, 22, 220, 3, 2, 2, 2, 24, 227,
 	3, 2, 2, 2, 26, 229, 3, 2, 2, 2, 28, 234, 3, 2, 2, 2, 30, 239, 3, 2, 2,
 	2, 32, 244, 3, 2, 2, 2, 34, 249, 3, 2, 2, 2, 36, 254, 3, 2, 2, 2, 38, 259,
@@ -107,16 +107,16 @@ var parserATN = []uint16{
 	167, 166, 3, 2, 2, 2, 167, 168, 3, 2, 2, 2, 168, 169, 3, 2, 2, 2, 169,
 	171, 5, 12, 7, 2, 170, 162, 3, 2, 2, 2, 171, 174, 3, 2, 2, 2, 172, 170,
 	3, 2, 2, 2, 172, 173, 3, 2, 2, 2, 173, 11, 3, 2, 2, 2, 174, 172, 3, 2,
-	2, 2, 175, 178, 5, 14, 8, 2, 176, 178, 5, 72, 37, 2, 177, 175, 3, 2, 2,
-	2, 177, 176, 3, 2, 2, 2, 178, 13, 3, 2, 2, 2, 179, 204, 5, 16, 9, 2, 180,
-	204, 5, 18, 10, 2, 181, 204, 5, 20, 11, 2, 182, 204, 5, 22, 12, 2, 183,
-	204, 5, 24, 13, 2, 184, 204, 5, 30, 16, 2, 185, 204, 5, 32, 17, 2, 186,
-	204, 5, 34, 18, 2, 187, 204, 5, 36, 19, 2, 188, 204, 5, 38, 20, 2, 189,
-	204, 5, 40, 21, 2, 190, 204, 5, 42, 22, 2, 191, 204, 5, 44, 23, 2, 192,
-	204, 5, 46, 24, 2, 193, 204, 5, 48, 25, 2, 194, 204, 5, 54, 28, 2, 195,
-	204, 5, 60, 31, 2, 196, 204, 5, 62, 32, 2, 197, 204, 5, 64, 33, 2, 198,
-	204, 5, 66, 34, 2, 199, 204, 5, 68, 35, 2, 200, 204, 5, 70, 36, 2, 201,
-	204, 5, 74, 38, 2, 202, 204, 5, 76, 39, 2, 203, 179, 3, 2, 2, 2, 203, 180,
+	2, 2, 175, 179, 5, 14, 8, 2, 176, 179, 5, 72, 37, 2, 177, 179, 5, 74, 38,
+	2, 178, 175, 3, 2, 2, 2, 178, 176, 3, 2, 2, 2, 178, 177, 3, 2, 2, 2, 179,
+	13, 3, 2, 2, 2, 180, 204, 5, 16, 9, 2, 181, 204, 5, 18, 10, 2, 182, 204,
+	5, 20, 11, 2, 183, 204, 5, 22, 12, 2, 184, 204, 5, 24, 13, 2, 185, 204,
+	5, 30, 16, 2, 186, 204, 5, 32, 17, 2, 187, 204, 5, 34, 18, 2, 188, 204,
+	5, 36, 19, 2, 189, 204, 5, 38, 20, 2, 190, 204, 5, 40, 21, 2, 191, 204,
+	5, 42, 22, 2, 192, 204, 5, 44, 23, 2, 193, 204, 5, 46, 24, 2, 194, 204,
+	5, 48, 25, 2, 195, 204, 5, 54, 28, 2, 196, 204, 5, 60, 31, 2, 197, 204,
+	5, 62, 32, 2, 198, 204, 5, 64, 33, 2, 199, 204, 5, 66, 34, 2, 200, 204,
+	5, 68, 35, 2, 201, 204, 5, 70, 36, 2, 202, 204, 5, 76, 39, 2, 203, 180,
 	3, 2, 2, 2, 203, 181, 3, 2, 2, 2, 203, 182, 3, 2, 2, 2, 203, 183, 3, 2,
 	2, 2, 203, 184, 3, 2, 2, 2, 203, 185, 3, 2, 2, 2, 203, 186, 3, 2, 2, 2,
 	203, 187, 3, 2, 2, 2, 203, 188, 3, 2, 2, 2, 203, 189, 3, 2, 2, 2, 203,
@@ -198,7 +198,7 @@ var parserATN = []uint16{
 	5, 84, 43, 2, 397, 394, 3, 2, 2, 2, 398, 401, 3, 2, 2, 2, 399, 397, 3,
 	2, 2, 2, 399, 400, 3, 2, 2, 2, 400, 83, 3, 2, 2, 2, 401, 399, 3, 2, 2,
 	2, 402, 403, 7, 34, 2, 2, 403, 85, 3, 2, 2, 2, 61, 89, 95, 100, 104, 109,
-	116, 121, 126, 130, 136, 140, 146, 149, 153, 158, 164, 167, 172, 177, 203,
+	116, 121, 126, 130, 136, 140, 146, 149, 153, 158, 164, 167, 172, 178, 203,
 	208, 213, 218, 223, 227, 232, 237, 242, 247, 252, 257, 262, 267, 272, 277,
 	283, 286, 289, 292, 298, 303, 306, 308, 314, 319, 326, 330, 336, 346, 351,
 	356, 361, 366, 371, 376, 381, 386, 394, 399,
@@ -1248,6 +1248,16 @@ func (s *StmtContext) WithDockerStmt() IWithDockerStmtContext {
 	return t.(IWithDockerStmtContext)
 }
 
+func (s *StmtContext) EndStmt() IEndStmtContext {
+	var t = s.GetTypedRuleContext(reflect.TypeOf((*IEndStmtContext)(nil)).Elem(), 0)
+
+	if t == nil {
+		return nil
+	}
+
+	return t.(IEndStmtContext)
+}
+
 func (s *StmtContext) GetRuleContext() antlr.RuleContext {
 	return s
 }
@@ -1288,11 +1298,11 @@ func (p *EarthParser) Stmt() (localctx IStmtContext) {
 		}
 	}()
 
-	p.SetState(175)
+	p.SetState(176)
 	p.GetErrorHandler().Sync(p)
 
 	switch p.GetTokenStream().LA(1) {
-	case EarthParserFROM, EarthParserFROM_DOCKERFILE, EarthParserLOCALLY, EarthParserCOPY, EarthParserSAVE_ARTIFACT, EarthParserSAVE_IMAGE, EarthParserRUN, EarthParserEXPOSE, EarthParserVOLUME, EarthParserENV, EarthParserARG, EarthParserLABEL, EarthParserBUILD, EarthParserWORKDIR, EarthParserUSER, EarthParserCMD, EarthParserENTRYPOINT, EarthParserGIT_CLONE, EarthParserADD, EarthParserSTOPSIGNAL, EarthParserONBUILD, EarthParserHEALTHCHECK, EarthParserSHELL, EarthParserEND, EarthParserCommand:
+	case EarthParserFROM, EarthParserFROM_DOCKERFILE, EarthParserLOCALLY, EarthParserCOPY, EarthParserSAVE_ARTIFACT, EarthParserSAVE_IMAGE, EarthParserRUN, EarthParserEXPOSE, EarthParserVOLUME, EarthParserENV, EarthParserARG, EarthParserLABEL, EarthParserBUILD, EarthParserWORKDIR, EarthParserUSER, EarthParserCMD, EarthParserENTRYPOINT, EarthParserGIT_CLONE, EarthParserADD, EarthParserSTOPSIGNAL, EarthParserONBUILD, EarthParserHEALTHCHECK, EarthParserSHELL, EarthParserCommand:
 		p.EnterOuterAlt(localctx, 1)
 		{
 			p.SetState(173)
@@ -1304,6 +1314,13 @@ func (p *EarthParser) Stmt() (localctx IStmtContext) {
 		{
 			p.SetState(174)
 			p.WithDockerStmt()
+		}
+
+	case EarthParserEND:
+		p.EnterOuterAlt(localctx, 3)
+		{
+			p.SetState(175)
+			p.EndStmt()
 		}
 
 	default:
@@ -1571,16 +1588,6 @@ func (s *CommandContext) ShellStmt() IShellStmtContext {
 	return t.(IShellStmtContext)
 }
 
-func (s *CommandContext) EndStmt() IEndStmtContext {
-	var t = s.GetTypedRuleContext(reflect.TypeOf((*IEndStmtContext)(nil)).Elem(), 0)
-
-	if t == nil {
-		return nil
-	}
-
-	return t.(IEndStmtContext)
-}
-
 func (s *CommandContext) GenericCommandStmt() IGenericCommandStmtContext {
 	var t = s.GetTypedRuleContext(reflect.TypeOf((*IGenericCommandStmtContext)(nil)).Elem(), 0)
 
@@ -1638,166 +1645,159 @@ func (p *EarthParser) Command() (localctx ICommandContext) {
 	case EarthParserFROM:
 		p.EnterOuterAlt(localctx, 1)
 		{
-			p.SetState(177)
+			p.SetState(178)
 			p.FromStmt()
 		}
 
 	case EarthParserFROM_DOCKERFILE:
 		p.EnterOuterAlt(localctx, 2)
 		{
-			p.SetState(178)
+			p.SetState(179)
 			p.FromDockerfileStmt()
 		}
 
 	case EarthParserLOCALLY:
 		p.EnterOuterAlt(localctx, 3)
 		{
-			p.SetState(179)
+			p.SetState(180)
 			p.LocallyStmt()
 		}
 
 	case EarthParserCOPY:
 		p.EnterOuterAlt(localctx, 4)
 		{
-			p.SetState(180)
+			p.SetState(181)
 			p.CopyStmt()
 		}
 
 	case EarthParserSAVE_ARTIFACT, EarthParserSAVE_IMAGE:
 		p.EnterOuterAlt(localctx, 5)
 		{
-			p.SetState(181)
+			p.SetState(182)
 			p.SaveStmt()
 		}
 
 	case EarthParserRUN:
 		p.EnterOuterAlt(localctx, 6)
 		{
-			p.SetState(182)
+			p.SetState(183)
 			p.RunStmt()
 		}
 
 	case EarthParserBUILD:
 		p.EnterOuterAlt(localctx, 7)
 		{
-			p.SetState(183)
+			p.SetState(184)
 			p.BuildStmt()
 		}
 
 	case EarthParserWORKDIR:
 		p.EnterOuterAlt(localctx, 8)
 		{
-			p.SetState(184)
+			p.SetState(185)
 			p.WorkdirStmt()
 		}
 
 	case EarthParserUSER:
 		p.EnterOuterAlt(localctx, 9)
 		{
-			p.SetState(185)
+			p.SetState(186)
 			p.UserStmt()
 		}
 
 	case EarthParserCMD:
 		p.EnterOuterAlt(localctx, 10)
 		{
-			p.SetState(186)
+			p.SetState(187)
 			p.CmdStmt()
 		}
 
 	case EarthParserENTRYPOINT:
 		p.EnterOuterAlt(localctx, 11)
 		{
-			p.SetState(187)
+			p.SetState(188)
 			p.EntrypointStmt()
 		}
 
 	case EarthParserEXPOSE:
 		p.EnterOuterAlt(localctx, 12)
 		{
-			p.SetState(188)
+			p.SetState(189)
 			p.ExposeStmt()
 		}
 
 	case EarthParserVOLUME:
 		p.EnterOuterAlt(localctx, 13)
 		{
-			p.SetState(189)
+			p.SetState(190)
 			p.VolumeStmt()
 		}
 
 	case EarthParserENV:
 		p.EnterOuterAlt(localctx, 14)
 		{
-			p.SetState(190)
+			p.SetState(191)
 			p.EnvStmt()
 		}
 
 	case EarthParserARG:
 		p.EnterOuterAlt(localctx, 15)
 		{
-			p.SetState(191)
+			p.SetState(192)
 			p.ArgStmt()
 		}
 
 	case EarthParserLABEL:
 		p.EnterOuterAlt(localctx, 16)
 		{
-			p.SetState(192)
+			p.SetState(193)
 			p.LabelStmt()
 		}
 
 	case EarthParserGIT_CLONE:
 		p.EnterOuterAlt(localctx, 17)
 		{
-			p.SetState(193)
+			p.SetState(194)
 			p.GitCloneStmt()
 		}
 
 	case EarthParserADD:
 		p.EnterOuterAlt(localctx, 18)
 		{
-			p.SetState(194)
+			p.SetState(195)
 			p.AddStmt()
 		}
 
 	case EarthParserSTOPSIGNAL:
 		p.EnterOuterAlt(localctx, 19)
 		{
-			p.SetState(195)
+			p.SetState(196)
 			p.StopsignalStmt()
 		}
 
 	case EarthParserONBUILD:
 		p.EnterOuterAlt(localctx, 20)
 		{
-			p.SetState(196)
+			p.SetState(197)
 			p.OnbuildStmt()
 		}
 
 	case EarthParserHEALTHCHECK:
 		p.EnterOuterAlt(localctx, 21)
 		{
-			p.SetState(197)
+			p.SetState(198)
 			p.HealthcheckStmt()
 		}
 
 	case EarthParserSHELL:
 		p.EnterOuterAlt(localctx, 22)
 		{
-			p.SetState(198)
+			p.SetState(199)
 			p.ShellStmt()
 		}
 
-	case EarthParserEND:
-		p.EnterOuterAlt(localctx, 23)
-		{
-			p.SetState(199)
-			p.EndStmt()
-		}
-
 	case EarthParserCommand:
-		p.EnterOuterAlt(localctx, 24)
+		p.EnterOuterAlt(localctx, 23)
 		{
 			p.SetState(200)
 			p.GenericCommandStmt()

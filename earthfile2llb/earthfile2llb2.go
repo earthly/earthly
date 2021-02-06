@@ -53,6 +53,8 @@ type ConvertOpt struct {
 	UseInlineCache bool
 	// UseFakeDep is an internal feature flag for fake dep.
 	UseFakeDep bool
+	// EnableAst is an internal feature flag for the new Earthly AST.
+	EnableAst bool
 }
 
 // Earthfile2LLB2 parses a earthfile and executes the statements for a given target.

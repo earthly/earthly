@@ -172,6 +172,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 					CacheImports:         b.opt.CacheImports,
 					UseInlineCache:       b.opt.UseInlineCache,
 					UseFakeDep:           b.opt.UseFakeDep,
+					EnableAst:            b.opt.EnableAst,
 				})
 			} else {
 				mts, err = earthfile2llb.Earthfile2LLB(childCtx, target, earthfile2llb.ConvertOpt{
@@ -186,6 +187,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 					CacheImports:         b.opt.CacheImports,
 					UseInlineCache:       b.opt.UseInlineCache,
 					UseFakeDep:           b.opt.UseFakeDep,
+					EnableAst:            b.opt.EnableAst,
 				})
 			}
 			if err != nil {

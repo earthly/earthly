@@ -26,12 +26,14 @@ const (
 type listener struct {
 	*parser.BaseEarthParserListener
 
-	ef        *spec.Earthfile
-	target    *spec.Target
-	block     spec.Block
-	statement *spec.Statement
-	command   *spec.Command
-	with      *spec.WithStatement
+	ef            *spec.Earthfile
+	target        *spec.Target
+	block         spec.Block
+	withBlock     spec.Block
+	statement     *spec.Statement
+	withStatement *spec.Statement
+	command       *spec.Command
+	with          *spec.WithStatement
 
 	contextStack []contextFrame
 
@@ -123,8 +125,6 @@ func (l *listener) ExitStmts(c *parser.StmtsContext) {
 		l.ef.BaseRecipe = l.block
 	case contextFrameTarget:
 		l.target.Recipe = l.block
-	case contextFrameWith:
-		l.with.Body = l.block
 	default:
 		panic(fmt.Sprintf("unhandled block for context %v", l.currentContext()))
 	}
@@ -134,6 +134,14 @@ func (l *listener) ExitStmts(c *parser.StmtsContext) {
 // Statement ------------------------------------------------------------------
 
 func (l *listener) EnterStmt(c *parser.StmtContext) {
+	if strings.HasPrefix(c.GetText(), "WITH") {
+		// Handled in EnterWithDockerStmt.
+		return
+	}
+	if strings.HasPrefix(c.GetText(), "END") {
+		// Handled in EnterEndStmt.
+		return
+	}
 	l.statement = new(spec.Statement)
 	if l.enableSourceMap {
 		l.statement.SourceLocation = &spec.SourceLocation{
@@ -148,9 +156,24 @@ func (l *listener) EnterStmt(c *parser.StmtContext) {
 }
 
 func (l *listener) ExitStmt(c *parser.StmtContext) {
-	l.block = append(l.block, *l.statement)
-	l.statement = nil
+	if strings.HasPrefix(c.GetText(), "WITH") {
+		// Handled in ExitWithDockerStmt.
+		return
+	}
+	if strings.HasPrefix(c.GetText(), "END") {
+		// Handled in ExitEndStmt.
+		return
+	}
 	l.popContext(contextFrameStatement)
+	switch l.currentContext() {
+	case contextFrameEarthfile, contextFrameTarget:
+		l.block = append(l.block, *l.statement)
+	case contextFrameWith:
+		l.withBlock = append(l.withBlock, *l.statement)
+	default:
+		panic(fmt.Sprintf("unhandled block for context %v", l.currentContext()))
+	}
+	l.statement = nil
 }
 
 // Command --------------------------------------------------------------------
@@ -283,6 +306,19 @@ func (l *listener) EnterCommandName(c *parser.CommandNameContext) {
 // With -----------------------------------------------------------------------
 
 func (l *listener) EnterWithDockerStmt(c *parser.WithDockerStmtContext) {
+	// TODO: Reuse EnterStmt.
+	l.withStatement = new(spec.Statement)
+	if l.enableSourceMap {
+		l.withStatement.SourceLocation = &spec.SourceLocation{
+			File:        l.filePath,
+			StartLine:   c.GetStart().GetLine(),
+			StartColumn: c.GetStart().GetColumn(),
+			EndLine:     c.GetStop().GetLine(),
+			EndColumn:   c.GetStop().GetColumn(),
+		}
+	}
+	l.pushContext(contextFrameStatement)
+
 	// TODO: Reuse EnterCommand.
 	l.with = new(spec.WithStatement)
 	l.command = &spec.Command{
@@ -305,6 +341,9 @@ func (l *listener) EnterWithDockerStmt(c *parser.WithDockerStmtContext) {
 		}
 	}
 	l.pushContext(contextFrameWith)
+
+	// TODO: Reuse EnterStmts.
+	l.withBlock = []spec.Statement{}
 }
 
 func (l *listener) ExitWithDockerStmt(c *parser.WithDockerStmtContext) {
@@ -313,9 +352,25 @@ func (l *listener) ExitWithDockerStmt(c *parser.WithDockerStmtContext) {
 }
 
 func (l *listener) ExitEndStmt(c *parser.EndStmtContext) {
-	l.statement.With = l.with
+	// TODO: Reuse ExitStmts.
+	l.with.Body = l.withBlock
+	l.withBlock = nil
+
+	l.withStatement.With = l.with
 	l.with = nil
 	l.popContext(contextFrameWith)
+
+	// TODO: Reuse ExitStmt.
+	l.popContext(contextFrameStatement)
+	switch l.currentContext() {
+	case contextFrameEarthfile, contextFrameTarget:
+		l.block = append(l.block, *l.withStatement)
+	case contextFrameWith:
+		l.withBlock = append(l.withBlock, *l.withStatement)
+	default:
+		panic(fmt.Sprintf("unhandled block for context %v", l.currentContext()))
+	}
+	l.withStatement = nil
 }
 
 // EnvArgKey, EnvArgValue, LabelKey, LabelValue -------------------------------

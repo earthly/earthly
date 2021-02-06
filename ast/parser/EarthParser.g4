@@ -14,7 +14,8 @@ stmts: WS? stmt (NL+ WS? stmt)*;
 
 stmt:
 	command
-	| withDockerStmt;
+	| withDockerStmt
+	| endStmt;
 
 command:
 	fromStmt
@@ -39,7 +40,6 @@ command:
 	| onbuildStmt
 	| healthcheckStmt
 	| shellStmt
-	| endStmt
 	| genericCommandStmt;
 
 fromStmt: FROM (WS stmtWords)?;
