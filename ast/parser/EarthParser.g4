@@ -13,11 +13,11 @@ targetHeader: Target;
 stmts: WS? stmt (NL+ WS? stmt)*;
 
 stmt:
-	command
+	commandStmt
 	| withDockerStmt
 	| endStmt;
 
-command:
+commandStmt:
 	fromStmt
 	| fromDockerfileStmt
 	| locallyStmt

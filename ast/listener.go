@@ -178,7 +178,7 @@ func (l *listener) ExitStmt(c *parser.StmtContext) {
 
 // Command --------------------------------------------------------------------
 
-func (l *listener) EnterCommand(c *parser.CommandContext) {
+func (l *listener) EnterCommandStmt(c *parser.CommandStmtContext) {
 	l.command = new(spec.Command)
 	if l.enableSourceMap {
 		l.command.SourceLocation = &spec.SourceLocation{
@@ -191,7 +191,7 @@ func (l *listener) EnterCommand(c *parser.CommandContext) {
 	}
 }
 
-func (l *listener) ExitCommand(c *parser.CommandContext) {
+func (l *listener) ExitCommandStmt(c *parser.CommandStmtContext) {
 	switch l.currentContext() {
 	case contextFrameStatement:
 		l.statement.Command = l.command

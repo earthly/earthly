@@ -22,4 +22,8 @@ parser:
         -lib ast/parser/EarthParser.g4 \
         ast/parser/EarthLexer.g4 \
         ast/parser/EarthParser.g4
+    # Fix for overflow of int on 32bit architectures (eg arm/v7).
+    # https://github.com/antlr/antlr4/issues/2433#issuecomment-666056924
+    RUN sed -i.bak 's/(1<</(int64(1)<</g' ./ast/parser/*.go
+    RUN diff ./ast/parser/earth_parser.go.bak ./ast/parser/earth_parser.go || true
     SAVE ARTIFACT ./ast/parser/*.go / AS LOCAL ./

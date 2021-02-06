@@ -222,7 +222,7 @@ var symbolicNames = []string{
 }
 
 var ruleNames = []string{
-	"earthFile", "targets", "target", "targetHeader", "stmts", "stmt", "command",
+	"earthFile", "targets", "target", "targetHeader", "stmts", "stmt", "commandStmt",
 	"fromStmt", "fromDockerfileStmt", "locallyStmt", "copyStmt", "saveStmt",
 	"saveImage", "saveArtifact", "runStmt", "buildStmt", "workdirStmt", "userStmt",
 	"cmdStmt", "entrypointStmt", "exposeStmt", "volumeStmt", "envStmt", "argStmt",
@@ -303,7 +303,7 @@ const (
 	EarthParserRULE_targetHeader       = 3
 	EarthParserRULE_stmts              = 4
 	EarthParserRULE_stmt               = 5
-	EarthParserRULE_command            = 6
+	EarthParserRULE_commandStmt        = 6
 	EarthParserRULE_fromStmt           = 7
 	EarthParserRULE_fromDockerfileStmt = 8
 	EarthParserRULE_locallyStmt        = 9
@@ -475,7 +475,7 @@ func (p *EarthParser) EarthFile() (localctx IEarthFileContext) {
 	p.GetErrorHandler().Sync(p)
 	_la = p.GetTokenStream().LA(1)
 
-	if ((_la)&-(0x1f+1)) == 0 && ((1<<uint(_la))&((1<<EarthParserFROM)|(1<<EarthParserFROM_DOCKERFILE)|(1<<EarthParserLOCALLY)|(1<<EarthParserCOPY)|(1<<EarthParserSAVE_ARTIFACT)|(1<<EarthParserSAVE_IMAGE)|(1<<EarthParserRUN)|(1<<EarthParserEXPOSE)|(1<<EarthParserVOLUME)|(1<<EarthParserENV)|(1<<EarthParserARG)|(1<<EarthParserLABEL)|(1<<EarthParserBUILD)|(1<<EarthParserWORKDIR)|(1<<EarthParserUSER)|(1<<EarthParserCMD)|(1<<EarthParserENTRYPOINT)|(1<<EarthParserGIT_CLONE)|(1<<EarthParserADD)|(1<<EarthParserSTOPSIGNAL)|(1<<EarthParserONBUILD)|(1<<EarthParserHEALTHCHECK)|(1<<EarthParserSHELL)|(1<<EarthParserWITH_DOCKER)|(1<<EarthParserEND)|(1<<EarthParserCommand)|(1<<EarthParserWS))) != 0 {
+	if ((_la)&-(0x1f+1)) == 0 && ((int64(1)<<uint(_la))&((int64(1)<<EarthParserFROM)|(int64(1)<<EarthParserFROM_DOCKERFILE)|(int64(1)<<EarthParserLOCALLY)|(int64(1)<<EarthParserCOPY)|(int64(1)<<EarthParserSAVE_ARTIFACT)|(int64(1)<<EarthParserSAVE_IMAGE)|(int64(1)<<EarthParserRUN)|(int64(1)<<EarthParserEXPOSE)|(int64(1)<<EarthParserVOLUME)|(int64(1)<<EarthParserENV)|(int64(1)<<EarthParserARG)|(int64(1)<<EarthParserLABEL)|(int64(1)<<EarthParserBUILD)|(int64(1)<<EarthParserWORKDIR)|(int64(1)<<EarthParserUSER)|(int64(1)<<EarthParserCMD)|(int64(1)<<EarthParserENTRYPOINT)|(int64(1)<<EarthParserGIT_CLONE)|(int64(1)<<EarthParserADD)|(int64(1)<<EarthParserSTOPSIGNAL)|(int64(1)<<EarthParserONBUILD)|(int64(1)<<EarthParserHEALTHCHECK)|(int64(1)<<EarthParserSHELL)|(int64(1)<<EarthParserWITH_DOCKER)|(int64(1)<<EarthParserEND)|(int64(1)<<EarthParserCommand)|(int64(1)<<EarthParserWS))) != 0 {
 		{
 			p.SetState(90)
 			p.Stmts()
@@ -1228,14 +1228,14 @@ func NewStmtContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokin
 
 func (s *StmtContext) GetParser() antlr.Parser { return s.parser }
 
-func (s *StmtContext) Command() ICommandContext {
-	var t = s.GetTypedRuleContext(reflect.TypeOf((*ICommandContext)(nil)).Elem(), 0)
+func (s *StmtContext) CommandStmt() ICommandStmtContext {
+	var t = s.GetTypedRuleContext(reflect.TypeOf((*ICommandStmtContext)(nil)).Elem(), 0)
 
 	if t == nil {
 		return nil
 	}
 
-	return t.(ICommandContext)
+	return t.(ICommandStmtContext)
 }
 
 func (s *StmtContext) WithDockerStmt() IWithDockerStmtContext {
@@ -1306,7 +1306,7 @@ func (p *EarthParser) Stmt() (localctx IStmtContext) {
 		p.EnterOuterAlt(localctx, 1)
 		{
 			p.SetState(173)
-			p.Command()
+			p.CommandStmt()
 		}
 
 	case EarthParserWITH_DOCKER:
@@ -1330,45 +1330,45 @@ func (p *EarthParser) Stmt() (localctx IStmtContext) {
 	return localctx
 }
 
-// ICommandContext is an interface to support dynamic dispatch.
-type ICommandContext interface {
+// ICommandStmtContext is an interface to support dynamic dispatch.
+type ICommandStmtContext interface {
 	antlr.ParserRuleContext
 
 	// GetParser returns the parser.
 	GetParser() antlr.Parser
 
-	// IsCommandContext differentiates from other interfaces.
-	IsCommandContext()
+	// IsCommandStmtContext differentiates from other interfaces.
+	IsCommandStmtContext()
 }
 
-type CommandContext struct {
+type CommandStmtContext struct {
 	*antlr.BaseParserRuleContext
 	parser antlr.Parser
 }
 
-func NewEmptyCommandContext() *CommandContext {
-	var p = new(CommandContext)
+func NewEmptyCommandStmtContext() *CommandStmtContext {
+	var p = new(CommandStmtContext)
 	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(nil, -1)
-	p.RuleIndex = EarthParserRULE_command
+	p.RuleIndex = EarthParserRULE_commandStmt
 	return p
 }
 
-func (*CommandContext) IsCommandContext() {}
+func (*CommandStmtContext) IsCommandStmtContext() {}
 
-func NewCommandContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *CommandContext {
-	var p = new(CommandContext)
+func NewCommandStmtContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *CommandStmtContext {
+	var p = new(CommandStmtContext)
 
 	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(parent, invokingState)
 
 	p.parser = parser
-	p.RuleIndex = EarthParserRULE_command
+	p.RuleIndex = EarthParserRULE_commandStmt
 
 	return p
 }
 
-func (s *CommandContext) GetParser() antlr.Parser { return s.parser }
+func (s *CommandStmtContext) GetParser() antlr.Parser { return s.parser }
 
-func (s *CommandContext) FromStmt() IFromStmtContext {
+func (s *CommandStmtContext) FromStmt() IFromStmtContext {
 	var t = s.GetTypedRuleContext(reflect.TypeOf((*IFromStmtContext)(nil)).Elem(), 0)
 
 	if t == nil {
@@ -1378,7 +1378,7 @@ func (s *CommandContext) FromStmt() IFromStmtContext {
 	return t.(IFromStmtContext)
 }
 
-func (s *CommandContext) FromDockerfileStmt() IFromDockerfileStmtContext {
+func (s *CommandStmtContext) FromDockerfileStmt() IFromDockerfileStmtContext {
 	var t = s.GetTypedRuleContext(reflect.TypeOf((*IFromDockerfileStmtContext)(nil)).Elem(), 0)
 
 	if t == nil {
@@ -1388,7 +1388,7 @@ func (s *CommandContext) FromDockerfileStmt() IFromDockerfileStmtContext {
 	return t.(IFromDockerfileStmtContext)
 }
 
-func (s *CommandContext) LocallyStmt() ILocallyStmtContext {
+func (s *CommandStmtContext) LocallyStmt() ILocallyStmtContext {
 	var t = s.GetTypedRuleContext(reflect.TypeOf((*ILocallyStmtContext)(nil)).Elem(), 0)
 
 	if t == nil {
@@ -1398,7 +1398,7 @@ func (s *CommandContext) LocallyStmt() ILocallyStmtContext {
 	return t.(ILocallyStmtContext)
 }
 
-func (s *CommandContext) CopyStmt() ICopyStmtContext {
+func (s *CommandStmtContext) CopyStmt() ICopyStmtContext {
 	var t = s.GetTypedRuleContext(reflect.TypeOf((*ICopyStmtContext)(nil)).Elem(), 0)
 
 	if t == nil {
@@ -1408,7 +1408,7 @@ func (s *CommandContext) CopyStmt() ICopyStmtContext {
 	return t.(ICopyStmtContext)
 }
 
-func (s *CommandContext) SaveStmt() ISaveStmtContext {
+func (s *CommandStmtContext) SaveStmt() ISaveStmtContext {
 	var t = s.GetTypedRuleContext(reflect.TypeOf((*ISaveStmtContext)(nil)).Elem(), 0)
 
 	if t == nil {
@@ -1418,7 +1418,7 @@ func (s *CommandContext) SaveStmt() ISaveStmtContext {
 	return t.(ISaveStmtContext)
 }
 
-func (s *CommandContext) RunStmt() IRunStmtContext {
+func (s *CommandStmtContext) RunStmt() IRunStmtContext {
 	var t = s.GetTypedRuleContext(reflect.TypeOf((*IRunStmtContext)(nil)).Elem(), 0)
 
 	if t == nil {
@@ -1428,7 +1428,7 @@ func (s *CommandContext) RunStmt() IRunStmtContext {
 	return t.(IRunStmtContext)
 }
 
-func (s *CommandContext) BuildStmt() IBuildStmtContext {
+func (s *CommandStmtContext) BuildStmt() IBuildStmtContext {
 	var t = s.GetTypedRuleContext(reflect.TypeOf((*IBuildStmtContext)(nil)).Elem(), 0)
 
 	if t == nil {
@@ -1438,7 +1438,7 @@ func (s *CommandContext) BuildStmt() IBuildStmtContext {
 	return t.(IBuildStmtContext)
 }
 
-func (s *CommandContext) WorkdirStmt() IWorkdirStmtContext {
+func (s *CommandStmtContext) WorkdirStmt() IWorkdirStmtContext {
 	var t = s.GetTypedRuleContext(reflect.TypeOf((*IWorkdirStmtContext)(nil)).Elem(), 0)
 
 	if t == nil {
@@ -1448,7 +1448,7 @@ func (s *CommandContext) WorkdirStmt() IWorkdirStmtContext {
 	return t.(IWorkdirStmtContext)
 }
 
-func (s *CommandContext) UserStmt() IUserStmtContext {
+func (s *CommandStmtContext) UserStmt() IUserStmtContext {
 	var t = s.GetTypedRuleContext(reflect.TypeOf((*IUserStmtContext)(nil)).Elem(), 0)
 
 	if t == nil {
@@ -1458,7 +1458,7 @@ func (s *CommandContext) UserStmt() IUserStmtContext {
 	return t.(IUserStmtContext)
 }
 
-func (s *CommandContext) CmdStmt() ICmdStmtContext {
+func (s *CommandStmtContext) CmdStmt() ICmdStmtContext {
 	var t = s.GetTypedRuleContext(reflect.TypeOf((*ICmdStmtContext)(nil)).Elem(), 0)
 
 	if t == nil {
@@ -1468,7 +1468,7 @@ func (s *CommandContext) CmdStmt() ICmdStmtContext {
 	return t.(ICmdStmtContext)
 }
 
-func (s *CommandContext) EntrypointStmt() IEntrypointStmtContext {
+func (s *CommandStmtContext) EntrypointStmt() IEntrypointStmtContext {
 	var t = s.GetTypedRuleContext(reflect.TypeOf((*IEntrypointStmtContext)(nil)).Elem(), 0)
 
 	if t == nil {
@@ -1478,7 +1478,7 @@ func (s *CommandContext) EntrypointStmt() IEntrypointStmtContext {
 	return t.(IEntrypointStmtContext)
 }
 
-func (s *CommandContext) ExposeStmt() IExposeStmtContext {
+func (s *CommandStmtContext) ExposeStmt() IExposeStmtContext {
 	var t = s.GetTypedRuleContext(reflect.TypeOf((*IExposeStmtContext)(nil)).Elem(), 0)
 
 	if t == nil {
@@ -1488,7 +1488,7 @@ func (s *CommandContext) ExposeStmt() IExposeStmtContext {
 	return t.(IExposeStmtContext)
 }
 
-func (s *CommandContext) VolumeStmt() IVolumeStmtContext {
+func (s *CommandStmtContext) VolumeStmt() IVolumeStmtContext {
 	var t = s.GetTypedRuleContext(reflect.TypeOf((*IVolumeStmtContext)(nil)).Elem(), 0)
 
 	if t == nil {
@@ -1498,7 +1498,7 @@ func (s *CommandContext) VolumeStmt() IVolumeStmtContext {
 	return t.(IVolumeStmtContext)
 }
 
-func (s *CommandContext) EnvStmt() IEnvStmtContext {
+func (s *CommandStmtContext) EnvStmt() IEnvStmtContext {
 	var t = s.GetTypedRuleContext(reflect.TypeOf((*IEnvStmtContext)(nil)).Elem(), 0)
 
 	if t == nil {
@@ -1508,7 +1508,7 @@ func (s *CommandContext) EnvStmt() IEnvStmtContext {
 	return t.(IEnvStmtContext)
 }
 
-func (s *CommandContext) ArgStmt() IArgStmtContext {
+func (s *CommandStmtContext) ArgStmt() IArgStmtContext {
 	var t = s.GetTypedRuleContext(reflect.TypeOf((*IArgStmtContext)(nil)).Elem(), 0)
 
 	if t == nil {
@@ -1518,7 +1518,7 @@ func (s *CommandContext) ArgStmt() IArgStmtContext {
 	return t.(IArgStmtContext)
 }
 
-func (s *CommandContext) LabelStmt() ILabelStmtContext {
+func (s *CommandStmtContext) LabelStmt() ILabelStmtContext {
 	var t = s.GetTypedRuleContext(reflect.TypeOf((*ILabelStmtContext)(nil)).Elem(), 0)
 
 	if t == nil {
@@ -1528,7 +1528,7 @@ func (s *CommandContext) LabelStmt() ILabelStmtContext {
 	return t.(ILabelStmtContext)
 }
 
-func (s *CommandContext) GitCloneStmt() IGitCloneStmtContext {
+func (s *CommandStmtContext) GitCloneStmt() IGitCloneStmtContext {
 	var t = s.GetTypedRuleContext(reflect.TypeOf((*IGitCloneStmtContext)(nil)).Elem(), 0)
 
 	if t == nil {
@@ -1538,7 +1538,7 @@ func (s *CommandContext) GitCloneStmt() IGitCloneStmtContext {
 	return t.(IGitCloneStmtContext)
 }
 
-func (s *CommandContext) AddStmt() IAddStmtContext {
+func (s *CommandStmtContext) AddStmt() IAddStmtContext {
 	var t = s.GetTypedRuleContext(reflect.TypeOf((*IAddStmtContext)(nil)).Elem(), 0)
 
 	if t == nil {
@@ -1548,7 +1548,7 @@ func (s *CommandContext) AddStmt() IAddStmtContext {
 	return t.(IAddStmtContext)
 }
 
-func (s *CommandContext) StopsignalStmt() IStopsignalStmtContext {
+func (s *CommandStmtContext) StopsignalStmt() IStopsignalStmtContext {
 	var t = s.GetTypedRuleContext(reflect.TypeOf((*IStopsignalStmtContext)(nil)).Elem(), 0)
 
 	if t == nil {
@@ -1558,7 +1558,7 @@ func (s *CommandContext) StopsignalStmt() IStopsignalStmtContext {
 	return t.(IStopsignalStmtContext)
 }
 
-func (s *CommandContext) OnbuildStmt() IOnbuildStmtContext {
+func (s *CommandStmtContext) OnbuildStmt() IOnbuildStmtContext {
 	var t = s.GetTypedRuleContext(reflect.TypeOf((*IOnbuildStmtContext)(nil)).Elem(), 0)
 
 	if t == nil {
@@ -1568,7 +1568,7 @@ func (s *CommandContext) OnbuildStmt() IOnbuildStmtContext {
 	return t.(IOnbuildStmtContext)
 }
 
-func (s *CommandContext) HealthcheckStmt() IHealthcheckStmtContext {
+func (s *CommandStmtContext) HealthcheckStmt() IHealthcheckStmtContext {
 	var t = s.GetTypedRuleContext(reflect.TypeOf((*IHealthcheckStmtContext)(nil)).Elem(), 0)
 
 	if t == nil {
@@ -1578,7 +1578,7 @@ func (s *CommandContext) HealthcheckStmt() IHealthcheckStmtContext {
 	return t.(IHealthcheckStmtContext)
 }
 
-func (s *CommandContext) ShellStmt() IShellStmtContext {
+func (s *CommandStmtContext) ShellStmt() IShellStmtContext {
 	var t = s.GetTypedRuleContext(reflect.TypeOf((*IShellStmtContext)(nil)).Elem(), 0)
 
 	if t == nil {
@@ -1588,7 +1588,7 @@ func (s *CommandContext) ShellStmt() IShellStmtContext {
 	return t.(IShellStmtContext)
 }
 
-func (s *CommandContext) GenericCommandStmt() IGenericCommandStmtContext {
+func (s *CommandStmtContext) GenericCommandStmt() IGenericCommandStmtContext {
 	var t = s.GetTypedRuleContext(reflect.TypeOf((*IGenericCommandStmtContext)(nil)).Elem(), 0)
 
 	if t == nil {
@@ -1598,29 +1598,29 @@ func (s *CommandContext) GenericCommandStmt() IGenericCommandStmtContext {
 	return t.(IGenericCommandStmtContext)
 }
 
-func (s *CommandContext) GetRuleContext() antlr.RuleContext {
+func (s *CommandStmtContext) GetRuleContext() antlr.RuleContext {
 	return s
 }
 
-func (s *CommandContext) ToStringTree(ruleNames []string, recog antlr.Recognizer) string {
+func (s *CommandStmtContext) ToStringTree(ruleNames []string, recog antlr.Recognizer) string {
 	return antlr.TreesStringTree(s, ruleNames, recog)
 }
 
-func (s *CommandContext) EnterRule(listener antlr.ParseTreeListener) {
+func (s *CommandStmtContext) EnterRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EarthParserListener); ok {
-		listenerT.EnterCommand(s)
+		listenerT.EnterCommandStmt(s)
 	}
 }
 
-func (s *CommandContext) ExitRule(listener antlr.ParseTreeListener) {
+func (s *CommandStmtContext) ExitRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EarthParserListener); ok {
-		listenerT.ExitCommand(s)
+		listenerT.ExitCommandStmt(s)
 	}
 }
 
-func (p *EarthParser) Command() (localctx ICommandContext) {
-	localctx = NewCommandContext(p, p.GetParserRuleContext(), p.GetState())
-	p.EnterRule(localctx, 12, EarthParserRULE_command)
+func (p *EarthParser) CommandStmt() (localctx ICommandStmtContext) {
+	localctx = NewCommandStmtContext(p, p.GetParserRuleContext(), p.GetState())
+	p.EnterRule(localctx, 12, EarthParserRULE_commandStmt)
 
 	defer func() {
 		p.ExitRule()
