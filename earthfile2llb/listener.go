@@ -164,7 +164,6 @@ func (l *listener) ExitFromStmt(c *parser.FromStmtContext) {
 		l.err = errors.Wrapf(err, "apply FROM %s", imageName)
 		return
 	}
-
 }
 
 func (l *listener) ExitFromDockerfileStmt(c *parser.FromDockerfileStmtContext) {
@@ -1046,25 +1045,6 @@ func (l *listener) expandArgs(word string, keepPlusEscape bool) string {
 	return unescapeSlashPlus(ret)
 }
 
-// StringSliceFlag is a flag backed by a string slice.
-type StringSliceFlag struct {
-	Args []string
-}
-
-// String returns a string representation of the flag.
-func (ssf *StringSliceFlag) String() string {
-	if ssf == nil {
-		return ""
-	}
-	return strings.Join(ssf.Args, ",")
-}
-
-// Set adds a flag value to the string slice.
-func (ssf *StringSliceFlag) Set(arg string) error {
-	ssf.Args = append(ssf.Args, arg)
-	return nil
-}
-
 var envVarNameRegexp = regexp.MustCompile("^[a-zA-Z_]+[a-zA-Z0-9_]*$")
 
 func checkEnvVarName(str string) error {
@@ -1079,91 +1059,4 @@ var lineContinuationRegexp = regexp.MustCompile("\\\\(\\n|(\\r\\n))[\\t ]*")
 
 func replaceEscape(str string) string {
 	return lineContinuationRegexp.ReplaceAllString(str, "")
-}
-
-func parseLoad(loadStr string) (string, string, error) {
-	splitLoad := strings.SplitN(loadStr, "=", 2)
-	if len(splitLoad) < 2 {
-		// --load <target-name>
-		// (will infer image name from SAVE IMAGE of that target)
-		return "", loadStr, nil
-	}
-	// --load <image-name>=<target-name>
-	return splitLoad[0], splitLoad[1], nil
-}
-
-func escapeSlashPlus(str string) string {
-	// TODO: This is not entirely correct in a string like "\\\\+".
-	return strings.ReplaceAll(str, "\\+", "\\\\+")
-}
-
-func unescapeSlashPlus(str string) string {
-	// TODO: This is not entirely correct in a string like "\\\\+".
-	return strings.ReplaceAll(str, "\\+", "+")
-}
-
-type argGroup struct {
-	key    string
-	values []*string
-}
-
-func buildArgMatrix(args []string) ([][]string, error) {
-	groupedArgs := make([]argGroup, 0, len(args))
-	for _, arg := range args {
-		k, v, err := parseKeyValue(arg)
-		if err != nil {
-			return nil, err
-		}
-
-		found := false
-		for i, g := range groupedArgs {
-			if g.key == k {
-				groupedArgs[i].values = append(groupedArgs[i].values, v)
-				found = true
-				break
-			}
-		}
-		if !found {
-			groupedArgs = append(groupedArgs, argGroup{
-				key:    k,
-				values: []*string{v},
-			})
-		}
-	}
-	return crossProduct(groupedArgs, nil), nil
-}
-
-func crossProduct(ga []argGroup, prefix []string) [][]string {
-	if len(ga) == 0 {
-		return [][]string{prefix}
-	}
-	var ret [][]string
-	for _, v := range ga[0].values {
-		newPrefix := prefix[:]
-		var kv string
-		if v == nil {
-			kv = ga[0].key
-		} else {
-			kv = fmt.Sprintf("%s=%s", ga[0].key, *v)
-		}
-		newPrefix = append(newPrefix, kv)
-
-		cp := crossProduct(ga[1:], newPrefix)
-		ret = append(ret, cp...)
-	}
-	return ret
-}
-
-func parseKeyValue(arg string) (string, *string, error) {
-	var name string
-	splitArg := strings.SplitN(arg, "=", 2)
-	if len(splitArg) < 1 {
-		return "", nil, fmt.Errorf("invalid build arg %s", splitArg)
-	}
-	name = splitArg[0]
-	var value *string
-	if len(splitArg) == 2 {
-		value = &splitArg[1]
-	}
-	return name, value, nil
 }

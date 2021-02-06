@@ -43,11 +43,17 @@ type listener struct {
 }
 
 func newListener(ctx context.Context, filePath string, enableSourceMap bool) *listener {
+	ef := &spec.Earthfile{}
+	if enableSourceMap {
+		ef.SourceLocation = &spec.SourceLocation{
+			File: filePath,
+		}
+	}
 	return &listener{
 		ctx:             ctx,
 		filePath:        filePath,
 		enableSourceMap: enableSourceMap,
-		ef:              new(spec.Earthfile),
+		ef:              ef,
 		contextStack:    []contextFrame{contextFrameEarthfile},
 	}
 }
@@ -279,8 +285,17 @@ func (l *listener) EnterCommandName(c *parser.CommandNameContext) {
 func (l *listener) EnterWithDockerStmt(c *parser.WithDockerStmtContext) {
 	// TODO: Reuse EnterCommand.
 	l.with = new(spec.WithStatement)
-	l.command = new(spec.Command)
+	l.command = &spec.Command{
+		Name: "DOCKER",
+	}
 	if l.enableSourceMap {
+		l.with.SourceLocation = &spec.SourceLocation{
+			File:        l.filePath,
+			StartLine:   c.GetStart().GetLine(),
+			StartColumn: c.GetStart().GetColumn(),
+			EndLine:     c.GetStop().GetLine(),
+			EndColumn:   c.GetStop().GetColumn(),
+		}
 		l.command.SourceLocation = &spec.SourceLocation{
 			File:        l.filePath,
 			StartLine:   c.GetStart().GetLine(),

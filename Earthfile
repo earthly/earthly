@@ -50,7 +50,7 @@ lint-scripts:
 
 lint:
     FROM +code
-    RUN output="$(ineffassign . | grep -v '/earthly/earthfile2llb/parser/.*\.go')" ; \
+    RUN output="$(ineffassign ./... 2>&1 | grep -v '/earthly/ast/parser/.*\.go')" ; \
         if [ -n "$output" ]; then \
             echo "$output" ; \
             exit 1 ; \
@@ -188,6 +188,7 @@ earthly-docker:
     FROM ./buildkitd+buildkitd
     RUN apk add --update --no-cache docker-cli
     ENV NETWORK_MODE=host
+    ENV EARTHLY_ENABLE_AST=true
     COPY earthly-buildkitd-wrapper.sh /usr/bin/earthly-buildkitd-wrapper.sh
     ENTRYPOINT ["/usr/bin/earthly-buildkitd-wrapper.sh"]
     ARG EARTHLY_TARGET_TAG_DOCKER

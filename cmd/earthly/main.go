@@ -40,6 +40,7 @@ import (
 	"github.com/earthly/earthly/debugger/terminal"
 	"github.com/earthly/earthly/docker2earthly"
 	"github.com/earthly/earthly/domain"
+	"github.com/earthly/earthly/earthfile2llb"
 	"github.com/earthly/earthly/fileutil"
 	"github.com/earthly/earthly/llbutil"
 	"github.com/earthly/earthly/secretsclient"
@@ -126,6 +127,7 @@ type cliFlags struct {
 	authToken              string
 	noFakeDep              bool
 	enableSourceMap        bool
+	enableAst              bool
 }
 
 var (
@@ -482,6 +484,13 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 			EnvVars:     []string{"EARTHLY_NO_FAKE_DEP"},
 			Usage:       "Internal feature flag for fake-dep",
 			Destination: &app.noFakeDep,
+			Hidden:      true, // Internal.
+		},
+		&cli.BoolFlag{
+			Name:        "enable-ast",
+			EnvVars:     []string{"EARTHLY_ENABLE_AST"},
+			Usage:       "Internal feature flag for the ast-based earthfile2llb",
+			Destination: &app.enableAst,
 			Hidden:      true, // Internal.
 		},
 	}
@@ -1085,8 +1094,9 @@ func (app *earthlyApp) insertZSHCompleteEntry() error {
 func (app *earthlyApp) run(ctx context.Context, args []string) int {
 	err := app.cliApp.RunContext(ctx, args)
 
-	rpcRegex := regexp.MustCompile(`(?U)rpc error: code = .+ desc = .+:\s`)
+	rpcRegex := regexp.MustCompile(`(?U)rpc error: code = .+ desc =\s`)
 	if err != nil {
+		ie, isInterpereterError := earthfile2llb.GetInterpreterError(err)
 		if strings.Contains(err.Error(), "security.insecure is not allowed") {
 			app.console.Warnf("Error: --allow-privileged (-P) flag is required\n")
 		} else if strings.Contains(err.Error(), "failed to fetch remote") {
@@ -1098,8 +1108,9 @@ func (app *earthlyApp) run(ctx context.Context, args []string) int {
 		} else if !app.verbose && rpcRegex.MatchString(err.Error()) {
 			baseErr := errors.Cause(err)
 			baseErrMsg := rpcRegex.ReplaceAll([]byte(baseErr.Error()), []byte(""))
-
-			app.console.Warnf("Error: %v\n", string(baseErrMsg))
+			app.console.Warnf("Error: %s\n", string(baseErrMsg))
+		} else if isInterpereterError {
+			app.console.Warnf("Error: %s\n", ie.Error())
 		} else {
 			app.console.Warnf("Error: %v\n", err)
 		}
@@ -1974,6 +1985,9 @@ func (app *earthlyApp) actionDocker2Earthly(c *cli.Context) error {
 }
 
 func (app *earthlyApp) actionBuild(c *cli.Context) error {
+	if app.enableAst {
+		fmt.Printf("Earthly AST mode is enabled. This message can be safely removed when AST mode is GA.\n")
+	}
 	app.commandName = "build"
 
 	if app.ci {
@@ -2183,6 +2197,7 @@ func (app *earthlyApp) actionBuild(c *cli.Context) error {
 		BuildContextProvider: buildContextProvider,
 		GitLookup:            gitLookup,
 		UseFakeDep:           !app.noFakeDep,
+		EnableAst:            app.enableAst,
 	}
 	b, err := builder.NewBuilder(c.Context, builderOpts)
 	if err != nil {

@@ -8,55 +8,11 @@ import (
 	"github.com/antlr/antlr4/runtime/Go/antlr"
 	"github.com/earthly/earthly/ast/antlrhandler"
 	"github.com/earthly/earthly/ast/parser"
-	"github.com/earthly/earthly/buildcontext"
-	"github.com/earthly/earthly/buildcontext/provider"
-	"github.com/earthly/earthly/cleanup"
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/llbutil"
 	"github.com/earthly/earthly/states"
-	"github.com/earthly/earthly/variables"
-	"github.com/moby/buildkit/client/llb"
-	gwclient "github.com/moby/buildkit/frontend/gateway/client"
-	specs "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
 )
-
-// ConvertOpt holds conversion parameters needed for conversion.
-type ConvertOpt struct {
-	// GwClient is the BuildKit gateway client.
-	GwClient gwclient.Client
-	// Resolver is the build context resolver.
-	Resolver *buildcontext.Resolver
-	// The resolve mode for referenced images (force pull or prefer local).
-	ImageResolveMode llb.ResolveMode
-	// DockerBuilderFun is a fun that can be used to execute an image build. This
-	// is used as part of operations like DOCKER LOAD and DOCKER PULL, where
-	// a tar image is needed in the middle of a build.
-	DockerBuilderFun states.DockerBuilderFun
-	// CleanCollection is a collection of cleanup functions.
-	CleanCollection *cleanup.Collection
-	// Visited is a collection of target states which have been converted to LLB.
-	// This is used for deduplication and infinite cycle detection.
-	Visited *states.VisitedCollection
-	// Platform is the target platform of the build.
-	Platform *specs.Platform
-	// VarCollection is a collection of build args used for overriding args in the build.
-	VarCollection *variables.Collection
-	// A cache for image solves. (maybe dockerTag +) depTargetInputHash -> context containing image.tar.
-	SolveCache *states.SolveCache
-	// BuildContextProvider is the provider used for local build context files.
-	BuildContextProvider *provider.BuildContextProvider
-	// MetaResolver is the image meta resolver to use for resolving image metadata.
-	MetaResolver llb.ImageMetaResolver
-	// CacheImports is a set of docker tags that can be used to import cache. Note that this
-	// set is modified by the converter if InlineCache is enabled.
-	CacheImports map[string]bool
-	// UseInlineCache enables the inline caching feature (use any SAVE IMAGE --push declaration as
-	// cache import).
-	UseInlineCache bool
-	// UseFakeDep is an internal feature flag for fake dep.
-	UseFakeDep bool
-}
 
 // Earthfile2LLB parses a earthfile and executes the statements for a given target.
 func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt) (mts *states.MultiTarget, err error) {

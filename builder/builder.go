@@ -53,6 +53,7 @@ type Opt struct {
 	BuildContextProvider *provider.BuildContextProvider
 	GitLookup            *buildcontext.GitLookup
 	UseFakeDep           bool
+	EnableAst            bool
 }
 
 // BuildOpt is a collection of build options.
@@ -158,19 +159,35 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 	bf := func(childCtx context.Context, gwClient gwclient.Client) (*gwclient.Result, error) {
 		var err error
 		if !b.builtMain {
-			mts, err = earthfile2llb.Earthfile2LLB(childCtx, target, earthfile2llb.ConvertOpt{
-				GwClient:             gwClient,
-				Resolver:             b.resolver,
-				ImageResolveMode:     b.opt.ImageResolveMode,
-				DockerBuilderFun:     b.MakeImageAsTarBuilderFun(),
-				CleanCollection:      b.opt.CleanCollection,
-				Platform:             opt.Platform,
-				VarCollection:        b.opt.VarCollection,
-				BuildContextProvider: b.opt.BuildContextProvider,
-				CacheImports:         b.opt.CacheImports,
-				UseInlineCache:       b.opt.UseInlineCache,
-				UseFakeDep:           b.opt.UseFakeDep,
-			})
+			if b.opt.EnableAst {
+				mts, err = earthfile2llb.Earthfile2LLB2(childCtx, target, earthfile2llb.ConvertOpt{
+					GwClient:             gwClient,
+					Resolver:             b.resolver,
+					ImageResolveMode:     b.opt.ImageResolveMode,
+					DockerBuilderFun:     b.MakeImageAsTarBuilderFun(),
+					CleanCollection:      b.opt.CleanCollection,
+					Platform:             opt.Platform,
+					VarCollection:        b.opt.VarCollection,
+					BuildContextProvider: b.opt.BuildContextProvider,
+					CacheImports:         b.opt.CacheImports,
+					UseInlineCache:       b.opt.UseInlineCache,
+					UseFakeDep:           b.opt.UseFakeDep,
+				})
+			} else {
+				mts, err = earthfile2llb.Earthfile2LLB(childCtx, target, earthfile2llb.ConvertOpt{
+					GwClient:             gwClient,
+					Resolver:             b.resolver,
+					ImageResolveMode:     b.opt.ImageResolveMode,
+					DockerBuilderFun:     b.MakeImageAsTarBuilderFun(),
+					CleanCollection:      b.opt.CleanCollection,
+					Platform:             opt.Platform,
+					VarCollection:        b.opt.VarCollection,
+					BuildContextProvider: b.opt.BuildContextProvider,
+					CacheImports:         b.opt.CacheImports,
+					UseInlineCache:       b.opt.UseInlineCache,
+					UseFakeDep:           b.opt.UseFakeDep,
+				})
+			}
 			if err != nil {
 				return nil, err
 			}
