@@ -120,7 +120,15 @@ func Earthfile2LLB2(ctx context.Context, target domain.Target, opt ConvertOpt) (
 	return converter.FinalizeStates(ctx)
 }
 
-// GetTargets2 returns a list of targets from an Earthfile
-func GetTargets2(filename string) ([]string, error) {
-	return nil, errors.New("not implemented")
+// GetTargets returns a list of targets from an Earthfile.
+func GetTargets(filename string) ([]string, error) {
+	ef, err := ast.Parse(context.TODO(), filename, false)
+	if err != nil {
+		return nil, errors.Wrap(err, "parse")
+	}
+	targets := make([]string, 0, len(ef.Targets))
+	for _, target := range ef.Targets {
+		targets = append(targets, target.Name)
+	}
+	return targets, nil
 }
