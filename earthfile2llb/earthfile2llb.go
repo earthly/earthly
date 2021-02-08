@@ -6,12 +6,13 @@ import (
 	"strings"
 
 	"github.com/antlr/antlr4/runtime/Go/antlr"
+	"github.com/earthly/earthly/ast"
+	"github.com/earthly/earthly/ast/antlrhandler"
+	"github.com/earthly/earthly/ast/parser"
 	"github.com/earthly/earthly/buildcontext"
 	"github.com/earthly/earthly/buildcontext/provider"
 	"github.com/earthly/earthly/cleanup"
 	"github.com/earthly/earthly/domain"
-	"github.com/earthly/earthly/earthfile2llb/antlrhandler"
-	"github.com/earthly/earthly/earthfile2llb/parser"
 	"github.com/earthly/earthly/llbutil"
 	"github.com/earthly/earthly/states"
 	"github.com/earthly/earthly/variables"
@@ -56,6 +57,8 @@ type ConvertOpt struct {
 	UseInlineCache bool
 	// UseFakeDep is an internal feature flag for fake dep.
 	UseFakeDep bool
+	// EnableAst is an internal feature flag for the new Earthly AST.
+	EnableAst bool
 }
 
 // Earthfile2LLB parses a earthfile and executes the statements for a given target.
@@ -106,42 +109,68 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt) (m
 	if err != nil {
 		return nil, errors.Wrapf(err, "resolve build context for target %s", target.String())
 	}
-	// Convert.
-	errorListener := antlrhandler.NewReturnErrorListener()
-	errorStrategy := antlrhandler.NewReturnErrorStrategy()
-	tree, err := newEarthfileTree(bc.BuildFilePath, errorListener, errorStrategy)
-	if err != nil {
-		return nil, err
-	}
 	converter, err := NewConverter(ctx, bc.Target, bc, opt)
 	if err != nil {
 		return nil, err
 	}
-	walkErr := walkTree(newListener(ctx, converter, target.Target), tree)
-	if len(errorListener.Errs) > 0 {
-		var errString []string
-		for _, err := range errorListener.Errs {
-			errString = append(errString, err.Error())
+	if opt.EnableAst {
+		// TODO: Use a parser cache.
+		ef, err := ast.Parse(ctx, bc.BuildFilePath, true)
+		if err != nil {
+			return nil, errors.Wrap(err, "parse")
 		}
-		return nil, fmt.Errorf(strings.Join(errString, "\n"))
-	}
-	if errorStrategy.Err != nil {
-		var errString []string
-		errString = append(errString,
-			fmt.Sprintf(
-				"syntax error: line %d:%d",
-				errorStrategy.RE.GetOffendingToken().GetLine(),
-				errorStrategy.RE.GetOffendingToken().GetColumn()))
-		errString = append(errString,
-			fmt.Sprintf("Details: %s", errorStrategy.RE.GetMessage()))
-		return nil, errors.Wrapf(errorStrategy.Err, "%s", strings.Join(errString, "\n"))
-	}
-	if walkErr != nil {
-		return nil, walkErr
+		interpreter := newInterpreter(converter)
+		err = interpreter.Run(ctx, ef, target.Target)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		errorListener := antlrhandler.NewReturnErrorListener()
+		errorStrategy := antlrhandler.NewReturnErrorStrategy()
+		tree, err := newEarthfileTree(bc.BuildFilePath, errorListener, errorStrategy)
+		if err != nil {
+			return nil, err
+		}
+		walkErr := walkTree(newListener(ctx, converter, target.Target), tree)
+		if len(errorListener.Errs) > 0 {
+			var errString []string
+			for _, err := range errorListener.Errs {
+				errString = append(errString, err.Error())
+			}
+			return nil, fmt.Errorf(strings.Join(errString, "\n"))
+		}
+		if errorStrategy.Err != nil {
+			var errString []string
+			errString = append(errString,
+				fmt.Sprintf(
+					"syntax error: line %d:%d",
+					errorStrategy.RE.GetOffendingToken().GetLine(),
+					errorStrategy.RE.GetOffendingToken().GetColumn()))
+			errString = append(errString,
+				fmt.Sprintf("Details: %s", errorStrategy.RE.GetMessage()))
+			return nil, errors.Wrapf(errorStrategy.Err, "%s", strings.Join(errString, "\n"))
+		}
+		if walkErr != nil {
+			return nil, walkErr
+		}
 	}
 	return converter.FinalizeStates(ctx)
 }
 
+// GetTargets returns a list of targets from an Earthfile.
+func GetTargets(filename string) ([]string, error) {
+	ef, err := ast.Parse(context.TODO(), filename, false)
+	if err != nil {
+		return nil, errors.Wrap(err, "parse")
+	}
+	targets := make([]string, 0, len(ef.Targets))
+	for _, target := range ef.Targets {
+		targets = append(targets, target.Name)
+	}
+	return targets, nil
+}
+
+// TODO: Remove the following after AST is GA.
 func walkTree(l *listener, tree parser.IEarthFileContext) (err error) {
 	defer func() {
 		r := recover()
@@ -157,17 +186,6 @@ func walkTree(l *listener, tree parser.IEarthFileContext) (err error) {
 	return nil
 }
 
-// ParseDebug parses a earthfile and prints debug information about it.
-func ParseDebug(filename string) error {
-	tree, err := newEarthfileTree(
-		filename, antlr.NewConsoleErrorListener(), antlr.NewBailErrorStrategy())
-	if err != nil {
-		return errors.Wrap(err, "new earthfile tree")
-	}
-	antlr.ParseTreeWalkerDefault.Walk(newDebugListener(), tree)
-	return nil
-}
-
 func newEarthfileTree(filename string, errorListener antlr.ErrorListener, errorStrategy antlr.ErrorStrategy) (parser.IEarthFileContext, error) {
 	input, err := antlr.NewFileStream(filename)
 	if err != nil {
@@ -180,25 +198,4 @@ func newEarthfileTree(filename string, errorListener antlr.ErrorListener, errorS
 	p.SetErrorHandler(errorStrategy)
 	p.BuildParseTrees = true
 	return p.EarthFile(), nil
-}
-
-// GetTargets returns a list of targets from an Earthfile
-func GetTargets(filename string) ([]string, error) {
-	tree, err := newEarthfileTree(
-		filename, antlr.NewConsoleErrorListener(), antlr.NewBailErrorStrategy())
-	if err != nil {
-		return nil, errors.Wrap(err, "new earthfile tree")
-	}
-	tc := &targetCollector{}
-	antlr.ParseTreeWalkerDefault.Walk(tc, tree)
-	return tc.targets, nil
-}
-
-type targetCollector struct {
-	*parser.BaseEarthParserListener
-	targets []string
-}
-
-func (l *targetCollector) EnterTarget(ctx *parser.TargetContext) {
-	l.targets = append(l.targets, strings.TrimSuffix(ctx.TargetHeader().GetText(), ":"))
 }

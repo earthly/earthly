@@ -3,7 +3,7 @@ package earthfile2llb
 import (
 	"testing"
 
-	. "github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestBuildArgMatrix(t *testing.T) {
@@ -24,7 +24,7 @@ func TestBuildArgMatrix(t *testing.T) {
 
 	for _, tt := range tests {
 		ans, err := buildArgMatrix(tt.in)
-		NoError(t, err)
-		Equal(t, tt.out, ans)
+		assert.NoError(t, err)
+		assert.Equal(t, tt.out, ans)
 	}
 }
