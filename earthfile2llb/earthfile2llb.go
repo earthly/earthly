@@ -131,10 +131,6 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt) (m
 		if err != nil {
 			return nil, err
 		}
-		converter, err := NewConverter(ctx, bc.Target, bc, opt)
-		if err != nil {
-			return nil, err
-		}
 		walkErr := walkTree(newListener(ctx, converter, target.Target), tree)
 		if len(errorListener.Errs) > 0 {
 			var errString []string
