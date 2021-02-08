@@ -1,6 +1,8 @@
 #!/bin/bash
 set -e
 
+DOCKER_EXPERIMENTAL=$(docker version --format '{{.Server.Experimental}}')
+
 bindir="$HOME/.earthly"
 if [ ! -d "$bindir" ]; then
   mkdir -p "$bindir"
@@ -27,7 +29,12 @@ get_latest_binary() {
         fi
     fi
 
-    docker pull --platform="$bk_platform" earthly/buildkitd:prerelease
+    PLATFORM_FLAG=""
+    if [ "$DOCKER_EXPERIMENTAL" == "true" ]; then
+        PLATFORM_FLAG="--platform=$bk_platform"
+    fi
+
+    docker pull $PLATFORM_FLAG earthly/buildkitd:prerelease
     docker cp earthly_binary:"$earth_bin_path" "$bindir/earthly-prerelease"
     docker rm earthly_binary
 }
