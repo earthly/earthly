@@ -204,7 +204,7 @@ func Start(ctx context.Context, image string, settings Settings, reset bool) err
 	// case the image is not available locally.
 	err = MaybePull(ctx, image)
 	if err != nil {
-		fmt.Printf("Error: %v\n", err.Error())
+		fmt.Printf("Error: %s. Attempting to start buildkitd anyway...\n", err.Error())
 		// Keep going - it might still work.
 	}
 	env := os.Environ()
