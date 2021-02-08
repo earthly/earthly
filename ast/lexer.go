@@ -1,4 +1,4 @@
-package earthfile2llb
+package ast
 
 import (
 	"github.com/antlr/antlr4/runtime/Go/antlr"

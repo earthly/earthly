@@ -27,6 +27,7 @@ import (
 	"time"
 
 	"github.com/earthly/earthly/analytics"
+	"github.com/earthly/earthly/ast"
 	"github.com/earthly/earthly/autocomplete"
 	"github.com/earthly/earthly/buildcontext"
 	"github.com/earthly/earthly/buildcontext/provider"
@@ -125,6 +126,8 @@ type cliFlags struct {
 	termsConditionsPrivacy bool
 	authToken              string
 	noFakeDep              bool
+	enableSourceMap        bool
+	enableAst              bool
 }
 
 var (
@@ -483,6 +486,13 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 			Destination: &app.noFakeDep,
 			Hidden:      true, // Internal.
 		},
+		&cli.BoolFlag{
+			Name:        "enable-ast",
+			EnvVars:     []string{"EARTHLY_ENABLE_AST"},
+			Usage:       "Internal feature flag for the ast-based earthfile2llb",
+			Destination: &app.enableAst,
+			Hidden:      true, // Internal.
+		},
 	}
 
 	app.cliApp.Commands = []*cli.Command{
@@ -758,7 +768,21 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 			Description: "Print debug information about an Earthfile",
 			ArgsUsage:   "[<path>]",
 			Hidden:      true, // Dev purposes only.
-			Action:      app.actionDebug,
+			Subcommands: []*cli.Command{
+				{
+					Name:      "ast",
+					Usage:     "Output the AST",
+					UsageText: "earthly [options] debug ast",
+					Action:    app.actionDebugAst,
+					Flags: []cli.Flag{
+						&cli.BoolFlag{
+							Name:        "source-map",
+							Usage:       "Enable outputting inline sourcemap",
+							Destination: &app.enableSourceMap,
+						},
+					},
+				},
+			},
 		},
 		{
 			Name:        "prune",
@@ -1070,8 +1094,9 @@ func (app *earthlyApp) insertZSHCompleteEntry() error {
 func (app *earthlyApp) run(ctx context.Context, args []string) int {
 	err := app.cliApp.RunContext(ctx, args)
 
-	rpcRegex := regexp.MustCompile(`(?U)rpc error: code = .+ desc = .+:\s`)
+	rpcRegex := regexp.MustCompile(`(?U)rpc error: code = .+ desc =\s`)
 	if err != nil {
+		ie, isInterpereterError := earthfile2llb.GetInterpreterError(err)
 		if strings.Contains(err.Error(), "security.insecure is not allowed") {
 			app.console.Warnf("Error: --allow-privileged (-P) flag is required\n")
 		} else if strings.Contains(err.Error(), "failed to fetch remote") {
@@ -1083,8 +1108,9 @@ func (app *earthlyApp) run(ctx context.Context, args []string) int {
 		} else if !app.verbose && rpcRegex.MatchString(err.Error()) {
 			baseErr := errors.Cause(err)
 			baseErrMsg := rpcRegex.ReplaceAll([]byte(baseErr.Error()), []byte(""))
-
-			app.console.Warnf("Error: %v\n", string(baseErrMsg))
+			app.console.Warnf("Error: %s\n", string(baseErrMsg))
+		} else if isInterpereterError {
+			app.console.Warnf("Error: %s\n", ie.Error())
 		} else {
 			app.console.Warnf("Error: %v\n", err)
 		}
@@ -1869,8 +1895,8 @@ func (app *earthlyApp) actionAccountLogout(c *cli.Context) error {
 	return nil
 }
 
-func (app *earthlyApp) actionDebug(c *cli.Context) error {
-	app.commandName = "debug"
+func (app *earthlyApp) actionDebugAst(c *cli.Context) error {
+	app.commandName = "debugAst"
 	if c.NArg() > 1 {
 		return errors.New("invalid number of arguments provided")
 	}
@@ -1880,10 +1906,15 @@ func (app *earthlyApp) actionDebug(c *cli.Context) error {
 	}
 	path = filepath.Join(path, "Earthfile")
 
-	err := earthfile2llb.ParseDebug(path)
+	ef, err := ast.Parse(c.Context, path, app.enableSourceMap)
 	if err != nil {
 		return errors.Wrap(err, "parse debug")
 	}
+	efDt, err := json.Marshal(ef)
+	if err != nil {
+		return errors.Wrap(err, "marshal ast")
+	}
+	fmt.Print(string(efDt))
 	return nil
 }
 
@@ -1954,6 +1985,9 @@ func (app *earthlyApp) actionDocker2Earthly(c *cli.Context) error {
 }
 
 func (app *earthlyApp) actionBuild(c *cli.Context) error {
+	if app.enableAst {
+		fmt.Printf("Earthly AST mode is enabled. This message can be safely removed when AST mode is GA.\n")
+	}
 	app.commandName = "build"
 
 	if app.ci {
@@ -2163,6 +2197,7 @@ func (app *earthlyApp) actionBuild(c *cli.Context) error {
 		BuildContextProvider: buildContextProvider,
 		GitLookup:            gitLookup,
 		UseFakeDep:           !app.noFakeDep,
+		EnableAst:            app.enableAst,
 	}
 	b, err := builder.NewBuilder(c.Context, builderOpts)
 	if err != nil {
