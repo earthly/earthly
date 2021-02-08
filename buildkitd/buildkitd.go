@@ -200,6 +200,13 @@ func Start(ctx context.Context, image string, settings Settings, reset bool) err
 	if err != nil {
 		return err
 	}
+	// Pulling is not strictly needed, but it helps display some progress status to the user in
+	// case the image is not available locally.
+	err = MaybePull(ctx, image)
+	if err != nil {
+		fmt.Printf("Error: %s. Attempting to start buildkitd anyway...\n", err.Error())
+		// Keep going - it might still work.
+	}
 	env := os.Environ()
 	runMount := fmt.Sprintf("%s:/run/earthly:consistent", settings.RunDir)
 	args := []string{
@@ -294,6 +301,41 @@ func WaitUntilStarted(ctx context.Context, address string, opTimeout time.Durati
 			return errors.New("Timeout: Buildkitd did not start")
 		}
 	}
+}
+
+// MaybePull checks whether an image is available locally and pulls it if it is not.
+func MaybePull(ctx context.Context, image string) error {
+	cmd := exec.CommandContext(ctx, "docker", "image", "inspect", image)
+	_, err := cmd.CombinedOutput()
+	if err == nil {
+		// We found the image locally - no need to pull.
+		return nil
+	}
+	args := []string{"pull"}
+	if supportsPlatform(ctx) {
+		args = append(args, platformFlag())
+	}
+	args = append(args, image)
+	cmd = exec.CommandContext(ctx, "docker", args...)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	err = cmd.Run()
+	if err != nil {
+		return errors.Wrapf(err, "docker pull %s", image)
+	}
+	return nil
+}
+
+// PrintLogs prints the buildkitd logs to stderr.
+func PrintLogs(ctx context.Context) error {
+	cmd := exec.CommandContext(ctx, "docker", "logs", ContainerName)
+	cmd.Stdout = os.Stderr
+	cmd.Stderr = os.Stderr
+	err := cmd.Run()
+	if err != nil {
+		return errors.Wrapf(err, "docker logs %s", ContainerName)
+	}
+	return nil
 }
 
 // GetContainerIP returns the IP of the buildkit container.

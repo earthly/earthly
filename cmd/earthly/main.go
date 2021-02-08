@@ -1094,7 +1094,7 @@ func (app *earthlyApp) insertZSHCompleteEntry() error {
 func (app *earthlyApp) run(ctx context.Context, args []string) int {
 	err := app.cliApp.RunContext(ctx, args)
 
-	rpcRegex := regexp.MustCompile(`(?U)rpc error: code = .+ desc =\s`)
+	rpcRegex := regexp.MustCompile(`(?U)rpc error: code = .+ desc = `)
 	if err != nil {
 		ie, isInterpereterError := earthfile2llb.GetInterpreterError(err)
 		if strings.Contains(err.Error(), "security.insecure is not allowed") {
@@ -1109,6 +1109,14 @@ func (app *earthlyApp) run(ctx context.Context, args []string) int {
 			baseErr := errors.Cause(err)
 			baseErrMsg := rpcRegex.ReplaceAll([]byte(baseErr.Error()), []byte(""))
 			app.console.Warnf("Error: %s\n", string(baseErrMsg))
+			if bytes.Contains(baseErrMsg, []byte("transport is closing")) {
+				app.console.Warnf(
+					"It seems that buildkitd is shutting down or it has crashed. " +
+						"You can report crashes at https://github.com/earthly/earthly/issues/new. " +
+						"Buildkitd logs follow...")
+				buildkitd.PrintLogs(ctx)
+				return 7
+			}
 		} else if isInterpereterError {
 			app.console.Warnf("Error: %s\n", ie.Error())
 		} else {
