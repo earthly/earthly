@@ -1,4 +1,4 @@
-// Code generated from earthfile2llb/parser/EarthParser.g4 by ANTLR 4.8. DO NOT EDIT.
+// Code generated from ast/parser/EarthParser.g4 by ANTLR 4.8. DO NOT EDIT.
 
 package parser // EarthParser
 
@@ -25,6 +25,9 @@ type EarthParserListener interface {
 
 	// EnterStmt is called when entering the stmt production.
 	EnterStmt(c *StmtContext)
+
+	// EnterCommandStmt is called when entering the commandStmt production.
+	EnterCommandStmt(c *CommandStmtContext)
 
 	// EnterFromStmt is called when entering the fromStmt production.
 	EnterFromStmt(c *FromStmtContext)
@@ -95,12 +98,6 @@ type EarthParserListener interface {
 	// EnterGitCloneStmt is called when entering the gitCloneStmt production.
 	EnterGitCloneStmt(c *GitCloneStmtContext)
 
-	// EnterDockerLoadStmt is called when entering the dockerLoadStmt production.
-	EnterDockerLoadStmt(c *DockerLoadStmtContext)
-
-	// EnterDockerPullStmt is called when entering the dockerPullStmt production.
-	EnterDockerPullStmt(c *DockerPullStmtContext)
-
 	// EnterAddStmt is called when entering the addStmt production.
 	EnterAddStmt(c *AddStmtContext)
 
@@ -154,6 +151,9 @@ type EarthParserListener interface {
 
 	// ExitStmt is called when exiting the stmt production.
 	ExitStmt(c *StmtContext)
+
+	// ExitCommandStmt is called when exiting the commandStmt production.
+	ExitCommandStmt(c *CommandStmtContext)
 
 	// ExitFromStmt is called when exiting the fromStmt production.
 	ExitFromStmt(c *FromStmtContext)
@@ -223,12 +223,6 @@ type EarthParserListener interface {
 
 	// ExitGitCloneStmt is called when exiting the gitCloneStmt production.
 	ExitGitCloneStmt(c *GitCloneStmtContext)
-
-	// ExitDockerLoadStmt is called when exiting the dockerLoadStmt production.
-	ExitDockerLoadStmt(c *DockerLoadStmtContext)
-
-	// ExitDockerPullStmt is called when exiting the dockerPullStmt production.
-	ExitDockerPullStmt(c *DockerPullStmtContext)
 
 	// ExitAddStmt is called when exiting the addStmt production.
 	ExitAddStmt(c *AddStmtContext)

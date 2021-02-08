@@ -7,7 +7,7 @@ steps:
       EARTHLY_INSTALL_ID: "earthly-buildkite-windows"
       EARTHLY_BUILD_ARGS: "DOCKERHUB_USER_SECRET=+secrets/earthly-technologies/dockerhub/user,DOCKERHUB_TOKEN_SECRET=+secrets/earthly-technologies/dockerhub/token"
       FORCE_COLOR: 1
-      EARTH_OS: linux
+      EARTHLY_OS: linux
       EARTHLY_CONFIG: "./.buildkite/earthly-config-win.yml"
     agents:
       os: wsl2

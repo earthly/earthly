@@ -1,6 +1,7 @@
 package earthfile2llb
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"encoding/base64"
@@ -11,9 +12,11 @@ import (
 	"io/ioutil"
 	"math/rand"
 	"path"
+	"path/filepath"
 	"strings"
 	"time"
 
+	"github.com/alessio/shellescape"
 	"github.com/earthly/earthly/buildcontext"
 	"github.com/earthly/earthly/debugger/common"
 	"github.com/earthly/earthly/domain"
@@ -149,7 +152,7 @@ func (c *Converter) fromTarget(ctx context.Context, targetName string, platform 
 	}
 	for _, kv := range saveImage.Image.Config.Env {
 		k, v, _ := variables.ParseKeyValue(kv)
-		c.varCollection.AddActive(k, variables.NewConstantEnvVar(v), true, false)
+		c.varCollection.AddActive(k, variables.NewConstantEnvVar(v))
 	}
 	c.mts.Final.MainImage = saveImage.Image.Clone()
 	return nil
@@ -264,9 +267,7 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 
 // Locally applies the earthly Locally command.
 func (c *Converter) Locally(ctx context.Context, platform *specs.Platform) error {
-	imageName := "busybox:1.32.1" // this image can be anything that contains the /bin/true command
-	// it's used by our buildkit RunOnLocalHostMagicStr hack
-	return c.fromClassical(ctx, imageName, platform, true)
+	return c.fromClassical(ctx, "scratch", platform, true)
 }
 
 // CopyArtifact applies the earthly COPY artifact command.
@@ -317,24 +318,20 @@ func (c *Converter) CopyClassical(ctx context.Context, srcs []string, dest strin
 func (c *Converter) RunLocal(ctx context.Context, args []string, pushFlag bool) error {
 	runStr := fmt.Sprintf("RUN %s%s", strIf(pushFlag, "--push "), strings.Join(args, " "))
 
-	// Build args get propigated into env.
+	// Build args get propagated into env.
 	extraEnvVars := []string{}
 	for _, buildArgName := range c.varCollection.SortedActiveVariables() {
 		ba, _, _ := c.varCollection.Get(buildArgName)
 		if ba.IsEnvVar() {
 			continue
 		}
-		if ba.IsConstant() {
-			extraEnvVars = append(extraEnvVars, fmt.Sprintf("%s=\"%s\"", buildArgName, ba.ConstantValue()))
-		} else {
-			return fmt.Errorf("non-constant build arg (%s) is not supported with LOCALLY", buildArgName)
-		}
+		extraEnvVars = append(extraEnvVars, fmt.Sprintf("%s=\"%s\"", buildArgName, ba.ConstantValue()))
 	}
 
-	finalArgs := withShellAndEnvVars(args, extraEnvVars, true, false)
+	// buildkit-hack in order to run locally, we prepend the command with a UUID
+	finalArgs := append([]string{localhost.RunOnLocalHostMagicStr}, withShellAndEnvVars(args, extraEnvVars, true, false)...)
 	opts := []llb.RunOption{
 		llb.Args(finalArgs),
-		llb.AddMount(localhost.RunOnLocalHostMagicStr, llb.Scratch()), // hack to tell buildkit to run this locally
 		llb.IgnoreCache,
 		llb.WithCustomNamef("%s%s", c.vertexPrefix(true), runStr),
 	}
@@ -390,7 +387,10 @@ func (c *Converter) Run(ctx context.Context, args, mounts, secretKeyValues []str
 		strings.Join(finalArgs, " "))
 	shellWrap := withShellAndEnvVars
 	opts = append(opts, llb.WithCustomNamef("%s%s", c.vertexPrefix(false), runStr))
-	return c.internalRun(ctx, finalArgs, secretKeyValues, isWithShell, shellWrap, pushFlag, withSSH, noCache, runStr, opts...)
+	_, err = c.internalRun(
+		ctx, finalArgs, secretKeyValues, isWithShell, shellWrap, pushFlag,
+		false, withSSH, noCache, runStr, opts...)
+	return err
 }
 
 // SaveArtifact applies the earthly SAVE ARTIFACT command.
@@ -463,6 +463,29 @@ func (c *Converter) SaveArtifact(ctx context.Context, saveFrom string, saveTo st
 	c.ranSave = true
 	c.markFakeDeps()
 	return nil
+}
+
+// SaveArtifactFromLocal saves a local file into the ArtifactsState
+func (c *Converter) SaveArtifactFromLocal(ctx context.Context, saveFrom, saveTo string, keepTs, keepOwn bool, chown string) error {
+	src, err := filepath.Abs(saveFrom)
+	if err != nil {
+		return err
+	}
+
+	if saveTo == "" || saveTo == "." || strings.HasSuffix(saveTo, "/") {
+		saveTo = path.Join(saveTo, path.Base(src))
+	}
+
+	// first load the files into a snapshot
+	opts := []llb.RunOption{
+		llb.Args([]string{localhost.CopyFileMagicStr, saveFrom, saveTo}),
+		llb.IgnoreCache,
+		llb.WithCustomNamef("[internal] CopyFileMagicStr %s %s", saveFrom, saveTo),
+	}
+	c.mts.Final.MainState = c.mts.Final.MainState.Run(opts...).Root()
+
+	// then save it via the regular SaveArtifact code since it's now in a snapshot
+	return c.SaveArtifact(ctx, saveTo, saveTo, "", keepTs, keepOwn, false, false)
 }
 
 // SaveImage applies the earthly SAVE IMAGE command.
@@ -584,18 +607,22 @@ func (c *Converter) Volume(ctx context.Context, volumes []string) {
 // Env applies the ENV command.
 func (c *Converter) Env(ctx context.Context, envKey string, envValue string) {
 	c.nonSaveCommand()
-	c.varCollection.AddActive(envKey, variables.NewConstantEnvVar(envValue), true, false)
+	c.varCollection.AddActive(envKey, variables.NewConstantEnvVar(envValue))
 	c.mts.Final.MainState = c.mts.Final.MainState.AddEnv(envKey, envValue)
 	c.mts.Final.MainImage.Config.Env = variables.AddEnv(
 		c.mts.Final.MainImage.Config.Env, envKey, envValue)
 }
 
 // Arg applies the ARG command.
-func (c *Converter) Arg(ctx context.Context, argKey string, defaultArgValue string, global bool) {
+func (c *Converter) Arg(ctx context.Context, argKey string, defaultArgValue string, global bool) error {
 	c.nonSaveCommand()
-	effective := c.varCollection.AddActive(argKey, variables.NewConstant(defaultArgValue), false, global)
+	effective, err := c.varCollection.DeclareActive(argKey, defaultArgValue, global, c.processNonConstantBuildArgFunc((ctx)))
+	if err != nil {
+		return err
+	}
 	c.mts.Final.TargetInput = c.mts.Final.TargetInput.WithBuildArgInput(
-		effective.BuildArgInput(argKey, defaultArgValue))
+		effective.BuildArgInput(argKey, effective.ConstantValue()))
+	return nil
 }
 
 // Label applies the LABEL command.
@@ -715,23 +742,28 @@ func (c *Converter) buildTarget(ctx context.Context, fullTargetName string, plat
 		// Propagate globals.
 		globals := mts.Final.VarCollection.WithOnlyGlobals()
 		for _, k := range globals.SortedActiveVariables() {
+			_, alreadyActive, _ := c.varCollection.Get(k)
+			if alreadyActive {
+				// Globals don't override any variables in current scope.
+				continue
+			}
 			v, _, _ := globals.Get(k)
-			effective := c.varCollection.AddActive(k, v, false, false)
+			c.varCollection.AddActive(k, v)
 			c.mts.Final.TargetInput = c.mts.Final.TargetInput.WithBuildArgInput(
-				effective.BuildArgInput(k, "")) // TODO: Set coorect default value for bai.
+				v.BuildArgInput(k, "")) // TODO: Set correct default value for bai.
 		}
 	}
 	return mts, nil
 }
 
-func (c *Converter) internalRun(ctx context.Context, args, secretKeyValues []string, isWithShell bool, shellWrap shellWrapFun, pushFlag, withSSH, noCache bool, commandStr string, opts ...llb.RunOption) error {
+func (c *Converter) internalRun(ctx context.Context, args, secretKeyValues []string, isWithShell bool, shellWrap shellWrapFun, pushFlag, transient, withSSH, noCache bool, commandStr string, opts ...llb.RunOption) (llb.State, error) {
 	finalOpts := opts
 	var extraEnvVars []string
 	// Secrets.
 	for _, secretKeyValue := range secretKeyValues {
 		parts := strings.SplitN(secretKeyValue, "=", 2)
 		if len(parts) != 2 {
-			return fmt.Errorf("invalid secret definition %s", secretKeyValue)
+			return llb.State{}, fmt.Errorf("invalid secret definition %s", secretKeyValue)
 		}
 		if strings.HasPrefix(parts[1], "+secrets/") {
 			envVar := parts[0]
@@ -751,7 +783,7 @@ func (c *Converter) internalRun(ctx context.Context, args, secretKeyValues []str
 			// TODO: This should be an actual secret (with an empty value),
 			//       so that the cache works correctly.
 		} else {
-			return fmt.Errorf("secret definition %s not supported. Must start with +secrets/ or be an empty string", secretKeyValue)
+			return llb.State{}, fmt.Errorf("secret definition %s not supported. Must start with +secrets/ or be an empty string", secretKeyValue)
 		}
 	}
 	// Build args.
@@ -760,14 +792,7 @@ func (c *Converter) internalRun(ctx context.Context, args, secretKeyValues []str
 		if ba.IsEnvVar() {
 			continue
 		}
-		if ba.IsConstant() {
-			extraEnvVars = append(extraEnvVars, fmt.Sprintf("%s=\"%s\"", buildArgName, ba.ConstantValue()))
-		} else {
-			buildArgPath := path.Join("/run/buildargs", buildArgName)
-			finalOpts = append(finalOpts, llb.AddMount(buildArgPath, ba.VariableState(), llb.SourcePath(buildArgPath)))
-			// TODO: The use of cat here might not be portable.
-			extraEnvVars = append(extraEnvVars, fmt.Sprintf("%s=\"$(cat %s)\"", buildArgName, buildArgPath))
-		}
+		extraEnvVars = append(extraEnvVars, fmt.Sprintf("%s=%s", buildArgName, shellescape.Quote(ba.ConstantValue())))
 	}
 	// Debugger.
 	secretOpts := []llb.SecretOption{
@@ -804,10 +829,14 @@ func (c *Converter) internalRun(ctx context.Context, args, secretKeyValues []str
 		c.mts.Final.RunPush.State = c.mts.Final.RunPush.State.Run(finalOpts...).Root()
 		c.mts.Final.RunPush.CommandStrs = append(
 			c.mts.Final.RunPush.CommandStrs, commandStr)
+		return c.mts.Final.RunPush.State, nil
+	} else if transient {
+		transientState := c.mts.Final.MainState.Run(finalOpts...).Root()
+		return transientState, nil
 	} else {
 		c.mts.Final.MainState = c.mts.Final.MainState.Run(finalOpts...).Root()
+		return c.mts.Final.MainState, nil
 	}
-	return nil
 }
 
 func (c *Converter) readArtifact(ctx context.Context, mts *states.MultiTarget, artifact domain.Artifact) ([]byte, error) {
@@ -877,7 +906,7 @@ func (c *Converter) applyFromImage(state llb.State, img *image.Image) (llb.State
 	newVarCollection := c.varCollection.WithResetEnvVars()
 	for _, envVar := range img.Config.Env {
 		k, v, _ := variables.ParseKeyValue(envVar)
-		newVarCollection.AddActive(k, variables.NewConstantEnvVar(v), true, false)
+		newVarCollection.AddActive(k, variables.NewConstantEnvVar(v))
 		state = state.AddEnv(k, v)
 	}
 	// Init config maps if not already initialized.
@@ -909,36 +938,32 @@ func (c *Converter) nonSaveCommand() {
 }
 
 func (c *Converter) processNonConstantBuildArgFunc(ctx context.Context) variables.ProcessNonConstantVariableFunc {
-	return func(name string, expression string) (llb.State, dedup.TargetInput, int, error) {
-		// Run the expression on the side effects state.
-		srcBuildArgDir := "/run/buildargs-src"
+	return func(name string, expression string) (string, int, error) {
+		// Run the expression on the main state, but don't alter main with the resulting state.
+		srcBuildArgDir := "/run/buildargs"
 		srcBuildArgPath := path.Join(srcBuildArgDir, name)
 		c.mts.Final.MainState = c.mts.Final.MainState.File(
 			llb.Mkdir(srcBuildArgDir, 0755, llb.WithParents(true)),
 			llb.WithCustomNamef("[internal] mkdir %s", srcBuildArgDir))
-		buildArgPath := path.Join("/run/buildargs", name)
 		args := strings.Split(fmt.Sprintf("echo \"%s\" >%s", expression, srcBuildArgPath), " ")
-		err := c.internalRun(
-			ctx, args, []string{}, true, withShellAndEnvVars, false, false, false, expression,
+		transient := true
+		state, err := c.internalRun(
+			ctx, args, []string{}, true, withShellAndEnvVars, false, transient, false, false, expression,
 			llb.WithCustomNamef("%sRUN %s", c.vertexPrefix(false), expression))
 		if err != nil {
-			return llb.State{}, dedup.TargetInput{}, 0, errors.Wrapf(err, "run %v", expression)
+			return "", 0, errors.Wrapf(err, "run %v", expression)
 		}
-		// Copy the result of the expression into a separate, isolated state.
-		buildArgState := llb.Scratch().Platform(llbutil.PlatformWithDefault(c.opt.Platform))
-		buildArgState = llbutil.CopyOp(
-			c.mts.Final.MainState, []string{srcBuildArgPath},
-			buildArgState, buildArgPath, false, false, false, "root:root", false,
-			llb.WithCustomNamef("[internal] copy buildarg %s", name))
-		// Store the state with the expression result for later use.
-		argIndex := c.nextArgIndex
-		c.nextArgIndex++
-		// Remove intermediary file from side effects state.
-		c.mts.Final.MainState = c.mts.Final.MainState.File(
-			llb.Rm(srcBuildArgPath, llb.WithAllowNotFound(true)),
-			llb.WithCustomNamef("[internal] rm %s", srcBuildArgPath))
-
-		return buildArgState, c.mts.Final.TargetInput, argIndex, nil
+		ref, err := llbutil.StateToRef(ctx, c.opt.GwClient, state, c.opt.Platform, c.opt.CacheImports)
+		if err != nil {
+			return "", 0, errors.Wrapf(err, "build arg state to ref")
+		}
+		value, err := ref.ReadFile(ctx, gwclient.ReadRequest{Filename: srcBuildArgPath})
+		if err != nil {
+			return "", 0, errors.Wrapf(err, "non constant build arg read request")
+		}
+		// echo adds a trailing \n.
+		value = bytes.TrimSuffix(value, []byte("\n"))
+		return string(value), 0, nil
 	}
 }
 
@@ -955,13 +980,7 @@ func (c *Converter) vertexPrefix(local bool) string {
 		if variable.IsEnvVar() {
 			continue
 		}
-		var value string
-		if variable.IsConstant() {
-			value = variable.ConstantValue()
-		} else {
-			value = "<expr>"
-		}
-		varStrBuilder = append(varStrBuilder, fmt.Sprintf("%s=%s", key, value))
+		varStrBuilder = append(varStrBuilder, fmt.Sprintf("%s=%s", key, variable.ConstantValue()))
 	}
 	var varStr string
 	if len(varStrBuilder) > 0 {

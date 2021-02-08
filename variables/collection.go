@@ -9,11 +9,9 @@ import (
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/gitutil"
 	"github.com/earthly/earthly/llbutil"
-	"github.com/earthly/earthly/states/dedup"
 	"github.com/earthly/earthly/stringutil"
 
 	"github.com/containerd/containerd/platforms"
-	"github.com/moby/buildkit/client/llb"
 	dfShell "github.com/moby/buildkit/frontend/dockerfile/shell"
 	specs "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
@@ -21,7 +19,7 @@ import (
 
 // ProcessNonConstantVariableFunc is a function which takes in an expression and
 // turns it into a state, target intput and arg index.
-type ProcessNonConstantVariableFunc func(name string, expression string) (argState llb.State, ti dedup.TargetInput, argIndex int, err error)
+type ProcessNonConstantVariableFunc func(name string, expression string) (value string, argIndex int, err error)
 
 // Collection is a collection of variables.
 type Collection struct {
@@ -92,9 +90,6 @@ func (c *Collection) Expand(word string) string {
 	argsMap := make(map[string]string)
 	for varName := range c.activeVariables {
 		variable := c.variables[varName]
-		if !variable.IsConstant() {
-			continue
-		}
 		argsMap[varName] = variable.ConstantValue()
 	}
 	ret, err := shlex.ProcessWordWithMap(word, argsMap)
@@ -109,9 +104,6 @@ func (c *Collection) Expand(word string) string {
 func (c *Collection) AsMap() map[string]string {
 	ret := make(map[string]string)
 	for varName, variable := range c.variables {
-		if !variable.IsConstant() {
-			continue
-		}
 		ret[varName] = variable.ConstantValue()
 	}
 	return ret
@@ -137,25 +129,32 @@ func (c *Collection) SortedOverridingVariables() []string {
 	return varNames
 }
 
-// AddActive adds and activates a variable in the collection. It returns the effective variable. The
-// effective variable may be different from the one being added, when override is false.
-func (c *Collection) AddActive(name string, variable Variable, override, global bool) Variable {
-	effective := variable
+// AddActive adds and activates a variable in the collection.
+func (c *Collection) AddActive(name string, variable Variable) {
 	c.activeVariables[name] = true
-	if override {
-		c.variables[name] = variable
+	c.variables[name] = variable
+}
+
+// DeclareActive declares a variable and sets it to active state. The effective value may be
+// different than the default, if the variable has been overridden.
+func (c *Collection) DeclareActive(name string, defaultValue string, global bool, pncvf ProcessNonConstantVariableFunc) (Variable, error) {
+	var effective Variable
+	existing, found := c.variables[name]
+	if found {
+		effective = existing
 	} else {
-		existing, found := c.variables[name]
-		if found {
-			effective = existing
-		} else {
-			c.variables[name] = variable
+		v, err := c.parseBuildArgValue(name, defaultValue, pncvf)
+		if err != nil {
+			return Variable{}, err
 		}
+		effective = v
+		c.variables[name] = v
 	}
 	if global {
 		c.globalVariables[name] = true
 	}
-	return effective
+	c.activeVariables[name] = true
+	return effective, nil
 }
 
 // WithResetEnvVars returns a copy of the current collection with all env vars
@@ -296,7 +295,7 @@ func (c *Collection) WithParseBuildArgs(args []string, pncvf ProcessNonConstantV
 			continue
 		}
 		var finalValue Variable
-		if ba.IsConstant() && !haveValues[key] {
+		if !haveValues[key] {
 			existing, active, found := c.Get(key)
 			if found && active {
 				if existing.IsEnvVar() {
@@ -306,7 +305,7 @@ func (c *Collection) WithParseBuildArgs(args []string, pncvf ProcessNonConstantV
 				}
 			} else {
 				return nil, nil, fmt.Errorf(
-					"Value not specified for build arg %s and no value can be inferred", key)
+					"value not specified for build arg %s and no value can be inferred", key)
 			}
 		} else {
 			finalValue = ba
@@ -331,16 +330,23 @@ func (c *Collection) parseBuildArg(arg string, pncvf ProcessNonConstantVariableF
 		value = splitArg[1]
 		hasValue = true
 	}
-	if !strings.HasPrefix(value, "$") {
-		// Constant build arg.
-		return name, NewConstant(value), hasValue, nil
-	}
-
-	// Variable build arg.
-	argState, ti, argIndex, err := pncvf(name, value)
+	v, err := c.parseBuildArgValue(name, value, pncvf)
 	if err != nil {
 		return "", Variable{}, false, err
 	}
-	ret := NewVariable(argState, ti, argIndex)
-	return name, ret, hasValue, nil
+	return name, v, hasValue, nil
+}
+
+func (c *Collection) parseBuildArgValue(name, value string, pncvf ProcessNonConstantVariableFunc) (Variable, error) {
+	if !strings.HasPrefix(value, "$(") {
+		// Constant build arg.
+		return NewConstant(value), nil
+	}
+
+	// Variable build arg - resolve value and turn it into a constant build arg.
+	value, _, err := pncvf(name, value)
+	if err != nil {
+		return Variable{}, err
+	}
+	return NewConstant(value), nil
 }

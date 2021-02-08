@@ -17,21 +17,26 @@ ssh-keygen -b 3072 -t rsa -f /tmp/sshkey -q -N "" -C "testkey"
 pubkey=$(cat /tmp/sshkey.pub)
 ssh-add /tmp/sshkey
 
+sudo /bin/sh -c "echo 127.0.0.1 ip4-localhost >> /etc/hosts"
+sshhost="ip4-localhost"
+
 # add test ssh server to known hosts
 mkdir -p ~/.ssh
 {
-	ssh-keyscan -p "$SSH_PORT" -H localhost
+	ssh-keyscan -p "$SSH_PORT" -H $sshhost
 	ssh-keyscan -p "$SSH_PORT" -H 127.0.0.1
 	ssh-keyscan -p "$SSH_PORT" -H "$ip"
 } > ~/.ssh/known_hosts
 
+cat ~/.ssh/known_hosts
+
 # setup passwordless login
-sshpass -p "root" ssh root@localhost -p "$SSH_PORT" "/bin/sh -c \"echo $pubkey > /root/.ssh/authorized_keys\""
+sshpass -p "root" ssh root@$sshhost -p "$SSH_PORT" "/bin/sh -c \"echo $pubkey > /root/.ssh/authorized_keys\""
 
 # setup a non-standard self-hosted git repo under the root user
-ssh root@localhost -p "$SSH_PORT" "/bin/sh -c \"apt-get update && apt-get install -y git\""
-ssh root@localhost -p "$SSH_PORT" "/bin/sh -c \"mkdir -p /root/my/really/weird/path/project.git\""
-ssh root@localhost -p "$SSH_PORT" "/bin/sh -c \"cd /root/my/really/weird/path/project.git; git init --bare \""
+ssh root@$sshhost -p "$SSH_PORT" "/bin/sh -c \"apt-get update && apt-get install -y git\""
+ssh root@$sshhost -p "$SSH_PORT" "/bin/sh -c \"mkdir -p /root/my/really/weird/path/project.git\""
+ssh root@$sshhost -p "$SSH_PORT" "/bin/sh -c \"cd /root/my/really/weird/path/project.git; git init --bare \""
 
 # setup git
 git config --global user.email "inigo@montoya.com"
@@ -60,7 +65,7 @@ EOF
 git add Earthfile
 git commit -m 'This is my weird commit'
 git branch -M trunk
-git remote add origin ssh://root@localhost:2222/root/my/really/weird/path/project.git
+git remote add origin ssh://root@$sshhost:2222/root/my/really/weird/path/project.git
 git push -u origin trunk
 
 # delete the repo now that we've pushed it

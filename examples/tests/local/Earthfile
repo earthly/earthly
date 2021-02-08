@@ -1,3 +1,5 @@
+FROM alpine:3.13
+
 test-local-with-arg:
     LOCALLY
     ARG pattern
@@ -8,6 +10,58 @@ test-local:
     # If run inside a container, one would expect something like 
     # 12:cpuset:/docker/e4b6b1698e80c6a2d8ccdfcd689a1ce5828587ada1337ddcb0b9a80caf0087a4/buildkit/83zo724g6vr1ipssy0dic9kpa
     RUN whoami
-    RUN cat /proc/1/cgroup | grep '^[0-9]\+:cpuset:/$'
+    RUN cat /proc/1/cgroup | perl -pe 'BEGIN {$status=1} END {exit $status} $status=0 if /^[0-9]+:cpuset:\/$/;'
     RUN --push touch /tmp/earthly-test-local
+
+create-file:
+    LOCALLY
+    RUN echo hello > /tmp/earthly-test-a266bf52-f5ea-477c-9416-2931720d1826
+    SAVE ARTIFACT /tmp/earthly-test-a266bf52-f5ea-477c-9416-2931720d1826 data
+
+test-copy-file-from-local:
+    COPY +create-file/data actual
+    RUN echo hello > expected
+    RUN diff expected actual
+
+create-dir:
+    LOCALLY
+    RUN rm -rf /tmp/earthly-test-bfbe3177-8683-4f8f-8c42-75053dc0e807
+    RUN mkdir /tmp/earthly-test-bfbe3177-8683-4f8f-8c42-75053dc0e807
+    RUN echo aaa > /tmp/earthly-test-bfbe3177-8683-4f8f-8c42-75053dc0e807/a.txt
+    RUN echo bbb > /tmp/earthly-test-bfbe3177-8683-4f8f-8c42-75053dc0e807/b.txt
+    SAVE ARTIFACT /tmp/earthly-test-bfbe3177-8683-4f8f-8c42-75053dc0e807 datadir
+
+test-copy-dir-from-local:
+    COPY +create-dir/datadir the-data
+    RUN echo aaa > expected_a.txt
+    RUN echo bbb > expected_b.txt
+    RUN diff the-data/a.txt expected_a.txt
+    RUN diff the-data/b.txt expected_b.txt
+
+save-unnamed-artifact:
+    LOCALLY
+    RUN rm -rf /tmp/earthly-test-c5009c71-d573-4562-be15-2c28dae333fc
+    RUN mkdir /tmp/earthly-test-c5009c71-d573-4562-be15-2c28dae333fc
+    RUN echo ccc > /tmp/earthly-test-c5009c71-d573-4562-be15-2c28dae333fc/c.txt
+    SAVE ARTIFACT /tmp/earthly-test-c5009c71-d573-4562-be15-2c28dae333fc
+
+test-save-unnamed-artifact:
+    COPY +save-unnamed-artifact/earthly-test-c5009c71-d573-4562-be15-2c28dae333fc .
+    RUN cat c.txt | grep '^ccc$'
+
+test-save-unnamed-artifact-dir:
+    COPY --dir +save-unnamed-artifact/earthly-test-c5009c71-d573-4562-be15-2c28dae333fc .
+    RUN cat earthly-test-c5009c71-d573-4562-be15-2c28dae333fc/c.txt | grep '^ccc$'
+
+test-save-unnamed-artifact-dir2:
+    COPY --dir +save-unnamed-artifact/earthly-test-c5009c71-d573-4562-be15-2c28dae333fc /var/log/.
+    RUN cat /var/log/earthly-test-c5009c71-d573-4562-be15-2c28dae333fc/c.txt | grep '^ccc$'
+
+all:
+    BUILD +test-local
     BUILD --build-arg pattern=memory +test-local-with-arg
+    BUILD +test-copy-dir-from-local
+    BUILD +test-copy-file-from-local
+    BUILD +test-save-unnamed-artifact
+    BUILD +test-save-unnamed-artifact-dir
+    BUILD +test-save-unnamed-artifact-dir2

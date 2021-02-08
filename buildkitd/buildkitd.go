@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -223,6 +224,10 @@ func Start(ctx context.Context, image string, settings Settings, reset bool) err
 			"-p", fmt.Sprintf("127.0.0.1:%d:8373", settings.DebuggerPort))
 	}
 
+	if supportsPlatform(ctx) {
+		args = append(args, platformFlag())
+	}
+
 	args = append(args,
 		"-e", fmt.Sprintf("CACHE_SIZE_MB=%d", settings.CacheSizeMb),
 		"-e", fmt.Sprintf("GIT_URL_INSTEAD_OF=%s", settings.GitURLInsteadOf),
@@ -402,4 +407,22 @@ func isRootlessDocker(ctx context.Context) (bool, error) {
 	}
 
 	return strings.Contains(string(output), "rootless"), nil
+}
+
+func supportsPlatform(ctx context.Context) bool {
+	// We can't run scratch, but the error is different depending on whether
+	// --platform is supported or not. This is faster than attempting to run
+	// an actual image which may require downloading.
+	cmd := exec.CommandContext(ctx,
+		"docker", "run", "--rm", platformFlag(), "scratch")
+	output, _ := cmd.CombinedOutput()
+	return bytes.Contains(output, []byte("Unable to find image"))
+}
+
+func platformFlag() string {
+	arch := runtime.GOARCH
+	if runtime.GOARCH == "arm" {
+		arch = "arm/v7"
+	}
+	return fmt.Sprintf("--platform=linux/%s", arch)
 }

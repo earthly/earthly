@@ -6,7 +6,7 @@ steps:
     env:
       EARTHLY_INSTALL_ID: "earthly-buildkite-macos"
       EARTHLY_BUILD_ARGS: "DOCKERHUB_USER_SECRET=+secrets/earthly-technologies/dockerhub/user,DOCKERHUB_TOKEN_SECRET=+secrets/earthly-technologies/dockerhub/token"
-      EARTHLY_OS: "darwin"
+      EARTHLY_OS: "darwin-m1"
     agents:
       os: macOS
-      arch: amd64
+      arch: arm64

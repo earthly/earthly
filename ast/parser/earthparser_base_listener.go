@@ -1,4 +1,4 @@
-// Code generated from earthfile2llb/parser/EarthParser.g4 by ANTLR 4.8. DO NOT EDIT.
+// Code generated from ast/parser/EarthParser.g4 by ANTLR 4.8. DO NOT EDIT.
 
 package parser // EarthParser
 
@@ -56,6 +56,12 @@ func (s *BaseEarthParserListener) EnterStmt(ctx *StmtContext) {}
 
 // ExitStmt is called when production stmt is exited.
 func (s *BaseEarthParserListener) ExitStmt(ctx *StmtContext) {}
+
+// EnterCommandStmt is called when production commandStmt is entered.
+func (s *BaseEarthParserListener) EnterCommandStmt(ctx *CommandStmtContext) {}
+
+// ExitCommandStmt is called when production commandStmt is exited.
+func (s *BaseEarthParserListener) ExitCommandStmt(ctx *CommandStmtContext) {}
 
 // EnterFromStmt is called when production fromStmt is entered.
 func (s *BaseEarthParserListener) EnterFromStmt(ctx *FromStmtContext) {}
@@ -194,18 +200,6 @@ func (s *BaseEarthParserListener) EnterGitCloneStmt(ctx *GitCloneStmtContext) {}
 
 // ExitGitCloneStmt is called when production gitCloneStmt is exited.
 func (s *BaseEarthParserListener) ExitGitCloneStmt(ctx *GitCloneStmtContext) {}
-
-// EnterDockerLoadStmt is called when production dockerLoadStmt is entered.
-func (s *BaseEarthParserListener) EnterDockerLoadStmt(ctx *DockerLoadStmtContext) {}
-
-// ExitDockerLoadStmt is called when production dockerLoadStmt is exited.
-func (s *BaseEarthParserListener) ExitDockerLoadStmt(ctx *DockerLoadStmtContext) {}
-
-// EnterDockerPullStmt is called when production dockerPullStmt is entered.
-func (s *BaseEarthParserListener) EnterDockerPullStmt(ctx *DockerPullStmtContext) {}
-
-// ExitDockerPullStmt is called when production dockerPullStmt is exited.
-func (s *BaseEarthParserListener) ExitDockerPullStmt(ctx *DockerPullStmtContext) {}
 
 // EnterAddStmt is called when production addStmt is entered.
 func (s *BaseEarthParserListener) EnterAddStmt(ctx *AddStmtContext) {}

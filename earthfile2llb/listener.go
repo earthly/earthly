@@ -5,13 +5,14 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
 	"time"
 
+	"github.com/earthly/earthly/ast/parser"
 	"github.com/earthly/earthly/domain"
-	"github.com/earthly/earthly/earthfile2llb/parser"
 	"github.com/earthly/earthly/llbutil"
 	specs "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
@@ -163,7 +164,6 @@ func (l *listener) ExitFromStmt(c *parser.FromStmtContext) {
 		l.err = errors.Wrapf(err, "apply FROM %s", imageName)
 		return
 	}
-
 }
 
 func (l *listener) ExitFromDockerfileStmt(c *parser.FromDockerfileStmtContext) {
@@ -464,6 +464,20 @@ func (l *listener) ExitSaveArtifact(c *parser.SaveArtifactContext) {
 	saveFrom := l.expandArgs(fs.Args()[0], false)
 	saveTo = l.expandArgs(saveTo, false)
 	saveAsLocalTo = l.expandArgs(saveAsLocalTo, false)
+
+	if l.local {
+		if saveAsLocalTo != "" {
+			l.err = fmt.Errorf("SAVE ARTIFACT AS LOCAL is not implemented under LOCALLY targets")
+			return
+		}
+		err = l.converter.SaveArtifactFromLocal(l.ctx, saveFrom, saveTo, *keepTs, *ifExists, "")
+		if err != nil {
+			l.err = errors.Wrap(err, "apply SAVE ARTIFACT")
+			return
+		}
+		return
+	}
+
 	err = l.converter.SaveArtifact(l.ctx, saveFrom, saveTo, saveAsLocalTo, *keepTs, *keepOwn, *ifExists, l.pushOnlyAllowed)
 	if err != nil {
 		l.err = errors.Wrap(err, "apply SAVE ARTIFACT")
@@ -506,7 +520,7 @@ func (l *listener) ExitSaveImage(c *parser.SaveImageContext) {
 		imageNames[i] = l.expandArgs(img, false)
 	}
 	if len(imageNames) == 0 && !*cacheHint && len(cacheFrom.Args) == 0 {
-		fmt.Printf("Deprecation: using SAVE IMAGE with no arguments is no longer necessary and can be safely removed\n")
+		fmt.Fprintf(os.Stderr, "Deprecation: using SAVE IMAGE with no arguments is no longer necessary and can be safely removed\n")
 		return
 	}
 	err = l.converter.SaveImage(l.ctx, imageNames, *pushFlag, *insecure, *cacheHint, cacheFrom.Args)
@@ -558,11 +572,20 @@ func (l *listener) ExitBuildStmt(c *parser.BuildStmtContext) {
 	if len(platformsSlice) == 0 {
 		platformsSlice = []*specs.Platform{nil}
 	}
-	for _, platform := range platformsSlice {
-		err = l.converter.Build(l.ctx, fullTargetName, platform, buildArgs.Args)
-		if err != nil {
-			l.err = errors.Wrapf(err, "apply BUILD %s", fullTargetName)
-			return
+
+	crossProductBuildArgs, err := buildArgMatrix(buildArgs.Args)
+	if err != nil {
+		l.err = err
+		return
+	}
+
+	for _, bas := range crossProductBuildArgs {
+		for _, platform := range platformsSlice {
+			err = l.converter.Build(l.ctx, fullTargetName, platform, bas)
+			if err != nil {
+				l.err = errors.Wrapf(err, "apply BUILD %s", fullTargetName)
+				return
+			}
 		}
 	}
 }
@@ -698,7 +721,11 @@ func (l *listener) ExitArgStmt(c *parser.ArgStmtContext) {
 	value := l.expandArgs(l.envArgValue, true)
 	// Args declared in the base target are global.
 	global := (l.currentTarget == "base")
-	l.converter.Arg(l.ctx, key, value, global)
+	err := l.converter.Arg(l.ctx, key, value, global)
+	if err != nil {
+		l.err = errors.Wrapf(err, "apply ARG %s=%s", key, value)
+		return
+	}
 }
 
 func (l *listener) ExitLabelStmt(c *parser.LabelStmtContext) {
@@ -752,20 +779,6 @@ func (l *listener) ExitGitCloneStmt(c *parser.GitCloneStmtContext) {
 		l.err = errors.Wrap(err, "git clone")
 		return
 	}
-}
-
-func (l *listener) ExitDockerLoadStmt(c *parser.DockerLoadStmtContext) {
-	if l.shouldSkip() {
-		return
-	}
-	l.err = errors.New("DOCKER LOAD is obsolete. Please use WITH DOCKER --load")
-}
-
-func (l *listener) ExitDockerPullStmt(c *parser.DockerPullStmtContext) {
-	if l.shouldSkip() {
-		return
-	}
-	l.err = errors.New("DOCKER PULL is obsolete. Please use WITH DOCKER --pull")
 }
 
 func (l *listener) ExitHealthcheckStmt(c *parser.HealthcheckStmtContext) {
@@ -1032,25 +1045,6 @@ func (l *listener) expandArgs(word string, keepPlusEscape bool) string {
 	return unescapeSlashPlus(ret)
 }
 
-// StringSliceFlag is a flag backed by a string slice.
-type StringSliceFlag struct {
-	Args []string
-}
-
-// String returns a string representation of the flag.
-func (ssf *StringSliceFlag) String() string {
-	if ssf == nil {
-		return ""
-	}
-	return strings.Join(ssf.Args, ",")
-}
-
-// Set adds a flag value to the string slice.
-func (ssf *StringSliceFlag) Set(arg string) error {
-	ssf.Args = append(ssf.Args, arg)
-	return nil
-}
-
 var envVarNameRegexp = regexp.MustCompile("^[a-zA-Z_]+[a-zA-Z0-9_]*$")
 
 func checkEnvVarName(str string) error {
@@ -1065,25 +1059,4 @@ var lineContinuationRegexp = regexp.MustCompile("\\\\(\\n|(\\r\\n))[\\t ]*")
 
 func replaceEscape(str string) string {
 	return lineContinuationRegexp.ReplaceAllString(str, "")
-}
-
-func parseLoad(loadStr string) (string, string, error) {
-	splitLoad := strings.SplitN(loadStr, "=", 2)
-	if len(splitLoad) < 2 {
-		// --load <target-name>
-		// (will infer image name from SAVE IMAGE of that target)
-		return "", loadStr, nil
-	}
-	// --load <image-name>=<target-name>
-	return splitLoad[0], splitLoad[1], nil
-}
-
-func escapeSlashPlus(str string) string {
-	// TODO: This is not entirely correct in a string like "\\\\+".
-	return strings.ReplaceAll(str, "\\+", "\\\\+")
-}
-
-func unescapeSlashPlus(str string) string {
-	// TODO: This is not entirely correct in a string like "\\\\+".
-	return strings.ReplaceAll(str, "\\+", "+")
 }
