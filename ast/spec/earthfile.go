@@ -46,16 +46,7 @@ type WithStatement struct {
 type IfStatement struct {
 	Expression     []string        `json:"expression"`
 	IfBody         Block           `json:"ifBody"`
-	ElseIf         []ElseIf        `json:"elseIf"`
-	HasElse        bool            `json:"hasElse"`
 	ElseBody       *Block          `json:"elseBody,omitempty"`
-	SourceLocation *SourceLocation `json:"sourceLocation,omitempty"`
-}
-
-// ElseIf is the AST representation of an else if clause.
-type ElseIf struct {
-	Expression     []string        `json:"expression"`
-	Body           Block           `json:"body"`
 	SourceLocation *SourceLocation `json:"sourceLocation,omitempty"`
 }
 
