@@ -702,12 +702,7 @@ func (c *Converter) buildTarget(ctx context.Context, fullTargetName string, plat
 		// Contradiction allowed. You can BUILD another target with different platform.
 		opt.Platform = platform
 	}
-	var mts *states.MultiTarget
-	if c.opt.EnableAst {
-		mts, err = Earthfile2LLB2(ctx, target, opt)
-	} else {
-		mts, err = Earthfile2LLB(ctx, target, opt)
-	}
+	mts, err := Earthfile2LLB(ctx, target, opt)
 	if err != nil {
 		return nil, errors.Wrapf(err, "earthfile2llb for %s", fullTargetName)
 	}
