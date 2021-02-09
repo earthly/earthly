@@ -805,6 +805,12 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 				},
 			},
 		},
+		{
+			Name:   "config",
+			Usage:  "Edits your Earthly configuration file",
+			Hidden: true, // Experimental.
+			Action: app.actionConfig,
+		},
 	}
 
 	app.cliApp.Before = app.before
@@ -1990,6 +1996,22 @@ func (app *earthlyApp) actionPrune(c *cli.Context) error {
 
 func (app *earthlyApp) actionDocker2Earthly(c *cli.Context) error {
 	return docker2earthly.Docker2Earthly(app.dockerfilePath, app.earthfilePath, app.earthfileFinalImage)
+}
+
+func (app *earthlyApp) actionConfig(c *cli.Context) error {
+	app.commandName = "config"
+	if c.NArg() != 2 {
+		return errors.New("invalid number of arguments provided")
+	}
+
+	args := c.Args().Slice()
+
+	err := config.UpsertConfig(app.configPath, args[0], args[1])
+	if err != nil {
+		return errors.Wrap(err, "upsert config")
+	}
+
+	return nil
 }
 
 func (app *earthlyApp) actionBuild(c *cli.Context) error {
