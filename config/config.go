@@ -183,7 +183,7 @@ func UpsertConfig(configPath, path, value string) error {
 	pathParts := strings.Split(path, ".")
 	// config and set value validation
 
-	setYamlValue(base, &mergeState{setPath: pathParts, setValue: value})
+	setYamlValue(base, pathParts, value)
 
 	newConfig, err := yaml.Marshal(base)
 	if err != nil {
@@ -195,16 +195,57 @@ func UpsertConfig(configPath, path, value string) error {
 	return nil
 }
 
-type mergeState struct {
-	setPath  []string
-	setValue string
+func valueToYaml(value string) *yaml.Node {
+	valueNode := &yaml.Node{}
+	yaml.Unmarshal([]byte(value), valueNode)
+
+	var fixStyling func(node *yaml.Node)
+	fixStyling = func(node *yaml.Node) {
+		node.Style = yaml.FlowStyle
+
+		for _, n := range node.Content {
+			fixStyling(n)
+		}
+	}
+	fixStyling(valueNode)
+
+	return valueNode.Content[0]
 }
 
-func setYamlValue(node *yaml.Node, state *mergeState) {
+func pathToYaml(path []string, value *yaml.Node) []*yaml.Node {
+	yamlNodes := []*yaml.Node{}
+
+	var last *yaml.Node
+
+	for i, seg := range path {
+		key := &yaml.Node{
+			Kind:  yaml.ScalarNode,
+			Value: seg,
+		}
+
+		mapping := &yaml.Node{
+			Kind: yaml.MappingNode,
+		}
+
+		if last == nil {
+			yamlNodes = append(yamlNodes, key, mapping)
+			last = mapping
+		} else if i == len(path)-1 {
+			last.Content = append(last.Content, key, value)
+		} else {
+			last.Content = append(last.Content, key, mapping)
+			last = mapping
+		}
+	}
+
+	return yamlNodes
+}
+
+func setYamlValue(node *yaml.Node, path []string, value string) []string {
 	switch node.Kind {
 	case yaml.DocumentNode:
 		for _, c := range node.Content {
-			setYamlValue(c, state)
+			path = setYamlValue(c, path, value)
 		}
 
 	case yaml.MappingNode:
@@ -212,57 +253,31 @@ func setYamlValue(node *yaml.Node, state *mergeState) {
 			key := node.Content[i]
 			val := node.Content[i+1]
 
-			if len(state.setPath) > 0 && key.Value == state.setPath[0] {
-				state.setPath = state.setPath[1:]
+			if len(path) > 0 && key.Value == path[0] {
+				path = path[1:]
 
-				if len(state.setPath) == 0 {
-					valueNode := &yaml.Node{}
-					yaml.Unmarshal([]byte(state.setValue), valueNode)
-					node.Content[i+1] = valueNode.Content[0]
-					return
+				if len(path) == 0 {
+					node.Content[i+1] = valueToYaml(value)
+					return []string{}
 				}
 
-				setYamlValue(val, state)
+				path = setYamlValue(val, path, value)
 			}
 		}
 
-		if len(state.setPath) > 0 {
-			yamlSegments := []*yaml.Node{}
-			for _, seg := range state.setPath {
-				key := &yaml.Node{
-					Kind:  yaml.ScalarNode,
-					Value: seg,
-				}
-
-				mapping := &yaml.Node{
-					Kind: yaml.MappingNode,
-				}
-
-				yamlSegments = append(yamlSegments, key, mapping)
-			}
-
-			valueNode := &yaml.Node{}
-			yaml.Unmarshal([]byte(state.setValue), valueNode)
-
-			// recurse through, unfold all styles
-			valueNode.Content[0].Style = yaml.FoldedStyle
-
-			yamlSegments[len(yamlSegments)-1] = valueNode.Content[0]
-			node.Content = append(node.Content, yamlSegments...)
-			state.setPath = []string{} // block all others from doing this
+		if len(path) > 0 {
+			yamlValue := valueToYaml(value)
+			yamlMap := pathToYaml(path, yamlValue)
+			node.Content = append(node.Content, yamlMap...)
+			return []string{}
 		}
 
 	default: // Sequence, Scalar nodes
-		return
+		return path
 	}
+
+	return []string{}
 }
-
-// done func
-// formalize path is at zero
-
-// value to yaml func
-// returns needed node
-// updates all styles if you went inline
 
 func readConfigFile(configPath string, contextSet bool) ([]byte, error) {
 	yamlData, err := ioutil.ReadFile(configPath)
