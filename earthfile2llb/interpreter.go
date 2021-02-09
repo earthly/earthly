@@ -74,6 +74,8 @@ func (i *Interpreter) handleStatement(ctx context.Context, stmt spec.Statement) 
 		return i.handleCommand(ctx, *stmt.Command)
 	} else if stmt.With != nil {
 		return i.handleWith(ctx, *stmt.With)
+	} else if stmt.If != nil {
+		return i.handleIf(ctx, *stmt.If)
 	} else {
 		return Errorf(stmt.SourceLocation, "unexpected statement type")
 	}
@@ -161,6 +163,11 @@ func (i *Interpreter) handleWith(ctx context.Context, with spec.WithStatement) e
 	}
 	i.withDockerRan = false
 	return nil
+}
+
+func (i *Interpreter) handleIf(ctx context.Context, ifStmt spec.IfStatement) error {
+	// TODO
+	return Errorf(ifStmt.SourceLocation, "not implemented")
 }
 
 // Commands -------------------------------------------------------------------

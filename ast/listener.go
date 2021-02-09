@@ -14,28 +14,25 @@ import (
 
 var _ parser.EarthParserListener = &listener{}
 
-type contextFrame int
-
-const (
-	contextFrameEarthfile = iota
-	contextFrameTarget
-	contextFrameStatement
-	contextFrameWith
-)
+type block struct {
+	block         spec.Block
+	statement     *spec.Statement
+	withStatement *spec.WithStatement
+	ifStatement   *spec.IfStatement
+}
 
 type listener struct {
 	*parser.BaseEarthParserListener
 
-	ef            *spec.Earthfile
-	target        *spec.Target
-	block         spec.Block
-	withBlock     spec.Block
-	statement     *spec.Statement
-	withStatement *spec.Statement
-	command       *spec.Command
-	with          *spec.WithStatement
+	ef      *spec.Earthfile
+	target  *spec.Target
+	blocks  []*block
+	command *spec.Command
 
-	contextStack []contextFrame
+	stmtWords []string
+	execMode  bool
+
+	genericCommandName string
 
 	ctx             context.Context
 	filePath        string
@@ -56,12 +53,11 @@ func newListener(ctx context.Context, filePath string, enableSourceMap bool) *li
 		filePath:        filePath,
 		enableSourceMap: enableSourceMap,
 		ef:              ef,
-		contextStack:    []contextFrame{contextFrameEarthfile},
 	}
 }
 
 func (l *listener) Err() error {
-	if l.currentContext() != contextFrameEarthfile && l.err == nil {
+	if len(l.blocks) != 0 && l.err == nil {
 		return errors.New("parsing did not finish")
 	}
 	return l.err
@@ -71,20 +67,28 @@ func (l *listener) Earthfile() spec.Earthfile {
 	return *l.ef
 }
 
-func (l *listener) currentContext() contextFrame {
-	return l.contextStack[len(l.contextStack)-1]
+func (l *listener) block() *block {
+	return l.blocks[len(l.blocks)-1]
 }
 
-func (l *listener) pushContext(frame contextFrame) {
-	l.contextStack = append(l.contextStack, frame)
+func (l *listener) pushNewBlock() {
+	l.blocks = append(l.blocks, new(block))
 }
 
-func (l *listener) popContext(frame contextFrame) contextFrame {
-	if l.currentContext() != frame {
-		panic(fmt.Sprintf("unexpected frame %v when expecting frame %v", l.currentContext(), frame))
-	}
-	l.contextStack = l.contextStack[:len(l.contextStack)-1]
-	return l.currentContext()
+func (l *listener) popBlock() spec.Block {
+	ret := l.block().block
+	l.blocks = l.blocks[:len(l.blocks)-1]
+	return ret
+}
+
+// Base -----------------------------------------------------------------------
+
+func (l *listener) EnterEarthFile(c *parser.EarthFileContext) {
+	l.pushNewBlock()
+}
+
+func (l *listener) ExitEarthFile(c *parser.EarthFileContext) {
+	l.ef.BaseRecipe = l.popBlock()
 }
 
 // Target ---------------------------------------------------------------------
@@ -100,7 +104,7 @@ func (l *listener) EnterTarget(c *parser.TargetContext) {
 			EndColumn:   c.GetStop().GetColumn(),
 		}
 	}
-	l.pushContext(contextFrameTarget)
+	l.pushNewBlock()
 }
 
 func (l *listener) EnterTargetHeader(c *parser.TargetHeaderContext) {
@@ -108,43 +112,17 @@ func (l *listener) EnterTargetHeader(c *parser.TargetHeaderContext) {
 }
 
 func (l *listener) ExitTarget(c *parser.TargetContext) {
+	l.target.Recipe = l.popBlock()
 	l.ef.Targets = append(l.ef.Targets, *l.target)
 	l.target = nil
-	l.popContext(contextFrameTarget)
-}
-
-// Block ----------------------------------------------------------------------
-
-func (l *listener) EnterStmts(c *parser.StmtsContext) {
-	l.block = []spec.Statement{}
-}
-
-func (l *listener) ExitStmts(c *parser.StmtsContext) {
-	switch l.currentContext() {
-	case contextFrameEarthfile:
-		l.ef.BaseRecipe = l.block
-	case contextFrameTarget:
-		l.target.Recipe = l.block
-	default:
-		panic(fmt.Sprintf("unhandled block for context %v", l.currentContext()))
-	}
-	l.block = nil
 }
 
 // Statement ------------------------------------------------------------------
 
 func (l *listener) EnterStmt(c *parser.StmtContext) {
-	if strings.HasPrefix(c.GetText(), "WITH") {
-		// Handled in EnterWithDockerStmt.
-		return
-	}
-	if strings.HasPrefix(c.GetText(), "END") {
-		// Handled in EnterEndStmt.
-		return
-	}
-	l.statement = new(spec.Statement)
+	l.block().statement = new(spec.Statement)
 	if l.enableSourceMap {
-		l.statement.SourceLocation = &spec.SourceLocation{
+		l.block().statement.SourceLocation = &spec.SourceLocation{
 			File:        l.filePath,
 			StartLine:   c.GetStart().GetLine(),
 			StartColumn: c.GetStart().GetColumn(),
@@ -152,28 +130,11 @@ func (l *listener) EnterStmt(c *parser.StmtContext) {
 			EndColumn:   c.GetStop().GetColumn(),
 		}
 	}
-	l.pushContext(contextFrameStatement)
 }
 
 func (l *listener) ExitStmt(c *parser.StmtContext) {
-	if strings.HasPrefix(c.GetText(), "WITH") {
-		// Handled in ExitWithDockerStmt.
-		return
-	}
-	if strings.HasPrefix(c.GetText(), "END") {
-		// Handled in ExitEndStmt.
-		return
-	}
-	l.popContext(contextFrameStatement)
-	switch l.currentContext() {
-	case contextFrameEarthfile, contextFrameTarget:
-		l.block = append(l.block, *l.statement)
-	case contextFrameWith:
-		l.withBlock = append(l.withBlock, *l.statement)
-	default:
-		panic(fmt.Sprintf("unhandled block for context %v", l.currentContext()))
-	}
-	l.statement = nil
+	l.block().block = append(l.block().block, *l.block().statement)
+	l.block().statement = nil
 }
 
 // Command --------------------------------------------------------------------
@@ -189,15 +150,14 @@ func (l *listener) EnterCommandStmt(c *parser.CommandStmtContext) {
 			EndColumn:   c.GetStop().GetColumn(),
 		}
 	}
+	l.stmtWords = []string{}
+	l.execMode = false
 }
 
 func (l *listener) ExitCommandStmt(c *parser.CommandStmtContext) {
-	switch l.currentContext() {
-	case contextFrameStatement:
-		l.statement.Command = l.command
-	default:
-		panic(fmt.Sprintf("unhandled command for context %v", l.currentContext()))
-	}
+	l.command.Args = l.stmtWords
+	l.command.ExecMode = l.execMode
+	l.block().statement.Command = l.command
 	l.command = nil
 }
 
@@ -295,21 +255,17 @@ func (l *listener) EnterShellStmt(c *parser.ShellStmtContext) {
 	l.command.Name = "SHELL"
 }
 
-func (l *listener) EnterGenericCommandStmt(c *parser.GenericCommandStmtContext) {
-	// Set in EnterCommandName.
-}
-
-func (l *listener) EnterCommandName(c *parser.CommandNameContext) {
-	l.command.Name = c.GetText()
+func (l *listener) ExitGenericCommandStmt(c *parser.GenericCommandStmtContext) {
+	l.command.Name = l.genericCommandName
+	l.genericCommandName = ""
 }
 
 // With -----------------------------------------------------------------------
 
-func (l *listener) EnterWithDockerStmt(c *parser.WithDockerStmtContext) {
-	// TODO: Reuse EnterStmt.
-	l.withStatement = new(spec.Statement)
+func (l *listener) EnterWithStmt(c *parser.WithStmtContext) {
+	l.block().withStatement = new(spec.WithStatement)
 	if l.enableSourceMap {
-		l.withStatement.SourceLocation = &spec.SourceLocation{
+		l.block().withStatement.SourceLocation = &spec.SourceLocation{
 			File:        l.filePath,
 			StartLine:   c.GetStart().GetLine(),
 			StartColumn: c.GetStart().GetColumn(),
@@ -317,21 +273,30 @@ func (l *listener) EnterWithDockerStmt(c *parser.WithDockerStmtContext) {
 			EndColumn:   c.GetStop().GetColumn(),
 		}
 	}
-	l.pushContext(contextFrameStatement)
+}
 
-	// TODO: Reuse EnterCommand.
-	l.with = new(spec.WithStatement)
-	l.command = &spec.Command{
-		Name: "DOCKER",
-	}
+func (l *listener) ExitWithStmt(c *parser.WithStmtContext) {
+	l.block().statement.With = l.block().withStatement
+	l.block().withStatement = nil
+}
+
+// withBlock ------------------------------------------------------------------
+
+func (l *listener) EnterWithBlock(c *parser.WithBlockContext) {
+	l.pushNewBlock()
+
+}
+
+func (l *listener) ExitWithBlock(c *parser.WithBlockContext) {
+	withBlock := l.popBlock()
+	l.block().withStatement.Body = withBlock
+}
+
+// withCommand ----------------------------------------------------------------
+
+func (l *listener) EnterWithCommand(c *parser.WithCommandContext) {
+	l.command = new(spec.Command)
 	if l.enableSourceMap {
-		l.with.SourceLocation = &spec.SourceLocation{
-			File:        l.filePath,
-			StartLine:   c.GetStart().GetLine(),
-			StartColumn: c.GetStart().GetColumn(),
-			EndLine:     c.GetStop().GetLine(),
-			EndColumn:   c.GetStop().GetColumn(),
-		}
 		l.command.SourceLocation = &spec.SourceLocation{
 			File:        l.filePath,
 			StartLine:   c.GetStart().GetLine(),
@@ -340,37 +305,79 @@ func (l *listener) EnterWithDockerStmt(c *parser.WithDockerStmtContext) {
 			EndColumn:   c.GetStop().GetColumn(),
 		}
 	}
-	l.pushContext(contextFrameWith)
-
-	// TODO: Reuse EnterStmts.
-	l.withBlock = []spec.Statement{}
+	l.stmtWords = []string{}
+	l.execMode = false
 }
 
-func (l *listener) ExitWithDockerStmt(c *parser.WithDockerStmtContext) {
-	l.with.Command = *l.command
+func (l *listener) ExitWithCommand(c *parser.WithCommandContext) {
+	l.command.Args = l.stmtWords
+	l.command.ExecMode = l.execMode
+	l.block().withStatement.Command = *l.command
 	l.command = nil
 }
 
-func (l *listener) ExitEndStmt(c *parser.EndStmtContext) {
-	// TODO: Reuse ExitStmts.
-	l.with.Body = l.withBlock
-	l.withBlock = nil
+// Individual with commands ---------------------------------------------------
 
-	l.withStatement.With = l.with
-	l.with = nil
-	l.popContext(contextFrameWith)
+func (l *listener) EnterDockerCommand(c *parser.DockerCommandContext) {
+	l.command.Name = "DOCKER"
+}
 
-	// TODO: Reuse ExitStmt.
-	l.popContext(contextFrameStatement)
-	switch l.currentContext() {
-	case contextFrameEarthfile, contextFrameTarget:
-		l.block = append(l.block, *l.withStatement)
-	case contextFrameWith:
-		l.withBlock = append(l.withBlock, *l.withStatement)
-	default:
-		panic(fmt.Sprintf("unhandled block for context %v", l.currentContext()))
+func (l *listener) ExitGenericCommand(c *parser.GenericCommandContext) {
+	l.command.Name = l.genericCommandName
+	l.genericCommandName = ""
+}
+
+// If -------------------------------------------------------------------------
+
+func (l *listener) EnterIfStmt(c *parser.IfStmtContext) {
+	l.block().ifStatement = new(spec.IfStatement)
+	if l.enableSourceMap {
+		l.block().ifStatement.SourceLocation = &spec.SourceLocation{
+			File:        l.filePath,
+			StartLine:   c.GetStart().GetLine(),
+			StartColumn: c.GetStart().GetColumn(),
+			EndLine:     c.GetStop().GetLine(),
+			EndColumn:   c.GetStop().GetColumn(),
+		}
 	}
-	l.withStatement = nil
+}
+
+func (l *listener) ExitIfStmt(c *parser.IfStmtContext) {
+	l.block().statement.If = l.block().ifStatement
+	l.block().ifStatement = nil
+}
+
+func (l *listener) EnterIfClause(c *parser.IfClauseContext) {
+	l.pushNewBlock()
+}
+
+func (l *listener) ExitIfClause(c *parser.IfClauseContext) {
+	ifBlock := l.popBlock()
+	l.block().ifStatement.IfBody = ifBlock
+}
+
+func (l *listener) EnterIfExpr(c *parser.IfExprContext) {
+	l.stmtWords = []string{}
+	l.execMode = false
+}
+
+func (l *listener) ExitIfExpr(c *parser.IfExprContext) {
+	l.block().ifStatement.Expression = l.stmtWords
+	l.block().ifStatement.ExecMode = l.execMode
+}
+
+func (l *listener) EnterElseIfExpr(c *parser.ElseIfExprContext) {
+	// TODO
+	panic("ELSE IF not yet supported")
+}
+
+func (l *listener) EnterElseClause(c *parser.ElseClauseContext) {
+	l.pushNewBlock()
+}
+
+func (l *listener) ExitElseClause(c *parser.ElseClauseContext) {
+	elseBlock := l.popBlock()
+	l.block().ifStatement.ElseBody = &elseBlock
 }
 
 // EnvArgKey, EnvArgValue, LabelKey, LabelValue -------------------------------
@@ -381,19 +388,19 @@ func (l *listener) EnterEnvArgKey(c *parser.EnvArgKeyContext) {
 		l.err = err
 		return
 	}
-	l.command.Args = append(l.command.Args, c.GetText())
+	l.stmtWords = append(l.stmtWords, c.GetText())
 }
 
 func (l *listener) EnterEnvArgValue(c *parser.EnvArgValueContext) {
-	l.command.Args = append(l.command.Args, "=", c.GetText())
+	l.stmtWords = append(l.stmtWords, "=", c.GetText())
 }
 
 func (l *listener) EnterLabelKey(c *parser.LabelKeyContext) {
-	l.command.Args = append(l.command.Args, c.GetText())
+	l.stmtWords = append(l.stmtWords, c.GetText())
 }
 
 func (l *listener) EnterLabelValue(c *parser.LabelValueContext) {
-	l.command.Args = append(l.command.Args, "=", c.GetText())
+	l.stmtWords = append(l.stmtWords, "=", c.GetText())
 }
 
 // StmtWord -------------------------------------------------------------------
@@ -403,13 +410,19 @@ func (l *listener) ExitStmtWordsMaybeJSON(c *parser.StmtWordsMaybeJSONContext) {
 	var words []string
 	err := json.Unmarshal([]byte(c.GetText()), &words)
 	if err == nil {
-		l.command.Args = words
-		l.command.ExecMode = true
+		l.stmtWords = words
+		l.execMode = true
 	}
 }
 
 func (l *listener) EnterStmtWord(c *parser.StmtWordContext) {
-	l.command.Args = append(l.command.Args, replaceEscape(c.GetText()))
+	l.stmtWords = append(l.stmtWords, replaceEscape(c.GetText()))
+}
+
+// CommandName ----------------------------------------------------------------
+
+func (l *listener) EnterCommandName(c *parser.CommandNameContext) {
+	l.genericCommandName = c.GetText()
 }
 
 // ----------------------------------------------------------------------------

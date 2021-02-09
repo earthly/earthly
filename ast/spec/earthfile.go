@@ -45,6 +45,7 @@ type WithStatement struct {
 // IfStatement is the AST representation of an if statement.
 type IfStatement struct {
 	Expression     []string        `json:"expression"`
+	ExecMode       bool            `json:"execMode,omitempty"`
 	IfBody         Block           `json:"ifBody"`
 	ElseBody       *Block          `json:"elseBody,omitempty"`
 	SourceLocation *SourceLocation `json:"sourceLocation,omitempty"`

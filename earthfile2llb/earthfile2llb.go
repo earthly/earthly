@@ -3,12 +3,8 @@ package earthfile2llb
 import (
 	"context"
 	"fmt"
-	"strings"
 
-	"github.com/antlr/antlr4/runtime/Go/antlr"
 	"github.com/earthly/earthly/ast"
-	"github.com/earthly/earthly/ast/antlrhandler"
-	"github.com/earthly/earthly/ast/parser"
 	"github.com/earthly/earthly/buildcontext"
 	"github.com/earthly/earthly/buildcontext/provider"
 	"github.com/earthly/earthly/cleanup"
@@ -113,46 +109,15 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt) (m
 	if err != nil {
 		return nil, err
 	}
-	if opt.EnableAst {
-		// TODO: Use a parser cache.
-		ef, err := ast.Parse(ctx, bc.BuildFilePath, true)
-		if err != nil {
-			return nil, errors.Wrap(err, "parse")
-		}
-		interpreter := newInterpreter(converter)
-		err = interpreter.Run(ctx, ef, target.Target)
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		errorListener := antlrhandler.NewReturnErrorListener()
-		errorStrategy := antlrhandler.NewReturnErrorStrategy()
-		tree, err := newEarthfileTree(bc.BuildFilePath, errorListener, errorStrategy)
-		if err != nil {
-			return nil, err
-		}
-		walkErr := walkTree(newListener(ctx, converter, target.Target), tree)
-		if len(errorListener.Errs) > 0 {
-			var errString []string
-			for _, err := range errorListener.Errs {
-				errString = append(errString, err.Error())
-			}
-			return nil, fmt.Errorf(strings.Join(errString, "\n"))
-		}
-		if errorStrategy.Err != nil {
-			var errString []string
-			errString = append(errString,
-				fmt.Sprintf(
-					"syntax error: line %d:%d",
-					errorStrategy.RE.GetOffendingToken().GetLine(),
-					errorStrategy.RE.GetOffendingToken().GetColumn()))
-			errString = append(errString,
-				fmt.Sprintf("Details: %s", errorStrategy.RE.GetMessage()))
-			return nil, errors.Wrapf(errorStrategy.Err, "%s", strings.Join(errString, "\n"))
-		}
-		if walkErr != nil {
-			return nil, walkErr
-		}
+	// TODO: Use a parser cache.
+	ef, err := ast.Parse(ctx, bc.BuildFilePath, true)
+	if err != nil {
+		return nil, errors.Wrap(err, "parse")
+	}
+	interpreter := newInterpreter(converter)
+	err = interpreter.Run(ctx, ef, target.Target)
+	if err != nil {
+		return nil, err
 	}
 	return converter.FinalizeStates(ctx)
 }
@@ -168,34 +133,4 @@ func GetTargets(filename string) ([]string, error) {
 		targets = append(targets, target.Name)
 	}
 	return targets, nil
-}
-
-// TODO: Remove the following after AST is GA.
-func walkTree(l *listener, tree parser.IEarthFileContext) (err error) {
-	defer func() {
-		r := recover()
-		if r != nil {
-			err = fmt.Errorf("parser failure: %v", r)
-		}
-	}()
-	antlr.ParseTreeWalkerDefault.Walk(l, tree)
-	err = l.Err()
-	if err != nil {
-		return errors.Wrap(err, "parse")
-	}
-	return nil
-}
-
-func newEarthfileTree(filename string, errorListener antlr.ErrorListener, errorStrategy antlr.ErrorStrategy) (parser.IEarthFileContext, error) {
-	input, err := antlr.NewFileStream(filename)
-	if err != nil {
-		return nil, errors.Wrapf(err, "new file stream %s", filename)
-	}
-	lexer := newLexer(input)
-	stream := antlr.NewCommonTokenStream(lexer, 0)
-	p := parser.NewEarthParser(stream)
-	p.AddErrorListener(errorListener)
-	p.SetErrorHandler(errorStrategy)
-	p.BuildParseTrees = true
-	return p.EarthFile(), nil
 }
