@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"sort"
@@ -169,4 +170,107 @@ func defaultRunPath() string {
 		panic(err)
 	}
 	return filepath.Join(homeDir, ".earthly/run")
+}
+
+// UpsertConfig adds or modifies the key to be the specified value.
+// This is saved to disk in your earthly config file.
+func UpsertConfig(configPath, path, value string) error {
+	config, _ := readConfigFile(configPath, true)
+
+	base := &yaml.Node{}
+	yaml.Unmarshal(config, base)
+
+	pathParts := strings.Split(path, ".")
+	// config and set value validation
+
+	setYamlValue(base, &mergeState{setPath: pathParts, setValue: value})
+
+	newConfig, err := yaml.Marshal(base)
+	if err != nil {
+		return err
+	}
+
+	ioutil.WriteFile("new.yaml", newConfig, 0644)
+
+	return nil
+}
+
+type mergeState struct {
+	setPath  []string
+	setValue string
+}
+
+func setYamlValue(node *yaml.Node, state *mergeState) {
+	switch node.Kind {
+	case yaml.DocumentNode:
+		for _, c := range node.Content {
+			setYamlValue(c, state)
+		}
+
+	case yaml.MappingNode:
+		for i := 0; i < len(node.Content); i += 2 {
+			key := node.Content[i]
+			val := node.Content[i+1]
+
+			if len(state.setPath) > 0 && key.Value == state.setPath[0] {
+				state.setPath = state.setPath[1:]
+
+				if len(state.setPath) == 0 {
+					valueNode := &yaml.Node{}
+					yaml.Unmarshal([]byte(state.setValue), valueNode)
+					node.Content[i+1] = valueNode.Content[0]
+					return
+				}
+
+				setYamlValue(val, state)
+			}
+		}
+
+		if len(state.setPath) > 0 {
+			yamlSegments := []*yaml.Node{}
+			for _, seg := range state.setPath {
+				key := &yaml.Node{
+					Kind:  yaml.ScalarNode,
+					Value: seg,
+				}
+
+				mapping := &yaml.Node{
+					Kind: yaml.MappingNode,
+				}
+
+				yamlSegments = append(yamlSegments, key, mapping)
+			}
+
+			valueNode := &yaml.Node{}
+			yaml.Unmarshal([]byte(state.setValue), valueNode)
+
+			// recurse through, unfold all styles
+			valueNode.Content[0].Style = yaml.FoldedStyle
+
+			yamlSegments[len(yamlSegments)-1] = valueNode.Content[0]
+			node.Content = append(node.Content, yamlSegments...)
+			state.setPath = []string{} // block all others from doing this
+		}
+
+	default: // Sequence, Scalar nodes
+		return
+	}
+}
+
+// done func
+// formalize path is at zero
+
+// value to yaml func
+// returns needed node
+// updates all styles if you went inline
+
+func readConfigFile(configPath string, contextSet bool) ([]byte, error) {
+	yamlData, err := ioutil.ReadFile(configPath)
+	if os.IsNotExist(err) && !contextSet {
+		return []byte{}, nil
+	} else if err != nil {
+		return []byte{}, errors.Wrapf(err, "failed to read from %s", configPath)
+	}
+
+	return yamlData, nil
 }
