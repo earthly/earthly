@@ -46,16 +46,9 @@ func Parse(ctx context.Context, filePath string, enableSourceMap bool) (ef spec.
 	return ef, nil
 }
 
-func walkTree(l *listener, tree parser.IEarthFileContext) (ef spec.Earthfile, err error) {
-	defer func() {
-		// @#
-		// r := recover()
-		// if r != nil {
-		// 	err = fmt.Errorf("parser failure: %v", r)
-		// }
-	}()
+func walkTree(l *listener, tree parser.IEarthFileContext) (spec.Earthfile, error) {
 	antlr.ParseTreeWalkerDefault.Walk(l, tree)
-	err = l.Err()
+	err := l.Err()
 	if err != nil {
 		return spec.Earthfile{}, errors.Wrap(err, "parse")
 	}
