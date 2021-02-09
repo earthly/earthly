@@ -96,9 +96,5 @@ type RunPush struct {
 	State       llb.State
 	SaveLocals  []SaveLocal
 	SaveImages  []SaveImage
-}
-
-// Initialized tells us if the TunPush has been used in any significant way.
-func (rp *RunPush) Initialized() bool {
-	return len(rp.CommandStrs) > 0 || len(rp.SaveLocals) > 0 || len(rp.SaveImages) > 0
+	HasState    bool
 }

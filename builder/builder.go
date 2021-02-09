@@ -198,7 +198,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 		}
 
 		for _, sts := range mts.All() {
-			if (sts.HasDangling && !b.opt.UseFakeDep) || (b.builtMain && sts.RunPush.Initialized()) {
+			if (sts.HasDangling && !b.opt.UseFakeDep) || (b.builtMain && sts.RunPush.HasState) {
 				depRef, err := b.stateToRef(childCtx, gwClient, b.targetPhaseState(sts), sts.Platform)
 				if err != nil {
 					return nil, err
@@ -358,7 +358,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 	if opt.Push && opt.OnlyArtifact == nil && !opt.OnlyFinalTargetImages {
 		hasRunPush := false
 		for _, sts := range mts.All() {
-			if sts.RunPush.Initialized() {
+			if sts.RunPush.HasState {
 				hasRunPush = true
 				break
 			}
@@ -414,10 +414,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 					pushStr = " (pushed)"
 				}
 				console.Printf("Image %s as %s%s\n", sts.Target.StringCanonical(), saveImage.DockerTag, pushStr)
-
-				if saveImage.HasPushDependencies && !shouldPush {
-					console.Printf("Did not push, OR save %s locally, as evaluating the image would have caused a RUN --push ...", saveImage.DockerTag)
-				} else if saveImage.Push && !opt.Push && !sts.Target.IsRemote() {
+				if saveImage.Push && !opt.Push && !sts.Target.IsRemote() {
 					console.Printf("Did not push %s. Use earthly --push to enable pushing\n", saveImage.DockerTag)
 				}
 			}
@@ -435,7 +432,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 					dirIndex++
 				}
 
-				if sts.RunPush.Initialized() {
+				if sts.RunPush.HasState {
 					if opt.Push {
 						for _, saveLocal := range sts.RunPush.SaveLocals {
 							artifactDir := filepath.Join(outDir, fmt.Sprintf("index-%d", dirIndex))
@@ -452,6 +449,10 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 					} else {
 						for _, commandStr := range sts.RunPush.CommandStrs {
 							console.Printf("Did not execute push command %s. Use earthly --push to enable pushing\n", commandStr)
+						}
+
+						for _, saveImage := range sts.RunPush.SaveImages {
+							console.Printf("Did not push, OR save %s locally, as evaluating the image would have caused a RUN --push to execute", saveImage.DockerTag)
 						}
 					}
 				}

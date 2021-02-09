@@ -337,10 +337,11 @@ func (c *Converter) RunLocal(ctx context.Context, args []string, pushFlag bool) 
 	}
 
 	if pushFlag {
-		if !c.mts.Final.RunPush.Initialized() {
+		if !c.mts.Final.RunPush.HasState {
 			// If this is the first push-flagged command, initialize the state with the latest
 			// side-effects state.
 			c.mts.Final.RunPush.State = c.mts.Final.MainState
+			c.mts.Final.RunPush.HasState = true
 		}
 		c.mts.Final.RunPush.State = c.mts.Final.RunPush.State.Run(opts...).Root()
 		c.mts.Final.RunPush.CommandStrs = append(
@@ -499,7 +500,7 @@ func (c *Converter) SaveImage(ctx context.Context, imageNames []string, pushImag
 		justCacheHint = true
 	}
 	for _, imageName := range imageNames {
-		if c.mts.Final.RunPush.Initialized() {
+		if c.mts.Final.RunPush.HasState {
 			// SAVE IMAGE --push when it comes before any RUN --push should be treated as if they are in the main state,
 			// since thats their only dependency. It will still be marked as a push.
 			c.mts.Final.RunPush.SaveImages = append(c.mts.Final.RunPush.SaveImages,
@@ -819,10 +820,11 @@ func (c *Converter) internalRun(ctx context.Context, args, secretKeyValues []str
 	if pushFlag {
 		// For push-flagged commands, make sure they run every time - don't use cache.
 		finalOpts = append(finalOpts, llb.IgnoreCache)
-		if !c.mts.Final.RunPush.Initialized() {
+		if !c.mts.Final.RunPush.HasState {
 			// If this is the first push-flagged command, initialize the state with the latest
 			// side-effects state.
 			c.mts.Final.RunPush.State = c.mts.Final.MainState
+			c.mts.Final.RunPush.HasState = true
 		}
 		// Don't run on MainState. We want push-flagged commands to be executed only
 		// *after* the build. Save this for later.
