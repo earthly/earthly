@@ -235,3 +235,29 @@ The code of this example is available in [examples/multiplatform-cross-compile](
 ```bash
 earthly github.com/earthly/earthly/examples/multiplatform-cross-compile:main+build-all-platforms
 ```
+
+## Emulation and WITH DOCKER
+
+Please note that `WITH DOCKER` has an important limitation for cross-platform builds: the target containing `WITH DOCKER` needs to be executing on the native architecture of the host system. The images being run within `WITH DOCKER` can be of any architecture, however.
+
+In other words, the following will **NOT** work on amd64:
+
+```Dockerfile
+build:
+    FROM --platform=linux/arm64 earthly/dind
+    WITH DOCKER --pull=earthly/examples:multiplatform
+        RUN docker run earthly/examples:multiplatform
+    END
+```
+
+However, the following will:
+
+```
+build:
+    FROM earthly/dind
+    WITH DOCKER --pull=earthly/examples:multiplatform
+        RUN docker run --platform=linux/arm64 earthly/examples:multiplatform
+    END
+```
+
+The reason for this is that behind the scenes `WITH DOCKER` starts up an isolated Docker daemon running within a container, and docker-in-docker is not yet supported in a QEMU environment.
