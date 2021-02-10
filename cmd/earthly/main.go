@@ -128,6 +128,7 @@ type cliFlags struct {
 	noFakeDep              bool
 	enableSourceMap        bool
 	enableAst              bool
+	configDryRun           bool
 }
 
 var (
@@ -810,6 +811,13 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 			Usage:  "Edits your Earthly configuration file",
 			Hidden: true, // Experimental.
 			Action: app.actionConfig,
+			Flags: []cli.Flag{
+				&cli.BoolFlag{
+					Name:        "dry-run",
+					Usage:       "Print the changed config file to the consile instead of writing it out",
+					Destination: &app.configDryRun,
+				},
+			},
 		},
 	}
 
@@ -2013,7 +2021,12 @@ func (app *earthlyApp) actionConfig(c *cli.Context) error {
 		return errors.Wrap(err, "upsert config")
 	}
 
-	err = config.WriteConfigFile("new.yaml", outConfig)
+	if app.configDryRun {
+		fmt.Println(string(outConfig))
+		return nil
+	}
+
+	err = config.WriteConfigFile(app.configPath, outConfig)
 	if err != nil {
 		return errors.Wrap(err, "write config")
 	}
