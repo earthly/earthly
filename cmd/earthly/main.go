@@ -2006,7 +2006,7 @@ func (app *earthlyApp) actionConfig(c *cli.Context) error {
 
 	args := c.Args().Slice()
 
-	err := config.UpsertConfig(app.configPath, args[0], args[1])
+	_, err := config.UpsertConfig(app.configPath, args[0], args[1])
 	if err != nil {
 		return errors.Wrap(err, "upsert config")
 	}

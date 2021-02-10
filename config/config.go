@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"reflect"
 	"sort"
 	"strings"
 
@@ -174,31 +175,58 @@ func defaultRunPath() string {
 
 // UpsertConfig adds or modifies the key to be the specified value.
 // This is saved to disk in your earthly config file.
-func UpsertConfig(configPath, path, value string) error {
+func UpsertConfig(configPath, path, value string) ([]byte, error) {
 	config, _ := readConfigFile(configPath, true)
 
 	base := &yaml.Node{}
 	yaml.Unmarshal(config, base)
 
 	pathParts := strings.Split(path, ".")
-	// config and set value validation
 
-	setYamlValue(base, pathParts, value)
+	err := validatePath(reflect.TypeOf(Config{}), pathParts)
+	if err != nil {
+		return []byte{}, errors.Wrap(err, "path is not valid")
+	}
+
+	yamlValue, err := valueToYaml(value)
+	if err != nil {
+		return []byte{}, errors.Wrap(err, "could not parse value")
+	}
+
+	setYamlValue(base, pathParts, yamlValue)
 
 	newConfig, err := yaml.Marshal(base)
 	if err != nil {
-		return err
+		return []byte{}, err
 	}
 
-	ioutil.WriteFile("new.yaml", newConfig, 0644)
-
-	return nil
+	return newConfig, nil
 }
 
-func valueToYaml(value string) *yaml.Node {
-	valueNode := &yaml.Node{}
-	yaml.Unmarshal([]byte(value), valueNode)
+func validatePath(t reflect.Type, path []string) error {
+	if len(path) == 0 {
+		return nil
+	}
 
+	for i := 0; i < t.NumField(); i++ {
+		field := t.Field(i)
+		tag := field.Tag.Get("yaml")
+
+		if tag == path[0] {
+			return validatePath(field.Type, path[1:])
+		}
+	}
+
+	return fmt.Errorf("no path for %s", strings.Join(path, "."))
+}
+
+func valueToYaml(value string) (*yaml.Node, error) {
+	valueNode := &yaml.Node{}
+	if err := yaml.Unmarshal([]byte(value), valueNode); err != nil {
+		return nil, fmt.Errorf("%s is not a valid YAML value", value)
+	}
+
+	// Unfold all the yaml so its not mixed inline and flow styles in the final document
 	var fixStyling func(node *yaml.Node)
 	fixStyling = func(node *yaml.Node) {
 		node.Style = yaml.FlowStyle
@@ -209,7 +237,7 @@ func valueToYaml(value string) *yaml.Node {
 	}
 	fixStyling(valueNode)
 
-	return valueNode.Content[0]
+	return valueNode.Content[0], nil
 }
 
 func pathToYaml(path []string, value *yaml.Node) []*yaml.Node {
@@ -241,7 +269,7 @@ func pathToYaml(path []string, value *yaml.Node) []*yaml.Node {
 	return yamlNodes
 }
 
-func setYamlValue(node *yaml.Node, path []string, value string) []string {
+func setYamlValue(node *yaml.Node, path []string, value *yaml.Node) []string {
 	switch node.Kind {
 	case yaml.DocumentNode:
 		for _, c := range node.Content {
@@ -257,7 +285,7 @@ func setYamlValue(node *yaml.Node, path []string, value string) []string {
 				path = path[1:]
 
 				if len(path) == 0 {
-					node.Content[i+1] = valueToYaml(value)
+					node.Content[i+1] = value
 					return []string{}
 				}
 
@@ -266,13 +294,12 @@ func setYamlValue(node *yaml.Node, path []string, value string) []string {
 		}
 
 		if len(path) > 0 {
-			yamlValue := valueToYaml(value)
-			yamlMap := pathToYaml(path, yamlValue)
+			yamlMap := pathToYaml(path, value)
 			node.Content = append(node.Content, yamlMap...)
 			return []string{}
 		}
 
-	default: // Sequence, Scalar nodes
+	default: // Sequence, Scalar nodes get skipped
 		return path
 	}
 
