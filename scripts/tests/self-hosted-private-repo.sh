@@ -73,7 +73,7 @@ cd ~
 rm -rf odd-project
 
 # test that earthly has access to it
-$earthly config git {myserver: {pattern: 'myserver/([^/]+)', substitute: 'ssh://root@$ip:2222/root/my/really/weird/path/\$1.git', auth: ssh}}
+"$earthly" config git {myserver: {pattern: 'myserver/([^/]+)', substitute: 'ssh://root@$ip:2222/root/my/really/weird/path/\$1.git', auth: ssh}}
 
 if ! $earthly -V myserver/project:trunk+docker; then
     docker ps -a
