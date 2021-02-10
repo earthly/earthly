@@ -180,6 +180,14 @@ func UpsertConfig(config []byte, path, value string) ([]byte, error) {
 	base := &yaml.Node{}
 	yaml.Unmarshal(config, base)
 
+	if base.IsZero() {
+		// Empty file, or a simple comment results in a null document.
+		// Not handled well, so manufacture somewhat acceptable document
+		fullDoc := string(config) + "\n---"
+		yaml.Unmarshal([]byte(fullDoc), base)
+		base.Content = []*yaml.Node{{Kind: yaml.MappingNode}}
+	}
+
 	pathParts := splitPath(path)
 
 	err := validatePath(reflect.TypeOf(Config{}), pathParts)
@@ -203,10 +211,13 @@ func UpsertConfig(config []byte, path, value string) ([]byte, error) {
 }
 
 func splitPath(path string) []string {
+	// Allow quotes to group keys, since git repos are keys and have periods... this is why we dont just strings.Split
+	// If you screw up the quotes you will get a weird invalid path later.
 	re := regexp.MustCompile(`[^\."']+|"([^"]*)"|'([^']*)`)
 	pathParts := re.FindAllString(path, -1)
 
 	for i := 0; i < len(pathParts); i++ {
+		// If we did have a quoted string we need to prune it
 		pathParts[i] = strings.Trim(pathParts[i], `"`)
 	}
 
@@ -219,6 +230,8 @@ func validatePath(t reflect.Type, path []string) error {
 	}
 
 	if t.Kind() == reflect.Map {
+		// Maps are only for git repos. Grab the kind on the other side of the map
+		// and advance; to validate the path on the other side of the repo name
 		return validatePath(t.Elem(), path[1:])
 	}
 
@@ -270,11 +283,15 @@ func pathToYaml(path []string, value *yaml.Node) []*yaml.Node {
 		}
 
 		if last == nil {
+			// First, top level mapping node
 			yamlNodes = append(yamlNodes, key, mapping)
 			last = mapping
 		} else if i == len(path)-1 {
+			// Last node should assign path as the value, not another mapping node
+			// Otherwise we would need to dig it up again.
 			last.Content = append(last.Content, key, value)
 		} else {
+			// Middle of the road regular case
 			last.Content = append(last.Content, key, mapping)
 			last = mapping
 		}
@@ -284,6 +301,7 @@ func pathToYaml(path []string, value *yaml.Node) []*yaml.Node {
 }
 
 func setYamlValue(node *yaml.Node, path []string, value *yaml.Node) []string {
+
 	switch node.Kind {
 	case yaml.DocumentNode:
 		for _, c := range node.Content {
@@ -292,6 +310,7 @@ func setYamlValue(node *yaml.Node, path []string, value *yaml.Node) []string {
 
 	case yaml.MappingNode:
 		for i := 0; i < len(node.Content); i += 2 {
+			// Keys/Values are inline. Count by twos to get it right.
 			key := node.Content[i]
 			val := node.Content[i+1]
 
@@ -307,19 +326,21 @@ func setYamlValue(node *yaml.Node, path []string, value *yaml.Node) []string {
 			}
 		}
 
-		if len(path) > 0 {
-			yamlMap := pathToYaml(path, value)
-			node.Content = append(node.Content, yamlMap...)
-			return []string{}
-		}
-
 	default: // Sequence, Scalar nodes get skipped
 		return path
+	}
+
+	// If we get here, we have consumed all the path possible.
+	// Build YAML and add it from where we are at.
+	if len(path) > 0 {
+		yamlMap := pathToYaml(path, value)
+		node.Content = append(node.Content, yamlMap...)
 	}
 
 	return []string{}
 }
 
+// ReadConfigFile reads in the config file from the disk, into a byte slice.
 func ReadConfigFile(configPath string, contextSet bool) ([]byte, error) {
 	yamlData, err := ioutil.ReadFile(configPath)
 	if os.IsNotExist(err) && !contextSet {
@@ -331,6 +352,7 @@ func ReadConfigFile(configPath string, contextSet bool) ([]byte, error) {
 	return yamlData, nil
 }
 
+// WriteConfigFile writes the config file to disk with preset permission 0644
 func WriteConfigFile(configPath string, data []byte) error {
 	return ioutil.WriteFile(configPath, data, 0644)
 }
