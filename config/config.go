@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"regexp"
 	"sort"
 	"strings"
 
@@ -175,13 +176,11 @@ func defaultRunPath() string {
 
 // UpsertConfig adds or modifies the key to be the specified value.
 // This is saved to disk in your earthly config file.
-func UpsertConfig(configPath, path, value string) ([]byte, error) {
-	config, _ := readConfigFile(configPath, true)
-
+func UpsertConfig(config []byte, path, value string) ([]byte, error) {
 	base := &yaml.Node{}
 	yaml.Unmarshal(config, base)
 
-	pathParts := strings.Split(path, ".")
+	pathParts := splitPath(path)
 
 	err := validatePath(reflect.TypeOf(Config{}), pathParts)
 	if err != nil {
@@ -203,9 +202,24 @@ func UpsertConfig(configPath, path, value string) ([]byte, error) {
 	return newConfig, nil
 }
 
+func splitPath(path string) []string {
+	re := regexp.MustCompile(`[^\."']+|"([^"]*)"|'([^']*)`)
+	pathParts := re.FindAllString(path, -1)
+
+	for i := 0; i < len(pathParts); i++ {
+		pathParts[i] = strings.Trim(pathParts[i], `"`)
+	}
+
+	return pathParts
+}
+
 func validatePath(t reflect.Type, path []string) error {
 	if len(path) == 0 {
 		return nil
+	}
+
+	if t.Kind() == reflect.Map {
+		return validatePath(t.Elem(), path[1:])
 	}
 
 	for i := 0; i < t.NumField(); i++ {
@@ -306,7 +320,7 @@ func setYamlValue(node *yaml.Node, path []string, value *yaml.Node) []string {
 	return []string{}
 }
 
-func readConfigFile(configPath string, contextSet bool) ([]byte, error) {
+func ReadConfigFile(configPath string, contextSet bool) ([]byte, error) {
 	yamlData, err := ioutil.ReadFile(configPath)
 	if os.IsNotExist(err) && !contextSet {
 		return []byte{}, nil
@@ -315,4 +329,8 @@ func readConfigFile(configPath string, contextSet bool) ([]byte, error) {
 	}
 
 	return yamlData, nil
+}
+
+func WriteConfigFile(configPath string, data []byte) error {
+	return ioutil.WriteFile(configPath, data, 0644)
 }

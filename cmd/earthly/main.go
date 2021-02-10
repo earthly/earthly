@@ -830,11 +830,9 @@ func (app *earthlyApp) before(context *cli.Context) error {
 		app.console.Printf("loading config values from %q\n", app.configPath)
 	}
 
-	yamlData, err := ioutil.ReadFile(app.configPath)
-	if os.IsNotExist(err) && !context.IsSet("config") {
-		yamlData = []byte{}
-	} else if err != nil {
-		return errors.Wrapf(err, "failed to read from %s", app.configPath)
+	yamlData, err := config.ReadConfigFile(app.configPath, context.IsSet("config"))
+	if err != nil {
+		return errors.Wrapf(err, "read config")
 	}
 
 	app.cfg, err = config.ParseConfigFile(yamlData)
@@ -2005,10 +2003,19 @@ func (app *earthlyApp) actionConfig(c *cli.Context) error {
 	}
 
 	args := c.Args().Slice()
+	inConfig, err := config.ReadConfigFile(app.configPath, c.IsSet("config"))
+	if err != nil {
+		return errors.Wrap(err, "read config")
+	}
 
-	_, err := config.UpsertConfig(app.configPath, args[0], args[1])
+	outConfig, err := config.UpsertConfig(inConfig, args[0], args[1])
 	if err != nil {
 		return errors.Wrap(err, "upsert config")
+	}
+
+	err = config.WriteConfigFile("new.yaml", outConfig)
+	if err != nil {
+		return errors.Wrap(err, "write config")
 	}
 
 	return nil
