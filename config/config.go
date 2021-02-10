@@ -282,14 +282,21 @@ func pathToYaml(path []string, value *yaml.Node) []*yaml.Node {
 			Kind: yaml.MappingNode,
 		}
 
-		if last == nil {
+		if i == len(path)-1 {
+			// Last node should assign path as the value, not another mapping node
+			// Otherwise we would need to dig it up again.
+
+			if last == nil {
+				// Single depth special case
+				yamlNodes = append(yamlNodes, key, value)
+				continue
+			}
+
+			last.Content = append(last.Content, key, value)
+		} else if last == nil {
 			// First, top level mapping node
 			yamlNodes = append(yamlNodes, key, mapping)
 			last = mapping
-		} else if i == len(path)-1 {
-			// Last node should assign path as the value, not another mapping node
-			// Otherwise we would need to dig it up again.
-			last.Content = append(last.Content, key, value)
 		} else {
 			// Middle of the road regular case
 			last.Content = append(last.Content, key, mapping)
