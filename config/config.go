@@ -256,7 +256,7 @@ func valueToYaml(value string) (*yaml.Node, error) {
 	// Unfold all the yaml so its not mixed inline and flow styles in the final document
 	var fixStyling func(node *yaml.Node)
 	fixStyling = func(node *yaml.Node) {
-		node.Style = yaml.FlowStyle
+		node.Style = 0
 
 		for _, n := range node.Content {
 			fixStyling(n)
@@ -301,7 +301,6 @@ func pathToYaml(path []string, value *yaml.Node) []*yaml.Node {
 }
 
 func setYamlValue(node *yaml.Node, path []string, value *yaml.Node) []string {
-
 	switch node.Kind {
 	case yaml.DocumentNode:
 		for _, c := range node.Content {
