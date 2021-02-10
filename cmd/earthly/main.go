@@ -1092,11 +1092,17 @@ func (app *earthlyApp) insertZSHCompleteEntry() error {
 }
 
 func (app *earthlyApp) run(ctx context.Context, args []string) int {
-	err := app.cliApp.RunContext(ctx, args)
-
 	rpcRegex := regexp.MustCompile(`(?U)rpc error: code = .+ desc = `)
+	err := app.cliApp.RunContext(ctx, args)
 	if err != nil {
 		ie, isInterpereterError := earthfile2llb.GetInterpreterError(err)
+
+		var failedOutput string
+		var buildErr *builder.BuildError
+		if errors.As(err, &buildErr) {
+			failedOutput = buildErr.VertexLog()
+		}
+
 		if strings.Contains(err.Error(), "security.insecure is not allowed") {
 			app.console.Warnf("Error: --allow-privileged (-P) flag is required\n")
 		} else if strings.Contains(err.Error(), "failed to fetch remote") {
@@ -1105,6 +1111,11 @@ func (app *earthlyApp) run(ctx context.Context, args []string) int {
 				"Check your git auth settings.\n" +
 					"Did you ssh-add today? Need to configure ~/.earthly/config.yml?\n" +
 					"For more information see https://docs.earthly.dev/guides/auth\n")
+		} else if strings.Contains(failedOutput, "Invalid ELF image for this architecture") {
+			app.console.Warnf("Error: %v\n", err)
+			app.console.Printf(
+				"Are you using --platform to target a different architecture? You may have to manually install QEMU.\n" +
+					"For more information see https://docs.earthly.dev/guides/multi-platform\n")
 		} else if !app.verbose && rpcRegex.MatchString(err.Error()) {
 			baseErr := errors.Cause(err)
 			baseErrMsg := rpcRegex.ReplaceAll([]byte(baseErr.Error()), []byte(""))

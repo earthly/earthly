@@ -57,8 +57,11 @@ func (s *solver) solveDockerTar(ctx context.Context, state llb.State, platform s
 		}
 		return nil
 	})
+	var vertexFailureOutput string
 	eg.Go(func() error {
-		return s.sm.monitorProgress(ctx, ch, "")
+		var err error
+		vertexFailureOutput, err = s.sm.monitorProgress(ctx, ch, "")
+		return err
 	})
 	eg.Go(func() error {
 		file, err := os.Create(outFile)
@@ -93,7 +96,7 @@ func (s *solver) solveDockerTar(ctx context.Context, state llb.State, platform s
 	}()
 	err = eg.Wait()
 	if err != nil {
-		return err
+		return NewBuildError(err, vertexFailureOutput)
 	}
 	return nil
 }
@@ -115,12 +118,15 @@ func (s *solver) buildMainMulti(ctx context.Context, bf gwclient.BuildFunc, onIm
 		}
 		return nil
 	})
+	var vertexFailureOutput string
 	eg.Go(func() error {
-		return s.sm.monitorProgress(ctx, ch, phaseText)
+		var err error
+		vertexFailureOutput, err = s.sm.monitorProgress(ctx, ch, phaseText)
+		return err
 	})
 	err = eg.Wait()
 	if err != nil {
-		return err
+		return NewBuildError(err, vertexFailureOutput)
 	}
 	return nil
 }
@@ -146,12 +152,15 @@ func (s *solver) solveMain(ctx context.Context, state llb.State, platform specs.
 		}
 		return nil
 	})
+	var vertexFailureOutput string
 	eg.Go(func() error {
-		return s.sm.monitorProgress(ctx, ch, "")
+		var err error
+		vertexFailureOutput, err = s.sm.monitorProgress(ctx, ch, "")
+		return err
 	})
 	err = eg.Wait()
 	if err != nil {
-		return err
+		return NewBuildError(err, vertexFailureOutput)
 	}
 	return nil
 }
