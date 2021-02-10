@@ -2,13 +2,16 @@ package config
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
+	"reflect"
+	"regexp"
 	"sort"
 	"strings"
 
 	"github.com/pkg/errors"
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 )
 
 var (
@@ -169,4 +172,193 @@ func defaultRunPath() string {
 		panic(err)
 	}
 	return filepath.Join(homeDir, ".earthly/run")
+}
+
+// UpsertConfig adds or modifies the key to be the specified value.
+// This is saved to disk in your earthly config file.
+func UpsertConfig(config []byte, path, value string) ([]byte, error) {
+	base := &yaml.Node{}
+	yaml.Unmarshal(config, base)
+
+	if base.IsZero() {
+		// Empty file, or a simple comment results in a null document.
+		// Not handled well, so manufacture somewhat acceptable document
+		fullDoc := string(config) + "\n---"
+		yaml.Unmarshal([]byte(fullDoc), base)
+		base.Content = []*yaml.Node{{Kind: yaml.MappingNode}}
+	}
+
+	pathParts := splitPath(path)
+
+	err := validatePath(reflect.TypeOf(Config{}), pathParts)
+	if err != nil {
+		return []byte{}, errors.Wrap(err, "path is not valid")
+	}
+
+	yamlValue, err := valueToYaml(value)
+	if err != nil {
+		return []byte{}, errors.Wrap(err, "could not parse value")
+	}
+
+	setYamlValue(base, pathParts, yamlValue)
+
+	newConfig, err := yaml.Marshal(base)
+	if err != nil {
+		return []byte{}, err
+	}
+
+	return newConfig, nil
+}
+
+func splitPath(path string) []string {
+	// Allow quotes to group keys, since git repos are keys and have periods... this is why we dont just strings.Split
+	// If you screw up the quotes you will get a weird invalid path later.
+	re := regexp.MustCompile(`[^\."']+|"([^"]*)"|'([^']*)`)
+	pathParts := re.FindAllString(path, -1)
+
+	for i := 0; i < len(pathParts); i++ {
+		// If we did have a quoted string we need to prune it
+		pathParts[i] = strings.Trim(pathParts[i], `"`)
+	}
+
+	return pathParts
+}
+
+func validatePath(t reflect.Type, path []string) error {
+	if len(path) == 0 {
+		return nil
+	}
+
+	if t.Kind() == reflect.Map {
+		// Maps are only for git repos. Grab the kind on the other side of the map
+		// and advance; to validate the path on the other side of the repo name
+		return validatePath(t.Elem(), path[1:])
+	}
+
+	for i := 0; i < t.NumField(); i++ {
+		field := t.Field(i)
+		tag := field.Tag.Get("yaml")
+
+		if tag == path[0] {
+			return validatePath(field.Type, path[1:])
+		}
+	}
+
+	return fmt.Errorf("no path for %s", strings.Join(path, "."))
+}
+
+func valueToYaml(value string) (*yaml.Node, error) {
+	valueNode := &yaml.Node{}
+	if err := yaml.Unmarshal([]byte(value), valueNode); err != nil {
+		return nil, fmt.Errorf("%s is not a valid YAML value", value)
+	}
+
+	// Unfold all the yaml so its not mixed inline and flow styles in the final document
+	var fixStyling func(node *yaml.Node)
+	fixStyling = func(node *yaml.Node) {
+		node.Style = 0
+
+		for _, n := range node.Content {
+			fixStyling(n)
+		}
+	}
+	fixStyling(valueNode)
+
+	return valueNode.Content[0], nil
+}
+
+func pathToYaml(path []string, value *yaml.Node) []*yaml.Node {
+	yamlNodes := []*yaml.Node{}
+
+	var last *yaml.Node
+
+	for i, seg := range path {
+		key := &yaml.Node{
+			Kind:  yaml.ScalarNode,
+			Value: seg,
+		}
+
+		mapping := &yaml.Node{
+			Kind: yaml.MappingNode,
+		}
+
+		if i == len(path)-1 {
+			// Last node should assign path as the value, not another mapping node
+			// Otherwise we would need to dig it up again.
+
+			if last == nil {
+				// Single depth special case
+				yamlNodes = append(yamlNodes, key, value)
+				continue
+			}
+
+			last.Content = append(last.Content, key, value)
+		} else if last == nil {
+			// First, top level mapping node
+			yamlNodes = append(yamlNodes, key, mapping)
+			last = mapping
+		} else {
+			// Middle of the road regular case
+			last.Content = append(last.Content, key, mapping)
+			last = mapping
+		}
+	}
+
+	return yamlNodes
+}
+
+func setYamlValue(node *yaml.Node, path []string, value *yaml.Node) []string {
+	switch node.Kind {
+	case yaml.DocumentNode:
+		for _, c := range node.Content {
+			path = setYamlValue(c, path, value)
+		}
+
+	case yaml.MappingNode:
+		for i := 0; i < len(node.Content); i += 2 {
+			// Keys/Values are inline. Count by twos to get it right.
+			key := node.Content[i]
+			val := node.Content[i+1]
+
+			if len(path) > 0 && key.Value == path[0] {
+				path = path[1:]
+
+				if len(path) == 0 {
+					node.Content[i+1] = value
+					return []string{}
+				}
+
+				path = setYamlValue(val, path, value)
+			}
+		}
+
+	default: // Sequence, Scalar nodes get skipped
+		return path
+	}
+
+	// If we get here, we have consumed all the path possible.
+	// Build YAML and add it from where we are at.
+	if len(path) > 0 {
+		yamlMap := pathToYaml(path, value)
+		node.Content = append(node.Content, yamlMap...)
+	}
+
+	return []string{}
+}
+
+// ReadConfigFile reads in the config file from the disk, into a byte slice.
+func ReadConfigFile(configPath string, contextSet bool) ([]byte, error) {
+	yamlData, err := ioutil.ReadFile(configPath)
+	if os.IsNotExist(err) && !contextSet {
+		return []byte{}, nil
+	} else if err != nil {
+		return []byte{}, errors.Wrapf(err, "failed to read from %s", configPath)
+	}
+
+	return yamlData, nil
+}
+
+// WriteConfigFile writes the config file to disk with preset permission 0644
+func WriteConfigFile(configPath string, data []byte) error {
+	return ioutil.WriteFile(configPath, data, 0644)
 }
