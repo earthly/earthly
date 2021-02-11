@@ -234,7 +234,7 @@ func newSolverMonitor(console conslogging.ConsoleLogger, verbose bool) *solverMo
 	}
 }
 
-func (sm *solverMonitor) monitorProgress(ctx context.Context, ch chan *client.SolveStatus, phaseText string) error {
+func (sm *solverMonitor) monitorProgress(ctx context.Context, ch chan *client.SolveStatus, phaseText string) (string, error) {
 	sm.mu.Lock()
 	sm.ongoing = true
 	sm.mu.Unlock()
@@ -311,12 +311,14 @@ Loop:
 				}
 				err := sm.printOutput(vm, logLine.Data)
 				if err != nil {
-					return err
+					return "", err
 				}
 			}
 		}
 	}
+	failedVertexOutput := ""
 	if errVertex != nil {
+		failedVertexOutput = string(errVertex.tailOutput.Bytes())
 		sm.reprintFailure(errVertex, phaseText)
 	}
 	sm.mu.Lock()
@@ -328,7 +330,7 @@ Loop:
 	sm.ongoing = false
 	sm.mu.Unlock()
 	sm.PrintTiming()
-	return nil
+	return failedVertexOutput, nil
 }
 
 func (sm *solverMonitor) printOutput(vm *vertexMonitor, data []byte) error {
