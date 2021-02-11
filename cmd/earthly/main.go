@@ -1920,11 +1920,10 @@ func (app *earthlyApp) actionDebugAst(c *cli.Context) error {
 	if c.NArg() > 1 {
 		return errors.New("invalid number of arguments provided")
 	}
-	path := "."
+	path := "./Earthfile"
 	if c.NArg() == 1 {
 		path = c.Args().First()
 	}
-	path = filepath.Join(path, "Earthfile")
 
 	ef, err := ast.Parse(c.Context, path, app.enableSourceMap)
 	if err != nil {

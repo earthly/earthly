@@ -1,0 +1,43 @@
+{
+  "baseRecipe": [
+    {
+      "command": {
+        "args": [
+          "alpine:3.13"
+        ],
+        "name": "FROM"
+      }
+    }
+  ],
+  "targets": [
+    {
+      "name": "test",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "ls",
+              "/this-will-fail"
+            ],
+            "name": "RUN"
+          }
+        }
+      ]
+    },
+    {
+      "name": "test-push",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "--push",
+              "ls",
+              "/this-too-will-fail"
+            ],
+            "name": "RUN"
+          }
+        }
+      ]
+    }
+  ]
+}

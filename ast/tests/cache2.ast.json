@@ -1,0 +1,40 @@
+{
+  "baseRecipe": [
+    {
+      "command": {
+        "args": [
+          "alpine:3.13"
+        ],
+        "name": "FROM"
+      }
+    }
+  ],
+  "targets": [
+    {
+      "name": "test",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "--mount=type=cache,target=/cache-test",
+              "test",
+              "-f",
+              "/cache-test/test.txt"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "--mount=type=cache,target=/cache-test",
+              "cat",
+              "/cache-test/test.txt"
+            ],
+            "name": "RUN"
+          }
+        }
+      ]
+    }
+  ]
+}
