@@ -1,0 +1,77 @@
+{
+  "baseRecipe": [
+    {
+      "command": {
+        "args": [
+          "alpine:3.13"
+        ],
+        "name": "FROM"
+      }
+    }
+  ],
+  "targets": [
+    {
+      "name": "test",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "TEST_ENV_1",
+              "=",
+              "incorrect"
+            ],
+            "name": "ARG"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "test",
+              "\"$TEST_ENV_1\"",
+              "==",
+              "\"abracadabra\""
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "--secret",
+              "MY_SECRET=+secrets/TEST_ENV_2",
+              "test",
+              "\"$MY_SECRET\"",
+              "==",
+              "\"foo\""
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "test",
+              "\"$TEST_ENV_3\"",
+              "==",
+              "\"\""
+            ],
+            "name": "RUN"
+          }
+        }
+      ]
+    },
+    {
+      "name": "test-no-dotenv",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "true"
+            ],
+            "name": "RUN"
+          }
+        }
+      ]
+    }
+  ]
+}

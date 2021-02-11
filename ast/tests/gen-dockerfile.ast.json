@@ -1,0 +1,121 @@
+{
+  "baseRecipe": [
+    {
+      "command": {
+        "args": [
+          "alpine:3.13"
+        ],
+        "name": "FROM"
+      }
+    },
+    {
+      "command": {
+        "args": [
+          "/test"
+        ],
+        "name": "WORKDIR"
+      }
+    }
+  ],
+  "targets": [
+    {
+      "name": "gen-dockerfile",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "echo",
+              "\"some build context\"",
+              ">",
+              "bc.txt"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "echo",
+              "\"FROM alpine:3.13\"",
+              ">",
+              "Dockerfile"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "echo",
+              "\"COPY bc.txt ./\"",
+              ">>",
+              "Dockerfile"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "echo",
+              "\"RUN cat bc.txt\"",
+              ">>",
+              "Dockerfile"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "echo",
+              "'ENTRYPOINT",
+              "[\"echo\",",
+              "\"hello world\"]'",
+              ">>",
+              "Dockerfile"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "./*"
+            ],
+            "name": "SAVE ARTIFACT"
+          }
+        }
+      ]
+    },
+    {
+      "name": "test",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "+gen-dockerfile/"
+            ],
+            "name": "FROM DOCKERFILE"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "--entrypoint"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "test-gen-dockerfile:latest"
+            ],
+            "name": "SAVE IMAGE"
+          }
+        }
+      ]
+    }
+  ]
+}

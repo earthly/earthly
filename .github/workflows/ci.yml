@@ -212,7 +212,7 @@ jobs:
         run: docker logs earthly-buildkitd
         if: ${{ failure() }}
 
-  cloud-integration:
+  push-integration:
     if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     env:
@@ -228,14 +228,17 @@ jobs:
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: Build latest earthly using released earthly
         run: earthly --use-inline-cache +for-linux
-      - name: Push and Pull Images (not a fork)
+      - name: Push and Pull Cloud Images (not a fork)
         run: |
           export EARTHLY_BUILD_ARGS="DOCKERHUB_USER_SECRET=+secrets/earthly-technologies/dockerhub/user,DOCKERHUB_TOKEN_SECRET=+secrets/earthly-technologies/dockerhub/token"
           ./build/linux/amd64/earthly --ci -P ./examples/tests/cloud-push-pull+all
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
-      - name: Push and Pull Images (fork)
+      - name: Push and Pull Cloud Images (fork)
         run: ./build/linux/amd64/earthly --ci -P ./examples/tests/cloud-push-pull+all
         if: github.event_name != 'push' && github.event.pull_request.head.repo.full_name != github.repository
+      - name: Push Images after RUN --push
+        run: ./examples/tests/push-images/test.sh
+        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: Buildkit logs (runs on failure)
         run: docker logs earthly-buildkitd
         if: ${{ failure() }}
@@ -479,7 +482,7 @@ jobs:
       - misc-tests
       - examples1
       - examples2
-      - cloud-integration
+      - push-integration
       - secrets-integration
       - private-repo-test
       - test-local

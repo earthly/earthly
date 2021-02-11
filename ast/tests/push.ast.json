@@ -1,0 +1,30 @@
+{
+  "baseRecipe": [
+    {
+      "command": {
+        "args": [
+          "alpine:3.13"
+        ],
+        "name": "FROM"
+      }
+    }
+  ],
+  "targets": [
+    {
+      "name": "push-test",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "--push",
+              "echo",
+              "hello",
+              "world"
+            ],
+            "name": "RUN"
+          }
+        }
+      ]
+    }
+  ]
+}

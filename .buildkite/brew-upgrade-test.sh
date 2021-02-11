@@ -1,6 +1,9 @@
 #!/bin/bash
 set -xeuo pipefail
 
+cpubrand=$(sysctl -n machdep.cpu.brand_string)
+echo "macOS test running on $cpubrand"
+
 earthly="earthly"
 if ! command -v "$earthly"; then
     earthly="earth"

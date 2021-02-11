@@ -1,0 +1,72 @@
+{
+  "baseRecipe": [
+    {
+      "command": {
+        "args": [
+          "alpine/git:1.0.7"
+        ],
+        "name": "FROM"
+      }
+    }
+  ],
+  "targets": [
+    {
+      "name": "test",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "/test"
+            ],
+            "name": "WORKDIR"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "https://github.com/moby/buildkit.git",
+              "buildkit"
+            ],
+            "name": "GIT CLONE"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "/test/buildkit"
+            ],
+            "name": "WORKDIR"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "git",
+              "status"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "git",
+              "branch"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "test",
+              "-f",
+              "README.md"
+            ],
+            "name": "RUN"
+          }
+        }
+      ]
+    }
+  ]
+}
