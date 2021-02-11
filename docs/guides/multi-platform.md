@@ -36,13 +36,7 @@ docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
 docker stop earthly-buildkitd || true
 ```
 
-However, note that the command
-
-```
-docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
-```
-
-will need to be re-run on every system restart. For a more permanent installation of QEMU see this guide on [building multi architecture Docker images, which includes QEMU installation instructions](https://medium.com/@artur.klauser/building-multi-architecture-docker-images-with-buildx-27d80f7e2408).
+The `docker run` command above enables execution of different multi-architecture containers by QEMU and `binfmt_misc`. It only needs to be run once.
 
 ### GitHub Actions
 
