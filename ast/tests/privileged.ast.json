@@ -1,0 +1,50 @@
+{
+  "baseRecipe": [
+    {
+      "command": {
+        "args": [
+          "alpine:3.13"
+        ],
+        "name": "FROM"
+      }
+    }
+  ],
+  "targets": [
+    {
+      "name": "test",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "cat",
+              "/proc/self/status",
+              "|",
+              "grep",
+              "CapEff",
+              "|",
+              "grep",
+              "00000000a80425fb"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "--privileged",
+              "cat",
+              "/proc/self/status",
+              "|",
+              "grep",
+              "CapEff",
+              "|",
+              "grep",
+              "0000003fffffffff"
+            ],
+            "name": "RUN"
+          }
+        }
+      ]
+    }
+  ]
+}

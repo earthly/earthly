@@ -271,6 +271,7 @@ test:
     BUILD +lint
     BUILD +lint-scripts
     BUILD +unit-test
+    BUILD ./ast/tests+all
     ARG DOCKERHUB_USER_SECRET
     ARG DOCKERHUB_TOKEN_SECRET
     BUILD \

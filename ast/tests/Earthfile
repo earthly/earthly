@@ -1,0 +1,112 @@
+FROM alpine:3.13
+RUN apk add jq
+WORKDIR /test
+
+COPY ../..+earthly/earthly /usr/local/bin/earthly
+
+all:
+    BUILD \
+        --build-arg TEST=build-arg \
+        --build-arg TEST=builtin-args \
+        --build-arg TEST=cache1 \
+        --build-arg TEST=cache2 \
+        --build-arg TEST=chown \
+        --build-arg TEST=comments \
+        --build-arg TEST=config \
+        --build-arg TEST=copy \
+        --build-arg TEST=dotenv \
+        --build-arg TEST=empty-git \
+        --build-arg TEST=end-comment \
+        --build-arg TEST=env \
+        --build-arg TEST=escape-dir1 \
+        --build-arg TEST=escape-dir2 \
+        --build-arg TEST=escape \
+        --build-arg TEST=excludes \
+        --build-arg TEST=fail \
+        --build-arg TEST=fail-invalid-artifact \
+        --build-arg TEST=file-copying \
+        --build-arg TEST=from-expose \
+        --build-arg TEST=gen-dockerfile \
+        --build-arg TEST=git-clone \
+        --build-arg TEST=host-bind \
+        --build-arg TEST=if-exists \
+        --build-arg TEST=lc \
+        --build-arg TEST=no-cache-local-artifact \
+        --build-arg TEST=non-transitive-args1 \
+        --build-arg TEST=non-transitive-args2 \
+        --build-arg TEST=privileged \
+        --build-arg TEST=push-build \
+        --build-arg TEST=push \
+        --build-arg TEST=run-no-cache \
+        --build-arg TEST=save-artifact-after-push \
+        --build-arg TEST=scratch-test \
+        --build-arg TEST=secrets \
+        --build-arg TEST=star \
+        --build-arg TEST=target-first-line \
+        --build-arg TEST=transitive-args \
+        --build-arg TEST=with-docker \
+        --build-arg TEST=with-docker-compose \
+        +test
+
+update-all:
+    BUILD \
+        --build-arg TEST=build-arg \
+        --build-arg TEST=builtin-args \
+        --build-arg TEST=cache1 \
+        --build-arg TEST=cache2 \
+        --build-arg TEST=chown \
+        --build-arg TEST=comments \
+        --build-arg TEST=config \
+        --build-arg TEST=copy \
+        --build-arg TEST=dotenv \
+        --build-arg TEST=empty-git \
+        --build-arg TEST=end-comment \
+        --build-arg TEST=env \
+        --build-arg TEST=escape-dir1 \
+        --build-arg TEST=escape-dir2 \
+        --build-arg TEST=escape \
+        --build-arg TEST=excludes \
+        --build-arg TEST=fail \
+        --build-arg TEST=fail-invalid-artifact \
+        --build-arg TEST=file-copying \
+        --build-arg TEST=from-expose \
+        --build-arg TEST=gen-dockerfile \
+        --build-arg TEST=git-clone \
+        --build-arg TEST=host-bind \
+        --build-arg TEST=if-exists \
+        --build-arg TEST=lc \
+        --build-arg TEST=no-cache-local-artifact \
+        --build-arg TEST=non-transitive-args1 \
+        --build-arg TEST=non-transitive-args2 \
+        --build-arg TEST=privileged \
+        --build-arg TEST=push-build \
+        --build-arg TEST=push \
+        --build-arg TEST=run-no-cache \
+        --build-arg TEST=save-artifact-after-push \
+        --build-arg TEST=scratch-test \
+        --build-arg TEST=secrets \
+        --build-arg TEST=star \
+        --build-arg TEST=target-first-line \
+        --build-arg TEST=transitive-args \
+        --build-arg TEST=with-docker \
+        --build-arg TEST=with-docker-compose \
+        +update-expected
+
+# Note: If this test fails for good reason (eg format of AST has changed), you can
+#       update the expectations via +update-all. Please review the resulting diff
+#       carefully when committing to git.
+test:
+    ARG TEST
+    COPY ../../examples/tests+ast-test-input/${TEST}.earth ./
+    COPY ${TEST}.ast.json ./expected.json
+    RUN jq -S . ./expected.json >./expected.pretty.json
+    RUN earthly debug ast ${TEST}.earth >./actual.json
+    RUN jq -S . ./actual.json >./actual.pretty.json
+    RUN diff ./actual.pretty.json ./expected.pretty.json
+
+update-expected:
+    ARG TEST
+    COPY ../../examples/tests+ast-test-input/${TEST}.earth ./
+    RUN earthly debug ast ${TEST}.earth >./expected.json
+    RUN jq -S . ./expected.json >./expected.pretty.json
+    SAVE ARTIFACT ./expected.pretty.json AS LOCAL ./${TEST}.ast.json

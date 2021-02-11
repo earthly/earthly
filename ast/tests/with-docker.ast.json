@@ -1,0 +1,299 @@
+{
+  "baseRecipe": [
+    {
+      "command": {
+        "args": [
+          "earthly/dind:alpine"
+        ],
+        "name": "FROM"
+      }
+    }
+  ],
+  "targets": [
+    {
+      "name": "all",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "+docker-load-test"
+            ],
+            "name": "BUILD"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "+docker-pull-test"
+            ],
+            "name": "BUILD"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "+load-parallel-test"
+            ],
+            "name": "BUILD"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "+one-target-many-names"
+            ],
+            "name": "BUILD"
+          }
+        }
+      ]
+    },
+    {
+      "name": "a-test-image",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "alpine:3.13"
+            ],
+            "name": "FROM"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "mkdir",
+              "/abc"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "/abc"
+            ],
+            "name": "WORKDIR"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "echo",
+              "\"hello world\"",
+              ">def.txt"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "cat",
+              "/abc/def.txt",
+              "&&",
+              "pwd"
+            ],
+            "name": "ENTRYPOINT"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "test-img:xyz"
+            ],
+            "name": "SAVE IMAGE"
+          }
+        }
+      ]
+    },
+    {
+      "name": "docker-load-test",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "INDEX",
+              "=",
+              "0"
+            ],
+            "name": "ARG"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "echo",
+              "\"$INDEX\""
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "with": {
+            "body": [
+              {
+                "command": {
+                  "args": [
+                    "docker",
+                    "run",
+                    "test-img:xyz",
+                    "&&",
+                    "docker",
+                    "run",
+                    "hello-world"
+                  ],
+                  "name": "RUN"
+                }
+              }
+            ],
+            "command": {
+              "args": [
+                "--pull",
+                "hello-world",
+                "--load",
+                "+a-test-image"
+              ],
+              "name": "DOCKER"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "docker-pull-test",
+      "recipe": [
+        {
+          "with": {
+            "body": [
+              {
+                "command": {
+                  "args": [
+                    "docker",
+                    "run",
+                    "hello-world"
+                  ],
+                  "name": "RUN"
+                }
+              }
+            ],
+            "command": {
+              "args": [
+                "--pull",
+                "hello-world"
+              ],
+              "name": "DOCKER"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "load-parallel-test",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "--build-arg",
+              "INDEX=1",
+              "--build-arg",
+              "INDEX=2",
+              "--build-arg",
+              "INDEX=3",
+              "--build-arg",
+              "INDEX=4",
+              "--build-arg",
+              "INDEX=5",
+              "+docker-load-test"
+            ],
+            "name": "BUILD"
+          }
+        }
+      ]
+    },
+    {
+      "name": "multi-from-one",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "hello-world"
+            ],
+            "name": "FROM"
+          }
+        }
+      ]
+    },
+    {
+      "name": "multi-from-two",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "alpine:latest"
+            ],
+            "name": "FROM"
+          }
+        }
+      ]
+    },
+    {
+      "name": "one-target-many-names",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "earthly/dind:alpine"
+            ],
+            "name": "FROM"
+          }
+        },
+        {
+          "with": {
+            "body": [
+              {
+                "command": {
+                  "args": [
+                    "docker",
+                    "images",
+                    "&&",
+                    "docker",
+                    "run",
+                    "a:latest",
+                    "&&",
+                    "echo",
+                    "\"-----\"",
+                    "&&",
+                    "docker",
+                    "run",
+                    "b:latest",
+                    "&&",
+                    "echo",
+                    "\"-----\"",
+                    "&&",
+                    "docker",
+                    "run",
+                    "c:latest",
+                    "uname",
+                    "-a"
+                  ],
+                  "name": "RUN"
+                }
+              }
+            ],
+            "command": {
+              "args": [
+                "--load",
+                "a:latest=+multi-from-one",
+                "--load",
+                "b:latest=+multi-from-one",
+                "--load",
+                "c:latest=+multi-from-two"
+              ],
+              "name": "DOCKER"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

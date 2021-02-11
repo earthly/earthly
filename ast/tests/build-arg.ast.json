@@ -1,0 +1,509 @@
+{
+  "baseRecipe": [
+    {
+      "command": {
+        "args": [
+          "alpine:3.13"
+        ],
+        "name": "FROM"
+      }
+    },
+    {
+      "command": {
+        "args": [
+          "/test"
+        ],
+        "name": "WORKDIR"
+      }
+    },
+    {
+      "command": {
+        "args": [
+          "global1",
+          "=",
+          "abc"
+        ],
+        "name": "ARG"
+      }
+    },
+    {
+      "command": {
+        "args": [
+          "global2",
+          "=",
+          "def"
+        ],
+        "name": "ARG"
+      }
+    }
+  ],
+  "targets": [
+    {
+      "name": "all",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "+test1"
+            ],
+            "name": "BUILD"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "+test2"
+            ],
+            "name": "BUILD"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "+test3"
+            ],
+            "name": "BUILD"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "+test4"
+            ],
+            "name": "BUILD"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "+test5"
+            ],
+            "name": "BUILD"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "+test-global1"
+            ],
+            "name": "BUILD"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "+test-global2"
+            ],
+            "name": "BUILD"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "+test-global3"
+            ],
+            "name": "BUILD"
+          }
+        }
+      ]
+    },
+    {
+      "name": "file-exists",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "VAR1",
+              "=",
+              "nope.txt"
+            ],
+            "name": "ARG"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "VAR2",
+              "=",
+              "dummy"
+            ],
+            "name": "ARG"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "touch",
+              "\"$VAR2\""
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "touch",
+              "\"existing-file.txt\""
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "test",
+              "-f",
+              "\"$VAR1\""
+            ],
+            "name": "RUN"
+          }
+        }
+      ]
+    },
+    {
+      "name": "test1",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "--build-arg=VAR1=existing-file.txt",
+              "+file-exists"
+            ],
+            "name": "BUILD"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "--build-arg=VAR1=dummy",
+              "+file-exists"
+            ],
+            "name": "BUILD"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "--build-arg=VAR1=dummy2",
+              "--build-arg=VAR2=dummy2",
+              "+file-exists"
+            ],
+            "name": "BUILD"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "touch",
+              "dummy"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "--build-arg=VAR1=$(ls)",
+              "+file-exists"
+            ],
+            "name": "BUILD"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "rm",
+              "dummy"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "touch",
+              "existing-file.txt"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "--build-arg=VAR1=$(ls)",
+              "+file-exists"
+            ],
+            "name": "BUILD"
+          }
+        }
+      ]
+    },
+    {
+      "name": "test2",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "ALPINE",
+              "=",
+              "3.11"
+            ],
+            "name": "ARG"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "alpine:$ALPINE"
+            ],
+            "name": "FROM"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "echo",
+              "$ALPINE"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "test",
+              "\"$ALPINE\"",
+              "==",
+              "\"3.11\""
+            ],
+            "name": "RUN"
+          }
+        }
+      ]
+    },
+    {
+      "name": "dummy",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "alpine:3.13"
+            ],
+            "name": "FROM"
+          }
+        }
+      ]
+    },
+    {
+      "name": "test3",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "VAR1",
+              "=",
+              "\"test\""
+            ],
+            "name": "ARG"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "+dummy"
+            ],
+            "name": "FROM"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "test",
+              "\"$VAR1\"",
+              "==",
+              "\"test\""
+            ],
+            "name": "RUN"
+          }
+        }
+      ]
+    },
+    {
+      "name": "test4",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "touch",
+              "dummy"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "VAR1",
+              "=",
+              "$(ls)"
+            ],
+            "name": "ARG"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "touch",
+              "should-not-be-seen"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "test",
+              "\"$VAR1\"",
+              "==",
+              "\"dummy\""
+            ],
+            "name": "RUN"
+          }
+        }
+      ]
+    },
+    {
+      "name": "test5",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "printf",
+              "'\"text with quotes\"'",
+              ">./content"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "VAR1",
+              "=",
+              "$(cat ./content)"
+            ],
+            "name": "ARG"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "test",
+              "\"$VAR1\"",
+              "==",
+              "'\"text with quotes\"'"
+            ],
+            "name": "RUN"
+          }
+        }
+      ]
+    },
+    {
+      "name": "test-global1",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "test",
+              "\"$global1\"",
+              "==",
+              "\"abc\""
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "test",
+              "\"$global2\"",
+              "==",
+              "\"def\""
+            ],
+            "name": "RUN"
+          }
+        }
+      ]
+    },
+    {
+      "name": "test-global2",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "alpine:latest"
+            ],
+            "name": "FROM"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "test",
+              "\"$global1\"",
+              "==",
+              "\"abc\""
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "test",
+              "\"$global2\"",
+              "==",
+              "\"def\""
+            ],
+            "name": "RUN"
+          }
+        }
+      ]
+    },
+    {
+      "name": "test-global3",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "+dummy"
+            ],
+            "name": "FROM"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "test",
+              "\"$global1\"",
+              "==",
+              "\"abc\""
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "test",
+              "\"$global2\"",
+              "==",
+              "\"def\""
+            ],
+            "name": "RUN"
+          }
+        }
+      ]
+    }
+  ]
+}

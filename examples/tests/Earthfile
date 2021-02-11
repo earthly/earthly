@@ -65,6 +65,13 @@ ga:
 experimental:
     BUILD ./dind-auto-install+all
 
+ast-test-input:
+    FROM alpine:3.13
+    COPY ./*.earth ./
+    COPY ./with-docker/Earthfile ./with-docker.earth
+    COPY ./with-docker-compose/Earthfile ./with-docker-compose.earth
+    SAVE ARTIFACT ./*.earth
+
 privileged-test:
     COPY privileged.earth ./Earthfile
     RUN --privileged \
