@@ -47,6 +47,7 @@ all:
         --build-arg TEST=with-docker \
         --build-arg TEST=with-docker-compose \
         +test
+    BUILD --build-arg INPUT_FROM=./ --build-arg TEST=if +test
 
 update-all:
     BUILD \
@@ -91,13 +92,15 @@ update-all:
         --build-arg TEST=with-docker \
         --build-arg TEST=with-docker-compose \
         +update-expected
+    BUILD --build-arg INPUT_FROM=./ --build-arg TEST=if +update-expected
 
-# Note: If this test fails for good reason (eg format of AST has changed), you can
+# Note: If this test fails for expected reasons (eg format of AST has changed), you can
 #       update the expectations via +update-all. Please review the resulting diff
 #       carefully when committing to git.
 test:
     ARG TEST
-    COPY ../../examples/tests+ast-test-input/${TEST}.earth ./
+    ARG INPUT_FROM=../../examples/tests+ast-test-input/
+    COPY ${INPUT_FROM}${TEST}.earth ./
     COPY ${TEST}.ast.json ./expected.json
     RUN jq -S . ./expected.json >./expected.pretty.json
     RUN earthly debug ast ${TEST}.earth >./actual.json
@@ -106,7 +109,8 @@ test:
 
 update-expected:
     ARG TEST
-    COPY ../../examples/tests+ast-test-input/${TEST}.earth ./
+    ARG INPUT_FROM=../../examples/tests+ast-test-input/
+    COPY ${INPUT_FROM}${TEST}.earth ./
     RUN earthly debug ast ${TEST}.earth >./expected.json
     RUN jq -S . ./expected.json >./expected.pretty.json
     SAVE ARTIFACT ./expected.pretty.json AS LOCAL ./${TEST}.ast.json

@@ -188,7 +188,6 @@ earthly-docker:
     FROM ./buildkitd+buildkitd
     RUN apk add --update --no-cache docker-cli
     ENV NETWORK_MODE=host
-    ENV EARTHLY_ENABLE_AST=true
     COPY earthly-buildkitd-wrapper.sh /usr/bin/earthly-buildkitd-wrapper.sh
     ENTRYPOINT ["/usr/bin/earthly-buildkitd-wrapper.sh"]
     ARG EARTHLY_TARGET_TAG_DOCKER

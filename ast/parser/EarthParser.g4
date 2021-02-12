@@ -14,8 +14,8 @@ stmts: WS? stmt (NL+ WS? stmt)*;
 
 stmt:
 	commandStmt
-	| withDockerStmt
-	| endStmt;
+	| withStmt
+	| ifStmt;
 
 commandStmt:
 	fromStmt
@@ -39,8 +39,34 @@ commandStmt:
 	| stopsignalStmt
 	| onbuildStmt
 	| healthcheckStmt
-	| shellStmt
-	| genericCommandStmt;
+	| shellStmt;
+
+// withStmt -------------------------------------------------------------------
+
+withStmt: withExpr (NL+ WS? withBlock)? NL+ WS? END;
+withBlock: stmts;
+
+withExpr: WITH WS withCommand;
+withCommand:
+	dockerCommand;
+
+dockerCommand: DOCKER (WS stmtWords)?;
+
+// ifStmt ---------------------------------------------------------------------
+
+ifStmt: ifClause (NL+ WS? elseIfClause)* (NL+ WS? elseClause)? NL+ WS? END;
+
+ifClause: IF WS ifExpr (NL+ WS? ifBlock)?;
+ifBlock: stmts;
+elseIfClause: ELSE WS IF WS elseIfExpr (NL+ WS? elseIfBlock)?;
+elseIfBlock: stmts;
+elseClause: ELSE (NL+ WS? elseBlock)?;
+elseBlock: stmts;
+
+ifExpr: expr;
+elseIfExpr: expr;
+
+// Regular commands -----------------------------------------------------------
 
 fromStmt: FROM (WS stmtWords)?;
 
@@ -87,11 +113,9 @@ onbuildStmt: ONBUILD (WS stmtWords)?;
 healthcheckStmt: HEALTHCHECK (WS stmtWords)?;
 shellStmt: SHELL (WS stmtWords)?;
 
-withDockerStmt: WITH_DOCKER (WS stmtWords)?;
-endStmt: END (WS stmtWords)?;
+// expr, stmtWord* ------------------------------------------------------------
 
-genericCommandStmt: commandName (WS stmtWords)?;
-commandName: Command;
+expr: stmtWordsMaybeJSON;
 
 stmtWordsMaybeJSON: stmtWords;
 stmtWords: stmtWord (WS? stmtWord)*;

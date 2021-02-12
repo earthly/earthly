@@ -63,6 +63,90 @@ func (s *BaseEarthParserListener) EnterCommandStmt(ctx *CommandStmtContext) {}
 // ExitCommandStmt is called when production commandStmt is exited.
 func (s *BaseEarthParserListener) ExitCommandStmt(ctx *CommandStmtContext) {}
 
+// EnterWithStmt is called when production withStmt is entered.
+func (s *BaseEarthParserListener) EnterWithStmt(ctx *WithStmtContext) {}
+
+// ExitWithStmt is called when production withStmt is exited.
+func (s *BaseEarthParserListener) ExitWithStmt(ctx *WithStmtContext) {}
+
+// EnterWithBlock is called when production withBlock is entered.
+func (s *BaseEarthParserListener) EnterWithBlock(ctx *WithBlockContext) {}
+
+// ExitWithBlock is called when production withBlock is exited.
+func (s *BaseEarthParserListener) ExitWithBlock(ctx *WithBlockContext) {}
+
+// EnterWithExpr is called when production withExpr is entered.
+func (s *BaseEarthParserListener) EnterWithExpr(ctx *WithExprContext) {}
+
+// ExitWithExpr is called when production withExpr is exited.
+func (s *BaseEarthParserListener) ExitWithExpr(ctx *WithExprContext) {}
+
+// EnterWithCommand is called when production withCommand is entered.
+func (s *BaseEarthParserListener) EnterWithCommand(ctx *WithCommandContext) {}
+
+// ExitWithCommand is called when production withCommand is exited.
+func (s *BaseEarthParserListener) ExitWithCommand(ctx *WithCommandContext) {}
+
+// EnterDockerCommand is called when production dockerCommand is entered.
+func (s *BaseEarthParserListener) EnterDockerCommand(ctx *DockerCommandContext) {}
+
+// ExitDockerCommand is called when production dockerCommand is exited.
+func (s *BaseEarthParserListener) ExitDockerCommand(ctx *DockerCommandContext) {}
+
+// EnterIfStmt is called when production ifStmt is entered.
+func (s *BaseEarthParserListener) EnterIfStmt(ctx *IfStmtContext) {}
+
+// ExitIfStmt is called when production ifStmt is exited.
+func (s *BaseEarthParserListener) ExitIfStmt(ctx *IfStmtContext) {}
+
+// EnterIfClause is called when production ifClause is entered.
+func (s *BaseEarthParserListener) EnterIfClause(ctx *IfClauseContext) {}
+
+// ExitIfClause is called when production ifClause is exited.
+func (s *BaseEarthParserListener) ExitIfClause(ctx *IfClauseContext) {}
+
+// EnterIfBlock is called when production ifBlock is entered.
+func (s *BaseEarthParserListener) EnterIfBlock(ctx *IfBlockContext) {}
+
+// ExitIfBlock is called when production ifBlock is exited.
+func (s *BaseEarthParserListener) ExitIfBlock(ctx *IfBlockContext) {}
+
+// EnterElseIfClause is called when production elseIfClause is entered.
+func (s *BaseEarthParserListener) EnterElseIfClause(ctx *ElseIfClauseContext) {}
+
+// ExitElseIfClause is called when production elseIfClause is exited.
+func (s *BaseEarthParserListener) ExitElseIfClause(ctx *ElseIfClauseContext) {}
+
+// EnterElseIfBlock is called when production elseIfBlock is entered.
+func (s *BaseEarthParserListener) EnterElseIfBlock(ctx *ElseIfBlockContext) {}
+
+// ExitElseIfBlock is called when production elseIfBlock is exited.
+func (s *BaseEarthParserListener) ExitElseIfBlock(ctx *ElseIfBlockContext) {}
+
+// EnterElseClause is called when production elseClause is entered.
+func (s *BaseEarthParserListener) EnterElseClause(ctx *ElseClauseContext) {}
+
+// ExitElseClause is called when production elseClause is exited.
+func (s *BaseEarthParserListener) ExitElseClause(ctx *ElseClauseContext) {}
+
+// EnterElseBlock is called when production elseBlock is entered.
+func (s *BaseEarthParserListener) EnterElseBlock(ctx *ElseBlockContext) {}
+
+// ExitElseBlock is called when production elseBlock is exited.
+func (s *BaseEarthParserListener) ExitElseBlock(ctx *ElseBlockContext) {}
+
+// EnterIfExpr is called when production ifExpr is entered.
+func (s *BaseEarthParserListener) EnterIfExpr(ctx *IfExprContext) {}
+
+// ExitIfExpr is called when production ifExpr is exited.
+func (s *BaseEarthParserListener) ExitIfExpr(ctx *IfExprContext) {}
+
+// EnterElseIfExpr is called when production elseIfExpr is entered.
+func (s *BaseEarthParserListener) EnterElseIfExpr(ctx *ElseIfExprContext) {}
+
+// ExitElseIfExpr is called when production elseIfExpr is exited.
+func (s *BaseEarthParserListener) ExitElseIfExpr(ctx *ElseIfExprContext) {}
+
 // EnterFromStmt is called when production fromStmt is entered.
 func (s *BaseEarthParserListener) EnterFromStmt(ctx *FromStmtContext) {}
 
@@ -231,29 +315,11 @@ func (s *BaseEarthParserListener) EnterShellStmt(ctx *ShellStmtContext) {}
 // ExitShellStmt is called when production shellStmt is exited.
 func (s *BaseEarthParserListener) ExitShellStmt(ctx *ShellStmtContext) {}
 
-// EnterWithDockerStmt is called when production withDockerStmt is entered.
-func (s *BaseEarthParserListener) EnterWithDockerStmt(ctx *WithDockerStmtContext) {}
+// EnterExpr is called when production expr is entered.
+func (s *BaseEarthParserListener) EnterExpr(ctx *ExprContext) {}
 
-// ExitWithDockerStmt is called when production withDockerStmt is exited.
-func (s *BaseEarthParserListener) ExitWithDockerStmt(ctx *WithDockerStmtContext) {}
-
-// EnterEndStmt is called when production endStmt is entered.
-func (s *BaseEarthParserListener) EnterEndStmt(ctx *EndStmtContext) {}
-
-// ExitEndStmt is called when production endStmt is exited.
-func (s *BaseEarthParserListener) ExitEndStmt(ctx *EndStmtContext) {}
-
-// EnterGenericCommandStmt is called when production genericCommandStmt is entered.
-func (s *BaseEarthParserListener) EnterGenericCommandStmt(ctx *GenericCommandStmtContext) {}
-
-// ExitGenericCommandStmt is called when production genericCommandStmt is exited.
-func (s *BaseEarthParserListener) ExitGenericCommandStmt(ctx *GenericCommandStmtContext) {}
-
-// EnterCommandName is called when production commandName is entered.
-func (s *BaseEarthParserListener) EnterCommandName(ctx *CommandNameContext) {}
-
-// ExitCommandName is called when production commandName is exited.
-func (s *BaseEarthParserListener) ExitCommandName(ctx *CommandNameContext) {}
+// ExitExpr is called when production expr is exited.
+func (s *BaseEarthParserListener) ExitExpr(ctx *ExprContext) {}
 
 // EnterStmtWordsMaybeJSON is called when production stmtWordsMaybeJSON is entered.
 func (s *BaseEarthParserListener) EnterStmtWordsMaybeJSON(ctx *StmtWordsMaybeJSONContext) {}

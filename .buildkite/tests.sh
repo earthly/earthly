@@ -50,7 +50,6 @@ fi
 echo "Build latest earthly using released earthly"
 "$released_earthly" +for-"$EARTHLY_OS"
 
-export EARTHLY_ENABLE_AST=true
 echo "Execute tests"
 "$earthly" --ci -P +test
 
