@@ -32,8 +32,6 @@ type listener struct {
 	stmtWords []string
 	execMode  bool
 
-	genericCommandName string
-
 	ctx             context.Context
 	filePath        string
 	enableSourceMap bool
@@ -255,11 +253,6 @@ func (l *listener) EnterShellStmt(c *parser.ShellStmtContext) {
 	l.command.Name = "SHELL"
 }
 
-func (l *listener) ExitGenericCommandStmt(c *parser.GenericCommandStmtContext) {
-	l.command.Name = l.genericCommandName
-	l.genericCommandName = ""
-}
-
 // With -----------------------------------------------------------------------
 
 func (l *listener) EnterWithStmt(c *parser.WithStmtContext) {
@@ -322,11 +315,6 @@ func (l *listener) EnterDockerCommand(c *parser.DockerCommandContext) {
 	l.command.Name = "DOCKER"
 }
 
-func (l *listener) ExitGenericCommand(c *parser.GenericCommandContext) {
-	l.command.Name = l.genericCommandName
-	l.genericCommandName = ""
-}
-
 // If -------------------------------------------------------------------------
 
 func (l *listener) EnterIfStmt(c *parser.IfStmtContext) {
@@ -347,15 +335,6 @@ func (l *listener) ExitIfStmt(c *parser.IfStmtContext) {
 	l.block().ifStatement = nil
 }
 
-func (l *listener) EnterIfClause(c *parser.IfClauseContext) {
-	l.pushNewBlock()
-}
-
-func (l *listener) ExitIfClause(c *parser.IfClauseContext) {
-	ifBlock := l.popBlock()
-	l.block().ifStatement.IfBody = ifBlock
-}
-
 func (l *listener) EnterIfExpr(c *parser.IfExprContext) {
 	l.stmtWords = []string{}
 	l.execMode = false
@@ -366,16 +345,25 @@ func (l *listener) ExitIfExpr(c *parser.IfExprContext) {
 	l.block().ifStatement.ExecMode = l.execMode
 }
 
+func (l *listener) EnterIfBlock(c *parser.IfBlockContext) {
+	l.pushNewBlock()
+}
+
+func (l *listener) ExitIfBlock(c *parser.IfBlockContext) {
+	ifBlock := l.popBlock()
+	l.block().ifStatement.IfBody = ifBlock
+}
+
 func (l *listener) EnterElseIfExpr(c *parser.ElseIfExprContext) {
 	// TODO
 	panic("ELSE IF not yet supported")
 }
 
-func (l *listener) EnterElseClause(c *parser.ElseClauseContext) {
+func (l *listener) EnterElseBlock(c *parser.ElseBlockContext) {
 	l.pushNewBlock()
 }
 
-func (l *listener) ExitElseClause(c *parser.ElseClauseContext) {
+func (l *listener) ExitElseBlock(c *parser.ElseBlockContext) {
 	elseBlock := l.popBlock()
 	l.block().ifStatement.ElseBody = &elseBlock
 }
@@ -417,12 +405,6 @@ func (l *listener) ExitStmtWordsMaybeJSON(c *parser.StmtWordsMaybeJSONContext) {
 
 func (l *listener) EnterStmtWord(c *parser.StmtWordContext) {
 	l.stmtWords = append(l.stmtWords, replaceEscape(c.GetText()))
-}
-
-// CommandName ----------------------------------------------------------------
-
-func (l *listener) EnterCommandName(c *parser.CommandNameContext) {
-	l.genericCommandName = c.GetText()
 }
 
 // ----------------------------------------------------------------------------

@@ -30,13 +30,10 @@ STOPSIGNAL: 'STOPSIGNAL' -> pushMode(COMMAND_ARGS);
 ONBUILD: 'ONBUILD' -> pushMode(COMMAND_ARGS);
 HEALTHCHECK: 'HEALTHCHECK' -> pushMode(COMMAND_ARGS);
 SHELL: 'SHELL' -> pushMode(COMMAND_ARGS);
+
 WITH: 'WITH';
-DOCKER: 'DOCKER' -> pushMode(COMMAND_ARGS);
-IF: 'IF' -> pushMode(COMMAND_ARGS);
-ELSE: 'ELSE' -> pushMode(COMMAND_ARGS);
-ELSE_IF: 'ELSE IF' -> pushMode(COMMAND_ARGS);
-END: 'END' -> pushMode(COMMAND_ARGS);
-Command: [A-Z]+ -> pushMode(COMMAND_ARGS);
+DOCKER: 'DOCKER' -> pushMode(BLOCK), pushMode(COMMAND_ARGS);
+IF: 'IF' -> pushMode(BLOCK), pushMode(COMMAND_ARGS);
 
 NL: WS? COMMENT? (EOF | CRLF);
 WS: [ \t] ([ \t] | LC)*;
@@ -44,11 +41,13 @@ fragment CRLF: ('\r' | '\n' | '\r\n');
 fragment COMMENT: '#' (~[\r\n])*;
 fragment LC: '\\' [ \t]* ([ \t] | CRLF | COMMENT)*;
 
+// ----------------------------------------------------------------------------
+
 mode RECIPE;
 
 // Note: RECIPE mode is popped via golang code, when DEDENT occurs.
 
-Target_R: Target -> type(Target), pushMode(RECIPE);
+Target_R: Target -> type(Target);
 
 FROM_R: FROM -> type(FROM), pushMode(COMMAND_ARGS);
 FROM_DOCKERFILE_R: FROM_DOCKERFILE -> type(FROM_DOCKERFILE), pushMode(COMMAND_ARGS);
@@ -73,16 +72,53 @@ STOPSIGNAL_R: STOPSIGNAL -> type(STOPSIGNAL), pushMode(COMMAND_ARGS);
 ONBUILD_R: ONBUILD -> type(ONBUILD), pushMode(COMMAND_ARGS);
 HEALTHCHECK_R: HEALTHCHECK -> type(HEALTHCHECK), pushMode(COMMAND_ARGS);
 SHELL_R: SHELL -> type(SHELL), pushMode(COMMAND_ARGS);
+
 WITH_R: WITH -> type(WITH);
-DOCKER_R: DOCKER -> type(DOCKER), pushMode(COMMAND_ARGS);
-IF_R: IF -> type(IF), pushMode(COMMAND_ARGS);
-ELSE_R: ELSE -> type(ELSE), pushMode(COMMAND_ARGS);
-ELSE_IF_R: ELSE_IF -> type(ELSE_IF), pushMode(COMMAND_ARGS);
-END_R: END -> type(END), pushMode(COMMAND_ARGS);
-Command_R: Command -> type(Command), pushMode(COMMAND_ARGS);
+DOCKER_R: DOCKER -> type(DOCKER), pushMode(BLOCK), pushMode(COMMAND_ARGS);
+IF_R: IF -> type(IF), pushMode(BLOCK), pushMode(COMMAND_ARGS);
 
 NL_R: NL -> type(NL);
 WS_R: WS -> type(WS);
+
+// ----------------------------------------------------------------------------
+
+mode BLOCK;
+
+FROM_B: FROM -> type(FROM), pushMode(COMMAND_ARGS);
+FROM_DOCKERFILE_B: FROM_DOCKERFILE -> type(FROM_DOCKERFILE), pushMode(COMMAND_ARGS);
+LOCALLY_B: LOCALLY -> type(LOCALLY), pushMode(COMMAND_ARGS);
+COPY_B: COPY -> type(COPY), pushMode(COMMAND_ARGS);
+SAVE_ARTIFACT_B: SAVE_ARTIFACT -> type(SAVE_ARTIFACT), pushMode(COMMAND_ARGS);
+SAVE_IMAGE_B: SAVE_IMAGE -> type(SAVE_IMAGE), pushMode(COMMAND_ARGS);
+RUN_B: RUN -> type(RUN), pushMode(COMMAND_ARGS);
+EXPOSE_B: EXPOSE -> type(EXPOSE), pushMode(COMMAND_ARGS);
+VOLUME_B: VOLUME -> type(VOLUME), pushMode(COMMAND_ARGS);
+ENV_B: ENV -> type(ENV), pushMode(COMMAND_ARGS_KEY_VALUE);
+ARG_B: ARG -> type(ARG), pushMode(COMMAND_ARGS_KEY_VALUE);
+LABEL_B: LABEL -> type(LABEL), pushMode(COMMAND_ARGS_KEY_VALUE_LABEL);
+BUILD_B: BUILD -> type(BUILD), pushMode(COMMAND_ARGS);
+WORKDIR_B: WORKDIR -> type(WORKDIR), pushMode(COMMAND_ARGS);
+USER_B: USER -> type(USER), pushMode(COMMAND_ARGS);
+CMD_B: CMD -> type(CMD), pushMode(COMMAND_ARGS);
+ENTRYPOINT_B: ENTRYPOINT -> type(ENTRYPOINT), pushMode(COMMAND_ARGS);
+GIT_CLONE_B: GIT_CLONE -> type(GIT_CLONE), pushMode(COMMAND_ARGS);
+ADD_B: ADD -> type(ADD), pushMode(COMMAND_ARGS);
+STOPSIGNAL_B: STOPSIGNAL -> type(STOPSIGNAL), pushMode(COMMAND_ARGS);
+ONBUILD_B: ONBUILD -> type(ONBUILD), pushMode(COMMAND_ARGS);
+HEALTHCHECK_B: HEALTHCHECK -> type(HEALTHCHECK), pushMode(COMMAND_ARGS);
+SHELL_B: SHELL -> type(SHELL), pushMode(COMMAND_ARGS);
+
+WITH_B: WITH -> type(WITH);
+DOCKER_B: DOCKER -> type(DOCKER), pushMode(BLOCK), pushMode(COMMAND_ARGS);
+IF_B: IF -> type(IF), pushMode(BLOCK), pushMode(COMMAND_ARGS);
+ELSE: 'ELSE' -> pushMode(COMMAND_ARGS);
+ELSE_IF: 'ELSE IF' -> pushMode(COMMAND_ARGS);
+END: 'END' -> popMode, pushMode(COMMAND_ARGS);
+
+NL_B: NL -> type(NL);
+WS_B: WS -> type(WS);
+
+// ----------------------------------------------------------------------------
 
 mode COMMAND_ARGS;
 
@@ -93,6 +129,8 @@ fragment EscapedAtomPart: ('\\' .) | (LC [ \t]*);
 
 NL_C: NL -> type(NL), popMode;
 WS_C: WS -> type(WS);
+
+// ----------------------------------------------------------------------------
 
 mode COMMAND_ARGS_KEY_VALUE;
 
@@ -105,6 +143,8 @@ fragment RegularAtomPart_CAKV: ~([ \t\r\n"=]) | EscapedAtomPart;
 
 NL_CAKV: NL -> type(NL), popMode;
 WS_CAKV: WS -> type(WS);
+
+// ----------------------------------------------------------------------------
 
 mode COMMAND_ARGS_KEY_VALUE_LABEL;
 

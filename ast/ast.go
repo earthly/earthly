@@ -23,22 +23,19 @@ func Parse(ctx context.Context, filePath string, enableSourceMap bool) (ef spec.
 	}
 	ef, walkErr := walkTree(newListener(ctx, filePath, enableSourceMap), tree)
 	if len(errorListener.Errs) > 0 {
-		var errString []string
+		errString := []string{fmt.Sprintf("lexer error: %s", filePath)}
 		for _, err := range errorListener.Errs {
 			errString = append(errString, err.Error())
 		}
 		return spec.Earthfile{}, fmt.Errorf(strings.Join(errString, "\n"))
 	}
 	if errorStrategy.Err != nil {
-		var errString []string
-		errString = append(errString,
-			fmt.Sprintf(
-				"syntax error: line %d:%d",
-				errorStrategy.RE.GetOffendingToken().GetLine(),
-				errorStrategy.RE.GetOffendingToken().GetColumn()))
-		errString = append(errString,
-			fmt.Sprintf("Details: %s", errorStrategy.RE.GetMessage()))
-		return spec.Earthfile{}, errors.Wrapf(errorStrategy.Err, "%s", strings.Join(errString, "\n"))
+		return spec.Earthfile{}, errors.Wrapf(
+			errorStrategy.Err, "%s line %d:%d '%s'",
+			filePath,
+			errorStrategy.RE.GetOffendingToken().GetLine(),
+			errorStrategy.RE.GetOffendingToken().GetColumn(),
+			errorStrategy.RE.GetOffendingToken().GetText())
 	}
 	if walkErr != nil {
 		return spec.Earthfile{}, walkErr
@@ -50,18 +47,23 @@ func walkTree(l *listener, tree parser.IEarthFileContext) (spec.Earthfile, error
 	antlr.ParseTreeWalkerDefault.Walk(l, tree)
 	err := l.Err()
 	if err != nil {
-		return spec.Earthfile{}, errors.Wrap(err, "parse")
+		return spec.Earthfile{}, err
 	}
 	return l.Earthfile(), nil
 }
 
-func newEarthfileTree(filename string, errorListener antlr.ErrorListener, errorStrategy antlr.ErrorStrategy) (parser.IEarthFileContext, error) {
+func newEarthfileTree(filename string, errorListener *antlrhandler.ReturnErrorListener, errorStrategy antlr.ErrorStrategy) (parser.IEarthFileContext, error) {
 	input, err := antlr.NewFileStream(filename)
 	if err != nil {
 		return nil, errors.Wrapf(err, "new file stream %s", filename)
 	}
 	lexer := newLexer(input)
+	lexer.RemoveErrorListeners()
+	lexer.AddErrorListener(errorListener)
 	stream := antlr.NewCommonTokenStream(lexer, 0)
+	if lexer.Err() != nil {
+		return nil, lexer.Err()
+	}
 	p := parser.NewEarthParser(stream)
 	p.AddErrorListener(errorListener)
 	p.SetErrorHandler(errorStrategy)

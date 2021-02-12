@@ -1,0 +1,346 @@
+{
+  "baseRecipe": [
+    {
+      "command": {
+        "args": [
+          "alpine:3.11"
+        ],
+        "name": "FROM"
+      }
+    },
+    {
+      "if": {
+        "expression": [
+          "[",
+          "\"a\"",
+          "=",
+          "\"b\"",
+          "]"
+        ],
+        "ifBody": [
+          {
+            "command": {
+              "args": [
+                "echo",
+                "\"hello\""
+              ],
+              "name": "RUN"
+            }
+          },
+          {
+            "command": {
+              "args": [
+                "a",
+                "b"
+              ],
+              "name": "COPY"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "if": {
+        "elseBody": [
+          {
+            "command": {
+              "args": [
+                "echo",
+                "\"else 2\""
+              ],
+              "name": "RUN"
+            }
+          }
+        ],
+        "expression": [
+          "[",
+          "\"c\"",
+          "=",
+          "\"d\"",
+          "]"
+        ],
+        "ifBody": [
+          {
+            "command": {
+              "args": [
+                "echo",
+                "\"hello 2\""
+              ],
+              "name": "RUN"
+            }
+          },
+          {
+            "command": {
+              "args": [
+                "c",
+                "d"
+              ],
+              "name": "COPY"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "if": {
+        "elseBody": [
+          {
+            "if": {
+              "expression": [
+                "[",
+                "\"y\"",
+                "=",
+                "\"y\"",
+                "]"
+              ],
+              "ifBody": [
+                {
+                  "command": {
+                    "args": [
+                      "echo",
+                      "\"else nested\""
+                    ],
+                    "name": "RUN"
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "command": {
+              "args": [
+                "echo",
+                "\"else n\""
+              ],
+              "name": "RUN"
+            }
+          }
+        ],
+        "expression": [
+          "[",
+          "\"z\"",
+          "=",
+          "\"z\"",
+          "]"
+        ],
+        "ifBody": [
+          {
+            "if": {
+              "expression": [
+                "[",
+                "\"x\"",
+                "=",
+                "\"x\"",
+                "]"
+              ],
+              "ifBody": [
+                {
+                  "command": {
+                    "args": [
+                      "echo",
+                      "\"nested\""
+                    ],
+                    "name": "RUN"
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "command": {
+              "args": [
+                "echo",
+                "\"hello n\""
+              ],
+              "name": "RUN"
+            }
+          },
+          {
+            "command": {
+              "args": [
+                "c",
+                "d"
+              ],
+              "name": "COPY"
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "targets": [
+    {
+      "name": "build3",
+      "recipe": [
+        {
+          "if": {
+            "expression": [
+              "test",
+              "\"e\"",
+              "=",
+              "\"f\""
+            ],
+            "ifBody": [
+              {
+                "command": {
+                  "args": [
+                    "echo",
+                    "\"hello 3\""
+                  ],
+                  "name": "RUN"
+                }
+              },
+              {
+                "command": {
+                  "args": [
+                    "e",
+                    "f"
+                  ],
+                  "name": "COPY"
+                }
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "build4",
+      "recipe": [
+        {
+          "if": {
+            "elseBody": [
+              {
+                "command": {
+                  "args": [
+                    "echo",
+                    "\"else 4\""
+                  ],
+                  "name": "RUN"
+                }
+              }
+            ],
+            "expression": [
+              "curl",
+              "http://example.com",
+              "|",
+              "grep",
+              "\"examples\""
+            ],
+            "ifBody": [
+              {
+                "command": {
+                  "args": [
+                    "echo",
+                    "\"hello 4\""
+                  ],
+                  "name": "RUN"
+                }
+              },
+              {
+                "command": {
+                  "args": [
+                    "g",
+                    "h"
+                  ],
+                  "name": "COPY"
+                }
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "build-n",
+      "recipe": [
+        {
+          "if": {
+            "elseBody": [
+              {
+                "if": {
+                  "expression": [
+                    "[",
+                    "\"y\"",
+                    "=",
+                    "\"y\"",
+                    "]"
+                  ],
+                  "ifBody": [
+                    {
+                      "command": {
+                        "args": [
+                          "echo",
+                          "\"else nested\""
+                        ],
+                        "name": "RUN"
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "command": {
+                  "args": [
+                    "echo",
+                    "\"else n\""
+                  ],
+                  "name": "RUN"
+                }
+              }
+            ],
+            "expression": [
+              "[",
+              "\"z\"",
+              "=",
+              "\"z\"",
+              "]"
+            ],
+            "ifBody": [
+              {
+                "if": {
+                  "expression": [
+                    "[",
+                    "\"x\"",
+                    "=",
+                    "\"x\"",
+                    "]"
+                  ],
+                  "ifBody": [
+                    {
+                      "command": {
+                        "args": [
+                          "echo",
+                          "\"nested\""
+                        ],
+                        "name": "RUN"
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "command": {
+                  "args": [
+                    "echo",
+                    "\"hello n\""
+                  ],
+                  "name": "RUN"
+                }
+              },
+              {
+                "command": {
+                  "args": [
+                    "c",
+                    "d"
+                  ],
+                  "name": "COPY"
+                }
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

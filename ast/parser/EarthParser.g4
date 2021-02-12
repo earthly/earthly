@@ -39,8 +39,7 @@ commandStmt:
 	| stopsignalStmt
 	| onbuildStmt
 	| healthcheckStmt
-	| shellStmt
-	| genericCommandStmt;
+	| shellStmt;
 
 // withStmt -------------------------------------------------------------------
 
@@ -49,20 +48,20 @@ withBlock: stmts;
 
 withExpr: WITH WS withCommand;
 withCommand:
-	dockerCommand
-	| genericCommand;
+	dockerCommand;
 
 dockerCommand: DOCKER (WS stmtWords)?;
-
-genericCommand: commandName (WS stmtWords)?;
 
 // ifStmt ---------------------------------------------------------------------
 
 ifStmt: ifClause (NL+ WS? elseIfClause)* (NL+ WS? elseClause)? NL+ WS? END;
 
-ifClause: IF WS ifExpr (NL+ WS? stmts)?;
-elseIfClause: ELSE WS IF WS elseIfExpr (NL+ WS? stmts)?;
-elseClause: ELSE (NL+ WS? stmts)?;
+ifClause: IF WS ifExpr (NL+ WS? ifBlock)?;
+ifBlock: stmts;
+elseIfClause: ELSE WS IF WS elseIfExpr (NL+ WS? elseIfBlock)?;
+elseIfBlock: stmts;
+elseClause: ELSE (NL+ WS? elseBlock)?;
+elseBlock: stmts;
 
 ifExpr: expr;
 elseIfExpr: expr;
@@ -113,9 +112,6 @@ stopsignalStmt: STOPSIGNAL (WS stmtWords)?;
 onbuildStmt: ONBUILD (WS stmtWords)?;
 healthcheckStmt: HEALTHCHECK (WS stmtWords)?;
 shellStmt: SHELL (WS stmtWords)?;
-
-genericCommandStmt: commandName (WS stmtWords)?;
-commandName: Command;
 
 // expr, stmtWord* ------------------------------------------------------------
 

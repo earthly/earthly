@@ -1927,7 +1927,7 @@ func (app *earthlyApp) actionDebugAst(c *cli.Context) error {
 
 	ef, err := ast.Parse(c.Context, path, app.enableSourceMap)
 	if err != nil {
-		return errors.Wrap(err, "parse debug")
+		return err
 	}
 	efDt, err := json.Marshal(ef)
 	if err != nil {

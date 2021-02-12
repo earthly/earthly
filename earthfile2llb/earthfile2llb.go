@@ -112,7 +112,7 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt) (m
 	// TODO: Use a parser cache.
 	ef, err := ast.Parse(ctx, bc.BuildFilePath, true)
 	if err != nil {
-		return nil, errors.Wrap(err, "parse")
+		return nil, err
 	}
 	interpreter := newInterpreter(converter)
 	err = interpreter.Run(ctx, ef, target.Target)
@@ -126,7 +126,7 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt) (m
 func GetTargets(filename string) ([]string, error) {
 	ef, err := ast.Parse(context.TODO(), filename, false)
 	if err != nil {
-		return nil, errors.Wrap(err, "parse")
+		return nil, err
 	}
 	targets := make([]string, 0, len(ef.Targets))
 	for _, target := range ef.Targets {

@@ -13,6 +13,7 @@ WORKDIR /earthly
 
 parser:
     COPY ./*.g4 ./ast/parser/
+    COPY ./export.go ./ast/parser/
     RUN java \
         -Xmx500M \
         -cp "/usr/local/lib/antlr-4.8-complete.jar:$CLASSPATH" \
