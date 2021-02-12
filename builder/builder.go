@@ -53,7 +53,6 @@ type Opt struct {
 	BuildContextProvider *provider.BuildContextProvider
 	GitLookup            *buildcontext.GitLookup
 	UseFakeDep           bool
-	EnableAst            bool
 }
 
 // BuildOpt is a collection of build options.
@@ -171,7 +170,6 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 				CacheImports:         b.opt.CacheImports,
 				UseInlineCache:       b.opt.UseInlineCache,
 				UseFakeDep:           b.opt.UseFakeDep,
-				EnableAst:            b.opt.EnableAst,
 			})
 			if err != nil {
 				return nil, err

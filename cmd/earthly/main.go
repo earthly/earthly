@@ -127,7 +127,6 @@ type cliFlags struct {
 	authToken              string
 	noFakeDep              bool
 	enableSourceMap        bool
-	enableAst              bool
 	configDryRun           bool
 }
 
@@ -485,13 +484,6 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 			EnvVars:     []string{"EARTHLY_NO_FAKE_DEP"},
 			Usage:       "Internal feature flag for fake-dep",
 			Destination: &app.noFakeDep,
-			Hidden:      true, // Internal.
-		},
-		&cli.BoolFlag{
-			Name:        "enable-ast",
-			EnvVars:     []string{"EARTHLY_ENABLE_AST"},
-			Usage:       "Internal feature flag for the ast-based earthfile2llb",
-			Destination: &app.enableAst,
 			Hidden:      true, // Internal.
 		},
 	}
@@ -2034,9 +2026,6 @@ func (app *earthlyApp) actionConfig(c *cli.Context) error {
 }
 
 func (app *earthlyApp) actionBuild(c *cli.Context) error {
-	if app.enableAst {
-		fmt.Printf("Earthly AST mode is enabled. This message can be safely removed when AST mode is GA.\n")
-	}
 	app.commandName = "build"
 
 	if app.ci {
@@ -2246,7 +2235,6 @@ func (app *earthlyApp) actionBuild(c *cli.Context) error {
 		BuildContextProvider: buildContextProvider,
 		GitLookup:            gitLookup,
 		UseFakeDep:           !app.noFakeDep,
-		EnableAst:            app.enableAst,
 	}
 	b, err := builder.NewBuilder(c.Context, builderOpts)
 	if err != nil {

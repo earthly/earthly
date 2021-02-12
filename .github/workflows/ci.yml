@@ -38,36 +38,6 @@ jobs:
       - name: Buildkit logs (runs on failure)
         run: docker logs earthly-buildkitd
         if: ${{ failure() }}
-  
-  tests-ast:
-    name: +test +test-fail (ast)
-    runs-on: ubuntu-latest
-    env:
-      FORCE_COLOR: 1
-      EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
-      EARTHLY_INSTALL_ID: "earthly-githubactions"
-    steps:
-      - uses: actions/checkout@v2
-      - name: Download released earthly
-        run: "sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/latest/download/earthly-linux-amd64 -O /usr/local/bin/earthly && chmod +x /usr/local/bin/earthly'"
-      - name: Docker Login (non fork only)
-        run: docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password "${{ secrets.DOCKERHUB_TOKEN }}"
-        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
-      - name: Build latest earthly using released earthly
-        run: earthly --use-inline-cache +for-linux
-      - name: Execute tests (not a fork)
-        run: |
-          export EARTHLY_BUILD_ARGS="DOCKERHUB_USER_SECRET=+secrets/earthly-technologies/dockerhub/user,DOCKERHUB_TOKEN_SECRET=+secrets/earthly-technologies/dockerhub/token"
-          ./build/linux/amd64/earthly --enable-ast --ci -P +test
-        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
-      - name: Execute tests (fork)
-        run: ./build/linux/amd64/earthly --enable-ast --ci -P +test
-        if: github.event_name != 'push' && github.event.pull_request.head.repo.full_name != github.repository
-      - name: Execute fail test
-        run: "! ./build/linux/amd64/earthly --enable-ast --ci ./examples/tests/fail+test-fail"
-      - name: Buildkit logs (runs on failure)
-        run: docker logs earthly-buildkitd
-        if: ${{ failure() }}
 
   misc-tests:
     runs-on: ubuntu-latest
@@ -175,39 +145,6 @@ jobs:
         run: |
           ./build/linux/amd64/earthly ./examples/multiplatform+all
           docker run --rm earthly/examples:multiplatform_linux_arm64 | grep aarch64
-      - name: Buildkit logs (runs on failure)
-        run: docker logs earthly-buildkitd
-        if: ${{ failure() }}
-  
-  examples-ast:
-    name: +examples (ast)
-    runs-on: ubuntu-latest
-    env:
-      FORCE_COLOR: 1
-      EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
-      EARTHLY_INSTALL_ID: "earthly-githubactions"
-    steps:
-      - uses: actions/checkout@v2
-      -
-        name: Set up QEMU
-        id: qemu
-        uses: docker/setup-qemu-action@v1
-        with:
-          image: tonistiigi/binfmt:latest
-          platforms: all
-      - name: Download released earthly
-        run: "sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/latest/download/earthly-linux-amd64 -O /usr/local/bin/earthly && chmod +x /usr/local/bin/earthly'"
-      - name: Docker Login (non fork only)
-        run: docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password "${{ secrets.DOCKERHUB_TOKEN }}"
-        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
-      - name: Build latest earthly using released earthly
-        run: earthly --use-inline-cache +for-linux
-      - name: Build examples (PR build)
-        run: ./build/linux/amd64/earthly --ci -P --enable-ast +examples
-        if: github.event_name != 'push'
-      - name: Build examples (main build)
-        run: ./build/linux/amd64/earthly --ci --push -P --enable-ast +examples
-        if: github.event_name == 'push'
       - name: Buildkit logs (runs on failure)
         run: docker logs earthly-buildkitd
         if: ${{ failure() }}
