@@ -2,6 +2,7 @@
 set -eu # don't use -x as it will leak the private key
 
 earthly=${earthly:=earthly}
+earthly=$(realpath "$earthly")
 echo "running tests with $earthly"
 
 # prevent the self-update of earthly from running (this ensures no bogus data is printed to stdout,
@@ -9,7 +10,7 @@ echo "running tests with $earthly"
 date +%s > /tmp/last-earthly-prerelease-check
 
 # ensure earthly login works (and print out who gets logged in)
-$earthly account login
+"$earthly" account login
 
 # fetch shared secret key (this step assumes your personal user has access to the /earthly-technologies/ secrets org
 ID_RSA=$($earthly secrets get -n /earthly-technologies/github/other-service+github-cinnamon@earthly.dev/id_rsa)
@@ -39,7 +40,7 @@ ssh git@github.com 2>&1 | perl -pe 'BEGIN {$status=1} END {exit $status} $status
 # Test a private repo can be cloned
 echo === Test 1 ===
 docker image rm -f test-private:latest
-$earthly -VD github.com/cinnamonthecat/test-private:main+docker
+"$earthly" -VD github.com/cinnamonthecat/test-private:main+docker
 docker run --rm test-private:latest | grep "Salut Lume"
 
 # Test public repo can be cloned without ssh, when GIT_URL_INSTEAD_OF is set as recommended by our CI docs
