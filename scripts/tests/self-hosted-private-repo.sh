@@ -2,7 +2,7 @@
 set -eu
 
 earthly=${earthly:=earthly}
-earthly=$(realpath $earthly)
+earthly=$(realpath "$earthly")
 echo "running tests with $earthly"
 
 # use host IP, otherwise earthly-buildkit won't be able to connect to it
@@ -73,7 +73,7 @@ cd ~
 rm -rf odd-project
 
 # test that earthly has access to it
-$earthly config git "{myserver: {pattern: 'myserver/([^/]+)', substitute: 'ssh://root@$ip:2222/root/my/really/weird/path/\$1.git', auth: ssh}}"
+"$earthly" config git "{myserver: {pattern: 'myserver/([^/]+)', substitute: 'ssh://root@$ip:2222/root/my/really/weird/path/\$1.git', auth: ssh}}"
 
 if ! $earthly -V myserver/project:trunk+docker; then
     docker ps -a
