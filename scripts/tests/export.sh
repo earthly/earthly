@@ -59,11 +59,11 @@ cd /tmp/earthly-export-test-3
 cat >> Earthfile <<EOF
 test3:
     FROM busybox:latest
-    RUN true # hack needed to make this work
+    RUN echo "hello my world" > /data
     SAVE IMAGE earthly-export-test-3:test
 EOF
 
 "$earthly" prune --reset
 "$earthly" +test3
 
-docker run --rm earthly-export-test-3:test | grep "running default cmd"
+docker run --rm earthly-export-test-3:test cat /data | grep "hello my world"
