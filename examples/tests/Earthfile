@@ -58,6 +58,7 @@ ga:
     BUILD +run-no-cache
     BUILD +save-artifact-after-push
     BUILD +push-build
+    BUILD +build-arg-repeat
     BUILD ./autocompletion+test-all
     BUILD ./with-docker+all
     BUILD ./with-docker-compose+all
@@ -564,4 +565,26 @@ push-build:
     RUN cat output | perl -pe 'BEGIN {$status=1} END {exit $status} $status=0 if /\+test \| 0\n/;'
     RUN cat output | perl -pe 'BEGIN {$status=1} END {exit $status} $status=0 if /\+run1 \| 1\n/;'
     RUN cat output | perl -pe 'BEGIN {$status=1} END {exit $status} $status=0 if /\+run2 \| 2\n/;'
-    
+
+build-arg-repeat:
+    COPY build-arg-repeat.earth ./Earthfile
+    RUN --privileged \
+        --entrypoint \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        -- +build-all-1
+    RUN test -f ./output/out-other-1
+    RUN test -f ./output/out-default-1
+    RUN cat ./output/out-other-1 | grep "A=other"
+    RUN cat ./output/out-other-1 | grep "B=1"
+    RUN cat ./output/out-default-1 | grep "A=default"
+    RUN cat ./output/out-default-1 | grep "B=1"
+    RUN --privileged \
+        --entrypoint \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        -- +build-all-2
+    RUN test -f ./output/out-other-1
+    RUN test -f ./output/out-default-1
+    RUN cat ./output/out-other-1 | grep "A=other"
+    RUN cat ./output/out-other-1 | grep "B=1"
+    RUN cat ./output/out-default-1 | grep "A=default"
+    RUN cat ./output/out-default-1 | grep "B=1"

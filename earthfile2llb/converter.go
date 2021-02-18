@@ -622,7 +622,7 @@ func (c *Converter) Arg(ctx context.Context, argKey string, defaultArgValue stri
 		return err
 	}
 	c.mts.Final.TargetInput = c.mts.Final.TargetInput.WithBuildArgInput(
-		effective.BuildArgInput(argKey, effective.ConstantValue()))
+		effective.BuildArgInput(argKey, defaultArgValue))
 	return nil
 }
 
