@@ -268,6 +268,10 @@ func (i *Interpreter) handleRun(ctx context.Context, cmd spec.Command) error {
 			return Errorf(cmd.SourceLocation, "secrets need to be implemented for the LOCALLY directive")
 		}
 
+		if i.withDocker != nil {
+			return fmt.Errorf("WITH docker not currently supported under a LOCALLY target")
+		}
+
 		err = i.converter.RunLocal(ctx, fs.Args(), *pushFlag)
 		if err != nil {
 			return WrapError(err, cmd.SourceLocation, "apply RUN")
