@@ -39,6 +39,7 @@ release-dockerhub:
 
 release-github:
     FROM node:13.10.1-alpine3.11
+    RUN apk add file
     RUN npm install -g github-release-cli@v1.3.1
     WORKDIR /earthly
     ARG RELEASE_TAG
@@ -52,6 +53,14 @@ release-github:
         test -f ./release/earthly-darwin-arm64 && \
         test -f ./release/earthly-linux-arm7 && \
         test -f ./release/earthly-linux-arm64
+    RUN file ./release/earthly-linux-amd64 | grep "x86-64"
+    RUN file ./release/earthly-linux-amd64 | grep "ELF 64-bit"
+    RUN file ./release/earthly-darwin-amd64 | grep "Mach-O 64-bit x86_64"
+    RUN file ./release/earthly-darwin-arm64 | grep "Mach-O 64-bit arm64"
+    RUN file ./release/earthly-linux-arm7 | grep "ARM, EABI5 version 1"
+    RUN file ./release/earthly-linux-arm7 | grep "ELF 32-bit"
+    RUN file ./release/earthly-linux-arm64 | grep "aarch64"
+    RUN file ./release/earthly-linux-arm64 | grep "ELF 64-bit"
     ARG BODY="No details provided"
     RUN --secret GITHUB_TOKEN=+secrets/earthly-technologies/github/griswoldthecat/token test -n "$GITHUB_TOKEN"
     RUN --push \

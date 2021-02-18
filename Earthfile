@@ -178,10 +178,10 @@ earthly-darwin-arm64:
 
 earthly-all:
     COPY +earthly-linux-amd64/earthly ./earthly-linux-amd64
-    COPY +earthly-darwin-amd64/earthly ./earthly-darwin-amd64
-    COPY +earthly-darwin-arm64/earthly ./earthly-darwin-arm64
     COPY +earthly-linux-arm7/earthly ./earthly-linux-arm7
     COPY +earthly-linux-arm64/earthly ./earthly-linux-arm64
+    COPY +earthly-darwin-amd64/earthly ./earthly-darwin-amd64
+    COPY +earthly-darwin-arm64/earthly ./earthly-darwin-arm64
     SAVE ARTIFACT ./*
 
 earthly-docker:
