@@ -804,9 +804,7 @@ func (c *Converter) internalRun(ctx context.Context, args, secretKeyValues []str
 		fmt.Sprintf("/run/secrets/%s", common.DebuggerSettingsSecretsKey), secretOpts...)
 	debuggerMount := llb.AddMount(debuggerPath, llb.Scratch(),
 		llb.HostBind(), llb.SourcePath("/usr/bin/earth_debugger"))
-	runEarthlyMount := llb.AddMount("/run/earthly", llb.Scratch(),
-		llb.HostBind(), llb.SourcePath("/run/earthly"))
-	finalOpts = append(finalOpts, debuggerSecretMount, debuggerMount, runEarthlyMount)
+	finalOpts = append(finalOpts, debuggerSecretMount, debuggerMount)
 	if withSSH {
 		finalOpts = append(finalOpts, llb.AddSSHSocket())
 	}

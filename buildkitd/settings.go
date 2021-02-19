@@ -13,7 +13,6 @@ import (
 type Settings struct {
 	CacheSizeMb     int      `json:"cacheSizeMb"`
 	GitURLInsteadOf string   `json:"gitUrlInsteadOf"`
-	RunDir          string   `json:"runDir"`
 	Debug           bool     `json:"debug"`
 	DebuggerPort    int      `json:"debuggerPort"`
 	AdditionalArgs  []string `json:"additionalArgs"`

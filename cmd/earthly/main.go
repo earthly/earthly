@@ -854,15 +854,7 @@ func (app *earthlyApp) before(context *cli.Context) error {
 		app.buildkitdImage = app.cfg.Global.BuildkitImage
 	}
 
-	if !fileutil.DirExists(app.cfg.Global.RunPath) {
-		err := os.MkdirAll(app.cfg.Global.RunPath, 0755)
-		if err != nil {
-			return errors.Wrapf(err, "failed to create run directory %s", app.cfg.Global.RunPath)
-		}
-	}
-
 	app.buildkitdSettings.DebuggerPort = app.cfg.Global.DebuggerPort
-	app.buildkitdSettings.RunDir = app.cfg.Global.RunPath
 	app.buildkitdSettings.AdditionalArgs = app.cfg.Global.BuildkitAdditionalArgs
 
 	return nil
