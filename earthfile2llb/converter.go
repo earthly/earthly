@@ -356,6 +356,9 @@ func (c *Converter) RunLocal(ctx context.Context, args []string, pushFlag bool) 
 // RunExitCode executes a run for the purpose of determining the exit code of the command. This can be used in conditionals.
 func (c *Converter) RunExitCode(ctx context.Context, commandName string, args, mounts, secretKeyValues []string, privileged, isWithShell, withSSH, noCache bool) (int, error) {
 	c.nonSaveCommand()
+	if !isWithShell {
+		return 0, errors.New("non-shell mode not yet supported")
+	}
 
 	// The exit code will be placed in /run. We need that dir to have been created.
 	c.mts.Final.MainState = c.mts.Final.MainState.File(
@@ -864,6 +867,7 @@ func (c *Converter) internalRun(ctx context.Context, args, secretKeyValues []str
 	}
 	// Shell and debugger wrap.
 	finalArgs := shellWrap(args, extraEnvVars, isWithShell, true)
+
 	finalOpts = append(finalOpts, llb.Args(finalArgs))
 	if noCache {
 		finalOpts = append(finalOpts, llb.IgnoreCache)

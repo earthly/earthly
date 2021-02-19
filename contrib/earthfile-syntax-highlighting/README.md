@@ -8,6 +8,10 @@ For an introduction of Earthly see the [Earthly GitHub repository](https://githu
 
 ## Release Notes
 
+### 0.0.9
+
+* Add highlighting for IF.
+
 ### 0.0.8
 
 * Properly handle comments in conjunction with line continuation.

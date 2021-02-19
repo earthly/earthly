@@ -59,6 +59,7 @@ ga:
     BUILD +save-artifact-after-push
     BUILD +push-build
     BUILD +build-arg-repeat
+    BUILD +if
     BUILD ./autocompletion+test-all
     BUILD ./with-docker+all
     BUILD ./with-docker-compose+all
@@ -588,3 +589,11 @@ build-arg-repeat:
     RUN cat ./output/out-other-1 | grep "B=1"
     RUN cat ./output/out-default-1 | grep "A=default"
     RUN cat ./output/out-default-1 | grep "B=1"
+
+if:
+    COPY if.earth ./Earthfile
+    RUN touch ./exists-locally
+    RUN --privileged \
+        --entrypoint \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        -- +all

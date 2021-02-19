@@ -205,7 +205,10 @@ func (i *Interpreter) handleIf(ctx context.Context, ifStmt spec.IfStatement) err
 	if exitCode == 0 {
 		return i.handleBlock(ctx, ifStmt.IfBody)
 	}
-	return i.handleBlock(ctx, *ifStmt.ElseBody)
+	if ifStmt.ElseBody != nil {
+		return i.handleBlock(ctx, *ifStmt.ElseBody)
+	}
+	return nil
 }
 
 // Commands -------------------------------------------------------------------
