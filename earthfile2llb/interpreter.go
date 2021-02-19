@@ -166,8 +166,49 @@ func (i *Interpreter) handleWith(ctx context.Context, with spec.WithStatement) e
 }
 
 func (i *Interpreter) handleIf(ctx context.Context, ifStmt spec.IfStatement) error {
-	// TODO
-	return Errorf(ifStmt.SourceLocation, "not implemented")
+	if i.pushOnlyAllowed {
+		return Errorf(ifStmt.SourceLocation, "no non-push commands allowed after a --push")
+	}
+	if len(ifStmt.Expression) < 1 {
+		return Errorf(ifStmt.SourceLocation, "not enough arguments for RUN")
+	}
+
+	fs := flag.NewFlagSet("IF", flag.ContinueOnError)
+	privileged := fs.Bool("privileged", false, "Enable privileged mode")
+	withSSH := fs.Bool("ssh", false, "Make available the SSH agent of the host")
+	noCache := fs.Bool("no-cache", false, "Always execute this specific condition, ignoring cache")
+	secrets := new(StringSliceFlag)
+	fs.Var(secrets, "secret", "Make available a secret")
+	mounts := new(StringSliceFlag)
+	fs.Var(mounts, "mount", "Mount a file or directory")
+	err := fs.Parse(ifStmt.Expression)
+	if err != nil {
+		return WrapError(err, ifStmt.SourceLocation, "invalid RUN arguments %v", ifStmt.Expression)
+	}
+	withShell := !ifStmt.ExecMode
+
+	for index, s := range secrets.Args {
+		secrets.Args[index] = i.expandArgs(s, true)
+	}
+	for index, m := range mounts.Args {
+		mounts.Args[index] = i.expandArgs(m, false)
+	}
+	// Note: Not expanding args for the expression itself, as that will be take care of by the shell.
+
+	exitCode, err := i.converter.RunExitCode(
+		ctx, "IF", fs.Args(), mounts.Args, secrets.Args, *privileged,
+		withShell, *withSSH, *noCache)
+	if err != nil {
+		return WrapError(err, ifStmt.SourceLocation, "apply IF")
+	}
+
+	if exitCode == 0 {
+		return i.handleBlock(ctx, ifStmt.IfBody)
+	}
+	if ifStmt.ElseBody != nil {
+		return i.handleBlock(ctx, *ifStmt.ElseBody)
+	}
+	return nil
 }
 
 // Commands -------------------------------------------------------------------

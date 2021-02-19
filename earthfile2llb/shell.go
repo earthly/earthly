@@ -37,7 +37,7 @@ func withShell(args []string, withShell bool) []string {
 	return args
 }
 
-func strWithEnvVarsAndDocker(args []string, envVars []string, withShell bool, withDebugger bool, withDocker bool) string {
+func strWithEnvVarsAndDocker(args []string, envVars []string, withShell bool, withDebugger bool, withDocker bool, getExitCode bool) string {
 	var cmdParts []string
 	cmdParts = append(cmdParts, strings.Join(envVars, " "))
 	if withDocker {
@@ -50,6 +50,9 @@ func strWithEnvVarsAndDocker(args []string, envVars []string, withShell bool, wi
 		var escapedArgs []string
 		for _, arg := range args {
 			escapedArgs = append(escapedArgs, escapeShellSingleQuotes(arg))
+		}
+		if getExitCode {
+			escapedArgs = append(escapedArgs, "; echo $? >/run/exit_code")
 		}
 		cmdParts = append(cmdParts, "/bin/sh", "-c")
 		cmdParts = append(cmdParts, fmt.Sprintf("'%s'", strings.Join(escapedArgs, " ")))
@@ -64,7 +67,17 @@ type shellWrapFun func(args []string, envVars []string, withShell bool, withDebu
 func withShellAndEnvVars(args []string, envVars []string, withShell bool, withDebugger bool) []string {
 	return []string{
 		"/bin/sh", "-c",
-		strWithEnvVarsAndDocker(args, envVars, withShell, withDebugger, false),
+		strWithEnvVarsAndDocker(args, envVars, withShell, withDebugger, false, false),
+	}
+}
+
+func withShellAndEnvVarsExitCode(args []string, envVars []string, withShell bool, withDebugger bool) []string {
+	if !withShell {
+		panic("unexpected exec mode")
+	}
+	return []string{
+		"/bin/sh", "-c",
+		strWithEnvVarsAndDocker(args, envVars, true, withDebugger, false, true),
 	}
 }
 
