@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"path/filepath"
 	"reflect"
 	"regexp"
 	"sort"
@@ -24,7 +23,6 @@ var (
 
 // GlobalConfig contains global config values
 type GlobalConfig struct {
-	RunPath                 string   `yaml:"run_path"`
 	DisableAnalytics        bool     `yaml:"disable_analytics"`
 	BuildkitCacheSizeMb     int      `yaml:"cache_size_mb"`
 	BuildkitImage           string   `yaml:"buildkit_image"`
@@ -72,7 +70,6 @@ func ParseConfigFile(yamlData []byte) (*Config, error) {
 	// pre-populate defaults
 	config := Config{
 		Global: GlobalConfig{
-			RunPath:                 defaultRunPath(),
 			BuildkitCacheSizeMb:     0,
 			DebuggerPort:            8373,
 			BuildkitRestartTimeoutS: 60,
@@ -164,14 +161,6 @@ func CreateGitConfig(config *Config) (string, []string, error) {
 	gitConfig := strings.Join(lines, "\n")
 
 	return gitConfig, credentials, nil
-}
-
-func defaultRunPath() string {
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		panic(err)
-	}
-	return filepath.Join(homeDir, ".earthly/run")
 }
 
 // UpsertConfig adds or modifies the key to be the specified value.
