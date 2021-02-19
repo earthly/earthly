@@ -867,7 +867,6 @@ func (c *Converter) internalRun(ctx context.Context, args, secretKeyValues []str
 	}
 	// Shell and debugger wrap.
 	finalArgs := shellWrap(args, extraEnvVars, isWithShell, true)
-
 	finalOpts = append(finalOpts, llb.Args(finalArgs))
 	if noCache {
 		finalOpts = append(finalOpts, llb.IgnoreCache)
