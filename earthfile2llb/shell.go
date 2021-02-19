@@ -68,6 +68,14 @@ func withShellAndEnvVars(args []string, envVars []string, withShell bool, withDe
 	}
 }
 
+func withShellAndEnvVarsExitCode(args []string, envVars []string, withShell bool, withDebugger bool) []string {
+	return []string{
+		"/bin/sh", "-c",
+		fmt.Sprintf("%s; ; echo $? >/run/exit_code",
+			strWithEnvVarsAndDocker(args, envVars, withShell, withDebugger, false)),
+	}
+}
+
 func escapeShellSingleQuotes(arg string) string {
 	return strings.Replace(arg, "'", "'\"'\"'", -1)
 }

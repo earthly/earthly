@@ -13,6 +13,7 @@ import (
 	"math/rand"
 	"path"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -350,6 +351,57 @@ func (c *Converter) RunLocal(ctx context.Context, args []string, pushFlag bool) 
 		c.mts.Final.MainState = c.mts.Final.MainState.Run(opts...).Root()
 	}
 	return nil
+}
+
+// RunExitCode executes a run for the purpose of determining the exit code of the command. This can be used in conditionals.
+func (c *Converter) RunExitCode(ctx context.Context, commandName string, args, mounts, secretKeyValues []string, privileged, isWithShell, withSSH, noCache bool) (int, error) {
+	c.nonSaveCommand()
+
+	// The exit code will be placed in /run. We need that dir to have been created.
+	c.mts.Final.MainState = c.mts.Final.MainState.File(
+		llb.Mkdir("/run", 0755, llb.WithParents(true)),
+		llb.WithCustomNamef("[internal] mkdir %s", "/run"))
+
+	// Perform execution, but append the command with the right shell incantation that
+	// causes it to output the exit code to a file. This is done via the shellWrap.
+	var opts []llb.RunOption
+	mountRunOpts, err := parseMounts(mounts, c.mts.Final.Target, c.mts.Final.TargetInput, c.cacheContext)
+	if err != nil {
+		return 0, errors.Wrap(err, "parse mounts")
+	}
+	opts = append(opts, mountRunOpts...)
+	if privileged {
+		opts = append(opts, llb.Security(llb.SecurityModeInsecure))
+	}
+	runStr := fmt.Sprintf(
+		"%s %s%s%s",
+		commandName, // eg IF
+		strIf(privileged, "--privileged "),
+		strIf(noCache, "--no-cache "),
+		strings.Join(args, " "))
+	shellWrap := withShellAndEnvVarsExitCode
+	opts = append(opts, llb.WithCustomNamef("%s%s", c.vertexPrefix(false), runStr))
+	state, err := c.internalRun(
+		ctx, args, secretKeyValues, isWithShell, shellWrap, false,
+		true, withSSH, noCache, runStr, opts...)
+	if err != nil {
+		return 0, err
+	}
+	ref, err := llbutil.StateToRef(ctx, c.opt.GwClient, state, c.opt.Platform, c.opt.CacheImports)
+	if err != nil {
+		return 0, errors.Wrap(err, "run exit code state to ref")
+	}
+	codeDt, err := ref.ReadFile(ctx, gwclient.ReadRequest{
+		Filename: "/run/exit_code",
+	})
+	if err != nil {
+		return 0, errors.Wrap(err, "read exit code")
+	}
+	exitCode, err := strconv.ParseInt(string(bytes.TrimSpace(codeDt)), 10, 64)
+	if err != nil {
+		return 0, errors.Wrap(err, "parse exit code as int")
+	}
+	return int(exitCode), err
 }
 
 // Run applies the earthly RUN command.
