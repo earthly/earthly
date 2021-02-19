@@ -1,5 +1,8 @@
 FROM alpine:3.13
 
+#################################################################################################################
+# tests for testing RUN commands are executed on the localhost
+
 test-local-with-arg:
     LOCALLY
     ARG pattern
@@ -7,23 +10,27 @@ test-local-with-arg:
 
 test-local:
     LOCALLY
-    # If run inside a container, one would expect something like 
+    # If run inside a container, one would expect something like
     # 12:cpuset:/docker/e4b6b1698e80c6a2d8ccdfcd689a1ce5828587ada1337ddcb0b9a80caf0087a4/buildkit/83zo724g6vr1ipssy0dic9kpa
     RUN whoami
     RUN cat /proc/1/cgroup | perl -pe 'BEGIN {$status=1} END {exit $status} $status=0 if /^[0-9]+:cpuset:\/$/;'
     RUN --push touch /tmp/earthly-test-local
 
-create-file:
+
+#################################################################################################################
+# tests for testing locally produced artifacts can be referenced by containerized targets
+
+create-local-file:
     LOCALLY
     RUN echo hello > /tmp/earthly-test-a266bf52-f5ea-477c-9416-2931720d1826
     SAVE ARTIFACT /tmp/earthly-test-a266bf52-f5ea-477c-9416-2931720d1826 data
 
 test-copy-file-from-local:
-    COPY +create-file/data actual
+    COPY +create-local-file/data actual
     RUN echo hello > expected
     RUN diff expected actual
 
-create-dir:
+create-local-dir:
     LOCALLY
     RUN rm -rf /tmp/earthly-test-bfbe3177-8683-4f8f-8c42-75053dc0e807
     RUN mkdir /tmp/earthly-test-bfbe3177-8683-4f8f-8c42-75053dc0e807
@@ -32,48 +39,103 @@ create-dir:
     SAVE ARTIFACT /tmp/earthly-test-bfbe3177-8683-4f8f-8c42-75053dc0e807 datadir
 
 test-copy-dir-from-local:
-    COPY +create-dir/datadir the-data
+    COPY +create-local-dir/datadir the-data
     RUN echo aaa > expected_a.txt
     RUN echo bbb > expected_b.txt
     RUN diff the-data/a.txt expected_a.txt
     RUN diff the-data/b.txt expected_b.txt
 
-save-unnamed-artifact:
+save-unnamed-local-artifact:
     LOCALLY
     RUN rm -rf /tmp/earthly-test-c5009c71-d573-4562-be15-2c28dae333fc
     RUN mkdir /tmp/earthly-test-c5009c71-d573-4562-be15-2c28dae333fc
     RUN echo ccc > /tmp/earthly-test-c5009c71-d573-4562-be15-2c28dae333fc/c.txt
     SAVE ARTIFACT /tmp/earthly-test-c5009c71-d573-4562-be15-2c28dae333fc
 
-test-save-unnamed-artifact:
-    COPY +save-unnamed-artifact/earthly-test-c5009c71-d573-4562-be15-2c28dae333fc .
+test-save-unnamed-local-artifact:
+    COPY +save-unnamed-local-artifact/earthly-test-c5009c71-d573-4562-be15-2c28dae333fc .
     RUN cat c.txt | grep '^ccc$'
 
-test-save-unnamed-artifact-dir:
-    COPY --dir +save-unnamed-artifact/earthly-test-c5009c71-d573-4562-be15-2c28dae333fc .
+test-save-unnamed-local-artifact-dir:
+    COPY --dir +save-unnamed-local-artifact/earthly-test-c5009c71-d573-4562-be15-2c28dae333fc .
     RUN cat earthly-test-c5009c71-d573-4562-be15-2c28dae333fc/c.txt | grep '^ccc$'
 
-test-save-unnamed-artifact-dir2:
-    COPY --dir +save-unnamed-artifact/earthly-test-c5009c71-d573-4562-be15-2c28dae333fc /var/log/.
+test-save-unnamed-local-artifact-dir2:
+    COPY --dir +save-unnamed-local-artifact/earthly-test-c5009c71-d573-4562-be15-2c28dae333fc /var/log/.
     RUN cat /var/log/earthly-test-c5009c71-d573-4562-be15-2c28dae333fc/c.txt | grep '^ccc$'
 
-mycontainer:
-    FROM busybox:latest
-    CMD echo hello world
 
-test-mycontainer-locally:
+#################################################################################################################
+# tests for testing containerized artifacts can be referenced by local targets
+
+busybox-artifact:
+    FROM busybox:1.32.1
+    RUN busybox > /data
+    SAVE ARTIFACT /data the-data
+
+test-copy-from-busybox-to-local:
     LOCALLY
-    RUN docker rm mycontainer-e3d32183-604d-4dc3-b519-f9af56ecb744 || true
-    WITH DOCKER \
-            --load mycontainer-e3d32183-604d-4dc3-b519-f9af56ecb744:latest=+mycontainer
-        RUN docker run --rm mycontainer-e3d32183-604d-4dc3-b519-f9af56ecb744 | grep "hello world"
-    END
+    RUN rm -rf /tmp/4eb5dcb7-2245-4f35-ab41-252f78e7a451
+    COPY +busybox-artifact/the-data /tmp/4eb5dcb7-2245-4f35-ab41-252f78e7a451
+    RUN cat /tmp/4eb5dcb7-2245-4f35-ab41-252f78e7a451 | grep "BusyBox v1.32.1"
+
+aline-artifacts:
+    FROM alpine:3.13
+    SAVE ARTIFACT /etc/alpine-release alpine-release
+    SAVE ARTIFACT /etc/motd alpine-motd
+    SAVE ARTIFACT /etc/os-release alpine-os-release
+
+test-multi-copy-from-alpine-to-local:
+    LOCALLY
+    RUN rm -rf /tmp/ac0887d7-fda7-4a1b-9873-054488c7e44d
+    COPY +aline-artifacts/alpine-release +aline-artifacts/alpine-motd +aline-artifacts/alpine-os-release /tmp/ac0887d7-fda7-4a1b-9873-054488c7e44d
+    RUN cat /tmp/ac0887d7-fda7-4a1b-9873-054488c7e44d/alpine-release | grep 3\\.13\\.2
+    RUN cat /tmp/ac0887d7-fda7-4a1b-9873-054488c7e44d/alpine-motd | grep alpinelinux.org
+    RUN cat /tmp/ac0887d7-fda7-4a1b-9873-054488c7e44d/alpine-os-release | grep "ID=alpine"
+
+busybox-dir-artifact:
+    FROM busybox:1.32.1
+    RUN mkdir /data-dir
+    RUN busybox > /data-dir/busybox
+    RUN hostname > /data-dir/hostname
+    SAVE ARTIFACT /data-dir the-data
+
+test-locally-can-copy-dir-contents:
+    LOCALLY
+    RUN rm -rf /tmp/f3fa2ae8-df5e-4b34-875d-c0919fae20d8
+    COPY +busybox-dir-artifact/the-data /tmp/f3fa2ae8-df5e-4b34-875d-c0919fae20d8
+    RUN cat /tmp/f3fa2ae8-df5e-4b34-875d-c0919fae20d8/busybox | grep "BusyBox v1.32.1"
+    RUN cat /tmp/f3fa2ae8-df5e-4b34-875d-c0919fae20d8/hostname | grep "buildkitsandbox"
+
+test-locally-can-copy-dir:
+    LOCALLY
+    RUN rm -rf /tmp/008f5069-567a-4aab-8024-1c974100a67f
+    COPY --dir +busybox-dir-artifact/the-data /tmp/008f5069-567a-4aab-8024-1c974100a67f
+    RUN cat /tmp/008f5069-567a-4aab-8024-1c974100a67f/the-data/busybox | grep "BusyBox v1.32.1"
+    RUN cat /tmp/008f5069-567a-4aab-8024-1c974100a67f/the-data/hostname | grep "buildkitsandbox"
+
+# TODO add support for copying container image into local docker
+#mycontainer:
+#    FROM busybox:latest
+#    CMD echo hello world
+#
+#test-mycontainer-locally:
+#    LOCALLY
+#    RUN docker rm mycontainer-e3d32183-604d-4dc3-b519-f9af56ecb744 || true
+#    WITH DOCKER \
+#            --load mycontainer-e3d32183-604d-4dc3-b519-f9af56ecb744:latest=+mycontainer
+#        RUN docker run --rm mycontainer-e3d32183-604d-4dc3-b519-f9af56ecb744:latest | grep "hello world"
+#    END
 
 all:
-    BUILD +test-local
     BUILD --build-arg pattern=memory +test-local-with-arg
-    BUILD +test-copy-dir-from-local
+    BUILD +test-local
     BUILD +test-copy-file-from-local
-    BUILD +test-save-unnamed-artifact
-    BUILD +test-save-unnamed-artifact-dir
-    BUILD +test-save-unnamed-artifact-dir2
+    BUILD +test-copy-dir-from-local
+    BUILD +test-save-unnamed-local-artifact
+    BUILD +test-save-unnamed-local-artifact-dir
+    BUILD +test-save-unnamed-local-artifact-dir2
+    BUILD +test-copy-from-busybox-to-local
+    BUILD +test-multi-copy-from-alpine-to-local
+    BUILD +test-locally-can-copy-dir-contents
+    BUILD +test-locally-can-copy-dir

@@ -270,6 +270,46 @@ func (c *Converter) Locally(ctx context.Context, platform *specs.Platform) error
 	return c.fromClassical(ctx, "scratch", platform, true)
 }
 
+// CopyArtifactLocal applies the earthly COPY artifact command which are invoked under a LOCALLY target.
+func (c *Converter) CopyArtifactLocal(ctx context.Context, artifactName string, dest string, platform *specs.Platform, buildArgs []string, isDir bool) error {
+	c.nonSaveCommand()
+	artifact, err := domain.ParseArtifact(artifactName)
+	if err != nil {
+		return errors.Wrapf(err, "parse artifact name %s", artifactName)
+	}
+	mts, err := c.buildTarget(ctx, artifact.Target.String(), platform, buildArgs, false)
+	if err != nil {
+		return errors.Wrapf(err, "apply build %s", artifact.Target.String())
+	}
+	if artifact.Target.IsLocalInternal() {
+		artifact.Target.LocalPath = c.mts.Final.Target.LocalPath
+	}
+	// Grab the artifacts state in the dep states, after we've built it.
+	relevantDepState := mts.Final
+
+	finalArgs := []string{localhost.SendFileMagicStr}
+	if isDir {
+		finalArgs = append(finalArgs, "--dir")
+	}
+	finalArgs = append(finalArgs, artifact.Artifact, dest)
+
+	opts := []llb.RunOption{
+		llb.Args(finalArgs),
+		llb.IgnoreCache,
+		llb.AddMount("/"+localhost.SendFileMagicStr, relevantDepState.ArtifactsState),
+		llb.WithCustomNamef(
+			"%sCOPY %s%s%s %s",
+			c.vertexPrefix(false),
+			strIf(isDir, "--dir "),
+			joinWrap(buildArgs, "(", " ", ") "),
+			artifact.String(),
+			dest),
+	}
+
+	c.mts.Final.MainState = c.mts.Final.MainState.Run(opts...).Root()
+	return nil
+}
+
 // CopyArtifact applies the earthly COPY artifact command.
 func (c *Converter) CopyArtifact(ctx context.Context, artifactName string, dest string, platform *specs.Platform, buildArgs []string, isDir bool, keepTs bool, keepOwn bool, chown string, ifExists bool) error {
 	c.nonSaveCommand()
