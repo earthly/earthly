@@ -16,6 +16,24 @@ ELSE
     RUN false
 END
 
+IF [ "one" = "five" ]
+    RUN false
+ELSE IF [ "two" = "five" ]
+    RUN false
+ELSE IF [ "three" = "five" ]
+    RUN false
+ELSE IF [ "four" = "five" ]
+    RUN false
+ELSE IF [ "five" = "five" ]
+    RUN true
+ELSE IF [ "six" = "five" ]
+    RUN false
+ELSE IF [ "five" = "five" ]
+    RUN false
+ELSE
+    RUN false
+END
+
 all:
     BUILD +test-build
     BUILD +test-nested
@@ -27,6 +45,7 @@ all:
     BUILD +test-locally
     BUILD +test-empty
     BUILD +test-complex
+    BUILD +test-else-if
 
 test-build:
     IF [ "true" = "false" ]
@@ -140,6 +159,25 @@ test-complex:
     END
     IF curl https://pokeapi.co/api/v2/pokemon/ditto | jq -r '.abilities[].ability.name' | grep imposter
         RUN true
+    ELSE
+        RUN false
+    END
+
+test-else-if:
+    IF [ "one" = "five" ]
+        RUN false
+    ELSE IF [ "two" = "five" ]
+        RUN false
+    ELSE IF [ "three" = "five" ]
+        RUN false
+    ELSE IF [ "four" = "five" ]
+        RUN false
+    ELSE IF [ "five" = "five" ]
+        RUN true
+    ELSE IF [ "six" = "five" ]
+        RUN false
+    ELSE IF [ "five" = "five" ]
+        RUN false
     ELSE
         RUN false
     END
