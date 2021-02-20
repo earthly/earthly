@@ -169,8 +169,32 @@ func (i *Interpreter) handleIf(ctx context.Context, ifStmt spec.IfStatement) err
 	if i.pushOnlyAllowed {
 		return Errorf(ifStmt.SourceLocation, "no non-push commands allowed after a --push")
 	}
-	if len(ifStmt.Expression) < 1 {
-		return Errorf(ifStmt.SourceLocation, "not enough arguments for RUN")
+	isZero, err := i.handleIfExpression(ctx, ifStmt.Expression, ifStmt.ExecMode, ifStmt.SourceLocation)
+	if err != nil {
+		return err
+	}
+
+	if isZero {
+		return i.handleBlock(ctx, ifStmt.IfBody)
+	}
+	for _, elseIf := range ifStmt.ElseIf {
+		isZero, err = i.handleIfExpression(ctx, elseIf.Expression, elseIf.ExecMode, elseIf.SourceLocation)
+		if err != nil {
+			return err
+		}
+		if isZero {
+			return i.handleBlock(ctx, elseIf.Body)
+		}
+	}
+	if ifStmt.ElseBody != nil {
+		return i.handleBlock(ctx, *ifStmt.ElseBody)
+	}
+	return nil
+}
+
+func (i *Interpreter) handleIfExpression(ctx context.Context, expression []string, execMode bool, sl *spec.SourceLocation) (bool, error) {
+	if len(expression) < 1 {
+		return false, Errorf(sl, "not enough arguments for IF")
 	}
 
 	fs := flag.NewFlagSet("IF", flag.ContinueOnError)
@@ -181,11 +205,11 @@ func (i *Interpreter) handleIf(ctx context.Context, ifStmt spec.IfStatement) err
 	fs.Var(secrets, "secret", "Make available a secret")
 	mounts := new(StringSliceFlag)
 	fs.Var(mounts, "mount", "Mount a file or directory")
-	err := fs.Parse(ifStmt.Expression)
+	err := fs.Parse(expression)
 	if err != nil {
-		return WrapError(err, ifStmt.SourceLocation, "invalid RUN arguments %v", ifStmt.Expression)
+		return false, WrapError(err, sl, "invalid RUN arguments %v", expression)
 	}
-	withShell := !ifStmt.ExecMode
+	withShell := !execMode
 
 	for index, s := range secrets.Args {
 		secrets.Args[index] = i.expandArgs(s, true)
@@ -199,43 +223,36 @@ func (i *Interpreter) handleIf(ctx context.Context, ifStmt spec.IfStatement) err
 	commandName := "IF"
 	if i.local {
 		if len(mounts.Args) > 0 {
-			return Errorf(ifStmt.SourceLocation, "mounts are not supported in combination with the LOCALLY directive")
+			return false, Errorf(sl, "mounts are not supported in combination with the LOCALLY directive")
 		}
 		if *withSSH {
-			return Errorf(ifStmt.SourceLocation, "the --ssh flag has no effect when used with the  LOCALLY directive")
+			return false, Errorf(sl, "the --ssh flag has no effect when used with the  LOCALLY directive")
 		}
 		if *privileged {
-			return Errorf(ifStmt.SourceLocation, "the --privileged flag has no effect when used with the LOCALLY directive")
+			return false, Errorf(sl, "the --privileged flag has no effect when used with the LOCALLY directive")
 		}
 		if *noCache {
-			return Errorf(ifStmt.SourceLocation, "the --no-cache flag has no effect when used with the LOCALLY directive")
+			return false, Errorf(sl, "the --no-cache flag has no effect when used with the LOCALLY directive")
 		}
 
 		// TODO these should be supported, but haven't yet been implemented
 		if len(secrets.Args) > 0 {
-			return Errorf(ifStmt.SourceLocation, "secrets need to be implemented for the LOCALLY directive")
+			return false, Errorf(sl, "secrets need to be implemented for the LOCALLY directive")
 		}
 
 		exitCode, err = i.converter.RunLocalExitCode(ctx, commandName, fs.Args())
 		if err != nil {
-			return WrapError(err, ifStmt.SourceLocation, "apply RUN")
+			return false, WrapError(err, sl, "apply RUN")
 		}
 	} else {
 		exitCode, err = i.converter.RunExitCode(
 			ctx, commandName, fs.Args(), mounts.Args, secrets.Args, *privileged,
 			withShell, *withSSH, *noCache)
 		if err != nil {
-			return WrapError(err, ifStmt.SourceLocation, "apply IF")
+			return false, WrapError(err, sl, "apply IF")
 		}
 	}
-
-	if exitCode == 0 {
-		return i.handleBlock(ctx, ifStmt.IfBody)
-	}
-	if ifStmt.ElseBody != nil {
-		return i.handleBlock(ctx, *ifStmt.ElseBody)
-	}
-	return nil
+	return (exitCode == 0), nil
 }
 
 // Commands -------------------------------------------------------------------

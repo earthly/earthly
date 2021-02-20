@@ -58,7 +58,7 @@ ifStmt: ifClause (NL+ WS? elseIfClause)* (NL+ WS? elseClause)? NL+ WS? END;
 
 ifClause: IF WS ifExpr (NL+ WS? ifBlock)?;
 ifBlock: stmts;
-elseIfClause: ELSE WS IF WS elseIfExpr (NL+ WS? elseIfBlock)?;
+elseIfClause: ELSE_IF WS elseIfExpr (NL+ WS? elseIfBlock)?;
 elseIfBlock: stmts;
 elseClause: ELSE (NL+ WS? elseBlock)?;
 elseBlock: stmts;
