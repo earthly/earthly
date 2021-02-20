@@ -53,3 +53,17 @@ build-n:
         END
         RUN echo "else n"
     END
+
+build-else-if:
+    IF [ "e" = "e" ]
+        RUN echo "hello 1"
+        COPY e f
+    ELSE IF [ "f" = "f" ]
+        RUN echo "f"
+    ELSE IF [ "g" = "g" ]
+        RUN echo "g"
+    ELSE IF [ "h" = "h" ]
+        COPY h h
+    ELSE
+        RUN echo "else "
+    END

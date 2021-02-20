@@ -341,6 +341,115 @@
           }
         }
       ]
+    },
+    {
+      "name": "build-else-if",
+      "recipe": [
+        {
+          "if": {
+            "elseBody": [
+              {
+                "command": {
+                  "args": [
+                    "echo",
+                    "\"else \""
+                  ],
+                  "name": "RUN"
+                }
+              }
+            ],
+            "elseIf": [
+              {
+                "body": [
+                  {
+                    "command": {
+                      "args": [
+                        "echo",
+                        "\"f\""
+                      ],
+                      "name": "RUN"
+                    }
+                  }
+                ],
+                "expression": [
+                  "[",
+                  "\"f\"",
+                  "=",
+                  "\"f\"",
+                  "]"
+                ]
+              },
+              {
+                "body": [
+                  {
+                    "command": {
+                      "args": [
+                        "echo",
+                        "\"g\""
+                      ],
+                      "name": "RUN"
+                    }
+                  }
+                ],
+                "expression": [
+                  "[",
+                  "\"g\"",
+                  "=",
+                  "\"g\"",
+                  "]"
+                ]
+              },
+              {
+                "body": [
+                  {
+                    "command": {
+                      "args": [
+                        "h",
+                        "h"
+                      ],
+                      "name": "COPY"
+                    }
+                  }
+                ],
+                "expression": [
+                  "[",
+                  "\"h\"",
+                  "=",
+                  "\"h\"",
+                  "]"
+                ]
+              }
+            ],
+            "expression": [
+              "[",
+              "\"e\"",
+              "=",
+              "\"e\"",
+              "]"
+            ],
+            "ifBody": [
+              {
+                "command": {
+                  "args": [
+                    "echo",
+                    "\"hello 1\""
+                  ],
+                  "name": "RUN"
+                }
+              },
+              {
+                "command": {
+                  "args": [
+                    "e",
+                    "f"
+                  ],
+                  "name": "COPY"
+                }
+              }
+            ]
+          }
+        }
+      ]
     }
   ]
 }
