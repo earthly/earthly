@@ -19,6 +19,7 @@ type block struct {
 	statement     *spec.Statement
 	withStatement *spec.WithStatement
 	ifStatement   *spec.IfStatement
+	elseIf        *spec.ElseIf
 }
 
 type listener struct {
@@ -354,9 +355,41 @@ func (l *listener) ExitIfBlock(c *parser.IfBlockContext) {
 	l.block().ifStatement.IfBody = ifBlock
 }
 
+func (l *listener) EnterElseIfClause(c *parser.ElseIfClauseContext) {
+	l.block().elseIf = new(spec.ElseIf)
+	if l.enableSourceMap {
+		l.block().elseIf.SourceLocation = &spec.SourceLocation{
+			File:        l.filePath,
+			StartLine:   c.GetStart().GetLine(),
+			StartColumn: c.GetStart().GetColumn(),
+			EndLine:     c.GetStop().GetLine(),
+			EndColumn:   c.GetStop().GetColumn(),
+		}
+	}
+}
+
+func (l *listener) ExitElseIfClause(c *parser.ElseIfClauseContext) {
+	l.block().ifStatement.ElseIf = append(l.block().ifStatement.ElseIf, *l.block().elseIf)
+	l.block().elseIf = nil
+}
+
 func (l *listener) EnterElseIfExpr(c *parser.ElseIfExprContext) {
-	// TODO
-	panic("ELSE IF not yet supported")
+	l.stmtWords = []string{}
+	l.execMode = false
+}
+
+func (l *listener) ExitElseIfExpr(c *parser.ElseIfExprContext) {
+	l.block().elseIf.Expression = l.stmtWords
+	l.block().elseIf.ExecMode = l.execMode
+}
+
+func (l *listener) EnterElseIfBlock(c *parser.ElseIfBlockContext) {
+	l.pushNewBlock()
+}
+
+func (l *listener) ExitElseIfBlock(c *parser.ElseIfBlockContext) {
+	elseIfBlock := l.popBlock()
+	l.block().elseIf.Body = elseIfBlock
 }
 
 func (l *listener) EnterElseBlock(c *parser.ElseBlockContext) {
