@@ -23,7 +23,8 @@ all:
     BUILD +test-never
     BUILD +test-workdir
     BUILD +test-build-arg
-    BUILD --build-arg locally=true +test-locally
+    BUILD --build-arg locally=true +test-switch-locally
+    BUILD +test-locally
     BUILD +test-empty
     BUILD +test-complex
 
@@ -94,7 +95,7 @@ build-arg:
         SAVE ARTIFACT ./else
     END
 
-test-locally:
+test-switch-locally:
     RUN touch ./does-not-exist-locally
     ARG locally
     IF "$locally"
@@ -102,6 +103,25 @@ test-locally:
     END
     RUN ! test -f ./does-not-exist-locally
     RUN test -f ./exists-locally
+
+test-locally:
+    RUN touch ./does-not-exist-locally
+    LOCALLY
+    RUN test -f ./exists-locally
+    IF [ "true" = "false" ]
+        RUN false
+    ELSE
+        RUN true
+        RUN ! test -f ./does-not-exist-locally
+        RUN test -f ./exists-locally
+    END
+    IF [ "true" = "true" ]
+        RUN true
+        RUN ! test -f ./does-not-exist-locally
+        RUN test -f ./exists-locally
+    ELSE
+        RUN false
+    END
 
 test-empty:
     IF true

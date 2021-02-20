@@ -11,6 +11,7 @@ import (
 	"hash/fnv"
 	"io/ioutil"
 	"math/rand"
+	"os"
 	"path"
 	"path/filepath"
 	"strconv"
@@ -37,6 +38,8 @@ import (
 	specs "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
 )
+
+const exitCodeFile = "/run/exit_code"
 
 // Converter turns earthly commands to buildkit LLB representation.
 type Converter struct {
@@ -317,6 +320,7 @@ func (c *Converter) CopyClassical(ctx context.Context, srcs []string, dest strin
 
 // RunLocal applies a RUN statement locally rather than in a container
 func (c *Converter) RunLocal(ctx context.Context, args []string, pushFlag bool) error {
+	c.nonSaveCommand()
 	runStr := fmt.Sprintf("RUN %s%s", strIf(pushFlag, "--push "), strings.Join(args, " "))
 
 	// Build args get propagated into env.
@@ -382,7 +386,7 @@ func (c *Converter) RunExitCode(ctx context.Context, commandName string, args, m
 		strIf(privileged, "--privileged "),
 		strIf(noCache, "--no-cache "),
 		strings.Join(args, " "))
-	shellWrap := withShellAndEnvVarsExitCode
+	shellWrap := withShellAndEnvVarsExitCode(exitCodeFile)
 	opts = append(opts, llb.WithCustomNamef("%s%s", c.vertexPrefix(false), runStr))
 	state, err := c.internalRun(
 		ctx, args, secretKeyValues, isWithShell, shellWrap, false,
@@ -395,10 +399,67 @@ func (c *Converter) RunExitCode(ctx context.Context, commandName string, args, m
 		return 0, errors.Wrap(err, "run exit code state to ref")
 	}
 	codeDt, err := ref.ReadFile(ctx, gwclient.ReadRequest{
-		Filename: "/run/exit_code",
+		Filename: exitCodeFile,
 	})
 	if err != nil {
 		return 0, errors.Wrap(err, "read exit code")
+	}
+	exitCode, err := strconv.ParseInt(string(bytes.TrimSpace(codeDt)), 10, 64)
+	if err != nil {
+		return 0, errors.Wrap(err, "parse exit code as int")
+	}
+	return int(exitCode), err
+}
+
+// RunLocalExitCode runs a command locally rather than in a container and returns its exit code.
+func (c *Converter) RunLocalExitCode(ctx context.Context, commandName string, args []string) (int, error) {
+	c.nonSaveCommand()
+	runStr := fmt.Sprintf("%s %s", commandName, strings.Join(args, " "))
+	// Build args get propagated into env.
+	extraEnvVars := []string{}
+	for _, buildArgName := range c.varCollection.SortedActiveVariables() {
+		ba, _, _ := c.varCollection.Get(buildArgName)
+		if ba.IsEnvVar() {
+			continue
+		}
+		extraEnvVars = append(extraEnvVars, fmt.Sprintf("%s=\"%s\"", buildArgName, ba.ConstantValue()))
+	}
+
+	exitCodeDir, err := ioutil.TempDir("/tmp", "earthlyexitcode")
+	if err != nil {
+		return 0, errors.Wrap(err, "create temp dir")
+	}
+	exitCodeFile := filepath.Join(exitCodeDir, "/exit_code")
+	c.opt.CleanCollection.Add(func() error {
+		return os.RemoveAll(exitCodeDir)
+	})
+
+	// buildkit-hack in order to run locally, we prepend the command with a UUID
+	finalArgs := append(
+		[]string{localhost.RunOnLocalHostMagicStr},
+		withShellAndEnvVarsExitCode(exitCodeFile)(args, extraEnvVars, true, false)...,
+	)
+	opts := []llb.RunOption{
+		llb.Args(finalArgs),
+		llb.IgnoreCache,
+		llb.WithCustomNamef("%s%s", c.vertexPrefix(true), runStr),
+	}
+	c.mts.Final.MainState = c.mts.Final.MainState.Run(opts...).Root()
+
+	ref, err := llbutil.StateToRef(ctx, c.opt.GwClient, c.mts.Final.MainState, c.opt.Platform, c.opt.CacheImports)
+	if err != nil {
+		return 0, errors.Wrap(err, "run exit code state to ref")
+	}
+	// Cause the execution to complete. We're not really interested in reading the dir - we just
+	// want to un-lazy the ref so that the local commands have executed.
+	_, err = ref.ReadDir(ctx, gwclient.ReadDirRequest{Path: "/"})
+	if err != nil {
+		return 0, errors.Wrap(err, "unlazy locally")
+	}
+
+	codeDt, err := ioutil.ReadFile(exitCodeFile)
+	if err != nil {
+		return 0, errors.Wrap(err, "read exit code file")
 	}
 	exitCode, err := strconv.ParseInt(string(bytes.TrimSpace(codeDt)), 10, 64)
 	if err != nil {

@@ -195,11 +195,38 @@ func (i *Interpreter) handleIf(ctx context.Context, ifStmt spec.IfStatement) err
 	}
 	// Note: Not expanding args for the expression itself, as that will be take care of by the shell.
 
-	exitCode, err := i.converter.RunExitCode(
-		ctx, "IF", fs.Args(), mounts.Args, secrets.Args, *privileged,
-		withShell, *withSSH, *noCache)
-	if err != nil {
-		return WrapError(err, ifStmt.SourceLocation, "apply IF")
+	var exitCode int
+	commandName := "IF"
+	if i.local {
+		if len(mounts.Args) > 0 {
+			return Errorf(ifStmt.SourceLocation, "mounts are not supported in combination with the LOCALLY directive")
+		}
+		if *withSSH {
+			return Errorf(ifStmt.SourceLocation, "the --ssh flag has no effect when used with the  LOCALLY directive")
+		}
+		if *privileged {
+			return Errorf(ifStmt.SourceLocation, "the --privileged flag has no effect when used with the LOCALLY directive")
+		}
+		if *noCache {
+			return Errorf(ifStmt.SourceLocation, "the --no-cache flag has no effect when used with the LOCALLY directive")
+		}
+
+		// TODO these should be supported, but haven't yet been implemented
+		if len(secrets.Args) > 0 {
+			return Errorf(ifStmt.SourceLocation, "secrets need to be implemented for the LOCALLY directive")
+		}
+
+		exitCode, err = i.converter.RunLocalExitCode(ctx, commandName, fs.Args())
+		if err != nil {
+			return WrapError(err, ifStmt.SourceLocation, "apply RUN")
+		}
+	} else {
+		exitCode, err = i.converter.RunExitCode(
+			ctx, commandName, fs.Args(), mounts.Args, secrets.Args, *privileged,
+			withShell, *withSSH, *noCache)
+		if err != nil {
+			return WrapError(err, ifStmt.SourceLocation, "apply IF")
+		}
 	}
 
 	if exitCode == 0 {
