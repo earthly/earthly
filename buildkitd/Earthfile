@@ -4,7 +4,6 @@ buildkitd:
     FROM $BUILDKIT_BASE_IMAGE
     RUN echo "@edge-community http://dl-cdn.alpinelinux.org/alpine/edge/community" >> /etc/apk/repositories
     RUN apk add --update --no-cache \
-        ca-certificates \
         cni-plugins@edge-community \
         gettext \
         iptables \
@@ -38,7 +37,6 @@ buildkitd:
     ARG EARTHLY_GIT_HASH
     ENV EARTHLY_GIT_HASH=$EARTHLY_GIT_HASH
     ENV BUILDKIT_BASE_IMAGE=$BUILDKIT_BASE_IMAGE
-    ENV EARTHLY_ADDITIONAL_BUILDKIT_CONFIG
     VOLUME /tmp/earthly
     ENTRYPOINT ["/usr/bin/entrypoint.sh", "buildkitd", "--config=/etc/buildkitd.toml"]
     ARG EARTHLY_TARGET_TAG_DOCKER

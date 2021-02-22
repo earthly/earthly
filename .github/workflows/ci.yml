@@ -62,6 +62,8 @@ jobs:
         run: "./examples/tests/docker2earth/test.sh"
       - name: Execute remote-cache test
         run: "./examples/tests/remote-cache/test.sh"
+      - name: Execute registry-certs test
+        run: "./examples/tests/registry-certs/test.sh"
       - name: Execute test similar to homebrew test in https://github.com/Homebrew/homebrew-core/blob/master/Formula/earthly.rb
         run: ./build/linux/amd64/earthly --buildkit-host 127.0.0.1 ./examples/tests/with-docker+all 2>&1 | grep 'Error while dialing invalid address 127.0.0.1'
       - name: Execute private image test (non fork only)

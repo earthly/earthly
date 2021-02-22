@@ -1,0 +1,63 @@
+
+ARG REGISTRY
+ARG REGISTRY_IP
+ARG EARTHLY_BUILD_ARGS="REGISTRY"
+ARG EARTHLY_ADDITIONAL_BUILDKIT_CONFIG="
+[registry.\"$REGISTRY\"]
+    ca=[\"/etc/config/test.ca\"]
+"
+
+certs:
+    FROM alpine:3.13
+    RUN apk add openssl
+    RUN openssl version
+    RUN mkdir -p certs
+    RUN (echo "[req]"; \
+            echo distinguished_name=req; \
+            echo "[san]"; \
+            echo subjectAltName=DNS:registry,IP:$REGISTRY_IP \
+            ) >./san.config
+    RUN openssl req -x509 -newkey rsa:4096 -sha256 -days 3650 -nodes \
+        -keyout certs/domain.key -out certs/domain.crt \
+        -extensions san -config ./san.config \
+        -subj "/CN=registry"
+    SAVE ARTIFACT certs AS LOCAL certs
+
+test-base:
+    FROM ../../..+earthly-docker
+    WORKDIR /test
+    COPY ./certs/domain.crt /etc/config/test.ca
+
+    # The inner buildkit requires Docker hub creds to prevent rate-limiting issues.
+    ARG DOCKERHUB_USER_SECRET
+    ARG DOCKERHUB_TOKEN_SECRET
+    RUN --secret USERNAME=$DOCKERHUB_USER_SECRET \
+        --secret TOKEN=$DOCKERHUB_TOKEN_SECRET \
+        if [ "$USERNAME" != "" ]; then \
+            docker login --username="$USERNAME" --password="$TOKEN" ;\
+        fi
+    COPY test.earth ./Earthfile
+
+all:
+    BUILD +test-push-pull
+    BUILD +test-connect
+
+test-push-pull:
+    FROM +test-base
+    # Running with tmpfs mount = no local cache.
+    RUN --privileged \
+        --entrypoint \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        -- --ci --push +test-push
+    RUN --privileged \
+        --entrypoint \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        -- --ci +test-pull
+
+test-connect:
+    FROM +test-base
+    COPY ./certs/domain.crt ./test.ca
+    RUN --privileged \
+        --entrypoint \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        -- +test-connect
