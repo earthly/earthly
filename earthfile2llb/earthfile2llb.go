@@ -53,6 +53,8 @@ type ConvertOpt struct {
 	UseInlineCache bool
 	// UseFakeDep is an internal feature flag for fake dep.
 	UseFakeDep bool
+	// AllowLocally is an internal fature flag for controlling if LOCALLY directives can be used.
+	AllowLocally bool
 }
 
 // Earthfile2LLB parses a earthfile and executes the statements for a given target.

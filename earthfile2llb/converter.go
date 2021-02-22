@@ -271,6 +271,10 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 
 // Locally applies the earthly Locally command.
 func (c *Converter) Locally(ctx context.Context, platform *specs.Platform) error {
+	if !c.opt.AllowLocally {
+		return errors.New("LOCALLY cannot be used when --strict is specified")
+	}
+
 	return c.fromClassical(ctx, "scratch", platform, true)
 }
 
