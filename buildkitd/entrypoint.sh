@@ -80,6 +80,9 @@ cat /etc/buildkitd.toml
 echo "======== End buildkitd config =========="
 echo "Detected container architecture is $(uname -m)"
 
+# In case the user mounted some certificates, make alpine aware of it.
+update-ca-certificates
+
 # start shell repeater server
 echo starting shellrepeater
 shellrepeater &

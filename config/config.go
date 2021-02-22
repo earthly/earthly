@@ -23,12 +23,13 @@ var (
 
 // GlobalConfig contains global config values
 type GlobalConfig struct {
-	DisableAnalytics        bool     `yaml:"disable_analytics"`
-	BuildkitCacheSizeMb     int      `yaml:"cache_size_mb"`
-	BuildkitImage           string   `yaml:"buildkit_image"`
-	DebuggerPort            int      `yaml:"debugger_port"`
-	BuildkitRestartTimeoutS int      `yaml:"buildkit_restart_timeout_s"`
-	BuildkitAdditionalArgs  []string `yaml:"buildkit_additional_args"`
+	DisableAnalytics         bool     `yaml:"disable_analytics"`
+	BuildkitCacheSizeMb      int      `yaml:"cache_size_mb"`
+	BuildkitImage            string   `yaml:"buildkit_image"`
+	DebuggerPort             int      `yaml:"debugger_port"`
+	BuildkitRestartTimeoutS  int      `yaml:"buildkit_restart_timeout_s"`
+	BuildkitAdditionalArgs   []string `yaml:"buildkit_additional_args"`
+	BuildkitAdditionalConfig string   `yaml:"buildkit_additional_config"`
 
 	// Obsolete.
 	CachePath string `yaml:"cache_path"`

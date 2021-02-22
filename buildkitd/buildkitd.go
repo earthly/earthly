@@ -213,6 +213,7 @@ func Start(ctx context.Context, image string, settings Settings, reset bool) err
 		"-d",
 		"-v", fmt.Sprintf("%s:/tmp/earthly:rw", VolumeName),
 		"-e", fmt.Sprintf("BUILDKIT_DEBUG=%t", settings.Debug),
+		"-e", fmt.Sprintf("EARTHLY_ADDITIONAL_BUILDKIT_CONFIG=%s", settings.AdditionalConfig),
 		"--label", fmt.Sprintf("dev.earthly.settingshash=%s", settingsHash),
 		"--name", ContainerName,
 		"--privileged",
