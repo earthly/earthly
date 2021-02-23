@@ -2,6 +2,8 @@
 
 This guide will demonstrate the use of a private registry using self-signed certificates in conjunction with Earthly.
 
+For information about configuring the registry itself, see the [Docker Registry deployment documentation](https://docs.docker.com/registry/deploying/).
+
 ## Create an Earthfile
 
 No special considerations are needed in the Earthfile itself. You can use `SAVE IMAGE` just like any other repository.
