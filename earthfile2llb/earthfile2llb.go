@@ -18,7 +18,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-// ConvertOpt holds conversion parameters needed for conversion.
+// ConvertOpt holds conversion parameters.
 type ConvertOpt struct {
 	// GwClient is the BuildKit gateway client.
 	GwClient gwclient.Client
@@ -69,7 +69,11 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt) (m
 	// Check if we have previously converted this target, with the same build args.
 	targetStr := target.String()
 	for _, sts := range opt.Visited.Visited[targetStr] {
-		same := (sts.TargetInput.Platform == llbutil.PlatformToString(opt.Platform))
+		stsPlat, err := llbutil.ParsePlatform(sts.TargetInput.Platform)
+		if err != nil {
+			return nil, err
+		}
+		same := llbutil.PlatformEquals(stsPlat, opt.Platform)
 		if same {
 			for _, bai := range sts.TargetInput.BuildArgs {
 				variable, _, found := opt.VarCollection.Get(bai.Name)
