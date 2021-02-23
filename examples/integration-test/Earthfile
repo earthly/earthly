@@ -53,8 +53,8 @@ docker:
 
 smoke-test:
     FROM +project-files
-    COPY docker-compose.yml ./ 
-    COPY src/smoketest ./ 
+    COPY docker-compose.yml ./
+    COPY src/smoketest ./
     WITH DOCKER --compose docker-compose.yml --load=+docker
         RUN while ! pg_isready --host=localhost --port=5432 --dbname=iso3166 --username=postgres; do sleep 1; done ;\
             ./smoketest.sh
