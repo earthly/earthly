@@ -646,7 +646,7 @@ func (b *Builder) saveArtifactLocally(ctx context.Context, artifact domain.Artif
 }
 
 func (b *Builder) tempEarthlyOutDir() (string, error) {
-	tmpParentDir := filepath.Join(".", ".tmp-earthly-out")
+	tmpParentDir := ".tmp-earthly-out"
 	err := os.MkdirAll(tmpParentDir, 0755)
 	if err != nil {
 		return "", errors.Wrapf(err, "unable to create dir %s", tmpParentDir)
