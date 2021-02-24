@@ -655,11 +655,11 @@ func (b *Builder) tempEarthlyOutDir() (string, error) {
 	if err != nil {
 		return "", errors.Wrap(err, "mk temp dir for artifacts")
 	}
-	// Note that because this removes the parent dir, it will cause the cleanup of any
-	// previous run tmp dir(s) as well. This is intentional so that there is GCing of any
-	// leftovers from ctrl+C'd runs.
 	b.opt.CleanCollection.Add(func() error {
-		return os.RemoveAll(tmpParentDir)
+		err := os.RemoveAll(outDir)
+		// Remove the parent dir only if it's empty.
+		_ = os.Remove(tmpParentDir)
+		return err
 	})
 	return outDir, nil
 }
