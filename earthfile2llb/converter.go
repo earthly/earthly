@@ -140,6 +140,7 @@ func (c *Converter) fromTarget(ctx context.Context, targetName string, platform 
 	if err != nil {
 		return errors.Wrapf(err, "apply build %s", depTarget.String())
 	}
+	c.setPlatform(mts.Final.Platform)
 	if depTarget.IsLocalInternal() {
 		depTarget.LocalPath = c.mts.Final.Target.LocalPath
 	}
@@ -1116,7 +1117,7 @@ func (c *Converter) processNonConstantBuildArgFunc(ctx context.Context) variable
 func (c *Converter) vertexPrefix(local bool) string {
 	overriding := c.varCollection.SortedOverridingVariables()
 	varStrBuilder := make([]string, 0, len(overriding)+1)
-	if c.opt.Platform != nil {
+	if c.mts.Final.Platform != nil {
 		varStrBuilder = append(
 			varStrBuilder,
 			fmt.Sprintf("platform=%s", llbutil.PlatformToString(c.opt.Platform)))
