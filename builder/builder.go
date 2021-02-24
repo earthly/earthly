@@ -134,11 +134,10 @@ func (sp *successPrinter) incrementIndex() {
 }
 
 func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt BuildOpt) (*states.MultiTarget, error) {
-	outDir, err := ioutil.TempDir(".", ".tmp-earthly-out")
+	outDir, err := b.tempEarthlyOutDir()
 	if err != nil {
-		return nil, errors.Wrap(err, "mk temp dir for artifacts")
+		return nil, err
 	}
-	defer os.RemoveAll(outDir)
 
 	successFun := func(msg string) func() {
 		return func() {
@@ -644,4 +643,23 @@ func (b *Builder) saveArtifactLocally(ctx context.Context, artifact domain.Artif
 		}
 	}
 	return nil
+}
+
+func (b *Builder) tempEarthlyOutDir() (string, error) {
+	tmpParentDir := filepath.Join(".", ".tmp-earthly-out")
+	err := os.MkdirAll(tmpParentDir, 0755)
+	if err != nil {
+		return "", errors.Wrapf(err, "unable to create dir %s", tmpParentDir)
+	}
+	outDir, err := ioutil.TempDir(".", "tmp")
+	if err != nil {
+		return "", errors.Wrap(err, "mk temp dir for artifacts")
+	}
+	// Note that because this removes the parent dir, it will cause the cleanup of any
+	// previous run tmp dir(s) as well. This is intentional so that there is GCing of any
+	// leftovers from ctrl+C'd runs.
+	b.opt.CleanCollection.Add(func() error {
+		return os.RemoveAll(tmpParentDir)
+	})
+	return outDir, nil
 }
