@@ -95,10 +95,7 @@ func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Da
 // From applies the earthly FROM command.
 func (c *Converter) From(ctx context.Context, imageName string, platform *specs.Platform, buildArgs []string) error {
 	c.nonSaveCommand()
-	platform, err := llbutil.ResolvePlatform(platform, c.opt.Platform)
-	if err != nil {
-		return err
-	}
+	platform = llbutil.ResolvePlatform(c.opt.Platform, platform)
 	c.setPlatform(platform)
 	if strings.Contains(imageName, "+") {
 		// Target-based FROM.
@@ -143,6 +140,7 @@ func (c *Converter) fromTarget(ctx context.Context, targetName string, platform 
 	if err != nil {
 		return errors.Wrapf(err, "apply build %s", depTarget.String())
 	}
+	c.setPlatform(mts.Final.Platform)
 	if depTarget.IsLocalInternal() {
 		depTarget.LocalPath = c.mts.Final.Target.LocalPath
 	}
@@ -164,10 +162,7 @@ func (c *Converter) fromTarget(ctx context.Context, targetName string, platform 
 
 // FromDockerfile applies the earthly FROM DOCKERFILE command.
 func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPath string, dfTarget string, platform *specs.Platform, buildArgs []string) error {
-	platform, err := llbutil.ResolvePlatform(platform, c.opt.Platform)
-	if err != nil {
-		return err
-	}
+	platform = llbutil.ResolvePlatform(c.opt.Platform, platform)
 	c.setPlatform(platform)
 	plat := llbutil.PlatformWithDefault(platform)
 	c.nonSaveCommand()
@@ -271,7 +266,51 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 
 // Locally applies the earthly Locally command.
 func (c *Converter) Locally(ctx context.Context, platform *specs.Platform) error {
+	if !c.opt.AllowLocally {
+		return errors.New("LOCALLY cannot be used when --strict is specified")
+	}
+
 	return c.fromClassical(ctx, "scratch", platform, true)
+}
+
+// CopyArtifactLocal applies the earthly COPY artifact command which are invoked under a LOCALLY target.
+func (c *Converter) CopyArtifactLocal(ctx context.Context, artifactName string, dest string, platform *specs.Platform, buildArgs []string, isDir bool) error {
+	c.nonSaveCommand()
+	artifact, err := domain.ParseArtifact(artifactName)
+	if err != nil {
+		return errors.Wrapf(err, "parse artifact name %s", artifactName)
+	}
+	mts, err := c.buildTarget(ctx, artifact.Target.String(), platform, buildArgs, false)
+	if err != nil {
+		return errors.Wrapf(err, "apply build %s", artifact.Target.String())
+	}
+	if artifact.Target.IsLocalInternal() {
+		artifact.Target.LocalPath = c.mts.Final.Target.LocalPath
+	}
+	// Grab the artifacts state in the dep states, after we've built it.
+	relevantDepState := mts.Final
+
+	finalArgs := []string{localhost.SendFileMagicStr}
+	if isDir {
+		finalArgs = append(finalArgs, "--dir")
+	}
+	finalArgs = append(finalArgs, artifact.Artifact, dest)
+
+	opts := []llb.RunOption{
+		llb.Args(finalArgs),
+		llb.IgnoreCache,
+		llb.AddMount("/"+localhost.SendFileMagicStr, relevantDepState.ArtifactsState),
+		llb.WithCustomNamef(
+			"%sCOPY %s%s%s %s",
+			c.vertexPrefix(false),
+			strIf(isDir, "--dir "),
+			joinWrap(buildArgs, "(", " ", ") "),
+			artifact.String(),
+			dest),
+	}
+
+	c.mts.Final.MainState = c.mts.Final.MainState.Run(opts...).Root()
+	return nil
 }
 
 // CopyArtifact applies the earthly COPY artifact command.
@@ -833,11 +872,7 @@ func (c *Converter) buildTarget(ctx context.Context, fullTargetName string, plat
 	opt := c.opt
 	opt.Visited = c.mts.Visited
 	opt.VarCollection = newVarCollection
-	opt.Platform, err = llbutil.ResolvePlatform(platform, c.opt.Platform)
-	if err != nil {
-		// Contradiction allowed. You can BUILD another target with different platform.
-		opt.Platform = platform
-	}
+	opt.Platform = llbutil.ResolvePlatform(c.opt.Platform, platform)
 	mts, err := Earthfile2LLB(ctx, target, opt)
 	if err != nil {
 		return nil, errors.Wrapf(err, "earthfile2llb for %s", fullTargetName)
@@ -1119,7 +1154,7 @@ func (c *Converter) processNonConstantBuildArgFunc(ctx context.Context) variable
 func (c *Converter) vertexPrefix(local bool) string {
 	overriding := c.varCollection.SortedOverridingVariables()
 	varStrBuilder := make([]string, 0, len(overriding)+1)
-	if c.opt.Platform != nil {
+	if c.mts.Final.Platform != nil {
 		varStrBuilder = append(
 			varStrBuilder,
 			fmt.Sprintf("platform=%s", llbutil.PlatformToString(c.opt.Platform)))

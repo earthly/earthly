@@ -56,6 +56,18 @@ global:
   buildkit_additional_args: ["--userns", "host"]
 ```
 
+### buildkit_additional_config
+
+This option allows you to pass additional options to Buildkit. For example, this can be used to specify additional CA certificates:
+
+```yaml
+global:
+  buildkit_additional_args: ["-v", "<absolute-path-to-ca-file>:/etc/config/add.ca"]
+  buildkit_additional_config: |
+    [registry."<registry-hostname>"]
+      ca=["/etc/config/add.ca"]
+```
+
 ### no_loop_device (obsolete)
 
 This option is obsolete and it is ignored. Earthly no longer uses a loop device for its cache.

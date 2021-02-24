@@ -24,6 +24,9 @@ const (
 	VolumeName = "earthly-cache"
 )
 
+// ErrBuildkitCrashed is an error returned when buildkit has terminated unexpectedly.
+var ErrBuildkitCrashed = errors.New("buildkitd crashed")
+
 // Address is the address at which the daemon is available.
 var Address = fmt.Sprintf("docker-container://%s", ContainerName)
 
@@ -31,9 +34,12 @@ var Address = fmt.Sprintf("docker-container://%s", ContainerName)
 
 // NewClient returns a new buildkitd client.
 func NewClient(ctx context.Context, console conslogging.ConsoleLogger, image string, settings Settings, opTimeout time.Duration, opts ...client.ClientOpt) (*client.Client, error) {
+	if !isDockerAvailable(ctx) {
+		console.WithPrefix("buildkitd").Printf("Is docker installed and running? Are you part of the docker group?\n")
+		return nil, errors.New("docker not available")
+	}
 	address, err := MaybeStart(ctx, console, image, settings, opTimeout)
 	if err != nil {
-		console.WithPrefix("buildkitd").Printf("Is docker installed and running? Are you part of the docker group?\n")
 		return nil, errors.Wrap(err, "maybe start buildkitd")
 	}
 	bkClient, err := client.New(ctx, address, opts...)
@@ -276,17 +282,51 @@ func IsStarted(ctx context.Context) (bool, error) {
 
 // WaitUntilStarted waits until the buildkitd daemon has started and is healthy.
 func WaitUntilStarted(ctx context.Context, address string, opTimeout time.Duration) error {
-	ctxTimeout, cancel := context.WithTimeout(ctx, opTimeout)
-	defer cancel()
+	// First, wait for the container to be marked as started.
+	ctxTimeout1, cancel1 := context.WithTimeout(ctx, opTimeout)
+	defer cancel1()
+ContainerRunningLoop:
 	for {
 		select {
 		case <-time.After(1 * time.Second):
-			bkClient, err := client.New(ctxTimeout, address)
+			isRunning, err := isContainerRunning(ctxTimeout1)
+			if err != nil {
+				// Has not yet started. Keep waiting.
+				continue
+			}
+			if !isRunning {
+				return ErrBuildkitCrashed
+			}
+			if isRunning {
+				break ContainerRunningLoop
+			}
+
+		case <-ctxTimeout1.Done():
+			return errors.Errorf("timeout %s: buildkitd container did not start", opTimeout)
+		}
+	}
+
+	// Wait for the connection to be available.
+	ctxTimeout2, cancel2 := context.WithTimeout(ctx, opTimeout)
+	defer cancel2()
+	for {
+		select {
+		case <-time.After(1 * time.Second):
+			// Make sure that it has not crashed on startup.
+			isRunning, err := isContainerRunning(ctxTimeout2)
+			if err != nil {
+				return err
+			}
+			if !isRunning {
+				return ErrBuildkitCrashed
+			}
+			// Attempt to connect.
+			bkClient, err := client.New(ctxTimeout2, address)
 			if err != nil {
 				// Try again.
 				continue
 			}
-			_, err = bkClient.ListWorkers(ctxTimeout)
+			_, err = bkClient.ListWorkers(ctxTimeout2)
 			if err != nil {
 				// Try again.
 				continue
@@ -296,8 +336,8 @@ func WaitUntilStarted(ctx context.Context, address string, opTimeout time.Durati
 				return errors.Wrap(err, "close buildkit client")
 			}
 			return nil
-		case <-ctxTimeout.Done():
-			return errors.New("Timeout: Buildkitd did not start")
+		case <-ctxTimeout2.Done():
+			return errors.Errorf("timeout %s: buildkitd did not make connection available after start", opTimeout)
 		}
 	}
 }
@@ -354,22 +394,16 @@ func WaitUntilStopped(ctx context.Context, opTimeout time.Duration) error {
 	for {
 		select {
 		case <-time.After(1 * time.Second):
-			cmd := exec.CommandContext(
-				ctx, "docker", "inspect", "--format={{.State.Running}}", ContainerName)
-			output, err := cmd.CombinedOutput()
+			isRunning, err := isContainerRunning(ctxTimeout)
 			if err != nil {
 				// The container can no longer be found at all.
 				return nil
-			}
-			isRunning, err := strconv.ParseBool(strings.TrimSpace(string(output)))
-			if err != nil {
-				return errors.Wrapf(err, "cannot interpret output %s", output)
 			}
 			if !isRunning {
 				return nil
 			}
 		case <-ctxTimeout.Done():
-			return errors.New("Timeout: Buildkitd did not start")
+			return errors.Errorf("timeout %s: buildkitd did not stop", opTimeout)
 		}
 	}
 }
@@ -466,4 +500,24 @@ func platformFlag() string {
 		arch = "arm/v7"
 	}
 	return fmt.Sprintf("--platform=linux/%s", arch)
+}
+
+func isContainerRunning(ctx context.Context) (bool, error) {
+	cmd := exec.CommandContext(
+		ctx, "docker", "inspect", "--format={{.State.Running}}", ContainerName)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return false, errors.Wrapf(err, "docker inspect running")
+	}
+	isRunning, err := strconv.ParseBool(strings.TrimSpace(string(output)))
+	if err != nil {
+		return false, errors.Wrapf(err, "cannot interpret output %s", output)
+	}
+	return isRunning, nil
+}
+
+func isDockerAvailable(ctx context.Context) bool {
+	cmd := exec.CommandContext(ctx, "docker", "ps")
+	err := cmd.Run()
+	return err == nil
 }

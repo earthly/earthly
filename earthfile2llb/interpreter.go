@@ -358,6 +358,10 @@ func (i *Interpreter) handleRun(ctx context.Context, cmd spec.Command) error {
 			return Errorf(cmd.SourceLocation, "secrets need to be implemented for the LOCALLY directive")
 		}
 
+		if i.withDocker != nil {
+			return Errorf(cmd.SourceLocation, "the WITH DOCKER directive is not (yet) supported with the LOCALLY directive")
+		}
+
 		err = i.converter.RunLocal(ctx, fs.Args(), *pushFlag)
 		if err != nil {
 			return WrapError(err, cmd.SourceLocation, "apply RUN")
@@ -507,15 +511,26 @@ func (i *Interpreter) handleCopy(ctx context.Context, cmd spec.Command) error {
 			dest += string(filepath.Separator)
 		}
 		for _, src := range srcs {
-			err = i.converter.CopyArtifact(ctx, src, dest, platform, buildArgs.Args, *isDirCopy, *keepTs, *keepOwn, *chown, *ifExists)
-			if err != nil {
-				return WrapError(err, cmd.SourceLocation, "copy artifact")
+			if i.local {
+				err = i.converter.CopyArtifactLocal(ctx, src, dest, platform, buildArgs.Args, *isDirCopy)
+				if err != nil {
+					return WrapError(err, cmd.SourceLocation, "copy artifact locally")
+				}
+			} else {
+				err = i.converter.CopyArtifact(ctx, src, dest, platform, buildArgs.Args, *isDirCopy, *keepTs, *keepOwn, *chown, *ifExists)
+				if err != nil {
+					return WrapError(err, cmd.SourceLocation, "copy artifact")
+				}
 			}
 		}
 	} else {
 		if len(buildArgs.Args) != 0 {
 			return Errorf(cmd.SourceLocation, "build args not supported for non +artifact arguments case %v", cmd.Args)
 		}
+		if i.local {
+			return Errorf(cmd.SourceLocation, "unhandled locally artifact copy when allArtifacts is false")
+		}
+
 		i.converter.CopyClassical(ctx, srcs, dest, *isDirCopy, *keepTs, *keepOwn, *chown)
 	}
 	return nil

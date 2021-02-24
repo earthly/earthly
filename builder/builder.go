@@ -53,6 +53,7 @@ type Opt struct {
 	BuildContextProvider *provider.BuildContextProvider
 	GitLookup            *buildcontext.GitLookup
 	UseFakeDep           bool
+	Strict               bool
 }
 
 // BuildOpt is a collection of build options.
@@ -169,6 +170,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 				CacheImports:         b.opt.CacheImports,
 				UseInlineCache:       b.opt.UseInlineCache,
 				UseFakeDep:           b.opt.UseFakeDep,
+				AllowLocally:         !b.opt.Strict,
 			})
 			if err != nil {
 				return nil, err
@@ -516,10 +518,7 @@ func (b *Builder) buildOnlyLastImageAsTar(ctx context.Context, mts *states.Multi
 		return err
 	}
 
-	platform, err := llbutil.ResolvePlatform(mts.Final.Platform, opt.Platform)
-	if err != nil {
-		platform = mts.Final.Platform
-	}
+	platform := llbutil.ResolvePlatform(opt.Platform, mts.Final.Platform)
 	plat := llbutil.PlatformWithDefault(platform)
 	err = b.outputImageTar(ctx, saveImage, plat, dockerTag, outFile)
 	if err != nil {
@@ -533,12 +532,9 @@ func (b *Builder) buildMain(ctx context.Context, mts *states.MultiTarget, opt Bu
 	if b.opt.NoCache {
 		state = state.SetMarshalDefaults(llb.IgnoreCache)
 	}
-	platform, err := llbutil.ResolvePlatform(mts.Final.Platform, opt.Platform)
-	if err != nil {
-		platform = mts.Final.Platform
-	}
+	platform := llbutil.ResolvePlatform(opt.Platform, mts.Final.Platform)
 	plat := llbutil.PlatformWithDefault(platform)
-	err = b.s.solveMain(ctx, state, plat)
+	err := b.s.solveMain(ctx, state, plat)
 	if err != nil {
 		return errors.Wrapf(err, "solve side effects")
 	}
