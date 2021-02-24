@@ -14,7 +14,7 @@ jobs:
     steps:
       - checkout
       - run: docker login --username "$DOCKERHUB_USERNAME" --password "$DOCKERHUB_TOKEN"
-      - run: "sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/download/v0.5.2/earthly-linux-amd64 -O /usr/local/bin/earthly && chmod +x /usr/local/bin/earthly'"
+      - run: "sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/download/v0.5.3/earthly-linux-amd64 -O /usr/local/bin/earthly && chmod +x /usr/local/bin/earthly'"
       - run: earthly --version
       - run: earthly --push +build
 ```
