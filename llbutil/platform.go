@@ -37,6 +37,25 @@ func ScratchWithPlatform() llb.State {
 	return llb.Scratch().Platform(DefaultPlatform())
 }
 
+// PlatformEquals compares whether two platform pointers equate to the same platform.
+// If any of the pointers is nil, then the default platform is assumed for it.
+func PlatformEquals(p1 *specs.Platform, p2 *specs.Platform) bool {
+	if p1 == p2 {
+		// Quick way out.
+		return true
+	}
+	pp1 := PlatformWithDefault(p1)
+	pp2 := PlatformWithDefault(p2)
+	return pp1.OS == pp2.OS &&
+		pp1.Architecture == pp2.Architecture &&
+		pp1.Variant == pp2.Variant
+}
+
+// PlatformWithDefaultToString turns a platform pointer into a string representation.
+func PlatformWithDefaultToString(p *specs.Platform) string {
+	return platforms.Format(PlatformWithDefault(p))
+}
+
 // PlatformToString turns a platform pointer into a string representation.
 func PlatformToString(p *specs.Platform) string {
 	if p == nil {

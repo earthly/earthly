@@ -135,11 +135,10 @@ func (sp *successPrinter) incrementIndex() {
 }
 
 func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt BuildOpt) (*states.MultiTarget, error) {
-	outDir, err := ioutil.TempDir(".", ".tmp-earthly-out")
+	outDir, err := b.tempEarthlyOutDir()
 	if err != nil {
-		return nil, errors.Wrap(err, "mk temp dir for artifacts")
+		return nil, err
 	}
-	defer os.RemoveAll(outDir)
 
 	successFun := func(msg string) func() {
 		return func() {
@@ -646,4 +645,23 @@ func (b *Builder) saveArtifactLocally(ctx context.Context, artifact domain.Artif
 		}
 	}
 	return nil
+}
+
+func (b *Builder) tempEarthlyOutDir() (string, error) {
+	tmpParentDir := ".tmp-earthly-out"
+	err := os.MkdirAll(tmpParentDir, 0755)
+	if err != nil {
+		return "", errors.Wrapf(err, "unable to create dir %s", tmpParentDir)
+	}
+	outDir, err := ioutil.TempDir(".", "tmp")
+	if err != nil {
+		return "", errors.Wrap(err, "mk temp dir for artifacts")
+	}
+	b.opt.CleanCollection.Add(func() error {
+		err := os.RemoveAll(outDir)
+		// Remove the parent dir only if it's empty.
+		_ = os.Remove(tmpParentDir)
+		return err
+	})
+	return outDir, nil
 }

@@ -298,7 +298,11 @@ examples1:
     BUILD ./examples/elixir+docker
     BUILD ./examples/go+docker
     BUILD ./examples/grpc+test
-    BUILD ./examples/integration-test+integration-test
+    ARG TARGETARCH
+    IF [ "$TARGETARCH" = "amd64" ]
+        # This only works on amd64 for now.
+        BUILD ./examples/integration-test+integration-test
+    END
     BUILD ./examples/java+docker
     BUILD ./examples/js+docker
     BUILD ./examples/monorepo+all

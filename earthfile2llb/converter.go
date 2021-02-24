@@ -62,7 +62,7 @@ func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Da
 		Platform: opt.Platform,
 		TargetInput: dedup.TargetInput{
 			TargetCanonical: target.StringCanonical(),
-			Platform:        llbutil.PlatformToString(opt.Platform),
+			Platform:        llbutil.PlatformWithDefaultToString(opt.Platform),
 		},
 		MainState:      llbutil.ScratchWithPlatform(),
 		MainImage:      image.NewImage(),
@@ -1151,6 +1151,7 @@ func (c *Converter) copyOwner(keepOwn bool, chown string) string {
 func (c *Converter) setPlatform(platform *specs.Platform) {
 	c.opt.Platform = platform
 	c.mts.Final.Platform = platform
+	c.mts.Final.TargetInput.Platform = llbutil.PlatformWithDefaultToString(platform)
 	c.varCollection.SetPlatformArgs(llbutil.PlatformWithDefault(platform))
 }
 
