@@ -318,7 +318,9 @@ Loop:
 	}
 	failedVertexOutput := ""
 	if errVertex != nil {
-		failedVertexOutput = string(errVertex.tailOutput.Bytes())
+		if errVertex.tailOutput != nil {
+			failedVertexOutput = string(errVertex.tailOutput.Bytes())
+		}
 		sm.reprintFailure(errVertex, phaseText)
 	}
 	sm.mu.Lock()

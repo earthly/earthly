@@ -62,7 +62,7 @@ func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Da
 		Platform: opt.Platform,
 		TargetInput: dedup.TargetInput{
 			TargetCanonical: target.StringCanonical(),
-			Platform:        llbutil.PlatformToString(opt.Platform),
+			Platform:        llbutil.PlatformWithDefaultToString(opt.Platform),
 		},
 		MainState:      llbutil.ScratchWithPlatform(),
 		MainImage:      image.NewImage(),
@@ -272,6 +272,46 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 // Locally applies the earthly Locally command.
 func (c *Converter) Locally(ctx context.Context, platform *specs.Platform) error {
 	return c.fromClassical(ctx, "scratch", platform, true)
+}
+
+// CopyArtifactLocal applies the earthly COPY artifact command which are invoked under a LOCALLY target.
+func (c *Converter) CopyArtifactLocal(ctx context.Context, artifactName string, dest string, platform *specs.Platform, buildArgs []string, isDir bool) error {
+	c.nonSaveCommand()
+	artifact, err := domain.ParseArtifact(artifactName)
+	if err != nil {
+		return errors.Wrapf(err, "parse artifact name %s", artifactName)
+	}
+	mts, err := c.buildTarget(ctx, artifact.Target.String(), platform, buildArgs, false)
+	if err != nil {
+		return errors.Wrapf(err, "apply build %s", artifact.Target.String())
+	}
+	if artifact.Target.IsLocalInternal() {
+		artifact.Target.LocalPath = c.mts.Final.Target.LocalPath
+	}
+	// Grab the artifacts state in the dep states, after we've built it.
+	relevantDepState := mts.Final
+
+	finalArgs := []string{localhost.SendFileMagicStr}
+	if isDir {
+		finalArgs = append(finalArgs, "--dir")
+	}
+	finalArgs = append(finalArgs, artifact.Artifact, dest)
+
+	opts := []llb.RunOption{
+		llb.Args(finalArgs),
+		llb.IgnoreCache,
+		llb.AddMount("/"+localhost.SendFileMagicStr, relevantDepState.ArtifactsState),
+		llb.WithCustomNamef(
+			"%sCOPY %s%s%s %s",
+			c.vertexPrefix(false),
+			strIf(isDir, "--dir "),
+			joinWrap(buildArgs, "(", " ", ") "),
+			artifact.String(),
+			dest),
+	}
+
+	c.mts.Final.MainState = c.mts.Final.MainState.Run(opts...).Root()
+	return nil
 }
 
 // CopyArtifact applies the earthly COPY artifact command.
@@ -1147,6 +1187,7 @@ func (c *Converter) copyOwner(keepOwn bool, chown string) string {
 func (c *Converter) setPlatform(platform *specs.Platform) {
 	c.opt.Platform = platform
 	c.mts.Final.Platform = platform
+	c.mts.Final.TargetInput.Platform = llbutil.PlatformWithDefaultToString(platform)
 	c.varCollection.SetPlatformArgs(llbutil.PlatformWithDefault(platform))
 }
 
