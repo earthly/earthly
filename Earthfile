@@ -308,6 +308,7 @@ examples1:
     BUILD ./examples/monorepo+all
     BUILD ./examples/multirepo+docker
     BUILD ./examples/python+docker
+    BUILD ./examples/cutoff-optimization+run
 
 examples2:
     BUILD ./examples/readme/go1+all
