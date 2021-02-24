@@ -46,6 +46,7 @@ type SingleTarget struct {
 	LocalDirs              map[string]string
 	Ongoing                bool
 	Salt                   string
+	EphemeralInteractive   EphemeralInteractive
 	// HasDangling represents whether the target has dangling instructions -
 	// ie if there are any non-SAVE commands after the first SAVE command,
 	// or if the target is invoked via BUILD command (not COPY nor FROM).
@@ -97,4 +98,9 @@ type RunPush struct {
 	SaveLocals  []SaveLocal
 	SaveImages  []SaveImage
 	HasState    bool
+}
+
+type EphemeralInteractive struct {
+	CommandStrs []string
+	State       llb.State
 }

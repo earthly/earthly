@@ -51,6 +51,7 @@ type WithDockerOpt struct {
 	WithShell       bool
 	WithEntrypoint  bool
 	NoCache         bool
+	Interactive     bool
 	Pulls           []DockerPullOpt
 	Loads           []DockerLoadOpt
 	ComposeFiles    []string
@@ -167,7 +168,7 @@ func (wdr *withDockerRun) Run(ctx context.Context, args []string, opt WithDocker
 	shellWrap := makeWithDockerdWrapFun(dindID, tarPaths, opt)
 	_, err = wdr.c.internalRun(
 		ctx, finalArgs, opt.Secrets, opt.WithShell, shellWrap,
-		false, false, false, opt.NoCache, runStr, runOpts...)
+		false, false, false, opt.NoCache, opt.Interactive, runStr, runOpts...)
 	return err
 }
 
@@ -363,11 +364,11 @@ func makeWithDockerdWrapFun(dindID string, tarPaths []string, opt WithDockerOpt)
 		fmt.Sprintf("EARTHLY_DOCKER_LOAD_FILES=\"%s\"", strings.Join(tarPaths, " ")),
 	}
 	params = append(params, composeParams(opt)...)
-	return func(args []string, envVars []string, isWithShell bool, withDebugger bool) []string {
+	return func(args []string, envVars []string, isWithShell, withDebugger, forceDebugger bool) []string {
 		envVars2 := append(params, envVars...)
 		return []string{
 			"/bin/sh", "-c",
-			strWithEnvVarsAndDocker(args, envVars2, isWithShell, withDebugger, true, ""),
+			strWithEnvVarsAndDocker(args, envVars2, isWithShell, withDebugger, forceDebugger, true, ""),
 		}
 	}
 }

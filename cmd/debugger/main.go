@@ -188,6 +188,12 @@ func main() {
 		return
 	}
 
+	forceInteractive := false
+	if args[0] == "--force" {
+		args = args[1:]
+		forceInteractive = true
+	}
+
 	conslogger := conslogging.Current(conslogging.ForceColor, conslogging.NoPadding)
 	color.NoColor = false
 
@@ -204,6 +210,30 @@ func main() {
 	ctx := context.Background()
 
 	log := logging.GetLogger(ctx)
+
+	if forceInteractive {
+		quotedCmd := shellescape.QuoteCommand(args)
+
+		conslogger.PrintBar(color.New(color.FgHiMagenta), " Start Interactive Session ", quotedCmd)
+
+		// Sometimes the interactive shell doesn't correctly get a newline
+		// Take a brief pause and issue a new line as a work around.
+		time.Sleep(time.Millisecond * 5)
+
+		err := os.Setenv("TERM", debuggerSettings.Term)
+		if err != nil {
+			conslogger.Warnf("Failed to set term: %v", err)
+		}
+
+		err = interactiveMode(ctx, debuggerSettings.RepeaterAddr, quotedCmd)
+		if err != nil {
+			log.Error(err)
+		}
+
+		conslogger.PrintBar(color.New(color.FgHiMagenta), " End Interactive Session ", "")
+
+		return
+	}
 
 	log.With("command", args).With("version", Version).Debug("running command")
 

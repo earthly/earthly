@@ -133,7 +133,7 @@ func (cl ConsoleLogger) WithFailed(isFailed bool) ConsoleLogger {
 func (cl ConsoleLogger) PrintSuccess(msg string) {
 	cl.mu.Lock()
 	defer cl.mu.Unlock()
-	cl.printBar(successColor, " SUCCESS ", msg)
+	cl.PrintBar(successColor, " SUCCESS ", msg)
 }
 
 // PrintFailure prints the failure message.
@@ -141,10 +141,11 @@ func (cl ConsoleLogger) PrintFailure(msg string) {
 	cl.mu.Lock()
 	defer cl.mu.Unlock()
 
-	cl.printBar(warnColor, " FAILURE ", msg)
+	cl.PrintBar(warnColor, " FAILURE ", msg)
 }
 
-func (cl ConsoleLogger) printBar(c *color.Color, center, msg string) {
+// Print bar prints an earthly message bar
+func (cl ConsoleLogger) PrintBar(c *color.Color, center, msg string) {
 	if msg != "" {
 		center = fmt.Sprintf("%s[%s] ", center, msg)
 	}

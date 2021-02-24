@@ -312,6 +312,14 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 					dirIndex++
 				}
 			}
+
+			if len(sts.EphemeralInteractive.CommandStrs) > 0 {
+				reff, err := b.stateToRef(ctx, gwClient, sts.EphemeralInteractive.State, sts.Platform)
+				res.AddRef("ephemeral", reff)
+				if err != nil {
+					return nil, err
+				}
+			}
 		}
 		return res, nil
 	}

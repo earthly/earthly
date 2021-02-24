@@ -334,7 +334,7 @@ func (c *Converter) RunLocal(ctx context.Context, args []string, pushFlag bool) 
 	}
 
 	// buildkit-hack in order to run locally, we prepend the command with a UUID
-	finalArgs := append([]string{localhost.RunOnLocalHostMagicStr}, withShellAndEnvVars(args, extraEnvVars, true, false)...)
+	finalArgs := append([]string{localhost.RunOnLocalHostMagicStr}, withShellAndEnvVars(args, extraEnvVars, true, false, false)...)
 	opts := []llb.RunOption{
 		llb.Args(finalArgs),
 		llb.IgnoreCache,
@@ -390,7 +390,7 @@ func (c *Converter) RunExitCode(ctx context.Context, commandName string, args, m
 	opts = append(opts, llb.WithCustomNamef("%s%s", c.vertexPrefix(false), runStr))
 	state, err := c.internalRun(
 		ctx, args, secretKeyValues, isWithShell, shellWrap, false,
-		true, withSSH, noCache, runStr, opts...)
+		true, withSSH, noCache, false, runStr, opts...)
 	if err != nil {
 		return 0, err
 	}
@@ -437,7 +437,7 @@ func (c *Converter) RunLocalExitCode(ctx context.Context, commandName string, ar
 	// buildkit-hack in order to run locally, we prepend the command with a UUID
 	finalArgs := append(
 		[]string{localhost.RunOnLocalHostMagicStr},
-		withShellAndEnvVarsExitCode(exitCodeFile)(args, extraEnvVars, true, false)...,
+		withShellAndEnvVarsExitCode(exitCodeFile)(args, extraEnvVars, true, false, false)...,
 	)
 	opts := []llb.RunOption{
 		llb.Args(finalArgs),
@@ -469,11 +469,12 @@ func (c *Converter) RunLocalExitCode(ctx context.Context, commandName string, ar
 }
 
 // Run applies the earthly RUN command.
-func (c *Converter) Run(ctx context.Context, args, mounts, secretKeyValues []string, privileged, withEntrypoint, withDocker, isWithShell, pushFlag, withSSH, noCache bool) error {
+func (c *Converter) Run(ctx context.Context, args, mounts, secretKeyValues []string, privileged, withEntrypoint, withDocker, isWithShell, pushFlag, withSSH, noCache, interactive bool) error {
 	c.nonSaveCommand()
 	if withDocker {
 		return errors.New("RUN --with-docker is obsolete. Please use WITH DOCKER ... RUN ... END instead")
 	}
+
 	var opts []llb.RunOption
 	mountRunOpts, err := parseMounts(mounts, c.mts.Final.Target, c.mts.Final.TargetInput, c.cacheContext)
 	if err != nil {
@@ -495,18 +496,19 @@ func (c *Converter) Run(ctx context.Context, args, mounts, secretKeyValues []str
 		opts = append(opts, llb.Security(llb.SecurityModeInsecure))
 	}
 	runStr := fmt.Sprintf(
-		"RUN %s%s%s%s%s%s",
+		"RUN %s%s%s%s%s%s%s",
 		strIf(privileged, "--privileged "),
 		strIf(withDocker, "--with-docker "),
 		strIf(withEntrypoint, "--entrypoint "),
 		strIf(pushFlag, "--push "),
 		strIf(noCache, "--no-cache "),
+		strIf(interactive, "--interactive "),
 		strings.Join(finalArgs, " "))
 	shellWrap := withShellAndEnvVars
 	opts = append(opts, llb.WithCustomNamef("%s%s", c.vertexPrefix(false), runStr))
 	_, err = c.internalRun(
 		ctx, finalArgs, secretKeyValues, isWithShell, shellWrap, pushFlag,
-		false, withSSH, noCache, runStr, opts...)
+		false, withSSH, noCache, interactive, runStr, opts...)
 	return err
 }
 
@@ -873,7 +875,7 @@ func (c *Converter) buildTarget(ctx context.Context, fullTargetName string, plat
 	return mts, nil
 }
 
-func (c *Converter) internalRun(ctx context.Context, args, secretKeyValues []string, isWithShell bool, shellWrap shellWrapFun, pushFlag, transient, withSSH, noCache bool, commandStr string, opts ...llb.RunOption) (llb.State, error) {
+func (c *Converter) internalRun(ctx context.Context, args, secretKeyValues []string, isWithShell bool, shellWrap shellWrapFun, pushFlag, transient, withSSH, noCache, interactive bool, commandStr string, opts ...llb.RunOption) (llb.State, error) {
 	finalOpts := opts
 	var extraEnvVars []string
 	// Secrets.
@@ -925,10 +927,19 @@ func (c *Converter) internalRun(ctx context.Context, args, secretKeyValues []str
 		finalOpts = append(finalOpts, llb.AddSSHSocket())
 	}
 	// Shell and debugger wrap.
-	finalArgs := shellWrap(args, extraEnvVars, isWithShell, true)
+	finalArgs := shellWrap(args, extraEnvVars, isWithShell, true, interactive)
 	finalOpts = append(finalOpts, llb.Args(finalArgs))
 	if noCache {
 		finalOpts = append(finalOpts, llb.IgnoreCache)
+	}
+
+	if interactive {
+		finalOpts = append(finalOpts, llb.IgnoreCache)
+		c.mts.Final.EphemeralInteractive = states.EphemeralInteractive{
+			CommandStrs: withShellAndEnvVars(args, []string{}, isWithShell, true, interactive),
+			State:       llbutil.WithDependency(c.mts.Final.MainState, c.mts.Final.MainState.Run(finalOpts...).Root(), c.mts.Final.Target.String(), "ephemeral"),
+		}
+		return c.mts.Final.MainState, nil
 	}
 
 	if pushFlag {
@@ -1064,7 +1075,7 @@ func (c *Converter) processNonConstantBuildArgFunc(ctx context.Context) variable
 		args := strings.Split(fmt.Sprintf("echo \"%s\" >%s", expression, srcBuildArgPath), " ")
 		transient := true
 		state, err := c.internalRun(
-			ctx, args, []string{}, true, withShellAndEnvVars, false, transient, false, false, expression,
+			ctx, args, []string{}, true, withShellAndEnvVars, false, transient, false, false, false, expression,
 			llb.WithCustomNamef("%sRUN %s", c.vertexPrefix(false), expression))
 		if err != nil {
 			return "", 0, errors.Wrapf(err, "run %v", expression)
