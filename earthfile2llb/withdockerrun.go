@@ -51,7 +51,7 @@ type WithDockerOpt struct {
 	WithShell       bool
 	WithEntrypoint  bool
 	NoCache         bool
-	Interactive     bool
+	Interactive     []string
 	Pulls           []DockerPullOpt
 	Loads           []DockerLoadOpt
 	ComposeFiles    []string

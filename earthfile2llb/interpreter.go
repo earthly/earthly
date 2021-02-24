@@ -309,7 +309,8 @@ func (i *Interpreter) handleRun(ctx context.Context, cmd spec.Command) error {
 	withDocker := fs.Bool("with-docker", false, "Deprecated")
 	withSSH := fs.Bool("ssh", false, "Make available the SSH agent of the host")
 	noCache := fs.Bool("no-cache", false, "Always run this specific item, ignoring cache")
-	interactive := fs.Bool("interactive", false, "Run this command with an interactive session")
+	interactive := new(StringSliceFlag)
+	fs.Var(interactive, "interactive", "Run this command with an interactive session")
 	secrets := new(StringSliceFlag)
 	fs.Var(secrets, "secret", "Make available a secret")
 	mounts := new(StringSliceFlag)
@@ -332,6 +333,9 @@ func (i *Interpreter) handleRun(ctx context.Context, cmd spec.Command) error {
 	}
 	for index, m := range mounts.Args {
 		mounts.Args[index] = i.expandArgs(m, false)
+	}
+	for index, ia := range interactive.Args {
+		interactive.Args[index] = i.expandArgs(ia, false)
 	}
 	// Note: Not expanding args for the run itself, as that will be take care of by the shell.
 
@@ -364,7 +368,7 @@ func (i *Interpreter) handleRun(ctx context.Context, cmd spec.Command) error {
 	if i.withDocker == nil {
 		err = i.converter.Run(
 			ctx, fs.Args(), mounts.Args, secrets.Args, *privileged, *withEntrypoint, *withDocker,
-			withShell, *pushFlag, *withSSH, *noCache, *interactive)
+			withShell, *pushFlag, *withSSH, *noCache, interactive.Args)
 		if err != nil {
 			return WrapError(err, cmd.SourceLocation, "apply RUN")
 		}
@@ -384,7 +388,7 @@ func (i *Interpreter) handleRun(ctx context.Context, cmd spec.Command) error {
 		i.withDocker.WithShell = withShell
 		i.withDocker.WithEntrypoint = *withEntrypoint
 		i.withDocker.NoCache = *noCache
-		i.withDocker.Interactive = *interactive
+		i.withDocker.Interactive = interactive.Args
 		err = i.converter.WithDockerRun(ctx, fs.Args(), *i.withDocker)
 		if err != nil {
 			return WrapError(err, cmd.SourceLocation, "with docker run")
