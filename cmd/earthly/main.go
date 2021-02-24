@@ -128,6 +128,7 @@ type cliFlags struct {
 	noFakeDep              bool
 	enableSourceMap        bool
 	configDryRun           bool
+	strict                 bool
 }
 
 var (
@@ -338,7 +339,7 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 		&cli.BoolFlag{
 			Name:        "ci",
 			EnvVars:     []string{"EARTHLY_CI"},
-			Usage:       wrap("Execute in CI mode (implies --use-inline-cache --save-inline-cache --no-output)", "*experimental*"),
+			Usage:       wrap("Execute in CI mode (implies --use-inline-cache --save-inline-cache --no-output --strict)", "*experimental*"),
 			Destination: &app.ci,
 		},
 		&cli.BoolFlag{
@@ -485,6 +486,12 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 			Usage:       "Internal feature flag for fake-dep",
 			Destination: &app.noFakeDep,
 			Hidden:      true, // Internal.
+		},
+		&cli.BoolFlag{
+			Name:        "strict",
+			EnvVars:     []string{"EARTHLY_STRICT"},
+			Usage:       "Disallow usage of features that may create unreproduceable builds.",
+			Destination: &app.strict,
 		},
 	}
 
@@ -2042,6 +2049,7 @@ func (app *earthlyApp) actionBuild(c *cli.Context) error {
 	if app.ci {
 		app.useInlineCache = true
 		app.noOutput = true
+		app.strict = true
 		if app.remoteCache == "" && app.push {
 			app.saveInlineCache = true
 		}
@@ -2246,6 +2254,7 @@ func (app *earthlyApp) actionBuild(c *cli.Context) error {
 		BuildContextProvider: buildContextProvider,
 		GitLookup:            gitLookup,
 		UseFakeDep:           !app.noFakeDep,
+		Strict:               app.strict,
 	}
 	b, err := builder.NewBuilder(c.Context, builderOpts)
 	if err != nil {
