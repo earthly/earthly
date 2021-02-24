@@ -938,6 +938,7 @@ func (c *Converter) internalRun(ctx context.Context, args, secretKeyValues []str
 		c.mts.Final.EphemeralInteractive = states.EphemeralInteractive{
 			CommandStrs: withShellAndEnvVars(args, []string{}, isWithShell, true, len(interactive) > 0),
 			State:       llbutil.WithDependency(c.mts.Final.MainState, c.mts.Final.MainState.Run(finalOpts...).Root(), c.mts.Final.Target.String(), "ephemeral"),
+			HasState:    true,
 		}
 		return c.mts.Final.MainState, nil
 	}

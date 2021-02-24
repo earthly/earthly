@@ -103,4 +103,5 @@ type RunPush struct {
 type EphemeralInteractive struct {
 	CommandStrs []string
 	State       llb.State
+	HasState    bool
 }

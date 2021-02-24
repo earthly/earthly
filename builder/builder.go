@@ -313,7 +313,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 				}
 			}
 
-			if len(sts.EphemeralInteractive.CommandStrs) > 0 {
+			if sts.EphemeralInteractive.HasState {
 				reff, err := b.stateToRef(ctx, gwClient, sts.EphemeralInteractive.State, sts.Platform)
 				res.AddRef("ephemeral", reff)
 				if err != nil {
