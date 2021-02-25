@@ -1056,9 +1056,9 @@ func (app *earthlyApp) deleteZcompdump() error {
 	return nil
 }
 
-const zshCompleteEntry = `#compdef _earth earthly
+const zshCompleteEntry = `#compdef _earthly earthly
 
-function _earth {
+function _earthly {
     autoload -Uz bashcompinit
     bashcompinit
     complete -o nospace -C '/usr/local/bin/earthly' earthly
@@ -1068,7 +1068,7 @@ function _earth {
 // If debugging this, it might be required to run `rm ~/.zcompdump*` to remove the cache
 func (app *earthlyApp) insertZSHCompleteEntry() error {
 	// should be the same on linux and macOS
-	path := "/usr/local/share/zsh/site-functions/_earth"
+	path := "/usr/local/share/zsh/site-functions/_earthly"
 	dirPath := filepath.Dir(path)
 
 	if !fileutil.DirExists(dirPath) {
