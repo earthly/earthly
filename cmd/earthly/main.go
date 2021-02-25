@@ -812,15 +812,15 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 			Action: app.actionConfig,
 			UsageText: `This command takes a path, and a value and sets it in your configuration file.
 
-	As the configuration file is YAML, the key must be a valid key within the file. You can specify sub-keys by using "." to separate levels.
-	If the sub-key you wish to use has a "." in it, you can quote that subsection, like this: git."github.com".
+	 As the configuration file is YAML, the key must be a valid key within the file. You can specify sub-keys by using "." to separate levels.
+	 If the sub-key you wish to use has a "." in it, you can quote that subsection, like this: git."github.com".
 
-	Values must be valid YAML, and also be deserializable into the key you wish to assign them to.
-	This means you can set higher level objects using a compact style, or single values with simple values.
+	 Values must be valid YAML, and also be deserializable into the key you wish to assign them to.
+	 This means you can set higher level objects using a compact style, or single values with simple values.
 
-	Only one key/value can be set per invocation.
+	 Only one key/value can be set per invocation.
 
-	To get help with a specific key, do "config [key] --help". Or, visit https://docs.earthly.dev/earthly-config for more details.`,
+	 To get help with a specific key, do "config [key] --help". Or, visit https://docs.earthly.dev/earthly-config for more details.`,
 			Description: `Set your cache size:
 
 	config global.cache_size_mb 1234
