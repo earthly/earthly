@@ -1,12 +1,6 @@
-#/bin/sh
-set -e
-
-mkdir -p rpmbuild/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
-
-cat > earthly.spec << EOF
 Summary: Build automation tool for the container era
 Name: earthly
-Version: 1.0.0
+Version: __earthly_version__
 Release: 1
 License: Business Source License
 URL: http://earthly.dev
@@ -28,11 +22,3 @@ cp /usr/local/bin/earthly %{buildroot}/usr/bin/earthly
 %changelog
 * Thu Feb 25 2021 alex <alex@earthly.dev>
 - initial poc
-
-%clean
-echo maybe-rm-rf $RPM_BUILD_ROOT
-
-EOF
-
-rpmbuild --target x86_64 -bb earthly.spec
-find / | grep -w .rpm$

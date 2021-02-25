@@ -3,22 +3,28 @@ deps:
     RUN yum install -y createrepo rpm-build wget
 
 rpm:
+    ARG EARTHLY_VERSION
     FROM +deps
     WORKDIR /work
-    RUN wget -q https://github.com/earthly/earthly/releases/download/v0.5.3/earthly-linux-amd64 -O /usr/local/bin/earthly && chmod +x /usr/local/bin/earthly
-    COPY buildrpm.sh .
-    RUN ./buildrpm.sh
-    SAVE ARTIFACT /root/rpmbuild/RPMS/x86_64/earthly-1.0.0-1.x86_64.rpm AS LOCAL earthly-1.0.0-1.x86_64.rpm
+    RUN echo "$EARTHLY_VERSION" | grep '^[0-9]\+.[0-9]\+.[0-9]\+$' # ensure version is of the form 1.2.3
+    RUN wget -q "https://github.com/earthly/earthly/releases/download/v${EARTHLY_VERSION}/earthly-linux-amd64" -O /usr/local/bin/earthly && chmod +x /usr/local/bin/earthly
+    COPY earthly.spec .
+    RUN sed -i "s/__earthly_version__/$EARTHLY_VERSION/" earthly.spec
+    RUN cat earthly.spec
+    RUN rpmbuild --target x86_64 -bb earthly.spec
+    SAVE ARTIFACT "/root/rpmbuild/RPMS/x86_64/earthly-${EARTHLY_VERSION}-1.x86_64.rpm" AS LOCAL "earthly-${EARTHLY_VERSION}-1.x86_64.rpm"
 
 test-rpm:
+    ARG EARTHLY_VERSION
     FROM centos:8.3.2011
-    COPY +rpm/earthly-1.0.0-1.x86_64.rpm .
-    RUN yum localinstall -y earthly-1.0.0-1.x86_64.rpm && earthly --version
+    COPY +rpm/earthly-${EARTHLY_VERSION}-1.x86_64.rpm .
+    RUN yum localinstall -y earthly-${EARTHLY_VERSION}-1.x86_64.rpm && earthly --version
 
 yum-repo:
+    ARG EARTHLY_VERSION
     FROM +deps
     WORKDIR /repo
-    COPY +rpm/earthly-1.0.0-1.x86_64.rpm .
+    COPY --build-arg EARTHLY_VERSION +rpm/earthly-${EARTHLY_VERSION}-1.x86_64.rpm .
     RUN createrepo .
     SAVE ARTIFACT /repo AS LOCAL repo
 
@@ -37,6 +43,12 @@ yum-repo-tester:
     RUN echo "baseurl=http://127.0.0.1:8000/CentOS/8/os/x86_64/" >> /etc/yum.repos.d/earthly-test.repo
     RUN echo "enabled=1" >> /etc/yum.repos.d/earthly-test.repo
     RUN echo "gpgcheck=0" >> /etc/yum.repos.d/earthly-test.repo # TODO setup gpg signing
+
+    RUN echo "[earthly-test]
+name=Earthly Test Repository
+baseurl=http://127.0.0.1:8000/CentOS/8/os/x86_64/
+enabled=1
+gpgcheck=0" > /etc/yum.repos.d/earthly-test.repo # TODO setup gpg signing
 
 test-repo:
     ARG EARTHLY_VERSION
