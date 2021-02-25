@@ -24,13 +24,13 @@ var (
 
 // GlobalConfig contains global config values
 type GlobalConfig struct {
-	DisableAnalytics         bool     `yaml:"disable_analytics"`
-	BuildkitCacheSizeMb      int      `yaml:"cache_size_mb"`
-	BuildkitImage            string   `yaml:"buildkit_image"`
-	DebuggerPort             int      `yaml:"debugger_port"`
-	BuildkitRestartTimeoutS  int      `yaml:"buildkit_restart_timeout_s"`
-	BuildkitAdditionalArgs   []string `yaml:"buildkit_additional_args"`
-	BuildkitAdditionalConfig string   `yaml:"buildkit_additional_config"`
+	DisableAnalytics         bool     `yaml:"disable_analytics"          help:"Controls Earthly telemetry."`
+	BuildkitCacheSizeMb      int      `yaml:"cache_size_mb"              help:"Size of the buildkit cache in Megabytes."`
+	BuildkitImage            string   `yaml:"buildkit_image"             help:"Choose a specific image for your buildkitd."`
+	DebuggerPort             int      `yaml:"debugger_port"              help:"What port should the debugger (and other interactive sessions) use to communicate."`
+	BuildkitRestartTimeoutS  int      `yaml:"buildkit_restart_timeout_s" help:"How long to wait for buildkit to (re)start, in seconds."`
+	BuildkitAdditionalArgs   []string `yaml:"buildkit_additional_args"   help:"Additional args to pass to buildkit when it starts. Useful for custom/self-signed certs, or user namespace complications."`
+	BuildkitAdditionalConfig string   `yaml:"buildkit_additional_config" help:"Additional config to use when starting the buildkit container; like using custom/self-signed certificates."`
 
 	// Obsolete.
 	CachePath string `yaml:"cache_path"`
@@ -42,19 +42,19 @@ type GitConfig struct {
 	GitURLInsteadOf string `yaml:"url_instead_of"`
 
 	// these are used for git vendors (e.g. github, gitlab)
-	Pattern    string `yaml:"pattern"`
-	Substitute string `yaml:"substitute"`
-	Suffix     string `yaml:"suffix"` // .git
-	Auth       string `yaml:"auth"`   // http, https, ssh
-	User       string `yaml:"user"`
-	Password   string `yaml:"password"`
-	KeyScan    string `yaml:"serverkey"`
+	Pattern    string `yaml:"pattern"    help:"A regular expression defined to match git URLs, defaults to the regex: <site>/([^/]+)/([^/]+). For example if the site is github.com, then the default pattern will match github.com/<user>/<repo>."`
+	Substitute string `yaml:"substitute" help:"If specified, a regular expression substitution will be preformed to determine which URL is cloned by git. Values like $1, $2, ... will be replaced with matched subgroup data. If no substitute is given, a URL will be created based on the requested SSH authentication mode."`
+	Suffix     string `yaml:"suffix"     help:"The git repository suffix, like .git."`                                       // .git
+	Auth       string `yaml:"auth"       help:"What authentication method do you use? Valid options are: http, https, ssh."` // http, https, ssh
+	User       string `yaml:"user"       help:"The https username to use when auth is set to https. This setting is ignored when auth is ssh."`
+	Password   string `yaml:"password"   help:"The https password to use when auth is set to https. This setting is ignored when auth is ssh."`
+	KeyScan    string `yaml:"serverkey"  help:"SSH fingerprints, like you would add in your known hosts file, or get from ssh-keyscan."`
 }
 
 // Config contains user's configuration values from ~/earthly/config.yml
 type Config struct {
-	Global GlobalConfig         `yaml:"global"`
-	Git    map[string]GitConfig `yaml:"git"`
+	Global GlobalConfig         `yaml:"global" help:"Global configuration object. Requires YAML literal to set directly."`
+	Git    map[string]GitConfig `yaml:"git" help:"Git configuration object. Requires YAML literal to set directly."`
 }
 
 func ensureTransport(s, transport string) (string, error) {
@@ -165,6 +165,21 @@ func CreateGitConfig(config *Config) (string, []string, error) {
 	return gitConfig, credentials, nil
 }
 
+func keyAndValueCompatible(key reflect.Type, value *yaml.Node) bool {
+	var val interface{}
+	switch key.Kind() {
+	// add other types as needed as they are introduced in the config struct
+	case reflect.Map:
+		val = reflect.MakeMap(key).Interface()
+	default:
+		val = reflect.New(key).Interface()
+	}
+
+	err := value.Decode(val)
+
+	return err == nil
+}
+
 // UpsertConfig adds or modifies the key to be the specified value.
 // This is saved to disk in your earthly config file.
 func UpsertConfig(config []byte, path, value string) ([]byte, error) {
@@ -181,14 +196,23 @@ func UpsertConfig(config []byte, path, value string) ([]byte, error) {
 
 	pathParts := splitPath(path)
 
-	err := validatePath(reflect.TypeOf(Config{}), pathParts)
+	t, help, err := validatePath(reflect.TypeOf(Config{}), pathParts)
 	if err != nil {
 		return []byte{}, errors.Wrap(err, "path is not valid")
+	}
+
+	if value == "--help" {
+		fmt.Printf("(%s): %s\n", t.Kind(), help)
+		return []byte{}, nil
 	}
 
 	yamlValue, err := valueToYaml(value)
 	if err != nil {
 		return []byte{}, errors.Wrap(err, "could not parse value")
+	}
+
+	if !keyAndValueCompatible(t, yamlValue) {
+		return []byte{}, fmt.Errorf("Cannot set %s to %v, as the types are incompatible", path, value)
 	}
 
 	setYamlValue(base, pathParts, yamlValue)
@@ -215,27 +239,40 @@ func splitPath(path string) []string {
 	return pathParts
 }
 
-func validatePath(t reflect.Type, path []string) error {
+func validatePath(t reflect.Type, path []string) (reflect.Type, string, error) {
 	if len(path) == 0 {
-		return nil
+		return nil, "", errors.New("No path present")
 	}
 
 	if t.Kind() == reflect.Map {
 		// Maps are only for git repos. Grab the kind on the other side of the map
 		// and advance; to validate the path on the other side of the repo name
+
+		// path is a git."some.repo", so we can't advance
+		if len(path) == 1 {
+			// base case. I am not happy with this. Will need to change if we get more than one map in the config.
+			return t.Elem(), "Git repository. Quote names with dots in them, like this: git.\"github.com\". Requires YAML literal to set directly.", nil
+		}
+
 		return validatePath(t.Elem(), path[1:])
 	}
 
 	for i := 0; i < t.NumField(); i++ {
 		field := t.Field(i)
-		tag := field.Tag.Get("yaml")
+		yamlTag := field.Tag.Get("yaml")
+		helpTag := field.Tag.Get("help")
 
-		if tag == path[0] {
+		if yamlTag == path[0] {
+			if len(path) == 1 {
+				// base case
+				return field.Type, helpTag, nil
+			}
+
 			return validatePath(field.Type, path[1:])
 		}
 	}
 
-	return fmt.Errorf("no path for %s", strings.Join(path, "."))
+	return nil, "", fmt.Errorf("no path for %s", strings.Join(path, "."))
 }
 
 func valueToYaml(value string) (*yaml.Node, error) {
