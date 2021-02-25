@@ -356,5 +356,5 @@ func WriteConfigFile(configPath string, data []byte) error {
 		return err
 	}
 
-	return ioutil.WriteFile(configPath, data, 0755)
+	return ioutil.WriteFile(configPath, data, 0644)
 }
