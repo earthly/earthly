@@ -525,7 +525,10 @@ func (i *Interpreter) handleCopy(ctx context.Context, cmd spec.Command) error {
 			return Errorf(cmd.SourceLocation, "unhandled locally artifact copy when allArtifacts is false")
 		}
 
-		i.converter.CopyClassical(ctx, srcs, dest, *isDirCopy, *keepTs, *keepOwn, *chown)
+		err = i.converter.CopyClassical(ctx, srcs, dest, *isDirCopy, *keepTs, *keepOwn, *chown)
+		if err != nil {
+			return WrapError(err, cmd.SourceLocation, "copy classical")
+		}
 	}
 	return nil
 }
@@ -684,7 +687,10 @@ func (i *Interpreter) handleWorkdir(ctx context.Context, cmd spec.Command) error
 		return Errorf(cmd.SourceLocation, "invalid number of arguments for WORKDIR: %v", cmd.Args)
 	}
 	workdirPath := i.expandArgs(cmd.Args[0], false)
-	i.converter.Workdir(ctx, workdirPath)
+	err := i.converter.Workdir(ctx, workdirPath)
+	if err != nil {
+		return WrapError(err, cmd.SourceLocation, "apply WORKDIR")
+	}
 	return nil
 }
 
@@ -696,7 +702,10 @@ func (i *Interpreter) handleUser(ctx context.Context, cmd spec.Command) error {
 		return Errorf(cmd.SourceLocation, "invalid number of arguments for USER: %v", cmd.Args)
 	}
 	user := i.expandArgs(cmd.Args[0], false)
-	i.converter.User(ctx, user)
+	err := i.converter.User(ctx, user)
+	if err != nil {
+		return WrapError(err, cmd.SourceLocation, "apply USER")
+	}
 	return nil
 }
 
@@ -711,7 +720,10 @@ func (i *Interpreter) handleCmd(ctx context.Context, cmd spec.Command) error {
 			cmdArgs[index] = i.expandArgs(arg, false)
 		}
 	}
-	i.converter.Cmd(ctx, cmdArgs, withShell)
+	err := i.converter.Cmd(ctx, cmdArgs, withShell)
+	if err != nil {
+		return WrapError(err, cmd.SourceLocation, "apply CMD")
+	}
 	return nil
 }
 
@@ -726,7 +738,10 @@ func (i *Interpreter) handleEntrypoint(ctx context.Context, cmd spec.Command) er
 			entArgs[index] = i.expandArgs(arg, false)
 		}
 	}
-	i.converter.Entrypoint(ctx, entArgs, withShell)
+	err := i.converter.Entrypoint(ctx, entArgs, withShell)
+	if err != nil {
+		return WrapError(err, cmd.SourceLocation, "apply ENTRYPOINT")
+	}
 	return nil
 }
 
@@ -741,7 +756,10 @@ func (i *Interpreter) handleExpose(ctx context.Context, cmd spec.Command) error 
 	for index, port := range ports {
 		ports[index] = i.expandArgs(port, false)
 	}
-	i.converter.Expose(ctx, ports)
+	err := i.converter.Expose(ctx, ports)
+	if err != nil {
+		return WrapError(err, cmd.SourceLocation, "apply EXPOSE")
+	}
 	return nil
 }
 
@@ -756,7 +774,10 @@ func (i *Interpreter) handleVolume(ctx context.Context, cmd spec.Command) error 
 	for index, volume := range volumes {
 		volumes[index] = i.expandArgs(volume, false)
 	}
-	i.converter.Volume(ctx, volumes)
+	err := i.converter.Volume(ctx, volumes)
+	if err != nil {
+		return WrapError(err, cmd.SourceLocation, "apply VOLUME")
+	}
 	return nil
 }
 
@@ -777,7 +798,10 @@ func (i *Interpreter) handleEnv(ctx context.Context, cmd spec.Command) error {
 	default:
 		return Errorf(cmd.SourceLocation, "invalid syntax")
 	}
-	i.converter.Env(ctx, key, value)
+	err := i.converter.Env(ctx, key, value)
+	if err != nil {
+		return WrapError(err, cmd.SourceLocation, "apply ENV")
+	}
 	return nil
 }
 
@@ -837,7 +861,10 @@ func (i *Interpreter) handleLabel(ctx context.Context, cmd spec.Command) error {
 	if len(labels) == 0 {
 		return Errorf(cmd.SourceLocation, "no labels provided in LABEL command")
 	}
-	i.converter.Label(ctx, labels)
+	err := i.converter.Label(ctx, labels)
+	if err != nil {
+		return WrapError(err, cmd.SourceLocation, "apply LABEL")
+	}
 	return nil
 }
 
@@ -911,7 +938,10 @@ func (i *Interpreter) handleHealthcheck(ctx context.Context, cmd spec.Command) e
 	for index, arg := range cmdArgs {
 		cmdArgs[index] = i.expandArgs(arg, false)
 	}
-	i.converter.Healthcheck(ctx, isNone, cmdArgs, *interval, *timeout, *startPeriod, *retries)
+	err = i.converter.Healthcheck(ctx, isNone, cmdArgs, *interval, *timeout, *startPeriod, *retries)
+	if err != nil {
+		return WrapError(err, cmd.SourceLocation, "apply HEALTHCHECK")
+	}
 	return nil
 }
 

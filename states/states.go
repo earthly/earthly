@@ -50,6 +50,9 @@ type SingleTarget struct {
 	// ie if there are any non-SAVE commands after the first SAVE command,
 	// or if the target is invoked via BUILD command (not COPY nor FROM).
 	HasDangling bool
+	// RanFromLike represents whether we have encountered a FROM-like command
+	// (eg FROM, FROM DOCKERFILE, LOCALLY).
+	RanFromLike bool
 }
 
 // LastSaveImage returns the last save image available (if any).
