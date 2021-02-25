@@ -209,6 +209,7 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, gwClient gwclient.
 
 	gitOpts = []llb.GitOption{
 		llb.WithCustomNamef("[context %s] git context %s", gitURL, target.StringCanonical()),
+		llb.KeepGitDir(),
 	}
 	if keyScan != "" {
 		gitOpts = append(gitOpts, llb.KnownSSHHosts(keyScan))
