@@ -24,13 +24,13 @@ var (
 
 // GlobalConfig contains global config values
 type GlobalConfig struct {
-	DisableAnalytics         bool     `yaml:"disable_analytics" help:"Controls Earthly telemetry."`
-	BuildkitCacheSizeMb      int      `yaml:"cache_size_mb" help:"Size of the buildkit cache in Megabytes."`
-	BuildkitImage            string   `yaml:"buildkit_image" help:"Choose a specific image for your buildkitd."`
-	DebuggerPort             int      `yaml:"debugger_port" help:"What port should the debugger (and other interactive sessions) use to communicate."`
+	DisableAnalytics         bool     `yaml:"disable_analytics"          help:"Controls Earthly telemetry."`
+	BuildkitCacheSizeMb      int      `yaml:"cache_size_mb"              help:"Size of the buildkit cache in Megabytes."`
+	BuildkitImage            string   `yaml:"buildkit_image"             help:"Choose a specific image for your buildkitd."`
+	DebuggerPort             int      `yaml:"debugger_port"              help:"What port should the debugger (and other interactive sessions) use to communicate."`
 	BuildkitRestartTimeoutS  int      `yaml:"buildkit_restart_timeout_s" help:"How long to wait for buildkit to (re)start, in seconds."`
-	BuildkitAdditionalArgs   []string `yaml:"buildkit_additional_args" help:"Additional args to pass to buildkit when it starts. Useful for custom certs, or user namespace complications."`
-	BuildkitAdditionalConfig string   `yaml:"buildkit_additional_config" help:"Additional config to use when starting the buildkit container; like mounting volumes."`
+	BuildkitAdditionalArgs   []string `yaml:"buildkit_additional_args"   help:"Additional args to pass to buildkit when it starts. Useful for custom/self-signed certs, or user namespace complications."`
+	BuildkitAdditionalConfig string   `yaml:"buildkit_additional_config" help:"Additional config to use when starting the buildkit container; like using custom/self-signed certificates."`
 
 	// Obsolete.
 	CachePath string `yaml:"cache_path"`
@@ -42,13 +42,13 @@ type GitConfig struct {
 	GitURLInsteadOf string `yaml:"url_instead_of"`
 
 	// these are used for git vendors (e.g. github, gitlab)
-	Pattern    string `yaml:"pattern"  help:"A pattern for how to match parts of your git URL"`
-	Substitute string `yaml:"substitute" help:"Substitute?"`
-	Suffix     string `yaml:"suffix" help:"Suffix?"`                                                 // .git
-	Auth       string `yaml:"auth" help:"What authentication method do you use? (http, https, ssh)"` // http, https, ssh
-	User       string `yaml:"user" help:"The user you use to connect to your git server."`
-	Password   string `yaml:"password" help:"The password for your user."`
-	KeyScan    string `yaml:"serverkey" help:"KeyScan?"`
+	Pattern    string `yaml:"pattern"    help:"A regular expression defined to match git URLs, defaults to the regex: <site>/([^/]+)/([^/]+). For example if the site is github.com, then the default pattern will match github.com/<user>/<repo>."`
+	Substitute string `yaml:"substitute" help:"If specified, a regular expression substitution will be preformed to determine which URL is cloned by git. Values like $1, $2, ... will be replaced with matched subgroup data. If no substitute is given, a URL will be created based on the requested SSH authentication mode."`
+	Suffix     string `yaml:"suffix"     help:"The git repository suffix, like .git."`                                       // .git
+	Auth       string `yaml:"auth"       help:"What authentication method do you use? Valid options are: http, https, ssh."` // http, https, ssh
+	User       string `yaml:"user"       help:"The https username to use when auth is set to https. This setting is ignored when auth is ssh."`
+	Password   string `yaml:"password"   help:"The https password to use when auth is set to https. This setting is ignored when auth is ssh."`
+	KeyScan    string `yaml:"serverkey"  help:"SSH fingerprints, like you would add in your known hosts file, or get from ssh-keyscan."`
 }
 
 // Config contains user's configuration values from ~/earthly/config.yml
