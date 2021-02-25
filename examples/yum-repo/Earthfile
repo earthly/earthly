@@ -1,0 +1,55 @@
+deps:
+    FROM centos:8.3.2011
+    RUN yum install -y createrepo rpm-build wget
+
+rpm:
+    FROM +deps
+    WORKDIR /work
+    RUN wget -q https://github.com/earthly/earthly/releases/download/v0.5.3/earthly-linux-amd64 -O /usr/local/bin/earthly && chmod +x /usr/local/bin/earthly
+    COPY buildrpm.sh .
+    RUN ./buildrpm.sh
+    SAVE ARTIFACT /root/rpmbuild/RPMS/x86_64/earthly-1.0.0-1.x86_64.rpm AS LOCAL earthly-1.0.0-1.x86_64.rpm
+
+test-rpm:
+    FROM centos:8.3.2011
+    COPY +rpm/earthly-1.0.0-1.x86_64.rpm .
+    RUN yum localinstall -y earthly-1.0.0-1.x86_64.rpm && earthly --version
+
+yum-repo:
+    FROM +deps
+    WORKDIR /repo
+    COPY +rpm/earthly-1.0.0-1.x86_64.rpm .
+    RUN createrepo .
+    SAVE ARTIFACT /repo AS LOCAL repo
+
+yum-repo-server:
+    FROM python:3
+    RUN mkdir -p /repo-data/CentOS/8/os/x86_64
+    COPY +yum-repo/repo /repo-data/CentOS/8/os/x86_64
+    CMD python -m http.server --directory /repo-data 8000
+
+yum-repo-tester:
+    FROM +deps
+    RUN yum install -y curl
+
+    RUN echo "[earthly-test]" > /etc/yum.repos.d/earthly-test.repo
+    RUN echo "name=Earthly Test Repository" >> /etc/yum.repos.d/earthly-test.repo
+    RUN echo "baseurl=http://127.0.0.1:8000/CentOS/8/os/x86_64/" >> /etc/yum.repos.d/earthly-test.repo
+    RUN echo "enabled=1" >> /etc/yum.repos.d/earthly-test.repo
+    RUN echo "gpgcheck=0" >> /etc/yum.repos.d/earthly-test.repo # TODO setup gpg signing
+
+test-repo:
+    ARG EARTHLY_VERSION
+    FROM earthly/dind:alpine
+    RUN apk add curl
+    WITH DOCKER \
+        --load yum:server=+yum-repo-server \
+        --load yum:tester=+yum-repo-tester
+        RUN docker run -d --network=host yum:server \
+            && sleep 1 \
+            && docker run --network=host yum:tester /bin/sh -c "yum install -y earthly && earthly --version | grep 'earthly version v$EARTHLY_VERSION linux/amd64'"
+    END
+
+test:
+    ARG EARTHLY_VERSION=0.5.3
+    BUILD --build-arg EARTHLY_VERSION +test-repo
