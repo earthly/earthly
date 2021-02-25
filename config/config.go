@@ -172,7 +172,7 @@ func keyAndValueCompatible(key reflect.Type, value *yaml.Node) bool {
 	case reflect.Map:
 		val = reflect.MakeMap(key).Interface()
 	default:
-		reflect.New(key).Interface()
+		val = reflect.New(key).Interface()
 	}
 
 	err := value.Decode(val)
@@ -202,7 +202,7 @@ func UpsertConfig(config []byte, path, value string) ([]byte, error) {
 	}
 
 	if value == "--help" {
-		fmt.Printf("(%s): %s", t.Kind(), help)
+		fmt.Printf("(%s): %s\n", t.Kind(), help)
 		return []byte{}, nil
 	}
 
@@ -251,7 +251,7 @@ func validatePath(t reflect.Type, path []string) (reflect.Type, string, error) {
 		// path is a git."some.repo", so we can't advance
 		if len(path) == 1 {
 			// base case. I am not happy with this. Will need to change if we get more than one map in the config.
-			return t.Key(), "Git repository. Quote names with dots in them, like this: git.\"github.com\". Requires YAML literal to set directly.", nil
+			return t.Elem(), "Git repository. Quote names with dots in them, like this: git.\"github.com\". Requires YAML literal to set directly.", nil
 		}
 
 		return validatePath(t.Elem(), path[1:])
