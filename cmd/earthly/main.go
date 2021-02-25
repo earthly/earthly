@@ -845,7 +845,7 @@ Set up a whole custom git repository for a server called example.com, using a si
 			Flags: []cli.Flag{
 				&cli.BoolFlag{
 					Name:        "dry-run",
-					Usage:       "Print the changed config file to the consile instead of writing it out",
+					Usage:       "Print the changed config file to the console instead of writing it out",
 					Destination: &app.configDryRun,
 				},
 			},
