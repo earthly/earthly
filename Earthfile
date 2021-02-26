@@ -30,7 +30,6 @@ deps:
 
 code:
     FROM +deps
-    # TODO: --platform=linux/amd64 can be removed after the next prerelease.
     COPY --platform=linux/amd64 ./ast/parser+parser/*.go ./ast/parser/
     COPY --dir analytics autocomplete buildcontext builder cleanup cmd config conslogging debugger dockertar \
         docker2earthly domain fileutil gitutil llbutil logging secretsclient stringutil states syncutil termutil \

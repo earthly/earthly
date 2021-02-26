@@ -1,4 +1,4 @@
-// Code generated from ast/parser/EarthParser.g4 by ANTLR 4.9.1. DO NOT EDIT.
+// Code generated from ast/parser/EarthParser.g4 by ANTLR 4.8. DO NOT EDIT.
 
 package parser // EarthParser
 
@@ -262,6 +262,9 @@ var parserATN = []uint16{
 	409, 414, 419, 425, 428, 431, 434, 440, 445, 448, 450, 456, 461, 468, 472,
 	478, 488, 493, 498, 503, 508, 513, 521, 526,
 }
+var deserializer = antlr.NewATNDeserializer(nil)
+var deserializedATN = deserializer.DeserializeFromUInt16(parserATN)
+
 var literalNames = []string{
 	"", "", "", "", "'FROM'", "'FROM DOCKERFILE'", "'LOCALLY'", "'COPY'", "'SAVE ARTIFACT'",
 	"'SAVE IMAGE'", "'RUN'", "'EXPOSE'", "'VOLUME'", "'ENV'", "'ARG'", "'LABEL'",
@@ -289,25 +292,21 @@ var ruleNames = []string{
 	"healthcheckStmt", "shellStmt", "expr", "stmtWordsMaybeJSON", "stmtWords",
 	"stmtWord",
 }
+var decisionToDFA = make([]*antlr.DFA, len(deserializedATN.DecisionToState))
+
+func init() {
+	for index, ds := range deserializedATN.DecisionToState {
+		decisionToDFA[index] = antlr.NewDFA(ds, index)
+	}
+}
 
 type EarthParser struct {
 	*antlr.BaseParser
 }
 
-// NewEarthParser produces a new parser instance for the optional input antlr.TokenStream.
-//
-// The *EarthParser instance produced may be reused by calling the SetInputStream method.
-// The initial parser configuration is expensive to construct, and the object is not thread-safe;
-// however, if used within a Golang sync.Pool, the construction cost amortizes well and the
-// objects can be used in a thread-safe manner.
 func NewEarthParser(input antlr.TokenStream) *EarthParser {
 	this := new(EarthParser)
-	deserializer := antlr.NewATNDeserializer(nil)
-	deserializedATN := deserializer.DeserializeFromUInt16(parserATN)
-	decisionToDFA := make([]*antlr.DFA, len(deserializedATN.DecisionToState))
-	for index, ds := range deserializedATN.DecisionToState {
-		decisionToDFA[index] = antlr.NewDFA(ds, index)
-	}
+
 	this.BaseParser = antlr.NewBaseParser(input)
 
 	this.Interpreter = antlr.NewParserATNSimulator(this, deserializedATN, decisionToDFA, antlr.NewPredictionContextCache())
