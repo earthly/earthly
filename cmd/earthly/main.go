@@ -810,10 +810,42 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 			Usage:  "Edits your Earthly configuration file",
 			Hidden: true, // Experimental.
 			Action: app.actionConfig,
+			UsageText: `This command takes a path, and a value and sets it in your configuration file.
+
+	 As the configuration file is YAML, the key must be a valid key within the file. You can specify sub-keys by using "." to separate levels.
+	 If the sub-key you wish to use has a "." in it, you can quote that subsection, like this: git."github.com".
+
+	 Values must be valid YAML, and also be deserializable into the key you wish to assign them to.
+	 This means you can set higher level objects using a compact style, or single values with simple values.
+
+	 Only one key/value can be set per invocation.
+
+	 To get help with a specific key, do "config [key] --help". Or, visit https://docs.earthly.dev/earthly-config for more details.`,
+			Description: `Set your cache size:
+
+	config global.cache_size_mb 1234
+
+Set additional buildkit args, using a YAML array:
+
+	config global.buildkit_additional_args ['userns', '--host']
+
+Set a key containing a period:
+		
+	config git."example.com".password hunter2
+
+Set up a whole custom git repository for a server called example.com, using a single-line YAML literal:
+	* which stores git repos under /var/git/repos/name-of-repo.git
+	* allows access over ssh
+	* using port 2222
+	* sets the username to git
+	* is recognized to earthly as example.com/name-of-repo
+
+	config git "{example: {pattern: 'example.com/([^/]+)', substitute: 'ssh://git@example.com:2222/var/git/repos/\$1.git', auth: ssh}}"
+			`,
 			Flags: []cli.Flag{
 				&cli.BoolFlag{
 					Name:        "dry-run",
-					Usage:       "Print the changed config file to the consile instead of writing it out",
+					Usage:       "Print the changed config file to the console instead of writing it out",
 					Destination: &app.configDryRun,
 				},
 			},
@@ -1056,9 +1088,9 @@ func (app *earthlyApp) deleteZcompdump() error {
 	return nil
 }
 
-const zshCompleteEntry = `#compdef _earth earthly
+const zshCompleteEntry = `#compdef _earthly earthly
 
-function _earth {
+function _earthly {
     autoload -Uz bashcompinit
     bashcompinit
     complete -o nospace -C '/usr/local/bin/earthly' earthly
@@ -1068,7 +1100,7 @@ function _earth {
 // If debugging this, it might be required to run `rm ~/.zcompdump*` to remove the cache
 func (app *earthlyApp) insertZSHCompleteEntry() error {
 	// should be the same on linux and macOS
-	path := "/usr/local/share/zsh/site-functions/_earth"
+	path := "/usr/local/share/zsh/site-functions/_earthly"
 	dirPath := filepath.Dir(path)
 
 	if !fileutil.DirExists(dirPath) {
@@ -1133,12 +1165,21 @@ func (app *earthlyApp) run(ctx context.Context, args []string) int {
 				return 7
 			}
 		} else if errors.Is(err, buildkitd.ErrBuildkitCrashed) {
+			app.console.Warnf("Error: %v\n", err)
 			app.console.Warnf(
 				"It seems that buildkitd is shutting down or it has crashed. " +
 					"You can report crashes at https://github.com/earthly/earthly/issues/new. " +
 					"Buildkitd logs follow...")
 			buildkitd.PrintLogs(ctx)
 			return 7
+		} else if errors.Is(err, buildkitd.ErrBuildkitStartFailure) {
+			app.console.Warnf("Error: %v\n", err)
+			app.console.Warnf(
+				"It seems that buildkitd had an issue. " +
+					"You can report crashes at https://github.com/earthly/earthly/issues/new. " +
+					"Buildkitd logs follow...")
+			buildkitd.PrintLogs(ctx)
+			return 6
 		} else if isInterpereterError {
 			app.console.Warnf("Error: %s\n", ie.Error())
 		} else {

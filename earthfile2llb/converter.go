@@ -94,8 +94,15 @@ func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Da
 
 // From applies the earthly FROM command.
 func (c *Converter) From(ctx context.Context, imageName string, platform *specs.Platform, buildArgs []string) error {
+	err := c.checkAllowed("FROM")
+	if err != nil {
+		return err
+	}
 	c.nonSaveCommand()
-	platform = llbutil.ResolvePlatform(c.opt.Platform, platform)
+	platform, err = llbutil.ResolvePlatform(platform, c.opt.Platform)
+	if err != nil {
+		return err
+	}
 	c.setPlatform(platform)
 	if strings.Contains(imageName, "+") {
 		// Target-based FROM.
@@ -127,6 +134,7 @@ func (c *Converter) fromClassical(ctx context.Context, imageName string, platfor
 	}
 	c.mts.Final.MainState = state
 	c.mts.Final.MainImage = img
+	c.mts.Final.RanFromLike = true
 	c.varCollection = newVariables
 	return nil
 }
@@ -140,7 +148,6 @@ func (c *Converter) fromTarget(ctx context.Context, targetName string, platform 
 	if err != nil {
 		return errors.Wrapf(err, "apply build %s", depTarget.String())
 	}
-	c.setPlatform(mts.Final.Platform)
 	if depTarget.IsLocalInternal() {
 		depTarget.LocalPath = c.mts.Final.Target.LocalPath
 	}
@@ -157,12 +164,20 @@ func (c *Converter) fromTarget(ctx context.Context, targetName string, platform 
 		c.varCollection.AddActive(k, variables.NewConstantEnvVar(v))
 	}
 	c.mts.Final.MainImage = saveImage.Image.Clone()
+	c.mts.Final.RanFromLike = mts.Final.RanFromLike
 	return nil
 }
 
 // FromDockerfile applies the earthly FROM DOCKERFILE command.
 func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPath string, dfTarget string, platform *specs.Platform, buildArgs []string) error {
-	platform = llbutil.ResolvePlatform(c.opt.Platform, platform)
+	err := c.checkAllowed("FROM DOCKERFILE")
+	if err != nil {
+		return err
+	}
+	platform, err = llbutil.ResolvePlatform(platform, c.opt.Platform)
+	if err != nil {
+		return err
+	}
 	c.setPlatform(platform)
 	plat := llbutil.PlatformWithDefault(platform)
 	c.nonSaveCommand()
@@ -260,12 +275,17 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 	state2, img2, newVarCollection := c.applyFromImage(*state, &img)
 	c.mts.Final.MainState = state2
 	c.mts.Final.MainImage = img2
+	c.mts.Final.RanFromLike = true
 	c.varCollection = newVarCollection
 	return nil
 }
 
 // Locally applies the earthly Locally command.
 func (c *Converter) Locally(ctx context.Context, platform *specs.Platform) error {
+	err := c.checkAllowed("LOCALLY")
+	if err != nil {
+		return err
+	}
 	if !c.opt.AllowLocally {
 		return errors.New("LOCALLY cannot be used when --strict is specified")
 	}
@@ -275,6 +295,10 @@ func (c *Converter) Locally(ctx context.Context, platform *specs.Platform) error
 
 // CopyArtifactLocal applies the earthly COPY artifact command which are invoked under a LOCALLY target.
 func (c *Converter) CopyArtifactLocal(ctx context.Context, artifactName string, dest string, platform *specs.Platform, buildArgs []string, isDir bool) error {
+	err := c.checkAllowed("COPY")
+	if err != nil {
+		return err
+	}
 	c.nonSaveCommand()
 	artifact, err := domain.ParseArtifact(artifactName)
 	if err != nil {
@@ -315,6 +339,10 @@ func (c *Converter) CopyArtifactLocal(ctx context.Context, artifactName string, 
 
 // CopyArtifact applies the earthly COPY artifact command.
 func (c *Converter) CopyArtifact(ctx context.Context, artifactName string, dest string, platform *specs.Platform, buildArgs []string, isDir bool, keepTs bool, keepOwn bool, chown string, ifExists bool) error {
+	err := c.checkAllowed("COPY")
+	if err != nil {
+		return err
+	}
 	c.nonSaveCommand()
 	artifact, err := domain.ParseArtifact(artifactName)
 	if err != nil {
@@ -345,7 +373,11 @@ func (c *Converter) CopyArtifact(ctx context.Context, artifactName string, dest 
 }
 
 // CopyClassical applies the earthly COPY command, with classical args.
-func (c *Converter) CopyClassical(ctx context.Context, srcs []string, dest string, isDir bool, keepTs bool, keepOwn bool, chown string) {
+func (c *Converter) CopyClassical(ctx context.Context, srcs []string, dest string, isDir bool, keepTs bool, keepOwn bool, chown string) error {
+	err := c.checkAllowed("COPY")
+	if err != nil {
+		return err
+	}
 	c.nonSaveCommand()
 	c.mts.Final.MainState = llbutil.CopyOp(
 		c.buildContext, srcs, c.mts.Final.MainState, dest, true, isDir, keepTs, c.copyOwner(keepOwn, chown), false,
@@ -355,10 +387,15 @@ func (c *Converter) CopyClassical(ctx context.Context, srcs []string, dest strin
 			strIf(isDir, "--dir "),
 			strings.Join(srcs, " "),
 			dest))
+	return nil
 }
 
 // RunLocal applies a RUN statement locally rather than in a container
 func (c *Converter) RunLocal(ctx context.Context, args []string, pushFlag bool) error {
+	err := c.checkAllowed("RUN")
+	if err != nil {
+		return err
+	}
 	c.nonSaveCommand()
 	runStr := fmt.Sprintf("RUN %s%s", strIf(pushFlag, "--push "), strings.Join(args, " "))
 
@@ -398,6 +435,10 @@ func (c *Converter) RunLocal(ctx context.Context, args []string, pushFlag bool) 
 
 // RunExitCode executes a run for the purpose of determining the exit code of the command. This can be used in conditionals.
 func (c *Converter) RunExitCode(ctx context.Context, commandName string, args, mounts, secretKeyValues []string, privileged, isWithShell, withSSH, noCache bool) (int, error) {
+	err := c.checkAllowed("RUN")
+	if err != nil {
+		return 0, err
+	}
 	c.nonSaveCommand()
 	if !isWithShell {
 		return 0, errors.New("non-shell mode not yet supported")
@@ -452,6 +493,10 @@ func (c *Converter) RunExitCode(ctx context.Context, commandName string, args, m
 
 // RunLocalExitCode runs a command locally rather than in a container and returns its exit code.
 func (c *Converter) RunLocalExitCode(ctx context.Context, commandName string, args []string) (int, error) {
+	err := c.checkAllowed("RUN")
+	if err != nil {
+		return 0, err
+	}
 	c.nonSaveCommand()
 	runStr := fmt.Sprintf("%s %s", commandName, strings.Join(args, " "))
 	// Build args get propagated into env.
@@ -509,6 +554,10 @@ func (c *Converter) RunLocalExitCode(ctx context.Context, commandName string, ar
 
 // Run applies the earthly RUN command.
 func (c *Converter) Run(ctx context.Context, args, mounts, secretKeyValues []string, privileged, withEntrypoint, withDocker, isWithShell, pushFlag, withSSH, noCache bool, interactive []string) error {
+	err := c.checkAllowed("RUN")
+	if err != nil {
+		return err
+	}
 	c.nonSaveCommand()
 	if withDocker {
 		return errors.New("RUN --with-docker is obsolete. Please use WITH DOCKER ... RUN ... END instead")
@@ -553,6 +602,10 @@ func (c *Converter) Run(ctx context.Context, args, mounts, secretKeyValues []str
 
 // SaveArtifact applies the earthly SAVE ARTIFACT command.
 func (c *Converter) SaveArtifact(ctx context.Context, saveFrom string, saveTo string, saveAsLocalTo string, keepTs bool, keepOwn bool, ifExists bool, isPush bool) error {
+	err := c.checkAllowed("SAVE ARTIFACT")
+	if err != nil {
+		return err
+	}
 	absSaveFrom, err := llbutil.Abs(ctx, c.mts.Final.MainState, saveFrom)
 	if err != nil {
 		return err
@@ -625,6 +678,10 @@ func (c *Converter) SaveArtifact(ctx context.Context, saveFrom string, saveTo st
 
 // SaveArtifactFromLocal saves a local file into the ArtifactsState
 func (c *Converter) SaveArtifactFromLocal(ctx context.Context, saveFrom, saveTo string, keepTs, keepOwn bool, chown string) error {
+	err := c.checkAllowed("SAVE ARTIFACT")
+	if err != nil {
+		return err
+	}
 	src, err := filepath.Abs(saveFrom)
 	if err != nil {
 		return err
@@ -648,6 +705,10 @@ func (c *Converter) SaveArtifactFromLocal(ctx context.Context, saveFrom, saveTo 
 
 // SaveImage applies the earthly SAVE IMAGE command.
 func (c *Converter) SaveImage(ctx context.Context, imageNames []string, pushImages bool, insecurePush bool, cacheHint bool, cacheFrom []string) error {
+	err := c.checkAllowed("SAVE IMAGE")
+	if err != nil {
+		return err
+	}
 	for _, cf := range cacheFrom {
 		c.opt.CacheImports[cf] = true
 	}
@@ -697,13 +758,21 @@ func (c *Converter) SaveImage(ctx context.Context, imageNames []string, pushImag
 
 // Build applies the earthly BUILD command.
 func (c *Converter) Build(ctx context.Context, fullTargetName string, platform *specs.Platform, buildArgs []string) error {
+	err := c.checkAllowed("BUILD")
+	if err != nil {
+		return err
+	}
 	c.nonSaveCommand()
-	_, err := c.buildTarget(ctx, fullTargetName, platform, buildArgs, true)
+	_, err = c.buildTarget(ctx, fullTargetName, platform, buildArgs, true)
 	return err
 }
 
 // Workdir applies the WORKDIR command.
-func (c *Converter) Workdir(ctx context.Context, workdirPath string) {
+func (c *Converter) Workdir(ctx context.Context, workdirPath string) error {
+	err := c.checkAllowed("WORKDIR")
+	if err != nil {
+		return err
+	}
 	c.nonSaveCommand()
 	c.mts.Final.MainState = c.mts.Final.MainState.Dir(workdirPath)
 	workdirAbs := workdirPath
@@ -725,54 +794,89 @@ func (c *Converter) Workdir(ctx context.Context, workdirPath string) {
 		c.mts.Final.MainState = c.mts.Final.MainState.File(
 			llb.Mkdir(workdirAbs, 0755, mkdirOpts...), opts...)
 	}
+	return nil
 }
 
 // User applies the USER command.
-func (c *Converter) User(ctx context.Context, user string) {
+func (c *Converter) User(ctx context.Context, user string) error {
+	err := c.checkAllowed("USER")
+	if err != nil {
+		return err
+	}
 	c.nonSaveCommand()
 	c.mts.Final.MainState = c.mts.Final.MainState.User(user)
 	c.mts.Final.MainImage.Config.User = user
+	return nil
 }
 
 // Cmd applies the CMD command.
-func (c *Converter) Cmd(ctx context.Context, cmdArgs []string, isWithShell bool) {
+func (c *Converter) Cmd(ctx context.Context, cmdArgs []string, isWithShell bool) error {
+	err := c.checkAllowed("CMD")
+	if err != nil {
+		return err
+	}
 	c.nonSaveCommand()
 	c.mts.Final.MainImage.Config.Cmd = withShell(cmdArgs, isWithShell)
+	return nil
 }
 
 // Entrypoint applies the ENTRYPOINT command.
-func (c *Converter) Entrypoint(ctx context.Context, entrypointArgs []string, isWithShell bool) {
+func (c *Converter) Entrypoint(ctx context.Context, entrypointArgs []string, isWithShell bool) error {
+	err := c.checkAllowed("ENTRYPOINT")
+	if err != nil {
+		return err
+	}
 	c.nonSaveCommand()
 	c.mts.Final.MainImage.Config.Entrypoint = withShell(entrypointArgs, isWithShell)
+	return nil
 }
 
 // Expose applies the EXPOSE command.
-func (c *Converter) Expose(ctx context.Context, ports []string) {
+func (c *Converter) Expose(ctx context.Context, ports []string) error {
+	err := c.checkAllowed("EXPOSE")
+	if err != nil {
+		return err
+	}
 	c.nonSaveCommand()
 	for _, port := range ports {
 		c.mts.Final.MainImage.Config.ExposedPorts[port] = struct{}{}
 	}
+	return nil
 }
 
 // Volume applies the VOLUME command.
-func (c *Converter) Volume(ctx context.Context, volumes []string) {
+func (c *Converter) Volume(ctx context.Context, volumes []string) error {
+	err := c.checkAllowed("VOLUME")
+	if err != nil {
+		return err
+	}
 	c.nonSaveCommand()
 	for _, volume := range volumes {
 		c.mts.Final.MainImage.Config.Volumes[volume] = struct{}{}
 	}
+	return nil
 }
 
 // Env applies the ENV command.
-func (c *Converter) Env(ctx context.Context, envKey string, envValue string) {
+func (c *Converter) Env(ctx context.Context, envKey string, envValue string) error {
+	err := c.checkAllowed("ENV")
+	if err != nil {
+		return err
+	}
 	c.nonSaveCommand()
 	c.varCollection.AddActive(envKey, variables.NewConstantEnvVar(envValue))
 	c.mts.Final.MainState = c.mts.Final.MainState.AddEnv(envKey, envValue)
 	c.mts.Final.MainImage.Config.Env = variables.AddEnv(
 		c.mts.Final.MainImage.Config.Env, envKey, envValue)
+	return nil
 }
 
 // Arg applies the ARG command.
 func (c *Converter) Arg(ctx context.Context, argKey string, defaultArgValue string, global bool) error {
+	err := c.checkAllowed("ARG")
+	if err != nil {
+		return err
+	}
 	c.nonSaveCommand()
 	effective, err := c.varCollection.DeclareActive(argKey, defaultArgValue, global, c.processNonConstantBuildArgFunc((ctx)))
 	if err != nil {
@@ -784,15 +888,24 @@ func (c *Converter) Arg(ctx context.Context, argKey string, defaultArgValue stri
 }
 
 // Label applies the LABEL command.
-func (c *Converter) Label(ctx context.Context, labels map[string]string) {
+func (c *Converter) Label(ctx context.Context, labels map[string]string) error {
+	err := c.checkAllowed("LABEL")
+	if err != nil {
+		return err
+	}
 	c.nonSaveCommand()
 	for key, value := range labels {
 		c.mts.Final.MainImage.Config.Labels[key] = value
 	}
+	return nil
 }
 
 // GitClone applies the GIT CLONE command.
 func (c *Converter) GitClone(ctx context.Context, gitURL string, branch string, dest string, keepTs bool) error {
+	err := c.checkAllowed("GIT CLONE")
+	if err != nil {
+		return err
+	}
 	c.nonSaveCommand()
 	gitOpts := []llb.GitOption{
 		llb.WithCustomNamef(
@@ -811,6 +924,10 @@ func (c *Converter) GitClone(ctx context.Context, gitURL string, branch string, 
 
 // WithDockerRun applies an entire WITH DOCKER ... RUN ... END clause.
 func (c *Converter) WithDockerRun(ctx context.Context, args []string, opt WithDockerOpt) error {
+	err := c.checkAllowed("RUN")
+	if err != nil {
+		return err
+	}
 	c.nonSaveCommand()
 	wdr := &withDockerRun{
 		c: c,
@@ -819,7 +936,11 @@ func (c *Converter) WithDockerRun(ctx context.Context, args []string, opt WithDo
 }
 
 // Healthcheck applies the HEALTHCHECK command.
-func (c *Converter) Healthcheck(ctx context.Context, isNone bool, cmdArgs []string, interval time.Duration, timeout time.Duration, startPeriod time.Duration, retries int) {
+func (c *Converter) Healthcheck(ctx context.Context, isNone bool, cmdArgs []string, interval time.Duration, timeout time.Duration, startPeriod time.Duration, retries int) error {
+	err := c.checkAllowed("HEALTHCHECK")
+	if err != nil {
+		return err
+	}
 	c.nonSaveCommand()
 	hc := &dockerfile2llb.HealthConfig{}
 	if isNone {
@@ -834,6 +955,7 @@ func (c *Converter) Healthcheck(ctx context.Context, isNone bool, cmdArgs []stri
 		hc.Retries = retries
 	}
 	c.mts.Final.MainImage.Config.Healthcheck = hc
+	return nil
 }
 
 // FinalizeStates returns the LLB states.
@@ -872,7 +994,11 @@ func (c *Converter) buildTarget(ctx context.Context, fullTargetName string, plat
 	opt := c.opt
 	opt.Visited = c.mts.Visited
 	opt.VarCollection = newVarCollection
-	opt.Platform = llbutil.ResolvePlatform(c.opt.Platform, platform)
+	opt.Platform, err = llbutil.ResolvePlatform(platform, c.opt.Platform)
+	if err != nil {
+		// Contradiction allowed. You can BUILD another target with different platform.
+		opt.Platform = platform
+	}
 	mts, err := Earthfile2LLB(ctx, target, opt)
 	if err != nil {
 		return nil, errors.Wrapf(err, "earthfile2llb for %s", fullTargetName)
@@ -1217,6 +1343,18 @@ func (c *Converter) setPlatform(platform *specs.Platform) {
 	c.mts.Final.Platform = platform
 	c.mts.Final.TargetInput.Platform = llbutil.PlatformWithDefaultToString(platform)
 	c.varCollection.SetPlatformArgs(llbutil.PlatformWithDefault(platform))
+}
+
+func (c *Converter) checkAllowed(command string) error {
+	if c.mts.Final.RanFromLike {
+		return nil
+	}
+	switch command {
+	case "FROM", "FROM DOCKERFILE", "LOCALLY", "BUILD", "ARG":
+		return nil
+	default:
+		return errors.New("the first command has to be FROM, FROM DOCKERFILE, LOCALLY, ARG or BUILD")
+	}
 }
 
 func makeCacheContext(target domain.Target) llb.State {

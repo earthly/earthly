@@ -30,7 +30,6 @@ deps:
 
 code:
     FROM +deps
-    # TODO: --platform=linux/amd64 can be removed after the next prerelease.
     COPY --platform=linux/amd64 ./ast/parser+parser/*.go ./ast/parser/
     COPY --dir analytics autocomplete buildcontext builder cleanup cmd config conslogging debugger dockertar \
         docker2earthly domain fileutil gitutil llbutil logging secretsclient stringutil states syncutil termutil \
@@ -294,12 +293,15 @@ examples:
     BUILD +examples2
 
 examples1:
+    ARG TARGETARCH
     BUILD ./examples/cpp+docker
-    BUILD --platform=linux/amd64 ./examples/dotnet+docker
+    IF [ "$TARGETARCH" = "amd64" ]
+        # This only works on amd64 for now.
+        BUILD ./examples/dotnet+docker
+    END
     BUILD ./examples/elixir+docker
     BUILD ./examples/go+docker
     BUILD ./examples/grpc+test
-    ARG TARGETARCH
     IF [ "$TARGETARCH" = "amd64" ]
         # This only works on amd64 for now.
         BUILD ./examples/integration-test+integration-test
