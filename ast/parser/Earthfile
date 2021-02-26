@@ -8,7 +8,8 @@ RUN apk add --update --no-cache \
 
 # Install antlr.
 WORKDIR /usr/local/lib
-RUN curl -O https://www.antlr.org/download/antlr-4.9.1-complete.jar
+ARG ANTLR_VERSION=4.9.1
+RUN curl -O https://www.antlr.org/download/antlr-${ANTLR_VERSION}-complete.jar
 WORKDIR /earthly
 
 parser:
@@ -16,7 +17,7 @@ parser:
     COPY ./export.go ./ast/parser/
     RUN java \
         -Xmx500M \
-        -cp "/usr/local/lib/antlr-4.9.1-complete.jar:$CLASSPATH" \
+        -cp "/usr/local/lib/antlr-${ANTLR_VERSION}-complete.jar:$CLASSPATH" \
         org.antlr.v4.Tool \
         -Dlanguage=Go \
         -lib ast/parser/EarthLexer.g4 \

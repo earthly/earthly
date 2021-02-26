@@ -135,7 +135,6 @@ func (c *Converter) fromClassical(ctx context.Context, imageName string, platfor
 	c.mts.Final.MainState = state
 	c.mts.Final.MainImage = img
 	c.mts.Final.RanFromLike = true
-	c.setPlatform(platform)
 	c.varCollection = newVariables
 	return nil
 }
@@ -152,7 +151,6 @@ func (c *Converter) fromTarget(ctx context.Context, targetName string, platform 
 	if depTarget.IsLocalInternal() {
 		depTarget.LocalPath = c.mts.Final.Target.LocalPath
 	}
-	c.setPlatform(mts.Final.Platform)
 	// Look for the built state in the dep states, after we've built it.
 	relevantDepState := mts.Final
 	saveImage := relevantDepState.LastSaveImage()

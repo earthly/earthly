@@ -1,0 +1,13 @@
+
+FROM alpine:3.13
+
+all:
+    BUILD --platform=linux/arm/v7 --platform=linux/arm64 +target
+
+other:
+    FROM alpine:3.13
+
+target:
+    FROM +other
+    ARG TARGETARCH
+    SAVE ARTIFACT /bin/sh AS LOCAL out-$TARGETARCH
