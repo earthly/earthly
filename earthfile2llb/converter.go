@@ -1151,12 +1151,12 @@ func (c *Converter) internalFromClassical(ctx context.Context, imageName string,
 	if err != nil {
 		return llb.State{}, nil, nil, nil, errors.Wrapf(err, "parse normalized named %s", imageName)
 	}
+	platformWithDefault := llbutil.PlatformWithDefault(platform)
+	platform = &platformWithDefault
 	baseImageName := reference.TagNameOnly(ref).String()
 	logName := fmt.Sprintf(
 		"%sLoad metadata %s",
 		c.imageVertexPrefix(imageName), llbutil.PlatformToString(platform))
-	platformWithDefault := llbutil.PlatformWithDefault(platform)
-	platform = &platformWithDefault
 	dgst, dt, err := c.opt.MetaResolver.ResolveImageConfig(
 		ctx, baseImageName,
 		llb.ResolveImageConfigOpt{
