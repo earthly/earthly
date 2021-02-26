@@ -135,11 +135,7 @@ func (sp *successPrinter) incrementIndex() {
 }
 
 func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt BuildOpt) (*states.MultiTarget, error) {
-	outDir, err := b.tempEarthlyOutDir()
-	if err != nil {
-		return nil, err
-	}
-
+	var outDir string
 	successFun := func(msg string) func() {
 		return func() {
 			if opt.PrintSuccess {
@@ -348,6 +344,13 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 		if !destPathWhitelist[destPath] {
 			return "", errors.Errorf("dest path %s is not in the whitelist: %+v", destPath, destPathWhitelist)
 		}
+		if outDir == "" {
+			var err error
+			outDir, err = b.tempEarthlyOutDir()
+			if err != nil {
+				return "", err
+			}
+		}
 		artifactDir := filepath.Join(outDir, fmt.Sprintf("index-%d", index))
 		err := os.MkdirAll(artifactDir, 0755)
 		if err != nil {
@@ -357,9 +360,16 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 	}
 	onFinalArtifact := func(childCtx context.Context) (string, error) {
 		sp.printCurrentSuccess()
+		if outDir == "" {
+			var err error
+			outDir, err = b.tempEarthlyOutDir()
+			if err != nil {
+				return "", err
+			}
+		}
 		return outDir, nil
 	}
-	err = b.s.buildMainMulti(ctx, bf, onImage, onArtifact, onFinalArtifact, "main")
+	err := b.s.buildMainMulti(ctx, bf, onImage, onArtifact, onFinalArtifact, "main")
 	if err != nil {
 		return nil, errors.Wrapf(err, "build main")
 	}
