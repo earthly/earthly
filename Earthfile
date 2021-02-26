@@ -294,12 +294,15 @@ examples:
     BUILD +examples2
 
 examples1:
+    ARG TARGETARCH
     BUILD ./examples/cpp+docker
-    BUILD --platform=linux/amd64 ./examples/dotnet+docker
+    IF [ "$TARGETARCH" = "amd64" ]
+        # This only works on amd64 for now.
+        BUILD ./examples/dotnet+docker
+    END
     BUILD ./examples/elixir+docker
     BUILD ./examples/go+docker
     BUILD ./examples/grpc+test
-    ARG TARGETARCH
     IF [ "$TARGETARCH" = "amd64" ]
         # This only works on amd64 for now.
         BUILD ./examples/integration-test+integration-test

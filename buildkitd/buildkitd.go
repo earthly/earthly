@@ -24,8 +24,13 @@ const (
 	VolumeName = "earthly-cache"
 )
 
-// ErrBuildkitCrashed is an error returned when buildkit has terminated unexpectedly.
-var ErrBuildkitCrashed = errors.New("buildkitd crashed")
+var (
+	// ErrBuildkitCrashed is an error returned when buildkit has terminated unexpectedly.
+	ErrBuildkitCrashed = errors.New("buildkitd crashed")
+
+	// ErrBuildkitStartFailure is an error returned when buildkit has failed to start in time.
+	ErrBuildkitStartFailure = errors.New("buildkitd failed to start (in time)")
+)
 
 // Address is the address at which the daemon is available.
 var Address = fmt.Sprintf("docker-container://%s", ContainerName)
@@ -337,7 +342,7 @@ ContainerRunningLoop:
 			}
 			return nil
 		case <-ctxTimeout2.Done():
-			return errors.Errorf("timeout %s: buildkitd did not make connection available after start", opTimeout)
+			return errors.Wrapf(ErrBuildkitStartFailure, "timeout %s: buildkitd did not make connection available after start", opTimeout)
 		}
 	}
 }
