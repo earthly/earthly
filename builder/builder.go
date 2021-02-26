@@ -196,6 +196,17 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 			res.AddMeta(fmt.Sprintf("%s/final-artifact", refPrefix), []byte("true"))
 		}
 
+		isMultiPlatform := make(map[string]bool) // DockerTag -> bool
+		for _, sts := range mts.All() {
+			if sts.Platform != nil {
+				for _, saveImage := range b.targetPhaseImages(sts) {
+					if saveImage.DockerTag != "" {
+						isMultiPlatform[saveImage.DockerTag] = true
+					}
+				}
+			}
+		}
+
 		for _, sts := range mts.All() {
 			if (sts.HasDangling && !b.opt.UseFakeDep) || (b.builtMain && sts.RunPush.HasState) {
 				depRef, err := b.stateToRef(childCtx, gwClient, b.targetPhaseState(sts), sts.Platform)
@@ -224,7 +235,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 					return nil, errors.Wrapf(err, "marshal save image config")
 				}
 
-				if sts.Platform == nil {
+				if !isMultiPlatform[saveImage.DockerTag] {
 					refKey := fmt.Sprintf("image-%d", imageIndex)
 					refPrefix := fmt.Sprintf("ref/%s", refKey)
 					imageIndex++
@@ -243,6 +254,8 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 					res.AddMeta(fmt.Sprintf("%s/image-index", refPrefix), []byte(fmt.Sprintf("%d", imageIndex)))
 					res.AddRef(refKey, ref)
 				} else {
+					platform := llbutil.PlatformWithDefault(sts.Platform)
+					platformStr := llbutil.PlatformWithDefaultToString(sts.Platform)
 					// Image has platform set - need to use manifest lists.
 					// Need to push as a single multi-manifest image, but output locally as
 					// separate images.
@@ -255,7 +268,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 						imageIndex++
 
 						res.AddMeta(fmt.Sprintf("%s/image.name", refPrefix), []byte(saveImage.DockerTag))
-						res.AddMeta(fmt.Sprintf("%s/platform", refPrefix), []byte(llbutil.PlatformToString(sts.Platform)))
+						res.AddMeta(fmt.Sprintf("%s/platform", refPrefix), []byte(platformStr))
 						res.AddMeta(fmt.Sprintf("%s/export-image-push", refPrefix), []byte("true"))
 						if saveImage.InsecurePush {
 							res.AddMeta(fmt.Sprintf("%s/insecure-push", refPrefix), []byte("true"))
@@ -271,7 +284,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 						refPrefix := fmt.Sprintf("ref/%s", refKey)
 						imageIndex++
 
-						platformImgName, err := platformSpecificImageName(saveImage.DockerTag, *sts.Platform)
+						platformImgName, err := platformSpecificImageName(saveImage.DockerTag, platform)
 						if err != nil {
 							return nil, err
 						}
@@ -283,7 +296,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 						manifestLists[saveImage.DockerTag] = append(
 							manifestLists[saveImage.DockerTag], manifest{
 								imageName: platformImgName,
-								platform:  *sts.Platform,
+								platform:  platform,
 							})
 					}
 				}
