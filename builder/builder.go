@@ -135,7 +135,6 @@ func (sp *successPrinter) incrementIndex() {
 }
 
 func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt BuildOpt) (*states.MultiTarget, error) {
-	var outDir string
 	successFun := func(msg string) func() {
 		return func() {
 			if opt.PrintSuccess {
@@ -339,6 +338,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 		})
 		return pipeW, nil
 	}
+	var outDir string
 	onArtifact := func(childCtx context.Context, index int, artifact domain.Artifact, artifactPath string, destPath string) (string, error) {
 		sp.printCurrentSuccess()
 		if !destPathWhitelist[destPath] {
@@ -397,6 +397,9 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 	if opt.NoOutput {
 		// Nothing.
 	} else if opt.OnlyArtifact != nil {
+		if outDir == "" {
+			return nil, errors.New("out dir has not been created (should never happen)")
+		}
 		err := b.saveArtifactLocally(ctx, *opt.OnlyArtifact, outDir, opt.OnlyArtifactDestPath, mts.Final.Salt, opt, false)
 		if err != nil {
 			return nil, err
