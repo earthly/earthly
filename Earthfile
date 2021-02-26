@@ -321,7 +321,10 @@ examples2:
     #BUILD ./examples/terraform+localstack
     BUILD ./examples/ruby+docker
     BUILD ./examples/ruby-on-rails+docker
-    BUILD --platform=linux/amd64 ./examples/scala+docker
+    IF [ "$TARGETARCH" = "amd64" ]
+        # This crashes randomly on arm.
+        BUILD ./examples/scala+docker
+    END
     BUILD ./examples/cobol+docker
     BUILD ./examples/rust+docker
     BUILD ./examples/multiplatform+all
