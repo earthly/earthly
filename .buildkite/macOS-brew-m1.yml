@@ -8,3 +8,4 @@ steps:
     agents:
       os: macOS
       arch: arm64
+    timeout_in_minutes: 55
