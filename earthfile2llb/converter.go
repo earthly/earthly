@@ -103,7 +103,6 @@ func (c *Converter) From(ctx context.Context, imageName string, platform *specs.
 	if err != nil {
 		return err
 	}
-	c.setPlatform(platform)
 	if strings.Contains(imageName, "+") {
 		// Target-based FROM.
 		return c.fromTarget(ctx, imageName, platform, buildArgs)
@@ -135,6 +134,14 @@ func (c *Converter) fromClassical(ctx context.Context, imageName string, platfor
 	c.mts.Final.MainState = state
 	c.mts.Final.MainImage = img
 	c.mts.Final.RanFromLike = true
+	if img.OS != "" || img.Architecture != "" || img.Variant != "" {
+		platform = &specs.Platform{
+			OS:           img.OS,
+			Architecture: img.Architecture,
+			Variant:      img.Variant,
+		}
+	}
+	c.setPlatform(platform)
 	c.varCollection = newVariables
 	return nil
 }
@@ -165,6 +172,7 @@ func (c *Converter) fromTarget(ctx context.Context, targetName string, platform 
 	}
 	c.mts.Final.MainImage = saveImage.Image.Clone()
 	c.mts.Final.RanFromLike = mts.Final.RanFromLike
+	c.setPlatform(mts.Final.Platform)
 	return nil
 }
 
@@ -178,7 +186,6 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 	if err != nil {
 		return err
 	}
-	c.setPlatform(platform)
 	plat := llbutil.PlatformWithDefault(platform)
 	c.nonSaveCommand()
 	if dfPath != "" {
@@ -272,10 +279,15 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 	if err != nil {
 		return errors.Wrap(err, "unmarshal dockerfile image")
 	}
-	state2, img2, newVarCollection := c.applyFromImage(*state, &img)
+	state2, img2, newVarCollection, platform2 := c.applyFromImage(*state, &img)
 	c.mts.Final.MainState = state2
 	c.mts.Final.MainImage = img2
 	c.mts.Final.RanFromLike = true
+	platform, err = llbutil.ResolvePlatform(platform, platform2)
+	if err != nil {
+		return err
+	}
+	c.setPlatform(platform)
 	c.varCollection = newVarCollection
 	return nil
 }
@@ -474,7 +486,7 @@ func (c *Converter) RunExitCode(ctx context.Context, commandName string, args, m
 	if err != nil {
 		return 0, err
 	}
-	ref, err := llbutil.StateToRef(ctx, c.opt.GwClient, state, c.opt.Platform, c.opt.CacheImports)
+	ref, err := llbutil.StateToRef(ctx, c.opt.GwClient, state, c.mts.Final.Platform, c.opt.CacheImports)
 	if err != nil {
 		return 0, errors.Wrap(err, "run exit code state to ref")
 	}
@@ -530,7 +542,7 @@ func (c *Converter) RunLocalExitCode(ctx context.Context, commandName string, ar
 	}
 	c.mts.Final.MainState = c.mts.Final.MainState.Run(opts...).Root()
 
-	ref, err := llbutil.StateToRef(ctx, c.opt.GwClient, c.mts.Final.MainState, c.opt.Platform, c.opt.CacheImports)
+	ref, err := llbutil.StateToRef(ctx, c.opt.GwClient, c.mts.Final.MainState, c.mts.Final.Platform, c.opt.CacheImports)
 	if err != nil {
 		return 0, errors.Wrap(err, "run exit code state to ref")
 	}
@@ -992,7 +1004,7 @@ func (c *Converter) buildTarget(ctx context.Context, fullTargetName string, plat
 	opt := c.opt
 	opt.Visited = c.mts.Visited
 	opt.VarCollection = newVarCollection
-	opt.Platform, err = llbutil.ResolvePlatform(platform, c.opt.Platform)
+	opt.Platform, err = llbutil.ResolvePlatform(platform, c.mts.Final.Platform)
 	if err != nil {
 		// Contradiction allowed. You can BUILD another target with different platform.
 		opt.Platform = platform
@@ -1134,51 +1146,62 @@ func (c *Converter) readArtifact(ctx context.Context, mts *states.MultiTarget, a
 	return artDt, nil
 }
 
-func (c *Converter) internalFromClassical(ctx context.Context, imageName string, platform specs.Platform, opts ...llb.ImageOption) (llb.State, *image.Image, *variables.Collection, error) {
+func (c *Converter) internalFromClassical(ctx context.Context, imageName string, platform *specs.Platform, opts ...llb.ImageOption) (llb.State, *image.Image, *variables.Collection, *specs.Platform, error) {
 	if imageName == "scratch" {
 		// FROM scratch
 		img := image.NewImage()
-		img.OS = platform.OS
-		img.Architecture = platform.Architecture
-		return llb.Scratch().Platform(platform), img,
-			c.varCollection.WithResetEnvVars(), nil
+		llbutil.SetConfigPlatform(img, platform)
+		scratch := llb.Scratch()
+		if platform != nil {
+			scratch = scratch.Platform(*platform)
+		}
+		return scratch, img, c.varCollection.WithResetEnvVars(), platform, nil
 	}
 	ref, err := reference.ParseNormalizedNamed(imageName)
 	if err != nil {
-		return llb.State{}, nil, nil, errors.Wrapf(err, "parse normalized named %s", imageName)
+		return llb.State{}, nil, nil, nil, errors.Wrapf(err, "parse normalized named %s", imageName)
 	}
 	baseImageName := reference.TagNameOnly(ref).String()
 	logName := fmt.Sprintf(
 		"%sLoad metadata %s",
-		c.imageVertexPrefix(imageName), llbutil.PlatformToString(&platform))
+		c.imageVertexPrefix(imageName), llbutil.PlatformToString(platform))
+	platform2 := llbutil.PlatformWithDefault(platform)
+	platform = &platform2
 	dgst, dt, err := c.opt.MetaResolver.ResolveImageConfig(
 		ctx, baseImageName,
 		llb.ResolveImageConfigOpt{
-			Platform:    &platform,
+			Platform:    platform,
 			ResolveMode: c.opt.ImageResolveMode.String(),
 			LogName:     logName,
 		})
 	if err != nil {
-		return llb.State{}, nil, nil, errors.Wrapf(err, "resolve image config for %s", imageName)
+		return llb.State{}, nil, nil, nil, errors.Wrapf(err, "resolve image config for %s", imageName)
 	}
 	var img image.Image
 	err = json.Unmarshal(dt, &img)
 	if err != nil {
-		return llb.State{}, nil, nil, errors.Wrapf(err, "unmarshal image config for %s", imageName)
+		return llb.State{}, nil, nil, nil, errors.Wrapf(err, "unmarshal image config for %s", imageName)
 	}
 	if dgst != "" {
 		ref, err = reference.WithDigest(ref, dgst)
 		if err != nil {
-			return llb.State{}, nil, nil, errors.Wrapf(err, "reference add digest %v for %s", dgst, imageName)
+			return llb.State{}, nil, nil, nil, errors.Wrapf(err, "reference add digest %v for %s", dgst, imageName)
 		}
 	}
-	allOpts := append(opts, llb.Platform(platform), c.opt.ImageResolveMode)
+	allOpts := append(opts, c.opt.ImageResolveMode)
+	if platform != nil {
+		allOpts = append(allOpts, llb.Platform(*platform))
+	}
 	state := llb.Image(ref.String(), allOpts...)
-	state, img2, newVarCollection := c.applyFromImage(state, &img)
-	return state, img2, newVarCollection, nil
+	state, img2, newVarCollection, platform3 := c.applyFromImage(state, &img)
+	platform, err = llbutil.ResolvePlatform(platform, platform3)
+	if err != nil {
+		return llb.State{}, nil, nil, nil, err
+	}
+	return state, img2, newVarCollection, platform, nil
 }
 
-func (c *Converter) applyFromImage(state llb.State, img *image.Image) (llb.State, *image.Image, *variables.Collection) {
+func (c *Converter) applyFromImage(state llb.State, img *image.Image) (llb.State, *image.Image, *variables.Collection, *specs.Platform) {
 	// Reset variables.
 	newVarCollection := c.varCollection.WithResetEnvVars()
 	for _, envVar := range img.Config.Env {
@@ -1202,10 +1225,11 @@ func (c *Converter) applyFromImage(state llb.State, img *image.Image) (llb.State
 	if img.Config.User != "" {
 		state = state.User(img.Config.User)
 	}
+	platform := llbutil.PlatformFromConfig(img.Config)
 	// No need to apply entrypoint, cmd, volumes and others.
 	// The fact that they exist in the image configuration is enough.
 	// TODO: Apply any other settings? Shell?
-	return state, img, newVarCollection
+	return state, img, newVarCollection, platform
 }
 
 func (c *Converter) nonSaveCommand() {
@@ -1230,7 +1254,7 @@ func (c *Converter) processNonConstantBuildArgFunc(ctx context.Context) variable
 		if err != nil {
 			return "", 0, errors.Wrapf(err, "run %v", expression)
 		}
-		ref, err := llbutil.StateToRef(ctx, c.opt.GwClient, state, c.opt.Platform, c.opt.CacheImports)
+		ref, err := llbutil.StateToRef(ctx, c.opt.GwClient, state, c.mts.Final.Platform, c.opt.CacheImports)
 		if err != nil {
 			return "", 0, errors.Wrapf(err, "build arg state to ref")
 		}
@@ -1250,7 +1274,7 @@ func (c *Converter) vertexPrefix(local bool) string {
 	if c.mts.Final.Platform != nil {
 		varStrBuilder = append(
 			varStrBuilder,
-			fmt.Sprintf("platform=%s", llbutil.PlatformToString(c.opt.Platform)))
+			fmt.Sprintf("platform=%s", llbutil.PlatformToString(c.mts.Final.Platform)))
 	}
 	for _, key := range overriding {
 		variable, _, _ := c.varCollection.Get(key)
@@ -1306,7 +1330,6 @@ func (c *Converter) copyOwner(keepOwn bool, chown string) string {
 }
 
 func (c *Converter) setPlatform(platform *specs.Platform) {
-	c.opt.Platform = platform
 	c.mts.Final.Platform = platform
 	c.mts.Final.TargetInput.Platform = llbutil.PlatformWithDefaultToString(platform)
 	c.varCollection.SetPlatformArgs(llbutil.PlatformWithDefault(platform))

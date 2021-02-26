@@ -224,7 +224,7 @@ func (wdr *withDockerRun) getComposePulls(ctx context.Context, opt WithDockerOpt
 			// Image not specified in yaml.
 			continue
 		}
-		platform := wdr.c.opt.Platform
+		platform := wdr.c.mts.Final.Platform
 		if serviceInfo.Platform != "" {
 			p, err := platforms.Parse(serviceInfo.Platform)
 			if err != nil {
@@ -389,7 +389,7 @@ func (wdr *withDockerRun) getComposeConfig(ctx context.Context, opt WithDockerOp
 		llb.WithCustomNamef("%sWITH DOCKER (docker-compose config)", wdr.c.vertexPrefix(false)),
 	}
 	state := wdr.c.mts.Final.MainState.Run(runOpts...).Root()
-	ref, err := llbutil.StateToRef(ctx, wdr.c.opt.GwClient, state, wdr.c.opt.Platform, wdr.c.opt.CacheImports)
+	ref, err := llbutil.StateToRef(ctx, wdr.c.opt.GwClient, state, wdr.c.mts.Final.Platform, wdr.c.opt.CacheImports)
 	if err != nil {
 		return nil, errors.Wrap(err, "state to ref compose config")
 	}

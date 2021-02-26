@@ -1,9 +1,11 @@
 package llbutil
 
 import (
+	"fmt"
 	"runtime"
 
 	"github.com/containerd/containerd/platforms"
+	"github.com/earthly/earthly/states/image"
 	"github.com/moby/buildkit/client/llb"
 	specs "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
@@ -101,4 +103,31 @@ func PlatformWithDefault(p *specs.Platform) specs.Platform {
 		return *p
 	}
 	return DefaultPlatform()
+}
+
+// PlatformFromConfig reads the platform information from an image config and
+// returns it. If no platform information is present, nil is returned.
+func PlatformFromConfig(img *image.Image) *specs.Platform {
+	var p *specs.Platform
+	if img.OS != "" || img.Architecture != "" {
+		p = &specs.Platform{
+			OS:           img.OS,
+			Architecture: img.Architecture,
+		}
+		*p = platforms.Normalize(*p)
+	}
+	return p
+}
+
+// SetConfigPlatform assigns the platform fields to the config.
+func SetConfigPlatform(img *image.Image, p *specs.Platform) {
+	if p == nil {
+		return
+	}
+	img.OS = p.OS
+	if p.Variant == "" {
+		img.Architecture = p.Architecture
+	} else {
+		img.Architecture = fmt.Sprintf("%s/%s", p.Architecture, p.Variant)
+	}
 }
