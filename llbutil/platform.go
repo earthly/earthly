@@ -63,13 +63,14 @@ func PlatformToString(p *specs.Platform) string {
 	return platforms.Format(*p)
 }
 
-// ResolvePlatform returns the non-nil platform provided. If both are nil, nil is returned.
-// If both are non-nil, override is returned.
-func ResolvePlatform(base *specs.Platform, override *specs.Platform) *specs.Platform {
-	if override == nil {
-		return base
+// ResolvePlatform returns last the non-nil platform provided, or nil if they are all nil.
+func ResolvePlatform(ps ...*specs.Platform) *specs.Platform {
+	for i := len(ps) - 1; i >= 0; i-- {
+		if ps[i] != nil {
+			return ps[i]
+		}
 	}
-	return override
+	return nil
 }
 
 // PlatformWithDefault returns the same platform provided if not nil, or the default
