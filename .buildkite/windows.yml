@@ -11,4 +11,4 @@ steps:
       EARTHLY_CONFIG: "./.buildkite/earthly-config-win.yml"
     agents:
       os: wsl2
-    timeout_in_minutes: 1
+    timeout_in_minutes: 55
