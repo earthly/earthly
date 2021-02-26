@@ -1,4 +1,4 @@
-// Code generated from ast/parser/EarthParser.g4 by ANTLR 4.8. DO NOT EDIT.
+// Code generated from ast/parser/EarthParser.g4 by ANTLR 4.9.1. DO NOT EDIT.
 
 package parser // EarthParser
 
