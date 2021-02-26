@@ -647,7 +647,7 @@ func (b *Builder) tempEarthlyOutDir() (string, error) {
 	if err != nil {
 		return "", errors.Wrapf(err, "unable to create dir %s", tmpParentDir)
 	}
-	outDir, err := ioutil.TempDir(".", "tmp")
+	outDir, err := ioutil.TempDir(tmpParentDir, "tmp")
 	if err != nil {
 		return "", errors.Wrap(err, "mk temp dir for artifacts")
 	}
