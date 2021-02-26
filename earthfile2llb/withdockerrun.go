@@ -252,8 +252,10 @@ func (wdr *withDockerRun) getComposePulls(ctx context.Context, opt WithDockerOpt
 }
 
 func (wdr *withDockerRun) pull(ctx context.Context, opt DockerPullOpt) error {
+	defaultPlatform := llbutil.ResolvePlatform(wdr.c.opt.Platform, wdr.c.mts.Final.Platform)
+	platform := llbutil.ResolvePlatform(defaultPlatform, opt.Platform)
 	state, image, _, _, err := wdr.c.internalFromClassical(
-		ctx, opt.ImageName, opt.Platform,
+		ctx, opt.ImageName, platform,
 		llb.WithCustomNamef("%sDOCKER PULL %s", wdr.c.imageVertexPrefix(opt.ImageName), opt.ImageName),
 	)
 	if err != nil {
@@ -263,7 +265,7 @@ func (wdr *withDockerRun) pull(ctx context.Context, opt DockerPullOpt) error {
 		Final: &states.SingleTarget{
 			MainState: state,
 			MainImage: image,
-			Platform:  opt.Platform,
+			Platform:  platform,
 			TargetInput: dedup.TargetInput{
 				TargetCanonical: fmt.Sprintf("+@docker-pull:%s", opt.ImageName),
 			},
