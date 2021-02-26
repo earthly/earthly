@@ -10,3 +10,4 @@ steps:
     agents:
       os: macOS
       arch: amd64
+    timeout_in_minutes: 1
