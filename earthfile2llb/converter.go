@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"github.com/alessio/shellescape"
+	"github.com/containerd/containerd/platforms"
 	"github.com/earthly/earthly/buildcontext"
 	"github.com/earthly/earthly/debugger/common"
 	"github.com/earthly/earthly/domain"
@@ -99,10 +100,7 @@ func (c *Converter) From(ctx context.Context, imageName string, platform *specs.
 		return err
 	}
 	c.nonSaveCommand()
-	platform, err = llbutil.ResolvePlatform(platform, c.opt.Platform)
-	if err != nil {
-		return err
-	}
+	platform = llbutil.ResolvePlatform(c.opt.Platform, platform)
 	if strings.Contains(imageName, "+") {
 		// Target-based FROM.
 		return c.fromTarget(ctx, imageName, platform, buildArgs)
@@ -124,9 +122,10 @@ func (c *Converter) fromClassical(ctx context.Context, imageName string, platfor
 	} else {
 		prefix = c.vertexPrefix(false)
 	}
-	plat := llbutil.PlatformWithDefault(platform)
-	state, img, newVariables, err := c.internalFromClassical(
-		ctx, imageName, plat,
+	// Note: Igoring platform from config here. If the user didn't set it in
+	//       FROM --platform=..., then we don't want to create a multi-platform image.
+	state, img, newVariables, _, err := c.internalFromClassical(
+		ctx, imageName, platform,
 		llb.WithCustomNamef("%sFROM %s", prefix, imageName))
 	if err != nil {
 		return err
@@ -134,13 +133,6 @@ func (c *Converter) fromClassical(ctx context.Context, imageName string, platfor
 	c.mts.Final.MainState = state
 	c.mts.Final.MainImage = img
 	c.mts.Final.RanFromLike = true
-	if img.OS != "" || img.Architecture != "" || img.Variant != "" {
-		platform = &specs.Platform{
-			OS:           img.OS,
-			Architecture: img.Architecture,
-			Variant:      img.Variant,
-		}
-	}
 	c.setPlatform(platform)
 	c.varCollection = newVariables
 	return nil
@@ -182,10 +174,7 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 	if err != nil {
 		return err
 	}
-	platform, err = llbutil.ResolvePlatform(platform, c.opt.Platform)
-	if err != nil {
-		return err
-	}
+	platform = llbutil.ResolvePlatform(c.opt.Platform, platform)
 	plat := llbutil.PlatformWithDefault(platform)
 	c.nonSaveCommand()
 	if dfPath != "" {
@@ -279,14 +268,16 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 	if err != nil {
 		return errors.Wrap(err, "unmarshal dockerfile image")
 	}
-	state2, img2, newVarCollection, platform2 := c.applyFromImage(*state, &img)
+	// Ignoring platform here as we are getting it via state2.GetPlatform.
+	state2, img2, newVarCollection, _ := c.applyFromImage(*state, &img)
 	c.mts.Final.MainState = state2
 	c.mts.Final.MainImage = img2
 	c.mts.Final.RanFromLike = true
-	platform, err = llbutil.ResolvePlatform(platform, platform2)
+	platform2, err := state2.GetPlatform(ctx)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "get state platform")
 	}
+	platform = llbutil.ResolvePlatform(platform, platform2)
 	c.setPlatform(platform)
 	c.varCollection = newVarCollection
 	return nil
@@ -1004,14 +995,13 @@ func (c *Converter) buildTarget(ctx context.Context, fullTargetName string, plat
 	opt := c.opt
 	opt.Visited = c.mts.Visited
 	opt.VarCollection = newVarCollection
-	opt.Platform, err = llbutil.ResolvePlatform(platform, c.mts.Final.Platform)
-	if err != nil {
-		// Contradiction allowed. You can BUILD another target with different platform.
-		opt.Platform = platform
-	}
+	opt.Platform = llbutil.ResolvePlatform(platform, c.mts.Final.Platform)
 	mts, err := Earthfile2LLB(ctx, target, opt)
 	if err != nil {
 		return nil, errors.Wrapf(err, "earthfile2llb for %s", fullTargetName)
+	}
+	if mts.Final.Platform == nil { // can happen if mts is grabbed from cache
+		mts.Final.Platform = opt.Platform
 	}
 	if isDangling {
 		mts.Final.HasDangling = true
@@ -1150,7 +1140,7 @@ func (c *Converter) internalFromClassical(ctx context.Context, imageName string,
 	if imageName == "scratch" {
 		// FROM scratch
 		img := image.NewImage()
-		llbutil.SetConfigPlatform(img, platform)
+		setImagePlatform(img, platform)
 		scratch := llb.Scratch()
 		if platform != nil {
 			scratch = scratch.Platform(*platform)
@@ -1165,8 +1155,8 @@ func (c *Converter) internalFromClassical(ctx context.Context, imageName string,
 	logName := fmt.Sprintf(
 		"%sLoad metadata %s",
 		c.imageVertexPrefix(imageName), llbutil.PlatformToString(platform))
-	platform2 := llbutil.PlatformWithDefault(platform)
-	platform = &platform2
+	platformWithDefault := llbutil.PlatformWithDefault(platform)
+	platform = &platformWithDefault
 	dgst, dt, err := c.opt.MetaResolver.ResolveImageConfig(
 		ctx, baseImageName,
 		llb.ResolveImageConfigOpt{
@@ -1193,11 +1183,8 @@ func (c *Converter) internalFromClassical(ctx context.Context, imageName string,
 		allOpts = append(allOpts, llb.Platform(*platform))
 	}
 	state := llb.Image(ref.String(), allOpts...)
-	state, img2, newVarCollection, platform3 := c.applyFromImage(state, &img)
-	platform, err = llbutil.ResolvePlatform(platform, platform3)
-	if err != nil {
-		return llb.State{}, nil, nil, nil, err
-	}
+	state, img2, newVarCollection, platform2 := c.applyFromImage(state, &img)
+	platform = llbutil.ResolvePlatform(platform, platform2)
 	return state, img2, newVarCollection, platform, nil
 }
 
@@ -1225,7 +1212,7 @@ func (c *Converter) applyFromImage(state llb.State, img *image.Image) (llb.State
 	if img.Config.User != "" {
 		state = state.User(img.Config.User)
 	}
-	platform := llbutil.PlatformFromConfig(img.Config)
+	platform := platformFromImage(img)
 	// No need to apply entrypoint, cmd, volumes and others.
 	// The fact that they exist in the image configuration is enough.
 	// TODO: Apply any other settings? Shell?
@@ -1378,4 +1365,28 @@ func strIf(condition bool, str string) string {
 		return str
 	}
 	return ""
+}
+
+func platformFromImage(img *image.Image) *specs.Platform {
+	var p *specs.Platform
+	if img.OS != "" || img.Architecture != "" {
+		p = &specs.Platform{
+			OS:           img.OS,
+			Architecture: img.Architecture,
+		}
+		*p = platforms.Normalize(*p)
+	}
+	return p
+}
+
+func setImagePlatform(img *image.Image, p *specs.Platform) {
+	if p == nil {
+		return
+	}
+	img.OS = p.OS
+	if p.Variant == "" {
+		img.Architecture = p.Architecture
+	} else {
+		img.Architecture = fmt.Sprintf("%s/%s", p.Architecture, p.Variant)
+	}
 }

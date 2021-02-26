@@ -1,14 +1,11 @@
 package llbutil
 
 import (
-	"fmt"
 	"runtime"
 
 	"github.com/containerd/containerd/platforms"
-	"github.com/earthly/earthly/states/image"
 	"github.com/moby/buildkit/client/llb"
 	specs "github.com/opencontainers/image-spec/specs-go/v1"
-	"github.com/pkg/errors"
 )
 
 // ParsePlatform parses a given platform string. Empty string is a valid selection:
@@ -67,33 +64,12 @@ func PlatformToString(p *specs.Platform) string {
 }
 
 // ResolvePlatform returns the non-nil platform provided. If both are nil, nil is returned.
-// If both are non-nil, they are compared to ensure they are identical. If they are not,
-// an error is returned.
-func ResolvePlatform(p1 *specs.Platform, p2 *specs.Platform) (*specs.Platform, error) {
-	if p1 == nil {
-		return p2, nil
+// If both are non-nil, override is returned.
+func ResolvePlatform(base *specs.Platform, override *specs.Platform) *specs.Platform {
+	if override == nil {
+		return base
 	}
-	if p2 == nil {
-		return p1, nil
-	}
-	plat1 := platforms.Normalize(*p1)
-	plat2 := platforms.Normalize(*p2)
-	if plat1.OS != plat2.OS {
-		return nil, errors.Errorf(
-			"platform contradiction %s vs %s",
-			platforms.Format(*p1), platforms.Format(*p2))
-	}
-	if plat1.Architecture != plat2.Architecture {
-		return nil, errors.Errorf(
-			"platform contradiction %s vs %s",
-			platforms.Format(*p1), platforms.Format(*p2))
-	}
-	if plat1.Variant != plat2.Variant {
-		return nil, errors.Errorf(
-			"platform contradiction %s vs %s",
-			platforms.Format(*p1), platforms.Format(*p2))
-	}
-	return p1, nil
+	return override
 }
 
 // PlatformWithDefault returns the same platform provided if not nil, or the default
@@ -103,31 +79,4 @@ func PlatformWithDefault(p *specs.Platform) specs.Platform {
 		return *p
 	}
 	return DefaultPlatform()
-}
-
-// PlatformFromConfig reads the platform information from an image config and
-// returns it. If no platform information is present, nil is returned.
-func PlatformFromConfig(img *image.Image) *specs.Platform {
-	var p *specs.Platform
-	if img.OS != "" || img.Architecture != "" {
-		p = &specs.Platform{
-			OS:           img.OS,
-			Architecture: img.Architecture,
-		}
-		*p = platforms.Normalize(*p)
-	}
-	return p
-}
-
-// SetConfigPlatform assigns the platform fields to the config.
-func SetConfigPlatform(img *image.Image, p *specs.Platform) {
-	if p == nil {
-		return
-	}
-	img.OS = p.OS
-	if p.Variant == "" {
-		img.Architecture = p.Architecture
-	} else {
-		img.Architecture = fmt.Sprintf("%s/%s", p.Architecture, p.Variant)
-	}
 }
