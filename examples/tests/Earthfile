@@ -61,6 +61,7 @@ ga:
     BUILD +build-arg-repeat
     BUILD +if
     BUILD +first-command
+    BUILD +platform-output
     BUILD ./autocompletion+test-all
     BUILD ./with-docker+all
     BUILD ./with-docker-compose+all
@@ -614,3 +615,13 @@ first-command:
     RUN --privileged \
         --mount=type=tmpfs,target=/tmp/earthly \
         -- ! /usr/bin/earthly-buildkitd-wrapper.sh +start-with-non-from-target
+
+platform-output:
+    COPY platform-output.earth ./Earthfile
+    RUN --privileged \
+        --entrypoint \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        -- +all
+    RUN test -f ./out-arm
+    RUN test -f ./out-arm64
+    RUN ! test -f ./out-amd64

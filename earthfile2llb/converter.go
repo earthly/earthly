@@ -99,7 +99,10 @@ func (c *Converter) From(ctx context.Context, imageName string, platform *specs.
 		return err
 	}
 	c.nonSaveCommand()
-	platform = llbutil.ResolvePlatform(c.opt.Platform, platform)
+	platform, err = llbutil.ResolvePlatform(platform, c.opt.Platform)
+	if err != nil {
+		return err
+	}
 	c.setPlatform(platform)
 	if strings.Contains(imageName, "+") {
 		// Target-based FROM.
@@ -145,7 +148,6 @@ func (c *Converter) fromTarget(ctx context.Context, targetName string, platform 
 	if err != nil {
 		return errors.Wrapf(err, "apply build %s", depTarget.String())
 	}
-	c.setPlatform(mts.Final.Platform)
 	if depTarget.IsLocalInternal() {
 		depTarget.LocalPath = c.mts.Final.Target.LocalPath
 	}
@@ -172,7 +174,10 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 	if err != nil {
 		return err
 	}
-	platform = llbutil.ResolvePlatform(c.opt.Platform, platform)
+	platform, err = llbutil.ResolvePlatform(platform, c.opt.Platform)
+	if err != nil {
+		return err
+	}
 	c.setPlatform(platform)
 	plat := llbutil.PlatformWithDefault(platform)
 	c.nonSaveCommand()
@@ -987,7 +992,11 @@ func (c *Converter) buildTarget(ctx context.Context, fullTargetName string, plat
 	opt := c.opt
 	opt.Visited = c.mts.Visited
 	opt.VarCollection = newVarCollection
-	opt.Platform = llbutil.ResolvePlatform(c.opt.Platform, platform)
+	opt.Platform, err = llbutil.ResolvePlatform(platform, c.opt.Platform)
+	if err != nil {
+		// Contradiction allowed. You can BUILD another target with different platform.
+		opt.Platform = platform
+	}
 	mts, err := Earthfile2LLB(ctx, target, opt)
 	if err != nil {
 		return nil, errors.Wrapf(err, "earthfile2llb for %s", fullTargetName)
