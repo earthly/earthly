@@ -684,7 +684,7 @@ func (b *Builder) tempEarthlyOutDir() (string, error) {
 	var err error
 	b.outDirOnce.Do(func() {
 		tmpParentDir := ".tmp-earthly-out"
-		err := os.MkdirAll(tmpParentDir, 0755)
+		err = os.MkdirAll(tmpParentDir, 0755)
 		if err != nil {
 			err = errors.Wrapf(err, "unable to create dir %s", tmpParentDir)
 			return
@@ -695,10 +695,10 @@ func (b *Builder) tempEarthlyOutDir() (string, error) {
 			return
 		}
 		b.opt.CleanCollection.Add(func() error {
-			err := os.RemoveAll(b.outDir)
+			remErr := os.RemoveAll(b.outDir)
 			// Remove the parent dir only if it's empty.
 			_ = os.Remove(tmpParentDir)
-			return err
+			return remErr
 		})
 	})
 	return b.outDir, err
