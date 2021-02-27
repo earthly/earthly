@@ -73,6 +73,9 @@ type Builder struct {
 	opt       Opt
 	resolver  *buildcontext.Resolver
 	builtMain bool
+
+	outDirOnce sync.Once
+	outDir     string
 }
 
 // NewBuilder returns a new earthly Builder.
@@ -135,11 +138,6 @@ func (sp *successPrinter) incrementIndex() {
 }
 
 func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt BuildOpt) (*states.MultiTarget, error) {
-	outDir, err := b.tempEarthlyOutDir()
-	if err != nil {
-		return nil, err
-	}
-
 	successFun := func(msg string) func() {
 		return func() {
 			if opt.PrintSuccess {
@@ -343,10 +341,18 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 		})
 		return pipeW, nil
 	}
+	var outDir string
 	onArtifact := func(childCtx context.Context, index int, artifact domain.Artifact, artifactPath string, destPath string) (string, error) {
 		sp.printCurrentSuccess()
 		if !destPathWhitelist[destPath] {
 			return "", errors.Errorf("dest path %s is not in the whitelist: %+v", destPath, destPathWhitelist)
+		}
+		if outDir == "" {
+			var err error
+			outDir, err = b.tempEarthlyOutDir()
+			if err != nil {
+				return "", err
+			}
 		}
 		artifactDir := filepath.Join(outDir, fmt.Sprintf("index-%d", index))
 		err := os.MkdirAll(artifactDir, 0755)
@@ -357,13 +363,27 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 	}
 	onFinalArtifact := func(childCtx context.Context) (string, error) {
 		sp.printCurrentSuccess()
+		if outDir == "" {
+			var err error
+			outDir, err = b.tempEarthlyOutDir()
+			if err != nil {
+				return "", err
+			}
+		}
 		return outDir, nil
 	}
-	err = b.s.buildMainMulti(ctx, bf, onImage, onArtifact, onFinalArtifact, "main")
+	err := b.s.buildMainMulti(ctx, bf, onImage, onArtifact, onFinalArtifact, "main")
 	if err != nil {
 		return nil, errors.Wrapf(err, "build main")
 	}
 	sp.printCurrentSuccess()
+	if outDir == "" {
+		var err error
+		outDir, err = b.tempEarthlyOutDir()
+		if err != nil {
+			return nil, err
+		}
+	}
 	sp.incrementIndex()
 	b.builtMain = true
 
@@ -661,20 +681,25 @@ func (b *Builder) saveArtifactLocally(ctx context.Context, artifact domain.Artif
 }
 
 func (b *Builder) tempEarthlyOutDir() (string, error) {
-	tmpParentDir := ".tmp-earthly-out"
-	err := os.MkdirAll(tmpParentDir, 0755)
-	if err != nil {
-		return "", errors.Wrapf(err, "unable to create dir %s", tmpParentDir)
-	}
-	outDir, err := ioutil.TempDir(tmpParentDir, "tmp")
-	if err != nil {
-		return "", errors.Wrap(err, "mk temp dir for artifacts")
-	}
-	b.opt.CleanCollection.Add(func() error {
-		err := os.RemoveAll(outDir)
-		// Remove the parent dir only if it's empty.
-		_ = os.Remove(tmpParentDir)
-		return err
+	var err error
+	b.outDirOnce.Do(func() {
+		tmpParentDir := ".tmp-earthly-out"
+		err = os.MkdirAll(tmpParentDir, 0755)
+		if err != nil {
+			err = errors.Wrapf(err, "unable to create dir %s", tmpParentDir)
+			return
+		}
+		b.outDir, err = ioutil.TempDir(tmpParentDir, "tmp")
+		if err != nil {
+			err = errors.Wrap(err, "mk temp dir for artifacts")
+			return
+		}
+		b.opt.CleanCollection.Add(func() error {
+			remErr := os.RemoveAll(b.outDir)
+			// Remove the parent dir only if it's empty.
+			_ = os.Remove(tmpParentDir)
+			return remErr
+		})
 	})
-	return outDir, nil
+	return b.outDir, err
 }
