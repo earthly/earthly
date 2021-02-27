@@ -73,6 +73,9 @@ type Builder struct {
 	opt       Opt
 	resolver  *buildcontext.Resolver
 	builtMain bool
+
+	outDirOnce sync.Once
+	outDir     string
 }
 
 // NewBuilder returns a new earthly Builder.
@@ -374,6 +377,13 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 		return nil, errors.Wrapf(err, "build main")
 	}
 	sp.printCurrentSuccess()
+	if outDir == "" {
+		var err error
+		outDir, err = b.tempEarthlyOutDir()
+		if err != nil {
+			return nil, err
+		}
+	}
 	sp.incrementIndex()
 	b.builtMain = true
 
@@ -397,9 +407,6 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 	if opt.NoOutput {
 		// Nothing.
 	} else if opt.OnlyArtifact != nil {
-		if outDir == "" {
-			return nil, errors.New("out dir has not been created (should never happen)")
-		}
 		err := b.saveArtifactLocally(ctx, *opt.OnlyArtifact, outDir, opt.OnlyArtifactDestPath, mts.Final.Salt, opt, false)
 		if err != nil {
 			return nil, err
@@ -674,20 +681,25 @@ func (b *Builder) saveArtifactLocally(ctx context.Context, artifact domain.Artif
 }
 
 func (b *Builder) tempEarthlyOutDir() (string, error) {
-	tmpParentDir := ".tmp-earthly-out"
-	err := os.MkdirAll(tmpParentDir, 0755)
-	if err != nil {
-		return "", errors.Wrapf(err, "unable to create dir %s", tmpParentDir)
-	}
-	outDir, err := ioutil.TempDir(tmpParentDir, "tmp")
-	if err != nil {
-		return "", errors.Wrap(err, "mk temp dir for artifacts")
-	}
-	b.opt.CleanCollection.Add(func() error {
-		err := os.RemoveAll(outDir)
-		// Remove the parent dir only if it's empty.
-		_ = os.Remove(tmpParentDir)
-		return err
+	var err error
+	b.outDirOnce.Do(func() {
+		tmpParentDir := ".tmp-earthly-out"
+		err := os.MkdirAll(tmpParentDir, 0755)
+		if err != nil {
+			err = errors.Wrapf(err, "unable to create dir %s", tmpParentDir)
+			return
+		}
+		b.outDir, err = ioutil.TempDir(tmpParentDir, "tmp")
+		if err != nil {
+			err = errors.Wrap(err, "mk temp dir for artifacts")
+			return
+		}
+		b.opt.CleanCollection.Add(func() error {
+			err := os.RemoveAll(b.outDir)
+			// Remove the parent dir only if it's empty.
+			_ = os.Remove(tmpParentDir)
+			return err
+		})
 	})
-	return outDir, nil
+	return b.outDir, err
 }
