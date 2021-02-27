@@ -312,13 +312,35 @@ ContainerRunningLoop:
 	}
 
 	// Wait for the connection to be available.
-	ctxTimeout2, cancel2 := context.WithTimeout(ctx, opTimeout)
-	defer cancel2()
+	err := waitForConnection(ctx, address, opTimeout)
+	if err != nil {
+		if !errors.Is(err, ErrBuildkitStartFailure) {
+			return err
+		}
+		// We timed out. Check if the user has a lot of cache and give buildkit another chance.
+		cacheSize, cacheSizeErr := getCacheSize(ctx)
+		if cacheSizeErr != nil {
+			fmt.Printf("Warning: Could not detect buildkit cache size: %v\n", cacheSizeErr)
+			return err
+		}
+		cacheGigs := cacheSize / 1000 / 1000 / 1000
+		if cacheGigs < 30 {
+			return err
+		}
+		fmt.Printf("Detected cache size %dGB. It could take a while for buildkit to start up. Waiting for another %s before giving up...\n", cacheGigs, opTimeout)
+		return waitForConnection(ctx, address, opTimeout)
+	}
+	return nil
+}
+
+func waitForConnection(ctx context.Context, address string, opTimeout time.Duration) error {
+	ctxTimeout, cancel := context.WithTimeout(ctx, opTimeout)
+	defer cancel()
 	for {
 		select {
 		case <-time.After(1 * time.Second):
 			// Make sure that it has not crashed on startup.
-			isRunning, err := isContainerRunning(ctxTimeout2)
+			isRunning, err := isContainerRunning(ctxTimeout)
 			if err != nil {
 				return err
 			}
@@ -326,12 +348,12 @@ ContainerRunningLoop:
 				return ErrBuildkitCrashed
 			}
 			// Attempt to connect.
-			bkClient, err := client.New(ctxTimeout2, address)
+			bkClient, err := client.New(ctxTimeout, address)
 			if err != nil {
 				// Try again.
 				continue
 			}
-			_, err = bkClient.ListWorkers(ctxTimeout2)
+			_, err = bkClient.ListWorkers(ctxTimeout)
 			if err != nil {
 				// Try again.
 				continue
@@ -341,7 +363,7 @@ ContainerRunningLoop:
 				return errors.Wrap(err, "close buildkit client")
 			}
 			return nil
-		case <-ctxTimeout2.Done():
+		case <-ctxTimeout.Done():
 			return errors.Wrapf(ErrBuildkitStartFailure, "timeout %s: buildkitd did not make connection available after start", opTimeout)
 		}
 	}
@@ -525,4 +547,30 @@ func isDockerAvailable(ctx context.Context) bool {
 	cmd := exec.CommandContext(ctx, "docker", "ps")
 	err := cmd.Run()
 	return err == nil
+}
+
+// getCacheSize returns the size of the earthly cache in bytes.
+func getCacheSize(ctx context.Context) (int, error) {
+	cmd := exec.CommandContext(
+		ctx, "docker", "volume", "inspect", VolumeName, "--format", "{{.Mountpoint}}")
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return 0, errors.Wrapf(err, "get volume %s mount point", VolumeName)
+	}
+	mountpoint := string(bytes.TrimSpace(out))
+
+	cmd = exec.CommandContext(
+		ctx, "docker", "run", "--privileged", "--pid=host", "busybox",
+		"nsenter", "-t", "1", "-m", "-u", "-n", "-i", "--",
+		"du", "-d", "0", "-b", "--", mountpoint)
+	out, cmdErr := cmd.Output() // can exit with 1 if there are warnings
+	parts := bytes.SplitN(bytes.TrimSpace(out), []byte("\t"), 2)
+	size, err := strconv.ParseInt(string(parts[0]), 10, 64)
+	if err != nil {
+		if cmdErr != nil {
+			return 0, errors.Wrapf(cmdErr, "parse cache size \"%s\"", parts[0])
+		}
+		return 0, errors.Wrapf(err, "parse cache size %s", parts[0])
+	}
+	return int(size), nil
 }
