@@ -54,14 +54,12 @@ apt-repo:
     WORKDIR /repo
     RUN mkdir -p dists/stable/main/binary-amd64
     RUN dpkg-scanpackages pool/ > dists/stable/main/binary-amd64/Packages
-    RUN ls -la /repo/dists/stable/main/binary-amd64/Packages
-    RUN cat /repo/dists/stable/main/binary-amd64/Packages | gzip -c9 > /repo/dists/stable/main/binary-amd64/Packages.gz
+    RUN ls /repo/dists/stable/main/binary-amd64/Packages && ( cat /repo/dists/stable/main/binary-amd64/Packages | gzip -c9 > /repo/dists/stable/main/binary-amd64/Packages.gz )
     WORKDIR /repo/dists/stable
     COPY Release Release
     RUN ls /repo/dists/stable/Release # ensure this exists here
     COPY generate-release.sh /
     RUN PACKAGES=main/binary-amd64/Packages /generate-release.sh >> Release
-    #RUN find . && false
     SAVE ARTIFACT /repo AS LOCAL repo
 
 signed-apt-repo:
@@ -71,15 +69,14 @@ signed-apt-repo:
     RUN gpg --import /apt-key/earthly-apt-private.pgp
     RUN gpg --default-key earthly-apt -abs -o /repo/dists/stable/Release.gpg /repo/dists/stable/Release
     RUN cat /repo/dists/stable/Release | gpg --default-key earthly-apt -abs --clearsign > /repo/dists/stable/InRelease
-    #RUN dpkg-sig -k earthly-apt --sign earthly.deb
     SAVE ARTIFACT /repo AS LOCAL repo
 
 apt-repo-server:
     FROM python:3
     RUN mkdir -p /repo-data/deb
     COPY +signed-apt-repo/repo /repo-data/deb
-    RUN ls -la /repo-data/deb/dists/stable/Release
-    RUN ls -la /repo-data/deb/dists/stable/Release.gpg
+    RUN ls -la /repo-data/deb/dists/stable/Release # ensure this exists
+    RUN ls -la /repo-data/deb/dists/stable/Release.gpg # ensure this exists
     CMD python -m http.server --directory /repo-data 8000
 
 
