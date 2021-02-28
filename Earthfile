@@ -310,6 +310,7 @@ examples1:
     BUILD ./examples/multirepo+docker
     BUILD ./examples/python+docker
     BUILD ./examples/cutoff-optimization+run
+    BUILD ./examples/apt-repo+test
     BUILD ./examples/yum-repo+test
 
 examples2:

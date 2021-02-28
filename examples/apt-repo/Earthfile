@@ -50,16 +50,16 @@ apt-repo:
     FROM +deps
     RUN mkdir -p /repo/dists/main/binary-amd64
     COPY --build-arg EARTHLY_VERSION +deb/*.deb /repo/pool/main/.
-    RUN ls /repo/pool/main/earthly_*.deb # ensure debs exist here
     WORKDIR /repo
     RUN mkdir -p dists/stable/main/binary-amd64
     RUN dpkg-scanpackages pool/ > dists/stable/main/binary-amd64/Packages
-    RUN ls /repo/dists/stable/main/binary-amd64/Packages && ( cat /repo/dists/stable/main/binary-amd64/Packages | gzip -c9 > /repo/dists/stable/main/binary-amd64/Packages.gz )
+    RUN gzip -c9 dists/stable/main/binary-amd64/Packages > dists/stable/main/binary-amd64/Packages.gz
     WORKDIR /repo/dists/stable
     COPY Release Release
-    RUN ls /repo/dists/stable/Release # ensure this exists here
     COPY generate-release.sh /
     RUN PACKAGES=main/binary-amd64/Packages /generate-release.sh >> Release
+    RUN ls /repo/pool/main/earthly_*.deb # ensure debs exist
+    RUN ls /repo/dists/stable/Release # ensure Release exists
     SAVE ARTIFACT /repo AS LOCAL repo
 
 signed-apt-repo:
@@ -75,8 +75,10 @@ apt-repo-server:
     FROM python:3
     RUN mkdir -p /repo-data/deb
     COPY +signed-apt-repo/repo /repo-data/deb
-    RUN ls -la /repo-data/deb/dists/stable/Release # ensure this exists
-    RUN ls -la /repo-data/deb/dists/stable/Release.gpg # ensure this exists
+    # First check these files exist
+    RUN ls -la /repo-data/deb/dists/stable/InRelease
+    RUN ls -la /repo-data/deb/dists/stable/Release
+    RUN ls -la /repo-data/deb/dists/stable/Release.gpg
     CMD python -m http.server --directory /repo-data 8000
 
 
