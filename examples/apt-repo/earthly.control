@@ -1,0 +1,7 @@
+Package: earthly
+Version: __earthly_version__
+Architecture: all
+Maintainer: Alex <alex@earthly.dev>
+Depends: bash
+Homepage: http://earthly.dev
+Description: Build automation tool for the container era.

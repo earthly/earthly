@@ -1,0 +1,113 @@
+deps:
+    FROM ubuntu:20.10
+    RUN apt-get update && apt-get install -y dpkg-dev wget dpkg-sig
+
+deb:
+    ARG EARTHLY_VERSION
+    ARG PKG_NAME=earthly_$EARTHLY_VERSION-1_amd64
+    FROM +deps
+    WORKDIR /work
+    RUN mkdir -p $PKG_NAME/DEBIAN
+    RUN mkdir -p $PKG_NAME/usr/bin/
+    RUN echo "$EARTHLY_VERSION" | grep '^[0-9]\+.[0-9]\+.[0-9]\+$' # ensure version is of the form 1.2.3
+    RUN wget -q "https://github.com/earthly/earthly/releases/download/v${EARTHLY_VERSION}/earthly-linux-amd64" -O $PKG_NAME/usr/bin/earthly && chmod +x $PKG_NAME/usr/bin/earthly
+    COPY earthly.control $PKG_NAME/DEBIAN/control
+    RUN sed -i "s/__earthly_version__/$EARTHLY_VERSION/" $PKG_NAME/DEBIAN/control
+    RUN dpkg -b $PKG_NAME
+    #RUN find / | grep deb$ && false
+    SAVE ARTIFACT $PKG_NAME.deb AS LOCAL $PKG_NAME.deb
+
+test-deb:
+    ARG EARTHLY_VERSION
+    FROM +deps
+    COPY --build-arg EARTHLY_VERSION +deb/earthly_*.deb .
+    RUN apt-get install ./earthly_*.deb
+    RUN earthly --version | grep "version v$EARTHLY_VERSION linux/amd64"
+
+gpg-key:
+    FROM +deps
+    WORKDIR /root/apt-key
+    RUN echo "%echo Generating a basic OpenPGP key
+Key-Type: RSA
+Key-Length: 4096
+Subkey-Type: RSA
+Subkey-Length: 4096
+Name-Real: earthly-apt
+Name-Email: example@earthly.dev
+Expire-Date: 0
+%no-ask-passphrase
+%no-protection
+%commit
+%echo done" > earthly-apt.batch
+    RUN rm -rf /root/gpupg && gpg --no-tty --batch --gen-key earthly-apt.batch
+    RUN gpg --output earthly-apt-public.pgp --armor --export example@earthly.dev
+    RUN gpg --output earthly-apt-private.pgp --armor --export-secret-key example@earthly.dev
+    SAVE ARTIFACT earthly-apt-public.pgp
+    SAVE ARTIFACT earthly-apt-private.pgp
+
+apt-repo:
+    ARG EARTHLY_VERSION
+    FROM +deps
+    RUN mkdir -p /repo/dists/main/binary-amd64
+    COPY --build-arg EARTHLY_VERSION +deb/*.deb /repo/pool/main/.
+    RUN ls /repo/pool/main/earthly_*.deb # ensure debs exist here
+    WORKDIR /repo
+    RUN mkdir -p dists/stable/main/binary-amd64
+    RUN dpkg-scanpackages pool/ > dists/stable/main/binary-amd64/Packages
+    RUN ls -la /repo/dists/stable/main/binary-amd64/Packages
+    RUN cat /repo/dists/stable/main/binary-amd64/Packages | gzip -c9 > /repo/dists/stable/main/binary-amd64/Packages.gz
+    WORKDIR /repo/dists/stable
+    COPY Release Release
+    RUN ls /repo/dists/stable/Release # ensure this exists here
+    COPY generate-release.sh /
+    RUN PACKAGES=main/binary-amd64/Packages /generate-release.sh >> Release
+    #RUN find . && false
+    SAVE ARTIFACT /repo AS LOCAL repo
+
+signed-apt-repo:
+    FROM +deps
+    COPY +apt-repo/repo /repo
+    COPY +gpg-key/earthly-apt-public.pgp +gpg-key/earthly-apt-private.pgp /apt-key/.
+    RUN gpg --import /apt-key/earthly-apt-private.pgp
+    RUN gpg --default-key earthly-apt -abs -o /repo/dists/stable/Release.gpg /repo/dists/stable/Release
+    RUN cat /repo/dists/stable/Release | gpg --default-key earthly-apt -abs --clearsign > /repo/dists/stable/InRelease
+    #RUN dpkg-sig -k earthly-apt --sign earthly.deb
+    SAVE ARTIFACT /repo AS LOCAL repo
+
+apt-repo-server:
+    FROM python:3
+    RUN mkdir -p /repo-data/deb
+    COPY +signed-apt-repo/repo /repo-data/deb
+    RUN ls -la /repo-data/deb/dists/stable/Release
+    RUN ls -la /repo-data/deb/dists/stable/Release.gpg
+    CMD python -m http.server --directory /repo-data 8000
+
+
+apt-repo-tester:
+    FROM +deps
+    COPY +gpg-key/earthly-apt-public.pgp /apt-key/.
+    # Most users will add the key via a command like:
+    #   curl http://127.0.0.1:8000/my-apt-repo/KEY.pgp | apt-key add -;
+    # However we can't do this here since that server isn't running during build time; so instead we used the key directly
+    RUN apt-key add /apt-key/earthly-apt-public.pgp
+    RUN apt-get update && apt-get install -y curl
+    RUN echo "deb [arch=amd64] http://127.0.0.1:8000/deb/ stable main" > /etc/apt/sources.list.d/earthly.list
+    # this means the following URLS must resolve:
+    #  - http://127.0.0.1:8000/deb/dists/stable/Release
+    #  - http://127.0.0.1:8000/deb/dists/stable/main/binary-amd64/Packages
+
+test-repo:
+    ARG EARTHLY_VERSION
+    FROM earthly/dind:alpine
+    RUN apk add curl
+    WITH DOCKER \
+        --load apt:server=+apt-repo-server \
+        --load apt:tester=+apt-repo-tester
+        RUN docker run -d --network=host --name=apt-server apt:server \
+            && sleep 1 \
+            && docker run --network=host --name=apt-tester apt:tester /bin/sh -c "which gpgv && apt-get update && apt-get install -y earthly && earthly --version | grep 'earthly version v$EARTHLY_VERSION linux/amd64'"
+    END
+
+test:
+    ARG EARTHLY_VERSION=0.5.3
+    BUILD --build-arg EARTHLY_VERSION +test-repo
