@@ -287,7 +287,7 @@ func (c *Converter) Locally(ctx context.Context, platform *specs.Platform) error
 		return err
 	}
 	if !c.opt.AllowLocally {
-		return errors.New("LOCALLY cannot be used when --strict is specified")
+		return errors.New("LOCALLY cannot be used when --strict is specified or otherwise implied")
 	}
 
 	return c.fromClassical(ctx, "scratch", platform, true)
@@ -1037,6 +1037,12 @@ func (c *Converter) buildTarget(ctx context.Context, fullTargetName string, plat
 }
 
 func (c *Converter) internalRun(ctx context.Context, args, secretKeyValues []string, isWithShell bool, shellWrap shellWrapFun, pushFlag, transient, withSSH, noCache bool, interactive []string, commandStr string, opts ...llb.RunOption) (llb.State, error) {
+	isInteractive := len(interactive) > 0
+	if !c.opt.AllowInteractive && isInteractive {
+		// This check is here because other places also call here to evaluate RUN-like statements. We catch all potential interactives here.
+		return llb.State{}, errors.New("--interactive is not allowed, when --strict is specified or otherwise implied")
+	}
+
 	finalOpts := opts
 	var extraEnvVars []string
 	// Secrets.
@@ -1088,16 +1094,16 @@ func (c *Converter) internalRun(ctx context.Context, args, secretKeyValues []str
 		finalOpts = append(finalOpts, llb.AddSSHSocket())
 	}
 	// Shell and debugger wrap.
-	finalArgs := shellWrap(args, extraEnvVars, isWithShell, true, len(interactive) > 0)
+	finalArgs := shellWrap(args, extraEnvVars, isWithShell, true, isInteractive)
 	finalOpts = append(finalOpts, llb.Args(finalArgs))
 	if noCache {
 		finalOpts = append(finalOpts, llb.IgnoreCache)
 	}
 
-	if len(interactive) > 0 && interactiveType(interactive) == "ephemeral" {
+	if isInteractive && interactiveType(interactive) == "ephemeral" {
 		finalOpts = append(finalOpts, llb.IgnoreCache)
 		c.mts.Final.EphemeralInteractive = states.EphemeralInteractive{
-			CommandStrs: withShellAndEnvVars(args, []string{}, isWithShell, true, len(interactive) > 0),
+			CommandStrs: withShellAndEnvVars(args, []string{}, isWithShell, true, isInteractive),
 			State:       llbutil.WithDependency(c.mts.Final.MainState, c.mts.Final.MainState.Run(finalOpts...).Root(), c.mts.Final.Target.String(), "ephemeral"),
 			HasState:    true,
 		}

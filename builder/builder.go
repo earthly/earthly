@@ -171,6 +171,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 				UseInlineCache:       b.opt.UseInlineCache,
 				UseFakeDep:           b.opt.UseFakeDep,
 				AllowLocally:         !b.opt.Strict,
+				AllowInteractive:     !b.opt.Strict,
 			})
 			if err != nil {
 				return nil, err

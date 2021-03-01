@@ -103,6 +103,8 @@ type RunPush struct {
 	HasState    bool
 }
 
+// EphemeralInteractive holds the relevant data for running an interactive session when
+// it is not desired to save the resulting changes into an image.
 type EphemeralInteractive struct {
 	CommandStrs []string
 	State       llb.State
