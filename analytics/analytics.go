@@ -42,9 +42,19 @@ func detectCI() (string, bool) {
 	// default catch-all
 	if v, ok := os.LookupEnv("CI"); ok {
 		if strings.ToLower(v) == "true" {
-			return "unknown", true
+			return "ci-env-var-set", true
 		}
 		return v, true
+	}
+
+	// just to make sure. If the repo is in detached head mode,
+	// we also consider that as running in CI.
+	err := exec.Command("git", "symbolic-ref", "-q", "HEAD").Run()
+	if err != nil {
+		if exitErr, ok := err.(*exec.ExitError); ok && exitErr.ExitCode() == 1 {
+			// It's in detached head.
+			return "git-detached-head", true
+		}
 	}
 
 	return "false", false
