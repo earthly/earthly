@@ -144,7 +144,7 @@ func (cl ConsoleLogger) PrintFailure(msg string) {
 	cl.PrintBar(warnColor, " FAILURE ", msg)
 }
 
-// Print bar prints an earthly message bar
+// PrintBar prints an earthly message bar
 func (cl ConsoleLogger) PrintBar(c *color.Color, center, msg string) {
 	if msg != "" {
 		center = fmt.Sprintf("%s[%s] ", center, msg)
