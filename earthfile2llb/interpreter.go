@@ -352,6 +352,10 @@ func (i *Interpreter) handleRun(ctx context.Context, cmd spec.Command) error {
 		if *noCache {
 			return Errorf(cmd.SourceLocation, "the --no-cache flag has no effect when used with the LOCALLY directive")
 		}
+		if len(interactive.Args) > 0 {
+			// I mean its literally just your terminal but with extra steps. No reason to support this?
+			return Errorf(cmd.SourceLocation, "the --interactive flag is not supported in combination with the LOCALLY directive")
+		}
 
 		// TODO these should be supported, but haven't yet been implemented
 		if len(secrets.Args) > 0 {
@@ -380,6 +384,10 @@ func (i *Interpreter) handleRun(ctx context.Context, cmd spec.Command) error {
 			i.pushOnlyAllowed = true
 		}
 	} else {
+		if len(interactive.Args) > 0 {
+			// I mean its literally just your terminal but with extra steps. No reason to support this?
+			return Errorf(cmd.SourceLocation, "the --interactive flag is not supported in WITH DOCKER")
+		}
 		if *pushFlag {
 			return Errorf(cmd.SourceLocation, "RUN --push not allowed in WITH DOCKER")
 		}
