@@ -1101,18 +1101,6 @@ func (c *Converter) internalRun(ctx context.Context, args, secretKeyValues []str
 	}
 
 	if isInteractive {
-		alreadyInteractive := false
-		for _, sts := range c.mts.All() {
-			if sts.InteractiveSession.Initialized {
-				alreadyInteractive = true
-				break
-			}
-		}
-
-		if alreadyInteractive {
-			return llb.State{}, errors.New("Only one --interactive session is allowed")
-		}
-
 		finalOpts = append(finalOpts, llb.IgnoreCache)
 
 		switch interactiveType(interactive) {
@@ -1376,9 +1364,16 @@ func (c *Converter) setPlatform(platform *specs.Platform) {
 }
 
 func (c *Converter) checkAllowed(command string) error {
+	for _, sts := range c.mts.All() {
+		if sts.InteractiveSession.Initialized {
+			return errors.New("If present, an --interactive command must be the last command in a target, and must be the only --interactive command")
+		}
+	}
+
 	if c.mts.Final.RanFromLike {
 		return nil
 	}
+
 	switch command {
 	case "FROM", "FROM DOCKERFILE", "LOCALLY", "BUILD", "ARG":
 		return nil
