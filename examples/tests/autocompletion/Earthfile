@@ -1,4 +1,4 @@
-FROM ../../..+earthly-docker
+FROM ../../..+earthly-integration-test-base
 
 test-root-commands:
     RUN echo "./

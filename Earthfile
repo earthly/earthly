@@ -189,12 +189,17 @@ earthly-docker:
     FROM ./buildkitd+buildkitd
     RUN apk add --update --no-cache docker-cli
     ENV NETWORK_MODE=host
+    ENV EARTHLY_IMAGE=true
     COPY earthly-buildkitd-wrapper.sh /usr/bin/earthly-buildkitd-wrapper.sh
     ENTRYPOINT ["/usr/bin/earthly-buildkitd-wrapper.sh"]
     ARG EARTHLY_TARGET_TAG_DOCKER
     ARG TAG=$EARTHLY_TARGET_TAG_DOCKER
     COPY --build-arg VERSION=$TAG +earthly/earthly /usr/bin/earthly
     SAVE IMAGE --push --cache-from=earthly/earthly:main earthly/earthly:$TAG
+
+earthly-integration-test-base:
+    FROM +earthly-docker
+    RUN earthly config global.disable_analytics true
 
 prerelease:
     FROM alpine:3.13

@@ -1,4 +1,4 @@
-FROM ../../..+earthly-docker
+FROM ../../..+earthly-integration-test-base
 WORKDIR /test
 ARG REGISTRY
 ARG EARTHLY_BUILD_ARGS="REGISTRY"
