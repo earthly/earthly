@@ -1122,7 +1122,7 @@ func (c *Converter) internalRun(ctx context.Context, args, secretKeyValues []str
 		switch interactiveType(interactive) {
 		case "ephemeral":
 			is := states.InteractiveSession{
-				CommandStrs: withShellAndEnvVars(args, []string{}, isWithShell, true, isInteractive),
+				CommandStr:  commandStr,
 				Initialized: true,
 				Kind:        "ephemeral",
 			}
@@ -1140,7 +1140,7 @@ func (c *Converter) internalRun(ctx context.Context, args, secretKeyValues []str
 
 		default:
 			c.mts.Final.InteractiveSession = states.InteractiveSession{
-				CommandStrs: withShellAndEnvVars(args, []string{}, isWithShell, true, isInteractive),
+				CommandStr:  commandStr,
 				Initialized: true,
 				Kind:        "save",
 			}

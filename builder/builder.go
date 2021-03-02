@@ -478,7 +478,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 						}
 
 						if sts.RunPush.InteractiveSession.Initialized {
-							console.Printf("Did not start an %s interactive session with command %s. Use earthly --push to start the session\n", sts.InteractiveSession.Kind, sts.RunPush.InteractiveSession.CommandStrs)
+							console.Printf("Did not start an %s interactive session with command %s. Use earthly --push to start the session\n", sts.RunPush.InteractiveSession.Kind, sts.RunPush.InteractiveSession.CommandStr)
 						}
 					}
 				}

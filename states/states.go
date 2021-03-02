@@ -109,7 +109,7 @@ type RunPush struct {
 // InteractiveSession holds the relevant data for running an interactive session when
 // it is not desired to save the resulting changes into an image.
 type InteractiveSession struct {
-	CommandStrs []string
+	CommandStr  string
 	State       llb.State
 	Initialized bool
 	Kind        string
