@@ -148,6 +148,9 @@ func (c *Converter) fromTarget(ctx context.Context, targetName string, platform 
 	if err != nil {
 		return errors.Wrapf(err, "apply build %s", depTarget.String())
 	}
+	if mts.Final.RanInteractive {
+		return errors.New("Cannot FROM a target ending with an --interactive")
+	}
 	if depTarget.IsLocalInternal() {
 		depTarget.LocalPath = c.mts.Final.Target.LocalPath
 	}
@@ -165,6 +168,7 @@ func (c *Converter) fromTarget(ctx context.Context, targetName string, platform 
 	}
 	c.mts.Final.MainImage = saveImage.Image.Clone()
 	c.mts.Final.RanFromLike = mts.Final.RanFromLike
+	c.mts.Final.RanInteractive = mts.Final.RanInteractive
 	return nil
 }
 
@@ -1102,6 +1106,7 @@ func (c *Converter) internalRun(ctx context.Context, args, secretKeyValues []str
 
 	if isInteractive {
 		finalOpts = append(finalOpts, llb.IgnoreCache)
+		c.mts.Final.RanInteractive = true
 
 		switch interactiveType(interactive) {
 		case "ephemeral":
@@ -1364,10 +1369,8 @@ func (c *Converter) setPlatform(platform *specs.Platform) {
 }
 
 func (c *Converter) checkAllowed(command string) error {
-	for _, sts := range c.mts.All() {
-		if sts.InteractiveSession.Initialized {
-			return errors.New("If present, an --interactive command must be the last command in a target, and must be the only --interactive command")
-		}
+	if c.mts.Final.RanInteractive {
+		return errors.New("If present, a single --interactive command must be the last command in a target")
 	}
 
 	if c.mts.Final.RanFromLike {

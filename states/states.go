@@ -54,6 +54,8 @@ type SingleTarget struct {
 	// RanFromLike represents whether we have encountered a FROM-like command
 	// (eg FROM, FROM DOCKERFILE, LOCALLY).
 	RanFromLike bool
+	// RanInteractive represents whether we have encountered an --interactive command.
+	RanInteractive bool
 }
 
 // LastSaveImage returns the last save image available (if any).
