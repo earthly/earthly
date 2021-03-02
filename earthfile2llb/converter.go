@@ -1100,14 +1100,38 @@ func (c *Converter) internalRun(ctx context.Context, args, secretKeyValues []str
 		finalOpts = append(finalOpts, llb.IgnoreCache)
 	}
 
-	if isInteractive && interactiveType(interactive) == "ephemeral" {
-		finalOpts = append(finalOpts, llb.IgnoreCache)
-		c.mts.Final.EphemeralInteractive = states.EphemeralInteractive{
-			CommandStrs: withShellAndEnvVars(args, []string{}, isWithShell, true, isInteractive),
-			State:       llbutil.WithDependency(c.mts.Final.MainState, c.mts.Final.MainState.Run(finalOpts...).Root(), c.mts.Final.Target.String(), "ephemeral"),
-			HasState:    true,
+	if isInteractive {
+		alreadyInteractive := false
+		for _, sts := range c.mts.All() {
+			if sts.InteractiveSession.Initialized {
+				alreadyInteractive = true
+				break
+			}
 		}
-		return c.mts.Final.MainState, nil
+
+		if alreadyInteractive {
+			return llb.State{}, errors.New("Only one --interactive session is allowed")
+		}
+
+		finalOpts = append(finalOpts, llb.IgnoreCache)
+
+		switch interactiveType(interactive) {
+		case "ephemeral":
+			finalOpts = append(finalOpts, llb.IgnoreCache)
+			c.mts.Final.InteractiveSession = states.InteractiveSession{
+				CommandStrs: withShellAndEnvVars(args, []string{}, isWithShell, true, isInteractive),
+				State:       c.mts.Final.MainState.Run(finalOpts...).Root(),
+				Initialized: true,
+				Kind:        "ephemeral",
+			}
+			return c.mts.Final.MainState, nil
+		default:
+			c.mts.Final.InteractiveSession = states.InteractiveSession{
+				CommandStrs: withShellAndEnvVars(args, []string{}, isWithShell, true, isInteractive),
+				Initialized: true,
+				Kind:        "save",
+			}
+		}
 	}
 
 	if pushFlag {

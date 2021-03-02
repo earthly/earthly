@@ -46,7 +46,7 @@ type SingleTarget struct {
 	LocalDirs              map[string]string
 	Ongoing                bool
 	Salt                   string
-	EphemeralInteractive   EphemeralInteractive
+	InteractiveSession     InteractiveSession
 	// HasDangling represents whether the target has dangling instructions -
 	// ie if there are any non-SAVE commands after the first SAVE command,
 	// or if the target is invoked via BUILD command (not COPY nor FROM).
@@ -103,10 +103,11 @@ type RunPush struct {
 	HasState    bool
 }
 
-// EphemeralInteractive holds the relevant data for running an interactive session when
+// InteractiveSession holds the relevant data for running an interactive session when
 // it is not desired to save the resulting changes into an image.
-type EphemeralInteractive struct {
+type InteractiveSession struct {
 	CommandStrs []string
 	State       llb.State
-	HasState    bool
+	Initialized bool
+	Kind        string
 }
