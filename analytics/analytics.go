@@ -31,6 +31,8 @@ func detectCI() (string, bool) {
 		"BUILDKITE":       "buildkite",
 		"DRONE_BRANCH":    "drone",
 		"TRAVIS":          "travis",
+		"GITLAB_CI":       "gitlab",
+		"EARTHLY_IMAGE":   "earthly-image",
 	} {
 		if _, ok := os.LookupEnv(k); ok {
 			return v, true
@@ -63,6 +65,7 @@ func getRepo() string {
 		"DRONE_REPO",
 		"TRAVIS_REPO_SLUG",
 		"EARTHLY_GIT_ORIGIN_URL",
+		"CI_REPOSITORY_URL",
 	} {
 		if v, ok := os.LookupEnv(k); ok {
 			return strings.TrimSpace(v)
