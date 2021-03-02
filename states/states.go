@@ -98,11 +98,12 @@ type SaveImage struct {
 // RunPush is a series of RUN --push commands to be run after the build has been deemed as
 // successful, along with artifacts to save and images to push
 type RunPush struct {
-	CommandStrs []string
-	State       llb.State
-	SaveLocals  []SaveLocal
-	SaveImages  []SaveImage
-	HasState    bool
+	CommandStrs        []string
+	State              llb.State
+	SaveLocals         []SaveLocal
+	SaveImages         []SaveImage
+	InteractiveSession InteractiveSession
+	HasState           bool
 }
 
 // InteractiveSession holds the relevant data for running an interactive session when

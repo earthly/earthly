@@ -1104,20 +1104,40 @@ func (c *Converter) internalRun(ctx context.Context, args, secretKeyValues []str
 		finalOpts = append(finalOpts, llb.IgnoreCache)
 	}
 
+	if pushFlag {
+		// For push-flagged commands, make sure they run every time - don't use cache.
+		finalOpts = append(finalOpts, llb.IgnoreCache)
+		if !c.mts.Final.RunPush.HasState {
+			// If this is the first push-flagged command, initialize the state with the latest
+			// side-effects state.
+			c.mts.Final.RunPush.State = c.mts.Final.MainState
+			c.mts.Final.RunPush.HasState = true
+		}
+	}
+
 	if isInteractive {
 		finalOpts = append(finalOpts, llb.IgnoreCache)
 		c.mts.Final.RanInteractive = true
 
 		switch interactiveType(interactive) {
 		case "ephemeral":
-			finalOpts = append(finalOpts, llb.IgnoreCache)
-			c.mts.Final.InteractiveSession = states.InteractiveSession{
+			is := states.InteractiveSession{
 				CommandStrs: withShellAndEnvVars(args, []string{}, isWithShell, true, isInteractive),
-				State:       c.mts.Final.MainState.Run(finalOpts...).Root(),
 				Initialized: true,
 				Kind:        "ephemeral",
 			}
-			return c.mts.Final.MainState, nil
+
+			if pushFlag {
+				is.State = c.mts.Final.RunPush.State.Run(finalOpts...).Root()
+				c.mts.Final.RunPush.InteractiveSession = is
+				return c.mts.Final.RunPush.State, nil
+
+			} else {
+				is.State = c.mts.Final.MainState.Run(finalOpts...).Root()
+				c.mts.Final.InteractiveSession = is
+				return c.mts.Final.MainState, nil
+			}
+
 		default:
 			c.mts.Final.InteractiveSession = states.InteractiveSession{
 				CommandStrs: withShellAndEnvVars(args, []string{}, isWithShell, true, isInteractive),
@@ -1128,19 +1148,10 @@ func (c *Converter) internalRun(ctx context.Context, args, secretKeyValues []str
 	}
 
 	if pushFlag {
-		// For push-flagged commands, make sure they run every time - don't use cache.
-		finalOpts = append(finalOpts, llb.IgnoreCache)
-		if !c.mts.Final.RunPush.HasState {
-			// If this is the first push-flagged command, initialize the state with the latest
-			// side-effects state.
-			c.mts.Final.RunPush.State = c.mts.Final.MainState
-			c.mts.Final.RunPush.HasState = true
-		}
 		// Don't run on MainState. We want push-flagged commands to be executed only
 		// *after* the build. Save this for later.
 		c.mts.Final.RunPush.State = c.mts.Final.RunPush.State.Run(finalOpts...).Root()
-		c.mts.Final.RunPush.CommandStrs = append(
-			c.mts.Final.RunPush.CommandStrs, commandStr)
+		c.mts.Final.RunPush.CommandStrs = append(c.mts.Final.RunPush.CommandStrs, commandStr)
 		return c.mts.Final.RunPush.State, nil
 	} else if transient {
 		transientState := c.mts.Final.MainState.Run(finalOpts...).Root()

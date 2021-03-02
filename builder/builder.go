@@ -329,8 +329,9 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 				}
 			}
 
-			if sts.InteractiveSession.Initialized && sts.InteractiveSession.Kind == "ephemeral" {
-				ref, err := b.stateToRef(ctx, gwClient, sts.InteractiveSession.State, sts.Platform)
+			targetInteractiveSession := b.targetPhaseInteractiveSession(sts)
+			if targetInteractiveSession.Initialized && targetInteractiveSession.Kind == "ephemeral" {
+				ref, err := b.stateToRef(ctx, gwClient, targetInteractiveSession.State, sts.Platform)
 				res.AddRef("ephemeral", ref)
 				if err != nil {
 					return nil, err
@@ -475,6 +476,10 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 						for _, saveImage := range sts.RunPush.SaveImages {
 							console.Printf("Did not push, OR save %s locally, as evaluating the image would have caused a RUN --push to execute", saveImage.DockerTag)
 						}
+
+						if sts.RunPush.InteractiveSession.Initialized {
+							console.Printf("Did not start an %s interactive session with command %s. Use earthly --push to start the session\n", sts.InteractiveSession.Kind, sts.RunPush.InteractiveSession.CommandStrs)
+						}
 					}
 				}
 			}
@@ -509,6 +514,13 @@ func (b *Builder) targetPhaseImages(sts *states.SingleTarget) []states.SaveImage
 		return sts.RunPush.SaveImages
 	}
 	return sts.SaveImages
+}
+
+func (b *Builder) targetPhaseInteractiveSession(sts *states.SingleTarget) states.InteractiveSession {
+	if b.builtMain {
+		return sts.RunPush.InteractiveSession
+	}
+	return sts.InteractiveSession
 }
 
 func (b *Builder) stateToRef(ctx context.Context, gwClient gwclient.Client, state llb.State, platform *specs.Platform) (gwclient.Reference, error) {
