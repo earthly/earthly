@@ -151,12 +151,16 @@ func (cl ConsoleLogger) PrintBar(c *color.Color, center, msg string) {
 	}
 
 	totalWidth := 80
-	eqBar := strings.Repeat("=", (totalWidth-len(center))/2)
+	sideWidth := (totalWidth - len(center)) / 2
+	if sideWidth < 0 {
+		sideWidth = 0
+	}
+	eqBar := strings.Repeat("=", sideWidth)
 	leftBar := eqBar
 	rightBar := eqBar
 
 	// Ensure the width is always totalWidth
-	if len(center)%2 == 1 {
+	if len(center)%2 == 1 && sideWidth > 0 {
 		rightBar += "="
 	}
 

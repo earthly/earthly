@@ -384,10 +384,6 @@ func (i *Interpreter) handleRun(ctx context.Context, cmd spec.Command) error {
 			i.pushOnlyAllowed = true
 		}
 	} else {
-		if len(interactive.Args) > 0 {
-			// I mean its literally just your terminal but with extra steps. No reason to support this?
-			return Errorf(cmd.SourceLocation, "the --interactive flag is not supported in WITH DOCKER")
-		}
 		if *pushFlag {
 			return Errorf(cmd.SourceLocation, "RUN --push not allowed in WITH DOCKER")
 		}
