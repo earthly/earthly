@@ -1139,11 +1139,10 @@ func (c *Converter) internalRun(ctx context.Context, args, secretKeyValues []str
 				c.mts.Final.RunPush.InteractiveSession = is
 				return c.mts.Final.RunPush.State, nil
 
-			} else {
-				is.State = c.mts.Final.MainState.Run(finalOpts...).Root()
-				c.mts.Final.InteractiveSession = is
-				return c.mts.Final.MainState, nil
 			}
+			is.State = c.mts.Final.MainState.Run(finalOpts...).Root()
+			c.mts.Final.InteractiveSession = is
+			return c.mts.Final.MainState, nil
 
 		default:
 			c.mts.Final.InteractiveSession = states.InteractiveSession{
