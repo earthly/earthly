@@ -52,6 +52,7 @@
 * [Earthly](examples/earthly.md)
 
 ## ⚙️ CI examples
+
 * [Overview](ci-examples/ci-examples.md)
 * [Circle CI](ci-examples/circle-integration.md)
 * [GitHub Actions](ci-examples/gh-actions-integration.md)
