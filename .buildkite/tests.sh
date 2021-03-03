@@ -48,6 +48,8 @@ if [ -n "$download_url" ]; then
 fi
 
 echo "Build latest earthly using released earthly"
+"$released_earthly" --version
+"$released_earthly" config global.disable_analytics true
 "$released_earthly" +for-"$EARTHLY_OS"
 
 echo "Execute tests"
