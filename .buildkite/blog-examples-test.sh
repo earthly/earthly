@@ -6,7 +6,9 @@ if ! command -v "$earthly"; then
     earthly="earth"
 fi
 
-$earthly --version
+"$earthly" config global.disable_analytics true
 
-$earthly github.com/earthly/earthly-example-scala/simple:main+test
-$earthly github.com/earthly/earthly-example-scala/simple:main+docker
+"$earthly" --version
+
+"$earthly" github.com/earthly/earthly-example-scala/simple:main+test
+"$earthly" github.com/earthly/earthly-example-scala/simple:main+docker
