@@ -3,9 +3,9 @@
 
 * [👋 Introduction](README.md)
 * [⬇️ Installation](https://earthly.dev/get-earthly)
-* [🔀 Alternative installation](alt-installation/alt-installation.md)
-* [🎓 Learn the basics](guides/basics.md)
-* [⚙️ CI integration](guides/ci-integration.md)
+* [🔀 Alternative installation](/alt-installation.md)
+* [🎓 Learn the basics](./basics.md)
+* [⚙️ CI integration](./ci-integration.md)
 
 ## 🧑‍🏫 Guides
 
