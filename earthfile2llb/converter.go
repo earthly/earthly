@@ -1119,12 +1119,17 @@ func (c *Converter) internalRun(ctx context.Context, args, secretKeyValues []str
 		finalOpts = append(finalOpts, llb.IgnoreCache)
 		c.mts.Final.RanInteractive = true
 
-		switch interactiveType(interactive) {
+		it, err := interactiveType(interactive)
+		if err != nil {
+			return llb.State{}, errors.Wrap(err, "handle interactive")
+		}
+
+		switch it {
 		case "ephemeral":
 			is := states.InteractiveSession{
 				CommandStr:  commandStr,
 				Initialized: true,
-				Kind:        "ephemeral",
+				Kind:        it,
 			}
 
 			if pushFlag {
@@ -1142,7 +1147,7 @@ func (c *Converter) internalRun(ctx context.Context, args, secretKeyValues []str
 			c.mts.Final.InteractiveSession = states.InteractiveSession{
 				CommandStr:  commandStr,
 				Initialized: true,
-				Kind:        "save",
+				Kind:        it,
 			}
 		}
 	}
@@ -1162,11 +1167,7 @@ func (c *Converter) internalRun(ctx context.Context, args, secretKeyValues []str
 	}
 }
 
-func interactiveType(args []string) string {
-	if len(args) <= 0 {
-		return "save"
-	}
-
+func interactiveType(args []string) (string, error) {
 	for _, s := range args {
 		parts := strings.Split(s, "=")
 
@@ -1174,13 +1175,13 @@ func interactiveType(args []string) string {
 		case "type":
 			if len(parts) == 2 {
 				if parts[1] == "save" || parts[1] == "ephemeral" {
-					return parts[1]
+					return parts[1], nil
 				}
 			}
 		}
 	}
 
-	return "save"
+	return "", errors.New("Invalid interactive type. Valid options: (save, ephemeral)")
 }
 
 func (c *Converter) readArtifact(ctx context.Context, mts *states.MultiTarget, artifact domain.Artifact) ([]byte, error) {
