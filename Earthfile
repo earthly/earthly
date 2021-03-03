@@ -30,6 +30,7 @@ deps:
 
 code:
     FROM +deps
+    # TODO: --platform=linux/amd64 can be removed after the next prerelease.
     COPY --platform=linux/amd64 ./ast/parser+parser/*.go ./ast/parser/
     COPY --dir analytics autocomplete buildcontext builder cleanup cmd config conslogging debugger dockertar \
         docker2earthly domain fileutil gitutil llbutil logging secretsclient stringutil states syncutil termutil \
@@ -188,12 +189,17 @@ earthly-docker:
     FROM ./buildkitd+buildkitd
     RUN apk add --update --no-cache docker-cli
     ENV NETWORK_MODE=host
+    ENV EARTHLY_IMAGE=true
     COPY earthly-buildkitd-wrapper.sh /usr/bin/earthly-buildkitd-wrapper.sh
     ENTRYPOINT ["/usr/bin/earthly-buildkitd-wrapper.sh"]
     ARG EARTHLY_TARGET_TAG_DOCKER
     ARG TAG=$EARTHLY_TARGET_TAG_DOCKER
     COPY --build-arg VERSION=$TAG +earthly/earthly /usr/bin/earthly
     SAVE IMAGE --push --cache-from=earthly/earthly:main earthly/earthly:$TAG
+
+earthly-integration-test-base:
+    FROM +earthly-docker
+    RUN earthly config global.disable_analytics true
 
 prerelease:
     FROM alpine:3.13
@@ -321,7 +327,10 @@ examples2:
     #BUILD ./examples/terraform+localstack
     BUILD ./examples/ruby+docker
     BUILD ./examples/ruby-on-rails+docker
-    BUILD --platform=linux/amd64 ./examples/scala+docker
+    IF [ "$TARGETARCH" = "amd64" ]
+        # This crashes randomly on arm.
+        BUILD ./examples/scala+docker
+    END
     BUILD ./examples/cobol+docker
     BUILD ./examples/rust+docker
     BUILD ./examples/multiplatform+all

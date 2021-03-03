@@ -1,4 +1,4 @@
-FROM ../..+earthly-docker
+FROM ../..+earthly-integration-test-base
 
 RUN apk add --update --no-cache \
     perl findutils

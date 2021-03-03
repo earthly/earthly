@@ -31,9 +31,7 @@
 * Once everything looks good, uncheck the "pre-release" checkbox on the GitHub release page. This will make this release the "latest" when people install Earthly with the one-liner. Important: You **have** to do this before the next step.
 * Run
   ```bash
-  ./earthly \
-    --build-arg RELEASE_TAG \
-    --push ./release+release-homebrew
+  ./earthly --build-arg RELEASE_TAG --push ./release+release-homebrew
   ```
 * Important: Subscribe to the PR that griswoldthecat created in homebrew-core, so that you can address any review comments that may come up.
 * Merge branch `main` into `next`, then merge branch `next` into `main`.

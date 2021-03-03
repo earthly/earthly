@@ -116,8 +116,8 @@ func (wdr *withDockerRun) Run(ctx context.Context, args []string, opt WithDocker
 		}
 		return opt.Pulls[i].ImageName < opt.Pulls[i].ImageName
 	})
-	for _, pullImageName := range opt.Pulls {
-		err := wdr.pull(ctx, pullImageName)
+	for _, opt := range opt.Pulls {
+		err := wdr.pull(ctx, opt)
 		if err != nil {
 			return errors.Wrap(err, "pull")
 		}
@@ -225,7 +225,7 @@ func (wdr *withDockerRun) getComposePulls(ctx context.Context, opt WithDockerOpt
 			// Image not specified in yaml.
 			continue
 		}
-		platform := wdr.c.opt.Platform
+		platform := wdr.c.mts.Final.Platform
 		if serviceInfo.Platform != "" {
 			p, err := platforms.Parse(serviceInfo.Platform)
 			if err != nil {
@@ -253,9 +253,9 @@ func (wdr *withDockerRun) getComposePulls(ctx context.Context, opt WithDockerOpt
 }
 
 func (wdr *withDockerRun) pull(ctx context.Context, opt DockerPullOpt) error {
-	plat := llbutil.PlatformWithDefault(opt.Platform)
-	state, image, _, err := wdr.c.internalFromClassical(
-		ctx, opt.ImageName, plat,
+	platform := llbutil.ResolvePlatform(wdr.c.opt.Platform, wdr.c.mts.Final.Platform, opt.Platform)
+	state, image, _, _, err := wdr.c.internalFromClassical(
+		ctx, opt.ImageName, platform,
 		llb.WithCustomNamef("%sDOCKER PULL %s", wdr.c.imageVertexPrefix(opt.ImageName), opt.ImageName),
 	)
 	if err != nil {
@@ -265,6 +265,7 @@ func (wdr *withDockerRun) pull(ctx context.Context, opt DockerPullOpt) error {
 		Final: &states.SingleTarget{
 			MainState: state,
 			MainImage: image,
+			Platform:  platform,
 			TargetInput: dedup.TargetInput{
 				TargetCanonical: fmt.Sprintf("+@docker-pull:%s", opt.ImageName),
 			},
@@ -390,7 +391,7 @@ func (wdr *withDockerRun) getComposeConfig(ctx context.Context, opt WithDockerOp
 		llb.WithCustomNamef("%sWITH DOCKER (docker-compose config)", wdr.c.vertexPrefix(false)),
 	}
 	state := wdr.c.mts.Final.MainState.Run(runOpts...).Root()
-	ref, err := llbutil.StateToRef(ctx, wdr.c.opt.GwClient, state, wdr.c.opt.Platform, wdr.c.opt.CacheImports)
+	ref, err := llbutil.StateToRef(ctx, wdr.c.opt.GwClient, state, wdr.c.mts.Final.Platform, wdr.c.opt.CacheImports)
 	if err != nil {
 		return nil, errors.Wrap(err, "state to ref compose config")
 	}
