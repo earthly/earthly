@@ -1369,7 +1369,7 @@ func (c *Converter) setPlatform(platform *specs.Platform) {
 }
 
 func (c *Converter) checkAllowed(command string) error {
-	if c.mts.Final.RanInteractive {
+	if c.mts.Final.RanInteractive && command != "SAVE IMAGE" {
 		return errors.New("If present, a single --interactive command must be the last command in a target")
 	}
 
