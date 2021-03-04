@@ -560,7 +560,7 @@ func (c *Converter) RunLocalExitCode(ctx context.Context, commandName string, ar
 }
 
 // Run applies the earthly RUN command.
-func (c *Converter) Run(ctx context.Context, args, mounts, secretKeyValues []string, privileged, withEntrypoint, withDocker, isWithShell, pushFlag, withSSH, noCache, interactive, interactiveSave bool) error {
+func (c *Converter) Run(ctx context.Context, args, mounts, secretKeyValues []string, privileged, withEntrypoint, withDocker, isWithShell, pushFlag, withSSH, noCache, interactive, interactiveKeep bool) error {
 	err := c.checkAllowed("RUN")
 	if err != nil {
 		return err
@@ -598,13 +598,13 @@ func (c *Converter) Run(ctx context.Context, args, mounts, secretKeyValues []str
 		strIf(pushFlag, "--push "),
 		strIf(noCache, "--no-cache "),
 		strIf(interactive, "--interactive "),
-		strIf(interactiveSave, "--interactive-save "),
+		strIf(interactiveKeep, "--interactive-keep "),
 		strings.Join(finalArgs, " "))
 	shellWrap := withShellAndEnvVars
 	opts = append(opts, llb.WithCustomNamef("%s%s", c.vertexPrefix(false), runStr))
 	_, err = c.internalRun(
 		ctx, finalArgs, secretKeyValues, isWithShell, shellWrap, pushFlag,
-		false, withSSH, noCache, interactive, interactiveSave, runStr, opts...)
+		false, withSSH, noCache, interactive, interactiveKeep, runStr, opts...)
 	return err
 }
 
@@ -1043,8 +1043,8 @@ func (c *Converter) buildTarget(ctx context.Context, fullTargetName string, plat
 	return mts, nil
 }
 
-func (c *Converter) internalRun(ctx context.Context, args, secretKeyValues []string, isWithShell bool, shellWrap shellWrapFun, pushFlag, transient, withSSH, noCache, interactive, interactiveSave bool, commandStr string, opts ...llb.RunOption) (llb.State, error) {
-	isInteractive := (interactive || interactiveSave)
+func (c *Converter) internalRun(ctx context.Context, args, secretKeyValues []string, isWithShell bool, shellWrap shellWrapFun, pushFlag, transient, withSSH, noCache, interactive, interactiveKeep bool, commandStr string, opts ...llb.RunOption) (llb.State, error) {
+	isInteractive := (interactive || interactiveKeep)
 	if !c.opt.AllowInteractive && isInteractive {
 		// This check is here because other places also call here to evaluate RUN-like statements. We catch all potential interactives here.
 		return llb.State{}, errors.New("--interactive options are not allowed, when --strict is specified or otherwise implied")
@@ -1140,11 +1140,11 @@ func (c *Converter) internalRun(ctx context.Context, args, secretKeyValues []str
 			c.mts.Final.InteractiveSession = is
 			return c.mts.Final.MainState, nil
 
-		case interactiveSave:
+		case interactiveKeep:
 			c.mts.Final.InteractiveSession = states.InteractiveSession{
 				CommandStr:  commandStr,
 				Initialized: true,
-				Kind:        states.SessionSave,
+				Kind:        states.SessionKeep,
 			}
 		}
 	}

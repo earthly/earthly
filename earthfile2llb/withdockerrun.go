@@ -52,7 +52,7 @@ type WithDockerOpt struct {
 	WithEntrypoint  bool
 	NoCache         bool
 	Interactive     bool
-	InteractiveSave bool
+	interactiveKeep bool
 	Pulls           []DockerPullOpt
 	Loads           []DockerLoadOpt
 	ComposeFiles    []string
@@ -169,7 +169,7 @@ func (wdr *withDockerRun) Run(ctx context.Context, args []string, opt WithDocker
 	shellWrap := makeWithDockerdWrapFun(dindID, tarPaths, opt)
 	_, err = wdr.c.internalRun(
 		ctx, finalArgs, opt.Secrets, opt.WithShell, shellWrap,
-		false, false, false, opt.NoCache, opt.Interactive, opt.InteractiveSave, runStr, runOpts...)
+		false, false, false, opt.NoCache, opt.Interactive, opt.interactiveKeep, runStr, runOpts...)
 	return err
 }
 

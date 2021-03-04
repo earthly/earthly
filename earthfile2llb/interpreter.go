@@ -310,7 +310,7 @@ func (i *Interpreter) handleRun(ctx context.Context, cmd spec.Command) error {
 	withSSH := fs.Bool("ssh", false, "Make available the SSH agent of the host")
 	noCache := fs.Bool("no-cache", false, "Always run this specific item, ignoring cache")
 	interactive := fs.Bool("interactive", false, "Run this command with an interactive session, without saving changes")
-	interactiveSave := fs.Bool("interactive-save", false, "Run this command with an interactive session, saving changes")
+	interactiveKeep := fs.Bool("interactive-keep", false, "Run this command with an interactive session, saving changes")
 	secrets := new(StringSliceFlag)
 	fs.Var(secrets, "secret", "Make available a secret")
 	mounts := new(StringSliceFlag)
@@ -353,9 +353,9 @@ func (i *Interpreter) handleRun(ctx context.Context, cmd spec.Command) error {
 			// I mean its literally just your terminal but with extra steps. No reason to support this?
 			return Errorf(cmd.SourceLocation, "the --interactive flag is not supported in combination with the LOCALLY directive")
 		}
-		if *interactiveSave {
+		if *interactiveKeep {
 			// I mean its literally just your terminal but with extra steps. No reason to support this?
-			return Errorf(cmd.SourceLocation, "the --interactive-save flag is not supported in combination with the LOCALLY directive")
+			return Errorf(cmd.SourceLocation, "the --interactive-keep flag is not supported in combination with the LOCALLY directive")
 		}
 
 		// TODO these should be supported, but haven't yet been implemented
@@ -377,7 +377,7 @@ func (i *Interpreter) handleRun(ctx context.Context, cmd spec.Command) error {
 	if i.withDocker == nil {
 		err = i.converter.Run(
 			ctx, fs.Args(), mounts.Args, secrets.Args, *privileged, *withEntrypoint, *withDocker,
-			withShell, *pushFlag, *withSSH, *noCache, *interactive, *interactiveSave)
+			withShell, *pushFlag, *withSSH, *noCache, *interactive, *interactiveKeep)
 		if err != nil {
 			return WrapError(err, cmd.SourceLocation, "apply RUN")
 		}
@@ -398,7 +398,7 @@ func (i *Interpreter) handleRun(ctx context.Context, cmd spec.Command) error {
 		i.withDocker.WithEntrypoint = *withEntrypoint
 		i.withDocker.NoCache = *noCache
 		i.withDocker.Interactive = *interactive
-		i.withDocker.InteractiveSave = *interactiveSave
+		i.withDocker.interactiveKeep = *interactiveKeep
 		err = i.converter.WithDockerRun(ctx, fs.Args(), *i.withDocker)
 		if err != nil {
 			return WrapError(err, cmd.SourceLocation, "with docker run")

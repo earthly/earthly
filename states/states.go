@@ -110,8 +110,8 @@ type RunPush struct {
 type InteractiveSessionKind string
 
 const (
-	// SessionSave is a session where the data *persists* in the image when it exits.
-	SessionSave InteractiveSessionKind = "save"
+	// SessionKeep is a session where the data *persists* in the image when it exits.
+	SessionKeep InteractiveSessionKind = "keep"
 	// SessionEphemeral is a session where the data *does not persist* in the image when it exits.
 	SessionEphemeral InteractiveSessionKind = "ephemeral"
 )
