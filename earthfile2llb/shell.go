@@ -37,7 +37,7 @@ func withShell(args []string, withShell bool) []string {
 	return args
 }
 
-func strWithEnvVarsAndDocker(args []string, envVars []string, withShell bool, withDebugger bool, withDocker bool, exitCodeFile string) string {
+func strWithEnvVarsAndDocker(args []string, envVars []string, withShell, withDebugger, forceDebugger, withDocker bool, exitCodeFile string) string {
 	var cmdParts []string
 	cmdParts = append(cmdParts, strings.Join(envVars, " "))
 	if withDocker {
@@ -45,6 +45,10 @@ func strWithEnvVarsAndDocker(args []string, envVars []string, withShell bool, wi
 	}
 	if withDebugger {
 		cmdParts = append(cmdParts, debuggerPath)
+
+		if forceDebugger {
+			cmdParts = append(cmdParts, "--force")
+		}
 	}
 	if withShell {
 		var escapedArgs []string
@@ -63,23 +67,23 @@ func strWithEnvVarsAndDocker(args []string, envVars []string, withShell bool, wi
 	return strings.Join(cmdParts, " ")
 }
 
-type shellWrapFun func(args []string, envVars []string, withShell bool, withDebugger bool) []string
+type shellWrapFun func(args []string, envVars []string, withShell, withDebugger, forceDebugger bool) []string
 
-func withShellAndEnvVars(args []string, envVars []string, withShell bool, withDebugger bool) []string {
+func withShellAndEnvVars(args []string, envVars []string, withShell, withDebugger, forceDebugger bool) []string {
 	return []string{
 		"/bin/sh", "-c",
-		strWithEnvVarsAndDocker(args, envVars, withShell, withDebugger, false, ""),
+		strWithEnvVarsAndDocker(args, envVars, withShell, withDebugger, forceDebugger, false, ""),
 	}
 }
 
 func withShellAndEnvVarsExitCode(exitCodeFile string) shellWrapFun {
-	return func(args []string, envVars []string, withShell bool, withDebugger bool) []string {
+	return func(args []string, envVars []string, withShell, withDebugger, forceDebugger bool) []string {
 		if !withShell {
 			panic("unexpected exec mode")
 		}
 		return []string{
 			"/bin/sh", "-c",
-			strWithEnvVarsAndDocker(args, envVars, true, withDebugger, false, exitCodeFile),
+			strWithEnvVarsAndDocker(args, envVars, true, withDebugger, false, false, exitCodeFile),
 		}
 	}
 }

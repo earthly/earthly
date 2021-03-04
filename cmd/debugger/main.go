@@ -75,7 +75,7 @@ func populateShellHistory(cmd string) error {
 	return nil
 }
 
-func interactiveMode(ctx context.Context, remoteConsoleAddr, cmd string) error {
+func interactiveMode(ctx context.Context, remoteConsoleAddr string, cmdBuilder func() (*exec.Cmd, error)) error {
 	log := logging.GetLogger(ctx)
 
 	conn, err := net.Dial("tcp", remoteConsoleAddr)
@@ -99,14 +99,10 @@ func interactiveMode(ctx context.Context, remoteConsoleAddr, cmd string) error {
 		return err
 	}
 
-	_ = populateShellHistory(cmd) // best effort
-
-	shellPath, ok := getShellPath()
-	if !ok {
-		return ErrNoShellFound
+	c, err := cmdBuilder()
+	if err != nil {
+		return err
 	}
-	log.With("shell", shellPath).Debug("found shell")
-	c := exec.Command(shellPath)
 
 	ptmx, err := pty.Start(c)
 	if err != nil {
@@ -188,6 +184,12 @@ func main() {
 		return
 	}
 
+	forceInteractive := false
+	if args[0] == "--force" {
+		args = args[1:]
+		forceInteractive = true
+	}
+
 	conslogger := conslogging.Current(conslogging.ForceColor, conslogging.NoPadding)
 	color.NoColor = false
 
@@ -204,6 +206,34 @@ func main() {
 	ctx := context.Background()
 
 	log := logging.GetLogger(ctx)
+
+	if forceInteractive {
+		quotedCmd := shellescape.QuoteCommand(args)
+
+		conslogger.PrintBar(color.New(color.FgHiMagenta), " Start Interactive Session ", quotedCmd)
+
+		// Sometimes the interactive shell doesn't correctly get a newline
+		// Take a brief pause and issue a new line as a work around.
+		time.Sleep(time.Millisecond * 5)
+
+		err := os.Setenv("TERM", debuggerSettings.Term)
+		if err != nil {
+			conslogger.Warnf("Failed to set term: %v", err)
+		}
+
+		cmdBuilder := func() (*exec.Cmd, error) {
+			return exec.Command(args[0], args[1:]...), nil
+		}
+
+		err = interactiveMode(ctx, debuggerSettings.RepeaterAddr, cmdBuilder)
+		if err != nil {
+			log.Error(err)
+		}
+
+		conslogger.PrintBar(color.New(color.FgHiMagenta), " End Interactive Session ", "")
+
+		return
+	}
 
 	log.With("command", args).With("version", Version).Debug("running command")
 
@@ -236,7 +266,18 @@ func main() {
 				conslogger.Warnf("Failed to set term: %v", err)
 			}
 
-			err = interactiveMode(ctx, debuggerSettings.RepeaterAddr, quotedCmd)
+			cmdBuilder := func() (*exec.Cmd, error) {
+				_ = populateShellHistory(quotedCmd) // best effort
+
+				shellPath, ok := getShellPath()
+				if !ok {
+					return nil, ErrNoShellFound
+				}
+				log.With("shell", shellPath).Debug("found shell")
+				return exec.Command(shellPath), nil
+			}
+
+			err = interactiveMode(ctx, debuggerSettings.RepeaterAddr, cmdBuilder)
 			if err != nil {
 				log.Error(err)
 			}

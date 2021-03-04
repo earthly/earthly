@@ -169,6 +169,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 				UseInlineCache:       b.opt.UseInlineCache,
 				UseFakeDep:           b.opt.UseFakeDep,
 				AllowLocally:         !b.opt.Strict,
+				AllowInteractive:     !b.opt.Strict,
 			})
 			if err != nil {
 				return nil, err
@@ -323,6 +324,15 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 					res.AddMeta(fmt.Sprintf("%s/dir-index", refPrefix), []byte(fmt.Sprintf("%d", dirIndex)))
 					destPathWhitelist[saveLocal.DestPath] = true
 					dirIndex++
+				}
+			}
+
+			targetInteractiveSession := b.targetPhaseInteractiveSession(sts)
+			if targetInteractiveSession.Initialized && targetInteractiveSession.Kind == states.SessionEphemeral {
+				ref, err := b.stateToRef(ctx, gwClient, targetInteractiveSession.State, sts.Platform)
+				res.AddRef("ephemeral", ref)
+				if err != nil {
+					return nil, err
 				}
 			}
 		}
@@ -486,6 +496,10 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 						for _, saveImage := range sts.RunPush.SaveImages {
 							console.Printf("Did not push, OR save %s locally, as evaluating the image would have caused a RUN --push to execute", saveImage.DockerTag)
 						}
+
+						if sts.RunPush.InteractiveSession.Initialized {
+							console.Printf("Did not start an %s interactive session with command %s. Use earthly --push to start the session\n", sts.RunPush.InteractiveSession.Kind, sts.RunPush.InteractiveSession.CommandStr)
+						}
 					}
 				}
 			}
@@ -520,6 +534,13 @@ func (b *Builder) targetPhaseImages(sts *states.SingleTarget) []states.SaveImage
 		return sts.RunPush.SaveImages
 	}
 	return sts.SaveImages
+}
+
+func (b *Builder) targetPhaseInteractiveSession(sts *states.SingleTarget) states.InteractiveSession {
+	if b.builtMain {
+		return sts.RunPush.InteractiveSession
+	}
+	return sts.InteractiveSession
 }
 
 func (b *Builder) stateToRef(ctx context.Context, gwClient gwclient.Client, state llb.State, platform *specs.Platform) (gwclient.Reference, error) {

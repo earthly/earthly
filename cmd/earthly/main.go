@@ -2250,9 +2250,7 @@ func (app *earthlyApp) actionBuild(c *cli.Context) error {
 	cleanCollection := cleanup.NewCollection()
 	defer cleanCollection.Close()
 
-	if app.interactiveDebugging {
-		go terminal.ConnectTerm(c.Context, fmt.Sprintf("127.0.0.1:%d", app.buildkitdSettings.DebuggerPort))
-	}
+	go terminal.ConnectTerm(c.Context, fmt.Sprintf("127.0.0.1:%d", app.buildkitdSettings.DebuggerPort))
 
 	varCollection, err := variables.ParseCommandLineBuildArgs(app.buildArgs.Value(), dotEnvMap)
 	if err != nil {

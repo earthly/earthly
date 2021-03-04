@@ -147,6 +147,9 @@ func (c *Converter) fromTarget(ctx context.Context, targetName string, platform 
 	if err != nil {
 		return errors.Wrapf(err, "apply build %s", depTarget.String())
 	}
+	if mts.Final.RanInteractive {
+		return errors.New("Cannot FROM a target ending with an --interactive")
+	}
 	if depTarget.IsLocalInternal() {
 		depTarget.LocalPath = c.mts.Final.Target.LocalPath
 	}
@@ -164,6 +167,7 @@ func (c *Converter) fromTarget(ctx context.Context, targetName string, platform 
 	}
 	c.mts.Final.MainImage = saveImage.Image.Clone()
 	c.mts.Final.RanFromLike = mts.Final.RanFromLike
+	c.mts.Final.RanInteractive = mts.Final.RanInteractive
 	c.setPlatform(mts.Final.Platform)
 	return nil
 }
@@ -290,7 +294,7 @@ func (c *Converter) Locally(ctx context.Context, platform *specs.Platform) error
 		return err
 	}
 	if !c.opt.AllowLocally {
-		return errors.New("LOCALLY cannot be used when --strict is specified")
+		return errors.New("LOCALLY cannot be used when --strict is specified or otherwise implied")
 	}
 
 	return c.fromClassical(ctx, "scratch", platform, true)
@@ -413,7 +417,7 @@ func (c *Converter) RunLocal(ctx context.Context, args []string, pushFlag bool) 
 	}
 
 	// buildkit-hack in order to run locally, we prepend the command with a UUID
-	finalArgs := append([]string{localhost.RunOnLocalHostMagicStr}, withShellAndEnvVars(args, extraEnvVars, true, false)...)
+	finalArgs := append([]string{localhost.RunOnLocalHostMagicStr}, withShellAndEnvVars(args, extraEnvVars, true, false, false)...)
 	opts := []llb.RunOption{
 		llb.Args(finalArgs),
 		llb.IgnoreCache,
@@ -473,7 +477,7 @@ func (c *Converter) RunExitCode(ctx context.Context, commandName string, args, m
 	opts = append(opts, llb.WithCustomNamef("%s%s", c.vertexPrefix(false), runStr))
 	state, err := c.internalRun(
 		ctx, args, secretKeyValues, isWithShell, shellWrap, false,
-		true, withSSH, noCache, runStr, opts...)
+		true, withSSH, noCache, false, false, runStr, opts...)
 	if err != nil {
 		return 0, err
 	}
@@ -524,7 +528,7 @@ func (c *Converter) RunLocalExitCode(ctx context.Context, commandName string, ar
 	// buildkit-hack in order to run locally, we prepend the command with a UUID
 	finalArgs := append(
 		[]string{localhost.RunOnLocalHostMagicStr},
-		withShellAndEnvVarsExitCode(exitCodeFile)(args, extraEnvVars, true, false)...,
+		withShellAndEnvVarsExitCode(exitCodeFile)(args, extraEnvVars, true, false, false)...,
 	)
 	opts := []llb.RunOption{
 		llb.Args(finalArgs),
@@ -556,7 +560,7 @@ func (c *Converter) RunLocalExitCode(ctx context.Context, commandName string, ar
 }
 
 // Run applies the earthly RUN command.
-func (c *Converter) Run(ctx context.Context, args, mounts, secretKeyValues []string, privileged, withEntrypoint, withDocker, isWithShell, pushFlag, withSSH, noCache bool) error {
+func (c *Converter) Run(ctx context.Context, args, mounts, secretKeyValues []string, privileged, withEntrypoint, withDocker, isWithShell, pushFlag, withSSH, noCache, interactive, interactiveKeep bool) error {
 	err := c.checkAllowed("RUN")
 	if err != nil {
 		return err
@@ -565,6 +569,7 @@ func (c *Converter) Run(ctx context.Context, args, mounts, secretKeyValues []str
 	if withDocker {
 		return errors.New("RUN --with-docker is obsolete. Please use WITH DOCKER ... RUN ... END instead")
 	}
+
 	var opts []llb.RunOption
 	mountRunOpts, err := parseMounts(mounts, c.mts.Final.Target, c.mts.Final.TargetInput, c.cacheContext)
 	if err != nil {
@@ -586,18 +591,20 @@ func (c *Converter) Run(ctx context.Context, args, mounts, secretKeyValues []str
 		opts = append(opts, llb.Security(llb.SecurityModeInsecure))
 	}
 	runStr := fmt.Sprintf(
-		"RUN %s%s%s%s%s%s",
+		"RUN %s%s%s%s%s%s%s%s",
 		strIf(privileged, "--privileged "),
 		strIf(withDocker, "--with-docker "),
 		strIf(withEntrypoint, "--entrypoint "),
 		strIf(pushFlag, "--push "),
 		strIf(noCache, "--no-cache "),
+		strIf(interactive, "--interactive "),
+		strIf(interactiveKeep, "--interactive-keep "),
 		strings.Join(finalArgs, " "))
 	shellWrap := withShellAndEnvVars
 	opts = append(opts, llb.WithCustomNamef("%s%s", c.vertexPrefix(false), runStr))
 	_, err = c.internalRun(
 		ctx, finalArgs, secretKeyValues, isWithShell, shellWrap, pushFlag,
-		false, withSSH, noCache, runStr, opts...)
+		false, withSSH, noCache, interactive, interactiveKeep, runStr, opts...)
 	return err
 }
 
@@ -1036,7 +1043,13 @@ func (c *Converter) buildTarget(ctx context.Context, fullTargetName string, plat
 	return mts, nil
 }
 
-func (c *Converter) internalRun(ctx context.Context, args, secretKeyValues []string, isWithShell bool, shellWrap shellWrapFun, pushFlag, transient, withSSH, noCache bool, commandStr string, opts ...llb.RunOption) (llb.State, error) {
+func (c *Converter) internalRun(ctx context.Context, args, secretKeyValues []string, isWithShell bool, shellWrap shellWrapFun, pushFlag, transient, withSSH, noCache, interactive, interactiveKeep bool, commandStr string, opts ...llb.RunOption) (llb.State, error) {
+	isInteractive := (interactive || interactiveKeep)
+	if !c.opt.AllowInteractive && isInteractive {
+		// This check is here because other places also call here to evaluate RUN-like statements. We catch all potential interactives here.
+		return llb.State{}, errors.New("--interactive options are not allowed, when --strict is specified or otherwise implied")
+	}
+
 	finalOpts := opts
 	var extraEnvVars []string
 	// Secrets.
@@ -1088,7 +1101,7 @@ func (c *Converter) internalRun(ctx context.Context, args, secretKeyValues []str
 		finalOpts = append(finalOpts, llb.AddSSHSocket())
 	}
 	// Shell and debugger wrap.
-	finalArgs := shellWrap(args, extraEnvVars, isWithShell, true)
+	finalArgs := shellWrap(args, extraEnvVars, isWithShell, true, isInteractive)
 	finalOpts = append(finalOpts, llb.Args(finalArgs))
 	if noCache {
 		finalOpts = append(finalOpts, llb.IgnoreCache)
@@ -1103,11 +1116,44 @@ func (c *Converter) internalRun(ctx context.Context, args, secretKeyValues []str
 			c.mts.Final.RunPush.State = c.mts.Final.MainState
 			c.mts.Final.RunPush.HasState = true
 		}
+	}
+
+	if isInteractive {
+		finalOpts = append(finalOpts, llb.IgnoreCache)
+		c.mts.Final.RanInteractive = true
+
+		switch {
+		case interactive:
+			is := states.InteractiveSession{
+				CommandStr:  commandStr,
+				Initialized: true,
+				Kind:        states.SessionEphemeral,
+			}
+
+			if pushFlag {
+				is.State = c.mts.Final.RunPush.State.Run(finalOpts...).Root()
+				c.mts.Final.RunPush.InteractiveSession = is
+				return c.mts.Final.RunPush.State, nil
+
+			}
+			is.State = c.mts.Final.MainState.Run(finalOpts...).Root()
+			c.mts.Final.InteractiveSession = is
+			return c.mts.Final.MainState, nil
+
+		case interactiveKeep:
+			c.mts.Final.InteractiveSession = states.InteractiveSession{
+				CommandStr:  commandStr,
+				Initialized: true,
+				Kind:        states.SessionKeep,
+			}
+		}
+	}
+
+	if pushFlag {
 		// Don't run on MainState. We want push-flagged commands to be executed only
 		// *after* the build. Save this for later.
 		c.mts.Final.RunPush.State = c.mts.Final.RunPush.State.Run(finalOpts...).Root()
-		c.mts.Final.RunPush.CommandStrs = append(
-			c.mts.Final.RunPush.CommandStrs, commandStr)
+		c.mts.Final.RunPush.CommandStrs = append(c.mts.Final.RunPush.CommandStrs, commandStr)
 		return c.mts.Final.RunPush.State, nil
 	} else if transient {
 		transientState := c.mts.Final.MainState.Run(finalOpts...).Root()
@@ -1236,7 +1282,7 @@ func (c *Converter) processNonConstantBuildArgFunc(ctx context.Context) variable
 		args := strings.Split(fmt.Sprintf("echo \"%s\" >%s", expression, srcBuildArgPath), " ")
 		transient := true
 		state, err := c.internalRun(
-			ctx, args, []string{}, true, withShellAndEnvVars, false, transient, false, false, expression,
+			ctx, args, []string{}, true, withShellAndEnvVars, false, transient, false, false, false, false, expression,
 			llb.WithCustomNamef("%sRUN %s", c.vertexPrefix(false), expression))
 		if err != nil {
 			return "", 0, errors.Wrapf(err, "run %v", expression)
@@ -1323,9 +1369,14 @@ func (c *Converter) setPlatform(platform *specs.Platform) {
 }
 
 func (c *Converter) checkAllowed(command string) error {
+	if c.mts.Final.RanInteractive && command != "SAVE IMAGE" {
+		return errors.New("If present, a single --interactive command must be the last command in a target")
+	}
+
 	if c.mts.Final.RanFromLike {
 		return nil
 	}
+
 	switch command {
 	case "FROM", "FROM DOCKERFILE", "LOCALLY", "BUILD", "ARG":
 		return nil

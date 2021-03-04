@@ -46,6 +46,7 @@ type SingleTarget struct {
 	LocalDirs              map[string]string
 	Ongoing                bool
 	Salt                   string
+	InteractiveSession     InteractiveSession
 	// HasDangling represents whether the target has dangling instructions -
 	// ie if there are any non-SAVE commands after the first SAVE command,
 	// or if the target is invoked via BUILD command (not COPY nor FROM).
@@ -53,6 +54,8 @@ type SingleTarget struct {
 	// RanFromLike represents whether we have encountered a FROM-like command
 	// (eg FROM, FROM DOCKERFILE, LOCALLY).
 	RanFromLike bool
+	// RanInteractive represents whether we have encountered an --interactive command.
+	RanInteractive bool
 }
 
 // LastSaveImage returns the last save image available (if any).
@@ -95,9 +98,29 @@ type SaveImage struct {
 // RunPush is a series of RUN --push commands to be run after the build has been deemed as
 // successful, along with artifacts to save and images to push
 type RunPush struct {
-	CommandStrs []string
+	CommandStrs        []string
+	State              llb.State
+	SaveLocals         []SaveLocal
+	SaveImages         []SaveImage
+	InteractiveSession InteractiveSession
+	HasState           bool
+}
+
+// InteractiveSessionKind represents what kind of interactive session has been encountered.
+type InteractiveSessionKind string
+
+const (
+	// SessionKeep is a session where the data *persists* in the image when it exits.
+	SessionKeep InteractiveSessionKind = "keep"
+	// SessionEphemeral is a session where the data *does not persist* in the image when it exits.
+	SessionEphemeral InteractiveSessionKind = "ephemeral"
+)
+
+// InteractiveSession holds the relevant data for running an interactive session when
+// it is not desired to save the resulting changes into an image.
+type InteractiveSession struct {
+	CommandStr  string
 	State       llb.State
-	SaveLocals  []SaveLocal
-	SaveImages  []SaveImage
-	HasState    bool
+	Initialized bool
+	Kind        InteractiveSessionKind
 }

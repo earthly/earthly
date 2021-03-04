@@ -55,6 +55,8 @@ type ConvertOpt struct {
 	UseFakeDep bool
 	// AllowLocally is an internal feature flag for controlling if LOCALLY directives can be used.
 	AllowLocally bool
+	// AllowInteractive is an internal feature flag for controlling if interactive sessions can be initiated.
+	AllowInteractive bool
 }
 
 // Earthfile2LLB parses a earthfile and executes the statements for a given target.
