@@ -1026,7 +1026,7 @@ func (app *earthlyApp) autoCompleteImp() (err error) {
 	return err
 }
 
-const bashCompleteEntry = "complete -o nospace -C '/usr/local/bin/earthly' earthly\n"
+const bashCompleteEntry = "complete -o nospace -C '__earthly__' earthly\n"
 
 func (app *earthlyApp) insertBashCompleteEntry() error {
 	var path string
@@ -1052,7 +1052,14 @@ func (app *earthlyApp) insertBashCompleteEntry() error {
 		return err
 	}
 	defer f.Close()
-	_, err = f.Write([]byte(bashCompleteEntry))
+
+	earthlyPath, err := os.Executable()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Warning: unable to enable bash-completion: unable to determine earthly path: %s\n", err)
+		return nil // bash-completion isn't available, silently fail.
+	}
+
+	_, err = f.Write([]byte(strings.ReplaceAll(bashCompleteEntry, "__earthly__", earthlyPath)))
 	return err
 }
 
@@ -1093,7 +1100,7 @@ const zshCompleteEntry = `#compdef _earthly earthly
 function _earthly {
     autoload -Uz bashcompinit
     bashcompinit
-    complete -o nospace -C '/usr/local/bin/earthly' earthly
+    complete -o nospace -C '__earthly__' earthly
 }
 `
 
@@ -1119,7 +1126,13 @@ func (app *earthlyApp) insertZSHCompleteEntry() error {
 	}
 	defer f.Close()
 
-	_, err = f.Write([]byte(zshCompleteEntry))
+	earthlyPath, err := os.Executable()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Warning: unable to enable zsh-completion: failed to determine earthly path: %s\n", err)
+		return nil // zsh-completion isn't available, silently fail.
+	}
+
+	_, err = f.Write([]byte(strings.ReplaceAll(zshCompleteEntry, "__earthly__", earthlyPath)))
 	if err != nil {
 		return err
 	}
