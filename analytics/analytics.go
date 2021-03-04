@@ -28,12 +28,12 @@ func detectCI() (string, bool) {
 		"GITHUB_WORKFLOW": "github-actions",
 		"CIRCLECI":        "circle-ci",
 		"JENKINS_HOME":    "jenkins",
-		"AGENT_WORKDIR":   "jenkins", // https://github.com/jenkinsci/docker-agent/blob/master/11/alpine/Dockerfile#L35
 		"BUILDKITE":       "buildkite",
 		"DRONE_BRANCH":    "drone",
 		"TRAVIS":          "travis",
 		"GITLAB_CI":       "gitlab",
 		"EARTHLY_IMAGE":   "earthly-image",
+		"AGENT_WORKDIR":   "jenkins", // https://github.com/jenkinsci/docker-agent/blob/master/11/alpine/Dockerfile#L35
 	} {
 		if _, ok := os.LookupEnv(k); ok {
 			return v, true
