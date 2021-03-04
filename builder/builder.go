@@ -328,7 +328,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 			}
 
 			targetInteractiveSession := b.targetPhaseInteractiveSession(sts)
-			if targetInteractiveSession.Initialized && targetInteractiveSession.Kind == "ephemeral" {
+			if targetInteractiveSession.Initialized && targetInteractiveSession.Kind == states.SessionEphemeral {
 				ref, err := b.stateToRef(ctx, gwClient, targetInteractiveSession.State, sts.Platform)
 				res.AddRef("ephemeral", ref)
 				if err != nil {

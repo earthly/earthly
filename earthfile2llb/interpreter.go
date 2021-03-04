@@ -309,8 +309,8 @@ func (i *Interpreter) handleRun(ctx context.Context, cmd spec.Command) error {
 	withDocker := fs.Bool("with-docker", false, "Deprecated")
 	withSSH := fs.Bool("ssh", false, "Make available the SSH agent of the host")
 	noCache := fs.Bool("no-cache", false, "Always run this specific item, ignoring cache")
-	interactive := new(StringSliceFlag)
-	fs.Var(interactive, "interactive", "Run this command with an interactive session")
+	interactive := fs.Bool("interactive", false, "Run this command with an interactive session, without saving changes")
+	interactiveSave := fs.Bool("interactive-save", false, "Run this command with an interactive session, saving changes")
 	secrets := new(StringSliceFlag)
 	fs.Var(secrets, "secret", "Make available a secret")
 	mounts := new(StringSliceFlag)
@@ -334,9 +334,6 @@ func (i *Interpreter) handleRun(ctx context.Context, cmd spec.Command) error {
 	for index, m := range mounts.Args {
 		mounts.Args[index] = i.expandArgs(m, false)
 	}
-	for index, ia := range interactive.Args {
-		interactive.Args[index] = i.expandArgs(ia, false)
-	}
 	// Note: Not expanding args for the run itself, as that will be take care of by the shell.
 
 	if i.local {
@@ -352,9 +349,13 @@ func (i *Interpreter) handleRun(ctx context.Context, cmd spec.Command) error {
 		if *noCache {
 			return Errorf(cmd.SourceLocation, "the --no-cache flag has no effect when used with the LOCALLY directive")
 		}
-		if len(interactive.Args) > 0 {
+		if *interactive {
 			// I mean its literally just your terminal but with extra steps. No reason to support this?
 			return Errorf(cmd.SourceLocation, "the --interactive flag is not supported in combination with the LOCALLY directive")
+		}
+		if *interactiveSave {
+			// I mean its literally just your terminal but with extra steps. No reason to support this?
+			return Errorf(cmd.SourceLocation, "the --interactive-save flag is not supported in combination with the LOCALLY directive")
 		}
 
 		// TODO these should be supported, but haven't yet been implemented
@@ -376,7 +377,7 @@ func (i *Interpreter) handleRun(ctx context.Context, cmd spec.Command) error {
 	if i.withDocker == nil {
 		err = i.converter.Run(
 			ctx, fs.Args(), mounts.Args, secrets.Args, *privileged, *withEntrypoint, *withDocker,
-			withShell, *pushFlag, *withSSH, *noCache, interactive.Args)
+			withShell, *pushFlag, *withSSH, *noCache, *interactive, *interactiveSave)
 		if err != nil {
 			return WrapError(err, cmd.SourceLocation, "apply RUN")
 		}
@@ -396,7 +397,8 @@ func (i *Interpreter) handleRun(ctx context.Context, cmd spec.Command) error {
 		i.withDocker.WithShell = withShell
 		i.withDocker.WithEntrypoint = *withEntrypoint
 		i.withDocker.NoCache = *noCache
-		i.withDocker.Interactive = interactive.Args
+		i.withDocker.Interactive = *interactive
+		i.withDocker.InteractiveSave = *interactiveSave
 		err = i.converter.WithDockerRun(ctx, fs.Args(), *i.withDocker)
 		if err != nil {
 			return WrapError(err, cmd.SourceLocation, "with docker run")

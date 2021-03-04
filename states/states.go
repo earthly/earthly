@@ -106,11 +106,21 @@ type RunPush struct {
 	HasState           bool
 }
 
+// InteractiveSessionKind represents what kind of interactive session has been encountered.
+type InteractiveSessionKind string
+
+const (
+	// SessionSave is a session where the data *persists* in the image when it exits.
+	SessionSave InteractiveSessionKind = "save"
+	// SessionEphemeral is a session where the data *does not persist* in the image when it exits.
+	SessionEphemeral InteractiveSessionKind = "ephemeral"
+)
+
 // InteractiveSession holds the relevant data for running an interactive session when
 // it is not desired to save the resulting changes into an image.
 type InteractiveSession struct {
 	CommandStr  string
 	State       llb.State
 	Initialized bool
-	Kind        string
+	Kind        InteractiveSessionKind
 }

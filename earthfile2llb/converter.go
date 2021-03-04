@@ -477,7 +477,7 @@ func (c *Converter) RunExitCode(ctx context.Context, commandName string, args, m
 	opts = append(opts, llb.WithCustomNamef("%s%s", c.vertexPrefix(false), runStr))
 	state, err := c.internalRun(
 		ctx, args, secretKeyValues, isWithShell, shellWrap, false,
-		true, withSSH, noCache, []string{}, runStr, opts...)
+		true, withSSH, noCache, false, false, runStr, opts...)
 	if err != nil {
 		return 0, err
 	}
@@ -560,7 +560,7 @@ func (c *Converter) RunLocalExitCode(ctx context.Context, commandName string, ar
 }
 
 // Run applies the earthly RUN command.
-func (c *Converter) Run(ctx context.Context, args, mounts, secretKeyValues []string, privileged, withEntrypoint, withDocker, isWithShell, pushFlag, withSSH, noCache bool, interactive []string) error {
+func (c *Converter) Run(ctx context.Context, args, mounts, secretKeyValues []string, privileged, withEntrypoint, withDocker, isWithShell, pushFlag, withSSH, noCache, interactive, interactiveSave bool) error {
 	err := c.checkAllowed("RUN")
 	if err != nil {
 		return err
@@ -591,19 +591,20 @@ func (c *Converter) Run(ctx context.Context, args, mounts, secretKeyValues []str
 		opts = append(opts, llb.Security(llb.SecurityModeInsecure))
 	}
 	runStr := fmt.Sprintf(
-		"RUN %s%s%s%s%s%s%s",
+		"RUN %s%s%s%s%s%s%s%s",
 		strIf(privileged, "--privileged "),
 		strIf(withDocker, "--with-docker "),
 		strIf(withEntrypoint, "--entrypoint "),
 		strIf(pushFlag, "--push "),
 		strIf(noCache, "--no-cache "),
-		strIf(len(interactive) > 0, "--interactive "),
+		strIf(interactive, "--interactive "),
+		strIf(interactiveSave, "--interactive-save "),
 		strings.Join(finalArgs, " "))
 	shellWrap := withShellAndEnvVars
 	opts = append(opts, llb.WithCustomNamef("%s%s", c.vertexPrefix(false), runStr))
 	_, err = c.internalRun(
 		ctx, finalArgs, secretKeyValues, isWithShell, shellWrap, pushFlag,
-		false, withSSH, noCache, interactive, runStr, opts...)
+		false, withSSH, noCache, interactive, interactiveSave, runStr, opts...)
 	return err
 }
 
@@ -1042,11 +1043,11 @@ func (c *Converter) buildTarget(ctx context.Context, fullTargetName string, plat
 	return mts, nil
 }
 
-func (c *Converter) internalRun(ctx context.Context, args, secretKeyValues []string, isWithShell bool, shellWrap shellWrapFun, pushFlag, transient, withSSH, noCache bool, interactive []string, commandStr string, opts ...llb.RunOption) (llb.State, error) {
-	isInteractive := len(interactive) > 0
+func (c *Converter) internalRun(ctx context.Context, args, secretKeyValues []string, isWithShell bool, shellWrap shellWrapFun, pushFlag, transient, withSSH, noCache, interactive, interactiveSave bool, commandStr string, opts ...llb.RunOption) (llb.State, error) {
+	isInteractive := (interactive || interactiveSave)
 	if !c.opt.AllowInteractive && isInteractive {
 		// This check is here because other places also call here to evaluate RUN-like statements. We catch all potential interactives here.
-		return llb.State{}, errors.New("--interactive is not allowed, when --strict is specified or otherwise implied")
+		return llb.State{}, errors.New("--interactive options are not allowed, when --strict is specified or otherwise implied")
 	}
 
 	finalOpts := opts
@@ -1121,17 +1122,12 @@ func (c *Converter) internalRun(ctx context.Context, args, secretKeyValues []str
 		finalOpts = append(finalOpts, llb.IgnoreCache)
 		c.mts.Final.RanInteractive = true
 
-		it, err := interactiveType(interactive)
-		if err != nil {
-			return llb.State{}, errors.Wrap(err, "handle interactive")
-		}
-
-		switch it {
-		case "ephemeral":
+		switch {
+		case interactive:
 			is := states.InteractiveSession{
 				CommandStr:  commandStr,
 				Initialized: true,
-				Kind:        it,
+				Kind:        states.SessionEphemeral,
 			}
 
 			if pushFlag {
@@ -1144,11 +1140,11 @@ func (c *Converter) internalRun(ctx context.Context, args, secretKeyValues []str
 			c.mts.Final.InteractiveSession = is
 			return c.mts.Final.MainState, nil
 
-		default:
+		case interactiveSave:
 			c.mts.Final.InteractiveSession = states.InteractiveSession{
 				CommandStr:  commandStr,
 				Initialized: true,
-				Kind:        it,
+				Kind:        states.SessionSave,
 			}
 		}
 	}
@@ -1166,23 +1162,6 @@ func (c *Converter) internalRun(ctx context.Context, args, secretKeyValues []str
 		c.mts.Final.MainState = c.mts.Final.MainState.Run(finalOpts...).Root()
 		return c.mts.Final.MainState, nil
 	}
-}
-
-func interactiveType(args []string) (string, error) {
-	for _, s := range args {
-		parts := strings.Split(s, "=")
-
-		switch parts[0] {
-		case "type":
-			if len(parts) == 2 {
-				if parts[1] == "save" || parts[1] == "ephemeral" {
-					return parts[1], nil
-				}
-			}
-		}
-	}
-
-	return "", errors.New("Invalid interactive type. Valid options: (save, ephemeral)")
 }
 
 func (c *Converter) readArtifact(ctx context.Context, mts *states.MultiTarget, artifact domain.Artifact) ([]byte, error) {
@@ -1303,7 +1282,7 @@ func (c *Converter) processNonConstantBuildArgFunc(ctx context.Context) variable
 		args := strings.Split(fmt.Sprintf("echo \"%s\" >%s", expression, srcBuildArgPath), " ")
 		transient := true
 		state, err := c.internalRun(
-			ctx, args, []string{}, true, withShellAndEnvVars, false, transient, false, false, []string{}, expression,
+			ctx, args, []string{}, true, withShellAndEnvVars, false, transient, false, false, false, false, expression,
 			llb.WithCustomNamef("%sRUN %s", c.vertexPrefix(false), expression))
 		if err != nil {
 			return "", 0, errors.Wrapf(err, "run %v", expression)
