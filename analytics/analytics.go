@@ -28,6 +28,7 @@ func detectCI() (string, bool) {
 		"GITHUB_WORKFLOW": "github-actions",
 		"CIRCLECI":        "circle-ci",
 		"JENKINS_HOME":    "jenkins",
+		"AGENT_WORKDIR":   "jenkins", // https://github.com/jenkinsci/docker-agent/blob/master/11/alpine/Dockerfile#L35
 		"BUILDKITE":       "buildkite",
 		"DRONE_BRANCH":    "drone",
 		"TRAVIS":          "travis",
@@ -37,6 +38,13 @@ func detectCI() (string, bool) {
 		if _, ok := os.LookupEnv(k); ok {
 			return v, true
 		}
+	}
+
+	// another way to tell if it's Jenkins
+	_, err := os.Stat("/home/jenkins")
+	if err == nil {
+		// /home/jenkins exists.
+		return "jenkins", true
 	}
 
 	// default catch-all
@@ -49,7 +57,7 @@ func detectCI() (string, bool) {
 
 	// just to make sure. If the repo is in detached head mode,
 	// we also consider that as running in CI.
-	err := exec.Command("git", "symbolic-ref", "-q", "HEAD").Run()
+	err = exec.Command("git", "symbolic-ref", "-q", "HEAD").Run()
 	if err != nil {
 		if exitErr, ok := err.(*exec.ExitError); ok && exitErr.ExitCode() == 1 {
 			// It's in detached head.
