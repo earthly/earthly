@@ -336,3 +336,15 @@ examples2:
     BUILD ./examples/multiplatform+all
     BUILD ./examples/multiplatform-cross-compile+build-all-platforms
     BUILD github.com/earthly/hello-world:main+hello
+
+# @#
+a-target:
+    BUILD +another-target
+    RUN echo aaaaaaa
+    RUN sleep 20
+    RUN sleep 5
+
+another-target:
+    RUN echo baaaaa
+    RUN sleep 10
+    RUN sleep 10
