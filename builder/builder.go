@@ -433,7 +433,8 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 			if shouldPush {
 				pushStr = " (pushed)"
 			}
-			console.Printf("Image %s as %s%s\n", mts.Final.Target.StringCanonical(), saveImage.DockerTag, pushStr)
+			targetStr := console.PrefixColor().Sprintf("%s", mts.Final.Target.StringCanonical())
+			console.Printf("Image %s as %s%s\n", targetStr, saveImage.DockerTag, pushStr)
 			if saveImage.Push && !opt.Push {
 				console.Printf("Did not push %s. Use earthly --push to enable pushing\n", saveImage.DockerTag)
 			}
@@ -455,7 +456,8 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 				if shouldPush {
 					pushStr = " (pushed)"
 				}
-				console.Printf("Image %s as %s%s\n", sts.Target.StringCanonical(), saveImage.DockerTag, pushStr)
+				targetStr := console.PrefixColor().Sprintf("%s", sts.Target.StringCanonical())
+				console.Printf("Image %s as %s%s\n", targetStr, saveImage.DockerTag, pushStr)
 				if saveImage.Push && !opt.Push && !sts.Target.IsRemote() {
 					console.Printf("Did not push %s. Use earthly --push to enable pushing\n", saveImage.DockerTag)
 				}
@@ -633,7 +635,7 @@ func (b *Builder) saveArtifactLocally(ctx context.Context, artifact domain.Artif
 			// Ignore err. Likely dest path does not exist.
 			if isWildcard && !destIsDir {
 				return errors.New(
-					"Artifact is a wildcard, but AS LOCAL destination does not end with /")
+					"artifact is a wildcard, but AS LOCAL destination does not end with /")
 			}
 			destIsDir = fiSrc.IsDir()
 		} else {
@@ -642,7 +644,7 @@ func (b *Builder) saveArtifactLocally(ctx context.Context, artifact domain.Artif
 		}
 		if srcIsDir && !destIsDir {
 			return errors.New(
-				"Artifact is a directory, but existing AS LOCAL destination is a file")
+				"artifact is a directory, but existing AS LOCAL destination is a file")
 		}
 		if destExists {
 			if !srcIsDir {
@@ -689,7 +691,8 @@ func (b *Builder) saveArtifactLocally(ctx context.Context, artifact domain.Artif
 			destPath2 = filepath.Join(destPath2, filepath.Base(artifactPath))
 		}
 		if opt.PrintSuccess {
-			console.Printf("Artifact %s as local %s\n", artifact2.StringCanonical(), destPath2)
+			artifactStr := console.PrefixColor().Sprintf("%s", artifact2.StringCanonical())
+			console.Printf("Artifact %s as local %s\n", artifactStr, destPath2)
 		}
 	}
 	return nil

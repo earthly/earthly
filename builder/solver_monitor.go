@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/armon/circbuf"
+	"github.com/dustin/go-humanize"
 	"github.com/earthly/earthly/conslogging"
 	"github.com/mattn/go-isatty"
 	"github.com/moby/buildkit/client"
@@ -21,11 +22,13 @@ import (
 )
 
 const (
-	durationBetweenSha256ProgressUpdate = 5 * time.Second
-	durationBetweenProgressUpdate       = 3 * time.Second
-	durationBetweenProgressUpdateIfSame = 5 * time.Millisecond
-	durationBetweenOpenLineUpdate       = time.Second
-	tailErrorBufferSizeBytes            = 80 * 1024 // About as much as 1024 lines of 80 chars each.
+	durationBetweenSha256ProgressUpdate  = 5 * time.Second
+	durationBetweenProgressUpdate        = 3 * time.Second
+	durationBetweenProgressUpdateIfSame  = 5 * time.Millisecond
+	durationBetweenOpenLineUpdate        = time.Second
+	durationBetweenNoOutputUpdates       = 5 * time.Second
+	durationBetweenNoOutputUpdatesNoAnsi = 20 * time.Second
+	tailErrorBufferSizeBytes             = 80 * 1024 // About as much as 1024 lines of 80 chars each.
 )
 
 type vertexMonitor struct {
@@ -201,15 +204,20 @@ func (vm *vertexMonitor) printTimingInfo() {
 		Printf("Completed in %s\n", vm.vertex.Completed.Sub(*vm.vertex.Started))
 }
 
+func (vm *vertexMonitor) isOngoing() bool {
+	return vm.vertex.Started != nil && vm.vertex.Completed == nil && !vm.isError
+}
+
 type solverMonitor struct {
-	console                      conslogging.ConsoleLogger
-	verbose                      bool
-	vertices                     map[digest.Digest]*vertexMonitor
-	saltSeen                     map[string]bool
-	lastVertexOutput             *vertexMonitor
-	lastOutputWasOngoingProgress bool
-	timingTable                  map[timingKey]time.Duration
-	startTime                    time.Time
+	console                     conslogging.ConsoleLogger
+	verbose                     bool
+	vertices                    map[digest.Digest]*vertexMonitor
+	saltSeen                    map[string]bool
+	lastVertexOutput            *vertexMonitor
+	lastOutputWasProgress       bool
+	lastOutputWasNoOutputUpdate bool
+	timingTable                 map[timingKey]time.Duration
+	startTime                   time.Time
 
 	mu             sync.Mutex
 	success        bool
@@ -239,6 +247,12 @@ func (sm *solverMonitor) monitorProgress(ctx context.Context, ch chan *client.So
 	sm.ongoing = true
 	sm.mu.Unlock()
 	var errVertex *vertexMonitor
+	noOutputTick := durationBetweenNoOutputUpdatesNoAnsi
+	if ansiSupported {
+		noOutputTick = durationBetweenNoOutputUpdates
+	}
+	noOutputTicker := time.NewTicker(noOutputTick)
+	defer noOutputTicker.Stop()
 Loop:
 	for {
 		select {
@@ -267,22 +281,26 @@ Loop:
 				if !vm.headerPrinted &&
 					((!vm.isInternal && (vertex.Cached || vertex.Started != nil)) || vertex.Error != "") {
 					sm.printHeader(vm)
+					noOutputTicker.Reset(noOutputTick)
 				}
 				if vertex.Error != "" {
 					if strings.Contains(vertex.Error, "context canceled") {
 						if !vm.isInternal {
 							vm.console.Printf("WARN: Canceled\n")
+							noOutputTicker.Reset(noOutputTick)
 						}
 					} else {
 						vm.isError = vm.printError()
 						if errVertex == nil && vm.isError {
 							errVertex = vm
 						}
+						noOutputTicker.Reset(noOutputTick)
 					}
 				}
 				if sm.verbose {
 					vm.printTimingInfo()
 					sm.recordTiming(vm.targetStr, vm.targetBrackets, vm.salt, vertex)
+					noOutputTicker.Reset(noOutputTick)
 				}
 			}
 			for _, vs := range ss.Statuses {
@@ -299,6 +317,7 @@ Loop:
 					progress = 100
 				}
 				sm.printProgress(vm, vs.ID, progress)
+				noOutputTicker.Reset(noOutputTick)
 			}
 			for _, logLine := range ss.Logs {
 				vm, ok := sm.vertices[logLine.Vertex]
@@ -313,7 +332,29 @@ Loop:
 				if err != nil {
 					return "", err
 				}
+				noOutputTicker.Reset(noOutputTick)
 			}
+		case <-noOutputTicker.C:
+			ongoingBuilder := []string{}
+			if sm.lastOutputWasNoOutputUpdate {
+				// Overwrite previous line if the previous update was also a no-output update.
+				ongoingBuilder = append(ongoingBuilder, string(ansiUp))
+			}
+			ongoing := []string{}
+			now := time.Now()
+			for _, vm := range sm.vertices {
+				if vm.isOngoing() {
+					col := vm.console.PrefixColor()
+					relTime := humanize.RelTime(*vm.vertex.Started, now, "ago", "from now")
+					ongoing = append(ongoing, fmt.Sprintf("%s (a step started %s)", col.Sprintf("%s", vm.targetStr), relTime))
+				}
+			}
+			sort.Strings(ongoing) // not entirely correct, but makes the ordering consistent
+			ongoingBuilder = append(ongoingBuilder,
+				strings.Join(ongoing, ", "), string(ansiEraseRestLine))
+			sm.console.WithPrefix("ongoing").Printf("%s\n", strings.Join(ongoingBuilder, ""))
+			sm.lastOutputWasProgress = false
+			sm.lastOutputWasNoOutputUpdate = true
 		}
 	}
 	failedVertexOutput := ""
@@ -325,7 +366,8 @@ Loop:
 	}
 	sm.mu.Lock()
 	if sm.success && !sm.printedSuccess {
-		sm.lastOutputWasOngoingProgress = false
+		sm.lastOutputWasProgress = false
+		sm.lastOutputWasNoOutputUpdate = false
 		sm.console.PrintSuccess(phaseText)
 		sm.printedSuccess = true
 	}
@@ -336,19 +378,21 @@ Loop:
 }
 
 func (sm *solverMonitor) printOutput(vm *vertexMonitor, data []byte) error {
-	sameAsLast := (sm.lastVertexOutput == vm && !sm.lastOutputWasOngoingProgress)
+	sameAsLast := (sm.lastVertexOutput == vm && !sm.lastOutputWasProgress)
 	sm.lastVertexOutput = vm
-	sm.lastOutputWasOngoingProgress = false
+	sm.lastOutputWasProgress = false
+	sm.lastOutputWasNoOutputUpdate = false
 	return vm.printOutput(data, sameAsLast)
 }
 
 func (sm *solverMonitor) printProgress(vm *vertexMonitor, id string, progress int) {
-	if vm.shouldPrintProgress(id, progress, sm.verbose, sm.lastOutputWasOngoingProgress) {
+	if vm.shouldPrintProgress(id, progress, sm.verbose, sm.lastOutputWasProgress) {
 		if !vm.headerPrinted {
 			sm.printHeader(vm)
 		}
-		vm.printProgress(id, progress, sm.verbose, sm.lastOutputWasOngoingProgress)
-		sm.lastOutputWasOngoingProgress = (progress != 100)
+		vm.printProgress(id, progress, sm.verbose, sm.lastOutputWasProgress)
+		sm.lastOutputWasProgress = (progress != 100)
+		sm.lastOutputWasNoOutputUpdate = false
 	}
 }
 
@@ -358,6 +402,8 @@ func (sm *solverMonitor) printHeader(vm *vertexMonitor) {
 		sm.saltSeen[vm.salt] = true
 	}
 	vm.printHeader()
+	sm.lastOutputWasProgress = false
+	sm.lastOutputWasNoOutputUpdate = false
 }
 
 func (sm *solverMonitor) recordTiming(targetStr, targetBrackets, salt string, vertex *client.Vertex) {
@@ -381,7 +427,8 @@ func (sm *solverMonitor) SetSuccess(msg string) {
 	defer sm.mu.Unlock()
 	sm.success = true
 	if !sm.ongoing {
-		sm.lastOutputWasOngoingProgress = false
+		sm.lastOutputWasProgress = false
+		sm.lastOutputWasNoOutputUpdate = false
 		sm.console.PrintSuccess(msg)
 		sm.printedSuccess = true
 	}
@@ -429,7 +476,8 @@ func (sm *solverMonitor) PrintTiming() {
 }
 
 func (sm *solverMonitor) reprintFailure(errVertex *vertexMonitor, phaseText string) {
-	sm.lastOutputWasOngoingProgress = false
+	sm.lastOutputWasProgress = false
+	sm.lastOutputWasNoOutputUpdate = false
 	sm.console.Warnf("Repeating the output of the command that caused the failure\n")
 	sm.console.PrintFailure(phaseText)
 	errVertex.console = errVertex.console.WithFailed(true)
