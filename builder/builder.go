@@ -691,7 +691,7 @@ func (b *Builder) saveArtifactLocally(ctx context.Context, artifact domain.Artif
 			destPath2 = filepath.Join(destPath2, filepath.Base(artifactPath))
 		}
 		if opt.PrintSuccess {
-			artifactStr := console.PrefixColor().Sprintf(artifact2.StringCanonical())
+			artifactStr := console.PrefixColor().Sprintf("%s", artifact2.StringCanonical())
 			console.Printf("Artifact %s as local %s\n", artifactStr, destPath2)
 		}
 	}
