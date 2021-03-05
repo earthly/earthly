@@ -22,13 +22,13 @@ import (
 )
 
 const (
-	durationBetweenSha256ProgressUpdate = 5 * time.Second
-	durationBetweenProgressUpdate       = 3 * time.Second
-	durationBetweenProgressUpdateIfSame = 5 * time.Millisecond
-	durationBetweenOpenLineUpdate       = time.Second
-	durationBetweenAnyOutput            = 5 * time.Second
-	durationBetweenAnyOutputNoAnsi      = 20 * time.Second
-	tailErrorBufferSizeBytes            = 80 * 1024 // About as much as 1024 lines of 80 chars each.
+	durationBetweenSha256ProgressUpdate  = 5 * time.Second
+	durationBetweenProgressUpdate        = 3 * time.Second
+	durationBetweenProgressUpdateIfSame  = 5 * time.Millisecond
+	durationBetweenOpenLineUpdate        = time.Second
+	durationBetweenNoOutputUpdates       = 5 * time.Second
+	durationBetweenNoOutputUpdatesNoAnsi = 20 * time.Second
+	tailErrorBufferSizeBytes             = 80 * 1024 // About as much as 1024 lines of 80 chars each.
 )
 
 type vertexMonitor struct {
@@ -247,9 +247,9 @@ func (sm *solverMonitor) monitorProgress(ctx context.Context, ch chan *client.So
 	sm.ongoing = true
 	sm.mu.Unlock()
 	var errVertex *vertexMonitor
-	noOutputTick := durationBetweenAnyOutputNoAnsi
+	noOutputTick := durationBetweenNoOutputUpdatesNoAnsi
 	if ansiSupported {
-		noOutputTick = durationBetweenAnyOutput
+		noOutputTick = durationBetweenNoOutputUpdates
 	}
 	noOutputTicker := time.NewTicker(noOutputTick)
 	defer noOutputTicker.Stop()
