@@ -3,8 +3,8 @@ package spec
 // Earthfile is the AST representation of an Earthfile.
 type Earthfile struct {
 	BaseRecipe     Block           `json:"baseRecipe"`
-	Targets        []Target        `json:"targets"`
-	UserCommands   []UserCommand   `json:"userCommands"`
+	Targets        []Target        `json:"targets,omitempty"`
+	UserCommands   []UserCommand   `json:"userCommands,omitempty"`
 	SourceLocation *SourceLocation `json:"sourceLocation,omitempty"`
 }
 

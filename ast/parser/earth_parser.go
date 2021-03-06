@@ -166,9 +166,9 @@ var parserATN = []uint16{
 	2, 271, 272, 3, 2, 2, 2, 272, 270, 3, 2, 2, 2, 272, 273, 3, 2, 2, 2, 273,
 	275, 3, 2, 2, 2, 274, 276, 7, 36, 2, 2, 275, 274, 3, 2, 2, 2, 275, 276,
 	3, 2, 2, 2, 276, 277, 3, 2, 2, 2, 277, 278, 7, 39, 2, 2, 278, 23, 3, 2,
-	2, 2, 279, 280, 5, 16, 9, 2, 280, 25, 3, 2, 2, 2, 281, 282, 7, 31, 2, 2,
+	2, 2, 279, 280, 5, 16, 9, 2, 280, 25, 3, 2, 2, 2, 281, 282, 7, 32, 2, 2,
 	282, 283, 7, 36, 2, 2, 283, 284, 5, 28, 15, 2, 284, 27, 3, 2, 2, 2, 285,
-	286, 5, 30, 16, 2, 286, 29, 3, 2, 2, 2, 287, 290, 7, 32, 2, 2, 288, 289,
+	286, 5, 30, 16, 2, 286, 29, 3, 2, 2, 2, 287, 290, 7, 33, 2, 2, 288, 289,
 	7, 36, 2, 2, 289, 291, 5, 114, 58, 2, 290, 288, 3, 2, 2, 2, 290, 291, 3,
 	2, 2, 2, 291, 31, 3, 2, 2, 2, 292, 304, 5, 34, 18, 2, 293, 295, 7, 35,
 	2, 2, 294, 293, 3, 2, 2, 2, 295, 296, 3, 2, 2, 2, 296, 294, 3, 2, 2, 2,
@@ -184,7 +184,7 @@ var parserATN = []uint16{
 	321, 3, 2, 2, 2, 321, 319, 3, 2, 2, 2, 321, 322, 3, 2, 2, 2, 322, 324,
 	3, 2, 2, 2, 323, 325, 7, 36, 2, 2, 324, 323, 3, 2, 2, 2, 324, 325, 3, 2,
 	2, 2, 325, 326, 3, 2, 2, 2, 326, 327, 7, 39, 2, 2, 327, 33, 3, 2, 2, 2,
-	328, 329, 7, 33, 2, 2, 329, 330, 7, 36, 2, 2, 330, 340, 5, 46, 24, 2, 331,
+	328, 329, 7, 34, 2, 2, 329, 330, 7, 36, 2, 2, 330, 340, 5, 46, 24, 2, 331,
 	333, 7, 35, 2, 2, 332, 331, 3, 2, 2, 2, 333, 334, 3, 2, 2, 2, 334, 332,
 	3, 2, 2, 2, 334, 335, 3, 2, 2, 2, 335, 337, 3, 2, 2, 2, 336, 338, 7, 36,
 	2, 2, 337, 336, 3, 2, 2, 2, 337, 338, 3, 2, 2, 2, 338, 339, 3, 2, 2, 2,
@@ -265,7 +265,7 @@ var parserATN = []uint16{
 	538, 540, 5, 114, 58, 2, 539, 537, 3, 2, 2, 2, 539, 540, 3, 2, 2, 2, 540,
 	103, 3, 2, 2, 2, 541, 544, 7, 29, 2, 2, 542, 543, 7, 36, 2, 2, 543, 545,
 	5, 114, 58, 2, 544, 542, 3, 2, 2, 2, 544, 545, 3, 2, 2, 2, 545, 105, 3,
-	2, 2, 2, 546, 549, 7, 34, 2, 2, 547, 548, 7, 36, 2, 2, 548, 550, 5, 114,
+	2, 2, 2, 546, 549, 7, 31, 2, 2, 547, 548, 7, 36, 2, 2, 548, 550, 5, 114,
 	58, 2, 549, 547, 3, 2, 2, 2, 549, 550, 3, 2, 2, 2, 550, 107, 3, 2, 2, 2,
 	551, 554, 7, 30, 2, 2, 552, 553, 7, 36, 2, 2, 553, 555, 5, 114, 58, 2,
 	554, 552, 3, 2, 2, 2, 554, 555, 3, 2, 2, 2, 555, 109, 3, 2, 2, 2, 556,
@@ -287,14 +287,14 @@ var literalNames = []string{
 	"'SAVE ARTIFACT'", "'SAVE IMAGE'", "'RUN'", "'EXPOSE'", "'VOLUME'", "'ENV'",
 	"'ARG'", "'LABEL'", "'BUILD'", "'WORKDIR'", "'USER'", "'CMD'", "'ENTRYPOINT'",
 	"'GIT CLONE'", "'ADD'", "'STOPSIGNAL'", "'ONBUILD'", "'HEALTHCHECK'", "'SHELL'",
-	"'DO'", "'WITH'", "", "", "'COMMAND'", "", "", "'ELSE'", "'ELSE IF'", "'END'",
+	"'DO'", "'COMMAND'", "'WITH'", "", "", "", "", "'ELSE'", "'ELSE IF'", "'END'",
 }
 var symbolicNames = []string{
 	"", "INDENT", "DEDENT", "Target", "UserCommand", "FROM", "FROM_DOCKERFILE",
 	"LOCALLY", "COPY", "SAVE_ARTIFACT", "SAVE_IMAGE", "RUN", "EXPOSE", "VOLUME",
 	"ENV", "ARG", "LABEL", "BUILD", "WORKDIR", "USER", "CMD", "ENTRYPOINT",
 	"GIT_CLONE", "ADD", "STOPSIGNAL", "ONBUILD", "HEALTHCHECK", "SHELL", "DO",
-	"WITH", "DOCKER", "IF", "COMMAND", "NL", "WS", "ELSE", "ELSE_IF", "END",
+	"COMMAND", "WITH", "DOCKER", "IF", "NL", "WS", "ELSE", "ELSE_IF", "END",
 	"Atom", "EQUALS",
 }
 
@@ -372,10 +372,10 @@ const (
 	EarthParserHEALTHCHECK     = 26
 	EarthParserSHELL           = 27
 	EarthParserDO              = 28
-	EarthParserWITH            = 29
-	EarthParserDOCKER          = 30
-	EarthParserIF              = 31
-	EarthParserCOMMAND         = 32
+	EarthParserCOMMAND         = 29
+	EarthParserWITH            = 30
+	EarthParserDOCKER          = 31
+	EarthParserIF              = 32
 	EarthParserNL              = 33
 	EarthParserWS              = 34
 	EarthParserELSE            = 35
@@ -581,7 +581,7 @@ func (p *EarthParser) EarthFile() (localctx IEarthFileContext) {
 	p.GetErrorHandler().Sync(p)
 	_la = p.GetTokenStream().LA(1)
 
-	if ((_la-5)&-(0x1f+1)) == 0 && ((int64(1)<<uint((_la-5)))&((int64(1)<<(EarthParserFROM-5))|(int64(1)<<(EarthParserFROM_DOCKERFILE-5))|(int64(1)<<(EarthParserLOCALLY-5))|(int64(1)<<(EarthParserCOPY-5))|(int64(1)<<(EarthParserSAVE_ARTIFACT-5))|(int64(1)<<(EarthParserSAVE_IMAGE-5))|(int64(1)<<(EarthParserRUN-5))|(int64(1)<<(EarthParserEXPOSE-5))|(int64(1)<<(EarthParserVOLUME-5))|(int64(1)<<(EarthParserENV-5))|(int64(1)<<(EarthParserARG-5))|(int64(1)<<(EarthParserLABEL-5))|(int64(1)<<(EarthParserBUILD-5))|(int64(1)<<(EarthParserWORKDIR-5))|(int64(1)<<(EarthParserUSER-5))|(int64(1)<<(EarthParserCMD-5))|(int64(1)<<(EarthParserENTRYPOINT-5))|(int64(1)<<(EarthParserGIT_CLONE-5))|(int64(1)<<(EarthParserADD-5))|(int64(1)<<(EarthParserSTOPSIGNAL-5))|(int64(1)<<(EarthParserONBUILD-5))|(int64(1)<<(EarthParserHEALTHCHECK-5))|(int64(1)<<(EarthParserSHELL-5))|(int64(1)<<(EarthParserDO-5))|(int64(1)<<(EarthParserWITH-5))|(int64(1)<<(EarthParserIF-5))|(int64(1)<<(EarthParserCOMMAND-5))|(int64(1)<<(EarthParserWS-5)))) != 0 {
+	if ((_la-5)&-(0x1f+1)) == 0 && ((int64(1)<<uint((_la-5)))&((int64(1)<<(EarthParserFROM-5))|(int64(1)<<(EarthParserFROM_DOCKERFILE-5))|(int64(1)<<(EarthParserLOCALLY-5))|(int64(1)<<(EarthParserCOPY-5))|(int64(1)<<(EarthParserSAVE_ARTIFACT-5))|(int64(1)<<(EarthParserSAVE_IMAGE-5))|(int64(1)<<(EarthParserRUN-5))|(int64(1)<<(EarthParserEXPOSE-5))|(int64(1)<<(EarthParserVOLUME-5))|(int64(1)<<(EarthParserENV-5))|(int64(1)<<(EarthParserARG-5))|(int64(1)<<(EarthParserLABEL-5))|(int64(1)<<(EarthParserBUILD-5))|(int64(1)<<(EarthParserWORKDIR-5))|(int64(1)<<(EarthParserUSER-5))|(int64(1)<<(EarthParserCMD-5))|(int64(1)<<(EarthParserENTRYPOINT-5))|(int64(1)<<(EarthParserGIT_CLONE-5))|(int64(1)<<(EarthParserADD-5))|(int64(1)<<(EarthParserSTOPSIGNAL-5))|(int64(1)<<(EarthParserONBUILD-5))|(int64(1)<<(EarthParserHEALTHCHECK-5))|(int64(1)<<(EarthParserSHELL-5))|(int64(1)<<(EarthParserDO-5))|(int64(1)<<(EarthParserCOMMAND-5))|(int64(1)<<(EarthParserWITH-5))|(int64(1)<<(EarthParserIF-5))|(int64(1)<<(EarthParserWS-5)))) != 0 {
 		{
 			p.SetState(122)
 			p.Stmts()

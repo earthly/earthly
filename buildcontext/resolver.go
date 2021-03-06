@@ -2,7 +2,10 @@ package buildcontext
 
 import (
 	"context"
+	"path/filepath"
 
+	"github.com/earthly/earthly/ast"
+	"github.com/earthly/earthly/ast/spec"
 	"github.com/earthly/earthly/cleanup"
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/gitutil"
@@ -17,6 +20,8 @@ const DockerfileMetaTarget = "@dockerfile"
 
 // Data represents a resolved target's build context data.
 type Data struct {
+	// The parsed Earthfile AST.
+	Earthfile spec.Earthfile
 	// BuildFilePath is the local path where the Earthfile or Dockerfile can be found.
 	BuildFilePath string
 	// BuildContext is the state to use for the build.
@@ -33,6 +38,8 @@ type Data struct {
 type Resolver struct {
 	gr *gitResolver
 	lr *localResolver
+
+	parseCache map[string]spec.Earthfile // local path -> AST
 }
 
 // NewResolver returns a new NewResolver.
@@ -47,31 +54,51 @@ func NewResolver(sessionID string, cleanCollection *cleanup.Collection, gitLooku
 			gitMetaCache: make(map[string]*gitutil.GitMetadata),
 			sessionID:    sessionID,
 		},
+		parseCache: make(map[string]spec.Earthfile),
 	}
 }
 
 // Resolve returns resolved build context data.
 func (r *Resolver) Resolve(ctx context.Context, gwClient gwclient.Client, target domain.Target) (*Data, error) {
+	var d *Data
+	var err error
 	localDirs := make(map[string]string)
 	if target.IsRemote() {
 		// Remote.
-		d, err := r.gr.resolveEarthProject(ctx, gwClient, target)
+		d, err = r.gr.resolveEarthProject(ctx, gwClient, target)
 		if err != nil {
 			return nil, err
 		}
-
-		d.Target = gitutil.TargetWithGitMeta(target, d.GitMetadata)
-		d.LocalDirs = localDirs
-		return d, nil
-	}
-
-	// Local.
-	localDirs[target.LocalPath] = target.LocalPath
-	d, err := r.lr.resolveLocal(ctx, target)
-	if err != nil {
-		return nil, err
+	} else {
+		// Local.
+		localDirs[target.LocalPath] = target.LocalPath
+		d, err = r.lr.resolveLocal(ctx, target)
+		if err != nil {
+			return nil, err
+		}
 	}
 	d.Target = gitutil.TargetWithGitMeta(target, d.GitMetadata)
 	d.LocalDirs = localDirs
+	if target.Target != DockerfileMetaTarget {
+		d.Earthfile, err = r.parseEarthfile(ctx, d.BuildFilePath)
+		if err != nil {
+			return nil, err
+		}
+	}
 	return d, nil
+}
+
+func (r *Resolver) parseEarthfile(ctx context.Context, path string) (spec.Earthfile, error) {
+	path = filepath.Clean(path)
+	ef, found := r.parseCache[path]
+	if found {
+		return ef, nil
+	}
+
+	ef, err := ast.Parse(ctx, path, true)
+	if err != nil {
+		return spec.Earthfile{}, err
+	}
+	r.parseCache[path] = ef
+	return ef, nil
 }
