@@ -9,15 +9,22 @@ import (
 	"strings"
 	"time"
 
+	"github.com/earthly/earthly/ast"
 	"github.com/earthly/earthly/ast/spec"
+	"github.com/earthly/earthly/buildcontext"
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/llbutil"
+	gwclient "github.com/moby/buildkit/frontend/gateway/client"
 	specs "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
 // Interpreter interprets Earthly AST's into calls to the converter.
 type Interpreter struct {
 	converter *Converter
+	resolver  *buildcontext.Resolver
+	gwClient  gwclient.Client
+
+	target domain.Target
 
 	isBase          bool
 	isWith          bool
@@ -28,26 +35,29 @@ type Interpreter struct {
 	withDockerRan bool
 }
 
-func newInterpreter(c *Converter) *Interpreter {
+func newInterpreter(c *Converter, r *buildcontext.Resolver, g gwclient.Client, t domain.Target) *Interpreter {
 	return &Interpreter{
 		converter: c,
+		resolver:  r,
+		gwClient:  g,
+		target:    t,
 	}
 }
 
 // Run interprets the commands in the given Earthfile AST, for a specific target.
-func (i *Interpreter) Run(ctx context.Context, ef spec.Earthfile, target string) error {
-	if target == "base" {
+func (i *Interpreter) Run(ctx context.Context, ef spec.Earthfile) error {
+	if i.target.Target == "base" {
 		i.isBase = true
 		err := i.handleBlock(ctx, ef.BaseRecipe)
 		i.isBase = false
 		return err
 	}
 	for _, t := range ef.Targets {
-		if t.Name == target {
+		if t.Name == i.target.Target {
 			return i.handleTarget(ctx, t)
 		}
 	}
-	return Errorf(ef.SourceLocation, "target %s not found", target)
+	return Errorf(ef.SourceLocation, "target %s not found", i.target.Target)
 }
 
 func (i *Interpreter) handleTarget(ctx context.Context, t spec.Target) error {
@@ -138,6 +148,10 @@ func (i *Interpreter) handleCommand(ctx context.Context, cmd spec.Command) error
 		return i.handleOnbuild(ctx, cmd)
 	case "SHELL":
 		return i.handleShell(ctx, cmd)
+	case "COMMAND":
+		return i.handleUserCommand(ctx, cmd)
+	case "DO":
+		return i.handleDo(ctx, cmd)
 	default:
 		return Errorf(cmd.SourceLocation, "unexpected command %s", cmd.Name)
 	}
@@ -1045,6 +1059,55 @@ func (i *Interpreter) handleOnbuild(ctx context.Context, cmd spec.Command) error
 
 func (i *Interpreter) handleShell(ctx context.Context, cmd spec.Command) error {
 	return Errorf(cmd.SourceLocation, "command SHELL not yet supported")
+}
+
+func (i *Interpreter) handleUserCommand(ctx context.Context, cmd spec.Command) error {
+	return Errorf(cmd.SourceLocation, "command COMMAND not allowed in a target definition")
+}
+
+func (i *Interpreter) handleDo(ctx context.Context, cmd spec.Command) error {
+	cmdArgs := cmd.Args[:]
+	for index, arg := range cmdArgs {
+		cmdArgs[index] = i.expandArgs(arg, false)
+	}
+
+	ucName := cmdArgs[0]
+	relUCTarget, err := domain.ParseTarget(ucName) // TODO: special parsing for user commands?
+	if err != nil {
+		return WrapError(err, cmd.SourceLocation, "unable to parse user command reference %s", ucName)
+	}
+	ucTarget, err := domain.JoinTargets(i.target, relUCTarget)
+	if err != nil {
+		return WrapError(err, cmd.SourceLocation, "join targets")
+	}
+
+	bc, err := i.resolver.Resolve(ctx, i.gwClient, ucTarget)
+	if err != nil {
+		return WrapError(err, cmd.SourceLocation, "unable to resolve user command %s", ucName)
+	}
+	// TODO: Use a parser cache. Possibly move the parsing in the resolver itself.
+	ef, err := ast.Parse(ctx, bc.BuildFilePath, true)
+	if err != nil {
+		return err
+	}
+	for _, uc := range ef.UserCommands {
+		if uc.Name == ucTarget.Target {
+			return i.handleDoUserCommand(ctx, uc, cmdArgs)
+		}
+	}
+	return Errorf(cmd.SourceLocation, "user command %s not found", ucName)
+}
+
+// ----------------------------------------------------------------------------
+
+func (i *Interpreter) handleDoUserCommand(ctx context.Context, uc spec.UserCommand, cmdArgs []string) error {
+	if len(uc.Recipe) == 0 || uc.Recipe[0].Command.Name != "COMMAND" {
+		return Errorf(uc.SourceLocation, "command recipes must start with COMMAND")
+	}
+	if len(uc.Recipe[0].Command.Args) > 0 {
+		return Errorf(uc.Recipe[0].SourceLocation, "COMMAND takes no arguments")
+	}
+	return i.handleBlock(ctx, uc.Recipe[1:])
 }
 
 // ----------------------------------------------------------------------------

@@ -115,13 +115,13 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt) (m
 	if err != nil {
 		return nil, err
 	}
-	// TODO: Use a parser cache.
+	// TODO: Use a parser cache. Possibly move the parsing in the resolver itself.
 	ef, err := ast.Parse(ctx, bc.BuildFilePath, true)
 	if err != nil {
 		return nil, err
 	}
-	interpreter := newInterpreter(converter)
-	err = interpreter.Run(ctx, ef, target.Target)
+	interpreter := newInterpreter(converter, opt.Resolver, opt.GwClient, target)
+	err = interpreter.Run(ctx, ef)
 	if err != nil {
 		return nil, err
 	}
