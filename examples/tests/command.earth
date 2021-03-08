@@ -1,0 +1,19 @@
+
+FROM alpine:3.13
+WORKDIR /test
+
+all:
+    BUILD +test-basic
+    BUILD +test-remote-no-context
+
+test-basic:
+    DO +TOUCH
+    RUN test -f a.txt
+
+test-remote-no-context:
+    DO github.com/earthly/earthly-command-example:main+COPY_CAT
+    RUN test -f message.txt
+
+TOUCH:
+    COMMAND
+    RUN touch a.txt

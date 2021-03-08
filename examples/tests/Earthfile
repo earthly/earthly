@@ -62,6 +62,7 @@ ga:
     BUILD +if
     BUILD +first-command
     BUILD +platform-output
+    BUILD +command
     BUILD ./autocompletion+test-all
     BUILD ./with-docker+all
     BUILD ./with-docker-compose+all
@@ -625,3 +626,11 @@ platform-output:
     RUN test -f ./out-arm
     RUN test -f ./out-arm64
     RUN ! test -f ./out-amd64
+
+command:
+    COPY command.earth ./Earthfile
+    RUN echo "hello command" >./message.txt
+    RUN --privileged \
+        --entrypoint \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        -- +all
