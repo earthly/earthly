@@ -350,8 +350,13 @@ Loop:
 				}
 			}
 			sort.Strings(ongoing) // not entirely correct, but makes the ordering consistent
-			ongoingBuilder = append(ongoingBuilder,
-				strings.Join(ongoing, ", "), string(ansiEraseRestLine))
+			var ongoingStr string
+			if len(ongoing) > 2 {
+				ongoingStr = fmt.Sprintf("%s and %d others", strings.Join(ongoing[:2], ", "), len(ongoing)-2)
+			} else {
+				ongoingStr = strings.Join(ongoing, ", ")
+			}
+			ongoingBuilder = append(ongoingBuilder, ongoingStr, string(ansiEraseRestLine))
 			sm.console.WithPrefix("ongoing").Printf("%s\n", strings.Join(ongoingBuilder, ""))
 			sm.lastOutputWasProgress = false
 			sm.lastOutputWasNoOutputUpdate = true
