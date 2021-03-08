@@ -27,7 +27,7 @@ const (
 	durationBetweenProgressUpdateIfSame  = 5 * time.Millisecond
 	durationBetweenOpenLineUpdate        = time.Second
 	durationBetweenNoOutputUpdates       = 5 * time.Second
-	durationBetweenNoOutputUpdatesNoAnsi = 20 * time.Second
+	durationBetweenNoOutputUpdatesNoAnsi = 60 * time.Second
 	tailErrorBufferSizeBytes             = 80 * 1024 // About as much as 1024 lines of 80 chars each.
 )
 
