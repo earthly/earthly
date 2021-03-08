@@ -566,7 +566,10 @@ func (b *Builder) buildOnlyLastImageAsTar(ctx context.Context, mts *states.Multi
 		return err
 	}
 
-	platform := llbutil.ResolvePlatform(opt.Platform, mts.Final.Platform)
+	platform, err := llbutil.ResolvePlatform(mts.Final.Platform, opt.Platform)
+	if err != nil {
+		platform = mts.Final.Platform
+	}
 	plat := llbutil.PlatformWithDefault(platform)
 	err = b.outputImageTar(ctx, saveImage, plat, dockerTag, outFile)
 	if err != nil {
@@ -580,11 +583,14 @@ func (b *Builder) buildMain(ctx context.Context, mts *states.MultiTarget, opt Bu
 	if b.opt.NoCache {
 		state = state.SetMarshalDefaults(llb.IgnoreCache)
 	}
-	platform := llbutil.ResolvePlatform(opt.Platform, mts.Final.Platform)
-	plat := llbutil.PlatformWithDefault(platform)
-	err := b.s.solveMain(ctx, state, plat)
+	platform, err := llbutil.ResolvePlatform(mts.Final.Platform, opt.Platform)
 	if err != nil {
-		return err
+		platform = mts.Final.Platform
+	}
+	plat := llbutil.PlatformWithDefault(platform)
+	err = b.s.solveMain(ctx, state, plat)
+	if err != nil {
+		return errors.Wrapf(err, "solve side effects")
 	}
 	return nil
 }
