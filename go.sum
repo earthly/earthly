@@ -292,6 +292,8 @@ github.com/dustin/go-humanize v1.0.0 h1:VSnTsYCnlFHaM2/igO1h6X3HA71jcobQuxemgkq4
 github.com/dustin/go-humanize v1.0.0/go.mod h1:HtrtbFcZ19U5GC7JDqmcUSB87Iq5E25KnS6fMYU6eOk=
 github.com/earthly/buildkit v0.7.1-0.20210225185250-cd1c99863e48 h1:0wqvgVdsWRcgwUsvjAJmtv/Bk3G29qiYcyAyh9/Sndo=
 github.com/earthly/buildkit v0.7.1-0.20210225185250-cd1c99863e48/go.mod h1:DIx5g9IZJWZCOtqtSzrHxanBPR2JClX4zo8/TSr7dis=
+github.com/earthly/buildkit v0.7.1-0.20210309062832-38aba1dee198 h1:TDItdulME8GSJginulFbuyxM1W8q07vdMTCQ053WyzU=
+github.com/earthly/buildkit v0.7.1-0.20210309062832-38aba1dee198/go.mod h1:DIx5g9IZJWZCOtqtSzrHxanBPR2JClX4zo8/TSr7dis=
 github.com/elazarl/goproxy v0.0.0-20180725130230-947c36da3153 h1:yUdfgN0XgIJw7foRItutHYUIhlcKzcSf5vDpdhQAKTc=
 github.com/elazarl/goproxy v0.0.0-20180725130230-947c36da3153/go.mod h1:/Zj4wYkgs4iZTTu3o/KG3Itv/qCCa8VVMlb3i9OVuzc=
 github.com/emicklei/go-restful v0.0.0-20170410110728-ff4f55a20633/go.mod h1:otzb+WCGbkyDHkqmQmT5YD2WR4BBwUdeQoFo8l/7tVs=

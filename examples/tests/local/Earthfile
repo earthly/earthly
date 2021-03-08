@@ -114,6 +114,11 @@ test-locally-can-copy-dir:
     RUN cat /tmp/008f5069-567a-4aab-8024-1c974100a67f/the-data/busybox | grep "BusyBox v1.32.1"
     RUN cat /tmp/008f5069-567a-4aab-8024-1c974100a67f/the-data/hostname | grep "buildkitsandbox"
 
+test-locally-workdir:
+    LOCALLY
+    WORKDIR /tmp/earthly-197ec076-b89d-4861-b8ca-33a34170712c
+    RUN test "$(pwd)" = "/tmp/earthly-197ec076-b89d-4861-b8ca-33a34170712c"
+
 # TODO add support for copying container image into local docker
 #mycontainer:
 #    FROM busybox:latest
@@ -139,3 +144,4 @@ all:
     BUILD +test-multi-copy-from-alpine-to-local
     BUILD +test-locally-can-copy-dir-contents
     BUILD +test-locally-can-copy-dir
+    BUILD +test-locally-workdir
