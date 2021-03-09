@@ -84,6 +84,29 @@
           }
         }
       ]
+    },
+    {
+      "name": "test-nested",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "+COMMANDCEPTION"
+            ],
+            "name": "DO"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "test",
+              "-f",
+              "a.txt"
+            ],
+            "name": "RUN"
+          }
+        }
+      ]
     }
   ],
   "userCommands": [
@@ -103,6 +126,44 @@
               "a.txt"
             ],
             "name": "RUN"
+          }
+        }
+      ]
+    },
+    {
+      "name": "COMMANDCEPTION",
+      "recipe": [
+        {
+          "command": {
+            "args": [],
+            "name": "COMMAND"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "+ANOTHER_COMMAND"
+            ],
+            "name": "DO"
+          }
+        }
+      ]
+    },
+    {
+      "name": "ANOTHER_COMMAND",
+      "recipe": [
+        {
+          "command": {
+            "args": [],
+            "name": "COMMAND"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "+TOUCH"
+            ],
+            "name": "DO"
           }
         }
       ]
