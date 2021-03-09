@@ -596,7 +596,7 @@ build-arg-repeat:
 
 if:
     COPY if.earth ./Earthfile
-    RUN touch ./exists-locally
+    RUN touch exists-locally
     RUN --privileged \
         --entrypoint \
         --mount=type=tmpfs,target=/tmp/earthly \
