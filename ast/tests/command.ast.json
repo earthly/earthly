@@ -1,0 +1,111 @@
+{
+  "baseRecipe": [
+    {
+      "command": {
+        "args": [
+          "alpine:3.13"
+        ],
+        "name": "FROM"
+      }
+    },
+    {
+      "command": {
+        "args": [
+          "/test"
+        ],
+        "name": "WORKDIR"
+      }
+    }
+  ],
+  "targets": [
+    {
+      "name": "all",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "+test-basic"
+            ],
+            "name": "BUILD"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "+test-remote-no-context"
+            ],
+            "name": "BUILD"
+          }
+        }
+      ]
+    },
+    {
+      "name": "test-basic",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "+TOUCH"
+            ],
+            "name": "DO"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "test",
+              "-f",
+              "a.txt"
+            ],
+            "name": "RUN"
+          }
+        }
+      ]
+    },
+    {
+      "name": "test-remote-no-context",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "github.com/earthly/earthly-command-example:main+COPY_CAT"
+            ],
+            "name": "DO"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "test",
+              "-f",
+              "message.txt"
+            ],
+            "name": "RUN"
+          }
+        }
+      ]
+    }
+  ],
+  "userCommands": [
+    {
+      "name": "TOUCH",
+      "recipe": [
+        {
+          "command": {
+            "args": [],
+            "name": "COMMAND"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "touch",
+              "a.txt"
+            ],
+            "name": "RUN"
+          }
+        }
+      ]
+    }
+  ]
+}
