@@ -144,17 +144,6 @@ func (cl ConsoleLogger) PrintFailure(msg string) {
 	cl.PrintBar(warnColor, " FAILURE ", msg)
 }
 
-// PrefixColor returns the color used for the prefix.
-func (cl ConsoleLogger) PrefixColor() *color.Color {
-	c, found := cl.saltColors[cl.salt]
-	if !found {
-		c = availablePrefixColors[*cl.nextColorIndex]
-		cl.saltColors[cl.salt] = c
-		*cl.nextColorIndex = (*cl.nextColorIndex + 1) % len(availablePrefixColors)
-	}
-	return cl.color(c)
-}
-
 // PrintBar prints an earthly message bar
 func (cl ConsoleLogger) PrintBar(c *color.Color, center, msg string) {
 	if msg != "" {
@@ -262,7 +251,13 @@ func (cl ConsoleLogger) printPrefix(useErrWriter bool) {
 	if cl.prefix == "" {
 		return
 	}
-	c := cl.PrefixColor()
+	c, found := cl.saltColors[cl.salt]
+	if !found {
+		c = availablePrefixColors[*cl.nextColorIndex]
+		cl.saltColors[cl.salt] = c
+		*cl.nextColorIndex = (*cl.nextColorIndex + 1) % len(availablePrefixColors)
+	}
+	c = cl.color(c)
 	c.Fprintf(w, cl.prettyPrefix())
 	if cl.isFailed {
 		w.Write([]byte(" *"))
