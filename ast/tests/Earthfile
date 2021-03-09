@@ -46,6 +46,7 @@ all:
         --build-arg TEST=transitive-args \
         --build-arg TEST=with-docker \
         --build-arg TEST=with-docker-compose \
+        --build-arg TEST=command \
         +test
     BUILD --build-arg INPUT_FROM=./ --build-arg TEST=if +test
 
@@ -91,6 +92,7 @@ update-all:
         --build-arg TEST=transitive-args \
         --build-arg TEST=with-docker \
         --build-arg TEST=with-docker-compose \
+        --build-arg TEST=command \
         +update-expected
     BUILD --build-arg INPUT_FROM=./ --build-arg TEST=if +update-expected
 

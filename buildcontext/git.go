@@ -44,25 +44,29 @@ type resolvedGitProject struct {
 	state llb.State
 }
 
-func (gr *gitResolver) resolveEarthProject(ctx context.Context, gwClient gwclient.Client, target domain.Target) (*Data, error) {
-	if !target.IsRemote() {
-		return nil, fmt.Errorf("unexpected local target %s", target.String())
+func (gr *gitResolver) resolveEarthProject(ctx context.Context, gwClient gwclient.Client, ref domain.Reference) (*Data, error) {
+	if !ref.IsRemote() {
+		return nil, fmt.Errorf("unexpected local reference %s", ref.String())
 	}
-	rgp, gitURL, subDir, err := gr.resolveGitProject(ctx, gwClient, target)
+	rgp, gitURL, subDir, err := gr.resolveGitProject(ctx, gwClient, ref)
 	if err != nil {
 		return nil, err
 	}
 
-	// Restrict the resulting build context to the right subdir.
 	var buildContext llb.State
-	if subDir == "." {
-		// Optimization.
-		buildContext = rgp.state
+	if _, isTarget := ref.(domain.Target); isTarget {
+		// Restrict the resulting build context to the right subdir.
+		if subDir == "." {
+			// Optimization.
+			buildContext = rgp.state
+		} else {
+			buildContext = llbutil.ScratchWithPlatform()
+			buildContext = llbutil.CopyOp(
+				rgp.state, []string{subDir}, buildContext, "./", false, false, false, "root:root", false,
+				llb.WithCustomNamef("[internal] COPY git context %s", ref.String()))
+		}
 	} else {
-		buildContext = llbutil.ScratchWithPlatform()
-		buildContext = llbutil.CopyOp(
-			rgp.state, []string{subDir}, buildContext, "./", false, false, false, "root:root", false,
-			llb.WithCustomNamef("[internal] COPY git context %s", target.String()))
+		// Commands don't come with a build context.
 	}
 
 	earthfileTmpDir, err := ioutil.TempDir("/tmp", "earthly-git")
@@ -76,7 +80,7 @@ func (gr *gitResolver) resolveEarthProject(ctx context.Context, gwClient gwclien
 	if err != nil {
 		return nil, errors.Wrap(err, "state to ref git meta")
 	}
-	buildFile, err := detectBuildFileInRef(ctx, target, gitMetaAndEarthfileRef, subDir)
+	buildFile, err := detectBuildFileInRef(ctx, ref, gitMetaAndEarthfileRef, subDir)
 	if err != nil {
 		return nil, err
 	}
@@ -107,18 +111,18 @@ func (gr *gitResolver) resolveEarthProject(ctx context.Context, gwClient gwclien
 	}, nil
 }
 
-func (gr *gitResolver) resolveGitProject(ctx context.Context, gwClient gwclient.Client, target domain.Target) (rgp *resolvedGitProject, gitURL string, subDir string, finalErr error) {
-	ref := target.Tag
+func (gr *gitResolver) resolveGitProject(ctx context.Context, gwClient gwclient.Client, ref domain.Reference) (rgp *resolvedGitProject, gitURL string, subDir string, finalErr error) {
+	gitRef := ref.GetTag()
 
 	var err error
 	var keyScan string
-	gitURL, subDir, keyScan, err = gr.gitLookup.GetCloneURL(target.GitURL)
+	gitURL, subDir, keyScan, err = gr.gitLookup.GetCloneURL(ref.GetGitURL())
 	if err != nil {
 		return nil, "", "", errors.Wrap(err, "failed to get url for cloning")
 	}
 
 	// Check the cache first.
-	cacheKey := fmt.Sprintf("%s#%s", gitURL, ref)
+	cacheKey := fmt.Sprintf("%s#%s", gitURL, gitRef)
 	data, found := gr.projectCache[cacheKey]
 	if found {
 		return data, gitURL, subDir, nil
@@ -133,7 +137,7 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, gwClient gwclient.
 	if keyScan != "" {
 		gitOpts = append(gitOpts, llb.KnownSSHHosts(keyScan))
 	}
-	gitState := llb.Git(gitURL, ref, gitOpts...)
+	gitState := llb.Git(gitURL, gitRef, gitOpts...)
 	copyOpts := []llb.RunOption{
 		llb.Args([]string{
 			"find",
@@ -144,7 +148,7 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, gwClient gwclient.
 		llb.Dir("/git-src"),
 		llb.ReadonlyRootFS(),
 		llb.AddMount("/git-src", gitState, llb.Readonly),
-		llb.WithCustomNamef("[internal] COPY GIT CLONE %s Metadata", target.ProjectCanonical()),
+		llb.WithCustomNamef("[internal] COPY GIT CLONE %s Metadata", ref.ProjectCanonical()),
 	}
 	opImg := llb.Image(
 		defaultGitImage, llb.MarkImageInternal, llb.ResolveModePreferLocal,
@@ -163,7 +167,7 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, gwClient gwclient.
 		llb.Dir("/git-src"),
 		llb.ReadonlyRootFS(),
 		llb.AddMount("/git-src", gitState, llb.Readonly),
-		llb.WithCustomNamef("[internal] GET GIT META %s", target.ProjectCanonical()),
+		llb.WithCustomNamef("[internal] GET GIT META %s", ref.ProjectCanonical()),
 	}
 	gitHashOp := opImg.Run(gitHashOpts...)
 	gitMetaAndEarthfileState := gitHashOp.AddMount("/dest", earthfileState)
@@ -208,7 +212,7 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, gwClient gwclient.
 	}
 
 	gitOpts = []llb.GitOption{
-		llb.WithCustomNamef("[context %s] git context %s", gitURL, target.StringCanonical()),
+		llb.WithCustomNamef("[context %s] git context %s", gitURL, ref.StringCanonical()),
 		llb.KeepGitDir(),
 	}
 	if keyScan != "" {

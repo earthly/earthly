@@ -6,9 +6,12 @@ options {
 
 earthFile: NL* (stmts NL)? NL* targets? NL* EOF;
 
-targets: target WS? (NL+ DEDENT target WS?)* NL* DEDENT?;
+targets: targetOrUserCommand WS? (NL+ DEDENT targetOrUserCommand WS?)* NL* DEDENT?;
+targetOrUserCommand: target | userCommand;
 target: targetHeader NL+ WS? INDENT stmts?;
 targetHeader: Target;
+userCommand: userCommandHeader NL+ WS? INDENT stmts?;
+userCommandHeader: UserCommand;
 
 stmts: WS? stmt (NL+ WS? stmt)*;
 
@@ -39,7 +42,9 @@ commandStmt:
 	| stopsignalStmt
 	| onbuildStmt
 	| healthcheckStmt
-	| shellStmt;
+	| shellStmt
+	| userCommandStmt
+	| doStmt;
 
 // withStmt -------------------------------------------------------------------
 
@@ -112,6 +117,8 @@ stopsignalStmt: STOPSIGNAL (WS stmtWords)?;
 onbuildStmt: ONBUILD (WS stmtWords)?;
 healthcheckStmt: HEALTHCHECK (WS stmtWords)?;
 shellStmt: SHELL (WS stmtWords)?;
+userCommandStmt: COMMAND (WS stmtWords)?;
+doStmt: DO (WS stmtWords)?;
 
 // expr, stmtWord* ------------------------------------------------------------
 

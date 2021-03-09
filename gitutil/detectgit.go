@@ -251,22 +251,42 @@ func gitRelDir(basePath string, path string) (string, bool, error) {
 	return filepath.FromSlash(relPath), true, nil
 }
 
-// TargetWithGitMeta applies git metadata to the target naming.
-func TargetWithGitMeta(target domain.Target, gitMeta *GitMetadata) domain.Target {
+// ReferenceWithGitMeta applies git metadata to the target naming.
+func ReferenceWithGitMeta(ref domain.Reference, gitMeta *GitMetadata) domain.Reference {
 	if gitMeta == nil || gitMeta.GitURL == "" {
-		return target
+		return ref
 	}
-	targetRet := target
-	targetRet.GitURL = gitMeta.GitURL
+	gitURL := gitMeta.GitURL
+	tag := ref.GetTag()
+	localPath := ref.GetLocalPath()
+	name := ref.GetName()
 
-	if targetRet.Tag == "" {
+	if tag == "" {
 		if len(gitMeta.Tags) > 0 {
-			targetRet.Tag = gitMeta.Tags[0]
+			tag = gitMeta.Tags[0]
 		} else if len(gitMeta.Branch) > 0 {
-			targetRet.Tag = gitMeta.Branch[0]
+			tag = gitMeta.Branch[0]
 		} else {
-			targetRet.Tag = gitMeta.Hash
+			tag = gitMeta.Hash
 		}
 	}
-	return targetRet
+
+	switch ref.(type) {
+	case domain.Target:
+		return domain.Target{
+			GitURL:    gitURL,
+			Tag:       tag,
+			LocalPath: localPath,
+			Target:    name,
+		}
+	case domain.Command:
+		return domain.Command{
+			GitURL:    gitURL,
+			Tag:       tag,
+			LocalPath: localPath,
+			Command:   name,
+		}
+	default:
+		panic("not supported for this type")
+	}
 }

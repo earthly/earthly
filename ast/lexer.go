@@ -149,7 +149,7 @@ func (l *lexer) processIndentation(peek antlr.Token) {
 				if l.debug {
 					fmt.Printf("DEDENT ")
 				}
-				if peek.GetTokenType() != parser.EarthLexerTarget {
+				if peek.GetTokenType() != parser.EarthLexerTarget && peek.GetTokenType() != parser.EarthLexerUserCommand {
 					l.popRecipeMode()
 				}
 			}

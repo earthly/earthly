@@ -10,14 +10,20 @@ import (
 	"time"
 
 	"github.com/earthly/earthly/ast/spec"
+	"github.com/earthly/earthly/buildcontext"
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/llbutil"
+	gwclient "github.com/moby/buildkit/frontend/gateway/client"
 	specs "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
 // Interpreter interprets Earthly AST's into calls to the converter.
 type Interpreter struct {
 	converter *Converter
+	resolver  *buildcontext.Resolver
+	gwClient  gwclient.Client
+
+	target domain.Target
 
 	isBase          bool
 	isWith          bool
@@ -28,26 +34,29 @@ type Interpreter struct {
 	withDockerRan bool
 }
 
-func newInterpreter(c *Converter) *Interpreter {
+func newInterpreter(c *Converter, r *buildcontext.Resolver, g gwclient.Client, t domain.Target) *Interpreter {
 	return &Interpreter{
 		converter: c,
+		resolver:  r,
+		gwClient:  g,
+		target:    t,
 	}
 }
 
 // Run interprets the commands in the given Earthfile AST, for a specific target.
-func (i *Interpreter) Run(ctx context.Context, ef spec.Earthfile, target string) error {
-	if target == "base" {
+func (i *Interpreter) Run(ctx context.Context, ef spec.Earthfile) error {
+	if i.target.Target == "base" {
 		i.isBase = true
 		err := i.handleBlock(ctx, ef.BaseRecipe)
 		i.isBase = false
 		return err
 	}
 	for _, t := range ef.Targets {
-		if t.Name == target {
+		if t.Name == i.target.Target {
 			return i.handleTarget(ctx, t)
 		}
 	}
-	return Errorf(ef.SourceLocation, "target %s not found", target)
+	return Errorf(ef.SourceLocation, "target %s not found", i.target.Target)
 }
 
 func (i *Interpreter) handleTarget(ctx context.Context, t spec.Target) error {
@@ -81,7 +90,25 @@ func (i *Interpreter) handleStatement(ctx context.Context, stmt spec.Statement) 
 	}
 }
 
-func (i *Interpreter) handleCommand(ctx context.Context, cmd spec.Command) error {
+func (i *Interpreter) handleCommand(ctx context.Context, cmd spec.Command) (err error) {
+	// The AST should not be modified by any operation. This is a consistency check.
+	argsCopy := getArgsCopy(cmd)
+	defer func() {
+		if err != nil {
+			return
+		}
+		if len(argsCopy) != len(cmd.Args) {
+			err = Errorf(cmd.SourceLocation, "internal error: args were modified in command handling")
+			return
+		}
+		for index, arg := range cmd.Args {
+			if arg != argsCopy[index] {
+				err = Errorf(cmd.SourceLocation, "internal error: args were modified in command handling")
+				return
+			}
+		}
+	}()
+
 	if i.isWith {
 		switch cmd.Name {
 		case "DOCKER":
@@ -138,6 +165,10 @@ func (i *Interpreter) handleCommand(ctx context.Context, cmd spec.Command) error
 		return i.handleOnbuild(ctx, cmd)
 	case "SHELL":
 		return i.handleShell(ctx, cmd)
+	case "COMMAND":
+		return i.handleUserCommand(ctx, cmd)
+	case "DO":
+		return i.handleDo(ctx, cmd)
 	default:
 		return Errorf(cmd.SourceLocation, "unexpected command %s", cmd.Name)
 	}
@@ -265,7 +296,7 @@ func (i *Interpreter) handleFrom(ctx context.Context, cmd spec.Command) error {
 	buildArgs := new(StringSliceFlag)
 	fs.Var(buildArgs, "build-arg", "A build arg override passed on to a referenced Earthly target")
 	platformStr := fs.String("platform", "", "The platform to use")
-	err := fs.Parse(cmd.Args)
+	err := fs.Parse(getArgsCopy(cmd))
 	if err != nil {
 		return WrapError(err, cmd.SourceLocation, "invalid FROM arguments")
 	}
@@ -315,7 +346,7 @@ func (i *Interpreter) handleRun(ctx context.Context, cmd spec.Command) error {
 	fs.Var(secrets, "secret", "Make available a secret")
 	mounts := new(StringSliceFlag)
 	fs.Var(mounts, "mount", "Mount a file or directory")
-	err := fs.Parse(cmd.Args)
+	err := fs.Parse(getArgsCopy(cmd))
 	if err != nil {
 		return WrapError(err, cmd.SourceLocation, "invalid RUN arguments %v", cmd.Args)
 	}
@@ -417,7 +448,7 @@ func (i *Interpreter) handleFromDockerfile(ctx context.Context, cmd spec.Command
 	platformStr := fs.String("platform", "", "The platform to use")
 	dfTarget := fs.String("target", "", "The Dockerfile target to inherit from")
 	dfPath := fs.String("f", "", "Not supported")
-	err := fs.Parse(cmd.Args)
+	err := fs.Parse(getArgsCopy(cmd))
 	if err != nil {
 		return WrapError(err, cmd.SourceLocation, "invalid FROM DOCKERFILE arguments %v", cmd.Args)
 	}
@@ -475,7 +506,7 @@ func (i *Interpreter) handleCopy(ctx context.Context, cmd spec.Command) error {
 	platformStr := fs.String("platform", "", "The platform to use")
 	buildArgs := new(StringSliceFlag)
 	fs.Var(buildArgs, "build-arg", "A build arg override passed on to a referenced Earthly target")
-	err := fs.Parse(cmd.Args)
+	err := fs.Parse(getArgsCopy(cmd))
 	if err != nil {
 		return WrapError(err, cmd.SourceLocation, "invalid COPY arguments %v", cmd.Args)
 	}
@@ -550,7 +581,7 @@ func (i *Interpreter) handleSaveArtifact(ctx context.Context, cmd spec.Command) 
 	keepTs := fs.Bool("keep-ts", false, "Keep created time file timestamps")
 	keepOwn := fs.Bool("keep-own", false, "Keep owner info")
 	ifExists := fs.Bool("if-exists", false, "Do not fail if the artifact does not exist")
-	err := fs.Parse(cmd.Args)
+	err := fs.Parse(getArgsCopy(cmd))
 	if err != nil {
 		return WrapError(err, cmd.SourceLocation, "invalid SAVE arguments %v", cmd.Args)
 	}
@@ -613,7 +644,7 @@ func (i *Interpreter) handleSaveImage(ctx context.Context, cmd spec.Command) err
 		"Use unencrypted connection for the push")
 	cacheFrom := new(StringSliceFlag)
 	fs.Var(cacheFrom, "cache-from", "Declare additional cache import as a Docker tag")
-	err := fs.Parse(cmd.Args)
+	err := fs.Parse(getArgsCopy(cmd))
 	if err != nil {
 		return WrapError(err, cmd.SourceLocation, "invalid SAVE IMAGE arguments %v", cmd.Args)
 	}
@@ -651,7 +682,7 @@ func (i *Interpreter) handleBuild(ctx context.Context, cmd spec.Command) error {
 	fs.Var(platformsStr, "platform", "The platform to build")
 	buildArgs := new(StringSliceFlag)
 	fs.Var(buildArgs, "build-arg", "A build arg override passed on to a referenced Earthly target")
-	err := fs.Parse(cmd.Args)
+	err := fs.Parse(getArgsCopy(cmd))
 	if err != nil {
 		return WrapError(err, cmd.SourceLocation, "invalid BUILD arguments %v", cmd.Args)
 	}
@@ -726,7 +757,7 @@ func (i *Interpreter) handleCmd(ctx context.Context, cmd spec.Command) error {
 		return pushOnlyErr(cmd.SourceLocation)
 	}
 	withShell := !cmd.ExecMode
-	cmdArgs := cmd.Args
+	cmdArgs := getArgsCopy(cmd)
 	if !withShell {
 		for index, arg := range cmdArgs {
 			cmdArgs[index] = i.expandArgs(arg, false)
@@ -744,7 +775,7 @@ func (i *Interpreter) handleEntrypoint(ctx context.Context, cmd spec.Command) er
 		return pushOnlyErr(cmd.SourceLocation)
 	}
 	withShell := !cmd.ExecMode
-	entArgs := cmd.Args
+	entArgs := getArgsCopy(cmd)
 	if !withShell {
 		for index, arg := range entArgs {
 			entArgs[index] = i.expandArgs(arg, false)
@@ -764,7 +795,7 @@ func (i *Interpreter) handleExpose(ctx context.Context, cmd spec.Command) error 
 	if len(cmd.Args) == 0 {
 		return Errorf(cmd.SourceLocation, "no arguments provided to the EXPOSE command")
 	}
-	ports := cmd.Args
+	ports := getArgsCopy(cmd)
 	for index, port := range ports {
 		ports[index] = i.expandArgs(port, false)
 	}
@@ -782,7 +813,7 @@ func (i *Interpreter) handleVolume(ctx context.Context, cmd spec.Command) error 
 	if len(cmd.Args) == 0 {
 		return Errorf(cmd.SourceLocation, "no arguments provided to the VOLUME command")
 	}
-	volumes := cmd.Args
+	volumes := getArgsCopy(cmd)
 	for index, volume := range volumes {
 		volumes[index] = i.expandArgs(volume, false)
 	}
@@ -887,7 +918,7 @@ func (i *Interpreter) handleGitClone(ctx context.Context, cmd spec.Command) erro
 	fs := flag.NewFlagSet("GIT CLONE", flag.ContinueOnError)
 	branch := fs.String("branch", "", "The git ref to use when cloning")
 	keepTs := fs.Bool("keep-ts", false, "Keep created time file timestamps")
-	err := fs.Parse(cmd.Args)
+	err := fs.Parse(getArgsCopy(cmd))
 	if err != nil {
 		return WrapError(err, cmd.SourceLocation, "invalid GIT CLONE arguments %v", cmd.Args)
 	}
@@ -921,7 +952,7 @@ func (i *Interpreter) handleHealthcheck(ctx context.Context, cmd spec.Command) e
 	retries := fs.Int(
 		"retries", 3,
 		"The number of retries before a container is considered unhealthy")
-	err := fs.Parse(cmd.Args)
+	err := fs.Parse(getArgsCopy(cmd))
 	if err != nil {
 		return WrapError(err, cmd.SourceLocation, "invalid HEALTHCHECK arguments %v", cmd.Args)
 	}
@@ -977,7 +1008,7 @@ func (i *Interpreter) handleWithDocker(ctx context.Context, cmd spec.Command) er
 	fs.Var(buildArgs, "build-arg", "A build arg override passed on to a referenced Earthly target")
 	pulls := new(StringSliceFlag)
 	fs.Var(pulls, "pull", "An image which is pulled and made available in the docker cache")
-	err := fs.Parse(cmd.Args)
+	err := fs.Parse(getArgsCopy(cmd))
 	if err != nil {
 		return WrapError(err, cmd.SourceLocation, "invalid WITH DOCKER arguments %v", cmd.Args)
 	}
@@ -1047,6 +1078,51 @@ func (i *Interpreter) handleShell(ctx context.Context, cmd spec.Command) error {
 	return Errorf(cmd.SourceLocation, "command SHELL not yet supported")
 }
 
+func (i *Interpreter) handleUserCommand(ctx context.Context, cmd spec.Command) error {
+	return Errorf(cmd.SourceLocation, "command COMMAND not allowed in a target definition")
+}
+
+func (i *Interpreter) handleDo(ctx context.Context, cmd spec.Command) error {
+	cmdArgs := getArgsCopy(cmd)
+	for index, arg := range cmdArgs {
+		cmdArgs[index] = i.expandArgs(arg, false)
+	}
+
+	ucName := cmdArgs[0]
+	relCommand, err := domain.ParseCommand(ucName)
+	if err != nil {
+		return WrapError(err, cmd.SourceLocation, "unable to parse user command reference %s", ucName)
+	}
+	commandRef, err := domain.JoinReferences(i.target, relCommand)
+	if err != nil {
+		return WrapError(err, cmd.SourceLocation, "join targets")
+	}
+	command := commandRef.(domain.Command)
+
+	bc, err := i.resolver.Resolve(ctx, i.gwClient, command)
+	if err != nil {
+		return WrapError(err, cmd.SourceLocation, "unable to resolve user command %s", ucName)
+	}
+	for _, uc := range bc.Earthfile.UserCommands {
+		if uc.Name == command.Command {
+			return i.handleDoUserCommand(ctx, uc, cmdArgs)
+		}
+	}
+	return Errorf(cmd.SourceLocation, "user command %s not found", ucName)
+}
+
+// ----------------------------------------------------------------------------
+
+func (i *Interpreter) handleDoUserCommand(ctx context.Context, uc spec.UserCommand, cmdArgs []string) error {
+	if len(uc.Recipe) == 0 || uc.Recipe[0].Command.Name != "COMMAND" {
+		return Errorf(uc.SourceLocation, "command recipes must start with COMMAND")
+	}
+	if len(uc.Recipe[0].Command.Args) > 0 {
+		return Errorf(uc.Recipe[0].SourceLocation, "COMMAND takes no arguments")
+	}
+	return i.handleBlock(ctx, uc.Recipe[1:])
+}
+
 // ----------------------------------------------------------------------------
 
 func (i *Interpreter) expandArgs(word string, keepPlusEscape bool) string {
@@ -1080,6 +1156,12 @@ func parseLoad(loadStr string) (string, string, error) {
 	}
 	// --load <image-name>=<target-name>
 	return splitLoad[0], splitLoad[1], nil
+}
+
+func getArgsCopy(cmd spec.Command) []string {
+	argsCopy := make([]string, len(cmd.Args))
+	copy(argsCopy, cmd.Args)
+	return argsCopy
 }
 
 type argGroup struct {

@@ -2,22 +2,47 @@ package domain
 
 import (
 	"fmt"
-	"path"
-	"strings"
+	"regexp"
 
 	"github.com/pkg/errors"
 )
+
+var _ Reference = &Target{}
+
+const targetNamePattern = "^[a-z][a-zA-Z0-9.\\-]*$"
+
+var targetNameRegex = regexp.MustCompile(targetNamePattern)
 
 // Target is an earthly target identifier.
 type Target struct {
 	GitURL string // e.g. "github.com/earthly/earthly/examples/go"
 	Tag    string // e.g. "main"
 
-	// Local representation.
+	// Local representation. E.g. in "./some/path+something" this is "./some/path".
 	LocalPath string `json:"localPath"`
 
-	// Target name.
+	// Target name. E.g. in "+something" this is "something".
 	Target string `json:"target"`
+}
+
+// GetGitURL returns the GitURL portion of the command.
+func (et Target) GetGitURL() string {
+	return et.GitURL
+}
+
+// GetTag returns the Tag portion of the target.
+func (et Target) GetTag() string {
+	return et.Tag
+}
+
+// GetLocalPath returns the Path portion of the target.
+func (et Target) GetLocalPath() string {
+	return et.LocalPath
+}
+
+// GetName returns the Name portion of the target.
+func (et Target) GetName() string {
+	return et.Target
 }
 
 // IsExternal returns whether the target is external to the current project.
@@ -47,164 +72,33 @@ func (et Target) DebugString() string {
 
 // String returns a string representation of the Target.
 func (et Target) String() string {
-	if et.IsLocalExternal() {
-		return fmt.Sprintf("%s+%s", escapePlus(et.LocalPath), et.Target)
-	}
-	if et.IsRemote() {
-		s := escapePlus(et.GitURL)
-		if et.Tag != "" {
-			s += ":" + escapePlus(et.Tag)
-		}
-		s += "+" + escapePlus(et.Target)
-		return s
-	}
-	// Local internal.
-	return fmt.Sprintf("+%s", et.Target)
+	return referenceString(et)
 }
 
 // StringCanonical returns a string representation of the Target, in canonical form.
 func (et Target) StringCanonical() string {
-	if et.GitURL != "" {
-		s := escapePlus(et.GitURL)
-		if et.Tag != "" {
-			s += ":" + escapePlus(et.Tag)
-		}
-		s += "+" + escapePlus(et.Target)
-		return s
-	}
-	return et.String()
+	return referenceStringCanonical(et)
 }
 
 // ProjectCanonical returns a string representation of the project of the target, in canonical form.
 func (et Target) ProjectCanonical() string {
-	if et.GitURL != "" {
-		s := escapePlus(et.GitURL)
-		if et.Tag != "" {
-			s += ":" + escapePlus(et.Tag)
-		}
-		return s
-	}
-	if et.LocalPath == "." {
-		return ""
-	}
-	return escapePlus(path.Base(et.LocalPath))
+	return referenceProjectCanonical(et)
 }
 
 // ParseTarget parses a string into a Target.
 func ParseTarget(fullTargetName string) (Target, error) {
-	partsPlus, err := splitUnescapePlus(fullTargetName)
+	gitURL, tag, localPath, target, err := parseCommon(fullTargetName)
 	if err != nil {
 		return Target{}, err
 	}
-	if len(partsPlus) != 2 {
-		return Target{}, fmt.Errorf("invalid target ref %s", fullTargetName)
+	ok := targetNameRegex.MatchString(target)
+	if !ok {
+		return Target{}, errors.Errorf("target name %s does not match %s", target, targetNamePattern)
 	}
-	if partsPlus[0] == "" {
-		// Local target.
-		return Target{
-			LocalPath: ".",
-			Target:    partsPlus[1],
-		}, nil
-	} else if strings.HasPrefix(partsPlus[0], ".") ||
-		strings.HasPrefix(partsPlus[0], "/") {
-		// Local external target.
-		localPath := partsPlus[0]
-		if path.IsAbs(localPath) {
-			localPath = path.Clean(localPath)
-		} else {
-			localPath = path.Clean(localPath)
-			if !strings.HasPrefix(localPath, ".") {
-				localPath = fmt.Sprintf("./%s", localPath)
-			}
-		}
-		return Target{
-			LocalPath: localPath,
-			Target:    partsPlus[1],
-		}, nil
-	} else {
-		// Remote target.
-		tag := ""
-		partsColon := strings.SplitN(partsPlus[0], ":", 2)
-		if len(partsColon) == 2 {
-			tag = partsColon[1]
-		}
-
-		return Target{
-			GitURL: partsColon[0],
-			Tag:    tag,
-			Target: partsPlus[1],
-		}, nil
-	}
-}
-
-// JoinTargets returns the result of interpreting target2 as relative to target1.
-func JoinTargets(target1 Target, target2 Target) (Target, error) {
-	ret := target2
-	if target1.IsRemote() {
-		// target1 is remote. Turn relative targets into remote targets.
-		if !ret.IsRemote() {
-			ret.Tag = target1.Tag
-			if ret.IsLocalExternal() {
-				if path.IsAbs(ret.LocalPath) {
-					return Target{}, fmt.Errorf(
-						"Absolute path %s not supported as reference in external target context", ret.LocalPath)
-				}
-
-				ret.GitURL = path.Join(target1.GitURL, ret.LocalPath)
-				ret.LocalPath = ""
-			} else if ret.IsLocalInternal() {
-				ret.GitURL = target1.GitURL
-				ret.LocalPath = ""
-			}
-		}
-	} else {
-		if ret.IsLocalExternal() {
-			if path.IsAbs(ret.LocalPath) {
-				ret.LocalPath = path.Clean(ret.LocalPath)
-			} else {
-				ret.LocalPath = path.Join(target1.LocalPath, ret.LocalPath)
-				if !strings.HasPrefix(ret.LocalPath, ".") {
-					ret.LocalPath = fmt.Sprintf("./%s", ret.LocalPath)
-				}
-			}
-		} else if ret.IsLocalInternal() {
-			ret.LocalPath = target1.LocalPath
-		}
-	}
-	return ret, nil
-}
-
-// splitUnescapePlus performs a split on "+", but it accounts for escaping as "\+".
-func splitUnescapePlus(str string) ([]string, error) {
-	escape := false
-	ret := make([]string, 0, 2)
-	word := make([]rune, 0, len(str))
-	for _, c := range str {
-		if escape {
-			word = append(word, c)
-			escape = false
-			continue
-		}
-
-		switch c {
-		case '\\':
-			escape = true
-		case '+':
-			ret = append(ret, string(word))
-			word = word[:0]
-		default:
-			word = append(word, c)
-		}
-	}
-	if escape {
-		return nil, errors.Errorf("cannot split by +: unterminated escape sequence at the end of %s", str)
-	}
-	if len(word) > 0 {
-		ret = append(ret, string(word))
-	}
-	return ret, nil
-}
-
-func escapePlus(str string) string {
-	return strings.ReplaceAll(str, "+", "\\+")
+	return Target{
+		GitURL:    gitURL,
+		Tag:       tag,
+		LocalPath: localPath,
+		Target:    target,
+	}, nil
 }

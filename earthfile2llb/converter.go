@@ -229,10 +229,11 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 			Target:    buildcontext.DockerfileMetaTarget,
 			LocalPath: contextPath,
 		}
-		dockerfileMetaTarget, err := domain.JoinTargets(c.mts.FinalTarget(), dockerfileMetaTarget)
+		dockerfileMetaTargetRef, err := domain.JoinReferences(c.mts.FinalTarget(), dockerfileMetaTarget)
 		if err != nil {
 			return errors.Wrap(err, "join targets")
 		}
+		dockerfileMetaTarget = dockerfileMetaTargetRef.(domain.Target)
 		data, err := c.opt.Resolver.Resolve(ctx, c.opt.GwClient, dockerfileMetaTarget)
 		if err != nil {
 			return errors.Wrap(err, "resolve build context for dockerfile")
@@ -984,10 +985,11 @@ func (c *Converter) buildTarget(ctx context.Context, fullTargetName string, plat
 	if err != nil {
 		return nil, errors.Wrapf(err, "earthly target parse %s", fullTargetName)
 	}
-	target, err := domain.JoinTargets(c.mts.Final.Target, relTarget)
+	targetRef, err := domain.JoinReferences(c.mts.Final.Target, relTarget)
 	if err != nil {
 		return nil, errors.Wrap(err, "join targets")
 	}
+	target := targetRef.(domain.Target)
 	// Don't allow transitive overriding variables to cross project boundaries.
 	propagateBuildArgs := !relTarget.IsExternal()
 	var newVars map[string]bool

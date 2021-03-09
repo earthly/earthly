@@ -5,7 +5,8 @@ tokens {
 	DEDENT
 }
 
-Target: ([a-zA-Z0-9.] | '-')+ ':' -> pushMode(RECIPE);
+Target: [a-z] ([a-zA-Z0-9.] | '-')* ':' -> pushMode(RECIPE);
+UserCommand: [A-Z] ([A-Z0-9._])* ':' -> pushMode(RECIPE);
 
 FROM: 'FROM' -> pushMode(COMMAND_ARGS);
 FROM_DOCKERFILE: 'FROM DOCKERFILE' -> pushMode(COMMAND_ARGS);
@@ -30,6 +31,8 @@ STOPSIGNAL: 'STOPSIGNAL' -> pushMode(COMMAND_ARGS);
 ONBUILD: 'ONBUILD' -> pushMode(COMMAND_ARGS);
 HEALTHCHECK: 'HEALTHCHECK' -> pushMode(COMMAND_ARGS);
 SHELL: 'SHELL' -> pushMode(COMMAND_ARGS);
+DO: 'DO' -> pushMode(COMMAND_ARGS);
+COMMAND: 'COMMAND' -> pushMode(COMMAND_ARGS);
 
 WITH: 'WITH';
 DOCKER: 'DOCKER' -> pushMode(BLOCK), pushMode(COMMAND_ARGS);
@@ -48,6 +51,7 @@ mode RECIPE;
 // Note: RECIPE mode is popped via golang code, when DEDENT occurs.
 
 Target_R: Target -> type(Target);
+UserCommand_R: UserCommand -> type(UserCommand);
 
 FROM_R: FROM -> type(FROM), pushMode(COMMAND_ARGS);
 FROM_DOCKERFILE_R: FROM_DOCKERFILE -> type(FROM_DOCKERFILE), pushMode(COMMAND_ARGS);
@@ -72,6 +76,8 @@ STOPSIGNAL_R: STOPSIGNAL -> type(STOPSIGNAL), pushMode(COMMAND_ARGS);
 ONBUILD_R: ONBUILD -> type(ONBUILD), pushMode(COMMAND_ARGS);
 HEALTHCHECK_R: HEALTHCHECK -> type(HEALTHCHECK), pushMode(COMMAND_ARGS);
 SHELL_R: SHELL -> type(SHELL), pushMode(COMMAND_ARGS);
+DO_R: DO -> type(DO), pushMode(COMMAND_ARGS);
+COMMAND_R: COMMAND -> type(COMMAND), pushMode(COMMAND_ARGS);
 
 WITH_R: WITH -> type(WITH);
 DOCKER_R: DOCKER -> type(DOCKER), pushMode(BLOCK), pushMode(COMMAND_ARGS);
@@ -107,6 +113,8 @@ STOPSIGNAL_B: STOPSIGNAL -> type(STOPSIGNAL), pushMode(COMMAND_ARGS);
 ONBUILD_B: ONBUILD -> type(ONBUILD), pushMode(COMMAND_ARGS);
 HEALTHCHECK_B: HEALTHCHECK -> type(HEALTHCHECK), pushMode(COMMAND_ARGS);
 SHELL_B: SHELL -> type(SHELL), pushMode(COMMAND_ARGS);
+DO_B: DO -> type(DO), pushMode(COMMAND_ARGS);
+COMMAND_B: COMMAND -> type(COMMAND), pushMode(COMMAND_ARGS);
 
 WITH_B: WITH -> type(WITH);
 DOCKER_B: DOCKER -> type(DOCKER), pushMode(BLOCK), pushMode(COMMAND_ARGS);

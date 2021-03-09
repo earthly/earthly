@@ -111,17 +111,12 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt) (m
 	if err != nil {
 		return nil, errors.Wrapf(err, "resolve build context for target %s", target.String())
 	}
-	converter, err := NewConverter(ctx, bc.Target, bc, opt)
+	converter, err := NewConverter(ctx, bc.Ref.(domain.Target), bc, opt)
 	if err != nil {
 		return nil, err
 	}
-	// TODO: Use a parser cache.
-	ef, err := ast.Parse(ctx, bc.BuildFilePath, true)
-	if err != nil {
-		return nil, err
-	}
-	interpreter := newInterpreter(converter)
-	err = interpreter.Run(ctx, ef, target.Target)
+	interpreter := newInterpreter(converter, opt.Resolver, opt.GwClient, target)
+	err = interpreter.Run(ctx, bc.Earthfile)
 	if err != nil {
 		return nil, err
 	}

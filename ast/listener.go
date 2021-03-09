@@ -25,10 +25,11 @@ type block struct {
 type listener struct {
 	*parser.BaseEarthParserListener
 
-	ef      *spec.Earthfile
-	target  *spec.Target
-	blocks  []*block
-	command *spec.Command
+	ef          *spec.Earthfile
+	target      *spec.Target
+	userCommand *spec.UserCommand
+	blocks      []*block
+	command     *spec.Command
 
 	stmtWords []string
 	execMode  bool
@@ -114,6 +115,32 @@ func (l *listener) ExitTarget(c *parser.TargetContext) {
 	l.target.Recipe = l.popBlock()
 	l.ef.Targets = append(l.ef.Targets, *l.target)
 	l.target = nil
+}
+
+// User command ---------------------------------------------------------------
+
+func (l *listener) EnterUserCommand(c *parser.UserCommandContext) {
+	l.userCommand = new(spec.UserCommand)
+	if l.enableSourceMap {
+		l.userCommand.SourceLocation = &spec.SourceLocation{
+			File:        l.filePath,
+			StartLine:   c.GetStart().GetLine(),
+			StartColumn: c.GetStart().GetColumn(),
+			EndLine:     c.GetStop().GetLine(),
+			EndColumn:   c.GetStop().GetColumn(),
+		}
+	}
+	l.pushNewBlock()
+}
+
+func (l *listener) EnterUserCommandHeader(c *parser.UserCommandHeaderContext) {
+	l.userCommand.Name = strings.TrimSuffix(c.GetText(), ":")
+}
+
+func (l *listener) ExitUserCommand(c *parser.UserCommandContext) {
+	l.userCommand.Recipe = l.popBlock()
+	l.ef.UserCommands = append(l.ef.UserCommands, *l.userCommand)
+	l.userCommand = nil
 }
 
 // Statement ------------------------------------------------------------------
@@ -252,6 +279,14 @@ func (l *listener) EnterOnbuildStmt(c *parser.OnbuildStmtContext) {
 
 func (l *listener) EnterShellStmt(c *parser.ShellStmtContext) {
 	l.command.Name = "SHELL"
+}
+
+func (l *listener) EnterUserCommandStmt(c *parser.UserCommandStmtContext) {
+	l.command.Name = "COMMAND"
+}
+
+func (l *listener) EnterDoStmt(c *parser.DoStmtContext) {
+	l.command.Name = "DO"
 }
 
 // With -----------------------------------------------------------------------

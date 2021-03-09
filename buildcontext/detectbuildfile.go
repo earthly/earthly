@@ -13,8 +13,8 @@ import (
 )
 
 // detectBuildFile detects whether to use Earthfile, build.earth or Dockerfile.
-func detectBuildFile(target domain.Target, localDir string) (string, error) {
-	if target.Target == DockerfileMetaTarget {
+func detectBuildFile(ref domain.Reference, localDir string) (string, error) {
+	if ref.GetName() == DockerfileMetaTarget {
 		return filepath.Join(localDir, "Dockerfile"), nil
 	}
 	earthfilePath := filepath.Join(localDir, "Earthfile")
@@ -24,7 +24,7 @@ func detectBuildFile(target domain.Target, localDir string) (string, error) {
 		_, err := os.Stat(buildEarthPath)
 		if os.IsNotExist(err) {
 			return "", fmt.Errorf(
-				"No Earthfile nor build.earth file found for target %s", target.String())
+				"No Earthfile nor build.earth file found for target %s", ref.String())
 		} else if err != nil {
 			return "", errors.Wrapf(err, "stat file %s", buildEarthPath)
 		}
@@ -35,8 +35,8 @@ func detectBuildFile(target domain.Target, localDir string) (string, error) {
 	return earthfilePath, nil
 }
 
-func detectBuildFileInRef(ctx context.Context, target domain.Target, ref gwclient.Reference, subDir string) (string, error) {
-	if target.Target == DockerfileMetaTarget {
+func detectBuildFileInRef(ctx context.Context, earthlyRef domain.Reference, ref gwclient.Reference, subDir string) (string, error) {
+	if earthlyRef.GetName() == DockerfileMetaTarget {
 		return path.Join(subDir, "Dockerfile"), nil
 	}
 	earthfilePath := path.Join(subDir, "Earthfile")

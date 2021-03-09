@@ -14,11 +14,20 @@ type EarthParserListener interface {
 	// EnterTargets is called when entering the targets production.
 	EnterTargets(c *TargetsContext)
 
+	// EnterTargetOrUserCommand is called when entering the targetOrUserCommand production.
+	EnterTargetOrUserCommand(c *TargetOrUserCommandContext)
+
 	// EnterTarget is called when entering the target production.
 	EnterTarget(c *TargetContext)
 
 	// EnterTargetHeader is called when entering the targetHeader production.
 	EnterTargetHeader(c *TargetHeaderContext)
+
+	// EnterUserCommand is called when entering the userCommand production.
+	EnterUserCommand(c *UserCommandContext)
+
+	// EnterUserCommandHeader is called when entering the userCommandHeader production.
+	EnterUserCommandHeader(c *UserCommandHeaderContext)
 
 	// EnterStmts is called when entering the stmts production.
 	EnterStmts(c *StmtsContext)
@@ -155,6 +164,12 @@ type EarthParserListener interface {
 	// EnterShellStmt is called when entering the shellStmt production.
 	EnterShellStmt(c *ShellStmtContext)
 
+	// EnterUserCommandStmt is called when entering the userCommandStmt production.
+	EnterUserCommandStmt(c *UserCommandStmtContext)
+
+	// EnterDoStmt is called when entering the doStmt production.
+	EnterDoStmt(c *DoStmtContext)
+
 	// EnterExpr is called when entering the expr production.
 	EnterExpr(c *ExprContext)
 
@@ -173,11 +188,20 @@ type EarthParserListener interface {
 	// ExitTargets is called when exiting the targets production.
 	ExitTargets(c *TargetsContext)
 
+	// ExitTargetOrUserCommand is called when exiting the targetOrUserCommand production.
+	ExitTargetOrUserCommand(c *TargetOrUserCommandContext)
+
 	// ExitTarget is called when exiting the target production.
 	ExitTarget(c *TargetContext)
 
 	// ExitTargetHeader is called when exiting the targetHeader production.
 	ExitTargetHeader(c *TargetHeaderContext)
+
+	// ExitUserCommand is called when exiting the userCommand production.
+	ExitUserCommand(c *UserCommandContext)
+
+	// ExitUserCommandHeader is called when exiting the userCommandHeader production.
+	ExitUserCommandHeader(c *UserCommandHeaderContext)
 
 	// ExitStmts is called when exiting the stmts production.
 	ExitStmts(c *StmtsContext)
@@ -313,6 +337,12 @@ type EarthParserListener interface {
 
 	// ExitShellStmt is called when exiting the shellStmt production.
 	ExitShellStmt(c *ShellStmtContext)
+
+	// ExitUserCommandStmt is called when exiting the userCommandStmt production.
+	ExitUserCommandStmt(c *UserCommandStmtContext)
+
+	// ExitDoStmt is called when exiting the doStmt production.
+	ExitDoStmt(c *DoStmtContext)
 
 	// ExitExpr is called when exiting the expr production.
 	ExitExpr(c *ExprContext)

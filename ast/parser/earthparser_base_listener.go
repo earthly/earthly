@@ -33,6 +33,12 @@ func (s *BaseEarthParserListener) EnterTargets(ctx *TargetsContext) {}
 // ExitTargets is called when production targets is exited.
 func (s *BaseEarthParserListener) ExitTargets(ctx *TargetsContext) {}
 
+// EnterTargetOrUserCommand is called when production targetOrUserCommand is entered.
+func (s *BaseEarthParserListener) EnterTargetOrUserCommand(ctx *TargetOrUserCommandContext) {}
+
+// ExitTargetOrUserCommand is called when production targetOrUserCommand is exited.
+func (s *BaseEarthParserListener) ExitTargetOrUserCommand(ctx *TargetOrUserCommandContext) {}
+
 // EnterTarget is called when production target is entered.
 func (s *BaseEarthParserListener) EnterTarget(ctx *TargetContext) {}
 
@@ -44,6 +50,18 @@ func (s *BaseEarthParserListener) EnterTargetHeader(ctx *TargetHeaderContext) {}
 
 // ExitTargetHeader is called when production targetHeader is exited.
 func (s *BaseEarthParserListener) ExitTargetHeader(ctx *TargetHeaderContext) {}
+
+// EnterUserCommand is called when production userCommand is entered.
+func (s *BaseEarthParserListener) EnterUserCommand(ctx *UserCommandContext) {}
+
+// ExitUserCommand is called when production userCommand is exited.
+func (s *BaseEarthParserListener) ExitUserCommand(ctx *UserCommandContext) {}
+
+// EnterUserCommandHeader is called when production userCommandHeader is entered.
+func (s *BaseEarthParserListener) EnterUserCommandHeader(ctx *UserCommandHeaderContext) {}
+
+// ExitUserCommandHeader is called when production userCommandHeader is exited.
+func (s *BaseEarthParserListener) ExitUserCommandHeader(ctx *UserCommandHeaderContext) {}
 
 // EnterStmts is called when production stmts is entered.
 func (s *BaseEarthParserListener) EnterStmts(ctx *StmtsContext) {}
@@ -314,6 +332,18 @@ func (s *BaseEarthParserListener) EnterShellStmt(ctx *ShellStmtContext) {}
 
 // ExitShellStmt is called when production shellStmt is exited.
 func (s *BaseEarthParserListener) ExitShellStmt(ctx *ShellStmtContext) {}
+
+// EnterUserCommandStmt is called when production userCommandStmt is entered.
+func (s *BaseEarthParserListener) EnterUserCommandStmt(ctx *UserCommandStmtContext) {}
+
+// ExitUserCommandStmt is called when production userCommandStmt is exited.
+func (s *BaseEarthParserListener) ExitUserCommandStmt(ctx *UserCommandStmtContext) {}
+
+// EnterDoStmt is called when production doStmt is entered.
+func (s *BaseEarthParserListener) EnterDoStmt(ctx *DoStmtContext) {}
+
+// ExitDoStmt is called when production doStmt is exited.
+func (s *BaseEarthParserListener) ExitDoStmt(ctx *DoStmtContext) {}
 
 // EnterExpr is called when production expr is entered.
 func (s *BaseEarthParserListener) EnterExpr(ctx *ExprContext) {}
