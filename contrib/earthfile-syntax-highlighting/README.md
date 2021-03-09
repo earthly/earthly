@@ -8,9 +8,13 @@ For an introduction of Earthly see the [Earthly GitHub repository](https://githu
 
 ## Release Notes
 
+### 0.0.10
+
+* Add highlighting for `DO`, `COMMAND`, `IMPORT` and `LOCALLY`.
+
 ### 0.0.9
 
-* Add highlighting for IF.
+* Add highlighting for `IF`.
 
 ### 0.0.8
 
