@@ -18,18 +18,15 @@ type localResolver struct {
 	sessionID    string
 }
 
-func (lr *localResolver) resolveLocal(ctx context.Context, target domain.Target) (*Data, error) {
-	if target.IsRemote() {
-		return nil, fmt.Errorf("unexpected remote target %s", target.String())
-	}
-	excludes, err := readExcludes(target.LocalPath)
-	if err != nil {
-		return nil, err
+func (lr *localResolver) resolveLocal(ctx context.Context, ref domain.Reference) (*Data, error) {
+	if ref.IsRemote() {
+		return nil, fmt.Errorf("unexpected remote target %s", ref.String())
 	}
 
-	metadata, found := lr.gitMetaCache[target.LocalPath]
+	metadata, found := lr.gitMetaCache[ref.GetLocalPath()]
 	if !found {
-		metadata, err = gitutil.Metadata(ctx, target.LocalPath)
+		var err error
+		metadata, err = gitutil.Metadata(ctx, ref.GetLocalPath())
 		if err != nil {
 			if errors.Is(err, gitutil.ErrNoGitBinary) ||
 				errors.Is(err, gitutil.ErrNotAGitDir) ||
@@ -47,22 +44,34 @@ func (lr *localResolver) resolveLocal(ctx context.Context, target domain.Target)
 			}
 		}
 		// Note that this could be nil in some cases.
-		lr.gitMetaCache[target.LocalPath] = metadata
+		lr.gitMetaCache[ref.GetLocalPath()] = metadata
 	}
 
-	buildFilePath, err := detectBuildFile(target, filepath.FromSlash(target.LocalPath))
+	buildFilePath, err := detectBuildFile(ref, filepath.FromSlash(ref.GetLocalPath()))
 	if err != nil {
 		return nil, err
 	}
-	return &Data{
-		BuildFilePath: buildFilePath,
-		BuildContext: llb.Local(
-			target.LocalPath,
+
+	var buildContext llb.State
+	if _, isTarget := ref.(domain.Target); isTarget {
+		excludes, err := readExcludes(ref.GetLocalPath())
+		if err != nil {
+			return nil, err
+		}
+		buildContext = llb.Local(
+			ref.GetLocalPath(),
 			llb.ExcludePatterns(excludes),
 			llb.SessionID(lr.sessionID),
 			llb.Platform(llbutil.DefaultPlatform()),
-			llb.WithCustomNamef("[context %s] local context %s", target.LocalPath, target.LocalPath),
-		),
-		GitMetadata: metadata,
+			llb.WithCustomNamef("[context %s] local context %s", ref.GetLocalPath(), ref.GetLocalPath()),
+		)
+	} else {
+		// Commands don't come with a build context.
+	}
+
+	return &Data{
+		BuildFilePath: buildFilePath,
+		BuildContext:  buildContext,
+		GitMetadata:   metadata,
 	}, nil
 }

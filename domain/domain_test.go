@@ -26,12 +26,25 @@ var targetTests = []struct {
 	{"github.com/foo/bar:tag-with-\\+-in+target", Target{Target: "target", GitURL: "github.com/foo/bar", Tag: "tag-with-+-in"}},
 }
 
+var targetNegativeTests = []string{
+	"+COMMAND", "./something+COMMAND", "nope", "abc+cde+efg", "+target/artifact",
+}
+
 func TestTargetParser(t *testing.T) {
 	for _, tt := range targetTests {
 		t.Run(tt.in, func(t *testing.T) {
 			out, err := ParseTarget(tt.in)
 			NoError(t, err, "parse target failed")
 			Equal(t, tt.out, out)
+		})
+	}
+}
+
+func TestTargetParserNegative(t *testing.T) {
+	for _, tt := range targetNegativeTests {
+		t.Run(tt, func(t *testing.T) {
+			_, err := ParseTarget(tt)
+			Error(t, err, "parse target should have failed")
 		})
 	}
 }
@@ -75,6 +88,10 @@ var artifactTests = []struct {
 	{"github.com/foo/bar:tag-with-\\+-in+target/artifact-with-\\+/in/it", Artifact{Target: Target{Target: "target", GitURL: "github.com/foo/bar", Tag: "tag-with-+-in"}, Artifact: "/artifact-with-+/in/it"}},
 }
 
+var artifactNegativeTests = []string{
+	"+COMMAND/art", "./something+COMMAND/art", "nope/art", "abc+cde+efg/art", "+just-target",
+}
+
 func TestArtifactParser(t *testing.T) {
 	for _, tt := range artifactTests {
 		t.Run(tt.in, func(t *testing.T) {
@@ -85,8 +102,69 @@ func TestArtifactParser(t *testing.T) {
 	}
 }
 
+func TestArtifactParserNegative(t *testing.T) {
+	for _, tt := range artifactNegativeTests {
+		t.Run(tt, func(t *testing.T) {
+			_, err := ParseArtifact(tt)
+			Error(t, err, "parse artifact should have failed")
+		})
+	}
+}
+
 func TestArtifactToString(t *testing.T) {
 	for _, tt := range artifactTests {
+		t.Run(tt.in, func(t *testing.T) {
+			str := tt.out.String()
+			Equal(t, tt.in, str)
+		})
+	}
+}
+
+var commandTests = []struct {
+	in  string
+	out Command
+}{
+	{"+COMMAND", Command{Command: "COMMAND", LocalPath: "."}},
+	{"+ANOTHER_COMMAND", Command{Command: "ANOTHER_COMMAND", LocalPath: "."}},
+	{"./a/local/dir+COMMAND", Command{Command: "COMMAND", LocalPath: "./a/local/dir"}},
+	{"/abs/local/dir+COMMAND", Command{Command: "COMMAND", LocalPath: "/abs/local/dir"}},
+	{"../rel/local/dir+COMMAND", Command{Command: "COMMAND", LocalPath: "../rel/local/dir"}},
+	{"github.com/foo/bar+COMMAND", Command{Command: "COMMAND", GitURL: "github.com/foo/bar"}},
+	{"github.com/foo/bar:tag+COMMAND", Command{Command: "COMMAND", GitURL: "github.com/foo/bar", Tag: "tag"}},
+	{"github.com/foo/bar:tag/with/slash+COMMAND", Command{Command: "COMMAND", GitURL: "github.com/foo/bar", Tag: "tag/with/slash"}},
+	// \+
+	{"./a/local/dir-with-\\+-in-it+COMMAND", Command{Command: "COMMAND", LocalPath: "./a/local/dir-with-+-in-it"}},
+	{"/abs/local/dir-with-\\+-in+COMMAND", Command{Command: "COMMAND", LocalPath: "/abs/local/dir-with-+-in"}},
+	{"../rel/local/dir-with-\\+-in+COMMAND", Command{Command: "COMMAND", LocalPath: "../rel/local/dir-with-+-in"}},
+	{"github.com/foo/bar/dir-with-\\+-in+COMMAND", Command{Command: "COMMAND", GitURL: "github.com/foo/bar/dir-with-+-in"}},
+	{"github.com/foo/bar:tag-with-\\+-in+COMMAND", Command{Command: "COMMAND", GitURL: "github.com/foo/bar", Tag: "tag-with-+-in"}},
+}
+
+var commandNegativeTests = []string{
+	"+target", "./something+target", "nope", "NOPE", "ABC+DEF+EFG", "+COMMAND/artifact",
+}
+
+func TestCommandParser(t *testing.T) {
+	for _, tt := range commandTests {
+		t.Run(tt.in, func(t *testing.T) {
+			out, err := ParseCommand(tt.in)
+			NoError(t, err, "parse target failed")
+			Equal(t, tt.out, out)
+		})
+	}
+}
+
+func TestCommandParserNegative(t *testing.T) {
+	for _, tt := range commandNegativeTests {
+		t.Run(tt, func(t *testing.T) {
+			_, err := ParseCommand(tt)
+			Error(t, err, "parse command should have failed")
+		})
+	}
+}
+
+func TestCommandToString(t *testing.T) {
+	for _, tt := range commandTests {
 		t.Run(tt.in, func(t *testing.T) {
 			str := tt.out.String()
 			Equal(t, tt.in, str)

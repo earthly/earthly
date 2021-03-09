@@ -1089,21 +1089,22 @@ func (i *Interpreter) handleDo(ctx context.Context, cmd spec.Command) error {
 	}
 
 	ucName := cmdArgs[0]
-	relUCTarget, err := domain.ParseTarget(ucName) // TODO: special parsing for user commands?
+	relCommand, err := domain.ParseCommand(ucName)
 	if err != nil {
 		return WrapError(err, cmd.SourceLocation, "unable to parse user command reference %s", ucName)
 	}
-	ucTarget, err := domain.JoinTargets(i.target, relUCTarget)
+	commandRef, err := domain.JoinReferences(i.target, relCommand)
 	if err != nil {
 		return WrapError(err, cmd.SourceLocation, "join targets")
 	}
+	command := commandRef.(domain.Command)
 
-	bc, err := i.resolver.Resolve(ctx, i.gwClient, ucTarget)
+	bc, err := i.resolver.Resolve(ctx, i.gwClient, command)
 	if err != nil {
 		return WrapError(err, cmd.SourceLocation, "unable to resolve user command %s", ucName)
 	}
 	for _, uc := range bc.Earthfile.UserCommands {
-		if uc.Name == ucTarget.Target {
+		if uc.Name == command.Command {
 			return i.handleDoUserCommand(ctx, uc, cmdArgs)
 		}
 	}

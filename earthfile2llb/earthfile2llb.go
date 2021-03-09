@@ -111,7 +111,7 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt) (m
 	if err != nil {
 		return nil, errors.Wrapf(err, "resolve build context for target %s", target.String())
 	}
-	converter, err := NewConverter(ctx, bc.Target, bc, opt)
+	converter, err := NewConverter(ctx, bc.Ref.(domain.Target), bc, opt)
 	if err != nil {
 		return nil, err
 	}

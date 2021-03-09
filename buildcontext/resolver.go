@@ -28,8 +28,8 @@ type Data struct {
 	BuildContext llb.State
 	// GitMetadata contains git metadata information.
 	GitMetadata *gitutil.GitMetadata
-	// Target is the earthly target.
-	Target domain.Target
+	// Target is the earthly reference.
+	Ref domain.Reference
 	// LocalDirs is the local dirs map to be passed as part of the buildkit solve.
 	LocalDirs map[string]string
 }
@@ -58,28 +58,31 @@ func NewResolver(sessionID string, cleanCollection *cleanup.Collection, gitLooku
 	}
 }
 
-// Resolve returns resolved build context data.
-func (r *Resolver) Resolve(ctx context.Context, gwClient gwclient.Client, target domain.Target) (*Data, error) {
+// Resolve returns resolved context data for a given Earthly reference. If the reference is a target,
+// then the context will include a build context and possibly additional local directories.
+func (r *Resolver) Resolve(ctx context.Context, gwClient gwclient.Client, ref domain.Reference) (*Data, error) {
 	var d *Data
 	var err error
 	localDirs := make(map[string]string)
-	if target.IsRemote() {
+	if ref.IsRemote() {
 		// Remote.
-		d, err = r.gr.resolveEarthProject(ctx, gwClient, target)
+		d, err = r.gr.resolveEarthProject(ctx, gwClient, ref)
 		if err != nil {
 			return nil, err
 		}
 	} else {
 		// Local.
-		localDirs[target.LocalPath] = target.LocalPath
-		d, err = r.lr.resolveLocal(ctx, target)
+		if _, isTarget := ref.(domain.Target); isTarget {
+			localDirs[ref.GetLocalPath()] = ref.GetLocalPath()
+		}
+		d, err = r.lr.resolveLocal(ctx, ref)
 		if err != nil {
 			return nil, err
 		}
 	}
-	d.Target = gitutil.TargetWithGitMeta(target, d.GitMetadata)
+	d.Ref = gitutil.ReferenceWithGitMeta(ref, d.GitMetadata)
 	d.LocalDirs = localDirs
-	if target.Target != DockerfileMetaTarget {
+	if ref.GetName() != DockerfileMetaTarget {
 		d.Earthfile, err = r.parseEarthfile(ctx, d.BuildFilePath)
 		if err != nil {
 			return nil, err
