@@ -174,7 +174,7 @@ Push commands were introduced to allow the user to define commands that have an 
 
 Note that non-push commands are not allowed to follow a push command within a recipe.
 
-#### `--no-cache`
+##### `--no-cache`
 
 Force the command to run every time; ignoring any cache. Any commands following the invocation of `RUN --no-cache`, will also ignore the cache. If `--no-cache` is used as an option on the `RUN` statement within a `WITH DOCKER` statement, all commands after the `WITH DOCKER` will also ignore the cache.
 
@@ -272,6 +272,31 @@ RUN --mount=type=cache,target=/go-cache go build main.go
 
 Note that mounts cannot be shared between targets, nor can they be shared within the same target,
 if the build-args differ between invocations.
+
+##### `--interactive` / `--interactive-keep` (**experimental**)
+
+Opens an interactive prompt during the target build. An interactive prompt must:
+
+1. Be the last issued command in the target, with the exception of `SAVE IMAGE` commands.
+2. Be the only `--interactive` target within the run.
+
+###### Examples:
+
+Start an interactive python REPL:
+```Dockerfile
+python:
+    FROM alpine:3.13
+    RUN apk add python
+    RUN --interactive python
+```
+
+Start `bash` to tweak an image by hand. Changes made will be included:
+```Dockerfile
+build:
+    FROM alpine:3.13
+    RUN apk add bash
+    RUN --interactive-keep bash
+```
 
 ## COPY
 
