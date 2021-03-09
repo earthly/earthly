@@ -683,11 +683,7 @@ func (b *Builder) saveArtifactLocally(ctx context.Context, artifact domain.Artif
 		}
 
 		// Write to console about this artifact.
-		parts := strings.Split(filepath.ToSlash(from), "/")
-		artifactPath := artifact.Artifact
-		if len(parts) >= 2 {
-			artifactPath = filepath.FromSlash(strings.Join(parts[2:], "/"))
-		}
+		artifactPath := trimFilePathPrefix(indexOutDir, from)
 		artifact2 := domain.Artifact{
 			Target:   artifact.Target,
 			Artifact: artifactPath,
@@ -726,4 +722,13 @@ func (b *Builder) tempEarthlyOutDir() (string, error) {
 		})
 	})
 	return b.outDir, err
+}
+
+func trimFilePathPrefix(prefix string, thePath string) string {
+	ret, err := filepath.Rel(prefix, thePath)
+	if err != nil {
+		fmt.Printf("Warning: Could not compute relative path for %s as being relative to %s: %s\n", thePath, prefix, err.Error())
+		return thePath
+	}
+	return ret
 }
