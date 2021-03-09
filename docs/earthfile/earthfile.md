@@ -277,8 +277,9 @@ if the build-args differ between invocations.
 
 Opens an interactive prompt during the target build. An interactive prompt must:
 
-1. Be the last issued command in the target, with the exception of `SAVE IMAGE` commands.
+1. Be the last issued command in the target, with the exception of `SAVE IMAGE` commands. This also means that you cannot `FROM` a target containing a `RUN --interactive`.
 2. Be the only `--interactive` target within the run.
+3. Not be within a `LOCALLY`-designated target.
 
 ###### Examples:
 
