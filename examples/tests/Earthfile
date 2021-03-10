@@ -66,6 +66,7 @@ ga:
     BUILD ./autocompletion+test-all
     BUILD ./with-docker+all
     BUILD ./with-docker-compose+all
+    BUILD +duplicate
 
 experimental:
     BUILD ./dind-auto-install+all
@@ -634,3 +635,9 @@ command:
         --entrypoint \
         --mount=type=tmpfs,target=/tmp/earthly \
         -- +all
+
+duplicate:
+    COPY duplicate-target-names.earth ./Earthfile
+    RUN --privileged \
+       --mount=type=tmpfs,target=/tmp/earthly \
+       ! /usr/bin/earthly-buildkitd-wrapper.sh +duplicate

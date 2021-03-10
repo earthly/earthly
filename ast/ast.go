@@ -40,6 +40,11 @@ func Parse(ctx context.Context, filePath string, enableSourceMap bool) (ef spec.
 	if walkErr != nil {
 		return spec.Earthfile{}, walkErr
 	}
+
+	if err := validateAst(ef); err != nil {
+		return spec.Earthfile{}, err
+	}
+
 	return ef, nil
 }
 
