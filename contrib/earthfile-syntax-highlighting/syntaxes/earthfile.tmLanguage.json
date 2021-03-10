@@ -22,6 +22,9 @@
 		},
 		{
 			"include": "#target"
+		},
+		{
+			"include": "#user-command"
 		}
 	],
 	"scopeName": "source.earthfile",
@@ -92,6 +95,9 @@
 				},
 				{
 					"include": "#target"
+				},
+				{
+					"include": "#user-command"
 				}
 			]
 		},
@@ -100,10 +106,22 @@
 				{
 					"captures": {
 						"1": {
-							"name": "entity.name.function.target.earthfile"
+							"name": "entity.name.class.target.earthfile"
 						}
 					},
-					"match": "^\\s*(([a-zA-Z0-9.]|-)+):"
+					"match": "^\\s*([a-z]([a-zA-Z0-9.]|-)*):"
+				}
+			]
+		},
+		"user-command": {
+			"patterns": [
+				{
+					"captures": {
+						"1": {
+							"name": "entity.name.function.user-command.earthfile"
+						}
+					},
+					"match": "^\\s*([A-Z][a-zA-Z0-9._]*):"
 				}
 			]
 		},
@@ -221,12 +239,16 @@
 		"entity": {
 			"patterns": [
 				{
-					"match": "([a-zA-Z0-9._\\-/:]*\\+[a-zA-Z0-9.\\-]+(/\\S*)+)",
-					"name": "entity.name.variable.target.earthfile"
+					"match": "([a-zA-Z0-9._\\-/:]*\\+[a-z][a-zA-Z0-9.\\-]*(/\\S*)+)",
+					"name": "entity.name.variable.artifact.earthfile"
 				},
 				{
-					"match": "([a-zA-Z0-9._\\-/:]*\\+[a-zA-Z0-9.\\-]+)",
+					"match": "([a-zA-Z0-9._\\-/:]*\\+[a-z][a-zA-Z0-9.\\-]*)",
 					"name": "entity.name.type.target.earthfile"
+				},
+				{
+					"match": "([a-zA-Z0-9._\\-/:]*\\+[A-Z][a-zA-Z0-9._]*)",
+					"name": "entity.name.function.user-command.earthfile"
 				}
 			]
 		}

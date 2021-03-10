@@ -11,6 +11,8 @@ For an introduction of Earthly see the [Earthly GitHub repository](https://githu
 ### 0.0.10
 
 * Add highlighting for `DO`, `COMMAND`, `IMPORT` and `LOCALLY`.
+* Add highlighting for command definition and references.
+* Change the semantic type of targets to "class".
 
 ### 0.0.9
 
