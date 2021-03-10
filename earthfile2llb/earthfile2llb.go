@@ -115,6 +115,9 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt) (m
 	if err != nil {
 		return nil, err
 	}
+	if err := validateAst(bc.Earthfile); err != nil {
+		return nil, err
+	}
 	interpreter := newInterpreter(converter, opt.Resolver, opt.GwClient, target)
 	err = interpreter.Run(ctx, bc.Earthfile)
 	if err != nil {
