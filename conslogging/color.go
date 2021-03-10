@@ -2,11 +2,14 @@ package conslogging
 
 import "github.com/fatih/color"
 
-var noColor = makeNoColor()
-var cachedColor = makeColor(color.FgHiGreen)
-var metadataModeColor = makeColor(color.FgHiWhite, color.BgHiBlack)
-var successColor = makeColor(color.FgHiGreen)
-var warnColor = makeColor(color.FgHiRed)
+var (
+	noColor           = makeNoColor()
+	cachedColor       = makeColor(color.FgHiGreen)
+	metadataModeColor = makeColor(color.FgHiWhite, color.BgHiBlack)
+	successColor      = makeColor(color.FgHiGreen)
+	warnColor         = makeColor(color.FgHiRed)
+	localColor        = makeColor(color.FgHiBlue)
+)
 
 var availablePrefixColors = []*color.Color{
 	makeColor(color.FgBlue),

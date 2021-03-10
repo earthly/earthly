@@ -35,25 +35,26 @@ import (
 
 // Opt represent builder options.
 type Opt struct {
-	SessionID            string
-	BkClient             *client.Client
-	Console              conslogging.ConsoleLogger
-	Verbose              bool
-	Attachables          []session.Attachable
-	Enttlmnts            []entitlements.Entitlement
-	NoCache              bool
-	CacheImports         map[string]bool
-	CacheExport          string
-	MaxCacheExport       string
-	UseInlineCache       bool
-	SaveInlineCache      bool
-	ImageResolveMode     llb.ResolveMode
-	CleanCollection      *cleanup.Collection
-	VarCollection        *variables.Collection
-	BuildContextProvider *provider.BuildContextProvider
-	GitLookup            *buildcontext.GitLookup
-	UseFakeDep           bool
-	Strict               bool
+	SessionID              string
+	BkClient               *client.Client
+	Console                conslogging.ConsoleLogger
+	Verbose                bool
+	Attachables            []session.Attachable
+	Enttlmnts              []entitlements.Entitlement
+	NoCache                bool
+	CacheImports           map[string]bool
+	CacheExport            string
+	MaxCacheExport         string
+	UseInlineCache         bool
+	SaveInlineCache        bool
+	ImageResolveMode       llb.ResolveMode
+	CleanCollection        *cleanup.Collection
+	VarCollection          *variables.Collection
+	BuildContextProvider   *provider.BuildContextProvider
+	GitLookup              *buildcontext.GitLookup
+	UseFakeDep             bool
+	Strict                 bool
+	DisableNoOutputUpdates bool
 }
 
 // BuildOpt is a collection of build options.
@@ -82,7 +83,7 @@ type Builder struct {
 func NewBuilder(ctx context.Context, opt Opt) (*Builder, error) {
 	b := &Builder{
 		s: &solver{
-			sm:              newSolverMonitor(opt.Console, opt.Verbose),
+			sm:              newSolverMonitor(opt.Console, opt.Verbose, opt.DisableNoOutputUpdates),
 			bkClient:        opt.BkClient,
 			cacheImports:    opt.CacheImports,
 			cacheExport:     opt.CacheExport,

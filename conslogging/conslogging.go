@@ -40,6 +40,8 @@ type ConsoleLogger struct {
 	prefix string
 	// metadataMode are printed in a different color.
 	metadataMode bool
+	// isLocal has a special prefix *local* added.
+	isLocal bool
 	// salt is a salt used for color consistency
 	// (the same salt will get the same color).
 	salt      string
@@ -76,6 +78,7 @@ func (cl ConsoleLogger) clone() ConsoleLogger {
 		errW:           cl.errW,
 		prefix:         cl.prefix,
 		metadataMode:   cl.metadataMode,
+		isLocal:        cl.isLocal,
 		salt:           cl.salt,
 		isCached:       cl.isCached,
 		isFailed:       cl.isFailed,
@@ -99,6 +102,13 @@ func (cl ConsoleLogger) WithPrefix(prefix string) ConsoleLogger {
 func (cl ConsoleLogger) WithMetadataMode(metadataMode bool) ConsoleLogger {
 	ret := cl.clone()
 	ret.metadataMode = metadataMode
+	return ret
+}
+
+// WithLocal returns a ConsoleLogger with local set.
+func (cl ConsoleLogger) WithLocal(isLocal bool) ConsoleLogger {
+	ret := cl.clone()
+	ret.isLocal = isLocal
 	return ret
 }
 
@@ -264,6 +274,11 @@ func (cl ConsoleLogger) printPrefix(useErrWriter bool) {
 	}
 	c := cl.PrefixColor()
 	c.Fprintf(w, cl.prettyPrefix())
+	if cl.isLocal {
+		w.Write([]byte(" *"))
+		cl.color(localColor).Fprintf(w, "local")
+		w.Write([]byte("*"))
+	}
 	if cl.isFailed {
 		w.Write([]byte(" *"))
 		cl.color(warnColor).Fprintf(w, "failed")
