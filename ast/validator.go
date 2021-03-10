@@ -1,4 +1,4 @@
-package earthfile2llb
+package ast
 
 import (
 	"fmt"
@@ -41,7 +41,7 @@ func noTargetsWithSameName(ef spec.Earthfile) []error {
 
 	for _, t := range ef.Targets {
 		if _, seen := seenTargets[t.Name]; seen {
-			errors = append(errors, Errorf(t.SourceLocation, "duplicate target \"%s\"", t.Name))
+			errors = append(errors, fmt.Errorf("%s line %v:%v duplicate target \"%s\"", t.SourceLocation.File, t.SourceLocation.StartLine, t.SourceLocation.StartColumn, t.Name))
 		}
 
 		seenTargets[t.Name] = struct{}{}
