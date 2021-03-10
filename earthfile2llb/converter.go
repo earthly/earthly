@@ -123,7 +123,7 @@ func (c *Converter) fromClassical(ctx context.Context, imageName string, platfor
 		// we want to prefix this as internal so it doesn't show up in the output
 		prefix = "[internal] "
 	} else {
-		prefix = c.vertexPrefix(false)
+		prefix = c.vertexPrefix(false, false)
 	}
 	plat := llbutil.PlatformWithDefault(platform)
 	state, img, newVariables, err := c.internalFromClassical(
@@ -332,7 +332,7 @@ func (c *Converter) CopyArtifactLocal(ctx context.Context, artifactName string, 
 		llb.AddMount("/"+localhost.SendFileMagicStr, relevantDepState.ArtifactsState),
 		llb.WithCustomNamef(
 			"%sCOPY %s%s%s %s",
-			c.vertexPrefix(false),
+			c.vertexPrefix(false, false),
 			strIf(isDir, "--dir "),
 			joinWrap(buildArgs, "(", " ", ") "),
 			artifact.String(),
@@ -369,7 +369,7 @@ func (c *Converter) CopyArtifact(ctx context.Context, artifactName string, dest 
 		c.mts.Final.MainState, dest, true, isDir, keepTs, c.copyOwner(keepOwn, chown), ifExists,
 		llb.WithCustomNamef(
 			"%sCOPY %s%s%s%s %s",
-			c.vertexPrefix(false),
+			c.vertexPrefix(false, false),
 			strIf(isDir, "--dir "),
 			strIf(ifExists, "--if-exists "),
 			joinWrap(buildArgs, "(", " ", ") "),
@@ -389,7 +389,7 @@ func (c *Converter) CopyClassical(ctx context.Context, srcs []string, dest strin
 		c.buildContext, srcs, c.mts.Final.MainState, dest, true, isDir, keepTs, c.copyOwner(keepOwn, chown), false,
 		llb.WithCustomNamef(
 			"%sCOPY %s%s %s",
-			c.vertexPrefix(false),
+			c.vertexPrefix(false, false),
 			strIf(isDir, "--dir "),
 			strings.Join(srcs, " "),
 			dest))
@@ -420,7 +420,7 @@ func (c *Converter) RunLocal(ctx context.Context, args []string, pushFlag bool) 
 	opts := []llb.RunOption{
 		llb.Args(finalArgs),
 		llb.IgnoreCache,
-		llb.WithCustomNamef("%s%s", c.vertexPrefix(true), runStr),
+		llb.WithCustomNamef("%s%s", c.vertexPrefix(true, false), runStr),
 	}
 
 	if pushFlag {
@@ -473,7 +473,7 @@ func (c *Converter) RunExitCode(ctx context.Context, commandName string, args, m
 		strIf(noCache, "--no-cache "),
 		strings.Join(args, " "))
 	shellWrap := withShellAndEnvVarsExitCode(exitCodeFile)
-	opts = append(opts, llb.WithCustomNamef("%s%s", c.vertexPrefix(false), runStr))
+	opts = append(opts, llb.WithCustomNamef("%s%s", c.vertexPrefix(false, false), runStr))
 	state, err := c.internalRun(
 		ctx, args, secretKeyValues, isWithShell, shellWrap, false,
 		true, withSSH, noCache, false, false, runStr, opts...)
@@ -532,7 +532,7 @@ func (c *Converter) RunLocalExitCode(ctx context.Context, commandName string, ar
 	opts := []llb.RunOption{
 		llb.Args(finalArgs),
 		llb.IgnoreCache,
-		llb.WithCustomNamef("%s%s", c.vertexPrefix(true), runStr),
+		llb.WithCustomNamef("%s%s", c.vertexPrefix(true, false), runStr),
 	}
 	c.mts.Final.MainState = c.mts.Final.MainState.Run(opts...).Root()
 
@@ -600,7 +600,7 @@ func (c *Converter) Run(ctx context.Context, args, mounts, secretKeyValues []str
 		strIf(interactiveKeep, "--interactive-keep "),
 		strings.Join(finalArgs, " "))
 	shellWrap := withShellAndEnvVars
-	opts = append(opts, llb.WithCustomNamef("%s%s", c.vertexPrefix(false), runStr))
+	opts = append(opts, llb.WithCustomNamef("%s%s", c.vertexPrefix(false, interactive || interactiveKeep), runStr))
 	_, err = c.internalRun(
 		ctx, finalArgs, secretKeyValues, isWithShell, shellWrap, pushFlag,
 		false, withSSH, noCache, interactive, interactiveKeep, runStr, opts...)
@@ -645,7 +645,7 @@ func (c *Converter) SaveArtifact(ctx context.Context, saveFrom string, saveTo st
 		c.mts.Final.MainState, []string{saveFrom}, c.mts.Final.ArtifactsState,
 		saveToAdjusted, true, true, keepTs, own, ifExists,
 		llb.WithCustomNamef(
-			"%sSAVE ARTIFACT %s%s %s", c.vertexPrefix(false), strIf(ifExists, "--if-exists "), saveFrom, artifact.String()))
+			"%sSAVE ARTIFACT %s%s %s", c.vertexPrefix(false, false), strIf(ifExists, "--if-exists "), saveFrom, artifact.String()))
 	if saveAsLocalTo != "" {
 		separateArtifactsState := llbutil.ScratchWithPlatform()
 		if isPush {
@@ -654,14 +654,14 @@ func (c *Converter) SaveArtifact(ctx context.Context, saveFrom string, saveTo st
 				saveToAdjusted, true, true, keepTs, "root:root", ifExists,
 				llb.WithCustomNamef(
 					"%sSAVE ARTIFACT %s%s %s AS LOCAL %s",
-					c.vertexPrefix(false), strIf(ifExists, "--if-exists "), saveFrom, artifact.String(), saveAsLocalTo))
+					c.vertexPrefix(false, false), strIf(ifExists, "--if-exists "), saveFrom, artifact.String(), saveAsLocalTo))
 		} else {
 			separateArtifactsState = llbutil.CopyOp(
 				c.mts.Final.MainState, []string{saveFrom}, separateArtifactsState,
 				saveToAdjusted, true, true, keepTs, "root:root", ifExists,
 				llb.WithCustomNamef(
 					"%sSAVE ARTIFACT %s%s %s AS LOCAL %s",
-					c.vertexPrefix(false), strIf(ifExists, "--if-exists "), saveFrom, artifact.String(), saveAsLocalTo))
+					c.vertexPrefix(false, false), strIf(ifExists, "--if-exists "), saveFrom, artifact.String(), saveAsLocalTo))
 		}
 		c.mts.Final.SeparateArtifactsState = append(c.mts.Final.SeparateArtifactsState, separateArtifactsState)
 
@@ -796,7 +796,7 @@ func (c *Converter) Workdir(ctx context.Context, workdirPath string) error {
 			mkdirOpts = append(mkdirOpts, llb.WithUser(c.mts.Final.MainImage.Config.User))
 		}
 		opts := []llb.ConstraintsOpt{
-			llb.WithCustomNamef("%sWORKDIR %s", c.vertexPrefix(false), workdirPath),
+			llb.WithCustomNamef("%sWORKDIR %s", c.vertexPrefix(false, false), workdirPath),
 		}
 		c.mts.Final.MainState = c.mts.Final.MainState.File(
 			llb.Mkdir(workdirAbs, 0755, mkdirOpts...), opts...)
@@ -924,7 +924,7 @@ func (c *Converter) GitClone(ctx context.Context, gitURL string, branch string, 
 		gitState, []string{"."}, c.mts.Final.MainState, dest, false, false, keepTs,
 		c.mts.Final.MainImage.Config.User, false,
 		llb.WithCustomNamef(
-			"%sCOPY GIT CLONE (--branch %s) %s TO %s", c.vertexPrefix(false),
+			"%sCOPY GIT CLONE (--branch %s) %s TO %s", c.vertexPrefix(false, false),
 			branch, gitURL, dest))
 	return nil
 }
@@ -1275,7 +1275,7 @@ func (c *Converter) processNonConstantBuildArgFunc(ctx context.Context) variable
 		transient := true
 		state, err := c.internalRun(
 			ctx, args, []string{}, true, withShellAndEnvVars, false, transient, false, false, false, false, expression,
-			llb.WithCustomNamef("%sRUN %s", c.vertexPrefix(false), expression))
+			llb.WithCustomNamef("%sRUN %s", c.vertexPrefix(false, false), expression))
 		if err != nil {
 			return "", 0, errors.Wrapf(err, "run %v", expression)
 		}
@@ -1293,27 +1293,35 @@ func (c *Converter) processNonConstantBuildArgFunc(ctx context.Context) variable
 	}
 }
 
-func (c *Converter) vertexPrefix(local bool) string {
+var base64True = base64.StdEncoding.EncodeToString([]byte("true"))
+
+func (c *Converter) vertexPrefix(local bool, interactive bool) string {
 	overriding := c.varCollection.SortedOverridingVariables()
 	varStrBuilder := make([]string, 0, len(overriding)+1)
 	if c.mts.Final.Platform != nil {
-		varStrBuilder = append(
-			varStrBuilder,
-			fmt.Sprintf("platform=%s", llbutil.PlatformToString(c.opt.Platform)))
+		b64Platform := base64.StdEncoding.EncodeToString(
+			[]byte(llbutil.PlatformToString(c.opt.Platform)))
+		varStrBuilder = append(varStrBuilder, fmt.Sprintf("@platform=%s", b64Platform))
+	}
+	if local {
+		varStrBuilder = append(varStrBuilder, fmt.Sprintf("@local=%s", base64True))
+	}
+	if interactive {
+		varStrBuilder = append(varStrBuilder, fmt.Sprintf("@interactive=%s", base64True))
 	}
 	for _, key := range overriding {
 		variable, _, _ := c.varCollection.Get(key)
 		if variable.IsEnvVar() {
 			continue
 		}
-		varStrBuilder = append(varStrBuilder, fmt.Sprintf("%s=%s", key, variable.ConstantValue()))
+		b64Value := base64.StdEncoding.EncodeToString([]byte(variable.ConstantValue()))
+		varStrBuilder = append(varStrBuilder, fmt.Sprintf("%s=%s", key, b64Value))
 	}
 	var varStr string
 	if len(varStrBuilder) > 0 {
-		b64VarStr := base64.StdEncoding.EncodeToString([]byte(strings.Join(varStrBuilder, " ")))
-		varStr = fmt.Sprintf("(%s)", b64VarStr)
+		varStr = fmt.Sprintf("(%s)", strings.Join(varStrBuilder, " "))
 	}
-	return fmt.Sprintf("[%s%s%s %s] ", c.mts.Final.Target.String(), varStr, strIf(local, " *local*"), c.mts.Final.Salt)
+	return fmt.Sprintf("[%s%s %s] ", c.mts.Final.Target.String(), varStr, c.mts.Final.Salt)
 }
 
 func (c *Converter) markFakeDeps() {

@@ -161,7 +161,9 @@ func (wdr *withDockerRun) Run(ctx context.Context, args []string, opt WithDocker
 		"WITH DOCKER RUN %s%s",
 		strIf(opt.WithEntrypoint, "--entrypoint "),
 		strings.Join(finalArgs, " "))
-	runOpts = append(runOpts, llb.WithCustomNamef("%s%s", wdr.c.vertexPrefix(false), runStr))
+	runOpts = append(
+		runOpts,
+		llb.WithCustomNamef("%s%s", wdr.c.vertexPrefix(false, opt.Interactive || opt.interactiveKeep), runStr))
 	dindID, err := wdr.c.mts.Final.TargetInput.Hash()
 	if err != nil {
 		return errors.Wrap(err, "compute dind id")
@@ -186,7 +188,7 @@ func (wdr *withDockerRun) installDeps(ctx context.Context, opt WithDockerOpt) er
 		llb.AddMount(
 			dockerAutoInstallScriptPath, llb.Scratch(), llb.HostBind(), llb.SourcePath(dockerAutoInstallScriptPath)),
 		llb.Args(args),
-		llb.WithCustomNamef("%sWITH DOCKER (install deps)", wdr.c.vertexPrefix(false)),
+		llb.WithCustomNamef("%sWITH DOCKER (install deps)", wdr.c.vertexPrefix(false, false)),
 	}
 	wdr.c.mts.Final.MainState = wdr.c.mts.Final.MainState.Run(runOpts...).Root()
 	return nil
@@ -388,7 +390,7 @@ func (wdr *withDockerRun) getComposeConfig(ctx context.Context, opt WithDockerOp
 		llb.AddMount(
 			dockerdWrapperPath, llb.Scratch(), llb.HostBind(), llb.SourcePath(dockerdWrapperPath)),
 		llb.Args(args),
-		llb.WithCustomNamef("%sWITH DOCKER (docker-compose config)", wdr.c.vertexPrefix(false)),
+		llb.WithCustomNamef("%sWITH DOCKER (docker-compose config)", wdr.c.vertexPrefix(false, false)),
 	}
 	state := wdr.c.mts.Final.MainState.Run(runOpts...).Root()
 	ref, err := llbutil.StateToRef(ctx, wdr.c.opt.GwClient, state, wdr.c.opt.Platform, wdr.c.opt.CacheImports)
