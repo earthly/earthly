@@ -323,12 +323,16 @@ ContainerRunningLoop:
 			fmt.Printf("Warning: Could not detect buildkit cache size: %v\n", cacheSizeErr)
 			return err
 		}
-		cacheGigs := cacheSize / 1000 / 1000 / 1000
-		if cacheGigs < 30 {
-			return err
+		cacheGigs := cacheSize / 1024 / 1024
+		if cacheGigs >= 30 || (cacheGigs >= 10 && runtime.GOOS == "darwin") {
+			fmt.Printf("Detected cache size %d GiB. It could take a while for buildkit to start up. Waiting for another %s before giving up...\n", cacheGigs, opTimeout)
+			fmt.Printf("To reduce the size of the cache, you can run\n" +
+				"\t\tearthly config 'global.cache_size_mb' <new-size>\n" +
+				"This sets the BuildKit GC target to a specific value. For more information see " +
+				"the Earthly config reference page: https://docs.earthly.dev/configuration/earthly-config\n")
+			return waitForConnection(ctx, address, opTimeout)
 		}
-		fmt.Printf("Detected cache size %dGB. It could take a while for buildkit to start up. Waiting for another %s before giving up...\n", cacheGigs, opTimeout)
-		return waitForConnection(ctx, address, opTimeout)
+		return err
 	}
 	return nil
 }
@@ -549,7 +553,7 @@ func isDockerAvailable(ctx context.Context) bool {
 	return err == nil
 }
 
-// getCacheSize returns the size of the earthly cache in bytes.
+// getCacheSize returns the size of the earthly cache in KiB.
 func getCacheSize(ctx context.Context) (int, error) {
 	cmd := exec.CommandContext(
 		ctx, "docker", "volume", "inspect", VolumeName, "--format", "{{.Mountpoint}}")
@@ -560,9 +564,9 @@ func getCacheSize(ctx context.Context) (int, error) {
 	mountpoint := string(bytes.TrimSpace(out))
 
 	cmd = exec.CommandContext(
-		ctx, "docker", "run", "--privileged", "--pid=host", "busybox",
+		ctx, "docker", "run", "--privileged", "--pid=host", "--rm", "busybox",
 		"nsenter", "-t", "1", "-m", "-u", "-n", "-i", "--",
-		"du", "-d", "0", "-b", "--", mountpoint)
+		"du", "-d", "0", "--", mountpoint)
 	out, cmdErr := cmd.Output() // can exit with 1 if there are warnings
 	parts := bytes.SplitN(bytes.TrimSpace(out), []byte("\t"), 2)
 	size, err := strconv.ParseInt(string(parts[0]), 10, 64)
