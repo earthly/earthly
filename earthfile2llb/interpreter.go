@@ -484,8 +484,13 @@ func (i *Interpreter) handleLocally(ctx context.Context, cmd spec.Command) error
 		return pushOnlyErr(cmd.SourceLocation)
 	}
 
+	workingDir, err := filepath.Abs(filepath.Dir(cmd.SourceLocation.File))
+	if err != nil {
+		return WrapError(err, cmd.SourceLocation, "unable to get abs path in LOCALLY")
+	}
+
 	i.local = true
-	err := i.converter.Locally(ctx, nil)
+	err = i.converter.Locally(ctx, workingDir, nil)
 	if err != nil {
 		return WrapError(err, cmd.SourceLocation, "apply LOCALLY")
 	}

@@ -244,8 +244,8 @@ jobs:
       SSH_PORT: "2222"
     steps:
       - uses: actions/checkout@v2
-      - name: install sshpass
-        run: sudo apt-get install -y sshpass
+      - name: install sshpass and net-tools
+        run: sudo apt-get install -y sshpass net-tools
       - name: Download released earthly
         run: "sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/latest/download/earthly-linux-amd64 -O /usr/local/bin/earthly && chmod +x /usr/local/bin/earthly'"
       - name: Docker Login (non fork only)

@@ -287,7 +287,7 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 }
 
 // Locally applies the earthly Locally command.
-func (c *Converter) Locally(ctx context.Context, platform *specs.Platform) error {
+func (c *Converter) Locally(ctx context.Context, workdirPath string, platform *specs.Platform) error {
 	err := c.checkAllowed("LOCALLY")
 	if err != nil {
 		return err
@@ -295,8 +295,19 @@ func (c *Converter) Locally(ctx context.Context, platform *specs.Platform) error
 	if !c.opt.AllowLocally {
 		return errors.New("LOCALLY cannot be used when --strict is specified or otherwise implied")
 	}
+	if !path.IsAbs(workdirPath) {
+		return errors.New("workdirPath must be absolute")
+	}
 
-	return c.fromClassical(ctx, "scratch", platform, true)
+	err = c.fromClassical(ctx, "scratch", platform, true)
+	if err != nil {
+		return err
+	}
+
+	// reset WORKDIR to current directory where Earthfile is
+	c.mts.Final.MainState = c.mts.Final.MainState.Dir(workdirPath)
+	c.mts.Final.MainImage.Config.WorkingDir = workdirPath
+	return nil
 }
 
 // CopyArtifactLocal applies the earthly COPY artifact command which are invoked under a LOCALLY target.
@@ -329,7 +340,7 @@ func (c *Converter) CopyArtifactLocal(ctx context.Context, artifactName string, 
 	opts := []llb.RunOption{
 		llb.Args(finalArgs),
 		llb.IgnoreCache,
-		llb.AddMount("/"+localhost.SendFileMagicStr, relevantDepState.ArtifactsState),
+		llb.AddMount("/"+localhost.SendFileMagicStr, relevantDepState.ArtifactsState, llb.Readonly),
 		llb.WithCustomNamef(
 			"%sCOPY %s%s%s %s",
 			c.vertexPrefix(false, false),
@@ -707,7 +718,21 @@ func (c *Converter) SaveArtifactFromLocal(ctx context.Context, saveFrom, saveTo 
 	c.mts.Final.MainState = c.mts.Final.MainState.Run(opts...).Root()
 
 	// then save it via the regular SaveArtifact code since it's now in a snapshot
-	return c.SaveArtifact(ctx, saveTo, saveTo, "", keepTs, keepOwn, false, false)
+	absSaveTo := fmt.Sprintf("/%s", saveTo)
+	own := "root:root"
+	if keepOwn {
+		own = ""
+	} else if chown != "" {
+		own = chown
+	}
+	ifExists := false
+	c.mts.Final.ArtifactsState = llbutil.CopyOp(
+		c.mts.Final.MainState, []string{absSaveTo}, c.mts.Final.ArtifactsState,
+		absSaveTo, true, true, keepTs, own, ifExists,
+	)
+	c.ranSave = true
+	c.markFakeDeps()
+	return nil
 }
 
 // SaveImage applies the earthly SAVE IMAGE command.
