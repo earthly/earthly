@@ -1,6 +1,8 @@
 package variables
 
 import (
+	"strings"
+
 	"github.com/containerd/containerd/platforms"
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/gitutil"
@@ -44,4 +46,27 @@ func SetPlatformArgs(s *Scope, platform specs.Platform) {
 	s.AddInactive("TARGETOS", Var{Type: StringType, Value: platform.OS})
 	s.AddInactive("TARGETARCH", Var{Type: StringType, Value: platform.Architecture})
 	s.AddInactive("TARGETVARIANT", Var{Type: StringType, Value: platform.Variant})
+}
+
+// getProjectName returns the depricated PROJECT_NAME value
+func getProjectName(s string) string {
+	protocol := "unknown"
+	parts := strings.SplitN(s, "://", 2)
+	if len(parts) > 1 {
+		protocol = parts[0]
+		s = parts[1]
+	}
+	parts = strings.SplitN(s, "@", 2)
+	if len(parts) > 1 {
+		s = parts[1]
+	}
+	if protocol == "unknown" {
+		s = strings.Replace(s, ":", "/", 1)
+	}
+	s = strings.TrimSuffix(s, ".git")
+	parts = strings.SplitN(s, "/", 2)
+	if len(parts) > 1 {
+		s = parts[1]
+	}
+	return s
 }
