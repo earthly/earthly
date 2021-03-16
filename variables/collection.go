@@ -93,13 +93,8 @@ func (c *Collection) SortedOverridingVariables() []string {
 
 // Expand expands variables within the given word.
 func (c *Collection) Expand(word string) string {
-	ef := c.effective()
 	shlex := dfShell.NewLex('\\')
-	varMap := make(map[string]string)
-	for varName := range ef.AllActive() {
-		variable, _ := ef.GetActive(varName)
-		varMap[varName] = variable.Value
-	}
+	varMap := c.effective().ActiveValueMap()
 	ret, err := shlex.ProcessWordWithMap(word, varMap)
 	if err != nil {
 		// No effect if there is an error.

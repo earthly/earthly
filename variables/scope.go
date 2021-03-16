@@ -60,11 +60,6 @@ func (s *Scope) AddActive(name string, variable Var) {
 	s.variables[name] = variable
 }
 
-// AllActive returns a set of all active variable names.
-func (s *Scope) AllActive() map[string]bool {
-	return s.activeVariables
-}
-
 // ActiveValueMap returns a map of the values of the active variables.
 func (s *Scope) ActiveValueMap() map[string]string {
 	ret := make(map[string]string)
