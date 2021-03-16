@@ -16,10 +16,7 @@ type ProcessNonConstantVariableFunc func(name string, expression string) (value 
 func ParseCommandLineArgs(args []string, dotEnvMap map[string]string) (*Scope, error) {
 	ret := NewScope()
 	for k, v := range dotEnvMap {
-		ret.AddInactive(k, Var{
-			Value: v,
-			Type:  StringType,
-		})
+		ret.AddInactive(k, v)
 	}
 	for _, arg := range args {
 		splitArg := strings.SplitN(arg, "=", 2)
@@ -40,10 +37,7 @@ func ParseCommandLineArgs(args []string, dotEnvMap map[string]string) (*Scope, e
 				return nil, fmt.Errorf("env var %s not set", key)
 			}
 		}
-		ret.AddInactive(key, Var{
-			Value: value,
-			Type:  StringType,
-		})
+		ret.AddInactive(key, value)
 	}
 	return ret, nil
 }
@@ -61,11 +55,11 @@ func ParseArgs(args []string, pncvf ProcessNonConstantVariableFunc, current *Col
 	return ret, nil
 }
 
-func parseArg(arg string, pncvf ProcessNonConstantVariableFunc, current *Collection) (string, Var, error) {
+func parseArg(arg string, pncvf ProcessNonConstantVariableFunc, current *Collection) (string, string, error) {
 	var name string
 	splitArg := strings.SplitN(arg, "=", 2)
 	if len(splitArg) < 1 {
-		return "", Var{}, fmt.Errorf("invalid build arg %s", splitArg)
+		return "", "", fmt.Errorf("invalid build arg %s", splitArg)
 	}
 	name = splitArg[0]
 	value := ""
@@ -75,37 +69,30 @@ func parseArg(arg string, pncvf ProcessNonConstantVariableFunc, current *Collect
 		hasValue = true
 	}
 	if hasValue {
-		v, err := parseArgValue(name, StringType, value, pncvf)
+		v, err := parseArgValue(name, value, pncvf)
 		if err != nil {
-			return "", Var{}, err
+			return "", "", err
 		}
 		return name, v, nil
 	}
 	v, ok := current.GetActive(name)
 	if !ok {
-		return "", Var{}, errors.Errorf("value not specified for build arg %s and no value can be inferred", name)
+		return "", "", errors.Errorf("value not specified for build arg %s and no value can be inferred", name)
 	}
 	return name, v, nil
 }
 
-func parseArgValue(name string, varType Type, value string, pncvf ProcessNonConstantVariableFunc) (Var, error) {
+func parseArgValue(name string, value string, pncvf ProcessNonConstantVariableFunc) (string, error) {
 	if strings.HasPrefix(value, "$(") {
 		// Variable build arg - resolve value.
 		var err error
 		value, _, err = pncvf(name, value)
 		if err != nil {
-			return Var{}, err
+			return "", err
 		}
 	}
-	err := ValidateArgType(varType, value)
-	if err != nil {
-		return Var{}, err
-	}
 
-	return Var{
-		Value: value,
-		Type:  varType,
-	}, nil
+	return value, nil
 }
 
 // ParseEnvVars parses env vars from a slice of strings of the form "key=value".
@@ -113,7 +100,7 @@ func ParseEnvVars(envVars []string) *Scope {
 	ret := NewScope()
 	for _, envVar := range envVars {
 		k, v, _ := ParseKeyValue(envVar)
-		ret.AddActive(k, Var{Type: StringType, Value: v})
+		ret.AddActive(k, v)
 	}
 	return ret
 }

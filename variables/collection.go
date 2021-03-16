@@ -77,7 +77,7 @@ func (c *Collection) SetPlatform(platform specs.Platform) {
 }
 
 // GetActive returns an active variable by name.
-func (c *Collection) GetActive(name string) (Var, bool) {
+func (c *Collection) GetActive(name string) (string, bool) {
 	return c.effective().GetActive(name)
 }
 
@@ -105,40 +105,30 @@ func (c *Collection) Expand(word string) string {
 
 // DeclareArg declares an arg. The effective value may be
 // different than the default, if the variable has been overridden.
-func (c *Collection) DeclareArg(name string, varType Type, defaultValue string, global bool, pncvf ProcessNonConstantVariableFunc) (Var, error) {
+func (c *Collection) DeclareArg(name string, defaultValue string, global bool, pncvf ProcessNonConstantVariableFunc) (string, error) {
 	ef := c.effective()
-	var finalValue Var
+	var finalValue string
 	existing, found := ef.GetAny(name)
 	if found {
 		finalValue = existing
 	} else {
-		v, err := parseArgValue(name, varType, defaultValue, pncvf)
+		v, err := parseArgValue(name, defaultValue, pncvf)
 		if err != nil {
-			return Var{}, err
+			return "", err
 		}
 		finalValue = v
-	}
-	err := ValidateArgType(varType, finalValue.Value)
-	if err != nil {
-		return Var{}, err
 	}
 	c.args().AddActive(name, finalValue)
 	if global {
 		c.globals.AddActive(name, finalValue)
 	}
 	c.effectiveCache = nil
-	return Var{
-		Type:  varType,
-		Value: finalValue.Value,
-	}, nil
+	return finalValue, nil
 }
 
 // DeclareEnv declares an env var.
 func (c *Collection) DeclareEnv(name string, value string) {
-	c.envs.AddActive(name, Var{
-		Value: value,
-		Type:  StringType,
-	})
+	c.envs.AddActive(name, value)
 	c.effectiveCache = nil
 }
 
