@@ -109,15 +109,6 @@ func (gm *GitMetadata) Clone() *GitMetadata {
 	}
 }
 
-func detectGitBinary(ctx context.Context) error {
-	cmd := exec.CommandContext(ctx, "/bin/sh", "-c", "which git")
-	_, err := cmd.Output()
-	if err != nil {
-		return ErrNoGitBinary
-	}
-	return nil
-}
-
 func detectIsGitDir(ctx context.Context, dir string) error {
 	cmd := exec.CommandContext(ctx, "git", "status")
 	cmd.Dir = dir
