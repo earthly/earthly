@@ -25,7 +25,7 @@ func ParsePlatform(str string) (*specs.Platform, error) {
 // DefaultPlatform returns the default platform to use if none is specified.
 func DefaultPlatform() specs.Platform {
 	p := platforms.DefaultSpec()
-	if runtime.GOOS == "darwin" {
+	if runtime.GOOS == "darwin" || runtime.GOOS == "windows" {
 		// Use linux so that this works with Docker Desktop app.
 		p.OS = "linux"
 	}

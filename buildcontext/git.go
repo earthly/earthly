@@ -69,7 +69,7 @@ func (gr *gitResolver) resolveEarthProject(ctx context.Context, gwClient gwclien
 		// Commands don't come with a build context.
 	}
 
-	earthfileTmpDir, err := ioutil.TempDir("/tmp", "earthly-git")
+	earthfileTmpDir, err := ioutil.TempDir(os.TempDir(), "earthly-git")
 	if err != nil {
 		return nil, errors.Wrap(err, "create temp dir for Earthfile")
 	}
