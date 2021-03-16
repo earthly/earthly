@@ -13,6 +13,7 @@ import (
 	"github.com/earthly/earthly/buildcontext"
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/llbutil"
+	"github.com/earthly/earthly/stringutil"
 	gwclient "github.com/moby/buildkit/frontend/gateway/client"
 	specs "github.com/opencontainers/image-spec/specs-go/v1"
 )
@@ -232,9 +233,9 @@ func (i *Interpreter) handleIfExpression(ctx context.Context, expression []strin
 	privileged := fs.Bool("privileged", false, "Enable privileged mode")
 	withSSH := fs.Bool("ssh", false, "Make available the SSH agent of the host")
 	noCache := fs.Bool("no-cache", false, "Always execute this specific condition, ignoring cache")
-	secrets := new(StringSliceFlag)
+	secrets := new(stringutil.StringSliceFlag)
 	fs.Var(secrets, "secret", "Make available a secret")
-	mounts := new(StringSliceFlag)
+	mounts := new(stringutil.StringSliceFlag)
 	fs.Var(mounts, "mount", "Mount a file or directory")
 	err := fs.Parse(expression)
 	if err != nil {
@@ -293,7 +294,7 @@ func (i *Interpreter) handleFrom(ctx context.Context, cmd spec.Command) error {
 		return pushOnlyErr(cmd.SourceLocation)
 	}
 	fs := flag.NewFlagSet("FROM", flag.ContinueOnError)
-	buildArgs := new(StringSliceFlag)
+	buildArgs := new(stringutil.StringSliceFlag)
 	fs.Var(buildArgs, "build-arg", "A build arg override passed on to a referenced Earthly target")
 	platformStr := fs.String("platform", "", "The platform to use")
 	err := fs.Parse(getArgsCopy(cmd))
@@ -342,9 +343,9 @@ func (i *Interpreter) handleRun(ctx context.Context, cmd spec.Command) error {
 	noCache := fs.Bool("no-cache", false, "Always run this specific item, ignoring cache")
 	interactive := fs.Bool("interactive", false, "Run this command with an interactive session, without saving changes")
 	interactiveKeep := fs.Bool("interactive-keep", false, "Run this command with an interactive session, saving changes")
-	secrets := new(StringSliceFlag)
+	secrets := new(stringutil.StringSliceFlag)
 	fs.Var(secrets, "secret", "Make available a secret")
-	mounts := new(StringSliceFlag)
+	mounts := new(stringutil.StringSliceFlag)
 	fs.Var(mounts, "mount", "Mount a file or directory")
 	err := fs.Parse(getArgsCopy(cmd))
 	if err != nil {
@@ -443,7 +444,7 @@ func (i *Interpreter) handleFromDockerfile(ctx context.Context, cmd spec.Command
 		return pushOnlyErr(cmd.SourceLocation)
 	}
 	fs := flag.NewFlagSet("FROM DOCKERFILE", flag.ContinueOnError)
-	buildArgs := new(StringSliceFlag)
+	buildArgs := new(stringutil.StringSliceFlag)
 	fs.Var(buildArgs, "build-arg", "A build arg override passed on to a referenced Earthly target and also to the Dockerfile build")
 	platformStr := fs.String("platform", "", "The platform to use")
 	dfTarget := fs.String("target", "", "The Dockerfile target to inherit from")
@@ -509,7 +510,7 @@ func (i *Interpreter) handleCopy(ctx context.Context, cmd spec.Command) error {
 	keepOwn := fs.Bool("keep-own", false, "Keep owner info")
 	ifExists := fs.Bool("if-exists", false, "Do not fail if the artifact does not exist")
 	platformStr := fs.String("platform", "", "The platform to use")
-	buildArgs := new(StringSliceFlag)
+	buildArgs := new(stringutil.StringSliceFlag)
 	fs.Var(buildArgs, "build-arg", "A build arg override passed on to a referenced Earthly target")
 	err := fs.Parse(getArgsCopy(cmd))
 	if err != nil {
@@ -647,7 +648,7 @@ func (i *Interpreter) handleSaveImage(ctx context.Context, cmd spec.Command) err
 	insecure := fs.Bool(
 		"insecure", false,
 		"Use unencrypted connection for the push")
-	cacheFrom := new(StringSliceFlag)
+	cacheFrom := new(stringutil.StringSliceFlag)
 	fs.Var(cacheFrom, "cache-from", "Declare additional cache import as a Docker tag")
 	err := fs.Parse(getArgsCopy(cmd))
 	if err != nil {
@@ -683,9 +684,9 @@ func (i *Interpreter) handleBuild(ctx context.Context, cmd spec.Command) error {
 		return pushOnlyErr(cmd.SourceLocation)
 	}
 	fs := flag.NewFlagSet("BUILD", flag.ContinueOnError)
-	platformsStr := new(StringSliceFlag)
+	platformsStr := new(stringutil.StringSliceFlag)
 	fs.Var(platformsStr, "platform", "The platform to build")
-	buildArgs := new(StringSliceFlag)
+	buildArgs := new(stringutil.StringSliceFlag)
 	fs.Var(buildArgs, "build-arg", "A build arg override passed on to a referenced Earthly target")
 	err := fs.Parse(getArgsCopy(cmd))
 	if err != nil {
@@ -1002,16 +1003,16 @@ func (i *Interpreter) handleWithDocker(ctx context.Context, cmd spec.Command) er
 	}
 
 	fs := flag.NewFlagSet("WITH DOCKER", flag.ContinueOnError)
-	composeFiles := new(StringSliceFlag)
+	composeFiles := new(stringutil.StringSliceFlag)
 	fs.Var(composeFiles, "compose", "A compose file used to bring up services from")
-	composeServices := new(StringSliceFlag)
+	composeServices := new(stringutil.StringSliceFlag)
 	fs.Var(composeServices, "service", "A compose service to bring up")
-	loads := new(StringSliceFlag)
+	loads := new(stringutil.StringSliceFlag)
 	fs.Var(loads, "load", "An image produced by Earthly which is loaded as a Docker image")
 	platformStr := fs.String("platform", "", "The platform to use")
-	buildArgs := new(StringSliceFlag)
+	buildArgs := new(stringutil.StringSliceFlag)
 	fs.Var(buildArgs, "build-arg", "A build arg override passed on to a referenced Earthly target")
-	pulls := new(StringSliceFlag)
+	pulls := new(stringutil.StringSliceFlag)
 	fs.Var(pulls, "pull", "An image which is pulled and made available in the docker cache")
 	err := fs.Parse(getArgsCopy(cmd))
 	if err != nil {
@@ -1233,23 +1234,4 @@ func parseKeyValue(arg string) (string, *string, error) {
 		value = &splitArg[1]
 	}
 	return name, value, nil
-}
-
-// StringSliceFlag is a flag backed by a string slice.
-type StringSliceFlag struct {
-	Args []string
-}
-
-// String returns a string representation of the flag.
-func (ssf *StringSliceFlag) String() string {
-	if ssf == nil {
-		return ""
-	}
-	return strings.Join(ssf.Args, ",")
-}
-
-// Set adds a flag value to the string slice.
-func (ssf *StringSliceFlag) Set(arg string) error {
-	ssf.Args = append(ssf.Args, arg)
-	return nil
 }
