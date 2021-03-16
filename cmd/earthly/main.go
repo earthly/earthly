@@ -26,6 +26,26 @@ import (
 	"text/tabwriter"
 	"time"
 
+	"github.com/dustin/go-humanize"
+	"github.com/fatih/color"
+	"github.com/joho/godotenv"
+	"github.com/moby/buildkit/client"
+	_ "github.com/moby/buildkit/client/connhelper/dockercontainer" // Load "docker-container://" helper.
+	"github.com/moby/buildkit/client/llb"
+	"github.com/moby/buildkit/session"
+	"github.com/moby/buildkit/session/auth/authprovider"
+	"github.com/moby/buildkit/session/localhost/localhostprovider"
+	"github.com/moby/buildkit/session/sshforward/sshprovider"
+	"github.com/moby/buildkit/util/entitlements"
+	specs "github.com/opencontainers/image-spec/specs-go/v1"
+	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
+	"github.com/urfave/cli/v2"
+	"golang.org/x/crypto/ssh"
+	"golang.org/x/crypto/ssh/agent"
+	"golang.org/x/sync/errgroup"
+	"golang.org/x/term"
+
 	"github.com/earthly/earthly/analytics"
 	"github.com/earthly/earthly/ast"
 	"github.com/earthly/earthly/autocomplete"
@@ -46,26 +66,6 @@ import (
 	"github.com/earthly/earthly/secretsclient"
 	"github.com/earthly/earthly/termutil"
 	"github.com/earthly/earthly/variables"
-
-	humanize "github.com/dustin/go-humanize"
-	"github.com/fatih/color"
-	"github.com/joho/godotenv"
-	"github.com/moby/buildkit/client"
-	_ "github.com/moby/buildkit/client/connhelper/dockercontainer" // Load "docker-container://" helper.
-	"github.com/moby/buildkit/client/llb"
-	"github.com/moby/buildkit/session"
-	"github.com/moby/buildkit/session/auth/authprovider"
-	"github.com/moby/buildkit/session/localhost/localhostprovider"
-	"github.com/moby/buildkit/session/sshforward/sshprovider"
-	"github.com/moby/buildkit/util/entitlements"
-	specs "github.com/opencontainers/image-spec/specs-go/v1"
-	"github.com/pkg/errors"
-	"github.com/seehuhn/password"
-	"github.com/sirupsen/logrus"
-	"github.com/urfave/cli/v2"
-	"golang.org/x/crypto/ssh"
-	"golang.org/x/crypto/ssh/agent"
-	"golang.org/x/sync/errgroup"
 )
 
 var dotEnvPath = ".env"
@@ -1597,11 +1597,13 @@ func (app *earthlyApp) actionRegister(c *cli.Context) error {
 
 	pword := app.password
 	if app.password == "" {
-		enteredPassword, err := password.Read("pick a password: ")
+		fmt.Println("pick a password")
+		enteredPassword, err := term.ReadPassword(int(syscall.Stdin))
 		if err != nil {
 			return err
 		}
-		enteredPassword2, err := password.Read("confirm password: ")
+		fmt.Println("confirm password")
+		enteredPassword2, err := term.ReadPassword(int(syscall.Stdin))
 		if err != nil {
 			return err
 		}
@@ -1965,7 +1967,8 @@ func (app *earthlyApp) actionAccountLogin(c *cli.Context) error {
 	}
 
 	if email != "" && pass == "" {
-		passwordBytes, err := password.Read("enter your password: ")
+		fmt.Println("enter your password: ")
+		passwordBytes, err := term.ReadPassword(int(syscall.Stdin))
 		if err != nil {
 			return err
 		}
