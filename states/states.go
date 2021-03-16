@@ -41,7 +41,7 @@ type SingleTarget struct {
 	SeparateArtifactsState []llb.State
 	SaveLocals             []SaveLocal
 	SaveImages             []SaveImage
-	VarCollection          *variables.Collection
+	VarCollection          *variables.Collection2
 	RunPush                RunPush
 	LocalDirs              map[string]string
 	Ongoing                bool

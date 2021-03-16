@@ -2291,7 +2291,7 @@ func (app *earthlyApp) actionBuild(c *cli.Context) error {
 
 	go terminal.ConnectTerm(c.Context, fmt.Sprintf("127.0.0.1:%d", app.buildkitdSettings.DebuggerPort))
 
-	varCollection, err := variables.ParseCommandLineBuildArgs(app.buildArgs.Value(), dotEnvMap)
+	overridingVars, err := variables.ParseCommandLineArgs(app.buildArgs.Value(), dotEnvMap)
 	if err != nil {
 		return errors.Wrap(err, "parse build args")
 	}
@@ -2328,7 +2328,7 @@ func (app *earthlyApp) actionBuild(c *cli.Context) error {
 		SessionID:              app.sessionID,
 		ImageResolveMode:       imageResolveMode,
 		CleanCollection:        cleanCollection,
-		VarCollection:          varCollection,
+		OverridingVars:         overridingVars,
 		BuildContextProvider:   buildContextProvider,
 		GitLookup:              gitLookup,
 		UseFakeDep:             !app.noFakeDep,
