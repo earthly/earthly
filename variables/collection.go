@@ -9,11 +9,12 @@ import (
 
 // Collection is a collection of variable scopes used within a single target.
 type Collection struct {
-	// Always inactive scopes.
+	// Always inactive scopes. These scopes only influence newly declared
+	// args. They do not otherwise participate when args are expanded.
 	overriding *Scope
 	builtin    *Scope
 
-	// Always active scopes.
+	// Always active scopes. These scopes influence the value of args directly.
 	argsStack []*Scope
 	envs      *Scope
 	globals   *Scope
@@ -143,6 +144,7 @@ func (c *Collection) DeclareEnv(name string, value string) {
 		Value: value,
 		Type:  StringType,
 	})
+	c.effectiveCache = nil
 }
 
 func (c *Collection) args() *Scope {
