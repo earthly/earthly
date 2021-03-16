@@ -18,7 +18,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/alessio/shellescape"
 	"github.com/earthly/earthly/buildcontext"
 	"github.com/earthly/earthly/debugger/common"
 	"github.com/earthly/earthly/domain"
@@ -29,6 +28,7 @@ import (
 	"github.com/earthly/earthly/states/image"
 	"github.com/earthly/earthly/variables"
 
+	"github.com/alessio/shellescape"
 	"github.com/docker/distribution/reference"
 	"github.com/moby/buildkit/client/llb"
 	"github.com/moby/buildkit/frontend/dockerfile/dockerfile2llb"
@@ -43,16 +43,14 @@ const exitCodeFile = "/run/exit_code"
 
 // Converter turns earthly commands to buildkit LLB representation.
 type Converter struct {
-	gitMeta          *gitutil.GitMetadata
-	opt              ConvertOpt
-	mts              *states.MultiTarget
-	directDeps       []*states.SingleTarget
-	directDepIndices []int
-	buildContext     llb.State
-	cacheContext     llb.State
-	varCollection    *variables.Collection
-	nextArgIndex     int
-	ranSave          bool
+	gitMeta       *gitutil.GitMetadata
+	opt           ConvertOpt
+	mts           *states.MultiTarget
+	directDeps    []*states.SingleTarget
+	buildContext  llb.State
+	cacheContext  llb.State
+	varCollection *variables.Collection
+	ranSave       bool
 }
 
 // NewConverter constructs a new converter for a given earthly target.
@@ -75,20 +73,20 @@ func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Da
 		Final:   sts,
 		Visited: opt.Visited,
 	}
-	for _, key := range opt.VarCollection.SortedOverridingVariables() {
-		ovVar, _, _ := opt.VarCollection.Get(key)
+	for _, key := range opt.OverridingVars.SortedAny() {
+		ovVar, _ := opt.OverridingVars.GetAny(key)
 		sts.TargetInput = sts.TargetInput.WithBuildArgInput(ovVar.BuildArgInput(key, ""))
 	}
+	vc := variables.NewCollection(target, llbutil.PlatformWithDefault(opt.Platform), bc.GitMetadata, opt.OverridingVars)
 	targetStr := target.String()
 	opt.Visited.Add(targetStr, sts)
 	return &Converter{
-		gitMeta:      bc.GitMetadata,
-		opt:          opt,
-		mts:          mts,
-		buildContext: bc.BuildContext,
-		cacheContext: makeCacheContext(target),
-		varCollection: opt.VarCollection.WithBuiltinBuildArgs(
-			target, llbutil.PlatformWithDefault(opt.Platform), bc.GitMetadata),
+		gitMeta:       bc.GitMetadata,
+		opt:           opt,
+		mts:           mts,
+		buildContext:  bc.BuildContext,
+		cacheContext:  makeCacheContext(target),
+		varCollection: vc,
 	}, nil
 }
 
@@ -126,7 +124,7 @@ func (c *Converter) fromClassical(ctx context.Context, imageName string, platfor
 		prefix = c.vertexPrefix(false, false)
 	}
 	plat := llbutil.PlatformWithDefault(platform)
-	state, img, newVariables, err := c.internalFromClassical(
+	state, img, envVars, err := c.internalFromClassical(
 		ctx, imageName, plat,
 		llb.WithCustomNamef("%sFROM %s", prefix, imageName))
 	if err != nil {
@@ -135,7 +133,7 @@ func (c *Converter) fromClassical(ctx context.Context, imageName string, platfor
 	c.mts.Final.MainState = state
 	c.mts.Final.MainImage = img
 	c.mts.Final.RanFromLike = true
-	c.varCollection = newVariables
+	c.varCollection.ResetEnvVars(envVars)
 	return nil
 }
 
@@ -149,7 +147,7 @@ func (c *Converter) fromTarget(ctx context.Context, targetName string, platform 
 		return errors.Wrapf(err, "apply build %s", depTarget.String())
 	}
 	if mts.Final.RanInteractive {
-		return errors.New("Cannot FROM a target ending with an --interactive")
+		return errors.New("cannot FROM a target ending with an --interactive")
 	}
 	if depTarget.IsLocalInternal() {
 		depTarget.LocalPath = c.mts.Final.Target.LocalPath
@@ -162,10 +160,7 @@ func (c *Converter) fromTarget(ctx context.Context, targetName string, platform 
 	for dirKey, dirValue := range relevantDepState.LocalDirs {
 		c.mts.Final.LocalDirs[dirKey] = dirValue
 	}
-	for _, kv := range saveImage.Image.Config.Env {
-		k, v, _ := variables.ParseKeyValue(kv)
-		c.varCollection.AddActive(k, variables.NewConstantEnvVar(v))
-	}
+	c.varCollection.ResetEnvVars(mts.Final.VarCollection.EnvVars())
 	c.mts.Final.MainImage = saveImage.Image.Clone()
 	c.mts.Final.RanFromLike = mts.Final.RanFromLike
 	c.mts.Final.RanInteractive = mts.Final.RanInteractive
@@ -248,8 +243,8 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 		}
 		buildContext = data.BuildContext
 	}
-	newVarCollection, _, err := c.varCollection.WithParseBuildArgs(
-		buildArgs, c.processNonConstantBuildArgFunc(ctx), false)
+	overriding, err := variables.ParseArgs(
+		buildArgs, c.processNonConstantBuildArgFunc(ctx), c.varCollection)
 	if err != nil {
 		return err
 	}
@@ -262,7 +257,7 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 		Target:           dfTarget,
 		TargetPlatform:   &plat,
 		LLBCaps:          &caps,
-		BuildArgs:        newVarCollection.AsMap(),
+		BuildArgs:        overriding.ActiveValueMap(),
 		Excludes:         nil, // TODO: Need to process this correctly.
 	})
 	if err != nil {
@@ -278,11 +273,11 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 	if err != nil {
 		return errors.Wrap(err, "unmarshal dockerfile image")
 	}
-	state2, img2, newVarCollection := c.applyFromImage(*state, &img)
+	state2, img2, envVars := c.applyFromImage(*state, &img)
 	c.mts.Final.MainState = state2
 	c.mts.Final.MainImage = img2
 	c.mts.Final.RanFromLike = true
-	c.varCollection = newVarCollection
+	c.varCollection.ResetEnvVars(envVars)
 	return nil
 }
 
@@ -419,11 +414,8 @@ func (c *Converter) RunLocal(ctx context.Context, args []string, pushFlag bool) 
 	// Build args get propagated into env.
 	extraEnvVars := []string{}
 	for _, buildArgName := range c.varCollection.SortedActiveVariables() {
-		ba, _, _ := c.varCollection.Get(buildArgName)
-		if ba.IsEnvVar() {
-			continue
-		}
-		extraEnvVars = append(extraEnvVars, fmt.Sprintf("%s=\"%s\"", buildArgName, ba.ConstantValue()))
+		ba, _ := c.varCollection.GetActive(buildArgName)
+		extraEnvVars = append(extraEnvVars, fmt.Sprintf("%s=\"%s\"", buildArgName, shellescape.Quote(ba.Value)))
 	}
 
 	// buildkit-hack in order to run locally, we prepend the command with a UUID
@@ -519,11 +511,8 @@ func (c *Converter) RunLocalExitCode(ctx context.Context, commandName string, ar
 	// Build args get propagated into env.
 	extraEnvVars := []string{}
 	for _, buildArgName := range c.varCollection.SortedActiveVariables() {
-		ba, _, _ := c.varCollection.Get(buildArgName)
-		if ba.IsEnvVar() {
-			continue
-		}
-		extraEnvVars = append(extraEnvVars, fmt.Sprintf("%s=\"%s\"", buildArgName, ba.ConstantValue()))
+		ba, _ := c.varCollection.GetActive(buildArgName)
+		extraEnvVars = append(extraEnvVars, fmt.Sprintf("%s=\"%s\"", buildArgName, shellescape.Quote(ba.Value)))
 	}
 
 	exitCodeDir, err := ioutil.TempDir("/tmp", "earthlyexitcode")
@@ -896,7 +885,7 @@ func (c *Converter) Env(ctx context.Context, envKey string, envValue string) err
 		return err
 	}
 	c.nonSaveCommand()
-	c.varCollection.AddActive(envKey, variables.NewConstantEnvVar(envValue))
+	c.varCollection.DeclareEnv(envKey, envValue)
 	c.mts.Final.MainState = c.mts.Final.MainState.AddEnv(envKey, envValue)
 	c.mts.Final.MainImage.Config.Env = variables.AddEnv(
 		c.mts.Final.MainImage.Config.Env, envKey, envValue)
@@ -910,7 +899,7 @@ func (c *Converter) Arg(ctx context.Context, argKey string, defaultArgValue stri
 		return err
 	}
 	c.nonSaveCommand()
-	effective, err := c.varCollection.DeclareActive(argKey, defaultArgValue, global, c.processNonConstantBuildArgFunc((ctx)))
+	effective, err := c.varCollection.DeclareArg(argKey, variables.StringType, defaultArgValue, global, c.processNonConstantBuildArgFunc((ctx)))
 	if err != nil {
 		return err
 	}
@@ -1015,18 +1004,22 @@ func (c *Converter) buildTarget(ctx context.Context, fullTargetName string, plat
 		return nil, errors.Wrap(err, "join targets")
 	}
 	target := targetRef.(domain.Target)
-	// Don't allow transitive overriding variables to cross project boundaries.
-	propagateBuildArgs := !relTarget.IsExternal()
+
 	var newVars map[string]bool
-	newVarCollection, newVars, err := c.varCollection.WithParseBuildArgs(
-		buildArgs, c.processNonConstantBuildArgFunc(ctx), propagateBuildArgs)
+	overriding, err := variables.ParseArgs(buildArgs, c.processNonConstantBuildArgFunc(ctx), c.varCollection)
 	if err != nil {
 		return nil, errors.Wrap(err, "parse build args")
 	}
+	// Don't allow transitive overriding variables to cross project boundaries.
+	propagateBuildArgs := !relTarget.IsExternal()
+	if propagateBuildArgs {
+		overriding = variables.CombineScopes(overriding, c.varCollection.Overriding())
+	}
+
 	// Recursion.
 	opt := c.opt
 	opt.Visited = c.mts.Visited
-	opt.VarCollection = newVarCollection
+	opt.OverridingVars = overriding
 	opt.Platform, err = llbutil.ResolvePlatform(platform, c.opt.Platform)
 	if err != nil {
 		// Contradiction allowed. You can BUILD another target with different platform.
@@ -1053,18 +1046,18 @@ func (c *Converter) buildTarget(ctx context.Context, fullTargetName string, plat
 			c.mts.Final.TargetInput = c.mts.Final.TargetInput.WithBuildArgInput(bai)
 		}
 		// Propagate globals.
-		globals := mts.Final.VarCollection.WithOnlyGlobals()
-		for _, k := range globals.SortedActiveVariables() {
-			_, alreadyActive, _ := c.varCollection.Get(k)
+		globals := mts.Final.VarCollection.Globals()
+		for _, k := range globals.SortedActive() {
+			_, alreadyActive := c.varCollection.GetActive(k)
 			if alreadyActive {
 				// Globals don't override any variables in current scope.
 				continue
 			}
-			v, _, _ := globals.Get(k)
-			c.varCollection.AddActive(k, v)
+			v, _ := globals.GetActive(k)
 			c.mts.Final.TargetInput = c.mts.Final.TargetInput.WithBuildArgInput(
 				v.BuildArgInput(k, "")) // TODO: Set correct default value for bai.
 		}
+		c.varCollection.SetGlobals(globals)
 	}
 	return mts, nil
 }
@@ -1107,11 +1100,8 @@ func (c *Converter) internalRun(ctx context.Context, args, secretKeyValues []str
 	}
 	// Build args.
 	for _, buildArgName := range c.varCollection.SortedActiveVariables() {
-		ba, _, _ := c.varCollection.Get(buildArgName)
-		if ba.IsEnvVar() {
-			continue
-		}
-		extraEnvVars = append(extraEnvVars, fmt.Sprintf("%s=%s", buildArgName, shellescape.Quote(ba.ConstantValue())))
+		ba, _ := c.varCollection.GetActive(buildArgName)
+		extraEnvVars = append(extraEnvVars, fmt.Sprintf("%s=%s", buildArgName, shellescape.Quote(ba.Value)))
 	}
 	// Debugger.
 	secretOpts := []llb.SecretOption{
@@ -1208,14 +1198,13 @@ func (c *Converter) readArtifact(ctx context.Context, mts *states.MultiTarget, a
 	return artDt, nil
 }
 
-func (c *Converter) internalFromClassical(ctx context.Context, imageName string, platform specs.Platform, opts ...llb.ImageOption) (llb.State, *image.Image, *variables.Collection, error) {
+func (c *Converter) internalFromClassical(ctx context.Context, imageName string, platform specs.Platform, opts ...llb.ImageOption) (llb.State, *image.Image, *variables.Scope, error) {
 	if imageName == "scratch" {
 		// FROM scratch
 		img := image.NewImage()
 		img.OS = platform.OS
 		img.Architecture = platform.Architecture
-		return llb.Scratch().Platform(platform), img,
-			c.varCollection.WithResetEnvVars(), nil
+		return llb.Scratch().Platform(platform), img, nil, nil
 	}
 	ref, err := reference.ParseNormalizedNamed(imageName)
 	if err != nil {
@@ -1248,17 +1237,16 @@ func (c *Converter) internalFromClassical(ctx context.Context, imageName string,
 	}
 	allOpts := append(opts, llb.Platform(platform), c.opt.ImageResolveMode)
 	state := llb.Image(ref.String(), allOpts...)
-	state, img2, newVarCollection := c.applyFromImage(state, &img)
-	return state, img2, newVarCollection, nil
+	state, img2, envVars := c.applyFromImage(state, &img)
+	return state, img2, envVars, nil
 }
 
-func (c *Converter) applyFromImage(state llb.State, img *image.Image) (llb.State, *image.Image, *variables.Collection) {
+func (c *Converter) applyFromImage(state llb.State, img *image.Image) (llb.State, *image.Image, *variables.Scope) {
 	// Reset variables.
-	newVarCollection := c.varCollection.WithResetEnvVars()
-	for _, envVar := range img.Config.Env {
-		k, v, _ := variables.ParseKeyValue(envVar)
-		newVarCollection.AddActive(k, variables.NewConstantEnvVar(v))
-		state = state.AddEnv(k, v)
+	ev := variables.ParseEnvVars(img.Config.Env)
+	for _, name := range ev.SortedActive() {
+		v, _ := ev.GetActive(name)
+		state = state.AddEnv(name, v.Value)
 	}
 	// Init config maps if not already initialized.
 	if img.Config.ExposedPorts == nil {
@@ -1279,7 +1267,7 @@ func (c *Converter) applyFromImage(state llb.State, img *image.Image) (llb.State
 	// No need to apply entrypoint, cmd, volumes and others.
 	// The fact that they exist in the image configuration is enough.
 	// TODO: Apply any other settings? Shell?
-	return state, img, newVarCollection
+	return state, img, ev
 }
 
 func (c *Converter) nonSaveCommand() {
@@ -1335,11 +1323,11 @@ func (c *Converter) vertexPrefix(local bool, interactive bool) string {
 		varStrBuilder = append(varStrBuilder, fmt.Sprintf("@interactive=%s", base64True))
 	}
 	for _, key := range overriding {
-		variable, _, _ := c.varCollection.Get(key)
-		if variable.IsEnvVar() {
+		variable, isActive := c.varCollection.GetActive(key)
+		if !isActive {
 			continue
 		}
-		b64Value := base64.StdEncoding.EncodeToString([]byte(variable.ConstantValue()))
+		b64Value := base64.StdEncoding.EncodeToString([]byte(variable.Value))
 		varStrBuilder = append(varStrBuilder, fmt.Sprintf("%s=%s", key, b64Value))
 	}
 	var varStr string
@@ -1391,7 +1379,7 @@ func (c *Converter) setPlatform(platform *specs.Platform) {
 	c.opt.Platform = platform
 	c.mts.Final.Platform = platform
 	c.mts.Final.TargetInput.Platform = llbutil.PlatformWithDefaultToString(platform)
-	c.varCollection.SetPlatformArgs(llbutil.PlatformWithDefault(platform))
+	c.varCollection.SetPlatform(llbutil.PlatformWithDefault(platform))
 }
 
 func (c *Converter) checkAllowed(command string) error {

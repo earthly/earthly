@@ -2,44 +2,50 @@ package variables
 
 import (
 	"github.com/earthly/earthly/states/dedup"
+	"github.com/pkg/errors"
 )
 
-// Variable is an object representing a build arg or an env var.
-type Variable struct {
-	isEnvVar bool
-	value    string
-}
+// Type is the variable type (string, bool etc).
+type Type int
 
-// NewConstant creates a new constant build arg.
-func NewConstant(value string) Variable {
-	return Variable{
-		value: value,
-	}
-}
+const (
+	// StringType is the type representing string.
+	StringType Type = iota
+	// BoolType is the type representing bool.
+	BoolType
+)
 
-// NewConstantEnvVar cretes a new constant env var.
-func NewConstantEnvVar(value string) Variable {
-	return Variable{
-		isEnvVar: true,
-		value:    value,
-	}
-}
-
-// IsEnvVar returns whether the variable is an env var.
-func (v Variable) IsEnvVar() bool {
-	return v.isEnvVar
-}
-
-// ConstantValue returns the value of the constant build arg.
-func (v Variable) ConstantValue() string {
-	return v.value
+// Var represents a variable
+// (build arg, env var, command line arg, builtin arg, etc).
+type Var struct {
+	// Type is the type of the variable.
+	Type Type
+	// Value is the value of the variable.
+	Value string
 }
 
 // BuildArgInput returns the BuildArgInput for this variable.
-func (v Variable) BuildArgInput(name string, defaultValue string) dedup.BuildArgInput {
+func (v Var) BuildArgInput(name string, defaultValue string) dedup.BuildArgInput {
 	return dedup.BuildArgInput{
 		Name:          name,
-		ConstantValue: v.value,
+		ConstantValue: v.Value,
 		DefaultValue:  defaultValue,
+	}
+}
+
+// ValidateArgType verifies that the value conforms to the type specified in varType.
+func ValidateArgType(varType Type, value string) error {
+	switch varType {
+	case StringType:
+		return nil
+	case BoolType:
+		switch value {
+		case "true", "false":
+			return nil
+		default:
+			return errors.Errorf("invalid value %s for arg type bool", value)
+		}
+	default:
+		return errors.Errorf("unsupported arg type %v", varType)
 	}
 }

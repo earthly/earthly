@@ -49,7 +49,7 @@ type Opt struct {
 	SaveInlineCache        bool
 	ImageResolveMode       llb.ResolveMode
 	CleanCollection        *cleanup.Collection
-	VarCollection          *variables.Collection
+	OverridingVars         *variables.Scope
 	BuildContextProvider   *provider.BuildContextProvider
 	GitLookup              *buildcontext.GitLookup
 	UseFakeDep             bool
@@ -164,7 +164,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 				DockerBuilderFun:     b.MakeImageAsTarBuilderFun(),
 				CleanCollection:      b.opt.CleanCollection,
 				Platform:             opt.Platform,
-				VarCollection:        b.opt.VarCollection,
+				OverridingVars:       b.opt.OverridingVars,
 				BuildContextProvider: b.opt.BuildContextProvider,
 				CacheImports:         b.opt.CacheImports,
 				UseInlineCache:       b.opt.UseInlineCache,

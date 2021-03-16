@@ -38,8 +38,8 @@ type ConvertOpt struct {
 	Visited *states.VisitedCollection
 	// Platform is the target platform of the build.
 	Platform *specs.Platform
-	// VarCollection is a collection of build args used for overriding args in the build.
-	VarCollection *variables.Collection
+	// OverridingVars is a collection of build args used for overriding args in the build.
+	OverridingVars *variables.Scope
 	// A cache for image solves. (maybe dockerTag +) depTargetInputHash -> context containing image.tar.
 	SolveCache *states.SolveCache
 	// BuildContextProvider is the provider used for local build context files.
@@ -81,7 +81,7 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt) (m
 		same := llbutil.PlatformEquals(stsPlat, opt.Platform)
 		if same {
 			for _, bai := range sts.TargetInput.BuildArgs {
-				variable, _, found := opt.VarCollection.Get(bai.Name)
+				variable, found := opt.OverridingVars.GetAny(bai.Name)
 				if found {
 					if !variable.BuildArgInput(bai.Name, bai.DefaultValue).Equals(bai) {
 						same = false
