@@ -49,7 +49,7 @@ func ParseCommandLineArgs(args []string, dotEnvMap map[string]string) (*Scope, e
 }
 
 // ParseArgs parses args passed to an Earthly command, such as BUILD or FROM.
-func ParseArgs(args []string, pncvf ProcessNonConstantVariableFunc, current *Collection2) (*Scope, error) {
+func ParseArgs(args []string, pncvf ProcessNonConstantVariableFunc, current *Collection) (*Scope, error) {
 	ret := NewScope()
 	for _, arg := range args {
 		name, variable, err := parseArg(arg, pncvf, current)
@@ -61,7 +61,7 @@ func ParseArgs(args []string, pncvf ProcessNonConstantVariableFunc, current *Col
 	return ret, nil
 }
 
-func parseArg(arg string, pncvf ProcessNonConstantVariableFunc, current *Collection2) (string, Var, error) {
+func parseArg(arg string, pncvf ProcessNonConstantVariableFunc, current *Collection) (string, Var, error) {
 	var name string
 	splitArg := strings.SplitN(arg, "=", 2)
 	if len(splitArg) < 1 {

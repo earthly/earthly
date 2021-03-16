@@ -49,7 +49,7 @@ type Converter struct {
 	directDeps    []*states.SingleTarget
 	buildContext  llb.State
 	cacheContext  llb.State
-	varCollection *variables.Collection2
+	varCollection *variables.Collection
 	ranSave       bool
 }
 
@@ -77,7 +77,7 @@ func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Da
 		ovVar, _ := opt.OverridingVars.GetAny(key)
 		sts.TargetInput = sts.TargetInput.WithBuildArgInput(ovVar.BuildArgInput(key, ""))
 	}
-	vc := variables.NewCollection2(target, llbutil.PlatformWithDefault(opt.Platform), bc.GitMetadata, opt.OverridingVars)
+	vc := variables.NewCollection(target, llbutil.PlatformWithDefault(opt.Platform), bc.GitMetadata, opt.OverridingVars)
 	targetStr := target.String()
 	opt.Visited.Add(targetStr, sts)
 	return &Converter{

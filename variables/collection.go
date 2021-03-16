@@ -7,8 +7,8 @@ import (
 	specs "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
-// Collection2 is a collection of variable scopes used within a single target.
-type Collection2 struct {
+// Collection is a collection of variable scopes used within a single target.
+type Collection struct {
 	// Always inactive scopes.
 	overriding *Scope
 	builtin    *Scope
@@ -22,9 +22,9 @@ type Collection2 struct {
 	effectiveCache *Scope
 }
 
-// NewCollection2 creates a new Collection2 to be used in the context of a target.
-func NewCollection2(target domain.Target, platform specs.Platform, gitMeta *gitutil.GitMetadata, overridingVars *Scope) *Collection2 {
-	return &Collection2{
+// NewCollection creates a new Collection to be used in the context of a target.
+func NewCollection(target domain.Target, platform specs.Platform, gitMeta *gitutil.GitMetadata, overridingVars *Scope) *Collection {
+	return &Collection{
 		overriding: overridingVars,
 		builtin:    BuiltinArgs(target, platform, gitMeta),
 		argsStack:  []*Scope{NewScope()},
@@ -34,7 +34,7 @@ func NewCollection2(target domain.Target, platform specs.Platform, gitMeta *gitu
 }
 
 // ResetEnvVars resets the collection's env vars.
-func (c *Collection2) ResetEnvVars(envs *Scope) {
+func (c *Collection) ResetEnvVars(envs *Scope) {
 	if envs == nil {
 		envs = NewScope()
 	}
@@ -43,55 +43,55 @@ func (c *Collection2) ResetEnvVars(envs *Scope) {
 }
 
 // EnvVars returns a copy of the env vars.
-func (c *Collection2) EnvVars() *Scope {
+func (c *Collection) EnvVars() *Scope {
 	return c.envs.Clone()
 }
 
 // Globals returns a copy of the globals.
-func (c *Collection2) Globals() *Scope {
+func (c *Collection) Globals() *Scope {
 	return c.globals.Clone()
 }
 
 // SetGlobals sets the global variables.
-func (c *Collection2) SetGlobals(globals *Scope) {
+func (c *Collection) SetGlobals(globals *Scope) {
 	c.globals = globals
 	c.effectiveCache = nil
 }
 
 // Overriding returns a copy of the overriding args.
-func (c *Collection2) Overriding() *Scope {
+func (c *Collection) Overriding() *Scope {
 	return c.overriding.Clone()
 }
 
 // SetOverriding sets the overriding args.
-func (c *Collection2) SetOverriding(overriding *Scope) {
+func (c *Collection) SetOverriding(overriding *Scope) {
 	c.overriding = overriding
 	c.effectiveCache = nil
 }
 
 // SetPlatform sets the platform, updating the builtin args.
-func (c *Collection2) SetPlatform(platform specs.Platform) {
+func (c *Collection) SetPlatform(platform specs.Platform) {
 	SetPlatformArgs(c.builtin, platform)
 	c.effectiveCache = nil
 }
 
 // GetActive returns an active variable by name.
-func (c *Collection2) GetActive(name string) (Var, bool) {
+func (c *Collection) GetActive(name string) (Var, bool) {
 	return c.effective().GetActive(name)
 }
 
 // SortedActiveVariables returns the active variable names in a sorted slice.
-func (c *Collection2) SortedActiveVariables() []string {
+func (c *Collection) SortedActiveVariables() []string {
 	return c.effective().SortedActive()
 }
 
 // SortedOverridingVariables returns the overriding variable names in a sorted slice.
-func (c *Collection2) SortedOverridingVariables() []string {
+func (c *Collection) SortedOverridingVariables() []string {
 	return c.overriding.SortedActive()
 }
 
 // Expand expands variables within the given word.
-func (c *Collection2) Expand(word string) string {
+func (c *Collection) Expand(word string) string {
 	ef := c.effective()
 	shlex := dfShell.NewLex('\\')
 	varMap := make(map[string]string)
@@ -109,7 +109,7 @@ func (c *Collection2) Expand(word string) string {
 
 // DeclareArg declares an arg. The effective value may be
 // different than the default, if the variable has been overridden.
-func (c *Collection2) DeclareArg(name string, varType Type, defaultValue string, global bool, pncvf ProcessNonConstantVariableFunc) (Var, error) {
+func (c *Collection) DeclareArg(name string, varType Type, defaultValue string, global bool, pncvf ProcessNonConstantVariableFunc) (Var, error) {
 	ef := c.effective()
 	var finalValue Var
 	existing, found := ef.GetAny(name)
@@ -138,23 +138,23 @@ func (c *Collection2) DeclareArg(name string, varType Type, defaultValue string,
 }
 
 // DeclareEnv declares an env var.
-func (c *Collection2) DeclareEnv(name string, value string) {
+func (c *Collection) DeclareEnv(name string, value string) {
 	c.envs.AddActive(name, Var{
 		Value: value,
 		Type:  StringType,
 	})
 }
 
-func (c *Collection2) args() *Scope {
+func (c *Collection) args() *Scope {
 	return c.argsStack[len(c.argsStack)-1]
 }
 
-func (c *Collection2) pushArgsStack() {
+func (c *Collection) pushArgsStack() {
 	c.argsStack = append(c.argsStack, NewScope())
 	c.effectiveCache = nil
 }
 
-func (c *Collection2) popArgsStack() {
+func (c *Collection) popArgsStack() {
 	if len(c.argsStack) == 0 {
 		panic("trying to pop an empty argsStack")
 	}
@@ -163,7 +163,7 @@ func (c *Collection2) popArgsStack() {
 }
 
 // effective returns the variables as a single combined scope.
-func (c *Collection2) effective() *Scope {
+func (c *Collection) effective() *Scope {
 	if c.effectiveCache == nil {
 		if len(c.argsStack) == 1 {
 			// Not in a UDC.
