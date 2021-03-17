@@ -11,7 +11,7 @@ UserCommand: [A-Z] ([A-Z0-9._])* ':' -> pushMode(RECIPE);
 FROM: 'FROM' -> pushMode(COMMAND_ARGS);
 FROM_DOCKERFILE: 'FROM DOCKERFILE' -> pushMode(COMMAND_ARGS);
 LOCALLY: 'LOCALLY' -> pushMode(COMMAND_ARGS);
-COPY: 'COPY' -> pushMode(COMMAND_ARGS);
+COPY: 'COPY' -> pushMode(COMMAND_ARGS_COPY);
 SAVE_ARTIFACT: 'SAVE ARTIFACT' -> pushMode(COMMAND_ARGS);
 SAVE_IMAGE: 'SAVE IMAGE' -> pushMode(COMMAND_ARGS);
 RUN: 'RUN' -> pushMode(COMMAND_ARGS);
@@ -56,7 +56,7 @@ UserCommand_R: UserCommand -> type(UserCommand);
 FROM_R: FROM -> type(FROM), pushMode(COMMAND_ARGS);
 FROM_DOCKERFILE_R: FROM_DOCKERFILE -> type(FROM_DOCKERFILE), pushMode(COMMAND_ARGS);
 LOCALLY_R: LOCALLY -> type(LOCALLY), pushMode(COMMAND_ARGS);
-COPY_R: COPY -> type(COPY), pushMode(COMMAND_ARGS);
+COPY_R: COPY -> type(COPY), pushMode(COMMAND_ARGS_COPY);
 SAVE_ARTIFACT_R: SAVE_ARTIFACT -> type(SAVE_ARTIFACT), pushMode(COMMAND_ARGS);
 SAVE_IMAGE_R: SAVE_IMAGE -> type(SAVE_IMAGE), pushMode(COMMAND_ARGS);
 RUN_R: RUN -> type(RUN), pushMode(COMMAND_ARGS);
@@ -93,7 +93,7 @@ mode BLOCK;
 FROM_B: FROM -> type(FROM), pushMode(COMMAND_ARGS);
 FROM_DOCKERFILE_B: FROM_DOCKERFILE -> type(FROM_DOCKERFILE), pushMode(COMMAND_ARGS);
 LOCALLY_B: LOCALLY -> type(LOCALLY), pushMode(COMMAND_ARGS);
-COPY_B: COPY -> type(COPY), pushMode(COMMAND_ARGS);
+COPY_B: COPY -> type(COPY), pushMode(COMMAND_ARGS_COPY);
 SAVE_ARTIFACT_B: SAVE_ARTIFACT -> type(SAVE_ARTIFACT), pushMode(COMMAND_ARGS);
 SAVE_IMAGE_B: SAVE_IMAGE -> type(SAVE_IMAGE), pushMode(COMMAND_ARGS);
 RUN_B: RUN -> type(RUN), pushMode(COMMAND_ARGS);
@@ -138,6 +138,17 @@ fragment EscapedAtomPart: ('\\' .) | (LC [ \t]*);
 
 NL_C: NL -> type(NL), popMode;
 WS_C: WS -> type(WS);
+
+// ----------------------------------------------------------------------------
+
+mode COMMAND_ARGS_COPY;
+
+Atom_CAC: (Atom | ParansAtom) -> type(Atom);
+
+fragment ParansAtom: '(' (~(')' | '\\') | ('\\' .))* ')';
+
+NL_CAC: NL -> type(NL), popMode;
+WS_CAC: WS -> type(WS);
 
 // ----------------------------------------------------------------------------
 

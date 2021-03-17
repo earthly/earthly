@@ -19,6 +19,9 @@ all:
     BUILD +experimental
 
 ga:
+    BUILD ./autocompletion+test-all
+    BUILD ./with-docker+all
+    BUILD ./with-docker-compose+all
     BUILD +privileged-test
     BUILD +copy-test
     BUILD +cache-test
@@ -63,11 +66,9 @@ ga:
     BUILD +first-command
     BUILD +platform-output
     BUILD +command
-    BUILD ./autocompletion+test-all
-    BUILD ./with-docker+all
-    BUILD ./with-docker-compose+all
     BUILD +duplicate
     BUILD +quotes-test
+    BUILD +new-args
 
 experimental:
     BUILD ./dind-auto-install+all
@@ -645,6 +646,13 @@ duplicate:
 
 quotes-test:
     COPY quotes.earth ./Earthfile
+    RUN --privileged \
+        --entrypoint \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        -- +all
+
+new-args:
+    COPY new-args.earth ./Earthfile
     RUN --privileged \
         --entrypoint \
         --mount=type=tmpfs,target=/tmp/earthly \

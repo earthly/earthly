@@ -13,8 +13,10 @@ import (
 	"github.com/earthly/earthly/buildcontext"
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/llbutil"
+	"github.com/earthly/earthly/variables"
 	gwclient "github.com/moby/buildkit/frontend/gateway/client"
 	specs "github.com/opencontainers/image-spec/specs-go/v1"
+	"github.com/pkg/errors"
 )
 
 // Interpreter interprets Earthly AST's into calls to the converter.
@@ -30,6 +32,8 @@ type Interpreter struct {
 	pushOnlyAllowed bool
 	local           bool
 
+	stack string
+
 	withDocker    *WithDockerOpt
 	withDockerRan bool
 }
@@ -40,6 +44,7 @@ func newInterpreter(c *Converter, r *buildcontext.Resolver, g gwclient.Client, t
 		resolver:  r,
 		gwClient:  g,
 		target:    t,
+		stack:     c.StackString(),
 	}
 }
 
@@ -56,14 +61,14 @@ func (i *Interpreter) Run(ctx context.Context, ef spec.Earthfile) error {
 			return i.handleTarget(ctx, t)
 		}
 	}
-	return Errorf(ef.SourceLocation, "target %s not found", i.target.Target)
+	return i.errorf(ef.SourceLocation, "target %s not found", i.target.Target)
 }
 
 func (i *Interpreter) handleTarget(ctx context.Context, t spec.Target) error {
 	// Apply implicit FROM +base
 	err := i.converter.From(ctx, "+base", nil, nil)
 	if err != nil {
-		return WrapError(err, t.SourceLocation, "apply FROM")
+		return i.wrapError(err, t.SourceLocation, "apply FROM")
 	}
 	return i.handleBlock(ctx, t.Recipe)
 }
@@ -86,7 +91,7 @@ func (i *Interpreter) handleStatement(ctx context.Context, stmt spec.Statement) 
 	} else if stmt.If != nil {
 		return i.handleIf(ctx, *stmt.If)
 	} else {
-		return Errorf(stmt.SourceLocation, "unexpected statement type")
+		return i.errorf(stmt.SourceLocation, "unexpected statement type")
 	}
 }
 
@@ -98,12 +103,12 @@ func (i *Interpreter) handleCommand(ctx context.Context, cmd spec.Command) (err 
 			return
 		}
 		if len(argsCopy) != len(cmd.Args) {
-			err = Errorf(cmd.SourceLocation, "internal error: args were modified in command handling")
+			err = i.errorf(cmd.SourceLocation, "internal error: args were modified in command handling")
 			return
 		}
 		for index, arg := range cmd.Args {
 			if arg != argsCopy[index] {
-				err = Errorf(cmd.SourceLocation, "internal error: args were modified in command handling")
+				err = i.errorf(cmd.SourceLocation, "internal error: args were modified in command handling")
 				return
 			}
 		}
@@ -114,7 +119,7 @@ func (i *Interpreter) handleCommand(ctx context.Context, cmd spec.Command) (err 
 		case "DOCKER":
 			return i.handleWithDocker(ctx, cmd)
 		default:
-			return Errorf(cmd.SourceLocation, "unexpected WITH command %s", cmd.Name)
+			return i.errorf(cmd.SourceLocation, "unexpected WITH command %s", cmd.Name)
 		}
 	}
 
@@ -170,7 +175,7 @@ func (i *Interpreter) handleCommand(ctx context.Context, cmd spec.Command) (err 
 	case "DO":
 		return i.handleDo(ctx, cmd)
 	default:
-		return Errorf(cmd.SourceLocation, "unexpected command %s", cmd.Name)
+		return i.errorf(cmd.SourceLocation, "unexpected command %s", cmd.Name)
 	}
 }
 
@@ -182,7 +187,7 @@ func (i *Interpreter) handleWith(ctx context.Context, with spec.WithStatement) e
 		return err
 	}
 	if i.withDocker != nil && len(with.Body) > 1 {
-		return Errorf(with.SourceLocation, "only one command is allowed in WITH DOCKER and it has to be RUN")
+		return i.errorf(with.SourceLocation, "only one command is allowed in WITH DOCKER and it has to be RUN")
 	}
 	err = i.handleBlock(ctx, with.Body)
 	if err != nil {
@@ -190,7 +195,7 @@ func (i *Interpreter) handleWith(ctx context.Context, with spec.WithStatement) e
 	}
 	i.withDocker = nil
 	if !i.withDockerRan {
-		return Errorf(with.SourceLocation, "no RUN command found in WITH DOCKER")
+		return i.errorf(with.SourceLocation, "no RUN command found in WITH DOCKER")
 	}
 	i.withDockerRan = false
 	return nil
@@ -198,7 +203,7 @@ func (i *Interpreter) handleWith(ctx context.Context, with spec.WithStatement) e
 
 func (i *Interpreter) handleIf(ctx context.Context, ifStmt spec.IfStatement) error {
 	if i.pushOnlyAllowed {
-		return Errorf(ifStmt.SourceLocation, "no non-push commands allowed after a --push")
+		return i.errorf(ifStmt.SourceLocation, "no non-push commands allowed after a --push")
 	}
 	isZero, err := i.handleIfExpression(ctx, ifStmt.Expression, ifStmt.ExecMode, ifStmt.SourceLocation)
 	if err != nil {
@@ -225,7 +230,7 @@ func (i *Interpreter) handleIf(ctx context.Context, ifStmt spec.IfStatement) err
 
 func (i *Interpreter) handleIfExpression(ctx context.Context, expression []string, execMode bool, sl *spec.SourceLocation) (bool, error) {
 	if len(expression) < 1 {
-		return false, Errorf(sl, "not enough arguments for IF")
+		return false, i.errorf(sl, "not enough arguments for IF")
 	}
 
 	fs := flag.NewFlagSet("IF", flag.ContinueOnError)
@@ -238,7 +243,7 @@ func (i *Interpreter) handleIfExpression(ctx context.Context, expression []strin
 	fs.Var(mounts, "mount", "Mount a file or directory")
 	err := fs.Parse(expression)
 	if err != nil {
-		return false, WrapError(err, sl, "invalid RUN arguments %v", expression)
+		return false, i.wrapError(err, sl, "invalid RUN arguments %v", expression)
 	}
 	withShell := !execMode
 
@@ -254,33 +259,33 @@ func (i *Interpreter) handleIfExpression(ctx context.Context, expression []strin
 	commandName := "IF"
 	if i.local {
 		if len(mounts.Args) > 0 {
-			return false, Errorf(sl, "mounts are not supported in combination with the LOCALLY directive")
+			return false, i.errorf(sl, "mounts are not supported in combination with the LOCALLY directive")
 		}
 		if *withSSH {
-			return false, Errorf(sl, "the --ssh flag has no effect when used with the  LOCALLY directive")
+			return false, i.errorf(sl, "the --ssh flag has no effect when used with the  LOCALLY directive")
 		}
 		if *privileged {
-			return false, Errorf(sl, "the --privileged flag has no effect when used with the LOCALLY directive")
+			return false, i.errorf(sl, "the --privileged flag has no effect when used with the LOCALLY directive")
 		}
 		if *noCache {
-			return false, Errorf(sl, "the --no-cache flag has no effect when used with the LOCALLY directive")
+			return false, i.errorf(sl, "the --no-cache flag has no effect when used with the LOCALLY directive")
 		}
 
 		// TODO these should be supported, but haven't yet been implemented
 		if len(secrets.Args) > 0 {
-			return false, Errorf(sl, "secrets need to be implemented for the LOCALLY directive")
+			return false, i.errorf(sl, "secrets need to be implemented for the LOCALLY directive")
 		}
 
 		exitCode, err = i.converter.RunLocalExitCode(ctx, commandName, fs.Args())
 		if err != nil {
-			return false, WrapError(err, sl, "apply RUN")
+			return false, i.wrapError(err, sl, "apply RUN")
 		}
 	} else {
 		exitCode, err = i.converter.RunExitCode(
 			ctx, commandName, fs.Args(), mounts.Args, secrets.Args, *privileged,
 			withShell, *withSSH, *noCache)
 		if err != nil {
-			return false, WrapError(err, sl, "apply IF")
+			return false, i.wrapError(err, sl, "apply IF")
 		}
 	}
 	return (exitCode == 0), nil
@@ -290,7 +295,7 @@ func (i *Interpreter) handleIfExpression(ctx context.Context, expression []strin
 
 func (i *Interpreter) handleFrom(ctx context.Context, cmd spec.Command) error {
 	if i.pushOnlyAllowed {
-		return pushOnlyErr(cmd.SourceLocation)
+		return i.pushOnlyErr(cmd.SourceLocation)
 	}
 	fs := flag.NewFlagSet("FROM", flag.ContinueOnError)
 	buildArgs := new(StringSliceFlag)
@@ -298,35 +303,41 @@ func (i *Interpreter) handleFrom(ctx context.Context, cmd spec.Command) error {
 	platformStr := fs.String("platform", "", "The platform to use")
 	err := fs.Parse(getArgsCopy(cmd))
 	if err != nil {
-		return WrapError(err, cmd.SourceLocation, "invalid FROM arguments")
+		return i.wrapError(err, cmd.SourceLocation, "invalid FROM arguments")
 	}
 	if fs.NArg() != 1 {
 		if fs.NArg() == 3 && fs.Arg(1) == "AS" {
-			return Errorf(cmd.SourceLocation, "AS not supported, use earthly targets instead")
+			return i.errorf(cmd.SourceLocation, "AS not supported, use earthly targets instead")
 		}
-		return Errorf(cmd.SourceLocation, "invalid number of arguments for FROM: %s", cmd.Args)
+		if fs.NArg() < 1 {
+			return i.errorf(cmd.SourceLocation, "invalid number of arguments for FROM: %s", cmd.Args)
+		}
 	}
 	imageName := i.expandArgs(fs.Arg(0), true)
 	*platformStr = i.expandArgs(*platformStr, false)
 	platform, err := llbutil.ParsePlatform(*platformStr)
 	if err != nil {
-		return WrapError(err, cmd.SourceLocation, "parse platform %s", *platformStr)
+		return i.wrapError(err, cmd.SourceLocation, "parse platform %s", *platformStr)
 	}
-	for index, ba := range buildArgs.Args {
-		buildArgs.Args[index] = i.expandArgs(ba, true)
+	expandedBuildArgs := i.expandArgsSlice(buildArgs.Args, true)
+	expandedFlagArgs := i.expandArgsSlice(fs.Args()[1:], true)
+	parsedFlagArgs, err := variables.ParseFlagArgs(expandedFlagArgs)
+	if err != nil {
+		return i.wrapError(err, cmd.SourceLocation, "parse flag args")
 	}
+	expandedBuildArgs = append(parsedFlagArgs, expandedBuildArgs...)
 
 	i.local = false
-	err = i.converter.From(ctx, imageName, platform, buildArgs.Args)
+	err = i.converter.From(ctx, imageName, platform, expandedBuildArgs)
 	if err != nil {
-		return WrapError(err, cmd.SourceLocation, "apply FROM %s", imageName)
+		return i.wrapError(err, cmd.SourceLocation, "apply FROM %s", imageName)
 	}
 	return nil
 }
 
 func (i *Interpreter) handleRun(ctx context.Context, cmd spec.Command) error {
 	if len(cmd.Args) < 1 {
-		return Errorf(cmd.SourceLocation, "not enough arguments for RUN")
+		return i.errorf(cmd.SourceLocation, "not enough arguments for RUN")
 	}
 
 	fs := flag.NewFlagSet("RUN", flag.ContinueOnError)
@@ -348,14 +359,14 @@ func (i *Interpreter) handleRun(ctx context.Context, cmd spec.Command) error {
 	fs.Var(mounts, "mount", "Mount a file or directory")
 	err := fs.Parse(getArgsCopy(cmd))
 	if err != nil {
-		return WrapError(err, cmd.SourceLocation, "invalid RUN arguments %v", cmd.Args)
+		return i.wrapError(err, cmd.SourceLocation, "invalid RUN arguments %v", cmd.Args)
 	}
 	withShell := !cmd.ExecMode
 	if *withDocker {
 		*privileged = true
 	}
 	if !*pushFlag && i.pushOnlyAllowed {
-		return Errorf(cmd.SourceLocation, "no non-push commands allowed after a --push")
+		return i.errorf(cmd.SourceLocation, "no non-push commands allowed after a --push")
 	}
 	// TODO: In the bracket case, should flags be outside of the brackets?
 
@@ -369,38 +380,38 @@ func (i *Interpreter) handleRun(ctx context.Context, cmd spec.Command) error {
 
 	if i.local {
 		if len(mounts.Args) > 0 {
-			return Errorf(cmd.SourceLocation, "mounts are not supported in combination with the LOCALLY directive")
+			return i.errorf(cmd.SourceLocation, "mounts are not supported in combination with the LOCALLY directive")
 		}
 		if *withSSH {
-			return Errorf(cmd.SourceLocation, "the --ssh flag has no effect when used with the  LOCALLY directive")
+			return i.errorf(cmd.SourceLocation, "the --ssh flag has no effect when used with the  LOCALLY directive")
 		}
 		if *privileged {
-			return Errorf(cmd.SourceLocation, "the --privileged flag has no effect when used with the LOCALLY directive")
+			return i.errorf(cmd.SourceLocation, "the --privileged flag has no effect when used with the LOCALLY directive")
 		}
 		if *noCache {
-			return Errorf(cmd.SourceLocation, "the --no-cache flag has no effect when used with the LOCALLY directive")
+			return i.errorf(cmd.SourceLocation, "the --no-cache flag has no effect when used with the LOCALLY directive")
 		}
 		if *interactive {
 			// I mean its literally just your terminal but with extra steps. No reason to support this?
-			return Errorf(cmd.SourceLocation, "the --interactive flag is not supported in combination with the LOCALLY directive")
+			return i.errorf(cmd.SourceLocation, "the --interactive flag is not supported in combination with the LOCALLY directive")
 		}
 		if *interactiveKeep {
 			// I mean its literally just your terminal but with extra steps. No reason to support this?
-			return Errorf(cmd.SourceLocation, "the --interactive-keep flag is not supported in combination with the LOCALLY directive")
+			return i.errorf(cmd.SourceLocation, "the --interactive-keep flag is not supported in combination with the LOCALLY directive")
 		}
 
 		// TODO these should be supported, but haven't yet been implemented
 		if len(secrets.Args) > 0 {
-			return Errorf(cmd.SourceLocation, "secrets need to be implemented for the LOCALLY directive")
+			return i.errorf(cmd.SourceLocation, "secrets need to be implemented for the LOCALLY directive")
 		}
 
 		if i.withDocker != nil {
-			return Errorf(cmd.SourceLocation, "the WITH DOCKER directive is not (yet) supported with the LOCALLY directive")
+			return i.errorf(cmd.SourceLocation, "the WITH DOCKER directive is not (yet) supported with the LOCALLY directive")
 		}
 
 		err = i.converter.RunLocal(ctx, fs.Args(), *pushFlag)
 		if err != nil {
-			return WrapError(err, cmd.SourceLocation, "apply RUN")
+			return i.wrapError(err, cmd.SourceLocation, "apply RUN")
 		}
 		return nil
 	}
@@ -410,17 +421,17 @@ func (i *Interpreter) handleRun(ctx context.Context, cmd spec.Command) error {
 			ctx, fs.Args(), mounts.Args, secrets.Args, *privileged, *withEntrypoint, *withDocker,
 			withShell, *pushFlag, *withSSH, *noCache, *interactive, *interactiveKeep)
 		if err != nil {
-			return WrapError(err, cmd.SourceLocation, "apply RUN")
+			return i.wrapError(err, cmd.SourceLocation, "apply RUN")
 		}
 		if *pushFlag {
 			i.pushOnlyAllowed = true
 		}
 	} else {
 		if *pushFlag {
-			return Errorf(cmd.SourceLocation, "RUN --push not allowed in WITH DOCKER")
+			return i.errorf(cmd.SourceLocation, "RUN --push not allowed in WITH DOCKER")
 		}
 		if i.withDockerRan {
-			return Errorf(cmd.SourceLocation, "only one RUN command allowed in WITH DOCKER")
+			return i.errorf(cmd.SourceLocation, "only one RUN command allowed in WITH DOCKER")
 		}
 		i.withDockerRan = true
 		i.withDocker.Mounts = mounts.Args
@@ -432,7 +443,7 @@ func (i *Interpreter) handleRun(ctx context.Context, cmd spec.Command) error {
 		i.withDocker.interactiveKeep = *interactiveKeep
 		err = i.converter.WithDockerRun(ctx, fs.Args(), *i.withDocker)
 		if err != nil {
-			return WrapError(err, cmd.SourceLocation, "with docker run")
+			return i.wrapError(err, cmd.SourceLocation, "with docker run")
 		}
 	}
 	return nil
@@ -440,7 +451,7 @@ func (i *Interpreter) handleRun(ctx context.Context, cmd spec.Command) error {
 
 func (i *Interpreter) handleFromDockerfile(ctx context.Context, cmd spec.Command) error {
 	if i.pushOnlyAllowed {
-		return pushOnlyErr(cmd.SourceLocation)
+		return i.pushOnlyErr(cmd.SourceLocation)
 	}
 	fs := flag.NewFlagSet("FROM DOCKERFILE", flag.ContinueOnError)
 	buildArgs := new(StringSliceFlag)
@@ -450,10 +461,10 @@ func (i *Interpreter) handleFromDockerfile(ctx context.Context, cmd spec.Command
 	dfPath := fs.String("f", "", "Not supported")
 	err := fs.Parse(getArgsCopy(cmd))
 	if err != nil {
-		return WrapError(err, cmd.SourceLocation, "invalid FROM DOCKERFILE arguments %v", cmd.Args)
+		return i.wrapError(err, cmd.SourceLocation, "invalid FROM DOCKERFILE arguments %v", cmd.Args)
 	}
-	if fs.NArg() != 1 {
-		return Errorf(cmd.SourceLocation, "invalid number of arguments for FROM DOCKERFILE")
+	if fs.NArg() < 1 {
+		return i.errorf(cmd.SourceLocation, "invalid number of arguments for FROM DOCKERFILE")
 	}
 	path := i.expandArgs(fs.Arg(0), false)
 	_, parseErr := domain.ParseArtifact(path)
@@ -461,45 +472,49 @@ func (i *Interpreter) handleFromDockerfile(ctx context.Context, cmd spec.Command
 		// Treat as context path, not artifact path.
 		path = i.expandArgs(fs.Arg(0), false)
 	}
-	for index, ba := range buildArgs.Args {
-		buildArgs.Args[index] = i.expandArgs(ba, true)
+	expandedBuildArgs := i.expandArgsSlice(buildArgs.Args, true)
+	expandedFlagArgs := i.expandArgsSlice(fs.Args()[1:], true)
+	parsedFlagArgs, err := variables.ParseFlagArgs(expandedFlagArgs)
+	if err != nil {
+		return i.wrapError(err, cmd.SourceLocation, "parse flag args")
 	}
+	expandedBuildArgs = append(parsedFlagArgs, expandedBuildArgs...)
 	*platformStr = i.expandArgs(*platformStr, false)
 	platform, err := llbutil.ParsePlatform(*platformStr)
 	if err != nil {
-		return WrapError(err, cmd.SourceLocation, "parse platform %s", *platformStr)
+		return i.wrapError(err, cmd.SourceLocation, "parse platform %s", *platformStr)
 	}
 	*dfPath = i.expandArgs(*dfPath, false)
 	*dfTarget = i.expandArgs(*dfTarget, false)
 	i.local = false
-	err = i.converter.FromDockerfile(ctx, path, *dfPath, *dfTarget, platform, buildArgs.Args)
+	err = i.converter.FromDockerfile(ctx, path, *dfPath, *dfTarget, platform, expandedBuildArgs)
 	if err != nil {
-		return WrapError(err, cmd.SourceLocation, "from dockerfile")
+		return i.wrapError(err, cmd.SourceLocation, "from dockerfile")
 	}
 	return nil
 }
 
 func (i *Interpreter) handleLocally(ctx context.Context, cmd spec.Command) error {
 	if i.pushOnlyAllowed {
-		return pushOnlyErr(cmd.SourceLocation)
+		return i.pushOnlyErr(cmd.SourceLocation)
 	}
 
 	workingDir, err := filepath.Abs(filepath.Dir(cmd.SourceLocation.File))
 	if err != nil {
-		return WrapError(err, cmd.SourceLocation, "unable to get abs path in LOCALLY")
+		return i.wrapError(err, cmd.SourceLocation, "unable to get abs path in LOCALLY")
 	}
 
 	i.local = true
 	err = i.converter.Locally(ctx, workingDir, nil)
 	if err != nil {
-		return WrapError(err, cmd.SourceLocation, "apply LOCALLY")
+		return i.wrapError(err, cmd.SourceLocation, "apply LOCALLY")
 	}
 	return nil
 }
 
 func (i *Interpreter) handleCopy(ctx context.Context, cmd spec.Command) error {
 	if i.pushOnlyAllowed {
-		return pushOnlyErr(cmd.SourceLocation)
+		return i.pushOnlyErr(cmd.SourceLocation)
 	}
 	fs := flag.NewFlagSet("COPY", flag.ContinueOnError)
 	from := fs.String("from", "", "Not supported")
@@ -513,30 +528,45 @@ func (i *Interpreter) handleCopy(ctx context.Context, cmd spec.Command) error {
 	fs.Var(buildArgs, "build-arg", "A build arg override passed on to a referenced Earthly target")
 	err := fs.Parse(getArgsCopy(cmd))
 	if err != nil {
-		return WrapError(err, cmd.SourceLocation, "invalid COPY arguments %v", cmd.Args)
+		return i.wrapError(err, cmd.SourceLocation, "invalid COPY arguments %v", cmd.Args)
 	}
 	if fs.NArg() < 2 {
-		return Errorf(cmd.SourceLocation, "not enough COPY arguments %v", cmd.Args)
+		return i.errorf(cmd.SourceLocation, "not enough COPY arguments %v", cmd.Args)
 	}
 	if *from != "" {
-		return Errorf(cmd.SourceLocation, "COPY --from not implemented. Use COPY artifacts form instead")
+		return i.errorf(cmd.SourceLocation, "COPY --from not implemented. Use COPY artifacts form instead")
 	}
 	srcs := fs.Args()[:fs.NArg()-1]
+	srcFlagArgs := make([][]string, len(srcs))
 	dest := i.expandArgs(fs.Arg(fs.NArg()-1), false)
-	for index, ba := range buildArgs.Args {
-		buildArgs.Args[index] = i.expandArgs(ba, true)
-	}
+	expandedBuildArgs := i.expandArgsSlice(buildArgs.Args, true)
 	*chown = i.expandArgs(*chown, false)
 	*platformStr = i.expandArgs(*platformStr, false)
 	platform, err := llbutil.ParsePlatform(*platformStr)
 	if err != nil {
-		return WrapError(err, cmd.SourceLocation, "parse platform %s", *platformStr)
+		return i.wrapError(err, cmd.SourceLocation, "parse platform %s", *platformStr)
 	}
 	allClassical := true
 	allArtifacts := true
 	for index, src := range srcs {
+		var artifactSrc domain.Artifact
+		var parseErr error
+		if strings.HasPrefix(src, "(") && strings.HasSuffix(src, ")") {
+			// COPY (<src> <flag-args>) ...
+			artifactStr, extraArgs, err := parseParans(src)
+			if err != nil {
+				return i.wrapError(err, cmd.SourceLocation, "parse parans %s", src)
+			}
+			artifactSrc, parseErr = domain.ParseArtifact(i.expandArgs(artifactStr, true))
+			if parseErr != nil {
+				// Must parse in the parans case.
+				return i.wrapError(err, cmd.SourceLocation, "parse artifact")
+			}
+			srcFlagArgs[index] = extraArgs
+		} else {
+			artifactSrc, parseErr = domain.ParseArtifact(i.expandArgs(src, true))
+		}
 		// If it parses as an artifact, treat as artifact.
-		artifactSrc, parseErr := domain.ParseArtifact(i.expandArgs(src, true))
 		if parseErr == nil {
 			srcs[index] = artifactSrc.String()
 			allClassical = false
@@ -546,36 +576,43 @@ func (i *Interpreter) handleCopy(ctx context.Context, cmd spec.Command) error {
 		}
 	}
 	if !allClassical && !allArtifacts {
-		return Errorf(cmd.SourceLocation, "combining artifacts and build context arguments in a single COPY command is not allowed: %v", srcs)
+		return i.errorf(cmd.SourceLocation, "combining artifacts and build context arguments in a single COPY command is not allowed: %v", srcs)
 	}
 	if allArtifacts {
 		if dest == "" || dest == "." || len(srcs) > 1 {
 			dest += string(filepath.Separator)
 		}
-		for _, src := range srcs {
+		for index, src := range srcs {
+			expandedFlagArgs := i.expandArgsSlice(srcFlagArgs[index], true)
+			parsedFlagArgs, err := variables.ParseFlagArgs(expandedFlagArgs)
+			if err != nil {
+				return i.wrapError(err, cmd.SourceLocation, "parse flag args")
+			}
+			srcBuildArgs := append(parsedFlagArgs, expandedBuildArgs...)
+
 			if i.local {
-				err = i.converter.CopyArtifactLocal(ctx, src, dest, platform, buildArgs.Args, *isDirCopy)
+				err = i.converter.CopyArtifactLocal(ctx, src, dest, platform, srcBuildArgs, *isDirCopy)
 				if err != nil {
-					return WrapError(err, cmd.SourceLocation, "copy artifact locally")
+					return i.wrapError(err, cmd.SourceLocation, "copy artifact locally")
 				}
 			} else {
-				err = i.converter.CopyArtifact(ctx, src, dest, platform, buildArgs.Args, *isDirCopy, *keepTs, *keepOwn, *chown, *ifExists)
+				err = i.converter.CopyArtifact(ctx, src, dest, platform, srcBuildArgs, *isDirCopy, *keepTs, *keepOwn, *chown, *ifExists)
 				if err != nil {
-					return WrapError(err, cmd.SourceLocation, "copy artifact")
+					return i.wrapError(err, cmd.SourceLocation, "copy artifact")
 				}
 			}
 		}
 	} else {
-		if len(buildArgs.Args) != 0 {
-			return Errorf(cmd.SourceLocation, "build args not supported for non +artifact arguments case %v", cmd.Args)
+		if len(expandedBuildArgs) != 0 {
+			return i.errorf(cmd.SourceLocation, "build args not supported for non +artifact arguments case %v", cmd.Args)
 		}
 		if i.local {
-			return Errorf(cmd.SourceLocation, "unhandled locally artifact copy when allArtifacts is false")
+			return i.errorf(cmd.SourceLocation, "unhandled locally artifact copy when allArtifacts is false")
 		}
 
 		err = i.converter.CopyClassical(ctx, srcs, dest, *isDirCopy, *keepTs, *keepOwn, *chown)
 		if err != nil {
-			return WrapError(err, cmd.SourceLocation, "copy classical")
+			return i.wrapError(err, cmd.SourceLocation, "copy classical")
 		}
 	}
 	return nil
@@ -588,14 +625,14 @@ func (i *Interpreter) handleSaveArtifact(ctx context.Context, cmd spec.Command) 
 	ifExists := fs.Bool("if-exists", false, "Do not fail if the artifact does not exist")
 	err := fs.Parse(getArgsCopy(cmd))
 	if err != nil {
-		return WrapError(err, cmd.SourceLocation, "invalid SAVE arguments %v", cmd.Args)
+		return i.wrapError(err, cmd.SourceLocation, "invalid SAVE arguments %v", cmd.Args)
 	}
 
 	if fs.NArg() == 0 {
-		return Errorf(cmd.SourceLocation, "no arguments provided to the SAVE ARTIFACT command")
+		return i.errorf(cmd.SourceLocation, "no arguments provided to the SAVE ARTIFACT command")
 	}
 	if fs.NArg() > 5 {
-		return Errorf(cmd.SourceLocation, "too many arguments provided to the SAVE ARTIFACT command: %v", cmd.Args)
+		return i.errorf(cmd.SourceLocation, "too many arguments provided to the SAVE ARTIFACT command: %v", cmd.Args)
 	}
 	saveAsLocalTo := ""
 	saveTo := "./"
@@ -606,12 +643,12 @@ func (i *Interpreter) handleSaveArtifact(ctx context.Context, cmd spec.Command) 
 				saveTo = fs.Args()[1]
 			}
 		} else {
-			return Errorf(cmd.SourceLocation, "invalid arguments for SAVE ARTIFACT command: %v", cmd.Args)
+			return i.errorf(cmd.SourceLocation, "invalid arguments for SAVE ARTIFACT command: %v", cmd.Args)
 		}
 	} else if fs.NArg() == 2 {
 		saveTo = fs.Args()[1]
 	} else if fs.NArg() == 3 {
-		return Errorf(cmd.SourceLocation, "invalid arguments for SAVE ARTIFACT command: %v", cmd.Args)
+		return i.errorf(cmd.SourceLocation, "invalid arguments for SAVE ARTIFACT command: %v", cmd.Args)
 	}
 
 	saveFrom := i.expandArgs(fs.Args()[0], false)
@@ -620,18 +657,18 @@ func (i *Interpreter) handleSaveArtifact(ctx context.Context, cmd spec.Command) 
 
 	if i.local {
 		if saveAsLocalTo != "" {
-			return Errorf(cmd.SourceLocation, "SAVE ARTIFACT AS LOCAL is not implemented under LOCALLY targets")
+			return i.errorf(cmd.SourceLocation, "SAVE ARTIFACT AS LOCAL is not implemented under LOCALLY targets")
 		}
 		err = i.converter.SaveArtifactFromLocal(ctx, saveFrom, saveTo, *keepTs, *ifExists, "")
 		if err != nil {
-			return WrapError(err, cmd.SourceLocation, "apply SAVE ARTIFACT")
+			return i.wrapError(err, cmd.SourceLocation, "apply SAVE ARTIFACT")
 		}
 		return nil
 	}
 
 	err = i.converter.SaveArtifact(ctx, saveFrom, saveTo, saveAsLocalTo, *keepTs, *keepOwn, *ifExists, i.pushOnlyAllowed)
 	if err != nil {
-		return WrapError(err, cmd.SourceLocation, "apply SAVE ARTIFACT")
+		return i.wrapError(err, cmd.SourceLocation, "apply SAVE ARTIFACT")
 	}
 	return nil
 }
@@ -651,13 +688,13 @@ func (i *Interpreter) handleSaveImage(ctx context.Context, cmd spec.Command) err
 	fs.Var(cacheFrom, "cache-from", "Declare additional cache import as a Docker tag")
 	err := fs.Parse(getArgsCopy(cmd))
 	if err != nil {
-		return WrapError(err, cmd.SourceLocation, "invalid SAVE IMAGE arguments %v", cmd.Args)
+		return i.wrapError(err, cmd.SourceLocation, "invalid SAVE IMAGE arguments %v", cmd.Args)
 	}
 	for index, cf := range cacheFrom.Args {
 		cacheFrom.Args[index] = i.expandArgs(cf, false)
 	}
 	if *pushFlag && fs.NArg() == 0 {
-		return Errorf(cmd.SourceLocation, "invalid number of arguments for SAVE IMAGE --push: %v", cmd.Args)
+		return i.errorf(cmd.SourceLocation, "invalid number of arguments for SAVE IMAGE --push: %v", cmd.Args)
 	}
 
 	imageNames := fs.Args()
@@ -670,7 +707,7 @@ func (i *Interpreter) handleSaveImage(ctx context.Context, cmd spec.Command) err
 	}
 	err = i.converter.SaveImage(ctx, imageNames, *pushFlag, *insecure, *cacheHint, cacheFrom.Args)
 	if err != nil {
-		return WrapError(err, cmd.SourceLocation, "save image")
+		return i.wrapError(err, cmd.SourceLocation, "save image")
 	}
 	if *pushFlag {
 		i.pushOnlyAllowed = true
@@ -680,7 +717,7 @@ func (i *Interpreter) handleSaveImage(ctx context.Context, cmd spec.Command) err
 
 func (i *Interpreter) handleBuild(ctx context.Context, cmd spec.Command) error {
 	if i.pushOnlyAllowed {
-		return pushOnlyErr(cmd.SourceLocation)
+		return i.pushOnlyErr(cmd.SourceLocation)
 	}
 	fs := flag.NewFlagSet("BUILD", flag.ContinueOnError)
 	platformsStr := new(StringSliceFlag)
@@ -689,10 +726,10 @@ func (i *Interpreter) handleBuild(ctx context.Context, cmd spec.Command) error {
 	fs.Var(buildArgs, "build-arg", "A build arg override passed on to a referenced Earthly target")
 	err := fs.Parse(getArgsCopy(cmd))
 	if err != nil {
-		return WrapError(err, cmd.SourceLocation, "invalid BUILD arguments %v", cmd.Args)
+		return i.wrapError(err, cmd.SourceLocation, "invalid BUILD arguments %v", cmd.Args)
 	}
-	if fs.NArg() != 1 {
-		return Errorf(cmd.SourceLocation, "invalid number of arguments for BUILD: %s", cmd.Args)
+	if fs.NArg() < 1 {
+		return i.errorf(cmd.SourceLocation, "invalid number of arguments for BUILD: %s", cmd.Args)
 	}
 	fullTargetName := i.expandArgs(fs.Arg(0), true)
 	platformsSlice := make([]*specs.Platform, 0, len(platformsStr.Args))
@@ -700,27 +737,31 @@ func (i *Interpreter) handleBuild(ctx context.Context, cmd spec.Command) error {
 		platformsStr.Args[index] = i.expandArgs(p, false)
 		platform, err := llbutil.ParsePlatform(p)
 		if err != nil {
-			return WrapError(err, cmd.SourceLocation, "parse platform %s", p)
+			return i.wrapError(err, cmd.SourceLocation, "parse platform %s", p)
 		}
 		platformsSlice = append(platformsSlice, platform)
 	}
-	for index, arg := range buildArgs.Args {
-		buildArgs.Args[index] = i.expandArgs(arg, true)
+	expandedBuildArgs := i.expandArgsSlice(buildArgs.Args, true)
+	expandedFlagArgs := i.expandArgsSlice(fs.Args()[1:], true)
+	parsedFlagArgs, err := variables.ParseFlagArgs(expandedFlagArgs)
+	if err != nil {
+		return i.wrapError(err, cmd.SourceLocation, "parse flag args")
 	}
+	expandedBuildArgs = append(parsedFlagArgs, expandedBuildArgs...)
 	if len(platformsSlice) == 0 {
 		platformsSlice = []*specs.Platform{nil}
 	}
 
-	crossProductBuildArgs, err := buildArgMatrix(buildArgs.Args)
+	crossProductBuildArgs, err := buildArgMatrix(expandedBuildArgs)
 	if err != nil {
-		return WrapError(err, cmd.SourceLocation, "build arg matrix")
+		return i.wrapError(err, cmd.SourceLocation, "build arg matrix")
 	}
 
 	for _, bas := range crossProductBuildArgs {
 		for _, platform := range platformsSlice {
 			err = i.converter.Build(ctx, fullTargetName, platform, bas)
 			if err != nil {
-				return WrapError(err, cmd.SourceLocation, "apply BUILD %s", fullTargetName)
+				return i.wrapError(err, cmd.SourceLocation, "apply BUILD %s", fullTargetName)
 			}
 		}
 	}
@@ -729,37 +770,37 @@ func (i *Interpreter) handleBuild(ctx context.Context, cmd spec.Command) error {
 
 func (i *Interpreter) handleWorkdir(ctx context.Context, cmd spec.Command) error {
 	if i.pushOnlyAllowed {
-		return pushOnlyErr(cmd.SourceLocation)
+		return i.pushOnlyErr(cmd.SourceLocation)
 	}
 	if len(cmd.Args) != 1 {
-		return Errorf(cmd.SourceLocation, "invalid number of arguments for WORKDIR: %v", cmd.Args)
+		return i.errorf(cmd.SourceLocation, "invalid number of arguments for WORKDIR: %v", cmd.Args)
 	}
 	workdirPath := i.expandArgs(cmd.Args[0], false)
 	err := i.converter.Workdir(ctx, workdirPath)
 	if err != nil {
-		return WrapError(err, cmd.SourceLocation, "apply WORKDIR")
+		return i.wrapError(err, cmd.SourceLocation, "apply WORKDIR")
 	}
 	return nil
 }
 
 func (i *Interpreter) handleUser(ctx context.Context, cmd spec.Command) error {
 	if i.pushOnlyAllowed {
-		return pushOnlyErr(cmd.SourceLocation)
+		return i.pushOnlyErr(cmd.SourceLocation)
 	}
 	if len(cmd.Args) != 1 {
-		return Errorf(cmd.SourceLocation, "invalid number of arguments for USER: %v", cmd.Args)
+		return i.errorf(cmd.SourceLocation, "invalid number of arguments for USER: %v", cmd.Args)
 	}
 	user := i.expandArgs(cmd.Args[0], false)
 	err := i.converter.User(ctx, user)
 	if err != nil {
-		return WrapError(err, cmd.SourceLocation, "apply USER")
+		return i.wrapError(err, cmd.SourceLocation, "apply USER")
 	}
 	return nil
 }
 
 func (i *Interpreter) handleCmd(ctx context.Context, cmd spec.Command) error {
 	if i.pushOnlyAllowed {
-		return pushOnlyErr(cmd.SourceLocation)
+		return i.pushOnlyErr(cmd.SourceLocation)
 	}
 	withShell := !cmd.ExecMode
 	cmdArgs := getArgsCopy(cmd)
@@ -770,14 +811,14 @@ func (i *Interpreter) handleCmd(ctx context.Context, cmd spec.Command) error {
 	}
 	err := i.converter.Cmd(ctx, cmdArgs, withShell)
 	if err != nil {
-		return WrapError(err, cmd.SourceLocation, "apply CMD")
+		return i.wrapError(err, cmd.SourceLocation, "apply CMD")
 	}
 	return nil
 }
 
 func (i *Interpreter) handleEntrypoint(ctx context.Context, cmd spec.Command) error {
 	if i.pushOnlyAllowed {
-		return pushOnlyErr(cmd.SourceLocation)
+		return i.pushOnlyErr(cmd.SourceLocation)
 	}
 	withShell := !cmd.ExecMode
 	entArgs := getArgsCopy(cmd)
@@ -788,17 +829,17 @@ func (i *Interpreter) handleEntrypoint(ctx context.Context, cmd spec.Command) er
 	}
 	err := i.converter.Entrypoint(ctx, entArgs, withShell)
 	if err != nil {
-		return WrapError(err, cmd.SourceLocation, "apply ENTRYPOINT")
+		return i.wrapError(err, cmd.SourceLocation, "apply ENTRYPOINT")
 	}
 	return nil
 }
 
 func (i *Interpreter) handleExpose(ctx context.Context, cmd spec.Command) error {
 	if i.pushOnlyAllowed {
-		return pushOnlyErr(cmd.SourceLocation)
+		return i.pushOnlyErr(cmd.SourceLocation)
 	}
 	if len(cmd.Args) == 0 {
-		return Errorf(cmd.SourceLocation, "no arguments provided to the EXPOSE command")
+		return i.errorf(cmd.SourceLocation, "no arguments provided to the EXPOSE command")
 	}
 	ports := getArgsCopy(cmd)
 	for index, port := range ports {
@@ -806,17 +847,17 @@ func (i *Interpreter) handleExpose(ctx context.Context, cmd spec.Command) error 
 	}
 	err := i.converter.Expose(ctx, ports)
 	if err != nil {
-		return WrapError(err, cmd.SourceLocation, "apply EXPOSE")
+		return i.wrapError(err, cmd.SourceLocation, "apply EXPOSE")
 	}
 	return nil
 }
 
 func (i *Interpreter) handleVolume(ctx context.Context, cmd spec.Command) error {
 	if i.pushOnlyAllowed {
-		return pushOnlyErr(cmd.SourceLocation)
+		return i.pushOnlyErr(cmd.SourceLocation)
 	}
 	if len(cmd.Args) == 0 {
-		return Errorf(cmd.SourceLocation, "no arguments provided to the VOLUME command")
+		return i.errorf(cmd.SourceLocation, "no arguments provided to the VOLUME command")
 	}
 	volumes := getArgsCopy(cmd)
 	for index, volume := range volumes {
@@ -824,64 +865,64 @@ func (i *Interpreter) handleVolume(ctx context.Context, cmd spec.Command) error 
 	}
 	err := i.converter.Volume(ctx, volumes)
 	if err != nil {
-		return WrapError(err, cmd.SourceLocation, "apply VOLUME")
+		return i.wrapError(err, cmd.SourceLocation, "apply VOLUME")
 	}
 	return nil
 }
 
 func (i *Interpreter) handleEnv(ctx context.Context, cmd spec.Command) error {
 	if i.pushOnlyAllowed {
-		return pushOnlyErr(cmd.SourceLocation)
+		return i.pushOnlyErr(cmd.SourceLocation)
 	}
 	var key, value string
 	switch len(cmd.Args) {
 	case 3:
 		if cmd.Args[1] != "=" {
-			return Errorf(cmd.SourceLocation, "invalid syntax")
+			return i.errorf(cmd.SourceLocation, "invalid syntax")
 		}
 		value = i.expandArgs(cmd.Args[2], false)
 		fallthrough
 	case 1:
 		key = cmd.Args[0] // Note: Not expanding args for key.
 	default:
-		return Errorf(cmd.SourceLocation, "invalid syntax")
+		return i.errorf(cmd.SourceLocation, "invalid syntax")
 	}
 	err := i.converter.Env(ctx, key, value)
 	if err != nil {
-		return WrapError(err, cmd.SourceLocation, "apply ENV")
+		return i.wrapError(err, cmd.SourceLocation, "apply ENV")
 	}
 	return nil
 }
 
 func (i *Interpreter) handleArg(ctx context.Context, cmd spec.Command) error {
 	if i.pushOnlyAllowed {
-		return pushOnlyErr(cmd.SourceLocation)
+		return i.pushOnlyErr(cmd.SourceLocation)
 	}
 	var key, value string
 	switch len(cmd.Args) {
 	case 3:
 		if cmd.Args[1] != "=" {
-			return Errorf(cmd.SourceLocation, "invalid syntax")
+			return i.errorf(cmd.SourceLocation, "invalid syntax")
 		}
 		value = i.expandArgs(cmd.Args[2], true)
 		fallthrough
 	case 1:
 		key = cmd.Args[0] // Note: Not expanding args for key.
 	default:
-		return Errorf(cmd.SourceLocation, "invalid syntax")
+		return i.errorf(cmd.SourceLocation, "invalid syntax")
 	}
 	// Args declared in the base target are global.
 	global := i.isBase
 	err := i.converter.Arg(ctx, key, value, global)
 	if err != nil {
-		return WrapError(err, cmd.SourceLocation, "apply ARG")
+		return i.wrapError(err, cmd.SourceLocation, "apply ARG")
 	}
 	return nil
 }
 
 func (i *Interpreter) handleLabel(ctx context.Context, cmd spec.Command) error {
 	if i.pushOnlyAllowed {
-		return pushOnlyErr(cmd.SourceLocation)
+		return i.pushOnlyErr(cmd.SourceLocation)
 	}
 	labels := make(map[string]string)
 	var key string
@@ -894,7 +935,7 @@ func (i *Interpreter) handleLabel(ctx context.Context, cmd spec.Command) error {
 			nextKey = false
 		} else if nextEqual {
 			if arg != "=" {
-				return Errorf(cmd.SourceLocation, "syntax error")
+				return i.errorf(cmd.SourceLocation, "syntax error")
 			}
 			nextEqual = false
 		} else {
@@ -904,45 +945,45 @@ func (i *Interpreter) handleLabel(ctx context.Context, cmd spec.Command) error {
 		}
 	}
 	if nextKey != true {
-		return Errorf(cmd.SourceLocation, "syntax error")
+		return i.errorf(cmd.SourceLocation, "syntax error")
 	}
 	if len(labels) == 0 {
-		return Errorf(cmd.SourceLocation, "no labels provided in LABEL command")
+		return i.errorf(cmd.SourceLocation, "no labels provided in LABEL command")
 	}
 	err := i.converter.Label(ctx, labels)
 	if err != nil {
-		return WrapError(err, cmd.SourceLocation, "apply LABEL")
+		return i.wrapError(err, cmd.SourceLocation, "apply LABEL")
 	}
 	return nil
 }
 
 func (i *Interpreter) handleGitClone(ctx context.Context, cmd spec.Command) error {
 	if i.pushOnlyAllowed {
-		return pushOnlyErr(cmd.SourceLocation)
+		return i.pushOnlyErr(cmd.SourceLocation)
 	}
 	fs := flag.NewFlagSet("GIT CLONE", flag.ContinueOnError)
 	branch := fs.String("branch", "", "The git ref to use when cloning")
 	keepTs := fs.Bool("keep-ts", false, "Keep created time file timestamps")
 	err := fs.Parse(getArgsCopy(cmd))
 	if err != nil {
-		return WrapError(err, cmd.SourceLocation, "invalid GIT CLONE arguments %v", cmd.Args)
+		return i.wrapError(err, cmd.SourceLocation, "invalid GIT CLONE arguments %v", cmd.Args)
 	}
 	if fs.NArg() != 2 {
-		return Errorf(cmd.SourceLocation, "invalid number of arguments for GIT CLONE: %s", cmd.Args)
+		return i.errorf(cmd.SourceLocation, "invalid number of arguments for GIT CLONE: %s", cmd.Args)
 	}
 	gitURL := i.expandArgs(fs.Arg(0), false)
 	gitCloneDest := i.expandArgs(fs.Arg(1), false)
 	*branch = i.expandArgs(*branch, false)
 	err = i.converter.GitClone(ctx, gitURL, *branch, gitCloneDest, *keepTs)
 	if err != nil {
-		return WrapError(err, cmd.SourceLocation, "git clone")
+		return i.wrapError(err, cmd.SourceLocation, "git clone")
 	}
 	return nil
 }
 
 func (i *Interpreter) handleHealthcheck(ctx context.Context, cmd spec.Command) error {
 	if i.pushOnlyAllowed {
-		return pushOnlyErr(cmd.SourceLocation)
+		return i.pushOnlyErr(cmd.SourceLocation)
 	}
 	fs := flag.NewFlagSet("HEALTHCHECK", flag.ContinueOnError)
 	interval := fs.Duration(
@@ -959,46 +1000,46 @@ func (i *Interpreter) handleHealthcheck(ctx context.Context, cmd spec.Command) e
 		"The number of retries before a container is considered unhealthy")
 	err := fs.Parse(getArgsCopy(cmd))
 	if err != nil {
-		return WrapError(err, cmd.SourceLocation, "invalid HEALTHCHECK arguments %v", cmd.Args)
+		return i.wrapError(err, cmd.SourceLocation, "invalid HEALTHCHECK arguments %v", cmd.Args)
 	}
 	if fs.NArg() == 0 {
-		return Errorf(cmd.SourceLocation, "invalid number of arguments for HEALTHCHECK: %s", cmd.Args)
+		return i.errorf(cmd.SourceLocation, "invalid number of arguments for HEALTHCHECK: %s", cmd.Args)
 	}
 	isNone := false
 	var cmdArgs []string
 	switch fs.Arg(0) {
 	case "NONE":
 		if fs.NArg() != 1 {
-			return Errorf(cmd.SourceLocation, "invalid arguments for HEALTHCHECK: %s", cmd.Args)
+			return i.errorf(cmd.SourceLocation, "invalid arguments for HEALTHCHECK: %s", cmd.Args)
 		}
 		isNone = true
 	case "CMD":
 		if fs.NArg() == 1 {
-			return Errorf(cmd.SourceLocation, "invalid number of arguments for HEALTHCHECK CMD: %s", cmd.Args)
+			return i.errorf(cmd.SourceLocation, "invalid number of arguments for HEALTHCHECK CMD: %s", cmd.Args)
 		}
 		cmdArgs = fs.Args()[1:]
 	default:
 		if strings.HasPrefix(fs.Arg(0), "[") {
-			return Errorf(cmd.SourceLocation, "exec form not yet supported for HEALTHCHECK CMD: %s", cmd.Args)
+			return i.errorf(cmd.SourceLocation, "exec form not yet supported for HEALTHCHECK CMD: %s", cmd.Args)
 		}
-		return Errorf(cmd.SourceLocation, "invalid arguments for HEALTHCHECK: %s", cmd.Args)
+		return i.errorf(cmd.SourceLocation, "invalid arguments for HEALTHCHECK: %s", cmd.Args)
 	}
 	for index, arg := range cmdArgs {
 		cmdArgs[index] = i.expandArgs(arg, false)
 	}
 	err = i.converter.Healthcheck(ctx, isNone, cmdArgs, *interval, *timeout, *startPeriod, *retries)
 	if err != nil {
-		return WrapError(err, cmd.SourceLocation, "apply HEALTHCHECK")
+		return i.wrapError(err, cmd.SourceLocation, "apply HEALTHCHECK")
 	}
 	return nil
 }
 
 func (i *Interpreter) handleWithDocker(ctx context.Context, cmd spec.Command) error {
 	if i.pushOnlyAllowed {
-		return pushOnlyErr(cmd.SourceLocation)
+		return i.pushOnlyErr(cmd.SourceLocation)
 	}
 	if i.withDocker != nil {
-		return Errorf(cmd.SourceLocation, "cannot use WITH DOCKER within WITH DOCKER")
+		return i.errorf(cmd.SourceLocation, "cannot use WITH DOCKER within WITH DOCKER")
 	}
 
 	fs := flag.NewFlagSet("WITH DOCKER", flag.ContinueOnError)
@@ -1015,16 +1056,16 @@ func (i *Interpreter) handleWithDocker(ctx context.Context, cmd spec.Command) er
 	fs.Var(pulls, "pull", "An image which is pulled and made available in the docker cache")
 	err := fs.Parse(getArgsCopy(cmd))
 	if err != nil {
-		return WrapError(err, cmd.SourceLocation, "invalid WITH DOCKER arguments %v", cmd.Args)
+		return i.wrapError(err, cmd.SourceLocation, "invalid WITH DOCKER arguments %v", cmd.Args)
 	}
 	if len(fs.Args()) != 0 {
-		return Errorf(cmd.SourceLocation, "invalid WITH DOCKER arguments %v", fs.Args())
+		return i.errorf(cmd.SourceLocation, "invalid WITH DOCKER arguments %v", fs.Args())
 	}
 
 	*platformStr = i.expandArgs(*platformStr, false)
 	platform, err := llbutil.ParsePlatform(*platformStr)
 	if err != nil {
-		return WrapError(err, cmd.SourceLocation, "parse platform %s", *platformStr)
+		return i.wrapError(err, cmd.SourceLocation, "parse platform %s", *platformStr)
 	}
 	for index, cf := range composeFiles.Args {
 		composeFiles.Args[index] = i.expandArgs(cf, false)
@@ -1035,9 +1076,7 @@ func (i *Interpreter) handleWithDocker(ctx context.Context, cmd spec.Command) er
 	for index, load := range loads.Args {
 		loads.Args[index] = i.expandArgs(load, true)
 	}
-	for index, ba := range buildArgs.Args {
-		buildArgs.Args[index] = i.expandArgs(ba, true)
-	}
+	expandedBuildArgs := i.expandArgsSlice(buildArgs.Args, true)
 	for index, p := range pulls.Args {
 		pulls.Args[index] = i.expandArgs(p, false)
 	}
@@ -1053,82 +1092,132 @@ func (i *Interpreter) handleWithDocker(ctx context.Context, cmd spec.Command) er
 		})
 	}
 	for _, loadStr := range loads.Args {
-		loadImg, loadTarget, err := parseLoad(loadStr)
+		loadImg, loadTarget, flagArgs, err := parseLoad(loadStr)
 		if err != nil {
-			return WrapError(err, cmd.SourceLocation, "parse load")
+			return i.wrapError(err, cmd.SourceLocation, "parse load")
 		}
+		expandedFlagArgs := i.expandArgsSlice(flagArgs, true)
+		parsedFlagArgs, err := variables.ParseFlagArgs(expandedFlagArgs)
+		if err != nil {
+			return i.wrapError(err, cmd.SourceLocation, "parse flag args")
+		}
+		loadBuildArgs := append(parsedFlagArgs, expandedBuildArgs...)
+
 		i.withDocker.Loads = append(i.withDocker.Loads, DockerLoadOpt{
 			Target:    loadTarget,
 			ImageName: loadImg,
 			Platform:  platform,
-			BuildArgs: buildArgs.Args,
+			BuildArgs: loadBuildArgs,
 		})
 	}
 	return nil
 }
 
 func (i *Interpreter) handleAdd(ctx context.Context, cmd spec.Command) error {
-	return Errorf(cmd.SourceLocation, "command ADD not yet supported")
+	return i.errorf(cmd.SourceLocation, "command ADD not yet supported")
 }
 
 func (i *Interpreter) handleStopsignal(ctx context.Context, cmd spec.Command) error {
-	return Errorf(cmd.SourceLocation, "command STOPSIGNAL not yet supported")
+	return i.errorf(cmd.SourceLocation, "command STOPSIGNAL not yet supported")
 }
 
 func (i *Interpreter) handleOnbuild(ctx context.Context, cmd spec.Command) error {
-	return Errorf(cmd.SourceLocation, "command ONBUILD not supported")
+	return i.errorf(cmd.SourceLocation, "command ONBUILD not supported")
 }
 
 func (i *Interpreter) handleShell(ctx context.Context, cmd spec.Command) error {
-	return Errorf(cmd.SourceLocation, "command SHELL not yet supported")
+	return i.errorf(cmd.SourceLocation, "command SHELL not yet supported")
 }
 
 func (i *Interpreter) handleUserCommand(ctx context.Context, cmd spec.Command) error {
-	return Errorf(cmd.SourceLocation, "command COMMAND not allowed in a target definition")
+	return i.errorf(cmd.SourceLocation, "command COMMAND not allowed in a target definition")
 }
 
 func (i *Interpreter) handleDo(ctx context.Context, cmd spec.Command) error {
 	cmdArgs := getArgsCopy(cmd)
-	for index, arg := range cmdArgs {
-		cmdArgs[index] = i.expandArgs(arg, false)
+	if len(cmdArgs) < 1 {
+		return i.errorf(cmd.SourceLocation, "invalid number of arguments for DO: %s", cmdArgs)
 	}
 
-	ucName := cmdArgs[0]
+	expandedFlagArgs := i.expandArgsSlice(cmdArgs[1:], true)
+	parsedFlagArgs, err := variables.ParseFlagArgs(expandedFlagArgs)
+	if err != nil {
+		return i.wrapError(err, cmd.SourceLocation, "parse flag args")
+	}
+
+	ucName := i.expandArgs(cmdArgs[0], false)
 	relCommand, err := domain.ParseCommand(ucName)
 	if err != nil {
-		return WrapError(err, cmd.SourceLocation, "unable to parse user command reference %s", ucName)
+		return i.wrapError(err, cmd.SourceLocation, "unable to parse user command reference %s", ucName)
 	}
 	commandRef, err := domain.JoinReferences(i.target, relCommand)
 	if err != nil {
-		return WrapError(err, cmd.SourceLocation, "join targets")
+		return i.wrapError(err, cmd.SourceLocation, "join targets")
 	}
 	command := commandRef.(domain.Command)
 
 	bc, err := i.resolver.Resolve(ctx, i.gwClient, command)
 	if err != nil {
-		return WrapError(err, cmd.SourceLocation, "unable to resolve user command %s", ucName)
+		return i.wrapError(err, cmd.SourceLocation, "unable to resolve user command %s", ucName)
 	}
 	for _, uc := range bc.Earthfile.UserCommands {
 		if uc.Name == command.Command {
-			return i.handleDoUserCommand(ctx, uc, cmdArgs)
+			return i.handleDoUserCommand(ctx, command, uc, cmd, parsedFlagArgs)
 		}
 	}
-	return Errorf(cmd.SourceLocation, "user command %s not found", ucName)
+	return i.errorf(cmd.SourceLocation, "user command %s not found", ucName)
 }
 
 // ----------------------------------------------------------------------------
 
-func (i *Interpreter) handleDoUserCommand(ctx context.Context, uc spec.UserCommand, cmdArgs []string) error {
+func (i *Interpreter) handleDoUserCommand(ctx context.Context, command domain.Command, uc spec.UserCommand, do spec.Command, buildArgs []string) error {
 	if len(uc.Recipe) == 0 || uc.Recipe[0].Command.Name != "COMMAND" {
-		return Errorf(uc.SourceLocation, "command recipes must start with COMMAND")
+		return i.errorf(uc.SourceLocation, "command recipes must start with COMMAND")
 	}
 	if len(uc.Recipe[0].Command.Args) > 0 {
-		return Errorf(uc.Recipe[0].SourceLocation, "COMMAND takes no arguments")
+		return i.errorf(uc.Recipe[0].SourceLocation, "COMMAND takes no arguments")
 	}
-	return i.handleBlock(ctx, uc.Recipe[1:])
+	scopeName := fmt.Sprintf(
+		"%s (%s line %d:%d)",
+		command.StringCanonical(), do.SourceLocation.File, do.SourceLocation.StartLine, do.SourceLocation.StartColumn)
+	err := i.converter.EnterScope(ctx, scopeName, buildArgs)
+	if err != nil {
+		return i.wrapError(err, uc.SourceLocation, "enter scope")
+	}
+	i.stack = i.converter.StackString()
+	err = i.handleBlock(ctx, uc.Recipe[1:])
+	if err != nil {
+		return err
+	}
+	err = i.converter.ExitScope(ctx)
+	if err != nil {
+		return i.wrapError(err, uc.SourceLocation, "exit scope")
+	}
+	i.stack = i.converter.StackString()
+	return nil
 }
 
 // ----------------------------------------------------------------------------
+
+func (i *Interpreter) expandArgsSlice(words []string, keepPlusEscape bool) []string {
+	ret := make([]string, 0, len(words))
+	for _, word := range words {
+		ret = append(ret, i.expandArgs(word, keepPlusEscape))
+	}
+	return ret
+}
+
+func (i *Interpreter) errorf(sl *spec.SourceLocation, format string, args ...interface{}) *InterpreterError {
+	return Errorf(sl, i.stack, format, args...)
+}
+
+func (i *Interpreter) wrapError(cause error, sl *spec.SourceLocation, format string, args ...interface{}) *InterpreterError {
+	return WrapError(cause, sl, i.stack, format, args...)
+}
+
+func (i *Interpreter) pushOnlyErr(sl *spec.SourceLocation) error {
+	return i.errorf(sl, "no non-push commands allowed after a --push")
+}
 
 func (i *Interpreter) expandArgs(word string, keepPlusEscape bool) string {
 	ret := i.converter.ExpandArgs(escapeSlashPlus(word))
@@ -1148,19 +1237,25 @@ func unescapeSlashPlus(str string) string {
 	return strings.ReplaceAll(str, "\\+", "+")
 }
 
-func pushOnlyErr(sl *spec.SourceLocation) error {
-	return Errorf(sl, "no non-push commands allowed after a --push")
-}
-
-func parseLoad(loadStr string) (string, string, error) {
+func parseLoad(loadStr string) (image string, target string, extraArgs []string, err error) {
 	splitLoad := strings.SplitN(loadStr, "=", 2)
 	if len(splitLoad) < 2 {
 		// --load <target-name>
 		// (will infer image name from SAVE IMAGE of that target)
-		return "", loadStr, nil
+		image = ""
+		target = loadStr
+	} else {
+		// --load <image-name>=<target-name>
+		image = splitLoad[0]
+		target = splitLoad[1]
 	}
-	// --load <image-name>=<target-name>
-	return splitLoad[0], splitLoad[1], nil
+	if strings.HasPrefix(target, "(") && strings.HasSuffix(target, ")") {
+		target, extraArgs, err = parseParans(target)
+		if err != nil {
+			return "", "", nil, err
+		}
+	}
+	return image, target, extraArgs, nil
 }
 
 func getArgsCopy(cmd spec.Command) []string {
@@ -1233,6 +1328,59 @@ func parseKeyValue(arg string) (string, *string, error) {
 		value = &splitArg[1]
 	}
 	return name, value, nil
+}
+
+// parseParans turns "(+target --flag=something)" into "+target" and []string{"--flag=something"}.
+func parseParans(str string) (string, []string, error) {
+	if !strings.HasPrefix(str, "(") || !strings.HasSuffix(str, ")") {
+		return "", nil, errors.New("parans atom not in ( ... )")
+	}
+	str = str[1 : len(str)-1] // remove ( and )
+	var parts []string
+	var part []rune
+	nextEscaped := false
+	inQuotes := false
+	for _, char := range str {
+		switch char {
+		case '"':
+			if !nextEscaped {
+				inQuotes = !inQuotes
+			}
+			nextEscaped = false
+		case '\\':
+			nextEscaped = true
+		case ' ', '\t', '\n':
+			if !inQuotes && !nextEscaped {
+				if len(part) > 0 {
+					parts = append(parts, string(part))
+					part = []rune{}
+					nextEscaped = false
+					continue
+				} else {
+					nextEscaped = false
+					continue
+				}
+			}
+			nextEscaped = false
+		default:
+			nextEscaped = false
+		}
+		part = append(part, char)
+	}
+	if nextEscaped {
+		return "", nil, errors.New("unterminated escape sequence")
+	}
+	if inQuotes {
+		return "", nil, errors.New("no ending quotes")
+	}
+	if len(part) > 0 {
+		parts = append(parts, string(part))
+	}
+
+	if len(parts) < 1 {
+		return "", nil, errors.New("invalid empty parans")
+	}
+	return parts[0], parts[1:], nil
 }
 
 // StringSliceFlag is a flag backed by a string slice.

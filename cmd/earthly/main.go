@@ -1222,8 +1222,8 @@ func (app *earthlyApp) run(ctx context.Context, args []string) int {
 	return 0
 }
 
-// apply heuristics to see if binary is a version of earthly
 func isEarthlyBinary(path string) bool {
+	// apply heuristics to see if binary is a version of earthly
 	data, err := ioutil.ReadFile(path)
 	if err != nil {
 		return false
@@ -2294,10 +2294,15 @@ func (app *earthlyApp) actionBuild(c *cli.Context) error {
 
 	go terminal.ConnectTerm(c.Context, fmt.Sprintf("127.0.0.1:%d", app.buildkitdSettings.DebuggerPort))
 
-	overridingVars, err := variables.ParseCommandLineArgs(app.buildArgs.Value(), dotEnvMap)
+	dotEnvVars := variables.NewScope()
+	for k, v := range dotEnvMap {
+		dotEnvVars.AddInactive(k, v)
+	}
+	overridingVars, err := variables.ParseCommandLineArgs(app.buildArgs.Value())
 	if err != nil {
 		return errors.Wrap(err, "parse build args")
 	}
+	overridingVars = variables.CombineScopes(overridingVars, dotEnvVars)
 	imageResolveMode := llb.ResolveModePreferLocal
 	if app.pull {
 		imageResolveMode = llb.ResolveModeForcePull

@@ -4,7 +4,7 @@ import "sort"
 
 // Scope represents a variable scope.
 type Scope struct {
-	variables map[string]Var
+	variables map[string]string
 	// activeVariables are variables that are active right now as we have passed the point of
 	// their declaration.
 	activeVariables map[string]bool
@@ -13,7 +13,7 @@ type Scope struct {
 // NewScope creates a new variable scope.
 func NewScope() *Scope {
 	return &Scope{
-		variables:       make(map[string]Var),
+		variables:       make(map[string]string),
 		activeVariables: make(map[string]bool),
 	}
 }
@@ -31,31 +31,31 @@ func (s *Scope) Clone() *Scope {
 }
 
 // GetAny returns a variable by name, even if it is not active.
-func (s *Scope) GetAny(name string) (Var, bool) {
+func (s *Scope) GetAny(name string) (string, bool) {
 	variable, found := s.variables[name]
 	return variable, found
 }
 
 // GetActive returns an active variable by name.
-func (s *Scope) GetActive(name string) (Var, bool) {
+func (s *Scope) GetActive(name string) (string, bool) {
 	variable, found := s.variables[name]
 	active := false
 	if found {
 		active = s.activeVariables[name]
 	}
 	if !active {
-		variable = Var{}
+		variable = ""
 	}
 	return variable, active
 }
 
 // AddInactive adds an inactive variable in the collection.
-func (s *Scope) AddInactive(name string, variable Var) {
+func (s *Scope) AddInactive(name string, variable string) {
 	s.variables[name] = variable
 }
 
 // AddActive adds and activates a variable in the collection.
-func (s *Scope) AddActive(name string, variable Var) {
+func (s *Scope) AddActive(name string, variable string) {
 	s.activeVariables[name] = true
 	s.variables[name] = variable
 }
@@ -64,8 +64,7 @@ func (s *Scope) AddActive(name string, variable Var) {
 func (s *Scope) ActiveValueMap() map[string]string {
 	ret := make(map[string]string)
 	for name := range s.activeVariables {
-		v := s.variables[name]
-		ret[name] = v.Value
+		ret[name] = s.variables[name]
 	}
 	return ret
 }

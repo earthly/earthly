@@ -75,7 +75,8 @@ func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Da
 	}
 	for _, key := range opt.OverridingVars.SortedAny() {
 		ovVar, _ := opt.OverridingVars.GetAny(key)
-		sts.TargetInput = sts.TargetInput.WithBuildArgInput(ovVar.BuildArgInput(key, ""))
+		sts.TargetInput = sts.TargetInput.WithBuildArgInput(
+			dedup.BuildArgInput{ConstantValue: ovVar, Name: key})
 	}
 	vc := variables.NewCollection(target, llbutil.PlatformWithDefault(opt.Platform), bc.GitMetadata, opt.OverridingVars)
 	targetStr := target.String()
@@ -415,7 +416,7 @@ func (c *Converter) RunLocal(ctx context.Context, args []string, pushFlag bool) 
 	extraEnvVars := []string{}
 	for _, buildArgName := range c.varCollection.SortedActiveVariables() {
 		ba, _ := c.varCollection.GetActive(buildArgName)
-		extraEnvVars = append(extraEnvVars, fmt.Sprintf("%s=\"%s\"", buildArgName, shellescape.Quote(ba.Value)))
+		extraEnvVars = append(extraEnvVars, fmt.Sprintf("%s=\"%s\"", buildArgName, shellescape.Quote(ba)))
 	}
 
 	// buildkit-hack in order to run locally, we prepend the command with a UUID
@@ -512,7 +513,7 @@ func (c *Converter) RunLocalExitCode(ctx context.Context, commandName string, ar
 	extraEnvVars := []string{}
 	for _, buildArgName := range c.varCollection.SortedActiveVariables() {
 		ba, _ := c.varCollection.GetActive(buildArgName)
-		extraEnvVars = append(extraEnvVars, fmt.Sprintf("%s=\"%s\"", buildArgName, shellescape.Quote(ba.Value)))
+		extraEnvVars = append(extraEnvVars, fmt.Sprintf("%s=\"%s\"", buildArgName, shellescape.Quote(ba)))
 	}
 
 	exitCodeDir, err := ioutil.TempDir("/tmp", "earthlyexitcode")
@@ -899,12 +900,16 @@ func (c *Converter) Arg(ctx context.Context, argKey string, defaultArgValue stri
 		return err
 	}
 	c.nonSaveCommand()
-	effective, err := c.varCollection.DeclareArg(argKey, variables.StringType, defaultArgValue, global, c.processNonConstantBuildArgFunc((ctx)))
+	effective, err := c.varCollection.DeclareArg(argKey, defaultArgValue, global, c.processNonConstantBuildArgFunc((ctx)))
 	if err != nil {
 		return err
 	}
 	c.mts.Final.TargetInput = c.mts.Final.TargetInput.WithBuildArgInput(
-		effective.BuildArgInput(argKey, defaultArgValue))
+		dedup.BuildArgInput{
+			Name:          argKey,
+			DefaultValue:  defaultArgValue,
+			ConstantValue: effective,
+		})
 	return nil
 }
 
@@ -969,7 +974,7 @@ func (c *Converter) Healthcheck(ctx context.Context, isNone bool, cmdArgs []stri
 	} else {
 		// TODO: Should support also CMD without shell (exec form).
 		//       See https://github.com/moby/buildkit/blob/master/frontend/dockerfile/dockerfile2llb/image.go#L18
-		hc.Test = append([]string{"CMD-SHELL", strings.Join(cmdArgs, " ")})
+		hc.Test = []string{"CMD-SHELL", strings.Join(cmdArgs, " ")}
 		hc.Interval = interval
 		hc.Timeout = timeout
 		hc.StartPeriod = startPeriod
@@ -977,6 +982,28 @@ func (c *Converter) Healthcheck(ctx context.Context, isNone bool, cmdArgs []stri
 	}
 	c.mts.Final.MainImage.Config.Healthcheck = hc
 	return nil
+}
+
+// EnterScope introduces a new variable scope.
+func (c *Converter) EnterScope(ctx context.Context, scopeName string, buildArgs []string) error {
+	overriding, err := variables.ParseArgs(
+		buildArgs, c.processNonConstantBuildArgFunc(ctx), c.varCollection)
+	if err != nil {
+		return err
+	}
+	c.varCollection.EnterFrame(scopeName, overriding)
+	return nil
+}
+
+// ExitScope exits the most recent variable scope.
+func (c *Converter) ExitScope(ctx context.Context) error {
+	c.varCollection.ExitFrame()
+	return nil
+}
+
+// StackString string returns the current command stack string.
+func (c *Converter) StackString() string {
+	return c.varCollection.StackString()
 }
 
 // FinalizeStates returns the LLB states.
@@ -1055,7 +1082,11 @@ func (c *Converter) buildTarget(ctx context.Context, fullTargetName string, plat
 			}
 			v, _ := globals.GetActive(k)
 			c.mts.Final.TargetInput = c.mts.Final.TargetInput.WithBuildArgInput(
-				v.BuildArgInput(k, "")) // TODO: Set correct default value for bai.
+				dedup.BuildArgInput{
+					Name:          k,
+					DefaultValue:  "", // TODO: Set correct default value for bai.
+					ConstantValue: v,
+				})
 		}
 		c.varCollection.SetGlobals(globals)
 	}
@@ -1101,7 +1132,7 @@ func (c *Converter) internalRun(ctx context.Context, args, secretKeyValues []str
 	// Build args.
 	for _, buildArgName := range c.varCollection.SortedActiveVariables() {
 		ba, _ := c.varCollection.GetActive(buildArgName)
-		extraEnvVars = append(extraEnvVars, fmt.Sprintf("%s=%s", buildArgName, shellescape.Quote(ba.Value)))
+		extraEnvVars = append(extraEnvVars, fmt.Sprintf("%s=%s", buildArgName, shellescape.Quote(ba)))
 	}
 	// Debugger.
 	secretOpts := []llb.SecretOption{
@@ -1246,7 +1277,7 @@ func (c *Converter) applyFromImage(state llb.State, img *image.Image) (llb.State
 	ev := variables.ParseEnvVars(img.Config.Env)
 	for _, name := range ev.SortedActive() {
 		v, _ := ev.GetActive(name)
-		state = state.AddEnv(name, v.Value)
+		state = state.AddEnv(name, v)
 	}
 	// Init config maps if not already initialized.
 	if img.Config.ExposedPorts == nil {
@@ -1327,7 +1358,7 @@ func (c *Converter) vertexPrefix(local bool, interactive bool) string {
 		if !isActive {
 			continue
 		}
-		b64Value := base64.StdEncoding.EncodeToString([]byte(variable.Value))
+		b64Value := base64.StdEncoding.EncodeToString([]byte(variable))
 		varStrBuilder = append(varStrBuilder, fmt.Sprintf("%s=%s", key, b64Value))
 	}
 	var varStr string

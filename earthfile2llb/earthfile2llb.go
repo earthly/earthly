@@ -16,6 +16,7 @@ import (
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/llbutil"
 	"github.com/earthly/earthly/states"
+	"github.com/earthly/earthly/states/dedup"
 	"github.com/earthly/earthly/variables"
 )
 
@@ -83,7 +84,12 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt) (m
 			for _, bai := range sts.TargetInput.BuildArgs {
 				variable, found := opt.OverridingVars.GetAny(bai.Name)
 				if found {
-					if !variable.BuildArgInput(bai.Name, bai.DefaultValue).Equals(bai) {
+					baiVariable := dedup.BuildArgInput{
+						Name:          bai.Name,
+						DefaultValue:  bai.DefaultValue,
+						ConstantValue: variable,
+					}
+					if !baiVariable.Equals(bai) {
 						same = false
 						break
 					}
