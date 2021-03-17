@@ -15,11 +15,13 @@ var targetNameRegex = regexp.MustCompile(targetNamePattern)
 
 // Target is an earthly target identifier.
 type Target struct {
-	GitURL string // e.g. "github.com/earthly/earthly/examples/go"
-	Tag    string // e.g. "main"
-
+	// Remote representation.
+	GitURL string `json:"gitUrl"` // e.g. "github.com/earthly/earthly/examples/go"
+	Tag    string `json:"tag"`    // e.g. "main"
 	// Local representation. E.g. in "./some/path+something" this is "./some/path".
 	LocalPath string `json:"localPath"`
+	// Import representation. E.g. in "foo+bar" this is "foo".
+	ImportRef string `json:"importRef"`
 
 	// Target name. E.g. in "+something" this is "something".
 	Target string `json:"target"`
@@ -40,6 +42,11 @@ func (et Target) GetLocalPath() string {
 	return et.LocalPath
 }
 
+// GetImportRef returns the ImportRef portion of the target.
+func (et Target) GetImportRef() string {
+	return et.ImportRef
+}
+
 // GetName returns the Name portion of the target.
 func (et Target) GetName() string {
 	return et.Target
@@ -47,7 +54,7 @@ func (et Target) GetName() string {
 
 // IsExternal returns whether the target is external to the current project.
 func (et Target) IsExternal() bool {
-	return et.IsRemote() || et.IsLocalExternal()
+	return et.IsRemote() || et.IsLocalExternal() || et.IsImportReference()
 }
 
 // IsLocalInternal returns whether the target is a local.
@@ -62,7 +69,12 @@ func (et Target) IsLocalExternal() bool {
 
 // IsRemote returns whether the target is remote.
 func (et Target) IsRemote() bool {
-	return !et.IsLocalExternal() && !et.IsLocalInternal()
+	return et.GitURL != "" && !et.IsLocalInternal() && !et.IsLocalExternal()
+}
+
+// IsImportReference returns whether the target is a reference to an import.
+func (et Target) IsImportReference() bool {
+	return et.ImportRef != ""
 }
 
 // DebugString returns a string that can be printed out for debugging purposes
@@ -87,7 +99,7 @@ func (et Target) ProjectCanonical() string {
 
 // ParseTarget parses a string into a Target.
 func ParseTarget(fullTargetName string) (Target, error) {
-	gitURL, tag, localPath, target, err := parseCommon(fullTargetName)
+	gitURL, tag, localPath, importRef, target, err := parseCommon(fullTargetName)
 	if err != nil {
 		return Target{}, err
 	}
@@ -99,6 +111,7 @@ func ParseTarget(fullTargetName string) (Target, error) {
 		GitURL:    gitURL,
 		Tag:       tag,
 		LocalPath: localPath,
+		ImportRef: importRef,
 		Target:    target,
 	}, nil
 }
