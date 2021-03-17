@@ -974,7 +974,7 @@ func (c *Converter) Healthcheck(ctx context.Context, isNone bool, cmdArgs []stri
 	} else {
 		// TODO: Should support also CMD without shell (exec form).
 		//       See https://github.com/moby/buildkit/blob/master/frontend/dockerfile/dockerfile2llb/image.go#L18
-		hc.Test = append([]string{"CMD-SHELL", strings.Join(cmdArgs, " ")})
+		hc.Test = []string{"CMD-SHELL", strings.Join(cmdArgs, " ")}
 		hc.Interval = interval
 		hc.Timeout = timeout
 		hc.StartPeriod = startPeriod
@@ -982,6 +982,28 @@ func (c *Converter) Healthcheck(ctx context.Context, isNone bool, cmdArgs []stri
 	}
 	c.mts.Final.MainImage.Config.Healthcheck = hc
 	return nil
+}
+
+// EnterScope introduces a new variable scope.
+func (c *Converter) EnterScope(ctx context.Context, scopeName string, buildArgs []string) error {
+	overriding, err := variables.ParseArgs(
+		buildArgs, c.processNonConstantBuildArgFunc(ctx), c.varCollection)
+	if err != nil {
+		return err
+	}
+	c.varCollection.EnterFrame(scopeName, overriding)
+	return nil
+}
+
+// ExitScope exits the most recent variable scope.
+func (c *Converter) ExitScope(ctx context.Context) error {
+	c.varCollection.ExitFrame()
+	return nil
+}
+
+// StackString string returns the current command stack string.
+func (c *Converter) StackString() string {
+	return c.varCollection.StackString()
 }
 
 // FinalizeStates returns the LLB states.

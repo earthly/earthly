@@ -15,21 +15,24 @@ type InterpreterError struct {
 	SourceLocation *spec.SourceLocation
 	text           string
 	cause          error
+	stack          string
 }
 
 // Errorf creates a new interpreter error.
-func Errorf(sl *spec.SourceLocation, format string, args ...interface{}) *InterpreterError {
+func Errorf(sl *spec.SourceLocation, stack string, format string, args ...interface{}) *InterpreterError {
 	return &InterpreterError{
 		SourceLocation: sl,
+		stack:          stack,
 		text:           fmt.Sprintf(format, args...),
 	}
 }
 
 // WrapError wraps another error into a new interpreter error.
-func WrapError(cause error, sl *spec.SourceLocation, format string, args ...interface{}) *InterpreterError {
+func WrapError(cause error, sl *spec.SourceLocation, stack string, format string, args ...interface{}) *InterpreterError {
 	return &InterpreterError{
 		cause:          cause,
 		SourceLocation: sl,
+		stack:          stack,
 		text:           fmt.Sprintf(format, args...),
 	}
 }
@@ -53,6 +56,11 @@ func (ie InterpreterError) Error() string {
 // Unwrap returns the cause of the error (if any).
 func (ie InterpreterError) Unwrap() error {
 	return ie.cause
+}
+
+// Stack returns the Earthly stack within the error.
+func (ie InterpreterError) Stack() string {
+	return ie.stack
 }
 
 // GetInterpreterError finds the first InterpreterError in the wrap chain and returns it.

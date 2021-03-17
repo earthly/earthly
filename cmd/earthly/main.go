@@ -1211,6 +1211,7 @@ func (app *earthlyApp) run(ctx context.Context, args []string) int {
 			return 6
 		} else if isInterpereterError {
 			app.console.Warnf("Error: %s\n", ie.Error())
+			app.console.Warnf("in\t%s\n", ie.Stack())
 		} else {
 			app.console.Warnf("Error: %v\n", err)
 		}
@@ -2291,10 +2292,15 @@ func (app *earthlyApp) actionBuild(c *cli.Context) error {
 
 	go terminal.ConnectTerm(c.Context, fmt.Sprintf("127.0.0.1:%d", app.buildkitdSettings.DebuggerPort))
 
-	overridingVars, err := variables.ParseCommandLineArgs(app.buildArgs.Value(), dotEnvMap)
+	dotEnvVars := variables.NewScope()
+	for k, v := range dotEnvMap {
+		dotEnvVars.AddInactive(k, v)
+	}
+	overridingVars, err := variables.ParseCommandLineArgs(app.buildArgs.Value())
 	if err != nil {
 		return errors.Wrap(err, "parse build args")
 	}
+	overridingVars = variables.CombineScopes(overridingVars, dotEnvVars)
 	imageResolveMode := llb.ResolveModePreferLocal
 	if app.pull {
 		imageResolveMode = llb.ResolveModeForcePull

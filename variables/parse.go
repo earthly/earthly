@@ -12,12 +12,10 @@ import (
 // turns it into a state, target intput and arg index.
 type ProcessNonConstantVariableFunc func(name string, expression string) (value string, argIndex int, err error)
 
-// ParseCommandLineArgs parses a slice of constant build args and returns a new scope.
-func ParseCommandLineArgs(args []string, dotEnvMap map[string]string) (*Scope, error) {
+// ParseCommandLineArgs parses a slice of old build args
+// (the ones passed via --build-arg) and returns a new scope.
+func ParseCommandLineArgs(args []string) (*Scope, error) {
 	ret := NewScope()
-	for k, v := range dotEnvMap {
-		ret.AddInactive(k, v)
-	}
 	for _, arg := range args {
 		splitArg := strings.SplitN(arg, "=", 2)
 		if len(splitArg) < 1 {
@@ -42,7 +40,7 @@ func ParseCommandLineArgs(args []string, dotEnvMap map[string]string) (*Scope, e
 	return ret, nil
 }
 
-// ParseArgs parses args passed to an Earthly command, such as BUILD or FROM.
+// ParseArgs parses args passed as --build-arg to an Earthly command, such as BUILD or FROM.
 func ParseArgs(args []string, pncvf ProcessNonConstantVariableFunc, current *Collection) (*Scope, error) {
 	ret := NewScope()
 	for _, arg := range args {
@@ -83,6 +81,9 @@ func parseArg(arg string, pncvf ProcessNonConstantVariableFunc, current *Collect
 }
 
 func parseArgValue(name string, value string, pncvf ProcessNonConstantVariableFunc) (string, error) {
+	if pncvf == nil {
+		return value, nil
+	}
 	if strings.HasPrefix(value, "$(") {
 		// Variable build arg - resolve value.
 		var err error

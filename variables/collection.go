@@ -1,23 +1,34 @@
 package variables
 
 import (
+	"fmt"
+	"strings"
+
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/gitutil"
 	dfShell "github.com/moby/buildkit/frontend/dockerfile/shell"
 	specs "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
-// Collection is a collection of variable scopes used within a single target.
-type Collection struct {
+type stackFrame struct {
+	frameName string
+
 	// Always inactive scopes. These scopes only influence newly declared
 	// args. They do not otherwise participate when args are expanded.
 	overriding *Scope
-	builtin    *Scope
 
 	// Always active scopes. These scopes influence the value of args directly.
-	argsStack []*Scope
-	envs      *Scope
-	globals   *Scope
+	args    *Scope
+	globals *Scope
+}
+
+// Collection is a collection of variable scopes used within a single target.
+type Collection struct {
+	// These scopes are always present, regardless of the stack position.
+	builtin *Scope // inactive
+	envs    *Scope // active
+
+	stack []*stackFrame
 
 	// A scope containing all scopes above, combined.
 	effectiveCache *Scope
@@ -26,11 +37,14 @@ type Collection struct {
 // NewCollection creates a new Collection to be used in the context of a target.
 func NewCollection(target domain.Target, platform specs.Platform, gitMeta *gitutil.GitMetadata, overridingVars *Scope) *Collection {
 	return &Collection{
-		overriding: overridingVars,
-		builtin:    BuiltinArgs(target, platform, gitMeta),
-		argsStack:  []*Scope{NewScope()},
-		envs:       NewScope(),
-		globals:    NewScope(),
+		builtin: BuiltinArgs(target, platform, gitMeta),
+		envs:    NewScope(),
+		stack: []*stackFrame{{
+			frameName:  target.StringCanonical(),
+			overriding: overridingVars,
+			args:       NewScope(),
+			globals:    NewScope(),
+		}},
 	}
 }
 
@@ -50,23 +64,23 @@ func (c *Collection) EnvVars() *Scope {
 
 // Globals returns a copy of the globals.
 func (c *Collection) Globals() *Scope {
-	return c.globals.Clone()
+	return c.globals().Clone()
 }
 
 // SetGlobals sets the global variables.
 func (c *Collection) SetGlobals(globals *Scope) {
-	c.globals = globals
+	c.frame().globals = globals
 	c.effectiveCache = nil
 }
 
 // Overriding returns a copy of the overriding args.
 func (c *Collection) Overriding() *Scope {
-	return c.overriding.Clone()
+	return c.overriding().Clone()
 }
 
 // SetOverriding sets the overriding args.
 func (c *Collection) SetOverriding(overriding *Scope) {
-	c.overriding = overriding
+	c.frame().overriding = overriding
 	c.effectiveCache = nil
 }
 
@@ -88,7 +102,7 @@ func (c *Collection) SortedActiveVariables() []string {
 
 // SortedOverridingVariables returns the overriding variable names in a sorted slice.
 func (c *Collection) SortedOverridingVariables() []string {
-	return c.overriding.SortedActive()
+	return c.overriding().SortedActive()
 }
 
 // Expand expands variables within the given word.
@@ -120,7 +134,7 @@ func (c *Collection) DeclareArg(name string, defaultValue string, global bool, p
 	}
 	c.args().AddActive(name, finalValue)
 	if global {
-		c.globals.AddActive(name, finalValue)
+		c.globals().AddActive(name, finalValue)
 	}
 	c.effectiveCache = nil
 	return finalValue, nil
@@ -132,33 +146,62 @@ func (c *Collection) DeclareEnv(name string, value string) {
 	c.effectiveCache = nil
 }
 
-func (c *Collection) args() *Scope {
-	return c.argsStack[len(c.argsStack)-1]
-}
-
-func (c *Collection) pushArgsStack() {
-	c.argsStack = append(c.argsStack, NewScope())
+// EnterFrame creates a new stack frame.
+func (c *Collection) EnterFrame(frameName string, overriding *Scope) {
+	c.stack = append(c.stack, &stackFrame{
+		frameName:  frameName,
+		overriding: overriding,
+		globals:    NewScope(),
+		args:       NewScope(),
+	})
 	c.effectiveCache = nil
 }
 
-func (c *Collection) popArgsStack() {
-	if len(c.argsStack) == 0 {
+// ExitFrame exits the latest stack frame.
+func (c *Collection) ExitFrame() {
+	if len(c.stack) == 0 {
 		panic("trying to pop an empty argsStack")
 	}
-	c.argsStack = c.argsStack[:(len(c.argsStack) - 1)]
+	c.stack = c.stack[:(len(c.stack) - 1)]
 	c.effectiveCache = nil
+}
+
+// StackString returns the stack as a string.
+func (c *Collection) StackString() string {
+	builder := make([]string, 0, len(c.stack))
+	for i := len(c.stack) - 1; i >= 0; i-- {
+		overridingNames := c.SortedOverridingVariables()
+		row := make([]string, 0, len(overridingNames)+1)
+		row = append(row, c.stack[i].frameName)
+		for _, k := range overridingNames {
+			v, _ := c.overriding().GetAny(k)
+			row = append(row, fmt.Sprintf("--%s=%s", k, v))
+		}
+		builder = append(builder, strings.Join(row, " "))
+	}
+	return fmt.Sprintf("\t%s\n", strings.Join(builder, "\ncalled from\t"))
+}
+
+func (c *Collection) frame() *stackFrame {
+	return c.stack[len(c.stack)-1]
+}
+
+func (c *Collection) args() *Scope {
+	return c.frame().args
+}
+
+func (c *Collection) globals() *Scope {
+	return c.frame().globals
+}
+
+func (c *Collection) overriding() *Scope {
+	return c.frame().overriding
 }
 
 // effective returns the variables as a single combined scope.
 func (c *Collection) effective() *Scope {
 	if c.effectiveCache == nil {
-		if len(c.argsStack) == 1 {
-			// Not in a UDC.
-			c.effectiveCache = CombineScopes(c.overriding, c.builtin, c.args(), c.envs, c.globals)
-		} else {
-			// Within a UDC.
-			c.effectiveCache = CombineScopes(c.builtin, c.args(), c.envs)
-		}
+		c.effectiveCache = CombineScopes(c.overriding(), c.builtin, c.args(), c.envs, c.globals())
 	}
 	return c.effectiveCache
 }
