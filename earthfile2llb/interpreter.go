@@ -16,6 +16,7 @@ import (
 	"github.com/earthly/earthly/variables"
 	gwclient "github.com/moby/buildkit/frontend/gateway/client"
 	specs "github.com/opencontainers/image-spec/specs-go/v1"
+	"github.com/pkg/errors"
 )
 
 // Interpreter interprets Earthly AST's into calls to the converter.
@@ -536,6 +537,7 @@ func (i *Interpreter) handleCopy(ctx context.Context, cmd spec.Command) error {
 		return i.errorf(cmd.SourceLocation, "COPY --from not implemented. Use COPY artifacts form instead")
 	}
 	srcs := fs.Args()[:fs.NArg()-1]
+	srcFlagArgs := make([][]string, len(srcs))
 	dest := i.expandArgs(fs.Arg(fs.NArg()-1), false)
 	expandedBuildArgs := i.expandArgsSlice(buildArgs.Args, true)
 	*chown = i.expandArgs(*chown, false)
@@ -547,8 +549,24 @@ func (i *Interpreter) handleCopy(ctx context.Context, cmd spec.Command) error {
 	allClassical := true
 	allArtifacts := true
 	for index, src := range srcs {
+		var artifactSrc domain.Artifact
+		var parseErr error
+		if strings.HasPrefix(src, "(") && strings.HasSuffix(src, ")") {
+			// COPY (<src> <flag-args>) ...
+			artifactStr, extraArgs, err := parseParans(src)
+			if err != nil {
+				return i.wrapError(err, cmd.SourceLocation, "parse parans %s", src)
+			}
+			artifactSrc, parseErr = domain.ParseArtifact(i.expandArgs(artifactStr, true))
+			if parseErr != nil {
+				// Must parse in the parans case.
+				return i.wrapError(err, cmd.SourceLocation, "parse artifact")
+			}
+			srcFlagArgs[index] = extraArgs
+		} else {
+			artifactSrc, parseErr = domain.ParseArtifact(i.expandArgs(src, true))
+		}
 		// If it parses as an artifact, treat as artifact.
-		artifactSrc, parseErr := domain.ParseArtifact(i.expandArgs(src, true))
 		if parseErr == nil {
 			srcs[index] = artifactSrc.String()
 			allClassical = false
@@ -564,14 +582,21 @@ func (i *Interpreter) handleCopy(ctx context.Context, cmd spec.Command) error {
 		if dest == "" || dest == "." || len(srcs) > 1 {
 			dest += string(filepath.Separator)
 		}
-		for _, src := range srcs {
+		for index, src := range srcs {
+			expandedFlagArgs := i.expandArgsSlice(srcFlagArgs[index], true)
+			parsedFlagArgs, err := variables.ParseFlagArgs(expandedFlagArgs)
+			if err != nil {
+				return i.wrapError(err, cmd.SourceLocation, "parse flag args")
+			}
+			srcBuildArgs := append(parsedFlagArgs, expandedBuildArgs...)
+
 			if i.local {
-				err = i.converter.CopyArtifactLocal(ctx, src, dest, platform, expandedBuildArgs, *isDirCopy)
+				err = i.converter.CopyArtifactLocal(ctx, src, dest, platform, srcBuildArgs, *isDirCopy)
 				if err != nil {
 					return i.wrapError(err, cmd.SourceLocation, "copy artifact locally")
 				}
 			} else {
-				err = i.converter.CopyArtifact(ctx, src, dest, platform, expandedBuildArgs, *isDirCopy, *keepTs, *keepOwn, *chown, *ifExists)
+				err = i.converter.CopyArtifact(ctx, src, dest, platform, srcBuildArgs, *isDirCopy, *keepTs, *keepOwn, *chown, *ifExists)
 				if err != nil {
 					return i.wrapError(err, cmd.SourceLocation, "copy artifact")
 				}
@@ -1067,15 +1092,22 @@ func (i *Interpreter) handleWithDocker(ctx context.Context, cmd spec.Command) er
 		})
 	}
 	for _, loadStr := range loads.Args {
-		loadImg, loadTarget, err := parseLoad(loadStr)
+		loadImg, loadTarget, flagArgs, err := parseLoad(loadStr)
 		if err != nil {
 			return i.wrapError(err, cmd.SourceLocation, "parse load")
 		}
+		expandedFlagArgs := i.expandArgsSlice(flagArgs, true)
+		parsedFlagArgs, err := variables.ParseFlagArgs(expandedFlagArgs)
+		if err != nil {
+			return i.wrapError(err, cmd.SourceLocation, "parse flag args")
+		}
+		loadBuildArgs := append(parsedFlagArgs, expandedBuildArgs...)
+
 		i.withDocker.Loads = append(i.withDocker.Loads, DockerLoadOpt{
 			Target:    loadTarget,
 			ImageName: loadImg,
 			Platform:  platform,
-			BuildArgs: expandedBuildArgs,
+			BuildArgs: loadBuildArgs,
 		})
 	}
 	return nil
@@ -1205,15 +1237,25 @@ func unescapeSlashPlus(str string) string {
 	return strings.ReplaceAll(str, "\\+", "+")
 }
 
-func parseLoad(loadStr string) (string, string, error) {
+func parseLoad(loadStr string) (image string, target string, extraArgs []string, err error) {
 	splitLoad := strings.SplitN(loadStr, "=", 2)
 	if len(splitLoad) < 2 {
 		// --load <target-name>
 		// (will infer image name from SAVE IMAGE of that target)
-		return "", loadStr, nil
+		image = ""
+		target = loadStr
+	} else {
+		// --load <image-name>=<target-name>
+		image = splitLoad[0]
+		target = splitLoad[1]
 	}
-	// --load <image-name>=<target-name>
-	return splitLoad[0], splitLoad[1], nil
+	if strings.HasPrefix(target, "(") && strings.HasSuffix(target, ")") {
+		target, extraArgs, err = parseParans(target)
+		if err != nil {
+			return "", "", nil, err
+		}
+	}
+	return image, target, extraArgs, nil
 }
 
 func getArgsCopy(cmd spec.Command) []string {
@@ -1286,6 +1328,59 @@ func parseKeyValue(arg string) (string, *string, error) {
 		value = &splitArg[1]
 	}
 	return name, value, nil
+}
+
+// parseParans turns "(+target --flag=something)" into "+target" and []string{"--flag=something"}.
+func parseParans(str string) (string, []string, error) {
+	if !strings.HasPrefix(str, "(") || !strings.HasSuffix(str, ")") {
+		return "", nil, errors.New("parans atom not in ( ... )")
+	}
+	str = str[1 : len(str)-1] // remove ( and )
+	var parts []string
+	var part []rune
+	nextEscaped := false
+	inQuotes := false
+	for _, char := range str {
+		switch char {
+		case '"':
+			if !nextEscaped {
+				inQuotes = !inQuotes
+			}
+			nextEscaped = false
+		case '\\':
+			nextEscaped = true
+		case ' ', '\t', '\n':
+			if !inQuotes && !nextEscaped {
+				if len(part) > 0 {
+					parts = append(parts, string(part))
+					part = []rune{}
+					nextEscaped = false
+					continue
+				} else {
+					nextEscaped = false
+					continue
+				}
+			}
+			nextEscaped = false
+		default:
+			nextEscaped = false
+		}
+		part = append(part, char)
+	}
+	if nextEscaped {
+		return "", nil, errors.New("unterminated escape sequence")
+	}
+	if inQuotes {
+		return "", nil, errors.New("no ending quotes")
+	}
+	if len(part) > 0 {
+		parts = append(parts, string(part))
+	}
+
+	if len(parts) < 1 {
+		return "", nil, errors.New("invalid empty parans")
+	}
+	return parts[0], parts[1:], nil
 }
 
 // StringSliceFlag is a flag backed by a string slice.
