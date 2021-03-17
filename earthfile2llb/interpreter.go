@@ -43,6 +43,7 @@ func newInterpreter(c *Converter, r *buildcontext.Resolver, g gwclient.Client, t
 		resolver:  r,
 		gwClient:  g,
 		target:    t,
+		stack:     c.StackString(),
 	}
 }
 

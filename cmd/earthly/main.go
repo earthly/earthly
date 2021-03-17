@@ -1211,7 +1211,6 @@ func (app *earthlyApp) run(ctx context.Context, args []string) int {
 			return 6
 		} else if isInterpereterError {
 			app.console.Warnf("Error: %s\n", ie.Error())
-			app.console.Warnf("in\t%s\n", ie.Stack())
 		} else {
 			app.console.Warnf("Error: %v\n", err)
 		}
@@ -1223,8 +1222,8 @@ func (app *earthlyApp) run(ctx context.Context, args []string) int {
 	return 0
 }
 
-// apply heuristics to see if binary is a version of earthly
 func isEarthlyBinary(path string) bool {
+	// apply heuristics to see if binary is a version of earthly
 	data, err := ioutil.ReadFile(path)
 	if err != nil {
 		return false

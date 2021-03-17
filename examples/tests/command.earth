@@ -5,6 +5,12 @@ WORKDIR /test
 all:
     BUILD +test-basic
     BUILD +test-remote-no-context
+    BUILD +test-nested
+    BUILD +test-args
+    BUILD +test-recursive
+    BUILD +test-remote-touch
+    BUILD +test-scope
+    BUILD +test-builtin
 
 test-basic:
     DO +TOUCH
@@ -18,6 +24,39 @@ test-nested:
     DO +COMMANDCEPTION
     RUN test -f a.txt
 
+test-args:
+    DO +COMMAND_ARGS --arg1=foo
+    RUN test -f ./foo
+    RUN ! test -f ./default
+    DO +COMMAND_ARGS
+    RUN test -f ./default
+
+test-recursive:
+    DO +RECURSIVE
+    RUN test -f ./5
+    RUN test -f ./4
+    RUN test -f ./3
+    RUN test -f ./2
+    RUN test -f ./1
+    RUN ! test -f ./0
+
+test-remote-touch:
+    DO github.com/earthly/earthly-command-example:main+TOUCH --file=something
+    RUN test -f ./something
+    RUN ! test -f ./touched
+    DO github.com/earthly/earthly-command-example:main+TOUCH
+    RUN test -f ./touched
+
+test-scope:
+    ARG notincommand=true
+    ENV envincommand=true
+    RUN test "$notincommand" = "true"
+    RUN test "$envincommand" = "true"
+    DO +TEST_SCOPE
+
+test-builtin:
+    DO +TEST_BUILTIN
+
 TOUCH:
     COMMAND
     RUN touch a.txt
@@ -29,3 +68,29 @@ COMMANDCEPTION:
 ANOTHER_COMMAND:
     COMMAND
     DO +TOUCH
+
+COMMAND_ARGS:
+    COMMAND
+    ARG arg1=default
+    RUN touch "./$arg1"
+
+RECURSIVE:
+    COMMAND
+    ARG level=5
+    IF [ "$level" -gt "0" ]
+        RUN touch $level
+        ARG newlevel="$(echo $((level-1)))"
+        DO +RECURSIVE --level=$newlevel
+    END
+
+TEST_SCOPE:
+    COMMAND
+    ARG incommand=true
+    RUN test "$incommand" = "true"
+    RUN ! test "$notincommand" = "true"
+    RUN test "$envincommand" = "true"
+
+TEST_BUILTIN:
+    COMMAND
+    ARG EARTHLY_TARGET_NAME
+    RUN test "$EARTHLY_TARGET_NAME" = "test-builtin"

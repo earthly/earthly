@@ -170,16 +170,16 @@ func (c *Collection) ExitFrame() {
 func (c *Collection) StackString() string {
 	builder := make([]string, 0, len(c.stack))
 	for i := len(c.stack) - 1; i >= 0; i-- {
-		overridingNames := c.SortedOverridingVariables()
+		overridingNames := c.stack[i].overriding.SortedAny()
 		row := make([]string, 0, len(overridingNames)+1)
 		row = append(row, c.stack[i].frameName)
 		for _, k := range overridingNames {
-			v, _ := c.overriding().GetAny(k)
+			v, _ := c.stack[i].overriding.GetAny(k)
 			row = append(row, fmt.Sprintf("--%s=%s", k, v))
 		}
 		builder = append(builder, strings.Join(row, " "))
 	}
-	return fmt.Sprintf("\t%s\n", strings.Join(builder, "\ncalled from\t"))
+	return strings.Join(builder, "\ncalled from\t")
 }
 
 func (c *Collection) frame() *stackFrame {
