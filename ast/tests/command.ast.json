@@ -36,6 +36,54 @@
             ],
             "name": "BUILD"
           }
+        },
+        {
+          "command": {
+            "args": [
+              "+test-nested"
+            ],
+            "name": "BUILD"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "+test-args"
+            ],
+            "name": "BUILD"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "+test-recursive"
+            ],
+            "name": "BUILD"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "+test-remote-touch"
+            ],
+            "name": "BUILD"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "+test-scope"
+            ],
+            "name": "BUILD"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "+test-builtin"
+            ],
+            "name": "BUILD"
+          }
         }
       ]
     },
@@ -107,6 +155,254 @@
           }
         }
       ]
+    },
+    {
+      "name": "test-args",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "+COMMAND_ARGS",
+              "--arg1=foo"
+            ],
+            "name": "DO"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "test",
+              "-f",
+              "./foo"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "!",
+              "test",
+              "-f",
+              "./default"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "+COMMAND_ARGS"
+            ],
+            "name": "DO"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "test",
+              "-f",
+              "./default"
+            ],
+            "name": "RUN"
+          }
+        }
+      ]
+    },
+    {
+      "name": "test-recursive",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "+RECURSIVE"
+            ],
+            "name": "DO"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "test",
+              "-f",
+              "./5"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "test",
+              "-f",
+              "./4"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "test",
+              "-f",
+              "./3"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "test",
+              "-f",
+              "./2"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "test",
+              "-f",
+              "./1"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "!",
+              "test",
+              "-f",
+              "./0"
+            ],
+            "name": "RUN"
+          }
+        }
+      ]
+    },
+    {
+      "name": "test-remote-touch",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "github.com/earthly/earthly-command-example:main+TOUCH",
+              "--file=something"
+            ],
+            "name": "DO"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "test",
+              "-f",
+              "./something"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "!",
+              "test",
+              "-f",
+              "./touched"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "github.com/earthly/earthly-command-example:main+TOUCH"
+            ],
+            "name": "DO"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "test",
+              "-f",
+              "./touched"
+            ],
+            "name": "RUN"
+          }
+        }
+      ]
+    },
+    {
+      "name": "test-scope",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "notincommand",
+              "=",
+              "true"
+            ],
+            "name": "ARG"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "envincommand",
+              "=",
+              "true"
+            ],
+            "name": "ENV"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "test",
+              "\"$notincommand\"",
+              "=",
+              "\"true\""
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "test",
+              "\"$envincommand\"",
+              "=",
+              "\"true\""
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "+TEST_SCOPE"
+            ],
+            "name": "DO"
+          }
+        }
+      ]
+    },
+    {
+      "name": "test-builtin",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "+TEST_BUILTIN"
+            ],
+            "name": "DO"
+          }
+        }
+      ]
     }
   ],
   "userCommands": [
@@ -164,6 +460,183 @@
               "+TOUCH"
             ],
             "name": "DO"
+          }
+        }
+      ]
+    },
+    {
+      "name": "COMMAND_ARGS",
+      "recipe": [
+        {
+          "command": {
+            "args": [],
+            "name": "COMMAND"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "arg1",
+              "=",
+              "default"
+            ],
+            "name": "ARG"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "touch",
+              "\"./$arg1\""
+            ],
+            "name": "RUN"
+          }
+        }
+      ]
+    },
+    {
+      "name": "RECURSIVE",
+      "recipe": [
+        {
+          "command": {
+            "args": [],
+            "name": "COMMAND"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "level",
+              "=",
+              "5"
+            ],
+            "name": "ARG"
+          }
+        },
+        {
+          "if": {
+            "expression": [
+              "[",
+              "\"$level\"",
+              "-gt",
+              "\"0\"",
+              "]"
+            ],
+            "ifBody": [
+              {
+                "command": {
+                  "args": [
+                    "touch",
+                    "$level"
+                  ],
+                  "name": "RUN"
+                }
+              },
+              {
+                "command": {
+                  "args": [
+                    "newlevel",
+                    "=",
+                    "\"$(echo $((level-1)))\""
+                  ],
+                  "name": "ARG"
+                }
+              },
+              {
+                "command": {
+                  "args": [
+                    "+RECURSIVE",
+                    "--level=$newlevel"
+                  ],
+                  "name": "DO"
+                }
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "TEST_SCOPE",
+      "recipe": [
+        {
+          "command": {
+            "args": [],
+            "name": "COMMAND"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "incommand",
+              "=",
+              "true"
+            ],
+            "name": "ARG"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "test",
+              "\"$incommand\"",
+              "=",
+              "\"true\""
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "!",
+              "test",
+              "\"$notincommand\"",
+              "=",
+              "\"true\""
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "test",
+              "\"$envincommand\"",
+              "=",
+              "\"true\""
+            ],
+            "name": "RUN"
+          }
+        }
+      ]
+    },
+    {
+      "name": "TEST_BUILTIN",
+      "recipe": [
+        {
+          "command": {
+            "args": [],
+            "name": "COMMAND"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "EARTHLY_TARGET_NAME"
+            ],
+            "name": "ARG"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "test",
+              "\"$EARTHLY_TARGET_NAME\"",
+              "=",
+              "\"test-builtin\""
+            ],
+            "name": "RUN"
           }
         }
       ]
