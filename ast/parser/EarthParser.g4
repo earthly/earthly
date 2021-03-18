@@ -44,7 +44,8 @@ commandStmt:
 	| healthcheckStmt
 	| shellStmt
 	| userCommandStmt
-	| doStmt;
+	| doStmt
+	| importStmt;
 
 // withStmt -------------------------------------------------------------------
 
@@ -119,6 +120,7 @@ healthcheckStmt: HEALTHCHECK (WS stmtWords)?;
 shellStmt: SHELL (WS stmtWords)?;
 userCommandStmt: COMMAND (WS stmtWords)?;
 doStmt: DO (WS stmtWords)?;
+importStmt: IMPORT (WS stmtWords)?;
 
 // expr, stmtWord* ------------------------------------------------------------
 

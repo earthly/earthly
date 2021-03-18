@@ -9,9 +9,9 @@ import (
 	"github.com/earthly/earthly/cleanup"
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/gitutil"
-
 	"github.com/moby/buildkit/client/llb"
 	gwclient "github.com/moby/buildkit/frontend/gateway/client"
+	"github.com/pkg/errors"
 )
 
 // DockerfileMetaTarget is a target name which signals the resolver that the build file is a
@@ -61,6 +61,9 @@ func NewResolver(sessionID string, cleanCollection *cleanup.Collection, gitLooku
 // Resolve returns resolved context data for a given Earthly reference. If the reference is a target,
 // then the context will include a build context and possibly additional local directories.
 func (r *Resolver) Resolve(ctx context.Context, gwClient gwclient.Client, ref domain.Reference) (*Data, error) {
+	if ref.IsUnresolvedImportReference() {
+		return nil, errors.Errorf("cannot resolve non-dereferenced import ref %s", ref.String())
+	}
 	var d *Data
 	var err error
 	localDirs := make(map[string]string)

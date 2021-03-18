@@ -18,6 +18,7 @@ var targetTests = []struct {
 	{"github.com/foo/bar+target", Target{Target: "target", GitURL: "github.com/foo/bar"}},
 	{"github.com/foo/bar:tag+target", Target{Target: "target", GitURL: "github.com/foo/bar", Tag: "tag"}},
 	{"github.com/foo/bar:tag/with/slash+target", Target{Target: "target", GitURL: "github.com/foo/bar", Tag: "tag/with/slash"}},
+	{"import+target", Target{Target: "target", ImportRef: "import"}},
 	// \+
 	{"./a/local/dir-with-\\+-in-it+target", Target{Target: "target", LocalPath: "./a/local/dir-with-+-in-it"}},
 	{"/abs/local/dir-with-\\+-in+target", Target{Target: "target", LocalPath: "/abs/local/dir-with-+-in"}},
@@ -70,6 +71,7 @@ var artifactTests = []struct {
 	{"github.com/foo/bar+target/artifact", Artifact{Target: Target{Target: "target", GitURL: "github.com/foo/bar"}, Artifact: "/artifact"}},
 	{"github.com/foo/bar:tag+target/artifact", Artifact{Target: Target{Target: "target", GitURL: "github.com/foo/bar", Tag: "tag"}, Artifact: "/artifact"}},
 	{"github.com/foo/bar:tag/with/slash+target/artifact", Artifact{Target: Target{Target: "target", GitURL: "github.com/foo/bar", Tag: "tag/with/slash"}, Artifact: "/artifact"}},
+	{"import+target/artifact", Artifact{Target: Target{Target: "target", ImportRef: "import"}, Artifact: "/artifact"}},
 	// \+ in target
 	{"./a/local/dir-with-\\+-in-it+target/artifact", Artifact{Target: Target{Target: "target", LocalPath: "./a/local/dir-with-+-in-it"}, Artifact: "/artifact"}},
 	{"/abs/local/dir-with-\\+-in+target/artifact", Artifact{Target: Target{Target: "target", LocalPath: "/abs/local/dir-with-+-in"}, Artifact: "/artifact"}},
@@ -132,6 +134,7 @@ var commandTests = []struct {
 	{"github.com/foo/bar+COMMAND", Command{Command: "COMMAND", GitURL: "github.com/foo/bar"}},
 	{"github.com/foo/bar:tag+COMMAND", Command{Command: "COMMAND", GitURL: "github.com/foo/bar", Tag: "tag"}},
 	{"github.com/foo/bar:tag/with/slash+COMMAND", Command{Command: "COMMAND", GitURL: "github.com/foo/bar", Tag: "tag/with/slash"}},
+	{"import+COMMAND", Command{Command: "COMMAND", ImportRef: "import"}},
 	// \+
 	{"./a/local/dir-with-\\+-in-it+COMMAND", Command{Command: "COMMAND", LocalPath: "./a/local/dir-with-+-in-it"}},
 	{"/abs/local/dir-with-\\+-in+COMMAND", Command{Command: "COMMAND", LocalPath: "/abs/local/dir-with-+-in"}},

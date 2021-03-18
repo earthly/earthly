@@ -16,36 +16,47 @@ type Reference interface {
 	GetTag() string
 	// GetLocalPath is the local path representation of the reference. E.g. in "./some/path+something" this is "./some/path".
 	GetLocalPath() string
+	// GetImportRef is the import identifier. E.g. in "foo+bar" this is "foo".
+	GetImportRef() string
 	// GetName is the target name or the command name of the reference. E.g. in "+something" this is "something".
 	GetName() string
 
-	// IsExternal returns whether the target is external to the current project.
+	// IsExternal returns whether the ref is external to the current project.
 	IsExternal() bool
 
-	// IsLocalInternal returns whether the target is a local.
+	// IsLocalInternal returns whether the ref is a local.
 	IsLocalInternal() bool
 
-	// IsLocalExternal returns whether the target is a local, but external target.
+	// IsLocalExternal returns whether the ref is a local, but external target.
 	IsLocalExternal() bool
 
-	// IsRemote returns whether the target is remote.
+	// IsRemote returns whether the ref is remote.
 	IsRemote() bool
+
+	// IsImportReference returns whether the ref is a reference to an import.
+	IsImportReference() bool
+	// IsUnresolvedImportReference returns whether the ref is an import reference that has
+	// no remote or local information set.
+	IsUnresolvedImportReference() bool
 
 	// DebugString returns a string that can be printed out for debugging purposes.
 	DebugString() string
 
-	// String returns a string representation of the Target.
+	// String returns a string representation of the ref.
 	String() string
 
-	// StringCanonical returns a string representation of the Target, in canonical form.
+	// StringCanonical returns a string representation of the ref, in canonical form.
 	StringCanonical() string
-	// ProjectCanonical returns a string representation of the project of the target, in canonical form.
+	// ProjectCanonical returns a string representation of the project of the ref, in canonical form.
 	ProjectCanonical() string
 }
 
 // JoinReferences returns the result of interpreting r2 as relative to r1. The result will always have
 // the same type as r2.
 func JoinReferences(r1 Reference, r2 Reference) (Reference, error) {
+	if r1.IsUnresolvedImportReference() || r2.IsUnresolvedImportReference() {
+		return nil, errors.New("unresolved import references cannot be joined")
+	}
 	gitURL := r2.GetGitURL()
 	tag := r2.GetTag()
 	localPath := r2.GetLocalPath()
@@ -87,6 +98,7 @@ func JoinReferences(r1 Reference, r2 Reference) (Reference, error) {
 			GitURL:    gitURL,
 			Tag:       tag,
 			LocalPath: localPath,
+			ImportRef: r2.GetImportRef(),
 			Target:    name,
 		}, nil
 	case Command:
@@ -94,14 +106,18 @@ func JoinReferences(r1 Reference, r2 Reference) (Reference, error) {
 			GitURL:    gitURL,
 			Tag:       tag,
 			LocalPath: localPath,
+			ImportRef: r2.GetImportRef(),
 			Command:   name,
 		}, nil
 	default:
-		return nil, errors.New("joining references not supported for this type")
+		return nil, errors.Errorf("joining references not supported for type %T", r2)
 	}
 }
 
 func referenceString(r Reference) string {
+	if r.IsImportReference() {
+		return fmt.Sprintf("%s+%s", escapePlus(r.GetImportRef()), r.GetName())
+	}
 	if r.IsLocalExternal() {
 		return fmt.Sprintf("%s+%s", escapePlus(r.GetLocalPath()), r.GetName())
 	}
@@ -110,7 +126,7 @@ func referenceString(r Reference) string {
 		if r.GetTag() != "" {
 			s += ":" + escapePlus(r.GetTag())
 		}
-		s += "+" + escapePlus(r.GetName())
+		s += "+" + r.GetName()
 		return s
 	}
 	// Local internal.
@@ -123,10 +139,17 @@ func referenceStringCanonical(r Reference) string {
 		if r.GetTag() != "" {
 			s += ":" + escapePlus(r.GetTag())
 		}
-		s += "+" + escapePlus(r.GetName())
+		s += "+" + r.GetName()
 		return s
 	}
-	return r.String()
+	if r.GetLocalPath() == "." {
+		return fmt.Sprintf("+%s", r.GetName())
+	}
+	if r.GetLocalPath() == "" && r.GetImportRef() != "" {
+		return fmt.Sprintf("%s+%s", escapePlus(r.GetImportRef()), r.GetName())
+	}
+	// Local external.
+	return fmt.Sprintf("%s+%s", escapePlus(r.GetLocalPath()), r.GetName())
 }
 
 func referenceProjectCanonical(r Reference) string {
@@ -140,20 +163,23 @@ func referenceProjectCanonical(r Reference) string {
 	if r.GetLocalPath() == "." {
 		return ""
 	}
-	return escapePlus(path.Base(r.GetLocalPath()))
+	if r.GetLocalPath() == "" && r.GetImportRef() != "" {
+		return escapePlus(r.GetImportRef())
+	}
+	return escapePlus(r.GetLocalPath())
 }
 
-func parseCommon(fullName string) (gitURL string, tag string, localPath string, name string, err error) {
+func parseCommon(fullName string) (gitURL string, tag string, localPath string, importRef string, name string, err error) {
 	partsPlus, err := splitUnescapePlus(fullName)
 	if err != nil {
-		return "", "", "", "", err
+		return "", "", "", "", "", err
 	}
 	if len(partsPlus) != 2 {
-		return "", "", "", "", fmt.Errorf("invalid target ref %s", fullName)
+		return "", "", "", "", "", fmt.Errorf("invalid target ref %s", fullName)
 	}
 	if partsPlus[0] == "" {
 		// Local target.
-		return "", "", ".", partsPlus[1], nil
+		return "", "", ".", "", partsPlus[1], nil
 	} else if strings.HasPrefix(partsPlus[0], ".") ||
 		strings.HasPrefix(partsPlus[0], "/") {
 		// Local external target.
@@ -166,16 +192,21 @@ func parseCommon(fullName string) (gitURL string, tag string, localPath string, 
 				localPath = fmt.Sprintf("./%s", localPath)
 			}
 		}
-		return "", "", localPath, partsPlus[1], nil
+		return "", "", localPath, "", partsPlus[1], nil
 	}
 
-	// Remote target.
-	partsColon := strings.SplitN(partsPlus[0], ":", 2)
-	if len(partsColon) == 2 {
-		tag = partsColon[1]
+	if strings.ContainsAny(partsPlus[0], "/:") {
+		// Remote target.
+		partsColon := strings.SplitN(partsPlus[0], ":", 2)
+		if len(partsColon) == 2 {
+			tag = partsColon[1]
+		}
+
+		return partsColon[0], tag, "", "", partsPlus[1], nil
 	}
 
-	return partsColon[0], tag, "", partsPlus[1], nil
+	// Import reference.
+	return "", "", "", partsPlus[0], partsPlus[1], nil
 }
 
 // splitUnescapePlus performs a split on "+", but it accounts for escaping as "\+".

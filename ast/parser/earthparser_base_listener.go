@@ -345,6 +345,12 @@ func (s *BaseEarthParserListener) EnterDoStmt(ctx *DoStmtContext) {}
 // ExitDoStmt is called when production doStmt is exited.
 func (s *BaseEarthParserListener) ExitDoStmt(ctx *DoStmtContext) {}
 
+// EnterImportStmt is called when production importStmt is entered.
+func (s *BaseEarthParserListener) EnterImportStmt(ctx *ImportStmtContext) {}
+
+// ExitImportStmt is called when production importStmt is exited.
+func (s *BaseEarthParserListener) ExitImportStmt(ctx *ImportStmtContext) {}
+
 // EnterExpr is called when production expr is entered.
 func (s *BaseEarthParserListener) EnterExpr(ctx *ExprContext) {}
 

@@ -10,11 +10,9 @@ import (
 	"time"
 
 	"github.com/earthly/earthly/ast/spec"
-	"github.com/earthly/earthly/buildcontext"
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/llbutil"
 	"github.com/earthly/earthly/variables"
-	gwclient "github.com/moby/buildkit/frontend/gateway/client"
 	specs "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
 )
@@ -22,8 +20,6 @@ import (
 // Interpreter interprets Earthly AST's into calls to the converter.
 type Interpreter struct {
 	converter *Converter
-	resolver  *buildcontext.Resolver
-	gwClient  gwclient.Client
 
 	target domain.Target
 
@@ -38,11 +34,9 @@ type Interpreter struct {
 	withDockerRan bool
 }
 
-func newInterpreter(c *Converter, r *buildcontext.Resolver, g gwclient.Client, t domain.Target) *Interpreter {
+func newInterpreter(c *Converter, t domain.Target) *Interpreter {
 	return &Interpreter{
 		converter: c,
-		resolver:  r,
-		gwClient:  g,
 		target:    t,
 		stack:     c.StackString(),
 	}
@@ -174,6 +168,8 @@ func (i *Interpreter) handleCommand(ctx context.Context, cmd spec.Command) (err 
 		return i.handleUserCommand(ctx, cmd)
 	case "DO":
 		return i.handleDo(ctx, cmd)
+	case "IMPORT":
+		return i.handleImport(ctx, cmd)
 	default:
 		return i.errorf(cmd.SourceLocation, "unexpected command %s", cmd.Name)
 	}
@@ -944,7 +940,7 @@ func (i *Interpreter) handleLabel(ctx context.Context, cmd spec.Command) error {
 			nextKey = true
 		}
 	}
-	if nextKey != true {
+	if !nextKey {
 		return i.errorf(cmd.SourceLocation, "syntax error")
 	}
 	if len(labels) == 0 {
@@ -1150,27 +1146,44 @@ func (i *Interpreter) handleDo(ctx context.Context, cmd spec.Command) error {
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "unable to parse user command reference %s", ucName)
 	}
-	commandRef, err := domain.JoinReferences(i.target, relCommand)
-	if err != nil {
-		return i.wrapError(err, cmd.SourceLocation, "join targets")
-	}
-	command := commandRef.(domain.Command)
-
-	bc, err := i.resolver.Resolve(ctx, i.gwClient, command)
+	bc, err := i.converter.ResolveReference(ctx, relCommand)
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "unable to resolve user command %s", ucName)
 	}
+	command := bc.Ref.(domain.Command)
+
 	for _, uc := range bc.Earthfile.UserCommands {
 		if uc.Name == command.Command {
-			return i.handleDoUserCommand(ctx, command, uc, cmd, parsedFlagArgs)
+			return i.handleDoUserCommand(ctx, command, relCommand, uc, cmd, parsedFlagArgs)
 		}
 	}
 	return i.errorf(cmd.SourceLocation, "user command %s not found", ucName)
 }
 
+func (i *Interpreter) handleImport(ctx context.Context, cmd spec.Command) error {
+	cmdArgs := getArgsCopy(cmd)
+	if len(cmdArgs) != 1 && len(cmdArgs) != 3 {
+		return i.errorf(cmd.SourceLocation, "invalid number of arguments for IMPORT: %s", cmdArgs)
+	}
+	if len(cmdArgs) == 3 && cmdArgs[1] != "AS" {
+		return i.errorf(cmd.SourceLocation, "invalid arguments for IMPORT: %s", cmdArgs)
+	}
+	importStr := i.expandArgs(cmdArgs[0], false)
+	var as string
+	if len(cmdArgs) == 3 {
+		as = i.expandArgs(cmdArgs[2], false)
+	}
+	isGlobal := (i.target.Target == "base")
+	err := i.converter.Import(ctx, importStr, as, isGlobal)
+	if err != nil {
+		return i.wrapError(err, cmd.SourceLocation, "apply IMPORT")
+	}
+	return nil
+}
+
 // ----------------------------------------------------------------------------
 
-func (i *Interpreter) handleDoUserCommand(ctx context.Context, command domain.Command, uc spec.UserCommand, do spec.Command, buildArgs []string) error {
+func (i *Interpreter) handleDoUserCommand(ctx context.Context, command domain.Command, relCommand domain.Command, uc spec.UserCommand, do spec.Command, buildArgs []string) error {
 	if len(uc.Recipe) == 0 || uc.Recipe[0].Command.Name != "COMMAND" {
 		return i.errorf(uc.SourceLocation, "command recipes must start with COMMAND")
 	}
@@ -1180,7 +1193,7 @@ func (i *Interpreter) handleDoUserCommand(ctx context.Context, command domain.Co
 	scopeName := fmt.Sprintf(
 		"%s (%s line %d:%d)",
 		command.StringCanonical(), do.SourceLocation.File, do.SourceLocation.StartLine, do.SourceLocation.StartColumn)
-	err := i.converter.EnterScope(ctx, scopeName, buildArgs)
+	err := i.converter.EnterScope(ctx, baseTarget(relCommand), scopeName, buildArgs)
 	if err != nil {
 		return i.wrapError(err, uc.SourceLocation, "enter scope")
 	}
@@ -1400,4 +1413,14 @@ func (ssf *StringSliceFlag) String() string {
 func (ssf *StringSliceFlag) Set(arg string) error {
 	ssf.Args = append(ssf.Args, arg)
 	return nil
+}
+
+func baseTarget(ref domain.Reference) domain.Target {
+	return domain.Target{
+		GitURL:    ref.GetGitURL(),
+		Tag:       ref.GetTag(),
+		ImportRef: ref.GetImportRef(),
+		LocalPath: ref.GetLocalPath(),
+		Target:    "base",
+	}
 }

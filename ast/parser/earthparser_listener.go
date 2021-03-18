@@ -170,6 +170,9 @@ type EarthParserListener interface {
 	// EnterDoStmt is called when entering the doStmt production.
 	EnterDoStmt(c *DoStmtContext)
 
+	// EnterImportStmt is called when entering the importStmt production.
+	EnterImportStmt(c *ImportStmtContext)
+
 	// EnterExpr is called when entering the expr production.
 	EnterExpr(c *ExprContext)
 
@@ -343,6 +346,9 @@ type EarthParserListener interface {
 
 	// ExitDoStmt is called when exiting the doStmt production.
 	ExitDoStmt(c *DoStmtContext)
+
+	// ExitImportStmt is called when exiting the importStmt production.
+	ExitImportStmt(c *ImportStmtContext)
 
 	// ExitExpr is called when exiting the expr production.
 	ExitExpr(c *ExprContext)

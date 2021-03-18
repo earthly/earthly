@@ -12,6 +12,7 @@ import (
 
 type stackFrame struct {
 	frameName string
+	imports   *domain.ImportTracker
 
 	// Always inactive scopes. These scopes only influence newly declared
 	// args. They do not otherwise participate when args are expanded.
@@ -35,12 +36,13 @@ type Collection struct {
 }
 
 // NewCollection creates a new Collection to be used in the context of a target.
-func NewCollection(target domain.Target, platform specs.Platform, gitMeta *gitutil.GitMetadata, overridingVars *Scope) *Collection {
+func NewCollection(target domain.Target, platform specs.Platform, gitMeta *gitutil.GitMetadata, overridingVars *Scope, globalImports map[string]string) *Collection {
 	return &Collection{
 		builtin: BuiltinArgs(target, platform, gitMeta),
 		envs:    NewScope(),
 		stack: []*stackFrame{{
 			frameName:  target.StringCanonical(),
+			imports:    domain.NewImportTracker(globalImports),
 			overriding: overridingVars,
 			args:       NewScope(),
 			globals:    NewScope(),
@@ -102,7 +104,7 @@ func (c *Collection) SortedActiveVariables() []string {
 
 // SortedOverridingVariables returns the overriding variable names in a sorted slice.
 func (c *Collection) SortedOverridingVariables() []string {
-	return c.overriding().SortedActive()
+	return c.overriding().SortedAny()
 }
 
 // Expand expands variables within the given word.
@@ -146,10 +148,16 @@ func (c *Collection) DeclareEnv(name string, value string) {
 	c.effectiveCache = nil
 }
 
+// Imports returns the imports tracker of the current frame.
+func (c *Collection) Imports() *domain.ImportTracker {
+	return c.frame().imports
+}
+
 // EnterFrame creates a new stack frame.
-func (c *Collection) EnterFrame(frameName string, overriding *Scope) {
+func (c *Collection) EnterFrame(frameName string, overriding *Scope, globals *Scope, globalImports map[string]string) {
 	c.stack = append(c.stack, &stackFrame{
 		frameName:  frameName,
+		imports:    domain.NewImportTracker(globalImports),
 		overriding: overriding,
 		globals:    NewScope(),
 		args:       NewScope(),
@@ -164,6 +172,11 @@ func (c *Collection) ExitFrame() {
 	}
 	c.stack = c.stack[:(len(c.stack) - 1)]
 	c.effectiveCache = nil
+}
+
+// IsStackAtBase returns whether the stack has size 1.
+func (c *Collection) IsStackAtBase() bool {
+	return len(c.stack) == 1
 }
 
 // StackString returns the stack as a string.
