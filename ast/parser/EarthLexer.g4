@@ -43,7 +43,7 @@ NL: WS? COMMENT? (EOF | CRLF);
 WS: [ \t] ([ \t] | LC)*;
 fragment CRLF: ('\r' | '\n' | '\r\n');
 fragment COMMENT: '#' (~[\r\n])*;
-fragment LC: '\\' [ \t]* ([ \t] | CRLF | COMMENT)*;
+fragment LC: '\\' [ \t]* (COMMENT|CRLF);
 
 // ----------------------------------------------------------------------------
 
@@ -136,26 +136,11 @@ mode COMMAND_ARGS;
 Atom: (RegularAtomPart | QuotedAtomPart)+;
 fragment QuotedAtomPart: '"' (~('"' | '\\') | ('\\' .))* '"';
 
-//fragment RegularAtomPart: ~([ \t\r\n\\"]) | EscapedAtomPart;
-//fragment RegularAtomPart: (~(' ' | '\t' | '\r' | '\n' | '\\' | '"')); // | ('\\' .);
+fragment RegularAtomPart: ~([ \t\r\n\\"]) | EscapedAtomPart;
+fragment EscapedAtomPart: ('\\' ~[ \t\r\n]) | (LC [ \t]*);
 
-fragment RegularAtomPart: ~([ \t\r\n"\\]) | ('\\' (~([ \t\r\n])));
-
-NL_C: (EOF | CRLF) -> type(NL), popMode;
-WS_C: [ \t] ([ \t] | LC_C)* -> type(WS);
-
-fragment LC_C: '\\' [ \t]* CRLF;
-
-//WS_C: [ \t]
-
-
-//NL: WS? COMMENT? (EOF | CRLF);
-//WS: [ \t] ([ \t] | LC)*;
-//fragment LC: '\\' [ \t]* ([ \t] | CRLF | COMMENT)*;
-//
-//
-//NL_C: NL -> type(NL), popMode;
-//WS_C: WS -> type(WS);
+NL_C: NL -> type(NL), popMode;
+WS_C: WS -> type(WS);
 
 // ----------------------------------------------------------------------------
 
@@ -178,7 +163,6 @@ EQUALS: '=' -> mode(COMMAND_ARGS);
 // Similar Atom, but don't allow '=' as part of it, unless it's in quotes.
 Atom_CAKV: (RegularAtomPart_CAKV | QuotedAtomPart)+ -> type(Atom);
 fragment RegularAtomPart_CAKV: ~([ \t\r\n"=]) | EscapedAtomPart;
-fragment EscapedAtomPart: ('\\' .) | (LC [ \t]*);
 
 NL_CAKV: NL -> type(NL), popMode;
 WS_CAKV: WS -> type(WS);
