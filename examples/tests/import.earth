@@ -1,10 +1,12 @@
 
 IMPORT github.com/earthly/earthly-command-example:main
+IMPORT github.com/earthly/earthly-command-example:import AS command-import
 IMPORT github.com/earthly/hello-world:main AS hello-dolly
 
 all:
     BUILD +test-command
     BUILD +test-target
+    BUILD +test-command-import
 
 test-command:
     FROM alpine:3.13
@@ -13,3 +15,6 @@ test-command:
 
 test-target:
     FROM hello-dolly+hello
+
+test-command-import:
+    DO command-import+FROM_HELLO_WORLD

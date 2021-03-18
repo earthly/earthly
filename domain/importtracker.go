@@ -78,8 +78,16 @@ func (ir *ImportTracker) Add(importStr string, as string, global bool) error {
 	}
 
 	if global {
+		_, exists := ir.global[as]
+		if exists {
+			return errors.Errorf("import ref %s already exists in this scope", as)
+		}
 		ir.global[as] = importStr
 	} else {
+		_, exists := ir.local[as]
+		if exists {
+			return errors.Errorf("import ref %s already exists in this scope", as)
+		}
 		ir.local[as] = importStr
 	}
 	return nil

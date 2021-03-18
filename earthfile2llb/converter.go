@@ -988,6 +988,10 @@ func (c *Converter) Healthcheck(ctx context.Context, isNone bool, cmdArgs []stri
 
 // Import applies the IMPORT command.
 func (c *Converter) Import(ctx context.Context, importStr, as string, isGlobal bool) error {
+	err := c.checkAllowed("IMPORT")
+	if err != nil {
+		return err
+	}
 	return c.varCollection.Imports().Add(importStr, as, isGlobal)
 }
 
@@ -1465,10 +1469,10 @@ func (c *Converter) checkAllowed(command string) error {
 	}
 
 	switch command {
-	case "FROM", "FROM DOCKERFILE", "LOCALLY", "BUILD", "ARG":
+	case "FROM", "FROM DOCKERFILE", "LOCALLY", "BUILD", "ARG", "IMPORT":
 		return nil
 	default:
-		return errors.New("the first command has to be FROM, FROM DOCKERFILE, LOCALLY, ARG or BUILD")
+		return errors.New("the first command has to be FROM, FROM DOCKERFILE, LOCALLY, ARG, BUILD or IMPORT")
 	}
 }
 

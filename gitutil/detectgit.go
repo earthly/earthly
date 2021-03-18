@@ -251,6 +251,7 @@ func ReferenceWithGitMeta(ref domain.Reference, gitMeta *GitMetadata) domain.Ref
 	tag := ref.GetTag()
 	localPath := ref.GetLocalPath()
 	name := ref.GetName()
+	importRef := ref.GetImportRef()
 
 	if tag == "" {
 		if len(gitMeta.Tags) > 0 {
@@ -268,6 +269,7 @@ func ReferenceWithGitMeta(ref domain.Reference, gitMeta *GitMetadata) domain.Ref
 			GitURL:    gitURL,
 			Tag:       tag,
 			LocalPath: localPath,
+			ImportRef: importRef,
 			Target:    name,
 		}
 	case domain.Command:
@@ -275,6 +277,7 @@ func ReferenceWithGitMeta(ref domain.Reference, gitMeta *GitMetadata) domain.Ref
 			GitURL:    gitURL,
 			Tag:       tag,
 			LocalPath: localPath,
+			ImportRef: importRef,
 			Command:   name,
 		}
 	default:
