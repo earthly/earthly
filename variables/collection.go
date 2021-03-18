@@ -104,7 +104,7 @@ func (c *Collection) SortedActiveVariables() []string {
 
 // SortedOverridingVariables returns the overriding variable names in a sorted slice.
 func (c *Collection) SortedOverridingVariables() []string {
-	return c.overriding().SortedActive()
+	return c.overriding().SortedAny()
 }
 
 // Expand expands variables within the given word.
