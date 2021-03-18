@@ -984,14 +984,38 @@ func (c *Converter) Healthcheck(ctx context.Context, isNone bool, cmdArgs []stri
 	return nil
 }
 
-// EnterScope introduces a new variable scope.
-func (c *Converter) EnterScope(ctx context.Context, scopeName string, buildArgs []string) error {
+// ResolveReference resolves a reference's build context given the current state: relativity to the Earthfile, imports etc.
+func (c *Converter) ResolveReference(ctx context.Context, ref domain.Reference) (*buildcontext.Data, error) {
+	derefed, err := c.varCollection.Imports().Deref(ref)
+	if err != nil {
+		return nil, err
+	}
+	refToResolve, err := domain.JoinReferences(c.mts.Final.Target, derefed)
+	if err != nil {
+		return nil, err
+	}
+	bc, err := c.opt.Resolver.Resolve(ctx, c.opt.GwClient, refToResolve)
+	if err != nil {
+		return nil, err
+	}
+	return bc, nil
+}
+
+// EnterScope introduces a new variable scope. Gloabls and imports are fetched from baseTarget.
+func (c *Converter) EnterScope(ctx context.Context, baseTarget domain.Target, scopeName string, buildArgs []string) error {
+	baseMts, err := c.buildTarget(ctx, baseTarget.String(), c.mts.Final.Platform, nil, true)
+	if err != nil {
+		return err
+	}
+
 	overriding, err := variables.ParseArgs(
 		buildArgs, c.processNonConstantBuildArgFunc(ctx), c.varCollection)
 	if err != nil {
 		return err
 	}
-	c.varCollection.EnterFrame(scopeName, overriding)
+	c.varCollection.EnterFrame(
+		scopeName, overriding, baseMts.Final.VarCollection.Globals(),
+		baseMts.Final.GlobalImports)
 	return nil
 }
 
@@ -1010,8 +1034,13 @@ func (c *Converter) StackString() string {
 func (c *Converter) FinalizeStates(ctx context.Context) (*states.MultiTarget, error) {
 	c.markFakeDeps()
 
+	if !c.varCollection.IsStackAtBase() {
+		// Should never happen.
+		return nil, errors.New("internal error: stack not at base in FinalizeStates")
+	}
 	c.opt.BuildContextProvider.AddDirs(c.mts.Final.LocalDirs)
 	c.mts.Final.VarCollection = c.varCollection
+	c.mts.Final.GlobalImports = c.varCollection.Imports().GlobalImports()
 	c.mts.Final.Ongoing = false
 	return c.mts, nil
 }
@@ -1026,7 +1055,11 @@ func (c *Converter) buildTarget(ctx context.Context, fullTargetName string, plat
 	if err != nil {
 		return nil, errors.Wrapf(err, "earthly target parse %s", fullTargetName)
 	}
-	targetRef, err := domain.JoinReferences(c.mts.Final.Target, relTarget)
+	derefedTarget, err := c.varCollection.Imports().Deref(relTarget)
+	if err != nil {
+		return nil, err
+	}
+	targetRef, err := domain.JoinReferences(c.mts.Final.Target, derefedTarget)
 	if err != nil {
 		return nil, errors.Wrap(err, "join targets")
 	}
@@ -1047,6 +1080,11 @@ func (c *Converter) buildTarget(ctx context.Context, fullTargetName string, plat
 	opt := c.opt
 	opt.Visited = c.mts.Visited
 	opt.OverridingVars = overriding
+	if relTarget.IsExternal() {
+		opt.GlobalImports = nil
+	} else {
+		opt.GlobalImports = c.varCollection.Imports().GlobalImports()
+	}
 	opt.Platform, err = llbutil.ResolvePlatform(platform, c.opt.Platform)
 	if err != nil {
 		// Contradiction allowed. You can BUILD another target with different platform.

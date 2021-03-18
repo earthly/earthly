@@ -51,6 +51,10 @@ type Reference interface {
 // JoinReferences returns the result of interpreting r2 as relative to r1. The result will always have
 // the same type as r2.
 func JoinReferences(r1 Reference, r2 Reference) (Reference, error) {
+	if (r1.IsImportReference() && !r1.IsRemote() && !r1.IsLocalExternal()) ||
+		(r2.IsImportReference() && !r2.IsRemote() && !r2.IsLocalExternal()) {
+		return nil, errors.New("unresolved import references cannot be joined")
+	}
 	gitURL := r2.GetGitURL()
 	tag := r2.GetTag()
 	localPath := r2.GetLocalPath()

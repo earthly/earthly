@@ -1,10 +1,9 @@
-package buildcontext
+package domain
 
 import (
 	"testing"
 
-	"github.com/earthly/earthly/domain"
-	. "github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestImports(t *testing.T) {
@@ -33,21 +32,21 @@ func TestImports(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		ir := NewImportResolver(nil, nil)
+		ir := NewImportTracker(nil)
 		err := ir.AddImport(tt.importStr, tt.as, false)
-		NoError(t, err, "add import error")
+		assert.NoError(t, err, "add import error")
 
-		ref, err := domain.ParseTarget(tt.ref)
-		NoError(t, err, "parse test case ref") // check that the test data is good
-		Equal(t, tt.ref, ref.String())         // sanity check
+		ref, err := ParseTarget(tt.ref)
+		assert.NoError(t, err, "parse test case ref") // check that the test data is good
+		assert.Equal(t, tt.ref, ref.String())         // sanity check
 
-		ref2, err := ir.DerefImport(ref)
+		ref2, err := ir.Deref(ref)
 		if tt.ok {
-			NoError(t, err, "deref import")
-			Equal(t, tt.expected, ref2.StringCanonical()) // StringCanonical shows its resolved form
-			Equal(t, tt.ref, ref2.String())               // String shows its import form
+			assert.NoError(t, err, "deref import")
+			assert.Equal(t, tt.expected, ref2.StringCanonical()) // StringCanonical shows its resolved form
+			assert.Equal(t, tt.ref, ref2.String())               // String shows its import form
 		} else {
-			Error(t, err, "deref should have error'd")
+			assert.Error(t, err, "deref should have error'd")
 		}
 	}
 }

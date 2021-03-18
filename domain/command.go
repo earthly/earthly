@@ -57,7 +57,7 @@ func (ec Command) IsExternal() bool {
 	return ec.IsRemote() || ec.IsLocalExternal() || ec.IsImportReference()
 }
 
-// IsLocalInternal returns whether the command is a local.
+// IsLocalInternal returns whether the command is in the same Earthfile.
 func (ec Command) IsLocalInternal() bool {
 	return ec.LocalPath == "."
 }
@@ -79,7 +79,7 @@ func (ec Command) IsImportReference() bool {
 
 // DebugString returns a string that can be printed out for debugging purposes
 func (ec Command) DebugString() string {
-	return fmt.Sprintf("gitURL: %q; tag: %q; LocalPath: %q; Command: %q", ec.GitURL, ec.Tag, ec.LocalPath, ec.Command)
+	return fmt.Sprintf("gitURL: %q; tag: %q; LocalPath: %q; ImportRef: %q; Command: %q", ec.GitURL, ec.Tag, ec.LocalPath, ec.ImportRef, ec.Command)
 }
 
 // String returns a string representation of the command.

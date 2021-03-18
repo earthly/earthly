@@ -26,6 +26,8 @@ type ConvertOpt struct {
 	GwClient gwclient.Client
 	// Resolver is the build context resolver.
 	Resolver *buildcontext.Resolver
+	// GlobalImports is a map of imports used to dereference import ref targets, commands, etc.
+	GlobalImports map[string]string
 	// The resolve mode for referenced images (force pull or prefer local).
 	ImageResolveMode llb.ResolveMode
 	// DockerBuilderFun is a fun that can be used to execute an image build. This
@@ -122,7 +124,7 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt) (m
 	if err != nil {
 		return nil, err
 	}
-	interpreter := newInterpreter(converter, opt.Resolver, opt.GwClient, target)
+	interpreter := newInterpreter(converter, target)
 	err = interpreter.Run(ctx, bc.Earthfile)
 	if err != nil {
 		return nil, err

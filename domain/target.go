@@ -57,7 +57,7 @@ func (et Target) IsExternal() bool {
 	return et.IsRemote() || et.IsLocalExternal() || et.IsImportReference()
 }
 
-// IsLocalInternal returns whether the target is a local.
+// IsLocalInternal returns whether the target is in the same Earthfile.
 func (et Target) IsLocalInternal() bool {
 	return et.LocalPath == "."
 }
@@ -79,7 +79,7 @@ func (et Target) IsImportReference() bool {
 
 // DebugString returns a string that can be printed out for debugging purposes
 func (et Target) DebugString() string {
-	return fmt.Sprintf("gitURL: %q; tag: %q; LocalPath: %q; Target: %q", et.GitURL, et.Tag, et.LocalPath, et.Target)
+	return fmt.Sprintf("GitURL: %q; Tag: %q; LocalPath: %q; ImportRef: %q; Target: %q", et.GitURL, et.Tag, et.LocalPath, et.ImportRef, et.Target)
 }
 
 // String returns a string representation of the Target.

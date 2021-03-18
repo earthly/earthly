@@ -1,50 +1,44 @@
-package buildcontext
+package domain
 
 import (
-	"context"
 	"fmt"
 	"strings"
 
-	"github.com/earthly/earthly/domain"
-	gwclient "github.com/moby/buildkit/frontend/gateway/client"
 	"github.com/pkg/errors"
 )
 
-// ImportResolver is a resolver which also takes into account imports.
-type ImportResolver struct {
-	resolver *Resolver
-
+// ImportTracker is a resolver which also takes into account imports.
+type ImportTracker struct {
 	localImports  map[string]string // local name -> import full path
 	globalImports map[string]string // local name -> import full path
 }
 
-// NewImportResolver creates a new import resolver.
-func NewImportResolver(r *Resolver, globalImports map[string]string) *ImportResolver {
+// NewImportTracker creates a new import resolver.
+func NewImportTracker(globalImports map[string]string) *ImportTracker {
 	li := make(map[string]string)
 	gi := make(map[string]string)
 	for k, v := range globalImports {
 		gi[k] = v
 		li[k] = v
 	}
-	return &ImportResolver{
-		resolver:      r,
+	return &ImportTracker{
 		localImports:  li,
 		globalImports: gi,
 	}
 }
 
 // GlobalImports returns the internal map of global imports.
-func (ir *ImportResolver) GlobalImports() map[string]string {
+func (ir *ImportTracker) GlobalImports() map[string]string {
 	return ir.globalImports
 }
 
 // AddImport adds an import to the resolver.
-func (ir *ImportResolver) AddImport(importStr string, as string, global bool) error {
+func (ir *ImportTracker) AddImport(importStr string, as string, global bool) error {
 	if importStr == "" {
 		return errors.New("IMPORTing empty string not supported")
 	}
 	aTarget := fmt.Sprintf("%s+none", importStr) // form a fictional target for parasing purposes
-	parsedImport, err := domain.ParseTarget(aTarget)
+	parsedImport, err := ParseTarget(aTarget)
 	if err != nil {
 		return errors.Wrapf(err, "could not parse IMPORT %s", importStr)
 	}
@@ -68,7 +62,7 @@ func (ir *ImportResolver) AddImport(importStr string, as string, global bool) er
 		return errors.Errorf("IMPORT %s not supported", importStr)
 	}
 	if (defaultAs == "." || defaultAs == "..") && as == "" {
-		return errors.New("IMPORT requires AS if the import path ends with . or ..")
+		return errors.New("IMPORT requires AS if the import path ends with \".\" or \"..\"")
 	}
 	if as == "" {
 		as = defaultAs
@@ -84,34 +78,34 @@ func (ir *ImportResolver) AddImport(importStr string, as string, global bool) er
 	return nil
 }
 
-// DerefImport resolves the import (if any) and returns a reference with the full path.
-func (ir *ImportResolver) DerefImport(ref domain.Reference) (domain.Reference, error) {
+// Deref resolves the import (if any) and returns a reference with the full path.
+func (ir *ImportTracker) Deref(ref Reference) (Reference, error) {
 	if ref.IsImportReference() {
 		fullPath, ok := ir.localImports[ref.GetImportRef()]
 		if !ok {
 			return nil, errors.Errorf("import reference %s could not be resolved", ref.GetImportRef())
 		}
-		var resolvedRef domain.Reference
+		var resolvedRef Reference
 		resolvedRefStr := fmt.Sprintf("%s+%s", fullPath, ref.GetName())
 		switch ref.(type) {
-		case domain.Target:
-			ref2, err := domain.ParseTarget(resolvedRefStr)
+		case Target:
+			ref2, err := ParseTarget(resolvedRefStr)
 			if err != nil {
 				return nil, err
 			}
-			resolvedRef = &domain.Target{
+			resolvedRef = &Target{
 				GitURL:    ref2.GitURL,
 				Tag:       ref2.Tag,
 				LocalPath: ref2.LocalPath,
 				Target:    ref2.Target,
 				ImportRef: ref.GetImportRef(), // set import ref too
 			}
-		case domain.Command:
-			ref2, err := domain.ParseCommand(resolvedRefStr)
+		case Command:
+			ref2, err := ParseCommand(resolvedRefStr)
 			if err != nil {
 				return nil, err
 			}
-			resolvedRef = &domain.Command{
+			resolvedRef = &Command{
 				GitURL:    ref2.GitURL,
 				Tag:       ref2.Tag,
 				LocalPath: ref2.LocalPath,
@@ -124,13 +118,4 @@ func (ir *ImportResolver) DerefImport(ref domain.Reference) (domain.Reference, e
 		return resolvedRef, nil
 	}
 	return ref, nil
-}
-
-// Resolve is similar to Resolver.Resolve, except that is also takes into account imports.
-func (ir *ImportResolver) Resolve(ctx context.Context, gwClient gwclient.Client, ref domain.Reference) (*Data, error) {
-	resolvedRef, err := ir.DerefImport(ref)
-	if err != nil {
-		return nil, err
-	}
-	return ir.resolver.Resolve(ctx, gwClient, resolvedRef)
 }
