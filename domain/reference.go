@@ -21,38 +21,40 @@ type Reference interface {
 	// GetName is the target name or the command name of the reference. E.g. in "+something" this is "something".
 	GetName() string
 
-	// IsExternal returns whether the target is external to the current project.
+	// IsExternal returns whether the ref is external to the current project.
 	IsExternal() bool
 
-	// IsLocalInternal returns whether the target is a local.
+	// IsLocalInternal returns whether the ref is a local.
 	IsLocalInternal() bool
 
-	// IsLocalExternal returns whether the target is a local, but external target.
+	// IsLocalExternal returns whether the ref is a local, but external target.
 	IsLocalExternal() bool
 
-	// IsRemote returns whether the target is remote.
+	// IsRemote returns whether the ref is remote.
 	IsRemote() bool
 
-	// IsImportReference returns whether the target is a reference to an import.
+	// IsImportReference returns whether the ref is a reference to an import.
 	IsImportReference() bool
+	// IsUnresolvedImportReference returns whether the ref is an import reference that has
+	// no remote or local information set.
+	IsUnresolvedImportReference() bool
 
 	// DebugString returns a string that can be printed out for debugging purposes.
 	DebugString() string
 
-	// String returns a string representation of the Target.
+	// String returns a string representation of the ref.
 	String() string
 
-	// StringCanonical returns a string representation of the Target, in canonical form.
+	// StringCanonical returns a string representation of the ref, in canonical form.
 	StringCanonical() string
-	// ProjectCanonical returns a string representation of the project of the target, in canonical form.
+	// ProjectCanonical returns a string representation of the project of the ref, in canonical form.
 	ProjectCanonical() string
 }
 
 // JoinReferences returns the result of interpreting r2 as relative to r1. The result will always have
 // the same type as r2.
 func JoinReferences(r1 Reference, r2 Reference) (Reference, error) {
-	if (r1.IsImportReference() && !r1.IsRemote() && !r1.IsLocalExternal()) ||
-		(r2.IsImportReference() && !r2.IsRemote() && !r2.IsLocalExternal()) {
+	if r1.IsUnresolvedImportReference() || r2.IsUnresolvedImportReference() {
 		return nil, errors.New("unresolved import references cannot be joined")
 	}
 	gitURL := r2.GetGitURL()

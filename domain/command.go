@@ -77,6 +77,12 @@ func (ec Command) IsImportReference() bool {
 	return ec.ImportRef != ""
 }
 
+// IsUnresolvedImportReference returns whether the command is an import reference that has
+// no remote or local information set.
+func (ec Command) IsUnresolvedImportReference() bool {
+	return ec.IsImportReference() && !ec.IsRemote() && !ec.IsLocalExternal()
+}
+
 // DebugString returns a string that can be printed out for debugging purposes
 func (ec Command) DebugString() string {
 	return fmt.Sprintf("gitURL: %q; tag: %q; LocalPath: %q; ImportRef: %q; Command: %q", ec.GitURL, ec.Tag, ec.LocalPath, ec.ImportRef, ec.Command)
