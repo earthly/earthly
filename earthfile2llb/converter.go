@@ -78,7 +78,9 @@ func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Da
 		sts.TargetInput = sts.TargetInput.WithBuildArgInput(
 			dedup.BuildArgInput{ConstantValue: ovVar, Name: key})
 	}
-	vc := variables.NewCollection(target, llbutil.PlatformWithDefault(opt.Platform), bc.GitMetadata, opt.OverridingVars)
+	vc := variables.NewCollection(
+		target, llbutil.PlatformWithDefault(opt.Platform), bc.GitMetadata, opt.OverridingVars,
+		opt.GlobalImports)
 	targetStr := target.String()
 	opt.Visited.Add(targetStr, sts)
 	return &Converter{
@@ -984,6 +986,11 @@ func (c *Converter) Healthcheck(ctx context.Context, isNone bool, cmdArgs []stri
 	return nil
 }
 
+// Import applies the IMPORT command.
+func (c *Converter) Import(ctx context.Context, importStr, as string, isGlobal bool) error {
+	return c.varCollection.Imports().Add(importStr, as, isGlobal)
+}
+
 // ResolveReference resolves a reference's build context given the current state: relativity to the Earthfile, imports etc.
 func (c *Converter) ResolveReference(ctx context.Context, ref domain.Reference) (*buildcontext.Data, error) {
 	derefed, err := c.varCollection.Imports().Deref(ref)
@@ -1040,7 +1047,7 @@ func (c *Converter) FinalizeStates(ctx context.Context) (*states.MultiTarget, er
 	}
 	c.opt.BuildContextProvider.AddDirs(c.mts.Final.LocalDirs)
 	c.mts.Final.VarCollection = c.varCollection
-	c.mts.Final.GlobalImports = c.varCollection.Imports().GlobalImports()
+	c.mts.Final.GlobalImports = c.varCollection.Imports().Global()
 	c.mts.Final.Ongoing = false
 	return c.mts, nil
 }
@@ -1080,11 +1087,7 @@ func (c *Converter) buildTarget(ctx context.Context, fullTargetName string, plat
 	opt := c.opt
 	opt.Visited = c.mts.Visited
 	opt.OverridingVars = overriding
-	if relTarget.IsExternal() {
-		opt.GlobalImports = nil
-	} else {
-		opt.GlobalImports = c.varCollection.Imports().GlobalImports()
-	}
+	opt.GlobalImports = nil
 	opt.Platform, err = llbutil.ResolvePlatform(platform, c.opt.Platform)
 	if err != nil {
 		// Contradiction allowed. You can BUILD another target with different platform.
@@ -1127,6 +1130,7 @@ func (c *Converter) buildTarget(ctx context.Context, fullTargetName string, plat
 				})
 		}
 		c.varCollection.SetGlobals(globals)
+		c.varCollection.Imports().SetGlobal(mts.Final.GlobalImports)
 	}
 	return mts, nil
 }

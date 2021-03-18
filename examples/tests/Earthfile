@@ -69,6 +69,7 @@ ga:
     BUILD +duplicate
     BUILD +quotes-test
     BUILD +new-args
+    BUILD +import
 
 experimental:
     BUILD ./dind-auto-install+all
@@ -653,6 +654,13 @@ quotes-test:
 
 new-args:
     COPY new-args.earth ./Earthfile
+    RUN --privileged \
+        --entrypoint \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        -- +all
+
+import:
+    COPY import.earth ./Earthfile
     RUN --privileged \
         --entrypoint \
         --mount=type=tmpfs,target=/tmp/earthly \

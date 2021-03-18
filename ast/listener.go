@@ -289,6 +289,10 @@ func (l *listener) EnterDoStmt(c *parser.DoStmtContext) {
 	l.command.Name = "DO"
 }
 
+func (l *listener) EnterImportStmt(c *parser.ImportStmtContext) {
+	l.command.Name = "IMPORT"
+}
+
 // With -----------------------------------------------------------------------
 
 func (l *listener) EnterWithStmt(c *parser.WithStmtContext) {

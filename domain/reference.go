@@ -96,6 +96,7 @@ func JoinReferences(r1 Reference, r2 Reference) (Reference, error) {
 			GitURL:    gitURL,
 			Tag:       tag,
 			LocalPath: localPath,
+			ImportRef: r2.GetImportRef(),
 			Target:    name,
 		}, nil
 	case Command:
@@ -103,10 +104,11 @@ func JoinReferences(r1 Reference, r2 Reference) (Reference, error) {
 			GitURL:    gitURL,
 			Tag:       tag,
 			LocalPath: localPath,
+			ImportRef: r2.GetImportRef(),
 			Command:   name,
 		}, nil
 	default:
-		return nil, errors.New("joining references not supported for this type")
+		return nil, errors.Errorf("joining references not supported for type %T", r2)
 	}
 }
 

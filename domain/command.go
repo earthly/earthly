@@ -7,7 +7,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-var _ Reference = &Command{}
+var _ Reference = Command{}
 
 const commandNamePattern = "^[A-Z][A-Z0-9._]*$"
 

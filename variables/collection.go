@@ -36,13 +36,13 @@ type Collection struct {
 }
 
 // NewCollection creates a new Collection to be used in the context of a target.
-func NewCollection(target domain.Target, platform specs.Platform, gitMeta *gitutil.GitMetadata, overridingVars *Scope) *Collection {
+func NewCollection(target domain.Target, platform specs.Platform, gitMeta *gitutil.GitMetadata, overridingVars *Scope, globalImports map[string]string) *Collection {
 	return &Collection{
 		builtin: BuiltinArgs(target, platform, gitMeta),
 		envs:    NewScope(),
 		stack: []*stackFrame{{
 			frameName:  target.StringCanonical(),
-			imports:    domain.NewImportTracker(nil),
+			imports:    domain.NewImportTracker(globalImports),
 			overriding: overridingVars,
 			args:       NewScope(),
 			globals:    NewScope(),

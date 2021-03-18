@@ -7,7 +7,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-var _ Reference = &Target{}
+var _ Reference = Target{}
 
 const targetNamePattern = "^[a-z][a-zA-Z0-9.\\-]*$"
 

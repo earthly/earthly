@@ -168,6 +168,8 @@ func (i *Interpreter) handleCommand(ctx context.Context, cmd spec.Command) (err 
 		return i.handleUserCommand(ctx, cmd)
 	case "DO":
 		return i.handleDo(ctx, cmd)
+	case "IMPORT":
+		return i.handleImport(ctx, cmd)
 	default:
 		return i.errorf(cmd.SourceLocation, "unexpected command %s", cmd.Name)
 	}
@@ -1156,6 +1158,27 @@ func (i *Interpreter) handleDo(ctx context.Context, cmd spec.Command) error {
 		}
 	}
 	return i.errorf(cmd.SourceLocation, "user command %s not found", ucName)
+}
+
+func (i *Interpreter) handleImport(ctx context.Context, cmd spec.Command) error {
+	cmdArgs := getArgsCopy(cmd)
+	if len(cmdArgs) != 1 && len(cmdArgs) != 3 {
+		return i.errorf(cmd.SourceLocation, "invalid number of arguments for IMPORT: %s", cmdArgs)
+	}
+	if len(cmdArgs) == 3 && cmdArgs[1] != "AS" {
+		return i.errorf(cmd.SourceLocation, "invalid arguments for IMPORT: %s", cmdArgs)
+	}
+	importStr := i.expandArgs(cmdArgs[0], false)
+	var as string
+	if len(cmdArgs) == 3 {
+		as = i.expandArgs(cmdArgs[2], false)
+	}
+	isGlobal := (i.target.Target == "base")
+	err := i.converter.Import(ctx, importStr, as, isGlobal)
+	if err != nil {
+		return i.wrapError(err, cmd.SourceLocation, "apply IMPORT")
+	}
+	return nil
 }
 
 // ----------------------------------------------------------------------------

@@ -9,31 +9,37 @@ import (
 
 // ImportTracker is a resolver which also takes into account imports.
 type ImportTracker struct {
-	localImports  map[string]string // local name -> import full path
-	globalImports map[string]string // local name -> import full path
+	local  map[string]string // local name -> import full path
+	global map[string]string // local name -> import full path
 }
 
 // NewImportTracker creates a new import resolver.
-func NewImportTracker(globalImports map[string]string) *ImportTracker {
-	li := make(map[string]string)
+func NewImportTracker(global map[string]string) *ImportTracker {
 	gi := make(map[string]string)
-	for k, v := range globalImports {
+	for k, v := range global {
 		gi[k] = v
-		li[k] = v
 	}
 	return &ImportTracker{
-		localImports:  li,
-		globalImports: gi,
+		local:  make(map[string]string),
+		global: gi,
 	}
 }
 
-// GlobalImports returns the internal map of global imports.
-func (ir *ImportTracker) GlobalImports() map[string]string {
-	return ir.globalImports
+// Global returns the internal map of global imports.
+func (ir *ImportTracker) Global() map[string]string {
+	return ir.global
 }
 
-// AddImport adds an import to the resolver.
-func (ir *ImportTracker) AddImport(importStr string, as string, global bool) error {
+// SetGlobal sets the global import map.
+func (ir *ImportTracker) SetGlobal(gi map[string]string) {
+	ir.global = make(map[string]string)
+	for k, v := range gi {
+		ir.global[k] = v
+	}
+}
+
+// Add adds an import to the resolver.
+func (ir *ImportTracker) Add(importStr string, as string, global bool) error {
 	if importStr == "" {
 		return errors.New("IMPORTing empty string not supported")
 	}
@@ -71,9 +77,10 @@ func (ir *ImportTracker) AddImport(importStr string, as string, global bool) err
 		return errors.Errorf("invalid IMPORT AS %s", as)
 	}
 
-	ir.localImports[as] = importStr
 	if global {
-		ir.globalImports[as] = importStr
+		ir.global[as] = importStr
+	} else {
+		ir.local[as] = importStr
 	}
 	return nil
 }
@@ -81,9 +88,12 @@ func (ir *ImportTracker) AddImport(importStr string, as string, global bool) err
 // Deref resolves the import (if any) and returns a reference with the full path.
 func (ir *ImportTracker) Deref(ref Reference) (Reference, error) {
 	if ref.IsImportReference() {
-		fullPath, ok := ir.localImports[ref.GetImportRef()]
+		fullPath, ok := ir.local[ref.GetImportRef()]
 		if !ok {
-			return nil, errors.Errorf("import reference %s could not be resolved", ref.GetImportRef())
+			fullPath, ok = ir.global[ref.GetImportRef()]
+			if !ok {
+				return nil, errors.Errorf("import reference %s could not be resolved", ref.GetImportRef())
+			}
 		}
 		var resolvedRef Reference
 		resolvedRefStr := fmt.Sprintf("%s+%s", fullPath, ref.GetName())
@@ -93,7 +103,7 @@ func (ir *ImportTracker) Deref(ref Reference) (Reference, error) {
 			if err != nil {
 				return nil, err
 			}
-			resolvedRef = &Target{
+			resolvedRef = Target{
 				GitURL:    ref2.GitURL,
 				Tag:       ref2.Tag,
 				LocalPath: ref2.LocalPath,
@@ -105,7 +115,7 @@ func (ir *ImportTracker) Deref(ref Reference) (Reference, error) {
 			if err != nil {
 				return nil, err
 			}
-			resolvedRef = &Command{
+			resolvedRef = Command{
 				GitURL:    ref2.GitURL,
 				Tag:       ref2.Tag,
 				LocalPath: ref2.LocalPath,

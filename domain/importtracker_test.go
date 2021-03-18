@@ -33,7 +33,7 @@ func TestImports(t *testing.T) {
 
 	for _, tt := range tests {
 		ir := NewImportTracker(nil)
-		err := ir.AddImport(tt.importStr, tt.as, false)
+		err := ir.Add(tt.importStr, tt.as, false)
 		assert.NoError(t, err, "add import error")
 
 		ref, err := ParseTarget(tt.ref)
