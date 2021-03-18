@@ -145,7 +145,7 @@ func (c *Converter) fromTarget(ctx context.Context, targetName string, platform 
 	if err != nil {
 		return errors.Wrapf(err, "parse target name %s", targetName)
 	}
-	mts, err := c.buildTarget(ctx, depTarget.String(), platform, buildArgs, false)
+	mts, err := c.buildTarget(ctx, depTarget.String(), platform, buildArgs, false, true)
 	if err != nil {
 		return errors.Wrapf(err, "apply build %s", depTarget.String())
 	}
@@ -198,7 +198,7 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 		// The Dockerfile and build context are from a target's artifact.
 		// TODO: The build args are used for both the artifact and the Dockerfile. This could be
 		//       confusing to the user.
-		mts, err := c.buildTarget(ctx, contextArtifact.Target.String(), platform, buildArgs, false)
+		mts, err := c.buildTarget(ctx, contextArtifact.Target.String(), platform, buildArgs, false, false)
 		if err != nil {
 			return err
 		}
@@ -319,7 +319,7 @@ func (c *Converter) CopyArtifactLocal(ctx context.Context, artifactName string, 
 	if err != nil {
 		return errors.Wrapf(err, "parse artifact name %s", artifactName)
 	}
-	mts, err := c.buildTarget(ctx, artifact.Target.String(), platform, buildArgs, false)
+	mts, err := c.buildTarget(ctx, artifact.Target.String(), platform, buildArgs, false, false)
 	if err != nil {
 		return errors.Wrapf(err, "apply build %s", artifact.Target.String())
 	}
@@ -363,7 +363,7 @@ func (c *Converter) CopyArtifact(ctx context.Context, artifactName string, dest 
 	if err != nil {
 		return errors.Wrapf(err, "parse artifact name %s", artifactName)
 	}
-	mts, err := c.buildTarget(ctx, artifact.Target.String(), platform, buildArgs, false)
+	mts, err := c.buildTarget(ctx, artifact.Target.String(), platform, buildArgs, false, false)
 	if err != nil {
 		return errors.Wrapf(err, "apply build %s", artifact.Target.String())
 	}
@@ -787,7 +787,7 @@ func (c *Converter) Build(ctx context.Context, fullTargetName string, platform *
 		return err
 	}
 	c.nonSaveCommand()
-	_, err = c.buildTarget(ctx, fullTargetName, platform, buildArgs, true)
+	_, err = c.buildTarget(ctx, fullTargetName, platform, buildArgs, true, false)
 	return err
 }
 
@@ -1014,7 +1014,7 @@ func (c *Converter) ResolveReference(ctx context.Context, ref domain.Reference) 
 
 // EnterScope introduces a new variable scope. Gloabls and imports are fetched from baseTarget.
 func (c *Converter) EnterScope(ctx context.Context, baseTarget domain.Target, scopeName string, buildArgs []string) error {
-	baseMts, err := c.buildTarget(ctx, baseTarget.String(), c.mts.Final.Platform, nil, true)
+	baseMts, err := c.buildTarget(ctx, baseTarget.String(), c.mts.Final.Platform, nil, true, false)
 	if err != nil {
 		return err
 	}
@@ -1061,7 +1061,7 @@ func (c *Converter) ExpandArgs(word string) string {
 	return c.varCollection.Expand(word)
 }
 
-func (c *Converter) buildTarget(ctx context.Context, fullTargetName string, platform *specs.Platform, buildArgs []string, isDangling bool) (*states.MultiTarget, error) {
+func (c *Converter) buildTarget(ctx context.Context, fullTargetName string, platform *specs.Platform, buildArgs []string, isDangling bool, isFrom bool) (*states.MultiTarget, error) {
 	relTarget, err := domain.ParseTarget(fullTargetName)
 	if err != nil {
 		return nil, errors.Wrapf(err, "earthly target parse %s", fullTargetName)
@@ -1117,24 +1117,26 @@ func (c *Converter) buildTarget(ctx context.Context, fullTargetName string, plat
 			}
 			c.mts.Final.TargetInput = c.mts.Final.TargetInput.WithBuildArgInput(bai)
 		}
-		// Propagate globals.
-		globals := mts.Final.VarCollection.Globals()
-		for _, k := range globals.SortedActive() {
-			_, alreadyActive := c.varCollection.GetActive(k)
-			if alreadyActive {
-				// Globals don't override any variables in current scope.
-				continue
+		if isFrom {
+			// Propagate globals.
+			globals := mts.Final.VarCollection.Globals()
+			for _, k := range globals.SortedActive() {
+				_, alreadyActive := c.varCollection.GetActive(k)
+				if alreadyActive {
+					// Globals don't override any variables in current scope.
+					continue
+				}
+				v, _ := globals.GetActive(k)
+				c.mts.Final.TargetInput = c.mts.Final.TargetInput.WithBuildArgInput(
+					dedup.BuildArgInput{
+						Name:          k,
+						DefaultValue:  "", // TODO: Set correct default value for bai.
+						ConstantValue: v,
+					})
 			}
-			v, _ := globals.GetActive(k)
-			c.mts.Final.TargetInput = c.mts.Final.TargetInput.WithBuildArgInput(
-				dedup.BuildArgInput{
-					Name:          k,
-					DefaultValue:  "", // TODO: Set correct default value for bai.
-					ConstantValue: v,
-				})
+			c.varCollection.SetGlobals(globals)
+			c.varCollection.Imports().SetGlobal(mts.Final.GlobalImports)
 		}
-		c.varCollection.SetGlobals(globals)
-		c.varCollection.Imports().SetGlobal(mts.Final.GlobalImports)
 	}
 	return mts, nil
 }
