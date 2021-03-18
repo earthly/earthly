@@ -684,6 +684,105 @@ Specifies the platform for any referenced `--load` and `--pull` images.
 
 For more information see the [multi-platform guide](../guides/multi-platform.md).
 
+## IF (**experimental**)
+
+#### Synopsis
+
+* ```
+  IF [<condition-options>...] <condition>
+    <if-block>
+  END
+  ```
+* ```
+  IF [<condition-options>...] <condition>
+    <if-block>
+  ELSE
+    <else-block>
+  END
+  ```
+* ```
+  IF [<condition-options>...] <condition>
+    <if-block>
+  ELSE IF [<condition-options>...] <condition>
+    <else-if-block>
+  ...
+  ELSE
+    <else-block>
+  END
+  ```
+
+#### Description
+
+The `IF` clause can perform varying commands depending on the outcome of one or more conditions. The expression passed as part of `<condition>` is evaluated by running it in the build environment. If the exit code of the expression is zero, then the block of that condition is executed. Otherwise, the control continues to the next `ELSE IF` condition (if any), or if no condition returns a non-zero exit code, the control continues to executing the `<else-block>`, if one is provided.
+
+A very common pattern is to use the POSIX shell `[ ... ]` conditions. For example the following marks port `8080` as exposed if the file `./foo` exists.
+
+```Dockerfile
+IF [ -f ./foo ]
+  EXPOSE 8080
+END
+```
+
+{% hint style='info' %}
+##### Note
+Performing a condition requires that a `FROM` (or a from-like command, such as `LOCALLY`) has been issued before the condition itself.
+
+For example, the following is NOT a valid Earthfile.
+
+```Dockerfile
+# NOT A VALID EARTHFILE.
+ARG base=alpine
+IF [ "$base" = "alpine" ]
+    FROM alpine:3.13
+ELSE
+    FROM ubuntu:20.04
+END
+```
+
+The reason this is invalid is because the `IF` condition does not have a build environment initialized, to execute in.
+
+Here is how this might be fixed.
+
+```Dockerfile
+ARG base=alpine
+FROM busybox
+IF [ "$base" = "alpine" ]
+    FROM alpine:3.13
+ELSE
+    FROM ubuntu:20.04
+END
+```
+
+By initializing the build environment with `FROM busybox`, the `IF` condition can execute on top of the `busybox` image.
+{% endhint %}
+
+{% hint style='danger' %}
+##### Important
+Changes to the filesystem in any of the conditions are not preserved. If a file is created as part of a condition, then that file will not be present in the build environment for any subsequent commands.
+{% endhint %}
+
+#### Options
+
+##### `--privileged`
+
+Same as [`RUN --privileged`](#privileged).
+
+##### `--ssh`
+
+Same as [`RUN --ssh`](#ssh).
+
+##### `--no-cache`
+
+Same as [`RUN --no-cache`](#no-cache).
+
+##### `--mount <mount-spec>`
+
+Same as [`RUN --mount <mount-spec>`](#mount-less-than-mount-spec-greater-than).
+
+##### `--secret <env-var>=<secret-ref>`
+
+Same as [`RUN --secret <env-var>=<secret-ref>`](#secret-less-than-env-var-greater-than-less-than-secret-ref-greater-than).
+
 ## DOCKER PULL (**deprecated**)
 
 #### Synopsis
