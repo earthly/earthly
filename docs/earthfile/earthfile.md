@@ -574,7 +574,9 @@ For more information see the [multi-platform guide](../guides/multi-platform.md)
 
 The command `ARG` declares a variable (or arg) with the name `<name>` and with an optional default value `<default-value>`. If no default value is provided, then empty string is used as the default value.
 
-This command works similarly to the [Dockerfile `ARG` command](https://docs.docker.com/engine/reference/builder/#arg), with a few differences regarding the scope and the predefined args (called builtin args in Earthly). The variable's scope is always limited to the current target's recipe and only from the point it is declared onwards. For more information regarding builtin args, see the [builtin args page](./builtin-args.md).
+This command works similarly to the [Dockerfile `ARG` command](https://docs.docker.com/engine/reference/builder/#arg), with a few differences regarding the scope and the predefined args (called builtin args in Earthly). The variable's scope is always limited to the recipe of the current target or command and only from the point it is declared onwards. For more information regarding builtin args, see the [builtin args page](./builtin-args.md).
+
+If an `ARG` is defined in the `base` target of the Earthfile, then it becomes a global `ARG` and it is made avaialable to every other target or command in that file, regardless of their base images used.
 
 The value of an arg can be overridden either from the `earthly` command
 
@@ -805,7 +807,7 @@ Same as [`RUN --secret <env-var>=<secret-ref>`](#secret-less-than-env-var-greate
 This feature is currently in **Experimental** stage
 
 * The feature may break, be changed drastically with no warning, or be removed altogether in future versions of Earthly.
-* Check the [GitHub tracking issue](https://github.com/earthly/earthly/issues/581)for any known problems.
+* Check the [GitHub tracking issue](https://github.com/earthly/earthly/issues/581) for any known problems.
 * Give us feedback on [Slack](https://earthly.dev/slack) in the `#udc` channel.
 {% endhint %}
 
@@ -815,13 +817,13 @@ This feature is currently in **Experimental** stage
 
 #### Description
 
-The command `COMMAND` marks the beginning of a user-defined command (UDC) definition. UDCs are templates (much like functions in regular programming languages), which can be used to define a set series of steps to be executed in sequence. In order reference and execute a UDC, you may use the command [`DO`](#do-experimental).
+The command `COMMAND` marks the beginning of a user-defined command (UDC) definition. UDCs are templates (much like functions in regular programming languages), which can be used to define a series of steps to be executed in sequence. In order to reference and execute a UDC, you may use the command [`DO`](#do-experimental).
 
 Unlike performing a `BUILD +target`, UDCs inherit the build context and the build environment from the caller.
 
 UDCs create their own `ARG` scope, which is distinct from the caller. Any `ARG` that needs to be passed from the caller needs to be passed explicitly via `DO +COMMAND --<build-arg-key>=<build-arg-value>`.
 
-Global imports and global `ARG`s are inherited from the `base` target of the same Earthfile where the command is defined in (this may be distinct from the `base` target of the caller).
+Global imports and global args are inherited from the `base` target of the same Earthfile where the command is defined in (this may be distinct from the `base` target of the caller).
 
 For more information see the [User-defined commands guide](../guides/udc.md).
 
@@ -833,7 +835,7 @@ For more information see the [User-defined commands guide](../guides/udc.md).
 This feature is currently in **Experimental** stage
 
 * The feature may break, be changed drastically with no warning, or be removed altogether in future versions of Earthly.
-* Check the [GitHub tracking issue](https://github.com/earthly/earthly/issues/581)for any known problems.
+* Check the [GitHub tracking issue](https://github.com/earthly/earthly/issues/581) for any known problems.
 * Give us feedback on [Slack](https://earthly.dev/slack) in the `#udc` channel.
 {% endhint %}
 
@@ -859,7 +861,7 @@ For more information see the [User-defined commands guide](../guides/udc.md).
 This feature is currently in **Experimental** stage
 
 * The feature may break, be changed drastically with no warning, or be removed altogether in future versions of Earthly.
-* Check the [GitHub tracking issue](https://github.com/earthly/earthly/issues/581)for any known problems.
+* Check the [GitHub tracking issue](https://github.com/earthly/earthly/issues/581) for any known problems.
 * Give us feedback on [Slack](https://earthly.dev/slack) in the `#udc` channel.
 {% endhint %}
 
@@ -874,6 +876,8 @@ The command `IMPORT` aliases a project reference (`<project-ref>`) that can be u
 If not provided, the `<alias>` is inferred automatically as the last element of the path provided in `<project-ref>`. For example, if `<project-ref>` is `github.com/foo/bar/buz:v1.2.3`, then the alias is inferred as `buz`.
 
 The `<project-ref>` can be a reference to any directory other than `.`. If the reference ends in `..`, then mentioning `AS <alias>` is mandatory.
+
+If an `IMPORT` is defined in the `base` target of the Earthfile, then it becomes a global `IMPORT` and it is made avaialable to every other target or command in that file, regardless of their base images used.
 
 For more information see the [target, artifact and command references guide](../guides/target-ref.md).
 
