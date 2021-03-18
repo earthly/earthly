@@ -1003,7 +1003,7 @@ func (app *earthlyApp) autoComplete() {
 func (app *earthlyApp) autoCompleteImp() (err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			err = fmt.Errorf("recovered panic in autocomplete %s: %s", r, debug.Stack())
+			err = errors.Errorf("recovered panic in autocomplete %s: %s", r, debug.Stack())
 		}
 	}()
 
@@ -1296,7 +1296,7 @@ func (app *earthlyApp) actionBootstrap(c *cli.Context) error {
 	case "":
 		break
 	default:
-		return fmt.Errorf("unhandled source %q", app.homebrewSource)
+		return errors.Errorf("unhandled source %q", app.homebrewSource)
 	}
 
 	err := symlinkEarthlyToEarth()
@@ -1320,7 +1320,7 @@ func (app *earthlyApp) actionBootstrap(c *cli.Context) error {
 }
 
 func promptInput(question string) string {
-	fmt.Printf(question)
+	fmt.Printf("%s", question)
 	rbuf := bufio.NewReader(os.Stdin)
 	line, err := rbuf.ReadString('\n')
 	if err != nil {
@@ -1608,7 +1608,7 @@ func (app *earthlyApp) actionRegister(c *cli.Context) error {
 			return err
 		}
 		if string(enteredPassword) != string(enteredPassword2) {
-			return fmt.Errorf("passwords do not match")
+			return errors.Errorf("passwords do not match")
 		}
 		pword = string(enteredPassword)
 	}
@@ -1642,7 +1642,7 @@ func (app *earthlyApp) actionRegister(c *cli.Context) error {
 				return errors.Wrap(err, "invalid key number")
 			}
 			if i < 0 || i > len(publicKeys) {
-				return fmt.Errorf("invalid key number")
+				return errors.Errorf("invalid key number")
 			}
 			if i > 0 {
 				publicKey = publicKeys[i-1].String()
@@ -1662,7 +1662,7 @@ func (app *earthlyApp) actionRegister(c *cli.Context) error {
 				}
 			}
 			if publicKey == "" {
-				return fmt.Errorf("failed to find key in ssh agent's known keys")
+				return errors.Errorf("failed to find key in ssh agent's known keys")
 			}
 		}
 	}
@@ -1713,7 +1713,7 @@ func (app *earthlyApp) actionAccountAddKey(c *cli.Context) error {
 		return err
 	}
 	if len(publicKeys) == 0 {
-		return fmt.Errorf("unable to list available public keys, is ssh-agent running?; do you need to run ssh-add?")
+		return errors.Errorf("unable to list available public keys, is ssh-agent running?; do you need to run ssh-add?")
 	}
 
 	// Our signal handling under main() doesn't cause reading from stdin to cancel
@@ -1733,7 +1733,7 @@ func (app *earthlyApp) actionAccountAddKey(c *cli.Context) error {
 		return errors.Wrap(err, "invalid key number")
 	}
 	if i <= 0 || i > len(publicKeys) {
-		return fmt.Errorf("invalid key number")
+		return errors.Errorf("invalid key number")
 	}
 	publicKey := publicKeys[i-1].String()
 
@@ -1833,7 +1833,7 @@ func (app *earthlyApp) actionAccountCreateToken(c *cli.Context) error {
 			}
 		}
 		if err != nil {
-			return fmt.Errorf("failed to parse expiry %q", app.expiry)
+			return errors.Errorf("failed to parse expiry %q", app.expiry)
 		}
 	}
 
@@ -1974,7 +1974,7 @@ func (app *earthlyApp) actionAccountLogin(c *cli.Context) error {
 		}
 		pass = string(passwordBytes)
 		if pass == "" {
-			return fmt.Errorf("no password entered")
+			return errors.Errorf("no password entered")
 		}
 	}
 
@@ -2150,33 +2150,37 @@ func (app *earthlyApp) actionBuild(c *cli.Context) error {
 	var target domain.Target
 	var artifact domain.Artifact
 	destPath := "./"
+	flagArgs, nonFlagArgs, err := variables.ParseFlagArgsWithNonFlags(c.Args().Slice())
+	if err != nil {
+		return errors.Wrapf(err, "parse args %s", strings.Join(c.Args().Slice(), " "))
+	}
 	if app.imageMode {
-		if c.NArg() == 0 {
+		if len(nonFlagArgs) == 0 {
 			cli.ShowAppHelp(c)
-			return fmt.Errorf(
+			return errors.Errorf(
 				"no image reference provided. Try %s --image +<target-name>", c.App.Name)
-		} else if c.NArg() != 1 {
+		} else if len(nonFlagArgs) != 1 {
 			cli.ShowAppHelp(c)
-			return errors.New("invalid number of args")
+			return errors.Errorf("invalid arguments %s", strings.Join(nonFlagArgs, " "))
 		}
-		targetName := c.Args().Get(0)
+		targetName := nonFlagArgs[0]
 		var err error
 		target, err = domain.ParseTarget(targetName)
 		if err != nil {
 			return errors.Wrapf(err, "parse target name %s", targetName)
 		}
 	} else if app.artifactMode {
-		if c.NArg() == 0 {
+		if len(nonFlagArgs) == 0 {
 			cli.ShowAppHelp(c)
-			return fmt.Errorf(
+			return errors.Errorf(
 				"no artifact reference provided. Try %s --artifact +<target-name>/<artifact-name>", c.App.Name)
-		} else if c.NArg() != 1 && c.NArg() != 2 {
+		} else if len(nonFlagArgs) > 2 {
 			cli.ShowAppHelp(c)
-			return errors.New("invalid number of args")
+			return errors.Errorf("invalid arguments %s", strings.Join(nonFlagArgs, " "))
 		}
-		artifactName := c.Args().Get(0)
-		if c.NArg() == 2 {
-			destPath = c.Args().Get(1)
+		artifactName := nonFlagArgs[0]
+		if len(nonFlagArgs) == 2 {
+			destPath = nonFlagArgs[1]
 		}
 		var err error
 		artifact, err = domain.ParseArtifact(artifactName)
@@ -2185,15 +2189,15 @@ func (app *earthlyApp) actionBuild(c *cli.Context) error {
 		}
 		target = artifact.Target
 	} else {
-		if c.NArg() == 0 {
+		if len(nonFlagArgs) == 0 {
 			cli.ShowAppHelp(c)
-			return fmt.Errorf(
+			return errors.Errorf(
 				"no target reference provided. Try %s +<target-name>", c.App.Name)
-		} else if c.NArg() != 1 {
+		} else if len(nonFlagArgs) != 1 {
 			cli.ShowAppHelp(c)
-			return errors.New("invalid number of args")
+			return errors.Errorf("invalid arguments %s", strings.Join(nonFlagArgs, " "))
 		}
-		targetName := c.Args().Get(0)
+		targetName := nonFlagArgs[0]
 		var err error
 		target, err = domain.ParseTarget(targetName)
 		if err != nil {
@@ -2298,7 +2302,9 @@ func (app *earthlyApp) actionBuild(c *cli.Context) error {
 	for k, v := range dotEnvMap {
 		dotEnvVars.AddInactive(k, v)
 	}
-	overridingVars, err := variables.ParseCommandLineArgs(app.buildArgs.Value())
+	buildArgs := append([]string{}, app.buildArgs.Value()...)
+	buildArgs = append(buildArgs, flagArgs...)
+	overridingVars, err := variables.ParseCommandLineArgs(buildArgs)
 	if err != nil {
 		return errors.Wrap(err, "parse build args")
 	}
@@ -2469,19 +2475,19 @@ func processSecrets(secrets, secretFiles []string, dotEnvMap map[string]string) 
 			// Not set. Use environment to fetch it.
 			value, found := os.LookupEnv(secret)
 			if !found {
-				return nil, fmt.Errorf("env var %s not set", secret)
+				return nil, errors.Errorf("env var %s not set", secret)
 			}
 			data = []byte(value)
 		}
 		if _, ok := finalSecrets[key]; ok {
-			return nil, fmt.Errorf("secret %q already contains a value", key)
+			return nil, errors.Errorf("secret %q already contains a value", key)
 		}
 		finalSecrets[key] = data
 	}
 	for _, secret := range secretFiles {
 		parts := strings.SplitN(secret, "=", 2)
 		if len(parts) != 2 {
-			return nil, fmt.Errorf("unable to parse --secret-file argument: %q", secret)
+			return nil, errors.Errorf("unable to parse --secret-file argument: %q", secret)
 		}
 		k := parts[0]
 		path := parts[1]
@@ -2490,7 +2496,7 @@ func processSecrets(secrets, secretFiles []string, dotEnvMap map[string]string) 
 			return nil, errors.Wrapf(err, "failed to open %q", path)
 		}
 		if _, ok := finalSecrets[k]; ok {
-			return nil, fmt.Errorf("secret %q already contains a value", k)
+			return nil, errors.Errorf("secret %q already contains a value", k)
 		}
 		finalSecrets[k] = []byte(data)
 	}

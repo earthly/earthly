@@ -11,7 +11,21 @@ import (
 // These can be represented as `--arg=value` or `--arg value`.
 // The result is a slice that can be passed in to ParseArgs or to ParseCommandLineArgs.
 func ParseFlagArgs(args []string) ([]string, error) {
-	ret := make([]string, 0, len(args))
+	flags, nonFlags, err := ParseFlagArgsWithNonFlags(args)
+	if err != nil {
+		return nil, err
+	}
+	if len(nonFlags) != 0 {
+		return nil, errors.Errorf("invalid argument %s", nonFlags[0])
+	}
+	return flags, nil
+}
+
+// ParseFlagArgsWithNonFlags parses flag-form args together with any possible optional additional
+// args. e.g. "--flag1=value arg1 --flag2=value --flag3=value arg2 arg3".
+func ParseFlagArgsWithNonFlags(args []string) ([]string, []string, error) {
+	flags := make([]string, 0, len(args))
+	nonFlags := []string{}
 	keyFromPrev := ""
 	for _, arg := range args {
 		var k, v string
@@ -20,10 +34,15 @@ func ParseFlagArgs(args []string) ([]string, error) {
 			keyFromPrev = ""
 			v = arg
 		} else {
-			if !strings.HasPrefix(arg, "--") {
-				return nil, errors.Errorf("invalid flag %s", arg)
+			var trimmedArg string
+			if strings.HasPrefix(arg, "--") {
+				trimmedArg = strings.TrimPrefix(arg, "--")
+			} else if strings.HasPrefix(arg, "-") {
+				trimmedArg = strings.TrimPrefix(arg, "-")
+			} else {
+				nonFlags = append(nonFlags, arg)
+				continue
 			}
-			trimmedArg := strings.TrimPrefix(arg, "--")
 			var hasValue bool
 			k, v, hasValue = ParseKeyValue(trimmedArg)
 			if !hasValue {
@@ -32,10 +51,10 @@ func ParseFlagArgs(args []string) ([]string, error) {
 			}
 		}
 		escK := strings.ReplaceAll(k, "=", "\\=")
-		ret = append(ret, fmt.Sprintf("%s=%s", escK, v))
+		flags = append(flags, fmt.Sprintf("%s=%s", escK, v))
 	}
 	if keyFromPrev != "" {
-		return nil, errors.Errorf("no value provided for --%s", keyFromPrev)
+		return nil, nil, errors.Errorf("no value provided for --%s", keyFromPrev)
 	}
-	return ret, nil
+	return flags, nonFlags, nil
 }
