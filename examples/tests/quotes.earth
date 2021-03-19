@@ -3,7 +3,8 @@ WORKDIR /test
 
 all:
     BUILD +test-env-quoting
-    BUILD +test-env-quoting2
+    BUILD +test-env-quoted-backslash
+    BUILD +test-env-unquoted-backslash
     BUILD +test-multi-line-run-quotes
     BUILD +test-multi-line-env-quotes
 
@@ -17,9 +18,16 @@ test-env-quoting:
     RUN echo "b25ea0182bf88bf6c47daaf2e4da5cac  -" > /expected.md5
     RUN diff /actual.md5 /expected.md5
 
-test-env-quoting2:
+
+test-env-quoted-backslash:
     ENV BACKSLASH "\\"
-    RUN test "$BACKSLASH" = "\\"
+    RUN test "$(echo -n $BACKSLASH | base64)" = "XA=="
+
+
+test-env-unquoted-backslash:
+    ENV BACKSLASH \\
+    RUN test "$(echo -n $BACKSLASH | base64)" = "XA=="
+
 
 test-multi-line-run-quotes:
     RUN echo -n "a
