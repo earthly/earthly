@@ -79,7 +79,7 @@ func (l *lexer) stackString() string {
 		if i != len(stack)-1 {
 			l.PushMode(stack[i])
 		}
-		str = append(str, fmt.Sprintf("%s", parser.GetLexerModeNames()[stack[i]]))
+		str = append(str, parser.GetLexerModeNames()[stack[i]])
 	}
 	return strings.Join(str, "/")
 }
@@ -88,6 +88,17 @@ func (l *lexer) NextToken() antlr.Token {
 	modeBefore := l.getMode()
 	peek := l.EarthLexer.NextToken()
 	ret := peek
+	if peek.GetTokenType() == parser.EarthParserEOF {
+		// Add a NL before EOF. It simplifies the logic a lot if we know
+		// that all lines have been completed.
+		l.tokenQueue = append(l.tokenQueue, l.makeNL(peek))
+		if l.debug {
+			fmt.Printf("NL ")
+		}
+		// Force the default mode.
+		l.PushMode(0)
+		modeBefore = 0
+	}
 	switch modeBefore {
 	case 0, parser.EarthLexerRECIPE:
 		l.processIndentation(peek)
@@ -136,16 +147,12 @@ func (l *lexer) processIndentation(peek antlr.Token) {
 	default:
 		if l.afterNewLine {
 			if l.prevIndentLevel < l.indentLevel {
-				l.tokenQueue = append(l.tokenQueue, l.GetTokenFactory().Create(
-					l.GetTokenSourceCharStreamPair(), parser.EarthLexerINDENT, "",
-					l.wsChannel, l.wsStart, l.wsStop, l.wsLine, l.wsColumn))
+				l.tokenQueue = append(l.tokenQueue, l.makeIndent())
 				if l.debug {
 					fmt.Printf("INDENT ")
 				}
 			} else if l.prevIndentLevel > l.indentLevel {
-				l.tokenQueue = append(l.tokenQueue, l.GetTokenFactory().Create(
-					l.GetTokenSourceCharStreamPair(), parser.EarthLexerDEDENT, "",
-					l.wsChannel, l.wsStart, l.wsStop, l.wsLine, l.wsColumn))
+				l.tokenQueue = append(l.tokenQueue, l.makeDedent())
 				if l.debug {
 					fmt.Printf("DEDENT ")
 				}
@@ -157,4 +164,23 @@ func (l *lexer) processIndentation(peek antlr.Token) {
 		l.prevIndentLevel = l.indentLevel
 		l.afterNewLine = false
 	}
+}
+
+func (l *lexer) makeIndent() antlr.Token {
+	return l.GetTokenFactory().Create(
+		l.GetTokenSourceCharStreamPair(), parser.EarthLexerINDENT, "",
+		l.wsChannel, l.wsStart, l.wsStop, l.wsLine, l.wsColumn)
+}
+
+func (l *lexer) makeDedent() antlr.Token {
+	return l.GetTokenFactory().Create(
+		l.GetTokenSourceCharStreamPair(), parser.EarthLexerDEDENT, "",
+		l.wsChannel, l.wsStart, l.wsStop, l.wsLine, l.wsColumn)
+}
+
+func (l *lexer) makeNL(peek antlr.Token) antlr.Token {
+	return l.GetTokenFactory().Create(
+		l.GetTokenSourceCharStreamPair(), parser.EarthLexerNL, "",
+		peek.GetChannel(), peek.GetStart(), peek.GetStop(),
+		peek.GetLine(), peek.GetColumn())
 }

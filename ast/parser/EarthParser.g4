@@ -6,11 +6,11 @@ options {
 
 earthFile: NL* (stmts NL)? NL* targets? NL* EOF;
 
-targets: targetOrUserCommand WS? (NL+ DEDENT targetOrUserCommand WS?)* NL* DEDENT?;
+targets: targetOrUserCommand (NL* targetOrUserCommand)*;
 targetOrUserCommand: target | userCommand;
-target: targetHeader NL+ WS? INDENT stmts?;
+target: targetHeader NL+ WS? (INDENT stmts NL+ DEDENT)?;
 targetHeader: Target;
-userCommand: userCommandHeader NL+ WS? INDENT stmts?;
+userCommand: userCommandHeader NL+ WS? (INDENT stmts NL+ DEDENT)?;
 userCommandHeader: UserCommand;
 
 stmts: WS? stmt (NL+ WS? stmt)*;

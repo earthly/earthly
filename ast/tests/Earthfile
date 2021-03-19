@@ -50,6 +50,7 @@ all:
         --build-arg TEST=import \
         +test
     BUILD --build-arg INPUT_FROM=./ --build-arg TEST=if +test
+    BUILD --build-arg INPUT_FROM=./ --build-arg TEST=empty-targets +test
 
 update-all:
     BUILD \
@@ -97,6 +98,7 @@ update-all:
         --build-arg TEST=import \
         +update-expected
     BUILD --build-arg INPUT_FROM=./ --build-arg TEST=if +update-expected
+    BUILD --build-arg INPUT_FROM=./ --build-arg TEST=empty-targets +update-expected
 
 # Note: If this test fails for expected reasons (eg format of AST has changed), you can
 #       update the expectations via +update-all. Please review the resulting diff

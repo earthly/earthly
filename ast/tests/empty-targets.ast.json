@@ -1,0 +1,69 @@
+{
+  "baseRecipe": [
+    {
+      "command": {
+        "args": [
+          "alpine:3.13"
+        ],
+        "name": "FROM"
+      }
+    }
+  ],
+  "targets": [
+    {
+      "name": "empty",
+      "recipe": null
+    },
+    {
+      "name": "test",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "true"
+            ],
+            "name": "RUN"
+          }
+        }
+      ]
+    },
+    {
+      "name": "empty-with-comment",
+      "recipe": null
+    },
+    {
+      "name": "test2",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "true"
+            ],
+            "name": "RUN"
+          }
+        }
+      ]
+    },
+    {
+      "name": "empty-tight",
+      "recipe": null
+    },
+    {
+      "name": "test3",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "true"
+            ],
+            "name": "RUN"
+          }
+        }
+      ]
+    },
+    {
+      "name": "eof",
+      "recipe": null
+    }
+  ]
+}
