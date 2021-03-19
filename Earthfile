@@ -125,7 +125,7 @@ earthly:
     # Important! If you change the go build options, you may need to also change them
     # in https://github.com/Homebrew/homebrew-core/blob/master/Formula/earthly.rb.
     RUN --mount=type=cache,target=$GOCACHE \
-        GOARM=${VARIANT#v} go build \
+        GOARM="${VARIANT#v}" go build \
             -tags "$(cat ./build/tags)" \
             -ldflags "$(cat ./build/ldflags)" \
             -o build/earthly \
