@@ -10,7 +10,8 @@
 ## 🧑‍🏫 Guides
 
 * [Authenticating Git and image registries](guides/auth.md)
-* [Target, artifact and image referencing](guides/target-ref.md)
+* [Target, artifact and command referencing](guides/target-ref.md)
+* [User-defined commands (UDCs)](guides/udc.md)
 * [Managing cache](guides/cache.md)
 * [Advanced local caching](guides/advanced-local-caching.md)
 * [Shared cache](guides/shared-cache.md)

@@ -15,6 +15,10 @@ Earthfiles have the following rough structure:
 <target-name>:
     <recipe>
     ...
+
+<command-name>:
+    <recipe>
+    ...
 ```
 
 Each recipe contains a series of commands, which are defined below. For an introduction into Earthfiles, see the [Basics page](../guides/basics.md).
@@ -120,12 +124,6 @@ For more information see the [multi-platform guide](../guides/multi-platform.md)
 
 ## LOCALLY (**experimental**)
 
-#### Synopsis
-
-* `LOCALLY`
-
-#### Description
-
 {% hint style='danger' %}
 ##### Important
 
@@ -135,6 +133,12 @@ This feature is currently in **Experimental** stage
 * Check the [GitHub tracking issue](https://github.com/earthly/earthly/issues/580) for any known problems.
 * Give us feedback on [Slack](https://earthly.dev/slack) in the `#locally` channel.
 {% endhint %}
+
+#### Synopsis
+
+* `LOCALLY`
+
+#### Description
 
 The `LOCALLY` command instructs earthly to execute the following `RUN` commands locally on the host system.
 This feature should be used with caution as locally run commands have no guarantee they will behave the same on different systems.
@@ -570,7 +574,9 @@ For more information see the [multi-platform guide](../guides/multi-platform.md)
 
 The command `ARG` declares a variable (or arg) with the name `<name>` and with an optional default value `<default-value>`. If no default value is provided, then empty string is used as the default value.
 
-This command works similarly to the [Dockerfile `ARG` command](https://docs.docker.com/engine/reference/builder/#arg), with a few differences regarding the scope and the predefined args (called builtin args in Earthly). The variable's scope is always limited to the current target's recipe and only from the point it is declared onwards. For more information regarding builtin args, see the [builtin args page](./builtin-args.md).
+This command works similarly to the [Dockerfile `ARG` command](https://docs.docker.com/engine/reference/builder/#arg), with a few differences regarding the scope and the predefined args (called builtin args in Earthly). The variable's scope is always limited to the recipe of the current target or command and only from the point it is declared onwards. For more information regarding builtin args, see the [builtin args page](./builtin-args.md).
+
+If an `ARG` is defined in the `base` target of the Earthfile, then it becomes a global `ARG` and it is made avaialable to every other target or command in that file, regardless of their base images used.
 
 The value of an arg can be overridden either from the `earthly` command
 
@@ -683,6 +689,197 @@ Sets a value override of `<value>` for the build arg identified by `<key>`, when
 Specifies the platform for any referenced `--load` and `--pull` images.
 
 For more information see the [multi-platform guide](../guides/multi-platform.md).
+
+## IF (**experimental**)
+
+{% hint style='danger' %}
+##### Important
+
+This feature is currently in **Experimental** stage
+
+* The feature may break, be changed drastically with no warning, or be removed altogether in future versions of Earthly.
+* Check the [GitHub tracking issue](https://github.com/earthly/earthly/issues/779) for any known problems.
+* Give us feedback on [Slack](https://earthly.dev/slack).
+{% endhint %}
+
+#### Synopsis
+
+* ```
+  IF [<condition-options>...] <condition>
+    <if-block>
+  END
+  ```
+* ```
+  IF [<condition-options>...] <condition>
+    <if-block>
+  ELSE
+    <else-block>
+  END
+  ```
+* ```
+  IF [<condition-options>...] <condition>
+    <if-block>
+  ELSE IF [<condition-options>...] <condition>
+    <else-if-block>
+  ...
+  ELSE
+    <else-block>
+  END
+  ```
+
+#### Description
+
+The `IF` clause can perform varying commands depending on the outcome of one or more conditions. The expression passed as part of `<condition>` is evaluated by running it in the build environment. If the exit code of the expression is zero, then the block of that condition is executed. Otherwise, the control continues to the next `ELSE IF` condition (if any), or if no condition returns a non-zero exit code, the control continues to executing the `<else-block>`, if one is provided.
+
+A very common pattern is to use the POSIX shell `[ ... ]` conditions. For example the following marks port `8080` as exposed if the file `./foo` exists.
+
+```Dockerfile
+IF [ -f ./foo ]
+  EXPOSE 8080
+END
+```
+
+{% hint style='info' %}
+##### Note
+Performing a condition requires that a `FROM` (or a from-like command, such as `LOCALLY`) has been issued before the condition itself.
+
+For example, the following is NOT a valid Earthfile.
+
+```Dockerfile
+# NOT A VALID EARTHFILE.
+ARG base=alpine
+IF [ "$base" = "alpine" ]
+    FROM alpine:3.13
+ELSE
+    FROM ubuntu:20.04
+END
+```
+
+The reason this is invalid is because the `IF` condition is actually running the `/usr/bin/[` executable to test if the condition is true or false, and therefore requires a valid build environment has been initialized.
+
+Here is how this might be fixed.
+
+```Dockerfile
+ARG base=alpine
+FROM busybox
+IF [ "$base" = "alpine" ]
+    FROM alpine:3.13
+ELSE
+    FROM ubuntu:20.04
+END
+```
+
+By initializing the build environment with `FROM busybox`, the `IF` condition can execute on top of the `busybox` image.
+{% endhint %}
+
+{% hint style='danger' %}
+##### Important
+Changes to the filesystem in any of the conditions are not preserved. If a file is created as part of a condition, then that file will not be present in the build environment for any subsequent commands.
+{% endhint %}
+
+#### Options
+
+##### `--privileged`
+
+Same as [`RUN --privileged`](#privileged).
+
+##### `--ssh`
+
+Same as [`RUN --ssh`](#ssh).
+
+##### `--no-cache`
+
+Same as [`RUN --no-cache`](#no-cache).
+
+##### `--mount <mount-spec>`
+
+Same as [`RUN --mount <mount-spec>`](#mount-less-than-mount-spec-greater-than).
+
+##### `--secret <env-var>=<secret-ref>`
+
+Same as [`RUN --secret <env-var>=<secret-ref>`](#secret-less-than-env-var-greater-than-less-than-secret-ref-greater-than).
+
+## COMMAND (**experimental**)
+
+{% hint style='danger' %}
+##### Important
+
+This feature is currently in **Experimental** stage
+
+* The feature may break, be changed drastically with no warning, or be removed altogether in future versions of Earthly.
+* Check the [GitHub tracking issue](https://github.com/earthly/earthly/issues/581) for any known problems.
+* Give us feedback on [Slack](https://earthly.dev/slack) in the `#udc` channel.
+{% endhint %}
+
+#### Synopsis
+
+* `COMMAND`
+
+#### Description
+
+The command `COMMAND` marks the beginning of a user-defined command (UDC) definition. UDCs are templates (much like functions in regular programming languages), which can be used to define a series of steps to be executed in sequence. In order to reference and execute a UDC, you may use the command [`DO`](#do-experimental).
+
+Unlike performing a `BUILD +target`, UDCs inherit the build context and the build environment from the caller.
+
+UDCs create their own `ARG` scope, which is distinct from the caller. Any `ARG` that needs to be passed from the caller needs to be passed explicitly via `DO +COMMAND --<build-arg-key>=<build-arg-value>`.
+
+Global imports and global args are inherited from the `base` target of the same Earthfile where the command is defined in (this may be distinct from the `base` target of the caller).
+
+For more information see the [User-defined commands guide](../guides/udc.md).
+
+## DO (**experimental**)
+
+{% hint style='danger' %}
+##### Important
+
+This feature is currently in **Experimental** stage
+
+* The feature may break, be changed drastically with no warning, or be removed altogether in future versions of Earthly.
+* Check the [GitHub tracking issue](https://github.com/earthly/earthly/issues/581) for any known problems.
+* Give us feedback on [Slack](https://earthly.dev/slack) in the `#udc` channel.
+{% endhint %}
+
+#### Synopsis
+
+* `DO <command-ref> [--<build-arg-key>=<build-arg-value>...]`
+
+#### Description
+
+The command `DO` expands and executes the series of commands contained within a user-defined command (UDC).
+
+Unlike performing a `BUILD +target`, UDCs inherit the build context and the build environment from the caller.
+
+UDCs create their own `ARG` scope, which is distinct from the caller. Any `ARG` that needs to be passed from the caller needs to be passed explicitly via `DO +COMMAND --<build-arg-key>=<build-arg-value>`.
+
+For more information see the [User-defined commands guide](../guides/udc.md).
+
+## IMPORT (**experimental**)
+
+{% hint style='danger' %}
+##### Important
+
+This feature is currently in **Experimental** stage
+
+* The feature may break, be changed drastically with no warning, or be removed altogether in future versions of Earthly.
+* Check the [GitHub tracking issue](https://github.com/earthly/earthly/issues/581) for any known problems.
+* Give us feedback on [Slack](https://earthly.dev/slack) in the `#udc` channel.
+{% endhint %}
+
+#### Synopsis
+
+* `IMPORT <project-ref> [AS <alias>]`
+
+#### Description
+
+The command `IMPORT` aliases a project reference (`<project-ref>`) that can be used in subsequent [target, artifact or command references](../guides/target-ref.md).
+
+If not provided, the `<alias>` is inferred automatically as the last element of the path provided in `<project-ref>`. For example, if `<project-ref>` is `github.com/foo/bar/buz:v1.2.3`, then the alias is inferred as `buz`.
+
+The `<project-ref>` can be a reference to any directory other than `.`. If the reference ends in `..`, then mentioning `AS <alias>` is mandatory.
+
+If an `IMPORT` is defined in the `base` target of the Earthfile, then it becomes a global `IMPORT` and it is made avaialable to every other target or command in that file, regardless of their base images used.
+
+For more information see the [target, artifact and command references guide](../guides/target-ref.md).
 
 ## DOCKER PULL (**deprecated**)
 
