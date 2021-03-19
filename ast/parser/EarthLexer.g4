@@ -43,7 +43,7 @@ NL: WS? COMMENT? (EOF | CRLF);
 WS: [ \t] ([ \t] | LC)*;
 fragment CRLF: ('\r' | '\n' | '\r\n');
 fragment COMMENT: '#' (~[\r\n])*;
-fragment LC: '\\' [ \t]* (COMMENT|CRLF);
+fragment LC: '\\' [ \t]* COMMENT? CRLF;
 
 // ----------------------------------------------------------------------------
 
@@ -136,7 +136,7 @@ mode COMMAND_ARGS;
 Atom: (RegularAtomPart | QuotedAtomPart)+;
 fragment QuotedAtomPart: '"' (~('"' | '\\') | ('\\' .))* '"';
 
-fragment RegularAtomPart: ~([ \t\r\n\\"]) | EscapedAtomPart;
+fragment RegularAtomPart: ~('"' | '\\' | '\n' | '\t' | '#') | EscapedAtomPart;
 fragment EscapedAtomPart: ('\\' ~[ \t\r\n]) | (LC [ \t]*);
 
 NL_C: NL -> type(NL), popMode;
