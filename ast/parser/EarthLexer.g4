@@ -43,7 +43,8 @@ NL: WS? COMMENT? (EOF | CRLF);
 WS: [ \t] ([ \t] | LC)*;
 fragment CRLF: ('\r' | '\n' | '\r\n');
 fragment COMMENT: '#' (~[\r\n])*;
-fragment LC: '\\' [ \t]* ([ \t] | CRLF | COMMENT)*;
+fragment NL_NOLC: [ \t]* COMMENT? (EOF | CRLF);
+fragment LC: '\\' NL_NOLC+;
 
 // ----------------------------------------------------------------------------
 

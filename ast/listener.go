@@ -491,7 +491,7 @@ func checkEnvVarName(str string) error {
 	return nil
 }
 
-var lineContinuationRegexp = regexp.MustCompile("\\\\(\\n|(\\r\\n))[\\t ]*")
+var lineContinuationRegexp = regexp.MustCompile("\\\\[ \t]*(#[^\\n\\r]*)?(\\n|(\\r\\n))[\\t ]*((#[^\\n\\r]*)?(\\n|(\\r\\n))[\\t ]*)*")
 
 func replaceEscape(str string) string {
 	return lineContinuationRegexp.ReplaceAllString(str, "")
