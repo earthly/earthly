@@ -755,7 +755,7 @@ ELSE
 END
 ```
 
-The reason this is invalid is because the `IF` condition does not have a build environment initialized, to execute in.
+The reason this is invalid is because the `IF` condition is actually running the `/usr/bin/[` executable to test if the condition is true or false, and therefore requires a valid build environment has been initialized.
 
 Here is how this might be fixed.
 
