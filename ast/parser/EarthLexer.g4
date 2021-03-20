@@ -163,7 +163,7 @@ EQUALS: '=' -> mode(COMMAND_ARGS);
 
 // Similar Atom, but don't allow '=' as part of it, unless it's in quotes.
 Atom_CAKV: (RegularAtomPart_CAKV | QuotedAtomPart)+ -> type(Atom);
-fragment RegularAtomPart_CAKV: ~([ \t\r\n"=]) | EscapedAtomPart;
+fragment RegularAtomPart_CAKV: ~([ \t\r\n"=\\]) | EscapedAtomPart;
 
 NL_CAKV: NL -> type(NL), popMode;
 WS_CAKV: WS -> type(WS);
