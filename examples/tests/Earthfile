@@ -82,102 +82,55 @@ ast-test-input:
     SAVE ARTIFACT ./*.earth
 
 privileged-test:
-    COPY privileged.earth ./Earthfile
-    RUN --privileged \
-        --entrypoint \
-        --mount=type=tmpfs,target=/tmp/earthly \
-        -- --allow-privileged +test
+    DO +RUN_EARTHLY --earthfile=privileged.earth --extra_args="--allow-privileged" --target=+test
 
 copy-test:
-    COPY copy.earth ./Earthfile
     RUN mkdir -p in/sub/1 in/sub/2 && \
         echo "root" > in/root && \
         echo "1" > in/sub/1/file && \
         echo "2" > in/sub/2/file && \
         echo "sub" > in/sub/file
-    RUN --privileged \
-        --entrypoint \
-        --mount=type=tmpfs,target=/tmp/earthly \
-        -- --allow-privileged +all
+    DO +RUN_EARTHLY --earthfile=copy.earth
 
 cache-test:
-    COPY cache1.earth ./Earthfile
-    RUN --privileged \
-        --entrypoint \
-        -- +test
-    COPY cache2.earth ./Earthfile
-    RUN --privileged \
-        --entrypoint \
-        -- +test
+    DO +RUN_EARTHLY --earthfile=cache1.earth --target=+test --use_tmpfs=false
+    DO +RUN_EARTHLY --earthfile=cache2.earth --target=+test --use_tmpfs=false
 
 git-clone-test:
-    COPY git-clone.earth ./Earthfile
-    RUN --privileged \
-        --entrypoint \
-        --mount=type=tmpfs,target=/tmp/earthly \
-        -- +test
+    DO +RUN_EARTHLY --earthfile=git-clone.earth --target=+test
 
 builtin-args-test:
-    COPY builtin-args.earth ./Earthfile
-    RUN --privileged \
-        --entrypoint \
-        --mount=type=tmpfs,target=/tmp/earthly \
-        -- +builtin-args-test
+    DO +RUN_EARTHLY --earthfile=builtin-args.earth --target=+builtin-args-test
 
 config-test:
-    COPY config.earth ./Earthfile
-    RUN --privileged \
-        --entrypoint \
-        --mount=type=tmpfs,target=/tmp/earthly \
-        -- +test
+    DO +RUN_EARTHLY --earthfile=config.earth --target=+test
 
 excludes-test:
-    COPY excludes.earth ./Earthfile
     RUN touch exclude-me.txt
     RUN touch do-not-exclude-me.txt
     RUN echo 'exclude-me.txt' > .earthignore
-    RUN --privileged \
-        --entrypoint \
-        --mount=type=tmpfs,target=/tmp/earthly \
-        -- +test
+    DO +RUN_EARTHLY --earthfile=excludes.earth --target=+test
 
 secrets-test:
-    COPY secrets.earth ./Earthfile
     ENV SECRET1=foo
     ENV SECRET2=wrong
     RUN echo -n "secretfilecontents" > /my-secret-file
-    RUN --privileged \
-        --entrypoint \
-        --mount=type=tmpfs,target=/tmp/earthly \
-        -- --secret SECRET1 --secret SECRET2=bar --secret-file SECRET3=/my-secret-file +test
+    DO +RUN_EARTHLY \
+        --earthfile=secrets.earth \
+        --extra_args="--secret SECRET1 --secret SECRET2=bar --secret-file SECRET3=/my-secret-file" \
+        --target=+test
 
 build-arg-test:
-    COPY build-arg.earth ./Earthfile
-    RUN --privileged \
-        --entrypoint \
-        --mount=type=tmpfs,target=/tmp/earthly \
-        -- +all
+    DO +RUN_EARTHLY --earthfile=build-arg.earth
 
 lc-test:
-    COPY lc.earth ./Earthfile
-    RUN --privileged \
-        --entrypoint \
-        --mount=type=tmpfs,target=/tmp/earthly \
-        -- +test
+    DO +RUN_EARTHLY --earthfile=lc.earth --target=+test
 
 from-expose-test:
-    COPY from-expose.earth ./Earthfile
-    RUN --privileged \
-        --entrypoint \
-        --mount=type=tmpfs,target=/tmp/earthly \
-        -- --no-output +test
+    DO +RUN_EARTHLY --earthfile=from-expose.earth --extra_args="--no-output" --target=+test
 
 scratch-test:
-    COPY scratch-test.earth ./Earthfile
-    RUN --privileged \
-        --entrypoint \
-        --mount=type=tmpfs,target=/tmp/earthly \
-        -- --no-output +test
+    DO +RUN_EARTHLY --earthfile=scratch-test.earth --extra_args="--no-output" --target=+test
 
 build-earthly-test:
     # Test that build.earth is supported.
@@ -190,11 +143,7 @@ build-earthly-test:
 host-bind-test:
     RUN mkdir /bind-test
     RUN echo "a" > /bind-test/a.txt
-    COPY host-bind.earth ./Earthfile
-    RUN --privileged \
-        --entrypoint \
-        --mount=type=tmpfs,target=/tmp/earthly \
-        -- +test
+    DO +RUN_EARTHLY --earthfile=host-bind.earth --target=+test
     RUN test -f /bind-test/b.txt
     RUN cat /bind-test/b.txt
 
@@ -206,22 +155,14 @@ remote-test:
         -- --no-output github.com/earthly/hello-world:main+hello
 
 transitive-args-test:
-    COPY transitive-args.earth ./Earthfile
-    RUN --privileged \
-        --entrypoint \
-        --mount=type=tmpfs,target=/tmp/earthly \
-        -- --build-arg SOMEARG=xyz +test
+    DO +RUN_EARTHLY --earthfile=transitive-args.earth --extra_args="--build-arg SOMEARG=xyz" --target=+test
     RUN ls
     RUN test -f ./abc && test -f ./xyz && test ! -f ./default
     RUN cat ./abc | grep abc
     RUN cat ./xyz | grep xyz
 
 transitive-args-test2:
-    COPY transitive-args.earth ./Earthfile
-    RUN --privileged \
-        --entrypoint \
-        --mount=type=tmpfs,target=/tmp/earthly \
-        -- +test
+    DO +RUN_EARTHLY --earthfile=transitive-args.earth --target=+test
     RUN ls
     RUN test -f ./abc && test -f ./default
     RUN cat ./abc | grep abc
@@ -253,26 +194,16 @@ non-transitive-args-test:
     RUN test -f ./subdir/direct && test ! -f ./subdir/default
 
 star-test:
-    COPY star.earth ./Earthfile
     RUN touch a.txt b.txt c.nottxt
-    RUN --privileged \
-        --entrypoint \
-        --mount=type=tmpfs,target=/tmp/earthly \
-        -- +test
+    DO +RUN_EARTHLY --earthfile=star.earth --target=+test
 
 # TODO: This does not pass.
 star-test-todo:
-    COPY star.earth ./Earthfile
     RUN touch a.txt b.txt c.nottxt
-    RUN --privileged \
-        --entrypoint \
-        --mount=type=tmpfs,target=/tmp/earthly \
-        -- +test
+    DO +RUN_EARTHLY --earthfile=star.earth --target=+test --use_tmpfs=false
     RUN echo "a change" > c.nottxt
-    RUN --privileged \
-        --entrypoint \
-        --mount=type=tmpfs,target=/tmp/earthly \
-        -- +test >output.txt
+    DO +RUN_EARTHLY --earthfile=star.earth --target=+test --use_tmpfs=false \
+        --post_command=">output.txt"
     RUN cat output.txt
     RUN cached_lines=$(cat output.txt | grep cached | wc -l); \
         echo "cached_lines=$cached_lines"; \
@@ -287,140 +218,80 @@ dockerfile-test:
         -- --no-output +test
 
 fail-test:
-    COPY fail.earth ./Earthfile
     # test that an error code is correctly returned
-    RUN --privileged \
-        --mount=type=tmpfs,target=/tmp/earthly \
-        ! /usr/bin/earthly-buildkitd-wrapper.sh +test
+    DO +RUN_EARTHLY --earthfile=fail.earth --should_fail=true --target=+test
     # test that the 'failed with exit code' text is printed out
-    RUN --privileged \
-        --mount=type=tmpfs,target=/tmp/earthly \
-        /usr/bin/earthly-buildkitd-wrapper.sh +test 2>&1 | perl -pe 'BEGIN {$status=1} END {exit $status} $status=0 if /this-will-fail/;'
+    DO +RUN_EARTHLY --earthfile=fail.earth --target=+test \
+        --post_command="2>&1 | perl -pe 'BEGIN {\\\$status=1} END {exit \\\$status} \\\$status=0 if /this-will-fail/;'"
 
 fail-push-test:
-    COPY fail.earth ./Earthfile
     # test that an error code is correctly returned
-    RUN --privileged \
-        --mount=type=tmpfs,target=/tmp/earthly \
-        ! /usr/bin/earthly-buildkitd-wrapper.sh --push +test-push
+    DO +RUN_EARTHLY --earthfile=fail.earth --should_fail=true --extra_args="--push" --target=+test-push
     # test that the 'failed with exit code' text is printed out
-    RUN --privileged \
-        --mount=type=tmpfs,target=/tmp/earthly \
-        /usr/bin/earthly-buildkitd-wrapper.sh --push +test-push 2>&1 | perl -pe 'BEGIN {$status=1} END {exit $status} $status=0 if /this-too-will-fail/;'
-    RUN echo hello world
+    DO +RUN_EARTHLY --earthfile=fail.earth --extra_args="--push" --target=+test-push \
+        --post_command="2>&1 | perl -pe 'BEGIN {\\\$status=1} END {exit \\\$status} \\\$status=0 if /this-too-will-fail/;'"
 
 fail-invalid-artifact-test:
     # test that the artifact fails to be copied
-    COPY fail-invalid-artifact.earth ./Earthfile
-    RUN --privileged \
-        --mount=type=tmpfs,target=/tmp/earthly \
-        ! /usr/bin/earthly-buildkitd-wrapper.sh --artifact +test/foo /tmp/stuff
+    DO +RUN_EARTHLY --earthfile=fail-invalid-artifact.earth --should_fail=true --target="--artifact +test/foo /tmp/stuff"
     # test that we echo a message containing the invalid artifact name
-    COPY fail-invalid-artifact.earth ./Earthfile
-    RUN --privileged \
-        --mount=type=tmpfs,target=/tmp/earthly \
-        /usr/bin/earthly-buildkitd-wrapper.sh --artifact +test/foo /tmp/stuff 2>&1 | perl -pe 'BEGIN {$status=1} END {exit $status} $status=0 if /\+test\/foo/;'
+    DO +RUN_EARTHLY --earthfile=fail-invalid-artifact.earth --target="--artifact +test/foo /tmp/stuff" \
+        --post_command="2>&1 | perl -pe 'BEGIN {\\\$status=1} END {exit \\\$status} \\\$status=0 if /\\\+test\\\/foo/;'"
 
 push-test:
-    COPY push.earth ./Earthfile
-    RUN --privileged \
-        --mount=type=tmpfs,target=/tmp/earthly \
-        /usr/bin/earthly-buildkitd-wrapper.sh +push-test | grep 'Use earthly --push to enable pushing'
-    RUN --privileged \
-        --mount=type=tmpfs,target=/tmp/earthly \
-        /usr/bin/earthly-buildkitd-wrapper.sh --push +push-test | grep 'hello world'
+    DO +RUN_EARTHLY --earthfile=push.earth --target=+push-test \
+        --post_command="| grep 'Use earthly --push to enable pushing'"
+    DO +RUN_EARTHLY --earthfile=push.earth --extra_args="--push" --target=+push-test \
+        --post_command="| grep 'hello world'"
 
 private-image-test:
     FROM earthly/private-test:latest
     RUN --entrypoint echo hello world
 
 gen-dockerfile-test:
-    COPY gen-dockerfile.earth ./Earthfile
-    RUN --privileged \
-        --entrypoint \
-        --mount=type=tmpfs,target=/tmp/earthly \
-        -- --no-output +test
+    DO +RUN_EARTHLY --earthfile=gen-dockerfile.earth --extra_args="--no-output" --target=+test
 
 comments-test:
-    COPY comments.earth ./Earthfile
-    RUN --privileged \
-        --entrypoint \
-        --mount=type=tmpfs,target=/tmp/earthly \
-        -- --no-output +test
+    DO +RUN_EARTHLY --earthfile=comments.earth --extra_args="--no-output" --target=+test
 
 chown-test:
-    COPY chown.earth ./Earthfile
     RUN echo "test" > ./a.txt
-    RUN --privileged \
-        --entrypoint \
-        --mount=type=tmpfs,target=/tmp/earthly \
-        -- --no-output +test
+    DO +RUN_EARTHLY --earthfile=chown.earth --target=+test
 
 dotenv-test:
-    COPY dotenv.earth ./Earthfile
     RUN echo "TEST_ENV_1=abracadabra" >.env
     RUN echo "TEST_ENV_2=foo" >>.env
     RUN echo "TEST_ENV_3=bar" >>.env
-    RUN --privileged \
-        --entrypoint \
-        --mount=type=tmpfs,target=/tmp/earthly \
-        -- --no-output +test
+    DO +RUN_EARTHLY --earthfile=dotenv.earth --extra_args="--no-output" --target=+test
     # Smoke test that no .env file does not result in an error.
     RUN rm .env
-    RUN --privileged \
-        --entrypoint \
-        --mount=type=tmpfs,target=/tmp/earthly \
-        -- --no-output +test-no-dotenv
+    DO +RUN_EARTHLY --earthfile=dotenv.earth --extra_args="--no-output" --target=+test-no-dotenv
 
 env-test:
-    COPY env.earth ./Earthfile
-    RUN --privileged \
-        --entrypoint \
-        --mount=type=tmpfs,target=/tmp/earthly \
-        -- --no-output +test
+    DO +RUN_EARTHLY --earthfile=env.earth --extra_args="--no-output" --target=+test
 
 no-cache-local-artifact-test:
-    COPY no-cache-local-artifact.earth ./Earthfile
-    RUN --privileged \
-        --entrypoint \
-        -- --no-cache +test
+    DO +RUN_EARTHLY --earthfile=no-cache-local-artifact.earth --use_tmpfs=false --extra_args="--no-cache" --target=+test
     RUN mv file.txt old.txt
-    RUN --privileged \
-        --entrypoint \
-        -- --no-cache +test
+    DO +RUN_EARTHLY --earthfile=no-cache-local-artifact.earth --use_tmpfs=false --extra_args="--no-cache" --target=+test
     RUN ! diff file.txt old.txt
 
 empty-git-test:
     RUN git init
-    COPY empty-git.earth ./Earthfile
-    RUN --privileged \
-        --entrypoint \
-        --mount=type=tmpfs,target=/tmp/earthly \
-        -- --no-output +test-empty
+    DO +RUN_EARTHLY --earthfile=empty-git.earth --extra_args="--no-output" --target=+test-empty
     RUN git remote add origin https://github.com/earthly/earthly.git
-    RUN --privileged \
-        --entrypoint \
-        --mount=type=tmpfs,target=/tmp/earthly \
-        -- --no-output +test-origin-no-hash
+    DO +RUN_EARTHLY --earthfile=empty-git.earth --extra_args="--no-output" --target=+test-origin-no-hash
 
 escape-test:
-    COPY escape.earth ./Earthfile
     RUN printf "content" >file-with-+.txt
     RUN printf "content" >regular-file.txt
-    RUN --privileged \
-        --entrypoint \
-        --mount=type=tmpfs,target=/tmp/earthly \
-        -- +all
+    DO +RUN_EARTHLY --earthfile=escape.earth
     RUN test "test" == "$(cat ./still-+.txt)"
 
 escape-dir-test:
-    COPY escape-dir1.earth ./Earthfile
     RUN mkdir ./dir-with-+-in-it
     COPY escape-dir2.earth ./dir-with-+-in-it/Earthfile
-    RUN --privileged \
-        --entrypoint \
-        --mount=type=tmpfs,target=/tmp/earthly \
-        -- --no-output +test
+    DO +RUN_EARTHLY --earthfile=escape-dir1.earth --extra_args="--no-output" --target=+test
 
 eine-test-base:
     FROM docker:19.03.12-dind
@@ -444,49 +315,24 @@ eine-privileged-test:
     END
 
 target-first-line:
-    COPY target-first-line.earth ./Earthfile
-    RUN --privileged \
-        --entrypoint \
-        --mount=type=tmpfs,target=/tmp/earthly \
-        -- --no-output +test
+    DO +RUN_EARTHLY --earthfile=target-first-line.earth --extra_args="--no-output" --target=+test
 
 end-comment:
-    COPY end-comment.earth ./Earthfile
-    RUN --privileged \
-        --entrypoint \
-        --mount=type=tmpfs,target=/tmp/earthly \
-        -- +test
+    DO +RUN_EARTHLY --earthfile=end-comment.earth --target=+test
 
 if-exists:
-    COPY if-exists.earth ./Earthfile
-    RUN --privileged \
-        --entrypoint \
-        --mount=type=tmpfs,target=/tmp/earthly \
-        -- +save-exist-local
-
-    RUN --privileged \
-        --mount=type=tmpfs,target=/tmp/earthly \
-        /usr/bin/earthly-buildkitd-wrapper.sh +save-not-exist 2>&1 | perl -pe 'BEGIN {$status=1} END {exit $status} $status=0 if /save-not-exist/;'
-
-    RUN --privileged \
-        --mount=type=tmpfs,target=/tmp/earthly \
-        /usr/bin/earthly-buildkitd-wrapper.sh +copy-not-exist 2>&1 | perl -pe 'BEGIN {$status=1} END {exit $status} $status=0 if /copy-not-exist/;'
-
-    RUN --privileged \
-        --mount=type=tmpfs,target=/tmp/earthly \
-        /usr/bin/earthly-buildkitd-wrapper.sh +bad-wildcard-copy 2>&1 | perl -pe 'BEGIN {$status=1} END {exit $status} $status=0 if /bad-wildcard-copy/;'
-
-    RUN --privileged \
-        --mount=type=tmpfs,target=/tmp/earthly \
-        /usr/bin/earthly-buildkitd-wrapper.sh +bad-wildcard-save 2>&1 | perl -pe 'BEGIN {$status=1} END {exit $status} $status=0 if /bad-wildcard-save/;'
+    DO +RUN_EARTHLY --earthfile=if-exists.earth --target=+save-exist-local
+    DO +RUN_EARTHLY --earthfile=if-exists.earth --target=+save-not-exist \
+        --post_command="2>&1 | perl -pe 'BEGIN {\\\$status=1} END {exit \\\$status} \\\$status=0 if /save-not-exist/;'"
+    DO +RUN_EARTHLY --earthfile=if-exists.earth --target=+copy-not-exist \
+        --post_command="2>&1 | perl -pe 'BEGIN {\\\$status=1} END {exit \\\$status} \\\$status=0 if /copy-not-exist/;'"
+    DO +RUN_EARTHLY --earthfile=if-exists.earth --target=+bad-wildcard-copy \
+        --post_command="2>&1 | perl -pe 'BEGIN {\\\$status=1} END {exit \\\$status} \\\$status=0 if /bad-wildcard-copy/;'"
+    DO +RUN_EARTHLY --earthfile=if-exists.earth --target=+bad-wildcard-save \
+        --post_command="2>&1 | perl -pe 'BEGIN {\\\$status=1} END {exit \\\$status} \\\$status=0 if /bad-wildcard-save/;'"
 
 file-copying:
-    COPY file-copying.earth ./Earthfile
-
-    RUN --privileged \
-        --mount=type=tmpfs,target=/tmp/earthly \
-        --entrypoint \
-        -- +all
+    DO +RUN_EARTHLY --earthfile=file-copying.earth
 
     RUN find out-glob -printf '%P\n' | sort > result-glob
     RUN ls -la out-glob
@@ -525,71 +371,45 @@ file-copying:
     RUN diff -ws expected-src-dest-dir-rename result-src-dest-dir-rename
 
     # Saving the root dir is not allowed. This should fail.
-    RUN --privileged \
-        --mount=type=tmpfs,target=/tmp/earthly \
-        ! /usr/bin/earthly-buildkitd-wrapper.sh +test-dot-scratch
+    DO +RUN_EARTHLY --earthfile=file-copying.earth --should_fail=true --target=+test-dot-scratch
 
 run-no-cache:
-    COPY run-no-cache.earth ./Earthfile
-
     # Run twice to allow the second one to attempt to cache things
-    RUN --privileged \
-        --entrypoint \
-        -- +test
-    RUN --privileged \
-        --entrypoint \
-        -- +test 2>&1 | perl -pe 'BEGIN {$status=0} END {exit $status} $status=1 if /\*cached\* --> .* motd2/;'  # Fail if we cached any of the motd2 lines, which are after the --no-cache
+    DO +RUN_EARTHLY --earthfile=run-no-cache.earth --use_tmpfs=false --target=+test
+    # Fail if we cached any of the motd2 lines, which are after the --no-cache
+    DO +RUN_EARTHLY --earthfile=run-no-cache.earth --use_tmpfs=false --target=+test \
+        --post_command="2>&1 | perl -pe 'BEGIN {\\\$status=0} END {exit \\\$status} \\\$status=1 if /\\\*cached\\\* --> .* motd2/;'"
     
     # Run twice to allow the second one to attempt to cache things
-    RUN --privileged \
-        --entrypoint \
-        -- +test-from
-    RUN --privileged \
-        --entrypoint \
-        -- +test-from 2>&1 | perl -pe 'BEGIN {$status=0} END {exit $status} $status=1 if /\*cached\* --> .*motd2 \.\//;'  # Fail if we cached any of the COPY motd2 lines, which are after the --no-cache
+    DO +RUN_EARTHLY --earthfile=run-no-cache.earth --use_tmpfs=false --target=+test-from
+    # Fail if we cached any of the COPY motd2 lines, which are after the --no-cache
+    DO +RUN_EARTHLY --earthfile=run-no-cache.earth --use_tmpfs=false --target=+test-from \
+        --post_command="2>&1 | perl -pe 'BEGIN {\\\$status=0} END {exit \\\$status} \\\$status=1 if /\\\*cached\\\* --> .*motd2 \\\.\\\//;'"
 
 save-artifact-after-push:
     # test that save after push is a thing
-    COPY save-artifact-after-push.earth ./Earthfile
-    RUN --privileged \
-        --entrypoint \
-        --mount=type=tmpfs,target=/tmp/earthly \
-        -- +test
+    DO +RUN_EARTHLY --earthfile=save-artifact-after-push.earth --target=+test
 
     # test that cant copy saved after push
-    RUN --privileged \
-        --entrypoint \
-        --mount=type=tmpfs,target=/tmp/earthly \
-        -- +copy-test 2>&1 | perl -pe 'BEGIN {$status=1} END {exit $status} $status=0 if /not found/;'
+    DO +RUN_EARTHLY --earthfile=save-artifact-after-push.earth --target=+copy-test \
+        --post_command="2>&1 | perl -pe 'BEGIN {\\\$status=1} END {exit \\\$status} \\\$status=0 if /not found/;'"
 
 push-build:
-    COPY push-build.earth ./Earthfile
-    RUN --privileged \
-        --entrypoint \
-        --mount=type=tmpfs,target=/tmp/earthly \
-        -- --push +test 2>&1 > output
-    
+    DO +RUN_EARTHLY --earthfile=push-build.earth --target=+test --post_command="2>&1 > output"
     RUN cat output
     RUN cat output | perl -pe 'BEGIN {$status=1} END {exit $status} $status=0 if /\+test \| 0\n/;'
     RUN cat output | perl -pe 'BEGIN {$status=1} END {exit $status} $status=0 if /\+run1 \| 1\n/;'
     RUN cat output | perl -pe 'BEGIN {$status=1} END {exit $status} $status=0 if /\+run2 \| 2\n/;'
 
 build-arg-repeat:
-    COPY build-arg-repeat.earth ./Earthfile
-    RUN --privileged \
-        --entrypoint \
-        --mount=type=tmpfs,target=/tmp/earthly \
-        -- +build-all-1
+    DO +RUN_EARTHLY --earthfile=build-arg-repeat.earth --target=+build-all-1
     RUN test -f ./output/out-other-1
     RUN test -f ./output/out-default-1
     RUN cat ./output/out-other-1 | grep "A=other"
     RUN cat ./output/out-other-1 | grep "B=1"
     RUN cat ./output/out-default-1 | grep "A=default"
     RUN cat ./output/out-default-1 | grep "B=1"
-    RUN --privileged \
-        --entrypoint \
-        --mount=type=tmpfs,target=/tmp/earthly \
-        -- +build-all-2
+    DO +RUN_EARTHLY --earthfile=build-arg-repeat.earth --target=+build-all-2
     RUN test -f ./output/out-other-1
     RUN test -f ./output/out-default-1
     RUN cat ./output/out-other-1 | grep "A=other"
@@ -598,70 +418,63 @@ build-arg-repeat:
     RUN cat ./output/out-default-1 | grep "B=1"
 
 if:
-    COPY if.earth ./Earthfile
     RUN touch exists-locally
-    RUN --privileged \
-        --entrypoint \
-        --mount=type=tmpfs,target=/tmp/earthly \
-        -- +all
+    DO +RUN_EARTHLY --earthfile=if.earth
 
 first-command:
-    COPY first-command.earth ./Earthfile
-    RUN --privileged \
-        --entrypoint \
-        --mount=type=tmpfs,target=/tmp/earthly \
-        -- +all-positive
-    RUN --privileged \
-        --mount=type=tmpfs,target=/tmp/earthly \
-        -- ! /usr/bin/earthly-buildkitd-wrapper.sh +start-with-run
-    RUN --privileged \
-        --mount=type=tmpfs,target=/tmp/earthly \
-        -- ! /usr/bin/earthly-buildkitd-wrapper.sh +start-with-if
-    RUN --privileged \
-        --mount=type=tmpfs,target=/tmp/earthly \
-        -- ! /usr/bin/earthly-buildkitd-wrapper.sh +start-with-non-from-target
+    DO +RUN_EARTHLY --earthfile=first-command.earth --target=+all-positive
+    DO +RUN_EARTHLY --earthfile=first-command.earth --should_fail=true --target=+start-with-run
+    DO +RUN_EARTHLY --earthfile=first-command.earth --should_fail=true --target=+start-with-if
+    DO +RUN_EARTHLY --earthfile=first-command.earth --should_fail=true --target=+start-with-non-from-target
 
 platform-output:
-    COPY platform-output.earth ./Earthfile
-    RUN --privileged \
-        --entrypoint \
-        --mount=type=tmpfs,target=/tmp/earthly \
-        -- +all
+    DO +RUN_EARTHLY --earthfile=platform-output.earth
     RUN test -f ./out-arm
     RUN test -f ./out-arm64
     RUN ! test -f ./out-amd64
 
 command:
-    COPY command.earth ./Earthfile
     RUN echo "hello command" >./message.txt
-    RUN --privileged \
-        --entrypoint \
-        --mount=type=tmpfs,target=/tmp/earthly \
-        -- +all
+    DO +RUN_EARTHLY --earthfile=command.earth
 
 duplicate:
-    COPY duplicate-target-names.earth ./Earthfile
-    RUN --privileged \
-       --mount=type=tmpfs,target=/tmp/earthly \
-       ! /usr/bin/earthly-buildkitd-wrapper.sh +duplicate
+    DO +RUN_EARTHLY --earthfile=duplicate-target-names.earth --should_fail=true --target=+duplicate
 
 quotes-test:
-    COPY quotes.earth ./Earthfile
-    RUN --privileged \
-        --entrypoint \
-        --mount=type=tmpfs,target=/tmp/earthly \
-        -- +all
+    DO +RUN_EARTHLY --earthfile=quotes.earth
 
 new-args:
-    COPY new-args.earth ./Earthfile
-    RUN --privileged \
-        --entrypoint \
-        --mount=type=tmpfs,target=/tmp/earthly \
-        -- +all
+    DO +RUN_EARTHLY --earthfile=new-args.earth
 
 import:
-    COPY import.earth ./Earthfile
+    DO +RUN_EARTHLY --earthfile=import.earth
+
+RUN_EARTHLY:
+    COMMAND
+    ARG earthfile=
+    ARG target=+all
+    ARG extra_args
+    ARG post_command
+    ARG should_fail=false
+    ARG use_tmpfs=true
+    COPY "$earthfile" ./Earthfile
+    RUN echo "
+        set -x
+        if $use_tmpfs; then
+            export EARTHLY_TMP_DIR=/tmp/earthly-tmpfs
+        fi
+        eval \"/usr/bin/earthly-buildkitd-wrapper.sh $extra_args $target $post_command\"
+        exit_code=\$?
+        if $should_fail; then
+            if [ \$exit_code -eq 0 ]; then
+                exit 1
+            else
+                exit 0
+            fi
+        else
+            exit \$exit_code
+        fi
+    " >/tmp/earthly-script
     RUN --privileged \
-        --entrypoint \
-        --mount=type=tmpfs,target=/tmp/earthly \
-        -- +all
+        --mount=type=tmpfs,target=/tmp/earthly-tmpfs \
+        /bin/sh /tmp/earthly-script
