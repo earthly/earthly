@@ -26,12 +26,10 @@ jobs:
       - name: Build latest earthly using released earthly
         run: earthly --use-inline-cache +for-linux
       - name: Execute tests (not a fork)
-        run: |
-          export EARTHLY_BUILD_ARGS="DOCKERHUB_USER_SECRET=+secrets/earthly-technologies/dockerhub/user,DOCKERHUB_TOKEN_SECRET=+secrets/earthly-technologies/dockerhub/token"
-          ./build/linux/amd64/earthly --ci -P +test
+        run: ./build/linux/amd64/earthly --ci -P +test
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: Execute tests (fork)
-        run: ./build/linux/amd64/earthly --ci -P +test
+        run: ./build/linux/amd64/earthly --ci -P +test --DOCKERHUB_AUTH=false
         if: github.event_name != 'push' && github.event.pull_request.head.repo.full_name != github.repository
       - name: Execute fail test
         run: "! ./build/linux/amd64/earthly --ci ./examples/tests/fail+test-fail"
@@ -70,12 +68,10 @@ jobs:
         run: ./build/linux/amd64/earthly --ci ./examples/tests+private-image-test
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: "Experimental tests (not a fork)"
-        run: |
-          export EARTHLY_BUILD_ARGS="DOCKERHUB_USER_SECRET=+secrets/earthly-technologies/dockerhub/user,DOCKERHUB_TOKEN_SECRET=+secrets/earthly-technologies/dockerhub/token"
-          ./build/linux/amd64/earthly --ci -P ./examples/tests+experimental
+        run: ./build/linux/amd64/earthly --ci -P ./examples/tests+experimental
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: "Experimental tests (fork)"
-        run: ./build/linux/amd64/earthly --ci -P ./examples/tests+experimental
+        run: ./build/linux/amd64/earthly --ci -P ./examples/tests+experimental --DOCKERHUB_AUTH=false
         if: github.event_name != 'push' && github.event.pull_request.head.repo.full_name != github.repository
       - name: Buildkit logs (runs on failure)
         run: docker logs earthly-buildkitd
@@ -168,12 +164,10 @@ jobs:
       - name: Build latest earthly using released earthly
         run: earthly --use-inline-cache +for-linux
       - name: Push and Pull Cloud Images (not a fork)
-        run: |
-          export EARTHLY_BUILD_ARGS="DOCKERHUB_USER_SECRET=+secrets/earthly-technologies/dockerhub/user,DOCKERHUB_TOKEN_SECRET=+secrets/earthly-technologies/dockerhub/token"
-          ./build/linux/amd64/earthly --ci -P ./examples/tests/cloud-push-pull+all
+        run: ./build/linux/amd64/earthly --ci -P ./examples/tests/cloud-push-pull+all
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: Push and Pull Cloud Images (fork)
-        run: ./build/linux/amd64/earthly --ci -P ./examples/tests/cloud-push-pull+all
+        run: ./build/linux/amd64/earthly --ci -P ./examples/tests/cloud-push-pull+all --DOCKERHUB_AUTH=false
         if: github.event_name != 'push' && github.event.pull_request.head.repo.full_name != github.repository
       - name: Push Images after RUN --push
         run: ./examples/tests/push-images/test.sh
