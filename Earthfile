@@ -211,6 +211,7 @@ prerelease:
     SAVE IMAGE --push earthly/earthlybinaries:prerelease
 
 prerelease-script:
+    FROM alpine:3.13
     COPY ./earthly ./
     # This script is useful in other repos too.
     SAVE ARTIFACT ./earthly
