@@ -16,12 +16,12 @@ func (f *failer) Go(tries int) error {
 		return nil
 	}
 
-	return fmt.Errorf("%v of %v fails happened", tries, f.failTimes)
+	return fmt.Errorf("%v of %v fails happened", tries+1, f.failTimes)
 }
 
 func TestRetry(t *testing.T) {
 
-	f := &failer{9999}
+	f := &failer{1}
 
 	err := doWithRetries(f.Go, func(err error) bool { return err != nil }, 2)
 
