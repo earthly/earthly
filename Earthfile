@@ -210,6 +210,11 @@ prerelease:
     COPY --build-arg VERSION=prerelease +earthly-all/* ./
     SAVE IMAGE --push earthly/earthlybinaries:prerelease
 
+prerelease-script:
+    COPY ./earthly ./
+    # This script is useful in other repos too.
+    SAVE ARTIFACT ./earthly
+
 dind:
     BUILD +dind-alpine
     BUILD +dind-ubuntu
