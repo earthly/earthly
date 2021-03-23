@@ -18,6 +18,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/opencontainers/go-digest"
+
 	"github.com/earthly/earthly/buildcontext"
 	"github.com/earthly/earthly/debugger/common"
 	"github.com/earthly/earthly/domain"
@@ -1293,13 +1295,26 @@ func (c *Converter) internalFromClassical(ctx context.Context, imageName string,
 	logName := fmt.Sprintf(
 		"%sLoad metadata %s",
 		c.imageVertexPrefix(imageName), llbutil.PlatformToString(&platform))
-	dgst, dt, err := c.opt.MetaResolver.ResolveImageConfig(
-		ctx, baseImageName,
-		llb.ResolveImageConfigOpt{
-			Platform:    &platform,
-			ResolveMode: c.opt.ImageResolveMode.String(),
-			LogName:     logName,
-		})
+
+	var (
+		dgst digest.Digest
+		dt   []byte
+	)
+
+	err = doWithRetries(
+		func() error {
+			dgst, dt, err = c.opt.MetaResolver.ResolveImageConfig(
+				ctx, baseImageName,
+				llb.ResolveImageConfigOpt{
+					Platform:    &platform,
+					ResolveMode: c.opt.ImageResolveMode.String(),
+					LogName:     logName,
+				})
+			return err
+		},
+		func(err error) bool { return err != nil },
+		5,
+	)
 	if err != nil {
 		return llb.State{}, nil, nil, errors.Wrapf(err, "resolve image config for %s", imageName)
 	}
@@ -1509,4 +1524,18 @@ func strIf(condition bool, str string) string {
 		return str
 	}
 	return ""
+}
+
+func doWithRetries(action func() error, retry func(error) bool, max int) error {
+	var (
+		tries int
+		err   error
+	)
+
+	for ok := true; ok; ok = retry(err) && tries < max {
+		err = action()
+		<-time.After(time.Second)
+	}
+
+	return errors.Wrap(err, fmt.Sprintf("Retried %v times:", max))
 }
