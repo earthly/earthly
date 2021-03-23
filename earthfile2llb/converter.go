@@ -1312,7 +1312,15 @@ func (c *Converter) internalFromClassical(ctx context.Context, imageName string,
 				})
 			return err
 		},
-		func(err error) bool { return err != nil },
+		func(err error) bool {
+			retry := err != nil
+
+			if retry {
+				fmt.Println("**** Metadata retry!")
+			}
+
+			return retry
+		},
 		5,
 	)
 	if err != nil {
