@@ -227,7 +227,7 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 			Target:    buildcontext.DockerfileMetaTarget,
 			LocalPath: contextPath,
 		}
-		dockerfileMetaTargetRef, err := domain.JoinReferences(c.mts.FinalTarget(), dockerfileMetaTarget)
+		dockerfileMetaTargetRef, err := c.joinRefs(dockerfileMetaTarget)
 		if err != nil {
 			return errors.Wrap(err, "join targets")
 		}
@@ -1001,7 +1001,7 @@ func (c *Converter) ResolveReference(ctx context.Context, ref domain.Reference) 
 	if err != nil {
 		return nil, err
 	}
-	refToResolve, err := domain.JoinReferences(c.mts.Final.Target, derefed)
+	refToResolve, err := c.joinRefs(derefed)
 	if err != nil {
 		return nil, err
 	}
@@ -1013,7 +1013,7 @@ func (c *Converter) ResolveReference(ctx context.Context, ref domain.Reference) 
 }
 
 // EnterScope introduces a new variable scope. Gloabls and imports are fetched from baseTarget.
-func (c *Converter) EnterScope(ctx context.Context, baseTarget domain.Target, scopeName string, buildArgs []string) error {
+func (c *Converter) EnterScope(ctx context.Context, command domain.Command, baseTarget domain.Target, scopeName string, buildArgs []string) error {
 	baseMts, err := c.buildTarget(ctx, baseTarget.String(), c.mts.Final.Platform, nil, true, false)
 	if err != nil {
 		return err
@@ -1025,7 +1025,7 @@ func (c *Converter) EnterScope(ctx context.Context, baseTarget domain.Target, sc
 		return err
 	}
 	c.varCollection.EnterFrame(
-		scopeName, overriding, baseMts.Final.VarCollection.Globals(),
+		scopeName, command, overriding, baseMts.Final.VarCollection.Globals(),
 		baseMts.Final.GlobalImports)
 	return nil
 }
@@ -1070,7 +1070,7 @@ func (c *Converter) buildTarget(ctx context.Context, fullTargetName string, plat
 	if err != nil {
 		return nil, err
 	}
-	targetRef, err := domain.JoinReferences(c.mts.Final.Target, derefedTarget)
+	targetRef, err := c.joinRefs(derefedTarget)
 	if err != nil {
 		return nil, errors.Wrap(err, "join targets")
 	}
@@ -1459,6 +1459,10 @@ func (c *Converter) setPlatform(platform *specs.Platform) {
 	c.mts.Final.Platform = platform
 	c.mts.Final.TargetInput.Platform = llbutil.PlatformWithDefaultToString(platform)
 	c.varCollection.SetPlatform(llbutil.PlatformWithDefault(platform))
+}
+
+func (c *Converter) joinRefs(relRef domain.Reference) (domain.Reference, error) {
+	return domain.JoinReferences(c.varCollection.AbsRef(), relRef)
 }
 
 func (c *Converter) checkAllowed(command string) error {
