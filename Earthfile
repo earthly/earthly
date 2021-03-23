@@ -199,6 +199,15 @@ earthly-docker:
 earthly-integration-test-base:
     FROM +earthly-docker
     RUN earthly config global.disable_analytics true
+    # The inner buildkit requires Docker hub creds to prevent rate-limiting issues.
+    ARG DOCKERHUB_AUTH=true
+    ARG DOCKERHUB_USER_SECRET=+secrets/earthly-technologies/dockerhub/user
+    ARG DOCKERHUB_TOKEN_SECRET=+secrets/earthly-technologies/dockerhub/token
+    IF $DOCKERHUB_AUTH
+        RUN --secret USERNAME=$DOCKERHUB_USER_SECRET \
+            --secret TOKEN=$DOCKERHUB_TOKEN_SECRET \
+            docker login --username="$USERNAME" --password="$TOKEN"
+    END
 
 prerelease:
     FROM alpine:3.13
@@ -282,22 +291,14 @@ test:
     BUILD +lint-scripts
     BUILD +unit-test
     BUILD ./ast/tests+all
-    ARG DOCKERHUB_USER_SECRET
-    ARG DOCKERHUB_TOKEN_SECRET
-    BUILD \
-        --build-arg DOCKERHUB_USER_SECRET \
-        --build-arg DOCKERHUB_TOKEN_SECRET \
-        ./examples/tests+ga
+    ARG DOCKERHUB_AUTH=true
+    BUILD ./examples/tests+ga --DOCKERHUB_AUTH=$DOCKERHUB_AUTH
 
 test-all:
     BUILD +examples
     BUILD +test
-    ARG DOCKERHUB_USER_SECRET
-    ARG DOCKERHUB_TOKEN_SECRET
-    BUILD \
-        --build-arg DOCKERHUB_USER_SECRET \
-        --build-arg DOCKERHUB_TOKEN_SECRET \
-        ./examples/tests+experimental
+    ARG DOCKERHUB_AUTH=true
+    BUILD ./examples/tests+experimental --DOCKERHUB_AUTH=$DOCKERHUB_AUTH
 
 examples:
     BUILD +examples1
