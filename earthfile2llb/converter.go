@@ -1292,17 +1292,16 @@ func (c *Converter) internalFromClassical(ctx context.Context, imageName string,
 		return llb.State{}, nil, nil, errors.Wrapf(err, "parse normalized named %s", imageName)
 	}
 	baseImageName := reference.TagNameOnly(ref).String()
-	logName := fmt.Sprintf(
-		"%sLoad metadata %s",
-		c.imageVertexPrefix(imageName), llbutil.PlatformToString(&platform))
-
 	var (
 		dgst digest.Digest
 		dt   []byte
 	)
 
 	err = doWithRetries(
-		func() error {
+		func(try int) error {
+			logName := fmt.Sprintf(
+				"%sLoad metadata %s, try %v",
+				c.imageVertexPrefix(imageName), llbutil.PlatformToString(&platform), try)
 			dgst, dt, err = c.opt.MetaResolver.ResolveImageConfig(
 				ctx, baseImageName,
 				llb.ResolveImageConfigOpt{
@@ -1534,14 +1533,15 @@ func strIf(condition bool, str string) string {
 	return ""
 }
 
-func doWithRetries(action func() error, retry func(error) bool, max int) error {
+func doWithRetries(action func(int) error, retry func(error) bool, max int) error {
 	var (
 		tries int
 		err   error
 	)
 
 	for ok := true; ok; ok = retry(err) && tries < max {
-		err = action()
+		err = action(tries)
+		tries++
 		<-time.After(time.Second)
 	}
 
