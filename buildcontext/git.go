@@ -14,6 +14,7 @@ import (
 	"github.com/earthly/earthly/gitutil"
 	"github.com/earthly/earthly/llbutil"
 	"github.com/earthly/earthly/stringutil"
+	"github.com/earthly/earthly/syncutil/synccache"
 
 	"github.com/moby/buildkit/client/llb"
 	gwclient "github.com/moby/buildkit/frontend/gateway/client"
@@ -27,7 +28,7 @@ const (
 type gitResolver struct {
 	cleanCollection *cleanup.Collection
 
-	projectCache map[string]*resolvedGitProject
+	projectCache *synccache.SyncCache // "gitURL#gitRef" -> *resolvedGitProject
 	gitLookup    *GitLookup
 }
 
@@ -69,6 +70,9 @@ func (gr *gitResolver) resolveEarthProject(ctx context.Context, gwClient gwclien
 		// Commands don't come with a build context.
 	}
 
+	// TODO: Cache the stateToRef and build file on the client side so we don't have
+	//       to bother buildkit about it multiple times, if multiple targets
+	//       from the same file are involved (common).
 	earthfileTmpDir, err := ioutil.TempDir(os.TempDir(), "earthly-git")
 	if err != nil {
 		return nil, errors.Wrap(err, "create temp dir for Earthfile")
@@ -123,124 +127,112 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, gwClient gwclient.
 
 	// Check the cache first.
 	cacheKey := fmt.Sprintf("%s#%s", gitURL, gitRef)
-	data, found := gr.projectCache[cacheKey]
-	if found {
-		return data, gitURL, subDir, nil
-	}
-	// Not cached.
-
-	// Copy all Earthfile, build.earth and Dockerfile files.
-	gitOpts := []llb.GitOption{
-		llb.WithCustomNamef("[internal] GIT CLONE %s", stringutil.ScrubCredentials(gitURL)),
-		llb.KeepGitDir(),
-	}
-	if keyScan != "" {
-		gitOpts = append(gitOpts, llb.KnownSSHHosts(keyScan))
-	}
-	gitState := llb.Git(gitURL, gitRef, gitOpts...)
-	copyOpts := []llb.RunOption{
-		llb.Args([]string{
-			"find",
-			"-type", "f",
-			"(", "-name", "build.earth", "-o", "-name", "Earthfile", "-o", "-name", "Dockerfile", ")",
-			"-exec", "cp", "--parents", "{}", "/dest", ";",
-		}),
-		llb.Dir("/git-src"),
-		llb.ReadonlyRootFS(),
-		llb.AddMount("/git-src", gitState, llb.Readonly),
-		llb.WithCustomNamef("[internal] COPY GIT CLONE %s Metadata", ref.ProjectCanonical()),
-	}
-	opImg := llb.Image(
-		defaultGitImage, llb.MarkImageInternal, llb.ResolveModePreferLocal,
-		llb.Platform(llbutil.DefaultPlatform()))
-	copyOp := opImg.Run(copyOpts...)
-	earthfileState := copyOp.AddMount("/dest", llbutil.ScratchWithPlatform())
-
-	// Get git hash.
-	gitHashOpts := []llb.RunOption{
-		llb.Args([]string{
-			"/bin/sh", "-c",
-			"git rev-parse HEAD >/dest/git-hash ; " +
-				"git rev-parse --abbrev-ref HEAD >/dest/git-branch  || touch /dest/git-branch ; " +
-				"git describe --exact-match --tags >/dest/git-tags || touch /dest/git-tags",
-		}),
-		llb.Dir("/git-src"),
-		llb.ReadonlyRootFS(),
-		llb.AddMount("/git-src", gitState, llb.Readonly),
-		llb.WithCustomNamef("[internal] GET GIT META %s", ref.ProjectCanonical()),
-	}
-	gitHashOp := opImg.Run(gitHashOpts...)
-	gitMetaAndEarthfileState := gitHashOp.AddMount("/dest", earthfileState)
-
-	gitMetaAndEarthfileRef, err := llbutil.StateToRef(ctx, gwClient, gitMetaAndEarthfileState, nil, nil)
-	if err != nil {
-		return nil, "", "", errors.Wrap(err, "state to ref git meta")
-	}
-	gitHashBytes, err := gitMetaAndEarthfileRef.ReadFile(ctx, gwclient.ReadRequest{
-		Filename: "git-hash",
-	})
-	if err != nil {
-		return nil, "", "", errors.Wrap(err, "read git-hash")
-	}
-	gitBranchBytes, err := gitMetaAndEarthfileRef.ReadFile(ctx, gwclient.ReadRequest{
-		Filename: "git-branch",
-	})
-	if err != nil {
-		return nil, "", "", errors.Wrap(err, "read git-branch")
-	}
-	gitTagsBytes, err := gitMetaAndEarthfileRef.ReadFile(ctx, gwclient.ReadRequest{
-		Filename: "git-tags",
-	})
-	if err != nil {
-		return nil, "", "", errors.Wrap(err, "read git-tags")
-	}
-
-	gitHash := strings.SplitN(string(gitHashBytes), "\n", 2)[0]
-	gitBranches := strings.SplitN(string(gitBranchBytes), "\n", 2)
-	var gitBranches2 []string
-	for _, gitBranch := range gitBranches {
-		if gitBranch != "" {
-			gitBranches2 = append(gitBranches2, gitBranch)
+	rgpValue, err := gr.projectCache.Do(cacheKey, func(k interface{}) (interface{}, error) {
+		// Copy all Earthfile, build.earth and Dockerfile files.
+		gitOpts := []llb.GitOption{
+			llb.WithCustomNamef("[internal] GIT CLONE %s", stringutil.ScrubCredentials(gitURL)),
+			llb.KeepGitDir(),
 		}
-	}
-	gitTags := strings.SplitN(string(gitTagsBytes), "\n", 2)
-	var gitTags2 []string
-	for _, gitTag := range gitTags {
-		if gitTag != "" && gitTag != "HEAD" {
-			gitTags2 = append(gitTags2, gitTag)
+		if keyScan != "" {
+			gitOpts = append(gitOpts, llb.KnownSSHHosts(keyScan))
 		}
-	}
+		gitState := llb.Git(gitURL, gitRef, gitOpts...)
+		copyOpts := []llb.RunOption{
+			llb.Args([]string{
+				"find",
+				"-type", "f",
+				"(", "-name", "build.earth", "-o", "-name", "Earthfile", "-o", "-name", "Dockerfile", ")",
+				"-exec", "cp", "--parents", "{}", "/dest", ";",
+			}),
+			llb.Dir("/git-src"),
+			llb.ReadonlyRootFS(),
+			llb.AddMount("/git-src", gitState, llb.Readonly),
+			llb.WithCustomNamef("[internal] COPY GIT CLONE %s Metadata", ref.ProjectCanonical()),
+		}
+		opImg := llb.Image(
+			defaultGitImage, llb.MarkImageInternal, llb.ResolveModePreferLocal,
+			llb.Platform(llbutil.DefaultPlatform()))
+		copyOp := opImg.Run(copyOpts...)
+		earthfileState := copyOp.AddMount("/dest", llbutil.ScratchWithPlatform())
 
-	gitOpts = []llb.GitOption{
-		llb.WithCustomNamef("[context %s] git context %s", gitURL, ref.StringCanonical()),
-		llb.KeepGitDir(),
-	}
-	if keyScan != "" {
-		gitOpts = append(gitOpts, llb.KnownSSHHosts(keyScan))
-	}
+		// Get git hash.
+		gitHashOpts := []llb.RunOption{
+			llb.Args([]string{
+				"/bin/sh", "-c",
+				"git rev-parse HEAD >/dest/git-hash ; " +
+					"git rev-parse --abbrev-ref HEAD >/dest/git-branch  || touch /dest/git-branch ; " +
+					"git describe --exact-match --tags >/dest/git-tags || touch /dest/git-tags",
+			}),
+			llb.Dir("/git-src"),
+			llb.ReadonlyRootFS(),
+			llb.AddMount("/git-src", gitState, llb.Readonly),
+			llb.WithCustomNamef("[internal] GET GIT META %s", ref.ProjectCanonical()),
+		}
+		gitHashOp := opImg.Run(gitHashOpts...)
+		gitMetaAndEarthfileState := gitHashOp.AddMount("/dest", earthfileState)
 
-	// Add to cache.
-	resolved := &resolvedGitProject{
-		gitMetaAndEarthfileState: gitMetaAndEarthfileState,
-		hash:                     gitHash,
-		branches:                 gitBranches2,
-		tags:                     gitTags2,
-		state: llb.Git(
-			gitURL,
-			gitHash,
-			gitOpts...,
-		),
+		gitMetaAndEarthfileRef, err := llbutil.StateToRef(ctx, gwClient, gitMetaAndEarthfileState, nil, nil)
+		if err != nil {
+			return nil, errors.Wrap(err, "state to ref git meta")
+		}
+		gitHashBytes, err := gitMetaAndEarthfileRef.ReadFile(ctx, gwclient.ReadRequest{
+			Filename: "git-hash",
+		})
+		if err != nil {
+			return nil, errors.Wrap(err, "read git-hash")
+		}
+		gitBranchBytes, err := gitMetaAndEarthfileRef.ReadFile(ctx, gwclient.ReadRequest{
+			Filename: "git-branch",
+		})
+		if err != nil {
+			return nil, errors.Wrap(err, "read git-branch")
+		}
+		gitTagsBytes, err := gitMetaAndEarthfileRef.ReadFile(ctx, gwclient.ReadRequest{
+			Filename: "git-tags",
+		})
+		if err != nil {
+			return nil, errors.Wrap(err, "read git-tags")
+		}
+
+		gitHash := strings.SplitN(string(gitHashBytes), "\n", 2)[0]
+		gitBranches := strings.SplitN(string(gitBranchBytes), "\n", 2)
+		var gitBranches2 []string
+		for _, gitBranch := range gitBranches {
+			if gitBranch != "" {
+				gitBranches2 = append(gitBranches2, gitBranch)
+			}
+		}
+		gitTags := strings.SplitN(string(gitTagsBytes), "\n", 2)
+		var gitTags2 []string
+		for _, gitTag := range gitTags {
+			if gitTag != "" && gitTag != "HEAD" {
+				gitTags2 = append(gitTags2, gitTag)
+			}
+		}
+
+		gitOpts = []llb.GitOption{
+			llb.WithCustomNamef("[context %s] git context %s", gitURL, ref.StringCanonical()),
+			llb.KeepGitDir(),
+		}
+		if keyScan != "" {
+			gitOpts = append(gitOpts, llb.KnownSSHHosts(keyScan))
+		}
+
+		return &resolvedGitProject{
+			gitMetaAndEarthfileState: gitMetaAndEarthfileState,
+			hash:                     gitHash,
+			branches:                 gitBranches2,
+			tags:                     gitTags2,
+			state: llb.Git(
+				gitURL,
+				gitHash,
+				gitOpts...,
+			),
+		}, nil
+	})
+	if err != nil {
+		return nil, "", "", err
 	}
-	gr.projectCache[cacheKey] = resolved
-	cacheKey2 := fmt.Sprintf("%s#%s", gitURL, gitHash)
-	gr.projectCache[cacheKey2] = resolved
-	if len(gitBranches2) > 0 {
-		cacheKey3 := fmt.Sprintf("%s#%s", gitURL, gitBranches2[0])
-		gr.projectCache[cacheKey3] = resolved
-	}
-	if len(gitTags2) > 0 {
-		cacheKey4 := fmt.Sprintf("%s#%s", gitURL, gitTags2[0])
-		gr.projectCache[cacheKey4] = resolved
-	}
-	return resolved, gitURL, subDir, nil
+	rgp = rgpValue.(*resolvedGitProject)
+	return rgp, gitURL, subDir, nil
 }
