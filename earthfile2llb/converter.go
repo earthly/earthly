@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"hash/fnv"
 	"io/ioutil"
-	"math/rand"
 	"os"
 	"path"
 	"path/filepath"
@@ -54,43 +53,29 @@ type Converter struct {
 }
 
 // NewConverter constructs a new converter for a given earthly target.
-func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Data, opt ConvertOpt) (*Converter, error) {
-	sts := &states.SingleTarget{
-		Target:   target,
-		Platform: opt.Platform,
-		TargetInput: dedup.TargetInput{
-			TargetCanonical: target.StringCanonical(),
-			Platform:        llbutil.PlatformWithDefaultToString(opt.Platform),
-		},
-		MainState:      llbutil.ScratchWithPlatform(),
-		MainImage:      image.NewImage(),
-		ArtifactsState: llbutil.ScratchWithPlatform(),
-		LocalDirs:      bc.LocalDirs,
-		Ongoing:        true,
-		Salt:           fmt.Sprintf("%d", rand.Int()),
-	}
+func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Data, sts *states.SingleTarget, opt ConvertOpt) (*Converter, error) {
+	opt.stack = append(opt.stack, sts.TargetInput)
+	sts.LocalDirs = bc.LocalDirs
 	mts := &states.MultiTarget{
 		Final:   sts,
 		Visited: opt.Visited,
 	}
-	for _, key := range opt.OverridingVars.SortedAny() {
-		ovVar, _ := opt.OverridingVars.GetAny(key)
-		sts.TargetInput = sts.TargetInput.WithBuildArgInput(
-			dedup.BuildArgInput{ConstantValue: ovVar, Name: key})
-	}
 	vc := variables.NewCollection(
 		target, llbutil.PlatformWithDefault(opt.Platform), bc.GitMetadata, opt.OverridingVars,
 		opt.GlobalImports)
-	targetStr := target.String()
-	opt.Visited.Add(targetStr, sts)
-	return &Converter{
+	c := &Converter{
 		gitMeta:       bc.GitMetadata,
 		opt:           opt,
 		mts:           mts,
 		buildContext:  bc.BuildContext,
 		cacheContext:  makeCacheContext(target),
 		varCollection: vc,
-	}, nil
+	}
+	for _, key := range opt.OverridingVars.SortedAny() {
+		ovVar, _ := opt.OverridingVars.GetAny(key)
+		c.addBuildArgInput(dedup.BuildArgInput{ConstantValue: ovVar, Name: key})
+	}
+	return c, nil
 }
 
 // From applies the earthly FROM command.
@@ -145,7 +130,7 @@ func (c *Converter) fromTarget(ctx context.Context, targetName string, platform 
 	if err != nil {
 		return errors.Wrapf(err, "parse target name %s", targetName)
 	}
-	mts, err := c.buildTarget(ctx, depTarget.String(), platform, buildArgs, false, true)
+	mts, err := c.buildTarget(ctx, depTarget.String(), platform, buildArgs, nil, false, true)
 	if err != nil {
 		return errors.Wrapf(err, "apply build %s", depTarget.String())
 	}
@@ -198,7 +183,7 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 		// The Dockerfile and build context are from a target's artifact.
 		// TODO: The build args are used for both the artifact and the Dockerfile. This could be
 		//       confusing to the user.
-		mts, err := c.buildTarget(ctx, contextArtifact.Target.String(), platform, buildArgs, false, false)
+		mts, err := c.buildTarget(ctx, contextArtifact.Target.String(), platform, buildArgs, nil, false, false)
 		if err != nil {
 			return err
 		}
@@ -319,7 +304,7 @@ func (c *Converter) CopyArtifactLocal(ctx context.Context, artifactName string, 
 	if err != nil {
 		return errors.Wrapf(err, "parse artifact name %s", artifactName)
 	}
-	mts, err := c.buildTarget(ctx, artifact.Target.String(), platform, buildArgs, false, false)
+	mts, err := c.buildTarget(ctx, artifact.Target.String(), platform, buildArgs, nil, false, false)
 	if err != nil {
 		return errors.Wrapf(err, "apply build %s", artifact.Target.String())
 	}
@@ -363,7 +348,7 @@ func (c *Converter) CopyArtifact(ctx context.Context, artifactName string, dest 
 	if err != nil {
 		return errors.Wrapf(err, "parse artifact name %s", artifactName)
 	}
-	mts, err := c.buildTarget(ctx, artifact.Target.String(), platform, buildArgs, false, false)
+	mts, err := c.buildTarget(ctx, artifact.Target.String(), platform, buildArgs, nil, false, false)
 	if err != nil {
 		return errors.Wrapf(err, "apply build %s", artifact.Target.String())
 	}
@@ -781,13 +766,13 @@ func (c *Converter) SaveImage(ctx context.Context, imageNames []string, pushImag
 }
 
 // Build applies the earthly BUILD command.
-func (c *Converter) Build(ctx context.Context, fullTargetName string, platform *specs.Platform, buildArgs []string) error {
+func (c *Converter) Build(ctx context.Context, fullTargetName string, platform *specs.Platform, buildArgs []string, preemptErrChan chan error) error {
 	err := c.checkAllowed("BUILD")
 	if err != nil {
 		return err
 	}
 	c.nonSaveCommand()
-	_, err = c.buildTarget(ctx, fullTargetName, platform, buildArgs, true, false)
+	_, err = c.buildTarget(ctx, fullTargetName, platform, buildArgs, preemptErrChan, true, false)
 	return err
 }
 
@@ -906,12 +891,11 @@ func (c *Converter) Arg(ctx context.Context, argKey string, defaultArgValue stri
 	if err != nil {
 		return err
 	}
-	c.mts.Final.TargetInput = c.mts.Final.TargetInput.WithBuildArgInput(
-		dedup.BuildArgInput{
-			Name:          argKey,
-			DefaultValue:  defaultArgValue,
-			ConstantValue: effective,
-		})
+	c.addBuildArgInput(dedup.BuildArgInput{
+		Name:          argKey,
+		DefaultValue:  defaultArgValue,
+		ConstantValue: effective,
+	})
 	return nil
 }
 
@@ -1014,7 +998,7 @@ func (c *Converter) ResolveReference(ctx context.Context, ref domain.Reference) 
 
 // EnterScope introduces a new variable scope. Gloabls and imports are fetched from baseTarget.
 func (c *Converter) EnterScope(ctx context.Context, command domain.Command, baseTarget domain.Target, scopeName string, buildArgs []string) error {
-	baseMts, err := c.buildTarget(ctx, baseTarget.String(), c.mts.Final.Platform, nil, true, false)
+	baseMts, err := c.buildTarget(ctx, baseTarget.String(), c.mts.Final.Platform, nil, nil, true, false)
 	if err != nil {
 		return err
 	}
@@ -1052,7 +1036,7 @@ func (c *Converter) FinalizeStates(ctx context.Context) (*states.MultiTarget, er
 	c.opt.BuildContextProvider.AddDirs(c.mts.Final.LocalDirs)
 	c.mts.Final.VarCollection = c.varCollection
 	c.mts.Final.GlobalImports = c.varCollection.Imports().Global()
-	c.mts.Final.Ongoing = false
+	close(c.mts.Final.Done)
 	return c.mts, nil
 }
 
@@ -1061,7 +1045,7 @@ func (c *Converter) ExpandArgs(word string) string {
 	return c.varCollection.Expand(word)
 }
 
-func (c *Converter) buildTarget(ctx context.Context, fullTargetName string, platform *specs.Platform, buildArgs []string, isDangling bool, isFrom bool) (*states.MultiTarget, error) {
+func (c *Converter) buildTarget(ctx context.Context, fullTargetName string, platform *specs.Platform, buildArgs []string, preemptErrChan chan error, isDangling bool, isFrom bool) (*states.MultiTarget, error) {
 	relTarget, err := domain.ParseTarget(fullTargetName)
 	if err != nil {
 		return nil, errors.Wrapf(err, "earthly target parse %s", fullTargetName)
@@ -1092,10 +1076,23 @@ func (c *Converter) buildTarget(ctx context.Context, fullTargetName string, plat
 	opt.Visited = c.mts.Visited
 	opt.OverridingVars = overriding
 	opt.GlobalImports = nil
+	opt.stack = append([]dedup.TargetInput{}, c.opt.stack...)
+	opt.isPreemptive = (preemptErrChan != nil)
 	opt.Platform, err = llbutil.ResolvePlatform(platform, c.opt.Platform)
 	if err != nil {
 		// Contradiction allowed. You can BUILD another target with different platform.
 		opt.Platform = platform
+	}
+	if opt.isPreemptive {
+		go func() {
+			_, err := Earthfile2LLB(ctx, target, opt)
+			if err != nil && !errors.Is(err, errCannotPreempt) {
+				preemptErrChan <- err
+			} else {
+				preemptErrChan <- nil
+			}
+		}()
+		return nil, nil
 	}
 	mts, err := Earthfile2LLB(ctx, target, opt)
 	if err != nil {
@@ -1115,7 +1112,7 @@ func (c *Converter) buildTarget(ctx context.Context, fullTargetName string, plat
 			if found {
 				continue
 			}
-			c.mts.Final.TargetInput = c.mts.Final.TargetInput.WithBuildArgInput(bai)
+			c.addBuildArgInput(bai)
 		}
 		if isFrom {
 			// Propagate globals.
@@ -1127,12 +1124,11 @@ func (c *Converter) buildTarget(ctx context.Context, fullTargetName string, plat
 					continue
 				}
 				v, _ := globals.GetActive(k)
-				c.mts.Final.TargetInput = c.mts.Final.TargetInput.WithBuildArgInput(
-					dedup.BuildArgInput{
-						Name:          k,
-						DefaultValue:  "", // TODO: Set correct default value for bai.
-						ConstantValue: v,
-					})
+				c.addBuildArgInput(dedup.BuildArgInput{
+					Name:          k,
+					DefaultValue:  "", // TODO: Set correct default value for bai.
+					ConstantValue: v,
+				})
 			}
 			c.varCollection.SetGlobals(globals)
 			c.varCollection.Imports().SetGlobal(mts.Final.GlobalImports)
@@ -1458,7 +1454,13 @@ func (c *Converter) setPlatform(platform *specs.Platform) {
 	c.opt.Platform = platform
 	c.mts.Final.Platform = platform
 	c.mts.Final.TargetInput.Platform = llbutil.PlatformWithDefaultToString(platform)
+	c.opt.stack[len(c.opt.stack)-1].Platform = llbutil.PlatformWithDefaultToString(platform)
 	c.varCollection.SetPlatform(llbutil.PlatformWithDefault(platform))
+}
+
+func (c *Converter) addBuildArgInput(bai dedup.BuildArgInput) {
+	c.mts.Final.TargetInput = c.mts.Final.TargetInput.WithBuildArgInput(bai)
+	c.opt.stack[len(c.opt.stack)-1] = c.opt.stack[len(c.opt.stack)-1].WithBuildArgInput(bai)
 }
 
 func (c *Converter) joinRefs(relRef domain.Reference) (domain.Reference, error) {

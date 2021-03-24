@@ -27,7 +27,7 @@ func (mts *MultiTarget) FinalTarget() domain.Target {
 
 // All returns all SingleTarget contained within.
 func (mts *MultiTarget) All() []*SingleTarget {
-	return mts.Visited.VisitedList
+	return mts.Visited.All()
 }
 
 // SingleTarget holds LLB states representing an earthly target.
@@ -44,7 +44,6 @@ type SingleTarget struct {
 	VarCollection          *variables.Collection
 	RunPush                RunPush
 	LocalDirs              map[string]string
-	Ongoing                bool
 	Salt                   string
 	InteractiveSession     InteractiveSession
 	GlobalImports          map[string]string
@@ -57,6 +56,9 @@ type SingleTarget struct {
 	RanFromLike bool
 	// RanInteractive represents whether we have encountered an --interactive command.
 	RanInteractive bool
+
+	// Done is a channel that is closed when the single target has been converted.
+	Done chan struct{}
 }
 
 // LastSaveImage returns the last save image available (if any).

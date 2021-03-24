@@ -2,7 +2,6 @@ package buildcontext
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"path"
 	"path/filepath"
@@ -23,8 +22,8 @@ func detectBuildFile(ref domain.Reference, localDir string) (string, error) {
 		buildEarthPath := filepath.Join(localDir, "build.earth")
 		_, err := os.Stat(buildEarthPath)
 		if os.IsNotExist(err) {
-			return "", fmt.Errorf(
-				"No Earthfile nor build.earth file found for target %s", ref.String())
+			return "", errors.Errorf(
+				"no Earthfile nor build.earth file found for target %s", ref.String())
 		} else if err != nil {
 			return "", errors.Wrapf(err, "stat file %s", buildEarthPath)
 		}

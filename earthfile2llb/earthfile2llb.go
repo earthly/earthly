@@ -14,7 +14,6 @@ import (
 	"github.com/earthly/earthly/buildcontext/provider"
 	"github.com/earthly/earthly/cleanup"
 	"github.com/earthly/earthly/domain"
-	"github.com/earthly/earthly/llbutil"
 	"github.com/earthly/earthly/states"
 	"github.com/earthly/earthly/states/dedup"
 	"github.com/earthly/earthly/variables"
@@ -61,7 +60,13 @@ type ConvertOpt struct {
 	AllowLocally bool
 	// AllowInteractive is an internal feature flag for controlling if interactive sessions can be initiated.
 	AllowInteractive bool
+	// stack is a target input stack used for infinite loop detection.
+	stack []dedup.TargetInput
+	// isPreemptive is set when this is a preemptive build (triggered ahead of time).
+	isPreemptive bool
 }
+
+var errCannotPreempt = errors.New("cannot build preemptively")
 
 // Earthfile2LLB parses a earthfile and executes the statements for a given target.
 func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt) (mts *states.MultiTarget, err error) {
@@ -74,53 +79,50 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt) (m
 	if opt.MetaResolver == nil {
 		opt.MetaResolver = opt.GwClient
 	}
-	// Check if we have previously converted this target, with the same build args.
-	targetStr := target.String()
-	for _, sts := range opt.Visited.Visited[targetStr] {
-		stsPlat, err := llbutil.ParsePlatform(sts.TargetInput.Platform)
-		if err != nil {
-			return nil, err
-		}
-		same := llbutil.PlatformEquals(stsPlat, opt.Platform)
-		if same {
-			for _, bai := range sts.TargetInput.BuildArgs {
-				variable, found := opt.OverridingVars.GetAny(bai.Name)
-				if found {
-					baiVariable := dedup.BuildArgInput{
-						Name:          bai.Name,
-						DefaultValue:  bai.DefaultValue,
-						ConstantValue: variable,
-					}
-					if !baiVariable.Equals(bai) {
-						same = false
-						break
-					}
-				} else {
-					if !bai.IsDefaultValue() {
-						same = false
-						break
-					}
-				}
-			}
-		}
-		if same {
-			if sts.Ongoing {
-				return nil, fmt.Errorf(
-					"infinite recursion detected for target %s", targetStr)
-			}
-			// Use the already built states.
-			return &states.MultiTarget{
-				Final:   sts,
-				Visited: opt.Visited,
-			}, nil
-		}
-	}
 	// Resolve build context.
 	bc, err := opt.Resolver.Resolve(ctx, opt.GwClient, target)
 	if err != nil {
 		return nil, errors.Wrapf(err, "resolve build context for target %s", target.String())
 	}
-	converter, err := NewConverter(ctx, bc.Ref.(domain.Target), bc, opt)
+	targetWithMeta := bc.Ref.(domain.Target)
+
+	// Check for infinite recursion.
+	targetStr := targetWithMeta.String()
+	if opt.isPreemptive {
+		// Any kind of recursion is not compatible with preemptive building. This is because
+		// the collection of build args may be actively changing.
+		for _, ti := range opt.stack {
+			if ti.TargetCanonical == targetWithMeta.StringCanonical() {
+				return nil, errCannotPreempt
+			}
+		}
+	} else {
+		for _, ti := range opt.stack {
+			same, err := states.CompareTargetInputs(targetWithMeta, opt.Platform, opt.OverridingVars, ti)
+			if err != nil {
+				return nil, err
+			}
+			if same {
+				return nil, fmt.Errorf(
+					"infinite recursion detected for target %s", targetStr)
+			}
+		}
+	}
+	// TODO: Race condition: multiple preempts could be added at the same time in parallel. Need to
+	//       synchronize the visited addition somehow...
+	// Check if we have previously converted this target, with the same build args.
+	sts, found, err := opt.Visited.Add(target, opt.Platform, opt.OverridingVars)
+	if err != nil {
+		return nil, err
+	}
+	if found {
+		return &states.MultiTarget{
+			Final:   sts,
+			Visited: opt.Visited,
+		}, nil
+	}
+
+	converter, err := NewConverter(ctx, targetWithMeta, bc, sts, opt)
 	if err != nil {
 		return nil, err
 	}

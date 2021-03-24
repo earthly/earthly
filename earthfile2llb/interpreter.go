@@ -755,7 +755,7 @@ func (i *Interpreter) handleBuild(ctx context.Context, cmd spec.Command) error {
 
 	for _, bas := range crossProductBuildArgs {
 		for _, platform := range platformsSlice {
-			err = i.converter.Build(ctx, fullTargetName, platform, bas)
+			err = i.converter.Build(ctx, fullTargetName, platform, bas, nil)
 			if err != nil {
 				return i.wrapError(err, cmd.SourceLocation, "apply BUILD %s", fullTargetName)
 			}

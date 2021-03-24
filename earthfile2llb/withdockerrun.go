@@ -290,7 +290,7 @@ func (wdr *withDockerRun) load(ctx context.Context, opt DockerLoadOpt) error {
 	if err != nil {
 		return errors.Wrapf(err, "parse target %s", opt.Target)
 	}
-	mts, err := wdr.c.buildTarget(ctx, depTarget.String(), opt.Platform, opt.BuildArgs, false, false)
+	mts, err := wdr.c.buildTarget(ctx, depTarget.String(), opt.Platform, opt.BuildArgs, nil, false, false)
 	if err != nil {
 		return err
 	}
