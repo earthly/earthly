@@ -8,15 +8,6 @@ ARG EARTHLY_ADDITIONAL_BUILDKIT_CONFIG="
   insecure = true
 "
 
-# The inner buildkit requires Docker hub creds to prevent rate-limiting issues.
-ARG DOCKERHUB_USER_SECRET
-ARG DOCKERHUB_TOKEN_SECRET
-RUN --secret USERNAME=$DOCKERHUB_USER_SECRET \
-    --secret TOKEN=$DOCKERHUB_TOKEN_SECRET \
-    if [ "$USERNAME" != "" ]; then \
-        docker login --username="$USERNAME" --password="$TOKEN" ;\
-    fi
-
 COPY test.earth ./Earthfile
 
 all:

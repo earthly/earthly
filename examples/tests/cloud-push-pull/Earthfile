@@ -112,7 +112,7 @@ amazon-elastic-container-registry:
     COPY amazon-elastic-container-registry.earth ./Earthfile
    
     RUN --secret ACCT_ID=+secrets/earthly-technologies/aws/account-id \
-        mkdir /root/.docker && \
+        mkdir -p /root/.docker && \
         echo "{\"credHelpers\":{\"$ACCT_ID.dkr.ecr.us-west-2.amazonaws.com\": \"ecr-login\"}}" > /root/.docker/config.json
 
     ENV AWS_REGION us-west-2

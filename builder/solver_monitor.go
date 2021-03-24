@@ -519,8 +519,8 @@ func (sm *solverMonitor) reprintFailure(errVertex *vertexMonitor, phaseText stri
 	errVertex.printError()
 }
 
-var vertexRegexp = regexp.MustCompile("^\\[([^\\]]*)\\] (.*)$")
-var targetAndSaltRegexp = regexp.MustCompile("^([^\\(]*)(\\(([^\\)]*)\\))? (.*)$")
+var vertexRegexp = regexp.MustCompile("(?s)^\\[([^\\]]*)\\] (.*)$")
+var targetAndSaltRegexp = regexp.MustCompile("(?s)^([^\\(]*)(\\(([^\\)]*)\\))? (.*)$")
 
 func parseVertexName(vertexName string) (string, string, map[string]string, string, string) {
 	target := ""

@@ -1,11 +1,11 @@
 
-FROM node:13.10.1-alpine3.11
+FROM node:15.12.0-alpine3.13
 WORKDIR /js-example
 
 deps:
-    COPY package.json package-lock.json ./
+    COPY package.json npm-shrinkwrap.json ./
     RUN npm install
-    SAVE ARTIFACT package-lock.json AS LOCAL ./package-lock.json
+    SAVE ARTIFACT npm-shrinkwrap.json AS LOCAL ./npm-shrinkwrap.json
 
 build:
     FROM +deps

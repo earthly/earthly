@@ -3,8 +3,6 @@ jobs:
   build:
     machine:
       image: ubuntu-1604:201903-01
-    environment:
-      - EARTHLY_BUILD_ARGS: "DOCKERHUB_USER_SECRET=+secrets/earthly-technologies/dockerhub/user,DOCKERHUB_TOKEN_SECRET=+secrets/earthly-technologies/dockerhub/token"
     steps:
       - checkout
       - run:

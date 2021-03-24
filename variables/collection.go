@@ -12,7 +12,9 @@ import (
 
 type stackFrame struct {
 	frameName string
-	imports   *domain.ImportTracker
+	// absRef is the ref any other ref in this frame would be relative to.
+	absRef  domain.Reference
+	imports *domain.ImportTracker
 
 	// Always inactive scopes. These scopes only influence newly declared
 	// args. They do not otherwise participate when args are expanded.
@@ -42,6 +44,7 @@ func NewCollection(target domain.Target, platform specs.Platform, gitMeta *gitut
 		envs:    NewScope(),
 		stack: []*stackFrame{{
 			frameName:  target.StringCanonical(),
+			absRef:     target,
 			imports:    domain.NewImportTracker(globalImports),
 			overriding: overridingVars,
 			args:       NewScope(),
@@ -154,9 +157,10 @@ func (c *Collection) Imports() *domain.ImportTracker {
 }
 
 // EnterFrame creates a new stack frame.
-func (c *Collection) EnterFrame(frameName string, overriding *Scope, globals *Scope, globalImports map[string]string) {
+func (c *Collection) EnterFrame(frameName string, absRef domain.Reference, overriding *Scope, globals *Scope, globalImports map[string]string) {
 	c.stack = append(c.stack, &stackFrame{
 		frameName:  frameName,
+		absRef:     absRef,
 		imports:    domain.NewImportTracker(globalImports),
 		overriding: overriding,
 		globals:    NewScope(),
@@ -172,6 +176,11 @@ func (c *Collection) ExitFrame() {
 	}
 	c.stack = c.stack[:(len(c.stack) - 1)]
 	c.effectiveCache = nil
+}
+
+// AbsRef returns a ref that any other reference should be relative to as part of the stack frame.
+func (c *Collection) AbsRef() domain.Reference {
+	return c.frame().absRef
 }
 
 // IsStackAtBase returns whether the stack has size 1.
