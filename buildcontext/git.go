@@ -28,8 +28,9 @@ const (
 type gitResolver struct {
 	cleanCollection *cleanup.Collection
 
-	projectCache *synccache.SyncCache // "gitURL#gitRef" -> *resolvedGitProject
-	gitLookup    *GitLookup
+	projectCache   *synccache.SyncCache // "gitURL#gitRef" -> *resolvedGitProject
+	buildFileCache *synccache.SyncCache // project ref -> local path
+	gitLookup      *GitLookup
 }
 
 type resolvedGitProject struct {
@@ -70,36 +71,44 @@ func (gr *gitResolver) resolveEarthProject(ctx context.Context, gwClient gwclien
 		// Commands don't come with a build context.
 	}
 
-	// TODO: Cache the stateToRef and build file on the client side so we don't have
-	//       to bother buildkit about it multiple times, if multiple targets
-	//       from the same file are involved (common).
-	earthfileTmpDir, err := ioutil.TempDir(os.TempDir(), "earthly-git")
-	if err != nil {
-		return nil, errors.Wrap(err, "create temp dir for Earthfile")
+	key := ref.ProjectCanonical()
+	if ref.GetName() == DockerfileMetaTarget {
+		// Different key for dockerfiles.
+		key = key + "@" + DockerfileMetaTarget
 	}
-	gr.cleanCollection.Add(func() error {
-		return os.RemoveAll(earthfileTmpDir)
+	localBuildFilePathValue, err := gr.buildFileCache.Do(key, func(_ interface{}) (interface{}, error) {
+		earthfileTmpDir, err := ioutil.TempDir(os.TempDir(), "earthly-git")
+		if err != nil {
+			return nil, errors.Wrap(err, "create temp dir for Earthfile")
+		}
+		gr.cleanCollection.Add(func() error {
+			return os.RemoveAll(earthfileTmpDir)
+		})
+		gitMetaAndEarthfileRef, err := llbutil.StateToRef(ctx, gwClient, rgp.gitMetaAndEarthfileState, nil, nil)
+		if err != nil {
+			return nil, errors.Wrap(err, "state to ref git meta")
+		}
+		buildFile, err := detectBuildFileInRef(ctx, ref, gitMetaAndEarthfileRef, subDir)
+		if err != nil {
+			return nil, err
+		}
+		buildFileBytes, err := gitMetaAndEarthfileRef.ReadFile(ctx, gwclient.ReadRequest{
+			Filename: buildFile,
+		})
+		if err != nil {
+			return nil, errors.Wrap(err, "read build file")
+		}
+		localBuildFilePath := filepath.Join(earthfileTmpDir, path.Base(buildFile))
+		err = ioutil.WriteFile(localBuildFilePath, buildFileBytes, 0700)
+		if err != nil {
+			return nil, errors.Wrapf(err, "write build file to tmp dir at %s", localBuildFilePath)
+		}
+		return localBuildFilePath, nil
 	})
-	gitMetaAndEarthfileRef, err := llbutil.StateToRef(ctx, gwClient, rgp.gitMetaAndEarthfileState, nil, nil)
-	if err != nil {
-		return nil, errors.Wrap(err, "state to ref git meta")
-	}
-	buildFile, err := detectBuildFileInRef(ctx, ref, gitMetaAndEarthfileRef, subDir)
 	if err != nil {
 		return nil, err
 	}
-	buildFileBytes, err := gitMetaAndEarthfileRef.ReadFile(ctx, gwclient.ReadRequest{
-		Filename: buildFile,
-	})
-	if err != nil {
-		return nil, errors.Wrap(err, "read build file")
-	}
-	localBuildFilePath := filepath.Join(earthfileTmpDir, path.Base(buildFile))
-	err = ioutil.WriteFile(localBuildFilePath, buildFileBytes, 0700)
-	if err != nil {
-		return nil, errors.Wrapf(err, "write build file to tmp dir at %s", localBuildFilePath)
-	}
-
+	localBuildFilePath := localBuildFilePathValue.(string)
 	// TODO: Apply excludes / .earthignore.
 	return &Data{
 		BuildFilePath: localBuildFilePath,

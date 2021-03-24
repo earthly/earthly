@@ -22,7 +22,9 @@ type SyncCache struct {
 
 // New creates an empty SyncCache.
 func New() *SyncCache {
-	return &SyncCache{}
+	return &SyncCache{
+		store: make(map[interface{}]*entry),
+	}
 }
 
 // Do executes the constructor, if a value for key hasn't already been constructed.

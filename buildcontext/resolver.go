@@ -49,6 +49,7 @@ func NewResolver(sessionID string, cleanCollection *cleanup.Collection, gitLooku
 		gr: &gitResolver{
 			cleanCollection: cleanCollection,
 			projectCache:    synccache.New(),
+			buildFileCache:  synccache.New(),
 			gitLookup:       gitLookup,
 		},
 		lr: &localResolver{
