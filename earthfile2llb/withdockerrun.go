@@ -318,45 +318,44 @@ func (wdr *withDockerRun) solveImage(ctx context.Context, mts *states.MultiTarge
 	if err != nil {
 		return errors.Wrap(err, "state key func")
 	}
-	tarContext, found := wdr.c.opt.SolveCache.Get(solveID)
-	if found {
-		wdr.tarLoads = append(wdr.tarLoads, tarContext)
-		return nil
-	}
-	// Use a builder to create docker .tar file, mount it via a local build context,
-	// then docker load it within the current side effects state.
-	outDir, err := ioutil.TempDir("/tmp", "earthly-docker-load")
-	if err != nil {
-		return errors.Wrap(err, "mk temp dir for docker load")
-	}
-	wdr.c.opt.CleanCollection.Add(func() error {
-		return os.RemoveAll(outDir)
+	tarContext, err := wdr.c.opt.SolveCache.Add(solveID, func(_ states.StateKey) (llb.State, error) {
+		// Use a builder to create docker .tar file, mount it via a local build context,
+		// then docker load it within the current side effects state.
+		outDir, err := ioutil.TempDir("/tmp", "earthly-docker-load")
+		if err != nil {
+			return llb.State{}, errors.Wrap(err, "mk temp dir for docker load")
+		}
+		wdr.c.opt.CleanCollection.Add(func() error {
+			return os.RemoveAll(outDir)
+		})
+		outFile := path.Join(outDir, "image.tar")
+		err = wdr.c.opt.DockerBuilderFun(ctx, mts, dockerTag, outFile)
+		if err != nil {
+			return llb.State{}, errors.Wrapf(err, "build target %s for docker load", opName)
+		}
+		dockerImageID, err := dockertar.GetID(outFile)
+		if err != nil {
+			return llb.State{}, errors.Wrap(err, "inspect docker tar after build")
+		}
+		// Use the docker image ID + dockerTag as sessionID. This will cause
+		// buildkit to use cache when these are the same as before (eg a docker image
+		// that is identical as before).
+		sessionIDKey := fmt.Sprintf("%s-%s", dockerTag, dockerImageID)
+		sha256SessionIDKey := sha256.Sum256([]byte(sessionIDKey))
+		sessionID := hex.EncodeToString(sha256SessionIDKey[:])
+		tarContext := llb.Local(
+			string(solveID),
+			llb.SessionID(sessionID),
+			llb.Platform(llbutil.DefaultPlatform()),
+			llb.WithCustomNamef("[internal] docker tar context %s %s", opName, sessionID),
+		)
+		wdr.c.mts.Final.LocalDirs[string(solveID)] = outDir
+		return tarContext, nil
 	})
-	outFile := path.Join(outDir, "image.tar")
-	err = wdr.c.opt.DockerBuilderFun(ctx, mts, dockerTag, outFile)
 	if err != nil {
-		return errors.Wrapf(err, "build target %s for docker load", opName)
+		return err
 	}
-	dockerImageID, err := dockertar.GetID(outFile)
-	if err != nil {
-		return errors.Wrap(err, "inspect docker tar after build")
-	}
-	// Use the docker image ID + dockerTag as sessionID. This will cause
-	// buildkit to use cache when these are the same as before (eg a docker image
-	// that is identical as before).
-	sessionIDKey := fmt.Sprintf("%s-%s", dockerTag, dockerImageID)
-	sha256SessionIDKey := sha256.Sum256([]byte(sessionIDKey))
-	sessionID := hex.EncodeToString(sha256SessionIDKey[:])
-	// Add the tar to the local context.
-	tarContext = llb.Local(
-		string(solveID),
-		llb.SessionID(sessionID),
-		llb.Platform(llbutil.DefaultPlatform()),
-		llb.WithCustomNamef("[internal] docker tar context %s %s", opName, sessionID),
-	)
 	wdr.tarLoads = append(wdr.tarLoads, tarContext)
-	wdr.c.mts.Final.LocalDirs[string(solveID)] = outDir
-	wdr.c.opt.SolveCache.Set(solveID, tarContext)
 	return nil
 }
 

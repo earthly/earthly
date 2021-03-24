@@ -1086,11 +1086,7 @@ func (c *Converter) buildTarget(ctx context.Context, fullTargetName string, plat
 	if opt.isPreemptive {
 		go func() {
 			_, err := Earthfile2LLB(ctx, target, opt)
-			if err != nil && !errors.Is(err, errCannotPreempt) {
-				preemptErrChan <- err
-			} else {
-				preemptErrChan <- nil
-			}
+			preemptErrChan <- err
 		}()
 		return nil, nil
 	}

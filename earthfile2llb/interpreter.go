@@ -68,10 +68,40 @@ func (i *Interpreter) handleTarget(ctx context.Context, t spec.Target) error {
 }
 
 func (i *Interpreter) handleBlock(ctx context.Context, b spec.Block) error {
+	err := i.handleBlockPreemptive(ctx, b)
+	if err != nil {
+		return err
+	}
 	for _, stmt := range b {
 		err := i.handleStatement(ctx, stmt)
 		if err != nil {
 			return err
+		}
+	}
+	return nil
+}
+
+func (i *Interpreter) handleBlockPreemptive(ctx context.Context, b spec.Block) error {
+	for _, stmt := range b {
+		if stmt.Command != nil {
+			switch stmt.Command.Name {
+			case "ARG":
+				// Cannot do any further preemptive builds for the current project.
+				return nil
+			case "BUILD":
+				// TODO
+			case "FROM":
+				// TODO
+			case "COPY":
+				// TODO
+			case "FROM DOCKERFILE":
+				// TODO
+			}
+		} else if stmt.With != nil {
+			switch stmt.With.Command.Name {
+			case "DOCKER":
+				// TODO
+			}
 		}
 	}
 	return nil
