@@ -9,6 +9,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/earthly/earthly/conslogging"
@@ -351,26 +352,57 @@ func waitForConnection(ctx context.Context, address string, opTimeout time.Durat
 			if !isRunning {
 				return ErrBuildkitCrashed
 			}
-			// Attempt to connect.
-			bkClient, err := client.New(ctxTimeout, address)
+			err = checkConnection(ctxTimeout, address)
 			if err != nil {
 				// Try again.
 				continue
-			}
-			_, err = bkClient.ListWorkers(ctxTimeout)
-			if err != nil {
-				// Try again.
-				continue
-			}
-			err = bkClient.Close()
-			if err != nil {
-				return errors.Wrap(err, "close buildkit client")
 			}
 			return nil
 		case <-ctxTimeout.Done():
-			return errors.Wrapf(ErrBuildkitStartFailure, "timeout %s: buildkitd did not make connection available after start", opTimeout)
+			// Try one last time.
+			err := checkConnection(ctx, address)
+			if err != nil {
+				// We give up.
+				return errors.Wrapf(ErrBuildkitStartFailure, "timeout %s: buildkitd did not make connection available after start", opTimeout)
+			}
+			return nil
 		}
 	}
+}
+
+func checkConnection(ctx context.Context, address string) error {
+	// Each attempt has limited time to succeed, to prevent hanging for too long
+	// here.
+	ctxTimeout, cancel := context.WithTimeout(ctx, 5*time.Second)
+	var connErrMu sync.Mutex
+	var connErr error = errors.New("timeout")
+	go func() {
+		defer cancel()
+		bkClient, err := client.New(ctxTimeout, address)
+		if err != nil {
+			connErrMu.Lock()
+			connErr = err
+			connErrMu.Unlock()
+			return
+		}
+		defer bkClient.Close()
+		_, err = bkClient.ListWorkers(ctxTimeout)
+		if err != nil {
+			connErrMu.Lock()
+			connErr = err
+			connErrMu.Unlock()
+			return
+		}
+		// Success.
+		connErrMu.Lock()
+		connErr = nil
+		connErrMu.Unlock()
+	}()
+	<-ctxTimeout.Done()
+	connErrMu.Lock()
+	err := connErr
+	connErrMu.Unlock()
+	return err
 }
 
 // MaybePull checks whether an image is available locally and pulls it if it is not.

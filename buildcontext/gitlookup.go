@@ -1,7 +1,6 @@
 package buildcontext
 
 import (
-	"fmt"
 	"io/ioutil"
 	"net/url"
 	"os"
@@ -74,7 +73,7 @@ func NewGitLookup() *GitLookup {
 }
 
 // ErrNoMatch occurs when no git matcher is found
-var ErrNoMatch = fmt.Errorf("no git match found")
+var ErrNoMatch = errors.Errorf("no git match found")
 
 // DisableSSH changes all git matchers from ssh to https
 func (gl *GitLookup) DisableSSH() {
@@ -91,7 +90,7 @@ func (gl *GitLookup) DisableSSH() {
 // AddMatcher adds a new matcher for looking up git repos
 func (gl *GitLookup) AddMatcher(name, pattern, sub, user, password, suffix, protocol, keyScan string) error {
 	if protocol == "http" && password != "" {
-		return fmt.Errorf("using a password with http for %s is insecure", name)
+		return errors.Errorf("using a password with http for %s is insecure", name)
 	}
 
 	re, err := regexp.Compile(pattern)
@@ -102,7 +101,7 @@ func (gl *GitLookup) AddMatcher(name, pattern, sub, user, password, suffix, prot
 	case "http", "https", "ssh":
 		break
 	default:
-		return fmt.Errorf("unsupported git protocol %q", protocol)
+		return errors.Errorf("unsupported git protocol %q", protocol)
 	}
 
 	gm := &gitMatcher{
@@ -180,7 +179,7 @@ func (gl *GitLookup) GetCloneURL(path string) (string, string, string, error) {
 		}
 		gitURL = m.protocol + "://" + userAndPass + match + m.suffix
 	default:
-		return "", "", "", fmt.Errorf("unsupported protocol: %s", m.protocol)
+		return "", "", "", errors.Errorf("unsupported protocol: %s", m.protocol)
 	}
 
 	if m.sub != "" {

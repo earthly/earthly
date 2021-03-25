@@ -160,24 +160,21 @@ func main() {
 	}()
 	go func() {
 		receivedSignal := false
-		for {
-			select {
-			case sig := <-c:
-				cancel()
-				if receivedSignal {
-					// This is the second time we have received a signal. Quit immediately.
-					fmt.Printf("Received second signal %s. Forcing exit.\n", sig.String())
-					os.Exit(9)
-				}
-				receivedSignal = true
-				fmt.Printf("Received signal %s. Cleaning up before exiting...\n", sig.String())
-				go func() {
-					// Wait for 30 seconds before forcing an exit.
-					time.Sleep(30 * time.Second)
-					fmt.Printf("Timed out cleaning up. Forcing exit.\n")
-					os.Exit(9)
-				}()
+		for sig := range c {
+			cancel()
+			if receivedSignal {
+				// This is the second time we have received a signal. Quit immediately.
+				fmt.Printf("Received second signal %s. Forcing exit.\n", sig.String())
+				os.Exit(9)
 			}
+			receivedSignal = true
+			fmt.Printf("Received signal %s. Cleaning up before exiting...\n", sig.String())
+			go func() {
+				// Wait for 30 seconds before forcing an exit.
+				time.Sleep(30 * time.Second)
+				fmt.Printf("Timed out cleaning up. Forcing exit.\n")
+				os.Exit(9)
+			}()
 		}
 	}()
 	// Occasional spurious warnings show up - these are coming from imported libraries. Discard them.
@@ -1166,6 +1163,24 @@ func (app *earthlyApp) run(ctx context.Context, args []string) int {
 		var buildErr *builder.BuildError
 		if errors.As(err, &buildErr) {
 			failedOutput = buildErr.VertexLog()
+		}
+		if app.verbose {
+			// Get the stack trace from the deepest error that has it and print it.
+			type stackTracer interface {
+				StackTrace() errors.StackTrace
+			}
+			errChain := []error{}
+			for it := err; it != nil; it = errors.Unwrap(it) {
+				errChain = append(errChain, it)
+			}
+			for index := len(errChain) - 1; index > 0; index-- {
+				it := errChain[index]
+				errWithStack, ok := it.(stackTracer)
+				if ok {
+					app.console.Warnf("Error stack trace:%+v\n", errWithStack.StackTrace())
+					break
+				}
+			}
 		}
 
 		if strings.Contains(err.Error(), "security.insecure is not allowed") {

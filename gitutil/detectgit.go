@@ -2,7 +2,6 @@ package gitutil
 
 import (
 	"context"
-	"fmt"
 	"os/exec"
 	"path/filepath"
 	"strings"
@@ -221,7 +220,7 @@ func gitRelDir(basePath string, path string) (string, bool, error) {
 		return "", false, errors.Wrapf(err, "eval symlinks for %s", absPath)
 	}
 	if !filepath.IsAbs(basePath) {
-		return "", false, fmt.Errorf("git base path %s is not absolute", basePath)
+		return "", false, errors.Errorf("git base path %s is not absolute", basePath)
 	}
 	basePathSlash := filepath.ToSlash(basePath)
 	pathSlash := filepath.ToSlash(absPath2)

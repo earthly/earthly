@@ -20,14 +20,6 @@ import (
 	"golang.org/x/crypto/ssh/terminal"
 )
 
-// Terminal provides a terminal for a user to type commands into
-// and to display the output of the shell.
-// The terminal does not run commands, but rather passes them to the shell
-// via the shell repeater.
-type Terminal struct {
-	conn net.Conn
-}
-
 func handlePtyData(data []byte) error {
 	_, err := os.Stdout.Write(data)
 	if err != nil {
@@ -110,20 +102,16 @@ func ConnectTerm(ctx context.Context, addr string) error {
 	}()
 
 	go func() {
-	outer:
-		for {
-			select {
-			case _ = <-sigs:
-				if len(sigs) > 0 {
-					continue
-				}
-				data, err := getWindowSizePayload()
-				if err != nil {
-					log.Error(errors.Wrap(err, "failed to restore terminal mode"))
-					break outer
-				}
-				writeCh <- data
+		for range sigs {
+			if len(sigs) > 0 {
+				continue
 			}
+			data, err := getWindowSizePayload()
+			if err != nil {
+				log.Error(errors.Wrap(err, "failed to restore terminal mode"))
+				break
+			}
+			writeCh <- data
 		}
 		cancel()
 	}()

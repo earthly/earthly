@@ -4,7 +4,6 @@ import (
 	"archive/tar"
 	"bufio"
 	"encoding/json"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
@@ -43,10 +42,10 @@ func GetID(tarFilePath string) (string, error) {
 				return "", errors.Wrapf(err, "unmarshal json tar manifest for %s", tarFilePath)
 			}
 			if len(jsonData) != 1 {
-				return "", fmt.Errorf("unexpected len != 1 docker manifest in %s", tarFilePath)
+				return "", errors.Errorf("unexpected len != 1 docker manifest in %s", tarFilePath)
 			}
 			return strings.TrimSuffix(jsonData[0].Config, ".json"), nil
 		}
 	}
-	return "", fmt.Errorf("docker tar manifest.json not found in tar %s", tarFilePath)
+	return "", errors.Errorf("docker tar manifest.json not found in tar %s", tarFilePath)
 }

@@ -3,13 +3,12 @@ package ast
 import (
 	"context"
 	"encoding/json"
-	"errors"
-	"fmt"
 	"regexp"
 	"strings"
 
 	"github.com/earthly/earthly/ast/parser"
 	"github.com/earthly/earthly/ast/spec"
+	"github.com/pkg/errors"
 )
 
 var _ parser.EarthParserListener = &listener{}
@@ -481,17 +480,17 @@ func (l *listener) EnterStmtWord(c *parser.StmtWordContext) {
 
 // ----------------------------------------------------------------------------
 
-var envVarNameRegexp = regexp.MustCompile("^[a-zA-Z_]+[a-zA-Z0-9_]*$")
+var envVarNameRegexp = regexp.MustCompile(`^[a-zA-Z_]+[a-zA-Z0-9_]*$`)
 
 func checkEnvVarName(str string) error {
 	itMatch := envVarNameRegexp.MatchString(str)
 	if !itMatch {
-		return fmt.Errorf("invalid env key definition %s", str)
+		return errors.Errorf("invalid env key definition %s", str)
 	}
 	return nil
 }
 
-var lineContinuationRegexp = regexp.MustCompile("\\\\[ \t]*(#[^\\n\\r]*)?(\\n|(\\r\\n))[\\t ]*((#[^\\n\\r]*)?(\\n|(\\r\\n))[\\t ]*)*")
+var lineContinuationRegexp = regexp.MustCompile(`\\[ \t]*(#[^\n\r]*)?(\n|(\r\n))[\t ]*((#[^\n\r]*)?(\n|(\r\n))[\t ]*)*`)
 
 func replaceEscape(str string) string {
 	return lineContinuationRegexp.ReplaceAllString(str, "")

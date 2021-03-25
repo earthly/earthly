@@ -78,40 +78,6 @@ func loadDockerManifest(ctx context.Context, console conslogging.ConsoleLogger, 
 	return nil
 }
 
-// TODO: This doesn't work with vanilla docker installations. Not currently used.
-func loadDockerManifestExperimental(ctx context.Context, parentImageName string, children []manifest) error {
-	createArgs := []string{"manifest", "create", parentImageName}
-	for _, child := range children {
-		createArgs = append(createArgs, child.imageName)
-	}
-	cmd := exec.CommandContext(ctx, "docker", createArgs...)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	err := cmd.Run()
-	if err != nil {
-		return errors.Wrap(err, "docker manifest create")
-	}
-
-	for _, child := range children {
-		annotateArgs := []string{
-			"manifest", "annotate",
-			"--os", child.platform.OS,
-			"--arch", child.platform.Architecture,
-			"--variant", child.platform.Variant,
-			"--os-version", child.platform.OSVersion,
-			"--os-features", strings.Join(child.platform.OSFeatures, ","),
-		}
-		cmd := exec.CommandContext(ctx, "docker", annotateArgs...)
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-		err := cmd.Run()
-		if err != nil {
-			return errors.Wrap(err, "docker manifest annotate")
-		}
-	}
-	return nil
-}
-
 func loadDockerTar(ctx context.Context, r io.ReadCloser) error {
 	// TODO: This is a gross hack - should use proper docker client.
 	cmd := exec.CommandContext(ctx, "docker", "load")

@@ -1,9 +1,8 @@
 package antlrhandler
 
 import (
-	"fmt"
-
 	"github.com/antlr/antlr4/runtime/Go/antlr"
+	"github.com/pkg/errors"
 )
 
 // ReturnErrorStrategy allows for the error to be returned after parsing.
@@ -27,7 +26,7 @@ func NewReturnErrorStrategy() *ReturnErrorStrategy {
 func (res *ReturnErrorStrategy) Recover(recognizer antlr.Parser, e antlr.RecognitionException) {
 	if res.Err == nil {
 		res.RE = e
-		res.Err = fmt.Errorf("invalid syntax")
+		res.Err = errors.Errorf("invalid syntax")
 		res.ErrContext = recognizer.GetParserRuleContext()
 	}
 	context := recognizer.GetParserRuleContext()

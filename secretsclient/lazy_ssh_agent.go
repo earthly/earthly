@@ -1,7 +1,6 @@
 package secretsclient
 
 import (
-	"fmt"
 	"net"
 
 	"github.com/pkg/errors"
@@ -10,7 +9,7 @@ import (
 )
 
 // ErrNoSSHAgent occurs when no ssh auth agent exists
-var ErrNoSSHAgent = fmt.Errorf("no ssh auth agent socket")
+var ErrNoSSHAgent = errors.Errorf("no ssh auth agent socket")
 
 type lazySSHAgent struct {
 	sockPath string

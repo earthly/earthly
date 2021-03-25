@@ -17,7 +17,6 @@ type Server struct {
 	dataForShell    chan []byte
 	dataForTerminal chan []byte
 
-	sigs chan os.Signal
 	addr string
 }
 

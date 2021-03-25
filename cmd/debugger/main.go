@@ -29,7 +29,7 @@ var (
 	GitSha string
 
 	// ErrNoShellFound occurs when the container has no shell
-	ErrNoShellFound = fmt.Errorf("no shell found")
+	ErrNoShellFound = errors.Errorf("no shell found")
 )
 
 func getShellPath() (string, bool) {

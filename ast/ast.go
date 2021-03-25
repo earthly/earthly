@@ -27,7 +27,7 @@ func Parse(ctx context.Context, filePath string, enableSourceMap bool) (ef spec.
 		for _, err := range errorListener.Errs {
 			errString = append(errString, err.Error())
 		}
-		return spec.Earthfile{}, fmt.Errorf(strings.Join(errString, "\n"))
+		return spec.Earthfile{}, errors.Errorf(strings.Join(errString, "\n"))
 	}
 	if errorStrategy.Err != nil {
 		return spec.Earthfile{}, errors.Wrapf(
