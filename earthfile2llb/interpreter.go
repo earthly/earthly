@@ -47,8 +47,10 @@ func newInterpreter(c *Converter, t domain.Target) *Interpreter {
 
 // Run interprets the commands in the given Earthfile AST, for a specific target.
 func (i *Interpreter) Run(ctx context.Context, ef spec.Earthfile) (err error) {
-	ctx2, cancel := context.WithCancel(ctx)
-	defer cancel()
+	ctx2 := ctx
+	// @#
+	// ctx2, cancel := context.WithCancel(ctx)
+	// defer cancel()
 	defer func() {
 		if err != nil {
 			return

@@ -270,12 +270,12 @@ Loop:
 			}
 			err := sm.processStatus(ss)
 			if err != nil {
-				return "", nil
+				return "", err
 			}
 		case <-sm.noOutputTicker.C:
 			err := sm.processNoOutputTick()
 			if err != nil {
-				return "", nil
+				return "", err
 			}
 		}
 	}

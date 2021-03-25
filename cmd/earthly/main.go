@@ -1168,6 +1168,24 @@ func (app *earthlyApp) run(ctx context.Context, args []string) int {
 		if errors.As(err, &buildErr) {
 			failedOutput = buildErr.VertexLog()
 		}
+		if app.verbose {
+			// Get the stack trace from the deepest error that has it and print it.
+			type stackTracer interface {
+				StackTrace() errors.StackTrace
+			}
+			errChain := []error{}
+			for it := err; it != nil; it = errors.Unwrap(it) {
+				errChain = append(errChain, it)
+			}
+			for index := len(errChain) - 1; index > 0; index-- {
+				it := errChain[index]
+				errWithStack, ok := it.(stackTracer)
+				if ok {
+					app.console.Warnf("Error stack trace:%+v\n", errWithStack.StackTrace())
+					break
+				}
+			}
+		}
 
 		if strings.Contains(err.Error(), "security.insecure is not allowed") {
 			app.console.Warnf("Error: --allow-privileged (-P) flag is required\n")

@@ -767,12 +767,14 @@ func (c *Converter) SaveImage(ctx context.Context, imageNames []string, pushImag
 
 // Build applies the earthly BUILD command.
 func (c *Converter) Build(ctx context.Context, fullTargetName string, platform *specs.Platform, buildArgs []string, preemptErrChan chan error) error {
-	err := c.checkAllowed("BUILD")
-	if err != nil {
-		return err
+	if preemptErrChan == nil {
+		err := c.checkAllowed("BUILD")
+		if err != nil {
+			return err
+		}
+		c.nonSaveCommand()
 	}
-	c.nonSaveCommand()
-	_, err = c.buildTarget(ctx, fullTargetName, platform, buildArgs, preemptErrChan, true, false)
+	_, err := c.buildTarget(ctx, fullTargetName, platform, buildArgs, preemptErrChan, true, false)
 	return err
 }
 
