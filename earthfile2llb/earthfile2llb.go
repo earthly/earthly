@@ -93,6 +93,9 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt) (m
 	// Check for infinite recursion.
 	targetStr := targetWithMeta.String()
 	if opt.isPreemptive {
+		// TODO: @#@# Is this concern valid? What about non-preemptive within a preemptive? Can't
+		//       return an error in that case as it would mess things up (sts has already been added
+		//       for the parent and now it's getting an error (errCannotPreempt) => failed build).
 		// Any kind of recursion is not compatible with preemptive building. This is because
 		// the collection of build args may be actively changing.
 		for _, ti := range opt.stack {
@@ -112,8 +115,6 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt) (m
 			}
 		}
 	}
-	// TODO: Race condition: multiple preempts could be added at the same time in parallel. Need to
-	//       synchronize the visited addition somehow...
 	// Check if we have previously converted this target, with the same build args.
 	sts, found, err := opt.Visited.Add(target, opt.Platform, opt.OverridingVars)
 	if err != nil {

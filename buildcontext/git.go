@@ -74,7 +74,7 @@ func (gr *gitResolver) resolveEarthProject(ctx context.Context, gwClient gwclien
 	key := ref.ProjectCanonical()
 	if ref.GetName() == DockerfileMetaTarget {
 		// Different key for dockerfiles.
-		key = key + "@" + DockerfileMetaTarget
+		key = key + DockerfileMetaTarget
 	}
 	localBuildFilePathValue, err := gr.buildFileCache.Do(key, func(_ interface{}) (interface{}, error) {
 		earthfileTmpDir, err := ioutil.TempDir(os.TempDir(), "earthly-git")

@@ -1085,7 +1085,7 @@ func (c *Converter) buildTarget(ctx context.Context, fullTargetName string, plat
 		// Contradiction allowed. You can BUILD another target with different platform.
 		opt.Platform = platform
 	}
-	if opt.isPreemptive {
+	if preemptErrChan != nil {
 		fmt.Printf("\n@#@#@#@@#@#@#@# ---------------------------- PREEMPTIVE BUILD FOR %s ---------------------\n\n", target.String())
 		go func() {
 			_, err := Earthfile2LLB(ctx, target, opt)
