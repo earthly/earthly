@@ -255,7 +255,7 @@ func (cl ConsoleLogger) PrintBytes(data []byte) {
 	}
 	if len(output) > 0 {
 		c.Fprintf(cl.outW, "%s", string(output))
-		// output = output[:0] // not needed
+		// output = output[:0] // needed if output is used futher in the future
 	}
 }
 
