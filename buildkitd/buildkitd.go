@@ -9,6 +9,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/earthly/earthly/conslogging"
@@ -373,17 +374,35 @@ func checkConnection(ctx context.Context, address string) error {
 	// Each attempt has limited time to succeed, to prevent hanging for too long
 	// here.
 	ctxTimeout, cancel := context.WithTimeout(ctx, 5*time.Second)
-	defer cancel()
-	bkClient, err := client.New(ctxTimeout, address)
-	if err != nil {
-		return err
-	}
-	defer bkClient.Close()
-	_, err = bkClient.ListWorkers(ctxTimeout)
-	if err != nil {
-		return err
-	}
-	return nil
+	var connErrMu sync.Mutex
+	var connErr error = errors.New("timeout")
+	go func() {
+		defer cancel()
+		bkClient, err := client.New(ctxTimeout, address)
+		if err != nil {
+			connErrMu.Lock()
+			connErr = err
+			connErrMu.Unlock()
+			return
+		}
+		defer bkClient.Close()
+		_, err = bkClient.ListWorkers(ctxTimeout)
+		if err != nil {
+			connErrMu.Lock()
+			connErr = err
+			connErrMu.Unlock()
+			return
+		}
+		// Success.
+		connErrMu.Lock()
+		connErr = nil
+		connErrMu.Unlock()
+	}()
+	<-ctxTimeout.Done()
+	connErrMu.Lock()
+	err := connErr
+	connErrMu.Unlock()
+	return err
 }
 
 // MaybePull checks whether an image is available locally and pulls it if it is not.
