@@ -212,7 +212,7 @@ func UpsertConfig(config []byte, path, value string) ([]byte, error) {
 	}
 
 	if !keyAndValueCompatible(t, yamlValue) {
-		return []byte{}, fmt.Errorf("Cannot set %s to %v, as the types are incompatible", path, value)
+		return []byte{}, errors.Errorf("cannot set %s to %v, as the types are incompatible", path, value)
 	}
 
 	setYamlValue(base, pathParts, yamlValue)

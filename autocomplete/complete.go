@@ -18,38 +18,6 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-func hasTargetOrCommand(line string) bool {
-	splits := strings.Split(line, " ")
-	for i, s := range splits {
-		if i == 0 {
-			continue // skip earthly command
-		}
-		if len(s) == 0 {
-			continue // skip empty commands
-		}
-		if s[0] == '-' {
-			continue // skip flags
-		}
-		return true // found a command or target
-	}
-	return false
-}
-
-// parseLine parses a bash COMP_LINE and COMP_POINT variables into the argument to expand
-// e.g. line="earthly --argum", cursorLoc=10; this will return "--ar"
-func parseLine(line string, cursorLoc int) string {
-	var i int
-	for i = cursorLoc; i > 0; i-- {
-		if line[i-1] == ' ' {
-			break
-		}
-	}
-	if i >= cursorLoc {
-		return ""
-	}
-	return line[i:cursorLoc]
-}
-
 func trimFlag(prefix string) (string, bool) {
 	if len(prefix) == 1 && prefix[0] == '-' {
 		return "", true

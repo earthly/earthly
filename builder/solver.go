@@ -88,11 +88,9 @@ func (s *solver) solveDockerTar(ctx context.Context, state llb.State, platform s
 		return nil
 	})
 	go func() {
-		select {
-		case <-ctx.Done():
-			// Close read pipe on cancels, otherwise the whole thing hangs.
-			pipeR.Close()
-		}
+		<-ctx.Done()
+		// Close read pipe on cancels, otherwise the whole thing hangs.
+		pipeR.Close()
 	}()
 	err = eg.Wait()
 	if err != nil {

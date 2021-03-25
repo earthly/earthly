@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"regexp"
 	"strings"
 	"sync"
 	"unicode/utf8"
@@ -256,7 +255,7 @@ func (cl ConsoleLogger) PrintBytes(data []byte) {
 	}
 	if len(output) > 0 {
 		c.Fprintf(cl.outW, "%s", string(output))
-		output = output[:0]
+		// output = output[:0] // not needed
 	}
 }
 
@@ -306,8 +305,6 @@ func (cl ConsoleLogger) color(c *color.Color) *color.Color {
 	}
 	return noColor
 }
-
-var bracketsRegexp = regexp.MustCompile("\\(([^\\]]*)\\)")
 
 func (cl ConsoleLogger) prettyPrefix() string {
 	if cl.prefixPadding == NoPadding {

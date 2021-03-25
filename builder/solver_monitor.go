@@ -493,7 +493,7 @@ func (sm *solverMonitor) PrintTiming() {
 		Printf("Total       \t%s\n", total)
 	sm.console.
 		WithMetadataMode(true).
-		Printf("Total (real)\t%s\n", time.Now().Sub(sm.startTime))
+		Printf("Total (real)\t%s\n", time.Since(sm.startTime))
 }
 
 func (sm *solverMonitor) reprintFailure(errVertex *vertexMonitor, phaseText string) {
@@ -519,8 +519,8 @@ func (sm *solverMonitor) reprintFailure(errVertex *vertexMonitor, phaseText stri
 	errVertex.printError()
 }
 
-var vertexRegexp = regexp.MustCompile("(?s)^\\[([^\\]]*)\\] (.*)$")
-var targetAndSaltRegexp = regexp.MustCompile("(?s)^([^\\(]*)(\\(([^\\)]*)\\))? (.*)$")
+var vertexRegexp = regexp.MustCompile(`(?s)^\[([^\]]*)\] (.*)$`)
+var targetAndSaltRegexp = regexp.MustCompile(`(?s)^([^\(]*)(\(([^\)]*)\))? (.*)$`)
 
 func parseVertexName(vertexName string) (string, string, map[string]string, string, string) {
 	target := ""
@@ -579,10 +579,6 @@ func parseVertexName(vertexName string) (string, string, map[string]string, stri
 		targetBrackets = strings.Join(targetBracketsBuilder, " ")
 	}
 	return target, targetBrackets, meta, salt, operation
-}
-
-func shortDigest(d digest.Digest) string {
-	return d.Hex()[:12]
 }
 
 var progressChars = []string{

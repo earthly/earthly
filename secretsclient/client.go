@@ -924,7 +924,6 @@ func (c *client) loadAuthToken() error {
 		c.authToken = authData
 	default:
 		c.warnFunc("unable to handle cached auth type %s", authType)
-		break
 	}
 	return nil
 }
@@ -935,10 +934,7 @@ func IsValidEmail(email string) bool {
 		return false
 	}
 	parts := strings.Split(email, "@")
-	if len(parts) != 2 {
-		return false
-	}
-	return true
+	return len(parts) == 2
 }
 
 func (c *client) saveToken(email, tokenType, tokenValue string) error {

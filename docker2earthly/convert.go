@@ -24,7 +24,7 @@ func getArtifactName(s string) string {
 // and error is returned if an Earthfile already exists.
 func Docker2Earthly(dockerfilePath, EarthfilePath, imageTag string) error {
 	if fileutil.FileExists(EarthfilePath) {
-		return fmt.Errorf("Earthfile already exists; please delete it if you wish to continue")
+		return errors.Errorf("earthfile already exists; please delete it if you wish to continue")
 	}
 
 	var in io.Reader
