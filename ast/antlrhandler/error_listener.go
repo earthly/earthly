@@ -1,9 +1,8 @@
 package antlrhandler
 
 import (
-	"fmt"
-
 	"github.com/antlr/antlr4/runtime/Go/antlr"
+	"github.com/pkg/errors"
 )
 
 // ReturnErrorListener allows for the errors to be collected and returned after parsing.
@@ -19,5 +18,5 @@ func NewReturnErrorListener() *ReturnErrorListener {
 
 // SyntaxError implements ErrorListener SyntaxError.
 func (rel *ReturnErrorListener) SyntaxError(recognizer antlr.Recognizer, offendingSymbol interface{}, line, column int, msg string, e antlr.RecognitionException) {
-	rel.Errs = append(rel.Errs, fmt.Errorf("syntax error: line %d:%d %s", line, column, msg))
+	rel.Errs = append(rel.Errs, errors.Errorf("syntax error: line %d:%d %s", line, column, msg))
 }

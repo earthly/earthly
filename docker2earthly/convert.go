@@ -75,11 +75,11 @@ func Docker2Earthly(dockerfilePath, EarthfilePath, imageTag string) error {
 			if strings.HasPrefix(l, "COPY ") && strings.Contains(l, "--from") {
 				parts := strings.Split(l, " ")
 				if len(parts) != 4 {
-					return fmt.Errorf("failed to parse %q", l)
+					return errors.Errorf("failed to parse %q", l)
 				}
 				kv := strings.Split(parts[1], "=")
 				if len(kv) != 2 {
-					return fmt.Errorf("failed to parse %q", l)
+					return errors.Errorf("failed to parse %q", l)
 				}
 				fromStageName := kv[1]
 				n := names[fromStageName]
@@ -88,7 +88,7 @@ func Docker2Earthly(dockerfilePath, EarthfilePath, imageTag string) error {
 				targets[n+1] = append(targets[n+1], fmt.Sprintf("SAVE ARTIFACT %s %s\n", parts[2], artifactName))
 			}
 			if strings.HasPrefix(l, "ADD ") {
-				return fmt.Errorf("earthly does not support ADD, please convert to COPY instead")
+				return errors.Errorf("earthly does not support ADD, please convert to COPY instead")
 			}
 			targets[i+1] = append(targets[i+1], l)
 		}

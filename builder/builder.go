@@ -617,7 +617,7 @@ func (b *Builder) saveArtifactLocally(ctx context.Context, artifact domain.Artif
 		if ifExists {
 			return nil
 		}
-		return fmt.Errorf("cannot save artifact %s, since it does not exist", artifact.StringCanonical())
+		return errors.Errorf("cannot save artifact %s, since it does not exist", artifact.StringCanonical())
 	}
 	isWildcard := strings.ContainsAny(fromPattern, `*?[`)
 	for _, from := range fromGlobMatches {

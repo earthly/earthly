@@ -16,10 +16,10 @@ import (
 
 var (
 	// ErrInvalidTransport occurs when a URL transport type is invalid
-	ErrInvalidTransport = fmt.Errorf("invalid transport")
+	ErrInvalidTransport = errors.Errorf("invalid transport")
 
 	// ErrInvalidAuth occurs when the auth type is invalid
-	ErrInvalidAuth = fmt.Errorf("invalid auth")
+	ErrInvalidAuth = errors.Errorf("invalid auth")
 )
 
 // GlobalConfig contains global config values
@@ -272,13 +272,13 @@ func validatePath(t reflect.Type, path []string) (reflect.Type, string, error) {
 		}
 	}
 
-	return nil, "", fmt.Errorf("no path for %s", strings.Join(path, "."))
+	return nil, "", errors.Errorf("no path for %s", strings.Join(path, "."))
 }
 
 func valueToYaml(value string) (*yaml.Node, error) {
 	valueNode := &yaml.Node{}
 	if err := yaml.Unmarshal([]byte(value), valueNode); err != nil {
-		return nil, fmt.Errorf("%s is not a valid YAML value", value)
+		return nil, errors.Errorf("%s is not a valid YAML value", value)
 	}
 
 	// Unfold all the yaml so its not mixed inline and flow styles in the final document

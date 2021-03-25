@@ -14,7 +14,7 @@ import (
 )
 
 // ErrNoSecretsClient occurs when the secrets client is referenced but was never provided
-var ErrNoSecretsClient = fmt.Errorf("no secrets client provided")
+var ErrNoSecretsClient = errors.Errorf("no secrets client provided")
 
 type secretProvider struct {
 	store  secrets.SecretStore

@@ -2,7 +2,6 @@ package earthfile2llb
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/moby/buildkit/client/llb"
 	gwclient "github.com/moby/buildkit/frontend/gateway/client"
@@ -105,7 +104,7 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt) (m
 		}
 		if same {
 			if sts.Ongoing {
-				return nil, fmt.Errorf(
+				return nil, errors.Errorf(
 					"infinite recursion detected for target %s", targetStr)
 			}
 			// Use the already built states.

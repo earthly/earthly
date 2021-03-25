@@ -26,13 +26,13 @@ import (
 )
 
 // ErrAccountExists occurs account creation when an account already exists
-var ErrAccountExists = fmt.Errorf("account already exists")
+var ErrAccountExists = errors.Errorf("account already exists")
 
 // ErrUnauthorized occurs when a user is unauthorized to access a resource
-var ErrUnauthorized = fmt.Errorf("unauthorized")
+var ErrUnauthorized = errors.Errorf("unauthorized")
 
 // ErrNoAuthorizedPublicKeys occurs when no authorized public keys are found
-var ErrNoAuthorizedPublicKeys = fmt.Errorf("no authorized public keys found")
+var ErrNoAuthorizedPublicKeys = errors.Errorf("no authorized public keys found")
 
 // OrgDetail contains an organization and details
 type OrgDetail struct {
@@ -289,7 +289,7 @@ func (c *client) RegisterEmail(email string) error {
 		if err != nil {
 			return errors.Wrap(err, fmt.Sprintf("failed to decode response body (status code: %d)", status))
 		}
-		return fmt.Errorf("failed to create account registration request: %s", msg)
+		return errors.Errorf("failed to create account registration request: %s", msg)
 	}
 	return nil
 }
@@ -329,7 +329,7 @@ func (c *client) savePublicKey(publicKey string) error {
 
 func (c *client) CreateAccount(email, verificationToken, password, publicKey string, termsConditionsPrivacy bool) error {
 	if !IsValidEmail(email) {
-		return fmt.Errorf("invalid email: %q", email)
+		return errors.Errorf("invalid email: %q", email)
 	}
 	if publicKey != "" {
 		var err error
@@ -355,7 +355,7 @@ func (c *client) CreateAccount(email, verificationToken, password, publicKey str
 		if err != nil {
 			return errors.Wrap(err, fmt.Sprintf("failed to decode response body (status code: %d)", status))
 		}
-		return fmt.Errorf("failed to create account: %s", msg)
+		return errors.Errorf("failed to create account: %s", msg)
 	}
 
 	// cache login preferences for future command runs
@@ -384,7 +384,7 @@ func (c *client) getChallenge() (string, error) {
 		if err != nil {
 			return "", errors.Wrap(err, fmt.Sprintf("failed to decode response body (status code: %d)", status))
 		}
-		return "", fmt.Errorf("failed to get auth challenge: %s", msg)
+		return "", errors.Errorf("failed to get auth challenge: %s", msg)
 	}
 
 	var challengeResponse api.AuthChallengeResponse
@@ -441,7 +441,7 @@ func (c *client) tryAuth(challenge string, key *agent.Key) (string, string, erro
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return "", "", fmt.Errorf("failed to get secret: %s", pingResponse.Message)
+		return "", "", errors.Errorf("failed to get secret: %s", pingResponse.Message)
 	}
 
 	return pingResponse.Email, authToken, nil
@@ -497,14 +497,14 @@ func (c *client) CreateOrg(org string) error {
 		if err != nil {
 			return errors.Wrap(err, fmt.Sprintf("failed to decode response body (status code: %d)", status))
 		}
-		return fmt.Errorf("failed to create org: %s", msg)
+		return errors.Errorf("failed to create org: %s", msg)
 	}
 	return nil
 }
 
 func (c *client) Remove(path string) error {
 	if path == "" || path[0] != '/' {
-		return fmt.Errorf("invalid path")
+		return errors.Errorf("invalid path")
 	}
 	status, body, err := c.doCall("DELETE", fmt.Sprintf("/api/v0/secrets%s", path), withAuth())
 	if err != nil {
@@ -515,14 +515,14 @@ func (c *client) Remove(path string) error {
 		if err != nil {
 			return errors.Wrap(err, fmt.Sprintf("failed to decode response body (status code: %d)", status))
 		}
-		return fmt.Errorf("failed to remove secret: %s", msg)
+		return errors.Errorf("failed to remove secret: %s", msg)
 	}
 	return nil
 }
 
 func (c *client) List(path string) ([]string, error) {
 	if path != "" && !strings.HasSuffix(path, "/") {
-		return nil, fmt.Errorf("invalid path")
+		return nil, errors.Errorf("invalid path")
 	}
 	status, body, err := c.doCall("GET", fmt.Sprintf("/api/v0/secrets%s", path), withAuth())
 	if err != nil {
@@ -533,7 +533,7 @@ func (c *client) List(path string) ([]string, error) {
 		if err != nil {
 			return nil, errors.Wrap(err, fmt.Sprintf("failed to decode response body (status code: %d)", status))
 		}
-		return nil, fmt.Errorf("failed to list secrets: %s", msg)
+		return nil, errors.Errorf("failed to list secrets: %s", msg)
 	}
 	if body == "" {
 		return []string{}, nil
@@ -543,7 +543,7 @@ func (c *client) List(path string) ([]string, error) {
 
 func (c *client) Get(path string) ([]byte, error) {
 	if path == "" || path[0] != '/' || strings.HasSuffix(path, "/") {
-		return nil, fmt.Errorf("invalid path")
+		return nil, errors.Errorf("invalid path")
 	}
 	status, body, err := c.doCall("GET", fmt.Sprintf("/api/v0/secrets%s", path), withAuth(), withRetry())
 	if err != nil {
@@ -554,14 +554,14 @@ func (c *client) Get(path string) ([]byte, error) {
 		if err != nil {
 			return nil, errors.Wrap(err, fmt.Sprintf("failed to decode response body (status code: %d)", status))
 		}
-		return nil, fmt.Errorf("failed to get secret: %s", msg)
+		return nil, errors.Errorf("failed to get secret: %s", msg)
 	}
 	return []byte(body), nil
 }
 
 func (c *client) Set(path string, data []byte) error {
 	if path == "" || path[0] != '/' {
-		return fmt.Errorf("invalid path")
+		return errors.Errorf("invalid path")
 	}
 	status, body, err := c.doCall("PUT", fmt.Sprintf("/api/v0/secrets%s", path), withAuth(), withBody(string(data)))
 	if err != nil {
@@ -572,7 +572,7 @@ func (c *client) Set(path string, data []byte) error {
 		if err != nil {
 			return errors.Wrap(err, fmt.Sprintf("failed to decode response body (status code: %d)", status))
 		}
-		return fmt.Errorf("failed to set secret: %s", msg)
+		return errors.Errorf("failed to set secret: %s", msg)
 	}
 	return nil
 }
@@ -592,7 +592,7 @@ func getOrgFromPath(path string) (string, bool) {
 func (c *client) Invite(path, user string, write bool) error {
 	orgName, ok := getOrgFromPath(path)
 	if !ok {
-		return fmt.Errorf("invalid path")
+		return errors.Errorf("invalid path")
 	}
 
 	permission := api.OrgPermissions{
@@ -610,7 +610,7 @@ func (c *client) Invite(path, user string, write bool) error {
 		if err != nil {
 			return errors.Wrap(err, fmt.Sprintf("failed to decode response body (status code: %d)", status))
 		}
-		return fmt.Errorf("failed to invite user into org: %s", msg)
+		return errors.Errorf("failed to invite user into org: %s", msg)
 	}
 	return nil
 }
@@ -618,7 +618,7 @@ func (c *client) Invite(path, user string, write bool) error {
 func (c *client) RevokePermission(path, user string) error {
 	orgName, ok := getOrgFromPath(path)
 	if !ok {
-		return fmt.Errorf("invalid path")
+		return errors.Errorf("invalid path")
 	}
 
 	permission := api.OrgPermissions{
@@ -635,7 +635,7 @@ func (c *client) RevokePermission(path, user string) error {
 		if err != nil {
 			return errors.Wrap(err, fmt.Sprintf("failed to decode response body (status code: %d)", status))
 		}
-		return fmt.Errorf("failed to revoke user from org: %s", msg)
+		return errors.Errorf("failed to revoke user from org: %s", msg)
 	}
 	return nil
 }
@@ -643,7 +643,7 @@ func (c *client) RevokePermission(path, user string) error {
 func (c *client) ListOrgPermissions(path string) ([]*OrgPermissions, error) {
 	orgName, ok := getOrgFromPath(path)
 	if !ok {
-		return nil, fmt.Errorf("invalid path")
+		return nil, errors.Errorf("invalid path")
 	}
 
 	status, body, err := c.doCall("GET", fmt.Sprintf("/api/v0/admin/organizations/%s/permissions", url.QueryEscape(orgName)), withAuth())
@@ -655,7 +655,7 @@ func (c *client) ListOrgPermissions(path string) ([]*OrgPermissions, error) {
 		if err != nil {
 			return nil, errors.Wrap(err, fmt.Sprintf("failed to decode response body (status code: %d)", status))
 		}
-		return nil, fmt.Errorf("failed to list org permissions: %s", msg)
+		return nil, errors.Errorf("failed to list org permissions: %s", msg)
 	}
 
 	var listOrgPermissionsResponse api.ListOrgPermissionsResponse
@@ -688,7 +688,7 @@ func (c *client) ListOrgs() ([]*OrgDetail, error) {
 		if err != nil {
 			return nil, errors.Wrap(err, fmt.Sprintf("failed to decode response body (status code: %d)", status))
 		}
-		return nil, fmt.Errorf("failed to list orgs: %s", msg)
+		return nil, errors.Errorf("failed to list orgs: %s", msg)
 	}
 
 	var listOrgsResponse api.ListOrgsResponse
@@ -718,7 +718,7 @@ func (c *client) ListPublicKeys() ([]string, error) {
 		if err != nil {
 			return nil, errors.Wrap(err, fmt.Sprintf("failed to decode response body (status code: %d)", status))
 		}
-		return nil, fmt.Errorf("failed to list public keys: %s", msg)
+		return nil, errors.Errorf("failed to list public keys: %s", msg)
 	}
 
 	keys := []string{}
@@ -741,7 +741,7 @@ func (c *client) AddPublickKey(key string) error {
 		if err != nil {
 			return errors.Wrap(err, fmt.Sprintf("failed to decode response body (status code: %d)", status))
 		}
-		return fmt.Errorf("failed to add public keys: %s", msg)
+		return errors.Errorf("failed to add public keys: %s", msg)
 	}
 	return nil
 }
@@ -757,7 +757,7 @@ func (c *client) RemovePublickKey(key string) error {
 		if err != nil {
 			return errors.Wrap(err, fmt.Sprintf("failed to decode response body (status code: %d)", status))
 		}
-		return fmt.Errorf("failed to remove public keys: %s", msg)
+		return errors.Errorf("failed to remove public keys: %s", msg)
 	}
 	return nil
 }
@@ -783,7 +783,7 @@ func (c *client) CreateToken(name string, write bool, expiry *time.Time) (string
 		if err != nil {
 			return "", errors.Wrap(err, fmt.Sprintf("failed to decode response body (status code: %d)", status))
 		}
-		return "", fmt.Errorf("failed to create new token: %s", msg)
+		return "", errors.Errorf("failed to create new token: %s", msg)
 	}
 	return body, nil
 }
@@ -798,7 +798,7 @@ func (c *client) ListTokens() ([]*TokenDetail, error) {
 		if err != nil {
 			return nil, errors.Wrap(err, fmt.Sprintf("failed to decode response body (status code: %d)", status))
 		}
-		return nil, fmt.Errorf("failed to list tokens: %s", msg)
+		return nil, errors.Errorf("failed to list tokens: %s", msg)
 	}
 
 	var listTokensResponse api.ListAuthTokensResponse
@@ -833,7 +833,7 @@ func (c *client) RemoveToken(name string) error {
 		if err != nil {
 			return errors.Wrap(err, fmt.Sprintf("failed to decode response body (status code: %d)", status))
 		}
-		return fmt.Errorf("failed to delete token: %s", msg)
+		return errors.Errorf("failed to delete token: %s", msg)
 	}
 	return nil
 }
@@ -848,7 +848,7 @@ func (c *client) WhoAmI() (string, string, bool, error) {
 		if err != nil {
 			return "", "", false, errors.Wrap(err, fmt.Sprintf("failed to decode response body (status code: %d)", status))
 		}
-		return "", "", false, fmt.Errorf("failed to authenticate: %s", msg)
+		return "", "", false, errors.Errorf("failed to authenticate: %s", msg)
 	}
 
 	var pingResponse api.PingResponse
@@ -944,13 +944,13 @@ func (c *client) saveToken(email, tokenType, tokenValue string) error {
 	}
 
 	if !IsValidEmail(email) {
-		return fmt.Errorf("invalid email: %q", email)
+		return errors.Errorf("invalid email: %q", email)
 	}
 	if strings.Contains(tokenType, " ") {
-		return fmt.Errorf("invalid token type: %q", tokenType)
+		return errors.Errorf("invalid token type: %q", tokenType)
 	}
 	if strings.Contains(tokenValue, " ") {
-		return fmt.Errorf("invalid token value: %q", tokenValue)
+		return errors.Errorf("invalid token value: %q", tokenValue)
 	}
 
 	data := []byte(email + " " + tokenType + " " + tokenValue)
@@ -1010,7 +1010,7 @@ func (c *client) SetLoginPublicKey(email, key string) (string, error) {
 		return "", err
 	}
 	if sshKeyType != "ssh-rsa" {
-		return "", fmt.Errorf("ssh-rsa only supported")
+		return "", errors.Errorf("ssh-rsa only supported")
 	}
 	c.sshKeyBlob, err = base64.StdEncoding.DecodeString(sshKeyBlob)
 	if err != nil {
@@ -1022,7 +1022,7 @@ func (c *client) SetLoginPublicKey(email, key string) (string, error) {
 		return "", err
 	}
 	if returnedEmail != email {
-		return "", fmt.Errorf("login email missmatch")
+		return "", errors.Errorf("login email missmatch")
 	}
 	return email, nil
 }
@@ -1073,7 +1073,7 @@ func (c *client) SetLoginSSH(email, sshKey string) error {
 		return err
 	}
 	if authedEmail != email {
-		return fmt.Errorf("failed to set correct email") // shouldn't happen
+		return errors.Errorf("failed to set correct email") // shouldn't happen
 	}
 	return c.saveToken(email, sshKeyType, sshKeyBlob)
 }
@@ -1081,7 +1081,7 @@ func (c *client) SetLoginSSH(email, sshKey string) error {
 func parseSSHKey(sshKey string) (string, string, string, error) {
 	parts := strings.SplitN(sshKey, " ", 3)
 	if len(parts) < 2 {
-		return "", "", "", fmt.Errorf("invalid sshKey")
+		return "", "", "", errors.Errorf("invalid sshKey")
 	}
 	sshKeyType := parts[0]
 	sshKeyBlob := parts[1]

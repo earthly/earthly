@@ -2,9 +2,10 @@ package buildcontext
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"path/filepath"
+
+	"github.com/pkg/errors"
 
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/gitutil"
@@ -20,7 +21,7 @@ type localResolver struct {
 
 func (lr *localResolver) resolveLocal(ctx context.Context, ref domain.Reference) (*Data, error) {
 	if ref.IsRemote() {
-		return nil, fmt.Errorf("unexpected remote target %s", ref.String())
+		return nil, errors.Errorf("unexpected remote target %s", ref.String())
 	}
 
 	metadata, found := lr.gitMetaCache[ref.GetLocalPath()]

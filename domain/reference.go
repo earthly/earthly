@@ -175,7 +175,7 @@ func parseCommon(fullName string) (gitURL string, tag string, localPath string, 
 		return "", "", "", "", "", err
 	}
 	if len(partsPlus) != 2 {
-		return "", "", "", "", "", fmt.Errorf("invalid target ref %s", fullName)
+		return "", "", "", "", "", errors.Errorf("invalid target ref %s", fullName)
 	}
 	if partsPlus[0] == "" {
 		// Local target.
