@@ -42,7 +42,7 @@ type Opt struct {
 	Attachables            []session.Attachable
 	Enttlmnts              []entitlements.Entitlement
 	NoCache                bool
-	CacheImports           map[string]bool
+	CacheImports           *states.CacheImports
 	CacheExport            string
 	MaxCacheExport         string
 	UseInlineCache         bool
@@ -550,14 +550,14 @@ func (b *Builder) stateToRef(ctx context.Context, gwClient gwclient.Client, stat
 	if b.opt.NoCache && !b.builtMain {
 		state = state.SetMarshalDefaults(llb.IgnoreCache)
 	}
-	return llbutil.StateToRef(ctx, gwClient, state, platform, b.opt.CacheImports)
+	return llbutil.StateToRef(ctx, gwClient, state, platform, b.opt.CacheImports.AsMap())
 }
 
 func (b *Builder) artifactStateToRef(ctx context.Context, gwClient gwclient.Client, state llb.State, platform *specs.Platform) (gwclient.Reference, error) {
 	if b.opt.NoCache || b.builtMain {
 		state = state.SetMarshalDefaults(llb.IgnoreCache)
 	}
-	return llbutil.StateToRef(ctx, gwClient, state, platform, b.opt.CacheImports)
+	return llbutil.StateToRef(ctx, gwClient, state, platform, b.opt.CacheImports.AsMap())
 }
 
 func (b *Builder) buildOnlyLastImageAsTar(ctx context.Context, mts *states.MultiTarget, dockerTag string, outFile string, opt BuildOpt) error {

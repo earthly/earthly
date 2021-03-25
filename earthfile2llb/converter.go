@@ -471,7 +471,7 @@ func (c *Converter) RunExitCode(ctx context.Context, commandName string, args, m
 	if err != nil {
 		return 0, err
 	}
-	ref, err := llbutil.StateToRef(ctx, c.opt.GwClient, state, c.opt.Platform, c.opt.CacheImports)
+	ref, err := llbutil.StateToRef(ctx, c.opt.GwClient, state, c.opt.Platform, c.opt.CacheImports.AsMap())
 	if err != nil {
 		return 0, errors.Wrap(err, "run exit code state to ref")
 	}
@@ -524,7 +524,7 @@ func (c *Converter) RunLocalExitCode(ctx context.Context, commandName string, ar
 	}
 	c.mts.Final.MainState = c.mts.Final.MainState.Run(opts...).Root()
 
-	ref, err := llbutil.StateToRef(ctx, c.opt.GwClient, c.mts.Final.MainState, c.opt.Platform, c.opt.CacheImports)
+	ref, err := llbutil.StateToRef(ctx, c.opt.GwClient, c.mts.Final.MainState, c.opt.Platform, c.opt.CacheImports.AsMap())
 	if err != nil {
 		return 0, errors.Wrap(err, "run exit code state to ref")
 	}
@@ -719,7 +719,7 @@ func (c *Converter) SaveImage(ctx context.Context, imageNames []string, pushImag
 		return err
 	}
 	for _, cf := range cacheFrom {
-		c.opt.CacheImports[cf] = true
+		c.opt.CacheImports.Add(cf)
 	}
 	justCacheHint := false
 	if len(imageNames) == 0 && cacheHint {
@@ -755,7 +755,7 @@ func (c *Converter) SaveImage(ctx context.Context, imageNames []string, pushImag
 
 		if pushImages && imageName != "" && c.opt.UseInlineCache {
 			// Use this image tag as cache import too.
-			c.opt.CacheImports[imageName] = true
+			c.opt.CacheImports.Add(imageName)
 		}
 	}
 	if !justCacheHint {
@@ -1084,6 +1084,7 @@ func (c *Converter) buildTarget(ctx context.Context, fullTargetName string, plat
 		opt.Platform = platform
 	}
 	if opt.isPreemptive {
+		fmt.Printf("\n@#@#@#@@#@#@#@# ---------------------------- PREEMPTIVE BUILD FOR %s ---------------------\n\n", target.String())
 		go func() {
 			_, err := Earthfile2LLB(ctx, target, opt)
 			preemptErrChan <- err
@@ -1256,7 +1257,7 @@ func (c *Converter) readArtifact(ctx context.Context, mts *states.MultiTarget, a
 		// ArtifactsState is scratch - no artifact has been copied.
 		return nil, errors.Errorf("artifact %s not found; no SAVE ARTIFACT command was issued in %s", artifact.String(), artifact.Target.String())
 	}
-	ref, err := llbutil.StateToRef(ctx, c.opt.GwClient, mts.Final.ArtifactsState, mts.Final.Platform, c.opt.CacheImports)
+	ref, err := llbutil.StateToRef(ctx, c.opt.GwClient, mts.Final.ArtifactsState, mts.Final.Platform, c.opt.CacheImports.AsMap())
 	if err != nil {
 		return nil, errors.Wrap(err, "state to ref solve artifact")
 	}
@@ -1363,7 +1364,7 @@ func (c *Converter) processNonConstantBuildArgFunc(ctx context.Context) variable
 		if err != nil {
 			return "", 0, errors.Wrapf(err, "run %v", expression)
 		}
-		ref, err := llbutil.StateToRef(ctx, c.opt.GwClient, state, c.opt.Platform, c.opt.CacheImports)
+		ref, err := llbutil.StateToRef(ctx, c.opt.GwClient, state, c.opt.Platform, c.opt.CacheImports.AsMap())
 		if err != nil {
 			return "", 0, errors.Wrapf(err, "build arg state to ref")
 		}

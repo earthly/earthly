@@ -112,10 +112,10 @@ func (wdr *withDockerRun) Run(ctx context.Context, args []string, opt WithDocker
 	}
 	// Sort to make the operation consistent.
 	sort.Slice(opt.Pulls, func(i, j int) bool {
-		if opt.Pulls[i].ImageName == opt.Pulls[i].ImageName {
-			return llbutil.PlatformToString(opt.Pulls[i].Platform) < llbutil.PlatformToString(opt.Pulls[i].Platform)
+		if opt.Pulls[i].ImageName == opt.Pulls[j].ImageName {
+			return llbutil.PlatformToString(opt.Pulls[i].Platform) < llbutil.PlatformToString(opt.Pulls[j].Platform)
 		}
-		return opt.Pulls[i].ImageName < opt.Pulls[i].ImageName
+		return opt.Pulls[i].ImageName < opt.Pulls[j].ImageName
 	})
 	for _, pullImageName := range opt.Pulls {
 		err := wdr.pull(ctx, pullImageName)
@@ -392,7 +392,7 @@ func (wdr *withDockerRun) getComposeConfig(ctx context.Context, opt WithDockerOp
 		llb.WithCustomNamef("%sWITH DOCKER (docker-compose config)", wdr.c.vertexPrefix(false, false)),
 	}
 	state := wdr.c.mts.Final.MainState.Run(runOpts...).Root()
-	ref, err := llbutil.StateToRef(ctx, wdr.c.opt.GwClient, state, wdr.c.opt.Platform, wdr.c.opt.CacheImports)
+	ref, err := llbutil.StateToRef(ctx, wdr.c.opt.GwClient, state, wdr.c.opt.Platform, wdr.c.opt.CacheImports.AsMap())
 	if err != nil {
 		return nil, errors.Wrap(err, "state to ref compose config")
 	}

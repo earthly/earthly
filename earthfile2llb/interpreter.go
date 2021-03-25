@@ -32,27 +32,44 @@ type Interpreter struct {
 
 	withDocker    *WithDockerOpt
 	withDockerRan bool
+
+	preemptErrChan chan error
 }
 
 func newInterpreter(c *Converter, t domain.Target) *Interpreter {
 	return &Interpreter{
-		converter: c,
-		target:    t,
-		stack:     c.StackString(),
+		converter:      c,
+		target:         t,
+		stack:          c.StackString(),
+		preemptErrChan: make(chan error, 10),
 	}
 }
 
 // Run interprets the commands in the given Earthfile AST, for a specific target.
-func (i *Interpreter) Run(ctx context.Context, ef spec.Earthfile) error {
+func (i *Interpreter) Run(ctx context.Context, ef spec.Earthfile) (err error) {
+	ctx2, cancel := context.WithCancel(ctx)
+	defer cancel()
+	defer func() {
+		if err != nil {
+			return
+		}
+		// Check if preempt channel contains any errors.
+		select {
+		case preemptErr := <-i.preemptErrChan:
+			err = preemptErr
+			return
+		default:
+		}
+	}()
 	if i.target.Target == "base" {
 		i.isBase = true
-		err := i.handleBlock(ctx, ef.BaseRecipe)
+		err := i.handleBlock(ctx2, ef.BaseRecipe)
 		i.isBase = false
 		return err
 	}
 	for _, t := range ef.Targets {
 		if t.Name == i.target.Target {
-			return i.handleTarget(ctx, t)
+			return i.handleTarget(ctx2, t)
 		}
 	}
 	return i.errorf(ef.SourceLocation, "target %s not found", i.target.Target)
@@ -68,28 +85,38 @@ func (i *Interpreter) handleTarget(ctx context.Context, t spec.Target) error {
 }
 
 func (i *Interpreter) handleBlock(ctx context.Context, b spec.Block) error {
-	err := i.handleBlockPreemptive(ctx, b)
-	if err != nil {
-		return err
-	}
-	for _, stmt := range b {
+	prevWasArg := true // not exactly true, but makes the logic easier
+	for index, stmt := range b {
+		if prevWasArg {
+			err := i.handleBlockPreemptive(ctx, b, index)
+			if err != nil {
+				return err
+			}
+		}
 		err := i.handleStatement(ctx, stmt)
 		if err != nil {
 			return err
 		}
+		prevWasArg = (stmt.Command != nil && stmt.Command.Name == "ARG")
 	}
 	return nil
 }
 
-func (i *Interpreter) handleBlockPreemptive(ctx context.Context, b spec.Block) error {
-	for _, stmt := range b {
+func (i *Interpreter) handleBlockPreemptive(ctx context.Context, b spec.Block, startIndex int) error {
+	for index := startIndex; index < len(b); index++ {
+		stmt := b[index]
 		if stmt.Command != nil {
 			switch stmt.Command.Name {
 			case "ARG":
-				// Cannot do any further preemptive builds for the current project.
+				// Cannot do any further preemptive builds - args may change the outcome.
 				return nil
 			case "BUILD":
-				// TODO
+				// @# TODO: Add feature flag.
+				// errChan := i.makeErrChan(ctx)
+				// err := i.handleBuild(ctx, *stmt.Command, errChan)
+				// if err != nil {
+				// 	return err
+				// }
 			case "FROM":
 				// TODO
 			case "COPY":
@@ -105,6 +132,23 @@ func (i *Interpreter) handleBlockPreemptive(ctx context.Context, b spec.Block) e
 		}
 	}
 	return nil
+}
+
+func (i *Interpreter) makeErrChan(ctx context.Context) chan error {
+	errChan := make(chan error)
+	go func() {
+		select {
+		case err, ok := <-errChan:
+			if !ok {
+				return
+			}
+			if err != nil && !errors.Is(err, errCannotPreempt) && !errors.Is(err, context.Canceled) {
+				i.preemptErrChan <- err
+			}
+		case <-ctx.Done():
+		}
+	}()
+	return errChan
 }
 
 func (i *Interpreter) handleStatement(ctx context.Context, stmt spec.Statement) error {
@@ -163,7 +207,7 @@ func (i *Interpreter) handleCommand(ctx context.Context, cmd spec.Command) (err 
 	case "SAVE IMAGE":
 		return i.handleSaveImage(ctx, cmd)
 	case "BUILD":
-		return i.handleBuild(ctx, cmd)
+		return i.handleBuild(ctx, cmd, nil)
 	case "WORKDIR":
 		return i.handleWorkdir(ctx, cmd)
 	case "USER":
@@ -741,7 +785,7 @@ func (i *Interpreter) handleSaveImage(ctx context.Context, cmd spec.Command) err
 	return nil
 }
 
-func (i *Interpreter) handleBuild(ctx context.Context, cmd spec.Command) error {
+func (i *Interpreter) handleBuild(ctx context.Context, cmd spec.Command, preemptErrChan chan error) error {
 	if i.pushOnlyAllowed {
 		return i.pushOnlyErr(cmd.SourceLocation)
 	}
@@ -767,6 +811,10 @@ func (i *Interpreter) handleBuild(ctx context.Context, cmd spec.Command) error {
 		}
 		platformsSlice = append(platformsSlice, platform)
 	}
+	if preemptErrChan != nil && !isSafePreemptBuildArgs(buildArgs.Args) {
+		preemptErrChan <- errCannotPreempt
+		return nil
+	}
 	expandedBuildArgs := i.expandArgsSlice(buildArgs.Args, true)
 	expandedFlagArgs := i.expandArgsSlice(fs.Args()[1:], true)
 	parsedFlagArgs, err := variables.ParseFlagArgs(expandedFlagArgs)
@@ -785,7 +833,7 @@ func (i *Interpreter) handleBuild(ctx context.Context, cmd spec.Command) error {
 
 	for _, bas := range crossProductBuildArgs {
 		for _, platform := range platformsSlice {
-			err = i.converter.Build(ctx, fullTargetName, platform, bas, nil)
+			err = i.converter.Build(ctx, fullTargetName, platform, bas, preemptErrChan)
 			if err != nil {
 				return i.wrapError(err, cmd.SourceLocation, "apply BUILD %s", fullTargetName)
 			}
@@ -1424,6 +1472,16 @@ func parseParans(str string) (string, []string, error) {
 		return "", nil, errors.New("invalid empty parans")
 	}
 	return parts[0], parts[1:], nil
+}
+
+func isSafePreemptBuildArgs(args []string) bool {
+	for _, arg := range args {
+		_, v, _ := variables.ParseKeyValue(arg)
+		if strings.HasPrefix(v, "$(") {
+			return false
+		}
+	}
+	return true
 }
 
 // StringSliceFlag is a flag backed by a string slice.

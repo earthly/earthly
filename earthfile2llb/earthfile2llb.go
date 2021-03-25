@@ -50,7 +50,7 @@ type ConvertOpt struct {
 	MetaResolver llb.ImageMetaResolver
 	// CacheImports is a set of docker tags that can be used to import cache. Note that this
 	// set is modified by the converter if InlineCache is enabled.
-	CacheImports map[string]bool
+	CacheImports *states.CacheImports
 	// UseInlineCache enables the inline caching feature (use any SAVE IMAGE --push declaration as
 	// cache import).
 	UseInlineCache bool
@@ -60,6 +60,10 @@ type ConvertOpt struct {
 	AllowLocally bool
 	// AllowInteractive is an internal feature flag for controlling if interactive sessions can be initiated.
 	AllowInteractive bool
+
+	//
+	// Internal.
+
 	// stack is a target input stack used for infinite loop detection.
 	stack []dedup.TargetInput
 	// isPreemptive is set when this is a preemptive build (triggered ahead of time).
