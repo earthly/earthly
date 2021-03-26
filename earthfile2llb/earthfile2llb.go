@@ -50,7 +50,7 @@ type ConvertOpt struct {
 	MetaResolver llb.ImageMetaResolver
 	// CacheImports is a set of docker tags that can be used to import cache. Note that this
 	// set is modified by the converter if InlineCache is enabled.
-	CacheImports map[string]bool
+	CacheImports *states.CacheImports
 	// UseInlineCache enables the inline caching feature (use any SAVE IMAGE --push declaration as
 	// cache import).
 	UseInlineCache bool

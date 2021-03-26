@@ -64,6 +64,7 @@ import (
 	"github.com/earthly/earthly/fileutil"
 	"github.com/earthly/earthly/llbutil"
 	"github.com/earthly/earthly/secretsclient"
+	"github.com/earthly/earthly/states"
 	"github.com/earthly/earthly/termutil"
 	"github.com/earthly/earthly/variables"
 )
@@ -2349,7 +2350,7 @@ func (app *earthlyApp) actionBuild(c *cli.Context) error {
 		Attachables:            attachables,
 		Enttlmnts:              enttlmnts,
 		NoCache:                app.noCache,
-		CacheImports:           cacheImports,
+		CacheImports:           states.NewCacheImports(cacheImports),
 		CacheExport:            cacheExport,
 		MaxCacheExport:         maxCacheExport,
 		UseInlineCache:         app.useInlineCache,

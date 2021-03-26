@@ -9,6 +9,7 @@ import (
 	"strconv"
 
 	"github.com/earthly/earthly/domain"
+	"github.com/earthly/earthly/states"
 	"github.com/earthly/earthly/states/image"
 	"github.com/moby/buildkit/client"
 	"github.com/moby/buildkit/client/llb"
@@ -29,7 +30,7 @@ type solver struct {
 	bkClient        *client.Client
 	attachables     []session.Attachable
 	enttlmnts       []entitlements.Entitlement
-	cacheImports    map[string]bool
+	cacheImports    *states.CacheImports
 	cacheExport     string
 	maxCacheExport  string
 	saveInlineCache bool
@@ -169,7 +170,7 @@ func (s *solver) newSolveOptDocker(img *image.Image, dockerTag string, w io.Writ
 		return nil, errors.Wrap(err, "image json marshal")
 	}
 	var cacheImports []client.CacheOptionsEntry
-	for ci := range s.cacheImports {
+	for ci := range s.cacheImports.AsMap() {
 		cacheImports = append(cacheImports, newCacheImportOpt(ci))
 	}
 	return &client.SolveOpt{
@@ -193,7 +194,7 @@ func (s *solver) newSolveOptDocker(img *image.Image, dockerTag string, w io.Writ
 
 func (s *solver) newSolveOptMulti(ctx context.Context, eg *errgroup.Group, onImage onImageFunc, onArtifact onArtifactFunc, onFinalArtifact onFinalArtifactFunc) (*client.SolveOpt, error) {
 	var cacheImports []client.CacheOptionsEntry
-	for ci := range s.cacheImports {
+	for ci := range s.cacheImports.AsMap() {
 		cacheImports = append(cacheImports, newCacheImportOpt(ci))
 	}
 	var cacheExports []client.CacheOptionsEntry
@@ -251,7 +252,7 @@ func (s *solver) newSolveOptMulti(ctx context.Context, eg *errgroup.Group, onIma
 
 func (s *solver) newSolveOptMain() (*client.SolveOpt, error) {
 	var cacheImports []client.CacheOptionsEntry
-	for ci := range s.cacheImports {
+	for ci := range s.cacheImports.AsMap() {
 		cacheImports = append(cacheImports, newCacheImportOpt(ci))
 	}
 	return &client.SolveOpt{

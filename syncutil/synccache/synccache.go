@@ -54,7 +54,7 @@ func (sc *SyncCache) Do(ctx context.Context, key interface{}, c Constructor) (in
 			select {
 			case <-e.constructed:
 			default:
-				// Add our context to metaCtx in case all others are canceled.
+				// Add our context to metaCtx in case all others get canceled.
 				_ = e.metaCtx.Add(ctx)
 			}
 		}()
