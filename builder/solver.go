@@ -60,7 +60,7 @@ func (s *solver) solveDockerTar(ctx context.Context, state llb.State, platform s
 	var vertexFailureOutput string
 	eg.Go(func() error {
 		var err error
-		vertexFailureOutput, err = s.sm.monitorProgress(ctx, ch, "")
+		vertexFailureOutput, err = s.sm.monitorProgress(ctx, ch, "", true)
 		return err
 	})
 	eg.Go(func() error {
@@ -119,7 +119,7 @@ func (s *solver) buildMainMulti(ctx context.Context, bf gwclient.BuildFunc, onIm
 	var vertexFailureOutput string
 	eg.Go(func() error {
 		var err error
-		vertexFailureOutput, err = s.sm.monitorProgress(ctx, ch, phaseText)
+		vertexFailureOutput, err = s.sm.monitorProgress(ctx, ch, phaseText, false)
 		return err
 	})
 	err = eg.Wait()
@@ -153,7 +153,7 @@ func (s *solver) solveMain(ctx context.Context, state llb.State, platform specs.
 	var vertexFailureOutput string
 	eg.Go(func() error {
 		var err error
-		vertexFailureOutput, err = s.sm.monitorProgress(ctx, ch, "")
+		vertexFailureOutput, err = s.sm.monitorProgress(ctx, ch, "", true)
 		return err
 	})
 	err = eg.Wait()

@@ -210,6 +210,7 @@ func (vm *vertexMonitor) isOngoing() bool {
 }
 
 type solverMonitor struct {
+	msgMu                       sync.Mutex
 	console                     conslogging.ConsoleLogger
 	verbose                     bool
 	disableNoOutputUpdates      bool
@@ -220,6 +221,9 @@ type solverMonitor struct {
 	lastOutputWasNoOutputUpdate bool
 	timingTable                 map[timingKey]time.Duration
 	startTime                   time.Time
+	noOutputTicker              *time.Ticker
+	noOutputTick                time.Duration
+	errVertex                   *vertexMonitor
 
 	mu             sync.Mutex
 	success        bool
@@ -234,6 +238,10 @@ type timingKey struct {
 }
 
 func newSolverMonitor(console conslogging.ConsoleLogger, verbose bool, disableNoOutputUpdates bool) *solverMonitor {
+	noOutputTick := durationBetweenNoOutputUpdatesNoAnsi
+	if ansiSupported {
+		noOutputTick = durationBetweenNoOutputUpdates
+	}
 	return &solverMonitor{
 		console:                console,
 		verbose:                verbose,
@@ -242,20 +250,17 @@ func newSolverMonitor(console conslogging.ConsoleLogger, verbose bool, disableNo
 		saltSeen:               make(map[string]bool),
 		timingTable:            make(map[timingKey]time.Duration),
 		startTime:              time.Now(),
+		noOutputTicker:         time.NewTicker(noOutputTick),
+		noOutputTick:           noOutputTick,
 	}
 }
 
-func (sm *solverMonitor) monitorProgress(ctx context.Context, ch chan *client.SolveStatus, phaseText string) (string, error) {
-	sm.mu.Lock()
-	sm.ongoing = true
-	sm.mu.Unlock()
-	var errVertex *vertexMonitor
-	noOutputTick := durationBetweenNoOutputUpdatesNoAnsi
-	if ansiSupported {
-		noOutputTick = durationBetweenNoOutputUpdates
+func (sm *solverMonitor) monitorProgress(ctx context.Context, ch chan *client.SolveStatus, phaseText string, sideRun bool) (string, error) {
+	if !sideRun {
+		sm.mu.Lock()
+		sm.ongoing = true
+		sm.mu.Unlock()
 	}
-	noOutputTicker := time.NewTicker(noOutputTick)
-	defer noOutputTicker.Stop()
 Loop:
 	for {
 		select {
@@ -263,139 +268,162 @@ Loop:
 			if !ok {
 				break Loop
 			}
-			for _, vertex := range ss.Vertexes {
-				vm, ok := sm.vertices[vertex.Digest]
-				if !ok {
-					targetStr, targetBrackets, vertexMetadata, salt, operation := parseVertexName(vertex.Name)
-					vm = &vertexMonitor{
-						vertex:         vertex,
-						targetStr:      targetStr,
-						targetBrackets: targetBrackets,
-						meta:           vertexMetadata,
-						salt:           salt,
-						operation:      operation,
-						isInternal:     (targetStr == "internal" && !sm.verbose),
-						console:        sm.console.WithPrefixAndSalt(targetStr, salt),
-						lastPercentage: make(map[string]int),
-						lastProgress:   make(map[string]time.Time),
-					}
-					if vm.meta["@local"] == "true" {
-						vm.console = vm.console.WithLocal(true)
-					}
-					sm.vertices[vertex.Digest] = vm
-				}
-				vm.vertex = vertex
-				if !vm.headerPrinted &&
-					((!vm.isInternal && (vertex.Cached || vertex.Started != nil)) || vertex.Error != "") {
-					sm.printHeader(vm)
-					noOutputTicker.Reset(noOutputTick)
-				}
-				if vertex.Error != "" {
-					if strings.Contains(vertex.Error, "context canceled") {
-						if !vm.isInternal {
-							vm.console.Printf("WARN: Canceled\n")
-							noOutputTicker.Reset(noOutputTick)
-						}
-					} else {
-						vm.isError = vm.printError()
-						if errVertex == nil && vm.isError {
-							errVertex = vm
-						}
-						noOutputTicker.Reset(noOutputTick)
-					}
-				}
-				if sm.verbose {
-					vm.printTimingInfo()
-					sm.recordTiming(vm.targetStr, vm.targetBrackets, vm.salt, vertex)
-					noOutputTicker.Reset(noOutputTick)
-				}
+			err := sm.processStatus(ss)
+			if err != nil {
+				return "", err
 			}
-			for _, vs := range ss.Statuses {
-				vm, ok := sm.vertices[vs.Vertex]
-				if !ok || vm.isInternal {
-					// No logging for internal operations.
-					continue
-				}
-				progress := int(0)
-				if vs.Total != 0 {
-					progress = int(100.0 * float32(vs.Current) / float32(vs.Total))
-				}
-				if vs.Completed != nil {
-					progress = 100
-				}
-				sm.printProgress(vm, vs.ID, progress)
-				noOutputTicker.Reset(noOutputTick)
+		case <-sm.noOutputTicker.C:
+			err := sm.processNoOutputTick()
+			if err != nil {
+				return "", err
 			}
-			for _, logLine := range ss.Logs {
-				vm, ok := sm.vertices[logLine.Vertex]
-				if !ok || vm.isInternal {
-					// No logging for internal operations.
-					continue
-				}
-				if !vm.headerPrinted {
-					sm.printHeader(vm)
-				}
-				err := sm.printOutput(vm, logLine.Data)
-				if err != nil {
-					return "", err
-				}
-				noOutputTicker.Reset(noOutputTick)
-			}
-		case <-noOutputTicker.C:
-			if sm.disableNoOutputUpdates {
-				continue
-			}
-			ongoingBuilder := []string{}
-			if sm.lastOutputWasNoOutputUpdate {
-				// Overwrite previous line if the previous update was also a no-output update.
-				ongoingBuilder = append(ongoingBuilder, string(ansiUp))
-			}
-			ongoing := []string{}
-			now := time.Now()
-			for _, vm := range sm.vertices {
-				if !vm.isOngoing() {
-					continue
-				}
-				if vm.meta["@interactive"] == "true" {
-					// Don't print ongoing updates when an interactive session is ongoing.
-					continue Loop
-				}
-
-				col := vm.console.PrefixColor()
-				relTime := humanize.RelTime(*vm.vertex.Started, now, "ago", "from now")
-				ongoing = append(ongoing, fmt.Sprintf("%s (%s)", col.Sprintf("%s", vm.targetStr), relTime))
-			}
-			sort.Strings(ongoing) // not entirely correct, but makes the ordering consistent
-			var ongoingStr string
-			if len(ongoing) > 2 {
-				ongoingStr = fmt.Sprintf("%s and %d others", strings.Join(ongoing[:2], ", "), len(ongoing)-2)
-			} else {
-				ongoingStr = strings.Join(ongoing, ", ")
-			}
-			ongoingBuilder = append(ongoingBuilder, ongoingStr, string(ansiEraseRestLine))
-			sm.console.WithPrefix("ongoing").Printf("%s\n", strings.Join(ongoingBuilder, ""))
-			sm.lastOutputWasProgress = false
-			sm.lastOutputWasNoOutputUpdate = true
 		}
 	}
 	failedVertexOutput := ""
-	if errVertex != nil {
-		if errVertex.tailOutput != nil {
-			failedVertexOutput = string(errVertex.tailOutput.Bytes())
+	if !sideRun {
+		sm.msgMu.Lock()
+		if sm.errVertex != nil {
+			if sm.errVertex.tailOutput != nil {
+				failedVertexOutput = string(sm.errVertex.tailOutput.Bytes())
+			}
+			sm.reprintFailure(sm.errVertex, phaseText)
 		}
-		sm.reprintFailure(errVertex, phaseText)
+		sm.msgMu.Unlock()
+		sm.mu.Lock()
+		if sm.success && !sm.printedSuccess {
+			sm.lastOutputWasProgress = false
+			sm.lastOutputWasNoOutputUpdate = false
+			sm.console.PrintSuccess(phaseText)
+			sm.printedSuccess = true
+		}
+		sm.ongoing = false
+		sm.mu.Unlock()
+		sm.PrintTiming()
+		sm.noOutputTicker.Stop()
 	}
-	sm.mu.Lock()
-	if sm.success && !sm.printedSuccess {
-		sm.lastOutputWasProgress = false
-		sm.lastOutputWasNoOutputUpdate = false
-		sm.console.PrintSuccess(phaseText)
-		sm.printedSuccess = true
-	}
-	sm.ongoing = false
-	sm.mu.Unlock()
-	sm.PrintTiming()
 	return failedVertexOutput, nil
+}
+
+func (sm *solverMonitor) processStatus(ss *client.SolveStatus) error {
+	sm.msgMu.Lock()
+	defer sm.msgMu.Unlock()
+	for _, vertex := range ss.Vertexes {
+		vm, ok := sm.vertices[vertex.Digest]
+		if !ok {
+			targetStr, targetBrackets, vertexMetadata, salt, operation := parseVertexName(vertex.Name)
+			vm = &vertexMonitor{
+				vertex:         vertex,
+				targetStr:      targetStr,
+				targetBrackets: targetBrackets,
+				meta:           vertexMetadata,
+				salt:           salt,
+				operation:      operation,
+				isInternal:     (targetStr == "internal" && !sm.verbose),
+				console:        sm.console.WithPrefixAndSalt(targetStr, salt),
+				lastPercentage: make(map[string]int),
+				lastProgress:   make(map[string]time.Time),
+			}
+			if vm.meta["@local"] == "true" {
+				vm.console = vm.console.WithLocal(true)
+			}
+			sm.vertices[vertex.Digest] = vm
+		}
+		vm.vertex = vertex
+		if !vm.headerPrinted &&
+			((!vm.isInternal && (vertex.Cached || vertex.Started != nil)) || vertex.Error != "") {
+			sm.printHeader(vm)
+			sm.noOutputTicker.Reset(sm.noOutputTick)
+		}
+		if vertex.Error != "" {
+			if strings.Contains(vertex.Error, "context canceled") {
+				if !vm.isInternal {
+					vm.console.Printf("WARN: Canceled\n")
+					sm.noOutputTicker.Reset(sm.noOutputTick)
+				}
+			} else {
+				vm.isError = vm.printError()
+				if sm.errVertex == nil && vm.isError {
+					sm.errVertex = vm
+				}
+				sm.noOutputTicker.Reset(sm.noOutputTick)
+			}
+		}
+		if sm.verbose {
+			vm.printTimingInfo()
+			sm.recordTiming(vm.targetStr, vm.targetBrackets, vm.salt, vertex)
+			sm.noOutputTicker.Reset(sm.noOutputTick)
+		}
+	}
+	for _, vs := range ss.Statuses {
+		vm, ok := sm.vertices[vs.Vertex]
+		if !ok || vm.isInternal {
+			// No logging for internal operations.
+			continue
+		}
+		progress := int(0)
+		if vs.Total != 0 {
+			progress = int(100.0 * float32(vs.Current) / float32(vs.Total))
+		}
+		if vs.Completed != nil {
+			progress = 100
+		}
+		sm.printProgress(vm, vs.ID, progress)
+		sm.noOutputTicker.Reset(sm.noOutputTick)
+	}
+	for _, logLine := range ss.Logs {
+		vm, ok := sm.vertices[logLine.Vertex]
+		if !ok || vm.isInternal {
+			// No logging for internal operations.
+			continue
+		}
+		if !vm.headerPrinted {
+			sm.printHeader(vm)
+		}
+		err := sm.printOutput(vm, logLine.Data)
+		if err != nil {
+			return err
+		}
+		sm.noOutputTicker.Reset(sm.noOutputTick)
+	}
+	return nil
+}
+
+func (sm *solverMonitor) processNoOutputTick() error {
+	if sm.disableNoOutputUpdates {
+		return nil
+	}
+	ongoingBuilder := []string{}
+	if sm.lastOutputWasNoOutputUpdate {
+		// Overwrite previous line if the previous update was also a no-output update.
+		ongoingBuilder = append(ongoingBuilder, string(ansiUp))
+	}
+	ongoing := []string{}
+	now := time.Now()
+	for _, vm := range sm.vertices {
+		if !vm.isOngoing() {
+			continue
+		}
+		if vm.meta["@interactive"] == "true" {
+			// Don't print ongoing updates when an interactive session is ongoing.
+			return nil
+		}
+
+		col := vm.console.PrefixColor()
+		relTime := humanize.RelTime(*vm.vertex.Started, now, "ago", "from now")
+		ongoing = append(ongoing, fmt.Sprintf("%s (%s)", col.Sprintf("%s", vm.targetStr), relTime))
+	}
+	sort.Strings(ongoing) // not entirely correct, but makes the ordering consistent
+	var ongoingStr string
+	if len(ongoing) > 2 {
+		ongoingStr = fmt.Sprintf("%s and %d others", strings.Join(ongoing[:2], ", "), len(ongoing)-2)
+	} else {
+		ongoingStr = strings.Join(ongoing, ", ")
+	}
+	ongoingBuilder = append(ongoingBuilder, ongoingStr, string(ansiEraseRestLine))
+	sm.console.WithPrefix("ongoing").Printf("%s\n", strings.Join(ongoingBuilder, ""))
+	sm.lastOutputWasProgress = false
+	sm.lastOutputWasNoOutputUpdate = true
+	return nil
 }
 
 func (sm *solverMonitor) printOutput(vm *vertexMonitor, data []byte) error {
