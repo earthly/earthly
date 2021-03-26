@@ -5,17 +5,16 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/pkg/errors"
-
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/gitutil"
 	"github.com/earthly/earthly/llbutil"
-
+	"github.com/earthly/earthly/syncutil/synccache"
 	"github.com/moby/buildkit/client/llb"
+	"github.com/pkg/errors"
 )
 
 type localResolver struct {
-	gitMetaCache map[string]*gitutil.GitMetadata
+	gitMetaCache *synccache.SyncCache // local path -> *gitutil.GitMetadata
 	sessionID    string
 }
 
@@ -24,10 +23,8 @@ func (lr *localResolver) resolveLocal(ctx context.Context, ref domain.Reference)
 		return nil, errors.Errorf("unexpected remote target %s", ref.String())
 	}
 
-	metadata, found := lr.gitMetaCache[ref.GetLocalPath()]
-	if !found {
-		var err error
-		metadata, err = gitutil.Metadata(ctx, ref.GetLocalPath())
+	metadataValue, err := lr.gitMetaCache.Do(ctx, ref.GetLocalPath(), func(ctx context.Context, _ interface{}) (interface{}, error) {
+		metadata, err := gitutil.Metadata(ctx, ref.GetLocalPath())
 		if err != nil {
 			if errors.Is(err, gitutil.ErrNoGitBinary) ||
 				errors.Is(err, gitutil.ErrNotAGitDir) ||
@@ -44,9 +41,12 @@ func (lr *localResolver) resolveLocal(ctx context.Context, ref domain.Reference)
 				return nil, err
 			}
 		}
-		// Note that this could be nil in some cases.
-		lr.gitMetaCache[ref.GetLocalPath()] = metadata
+		return metadata, nil
+	})
+	if err != nil {
+		return nil, err
 	}
+	metadata := metadataValue.(*gitutil.GitMetadata)
 
 	buildFilePath, err := detectBuildFile(ref, filepath.FromSlash(ref.GetLocalPath()))
 	if err != nil {

@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/earthly/earthly/syncutil/metacontext"
+	"github.com/pkg/errors"
 )
 
 // Constructor is a func that is used to construct a cache value, given a key.
@@ -41,6 +42,10 @@ func (sc *SyncCache) Do(ctx context.Context, key interface{}, c Constructor) (in
 			// been canceled, thanks to the metaCtx. This is canceled only when ALL of
 			// the Do's are canceled.
 			e.value, e.err = c(e.metaCtx, key)
+			// Don't cache context canceled.
+			if errors.Is(e.err, context.Canceled) {
+				sc.deleteEntry(key)
+			}
 			close(e.constructed)
 		}()
 	} else {
@@ -52,6 +57,18 @@ func (sc *SyncCache) Do(ctx context.Context, key interface{}, c Constructor) (in
 	}
 	<-e.constructed
 	return e.value, e.err
+}
+
+// Add adds a readily constructed value for a given key.
+func (sc *SyncCache) Add(ctx context.Context, key interface{}, value interface{}, valueErr error) error {
+	e, found := sc.getEntry(ctx, key)
+	if found {
+		return errors.New("already exists")
+	}
+	e.value = value
+	e.err = valueErr
+	close(e.constructed)
+	return nil
 }
 
 func (sc *SyncCache) getEntry(ctx context.Context, key interface{}) (*entry, bool) {
@@ -66,4 +83,11 @@ func (sc *SyncCache) getEntry(ctx context.Context, key interface{}) (*entry, boo
 		sc.store[key] = e
 	}
 	return e, ok
+}
+
+func (sc *SyncCache) deleteEntry(key interface{}) {
+	// note; this does not cancel any ongoing construction.
+	sc.mu.Lock()
+	defer sc.mu.Unlock()
+	delete(sc.store, key)
 }
