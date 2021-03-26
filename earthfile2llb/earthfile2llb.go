@@ -71,7 +71,7 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt) (m
 		opt.Visited = states.NewVisitedCollection()
 	}
 	if opt.MetaResolver == nil {
-		opt.MetaResolver = opt.GwClient
+		opt.MetaResolver = NewCachedMetaResolver(opt.GwClient)
 	}
 	// Check if we have previously converted this target, with the same build args.
 	targetStr := target.String()

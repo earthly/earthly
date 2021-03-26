@@ -42,18 +42,22 @@ func (sc *SyncCache) Do(ctx context.Context, key interface{}, c Constructor) (in
 			// been canceled, thanks to the metaCtx. This is canceled only when ALL of
 			// the Do's are canceled.
 			e.value, e.err = c(e.metaCtx, key)
-			// Don't cache context canceled.
+			// Don't cache context canceled. Whoever is currently waiting will still get this,
+			// but no future callers to Do will.
 			if errors.Is(e.err, context.Canceled) {
 				sc.deleteEntry(key)
 			}
 			close(e.constructed)
 		}()
 	} else {
-		err := e.metaCtx.Add(ctx)
-		if err != nil {
-			// Previously canceled. Can continue waiting for e.constructed in
-			// case the work has been previously completed.
-		}
+		go func() {
+			select {
+			case <-e.constructed:
+			default:
+				// Add our context to metaCtx in case all others are canceled.
+				_ = e.metaCtx.Add(ctx)
+			}
+		}()
 	}
 	<-e.constructed
 	return e.value, e.err
