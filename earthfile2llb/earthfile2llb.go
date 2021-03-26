@@ -13,9 +13,7 @@ import (
 	"github.com/earthly/earthly/buildcontext/provider"
 	"github.com/earthly/earthly/cleanup"
 	"github.com/earthly/earthly/domain"
-	"github.com/earthly/earthly/llbutil"
 	"github.com/earthly/earthly/states"
-	"github.com/earthly/earthly/states/dedup"
 	"github.com/earthly/earthly/variables"
 )
 
@@ -81,32 +79,10 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt) (m
 	targetWithMetadata := bc.Ref.(domain.Target)
 	// Check if we have previously converted this target, with the same build args.
 	for _, otherSts := range opt.Visited.AllTarget(targetWithMetadata) {
-		otherStsTi := otherSts.TargetInput()
-		otherStsPlat, err := llbutil.ParsePlatform(otherStsTi.Platform)
+		same, err := states.CompareTargetInputs(
+			targetWithMetadata, opt.Platform, opt.OverridingVars, otherSts.TargetInput())
 		if err != nil {
 			return nil, err
-		}
-		same := llbutil.PlatformEquals(otherStsPlat, opt.Platform)
-		if same {
-			for _, bai := range otherStsTi.BuildArgs {
-				variable, found := opt.OverridingVars.GetAny(bai.Name)
-				if found {
-					baiVariable := dedup.BuildArgInput{
-						Name:          bai.Name,
-						DefaultValue:  bai.DefaultValue,
-						ConstantValue: variable,
-					}
-					if !baiVariable.Equals(bai) {
-						same = false
-						break
-					}
-				} else {
-					if !bai.IsDefaultValue() {
-						same = false
-						break
-					}
-				}
-			}
 		}
 		if same {
 			if otherSts.Ongoing {
