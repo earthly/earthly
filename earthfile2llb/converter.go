@@ -55,6 +55,10 @@ type Converter struct {
 
 // NewConverter constructs a new converter for a given earthly target.
 func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Data, opt ConvertOpt) (*Converter, error) {
+	localDirs := make(map[string]string)
+	for k, v := range bc.LocalDirs {
+		localDirs[k] = v
+	}
 	sts := &states.SingleTarget{
 		Target:   target,
 		Platform: opt.Platform,
@@ -65,7 +69,7 @@ func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Da
 		MainState:      llbutil.ScratchWithPlatform(),
 		MainImage:      image.NewImage(),
 		ArtifactsState: llbutil.ScratchWithPlatform(),
-		LocalDirs:      bc.LocalDirs,
+		LocalDirs:      localDirs,
 		Ongoing:        true,
 		Salt:           fmt.Sprintf("%d", rand.Int()),
 	}

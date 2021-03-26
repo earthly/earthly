@@ -11,14 +11,19 @@ var _ context.Context = &MetaContext{}
 // MetaContext is an object which implements context.Context and which holds multiple
 // contexts within it. The MetaContext is considered canceled only when ALL of the
 // underlying contexts have been canceled.
+//
+// Once canceled, it cannot be uncancelled, so it is an error to keep adding contexts
+// once the meta context is considered cancelled.
 type MetaContext struct {
 	subDoneCh chan int // index
 
-	mu           sync.Mutex
-	doneCh       chan struct{}
-	numDone      int
+	mu      sync.Mutex
+	doneCh  chan struct{}
+	numDone int
+	sub     []context.Context
+
+	firstDoneMu  sync.Mutex
 	firstDoneErr error
-	sub          []context.Context
 }
 
 // New returns a new metacontext.
@@ -37,7 +42,15 @@ func (mc *MetaContext) monitor() {
 		mc.mu.Lock()
 		mc.numDone++
 		if mc.numDone == 1 {
-			mc.firstDoneErr = mc.sub[index].Err()
+			firstDoneCtx := mc.sub[index]
+			go func() {
+				// Call .Err() outside of our lock. Also, use a different lock
+				// to block a caller to our .Err if it'll take a long time.
+				mc.firstDoneMu.Lock()
+				defer mc.firstDoneMu.Unlock()
+				err := firstDoneCtx.Err()
+				mc.firstDoneErr = err
+			}()
 		}
 		if mc.numDone == len(mc.sub) {
 			close(mc.doneCh)
@@ -49,12 +62,17 @@ func (mc *MetaContext) monitor() {
 // Add adds a new context to the metacontext.
 func (mc *MetaContext) Add(ctx context.Context) error {
 	mc.mu.Lock()
-	defer mc.mu.Unlock()
-	if mc.isDone() {
-		return mc.Err()
+	select {
+	case <-mc.doneCh:
+		mc.mu.Unlock()
+		mc.firstDoneMu.Lock()
+		defer mc.firstDoneMu.Unlock()
+		return mc.firstDoneErr
+	default:
 	}
 	mc.sub = append(mc.sub, ctx)
 	index := len(mc.sub) - 1
+	mc.mu.Unlock()
 	go func() {
 		<-ctx.Done()
 		mc.subDoneCh <- index
@@ -71,7 +89,7 @@ func (mc *MetaContext) Deadline() (deadline time.Time, ok bool) {
 	}
 	ctx := mc.sub[0]
 	mc.mu.Unlock()
-	return ctx.Deadline()
+	return ctx.Deadline() // don't hold lock for this call
 }
 
 // Done returns the done channel. The MetaContext is done only when ALL of the
@@ -80,11 +98,17 @@ func (mc *MetaContext) Done() <-chan struct{} {
 	return mc.doneCh
 }
 
-// Err returns the first done error reported by any context.
+// Err returns the first done error reported by any context, if the whole
+// context is done. Nil otherwise.
 func (mc *MetaContext) Err() error {
-	mc.mu.Lock()
-	defer mc.mu.Unlock()
-	return mc.firstDoneErr
+	select {
+	case <-mc.doneCh:
+		mc.firstDoneMu.Lock()
+		defer mc.firstDoneMu.Unlock()
+		return mc.firstDoneErr
+	default:
+		return nil
+	}
 }
 
 // Value calls context.Value on the first not-done context, or on the first one,
@@ -110,14 +134,5 @@ func (mc *MetaContext) Value(key interface{}) interface{} {
 		selectedCtx = mc.sub[0]
 	}
 	mc.mu.Unlock()
-	return selectedCtx.Value(key)
-}
-
-func (mc *MetaContext) isDone() bool {
-	select {
-	case <-mc.doneCh:
-		return true
-	default:
-		return false
-	}
+	return selectedCtx.Value(key) // don't hold lock for this call
 }
