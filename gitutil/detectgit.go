@@ -3,6 +3,7 @@ package gitutil
 import (
 	"context"
 	"os/exec"
+	"path"
 	"path/filepath"
 	"strings"
 
@@ -247,6 +248,9 @@ func ReferenceWithGitMeta(ref domain.Reference, gitMeta *GitMetadata) domain.Ref
 		return ref
 	}
 	gitURL := gitMeta.GitURL
+	if gitMeta.RelDir != "" {
+		gitURL = path.Join(gitURL, gitMeta.RelDir)
+	}
 	tag := ref.GetTag()
 	localPath := ref.GetLocalPath()
 	name := ref.GetName()

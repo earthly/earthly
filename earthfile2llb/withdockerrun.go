@@ -16,7 +16,6 @@ import (
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/llbutil"
 	"github.com/earthly/earthly/states"
-	"github.com/earthly/earthly/states/dedup"
 	"github.com/moby/buildkit/client/llb"
 	gwclient "github.com/moby/buildkit/frontend/gateway/client"
 	specs "github.com/opencontainers/image-spec/specs-go/v1"
@@ -125,7 +124,7 @@ func (wdr *withDockerRun) Run(ctx context.Context, args []string, opt WithDocker
 	}
 	var runOpts []llb.RunOption
 	mountRunOpts, err := parseMounts(
-		opt.Mounts, wdr.c.mts.Final.Target, wdr.c.mts.Final.TargetInput, wdr.c.cacheContext)
+		opt.Mounts, wdr.c.mts.Final.Target, wdr.c.mts.Final.TargetInput(), wdr.c.cacheContext)
 	if err != nil {
 		return errors.Wrap(err, "parse mounts")
 	}
@@ -164,7 +163,7 @@ func (wdr *withDockerRun) Run(ctx context.Context, args []string, opt WithDocker
 	runOpts = append(
 		runOpts,
 		llb.WithCustomNamef("%s%s", wdr.c.vertexPrefix(false, opt.Interactive || opt.interactiveKeep), runStr))
-	dindID, err := wdr.c.mts.Final.TargetInput.Hash()
+	dindID, err := wdr.c.mts.Final.TargetInput().Hash()
 	if err != nil {
 		return errors.Wrap(err, "compute dind id")
 	}
@@ -268,9 +267,6 @@ func (wdr *withDockerRun) pull(ctx context.Context, opt DockerPullOpt) error {
 		Final: &states.SingleTarget{
 			MainState: state,
 			MainImage: image,
-			TargetInput: dedup.TargetInput{
-				TargetCanonical: fmt.Sprintf("+@docker-pull:%s", opt.ImageName),
-			},
 			SaveImages: []states.SaveImage{
 				{
 					State:     state,

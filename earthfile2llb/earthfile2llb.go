@@ -73,16 +73,22 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt) (m
 	if opt.MetaResolver == nil {
 		opt.MetaResolver = NewCachedMetaResolver(opt.GwClient)
 	}
+	// Resolve build context.
+	bc, err := opt.Resolver.Resolve(ctx, opt.GwClient, target)
+	if err != nil {
+		return nil, errors.Wrapf(err, "resolve build context for target %s", target.String())
+	}
+	targetWithMetadata := bc.Ref.(domain.Target)
 	// Check if we have previously converted this target, with the same build args.
-	targetStr := target.String()
-	for _, sts := range opt.Visited.Visited[targetStr] {
-		stsPlat, err := llbutil.ParsePlatform(sts.TargetInput.Platform)
+	for _, otherSts := range opt.Visited.AllTarget(targetWithMetadata) {
+		otherStsTi := otherSts.TargetInput()
+		otherStsPlat, err := llbutil.ParsePlatform(otherStsTi.Platform)
 		if err != nil {
 			return nil, err
 		}
-		same := llbutil.PlatformEquals(stsPlat, opt.Platform)
+		same := llbutil.PlatformEquals(otherStsPlat, opt.Platform)
 		if same {
-			for _, bai := range sts.TargetInput.BuildArgs {
+			for _, bai := range otherStsTi.BuildArgs {
 				variable, found := opt.OverridingVars.GetAny(bai.Name)
 				if found {
 					baiVariable := dedup.BuildArgInput{
@@ -103,23 +109,19 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt) (m
 			}
 		}
 		if same {
-			if sts.Ongoing {
+			if otherSts.Ongoing {
 				return nil, errors.Errorf(
-					"infinite recursion detected for target %s", targetStr)
+					"infinite recursion detected for target %s", targetWithMetadata.String())
 			}
 			// Use the already built states.
 			return &states.MultiTarget{
-				Final:   sts,
+				Final:   otherSts,
 				Visited: opt.Visited,
 			}, nil
 		}
 	}
-	// Resolve build context.
-	bc, err := opt.Resolver.Resolve(ctx, opt.GwClient, target)
-	if err != nil {
-		return nil, errors.Wrapf(err, "resolve build context for target %s", target.String())
-	}
-	converter, err := NewConverter(ctx, bc.Ref.(domain.Target), bc, opt)
+	sts := opt.Visited.Add(targetWithMetadata, opt.Platform)
+	converter, err := NewConverter(ctx, targetWithMetadata, bc, sts, opt)
 	if err != nil {
 		return nil, err
 	}

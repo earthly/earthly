@@ -45,7 +45,7 @@ func (sc *SolveCache) Do(ctx context.Context, sk StateKey, constructor SolveCach
 // KeyFromHashAndTag builds a state key from a given target state and a docker tag.
 // This is useful when you want to reference the same image but with a different name.
 func KeyFromHashAndTag(target *SingleTarget, dockerTag string) (StateKey, error) {
-	hash, err := target.TargetInput.Hash()
+	hash, err := target.TargetInput().Hash()
 	if err != nil {
 		return StateKey(""), errors.Wrap(err, "target input hash")
 	}
@@ -56,7 +56,7 @@ func KeyFromHashAndTag(target *SingleTarget, dockerTag string) (StateKey, error)
 
 // KeyFromState is a simple wrapper to get a key from a given state using the hash of its target.
 func KeyFromState(target *SingleTarget) (StateKey, error) {
-	hash, err := target.TargetInput.Hash()
+	hash, err := target.TargetInput().Hash()
 	if err != nil {
 		return StateKey(""), errors.Wrap(err, "target input hash")
 	}

@@ -149,7 +149,9 @@ remote-test:
 transitive-args-test:
     DO +RUN_EARTHLY --earthfile=transitive-args.earth --extra_args="--build-arg SOMEARG=xyz" --target=+test
     RUN ls
-    RUN test -f ./abc && test -f ./xyz && test ! -f ./default
+    RUN test -f ./abc
+    RUN test -f ./xyz
+    RUN test ! -f ./default
     RUN cat ./abc | grep abc
     RUN cat ./xyz | grep xyz
 

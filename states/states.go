@@ -1,7 +1,10 @@
 package states
 
 import (
+	"sync"
+
 	"github.com/earthly/earthly/domain"
+	"github.com/earthly/earthly/llbutil"
 	"github.com/earthly/earthly/states/dedup"
 	"github.com/earthly/earthly/states/image"
 	"github.com/earthly/earthly/variables"
@@ -27,14 +30,13 @@ func (mts *MultiTarget) FinalTarget() domain.Target {
 
 // All returns all SingleTarget contained within.
 func (mts *MultiTarget) All() []*SingleTarget {
-	return mts.Visited.VisitedList
+	return mts.Visited.All()
 }
 
 // SingleTarget holds LLB states representing an earthly target.
 type SingleTarget struct {
 	Target                 domain.Target
 	Platform               *specs.Platform
-	TargetInput            dedup.TargetInput
 	MainImage              *image.Image
 	MainState              llb.State
 	ArtifactsState         llb.State
@@ -57,6 +59,42 @@ type SingleTarget struct {
 	RanFromLike bool
 	// RanInteractive represents whether we have encountered an --interactive command.
 	RanInteractive bool
+
+	tiMu        sync.Mutex
+	targetInput dedup.TargetInput
+}
+
+// TargetInput returns the target input in a concurrent-safe way.
+func (sts *SingleTarget) TargetInput() dedup.TargetInput {
+	sts.tiMu.Lock()
+	defer sts.tiMu.Unlock()
+	return sts.targetInput
+}
+
+// SetPlatform sets the sts platform.
+func (sts *SingleTarget) SetPlatform(platform *specs.Platform) {
+	sts.Platform = platform
+	sts.tiMu.Lock()
+	defer sts.tiMu.Unlock()
+	sts.targetInput.Platform = llbutil.PlatformWithDefaultToString(platform)
+}
+
+// AddBuildArgInput adds a bai to the sts's target input.
+func (sts *SingleTarget) AddBuildArgInput(bai dedup.BuildArgInput) {
+	sts.tiMu.Lock()
+	defer sts.tiMu.Unlock()
+	sts.targetInput = sts.targetInput.WithBuildArgInput(bai)
+}
+
+// AddOverridingVarsAsBuildArgInputs adds some vars to the sts's target input.
+func (sts *SingleTarget) AddOverridingVarsAsBuildArgInputs(overridingVars *variables.Scope) {
+	sts.tiMu.Lock()
+	defer sts.tiMu.Unlock()
+	for _, key := range overridingVars.SortedAny() {
+		ovVar, _ := overridingVars.GetAny(key)
+		sts.targetInput = sts.targetInput.WithBuildArgInput(
+			dedup.BuildArgInput{ConstantValue: ovVar, Name: key})
+	}
 }
 
 // LastSaveImage returns the last save image available (if any).

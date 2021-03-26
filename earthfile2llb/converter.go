@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"hash/fnv"
 	"io/ioutil"
-	"math/rand"
 	"os"
 	"path"
 	"path/filepath"
@@ -54,39 +53,18 @@ type Converter struct {
 }
 
 // NewConverter constructs a new converter for a given earthly target.
-func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Data, opt ConvertOpt) (*Converter, error) {
-	localDirs := make(map[string]string)
+func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Data, sts *states.SingleTarget, opt ConvertOpt) (*Converter, error) {
 	for k, v := range bc.LocalDirs {
-		localDirs[k] = v
-	}
-	sts := &states.SingleTarget{
-		Target:   target,
-		Platform: opt.Platform,
-		TargetInput: dedup.TargetInput{
-			TargetCanonical: target.StringCanonical(),
-			Platform:        llbutil.PlatformWithDefaultToString(opt.Platform),
-		},
-		MainState:      llbutil.ScratchWithPlatform(),
-		MainImage:      image.NewImage(),
-		ArtifactsState: llbutil.ScratchWithPlatform(),
-		LocalDirs:      localDirs,
-		Ongoing:        true,
-		Salt:           fmt.Sprintf("%d", rand.Int()),
+		sts.LocalDirs[k] = v
 	}
 	mts := &states.MultiTarget{
 		Final:   sts,
 		Visited: opt.Visited,
 	}
-	for _, key := range opt.OverridingVars.SortedAny() {
-		ovVar, _ := opt.OverridingVars.GetAny(key)
-		sts.TargetInput = sts.TargetInput.WithBuildArgInput(
-			dedup.BuildArgInput{ConstantValue: ovVar, Name: key})
-	}
+	sts.AddOverridingVarsAsBuildArgInputs(opt.OverridingVars)
 	vc := variables.NewCollection(
 		target, llbutil.PlatformWithDefault(opt.Platform), bc.GitMetadata, opt.OverridingVars,
 		opt.GlobalImports)
-	targetStr := target.String()
-	opt.Visited.Add(targetStr, sts)
 	return &Converter{
 		gitMeta:       bc.GitMetadata,
 		opt:           opt,
@@ -468,7 +446,7 @@ func (c *Converter) RunExitCode(ctx context.Context, commandName string, args, m
 	// Perform execution, but append the command with the right shell incantation that
 	// causes it to output the exit code to a file. This is done via the shellWrap.
 	var opts []llb.RunOption
-	mountRunOpts, err := parseMounts(mounts, c.mts.Final.Target, c.mts.Final.TargetInput, c.cacheContext)
+	mountRunOpts, err := parseMounts(mounts, c.mts.Final.Target, c.mts.Final.TargetInput(), c.cacheContext)
 	if err != nil {
 		return 0, errors.Wrap(err, "parse mounts")
 	}
@@ -577,7 +555,7 @@ func (c *Converter) Run(ctx context.Context, args, mounts, secretKeyValues []str
 	}
 
 	var opts []llb.RunOption
-	mountRunOpts, err := parseMounts(mounts, c.mts.Final.Target, c.mts.Final.TargetInput, c.cacheContext)
+	mountRunOpts, err := parseMounts(mounts, c.mts.Final.Target, c.mts.Final.TargetInput(), c.cacheContext)
 	if err != nil {
 		return errors.Wrap(err, "parse mounts")
 	}
@@ -910,12 +888,11 @@ func (c *Converter) Arg(ctx context.Context, argKey string, defaultArgValue stri
 	if err != nil {
 		return err
 	}
-	c.mts.Final.TargetInput = c.mts.Final.TargetInput.WithBuildArgInput(
-		dedup.BuildArgInput{
-			Name:          argKey,
-			DefaultValue:  defaultArgValue,
-			ConstantValue: effective,
-		})
+	c.mts.Final.AddBuildArgInput(dedup.BuildArgInput{
+		Name:          argKey,
+		DefaultValue:  defaultArgValue,
+		ConstantValue: effective,
+	})
 	return nil
 }
 
@@ -1112,14 +1089,15 @@ func (c *Converter) buildTarget(ctx context.Context, fullTargetName string, plat
 	if propagateBuildArgs {
 		// Propagate build arg inputs upwards (a child target depending on a build arg means
 		// that the parent also depends on that build arg).
-		for _, bai := range mts.Final.TargetInput.BuildArgs {
+		for _, bai := range mts.Final.TargetInput().BuildArgs {
 			// Check if the build arg has been overridden. If it has, it can no longer be an input
 			// directly, so skip it.
+			// TODO FIXME: newVars is no longer set correctly.
 			_, found := newVars[bai.Name]
 			if found {
 				continue
 			}
-			c.mts.Final.TargetInput = c.mts.Final.TargetInput.WithBuildArgInput(bai)
+			c.mts.Final.AddBuildArgInput(bai)
 		}
 		if isFrom {
 			// Propagate globals.
@@ -1131,7 +1109,7 @@ func (c *Converter) buildTarget(ctx context.Context, fullTargetName string, plat
 					continue
 				}
 				v, _ := globals.GetActive(k)
-				c.mts.Final.TargetInput = c.mts.Final.TargetInput.WithBuildArgInput(
+				c.mts.Final.AddBuildArgInput(
 					dedup.BuildArgInput{
 						Name:          k,
 						DefaultValue:  "", // TODO: Set correct default value for bai.
@@ -1460,8 +1438,7 @@ func (c *Converter) copyOwner(keepOwn bool, chown string) string {
 
 func (c *Converter) setPlatform(platform *specs.Platform) {
 	c.opt.Platform = platform
-	c.mts.Final.Platform = platform
-	c.mts.Final.TargetInput.Platform = llbutil.PlatformWithDefaultToString(platform)
+	c.mts.Final.SetPlatform(platform)
 	c.varCollection.SetPlatform(llbutil.PlatformWithDefault(platform))
 }
 
