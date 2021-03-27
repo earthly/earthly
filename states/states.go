@@ -71,9 +71,8 @@ type SingleTarget struct {
 	depMu sync.Mutex
 	// dependentIDs are the sts IDs of the transitive dependants of this target.
 	dependentIDs map[string]bool
-	// dependencySubscriptions is a list of channels to update when new dependentIDs are added.
-	dependencySubscriptions []chan string
-
+	// outgoingNewSubscriptions is a list of channels to update when new dependentIDs are added.
+	outgoingNewSubscriptions []chan string
 	incomingNewSubscriptions chan string
 }
 
@@ -181,7 +180,7 @@ func (sts *SingleTarget) AddDependentIDs(dependentIDs map[string]bool) {
 	for ID := range dependentIDs {
 		sts.dependentIDs[ID] = true
 	}
-	for _, sub := range sts.dependencySubscriptions {
+	for _, sub := range sts.outgoingNewSubscriptions {
 		for ID := range dependentIDs {
 			sub <- ID
 		}
@@ -207,7 +206,7 @@ func (sts *SingleTarget) NewDependencySubscription() chan string {
 	sts.depMu.Lock()
 	defer sts.depMu.Unlock()
 	ch := make(chan string, 1024) // size is an arbitrary maximum cycle length
-	sts.dependencySubscriptions = append(sts.dependencySubscriptions, ch)
+	sts.outgoingNewSubscriptions = append(sts.outgoingNewSubscriptions, ch)
 	// Send everything we have so far.
 	ch <- sts.ID // send our ID
 	for depID := range sts.dependentIDs {

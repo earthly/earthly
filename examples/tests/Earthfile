@@ -451,6 +451,8 @@ infinite-recursion:
     DO +RUN_EARTHLY --earthfile=infinite-recursion.earth --should_fail=true --target=+test4
     DO +RUN_EARTHLY --earthfile=infinite-recursion.earth --should_fail=true --target=+test5
     DO +RUN_EARTHLY --earthfile=infinite-recursion.earth --should_fail=true --target=+test6
+    DO +RUN_EARTHLY --earthfile=infinite-recursion.earth --should_fail=true --target=+test7
+    DO +RUN_EARTHLY --earthfile=infinite-recursion.earth --should_fail=true --target=+test8
 
 RUN_EARTHLY:
     COMMAND
