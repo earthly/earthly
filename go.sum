@@ -292,6 +292,8 @@ github.com/dustin/go-humanize v1.0.0 h1:VSnTsYCnlFHaM2/igO1h6X3HA71jcobQuxemgkq4
 github.com/dustin/go-humanize v1.0.0/go.mod h1:HtrtbFcZ19U5GC7JDqmcUSB87Iq5E25KnS6fMYU6eOk=
 github.com/earthly/buildkit v0.7.1-0.20210310002642-b16377d03036 h1:6+g3ifnf0T3kwJ8exjbelu7rA/LpBGjM0shK7QrwHmk=
 github.com/earthly/buildkit v0.7.1-0.20210310002642-b16377d03036/go.mod h1:DIx5g9IZJWZCOtqtSzrHxanBPR2JClX4zo8/TSr7dis=
+github.com/earthly/buildkit v0.7.1-0.20210324015943-918df8e5b0a5 h1:22r3E3A3SN/2sslb5KtBG6SFVrBrKcc3WmWuCg0j72g=
+github.com/earthly/buildkit v0.7.1-0.20210324015943-918df8e5b0a5/go.mod h1:DIx5g9IZJWZCOtqtSzrHxanBPR2JClX4zo8/TSr7dis=
 github.com/earthly/buildkit v0.7.1-0.20210327064507-8a29ccc370d0 h1:5GVulEEkG6nriwREn2hRn5d7STwwLvvybSvUhEsadSQ=
 github.com/earthly/buildkit v0.7.1-0.20210327064507-8a29ccc370d0/go.mod h1:DIx5g9IZJWZCOtqtSzrHxanBPR2JClX4zo8/TSr7dis=
 github.com/earthly/buildkit v0.7.1-0.20210327070530-468709ad62b4 h1:c6FGZSwUo3/LVDNpTZIg7/ifKsVwPqA0ev2JuNL+1hA=

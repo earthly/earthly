@@ -9,6 +9,7 @@ import (
 	"strconv"
 
 	"github.com/earthly/earthly/domain"
+	"github.com/earthly/earthly/llbutil/pllb"
 	"github.com/earthly/earthly/states"
 	"github.com/earthly/earthly/states/image"
 	"github.com/moby/buildkit/client"
@@ -36,7 +37,7 @@ type solver struct {
 	saveInlineCache bool
 }
 
-func (s *solver) solveDockerTar(ctx context.Context, state llb.State, platform specs.Platform, img *image.Image, dockerTag string, outFile string) error {
+func (s *solver) solveDockerTar(ctx context.Context, state pllb.State, platform specs.Platform, img *image.Image, dockerTag string, outFile string) error {
 	dt, err := state.Marshal(ctx, llb.Platform(platform))
 	if err != nil {
 		return errors.Wrap(err, "state marshal")
@@ -130,7 +131,7 @@ func (s *solver) buildMainMulti(ctx context.Context, bf gwclient.BuildFunc, onIm
 	return nil
 }
 
-func (s *solver) solveMain(ctx context.Context, state llb.State, platform specs.Platform) error {
+func (s *solver) solveMain(ctx context.Context, state pllb.State, platform specs.Platform) error {
 	dt, err := state.Marshal(ctx, llb.Platform(platform))
 	if err != nil {
 		return errors.Wrap(err, "state marshal")

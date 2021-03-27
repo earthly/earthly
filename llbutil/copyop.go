@@ -7,12 +7,13 @@ import (
 	"sync"
 	"time"
 
+	"github.com/earthly/earthly/llbutil/pllb"
 	"github.com/moby/buildkit/client/llb"
 	"github.com/pkg/errors"
 )
 
 // CopyOp is a simplified llb copy operation.
-func CopyOp(srcState llb.State, srcs []string, destState llb.State, dest string, allowWildcard bool, isDir bool, keepTs bool, chown string, ifExists bool, opts ...llb.ConstraintsOpt) llb.State {
+func CopyOp(srcState pllb.State, srcs []string, destState pllb.State, dest string, allowWildcard bool, isDir bool, keepTs bool, chown string, ifExists bool, opts ...llb.ConstraintsOpt) pllb.State {
 	destAdjusted := dest
 	if dest == "." || dest == "" || len(srcs) > 1 {
 		destAdjusted += string(filepath.Separator)
@@ -21,7 +22,7 @@ func CopyOp(srcState llb.State, srcs []string, destState llb.State, dest string,
 	if chown != "" {
 		baseCopyOpts = append(baseCopyOpts, llb.WithUser(chown))
 	}
-	var fa *llb.FileAction
+	var fa *pllb.FileAction
 	if !keepTs {
 		baseCopyOpts = append(baseCopyOpts, llb.WithCreatedTime(*defaultTs()))
 	}
@@ -45,7 +46,7 @@ func CopyOp(srcState llb.State, srcs []string, destState llb.State, dest string,
 			},
 		}, baseCopyOpts...)
 		if fa == nil {
-			fa = llb.Copy(srcState, src, destAdjusted, copyOpts...)
+			fa = pllb.Copy(srcState, src, destAdjusted, copyOpts...)
 		} else {
 			fa = fa.Copy(srcState, src, destAdjusted, copyOpts...)
 		}
@@ -58,7 +59,7 @@ func CopyOp(srcState llb.State, srcs []string, destState llb.State, dest string,
 
 // Abs pre-pends the working dir to the given path, if the
 // path is relative.
-func Abs(ctx context.Context, s llb.State, p string) (string, error) {
+func Abs(ctx context.Context, s pllb.State, p string) (string, error) {
 	if filepath.IsAbs(p) {
 		return p, nil
 	}

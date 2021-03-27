@@ -4,7 +4,7 @@ import (
 	"runtime"
 
 	"github.com/containerd/containerd/platforms"
-	"github.com/moby/buildkit/client/llb"
+	"github.com/earthly/earthly/llbutil/pllb"
 	specs "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
 )
@@ -33,8 +33,8 @@ func DefaultPlatform() specs.Platform {
 }
 
 // ScratchWithPlatform is the scratch state with the default platform readily set.
-func ScratchWithPlatform() llb.State {
-	return llb.Scratch().Platform(DefaultPlatform())
+func ScratchWithPlatform() pllb.State {
+	return pllb.Scratch().Platform(DefaultPlatform())
 }
 
 // PlatformEquals compares whether two platform pointers equate to the same platform.

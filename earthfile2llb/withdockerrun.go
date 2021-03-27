@@ -15,6 +15,7 @@ import (
 	"github.com/earthly/earthly/dockertar"
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/llbutil"
+	"github.com/earthly/earthly/llbutil/pllb"
 	"github.com/earthly/earthly/states"
 	"github.com/moby/buildkit/client/llb"
 	gwclient "github.com/moby/buildkit/frontend/gateway/client"
@@ -60,7 +61,7 @@ type WithDockerOpt struct {
 
 type withDockerRun struct {
 	c        *Converter
-	tarLoads []llb.State
+	tarLoads []pllb.State
 }
 
 func (wdr *withDockerRun) Run(ctx context.Context, args []string, opt WithDockerOpt) error {
@@ -129,19 +130,19 @@ func (wdr *withDockerRun) Run(ctx context.Context, args []string, opt WithDocker
 		return errors.Wrap(err, "parse mounts")
 	}
 	runOpts = append(runOpts, mountRunOpts...)
-	runOpts = append(runOpts, llb.AddMount(
-		"/var/earthly/dind", llb.Scratch(), llb.HostBind(), llb.SourcePath("/tmp/earthly/dind")))
-	runOpts = append(runOpts, llb.AddMount(
-		dockerdWrapperPath, llb.Scratch(), llb.HostBind(), llb.SourcePath(dockerdWrapperPath)))
+	runOpts = append(runOpts, pllb.AddMount(
+		"/var/earthly/dind", pllb.Scratch(), llb.HostBind(), llb.SourcePath("/tmp/earthly/dind")))
+	runOpts = append(runOpts, pllb.AddMount(
+		dockerdWrapperPath, pllb.Scratch(), llb.HostBind(), llb.SourcePath(dockerdWrapperPath)))
 	// This seems to make earthly-in-earthly work
 	// (and docker run --privileged, together with -v /sys/fs/cgroup:/sys/fs/cgroup),
 	// however, it breaks regular cases.
-	//runOpts = append(runOpts, llb.AddMount(
-	//"/sys/fs/cgroup", llb.Scratch(), llb.HostBind(), llb.SourcePath("/sys/fs/cgroup")))
+	//runOpts = append(runOpts, pllb.AddMount(
+	//"/sys/fs/cgroup", pllb.Scratch(), llb.HostBind(), llb.SourcePath("/sys/fs/cgroup")))
 	var tarPaths []string
 	for index, tarContext := range wdr.tarLoads {
 		loadDir := fmt.Sprintf("/var/earthly/load-%d", index)
-		runOpts = append(runOpts, llb.AddMount(loadDir, tarContext, llb.Readonly))
+		runOpts = append(runOpts, pllb.AddMount(loadDir, tarContext, llb.Readonly))
 		tarPaths = append(tarPaths, path.Join(loadDir, "image.tar"))
 	}
 
@@ -314,12 +315,12 @@ func (wdr *withDockerRun) solveImage(ctx context.Context, mts *states.MultiTarge
 	if err != nil {
 		return errors.Wrap(err, "state key func")
 	}
-	tarContext, err := wdr.c.opt.SolveCache.Do(ctx, solveID, func(ctx context.Context, _ states.StateKey) (llb.State, error) {
+	tarContext, err := wdr.c.opt.SolveCache.Do(ctx, solveID, func(ctx context.Context, _ states.StateKey) (pllb.State, error) {
 		// Use a builder to create docker .tar file, mount it via a local build context,
 		// then docker load it within the current side effects state.
 		outDir, err := ioutil.TempDir("/tmp", "earthly-docker-load")
 		if err != nil {
-			return llb.State{}, errors.Wrap(err, "mk temp dir for docker load")
+			return pllb.State{}, errors.Wrap(err, "mk temp dir for docker load")
 		}
 		wdr.c.opt.CleanCollection.Add(func() error {
 			return os.RemoveAll(outDir)
@@ -327,11 +328,11 @@ func (wdr *withDockerRun) solveImage(ctx context.Context, mts *states.MultiTarge
 		outFile := path.Join(outDir, "image.tar")
 		err = wdr.c.opt.DockerBuilderFun(ctx, mts, dockerTag, outFile)
 		if err != nil {
-			return llb.State{}, errors.Wrapf(err, "build target %s for docker load", opName)
+			return pllb.State{}, errors.Wrapf(err, "build target %s for docker load", opName)
 		}
 		dockerImageID, err := dockertar.GetID(outFile)
 		if err != nil {
-			return llb.State{}, errors.Wrap(err, "inspect docker tar after build")
+			return pllb.State{}, errors.Wrap(err, "inspect docker tar after build")
 		}
 		// Use the docker image ID + dockerTag as sessionID. This will cause
 		// buildkit to use cache when these are the same as before (eg a docker image
@@ -340,7 +341,7 @@ func (wdr *withDockerRun) solveImage(ctx context.Context, mts *states.MultiTarge
 		sha256SessionIDKey := sha256.Sum256([]byte(sessionIDKey))
 		sessionID := hex.EncodeToString(sha256SessionIDKey[:])
 
-		tarContext := llb.Local(
+		tarContext := pllb.Local(
 			string(solveID),
 			llb.SessionID(sessionID),
 			llb.Platform(llbutil.DefaultPlatform()),

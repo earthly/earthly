@@ -4,17 +4,17 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/earthly/earthly/llbutil/pllb"
 	"github.com/earthly/earthly/syncutil/synccache"
-	"github.com/moby/buildkit/client/llb"
 	"github.com/pkg/errors"
 )
 
 // SolveCacheConstructor is func taking a StateKey and returning a state.
-type SolveCacheConstructor func(context.Context, StateKey) (llb.State, error)
+type SolveCacheConstructor func(context.Context, StateKey) (pllb.State, error)
 
 // SolveCache is a formal version of the cache we keep mapping targets to their LLB state.
 type SolveCache struct {
-	store *synccache.SyncCache // StateKey -> llb.State
+	store *synccache.SyncCache // StateKey -> pllb.State
 }
 
 // StateKey is a type for a key in SolveCache. These keys seem to be highly convention based,
@@ -32,14 +32,14 @@ func NewSolveCache() *SolveCache {
 
 // Do sets an LLB state in the given solve cache. If the state has been previously constructed,
 // it is returned immediately without calling the constructor again.
-func (sc *SolveCache) Do(ctx context.Context, sk StateKey, constructor SolveCacheConstructor) (llb.State, error) {
+func (sc *SolveCache) Do(ctx context.Context, sk StateKey, constructor SolveCacheConstructor) (pllb.State, error) {
 	stateValue, err := sc.store.Do(ctx, sk, func(ctx context.Context, k interface{}) (interface{}, error) {
 		return constructor(ctx, k.(StateKey))
 	})
 	if err != nil {
-		return llb.State{}, err
+		return pllb.State{}, err
 	}
-	return stateValue.(llb.State), nil
+	return stateValue.(pllb.State), nil
 }
 
 // KeyFromHashAndTag builds a state key from a given target state and a docker tag.

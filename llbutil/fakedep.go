@@ -1,11 +1,12 @@
 package llbutil
 
 import (
+	"github.com/earthly/earthly/llbutil/pllb"
 	"github.com/moby/buildkit/client/llb"
 )
 
 // WithDependency creates a fake dependency between two states.
-func WithDependency(state llb.State, depState llb.State, stateStr, depStr string, opts ...llb.RunOption) llb.State {
+func WithDependency(state pllb.State, depState pllb.State, stateStr, depStr string, opts ...llb.RunOption) pllb.State {
 	// TODO: Is there a better way to mark two states as depending on each other?
 	if depState.Output() == nil {
 		// depState is Scratch.
@@ -15,7 +16,7 @@ func WithDependency(state llb.State, depState llb.State, stateStr, depStr string
 	// Copy a wildcard that could never exist.
 	// (And allow for the wildcard to match nothing).
 	interm := ScratchWithPlatform()
-	interm = interm.File(llb.Copy(
+	interm = interm.File(pllb.Copy(
 		depState, "/fake-745cb405-fbfb-4ea7-83b0-a85c26b4aff0-*", "/tmp/",
 		&llb.CopyInfo{
 			CreateDestPath:      true,
@@ -26,7 +27,7 @@ func WithDependency(state llb.State, depState llb.State, stateStr, depStr string
 
 	// Do this again. The extra step is needed to prevent the need for BuildKit
 	// to re-hash the input in certain cases (can be slow if depState is large).
-	return state.File(llb.Copy(
+	return state.File(pllb.Copy(
 		depState, "/fake-5fa01e05-ca9e-45c9-8721-05b9183a2914-*", "/tmp/",
 		&llb.CopyInfo{
 			CreateDestPath:      true,

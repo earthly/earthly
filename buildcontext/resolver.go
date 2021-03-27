@@ -9,8 +9,8 @@ import (
 	"github.com/earthly/earthly/cleanup"
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/gitutil"
+	"github.com/earthly/earthly/llbutil/pllb"
 	"github.com/earthly/earthly/syncutil/synccache"
-	"github.com/moby/buildkit/client/llb"
 	gwclient "github.com/moby/buildkit/frontend/gateway/client"
 	"github.com/pkg/errors"
 )
@@ -26,7 +26,7 @@ type Data struct {
 	// BuildFilePath is the local path where the Earthfile or Dockerfile can be found.
 	BuildFilePath string
 	// BuildContext is the state to use for the build.
-	BuildContext llb.State
+	BuildContext pllb.State
 	// GitMetadata contains git metadata information.
 	GitMetadata *gitutil.GitMetadata
 	// Target is the earthly reference.

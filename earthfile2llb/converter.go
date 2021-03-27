@@ -22,6 +22,7 @@ import (
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/gitutil"
 	"github.com/earthly/earthly/llbutil"
+	"github.com/earthly/earthly/llbutil/pllb"
 	"github.com/earthly/earthly/states"
 	"github.com/earthly/earthly/states/dedup"
 	"github.com/earthly/earthly/states/image"
@@ -46,8 +47,8 @@ type Converter struct {
 	opt           ConvertOpt
 	mts           *states.MultiTarget
 	directDeps    []*states.SingleTarget
-	buildContext  llb.State
-	cacheContext  llb.State
+	buildContext  pllb.State
+	cacheContext  pllb.State
 	varCollection *variables.Collection
 	ranSave       bool
 }
@@ -174,7 +175,7 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 		//       anything.
 		return errors.New("FROM DOCKERFILE -f not yet supported")
 	}
-	var buildContext llb.State
+	var buildContext pllb.State
 	var dfData []byte
 	contextArtifact, parseErr := domain.ParseArtifact(contextPath)
 	if parseErr == nil {
@@ -235,8 +236,9 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 		return err
 	}
 	caps := solverpb.Caps.CapSet(solverpb.Caps.All())
+	bcRawState, done := buildContext.RawState()
 	state, dfImg, err := dockerfile2llb.Dockerfile2LLB(ctx, dfData, dockerfile2llb.ConvertOpt{
-		BuildContext:     &buildContext,
+		BuildContext:     &bcRawState,
 		ContextLocalName: c.mts.FinalTarget().String(),
 		MetaResolver:     c.opt.MetaResolver,
 		ImageResolveMode: c.opt.ImageResolveMode,
@@ -246,6 +248,7 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 		BuildArgs:        overriding.ActiveValueMap(),
 		Excludes:         nil, // TODO: Need to process this correctly.
 	})
+	done()
 	if err != nil {
 		return errors.Wrapf(err, "dockerfile2llb %s", dfPath)
 	}
@@ -259,7 +262,7 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 	if err != nil {
 		return errors.Wrap(err, "unmarshal dockerfile image")
 	}
-	state2, img2, envVars := c.applyFromImage(*state, &img)
+	state2, img2, envVars := c.applyFromImage(pllb.FromRawState(*state), &img)
 	c.mts.Final.MainState = state2
 	c.mts.Final.MainImage = img2
 	c.mts.Final.RanFromLike = true
@@ -321,7 +324,7 @@ func (c *Converter) CopyArtifactLocal(ctx context.Context, artifactName string, 
 	opts := []llb.RunOption{
 		llb.Args(finalArgs),
 		llb.IgnoreCache,
-		llb.AddMount("/"+localhost.SendFileMagicStr, relevantDepState.ArtifactsState, llb.Readonly),
+		pllb.AddMount("/"+localhost.SendFileMagicStr, relevantDepState.ArtifactsState, llb.Readonly),
 		llb.WithCustomNamef(
 			"%sCOPY %s%s%s %s",
 			c.vertexPrefix(false, false),
@@ -441,7 +444,7 @@ func (c *Converter) RunExitCode(ctx context.Context, commandName string, args, m
 
 	// The exit code will be placed in /run. We need that dir to have been created.
 	c.mts.Final.MainState = c.mts.Final.MainState.File(
-		llb.Mkdir("/run", 0755, llb.WithParents(true)),
+		pllb.Mkdir("/run", 0755, llb.WithParents(true)),
 		llb.WithCustomNamef("[internal] mkdir %s", "/run"))
 
 	// Perform execution, but append the command with the right shell incantation that
@@ -817,7 +820,7 @@ func (c *Converter) Workdir(ctx context.Context, workdirPath string) error {
 			llb.WithCustomNamef("%sWORKDIR %s", c.vertexPrefix(false, false), workdirPath),
 		}
 		c.mts.Final.MainState = c.mts.Final.MainState.File(
-			llb.Mkdir(workdirAbs, 0755, mkdirOpts...), opts...)
+			pllb.Mkdir(workdirAbs, 0755, mkdirOpts...), opts...)
 	}
 	return nil
 }
@@ -940,7 +943,7 @@ func (c *Converter) GitClone(ctx context.Context, gitURL string, branch string, 
 			"%sGIT CLONE (--branch %s) %s", c.vertexPrefixWithURL(gitURL), branch, gitURL),
 		llb.KeepGitDir(),
 	}
-	gitState := llb.Git(gitURL, branch, gitOpts...)
+	gitState := pllb.Git(gitURL, branch, gitOpts...)
 	c.mts.Final.MainState = llbutil.CopyOp(
 		gitState, []string{"."}, c.mts.Final.MainState, dest, false, false, keepTs,
 		c.mts.Final.MainImage.Config.User, false,
@@ -1146,11 +1149,11 @@ func (c *Converter) buildTarget(ctx context.Context, fullTargetName string, plat
 	return mts, nil
 }
 
-func (c *Converter) internalRun(ctx context.Context, args, secretKeyValues []string, isWithShell bool, shellWrap shellWrapFun, pushFlag, transient, withSSH, noCache, interactive, interactiveKeep bool, commandStr string, opts ...llb.RunOption) (llb.State, error) {
+func (c *Converter) internalRun(ctx context.Context, args, secretKeyValues []string, isWithShell bool, shellWrap shellWrapFun, pushFlag, transient, withSSH, noCache, interactive, interactiveKeep bool, commandStr string, opts ...llb.RunOption) (pllb.State, error) {
 	isInteractive := (interactive || interactiveKeep)
 	if !c.opt.AllowInteractive && isInteractive {
 		// This check is here because other places also call here to evaluate RUN-like statements. We catch all potential interactives here.
-		return llb.State{}, errors.New("--interactive options are not allowed, when --strict is specified or otherwise implied")
+		return pllb.State{}, errors.New("--interactive options are not allowed, when --strict is specified or otherwise implied")
 	}
 
 	finalOpts := opts
@@ -1159,7 +1162,7 @@ func (c *Converter) internalRun(ctx context.Context, args, secretKeyValues []str
 	for _, secretKeyValue := range secretKeyValues {
 		parts := strings.SplitN(secretKeyValue, "=", 2)
 		if len(parts) != 2 {
-			return llb.State{}, errors.Errorf("invalid secret definition %s", secretKeyValue)
+			return pllb.State{}, errors.Errorf("invalid secret definition %s", secretKeyValue)
 		}
 		if strings.HasPrefix(parts[1], "+secrets/") {
 			envVar := parts[0]
@@ -1179,7 +1182,7 @@ func (c *Converter) internalRun(ctx context.Context, args, secretKeyValues []str
 			// TODO: This should be an actual secret (with an empty value),
 			//       so that the cache works correctly.
 		} else {
-			return llb.State{}, errors.Errorf("secret definition %s not supported. Must start with +secrets/ or be an empty string", secretKeyValue)
+			return pllb.State{}, errors.Errorf("secret definition %s not supported. Must start with +secrets/ or be an empty string", secretKeyValue)
 		}
 	}
 	// Build args.
@@ -1194,7 +1197,7 @@ func (c *Converter) internalRun(ctx context.Context, args, secretKeyValues []str
 	}
 	debuggerSecretMount := llb.AddSecret(
 		fmt.Sprintf("/run/secrets/%s", common.DebuggerSettingsSecretsKey), secretOpts...)
-	debuggerMount := llb.AddMount(debuggerPath, llb.Scratch(),
+	debuggerMount := pllb.AddMount(debuggerPath, pllb.Scratch(),
 		llb.HostBind(), llb.SourcePath("/usr/bin/earth_debugger"))
 	finalOpts = append(finalOpts, debuggerSecretMount, debuggerMount)
 	if withSSH {
@@ -1282,17 +1285,17 @@ func (c *Converter) readArtifact(ctx context.Context, mts *states.MultiTarget, a
 	return artDt, nil
 }
 
-func (c *Converter) internalFromClassical(ctx context.Context, imageName string, platform specs.Platform, opts ...llb.ImageOption) (llb.State, *image.Image, *variables.Scope, error) {
+func (c *Converter) internalFromClassical(ctx context.Context, imageName string, platform specs.Platform, opts ...llb.ImageOption) (pllb.State, *image.Image, *variables.Scope, error) {
 	if imageName == "scratch" {
 		// FROM scratch
 		img := image.NewImage()
 		img.OS = platform.OS
 		img.Architecture = platform.Architecture
-		return llb.Scratch().Platform(platform), img, nil, nil
+		return pllb.Scratch().Platform(platform), img, nil, nil
 	}
 	ref, err := reference.ParseNormalizedNamed(imageName)
 	if err != nil {
-		return llb.State{}, nil, nil, errors.Wrapf(err, "parse normalized named %s", imageName)
+		return pllb.State{}, nil, nil, errors.Wrapf(err, "parse normalized named %s", imageName)
 	}
 	baseImageName := reference.TagNameOnly(ref).String()
 	logName := fmt.Sprintf(
@@ -1306,26 +1309,26 @@ func (c *Converter) internalFromClassical(ctx context.Context, imageName string,
 			LogName:     logName,
 		})
 	if err != nil {
-		return llb.State{}, nil, nil, errors.Wrapf(err, "resolve image config for %s", imageName)
+		return pllb.State{}, nil, nil, errors.Wrapf(err, "resolve image config for %s", imageName)
 	}
 	var img image.Image
 	err = json.Unmarshal(dt, &img)
 	if err != nil {
-		return llb.State{}, nil, nil, errors.Wrapf(err, "unmarshal image config for %s", imageName)
+		return pllb.State{}, nil, nil, errors.Wrapf(err, "unmarshal image config for %s", imageName)
 	}
 	if dgst != "" {
 		ref, err = reference.WithDigest(ref, dgst)
 		if err != nil {
-			return llb.State{}, nil, nil, errors.Wrapf(err, "reference add digest %v for %s", dgst, imageName)
+			return pllb.State{}, nil, nil, errors.Wrapf(err, "reference add digest %v for %s", dgst, imageName)
 		}
 	}
 	allOpts := append(opts, llb.Platform(platform), c.opt.ImageResolveMode)
-	state := llb.Image(ref.String(), allOpts...)
+	state := pllb.Image(ref.String(), allOpts...)
 	state, img2, envVars := c.applyFromImage(state, &img)
 	return state, img2, envVars, nil
 }
 
-func (c *Converter) applyFromImage(state llb.State, img *image.Image) (llb.State, *image.Image, *variables.Scope) {
+func (c *Converter) applyFromImage(state pllb.State, img *image.Image) (pllb.State, *image.Image, *variables.Scope) {
 	// Reset variables.
 	ev := variables.ParseEnvVars(img.Config.Env)
 	for _, name := range ev.SortedActive() {
@@ -1366,7 +1369,7 @@ func (c *Converter) processNonConstantBuildArgFunc(ctx context.Context) variable
 		srcBuildArgDir := "/run/buildargs"
 		srcBuildArgPath := path.Join(srcBuildArgDir, name)
 		c.mts.Final.MainState = c.mts.Final.MainState.File(
-			llb.Mkdir(srcBuildArgDir, 0755, llb.WithParents(true)),
+			pllb.Mkdir(srcBuildArgDir, 0755, llb.WithParents(true)),
 			llb.WithCustomNamef("[internal] mkdir %s", srcBuildArgDir))
 		args := strings.Split(fmt.Sprintf("echo \"%s\" >%s", expression, srcBuildArgPath), " ")
 		transient := true
@@ -1491,7 +1494,7 @@ func (c *Converter) checkAllowed(command string) error {
 	}
 }
 
-func makeCacheContext(target domain.Target) llb.State {
+func makeCacheContext(target domain.Target) pllb.State {
 	sessionID := cacheKey(target)
 	opts := []llb.LocalOption{
 		llb.SharedKeyHint(target.ProjectCanonical()),
@@ -1499,7 +1502,7 @@ func makeCacheContext(target domain.Target) llb.State {
 		llb.Platform(llbutil.DefaultPlatform()),
 		llb.WithCustomNamef("[internal] cache context %s", target.ProjectCanonical()),
 	}
-	return llb.Local("earthly-cache", opts...)
+	return pllb.Local("earthly-cache", opts...)
 }
 
 func cacheKey(target domain.Target) string {

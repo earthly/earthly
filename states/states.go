@@ -6,11 +6,11 @@ import (
 
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/llbutil"
+	"github.com/earthly/earthly/llbutil/pllb"
 	"github.com/earthly/earthly/states/dedup"
 	"github.com/earthly/earthly/states/image"
 	"github.com/earthly/earthly/variables"
 	"github.com/google/uuid"
-	"github.com/moby/buildkit/client/llb"
 	specs "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
@@ -42,9 +42,9 @@ type SingleTarget struct {
 	Target                 domain.Target
 	Platform               *specs.Platform
 	MainImage              *image.Image
-	MainState              llb.State
-	ArtifactsState         llb.State
-	SeparateArtifactsState []llb.State
+	MainState              pllb.State
+	ArtifactsState         pllb.State
+	SeparateArtifactsState []pllb.State
 	SaveLocals             []SaveLocal
 	SaveImages             []SaveImage
 	VarCollection          *variables.Collection
@@ -234,7 +234,7 @@ type SaveLocal struct {
 
 // SaveImage is a docker image to be saved.
 type SaveImage struct {
-	State        llb.State
+	State        pllb.State
 	Image        *image.Image
 	DockerTag    string
 	Push         bool
@@ -249,7 +249,7 @@ type SaveImage struct {
 // successful, along with artifacts to save and images to push
 type RunPush struct {
 	CommandStrs        []string
-	State              llb.State
+	State              pllb.State
 	SaveLocals         []SaveLocal
 	SaveImages         []SaveImage
 	InteractiveSession InteractiveSession
@@ -270,7 +270,7 @@ const (
 // it is not desired to save the resulting changes into an image.
 type InteractiveSession struct {
 	CommandStr  string
-	State       llb.State
+	State       pllb.State
 	Initialized bool
 	Kind        InteractiveSessionKind
 }

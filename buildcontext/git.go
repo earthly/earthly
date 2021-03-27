@@ -13,6 +13,7 @@ import (
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/gitutil"
 	"github.com/earthly/earthly/llbutil"
+	"github.com/earthly/earthly/llbutil/pllb"
 	"github.com/earthly/earthly/stringutil"
 	"github.com/earthly/earthly/syncutil/synccache"
 
@@ -35,7 +36,7 @@ type gitResolver struct {
 
 type resolvedGitProject struct {
 	// gitMetaAndEarthfileState is the state containing the git metadata and build files.
-	gitMetaAndEarthfileState llb.State
+	gitMetaAndEarthfileState pllb.State
 	// hash is the git hash.
 	hash string
 	// branches is the git branches.
@@ -43,7 +44,7 @@ type resolvedGitProject struct {
 	// tags is the git tags
 	tags []string
 	// state is the state holding the git files.
-	state llb.State
+	state pllb.State
 }
 
 func (gr *gitResolver) resolveEarthProject(ctx context.Context, gwClient gwclient.Client, ref domain.Reference) (*Data, error) {
@@ -55,7 +56,7 @@ func (gr *gitResolver) resolveEarthProject(ctx context.Context, gwClient gwclien
 		return nil, err
 	}
 
-	var buildContext llb.State
+	var buildContext pllb.State
 	if _, isTarget := ref.(domain.Target); isTarget {
 		// Restrict the resulting build context to the right subdir.
 		if subDir == "." {
@@ -158,7 +159,7 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, gwClient gwclient.
 			llb.AddMount("/git-src", gitState, llb.Readonly),
 			llb.WithCustomNamef("[internal] COPY GIT CLONE %s Metadata", ref.ProjectCanonical()),
 		}
-		opImg := llb.Image(
+		opImg := pllb.Image(
 			defaultGitImage, llb.MarkImageInternal, llb.ResolveModePreferLocal,
 			llb.Platform(llbutil.DefaultPlatform()))
 		copyOp := opImg.Run(copyOpts...)
@@ -232,7 +233,7 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, gwClient gwclient.
 			hash:                     gitHash,
 			branches:                 gitBranches2,
 			tags:                     gitTags2,
-			state: llb.Git(
+			state: pllb.Git(
 				gitURL,
 				gitHash,
 				gitOpts...,

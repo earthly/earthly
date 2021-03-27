@@ -4,6 +4,7 @@ import (
 	"context"
 	"sort"
 
+	"github.com/earthly/earthly/llbutil/pllb"
 	"github.com/moby/buildkit/client/llb"
 	gwclient "github.com/moby/buildkit/frontend/gateway/client"
 	specs "github.com/opencontainers/image-spec/specs-go/v1"
@@ -11,7 +12,7 @@ import (
 )
 
 // StateToRef takes an LLB state, solves it using gateway and returns the ref.
-func StateToRef(ctx context.Context, gwClient gwclient.Client, state llb.State, platform *specs.Platform, cacheImports map[string]bool) (gwclient.Reference, error) {
+func StateToRef(ctx context.Context, gwClient gwclient.Client, state pllb.State, platform *specs.Platform, cacheImports map[string]bool) (gwclient.Reference, error) {
 	cacheImportsSlice := make([]string, 0, len(cacheImports))
 	for ci := range cacheImports {
 		cacheImportsSlice = append(cacheImportsSlice, ci)

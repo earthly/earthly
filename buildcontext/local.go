@@ -8,6 +8,7 @@ import (
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/gitutil"
 	"github.com/earthly/earthly/llbutil"
+	"github.com/earthly/earthly/llbutil/pllb"
 	"github.com/earthly/earthly/syncutil/synccache"
 	"github.com/moby/buildkit/client/llb"
 	"github.com/pkg/errors"
@@ -53,13 +54,13 @@ func (lr *localResolver) resolveLocal(ctx context.Context, ref domain.Reference)
 		return nil, err
 	}
 
-	var buildContext llb.State
+	var buildContext pllb.State
 	if _, isTarget := ref.(domain.Target); isTarget {
 		excludes, err := readExcludes(ref.GetLocalPath())
 		if err != nil {
 			return nil, err
 		}
-		buildContext = llb.Local(
+		buildContext = pllb.Local(
 			ref.GetLocalPath(),
 			llb.ExcludePatterns(excludes),
 			llb.SessionID(lr.sessionID),

@@ -19,6 +19,7 @@ import (
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/earthfile2llb"
 	"github.com/earthly/earthly/llbutil"
+	"github.com/earthly/earthly/llbutil/pllb"
 	"github.com/earthly/earthly/states"
 	"github.com/earthly/earthly/variables"
 	"github.com/moby/buildkit/client"
@@ -518,7 +519,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 	return mts, nil
 }
 
-func (b *Builder) targetPhaseState(sts *states.SingleTarget) llb.State {
+func (b *Builder) targetPhaseState(sts *states.SingleTarget) pllb.State {
 	if b.builtMain {
 		return sts.RunPush.State
 	}
@@ -546,14 +547,14 @@ func (b *Builder) targetPhaseInteractiveSession(sts *states.SingleTarget) states
 	return sts.InteractiveSession
 }
 
-func (b *Builder) stateToRef(ctx context.Context, gwClient gwclient.Client, state llb.State, platform *specs.Platform) (gwclient.Reference, error) {
+func (b *Builder) stateToRef(ctx context.Context, gwClient gwclient.Client, state pllb.State, platform *specs.Platform) (gwclient.Reference, error) {
 	if b.opt.NoCache && !b.builtMain {
 		state = state.SetMarshalDefaults(llb.IgnoreCache)
 	}
 	return llbutil.StateToRef(ctx, gwClient, state, platform, b.opt.CacheImports.AsMap())
 }
 
-func (b *Builder) artifactStateToRef(ctx context.Context, gwClient gwclient.Client, state llb.State, platform *specs.Platform) (gwclient.Reference, error) {
+func (b *Builder) artifactStateToRef(ctx context.Context, gwClient gwclient.Client, state pllb.State, platform *specs.Platform) (gwclient.Reference, error) {
 	if b.opt.NoCache || b.builtMain {
 		state = state.SetMarshalDefaults(llb.IgnoreCache)
 	}
