@@ -1,16 +1,15 @@
 package states
 
 import (
-	"fmt"
-	"math/rand"
+	"context"
 	"sync"
 
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/llbutil"
 	"github.com/earthly/earthly/states/dedup"
-	"github.com/earthly/earthly/states/image"
 	"github.com/earthly/earthly/variables"
 	specs "github.com/opencontainers/image-spec/specs-go/v1"
+	"github.com/pkg/errors"
 )
 
 // VisitedCollection is a collection of visited targets.
@@ -28,30 +27,6 @@ func NewVisitedCollection() *VisitedCollection {
 	}
 }
 
-// Add adds a target to the collection.
-func (vc *VisitedCollection) Add(target domain.Target, platform *specs.Platform) *SingleTarget {
-	targetStr := target.StringCanonical()
-	sts := &SingleTarget{
-		Target:   target,
-		Platform: platform,
-		targetInput: dedup.TargetInput{
-			TargetCanonical: targetStr,
-			Platform:        llbutil.PlatformWithDefaultToString(platform),
-		},
-		MainState:      llbutil.ScratchWithPlatform(),
-		MainImage:      image.NewImage(),
-		ArtifactsState: llbutil.ScratchWithPlatform(),
-		Ongoing:        true,
-		LocalDirs:      make(map[string]string),
-		Salt:           fmt.Sprintf("%d", rand.Int()),
-	}
-	vc.mu.Lock()
-	defer vc.mu.Unlock()
-	vc.visited[targetStr] = append(vc.visited[targetStr], sts)
-	vc.visitedList = append(vc.visitedList, sts)
-	return sts
-}
-
 // All returns all visited items.
 func (vc *VisitedCollection) All() []*SingleTarget {
 	vc.mu.Lock()
@@ -59,12 +34,96 @@ func (vc *VisitedCollection) All() []*SingleTarget {
 	return append([]*SingleTarget{}, vc.visitedList...)
 }
 
-// AllTarget returns all visited items for a given target.
-func (vc *VisitedCollection) AllTarget(target domain.Target) []*SingleTarget {
-	vc.mu.Lock()
+// Add adds a target to the collection, if it hasn't yet been visited. The returned sts is
+// either the previously visited one or a brand new one.
+func (vc *VisitedCollection) Add(ctx context.Context, target domain.Target, platform *specs.Platform, overridingVars *variables.Scope, parentDepSub chan string) (*SingleTarget, bool, error) {
+	dependents, err := vc.waitAllDoneAndLock(ctx, target, parentDepSub)
+	if err != nil {
+		return nil, false, err
+	}
+	// Put the deps back into the channel for the new sts to consume.
+	for depID := range dependents {
+		parentDepSub <- depID
+	}
 	defer vc.mu.Unlock()
+	for _, sts := range vc.visited[target.StringCanonical()] {
+		same, err := CompareTargetInputs(target, platform, overridingVars, sts.TargetInput())
+		if err != nil {
+			return nil, false, err
+		}
+		if same {
+			// Existing sts.
+			if dependents[sts.ID] {
+				// Infinite recursion. The previously visited sts is a dependent of us.
+				return nil, false, errors.Errorf(
+					"infinite recursion detected for target %s", target.String())
+			}
+			// If it's not a dependent, then it *has* to be done at this point.
+			// Sanity check.
+			select {
+			case <-sts.Done():
+			default:
+				panic("same sts but not done")
+			}
+			// Subscribe that sts to the dependencies of our parent.
+			sts.MonitorDependencySubscription(ctx, parentDepSub)
+			return sts, true, nil
+		}
+	}
+	// None are the same. Create new sts.
+	sts, err := newSingleTarget(ctx, target, platform, overridingVars, parentDepSub)
+	if err != nil {
+		return nil, false, err
+	}
 	targetStr := target.StringCanonical()
-	return append([]*SingleTarget{}, vc.visited[targetStr]...)
+	vc.visited[targetStr] = append(vc.visited[targetStr], sts)
+	vc.visitedList = append(vc.visitedList, sts)
+	return sts, false, nil
+}
+
+// waitAllDoneAndLock acquires mu at a point when all sts are done for a particular
+// target, allowing for comparisons across the board while the lock is held.
+func (vc *VisitedCollection) waitAllDoneAndLock(ctx context.Context, target domain.Target, parentDepSub chan string) (map[string]bool, error) {
+	// Build up dependents from parentDepSub. The list needs to be complete when returning
+	// from this function for proper infinite loop detection.
+	dependents := make(map[string]bool)
+	// wait all done & lock loop
+	prevLenList := 0
+	for {
+		vc.mu.Lock()
+		list := append([]*SingleTarget{}, vc.visited[target.StringCanonical()]...)
+		if prevLenList == len(list) {
+			// The list we have now is the same we just checked if it's done or waiting on us.
+			// We are finished.
+			return dependents, nil // no unlocking on purpose
+		}
+		prevLenList = len(list)
+		vc.mu.Unlock()
+		// Wait for sts's to be done outside of the mu lock.
+	stsLoop:
+		for _, sts := range list {
+			if dependents[sts.ID] {
+				// No need to wait if it's a dependent, because the sts is waiting on us.
+				// It's safe to perform comparison if they are waiting on us.
+				continue
+			}
+			for {
+				select {
+				case <-ctx.Done():
+					return nil, ctx.Err()
+				case newID := <-parentDepSub:
+					dependents[newID] = true
+					if newID == sts.ID {
+						// Just the one we were waiting for. It seems that it is
+						// now waiting on us.
+						continue stsLoop
+					}
+				case <-sts.Done():
+					continue stsLoop
+				}
+			}
+		}
+	}
 }
 
 // CompareTargetInputs compares two targets and their inputs to check if they are the same.

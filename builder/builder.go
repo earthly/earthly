@@ -418,7 +418,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 	if opt.NoOutput {
 		// Nothing.
 	} else if opt.OnlyArtifact != nil {
-		err := b.saveArtifactLocally(ctx, *opt.OnlyArtifact, outDir, opt.OnlyArtifactDestPath, mts.Final.Salt, opt, false)
+		err := b.saveArtifactLocally(ctx, *opt.OnlyArtifact, outDir, opt.OnlyArtifactDestPath, mts.Final.ID, opt, false)
 		if err != nil {
 			return nil, err
 		}
@@ -429,7 +429,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 			if !shouldPush && !shouldExport {
 				continue
 			}
-			console := b.opt.Console.WithPrefixAndSalt(mts.Final.Target.String(), mts.Final.Salt)
+			console := b.opt.Console.WithPrefixAndSalt(mts.Final.Target.String(), mts.Final.ID)
 			pushStr := ""
 			if shouldPush {
 				pushStr = " (pushed)"
@@ -445,7 +445,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 		// TODO: This is a little brittle to future code changes.
 		dirIndex := 0
 		for _, sts := range mts.All() {
-			console := b.opt.Console.WithPrefixAndSalt(sts.Target.String(), sts.Salt)
+			console := b.opt.Console.WithPrefixAndSalt(sts.Target.String(), sts.ID)
 
 			for _, saveImage := range sts.SaveImages {
 				shouldPush := opt.Push && saveImage.Push && !sts.Target.IsRemote() && saveImage.DockerTag != ""
@@ -470,7 +470,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 						Target:   sts.Target,
 						Artifact: saveLocal.ArtifactPath,
 					}
-					err := b.saveArtifactLocally(ctx, artifact, artifactDir, saveLocal.DestPath, sts.Salt, opt, saveLocal.IfExists)
+					err := b.saveArtifactLocally(ctx, artifact, artifactDir, saveLocal.DestPath, sts.ID, opt, saveLocal.IfExists)
 					if err != nil {
 						return nil, err
 					}
@@ -485,7 +485,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 								Target:   sts.Target,
 								Artifact: saveLocal.ArtifactPath,
 							}
-							err := b.saveArtifactLocally(ctx, artifact, artifactDir, saveLocal.DestPath, sts.Salt, opt, saveLocal.IfExists)
+							err := b.saveArtifactLocally(ctx, artifact, artifactDir, saveLocal.DestPath, sts.ID, opt, saveLocal.IfExists)
 							if err != nil {
 								return nil, err
 							}

@@ -1,0 +1,61 @@
+
+FROM alpine:3.13
+
+test1:
+    RUN echo "hello test1"
+    BUILD +test1
+
+test2:
+    RUN echo "hello test2"
+    BUILD +intermediary-test2
+
+intermediary-test2:
+    RUN echo "hello intermediary-test2"
+    BUILD +test2
+
+test3:
+    RUN echo "hello test3"
+    BUILD +intermediary1-test3
+
+intermediary1-test3:
+    RUN echo "hello intermediary1-test3"
+    BUILD +intermediary2-test3
+
+intermediary2-test3:
+    RUN echo "hello intermediary2-test3"
+    BUILD +test3
+
+test4:
+    RUN echo "hello test4"
+    BUILD +distraction4
+    BUILD +another-distraction4
+    BUILD +intermediary-test4
+
+intermediary-test4:
+    RUN echo "hello intermediary-test4"
+    BUILD +test4
+
+distraction4:
+    RUN echo "hello distraction4"
+
+another-distraction4:
+    RUN echo "hello another-distraction4"
+
+test5:
+    RUN echo "hello test5"
+    BUILD +intermediary-test5
+
+intermediary-test5:
+    ARG different=x
+    RUN echo "hello intermediary-test5 $different"
+    BUILD +test5 --different=x
+
+test6:
+    RUN echo "hello test6"
+    BUILD +intermediary-test6
+
+intermediary-test6:
+    ARG different=x
+    RUN echo "hello intermediary-test6 $different"
+    BUILD +test6 --different=y # just a distraction
+    BUILD +test6 --different=x # this causes inf recursion

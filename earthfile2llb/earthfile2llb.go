@@ -58,6 +58,9 @@ type ConvertOpt struct {
 	AllowLocally bool
 	// AllowInteractive is an internal feature flag for controlling if interactive sessions can be initiated.
 	AllowInteractive bool
+
+	// parentDepSub is a channel informing of any new dependencies from the parent.
+	parentDepSub chan string // chan of sts IDs.
 }
 
 // Earthfile2LLB parses a earthfile and executes the statements for a given target.
@@ -77,31 +80,22 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt) (m
 		return nil, errors.Wrapf(err, "resolve build context for target %s", target.String())
 	}
 	targetWithMetadata := bc.Ref.(domain.Target)
-	// Check if we have previously converted this target, with the same build args.
-	for _, otherSts := range opt.Visited.AllTarget(targetWithMetadata) {
-		same, err := states.CompareTargetInputs(
-			targetWithMetadata, opt.Platform, opt.OverridingVars, otherSts.TargetInput())
-		if err != nil {
-			return nil, err
-		}
-		if same {
-			if otherSts.Ongoing {
-				return nil, errors.Errorf(
-					"infinite recursion detected for target %s", targetWithMetadata.String())
-			}
-			// Use the already built states.
-			return &states.MultiTarget{
-				Final:   otherSts,
-				Visited: opt.Visited,
-			}, nil
-		}
+	sts, found, err := opt.Visited.Add(ctx, targetWithMetadata, opt.Platform, opt.OverridingVars, opt.parentDepSub)
+	if err != nil {
+		return nil, err
 	}
-	sts := opt.Visited.Add(targetWithMetadata, opt.Platform)
+	if found {
+		// This target has already been done.
+		return &states.MultiTarget{
+			Final:   sts,
+			Visited: opt.Visited,
+		}, nil
+	}
 	converter, err := NewConverter(ctx, targetWithMetadata, bc, sts, opt)
 	if err != nil {
 		return nil, err
 	}
-	interpreter := newInterpreter(converter, target)
+	interpreter := newInterpreter(converter, targetWithMetadata)
 	err = interpreter.Run(ctx, bc.Earthfile)
 	if err != nil {
 		return nil, err

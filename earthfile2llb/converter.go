@@ -1033,7 +1033,7 @@ func (c *Converter) FinalizeStates(ctx context.Context) (*states.MultiTarget, er
 	c.opt.BuildContextProvider.AddDirs(c.mts.Final.LocalDirs)
 	c.mts.Final.VarCollection = c.varCollection
 	c.mts.Final.GlobalImports = c.varCollection.Imports().Global()
-	c.mts.Final.Ongoing = false
+	close(c.mts.Final.Done())
 	return c.mts, nil
 }
 
@@ -1057,7 +1057,6 @@ func (c *Converter) buildTarget(ctx context.Context, fullTargetName string, plat
 	}
 	target := targetRef.(domain.Target)
 
-	var newVars map[string]bool
 	overriding, err := variables.ParseArgs(buildArgs, c.processNonConstantBuildArgFunc(ctx), c.varCollection)
 	if err != nil {
 		return nil, errors.Wrap(err, "parse build args")
@@ -1070,9 +1069,9 @@ func (c *Converter) buildTarget(ctx context.Context, fullTargetName string, plat
 
 	// Recursion.
 	opt := c.opt
-	opt.Visited = c.mts.Visited
 	opt.OverridingVars = overriding
 	opt.GlobalImports = nil
+	opt.parentDepSub = c.mts.Final.NewDependencySubscription()
 	opt.Platform, err = llbutil.ResolvePlatform(platform, c.opt.Platform)
 	if err != nil {
 		// Contradiction allowed. You can BUILD another target with different platform.
@@ -1092,8 +1091,7 @@ func (c *Converter) buildTarget(ctx context.Context, fullTargetName string, plat
 		for _, bai := range mts.Final.TargetInput().BuildArgs {
 			// Check if the build arg has been overridden. If it has, it can no longer be an input
 			// directly, so skip it.
-			// TODO FIXME: newVars is no longer set correctly.
-			_, found := newVars[bai.Name]
+			_, found := overriding.GetAny(bai.Name)
 			if found {
 				continue
 			}
@@ -1395,7 +1393,7 @@ func (c *Converter) vertexPrefix(local bool, interactive bool) string {
 	if len(varStrBuilder) > 0 {
 		varStr = fmt.Sprintf("(%s)", strings.Join(varStrBuilder, " "))
 	}
-	return fmt.Sprintf("[%s%s %s] ", c.mts.Final.Target.String(), varStr, c.mts.Final.Salt)
+	return fmt.Sprintf("[%s%s %s] ", c.mts.Final.Target.String(), varStr, c.mts.Final.ID)
 }
 
 func (c *Converter) markFakeDeps() {

@@ -1,6 +1,7 @@
 package states
 
 import (
+	"context"
 	"sync"
 
 	"github.com/earthly/earthly/domain"
@@ -8,6 +9,7 @@ import (
 	"github.com/earthly/earthly/states/dedup"
 	"github.com/earthly/earthly/states/image"
 	"github.com/earthly/earthly/variables"
+	"github.com/google/uuid"
 	"github.com/moby/buildkit/client/llb"
 	specs "github.com/opencontainers/image-spec/specs-go/v1"
 )
@@ -35,6 +37,8 @@ func (mts *MultiTarget) All() []*SingleTarget {
 
 // SingleTarget holds LLB states representing an earthly target.
 type SingleTarget struct {
+	// ID is a random unique string.
+	ID                     string
 	Target                 domain.Target
 	Platform               *specs.Platform
 	MainImage              *image.Image
@@ -46,8 +50,6 @@ type SingleTarget struct {
 	VarCollection          *variables.Collection
 	RunPush                RunPush
 	LocalDirs              map[string]string
-	Ongoing                bool
-	Salt                   string
 	InteractiveSession     InteractiveSession
 	GlobalImports          map[string]string
 	// HasDangling represents whether the target has dangling instructions -
@@ -60,8 +62,65 @@ type SingleTarget struct {
 	// RanInteractive represents whether we have encountered an --interactive command.
 	RanInteractive bool
 
+	// doneCh is a channel that is closed when the sts is complete.
+	doneCh chan struct{}
+
 	tiMu        sync.Mutex
 	targetInput dedup.TargetInput
+
+	depMu sync.Mutex
+	// dependentIDs are the sts IDs of the transitive dependants of this target.
+	dependentIDs map[string]bool
+	// dependencySubscriptions is a list of channels to update when new dependentIDs are added.
+	dependencySubscriptions []chan string
+
+	incomingNewSubscriptions chan string
+}
+
+func newSingleTarget(ctx context.Context, target domain.Target, platform *specs.Platform, overridingVars *variables.Scope, parentDepSub chan string) (*SingleTarget, error) {
+	targetStr := target.StringCanonical()
+	sts := &SingleTarget{
+		ID:       uuid.New().String(),
+		Target:   target,
+		Platform: platform,
+		targetInput: dedup.TargetInput{
+			TargetCanonical: targetStr,
+			Platform:        llbutil.PlatformWithDefaultToString(platform),
+		},
+		MainState:                llbutil.ScratchWithPlatform(),
+		MainImage:                image.NewImage(),
+		ArtifactsState:           llbutil.ScratchWithPlatform(),
+		LocalDirs:                make(map[string]string),
+		dependentIDs:             make(map[string]bool),
+		doneCh:                   make(chan struct{}),
+		incomingNewSubscriptions: make(chan string, 1024),
+	}
+	// Consume all items from the parent subscription before returning control.
+OuterLoop:
+	for {
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case newID := <-parentDepSub:
+			sts.AddDependentIDs(map[string]bool{newID: true})
+		default:
+			break OuterLoop
+		}
+	}
+	// Keep monitoring async.
+	sts.MonitorDependencySubscription(ctx, parentDepSub)
+	go func() {
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case newID := <-sts.incomingNewSubscriptions:
+				sts.AddDependentIDs(map[string]bool{newID: true})
+			}
+
+		}
+	}()
+	return sts, nil
 }
 
 // TargetInput returns the target input in a concurrent-safe way.
@@ -107,6 +166,59 @@ func (sts *SingleTarget) LastSaveImage() SaveImage {
 		}
 	}
 	return sts.SaveImages[len(sts.SaveImages)-1]
+}
+
+// AddDependentIDs adds additional IDs that depend on this sts.
+func (sts *SingleTarget) AddDependentIDs(dependentIDs map[string]bool) {
+	select {
+	case <-sts.doneCh:
+		// We don't really care anymore if we're done.
+		return
+	default:
+	}
+	sts.depMu.Lock()
+	defer sts.depMu.Unlock()
+	for ID := range dependentIDs {
+		sts.dependentIDs[ID] = true
+	}
+	for _, sub := range sts.dependencySubscriptions {
+		for ID := range dependentIDs {
+			sub <- ID
+		}
+	}
+}
+
+// MonitorDependencySubscription monitors for new dependencies.
+func (sts *SingleTarget) MonitorDependencySubscription(ctx context.Context, inCh chan string) {
+	go func() {
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case ID := <-inCh:
+				sts.incomingNewSubscriptions <- ID
+			}
+		}
+	}()
+}
+
+// NewDependencySubscription adds additional IDs that depend on this sts.
+func (sts *SingleTarget) NewDependencySubscription() chan string {
+	sts.depMu.Lock()
+	defer sts.depMu.Unlock()
+	ch := make(chan string, 1024) // size is an arbitrary maximum cycle length
+	sts.dependencySubscriptions = append(sts.dependencySubscriptions, ch)
+	// Send everything we have so far.
+	ch <- sts.ID // send our ID
+	for depID := range sts.dependentIDs {
+		ch <- depID
+	}
+	return ch
+}
+
+// Done returns a channel that is closed when the sts is complete.
+func (sts *SingleTarget) Done() chan struct{} {
+	return sts.doneCh
 }
 
 // SaveLocal is an artifact path to be saved to local disk.

@@ -62,6 +62,7 @@ ga:
     BUILD +quotes-test
     BUILD +new-args
     BUILD +import
+    BUILD +infinite-recursion
 
 experimental:
     BUILD ./dind-auto-install+all
@@ -442,6 +443,14 @@ new-args:
 
 import:
     DO +RUN_EARTHLY --earthfile=import.earth
+
+infinite-recursion:
+    DO +RUN_EARTHLY --earthfile=infinite-recursion.earth --should_fail=true --target=+test1
+    DO +RUN_EARTHLY --earthfile=infinite-recursion.earth --should_fail=true --target=+test2
+    DO +RUN_EARTHLY --earthfile=infinite-recursion.earth --should_fail=true --target=+test3
+    DO +RUN_EARTHLY --earthfile=infinite-recursion.earth --should_fail=true --target=+test4
+    DO +RUN_EARTHLY --earthfile=infinite-recursion.earth --should_fail=true --target=+test5
+    DO +RUN_EARTHLY --earthfile=infinite-recursion.earth --should_fail=true --target=+test6
 
 RUN_EARTHLY:
     COMMAND

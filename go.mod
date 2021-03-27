@@ -13,6 +13,7 @@ require (
 	github.com/dustin/go-humanize v1.0.0
 	github.com/fatih/color v1.9.0
 	github.com/golang/protobuf v1.4.3
+	github.com/google/uuid v1.2.0 // indirect
 	github.com/joho/godotenv v1.3.0
 	github.com/mattn/go-isatty v0.0.12
 	github.com/moby/buildkit v0.8.2-0.20210129065303-6b9ea0c202cf
