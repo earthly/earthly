@@ -43,10 +43,10 @@ func (mc *MetaContext) monitor() {
 		mc.numDone++
 		if mc.numDone == 1 {
 			firstDoneCtx := mc.sub[index]
+			mc.firstDoneMu.Lock()
 			go func() {
 				// Call .Err() outside of our lock. Also, use a different lock
 				// to block a caller to our .Err if it'll take a long time.
-				mc.firstDoneMu.Lock()
 				defer mc.firstDoneMu.Unlock()
 				err := firstDoneCtx.Err()
 				mc.firstDoneErr = err
@@ -105,7 +105,10 @@ func (mc *MetaContext) Err() error {
 	case <-mc.doneCh:
 		mc.firstDoneMu.Lock()
 		defer mc.firstDoneMu.Unlock()
-		return mc.firstDoneErr
+		if mc.firstDoneErr != nil {
+			return mc.firstDoneErr
+		}
+		return context.Canceled
 	default:
 		return nil
 	}

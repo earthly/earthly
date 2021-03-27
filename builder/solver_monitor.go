@@ -389,6 +389,8 @@ func (sm *solverMonitor) processStatus(ss *client.SolveStatus) error {
 }
 
 func (sm *solverMonitor) processNoOutputTick() error {
+	sm.msgMu.Lock()
+	defer sm.msgMu.Unlock()
 	if sm.disableNoOutputUpdates {
 		return nil
 	}

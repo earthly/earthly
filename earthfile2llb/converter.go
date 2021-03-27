@@ -57,6 +57,7 @@ func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Da
 	for k, v := range bc.LocalDirs {
 		sts.LocalDirs[k] = v
 	}
+	sts.HasDangling = opt.HasDangling
 	mts := &states.MultiTarget{
 		Final:   sts,
 		Visited: opt.Visited,
@@ -773,6 +774,24 @@ func (c *Converter) Build(ctx context.Context, fullTargetName string, platform *
 	return err
 }
 
+// BuildAsync applies the earthly BUILD command asynchronously.
+func (c *Converter) BuildAsync(ctx context.Context, fullTargetName string, platform *specs.Platform, buildArgs []string) chan error {
+	errChan := make(chan error, 1)
+	target, opt, _, err := c.prepBuildTarget(ctx, fullTargetName, platform, buildArgs, true, false)
+	if err != nil {
+		errChan <- err
+		return errChan
+	}
+	go func() {
+		_, err := Earthfile2LLB(ctx, target, opt)
+		if err != nil {
+			errChan <- errors.Wrapf(err, "async earthfile2llb for %s", fullTargetName)
+		}
+		errChan <- nil
+	}()
+	return errChan
+}
+
 // Workdir applies the WORKDIR command.
 func (c *Converter) Workdir(ctx context.Context, workdirPath string) error {
 	err := c.checkAllowed("WORKDIR")
@@ -1042,24 +1061,24 @@ func (c *Converter) ExpandArgs(word string) string {
 	return c.varCollection.Expand(word)
 }
 
-func (c *Converter) buildTarget(ctx context.Context, fullTargetName string, platform *specs.Platform, buildArgs []string, isDangling bool, isFrom bool) (*states.MultiTarget, error) {
+func (c *Converter) prepBuildTarget(ctx context.Context, fullTargetName string, platform *specs.Platform, buildArgs []string, isDangling bool, isFrom bool) (domain.Target, ConvertOpt, bool, error) {
 	relTarget, err := domain.ParseTarget(fullTargetName)
 	if err != nil {
-		return nil, errors.Wrapf(err, "earthly target parse %s", fullTargetName)
+		return domain.Target{}, ConvertOpt{}, false, errors.Wrapf(err, "earthly target parse %s", fullTargetName)
 	}
 	derefedTarget, err := c.varCollection.Imports().Deref(relTarget)
 	if err != nil {
-		return nil, err
+		return domain.Target{}, ConvertOpt{}, false, err
 	}
 	targetRef, err := c.joinRefs(derefedTarget)
 	if err != nil {
-		return nil, errors.Wrap(err, "join targets")
+		return domain.Target{}, ConvertOpt{}, false, errors.Wrap(err, "join targets")
 	}
 	target := targetRef.(domain.Target)
 
 	overriding, err := variables.ParseArgs(buildArgs, c.processNonConstantBuildArgFunc(ctx), c.varCollection)
 	if err != nil {
-		return nil, errors.Wrap(err, "parse build args")
+		return domain.Target{}, ConvertOpt{}, false, errors.Wrap(err, "parse build args")
 	}
 	// Don't allow transitive overriding variables to cross project boundaries.
 	propagateBuildArgs := !relTarget.IsExternal()
@@ -1073,16 +1092,22 @@ func (c *Converter) buildTarget(ctx context.Context, fullTargetName string, plat
 	opt.GlobalImports = nil
 	opt.parentDepSub = c.mts.Final.NewDependencySubscription()
 	opt.Platform, err = llbutil.ResolvePlatform(platform, c.opt.Platform)
+	opt.HasDangling = isDangling
 	if err != nil {
 		// Contradiction allowed. You can BUILD another target with different platform.
 		opt.Platform = platform
 	}
+	return target, opt, propagateBuildArgs, nil
+}
+
+func (c *Converter) buildTarget(ctx context.Context, fullTargetName string, platform *specs.Platform, buildArgs []string, isDangling bool, isFrom bool) (*states.MultiTarget, error) {
+	target, opt, propagateBuildArgs, err := c.prepBuildTarget(ctx, fullTargetName, platform, buildArgs, isDangling, isFrom)
+	if err != nil {
+		return nil, err
+	}
 	mts, err := Earthfile2LLB(ctx, target, opt)
 	if err != nil {
 		return nil, errors.Wrapf(err, "earthfile2llb for %s", fullTargetName)
-	}
-	if isDangling {
-		mts.Final.HasDangling = true
 	}
 	c.directDeps = append(c.directDeps, mts.Final)
 	if propagateBuildArgs {
@@ -1091,7 +1116,7 @@ func (c *Converter) buildTarget(ctx context.Context, fullTargetName string, plat
 		for _, bai := range mts.Final.TargetInput().BuildArgs {
 			// Check if the build arg has been overridden. If it has, it can no longer be an input
 			// directly, so skip it.
-			_, found := overriding.GetAny(bai.Name)
+			_, found := opt.OverridingVars.GetAny(bai.Name)
 			if found {
 				continue
 			}
@@ -1401,6 +1426,11 @@ func (c *Converter) markFakeDeps() {
 		return
 	}
 	for _, dep := range c.directDeps {
+		select {
+		case <-dep.Done():
+		default:
+			panic("mark fake dep but dep not done")
+		}
 		if dep.HasDangling {
 			c.mts.Final.MainState = llbutil.WithDependency(
 				c.mts.Final.MainState, dep.MainState, c.mts.Final.Target.String(), dep.Target.String())
