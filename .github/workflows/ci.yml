@@ -24,7 +24,7 @@ jobs:
         run: docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password "${{ secrets.DOCKERHUB_TOKEN }}"
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: Build latest earthly using released earthly
-        run: earthly --ci +for-linux
+        run: earthly --use-inline-cache +for-linux
       - name: Execute tests (not a fork)
         run: ./build/linux/amd64/earthly --ci -P +test
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
@@ -52,7 +52,7 @@ jobs:
         run: docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password "${{ secrets.DOCKERHUB_TOKEN }}"
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: Build latest earthly/buildkitd image using released earthly
-        run: earthly --ci ./buildkitd+buildkitd --TAG=race-test
+        run: earthly --use-inline-cache ./buildkitd+buildkitd --TAG=race-test
       - name: Execute tests (not a fork)
         run: GORACE="halt_on_error=1" go run -race ./cmd/earthly/main.go --buildkit-image earthly/buildkitd:race-test -P --no-output +test
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
