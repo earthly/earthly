@@ -4,6 +4,8 @@ set -xeu
 
 trap 'kill $(jobs -p); wait' SIGINT SIGTERM
 
+export EARTHLY_PARALLEL_CONVERSION=true
+
 case "$EARTHLY_OS" in
     darwin)
         download_url="https://github.com/earthly/earthly/releases/latest/download/earthly-darwin-amd64"
