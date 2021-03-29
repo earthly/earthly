@@ -62,6 +62,8 @@ type ConvertOpt struct {
 	// ie if there are any non-SAVE commands after the first SAVE command,
 	// or if the target is invoked via BUILD command (not COPY nor FROM).
 	HasDangling bool
+	// ParallelConversion enables the parallel conversion algorithm.
+	ParallelConversion bool
 
 	// parentDepSub is a channel informing of any new dependencies from the parent.
 	parentDepSub chan string // chan of sts IDs.
@@ -99,7 +101,7 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt) (m
 	if err != nil {
 		return nil, err
 	}
-	interpreter := newInterpreter(converter, targetWithMetadata)
+	interpreter := newInterpreter(converter, targetWithMetadata, opt.ParallelConversion)
 	err = interpreter.Run(ctx, bc.Earthfile)
 	if err != nil {
 		return nil, err

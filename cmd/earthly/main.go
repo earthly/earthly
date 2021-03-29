@@ -130,6 +130,7 @@ type cliFlags struct {
 	enableSourceMap        bool
 	configDryRun           bool
 	strict                 bool
+	parallelConversion     bool
 }
 
 var (
@@ -488,8 +489,14 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 		&cli.BoolFlag{
 			Name:        "strict",
 			EnvVars:     []string{"EARTHLY_STRICT"},
-			Usage:       "Disallow usage of features that may create unreproduceable builds.",
+			Usage:       "Disallow usage of features that may create unreproduceable builds",
 			Destination: &app.strict,
+		},
+		&cli.BoolFlag{
+			Name:        "parallel-conversion",
+			EnvVars:     []string{"EARTHLY_PARALLEL_CONVERSION"},
+			Usage:       "*experimental* Enable parallel conversion, which speeds up the use of IF, WITH DOCKER --load, FROM DOCKERFILE and others",
+			Destination: &app.parallelConversion,
 		},
 	}
 
@@ -2364,6 +2371,7 @@ func (app *earthlyApp) actionBuild(c *cli.Context) error {
 		UseFakeDep:             !app.noFakeDep,
 		Strict:                 app.strict,
 		DisableNoOutputUpdates: app.interactiveDebugging,
+		ParallelConversion:     app.parallelConversion,
 	}
 	b, err := builder.NewBuilder(c.Context, builderOpts)
 	if err != nil {

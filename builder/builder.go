@@ -56,6 +56,7 @@ type Opt struct {
 	UseFakeDep             bool
 	Strict                 bool
 	DisableNoOutputUpdates bool
+	ParallelConversion     bool
 }
 
 // BuildOpt is a collection of build options.
@@ -172,6 +173,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 				UseFakeDep:           b.opt.UseFakeDep,
 				AllowLocally:         !b.opt.Strict,
 				AllowInteractive:     !b.opt.Strict,
+				ParallelConversion:   b.opt.ParallelConversion,
 			})
 			if err != nil {
 				return nil, err

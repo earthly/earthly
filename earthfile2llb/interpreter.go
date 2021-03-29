@@ -36,18 +36,18 @@ type Interpreter struct {
 	withDocker    *WithDockerOpt
 	withDockerRan bool
 
-	// enableParallelConversion is a feature flag for parallel conversion.
-	enableParallelConversion bool
-	parallelErrChan          chan error
+	// parallelConversion is a feature flag for parallel conversion.
+	parallelConversion bool
+	parallelErrChan    chan error
 }
 
-func newInterpreter(c *Converter, t domain.Target) *Interpreter {
+func newInterpreter(c *Converter, t domain.Target, parallelConversion bool) *Interpreter {
 	return &Interpreter{
-		converter:                c,
-		target:                   t,
-		stack:                    c.StackString(),
-		enableParallelConversion: true, // TODO @# expose this as a flag in main
-		parallelErrChan:          make(chan error),
+		converter:          c,
+		target:             t,
+		stack:              c.StackString(),
+		parallelConversion: parallelConversion,
+		parallelErrChan:    make(chan error),
 	}
 }
 
@@ -95,7 +95,7 @@ func (i *Interpreter) handleTarget(ctx context.Context, t spec.Target) error {
 func (i *Interpreter) handleBlock(ctx context.Context, b spec.Block) error {
 	prevWasArg := true // not exactly true, but makes the logic easier
 	for index, stmt := range b {
-		if i.enableParallelConversion && prevWasArg {
+		if i.parallelConversion && prevWasArg {
 			err := i.handleBlockParallel(ctx, b, index)
 			if err != nil {
 				return err

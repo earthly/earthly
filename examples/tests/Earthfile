@@ -463,10 +463,6 @@ RUN_EARTHLY:
     ARG should_fail=false
     ARG use_tmpfs=true
     COPY "$earthfile" ./Earthfile
-    # @#
-    IF $should_fail
-        RUN echo "This should fail"
-    END
     RUN echo "
         set -x
         if $use_tmpfs; then
