@@ -7,6 +7,7 @@ import (
 	gwclient "github.com/moby/buildkit/frontend/gateway/client"
 	specs "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
+	"golang.org/x/sync/semaphore"
 
 	"github.com/earthly/earthly/ast"
 	"github.com/earthly/earthly/buildcontext"
@@ -62,8 +63,11 @@ type ConvertOpt struct {
 	// ie if there are any non-SAVE commands after the first SAVE command,
 	// or if the target is invoked via BUILD command (not COPY nor FROM).
 	HasDangling bool
-	// ParallelConversion enables the parallel conversion algorithm.
+
+	// ParallelConversion is a feature flag enabling the parallel conversion algorithm.
 	ParallelConversion bool
+	// Parallelism is a semaphore controlling the maximum parallelism.
+	Parallelism *semaphore.Weighted
 
 	// parentDepSub is a channel informing of any new dependencies from the parent.
 	parentDepSub chan string // chan of sts IDs.
@@ -79,6 +83,9 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt) (m
 	}
 	if opt.MetaResolver == nil {
 		opt.MetaResolver = NewCachedMetaResolver(opt.GwClient)
+	}
+	if opt.Parallelism == nil {
+		opt.Parallelism = semaphore.NewWeighted(5)
 	}
 	// Resolve build context.
 	bc, err := opt.Resolver.Resolve(ctx, opt.GwClient, target)
@@ -101,7 +108,7 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt) (m
 	if err != nil {
 		return nil, err
 	}
-	interpreter := newInterpreter(converter, targetWithMetadata, opt.ParallelConversion)
+	interpreter := newInterpreter(converter, targetWithMetadata, opt.ParallelConversion, opt.Parallelism)
 	err = interpreter.Run(ctx, bc.Earthfile)
 	if err != nil {
 		return nil, err

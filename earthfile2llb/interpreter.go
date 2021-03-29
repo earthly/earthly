@@ -16,6 +16,7 @@ import (
 	specs "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
 	"golang.org/x/sync/errgroup"
+	"golang.org/x/sync/semaphore"
 )
 
 var errCannotAsync = errors.New("cannot run async operation")
@@ -36,16 +37,17 @@ type Interpreter struct {
 	withDocker    *WithDockerOpt
 	withDockerRan bool
 
-	// parallelConversion is a feature flag for parallel conversion.
 	parallelConversion bool
+	parallelism        *semaphore.Weighted
 	parallelErrChan    chan error
 }
 
-func newInterpreter(c *Converter, t domain.Target, parallelConversion bool) *Interpreter {
+func newInterpreter(c *Converter, t domain.Target, parallelConversion bool, parallelism *semaphore.Weighted) *Interpreter {
 	return &Interpreter{
 		converter:          c,
 		target:             t,
 		stack:              c.StackString(),
+		parallelism:        parallelism,
 		parallelConversion: parallelConversion,
 		parallelErrChan:    make(chan error),
 	}

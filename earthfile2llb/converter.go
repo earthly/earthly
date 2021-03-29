@@ -786,9 +786,16 @@ func (c *Converter) BuildAsync(ctx context.Context, fullTargetName string, platf
 		return errChan
 	}
 	go func() {
-		_, err := Earthfile2LLB(ctx, target, opt)
+		err := c.opt.Parallelism.Acquire(ctx, 1)
+		if err != nil {
+			errChan <- errors.Wrapf(err, "acquiring parallelism semaphore for %s", fullTargetName)
+			return
+		}
+		defer c.opt.Parallelism.Release(1)
+		_, err = Earthfile2LLB(ctx, target, opt)
 		if err != nil {
 			errChan <- errors.Wrapf(err, "async earthfile2llb for %s", fullTargetName)
+			return
 		}
 		errChan <- nil
 	}()
