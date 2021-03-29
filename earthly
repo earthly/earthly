@@ -95,6 +95,7 @@ case "$1" in
             echo "$now" >"$last_check_state_path"
         fi
 
+        export EARTHLY_PARALLEL_CONVERSION=true
         exec -a "$scriptname" "$bindir/earthly-prerelease" "$@"
         ;;
 esac
