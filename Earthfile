@@ -198,6 +198,7 @@ earthly-docker:
 
 earthly-integration-test-base:
     FROM +earthly-docker
+    ENV EARTHLY_PARALLEL_CONVERSION=true
     RUN earthly config global.disable_analytics true
     # The inner buildkit requires Docker hub creds to prevent rate-limiting issues.
     ARG DOCKERHUB_AUTH=true
