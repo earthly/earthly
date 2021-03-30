@@ -11,6 +11,7 @@ type astValidator func(spec.Earthfile) []error
 
 var astValidations = []astValidator{
 	noTargetsWithSameName,
+	noTargetsWithKeywords,
 	// TODO other checks go here
 }
 
@@ -45,6 +46,22 @@ func noTargetsWithSameName(ef spec.Earthfile) []error {
 		}
 
 		seenTargets[t.Name] = struct{}{}
+	}
+
+	if len(errs) > 0 {
+		return errs
+	}
+
+	return nil
+}
+
+func noTargetsWithKeywords(ef spec.Earthfile) []error {
+	var errs []error
+
+	for _, t := range ef.Targets {
+		if t.Name == "base" {
+			errs = append(errs, errors.Errorf("%s line %v:%v invalid target \"%s\": %s is a reserved target name", t.SourceLocation.File, t.SourceLocation.StartLine, t.SourceLocation.StartColumn, t.Name, t.Name))
+		}
 	}
 
 	if len(errs) > 0 {
