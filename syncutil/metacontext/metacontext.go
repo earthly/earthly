@@ -54,6 +54,8 @@ func (mc *MetaContext) monitor() {
 		}
 		if mc.numDone == len(mc.sub) {
 			close(mc.doneCh)
+			mc.mu.Unlock()
+			return
 		}
 		mc.mu.Unlock()
 	}

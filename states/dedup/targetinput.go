@@ -120,9 +120,31 @@ type BuildArgInput struct {
 	DefaultValue string `json:"defaultConstant"`
 }
 
+// BuiltinVariables is a set of all the builtin variable names.
+var BuiltinVariables = map[string]bool{
+	"EARTHLY_TARGET":                  true,
+	"EARTHLY_TARGET_PROJECT":          true,
+	"EARTHLY_TARGET_NAME":             true,
+	"EARTHLY_TARGET_TAG":              true,
+	"EARTHLY_TARGET_TAG_DOCKER":       true,
+	"EARTHLY_GIT_HASH":                true,
+	"EARTHLY_GIT_BRANCH":              true,
+	"EARTHLY_GIT_TAG":                 true,
+	"EARTHLY_GIT_ORIGIN_URL":          true,
+	"EARTHLY_GIT_ORIGIN_URL_SCRUBBED": true,
+	"EARTHLY_GIT_PROJECT_NAME":        true,
+	"TARGETPLATFORM":                  true,
+	"TARGETOS":                        true,
+	"TARGETARCH":                      true,
+	"TARGETVARIANT":                   true,
+}
+
 // IsDefaultValue returns whether the value of the BuildArgInput
 // is set as the same as the default.
 func (bai BuildArgInput) IsDefaultValue() bool {
+	if BuiltinVariables[bai.Name] {
+		return true
+	}
 	return bai.ConstantValue == bai.DefaultValue
 }
 
