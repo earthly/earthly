@@ -7,7 +7,6 @@ import (
 	"path"
 	"reflect"
 	"regexp"
-	"sort"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -57,16 +56,6 @@ type Config struct {
 	Git    map[string]GitConfig `yaml:"git" help:"Git configuration object. Requires YAML literal to set directly."`
 }
 
-func ensureTransport(s, transport string) (string, error) {
-	parts := strings.SplitN(s, "://", 2)
-	if len(parts) == 2 {
-		if parts[0] != transport {
-			return "", ErrInvalidTransport
-		}
-	}
-	return transport + "://" + s, nil
-}
-
 // ParseConfigFile parse config data
 func ParseConfigFile(yamlData []byte) (*Config, error) {
 	// pre-populate defaults
@@ -85,84 +74,6 @@ func ParseConfigFile(yamlData []byte) (*Config, error) {
 	}
 
 	return &config, nil
-}
-
-// CreateGitConfig returns the contents of the /root/.gitconfig file and a list of corresponding
-// password credentials (the passwords are stored as env variables rather than written to disk)
-func CreateGitConfig(config *Config) (string, []string, error) {
-	credentials := []string{}
-	lines := []string{}
-	credIndex := 0
-
-	// automatically add default auth=ssh for known sites
-	defaultSites := []string{"github.com", "gitlab.com"}
-	for _, k := range defaultSites {
-		if _, ok := config.Git[k]; !ok {
-			config.Git[k] = GitConfig{
-				Auth:   "ssh",
-				Suffix: ".git",
-			}
-		}
-	}
-
-	// iterate over map in a consistent order otherwise it will cause the buildkitd image to restart
-	// due to the settings hash being different
-	keys := []string{}
-	for k := range config.Git {
-		if k != "default" && k != "global" {
-			keys = append(keys, k)
-		}
-	}
-	sort.Strings(keys)
-
-	// TODO figure out how to get the URL rewritting working for the generic case for all URLs
-	// default
-	//if v, ok := config.Git["default"]; ok {
-	//	if v.Auth == "https" {
-	//		lines = append(lines, fmt.Sprintf("[credential]"))
-	//		lines = append(lines, fmt.Sprintf("  username=%q", v.User))
-	//		lines = append(lines, fmt.Sprintf("  helper=/usr/bin/git_credentials_%d", credIndex))
-	//		credentials = append(credentials, fmt.Sprintf("echo password=%q", v.Password))
-	//		credIndex++
-
-	//		// use https instead of ssh://git@....
-	//		lines = append(lines, fmt.Sprintf("[url \"https://\"]"))
-	//		lines = append(lines, fmt.Sprintf("  insteadOf = ssh://git@"))
-	//	}
-	//}
-
-	for _, k := range keys {
-		v := config.Git[k]
-
-		url, err := ensureTransport(k, "https")
-		if err != nil {
-			return "", nil, err
-		}
-
-		switch v.Auth {
-		case "https":
-			lines = append(lines, fmt.Sprintf("[credential %q]", url))
-			lines = append(lines, fmt.Sprintf("  username=%q", v.User))
-			lines = append(lines, fmt.Sprintf("  helper=/usr/bin/git_credentials_%d", credIndex))
-			credentials = append(credentials, v.Password)
-			credIndex++
-
-			// use https instead of ssh://git@....
-			lines = append(lines, fmt.Sprintf("[url %q]", url+"/"))
-			lines = append(lines, fmt.Sprintf("  insteadOf = git@%s:", url[8:]))
-		case "ssh":
-			// use git@... instead of https://...
-			lines = append(lines, fmt.Sprintf("[url %q]", "git@"+url[8:]+":"))
-			lines = append(lines, fmt.Sprintf("  insteadOf = %s:", url+"/"))
-		default:
-			return "", nil, errors.Wrapf(ErrInvalidAuth, "unsupported auth %s for site %s", v.Auth, k)
-		}
-	}
-
-	lines = append(lines, "")
-	gitConfig := strings.Join(lines, "\n")
-
-	return gitConfig, credentials, nil
 }
 
 func keyAndValueCompatible(key reflect.Type, value *yaml.Node) bool {
