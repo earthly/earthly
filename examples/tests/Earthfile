@@ -59,6 +59,7 @@ ga:
     BUILD +platform-output
     BUILD +command
     BUILD +duplicate
+    BUILD +reserved
     BUILD +quotes-test
     BUILD +new-args
     BUILD +import
@@ -431,6 +432,9 @@ command:
 
 duplicate:
     DO +RUN_EARTHLY --earthfile=duplicate-target-names.earth --should_fail=true --target=+duplicate
+
+reserved:
+    DO +RUN_EARTHLY --earthfile=reserved-target-names.earth --should_fail=true --target=+reserved
 
 quotes-test:
     DO +RUN_EARTHLY --earthfile=quotes.earth
