@@ -1142,10 +1142,18 @@ func (c *Converter) buildTarget(ctx context.Context, fullTargetName string, plat
 					continue
 				}
 				v, _ := globals.GetActive(k)
+				// Look for the default arg value in the built target's TargetInput.
+				defaultArgValue := ""
+				for _, childBai := range mts.Final.TargetInput().BuildArgs {
+					if childBai.Name == k {
+						defaultArgValue = childBai.DefaultValue
+						break
+					}
+				}
 				c.mts.Final.AddBuildArgInput(
 					dedup.BuildArgInput{
 						Name:          k,
-						DefaultValue:  "", // TODO: Set correct default value for bai.
+						DefaultValue:  defaultArgValue,
 						ConstantValue: v,
 					})
 			}
