@@ -1172,7 +1172,10 @@ func (app *earthlyApp) run(ctx context.Context, args []string) int {
 		if errors.As(err, &buildErr) {
 			failedOutput = buildErr.VertexLog()
 		}
-		if app.verbose {
+		canceledOrVerbose := (errors.Is(err, context.Canceled) ||
+			strings.Contains(err.Error(), context.Canceled.Error()) ||
+			app.verbose)
+		if canceledOrVerbose {
 			// Get the stack trace from the deepest error that has it and print it.
 			type stackTracer interface {
 				StackTrace() errors.StackTrace
@@ -1204,7 +1207,7 @@ func (app *earthlyApp) run(ctx context.Context, args []string) int {
 			app.console.Printf(
 				"Are you using --platform to target a different architecture? You may have to manually install QEMU.\n" +
 					"For more information see https://docs.earthly.dev/guides/multi-platform\n")
-		} else if !app.verbose && rpcRegex.MatchString(err.Error()) {
+		} else if !canceledOrVerbose && rpcRegex.MatchString(err.Error()) {
 			baseErr := errors.Cause(err)
 			baseErrMsg := rpcRegex.ReplaceAll([]byte(baseErr.Error()), []byte(""))
 			app.console.Warnf("Error: %s\n", string(baseErrMsg))
