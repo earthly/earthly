@@ -6,14 +6,24 @@ FROM alpine:3.13
 test-local-with-arg:
     LOCALLY
     ARG pattern
-    RUN cat /proc/1/cgroup | grep -v docker | grep $pattern
+    RUN set -e; \
+        if [ "$(uname -s)" = "Darwin" ]; then \
+            echo "locally must be working"; \
+        else \
+            cat /proc/1/cgroup | grep -v docker | grep $pattern; \
+        fi
 
 test-local:
     LOCALLY
     # If run inside a container, one would expect something like
     # 12:cpuset:/docker/e4b6b1698e80c6a2d8ccdfcd689a1ce5828587ada1337ddcb0b9a80caf0087a4/buildkit/83zo724g6vr1ipssy0dic9kpa
     RUN whoami
-    RUN cat /proc/1/cgroup | perl -pe 'BEGIN {$status=1} END {exit $status} $status=0 if /^[0-9]+:cpuset:\/$/;'
+    RUN set -e; \
+        if [ "$(uname -s)" = "Darwin" ]; then \
+            echo "locally must be working"; \
+        else \
+            cat /proc/1/cgroup | perl -pe 'BEGIN {$status=1} END {exit $status} $status=0 if /^[0-9]+:cpuset:\/$/;'; \
+        fi
     RUN --push touch /tmp/earthly-test-local
 
 
@@ -69,7 +79,7 @@ test-save-unnamed-local-artifact-dir2:
 # tests for testing containerized artifacts can be referenced by local targets
 
 busybox-artifact:
-    FROM busybox:1.32.1
+    FROM busybox:1.32.1 # if this is changed the grep in test-copy-from-busybox-to-local must also be updated
     RUN busybox > /data
     SAVE ARTIFACT /data the-data
 
@@ -79,8 +89,8 @@ test-copy-from-busybox-to-local:
     COPY +busybox-artifact/the-data /tmp/4eb5dcb7-2245-4f35-ab41-252f78e7a451
     RUN cat /tmp/4eb5dcb7-2245-4f35-ab41-252f78e7a451 | grep "BusyBox v1.32.1"
 
-aline-artifacts:
-    FROM alpine:3.13
+alpine-artifacts:
+    FROM alpine:3.13.4 # if this is changed, the grep in test-multi-copy-from-alpine-to-local must also be updated
     SAVE ARTIFACT /etc/alpine-release alpine-release
     SAVE ARTIFACT /etc/motd alpine-motd
     SAVE ARTIFACT /etc/os-release alpine-os-release
@@ -88,8 +98,8 @@ aline-artifacts:
 test-multi-copy-from-alpine-to-local:
     LOCALLY
     RUN rm -rf /tmp/ac0887d7-fda7-4a1b-9873-054488c7e44d
-    COPY +aline-artifacts/alpine-release +aline-artifacts/alpine-motd +aline-artifacts/alpine-os-release /tmp/ac0887d7-fda7-4a1b-9873-054488c7e44d
-    RUN cat /tmp/ac0887d7-fda7-4a1b-9873-054488c7e44d/alpine-release | grep 3\\.13\\.2
+    COPY +alpine-artifacts/alpine-release +alpine-artifacts/alpine-motd +alpine-artifacts/alpine-os-release /tmp/ac0887d7-fda7-4a1b-9873-054488c7e44d
+    RUN cat /tmp/ac0887d7-fda7-4a1b-9873-054488c7e44d/alpine-release | grep 3\\.13\\.4
     RUN cat /tmp/ac0887d7-fda7-4a1b-9873-054488c7e44d/alpine-motd | grep alpinelinux.org
     RUN cat /tmp/ac0887d7-fda7-4a1b-9873-054488c7e44d/alpine-os-release | grep "ID=alpine"
 
@@ -117,7 +127,12 @@ test-locally-can-copy-dir:
 test-locally-workdir:
     LOCALLY
     WORKDIR /tmp/earthly-197ec076-b89d-4861-b8ca-33a34170712c
-    RUN test "$(pwd)" = "/tmp/earthly-197ec076-b89d-4861-b8ca-33a34170712c"
+    RUN set -e; \
+        if [ "$(uname -s)" = "Darwin" ]; then \
+            test "$(pwd)" = "/private/tmp/earthly-197ec076-b89d-4861-b8ca-33a34170712c"; \
+        else \
+            test "$(pwd)" = "/tmp/earthly-197ec076-b89d-4861-b8ca-33a34170712c"; \
+        fi
 
 # TODO add support for copying container image into local docker
 #mycontainer:
@@ -140,8 +155,11 @@ all:
     # lets disable it until we figure it out.
     BUILD +test-locally-workdir
     BUILD +test-copy-from-busybox-to-local
+
+    # These two use LOCALLY and assume /proc exists on darwin which causes a failure
     BUILD --build-arg pattern=memory +test-local-with-arg
     BUILD +test-local
+
     BUILD +test-copy-file-from-local
     BUILD +test-copy-dir-from-local
     BUILD +test-save-unnamed-local-artifact
