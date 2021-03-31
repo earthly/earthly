@@ -32,6 +32,7 @@ import (
 	reccopy "github.com/otiai10/copy"
 	"github.com/pkg/errors"
 	"golang.org/x/sync/errgroup"
+	"golang.org/x/sync/semaphore"
 )
 
 // Opt represent builder options.
@@ -57,6 +58,7 @@ type Opt struct {
 	Strict                 bool
 	DisableNoOutputUpdates bool
 	ParallelConversion     bool
+	Parallelism            *semaphore.Weighted
 }
 
 // BuildOpt is a collection of build options.
@@ -174,6 +176,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 				AllowLocally:         !b.opt.Strict,
 				AllowInteractive:     !b.opt.Strict,
 				ParallelConversion:   b.opt.ParallelConversion,
+				Parallelism:          b.opt.Parallelism,
 			})
 			if err != nil {
 				return nil, err

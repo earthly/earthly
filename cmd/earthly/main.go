@@ -44,6 +44,7 @@ import (
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/agent"
 	"golang.org/x/sync/errgroup"
+	"golang.org/x/sync/semaphore"
 	"golang.org/x/term"
 
 	"github.com/earthly/earthly/analytics"
@@ -130,7 +131,7 @@ type cliFlags struct {
 	enableSourceMap        bool
 	configDryRun           bool
 	strict                 bool
-	parallelConversion     bool
+	conversionParllelism   int
 }
 
 var (
@@ -492,11 +493,11 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 			Usage:       "Disallow usage of features that may create unreproduceable builds",
 			Destination: &app.strict,
 		},
-		&cli.BoolFlag{
-			Name:        "parallel-conversion",
-			EnvVars:     []string{"EARTHLY_PARALLEL_CONVERSION"},
-			Usage:       "*experimental* Enable parallel conversion, which speeds up the use of IF, WITH DOCKER --load, FROM DOCKERFILE and others",
-			Destination: &app.parallelConversion,
+		&cli.IntFlag{
+			Name:        "conversion-parallelism",
+			EnvVars:     []string{"EARTHLY_CONVERSION_PARALLELISM"},
+			Usage:       "*experimental* Set the conversion parallelism, which speeds up the use of IF, WITH DOCKER --load, FROM DOCKERFILE and others. A value of 0 disables the feature",
+			Destination: &app.conversionParllelism,
 		},
 	}
 
@@ -2353,6 +2354,10 @@ func (app *earthlyApp) actionBuild(c *cli.Context) error {
 			cacheExport = app.remoteCache
 		}
 	}
+	var parallelism *semaphore.Weighted
+	if app.conversionParllelism != 0 {
+		parallelism = semaphore.NewWeighted(int64(app.conversionParllelism))
+	}
 	builderOpts := builder.Opt{
 		BkClient:               bkClient,
 		Console:                app.console,
@@ -2374,7 +2379,8 @@ func (app *earthlyApp) actionBuild(c *cli.Context) error {
 		UseFakeDep:             !app.noFakeDep,
 		Strict:                 app.strict,
 		DisableNoOutputUpdates: app.interactiveDebugging,
-		ParallelConversion:     app.parallelConversion,
+		ParallelConversion:     (app.conversionParllelism != 0),
+		Parallelism:            parallelism,
 	}
 	b, err := builder.NewBuilder(c.Context, builderOpts)
 	if err != nil {

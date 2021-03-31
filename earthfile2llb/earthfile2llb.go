@@ -84,9 +84,6 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt) (m
 	if opt.MetaResolver == nil {
 		opt.MetaResolver = NewCachedMetaResolver(opt.GwClient)
 	}
-	if opt.Parallelism == nil {
-		opt.Parallelism = semaphore.NewWeighted(5)
-	}
 	// Resolve build context.
 	bc, err := opt.Resolver.Resolve(ctx, opt.GwClient, target)
 	if err != nil {

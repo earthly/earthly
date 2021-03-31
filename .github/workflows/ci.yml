@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       FORCE_COLOR: 1
-      EARTHLY_PARALLEL_CONVERSION: "true"
+      EARTHLY_CONVERSION_PARALLELISM: "5"
       EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
       EARTHLY_INSTALL_ID: "earthly-githubactions"
     steps:
@@ -43,7 +43,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       FORCE_COLOR: 1
-      EARTHLY_PARALLEL_CONVERSION: "true"
+      EARTHLY_CONVERSION_PARALLELISM: "5"
       EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
       EARTHLY_INSTALL_ID: "earthly-githubactions"
     steps:
@@ -69,7 +69,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       FORCE_COLOR: 1
-      EARTHLY_PARALLEL_CONVERSION: "true"
+      EARTHLY_CONVERSION_PARALLELISM: "5"
       EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
       EARTHLY_INSTALL_ID: "earthly-githubactions"
     steps:
@@ -111,7 +111,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       FORCE_COLOR: 1
-      EARTHLY_PARALLEL_CONVERSION: "true"
+      # EARTHLY_CONVERSION_PARALLELISM: "5" # TODO: Getting random errors like these Error: failed to compute cache key: failed to copy: httpReadSeeker: failed open: failed to authorize: no active session for ...: context deadline exceeded
       EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
       EARTHLY_INSTALL_ID: "earthly-githubactions"
     steps:
@@ -145,7 +145,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       FORCE_COLOR: 1
-      EARTHLY_PARALLEL_CONVERSION: "true"
+      EARTHLY_CONVERSION_PARALLELISM: "5"
       EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
       EARTHLY_INSTALL_ID: "earthly-githubactions"
     steps:
@@ -183,7 +183,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       FORCE_COLOR: 1
-      EARTHLY_PARALLEL_CONVERSION: "true"
+      EARTHLY_CONVERSION_PARALLELISM: "5"
       EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
       EARTHLY_INSTALL_ID: "earthly-githubactions"
     steps:
@@ -212,7 +212,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       FORCE_COLOR: 1
-      EARTHLY_PARALLEL_CONVERSION: "true"
+      EARTHLY_CONVERSION_PARALLELISM: "5"
       EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
       EARTHLY_INSTALL_ID: "earthly-githubactions"
     steps:
@@ -237,7 +237,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       FORCE_COLOR: 1
-      EARTHLY_PARALLEL_CONVERSION: "true"
+      EARTHLY_CONVERSION_PARALLELISM: "5"
       EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
       EARTHLY_INSTALL_ID: "earthly-githubactions"
     steps:
@@ -267,7 +267,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       FORCE_COLOR: 1
-      EARTHLY_PARALLEL_CONVERSION: "true"
+      EARTHLY_CONVERSION_PARALLELISM: "5"
       EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
       EARTHLY_INSTALL_ID: "earthly-githubactions"
       SSH_PORT: "2222"
@@ -292,7 +292,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       FORCE_COLOR: 1
-      EARTHLY_PARALLEL_CONVERSION: "true"
+      EARTHLY_CONVERSION_PARALLELISM: "5"
       EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
       EARTHLY_INSTALL_ID: "earthly-githubactions"
     steps:
@@ -315,7 +315,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       FORCE_COLOR: 1
-      EARTHLY_PARALLEL_CONVERSION: "true"
+      EARTHLY_CONVERSION_PARALLELISM: "5"
       EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
       EARTHLY_INSTALL_ID: "earthly-githubactions"
     steps:
@@ -354,7 +354,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       FORCE_COLOR: 1
-      EARTHLY_PARALLEL_CONVERSION: "true"
+      EARTHLY_CONVERSION_PARALLELISM: "5"
       EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
       EARTHLY_INSTALL_ID: "earthly-githubactions"
     steps:
@@ -393,7 +393,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       FORCE_COLOR: 1
-      EARTHLY_PARALLEL_CONVERSION: "true"
+      EARTHLY_CONVERSION_PARALLELISM: "5"
       EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
       EARTHLY_INSTALL_ID: "earthly-githubactions"
     steps:
@@ -434,7 +434,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       FORCE_COLOR: 1
-      EARTHLY_PARALLEL_CONVERSION: "true"
+      EARTHLY_CONVERSION_PARALLELISM: "5"
       EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
       EARTHLY_INSTALL_ID: "earthly-githubactions"
     steps:
@@ -489,7 +489,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       FORCE_COLOR: 1
-      EARTHLY_PARALLEL_CONVERSION: "true"
+      EARTHLY_CONVERSION_PARALLELISM: "5"
       EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
       EARTHLY_INSTALL_ID: "earthly-githubactions"
     steps:

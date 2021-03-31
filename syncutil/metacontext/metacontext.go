@@ -82,16 +82,26 @@ func (mc *MetaContext) Add(ctx context.Context) error {
 	return nil
 }
 
-// Deadline returns the Deadline of the fist context.
+// Deadline returns the earliest Deadline in the pool.
 func (mc *MetaContext) Deadline() (deadline time.Time, ok bool) {
 	mc.mu.Lock()
-	if len(mc.sub) == 0 {
-		mc.mu.Unlock()
+	copy := append([]context.Context{}, mc.sub...)
+	mc.mu.Unlock()
+	if len(copy) == 0 {
 		return time.Time{}, false
 	}
-	ctx := mc.sub[0]
-	mc.mu.Unlock()
-	return ctx.Deadline() // don't hold lock for this call
+	min := time.Time{}
+	hasDl := false
+	for _, ctx := range copy {
+		dl, ok := ctx.Deadline() // don't hold lock for this call
+		if ok {
+			if !hasDl || dl.Before(min) {
+				min = dl
+			}
+			hasDl = true
+		}
+	}
+	return min, hasDl
 }
 
 // Done returns the done channel. The MetaContext is done only when ALL of the
