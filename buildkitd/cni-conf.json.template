@@ -5,6 +5,7 @@
 	"bridge": "cni0",
 	"isGateway": true,
 	"ipMasq": true,
+	"mtu": ${CNI_MTU},
 	"ipam": {
 		"type": "host-local",
 		"subnet": "172.30.0.0/16",
