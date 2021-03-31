@@ -63,6 +63,14 @@ if [ -n "$GIT_URL_INSTEAD_OF" ]; then
     done
 fi
 
+#Set up CNI
+if [ -z "$CNI_MTU" ]; then
+  device=$(ip route show | grep default | cut -d' ' -f5)
+  CNI_MTU=$(cat /sys/class/net/"$device"/mtu)
+  export CNI_MTU
+fi
+envsubst </etc/cni/cni-conf.json.template >/etc/cni/cni-conf.json
+
 # Set up buildkit cache.
 export BUILDKIT_ROOT_DIR="$EARTHLY_TMP_DIR"/buildkit
 mkdir -p "$BUILDKIT_ROOT_DIR"
@@ -75,9 +83,17 @@ envsubst </etc/buildkitd.toml.template >/etc/buildkitd.toml
 echo "BUILDKIT_ROOT_DIR=$BUILDKIT_ROOT_DIR"
 echo "CACHE_SIZE_MB=$CACHE_SIZE_MB"
 echo "EARTHLY_ADDITIONAL_BUILDKIT_CONFIG=$EARTHLY_ADDITIONAL_BUILDKIT_CONFIG"
+echo "CNI_MTU=$CNI_MTU"
+echo ""
+echo "======== CNI config =========="
+cat /etc/cni/cni-conf.json
+echo "======== End CNI config =========="
+echo ""
 echo "======== Buildkitd config =========="
 cat /etc/buildkitd.toml
 echo "======== End buildkitd config =========="
+
+
 echo "Detected container architecture is $(uname -m)"
 
 # start shell repeater server
