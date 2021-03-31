@@ -7,9 +7,9 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"sync"
 
 	"github.com/earthly/earthly/fileutil"
-
 	"github.com/pkg/errors"
 )
 
@@ -26,6 +26,7 @@ type gitMatcher struct {
 
 // GitLookup looksup gits
 type GitLookup struct {
+	mu       sync.Mutex
 	matchers []*gitMatcher
 	catchAll *gitMatcher
 }
@@ -77,6 +78,8 @@ var ErrNoMatch = errors.Errorf("no git match found")
 
 // DisableSSH changes all git matchers from ssh to https
 func (gl *GitLookup) DisableSSH() {
+	gl.mu.Lock()
+	defer gl.mu.Unlock()
 	for i, m := range gl.matchers {
 		if m.protocol == "ssh" {
 			gl.matchers[i].protocol = "https"
@@ -89,6 +92,8 @@ func (gl *GitLookup) DisableSSH() {
 
 // AddMatcher adds a new matcher for looking up git repos
 func (gl *GitLookup) AddMatcher(name, pattern, sub, user, password, suffix, protocol, keyScan string) error {
+	gl.mu.Lock()
+	defer gl.mu.Unlock()
 	if protocol == "http" && password != "" {
 		return errors.Errorf("using a password with http for %s is insecure", name)
 	}
@@ -156,6 +161,8 @@ func (gl *GitLookup) getGitMatcher(path string) (string, *gitMatcher, error) {
 //   "github.com/earthly/earthly/examples/go" ---> ("git@github.com/earthly/earthly.git", "examples/go")
 // Additionally a ssh keyscan might be returned (or an empty string indicating none was configured)
 func (gl *GitLookup) GetCloneURL(path string) (string, string, string, error) {
+	gl.mu.Lock()
+	defer gl.mu.Unlock()
 	match, m, err := gl.getGitMatcher(path)
 	if err != nil {
 		return "", "", "", err

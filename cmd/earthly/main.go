@@ -44,6 +44,7 @@ import (
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/agent"
 	"golang.org/x/sync/errgroup"
+	"golang.org/x/sync/semaphore"
 	"golang.org/x/term"
 
 	"github.com/earthly/earthly/analytics"
@@ -64,6 +65,7 @@ import (
 	"github.com/earthly/earthly/fileutil"
 	"github.com/earthly/earthly/llbutil"
 	"github.com/earthly/earthly/secretsclient"
+	"github.com/earthly/earthly/states"
 	"github.com/earthly/earthly/termutil"
 	"github.com/earthly/earthly/variables"
 )
@@ -129,6 +131,7 @@ type cliFlags struct {
 	enableSourceMap        bool
 	configDryRun           bool
 	strict                 bool
+	conversionParllelism   int
 }
 
 var (
@@ -487,8 +490,14 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 		&cli.BoolFlag{
 			Name:        "strict",
 			EnvVars:     []string{"EARTHLY_STRICT"},
-			Usage:       "Disallow usage of features that may create unreproduceable builds.",
+			Usage:       "Disallow usage of features that may create unreproduceable builds",
 			Destination: &app.strict,
+		},
+		&cli.IntFlag{
+			Name:        "conversion-parallelism",
+			EnvVars:     []string{"EARTHLY_CONVERSION_PARALLELISM"},
+			Usage:       "*experimental* Set the conversion parallelism, which speeds up the use of IF, WITH DOCKER --load, FROM DOCKERFILE and others. A value of 0 disables the feature",
+			Destination: &app.conversionParllelism,
 		},
 	}
 
@@ -1164,7 +1173,10 @@ func (app *earthlyApp) run(ctx context.Context, args []string) int {
 		if errors.As(err, &buildErr) {
 			failedOutput = buildErr.VertexLog()
 		}
-		if app.verbose {
+		canceledOrVerbose := (errors.Is(err, context.Canceled) ||
+			strings.Contains(err.Error(), context.Canceled.Error()) ||
+			app.verbose)
+		if canceledOrVerbose {
 			// Get the stack trace from the deepest error that has it and print it.
 			type stackTracer interface {
 				StackTrace() errors.StackTrace
@@ -1196,7 +1208,7 @@ func (app *earthlyApp) run(ctx context.Context, args []string) int {
 			app.console.Printf(
 				"Are you using --platform to target a different architecture? You may have to manually install QEMU.\n" +
 					"For more information see https://docs.earthly.dev/guides/multi-platform\n")
-		} else if !app.verbose && rpcRegex.MatchString(err.Error()) {
+		} else if !canceledOrVerbose && rpcRegex.MatchString(err.Error()) {
 			baseErr := errors.Cause(err)
 			baseErrMsg := rpcRegex.ReplaceAll([]byte(baseErr.Error()), []byte(""))
 			app.console.Warnf("Error: %s\n", string(baseErrMsg))
@@ -2342,6 +2354,10 @@ func (app *earthlyApp) actionBuild(c *cli.Context) error {
 			cacheExport = app.remoteCache
 		}
 	}
+	var parallelism *semaphore.Weighted
+	if app.conversionParllelism != 0 {
+		parallelism = semaphore.NewWeighted(int64(app.conversionParllelism))
+	}
 	builderOpts := builder.Opt{
 		BkClient:               bkClient,
 		Console:                app.console,
@@ -2349,7 +2365,7 @@ func (app *earthlyApp) actionBuild(c *cli.Context) error {
 		Attachables:            attachables,
 		Enttlmnts:              enttlmnts,
 		NoCache:                app.noCache,
-		CacheImports:           cacheImports,
+		CacheImports:           states.NewCacheImports(cacheImports),
 		CacheExport:            cacheExport,
 		MaxCacheExport:         maxCacheExport,
 		UseInlineCache:         app.useInlineCache,
@@ -2363,6 +2379,8 @@ func (app *earthlyApp) actionBuild(c *cli.Context) error {
 		UseFakeDep:             !app.noFakeDep,
 		Strict:                 app.strict,
 		DisableNoOutputUpdates: app.interactiveDebugging,
+		ParallelConversion:     (app.conversionParllelism != 0),
+		Parallelism:            parallelism,
 	}
 	b, err := builder.NewBuilder(c.Context, builderOpts)
 	if err != nil {

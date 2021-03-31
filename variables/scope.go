@@ -69,6 +69,15 @@ func (s *Scope) ActiveValueMap() map[string]string {
 	return ret
 }
 
+// AllValueMap returns a map of the values of all the variables.
+func (s *Scope) AllValueMap() map[string]string {
+	ret := make(map[string]string)
+	for name, value := range s.variables {
+		ret[name] = value
+	}
+	return ret
+}
+
 // SortedActive returns the active variable names in a sorted slice.
 func (s *Scope) SortedActive() []string {
 	varNames := make([]string, 0, len(s.activeVariables))

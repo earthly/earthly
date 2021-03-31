@@ -1,12 +1,14 @@
 package variables
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/containerd/containerd/platforms"
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/gitutil"
 	"github.com/earthly/earthly/llbutil"
+	"github.com/earthly/earthly/states/dedup"
 	"github.com/earthly/earthly/stringutil"
 	specs "github.com/opencontainers/image-spec/specs-go/v1"
 )
@@ -36,6 +38,12 @@ func BuiltinArgs(target domain.Target, platform specs.Platform, gitMeta *gitutil
 		ret.AddInactive("EARTHLY_GIT_ORIGIN_URL", gitMeta.RemoteURL)
 		ret.AddInactive("EARTHLY_GIT_ORIGIN_URL_SCRUBBED", stringutil.ScrubCredentials(gitMeta.RemoteURL))
 		ret.AddInactive("EARTHLY_GIT_PROJECT_NAME", getProjectName(gitMeta.RemoteURL))
+	}
+	// Note: Please update targetinput.go BuiltinVariables if adding more builtin variables.
+	for _, key := range ret.SortedAny() {
+		if !dedup.BuiltinVariables[key] {
+			panic(fmt.Sprintf("you forgot to add %s to the map of BuiltinVariables", key))
+		}
 	}
 	return ret
 }

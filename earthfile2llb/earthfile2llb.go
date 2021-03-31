@@ -7,15 +7,14 @@ import (
 	gwclient "github.com/moby/buildkit/frontend/gateway/client"
 	specs "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
+	"golang.org/x/sync/semaphore"
 
 	"github.com/earthly/earthly/ast"
 	"github.com/earthly/earthly/buildcontext"
 	"github.com/earthly/earthly/buildcontext/provider"
 	"github.com/earthly/earthly/cleanup"
 	"github.com/earthly/earthly/domain"
-	"github.com/earthly/earthly/llbutil"
 	"github.com/earthly/earthly/states"
-	"github.com/earthly/earthly/states/dedup"
 	"github.com/earthly/earthly/variables"
 )
 
@@ -50,7 +49,7 @@ type ConvertOpt struct {
 	MetaResolver llb.ImageMetaResolver
 	// CacheImports is a set of docker tags that can be used to import cache. Note that this
 	// set is modified by the converter if InlineCache is enabled.
-	CacheImports map[string]bool
+	CacheImports *states.CacheImports
 	// UseInlineCache enables the inline caching feature (use any SAVE IMAGE --push declaration as
 	// cache import).
 	UseInlineCache bool
@@ -60,6 +59,18 @@ type ConvertOpt struct {
 	AllowLocally bool
 	// AllowInteractive is an internal feature flag for controlling if interactive sessions can be initiated.
 	AllowInteractive bool
+	// HasDangling represents whether the target has dangling instructions -
+	// ie if there are any non-SAVE commands after the first SAVE command,
+	// or if the target is invoked via BUILD command (not COPY nor FROM).
+	HasDangling bool
+
+	// ParallelConversion is a feature flag enabling the parallel conversion algorithm.
+	ParallelConversion bool
+	// Parallelism is a semaphore controlling the maximum parallelism.
+	Parallelism *semaphore.Weighted
+
+	// parentDepSub is a channel informing of any new dependencies from the parent.
+	parentDepSub chan string // chan of sts IDs.
 }
 
 // Earthfile2LLB parses a earthfile and executes the statements for a given target.
@@ -71,59 +82,30 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt) (m
 		opt.Visited = states.NewVisitedCollection()
 	}
 	if opt.MetaResolver == nil {
-		opt.MetaResolver = opt.GwClient
-	}
-	// Check if we have previously converted this target, with the same build args.
-	targetStr := target.String()
-	for _, sts := range opt.Visited.Visited[targetStr] {
-		stsPlat, err := llbutil.ParsePlatform(sts.TargetInput.Platform)
-		if err != nil {
-			return nil, err
-		}
-		same := llbutil.PlatformEquals(stsPlat, opt.Platform)
-		if same {
-			for _, bai := range sts.TargetInput.BuildArgs {
-				variable, found := opt.OverridingVars.GetAny(bai.Name)
-				if found {
-					baiVariable := dedup.BuildArgInput{
-						Name:          bai.Name,
-						DefaultValue:  bai.DefaultValue,
-						ConstantValue: variable,
-					}
-					if !baiVariable.Equals(bai) {
-						same = false
-						break
-					}
-				} else {
-					if !bai.IsDefaultValue() {
-						same = false
-						break
-					}
-				}
-			}
-		}
-		if same {
-			if sts.Ongoing {
-				return nil, errors.Errorf(
-					"infinite recursion detected for target %s", targetStr)
-			}
-			// Use the already built states.
-			return &states.MultiTarget{
-				Final:   sts,
-				Visited: opt.Visited,
-			}, nil
-		}
+		opt.MetaResolver = NewCachedMetaResolver(opt.GwClient)
 	}
 	// Resolve build context.
 	bc, err := opt.Resolver.Resolve(ctx, opt.GwClient, target)
 	if err != nil {
 		return nil, errors.Wrapf(err, "resolve build context for target %s", target.String())
 	}
-	converter, err := NewConverter(ctx, bc.Ref.(domain.Target), bc, opt)
+	targetWithMetadata := bc.Ref.(domain.Target)
+	sts, found, err := opt.Visited.Add(ctx, targetWithMetadata, opt.Platform, opt.OverridingVars, opt.parentDepSub)
 	if err != nil {
 		return nil, err
 	}
-	interpreter := newInterpreter(converter, target)
+	if found {
+		// This target has already been done.
+		return &states.MultiTarget{
+			Final:   sts,
+			Visited: opt.Visited,
+		}, nil
+	}
+	converter, err := NewConverter(ctx, targetWithMetadata, bc, sts, opt)
+	if err != nil {
+		return nil, err
+	}
+	interpreter := newInterpreter(converter, targetWithMetadata, opt.ParallelConversion, opt.Parallelism)
 	err = interpreter.Run(ctx, bc.Earthfile)
 	if err != nil {
 		return nil, err

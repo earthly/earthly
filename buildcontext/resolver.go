@@ -9,7 +9,8 @@ import (
 	"github.com/earthly/earthly/cleanup"
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/gitutil"
-	"github.com/moby/buildkit/client/llb"
+	"github.com/earthly/earthly/llbutil/pllb"
+	"github.com/earthly/earthly/syncutil/synccache"
 	gwclient "github.com/moby/buildkit/frontend/gateway/client"
 	"github.com/pkg/errors"
 )
@@ -25,7 +26,7 @@ type Data struct {
 	// BuildFilePath is the local path where the Earthfile or Dockerfile can be found.
 	BuildFilePath string
 	// BuildContext is the state to use for the build.
-	BuildContext llb.State
+	BuildContext pllb.State
 	// GitMetadata contains git metadata information.
 	GitMetadata *gitutil.GitMetadata
 	// Target is the earthly reference.
@@ -39,7 +40,7 @@ type Resolver struct {
 	gr *gitResolver
 	lr *localResolver
 
-	parseCache map[string]spec.Earthfile // local path -> AST
+	parseCache *synccache.SyncCache // local path -> AST
 }
 
 // NewResolver returns a new NewResolver.
@@ -47,14 +48,15 @@ func NewResolver(sessionID string, cleanCollection *cleanup.Collection, gitLooku
 	return &Resolver{
 		gr: &gitResolver{
 			cleanCollection: cleanCollection,
-			projectCache:    make(map[string]*resolvedGitProject),
+			projectCache:    synccache.New(),
+			buildFileCache:  synccache.New(),
 			gitLookup:       gitLookup,
 		},
 		lr: &localResolver{
-			gitMetaCache: make(map[string]*gitutil.GitMetadata),
+			gitMetaCache: synccache.New(),
 			sessionID:    sessionID,
 		},
-		parseCache: make(map[string]spec.Earthfile),
+		parseCache: synccache.New(),
 	}
 }
 
@@ -96,15 +98,12 @@ func (r *Resolver) Resolve(ctx context.Context, gwClient gwclient.Client, ref do
 
 func (r *Resolver) parseEarthfile(ctx context.Context, path string) (spec.Earthfile, error) {
 	path = filepath.Clean(path)
-	ef, found := r.parseCache[path]
-	if found {
-		return ef, nil
-	}
-
-	ef, err := ast.Parse(ctx, path, true)
+	efValue, err := r.parseCache.Do(ctx, path, func(ctx context.Context, k interface{}) (interface{}, error) {
+		return ast.Parse(ctx, k.(string), true)
+	})
 	if err != nil {
 		return spec.Earthfile{}, err
 	}
-	r.parseCache[path] = ef
+	ef := efValue.(spec.Earthfile)
 	return ef, nil
 }

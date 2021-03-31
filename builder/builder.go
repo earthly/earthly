@@ -19,6 +19,7 @@ import (
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/earthfile2llb"
 	"github.com/earthly/earthly/llbutil"
+	"github.com/earthly/earthly/llbutil/pllb"
 	"github.com/earthly/earthly/states"
 	"github.com/earthly/earthly/variables"
 	"github.com/moby/buildkit/client"
@@ -31,6 +32,7 @@ import (
 	reccopy "github.com/otiai10/copy"
 	"github.com/pkg/errors"
 	"golang.org/x/sync/errgroup"
+	"golang.org/x/sync/semaphore"
 )
 
 // Opt represent builder options.
@@ -42,7 +44,7 @@ type Opt struct {
 	Attachables            []session.Attachable
 	Enttlmnts              []entitlements.Entitlement
 	NoCache                bool
-	CacheImports           map[string]bool
+	CacheImports           *states.CacheImports
 	CacheExport            string
 	MaxCacheExport         string
 	UseInlineCache         bool
@@ -55,6 +57,8 @@ type Opt struct {
 	UseFakeDep             bool
 	Strict                 bool
 	DisableNoOutputUpdates bool
+	ParallelConversion     bool
+	Parallelism            *semaphore.Weighted
 }
 
 // BuildOpt is a collection of build options.
@@ -171,6 +175,8 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 				UseFakeDep:           b.opt.UseFakeDep,
 				AllowLocally:         !b.opt.Strict,
 				AllowInteractive:     !b.opt.Strict,
+				ParallelConversion:   b.opt.ParallelConversion,
+				Parallelism:          b.opt.Parallelism,
 			})
 			if err != nil {
 				return nil, err
@@ -418,7 +424,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 	if opt.NoOutput {
 		// Nothing.
 	} else if opt.OnlyArtifact != nil {
-		err := b.saveArtifactLocally(ctx, *opt.OnlyArtifact, outDir, opt.OnlyArtifactDestPath, mts.Final.Salt, opt, false)
+		err := b.saveArtifactLocally(ctx, *opt.OnlyArtifact, outDir, opt.OnlyArtifactDestPath, mts.Final.ID, opt, false)
 		if err != nil {
 			return nil, err
 		}
@@ -429,7 +435,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 			if !shouldPush && !shouldExport {
 				continue
 			}
-			console := b.opt.Console.WithPrefixAndSalt(mts.Final.Target.String(), mts.Final.Salt)
+			console := b.opt.Console.WithPrefixAndSalt(mts.Final.Target.String(), mts.Final.ID)
 			pushStr := ""
 			if shouldPush {
 				pushStr = " (pushed)"
@@ -445,7 +451,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 		// TODO: This is a little brittle to future code changes.
 		dirIndex := 0
 		for _, sts := range mts.All() {
-			console := b.opt.Console.WithPrefixAndSalt(sts.Target.String(), sts.Salt)
+			console := b.opt.Console.WithPrefixAndSalt(sts.Target.String(), sts.ID)
 
 			for _, saveImage := range sts.SaveImages {
 				shouldPush := opt.Push && saveImage.Push && !sts.Target.IsRemote() && saveImage.DockerTag != ""
@@ -470,7 +476,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 						Target:   sts.Target,
 						Artifact: saveLocal.ArtifactPath,
 					}
-					err := b.saveArtifactLocally(ctx, artifact, artifactDir, saveLocal.DestPath, sts.Salt, opt, saveLocal.IfExists)
+					err := b.saveArtifactLocally(ctx, artifact, artifactDir, saveLocal.DestPath, sts.ID, opt, saveLocal.IfExists)
 					if err != nil {
 						return nil, err
 					}
@@ -485,7 +491,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 								Target:   sts.Target,
 								Artifact: saveLocal.ArtifactPath,
 							}
-							err := b.saveArtifactLocally(ctx, artifact, artifactDir, saveLocal.DestPath, sts.Salt, opt, saveLocal.IfExists)
+							err := b.saveArtifactLocally(ctx, artifact, artifactDir, saveLocal.DestPath, sts.ID, opt, saveLocal.IfExists)
 							if err != nil {
 								return nil, err
 							}
@@ -518,7 +524,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 	return mts, nil
 }
 
-func (b *Builder) targetPhaseState(sts *states.SingleTarget) llb.State {
+func (b *Builder) targetPhaseState(sts *states.SingleTarget) pllb.State {
 	if b.builtMain {
 		return sts.RunPush.State
 	}
@@ -546,18 +552,18 @@ func (b *Builder) targetPhaseInteractiveSession(sts *states.SingleTarget) states
 	return sts.InteractiveSession
 }
 
-func (b *Builder) stateToRef(ctx context.Context, gwClient gwclient.Client, state llb.State, platform *specs.Platform) (gwclient.Reference, error) {
+func (b *Builder) stateToRef(ctx context.Context, gwClient gwclient.Client, state pllb.State, platform *specs.Platform) (gwclient.Reference, error) {
 	if b.opt.NoCache && !b.builtMain {
 		state = state.SetMarshalDefaults(llb.IgnoreCache)
 	}
-	return llbutil.StateToRef(ctx, gwClient, state, platform, b.opt.CacheImports)
+	return llbutil.StateToRef(ctx, gwClient, state, platform, b.opt.CacheImports.AsMap())
 }
 
-func (b *Builder) artifactStateToRef(ctx context.Context, gwClient gwclient.Client, state llb.State, platform *specs.Platform) (gwclient.Reference, error) {
+func (b *Builder) artifactStateToRef(ctx context.Context, gwClient gwclient.Client, state pllb.State, platform *specs.Platform) (gwclient.Reference, error) {
 	if b.opt.NoCache || b.builtMain {
 		state = state.SetMarshalDefaults(llb.IgnoreCache)
 	}
-	return llbutil.StateToRef(ctx, gwClient, state, platform, b.opt.CacheImports)
+	return llbutil.StateToRef(ctx, gwClient, state, platform, b.opt.CacheImports.AsMap())
 }
 
 func (b *Builder) buildOnlyLastImageAsTar(ctx context.Context, mts *states.MultiTarget, dockerTag string, outFile string, opt BuildOpt) error {

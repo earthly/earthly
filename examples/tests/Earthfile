@@ -63,6 +63,7 @@ ga:
     BUILD +quotes-test
     BUILD +new-args
     BUILD +import
+    BUILD +infinite-recursion
 
 experimental:
     BUILD ./dind-auto-install+all
@@ -150,7 +151,9 @@ remote-test:
 transitive-args-test:
     DO +RUN_EARTHLY --earthfile=transitive-args.earth --extra_args="--build-arg SOMEARG=xyz" --target=+test
     RUN ls
-    RUN test -f ./abc && test -f ./xyz && test ! -f ./default
+    RUN test -f ./abc
+    RUN test -f ./xyz
+    RUN test ! -f ./default
     RUN cat ./abc | grep abc
     RUN cat ./xyz | grep xyz
 
@@ -444,6 +447,16 @@ new-args:
 
 import:
     DO +RUN_EARTHLY --earthfile=import.earth
+
+infinite-recursion:
+    DO +RUN_EARTHLY --earthfile=infinite-recursion.earth --should_fail=true --target=+test1
+    DO +RUN_EARTHLY --earthfile=infinite-recursion.earth --should_fail=true --target=+test2
+    DO +RUN_EARTHLY --earthfile=infinite-recursion.earth --should_fail=true --target=+test3
+    DO +RUN_EARTHLY --earthfile=infinite-recursion.earth --should_fail=true --target=+test4
+    DO +RUN_EARTHLY --earthfile=infinite-recursion.earth --should_fail=true --target=+test5
+    DO +RUN_EARTHLY --earthfile=infinite-recursion.earth --should_fail=true --target=+test6
+    DO +RUN_EARTHLY --earthfile=infinite-recursion.earth --should_fail=true --target=+test7
+    DO +RUN_EARTHLY --earthfile=infinite-recursion.earth --should_fail=true --target=+test8
 
 RUN_EARTHLY:
     COMMAND
