@@ -161,10 +161,11 @@ func (gl *GitLookup) GetCloneURL(path string) (string, string, string, error) {
 		return "", "", "", err
 	}
 
-	n := len(match) + 1
+	n := len(match)
 	subPath := ""
 	if len(path) > n {
-		subPath = path[n:]
+		subPath = path[n+1:]
+		path = path[:n]
 	}
 
 	var gitURL, keyScan string
@@ -183,6 +184,9 @@ func (gl *GitLookup) GetCloneURL(path string) (string, string, string, error) {
 	}
 
 	if m.sub != "" {
+		if !m.re.MatchString(path) {
+			return "", "", "", errors.Errorf("failed to determine git path to clone for %q", path)
+		}
 		gitURL = m.re.ReplaceAllString(path, m.sub)
 	}
 
