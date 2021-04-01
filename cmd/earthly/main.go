@@ -471,6 +471,7 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 			EnvVars:     []string{"EARTHLY_DEBUG"},
 			Usage:       "Enable debug mode. This flag also turns on the debug mode of buildkitd, which may cause it to restart",
 			Destination: &app.debug,
+			Hidden:      true, // For development purposes only.
 		},
 		&cli.StringFlag{
 			Name:        "server",
@@ -496,7 +497,7 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 		&cli.IntFlag{
 			Name:        "conversion-parallelism",
 			EnvVars:     []string{"EARTHLY_CONVERSION_PARALLELISM"},
-			Usage:       "*experimental* Set the conversion parallelism, which speeds up the use of IF, WITH DOCKER --load, FROM DOCKERFILE and others. A value of 0 disables the feature",
+			Usage:       "Set the conversion parallelism, which speeds up the use of IF, WITH DOCKER --load, FROM DOCKERFILE and others. A value of 0 disables the feature *experimental*",
 			Destination: &app.conversionParllelism,
 		},
 	}
@@ -902,6 +903,12 @@ func (app *earthlyApp) before(context *cli.Context) error {
 	app.buildkitdSettings.DebuggerPort = app.cfg.Global.DebuggerPort
 	app.buildkitdSettings.AdditionalArgs = app.cfg.Global.BuildkitAdditionalArgs
 	app.buildkitdSettings.AdditionalConfig = app.cfg.Global.BuildkitAdditionalConfig
+
+	// ensure the MTU is something allowable in IPv4, cap enforced by type. Zero is autodetect.
+	if app.buildkitdSettings.CniMtu != 0 && app.buildkitdSettings.CniMtu < 68 {
+		return errors.New("invalid overridden MTU size")
+	}
+	app.buildkitdSettings.CniMtu = app.cfg.Global.CniMtu
 
 	return nil
 }

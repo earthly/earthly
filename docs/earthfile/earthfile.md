@@ -1,6 +1,22 @@
 # Earthfile reference
 
-Earthfiles are comprised of a series of target declarations and recipe definitions. Earthfiles are named `Earthfile`, regardless of their location in the codebase. For backwards compatibility, the name `build.earth` is also permitted. This compatibility will be removed in a future version.
+<!--
+
+Note to person editing!
+
+The general order of the commands is as follows:
+
+- Core classical Dockerfile commands (order is the same as in the Dockferfile official docs)
+- Core, GA'd Earthly commands
+- Other Dockerfile commands which have the exact same behavior in Earthly as in Dockerfiles
+- Beta Earthly commands
+- Experimental Earthly commands
+- Classical Dockerfile commands that are not supported
+- Deprected Earthly commands
+
+-->
+
+Earthfiles are comprised of a series of target declarations and recipe definitions. Earthfiles are named `Earthfile`, regardless of their location in the codebase.
 
 Earthfiles have the following rough structure:
 
@@ -78,72 +94,11 @@ yet-another:
 
 Sets a value override of `<value>` for the build arg identified by `<key>`. See also [BUILD](#build) for more details about the `--build-arg` option.
 
-##### `--platform <platform>` (**experimental**)
+##### `--platform <platform>` (**beta**)
 
 Specifies the platform to build on.
 
 For more information see the [multi-platform guide](../guides/multi-platform.md).
-
-## FROM DOCKERFILE (**beta**)
-
-#### Synopsis
-
-* `FROM DOCKERFILE [--build-arg <key>=<value>] [--platform <platform>] [--target <target-name>] <context-path>`
-
-#### Description
-
-The `FROM DOCKERFILE` command initializes a new build environment, inheriting from an existing Dockerfile. This allows the use of Dockerfiles in Earthly builds.
-
-The `<context-path>` is the path where the Dockerfile build context exists. It is assumed that a file named `Dockerfile` exists in that directory. The context path can be either a path on the host system, or an artifact reference, pointing to a directory containing a `Dockerfile`.
-
-{% hint style='info' %}
-##### Note
-
-This feature is currently in **Beta** and it has the following limitations:
-
-* This feature only works with files named `Dockerfile`. The equivalent of the `-f` option available in `docker build` has not yet been implemented.
-* `.dockerignore` is not used.
-* The newer experimental features which exist in the Dockerfile syntax are not guaranteed to work correctly.
-{% endhint %}
-
-#### Options
-
-##### `--build-arg <key>=<value>`
-
-Sets a value override of `<value>` for the Dockerfile build arg identified by `<key>`. This option is similar to the `docker build --build-arg <key>=<value>` option.
-
-##### `--target <target-name>`
-
-In a multi-stage Dockerfile, sets the target to be used for the build. This option is similar to the `docker build --target <target-name>` option.
-
-##### `--platform <platform>` (**experimental**)
-
-Specifies the platform to build on.
-
-For more information see the [multi-platform guide](../guides/multi-platform.md).
-
-## LOCALLY (**experimental**)
-
-{% hint style='danger' %}
-##### Important
-
-This feature is currently in **Experimental** stage
-
-* The feature may break, be changed drastically with no warning, or be removed altogether in future versions of Earthly.
-* Check the [GitHub tracking issue](https://github.com/earthly/earthly/issues/580) for any known problems.
-* Give us feedback on [Slack](https://earthly.dev/slack) in the `#locally` channel.
-{% endhint %}
-
-#### Synopsis
-
-* `LOCALLY`
-
-#### Description
-
-The `LOCALLY` command instructs earthly to execute the following `RUN` commands locally on the host system.
-This feature should be used with caution as locally run commands have no guarantee they will behave the same on different systems.
-
-Only `RUN` commands are supported under a `LOCALLY` defined target; futhermore only `RUN`'s `--push` flag is supported.
 
 ## RUN
 
@@ -374,7 +329,7 @@ final-target:
     COPY +intermediate/some-file.txt ./
 ```
 
-##### `--platform <platform>` (**experimental**)
+##### `--platform <platform>` (**beta**)
 
 In *artifact form*, it specifies the platform to build the artifact on.
 
@@ -407,27 +362,43 @@ COPY --dir test .
 
 For detailed examples demonstrating how other scenarios may function, please see our [test suite](https://github.com/earthly/earthly/blob/main/examples/tests/copy.earth).
 
-## GIT CLONE
+## ARG
 
 #### Synopsis
 
-* `GIT CLONE [--branch <git-ref>] [--keep-ts] <git-url> <dest-path>`
+* `ARG <name>[=<default-value>]`
 
 #### Description
 
-The command `GIT CLONE` clones a git repository from `<git-url>`, optionally referenced by `<git-ref>`, into the build environment, within the `<dest-path>`.
+The command `ARG` declares a variable (or arg) with the name `<name>` and with an optional default value `<default-value>`. If no default value is provided, then empty string is used as the default value.
 
-In contrast to an operation like `RUN git clone <git-url> <dest-path>`, the command `GIT CLONE` is cache-aware and correctly distinguishes between different git commit IDs when deciding to reuse a previous cache or not. In addition, `GIT CLONE` can also use [Git authentication configuration](../guides/auth.md) passed on to `earthly`, whereas `RUN git clone` would require additional secrets passing, if the repository is not publicly accessible.
+This command works similarly to the [Dockerfile `ARG` command](https://docs.docker.com/engine/reference/builder/#arg), with a few differences regarding the scope and the predefined args (called builtin args in Earthly). The variable's scope is always limited to the recipe of the current target or command and only from the point it is declared onwards. For more information regarding builtin args, see the [builtin args page](./builtin-args.md).
 
-#### Options
+If an `ARG` is defined in the `base` target of the Earthfile, then it becomes a global `ARG` and it is made avaialable to every other target or command in that file, regardless of their base images used.
 
-##### `--branch <git-ref>`
+The value of an arg can be overridden either from the `earthly` command
 
-Points the `HEAD` to the git reference specified by `<git-ref>`. If this option is not specified, then the remote `HEAD` is used instead.
+```bash
+earthly --build-arg <name>=<override-value>
+```
 
-##### `--keep-ts`
+or from a command from another target, when implicitly or explicitly invoking the target containing the `ARG`
 
-Instructs Earthly to not overwrite the file creation timestamps with a constant.
+```Dockerfile
+BUILD --build-arg <name>=<override-value> <target-ref>
+COPY --build-arg <name>=<override-value> <target-ref>/<artifact-path>... <dest-path>
+FROM --build-arg <name>=<override-value> <target-ref>
+```
+
+for example
+
+```Dockerfile
+BUILD --build-arg PLATFORM=linux +binary
+COPY --build-arg PLATFORM=linux +binary/bin ./
+FROM --build-arg NAME=john +docker-image
+```
+
+A number of builtin args are available and are pre-filled by Earthly. For more information see [builtin args](./builtin-args.md).
 
 ## SAVE ARTIFACT
 
@@ -551,7 +522,7 @@ or a dynamic expression, based on the output of a command executed in the contex
 --build-arg SOME_ARG=$(find /app -type f -name '*.php')
 ```
 
-##### `--platform <platform>` (**experimental**)
+##### `--platform <platform>` (**beta**)
 
 Specifies the platform to build on.
 
@@ -564,346 +535,27 @@ build-all-platforms:
 
 For more information see the [multi-platform guide](../guides/multi-platform.md).
 
-## ARG
+## GIT CLONE
 
 #### Synopsis
 
-* `ARG <name>[=<default-value>]`
+* `GIT CLONE [--branch <git-ref>] [--keep-ts] <git-url> <dest-path>`
 
 #### Description
 
-The command `ARG` declares a variable (or arg) with the name `<name>` and with an optional default value `<default-value>`. If no default value is provided, then empty string is used as the default value.
+The command `GIT CLONE` clones a git repository from `<git-url>`, optionally referenced by `<git-ref>`, into the build environment, within the `<dest-path>`.
 
-This command works similarly to the [Dockerfile `ARG` command](https://docs.docker.com/engine/reference/builder/#arg), with a few differences regarding the scope and the predefined args (called builtin args in Earthly). The variable's scope is always limited to the recipe of the current target or command and only from the point it is declared onwards. For more information regarding builtin args, see the [builtin args page](./builtin-args.md).
-
-If an `ARG` is defined in the `base` target of the Earthfile, then it becomes a global `ARG` and it is made avaialable to every other target or command in that file, regardless of their base images used.
-
-The value of an arg can be overridden either from the `earthly` command
-
-```bash
-earthly --build-arg <name>=<override-value>
-```
-
-or from a command from another target, when implicitly or explicitly invoking the target containing the `ARG`
-
-```Dockerfile
-BUILD --build-arg <name>=<override-value> <target-ref>
-COPY --build-arg <name>=<override-value> <target-ref>/<artifact-path>... <dest-path>
-FROM --build-arg <name>=<override-value> <target-ref>
-```
-
-for example
-
-```Dockerfile
-BUILD --build-arg PLATFORM=linux +binary
-COPY --build-arg PLATFORM=linux +binary/bin ./
-FROM --build-arg NAME=john +docker-image
-```
-
-A number of builtin args are available and are pre-filled by Earthly. For more information see [builtin args](./builtin-args.md).
-
-## WITH DOCKER (**beta**)
-
-#### Synopsis
-
-```Dockerfile
-WITH DOCKER [--pull <image-name>] [--load <image-name>=<target-ref>] [--compose <compose-file>]
-            [--service <compose-service>] [--build-arg <key>=<value>]
-  <commands>
-  ...
-END
-```
-
-#### Description
-
-The clause `WITH DOCKER` initializes a Docker daemon to be used in the context of a `RUN` command. The Docker daemon can be pre-loaded with a set of images using options such as `-pull` and `--load`. Once the execution of the `RUN` command has completed, the Docker daemon is stopped and all of its data is deleted, including any volumes and network configuration. Any other files that may have been created are kept, however.
-
-The clause `WITH DOCKER` automatically implies the `RUN --privileged` flag.
-
-The `WITH DOCKER` clause only supports the command [`RUN`](#run). Other commands (such as `COPY`) need to be run either before or after `WITH DOCKER ... END`. In addition, only one `RUN` command is permitted within `WITH DOCKER`. However, multiple shell commands may be stringed together using `;` or `&&`.
-
-A typical example of a `WITH DOCKER` clause might be:
-
-```Dockerfile
-FROM earthly/dind:alpine
-WORKDIR /test
-COPY docker-compose.yml ./
-WITH DOCKER \
-        --compose docker-compose.yml \
-        --load image-name:latest=+some-target \
-        --pull some-image:latest
-    RUN docker run ... && \
-        docker run ... && \
-        ...
-END
-```
-
-For more examples, see the [Docker in Earthly guide](../guides/docker-in-earthly.md) and the [Integration testing guide](../guides/integration.md).
-
-{% hint style='info' %}
-##### Note
-For performance reasons, it is recommended to use a Docker image that already contains `dockerd`. If `dockerd` is not found, Earthly will attempt to install it.
-
-Earthly provides officially supported images such as `earthly/dind:alpine` and `earthly/dind:ubuntu` to be used together with `WITH DOCKER`.
-{% endhint %}
+In contrast to an operation like `RUN git clone <git-url> <dest-path>`, the command `GIT CLONE` is cache-aware and correctly distinguishes between different git commit IDs when deciding to reuse a previous cache or not. In addition, `GIT CLONE` can also use [Git authentication configuration](../guides/auth.md) passed on to `earthly`, whereas `RUN git clone` would require additional secrets passing, if the repository is not publicly accessible.
 
 #### Options
 
-##### `--pull <image-name>`
+##### `--branch <git-ref>`
 
-Pulls the Docker image `<image-name>` from a remote registry and then loads it into the temporary Docker daemon created by `WITH DOCKER`.
+Points the `HEAD` to the git reference specified by `<git-ref>`. If this option is not specified, then the remote `HEAD` is used instead.
 
-This option may be repeated in order to provide multiple images to be pulled.
+##### `--keep-ts`
 
-{% hint style='info' %}
-##### Note
-It is recommended that you avoid issuing `RUN docker pull ...` and use `WITH DOCKER --pull ...` instead. The classical `docker pull` command does not take into account Earthly caching and so it would redownload the image much more frequently than necessary.
-{% endhint %}
-
-##### `--load <image-name>=<target-ref>`
-
-Builds the image referenced by `<target-ref>` and then loads it into the temporary Docker daemon created by `WITH DOCKER`. The image can be referenced as `<image-name>` within `WITH DOCKER`.
-
-This option may be repeated in order to provide multiple images to be loaded.
-
-##### `--compose <compose-file>`
-
-Loads the compose definition defined in `<compose-file>`, adds all applicable images to the pull list and starts up all applicable compose services within.
-
-This option may be repeated, thus having the same effect as repeating the `-f` flag in the `docker-compose` command.
-
-##### `--service <compose-service>`
-
-Specifies which compose service to pull and start up. If no services are specified and `--compose` is used, then all services are pulled and started up.
-
-This option can only be used if `--compose` has been specified.
-
-This option may be repeated in order to specify multiple services.
-
-##### `--build-arg <key>=<value>`
-
-Sets a value override of `<value>` for the build arg identified by `<key>`, when building a `<target-ref>` (specified via `--load`). See also [BUILD](#build) for more details about the `--build-arg` option.
-
-##### `--platform <platform>` (**experimental**)
-
-Specifies the platform for any referenced `--load` and `--pull` images.
-
-For more information see the [multi-platform guide](../guides/multi-platform.md).
-
-## IF (**experimental**)
-
-{% hint style='danger' %}
-##### Important
-
-This feature is currently in **Experimental** stage
-
-* The feature may break, be changed drastically with no warning, or be removed altogether in future versions of Earthly.
-* Check the [GitHub tracking issue](https://github.com/earthly/earthly/issues/779) for any known problems.
-* Give us feedback on [Slack](https://earthly.dev/slack).
-{% endhint %}
-
-#### Synopsis
-
-* ```
-  IF [<condition-options>...] <condition>
-    <if-block>
-  END
-  ```
-* ```
-  IF [<condition-options>...] <condition>
-    <if-block>
-  ELSE
-    <else-block>
-  END
-  ```
-* ```
-  IF [<condition-options>...] <condition>
-    <if-block>
-  ELSE IF [<condition-options>...] <condition>
-    <else-if-block>
-  ...
-  ELSE
-    <else-block>
-  END
-  ```
-
-#### Description
-
-The `IF` clause can perform varying commands depending on the outcome of one or more conditions. The expression passed as part of `<condition>` is evaluated by running it in the build environment. If the exit code of the expression is zero, then the block of that condition is executed. Otherwise, the control continues to the next `ELSE IF` condition (if any), or if no condition returns a non-zero exit code, the control continues to executing the `<else-block>`, if one is provided.
-
-A very common pattern is to use the POSIX shell `[ ... ]` conditions. For example the following marks port `8080` as exposed if the file `./foo` exists.
-
-```Dockerfile
-IF [ -f ./foo ]
-  EXPOSE 8080
-END
-```
-
-{% hint style='info' %}
-##### Note
-Performing a condition requires that a `FROM` (or a from-like command, such as `LOCALLY`) has been issued before the condition itself.
-
-For example, the following is NOT a valid Earthfile.
-
-```Dockerfile
-# NOT A VALID EARTHFILE.
-ARG base=alpine
-IF [ "$base" = "alpine" ]
-    FROM alpine:3.13
-ELSE
-    FROM ubuntu:20.04
-END
-```
-
-The reason this is invalid is because the `IF` condition is actually running the `/usr/bin/[` executable to test if the condition is true or false, and therefore requires a valid build environment has been initialized.
-
-Here is how this might be fixed.
-
-```Dockerfile
-ARG base=alpine
-FROM busybox
-IF [ "$base" = "alpine" ]
-    FROM alpine:3.13
-ELSE
-    FROM ubuntu:20.04
-END
-```
-
-By initializing the build environment with `FROM busybox`, the `IF` condition can execute on top of the `busybox` image.
-{% endhint %}
-
-{% hint style='danger' %}
-##### Important
-Changes to the filesystem in any of the conditions are not preserved. If a file is created as part of a condition, then that file will not be present in the build environment for any subsequent commands.
-{% endhint %}
-
-#### Options
-
-##### `--privileged`
-
-Same as [`RUN --privileged`](#privileged).
-
-##### `--ssh`
-
-Same as [`RUN --ssh`](#ssh).
-
-##### `--no-cache`
-
-Same as [`RUN --no-cache`](#no-cache).
-
-##### `--mount <mount-spec>`
-
-Same as [`RUN --mount <mount-spec>`](#mount-less-than-mount-spec-greater-than).
-
-##### `--secret <env-var>=<secret-ref>`
-
-Same as [`RUN --secret <env-var>=<secret-ref>`](#secret-less-than-env-var-greater-than-less-than-secret-ref-greater-than).
-
-## COMMAND (**experimental**)
-
-{% hint style='danger' %}
-##### Important
-
-This feature is currently in **Experimental** stage
-
-* The feature may break, be changed drastically with no warning, or be removed altogether in future versions of Earthly.
-* Check the [GitHub tracking issue](https://github.com/earthly/earthly/issues/581) for any known problems.
-* Give us feedback on [Slack](https://earthly.dev/slack) in the `#udc` channel.
-{% endhint %}
-
-#### Synopsis
-
-* `COMMAND`
-
-#### Description
-
-The command `COMMAND` marks the beginning of a user-defined command (UDC) definition. UDCs are templates (much like functions in regular programming languages), which can be used to define a series of steps to be executed in sequence. In order to reference and execute a UDC, you may use the command [`DO`](#do-experimental).
-
-Unlike performing a `BUILD +target`, UDCs inherit the build context and the build environment from the caller.
-
-UDCs create their own `ARG` scope, which is distinct from the caller. Any `ARG` that needs to be passed from the caller needs to be passed explicitly via `DO +COMMAND --<build-arg-key>=<build-arg-value>`.
-
-Global imports and global args are inherited from the `base` target of the same Earthfile where the command is defined in (this may be distinct from the `base` target of the caller).
-
-For more information see the [User-defined commands guide](../guides/udc.md).
-
-## DO (**experimental**)
-
-{% hint style='danger' %}
-##### Important
-
-This feature is currently in **Experimental** stage
-
-* The feature may break, be changed drastically with no warning, or be removed altogether in future versions of Earthly.
-* Check the [GitHub tracking issue](https://github.com/earthly/earthly/issues/581) for any known problems.
-* Give us feedback on [Slack](https://earthly.dev/slack) in the `#udc` channel.
-{% endhint %}
-
-#### Synopsis
-
-* `DO <command-ref> [--<build-arg-key>=<build-arg-value>...]`
-
-#### Description
-
-The command `DO` expands and executes the series of commands contained within a user-defined command (UDC).
-
-Unlike performing a `BUILD +target`, UDCs inherit the build context and the build environment from the caller.
-
-UDCs create their own `ARG` scope, which is distinct from the caller. Any `ARG` that needs to be passed from the caller needs to be passed explicitly via `DO +COMMAND --<build-arg-key>=<build-arg-value>`.
-
-For more information see the [User-defined commands guide](../guides/udc.md).
-
-## IMPORT (**experimental**)
-
-{% hint style='danger' %}
-##### Important
-
-This feature is currently in **Experimental** stage
-
-* The feature may break, be changed drastically with no warning, or be removed altogether in future versions of Earthly.
-* Check the [GitHub tracking issue](https://github.com/earthly/earthly/issues/581) for any known problems.
-* Give us feedback on [Slack](https://earthly.dev/slack) in the `#udc` channel.
-{% endhint %}
-
-#### Synopsis
-
-* `IMPORT <project-ref> [AS <alias>]`
-
-#### Description
-
-The command `IMPORT` aliases a project reference (`<project-ref>`) that can be used in subsequent [target, artifact or command references](../guides/target-ref.md).
-
-If not provided, the `<alias>` is inferred automatically as the last element of the path provided in `<project-ref>`. For example, if `<project-ref>` is `github.com/foo/bar/buz:v1.2.3`, then the alias is inferred as `buz`.
-
-The `<project-ref>` can be a reference to any directory other than `.`. If the reference ends in `..`, then mentioning `AS <alias>` is mandatory.
-
-If an `IMPORT` is defined in the `base` target of the Earthfile, then it becomes a global `IMPORT` and it is made avaialable to every other target or command in that file, regardless of their base images used.
-
-For more information see the [target, artifact and command references guide](../guides/target-ref.md).
-
-## DOCKER PULL (**deprecated**)
-
-#### Synopsis
-
-* `DOCKER PULL <image-name>`
-
-#### Description
-
-{% hint style='danger' %}
-`DOCKER PULL` is now deprecated and will not be supported in future versions of Earthly. Please use `WITH DOCKER --pull <image-name>` instead.
-{% endhint %}
-
-## DOCKER LOAD (**deprecated**)
-
-#### Synopsis
-
-* `DOCKER LOAD [--build-arg <name>=<override-value>] <target-ref> <image-name>`
-
-#### Description
-
-{% hint style='danger' %}
-`DOCKER LOAD` is now deprecated and will not be supported in future versions of Earthly. Please use `WITH DOCKER --load <image-name>=<target-ref>` instead.
-{% endhint %}
+Instructs Earthly to not overwrite the file creation timestamps with a constant.
 
 ## CMD (same as Dockerfile CMD)
 
@@ -1026,6 +678,346 @@ Sets an initialization time period in which failures are not counted towards the
 
 Sets the number of retries before a container is considered `unhealthy`. Defaults to `3`.
 
+## FROM DOCKERFILE (**beta**)
+
+#### Synopsis
+
+* `FROM DOCKERFILE [--build-arg <key>=<value>] [--platform <platform>] [--target <target-name>] <context-path>`
+
+#### Description
+
+The `FROM DOCKERFILE` command initializes a new build environment, inheriting from an existing Dockerfile. This allows the use of Dockerfiles in Earthly builds.
+
+The `<context-path>` is the path where the Dockerfile build context exists. It is assumed that a file named `Dockerfile` exists in that directory. The context path can be either a path on the host system, or an artifact reference, pointing to a directory containing a `Dockerfile`.
+
+{% hint style='info' %}
+##### Note
+
+This feature is currently in **Beta** and it has the following limitations:
+
+* This feature only works with files named `Dockerfile`. The equivalent of the `-f` option available in `docker build` has not yet been implemented.
+* `.dockerignore` is not used.
+* The newer experimental features which exist in the Dockerfile syntax are not guaranteed to work correctly.
+{% endhint %}
+
+#### Options
+
+##### `--build-arg <key>=<value>`
+
+Sets a value override of `<value>` for the Dockerfile build arg identified by `<key>`. This option is similar to the `docker build --build-arg <key>=<value>` option.
+
+##### `--target <target-name>`
+
+In a multi-stage Dockerfile, sets the target to be used for the build. This option is similar to the `docker build --target <target-name>` option.
+
+##### `--platform <platform>` (**beta**)
+
+Specifies the platform to build on.
+
+For more information see the [multi-platform guide](../guides/multi-platform.md).
+
+## WITH DOCKER (**beta**)
+
+#### Synopsis
+
+```Dockerfile
+WITH DOCKER [--pull <image-name>] [--load <image-name>=<target-ref>] [--compose <compose-file>]
+            [--service <compose-service>] [--build-arg <key>=<value>]
+  <commands>
+  ...
+END
+```
+
+#### Description
+
+The clause `WITH DOCKER` initializes a Docker daemon to be used in the context of a `RUN` command. The Docker daemon can be pre-loaded with a set of images using options such as `-pull` and `--load`. Once the execution of the `RUN` command has completed, the Docker daemon is stopped and all of its data is deleted, including any volumes and network configuration. Any other files that may have been created are kept, however.
+
+The clause `WITH DOCKER` automatically implies the `RUN --privileged` flag.
+
+The `WITH DOCKER` clause only supports the command [`RUN`](#run). Other commands (such as `COPY`) need to be run either before or after `WITH DOCKER ... END`. In addition, only one `RUN` command is permitted within `WITH DOCKER`. However, multiple shell commands may be stringed together using `;` or `&&`.
+
+A typical example of a `WITH DOCKER` clause might be:
+
+```Dockerfile
+FROM earthly/dind:alpine
+WORKDIR /test
+COPY docker-compose.yml ./
+WITH DOCKER \
+        --compose docker-compose.yml \
+        --load image-name:latest=+some-target \
+        --pull some-image:latest
+    RUN docker run ... && \
+        docker run ... && \
+        ...
+END
+```
+
+For more examples, see the [Docker in Earthly guide](../guides/docker-in-earthly.md) and the [Integration testing guide](../guides/integration.md).
+
+{% hint style='info' %}
+##### Note
+For performance reasons, it is recommended to use a Docker image that already contains `dockerd`. If `dockerd` is not found, Earthly will attempt to install it.
+
+Earthly provides officially supported images such as `earthly/dind:alpine` and `earthly/dind:ubuntu` to be used together with `WITH DOCKER`.
+{% endhint %}
+
+#### Options
+
+##### `--pull <image-name>`
+
+Pulls the Docker image `<image-name>` from a remote registry and then loads it into the temporary Docker daemon created by `WITH DOCKER`.
+
+This option may be repeated in order to provide multiple images to be pulled.
+
+{% hint style='info' %}
+##### Note
+It is recommended that you avoid issuing `RUN docker pull ...` and use `WITH DOCKER --pull ...` instead. The classical `docker pull` command does not take into account Earthly caching and so it would redownload the image much more frequently than necessary.
+{% endhint %}
+
+##### `--load <image-name>=<target-ref>`
+
+Builds the image referenced by `<target-ref>` and then loads it into the temporary Docker daemon created by `WITH DOCKER`. The image can be referenced as `<image-name>` within `WITH DOCKER`.
+
+This option may be repeated in order to provide multiple images to be loaded.
+
+##### `--compose <compose-file>`
+
+Loads the compose definition defined in `<compose-file>`, adds all applicable images to the pull list and starts up all applicable compose services within.
+
+This option may be repeated, thus having the same effect as repeating the `-f` flag in the `docker-compose` command.
+
+##### `--service <compose-service>`
+
+Specifies which compose service to pull and start up. If no services are specified and `--compose` is used, then all services are pulled and started up.
+
+This option can only be used if `--compose` has been specified.
+
+This option may be repeated in order to specify multiple services.
+
+##### `--build-arg <key>=<value>`
+
+Sets a value override of `<value>` for the build arg identified by `<key>`, when building a `<target-ref>` (specified via `--load`). See also [BUILD](#build) for more details about the `--build-arg` option.
+
+##### `--platform <platform>` (**beta**)
+
+Specifies the platform for any referenced `--load` and `--pull` images.
+
+For more information see the [multi-platform guide](../guides/multi-platform.md).
+
+## IF (**experimental**)
+
+{% hint style='danger' %}
+##### Important
+
+This feature is currently in **Experimental** stage
+
+* The feature may break, be changed drastically with no warning, or be removed altogether in future versions of Earthly.
+* Check the [GitHub tracking issue](https://github.com/earthly/earthly/issues/779) for any known problems.
+* Give us feedback on [Slack](https://earthly.dev/slack).
+{% endhint %}
+
+#### Synopsis
+
+* ```
+  IF [<condition-options>...] <condition>
+    <if-block>
+  END
+  ```
+* ```
+  IF [<condition-options>...] <condition>
+    <if-block>
+  ELSE
+    <else-block>
+  END
+  ```
+* ```
+  IF [<condition-options>...] <condition>
+    <if-block>
+  ELSE IF [<condition-options>...] <condition>
+    <else-if-block>
+  ...
+  ELSE
+    <else-block>
+  END
+  ```
+
+#### Description
+
+The `IF` clause can perform varying commands depending on the outcome of one or more conditions. The expression passed as part of `<condition>` is evaluated by running it in the build environment. If the exit code of the expression is zero, then the block of that condition is executed. Otherwise, the control continues to the next `ELSE IF` condition (if any), or if no condition returns a non-zero exit code, the control continues to executing the `<else-block>`, if one is provided.
+
+A very common pattern is to use the POSIX shell `[ ... ]` conditions. For example the following marks port `8080` as exposed if the file `./foo` exists.
+
+```Dockerfile
+IF [ -f ./foo ]
+  EXPOSE 8080
+END
+```
+
+{% hint style='info' %}
+##### Note
+Performing a condition requires that a `FROM` (or a from-like command, such as `LOCALLY`) has been issued before the condition itself.
+
+For example, the following is NOT a valid Earthfile.
+
+```Dockerfile
+# NOT A VALID EARTHFILE.
+ARG base=alpine
+IF [ "$base" = "alpine" ]
+    FROM alpine:3.13
+ELSE
+    FROM ubuntu:20.04
+END
+```
+
+The reason this is invalid is because the `IF` condition is actually running the `/usr/bin/[` executable to test if the condition is true or false, and therefore requires a valid build environment has been initialized.
+
+Here is how this might be fixed.
+
+```Dockerfile
+ARG base=alpine
+FROM busybox
+IF [ "$base" = "alpine" ]
+    FROM alpine:3.13
+ELSE
+    FROM ubuntu:20.04
+END
+```
+
+By initializing the build environment with `FROM busybox`, the `IF` condition can execute on top of the `busybox` image.
+{% endhint %}
+
+{% hint style='danger' %}
+##### Important
+Changes to the filesystem in any of the conditions are not preserved. If a file is created as part of a condition, then that file will not be present in the build environment for any subsequent commands.
+{% endhint %}
+
+#### Options
+
+##### `--privileged`
+
+Same as [`RUN --privileged`](#privileged).
+
+##### `--ssh`
+
+Same as [`RUN --ssh`](#ssh).
+
+##### `--no-cache`
+
+Same as [`RUN --no-cache`](#no-cache).
+
+##### `--mount <mount-spec>`
+
+Same as [`RUN --mount <mount-spec>`](#mount-less-than-mount-spec-greater-than).
+
+##### `--secret <env-var>=<secret-ref>`
+
+Same as [`RUN --secret <env-var>=<secret-ref>`](#secret-less-than-env-var-greater-than-less-than-secret-ref-greater-than).
+
+## LOCALLY (**experimental**)
+
+{% hint style='danger' %}
+##### Important
+
+This feature is currently in **Experimental** stage
+
+* The feature may break, be changed drastically with no warning, or be removed altogether in future versions of Earthly.
+* Check the [GitHub tracking issue](https://github.com/earthly/earthly/issues/580) for any known problems.
+* Give us feedback on [Slack](https://earthly.dev/slack) in the `#locally` channel.
+{% endhint %}
+
+#### Synopsis
+
+* `LOCALLY`
+
+#### Description
+
+The `LOCALLY` command instructs earthly to execute the following `RUN` commands locally on the host system.
+This feature should be used with caution as locally run commands have no guarantee they will behave the same on different systems.
+
+Only `RUN` commands are supported under a `LOCALLY` defined target; futhermore only `RUN`'s `--push` flag is supported.
+
+## COMMAND (**experimental**)
+
+{% hint style='danger' %}
+##### Important
+
+This feature is currently in **Experimental** stage
+
+* The feature may break, be changed drastically with no warning, or be removed altogether in future versions of Earthly.
+* Check the [GitHub tracking issue](https://github.com/earthly/earthly/issues/581) for any known problems.
+* Give us feedback on [Slack](https://earthly.dev/slack) in the `#udc` channel.
+{% endhint %}
+
+#### Synopsis
+
+* `COMMAND`
+
+#### Description
+
+The command `COMMAND` marks the beginning of a user-defined command (UDC) definition. UDCs are templates (much like functions in regular programming languages), which can be used to define a series of steps to be executed in sequence. In order to reference and execute a UDC, you may use the command [`DO`](#do-experimental).
+
+Unlike performing a `BUILD +target`, UDCs inherit the build context and the build environment from the caller.
+
+UDCs create their own `ARG` scope, which is distinct from the caller. Any `ARG` that needs to be passed from the caller needs to be passed explicitly via `DO +COMMAND --<build-arg-key>=<build-arg-value>`.
+
+Global imports and global args are inherited from the `base` target of the same Earthfile where the command is defined in (this may be distinct from the `base` target of the caller).
+
+For more information see the [User-defined commands guide](../guides/udc.md).
+
+## DO (**experimental**)
+
+{% hint style='danger' %}
+##### Important
+
+This feature is currently in **Experimental** stage
+
+* The feature may break, be changed drastically with no warning, or be removed altogether in future versions of Earthly.
+* Check the [GitHub tracking issue](https://github.com/earthly/earthly/issues/581) for any known problems.
+* Give us feedback on [Slack](https://earthly.dev/slack) in the `#udc` channel.
+{% endhint %}
+
+#### Synopsis
+
+* `DO <command-ref> [--<build-arg-key>=<build-arg-value>...]`
+
+#### Description
+
+The command `DO` expands and executes the series of commands contained within a user-defined command (UDC).
+
+Unlike performing a `BUILD +target`, UDCs inherit the build context and the build environment from the caller.
+
+UDCs create their own `ARG` scope, which is distinct from the caller. Any `ARG` that needs to be passed from the caller needs to be passed explicitly via `DO +COMMAND --<build-arg-key>=<build-arg-value>`.
+
+For more information see the [User-defined commands guide](../guides/udc.md).
+
+## IMPORT (**experimental**)
+
+{% hint style='danger' %}
+##### Important
+
+This feature is currently in **Experimental** stage
+
+* The feature may break, be changed drastically with no warning, or be removed altogether in future versions of Earthly.
+* Check the [GitHub tracking issue](https://github.com/earthly/earthly/issues/581) for any known problems.
+* Give us feedback on [Slack](https://earthly.dev/slack) in the `#udc` channel.
+{% endhint %}
+
+#### Synopsis
+
+* `IMPORT <project-ref> [AS <alias>]`
+
+#### Description
+
+The command `IMPORT` aliases a project reference (`<project-ref>`) that can be used in subsequent [target, artifact or command references](../guides/target-ref.md).
+
+If not provided, the `<alias>` is inferred automatically as the last element of the path provided in `<project-ref>`. For example, if `<project-ref>` is `github.com/foo/bar/buz:v1.2.3`, then the alias is inferred as `buz`.
+
+The `<project-ref>` can be a reference to any directory other than `.`. If the reference ends in `..`, then mentioning `AS <alias>` is mandatory.
+
+If an `IMPORT` is defined in the `base` target of the Earthfile, then it becomes a global `IMPORT` and it is made avaialable to every other target or command in that file, regardless of their base images used.
+
+For more information see the [target, artifact and command references guide](../guides/target-ref.md).
+
 ## SHELL (not supported)
 
 The classical [`SHELL` Dockerfile command](https://docs.docker.com/engine/reference/builder/#add) is not yet supported. Use the *exec form* of `RUN`, `ENTRYPOINT` and `CMD` instead and prepend a different shell.
@@ -1041,3 +1033,27 @@ The classical [`ONBUILD` Dockerfile command](https://docs.docker.com/engine/refe
 ## STOPSIGNAL (not supported)
 
 The classical [`STOPSIGNAL` Dockerfile command](https://docs.docker.com/engine/reference/builder/#stopsignal) is not yet supported.
+
+## DOCKER PULL (**deprecated**)
+
+#### Synopsis
+
+* `DOCKER PULL <image-name>`
+
+#### Description
+
+{% hint style='danger' %}
+`DOCKER PULL` is now deprecated and will not be supported in future versions of Earthly. Please use `WITH DOCKER --pull <image-name>` instead.
+{% endhint %}
+
+## DOCKER LOAD (**deprecated**)
+
+#### Synopsis
+
+* `DOCKER LOAD [--build-arg <name>=<override-value>] <target-ref> <image-name>`
+
+#### Description
+
+{% hint style='danger' %}
+`DOCKER LOAD` is now deprecated and will not be supported in future versions of Earthly. Please use `WITH DOCKER --load <image-name>=<target-ref>` instead.
+{% endhint %}
