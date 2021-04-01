@@ -1,6 +1,21 @@
 # Earthfile reference
 
-Earthfiles are comprised of a series of target declarations and recipe definitions. Earthfiles are named `Earthfile`, regardless of their location in the codebase. For backwards compatibility, the name `build.earth` is also permitted. This compatibility will be removed in a future version.
+<!--
+
+Note to person editing!
+
+The general order of the commands is as follows:
+
+- Classical Dockerfile commands (order is the same as in the Dockferfile official docs)
+- GA'd Earthly commands
+- Beta Earthly commands
+- Experimental Earthly commands
+- Classical Dockerfile commands that are not supported
+- Deprected Earthly commands
+
+-->
+
+Earthfiles are comprised of a series of target declarations and recipe definitions. Earthfiles are named `Earthfile`, regardless of their location in the codebase.
 
 Earthfiles have the following rough structure:
 
@@ -78,7 +93,7 @@ yet-another:
 
 Sets a value override of `<value>` for the build arg identified by `<key>`. See also [BUILD](#build) for more details about the `--build-arg` option.
 
-##### `--platform <platform>` (**experimental**)
+##### `--platform <platform>` (**beta**)
 
 Specifies the platform to build on.
 
@@ -116,34 +131,11 @@ Sets a value override of `<value>` for the Dockerfile build arg identified by `<
 
 In a multi-stage Dockerfile, sets the target to be used for the build. This option is similar to the `docker build --target <target-name>` option.
 
-##### `--platform <platform>` (**experimental**)
+##### `--platform <platform>` (**beta**)
 
 Specifies the platform to build on.
 
 For more information see the [multi-platform guide](../guides/multi-platform.md).
-
-## LOCALLY (**experimental**)
-
-{% hint style='danger' %}
-##### Important
-
-This feature is currently in **Experimental** stage
-
-* The feature may break, be changed drastically with no warning, or be removed altogether in future versions of Earthly.
-* Check the [GitHub tracking issue](https://github.com/earthly/earthly/issues/580) for any known problems.
-* Give us feedback on [Slack](https://earthly.dev/slack) in the `#locally` channel.
-{% endhint %}
-
-#### Synopsis
-
-* `LOCALLY`
-
-#### Description
-
-The `LOCALLY` command instructs earthly to execute the following `RUN` commands locally on the host system.
-This feature should be used with caution as locally run commands have no guarantee they will behave the same on different systems.
-
-Only `RUN` commands are supported under a `LOCALLY` defined target; futhermore only `RUN`'s `--push` flag is supported.
 
 ## RUN
 
@@ -374,7 +366,7 @@ final-target:
     COPY +intermediate/some-file.txt ./
 ```
 
-##### `--platform <platform>` (**experimental**)
+##### `--platform <platform>` (**beta**)
 
 In *artifact form*, it specifies the platform to build the artifact on.
 
@@ -406,6 +398,165 @@ COPY --dir test .
 ```
 
 For detailed examples demonstrating how other scenarios may function, please see our [test suite](https://github.com/earthly/earthly/blob/main/examples/tests/copy.earth).
+
+## ARG
+
+#### Synopsis
+
+* `ARG <name>[=<default-value>]`
+
+#### Description
+
+The command `ARG` declares a variable (or arg) with the name `<name>` and with an optional default value `<default-value>`. If no default value is provided, then empty string is used as the default value.
+
+This command works similarly to the [Dockerfile `ARG` command](https://docs.docker.com/engine/reference/builder/#arg), with a few differences regarding the scope and the predefined args (called builtin args in Earthly). The variable's scope is always limited to the recipe of the current target or command and only from the point it is declared onwards. For more information regarding builtin args, see the [builtin args page](./builtin-args.md).
+
+If an `ARG` is defined in the `base` target of the Earthfile, then it becomes a global `ARG` and it is made avaialable to every other target or command in that file, regardless of their base images used.
+
+The value of an arg can be overridden either from the `earthly` command
+
+```bash
+earthly --build-arg <name>=<override-value>
+```
+
+or from a command from another target, when implicitly or explicitly invoking the target containing the `ARG`
+
+```Dockerfile
+BUILD --build-arg <name>=<override-value> <target-ref>
+COPY --build-arg <name>=<override-value> <target-ref>/<artifact-path>... <dest-path>
+FROM --build-arg <name>=<override-value> <target-ref>
+```
+
+for example
+
+```Dockerfile
+BUILD --build-arg PLATFORM=linux +binary
+COPY --build-arg PLATFORM=linux +binary/bin ./
+FROM --build-arg NAME=john +docker-image
+```
+
+A number of builtin args are available and are pre-filled by Earthly. For more information see [builtin args](./builtin-args.md).
+
+## CMD (same as Dockerfile CMD)
+
+#### Synopsis
+
+* `CMD ["executable", "arg1", "arg2"]` (exec form)
+* `CMD ["arg1, "arg2"]` (as default arguments to the entrypoint)
+* `CMD command arg1 arg2` (shell form)
+
+#### Description
+
+The command `CMD` sets default arguments for an image, when executing as a container. It works the same way as the [Dockerfile `CMD` command](https://docs.docker.com/engine/reference/builder/#cmd).
+
+## LABEL (same as Dockerfile LABEL)
+
+#### Synopsis
+
+* `LABEL <key>=<value> <key>=<value> ...`
+
+#### Description
+
+The `LABEL` command adds label metadata to an image. It works the same way as the [Dockerfile `LABEL` command](https://docs.docker.com/engine/reference/builder/#label).
+
+## EXPOSE (same as Dockerfile EXPOSE)
+
+#### Synopsis
+
+* `EXPOSE <port> <port> ...`
+* `EXPOSE <port>/<protocol> <port>/<protocol> ...`
+
+#### Description
+
+The `EXPOSE` command marks a series of ports as listening ports within the image. It works the same way as the [Dockerfile `EXPOSE` command](https://docs.docker.com/engine/reference/builder/#expose).
+
+## ENV (same as Dockerfile ENV)
+
+#### Synopsis
+
+* `ENV <key> <value>`
+* `ENV <key>=<value>`
+
+#### Description
+
+The `ENV` command sets the environment variable `<key>` to the value `<value>`. It works the same way as the [Dockerfile `ENV` command](https://docs.docker.com/engine/reference/builder/#env).
+
+{% hint style='info' %}
+##### Note
+Do not use the `ENV` command for secrets used during the build. All `ENV` values used during the build are persisted within the image itself. See the [`RUN --secret` option](#run) to pass secrets to build instructions.
+{% endhint %}
+
+## ENTRYPOINT (same as Dockerfile ENTRYPOINT)
+
+#### Synopsis
+
+* `ENTRYPOINT ["executable", "arg1", "arg2"]` (exec form)
+* `ENTRYPOINT command arg1 arg2` (shell form)
+
+#### Description
+
+The `ENTRYPOINT` command sets the default command or executable to be run when the image is executed as a container. It works the same way as the [Dockerfile `ENTRYPOINT` command](https://docs.docker.com/engine/reference/builder/#entrypoint).
+
+## VOLUME (same as Dockerfile VOLUME)
+
+#### Synopsis
+
+* `VOLUME <path-to-target-mount> <path-to-target-mount> ...`
+* `VOLUME ["<path-to-target-mount>", <path-to-target-mount> ...]`
+
+#### Description
+
+The `VOLUME` command creates a mount point at the specified path and marks it as holding externally mounted volumes. It works the same way as the [Dockerfile `VOLUME` command](https://docs.docker.com/engine/reference/builder/#volume).
+
+## USER (same as Dockerfile USER)
+
+#### Synopsis
+
+* `USER <user>[:<group>]`
+* `USER <UID>[:<GID>]`
+
+#### Description
+
+The `USER` command sets the user name (or UID) and optionally the user group (or GID) to use when running the image and also for any subsequent instructions in the build recipe. It works the same way as the [Dockerfile `USER` command](https://docs.docker.com/engine/reference/builder/#user).
+
+## WORKDIR (same as Dockerfile WORKDIR)
+
+#### Synopsis
+
+* `WORKDIR <path-to-dir>`
+
+#### Description
+
+The `WORKDIR` command strs the working directory for other commands that follow in the recipe. The working directory is also persisted as the default directory for the image. If the directory does not exist, it is automatically created. This command works the same way as the [Dockerfile `WORKDIR` command](https://docs.docker.com/engine/reference/builder/#workdir).
+
+## HEALTHCHECK (same as Dockerfile HEALTHCHECK)
+
+#### Synopsis
+
+* `HEALTHCHECK NONE` (disable healthchecking)
+* `HEALTHCHECK [--interval=DURATION] [--timeout=DURATION] [--start-period=DURATION] [--retries=N] CMD command arg1 arg2` (check container health by running command inside the container)
+
+#### Description
+
+The `HEALTHCHECK` command tells Docker how to test a container to check that it is still working. It works the same way as the [Dockerfile `HEALTHCHECK` command](https://docs.docker.com/engine/reference/builder/#healthcheck), with the only exception that the exec form of this command is not yet supported.
+
+#### Options
+
+##### `--interval=DURATION`
+
+Sets the time interval between health checks. Defaults to `30s`.
+
+##### `--timeout=DURATION`
+
+Sets the timeout for a single run before it is considered as failed. Defaults to `30s`.
+
+##### `--start-period=DURATION`
+
+Sets an initialization time period in which failures are not counted towards the maximum number of retries. Defaults to `0s`.
+
+##### `--retries=N`
+
+Sets the number of retries before a container is considered `unhealthy`. Defaults to `3`.
 
 ## GIT CLONE
 
@@ -551,7 +702,7 @@ or a dynamic expression, based on the output of a command executed in the contex
 --build-arg SOME_ARG=$(find /app -type f -name '*.php')
 ```
 
-##### `--platform <platform>` (**experimental**)
+##### `--platform <platform>` (**beta**)
 
 Specifies the platform to build on.
 
@@ -563,44 +714,6 @@ build-all-platforms:
 ```
 
 For more information see the [multi-platform guide](../guides/multi-platform.md).
-
-## ARG
-
-#### Synopsis
-
-* `ARG <name>[=<default-value>]`
-
-#### Description
-
-The command `ARG` declares a variable (or arg) with the name `<name>` and with an optional default value `<default-value>`. If no default value is provided, then empty string is used as the default value.
-
-This command works similarly to the [Dockerfile `ARG` command](https://docs.docker.com/engine/reference/builder/#arg), with a few differences regarding the scope and the predefined args (called builtin args in Earthly). The variable's scope is always limited to the recipe of the current target or command and only from the point it is declared onwards. For more information regarding builtin args, see the [builtin args page](./builtin-args.md).
-
-If an `ARG` is defined in the `base` target of the Earthfile, then it becomes a global `ARG` and it is made avaialable to every other target or command in that file, regardless of their base images used.
-
-The value of an arg can be overridden either from the `earthly` command
-
-```bash
-earthly --build-arg <name>=<override-value>
-```
-
-or from a command from another target, when implicitly or explicitly invoking the target containing the `ARG`
-
-```Dockerfile
-BUILD --build-arg <name>=<override-value> <target-ref>
-COPY --build-arg <name>=<override-value> <target-ref>/<artifact-path>... <dest-path>
-FROM --build-arg <name>=<override-value> <target-ref>
-```
-
-for example
-
-```Dockerfile
-BUILD --build-arg PLATFORM=linux +binary
-COPY --build-arg PLATFORM=linux +binary/bin ./
-FROM --build-arg NAME=john +docker-image
-```
-
-A number of builtin args are available and are pre-filled by Earthly. For more information see [builtin args](./builtin-args.md).
 
 ## WITH DOCKER (**beta**)
 
@@ -684,7 +797,7 @@ This option may be repeated in order to specify multiple services.
 
 Sets a value override of `<value>` for the build arg identified by `<key>`, when building a `<target-ref>` (specified via `--load`). See also [BUILD](#build) for more details about the `--build-arg` option.
 
-##### `--platform <platform>` (**experimental**)
+##### `--platform <platform>` (**beta**)
 
 Specifies the platform for any referenced `--load` and `--pull` images.
 
@@ -799,6 +912,29 @@ Same as [`RUN --mount <mount-spec>`](#mount-less-than-mount-spec-greater-than).
 
 Same as [`RUN --secret <env-var>=<secret-ref>`](#secret-less-than-env-var-greater-than-less-than-secret-ref-greater-than).
 
+## LOCALLY (**experimental**)
+
+{% hint style='danger' %}
+##### Important
+
+This feature is currently in **Experimental** stage
+
+* The feature may break, be changed drastically with no warning, or be removed altogether in future versions of Earthly.
+* Check the [GitHub tracking issue](https://github.com/earthly/earthly/issues/580) for any known problems.
+* Give us feedback on [Slack](https://earthly.dev/slack) in the `#locally` channel.
+{% endhint %}
+
+#### Synopsis
+
+* `LOCALLY`
+
+#### Description
+
+The `LOCALLY` command instructs earthly to execute the following `RUN` commands locally on the host system.
+This feature should be used with caution as locally run commands have no guarantee they will behave the same on different systems.
+
+Only `RUN` commands are supported under a `LOCALLY` defined target; futhermore only `RUN`'s `--push` flag is supported.
+
 ## COMMAND (**experimental**)
 
 {% hint style='danger' %}
@@ -881,6 +1017,22 @@ If an `IMPORT` is defined in the `base` target of the Earthfile, then it becomes
 
 For more information see the [target, artifact and command references guide](../guides/target-ref.md).
 
+## SHELL (not supported)
+
+The classical [`SHELL` Dockerfile command](https://docs.docker.com/engine/reference/builder/#add) is not yet supported. Use the *exec form* of `RUN`, `ENTRYPOINT` and `CMD` instead and prepend a different shell.
+
+## ADD (not supported)
+
+The classical [`ADD` Dockerfile command](https://docs.docker.com/engine/reference/builder/#add) is not yet supported. Use [COPY](#copy) instead.
+
+## ONBUILD (not supported)
+
+The classical [`ONBUILD` Dockerfile command](https://docs.docker.com/engine/reference/builder/#onbuild) is not supported.
+
+## STOPSIGNAL (not supported)
+
+The classical [`STOPSIGNAL` Dockerfile command](https://docs.docker.com/engine/reference/builder/#stopsignal) is not yet supported.
+
 ## DOCKER PULL (**deprecated**)
 
 #### Synopsis
@@ -904,140 +1056,3 @@ For more information see the [target, artifact and command references guide](../
 {% hint style='danger' %}
 `DOCKER LOAD` is now deprecated and will not be supported in future versions of Earthly. Please use `WITH DOCKER --load <image-name>=<target-ref>` instead.
 {% endhint %}
-
-## CMD (same as Dockerfile CMD)
-
-#### Synopsis
-
-* `CMD ["executable", "arg1", "arg2"]` (exec form)
-* `CMD ["arg1, "arg2"]` (as default arguments to the entrypoint)
-* `CMD command arg1 arg2` (shell form)
-
-#### Description
-
-The command `CMD` sets default arguments for an image, when executing as a container. It works the same way as the [Dockerfile `CMD` command](https://docs.docker.com/engine/reference/builder/#cmd).
-
-## LABEL (same as Dockerfile LABEL)
-
-#### Synopsis
-
-* `LABEL <key>=<value> <key>=<value> ...`
-
-#### Description
-
-The `LABEL` command adds label metadata to an image. It works the same way as the [Dockerfile `LABEL` command](https://docs.docker.com/engine/reference/builder/#label).
-
-## EXPOSE (same as Dockerfile EXPOSE)
-
-#### Synopsis
-
-* `EXPOSE <port> <port> ...`
-* `EXPOSE <port>/<protocol> <port>/<protocol> ...`
-
-#### Description
-
-The `EXPOSE` command marks a series of ports as listening ports within the image. It works the same way as the [Dockerfile `EXPOSE` command](https://docs.docker.com/engine/reference/builder/#expose).
-
-## ENV (same as Dockerfile ENV)
-
-#### Synopsis
-
-* `ENV <key> <value>`
-* `ENV <key>=<value>`
-
-#### Description
-
-The `ENV` command sets the environment variable `<key>` to the value `<value>`. It works the same way as the [Dockerfile `ENV` command](https://docs.docker.com/engine/reference/builder/#env).
-
-{% hint style='info' %}
-##### Note
-Do not use the `ENV` command for secrets used during the build. All `ENV` values used during the build are persisted within the image itself. See the [`RUN --secret` option](#run) to pass secrets to build instructions.
-{% endhint %}
-
-## ENTRYPOINT (same as Dockerfile ENTRYPOINT)
-
-#### Synopsis
-
-* `ENTRYPOINT ["executable", "arg1", "arg2"]` (exec form)
-* `ENTRYPOINT command arg1 arg2` (shell form)
-
-#### Description
-
-The `ENTRYPOINT` command sets the default command or executable to be run when the image is executed as a container. It works the same way as the [Dockerfile `ENTRYPOINT` command](https://docs.docker.com/engine/reference/builder/#entrypoint).
-
-## VOLUME (same as Dockerfile VOLUME)
-
-#### Synopsis
-
-* `VOLUME <path-to-target-mount> <path-to-target-mount> ...`
-* `VOLUME ["<path-to-target-mount>", <path-to-target-mount> ...]`
-
-#### Description
-
-The `VOLUME` command creates a mount point at the specified path and marks it as holding externally mounted volumes. It works the same way as the [Dockerfile `VOLUME` command](https://docs.docker.com/engine/reference/builder/#volume).
-
-## USER (same as Dockerfile USER)
-
-#### Synopsis
-
-* `USER <user>[:<group>]`
-* `USER <UID>[:<GID>]`
-
-#### Description
-
-The `USER` command sets the user name (or UID) and optionally the user group (or GID) to use when running the image and also for any subsequent instructions in the build recipe. It works the same way as the [Dockerfile `USER` command](https://docs.docker.com/engine/reference/builder/#user).
-
-## WORKDIR (same as Dockerfile WORKDIR)
-
-#### Synopsis
-
-* `WORKDIR <path-to-dir>`
-
-#### Description
-
-The `WORKDIR` command strs the working directory for other commands that follow in the recipe. The working directory is also persisted as the default directory for the image. If the directory does not exist, it is automatically created. This command works the same way as the [Dockerfile `WORKDIR` command](https://docs.docker.com/engine/reference/builder/#workdir).
-
-## HEALTHCHECK (same as Dockerfile HEALTHCHECK)
-
-#### Synopsis
-
-* `HEALTHCHECK NONE` (disable healthchecking)
-* `HEALTHCHECK [--interval=DURATION] [--timeout=DURATION] [--start-period=DURATION] [--retries=N] CMD command arg1 arg2` (check container health by running command inside the container)
-
-#### Description
-
-The `HEALTHCHECK` command tells Docker how to test a container to check that it is still working. It works the same way as the [Dockerfile `HEALTHCHECK` command](https://docs.docker.com/engine/reference/builder/#healthcheck), with the only exception that the exec form of this command is not yet supported.
-
-#### Options
-
-##### `--interval=DURATION`
-
-Sets the time interval between health checks. Defaults to `30s`.
-
-##### `--timeout=DURATION`
-
-Sets the timeout for a single run before it is considered as failed. Defaults to `30s`.
-
-##### `--start-period=DURATION`
-
-Sets an initialization time period in which failures are not counted towards the maximum number of retries. Defaults to `0s`.
-
-##### `--retries=N`
-
-Sets the number of retries before a container is considered `unhealthy`. Defaults to `3`.
-
-## SHELL (not supported)
-
-The classical [`SHELL` Dockerfile command](https://docs.docker.com/engine/reference/builder/#add) is not yet supported. Use the *exec form* of `RUN`, `ENTRYPOINT` and `CMD` instead and prepend a different shell.
-
-## ADD (not supported)
-
-The classical [`ADD` Dockerfile command](https://docs.docker.com/engine/reference/builder/#add) is not yet supported. Use [COPY](#copy) instead.
-
-## ONBUILD (not supported)
-
-The classical [`ONBUILD` Dockerfile command](https://docs.docker.com/engine/reference/builder/#onbuild) is not supported.
-
-## STOPSIGNAL (not supported)
-
-The classical [`STOPSIGNAL` Dockerfile command](https://docs.docker.com/engine/reference/builder/#stopsignal) is not yet supported.

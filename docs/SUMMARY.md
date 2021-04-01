@@ -3,9 +3,8 @@
 
 * [👋 Introduction](README.md)
 * [⬇️ Installation](https://earthly.dev/get-earthly)
-* [🔀 Alternative installation](/alt-installation.md)
 * [🎓 Learn the basics](./basics.md)
-* [⚙️ CI integration](./ci-integration.md)
+* [🌍 Earthfile reference](earthfile/earthfile.md)
 
 ## 📖 Docs
 
@@ -31,7 +30,9 @@
     * [Excluding patterns](earthfile/earthignore.md)
 * [⌨️ The `earthly` command](earthly-command/earthly-command.md)
 * [📄 Configuration reference](earthly-config/earthly-config.md)
+* [⚙️ CI integration](./ci-integration.md)
 * 💼 Misc
+    * [Alternative installation](./alt-installation.md)
     * [Definitions](definitions/definitions.md)
     * [Data collection](data-collection/data-collection.md)
 
