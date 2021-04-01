@@ -400,28 +400,6 @@ FROM --build-arg NAME=john +docker-image
 
 A number of builtin args are available and are pre-filled by Earthly. For more information see [builtin args](./builtin-args.md).
 
-## GIT CLONE
-
-#### Synopsis
-
-* `GIT CLONE [--branch <git-ref>] [--keep-ts] <git-url> <dest-path>`
-
-#### Description
-
-The command `GIT CLONE` clones a git repository from `<git-url>`, optionally referenced by `<git-ref>`, into the build environment, within the `<dest-path>`.
-
-In contrast to an operation like `RUN git clone <git-url> <dest-path>`, the command `GIT CLONE` is cache-aware and correctly distinguishes between different git commit IDs when deciding to reuse a previous cache or not. In addition, `GIT CLONE` can also use [Git authentication configuration](../guides/auth.md) passed on to `earthly`, whereas `RUN git clone` would require additional secrets passing, if the repository is not publicly accessible.
-
-#### Options
-
-##### `--branch <git-ref>`
-
-Points the `HEAD` to the git reference specified by `<git-ref>`. If this option is not specified, then the remote `HEAD` is used instead.
-
-##### `--keep-ts`
-
-Instructs Earthly to not overwrite the file creation timestamps with a constant.
-
 ## SAVE ARTIFACT
 
 #### Synopsis
@@ -556,6 +534,28 @@ build-all-platforms:
 ```
 
 For more information see the [multi-platform guide](../guides/multi-platform.md).
+
+## GIT CLONE
+
+#### Synopsis
+
+* `GIT CLONE [--branch <git-ref>] [--keep-ts] <git-url> <dest-path>`
+
+#### Description
+
+The command `GIT CLONE` clones a git repository from `<git-url>`, optionally referenced by `<git-ref>`, into the build environment, within the `<dest-path>`.
+
+In contrast to an operation like `RUN git clone <git-url> <dest-path>`, the command `GIT CLONE` is cache-aware and correctly distinguishes between different git commit IDs when deciding to reuse a previous cache or not. In addition, `GIT CLONE` can also use [Git authentication configuration](../guides/auth.md) passed on to `earthly`, whereas `RUN git clone` would require additional secrets passing, if the repository is not publicly accessible.
+
+#### Options
+
+##### `--branch <git-ref>`
+
+Points the `HEAD` to the git reference specified by `<git-ref>`. If this option is not specified, then the remote `HEAD` is used instead.
+
+##### `--keep-ts`
+
+Instructs Earthly to not overwrite the file creation timestamps with a constant.
 
 ## CMD (same as Dockerfile CMD)
 
