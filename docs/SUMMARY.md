@@ -48,7 +48,7 @@
     * [Monorepo](examples/monorepo.md)
     * [Multirepo](examples/multirepo.md)
     * [Earthly](examples/earthly.md)
-* [CI examples](ci-examples/ci-examples.md)
+* CI examples
     * [GitHub Actions](ci-examples/gh-actions-integration.md)
     * [Circle CI](ci-examples/circle-integration.md)
     * [AWS CodeBuild](ci-examples/codebuild-integration.md)
