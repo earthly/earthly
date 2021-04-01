@@ -4,7 +4,6 @@
 * [👋 Introduction](README.md)
 * [⬇️ Installation](https://earthly.dev/get-earthly)
 * [🎓 Learn the basics](./basics.md)
-* [🌍 Earthfile reference](earthfile/earthfile.md)
 
 ## 📖 Docs
 
@@ -39,18 +38,21 @@
 ## 🧙 Examples
 
 * [Overview](examples/examples.md)
-* [Go](examples/go.md)
-* [Java](examples/java.md)
-* [JS](examples/js.md)
-* [C++](examples/cpp.md)
-* [Python](examples/python.md)
-* [Monorepo](examples/monorepo.md)
-* [Multirepo](examples/multirepo.md)
-* [Earthly](examples/earthly.md)
+* Per-language examples
+    * [Go](examples/go.md)
+    * [Java](examples/java.md)
+    * [JS](examples/js.md)
+    * [C++](examples/cpp.md)
+    * [Python](examples/python.md)
+* Other
+    * [Monorepo](examples/monorepo.md)
+    * [Multirepo](examples/multirepo.md)
+    * [Earthly](examples/earthly.md)
 
 ## ⚙️ CI examples
 
 * [Overview](ci-examples/ci-examples.md)
-* [Circle CI](ci-examples/circle-integration.md)
-* [GitHub Actions](ci-examples/gh-actions-integration.md)
-* [AWS CodeBuild](ci-examples/codebuild-integration.md)
+* Per-CI examples
+    * [GitHub Actions](ci-examples/gh-actions-integration.md)
+    * [Circle CI](ci-examples/circle-integration.md)
+    * [AWS CodeBuild](ci-examples/codebuild-integration.md)

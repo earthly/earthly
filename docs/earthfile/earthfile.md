@@ -99,44 +99,6 @@ Specifies the platform to build on.
 
 For more information see the [multi-platform guide](../guides/multi-platform.md).
 
-## FROM DOCKERFILE (**beta**)
-
-#### Synopsis
-
-* `FROM DOCKERFILE [--build-arg <key>=<value>] [--platform <platform>] [--target <target-name>] <context-path>`
-
-#### Description
-
-The `FROM DOCKERFILE` command initializes a new build environment, inheriting from an existing Dockerfile. This allows the use of Dockerfiles in Earthly builds.
-
-The `<context-path>` is the path where the Dockerfile build context exists. It is assumed that a file named `Dockerfile` exists in that directory. The context path can be either a path on the host system, or an artifact reference, pointing to a directory containing a `Dockerfile`.
-
-{% hint style='info' %}
-##### Note
-
-This feature is currently in **Beta** and it has the following limitations:
-
-* This feature only works with files named `Dockerfile`. The equivalent of the `-f` option available in `docker build` has not yet been implemented.
-* `.dockerignore` is not used.
-* The newer experimental features which exist in the Dockerfile syntax are not guaranteed to work correctly.
-{% endhint %}
-
-#### Options
-
-##### `--build-arg <key>=<value>`
-
-Sets a value override of `<value>` for the Dockerfile build arg identified by `<key>`. This option is similar to the `docker build --build-arg <key>=<value>` option.
-
-##### `--target <target-name>`
-
-In a multi-stage Dockerfile, sets the target to be used for the build. This option is similar to the `docker build --target <target-name>` option.
-
-##### `--platform <platform>` (**beta**)
-
-Specifies the platform to build on.
-
-For more information see the [multi-platform guide](../guides/multi-platform.md).
-
 ## RUN
 
 #### Synopsis
@@ -712,6 +674,44 @@ This flag may be repeated in order to instruct the system to perform the build f
 build-all-platforms:
     BUILD --platform=linux/amd64 --platform=linux/arm/v7 +build
 ```
+
+For more information see the [multi-platform guide](../guides/multi-platform.md).
+
+## FROM DOCKERFILE (**beta**)
+
+#### Synopsis
+
+* `FROM DOCKERFILE [--build-arg <key>=<value>] [--platform <platform>] [--target <target-name>] <context-path>`
+
+#### Description
+
+The `FROM DOCKERFILE` command initializes a new build environment, inheriting from an existing Dockerfile. This allows the use of Dockerfiles in Earthly builds.
+
+The `<context-path>` is the path where the Dockerfile build context exists. It is assumed that a file named `Dockerfile` exists in that directory. The context path can be either a path on the host system, or an artifact reference, pointing to a directory containing a `Dockerfile`.
+
+{% hint style='info' %}
+##### Note
+
+This feature is currently in **Beta** and it has the following limitations:
+
+* This feature only works with files named `Dockerfile`. The equivalent of the `-f` option available in `docker build` has not yet been implemented.
+* `.dockerignore` is not used.
+* The newer experimental features which exist in the Dockerfile syntax are not guaranteed to work correctly.
+{% endhint %}
+
+#### Options
+
+##### `--build-arg <key>=<value>`
+
+Sets a value override of `<value>` for the Dockerfile build arg identified by `<key>`. This option is similar to the `docker build --build-arg <key>=<value>` option.
+
+##### `--target <target-name>`
+
+In a multi-stage Dockerfile, sets the target to be used for the build. This option is similar to the `docker build --target <target-name>` option.
+
+##### `--platform <platform>` (**beta**)
+
+Specifies the platform to build on.
 
 For more information see the [multi-platform guide](../guides/multi-platform.md).
 
