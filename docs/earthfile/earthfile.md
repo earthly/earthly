@@ -6,8 +6,9 @@ Note to person editing!
 
 The general order of the commands is as follows:
 
-- Classical Dockerfile commands (order is the same as in the Dockferfile official docs)
-- GA'd Earthly commands
+- Core classical Dockerfile commands (order is the same as in the Dockferfile official docs)
+- Core, GA'd Earthly commands
+- Other Dockerfile commands which have the exact same behavior in Earthly as in Dockerfiles
 - Beta Earthly commands
 - Experimental Earthly commands
 - Classical Dockerfile commands that are not supported
@@ -399,127 +400,6 @@ FROM --build-arg NAME=john +docker-image
 
 A number of builtin args are available and are pre-filled by Earthly. For more information see [builtin args](./builtin-args.md).
 
-## CMD (same as Dockerfile CMD)
-
-#### Synopsis
-
-* `CMD ["executable", "arg1", "arg2"]` (exec form)
-* `CMD ["arg1, "arg2"]` (as default arguments to the entrypoint)
-* `CMD command arg1 arg2` (shell form)
-
-#### Description
-
-The command `CMD` sets default arguments for an image, when executing as a container. It works the same way as the [Dockerfile `CMD` command](https://docs.docker.com/engine/reference/builder/#cmd).
-
-## LABEL (same as Dockerfile LABEL)
-
-#### Synopsis
-
-* `LABEL <key>=<value> <key>=<value> ...`
-
-#### Description
-
-The `LABEL` command adds label metadata to an image. It works the same way as the [Dockerfile `LABEL` command](https://docs.docker.com/engine/reference/builder/#label).
-
-## EXPOSE (same as Dockerfile EXPOSE)
-
-#### Synopsis
-
-* `EXPOSE <port> <port> ...`
-* `EXPOSE <port>/<protocol> <port>/<protocol> ...`
-
-#### Description
-
-The `EXPOSE` command marks a series of ports as listening ports within the image. It works the same way as the [Dockerfile `EXPOSE` command](https://docs.docker.com/engine/reference/builder/#expose).
-
-## ENV (same as Dockerfile ENV)
-
-#### Synopsis
-
-* `ENV <key> <value>`
-* `ENV <key>=<value>`
-
-#### Description
-
-The `ENV` command sets the environment variable `<key>` to the value `<value>`. It works the same way as the [Dockerfile `ENV` command](https://docs.docker.com/engine/reference/builder/#env).
-
-{% hint style='info' %}
-##### Note
-Do not use the `ENV` command for secrets used during the build. All `ENV` values used during the build are persisted within the image itself. See the [`RUN --secret` option](#run) to pass secrets to build instructions.
-{% endhint %}
-
-## ENTRYPOINT (same as Dockerfile ENTRYPOINT)
-
-#### Synopsis
-
-* `ENTRYPOINT ["executable", "arg1", "arg2"]` (exec form)
-* `ENTRYPOINT command arg1 arg2` (shell form)
-
-#### Description
-
-The `ENTRYPOINT` command sets the default command or executable to be run when the image is executed as a container. It works the same way as the [Dockerfile `ENTRYPOINT` command](https://docs.docker.com/engine/reference/builder/#entrypoint).
-
-## VOLUME (same as Dockerfile VOLUME)
-
-#### Synopsis
-
-* `VOLUME <path-to-target-mount> <path-to-target-mount> ...`
-* `VOLUME ["<path-to-target-mount>", <path-to-target-mount> ...]`
-
-#### Description
-
-The `VOLUME` command creates a mount point at the specified path and marks it as holding externally mounted volumes. It works the same way as the [Dockerfile `VOLUME` command](https://docs.docker.com/engine/reference/builder/#volume).
-
-## USER (same as Dockerfile USER)
-
-#### Synopsis
-
-* `USER <user>[:<group>]`
-* `USER <UID>[:<GID>]`
-
-#### Description
-
-The `USER` command sets the user name (or UID) and optionally the user group (or GID) to use when running the image and also for any subsequent instructions in the build recipe. It works the same way as the [Dockerfile `USER` command](https://docs.docker.com/engine/reference/builder/#user).
-
-## WORKDIR (same as Dockerfile WORKDIR)
-
-#### Synopsis
-
-* `WORKDIR <path-to-dir>`
-
-#### Description
-
-The `WORKDIR` command strs the working directory for other commands that follow in the recipe. The working directory is also persisted as the default directory for the image. If the directory does not exist, it is automatically created. This command works the same way as the [Dockerfile `WORKDIR` command](https://docs.docker.com/engine/reference/builder/#workdir).
-
-## HEALTHCHECK (same as Dockerfile HEALTHCHECK)
-
-#### Synopsis
-
-* `HEALTHCHECK NONE` (disable healthchecking)
-* `HEALTHCHECK [--interval=DURATION] [--timeout=DURATION] [--start-period=DURATION] [--retries=N] CMD command arg1 arg2` (check container health by running command inside the container)
-
-#### Description
-
-The `HEALTHCHECK` command tells Docker how to test a container to check that it is still working. It works the same way as the [Dockerfile `HEALTHCHECK` command](https://docs.docker.com/engine/reference/builder/#healthcheck), with the only exception that the exec form of this command is not yet supported.
-
-#### Options
-
-##### `--interval=DURATION`
-
-Sets the time interval between health checks. Defaults to `30s`.
-
-##### `--timeout=DURATION`
-
-Sets the timeout for a single run before it is considered as failed. Defaults to `30s`.
-
-##### `--start-period=DURATION`
-
-Sets an initialization time period in which failures are not counted towards the maximum number of retries. Defaults to `0s`.
-
-##### `--retries=N`
-
-Sets the number of retries before a container is considered `unhealthy`. Defaults to `3`.
-
 ## GIT CLONE
 
 #### Synopsis
@@ -676,6 +556,127 @@ build-all-platforms:
 ```
 
 For more information see the [multi-platform guide](../guides/multi-platform.md).
+
+## CMD (same as Dockerfile CMD)
+
+#### Synopsis
+
+* `CMD ["executable", "arg1", "arg2"]` (exec form)
+* `CMD ["arg1, "arg2"]` (as default arguments to the entrypoint)
+* `CMD command arg1 arg2` (shell form)
+
+#### Description
+
+The command `CMD` sets default arguments for an image, when executing as a container. It works the same way as the [Dockerfile `CMD` command](https://docs.docker.com/engine/reference/builder/#cmd).
+
+## LABEL (same as Dockerfile LABEL)
+
+#### Synopsis
+
+* `LABEL <key>=<value> <key>=<value> ...`
+
+#### Description
+
+The `LABEL` command adds label metadata to an image. It works the same way as the [Dockerfile `LABEL` command](https://docs.docker.com/engine/reference/builder/#label).
+
+## EXPOSE (same as Dockerfile EXPOSE)
+
+#### Synopsis
+
+* `EXPOSE <port> <port> ...`
+* `EXPOSE <port>/<protocol> <port>/<protocol> ...`
+
+#### Description
+
+The `EXPOSE` command marks a series of ports as listening ports within the image. It works the same way as the [Dockerfile `EXPOSE` command](https://docs.docker.com/engine/reference/builder/#expose).
+
+## ENV (same as Dockerfile ENV)
+
+#### Synopsis
+
+* `ENV <key> <value>`
+* `ENV <key>=<value>`
+
+#### Description
+
+The `ENV` command sets the environment variable `<key>` to the value `<value>`. It works the same way as the [Dockerfile `ENV` command](https://docs.docker.com/engine/reference/builder/#env).
+
+{% hint style='info' %}
+##### Note
+Do not use the `ENV` command for secrets used during the build. All `ENV` values used during the build are persisted within the image itself. See the [`RUN --secret` option](#run) to pass secrets to build instructions.
+{% endhint %}
+
+## ENTRYPOINT (same as Dockerfile ENTRYPOINT)
+
+#### Synopsis
+
+* `ENTRYPOINT ["executable", "arg1", "arg2"]` (exec form)
+* `ENTRYPOINT command arg1 arg2` (shell form)
+
+#### Description
+
+The `ENTRYPOINT` command sets the default command or executable to be run when the image is executed as a container. It works the same way as the [Dockerfile `ENTRYPOINT` command](https://docs.docker.com/engine/reference/builder/#entrypoint).
+
+## VOLUME (same as Dockerfile VOLUME)
+
+#### Synopsis
+
+* `VOLUME <path-to-target-mount> <path-to-target-mount> ...`
+* `VOLUME ["<path-to-target-mount>", <path-to-target-mount> ...]`
+
+#### Description
+
+The `VOLUME` command creates a mount point at the specified path and marks it as holding externally mounted volumes. It works the same way as the [Dockerfile `VOLUME` command](https://docs.docker.com/engine/reference/builder/#volume).
+
+## USER (same as Dockerfile USER)
+
+#### Synopsis
+
+* `USER <user>[:<group>]`
+* `USER <UID>[:<GID>]`
+
+#### Description
+
+The `USER` command sets the user name (or UID) and optionally the user group (or GID) to use when running the image and also for any subsequent instructions in the build recipe. It works the same way as the [Dockerfile `USER` command](https://docs.docker.com/engine/reference/builder/#user).
+
+## WORKDIR (same as Dockerfile WORKDIR)
+
+#### Synopsis
+
+* `WORKDIR <path-to-dir>`
+
+#### Description
+
+The `WORKDIR` command strs the working directory for other commands that follow in the recipe. The working directory is also persisted as the default directory for the image. If the directory does not exist, it is automatically created. This command works the same way as the [Dockerfile `WORKDIR` command](https://docs.docker.com/engine/reference/builder/#workdir).
+
+## HEALTHCHECK (same as Dockerfile HEALTHCHECK)
+
+#### Synopsis
+
+* `HEALTHCHECK NONE` (disable healthchecking)
+* `HEALTHCHECK [--interval=DURATION] [--timeout=DURATION] [--start-period=DURATION] [--retries=N] CMD command arg1 arg2` (check container health by running command inside the container)
+
+#### Description
+
+The `HEALTHCHECK` command tells Docker how to test a container to check that it is still working. It works the same way as the [Dockerfile `HEALTHCHECK` command](https://docs.docker.com/engine/reference/builder/#healthcheck), with the only exception that the exec form of this command is not yet supported.
+
+#### Options
+
+##### `--interval=DURATION`
+
+Sets the time interval between health checks. Defaults to `30s`.
+
+##### `--timeout=DURATION`
+
+Sets the timeout for a single run before it is considered as failed. Defaults to `30s`.
+
+##### `--start-period=DURATION`
+
+Sets an initialization time period in which failures are not counted towards the maximum number of retries. Defaults to `0s`.
+
+##### `--retries=N`
+
+Sets the number of retries before a container is considered `unhealthy`. Defaults to `3`.
 
 ## FROM DOCKERFILE (**beta**)
 

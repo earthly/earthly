@@ -7,7 +7,7 @@
 
 ## 📖 Docs
 
-* 🧑‍🏫 Guides
+* Guides
     * [Authenticating Git and image registries](guides/auth.md)
     * [Target, artifact and command referencing](guides/target-ref.md)
     * [User-defined commands (UDCs)](guides/udc.md)
@@ -24,13 +24,13 @@
         * [GCP Artifact Registry](guides/registries/gcp-artifact-registry.md)
         * [Azure ACR](guides/registries/azure-acr.md)
         * [Self-signed certificates](guides/registries/self-signed.md)
-* [🌍 Earthfile reference](earthfile/earthfile.md)
+* [Earthfile reference](earthfile/earthfile.md)
     * [Builtin args](earthfile/builtin-args.md)
     * [Excluding patterns](earthfile/earthignore.md)
-* [⌨️ The `earthly` command](earthly-command/earthly-command.md)
-* [📄 Configuration reference](earthly-config/earthly-config.md)
-* [⚙️ CI integration](./ci-integration.md)
-* 💼 Misc
+* [The `earthly` command](earthly-command/earthly-command.md)
+* [Configuration reference](earthly-config/earthly-config.md)
+* [CI integration](./ci-integration.md)
+* Misc
     * [Alternative installation](./alt-installation.md)
     * [Definitions](definitions/definitions.md)
     * [Data collection](data-collection/data-collection.md)
