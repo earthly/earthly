@@ -13,3 +13,11 @@ In this section, you will find some examples of Earthfiles for
 * [Earthly](./earthly.md)
 
 The code for all the examples is available in the [examples GitHub directory](https://github.com/earthly/earthly/tree/main/examples).
+
+In addition, examples of integrating Earthly into CI can be found on the following pages:
+
+* [Circle CI](./circle-integration.md)
+* [GitHub Actions](./gh-actions-integration.md)
+* [AWS CodeBuild](./codebuild-integration.md)
+
+See also the [CI integration guide](../guides/ci-integration.md).
