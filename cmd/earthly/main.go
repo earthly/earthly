@@ -471,6 +471,7 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 			EnvVars:     []string{"EARTHLY_DEBUG"},
 			Usage:       "Enable debug mode. This flag also turns on the debug mode of buildkitd, which may cause it to restart",
 			Destination: &app.debug,
+			Hidden:      true, // For development purposes only.
 		},
 		&cli.StringFlag{
 			Name:        "server",
@@ -496,7 +497,7 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 		&cli.IntFlag{
 			Name:        "conversion-parallelism",
 			EnvVars:     []string{"EARTHLY_CONVERSION_PARALLELISM"},
-			Usage:       "*experimental* Set the conversion parallelism, which speeds up the use of IF, WITH DOCKER --load, FROM DOCKERFILE and others. A value of 0 disables the feature",
+			Usage:       "Set the conversion parallelism, which speeds up the use of IF, WITH DOCKER --load, FROM DOCKERFILE and others. A value of 0 disables the feature *experimental*",
 			Destination: &app.conversionParllelism,
 		},
 	}
