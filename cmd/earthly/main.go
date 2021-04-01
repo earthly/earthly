@@ -903,6 +903,12 @@ func (app *earthlyApp) before(context *cli.Context) error {
 	app.buildkitdSettings.AdditionalArgs = app.cfg.Global.BuildkitAdditionalArgs
 	app.buildkitdSettings.AdditionalConfig = app.cfg.Global.BuildkitAdditionalConfig
 
+	// ensure the MTU is something allowable in IPv4, cap enforced by type. Zero is autodetect.
+	if app.buildkitdSettings.CniMtu != 0 && app.buildkitdSettings.CniMtu < 68 {
+		return errors.New("invalid overridden MTU size")
+	}
+	app.buildkitdSettings.CniMtu = app.cfg.Global.CniMtu
+
 	return nil
 }
 
