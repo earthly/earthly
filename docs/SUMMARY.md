@@ -38,21 +38,17 @@
 ## 🧙 Examples
 
 * [Overview](examples/examples.md)
-* Per-language examples
+* Per-language Earthfile examples
     * [Go](examples/go.md)
     * [Java](examples/java.md)
     * [JS](examples/js.md)
     * [C++](examples/cpp.md)
     * [Python](examples/python.md)
-* Other
+* Other Earthfile examples
     * [Monorepo](examples/monorepo.md)
     * [Multirepo](examples/multirepo.md)
     * [Earthly](examples/earthly.md)
-
-## ⚙️ CI examples
-
-* [Overview](ci-examples/ci-examples.md)
-* Per-CI examples
+* [CI examples](ci-examples/ci-examples.md)
     * [GitHub Actions](ci-examples/gh-actions-integration.md)
     * [Circle CI](ci-examples/circle-integration.md)
     * [AWS CodeBuild](ci-examples/codebuild-integration.md)
