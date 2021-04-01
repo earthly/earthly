@@ -469,7 +469,7 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 			Name:        "debug",
 			Aliases:     []string{"D"},
 			EnvVars:     []string{"EARTHLY_DEBUG"},
-			Usage:       "Enable debug mode",
+			Usage:       "Enable debug mode. This flag also turns on the debug mode of buildkitd, which may cause it to restart",
 			Destination: &app.debug,
 		},
 		&cli.StringFlag{
