@@ -17,6 +17,7 @@ type Settings struct {
 	DebuggerPort     int      `json:"debuggerPort"`
 	AdditionalArgs   []string `json:"additionalArgs"`
 	AdditionalConfig string   `json:"additionalConfig"`
+	CniMtu           uint16   `json:"cnuMtu"`
 }
 
 // Hash returns a secure hash of the settings.
