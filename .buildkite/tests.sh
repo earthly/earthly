@@ -4,7 +4,8 @@ set -xeu
 
 trap 'kill $(jobs -p); wait' SIGINT SIGTERM
 
-export EARTHLY_CONVERSION_PARALLELISM=5
+# TODO: This has been disabled as it's causing context deadline exceeded errors regularly.
+# export EARTHLY_CONVERSION_PARALLELISM=5
 
 case "$EARTHLY_OS" in
     darwin)
