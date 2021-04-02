@@ -158,7 +158,7 @@ earthly +docker
 
 The output might look like this:
 
-![Earthly build output](img/go-example.png)
+![Earthly build output](../guides/img/go-example.png)
 
 Notice how to the left of `|`, within the output, we can see some targets like `+base`, `+build` and `+docker` . Notice how the output is interleaved between `+docker` and `+build`. This is because the system executes independent build steps in parallel. The reason this is possible effortlessly is because only very few things are shared between the builds of the recipes and those things are declared and obvious. The rest is completely isolated.
 
