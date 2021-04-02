@@ -231,7 +231,7 @@ The build starts from the `python:3` docker image.
 FROM python:3
 ```
 
-We change the current working directory to /code.
+We change the current working directory to `/code`.
 
 ```
 WORKDIR /code
