@@ -242,4 +242,4 @@ To improve the speed we will make some changes in part 4 of the tutorial.
 
 ## Continue tutorial
 
-👉 [Part 4: Efficient caching of dependencies](./part-4-efficient-caching-of-dependencies.md)
+👉 [Part 5: Efficient caching of dependencies](./part-5-efficient-caching-of-dependencies.md)

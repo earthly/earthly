@@ -172,4 +172,4 @@ docker:
 
 ## Continue tutorial
 
-👉 [Part 3: Adding dependencies in the mix](./part-3-adding-dependencies-in-the-mix.md)
+👉 [Part 4: Adding dependencies in the mix](./part-4-adding-dependencies-in-the-mix.md)

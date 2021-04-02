@@ -112,4 +112,4 @@ For a primer into Dockerfile layer caching see [this article](https://pythonspee
 
 ## Continue tutorial
 
-👉 [Part 5: Reduce code duplication](./part-5-reduce-code-duplication.md)
+👉 [Part 6: Reduce code duplication](./part-6-reduce-code-duplication.md)
