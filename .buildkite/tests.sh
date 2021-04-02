@@ -14,10 +14,7 @@ case "$EARTHLY_OS" in
         ;;
 
     darwin-m1)
-        # TODO: The build doesn't yet worked with the latest released Earthly. Update this
-        #       after the next release.
-        download_url=
-        released_earthly="/Users/administrator/.earthly/earthly-prerelease"
+        download_url="https://github.com/earthly/earthly/releases/latest/download/earthly-darwin-arm64"
         earthly="./build/darwin/arm64/earthly"
         ;;
 
