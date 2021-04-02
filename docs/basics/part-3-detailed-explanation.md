@@ -5,6 +5,12 @@ Going back to the example earthfile definition, here is what each command does:
 
 {% method %}
 {% sample lang="Go" %}
+```bash
+$hello world
+```
+
+Hello text. This is a test.
+
 ```Dockerfile
 # Earthfile
 
