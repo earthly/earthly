@@ -5,53 +5,68 @@ Going back to the example earthfile definition, here is what each command does:
 
 {% method %}
 {% sample lang="Go" %}
-```bash
-$hello world
-```
-
-Hello text. This is a test.
+The first commands in the file are part of the `base` target and are implicitly inherited by all other targets (as if they started with `FROM +base`).
 
 ```Dockerfile
-# Earthfile
-
-# The build starts from a docker image: golang:1.15-alpine3.13
 FROM golang:1.15-alpine3.13
-# We change the current working directory.
-WORKDIR /go-example
-
-# The above commands are inherited implicitly by all targets below
-# (as if they started with FROM +base).
-
-# Declare a target, build.
-build:
-    # Define the recipe of the target build as follows:
-
-    # Copy main.go from the build context to the build environment.
-    COPY main.go .
-    # Run a go build command.
-    # This uses the previously copied main.go file.
-    RUN go build -o build/go-example main.go
-    # Save the output of the build command as an artifact. Call this
-    # artifact /go-example (it can be later referenced as +build/go-example).
-    # In addition, store the artifact as a local file (on the host) named
-    # build/go-example. This local file is only written if the entire build
-    # succeeds.
-    SAVE ARTIFACT build/go-example /go-example AS LOCAL build/go-example
-
-# Declare a target, docker.
-docker:
-    # Define the recipe of the target docker as follows:
-
-    # Copy the artifact /go-example produced by another target, +build, to the
-    # current directory within the build container.
-    COPY +build/go-example .
-    # Set the entrypoint for the resulting docker image.
-    ENTRYPOINT ["/go-example/go-example"]
-    # Save the current state as a docker image, which will have the docker tag
-    # go-example:latest. This image is only made available to the host's docker
-    # if the entire build succeeds.
-    SAVE IMAGE go-example:latest
 ```
+
+The build starts from a docker image: `golang:1.15-alpine3.13`.
+
+```Dockerfile
+WORKDIR /go-example
+```
+
+We change the current working directory to `/go-example`.
+
+```
+build:
+```
+
+Declare a target, `build`, and define the recipe of the target build as follows ...
+
+```
+    COPY main.go .
+```
+
+Copy `main.go` from the build context (the directory where the Earthfile resides) to the build environment (the containerized environment where Earthly commands are ran in).
+
+```
+    RUN go build -o build/go-example main.go
+```
+
+Run a go build command. This uses the previously copied `main.go` file.
+
+```
+    SAVE ARTIFACT build/go-example /go-example AS LOCAL build/go-example
+```
+
+Save the output of the build command as an artifact. Call this artifact `/go-example` (it can be later referenced as `+build/go-example`). In addition, store the artifact as a local file (on the host) named `build/go-example`. This local file is only written if the entire build succeeds.
+
+```
+docker:
+```
+
+Declare a target, `docker`, and define the recipe of the target docker as follows ...
+
+```
+    COPY +build/go-example .
+```
+
+Copy the artifact `/go-example` produced by another target, `+build`, to the current directory within the build environment.
+
+```
+ENTRYPOINT ["/go-example/go-example"]
+```
+
+Set the entrypoint for the resulting docker image.
+
+```
+SAVE IMAGE go-example:latest
+```
+
+Save the current state as a docker image, which will have the docker tag `go-example:latest`. This image is only made available to the host's docker if the entire build succeeds.
+
 {% sample lang="JavaScript" %}
 ```Dockerfile
 # Earthfile
