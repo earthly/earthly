@@ -32,5 +32,6 @@ redirects:
     examples/circle-integration: ci-examples/circle-integration.md
     examples/codebuild-integration: ci-examples/codebuild-integration.md
     alt-installation: alt-installation.md
-    guides/basics: basics.md
+    guides/basics: basics/basics.md
+    basics: basics/basics.md
     guides/ci-integration: ci-integration.md
