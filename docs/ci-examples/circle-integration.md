@@ -19,4 +19,4 @@ jobs:
       - run: earthly --push +build
 ```
 
-For a complete guide on CI integration see the [CI integration guide](../guides/ci-integration.md).
+For a complete guide on CI integration see the [CI integration guide](../ci-integration.md).

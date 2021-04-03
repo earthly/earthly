@@ -36,9 +36,10 @@
 * Important: Subscribe to the PR that griswoldthecat created in homebrew-core, so that you can address any review comments that may come up.
 * Merge branch `main` into `next`, then merge branch `next` into `main`.
 * Update the version for the installation command in the following places:
-  * [ci-integration.md](../docs/guides/ci-integration.md)
-  * [circle-integration.md](../docs/examples/circle-integration.md)
-  * [gh-actions-integration.md](../docs/examples/gh-actions-integration.md)
+  * [ci-integration.md](../docs/ci-integration.md)
+  * [circle-integration.md](../docs/ci-examples/circle-integration.md)
+  * [gh-actions-integration.md](../docs/ci-examples/gh-actions-integration.md)
+  * [codebuild-integration.md](../docs/ci-examples/codebuild-integration.md)
   * you can try doing that with:
     ```
     find . -name '*integration.md' | xargs -n1 sed -i 's/\(earthly\/releases\/download\/\)v[0-9]\+\.[0-9]\+\.[0-9]\+\(\/\)/\1'$RELEASE_TAG'\2/g'

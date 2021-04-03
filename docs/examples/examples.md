@@ -20,4 +20,4 @@ In addition, examples of integrating Earthly into CI can be found on the followi
 * [GitHub Actions](../ci-examples/gh-actions-integration.md)
 * [AWS CodeBuild](../ci-examples/codebuild-integration.md)
 
-See also the [CI integration guide](../guides/ci-integration.md).
+See also the [CI integration guide](../ci-integration.md).

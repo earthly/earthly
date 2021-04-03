@@ -1,6 +1,6 @@
 # JS example
 
-A complete JavaScript example is available on [the Basics page](../guides/basics.md).
+A complete JavaScript example is available on [the Basics page](../basics/basics.md).
 
 ```Dockerfile
 # Earthfile

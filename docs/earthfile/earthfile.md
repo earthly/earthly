@@ -37,7 +37,7 @@ Earthfiles have the following rough structure:
     ...
 ```
 
-Each recipe contains a series of commands, which are defined below. For an introduction into Earthfiles, see the [Basics page](../guides/basics.md).
+Each recipe contains a series of commands, which are defined below. For an introduction into Earthfiles, see the [Basics page](../basics/basics.md).
 
 ## FROM
 
