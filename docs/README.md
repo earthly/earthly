@@ -27,7 +27,7 @@ A high-level overview is available on [the Earthly GitHub page](https://github.c
 * [Earthly GitHub page](https://github.com/earthly/earthly)
 * [Installation instructions](https://earthly.dev/get-earthly)
 * [Earthly basics](./guides/basics.md)
-* [Earthfile reference](./docs/earthfile) <!-- Doesn't work as .md link -->
+* [Earthfile reference](./earthfile/earthfile.md)
 * [Earthly command reference](./earthly-command/earthly-command.md)
 * [Configuration reference](./earthly-config/earthly-config.md)
 * [Earthfile examples](./examples/examples.md)
