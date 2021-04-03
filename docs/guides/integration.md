@@ -213,7 +213,7 @@ docker:
 
 {% endmethod %}
 
- See [Basics Guide](./basics.md) for more details on these steps, including how they might differ in Go, Javascript, Java, and Python.
+ See the [Basics Guide](../basics/basics.md) for more details on these steps, including how they might differ in Go, Javascript, Java, and Python.
 
 ## In-App Integration Testing 
 

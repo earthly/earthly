@@ -53,7 +53,7 @@ hello world
 {% hint style='info' %}
 ##### Note
 
-Targets have a particular referencing convention which helps Earthly to identify which recipe to execute. In the simplest form, targets are referenced by `+<target-name>`.  For example, `+build`. For more details see the [target referencing page](./target-ref.md).
+Targets have a particular referencing convention which helps Earthly to identify which recipe to execute. In the simplest form, targets are referenced by `+<target-name>`.  For example, `+build`. For more details see the [target referencing page](../guides/target-ref.md).
 {% endhint %}
 
 ## Continue tutorial
