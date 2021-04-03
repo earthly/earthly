@@ -91,6 +91,6 @@ For more information see the [earthly command reference](../earthly-command/eart
 
 A couple of build examples are available for
 
-* [Circle CI](../examples/circle-integration.md)
-* [GitHub Actions](../examples/gh-actions-integration.md)
-* [AWS CodeBuild](../examples/codebuild-integration.md)
+* [Circle CI](./ci-examples/circle-integration.md)
+* [GitHub Actions](./ci-examples/gh-actions-integration.md)
+* [AWS CodeBuild](./ci-examples/codebuild-integration.md)
