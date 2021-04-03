@@ -41,7 +41,7 @@ In certain CI environments, such as Jenkins, where you have access to the host, 
 
 Depending on your needs, you may need to ensure that Git has authenticated access and / or that Docker is logged in so that it has access to private repositories.
 
-To authenticate Git, you may either use SSH-based authentication, or username-password-based authentication. See the [Authentication page for more information](./auth.md). If no authentication is configured, `earthly` will fall back to using public https access.
+To authenticate Git, you may either use SSH-based authentication, or username-password-based authentication. See the [Authentication page for more information](./guides/auth.md). If no authentication is configured, `earthly` will fall back to using public https access.
 
 To log in Docker, simply run
 
@@ -85,7 +85,7 @@ If you need to pass secrets to the Earthly build, you might also use the `--secr
 earthly --secret SOME_SECRET_ENV_VAR +target-name
 ```
 
-For more information see the [earthly command reference](../earthly-command/earthly-command.md).
+For more information see the [earthly command reference](./earthly-command/earthly-command.md).
 
 ## Complete examples
 
