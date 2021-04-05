@@ -113,6 +113,7 @@ type cliFlags struct {
 	debug                  bool
 	homebrewSource         string
 	bootstrapNoBuildkit    bool
+	bootstrapCI            bool
 	email                  string
 	token                  string
 	password               string
@@ -230,7 +231,7 @@ func main() {
 		ctxTimeout, cancel := context.WithTimeout(ctx, time.Millisecond*500)
 		defer cancel()
 		displayErrors := app.verbose
-		analytics.CollectAnalytics(ctxTimeout, app.apiServer, displayErrors, Version, getPlatform(), GitSha, app.commandName, exitCode, time.Since(startTime))
+		analytics.CollectAnalytics(ctxTimeout, app.cfg.Global.CiInstallation, app.apiServer, displayErrors, Version, getPlatform(), GitSha, app.commandName, exitCode, time.Since(startTime))
 	}
 	os.Exit(exitCode)
 }
@@ -520,6 +521,11 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 					Name:        "no-buildkit",
 					Usage:       "Do not bootstrap buildkit",
 					Destination: &app.bootstrapNoBuildkit,
+				},
+				&cli.BoolFlag{
+					Name:        "ci",
+					Usage:       "Mark the installation as a CI installation. Skips autocompletion",
+					Destination: &app.bootstrapCI,
 				},
 			},
 		},
@@ -1340,29 +1346,36 @@ func (app *earthlyApp) actionBootstrap(c *cli.Context) error {
 	}
 
 	console := app.console.WithPrefix("bootstrap")
-	err := symlinkEarthlyToEarth()
-	if err != nil {
-		console.Warnf("Warning: %s\n", err.Error())
-	}
-	err = app.insertBashCompleteEntry()
-	if err != nil {
-		return err
-	}
-	err = app.insertZSHCompleteEntry()
-	if err != nil {
-		return err
-	}
-
 	if !app.bootstrapNoBuildkit {
 		// Bootstrap buildkit - pulls image and starts daemon.
 		bkClient, _, err := app.newBuildkitdClient(c.Context)
 		if err != nil {
-			return errors.Wrap(err, "buildkitd new client")
+			console.Warnf("Warning: %s\n", err.Error())
+		} else {
+			defer bkClient.Close()
 		}
-		defer bkClient.Close()
 	}
-
-	console.Printf("Bootstrapping successful.\nYou may have to restart your shell for autocomplete to get initialized (e.g. run \"exec $SHELL\")\n")
+	if app.bootstrapCI {
+		err := app.updateConfig(c, "global.ci_installation", "true")
+		if err != nil {
+			console.Warnf("Warning: %s\n", err.Error())
+		}
+		app.cfg.Global.CiInstallation = true // update for this run too, for analytics of bootstrap itself
+	} else {
+		err := symlinkEarthlyToEarth()
+		if err != nil {
+			console.Warnf("Warning: %s\n", err.Error())
+		}
+		err = app.insertBashCompleteEntry()
+		if err != nil {
+			console.Warnf("Warning: %s\n", err.Error())
+		}
+		err = app.insertZSHCompleteEntry()
+		if err != nil {
+			console.Warnf("Warning: %s\n", err.Error())
+		}
+		console.Printf("Bootstrapping successful.\nYou may have to restart your shell for autocomplete to get initialized (e.g. run \"exec $SHELL\")\n")
+	}
 	return nil
 }
 
@@ -2150,12 +2163,16 @@ func (app *earthlyApp) actionConfig(c *cli.Context) error {
 	}
 
 	args := c.Args().Slice()
+	return app.updateConfig(c, args[0], args[1])
+}
+
+func (app *earthlyApp) updateConfig(c *cli.Context, path, newValue string) error {
 	inConfig, err := config.ReadConfigFile(app.configPath, c.IsSet("config"))
 	if err != nil {
 		return errors.Wrap(err, "read config")
 	}
 
-	outConfig, err := config.UpsertConfig(inConfig, args[0], args[1])
+	outConfig, err := config.UpsertConfig(inConfig, path, newValue)
 	if err != nil {
 		return errors.Wrap(err, "upsert config")
 	}
@@ -2169,7 +2186,6 @@ func (app *earthlyApp) actionConfig(c *cli.Context) error {
 	if err != nil {
 		return errors.Wrap(err, "write config")
 	}
-
 	return nil
 }
 

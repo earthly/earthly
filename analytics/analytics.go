@@ -23,7 +23,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-func detectCI() (string, bool) {
+func detectCI(isCI bool) (string, bool) {
 	for k, v := range map[string]string{
 		"GITHUB_WORKFLOW": "github-actions",
 		"CIRCLECI":        "circle-ci",
@@ -53,6 +53,10 @@ func detectCI() (string, bool) {
 			return "ci-env-var-set", true
 		}
 		return v, true
+	}
+
+	if isCI {
+		return "config-ci-installation", true
 	}
 
 	return "false", false
@@ -171,9 +175,9 @@ func saveData(server string, data *EarthlyAnalytics) error {
 }
 
 // CollectAnalytics sends analytics to api.earthly.dev
-func CollectAnalytics(ctx context.Context, earthlyServer string, displayErrors bool, version, platform, gitSha, commandName string, exitCode int, realtime time.Duration) {
+func CollectAnalytics(ctx context.Context, isCI bool, earthlyServer string, displayErrors bool, version, platform, gitSha, commandName string, exitCode int, realtime time.Duration) {
 	var err error
-	ciName, ci := detectCI()
+	ciName, ci := detectCI(isCI)
 	repoHash := getRepoHash()
 	installID, overrideInstallID := os.LookupEnv("EARTHLY_INSTALL_ID")
 	if !overrideInstallID {

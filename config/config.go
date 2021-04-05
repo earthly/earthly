@@ -31,6 +31,7 @@ type GlobalConfig struct {
 	BuildkitAdditionalArgs   []string `yaml:"buildkit_additional_args"   help:"Additional args to pass to buildkit when it starts. Useful for custom/self-signed certs, or user namespace complications."`
 	BuildkitAdditionalConfig string   `yaml:"buildkit_additional_config" help:"Additional config to use when starting the buildkit container; like using custom/self-signed certificates."`
 	CniMtu                   uint16   `yaml:"cni_mtu"                    help:"Override auto-detection of the default interface MTU, for all containers within buildkit"`
+	CiInstallation           bool     `yaml:"ci_installation"            help:"Mark the Earthly installation as a CI installation for analytics purposes"`
 
 	// Obsolete.
 	CachePath string `yaml:"cache_path"`
