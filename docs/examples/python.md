@@ -1,6 +1,6 @@
 # Python example
 
-A complete Python example is available on [the Basics page](../guides/basics.md).
+A complete Python example is available on [the Basics page](../basics/basics.md).
 
 ```Dockerfile
 FROM python:3

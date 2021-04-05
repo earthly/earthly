@@ -16,8 +16,8 @@ The code for all the examples is available in the [examples GitHub directory](ht
 
 In addition, examples of integrating Earthly into CI can be found on the following pages:
 
-* [Circle CI](./circle-integration.md)
-* [GitHub Actions](./gh-actions-integration.md)
-* [AWS CodeBuild](./codebuild-integration.md)
+* [Circle CI](../ci-examples/circle-integration.md)
+* [GitHub Actions](../ci-examples/gh-actions-integration.md)
+* [AWS CodeBuild](../ci-examples/codebuild-integration.md)
 
-See also the [CI integration guide](../guides/ci-integration.md).
+See also the [CI integration guide](../ci-integration.md).

@@ -57,7 +57,7 @@ The `<artifact-ref>` can reference artifacts built by targets. `<target-ref>/<ar
 
 ##### Examples
 
-See the [Target, artifact, and image referencing guide](../guides/target-ref) for more details and examples.
+See the [Target, artifact, and image referencing guide](../guides/target-ref.md) for more details and examples.
 
 #### Environment Variables and .env File
 

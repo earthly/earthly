@@ -3,7 +3,14 @@
 
 * [👋 Introduction](README.md)
 * [⬇️ Installation](https://earthly.dev/get-earthly)
-* [🎓 Learn the basics](./basics.md)
+* [🎓 Learn the basics](basics/basics.md)
+    * [Part 1: A simple Earthfile](basics/part-1-a-simple-earthfile.md)
+    * [Part 2: Executing a build](basics/part-2-executing-a-build.md)
+    * [Part 3: Detailed explanation](basics/part-3-detailed-explanation.md)
+    * [Part 4: Adding dependencies in the mix](basics/part-4-adding-dependencies-in-the-mix.md)
+    * [Part 5: Efficient caching of dependencies](basics/part-5-efficient-caching-of-dependencies.md)
+    * [Part 6: Reduce code duplication](basics/part-6-reduce-code-duplication.md)
+    * [Final words](basics/final-words.md)
 
 ## 📖 Docs
 

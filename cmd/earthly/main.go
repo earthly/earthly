@@ -112,6 +112,7 @@ type cliFlags struct {
 	verbose                bool
 	debug                  bool
 	homebrewSource         string
+	bootstrapNoBuildkit    bool
 	email                  string
 	token                  string
 	password               string
@@ -505,15 +506,20 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 	app.cliApp.Commands = []*cli.Command{
 		{
 			Name:        "bootstrap",
-			Usage:       "Bootstraps earthly bash autocompletion",
-			Description: "Performs initial earthly bootstrapping for bash autocompletion",
+			Usage:       "Bootstraps earthly installation including shell autocompletion and buildkit image download",
+			Description: "Bootstraps earthly installation including shell autocompletion and buildkit image download",
 			Action:      app.actionBootstrap,
 			Flags: []cli.Flag{
 				&cli.StringFlag{
 					Name:        "source",
-					Usage:       "output source file (for use in homebrew install)",
+					Usage:       "Output source file (for use in homebrew install)",
 					Hidden:      true, // only meant for use with homebrew formula
 					Destination: &app.homebrewSource,
+				},
+				&cli.BoolFlag{
+					Name:        "no-buildkit",
+					Usage:       "Do not bootstrap buildkit",
+					Destination: &app.bootstrapNoBuildkit,
 				},
 			},
 		},
@@ -1333,23 +1339,30 @@ func (app *earthlyApp) actionBootstrap(c *cli.Context) error {
 		return errors.Errorf("unhandled source %q", app.homebrewSource)
 	}
 
+	console := app.console.WithPrefix("bootstrap")
 	err := symlinkEarthlyToEarth()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Warning: %s\n", err.Error())
+		console.Warnf("Warning: %s\n", err.Error())
 	}
-
 	err = app.insertBashCompleteEntry()
 	if err != nil {
 		return err
 	}
-
 	err = app.insertZSHCompleteEntry()
 	if err != nil {
 		return err
 	}
 
-	fmt.Fprintf(os.Stderr, "Bootstrapping successful; you may have to restart your shell for autocomplete to get initialized (e.g. run \"exec $SHELL\")\n")
+	if !app.bootstrapNoBuildkit {
+		// Bootstrap buildkit - pulls image and starts daemon.
+		bkClient, _, err := app.newBuildkitdClient(c.Context)
+		if err != nil {
+			return errors.Wrap(err, "buildkitd new client")
+		}
+		defer bkClient.Close()
+	}
 
+	console.Printf("Bootstrapping successful.\nYou may have to restart your shell for autocomplete to get initialized (e.g. run \"exec $SHELL\")\n")
 	return nil
 }
 

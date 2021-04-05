@@ -4,7 +4,8 @@ set -xeu
 
 trap 'kill $(jobs -p); wait' SIGINT SIGTERM
 
-export EARTHLY_CONVERSION_PARALLELISM=5
+# TODO: This has been disabled as it's causing context deadline exceeded errors regularly.
+# export EARTHLY_CONVERSION_PARALLELISM=5
 
 case "$EARTHLY_OS" in
     darwin)
@@ -13,10 +14,7 @@ case "$EARTHLY_OS" in
         ;;
 
     darwin-m1)
-        # TODO: The build doesn't yet worked with the latest released Earthly. Update this
-        #       after the next release.
-        download_url=
-        released_earthly="/Users/administrator/.earthly/earthly-prerelease"
+        download_url="https://github.com/earthly/earthly/releases/latest/download/earthly-darwin-arm64"
         earthly="./build/darwin/arm64/earthly"
         ;;
 

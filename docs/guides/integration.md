@@ -121,12 +121,11 @@ services:
     hostname: postgres-ui
 ```
 
-
 {% endmethod %}
 
 ### The Basic Earthfile
 
-We start with a simple Earthfile that can build and create a docker image for our app. See the [Basic](./basics) guide for more details, as well as examples in many programming languages.
+We start with a simple Earthfile that can build and create a docker image for our app. See the [Basics guide](../basics/basics.md) for more details, as well as examples in many programming languages.
 
 {% method %}
 {% sample lang="Base Earthly Target" %}
@@ -214,7 +213,7 @@ docker:
 
 {% endmethod %}
 
- See [Basics Guide](./basics.md) for more details on these steps, including how they might differ in Go, Javascript, Java, and Python.
+ See the [Basics Guide](../basics/basics.md) for more details on these steps, including how they might differ in Go, Javascript, Java, and Python.
 
 ## In-App Integration Testing 
 

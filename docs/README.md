@@ -2,7 +2,7 @@
 
 Earthly is a build automation tool from the same era as your code. It allows you to execute all your builds in containers. This makes them self-contained, repeatable, portable and parallel. You can use Earthly to create Docker images and artifacts (eg binaries, packages, arbitrary files).
 
-Earthly can run on top of popular CI systems (like Jenkins, [Circle](./examples/circle-integration.md), [GitHub Actions](./examples/gh-actions-integration.md), [AWS CodeBuild](./examples/codebuild-integration.md)). It is typically the layer between language-specific tooling (like maven, gradle, npm, pip, go build) and the CI build spec.
+Earthly can run on top of popular CI systems (like Jenkins, [Circle](./ci-examples/circle-integration.md), [GitHub Actions](./ci-examples/gh-actions-integration.md), [AWS CodeBuild](./ci-examples/codebuild-integration.md)). It is typically the layer between language-specific tooling (like maven, gradle, npm, pip, go build) and the CI build spec.
 
 ![Earthly fits between language-specific tooling and the CI](img/integration-diagram.png)
 
@@ -14,11 +14,11 @@ One of the key principles of Earthly is that the best build tooling of a specifi
 
 See [installation instructions](https://earthly.dev/get-earthly).
 
-For a full list of installation options see the [alternative installation page](./alt-installation/alt-installation.md).
+For a full list of installation options see the [alternative installation page](./alt-installation.md).
 
 ## Getting started
 
-If you are new to Earthly, check out the [Basics page](./guides/basics.md), to get started.
+If you are new to Earthly, check out the [Basics page](./basics/basics.md), to get started.
 
 A high-level overview is available on [the Earthly GitHub page](https://github.com/earthly/earthly).
 
@@ -26,7 +26,7 @@ A high-level overview is available on [the Earthly GitHub page](https://github.c
 
 * [Earthly GitHub page](https://github.com/earthly/earthly)
 * [Installation instructions](https://earthly.dev/get-earthly)
-* [Earthly basics](./guides/basics.md)
+* [Earthly basics](./basics/basics.md)
 * [Earthfile reference](./earthfile/earthfile.md)
 * [Earthly command reference](./earthly-command/earthly-command.md)
 * [Configuration reference](./earthly-config/earthly-config.md)

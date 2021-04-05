@@ -1,6 +1,6 @@
 # Java example
 
-A complete Java example is available on [the Basics page](../guides/basics.md).
+A complete Java example is available on [the Basics page](../basics/basics.md).
 
 ```Dockerfile
 # Earthfile
