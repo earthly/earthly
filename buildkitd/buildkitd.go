@@ -74,17 +74,17 @@ func ResetCache(ctx context.Context, console conslogging.ConsoleLogger, image st
 			return err
 		}
 	}
-	err = Start(ctx, image, settings, true)
+	err = Start(ctx, console, image, settings, true)
 	if err != nil {
 		return err
 	}
-	err = WaitUntilStarted(ctx, Address, opTimeout)
+	err = WaitUntilStarted(ctx, console, Address, opTimeout)
 	if err != nil {
 		return err
 	}
 	console.
 		WithPrefix("buildkitd").
-		Printf("...Done\n")
+		Printf("... Done. Future runs will be faster.\n")
 	return nil
 }
 
@@ -107,11 +107,11 @@ func MaybeStart(ctx context.Context, console conslogging.ConsoleLogger, image st
 		console.
 			WithPrefix("buildkitd").
 			Printf("Starting buildkit daemon as a docker container (%s)...\n", ContainerName)
-		err := Start(ctx, image, settings, false)
+		err := Start(ctx, console, image, settings, false)
 		if err != nil {
 			return "", errors.Wrap(err, "start")
 		}
-		err = WaitUntilStarted(ctx, Address, opTimeout)
+		err = WaitUntilStarted(ctx, console, Address, opTimeout)
 		if err != nil {
 			return "", errors.Wrap(err, "wait until started")
 		}
@@ -158,7 +158,7 @@ func MaybeRestart(ctx context.Context, console conslogging.ConsoleLogger, image 
 	} else {
 		console.
 			WithPrefix("buildkitd").
-			Printf("Newer image available. Restarting buildkit daemon...\n")
+			Printf("Updated image available. Restarting buildkit daemon...\n")
 	}
 
 	// Replace.
@@ -170,11 +170,11 @@ func MaybeRestart(ctx context.Context, console conslogging.ConsoleLogger, image 
 	if err != nil {
 		return err
 	}
-	err = Start(ctx, image, settings, false)
+	err = Start(ctx, console, image, settings, false)
 	if err != nil {
 		return err
 	}
-	err = WaitUntilStarted(ctx, Address, opTimeout)
+	err = WaitUntilStarted(ctx, console, Address, opTimeout)
 	if err != nil {
 		return err
 	}
@@ -198,7 +198,7 @@ func RemoveExited(ctx context.Context) error {
 }
 
 // Start starts the buildkitd daemon.
-func Start(ctx context.Context, image string, settings Settings, reset bool) error {
+func Start(ctx context.Context, console conslogging.ConsoleLogger, image string, settings Settings, reset bool) error {
 	err := CheckCompatibility(ctx, settings)
 	if len(settings.AdditionalArgs) == 0 && err != nil {
 		return errors.Wrap(err, "compatibility")
@@ -214,9 +214,11 @@ func Start(ctx context.Context, image string, settings Settings, reset bool) err
 	}
 	// Pulling is not strictly needed, but it helps display some progress status to the user in
 	// case the image is not available locally.
-	err = MaybePull(ctx, image)
+	err = MaybePull(ctx, console, image)
 	if err != nil {
-		fmt.Printf("Error: %s. Attempting to start buildkitd anyway...\n", err.Error())
+		console.
+			WithPrefix("buildkitd-pull").
+			Printf("Error: %s. Attempting to start buildkitd anyway...\n", err.Error())
 		// Keep going - it might still work.
 	}
 	env := os.Environ()
@@ -291,15 +293,15 @@ func IsStarted(ctx context.Context) (bool, error) {
 }
 
 // WaitUntilStarted waits until the buildkitd daemon has started and is healthy.
-func WaitUntilStarted(ctx context.Context, address string, opTimeout time.Duration) error {
+func WaitUntilStarted(ctx context.Context, console conslogging.ConsoleLogger, address string, opTimeout time.Duration) error {
 	// First, wait for the container to be marked as started.
-	ctxTimeout1, cancel1 := context.WithTimeout(ctx, opTimeout)
-	defer cancel1()
+	ctxTimeout, cancel := context.WithTimeout(ctx, opTimeout)
+	defer cancel()
 ContainerRunningLoop:
 	for {
 		select {
 		case <-time.After(1 * time.Second):
-			isRunning, err := isContainerRunning(ctxTimeout1)
+			isRunning, err := isContainerRunning(ctxTimeout)
 			if err != nil {
 				// Has not yet started. Keep waiting.
 				continue
@@ -311,7 +313,7 @@ ContainerRunningLoop:
 				break ContainerRunningLoop
 			}
 
-		case <-ctxTimeout1.Done():
+		case <-ctxTimeout.Done():
 			return errors.Errorf("timeout %s: buildkitd container did not start", opTimeout)
 		}
 	}
@@ -325,16 +327,22 @@ ContainerRunningLoop:
 		// We timed out. Check if the user has a lot of cache and give buildkit another chance.
 		cacheSize, cacheSizeErr := getCacheSize(ctx)
 		if cacheSizeErr != nil {
-			fmt.Printf("Warning: Could not detect buildkit cache size: %v\n", cacheSizeErr)
+			console.
+				WithPrefix("buildkitd").
+				Printf("Warning: Could not detect buildkit cache size: %v\n", cacheSizeErr)
 			return err
 		}
 		cacheGigs := cacheSize / 1024 / 1024
 		if cacheGigs >= 30 || (cacheGigs >= 10 && runtime.GOOS == "darwin") {
-			fmt.Printf("Detected cache size %d GiB. It could take a while for buildkit to start up. Waiting for another %s before giving up...\n", cacheGigs, opTimeout)
-			fmt.Printf("To reduce the size of the cache, you can run\n" +
-				"\t\tearthly config 'global.cache_size_mb' <new-size>\n" +
-				"This sets the BuildKit GC target to a specific value. For more information see " +
-				"the Earthly config reference page: https://docs.earthly.dev/configuration/earthly-config\n")
+			console.
+				WithPrefix("buildkitd").
+				Printf("Detected cache size %d GiB. It could take a while for buildkit to start up. Waiting for another %s before giving up...\n", cacheGigs, opTimeout)
+			console.
+				WithPrefix("buildkitd").
+				Printf("To reduce the size of the cache, you can run\n" +
+					"\t\tearthly config 'global.cache_size_mb' <new-size>\n" +
+					"This sets the BuildKit GC target to a specific value. For more information see " +
+					"the Earthly config reference page: https://docs.earthly.dev/configuration/earthly-config\n")
 			return waitForConnection(ctx, address, opTimeout)
 		}
 		return err
@@ -410,7 +418,7 @@ func checkConnection(ctx context.Context, address string) error {
 }
 
 // MaybePull checks whether an image is available locally and pulls it if it is not.
-func MaybePull(ctx context.Context, image string) error {
+func MaybePull(ctx context.Context, console conslogging.ConsoleLogger, image string) error {
 	cmd := exec.CommandContext(ctx, "docker", "image", "inspect", image)
 	_, err := cmd.CombinedOutput()
 	if err == nil {
@@ -423,12 +431,16 @@ func MaybePull(ctx context.Context, image string) error {
 	}
 	args = append(args, image)
 	cmd = exec.CommandContext(ctx, "docker", args...)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
+	console.
+		WithPrefix("buildkitd-pull").
+		Printf("Pulling buildkitd image...\n")
 	err = cmd.Run()
 	if err != nil {
 		return errors.Wrapf(err, "docker pull %s", image)
 	}
+	console.
+		WithPrefix("buildkitd-pull").
+		Printf("...Done\n")
 	return nil
 }
 
