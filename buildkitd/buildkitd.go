@@ -33,8 +33,6 @@ var (
 	ErrBuildkitStartFailure = errors.New("buildkitd failed to start (in time)")
 )
 
-const reportPull = false // flip to print pull messages
-
 // Address is the address at which the daemon is available.
 var Address = fmt.Sprintf("docker-container://%s", ContainerName)
 
@@ -214,16 +212,14 @@ func Start(ctx context.Context, console conslogging.ConsoleLogger, image string,
 	if err != nil {
 		return err
 	}
-	if reportPull {
-		// Pulling is not strictly needed, but it helps display some progress status to the user in
-		// case the image is not available locally.
-		err = MaybePull(ctx, console, image)
-		if err != nil {
-			console.
-				WithPrefix("buildkitd-pull").
-				Printf("Error: %s. Attempting to start buildkitd anyway...\n", err.Error())
-			// Keep going - it might still work.
-		}
+	// Pulling is not strictly needed, but it helps display some progress status to the user in
+	// case the image is not available locally.
+	err = MaybePull(ctx, console, image)
+	if err != nil {
+		console.
+			WithPrefix("buildkitd-pull").
+			Printf("Error: %s. Attempting to start buildkitd anyway...\n", err.Error())
+		// Keep going - it might still work.
 	}
 	env := os.Environ()
 	args := []string{
