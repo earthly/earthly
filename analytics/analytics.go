@@ -131,6 +131,14 @@ func getInstallID() (string, error) {
 	return string(s), nil
 }
 
+func isTerminal() bool {
+	fileInfo, err := os.Stdout.Stat()
+	if err != nil {
+		return false
+	}
+	return (fileInfo.Mode() & os.ModeCharDevice) != 0
+}
+
 // EarthlyAnalytics contains analytical data which is sent to api.earthly.dev
 type EarthlyAnalytics struct {
 	Key              string  `json:"key"`
@@ -142,6 +150,7 @@ type EarthlyAnalytics struct {
 	CI               string  `json:"ci_name"`
 	RepoHash         string  `json:"repo_hash"`
 	ExecutionSeconds float64 `json:"execution_seconds"`
+	Terminal         bool    `json:"terminal"`
 }
 
 func saveData(server string, data *EarthlyAnalytics) error {
@@ -209,6 +218,7 @@ func CollectAnalytics(ctx context.Context, earthlyServer string, displayErrors b
 			CI:               ciName,
 			RepoHash:         repoHash,
 			ExecutionSeconds: realtime.Seconds(),
+			Terminal:         isTerminal(),
 		})
 		if err != nil && displayErrors {
 			fmt.Fprintf(os.Stderr, "error while sending analytics to earthly: %s\n", err.Error())
