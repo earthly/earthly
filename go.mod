@@ -17,7 +17,6 @@ require (
 	github.com/joho/godotenv v1.3.0
 	github.com/mattn/go-isatty v0.0.12
 	github.com/moby/buildkit v0.8.2-0.20210129065303-6b9ea0c202cf
-	github.com/nu7hatch/gouuid v0.0.0-20131221200532-179d4d0c4d8d
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/opencontainers/image-spec v1.0.1
 	github.com/otiai10/copy v1.1.1

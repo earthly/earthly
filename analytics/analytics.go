@@ -19,7 +19,7 @@ import (
 	"github.com/earthly/earthly/gitutil"
 	"github.com/earthly/earthly/syncutil"
 
-	uuid "github.com/nu7hatch/gouuid"
+	"github.com/google/uuid"
 	"github.com/pkg/errors"
 )
 
@@ -112,7 +112,7 @@ func getInstallID() (string, error) {
 
 	path := filepath.Join(homeDir, ".earthly", "install_id")
 	if !fileutil.FileExists(path) {
-		u, err := uuid.NewV4()
+		u, err := uuid.NewUUID()
 		if err != nil {
 			return "", errors.Wrap(err, "failed to generate uuid")
 		}
