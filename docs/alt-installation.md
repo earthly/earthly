@@ -50,3 +50,27 @@ github.com/earthly/hello-world:main+hello | Hello, world!
 github.com/earthly/hello-world:main+hello | Target github.com/earthly/hello-world:main+hello built successfully
 =========================== SUCCESS ===========================
 ```
+
+# Uninstall
+
+To remove earthly, run the following commands:
+
+## macOS users
+
+```bash
+brew uninstall earthly
+rm -rf ~/.earthly
+docker rm --force earthly-buildkitd
+docker volume rm --force earthly-cache
+```
+
+## Linux and WSL2 users
+
+```bash
+rm /usr/local/bin/earthly
+rm /usr/share/bash-completion/completions/earthly
+rm /usr/local/share/zsh/site-functions/_earthly
+rm -rf ~/.earthly
+docker rm --force earthly-buildkitd
+docker volume rm --force earthly-cache
+```
