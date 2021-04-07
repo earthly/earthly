@@ -524,6 +524,26 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 			},
 		},
 		{
+			Name:        "docker",
+			Usage:       "Build a Dockerfile without converting to an Earthfile",
+			Description: "Builds a dockerfile",
+			Hidden:      true, // Experimental.
+			Action:      app.actionDocker,
+			Flags: []cli.Flag{
+				&cli.StringFlag{
+					Name:        "dockerfile",
+					Usage:       "Path to dockerfile input, or - for stdin",
+					Value:       "Dockerfile",
+					Destination: &app.dockerfilePath,
+				},
+				&cli.StringFlag{
+					Name:        "tag",
+					Usage:       "Name and tag for the built image; formatted as 'name:tag'",
+					Destination: &app.earthfileFinalImage,
+				},
+			},
+		},
+		{
 			Name:        "docker2earthly",
 			Usage:       "Convert a Dockerfile into Earthfile",
 			Description: "Converts an existing dockerfile into an Earthfile",
@@ -2139,8 +2159,40 @@ func (app *earthlyApp) actionPrune(c *cli.Context) error {
 	return nil
 }
 
+func (app *earthlyApp) actionDocker(c *cli.Context) error {
+	app.commandName = "docker"
+
+	dir := filepath.Dir(app.dockerfilePath)
+	earthfilePath := filepath.Join(dir, "Earthfile")
+	if fileutil.FileExists(earthfilePath) {
+		return errors.Errorf("earthfile already exists; please delete it if you wish to continue")
+	}
+	defer os.Remove(earthfilePath)
+
+	err := docker2earthly.Docker2Earthly(app.dockerfilePath, earthfilePath, app.earthfileFinalImage)
+	if err != nil {
+		return err
+	}
+
+	fmt.Fprintf(os.Stderr, "Warning: earthly does not support all dockerfile commands and is highly experimental as a result, use with caution.\n")
+
+	app.imageMode = false
+	app.artifactMode = false
+	app.interactiveDebugging = true
+	flagArgs := []string{}
+	nonFlagArgs := []string{"+build"}
+
+	return app.actionBuildImp(c, flagArgs, nonFlagArgs)
+}
+
 func (app *earthlyApp) actionDocker2Earthly(c *cli.Context) error {
-	return docker2earthly.Docker2Earthly(app.dockerfilePath, app.earthfilePath, app.earthfileFinalImage)
+	app.commandName = "docker2earthly"
+	err := docker2earthly.Docker2Earthly(app.dockerfilePath, app.earthfilePath, app.earthfileFinalImage)
+	if err != nil {
+		return err
+	}
+	fmt.Fprintf(os.Stderr, "An Earthfile has been generated; to run it use: earthly +build; then run with docker run -ti %s\n", app.earthfileFinalImage)
+	return nil
 }
 
 func (app *earthlyApp) actionConfig(c *cli.Context) error {
@@ -2194,13 +2246,18 @@ func (app *earthlyApp) actionBuild(c *cli.Context) error {
 			return errors.New("cannot use --no-output with image or artifact modes")
 		}
 	}
-	var target domain.Target
-	var artifact domain.Artifact
-	destPath := "./"
+
 	flagArgs, nonFlagArgs, err := variables.ParseFlagArgsWithNonFlags(c.Args().Slice())
 	if err != nil {
 		return errors.Wrapf(err, "parse args %s", strings.Join(c.Args().Slice(), " "))
 	}
+
+	return app.actionBuildImp(c, flagArgs, nonFlagArgs)
+}
+func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []string) error {
+	var target domain.Target
+	var artifact domain.Artifact
+	destPath := "./"
 	if app.imageMode {
 		if len(nonFlagArgs) == 0 {
 			cli.ShowAppHelp(c)

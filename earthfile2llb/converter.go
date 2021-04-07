@@ -51,6 +51,7 @@ type Converter struct {
 	cacheContext  pllb.State
 	varCollection *variables.Collection
 	ranSave       bool
+	cmdSet        bool
 }
 
 // NewConverter constructs a new converter for a given earthly target.
@@ -84,6 +85,7 @@ func (c *Converter) From(ctx context.Context, imageName string, platform *specs.
 		return err
 	}
 	c.nonSaveCommand()
+	c.cmdSet = false
 	platform, err = llbutil.ResolvePlatform(platform, c.opt.Platform)
 	if err != nil {
 		return err
@@ -852,6 +854,7 @@ func (c *Converter) Cmd(ctx context.Context, cmdArgs []string, isWithShell bool)
 	}
 	c.nonSaveCommand()
 	c.mts.Final.MainImage.Config.Cmd = withShell(cmdArgs, isWithShell)
+	c.cmdSet = true
 	return nil
 }
 
@@ -863,6 +866,9 @@ func (c *Converter) Entrypoint(ctx context.Context, entrypointArgs []string, isW
 	}
 	c.nonSaveCommand()
 	c.mts.Final.MainImage.Config.Entrypoint = withShell(entrypointArgs, isWithShell)
+	if !c.cmdSet {
+		c.mts.Final.MainImage.Config.Cmd = nil
+	}
 	return nil
 }
 
