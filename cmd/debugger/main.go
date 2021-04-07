@@ -17,6 +17,7 @@ import (
 	"github.com/alessio/shellescape"
 	"github.com/creack/pty"
 	"github.com/fatih/color"
+	multierror "github.com/hashicorp/go-multierror"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -66,13 +67,20 @@ func handleWinChangeData(ptmx *os.File, data []byte) error {
 }
 
 func populateShellHistory(cmd string) error {
-	f, err := os.Create("/root/.bash_history")
-	if err != nil {
-		return err
+	var result error
+	for _, f := range []string{
+		"/root/.ash_history",
+		"/root/.bash_history",
+	} {
+
+		f, err := os.Create(f)
+		if err != nil {
+			result = multierror.Append(result, err)
+		}
+		defer f.Close()
+		f.Write([]byte(cmd + "\n"))
 	}
-	defer f.Close()
-	f.Write([]byte(cmd + "\n"))
-	return nil
+	return result
 }
 
 func interactiveMode(ctx context.Context, remoteConsoleAddr string, cmdBuilder func() (*exec.Cmd, error)) error {
