@@ -2174,6 +2174,10 @@ func (app *earthlyApp) actionDocker(c *cli.Context) error {
 		return err
 	}
 
+	fmt.Fprintf(os.Stderr, "Warning: earthly does not support all dockerfile commands and is highly experimental as a result, use with caution.\n")
+
+	app.imageMode = false
+	app.artifactMode = false
 	app.interactiveDebugging = true
 	flagArgs := []string{}
 	nonFlagArgs := []string{"+build"}
