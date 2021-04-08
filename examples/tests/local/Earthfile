@@ -147,7 +147,7 @@ mycontainer2:
 
 test-with-docker:
     LOCALLY
-    RUN docker images -q mycontainer-e3d32183-604d-4dc3-b519-f9af56ecb744 | xargs -n 1 -r docker rmi
+    RUN docker images -q mycontainer-e3d32183-604d-4dc3-b519-f9af56ecb744 | xargs -n 1 -r docker rmi --force
     WITH DOCKER \
             --load mycontainer-e3d32183-604d-4dc3-b519-f9af56ecb744:latest=+mycontainer
         RUN docker run --rm mycontainer-e3d32183-604d-4dc3-b519-f9af56ecb744:latest | grep "hello world"
@@ -155,7 +155,7 @@ test-with-docker:
 
 test-with-two-dockers:
     LOCALLY
-    RUN docker images -q mycontainer-07cb0fb7-4574-45cc-97c8-2bc482cf1f75 | xargs -n 1 -r docker rmi
+    RUN docker images -q mycontainer-07cb0fb7-4574-45cc-97c8-2bc482cf1f75 | xargs -n 1 -r docker rmi --force
     WITH DOCKER \
             --load mycontainer-07cb0fb7-4574-45cc-97c8-2bc482cf1f75:latest=+mycontainer \
             --load mycontainer-07cb0fb7-4574-45cc-97c8-2bc482cf1f75:hyperlatest=+mycontainer2
