@@ -973,6 +973,19 @@ func (c *Converter) WithDockerRun(ctx context.Context, args []string, opt WithDo
 	return wdr.Run(ctx, args, opt)
 }
 
+// WithDockerRunLocal applies an entire WITH DOCKER ... RUN ... END clause.
+func (c *Converter) WithDockerRunLocal(ctx context.Context, args []string, opt WithDockerOpt) error {
+	err := c.checkAllowed("RUN")
+	if err != nil {
+		return err
+	}
+	c.nonSaveCommand()
+	wdrl := &withDockerRunLocal{
+		c: c,
+	}
+	return wdrl.Run(ctx, args, opt)
+}
+
 // Healthcheck applies the HEALTHCHECK command.
 func (c *Converter) Healthcheck(ctx context.Context, isNone bool, cmdArgs []string, interval time.Duration, timeout time.Duration, startPeriod time.Duration, retries int) error {
 	err := c.checkAllowed("HEALTHCHECK")
