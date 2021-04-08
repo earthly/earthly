@@ -40,5 +40,5 @@ replace (
 	github.com/docker/docker => github.com/docker/docker v17.12.0-ce-rc1.0.20200310163718-4634ce647cf2+incompatible
 	github.com/hashicorp/go-immutable-radix => github.com/tonistiigi/go-immutable-radix v0.0.0-20170803185627-826af9ccf0fe
 	github.com/jaguilar/vt100 => github.com/tonistiigi/vt100 v0.0.0-20190402012908-ad4c4a574305
-	github.com/moby/buildkit => github.com/alexcb/buildkit 2f5cb695506937b4f1856b409b50707eaf32fee9
+	github.com/moby/buildkit => github.com/alexcb/buildkit 6cac2a0629da49690e4714db3ffccb2167fd721e
 )
