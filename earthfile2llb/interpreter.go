@@ -472,7 +472,18 @@ func (i *Interpreter) handleRun(ctx context.Context, cmd spec.Command) error {
 		}
 
 		if i.withDocker != nil {
-			return i.errorf(cmd.SourceLocation, "the WITH DOCKER directive is not (yet) supported with the LOCALLY directive")
+			if *pushFlag {
+				return i.errorf(cmd.SourceLocation, "RUN --push not allowed in WITH DOCKER")
+			}
+			if i.withDockerRan {
+				return i.errorf(cmd.SourceLocation, "only one RUN command allowed in WITH DOCKER")
+			}
+			i.withDockerRan = true
+			err = i.converter.WithDockerRunLocal(ctx, fs.Args(), *i.withDocker)
+			if err != nil {
+				return i.wrapError(err, cmd.SourceLocation, "with docker run")
+			}
+			return nil
 		}
 
 		err = i.converter.RunLocal(ctx, fs.Args(), *pushFlag)
