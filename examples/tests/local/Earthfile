@@ -100,6 +100,7 @@ test-multi-copy-from-alpine-to-local:
     RUN rm -rf /tmp/ac0887d7-fda7-4a1b-9873-054488c7e44d
     COPY +alpine-artifacts/alpine-release +alpine-artifacts/alpine-motd +alpine-artifacts/alpine-os-release /tmp/ac0887d7-fda7-4a1b-9873-054488c7e44d
     RUN ls -la /tmp/ac0887d7-fda7-4a1b-9873-054488c7e44d
+    RUN tail -n +1 /tmp/ac0887d7-fda7-4a1b-9873-054488c7e44d
     RUN cat /tmp/ac0887d7-fda7-4a1b-9873-054488c7e44d/alpine-release | grep 3\\.13\\.4
     RUN cat /tmp/ac0887d7-fda7-4a1b-9873-054488c7e44d/alpine-motd | grep alpinelinux.org
     RUN cat /tmp/ac0887d7-fda7-4a1b-9873-054488c7e44d/alpine-os-release | grep "ID=alpine"
