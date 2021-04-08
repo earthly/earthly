@@ -51,6 +51,26 @@ jobs:
         run: "./build/linux/amd64/earthly --use-inline-cache --save-inline-cache --no-output ./examples/tests/local+all"
       - name: Run general local tests 10
         run: "./build/linux/amd64/earthly --use-inline-cache --save-inline-cache --no-output ./examples/tests/local+all"
+      - name: Run general local tests 11
+        run: "./build/linux/amd64/earthly --use-inline-cache --save-inline-cache --no-output ./examples/tests/local+all"
+      - name: Run general local tests 12
+        run: "./build/linux/amd64/earthly --use-inline-cache --save-inline-cache --no-output ./examples/tests/local+all"
+      - name: Run general local tests 13
+        run: "./build/linux/amd64/earthly --use-inline-cache --save-inline-cache --no-output ./examples/tests/local+all"
+      - name: Run general local tests 14
+        run: "./build/linux/amd64/earthly --use-inline-cache --save-inline-cache --no-output ./examples/tests/local+all"
+      - name: Run general local tests 15
+        run: "./build/linux/amd64/earthly --use-inline-cache --save-inline-cache --no-output ./examples/tests/local+all"
+      - name: Run general local tests 16
+        run: "./build/linux/amd64/earthly --use-inline-cache --save-inline-cache --no-output ./examples/tests/local+all"
+      - name: Run general local tests 17
+        run: "./build/linux/amd64/earthly --use-inline-cache --save-inline-cache --no-output ./examples/tests/local+all"
+      - name: Run general local tests 18
+        run: "./build/linux/amd64/earthly --use-inline-cache --save-inline-cache --no-output ./examples/tests/local+all"
+      - name: Run general local tests 19
+        run: "./build/linux/amd64/earthly --use-inline-cache --save-inline-cache --no-output ./examples/tests/local+all"
+      - name: Run general local tests 20
+        run: "./build/linux/amd64/earthly --use-inline-cache --save-inline-cache --no-output ./examples/tests/local+all"
       - name: Buildkit logs (runs on failure)
         run: docker logs earthly-buildkitd 2>&1
         if: ${{ failure() }}
