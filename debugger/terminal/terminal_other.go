@@ -5,7 +5,6 @@ package terminal
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"net"
 	"os"
 	"os/signal"
@@ -148,7 +147,8 @@ func ConnectTerm(ctx context.Context, addr string) error {
 	}()
 
 	<-ctx.Done()
-	fmt.Fprintf(os.Stderr, "exiting interactive debugger shell\n")
+
+	log.Debug("exiting interactive debugger shell")
 	err = ts.restore()
 	if err != nil {
 		return err
