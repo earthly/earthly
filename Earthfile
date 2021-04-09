@@ -38,6 +38,16 @@ code:
     COPY --dir earthfile2llb/*.go earthfile2llb/
     COPY --dir ast/antlrhandler ast/spec ast/*.go ast/
 
+update-buildkit:
+    FROM +code # if we use deps, go mod tidy will remove a bunch of requirements since it won't have access to our codebase.
+    ARG BUILDKIT_BRANCH=earthly-main
+    BUILD ./buildkitd+update-buildkit
+    RUN --no-cache go mod edit -replace "github.com/moby/buildkit=github.com/earthly/buildkit@$BUILDKIT_BRANCH"
+    RUN --no-cache go mod tidy
+    SAVE ARTIFACT go.mod AS LOCAL go.mod-fixme  # this is a bug since we can't save to go.mod which was already saved in +deps
+    SAVE ARTIFACT go.sum AS LOCAL go.sum-fixme  # this is a bug since we can't save to go.sum which was already saved in +deps
+
+
 lint-scripts:
     FROM --platform=linux/amd64 alpine:3.13
     RUN apk add --update --no-cache shellcheck
