@@ -41,7 +41,7 @@ code:
 update-buildkit:
     FROM +code # if we use deps, go mod tidy will remove a bunch of requirements since it won't have access to our codebase.
     ARG BUILDKIT_BRANCH=earthly-main
-    BUILD ./buildkitd+update-buildkit
+    BUILD ./buildkitd+update-buildkit --BUILDKIT_BRANCH=$BUILDKIT_BRANCH
     RUN --no-cache go mod edit -replace "github.com/moby/buildkit=github.com/earthly/buildkit@$BUILDKIT_BRANCH"
     RUN --no-cache go mod tidy
     SAVE ARTIFACT go.mod AS LOCAL go.mod-fixme  # this is a bug since we can't save to go.mod which was already saved in +deps
