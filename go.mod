@@ -6,10 +6,10 @@ require (
 	github.com/alessio/shellescape v1.4.1
 	github.com/antlr/antlr4 v0.0.0-20200225173536-225249fdaef5
 	github.com/armon/circbuf v0.0.0-20190214190532-5111143e8da2
-	github.com/containerd/containerd v1.5.0-beta.0.0.20210122062454-5a66c2ae5cec
+	github.com/containerd/containerd v1.5.0-beta.4
 	github.com/creack/pty v1.1.11
 	github.com/docker/distribution v2.7.1+incompatible
-	github.com/docker/docker v20.10.0-beta1.0.20201110211921-af34b94a78a1+incompatible
+	github.com/docker/docker v20.10.5+incompatible
 	github.com/dustin/go-humanize v1.0.0
 	github.com/fatih/color v1.9.0
 	github.com/golang/protobuf v1.4.3
@@ -40,5 +40,5 @@ replace (
 	github.com/docker/docker => github.com/docker/docker v17.12.0-ce-rc1.0.20200310163718-4634ce647cf2+incompatible
 	github.com/hashicorp/go-immutable-radix => github.com/tonistiigi/go-immutable-radix v0.0.0-20170803185627-826af9ccf0fe
 	github.com/jaguilar/vt100 => github.com/tonistiigi/vt100 v0.0.0-20190402012908-ad4c4a574305
-	github.com/moby/buildkit => github.com/earthly/buildkit v0.7.1-0.20210408235408-008b1ea46de8
+	github.com/moby/buildkit => github.com/earthly/buildkit v0.7.1-0.20210412221413-1a82cfa6da7d
 )
