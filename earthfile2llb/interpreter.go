@@ -445,6 +445,10 @@ func (i *Interpreter) handleRun(ctx context.Context, cmd spec.Command) error {
 	// Note: Not expanding args for the run itself, as that will be take care of by the shell.
 
 	if i.local {
+		if i.target.IsRemote() {
+			return i.errorf(cmd.SourceLocation, "Permission denied: unwilling to run locally command from remote Earthfile")
+		}
+
 		if len(mounts.Args) > 0 {
 			return i.errorf(cmd.SourceLocation, "mounts are not supported in combination with the LOCALLY directive")
 		}
@@ -491,6 +495,10 @@ func (i *Interpreter) handleRun(ctx context.Context, cmd spec.Command) error {
 			return i.wrapError(err, cmd.SourceLocation, "apply RUN")
 		}
 		return nil
+	}
+
+	if i.target.IsRemote() && *privileged {
+		return i.errorf(cmd.SourceLocation, "Permission denied: unwilling to run privileged command from remote Earthfile")
 	}
 
 	if i.withDocker == nil {
