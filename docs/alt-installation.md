@@ -12,10 +12,10 @@ This page outlines alternative installation instructions for the `earthly` build
 
 Download the binary relevant to your platform from [the releases page](https://github.com/earthly/earthly/releases), rename it to `earthly` and place it in your `bin`.
 
-To initialize auto-completion, run
+To initialize the installation, including adding auto-completion for your shell, run
 
 ```bash
-earthly bootstrap
+sudo earthly bootstrap
 ```
 
 and then restart your shell.
