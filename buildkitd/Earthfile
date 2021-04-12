@@ -1,6 +1,6 @@
 
 buildkitd:
-    ARG BUILDKIT_BASE_IMAGE=github.com/earthly/buildkit:earthly-main+build
+    ARG BUILDKIT_BASE_IMAGE=github.com/earthly/buildkit:008b1ea46de8172c4122edec0da8ac1bef866733+build
     FROM $BUILDKIT_BASE_IMAGE
     RUN echo "@edge-community http://dl-cdn.alpinelinux.org/alpine/edge/community" >> /etc/apk/repositories
     RUN apk add --update --no-cache \
@@ -42,3 +42,10 @@ buildkitd:
     ARG EARTHLY_TARGET_TAG_DOCKER
     ARG TAG=$EARTHLY_TARGET_TAG_DOCKER
     SAVE IMAGE --push --cache-from=earthly/buildkitd:main earthly/buildkitd:$TAG
+
+update-buildkit:
+    LOCALLY
+    ARG BUILDKIT_BRANCH=earthly-main
+    RUN buildkit_sha1=$(git ls-remote --refs -q https://github.com/earthly/buildkit.git "$BUILDKIT_BRANCH" | awk 'BEGIN { FS = "[ \t]+" } {print $1}') && \
+        echo "pinning github.com/earthly/buildkit@${BUILDKIT_BRANCH} to reference git sha1: $buildkit_sha1" && \
+        sed -i 's/\(^[ \t]\+ARG BUILDKIT_BASE_IMAGE=\).*/\1github.com\/earthly\/buildkit:'$buildkit_sha1'+build/g' Earthfile
