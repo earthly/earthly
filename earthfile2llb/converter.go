@@ -79,7 +79,7 @@ func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Da
 }
 
 // From applies the earthly FROM command.
-func (c *Converter) From(ctx context.Context, imageName string, platform *specs.Platform, buildArgs []string) error {
+func (c *Converter) From(ctx context.Context, imageName string, platform *specs.Platform, allowPrivileged bool, buildArgs []string) error {
 	err := c.checkAllowed("FROM")
 	if err != nil {
 		return err
@@ -93,7 +93,7 @@ func (c *Converter) From(ctx context.Context, imageName string, platform *specs.
 	c.setPlatform(platform)
 	if strings.Contains(imageName, "+") {
 		// Target-based FROM.
-		return c.fromTarget(ctx, imageName, platform, buildArgs)
+		return c.fromTarget(ctx, imageName, platform, allowPrivileged, buildArgs)
 	}
 
 	// Docker image based FROM.
@@ -126,12 +126,12 @@ func (c *Converter) fromClassical(ctx context.Context, imageName string, platfor
 	return nil
 }
 
-func (c *Converter) fromTarget(ctx context.Context, targetName string, platform *specs.Platform, buildArgs []string) error {
+func (c *Converter) fromTarget(ctx context.Context, targetName string, platform *specs.Platform, allowPrivileged bool, buildArgs []string) error {
 	depTarget, err := domain.ParseTarget(targetName)
 	if err != nil {
 		return errors.Wrapf(err, "parse target name %s", targetName)
 	}
-	mts, err := c.buildTarget(ctx, depTarget.String(), platform, buildArgs, false, true)
+	mts, err := c.buildTarget(ctx, depTarget.String(), platform, allowPrivileged, buildArgs, false, true)
 	if err != nil {
 		return errors.Wrapf(err, "apply build %s", depTarget.String())
 	}
@@ -184,7 +184,7 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 		// The Dockerfile and build context are from a target's artifact.
 		// TODO: The build args are used for both the artifact and the Dockerfile. This could be
 		//       confusing to the user.
-		mts, err := c.buildTarget(ctx, contextArtifact.Target.String(), platform, buildArgs, false, false)
+		mts, err := c.buildTarget(ctx, contextArtifact.Target.String(), platform, false, buildArgs, false, false)
 		if err != nil {
 			return err
 		}
@@ -297,7 +297,7 @@ func (c *Converter) Locally(ctx context.Context, workdirPath string, platform *s
 }
 
 // CopyArtifactLocal applies the earthly COPY artifact command which are invoked under a LOCALLY target.
-func (c *Converter) CopyArtifactLocal(ctx context.Context, artifactName string, dest string, platform *specs.Platform, buildArgs []string, isDir bool) error {
+func (c *Converter) CopyArtifactLocal(ctx context.Context, artifactName string, dest string, platform *specs.Platform, allowPrivileged bool, buildArgs []string, isDir bool) error {
 	err := c.checkAllowed("COPY")
 	if err != nil {
 		return err
@@ -307,7 +307,7 @@ func (c *Converter) CopyArtifactLocal(ctx context.Context, artifactName string, 
 	if err != nil {
 		return errors.Wrapf(err, "parse artifact name %s", artifactName)
 	}
-	mts, err := c.buildTarget(ctx, artifact.Target.String(), platform, buildArgs, false, false)
+	mts, err := c.buildTarget(ctx, artifact.Target.String(), platform, allowPrivileged, buildArgs, false, false)
 	if err != nil {
 		return errors.Wrapf(err, "apply build %s", artifact.Target.String())
 	}
@@ -341,7 +341,7 @@ func (c *Converter) CopyArtifactLocal(ctx context.Context, artifactName string, 
 }
 
 // CopyArtifact applies the earthly COPY artifact command.
-func (c *Converter) CopyArtifact(ctx context.Context, artifactName string, dest string, platform *specs.Platform, buildArgs []string, isDir bool, keepTs bool, keepOwn bool, chown string, ifExists bool) error {
+func (c *Converter) CopyArtifact(ctx context.Context, artifactName string, dest string, platform *specs.Platform, allowPrivileged bool, buildArgs []string, isDir bool, keepTs bool, keepOwn bool, chown string, ifExists bool) error {
 	err := c.checkAllowed("COPY")
 	if err != nil {
 		return err
@@ -351,7 +351,7 @@ func (c *Converter) CopyArtifact(ctx context.Context, artifactName string, dest 
 	if err != nil {
 		return errors.Wrapf(err, "parse artifact name %s", artifactName)
 	}
-	mts, err := c.buildTarget(ctx, artifact.Target.String(), platform, buildArgs, false, false)
+	mts, err := c.buildTarget(ctx, artifact.Target.String(), platform, allowPrivileged, buildArgs, false, false)
 	if err != nil {
 		return errors.Wrapf(err, "apply build %s", artifact.Target.String())
 	}
@@ -769,18 +769,18 @@ func (c *Converter) SaveImage(ctx context.Context, imageNames []string, pushImag
 }
 
 // Build applies the earthly BUILD command.
-func (c *Converter) Build(ctx context.Context, fullTargetName string, platform *specs.Platform, buildArgs []string) error {
+func (c *Converter) Build(ctx context.Context, fullTargetName string, platform *specs.Platform, allowPrivileged bool, buildArgs []string) error {
 	err := c.checkAllowed("BUILD")
 	if err != nil {
 		return err
 	}
 	c.nonSaveCommand()
-	_, err = c.buildTarget(ctx, fullTargetName, platform, buildArgs, true, false)
+	_, err = c.buildTarget(ctx, fullTargetName, platform, allowPrivileged, buildArgs, true, false)
 	return err
 }
 
 // BuildAsync applies the earthly BUILD command asynchronously.
-func (c *Converter) BuildAsync(ctx context.Context, fullTargetName string, platform *specs.Platform, buildArgs []string) chan error {
+func (c *Converter) BuildAsync(ctx context.Context, fullTargetName string, platform *specs.Platform, allowPrivileged bool, buildArgs []string) chan error {
 	errChan := make(chan error, 1)
 	target, opt, _, err := c.prepBuildTarget(ctx, fullTargetName, platform, buildArgs, true, false)
 	if err != nil {
@@ -1042,8 +1042,8 @@ func (c *Converter) ResolveReference(ctx context.Context, ref domain.Reference) 
 }
 
 // EnterScope introduces a new variable scope. Gloabls and imports are fetched from baseTarget.
-func (c *Converter) EnterScope(ctx context.Context, command domain.Command, baseTarget domain.Target, scopeName string, buildArgs []string) error {
-	baseMts, err := c.buildTarget(ctx, baseTarget.String(), c.mts.Final.Platform, nil, true, false)
+func (c *Converter) EnterScope(ctx context.Context, command domain.Command, baseTarget domain.Target, allowPrivileged bool, scopeName string, buildArgs []string) error {
+	baseMts, err := c.buildTarget(ctx, baseTarget.String(), c.mts.Final.Platform, allowPrivileged, nil, true, false)
 	if err != nil {
 		return err
 	}
@@ -1129,11 +1129,12 @@ func (c *Converter) prepBuildTarget(ctx context.Context, fullTargetName string, 
 	return target, opt, propagateBuildArgs, nil
 }
 
-func (c *Converter) buildTarget(ctx context.Context, fullTargetName string, platform *specs.Platform, buildArgs []string, isDangling bool, isFrom bool) (*states.MultiTarget, error) {
+func (c *Converter) buildTarget(ctx context.Context, fullTargetName string, platform *specs.Platform, allowPrivileged bool, buildArgs []string, isDangling bool, isFrom bool) (*states.MultiTarget, error) {
 	target, opt, propagateBuildArgs, err := c.prepBuildTarget(ctx, fullTargetName, platform, buildArgs, isDangling, isFrom)
 	if err != nil {
 		return nil, err
 	}
+	opt.AllowPrivileged = allowPrivileged
 	mts, err := Earthfile2LLB(ctx, target, opt)
 	if err != nil {
 		return nil, errors.Wrapf(err, "earthfile2llb for %s", fullTargetName)

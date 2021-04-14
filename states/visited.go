@@ -36,7 +36,7 @@ func (vc *VisitedCollection) All() []*SingleTarget {
 
 // Add adds a target to the collection, if it hasn't yet been visited. The returned sts is
 // either the previously visited one or a brand new one.
-func (vc *VisitedCollection) Add(ctx context.Context, target domain.Target, platform *specs.Platform, overridingVars *variables.Scope, parentDepSub chan string) (*SingleTarget, bool, error) {
+func (vc *VisitedCollection) Add(ctx context.Context, target domain.Target, platform *specs.Platform, allowPrivileged bool, overridingVars *variables.Scope, parentDepSub chan string) (*SingleTarget, bool, error) {
 	dependents, err := vc.waitAllDoneAndLock(ctx, target, parentDepSub)
 	if err != nil {
 		return nil, false, err
@@ -47,7 +47,7 @@ func (vc *VisitedCollection) Add(ctx context.Context, target domain.Target, plat
 	}
 	defer vc.mu.Unlock()
 	for _, sts := range vc.visited[target.StringCanonical()] {
-		same, err := CompareTargetInputs(target, platform, overridingVars, sts.TargetInput())
+		same, err := CompareTargetInputs(target, platform, allowPrivileged, overridingVars, sts.TargetInput())
 		if err != nil {
 			return nil, false, err
 		}
@@ -71,7 +71,7 @@ func (vc *VisitedCollection) Add(ctx context.Context, target domain.Target, plat
 		}
 	}
 	// None are the same. Create new sts.
-	sts, err := newSingleTarget(ctx, target, platform, overridingVars, parentDepSub)
+	sts, err := newSingleTarget(ctx, target, platform, allowPrivileged, overridingVars, parentDepSub)
 	if err != nil {
 		return nil, false, err
 	}
@@ -127,8 +127,11 @@ func (vc *VisitedCollection) waitAllDoneAndLock(ctx context.Context, target doma
 }
 
 // CompareTargetInputs compares two targets and their inputs to check if they are the same.
-func CompareTargetInputs(target domain.Target, platform *specs.Platform, overridingVars *variables.Scope, other dedup.TargetInput) (bool, error) {
+func CompareTargetInputs(target domain.Target, platform *specs.Platform, allowPrivileged bool, overridingVars *variables.Scope, other dedup.TargetInput) (bool, error) {
 	if target.StringCanonical() != other.TargetCanonical {
+		return false, nil
+	}
+	if allowPrivileged != other.AllowPrivileged {
 		return false, nil
 	}
 	stsPlat, err := llbutil.ParsePlatform(other.Platform)

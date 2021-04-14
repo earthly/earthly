@@ -64,6 +64,7 @@ type Opt struct {
 // BuildOpt is a collection of build options.
 type BuildOpt struct {
 	Platform              *specs.Platform
+	AllowPrivileged       bool
 	PrintSuccess          bool
 	Push                  bool
 	NoOutput              bool
@@ -175,8 +176,10 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 				UseFakeDep:           b.opt.UseFakeDep,
 				AllowLocally:         !b.opt.Strict,
 				AllowInteractive:     !b.opt.Strict,
+				AllowPrivileged:      opt.AllowPrivileged,
 				ParallelConversion:   b.opt.ParallelConversion,
 				Parallelism:          b.opt.Parallelism,
+				Console:              b.opt.Console,
 			})
 			if err != nil {
 				return nil, err

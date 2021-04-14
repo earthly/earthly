@@ -76,7 +76,7 @@ type SingleTarget struct {
 	incomingNewSubscriptions chan string
 }
 
-func newSingleTarget(ctx context.Context, target domain.Target, platform *specs.Platform, overridingVars *variables.Scope, parentDepSub chan string) (*SingleTarget, error) {
+func newSingleTarget(ctx context.Context, target domain.Target, platform *specs.Platform, allowPrivileged bool, overridingVars *variables.Scope, parentDepSub chan string) (*SingleTarget, error) {
 	targetStr := target.StringCanonical()
 	sts := &SingleTarget{
 		ID:       uuid.New().String(),
@@ -85,6 +85,7 @@ func newSingleTarget(ctx context.Context, target domain.Target, platform *specs.
 		targetInput: dedup.TargetInput{
 			TargetCanonical: targetStr,
 			Platform:        llbutil.PlatformWithDefaultToString(platform),
+			AllowPrivileged: allowPrivileged,
 		},
 		MainState:                llbutil.ScratchWithPlatform(),
 		MainImage:                image.NewImage(),

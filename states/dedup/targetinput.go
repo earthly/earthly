@@ -17,6 +17,8 @@ type TargetInput struct {
 	BuildArgs []BuildArgInput `json:"buildArgs"`
 	// Platform is the target platform of the target.
 	Platform string `json:"platform"`
+	// AllowPrivileged is true if the target will allow priviledged access
+	AllowPrivileged bool `json:"allowPrivileged"`
 }
 
 // WithBuildArgInput returns a clone of the current target input, with a
@@ -42,6 +44,9 @@ func (ti TargetInput) Equals(other TargetInput) bool {
 	if ti.Platform != other.Platform {
 		return false
 	}
+	if ti.AllowPrivileged != other.AllowPrivileged {
+		return false
+	}
 	if len(ti.BuildArgs) != len(other.BuildArgs) {
 		return false
 	}
@@ -58,6 +63,7 @@ func (ti TargetInput) clone() TargetInput {
 		TargetCanonical: ti.TargetCanonical,
 		BuildArgs:       make([]BuildArgInput, 0, len(ti.BuildArgs)),
 		Platform:        ti.Platform,
+		AllowPrivileged: ti.AllowPrivileged,
 	}
 	for _, bai := range ti.BuildArgs {
 		tiCopy.BuildArgs = append(tiCopy.BuildArgs, bai.clone())
@@ -79,6 +85,7 @@ func (ti TargetInput) cloneNoTag() (TargetInput, error) {
 		TargetCanonical: targetStr,
 		BuildArgs:       make([]BuildArgInput, 0, len(ti.BuildArgs)),
 		Platform:        ti.Platform,
+		AllowPrivileged: ti.AllowPrivileged,
 	}
 	for _, bai := range ti.BuildArgs {
 		tiCopy.BuildArgs = append(tiCopy.BuildArgs, bai.clone())
