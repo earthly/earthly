@@ -19,7 +19,7 @@ We change the current working directory to `/go-example`.
 WORKDIR /go-example
 ```
 
-Declare a target, `build`.
+Declare a target, `build`. (This target may be invoked from the command line as `earthly +build`.)
 
 ```Dockerfile
 build:
@@ -86,7 +86,7 @@ We change the current working directory to `/js-example`.
 WORKDIR /js-example
 ```
 
-Declare a target, `build`.
+Declare a target, `build`. (This target may be invoked from the command line as `earthly +build`.)
 
 ```
 build:
@@ -159,7 +159,7 @@ We change the current working directory to `/java-example`.
 WORKDIR /java-example
 ```
 
-Declare a target, `build`.
+Declare a target, `build`. (This target may be invoked from the command line as `earthly +build`.)
 
 ```
 build:
@@ -237,7 +237,7 @@ We change the current working directory to `/code`.
 WORKDIR /code
 ```
 
-Declare a target, `build`.
+Declare a target, `build`. (This target may be invoked from the command line as `earthly +build`.)
 
 ```
 build:
@@ -257,7 +257,7 @@ Save the python source in an artifact dir called src (it can be later referenced
     SAVE ARTIFACT src /src
 ```
 
-Declare a target, docker
+Declare a target, `docker`.
 
 ```
 docker:

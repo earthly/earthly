@@ -4,12 +4,6 @@
 In the example we walked through in [part 1](./part-1-a-simple-earthfile.md), we can see two explicit targets: `build` and `docker`. In order to execute the build, we can run, for example:
 
 ```bash
-earthly +build
-```
-
-or
-
-```bash
 earthly +docker
 ```
 
@@ -30,23 +24,19 @@ Once the build has executed, we can run the resulting docker image to try it out
 {% method %}
 {% sample lang="Go" %}
 ```
-$ docker run --rm go-example:latest
-hello world
+docker run --rm go-example:latest
 ```
 {% sample lang="JavaScript" %}
 ```
-$ docker run --rm js-example:latest
-hello world
+docker run --rm js-example:latest
 ```
 {% sample lang="Java" %}
 ```
-$ docker run --rm java-example:latest
-hello world
+docker run --rm java-example:latest
 ```
 {% sample lang="Python" %}
 ```
-$ docker run --rm python-example:latest
-hello world
+docker run --rm python-example:latest
 ```
 {% endmethod %}
 
