@@ -66,7 +66,8 @@ type ConvertOpt struct {
 	HasDangling bool
 	// Console is for logging
 	Console conslogging.ConsoleLogger
-
+	// AllowPrivileged is used to allow (or prevent) any "RUN --privileged" or RUNs under a LOCALLY target to be executed,
+	// when set to false, it prevents other referenced remote targets from requesting elevated privileges
 	AllowPrivileged bool
 
 	// ParallelConversion is a feature flag enabling the parallel conversion algorithm.

@@ -650,7 +650,7 @@ func (i *Interpreter) handleCopy(ctx context.Context, cmd spec.Command) error {
 	keepTs := fs.Bool("keep-ts", false, "Keep created time file timestamps")
 	keepOwn := fs.Bool("keep-own", false, "Keep owner info")
 	ifExists := fs.Bool("if-exists", false, "Do not fail if the artifact does not exist")
-	allowPrivilegedFlag := fs.Bool("allow-privileged", false, "allow targets to assume privileged mode")
+	allowPrivilegedFlag := fs.Bool("allow-privileged", false, "Allow targets to assume privileged mode")
 	platformStr := fs.String("platform", "", "The platform to use")
 	buildArgs := new(StringSliceFlag)
 	fs.Var(buildArgs, "build-arg", "A build arg override passed on to a referenced Earthly target")
