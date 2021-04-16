@@ -5,7 +5,7 @@ reject-privileged-in-remote-repo-triggered-by-from-locally:
     RUN echo this should never run because the above FROM should fail
 
 reject-privileged-in-remote-repo-triggered-by-from-privileged:
-    FROM github.com/earthly/test-privileged:main+locally
+    FROM github.com/earthly/test-privileged:main+privileged
     RUN echo this should never run because the above FROM should fail
 
 reject-privileged-in-remote-repo-triggered-by-copy-locally:
@@ -13,7 +13,7 @@ reject-privileged-in-remote-repo-triggered-by-copy-locally:
     RUN echo this should never run because the above COPY should fail
 
 reject-privileged-in-remote-repo-triggered-by-copy-privileged:
-    COPY github.com/earthly/test-privileged:main+locally/hostname .
+    COPY github.com/earthly/test-privileged:main+privileged/hostname .
     RUN echo this should never run because the above COPY should fail
 
 reject-privileged-in-remote-repo-triggered-by-build-locally:
@@ -21,7 +21,7 @@ reject-privileged-in-remote-repo-triggered-by-build-locally:
     RUN echo this should never run because the above BUILD should fail
 
 reject-privileged-in-remote-repo-triggered-by-build-privileged:
-    BUILD github.com/earthly/test-privileged:main+locally
+    BUILD github.com/earthly/test-privileged:main+privileged
     RUN echo this should never run because the above BUILD should fail
 
 reject-dedup:
@@ -31,6 +31,11 @@ reject-dedup:
     # but without an --allow-privileged, this should fail even though it was
     # successfuly run (and cached) in the first step.
     BUILD +reject-privileged-in-remote-repo-triggered-by-copy
+
+reject-privileged-in-remote-repo-triggered-by-docker-load-privileged:
+    WITH DOCKER --load shouldfail:latest=github.com/earthly/test-privileged:main+privileged
+        RUN echo this should never run because the above --load should fail
+    END
 
 allow-privileged-in-remote-repo-triggered-by-from-locally:
     FROM --allow-privileged github.com/earthly/test-privileged:main+locally
@@ -53,6 +58,7 @@ allow-privileged-in-remote-repo-triggered-by-copy-privileged:
 
 allow-privileged-in-remote-repo-triggered-by-build-privileged:
     BUILD --allow-privileged github.com/earthly/test-privileged:main+privileged
+
 
 allow-all:
     # TODO there's a bug that's preventing using FROM in combination with locally

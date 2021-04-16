@@ -858,7 +858,7 @@ func (i *Interpreter) handleBuild(ctx context.Context, cmd spec.Command, async b
 	fs.Var(platformsStr, "platform", "The platform to build")
 	buildArgs := new(StringSliceFlag)
 	fs.Var(buildArgs, "build-arg", "A build arg override passed on to a referenced Earthly target")
-	allowPrivilegedFlag := fs.Bool("allow-privileged", false, "allow targets to assume privileged mode")
+	allowPrivilegedFlag := fs.Bool("allow-privileged", false, "Allow targets to assume privileged mode")
 	err := fs.Parse(getArgsCopy(cmd))
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "invalid BUILD arguments %v", cmd.Args)
@@ -1202,6 +1202,7 @@ func (i *Interpreter) handleWithDocker(ctx context.Context, cmd spec.Command) er
 	fs.Var(buildArgs, "build-arg", "A build arg override passed on to a referenced Earthly target")
 	pulls := new(StringSliceFlag)
 	fs.Var(pulls, "pull", "An image which is pulled and made available in the docker cache")
+	allowPrivilegedFlag := fs.Bool("allow-privileged", false, "Allow targets referenced by load to assume privileged mode")
 	err := fs.Parse(getArgsCopy(cmd))
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "invalid WITH DOCKER arguments %v", cmd.Args)
@@ -1251,11 +1252,17 @@ func (i *Interpreter) handleWithDocker(ctx context.Context, cmd spec.Command) er
 		}
 		loadBuildArgs := append(parsedFlagArgs, expandedBuildArgs...)
 
+		allowPrivileged, err := i.getAllowPrivilegedTarget(loadTarget, *allowPrivilegedFlag)
+		if err != nil {
+			return err
+		}
+
 		i.withDocker.Loads = append(i.withDocker.Loads, DockerLoadOpt{
-			Target:    loadTarget,
-			ImageName: loadImg,
-			Platform:  platform,
-			BuildArgs: loadBuildArgs,
+			Target:          loadTarget,
+			ImageName:       loadImg,
+			Platform:        platform,
+			BuildArgs:       loadBuildArgs,
+			AllowPrivileged: allowPrivileged,
 		})
 	}
 	return nil

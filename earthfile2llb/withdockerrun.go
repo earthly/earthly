@@ -32,10 +32,11 @@ const (
 
 // DockerLoadOpt holds parameters for WITH DOCKER --load parameter.
 type DockerLoadOpt struct {
-	Target    string
-	ImageName string
-	Platform  *specs.Platform
-	BuildArgs []string
+	Target          string
+	ImageName       string
+	Platform        *specs.Platform
+	BuildArgs       []string
+	AllowPrivileged bool
 }
 
 // DockerPullOpt holds parameters for the WITH DOCKER --pull parameter.
@@ -287,7 +288,7 @@ func (wdr *withDockerRun) load(ctx context.Context, opt DockerLoadOpt) error {
 	if err != nil {
 		return errors.Wrapf(err, "parse target %s", opt.Target)
 	}
-	mts, err := wdr.c.buildTarget(ctx, depTarget.String(), opt.Platform, true, opt.BuildArgs, false, false)
+	mts, err := wdr.c.buildTarget(ctx, depTarget.String(), opt.Platform, opt.AllowPrivileged, opt.BuildArgs, false, false)
 	if err != nil {
 		return err
 	}
