@@ -782,7 +782,7 @@ func (c *Converter) Build(ctx context.Context, fullTargetName string, platform *
 // BuildAsync applies the earthly BUILD command asynchronously.
 func (c *Converter) BuildAsync(ctx context.Context, fullTargetName string, platform *specs.Platform, allowPrivileged bool, buildArgs []string) chan error {
 	errChan := make(chan error, 1)
-	target, opt, _, err := c.prepBuildTarget(ctx, fullTargetName, platform, buildArgs, true, false)
+	target, opt, _, err := c.prepBuildTarget(ctx, fullTargetName, platform, allowPrivileged, buildArgs, true, false)
 	if err != nil {
 		errChan <- err
 		return errChan
@@ -1090,7 +1090,7 @@ func (c *Converter) ExpandArgs(word string) string {
 	return c.varCollection.Expand(word)
 }
 
-func (c *Converter) prepBuildTarget(ctx context.Context, fullTargetName string, platform *specs.Platform, buildArgs []string, isDangling bool, isFrom bool) (domain.Target, ConvertOpt, bool, error) {
+func (c *Converter) prepBuildTarget(ctx context.Context, fullTargetName string, platform *specs.Platform, allowPrivileged bool, buildArgs []string, isDangling bool, isFrom bool) (domain.Target, ConvertOpt, bool, error) {
 	relTarget, err := domain.ParseTarget(fullTargetName)
 	if err != nil {
 		return domain.Target{}, ConvertOpt{}, false, errors.Wrapf(err, "earthly target parse %s", fullTargetName)
@@ -1122,6 +1122,7 @@ func (c *Converter) prepBuildTarget(ctx context.Context, fullTargetName string, 
 	opt.parentDepSub = c.mts.Final.NewDependencySubscription()
 	opt.Platform, err = llbutil.ResolvePlatform(platform, c.opt.Platform)
 	opt.HasDangling = isDangling
+	opt.AllowPrivileged = allowPrivileged
 	if err != nil {
 		// Contradiction allowed. You can BUILD another target with different platform.
 		opt.Platform = platform
@@ -1130,11 +1131,10 @@ func (c *Converter) prepBuildTarget(ctx context.Context, fullTargetName string, 
 }
 
 func (c *Converter) buildTarget(ctx context.Context, fullTargetName string, platform *specs.Platform, allowPrivileged bool, buildArgs []string, isDangling bool, isFrom bool) (*states.MultiTarget, error) {
-	target, opt, propagateBuildArgs, err := c.prepBuildTarget(ctx, fullTargetName, platform, buildArgs, isDangling, isFrom)
+	target, opt, propagateBuildArgs, err := c.prepBuildTarget(ctx, fullTargetName, platform, allowPrivileged, buildArgs, isDangling, isFrom)
 	if err != nil {
 		return nil, err
 	}
-	opt.AllowPrivileged = allowPrivileged
 	mts, err := Earthfile2LLB(ctx, target, opt)
 	if err != nil {
 		return nil, errors.Wrapf(err, "earthfile2llb for %s", fullTargetName)
