@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/earthly/earthly/ast/spec"
+	"github.com/earthly/earthly/conslogging"
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/llbutil"
 	"github.com/earthly/earthly/variables"
@@ -31,6 +32,7 @@ type Interpreter struct {
 	isWith          bool
 	pushOnlyAllowed bool
 	local           bool
+	allowPrivileged bool
 
 	stack string
 
@@ -40,16 +42,19 @@ type Interpreter struct {
 	parallelConversion bool
 	parallelism        *semaphore.Weighted
 	parallelErrChan    chan error
+	console            conslogging.ConsoleLogger
 }
 
-func newInterpreter(c *Converter, t domain.Target, parallelConversion bool, parallelism *semaphore.Weighted) *Interpreter {
+func newInterpreter(c *Converter, t domain.Target, allowPrivileged, parallelConversion bool, parallelism *semaphore.Weighted, console conslogging.ConsoleLogger) *Interpreter {
 	return &Interpreter{
 		converter:          c,
 		target:             t,
 		stack:              c.StackString(),
+		allowPrivileged:    allowPrivileged,
 		parallelism:        parallelism,
 		parallelConversion: parallelConversion,
 		parallelErrChan:    make(chan error),
+		console:            console,
 	}
 }
 
@@ -87,7 +92,7 @@ func (i *Interpreter) Run(ctx context.Context, ef spec.Earthfile) (err error) {
 
 func (i *Interpreter) handleTarget(ctx context.Context, t spec.Target) error {
 	// Apply implicit FROM +base
-	err := i.converter.From(ctx, "+base", nil, nil)
+	err := i.converter.From(ctx, "+base", nil, i.allowPrivileged, nil)
 	if err != nil {
 		return i.wrapError(err, t.SourceLocation, "apply FROM")
 	}
@@ -364,6 +369,7 @@ func (i *Interpreter) handleFrom(ctx context.Context, cmd spec.Command) error {
 		return i.pushOnlyErr(cmd.SourceLocation)
 	}
 	fs := flag.NewFlagSet("FROM", flag.ContinueOnError)
+	allowPrivilegedFlag := fs.Bool("allow-privileged", false, "Enable privileged mode")
 	buildArgs := new(StringSliceFlag)
 	fs.Var(buildArgs, "build-arg", "A build arg override passed on to a referenced Earthly target")
 	platformStr := fs.String("platform", "", "The platform to use")
@@ -393,12 +399,48 @@ func (i *Interpreter) handleFrom(ctx context.Context, cmd spec.Command) error {
 	}
 	expandedBuildArgs = append(parsedFlagArgs, expandedBuildArgs...)
 
+	allowPrivileged, err := i.getAllowPrivilegedTarget(imageName, *allowPrivilegedFlag)
+	if err != nil {
+		return err
+	}
+
 	i.local = false
-	err = i.converter.From(ctx, imageName, platform, expandedBuildArgs)
+	err = i.converter.From(ctx, imageName, platform, allowPrivileged, expandedBuildArgs)
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "apply FROM %s", imageName)
 	}
 	return nil
+}
+
+func (i *Interpreter) getAllowPrivilegedTarget(targetName string, allowPrivileged bool) (bool, error) {
+	if !strings.Contains(targetName, "+") {
+		return false, nil
+	}
+	depTarget, err := domain.ParseTarget(targetName)
+	if err != nil {
+		return false, errors.Wrapf(err, "parse target name %s", targetName)
+	}
+
+	return i.getAllowPrivileged(depTarget, allowPrivileged)
+}
+
+func (i *Interpreter) getAllowPrivileged(depTarget domain.Target, allowPrivileged bool) (bool, error) {
+	if depTarget.IsRemote() {
+		return i.allowPrivileged && allowPrivileged, nil
+	}
+	if allowPrivileged {
+		i.console.Printf("the --allow-privileged flag has no effect when referencing a local or relative target\n")
+	}
+	return i.allowPrivileged, nil
+}
+
+func (i *Interpreter) getAllowPrivilegedArtifact(artifactName string, allowPrivileged bool) (bool, error) {
+	artifact, err := domain.ParseArtifact(artifactName)
+	if err != nil {
+		return false, errors.Wrapf(err, "parse artifact name %s", artifactName)
+	}
+
+	return i.getAllowPrivileged(artifact.Target, allowPrivileged)
 }
 
 func (i *Interpreter) handleRun(ctx context.Context, cmd spec.Command) error {
@@ -493,6 +535,10 @@ func (i *Interpreter) handleRun(ctx context.Context, cmd spec.Command) error {
 		return nil
 	}
 
+	if *privileged && !i.allowPrivileged {
+		return i.errorf(cmd.SourceLocation, "Permission denied: unwilling to run privileged command; did you reference a remote Earthfile without the --allow-privileged flag?")
+	}
+
 	if i.withDocker == nil {
 		err = i.converter.Run(
 			ctx, fs.Args(), mounts.Args, secrets.Args, *privileged, *withEntrypoint, *withDocker,
@@ -572,6 +618,10 @@ func (i *Interpreter) handleFromDockerfile(ctx context.Context, cmd spec.Command
 }
 
 func (i *Interpreter) handleLocally(ctx context.Context, cmd spec.Command) error {
+	if !i.allowPrivileged {
+		return i.errorf(cmd.SourceLocation, "Permission denied: unwilling to allow locally directive from remote Earthfile; did you reference a remote Earthfile without the --allow-privileged flag?")
+	}
+
 	if i.pushOnlyAllowed {
 		return i.pushOnlyErr(cmd.SourceLocation)
 	}
@@ -600,6 +650,7 @@ func (i *Interpreter) handleCopy(ctx context.Context, cmd spec.Command) error {
 	keepTs := fs.Bool("keep-ts", false, "Keep created time file timestamps")
 	keepOwn := fs.Bool("keep-own", false, "Keep owner info")
 	ifExists := fs.Bool("if-exists", false, "Do not fail if the artifact does not exist")
+	allowPrivilegedFlag := fs.Bool("allow-privileged", false, "Allow targets to assume privileged mode")
 	platformStr := fs.String("platform", "", "The platform to use")
 	buildArgs := new(StringSliceFlag)
 	fs.Var(buildArgs, "build-arg", "A build arg override passed on to a referenced Earthly target")
@@ -623,6 +674,7 @@ func (i *Interpreter) handleCopy(ctx context.Context, cmd spec.Command) error {
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "parse platform %s", *platformStr)
 	}
+
 	allClassical := true
 	allArtifacts := true
 	for index, src := range srcs {
@@ -660,6 +712,11 @@ func (i *Interpreter) handleCopy(ctx context.Context, cmd spec.Command) error {
 			dest += string(filepath.Separator)
 		}
 		for index, src := range srcs {
+			allowPrivileged, err := i.getAllowPrivilegedArtifact(src, *allowPrivilegedFlag)
+			if err != nil {
+				return err
+			}
+
 			expandedFlagArgs := i.expandArgsSlice(srcFlagArgs[index], true)
 			parsedFlagArgs, err := variables.ParseFlagArgs(expandedFlagArgs)
 			if err != nil {
@@ -668,12 +725,12 @@ func (i *Interpreter) handleCopy(ctx context.Context, cmd spec.Command) error {
 			srcBuildArgs := append(parsedFlagArgs, expandedBuildArgs...)
 
 			if i.local {
-				err = i.converter.CopyArtifactLocal(ctx, src, dest, platform, srcBuildArgs, *isDirCopy)
+				err = i.converter.CopyArtifactLocal(ctx, src, dest, platform, allowPrivileged, srcBuildArgs, *isDirCopy)
 				if err != nil {
 					return i.wrapError(err, cmd.SourceLocation, "copy artifact locally")
 				}
 			} else {
-				err = i.converter.CopyArtifact(ctx, src, dest, platform, srcBuildArgs, *isDirCopy, *keepTs, *keepOwn, *chown, *ifExists)
+				err = i.converter.CopyArtifact(ctx, src, dest, platform, allowPrivileged, srcBuildArgs, *isDirCopy, *keepTs, *keepOwn, *chown, *ifExists)
 				if err != nil {
 					return i.wrapError(err, cmd.SourceLocation, "copy artifact")
 				}
@@ -801,6 +858,7 @@ func (i *Interpreter) handleBuild(ctx context.Context, cmd spec.Command, async b
 	fs.Var(platformsStr, "platform", "The platform to build")
 	buildArgs := new(StringSliceFlag)
 	fs.Var(buildArgs, "build-arg", "A build arg override passed on to a referenced Earthly target")
+	allowPrivilegedFlag := fs.Bool("allow-privileged", false, "Allow targets to assume privileged mode")
 	err := fs.Parse(getArgsCopy(cmd))
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "invalid BUILD arguments %v", cmd.Args)
@@ -837,13 +895,18 @@ func (i *Interpreter) handleBuild(ctx context.Context, cmd spec.Command, async b
 		return i.wrapError(err, cmd.SourceLocation, "build arg matrix")
 	}
 
+	allowPrivileged, err := i.getAllowPrivilegedTarget(fullTargetName, *allowPrivilegedFlag)
+	if err != nil {
+		return err
+	}
+
 	for _, bas := range crossProductBuildArgs {
 		for _, platform := range platformsSlice {
 			if async {
-				errChan := i.converter.BuildAsync(ctx, fullTargetName, platform, bas)
+				errChan := i.converter.BuildAsync(ctx, fullTargetName, platform, allowPrivileged, bas)
 				i.monitorErrChan(ctx, errChan)
 			} else {
-				err = i.converter.Build(ctx, fullTargetName, platform, bas)
+				err = i.converter.Build(ctx, fullTargetName, platform, allowPrivileged, bas)
 				if err != nil {
 					return i.wrapError(err, cmd.SourceLocation, "apply BUILD %s", fullTargetName)
 				}
@@ -1139,6 +1202,7 @@ func (i *Interpreter) handleWithDocker(ctx context.Context, cmd spec.Command) er
 	fs.Var(buildArgs, "build-arg", "A build arg override passed on to a referenced Earthly target")
 	pulls := new(StringSliceFlag)
 	fs.Var(pulls, "pull", "An image which is pulled and made available in the docker cache")
+	allowPrivilegedFlag := fs.Bool("allow-privileged", false, "Allow targets referenced by load to assume privileged mode")
 	err := fs.Parse(getArgsCopy(cmd))
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "invalid WITH DOCKER arguments %v", cmd.Args)
@@ -1188,11 +1252,17 @@ func (i *Interpreter) handleWithDocker(ctx context.Context, cmd spec.Command) er
 		}
 		loadBuildArgs := append(parsedFlagArgs, expandedBuildArgs...)
 
+		allowPrivileged, err := i.getAllowPrivilegedTarget(loadTarget, *allowPrivilegedFlag)
+		if err != nil {
+			return err
+		}
+
 		i.withDocker.Loads = append(i.withDocker.Loads, DockerLoadOpt{
-			Target:    loadTarget,
-			ImageName: loadImg,
-			Platform:  platform,
-			BuildArgs: loadBuildArgs,
+			Target:          loadTarget,
+			ImageName:       loadImg,
+			Platform:        platform,
+			BuildArgs:       loadBuildArgs,
+			AllowPrivileged: allowPrivileged,
 		})
 	}
 	return nil
@@ -1282,7 +1352,7 @@ func (i *Interpreter) handleDoUserCommand(ctx context.Context, command domain.Co
 	scopeName := fmt.Sprintf(
 		"%s (%s line %d:%d)",
 		command.StringCanonical(), do.SourceLocation.File, do.SourceLocation.StartLine, do.SourceLocation.StartColumn)
-	err := i.converter.EnterScope(ctx, command, baseTarget(relCommand), scopeName, buildArgs)
+	err := i.converter.EnterScope(ctx, command, baseTarget(relCommand), i.allowPrivileged, scopeName, buildArgs)
 	if err != nil {
 		return i.wrapError(err, uc.SourceLocation, "enter scope")
 	}

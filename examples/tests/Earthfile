@@ -36,6 +36,7 @@ ga:
     BUILD +dockerfile-test
     BUILD +fail-test
     BUILD +fail-push-test
+    BUILD +allow-privileged-test
     BUILD +push-test
     BUILD +gen-dockerfile-test
     BUILD +chown-test
@@ -147,6 +148,11 @@ remote-test:
         --entrypoint \
         --mount=type=tmpfs,target=/tmp/earthly \
         -- --no-output github.com/earthly/hello-world:main+hello
+    RUN --privileged \
+        --entrypoint \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        -- --no-output github.com/earthly/test-privileged:main+locally && \
+        ls /tmp/hostname.3d4b1831-c07e-4b2d-805e-2b8ce578bb50
 
 transitive-args-test:
     DO +RUN_EARTHLY --earthfile=transitive-args.earth --extra_args="--build-arg SOMEARG=xyz" --target=+test
@@ -219,6 +225,19 @@ fail-test:
     # test that the 'failed with exit code' text is printed out
     DO +RUN_EARTHLY --earthfile=fail.earth --target=+test \
         --post_command="2>&1 | perl -pe 'BEGIN {\\\$status=1} END {exit \\\$status} \\\$status=0 if /this-will-fail/;'"
+
+allow-privileged-test:
+    # test that privileged-tasks in remote repos dont run
+    DO +RUN_EARTHLY --earthfile=allow-privileged.earth --should_fail=true --extra_args="--allow-privileged" -target=+reject-privileged-in-remote-repo-triggered-by-from-locally
+    DO +RUN_EARTHLY --earthfile=allow-privileged.earth --should_fail=true --extra_args="--allow-privileged" -target=+reject-privileged-in-remote-repo-triggered-by-from-privileged
+    DO +RUN_EARTHLY --earthfile=allow-privileged.earth --should_fail=true --extra_args="--allow-privileged" -target=+reject-privileged-in-remote-repo-triggered-by-copy-locally
+    DO +RUN_EARTHLY --earthfile=allow-privileged.earth --should_fail=true --extra_args="--allow-privileged" -target=+reject-privileged-in-remote-repo-triggered-by-copy-privileged
+    DO +RUN_EARTHLY --earthfile=allow-privileged.earth --should_fail=true --extra_args="--allow-privileged" -target=+reject-privileged-in-remote-repo-triggered-by-build-locally
+    DO +RUN_EARTHLY --earthfile=allow-privileged.earth --should_fail=true --extra_args="--allow-privileged" -target=+reject-privileged-in-remote-repo-triggered-by-build-privileged
+    DO +RUN_EARTHLY --earthfile=allow-privileged.earth --should_fail=true --extra_args="--allow-privileged" -target=+reject-dedup
+    # test allowed-privileged tasks in remote repos work
+    DO +RUN_EARTHLY --earthfile=allow-privileged.earth --extra_args="--allow-privileged" --target=+allow-all
+
 
 fail-push-test:
     # test that an error code is correctly returned
@@ -472,10 +491,12 @@ RUN_EARTHLY:
         if $use_tmpfs; then
             export EARTHLY_TMP_DIR=/tmp/earthly-tmpfs
         fi
+        echo running earthly with $target
         eval \"/usr/bin/earthly-buildkitd-wrapper.sh $extra_args $target $post_command\"
         exit_code=\$?
         if $should_fail; then
             if [ \$exit_code -eq 0 ]; then
+                echo ERROR: earthly should have failed but didn\'t.
                 exit 1
             else
                 exit 0
