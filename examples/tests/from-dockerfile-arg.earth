@@ -18,7 +18,6 @@ bar:
 
 create-dockerfile:
     FROM alpine:3.13
-    RUN echo "foo"
     RUN mkdir dist
     RUN echo "
 FROM alpine:3.13
