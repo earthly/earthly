@@ -37,6 +37,8 @@ ga:
     BUILD +fail-test
     BUILD +fail-push-test
     BUILD +allow-privileged-test
+    BUILD +allow-privileged-import-test
+    BUILD +reject-privileged-import-test
     BUILD +push-test
     BUILD +gen-dockerfile-test
     BUILD +chown-test
@@ -238,6 +240,17 @@ allow-privileged-test:
     DO +RUN_EARTHLY --earthfile=allow-privileged.earth --should_fail=true --extra_args="--allow-privileged" -target=+reject-dedup
     # test allowed-privileged tasks in remote repos work
     DO +RUN_EARTHLY --earthfile=allow-privileged.earth --extra_args="--allow-privileged" --target=+allow-all
+
+allow-privileged-import-test:
+    RUN mkdir -p a/really/deep/subdir && echo "subdirprivileged:
+    FROM alpine:latest
+    RUN --privileged cat /proc/self/status | grep CapEff > output
+    SAVE ARTIFACT output proc-status
+" > a/really/deep/subdir/Earthfile
+    DO +RUN_EARTHLY --earthfile=allow-privileged-import.earth --extra_args="--allow-privileged" --target=+test
+
+reject-privileged-import-test:
+    DO +RUN_EARTHLY --earthfile=reject-privileged-import.earth --should_fail=true --extra_args="--allow-privileged" --target=+test
 
 
 fail-push-test:

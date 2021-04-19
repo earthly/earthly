@@ -26,7 +26,7 @@ type ConvertOpt struct {
 	// Resolver is the build context resolver.
 	Resolver *buildcontext.Resolver
 	// GlobalImports is a map of imports used to dereference import ref targets, commands, etc.
-	GlobalImports map[string]string
+	GlobalImports map[string]domain.ImportTrackerVal
 	// The resolve mode for referenced images (force pull or prefer local).
 	ImageResolveMode llb.ResolveMode
 	// DockerBuilderFun is a fun that can be used to execute an image build. This

@@ -1,0 +1,8 @@
+FROM alpine:3.13
+
+IMPORT github.com/earthly/test-privileged:main
+
+test:
+    COPY test-privileged+privileged/proc-status .
+    RUN echo the above COPY should fail since it was not imported with the --allow-privileged flag.
+

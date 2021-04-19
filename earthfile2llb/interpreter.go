@@ -14,6 +14,7 @@ import (
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/llbutil"
 	"github.com/earthly/earthly/variables"
+
 	specs "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
 	"golang.org/x/sync/errgroup"
@@ -429,7 +430,7 @@ func (i *Interpreter) getAllowPrivileged(depTarget domain.Target, allowPrivilege
 		return i.allowPrivileged && allowPrivileged, nil
 	}
 	if allowPrivileged {
-		i.console.Printf("the --allow-privileged flag has no effect when referencing a local or relative target\n")
+		i.console.Printf("the --allow-privileged flag has no effect when referencing a local target\n")
 	}
 	return i.allowPrivileged, nil
 }
@@ -1320,7 +1321,15 @@ func (i *Interpreter) handleDo(ctx context.Context, cmd spec.Command) error {
 }
 
 func (i *Interpreter) handleImport(ctx context.Context, cmd spec.Command) error {
-	cmdArgs := getArgsCopy(cmd)
+	fs := flag.NewFlagSet("IMPORT", flag.ContinueOnError)
+	allowPrivilegedFlag := fs.Bool("allow-privileged", false, "Enable privileged mode")
+	err := fs.Parse(getArgsCopy(cmd))
+	if err != nil {
+		return i.wrapError(err, cmd.SourceLocation, "invalid IMPORT arguments")
+	}
+
+	cmdArgs := fs.Args()
+
 	if len(cmdArgs) != 1 && len(cmdArgs) != 3 {
 		return i.errorf(cmd.SourceLocation, "invalid number of arguments for IMPORT: %s", cmdArgs)
 	}
@@ -1333,7 +1342,7 @@ func (i *Interpreter) handleImport(ctx context.Context, cmd spec.Command) error 
 		as = i.expandArgs(cmdArgs[2], false)
 	}
 	isGlobal := (i.target.Target == "base")
-	err := i.converter.Import(ctx, importStr, as, isGlobal)
+	err = i.converter.Import(ctx, importStr, as, isGlobal, i.allowPrivileged, *allowPrivilegedFlag)
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "apply IMPORT")
 	}

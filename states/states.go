@@ -51,7 +51,7 @@ type SingleTarget struct {
 	RunPush                RunPush
 	LocalDirs              map[string]string
 	InteractiveSession     InteractiveSession
-	GlobalImports          map[string]string
+	GlobalImports          map[string]domain.ImportTrackerVal
 	// HasDangling represents whether the target has dangling instructions -
 	// ie if there are any non-SAVE commands after the first SAVE command,
 	// or if the target is invoked via BUILD command (not COPY nor FROM).
