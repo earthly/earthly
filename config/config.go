@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"path"
+	"path/filepath"
 	"reflect"
 	"regexp"
 	"strings"
@@ -300,7 +300,7 @@ func ReadConfigFile(configPath string, contextSet bool) ([]byte, error) {
 
 // WriteConfigFile writes the config file to disk with preset permission 0644
 func WriteConfigFile(configPath string, data []byte) error {
-	err := os.MkdirAll(path.Dir(configPath), 0755)
+	err := os.MkdirAll(filepath.Dir(configPath), 0755)
 	if err != nil {
 		return err
 	}
