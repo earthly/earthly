@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -49,20 +50,26 @@ func detectCI() (string, bool) {
 
 	// default catch-all
 	if v, ok := os.LookupEnv("CI"); ok {
-		if strings.ToLower(v) == "true" {
+		isCI, err := strconv.ParseBool(v)
+		if err == nil && isCI {
 			return "ci-env-var-set", true
 		}
-		return v, true
 	}
 
 	return "false", false
 }
 
 func getRepo() string {
-	cmd := exec.Command("git", "config", "--get", "remote.origin.url")
-	out, err := cmd.Output()
-	if err == nil {
-		return strings.TrimSpace(string(out))
+	if isGitInstalled() {
+		if !isGitDir() {
+			return ""
+		}
+
+		cmd := exec.Command("git", "config", "--get", "remote.origin.url")
+		out, err := cmd.Output()
+		if err == nil {
+			return strings.TrimSpace(string(out))
+		}
 	}
 
 	for _, k := range []string{
@@ -92,6 +99,18 @@ func getRepo() string {
 	return "unknown"
 }
 
+func isGitInstalled() bool {
+	cmd := exec.Command("git", "--version")
+	err := cmd.Run()
+	return (err == nil)
+}
+
+func isGitDir() bool {
+	cmd := exec.Command("git", "rev-parse", "--git-dir")
+	err := cmd.Run()
+	return (err == nil)
+}
+
 func getRepoHash() string {
 	repo := getRepo()
 	if repo == "unknown" || repo == "" {
@@ -107,14 +126,26 @@ func getRepoHash() string {
 func getInstallID() (string, error) {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
-		return "", errors.Wrap(err, "failed to get user home dir")
+		var ok bool
+		homeDir, ok = os.LookupEnv("HOME")
+		if !ok {
+			return "", errors.Wrap(err, "failed to get user home dir")
+		}
 	}
 
-	path := filepath.Join(homeDir, ".earthly", "install_id")
+	parent := filepath.Join(homeDir, ".earthly")
+	path := filepath.Join(parent, "install_id")
 	if !fileutil.FileExists(path) {
+		err := os.MkdirAll(parent, 0755)
+		if err != nil {
+			return "", errors.Wrapf(err, "failed to create dir %s", parent)
+		}
 		u, err := uuid.NewUUID()
 		if err != nil {
-			return "", errors.Wrap(err, "failed to generate uuid")
+			u, err = uuid.NewRandom()
+			if err != nil {
+				return "", errors.Wrap(err, "failed to generate uuid")
+			}
 		}
 		ID := u.String()
 		err = ioutil.WriteFile(path, []byte(ID), 0644)
@@ -195,6 +226,7 @@ func CollectAnalytics(ctx context.Context, earthlyServer string, displayErrors b
 		} else {
 			installID, err = getInstallID()
 			if err != nil {
+				fmt.Fprintf(os.Stderr, "Failed to get install ID: %s\n", err.Error())
 				installID = "unknown"
 			}
 		}
