@@ -65,6 +65,7 @@ ga:
     BUILD +new-args
     BUILD +import
     BUILD +infinite-recursion
+    BUILD +from-dockerfile-arg
 
 experimental:
     BUILD ./dind-auto-install+all
@@ -476,6 +477,12 @@ infinite-recursion:
     DO +RUN_EARTHLY --earthfile=infinite-recursion.earth --should_fail=true --target=+test6
     DO +RUN_EARTHLY --earthfile=infinite-recursion.earth --should_fail=true --target=+test7
     DO +RUN_EARTHLY --earthfile=infinite-recursion.earth --should_fail=true --target=+test8
+
+from-dockerfile-arg:
+    DO +RUN_EARTHLY --earthfile=from-dockerfile-arg.earth --target=+all
+    RUN test "$(cat ./arg-value-default)" = "default"
+    RUN test "$(cat ./arg-value-foo)" = "foo"
+    RUN test "$(cat ./arg-value-bar)" = "bar"
 
 RUN_EARTHLY:
     COMMAND

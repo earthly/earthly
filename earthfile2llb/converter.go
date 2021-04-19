@@ -247,7 +247,7 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 		Target:           dfTarget,
 		TargetPlatform:   &plat,
 		LLBCaps:          &caps,
-		BuildArgs:        overriding.ActiveValueMap(),
+		BuildArgs:        overriding.AllValueMap(),
 		Excludes:         nil, // TODO: Need to process this correctly.
 	})
 	done()
