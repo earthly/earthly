@@ -59,24 +59,12 @@ func detectCI() (string, bool) {
 	return "false", false
 }
 
-func isGitInstalled() bool {
-	cmd := exec.Command("git", "--version")
-	err := cmd.Run()
-	return (err == nil)
-}
-
-func isGitDir() bool {
-	cmd := exec.Command("git", "rev-parse", "--git-dir")
-	err := cmd.Run()
-	return (err == nil)
-}
-
 func getRepo() string {
-	if !isGitDir() {
-		return ""
-	}
-
 	if isGitInstalled() {
+		if !isGitDir() {
+			return ""
+		}
+
 		cmd := exec.Command("git", "config", "--get", "remote.origin.url")
 		out, err := cmd.Output()
 		if err == nil {
@@ -109,6 +97,18 @@ func getRepo() string {
 	}
 
 	return "unknown"
+}
+
+func isGitInstalled() bool {
+	cmd := exec.Command("git", "--version")
+	err := cmd.Run()
+	return (err == nil)
+}
+
+func isGitDir() bool {
+	cmd := exec.Command("git", "rev-parse", "--git-dir")
+	err := cmd.Run()
+	return (err == nil)
 }
 
 func getRepoHash() string {
