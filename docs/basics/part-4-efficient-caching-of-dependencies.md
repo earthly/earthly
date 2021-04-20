@@ -6,9 +6,9 @@ If, however, we could first download the dependencies and only afterwards copy a
 
 {% method %}
 {% sample lang="Go" %}
-```Dockerfile
-# Earthfile
+`./Earthfile`
 
+```Dockerfile
 FROM golang:1.15-alpine3.13
 WORKDIR /go-example
 
@@ -16,9 +16,6 @@ build:
     # Download deps before copying code.
     COPY go.mod go.sum .
     RUN go mod download
-    # Also save these back to host, in case go.sum changes.
-    SAVE ARTIFACT go.mod AS LOCAL go.mod
-	SAVE ARTIFACT go.sum AS LOCAL go.sum
     # Copy and build code.
     COPY main.go .
     RUN go build -o build/go-example main.go
@@ -29,10 +26,21 @@ docker:
     ENTRYPOINT ["/go-example/go-example"]
     SAVE IMAGE go-example:latest
 ```
-{% sample lang="JavaScript" %}
-```Dockerfile
-# Earthfile
 
+{% hint style='info' %}
+##### Note
+
+To copy these files locally run
+
+```bash
+earthly --artifact github.com/earthly/earthly/examples/tutorial/go:main+part4/part4 ./part4
+```
+{% endhint %}
+
+{% sample lang="JavaScript" %}
+`./Earthfile`
+
+```Dockerfile
 FROM node:13.10.1-alpine3.11
 WORKDIR /js-example
 
@@ -40,12 +48,9 @@ build:
     # Download deps before copying code.
     COPY package.json package-lock.json ./
     RUN npm install
-    # Also save these back to host, in case package-lock.json changes.
-    SAVE ARTIFACT package.json AS LOCAL ./package.json
-    SAVE ARTIFACT package-lock.json AS LOCAL ./package-lock.json
     # Copy and build code.
     COPY src src
-    COPY dist dist
+    RUN mkdir -p ./dist && cp ./src/index.html ./dist/
     RUN npx webpack
     SAVE ARTIFACT dist /dist AS LOCAL ./dist
 
@@ -53,13 +58,25 @@ docker:
     COPY package.json package-lock.json ./
     RUN npm install
     COPY +build/dist dist
-    ENTRYPOINT ["node", "./dist/index.js"]
+    EXPOSE 8080
+    ENTRYPOINT ["/js-example/node_modules/http-server/bin/http-server", "./dist"]
     SAVE IMAGE js-example:latest
 ```
-{% sample lang="Java" %}
-```Dockerfile
-# Earthfile
 
+{% hint style='info' %}
+##### Note
+
+To copy these files locally run
+
+```bash
+earthly --artifact github.com/earthly/earthly/examples/tutorial/js:main+part4/part4 ./part4
+```
+{% endhint %}
+
+{% sample lang="Java" %}
+`./Earthfile`
+
+```Dockerfile
 FROM openjdk:8-jdk-alpine
 RUN apk add --update --no-cache gradle
 WORKDIR /java-example
@@ -81,35 +98,57 @@ docker:
     ENTRYPOINT ["/java-example/bin/java-example"]
     SAVE IMAGE java-example:latest
 ```
+
+{% hint style='info' %}
+##### Note
+
+To copy these files locally run
+
+```bash
+earthly --artifact github.com/earthly/earthly/examples/tutorial/java:main+part4/part4 ./part4
+```
+{% endhint %}
+
 {% sample lang="Python" %}
-```Docker
-# EarthFile
+
+`./Earthfile`
+
+```Dockerfile
 FROM python:3
 WORKDIR /code
 
 build:
+    # Download deps before copying code.
     RUN pip install wheel
     COPY requirements.txt ./
     RUN pip wheel -r requirements.txt --wheel-dir=wheels
-
-    #save wheels before copy source, for cache efficiency 
     SAVE ARTIFACT wheels /wheels
-
+    # Copy and build code.
     COPY src src
     SAVE ARTIFACT src /src
 
 docker:
-    COPY +build/src src
     COPY +build/wheels wheels
+    COPY +build/src src
     COPY requirements.txt ./
     RUN pip install --no-index --find-links=wheels -r requirements.txt
     ENTRYPOINT ["python3", "./src/hello.py"]
     SAVE IMAGE python-example:latest
 ```
+
+{% hint style='info' %}
+##### Note
+
+To copy these files locally run
+
+```bash
+earthly --artifact github.com/earthly/earthly/examples/tutorial/python:main+part4/part4 ./part4
+```
+{% endhint %}
 {% endmethod %}
 
 For a primer into Dockerfile layer caching see [this article](https://pythonspeed.com/articles/docker-caching-model/). The same principles apply to Earthfiles.
 
 ## Continue tutorial
 
-👉 [Part 6: Reduce code duplication](./part-6-reduce-code-duplication.md)
+👉 [Part 5: Reduce code duplication](./part-5-reduce-code-duplication.md)
