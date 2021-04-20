@@ -1,0 +1,37 @@
+
+FROM alpine:3.13
+WORKDIR /tutorial
+
+part1:
+    COPY --dir ./part1 ./
+    SAVE ARTIFACT ./part1
+
+part3:
+    COPY --dir ./part3 ./
+    SAVE ARTIFACT ./part3
+
+part4:
+    COPY --dir ./part4 ./
+    SAVE ARTIFACT ./part4
+
+part5:
+    COPY --dir ./part5 ./
+    SAVE ARTIFACT ./part5
+
+test:
+    BUILD +test-part --part=part1
+    BUILD +test-part --part=part3
+    BUILD +test-part --part=part4
+    BUILD +test-part --part=part5
+
+test-part:
+    LOCALLY
+    ARG part
+    ARG earthly=earthly
+    RUN rm -rf ./test-${part}
+    RUN "$earthly" --artifact +${part}/${part} ./test-${part}
+    WORKDIR ./test-${part}
+    RUN "$earthly" +docker
+    RUN docker run --rm go-example:latest 2>&1 | grep "hello world"
+    WORKDIR ..
+    RUN rm -rf ./test-${part}

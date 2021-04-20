@@ -16,6 +16,11 @@ go 1.13
 require github.com/sirupsen/logrus v1.5.0
 ```
 
+`./go.sum` (empty)
+
+```go.sum
+```
+
 The code of the app might look like this
 
 `./main.go`
@@ -61,7 +66,7 @@ earthly --artifact github.com/earthly/earthly/examples/tutorial/go:main+part3/pa
 {% endhint %}
 
 {% sample lang="JavaScript" %}
-`package.json`
+`./package.json`
 
 ```json
 {
@@ -82,6 +87,11 @@ earthly --artifact github.com/earthly/earthly/examples/tutorial/go:main+part3/pa
     "http-server": "^0.12.1"
   }
 }
+```
+
+`./package-lock.json` (empty)
+
+```json
 ```
 
 The code of the app might look like this
