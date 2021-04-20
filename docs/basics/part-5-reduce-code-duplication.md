@@ -31,15 +31,11 @@ docker:
     SAVE IMAGE go-example:latest
 ```
 
-{% hint style='info' %}
-##### Note
-
-To copy these files locally run
+To copy [these files](https://github.com/earthly/earthly/tree/main/examples/tutorial/go/part5) locally run
 
 ```bash
 earthly --artifact github.com/earthly/earthly/examples/tutorial/go:main+part5/part5 ./part5
 ```
-{% endhint %}
 
 {% sample lang="JavaScript" %}
 `./Earthfile`
@@ -71,15 +67,11 @@ docker:
     SAVE IMAGE js-example:latest
 ```
 
-{% hint style='info' %}
-##### Note
-
-To copy these files locally run
+To copy [these files](https://github.com/earthly/earthly/tree/main/examples/tutorial/js/part5) locally run
 
 ```bash
 earthly --artifact github.com/earthly/earthly/examples/tutorial/js:main+part5/part5 ./part5
 ```
-{% endhint %}
 
 {% sample lang="Java" %}
 `./Earthfile`
@@ -108,15 +100,11 @@ docker:
     SAVE IMAGE java-example:latest
 ```
 
-{% hint style='info' %}
-##### Note
-
-To copy these files locally run
+To copy [these files](https://github.com/earthly/earthly/tree/main/examples/tutorial/java/part5) locally run
 
 ```bash
 earthly --artifact github.com/earthly/earthly/examples/tutorial/java:main+part5/part5 ./part5
 ```
-{% endhint %}
 
 {% sample lang="Python" %}
 `./Earthfile`
@@ -145,15 +133,11 @@ docker:
     SAVE IMAGE python-example:latest
 ```
 
-{% hint style='info' %}
-##### Note
-
-To copy these files locally run
+To copy [these files](https://github.com/earthly/earthly/tree/main/examples/tutorial/python/part5) locally run
 
 ```bash
 earthly --artifact github.com/earthly/earthly/examples/tutorial/python:main+part5/part5 ./part5
 ```
-{% endhint %}
 
 {% endmethod %}
 

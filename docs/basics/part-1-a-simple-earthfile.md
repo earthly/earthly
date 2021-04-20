@@ -38,18 +38,13 @@ func main() {
 }
 ```
 
-
-{% hint style='info' %}
-##### Note
-
-To copy these files locally run
+To copy [these files](https://github.com/earthly/earthly/tree/main/examples/tutorial/go/part1) locally run
 
 ```bash
 mkdir tutorial
 cd tutorial
 earthly --artifact github.com/earthly/earthly/examples/tutorial/go:main+part1/part1 ./part1
 ```
-{% endhint %}
 
 {% sample lang="JavaScript" %}
 Here is a sample Earthfile of a JS app
@@ -80,19 +75,13 @@ The code of the app might look like this
 console.log("hello world");
 ```
 
-To copy these files locally run
-
-{% hint style='info' %}
-##### Note
-
-To copy these files locally run
+To copy [these files](https://github.com/earthly/earthly/tree/main/examples/tutorial/js/part1) locally run
 
 ```bash
 mkdir tutorial
 cd tutorial
 earthly --artifact github.com/earthly/earthly/examples/tutorial/js:main+part1/part1 ./part1
 ```
-{% endhint %}
 
 {% sample lang="Java" %}
 Here is a sample Earthfile of a Java app
@@ -150,17 +139,13 @@ sourceCompatibility = 1.8
 targetCompatibility = 1.8
 ```
 
-{% hint style='info' %}
-##### Note
-
-To copy these files locally run
+To copy [these files](https://github.com/earthly/earthly/tree/main/examples/tutorial/java/part1) locally run
 
 ```bash
 mkdir tutorial
 cd tutorial
 earthly --artifact github.com/earthly/earthly/examples/tutorial/java:main+part1/part1 ./part1
 ```
-{% endhint %}
 
 {% sample lang="Python" %}
 Here is a sample Earthfile of a Python app
@@ -190,17 +175,13 @@ The code of the app might look like this
 print("hello world")
 ```
 
-{% hint style='info' %}
-##### Note
-
-To copy these files locally run
+To copy [these files](https://github.com/earthly/earthly/tree/main/examples/tutorial/python/part1) locally run
 
 ```bash
 mkdir tutorial
 cd tutorial
 earthly --artifact github.com/earthly/earthly/examples/tutorial/python:main+part1/part1 ./part1
 ```
-{% endhint %}
 
 {% endmethod %}
 
