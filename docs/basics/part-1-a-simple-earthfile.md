@@ -42,7 +42,7 @@ func main() {
 {% hint style='info' %}
 ##### Note
 
-To copy these files locally run
+To copy [these files](https://github.com/earthly/earthly/tree/main/examples/tutorial/go/part1) locally run
 
 ```bash
 mkdir tutorial
@@ -85,7 +85,7 @@ To copy these files locally run
 {% hint style='info' %}
 ##### Note
 
-To copy these files locally run
+To copy [these files](https://github.com/earthly/earthly/tree/main/examples/tutorial/js/part1) locally run
 
 ```bash
 mkdir tutorial
@@ -153,7 +153,7 @@ targetCompatibility = 1.8
 {% hint style='info' %}
 ##### Note
 
-To copy these files locally run
+To copy [these files](https://github.com/earthly/earthly/tree/main/examples/tutorial/java/part1) locally run
 
 ```bash
 mkdir tutorial
@@ -193,7 +193,7 @@ print("hello world")
 {% hint style='info' %}
 ##### Note
 
-To copy these files locally run
+To copy [these files](https://github.com/earthly/earthly/tree/main/examples/tutorial/python/part1) locally run
 
 ```bash
 mkdir tutorial
