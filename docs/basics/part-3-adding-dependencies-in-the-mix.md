@@ -56,9 +56,7 @@ docker:
 To copy these files locally run
 
 ```bash
-mkdir tutorial
-cd tutorial
-earthly --artifact github.com/earthly/earthly/examples/tutorial/go:main+part3/part3 ./
+earthly --artifact github.com/earthly/earthly/examples/tutorial/go:main+part3/part3 ./part3
 ```
 {% endhint %}
 
@@ -148,9 +146,7 @@ docker:
 To copy these files locally run
 
 ```bash
-mkdir tutorial
-cd tutorial
-earthly --artifact github.com/earthly/earthly/examples/tutorial/js:main+part3/part3 ./
+earthly --artifact github.com/earthly/earthly/examples/tutorial/js:main+part3/part3 ./part3
 ```
 {% endhint %}
 
@@ -229,9 +225,7 @@ docker:
 To copy these files locally run
 
 ```bash
-mkdir tutorial
-cd tutorial
-earthly --artifact github.com/earthly/earthly/examples/tutorial/java:main+part3/part3 ./
+earthly --artifact github.com/earthly/earthly/examples/tutorial/java:main+part3/part3 ./part3
 ```
 {% endhint %}
 
@@ -285,9 +279,7 @@ docker:
 To copy these files locally run
 
 ```bash
-mkdir tutorial
-cd tutorial
-earthly --artifact github.com/earthly/earthly/examples/tutorial/python:main+part3/part3 ./
+earthly --artifact github.com/earthly/earthly/examples/tutorial/python:main+part3/part3 ./part3
 ```
 {% endhint %}
 

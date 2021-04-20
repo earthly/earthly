@@ -47,7 +47,7 @@ To copy these files locally run
 ```bash
 mkdir tutorial
 cd tutorial
-earthly --artifact github.com/earthly/earthly/examples/tutorial/go:main+part1/part1 ./
+earthly --artifact github.com/earthly/earthly/examples/tutorial/go:main+part1/part1 ./part1
 ```
 {% endhint %}
 
@@ -90,7 +90,7 @@ To copy these files locally run
 ```bash
 mkdir tutorial
 cd tutorial
-earthly --artifact github.com/earthly/earthly/examples/tutorial/js:main+part1/part1 ./
+earthly --artifact github.com/earthly/earthly/examples/tutorial/js:main+part1/part1 ./part1
 ```
 {% endhint %}
 
@@ -141,7 +141,7 @@ To copy these files locally run
 ```bash
 mkdir tutorial
 cd tutorial
-earthly --artifact github.com/earthly/earthly/examples/tutorial/java:main+part1/part1 ./
+earthly --artifact github.com/earthly/earthly/examples/tutorial/java:main+part1/part1 ./part1
 ```
 {% endhint %}
 
@@ -181,7 +181,7 @@ To copy these files locally run
 ```bash
 mkdir tutorial
 cd tutorial
-earthly --artifact github.com/earthly/earthly/examples/tutorial/python:main+part1/part1 ./
+earthly --artifact github.com/earthly/earthly/examples/tutorial/python:main+part1/part1 ./part1
 ```
 {% endhint %}
 
