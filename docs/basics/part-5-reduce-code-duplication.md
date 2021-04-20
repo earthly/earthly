@@ -6,9 +6,9 @@ Note that in our case, only the JavaScript version has an example where `FROM +d
 
 {% method %}
 {% sample lang="Go" %}
-```Dockerfile
-# Earthfile
+`./Earthfile`
 
+```Dockerfile
 FROM golang:1.15-alpine3.13
 WORKDIR /go-example
 
@@ -29,10 +29,23 @@ docker:
     ENTRYPOINT ["/go-example/go-example"]
     SAVE IMAGE go-example:latest
 ```
-{% sample lang="JavaScript" %}
-```Dockerfile
-# Earthfile
 
+{% hint style='info' %}
+##### Note
+
+To copy these files locally run
+
+```bash
+mkdir tutorial
+cd tutorial
+earthly --artifact github.com/earthly/earthly/examples/tutorial/go:main+part5/part5 ./
+```
+{% endhint %}
+
+{% sample lang="JavaScript" %}
+`./Earthfile`
+
+```Dockerfile
 FROM node:13.10.1-alpine3.11
 WORKDIR /js-example
 
@@ -57,10 +70,23 @@ docker:
     ENTRYPOINT ["/js-example/node_modules/http-server/bin/http-server", "./dist"]
     SAVE IMAGE js-example:latest
 ```
-{% sample lang="Java" %}
-```Dockerfile
-# Earthfile
 
+{% hint style='info' %}
+##### Note
+
+To copy these files locally run
+
+```bash
+mkdir tutorial
+cd tutorial
+earthly --artifact github.com/earthly/earthly/examples/tutorial/js:main+part5/part5 ./
+```
+{% endhint %}
+
+{% sample lang="Java" %}
+`./Earthfile`
+
+```Dockerfile
 FROM openjdk:8-jdk-alpine
 RUN apk add --update --no-cache gradle
 WORKDIR /java-example
@@ -83,10 +109,23 @@ docker:
     ENTRYPOINT ["/java-example/bin/java-example"]
     SAVE IMAGE java-example:latest
 ```
-{% sample lang="Python" %}
-```Dockerfile
-# Earthfile
 
+{% hint style='info' %}
+##### Note
+
+To copy these files locally run
+
+```bash
+mkdir tutorial
+cd tutorial
+earthly --artifact github.com/earthly/earthly/examples/tutorial/java:main+part5/part5 ./
+```
+{% endhint %}
+
+{% sample lang="Python" %}
+`./Earthfile`
+
+```Dockerfile
 FROM python:3
 WORKDIR /code
 
@@ -109,6 +148,19 @@ docker:
     ENTRYPOINT ["python3", "./src/hello.py"]
     SAVE IMAGE python-example:latest
 ```
+
+{% hint style='info' %}
+##### Note
+
+To copy these files locally run
+
+```bash
+mkdir tutorial
+cd tutorial
+earthly --artifact github.com/earthly/earthly/examples/tutorial/python:main+part5/part5 ./
+```
+{% endhint %}
+
 {% endmethod %}
 
 ## Continue tutorial

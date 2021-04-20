@@ -42,7 +42,7 @@ func main() {
 {% hint style='info' %}
 ##### Note
 
-To copy these examples locally run:
+To copy these files locally run
 
 ```bash
 mkdir tutorial
@@ -80,12 +80,12 @@ The code of the app might look like this
 console.log("hello world");
 ```
 
-To copy these examples locally run:
+To copy these files locally run
 
 {% hint style='info' %}
 ##### Note
 
-To copy these examples locally run:
+To copy these files locally run
 
 ```bash
 mkdir tutorial
@@ -136,7 +136,7 @@ public class HelloWorld {
 {% hint style='info' %}
 ##### Note
 
-To copy these examples locally run:
+To copy these files locally run
 
 ```bash
 mkdir tutorial
@@ -176,7 +176,7 @@ print("hello world")
 {% hint style='info' %}
 ##### Note
 
-To copy these examples locally run:
+To copy these files locally run
 
 ```bash
 mkdir tutorial

@@ -6,9 +6,9 @@ If, however, we could first download the dependencies and only afterwards copy a
 
 {% method %}
 {% sample lang="Go" %}
-```Dockerfile
-# Earthfile
+`./Earthfile`
 
+```Dockerfile
 FROM golang:1.15-alpine3.13
 WORKDIR /go-example
 
@@ -29,10 +29,23 @@ docker:
     ENTRYPOINT ["/go-example/go-example"]
     SAVE IMAGE go-example:latest
 ```
-{% sample lang="JavaScript" %}
-```Dockerfile
-# Earthfile
 
+{% hint style='info' %}
+##### Note
+
+To copy these files locally run
+
+```bash
+mkdir tutorial
+cd tutorial
+earthly --artifact github.com/earthly/earthly/examples/tutorial/go:main+part4/part4 ./
+```
+{% endhint %}
+
+{% sample lang="JavaScript" %}
+`./Earthfile`
+
+```Dockerfile
 FROM node:13.10.1-alpine3.11
 WORKDIR /js-example
 
@@ -56,10 +69,23 @@ docker:
     ENTRYPOINT ["node", "./dist/index.js"]
     SAVE IMAGE js-example:latest
 ```
-{% sample lang="Java" %}
-```Dockerfile
-# Earthfile
 
+{% hint style='info' %}
+##### Note
+
+To copy these files locally run
+
+```bash
+mkdir tutorial
+cd tutorial
+earthly --artifact github.com/earthly/earthly/examples/tutorial/js:main+part4/part4 ./
+```
+{% endhint %}
+
+{% sample lang="Java" %}
+`./Earthfile`
+
+```Dockerfile
 FROM openjdk:8-jdk-alpine
 RUN apk add --update --no-cache gradle
 WORKDIR /java-example
@@ -81,9 +107,24 @@ docker:
     ENTRYPOINT ["/java-example/bin/java-example"]
     SAVE IMAGE java-example:latest
 ```
+
+{% hint style='info' %}
+##### Note
+
+To copy these files locally run
+
+```bash
+mkdir tutorial
+cd tutorial
+earthly --artifact github.com/earthly/earthly/examples/tutorial/java:main+part4/part4 ./
+```
+{% endhint %}
+
 {% sample lang="Python" %}
-```Docker
-# EarthFile
+
+`./Earthfile`
+
+```Dockerfile
 FROM python:3
 WORKDIR /code
 
@@ -91,8 +132,6 @@ build:
     RUN pip install wheel
     COPY requirements.txt ./
     RUN pip wheel -r requirements.txt --wheel-dir=wheels
-
-    #save wheels before copy source, for cache efficiency 
     SAVE ARTIFACT wheels /wheels
 
     COPY src src
@@ -106,6 +145,18 @@ docker:
     ENTRYPOINT ["python3", "./src/hello.py"]
     SAVE IMAGE python-example:latest
 ```
+
+{% hint style='info' %}
+##### Note
+
+To copy these files locally run
+
+```bash
+mkdir tutorial
+cd tutorial
+earthly --artifact github.com/earthly/earthly/examples/tutorial/python:main+part4/part4 ./
+```
+{% endhint %}
 {% endmethod %}
 
 For a primer into Dockerfile layer caching see [this article](https://pythonspeed.com/articles/docker-caching-model/). The same principles apply to Earthfiles.

@@ -5,9 +5,10 @@ Let's imagine now that in our simple app, we now want to add a programming langu
 
 {% method %}
 {% sample lang="Go" %}
-```go.mod
-// go.mod
 
+`./go.mod`
+
+```go.mod
 module github.com/earthly/earthly/examples/go
 
 go 1.13
@@ -17,9 +18,9 @@ require github.com/sirupsen/logrus v1.5.0
 
 The code of the app might look like this
 
-```go
-// main.go
+`./main.go`
 
+```go
 package main
 
 import "github.com/sirupsen/logrus"
@@ -31,9 +32,9 @@ func main() {
 
 The build then might become
 
-```Dockerfile
-# Earthfile
+`./Earthfile`
 
+```Dockerfile
 FROM golang:1.15-alpine3.13
 WORKDIR /go-example
 
@@ -48,10 +49,23 @@ docker:
     ENTRYPOINT ["/go-example/go-example"]
     SAVE IMAGE go-example:latest
 ```
-{% sample lang="JavaScript" %}
-```json
-// package.json
 
+{% hint style='info' %}
+##### Note
+
+To copy these files locally run
+
+```bash
+mkdir tutorial
+cd tutorial
+earthly --artifact github.com/earthly/earthly/examples/tutorial/go:main+part3/part3 ./
+```
+{% endhint %}
+
+{% sample lang="JavaScript" %}
+`package.json`
+
+```json
 {
   "name": "example-js",
   "version": "0.0.1",
@@ -74,9 +88,9 @@ docker:
 
 The code of the app might look like this
 
-```js
-// src/index.js
+`./src/index.js`
 
+```js
 function component() {
     const element = document.createElement('div');
     element.innerHTML = "hello world"
@@ -86,8 +100,9 @@ function component() {
 document.body.appendChild(component());
 ```
 
+`./dist/index.html`
+
 ```html
-<!-- dist/index.html -->
 
 <!doctype html>
 <html>
@@ -105,9 +120,9 @@ document.body.appendChild(component());
 
 The build then might become
 
-```Dockerfile
-# Earthfile
+`./Earthfile`
 
+```Dockerfile
 FROM node:13.10.1-alpine3.11
 WORKDIR /js-example
 
@@ -126,10 +141,24 @@ docker:
     ENTRYPOINT ["node", "./dist/index.js"]
     SAVE IMAGE js-example:latest
 ```
-{% sample lang="Java" %}
-```groovy
-// build.gradle
 
+{% hint style='info' %}
+##### Note
+
+To copy these files locally run
+
+```bash
+mkdir tutorial
+cd tutorial
+earthly --artifact github.com/earthly/earthly/examples/tutorial/js:main+part3/part3 ./
+```
+{% endhint %}
+
+{% sample lang="Java" %}
+
+`./build.gradle`
+
+```groovy
 apply plugin: 'java'
 apply plugin: 'application'
 
@@ -155,9 +184,9 @@ dependencies {
 
 The code of the app might look like this
 
-```java
-// src/main/java/hello/HelloWorld.java
+`./src/main/java/hello/HelloWorld.java`
 
+```java
 package hello;
 
 import org.joda.time.LocalTime;
@@ -172,9 +201,9 @@ public class HelloWorld {
 
 The Earthfile file would not change
 
-```Dockerfile
-# Earthfile
+`./Earthfile`
 
+```Dockerfile
 FROM openjdk:8-jdk-alpine
 RUN apk add --update --no-cache gradle
 WORKDIR /java-example
@@ -193,16 +222,30 @@ docker:
     ENTRYPOINT ["/java-example/bin/java-example"]
     SAVE IMAGE java-example:latest
 ```
-{% sample lang="Python" %}
-```
-// Requirements.txt
 
+{% hint style='info' %}
+##### Note
+
+To copy these files locally run
+
+```bash
+mkdir tutorial
+cd tutorial
+earthly --artifact github.com/earthly/earthly/examples/tutorial/java:main+part3/part3 ./
+```
+{% endhint %}
+
+{% sample lang="Python" %}
+`./Requirements.txt`
+
+```
 Markdown==3.2.2
 ```
 The code of the app would now look like this
-```python
-# src/hello.py
 
+`./src/hello.py`
+
+```python
 from markdown import markdown
 
 def hello():
@@ -210,15 +253,16 @@ def hello():
 
 print(hello())
 ```
-The build might then become as follows.  
-```Docker
-# EarthFile
 
+The build might then become as follows.
+
+`./Earthfile`
+
+```Dockerfile
 FROM python:3
 WORKDIR /code
 
 build:
-    # Use Python Wheels to produce package files into /wheels
     RUN pip install wheel
     COPY requirements.txt ./
     RUN pip wheel -r requirements.txt --wheel-dir=wheels
@@ -234,6 +278,19 @@ docker:
     ENTRYPOINT ["python3", "./src/hello.py"]
     SAVE IMAGE python-example:latest
 ```
+
+{% hint style='info' %}
+##### Note
+
+To copy these files locally run
+
+```bash
+mkdir tutorial
+cd tutorial
+earthly --artifact github.com/earthly/earthly/examples/tutorial/python:main+part3/part3 ./
+```
+{% endhint %}
+
 {% endmethod %}
 
 However, as we build this new setup and make changes to the main source code, we notice that the dependencies are downloaded every single time we change the source code. While the build is not necessarily incorrect, it is inefficient for proper development speed.
