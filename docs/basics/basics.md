@@ -6,11 +6,10 @@ This tutorial will walk you through a basic example of using Earthly.
 
 * Introduction <-- You are here.
 * [Part 1: A simple Earthfile](./part-1-a-simple-earthfile.md)
-* [Part 2: Executing a build](./part-2-executing-a-build.md)
-* [Part 3: Detailed explanation](./part-3-detailed-explanation.md)
-* [Part 4: Adding dependencies in the mix](./part-4-adding-dependencies-in-the-mix.md)
-* [Part 5: Efficient caching of dependencies](./part-5-efficient-caching-of-dependencies.md)
-* [Part 6: Reduce code duplication](./part-6-reduce-code-duplication.md)
+* [Part 2: Detailed explanation](./part-2-detailed-explanation.md)
+* [Part 3: Adding dependencies in the mix](./part-3-adding-dependencies-in-the-mix.md)
+* [Part 4: Efficient caching of dependencies](./part-4-efficient-caching-of-dependencies.md)
+* [Part 5: Reduce code duplication](./part-5-reduce-code-duplication.md)
 * [Final words](./final-words.md)
 
 ## Installation
