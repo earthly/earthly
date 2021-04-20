@@ -38,6 +38,10 @@ func main() {
 }
 ```
 
+
+{% hint style='info' %}
+##### Note
+
 To copy these examples locally run:
 
 ```bash
@@ -45,6 +49,7 @@ mkdir tutorial
 cd tutorial
 earthly --artifact github.com/earthly/earthly/examples/tutorial/go:main+part1/part1 ./
 ```
+{% endhint %}
 
 {% sample lang="JavaScript" %}
 Here is a sample Earthfile of a JS app
@@ -77,11 +82,17 @@ console.log("hello world");
 
 To copy these examples locally run:
 
+{% hint style='info' %}
+##### Note
+
+To copy these examples locally run:
+
 ```bash
 mkdir tutorial
 cd tutorial
 earthly --artifact github.com/earthly/earthly/examples/tutorial/js:main+part1/part1 ./
 ```
+{% endhint %}
 
 {% sample lang="Java" %}
 Here is a sample Earthfile of a Java app
@@ -122,6 +133,9 @@ public class HelloWorld {
 }
 ```
 
+{% hint style='info' %}
+##### Note
+
 To copy these examples locally run:
 
 ```bash
@@ -129,6 +143,7 @@ mkdir tutorial
 cd tutorial
 earthly --artifact github.com/earthly/earthly/examples/tutorial/java:main+part1/part1 ./
 ```
+{% endhint %}
 
 {% sample lang="Python" %}
 Here is a sample Earthfile of a Python app
@@ -158,6 +173,9 @@ The code of the app might look like this
 print("hello world")
 ```
 
+{% hint style='info' %}
+##### Note
+
 To copy these examples locally run:
 
 ```bash
@@ -165,6 +183,8 @@ mkdir tutorial
 cd tutorial
 earthly --artifact github.com/earthly/earthly/examples/tutorial/python:main+part1/part1 ./
 ```
+{% endhint %}
+
 {% endmethod %}
 
 You will notice that the recipes look very much like Dockerfiles. This is an intentional design decision. Existing Dockerfiles can be ported to earthfiles by copy-pasting them over and then tweaking them slightly. Compared to Dockerfile syntax, some commands are new (like `SAVE ARTIFACT`), others have additional semantics (like `COPY +target/some-artifact`) and other semantics have been removed (like `FROM ... AS ...` and `COPY --from`).
@@ -213,14 +233,6 @@ docker run --rm java-example:latest
 docker run --rm python-example:latest
 ```
 {% endmethod %}
-
-{% hint style='info' %}
-##### Note
-
-Targets have a particular referencing convention which helps Earthly to identify which recipe to execute. In the simplest form, targets are referenced by `+<target-name>`.  For example, `+build`. For more details see the [target referencing page](../guides/target-ref.md).
-{% endhint %}
-
-<img src="../guides/img/ref-infographic.png" alt="Target and artifact reference syntax" title="Reference targets using +" width="500px" />
 
 ## Continue tutorial
 

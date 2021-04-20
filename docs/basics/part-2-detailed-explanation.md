@@ -286,6 +286,14 @@ if the entire build succeeds.
 ```
 {% endmethod %}
 
+{% hint style='info' %}
+##### Note
+
+Targets have a particular referencing convention which helps Earthly to identify which recipe to execute. In the simplest form, targets are referenced by `+<target-name>`.  For example, `+build`. For more details see the [target referencing page](../guides/target-ref.md).
+{% endhint %}
+
+<img src="../guides/img/ref-infographic.png" alt="Target and artifact reference syntax" title="Reference targets using +" width="500px" />
+
 ## Continue tutorial
 
 👉 [Part 3: Adding dependencies in the mix](./part-3-adding-dependencies-in-the-mix.md)
