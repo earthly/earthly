@@ -198,13 +198,13 @@ jobs:
       - name: Build latest earthly using released earthly
         run: earthly --use-inline-cache +for-linux
       - name: Build tutorial part 1
-        run: ./build/linux/amd64/earthly --ci -P ./examples/tutorial+test-part1 --earthly=./build/linux/amd64/earthly
+        run: ./build/linux/amd64/earthly -P ./examples/tutorial+test-part1 --earthly=./build/linux/amd64/earthly
       - name: Build tutorial part 3
-        run: ./build/linux/amd64/earthly --ci -P ./examples/tutorial+test-part3 --earthly=./build/linux/amd64/earthly
+        run: ./build/linux/amd64/earthly -P ./examples/tutorial+test-part3 --earthly=./build/linux/amd64/earthly
       - name: Build tutorial part 4
-        run: ./build/linux/amd64/earthly --ci -P ./examples/tutorial+test-part4 --earthly=./build/linux/amd64/earthly
+        run: ./build/linux/amd64/earthly -P ./examples/tutorial+test-part4 --earthly=./build/linux/amd64/earthly
       - name: Build tutorial part 5
-        run: ./build/linux/amd64/earthly --ci -P ./examples/tutorial+test-part5 --earthly=./build/linux/amd64/earthly
+        run: ./build/linux/amd64/earthly -P ./examples/tutorial+test-part5 --earthly=./build/linux/amd64/earthly
       - name: Buildkit logs (runs on failure)
         run: docker logs earthly-buildkitd
         if: ${{ failure() }}
