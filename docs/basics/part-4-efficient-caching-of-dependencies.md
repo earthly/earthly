@@ -27,11 +27,15 @@ docker:
     SAVE IMAGE go-example:latest
 ```
 
+{% hint style='info' %}
+##### Note
+
 To copy [these files](https://github.com/earthly/earthly/tree/main/examples/tutorial/go/part4) locally run
 
 ```bash
 earthly --artifact github.com/earthly/earthly/examples/tutorial/go:main+part4/part4 ./part4
 ```
+{% endhint %}
 
 {% sample lang="JavaScript" %}
 `./Earthfile`
@@ -59,11 +63,15 @@ docker:
     SAVE IMAGE js-example:latest
 ```
 
+{% hint style='info' %}
+##### Note
+
 To copy [these files](https://github.com/earthly/earthly/tree/main/examples/tutorial/js/part4) locally run
 
 ```bash
 earthly --artifact github.com/earthly/earthly/examples/tutorial/js:main+part4/part4 ./part4
 ```
+{% endhint %}
 
 {% sample lang="Java" %}
 `./Earthfile`
@@ -91,11 +99,15 @@ docker:
     SAVE IMAGE java-example:latest
 ```
 
+{% hint style='info' %}
+##### Note
+
 To copy [these files](https://github.com/earthly/earthly/tree/main/examples/tutorial/java/part4) locally run
 
 ```bash
 earthly --artifact github.com/earthly/earthly/examples/tutorial/java:main+part4/part4 ./part4
 ```
+{% endhint %}
 
 {% sample lang="Python" %}
 
@@ -124,11 +136,15 @@ docker:
     SAVE IMAGE python-example:latest
 ```
 
+{% hint style='info' %}
+##### Note
+
 To copy [these files](https://github.com/earthly/earthly/tree/main/examples/tutorial/python/part4) locally run
 
 ```bash
 earthly --artifact github.com/earthly/earthly/examples/tutorial/python:main+part4/part4 ./part4
 ```
+{% endhint %}
 {% endmethod %}
 
 For a primer into Dockerfile layer caching see [this article](https://pythonspeed.com/articles/docker-caching-model/). The same principles apply to Earthfiles.
