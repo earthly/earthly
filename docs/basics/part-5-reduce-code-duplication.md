@@ -15,6 +15,7 @@ WORKDIR /go-example
 deps:
     COPY go.mod go.sum ./
 	RUN go mod download
+    # Output these back in case go mod download changes them.
 	SAVE ARTIFACT go.mod AS LOCAL go.mod
 	SAVE ARTIFACT go.sum AS LOCAL go.sum
 
@@ -51,13 +52,14 @@ deps:
     COPY package.json ./
     COPY package-lock.json ./
     RUN npm install
+    # Output these back in case npm install changes them.
     SAVE ARTIFACT package.json AS LOCAL ./package.json
     SAVE ARTIFACT package-lock.json AS LOCAL ./package-lock.json
 
 build:
     FROM +deps
     COPY src src
-    COPY dist dist
+    RUN mkdir -p ./dist && cp ./src/index.html ./dist/
     RUN npx webpack
     SAVE ARTIFACT dist /dist AS LOCAL dist
 
@@ -127,16 +129,16 @@ deps:
     RUN pip install wheel
     COPY requirements.txt ./
     RUN pip wheel -r requirements.txt --wheel-dir=wheels
+    SAVE ARTIFACT wheels /wheels
 
 build:
     FROM +deps
     COPY src src
     SAVE ARTIFACT src /src
-    SAVE ARTIFACT wheels /wheels
 
 docker:
+    COPY +deps/wheels wheels
     COPY +build/src src
-    COPY +build/wheels wheels
     COPY requirements.txt ./
     RUN pip install --no-index --find-links=wheels -r requirements.txt
     ENTRYPOINT ["python3", "./src/hello.py"]

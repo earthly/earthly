@@ -63,7 +63,7 @@ WORKDIR /js-example
 build:
     # In JS, there's nothing to build in this simple form.
     # The source is also the artifact used in production.
-    COPY index.js .
+    COPY src/index.js .
     SAVE ARTIFACT index.js /dist/index.js AS LOCAL ./dist/index.js
 
 docker:
@@ -74,7 +74,7 @@ docker:
 
 The code of the app might look like this
 
-`./index.js`
+`./src/index.js`
 
 ```js
 console.log("hello world");
@@ -131,6 +131,23 @@ public class HelloWorld {
         System.out.println("hello world");
     }
 }
+```
+
+`./build.gradle`
+
+```groovy
+apply plugin: 'java'
+apply plugin: 'application'
+
+mainClassName = 'hello.HelloWorld'
+
+jar {
+    baseName = 'hello-world'
+    version = '0.0.1'
+}
+
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
 ```
 
 {% hint style='info' %}

@@ -1,0 +1,20 @@
+FROM python:3
+WORKDIR /code
+
+build:
+    # Download deps before copying code.
+    RUN pip install wheel
+    COPY requirements.txt ./
+    RUN pip wheel -r requirements.txt --wheel-dir=wheels
+    SAVE ARTIFACT wheels /wheels
+    # Copy and build code.
+    COPY src src
+    SAVE ARTIFACT src /src
+
+docker:
+    COPY +build/wheels wheels
+    COPY +build/src src
+    COPY requirements.txt ./
+    RUN pip install --no-index --find-links=wheels -r requirements.txt
+    ENTRYPOINT ["python3", "./src/hello.py"]
+    SAVE IMAGE python-example:latest

@@ -97,7 +97,7 @@ build:
 Copy `index.js` from the build context (the directory where the Earthfile resides) to the build environment (the containerized environment where Earthly commands are ran in).
 
 ```
-    COPY index.js .
+    COPY src/index.js .
 ```
 
 Save the `index.js` in an artifact dir called `dist` (it can be later

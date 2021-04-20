@@ -16,9 +16,6 @@ build:
     # Download deps before copying code.
     COPY go.mod go.sum .
     RUN go mod download
-    # Also save these back to host, in case go.sum changes.
-    SAVE ARTIFACT go.mod AS LOCAL go.mod
-	SAVE ARTIFACT go.sum AS LOCAL go.sum
     # Copy and build code.
     COPY main.go .
     RUN go build -o build/go-example main.go
@@ -51,12 +48,9 @@ build:
     # Download deps before copying code.
     COPY package.json package-lock.json ./
     RUN npm install
-    # Also save these back to host, in case package-lock.json changes.
-    SAVE ARTIFACT package.json AS LOCAL ./package.json
-    SAVE ARTIFACT package-lock.json AS LOCAL ./package-lock.json
     # Copy and build code.
     COPY src src
-    COPY dist dist
+    RUN mkdir -p ./dist && cp ./src/index.html ./dist/
     RUN npx webpack
     SAVE ARTIFACT dist /dist AS LOCAL ./dist
 
@@ -64,7 +58,8 @@ docker:
     COPY package.json package-lock.json ./
     RUN npm install
     COPY +build/dist dist
-    ENTRYPOINT ["node", "./dist/index.js"]
+    EXPOSE 8080
+    ENTRYPOINT ["/js-example/node_modules/http-server/bin/http-server", "./dist"]
     SAVE IMAGE js-example:latest
 ```
 
@@ -123,17 +118,18 @@ FROM python:3
 WORKDIR /code
 
 build:
+    # Download deps before copying code.
     RUN pip install wheel
     COPY requirements.txt ./
     RUN pip wheel -r requirements.txt --wheel-dir=wheels
     SAVE ARTIFACT wheels /wheels
-
+    # Copy and build code.
     COPY src src
     SAVE ARTIFACT src /src
 
 docker:
-    COPY +build/src src
     COPY +build/wheels wheels
+    COPY +build/src src
     COPY requirements.txt ./
     RUN pip install --no-index --find-links=wheels -r requirements.txt
     ENTRYPOINT ["python3", "./src/hello.py"]

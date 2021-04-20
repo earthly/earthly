@@ -5,9 +5,6 @@ build:
     # Download deps before copying code.
     COPY go.mod go.sum .
     RUN go mod download
-    # Also save these back to host, in case go.sum changes.
-    SAVE ARTIFACT go.mod AS LOCAL go.mod
-	SAVE ARTIFACT go.sum AS LOCAL go.sum
     # Copy and build code.
     COPY main.go .
     RUN go build -o build/go-example main.go

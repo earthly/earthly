@@ -108,10 +108,9 @@ function component() {
 document.body.appendChild(component());
 ```
 
-`./dist/index.html`
+`./src/index.html`
 
 ```html
-
 <!doctype html>
 <html>
 
@@ -137,7 +136,7 @@ WORKDIR /js-example
 build:
     COPY package.json package-lock.json ./
     COPY src src
-    COPY dist dist
+    RUN mkdir -p ./dist && cp ./src/index.html ./dist/
     RUN npm install
     RUN npx webpack
     SAVE ARTIFACT dist /dist AS LOCAL ./dist
@@ -146,7 +145,8 @@ docker:
     COPY package.json package-lock.json ./
     RUN npm install
     COPY +build/dist dist
-    ENTRYPOINT ["node", "./dist/index.js"]
+    EXPOSE 8080
+    ENTRYPOINT ["/js-example/node_modules/http-server/bin/http-server", "./dist"]
     SAVE IMAGE js-example:latest
 ```
 
@@ -240,7 +240,7 @@ earthly --artifact github.com/earthly/earthly/examples/tutorial/java:main+part3/
 {% endhint %}
 
 {% sample lang="Python" %}
-`./Requirements.txt`
+`./requirements.txt`
 
 ```
 Markdown==3.2.2
@@ -253,7 +253,7 @@ The code of the app would now look like this
 from markdown import markdown
 
 def hello():
-    return markdown("Hello *Earthly*")
+    return markdown("## hello world")
 
 print(hello())
 ```
