@@ -1024,21 +1024,21 @@ func (c *Converter) Import(ctx context.Context, importStr, as string, isGlobal, 
 	return c.varCollection.Imports().Add(importStr, as, isGlobal, currentlyPrivileged, allowPrivilegedFlag)
 }
 
-// ResolveReference resolves a reference's build context given the current state: relativity to the Earthfile, imports etc. NOTE: this function is used to support UDCs (user defined commands), and does not make use of the allowPrivileged values returned by Deref.
-func (c *Converter) ResolveReference(ctx context.Context, ref domain.Reference) (*buildcontext.Data, error) {
-	derefed, _, _, err := c.varCollection.Imports().Deref(ref)
+// ResolveReference resolves a reference's build context given the current state: relativity to the Earthfile, imports etc.
+func (c *Converter) ResolveReference(ctx context.Context, ref domain.Reference) (bc *buildcontext.Data, allowPrivileged, allowPrivilegedSet bool, err error) {
+	derefed, allowPrivileged, allowPrivilegedSet, err := c.varCollection.Imports().Deref(ref)
 	if err != nil {
-		return nil, err
+		return nil, false, false, err
 	}
 	refToResolve, err := c.joinRefs(derefed)
 	if err != nil {
-		return nil, err
+		return nil, false, false, err
 	}
-	bc, err := c.opt.Resolver.Resolve(ctx, c.opt.GwClient, refToResolve)
+	bc, err = c.opt.Resolver.Resolve(ctx, c.opt.GwClient, refToResolve)
 	if err != nil {
-		return nil, err
+		return nil, false, false, err
 	}
-	return bc, nil
+	return bc, allowPrivileged, allowPrivilegedSet, nil
 }
 
 // EnterScope introduces a new variable scope. Gloabls and imports are fetched from baseTarget.

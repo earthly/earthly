@@ -11,6 +11,10 @@ test-relative-import:
     COPY subdir+subdirprivileged/proc-status .
     RUN cat proc-status | grep CapEff | grep 0000003fffffffff
 
+test-remote-cmd:
+    DO test-privileged+PRIV
+
 test:
     BUILD +test-remote-import
     BUILD +test-relative-import
+    BUILD +test-remote-cmd
