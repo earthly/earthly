@@ -65,7 +65,7 @@ func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Da
 		Visited: opt.Visited,
 	}
 	sts.AddOverridingVarsAsBuildArgInputs(opt.OverridingVars)
-	vc := variables.NewCollection(
+	vc := variables.NewCollection(opt.Console,
 		target, llbutil.PlatformWithDefault(opt.Platform), bc.GitMetadata, opt.OverridingVars,
 		opt.GlobalImports)
 	return &Converter{
@@ -1016,29 +1016,29 @@ func (c *Converter) Healthcheck(ctx context.Context, isNone bool, cmdArgs []stri
 }
 
 // Import applies the IMPORT command.
-func (c *Converter) Import(ctx context.Context, importStr, as string, isGlobal bool) error {
+func (c *Converter) Import(ctx context.Context, importStr, as string, isGlobal, currentlyPrivileged, allowPrivilegedFlag bool) error {
 	err := c.checkAllowed("IMPORT")
 	if err != nil {
 		return err
 	}
-	return c.varCollection.Imports().Add(importStr, as, isGlobal)
+	return c.varCollection.Imports().Add(importStr, as, isGlobal, currentlyPrivileged, allowPrivilegedFlag)
 }
 
 // ResolveReference resolves a reference's build context given the current state: relativity to the Earthfile, imports etc.
-func (c *Converter) ResolveReference(ctx context.Context, ref domain.Reference) (*buildcontext.Data, error) {
-	derefed, err := c.varCollection.Imports().Deref(ref)
+func (c *Converter) ResolveReference(ctx context.Context, ref domain.Reference) (bc *buildcontext.Data, allowPrivileged, allowPrivilegedSet bool, err error) {
+	derefed, allowPrivileged, allowPrivilegedSet, err := c.varCollection.Imports().Deref(ref)
 	if err != nil {
-		return nil, err
+		return nil, false, false, err
 	}
 	refToResolve, err := c.joinRefs(derefed)
 	if err != nil {
-		return nil, err
+		return nil, false, false, err
 	}
-	bc, err := c.opt.Resolver.Resolve(ctx, c.opt.GwClient, refToResolve)
+	bc, err = c.opt.Resolver.Resolve(ctx, c.opt.GwClient, refToResolve)
 	if err != nil {
-		return nil, err
+		return nil, false, false, err
 	}
-	return bc, nil
+	return bc, allowPrivileged, allowPrivilegedSet, nil
 }
 
 // EnterScope introduces a new variable scope. Gloabls and imports are fetched from baseTarget.
@@ -1095,9 +1095,12 @@ func (c *Converter) prepBuildTarget(ctx context.Context, fullTargetName string, 
 	if err != nil {
 		return domain.Target{}, ConvertOpt{}, false, errors.Wrapf(err, "earthly target parse %s", fullTargetName)
 	}
-	derefedTarget, err := c.varCollection.Imports().Deref(relTarget)
+	derefedTarget, allowPrivilegedImport, isImport, err := c.varCollection.Imports().Deref(relTarget)
 	if err != nil {
 		return domain.Target{}, ConvertOpt{}, false, err
+	}
+	if isImport {
+		allowPrivileged = allowPrivileged && allowPrivilegedImport
 	}
 	targetRef, err := c.joinRefs(derefedTarget)
 	if err != nil {

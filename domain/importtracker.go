@@ -4,42 +4,52 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/earthly/earthly/conslogging"
+
 	"github.com/pkg/errors"
 )
 
+// ImportTrackerVal is used to resolve imports
+type ImportTrackerVal struct {
+	fullPath        string
+	allowPrivileged bool
+}
+
 // ImportTracker is a resolver which also takes into account imports.
 type ImportTracker struct {
-	local  map[string]string // local name -> import full path
-	global map[string]string // local name -> import full path
+	local   map[string]ImportTrackerVal // local name -> import details
+	global  map[string]ImportTrackerVal // local name -> import details
+	console conslogging.ConsoleLogger
 }
 
 // NewImportTracker creates a new import resolver.
-func NewImportTracker(global map[string]string) *ImportTracker {
-	gi := make(map[string]string)
+func NewImportTracker(console conslogging.ConsoleLogger, global map[string]ImportTrackerVal) *ImportTracker {
+	gi := make(map[string]ImportTrackerVal)
 	for k, v := range global {
 		gi[k] = v
 	}
 	return &ImportTracker{
-		local:  make(map[string]string),
-		global: gi,
+		local:   make(map[string]ImportTrackerVal),
+		global:  gi,
+		console: console,
 	}
 }
 
 // Global returns the internal map of global imports.
-func (ir *ImportTracker) Global() map[string]string {
+func (ir *ImportTracker) Global() map[string]ImportTrackerVal {
 	return ir.global
 }
 
 // SetGlobal sets the global import map.
-func (ir *ImportTracker) SetGlobal(gi map[string]string) {
-	ir.global = make(map[string]string)
+func (ir *ImportTracker) SetGlobal(gi map[string]ImportTrackerVal) {
+	ir.global = make(map[string]ImportTrackerVal)
 	for k, v := range gi {
 		ir.global[k] = v
 	}
 }
 
 // Add adds an import to the resolver.
-func (ir *ImportTracker) Add(importStr string, as string, global bool) error {
+func (ir *ImportTracker) Add(importStr string, as string, global, currentlyPrivileged, allowPrivilegedFlag bool) error {
 	if importStr == "" {
 		return errors.New("IMPORTing empty string not supported")
 	}
@@ -50,12 +60,17 @@ func (ir *ImportTracker) Add(importStr string, as string, global bool) error {
 	}
 	importStr = parsedImport.ProjectCanonical() // normalize
 	var path string
+	allowPrivileged := currentlyPrivileged
 	if parsedImport.IsImportReference() {
 		return errors.Errorf("IMPORT %s not supported", importStr)
 	} else if parsedImport.IsRemote() {
 		path = parsedImport.GetGitURL()
+		allowPrivileged = allowPrivileged && allowPrivilegedFlag
 	} else if parsedImport.IsLocalExternal() {
 		path = parsedImport.GetLocalPath()
+		if allowPrivilegedFlag {
+			ir.console.Printf("the --allow-privileged flag has no effect when referencing a local target\n")
+		}
 	} else {
 		return errors.Errorf("IMPORT %s not supported", importStr)
 	}
@@ -82,34 +97,40 @@ func (ir *ImportTracker) Add(importStr string, as string, global bool) error {
 		if exists {
 			return errors.Errorf("import ref %s already exists in this scope", as)
 		}
-		ir.global[as] = importStr
+		ir.global[as] = ImportTrackerVal{
+			fullPath:        importStr,
+			allowPrivileged: allowPrivileged,
+		}
 	} else {
 		_, exists := ir.local[as]
 		if exists {
 			return errors.Errorf("import ref %s already exists in this scope", as)
 		}
-		ir.local[as] = importStr
+		ir.local[as] = ImportTrackerVal{
+			fullPath:        importStr,
+			allowPrivileged: allowPrivileged,
+		}
 	}
 	return nil
 }
 
 // Deref resolves the import (if any) and returns a reference with the full path.
-func (ir *ImportTracker) Deref(ref Reference) (Reference, error) {
+func (ir *ImportTracker) Deref(ref Reference) (resolvedRef Reference, allowPrivileged bool, allowPrivilegedSet bool, err error) {
 	if ref.IsImportReference() {
-		fullPath, ok := ir.local[ref.GetImportRef()]
+		resolvedImport, ok := ir.local[ref.GetImportRef()]
 		if !ok {
-			fullPath, ok = ir.global[ref.GetImportRef()]
+			resolvedImport, ok = ir.global[ref.GetImportRef()]
 			if !ok {
-				return nil, errors.Errorf("import reference %s could not be resolved", ref.GetImportRef())
+				return nil, false, false, errors.Errorf("import reference %s could not be resolved", ref.GetImportRef())
 			}
 		}
 		var resolvedRef Reference
-		resolvedRefStr := fmt.Sprintf("%s+%s", fullPath, ref.GetName())
+		resolvedRefStr := fmt.Sprintf("%s+%s", resolvedImport.fullPath, ref.GetName())
 		switch ref.(type) {
 		case Target:
 			ref2, err := ParseTarget(resolvedRefStr)
 			if err != nil {
-				return nil, err
+				return nil, false, false, err
 			}
 			resolvedRef = Target{
 				GitURL:    ref2.GitURL,
@@ -121,7 +142,7 @@ func (ir *ImportTracker) Deref(ref Reference) (Reference, error) {
 		case Command:
 			ref2, err := ParseCommand(resolvedRefStr)
 			if err != nil {
-				return nil, err
+				return nil, false, false, err
 			}
 			resolvedRef = Command{
 				GitURL:    ref2.GitURL,
@@ -131,9 +152,9 @@ func (ir *ImportTracker) Deref(ref Reference) (Reference, error) {
 				ImportRef: ref.GetImportRef(), // set import ref too
 			}
 		default:
-			return nil, errors.New("ref resolve not supported for this type")
+			return nil, false, false, errors.New("ref resolve not supported for this type")
 		}
-		return resolvedRef, nil
+		return resolvedRef, resolvedImport.allowPrivileged, true, nil
 	}
-	return ref, nil
+	return ref, false, false, nil
 }

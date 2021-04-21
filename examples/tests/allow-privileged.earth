@@ -59,6 +59,9 @@ allow-privileged-in-remote-repo-triggered-by-copy-privileged:
 allow-privileged-in-remote-repo-triggered-by-build-privileged:
     BUILD --allow-privileged github.com/earthly/test-privileged:main+privileged
 
+allow-privileged-in-remote-repo-triggered-by-cmd-privileged:
+    DO --allow-privileged github.com/earthly/test-privileged:main+PRIV
+
 
 allow-all:
     # TODO there's a bug that's preventing using FROM in combination with locally
@@ -68,3 +71,4 @@ allow-all:
     BUILD +allow-privileged-in-remote-repo-triggered-by-from-privileged
     BUILD +allow-privileged-in-remote-repo-triggered-by-copy-privileged
     BUILD +allow-privileged-in-remote-repo-triggered-by-build-privileged
+    BUILD +allow-privileged-in-remote-repo-triggered-by-cmd-privileged

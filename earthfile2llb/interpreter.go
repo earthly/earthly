@@ -14,6 +14,7 @@ import (
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/llbutil"
 	"github.com/earthly/earthly/variables"
+
 	specs "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
 	"golang.org/x/sync/errgroup"
@@ -429,7 +430,7 @@ func (i *Interpreter) getAllowPrivileged(depTarget domain.Target, allowPrivilege
 		return i.allowPrivileged && allowPrivileged, nil
 	}
 	if allowPrivileged {
-		i.console.Printf("the --allow-privileged flag has no effect when referencing a local or relative target\n")
+		i.console.Printf("the --allow-privileged flag has no effect when referencing a local target\n")
 	}
 	return i.allowPrivileged, nil
 }
@@ -1289,7 +1290,13 @@ func (i *Interpreter) handleUserCommand(ctx context.Context, cmd spec.Command) e
 }
 
 func (i *Interpreter) handleDo(ctx context.Context, cmd spec.Command) error {
-	cmdArgs := getArgsCopy(cmd)
+	fs := flag.NewFlagSet("DO", flag.ContinueOnError)
+	allowPrivilegedFlag := fs.Bool("allow-privileged", false, "Enable privileged mode")
+	err := fs.Parse(getArgsCopy(cmd))
+	if err != nil {
+		return i.wrapError(err, cmd.SourceLocation, "invalid DO arguments")
+	}
+	cmdArgs := fs.Args()
 	if len(cmdArgs) < 1 {
 		return i.errorf(cmd.SourceLocation, "invalid number of arguments for DO: %s", cmdArgs)
 	}
@@ -1305,22 +1312,41 @@ func (i *Interpreter) handleDo(ctx context.Context, cmd spec.Command) error {
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "unable to parse user command reference %s", ucName)
 	}
-	bc, err := i.converter.ResolveReference(ctx, relCommand)
+
+	allowPrivileged := i.allowPrivileged
+	if relCommand.IsRemote() {
+		allowPrivileged = i.allowPrivileged && *allowPrivilegedFlag
+	} else if *allowPrivilegedFlag {
+		i.console.Printf("the --allow-privileged flag has no effect when referencing a local target\n")
+	}
+
+	bc, resolvedAllowPrivileged, resolvedAllowPrivilegedSet, err := i.converter.ResolveReference(ctx, relCommand)
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "unable to resolve user command %s", ucName)
 	}
 	command := bc.Ref.(domain.Command)
+	if resolvedAllowPrivilegedSet {
+		allowPrivileged = allowPrivileged && resolvedAllowPrivileged
+	}
 
 	for _, uc := range bc.Earthfile.UserCommands {
 		if uc.Name == command.Command {
-			return i.handleDoUserCommand(ctx, command, relCommand, uc, cmd, parsedFlagArgs)
+			return i.handleDoUserCommand(ctx, command, relCommand, uc, cmd, parsedFlagArgs, allowPrivileged)
 		}
 	}
 	return i.errorf(cmd.SourceLocation, "user command %s not found", ucName)
 }
 
 func (i *Interpreter) handleImport(ctx context.Context, cmd spec.Command) error {
-	cmdArgs := getArgsCopy(cmd)
+	fs := flag.NewFlagSet("IMPORT", flag.ContinueOnError)
+	allowPrivilegedFlag := fs.Bool("allow-privileged", false, "Enable privileged mode")
+	err := fs.Parse(getArgsCopy(cmd))
+	if err != nil {
+		return i.wrapError(err, cmd.SourceLocation, "invalid IMPORT arguments")
+	}
+
+	cmdArgs := fs.Args()
+
 	if len(cmdArgs) != 1 && len(cmdArgs) != 3 {
 		return i.errorf(cmd.SourceLocation, "invalid number of arguments for IMPORT: %s", cmdArgs)
 	}
@@ -1333,7 +1359,7 @@ func (i *Interpreter) handleImport(ctx context.Context, cmd spec.Command) error 
 		as = i.expandArgs(cmdArgs[2], false)
 	}
 	isGlobal := (i.target.Target == "base")
-	err := i.converter.Import(ctx, importStr, as, isGlobal)
+	err = i.converter.Import(ctx, importStr, as, isGlobal, i.allowPrivileged, *allowPrivilegedFlag)
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "apply IMPORT")
 	}
@@ -1342,7 +1368,10 @@ func (i *Interpreter) handleImport(ctx context.Context, cmd spec.Command) error 
 
 // ----------------------------------------------------------------------------
 
-func (i *Interpreter) handleDoUserCommand(ctx context.Context, command domain.Command, relCommand domain.Command, uc spec.UserCommand, do spec.Command, buildArgs []string) error {
+func (i *Interpreter) handleDoUserCommand(ctx context.Context, command domain.Command, relCommand domain.Command, uc spec.UserCommand, do spec.Command, buildArgs []string, allowPrivileged bool) error {
+	if allowPrivileged && !i.allowPrivileged {
+		return i.errorf(uc.SourceLocation, "invalid privileged in COMMAND") // this shouldn't happen, but check just in case
+	}
 	if len(uc.Recipe) == 0 || uc.Recipe[0].Command.Name != "COMMAND" {
 		return i.errorf(uc.SourceLocation, "command recipes must start with COMMAND")
 	}
@@ -1352,10 +1381,12 @@ func (i *Interpreter) handleDoUserCommand(ctx context.Context, command domain.Co
 	scopeName := fmt.Sprintf(
 		"%s (%s line %d:%d)",
 		command.StringCanonical(), do.SourceLocation.File, do.SourceLocation.StartLine, do.SourceLocation.StartColumn)
-	err := i.converter.EnterScope(ctx, command, baseTarget(relCommand), i.allowPrivileged, scopeName, buildArgs)
+	err := i.converter.EnterScope(ctx, command, baseTarget(relCommand), allowPrivileged, scopeName, buildArgs)
 	if err != nil {
 		return i.wrapError(err, uc.SourceLocation, "enter scope")
 	}
+	prevAllowPrivileged := i.allowPrivileged
+	i.allowPrivileged = allowPrivileged
 	i.stack = i.converter.StackString()
 	err = i.handleBlock(ctx, uc.Recipe[1:])
 	if err != nil {
@@ -1366,6 +1397,7 @@ func (i *Interpreter) handleDoUserCommand(ctx context.Context, command domain.Co
 		return i.wrapError(err, uc.SourceLocation, "exit scope")
 	}
 	i.stack = i.converter.StackString()
+	i.allowPrivileged = prevAllowPrivileged
 	return nil
 }
 

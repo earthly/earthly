@@ -4,8 +4,10 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/earthly/earthly/conslogging"
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/gitutil"
+
 	dfShell "github.com/moby/buildkit/frontend/dockerfile/shell"
 	specs "github.com/opencontainers/image-spec/specs-go/v1"
 )
@@ -35,21 +37,24 @@ type Collection struct {
 
 	// A scope containing all scopes above, combined.
 	effectiveCache *Scope
+
+	console conslogging.ConsoleLogger
 }
 
 // NewCollection creates a new Collection to be used in the context of a target.
-func NewCollection(target domain.Target, platform specs.Platform, gitMeta *gitutil.GitMetadata, overridingVars *Scope, globalImports map[string]string) *Collection {
+func NewCollection(console conslogging.ConsoleLogger, target domain.Target, platform specs.Platform, gitMeta *gitutil.GitMetadata, overridingVars *Scope, globalImports map[string]domain.ImportTrackerVal) *Collection {
 	return &Collection{
 		builtin: BuiltinArgs(target, platform, gitMeta),
 		envs:    NewScope(),
 		stack: []*stackFrame{{
 			frameName:  target.StringCanonical(),
 			absRef:     target,
-			imports:    domain.NewImportTracker(globalImports),
+			imports:    domain.NewImportTracker(console, globalImports),
 			overriding: overridingVars,
 			args:       NewScope(),
 			globals:    NewScope(),
 		}},
+		console: console,
 	}
 }
 
@@ -157,11 +162,11 @@ func (c *Collection) Imports() *domain.ImportTracker {
 }
 
 // EnterFrame creates a new stack frame.
-func (c *Collection) EnterFrame(frameName string, absRef domain.Reference, overriding *Scope, globals *Scope, globalImports map[string]string) {
+func (c *Collection) EnterFrame(frameName string, absRef domain.Reference, overriding *Scope, globals *Scope, globalImports map[string]domain.ImportTrackerVal) {
 	c.stack = append(c.stack, &stackFrame{
 		frameName:  frameName,
 		absRef:     absRef,
-		imports:    domain.NewImportTracker(globalImports),
+		imports:    domain.NewImportTracker(c.console, globalImports),
 		overriding: overriding,
 		globals:    NewScope(),
 		args:       NewScope(),
