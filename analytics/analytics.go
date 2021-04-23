@@ -16,6 +16,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/earthly/earthly/cliutil"
 	"github.com/earthly/earthly/fileutil"
 	"github.com/earthly/earthly/gitutil"
 	"github.com/earthly/earthly/syncutil"
@@ -124,22 +125,13 @@ func getRepoHash() string {
 }
 
 func getInstallID() (string, error) {
-	homeDir, err := os.UserHomeDir()
+	earthlyDir, err := cliutil.GetEarthlyDir()
 	if err != nil {
-		var ok bool
-		homeDir, ok = os.LookupEnv("HOME")
-		if !ok {
-			return "", errors.Wrap(err, "failed to get user home dir")
-		}
+		return "", err
 	}
 
-	parent := filepath.Join(homeDir, ".earthly")
-	path := filepath.Join(parent, "install_id")
+	path := filepath.Join(earthlyDir, "install_id")
 	if !fileutil.FileExists(path) {
-		err := os.MkdirAll(parent, 0755)
-		if err != nil {
-			return "", errors.Wrapf(err, "failed to create dir %s", parent)
-		}
 		u, err := uuid.NewUUID()
 		if err != nil {
 			u, err = uuid.NewRandom()

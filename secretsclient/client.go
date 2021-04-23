@@ -15,6 +15,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/earthly/earthly/cliutil"
 	"github.com/earthly/earthly/fileutil"
 	"github.com/earthly/earthly/secretsclient/api"
 
@@ -870,16 +871,10 @@ func (c *client) WhoAmI() (string, string, bool, error) {
 func (c *client) getAuthTokenPath(create bool) (string, error) {
 	confDirPath := c.authTokenDir
 	if confDirPath == "" {
-		homeDir, err := os.UserHomeDir()
+		var err error
+		confDirPath, err = cliutil.GetEarthlyDir()
 		if err != nil {
-			return "", errors.Wrapf(err, "failed to get home dir")
-		}
-		confDirPath = filepath.Join(homeDir, ".earthly")
-		if !fileutil.DirExists(confDirPath) && create {
-			err := os.MkdirAll(confDirPath, 0755)
-			if err != nil {
-				return "", errors.Wrapf(err, "failed to create run directory %s", confDirPath)
-			}
+			return "", errors.Wrap(err, "cannot get .earthly dir")
 		}
 	}
 	tokenPath := filepath.Join(confDirPath, "auth.token")
