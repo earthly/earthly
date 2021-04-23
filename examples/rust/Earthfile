@@ -1,45 +1,32 @@
-FROM rust:1.49
-WORKDIR /example-rust
+FROM rust:1.51
+WORKDIR /rustexample
 
-plan:
-    RUN cargo install cargo-chef --version 0.1.11
-    
-    # Compute a lock-like file for our project
-    RUN cargo chef prepare --recipe-path recipe.json
-    SAVE ARTIFACT recipe.json recipe.json
+install-chef:
+   RUN cargo install --debug cargo-chef
 
-deps:
-    FROM +plan
+prepare-cache:
+    FROM +install-chef
+    COPY --dir src Cargo.lock Cargo.toml .
+    RUN cargo chef prepare
+    SAVE ARTIFACT recipe.json
 
-    COPY . .
-    COPY +plan/recipe.json .
-
-    RUN cargo chef cook --release --recipe-path recipe.json
-    SAVE ARTIFACT /usr/local/cargo cargo
-    SAVE ARTIFACT target target
+# Using cutoff-optimization to ensure cache hit (see examples/cutoff-optimization)
+build-cache:
+    FROM +install-chef
+    COPY +prepare-cache/recipe.json ./
+    RUN cargo chef cook
+    SAVE ARTIFACT target
+    SAVE ARTIFACT $CARGO_HOME cargo_home
 
 build:
-    FROM +deps
-
-    # Copy over the cached dependencies
-    COPY +deps/target .
-    COPY +deps/cargo /usr/local/cargo
-
-    ENV PORT 9091
+    COPY --dir src Cargo.lock Cargo.toml .
+    COPY +build-cache/cargo_home $CARGO_HOME
     RUN cargo build --release --bin example-rust
-    
     SAVE ARTIFACT target/release/example-rust example-rust
 
 docker:
     FROM debian:buster-slim
-        
-    RUN apt-get update -y \
-        && apt-get install -y --no-install-recommends openssl libcurl4 ca-certificates \
-        # Clean up
-        && apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
-
     COPY +build/example-rust example-rust
-    
     EXPOSE 9091
     ENTRYPOINT ["./example-rust"]
     SAVE IMAGE --push earthly/examples:rust
