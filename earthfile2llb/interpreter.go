@@ -2,12 +2,10 @@ package earthfile2llb
 
 import (
 	"context"
-	"flag"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
-	"time"
 
 	"github.com/earthly/earthly/ast/spec"
 	"github.com/earthly/earthly/conslogging"
@@ -304,58 +302,50 @@ func (i *Interpreter) handleIfExpression(ctx context.Context, expression []strin
 	if len(expression) < 1 {
 		return false, i.errorf(sl, "not enough arguments for IF")
 	}
-
-	fs := flag.NewFlagSet("IF", flag.ContinueOnError)
-	privileged := fs.Bool("privileged", false, "Enable privileged mode")
-	withSSH := fs.Bool("ssh", false, "Make available the SSH agent of the host")
-	noCache := fs.Bool("no-cache", false, "Always execute this specific condition, ignoring cache")
-	secrets := new(StringSliceFlag)
-	fs.Var(secrets, "secret", "Make available a secret")
-	mounts := new(StringSliceFlag)
-	fs.Var(mounts, "mount", "Mount a file or directory")
-	err := fs.Parse(expression)
+	opts := ifOpts{}
+	args, err := parseArgs("IF", &opts, expression)
 	if err != nil {
-		return false, i.wrapError(err, sl, "invalid RUN arguments %v", expression)
+		return false, i.wrapError(err, sl, "invalid IF arguments %v", expression)
 	}
 	withShell := !execMode
 
-	for index, s := range secrets.Args {
-		secrets.Args[index] = i.expandArgs(s, true)
+	for index, s := range opts.Secrets {
+		opts.Secrets[index] = i.expandArgs(s, true)
 	}
-	for index, m := range mounts.Args {
-		mounts.Args[index] = i.expandArgs(m, false)
+	for index, m := range opts.Mounts {
+		opts.Mounts[index] = i.expandArgs(m, false)
 	}
 	// Note: Not expanding args for the expression itself, as that will be take care of by the shell.
 
 	var exitCode int
 	commandName := "IF"
 	if i.local {
-		if len(mounts.Args) > 0 {
+		if len(opts.Mounts) > 0 {
 			return false, i.errorf(sl, "mounts are not supported in combination with the LOCALLY directive")
 		}
-		if *withSSH {
+		if opts.WithSSH {
 			return false, i.errorf(sl, "the --ssh flag has no effect when used with the  LOCALLY directive")
 		}
-		if *privileged {
+		if opts.Privileged {
 			return false, i.errorf(sl, "the --privileged flag has no effect when used with the LOCALLY directive")
 		}
-		if *noCache {
+		if opts.NoCache {
 			return false, i.errorf(sl, "the --no-cache flag has no effect when used with the LOCALLY directive")
 		}
 
 		// TODO these should be supported, but haven't yet been implemented
-		if len(secrets.Args) > 0 {
+		if len(opts.Secrets) > 0 {
 			return false, i.errorf(sl, "secrets need to be implemented for the LOCALLY directive")
 		}
 
-		exitCode, err = i.converter.RunLocalExitCode(ctx, commandName, fs.Args())
+		exitCode, err = i.converter.RunLocalExitCode(ctx, commandName, args)
 		if err != nil {
 			return false, i.wrapError(err, sl, "apply RUN")
 		}
 	} else {
 		exitCode, err = i.converter.RunExitCode(
-			ctx, commandName, fs.Args(), mounts.Args, secrets.Args, *privileged,
-			withShell, *withSSH, *noCache)
+			ctx, commandName, args, opts.Mounts, opts.Secrets, opts.Privileged,
+			withShell, opts.WithSSH, opts.NoCache)
 		if err != nil {
 			return false, i.wrapError(err, sl, "apply IF")
 		}
@@ -369,38 +359,34 @@ func (i *Interpreter) handleFrom(ctx context.Context, cmd spec.Command) error {
 	if i.pushOnlyAllowed {
 		return i.pushOnlyErr(cmd.SourceLocation)
 	}
-	fs := flag.NewFlagSet("FROM", flag.ContinueOnError)
-	allowPrivilegedFlag := fs.Bool("allow-privileged", false, "Enable privileged mode")
-	buildArgs := new(StringSliceFlag)
-	fs.Var(buildArgs, "build-arg", "A build arg override passed on to a referenced Earthly target")
-	platformStr := fs.String("platform", "", "The platform to use")
-	err := fs.Parse(getArgsCopy(cmd))
+	opts := fromOpts{}
+	args, err := parseArgs("FROM", &opts, getArgsCopy(cmd))
 	if err != nil {
-		return i.wrapError(err, cmd.SourceLocation, "invalid FROM arguments")
+		return i.wrapError(err, cmd.SourceLocation, "invalid FROM arguments %v", cmd.Args)
 	}
-	if fs.NArg() != 1 {
-		if fs.NArg() == 3 && fs.Arg(1) == "AS" {
+	if len(args) != 1 {
+		if len(args) == 3 && args[1] == "AS" {
 			return i.errorf(cmd.SourceLocation, "AS not supported, use earthly targets instead")
 		}
-		if fs.NArg() < 1 {
+		if len(args) < 1 {
 			return i.errorf(cmd.SourceLocation, "invalid number of arguments for FROM: %s", cmd.Args)
 		}
 	}
-	imageName := i.expandArgs(fs.Arg(0), true)
-	*platformStr = i.expandArgs(*platformStr, false)
-	platform, err := llbutil.ParsePlatform(*platformStr)
+	imageName := i.expandArgs(args[0], true)
+	opts.Platform = i.expandArgs(opts.Platform, false)
+	platform, err := llbutil.ParsePlatform(opts.Platform)
 	if err != nil {
-		return i.wrapError(err, cmd.SourceLocation, "parse platform %s", *platformStr)
+		return i.wrapError(err, cmd.SourceLocation, "parse platform %s", opts.Platform)
 	}
-	expandedBuildArgs := i.expandArgsSlice(buildArgs.Args, true)
-	expandedFlagArgs := i.expandArgsSlice(fs.Args()[1:], true)
+	expandedBuildArgs := i.expandArgsSlice(opts.BuildArgs, true)
+	expandedFlagArgs := i.expandArgsSlice(args[1:], true)
 	parsedFlagArgs, err := variables.ParseFlagArgs(expandedFlagArgs)
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "parse flag args")
 	}
 	expandedBuildArgs = append(parsedFlagArgs, expandedBuildArgs...)
 
-	allowPrivileged, err := i.getAllowPrivilegedTarget(imageName, *allowPrivilegedFlag)
+	allowPrivileged, err := i.getAllowPrivilegedTarget(imageName, opts.AllowPrivileged)
 	if err != nil {
 		return err
 	}
@@ -448,124 +434,107 @@ func (i *Interpreter) handleRun(ctx context.Context, cmd spec.Command) error {
 	if len(cmd.Args) < 1 {
 		return i.errorf(cmd.SourceLocation, "not enough arguments for RUN")
 	}
-
-	fs := flag.NewFlagSet("RUN", flag.ContinueOnError)
-	pushFlag := fs.Bool(
-		"push", false,
-		"Execute this command only if the build succeeds and also if earthly is invoked in push mode")
-	privileged := fs.Bool("privileged", false, "Enable privileged mode")
-	withEntrypoint := fs.Bool(
-		"entrypoint", false,
-		"Include the entrypoint of the image when running the command")
-	withDocker := fs.Bool("with-docker", false, "Deprecated")
-	withSSH := fs.Bool("ssh", false, "Make available the SSH agent of the host")
-	noCache := fs.Bool("no-cache", false, "Always run this specific item, ignoring cache")
-	interactive := fs.Bool("interactive", false, "Run this command with an interactive session, without saving changes")
-	interactiveKeep := fs.Bool("interactive-keep", false, "Run this command with an interactive session, saving changes")
-	secrets := new(StringSliceFlag)
-	fs.Var(secrets, "secret", "Make available a secret")
-	mounts := new(StringSliceFlag)
-	fs.Var(mounts, "mount", "Mount a file or directory")
-	err := fs.Parse(getArgsCopy(cmd))
+	opts := runOpts{}
+	args, err := parseArgs("RUN", &opts, getArgsCopy(cmd))
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "invalid RUN arguments %v", cmd.Args)
 	}
 	withShell := !cmd.ExecMode
-	if *withDocker {
-		*privileged = true
+	if opts.WithDocker {
+		opts.Privileged = true
 	}
-	if !*pushFlag && i.pushOnlyAllowed {
+	if !opts.Push && i.pushOnlyAllowed {
 		return i.errorf(cmd.SourceLocation, "no non-push commands allowed after a --push")
 	}
 	// TODO: In the bracket case, should flags be outside of the brackets?
 
-	for index, s := range secrets.Args {
-		secrets.Args[index] = i.expandArgs(s, true)
+	for index, s := range opts.Secrets {
+		opts.Secrets[index] = i.expandArgs(s, true)
 	}
-	for index, m := range mounts.Args {
-		mounts.Args[index] = i.expandArgs(m, false)
+	for index, m := range opts.Mounts {
+		opts.Mounts[index] = i.expandArgs(m, false)
 	}
 	// Note: Not expanding args for the run itself, as that will be take care of by the shell.
 
 	if i.local {
-		if len(mounts.Args) > 0 {
+		if len(opts.Mounts) > 0 {
 			return i.errorf(cmd.SourceLocation, "mounts are not supported in combination with the LOCALLY directive")
 		}
-		if *withSSH {
+		if opts.WithSSH {
 			return i.errorf(cmd.SourceLocation, "the --ssh flag has no effect when used with the  LOCALLY directive")
 		}
-		if *privileged {
+		if opts.Privileged {
 			return i.errorf(cmd.SourceLocation, "the --privileged flag has no effect when used with the LOCALLY directive")
 		}
-		if *noCache {
+		if opts.NoCache {
 			return i.errorf(cmd.SourceLocation, "the --no-cache flag has no effect when used with the LOCALLY directive")
 		}
-		if *interactive {
+		if opts.Interactive {
 			// I mean its literally just your terminal but with extra steps. No reason to support this?
 			return i.errorf(cmd.SourceLocation, "the --interactive flag is not supported in combination with the LOCALLY directive")
 		}
-		if *interactiveKeep {
+		if opts.InteractiveKeep {
 			// I mean its literally just your terminal but with extra steps. No reason to support this?
 			return i.errorf(cmd.SourceLocation, "the --interactive-keep flag is not supported in combination with the LOCALLY directive")
 		}
 
 		// TODO these should be supported, but haven't yet been implemented
-		if len(secrets.Args) > 0 {
+		if len(opts.Secrets) > 0 {
 			return i.errorf(cmd.SourceLocation, "secrets need to be implemented for the LOCALLY directive")
 		}
 
 		if i.withDocker != nil {
-			if *pushFlag {
+			if opts.Push {
 				return i.errorf(cmd.SourceLocation, "RUN --push not allowed in WITH DOCKER")
 			}
 			if i.withDockerRan {
 				return i.errorf(cmd.SourceLocation, "only one RUN command allowed in WITH DOCKER")
 			}
 			i.withDockerRan = true
-			err = i.converter.WithDockerRunLocal(ctx, fs.Args(), *i.withDocker)
+			err = i.converter.WithDockerRunLocal(ctx, args, *i.withDocker)
 			if err != nil {
 				return i.wrapError(err, cmd.SourceLocation, "with docker run")
 			}
 			return nil
 		}
 
-		err = i.converter.RunLocal(ctx, fs.Args(), *pushFlag)
+		err = i.converter.RunLocal(ctx, args, opts.Push)
 		if err != nil {
 			return i.wrapError(err, cmd.SourceLocation, "apply RUN")
 		}
 		return nil
 	}
 
-	if *privileged && !i.allowPrivileged {
+	if opts.Privileged && !i.allowPrivileged {
 		return i.errorf(cmd.SourceLocation, "Permission denied: unwilling to run privileged command; did you reference a remote Earthfile without the --allow-privileged flag?")
 	}
 
 	if i.withDocker == nil {
 		err = i.converter.Run(
-			ctx, fs.Args(), mounts.Args, secrets.Args, *privileged, *withEntrypoint, *withDocker,
-			withShell, *pushFlag, *withSSH, *noCache, *interactive, *interactiveKeep)
+			ctx, args, opts.Mounts, opts.Secrets, opts.Privileged, opts.WithEntrypoint, opts.WithDocker,
+			withShell, opts.Push, opts.WithSSH, opts.NoCache, opts.Interactive, opts.InteractiveKeep)
 		if err != nil {
 			return i.wrapError(err, cmd.SourceLocation, "apply RUN")
 		}
-		if *pushFlag {
+		if opts.Push {
 			i.pushOnlyAllowed = true
 		}
 	} else {
-		if *pushFlag {
+		if opts.Push {
 			return i.errorf(cmd.SourceLocation, "RUN --push not allowed in WITH DOCKER")
 		}
 		if i.withDockerRan {
 			return i.errorf(cmd.SourceLocation, "only one RUN command allowed in WITH DOCKER")
 		}
 		i.withDockerRan = true
-		i.withDocker.Mounts = mounts.Args
-		i.withDocker.Secrets = secrets.Args
+		i.withDocker.Mounts = opts.Mounts
+		i.withDocker.Secrets = opts.Secrets
 		i.withDocker.WithShell = withShell
-		i.withDocker.WithEntrypoint = *withEntrypoint
-		i.withDocker.NoCache = *noCache
-		i.withDocker.Interactive = *interactive
-		i.withDocker.interactiveKeep = *interactiveKeep
-		err = i.converter.WithDockerRun(ctx, fs.Args(), *i.withDocker)
+		i.withDocker.WithEntrypoint = opts.WithEntrypoint
+		i.withDocker.NoCache = opts.NoCache
+		i.withDocker.Interactive = opts.Interactive
+		i.withDocker.interactiveKeep = opts.InteractiveKeep
+		err = i.converter.WithDockerRun(ctx, args, *i.withDocker)
 		if err != nil {
 			return i.wrapError(err, cmd.SourceLocation, "with docker run")
 		}
@@ -577,41 +546,36 @@ func (i *Interpreter) handleFromDockerfile(ctx context.Context, cmd spec.Command
 	if i.pushOnlyAllowed {
 		return i.pushOnlyErr(cmd.SourceLocation)
 	}
-	fs := flag.NewFlagSet("FROM DOCKERFILE", flag.ContinueOnError)
-	buildArgs := new(StringSliceFlag)
-	fs.Var(buildArgs, "build-arg", "A build arg override passed on to a referenced Earthly target and also to the Dockerfile build")
-	platformStr := fs.String("platform", "", "The platform to use")
-	dfTarget := fs.String("target", "", "The Dockerfile target to inherit from")
-	dfPath := fs.String("f", "", "Not supported")
-	err := fs.Parse(getArgsCopy(cmd))
+	opts := fromDockerfileOpts{}
+	args, err := parseArgs("FROM DOCKERFILE", &opts, getArgsCopy(cmd))
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "invalid FROM DOCKERFILE arguments %v", cmd.Args)
 	}
-	if fs.NArg() < 1 {
+	if len(args) < 1 {
 		return i.errorf(cmd.SourceLocation, "invalid number of arguments for FROM DOCKERFILE")
 	}
-	path := i.expandArgs(fs.Arg(0), false)
+	path := i.expandArgs(args[0], false)
 	_, parseErr := domain.ParseArtifact(path)
 	if parseErr != nil {
 		// Treat as context path, not artifact path.
-		path = i.expandArgs(fs.Arg(0), false)
+		path = i.expandArgs(args[0], false)
 	}
-	expandedBuildArgs := i.expandArgsSlice(buildArgs.Args, true)
-	expandedFlagArgs := i.expandArgsSlice(fs.Args()[1:], true)
+	expandedBuildArgs := i.expandArgsSlice(opts.BuildArgs, true)
+	expandedFlagArgs := i.expandArgsSlice(args[1:], true)
 	parsedFlagArgs, err := variables.ParseFlagArgs(expandedFlagArgs)
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "parse flag args")
 	}
 	expandedBuildArgs = append(parsedFlagArgs, expandedBuildArgs...)
-	*platformStr = i.expandArgs(*platformStr, false)
-	platform, err := llbutil.ParsePlatform(*platformStr)
+	opts.Platform = i.expandArgs(opts.Platform, false)
+	platform, err := llbutil.ParsePlatform(opts.Platform)
 	if err != nil {
-		return i.wrapError(err, cmd.SourceLocation, "parse platform %s", *platformStr)
+		return i.wrapError(err, cmd.SourceLocation, "parse platform %s", opts.Platform)
 	}
-	*dfPath = i.expandArgs(*dfPath, false)
-	*dfTarget = i.expandArgs(*dfTarget, false)
+	opts.Path = i.expandArgs(opts.Path, false)
+	opts.Target = i.expandArgs(opts.Target, false)
 	i.local = false
-	err = i.converter.FromDockerfile(ctx, path, *dfPath, *dfTarget, platform, expandedBuildArgs)
+	err = i.converter.FromDockerfile(ctx, path, opts.Path, opts.Target, platform, expandedBuildArgs)
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "from dockerfile")
 	}
@@ -644,36 +608,26 @@ func (i *Interpreter) handleCopy(ctx context.Context, cmd spec.Command) error {
 	if i.pushOnlyAllowed {
 		return i.pushOnlyErr(cmd.SourceLocation)
 	}
-	fs := flag.NewFlagSet("COPY", flag.ContinueOnError)
-	from := fs.String("from", "", "Not supported")
-	isDirCopy := fs.Bool("dir", false, "Copy entire directories, not just the contents")
-	chown := fs.String("chown", "", "Apply a specific group and/or owner to the copied files and directories")
-	keepTs := fs.Bool("keep-ts", false, "Keep created time file timestamps")
-	keepOwn := fs.Bool("keep-own", false, "Keep owner info")
-	ifExists := fs.Bool("if-exists", false, "Do not fail if the artifact does not exist")
-	allowPrivilegedFlag := fs.Bool("allow-privileged", false, "Allow targets to assume privileged mode")
-	platformStr := fs.String("platform", "", "The platform to use")
-	buildArgs := new(StringSliceFlag)
-	fs.Var(buildArgs, "build-arg", "A build arg override passed on to a referenced Earthly target")
-	err := fs.Parse(getArgsCopy(cmd))
+	opts := copyOpts{}
+	args, err := parseArgs("COPY", &opts, getArgsCopy(cmd))
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "invalid COPY arguments %v", cmd.Args)
 	}
-	if fs.NArg() < 2 {
+	if len(args) < 2 {
 		return i.errorf(cmd.SourceLocation, "not enough COPY arguments %v", cmd.Args)
 	}
-	if *from != "" {
+	if opts.From != "" {
 		return i.errorf(cmd.SourceLocation, "COPY --from not implemented. Use COPY artifacts form instead")
 	}
-	srcs := fs.Args()[:fs.NArg()-1]
+	srcs := args[:len(args)-1]
 	srcFlagArgs := make([][]string, len(srcs))
-	dest := i.expandArgs(fs.Arg(fs.NArg()-1), false)
-	expandedBuildArgs := i.expandArgsSlice(buildArgs.Args, true)
-	*chown = i.expandArgs(*chown, false)
-	*platformStr = i.expandArgs(*platformStr, false)
-	platform, err := llbutil.ParsePlatform(*platformStr)
+	dest := i.expandArgs(args[len(args)-1], false)
+	expandedBuildArgs := i.expandArgsSlice(opts.BuildArgs, true)
+	opts.Chown = i.expandArgs(opts.Chown, false)
+	opts.Platform = i.expandArgs(opts.Platform, false)
+	platform, err := llbutil.ParsePlatform(opts.Platform)
 	if err != nil {
-		return i.wrapError(err, cmd.SourceLocation, "parse platform %s", *platformStr)
+		return i.wrapError(err, cmd.SourceLocation, "parse platform %s", opts.Platform)
 	}
 
 	allClassical := true
@@ -713,7 +667,7 @@ func (i *Interpreter) handleCopy(ctx context.Context, cmd spec.Command) error {
 			dest += string(filepath.Separator)
 		}
 		for index, src := range srcs {
-			allowPrivileged, err := i.getAllowPrivilegedArtifact(src, *allowPrivilegedFlag)
+			allowPrivileged, err := i.getAllowPrivilegedArtifact(src, opts.AllowPrivileged)
 			if err != nil {
 				return err
 			}
@@ -726,12 +680,12 @@ func (i *Interpreter) handleCopy(ctx context.Context, cmd spec.Command) error {
 			srcBuildArgs := append(parsedFlagArgs, expandedBuildArgs...)
 
 			if i.local {
-				err = i.converter.CopyArtifactLocal(ctx, src, dest, platform, allowPrivileged, srcBuildArgs, *isDirCopy)
+				err = i.converter.CopyArtifactLocal(ctx, src, dest, platform, allowPrivileged, srcBuildArgs, opts.IsDirCopy)
 				if err != nil {
 					return i.wrapError(err, cmd.SourceLocation, "copy artifact locally")
 				}
 			} else {
-				err = i.converter.CopyArtifact(ctx, src, dest, platform, allowPrivileged, srcBuildArgs, *isDirCopy, *keepTs, *keepOwn, *chown, *ifExists)
+				err = i.converter.CopyArtifact(ctx, src, dest, platform, allowPrivileged, srcBuildArgs, opts.IsDirCopy, opts.KeepTs, opts.KeepOwn, opts.Chown, opts.IfExists)
 				if err != nil {
 					return i.wrapError(err, cmd.SourceLocation, "copy artifact")
 				}
@@ -745,7 +699,7 @@ func (i *Interpreter) handleCopy(ctx context.Context, cmd spec.Command) error {
 			return i.errorf(cmd.SourceLocation, "unhandled locally artifact copy when allArtifacts is false")
 		}
 
-		err = i.converter.CopyClassical(ctx, srcs, dest, *isDirCopy, *keepTs, *keepOwn, *chown)
+		err = i.converter.CopyClassical(ctx, srcs, dest, opts.IsDirCopy, opts.KeepTs, opts.KeepOwn, opts.Chown)
 		if err != nil {
 			return i.wrapError(err, cmd.SourceLocation, "copy classical")
 		}
@@ -754,39 +708,36 @@ func (i *Interpreter) handleCopy(ctx context.Context, cmd spec.Command) error {
 }
 
 func (i *Interpreter) handleSaveArtifact(ctx context.Context, cmd spec.Command) error {
-	fs := flag.NewFlagSet("SAVE ARTIFACT", flag.ContinueOnError)
-	keepTs := fs.Bool("keep-ts", false, "Keep created time file timestamps")
-	keepOwn := fs.Bool("keep-own", false, "Keep owner info")
-	ifExists := fs.Bool("if-exists", false, "Do not fail if the artifact does not exist")
-	err := fs.Parse(getArgsCopy(cmd))
+	opts := saveArtifactOpts{}
+	args, err := parseArgs("SAVE ARTIFACT", &opts, getArgsCopy(cmd))
 	if err != nil {
-		return i.wrapError(err, cmd.SourceLocation, "invalid SAVE arguments %v", cmd.Args)
+		return i.wrapError(err, cmd.SourceLocation, "invalid SAVE ARTIFACT arguments %v", cmd.Args)
 	}
 
-	if fs.NArg() == 0 {
+	if len(args) == 0 {
 		return i.errorf(cmd.SourceLocation, "no arguments provided to the SAVE ARTIFACT command")
 	}
-	if fs.NArg() > 5 {
+	if len(args) > 5 {
 		return i.errorf(cmd.SourceLocation, "too many arguments provided to the SAVE ARTIFACT command: %v", cmd.Args)
 	}
 	saveAsLocalTo := ""
 	saveTo := "./"
-	if fs.NArg() >= 4 {
-		if strings.Join(fs.Args()[fs.NArg()-3:fs.NArg()-1], " ") == "AS LOCAL" {
-			saveAsLocalTo = fs.Args()[fs.NArg()-1]
-			if fs.NArg() == 5 {
-				saveTo = fs.Args()[1]
+	if len(args) >= 4 {
+		if strings.Join(args[len(args)-3:len(args)-1], " ") == "AS LOCAL" {
+			saveAsLocalTo = args[len(args)-1]
+			if len(args) == 5 {
+				saveTo = args[1]
 			}
 		} else {
 			return i.errorf(cmd.SourceLocation, "invalid arguments for SAVE ARTIFACT command: %v", cmd.Args)
 		}
-	} else if fs.NArg() == 2 {
-		saveTo = fs.Args()[1]
-	} else if fs.NArg() == 3 {
+	} else if len(args) == 2 {
+		saveTo = args[1]
+	} else if len(args) == 3 {
 		return i.errorf(cmd.SourceLocation, "invalid arguments for SAVE ARTIFACT command: %v", cmd.Args)
 	}
 
-	saveFrom := i.expandArgs(fs.Args()[0], false)
+	saveFrom := i.expandArgs(args[0], false)
 	saveTo = i.expandArgs(saveTo, false)
 	saveAsLocalTo = i.expandArgs(saveAsLocalTo, false)
 
@@ -794,14 +745,14 @@ func (i *Interpreter) handleSaveArtifact(ctx context.Context, cmd spec.Command) 
 		if saveAsLocalTo != "" {
 			return i.errorf(cmd.SourceLocation, "SAVE ARTIFACT AS LOCAL is not implemented under LOCALLY targets")
 		}
-		err = i.converter.SaveArtifactFromLocal(ctx, saveFrom, saveTo, *keepTs, *ifExists, "")
+		err = i.converter.SaveArtifactFromLocal(ctx, saveFrom, saveTo, opts.KeepTs, opts.IfExists, "")
 		if err != nil {
 			return i.wrapError(err, cmd.SourceLocation, "apply SAVE ARTIFACT")
 		}
 		return nil
 	}
 
-	err = i.converter.SaveArtifact(ctx, saveFrom, saveTo, saveAsLocalTo, *keepTs, *keepOwn, *ifExists, i.pushOnlyAllowed)
+	err = i.converter.SaveArtifact(ctx, saveFrom, saveTo, saveAsLocalTo, opts.KeepTs, opts.KeepOwn, opts.IfExists, i.pushOnlyAllowed)
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "apply SAVE ARTIFACT")
 	}
@@ -809,42 +760,31 @@ func (i *Interpreter) handleSaveArtifact(ctx context.Context, cmd spec.Command) 
 }
 
 func (i *Interpreter) handleSaveImage(ctx context.Context, cmd spec.Command) error {
-	fs := flag.NewFlagSet("SAVE IMAGE", flag.ContinueOnError)
-	pushFlag := fs.Bool(
-		"push", false,
-		"Push the image to the remote registry provided that the build succeeds and also that earthly is invoked in push mode")
-	cacheHint := fs.Bool(
-		"cache-hint", false,
-		"Instruct Earthly that the current target shuold be saved entirely as part of the remote cache")
-	insecure := fs.Bool(
-		"insecure", false,
-		"Use unencrypted connection for the push")
-	cacheFrom := new(StringSliceFlag)
-	fs.Var(cacheFrom, "cache-from", "Declare additional cache import as a Docker tag")
-	err := fs.Parse(getArgsCopy(cmd))
+	opts := saveImageOpts{}
+	args, err := parseArgs("SAVE IMAGE", &opts, getArgsCopy(cmd))
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "invalid SAVE IMAGE arguments %v", cmd.Args)
 	}
-	for index, cf := range cacheFrom.Args {
-		cacheFrom.Args[index] = i.expandArgs(cf, false)
+	for index, cf := range opts.CacheFrom {
+		opts.CacheFrom[index] = i.expandArgs(cf, false)
 	}
-	if *pushFlag && fs.NArg() == 0 {
+	if opts.Push && len(args) == 0 {
 		return i.errorf(cmd.SourceLocation, "invalid number of arguments for SAVE IMAGE --push: %v", cmd.Args)
 	}
 
-	imageNames := fs.Args()
+	imageNames := args
 	for index, img := range imageNames {
 		imageNames[index] = i.expandArgs(img, false)
 	}
-	if len(imageNames) == 0 && !*cacheHint && len(cacheFrom.Args) == 0 {
+	if len(imageNames) == 0 && !opts.CacheHint && len(opts.CacheFrom) == 0 {
 		fmt.Fprintf(os.Stderr, "Deprecation: using SAVE IMAGE with no arguments is no longer necessary and can be safely removed\n")
 		return nil
 	}
-	err = i.converter.SaveImage(ctx, imageNames, *pushFlag, *insecure, *cacheHint, cacheFrom.Args)
+	err = i.converter.SaveImage(ctx, imageNames, opts.Push, opts.Insecure, opts.CacheHint, opts.CacheFrom)
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "save image")
 	}
-	if *pushFlag {
+	if opts.Push {
 		i.pushOnlyAllowed = true
 	}
 	return nil
@@ -854,34 +794,29 @@ func (i *Interpreter) handleBuild(ctx context.Context, cmd spec.Command, async b
 	if i.pushOnlyAllowed {
 		return i.pushOnlyErr(cmd.SourceLocation)
 	}
-	fs := flag.NewFlagSet("BUILD", flag.ContinueOnError)
-	platformsStr := new(StringSliceFlag)
-	fs.Var(platformsStr, "platform", "The platform to build")
-	buildArgs := new(StringSliceFlag)
-	fs.Var(buildArgs, "build-arg", "A build arg override passed on to a referenced Earthly target")
-	allowPrivilegedFlag := fs.Bool("allow-privileged", false, "Allow targets to assume privileged mode")
-	err := fs.Parse(getArgsCopy(cmd))
+	opts := buildOpts{}
+	args, err := parseArgs("BUILD", &opts, getArgsCopy(cmd))
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "invalid BUILD arguments %v", cmd.Args)
 	}
-	if fs.NArg() < 1 {
+	if len(args) < 1 {
 		return i.errorf(cmd.SourceLocation, "invalid number of arguments for BUILD: %s", cmd.Args)
 	}
-	fullTargetName := i.expandArgs(fs.Arg(0), true)
-	platformsSlice := make([]*specs.Platform, 0, len(platformsStr.Args))
-	for index, p := range platformsStr.Args {
-		platformsStr.Args[index] = i.expandArgs(p, false)
+	fullTargetName := i.expandArgs(args[0], true)
+	platformsSlice := make([]*specs.Platform, 0, len(opts.Platforms))
+	for index, p := range opts.Platforms {
+		opts.Platforms[index] = i.expandArgs(p, false)
 		platform, err := llbutil.ParsePlatform(p)
 		if err != nil {
 			return i.wrapError(err, cmd.SourceLocation, "parse platform %s", p)
 		}
 		platformsSlice = append(platformsSlice, platform)
 	}
-	if async && !isSafeAsyncBuildArgs(buildArgs.Args) {
+	if async && !isSafeAsyncBuildArgs(opts.BuildArgs) {
 		return errCannotAsync
 	}
-	expandedBuildArgs := i.expandArgsSlice(buildArgs.Args, true)
-	expandedFlagArgs := i.expandArgsSlice(fs.Args()[1:], true)
+	expandedBuildArgs := i.expandArgsSlice(opts.BuildArgs, true)
+	expandedFlagArgs := i.expandArgsSlice(args[1:], true)
 	parsedFlagArgs, err := variables.ParseFlagArgs(expandedFlagArgs)
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "parse flag args")
@@ -896,7 +831,7 @@ func (i *Interpreter) handleBuild(ctx context.Context, cmd spec.Command, async b
 		return i.wrapError(err, cmd.SourceLocation, "build arg matrix")
 	}
 
-	allowPrivileged, err := i.getAllowPrivilegedTarget(fullTargetName, *allowPrivilegedFlag)
+	allowPrivileged, err := i.getAllowPrivilegedTarget(fullTargetName, opts.AllowPrivileged)
 	if err != nil {
 		return err
 	}
@@ -1110,20 +1045,18 @@ func (i *Interpreter) handleGitClone(ctx context.Context, cmd spec.Command) erro
 	if i.pushOnlyAllowed {
 		return i.pushOnlyErr(cmd.SourceLocation)
 	}
-	fs := flag.NewFlagSet("GIT CLONE", flag.ContinueOnError)
-	branch := fs.String("branch", "", "The git ref to use when cloning")
-	keepTs := fs.Bool("keep-ts", false, "Keep created time file timestamps")
-	err := fs.Parse(getArgsCopy(cmd))
+	opts := gitCloneOpts{}
+	args, err := parseArgs("GIT CLONE", &opts, getArgsCopy(cmd))
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "invalid GIT CLONE arguments %v", cmd.Args)
 	}
-	if fs.NArg() != 2 {
+	if len(args) != 2 {
 		return i.errorf(cmd.SourceLocation, "invalid number of arguments for GIT CLONE: %s", cmd.Args)
 	}
-	gitURL := i.expandArgs(fs.Arg(0), false)
-	gitCloneDest := i.expandArgs(fs.Arg(1), false)
-	*branch = i.expandArgs(*branch, false)
-	err = i.converter.GitClone(ctx, gitURL, *branch, gitCloneDest, *keepTs)
+	gitURL := i.expandArgs(args[0], false)
+	gitCloneDest := i.expandArgs(args[1], false)
+	opts.Branch = i.expandArgs(opts.Branch, false)
+	err = i.converter.GitClone(ctx, gitURL, opts.Branch, gitCloneDest, opts.KeepTs)
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "git clone")
 	}
@@ -1134,41 +1067,29 @@ func (i *Interpreter) handleHealthcheck(ctx context.Context, cmd spec.Command) e
 	if i.pushOnlyAllowed {
 		return i.pushOnlyErr(cmd.SourceLocation)
 	}
-	fs := flag.NewFlagSet("HEALTHCHECK", flag.ContinueOnError)
-	interval := fs.Duration(
-		"interval", 30*time.Second,
-		"The interval between healthchecks")
-	timeout := fs.Duration(
-		"timeout", 30*time.Second,
-		"The timeout before the command is considered failed")
-	startPeriod := fs.Duration(
-		"start-period", 0,
-		"An initialization time period in which failures are not counted towards the maximum number of retries")
-	retries := fs.Int(
-		"retries", 3,
-		"The number of retries before a container is considered unhealthy")
-	err := fs.Parse(getArgsCopy(cmd))
+	opts := healthCheckOpts{}
+	args, err := parseArgs("HEALTHCHECK", &opts, getArgsCopy(cmd))
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "invalid HEALTHCHECK arguments %v", cmd.Args)
 	}
-	if fs.NArg() == 0 {
+	if len(args) == 0 {
 		return i.errorf(cmd.SourceLocation, "invalid number of arguments for HEALTHCHECK: %s", cmd.Args)
 	}
 	isNone := false
 	var cmdArgs []string
-	switch fs.Arg(0) {
+	switch args[0] {
 	case "NONE":
-		if fs.NArg() != 1 {
+		if len(args) != 1 {
 			return i.errorf(cmd.SourceLocation, "invalid arguments for HEALTHCHECK: %s", cmd.Args)
 		}
 		isNone = true
 	case "CMD":
-		if fs.NArg() == 1 {
+		if len(args) == 1 {
 			return i.errorf(cmd.SourceLocation, "invalid number of arguments for HEALTHCHECK CMD: %s", cmd.Args)
 		}
-		cmdArgs = fs.Args()[1:]
+		cmdArgs = args[1:]
 	default:
-		if strings.HasPrefix(fs.Arg(0), "[") {
+		if strings.HasPrefix(args[0], "[") {
 			return i.errorf(cmd.SourceLocation, "exec form not yet supported for HEALTHCHECK CMD: %s", cmd.Args)
 		}
 		return i.errorf(cmd.SourceLocation, "invalid arguments for HEALTHCHECK: %s", cmd.Args)
@@ -1176,7 +1097,7 @@ func (i *Interpreter) handleHealthcheck(ctx context.Context, cmd spec.Command) e
 	for index, arg := range cmdArgs {
 		cmdArgs[index] = i.expandArgs(arg, false)
 	}
-	err = i.converter.Healthcheck(ctx, isNone, cmdArgs, *interval, *timeout, *startPeriod, *retries)
+	err = i.converter.Healthcheck(ctx, isNone, cmdArgs, opts.Interval, opts.Timeout, opts.StartPeriod, opts.Retries)
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "apply HEALTHCHECK")
 	}
@@ -1190,58 +1111,44 @@ func (i *Interpreter) handleWithDocker(ctx context.Context, cmd spec.Command) er
 	if i.withDocker != nil {
 		return i.errorf(cmd.SourceLocation, "cannot use WITH DOCKER within WITH DOCKER")
 	}
-
-	fs := flag.NewFlagSet("WITH DOCKER", flag.ContinueOnError)
-	composeFiles := new(StringSliceFlag)
-	fs.Var(composeFiles, "compose", "A compose file used to bring up services from")
-	composeServices := new(StringSliceFlag)
-	fs.Var(composeServices, "service", "A compose service to bring up")
-	loads := new(StringSliceFlag)
-	fs.Var(loads, "load", "An image produced by Earthly which is loaded as a Docker image")
-	platformStr := fs.String("platform", "", "The platform to use")
-	buildArgs := new(StringSliceFlag)
-	fs.Var(buildArgs, "build-arg", "A build arg override passed on to a referenced Earthly target")
-	pulls := new(StringSliceFlag)
-	fs.Var(pulls, "pull", "An image which is pulled and made available in the docker cache")
-	allowPrivilegedFlag := fs.Bool("allow-privileged", false, "Allow targets referenced by load to assume privileged mode")
-	err := fs.Parse(getArgsCopy(cmd))
+	opts := withDockerOpts{}
+	args, err := parseArgs("WITH DOCKER", &opts, getArgsCopy(cmd))
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "invalid WITH DOCKER arguments %v", cmd.Args)
 	}
-	if len(fs.Args()) != 0 {
-		return i.errorf(cmd.SourceLocation, "invalid WITH DOCKER arguments %v", fs.Args())
+	if len(args) != 0 {
+		return i.errorf(cmd.SourceLocation, "invalid WITH DOCKER arguments %v", args)
 	}
-
-	*platformStr = i.expandArgs(*platformStr, false)
-	platform, err := llbutil.ParsePlatform(*platformStr)
+	opts.Platform = i.expandArgs(opts.Platform, false)
+	platform, err := llbutil.ParsePlatform(opts.Platform)
 	if err != nil {
-		return i.wrapError(err, cmd.SourceLocation, "parse platform %s", *platformStr)
+		return i.wrapError(err, cmd.SourceLocation, "parse platform %s", opts.Platform)
 	}
-	for index, cf := range composeFiles.Args {
-		composeFiles.Args[index] = i.expandArgs(cf, false)
+	for index, cf := range opts.ComposeFiles {
+		opts.ComposeFiles[index] = i.expandArgs(cf, false)
 	}
-	for index, cs := range composeServices.Args {
-		composeServices.Args[index] = i.expandArgs(cs, false)
+	for index, cs := range opts.ComposeServices {
+		opts.ComposeServices[index] = i.expandArgs(cs, false)
 	}
-	for index, load := range loads.Args {
-		loads.Args[index] = i.expandArgs(load, true)
+	for index, load := range opts.Loads {
+		opts.Loads[index] = i.expandArgs(load, true)
 	}
-	expandedBuildArgs := i.expandArgsSlice(buildArgs.Args, true)
-	for index, p := range pulls.Args {
-		pulls.Args[index] = i.expandArgs(p, false)
+	expandedBuildArgs := i.expandArgsSlice(opts.BuildArgs, true)
+	for index, p := range opts.Pulls {
+		opts.Pulls[index] = i.expandArgs(p, false)
 	}
 
 	i.withDocker = &WithDockerOpt{
-		ComposeFiles:    composeFiles.Args,
-		ComposeServices: composeServices.Args,
+		ComposeFiles:    opts.ComposeFiles,
+		ComposeServices: opts.ComposeServices,
 	}
-	for _, pullStr := range pulls.Args {
+	for _, pullStr := range opts.Pulls {
 		i.withDocker.Pulls = append(i.withDocker.Pulls, DockerPullOpt{
 			ImageName: pullStr,
 			Platform:  platform,
 		})
 	}
-	for _, loadStr := range loads.Args {
+	for _, loadStr := range opts.Loads {
 		loadImg, loadTarget, flagArgs, err := parseLoad(loadStr)
 		if err != nil {
 			return i.wrapError(err, cmd.SourceLocation, "parse load")
@@ -1253,7 +1160,7 @@ func (i *Interpreter) handleWithDocker(ctx context.Context, cmd spec.Command) er
 		}
 		loadBuildArgs := append(parsedFlagArgs, expandedBuildArgs...)
 
-		allowPrivileged, err := i.getAllowPrivilegedTarget(loadTarget, *allowPrivilegedFlag)
+		allowPrivileged, err := i.getAllowPrivilegedTarget(loadTarget, opts.AllowPrivileged)
 		if err != nil {
 			return err
 		}
@@ -1290,24 +1197,22 @@ func (i *Interpreter) handleUserCommand(ctx context.Context, cmd spec.Command) e
 }
 
 func (i *Interpreter) handleDo(ctx context.Context, cmd spec.Command) error {
-	fs := flag.NewFlagSet("DO", flag.ContinueOnError)
-	allowPrivilegedFlag := fs.Bool("allow-privileged", false, "Enable privileged mode")
-	err := fs.Parse(getArgsCopy(cmd))
+	opts := doOpts{}
+	args, err := parseArgs("DO", &opts, getArgsCopy(cmd))
 	if err != nil {
-		return i.wrapError(err, cmd.SourceLocation, "invalid DO arguments")
+		return i.wrapError(err, cmd.SourceLocation, "invalid DO arguments %v", cmd.Args)
 	}
-	cmdArgs := fs.Args()
-	if len(cmdArgs) < 1 {
-		return i.errorf(cmd.SourceLocation, "invalid number of arguments for DO: %s", cmdArgs)
+	if len(args) < 1 {
+		return i.errorf(cmd.SourceLocation, "invalid number of arguments for DO: %s", args)
 	}
 
-	expandedFlagArgs := i.expandArgsSlice(cmdArgs[1:], true)
+	expandedFlagArgs := i.expandArgsSlice(args[1:], true)
 	parsedFlagArgs, err := variables.ParseFlagArgs(expandedFlagArgs)
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "parse flag args")
 	}
 
-	ucName := i.expandArgs(cmdArgs[0], false)
+	ucName := i.expandArgs(args[0], false)
 	relCommand, err := domain.ParseCommand(ucName)
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "unable to parse user command reference %s", ucName)
@@ -1315,8 +1220,8 @@ func (i *Interpreter) handleDo(ctx context.Context, cmd spec.Command) error {
 
 	allowPrivileged := i.allowPrivileged
 	if relCommand.IsRemote() {
-		allowPrivileged = i.allowPrivileged && *allowPrivilegedFlag
-	} else if *allowPrivilegedFlag {
+		allowPrivileged = i.allowPrivileged && opts.AllowPrivileged
+	} else if opts.AllowPrivileged {
 		i.console.Printf("the --allow-privileged flag has no effect when referencing a local target\n")
 	}
 
@@ -1338,28 +1243,25 @@ func (i *Interpreter) handleDo(ctx context.Context, cmd spec.Command) error {
 }
 
 func (i *Interpreter) handleImport(ctx context.Context, cmd spec.Command) error {
-	fs := flag.NewFlagSet("IMPORT", flag.ContinueOnError)
-	allowPrivilegedFlag := fs.Bool("allow-privileged", false, "Enable privileged mode")
-	err := fs.Parse(getArgsCopy(cmd))
+	opts := importOpts{}
+	args, err := parseArgs("IMPORT", &opts, getArgsCopy(cmd))
 	if err != nil {
-		return i.wrapError(err, cmd.SourceLocation, "invalid IMPORT arguments")
+		return i.wrapError(err, cmd.SourceLocation, "invalid IMPORT arguments %v", cmd.Args)
 	}
 
-	cmdArgs := fs.Args()
-
-	if len(cmdArgs) != 1 && len(cmdArgs) != 3 {
-		return i.errorf(cmd.SourceLocation, "invalid number of arguments for IMPORT: %s", cmdArgs)
+	if len(args) != 1 && len(args) != 3 {
+		return i.errorf(cmd.SourceLocation, "invalid number of arguments for IMPORT: %s", args)
 	}
-	if len(cmdArgs) == 3 && cmdArgs[1] != "AS" {
-		return i.errorf(cmd.SourceLocation, "invalid arguments for IMPORT: %s", cmdArgs)
+	if len(args) == 3 && args[1] != "AS" {
+		return i.errorf(cmd.SourceLocation, "invalid arguments for IMPORT: %s", args)
 	}
-	importStr := i.expandArgs(cmdArgs[0], false)
+	importStr := i.expandArgs(args[0], false)
 	var as string
-	if len(cmdArgs) == 3 {
-		as = i.expandArgs(cmdArgs[2], false)
+	if len(args) == 3 {
+		as = i.expandArgs(args[2], false)
 	}
 	isGlobal := (i.target.Target == "base")
-	err = i.converter.Import(ctx, importStr, as, isGlobal, i.allowPrivileged, *allowPrivilegedFlag)
+	err = i.converter.Import(ctx, importStr, as, isGlobal, i.allowPrivileged, opts.AllowPrivileged)
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "apply IMPORT")
 	}
