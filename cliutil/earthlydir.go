@@ -16,6 +16,7 @@ var earthlyDir string
 var earthlyDirErr error
 var earthlyDirOnce sync.Once
 
+// GetEarthlyDir returns the .earthly dir. (Usually ~/.earthly).
 func GetEarthlyDir() (string, error) {
 	earthlyDirOnce.Do(func() {
 		earthlyDir, earthlyDirErr = makeEarthlyDir()
