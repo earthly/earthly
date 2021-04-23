@@ -44,7 +44,7 @@ Each recipe contains a series of commands, which are defined below. For an intro
 #### Synopsis
 
 * `FROM <image-name>`
-* `FROM [--build-arg <key>=<value>] [--platform <platform>] <target-ref>`
+* `FROM [--build-arg <key>=<value>] [--platform <platform>] [--allow-privileged] <target-ref>`
 
 #### Description
 
@@ -99,6 +99,36 @@ Sets a value override of `<value>` for the build arg identified by `<key>`. See 
 Specifies the platform to build on.
 
 For more information see the [multi-platform guide](../guides/multi-platform.md).
+
+##### `--allow-privileged`
+
+Allows remotely-referenced targets to request privileged capabilities; this flag has no effect when referencing local targets.
+
+Additionally, for privileged capabilities, earthly must be invoked on the command line with the `--allow-privileged` (or `-P`) flag.
+
+For example, consider two Earthfiles, one hosted on a remote github repo:
+
+```Dockerfile
+# github.com/earthly/example
+FROM alpine:latest
+elevated-target:
+    RUN --privileged echo do something requiring privileged access.
+```
+
+and a local Earthfile:
+
+```Dockerfile
+FROM alpine:latest
+my-target:
+    FROM --allow-privileged github.com/earthly/example+elevated-target
+    # ... further instructions inheriting remotely referenced Earthfile
+```
+
+then one can build `my-target` by invoking earthly with the `--allow-privileged` (or `-P`) flag:
+
+```bash
+earthly --allow-privileged +my-target
+```
 
 ## RUN
 
@@ -335,6 +365,10 @@ In *artifact form*, it specifies the platform to build the artifact on.
 
 For more information see the [multi-platform guide](../guides/multi-platform.md).
 
+##### `--allow-privileged`
+
+Same as [`FROM --allow-privileged`](#allow-privileged).
+
 #### Examples
 
 Assuming the following directory tree, of a folder named `test`:
@@ -492,7 +526,7 @@ Instructs Earthly that the current target should be included as part of the expl
 
 #### Synopsis
 
-* `BUILD [--build-arg <key>=<value>] [--platform <platform>] <target-ref>`
+* `BUILD [--build-arg <key>=<value>] [--platform <platform>] [--allow-privileged] <target-ref>`
 
 #### Description
 
@@ -534,6 +568,10 @@ build-all-platforms:
 ```
 
 For more information see the [multi-platform guide](../guides/multi-platform.md).
+
+##### `--allow-privileged`
+
+Same as [`FROM --allow-privileged`](#allow-privileged).
 
 ## GIT CLONE
 
@@ -722,7 +760,7 @@ For more information see the [multi-platform guide](../guides/multi-platform.md)
 
 ```Dockerfile
 WITH DOCKER [--pull <image-name>] [--load <image-name>=<target-ref>] [--compose <compose-file>]
-            [--service <compose-service>] [--build-arg <key>=<value>]
+            [--service <compose-service>] [--build-arg <key>=<value>] [--allow-privileged]
   <commands>
   ...
 END
@@ -803,6 +841,10 @@ Sets a value override of `<value>` for the build arg identified by `<key>`, when
 Specifies the platform for any referenced `--load` and `--pull` images.
 
 For more information see the [multi-platform guide](../guides/multi-platform.md).
+
+##### `--allow-privileged`
+
+Same as [`FROM --allow-privileged`](#allow-privileged).
 
 ## IF (**experimental**)
 
@@ -978,7 +1020,7 @@ This feature is currently in **Experimental** stage
 
 #### Synopsis
 
-* `DO <command-ref> [--<build-arg-key>=<build-arg-value>...]`
+* `DO [--allow-privileged] <command-ref> [--<build-arg-key>=<build-arg-value>...]`
 
 #### Description
 
@@ -989,6 +1031,12 @@ Unlike performing a `BUILD +target`, UDCs inherit the build context and the buil
 UDCs create their own `ARG` scope, which is distinct from the caller. Any `ARG` that needs to be passed from the caller needs to be passed explicitly via `DO +COMMAND --<build-arg-key>=<build-arg-value>`.
 
 For more information see the [User-defined commands guide](../guides/udc.md).
+
+#### Options
+
+##### `--allow-privileged`
+
+Same as [`FROM --allow-privileged`](#allow-privileged).
 
 ## IMPORT (**experimental**)
 
@@ -1004,7 +1052,7 @@ This feature is currently in **Experimental** stage
 
 #### Synopsis
 
-* `IMPORT <project-ref> [AS <alias>]`
+* `IMPORT [--allow-privileged] <project-ref> [AS <alias>]`
 
 #### Description
 
@@ -1017,6 +1065,12 @@ The `<project-ref>` can be a reference to any directory other than `.`. If the r
 If an `IMPORT` is defined in the `base` target of the Earthfile, then it becomes a global `IMPORT` and it is made avaialable to every other target or command in that file, regardless of their base images used.
 
 For more information see the [target, artifact and command references guide](../guides/target-ref.md).
+
+#### Options
+
+##### `--allow-privileged`
+
+Similar to [`FROM --allow-privileged`](#allow-privileged), extend the ability to request privileged capabilities to all invokations of the imported alias.
 
 ## SHELL (not supported)
 
