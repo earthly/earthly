@@ -55,6 +55,7 @@ import (
 	"github.com/earthly/earthly/builder"
 	"github.com/earthly/earthly/buildkitd"
 	"github.com/earthly/earthly/cleanup"
+	"github.com/earthly/earthly/cliutil"
 	"github.com/earthly/earthly/config"
 	"github.com/earthly/earthly/conslogging"
 	debuggercommon "github.com/earthly/earthly/debugger/common"
@@ -1019,11 +1020,10 @@ func (app *earthlyApp) autoComplete() {
 	err := app.autoCompleteImp()
 	if err != nil {
 		errToLog := err
-		homeDir, err := os.UserHomeDir()
+		logDir, err := cliutil.GetEarthlyDir()
 		if err != nil {
 			os.Exit(1)
 		}
-		logDir := filepath.Join(homeDir, ".earthly")
 		logFile := filepath.Join(logDir, "autocomplete.log")
 		err = os.MkdirAll(logDir, 0755)
 		if err != nil {
@@ -2618,13 +2618,13 @@ func processSecrets(secrets, secretFiles []string, dotEnvMap map[string]string) 
 }
 
 func defaultConfigPath() string {
-	homeDir, err := os.UserHomeDir()
+	earthlyDir, err := cliutil.GetEarthlyDir()
 	if err != nil {
 		panic(err)
 	}
 
-	oldConfig := filepath.Join(homeDir, ".earthly", "config.yaml")
-	newConfig := filepath.Join(homeDir, ".earthly", "config.yml")
+	oldConfig := filepath.Join(earthlyDir, "config.yaml")
+	newConfig := filepath.Join(earthlyDir, "config.yml")
 	if fileutil.FileExists(oldConfig) && !fileutil.FileExists(newConfig) {
 		return oldConfig
 	}

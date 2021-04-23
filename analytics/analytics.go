@@ -11,12 +11,12 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/earthly/earthly/cliutil"
 	"github.com/earthly/earthly/fileutil"
 	"github.com/earthly/earthly/gitutil"
 	"github.com/earthly/earthly/syncutil"
@@ -125,18 +125,13 @@ func getRepoHash() string {
 }
 
 func getInstallID() (string, error) {
-	homeDir, err := detectHomeDir()
+	earthlyDir, err := cliutil.GetEarthlyDir()
 	if err != nil {
-		return "", errors.Wrap(err, "failed to get user home dir")
+		return "", err
 	}
 
-	parent := filepath.Join(homeDir, ".earthly")
-	path := filepath.Join(parent, "install_id")
+	path := filepath.Join(earthlyDir, "install_id")
 	if !fileutil.FileExists(path) {
-		err := os.MkdirAll(parent, 0755)
-		if err != nil {
-			return "", errors.Wrapf(err, "failed to create dir %s", parent)
-		}
 		u, err := uuid.NewUUID()
 		if err != nil {
 			u, err = uuid.NewRandom()
@@ -157,35 +152,6 @@ func getInstallID() (string, error) {
 		return "", errors.Wrapf(err, "failed to read %q", path)
 	}
 	return string(s), nil
-}
-
-func detectHomeDir() (string, error) {
-	if runtime.GOOS == "windows" {
-		return os.UserHomeDir()
-	}
-	// See if SUDO_USER exists. Use that user's home dir.
-	sudoUser, ok := os.LookupEnv("SUDO_USER")
-	if ok {
-		bashFormHomeDir := fmt.Sprintf("~%s", sudoUser)
-		cmd := exec.Command("/bin/sh", "-c", fmt.Sprintf("eval echo \"%s\"", bashFormHomeDir))
-		homeDirDt, err := cmd.CombinedOutput()
-		homeDir := string(bytes.TrimSpace(homeDirDt))
-		if err == nil && homeDir != "" && homeDir != "/" && homeDir != bashFormHomeDir {
-			return homeDir, nil
-		}
-	}
-	// Try to use current user's home dir.
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		// Try $HOME.
-		homeDir, ok := os.LookupEnv("HOME")
-		if ok {
-			return homeDir, nil
-		}
-		// No home dir available - use /etc instead.
-		return "/etc", nil
-	}
-	return homeDir, nil
 }
 
 func isTerminal() bool {
