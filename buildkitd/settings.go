@@ -3,6 +3,7 @@ package buildkitd
 import (
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/mitchellh/hashstructure/v2"
 	"github.com/pkg/errors"
@@ -17,6 +18,7 @@ type Settings struct {
 	AdditionalArgs   []string
 	AdditionalConfig string
 	CniMtu           uint16
+	Timeout          time.Duration `hash:"ignore"`
 }
 
 // Hash returns a secure hash of the settings.
