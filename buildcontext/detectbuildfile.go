@@ -15,11 +15,6 @@ import (
 // detectBuildFile detects whether to use Earthfile, build.earth or Dockerfile.
 func detectBuildFile(ref domain.Reference, localDir string) (string, error) {
 	if strings.HasPrefix(ref.GetName(), DockerfileMetaTarget) {
-		// @#
-		// dfPath := strings.TrimPrefix(ref.GetName(), DockerfileMetaTarget)
-		// if dfPath != "Dockerfile" && !strings.HasSuffix(dfPath, ".Dockerfile") {
-		// 	return "", errors.New("cannot reference Dockerfile without the .Dockerfile extension")
-		// }
 		return filepath.Join(localDir, strings.TrimPrefix(ref.GetName(), DockerfileMetaTarget)), nil
 	}
 	earthfilePath := filepath.Join(localDir, "Earthfile")

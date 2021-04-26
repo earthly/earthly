@@ -145,24 +145,9 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, gwClient gwclient.
 			gitOpts = append(gitOpts, llb.KnownSSHHosts(keyScan))
 		}
 		gitState := llb.Git(gitURL, gitRef, gitOpts...)
-		// @#
-		// copyOpts := []llb.RunOption{
-		// 	llb.Args([]string{
-		// 		"find",
-		// 		"-type", "f",
-		// 		"(", "-name", "build.earth", "-o", "-name", "Earthfile", "-o", "-name", "*.Dockerfile", "-o", "-name", "Dockerfile", ")",
-		// 		"-exec", "cp", "--parents", "{}", "/dest", ";",
-		// 	}),
-		// 	llb.Dir("/git-src"),
-		// 	llb.ReadonlyRootFS(),
-		// 	llb.AddMount("/git-src", gitState, llb.Readonly),
-		// 	llb.WithCustomNamef("[internal] COPY GIT CLONE %s Metadata", ref.ProjectCanonical()),
-		// }
 		opImg := pllb.Image(
 			defaultGitImage, llb.MarkImageInternal, llb.ResolveModePreferLocal,
 			llb.Platform(llbutil.DefaultPlatform()))
-		// copyOp := opImg.Run(copyOpts...)
-		// earthfileState := copyOp.AddMount("/dest", llbutil.ScratchWithPlatform())
 
 		// Get git hash.
 		gitHashOpts := []llb.RunOption{
