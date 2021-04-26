@@ -170,29 +170,61 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 	c.setPlatform(platform)
 	plat := llbutil.PlatformWithDefault(platform)
 	c.nonSaveCommand()
+	var dfData []byte
 	if dfPath != "" {
-		// TODO: It's not yet very clear what -f should do. Should it be referencing a Dockerfile
-		//       from the build context or the build environment?
-		//       Build environment is likely better as it gives maximum flexibility to do
-		//       anything.
-		return errors.New("FROM DOCKERFILE -f not yet supported")
+		dfArtifact, parseErr := domain.ParseArtifact(dfPath)
+		if parseErr == nil {
+			// The Dockerfile is from a target's artifact.
+			mts, err := c.buildTarget(ctx, dfArtifact.Target.String(), platform, false, buildArgs, false, false)
+			if err != nil {
+				return err
+			}
+			dfData, err = c.readArtifact(ctx, mts, dfArtifact)
+			if err != nil {
+				return err
+			}
+		} else {
+			// The Dockerfile is from the host.
+			dockerfileMetaTarget := domain.Target{
+				Target:    fmt.Sprintf("%s%s", buildcontext.DockerfileMetaTarget, path.Base(dfPath)),
+				LocalPath: path.Dir(dfPath),
+			}
+			dockerfileMetaTargetRef, err := c.joinRefs(dockerfileMetaTarget)
+			if err != nil {
+				return errors.Wrap(err, "join targets")
+			}
+			dockerfileMetaTarget = dockerfileMetaTargetRef.(domain.Target)
+			data, err := c.opt.Resolver.Resolve(ctx, c.opt.GwClient, dockerfileMetaTarget)
+			if err != nil {
+				return errors.Wrap(err, "resolve build context for dockerfile")
+			}
+			for ldk, ld := range data.LocalDirs {
+				c.mts.Final.LocalDirs[ldk] = ld
+			}
+			dfData, err = ioutil.ReadFile(data.BuildFilePath)
+			if err != nil {
+				return errors.Wrapf(err, "read file %s", data.BuildFilePath)
+			}
+		}
 	}
 	var buildContext pllb.State
-	var dfData []byte
 	contextArtifact, parseErr := domain.ParseArtifact(contextPath)
 	if parseErr == nil {
-		// The Dockerfile and build context are from a target's artifact.
+		// The build context is from a target's artifact.
 		// TODO: The build args are used for both the artifact and the Dockerfile. This could be
 		//       confusing to the user.
 		mts, err := c.buildTarget(ctx, contextArtifact.Target.String(), platform, false, buildArgs, false, false)
 		if err != nil {
 			return err
 		}
-		dfArtifact := contextArtifact
-		dfArtifact.Artifact = path.Join(dfArtifact.Artifact, "Dockerfile")
-		dfData, err = c.readArtifact(ctx, mts, dfArtifact)
-		if err != nil {
-			return err
+		if dfPath == "" {
+			// Imply dockerfile as being ./Dockerfile in the root of the build context.
+			dfArtifact := contextArtifact
+			dfArtifact.Artifact = path.Join(dfArtifact.Artifact, "Dockerfile")
+			dfData, err = c.readArtifact(ctx, mts, dfArtifact)
+			if err != nil {
+				return err
+			}
 		}
 		buildContext = llbutil.ScratchWithPlatform()
 		buildContext = llbutil.CopyOp(
@@ -202,7 +234,7 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 				"[internal] FROM DOCKERFILE (copy build context from) %s%s",
 				joinWrap(buildArgs, "(", " ", ") "), contextArtifact.String()))
 	} else {
-		// The Dockerfile and build context are from the host.
+		// The build context is from the host.
 		if contextPath != "." &&
 			!strings.HasPrefix(contextPath, "./") &&
 			!strings.HasPrefix(contextPath, "../") &&
@@ -210,8 +242,8 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 			contextPath = fmt.Sprintf("./%s", contextPath)
 		}
 		dockerfileMetaTarget := domain.Target{
-			Target:    buildcontext.DockerfileMetaTarget,
-			LocalPath: contextPath,
+			Target:    fmt.Sprintf("%sDockerfile", buildcontext.DockerfileMetaTarget),
+			LocalPath: path.Join(contextPath),
 		}
 		dockerfileMetaTargetRef, err := c.joinRefs(dockerfileMetaTarget)
 		if err != nil {
@@ -225,10 +257,12 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 		for ldk, ld := range data.LocalDirs {
 			c.mts.Final.LocalDirs[ldk] = ld
 		}
-		dfPath = data.BuildFilePath
-		dfData, err = ioutil.ReadFile(dfPath)
-		if err != nil {
-			return errors.Wrapf(err, "read file %s", dfPath)
+		if dfPath == "" {
+			// Imply dockerfile as being ./Dockerfile in the root of the build context.
+			dfData, err = ioutil.ReadFile(data.BuildFilePath)
+			if err != nil {
+				return errors.Wrapf(err, "read file %s", data.BuildFilePath)
+			}
 		}
 		buildContext = data.BuildContext
 	}

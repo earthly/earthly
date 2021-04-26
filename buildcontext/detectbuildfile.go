@@ -5,6 +5,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"strings"
 
 	"github.com/earthly/earthly/domain"
 	gwclient "github.com/moby/buildkit/frontend/gateway/client"
@@ -13,8 +14,13 @@ import (
 
 // detectBuildFile detects whether to use Earthfile, build.earth or Dockerfile.
 func detectBuildFile(ref domain.Reference, localDir string) (string, error) {
-	if ref.GetName() == DockerfileMetaTarget {
-		return filepath.Join(localDir, "Dockerfile"), nil
+	if strings.HasPrefix(ref.GetName(), DockerfileMetaTarget) {
+		// @#
+		// dfPath := strings.TrimPrefix(ref.GetName(), DockerfileMetaTarget)
+		// if dfPath != "Dockerfile" && !strings.HasSuffix(dfPath, ".Dockerfile") {
+		// 	return "", errors.New("cannot reference Dockerfile without the .Dockerfile extension")
+		// }
+		return filepath.Join(localDir, strings.TrimPrefix(ref.GetName(), DockerfileMetaTarget)), nil
 	}
 	earthfilePath := filepath.Join(localDir, "Earthfile")
 	_, err := os.Stat(earthfilePath)
@@ -35,8 +41,8 @@ func detectBuildFile(ref domain.Reference, localDir string) (string, error) {
 }
 
 func detectBuildFileInRef(ctx context.Context, earthlyRef domain.Reference, ref gwclient.Reference, subDir string) (string, error) {
-	if earthlyRef.GetName() == DockerfileMetaTarget {
-		return path.Join(subDir, "Dockerfile"), nil
+	if strings.HasPrefix(earthlyRef.GetName(), DockerfileMetaTarget) {
+		return filepath.Join(subDir, strings.TrimPrefix(earthlyRef.GetName(), DockerfileMetaTarget)), nil
 	}
 	earthfilePath := path.Join(subDir, "Earthfile")
 	exists, err := fileExists(ctx, ref, earthfilePath)
