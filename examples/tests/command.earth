@@ -2,6 +2,8 @@
 FROM alpine:3.13
 WORKDIR /test
 
+ARG global_var=default
+
 all:
     BUILD +test-basic
     BUILD +test-remote-no-context
@@ -11,6 +13,8 @@ all:
     BUILD +test-remote-touch
     BUILD +test-scope
     BUILD +test-builtin
+    BUILD +test-global-default
+    BUILD +test-global-override
 
 test-basic:
     DO +TOUCH
@@ -57,6 +61,14 @@ test-scope:
 test-builtin:
     DO +TEST_BUILTIN
 
+test-global-default:
+    DO +TOUCH_GLOBAL
+    RUN test -f ./default
+
+test-global-override:
+    DO +TOUCH_GLOBAL --global_var=override
+    RUN test -f ./override
+
 TOUCH:
     COMMAND
     RUN touch a.txt
@@ -94,3 +106,8 @@ TEST_BUILTIN:
     COMMAND
     ARG EARTHLY_TARGET_NAME
     RUN test "$EARTHLY_TARGET_NAME" = "test-builtin"
+
+TOUCH_GLOBAL:
+    COMMAND
+    RUN test "$global_var" != ""
+    RUN touch $global_var

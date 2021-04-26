@@ -168,7 +168,7 @@ func (c *Collection) EnterFrame(frameName string, absRef domain.Reference, overr
 		absRef:     absRef,
 		imports:    domain.NewImportTracker(c.console, globalImports),
 		overriding: overriding,
-		globals:    NewScope(),
+		globals:    globals,
 		args:       NewScope(),
 	})
 	c.effectiveCache = nil

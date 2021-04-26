@@ -1043,7 +1043,7 @@ func (c *Converter) ResolveReference(ctx context.Context, ref domain.Reference) 
 
 // EnterScope introduces a new variable scope. Gloabls and imports are fetched from baseTarget.
 func (c *Converter) EnterScope(ctx context.Context, command domain.Command, baseTarget domain.Target, allowPrivileged bool, scopeName string, buildArgs []string) error {
-	baseMts, err := c.buildTarget(ctx, baseTarget.String(), c.mts.Final.Platform, allowPrivileged, nil, true, false)
+	baseMts, err := c.buildTarget(ctx, baseTarget.String(), c.mts.Final.Platform, allowPrivileged, buildArgs, true, false)
 	if err != nil {
 		return err
 	}
