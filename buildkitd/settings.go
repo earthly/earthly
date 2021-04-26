@@ -1,57 +1,45 @@
 package buildkitd
 
 import (
-	"crypto/sha256"
-	"encoding/base64"
-	"encoding/json"
+	"strconv"
+	"strings"
 
+	"github.com/mitchellh/hashstructure/v2"
 	"github.com/pkg/errors"
-	"golang.org/x/crypto/bcrypt"
 )
 
 // Settings represents the buildkitd settings used to start up the daemon with.
 type Settings struct {
-	CacheSizeMb      int      `json:"cacheSizeMb"`
-	GitURLInsteadOf  string   `json:"gitUrlInsteadOf"`
-	Debug            bool     `json:"debug"`
-	DebuggerPort     int      `json:"debuggerPort"`
-	AdditionalArgs   []string `json:"additionalArgs"`
-	AdditionalConfig string   `json:"additionalConfig"`
-	CniMtu           uint16   `json:"cnuMtu"`
+	CacheSizeMb      int
+	GitURLInsteadOf  string
+	Debug            bool
+	DebuggerPort     int
+	AdditionalArgs   []string
+	AdditionalConfig string
+	CniMtu           uint16
 }
 
 // Hash returns a secure hash of the settings.
 func (s Settings) Hash() (string, error) {
-	dt, err := json.Marshal(s)
+	hash, err := hashstructure.Hash(s, hashstructure.FormatV2, nil)
 	if err != nil {
-		return "", errors.Wrap(err, "json marshal settings")
+		return "", errors.Wrap(err, "hash settings")
 	}
-	// Extra sha256 wrap is needed due to bcrypt password length limit.
-	dtSha256 := sha256.Sum256(dt)
-	hash, err := bcrypt.GenerateFromPassword(dtSha256[:], bcrypt.DefaultCost)
-	if err != nil {
-		return "", errors.Wrap(err, "generate from password")
-	}
-	return base64.StdEncoding.EncodeToString(hash), nil
+
+	return strconv.FormatUint(hash, 16), nil
 }
 
 // VerifyHash checks whether a given hash matches the settings.
 func (s Settings) VerifyHash(hash string) (bool, error) {
-	hashBytes, err := base64.StdEncoding.DecodeString(hash)
+	newHash, err := hashstructure.Hash(s, hashstructure.FormatV2, nil)
 	if err != nil {
-		return false, errors.Wrap(err, "base64 decode hash")
+		return false, errors.Wrap(err, "hash settings")
 	}
-	dt, err := json.Marshal(s)
+
+	oldHash, err := strconv.ParseUint(strings.TrimSpace(hash), 16, 64)
 	if err != nil {
-		return false, errors.Wrap(err, "json marshal settings")
+		return false, errors.Wrap(err, "parse hash")
 	}
-	dtSha256 := sha256.Sum256(dt)
-	err = bcrypt.CompareHashAndPassword(hashBytes, dtSha256[:])
-	if err != nil {
-		if err == bcrypt.ErrMismatchedHashAndPassword {
-			return false, nil
-		}
-		return false, errors.Wrap(err, "compare hash and password")
-	}
-	return true, nil
+
+	return oldHash == newHash, nil
 }
