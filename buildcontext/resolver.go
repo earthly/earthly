@@ -3,6 +3,7 @@ package buildcontext
 import (
 	"context"
 	"path/filepath"
+	"strings"
 
 	"github.com/earthly/earthly/ast"
 	"github.com/earthly/earthly/ast/spec"
@@ -15,9 +16,9 @@ import (
 	"github.com/pkg/errors"
 )
 
-// DockerfileMetaTarget is a target name which signals the resolver that the build file is a
+// DockerfileMetaTarget is a target name prefix which signals the resolver that the build file is a
 // dockerfile. The DockerfileMetaTarget is really not a valid Earthly target otherwise.
-const DockerfileMetaTarget = "@dockerfile"
+const DockerfileMetaTarget = "@dockerfile:"
 
 // Data represents a resolved target's build context data.
 type Data struct {
@@ -87,7 +88,7 @@ func (r *Resolver) Resolve(ctx context.Context, gwClient gwclient.Client, ref do
 	}
 	d.Ref = gitutil.ReferenceWithGitMeta(ref, d.GitMetadata)
 	d.LocalDirs = localDirs
-	if ref.GetName() != DockerfileMetaTarget {
+	if !strings.HasPrefix(ref.GetName(), DockerfileMetaTarget) {
 		d.Earthfile, err = r.parseEarthfile(ctx, d.BuildFilePath)
 		if err != nil {
 			return nil, err

@@ -35,8 +35,6 @@ type gitResolver struct {
 }
 
 type resolvedGitProject struct {
-	// gitMetaAndEarthfileState is the state containing the git metadata and build files.
-	gitMetaAndEarthfileState pllb.State
 	// hash is the git hash.
 	hash string
 	// branches is the git branches.
@@ -73,9 +71,9 @@ func (gr *gitResolver) resolveEarthProject(ctx context.Context, gwClient gwclien
 	}
 
 	key := ref.ProjectCanonical()
-	if ref.GetName() == DockerfileMetaTarget {
-		// Different key for dockerfiles.
-		key = key + DockerfileMetaTarget
+	if strings.HasPrefix(ref.GetName(), DockerfileMetaTarget) {
+		// Different key for dockerfiles to include the dockerfile name itself.
+		key = ref.StringCanonical()
 	}
 	localBuildFilePathValue, err := gr.buildFileCache.Do(ctx, key, func(ctx context.Context, _ interface{}) (interface{}, error) {
 		earthfileTmpDir, err := ioutil.TempDir(os.TempDir(), "earthly-git")
@@ -85,15 +83,15 @@ func (gr *gitResolver) resolveEarthProject(ctx context.Context, gwClient gwclien
 		gr.cleanCollection.Add(func() error {
 			return os.RemoveAll(earthfileTmpDir)
 		})
-		gitMetaAndEarthfileRef, err := llbutil.StateToRef(ctx, gwClient, rgp.gitMetaAndEarthfileState, nil, nil)
+		gitState, err := llbutil.StateToRef(ctx, gwClient, rgp.state, nil, nil)
 		if err != nil {
 			return nil, errors.Wrap(err, "state to ref git meta")
 		}
-		buildFile, err := detectBuildFileInRef(ctx, ref, gitMetaAndEarthfileRef, subDir)
+		buildFile, err := detectBuildFileInRef(ctx, ref, gitState, subDir)
 		if err != nil {
 			return nil, err
 		}
-		buildFileBytes, err := gitMetaAndEarthfileRef.ReadFile(ctx, gwclient.ReadRequest{
+		buildFileBytes, err := gitState.ReadFile(ctx, gwclient.ReadRequest{
 			Filename: buildFile,
 		})
 		if err != nil {
@@ -147,23 +145,9 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, gwClient gwclient.
 			gitOpts = append(gitOpts, llb.KnownSSHHosts(keyScan))
 		}
 		gitState := llb.Git(gitURL, gitRef, gitOpts...)
-		copyOpts := []llb.RunOption{
-			llb.Args([]string{
-				"find",
-				"-type", "f",
-				"(", "-name", "build.earth", "-o", "-name", "Earthfile", "-o", "-name", "Dockerfile", ")",
-				"-exec", "cp", "--parents", "{}", "/dest", ";",
-			}),
-			llb.Dir("/git-src"),
-			llb.ReadonlyRootFS(),
-			llb.AddMount("/git-src", gitState, llb.Readonly),
-			llb.WithCustomNamef("[internal] COPY GIT CLONE %s Metadata", ref.ProjectCanonical()),
-		}
 		opImg := pllb.Image(
 			defaultGitImage, llb.MarkImageInternal, llb.ResolveModePreferLocal,
 			llb.Platform(llbutil.DefaultPlatform()))
-		copyOp := opImg.Run(copyOpts...)
-		earthfileState := copyOp.AddMount("/dest", llbutil.ScratchWithPlatform())
 
 		// Get git hash.
 		gitHashOpts := []llb.RunOption{
@@ -179,25 +163,25 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, gwClient gwclient.
 			llb.WithCustomNamef("[internal] GET GIT META %s", ref.ProjectCanonical()),
 		}
 		gitHashOp := opImg.Run(gitHashOpts...)
-		gitMetaAndEarthfileState := gitHashOp.AddMount("/dest", earthfileState)
+		gitMetaState := gitHashOp.AddMount("/dest", llbutil.ScratchWithPlatform())
 
-		gitMetaAndEarthfileRef, err := llbutil.StateToRef(ctx, gwClient, gitMetaAndEarthfileState, nil, nil)
+		gitMetaRef, err := llbutil.StateToRef(ctx, gwClient, gitMetaState, nil, nil)
 		if err != nil {
 			return nil, errors.Wrap(err, "state to ref git meta")
 		}
-		gitHashBytes, err := gitMetaAndEarthfileRef.ReadFile(ctx, gwclient.ReadRequest{
+		gitHashBytes, err := gitMetaRef.ReadFile(ctx, gwclient.ReadRequest{
 			Filename: "git-hash",
 		})
 		if err != nil {
 			return nil, errors.Wrap(err, "read git-hash")
 		}
-		gitBranchBytes, err := gitMetaAndEarthfileRef.ReadFile(ctx, gwclient.ReadRequest{
+		gitBranchBytes, err := gitMetaRef.ReadFile(ctx, gwclient.ReadRequest{
 			Filename: "git-branch",
 		})
 		if err != nil {
 			return nil, errors.Wrap(err, "read git-branch")
 		}
-		gitTagsBytes, err := gitMetaAndEarthfileRef.ReadFile(ctx, gwclient.ReadRequest{
+		gitTagsBytes, err := gitMetaRef.ReadFile(ctx, gwclient.ReadRequest{
 			Filename: "git-tags",
 		})
 		if err != nil {
@@ -229,10 +213,9 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, gwClient gwclient.
 		}
 
 		rgp := &resolvedGitProject{
-			gitMetaAndEarthfileState: gitMetaAndEarthfileState,
-			hash:                     gitHash,
-			branches:                 gitBranches2,
-			tags:                     gitTags2,
+			hash:     gitHash,
+			branches: gitBranches2,
+			tags:     gitTags2,
 			state: pllb.Git(
 				gitURL,
 				gitHash,

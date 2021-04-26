@@ -14,6 +14,8 @@ ga:
     BUILD ./autocompletion+test-all
     BUILD ./with-docker+all
     BUILD ./with-docker-compose+all
+    BUILD ./dockerfile+test
+    BUILD ./dockerfile2/subdir+test
     BUILD +privileged-test
     BUILD +copy-test
     BUILD +cache-test
@@ -278,7 +280,7 @@ private-image-test:
     RUN --entrypoint echo hello world
 
 gen-dockerfile-test:
-    DO +RUN_EARTHLY --earthfile=gen-dockerfile.earth --extra_args="--no-output" --target=+test
+    DO +RUN_EARTHLY --earthfile=gen-dockerfile.earth --extra_args="--no-output" --target=+all
 
 comments-test:
     DO +RUN_EARTHLY --earthfile=comments.earth --extra_args="--no-output" --target=+test
