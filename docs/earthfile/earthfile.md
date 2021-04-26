@@ -450,6 +450,17 @@ If `<artifact-dest-path>` is not specified, it is inferred as `/`.
 
 Files within the artifact environment are also known as "artifacts". Once a file has been copied into the artifact environment, it can be referenced in other places of the build (for example in a `COPY` command), using an [artifact reference](../guides/target-ref.md).
 
+{% hint style='info' %}
+##### Hint
+In order to inspect the contents of an artifacts environment, you can run
+
+```bash
+earthly --artifact +<target>/* ./output/
+```
+
+This command dumps the contents of the artifact environment of the target `+<target>` into a local directory called `output`, which can be inspected directly.
+{% endhint %}
+
 #### Options
 
 ##### `--keep-ts`
