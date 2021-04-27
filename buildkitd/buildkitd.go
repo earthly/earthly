@@ -41,6 +41,11 @@ var Address = fmt.Sprintf("docker-container://%s", ContainerName)
 // NewClient returns a new buildkitd client.
 func NewClient(ctx context.Context, console conslogging.ConsoleLogger, image string, settings Settings, opts ...client.ClientOpt) (*client.Client, error) {
 	if settings.BuildkitHost != "" {
+		err := waitForConnection(ctx, settings.BuildkitHost, settings.Timeout)
+		if err != nil {
+			return nil, errors.Wrap(err, "connect provided buildkit")
+		}
+
 		bkClient, err := client.New(ctx, settings.BuildkitHost, opts...)
 		if err != nil {
 			return nil, errors.Wrap(err, "start provided buildkit")
@@ -375,15 +380,19 @@ func waitForConnection(ctx context.Context, address string, opTimeout time.Durat
 	for {
 		select {
 		case <-time.After(1 * time.Second):
-			// Make sure that it has not crashed on startup.
-			isRunning, err := isContainerRunning(ctxTimeout)
-			if err != nil {
-				return err
+			if address == "" {
+				// Make sure that our managed buildkit has not crashed on startup.
+				isRunning, err := isContainerRunning(ctxTimeout)
+				if err != nil {
+					return err
+				}
+
+				if !isRunning {
+					return ErrBuildkitCrashed
+				}
 			}
-			if !isRunning {
-				return ErrBuildkitCrashed
-			}
-			err = checkConnection(ctxTimeout, address)
+
+			err := checkConnection(ctxTimeout, address)
 			if err != nil {
 				// Try again.
 				continue
