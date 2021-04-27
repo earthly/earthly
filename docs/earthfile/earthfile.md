@@ -301,7 +301,7 @@ The command `COPY` allows copying of files and directories between different con
 
 The command may take a couple of possible forms. In the *classical form*, `COPY` copies files and directories from the build context into the build environment - in this form, it works similarly to the [Dockerfile `COPY` command](https://docs.docker.com/engine/reference/builder/#copy). In the *artifact form*, `COPY` copies files or directories (also known as "artifacts" in this context) from the artifact environment of other build targets into the build environment of the current target. Either form allows the use of wildcards for the sources.
 
-The parameter `<src-artifact>` is an artifact reference and is generally of the form `<target-ref>/<artifact-path>`, where `<target-ref>` is the reference to the target which needs to be built in order to yield the artifact and `<artifact-path>` is the path within the artifact environment of the target, where the file or directory is located. The `<artifact-path>` may also be a wildcard.
+The parameter `<src-artifact>` is an [artifact reference](../guides/target-ref.md#artifact-reference) and is generally of the form `<target-ref>/<artifact-path>`, where `<target-ref>` is the reference to the target which needs to be built in order to yield the artifact and `<artifact-path>` is the path within the artifact environment of the target, where the file or directory is located. The `<artifact-path>` may also be a wildcard.
 
 Note that the Dockerfile form of `COPY` whereby you can reference a source as a URL is not yet supported in Earthfiles.
 
@@ -448,7 +448,7 @@ If `AS LOCAL ...` is also specified, it additionally marks the artifact to be co
 
 If `<artifact-dest-path>` is not specified, it is inferred as `/`.
 
-Files within the artifact environment are also known as "artifacts". Once a file has been copied into the artifact environment, it can be referenced in other places of the build (for example in a `COPY` command), using an [artifact reference](../guides/target-ref.md).
+Files within the artifact environment are also known as "artifacts". Once a file has been copied into the artifact environment, it can be referenced in other places of the build (for example in a `COPY` command), using an [artifact reference](../guides/target-ref.md#artifact-reference).
 
 {% hint style='info' %}
 ##### Hint
@@ -541,7 +541,7 @@ Instructs Earthly that the current target should be included as part of the expl
 
 #### Description
 
-The command `BUILD` instructs Earthly to additionally invoke the build of the target referenced by `<target-ref>`, where `<target-ref>` follows the rules defined by [target referencing](../guides/target-ref.md).
+The command `BUILD` instructs Earthly to additionally invoke the build of the target referenced by `<target-ref>`, where `<target-ref>` follows the rules defined by [target referencing](../guides/target-ref.md#target-reference).
 
 #### Options
 
@@ -731,13 +731,13 @@ Sets the number of retries before a container is considered `unhealthy`. Default
 
 #### Synopsis
 
-* `FROM DOCKERFILE [--build-arg <key>=<value>] [--platform <platform>] [--target <target-name>] <context-path>`
+* `FROM DOCKERFILE [options...] <context-path>`
 
 #### Description
 
 The `FROM DOCKERFILE` command initializes a new build environment, inheriting from an existing Dockerfile. This allows the use of Dockerfiles in Earthly builds.
 
-The `<context-path>` is the path where the Dockerfile build context exists. It is assumed that a file named `Dockerfile` exists in that directory. The context path can be either a path on the host system, or an artifact reference, pointing to a directory containing a `Dockerfile`.
+The `<context-path>` is the path where the Dockerfile build context exists. By default, it is assumed that a file named `Dockerfile` exists in that directory. The context path can be either a path on the host system, or an [artifact reference](../guides/target-ref.md#artifact-reference), pointing to a directory containing a `Dockerfile`.
 
 {% hint style='info' %}
 ##### Note
@@ -750,6 +750,10 @@ This feature is currently in **Beta** and it has the following limitations:
 {% endhint %}
 
 #### Options
+
+##### `-f <dockerfile-path>`
+
+Specify an alternative Dockerfile to use. The `<dockerfile-path>` can be either a path on the host system, relative to the current Earthfile, or an [artifact reference](../guides/target-ref.md#artifact-reference) pointing to a Dockerfile.
 
 ##### `--build-arg <key>=<value>`
 
@@ -1035,7 +1039,7 @@ This feature is currently in **Experimental** stage
 
 #### Description
 
-The command `DO` expands and executes the series of commands contained within a user-defined command (UDC).
+The command `DO` expands and executes the series of commands contained within a user-defined command (UDC) [referenced by `<command-ref>`](../guides/target-ref.md#command-reference).
 
 Unlike performing a `BUILD +target`, UDCs inherit the build context and the build environment from the caller.
 
