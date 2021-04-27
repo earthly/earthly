@@ -1251,26 +1251,23 @@ func (app *earthlyApp) run(ctx context.Context, args []string) int {
 			if bytes.Contains(baseErrMsg, []byte("transport is closing")) {
 				app.console.Warnf(
 					"It seems that buildkitd is shutting down or it has crashed. " +
-						"You can report crashes at https://github.com/earthly/earthly/issues/new. " +
-						"Buildkitd logs follow...")
-				buildkitd.PrintLogs(ctx)
+						"You can report crashes at https://github.com/earthly/earthly/issues/new.")
+				buildkitd.PrintLogs(ctx, app.buildkitdSettings, app.console)
 				return 7
 			}
 		} else if errors.Is(err, buildkitd.ErrBuildkitCrashed) {
 			app.console.Warnf("Error: %v\n", err)
 			app.console.Warnf(
 				"It seems that buildkitd is shutting down or it has crashed. " +
-					"You can report crashes at https://github.com/earthly/earthly/issues/new. " +
-					"Buildkitd logs follow...")
-			buildkitd.PrintLogs(ctx)
+					"You can report crashes at https://github.com/earthly/earthly/issues/new.")
+			buildkitd.PrintLogs(ctx, app.buildkitdSettings, app.console)
 			return 7
 		} else if errors.Is(err, buildkitd.ErrBuildkitStartFailure) {
 			app.console.Warnf("Error: %v\n", err)
 			app.console.Warnf(
 				"It seems that buildkitd had an issue. " +
-					"You can report crashes at https://github.com/earthly/earthly/issues/new. " +
-					"Buildkitd logs follow...")
-			buildkitd.PrintLogs(ctx)
+					"You can report crashes at https://github.com/earthly/earthly/issues/new.")
+			buildkitd.PrintLogs(ctx, app.buildkitdSettings, app.console)
 			return 6
 		} else if isInterpereterError {
 			app.console.Warnf("Error: %s\n", ie.Error())

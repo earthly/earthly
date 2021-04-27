@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/earthly/earthly/conslogging"
+	"github.com/fatih/color"
 	"github.com/moby/buildkit/client"
 	_ "github.com/moby/buildkit/client/connhelper/dockercontainer" // Load "docker-container://" helper.
 	"github.com/pkg/errors"
@@ -473,7 +474,13 @@ func MaybePull(ctx context.Context, console conslogging.ConsoleLogger, image str
 }
 
 // PrintLogs prints the buildkitd logs to stderr.
-func PrintLogs(ctx context.Context) error {
+func PrintLogs(ctx context.Context, settings Settings, console conslogging.ConsoleLogger) error {
+	if settings.BuildkitHost != "" {
+		return nil
+	}
+
+	console.PrintBar(color.New(color.FgHiRed), "Buildkit Logs", "")
+
 	cmd := exec.CommandContext(ctx, "docker", "logs", ContainerName)
 	cmd.Stdout = os.Stderr
 	cmd.Stderr = os.Stderr
