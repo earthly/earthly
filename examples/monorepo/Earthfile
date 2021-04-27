@@ -1,5 +1,2 @@
-FROM alpine:3.13
-
 all:
-    BUILD ./proj1+docker
-    BUILD ./proj2+docker
+    BUILD ./frontend+docker
