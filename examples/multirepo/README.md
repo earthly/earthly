@@ -24,6 +24,14 @@ in this directory, or, without cloning the Earthly repo, run this anywhere
 earthly github.com/earthly/earthly/examples/multirepo:main+docker
 ```
 
+Then, run the resulting container:
+
+```
+docker run --rm -p 127.0.0.1:8080:8080 earthly/examples:multirepo
+```
+
+and load http://127.0.0.1:8080 in your browser.
+
 ## Explanation
 
 Notice how the build is able to reference other repositories and copy artifacts from specific build targets. For example, the line
