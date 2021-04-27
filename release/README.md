@@ -34,6 +34,8 @@
   ./earthly --build-arg RELEASE_TAG --push ./release+release-homebrew
   ```
 * Important: Subscribe to the PR that griswoldthecat created in homebrew-core, so that you can address any review comments that may come up.
+* *One-Time:* Update the homebrew formula to change the test. It should now check for "`buildkitd failed to start`" as the sentinel error string.
+  * Remove this (and the above) line once release process is complete.
 * Merge branch `main` into `next`, then merge branch `next` into `main`.
 * Update the version for the installation command in the following places:
   * [ci-integration.md](../docs/ci-integration.md)
