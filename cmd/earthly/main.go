@@ -931,6 +931,8 @@ func (app *earthlyApp) before(context *cli.Context) error {
 	app.buildkitdSettings.AdditionalArgs = app.cfg.Global.BuildkitAdditionalArgs
 	app.buildkitdSettings.AdditionalConfig = app.cfg.Global.BuildkitAdditionalConfig
 	app.buildkitdSettings.Timeout = time.Duration(app.cfg.Global.BuildkitRestartTimeoutS) * time.Second
+	app.buildkitdSettings.Debug = app.debug
+	app.buildkitdSettings.BuildkitHost = app.buildkitHost
 
 	// ensure the MTU is something allowable in IPv4, cap enforced by type. Zero is autodetect.
 	if app.buildkitdSettings.CniMtu != 0 && app.buildkitdSettings.CniMtu < 68 {
@@ -1376,9 +1378,9 @@ func (app *earthlyApp) actionBootstrap(c *cli.Context) error {
 
 	if !app.bootstrapNoBuildkit {
 		// Bootstrap buildkit - pulls image and starts daemon.
-		bkClient, _, err := app.newBuildkitdClient(c.Context)
+		bkClient, err := buildkitd.NewClient(c.Context, app.console, app.buildkitdImage, app.buildkitdSettings)
 		if err != nil {
-			return errors.Wrap(err, "buildkitd new client")
+			return errors.Wrap(err, "bootstrap new buildkitd client")
 		}
 		defer bkClient.Close()
 	}
@@ -2104,10 +2106,6 @@ func (app *earthlyApp) actionPrune(c *cli.Context) error {
 		return errors.New("invalid arguments")
 	}
 	if app.pruneReset {
-		// Prune by resetting container.
-		if app.buildkitHost != "" {
-			return errors.New("Cannot use prune --reset on non-default buildkit-host setting")
-		}
 		err := buildkitd.ResetCache(c.Context, app.console, app.buildkitdImage, app.buildkitdSettings)
 		if err != nil {
 			return errors.Wrap(err, "reset cache")
@@ -2116,9 +2114,9 @@ func (app *earthlyApp) actionPrune(c *cli.Context) error {
 	}
 
 	// Prune via API.
-	bkClient, _, err := app.newBuildkitdClient(c.Context)
+	bkClient, err := buildkitd.NewClient(c.Context, app.console, app.buildkitdImage, app.buildkitdSettings)
 	if err != nil {
-		return errors.Wrap(err, "buildkitd new client")
+		return errors.Wrap(err, "prune new buildkitd client")
 	}
 	defer bkClient.Close()
 	var opts []client.PruneOption
@@ -2304,11 +2302,16 @@ func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []st
 			return errors.Wrapf(err, "parse target name %s", targetName)
 		}
 	}
-	bkClient, bkIP, err := app.newBuildkitdClient(c.Context)
+	bkClient, err := buildkitd.NewClient(c.Context, app.console, app.buildkitdImage, app.buildkitdSettings)
 	if err != nil {
-		return errors.Wrap(err, "buildkitd new client")
+		return errors.Wrap(err, "build new buildkitd client")
 	}
 	defer bkClient.Close()
+
+	bkIP, err := buildkitd.GetContainerIP(c.Context, app.buildkitdSettings)
+	if err != nil {
+		return errors.Wrap(err, "get buildkit container IP")
+	}
 
 	platformsSlice := make([]*specs.Platform, 0, len(app.platformsStr.Value()))
 	for _, p := range app.platformsStr.Value() {
@@ -2483,29 +2486,6 @@ func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []st
 		return errors.Wrap(err, "build target")
 	}
 	return nil
-}
-
-func (app *earthlyApp) newBuildkitdClient(ctx context.Context, opts ...client.ClientOpt) (*client.Client, string, error) {
-	if app.buildkitHost == "" {
-		// Start our own.
-		app.buildkitdSettings.Debug = app.debug
-		bkClient, err := buildkitd.NewClient(ctx, app.console, app.buildkitdImage, app.buildkitdSettings)
-		if err != nil {
-			return nil, "", errors.Wrap(err, "buildkitd new client (own)")
-		}
-		bkIP, err := buildkitd.GetContainerIP(ctx)
-		if err != nil {
-			return nil, "", errors.Wrap(err, "get container ip")
-		}
-		return bkClient, bkIP, nil
-	}
-
-	// Use provided.
-	bkClient, err := client.New(ctx, app.buildkitHost, opts...)
-	if err != nil {
-		return nil, "", errors.Wrap(err, "buildkitd new client (provided)")
-	}
-	return bkClient, "", nil
 }
 
 func (app *earthlyApp) hasSSHKeys() bool {

@@ -40,6 +40,15 @@ var Address = fmt.Sprintf("docker-container://%s", ContainerName)
 
 // NewClient returns a new buildkitd client.
 func NewClient(ctx context.Context, console conslogging.ConsoleLogger, image string, settings Settings, opts ...client.ClientOpt) (*client.Client, error) {
+	if settings.BuildkitHost != "" {
+		bkClient, err := client.New(ctx, settings.BuildkitHost, opts...)
+		if err != nil {
+			return nil, errors.Wrap(err, "start provided buildkit")
+		}
+
+		return bkClient, nil
+	}
+
 	if !isDockerAvailable(ctx) {
 		console.WithPrefix("buildkitd").Printf("Is docker installed and running? Are you part of the docker group?\n")
 		return nil, errors.New("docker not available")
@@ -57,6 +66,11 @@ func NewClient(ctx context.Context, console conslogging.ConsoleLogger, image str
 
 // ResetCache restarts the buildkitd daemon with the reset command.
 func ResetCache(ctx context.Context, console conslogging.ConsoleLogger, image string, settings Settings) error {
+	// Prune by resetting container.
+	if settings.BuildkitHost != "" {
+		return errors.New("Cannot reset cache of a provided buildkit-host setting")
+	}
+
 	console.
 		WithPrefix("buildkitd").
 		Printf("Restarting buildkit daemon with reset command...\n")
@@ -462,7 +476,11 @@ func PrintLogs(ctx context.Context) error {
 }
 
 // GetContainerIP returns the IP of the buildkit container.
-func GetContainerIP(ctx context.Context) (string, error) {
+func GetContainerIP(ctx context.Context, settings Settings) (string, error) {
+	if settings.BuildkitHost != "" {
+		return "", nil // Remote buildkitd is not an error,  but we don't know its IP
+	}
+
 	cmd := exec.CommandContext(ctx, "docker", "inspect", "-f", "{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}", ContainerName)
 	output, err := cmd.CombinedOutput()
 	if err != nil {

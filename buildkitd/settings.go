@@ -15,6 +15,7 @@ type Settings struct {
 	GitURLInsteadOf  string
 	Debug            bool
 	DebuggerPort     int
+	BuildkitHost     string `hash:"ignore"`
 	AdditionalArgs   []string
 	AdditionalConfig string
 	CniMtu           uint16
