@@ -74,7 +74,7 @@ func NewClient(ctx context.Context, console conslogging.ConsoleLogger, image str
 func ResetCache(ctx context.Context, console conslogging.ConsoleLogger, image string, settings Settings) error {
 	// Prune by resetting container.
 	if settings.BuildkitHost != "" {
-		return errors.New("Cannot reset cache of a provided buildkit-host setting")
+		return errors.New("cannot reset cache of a provided buildkit-host setting")
 	}
 
 	console.
