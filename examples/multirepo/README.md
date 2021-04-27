@@ -43,3 +43,7 @@ COPY github.com/earthly/earthly-example-multirepo-static:v0.1.1+html/* ./
 ```
 
 where `v0.1.1` is a tag or branch specifier.
+
+## Compare
+
+Compare this example with the example presented in [monorepo](../monorepo).

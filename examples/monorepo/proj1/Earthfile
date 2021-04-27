@@ -1,6 +1,0 @@
-FROM python:3.8.2-alpine3.11
-
-docker:
-    COPY main.py ./
-    ENTRYPOINT ["python", "main.py"]
-    SAVE IMAGE example-monorepo-proj1:latest

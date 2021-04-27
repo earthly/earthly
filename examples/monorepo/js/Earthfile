@@ -1,0 +1,8 @@
+
+FROM node:13.10.1-alpine3.11
+
+WORKDIR /example-js
+
+build:
+    COPY index.js ./
+    SAVE ARTIFACT index.js
