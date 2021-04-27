@@ -2,6 +2,8 @@
 
 This folder contains a series of examples to help you familiarize yourself with Earthly.
 
+<!-- NOTE: If you change this, please also change docs/examples/examples.md -->
+
 ## Examples from the Basics tutorial
 
 If you are new to Earthly, you may find the [Basics tutorial](https://docs.earthly.dev/basics) helpful.

@@ -44,16 +44,6 @@
 ## 🧙 Examples
 
 * [Overview](examples/examples.md)
-* Per-language Earthfile examples
-    * [Go](examples/go.md)
-    * [Java](examples/java.md)
-    * [JS](examples/js.md)
-    * [C++](examples/cpp.md)
-    * [Python](examples/python.md)
-* Other Earthfile examples
-    * [Monorepo](examples/monorepo.md)
-    * [Multirepo](examples/multirepo.md)
-    * [Earthly](examples/earthly.md)
 * CI examples
     * [GitHub Actions](ci-examples/gh-actions-integration.md)
     * [Circle CI](ci-examples/circle-integration.md)

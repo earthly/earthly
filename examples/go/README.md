@@ -119,10 +119,3 @@ hello world
 ```
 
 [![asciicast](https://asciinema.org/a/314637.svg)](https://asciinema.org/a/314637)
-
-## See also
-
-* The [Earthly basics page](../basics/basics.md), which includes an extended Go example
-* The [Earthfile reference](../earthfile/earthfile.md)
-* The [Earthly command reference](../earthly-command/earthly-command.md)
-* More [examples](../examples/examples.md)
