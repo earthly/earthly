@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/earthly/earthly/conslogging"
+	"github.com/fatih/color"
 	"github.com/moby/buildkit/client"
 	_ "github.com/moby/buildkit/client/connhelper/dockercontainer" // Load "docker-container://" helper.
 	"github.com/pkg/errors"
@@ -40,6 +41,20 @@ var Address = fmt.Sprintf("docker-container://%s", ContainerName)
 
 // NewClient returns a new buildkitd client.
 func NewClient(ctx context.Context, console conslogging.ConsoleLogger, image string, settings Settings, opts ...client.ClientOpt) (*client.Client, error) {
+	if settings.BuildkitHost != "" {
+		err := waitForConnection(ctx, settings.BuildkitHost, settings.Timeout)
+		if err != nil {
+			return nil, errors.Wrap(err, "connect provided buildkit")
+		}
+
+		bkClient, err := client.New(ctx, settings.BuildkitHost, opts...)
+		if err != nil {
+			return nil, errors.Wrap(err, "start provided buildkit")
+		}
+
+		return bkClient, nil
+	}
+
 	if !isDockerAvailable(ctx) {
 		console.WithPrefix("buildkitd").Printf("Is docker installed and running? Are you part of the docker group?\n")
 		return nil, errors.New("docker not available")
@@ -57,6 +72,11 @@ func NewClient(ctx context.Context, console conslogging.ConsoleLogger, image str
 
 // ResetCache restarts the buildkitd daemon with the reset command.
 func ResetCache(ctx context.Context, console conslogging.ConsoleLogger, image string, settings Settings) error {
+	// Prune by resetting container.
+	if settings.BuildkitHost != "" {
+		return errors.New("cannot reset cache of a provided buildkit-host setting")
+	}
+
 	console.
 		WithPrefix("buildkitd").
 		Printf("Restarting buildkit daemon with reset command...\n")
@@ -361,15 +381,19 @@ func waitForConnection(ctx context.Context, address string, opTimeout time.Durat
 	for {
 		select {
 		case <-time.After(1 * time.Second):
-			// Make sure that it has not crashed on startup.
-			isRunning, err := isContainerRunning(ctxTimeout)
-			if err != nil {
-				return err
+			if address == "" {
+				// Make sure that our managed buildkit has not crashed on startup.
+				isRunning, err := isContainerRunning(ctxTimeout)
+				if err != nil {
+					return err
+				}
+
+				if !isRunning {
+					return ErrBuildkitCrashed
+				}
 			}
-			if !isRunning {
-				return ErrBuildkitCrashed
-			}
-			err = checkConnection(ctxTimeout, address)
+
+			err := checkConnection(ctxTimeout, address)
 			if err != nil {
 				// Try again.
 				continue
@@ -450,7 +474,13 @@ func MaybePull(ctx context.Context, console conslogging.ConsoleLogger, image str
 }
 
 // PrintLogs prints the buildkitd logs to stderr.
-func PrintLogs(ctx context.Context) error {
+func PrintLogs(ctx context.Context, settings Settings, console conslogging.ConsoleLogger) error {
+	if settings.BuildkitHost != "" {
+		return nil
+	}
+
+	console.PrintBar(color.New(color.FgHiRed), "Buildkit Logs", "")
+
 	cmd := exec.CommandContext(ctx, "docker", "logs", ContainerName)
 	cmd.Stdout = os.Stderr
 	cmd.Stderr = os.Stderr
@@ -462,7 +492,11 @@ func PrintLogs(ctx context.Context) error {
 }
 
 // GetContainerIP returns the IP of the buildkit container.
-func GetContainerIP(ctx context.Context) (string, error) {
+func GetContainerIP(ctx context.Context, settings Settings) (string, error) {
+	if settings.BuildkitHost != "" {
+		return "", nil // Remote buildkitd is not an error,  but we don't know its IP
+	}
+
 	cmd := exec.CommandContext(ctx, "docker", "inspect", "-f", "{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}", ContainerName)
 	output, err := cmd.CombinedOutput()
 	if err != nil {

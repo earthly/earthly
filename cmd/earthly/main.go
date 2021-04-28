@@ -55,7 +55,6 @@ import (
 	"github.com/earthly/earthly/builder"
 	"github.com/earthly/earthly/buildkitd"
 	"github.com/earthly/earthly/cleanup"
-	"github.com/earthly/earthly/cliutil"
 	"github.com/earthly/earthly/config"
 	"github.com/earthly/earthly/conslogging"
 	debuggercommon "github.com/earthly/earthly/debugger/common"
@@ -63,11 +62,12 @@ import (
 	"github.com/earthly/earthly/docker2earthly"
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/earthfile2llb"
-	"github.com/earthly/earthly/fileutil"
-	"github.com/earthly/earthly/llbutil"
 	"github.com/earthly/earthly/secretsclient"
 	"github.com/earthly/earthly/states"
-	"github.com/earthly/earthly/termutil"
+	"github.com/earthly/earthly/util/cliutil"
+	"github.com/earthly/earthly/util/fileutil"
+	"github.com/earthly/earthly/util/llbutil"
+	"github.com/earthly/earthly/util/termutil"
 	"github.com/earthly/earthly/variables"
 )
 
@@ -931,6 +931,8 @@ func (app *earthlyApp) before(context *cli.Context) error {
 	app.buildkitdSettings.AdditionalArgs = app.cfg.Global.BuildkitAdditionalArgs
 	app.buildkitdSettings.AdditionalConfig = app.cfg.Global.BuildkitAdditionalConfig
 	app.buildkitdSettings.Timeout = time.Duration(app.cfg.Global.BuildkitRestartTimeoutS) * time.Second
+	app.buildkitdSettings.Debug = app.debug
+	app.buildkitdSettings.BuildkitHost = app.buildkitHost
 
 	// ensure the MTU is something allowable in IPv4, cap enforced by type. Zero is autodetect.
 	if app.buildkitdSettings.CniMtu != 0 && app.buildkitdSettings.CniMtu < 68 {
@@ -1249,26 +1251,23 @@ func (app *earthlyApp) run(ctx context.Context, args []string) int {
 			if bytes.Contains(baseErrMsg, []byte("transport is closing")) {
 				app.console.Warnf(
 					"It seems that buildkitd is shutting down or it has crashed. " +
-						"You can report crashes at https://github.com/earthly/earthly/issues/new. " +
-						"Buildkitd logs follow...")
-				buildkitd.PrintLogs(ctx)
+						"You can report crashes at https://github.com/earthly/earthly/issues/new.")
+				buildkitd.PrintLogs(ctx, app.buildkitdSettings, app.console)
 				return 7
 			}
 		} else if errors.Is(err, buildkitd.ErrBuildkitCrashed) {
 			app.console.Warnf("Error: %v\n", err)
 			app.console.Warnf(
 				"It seems that buildkitd is shutting down or it has crashed. " +
-					"You can report crashes at https://github.com/earthly/earthly/issues/new. " +
-					"Buildkitd logs follow...")
-			buildkitd.PrintLogs(ctx)
+					"You can report crashes at https://github.com/earthly/earthly/issues/new.")
+			buildkitd.PrintLogs(ctx, app.buildkitdSettings, app.console)
 			return 7
 		} else if errors.Is(err, buildkitd.ErrBuildkitStartFailure) {
 			app.console.Warnf("Error: %v\n", err)
 			app.console.Warnf(
 				"It seems that buildkitd had an issue. " +
-					"You can report crashes at https://github.com/earthly/earthly/issues/new. " +
-					"Buildkitd logs follow...")
-			buildkitd.PrintLogs(ctx)
+					"You can report crashes at https://github.com/earthly/earthly/issues/new.")
+			buildkitd.PrintLogs(ctx, app.buildkitdSettings, app.console)
 			return 6
 		} else if isInterpereterError {
 			app.console.Warnf("Error: %s\n", ie.Error())
@@ -1376,9 +1375,9 @@ func (app *earthlyApp) actionBootstrap(c *cli.Context) error {
 
 	if !app.bootstrapNoBuildkit {
 		// Bootstrap buildkit - pulls image and starts daemon.
-		bkClient, _, err := app.newBuildkitdClient(c.Context)
+		bkClient, err := buildkitd.NewClient(c.Context, app.console, app.buildkitdImage, app.buildkitdSettings)
 		if err != nil {
-			return errors.Wrap(err, "buildkitd new client")
+			return errors.Wrap(err, "bootstrap new buildkitd client")
 		}
 		defer bkClient.Close()
 	}
@@ -2104,10 +2103,6 @@ func (app *earthlyApp) actionPrune(c *cli.Context) error {
 		return errors.New("invalid arguments")
 	}
 	if app.pruneReset {
-		// Prune by resetting container.
-		if app.buildkitHost != "" {
-			return errors.New("Cannot use prune --reset on non-default buildkit-host setting")
-		}
 		err := buildkitd.ResetCache(c.Context, app.console, app.buildkitdImage, app.buildkitdSettings)
 		if err != nil {
 			return errors.Wrap(err, "reset cache")
@@ -2116,9 +2111,9 @@ func (app *earthlyApp) actionPrune(c *cli.Context) error {
 	}
 
 	// Prune via API.
-	bkClient, _, err := app.newBuildkitdClient(c.Context)
+	bkClient, err := buildkitd.NewClient(c.Context, app.console, app.buildkitdImage, app.buildkitdSettings)
 	if err != nil {
-		return errors.Wrap(err, "buildkitd new client")
+		return errors.Wrap(err, "prune new buildkitd client")
 	}
 	defer bkClient.Close()
 	var opts []client.PruneOption
@@ -2304,11 +2299,16 @@ func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []st
 			return errors.Wrapf(err, "parse target name %s", targetName)
 		}
 	}
-	bkClient, bkIP, err := app.newBuildkitdClient(c.Context)
+	bkClient, err := buildkitd.NewClient(c.Context, app.console, app.buildkitdImage, app.buildkitdSettings)
 	if err != nil {
-		return errors.Wrap(err, "buildkitd new client")
+		return errors.Wrap(err, "build new buildkitd client")
 	}
 	defer bkClient.Close()
+
+	bkIP, err := buildkitd.GetContainerIP(c.Context, app.buildkitdSettings)
+	if err != nil {
+		return errors.Wrap(err, "get buildkit container IP")
+	}
 
 	platformsSlice := make([]*specs.Platform, 0, len(app.platformsStr.Value()))
 	for _, p := range app.platformsStr.Value() {
@@ -2483,29 +2483,6 @@ func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []st
 		return errors.Wrap(err, "build target")
 	}
 	return nil
-}
-
-func (app *earthlyApp) newBuildkitdClient(ctx context.Context, opts ...client.ClientOpt) (*client.Client, string, error) {
-	if app.buildkitHost == "" {
-		// Start our own.
-		app.buildkitdSettings.Debug = app.debug
-		bkClient, err := buildkitd.NewClient(ctx, app.console, app.buildkitdImage, app.buildkitdSettings)
-		if err != nil {
-			return nil, "", errors.Wrap(err, "buildkitd new client (own)")
-		}
-		bkIP, err := buildkitd.GetContainerIP(ctx)
-		if err != nil {
-			return nil, "", errors.Wrap(err, "get container ip")
-		}
-		return bkClient, bkIP, nil
-	}
-
-	// Use provided.
-	bkClient, err := client.New(ctx, app.buildkitHost, opts...)
-	if err != nil {
-		return nil, "", errors.Wrap(err, "buildkitd new client (provided)")
-	}
-	return bkClient, "", nil
 }
 
 func (app *earthlyApp) hasSSHKeys() bool {

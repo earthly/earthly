@@ -11,11 +11,11 @@ import (
 
 	"github.com/earthly/earthly/cleanup"
 	"github.com/earthly/earthly/domain"
-	"github.com/earthly/earthly/gitutil"
-	"github.com/earthly/earthly/llbutil"
-	"github.com/earthly/earthly/llbutil/pllb"
-	"github.com/earthly/earthly/stringutil"
-	"github.com/earthly/earthly/syncutil/synccache"
+	"github.com/earthly/earthly/util/gitutil"
+	"github.com/earthly/earthly/util/llbutil"
+	"github.com/earthly/earthly/util/llbutil/pllb"
+	"github.com/earthly/earthly/util/stringutil"
+	"github.com/earthly/earthly/util/syncutil/synccache"
 
 	"github.com/moby/buildkit/client/llb"
 	gwclient "github.com/moby/buildkit/frontend/gateway/client"

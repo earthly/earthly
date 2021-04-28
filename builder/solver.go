@@ -9,9 +9,9 @@ import (
 	"strconv"
 
 	"github.com/earthly/earthly/domain"
-	"github.com/earthly/earthly/llbutil/pllb"
 	"github.com/earthly/earthly/states"
 	"github.com/earthly/earthly/states/image"
+	"github.com/earthly/earthly/util/llbutil/pllb"
 	"github.com/moby/buildkit/client"
 	"github.com/moby/buildkit/client/llb"
 	gwclient "github.com/moby/buildkit/frontend/gateway/client"

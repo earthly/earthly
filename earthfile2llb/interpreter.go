@@ -10,7 +10,7 @@ import (
 	"github.com/earthly/earthly/ast/spec"
 	"github.com/earthly/earthly/conslogging"
 	"github.com/earthly/earthly/domain"
-	"github.com/earthly/earthly/llbutil"
+	"github.com/earthly/earthly/util/llbutil"
 	"github.com/earthly/earthly/variables"
 
 	specs "github.com/opencontainers/image-spec/specs-go/v1"

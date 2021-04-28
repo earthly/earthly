@@ -11,11 +11,7 @@ import (
 	"strings"
 	"sync"
 
-	"golang.org/x/crypto/ssh"
-	"golang.org/x/crypto/ssh/agent"
-	"golang.org/x/crypto/ssh/knownhosts"
-
-	"github.com/earthly/earthly/fileutil"
+	"github.com/earthly/earthly/util/fileutil"
 	"github.com/pkg/errors"
 )
 
