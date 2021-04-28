@@ -2245,7 +2245,18 @@ func (app *earthlyApp) actionBuild(c *cli.Context) error {
 
 	return app.actionBuildImp(c, flagArgs, nonFlagArgs)
 }
+
+// warnIfArgContainsBuildArg will issue a warning if a flag is incorrectly prefixed with build-arg.
+// TODO this check should be replaced with a warning if an arg was given but never used.
+func (app *earthlyApp) warnIfArgContainsBuildArg(flagArgs []string) {
+	for _, flag := range flagArgs {
+		if strings.HasPrefix(flag, "build-arg=") || strings.HasPrefix(flag, "buildarg=") {
+			app.console.Warnf("found a flag named %q; flags after the build target should be specified as --KEY=VAL\n", flag)
+		}
+	}
+}
 func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []string) error {
+	app.warnIfArgContainsBuildArg(flagArgs)
 	var target domain.Target
 	var artifact domain.Artifact
 	destPath := "./"
