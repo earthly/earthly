@@ -124,7 +124,10 @@ func (gr *gitResolver) resolveEarthProject(ctx context.Context, gwClient gwclien
 }
 
 func (gr *gitResolver) resolveGitProject(ctx context.Context, gwClient gwclient.Client, ref domain.Reference) (rgp *resolvedGitProject, gitURL string, subDir string, finalErr error) {
+	fmt.Printf("ACB resolvedGitProject %q\n", gitURL)
 	gitRef := ref.GetTag()
+
+	fmt.Printf("ACB resolvedGitProject2 %q\n", ref.GetGitURL())
 
 	var err error
 	var keyScan string
@@ -132,6 +135,7 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, gwClient gwclient.
 	if err != nil {
 		return nil, "", "", errors.Wrap(err, "failed to get url for cloning")
 	}
+	fmt.Printf("ACB resolvedGitProject3 %q\n", gitURL)
 
 	// Check the cache first.
 	cacheKey := fmt.Sprintf("%s#%s", gitURL, gitRef)

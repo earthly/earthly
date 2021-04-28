@@ -41,6 +41,7 @@ type GitLookup struct {
 
 // NewGitLookup creates new lookuper
 func NewGitLookup(sshAuthSock string) *GitLookup {
+	fmt.Printf("ACB NewGitLookup %q\n", sshAuthSock)
 	matchers := []*gitMatcher{
 		{
 			name:     "github.com",
@@ -219,6 +220,7 @@ func (gl *GitLookup) detectProtocol(host string) (protocol string, err error) {
 //   "github.com/earthly/earthly/examples/go" ---> ("git@github.com/earthly/earthly.git", "examples/go")
 // Additionally a ssh keyscan might be returned (or an empty string indicating none was configured)
 func (gl *GitLookup) GetCloneURL(path string) (string, string, string, error) {
+	fmt.Printf("ACB looking up %q\n", path)
 	gl.mu.Lock()
 	defer gl.mu.Unlock()
 	match, m, err := gl.getGitMatcher(path)
@@ -236,10 +238,13 @@ func (gl *GitLookup) GetCloneURL(path string) (string, string, string, error) {
 
 	protocol := m.protocol
 	if protocol == "auto" {
+		fmt.Printf("ACB resolving auto protocol for  %q\n", host)
 		protocol, err = gl.detectProtocol(host)
 		if err != nil {
+			fmt.Printf("ACB err1 %v\n", err)
 			return "", "", "", err
 		}
+		fmt.Printf("ACB resolved auto protocol for %q to %q\n", host, protocol)
 	}
 
 	var gitURL, keyScan string
@@ -256,6 +261,7 @@ func (gl *GitLookup) GetCloneURL(path string) (string, string, string, error) {
 	default:
 		return "", "", "", errors.Errorf("unsupported protocol: %s", protocol)
 	}
+	fmt.Printf("ACB gitURL is %q\n", gitURL)
 
 	if m.sub != "" {
 		if !m.re.MatchString(path) {
@@ -271,6 +277,7 @@ func (gl *GitLookup) GetCloneURL(path string) (string, string, string, error) {
 		}
 	}
 
+	fmt.Printf("ACB gitURL2 is %q\n", gitURL)
 	return gitURL, subPath, keyScan, nil
 }
 
