@@ -16,8 +16,8 @@ import (
 	"time"
 
 	"github.com/earthly/earthly/cliutil"
-	"github.com/earthly/earthly/fileutil"
 	"github.com/earthly/earthly/secretsclient/api"
+	"github.com/earthly/earthly/util/fileutil"
 
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/golang/protobuf/proto"

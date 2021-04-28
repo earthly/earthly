@@ -17,7 +17,7 @@ import (
 	"time"
 
 	"github.com/earthly/earthly/cliutil"
-	"github.com/earthly/earthly/fileutil"
+	"github.com/earthly/earthly/util/fileutil"
 	"github.com/earthly/earthly/util/gitutil"
 	"github.com/earthly/earthly/util/syncutil"
 
