@@ -32,7 +32,7 @@ code:
     FROM +deps
     COPY --platform=linux/amd64 ./ast/parser+parser/*.go ./ast/parser/
     COPY --dir analytics autocomplete buildcontext builder cleanup cliutil cmd config conslogging debugger dockertar \
-        docker2earthly domain fileutil gitutil llbutil logging secretsclient stringutil states syncutil termutil \
+        docker2earthly domain fileutil gitutil llbutil logging secretsclient stringutil states termutil util \
         variables ./
     COPY --dir buildkitd/buildkitd.go buildkitd/settings.go buildkitd/
     COPY --dir earthfile2llb/*.go earthfile2llb/

@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/earthly/earthly/llbutil/pllb"
-	"github.com/earthly/earthly/syncutil/synccache"
+	"github.com/earthly/earthly/util/syncutil/synccache"
 	"github.com/pkg/errors"
 )
 

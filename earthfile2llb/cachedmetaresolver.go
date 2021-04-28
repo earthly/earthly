@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/earthly/earthly/llbutil"
-	"github.com/earthly/earthly/syncutil/synccache"
+	"github.com/earthly/earthly/util/syncutil/synccache"
 	"github.com/moby/buildkit/client/llb"
 	"github.com/opencontainers/go-digest"
 )
