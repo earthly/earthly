@@ -14,7 +14,7 @@ import (
 	"github.com/earthly/earthly/gitutil"
 	"github.com/earthly/earthly/llbutil"
 	"github.com/earthly/earthly/llbutil/pllb"
-	"github.com/earthly/earthly/stringutil"
+	"github.com/earthly/earthly/util/stringutil"
 	"github.com/earthly/earthly/util/syncutil/synccache"
 
 	"github.com/moby/buildkit/client/llb"
