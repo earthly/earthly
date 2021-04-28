@@ -6,7 +6,7 @@ require (
 	github.com/alessio/shellescape v1.4.1
 	github.com/antlr/antlr4 v0.0.0-20200225173536-225249fdaef5
 	github.com/armon/circbuf v0.0.0-20190214190532-5111143e8da2
-	github.com/containerd/containerd v1.5.0-beta.4
+	github.com/containerd/containerd v1.5.0-rc.2
 	github.com/creack/pty v1.1.11
 	github.com/docker/distribution v2.7.1+incompatible
 	github.com/docker/docker v20.10.5+incompatible
@@ -28,7 +28,7 @@ require (
 	github.com/stretchr/testify v1.7.0
 	github.com/tonistiigi/fsutil v0.0.0-20201103201449-0834f99b7b85
 	github.com/urfave/cli/v2 v2.3.0
-	golang.org/x/crypto v0.0.0-20201117144127-c1f2f97bffc9
+	golang.org/x/crypto v0.0.0-20210322153248-0c34fe9e7dc2
 	golang.org/x/sync v0.0.0-20201207232520-09787c993a3a
 	golang.org/x/term v0.0.0-20210220032956-6a3ed077a48d
 	google.golang.org/grpc v1.35.0
@@ -42,5 +42,5 @@ replace (
 	github.com/docker/docker => github.com/docker/docker v17.12.0-ce-rc1.0.20200310163718-4634ce647cf2+incompatible
 	github.com/hashicorp/go-immutable-radix => github.com/tonistiigi/go-immutable-radix v0.0.0-20170803185627-826af9ccf0fe
 	github.com/jaguilar/vt100 => github.com/tonistiigi/vt100 v0.0.0-20190402012908-ad4c4a574305
-	github.com/moby/buildkit => github.com/earthly/buildkit v0.7.1-0.20210412221413-1a82cfa6da7d
+	github.com/moby/buildkit => github.com/earthly/buildkit v0.7.1-0.20210428195454-c1749dff2545
 )
