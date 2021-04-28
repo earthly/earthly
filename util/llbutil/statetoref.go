@@ -4,7 +4,7 @@ import (
 	"context"
 	"sort"
 
-	"github.com/earthly/earthly/llbutil/pllb"
+	"github.com/earthly/earthly/util/llbutil/pllb"
 	"github.com/moby/buildkit/client/llb"
 	gwclient "github.com/moby/buildkit/frontend/gateway/client"
 	specs "github.com/opencontainers/image-spec/specs-go/v1"

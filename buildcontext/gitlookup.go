@@ -9,7 +9,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/earthly/earthly/fileutil"
+	"github.com/earthly/earthly/util/fileutil"
 	"github.com/pkg/errors"
 )
 

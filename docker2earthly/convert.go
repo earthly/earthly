@@ -7,7 +7,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/earthly/earthly/fileutil"
+	"github.com/earthly/earthly/util/fileutil"
 
 	"github.com/moby/buildkit/frontend/dockerfile/instructions"
 	"github.com/moby/buildkit/frontend/dockerfile/parser"

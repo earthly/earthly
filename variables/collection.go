@@ -6,7 +6,7 @@ import (
 
 	"github.com/earthly/earthly/conslogging"
 	"github.com/earthly/earthly/domain"
-	"github.com/earthly/earthly/gitutil"
+	"github.com/earthly/earthly/util/gitutil"
 
 	dfShell "github.com/moby/buildkit/frontend/dockerfile/shell"
 	specs "github.com/opencontainers/image-spec/specs-go/v1"

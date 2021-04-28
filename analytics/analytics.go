@@ -16,10 +16,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/earthly/earthly/cliutil"
-	"github.com/earthly/earthly/fileutil"
-	"github.com/earthly/earthly/gitutil"
-	"github.com/earthly/earthly/syncutil"
+	"github.com/earthly/earthly/util/cliutil"
+	"github.com/earthly/earthly/util/fileutil"
+	"github.com/earthly/earthly/util/gitutil"
+	"github.com/earthly/earthly/util/syncutil"
 
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
