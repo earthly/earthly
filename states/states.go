@@ -5,10 +5,10 @@ import (
 	"sync"
 
 	"github.com/earthly/earthly/domain"
-	"github.com/earthly/earthly/llbutil"
-	"github.com/earthly/earthly/llbutil/pllb"
 	"github.com/earthly/earthly/states/dedup"
 	"github.com/earthly/earthly/states/image"
+	"github.com/earthly/earthly/util/llbutil"
+	"github.com/earthly/earthly/util/llbutil/pllb"
 	"github.com/earthly/earthly/variables"
 	"github.com/google/uuid"
 	specs "github.com/opencontainers/image-spec/specs-go/v1"

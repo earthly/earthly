@@ -10,7 +10,7 @@ import (
 	"github.com/earthly/earthly/cleanup"
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/gitutil"
-	"github.com/earthly/earthly/llbutil/pllb"
+	"github.com/earthly/earthly/util/llbutil/pllb"
 	"github.com/earthly/earthly/util/syncutil/synccache"
 	gwclient "github.com/moby/buildkit/frontend/gateway/client"
 	"github.com/pkg/errors"

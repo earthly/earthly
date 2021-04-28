@@ -5,8 +5,8 @@ import (
 	"sync"
 
 	"github.com/earthly/earthly/domain"
-	"github.com/earthly/earthly/llbutil"
 	"github.com/earthly/earthly/states/dedup"
+	"github.com/earthly/earthly/util/llbutil"
 	"github.com/earthly/earthly/variables"
 	specs "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"

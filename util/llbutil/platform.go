@@ -4,7 +4,7 @@ import (
 	"runtime"
 
 	"github.com/containerd/containerd/platforms"
-	"github.com/earthly/earthly/llbutil/pllb"
+	"github.com/earthly/earthly/util/llbutil/pllb"
 	specs "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
 )

@@ -64,9 +64,9 @@ import (
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/earthfile2llb"
 	"github.com/earthly/earthly/fileutil"
-	"github.com/earthly/earthly/llbutil"
 	"github.com/earthly/earthly/secretsclient"
 	"github.com/earthly/earthly/states"
+	"github.com/earthly/earthly/util/llbutil"
 	"github.com/earthly/earthly/util/termutil"
 	"github.com/earthly/earthly/variables"
 )

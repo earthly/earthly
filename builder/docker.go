@@ -11,7 +11,7 @@ import (
 	"github.com/containerd/containerd/platforms"
 	"github.com/docker/distribution/reference"
 	"github.com/earthly/earthly/conslogging"
-	"github.com/earthly/earthly/llbutil"
+	"github.com/earthly/earthly/util/llbutil"
 
 	specs "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"

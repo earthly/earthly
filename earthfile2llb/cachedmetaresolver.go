@@ -3,7 +3,7 @@ package earthfile2llb
 import (
 	"context"
 
-	"github.com/earthly/earthly/llbutil"
+	"github.com/earthly/earthly/util/llbutil"
 	"github.com/earthly/earthly/util/syncutil/synccache"
 	"github.com/moby/buildkit/client/llb"
 	"github.com/opencontainers/go-digest"
