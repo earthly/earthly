@@ -6,8 +6,8 @@ import (
 
 	"github.com/containerd/containerd/platforms"
 	"github.com/earthly/earthly/domain"
-	"github.com/earthly/earthly/gitutil"
 	"github.com/earthly/earthly/states/dedup"
+	"github.com/earthly/earthly/util/gitutil"
 	"github.com/earthly/earthly/util/llbutil"
 	"github.com/earthly/earthly/util/stringutil"
 	specs "github.com/opencontainers/image-spec/specs-go/v1"

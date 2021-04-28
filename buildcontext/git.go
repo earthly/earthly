@@ -11,7 +11,7 @@ import (
 
 	"github.com/earthly/earthly/cleanup"
 	"github.com/earthly/earthly/domain"
-	"github.com/earthly/earthly/gitutil"
+	"github.com/earthly/earthly/util/gitutil"
 	"github.com/earthly/earthly/util/llbutil"
 	"github.com/earthly/earthly/util/llbutil/pllb"
 	"github.com/earthly/earthly/util/stringutil"
