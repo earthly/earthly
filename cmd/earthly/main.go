@@ -67,7 +67,7 @@ import (
 	"github.com/earthly/earthly/llbutil"
 	"github.com/earthly/earthly/secretsclient"
 	"github.com/earthly/earthly/states"
-	"github.com/earthly/earthly/termutil"
+	"github.com/earthly/earthly/util/termutil"
 	"github.com/earthly/earthly/variables"
 )
 
