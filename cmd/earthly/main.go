@@ -2373,7 +2373,7 @@ func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []st
 		localhostProvider,
 	}
 
-	gitLookup := buildcontext.NewGitLookup()
+	gitLookup := buildcontext.NewGitLookup(app.console, app.sshAuthSock)
 	err = app.updateGitLookupConfig(gitLookup)
 	if err != nil {
 		return err
@@ -2506,7 +2506,7 @@ func (app *earthlyApp) hasSSHKeys() bool {
 
 func (app *earthlyApp) updateGitLookupConfig(gitLookup *buildcontext.GitLookup) error {
 
-	autoProtocol := "ssh"
+	autoProtocol := "auto"
 	if !app.hasSSHKeys() {
 		app.console.Printf("No ssh auth socket detected or zero keys loaded; falling back to https for auto auth values\n")
 		autoProtocol = "https"
