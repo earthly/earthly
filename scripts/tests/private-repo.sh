@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 set -eu # don't use -x as it will leak the private key
 
+# This script can be run locally with:
+# earthly=./build/linux/amd64/earthly ./scripts/tests/private-repo.sh
+
 earthly=${earthly:=earthly}
 earthly=$(realpath "$earthly")
 echo "running tests with $earthly"
