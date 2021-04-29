@@ -15,6 +15,7 @@ require (
 	github.com/golang/protobuf v1.4.3
 	github.com/google/uuid v1.2.0
 	github.com/hashicorp/go-multierror v1.1.0
+	github.com/jdxcode/netrc v0.0.0-20210204082910-926c7f70242a
 	github.com/jessevdk/go-flags v1.5.0
 	github.com/joho/godotenv v1.3.0
 	github.com/mattn/go-isatty v0.0.12

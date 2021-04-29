@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/earthly/earthly/ast/spec"
+	"github.com/earthly/earthly/buildcontext"
 	"github.com/earthly/earthly/conslogging"
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/util/llbutil"
@@ -42,9 +43,10 @@ type Interpreter struct {
 	parallelism        *semaphore.Weighted
 	parallelErrChan    chan error
 	console            conslogging.ConsoleLogger
+	gitLookup          *buildcontext.GitLookup
 }
 
-func newInterpreter(c *Converter, t domain.Target, allowPrivileged, parallelConversion bool, parallelism *semaphore.Weighted, console conslogging.ConsoleLogger) *Interpreter {
+func newInterpreter(c *Converter, t domain.Target, allowPrivileged, parallelConversion bool, parallelism *semaphore.Weighted, console conslogging.ConsoleLogger, gitLookup *buildcontext.GitLookup) *Interpreter {
 	return &Interpreter{
 		converter:          c,
 		target:             t,
@@ -54,6 +56,7 @@ func newInterpreter(c *Converter, t domain.Target, allowPrivileged, parallelConv
 		parallelConversion: parallelConversion,
 		parallelErrChan:    make(chan error),
 		console:            console,
+		gitLookup:          gitLookup,
 	}
 }
 
@@ -1056,7 +1059,13 @@ func (i *Interpreter) handleGitClone(ctx context.Context, cmd spec.Command) erro
 	gitURL := i.expandArgs(args[0], false)
 	gitCloneDest := i.expandArgs(args[1], false)
 	opts.Branch = i.expandArgs(opts.Branch, false)
-	err = i.converter.GitClone(ctx, gitURL, opts.Branch, gitCloneDest, opts.KeepTs)
+
+	convertedGitURL, _, err := i.gitLookup.ConvertCloneURL(gitURL)
+	if err != nil {
+		return i.wrapError(err, cmd.SourceLocation, "unable to use %v with configured earthly credentials from ~/.earthly/config.yml", cmd.Args)
+	}
+
+	err = i.converter.GitClone(ctx, convertedGitURL, opts.Branch, gitCloneDest, opts.KeepTs)
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "git clone")
 	}

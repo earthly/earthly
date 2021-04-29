@@ -180,6 +180,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 				ParallelConversion:   b.opt.ParallelConversion,
 				Parallelism:          b.opt.Parallelism,
 				Console:              b.opt.Console,
+				GitLookup:            b.opt.GitLookup,
 			})
 			if err != nil {
 				return nil, err
