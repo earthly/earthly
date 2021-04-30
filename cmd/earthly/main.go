@@ -2251,7 +2251,7 @@ func (app *earthlyApp) actionBuild(c *cli.Context) error {
 func (app *earthlyApp) warnIfArgContainsBuildArg(flagArgs []string) {
 	for _, flag := range flagArgs {
 		if strings.HasPrefix(flag, "build-arg=") || strings.HasPrefix(flag, "buildarg=") {
-			app.console.Warnf("found a flag named %q; flags after the build target should be specified as --KEY=VAL\n", flag)
+			app.console.Warnf("Found a flag named %q; flags after the build target should be specified as --KEY=VAL\n", flag)
 		}
 	}
 }
