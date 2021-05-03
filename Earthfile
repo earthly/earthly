@@ -76,6 +76,21 @@ lint:
             exit 1 ; \
         fi
 
+lint-newline-ending:
+    COPY --dir . .
+    RUN code=0; \
+        for f in $(find . -type f \( -iname '*.go' -o -iname 'Earthfile' -o -iname '*.earth' \) | grep -v "ast/tests/empty-targets.earth" ); do \
+            if [ "$(tail -c 1 $f)" != "$(printf '\n')" ]; then \
+                echo "$f does not end with a newline"; \
+                code=1; \
+            fi; \
+        done; \
+        exit $code
+    RUN if [ "$(tail -c 1 ast/tests/empty-targets.earth)" = "$(printf '\n')" ]; then \
+            echo "$f is a special-case test which must not end with a newline."; \
+            exit 1; \
+        fi
+
 unit-test:
     FROM +code
     RUN go test ./...
@@ -299,6 +314,7 @@ all:
 test:
     BUILD +lint
     BUILD +lint-scripts
+    BUILD +lint-newline-ending
     BUILD +unit-test
     BUILD ./ast/tests+all
     ARG DOCKERHUB_AUTH=true
