@@ -12,6 +12,7 @@ import (
 	"net"
 	"net/http"
 	_ "net/http/pprof" // enable pprof handlers on net/http listener
+	"net/url"
 	"os"
 	"os/signal"
 	"os/user"
@@ -134,6 +135,9 @@ type cliFlags struct {
 	configDryRun           bool
 	strict                 bool
 	conversionParllelism   int
+	buildkitPort           int
+	debuggerPort           int
+	debuggerAddress        string
 }
 
 var (
@@ -411,9 +415,24 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 		},
 		&cli.StringFlag{
 			Name:        "buildkit-host",
+			Value:       "tcp://127.0.0.1:8372",
 			EnvVars:     []string{"EARTHLY_BUILDKIT_HOST"},
 			Usage:       wrap("The URL to use for connecting to a buildkit host. ", "If empty, earthly will attempt to start a buildkitd instance via docker run"),
 			Destination: &app.buildkitHost,
+		},
+		&cli.IntFlag{
+			Name:        "buildkit-port",
+			Value:       config.DefaultBuildkitPort,
+			EnvVars:     []string{"EARTHLY_BUILDKIT_PORT"},
+			Usage:       wrap("The URL to use for connecting to a buildkit host. ", "If empty, earthly will attempt to start a buildkitd instance via docker run"),
+			Destination: &app.buildkitPort,
+		},
+		&cli.IntFlag{
+			Name:        "debugger-port",
+			Value:       config.DefaultDebuggerPort,
+			EnvVars:     []string{"EARTHLY_DEBUG_PORT"},
+			Usage:       wrap("The URL to use for connecting to a debugging host. ", "If empty, earthly will attempt to start a buildkitd instance via docker run"),
+			Destination: &app.debuggerPort,
 		},
 		&cli.IntFlag{
 			Name:        "buildkit-cache-size-mb",
@@ -927,12 +946,46 @@ func (app *earthlyApp) before(context *cli.Context) error {
 		app.buildkitdImage = app.cfg.Global.BuildkitImage
 	}
 
-	app.buildkitdSettings.DebuggerPort = app.cfg.Global.DebuggerPort
+	// break up legacy env var into parts to use as defaults below
+	bkURL, err := parseAndvalidateURL(app.buildkitHost)
+	if err != nil {
+		return err
+	}
+
+	if !context.IsSet("buildkit-host") && app.cfg.Global.BuildkitURL != "" {
+		bkURL, err = parseAndvalidateURL(app.cfg.Global.BuildkitURL)
+		if err != nil {
+			return err
+		}
+	}
+	buildkitURLBase := fmt.Sprintf("%s://%s", bkURL.Scheme, bkURL.Hostname())
+
+	bkPort := app.buildkitPort
+	if context.IsSet(("buildkit-host")) {
+		bkPort, err = strconv.Atoi(bkURL.Port())
+		if err != nil {
+			return errors.Wrap(err, "invalid buildkit port")
+		}
+	}
+
+	if !context.IsSet("buildkit-host") && !context.IsSet("buildkit-port") && app.cfg.Global.BuildkitPort != config.DefaultBuildkitPort {
+		bkPort = app.cfg.Global.BuildkitPort
+	}
+	app.buildkitPort = bkPort
+
+	if !context.IsSet("debugger-port") && app.cfg.Global.DebuggerPort != config.DefaultDebuggerPort {
+		app.debuggerPort = app.cfg.Global.DebuggerPort
+	}
+
+	buildkitAddress := fmt.Sprintf("%s:%v", buildkitURLBase, app.buildkitPort)
+	app.debuggerAddress = fmt.Sprintf("%s:%v", buildkitURLBase, app.debuggerPort)
+
 	app.buildkitdSettings.AdditionalArgs = app.cfg.Global.BuildkitAdditionalArgs
 	app.buildkitdSettings.AdditionalConfig = app.cfg.Global.BuildkitAdditionalConfig
 	app.buildkitdSettings.Timeout = time.Duration(app.cfg.Global.BuildkitRestartTimeoutS) * time.Second
 	app.buildkitdSettings.Debug = app.debug
-	app.buildkitdSettings.BuildkitHost = app.buildkitHost
+	app.buildkitdSettings.BuildkitAddress = buildkitAddress
+	app.buildkitdSettings.DebuggerAddress = app.debuggerAddress
 
 	// ensure the MTU is something allowable in IPv4, cap enforced by type. Zero is autodetect.
 	if app.buildkitdSettings.CniMtu != 0 && app.buildkitdSettings.CniMtu < 68 {
@@ -941,6 +994,19 @@ func (app *earthlyApp) before(context *cli.Context) error {
 	app.buildkitdSettings.CniMtu = app.cfg.Global.CniMtu
 
 	return nil
+}
+
+func parseAndvalidateURL(addr string) (*url.URL, error) {
+	parsed, err := url.Parse(addr)
+	if err != nil {
+		return nil, errors.Errorf("%s is not a valid URL", addr)
+	}
+
+	if parsed.Scheme != "tcp" {
+		return nil, errors.Errorf("%s is not a valid scheme. Only tcp is allowed at this time.", parsed.Scheme)
+	}
+
+	return parsed, nil
 }
 
 func (app *earthlyApp) warnIfEarth() {
@@ -1007,6 +1073,12 @@ func (app *earthlyApp) processDeprecatedCommandOptions(context *cli.Context, cfg
 		app.console.Warnf("Warning: the --buildkit-cache-size-mb command flag is deprecated and is now configured in the ~/.earthly/config.yml file under the buildkit_cache_size setting; see https://docs.earthly.dev/earthly-config for reference.\n")
 	} else {
 		app.buildkitdSettings.CacheSizeMb = cfg.Global.BuildkitCacheSizeMb
+	}
+
+	if context.IsSet("buildkit-host") {
+		if bkURL, err := parseAndvalidateURL(app.buildkitHost); err == nil && bkURL.Port() != "" {
+			app.console.Warnf("Warning: specifying the port using the --buildkit-host setting is deprecated. Set it in ~/.earthly/config.yml under the global buildkit_port setting.\n")
+		}
 	}
 
 	return nil
@@ -1373,6 +1445,11 @@ func (app *earthlyApp) actionBootstrap(c *cli.Context) error {
 		return err
 	}
 
+	root, err := cliutil.GetEarthlyDir()
+	if err != nil {
+		return err
+	}
+
 	if !app.bootstrapNoBuildkit {
 		// Bootstrap buildkit - pulls image and starts daemon.
 		bkClient, err := buildkitd.NewClient(c.Context, app.console, app.buildkitdImage, app.buildkitdSettings)
@@ -1380,6 +1457,12 @@ func (app *earthlyApp) actionBootstrap(c *cli.Context) error {
 			return errors.Wrap(err, "bootstrap new buildkitd client")
 		}
 		defer bkClient.Close()
+
+		certsDir := filepath.Join(root, "certs")
+		err = buildkitd.GenerateCertificates(certsDir)
+		if err != nil {
+			return errors.Wrap(err, "setup TLS")
+		}
 	}
 
 	console.Printf("Bootstrapping successful.\nYou may have to restart your shell for autocomplete to get initialized (e.g. run \"exec $SHELL\")\n")
@@ -2396,7 +2479,7 @@ func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []st
 	cleanCollection := cleanup.NewCollection()
 	defer cleanCollection.Close()
 
-	go terminal.ConnectTerm(c.Context, fmt.Sprintf("127.0.0.1:%d", app.buildkitdSettings.DebuggerPort))
+	go terminal.ConnectTerm(c.Context, app.debuggerAddress)
 
 	dotEnvVars := variables.NewScope()
 	for k, v := range dotEnvMap {

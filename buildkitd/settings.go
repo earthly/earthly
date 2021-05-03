@@ -14,8 +14,8 @@ type Settings struct {
 	CacheSizeMb      int
 	GitURLInsteadOf  string
 	Debug            bool
-	DebuggerPort     int
-	BuildkitHost     string `hash:"ignore"`
+	BuildkitAddress  string
+	DebuggerAddress  string
 	AdditionalArgs   []string
 	AdditionalConfig string
 	CniMtu           uint16

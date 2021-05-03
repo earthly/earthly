@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"net"
+	"net/url"
 	"os"
 	"os/exec"
 	"runtime"
@@ -34,20 +36,17 @@ var (
 	ErrBuildkitStartFailure = errors.New("buildkitd failed to start (in time)")
 )
 
-// Address is the address at which the daemon is available.
-var Address = fmt.Sprintf("docker-container://%s", ContainerName)
-
 // TODO: Implement all this properly with the docker client.
 
 // NewClient returns a new buildkitd client.
 func NewClient(ctx context.Context, console conslogging.ConsoleLogger, image string, settings Settings, opts ...client.ClientOpt) (*client.Client, error) {
-	if settings.BuildkitHost != "" {
-		err := waitForConnection(ctx, settings.BuildkitHost, settings.Timeout)
+	if isLocal(settings.BuildkitAddress) {
+		err := waitForConnection(ctx, settings.BuildkitAddress, settings.Timeout)
 		if err != nil {
 			return nil, errors.Wrap(err, "connect provided buildkit")
 		}
 
-		bkClient, err := client.New(ctx, settings.BuildkitHost, opts...)
+		bkClient, err := client.New(ctx, settings.BuildkitAddress, opts...)
 		if err != nil {
 			return nil, errors.Wrap(err, "start provided buildkit")
 		}
@@ -73,7 +72,7 @@ func NewClient(ctx context.Context, console conslogging.ConsoleLogger, image str
 // ResetCache restarts the buildkitd daemon with the reset command.
 func ResetCache(ctx context.Context, console conslogging.ConsoleLogger, image string, settings Settings) error {
 	// Prune by resetting container.
-	if settings.BuildkitHost != "" {
+	if settings.BuildkitAddress != "" {
 		return errors.New("cannot reset cache of a provided buildkit-host setting")
 	}
 
@@ -103,7 +102,7 @@ func ResetCache(ctx context.Context, console conslogging.ConsoleLogger, image st
 	if err != nil {
 		return err
 	}
-	err = WaitUntilStarted(ctx, console, Address, settings.Timeout)
+	err = WaitUntilStarted(ctx, console, settings.BuildkitAddress, settings.Timeout)
 	if err != nil {
 		return err
 	}
@@ -136,7 +135,7 @@ func MaybeStart(ctx context.Context, console conslogging.ConsoleLogger, image st
 		if err != nil {
 			return "", errors.Wrap(err, "start")
 		}
-		err = WaitUntilStarted(ctx, console, Address, settings.Timeout)
+		err = WaitUntilStarted(ctx, console, settings.BuildkitAddress, settings.Timeout)
 		if err != nil {
 			return "", errors.Wrap(err, "wait until started")
 		}
@@ -144,7 +143,7 @@ func MaybeStart(ctx context.Context, console conslogging.ConsoleLogger, image st
 			WithPrefix("buildkitd").
 			Printf("...Done\n")
 	}
-	return Address, nil
+	return settings.BuildkitAddress, nil
 }
 
 // MaybeRestart checks whether the there is a different buildkitd image available locally or if
@@ -199,7 +198,7 @@ func MaybeRestart(ctx context.Context, console conslogging.ConsoleLogger, image 
 	if err != nil {
 		return err
 	}
-	err = WaitUntilStarted(ctx, console, Address, settings.Timeout)
+	err = WaitUntilStarted(ctx, console, settings.BuildkitAddress, settings.Timeout)
 	if err != nil {
 		return err
 	}
@@ -262,11 +261,17 @@ func Start(ctx context.Context, console conslogging.ConsoleLogger, image string,
 		// Add /sys/fs/cgroup if it's earthly-in-earthly.
 		args = append(args, "-v", "/sys/fs/cgroup:/sys/fs/cgroup")
 	} else {
-		// Debugger only supported in top-most earthly.
+		// Debugger, and buildkit connection only supported in top-most earthly.
 		// TODO: Main reason for this is port clash. This could be improved in the future,
 		//       if needed.
+
+		// These are controlled by us and should have been validated already
+		bkURL, _ := url.Parse(settings.BuildkitAddress)
+		dbURL, _ := url.Parse(settings.DebuggerAddress)
+
 		args = append(args,
-			"-p", fmt.Sprintf("127.0.0.1:%d:8373", settings.DebuggerPort))
+			"-p", fmt.Sprintf("127.0.0.1:%d:8373", dbURL.Port()),
+			"-p", fmt.Sprintf("127.0.0.1:%d:8372", bkURL.Port()))
 	}
 
 	if supportsPlatform(ctx) {
@@ -475,7 +480,7 @@ func MaybePull(ctx context.Context, console conslogging.ConsoleLogger, image str
 
 // PrintLogs prints the buildkitd logs to stderr.
 func PrintLogs(ctx context.Context, settings Settings, console conslogging.ConsoleLogger) error {
-	if settings.BuildkitHost != "" {
+	if !isLocal(settings.BuildkitAddress) {
 		return nil
 	}
 
@@ -493,7 +498,7 @@ func PrintLogs(ctx context.Context, settings Settings, console conslogging.Conso
 
 // GetContainerIP returns the IP of the buildkit container.
 func GetContainerIP(ctx context.Context, settings Settings) (string, error) {
-	if settings.BuildkitHost != "" {
+	if !isLocal(settings.BuildkitAddress) {
 		return "", nil // Remote buildkitd is not an error,  but we don't know its IP
 	}
 
@@ -664,4 +669,17 @@ func getCacheSize(ctx context.Context) (int, error) {
 		return 0, errors.Wrapf(err, "parse cache size %s", parts[0])
 	}
 	return int(size), nil
+}
+
+func isLocal(addr string) bool {
+	// We consider it local when the address matches one of the ones we allow in our generated GRPC certificates
+	parsed, err := url.Parse(addr)
+	if err != nil {
+		return false
+	}
+
+	hostname := parsed.Hostname()
+	return hostname == "127.0.0.1" || // The only IP v4 Loopback we honor. Because we need to include it in the TLS certificates.
+		hostname == net.IPv6loopback.String() ||
+		hostname == "localhost" // Convention. Users hostname omitted; this is only really here for convenience.
 }
