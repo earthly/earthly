@@ -1,19 +1,24 @@
 #!/usr/bin/env bash
+#
+# This script tests earthly can reference a self-hosted git repository.
+# The git repository runs in a second container which is spun up by GHA
+# and is accessible over the localhost on port 2222
+#
+# The test:
+#   1. connects to the ssh server using a username/password and authorizes a public key
+#      for password-less login
+#   2. initializes a bare git repo on the ssh server
+#   3. create a new local git repo with a sample Earthfile
+#   4. pushes that local git repo up to the server, and deletes the local copy
+#   5. configures earthly to be aware of the custom git repo running on port 2222
+#   6. and finally tests earthly can remotely reference the Earthfile without having a local copy.
+
 set -eu
 
 if [ -z ${GITHUB_ACTIONS+x} ]; then
     echo "this script should only be run from GHA; if run locally it will modify your ssh settings"
     exit 1
 fi
-
-# setup a trap to display logs on errors
-function displaylogsonexit {
-    echo "-- error detected; dumping logs ---"
-    docker ps -a
-    docker logs earthly-buildkitd
-    exit 1
-}
-trap displaylogsonexit ERR
 
 earthly=${earthly:=earthly}
 earthly=$(realpath "$earthly")
@@ -27,9 +32,9 @@ test -n "$ip"
 eval "$(ssh-agent)"
 
 # create a new key
-ssh-keygen -b 3072 -t rsa -f /tmp/sshkey -q -N "" -C "testkey"
-pubkey=$(cat /tmp/sshkey.pub)
-ssh-add /tmp/sshkey
+ssh-keygen -b 3072 -t rsa -f /tmp/self-hosted-sshkey -q -N "" -C "testkey"
+pubkey=$(cat /tmp/self-hosted-sshkey.pub)
+ssh-add /tmp/self-hosted-sshkey
 
 sudo /bin/sh -c "echo 127.0.0.1 ip4-localhost >> /etc/hosts"
 sshhost="ip4-localhost"

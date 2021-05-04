@@ -47,15 +47,31 @@ update-buildkit:
     SAVE ARTIFACT go.sum AS LOCAL go.sum-fixme  # this is a bug since we can't save to go.sum which was already saved in +deps
 
 
-lint-scripts:
+lint-scripts-base:
     FROM --platform=linux/amd64 alpine:3.13
     RUN apk add --update --no-cache shellcheck
+    WORKDIR /shell_scripts
+
+lint-scripts-misc:
+    FROM +lint-scripts-base
     COPY ./earthly ./scripts/install-all-versions.sh ./buildkitd/entrypoint.sh ./earthly-buildkitd-wrapper.sh \
         ./buildkitd/dockerd-wrapper.sh ./buildkitd/docker-auto-install.sh \
         ./release/envcredhelper.sh ./.buildkite/*.sh \
         ./scripts/tests/*.sh \
         ./shell_scripts/
     RUN shellcheck shell_scripts/*
+
+lint-scripts-auth-test:
+    FROM +lint-scripts-base
+    COPY ./scripts/tests/auth/*.sh ./
+    # the auth test script make use of a common setup.sh which contain unused variables
+    # when run directly; so we must exclude checking this directly, and make use of the -x
+    # flag to source setup.sh during analysis.
+    RUN shellcheck -x test-*.sh
+
+lint-scripts:
+    BUILD +lint-scripts-auth-test
+    BUILD +lint-scripts-misc
 
 lint:
     FROM +code
