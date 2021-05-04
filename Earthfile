@@ -77,8 +77,11 @@ lint:
         fi
 
 lint-newline-ending:
-    COPY --dir . .
-    RUN code=0; \
+    FROM alpine:3.13
+    WORKDIR /everything
+    COPY . .
+    RUN set -e; \
+        code=0; \
         for f in $(find . -type f \( -iname '*.go' -o -iname 'Earthfile' -o -iname '*.earth' \) | grep -v "ast/tests/empty-targets.earth" ); do \
             if [ "$(tail -c 1 $f)" != "$(printf '\n')" ]; then \
                 echo "$f does not end with a newline"; \
