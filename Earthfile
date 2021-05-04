@@ -51,7 +51,7 @@ lint-scripts-base:
     FROM --platform=linux/amd64 alpine:3.13
     RUN apk add --update --no-cache shellcheck
 
-lint-scripts:
+lint-scripts-misc:
     FROM +lint-scripts-base
     COPY ./earthly ./scripts/install-all-versions.sh ./buildkitd/entrypoint.sh ./earthly-buildkitd-wrapper.sh \
         ./buildkitd/dockerd-wrapper.sh ./buildkitd/docker-auto-install.sh \
@@ -59,6 +59,14 @@ lint-scripts:
         ./scripts/tests/*.sh \
         ./shell_scripts/
     RUN shellcheck shell_scripts/*.sh
+
+lint-scripts-help:
+    FROM +lint-scripts-base
+    RUN shellcheck --help
+
+lint-scripts:
+    BUILD +lint-scripts-misc
+    BUILD +lint-scripts-help
 
 lint:
     FROM +code
