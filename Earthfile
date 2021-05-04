@@ -55,7 +55,7 @@ lint-scripts:
         ./release/envcredhelper.sh ./.buildkite/*.sh \
         ./scripts/tests/*.sh \
         ./shell_scripts/
-    RUN shellcheck shell_scripts/*
+    RUN shellcheck shell_scripts/*.sh
 
 lint:
     FROM +code
