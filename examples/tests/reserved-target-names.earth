@@ -9,4 +9,3 @@ reserved:
 base:
     FROM fedora:latest
     RUN echo this target is invalid and should produce a parsing error
-
