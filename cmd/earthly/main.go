@@ -138,6 +138,9 @@ type cliFlags struct {
 	buildkitPort           int
 	debuggerPort           int
 	debuggerAddress        string
+	tlsCAPath              string
+	tlsCertPath            string
+	tlsKeyPath             string
 }
 
 var (
@@ -433,6 +436,27 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 			EnvVars:     []string{"EARTHLY_DEBUG_PORT"},
 			Usage:       wrap("The URL to use for connecting to a debugging host. ", "If empty, earthly will attempt to start a buildkitd instance via docker run"),
 			Destination: &app.debuggerPort,
+		},
+		&cli.StringFlag{
+			Name:        "tlsca",
+			Value:       "./certs/cacert.pem",
+			EnvVars:     []string{"EARTHLY_TLS_CA"},
+			Usage:       wrap("The path to the PEM-encoded CA used to validate the TLS certificates"),
+			Destination: &app.tlsCAPath,
+		},
+		&cli.StringFlag{
+			Name:        "tlscert",
+			Value:       "./certs/earthly_cert.pem",
+			EnvVars:     []string{"EARTHLY_TLS_CERT"},
+			Usage:       wrap("The path to the client TLS cert"),
+			Destination: &app.tlsCertPath,
+		},
+		&cli.StringFlag{
+			Name:        "tlskey",
+			Value:       "./certs/earthly_key.pem",
+			EnvVars:     []string{"EARTHLY_TLS_KEY"},
+			Usage:       wrap("The path to the client TLS key. If relative, will be interpreted as relative to the ~/.earthly folder."),
+			Destination: &app.tlsKeyPath,
 		},
 		&cli.IntFlag{
 			Name:        "buildkit-cache-size-mb",
@@ -980,12 +1004,27 @@ func (app *earthlyApp) before(context *cli.Context) error {
 	buildkitAddress := fmt.Sprintf("%s:%v", buildkitURLBase, app.buildkitPort)
 	app.debuggerAddress = fmt.Sprintf("%s:%v", buildkitURLBase, app.debuggerPort)
 
+	if !context.IsSet("tlsca") && app.cfg.Global.TLSCA != "" {
+		app.tlsCAPath = app.cfg.Global.TLSCA
+	}
+
+	if !context.IsSet("tlscert") && app.cfg.Global.TLSCert != "" {
+		app.tlsCAPath = app.cfg.Global.TLSCert
+	}
+
+	if !context.IsSet("tlskey") && app.cfg.Global.TLSKey != "" {
+		app.tlsCAPath = app.cfg.Global.TLSKey
+	}
+
 	app.buildkitdSettings.AdditionalArgs = app.cfg.Global.BuildkitAdditionalArgs
 	app.buildkitdSettings.AdditionalConfig = app.cfg.Global.BuildkitAdditionalConfig
 	app.buildkitdSettings.Timeout = time.Duration(app.cfg.Global.BuildkitRestartTimeoutS) * time.Second
 	app.buildkitdSettings.Debug = app.debug
 	app.buildkitdSettings.BuildkitAddress = buildkitAddress
 	app.buildkitdSettings.DebuggerAddress = app.debuggerAddress
+	app.buildkitdSettings.TLSCA = app.tlsCAPath
+	app.buildkitdSettings.TLSCert = app.tlsCertPath
+	app.buildkitdSettings.TLSKey = app.tlsKeyPath
 
 	// ensure the MTU is something allowable in IPv4, cap enforced by type. Zero is autodetect.
 	if app.buildkitdSettings.CniMtu != 0 && app.buildkitdSettings.CniMtu < 68 {

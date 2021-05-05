@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"runtime"
 	"strconv"
 	"strings"
@@ -15,6 +16,8 @@ import (
 	"time"
 
 	"github.com/earthly/earthly/conslogging"
+	"github.com/earthly/earthly/util/cliutil"
+	"github.com/earthly/earthly/util/fileutil"
 	"github.com/fatih/color"
 	"github.com/moby/buildkit/client"
 	_ "github.com/moby/buildkit/client/connhelper/dockercontainer" // Load "docker-container://" helper.
@@ -38,10 +41,58 @@ var (
 
 // TODO: Implement all this properly with the docker client.
 
+func makeTLSPath(path string) (string, error) {
+	fullPath := path
+
+	if !filepath.IsAbs(path) {
+		earthlyDir, err := cliutil.GetEarthlyDir()
+		if err != nil {
+			return "", err
+		}
+
+		fullPath = filepath.Join(earthlyDir, path)
+	}
+
+	if !fileutil.FileExists(fullPath) {
+		return "", fmt.Errorf("path '%s' does not exist", path)
+	}
+
+	return fullPath, nil
+}
+
+func addRequiredOpts(settings Settings, opts ...client.ClientOpt) ([]client.ClientOpt, error) {
+	server, err := url.Parse(settings.BuildkitAddress)
+	if err != nil {
+		return []client.ClientOpt{}, errors.Wrap(err, "invalid buildkit url")
+	}
+
+	caPath, err := makeTLSPath(settings.TLSCA)
+	if err != nil {
+		return []client.ClientOpt{}, errors.Wrap(err, "caPath")
+	}
+
+	certPath, err := makeTLSPath(settings.TLSCert)
+	if err != nil {
+		return []client.ClientOpt{}, errors.Wrap(err, "certPath")
+	}
+
+	keyPath, err := makeTLSPath(settings.TLSKey)
+	if err != nil {
+		return []client.ClientOpt{}, errors.Wrap(err, "keyPath")
+	}
+
+	return append(opts, client.WithCredentials(server.Hostname(), caPath, certPath, keyPath)), nil
+}
+
 // NewClient returns a new buildkitd client.
 func NewClient(ctx context.Context, console conslogging.ConsoleLogger, image string, settings Settings, opts ...client.ClientOpt) (*client.Client, error) {
+	allOpts, err := addRequiredOpts(settings, opts...)
+	if err != nil {
+		return nil, errors.Wrap(err, "add required client opts")
+	}
+
 	if isLocal(settings.BuildkitAddress) {
-		err := waitForConnection(ctx, settings.BuildkitAddress, settings.Timeout)
+		err = waitForConnection(ctx, settings.BuildkitAddress, settings.Timeout, allOpts...)
 		if err != nil {
 			return nil, errors.Wrap(err, "connect provided buildkit")
 		}
@@ -62,7 +113,7 @@ func NewClient(ctx context.Context, console conslogging.ConsoleLogger, image str
 	if err != nil {
 		return nil, errors.Wrap(err, "maybe start buildkitd")
 	}
-	bkClient, err := client.New(ctx, address, opts...)
+	bkClient, err := client.New(ctx, address, allOpts...)
 	if err != nil {
 		return nil, errors.Wrap(err, "new buildkit client")
 	}
@@ -70,10 +121,15 @@ func NewClient(ctx context.Context, console conslogging.ConsoleLogger, image str
 }
 
 // ResetCache restarts the buildkitd daemon with the reset command.
-func ResetCache(ctx context.Context, console conslogging.ConsoleLogger, image string, settings Settings) error {
+func ResetCache(ctx context.Context, console conslogging.ConsoleLogger, image string, settings Settings, opts ...client.ClientOpt) error {
 	// Prune by resetting container.
 	if settings.BuildkitAddress != "" {
 		return errors.New("cannot reset cache of a provided buildkit-host setting")
+	}
+
+	allOpts, err := addRequiredOpts(settings, opts...)
+	if err != nil {
+		return errors.Wrap(err, "add required client opts")
 	}
 
 	console.
@@ -102,7 +158,7 @@ func ResetCache(ctx context.Context, console conslogging.ConsoleLogger, image st
 	if err != nil {
 		return err
 	}
-	err = WaitUntilStarted(ctx, console, settings.BuildkitAddress, settings.Timeout)
+	err = WaitUntilStarted(ctx, console, settings.BuildkitAddress, settings.Timeout, allOpts...)
 	if err != nil {
 		return err
 	}
@@ -323,7 +379,7 @@ func IsStarted(ctx context.Context) (bool, error) {
 }
 
 // WaitUntilStarted waits until the buildkitd daemon has started and is healthy.
-func WaitUntilStarted(ctx context.Context, console conslogging.ConsoleLogger, address string, opTimeout time.Duration) error {
+func WaitUntilStarted(ctx context.Context, console conslogging.ConsoleLogger, address string, opTimeout time.Duration, opts ...client.ClientOpt) error {
 	// First, wait for the container to be marked as started.
 	ctxTimeout, cancel := context.WithTimeout(ctx, opTimeout)
 	defer cancel()
@@ -349,7 +405,7 @@ ContainerRunningLoop:
 	}
 
 	// Wait for the connection to be available.
-	err := waitForConnection(ctx, address, opTimeout)
+	err := waitForConnection(ctx, address, opTimeout, opts...)
 	if err != nil {
 		if !errors.Is(err, ErrBuildkitStartFailure) {
 			return err
@@ -380,7 +436,7 @@ ContainerRunningLoop:
 	return nil
 }
 
-func waitForConnection(ctx context.Context, address string, opTimeout time.Duration) error {
+func waitForConnection(ctx context.Context, address string, opTimeout time.Duration, opts ...client.ClientOpt) error {
 	ctxTimeout, cancel := context.WithTimeout(ctx, opTimeout)
 	defer cancel()
 	for {
@@ -398,7 +454,7 @@ func waitForConnection(ctx context.Context, address string, opTimeout time.Durat
 				}
 			}
 
-			err := checkConnection(ctxTimeout, address)
+			err := checkConnection(ctxTimeout, address, opts...)
 			if err != nil {
 				// Try again.
 				continue
@@ -406,7 +462,7 @@ func waitForConnection(ctx context.Context, address string, opTimeout time.Durat
 			return nil
 		case <-ctxTimeout.Done():
 			// Try one last time.
-			err := checkConnection(ctx, address)
+			err := checkConnection(ctx, address, opts...)
 			if err != nil {
 				// We give up.
 				return errors.Wrapf(ErrBuildkitStartFailure, "timeout %s: buildkitd did not make connection available after start", opTimeout)
@@ -416,7 +472,7 @@ func waitForConnection(ctx context.Context, address string, opTimeout time.Durat
 	}
 }
 
-func checkConnection(ctx context.Context, address string) error {
+func checkConnection(ctx context.Context, address string, opts ...client.ClientOpt) error {
 	// Each attempt has limited time to succeed, to prevent hanging for too long
 	// here.
 	ctxTimeout, cancel := context.WithTimeout(ctx, 5*time.Second)
@@ -424,7 +480,7 @@ func checkConnection(ctx context.Context, address string) error {
 	var connErr error = errors.New("timeout")
 	go func() {
 		defer cancel()
-		bkClient, err := client.New(ctxTimeout, address)
+		bkClient, err := client.New(ctxTimeout, address, opts...)
 		if err != nil {
 			connErrMu.Lock()
 			connErr = err
