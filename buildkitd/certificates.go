@@ -29,6 +29,7 @@ const (
 	earthly  = "earthly"
 )
 
+//GenerateCertificates creates and saves a CA and certificates for both sides of an mTLS TCP connection.
 func GenerateCertificates(dir string) error {
 	ca, err := createAndSaveCA(dir)
 	if err != nil {
@@ -48,6 +49,7 @@ func GenerateCertificates(dir string) error {
 	return nil
 }
 
+//DeleteCerts removes all generated certs.
 func DeleteCerts(dir string) error {
 	return os.RemoveAll(dir)
 }

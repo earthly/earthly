@@ -1049,8 +1049,8 @@ func (app *earthlyApp) before(context *cli.Context) error {
 	app.buildkitdSettings.TLSCA = app.tlsCAPath
 	app.buildkitdSettings.ClientTLSCert = app.clientTLSCertPath
 	app.buildkitdSettings.ClientTLSKey = app.clientTLSKeyPath
-	app.buildkitdSettings.ServerTLSCert = app.clientTLSCertPath
-	app.buildkitdSettings.ServerTLSKey = app.clientTLSKeyPath
+	app.buildkitdSettings.ServerTLSCert = app.serverTLSCertPath
+	app.buildkitdSettings.ServerTLSKey = app.serverTLSKeyPath
 
 	// ensure the MTU is something allowable in IPv4, cap enforced by type. Zero is autodetect.
 	if app.buildkitdSettings.CniMtu != 0 && app.buildkitdSettings.CniMtu < 68 {
