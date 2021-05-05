@@ -33,7 +33,7 @@ code:
     COPY --platform=linux/amd64 ./ast/parser+parser/*.go ./ast/parser/
     COPY --dir analytics autocomplete buildcontext builder cleanup cmd config conslogging debugger dockertar \
         docker2earthly domain logging secretsclient states util variables ./
-    COPY --dir buildkitd/buildkitd.go buildkitd/settings.go buildkitd/
+    COPY --dir buildkitd/buildkitd.go buildkitd/settings.go buildkitd/certificates.go buildkitd/
     COPY --dir earthfile2llb/*.go earthfile2llb/
     COPY --dir ast/antlrhandler ast/spec ast/*.go ast/
 

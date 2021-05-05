@@ -91,7 +91,7 @@ func NewClient(ctx context.Context, console conslogging.ConsoleLogger, image str
 		return nil, errors.Wrap(err, "add required client opts")
 	}
 
-	if isLocal(settings.BuildkitAddress) {
+	if !isLocal(settings.BuildkitAddress) {
 		err = waitForConnection(ctx, settings.BuildkitAddress, settings.Timeout, allOpts...)
 		if err != nil {
 			return nil, errors.Wrap(err, "connect provided buildkit")
@@ -326,8 +326,8 @@ func Start(ctx context.Context, console conslogging.ConsoleLogger, image string,
 		dbURL, _ := url.Parse(settings.DebuggerAddress)
 
 		args = append(args,
-			"-p", fmt.Sprintf("127.0.0.1:%d:8373", dbURL.Port()),
-			"-p", fmt.Sprintf("127.0.0.1:%d:8372", bkURL.Port()))
+			"-p", fmt.Sprintf("127.0.0.1:%s:8373", dbURL.Port()),
+			"-p", fmt.Sprintf("127.0.0.1:%s:8372", bkURL.Port()))
 	}
 
 	if settings.TLSCA != "" {

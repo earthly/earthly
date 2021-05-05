@@ -4,11 +4,10 @@ insecure-entitlements = [ "security.insecure" ]
 
 [grpc]
   address = [ "tcp://0.0.0.0:8372" ]
-
-[grpc.tls]
-  cert = "/etc/cert.pem"
-  key = "/etc/key.pem"
-  ca = "/etc/ca.pem"
+  [grpc.tls]
+    cert = "/etc/cert.pem"
+    key = "/etc/key.pem"
+    ca = "/etc/ca.pem"
 
 [worker.oci]
   enabled = true

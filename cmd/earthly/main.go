@@ -441,7 +441,7 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 		},
 		&cli.StringFlag{
 			Name:        "tlsca",
-			Value:       "./certs/cacert.pem",
+			Value:       "./certs/ca_cert.pem",
 			EnvVars:     []string{"EARTHLY_TLS_CA"},
 			Usage:       wrap("The path to the PEM-encoded CA used to validate the TLS certificates"),
 			Destination: &app.tlsCAPath,
@@ -1516,18 +1516,18 @@ func (app *earthlyApp) actionBootstrap(c *cli.Context) error {
 	}
 
 	if !app.bootstrapNoBuildkit {
+		certsDir := filepath.Join(root, "certs")
+		err = buildkitd.GenerateCertificates(certsDir)
+		if err != nil {
+			return errors.Wrap(err, "setup TLS")
+		}
+
 		// Bootstrap buildkit - pulls image and starts daemon.
 		bkClient, err := buildkitd.NewClient(c.Context, app.console, app.buildkitdImage, app.buildkitdSettings)
 		if err != nil {
 			return errors.Wrap(err, "bootstrap new buildkitd client")
 		}
 		defer bkClient.Close()
-
-		certsDir := filepath.Join(root, "certs")
-		err = buildkitd.GenerateCertificates(certsDir)
-		if err != nil {
-			return errors.Wrap(err, "setup TLS")
-		}
 	}
 
 	console.Printf("Bootstrapping successful.\nYou may have to restart your shell for autocomplete to get initialized (e.g. run \"exec $SHELL\")\n")
