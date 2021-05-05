@@ -39,8 +39,10 @@ type GlobalConfig struct {
 	BuildkitAdditionalConfig string   `yaml:"buildkit_additional_config" help:"Additional config to use when starting the buildkit container; like using custom/self-signed certificates."`
 	CniMtu                   uint16   `yaml:"cni_mtu"                    help:"Override auto-detection of the default interface MTU, for all containers within buildkit"`
 	TLSCA                    string   `yaml:"tlsca"                      help:"The path to the CA cert for verification. Relative paths are interpreted as relative to ~/.earthly."`
-	TLSCert                  string   `yaml:"tlscert"                    help:"The path to the client cert for verification. Relative paths are interpreted as relative to ~/.earthly."`
-	TLSKey                   string   `yaml:"tlskey"                     help:"The path to the client key for verification. Relative paths are interpreted as relative to ~/.earthly."`
+	ClientTLSCert            string   `yaml:"tlscert"                    help:"The path to the client cert for verification. Relative paths are interpreted as relative to ~/.earthly."`
+	ClientTLSKey             string   `yaml:"tlskey"                     help:"The path to the client key for verification. Relative paths are interpreted as relative to ~/.earthly."`
+	ServerTLSCert            string   `yaml:"buildkitd_tlscert"          help:"The path to the server cert for verification. Relative paths are interpreted as relative to ~/.earthly. Only used when Earthly manages buildkit."`
+	ServerTLSKey             string   `yaml:"buildkitd_tlskey"           help:"The path to the server key for verification. Relative paths are interpreted as relative to ~/.earthly. Only used when Earthly manages buildkit."`
 
 	// Obsolete.
 	CachePath string `yaml:"cache_path"`

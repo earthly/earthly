@@ -139,8 +139,10 @@ type cliFlags struct {
 	debuggerPort           int
 	debuggerAddress        string
 	tlsCAPath              string
-	tlsCertPath            string
-	tlsKeyPath             string
+	clientTLSCertPath      string
+	clientTLSKeyPath       string
+	serverTLSCertPath      string
+	serverTLSKeyPath       string
 }
 
 var (
@@ -449,14 +451,28 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 			Value:       "./certs/earthly_cert.pem",
 			EnvVars:     []string{"EARTHLY_TLS_CERT"},
 			Usage:       wrap("The path to the client TLS cert"),
-			Destination: &app.tlsCertPath,
+			Destination: &app.clientTLSCertPath,
 		},
 		&cli.StringFlag{
 			Name:        "tlskey",
 			Value:       "./certs/earthly_key.pem",
 			EnvVars:     []string{"EARTHLY_TLS_KEY"},
 			Usage:       wrap("The path to the client TLS key. If relative, will be interpreted as relative to the ~/.earthly folder."),
-			Destination: &app.tlsKeyPath,
+			Destination: &app.clientTLSKeyPath,
+		},
+		&cli.StringFlag{
+			Name:        "buildkitdtlscert",
+			Value:       "./certs/buildkit_cert.pem",
+			EnvVars:     []string{"EARTHLY_TLS_CERT"},
+			Usage:       wrap("The path to the client TLS cert"),
+			Destination: &app.serverTLSCertPath,
+		},
+		&cli.StringFlag{
+			Name:        "buildkitdtlskey",
+			Value:       "./certs/buildkit_key.pem",
+			EnvVars:     []string{"EARTHLY_TLS_KEY"},
+			Usage:       wrap("The path to the client TLS key. If relative, will be interpreted as relative to the ~/.earthly folder."),
+			Destination: &app.serverTLSKeyPath,
 		},
 		&cli.IntFlag{
 			Name:        "buildkit-cache-size-mb",
@@ -1008,12 +1024,20 @@ func (app *earthlyApp) before(context *cli.Context) error {
 		app.tlsCAPath = app.cfg.Global.TLSCA
 	}
 
-	if !context.IsSet("tlscert") && app.cfg.Global.TLSCert != "" {
-		app.tlsCAPath = app.cfg.Global.TLSCert
+	if !context.IsSet("tlscert") && app.cfg.Global.ClientTLSCert != "" {
+		app.clientTLSCertPath = app.cfg.Global.ClientTLSCert
 	}
 
-	if !context.IsSet("tlskey") && app.cfg.Global.TLSKey != "" {
-		app.tlsCAPath = app.cfg.Global.TLSKey
+	if !context.IsSet("tlskey") && app.cfg.Global.ClientTLSKey != "" {
+		app.clientTLSKeyPath = app.cfg.Global.ClientTLSKey
+	}
+
+	if !context.IsSet("buildkitdtlscert") && app.cfg.Global.ServerTLSCert != "" {
+		app.serverTLSCertPath = app.cfg.Global.ServerTLSCert
+	}
+
+	if !context.IsSet("buildkitdtlskey") && app.cfg.Global.ServerTLSKey != "" {
+		app.serverTLSKeyPath = app.cfg.Global.ServerTLSKey
 	}
 
 	app.buildkitdSettings.AdditionalArgs = app.cfg.Global.BuildkitAdditionalArgs
@@ -1023,8 +1047,10 @@ func (app *earthlyApp) before(context *cli.Context) error {
 	app.buildkitdSettings.BuildkitAddress = buildkitAddress
 	app.buildkitdSettings.DebuggerAddress = app.debuggerAddress
 	app.buildkitdSettings.TLSCA = app.tlsCAPath
-	app.buildkitdSettings.TLSCert = app.tlsCertPath
-	app.buildkitdSettings.TLSKey = app.tlsKeyPath
+	app.buildkitdSettings.ClientTLSCert = app.clientTLSCertPath
+	app.buildkitdSettings.ClientTLSKey = app.clientTLSKeyPath
+	app.buildkitdSettings.ServerTLSCert = app.clientTLSCertPath
+	app.buildkitdSettings.ServerTLSKey = app.clientTLSKeyPath
 
 	// ensure the MTU is something allowable in IPv4, cap enforced by type. Zero is autodetect.
 	if app.buildkitdSettings.CniMtu != 0 && app.buildkitdSettings.CniMtu < 68 {

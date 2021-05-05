@@ -71,12 +71,12 @@ func addRequiredOpts(settings Settings, opts ...client.ClientOpt) ([]client.Clie
 		return []client.ClientOpt{}, errors.Wrap(err, "caPath")
 	}
 
-	certPath, err := makeTLSPath(settings.TLSCert)
+	certPath, err := makeTLSPath(settings.ClientTLSCert)
 	if err != nil {
 		return []client.ClientOpt{}, errors.Wrap(err, "certPath")
 	}
 
-	keyPath, err := makeTLSPath(settings.TLSKey)
+	keyPath, err := makeTLSPath(settings.ClientTLSKey)
 	if err != nil {
 		return []client.ClientOpt{}, errors.Wrap(err, "keyPath")
 	}
@@ -328,6 +328,30 @@ func Start(ctx context.Context, console conslogging.ConsoleLogger, image string,
 		args = append(args,
 			"-p", fmt.Sprintf("127.0.0.1:%d:8373", dbURL.Port()),
 			"-p", fmt.Sprintf("127.0.0.1:%d:8372", bkURL.Port()))
+	}
+
+	if settings.TLSCA != "" {
+		caPath, err := makeTLSPath(settings.TLSCA)
+		if err != nil {
+			return errors.Wrap(err, "start buildkitd")
+		}
+		args = append(args, "-v", fmt.Sprintf("%s:/etc/ca.pem", caPath))
+	}
+
+	if settings.ServerTLSCert != "" {
+		certPath, err := makeTLSPath(settings.ServerTLSCert)
+		if err != nil {
+			return errors.Wrap(err, "start buildkitd")
+		}
+		args = append(args, "-v", fmt.Sprintf("%s:/etc/cert.pem", certPath))
+	}
+
+	if settings.ServerTLSKey != "" {
+		keyPath, err := makeTLSPath(settings.ServerTLSKey)
+		if err != nil {
+			return errors.Wrap(err, "start buildkitd")
+		}
+		args = append(args, "-v", fmt.Sprintf("%s:/etc/key.pem", keyPath))
 	}
 
 	if supportsPlatform(ctx) {
