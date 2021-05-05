@@ -1530,6 +1530,11 @@ func (app *earthlyApp) actionBootstrap(c *cli.Context) error {
 		defer bkClient.Close()
 	}
 
+	err = cliutil.EnsurePermissions()
+	if err != nil {
+		return errors.Wrap(err, "configure earthly directory permissions")
+	}
+
 	console.Printf("Bootstrapping successful.\nYou may have to restart your shell for autocomplete to get initialized (e.g. run \"exec $SHELL\")\n")
 	return nil
 }
