@@ -50,8 +50,6 @@ func makeEarthlyDir() (string, error) {
 			return "", errors.Wrapf(err, "unable to create dir %s", earthlyDir)
 		}
 		fileutil.EnsureUserOwned(earthlyDir, sudoUser)
-
-		os.UserHomeDir()
 	}
 	return earthlyDir, nil
 }
