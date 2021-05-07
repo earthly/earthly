@@ -83,7 +83,7 @@ type mapStore map[string][]byte
 func (m mapStore) GetSecret(ctx context.Context, id string) ([]byte, error) {
 	v, ok := m[id]
 	if !ok {
-		return nil, errors.WithStack(secrets.ErrNotFound)
+		return nil, errors.WithStack(errors.Wrapf(secrets.ErrNotFound, "unable to lookup secret %s", id))
 	}
 	return v, nil
 }
