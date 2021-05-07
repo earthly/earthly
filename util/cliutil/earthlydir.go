@@ -25,7 +25,7 @@ func GetEarthlyDir() (string, error) {
 }
 
 func makeEarthlyDir() (string, error) {
-	homeDir, sudoUser, err := detectHomeDir()
+	homeDir, sudoUser, err := DetectHomeDir()
 	if err != nil {
 		return "", err
 	}
@@ -57,7 +57,9 @@ func makeEarthlyDir() (string, error) {
 	return earthlyDir, nil
 }
 
-func detectHomeDir() (homeDir string, sudoUser *user.User, err error) {
+// DetectHomeDir returns the home directory of the current user, an additional sudoUser
+// is returned if the user is currently running as root
+func DetectHomeDir() (homeDir string, sudoUser *user.User, err error) {
 	if runtime.GOOS == "windows" {
 		homeDir, err := os.UserHomeDir()
 		return homeDir, nil, err
