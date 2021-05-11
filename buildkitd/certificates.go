@@ -49,7 +49,7 @@ func GenerateCertificates(dir string) error {
 	return nil
 }
 
-//DeleteCerts removes all generated certs.
+// DeleteCerts removes all generated certs.
 func DeleteCerts(dir string) error {
 	return os.RemoveAll(dir)
 }
