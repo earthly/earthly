@@ -20,7 +20,6 @@ import (
 	"github.com/earthly/earthly/util/fileutil"
 	"github.com/fatih/color"
 	"github.com/moby/buildkit/client"
-	_ "github.com/moby/buildkit/client/connhelper/dockercontainer" // Load "docker-container://" helper.
 	"github.com/pkg/errors"
 )
 
@@ -97,7 +96,7 @@ func NewClient(ctx context.Context, console conslogging.ConsoleLogger, image str
 			return nil, errors.Wrap(err, "connect provided buildkit")
 		}
 
-		bkClient, err := client.New(ctx, settings.BuildkitAddress, opts...)
+		bkClient, err := client.New(ctx, settings.BuildkitAddress, allOpts...)
 		if err != nil {
 			return nil, errors.Wrap(err, "start provided buildkit")
 		}
@@ -109,7 +108,7 @@ func NewClient(ctx context.Context, console conslogging.ConsoleLogger, image str
 		console.WithPrefix("buildkitd").Printf("Is docker installed and running? Are you part of the docker group?\n")
 		return nil, errors.New("docker not available")
 	}
-	address, err := MaybeStart(ctx, console, image, settings)
+	address, err := MaybeStart(ctx, console, image, settings, allOpts...)
 	if err != nil {
 		return nil, errors.Wrap(err, "maybe start buildkitd")
 	}
@@ -170,7 +169,7 @@ func ResetCache(ctx context.Context, console conslogging.ConsoleLogger, image st
 
 // MaybeStart ensures that the buildkitd daemon is started. It returns the URL
 // that can be used to connect to it.
-func MaybeStart(ctx context.Context, console conslogging.ConsoleLogger, image string, settings Settings) (string, error) {
+func MaybeStart(ctx context.Context, console conslogging.ConsoleLogger, image string, settings Settings, opts ...client.ClientOpt) (string, error) {
 	isStarted, err := IsStarted(ctx)
 	if err != nil {
 		return "", errors.Wrap(err, "check is started buildkitd")
@@ -191,7 +190,7 @@ func MaybeStart(ctx context.Context, console conslogging.ConsoleLogger, image st
 		if err != nil {
 			return "", errors.Wrap(err, "start")
 		}
-		err = WaitUntilStarted(ctx, console, settings.BuildkitAddress, settings.Timeout)
+		err = WaitUntilStarted(ctx, console, settings.BuildkitAddress, settings.Timeout, opts...)
 		if err != nil {
 			return "", errors.Wrap(err, "wait until started")
 		}
@@ -365,6 +364,8 @@ func Start(ctx context.Context, console conslogging.ConsoleLogger, image string,
 	args = append(args,
 		"-e", fmt.Sprintf("CACHE_SIZE_MB=%d", settings.CacheSizeMb),
 		"-e", fmt.Sprintf("GIT_URL_INSTEAD_OF=%s", settings.GitURLInsteadOf),
+		"-e", "GRPC_GO_LOG_VERBOSITY_LEVEL=99",
+		"-e", "GRPC_GO_LOG_SEVERITY_LEVEL=info",
 	)
 
 	// Apply reset.
