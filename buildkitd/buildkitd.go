@@ -40,49 +40,6 @@ var (
 
 // TODO: Implement all this properly with the docker client.
 
-func makeTLSPath(path string) (string, error) {
-	fullPath := path
-
-	if !filepath.IsAbs(path) {
-		earthlyDir, err := cliutil.GetEarthlyDir()
-		if err != nil {
-			return "", err
-		}
-
-		fullPath = filepath.Join(earthlyDir, path)
-	}
-
-	if !fileutil.FileExists(fullPath) {
-		return "", fmt.Errorf("path '%s' does not exist", path)
-	}
-
-	return fullPath, nil
-}
-
-func addRequiredOpts(settings Settings, opts ...client.ClientOpt) ([]client.ClientOpt, error) {
-	server, err := url.Parse(settings.BuildkitAddress)
-	if err != nil {
-		return []client.ClientOpt{}, errors.Wrap(err, "invalid buildkit url")
-	}
-
-	caPath, err := makeTLSPath(settings.TLSCA)
-	if err != nil {
-		return []client.ClientOpt{}, errors.Wrap(err, "caPath")
-	}
-
-	certPath, err := makeTLSPath(settings.ClientTLSCert)
-	if err != nil {
-		return []client.ClientOpt{}, errors.Wrap(err, "certPath")
-	}
-
-	keyPath, err := makeTLSPath(settings.ClientTLSKey)
-	if err != nil {
-		return []client.ClientOpt{}, errors.Wrap(err, "keyPath")
-	}
-
-	return append(opts, client.WithCredentials(server.Hostname(), caPath, certPath, keyPath)), nil
-}
-
 // NewClient returns a new buildkitd client.
 func NewClient(ctx context.Context, console conslogging.ConsoleLogger, image string, settings Settings, opts ...client.ClientOpt) (*client.Client, error) {
 	allOpts, err := addRequiredOpts(settings, opts...)
@@ -364,8 +321,6 @@ func Start(ctx context.Context, console conslogging.ConsoleLogger, image string,
 	args = append(args,
 		"-e", fmt.Sprintf("CACHE_SIZE_MB=%d", settings.CacheSizeMb),
 		"-e", fmt.Sprintf("GIT_URL_INSTEAD_OF=%s", settings.GitURLInsteadOf),
-		"-e", "GRPC_GO_LOG_VERBOSITY_LEVEL=99",
-		"-e", "GRPC_GO_LOG_SEVERITY_LEVEL=info",
 	)
 
 	// Apply reset.
@@ -763,4 +718,47 @@ func isLocal(addr string) bool {
 	return hostname == "127.0.0.1" || // The only IP v4 Loopback we honor. Because we need to include it in the TLS certificates.
 		hostname == net.IPv6loopback.String() ||
 		hostname == "localhost" // Convention. Users hostname omitted; this is only really here for convenience.
+}
+
+func makeTLSPath(path string) (string, error) {
+	fullPath := path
+
+	if !filepath.IsAbs(path) {
+		earthlyDir, err := cliutil.GetEarthlyDir()
+		if err != nil {
+			return "", err
+		}
+
+		fullPath = filepath.Join(earthlyDir, path)
+	}
+
+	if !fileutil.FileExists(fullPath) {
+		return "", fmt.Errorf("path '%s' does not exist", path)
+	}
+
+	return fullPath, nil
+}
+
+func addRequiredOpts(settings Settings, opts ...client.ClientOpt) ([]client.ClientOpt, error) {
+	server, err := url.Parse(settings.BuildkitAddress)
+	if err != nil {
+		return []client.ClientOpt{}, errors.Wrap(err, "invalid buildkit url")
+	}
+
+	caPath, err := makeTLSPath(settings.TLSCA)
+	if err != nil {
+		return []client.ClientOpt{}, errors.Wrap(err, "caPath")
+	}
+
+	certPath, err := makeTLSPath(settings.ClientTLSCert)
+	if err != nil {
+		return []client.ClientOpt{}, errors.Wrap(err, "certPath")
+	}
+
+	keyPath, err := makeTLSPath(settings.ClientTLSKey)
+	if err != nil {
+		return []client.ClientOpt{}, errors.Wrap(err, "keyPath")
+	}
+
+	return append(opts, client.WithCredentials(server.Hostname(), caPath, certPath, keyPath)), nil
 }
