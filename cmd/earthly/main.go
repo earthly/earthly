@@ -842,7 +842,6 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 		{
 			Name:   "config",
 			Usage:  "Edits your Earthly configuration file",
-			Hidden: true, // Experimental.
 			Action: app.actionConfig,
 			UsageText: `This command takes a path, and a value and sets it in your configuration file.
 
