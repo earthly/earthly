@@ -282,6 +282,69 @@ Instructs earthly to issue a "prune all" command to the buildkit daemon.
 
 Restarts the buildkit daemon and completely resets the cache directory.
 
+## earthly config
+
+#### Synopsis
+
+```
+earthly [options] config [key] [value]
+```
+
+#### Description
+
+Enables modifying, adding, and updating values in `~/.earthly/config.yml`. It does its best to preserve formatting and existing comments. You can also set complex values using YAML literals.
+
+#### Options
+
+#### `--help`
+
+Prints help text, along with some examples.
+
+#### `[key] --help`
+
+Prints help for the specific key, including what it is used for and what kind of value it needs to be.
+
+#### Examples
+
+Set your cache size:
+
+```
+config global.cache_size_mb 1234
+```
+
+Set additional buildkit args, using a YAML array:
+
+```
+config global.buildkit_additional_args ['userns', '--host']
+```
+
+Set a key containing a period:
+
+```
+config git."example.com".password hunter2
+```
+
+Set up a whole custom git repository for a server called example.com, using a single-line YAML literal:
+* which stores git repos under /var/git/repos/name-of-repo.git
+* allows access over ssh
+* using port 2222
+* sets the username to git
+* is recognized to earthly as example.com/name-of-repo
+
+```
+config git "{example: {pattern: 'example.com/([^/]+)', substitute: 'ssh://git@example.com:2222/var/git/repos/\$1.git', auth: ssh}}"
+```
+
+The above command yields the following config file:
+
+```yaml
+git:
+    example:
+        pattern: example.com/([^/]+)
+        substitute: ssh://git@example.com:2222/var/git/repos/$1.git
+        auth: ssh
+```
+
 ## earthly account
 
 Contains sub-commands for registering and administration an Earthly account.
