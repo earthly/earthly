@@ -1,0 +1,175 @@
+FROM alpine:3.13
+
+deps:
+    FROM ubuntu:20.10
+    RUN apt-get update && apt-get install -y dpkg-dev wget dpkg-sig
+
+deb:
+    ARG RELEASE_TAG
+    ARG EARTHLY_PLATFORM
+    ARG EARTHLY_VERSION=$(echo "$RELEASE_TAG" | cut -c 2-)
+    ARG PKG_NAME=earthly_${VERSION}-1_${EARTHLY_PLATFORM}
+    FROM +deps
+    WORKDIR /work
+    RUN mkdir -p $PKG_NAME/DEBIAN
+    RUN mkdir -p $PKG_NAME/usr/bin/
+    RUN (echo "$RELEASE_TAG" | grep '^v[0-9]\+.[0-9]\+.[0-9]\+$' > /dev/null) || (echo "RELEASE_TAG must be formatted as v1.2.3; instead got \"$RELEASE_TAG\""; exit 1)
+    RUN wget -q "https://github.com/earthly/earthly/releases/download/v${EARTHLY_VERSION}/earthly-linux-$EARTHLY_PLATFORM" -O $PKG_NAME/usr/bin/earthly && chmod +x $PKG_NAME/usr/bin/earthly
+    COPY earthly.control $PKG_NAME/DEBIAN/control
+    RUN sed -i "s/__earthly_version__/$EARTHLY_VERSION/" $PKG_NAME/DEBIAN/control
+    RUN dpkg -b $PKG_NAME
+    SAVE ARTIFACT $PKG_NAME.deb AS LOCAL output/debs/$PKG_NAME.deb
+
+deb-amd64:
+    COPY \
+        --build-arg  EARTHLY_PLATFORM=amd64 \
+        +deb/* ./
+    SAVE ARTIFACT *.deb
+
+deb-arm64:
+    COPY \
+        --build-arg  EARTHLY_PLATFORM=arm64 \
+        +deb/* ./
+    SAVE ARTIFACT *.deb
+
+deb-arm7:
+    COPY \
+        --build-arg  EARTHLY_PLATFORM=arm7 \
+        +deb/* ./
+    SAVE ARTIFACT *.deb
+
+deb-all:
+    COPY +deb-amd64/*.deb .
+    COPY +deb-arm64/*.deb .
+    COPY +deb-arm7/*.deb .
+    SAVE ARTIFACT ./*
+
+# If for any reason you need to generate a new PGP key, it can be done with
+# this target; however this has already been done once, and our official key has
+# been saved under +secrets/earthly-technologies/apt/keys/earthly-apt-private.pgp (and earthly-apt-public.pgp)
+generate-new-gpg-key:
+    FROM +deps
+    WORKDIR /root/apt-key
+    RUN echo "%echo Generating a basic OpenPGP key
+Key-Type: RSA
+Key-Length: 4096
+Subkey-Type: RSA
+Subkey-Length: 4096
+Name-Real: earthly-apt
+Name-Email: support@earthly.dev
+Expire-Date: 0
+%no-ask-passphrase
+%no-protection
+%commit
+%echo done" > earthly-apt.batch
+    RUN gpg --no-tty --batch --gen-key earthly-apt.batch
+    RUN gpg --output earthly-apt-public.pgp --armor --export support@earthly.dev
+    RUN gpg --output earthly-apt-private.pgp --armor --export-secret-key support@earthly.dev
+    SAVE ARTIFACT earthly-apt-public.pgp AS LOCAL earthly-apt-public.pgp
+    SAVE ARTIFACT earthly-apt-private.pgp AS LOCAL earthly-apt-private.pgp
+
+
+aws-base:
+    FROM alpine:latest
+    RUN apk add --update --no-cache curl unzip
+    RUN curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64-2.0.30.zip" -o "awscliv2.zip"
+    RUN unzip awscliv2.zip
+    RUN ./aws/install
+    ENV PATH=$PATH:/usr/local/aws-cli/v2/bin/
+
+aws:
+    FROM amazon/aws-cli
+    RUN mkdir -p ~/.aws && echo "[profile developer]
+    role_arn = arn:aws:iam::404851345508:role/developer
+    source_profile = default" > ~/.aws/config
+    ENV AWS_PROFILE=developer
+
+download:
+    FROM +aws
+    RUN env | grep dev
+    RUN --no-cache \
+        --mount type=secret,id=+secrets/aws-credentials,target=/root/.aws/credentials \
+        aws s3 cp --recursive s3://staging-pkg/deb/ repo
+    SAVE ARTIFACT repo AS LOCAL output/repo
+
+index-and-sign:
+    FROM +deps
+    ARG USE_OUTPUT_COPY=true
+    IF [ "$USE_OUTPUT_COPY" = "true" ]
+        RUN echo "upload using local target"
+        COPY output/repo /repo
+    ELSE
+        RUN echo "upload using container target"
+        COPY +deb-all/*.deb /debs/.
+        COPY +download/repo /repo
+        RUN cp /debs/*.deb /repo/pool/main/.
+    END
+
+    # validate the repo directory structure is correct
+    RUN (test $(ls -1 /repo/pool) = "main") || (echo "pool should only contain a single directory named main"; exit 1)
+    RUN ls /repo/pool/main/*.deb || (echo "directory doesnt contain debs"; exit 1)
+    RUN (test $(ls -1 /repo/pool/main | grep -v '\.deb$' | wc -l) = 0) || (echo "directory should only contain debs, but doesn't"; exit 1)
+
+    WORKDIR /repo
+    RUN rm -rf dists
+    RUN mkdir -p dists/stable/main/binary-amd64
+    RUN mkdir -p dists/stable/main/binary-arm64
+    RUN mkdir -p dists/stable/main/binary-arm7
+
+    RUN dpkg-scanpackages --arch amd64 --multiversion pool/ > dists/stable/main/binary-amd64/Packages
+    RUN dpkg-scanpackages --arch arm64 --multiversion pool/ > dists/stable/main/binary-arm64/Packages
+    RUN dpkg-scanpackages --arch arm7 --multiversion pool/ > dists/stable/main/binary-arm7/Packages
+
+    RUN gzip -c9 dists/stable/main/binary-amd64/Packages > dists/stable/main/binary-amd64/Packages.gz
+    RUN gzip -c9 dists/stable/main/binary-arm64/Packages > dists/stable/main/binary-arm64/Packages.gz
+    RUN gzip -c9 dists/stable/main/binary-arm7/Packages > dists/stable/main/binary-arm7/Packages.gz
+
+    WORKDIR /repo/dists/stable
+    COPY generate-release.sh /
+    RUN rm -f InRelease Release.gpg
+    RUN /generate-release.sh > Release
+
+    # basic validation that files are in the right places.
+    RUN set -e; \
+        grep amd64 Release; \
+        grep arm64 Release; \
+        grep arm7 Release; \
+        ls /repo/pool/main/earthly_*.deb; \
+        ls /repo/dists/stable/Release;
+
+    # Next move on to signing it
+    RUN --mount type=secret,id=+secrets/earthly-technologies/apt/keys/earthly-apt-private.pgp,target=/apt-key/earthly-apt-private.pgp \
+        gpg --import /apt-key/earthly-apt-private.pgp
+    RUN gpg --default-key earthly-apt -abs -o /repo/dists/stable/Release.gpg /repo/dists/stable/Release
+    RUN cat /repo/dists/stable/Release | gpg --default-key earthly-apt -abs --clearsign --no-emit-version > /repo/dists/stable/InRelease
+
+    SAVE ARTIFACT /repo AS LOCAL output/signed-repo
+
+upload:
+    FROM +aws
+
+    ARG USE_OUTPUT_COPY=true
+    IF [ "$USE_OUTPUT_COPY" = "true" ]
+        RUN echo "upload using local target"
+        COPY output/signed-repo /repo
+    ELSE
+        RUN echo "upload using container target"
+        COPY +index-and-sign/repo /repo
+    END
+
+    RUN if (find /repo | grep -i private); then \
+            echo "found a file in /repo containing the string private; breaking as we probably shouldn't upload this file to s3"; \
+            exit 1; \
+        fi
+    # upload public key
+    RUN --no-cache \
+        --mount type=secret,id=+secrets/earthly-technologies/apt/keys/earthly-apt-public.pgp,target=/apt-key/earthly-apt-public.pgp \
+        --mount type=secret,id=+secrets/aws-credentials,target=/root/.aws/credentials \
+        aws s3 cp --acl public-read /apt-key/earthly-apt-public.pgp s3://staging-pkg/earthly-apt.pgp
+    # upload signed repo
+    RUN --no-cache \
+        --mount type=secret,id=+secrets/aws-credentials,target=/root/.aws/credentials \
+        aws s3 cp --recursive --acl public-read /repo s3://staging-pkg/deb/
+
+build-and-release:
+    BUILD --build-arg USE_OUTPUT_COPY=false +upload
