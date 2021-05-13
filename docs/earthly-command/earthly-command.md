@@ -296,11 +296,11 @@ Enables modifying, adding, and updating values in `~/.earthly/config.yml`. It do
 
 #### Options
 
-#### `--help`
+##### `--help`
 
 Prints help text, along with some examples.
 
-#### `[key] --help`
+##### `[key] --help`
 
 Prints help for the specific key, including what it is used for and what kind of value it needs to be.
 
