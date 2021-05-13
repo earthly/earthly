@@ -34,7 +34,10 @@ Finally, setup the stable repository:
 
 To package a new version of earthly, ensure the following requirements are met:
 
-1. you have aws credentials configured in `~/.aws/credentials`, and have access to the developer role
+1. you have aws credentials configured in the earthly secret store under `/user/earthly-technologies/aws/credentials`, and have access to the developer role
+
+    # you can upload them via
+    earthly secrets set --file ~/.aws/credentials /user/earthly-technologies/aws/credentials
 
 2. you have access to the earthly-technologies secrets; specifically the following two commands should work:
 
@@ -49,7 +52,7 @@ Once earthly has been released to github, visit https://github.com/earthly/earth
 
 Then run
 
-    earthly --secret-file aws-credentials=/home/alex/.aws/credentials --build-arg RELEASE_TAG +build-and-release
+    earthly --build-arg RELEASE_TAG +build-and-release
 
 ### Running steps independently
 
@@ -67,12 +70,12 @@ To package a specific platform
 
 #### Cloning the s3 repo to your local disk
 
-    earthly --secret-file aws-credentials=/home/alex/.aws/credentials +download
+    earthly +download
 
 #### Indexing and signing the repo
 
-    earthly --secret-file aws-credentials=/home/alex/.aws/credentials +index-and-sign
+    earthly +index-and-sign
 
 #### Uploading the repo to s3
 
-    earthly --secret-file aws-credentials=/home/alex/.aws/credentials +upload
+    earthly +upload

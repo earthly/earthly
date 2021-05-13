@@ -72,7 +72,7 @@ download:
     FROM +aws
     RUN env | grep dev
     RUN --no-cache \
-        --mount type=secret,id=+secrets/aws-credentials,target=/root/.aws/credentials \
+        --mount type=secret,id=+secrets/user/earthly-technologies/aws/credentials,target=/root/.aws/credentials \
         aws s3 cp --recursive s3://staging-pkg/rpm/stable repo
     SAVE ARTIFACT repo AS LOCAL output/repo
 
@@ -98,13 +98,16 @@ index-and-sign:
 
     WORKDIR /repo
     # Next move on to signing it (we sign the rpm repo with the same key we use for signing our apt repo)
-    RUN --mount type=secret,id=+secrets/earthly-technologies/apt/keys/earthly-apt-private.pgp,target=/apt-key/earthly-apt-private.pgp \
-        gpg --import /apt-key/earthly-apt-private.pgp
+    RUN --no-cache \
+        --mount type=secret,id=+secrets/earthly-technologies/release/keys/earthly-private.pgp,target=/release-key/earthly-private.pgp \
+        gpg --import /release-key/earthly-private.pgp
 
     RUN echo "%_signature gpg
-%_gpg_name earthly-apt" > /root/.rpmmacros
+%_gpg_name B1185ECA33F8EB64" > /root/.rpmmacros
 
-    RUN rpm --resign packages/*.rpm
+    RUN rpm --addsign packages/*.rpm
+    # validate all packages are signed with our key
+    RUN cd packages; for p in *.rpm; do rpm -qpi "$p" | grep Signature | grep -i B1185ECA33F8EB64; done
     RUN rm -rf repodata && createrepo .
     RUN gpg --detach-sign --armor repodata/repomd.xml
     SAVE ARTIFACT /repo AS LOCAL output/signed-repo
@@ -126,13 +129,14 @@ upload:
             exit 1; \
         fi
     # upload public key
-    RUN --no-cache \
-        --mount type=secret,id=+secrets/earthly-technologies/apt/keys/earthly-apt-public.pgp,target=/apt-key/earthly-apt-public.pgp \
-        --mount type=secret,id=+secrets/aws-credentials,target=/root/.aws/credentials \
-        aws s3 cp --acl public-read /apt-key/earthly-apt-public.pgp s3://staging-pkg/earthly.pgp
+    RUN --push \
+        --mount type=secret,id=+secrets/earthly-technologies/release/keys/earthly-public.pgp,target=/release-key/earthly-public.pgp \
+        --mount type=secret,id=+secrets/user/earthly-technologies/aws/credentials,target=/root/.aws/credentials \
+        grep PUBLIC /release-key/earthly-public.pgp >/dev/null && \
+        aws s3 cp --acl public-read /release-key/earthly-public.pgp s3://staging-pkg/earthly.pgp
     # upload signed repo
-    RUN --no-cache \
-        --mount type=secret,id=+secrets/aws-credentials,target=/root/.aws/credentials \
+    RUN --push \
+        --mount type=secret,id=+secrets/user/earthly-technologies/aws/credentials,target=/root/.aws/credentials \
         aws s3 cp --recursive --acl public-read /repo s3://staging-pkg/rpm/stable
 
 build-and-release:
