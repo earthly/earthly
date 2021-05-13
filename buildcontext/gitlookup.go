@@ -237,6 +237,8 @@ func (gl *GitLookup) detectProtocol(host string) (protocol string, err error) {
 	return
 }
 
+var errNoRCHostEntry = fmt.Errorf("no netrc host entry")
+
 func (gl *GitLookup) lookupNetRCCredential(host string) (login, password string, err error) {
 	homeDir, _, err := cliutil.DetectHomeDir()
 	if err != nil {
@@ -245,6 +247,10 @@ func (gl *GitLookup) lookupNetRCCredential(host string) (login, password string,
 	n, err := netrc.Parse(filepath.Join(homeDir, ".netrc"))
 	if err != nil {
 		return "", "", errors.Wrap(err, "failed to parse .netrc")
+	}
+	machine := n.Machine(host)
+	if machine == nil {
+		return "", "", errors.Wrapf(errNoRCHostEntry, "failed to lookup netrc entry for %s", host)
 	}
 	login = n.Machine(host).Get("login")
 	password = n.Machine(host).Get("password")
