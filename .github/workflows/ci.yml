@@ -322,6 +322,8 @@ jobs:
         run: env earthly=./build/linux/amd64/earthly scripts/tests/auth/test-earthfile-can-clone-private-repo-with-earthly-config.sh
       - name: run test-earthfile-can-clone-private-repo-with-netrc.sh
         run: env earthly=./build/linux/amd64/earthly scripts/tests/auth/test-earthfile-can-clone-private-repo-with-netrc.sh
+      - name: run test-hello-world-empty-netrc.sh
+        run: env earthly=./build/linux/amd64/earthly scripts/tests/auth/test-hello-world-empty-netrc.sh
       - name: run test-hello-world-no-ssh-agent.sh
         run: env earthly=./build/linux/amd64/earthly scripts/tests/auth/test-hello-world-no-ssh-agent.sh
       - name: run test-hello-world-no-ssh-keys.sh
