@@ -91,6 +91,8 @@ jobs:
         run: "./examples/tests/remote-cache/test.sh"
       - name: Execute registry-certs test
         run: "./examples/tests/registry-certs/test.sh"
+      - name: Execute tests requiring .git directory
+        run: go test ./analytics --tags=hasgitdirectory
       - name: Execute earthly docker command
         run: (cd examples/tests/docker && ../../.././build/linux/amd64/earthly docker --tag examples-test-docker:latest && diff <(docker run --rm examples-test-docker:latest) <(echo "hello dockerfile") )
       - name: Execute test similar to homebrew test in https://github.com/Homebrew/homebrew-core/blob/master/Formula/earthly.rb
