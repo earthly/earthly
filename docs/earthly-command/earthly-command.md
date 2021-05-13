@@ -292,7 +292,7 @@ earthly [options] config [key] [value]
 
 #### Description
 
-Enables modifying, adding, and updating values in `~/.earthly/config.yml`. It does its best to preserve formatting and existing comments. You can also set complex values using YAML literals.
+Manipulates values in `~/.earthly/config.yml`. It does its best to preserve existing formatting and comments. `[value]` must be a valid YAML literal for the given `[key]`.
 
 #### Options
 
