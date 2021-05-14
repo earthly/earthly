@@ -901,7 +901,6 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 		{
 			Name:   "config",
 			Usage:  "Edits your Earthly configuration file",
-			Hidden: true, // Experimental.
 			Action: app.actionConfig,
 			UsageText: `This command takes a path, and a value and sets it in your configuration file.
 
@@ -2398,7 +2397,18 @@ func (app *earthlyApp) actionBuild(c *cli.Context) error {
 
 	return app.actionBuildImp(c, flagArgs, nonFlagArgs)
 }
+
+// warnIfArgContainsBuildArg will issue a warning if a flag is incorrectly prefixed with build-arg.
+// TODO this check should be replaced with a warning if an arg was given but never used.
+func (app *earthlyApp) warnIfArgContainsBuildArg(flagArgs []string) {
+	for _, flag := range flagArgs {
+		if strings.HasPrefix(flag, "build-arg=") || strings.HasPrefix(flag, "buildarg=") {
+			app.console.Warnf("Found a flag named %q; flags after the build target should be specified as --KEY=VAL\n", flag)
+		}
+	}
+}
 func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []string) error {
+	app.warnIfArgContainsBuildArg(flagArgs)
 	var target domain.Target
 	var artifact domain.Artifact
 	destPath := "./"
@@ -2526,7 +2536,7 @@ func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []st
 		localhostProvider,
 	}
 
-	gitLookup := buildcontext.NewGitLookup()
+	gitLookup := buildcontext.NewGitLookup(app.console, app.sshAuthSock)
 	err = app.updateGitLookupConfig(gitLookup)
 	if err != nil {
 		return err
@@ -2658,16 +2668,6 @@ func (app *earthlyApp) hasSSHKeys() bool {
 }
 
 func (app *earthlyApp) updateGitLookupConfig(gitLookup *buildcontext.GitLookup) error {
-
-	autoProtocol := "ssh"
-	if !app.hasSSHKeys() {
-		app.console.Printf("No ssh auth socket detected or zero keys loaded; falling back to https for auto auth values\n")
-		autoProtocol = "https"
-
-		// convert all ssh to https for pre-configured instances
-		gitLookup.DisableSSH()
-	}
-
 	for k, v := range app.cfg.Git {
 		if k == "github" || k == "gitlab" || k == "bitbucket" {
 			app.console.Warnf("git configuration for %q found, did you mean %q?\n", k, k+".com")
@@ -2682,9 +2682,6 @@ func (app *earthlyApp) updateGitLookupConfig(gitLookup *buildcontext.GitLookup) 
 			pattern = host + "/[^/]+/[^/]+"
 		}
 		auth := v.Auth
-		if auth == "auto" {
-			auth = autoProtocol
-		}
 		suffix := v.Suffix
 		if suffix == "" {
 			suffix = ".git"

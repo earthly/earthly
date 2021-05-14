@@ -91,6 +91,8 @@ jobs:
         run: "./examples/tests/remote-cache/test.sh"
       - name: Execute registry-certs test
         run: "./examples/tests/registry-certs/test.sh"
+      - name: Execute tests requiring .git directory
+        run: go test ./analytics --tags=hasgitdirectory
       - name: Execute earthly docker command
         run: (cd examples/tests/docker && ../../.././build/linux/amd64/earthly docker --tag examples-test-docker:latest && diff <(docker run --rm examples-test-docker:latest) <(echo "hello dockerfile") )
       - name: Execute test similar to homebrew test in https://github.com/Homebrew/homebrew-core/blob/master/Formula/earthly.rb
@@ -255,8 +257,6 @@ jobs:
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: Build latest earthly using released earthly
         run: earthly --use-inline-cache +for-linux
-      - name: run ssh-based tests
-        run: env earthly=./build/linux/amd64/earthly scripts/tests/private-repo.sh
       - name: run secrets-integration
         run: env earthly=./build/linux/amd64/earthly scripts/tests/secrets-integration.sh
       - name: Buildkit logs (runs on failure)
@@ -292,7 +292,8 @@ jobs:
         if: ${{ failure() }}
 
 
-  private-repo-test:
+  repo-auth-test:
+    name: repo auth tests
     if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
     services:
       sshd:
@@ -317,8 +318,35 @@ jobs:
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: Build latest earthly using released earthly
         run: earthly --use-inline-cache +for-linux
-      - name: run ssh-based tests
-        run: env earthly=./build/linux/amd64/earthly scripts/tests/self-hosted-private-repo.sh
+# to regenerate the entries below; run earthly ./scripts/tests/auth+generate-github-tasks
+# auto-generated-entries start;
+      - name: run test-earthfile-can-clone-private-repo-with-earthly-config.sh
+        run: env earthly=./build/linux/amd64/earthly scripts/tests/auth/test-earthfile-can-clone-private-repo-with-earthly-config.sh
+      - name: run test-earthfile-can-clone-private-repo-with-netrc.sh
+        run: env earthly=./build/linux/amd64/earthly scripts/tests/auth/test-earthfile-can-clone-private-repo-with-netrc.sh
+      - name: run test-hello-world-empty-netrc.sh
+        run: env earthly=./build/linux/amd64/earthly scripts/tests/auth/test-hello-world-empty-netrc.sh
+      - name: run test-hello-world-no-ssh-agent.sh
+        run: env earthly=./build/linux/amd64/earthly scripts/tests/auth/test-hello-world-no-ssh-agent.sh
+      - name: run test-hello-world-no-ssh-keys.sh
+        run: env earthly=./build/linux/amd64/earthly scripts/tests/auth/test-hello-world-no-ssh-keys.sh
+      - name: run test-hello-world-with-non-authorized-key.sh
+        run: env earthly=./build/linux/amd64/earthly scripts/tests/auth/test-hello-world-with-non-authorized-key.sh
+      - name: run test-private-repo-with-https-config-arg.sh
+        run: env earthly=./build/linux/amd64/earthly scripts/tests/auth/test-private-repo-with-https-config-arg.sh
+      - name: run test-private-repo-with-https-config-command.sh
+        run: env earthly=./build/linux/amd64/earthly scripts/tests/auth/test-private-repo-with-https-config-command.sh
+      - name: run test-private-repo-with-https-config-file.sh
+        run: env earthly=./build/linux/amd64/earthly scripts/tests/auth/test-private-repo-with-https-config-file.sh
+      - name: run test-private-repo-with-netrc.sh
+        run: env earthly=./build/linux/amd64/earthly scripts/tests/auth/test-private-repo-with-netrc.sh
+      - name: run test-private-repo-with-ssh-key.sh
+        run: env earthly=./build/linux/amd64/earthly scripts/tests/auth/test-private-repo-with-ssh-key.sh
+      - name: run test-self-hosted.sh
+        run: env earthly=./build/linux/amd64/earthly scripts/tests/auth/test-self-hosted.sh
+      - name: run test-with-git-url-instead-of.sh
+        run: env earthly=./build/linux/amd64/earthly scripts/tests/auth/test-with-git-url-instead-of.sh
+# auto-generated-entries end
       - name: Buildkit logs (runs on failure)
         run: docker logs earthly-buildkitd
         if: ${{ failure() }}
@@ -515,7 +543,7 @@ jobs:
       - tutorial
       - push-integration
       - secrets-integration
-      - private-repo-test
+      - repo-auth-test
       - export-test
       - test-local
       - all-buildkitd

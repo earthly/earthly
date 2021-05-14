@@ -47,15 +47,31 @@ update-buildkit:
     SAVE ARTIFACT go.sum AS LOCAL go.sum-fixme  # this is a bug since we can't save to go.sum which was already saved in +deps
 
 
-lint-scripts:
+lint-scripts-base:
     FROM --platform=linux/amd64 alpine:3.13
     RUN apk add --update --no-cache shellcheck
+    WORKDIR /shell_scripts
+
+lint-scripts-misc:
+    FROM +lint-scripts-base
     COPY ./earthly ./scripts/install-all-versions.sh ./buildkitd/entrypoint.sh ./earthly-buildkitd-wrapper.sh \
         ./buildkitd/dockerd-wrapper.sh ./buildkitd/docker-auto-install.sh \
         ./release/envcredhelper.sh ./.buildkite/*.sh \
         ./scripts/tests/*.sh \
         ./shell_scripts/
     RUN shellcheck shell_scripts/*
+
+lint-scripts-auth-test:
+    FROM +lint-scripts-base
+    COPY ./scripts/tests/auth/*.sh ./
+    # the auth test script make use of a common setup.sh which contain unused variables
+    # when run directly; so we must exclude checking this directly, and make use of the -x
+    # flag to source setup.sh during analysis.
+    RUN shellcheck -x test-*.sh
+
+lint-scripts:
+    BUILD +lint-scripts-auth-test
+    BUILD +lint-scripts-misc
 
 lint:
     FROM +code
@@ -75,6 +91,34 @@ lint:
             echo "$output" ; \
             exit 1 ; \
         fi
+
+lint-newline-ending:
+    FROM alpine:3.13
+    WORKDIR /everything
+    COPY . .
+    RUN set -e; \
+        code=0; \
+        for f in $(find . -type f \( -iname '*.go' -o -iname 'Earthfile' -o -iname '*.earth' \) | grep -v "ast/tests/empty-targets.earth" ); do \
+            if [ "$(tail -c 1 $f)" != "$(printf '\n')" ]; then \
+                echo "$f does not end with a newline"; \
+                code=1; \
+            fi; \
+        done; \
+        exit $code
+    RUN if [ "$(tail -c 1 ast/tests/empty-targets.earth)" = "$(printf '\n')" ]; then \
+            echo "$f is a special-case test which must not end with a newline."; \
+            exit 1; \
+        fi
+    # check for files with trailing newlines
+    RUN set -e; \
+        code=0; \
+        for f in $(find . -type f \( -iname '*.go' -o -iname 'Earthfile' -o -iname '*.earth' \) | grep -v "ast/tests/empty-targets.earth" ); do \
+            if [ "$(tail -c 2 $f)" == "$(printf '\n\n')" ]; then \
+                echo "$f has trailing newlines"; \
+                code=1; \
+            fi; \
+        done; \
+        exit $code
 
 unit-test:
     FROM +code
@@ -299,6 +343,7 @@ all:
 test:
     BUILD +lint
     BUILD +lint-scripts
+    BUILD +lint-newline-ending
     BUILD +unit-test
     BUILD ./ast/tests+all
     ARG DOCKERHUB_AUTH=true

@@ -69,6 +69,8 @@ type ConvertOpt struct {
 	// AllowPrivileged is used to allow (or prevent) any "RUN --privileged" or RUNs under a LOCALLY target to be executed,
 	// when set to false, it prevents other referenced remote targets from requesting elevated privileges
 	AllowPrivileged bool
+	// Gitlookup is used to attach credentials to GIT CLONE operations
+	GitLookup *buildcontext.GitLookup
 
 	// ParallelConversion is a feature flag enabling the parallel conversion algorithm.
 	ParallelConversion bool
@@ -111,7 +113,7 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt) (m
 	if err != nil {
 		return nil, err
 	}
-	interpreter := newInterpreter(converter, targetWithMetadata, opt.AllowPrivileged, opt.ParallelConversion, opt.Parallelism, opt.Console)
+	interpreter := newInterpreter(converter, targetWithMetadata, opt.AllowPrivileged, opt.ParallelConversion, opt.Parallelism, opt.Console, opt.GitLookup)
 	err = interpreter.Run(ctx, bc.Earthfile)
 	if err != nil {
 		return nil, err
