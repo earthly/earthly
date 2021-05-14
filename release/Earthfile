@@ -200,3 +200,9 @@ release-homebrew:
 release-vscode-syntax-highlighting:
     ARG VSCODE_RELEASE_TAG
     BUILD --build-arg VSCODE_RELEASE_TAG="$VSCODE_RELEASE_TAG" ../contrib/earthfile-syntax-highlighting+release
+
+release-repo:
+    ARG RELEASE_TAG
+    RUN test -n "$RELEASE_TAG"
+    BUILD --build-arg RELEASE_TAG="$RELEASE_TAG" ./apt-repo+build-and-release
+    BUILD --build-arg RELEASE_TAG="$RELEASE_TAG" ./yum-repo+build-and-release

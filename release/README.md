@@ -5,6 +5,10 @@
   ```bash
   ./earthly secrets ls /earthly-technologies
   ```
+* Make sure you have uploaded your aws credentials to your user secrets.
+  ```bash
+  ./earthly secrets ls /user/earthly-technologies/aws/credentials
+  ```
 * Choose the next [release tag](https://github.com/earthly/earthly/releases).
   ```bash
   export RELEASE_TAG="v..."
@@ -34,6 +38,10 @@
   ./earthly --build-arg RELEASE_TAG --push ./release+release-homebrew
   ```
 * Important: Subscribe to the PR that griswoldthecat created in homebrew-core, so that you can address any review comments that may come up.
+* Run
+  ```bash
+  ./earthly --build-arg RELEASE_TAG --push ./release+release-repo
+  ```
 * Merge branch `main` into `next`, then merge branch `next` into `main`.
 * Update the version for the installation command in the following places:
   * [ci-integration.md](../docs/ci-integration.md)
