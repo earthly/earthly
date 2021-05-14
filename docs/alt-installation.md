@@ -24,6 +24,103 @@ and then restart your shell.
 
 For instructions on how to install `earthly` for CI use, see the [CI integration guide](./ci-integration.md).
 
+### Installing from Earthly repositories
+
+Earthly can be installed for Debian and RedHat based Linux distributions via the Earthly deb and rpm repositories.
+
+All of our binaries are signed with our [PGP key](https://pkg.earthly.dev/earthly.pgp); which has the fingerprint:
+
+    5816 B221 3DD1 CEB6 1FC9 52BA B118 5ECA 33F8 EB64
+
+#### Debian-based repositories (including Ubuntu)
+
+Debian-based Linux users (e.g. debian, ubuntu, mint, etc) can use our apt repo to install Earthly.
+
+Before installing Earthly, you must first setup the Earthly apt repo.
+
+1. Update apt and install required tools to support https-based apt repos:
+
+   ```bash
+   sudo apt-get update
+   sudo apt-get install \
+      apt-transport-https \
+      ca-certificates \
+      curl \
+      gnupg \
+      lsb-release
+   ```
+
+2. Download Earthly's GPG key:
+
+   ```bash
+   curl -fsSL https://pkg.earthly.dev/earthly.pgp | sudo gpg --dearmor -o /usr/share/keyrings/earthly-archive-keyring.gpg
+   ```
+
+3. Setup the stable repo:
+
+   ```bash
+   echo \
+     "deb [arch=amd64 signed-by=/usr/share/keyrings/earthly-archive-keyring.gpg] https://pkg.earthly.dev/deb \
+     stable main" | sudo tee /etc/apt/sources.list.d/earthly.list > /dev/null
+   ```
+
+4. Install Earthly:
+
+   ```bash
+   sudo apt-get update
+   sudo apt-get install earthly
+   ```
+
+
+#### Fedora repositories
+
+Fedora users can use our rpm repo to install Earthly.
+
+1. Install plugins required to manage DNF repositories:
+
+   ```bash
+   sudo dnf -y install dnf-plugins-core
+   ```
+
+2. Add the Earthly repo to your system:
+
+   ```bash
+   sudo dnf config-manager \
+       --add-repo \
+       https://pkg.earthly.dev/earthly.repo
+   ```
+
+3. Install Earthly:
+
+   ```bash
+   sudo dnf install earthly
+   ```
+
+#### CentOS repositories
+
+CentOS users can use our rpm repo to install Earthly.
+
+1. Install utils required to manage yum repositories:
+
+   ```bash
+   sudo yum install -y yum-utils
+   ```
+
+2. Add the Earthly repo to your system:
+
+   ```bash
+   sudo yum-config-manager \
+       --add-repo \
+       https://pkg.earthly.dev/earthly.repo
+   ```
+
+3. Install Earthly:
+
+   ```bash
+   sudo yum install earthly
+   ```
+
+
 ### Installing from source
 
 To install from source, see the [contributing page](https://github.com/earthly/earthly/blob/main/CONTRIBUTING.md).
