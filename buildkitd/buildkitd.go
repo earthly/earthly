@@ -136,7 +136,7 @@ func MaybeStart(ctx context.Context, console conslogging.ConsoleLogger, image st
 		console.
 			WithPrefix("buildkitd").
 			Printf("Found buildkit daemon as docker container (%s)\n", ContainerName)
-		err := MaybeRestart(ctx, console, image, settings)
+		err := MaybeRestart(ctx, console, image, settings, opts...)
 		if err != nil {
 			return "", errors.Wrap(err, "maybe restart")
 		}
@@ -162,7 +162,7 @@ func MaybeStart(ctx context.Context, console conslogging.ConsoleLogger, image st
 // MaybeRestart checks whether the there is a different buildkitd image available locally or if
 // settings of the current container are different from the provided settings. In either case,
 // the container is restarted.
-func MaybeRestart(ctx context.Context, console conslogging.ConsoleLogger, image string, settings Settings) error {
+func MaybeRestart(ctx context.Context, console conslogging.ConsoleLogger, image string, settings Settings, opts ...client.ClientOpt) error {
 	containerImageID, err := GetContainerImageID(ctx)
 	if err != nil {
 		return err
@@ -211,7 +211,7 @@ func MaybeRestart(ctx context.Context, console conslogging.ConsoleLogger, image 
 	if err != nil {
 		return err
 	}
-	err = WaitUntilStarted(ctx, console, settings.BuildkitAddress, settings.Timeout)
+	err = WaitUntilStarted(ctx, console, settings.BuildkitAddress, settings.Timeout, opts...)
 	if err != nil {
 		return err
 	}
