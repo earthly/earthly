@@ -23,6 +23,7 @@ func GetEarthlyDir() (string, error) {
 	return earthlyDir, earthlyDirErr
 }
 
+// EnsurePermissions makes sure the Earthly directory has the correct permissions (owner, and belonging to, the main user).
 func EnsurePermissions() error {
 	if earthlyDir == "" {
 		_, err := GetEarthlyDir()

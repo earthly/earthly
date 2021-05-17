@@ -421,7 +421,7 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 		},
 		&cli.StringFlag{
 			Name:        "buildkit-host",
-			Value:       "tcp://127.0.0.1:8372",
+			Value:       "docker-container://earthly-buildkitd", //"tcp://127.0.0.1:8372",
 			EnvVars:     []string{"EARTHLY_BUILDKIT_HOST"},
 			Usage:       wrap("The URL to use for connecting to a buildkit host. ", "If empty, earthly will attempt to start a buildkitd instance via docker run"),
 			Destination: &app.buildkitHost,
@@ -1028,6 +1028,7 @@ func (app *earthlyApp) before(context *cli.Context) error {
 	app.buildkitdSettings.Debug = app.debug
 	app.buildkitdSettings.BuildkitAddress = buildkitAddress
 	app.buildkitdSettings.DebuggerAddress = app.debuggerAddress
+	app.buildkitdSettings.TCPTransport = app.tcpTransport
 
 	// ensure the MTU is something allowable in IPv4, cap enforced by type. Zero is autodetect.
 	if app.buildkitdSettings.CniMtu != 0 && app.buildkitdSettings.CniMtu < 68 {
@@ -1039,6 +1040,10 @@ func (app *earthlyApp) before(context *cli.Context) error {
 }
 
 func (app *earthlyApp) getBuildkitAndDebuggerAddressesForTCP(context *cli.Context) (string, string, error) {
+	if !context.IsSet("buildkit-host") {
+		app.buildkitHost = "tcp://127.0.0.1:8372" // new default for when we are using this feature.
+	}
+
 	bkURL, err := parseAndvalidateURL(app.buildkitHost)
 	if err != nil {
 		return "", "", err
@@ -1104,7 +1109,7 @@ func (app *earthlyApp) handleTLSCertificateSettings(context *cli.Context) {
 }
 
 func (app *earthlyApp) getBuildkitAndDebuggerAddressesOriginal() (string, string, error) {
-	dbAddr := fmt.Sprintf("127.0.0.1:%v", app.debuggerPort)
+	dbAddr := fmt.Sprintf("tcp://127.0.0.1:%v", app.debuggerPort)
 	return app.buildkitHost, dbAddr, nil
 }
 

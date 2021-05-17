@@ -20,6 +20,7 @@ import (
 	"github.com/earthly/earthly/util/fileutil"
 	"github.com/fatih/color"
 	"github.com/moby/buildkit/client"
+	_ "github.com/moby/buildkit/client/connhelper/dockercontainer" // Load "docker-container://" helper.
 	"github.com/pkg/errors"
 )
 

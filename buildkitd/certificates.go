@@ -18,7 +18,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-type CertificateData struct {
+type certificateData struct {
 	Key       *rsa.PrivateKey
 	CertBytes []byte
 	Cert      *x509.Certificate
@@ -54,7 +54,7 @@ func DeleteCerts(dir string) error {
 	return os.RemoveAll(dir)
 }
 
-func createAndSaveCertificate(ca *CertificateData, role, dir string) error {
+func createAndSaveCertificate(ca *certificateData, role, dir string) error {
 	certKey, err := rsa.GenerateKey(rand.Reader, 4096)
 	if err != nil {
 		return errors.Wrapf(err, "generate %s key", role)
@@ -92,7 +92,7 @@ func createAndSaveCertificate(ca *CertificateData, role, dir string) error {
 	return nil
 }
 
-func createAndSaveCA(dir string) (*CertificateData, error) {
+func createAndSaveCA(dir string) (*certificateData, error) {
 	caKey, err := rsa.GenerateKey(rand.Reader, 4096)
 	if err != nil {
 		return nil, err
@@ -121,7 +121,7 @@ func createAndSaveCA(dir string) (*CertificateData, error) {
 		return nil, errors.Wrap(err, "save CA")
 	}
 
-	return &CertificateData{
+	return &certificateData{
 		Key:       caKey,
 		CertBytes: caBytes,
 		Cert:      ca,

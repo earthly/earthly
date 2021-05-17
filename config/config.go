@@ -14,7 +14,10 @@ import (
 )
 
 const (
+	// DefaultDebuggerPort is the default user-facing port for the debugger
 	DefaultDebuggerPort = 8373
+
+	// DefaultBuildkitPort is the default user-facing port for buildkitd
 	DefaultBuildkitPort = 8372
 )
 
