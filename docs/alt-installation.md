@@ -24,7 +24,17 @@ and then restart your shell.
 
 For instructions on how to install `earthly` for CI use, see the [CI integration guide](./ci-integration.md).
 
-### Installing from Earthly repositories
+### Installing from Earthly repositories (**experimental**)
+
+{% hint style='danger' %}
+##### Important
+
+Our rpm and deb repositories are currently in **Experimental** stage.
+
+* The repository may break, be changed drastically with no warning, or be removed altogether.
+* Check the [GitHub tracking issue](https://github.com/earthly/earthly/issues/986) for any known problems.
+* Give us feedback on [Slack](https://earthly.dev/slack).
+{% endhint %}
 
 Earthly can be installed for Debian and RedHat based Linux distributions via the Earthly deb and rpm repositories.
 
