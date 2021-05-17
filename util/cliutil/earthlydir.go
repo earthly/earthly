@@ -4,7 +4,6 @@ import (
 	"os"
 	"os/user"
 	"path/filepath"
-	"runtime"
 	"strconv"
 	"sync"
 
@@ -60,28 +59,12 @@ func makeEarthlyDir() (string, error) {
 // DetectHomeDir returns the home directory of the current user, an additional sudoUser
 // is returned if the user is currently running as root
 func DetectHomeDir() (homeDir string, sudoUser *user.User, err error) {
-	if runtime.GOOS == "windows" {
-		homeDir, err := os.UserHomeDir()
-		return homeDir, nil, err
-	}
-	// See if SUDO_USER exists. Use that user's home dir.
-	sudoUserName, ok := os.LookupEnv("SUDO_USER")
-	if ok {
-		sudoUser, err := user.Lookup(sudoUserName)
-		if err == nil && sudoUser.HomeDir != "" {
-			return sudoUser.HomeDir, sudoUser, nil
-		}
-	}
-	// Try to use current user's home dir.
-	homeDir, err = os.UserHomeDir()
+	homeDir, sudoUser, err = fileutil.HomeDir()
 	if err != nil {
-		// Try $HOME.
-		homeDir, ok := os.LookupEnv("HOME")
-		if ok {
-			return homeDir, nil, nil
-		}
-		// No home dir available - use /etc instead.
-		return "/etc", nil, nil
+		return
 	}
-	return homeDir, nil, nil
+	if homeDir == "" {
+		homeDir = "/etc" // No home dir available - use /etc instead.
+	}
+	return
 }
