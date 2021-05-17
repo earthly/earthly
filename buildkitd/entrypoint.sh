@@ -69,6 +69,7 @@ if [ -z "$CNI_MTU" ]; then
   CNI_MTU=$(cat /sys/class/net/"$device"/mtu)
   export CNI_MTU
 fi
+
 envsubst </etc/cni/cni-conf.json.template >/etc/cni/cni-conf.json
 
 # Set up buildkit cache.
@@ -79,6 +80,13 @@ if [ "$CACHE_SIZE_MB" -gt "0" ]; then
     CACHE_SETTINGS="$(envsubst </etc/buildkitd.cache.template)"
 fi
 export CACHE_SETTINGS
+
+TCP_TRANSPORT=
+if [ "$BUILDKIT_TCP_TRANSPORT_ENABLED" = "true" ]; then
+    TCP_TRANSPORT="$(cat /etc/buildkitd.tcp.template)"
+fi
+export TCP_TRANSPORT
+
 envsubst </etc/buildkitd.toml.template >/etc/buildkitd.toml
 echo "BUILDKIT_ROOT_DIR=$BUILDKIT_ROOT_DIR"
 echo "CACHE_SIZE_MB=$CACHE_SIZE_MB"

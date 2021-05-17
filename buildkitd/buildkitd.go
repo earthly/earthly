@@ -264,6 +264,7 @@ func Start(ctx context.Context, console conslogging.ConsoleLogger, image string,
 		"-v", fmt.Sprintf("%s:/tmp/earthly:rw", VolumeName),
 		"-e", fmt.Sprintf("BUILDKIT_DEBUG=%t", settings.Debug),
 		"-e", fmt.Sprintf("EARTHLY_ADDITIONAL_BUILDKIT_CONFIG=%s", settings.AdditionalConfig),
+		"-e", fmt.Sprintf("BUILDKIT_TCP_TRANSPORT_ENABLED=%t", settings.TCPTransport),
 		"--label", fmt.Sprintf("dev.earthly.settingshash=%s", settingsHash),
 		"--name", ContainerName,
 		"--privileged",
@@ -281,33 +282,38 @@ func Start(ctx context.Context, console conslogging.ConsoleLogger, image string,
 		bkURL, _ := url.Parse(settings.BuildkitAddress)
 		dbURL, _ := url.Parse(settings.DebuggerAddress)
 
-		args = append(args,
-			"-p", fmt.Sprintf("127.0.0.1:%s:8373", dbURL.Port()),
-			"-p", fmt.Sprintf("127.0.0.1:%s:8372", bkURL.Port()))
+		args = append(args, "-p", fmt.Sprintf("127.0.0.1:%s:8373", dbURL.Port()))
+
+		if settings.TCPTransport {
+			args = append(args, "-p", fmt.Sprintf("127.0.0.1:%s:8372", bkURL.Port()))
+		}
+
 	}
 
-	if settings.TLSCA != "" {
-		caPath, err := makeTLSPath(settings.TLSCA)
-		if err != nil {
-			return errors.Wrap(err, "start buildkitd")
+	if settings.TCPTransport {
+		if settings.TLSCA != "" {
+			caPath, err := makeTLSPath(settings.TLSCA)
+			if err != nil {
+				return errors.Wrap(err, "start buildkitd")
+			}
+			args = append(args, "-v", fmt.Sprintf("%s:/etc/ca.pem", caPath))
 		}
-		args = append(args, "-v", fmt.Sprintf("%s:/etc/ca.pem", caPath))
-	}
 
-	if settings.ServerTLSCert != "" {
-		certPath, err := makeTLSPath(settings.ServerTLSCert)
-		if err != nil {
-			return errors.Wrap(err, "start buildkitd")
+		if settings.ServerTLSCert != "" {
+			certPath, err := makeTLSPath(settings.ServerTLSCert)
+			if err != nil {
+				return errors.Wrap(err, "start buildkitd")
+			}
+			args = append(args, "-v", fmt.Sprintf("%s:/etc/cert.pem", certPath))
 		}
-		args = append(args, "-v", fmt.Sprintf("%s:/etc/cert.pem", certPath))
-	}
 
-	if settings.ServerTLSKey != "" {
-		keyPath, err := makeTLSPath(settings.ServerTLSKey)
-		if err != nil {
-			return errors.Wrap(err, "start buildkitd")
+		if settings.ServerTLSKey != "" {
+			keyPath, err := makeTLSPath(settings.ServerTLSKey)
+			if err != nil {
+				return errors.Wrap(err, "start buildkitd")
+			}
+			args = append(args, "-v", fmt.Sprintf("%s:/etc/key.pem", keyPath))
 		}
-		args = append(args, "-v", fmt.Sprintf("%s:/etc/key.pem", keyPath))
 	}
 
 	if supportsPlatform(ctx) {
@@ -717,7 +723,8 @@ func isLocal(addr string) bool {
 	hostname := parsed.Hostname()
 	return hostname == "127.0.0.1" || // The only IP v4 Loopback we honor. Because we need to include it in the TLS certificates.
 		hostname == net.IPv6loopback.String() ||
-		hostname == "localhost" // Convention. Users hostname omitted; this is only really here for convenience.
+		hostname == "localhost" || // Convention. Users hostname omitted; this is only really here for convenience.
+		parsed.Scheme == "docker-container" // Accomodate feature flagging during transition. This will have omitted TLS?
 }
 
 func makeTLSPath(path string) (string, error) {
@@ -740,6 +747,10 @@ func makeTLSPath(path string) (string, error) {
 }
 
 func addRequiredOpts(settings Settings, opts ...client.ClientOpt) ([]client.ClientOpt, error) {
+	if !settings.TCPTransport {
+		return opts, nil
+	}
+
 	server, err := url.Parse(settings.BuildkitAddress)
 	if err != nil {
 		return []client.ClientOpt{}, errors.Wrap(err, "invalid buildkit url")

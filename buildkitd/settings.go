@@ -25,6 +25,7 @@ type Settings struct {
 	ClientTLSKey     string
 	ServerTLSCert    string
 	ServerTLSKey     string
+	TCPTransport     bool
 }
 
 // Hash returns a secure hash of the settings.

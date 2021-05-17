@@ -1,0 +1,6 @@
+[grpc]
+  address = [ "tcp://0.0.0.0:8372" ]
+  [grpc.tls]
+    cert = "/etc/cert.pem"
+    key = "/etc/key.pem"
+    ca = "/etc/ca.pem"

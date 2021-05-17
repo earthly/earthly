@@ -143,6 +143,7 @@ type cliFlags struct {
 	clientTLSKeyPath       string
 	serverTLSCertPath      string
 	serverTLSKeyPath       string
+	tcpTransport           bool
 }
 
 var (
@@ -429,15 +430,17 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 			Name:        "buildkit-port",
 			Value:       config.DefaultBuildkitPort,
 			EnvVars:     []string{"EARTHLY_BUILDKIT_PORT"},
-			Usage:       wrap("The URL to use for connecting to a buildkit host. ", "If empty, earthly will attempt to start a buildkitd instance via docker run"),
+			Usage:       wrap("The port to use for connecting to a buildkit host. ", "Used in combination with buildkit-host to produce the URL to dial."),
 			Destination: &app.buildkitPort,
+			Hidden:      true,
 		},
 		&cli.IntFlag{
 			Name:        "debugger-port",
 			Value:       config.DefaultDebuggerPort,
 			EnvVars:     []string{"EARTHLY_DEBUG_PORT"},
-			Usage:       wrap("The URL to use for connecting to a debugging host. ", "If empty, earthly will attempt to start a buildkitd instance via docker run"),
+			Usage:       wrap("The port to use for connecting to a debugging host. ", "Used in combination with buildkit-host to produce the URL to dial."),
 			Destination: &app.debuggerPort,
+			Hidden:      true,
 		},
 		&cli.StringFlag{
 			Name:        "tlsca",
@@ -445,6 +448,7 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 			EnvVars:     []string{"EARTHLY_TLS_CA"},
 			Usage:       wrap("The path to the PEM-encoded CA used to validate the TLS certificates"),
 			Destination: &app.tlsCAPath,
+			Hidden:      true,
 		},
 		&cli.StringFlag{
 			Name:        "tlscert",
@@ -452,6 +456,7 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 			EnvVars:     []string{"EARTHLY_TLS_CERT"},
 			Usage:       wrap("The path to the client TLS cert"),
 			Destination: &app.clientTLSCertPath,
+			Hidden:      true,
 		},
 		&cli.StringFlag{
 			Name:        "tlskey",
@@ -459,6 +464,7 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 			EnvVars:     []string{"EARTHLY_TLS_KEY"},
 			Usage:       wrap("The path to the client TLS key. If relative, will be interpreted as relative to the ~/.earthly folder."),
 			Destination: &app.clientTLSKeyPath,
+			Hidden:      true,
 		},
 		&cli.StringFlag{
 			Name:        "buildkitdtlscert",
@@ -466,6 +472,7 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 			EnvVars:     []string{"EARTHLY_TLS_CERT"},
 			Usage:       wrap("The path to the client TLS cert"),
 			Destination: &app.serverTLSCertPath,
+			Hidden:      true,
 		},
 		&cli.StringFlag{
 			Name:        "buildkitdtlskey",
@@ -473,6 +480,7 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 			EnvVars:     []string{"EARTHLY_TLS_KEY"},
 			Usage:       wrap("The path to the client TLS key. If relative, will be interpreted as relative to the ~/.earthly folder."),
 			Destination: &app.serverTLSKeyPath,
+			Hidden:      true,
 		},
 		&cli.IntFlag{
 			Name:        "buildkit-cache-size-mb",
@@ -560,6 +568,12 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 			EnvVars:     []string{"EARTHLY_CONVERSION_PARALLELISM"},
 			Usage:       "Set the conversion parallelism, which speeds up the use of IF, WITH DOCKER --load, FROM DOCKERFILE and others. A value of 0 disables the feature *experimental*",
 			Destination: &app.conversionParllelism,
+		},
+		&cli.BoolFlag{
+			Name:        "tcp-transport",
+			EnvVars:     []string{"EARTHLY_TCP_TRANSPORT"},
+			Usage:       "Changes all communication with Buildkit to be TCP, using mTLS. Requires Buildkit restart. *experimental*",
+			Destination: &app.tcpTransport,
 		},
 	}
 
@@ -985,16 +999,55 @@ func (app *earthlyApp) before(context *cli.Context) error {
 		app.buildkitdImage = app.cfg.Global.BuildkitImage
 	}
 
-	// break up legacy env var into parts to use as defaults below
+	var (
+		bkAddr string
+		dbAddr string
+	)
+	if app.tcpTransport {
+		bkAddr, dbAddr, err = app.getBuildkitAndDebuggerAddressesForTCP(context)
+		if err != nil {
+			return err
+		}
+
+		// TLS in here?
+		app.handleTLSCertificateSettings(context)
+
+	} else {
+		bkAddr, dbAddr, err = app.getBuildkitAndDebuggerAddressesOriginal()
+		if err != nil {
+			return err
+		}
+	}
+
+	buildkitAddress := bkAddr
+	app.debuggerAddress = dbAddr
+
+	app.buildkitdSettings.AdditionalArgs = app.cfg.Global.BuildkitAdditionalArgs
+	app.buildkitdSettings.AdditionalConfig = app.cfg.Global.BuildkitAdditionalConfig
+	app.buildkitdSettings.Timeout = time.Duration(app.cfg.Global.BuildkitRestartTimeoutS) * time.Second
+	app.buildkitdSettings.Debug = app.debug
+	app.buildkitdSettings.BuildkitAddress = buildkitAddress
+	app.buildkitdSettings.DebuggerAddress = app.debuggerAddress
+
+	// ensure the MTU is something allowable in IPv4, cap enforced by type. Zero is autodetect.
+	if app.buildkitdSettings.CniMtu != 0 && app.buildkitdSettings.CniMtu < 68 {
+		return errors.New("invalid overridden MTU size")
+	}
+	app.buildkitdSettings.CniMtu = app.cfg.Global.CniMtu
+
+	return nil
+}
+
+func (app *earthlyApp) getBuildkitAndDebuggerAddressesForTCP(context *cli.Context) (string, string, error) {
 	bkURL, err := parseAndvalidateURL(app.buildkitHost)
 	if err != nil {
-		return err
+		return "", "", err
 	}
 
 	if !context.IsSet("buildkit-host") && app.cfg.Global.BuildkitURL != "" {
 		bkURL, err = parseAndvalidateURL(app.cfg.Global.BuildkitURL)
 		if err != nil {
-			return err
+			return "", "", err
 		}
 	}
 	buildkitURLBase := fmt.Sprintf("%s://%s", bkURL.Scheme, bkURL.Hostname())
@@ -1003,7 +1056,7 @@ func (app *earthlyApp) before(context *cli.Context) error {
 	if context.IsSet(("buildkit-host")) {
 		bkPort, err = strconv.Atoi(bkURL.Port())
 		if err != nil {
-			return errors.Wrap(err, "invalid buildkit port")
+			return "", "", errors.Wrap(err, "invalid buildkit port")
 		}
 	}
 
@@ -1017,8 +1070,12 @@ func (app *earthlyApp) before(context *cli.Context) error {
 	}
 
 	buildkitAddress := fmt.Sprintf("%s:%v", buildkitURLBase, app.buildkitPort)
-	app.debuggerAddress = fmt.Sprintf("%s:%v", buildkitURLBase, app.debuggerPort)
+	debuggerAddress := fmt.Sprintf("%s:%v", buildkitURLBase, app.debuggerPort)
 
+	return buildkitAddress, debuggerAddress, nil
+}
+
+func (app *earthlyApp) handleTLSCertificateSettings(context *cli.Context) {
 	if !context.IsSet("tlsca") && app.cfg.Global.TLSCA != "" {
 		app.tlsCAPath = app.cfg.Global.TLSCA
 	}
@@ -1039,25 +1096,16 @@ func (app *earthlyApp) before(context *cli.Context) error {
 		app.serverTLSKeyPath = app.cfg.Global.ServerTLSKey
 	}
 
-	app.buildkitdSettings.AdditionalArgs = app.cfg.Global.BuildkitAdditionalArgs
-	app.buildkitdSettings.AdditionalConfig = app.cfg.Global.BuildkitAdditionalConfig
-	app.buildkitdSettings.Timeout = time.Duration(app.cfg.Global.BuildkitRestartTimeoutS) * time.Second
-	app.buildkitdSettings.Debug = app.debug
-	app.buildkitdSettings.BuildkitAddress = buildkitAddress
-	app.buildkitdSettings.DebuggerAddress = app.debuggerAddress
 	app.buildkitdSettings.TLSCA = app.tlsCAPath
 	app.buildkitdSettings.ClientTLSCert = app.clientTLSCertPath
 	app.buildkitdSettings.ClientTLSKey = app.clientTLSKeyPath
 	app.buildkitdSettings.ServerTLSCert = app.serverTLSCertPath
 	app.buildkitdSettings.ServerTLSKey = app.serverTLSKeyPath
+}
 
-	// ensure the MTU is something allowable in IPv4, cap enforced by type. Zero is autodetect.
-	if app.buildkitdSettings.CniMtu != 0 && app.buildkitdSettings.CniMtu < 68 {
-		return errors.New("invalid overridden MTU size")
-	}
-	app.buildkitdSettings.CniMtu = app.cfg.Global.CniMtu
-
-	return nil
+func (app *earthlyApp) getBuildkitAndDebuggerAddressesOriginal() (string, string, error) {
+	dbAddr := fmt.Sprintf("127.0.0.1:%v", app.debuggerPort)
+	return app.buildkitHost, dbAddr, nil
 }
 
 func parseAndvalidateURL(addr string) (*url.URL, error) {
@@ -1139,7 +1187,7 @@ func (app *earthlyApp) processDeprecatedCommandOptions(context *cli.Context, cfg
 		app.buildkitdSettings.CacheSizeMb = cfg.Global.BuildkitCacheSizeMb
 	}
 
-	if context.IsSet("buildkit-host") {
+	if context.IsSet("buildkit-host") && app.tcpTransport {
 		if bkURL, err := parseAndvalidateURL(app.buildkitHost); err == nil && bkURL.Port() != "" {
 			app.console.Warnf("Warning: specifying the port using the --buildkit-host setting is deprecated. Set it in ~/.earthly/config.yml under the global buildkit_port setting.\n")
 		}
@@ -1515,10 +1563,12 @@ func (app *earthlyApp) actionBootstrap(c *cli.Context) error {
 	}
 
 	if !app.bootstrapNoBuildkit {
-		certsDir := filepath.Join(root, "certs")
-		err = buildkitd.GenerateCertificates(certsDir)
-		if err != nil {
-			return errors.Wrap(err, "setup TLS")
+		if app.tcpTransport {
+			certsDir := filepath.Join(root, "certs")
+			err = buildkitd.GenerateCertificates(certsDir)
+			if err != nil {
+				return errors.Wrap(err, "setup TLS")
+			}
 		}
 
 		// Bootstrap buildkit - pulls image and starts daemon.
