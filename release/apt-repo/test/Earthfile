@@ -2,7 +2,7 @@ test-ubuntu:
     ARG version=20.10
     FROM ubuntu:$version
     RUN apt-get update && apt-get install -y dpkg-dev wget dpkg-sig curl
-    RUN --no-cache curl https://pkg.earthly.dev/earthly-apt.pgp | apt-key add -
+    RUN --no-cache curl https://pkg.earthly.dev/earthly.pgp | apt-key add -
     RUN --no-cache echo "deb [arch=amd64] https://pkg.earthly.dev/deb/ stable main" > /etc/apt/sources.list.d/earthly.list
     RUN --no-cache apt-get update && apt-get install -y earthly
     RUN --no-cache earthly --version
@@ -17,7 +17,7 @@ test-debian:
         gnupg \
         lsb-release
 
-    RUN --no-cache curl -fsSL https://pkg.earthly.dev/earthly-apt.pgp | gpg --dearmor -o /usr/share/keyrings/earthly-archive-keyring.gpg
+    RUN --no-cache curl -fsSL https://pkg.earthly.dev/earthly.pgp | gpg --dearmor -o /usr/share/keyrings/earthly-archive-keyring.gpg
     RUN --no-cache echo "deb [arch=amd64 signed-by=/usr/share/keyrings/earthly-archive-keyring.gpg] https://pkg.earthly.dev/deb/ stable main" > /etc/apt/sources.list.d/earthly.list
     RUN --no-cache apt-get update && apt-get install -y earthly
     RUN --no-cache earthly --version

@@ -2797,7 +2797,7 @@ func processSecrets(secrets, secretFiles []string, dotEnvMap map[string]string) 
 			return nil, errors.Errorf("unable to parse --secret-file argument: %q", secret)
 		}
 		k := parts[0]
-		path := parts[1]
+		path := fileutil.ExpandPath(parts[1])
 		data, err := ioutil.ReadFile(path)
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to open %q", path)

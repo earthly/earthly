@@ -114,10 +114,10 @@ excludes-test:
 secrets-test:
     ENV SECRET1=foo
     ENV SECRET2=wrong
-    RUN echo -n "secretfilecontents" > /my-secret-file
+    RUN echo -n "secretfilecontents" > /root/my-secret-file
     DO +RUN_EARTHLY \
         --earthfile=secrets.earth \
-        --extra_args="--secret SECRET1 --secret SECRET2=bar --secret-file SECRET3=/my-secret-file" \
+        --extra_args="--secret SECRET1 --secret SECRET2=bar --secret-file SECRET3=~/my-secret-file" \
         --target=+test
     DO +RUN_EARTHLY \
         --earthfile=secrets.earth \
