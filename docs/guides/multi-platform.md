@@ -3,9 +3,9 @@
 {% hint style='danger' %}
 ##### Important
 
-This feature is currently in **Experimental** stage
+This feature is currently in **Beta** stage
 
-* The feature may break, be changed drastically with no warning, or be removed altogether in future versions of Earthly.
+* The feature may break, or be changed drastically with little warning.
 * Check the [GitHub tracking issue](https://github.com/earthly/earthly/issues/536) for any known problems.
 * Give us feedback on [Slack](https://earthly.dev/slack) in the `#multi-platform` channel.
 {% endhint %}
@@ -30,7 +30,7 @@ On Mac and on Windows, the Docker Desktop app comes with QEMU readilly installed
 
 On linux, QEMU needs to be installed manually. On Ubuntu, this can be achieved by running:
 
-```
+```bash
 sudo apt-get install qemu binfmt-support qemu-user-static
 docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
 docker stop earthly-buildkitd || true
