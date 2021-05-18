@@ -1,0 +1,143 @@
+FROM alpine:3.13
+
+deps:
+    FROM centos:8.3.2011
+    RUN yum install -y createrepo rpm-build rpm-sign wget
+
+rpm:
+    ARG RELEASE_TAG
+    ARG EARTHLY_PLATFORM
+    ARG EARTHLY_VERSION=$(echo "$RELEASE_TAG" | cut -c 2-)
+    FROM +deps
+    WORKDIR /work
+    RUN (echo "$RELEASE_TAG" | grep '^v[0-9]\+.[0-9]\+.[0-9]\+$' > /dev/null) || (echo "RELEASE_TAG must be formatted as v1.2.3; instead got \"$RELEASE_TAG\""; exit 1)
+    RUN wget -q "https://github.com/earthly/earthly/releases/download/v${EARTHLY_VERSION}/earthly-linux-$EARTHLY_PLATFORM" -O /usr/local/bin/earthly && chmod +x /usr/local/bin/earthly
+
+    IF [ "$EARTHLY_PLATFORM" = "amd64" ]
+        ENV ARCH_TARGET=x86_64
+    ELSE IF [ "$EARTHLY_PLATFORM" = "arm64" ]
+        ENV ARCH_TARGET="aarch64"
+    ELSE IF [ "$EARTHLY_PLATFORM" = "arm7" ]
+        ENV ARCH_TARGET="armv7l"
+    ELSE
+        RUN echo "$EARTHLY_PLATFORM is not supported" && exit 1
+    END
+
+    COPY earthly.spec .
+    RUN sed -i "s/__earthly_version__/$EARTHLY_VERSION/" earthly.spec
+    RUN rpmbuild --target "$ARCH_TARGET" -bb earthly.spec
+    ARG PKG_NAME=earthly-${EARTHLY_VERSION}-1.${ARCH_TARGET}.rpm
+    SAVE ARTIFACT "/root/rpmbuild/RPMS/${ARCH_TARGET}/${PKG_NAME}" AS LOCAL "$PKG_NAME"
+
+rpm-amd64:
+    COPY \
+        --build-arg  EARTHLY_PLATFORM=amd64 \
+        +rpm/* ./
+    SAVE ARTIFACT *.rpm
+
+rpm-arm64:
+    COPY \
+        --build-arg  EARTHLY_PLATFORM=arm64 \
+        +rpm/* ./
+    SAVE ARTIFACT *.rpm
+
+rpm-arm7:
+    COPY \
+        --build-arg  EARTHLY_PLATFORM=arm7 \
+        +rpm/* ./
+    SAVE ARTIFACT *.rpm
+
+rpm-all:
+    COPY +rpm-amd64/*.rpm .
+    COPY +rpm-arm64/*.rpm .
+    COPY +rpm-arm7/*.rpm .
+    SAVE ARTIFACT ./*
+
+aws-base:
+    FROM alpine:latest
+    RUN apk add --update --no-cache curl unzip
+    RUN curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64-2.0.30.zip" -o "awscliv2.zip"
+    RUN unzip awscliv2.zip
+    RUN ./aws/install
+    ENV PATH=$PATH:/usr/local/aws-cli/v2/bin/
+
+aws:
+    FROM amazon/aws-cli
+    RUN mkdir -p ~/.aws && echo "[profile developer]
+    role_arn = arn:aws:iam::404851345508:role/developer
+    source_profile = default" > ~/.aws/config
+    ENV AWS_PROFILE=developer
+
+download:
+    FROM +aws
+    RUN env | grep dev
+    RUN --no-cache \
+        --mount type=secret,id=+secrets/user/earthly-technologies/aws/credentials,target=/root/.aws/credentials \
+        aws s3 cp --recursive s3://staging-pkg/rpm/stable repo
+    SAVE ARTIFACT repo AS LOCAL output/repo
+
+generate-new-yum-repo:
+    ARG EARTHLY_VERSION
+    FROM +deps
+    WORKDIR /repo
+    COPY +rpm-all/*.rpm ./packages/.
+    SAVE ARTIFACT /repo AS LOCAL output/repo
+
+index-and-sign:
+    FROM +deps
+    ARG USE_OUTPUT_COPY=true
+    IF [ "$USE_OUTPUT_COPY" = "true" ]
+        RUN echo "upload using local target"
+        COPY output/repo /repo
+    ELSE
+        RUN echo "upload using container target"
+        COPY +rpm-all/*.rpm /rpms/.
+        COPY +download/repo /repo
+        RUN cp /rpms/*.rpm /repo/packages/.
+    END
+
+    WORKDIR /repo
+    # Next move on to signing it (we sign the rpm repo with the same key we use for signing our apt repo)
+    RUN --no-cache \
+        --mount type=secret,id=+secrets/earthly-technologies/release/keys/earthly-private.pgp,target=/release-key/earthly-private.pgp \
+        gpg --import /release-key/earthly-private.pgp
+
+    RUN echo "%_signature gpg
+%_gpg_name B1185ECA33F8EB64" > /root/.rpmmacros
+
+    RUN rpm --addsign packages/*.rpm
+    # validate all packages are signed with our key
+    RUN cd packages; for p in *.rpm; do rpm -qpi "$p" | grep Signature | grep -i B1185ECA33F8EB64; done
+    RUN rm -rf repodata && createrepo .
+    RUN gpg --detach-sign --armor repodata/repomd.xml
+    SAVE ARTIFACT /repo AS LOCAL output/signed-repo
+
+upload:
+    FROM +aws
+
+    ARG USE_OUTPUT_COPY=true
+    IF [ "$USE_OUTPUT_COPY" = "true" ]
+        RUN echo "upload using local target"
+        COPY output/signed-repo /repo
+    ELSE
+        RUN echo "upload using container target"
+        COPY +index-and-sign/repo /repo
+    END
+
+    RUN if (find /repo | grep -i private); then \
+            echo "found a file in /repo containing the string private; breaking as we probably shouldn't upload this file to s3"; \
+            exit 1; \
+        fi
+    # upload public key
+    RUN --push \
+        --mount type=secret,id=+secrets/earthly-technologies/release/keys/earthly-public.pgp,target=/release-key/earthly-public.pgp \
+        --mount type=secret,id=+secrets/user/earthly-technologies/aws/credentials,target=/root/.aws/credentials \
+        grep PUBLIC /release-key/earthly-public.pgp >/dev/null && \
+        aws s3 cp --acl public-read /release-key/earthly-public.pgp s3://staging-pkg/earthly.pgp
+    # upload signed repo
+    RUN --push \
+        --mount type=secret,id=+secrets/user/earthly-technologies/aws/credentials,target=/root/.aws/credentials \
+        aws s3 cp --recursive --acl public-read /repo s3://staging-pkg/rpm/stable
+
+build-and-release:
+    BUILD --build-arg USE_OUTPUT_COPY=false +upload

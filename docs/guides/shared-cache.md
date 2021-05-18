@@ -36,6 +36,7 @@ Not all registries support the needed manifest formats to allow the usage of eac
 | Azure ACR                 |           ✅           |            ✅            |                                                      |
 | Docker Hub                |           ✅           |            ✅            |                                                      |
 | GitHub Container Registry |           ✅           |            ✅            |                                                      |
+| GitLab Container Registry |           ✅           |            ✅            |                                                      |
 | Self-Hosted  `registry:2` |           ✅           |            ✅            |                                                      |
 
 ### Inline cache
