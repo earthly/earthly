@@ -70,6 +70,30 @@ func DetectHomeDir() (homeDir string, sudoUser *user.User, err error) {
 	return u.HomeDir, u, nil
 }
 
+func IsBootstrapped(tcpEnabled bool) bool {
+	homeDir, _, err := DetectHomeDir()
+	if err != nil {
+		return false
+	}
+
+	earthlyDir := filepath.Join(homeDir, ".earthly")
+	if !fileutil.DirExists(earthlyDir) {
+		return false
+	}
+
+	certsDir := filepath.Join(homeDir, ".earthly", "certs")
+	if tcpEnabled && !fileutil.FileExists(certsDir) {
+		return false
+	}
+
+	installID := filepath.Join(homeDir, ".earthly", "install_id")
+	if !fileutil.FileExists(installID) {
+		return false
+	}
+
+	return true
+}
+
 func currentNonSudoUser() (*user.User, error) {
 	if sudoUserName, ok := os.LookupEnv("SUDO_USER"); ok {
 		sudoUser, err := user.Lookup(sudoUserName)
