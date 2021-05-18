@@ -4,7 +4,6 @@ import (
 	"os"
 	"os/user"
 	"path/filepath"
-	"strconv"
 	"sync"
 
 	"github.com/earthly/earthly/util/fileutil"
