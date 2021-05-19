@@ -68,6 +68,7 @@ func IsBootstrapped() bool {
 	return true
 }
 
+// EnsurePermissions changes the permissions of all earthly files to be owned by the user and their group.
 func EnsurePermissions() error {
 	if earthlyDir == "" {
 		_, err := GetEarthlyDir()

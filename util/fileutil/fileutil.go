@@ -26,6 +26,7 @@ func DirExists(filename string) bool {
 	return info.IsDir()
 }
 
+// EnsureUserOwned changes the files in the directory to be owned by the use and their group, as specified by the provided user.
 func EnsureUserOwned(dir string, owner *user.User) {
 	if DirExists(dir) {
 		uid, _ := strconv.Atoi(owner.Uid)
