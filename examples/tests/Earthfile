@@ -276,9 +276,9 @@ fail-invalid-artifact-test:
 
 push-test:
     DO +RUN_EARTHLY --earthfile=push.earth --target=+push-test \
-        --post_command="| grep 'Use earthly --push to enable pushing'"
+        --post_command="2>&1 | grep 'Use earthly --push to enable pushing'"
     DO +RUN_EARTHLY --earthfile=push.earth --extra_args="--push" --target=+push-test \
-        --post_command="| grep 'hello world'"
+        --post_command="2>&1 | grep 'hello world'"
 
 private-image-test:
     FROM earthly/private-test:latest
