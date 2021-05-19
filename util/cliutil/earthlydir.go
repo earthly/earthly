@@ -68,3 +68,23 @@ func DetectHomeDir() (homeDir string, sudoUser *user.User, err error) {
 	}
 	return
 }
+
+// IsBootstrapped provides a tentatively correct guess about the state of our bootstrapping.
+func IsBootstrapped() bool {
+	homeDir, _, err := DetectHomeDir()
+	if err != nil {
+		return false
+	}
+
+	earthlyDir := filepath.Join(homeDir, ".earthly")
+	if !fileutil.DirExists(earthlyDir) {
+		return false
+	}
+
+	installID := filepath.Join(homeDir, ".earthly", "install_id")
+	if !fileutil.FileExists(installID) {
+		return false
+	}
+
+	return true
+}

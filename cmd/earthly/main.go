@@ -939,6 +939,24 @@ func (app *earthlyApp) before(context *cli.Context) error {
 	}
 	app.buildkitdSettings.CniMtu = app.cfg.Global.CniMtu
 
+	// Make a small attempt to check if we are not bootstrapped. If not, then do that before we do anything else.
+	isBootstrapCmd := false
+	for _, f := range context.Args().Slice() {
+		isBootstrapCmd = f == "bootstrap"
+
+		if isBootstrapCmd {
+			break
+		}
+	}
+
+	if !isBootstrapCmd && !cliutil.IsBootstrapped() {
+		app.bootstrapNoBuildkit = true // Docker may not be available, for instance... like our integration tests.
+		err = app.actionBootstrap(context)
+		if err != nil {
+			return errors.Wrap(err, "bootstrap unbootstrapped installation")
+		}
+	}
+
 	return nil
 }
 

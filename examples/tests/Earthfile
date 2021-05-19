@@ -276,9 +276,9 @@ fail-invalid-artifact-test:
 
 push-test:
     DO +RUN_EARTHLY --earthfile=push.earth --target=+push-test \
-        --post_command="| grep 'Use earthly --push to enable pushing'"
+        --post_command="2>&1 | grep 'Use earthly --push to enable pushing'"
     DO +RUN_EARTHLY --earthfile=push.earth --extra_args="--push" --target=+push-test \
-        --post_command="| grep 'hello world'"
+        --post_command="2>&1 | grep 'hello world'"
 
 private-image-test:
     FROM earthly/private-test:latest
@@ -431,7 +431,7 @@ save-artifact-after-push:
         --post_command="2>&1 | perl -pe 'BEGIN {\\\$status=1} END {exit \\\$status} \\\$status=0 if /not found/;'"
 
 push-build:
-    DO +RUN_EARTHLY --earthfile=push-build.earth --target=+test --extra_args="--push" --post_command="2>&1 > output"
+    DO +RUN_EARTHLY --earthfile=push-build.earth --target=+test --extra_args="--push" --post_command="> output 2>&1"
     RUN cat output
     RUN cat output | perl -pe 'BEGIN {$status=1} END {exit $status} $status=0 if /\+test \| 0\n/;'
     RUN cat output | perl -pe 'BEGIN {$status=1} END {exit $status} $status=0 if /\+run1 \| 1\n/;'
