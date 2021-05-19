@@ -16,7 +16,7 @@ jobs:
           command: earthly --use-inline-cache +for-linux
       - run:
           name: Run tests
-          command: ./build/linux/amd64/earthly --ci -P +test
+          command: sudo ./build/linux/amd64/earthly --ci -P +test
       - run:
           name: Execute fail test
           command: "! ./build/linux/amd64/earthly --ci +test-fail"
