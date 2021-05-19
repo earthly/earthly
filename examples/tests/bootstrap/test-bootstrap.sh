@@ -86,15 +86,23 @@ sudo rm -rf "/usr/share/bash-completion/completions/earthly"
 
 echo "=== Test 5: Permissions ==="
 
+touch testfile
+USR=$(stat --format '%U' testfile)
+GRP=$(stat --format '%G' testfile)
+
+echo "Current defaults:"
+echo "User : $USR"
+echo "Group: $GRP"
+
 "$earthly" bootstrap
 
-if [[ $(stat --format '%U' "$HOME/.earthly") != "$USER" ]]; then
+if [[ $(stat --format '%U' "$HOME/.earthly") != "$USR" ]]; then
   echo "earthly directory is not owned by the user"
   stat "$HOME/.earthly"
   exit 1
 fi
 
-if [[ $(stat --format '%G' "$HOME/.earthly") != "$USER" ]]; then
+if [[ $(stat --format '%G' "$HOME/.earthly") != "$GRP" ]]; then
   echo "earthly directory is not owned by the users group"
   stat "$HOME/.earthly"
   exit 1
@@ -106,25 +114,25 @@ sudo chown -R 12345:12345 $HOME/.earthly
 
 sudo "$earthly" bootstrap
 
-if [[ $(stat --format '%U' "$HOME/.earthly") != "$USER" ]]; then
+if [[ $(stat --format '%U' "$HOME/.earthly") != "$USR" ]]; then
   echo "earthly directory is not owned by the user"
   stat "$HOME/.earthly"
   exit 1
 fi
 
-if [[ $(stat --format '%G' "$HOME/.earthly") != "$USER" ]]; then
+if [[ $(stat --format '%G' "$HOME/.earthly") != "$GRP" ]]; then
   echo "earthly directory is not owned by the users group"
   stat "$HOME/.earthly"
   exit 1
 fi
 
-if [[ $(stat --format '%U' "$HOME/.earthly/config.yml") != "$USER" ]]; then
+if [[ $(stat --format '%U' "$HOME/.earthly/config.yml") != "$USR" ]]; then
   echo "earthly config is not owned by the user"
   stat "$HOME/.earthly/config.yml"
   exit 1
 fi
 
-if [[ $(stat --format '%G' "$HOME/.earthly/config.yml") != "$USER" ]]; then
+if [[ $(stat --format '%G' "$HOME/.earthly/config.yml") != "$GRP" ]]; then
   echo "earthly config is not owned by the users group"
   stat "$HOME/.earthly/config.yml"
   exit 1
