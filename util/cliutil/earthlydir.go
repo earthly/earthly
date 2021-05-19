@@ -4,6 +4,7 @@ import (
 	"os"
 	"os/user"
 	"path/filepath"
+	"strconv"
 	"sync"
 
 	"github.com/earthly/earthly/util/fileutil"
@@ -33,7 +34,24 @@ func makeEarthlyDir() (string, error) {
 		if err != nil {
 			return "", errors.Wrapf(err, "unable to create dir %s", earthlyDir)
 		}
-		fileutil.EnsureUserOwned(earthlyDir, sudoUser)
+		if sudoUser != nil {
+			// Attempt to chown the created dir to belong to the sudo user.
+			uid, err := strconv.Atoi(sudoUser.Uid)
+			if err != nil {
+				// Swallow error.
+				return earthlyDir, nil
+			}
+			gid := 0
+			if sudoUser.Gid != "" {
+				// If cannot convert will use gid 0.
+				gid, _ = strconv.Atoi(sudoUser.Gid)
+			}
+			err = os.Chown(earthlyDir, uid, gid)
+			if err != nil {
+				// Swallow error.
+				return earthlyDir, nil
+			}
+		}
 	}
 	return earthlyDir, nil
 }
@@ -41,16 +59,14 @@ func makeEarthlyDir() (string, error) {
 // DetectHomeDir returns the home directory of the current user, an additional sudoUser
 // is returned if the user is currently running as root
 func DetectHomeDir() (homeDir string, sudoUser *user.User, err error) {
-	u, err := currentNonSudoUser()
+	homeDir, sudoUser, err = fileutil.HomeDir()
 	if err != nil {
-		return "", nil, errors.Wrap(err, "lookup user for homedir")
+		return
 	}
-
-	if u.HomeDir == "" {
-		return "/etc", u, nil
+	if homeDir == "" {
+		homeDir = "/etc" // No home dir available - use /etc instead.
 	}
-
-	return u.HomeDir, u, nil
+	return
 }
 
 // IsBootstrapped provides a tentatively correct guess about the state of our bootstrapping.
@@ -66,30 +82,4 @@ func IsBootstrapped() bool {
 	}
 
 	return true
-}
-
-func EnsurePermissions() error {
-	if earthlyDir == "" {
-		_, err := GetEarthlyDir()
-		return err
-	}
-
-	u, err := currentNonSudoUser()
-	if err != nil {
-		return errors.Wrap(err, "get non-sudo user")
-	}
-
-	fileutil.EnsureUserOwned(earthlyDir, u)
-	return nil
-}
-
-func currentNonSudoUser() (*user.User, error) {
-	if sudoUserName, ok := os.LookupEnv("SUDO_USER"); ok {
-		sudoUser, err := user.Lookup(sudoUserName)
-		if err == nil {
-			return sudoUser, nil
-		}
-	}
-
-	return user.Current()
 }
