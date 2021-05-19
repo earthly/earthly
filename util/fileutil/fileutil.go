@@ -1,8 +1,10 @@
 package fileutil
 
 import (
+	"io/fs"
 	"os"
 	"os/user"
+	"path/filepath"
 	"strconv"
 )
 
@@ -33,6 +35,9 @@ func EnsureUserOwned(dir string, owner *user.User) {
 			// If cannot convert will use gid 0.
 			gid, _ = strconv.Atoi(owner.Gid)
 		}
-		_ = os.Chown(dir, uid, gid)
+
+		_ = filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error {
+			return os.Chown(path, uid, gid)
+		})
 	}
 }
