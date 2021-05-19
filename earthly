@@ -55,7 +55,7 @@ do_help() {
 
     echo "------------------- earthly pre-release script help -------------------"
     echo "NAME:"
-    echo "   $scriptname - A wraper around the earthly binary that checks for updates once an hour"
+    echo "   $scriptname - A wrapper around the earthly binary that checks for updates once an hour"
     echo ""
     echo "COMMANDS:"
     echo "   reset     Removes prerelease binary and associated docker containers"

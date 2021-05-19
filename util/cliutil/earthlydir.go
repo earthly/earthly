@@ -81,10 +81,5 @@ func IsBootstrapped() bool {
 		return false
 	}
 
-	installID := filepath.Join(homeDir, ".earthly", "install_id")
-	if !fileutil.FileExists(installID) {
-		return false
-	}
-
 	return true
 }
