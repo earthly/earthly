@@ -90,11 +90,13 @@ echo "=== Test 5: Permissions ==="
 
 if [[ $(stat --format '%U' "$HOME/.earthly") != "$USER" ]]; then
   echo "earthly directory is not owned by the user"
+  stat --format '%U' "$HOME/.earthly"
   exit 1
 fi
 
 if [[ $(stat --format '%G' "$HOME/.earthly") != "$USER" ]]; then
   echo "earthly directory is not owned by the users group"
+  stat --format '%G' "$HOME/.earthly"
   exit 1
 fi
 
@@ -106,20 +108,24 @@ sudo "$earthly" bootstrap
 
 if [[ $(stat --format '%U' "$HOME/.earthly") != "$USER" ]]; then
   echo "earthly directory is not owned by the user"
+  stat --format '%U' "$HOME/.earthly"
   exit 1
 fi
 
 if [[ $(stat --format '%G' "$HOME/.earthly") != "$USER" ]]; then
   echo "earthly directory is not owned by the users group"
+  stat --format '%G' "$HOME/.earthly"
   exit 1
 fi
 
 if [[ $(stat --format '%U' "$HOME/.earthly/config.yml") != "$USER" ]]; then
   echo "earthly config is not owned by the user"
+  stat --format '%U' "$HOME/.earthly/config.yml"
   exit 1
 fi
 
 if [[ $(stat --format '%G' "$HOME/.earthly/config.yml") != "$USER" ]]; then
   echo "earthly config is not owned by the users group"
+  stat --format '%G' "$HOME/.earthly/config.yml"
   exit 1
 fi
