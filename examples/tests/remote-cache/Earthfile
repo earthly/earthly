@@ -21,7 +21,7 @@ test1:
     RUN --privileged \
         --entrypoint \
         --mount=type=tmpfs,target=/tmp/earthly \
-        -- --ci --push +test1 | tee ./output
+        -- --ci --push +test1 2>&1 | tee ./output
     # Not cached.
     RUN nl=$(cat ./output | grep "execute-test1-run-before-copy" | wc -l) && \
         test "$nl" -eq 2
@@ -32,7 +32,7 @@ test1:
     RUN --privileged \
         --entrypoint \
         --mount=type=tmpfs,target=/tmp/earthly \
-        -- --ci +test1 | tee ./output
+        -- --ci +test1 2>&1 | tee ./output
     # Cached.
     RUN nl=$(cat ./output | grep "execute-test1-run-before-copy" | wc -l) && \
         test "$nl" -eq 1
@@ -44,7 +44,7 @@ test1:
     RUN --privileged \
         --entrypoint \
         --mount=type=tmpfs,target=/tmp/earthly \
-        -- --ci +test1 | tee ./output
+        -- --ci +test1 2>&1 | tee ./output
     # Cached.
     RUN nl=$(cat ./output | grep "execute-test1-run-before-copy" | wc -l) && \
         test "$nl" -eq 1
@@ -63,7 +63,7 @@ test2:
     RUN --privileged \
         --entrypoint \
         --mount=type=tmpfs,target=/tmp/earthly \
-        -- --ci +test2 | tee ./output
+        -- --ci +test2 2>&1 | tee ./output
     RUN cat ./output | grep '\*cached\* --> RUN npm install'
     RUN cat ./output | grep '\*cached\* --> COPY test2/dist dist'
     RUN cat ./output | grep '\*cached\* --> SAVE ARTIFACT dist +test2-build/dist'
