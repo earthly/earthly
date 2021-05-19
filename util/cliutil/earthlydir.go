@@ -69,6 +69,7 @@ func DetectHomeDir() (homeDir string, sudoUser *user.User, err error) {
 	return
 }
 
+// IsBootstrapped provides a tentatively correct guess about the state of our bootstrapping.
 func IsBootstrapped() bool {
 	homeDir, _, err := DetectHomeDir()
 	if err != nil {
