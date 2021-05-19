@@ -36,7 +36,7 @@ if [[ ! -d "$HOME/.earthly" ]]; then
 fi
 
 echo "----"
-"$earthly" +test | tee imp_boot_output # Hand boots are gloves ;)
+"$earthly" +test | tee imp_boot_output
 
 if  cat imp_boot_output | grep -q "bootstrap |"; then
     echo "build did extra bootstrap"
@@ -44,3 +44,42 @@ if  cat imp_boot_output | grep -q "bootstrap |"; then
 fi
 
 rm -rf "$HOME/.earthly/"
+
+echo "=== Test 3: CI ==="
+
+"$earthly" --ci +test
+
+if [[ ! -d "$HOME/.earthly" ]]; then
+  echo ".earthly directory was missing after bootstrap"
+  exit 1
+fi
+
+echo "----"
+"$earthly" --ci +test | tee ci_boot_output
+
+if  cat ci_boot_output | grep -q "bootstrap |"; then
+    echo "build did extra bootstrap"
+    exit 1
+fi
+
+rm -rf "$HOME/.earthly/"
+
+echo "=== Test 4: With Autocomplete ==="
+
+"$earthly" bootstrap
+
+if [[ -f "/usr/share/bash-completion/completions/earthly" ]]; then
+  echo "autocompletions were present when they should not have been"
+  exit 1
+fi
+
+echo "----"
+sudo "$earthly" bootstrap --with-autocomplete
+
+if [[ ! -f "/usr/share/bash-completion/completions/earthly" ]]; then
+  echo "autocompletions were missing when they should have been present"
+  exit 1
+fi
+
+rm -rf "$HOME/.earthly/"
+sudo rm -rf "/usr/share/bash-completion/completions/earthly"

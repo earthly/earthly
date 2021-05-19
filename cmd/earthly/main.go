@@ -83,58 +83,58 @@ type earthlyApp struct {
 }
 
 type cliFlags struct {
-	platformsStr            cli.StringSlice
-	buildArgs               cli.StringSlice
-	secrets                 cli.StringSlice
-	secretFiles             cli.StringSlice
-	artifactMode            bool
-	imageMode               bool
-	pull                    bool
-	push                    bool
-	ci                      bool
-	noOutput                bool
-	noCache                 bool
-	pruneAll                bool
-	pruneReset              bool
-	buildkitdSettings       buildkitd.Settings
-	allowPrivileged         bool
-	enableProfiler          bool
-	buildkitHost            string
-	buildkitdImage          string
-	remoteCache             string
-	maxRemoteCache          bool
-	saveInlineCache         bool
-	useInlineCache          bool
-	configPath              string
-	gitUsernameOverride     string
-	gitPasswordOverride     string
-	interactiveDebugging    bool
-	sshAuthSock             string
-	verbose                 bool
-	debug                   bool
-	homebrewSource          string
-	bootstrapNoBuildkit     bool
-	bootstrapNoAutocomplete bool
-	email                   string
-	token                   string
-	password                string
-	disableNewLine          bool
-	secretFile              string
-	secretStdin             bool
-	apiServer               string
-	writePermission         bool
-	registrationPublicKey   string
-	dockerfilePath          string
-	earthfilePath           string
-	earthfileFinalImage     string
-	expiry                  string
-	termsConditionsPrivacy  bool
-	authToken               string
-	noFakeDep               bool
-	enableSourceMap         bool
-	configDryRun            bool
-	strict                  bool
-	conversionParllelism    int
+	platformsStr              cli.StringSlice
+	buildArgs                 cli.StringSlice
+	secrets                   cli.StringSlice
+	secretFiles               cli.StringSlice
+	artifactMode              bool
+	imageMode                 bool
+	pull                      bool
+	push                      bool
+	ci                        bool
+	noOutput                  bool
+	noCache                   bool
+	pruneAll                  bool
+	pruneReset                bool
+	buildkitdSettings         buildkitd.Settings
+	allowPrivileged           bool
+	enableProfiler            bool
+	buildkitHost              string
+	buildkitdImage            string
+	remoteCache               string
+	maxRemoteCache            bool
+	saveInlineCache           bool
+	useInlineCache            bool
+	configPath                string
+	gitUsernameOverride       string
+	gitPasswordOverride       string
+	interactiveDebugging      bool
+	sshAuthSock               string
+	verbose                   bool
+	debug                     bool
+	homebrewSource            string
+	bootstrapNoBuildkit       bool
+	bootstrapWithAutocomplete bool
+	email                     string
+	token                     string
+	password                  string
+	disableNewLine            bool
+	secretFile                string
+	secretStdin               bool
+	apiServer                 string
+	writePermission           bool
+	registrationPublicKey     string
+	dockerfilePath            string
+	earthfilePath             string
+	earthfileFinalImage       string
+	expiry                    string
+	termsConditionsPrivacy    bool
+	authToken                 string
+	noFakeDep                 bool
+	enableSourceMap           bool
+	configDryRun              bool
+	strict                    bool
+	conversionParllelism      int
 }
 
 var (
@@ -526,7 +526,7 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 				&cli.BoolFlag{
 					Name:        "with-autocomplete",
 					Usage:       "Add earthly autocompletions",
-					Destination: &app.bootstrapNoAutocomplete,
+					Destination: &app.bootstrapWithAutocomplete,
 				},
 			},
 		},
@@ -1363,7 +1363,7 @@ func (app *earthlyApp) actionBootstrap(c *cli.Context) error {
 	var err error
 	console := app.console.WithPrefix("bootstrap")
 
-	if !app.bootstrapNoAutocomplete {
+	if app.bootstrapWithAutocomplete {
 		switch app.homebrewSource {
 		case "bash":
 			compEntry, err := bashCompleteEntry()
