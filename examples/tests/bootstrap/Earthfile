@@ -1,0 +1,4 @@
+
+test:
+    FROM busybox:latest
+    RUN echo "hello earth, this is major tom."
