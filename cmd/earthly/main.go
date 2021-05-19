@@ -83,57 +83,58 @@ type earthlyApp struct {
 }
 
 type cliFlags struct {
-	platformsStr           cli.StringSlice
-	buildArgs              cli.StringSlice
-	secrets                cli.StringSlice
-	secretFiles            cli.StringSlice
-	artifactMode           bool
-	imageMode              bool
-	pull                   bool
-	push                   bool
-	ci                     bool
-	noOutput               bool
-	noCache                bool
-	pruneAll               bool
-	pruneReset             bool
-	buildkitdSettings      buildkitd.Settings
-	allowPrivileged        bool
-	enableProfiler         bool
-	buildkitHost           string
-	buildkitdImage         string
-	remoteCache            string
-	maxRemoteCache         bool
-	saveInlineCache        bool
-	useInlineCache         bool
-	configPath             string
-	gitUsernameOverride    string
-	gitPasswordOverride    string
-	interactiveDebugging   bool
-	sshAuthSock            string
-	verbose                bool
-	debug                  bool
-	homebrewSource         string
-	bootstrapNoBuildkit    bool
-	email                  string
-	token                  string
-	password               string
-	disableNewLine         bool
-	secretFile             string
-	secretStdin            bool
-	apiServer              string
-	writePermission        bool
-	registrationPublicKey  string
-	dockerfilePath         string
-	earthfilePath          string
-	earthfileFinalImage    string
-	expiry                 string
-	termsConditionsPrivacy bool
-	authToken              string
-	noFakeDep              bool
-	enableSourceMap        bool
-	configDryRun           bool
-	strict                 bool
-	conversionParllelism   int
+	platformsStr            cli.StringSlice
+	buildArgs               cli.StringSlice
+	secrets                 cli.StringSlice
+	secretFiles             cli.StringSlice
+	artifactMode            bool
+	imageMode               bool
+	pull                    bool
+	push                    bool
+	ci                      bool
+	noOutput                bool
+	noCache                 bool
+	pruneAll                bool
+	pruneReset              bool
+	buildkitdSettings       buildkitd.Settings
+	allowPrivileged         bool
+	enableProfiler          bool
+	buildkitHost            string
+	buildkitdImage          string
+	remoteCache             string
+	maxRemoteCache          bool
+	saveInlineCache         bool
+	useInlineCache          bool
+	configPath              string
+	gitUsernameOverride     string
+	gitPasswordOverride     string
+	interactiveDebugging    bool
+	sshAuthSock             string
+	verbose                 bool
+	debug                   bool
+	homebrewSource          string
+	bootstrapNoBuildkit     bool
+	bootstrapNoAutocomplete bool
+	email                   string
+	token                   string
+	password                string
+	disableNewLine          bool
+	secretFile              string
+	secretStdin             bool
+	apiServer               string
+	writePermission         bool
+	registrationPublicKey   string
+	dockerfilePath          string
+	earthfilePath           string
+	earthfileFinalImage     string
+	expiry                  string
+	termsConditionsPrivacy  bool
+	authToken               string
+	noFakeDep               bool
+	enableSourceMap         bool
+	configDryRun            bool
+	strict                  bool
+	conversionParllelism    int
 }
 
 var (
@@ -521,6 +522,11 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 					Name:        "no-buildkit",
 					Usage:       "Do not bootstrap buildkit",
 					Destination: &app.bootstrapNoBuildkit,
+				},
+				&cli.BoolFlag{
+					Name:        "with-autocomplete",
+					Usage:       "Add earthly autocompletions",
+					Destination: &app.bootstrapNoAutocomplete,
 				},
 			},
 		},
@@ -1353,41 +1359,52 @@ func symlinkEarthlyToEarth() error {
 
 func (app *earthlyApp) actionBootstrap(c *cli.Context) error {
 	app.commandName = "bootstrap"
-	switch app.homebrewSource {
-	case "bash":
-		compEntry, err := bashCompleteEntry()
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Warning: failed to enable bash-completion: %s\n", err)
-			return nil // zsh-completion isn't available, silently fail.
+
+	var err error
+	console := app.console.WithPrefix("bootstrap")
+
+	if !app.bootstrapNoAutocomplete {
+		switch app.homebrewSource {
+		case "bash":
+			compEntry, err := bashCompleteEntry()
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Warning: failed to enable bash-completion: %s\n", err)
+				return nil // zsh-completion isn't available, silently fail.
+			}
+			fmt.Print(compEntry)
+			return nil
+		case "zsh":
+			compEntry, err := zshCompleteEntry()
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Warning: failed to bootstrap zsh-completion: %s\n", err)
+				return nil // zsh-completion isn't available, silently fail.
+			}
+			fmt.Print(compEntry)
+			return nil
+		case "":
+			break
+		default:
+			return errors.Errorf("unhandled source %q", app.homebrewSource)
 		}
-		fmt.Print(compEntry)
-		return nil
-	case "zsh":
-		compEntry, err := zshCompleteEntry()
+
+		// Because this requires sudo, it should warn and not fail the rest of it.
+		err = app.insertBashCompleteEntry()
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Warning: failed to bootstrap zsh-completion: %s\n", err)
-			return nil // zsh-completion isn't available, silently fail.
+			console.Warnf("Warning: %s\n", err.Error())
+			err = nil
 		}
-		fmt.Print(compEntry)
-		return nil
-	case "":
-		break
-	default:
-		return errors.Errorf("unhandled source %q", app.homebrewSource)
+		err = app.insertZSHCompleteEntry()
+		if err != nil {
+			console.Warnf("Warning: %s\n", err.Error())
+			err = nil
+		}
+
 	}
 
-	console := app.console.WithPrefix("bootstrap")
-	err := symlinkEarthlyToEarth()
+	err = symlinkEarthlyToEarth()
 	if err != nil {
 		console.Warnf("Warning: %s\n", err.Error())
-	}
-	err = app.insertBashCompleteEntry()
-	if err != nil {
-		return err
-	}
-	err = app.insertZSHCompleteEntry()
-	if err != nil {
-		return err
+		err = nil
 	}
 
 	if !app.bootstrapNoBuildkit {

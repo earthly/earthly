@@ -69,7 +69,7 @@ func loadDockerManifest(ctx context.Context, console conslogging.ConsoleLogger, 
 		parentImageName, strings.Join(childImgs, "\n\t"), noteDetail)
 
 	cmd := exec.CommandContext(ctx, "docker", "tag", children[defaultChild].imageName, parentImageName)
-	cmd.Stdout = os.Stdout
+	cmd.Stdout = os.Stderr // Preserve desired output on stdout, all logs to stdin
 	cmd.Stderr = os.Stderr
 	err := cmd.Run()
 	if err != nil {
@@ -82,7 +82,7 @@ func loadDockerTar(ctx context.Context, r io.ReadCloser) error {
 	// TODO: This is a gross hack - should use proper docker client.
 	cmd := exec.CommandContext(ctx, "docker", "load")
 	cmd.Stdin = r
-	cmd.Stdout = os.Stdout
+	cmd.Stdout = os.Stderr // Preserve desired output on stdout, all logs to stdin
 	cmd.Stderr = os.Stderr
 	err := cmd.Run()
 	if err != nil {
