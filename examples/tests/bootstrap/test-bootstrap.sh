@@ -16,11 +16,6 @@ if [[ ! -d "$HOME/.earthly" ]]; then
   exit 1
 fi
 
-if [[ ! -f "$HOME/.earthly/install_id" ]]; then
-  echo "install_id was missing after bootstrap"
-  exit 1
-fi
-
 echo "----"
 "$earthly" +test | tee hand_boot_output # Hand boots are gloves ;)
 
@@ -37,11 +32,6 @@ echo "=== Test 2: Implied Bootstrap ==="
 
 if [[ ! -d "$HOME/.earthly" ]]; then
   echo ".earthly directory was missing after bootstrap"
-  exit 1
-fi
-
-if [[ ! -f "$HOME/.earthly/install_id" ]]; then
-  echo "install_id was missing after bootstrap"
   exit 1
 fi
 
