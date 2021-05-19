@@ -7,8 +7,6 @@ cd "$(dirname "$0")"
 
 earthly=${earthly-"../../../build/linux/amd64/earthly"}
 
-# run a build twice. Validate missing, then present, then no bootstrap. Remove, then bootstrap realsies and validate that next doesnt.
-
 echo "=== Test 1: Hand Bootstrapped ==="
 
 "$earthly" bootstrap
