@@ -139,6 +139,9 @@ jobs:
       - name: Execute private image test (non fork only)
         run: ./build/linux/amd64/earthly --ci ./examples/tests+private-image-test
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+      - name: Execute save images test
+        run: ./examples/tests/save-images/test.sh
+        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: "Experimental tests (not a fork)"
         run: ./build/linux/amd64/earthly --ci -P ./examples/tests+experimental
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository

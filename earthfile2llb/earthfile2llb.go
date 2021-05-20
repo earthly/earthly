@@ -2,7 +2,6 @@ package earthfile2llb
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/moby/buildkit/client/llb"
 	gwclient "github.com/moby/buildkit/frontend/gateway/client"
@@ -71,10 +70,17 @@ type ConvertOpt struct {
 	// AllowPrivileged is used to allow (or prevent) any "RUN --privileged" or RUNs under a LOCALLY target to be executed,
 	// when set to false, it prevents other referenced remote targets from requesting elevated privileges
 	AllowPrivileged bool
+	// DoSaves is used to control when SAVE ARTIFACT AS LOCAL calls will actually output the artifacts locally
+	// this is to differentiate between calling a target that saves an artifact directly vs using a FROM which indirectly
+	// calls a target which saves an artifact as a side effect.
+	DoSaves bool
 	// Gitlookup is used to attach credentials to GIT CLONE operations
 	GitLookup *buildcontext.GitLookup
 	// LocalStateCache provides a cache for local pllb.States
 	LocalStateCache *LocalStateCache
+
+	// Features is the set of enabled features
+	Features *features.Features
 
 	// ParallelConversion is a feature flag enabling the parallel conversion algorithm.
 	ParallelConversion bool
@@ -105,18 +111,19 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt) (m
 		return nil, errors.Wrapf(err, "resolve build context for target %s", target.String())
 	}
 
-	ftrs, err := features.GetFeatures(bc.Earthfile.Version)
+	ftrs, err := features.GetFeatures(bc.Earthfile.Version) // TODO ACB how do I match this up with builder/builder.go:334 on performSaveLocals
 	if err != nil {
 		return nil, errors.Wrapf(err, "resolve feature set for version %v for target %s", bc.Earthfile.Version.Args, target.String())
 	}
-
 	err = features.ApplyFlagOverrides(ftrs, opt.FeatureFlagOverrides)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to apply version feature overrides")
 	}
+	opt.Features = ftrs
 
-	if ftrs.ReferencedSaveOnly {
-		fmt.Printf("TODO feature-flip referenced save artifact as local feature in a future PR.\n")
+	if !ftrs.ReferencedSaveOnly {
+		// 0.5 behaviour is to save all artifacts and images in all cases (if they are directly referenced, or indirectly triggered)
+		opt.DoSaves = true
 	}
 
 	targetWithMetadata := bc.Ref.(domain.Target)
