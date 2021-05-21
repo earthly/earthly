@@ -70,6 +70,7 @@ ga:
     BUILD +import
     BUILD +infinite-recursion
     BUILD +from-dockerfile-arg
+    BUILD +cache-mount-arg
 
 experimental:
     BUILD ./dind-auto-install+all
@@ -503,6 +504,23 @@ from-dockerfile-arg:
     RUN test "$(cat ./arg-value-default)" = "default"
     RUN test "$(cat ./arg-value-foo)" = "foo"
     RUN test "$(cat ./arg-value-bar)" = "bar"
+
+cache-mount-arg:
+    DO +RUN_EARTHLY --earthfile=cache-mount-arg.earth --use_tmpfs=false --target="+b-nomount --MYARG=123"
+    DO +RUN_EARTHLY --earthfile=cache-mount-arg.earth --use_tmpfs=false --target="+b-nomount --MYARG=1234" --post_command="2>output-nomount.txt"
+    RUN cat output-nomount.txt
+    RUN cat output-nomount.txt | grep '\*cached\* --> RUN echo Doing something 1'
+    RUN cat output-nomount.txt | grep '\*cached\* --> RUN echo Doing something 2'; test "$?" != 0
+    DO +RUN_EARTHLY --earthfile=cache-mount-arg.earth --use_tmpfs=false --target="+b --MYARG=abc"
+    DO +RUN_EARTHLY --earthfile=cache-mount-arg.earth --use_tmpfs=false --target="+b --MYARG=abcd" --post_command="2>output.txt"
+    RUN cat output.txt
+    RUN cat output.txt | grep '\*cached\* --> RUN echo Doing something 1'
+    RUN cat output.txt | grep '\*cached\* --> RUN echo Doing something 2'; test "$?" != 0
+    DO +RUN_EARTHLY --earthfile=cache-mount-arg.earth --use_tmpfs=false --target="+b-with-arg --MYARG=def"
+    DO +RUN_EARTHLY --earthfile=cache-mount-arg.earth --use_tmpfs=false --target="+b-with-arg --MYARG=defg" --post_command="2>output.txt"
+    RUN cat output.txt
+    RUN cat output.txt | grep '\*cached\* --> RUN echo Doing something 1'; test "$?" != 0
+    RUN cat output.txt | grep '\*cached\* --> RUN echo Doing something 2'; test "$?" != 0
 
 RUN_EARTHLY:
     COMMAND
