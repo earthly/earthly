@@ -59,6 +59,7 @@
 ### One-Time (clear this section when done during release)
 
 * Update the website with the documentation for bootstrap, include `--with-autocomplete` as part of the installation.
+  * On macOS, remove `sudo`; the `--with-autocomplete` will be handled by `brew`'s installation.
 
 #### Troubleshooting
 
