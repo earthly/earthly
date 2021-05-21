@@ -107,15 +107,14 @@ To build from source, check the [contributing page](./CONTRIBUTING.md).
 Here are some resources to get you started with Earthly
 
 * 🏁 [Getting started guide](https://docs.earthly.dev/guides/basics)
-* 👀 [Examples](https://docs.earthly.dev/examples)
-  * [Go](https://docs.earthly.dev/examples/go)
-  * [Java](https://docs.earthly.dev/examples/java)
-  * [JS](https://docs.earthly.dev/examples/js)
-  * [C++](https://docs.earthly.dev/examples/cpp)
-  * [Mono-repo](https://docs.earthly.dev/examples/monorepo)
-  * [Multi-repo](https://docs.earthly.dev/examples/multirepo)
-  * The [examples](./examples) dir
-* 🔍 Explore [Earthly's own build](https://docs.earthly.dev/examples/earthly)
+* 👀 [Examples](./examples)
+  * [Go](./examples/go)
+  * [Java](./examples/java)
+  * [JS](./examples/js)
+  * [C++](./examples/cpp)
+  * [Mono-repo](./examples/monorepo)
+  * [Multi-repo](./examples/multirepo)
+* 🔍 Explore [Earthly's own build](https://docs.earthly.dev/examples/examples#earthlys-own-build)
 
 See also the [full documentation](https://docs.earthly.dev).
 
@@ -168,7 +167,7 @@ Invoke the build using `earthly +all`.
 
 <div align="center"><a href="https://asciinema.org/a/351683?speed=2"><img src="img/demo-351683.gif" alt="Demonstration of a simple Earthly build" title="View on asciinema.org" width="600px" /></a></div>
 
-Examples for other languages are available on the [examples page](https://docs.earthly.dev/examples).
+Examples for other languages are available in the [examples dir](./examples).
 
 <br/>
 <br/>
