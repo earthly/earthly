@@ -1,0 +1,46 @@
+ARG DOCKERHUB_AUTH=true
+FROM ../../..+earthly-integration-test-base --DOCKERHUB_AUTH=$DOCKERHUB_AUTH
+
+IMPORT .. AS tests
+
+test-single-line:
+    DO tests+RUN_EARTHLY --earthfile=single-line.earth --target=+test
+
+test-single-line-with-args:
+    DO tests+RUN_EARTHLY --earthfile=single-line-with-args.earth --target=+test
+
+test-multi-line:
+    DO tests+RUN_EARTHLY --earthfile=multi-line.earth --target=+test
+
+test-multi-line-with-comment:
+    DO tests+RUN_EARTHLY --earthfile=multi-line-with-comment.earth --target=+test
+
+test-multi-line-with-comment2:
+    DO tests+RUN_EARTHLY --earthfile=multi-line-with-comment2.earth --target=+test
+
+test-multi-line-with-comment3:
+    DO tests+RUN_EARTHLY --earthfile=multi-line-with-comment3.earth --target=+test
+
+test-multi-line-with-comment4:
+    DO tests+RUN_EARTHLY --earthfile=multi-line-with-comment4.earth --target=+test
+
+test-multi-line-with-args:
+    DO tests+RUN_EARTHLY --earthfile=multi-line-with-args.earth --target=+test
+
+test-multi-line-with-args2:
+    DO tests+RUN_EARTHLY --earthfile=multi-line-with-args2.earth --target=+test
+
+test-multi-line-with-newline:
+    DO tests+RUN_EARTHLY --earthfile=multi-line-with-empty-newline.earth --target=+test
+
+test-all:
+    BUILD +test-single-line
+    BUILD +test-single-line-with-args
+    BUILD +test-multi-line
+    BUILD +test-multi-line-with-comment
+    BUILD +test-multi-line-with-comment2
+    BUILD +test-multi-line-with-comment3
+    BUILD +test-multi-line-with-comment4
+    BUILD +test-multi-line-with-args
+    BUILD +test-multi-line-with-args2
+    BUILD +test-multi-line-with-newline

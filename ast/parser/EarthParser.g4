@@ -4,7 +4,7 @@ options {
 	tokenVocab = EarthLexer;
 }
 
-earthFile: NL* (stmts NL)? NL* targets? NL* EOF;
+earthFile: NL* version? (stmts NL)? NL* targets? NL* EOF;
 
 targets: targetOrUserCommand (NL* targetOrUserCommand)*;
 targetOrUserCommand: target | userCommand;
@@ -46,6 +46,9 @@ commandStmt:
 	| userCommandStmt
 	| doStmt
 	| importStmt;
+
+// version --------------------------------------------------------------------
+version: VERSION (WS stmtWords)? NL+;
 
 // withStmt -------------------------------------------------------------------
 

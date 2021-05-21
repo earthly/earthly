@@ -2,6 +2,7 @@ package earthfile2llb
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/moby/buildkit/client/llb"
 	gwclient "github.com/moby/buildkit/frontend/gateway/client"
@@ -15,6 +16,7 @@ import (
 	"github.com/earthly/earthly/cleanup"
 	"github.com/earthly/earthly/conslogging"
 	"github.com/earthly/earthly/domain"
+	"github.com/earthly/earthly/features"
 	"github.com/earthly/earthly/states"
 	"github.com/earthly/earthly/variables"
 )
@@ -97,6 +99,16 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt) (m
 	if err != nil {
 		return nil, errors.Wrapf(err, "resolve build context for target %s", target.String())
 	}
+
+	ftrs, err := features.GetFeatures(bc.Earthfile.Version)
+	if err != nil {
+		return nil, errors.Wrapf(err, "resolve build context for target %s", target.String())
+	}
+
+	if ftrs.ReferencedSaveOnly {
+		fmt.Printf("TODO feature-flip referenced save artifact as local feature in a future PR.\n")
+	}
+
 	targetWithMetadata := bc.Ref.(domain.Target)
 	sts, found, err := opt.Visited.Add(ctx, targetWithMetadata, opt.Platform, opt.AllowPrivileged, opt.OverridingVars, opt.parentDepSub)
 	if err != nil {

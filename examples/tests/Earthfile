@@ -71,6 +71,7 @@ ga:
     BUILD +infinite-recursion
     BUILD +from-dockerfile-arg
     BUILD +cache-mount-arg
+    BUILD ./version+test-all
 
 experimental:
     BUILD ./dind-auto-install+all

@@ -1,13 +1,7 @@
 package earthfile2llb
 
 import (
-	"fmt"
-	"os"
 	"time"
-
-	"github.com/pkg/errors"
-
-	flags "github.com/jessevdk/go-flags"
 )
 
 type ifOpts struct {
@@ -103,18 +97,4 @@ type doOpts struct {
 
 type importOpts struct {
 	AllowPrivileged bool `long:"allow-privileged" description:"Allow targets to assume privileged mode"`
-}
-
-func parseArgs(command string, data interface{}, args []string) ([]string, error) {
-	p := flags.NewNamedParser("", flags.PrintErrors|flags.PassDoubleDash|flags.PassAfterNonOption)
-	_, err := p.AddGroup(fmt.Sprintf("%s [options] args", command), "", data)
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to initiate parser.AddGroup for %s", command)
-	}
-	res, err := p.ParseArgs(args)
-	if err != nil {
-		p.WriteHelp(os.Stderr)
-		return nil, err
-	}
-	return res, nil
 }
