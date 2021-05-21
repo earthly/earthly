@@ -137,3 +137,22 @@ if [[ $(stat --format '%G' "$HOME/.earthly/config.yml") != "$GRP" ]]; then
   stat "$HOME/.earthly/config.yml"
   exit 1
 fi
+
+echo "=== Test 6: Homebrew Source ==="
+
+bash=$("$earthly" bootstrap --source bash)
+if [[ "$bash" != *"complete -o nospace"* ]]; then
+  echo "bash autocompletion appeared to be incorrect."
+  echo "$bash"
+  exit 1
+fi
+
+zsh=$("$earthly" bootstrap --source zsh)
+if [[ "$zsh" != *"complete -o nospace"* ]]; then
+  echo "zsh autocompletion appeared to be incorrect."
+  echo "$zsh"
+  exit 1
+fi
+
+
+rm -rf "$HOME/.earthly/"
