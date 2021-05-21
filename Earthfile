@@ -48,8 +48,20 @@ update-buildkit:
 
 
 lint-scripts-base:
-    FROM --platform=linux/amd64 alpine:3.13
-    RUN apk add --update --no-cache shellcheck
+    FROM alpine:3.13
+
+    ARG TARGETARCH
+
+    IF [ $TARGETARCH == "arm64" ]
+        RUN echo "Downloading, and manually installing shellcheck for ARM" && \
+            wget https://github.com/koalaman/shellcheck/releases/download/stable/shellcheck-stable.linux.aarch64.tar.xz && \
+            tar -xf shellcheck-stable.linux.aarch64.tar.xz && \
+            mv shellcheck-stable/shellcheck /usr/bin/shellcheck
+    ELSE
+        RUN echo "Installing shellcheck from Alpine repos" && \
+            apk add --update --no-cache shellcheck
+    END
+
     WORKDIR /shell_scripts
 
 lint-scripts-misc:
