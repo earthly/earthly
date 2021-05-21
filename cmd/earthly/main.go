@@ -1381,6 +1381,8 @@ func (app *earthlyApp) actionBootstrap(c *cli.Context) error {
 			}
 			fmt.Print(compEntry)
 			return nil
+		case "":
+			break
 		default:
 			return errors.Errorf("unhandled source %q", app.homebrewSource)
 		}
