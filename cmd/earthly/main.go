@@ -1363,7 +1363,7 @@ func (app *earthlyApp) actionBootstrap(c *cli.Context) error {
 	var err error
 	console := app.console.WithPrefix("bootstrap")
 
-	if app.bootstrapWithAutocomplete {
+	if app.bootstrapWithAutocomplete || app.homebrewSource != "" {
 		switch app.homebrewSource {
 		case "bash":
 			compEntry, err := bashCompleteEntry()
@@ -1381,8 +1381,6 @@ func (app *earthlyApp) actionBootstrap(c *cli.Context) error {
 			}
 			fmt.Print(compEntry)
 			return nil
-		case "":
-			break
 		default:
 			return errors.Errorf("unhandled source %q", app.homebrewSource)
 		}
