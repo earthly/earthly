@@ -140,6 +140,10 @@ fi
 
 echo "=== Test 6: Homebrew Source ==="
 
+if which docker > /dev/null; then
+  docker rm -f earthly-buildkitd
+fi
+
 bash=$("$earthly" bootstrap --source bash)
 if [[ "$bash" != *"complete -o nospace"* ]]; then
   echo "bash autocompletion appeared to be incorrect"
