@@ -15,7 +15,7 @@ Download the binary relevant to your platform from [the releases page](https://g
 To initialize the installation, including adding auto-completion for your shell, run
 
 ```bash
-sudo earthly bootstrap
+sudo earthly bootstrap --with-autocomplete
 ```
 
 and then restart your shell.
