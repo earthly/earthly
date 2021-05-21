@@ -110,10 +110,10 @@ rm -rf odd-project
 # test that earthly has access to it
 "$earthly" config git "{myserver: {pattern: 'myserver/([^/]+)', substitute: 'ssh://root@$ip:2222/root/my/really/weird/path/\$1.git', auth: ssh}}"
 
-echo === Test remote build under repo root ===
+echo "=== Test remote build under repo root ==="
 $earthly -V myserver/project:trunk+docker
 
-echo === Test remote build under repo subdir ===
+echo "=== Test remote build under repo subdir ==="
 $earthly -V myserver/project/weirdcommands:trunk+target
 
 # test that the container was built and runs
@@ -132,5 +132,5 @@ testweirdtouch:
   RUN ls weird-foo
 EOF
 
-echo === Test local build referencing remote commands ===
+echo "=== Test local build referencing remote commands ==="
 $earthly -V +testweirdtouch

@@ -36,6 +36,19 @@ func (ti TargetInput) WithBuildArgInput(bai BuildArgInput) TargetInput {
 	return tiClone
 }
 
+// WithFilterBuildArgs returns a clone of the current target input, with filtered
+// build args, based on an include-list of names.
+func (ti TargetInput) WithFilterBuildArgs(buildArgNames map[string]bool) TargetInput {
+	tiClone := ti.clone()
+	tiClone.BuildArgs = make([]BuildArgInput, 0, len(buildArgNames))
+	for _, bai := range ti.BuildArgs {
+		if buildArgNames[bai.Name] {
+			tiClone.BuildArgs = append(tiClone.BuildArgs, bai)
+		}
+	}
+	return tiClone
+}
+
 // Equals compares to another TargetInput for equality.
 func (ti TargetInput) Equals(other TargetInput) bool {
 	if ti.TargetCanonical != other.TargetCanonical {

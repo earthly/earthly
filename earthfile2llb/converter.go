@@ -3,9 +3,7 @@ package earthfile2llb
 import (
 	"bytes"
 	"context"
-	"crypto/sha256"
 	"encoding/base64"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"hash/fnv"
@@ -73,7 +71,7 @@ func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Da
 		opt:           opt,
 		mts:           mts,
 		buildContext:  bc.BuildContext,
-		cacheContext:  makeCacheContext(target),
+		cacheContext:  pllb.Scratch(),
 		varCollection: vc,
 	}, nil
 }
@@ -486,7 +484,7 @@ func (c *Converter) RunExitCode(ctx context.Context, commandName string, args, m
 	// Perform execution, but append the command with the right shell incantation that
 	// causes it to output the exit code to a file. This is done via the shellWrap.
 	var opts []llb.RunOption
-	mountRunOpts, err := parseMounts(mounts, c.mts.Final.Target, c.mts.Final.TargetInput(), c.cacheContext)
+	mountRunOpts, err := parseMounts(mounts, c.mts.Final.Target, c.targetInputActiveOnly(), c.cacheContext)
 	if err != nil {
 		return 0, errors.Wrap(err, "parse mounts")
 	}
@@ -595,7 +593,7 @@ func (c *Converter) Run(ctx context.Context, args, mounts, secretKeyValues []str
 	}
 
 	var opts []llb.RunOption
-	mountRunOpts, err := parseMounts(mounts, c.mts.Final.Target, c.mts.Final.TargetInput(), c.cacheContext)
+	mountRunOpts, err := parseMounts(mounts, c.mts.Final.Target, c.targetInputActiveOnly(), c.cacheContext)
 	if err != nil {
 		return errors.Wrap(err, "parse mounts")
 	}
@@ -1566,23 +1564,12 @@ func (c *Converter) checkAllowed(command string) error {
 	}
 }
 
-func makeCacheContext(target domain.Target) pllb.State {
-	sessionID := cacheKey(target)
-	opts := []llb.LocalOption{
-		llb.SharedKeyHint(target.ProjectCanonical()),
-		llb.SessionID(sessionID),
-		llb.Platform(llbutil.DefaultPlatform()),
-		llb.WithCustomNamef("[internal] cache context %s", target.ProjectCanonical()),
+func (c *Converter) targetInputActiveOnly() dedup.TargetInput {
+	activeBuildArgs := make(map[string]bool)
+	for _, k := range c.varCollection.SortedActiveVariables() {
+		activeBuildArgs[k] = true
 	}
-	return pllb.Local("earthly-cache", opts...)
-}
-
-func cacheKey(target domain.Target) string {
-	// Use the canonical target, but wihout the tag for cache matching.
-	targetCopy := target
-	targetCopy.Tag = ""
-	digest := sha256.Sum256([]byte(targetCopy.StringCanonical()))
-	return hex.EncodeToString(digest[:])
+	return c.mts.Final.TargetInput().WithFilterBuildArgs(activeBuildArgs)
 }
 
 func joinWrap(a []string, before string, sep string, after string) string {
