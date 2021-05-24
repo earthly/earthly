@@ -12,6 +12,7 @@ import (
 	"net"
 	"net/http"
 	_ "net/http/pprof" // enable pprof handlers on net/http listener
+	"net/url"
 	"os"
 	"os/signal"
 	"os/user"
@@ -135,6 +136,10 @@ type cliFlags struct {
 	configDryRun              bool
 	strict                    bool
 	conversionParllelism      int
+	buildkitPort              int
+	debuggerPort              int
+	debuggerAddress           string
+	useTCP                    bool
 }
 
 var (
@@ -412,9 +417,26 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 		},
 		&cli.StringFlag{
 			Name:        "buildkit-host",
+			Value:       buildkitd.DockerAddress,
 			EnvVars:     []string{"EARTHLY_BUILDKIT_HOST"},
 			Usage:       wrap("The URL to use for connecting to a buildkit host. ", "If empty, earthly will attempt to start a buildkitd instance via docker run"),
 			Destination: &app.buildkitHost,
+		},
+		&cli.IntFlag{
+			Name:        "buildkit-port",
+			Value:       config.DefaultBuildkitPort,
+			EnvVars:     []string{"EARTHLY_BUILDKIT_PORT"},
+			Usage:       wrap("The port to use for connecting to a buildkit host. ", "Used in combination with buildkit-host to produce the URL to dial."),
+			Destination: &app.buildkitPort,
+			Hidden:      true,
+		},
+		&cli.IntFlag{
+			Name:        "debugger-port",
+			Value:       config.DefaultDebuggerPort,
+			EnvVars:     []string{"EARTHLY_DEBUG_PORT"},
+			Usage:       wrap("The port to use for connecting to a debugging host. ", "Used in combination with buildkit-host to produce the URL to dial."),
+			Destination: &app.debuggerPort,
+			Hidden:      true,
 		},
 		&cli.IntFlag{
 			Name:        "buildkit-cache-size-mb",
@@ -502,6 +524,12 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 			EnvVars:     []string{"EARTHLY_CONVERSION_PARALLELISM"},
 			Usage:       "Set the conversion parallelism, which speeds up the use of IF, WITH DOCKER --load, FROM DOCKERFILE and others. A value of 0 disables the feature *experimental*",
 			Destination: &app.conversionParllelism,
+		},
+		&cli.BoolFlag{
+			Name:        "use-tcp",
+			EnvVars:     []string{"EARTHLY_USE_TCP"},
+			Usage:       "Changes all communication with Buildkit to be TCP. Requires Buildkit restart. *experimental*",
+			Destination: &app.useTCP,
 		},
 	}
 
@@ -932,12 +960,32 @@ func (app *earthlyApp) before(context *cli.Context) error {
 		app.buildkitdImage = app.cfg.Global.BuildkitImage
 	}
 
-	app.buildkitdSettings.DebuggerPort = app.cfg.Global.DebuggerPort
+	var (
+		bkAddr string
+		dbAddr string
+	)
+	if app.useTCP {
+		bkAddr, dbAddr, err = app.getBuildkitAndDebuggerAddressesForTCP(context)
+		if err != nil {
+			return err
+		}
+	} else {
+		bkAddr, dbAddr, err = app.getBuildkitAndDebuggerAddressesOriginal()
+		if err != nil {
+			return err
+		}
+	}
+
+	buildkitAddress := bkAddr
+	app.debuggerAddress = dbAddr
+
 	app.buildkitdSettings.AdditionalArgs = app.cfg.Global.BuildkitAdditionalArgs
 	app.buildkitdSettings.AdditionalConfig = app.cfg.Global.BuildkitAdditionalConfig
 	app.buildkitdSettings.Timeout = time.Duration(app.cfg.Global.BuildkitRestartTimeoutS) * time.Second
 	app.buildkitdSettings.Debug = app.debug
-	app.buildkitdSettings.BuildkitHost = app.buildkitHost
+	app.buildkitdSettings.BuildkitAddress = buildkitAddress
+	app.buildkitdSettings.DebuggerAddress = app.debuggerAddress
+	app.buildkitdSettings.UseTCP = app.useTCP
 
 	// ensure the MTU is something allowable in IPv4, cap enforced by type. Zero is autodetect.
 	if app.buildkitdSettings.CniMtu != 0 && app.buildkitdSettings.CniMtu < 68 {
@@ -964,6 +1012,74 @@ func (app *earthlyApp) before(context *cli.Context) error {
 	}
 
 	return nil
+}
+
+func (app *earthlyApp) getBuildkitAndDebuggerAddressesOriginal() (string, string, error) {
+	dbAddr := fmt.Sprintf("tcp://127.0.0.1:%v", app.debuggerPort)
+	return app.buildkitHost, dbAddr, nil
+}
+
+func (app *earthlyApp) getBuildkitAndDebuggerAddressesForTCP(context *cli.Context) (string, string, error) {
+	if !context.IsSet("buildkit-host") {
+		app.buildkitHost = "tcp://127.0.0.1" // new default for when we are using this feature.
+	}
+
+	bkURL, err := parseAndvalidateURL(app.buildkitHost)
+	if err != nil {
+		return "", "", err
+	}
+
+	if !context.IsSet("buildkit-host") && app.cfg.Global.BuildkitURL != "" {
+		bkURL, err = parseAndvalidateURL(app.cfg.Global.BuildkitURL)
+		if err != nil {
+			return "", "", err
+		}
+	}
+	buildkitURLBase := fmt.Sprintf("%s://%s", bkURL.Scheme, bkURL.Hostname())
+
+	// there are three places this port can come from right now. In order of precedence:
+	// 1 - existing buildkit host setting
+	// 2 - config
+	// 3 - cli option / env
+
+	bkPort := app.buildkitPort // CLI
+
+	// Config
+	if !context.IsSet("buildkit-port") && app.cfg.Global.BuildkitPort != config.DefaultBuildkitPort {
+		bkPort = app.cfg.Global.BuildkitPort
+	}
+
+	// Existing
+	if context.IsSet(("buildkit-host")) && bkURL.Port() != "" {
+		bkPort, err = strconv.Atoi(bkURL.Port())
+		if err != nil {
+			return "", "", errors.Wrap(err, "invalid buildkit port")
+		}
+	}
+
+	app.buildkitPort = bkPort
+
+	if !context.IsSet("debugger-port") && app.cfg.Global.DebuggerPort != config.DefaultDebuggerPort {
+		app.debuggerPort = app.cfg.Global.DebuggerPort
+	}
+
+	buildkitAddress := fmt.Sprintf("%s:%v", buildkitURLBase, app.buildkitPort)
+	debuggerAddress := fmt.Sprintf("%s:%v", buildkitURLBase, app.debuggerPort)
+
+	return buildkitAddress, debuggerAddress, nil
+}
+
+func parseAndvalidateURL(addr string) (*url.URL, error) {
+	parsed, err := url.Parse(addr)
+	if err != nil {
+		return nil, errors.Errorf("%s is not a valid URL", addr)
+	}
+
+	if parsed.Scheme != "tcp" {
+		return nil, errors.Errorf("%s is not a valid scheme. Only tcp is allowed at this time.", parsed.Scheme)
+	}
+
+	return parsed, nil
 }
 
 func (app *earthlyApp) warnIfEarth() {
@@ -1030,6 +1146,12 @@ func (app *earthlyApp) processDeprecatedCommandOptions(context *cli.Context, cfg
 		app.console.Warnf("Warning: the --buildkit-cache-size-mb command flag is deprecated and is now configured in the ~/.earthly/config.yml file under the buildkit_cache_size setting; see https://docs.earthly.dev/earthly-config for reference.\n")
 	} else {
 		app.buildkitdSettings.CacheSizeMb = cfg.Global.BuildkitCacheSizeMb
+	}
+
+	if context.IsSet("buildkit-host") && app.useTCP {
+		if bkURL, err := parseAndvalidateURL(app.buildkitHost); err == nil && bkURL.Port() != "" {
+			app.console.Warnf("Warning: specifying the port using the --buildkit-host setting is deprecated. Set it in ~/.earthly/config.yml under the global buildkit_port setting.\n")
+		}
 	}
 
 	return nil
@@ -2447,7 +2569,7 @@ func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []st
 	cleanCollection := cleanup.NewCollection()
 	defer cleanCollection.Close()
 
-	go terminal.ConnectTerm(c.Context, fmt.Sprintf("127.0.0.1:%d", app.buildkitdSettings.DebuggerPort))
+	go terminal.ConnectTerm(c.Context, app.debuggerAddress)
 
 	dotEnvVars := variables.NewScope()
 	for k, v := range dotEnvMap {

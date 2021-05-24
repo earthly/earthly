@@ -13,6 +13,14 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+const (
+	// DefaultDebuggerPort is the default user-facing port for the debugger
+	DefaultDebuggerPort = 8373
+
+	// DefaultBuildkitPort is the default user-facing port for buildkitd
+	DefaultBuildkitPort = 8372
+)
+
 var (
 	// ErrInvalidTransport occurs when a URL transport type is invalid
 	ErrInvalidTransport = errors.Errorf("invalid transport")
@@ -26,7 +34,9 @@ type GlobalConfig struct {
 	DisableAnalytics         bool     `yaml:"disable_analytics"          help:"Controls Earthly telemetry."`
 	BuildkitCacheSizeMb      int      `yaml:"cache_size_mb"              help:"Size of the buildkit cache in Megabytes."`
 	BuildkitImage            string   `yaml:"buildkit_image"             help:"Choose a specific image for your buildkitd."`
-	DebuggerPort             int      `yaml:"debugger_port"              help:"What port should the debugger (and other interactive sessions) use to communicate."`
+	BuildkitURL              string   `yaml:"buildkit_url"               help:"The address of your buildkit, remote or local. Port is ignored in favor of buildkit_port and debugger_port when using the experimental TCP connection."`
+	BuildkitPort             int      `yaml:"buildkit_port"              help:"What port should earthly use to communicate. Relative to the buildkit host, honored when using the experimental TCP connection."`
+	DebuggerPort             int      `yaml:"debugger_port"              help:"What port should the debugger (and other interactive sessions) use to communicate. Relative to the buildkit host, , honored when using the experimental TCP connection."`
 	BuildkitRestartTimeoutS  int      `yaml:"buildkit_restart_timeout_s" help:"How long to wait for buildkit to (re)start, in seconds."`
 	BuildkitAdditionalArgs   []string `yaml:"buildkit_additional_args"   help:"Additional args to pass to buildkit when it starts. Useful for custom/self-signed certs, or user namespace complications."`
 	BuildkitAdditionalConfig string   `yaml:"buildkit_additional_config" help:"Additional config to use when starting the buildkit container; like using custom/self-signed certificates."`
@@ -63,7 +73,8 @@ func ParseConfigFile(yamlData []byte) (*Config, error) {
 	config := Config{
 		Global: GlobalConfig{
 			BuildkitCacheSizeMb:     0,
-			DebuggerPort:            8373,
+			BuildkitPort:            DefaultBuildkitPort,
+			DebuggerPort:            DefaultDebuggerPort,
 			BuildkitRestartTimeoutS: 60,
 			BuildkitAdditionalArgs:  []string{},
 		},
