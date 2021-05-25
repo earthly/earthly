@@ -31,7 +31,7 @@ deps:
 code:
     FROM +deps
     # Use BUILDKIT_CODE to point go.mod to a buildkit dir being actively developed.
-    # e.g. --BUILDKIT_CODE=../buildkit+code
+    # --BUILDKIT_CODE=../buildkit+code
     ARG BUILDKIT_CODE
     IF [ "$BUILDKIT_CODE" != "" ]
         COPY --dir "$BUILDKIT_CODE" /buildkit
