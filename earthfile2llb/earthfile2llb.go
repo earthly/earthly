@@ -102,7 +102,7 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt) (m
 
 	ftrs, err := features.GetFeatures(bc.Earthfile.Version)
 	if err != nil {
-		return nil, errors.Wrapf(err, "resolve build context for target %s", target.String())
+		return nil, errors.Wrapf(err, "resolve feature set for version %v for target %s", bc.Earthfile.Version.Args, target.String())
 	}
 
 	if ftrs.ReferencedSaveOnly {
