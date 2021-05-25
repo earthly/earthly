@@ -2,6 +2,8 @@ package features
 
 import (
 	"fmt"
+	"reflect"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -17,6 +19,42 @@ type Features struct {
 	// DoSaves flags the feature to only save artifacts under directly referenced targets
 	// of those referenced by BUILDs
 	ReferencedSaveOnly bool `long:"referenced-save-only" description:"only save artifacts that are directly referenced"`
+
+	Major int
+	Minor int
+}
+
+// Version returns the current version
+func (f *Features) Version() string {
+	return fmt.Sprintf("%d.%d", f.Major, f.Minor)
+}
+
+// String returns a string representation of the version and set flags
+func (f *Features) String() string {
+	if f == nil {
+		return "<nil>"
+	}
+
+	v := reflect.ValueOf(*f)
+	typeOf := v.Type()
+
+	flags := []string{}
+	for i := 0; i < typeOf.NumField(); i++ {
+		tag := typeOf.Field(i).Tag
+		if flagName, ok := tag.Lookup("long"); ok {
+			ifaceVal := v.Field(i).Interface()
+			if boolVal, ok := ifaceVal.(bool); ok && boolVal {
+				flags = append(flags, fmt.Sprintf("--%v", flagName))
+			}
+		}
+	}
+	sort.Strings(flags)
+	args := []string{"VERSION"}
+	if len(flags) > 0 {
+		args = append(args, strings.Join(flags, " "))
+	}
+	args = append(args, fmt.Sprintf("%d.%d", f.Major, f.Minor))
+	return strings.Join(args, " ")
 }
 
 var errUnexpectedArgs = fmt.Errorf("unexpected VERSION arguments; should be VERSION [flags] <major-version>.<minor-version>")
@@ -46,18 +84,14 @@ func GetFeatures(version *spec.Version) (*Features, error) {
 	if len(majorAndMinor) != 2 {
 		return nil, errUnexpectedArgs
 	}
-	major, err := strconv.Atoi(majorAndMinor[0])
+	ftrs.Major, err = strconv.Atoi(majorAndMinor[0])
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to parse major version %q", majorAndMinor[0])
 	}
-	minor, err := strconv.Atoi(majorAndMinor[1])
+	ftrs.Minor, err = strconv.Atoi(majorAndMinor[1])
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to parse minor version %q", majorAndMinor[1])
 	}
-
-	// TODO depending on versions here, flip on/off features.
-	_ = major
-	_ = minor
 
 	return &ftrs, nil
 }
