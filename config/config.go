@@ -16,6 +16,9 @@ import (
 const (
 	// DefaultDebuggerPort is the default user-facing port for the debugger
 	DefaultDebuggerPort = 8373
+
+	// DefaultBuildkitScheme is the default scheme earthly uses to connect to its buildkitd. tcp or docker-container.
+	DefaultBuildkitScheme = "docker-container"
 )
 
 var (
@@ -72,6 +75,7 @@ func ParseConfigFile(yamlData []byte) (*Config, error) {
 		Global: GlobalConfig{
 			BuildkitCacheSizeMb:     0,
 			DebuggerPort:            DefaultDebuggerPort,
+			BuildkitScheme:          DefaultBuildkitScheme,
 			BuildkitRestartTimeoutS: 60,
 			BuildkitAdditionalArgs:  []string{},
 		},
