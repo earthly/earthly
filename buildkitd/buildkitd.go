@@ -38,6 +38,8 @@ var (
 
 // DockerAddress is the address at which the daemon is available.
 var DockerAddress = fmt.Sprintf("docker-container://%s", ContainerName)
+
+// TCPAddress is the address at which the daemon s available when using TCP.
 var TCPAddress = "tcp://127.0.0.1:8372"
 
 // TODO: Implement all this properly with the docker client.
@@ -686,7 +688,7 @@ func getCacheSize(ctx context.Context) (int, error) {
 }
 
 func isLocal(addr string) bool {
-	// We consider it local when the address matches one of the ones we allow in our generated GRPC certificates
+	// We consider it local when the address matches one of the ones we allow in our (future) generated GRPC certificates
 	parsed, err := url.Parse(addr)
 	if err != nil {
 		return false
