@@ -1,0 +1,7 @@
+VERSION \
+    # don't count this as the continued line
+    0.5
+
+FROM alpine:3.13
+test:
+    RUN echo "pass"

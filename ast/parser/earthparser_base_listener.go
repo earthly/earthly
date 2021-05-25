@@ -81,6 +81,12 @@ func (s *BaseEarthParserListener) EnterCommandStmt(ctx *CommandStmtContext) {}
 // ExitCommandStmt is called when production commandStmt is exited.
 func (s *BaseEarthParserListener) ExitCommandStmt(ctx *CommandStmtContext) {}
 
+// EnterVersion is called when production version is entered.
+func (s *BaseEarthParserListener) EnterVersion(ctx *VersionContext) {}
+
+// ExitVersion is called when production version is exited.
+func (s *BaseEarthParserListener) ExitVersion(ctx *VersionContext) {}
+
 // EnterWithStmt is called when production withStmt is entered.
 func (s *BaseEarthParserListener) EnterWithStmt(ctx *WithStmtContext) {}
 
