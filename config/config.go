@@ -16,9 +16,6 @@ import (
 const (
 	// DefaultDebuggerPort is the default user-facing port for the debugger
 	DefaultDebuggerPort = 8373
-
-	// DefaultBuildkitPort is the default user-facing port for buildkitd
-	DefaultBuildkitPort = 8372
 )
 
 var (
@@ -34,16 +31,17 @@ type GlobalConfig struct {
 	DisableAnalytics         bool     `yaml:"disable_analytics"          help:"Controls Earthly telemetry."`
 	BuildkitCacheSizeMb      int      `yaml:"cache_size_mb"              help:"Size of the buildkit cache in Megabytes."`
 	BuildkitImage            string   `yaml:"buildkit_image"             help:"Choose a specific image for your buildkitd."`
-	BuildkitURL              string   `yaml:"buildkit_url"               help:"The address of your buildkit, remote or local. Port is ignored in favor of buildkit_port and debugger_port when using the experimental TCP connection."`
-	BuildkitPort             int      `yaml:"buildkit_port"              help:"What port should earthly use to communicate. Relative to the buildkit host, honored when using the experimental TCP connection."`
-	DebuggerPort             int      `yaml:"debugger_port"              help:"What port should the debugger (and other interactive sessions) use to communicate. Relative to the buildkit host, , honored when using the experimental TCP connection."`
 	BuildkitRestartTimeoutS  int      `yaml:"buildkit_restart_timeout_s" help:"How long to wait for buildkit to (re)start, in seconds."`
 	BuildkitAdditionalArgs   []string `yaml:"buildkit_additional_args"   help:"Additional args to pass to buildkit when it starts. Useful for custom/self-signed certs, or user namespace complications."`
 	BuildkitAdditionalConfig string   `yaml:"buildkit_additional_config" help:"Additional config to use when starting the buildkit container; like using custom/self-signed certificates."`
 	CniMtu                   uint16   `yaml:"cni_mtu"                    help:"Override auto-detection of the default interface MTU, for all containers within buildkit"`
+	BuildkitScheme           string   `yaml:"buildkit_transport"         help:"Change how Earthly communicates with its buildkit daemon. Valid options are: docker-container, tcp. TCP is experimental."`
+	BuildkitHost             string   `yaml:"buildkit_host"              help:"The address of your buildkit, remote or local."`
+	DebuggerHost             string   `yaml:"debugger_host"              help:"The address of your debugger, remote or local."`
 
 	// Obsolete.
-	CachePath string `yaml:"cache_path"`
+	CachePath    string `yaml:"cache_path"    help:" *Depricated* The path to keep Earthly's cache."`
+	DebuggerPort int    `yaml:"debugger_port" help:" *Depricated* What port should the debugger (and other interactive sessions) use to communicate."`
 }
 
 // GitConfig contains git-specific config values
@@ -73,7 +71,6 @@ func ParseConfigFile(yamlData []byte) (*Config, error) {
 	config := Config{
 		Global: GlobalConfig{
 			BuildkitCacheSizeMb:     0,
-			BuildkitPort:            DefaultBuildkitPort,
 			DebuggerPort:            DefaultDebuggerPort,
 			BuildkitRestartTimeoutS: 60,
 			BuildkitAdditionalArgs:  []string{},

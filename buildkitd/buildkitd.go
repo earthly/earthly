@@ -38,7 +38,7 @@ var (
 
 // DockerAddress is the address at which the daemon is available.
 var DockerAddress = fmt.Sprintf("docker-container://%s", ContainerName)
-var TCPAddress = "tcp://127.0.0.1"
+var TCPAddress = "tcp://127.0.0.1:8372"
 
 // TODO: Implement all this properly with the docker client.
 
@@ -271,8 +271,15 @@ func Start(ctx context.Context, console conslogging.ConsoleLogger, image string,
 		//       if needed.
 
 		// These are controlled by us and should have been validated already
-		bkURL, _ := url.Parse(settings.BuildkitAddress)
-		dbURL, _ := url.Parse(settings.DebuggerAddress)
+		bkURL, err := url.Parse(settings.BuildkitAddress)
+		if err != nil {
+			panic("Buildkit address was not a URL when attempting to start buildkit")
+		}
+
+		dbURL, err := url.Parse(settings.DebuggerAddress)
+		if err != nil {
+			panic("Debugger address was not a URL when attempting to start buildkit")
+		}
 
 		args = append(args, "-p", fmt.Sprintf("127.0.0.1:%s:8373", dbURL.Port()))
 

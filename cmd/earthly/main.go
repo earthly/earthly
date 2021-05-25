@@ -136,10 +136,8 @@ type cliFlags struct {
 	configDryRun              bool
 	strict                    bool
 	conversionParllelism      int
-	buildkitPort              int
+	debuggerHost              string
 	debuggerPort              int
-	debuggerAddress           string
-	useTCP                    bool
 }
 
 var (
@@ -422,12 +420,11 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 			Usage:       wrap("The URL to use for connecting to a buildkit host. ", "If empty, earthly will attempt to start a buildkitd instance via docker run"),
 			Destination: &app.buildkitHost,
 		},
-		&cli.IntFlag{
-			Name:        "buildkit-port",
-			Value:       config.DefaultBuildkitPort,
-			EnvVars:     []string{"EARTHLY_BUILDKIT_PORT"},
-			Usage:       wrap("The port to use for connecting to a buildkit host. ", "Used in combination with buildkit-host to produce the URL to dial."),
-			Destination: &app.buildkitPort,
+		&cli.StringFlag{
+			Name:        "debugger-host",
+			EnvVars:     []string{"EARTHLY_DEBUGGER_HOST"},
+			Usage:       wrap("The URL to use for connecting to a debugger host. ", "If empty, earthly use the default debugger port, combined with the desired buildkit host."),
+			Destination: &app.debuggerHost,
 			Hidden:      true,
 		},
 		&cli.IntFlag{
@@ -524,12 +521,6 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 			EnvVars:     []string{"EARTHLY_CONVERSION_PARALLELISM"},
 			Usage:       "Set the conversion parallelism, which speeds up the use of IF, WITH DOCKER --load, FROM DOCKERFILE and others. A value of 0 disables the feature *experimental*",
 			Destination: &app.conversionParllelism,
-		},
-		&cli.BoolFlag{
-			Name:        "use-tcp",
-			EnvVars:     []string{"EARTHLY_USE_TCP"},
-			Usage:       "Changes all communication with Buildkit to be TCP. Requires Buildkit restart. *experimental*",
-			Destination: &app.useTCP,
 		},
 	}
 
@@ -964,28 +955,31 @@ func (app *earthlyApp) before(context *cli.Context) error {
 		bkAddr string
 		dbAddr string
 	)
-	if app.useTCP {
+	switch app.cfg.Global.BuildkitScheme {
+	case "tcp":
 		bkAddr, dbAddr, err = app.getBuildkitAndDebuggerAddressesForTCP(context)
 		if err != nil {
 			return err
 		}
-	} else {
+	case "docker-container":
 		bkAddr, dbAddr, err = app.getBuildkitAndDebuggerAddressesOriginal()
 		if err != nil {
 			return err
 		}
+	default:
+		return fmt.Errorf("%s is not a valid buildkit scheme", app.cfg.Global.BuildkitScheme)
 	}
 
 	buildkitAddress := bkAddr
-	app.debuggerAddress = dbAddr
+	app.debuggerHost = dbAddr
 
 	app.buildkitdSettings.AdditionalArgs = app.cfg.Global.BuildkitAdditionalArgs
 	app.buildkitdSettings.AdditionalConfig = app.cfg.Global.BuildkitAdditionalConfig
 	app.buildkitdSettings.Timeout = time.Duration(app.cfg.Global.BuildkitRestartTimeoutS) * time.Second
 	app.buildkitdSettings.Debug = app.debug
 	app.buildkitdSettings.BuildkitAddress = buildkitAddress
-	app.buildkitdSettings.DebuggerAddress = app.debuggerAddress
-	app.buildkitdSettings.UseTCP = app.useTCP
+	app.buildkitdSettings.DebuggerAddress = app.debuggerHost
+	app.buildkitdSettings.UseTCP = app.cfg.Global.BuildkitScheme == "tcp"
 
 	// ensure the MTU is something allowable in IPv4, cap enforced by type. Zero is autodetect.
 	if app.buildkitdSettings.CniMtu != 0 && app.buildkitdSettings.CniMtu < 68 {
@@ -1021,7 +1015,11 @@ func (app *earthlyApp) getBuildkitAndDebuggerAddressesOriginal() (string, string
 
 func (app *earthlyApp) getBuildkitAndDebuggerAddressesForTCP(context *cli.Context) (string, string, error) {
 	if !context.IsSet("buildkit-host") {
-		app.buildkitHost = "tcp://127.0.0.1" // new default for when we are using this feature.
+		if app.cfg.Global.BuildkitHost != "" {
+			app.buildkitHost = app.cfg.Global.BuildkitHost
+		} else {
+			app.buildkitHost = buildkitd.TCPAddress
+		}
 	}
 
 	bkURL, err := parseAndvalidateURL(app.buildkitHost)
@@ -1029,44 +1027,28 @@ func (app *earthlyApp) getBuildkitAndDebuggerAddressesForTCP(context *cli.Contex
 		return "", "", err
 	}
 
-	if !context.IsSet("buildkit-host") && app.cfg.Global.BuildkitURL != "" {
-		bkURL, err = parseAndvalidateURL(app.cfg.Global.BuildkitURL)
-		if err != nil {
-			return "", "", err
-		}
-	}
-	buildkitURLBase := fmt.Sprintf("%s://%s", bkURL.Scheme, bkURL.Hostname())
-
-	// there are three places this port can come from right now. In order of precedence:
-	// 1 - existing buildkit host setting
-	// 2 - config
-	// 3 - cli option / env
-
-	bkPort := app.buildkitPort // CLI
-
-	// Config
-	if !context.IsSet("buildkit-port") && app.cfg.Global.BuildkitPort != config.DefaultBuildkitPort {
-		bkPort = app.cfg.Global.BuildkitPort
-	}
-
-	// Existing
-	if context.IsSet(("buildkit-host")) && bkURL.Port() != "" {
-		bkPort, err = strconv.Atoi(bkURL.Port())
-		if err != nil {
-			return "", "", errors.Wrap(err, "invalid buildkit port")
+	if !context.IsSet("debugger-host") {
+		if app.cfg.Global.DebuggerHost != "" {
+			app.debuggerHost = app.cfg.Global.DebuggerHost
+		} else {
+			app.debuggerHost = fmt.Sprintf("tcp://%s:%v", bkURL.Hostname(), config.DefaultDebuggerPort)
 		}
 	}
 
-	app.buildkitPort = bkPort
-
-	if !context.IsSet("debugger-port") && app.cfg.Global.DebuggerPort != config.DefaultDebuggerPort {
-		app.debuggerPort = app.cfg.Global.DebuggerPort
+	dbURL, err := parseAndvalidateURL(app.debuggerHost)
+	if err != nil {
+		return "", "", err
 	}
 
-	buildkitAddress := fmt.Sprintf("%s:%v", buildkitURLBase, app.buildkitPort)
-	debuggerAddress := fmt.Sprintf("%s:%v", buildkitURLBase, app.debuggerPort)
+	if bkURL.Hostname() != dbURL.Hostname() {
+		return "", "", errors.New("Debugger and Buildkit hosts differ")
+	}
 
-	return buildkitAddress, debuggerAddress, nil
+	if bkURL.Port() == dbURL.Port() {
+		return "", "", errors.New("Debugger and Buildkit ports are the same")
+	}
+
+	return app.buildkitHost, app.debuggerHost, nil
 }
 
 func parseAndvalidateURL(addr string) (*url.URL, error) {
@@ -1077,6 +1059,10 @@ func parseAndvalidateURL(addr string) (*url.URL, error) {
 
 	if parsed.Scheme != "tcp" {
 		return nil, errors.Errorf("%s is not a valid scheme. Only tcp is allowed at this time.", parsed.Scheme)
+	}
+
+	if parsed.Port() == "" {
+		return nil, errors.Errorf("%s does not contain a port number.", addr)
 	}
 
 	return parsed, nil
@@ -1148,10 +1134,8 @@ func (app *earthlyApp) processDeprecatedCommandOptions(context *cli.Context, cfg
 		app.buildkitdSettings.CacheSizeMb = cfg.Global.BuildkitCacheSizeMb
 	}
 
-	if context.IsSet("buildkit-host") && app.useTCP {
-		if bkURL, err := parseAndvalidateURL(app.buildkitHost); err == nil && bkURL.Port() != "" {
-			app.console.Warnf("Warning: specifying the port using the --buildkit-host setting is deprecated. Set it in ~/.earthly/config.yml under the global buildkit_port setting.\n")
-		}
+	if context.IsSet("debugger-port") && app.cfg.Global.BuildkitScheme == "tcp" {
+		app.console.Warnf("Warning: specifying the port using the --buildkit-host setting is deprecated. Set it in ~/.earthly/config.yml under the global buildkit_port setting.\n")
 	}
 
 	return nil
@@ -2569,7 +2553,7 @@ func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []st
 	cleanCollection := cleanup.NewCollection()
 	defer cleanCollection.Close()
 
-	go terminal.ConnectTerm(c.Context, app.debuggerAddress)
+	go terminal.ConnectTerm(c.Context, app.debuggerHost)
 
 	dotEnvVars := variables.NewScope()
 	for k, v := range dotEnvMap {
