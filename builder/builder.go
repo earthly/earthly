@@ -59,6 +59,7 @@ type Opt struct {
 	DisableNoOutputUpdates bool
 	ParallelConversion     bool
 	Parallelism            *semaphore.Weighted
+	LocalRegistryAddr      string
 }
 
 // BuildOpt is a collection of build options.
@@ -159,6 +160,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 	depIndex := 0
 	imageIndex := 0
 	dirIndex := 0
+	localImages := make(map[string]string) // local reg pull name -> final name
 	bf := func(childCtx context.Context, gwClient gwclient.Client) (*gwclient.Result, error) {
 		var err error
 		if !b.builtMain {
@@ -250,6 +252,15 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 					refPrefix := fmt.Sprintf("ref/%s", refKey)
 					imageIndex++
 
+					localRegPullID := fmt.Sprintf("sess-%s/sp:img%d", gwClient.BuildOpts().SessionID, imageIndex)
+					localImages[localRegPullID] = saveImage.DockerTag
+					if shouldExport {
+						if b.opt.LocalRegistryAddr != "" {
+							res.AddMeta(fmt.Sprintf("%s/export-image-local-registry", refPrefix), []byte(localRegPullID))
+						} else {
+							res.AddMeta(fmt.Sprintf("%s/export-image", refPrefix), []byte("true"))
+						}
+					}
 					res.AddMeta(fmt.Sprintf("%s/image.name", refPrefix), []byte(saveImage.DockerTag))
 					if shouldPush {
 						res.AddMeta(fmt.Sprintf("%s/export-image-push", refPrefix), []byte("true"))
@@ -258,9 +269,6 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 						}
 					}
 					res.AddMeta(fmt.Sprintf("%s/%s", refPrefix, exptypes.ExporterImageConfigKey), config)
-					if shouldExport {
-						res.AddMeta(fmt.Sprintf("%s/export-image", refPrefix), []byte("true"))
-					}
 					res.AddMeta(fmt.Sprintf("%s/image-index", refPrefix), []byte(fmt.Sprintf("%d", imageIndex)))
 					res.AddRef(refKey, ref)
 				} else {
@@ -298,9 +306,15 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 						if err != nil {
 							return nil, err
 						}
+						localRegPullID := fmt.Sprintf("sess-%s/mp:img%d", gwClient.BuildOpts().SessionID, imageIndex)
+						localImages[localRegPullID] = saveImage.DockerTag
+						if b.opt.LocalRegistryAddr != "" {
+							res.AddMeta(fmt.Sprintf("%s/export-image-local-registry", refPrefix), []byte(localRegPullID))
+						} else {
+							res.AddMeta(fmt.Sprintf("%s/export-image", refPrefix), []byte("true"))
+						}
 						res.AddMeta(fmt.Sprintf("%s/image.name", refPrefix), []byte(platformImgName))
 						res.AddMeta(fmt.Sprintf("%s/%s", refPrefix, exptypes.ExporterImageConfigKey), config)
-						res.AddMeta(fmt.Sprintf("%s/export-image", refPrefix), []byte("true"))
 						res.AddMeta(fmt.Sprintf("%s/image-index", refPrefix), []byte(fmt.Sprintf("%d", imageIndex)))
 						res.AddRef(refKey, ref)
 						manifestLists[saveImage.DockerTag] = append(
@@ -393,7 +407,22 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 		}
 		return outDir, nil
 	}
-	err := b.s.buildMainMulti(ctx, bf, onImage, onArtifact, onFinalArtifact, "main")
+	onPull := func(childCtx context.Context, imagesToPull []string) error {
+		sp.printCurrentSuccess()
+		if b.opt.LocalRegistryAddr == "" {
+			return nil
+		}
+		pullMap := make(map[string]string)
+		for _, imgToPull := range imagesToPull {
+			finalName, ok := localImages[imgToPull]
+			if !ok {
+				return errors.Errorf("unrecognized image to pull %s", imgToPull)
+			}
+			pullMap[imgToPull] = finalName
+		}
+		return dockerPullLocalImages(childCtx, b.opt.LocalRegistryAddr, pullMap)
+	}
+	err := b.s.buildMainMulti(ctx, bf, onImage, onArtifact, onFinalArtifact, onPull, "main")
 	if err != nil {
 		return nil, errors.Wrapf(err, "build main")
 	}
@@ -417,7 +446,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 			}
 		}
 		if hasRunPush {
-			err = b.s.buildMainMulti(ctx, bf, onImage, onArtifact, onFinalArtifact, "--push")
+			err = b.s.buildMainMulti(ctx, bf, onImage, onArtifact, onFinalArtifact, onPull, "--push")
 			if err != nil {
 				return nil, errors.Wrapf(err, "build push")
 			}

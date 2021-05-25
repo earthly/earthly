@@ -1,6 +1,7 @@
 
 buildkitd:
-    ARG BUILDKIT_BASE_IMAGE=github.com/earthly/buildkit:c1749dff2545b0202fc15f33eaa3278b1aa8803e+build
+    # @#
+    ARG BUILDKIT_BASE_IMAGE=../../buildkit+build
     FROM $BUILDKIT_BASE_IMAGE
     RUN echo "@edge-community http://dl-cdn.alpinelinux.org/alpine/edge/community" >> /etc/apk/repositories
     RUN apk add --update --no-cache \

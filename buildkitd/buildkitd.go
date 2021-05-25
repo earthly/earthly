@@ -250,6 +250,7 @@ func Start(ctx context.Context, console conslogging.ConsoleLogger, image string,
 	args := []string{
 		"run",
 		"-d",
+		"-p", "127.0.0.1:1234:1234", // @#
 		"-v", fmt.Sprintf("%s:/tmp/earthly:rw", VolumeName),
 		"-e", fmt.Sprintf("BUILDKIT_DEBUG=%t", settings.Debug),
 		"-e", fmt.Sprintf("EARTHLY_ADDITIONAL_BUILDKIT_CONFIG=%s", settings.AdditionalConfig),

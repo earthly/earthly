@@ -2505,6 +2505,7 @@ func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []st
 		DisableNoOutputUpdates: app.interactiveDebugging,
 		ParallelConversion:     (app.conversionParllelism != 0),
 		Parallelism:            parallelism,
+		LocalRegistryAddr:      "127.0.0.1:1234", // @#
 	}
 	b, err := builder.NewBuilder(c.Context, builderOpts)
 	if err != nil {
