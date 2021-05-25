@@ -33,6 +33,10 @@ test-multi-line-with-args2:
 test-multi-line-with-newline:
     DO tests+RUN_EARTHLY --earthfile=multi-line-with-empty-newline.earth --target=+test
 
+test-version-only:
+    DO tests+RUN_EARTHLY --earthfile=version-only.earth --target=+test
+    RUN test "$(cat Earthfile | wc -l)" = "0"
+
 test-all:
     BUILD +test-single-line
     BUILD +test-single-line-with-args
@@ -44,3 +48,4 @@ test-all:
     BUILD +test-multi-line-with-args
     BUILD +test-multi-line-with-args2
     BUILD +test-multi-line-with-newline
+    BUILD +test-version-only
