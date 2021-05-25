@@ -78,7 +78,7 @@ func NewClient(ctx context.Context, console conslogging.ConsoleLogger, image str
 // ResetCache restarts the buildkitd daemon with the reset command.
 func ResetCache(ctx context.Context, console conslogging.ConsoleLogger, image string, settings Settings, opts ...client.ClientOpt) error {
 	// Prune by resetting container.
-	if settings.BuildkitAddress != "" {
+	if !isLocal(settings.BuildkitAddress) {
 		return errors.New("cannot reset cache of a provided buildkit-host setting")
 	}
 
