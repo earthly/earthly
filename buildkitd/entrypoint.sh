@@ -79,6 +79,14 @@ if [ "$CACHE_SIZE_MB" -gt "0" ]; then
     CACHE_SETTINGS="$(envsubst </etc/buildkitd.cache.template)"
 fi
 export CACHE_SETTINGS
+
+# Set up TCP feature flag
+TCP_TRANSPORT=
+if [ "$BUILDKIT_TCP_TRANSPORT_ENABLED" = "true" ]; then
+    TCP_TRANSPORT="$(cat /etc/buildkitd.tcp.template)"
+fi
+export TCP_TRANSPORT
+
 envsubst </etc/buildkitd.toml.template >/etc/buildkitd.toml
 echo "BUILDKIT_ROOT_DIR=$BUILDKIT_ROOT_DIR"
 echo "CACHE_SIZE_MB=$CACHE_SIZE_MB"
