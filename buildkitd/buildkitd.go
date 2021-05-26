@@ -44,35 +44,35 @@ var TCPAddress = "tcp://127.0.0.1:8372"
 
 // TODO: Implement all this properly with the docker client.
 
-// NewClient returns a new buildkitd client.
-func NewClient(ctx context.Context, console conslogging.ConsoleLogger, image string, settings Settings, opts ...client.ClientOpt) (*client.Client, error) {
+// NewClient returns a new buildkitd client, together with a boolean specifying whether the buildkit is local.
+func NewClient(ctx context.Context, console conslogging.ConsoleLogger, image string, settings Settings, opts ...client.ClientOpt) (*client.Client, bool, error) {
 	if !isLocal(settings.BuildkitAddress) {
 		err := waitForConnection(ctx, settings.BuildkitAddress, settings.Timeout, opts...)
 		if err != nil {
-			return nil, errors.Wrap(err, "connect provided buildkit")
+			return nil, false, errors.Wrap(err, "connect provided buildkit")
 		}
 
 		bkClient, err := client.New(ctx, settings.BuildkitAddress, opts...)
 		if err != nil {
-			return nil, errors.Wrap(err, "start provided buildkit")
+			return nil, false, errors.Wrap(err, "start provided buildkit")
 		}
 
-		return bkClient, nil
+		return bkClient, false, nil
 	}
 
 	if !isDockerAvailable(ctx) {
 		console.WithPrefix("buildkitd").Printf("Is docker installed and running? Are you part of the docker group?\n")
-		return nil, errors.New("docker not available")
+		return nil, false, errors.New("docker not available")
 	}
 	address, err := MaybeStart(ctx, console, image, settings, opts...)
 	if err != nil {
-		return nil, errors.Wrap(err, "maybe start buildkitd")
+		return nil, false, errors.Wrap(err, "maybe start buildkitd")
 	}
 	bkClient, err := client.New(ctx, address, opts...)
 	if err != nil {
-		return nil, errors.Wrap(err, "new buildkit client")
+		return nil, false, errors.Wrap(err, "new buildkit client")
 	}
-	return bkClient, nil
+	return bkClient, true, nil
 }
 
 // ResetCache restarts the buildkitd daemon with the reset command.
@@ -255,7 +255,6 @@ func Start(ctx context.Context, console conslogging.ConsoleLogger, image string,
 	args := []string{
 		"run",
 		"-d",
-		"-p", "127.0.0.1:1234:1234", // @#
 		"-v", fmt.Sprintf("%s:/tmp/earthly:rw", VolumeName),
 		"-e", fmt.Sprintf("BUILDKIT_DEBUG=%t", settings.Debug),
 		"-e", fmt.Sprintf("EARTHLY_ADDITIONAL_BUILDKIT_CONFIG=%s", settings.AdditionalConfig),
@@ -278,16 +277,23 @@ func Start(ctx context.Context, console conslogging.ConsoleLogger, image string,
 		if err != nil {
 			panic("Buildkit address was not a URL when attempting to start buildkit")
 		}
+		if settings.UseTCP {
+			args = append(args, "-p", fmt.Sprintf("127.0.0.1:%s:8372", bkURL.Port()))
+		}
 
 		dbURL, err := url.Parse(settings.DebuggerAddress)
 		if err != nil {
 			panic("Debugger address was not a URL when attempting to start buildkit")
 		}
-
 		args = append(args, "-p", fmt.Sprintf("127.0.0.1:%s:8373", dbURL.Port()))
 
-		if settings.UseTCP {
-			args = append(args, "-p", fmt.Sprintf("127.0.0.1:%s:8372", bkURL.Port()))
+		if settings.LocalRegistryAddress != "" {
+			lrURL, err := url.Parse(settings.LocalRegistryAddress)
+			if err != nil {
+				panic("Local registry address was not a URL when attempting to start buildkit")
+			}
+			args = append(args, "-p", fmt.Sprintf("127.0.0.1:%s:8374", lrURL.Port()))
+			args = append(args, "-e", "BUILDKIT_LOCAL_REGISTRY_LISTEN_PORT=8374")
 		}
 	}
 

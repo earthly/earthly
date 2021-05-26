@@ -14,8 +14,11 @@ import (
 )
 
 const (
-	// DefaultDebuggerPort is the default user-facing port for the debugger
+	// DefaultDebuggerPort is the default user-facing port for the debugger.
 	DefaultDebuggerPort = 8373
+
+	// DefaultLocalRegistryPort is the default user-facing port for the local registry used for exports.
+	DefaultLocalRegistryPort = 8374
 
 	// DefaultBuildkitScheme is the default scheme earthly uses to connect to its buildkitd. tcp or docker-container.
 	DefaultBuildkitScheme = "docker-container"
@@ -40,7 +43,8 @@ type GlobalConfig struct {
 	CniMtu                   uint16   `yaml:"cni_mtu"                    help:"Override auto-detection of the default interface MTU, for all containers within buildkit"`
 	BuildkitScheme           string   `yaml:"buildkit_transport"         help:"Change how Earthly communicates with its buildkit daemon. Valid options are: docker-container, tcp. TCP is experimental."`
 	BuildkitHost             string   `yaml:"buildkit_host"              help:"The URL of your buildkit, remote or local."`
-	DebuggerHost             string   `yaml:"debugger_host"              help:"The URL of your debugger, remote or local."`
+	DebuggerHost             string   `yaml:"debugger_host"              help:"The URL of the Earthly debugger, remote or local."`
+	LocalRegistryHost        string   `yaml:"local_registry_host"        help:"The URL of the local registry used for image exports to Docker."`
 
 	// Obsolete.
 	CachePath    string `yaml:"cache_path"    help:" *Deprecated* The path to keep Earthly's cache."`
@@ -73,8 +77,9 @@ func ParseConfigFile(yamlData []byte) (*Config, error) {
 	// pre-populate defaults
 	config := Config{
 		Global: GlobalConfig{
-			BuildkitCacheSizeMb:     0,
-			DebuggerPort:            DefaultDebuggerPort,
+			BuildkitCacheSizeMb: 0,
+			DebuggerPort:        DefaultDebuggerPort,
+			// LocalRegistryHost:       fmt.Sprintf("tcp://127.0.0.1:%d", DefaultLocalRegistryPort), // TODO: Uncomment when feature is ready.
 			BuildkitScheme:          DefaultBuildkitScheme,
 			BuildkitRestartTimeoutS: 60,
 			BuildkitAdditionalArgs:  []string{},

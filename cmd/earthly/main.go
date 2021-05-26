@@ -945,15 +945,16 @@ func (app *earthlyApp) before(context *cli.Context) error {
 	var (
 		bkAddr string
 		dbAddr string
+		lrAddr string
 	)
 	switch app.cfg.Global.BuildkitScheme {
 	case "tcp":
-		bkAddr, dbAddr, err = app.getBuildkitAndDebuggerAddressesForTCP(context)
+		bkAddr, dbAddr, lrAddr, err = app.getAddressesForTCP(context)
 		if err != nil {
 			return err
 		}
 	case "docker-container":
-		bkAddr, dbAddr, err = app.getBuildkitAndDebuggerAddressesOriginal()
+		bkAddr, dbAddr, lrAddr, err = app.getAddressesOriginal()
 		if err != nil {
 			return err
 		}
@@ -970,6 +971,7 @@ func (app *earthlyApp) before(context *cli.Context) error {
 	app.buildkitdSettings.Debug = app.debug
 	app.buildkitdSettings.BuildkitAddress = buildkitAddress
 	app.buildkitdSettings.DebuggerAddress = app.debuggerHost
+	app.buildkitdSettings.LocalRegistryAddress = lrAddr
 	app.buildkitdSettings.UseTCP = app.cfg.Global.BuildkitScheme == "tcp"
 
 	// ensure the MTU is something allowable in IPv4, cap enforced by type. Zero is autodetect.
@@ -999,12 +1001,12 @@ func (app *earthlyApp) before(context *cli.Context) error {
 	return nil
 }
 
-func (app *earthlyApp) getBuildkitAndDebuggerAddressesOriginal() (string, string, error) {
+func (app *earthlyApp) getAddressesOriginal() (string, string, string, error) {
 	dbAddr := fmt.Sprintf("tcp://127.0.0.1:%v", app.cfg.Global.DebuggerPort)
-	return app.buildkitHost, dbAddr, nil
+	return app.buildkitHost, dbAddr, app.cfg.Global.LocalRegistryHost, nil
 }
 
-func (app *earthlyApp) getBuildkitAndDebuggerAddressesForTCP(context *cli.Context) (string, string, error) {
+func (app *earthlyApp) getAddressesForTCP(context *cli.Context) (string, string, string, error) {
 	if !context.IsSet("buildkit-host") {
 		if app.cfg.Global.BuildkitHost != "" {
 			app.buildkitHost = app.cfg.Global.BuildkitHost
@@ -1015,7 +1017,7 @@ func (app *earthlyApp) getBuildkitAndDebuggerAddressesForTCP(context *cli.Contex
 
 	bkURL, err := parseAndvalidateURL(app.buildkitHost)
 	if err != nil {
-		return "", "", err
+		return "", "", "", err
 	}
 
 	if !context.IsSet("debugger-host") {
@@ -1028,18 +1030,26 @@ func (app *earthlyApp) getBuildkitAndDebuggerAddressesForTCP(context *cli.Contex
 
 	dbURL, err := parseAndvalidateURL(app.debuggerHost)
 	if err != nil {
-		return "", "", err
+		return "", "", "", err
+	}
+
+	lrURL, err := parseAndvalidateURL(app.cfg.Global.LocalRegistryHost)
+	if err != nil {
+		return "", "", "", err
 	}
 
 	if bkURL.Hostname() != dbURL.Hostname() {
 		app.console.Warnf("Buildkit and Debugger URLs are pointed at different hosts (%s vs. %s)", bkURL.Hostname(), dbURL.Hostname())
 	}
-
-	if bkURL.Hostname() == dbURL.Hostname() && bkURL.Port() == dbURL.Port() {
-		return "", "", errors.New("Debugger and Buildkit ports are the same")
+	if bkURL.Hostname() != lrURL.Hostname() {
+		app.console.Warnf("Buildkit and Local Registry URLs are pointed at different hosts (%s vs. %s)", bkURL.Hostname(), lrURL.Hostname())
 	}
 
-	return app.buildkitHost, app.debuggerHost, nil
+	if bkURL.Hostname() == dbURL.Hostname() && bkURL.Port() == dbURL.Port() {
+		return "", "", "", errors.New("Debugger and Buildkit ports are the same")
+	}
+
+	return app.buildkitHost, app.debuggerHost, app.cfg.Global.LocalRegistryHost, nil
 }
 
 func parseAndvalidateURL(addr string) (*url.URL, error) {
@@ -1507,7 +1517,7 @@ func (app *earthlyApp) actionBootstrap(c *cli.Context) error {
 
 	if !app.bootstrapNoBuildkit {
 		// Bootstrap buildkit - pulls image and starts daemon.
-		bkClient, err := buildkitd.NewClient(c.Context, app.console, app.buildkitdImage, app.buildkitdSettings)
+		bkClient, _, err := buildkitd.NewClient(c.Context, app.console, app.buildkitdImage, app.buildkitdSettings)
 		if err != nil {
 			return errors.Wrap(err, "bootstrap new buildkitd client")
 		}
@@ -2248,7 +2258,7 @@ func (app *earthlyApp) actionPrune(c *cli.Context) error {
 	}
 
 	// Prune via API.
-	bkClient, err := buildkitd.NewClient(c.Context, app.console, app.buildkitdImage, app.buildkitdSettings)
+	bkClient, _, err := buildkitd.NewClient(c.Context, app.console, app.buildkitdImage, app.buildkitdSettings)
 	if err != nil {
 		return errors.Wrap(err, "prune new buildkitd client")
 	}
@@ -2447,7 +2457,7 @@ func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []st
 			return errors.Wrapf(err, "parse target name %s", targetName)
 		}
 	}
-	bkClient, err := buildkitd.NewClient(c.Context, app.console, app.buildkitdImage, app.buildkitdSettings)
+	bkClient, isLocal, err := buildkitd.NewClient(c.Context, app.console, app.buildkitdImage, app.buildkitdSettings)
 	if err != nil {
 		return errors.Wrap(err, "build new buildkitd client")
 	}
@@ -2579,6 +2589,14 @@ func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []st
 	if app.conversionParllelism != 0 {
 		parallelism = semaphore.NewWeighted(int64(app.conversionParllelism))
 	}
+	localRegistryAddr := ""
+	if isLocal && app.cfg.Global.LocalRegistryHost != "" {
+		lrURL, err := url.Parse(app.cfg.Global.LocalRegistryHost)
+		if err != nil {
+			return errors.Wrapf(err, "parse local registry host %s", app.cfg.Global.LocalRegistryHost)
+		}
+		localRegistryAddr = lrURL.Host
+	}
 	builderOpts := builder.Opt{
 		BkClient:               bkClient,
 		Console:                app.console,
@@ -2602,7 +2620,7 @@ func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []st
 		DisableNoOutputUpdates: app.interactiveDebugging,
 		ParallelConversion:     (app.conversionParllelism != 0),
 		Parallelism:            parallelism,
-		LocalRegistryAddr:      "127.0.0.1:1234", // @#
+		LocalRegistryAddr:      localRegistryAddr,
 	}
 	b, err := builder.NewBuilder(c.Context, builderOpts)
 	if err != nil {
