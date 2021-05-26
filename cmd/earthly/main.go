@@ -1044,7 +1044,7 @@ func (app *earthlyApp) getBuildkitAndDebuggerAddressesForTCP(context *cli.Contex
 		app.console.Warnf("Buildkit and Debugger URLs are pointed at different hosts (%s vs. %s)", bkURL.Hostname(), dbURL.Hostname())
 	}
 
-	if bkURL.Port() == dbURL.Port() {
+	if bkURL.Hostname() == dbURL.Hostname() && bkURL.Port() == dbURL.Port() {
 		return "", "", errors.New("Debugger and Buildkit ports are the same")
 	}
 
