@@ -79,15 +79,13 @@ func loadDockerManifest(ctx context.Context, console conslogging.ConsoleLogger, 
 	return nil
 }
 
-func loadDockerTar(ctx context.Context, r io.ReadCloser) error {
-	// TODO: This is a gross hack - should use proper docker client.
+func loadDockerTar(ctx context.Context, r io.ReadCloser, console conslogging.ConsoleLogger) error {
 	cmd := exec.CommandContext(ctx, "docker", "load")
 	cmd.Stdin = r
-	cmd.Stdout = os.Stderr // Preserve desired output on stdout, all logs to stderr
-	cmd.Stderr = os.Stderr
-	err := cmd.Run()
+	output, err := cmd.CombinedOutput()
 	if err != nil {
-		return errors.Wrap(err, "docker load")
+		console.Warnf("%+v output:\n%s\n", cmd.Args, string(output))
+		return errors.Wrapf(err, "docker load")
 	}
 	return nil
 }

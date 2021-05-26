@@ -372,7 +372,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 		pipeR, pipeW := io.Pipe()
 		eg.Go(func() error {
 			defer pipeR.Close()
-			err := loadDockerTar(childCtx, pipeR)
+			err := loadDockerTar(childCtx, pipeR, b.opt.Console)
 			if err != nil {
 				return errors.Wrapf(err, "load docker tar")
 			}
