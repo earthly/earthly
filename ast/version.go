@@ -72,6 +72,7 @@ outer:
 			}
 
 			if strings.HasPrefix(f, "#") {
+				foundComment = true
 				continue
 			}
 
