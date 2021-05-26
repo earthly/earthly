@@ -51,13 +51,13 @@ EOF
 "$earthly" secrets set /user/earthly_integration_tests/my_test_file "secret-value"
 "$earthly" secrets get /user/earthly_integration_tests/my_test_file | perl -pe 'BEGIN {$status=1} END {exit $status} $status=0 if /secret-value/;'
 
-echo === test 1 ===
+echo "=== test 1 ==="
 # test RUN --mount can reference a secret from the command line
 "$earthly" --no-cache --secret my_secret=secret-value /tmp/earthtest+test-local-secret
 
-echo === test 2 ===
+echo "=== test 2 ==="
 # test RUN --mount can reference a secret from the server that is only specified in the Earthfile
 "$earthly" --no-cache /tmp/earthtest+test-server-secret
 
-echo === All tests have passed ===
+echo "=== All tests have passed ==="
 
