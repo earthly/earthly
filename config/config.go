@@ -43,7 +43,7 @@ type GlobalConfig struct {
 	DebuggerHost             string   `yaml:"debugger_host"              help:"The address of your debugger, remote or local."`
 
 	// Obsolete.
-	CachePath    string `yaml:"cache_path"    help:" *Depricated* The path to keep Earthly's cache."`
+	CachePath    string `yaml:"cache_path"    help:" *Deprecated* The path to keep Earthly's cache."`
 	DebuggerPort int    `yaml:"debugger_port" help:" *Depricated* What port should the debugger (and other interactive sessions) use to communicate."`
 }
 
