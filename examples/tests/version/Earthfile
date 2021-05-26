@@ -9,6 +9,9 @@ test-single-line:
 test-single-line-with-args:
     DO tests+RUN_EARTHLY --earthfile=single-line-with-args.earth --target=+test
 
+test-single-line-with-comment:
+    DO tests+RUN_EARTHLY --earthfile=single-line-with-comment.earth --target=+test
+
 test-multi-line:
     DO tests+RUN_EARTHLY --earthfile=multi-line.earth --target=+test
 
@@ -51,6 +54,7 @@ test-whitespace-then-version:
 test-all:
     BUILD +test-single-line
     BUILD +test-single-line-with-args
+    BUILD +test-single-line-with-comment
     BUILD +test-multi-line
     BUILD +test-multi-line-with-comment
     BUILD +test-multi-line-with-comment2
