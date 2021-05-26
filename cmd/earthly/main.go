@@ -1456,34 +1456,35 @@ func symlinkEarthlyToEarth() error {
 
 func (app *earthlyApp) actionBootstrap(c *cli.Context) error {
 	app.commandName = "bootstrap"
+	defer cliutil.EnsurePermissions()
 
 	var err error
 	console := app.console.WithPrefix("bootstrap")
 
-	if app.bootstrapWithAutocomplete {
-		switch app.homebrewSource {
-		case "bash":
-			compEntry, err := bashCompleteEntry()
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "Warning: failed to enable bash-completion: %s\n", err)
-				return nil // zsh-completion isn't available, silently fail.
-			}
-			fmt.Print(compEntry)
-			return nil
-		case "zsh":
-			compEntry, err := zshCompleteEntry()
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "Warning: failed to bootstrap zsh-completion: %s\n", err)
-				return nil // zsh-completion isn't available, silently fail.
-			}
-			fmt.Print(compEntry)
-			return nil
-		case "":
-			break
-		default:
-			return errors.Errorf("unhandled source %q", app.homebrewSource)
+	switch app.homebrewSource {
+	case "bash":
+		compEntry, err := bashCompleteEntry()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Warning: failed to enable bash-completion: %s\n", err)
+			return nil // zsh-completion isn't available, silently fail.
 		}
+		fmt.Print(compEntry)
+		return nil
+	case "zsh":
+		compEntry, err := zshCompleteEntry()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Warning: failed to bootstrap zsh-completion: %s\n", err)
+			return nil // zsh-completion isn't available, silently fail.
+		}
+		fmt.Print(compEntry)
+		return nil
+	case "":
+		break
+	default:
+		return errors.Errorf("unhandled source %q", app.homebrewSource)
+	}
 
+	if app.bootstrapWithAutocomplete {
 		// Because this requires sudo, it should warn and not fail the rest of it.
 		err = app.insertBashCompleteEntry()
 		if err != nil {
@@ -1512,11 +1513,6 @@ func (app *earthlyApp) actionBootstrap(c *cli.Context) error {
 			return errors.Wrap(err, "bootstrap new buildkitd client")
 		}
 		defer bkClient.Close()
-	}
-
-	err = cliutil.EnsurePermissions()
-	if err != nil {
-		return errors.Wrap(err, "configure earthly directory permissions")
 	}
 
 	console.Printf("Bootstrapping successful.\n")
