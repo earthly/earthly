@@ -306,8 +306,12 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 						if err != nil {
 							return nil, err
 						}
-						localRegPullID := fmt.Sprintf("sess-%s/mp:img%d", gwClient.BuildOpts().SessionID, imageIndex)
-						localImages[localRegPullID] = saveImage.DockerTag
+						localRegPullID, err := platformSpecificImageName(
+							fmt.Sprintf("sess-%s/mp:img%d", gwClient.BuildOpts().SessionID, imageIndex), platform)
+						if err != nil {
+							return nil, err
+						}
+						localImages[localRegPullID] = platformImgName
 						if b.opt.LocalRegistryAddr != "" {
 							res.AddMeta(fmt.Sprintf("%s/export-image-local-registry", refPrefix), []byte(localRegPullID))
 						} else {

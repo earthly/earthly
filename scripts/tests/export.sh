@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -eu
+set -xeu
 
 earthly=${earthly:=earthly}
 earthly=$(realpath "$earthly")
@@ -67,3 +67,68 @@ EOF
 "$earthly" +test3
 
 docker run --rm earthly-export-test-3:test cat /data | grep "hello my world"
+
+
+# Test 4: export multiplatform image
+echo ==== Running test 4 ====
+rm -rf /tmp/earthly-export-test-4
+docker rmi earthly-export-test-4:test || true
+docker rmi earthly-export-test-4:test_linux_amd64 || true
+docker rmi earthly-export-test-4:test_linux_arm64 || true
+docker rmi earthly-export-test-4:test_linux_arm_v7 || true
+
+mkdir /tmp/earthly-export-test-4
+cd /tmp/earthly-export-test-4
+cat >> Earthfile <<EOF
+multi4:
+    BUILD --platform=linux/amd64 --platform=linux/arm64 --platform=linux/arm/v7 +test4
+
+test4:
+    FROM busybox:latest
+    RUN echo "hello my world" > /data
+    RUN uname -m >> /data
+    SAVE IMAGE earthly-export-test-4:test
+EOF
+
+"$earthly" prune --reset
+"$earthly" +multi4
+
+docker run --rm earthly-export-test-4:test cat /data | grep "hello my world"
+docker run --rm earthly-export-test-4:test cat /data | grep "$(uname -m)"
+docker run --rm earthly-export-test-4:test_linux_amd64 cat /data | grep "hello my world"
+docker run --rm earthly-export-test-4:test_linux_amd64 cat /data | grep "x86_64"
+docker run --rm earthly-export-test-4:test_linux_arm64 cat /data | grep "hello my world"
+docker run --rm earthly-export-test-4:test_linux_arm64 cat /data | grep "aarch64"
+docker run --rm earthly-export-test-4:test_linux_arm_v7 cat /data | grep "hello my world"
+docker run --rm earthly-export-test-4:test_linux_arm_v7 cat /data | grep "armv7l"
+
+
+# Test 5: export multiple images
+echo ==== Running test 5 ====
+rm -rf /tmp/earthly-export-test-5
+docker rmi earthly-export-test-5:test-img1 || true
+docker rmi earthly-export-test-5:test-img2 || true
+
+mkdir /tmp/earthly-export-test-5
+cd /tmp/earthly-export-test-5
+cat >> Earthfile <<EOF
+all5:
+    BUILD +test5-img1
+    BUILD +test5-img2
+
+test5-img1:
+    FROM busybox:latest
+    RUN echo "hello my world 1" > /data
+    SAVE IMAGE earthly-export-test-5:test-img1
+
+test5-img2:
+    FROM busybox:latest
+    RUN echo "hello my world 2" > /data
+    SAVE IMAGE earthly-export-test-5:test-img2
+EOF
+
+"$earthly" prune --reset
+"$earthly" +all5
+
+docker run --rm earthly-export-test-5:test-img1 cat /data | grep "hello my world 1"
+docker run --rm earthly-export-test-5:test-img2 cat /data | grep "hello my world 2"

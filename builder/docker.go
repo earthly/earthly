@@ -95,8 +95,10 @@ func loadDockerTar(ctx context.Context, r io.ReadCloser) error {
 func dockerPullLocalImages(ctx context.Context, localRegistryAddr string, pullMap map[string]string) error {
 	eg, ctx := errgroup.WithContext(ctx)
 	for pullName, finalName := range pullMap {
+		pn := pullName
+		fn := finalName
 		eg.Go(func() error {
-			return dockerPullLocalImage(ctx, localRegistryAddr, pullName, finalName)
+			return dockerPullLocalImage(ctx, localRegistryAddr, pn, fn)
 		})
 	}
 	return eg.Wait()
