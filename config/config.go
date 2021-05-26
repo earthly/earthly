@@ -39,8 +39,8 @@ type GlobalConfig struct {
 	BuildkitAdditionalConfig string   `yaml:"buildkit_additional_config" help:"Additional config to use when starting the buildkit container; like using custom/self-signed certificates."`
 	CniMtu                   uint16   `yaml:"cni_mtu"                    help:"Override auto-detection of the default interface MTU, for all containers within buildkit"`
 	BuildkitScheme           string   `yaml:"buildkit_transport"         help:"Change how Earthly communicates with its buildkit daemon. Valid options are: docker-container, tcp. TCP is experimental."`
-	BuildkitHost             string   `yaml:"buildkit_host"              help:"The address of your buildkit, remote or local."`
-	DebuggerHost             string   `yaml:"debugger_host"              help:"The address of your debugger, remote or local."`
+	BuildkitHost             string   `yaml:"buildkit_host"              help:"The URL of your buildkit, remote or local."`
+	DebuggerHost             string   `yaml:"debugger_host"              help:"The URL of your debugger, remote or local."`
 
 	// Obsolete.
 	CachePath    string `yaml:"cache_path"    help:" *Deprecated* The path to keep Earthly's cache."`

@@ -137,7 +137,6 @@ type cliFlags struct {
 	strict                    bool
 	conversionParllelism      int
 	debuggerHost              string
-	debuggerPort              int
 }
 
 var (
@@ -423,16 +422,8 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 		&cli.StringFlag{
 			Name:        "debugger-host",
 			EnvVars:     []string{"EARTHLY_DEBUGGER_HOST"},
-			Usage:       wrap("The URL to use for connecting to a debugger host. ", "If empty, earthly use the default debugger port, combined with the desired buildkit host."),
+			Usage:       wrap("The URL to use for connecting to a debugger host. ", "If empty, earthly uses the default debugger port, combined with the desired buildkit host."),
 			Destination: &app.debuggerHost,
-			Hidden:      true,
-		},
-		&cli.IntFlag{
-			Name:        "debugger-port",
-			Value:       config.DefaultDebuggerPort,
-			EnvVars:     []string{"EARTHLY_DEBUG_PORT"},
-			Usage:       wrap("The port to use for connecting to a debugging host. ", "Used in combination with buildkit-host to produce the URL to dial."),
-			Destination: &app.debuggerPort,
 			Hidden:      true,
 		},
 		&cli.IntFlag{
@@ -1009,7 +1000,7 @@ func (app *earthlyApp) before(context *cli.Context) error {
 }
 
 func (app *earthlyApp) getBuildkitAndDebuggerAddressesOriginal() (string, string, error) {
-	dbAddr := fmt.Sprintf("tcp://127.0.0.1:%v", app.debuggerPort)
+	dbAddr := fmt.Sprintf("tcp://127.0.0.1:%v", app.cfg.Global.DebuggerPort)
 	return app.buildkitHost, dbAddr, nil
 }
 
