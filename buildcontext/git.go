@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/earthly/earthly/analytics"
 	"github.com/earthly/earthly/cleanup"
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/util/gitutil"
@@ -132,6 +133,7 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, gwClient gwclient.
 	if err != nil {
 		return nil, "", "", errors.Wrap(err, "failed to get url for cloning")
 	}
+	analytics.Count("gitResolver.resolveEarthProject", analytics.RepoHashFromCloneURL(gitURL))
 
 	// Check the cache first.
 	cacheKey := fmt.Sprintf("%s#%s", gitURL, gitRef)

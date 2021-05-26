@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"path/filepath"
 
+	"github.com/earthly/earthly/analytics"
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/util/gitutil"
 	"github.com/earthly/earthly/util/llbutil"
@@ -20,6 +21,7 @@ type localResolver struct {
 }
 
 func (lr *localResolver) resolveLocal(ctx context.Context, ref domain.Reference) (*Data, error) {
+	analytics.Count("localResolver.resolveLocal", "local-reference")
 	if ref.IsRemote() {
 		return nil, errors.Errorf("unexpected remote target %s", ref.String())
 	}

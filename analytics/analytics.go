@@ -113,7 +113,11 @@ func isGitDir() bool {
 }
 
 func getRepoHash() string {
-	repo := getRepo()
+	return RepoHashFromCloneURL(getRepo())
+}
+
+// RepoHashFromCloneURL returns the repoHash of a ref
+func RepoHashFromCloneURL(repo string) string {
 	if repo == "unknown" || repo == "" {
 		return repo
 	}
@@ -164,16 +168,17 @@ func isTerminal() bool {
 
 // EarthlyAnalytics contains analytical data which is sent to api.earthly.dev
 type EarthlyAnalytics struct {
-	Key              string  `json:"key"`
-	InstallID        string  `json:"install_id"`
-	Version          string  `json:"version"`
-	Platform         string  `json:"platform"`
-	GitSHA           string  `json:"git_sha"`
-	ExitCode         int     `json:"exit_code"`
-	CI               string  `json:"ci_name"`
-	RepoHash         string  `json:"repo_hash"`
-	ExecutionSeconds float64 `json:"execution_seconds"`
-	Terminal         bool    `json:"terminal"`
+	Key              string                    `json:"key"`
+	InstallID        string                    `json:"install_id"`
+	Version          string                    `json:"version"`
+	Platform         string                    `json:"platform"`
+	GitSHA           string                    `json:"git_sha"`
+	ExitCode         int                       `json:"exit_code"`
+	CI               string                    `json:"ci_name"`
+	RepoHash         string                    `json:"repo_hash"`
+	ExecutionSeconds float64                   `json:"execution_seconds"`
+	Terminal         bool                      `json:"terminal"`
+	Counts           map[string]map[string]int `json:"counts"`
 }
 
 func saveData(server string, data *EarthlyAnalytics) error {
@@ -200,6 +205,11 @@ func saveData(server string, data *EarthlyAnalytics) error {
 	}
 
 	return nil
+}
+
+// Count increases the global count of (subsystem, key) which then gets reported when CollectAnalytics is called.
+func Count(subsystem, key string) {
+	counts.Count(subsystem, key)
 }
 
 // CollectAnalytics sends analytics to api.earthly.dev
@@ -232,6 +242,10 @@ func CollectAnalytics(ctx context.Context, earthlyServer string, displayErrors b
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
+
+		countsMap, countsMapUnlock := counts.getMap()
+		defer countsMapUnlock()
+
 		err := saveData(earthlyServer, &EarthlyAnalytics{
 			Key:              key,
 			InstallID:        installID,
@@ -243,6 +257,7 @@ func CollectAnalytics(ctx context.Context, earthlyServer string, displayErrors b
 			RepoHash:         repoHash,
 			ExecutionSeconds: realtime.Seconds(),
 			Terminal:         isTerminal(),
+			Counts:           countsMap,
 		})
 		if err != nil && displayErrors {
 			fmt.Fprintf(os.Stderr, "error while sending analytics to earthly: %s\n", err.Error())
