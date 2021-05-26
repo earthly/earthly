@@ -44,7 +44,7 @@ type GlobalConfig struct {
 
 	// Obsolete.
 	CachePath    string `yaml:"cache_path"    help:" *Deprecated* The path to keep Earthly's cache."`
-	DebuggerPort int    `yaml:"debugger_port" help:" *Depricated* What port should the debugger (and other interactive sessions) use to communicate."`
+	DebuggerPort int    `yaml:"debugger_port" help:" *Deprecated* What port should the debugger (and other interactive sessions) use to communicate."`
 }
 
 // GitConfig contains git-specific config values
