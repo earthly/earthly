@@ -424,7 +424,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 			}
 			pullMap[imgToPull] = finalName
 		}
-		return dockerPullLocalImages(childCtx, b.opt.LocalRegistryAddr, pullMap)
+		return dockerPullLocalImages(childCtx, b.opt.LocalRegistryAddr, pullMap, b.opt.Console)
 	}
 	err := b.s.buildMainMulti(ctx, bf, onImage, onArtifact, onFinalArtifact, onPull, "main")
 	if err != nil {
