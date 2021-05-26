@@ -1125,8 +1125,8 @@ func (app *earthlyApp) processDeprecatedCommandOptions(context *cli.Context, cfg
 		app.buildkitdSettings.CacheSizeMb = cfg.Global.BuildkitCacheSizeMb
 	}
 
-	if context.IsSet("debugger-port") && app.cfg.Global.BuildkitScheme == "tcp" {
-		app.console.Warnf("Warning: specifying the port using the --buildkit-host setting is deprecated. Set it in ~/.earthly/config.yml under the global buildkit_port setting.\n")
+	if cfg.Global.DebuggerPort != config.DefaultDebuggerPort && cfg.Global.BuildkitScheme == "tcp" {
+		app.console.Warnf("Warning: specifying the port using the debugger-port setting is deprecated. Set it in ~/.earthly/config.yml under the global debugger_port setting.\n")
 	}
 
 	return nil
