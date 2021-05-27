@@ -918,9 +918,13 @@ func (app *earthlyApp) before(context *cli.Context) error {
 		app.console.Printf("loading config values from %q\n", app.configPath)
 	}
 
-	yamlData, err := config.ReadConfigFile(app.configPath, context.IsSet("config"))
-	if err != nil {
-		return errors.Wrapf(err, "read config")
+	var yamlData []byte
+	var err error
+	if app.configPath != "" {
+		yamlData, err = config.ReadConfigFile(app.configPath, context.IsSet("config"))
+		if err != nil {
+			return errors.Wrapf(err, "read config")
+		}
 	}
 
 	app.cfg, err = config.ParseConfigFile(yamlData)
@@ -2723,8 +2727,7 @@ func defaultConfigPath() string {
 	earthlyDir, err := cliutil.GetEarthlyDir()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error getting earthly dir: %v\n", err.Error())
-		earthlyDir = "/etc/.earthly" // A reasonable fallback.
-		// Keep going anyway.
+		return ""
 	}
 
 	oldConfig := filepath.Join(earthlyDir, "config.yaml")
