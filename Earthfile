@@ -32,7 +32,7 @@ code:
     FROM +deps
     COPY --platform=linux/amd64 ./ast/parser+parser/*.go ./ast/parser/
     COPY --dir analytics autocomplete buildcontext builder cleanup cmd config conslogging debugger dockertar \
-        docker2earthly domain logging secretsclient states util variables ./
+        docker2earthly domain features logging secretsclient states util variables ./
     COPY --dir buildkitd/buildkitd.go buildkitd/settings.go buildkitd/
     COPY --dir earthfile2llb/*.go earthfile2llb/
     COPY --dir ast/antlrhandler ast/spec ast/*.go ast/
@@ -48,8 +48,20 @@ update-buildkit:
 
 
 lint-scripts-base:
-    FROM --platform=linux/amd64 alpine:3.13
-    RUN apk add --update --no-cache shellcheck
+    FROM alpine:3.13
+
+    ARG TARGETARCH
+
+    IF [ $TARGETARCH == "arm64" ]
+        RUN echo "Downloading, and manually installing shellcheck for ARM" && \
+            wget https://github.com/koalaman/shellcheck/releases/download/stable/shellcheck-stable.linux.aarch64.tar.xz && \
+            tar -xf shellcheck-stable.linux.aarch64.tar.xz && \
+            mv shellcheck-stable/shellcheck /usr/bin/shellcheck
+    ELSE
+        RUN echo "Installing shellcheck from Alpine repos" && \
+            apk add --update --no-cache shellcheck
+    END
+
     WORKDIR /shell_scripts
 
 lint-scripts-misc:
@@ -98,7 +110,7 @@ lint-newline-ending:
     COPY . .
     RUN set -e; \
         code=0; \
-        for f in $(find . -type f \( -iname '*.go' -o -iname 'Earthfile' -o -iname '*.earth' \) | grep -v "ast/tests/empty-targets.earth" ); do \
+        for f in $(find . -type f \( -iname '*.go' -o -iname 'Earthfile' -o -iname '*.earth' \) | grep -v "ast/tests/empty-targets.earth" | grep -v "examples/tests/version/version-only.earth" ); do \
             if [ "$(tail -c 1 $f)" != "$(printf '\n')" ]; then \
                 echo "$f does not end with a newline"; \
                 code=1; \

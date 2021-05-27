@@ -2,6 +2,7 @@ package spec
 
 // Earthfile is the AST representation of an Earthfile.
 type Earthfile struct {
+	Version        *Version        `json:"version,omitempty"`
 	BaseRecipe     Block           `json:"baseRecipe"`
 	Targets        []Target        `json:"targets,omitempty"`
 	UserCommands   []UserCommand   `json:"userCommands,omitempty"`
@@ -19,6 +20,12 @@ type Target struct {
 type UserCommand struct {
 	Name           string          `json:"name"`
 	Recipe         Block           `json:"recipe"`
+	SourceLocation *SourceLocation `json:"sourceLocation,omitempty"`
+}
+
+// Version is the AST representation of an Earthfile version definition.
+type Version struct {
+	Args           []string        `json:"args"`
 	SourceLocation *SourceLocation `json:"sourceLocation,omitempty"`
 }
 

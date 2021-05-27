@@ -38,6 +38,9 @@ type EarthParserListener interface {
 	// EnterCommandStmt is called when entering the commandStmt production.
 	EnterCommandStmt(c *CommandStmtContext)
 
+	// EnterVersion is called when entering the version production.
+	EnterVersion(c *VersionContext)
+
 	// EnterWithStmt is called when entering the withStmt production.
 	EnterWithStmt(c *WithStmtContext)
 
@@ -214,6 +217,9 @@ type EarthParserListener interface {
 
 	// ExitCommandStmt is called when exiting the commandStmt production.
 	ExitCommandStmt(c *CommandStmtContext)
+
+	// ExitVersion is called when exiting the version production.
+	ExitVersion(c *VersionContext)
 
 	// ExitWithStmt is called when exiting the withStmt production.
 	ExitWithStmt(c *WithStmtContext)

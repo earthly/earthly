@@ -21,6 +21,7 @@ buildkitd:
     COPY ./entrypoint.sh /usr/bin/entrypoint.sh
     COPY ./buildkitd.toml.template /etc/buildkitd.toml.template
     COPY ./buildkitd.cache.template /etc/buildkitd.cache.template
+    COPY ./buildkitd.tcp.template /etc/buildkitd.tcp.template
     COPY ./cni-conf.json.template /etc/cni/cni-conf.json.template
 
     # Scripts and binaries used for the builds.

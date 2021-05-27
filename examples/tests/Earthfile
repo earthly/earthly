@@ -70,6 +70,8 @@ ga:
     BUILD +import
     BUILD +infinite-recursion
     BUILD +from-dockerfile-arg
+    BUILD +cache-mount-arg
+    BUILD ./version+test-all
 
 experimental:
     BUILD ./dind-auto-install+all
@@ -163,6 +165,10 @@ remote-test:
         --mount=type=tmpfs,target=/tmp/earthly \
         -- --no-output github.com/earthly/test-privileged:main+locally && \
         ls /tmp/hostname.3d4b1831-c07e-4b2d-805e-2b8ce578bb50
+    RUN --privileged \
+        --entrypoint \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        -- --no-output github.com/earthly/test-builtin-args/subdir:main+test
 
 transitive-args-test:
     DO +RUN_EARTHLY --earthfile=transitive-args.earth --extra_args="--build-arg SOMEARG=xyz" --target=+test
@@ -276,9 +282,9 @@ fail-invalid-artifact-test:
 
 push-test:
     DO +RUN_EARTHLY --earthfile=push.earth --target=+push-test \
-        --post_command="| grep 'Use earthly --push to enable pushing'"
+        --post_command="2>&1 | grep 'Use earthly --push to enable pushing'"
     DO +RUN_EARTHLY --earthfile=push.earth --extra_args="--push" --target=+push-test \
-        --post_command="| grep 'hello world'"
+        --post_command="2>&1 | grep 'hello world'"
 
 private-image-test:
     FROM earthly/private-test:latest
@@ -431,7 +437,7 @@ save-artifact-after-push:
         --post_command="2>&1 | perl -pe 'BEGIN {\\\$status=1} END {exit \\\$status} \\\$status=0 if /not found/;'"
 
 push-build:
-    DO +RUN_EARTHLY --earthfile=push-build.earth --target=+test --extra_args="--push" --post_command="2>&1 > output"
+    DO +RUN_EARTHLY --earthfile=push-build.earth --target=+test --extra_args="--push" --post_command="> output 2>&1"
     RUN cat output
     RUN cat output | perl -pe 'BEGIN {$status=1} END {exit $status} $status=0 if /\+test \| 0\n/;'
     RUN cat output | perl -pe 'BEGIN {$status=1} END {exit $status} $status=0 if /\+run1 \| 1\n/;'
@@ -503,6 +509,23 @@ from-dockerfile-arg:
     RUN test "$(cat ./arg-value-default)" = "default"
     RUN test "$(cat ./arg-value-foo)" = "foo"
     RUN test "$(cat ./arg-value-bar)" = "bar"
+
+cache-mount-arg:
+    DO +RUN_EARTHLY --earthfile=cache-mount-arg.earth --use_tmpfs=false --target="+b-nomount --MYARG=123"
+    DO +RUN_EARTHLY --earthfile=cache-mount-arg.earth --use_tmpfs=false --target="+b-nomount --MYARG=1234" --post_command="2>output-nomount.txt"
+    RUN cat output-nomount.txt
+    RUN cat output-nomount.txt | grep '\*cached\* --> RUN echo Doing something 1'
+    RUN cat output-nomount.txt | grep '\*cached\* --> RUN echo Doing something 2'; test "$?" != 0
+    DO +RUN_EARTHLY --earthfile=cache-mount-arg.earth --use_tmpfs=false --target="+b --MYARG=abc"
+    DO +RUN_EARTHLY --earthfile=cache-mount-arg.earth --use_tmpfs=false --target="+b --MYARG=abcd" --post_command="2>output.txt"
+    RUN cat output.txt
+    RUN cat output.txt | grep '\*cached\* --> RUN echo Doing something 1'
+    RUN cat output.txt | grep '\*cached\* --> RUN echo Doing something 2'; test "$?" != 0
+    DO +RUN_EARTHLY --earthfile=cache-mount-arg.earth --use_tmpfs=false --target="+b-with-arg --MYARG=def"
+    DO +RUN_EARTHLY --earthfile=cache-mount-arg.earth --use_tmpfs=false --target="+b-with-arg --MYARG=defg" --post_command="2>output.txt"
+    RUN cat output.txt
+    RUN cat output.txt | grep '\*cached\* --> RUN echo Doing something 1'; test "$?" != 0
+    RUN cat output.txt | grep '\*cached\* --> RUN echo Doing something 2'; test "$?" != 0
 
 RUN_EARTHLY:
     COMMAND

@@ -1,0 +1,5 @@
+IMPORT ./subdir AS empty-earthfile-only-containing-a-version
+
+test:
+    FROM alpine:3.13
+    RUN echo "pass"

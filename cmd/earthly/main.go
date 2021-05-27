@@ -12,6 +12,7 @@ import (
 	"net"
 	"net/http"
 	_ "net/http/pprof" // enable pprof handlers on net/http listener
+	"net/url"
 	"os"
 	"os/signal"
 	"os/user"
@@ -83,57 +84,59 @@ type earthlyApp struct {
 }
 
 type cliFlags struct {
-	platformsStr           cli.StringSlice
-	buildArgs              cli.StringSlice
-	secrets                cli.StringSlice
-	secretFiles            cli.StringSlice
-	artifactMode           bool
-	imageMode              bool
-	pull                   bool
-	push                   bool
-	ci                     bool
-	noOutput               bool
-	noCache                bool
-	pruneAll               bool
-	pruneReset             bool
-	buildkitdSettings      buildkitd.Settings
-	allowPrivileged        bool
-	enableProfiler         bool
-	buildkitHost           string
-	buildkitdImage         string
-	remoteCache            string
-	maxRemoteCache         bool
-	saveInlineCache        bool
-	useInlineCache         bool
-	configPath             string
-	gitUsernameOverride    string
-	gitPasswordOverride    string
-	interactiveDebugging   bool
-	sshAuthSock            string
-	verbose                bool
-	debug                  bool
-	homebrewSource         string
-	bootstrapNoBuildkit    bool
-	email                  string
-	token                  string
-	password               string
-	disableNewLine         bool
-	secretFile             string
-	secretStdin            bool
-	apiServer              string
-	writePermission        bool
-	registrationPublicKey  string
-	dockerfilePath         string
-	earthfilePath          string
-	earthfileFinalImage    string
-	expiry                 string
-	termsConditionsPrivacy bool
-	authToken              string
-	noFakeDep              bool
-	enableSourceMap        bool
-	configDryRun           bool
-	strict                 bool
-	conversionParllelism   int
+	platformsStr              cli.StringSlice
+	buildArgs                 cli.StringSlice
+	secrets                   cli.StringSlice
+	secretFiles               cli.StringSlice
+	artifactMode              bool
+	imageMode                 bool
+	pull                      bool
+	push                      bool
+	ci                        bool
+	noOutput                  bool
+	noCache                   bool
+	pruneAll                  bool
+	pruneReset                bool
+	buildkitdSettings         buildkitd.Settings
+	allowPrivileged           bool
+	enableProfiler            bool
+	buildkitHost              string
+	buildkitdImage            string
+	remoteCache               string
+	maxRemoteCache            bool
+	saveInlineCache           bool
+	useInlineCache            bool
+	configPath                string
+	gitUsernameOverride       string
+	gitPasswordOverride       string
+	interactiveDebugging      bool
+	sshAuthSock               string
+	verbose                   bool
+	debug                     bool
+	homebrewSource            string
+	bootstrapNoBuildkit       bool
+	bootstrapWithAutocomplete bool
+	email                     string
+	token                     string
+	password                  string
+	disableNewLine            bool
+	secretFile                string
+	secretStdin               bool
+	apiServer                 string
+	writePermission           bool
+	registrationPublicKey     string
+	dockerfilePath            string
+	earthfilePath             string
+	earthfileFinalImage       string
+	expiry                    string
+	termsConditionsPrivacy    bool
+	authToken                 string
+	noFakeDep                 bool
+	enableSourceMap           bool
+	configDryRun              bool
+	strict                    bool
+	conversionParllelism      int
+	debuggerHost              string
 }
 
 var (
@@ -411,9 +414,17 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 		},
 		&cli.StringFlag{
 			Name:        "buildkit-host",
+			Value:       buildkitd.DockerAddress,
 			EnvVars:     []string{"EARTHLY_BUILDKIT_HOST"},
 			Usage:       wrap("The URL to use for connecting to a buildkit host. ", "If empty, earthly will attempt to start a buildkitd instance via docker run"),
 			Destination: &app.buildkitHost,
+		},
+		&cli.StringFlag{
+			Name:        "debugger-host",
+			EnvVars:     []string{"EARTHLY_DEBUGGER_HOST"},
+			Usage:       wrap("The URL to use for connecting to a debugger host. ", "If empty, earthly uses the default debugger port, combined with the desired buildkit host."),
+			Destination: &app.debuggerHost,
+			Hidden:      true,
 		},
 		&cli.IntFlag{
 			Name:        "buildkit-cache-size-mb",
@@ -521,6 +532,11 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 					Name:        "no-buildkit",
 					Usage:       "Do not bootstrap buildkit",
 					Destination: &app.bootstrapNoBuildkit,
+				},
+				&cli.BoolFlag{
+					Name:        "with-autocomplete",
+					Usage:       "Add earthly autocompletions",
+					Destination: &app.bootstrapWithAutocomplete,
 				},
 			},
 		},
@@ -926,12 +942,35 @@ func (app *earthlyApp) before(context *cli.Context) error {
 		app.buildkitdImage = app.cfg.Global.BuildkitImage
 	}
 
-	app.buildkitdSettings.DebuggerPort = app.cfg.Global.DebuggerPort
+	var (
+		bkAddr string
+		dbAddr string
+	)
+	switch app.cfg.Global.BuildkitScheme {
+	case "tcp":
+		bkAddr, dbAddr, err = app.getBuildkitAndDebuggerAddressesForTCP(context)
+		if err != nil {
+			return err
+		}
+	case "docker-container":
+		bkAddr, dbAddr, err = app.getBuildkitAndDebuggerAddressesOriginal()
+		if err != nil {
+			return err
+		}
+	default:
+		return fmt.Errorf("%s is not a valid buildkit scheme", app.cfg.Global.BuildkitScheme)
+	}
+
+	buildkitAddress := bkAddr
+	app.debuggerHost = dbAddr
+
 	app.buildkitdSettings.AdditionalArgs = app.cfg.Global.BuildkitAdditionalArgs
 	app.buildkitdSettings.AdditionalConfig = app.cfg.Global.BuildkitAdditionalConfig
 	app.buildkitdSettings.Timeout = time.Duration(app.cfg.Global.BuildkitRestartTimeoutS) * time.Second
 	app.buildkitdSettings.Debug = app.debug
-	app.buildkitdSettings.BuildkitHost = app.buildkitHost
+	app.buildkitdSettings.BuildkitAddress = buildkitAddress
+	app.buildkitdSettings.DebuggerAddress = app.debuggerHost
+	app.buildkitdSettings.UseTCP = app.cfg.Global.BuildkitScheme == "tcp"
 
 	// ensure the MTU is something allowable in IPv4, cap enforced by type. Zero is autodetect.
 	if app.buildkitdSettings.CniMtu != 0 && app.buildkitdSettings.CniMtu < 68 {
@@ -939,7 +978,85 @@ func (app *earthlyApp) before(context *cli.Context) error {
 	}
 	app.buildkitdSettings.CniMtu = app.cfg.Global.CniMtu
 
+	// Make a small attempt to check if we are not bootstrapped. If not, then do that before we do anything else.
+	isBootstrapCmd := false
+	for _, f := range context.Args().Slice() {
+		isBootstrapCmd = f == "bootstrap"
+
+		if isBootstrapCmd {
+			break
+		}
+	}
+
+	if !isBootstrapCmd && !cliutil.IsBootstrapped() {
+		app.bootstrapNoBuildkit = true // Docker may not be available, for instance... like our integration tests.
+		err = app.actionBootstrap(context)
+		if err != nil {
+			return errors.Wrap(err, "bootstrap unbootstrapped installation")
+		}
+	}
+
 	return nil
+}
+
+func (app *earthlyApp) getBuildkitAndDebuggerAddressesOriginal() (string, string, error) {
+	dbAddr := fmt.Sprintf("tcp://127.0.0.1:%v", app.cfg.Global.DebuggerPort)
+	return app.buildkitHost, dbAddr, nil
+}
+
+func (app *earthlyApp) getBuildkitAndDebuggerAddressesForTCP(context *cli.Context) (string, string, error) {
+	if !context.IsSet("buildkit-host") {
+		if app.cfg.Global.BuildkitHost != "" {
+			app.buildkitHost = app.cfg.Global.BuildkitHost
+		} else {
+			app.buildkitHost = buildkitd.TCPAddress
+		}
+	}
+
+	bkURL, err := parseAndvalidateURL(app.buildkitHost)
+	if err != nil {
+		return "", "", err
+	}
+
+	if !context.IsSet("debugger-host") {
+		if app.cfg.Global.DebuggerHost != "" {
+			app.debuggerHost = app.cfg.Global.DebuggerHost
+		} else {
+			app.debuggerHost = fmt.Sprintf("tcp://%s:%v", bkURL.Hostname(), config.DefaultDebuggerPort)
+		}
+	}
+
+	dbURL, err := parseAndvalidateURL(app.debuggerHost)
+	if err != nil {
+		return "", "", err
+	}
+
+	if bkURL.Hostname() != dbURL.Hostname() {
+		app.console.Warnf("Buildkit and Debugger URLs are pointed at different hosts (%s vs. %s)", bkURL.Hostname(), dbURL.Hostname())
+	}
+
+	if bkURL.Hostname() == dbURL.Hostname() && bkURL.Port() == dbURL.Port() {
+		return "", "", errors.New("Debugger and Buildkit ports are the same")
+	}
+
+	return app.buildkitHost, app.debuggerHost, nil
+}
+
+func parseAndvalidateURL(addr string) (*url.URL, error) {
+	parsed, err := url.Parse(addr)
+	if err != nil {
+		return nil, errors.Errorf("%s is not a valid URL", addr)
+	}
+
+	if parsed.Scheme != "tcp" {
+		return nil, errors.Errorf("%s is not a valid scheme. Only tcp is allowed at this time.", parsed.Scheme)
+	}
+
+	if parsed.Port() == "" {
+		return nil, errors.Errorf("%s does not contain a port number.", addr)
+	}
+
+	return parsed, nil
 }
 
 func (app *earthlyApp) warnIfEarth() {
@@ -1006,6 +1123,10 @@ func (app *earthlyApp) processDeprecatedCommandOptions(context *cli.Context, cfg
 		app.console.Warnf("Warning: the --buildkit-cache-size-mb command flag is deprecated and is now configured in the ~/.earthly/config.yml file under the buildkit_cache_size setting; see https://docs.earthly.dev/earthly-config for reference.\n")
 	} else {
 		app.buildkitdSettings.CacheSizeMb = cfg.Global.BuildkitCacheSizeMb
+	}
+
+	if cfg.Global.DebuggerPort != config.DefaultDebuggerPort && cfg.Global.BuildkitScheme == "tcp" {
+		app.console.Warnf("Warning: specifying the port using the debugger-port setting is deprecated. Set it in ~/.earthly/config.yml under the global debugger_port setting.\n")
 	}
 
 	return nil
@@ -1335,6 +1456,11 @@ func symlinkEarthlyToEarth() error {
 
 func (app *earthlyApp) actionBootstrap(c *cli.Context) error {
 	app.commandName = "bootstrap"
+	defer cliutil.EnsurePermissions()
+
+	var err error
+	console := app.console.WithPrefix("bootstrap")
+
 	switch app.homebrewSource {
 	case "bash":
 		compEntry, err := bashCompleteEntry()
@@ -1358,18 +1484,26 @@ func (app *earthlyApp) actionBootstrap(c *cli.Context) error {
 		return errors.Errorf("unhandled source %q", app.homebrewSource)
 	}
 
-	console := app.console.WithPrefix("bootstrap")
-	err := symlinkEarthlyToEarth()
+	if app.bootstrapWithAutocomplete {
+		// Because this requires sudo, it should warn and not fail the rest of it.
+		err = app.insertBashCompleteEntry()
+		if err != nil {
+			console.Warnf("Warning: %s\n", err.Error())
+			err = nil
+		}
+		err = app.insertZSHCompleteEntry()
+		if err != nil {
+			console.Warnf("Warning: %s\n", err.Error())
+			err = nil
+		}
+
+		console.Printf("You may have to restart your shell for autocomplete to get initialized (e.g. run \"exec $SHELL\")\n")
+	}
+
+	err = symlinkEarthlyToEarth()
 	if err != nil {
 		console.Warnf("Warning: %s\n", err.Error())
-	}
-	err = app.insertBashCompleteEntry()
-	if err != nil {
-		return err
-	}
-	err = app.insertZSHCompleteEntry()
-	if err != nil {
-		return err
+		err = nil
 	}
 
 	if !app.bootstrapNoBuildkit {
@@ -1381,7 +1515,7 @@ func (app *earthlyApp) actionBootstrap(c *cli.Context) error {
 		defer bkClient.Close()
 	}
 
-	console.Printf("Bootstrapping successful.\nYou may have to restart your shell for autocomplete to get initialized (e.g. run \"exec $SHELL\")\n")
+	console.Printf("Bootstrapping successful.\n")
 	return nil
 }
 
@@ -2406,7 +2540,7 @@ func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []st
 	cleanCollection := cleanup.NewCollection()
 	defer cleanCollection.Close()
 
-	go terminal.ConnectTerm(c.Context, fmt.Sprintf("127.0.0.1:%d", app.buildkitdSettings.DebuggerPort))
+	go terminal.ConnectTerm(c.Context, app.debuggerHost)
 
 	dotEnvVars := variables.NewScope()
 	for k, v := range dotEnvMap {

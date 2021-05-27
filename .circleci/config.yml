@@ -15,6 +15,9 @@ jobs:
           name: Build latest earthly
           command: earthly --use-inline-cache +for-linux
       - run:
+          name: Bootstrap
+          command: sudo ./build/linux/amd64/earthly bootstrap
+      - run:
           name: Run tests
           command: ./build/linux/amd64/earthly --ci -P +test
       - run:

@@ -56,6 +56,11 @@
 * Copy the release notes you have written before and paste them in the Earthly Community slack channel `#announcements`, together with a link to the release's GitHub page. If you have Slack markdown editing activated, you can copy the markdown version of the text.
 * Ask Adam to tweet about the release.
 
+### One-Time (clear this section when done during release)
+
+* Update the website with the documentation for bootstrap, include `--with-autocomplete` as part of the installation.
+  * On macOS, remove `sudo`; the `--with-autocomplete` will be handled by `brew`'s installation.
+
 #### Troubleshooting
 
 If the release-homebrew fails with a rejected git push, you may have to delete the remote branch by running the following under the interactive debugger:

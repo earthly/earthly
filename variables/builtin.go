@@ -18,6 +18,9 @@ func BuiltinArgs(target domain.Target, platform specs.Platform, gitMeta *gitutil
 	ret := NewScope()
 	ret.AddInactive("EARTHLY_TARGET", target.StringCanonical())
 	ret.AddInactive("EARTHLY_TARGET_PROJECT", target.ProjectCanonical())
+	targetNoTag := target
+	targetNoTag.Tag = ""
+	ret.AddInactive("EARTHLY_TARGET_PROJECT_NO_TAG", targetNoTag.ProjectCanonical())
 	ret.AddInactive("EARTHLY_TARGET_NAME", target.Target)
 	ret.AddInactive("EARTHLY_TARGET_TAG", target.Tag)
 	ret.AddInactive("EARTHLY_TARGET_TAG_DOCKER", llbutil.DockerTagSafe(target.Tag))
