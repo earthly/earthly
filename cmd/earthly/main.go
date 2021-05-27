@@ -1070,11 +1070,11 @@ func (app *earthlyApp) handleTLSCertificateSettings(context *cli.Context) {
 
 	app.buildkitdSettings.TLSCA = app.cfg.Global.TLSCA
 
-	if !context.IsSet("tlscert") && app.cfg.Global.BuildkitImage != "" {
+	if !context.IsSet("tlscert") && app.cfg.Global.ClientTLSCert != "" {
 		app.certPath = app.cfg.Global.ClientTLSCert
 	}
 
-	if !context.IsSet("tlskey") && app.cfg.Global.BuildkitImage != "" {
+	if !context.IsSet("tlskey") && app.cfg.Global.ClientTLSKey != "" {
 		app.keyPath = app.cfg.Global.ClientTLSKey
 	}
 
