@@ -918,9 +918,13 @@ func (app *earthlyApp) before(context *cli.Context) error {
 		app.console.Printf("loading config values from %q\n", app.configPath)
 	}
 
-	yamlData, err := config.ReadConfigFile(app.configPath, context.IsSet("config"))
-	if err != nil {
-		return errors.Wrapf(err, "read config")
+	var yamlData []byte
+	var err error
+	if app.configPath != "" {
+		yamlData, err = config.ReadConfigFile(app.configPath, context.IsSet("config"))
+		if err != nil {
+			return errors.Wrapf(err, "read config")
+		}
 	}
 
 	app.cfg, err = config.ParseConfigFile(yamlData)
@@ -1456,11 +1460,8 @@ func symlinkEarthlyToEarth() error {
 
 func (app *earthlyApp) actionBootstrap(c *cli.Context) error {
 	app.commandName = "bootstrap"
-	defer cliutil.EnsurePermissions()
 
 	var err error
-	console := app.console.WithPrefix("bootstrap")
-
 	switch app.homebrewSource {
 	case "bash":
 		compEntry, err := bashCompleteEntry()
@@ -1483,6 +1484,9 @@ func (app *earthlyApp) actionBootstrap(c *cli.Context) error {
 	default:
 		return errors.Errorf("unhandled source %q", app.homebrewSource)
 	}
+
+	console := app.console.WithPrefix("bootstrap")
+	defer cliutil.EnsurePermissions()
 
 	if app.bootstrapWithAutocomplete {
 		// Because this requires sudo, it should warn and not fail the rest of it.
@@ -2722,7 +2726,8 @@ func processSecrets(secrets, secretFiles []string, dotEnvMap map[string]string) 
 func defaultConfigPath() string {
 	earthlyDir, err := cliutil.GetEarthlyDir()
 	if err != nil {
-		panic(err)
+		fmt.Fprintf(os.Stderr, "Error getting earthly dir: %v\n", err.Error())
+		return ""
 	}
 
 	oldConfig := filepath.Join(earthlyDir, "config.yaml")
