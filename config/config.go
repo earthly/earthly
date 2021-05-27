@@ -20,11 +20,20 @@ const (
 	// DefaultBuildkitScheme is the default scheme earthly uses to connect to its buildkitd. tcp or docker-container.
 	DefaultBuildkitScheme = "docker-container"
 
-	DefaultCA            = "./certs/ca_cert.pem"
+	// DefaultCA is the default path to use when looking for a CA to use for TLS
+	DefaultCA = "./certs/ca_cert.pem"
+
+	// DefaultClientTLSCert is the default path to use when looking for the Earthly TLS cert
 	DefaultClientTLSCert = "./certs/earthly_cert.pem"
-	DefaultClientTLSKey  = "./certs/earthly_key.pem"
+
+	// DefaultClientTLSKey is the default path to use when looking for the Earthly TLS key
+	DefaultClientTLSKey = "./certs/earthly_key.pem"
+
+	// DefaultServerTLSCert is the default path to use when looking for the Buildkit TLS cert
 	DefaultServerTLSCert = "./certs/buildkit_cert.pem"
-	DefaultServerTLSKey  = "./certs/buildkit_key.pem"
+
+	// DefaultServerTLSKey is the default path to use when looking for the Buildkit TLS key
+	DefaultServerTLSKey = "./certs/buildkit_key.pem"
 )
 
 var (
