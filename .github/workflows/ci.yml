@@ -386,6 +386,12 @@ jobs:
       EARTHLY_INSTALL_ID: "earthly-githubactions"
     steps:
       - uses: actions/checkout@v2
+      - name: Set up QEMU
+        id: qemu
+        uses: docker/setup-qemu-action@v1
+        with:
+          image: tonistiigi/binfmt:latest
+          platforms: all
       - name: Download released earthly
         run: "sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/latest/download/earthly-linux-amd64 -O /usr/local/bin/earthly && chmod +x /usr/local/bin/earthly'"
       - name: Docker Login (non fork only)
@@ -393,6 +399,36 @@ jobs:
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: Build latest earthly using released earthly
         run: earthly --use-inline-cache +for-linux
+      - name: run export tests
+        run: env earthly=./build/linux/amd64/earthly scripts/tests/export.sh
+      - name: Buildkit logs (runs on failure)
+        run: docker logs earthly-buildkitd
+        if: ${{ failure() }}
+  
+  export-local-registry-test:
+    runs-on: ubuntu-latest
+    env:
+      FORCE_COLOR: 1
+      EARTHLY_CONVERSION_PARALLELISM: "5"
+      EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
+      EARTHLY_INSTALL_ID: "earthly-githubactions"
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up QEMU
+        id: qemu
+        uses: docker/setup-qemu-action@v1
+        with:
+          image: tonistiigi/binfmt:latest
+          platforms: all
+      - name: Download released earthly
+        run: "sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/latest/download/earthly-linux-amd64 -O /usr/local/bin/earthly && chmod +x /usr/local/bin/earthly'"
+      - name: Docker Login (non fork only)
+        run: docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password "${{ secrets.DOCKERHUB_TOKEN }}"
+        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+      - name: Build latest earthly using released earthly
+        run: earthly --use-inline-cache +for-linux
+      - name: Enable local registry exporter
+        run: "./build/linux/amd64/earthly config global.local_registry_host 'tcp://127.0.0.1:8374'"
       - name: run export tests
         run: env earthly=./build/linux/amd64/earthly scripts/tests/export.sh
       - name: Buildkit logs (runs on failure)
@@ -571,6 +607,7 @@ jobs:
       - secrets-integration
       - repo-auth-test
       - export-test
+      - export-local-registry-test
       - test-local
       - all-buildkitd
       - all-dind
