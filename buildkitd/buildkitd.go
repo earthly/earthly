@@ -761,7 +761,7 @@ func makeTLSPath(path string) (string, error) {
 }
 
 func addRequiredOpts(settings Settings, opts ...client.ClientOpt) ([]client.ClientOpt, error) {
-	if !settings.UseTCP {
+	if !settings.UseTCP || !settings.UseTLS {
 		return opts, nil
 	}
 

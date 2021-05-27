@@ -991,6 +991,7 @@ func (app *earthlyApp) before(context *cli.Context) error {
 	app.buildkitdSettings.BuildkitAddress = buildkitAddress
 	app.buildkitdSettings.DebuggerAddress = app.debuggerHost
 	app.buildkitdSettings.UseTCP = app.cfg.Global.BuildkitScheme == "tcp"
+	app.buildkitdSettings.UseTLS = app.cfg.Global.TLSEnabled
 
 	// ensure the MTU is something allowable in IPv4, cap enforced by type. Zero is autodetect.
 	if app.buildkitdSettings.CniMtu != 0 && app.buildkitdSettings.CniMtu < 68 {
@@ -1063,7 +1064,19 @@ func (app *earthlyApp) getBuildkitAndDebuggerAddressesForTCP(context *cli.Contex
 }
 
 func (app *earthlyApp) handleTLSCertificateSettings(context *cli.Context) {
+	if !app.cfg.Global.TLSEnabled {
+		return
+	}
+
 	app.buildkitdSettings.TLSCA = app.cfg.Global.TLSCA
+
+	if !context.IsSet("tlscert") && app.cfg.Global.BuildkitImage != "" {
+		app.certPath = app.cfg.Global.ClientTLSCert
+	}
+
+	if !context.IsSet("tlskey") && app.cfg.Global.BuildkitImage != "" {
+		app.keyPath = app.cfg.Global.ClientTLSKey
+	}
 
 	app.buildkitdSettings.ClientTLSCert = app.certPath
 	app.buildkitdSettings.ClientTLSKey = app.keyPath
@@ -1536,7 +1549,7 @@ func (app *earthlyApp) actionBootstrap(c *cli.Context) error {
 	}
 
 	if !app.bootstrapNoBuildkit {
-		if app.cfg.Global.BuildkitScheme == "tcp" {
+		if app.cfg.Global.BuildkitScheme == "tcp" && app.cfg.Global.TLSEnabled {
 			root, err := cliutil.GetEarthlyDir()
 			if err != nil {
 				return err

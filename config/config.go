@@ -19,6 +19,12 @@ const (
 
 	// DefaultBuildkitScheme is the default scheme earthly uses to connect to its buildkitd. tcp or docker-container.
 	DefaultBuildkitScheme = "docker-container"
+
+	DefaultCA            = "./certs/ca_cert.pem"
+	DefaultClientTLSCert = "./certs/earthly_cert.pem"
+	DefaultClientTLSKey  = "./certs/earthly_key.pem"
+	DefaultServerTLSCert = "./certs/buildkit_cert.pem"
+	DefaultServerTLSKey  = "./certs/buildkit_key.pem"
 )
 
 var (
@@ -46,6 +52,7 @@ type GlobalConfig struct {
 	ClientTLSKey             string   `yaml:"tlskey"                     help:"The path to the client key for verification. Relative paths are interpreted as relative to ~/.earthly."`
 	ServerTLSCert            string   `yaml:"buildkitd_tlscert"          help:"The path to the server cert for verification. Relative paths are interpreted as relative to ~/.earthly. Only used when Earthly manages buildkit."`
 	ServerTLSKey             string   `yaml:"buildkitd_tlskey"           help:"The path to the server key for verification. Relative paths are interpreted as relative to ~/.earthly. Only used when Earthly manages buildkit."`
+	TLSEnabled               bool     `yaml:"tls_enabled"                help:"If TLS should be used to communicate with Buildkit. Only honored when BuildkitScheme is 'tcp'."`
 
 	// Obsolete.
 	CachePath    string `yaml:"cache_path"    help:" *Deprecated* The path to keep Earthly's cache."`
@@ -70,7 +77,7 @@ type GitConfig struct {
 // Config contains user's configuration values from ~/earthly/config.yml
 type Config struct {
 	Global GlobalConfig         `yaml:"global" help:"Global configuration object. Requires YAML literal to set directly."`
-	Git    map[string]GitConfig `yaml:"git" help:"Git configuration object. Requires YAML literal to set directly."`
+	Git    map[string]GitConfig `yaml:"git"    help:"Git configuration object. Requires YAML literal to set directly."`
 }
 
 // ParseConfigFile parse config data
@@ -83,6 +90,11 @@ func ParseConfigFile(yamlData []byte) (*Config, error) {
 			BuildkitScheme:          DefaultBuildkitScheme,
 			BuildkitRestartTimeoutS: 60,
 			BuildkitAdditionalArgs:  []string{},
+			TLSCA:                   DefaultCA,
+			ClientTLSCert:           DefaultClientTLSCert,
+			ClientTLSKey:            DefaultClientTLSKey,
+			ServerTLSCert:           DefaultServerTLSCert,
+			ServerTLSKey:            DefaultServerTLSKey,
 		},
 	}
 
