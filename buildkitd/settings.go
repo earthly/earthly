@@ -20,7 +20,13 @@ type Settings struct {
 	AdditionalConfig string
 	CniMtu           uint16
 	Timeout          time.Duration `hash:"ignore"`
+	TLSCA            string
+	ClientTLSCert    string
+	ClientTLSKey     string
+	ServerTLSCert    string
+	ServerTLSKey     string
 	UseTCP           bool
+	UseTLS           bool
 }
 
 // Hash returns a secure hash of the settings.
