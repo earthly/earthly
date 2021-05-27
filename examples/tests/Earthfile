@@ -165,6 +165,10 @@ remote-test:
         --mount=type=tmpfs,target=/tmp/earthly \
         -- --no-output github.com/earthly/test-privileged:main+locally && \
         ls /tmp/hostname.3d4b1831-c07e-4b2d-805e-2b8ce578bb50
+    RUN --privileged \
+        --entrypoint \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        -- --no-output github.com/earthly/test-builtin-args/subdir:main+test
 
 transitive-args-test:
     DO +RUN_EARTHLY --earthfile=transitive-args.earth --extra_args="--build-arg SOMEARG=xyz" --target=+test

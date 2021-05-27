@@ -144,6 +144,7 @@ type BuildArgInput struct {
 var BuiltinVariables = map[string]bool{
 	"EARTHLY_TARGET":                  true,
 	"EARTHLY_TARGET_PROJECT":          true,
+	"EARTHLY_TARGET_PROJECT_NO_TAG":   true,
 	"EARTHLY_TARGET_NAME":             true,
 	"EARTHLY_TARGET_TAG":              true,
 	"EARTHLY_TARGET_TAG_DOCKER":       true,
