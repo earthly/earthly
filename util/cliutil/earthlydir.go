@@ -38,18 +38,23 @@ func makeEarthlyDir() (string, error) {
 	return earthlyDir, nil
 }
 
-// DetectHomeDir returns the home directory of the current user, an additional sudoUser
-// is returned if the user is currently running as root
-func DetectHomeDir() (homeDir string, sudoUser *user.User, err error) {
-	u, err := currentNonSudoUser()
+// DetectHomeDir returns the home directory of the current user, together with
+// the user object who owns it.
+func DetectHomeDir() (string, *user.User, error) {
+	u, isSudo, err := currentNonSudoUser()
 	if err != nil {
 		return "", nil, errors.Wrap(err, "lookup user for homedir")
+	}
+	if !isSudo {
+		homeDir, err := os.UserHomeDir()
+		if err == nil {
+			return homeDir, u, nil
+		}
 	}
 
 	if u.HomeDir == "" {
 		return "/etc", u, nil
 	}
-
 	return u.HomeDir, u, nil
 }
 
@@ -70,12 +75,12 @@ func IsBootstrapped() bool {
 
 // EnsurePermissions changes the permissions of all earthly files to be owned by the user and their group.
 func EnsurePermissions() error {
-	if earthlyDir == "" {
-		_, err := GetEarthlyDir()
+	_, err := GetEarthlyDir()
+	if err != nil {
 		return err
 	}
 
-	u, err := currentNonSudoUser()
+	u, _, err := currentNonSudoUser()
 	if err != nil {
 		return errors.Wrap(err, "get non-sudo user")
 	}
@@ -84,13 +89,17 @@ func EnsurePermissions() error {
 	return nil
 }
 
-func currentNonSudoUser() (*user.User, error) {
+func currentNonSudoUser() (*user.User, bool, error) {
 	if sudoUserName, ok := os.LookupEnv("SUDO_USER"); ok {
 		sudoUser, err := user.Lookup(sudoUserName)
 		if err == nil {
-			return sudoUser, nil
+			return sudoUser, true, nil
 		}
 	}
 
-	return user.Current()
+	u, err := user.Current()
+	if err != nil {
+		return nil, false, err
+	}
+	return u, false, nil
 }
