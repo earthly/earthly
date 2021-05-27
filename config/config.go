@@ -41,6 +41,11 @@ type GlobalConfig struct {
 	BuildkitScheme           string   `yaml:"buildkit_transport"         help:"Change how Earthly communicates with its buildkit daemon. Valid options are: docker-container, tcp. TCP is experimental."`
 	BuildkitHost             string   `yaml:"buildkit_host"              help:"The URL of your buildkit, remote or local."`
 	DebuggerHost             string   `yaml:"debugger_host"              help:"The URL of your debugger, remote or local."`
+	TLSCA                    string   `yaml:"tlsca"                      help:"The path to the CA cert for verification. Relative paths are interpreted as relative to ~/.earthly."`
+	ClientTLSCert            string   `yaml:"tlscert"                    help:"The path to the client cert for verification. Relative paths are interpreted as relative to ~/.earthly."`
+	ClientTLSKey             string   `yaml:"tlskey"                     help:"The path to the client key for verification. Relative paths are interpreted as relative to ~/.earthly."`
+	ServerTLSCert            string   `yaml:"buildkitd_tlscert"          help:"The path to the server cert for verification. Relative paths are interpreted as relative to ~/.earthly. Only used when Earthly manages buildkit."`
+	ServerTLSKey             string   `yaml:"buildkitd_tlskey"           help:"The path to the server key for verification. Relative paths are interpreted as relative to ~/.earthly. Only used when Earthly manages buildkit."`
 
 	// Obsolete.
 	CachePath    string `yaml:"cache_path"    help:" *Deprecated* The path to keep Earthly's cache."`
