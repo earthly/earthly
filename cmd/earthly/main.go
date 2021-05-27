@@ -1456,11 +1456,8 @@ func symlinkEarthlyToEarth() error {
 
 func (app *earthlyApp) actionBootstrap(c *cli.Context) error {
 	app.commandName = "bootstrap"
-	defer cliutil.EnsurePermissions()
 
 	var err error
-	console := app.console.WithPrefix("bootstrap")
-
 	switch app.homebrewSource {
 	case "bash":
 		compEntry, err := bashCompleteEntry()
@@ -1483,6 +1480,9 @@ func (app *earthlyApp) actionBootstrap(c *cli.Context) error {
 	default:
 		return errors.Errorf("unhandled source %q", app.homebrewSource)
 	}
+
+	console := app.console.WithPrefix("bootstrap")
+	defer cliutil.EnsurePermissions()
 
 	if app.bootstrapWithAutocomplete {
 		// Because this requires sudo, it should warn and not fail the rest of it.
@@ -2722,7 +2722,9 @@ func processSecrets(secrets, secretFiles []string, dotEnvMap map[string]string) 
 func defaultConfigPath() string {
 	earthlyDir, err := cliutil.GetEarthlyDir()
 	if err != nil {
-		panic(err)
+		fmt.Fprintf(os.Stderr, "Error getting earthly dir: %v\n", err.Error())
+		earthlyDir = "/etc/.earthly" // A reasonable fallback.
+		// Keep going anyway.
 	}
 
 	oldConfig := filepath.Join(earthlyDir, "config.yaml")
