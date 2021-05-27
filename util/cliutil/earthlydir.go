@@ -39,7 +39,8 @@ func makeEarthlyDir() (string, error) {
 }
 
 // DetectHomeDir returns the home directory of the current user, together with
-// the user object who owns it.
+// the user object who owns it. If SUDO_USER is detected, then that user's
+// home directory will be used instead.
 func DetectHomeDir() (string, *user.User, error) {
 	u, isSudo, err := currentNonSudoUser()
 	if err != nil {
