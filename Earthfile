@@ -31,7 +31,7 @@ deps:
 code:
     FROM +deps
     # Use BUILDKIT_PROJECT to point go.mod to a buildkit dir being actively developed.
-    # --BUILDKIT_PROJECT=../buildkit or --BUILDKIT_PROJECT=github.com/earthly/buildkit:c1749dff2545b0202fc15f33eaa3278b1aa8803e
+    # --BUILDKIT_PROJECT=../buildkit or --BUILDKIT_PROJECT=github.com/earthly/buildkit:4f1c968c3778a7140c56e3e6a755b7f2d38f2156
     ARG BUILDKIT_PROJECT
     IF [ "$BUILDKIT_PROJECT" != "" ]
         COPY --dir "$BUILDKIT_PROJECT"+code/buildkit /buildkit
