@@ -12,6 +12,7 @@ import (
 	"github.com/docker/distribution/reference"
 	"github.com/earthly/earthly/conslogging"
 	"github.com/earthly/earthly/util/llbutil"
+	"golang.org/x/sync/errgroup"
 
 	specs "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
@@ -69,7 +70,7 @@ func loadDockerManifest(ctx context.Context, console conslogging.ConsoleLogger, 
 		parentImageName, strings.Join(childImgs, "\n\t"), noteDetail)
 
 	cmd := exec.CommandContext(ctx, "docker", "tag", children[defaultChild].imageName, parentImageName)
-	cmd.Stdout = os.Stderr // Preserve desired output on stdout, all logs to stdin
+	cmd.Stdout = os.Stderr // Preserve desired output on stdout, all logs to stderr
 	cmd.Stderr = os.Stderr
 	err := cmd.Run()
 	if err != nil {
@@ -78,15 +79,48 @@ func loadDockerManifest(ctx context.Context, console conslogging.ConsoleLogger, 
 	return nil
 }
 
-func loadDockerTar(ctx context.Context, r io.ReadCloser) error {
-	// TODO: This is a gross hack - should use proper docker client.
+func loadDockerTar(ctx context.Context, r io.ReadCloser, console conslogging.ConsoleLogger) error {
 	cmd := exec.CommandContext(ctx, "docker", "load")
 	cmd.Stdin = r
-	cmd.Stdout = os.Stderr // Preserve desired output on stdout, all logs to stdin
-	cmd.Stderr = os.Stderr
-	err := cmd.Run()
+	output, err := cmd.CombinedOutput()
 	if err != nil {
-		return errors.Wrap(err, "docker load")
+		console.Warnf("%+v output:\n%s\n", cmd.Args, string(output))
+		return errors.Wrapf(err, "docker load")
+	}
+	return nil
+}
+
+func dockerPullLocalImages(ctx context.Context, localRegistryAddr string, pullMap map[string]string, console conslogging.ConsoleLogger) error {
+	eg, ctx := errgroup.WithContext(ctx)
+	for pullName, finalName := range pullMap {
+		pn := pullName
+		fn := finalName
+		eg.Go(func() error {
+			return dockerPullLocalImage(ctx, localRegistryAddr, pn, fn, console)
+		})
+	}
+	return eg.Wait()
+}
+
+func dockerPullLocalImage(ctx context.Context, localRegistryAddr string, pullName string, finalName string, console conslogging.ConsoleLogger) error {
+	fullPullName := fmt.Sprintf("%s/%s", localRegistryAddr, pullName)
+	cmd := exec.CommandContext(ctx, "docker", "pull", fullPullName)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		console.Warnf("%+v output:\n%s\n", cmd.Args, string(output))
+		return errors.Wrapf(err, "docker pull")
+	}
+	cmd = exec.CommandContext(ctx, "docker", "tag", fullPullName, finalName)
+	output, err = cmd.CombinedOutput()
+	if err != nil {
+		console.Warnf("%+v output:\n%s\n", cmd.Args, string(output))
+		return errors.Wrap(err, "docker tag after pull")
+	}
+	cmd = exec.CommandContext(ctx, "docker", "rmi", fullPullName)
+	output, err = cmd.CombinedOutput()
+	if err != nil {
+		console.Warnf("%+v output:\n%s\n", cmd.Args, string(output))
+		return errors.Wrap(err, "docker rmi after pull and retag")
 	}
 	return nil
 }

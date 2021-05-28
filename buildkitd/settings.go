@@ -11,22 +11,23 @@ import (
 
 // Settings represents the buildkitd settings used to start up the daemon with.
 type Settings struct {
-	CacheSizeMb      int
-	GitURLInsteadOf  string
-	Debug            bool
-	BuildkitAddress  string
-	DebuggerAddress  string
-	AdditionalArgs   []string
-	AdditionalConfig string
-	CniMtu           uint16
-	Timeout          time.Duration `hash:"ignore"`
-	TLSCA            string
-	ClientTLSCert    string
-	ClientTLSKey     string
-	ServerTLSCert    string
-	ServerTLSKey     string
-	UseTCP           bool
-	UseTLS           bool
+	CacheSizeMb          int
+	GitURLInsteadOf      string
+	Debug                bool
+	BuildkitAddress      string
+	DebuggerAddress      string
+	LocalRegistryAddress string
+	AdditionalArgs       []string
+	AdditionalConfig     string
+	CniMtu               uint16
+	Timeout              time.Duration `hash:"ignore"`
+	TLSCA                string
+	ClientTLSCert        string
+	ClientTLSKey         string
+	ServerTLSCert        string
+	ServerTLSKey         string
+	UseTCP               bool
+	UseTLS               bool
 }
 
 // Hash returns a secure hash of the settings.

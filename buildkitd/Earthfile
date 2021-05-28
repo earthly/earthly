@@ -1,6 +1,18 @@
 
+FROM alpine:3.13
+
 buildkitd:
-    ARG BUILDKIT_BASE_IMAGE=github.com/earthly/buildkit:c1749dff2545b0202fc15f33eaa3278b1aa8803e+build
+    ARG BUILDKIT_PROJECT
+    IF [ "$BUILDKIT_PROJECT" != "" ]
+        IF case "$BUILDKIT_PROJECT" in "../*") true;; "*") false;; esac
+            # Assuming this is coming from the main Earthly Earthfile.
+            ARG BUILDKIT_BASE_IMAGE=../$BUILDKIT_PROJECT+build
+        ELSE
+            ARG BUILDKIT_BASE_IMAGE=$BUILDKIT_PROJECT+build
+        END
+    ELSE
+        ARG BUILDKIT_BASE_IMAGE=github.com/earthly/buildkit:4f1c968c3778a7140c56e3e6a755b7f2d38f2156+build
+    END
     FROM $BUILDKIT_BASE_IMAGE
     RUN echo "@edge-community http://dl-cdn.alpinelinux.org/alpine/edge/community" >> /etc/apk/repositories
     RUN apk add --update --no-cache \

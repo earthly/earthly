@@ -30,6 +30,14 @@ deps:
 
 code:
     FROM +deps
+    # Use BUILDKIT_PROJECT to point go.mod to a buildkit dir being actively developed.
+    # --BUILDKIT_PROJECT=../buildkit or --BUILDKIT_PROJECT=github.com/earthly/buildkit:4f1c968c3778a7140c56e3e6a755b7f2d38f2156
+    ARG BUILDKIT_PROJECT
+    IF [ "$BUILDKIT_PROJECT" != "" ]
+        COPY --dir "$BUILDKIT_PROJECT"+code/buildkit /buildkit
+        RUN go mod edit -replace github.com/moby/buildkit=/buildkit
+        RUN go mod download
+    END
     COPY --platform=linux/amd64 ./ast/parser+parser/*.go ./ast/parser/
     COPY --dir analytics autocomplete buildcontext builder cleanup cmd config conslogging debugger dockertar \
         docker2earthly domain features logging secretsclient states util variables ./
@@ -250,7 +258,8 @@ earthly-all:
     SAVE ARTIFACT ./*
 
 earthly-docker:
-    FROM ./buildkitd+buildkitd
+    ARG BUILDKIT_PROJECT
+    FROM ./buildkitd+buildkitd --BUILDKIT_PROJECT="$BUILDKIT_PROJECT"
     RUN apk add --update --no-cache docker-cli
     ENV NETWORK_MODE=host
     ENV EARTHLY_IMAGE=true
@@ -277,11 +286,12 @@ earthly-integration-test-base:
 
 prerelease:
     FROM alpine:3.13
+    ARG BUILDKIT_PROJECT
     BUILD --build-arg TAG=prerelease \
         --platform=linux/amd64 \
         --platform=linux/arm/v7 \
         --platform=linux/arm64 \
-        ./buildkitd+buildkitd
+        ./buildkitd+buildkitd --BUILDKIT_PROJECT="$BUILDKIT_PROJECT"
     COPY --build-arg VERSION=prerelease +earthly-all/* ./
     SAVE IMAGE --push earthly/earthlybinaries:prerelease
 
@@ -310,31 +320,36 @@ dind-ubuntu:
     SAVE IMAGE --push --cache-from=earthly/dind:ubuntu-main earthly/dind:$DIND_UBUNTU_TAG
 
 for-own:
-    BUILD ./buildkitd+buildkitd
+    ARG BUILDKIT_PROJECT
+    BUILD ./buildkitd+buildkitd --BUILDKIT_PROJECT="$BUILDKIT_PROJECT"
     COPY +earthly/earthly ./
     SAVE ARTIFACT ./earthly
 
 for-linux:
-    BUILD --platform=linux/amd64 ./buildkitd+buildkitd
+    ARG BUILDKIT_PROJECT
+    BUILD --platform=linux/amd64 ./buildkitd+buildkitd --BUILDKIT_PROJECT="$BUILDKIT_PROJECT"
     COPY +earthly-linux-amd64/earthly ./
     SAVE ARTIFACT ./earthly
 
 for-darwin:
-    BUILD --platform=linux/amd64 ./buildkitd+buildkitd
+    ARG BUILDKIT_PROJECT
+    BUILD --platform=linux/amd64 ./buildkitd+buildkitd --BUILDKIT_PROJECT="$BUILDKIT_PROJECT"
     COPY +earthly-darwin-amd64/earthly ./
     SAVE ARTIFACT ./earthly
 
 for-darwin-m1:
-    BUILD --platform=linux/arm64 ./buildkitd+buildkitd
+    ARG BUILDKIT_PROJECT
+    BUILD --platform=linux/arm64 ./buildkitd+buildkitd --BUILDKIT_PROJECT="$BUILDKIT_PROJECT"
     COPY +earthly-darwin-arm64/earthly ./
     SAVE ARTIFACT ./earthly
 
 all-buildkitd:
+    ARG BUILDKIT_PROJECT
     BUILD \
         --platform=linux/amd64 \
         --platform=linux/arm/v7 \
         --platform=linux/arm64 \
-        ./buildkitd+buildkitd
+        ./buildkitd+buildkitd --BUILDKIT_PROJECT="$BUILDKIT_PROJECT"
 
 all-dind:
     BUILD \
