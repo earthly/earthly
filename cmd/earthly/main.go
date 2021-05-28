@@ -137,6 +137,8 @@ type cliFlags struct {
 	strict                    bool
 	conversionParllelism      int
 	debuggerHost              string
+	certPath                  string
+	keyPath                   string
 }
 
 var (
@@ -424,6 +426,22 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 			EnvVars:     []string{"EARTHLY_DEBUGGER_HOST"},
 			Usage:       wrap("The URL to use for connecting to a debugger host. ", "If empty, earthly uses the default debugger port, combined with the desired buildkit host."),
 			Destination: &app.debuggerHost,
+			Hidden:      true,
+		},
+		&cli.StringFlag{
+			Name:        "tlscert",
+			Value:       "./certs/earthly_cert.pem",
+			EnvVars:     []string{"EARTHLY_TLS_CERT"},
+			Usage:       wrap("The path to the client TLS cert", "If relative, will be interpreted as relative to the ~/.earthly folder."),
+			Destination: &app.certPath,
+			Hidden:      true,
+		},
+		&cli.StringFlag{
+			Name:        "tlskey",
+			Value:       "./certs/earthly_key.pem",
+			EnvVars:     []string{"EARTHLY_TLS_KEY"},
+			Usage:       wrap("The path to the client TLS key.", "If relative, will be interpreted as relative to the ~/.earthly folder."),
+			Destination: &app.keyPath,
 			Hidden:      true,
 		},
 		&cli.IntFlag{
@@ -918,9 +936,13 @@ func (app *earthlyApp) before(context *cli.Context) error {
 		app.console.Printf("loading config values from %q\n", app.configPath)
 	}
 
-	yamlData, err := config.ReadConfigFile(app.configPath, context.IsSet("config"))
-	if err != nil {
-		return errors.Wrapf(err, "read config")
+	var yamlData []byte
+	var err error
+	if app.configPath != "" {
+		yamlData, err = config.ReadConfigFile(app.configPath, context.IsSet("config"))
+		if err != nil {
+			return errors.Wrapf(err, "read config")
+		}
 	}
 
 	app.cfg, err = config.ParseConfigFile(yamlData)
@@ -953,6 +975,8 @@ func (app *earthlyApp) before(context *cli.Context) error {
 		if err != nil {
 			return err
 		}
+		app.handleTLSCertificateSettings(context)
+
 	case "docker-container":
 		bkAddr, dbAddr, lrAddr, err = app.getAddressesOriginal()
 		if err != nil {
@@ -973,6 +997,7 @@ func (app *earthlyApp) before(context *cli.Context) error {
 	app.buildkitdSettings.DebuggerAddress = app.debuggerHost
 	app.buildkitdSettings.LocalRegistryAddress = lrAddr
 	app.buildkitdSettings.UseTCP = app.cfg.Global.BuildkitScheme == "tcp"
+	app.buildkitdSettings.UseTLS = app.cfg.Global.TLSEnabled
 
 	// ensure the MTU is something allowable in IPv4, cap enforced by type. Zero is autodetect.
 	if app.buildkitdSettings.CniMtu != 0 && app.buildkitdSettings.CniMtu < 68 {
@@ -1050,6 +1075,28 @@ func (app *earthlyApp) getAddressesForTCP(context *cli.Context) (string, string,
 	}
 
 	return app.buildkitHost, app.debuggerHost, app.cfg.Global.LocalRegistryHost, nil
+}
+
+func (app *earthlyApp) handleTLSCertificateSettings(context *cli.Context) {
+	if !app.cfg.Global.TLSEnabled {
+		return
+	}
+
+	app.buildkitdSettings.TLSCA = app.cfg.Global.TLSCA
+
+	if !context.IsSet("tlscert") && app.cfg.Global.ClientTLSCert != "" {
+		app.certPath = app.cfg.Global.ClientTLSCert
+	}
+
+	if !context.IsSet("tlskey") && app.cfg.Global.ClientTLSKey != "" {
+		app.keyPath = app.cfg.Global.ClientTLSKey
+	}
+
+	app.buildkitdSettings.ClientTLSCert = app.certPath
+	app.buildkitdSettings.ClientTLSKey = app.keyPath
+
+	app.buildkitdSettings.ServerTLSCert = app.cfg.Global.ServerTLSCert
+	app.buildkitdSettings.ServerTLSKey = app.cfg.Global.ServerTLSKey
 }
 
 func parseAndvalidateURL(addr string) (*url.URL, error) {
@@ -1468,32 +1515,33 @@ func (app *earthlyApp) actionBootstrap(c *cli.Context) error {
 	app.commandName = "bootstrap"
 
 	var err error
+	switch app.homebrewSource {
+	case "bash":
+		compEntry, err := bashCompleteEntry()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Warning: failed to enable bash-completion: %s\n", err)
+			return nil // zsh-completion isn't available, silently fail.
+		}
+		fmt.Print(compEntry)
+		return nil
+	case "zsh":
+		compEntry, err := zshCompleteEntry()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Warning: failed to bootstrap zsh-completion: %s\n", err)
+			return nil // zsh-completion isn't available, silently fail.
+		}
+		fmt.Print(compEntry)
+		return nil
+	case "":
+		break
+	default:
+		return errors.Errorf("unhandled source %q", app.homebrewSource)
+	}
+
 	console := app.console.WithPrefix("bootstrap")
+	defer cliutil.EnsurePermissions()
 
 	if app.bootstrapWithAutocomplete {
-		switch app.homebrewSource {
-		case "bash":
-			compEntry, err := bashCompleteEntry()
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "Warning: failed to enable bash-completion: %s\n", err)
-				return nil // zsh-completion isn't available, silently fail.
-			}
-			fmt.Print(compEntry)
-			return nil
-		case "zsh":
-			compEntry, err := zshCompleteEntry()
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "Warning: failed to bootstrap zsh-completion: %s\n", err)
-				return nil // zsh-completion isn't available, silently fail.
-			}
-			fmt.Print(compEntry)
-			return nil
-		case "":
-			break
-		default:
-			return errors.Errorf("unhandled source %q", app.homebrewSource)
-		}
-
 		// Because this requires sudo, it should warn and not fail the rest of it.
 		err = app.insertBashCompleteEntry()
 		if err != nil {
@@ -1516,17 +1564,25 @@ func (app *earthlyApp) actionBootstrap(c *cli.Context) error {
 	}
 
 	if !app.bootstrapNoBuildkit {
+		if app.cfg.Global.BuildkitScheme == "tcp" && app.cfg.Global.TLSEnabled {
+			root, err := cliutil.GetEarthlyDir()
+			if err != nil {
+				return err
+			}
+
+			certsDir := filepath.Join(root, "certs")
+			err = buildkitd.GenerateCertificates(certsDir)
+			if err != nil {
+				return errors.Wrap(err, "setup TLS")
+			}
+		}
+
 		// Bootstrap buildkit - pulls image and starts daemon.
 		bkClient, _, err := buildkitd.NewClient(c.Context, app.console, app.buildkitdImage, app.buildkitdSettings)
 		if err != nil {
 			return errors.Wrap(err, "bootstrap new buildkitd client")
 		}
 		defer bkClient.Close()
-	}
-
-	err = cliutil.EnsurePermissions()
-	if err != nil {
-		return errors.Wrap(err, "configure earthly directory permissions")
 	}
 
 	console.Printf("Bootstrapping successful.\n")
@@ -2745,7 +2801,8 @@ func processSecrets(secrets, secretFiles []string, dotEnvMap map[string]string) 
 func defaultConfigPath() string {
 	earthlyDir, err := cliutil.GetEarthlyDir()
 	if err != nil {
-		panic(err)
+		fmt.Fprintf(os.Stderr, "Error getting earthly dir: %v\n", err.Error())
+		return ""
 	}
 
 	oldConfig := filepath.Join(earthlyDir, "config.yaml")

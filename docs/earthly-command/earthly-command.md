@@ -595,8 +595,17 @@ Removes a secret from the secrets store.
 
 #### Description
 
-Installs bash and zsh shell completion for earthly.
+Performs initialization tasks needed for `earthly` to function correctly. This command can be re-run to fix broken setups. It is recommended to run this with sudo. 
 
+#### Options
+
+##### `--no-buildkit`
+
+Skips setting up the buildkit container during bootstrapping. If needed, it will also be performed when a build is ran.
+
+##### `--with-autocomplete`
+
+Installs shell autocompletions during bootstrap. Requires `sudo` to install them correctly.
 
 ## earthly --help
 

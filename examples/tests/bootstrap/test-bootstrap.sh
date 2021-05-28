@@ -137,3 +137,54 @@ if [[ $(stat --format '%G' "$HOME/.earthly/config.yml") != "$GRP" ]]; then
   stat "$HOME/.earthly/config.yml"
   exit 1
 fi
+
+echo "=== Test 6: Homebrew Source ==="
+
+if which docker > /dev/null; then
+  docker rm -f earthly-buildkitd
+fi
+
+bash=$("$earthly" bootstrap --source bash)
+if [[ "$bash" != *"complete -o nospace"* ]]; then
+  echo "bash autocompletion appeared to be incorrect"
+  echo "$bash"
+  exit 1
+fi
+
+zsh=$("$earthly" bootstrap --source zsh)
+if [[ "$zsh" != *"complete -o nospace"* ]]; then
+  echo "zsh autocompletion appeared to be incorrect"
+  echo "$zsh"
+  exit 1
+fi
+
+if docker container ls | grep earthly-buildkitd; then
+  echo "--source created a docker container"
+  exit 1
+fi
+
+if [[ -f ../../../build/linux/amd64/earth ]]; then
+  echo "--source symlinked earthly to earth"
+fi
+
+if ! DOCKER_HOST="docker is missing" "$earthly" bootstrap --source zsh > /dev/null 2>&1; then
+  echo "--source failed when docker was missing"
+  exit 1
+fi
+
+rm -rf "$HOME/.earthly/"
+
+echo "=== Test 7: No Buildkit ==="
+
+"$earthly" bootstrap --no-buildkit
+if docker container ls | grep earthly-buildkitd; then
+  echo "--no-buildkit created a docker container"
+  exit 1
+fi
+
+if ! DOCKER_HOST="docker is missing" "$earthly" bootstrap --no-buildkit; then
+  echo "--no-buildkit fails when docker is missing"
+  exit 1
+fi
+
+rm -rf "$HOME/.earthly/"
