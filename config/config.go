@@ -18,7 +18,7 @@ const (
 	DefaultDebuggerPort = 8373
 
 	// DefaultLocalRegistryPort is the default user-facing port for the local registry used for exports.
-	DefaultLocalRegistryPort = 8374
+	DefaultLocalRegistryPort = 8371
 
 	// DefaultBuildkitScheme is the default scheme earthly uses to connect to its buildkitd. tcp or docker-container.
 	DefaultBuildkitScheme = "docker-container"
