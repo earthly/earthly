@@ -26,6 +26,8 @@ jobs:
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: Build latest earthly using released earthly
         run: earthly --use-inline-cache +for-linux
+      - name: Enable local registry-based exporter
+        run: ./build/linux/amd64/earthly config global.local_registry_host 'tcp://127.0.0.1:8371'
       - name: Execute tests (not a fork)
         run: ./build/linux/amd64/earthly --ci -P +test
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
@@ -87,6 +89,8 @@ jobs:
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: Build latest earthly using released earthly
         run: earthly --use-inline-cache +for-linux
+      - name: Enable local registry-based exporter
+        run: ./build/linux/amd64/earthly config global.local_registry_host 'tcp://127.0.0.1:8371'
       - name: Execute interactive debugger test
         run: ./build/linux/amd64/earthly --ci --interactive -P ./examples/tests/interactive+all
       - name: Execute version test
@@ -139,6 +143,8 @@ jobs:
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: Build latest earthly using released earthly
         run: earthly --use-inline-cache +for-linux
+      - name: Enable local registry-based exporter
+        run: ./build/linux/amd64/earthly config global.local_registry_host 'tcp://127.0.0.1:8371'
       - name: Build examples1 (PR build)
         run: ./build/linux/amd64/earthly --ci -P +examples1
         if: github.event_name != 'push'
@@ -172,6 +178,8 @@ jobs:
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: Build latest earthly using released earthly
         run: earthly --use-inline-cache +for-linux
+      - name: Enable local registry-based exporter
+        run: ./build/linux/amd64/earthly config global.local_registry_host 'tcp://127.0.0.1:8371'
       - name: Build examples2 (PR build)
         run: ./build/linux/amd64/earthly --ci -P +examples2
         if: github.event_name != 'push'
@@ -203,6 +211,8 @@ jobs:
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: Build latest earthly using released earthly
         run: earthly --use-inline-cache +for-linux
+      - name: Enable local registry-based exporter
+        run: ./build/linux/amd64/earthly config global.local_registry_host 'tcp://127.0.0.1:8371'
       - name: Build tutorial part 1
         run: ./build/linux/amd64/earthly -P ./examples/tutorial+test-part1 --earthly=$(realpath ./build/linux/amd64/earthly)
       - name: Build tutorial part 3
@@ -232,6 +242,8 @@ jobs:
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: Build latest earthly using released earthly
         run: earthly --use-inline-cache +for-linux
+      - name: Enable local registry-based exporter
+        run: ./build/linux/amd64/earthly config global.local_registry_host 'tcp://127.0.0.1:8371'
       - name: Push and Pull Cloud Images (not a fork)
         run: ./build/linux/amd64/earthly --ci -P ./examples/tests/cloud-push-pull+all
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
@@ -261,6 +273,8 @@ jobs:
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: Build latest earthly using released earthly
         run: earthly --use-inline-cache +for-linux
+      - name: Enable local registry-based exporter
+        run: ./build/linux/amd64/earthly config global.local_registry_host 'tcp://127.0.0.1:8371'
       - name: run secrets-integration
         run: env earthly=./build/linux/amd64/earthly scripts/tests/secrets-integration.sh
       - name: Buildkit logs (runs on failure)
@@ -283,6 +297,8 @@ jobs:
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: Build latest earthly using released earthly
         run: earthly --use-inline-cache +for-linux
+      - name: Enable local registry-based exporter
+        run: ./build/linux/amd64/earthly config global.local_registry_host 'tcp://127.0.0.1:8371'
       - name: Run bootstrap-integration
         run: ./examples/tests/bootstrap/test-bootstrap.sh
       - name: Buildkit logs (runs on failure)
@@ -303,6 +319,8 @@ jobs:
         run: "sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/latest/download/earthly-linux-amd64 -O /usr/local/bin/earthly && chmod +x /usr/local/bin/earthly'"
       - name: Build latest earthly using released earthly
         run: earthly --use-inline-cache +for-linux
+      - name: Enable local registry-based exporter
+        run: ./build/linux/amd64/earthly config global.local_registry_host 'tcp://127.0.0.1:8371'
       - name: Execute test-local
         run: "./build/linux/amd64/earthly --use-inline-cache --save-inline-cache --no-output ./examples/tests/local+test-local"
       - name: Check previous run without the --push flag correctly prevented the file from being touched
@@ -344,6 +362,8 @@ jobs:
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: Build latest earthly using released earthly
         run: earthly --use-inline-cache +for-linux
+      - name: Enable local registry-based exporter
+        run: ./build/linux/amd64/earthly config global.local_registry_host 'tcp://127.0.0.1:8371'
 # to regenerate the entries below; run earthly ./scripts/tests/auth+generate-github-tasks
 # auto-generated-entries start;
       - name: run test-earthfile-can-clone-private-repo-with-earthly-config.sh
@@ -399,36 +419,8 @@ jobs:
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: Build latest earthly using released earthly
         run: earthly --use-inline-cache +for-linux
-      - name: run export tests
-        run: env earthly=./build/linux/amd64/earthly scripts/tests/export.sh
-      - name: Buildkit logs (runs on failure)
-        run: docker logs earthly-buildkitd
-        if: ${{ failure() }}
-  
-  export-local-registry-test:
-    runs-on: ubuntu-latest
-    env:
-      FORCE_COLOR: 1
-      EARTHLY_CONVERSION_PARALLELISM: "5"
-      EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
-      EARTHLY_INSTALL_ID: "earthly-githubactions"
-    steps:
-      - uses: actions/checkout@v2
-      - name: Set up QEMU
-        id: qemu
-        uses: docker/setup-qemu-action@v1
-        with:
-          image: tonistiigi/binfmt:latest
-          platforms: all
-      - name: Download released earthly
-        run: "sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/latest/download/earthly-linux-amd64 -O /usr/local/bin/earthly && chmod +x /usr/local/bin/earthly'"
-      - name: Docker Login (non fork only)
-        run: docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password "${{ secrets.DOCKERHUB_TOKEN }}"
-        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
-      - name: Build latest earthly using released earthly
-        run: earthly --use-inline-cache +for-linux
-      - name: Enable local registry exporter
-        run: "./build/linux/amd64/earthly config global.local_registry_host 'tcp://127.0.0.1:8371'"
+      - name: Enable local registry-based exporter
+        run: ./build/linux/amd64/earthly config global.local_registry_host 'tcp://127.0.0.1:8371'
       - name: run export tests
         run: env earthly=./build/linux/amd64/earthly scripts/tests/export.sh
       - name: Buildkit logs (runs on failure)
@@ -468,6 +460,8 @@ jobs:
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: Build latest earthly using released earthly
         run: earthly --use-inline-cache +for-linux
+      - name: Enable local registry-based exporter
+        run: ./build/linux/amd64/earthly config global.local_registry_host 'tcp://127.0.0.1:8371'
       - name: Build +all-buildkitd
         run: ./build/linux/amd64/earthly --ci +all-buildkitd
       - name: Buildkit logs (runs on failure)
@@ -507,6 +501,8 @@ jobs:
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: Build latest earthly using released earthly
         run: earthly --use-inline-cache +for-linux
+      - name: Enable local registry-based exporter
+        run: ./build/linux/amd64/earthly config global.local_registry_host 'tcp://127.0.0.1:8371'
       - name: Build +all-dind
         run: ./build/linux/amd64/earthly --ci +all-dind
       - name: Buildkit logs (runs on failure)
@@ -546,6 +542,8 @@ jobs:
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: Build latest earthly using released earthly
         run: earthly --use-inline-cache +for-linux
+      - name: Enable local registry-based exporter
+        run: ./build/linux/amd64/earthly config global.local_registry_host 'tcp://127.0.0.1:8371'
       - name: Build +earthly-all
         run: ./build/linux/amd64/earthly --ci +earthly-all
       - name: Build +earthly-docker
@@ -587,6 +585,8 @@ jobs:
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: Build latest earthly using released earthly
         run: earthly --use-inline-cache +for-linux
+      - name: Enable local registry-based exporter
+        run: ./build/linux/amd64/earthly config global.local_registry_host 'tcp://127.0.0.1:8371'
       - name: Build +prerelease
         run: ./build/linux/amd64/earthly --ci +prerelease
       - name: Buildkit logs (runs on failure)
@@ -607,7 +607,6 @@ jobs:
       - secrets-integration
       - repo-auth-test
       - export-test
-      - export-local-registry-test
       - test-local
       - all-buildkitd
       - all-dind
@@ -643,6 +642,8 @@ jobs:
         run: docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password "${{ secrets.DOCKERHUB_TOKEN }}"
       - name: Build latest earthly using released earthly
         run: earthly --use-inline-cache +for-linux
+      - name: Enable local registry-based exporter
+        run: ./build/linux/amd64/earthly config global.local_registry_host 'tcp://127.0.0.1:8371'
       - name: Build and push +prerelease
         run: ./build/linux/amd64/earthly --ci --push +prerelease
       - name: Buildkit logs (runs on failure)

@@ -52,6 +52,8 @@ echo "Build latest earthly using released earthly"
 "$released_earthly" config global.disable_analytics true
 "$released_earthly" +for-"$EARTHLY_OS"
 
+"$earthly" config global.local_registry_host 'tcp://127.0.0.1:8371'
+
 echo "Execute tests"
 "$earthly" --ci -P +test
 

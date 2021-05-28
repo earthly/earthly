@@ -96,6 +96,8 @@ case "$1" in
         fi
 
         export EARTHLY_CONVERSION_PARALLELISM=5
+        # enable local registry-based exports
+        "$bindir/earthly-prerelease" config global.local_registry_host 'tcp://127.0.0.1:8371' || true
         exec -a "$scriptname" "$bindir/earthly-prerelease" "$@"
         ;;
 esac
