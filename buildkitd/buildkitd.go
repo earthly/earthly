@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"runtime"
 	"strconv"
 	"strings"
@@ -15,6 +16,8 @@ import (
 	"time"
 
 	"github.com/earthly/earthly/conslogging"
+	"github.com/earthly/earthly/util/cliutil"
+	"github.com/earthly/earthly/util/fileutil"
 	"github.com/fatih/color"
 	"github.com/moby/buildkit/client"
 	_ "github.com/moby/buildkit/client/connhelper/dockercontainer" // Load "docker-container://" helper.
@@ -46,6 +49,11 @@ var TCPAddress = "tcp://127.0.0.1:8372"
 
 // NewClient returns a new buildkitd client.
 func NewClient(ctx context.Context, console conslogging.ConsoleLogger, image string, settings Settings, opts ...client.ClientOpt) (*client.Client, error) {
+	opts, err := addRequiredOpts(settings, opts...)
+	if err != nil {
+		return nil, errors.Wrap(err, "add required client opts")
+	}
+
 	if !isLocal(settings.BuildkitAddress) {
 		err := waitForConnection(ctx, settings.BuildkitAddress, settings.Timeout, opts...)
 		if err != nil {
@@ -80,6 +88,11 @@ func ResetCache(ctx context.Context, console conslogging.ConsoleLogger, image st
 	// Prune by resetting container.
 	if !isLocal(settings.BuildkitAddress) {
 		return errors.New("cannot reset cache of a provided buildkit-host setting")
+	}
+
+	opts, err := addRequiredOpts(settings, opts...)
+	if err != nil {
+		return errors.Wrap(err, "add required client opts")
 	}
 
 	console.
@@ -259,6 +272,7 @@ func Start(ctx context.Context, console conslogging.ConsoleLogger, image string,
 		"-e", fmt.Sprintf("BUILDKIT_DEBUG=%t", settings.Debug),
 		"-e", fmt.Sprintf("EARTHLY_ADDITIONAL_BUILDKIT_CONFIG=%s", settings.AdditionalConfig),
 		"-e", fmt.Sprintf("BUILDKIT_TCP_TRANSPORT_ENABLED=%t", settings.UseTCP),
+		"-e", fmt.Sprintf("BUILDKIT_TLS_ENABLED=%t", settings.UseTCP && settings.UseTLS),
 		"--label", fmt.Sprintf("dev.earthly.settingshash=%s", settingsHash),
 		"--name", ContainerName,
 		"--privileged",
@@ -287,6 +301,32 @@ func Start(ctx context.Context, console conslogging.ConsoleLogger, image string,
 
 		if settings.UseTCP {
 			args = append(args, "-p", fmt.Sprintf("127.0.0.1:%s:8372", bkURL.Port()))
+
+			if settings.UseTLS {
+				if settings.TLSCA != "" {
+					caPath, err := makeTLSPath(settings.TLSCA)
+					if err != nil {
+						return errors.Wrap(err, "start buildkitd")
+					}
+					args = append(args, "-v", fmt.Sprintf("%s:/etc/ca.pem", caPath))
+				}
+
+				if settings.ServerTLSCert != "" {
+					certPath, err := makeTLSPath(settings.ServerTLSCert)
+					if err != nil {
+						return errors.Wrap(err, "start buildkitd")
+					}
+					args = append(args, "-v", fmt.Sprintf("%s:/etc/cert.pem", certPath))
+				}
+
+				if settings.ServerTLSKey != "" {
+					keyPath, err := makeTLSPath(settings.ServerTLSKey)
+					if err != nil {
+						return errors.Wrap(err, "start buildkitd")
+					}
+					args = append(args, "-v", fmt.Sprintf("%s:/etc/key.pem", keyPath))
+				}
+			}
 		}
 	}
 
@@ -699,4 +739,51 @@ func isLocal(addr string) bool {
 		hostname == net.IPv6loopback.String() ||
 		hostname == "localhost" || // Convention. Users hostname omitted; this is only really here for convenience.
 		parsed.Scheme == "docker-container" // Accomodate feature flagging during transition. This will have omitted TLS?
+}
+
+func makeTLSPath(path string) (string, error) {
+	fullPath := path
+
+	if !filepath.IsAbs(path) {
+		earthlyDir, err := cliutil.GetEarthlyDir()
+		if err != nil {
+			return "", err
+		}
+
+		fullPath = filepath.Join(earthlyDir, path)
+	}
+
+	if !fileutil.FileExists(fullPath) {
+		return "", fmt.Errorf("path '%s' does not exist", path)
+	}
+
+	return fullPath, nil
+}
+
+func addRequiredOpts(settings Settings, opts ...client.ClientOpt) ([]client.ClientOpt, error) {
+	if !settings.UseTCP || !settings.UseTLS {
+		return opts, nil
+	}
+
+	server, err := url.Parse(settings.BuildkitAddress)
+	if err != nil {
+		return []client.ClientOpt{}, errors.Wrap(err, "invalid buildkit url")
+	}
+
+	caPath, err := makeTLSPath(settings.TLSCA)
+	if err != nil {
+		return []client.ClientOpt{}, errors.Wrap(err, "caPath")
+	}
+
+	certPath, err := makeTLSPath(settings.ClientTLSCert)
+	if err != nil {
+		return []client.ClientOpt{}, errors.Wrap(err, "certPath")
+	}
+
+	keyPath, err := makeTLSPath(settings.ClientTLSKey)
+	if err != nil {
+		return []client.ClientOpt{}, errors.Wrap(err, "keyPath")
+	}
+
+	return append(opts, client.WithCredentials(server.Hostname(), caPath, certPath, keyPath)), nil
 }

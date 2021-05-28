@@ -87,6 +87,13 @@ if [ "$BUILDKIT_TCP_TRANSPORT_ENABLED" = "true" ]; then
 fi
 export TCP_TRANSPORT
 
+# Set up TLS feature flag
+TLS_ENABLED=
+if [ "$BUILDKIT_TLS_ENABLED" = "true" ]; then
+    TLS_ENABLED="$(cat /etc/buildkitd.tls.template)"
+fi
+export TLS_ENABLED
+
 envsubst </etc/buildkitd.toml.template >/etc/buildkitd.toml
 echo "BUILDKIT_ROOT_DIR=$BUILDKIT_ROOT_DIR"
 echo "CACHE_SIZE_MB=$CACHE_SIZE_MB"
