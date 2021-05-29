@@ -274,6 +274,7 @@ earthly-integration-test-base:
     FROM +earthly-docker
     ENV EARTHLY_CONVERSION_PARALLELISM=5
     RUN earthly config global.disable_analytics true
+    RUN earthly config global.local_registry_host 'tcp://127.0.0.1:8371'
     # The inner buildkit requires Docker hub creds to prevent rate-limiting issues.
     ARG DOCKERHUB_AUTH=true
     ARG DOCKERHUB_USER_SECRET=+secrets/earthly-technologies/dockerhub/user
