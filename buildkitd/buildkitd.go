@@ -754,7 +754,7 @@ func makeTLSPath(path string) (string, error) {
 	fullPath := path
 
 	if !filepath.IsAbs(path) {
-		earthlyDir, err := cliutil.GetEarthlyDir()
+		earthlyDir, err := cliutil.GetOrCreateEarthlyDir()
 		if err != nil {
 			return "", err
 		}

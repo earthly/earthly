@@ -11,96 +11,109 @@ import (
 )
 
 var earthlyDir string
-var earthlyDirErr error
 var earthlyDirOnce sync.Once
+var earthlyDirSudoUser *user.User
+
+var earthlyDirCreateOnce sync.Once
+var earthlyDirCreateErr error
 
 // GetEarthlyDir returns the .earthly dir. (Usually ~/.earthly).
-func GetEarthlyDir() (string, error) {
+// This function will not attempt to create the directory if missing, for that functionality use to the GetOrCreateEarthlyDir function.
+func GetEarthlyDir() string {
 	earthlyDirOnce.Do(func() {
-		earthlyDir, earthlyDirErr = makeEarthlyDir()
+		earthlyDir, earthlyDirSudoUser = getEarthlyDirAndUser()
 	})
-	return earthlyDir, earthlyDirErr
+	return earthlyDir
 }
 
-func makeEarthlyDir() (string, error) {
-	homeDir, sudoUser, err := DetectHomeDir()
-	if err != nil {
-		return "", err
-	}
+func getEarthlyDirAndUser() (string, *user.User) {
+	homeDir, u := DetectHomeDir()
 	earthlyDir := filepath.Join(homeDir, ".earthly")
-	if !fileutil.DirExists(earthlyDir) {
-		err := os.MkdirAll(earthlyDir, 0755)
-		if err != nil {
-			return "", errors.Wrapf(err, "unable to create dir %s", earthlyDir)
+	return earthlyDir, u
+}
+
+// GetOrCreateEarthlyDir returns the .earthly dir. (Usually ~/.earthly).
+// if the directory does not exist, it will attempt to create it.
+func GetOrCreateEarthlyDir() (string, error) {
+	_ = GetEarthlyDir() // ensure global vars get created so we can reference them below.
+
+	earthlyDirCreateOnce.Do(func() {
+		if !fileutil.DirExists(earthlyDir) {
+			err := os.MkdirAll(earthlyDir, 0755)
+			if err != nil {
+				earthlyDirCreateErr = errors.Wrapf(err, "unable to create dir %s", earthlyDir)
+				return
+			}
+			if earthlyDirSudoUser != nil {
+				fileutil.EnsureUserOwned(earthlyDir, earthlyDirSudoUser)
+			}
 		}
-		fileutil.EnsureUserOwned(earthlyDir, sudoUser)
+	})
+
+	return earthlyDir, earthlyDirCreateErr
+}
+
+func getHomeFromSudoUser() (string, *user.User, bool) {
+	sudoUserName, ok := os.LookupEnv("SUDO_USER")
+	if !ok {
+		return "", nil, false
 	}
-	return earthlyDir, nil
+	u, err := user.Lookup(sudoUserName)
+	if err != nil {
+		return "", nil, false
+	}
+	if u.HomeDir == "" {
+		return "", nil, false
+	}
+	return u.HomeDir, u, true
+}
+
+func getHomeFromHomeEnv() (string, *user.User, bool) {
+	home, ok := os.LookupEnv("HOME")
+	if !ok {
+		return "", nil, false
+	}
+	return home, nil, true
+}
+
+func getHomeFromUserCurrent() (string, *user.User, bool) {
+	u, err := user.Current()
+	if err != nil {
+		return "", nil, false
+	}
+	if u.HomeDir == "" {
+		return "", nil, false
+	}
+	return u.HomeDir, u, true
 }
 
 // DetectHomeDir returns the home directory of the current user, together with
 // the user object who owns it. If SUDO_USER is detected, then that user's
 // home directory will be used instead.
-func DetectHomeDir() (string, *user.User, error) {
-	u, isSudo, err := currentNonSudoUser()
-	if err != nil {
-		return "", nil, errors.Wrap(err, "lookup user for homedir")
-	}
-	if !isSudo {
-		homeDir, err := os.UserHomeDir()
-		if err == nil {
-			return homeDir, u, nil
+func DetectHomeDir() (string, *user.User) {
+	for _, fn := range []func() (string, *user.User, bool){
+		getHomeFromSudoUser,
+		getHomeFromHomeEnv,
+		getHomeFromUserCurrent,
+	} {
+		home, u, ok := fn()
+		if ok {
+			return home, u
 		}
 	}
-
-	if u.HomeDir == "" {
-		return "/etc", u, nil
-	}
-	return u.HomeDir, u, nil
+	return "/etc", nil
 }
 
 // IsBootstrapped provides a tentatively correct guess about the state of our bootstrapping.
 func IsBootstrapped() bool {
-	homeDir, _, err := DetectHomeDir()
-	if err != nil {
-		return false
-	}
-
-	earthlyDir := filepath.Join(homeDir, ".earthly")
-	if !fileutil.DirExists(earthlyDir) {
-		return false
-	}
-
-	return true
+	return fileutil.DirExists(GetEarthlyDir())
 }
 
 // EnsurePermissions changes the permissions of all earthly files to be owned by the user and their group.
 func EnsurePermissions() error {
-	_, err := GetEarthlyDir()
-	if err != nil {
-		return err
+	earthlyDir, sudoUser := getEarthlyDirAndUser()
+	if sudoUser != nil {
+		fileutil.EnsureUserOwned(earthlyDir, sudoUser)
 	}
-
-	u, _, err := currentNonSudoUser()
-	if err != nil {
-		return errors.Wrap(err, "get non-sudo user")
-	}
-
-	fileutil.EnsureUserOwned(earthlyDir, u)
 	return nil
-}
-
-func currentNonSudoUser() (*user.User, bool, error) {
-	if sudoUserName, ok := os.LookupEnv("SUDO_USER"); ok {
-		sudoUser, err := user.Lookup(sudoUserName)
-		if err == nil {
-			return sudoUser, true, nil
-		}
-	}
-
-	u, err := user.Current()
-	if err != nil {
-		return nil, false, err
-	}
-	return u, false, nil
 }
