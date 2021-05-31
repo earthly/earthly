@@ -249,12 +249,22 @@ earthly-darwin-arm64:
         +earthly/* ./
     SAVE ARTIFACT ./*
 
+earthly-windows-amd64:
+    COPY \
+        --build-arg GOOS=windows \
+        --build-arg GOARCH=amd64 \
+        --build-arg VARIANT= \
+        --build-arg GO_EXTRA_LDFLAGS= \
+        +earthly/* ./
+    SAVE ARTIFACT ./*
+
 earthly-all:
     COPY +earthly-linux-amd64/earthly ./earthly-linux-amd64
     COPY +earthly-linux-arm7/earthly ./earthly-linux-arm7
     COPY +earthly-linux-arm64/earthly ./earthly-linux-arm64
     COPY +earthly-darwin-amd64/earthly ./earthly-darwin-amd64
     COPY +earthly-darwin-arm64/earthly ./earthly-darwin-arm64
+    COPY +earthly-windows-amd64/earthly ./earthly-windows-amd64
     SAVE ARTIFACT ./*
 
 earthly-docker:
@@ -343,6 +353,11 @@ for-darwin-m1:
     BUILD --platform=linux/arm64 ./buildkitd+buildkitd --BUILDKIT_PROJECT="$BUILDKIT_PROJECT"
     COPY +earthly-darwin-arm64/earthly ./
     SAVE ARTIFACT ./earthly
+
+for-windows:
+    # BUILD --platform linux/amd64 ./buildkitd+buildkitd
+    COPY +earthly-windows-amd64/earthly ./earthly.exe
+    SAVE ARTIFACT ./earthly.exe
 
 all-buildkitd:
     ARG BUILDKIT_PROJECT
