@@ -16,7 +16,7 @@ import (
 func CopyOp(srcState pllb.State, srcs []string, destState pllb.State, dest string, allowWildcard bool, isDir bool, keepTs bool, chown string, ifExists bool, opts ...llb.ConstraintsOpt) pllb.State {
 	destAdjusted := dest
 	if dest == "." || dest == "" || len(srcs) > 1 {
-		destAdjusted += string("/") // TODO: needs to be the containers platform, not the hosts platform.
+		destAdjusted += string("/") // TODO: needs to be the containers platform, not the earthly hosts platform. For now, this is always Linux.
 	}
 	var baseCopyOpts []llb.CopyOption
 	if chown != "" {

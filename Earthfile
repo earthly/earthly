@@ -54,7 +54,6 @@ update-buildkit:
     SAVE ARTIFACT go.mod AS LOCAL go.mod-fixme  # this is a bug since we can't save to go.mod which was already saved in +deps
     SAVE ARTIFACT go.sum AS LOCAL go.sum-fixme  # this is a bug since we can't save to go.sum which was already saved in +deps
 
-
 lint-scripts-base:
     FROM alpine:3.13
 
@@ -180,6 +179,7 @@ earthly:
     ARG GOARCH=$TARGETARCH
     ARG VARIANT=$TARGETVARIANT
     ARG GO_EXTRA_LDFLAGS="-linkmode external -extldflags -static"
+    ARG EXECUTABLE_NAME="earthly"
     RUN test -n "$GOOS" && test -n "$GOARCH"
     RUN test "$GOARCH" != "arm" || test -n "$VARIANT"
     ARG EARTHLY_TARGET_TAG_DOCKER
@@ -201,11 +201,11 @@ earthly:
         GOARM=${VARIANT#v} go build \
             -tags "$(cat ./build/tags)" \
             -ldflags "$(cat ./build/ldflags)" \
-            -o build/earthly \
+            -o build/$EXECUTABLE_NAME \
             cmd/earthly/*.go
     SAVE ARTIFACT ./build/tags
     SAVE ARTIFACT ./build/ldflags
-    SAVE ARTIFACT build/earthly AS LOCAL "build/$GOOS/$GOARCH$VARIANT/earthly"
+    SAVE ARTIFACT build/$EXECUTABLE_NAME AS LOCAL "build/$GOOS/$GOARCH$VARIANT/$EXECUTABLE_NAME"
     SAVE IMAGE --cache-from=earthly/earthly:main
 
 earthly-linux-amd64:
@@ -255,6 +255,7 @@ earthly-windows-amd64:
         --build-arg GOARCH=amd64 \
         --build-arg VARIANT= \
         --build-arg GO_EXTRA_LDFLAGS= \
+        --build-arg EXECUTABLE_NAME=earthly.exe \
         +earthly/* ./
     SAVE ARTIFACT ./*
 
@@ -356,7 +357,7 @@ for-darwin-m1:
 
 for-windows:
     # BUILD --platform linux/amd64 ./buildkitd+buildkitd
-    COPY +earthly-windows-amd64/earthly ./earthly.exe
+    COPY +earthly-windows-amd64/earthly.exe ./
     SAVE ARTIFACT ./earthly.exe
 
 all-buildkitd:
