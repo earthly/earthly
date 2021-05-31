@@ -1,27 +1,27 @@
 FROM alpine:3.13
 
 reject-privileged-in-remote-repo-triggered-by-from-locally:
-    FROM github.com/earthly/test-privileged:main+locally
+    FROM github.com/earthly/test-remote/privileged:main+locally
     RUN echo this should never run because the above FROM should fail
 
 reject-privileged-in-remote-repo-triggered-by-from-privileged:
-    FROM github.com/earthly/test-privileged:main+privileged
+    FROM github.com/earthly/test-remote/privileged:main+privileged
     RUN echo this should never run because the above FROM should fail
 
 reject-privileged-in-remote-repo-triggered-by-copy-locally:
-    COPY github.com/earthly/test-privileged:main+locally/hostname .
+    COPY github.com/earthly/test-remote/privileged:main+locally/hostname .
     RUN echo this should never run because the above COPY should fail
 
 reject-privileged-in-remote-repo-triggered-by-copy-privileged:
-    COPY github.com/earthly/test-privileged:main+privileged/hostname .
+    COPY github.com/earthly/test-remote/privileged:main+privileged/hostname .
     RUN echo this should never run because the above COPY should fail
 
 reject-privileged-in-remote-repo-triggered-by-build-locally:
-    BUILD github.com/earthly/test-privileged:main+locally
+    BUILD github.com/earthly/test-remote/privileged:main+locally
     RUN echo this should never run because the above BUILD should fail
 
 reject-privileged-in-remote-repo-triggered-by-build-privileged:
-    BUILD github.com/earthly/test-privileged:main+privileged
+    BUILD github.com/earthly/test-remote/privileged:main+privileged
     RUN echo this should never run because the above BUILD should fail
 
 reject-dedup:
@@ -33,34 +33,34 @@ reject-dedup:
     BUILD +reject-privileged-in-remote-repo-triggered-by-copy
 
 reject-privileged-in-remote-repo-triggered-by-docker-load-privileged:
-    WITH DOCKER --load shouldfail:latest=github.com/earthly/test-privileged:main+privileged
+    WITH DOCKER --load shouldfail:latest=github.com/earthly/test-remote/privileged:main+privileged
         RUN echo this should never run because the above --load should fail
     END
 
 allow-privileged-in-remote-repo-triggered-by-from-locally:
-    FROM --allow-privileged github.com/earthly/test-privileged:main+locally
+    FROM --allow-privileged github.com/earthly/test-remote/privileged:main+locally
     RUN echo this command should work
 
 allow-privileged-in-remote-repo-triggered-by-copy-locally:
-    COPY --allow-privileged github.com/earthly/test-privileged:main+locally/hostname .
+    COPY --allow-privileged github.com/earthly/test-remote/privileged:main+locally/hostname .
     RUN ls hostname
 
 allow-privileged-in-remote-repo-triggered-by-build-locally:
-    BUILD --allow-privileged github.com/earthly/test-privileged:main+locally
+    BUILD --allow-privileged github.com/earthly/test-remote/privileged:main+locally
 
 allow-privileged-in-remote-repo-triggered-by-from-privileged:
-    FROM --allow-privileged github.com/earthly/test-privileged:main+privileged
+    FROM --allow-privileged github.com/earthly/test-remote/privileged:main+privileged
     RUN echo this command should work
 
 allow-privileged-in-remote-repo-triggered-by-copy-privileged:
-    COPY --allow-privileged github.com/earthly/test-privileged:main+privileged/proc-status .
+    COPY --allow-privileged github.com/earthly/test-remote/privileged:main+privileged/proc-status .
     RUN cat proc-status | grep CapEff | grep 0000003fffffffff
 
 allow-privileged-in-remote-repo-triggered-by-build-privileged:
-    BUILD --allow-privileged github.com/earthly/test-privileged:main+privileged
+    BUILD --allow-privileged github.com/earthly/test-remote/privileged:main+privileged
 
 allow-privileged-in-remote-repo-triggered-by-cmd-privileged:
-    DO --allow-privileged github.com/earthly/test-privileged:main+PRIV
+    DO --allow-privileged github.com/earthly/test-remote/privileged:main+PRIV
 
 
 allow-all:
