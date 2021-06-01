@@ -675,12 +675,7 @@ jobs:
       - name: Docker Login (non fork only)
         run: docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password "${{ secrets.DOCKERHUB_TOKEN }}"
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+      - name: List
+        run: ls
       - name: Build latest earthly using released earthly
-        run: earthly.exe --use-inline-cache +for-windows
-      - name: Enable local registry-based exporter
-        run: ./build/windows/amd64/earthly.exe config global.local_registry_host 'tcp://127.0.0.1:8371'
-      - name: Build +earthly-windows-amd64
-        run: ./build/windows/amd64/earthly.exe --ci +earthly-windows-amd64
-      - name: Buildkit logs (runs on failure)
-        run: docker logs earthly-buildkitd
-        if: ${{ failure() }}
+        run: .\earthly.exe --use-inline-cache +for-windows
