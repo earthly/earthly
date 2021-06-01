@@ -265,7 +265,7 @@ earthly-all:
     COPY +earthly-linux-arm64/earthly ./earthly-linux-arm64
     COPY +earthly-darwin-amd64/earthly ./earthly-darwin-amd64
     COPY +earthly-darwin-arm64/earthly ./earthly-darwin-arm64
-    COPY +earthly-windows-amd64/earthly ./earthly-windows-amd64
+    COPY +earthly-windows-amd64/earthly.exe ./earthly-windows-amd64.exe
     SAVE ARTIFACT ./*
 
 earthly-docker:
