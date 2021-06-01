@@ -663,7 +663,7 @@ jobs:
       - name: "Put back the git branch into git (Earthly uses it for tagging)"
         run: |
           $branch=$(If (Test-Path env:GITHUB_HEAD_REF) {$env:GITHUB_HEAD_REF} Else {$env:GITHUB_REF##*/})
-          git checkout -b $branch || true
+          git checkout -b $branch
         shell: powershell
       - name: Download released earthly
         run: "Invoke-WebRequest -Uri https://github.com/earthly/earthly/releases/latest/download/earthly-linux-amd64 -UseBasicParsing -OutFile earthly.exe"
