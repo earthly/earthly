@@ -1012,7 +1012,7 @@ func (app *earthlyApp) before(context *cli.Context) error {
 
 	if !isBootstrapCmd && !cliutil.IsBootstrapped() {
 		app.bootstrapNoBuildkit = true // Docker may not be available, for instance... like our integration tests.
-		err = app.actionBootstrap(context)
+		err = app.bootstrap(context)
 		if err != nil {
 			return errors.Wrap(err, "bootstrap unbootstrapped installation")
 		}
@@ -1209,7 +1209,7 @@ func (app *earthlyApp) autoComplete() {
 	err := app.autoCompleteImp()
 	if err != nil {
 		errToLog := err
-		logDir, err := cliutil.GetEarthlyDir()
+		logDir, err := cliutil.GetOrCreateEarthlyDir()
 		if err != nil {
 			os.Exit(1)
 		}
@@ -1523,7 +1523,6 @@ func symlinkEarthlyToEarth() error {
 func (app *earthlyApp) actionBootstrap(c *cli.Context) error {
 	app.commandName = "bootstrap"
 
-	var err error
 	switch app.homebrewSource {
 	case "bash":
 		compEntry, err := bashCompleteEntry()
@@ -1547,8 +1546,18 @@ func (app *earthlyApp) actionBootstrap(c *cli.Context) error {
 		return errors.Errorf("unhandled source %q", app.homebrewSource)
 	}
 
+	return app.bootstrap(c)
+}
+
+func (app *earthlyApp) bootstrap(c *cli.Context) error {
+	var err error
 	console := app.console.WithPrefix("bootstrap")
-	defer cliutil.EnsurePermissions()
+	defer func() {
+		// cliutil.IsBootstrapped() determines if bootstrapping was done based
+		// on the existance of ~/.earthly; therefore we must ensure it's created.
+		cliutil.GetOrCreateEarthlyDir()
+		cliutil.EnsurePermissions()
+	}()
 
 	if app.bootstrapWithAutocomplete {
 		// Because this requires sudo, it should warn and not fail the rest of it.
@@ -1574,7 +1583,7 @@ func (app *earthlyApp) actionBootstrap(c *cli.Context) error {
 
 	if !app.bootstrapNoBuildkit {
 		if app.cfg.Global.BuildkitScheme == "tcp" && app.cfg.Global.TLSEnabled {
-			root, err := cliutil.GetEarthlyDir()
+			root, err := cliutil.GetOrCreateEarthlyDir()
 			if err != nil {
 				return err
 			}
@@ -2809,12 +2818,7 @@ func processSecrets(secrets, secretFiles []string, dotEnvMap map[string]string) 
 }
 
 func defaultConfigPath() string {
-	earthlyDir, err := cliutil.GetEarthlyDir()
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error getting earthly dir: %v\n", err.Error())
-		return ""
-	}
-
+	earthlyDir := cliutil.GetEarthlyDir()
 	oldConfig := filepath.Join(earthlyDir, "config.yaml")
 	newConfig := filepath.Join(earthlyDir, "config.yml")
 	if fileutil.FileExists(oldConfig) && !fileutil.FileExists(newConfig) {
