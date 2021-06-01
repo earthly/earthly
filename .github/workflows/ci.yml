@@ -671,7 +671,7 @@ jobs:
           git checkout -b "$branch" || true
         shell: bash
       - name: Download released earthly
-        run: "Invoke-WebRequest -Uri https://github.com/earthly/earthly/releases/latest/download/earthly-linux-amd64 -UseBasicParsing -OutFile earthly.exe"
+        run: "Invoke-WebRequest -Uri https://github.com/earthly/earthly/releases/latest/download/earthly-windows-amd64 -UseBasicParsing -OutFile earthly.exe"
       - name: Docker Login (non fork only)
         run: docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password "${{ secrets.DOCKERHUB_TOKEN }}"
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
