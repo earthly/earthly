@@ -3,9 +3,10 @@
 package conslogging
 
 import (
+	"os"
+
 	"github.com/fatih/color"
 	"github.com/mattn/go-colorable"
-	"os"
 )
 
 // Current returns the current console.

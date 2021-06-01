@@ -3,8 +3,9 @@
 package conslogging
 
 import (
-	"github.com/fatih/color"
 	"os"
+
+	"github.com/fatih/color"
 )
 
 // Current returns the current console.
