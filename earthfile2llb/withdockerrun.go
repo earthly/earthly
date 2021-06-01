@@ -319,7 +319,7 @@ func (wdr *withDockerRun) solveImage(ctx context.Context, mts *states.MultiTarge
 	tarContext, err := wdr.c.opt.SolveCache.Do(ctx, solveID, func(ctx context.Context, _ states.StateKey) (pllb.State, error) {
 		// Use a builder to create docker .tar file, mount it via a local build context,
 		// then docker load it within the current side effects state.
-		outDir, err := ioutil.TempDir("/tmp", "earthly-docker-load")
+		outDir, err := ioutil.TempDir(os.TempDir(), "earthly-docker-load")
 		if err != nil {
 			return pllb.State{}, errors.Wrap(err, "mk temp dir for docker load")
 		}
