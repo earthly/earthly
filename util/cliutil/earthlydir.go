@@ -84,7 +84,11 @@ func getHomeFromUserCurrent() (string, *user.User, bool) {
 	if u.HomeDir == "" {
 		return "", nil, false
 	}
-	return u.HomeDir, u, true
+
+	// do NOT return the user here, because the user is only
+	// required during the SUDO_USER case; where as this case
+	// the permissions will belong to the current user and won't need changing.
+	return u.HomeDir, nil, true
 }
 
 // DetectHomeDir returns the home directory of the current user, together with
