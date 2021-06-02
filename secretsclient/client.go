@@ -872,10 +872,14 @@ func (c *client) WhoAmI() (string, string, bool, error) {
 func (c *client) getAuthTokenPath(create bool) (string, error) {
 	confDirPath := c.authTokenDir
 	if confDirPath == "" {
-		var err error
-		confDirPath, err = cliutil.GetEarthlyDir()
-		if err != nil {
-			return "", errors.Wrap(err, "cannot get .earthly dir")
+		if create {
+			var err error
+			confDirPath, err = cliutil.GetOrCreateEarthlyDir()
+			if err != nil {
+				return "", errors.Wrap(err, "cannot get .earthly dir")
+			}
+		} else {
+			confDirPath = cliutil.GetEarthlyDir()
 		}
 	}
 	tokenPath := filepath.Join(confDirPath, "auth.token")

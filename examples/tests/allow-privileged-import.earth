@@ -1,10 +1,10 @@
 FROM alpine:3.13
 
-IMPORT --allow-privileged github.com/earthly/test-privileged:main
+IMPORT --allow-privileged github.com/earthly/test-remote/privileged:main
 IMPORT ./a/really/deep/subdir
 
 test-remote-import:
-    COPY test-privileged+privileged/proc-status .
+    COPY privileged+privileged/proc-status .
     RUN cat proc-status | grep CapEff | grep 0000003fffffffff
 
 test-relative-import:
@@ -12,7 +12,7 @@ test-relative-import:
     RUN cat proc-status | grep CapEff | grep 0000003fffffffff
 
 test-remote-cmd:
-    DO test-privileged+PRIV
+    DO privileged+PRIV
 
 test:
     BUILD +test-remote-import

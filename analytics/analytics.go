@@ -129,7 +129,7 @@ func RepoHashFromCloneURL(repo string) string {
 }
 
 func getInstallID() (string, error) {
-	earthlyDir, err := cliutil.GetEarthlyDir()
+	earthlyDir, err := cliutil.GetOrCreateEarthlyDir()
 	if err != nil {
 		return "", err
 	}
