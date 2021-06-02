@@ -29,6 +29,9 @@ case "$EARTHLY_OS" in
         ;;
 esac
 
+echo "Test random binary"
+xcopy.exe /?
+
 echo "Detect existing binfmt interpreters"
 ls -la /proc/sys/fs/binfmt_misc
 
