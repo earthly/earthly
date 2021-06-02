@@ -59,7 +59,7 @@ done
 
 echo "Download latest Earthly binary"
 if [ -n "$download_url" ]; then
-    curl -o ./earthly-released.exe -L "$download_url" && chmod +x ./earthly-released
+    curl -o ./earthly-released.exe -L "$download_url" && chmod +x ./earthly-released.exe
     released_earthly=./earthly-released.exe
 fi
 
