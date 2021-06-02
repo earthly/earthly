@@ -1,6 +1,6 @@
 
 steps:
-  - label: Test
+  - label: Test WSL
     commands:
       - ./.buildkite/tests.sh
     env:
@@ -10,4 +10,16 @@ steps:
       EARTHLY_CONFIG: "./.buildkite/earthly-config-win.yml"
     agents:
       os: wsl2
+    timeout_in_minutes: 55
+
+  - label: Test Native
+    commands:
+      - ./.buildkite/tests.ps1
+    env:
+      EARTHLY_INSTALL_ID: "earthly-buildkite-windows"
+      FORCE_COLOR: 1
+      EARTHLY_OS: windows
+      EARTHLY_CONFIG: "./.buildkite/earthly-config-win.yml"
+    agents:
+      os: windows
     timeout_in_minutes: 55
