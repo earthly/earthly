@@ -14,7 +14,7 @@ steps:
 
   - label: Test Native
     commands:
-      - ./.buildkite/tests.ps1
+      - ./.buildkite/tests.sh
     env:
       EARTHLY_INSTALL_ID: "earthly-buildkite-windows"
       FORCE_COLOR: 1
