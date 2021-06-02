@@ -35,9 +35,9 @@ ls -la /proc/sys/fs/binfmt_misc
 echo "Attempting to mount binfmt??"
 # shellcheck disable=SC2002
 if cat /proc/mounts | grep -q binfmt_misc; then
-  mount binfmt_misc -t binfmt_misc /proc/sys/fs/binfmt_misc
-else
   cat /proc/mounts
+else
+  sudo mount binfmt_misc -t binfmt_misc /proc/sys/fs/binfmt_misc
 fi
 
 echo "The detected architecture of the runner is $(uname -m)"
