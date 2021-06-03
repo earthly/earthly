@@ -73,7 +73,7 @@ lint-scripts-base:
 
 lint-scripts-misc:
     FROM +lint-scripts-base
-    COPY ./earthly ./scripts/install-all-versions.sh ./buildkitd/entrypoint.sh ./earthly-buildkitd-wrapper.sh \
+    COPY ./earthly ./scripts/install-all-versions.sh ./buildkitd/entrypoint.sh ./earthly-entrypoint.sh \
         ./buildkitd/dockerd-wrapper.sh ./buildkitd/docker-auto-install.sh \
         ./release/envcredhelper.sh ./.buildkite/*.sh \
         ./scripts/tests/*.sh \
@@ -274,8 +274,8 @@ earthly-docker:
     RUN apk add --update --no-cache docker-cli
     ENV NETWORK_MODE=host
     ENV EARTHLY_IMAGE=true
-    COPY earthly-buildkitd-wrapper.sh /usr/bin/earthly-buildkitd-wrapper.sh
-    ENTRYPOINT ["/usr/bin/earthly-buildkitd-wrapper.sh"]
+    COPY earthly-entrypoint.sh /usr/bin/earthly-entrypoint.sh
+    ENTRYPOINT ["/usr/bin/earthly-entrypoint.sh"]
     ARG EARTHLY_TARGET_TAG_DOCKER
     ARG TAG=$EARTHLY_TARGET_TAG_DOCKER
     COPY --build-arg VERSION=$TAG +earthly/earthly /usr/bin/earthly
@@ -284,12 +284,12 @@ earthly-docker:
 earthly-integration-test-base:
     FROM +earthly-docker
     ENV EARTHLY_CONVERSION_PARALLELISM=5
-    RUN earthly config global.disable_analytics true
-    RUN earthly config global.local_registry_host 'tcp://127.0.0.1:8371'
+    ENV GLOBAL_CONFIG={disable_analytics: true, local_registry_host: 'tcp://127.0.0.1:8371'}
     # The inner buildkit requires Docker hub creds to prevent rate-limiting issues.
     ARG DOCKERHUB_AUTH=true
     ARG DOCKERHUB_USER_SECRET=+secrets/earthly-technologies/dockerhub/user
     ARG DOCKERHUB_TOKEN_SECRET=+secrets/earthly-technologies/dockerhub/token
+
     IF $DOCKERHUB_AUTH
         RUN --secret USERNAME=$DOCKERHUB_USER_SECRET \
             --secret TOKEN=$DOCKERHUB_TOKEN_SECRET \
