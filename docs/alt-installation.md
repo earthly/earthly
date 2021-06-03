@@ -129,7 +129,29 @@ CentOS users can use our rpm repo to install Earthly.
    ```bash
    sudo yum install earthly
    ```
+### Native Windows
 
+{% hint style='danger' %}
+##### Important
+
+Our native Windows release is currently in the **Experimental** stage.
+
+* The release ships with known issues. Many things work, but some don't.
+* Check the [GitHub tracking issue](https://github.com/earthly/earthly/issues/1031) for any known problems.
+* Give us feedback on [Slack](https://earthly.dev/slack).
+
+{% endhint %}
+
+To install the Windows release, simply download the binary here; and ensure it is within your `PATH`.
+
+To add `earthly.exe` to your `PATH` environment variable:
+
+1. Search and select: System (Control Panel)
+2. Click the Advanced system settings link.
+3. Click Environment Variables. In the "System Variables" section, select the PATH environment variable and click Edit.
+   * If the PATH environment variable does not exist, click New.
+4. In the Edit window, specify the value of the PATH environment variable, and Click OK.
+5. Close and reopen any existing terminal windows, so they will pick up the new `PATH`.
 
 ### Installing from source
 
