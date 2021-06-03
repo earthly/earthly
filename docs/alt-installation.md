@@ -149,7 +149,6 @@ To add `earthly` to your `PATH` environment variable:
 2. Click the Advanced system settings link.
 3. Click Environment Variables. In the "System Variables" section, select the PATH environment variable and click Edit.
    * If the PATH environment variable does not exist, click New.
-   * If it does exist, make sure you append
 4. In the Edit window, specify the value of the PATH environment variable, and Click OK.
 5. Close and reopen any existing terminal windows, so they will pick up the new `PATH`.
 
