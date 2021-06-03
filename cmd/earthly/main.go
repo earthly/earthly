@@ -137,6 +137,8 @@ type cliFlags struct {
 	strict                    bool
 	conversionParllelism      int
 	debuggerHost              string
+	certPath                  string
+	keyPath                   string
 }
 
 var (
@@ -424,6 +426,22 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 			EnvVars:     []string{"EARTHLY_DEBUGGER_HOST"},
 			Usage:       wrap("The URL to use for connecting to a debugger host. ", "If empty, earthly uses the default debugger port, combined with the desired buildkit host."),
 			Destination: &app.debuggerHost,
+			Hidden:      true,
+		},
+		&cli.StringFlag{
+			Name:        "tlscert",
+			Value:       "./certs/earthly_cert.pem",
+			EnvVars:     []string{"EARTHLY_TLS_CERT"},
+			Usage:       wrap("The path to the client TLS cert", "If relative, will be interpreted as relative to the ~/.earthly folder."),
+			Destination: &app.certPath,
+			Hidden:      true,
+		},
+		&cli.StringFlag{
+			Name:        "tlskey",
+			Value:       "./certs/earthly_key.pem",
+			EnvVars:     []string{"EARTHLY_TLS_KEY"},
+			Usage:       wrap("The path to the client TLS key.", "If relative, will be interpreted as relative to the ~/.earthly folder."),
+			Destination: &app.keyPath,
 			Hidden:      true,
 		},
 		&cli.IntFlag{
@@ -946,18 +964,17 @@ func (app *earthlyApp) before(context *cli.Context) error {
 		app.buildkitdImage = app.cfg.Global.BuildkitImage
 	}
 
-	var (
-		bkAddr string
-		dbAddr string
-	)
+	var addrs addresses
 	switch app.cfg.Global.BuildkitScheme {
 	case "tcp":
-		bkAddr, dbAddr, err = app.getBuildkitAndDebuggerAddressesForTCP(context)
+		addrs, err = app.getAddressesForTCP(context)
 		if err != nil {
 			return err
 		}
+		app.handleTLSCertificateSettings(context)
+
 	case "docker-container":
-		bkAddr, dbAddr, err = app.getBuildkitAndDebuggerAddressesOriginal()
+		addrs, err = app.getAddressesOriginal()
 		if err != nil {
 			return err
 		}
@@ -965,16 +982,17 @@ func (app *earthlyApp) before(context *cli.Context) error {
 		return fmt.Errorf("%s is not a valid buildkit scheme", app.cfg.Global.BuildkitScheme)
 	}
 
-	buildkitAddress := bkAddr
-	app.debuggerHost = dbAddr
+	app.debuggerHost = addrs.debugger
 
 	app.buildkitdSettings.AdditionalArgs = app.cfg.Global.BuildkitAdditionalArgs
 	app.buildkitdSettings.AdditionalConfig = app.cfg.Global.BuildkitAdditionalConfig
 	app.buildkitdSettings.Timeout = time.Duration(app.cfg.Global.BuildkitRestartTimeoutS) * time.Second
 	app.buildkitdSettings.Debug = app.debug
-	app.buildkitdSettings.BuildkitAddress = buildkitAddress
+	app.buildkitdSettings.BuildkitAddress = addrs.buildkit
 	app.buildkitdSettings.DebuggerAddress = app.debuggerHost
+	app.buildkitdSettings.LocalRegistryAddress = addrs.localRegistry
 	app.buildkitdSettings.UseTCP = app.cfg.Global.BuildkitScheme == "tcp"
+	app.buildkitdSettings.UseTLS = app.cfg.Global.TLSEnabled
 
 	// ensure the MTU is something allowable in IPv4, cap enforced by type. Zero is autodetect.
 	if app.buildkitdSettings.CniMtu != 0 && app.buildkitdSettings.CniMtu < 68 {
@@ -994,7 +1012,7 @@ func (app *earthlyApp) before(context *cli.Context) error {
 
 	if !isBootstrapCmd && !cliutil.IsBootstrapped() {
 		app.bootstrapNoBuildkit = true // Docker may not be available, for instance... like our integration tests.
-		err = app.actionBootstrap(context)
+		err = app.bootstrap(context)
 		if err != nil {
 			return errors.Wrap(err, "bootstrap unbootstrapped installation")
 		}
@@ -1003,12 +1021,22 @@ func (app *earthlyApp) before(context *cli.Context) error {
 	return nil
 }
 
-func (app *earthlyApp) getBuildkitAndDebuggerAddressesOriginal() (string, string, error) {
-	dbAddr := fmt.Sprintf("tcp://127.0.0.1:%v", app.cfg.Global.DebuggerPort)
-	return app.buildkitHost, dbAddr, nil
+type addresses struct {
+	buildkit      string
+	debugger      string
+	localRegistry string
 }
 
-func (app *earthlyApp) getBuildkitAndDebuggerAddressesForTCP(context *cli.Context) (string, string, error) {
+func (app *earthlyApp) getAddressesOriginal() (addresses, error) {
+	dbAddr := fmt.Sprintf("tcp://127.0.0.1:%v", app.cfg.Global.DebuggerPort)
+	return addresses{
+		buildkit:      app.buildkitHost,
+		debugger:      dbAddr,
+		localRegistry: app.cfg.Global.LocalRegistryHost,
+	}, nil
+}
+
+func (app *earthlyApp) getAddressesForTCP(context *cli.Context) (addresses, error) {
 	if !context.IsSet("buildkit-host") {
 		if app.cfg.Global.BuildkitHost != "" {
 			app.buildkitHost = app.cfg.Global.BuildkitHost
@@ -1019,7 +1047,7 @@ func (app *earthlyApp) getBuildkitAndDebuggerAddressesForTCP(context *cli.Contex
 
 	bkURL, err := parseAndvalidateURL(app.buildkitHost)
 	if err != nil {
-		return "", "", err
+		return addresses{}, err
 	}
 
 	if !context.IsSet("debugger-host") {
@@ -1032,18 +1060,52 @@ func (app *earthlyApp) getBuildkitAndDebuggerAddressesForTCP(context *cli.Contex
 
 	dbURL, err := parseAndvalidateURL(app.debuggerHost)
 	if err != nil {
-		return "", "", err
+		return addresses{}, err
+	}
+
+	lrURL, err := parseAndvalidateURL(app.cfg.Global.LocalRegistryHost)
+	if err != nil {
+		return addresses{}, err
 	}
 
 	if bkURL.Hostname() != dbURL.Hostname() {
 		app.console.Warnf("Buildkit and Debugger URLs are pointed at different hosts (%s vs. %s)", bkURL.Hostname(), dbURL.Hostname())
 	}
-
-	if bkURL.Hostname() == dbURL.Hostname() && bkURL.Port() == dbURL.Port() {
-		return "", "", errors.New("Debugger and Buildkit ports are the same")
+	if bkURL.Hostname() != lrURL.Hostname() {
+		app.console.Warnf("Buildkit and Local Registry URLs are pointed at different hosts (%s vs. %s)", bkURL.Hostname(), lrURL.Hostname())
 	}
 
-	return app.buildkitHost, app.debuggerHost, nil
+	if bkURL.Hostname() == dbURL.Hostname() && bkURL.Port() == dbURL.Port() {
+		return addresses{}, errors.New("Debugger and Buildkit ports are the same")
+	}
+
+	return addresses{
+		buildkit:      app.buildkitHost,
+		debugger:      app.debuggerHost,
+		localRegistry: app.cfg.Global.LocalRegistryHost,
+	}, nil
+}
+
+func (app *earthlyApp) handleTLSCertificateSettings(context *cli.Context) {
+	if !app.cfg.Global.TLSEnabled {
+		return
+	}
+
+	app.buildkitdSettings.TLSCA = app.cfg.Global.TLSCA
+
+	if !context.IsSet("tlscert") && app.cfg.Global.ClientTLSCert != "" {
+		app.certPath = app.cfg.Global.ClientTLSCert
+	}
+
+	if !context.IsSet("tlskey") && app.cfg.Global.ClientTLSKey != "" {
+		app.keyPath = app.cfg.Global.ClientTLSKey
+	}
+
+	app.buildkitdSettings.ClientTLSCert = app.certPath
+	app.buildkitdSettings.ClientTLSKey = app.keyPath
+
+	app.buildkitdSettings.ServerTLSCert = app.cfg.Global.ServerTLSCert
+	app.buildkitdSettings.ServerTLSKey = app.cfg.Global.ServerTLSKey
 }
 
 func parseAndvalidateURL(addr string) (*url.URL, error) {
@@ -1147,7 +1209,7 @@ func (app *earthlyApp) autoComplete() {
 	err := app.autoCompleteImp()
 	if err != nil {
 		errToLog := err
-		logDir, err := cliutil.GetEarthlyDir()
+		logDir, err := cliutil.GetOrCreateEarthlyDir()
 		if err != nil {
 			os.Exit(1)
 		}
@@ -1461,7 +1523,6 @@ func symlinkEarthlyToEarth() error {
 func (app *earthlyApp) actionBootstrap(c *cli.Context) error {
 	app.commandName = "bootstrap"
 
-	var err error
 	switch app.homebrewSource {
 	case "bash":
 		compEntry, err := bashCompleteEntry()
@@ -1485,8 +1546,18 @@ func (app *earthlyApp) actionBootstrap(c *cli.Context) error {
 		return errors.Errorf("unhandled source %q", app.homebrewSource)
 	}
 
+	return app.bootstrap(c)
+}
+
+func (app *earthlyApp) bootstrap(c *cli.Context) error {
+	var err error
 	console := app.console.WithPrefix("bootstrap")
-	defer cliutil.EnsurePermissions()
+	defer func() {
+		// cliutil.IsBootstrapped() determines if bootstrapping was done based
+		// on the existance of ~/.earthly; therefore we must ensure it's created.
+		cliutil.GetOrCreateEarthlyDir()
+		cliutil.EnsurePermissions()
+	}()
 
 	if app.bootstrapWithAutocomplete {
 		// Because this requires sudo, it should warn and not fail the rest of it.
@@ -1511,6 +1582,19 @@ func (app *earthlyApp) actionBootstrap(c *cli.Context) error {
 	}
 
 	if !app.bootstrapNoBuildkit {
+		if app.cfg.Global.BuildkitScheme == "tcp" && app.cfg.Global.TLSEnabled {
+			root, err := cliutil.GetOrCreateEarthlyDir()
+			if err != nil {
+				return err
+			}
+
+			certsDir := filepath.Join(root, "certs")
+			err = buildkitd.GenerateCertificates(certsDir)
+			if err != nil {
+				return errors.Wrap(err, "setup TLS")
+			}
+		}
+
 		// Bootstrap buildkit - pulls image and starts daemon.
 		bkClient, err := buildkitd.NewClient(c.Context, app.console, app.buildkitdImage, app.buildkitdSettings)
 		if err != nil {
@@ -2452,6 +2536,7 @@ func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []st
 		return errors.Wrap(err, "build new buildkitd client")
 	}
 	defer bkClient.Close()
+	isLocal := buildkitd.IsLocal(app.buildkitdSettings.BuildkitAddress)
 
 	bkIP, err := buildkitd.GetContainerIP(c.Context, app.buildkitdSettings)
 	if err != nil {
@@ -2579,6 +2664,14 @@ func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []st
 	if app.conversionParllelism != 0 {
 		parallelism = semaphore.NewWeighted(int64(app.conversionParllelism))
 	}
+	localRegistryAddr := ""
+	if isLocal && app.cfg.Global.LocalRegistryHost != "" {
+		lrURL, err := url.Parse(app.cfg.Global.LocalRegistryHost)
+		if err != nil {
+			return errors.Wrapf(err, "parse local registry host %s", app.cfg.Global.LocalRegistryHost)
+		}
+		localRegistryAddr = lrURL.Host
+	}
 	builderOpts := builder.Opt{
 		BkClient:               bkClient,
 		Console:                app.console,
@@ -2602,6 +2695,7 @@ func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []st
 		DisableNoOutputUpdates: app.interactiveDebugging,
 		ParallelConversion:     (app.conversionParllelism != 0),
 		Parallelism:            parallelism,
+		LocalRegistryAddr:      localRegistryAddr,
 	}
 	b, err := builder.NewBuilder(c.Context, builderOpts)
 	if err != nil {
@@ -2724,12 +2818,7 @@ func processSecrets(secrets, secretFiles []string, dotEnvMap map[string]string) 
 }
 
 func defaultConfigPath() string {
-	earthlyDir, err := cliutil.GetEarthlyDir()
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error getting earthly dir: %v\n", err.Error())
-		return ""
-	}
-
+	earthlyDir := cliutil.GetEarthlyDir()
 	oldConfig := filepath.Join(earthlyDir, "config.yaml")
 	newConfig := filepath.Join(earthlyDir, "config.yml")
 	if fileutil.FileExists(oldConfig) && !fileutil.FileExists(newConfig) {

@@ -1,6 +1,18 @@
 
+FROM alpine:3.13
+
 buildkitd:
-    ARG BUILDKIT_BASE_IMAGE=github.com/earthly/buildkit:c1749dff2545b0202fc15f33eaa3278b1aa8803e+build
+    ARG BUILDKIT_PROJECT
+    IF [ "$BUILDKIT_PROJECT" != "" ]
+        IF case "$BUILDKIT_PROJECT" in "../*") true;; "*") false;; esac
+            # Assuming this is coming from the main Earthly Earthfile.
+            ARG BUILDKIT_BASE_IMAGE=../$BUILDKIT_PROJECT+build
+        ELSE
+            ARG BUILDKIT_BASE_IMAGE=$BUILDKIT_PROJECT+build
+        END
+    ELSE
+        ARG BUILDKIT_BASE_IMAGE=github.com/earthly/buildkit:3f9630fcc5f573954c09ca7322129f67c9056b01+build
+    END
     FROM $BUILDKIT_BASE_IMAGE
     RUN echo "@edge-community http://dl-cdn.alpinelinux.org/alpine/edge/community" >> /etc/apk/repositories
     RUN apk add --update --no-cache \
@@ -22,6 +34,7 @@ buildkitd:
     COPY ./buildkitd.toml.template /etc/buildkitd.toml.template
     COPY ./buildkitd.cache.template /etc/buildkitd.cache.template
     COPY ./buildkitd.tcp.template /etc/buildkitd.tcp.template
+    COPY ./buildkitd.tls.template /etc/buildkitd.tls.template
     COPY ./cni-conf.json.template /etc/cni/cni-conf.json.template
 
     # Scripts and binaries used for the builds.

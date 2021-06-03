@@ -3,7 +3,7 @@ package llbutil
 import (
 	"context"
 	"fmt"
-	"path/filepath"
+	"path"
 	"sync"
 	"time"
 
@@ -16,7 +16,7 @@ import (
 func CopyOp(srcState pllb.State, srcs []string, destState pllb.State, dest string, allowWildcard bool, isDir bool, keepTs bool, chown string, ifExists bool, opts ...llb.ConstraintsOpt) pllb.State {
 	destAdjusted := dest
 	if dest == "." || dest == "" || len(srcs) > 1 {
-		destAdjusted += string(filepath.Separator)
+		destAdjusted += string("/") // TODO: needs to be the containers platform, not the earthly hosts platform. For now, this is always Linux.
 	}
 	var baseCopyOpts []llb.CopyOption
 	if chown != "" {
@@ -60,14 +60,14 @@ func CopyOp(srcState pllb.State, srcs []string, destState pllb.State, dest strin
 // Abs pre-pends the working dir to the given path, if the
 // path is relative.
 func Abs(ctx context.Context, s pllb.State, p string) (string, error) {
-	if filepath.IsAbs(p) {
+	if path.IsAbs(p) {
 		return p, nil
 	}
 	dir, err := s.GetDir(ctx)
 	if err != nil {
 		return "", errors.Wrap(err, "get dir")
 	}
-	return filepath.Join(dir, p), nil
+	return path.Join(dir, p), nil
 }
 
 var defaultTsValue time.Time

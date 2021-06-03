@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"runtime"
 	"strconv"
 	"strings"
@@ -15,6 +16,8 @@ import (
 	"time"
 
 	"github.com/earthly/earthly/conslogging"
+	"github.com/earthly/earthly/util/cliutil"
+	"github.com/earthly/earthly/util/fileutil"
 	"github.com/fatih/color"
 	"github.com/moby/buildkit/client"
 	_ "github.com/moby/buildkit/client/connhelper/dockercontainer" // Load "docker-container://" helper.
@@ -44,9 +47,14 @@ var TCPAddress = "tcp://127.0.0.1:8372"
 
 // TODO: Implement all this properly with the docker client.
 
-// NewClient returns a new buildkitd client.
+// NewClient returns a new buildkitd client, together with a boolean specifying whether the buildkit is local.
 func NewClient(ctx context.Context, console conslogging.ConsoleLogger, image string, settings Settings, opts ...client.ClientOpt) (*client.Client, error) {
-	if !isLocal(settings.BuildkitAddress) {
+	opts, err := addRequiredOpts(settings, opts...)
+	if err != nil {
+		return nil, errors.Wrap(err, "add required client opts")
+	}
+
+	if !IsLocal(settings.BuildkitAddress) {
 		err := waitForConnection(ctx, settings.BuildkitAddress, settings.Timeout, opts...)
 		if err != nil {
 			return nil, errors.Wrap(err, "connect provided buildkit")
@@ -78,8 +86,13 @@ func NewClient(ctx context.Context, console conslogging.ConsoleLogger, image str
 // ResetCache restarts the buildkitd daemon with the reset command.
 func ResetCache(ctx context.Context, console conslogging.ConsoleLogger, image string, settings Settings, opts ...client.ClientOpt) error {
 	// Prune by resetting container.
-	if !isLocal(settings.BuildkitAddress) {
+	if !IsLocal(settings.BuildkitAddress) {
 		return errors.New("cannot reset cache of a provided buildkit-host setting")
+	}
+
+	opts, err := addRequiredOpts(settings, opts...)
+	if err != nil {
+		return errors.Wrap(err, "add required client opts")
 	}
 
 	console.
@@ -259,6 +272,7 @@ func Start(ctx context.Context, console conslogging.ConsoleLogger, image string,
 		"-e", fmt.Sprintf("BUILDKIT_DEBUG=%t", settings.Debug),
 		"-e", fmt.Sprintf("EARTHLY_ADDITIONAL_BUILDKIT_CONFIG=%s", settings.AdditionalConfig),
 		"-e", fmt.Sprintf("BUILDKIT_TCP_TRANSPORT_ENABLED=%t", settings.UseTCP),
+		"-e", fmt.Sprintf("BUILDKIT_TLS_ENABLED=%t", settings.UseTCP && settings.UseTLS),
 		"--label", fmt.Sprintf("dev.earthly.settingshash=%s", settingsHash),
 		"--name", ContainerName,
 		"--privileged",
@@ -268,25 +282,58 @@ func Start(ctx context.Context, console conslogging.ConsoleLogger, image string,
 		// Add /sys/fs/cgroup if it's earthly-in-earthly.
 		args = append(args, "-v", "/sys/fs/cgroup:/sys/fs/cgroup")
 	} else {
-		// Debugger only supported in top-most earthly.
+		// TCP ports only supported in top-most earthly.
 		// TODO: Main reason for this is port clash. This could be improved in the future,
 		//       if needed.
-
-		// These are controlled by us and should have been validated already
-		bkURL, err := url.Parse(settings.BuildkitAddress)
-		if err != nil {
-			panic("Buildkit address was not a URL when attempting to start buildkit")
-		}
+		// These are controlled by us and should have been validated already - hence panics.
 
 		dbURL, err := url.Parse(settings.DebuggerAddress)
 		if err != nil {
 			panic("Debugger address was not a URL when attempting to start buildkit")
 		}
-
 		args = append(args, "-p", fmt.Sprintf("127.0.0.1:%s:8373", dbURL.Port()))
 
+		if settings.LocalRegistryAddress != "" {
+			lrURL, err := url.Parse(settings.LocalRegistryAddress)
+			if err != nil {
+				panic("Local registry address was not a URL when attempting to start buildkit")
+			}
+			args = append(args, "-p", fmt.Sprintf("127.0.0.1:%s:8371", lrURL.Port()))
+			args = append(args, "-e", "BUILDKIT_LOCAL_REGISTRY_LISTEN_PORT=8371")
+		}
+
+		bkURL, err := url.Parse(settings.BuildkitAddress)
+		if err != nil {
+			panic("Buildkit address was not a URL when attempting to start buildkit")
+		}
 		if settings.UseTCP {
 			args = append(args, "-p", fmt.Sprintf("127.0.0.1:%s:8372", bkURL.Port()))
+
+			if settings.UseTLS {
+				if settings.TLSCA != "" {
+					caPath, err := makeTLSPath(settings.TLSCA)
+					if err != nil {
+						return errors.Wrap(err, "start buildkitd")
+					}
+					args = append(args, "-v", fmt.Sprintf("%s:/etc/ca.pem", caPath))
+				}
+
+				if settings.ServerTLSCert != "" {
+					certPath, err := makeTLSPath(settings.ServerTLSCert)
+					if err != nil {
+						return errors.Wrap(err, "start buildkitd")
+					}
+					args = append(args, "-v", fmt.Sprintf("%s:/etc/cert.pem", certPath))
+				}
+
+				if settings.ServerTLSKey != "" {
+					keyPath, err := makeTLSPath(settings.ServerTLSKey)
+					if err != nil {
+						return errors.Wrap(err, "start buildkitd")
+					}
+					args = append(args, "-v", fmt.Sprintf("%s:/etc/key.pem", keyPath))
+				}
+			}
 		}
 	}
 
@@ -496,7 +543,7 @@ func MaybePull(ctx context.Context, console conslogging.ConsoleLogger, image str
 
 // PrintLogs prints the buildkitd logs to stderr.
 func PrintLogs(ctx context.Context, settings Settings, console conslogging.ConsoleLogger) error {
-	if !isLocal(settings.BuildkitAddress) {
+	if !IsLocal(settings.BuildkitAddress) {
 		return nil
 	}
 
@@ -514,7 +561,7 @@ func PrintLogs(ctx context.Context, settings Settings, console conslogging.Conso
 
 // GetContainerIP returns the IP of the buildkit container.
 func GetContainerIP(ctx context.Context, settings Settings) (string, error) {
-	if !isLocal(settings.BuildkitAddress) {
+	if !IsLocal(settings.BuildkitAddress) {
 		return "", nil // Remote buildkitd is not an error,  but we don't know its IP
 	}
 
@@ -687,16 +734,65 @@ func getCacheSize(ctx context.Context) (int, error) {
 	return int(size), nil
 }
 
-func isLocal(addr string) bool {
-	// We consider it local when the address matches one of the ones we allow in our (future) generated GRPC certificates
+// IsLocal parses a URL and returns whether it is considered a local buildkit host + port that we
+// need to manage ourselves.
+func IsLocal(addr string) bool {
 	parsed, err := url.Parse(addr)
 	if err != nil {
 		return false
 	}
 
 	hostname := parsed.Hostname()
+	// These need to match what we put in our certificates.
 	return hostname == "127.0.0.1" || // The only IP v4 Loopback we honor. Because we need to include it in the TLS certificates.
 		hostname == net.IPv6loopback.String() ||
 		hostname == "localhost" || // Convention. Users hostname omitted; this is only really here for convenience.
 		parsed.Scheme == "docker-container" // Accomodate feature flagging during transition. This will have omitted TLS?
+}
+
+func makeTLSPath(path string) (string, error) {
+	fullPath := path
+
+	if !filepath.IsAbs(path) {
+		earthlyDir, err := cliutil.GetOrCreateEarthlyDir()
+		if err != nil {
+			return "", err
+		}
+
+		fullPath = filepath.Join(earthlyDir, path)
+	}
+
+	if !fileutil.FileExists(fullPath) {
+		return "", fmt.Errorf("path '%s' does not exist", path)
+	}
+
+	return fullPath, nil
+}
+
+func addRequiredOpts(settings Settings, opts ...client.ClientOpt) ([]client.ClientOpt, error) {
+	if !settings.UseTCP || !settings.UseTLS {
+		return opts, nil
+	}
+
+	server, err := url.Parse(settings.BuildkitAddress)
+	if err != nil {
+		return []client.ClientOpt{}, errors.Wrap(err, "invalid buildkit url")
+	}
+
+	caPath, err := makeTLSPath(settings.TLSCA)
+	if err != nil {
+		return []client.ClientOpt{}, errors.Wrap(err, "caPath")
+	}
+
+	certPath, err := makeTLSPath(settings.ClientTLSCert)
+	if err != nil {
+		return []client.ClientOpt{}, errors.Wrap(err, "certPath")
+	}
+
+	keyPath, err := makeTLSPath(settings.ClientTLSKey)
+	if err != nil {
+		return []client.ClientOpt{}, errors.Wrap(err, "keyPath")
+	}
+
+	return append(opts, client.WithCredentials(server.Hostname(), caPath, certPath, keyPath)), nil
 }

@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/earthly/earthly/analytics"
 	"github.com/earthly/earthly/ast/spec"
 	"github.com/earthly/earthly/buildcontext"
 	"github.com/earthly/earthly/conslogging"
@@ -185,6 +186,8 @@ func (i *Interpreter) handleCommand(ctx context.Context, cmd spec.Command) (err 
 			}
 		}
 	}()
+
+	analytics.Count("cmd", cmd.Name)
 
 	if i.isWith {
 		switch cmd.Name {

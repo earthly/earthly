@@ -16,6 +16,7 @@ import (
 	"github.com/moby/buildkit/client/llb"
 	gwclient "github.com/moby/buildkit/frontend/gateway/client"
 	"github.com/moby/buildkit/session"
+	"github.com/moby/buildkit/session/pullping"
 	"github.com/moby/buildkit/util/entitlements"
 	specs "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
@@ -25,6 +26,7 @@ import (
 type onImageFunc func(context.Context, *errgroup.Group, string) (io.WriteCloser, error)
 type onArtifactFunc func(context.Context, int, domain.Artifact, string, string) (string, error)
 type onFinalArtifactFunc func(context.Context) (string, error)
+type onReadyForPullFunc func(context.Context, []string) error
 
 type solver struct {
 	sm              *solverMonitor
@@ -101,12 +103,12 @@ func (s *solver) solveDockerTar(ctx context.Context, state pllb.State, platform 
 	return nil
 }
 
-func (s *solver) buildMainMulti(ctx context.Context, bf gwclient.BuildFunc, onImage onImageFunc, onArtifact onArtifactFunc, onFinalArtifact onFinalArtifactFunc, phaseText string) error {
+func (s *solver) buildMainMulti(ctx context.Context, bf gwclient.BuildFunc, onImage onImageFunc, onArtifact onArtifactFunc, onFinalArtifact onFinalArtifactFunc, onPullCallback onReadyForPullFunc, phaseText string) error {
 	ch := make(chan *client.SolveStatus)
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 	eg, ctx := errgroup.WithContext(ctx)
-	solveOpt, err := s.newSolveOptMulti(ctx, eg, onImage, onArtifact, onFinalArtifact)
+	solveOpt, err := s.newSolveOptMulti(ctx, eg, onImage, onArtifact, onFinalArtifact, onPullCallback)
 	if err != nil {
 		return errors.Wrap(err, "new solve opt")
 	}
@@ -193,7 +195,7 @@ func (s *solver) newSolveOptDocker(img *image.Image, dockerTag string, w io.Writ
 	}, nil
 }
 
-func (s *solver) newSolveOptMulti(ctx context.Context, eg *errgroup.Group, onImage onImageFunc, onArtifact onArtifactFunc, onFinalArtifact onFinalArtifactFunc) (*client.SolveOpt, error) {
+func (s *solver) newSolveOptMulti(ctx context.Context, eg *errgroup.Group, onImage onImageFunc, onArtifact onArtifactFunc, onFinalArtifact onFinalArtifactFunc, onPullCallback onReadyForPullFunc) (*client.SolveOpt, error) {
 	var cacheImports []client.CacheOptionsEntry
 	for ci := range s.cacheImports.AsMap() {
 		cacheImports = append(cacheImports, newCacheImportOpt(ci))
@@ -242,6 +244,7 @@ func (s *solver) newSolveOptMulti(ctx context.Context, eg *errgroup.Group, onIma
 					}
 					return onArtifact(ctx, index, artifact, srcPath, destPath)
 				},
+				OutputPullCallback: pullping.PullCallback(onPullCallback),
 			},
 		},
 		CacheImports:        cacheImports,
