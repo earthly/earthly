@@ -153,8 +153,6 @@ To add `earthly` to your `PATH` environment variable:
 4. In the Edit window, specify the value of the PATH environment variable, and Click OK.
 5. Close and reopen any existing terminal windows, so they will pick up the new `PATH`.
 
-If you need help modifying your `PATH`, please see Microsofts' documentation.
-
 ### Installing from source
 
 To install from source, see the [contributing page](https://github.com/earthly/earthly/blob/main/CONTRIBUTING.md).
