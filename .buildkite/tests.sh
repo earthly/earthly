@@ -29,20 +29,6 @@ case "$EARTHLY_OS" in
         ;;
 esac
 
-echo "Test random binary"
-cmd.exe /C "xcopy.exe /?" 2>&1
-
-echo "Detect existing binfmt interpreters"
-ls -la /proc/sys/fs/binfmt_misc
-
-echo "Attempting to mount binfmt??"
-# shellcheck disable=SC2002
-if cat /proc/mounts | grep -q binfmt_misc; then
-  cat /proc/mounts
-else
-  sudo mount binfmt_misc -t binfmt_misc /proc/sys/fs/binfmt_misc
-fi
-
 echo "The detected architecture of the runner is $(uname -m)"
 
 echo "Add branch info back to git (Earthly uses it for tagging)"
@@ -62,8 +48,8 @@ done
 
 echo "Download latest Earthly binary"
 if [ -n "$download_url" ]; then
-    curl -o ./earthly-released.exe -L "$download_url" && chmod +x ./earthly-released.exe
-    released_earthly=./earthly-released.exe
+    curl -o ./earthly-released -L "$download_url" && chmod +x ./earthly-released
+    released_earthly=./earthly-released
 fi
 
 echo "Build latest earthly using released earthly"
