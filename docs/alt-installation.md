@@ -137,7 +137,7 @@ CentOS users can use our rpm repo to install Earthly.
 Our native Windows release is currently in the **Experimental** stage.
 
 * The release ships with known issues. Many things work, but some don't.
-* Check the [GitHub tracking issue](https://github.com/earthly/earthly/issues/986) for any known problems.
+* Check the [GitHub tracking issue](https://github.com/earthly/earthly/issues/1031) for any known problems.
 * Give us feedback on [Slack](https://earthly.dev/slack).
   {% endhint %}
 
