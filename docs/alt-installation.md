@@ -139,7 +139,8 @@ Our native Windows release is currently in the **Experimental** stage.
 * The release ships with known issues. Many things work, but some don't.
 * Check the [GitHub tracking issue](https://github.com/earthly/earthly/issues/1031) for any known problems.
 * Give us feedback on [Slack](https://earthly.dev/slack).
-  {% endhint %}
+
+{% endhint %}
 
 To install the Windows release, simply download the binary here; and ensure it is within your `PATH`.
 
