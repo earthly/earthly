@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -308,7 +309,7 @@ func getMessageFromJSON(r io.Reader) (string, error) {
 }
 
 func (c *client) getLastUsedPublicKey() (string, error) {
-	data, err := ioutil.ReadFile("/tmp/last-used-public-key")
+	data, err := ioutil.ReadFile(path.Join(os.TempDir(), "last-used-public-key"))
 	if err != nil {
 		return "", errors.Wrap(err, "failed to read file")
 	}
@@ -316,7 +317,7 @@ func (c *client) getLastUsedPublicKey() (string, error) {
 }
 
 func (c *client) savePublicKey(publicKey string) error {
-	f, err := os.Create("/tmp/last-used-public-key")
+	f, err := os.Create(path.Join(os.TempDir(), "last-used-public-key"))
 	if err != nil {
 		return errors.Wrap(err, "failed to create path")
 	}

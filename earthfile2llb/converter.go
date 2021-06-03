@@ -538,7 +538,7 @@ func (c *Converter) RunLocalExitCode(ctx context.Context, commandName string, ar
 		extraEnvVars = append(extraEnvVars, fmt.Sprintf("%s=\"%s\"", buildArgName, shellescape.Quote(ba)))
 	}
 
-	exitCodeDir, err := ioutil.TempDir("/tmp", "earthlyexitcode")
+	exitCodeDir, err := ioutil.TempDir(os.TempDir(), "earthlyexitcode")
 	if err != nil {
 		return 0, errors.Wrap(err, "create temp dir")
 	}

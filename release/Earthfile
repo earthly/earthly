@@ -52,7 +52,8 @@ release-github:
         test -f ./release/earthly-darwin-amd64 && \
         test -f ./release/earthly-darwin-arm64 && \
         test -f ./release/earthly-linux-arm7 && \
-        test -f ./release/earthly-linux-arm64
+        test -f ./release/earthly-linux-arm64 && \
+        test -f ./release/earthly-windows-amd64.exe
     RUN file ./release/earthly-linux-amd64 | grep "x86-64"
     RUN file ./release/earthly-linux-amd64 | grep "ELF 64-bit"
     RUN file ./release/earthly-darwin-amd64 | grep "Mach-O 64-bit x86_64"
@@ -61,6 +62,7 @@ release-github:
     RUN file ./release/earthly-linux-arm7 | grep "ELF 32-bit"
     RUN file ./release/earthly-linux-arm64 | grep "aarch64"
     RUN file ./release/earthly-linux-arm64 | grep "ELF 64-bit"
+    RUN file ./release/earthly-windows-amd64.exe | grep "PE32"
     ARG BODY="No details provided"
     RUN --secret GITHUB_TOKEN=+secrets/earthly-technologies/github/griswoldthecat/token test -n "$GITHUB_TOKEN"
     RUN --push \

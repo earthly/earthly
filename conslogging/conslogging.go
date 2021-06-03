@@ -3,7 +3,6 @@ package conslogging
 import (
 	"fmt"
 	"io"
-	"os"
 	"strings"
 	"sync"
 	"unicode/utf8"
@@ -56,19 +55,6 @@ type ConsoleLogger struct {
 	errW           io.Writer
 	trailingLine   bool
 	prefixPadding  int
-}
-
-// Current returns the current console.
-func Current(colorMode ColorMode, prefixPadding int) ConsoleLogger {
-	return ConsoleLogger{
-		outW:           os.Stderr, // So logs dont sully any intended outputs of commands.
-		errW:           os.Stderr,
-		colorMode:      colorMode,
-		saltColors:     make(map[string]*color.Color),
-		nextColorIndex: new(int),
-		prefixPadding:  prefixPadding,
-		mu:             &currentConsoleMutex,
-	}
 }
 
 func (cl ConsoleLogger) clone() ConsoleLogger {
