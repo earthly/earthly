@@ -11,7 +11,7 @@ buildkitd:
             ARG BUILDKIT_BASE_IMAGE=$BUILDKIT_PROJECT+build
         END
     ELSE
-        ARG BUILDKIT_BASE_IMAGE=github.com/earthly/buildkit:3f9630fcc5f573954c09ca7322129f67c9056b01+build
+        ARG BUILDKIT_BASE_IMAGE=github.com/earthly/buildkit:0c5957812fa573911f0076cd37eb909dfd1fa4af+build
     END
     FROM $BUILDKIT_BASE_IMAGE
     RUN echo "@edge-community http://dl-cdn.alpinelinux.org/alpine/edge/community" >> /etc/apk/repositories
