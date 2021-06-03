@@ -144,7 +144,7 @@ Our native Windows release is currently in the **Experimental** stage.
 
 To install the Windows release, simply download the binary here; and ensure it is within your `PATH`.
 
-To add `earthly` to your `PATH` environment variable:
+To add `earthly.exe` to your `PATH` environment variable:
 
 1. Search and select: System (Control Panel)
 2. Click the Advanced system settings link.
