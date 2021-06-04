@@ -5,9 +5,12 @@ package provider
 
 import (
 	"os"
+	"path"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/earthly/earthly/conslogging"
 
 	"github.com/moby/buildkit/session"
 	"github.com/moby/buildkit/session/filesync"
@@ -41,6 +44,8 @@ type BuildContextProvider struct {
 
 	mu   sync.Mutex
 	dirs map[string]SyncedDir
+
+	console conslogging.ConsoleLogger
 }
 
 // SyncedDir is a directory to be synced across.
@@ -52,9 +57,10 @@ type SyncedDir struct {
 }
 
 // NewBuildContextProvider creates a new provider for sending build context files from client.
-func NewBuildContextProvider() *BuildContextProvider {
+func NewBuildContextProvider(console conslogging.ConsoleLogger) *BuildContextProvider {
 	return &BuildContextProvider{
-		dirs: map[string]SyncedDir{},
+		dirs:    map[string]SyncedDir{},
+		console: console,
 	}
 }
 
@@ -129,10 +135,36 @@ func (bcp *BuildContextProvider) handle(method string, stream grpc.ServerStream)
 
 	followPaths := opts[keyFollowPaths]
 
-	var progress progressCb
-	if bcp.p != nil {
-		progress = bcp.p
-		bcp.p = nil
+	var mutex sync.Mutex
+	console := bcp.console.WithPrefixAndSalt("context", dir.Dir)
+	numStats := 0
+	numSends := 0
+	verboseProgressCB := func(relPath string, status fsutil.VerboseProgressStatus, numBytes int) {
+		mutex.Lock()
+		defer mutex.Unlock()
+		fullPath := path.Join(dir.Dir, relPath)
+		switch status {
+		case fsutil.StatusStat:
+			numStats++
+			//console.VerbosePrintf("sent file stat for %s\n", fullPath) ignored as it is too verbose. TODO add different verbose levels to support ExtraVerbosePrintf
+		case fsutil.StatusSent:
+			console.VerbosePrintf("sent data for %s (%d bytes)\n", fullPath, numBytes)
+			numSends++
+		case fsutil.StatusFailed:
+			console.VerbosePrintf("sent data for %s failed\n", fullPath)
+		case fsutil.StatusSkipped:
+			console.VerbosePrintf("ignoring %s\n", fullPath)
+		default:
+			console.Warnf("unhandled progress status %v (path=%s, numBytes=%d)\n", status, fullPath, numBytes)
+		}
+	}
+
+	progress := func(numBytes int, last bool) {
+		mutex.Lock()
+		defer mutex.Unlock()
+		if last {
+			console.Printf("transfered %d file(s) for context %s (%d bytes, %d file/dir stats)", numSends, dir.Dir, numBytes, numStats)
+		}
 	}
 
 	var doneCh chan error
@@ -141,11 +173,12 @@ func (bcp *BuildContextProvider) handle(method string, stream grpc.ServerStream)
 		bcp.doneCh = nil
 	}
 	err = pr.sendFn(stream, fsutil.NewFS(dir.Dir, &fsutil.WalkOpt{
-		ExcludePatterns: excludes,
-		IncludePatterns: includes,
-		FollowPaths:     followPaths,
-		Map:             dir.Map,
-	}), progress)
+		ExcludePatterns:   excludes,
+		IncludePatterns:   includes,
+		FollowPaths:       followPaths,
+		Map:               dir.Map,
+		VerboseProgressCB: verboseProgressCB,
+	}), progress, verboseProgressCB)
 	if doneCh != nil {
 		if err != nil {
 			doneCh <- err
@@ -175,7 +208,7 @@ type progressCb func(int, bool)
 
 type protocol struct {
 	name   string
-	sendFn func(stream filesync.Stream, fs fsutil.FS, progress progressCb) error
+	sendFn func(stream filesync.Stream, fs fsutil.FS, progress progressCb, verboseProgress fsutil.VerboseProgressCB) error
 	recvFn func(stream grpc.ClientStream, destDir string, cu filesync.CacheUpdater, progress progressCb, mapFunc func(string, *fstypes.Stat) bool) error
 }
 
@@ -195,8 +228,8 @@ var supportedProtocols = []protocol{
 	},
 }
 
-func sendDiffCopy(stream filesync.Stream, fs fsutil.FS, progress progressCb) error {
-	return errors.WithStack(fsutil.Send(stream.Context(), stream, fs, progress))
+func sendDiffCopy(stream filesync.Stream, fs fsutil.FS, progress progressCb, verboseProgress fsutil.VerboseProgressCB) error {
+	return errors.WithStack(fsutil.Send(stream.Context(), stream, fs, progress, verboseProgress))
 }
 
 func recvDiffCopy(ds grpc.ClientStream, dest string, cu filesync.CacheUpdater, progress progressCb, filter func(string, *fstypes.Stat) bool) error {

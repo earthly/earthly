@@ -101,7 +101,7 @@ func NewBuilder(ctx context.Context, opt Opt) (*Builder, error) {
 		opt:      opt,
 		resolver: nil, // initialized below
 	}
-	b.resolver = buildcontext.NewResolver(opt.SessionID, opt.CleanCollection, opt.GitLookup)
+	b.resolver = buildcontext.NewResolver(opt.SessionID, opt.CleanCollection, opt.GitLookup, opt.Console)
 	return b, nil
 }
 
@@ -727,7 +727,7 @@ func (b *Builder) saveArtifactLocally(ctx context.Context, artifact domain.Artif
 		}
 
 		// Write to console about this artifact.
-		artifactPath := trimFilePathPrefix(indexOutDir, from)
+		artifactPath := trimFilePathPrefix(indexOutDir, from, console)
 		artifact2 := domain.Artifact{
 			Target:   artifact.Target,
 			Artifact: artifactPath,
@@ -768,10 +768,10 @@ func (b *Builder) tempEarthlyOutDir() (string, error) {
 	return b.outDir, err
 }
 
-func trimFilePathPrefix(prefix string, thePath string) string {
+func trimFilePathPrefix(prefix string, thePath string, console conslogging.ConsoleLogger) string {
 	ret, err := filepath.Rel(prefix, thePath)
 	if err != nil {
-		fmt.Printf("Warning: Could not compute relative path for %s as being relative to %s: %s\n", thePath, prefix, err.Error())
+		console.Warnf("Warning: Could not compute relative path for %s as being relative to %s: %s\n", thePath, prefix, err.Error())
 		return thePath
 	}
 	return ret

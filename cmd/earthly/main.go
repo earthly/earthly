@@ -932,7 +932,9 @@ func (app *earthlyApp) before(context *cli.Context) error {
 		go profhandler()
 	}
 
-	app.console.SetVerbose(app.verbose)
+	if app.verbose {
+		app.console = app.console.WithVerbose(true)
+	}
 
 	if context.IsSet("config") {
 		app.console.Printf("loading config values from %q\n", app.configPath)
@@ -2599,7 +2601,7 @@ func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []st
 	defer os.RemoveAll(cacheLocalDir)
 	defaultLocalDirs := make(map[string]string)
 	defaultLocalDirs["earthly-cache"] = cacheLocalDir
-	buildContextProvider := provider.NewBuildContextProvider()
+	buildContextProvider := provider.NewBuildContextProvider(app.console)
 	buildContextProvider.AddDirs(defaultLocalDirs)
 	attachables := []session.Attachable{
 		llbutil.NewSecretProvider(sc, secretsMap),
