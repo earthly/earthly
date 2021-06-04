@@ -8,6 +8,10 @@ For an introduction of Earthly see the [Earthly GitHub repository](https://githu
 
 ## Release Notes
 
+### 0.0.11
+
+* Add highlighting for `FOR` and `VERSION`.
+
 ### 0.0.10
 
 * Add highlighting for `DO`, `COMMAND`, `IMPORT` and `LOCALLY`.

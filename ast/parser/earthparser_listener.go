@@ -83,6 +83,18 @@ type EarthParserListener interface {
 	// EnterElseIfExpr is called when entering the elseIfExpr production.
 	EnterElseIfExpr(c *ElseIfExprContext)
 
+	// EnterForStmt is called when entering the forStmt production.
+	EnterForStmt(c *ForStmtContext)
+
+	// EnterForClause is called when entering the forClause production.
+	EnterForClause(c *ForClauseContext)
+
+	// EnterForBlock is called when entering the forBlock production.
+	EnterForBlock(c *ForBlockContext)
+
+	// EnterForExpr is called when entering the forExpr production.
+	EnterForExpr(c *ForExprContext)
+
 	// EnterFromStmt is called when entering the fromStmt production.
 	EnterFromStmt(c *FromStmtContext)
 
@@ -262,6 +274,18 @@ type EarthParserListener interface {
 
 	// ExitElseIfExpr is called when exiting the elseIfExpr production.
 	ExitElseIfExpr(c *ElseIfExprContext)
+
+	// ExitForStmt is called when exiting the forStmt production.
+	ExitForStmt(c *ForStmtContext)
+
+	// ExitForClause is called when exiting the forClause production.
+	ExitForClause(c *ForClauseContext)
+
+	// ExitForBlock is called when exiting the forBlock production.
+	ExitForBlock(c *ForBlockContext)
+
+	// ExitForExpr is called when exiting the forExpr production.
+	ExitForExpr(c *ForExprContext)
 
 	// ExitFromStmt is called when exiting the fromStmt production.
 	ExitFromStmt(c *FromStmtContext)

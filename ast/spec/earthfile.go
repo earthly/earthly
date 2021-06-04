@@ -38,7 +38,7 @@ type Statement struct {
 	Command        *Command        `json:"command,omitempty"`
 	With           *WithStatement  `json:"with,omitempty"`
 	If             *IfStatement    `json:"if,omitempty"`
-	ForIn          *ForInStatement `json:"forIn,omitempty"`
+	For            *ForStatement   `json:"for,omitempty"`
 	SourceLocation *SourceLocation `json:"sourceLocation,omitempty"`
 }
 
@@ -75,10 +75,9 @@ type ElseIf struct {
 	SourceLocation *SourceLocation `json:"sourceLocation,omitempty"`
 }
 
-// ForInStatement is the AST representation of an if statement.
-type ForInStatement struct {
-	Variable       string          `json:"variable"`
-	Expression     []string        `json:"expression"`
+// ForStatement is the AST representation of a for statement.
+type ForStatement struct {
+	Args           []string        `json:"args"`
 	Body           Block           `json:"body"`
 	SourceLocation *SourceLocation `json:"sourceLocation,omitempty"`
 }
