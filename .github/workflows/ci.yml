@@ -93,6 +93,8 @@ jobs:
         run: ./build/linux/amd64/earthly config global.local_registry_host 'tcp://127.0.0.1:8371'
       - name: Execute interactive debugger test
         run: ./build/linux/amd64/earthly --ci --interactive -P ./examples/tests/interactive+all
+      - name: Execute interactive debugger test from outside
+        run: ./scripts/tests/interactive-debugger/test-interactive.py --earthly ./build/linux/amd64/earthly --timeout 60
       - name: Execute version test
         run: "./build/linux/amd64/earthly --version"
       - name: Execute docker2earth test
