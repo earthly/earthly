@@ -18,7 +18,8 @@ stmts: WS? stmt (NL+ WS? stmt)*;
 stmt:
 	commandStmt
 	| withStmt
-	| ifStmt;
+	| ifStmt
+	| forStmt;
 
 commandStmt:
 	fromStmt
@@ -74,6 +75,15 @@ elseBlock: stmts;
 
 ifExpr: expr;
 elseIfExpr: expr;
+
+// forStmt --------------------------------------------------------------------
+
+forStmt: forClause NL+ WS? END;
+
+forClause: FOR WS forExpr (NL+ WS? forBlock)?;
+forBlock: stmts;
+
+forExpr: stmtWords;
 
 // Regular commands -----------------------------------------------------------
 

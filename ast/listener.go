@@ -19,6 +19,7 @@ type block struct {
 	withStatement *spec.WithStatement
 	ifStatement   *spec.IfStatement
 	elseIf        *spec.ElseIf
+	forStatement  *spec.ForStatement
 }
 
 type listener struct {
@@ -437,6 +438,43 @@ func (l *listener) EnterElseBlock(c *parser.ElseBlockContext) {
 func (l *listener) ExitElseBlock(c *parser.ElseBlockContext) {
 	elseBlock := l.popBlock()
 	l.block().ifStatement.ElseBody = &elseBlock
+}
+
+// For ------------------------------------------------------------------------
+
+func (l *listener) EnterForStmt(c *parser.ForStmtContext) {
+	l.block().forStatement = new(spec.ForStatement)
+	if l.enableSourceMap {
+		l.block().forStatement.SourceLocation = &spec.SourceLocation{
+			File:        l.filePath,
+			StartLine:   c.GetStart().GetLine(),
+			StartColumn: c.GetStart().GetColumn(),
+			EndLine:     c.GetStop().GetLine(),
+			EndColumn:   c.GetStop().GetColumn(),
+		}
+	}
+}
+
+func (l *listener) ExitForStmt(c *parser.ForStmtContext) {
+	l.block().statement.For = l.block().forStatement
+	l.block().forStatement = nil
+}
+
+func (l *listener) EnterForExpr(c *parser.ForExprContext) {
+	l.stmtWords = []string{}
+}
+
+func (l *listener) ExitForExpr(c *parser.ForExprContext) {
+	l.block().forStatement.Args = l.stmtWords
+}
+
+func (l *listener) EnterForBlock(c *parser.ForBlockContext) {
+	l.pushNewBlock()
+}
+
+func (l *listener) ExitForBlock(c *parser.ForBlockContext) {
+	forBlock := l.popBlock()
+	l.block().forStatement.Body = forBlock
 }
 
 // EnvArgKey, EnvArgValue, LabelKey, LabelValue -------------------------------

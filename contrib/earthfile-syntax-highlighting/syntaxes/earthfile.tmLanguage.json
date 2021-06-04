@@ -147,6 +147,17 @@
 							"name": "keyword.other.special-method.earthfile"
 						},
 						"2": {
+							"name": "keyword.other.special-method.earthfile"
+						}
+					},
+					"match": "^\\s*\\b(FOR)\\b.*?\\b(IN)\\b"
+				},
+				{
+					"captures": {
+						"1": {
+							"name": "keyword.other.special-method.earthfile"
+						},
+						"2": {
 							"name": "entity.name.type.base-image.earthfile"
 						}
 					},
@@ -162,7 +173,7 @@
 				},
 				{
 					"name": "keyword.other.special-method.earthfile",
-					"match": "^\\s*(FROM|COPY|SAVE ARTIFACT|SAVE IMAGE|RUN|LABEL|EXPOSE|VOLUME|USER|ENV|ARG|BUILD|WORKDIR|ENTRYPOINT|CMD|GIT CLONE|DOCKER LOAD|DOCKER PULL|HEALTHCHECK|WITH DOCKER|END|IF|ELSE|ELSE IF|DO|COMMAND|IMPORT|LOCALLY)\\s"
+					"match": "^\\s*(FROM|COPY|SAVE ARTIFACT|SAVE IMAGE|RUN|LABEL|EXPOSE|VOLUME|USER|ENV|ARG|BUILD|WORKDIR|ENTRYPOINT|CMD|GIT CLONE|DOCKER LOAD|DOCKER PULL|HEALTHCHECK|WITH DOCKER|END|IF|ELSE|ELSE IF|DO|COMMAND|IMPORT|LOCALLY|FOR|VERSION)\\s"
 				}
 			]
 		},
