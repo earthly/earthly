@@ -8,6 +8,7 @@ ${TLS_ENABLED}
 [worker.oci]
   enabled = true
   snapshotter = "auto"
+  max-parallelism = 20
   gc = true
   networkMode = "${NETWORK_MODE}"
   cniBinaryPath = "/usr/libexec/cni"
