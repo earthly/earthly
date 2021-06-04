@@ -17,16 +17,18 @@ if [ -n "$EARTHLY_EMAIL" ] && [ -n "$EARTHLY_PASSWORD" ]; then
   earthly account login --email "$EARTHLY_EMAIL" --password "$EARTHLY_PASSWORD"
 fi
 
-# Right now, this container is BYOD - Bring Your Own Docker.
-if [ -z "$DOCKER_HOST" ]; then
-  echo "DOCKER_HOST is not set"
-  sleep 1
-fi
+# Skip docker if you are not exporting any images.
+if [ -z "$NO_DOCKER" ]; then
+  # Right now, this container is BYOD - Bring Your Own Docker.
+  if [ -z "$DOCKER_HOST" ]; then
+    echo "DOCKER_HOST is not set"
+  fi
 
-# Light check if docker is functional
-if ! docker images > /dev/null 2>&1; then
-  echo "Docker appears not to be connected. Please check your DOCKER_HOST variable, and try again."
-  exit 1
+  # Light check if docker is functional
+  if ! docker images > /dev/null 2>&1; then
+    echo "Docker appears not to be connected. Please check your DOCKER_HOST variable, and try again."
+    exit 1
+  fi
 fi
 
 # If no host specified, start an internal buildkit. If it is specified, rely on external setup
@@ -52,6 +54,8 @@ echo "Using $EARTHLY_BUILDKIT_HOST as buildkit daemon"
 BASE_DIR="/src"
 if [ -n "$SRC_DIR" ]; then
   BASE_DIR="$SRC_DIR"
+else
+  mkdir "$BASE_DIR"
 fi
 
 cd "$BASE_DIR"

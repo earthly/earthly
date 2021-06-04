@@ -285,6 +285,8 @@ earthly-integration-test-base:
     FROM +earthly-docker
     ENV EARTHLY_CONVERSION_PARALLELISM=5
     ENV GLOBAL_CONFIG={disable_analytics: true, local_registry_host: 'tcp://127.0.0.1:8371'}
+    ENV NO_DOCKER=1
+    ENV SRC_DIR=/test
     # The inner buildkit requires Docker hub creds to prevent rate-limiting issues.
     ARG DOCKERHUB_AUTH=true
     ARG DOCKERHUB_USER_SECRET=+secrets/earthly-technologies/dockerhub/user
@@ -441,3 +443,4 @@ examples2:
     BUILD ./examples/multiplatform+all
     BUILD ./examples/multiplatform-cross-compile+build-all-platforms
     BUILD github.com/earthly/hello-world:main+hello
+

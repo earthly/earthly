@@ -35,7 +35,7 @@ ga:
     BUILD +transitive-args-test2
     BUILD +non-transitive-args-test
     BUILD +star-test
-    BUILD +dockerfile-test
+    # BUILD +dockerfile-test
     BUILD +fail-test
     BUILD +fail-push-test
     BUILD +allow-privileged-test
@@ -526,7 +526,6 @@ cache-mount-arg:
     RUN cat output.txt
     RUN cat output.txt | grep '\*cached\* --> RUN echo Doing something 1'; test "$?" != 0
     RUN cat output.txt | grep '\*cached\* --> RUN echo Doing something 2'; test "$?" != 0
-gnejgbed
 
 RUN_EARTHLY:
     COMMAND
