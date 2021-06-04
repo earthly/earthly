@@ -129,6 +129,7 @@ CentOS users can use our rpm repo to install Earthly.
    ```bash
    sudo yum install earthly
    ```
+
 ### Native Windows
 
 {% hint style='danger' %}
