@@ -11,7 +11,7 @@
   ],
   "targets": [
     {
-      "name": "test",
+      "name": "test-pass-file",
       "recipe": [
         {
           "command": {
@@ -42,6 +42,32 @@
               "test",
               "-f",
               "/cache-test/test.txt"
+            ],
+            "name": "RUN"
+          }
+        }
+      ]
+    },
+    {
+      "name": "test-no-bust-on-change",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "mkdir",
+              "-p",
+              "/cache-test"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "--mount=type=cache,target=/cache-test",
+              "echo",
+              "hey",
+              ">/cache-test/test.txt"
             ],
             "name": "RUN"
           }
