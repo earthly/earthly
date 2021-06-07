@@ -37,6 +37,21 @@ git:
         password: itsasecret
 ```
 
+{% hint style='info' %}
+##### Tip
+To quickly change a configuration item via the `earthly` command, you can use [`earthly config`](../earthly-command/earthly-command.md#earthly-config).
+
+```bash
+earthly config <key> <value>
+```
+
+For example
+
+```bash
+earthly config global.cache_size_mb 20000
+```
+{% endhint %}
+
 ## Global configuration reference
 
 ### cache_size_mb
