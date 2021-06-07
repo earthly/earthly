@@ -1,4 +1,4 @@
-package logging
+package slog
 
 import "context"
 

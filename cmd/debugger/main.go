@@ -12,7 +12,7 @@ import (
 
 	"github.com/earthly/earthly/conslogging"
 	"github.com/earthly/earthly/debugger/common"
-	"github.com/earthly/earthly/logging"
+	"github.com/earthly/earthly/slog"
 
 	"github.com/alessio/shellescape"
 	"github.com/creack/pty"
@@ -84,7 +84,7 @@ func populateShellHistory(cmd string) error {
 }
 
 func interactiveMode(ctx context.Context, remoteConsoleAddr string, cmdBuilder func() (*exec.Cmd, error)) error {
-	log := logging.GetLogger(ctx)
+	log := slog.GetLogger(ctx)
 
 	conn, err := net.Dial("tcp", remoteConsoleAddr)
 	if err != nil {
@@ -214,7 +214,7 @@ func main() {
 
 	ctx := context.Background()
 
-	log := logging.GetLogger(ctx)
+	log := slog.GetLogger(ctx)
 
 	if forceInteractive {
 		quotedCmd := shellescape.QuoteCommand(args)

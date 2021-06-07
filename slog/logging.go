@@ -1,4 +1,7 @@
-package logging
+// Package slog is a structured logging library which is for use by shellrepeater
+// or any other servers, it should not be used by commands that are run directly
+// by users (e.g. the earthly binary)
+package slog
 
 import (
 	"fmt"

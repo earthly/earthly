@@ -7,7 +7,7 @@ import (
 	"os"
 	"sync"
 
-	"github.com/earthly/earthly/logging"
+	"github.com/earthly/earthly/slog"
 
 	"github.com/pkg/errors"
 )
@@ -22,7 +22,7 @@ type Server struct {
 	dataForTerminal chan []byte
 
 	addr string
-	log  logging.Logger
+	log  slog.Logger
 }
 
 func (s *Server) handleConn(conn net.Conn, readFrom, writeTo chan []byte) {
@@ -143,7 +143,7 @@ func (s *Server) Start() error {
 }
 
 // NewServer returns a new server
-func NewServer(addr string, log logging.Logger) *Server {
+func NewServer(addr string, log slog.Logger) *Server {
 	return &Server{
 		addr:            addr,
 		dataForShell:    make(chan []byte, 100),
