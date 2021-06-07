@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/earthly/earthly/debugger/common"
-	"github.com/earthly/earthly/logging"
+	"github.com/earthly/earthly/slog"
 
 	"github.com/sirupsen/logrus"
 )
@@ -16,7 +16,7 @@ import (
 func TestServer(t *testing.T) {
 	logrus.SetLevel(logrus.DebugLevel)
 	ctx := context.TODO()
-	log := logging.GetLogger(ctx).With("test.name", t.Name())
+	log := slog.GetLogger(ctx).With("test.name", t.Name())
 
 	addr := "127.0.0.1:9834"
 	s := NewServer(addr, log)
