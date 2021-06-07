@@ -1,0 +1,5 @@
+FROM alpine:latest
+
+fail:
+    RUN echo bWFnaWNzdHJpbmcK > data.txt
+    RUN false
