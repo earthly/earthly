@@ -2629,7 +2629,20 @@ func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []st
 	cleanCollection := cleanup.NewCollection()
 	defer cleanCollection.Close()
 
-	go terminal.ConnectTerm(c.Context, app.debuggerHost)
+	go func() {
+		// Dialing doesnt accept URLs, it accepts an address and a "network". These cannot be handled as URL schemes.
+		// Since Shellrepeater hard-codes TCP, we drop it here and log the error if we fail to connect.
+
+		u, err := url.Parse(app.debuggerHost)
+		if err != nil {
+			panic("debugger host was not a URL")
+		}
+
+		err = terminal.ConnectTerm(c.Context, u.Host)
+		if err != nil {
+			app.console.Warnf("Failed to connect to terminal: %s", err.Error())
+		}
+	}()
 
 	dotEnvVars := variables.NewScope()
 	for k, v := range dotEnvMap {
