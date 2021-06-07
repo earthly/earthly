@@ -2640,9 +2640,10 @@ func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []st
 			panic("debugger host was not a URL")
 		}
 
-		err = terminal.ConnectTerm(c.Context, u.Host)
+		debugTermConsole := app.console.WithPrefix("internal-term")
+		err = terminal.ConnectTerm(c.Context, u.Host, debugTermConsole)
 		if err != nil {
-			app.console.Warnf("Failed to connect to terminal: %s", err.Error())
+			debugTermConsole.Warnf("Failed to connect to terminal: %s", err.Error())
 		}
 	}()
 
