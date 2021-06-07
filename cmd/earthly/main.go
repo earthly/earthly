@@ -226,7 +226,7 @@ func main() {
 		padding = conslogging.NoPadding
 	}
 
-	app := newEarthlyApp(ctx, conslogging.Current(colorMode, padding))
+	app := newEarthlyApp(ctx, conslogging.Current(colorMode, padding, false))
 	app.autoComplete()
 
 	exitCode := app.run(ctx, os.Args)
@@ -931,6 +931,8 @@ func (app *earthlyApp) before(context *cli.Context) error {
 	if app.enableProfiler {
 		go profhandler()
 	}
+
+	app.console.SetVerbose(app.verbose)
 
 	if context.IsSet("config") {
 		app.console.Printf("loading config values from %q\n", app.configPath)

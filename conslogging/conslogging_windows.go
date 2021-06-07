@@ -10,7 +10,7 @@ import (
 )
 
 // Current returns the current console.
-func Current(colorMode ColorMode, prefixPadding int) ConsoleLogger {
+func Current(colorMode ColorMode, prefixPadding int, verbose bool) ConsoleLogger {
 	return ConsoleLogger{
 		outW:           colorable.NewColorable(os.Stderr), // So logs dont sully any intended outputs of commands.
 		errW:           colorable.NewColorable(os.Stderr),
@@ -19,5 +19,6 @@ func Current(colorMode ColorMode, prefixPadding int) ConsoleLogger {
 		nextColorIndex: new(int),
 		prefixPadding:  prefixPadding,
 		mu:             &currentConsoleMutex,
+		verbose:        verbose,
 	}
 }

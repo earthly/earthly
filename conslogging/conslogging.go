@@ -46,6 +46,7 @@ type ConsoleLogger struct {
 	colorMode ColorMode
 	isCached  bool
 	isFailed  bool
+	verbose   bool
 
 	// The following are shared between instances and are protected by the mutex.
 	mu             *sync.Mutex
@@ -64,6 +65,7 @@ func (cl ConsoleLogger) clone() ConsoleLogger {
 		prefix:         cl.prefix,
 		metadataMode:   cl.metadataMode,
 		isLocal:        cl.isLocal,
+		verbose:        cl.verbose,
 		salt:           cl.salt,
 		isCached:       cl.isCached,
 		isFailed:       cl.isFailed,
@@ -245,6 +247,20 @@ func (cl ConsoleLogger) PrintBytes(data []byte) {
 	}
 }
 
+// VerbosePrintf prints formatted text to the console when verbose flag is set.
+func (cl ConsoleLogger) VerbosePrintf(format string, args ...interface{}) {
+	if cl.verbose {
+		cl.Printf(format, args...)
+	}
+}
+
+// VerboseBytes prints bytes directly to the console when verbose flag is set.
+func (cl ConsoleLogger) VerboseBytes(data []byte) {
+	if cl.verbose {
+		cl.PrintBytes(data)
+	}
+}
+
 func (cl ConsoleLogger) printPrefix(useErrWriter bool) {
 	var w io.Writer
 	if useErrWriter {
@@ -322,4 +338,9 @@ func (cl ConsoleLogger) prettyPrefix() string {
 
 	formatString := fmt.Sprintf("%%%vv", cl.prefixPadding)
 	return fmt.Sprintf(formatString, fmt.Sprintf("%s%s", prettyPrefix, brackets))
+}
+
+// SetVerbose toggles the verbose level
+func (cl *ConsoleLogger) SetVerbose(verbose bool) {
+	cl.verbose = verbose
 }
