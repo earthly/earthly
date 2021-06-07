@@ -11,8 +11,8 @@ import (
 	"sync"
 	"syscall"
 
+	"github.com/earthly/earthly/conslogging"
 	"github.com/earthly/earthly/debugger/common"
-	"github.com/earthly/earthly/logging"
 
 	"github.com/creack/pty"
 	"github.com/pkg/errors"
@@ -40,11 +40,10 @@ func getWindowSizePayload() ([]byte, error) {
 }
 
 // ConnectTerm presents a terminal to the shell repeater
-func ConnectTerm(ctx context.Context, addr string) error {
-	log := logging.GetLogger(ctx)
-
+func ConnectTerm(ctx context.Context, addr string, console conslogging.ConsoleLogger) error {
 	var d net.Dialer
 
+	console.VerbosePrintf("connecting to shellrepeater on %v\n", addr)
 	conn, err := d.DialContext(ctx, "tcp", addr)
 	if err != nil {
 		return err
@@ -69,31 +68,32 @@ func ConnectTerm(ctx context.Context, addr string) error {
 		for {
 			connDataType, data, err := common.ReadDataPacket(conn)
 			if err != nil {
-				log.Error(errors.Wrap(err, "failed to read from connection"))
+				console.Warnf("ReadDataPacket failed: %s\n", err.Error())
 				break
 			}
 			switch connDataType {
 			case common.StartShellSession:
+				console.VerbosePrintf("starting new interactive shell pseudo terminal\n")
 				err := ts.makeRaw()
 				if err != nil {
-					log.Error(err)
+					console.Warnf("makeRaw failed: %s\n", err.Error())
 					break outer
 				}
 				sigs <- syscall.SIGWINCH
 			case common.EndShellSession:
 				err := ts.restore()
 				if err != nil {
-					log.Error(err)
+					console.Warnf("restore failed: %s\n", err.Error())
 					break outer
 				}
 			case common.PtyData:
 				err := handlePtyData(data)
 				if err != nil {
-					log.Error(errors.Wrap(err, "failed to handle pty data"))
+					console.Warnf("handlePtyData failed: %s\n", err.Error())
 					break outer
 				}
 			default:
-				log.With("datatype", connDataType).Warning("unhandled data type")
+				console.Warnf("unhandled terminal data type: %q\n", connDataType)
 				break outer
 			}
 		}
@@ -107,7 +107,7 @@ func ConnectTerm(ctx context.Context, addr string) error {
 			}
 			data, err := getWindowSizePayload()
 			if err != nil {
-				log.Error(errors.Wrap(err, "failed to restore terminal mode"))
+				console.Warnf("failed to get window size payload: %s\n", err.Error())
 				break
 			}
 			writeCh <- data
@@ -120,7 +120,7 @@ func ConnectTerm(ctx context.Context, addr string) error {
 			buf := <-writeCh
 			_, err := conn.Write(buf)
 			if err != nil {
-				log.Error(errors.Wrap(err, "failed to restore terminal mode"))
+				console.Warnf("failed to send term data to shell: %s\n", err.Error())
 				break
 			}
 		}
@@ -131,13 +131,13 @@ func ConnectTerm(ctx context.Context, addr string) error {
 			buf := make([]byte, 100)
 			n, err := os.Stdin.Read(buf)
 			if err != nil {
-				log.Error(errors.Wrap(err, "failed to read from stdin"))
+				console.Warnf("failed to read from stdin: %s\n", err.Error())
 				break
 			}
 			buf = buf[:n]
 			buf2, err := common.SerializeDataPacket(common.PtyData, buf)
 			if err != nil {
-				log.Error(errors.Wrap(err, "failed to serialize data"))
+				console.Warnf("failed to serialize data: %s\n", err.Error())
 				break
 			}
 
@@ -148,7 +148,7 @@ func ConnectTerm(ctx context.Context, addr string) error {
 
 	<-ctx.Done()
 
-	log.Debug("exiting interactive debugger shell")
+	console.VerbosePrintf("exiting interactive debugger shell\n")
 	err = ts.restore()
 	if err != nil {
 		return err
