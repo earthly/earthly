@@ -6,6 +6,10 @@ import (
 	"net"
 	"os"
 	"sync"
+
+	"github.com/earthly/earthly/logging"
+
+	"github.com/pkg/errors"
 )
 
 // Server provides a debugger server
@@ -18,6 +22,7 @@ type Server struct {
 	dataForTerminal chan []byte
 
 	addr string
+	log  logging.Logger
 }
 
 func (s *Server) handleConn(conn net.Conn, readFrom, writeTo chan []byte) {
@@ -33,7 +38,7 @@ func (s *Server) handleConn(conn net.Conn, readFrom, writeTo chan []byte) {
 			buf := make([]byte, 1024)
 			n, err := conn.Read(buf)
 			if err != nil {
-				fmt.Printf("err %v\n", err)
+				s.log.Error(errors.Wrap(err, "reading from connection failed"))
 				break
 			}
 			writeTo <- buf[:n]
@@ -52,7 +57,7 @@ func (s *Server) handleConn(conn net.Conn, readFrom, writeTo chan []byte) {
 			case data := <-readFrom:
 				_, err := conn.Write(data)
 				if err != nil {
-					fmt.Printf("failed %v\n", err)
+					s.log.Error(errors.Wrap(err, "writing to connection failed"))
 				}
 			}
 		}
@@ -72,6 +77,8 @@ func (s *Server) handleShellConn(conn net.Conn) {
 func (s *Server) handleRequest(conn net.Conn) {
 	defer conn.Close()
 
+	connLog := s.log.With("remote.addr", conn.RemoteAddr().String())
+
 	buf := make([]byte, 1)
 	conn.Read(buf)
 
@@ -90,13 +97,17 @@ func (s *Server) handleRequest(conn net.Conn) {
 		s.mux.Lock()
 		defer s.mux.Unlock()
 		if isShellConn {
+			connLog.Debug("received shell connection")
 			if s.shellConn != nil {
+				connLog.Debug("closing existing shell connection")
 				s.shellConn.Close()
 				s.shellConn = nil
 			}
 			s.shellConn = conn
 		} else {
+			connLog.Debug("received term connection")
 			if s.terminalConn != nil {
+				connLog.Debug("closing existing term connection")
 				s.terminalConn.Close()
 				s.terminalConn = nil
 			}
@@ -113,6 +124,7 @@ func (s *Server) handleRequest(conn net.Conn) {
 
 // Start starts the debug server listener
 func (s *Server) Start() error {
+	s.log.With("addr", s.addr).Debug("starting debugger server")
 	l, err := net.Listen("tcp", s.addr)
 	if err != nil {
 		return err
@@ -131,10 +143,11 @@ func (s *Server) Start() error {
 }
 
 // NewServer returns a new server
-func NewServer(addr string) *Server {
+func NewServer(addr string, log logging.Logger) *Server {
 	return &Server{
 		addr:            addr,
 		dataForShell:    make(chan []byte, 100),
 		dataForTerminal: make(chan []byte, 100),
+		log:             log,
 	}
 }

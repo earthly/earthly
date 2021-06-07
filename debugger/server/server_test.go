@@ -1,17 +1,25 @@
 package server
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"testing"
 	"time"
 
 	"github.com/earthly/earthly/debugger/common"
+	"github.com/earthly/earthly/logging"
+
+	"github.com/sirupsen/logrus"
 )
 
 func TestServer(t *testing.T) {
+	logrus.SetLevel(logrus.DebugLevel)
+	ctx := context.TODO()
+	log := logging.GetLogger(ctx).With("test.name", t.Name())
+
 	addr := "127.0.0.1:9834"
-	s := NewServer(addr)
+	s := NewServer(addr, log)
 	go s.Start()
 
 	time.Sleep(10 * time.Millisecond)
