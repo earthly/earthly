@@ -2,14 +2,21 @@
 
 set -e
 
-# Apply global configuration
-if [ -n "$GLOBAL_CONFIG" ]; then
-  earthly config global "$GLOBAL_CONFIG"
-fi
+earthly_config="/etc/.earthly/config.yml"
+if [ ! -f "$earthly_config" ]; then
+  # Missing config, generate it and use the env vars
+  # Do not do both, since that would write to the mounted config
+  mkdir -p "$(dirname $earthly_config)" && touch $earthly_config
 
-# Apply git configuration
-if [ -n "$GIT_CONFIG" ]; then
-  earthly config git "$GIT_CONFIG"
+  # Apply global configuration
+  if [ -n "$GLOBAL_CONFIG" ]; then
+    earthly --config $earthly_config config global "$GLOBAL_CONFIG"
+  fi
+
+  # Apply git configuration
+  if [ -n "$GIT_CONFIG" ]; then
+    earthly --config $earthly_config config git "$GIT_CONFIG"
+  fi
 fi
 
 # Skip docker if you are not exporting any images.
@@ -31,7 +38,7 @@ if [ -z "$BUILDKIT_HOST" ]; then
 
   # Is container running as privileged? This is currently required when starting up and using buildkit
   if ! captest --text | grep sys_admin > /dev/null; then
-    echo "Container appears to be running unprivilged. Currently, privileged mode is required when buildkit runs inside the container."
+    echo "Container appears to be running unprivileged. Currently, privileged mode is required when buildkit runs inside the container."
     exit 1
   fi
 
@@ -61,4 +68,4 @@ cd "$BASE_DIR"
 
 # Run earthly with given args.
 # Exec so we don't have to trap and manage signal propagation
-exec earthly "$@"
+exec earthly --config $earthly_config "$@"
