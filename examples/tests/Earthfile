@@ -16,6 +16,7 @@ ga:
     BUILD ./with-docker-compose+all
     BUILD ./dockerfile+test
     BUILD ./dockerfile2/subdir+test
+    BUILD ./version+test-all
     BUILD +privileged-test
     BUILD +copy-test
     BUILD +cache-test
@@ -71,7 +72,6 @@ ga:
     BUILD +infinite-recursion
     BUILD +from-dockerfile-arg
     BUILD +cache-mount-arg
-    BUILD ./version+test-all
 
 experimental:
     BUILD ./dind-auto-install+all
