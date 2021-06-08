@@ -31,6 +31,12 @@ if [ -z "$NO_DOCKER" ]; then
   fi
 fi
 
+# Is container running as privileged? This is currently required.
+if ! captest --text | grep sys_admin > /dev/null; then
+  echo "Container appears to be running unprivilged. Currently, privileged mode is required."
+  exit 1
+fi
+
 # If no host specified, start an internal buildkit. If it is specified, rely on external setup
 buildkit_pid=
 if [ -z "$BUILDKIT_HOST" ]; then
@@ -55,30 +61,10 @@ echo "Using $EARTHLY_BUILDKIT_HOST as buildkit daemon"
 BASE_DIR="/src"
 if [ -n "$SRC_DIR" ]; then
   BASE_DIR="$SRC_DIR"
-else
-  mkdir "$BASE_DIR"
 fi
 
 cd "$BASE_DIR"
 
 # Run earthly with given args.
-set +e
-earthly "$@"
-exit_code="$?"
-set -e
-
-# Shut down buildkitd for a graceful exit.
-if [ -n "$buildkit_pid" ]; then
-  kill "$buildkitd_pid" >/dev/null 2>&1 || true
-  i=1
-  timeout=10
-  while kill -0 "$buildkitd_pid" >/dev/null 2>&1 ; do
-      sleep 1
-      i=$((i+1))
-      if [ "$i" -gt "$timeout" ]; then
-          kill -9 "$buildkitd_pid" >/dev/null 2>&1 || true
-      fi
-  done
-fi
-
-exit "$exit_code"
+# Exec so we don't have to trap and manage signal propagation
+exec earthly "$@"

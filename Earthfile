@@ -271,8 +271,7 @@ earthly-all:
 earthly-docker:
     ARG BUILDKIT_PROJECT
     FROM ./buildkitd+buildkitd --BUILDKIT_PROJECT="$BUILDKIT_PROJECT"
-    RUN apk add --update --no-cache docker-cli
-    ENV NETWORK_MODE=host
+    RUN apk add --update --no-cache docker-cli libcap-ng-utils
     ENV EARTHLY_IMAGE=true
     COPY earthly-entrypoint.sh /usr/bin/earthly-entrypoint.sh
     ENTRYPOINT ["/usr/bin/earthly-entrypoint.sh"]
@@ -287,6 +286,7 @@ earthly-integration-test-base:
     ENV GLOBAL_CONFIG={disable_analytics: true, local_registry_host: 'tcp://127.0.0.1:8371'}
     ENV NO_DOCKER=1
     ENV SRC_DIR=/test
+    ENV NETWORK_MODE=host
     # The inner buildkit requires Docker hub creds to prevent rate-limiting issues.
     ARG DOCKERHUB_AUTH=true
     ARG DOCKERHUB_USER_SECRET=+secrets/earthly-technologies/dockerhub/user
