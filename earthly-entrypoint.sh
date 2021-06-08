@@ -38,7 +38,6 @@ if ! captest --text | grep sys_admin > /dev/null; then
 fi
 
 # If no host specified, start an internal buildkit. If it is specified, rely on external setup
-buildkit_pid=
 if [ -z "$BUILDKIT_HOST" ]; then
   export BUILDKIT_TCP_TRANSPORT_ENABLED=true
 
@@ -47,7 +46,6 @@ if [ -z "$BUILDKIT_HOST" ]; then
       --config=/etc/buildkitd.toml \
       >/var/log/buildkitd.log 2>&1 \
       &
-  buildkitd_pid="$!"
 
   EARTHLY_BUILDKIT_HOST="tcp://$(hostname):8372" # hostname is not recognized as local for this reason
   export EARTHLY_BUILDKIT_HOST
