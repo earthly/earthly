@@ -3,6 +3,8 @@ FROM ../../..+earthly-integration-test-base --DOCKERHUB_AUTH=$DOCKERHUB_AUTH
 
 IMPORT .. AS tests
 
+WORKDIR /test
+
 test-single-line:
     DO tests+RUN_EARTHLY --earthfile=single-line.earth --target=+test
 

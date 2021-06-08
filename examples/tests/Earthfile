@@ -16,6 +16,7 @@ ga:
     BUILD ./with-docker-compose+all
     BUILD ./dockerfile+test
     BUILD ./dockerfile2/subdir+test
+    BUILD ./version+test-all
     BUILD +privileged-test
     BUILD +copy-test
     BUILD +cache-test
@@ -71,7 +72,6 @@ ga:
     BUILD +infinite-recursion
     BUILD +from-dockerfile-arg
     BUILD +cache-mount-arg
-    BUILD ./version+test-all
 
 experimental:
     BUILD ./dind-auto-install+all
@@ -237,8 +237,7 @@ star-test-todo:
         test "$cached_lines" == "6"
 
 dockerfile-test:
-    COPY --dir dockerfile ./
-    WORKDIR /test/dockerfile
+    COPY dockerfile/* ./
     RUN --privileged \
         --entrypoint \
         --mount=type=tmpfs,target=/tmp/earthly \
@@ -374,13 +373,13 @@ end-comment:
 if-exists:
     DO +RUN_EARTHLY --earthfile=if-exists.earth --target=+save-exist-local
     DO +RUN_EARTHLY --earthfile=if-exists.earth --target=+save-not-exist \
-        --post_command="2>&1 | perl -pe 'BEGIN {\\\$status=1} END {exit \\\$status} \\\$status=0 if /save-not-exist/;'"
+      --post_command="2>&1 | perl -pe 'BEGIN {\\\$status=1} END {exit \\\$status} \\\$status=0 if /save-not-exist/;'"
     DO +RUN_EARTHLY --earthfile=if-exists.earth --target=+copy-not-exist \
-        --post_command="2>&1 | perl -pe 'BEGIN {\\\$status=1} END {exit \\\$status} \\\$status=0 if /copy-not-exist/;'"
+      --post_command="2>&1 | perl -pe 'BEGIN {\\\$status=1} END {exit \\\$status} \\\$status=0 if /copy-not-exist/;'"
     DO +RUN_EARTHLY --earthfile=if-exists.earth --target=+bad-wildcard-copy \
-        --post_command="2>&1 | perl -pe 'BEGIN {\\\$status=1} END {exit \\\$status} \\\$status=0 if /bad-wildcard-copy/;'"
+      --post_command="2>&1 | perl -pe 'BEGIN {\\\$status=1} END {exit \\\$status} \\\$status=0 if /bad-wildcard-copy/;'"
     DO +RUN_EARTHLY --earthfile=if-exists.earth --target=+bad-wildcard-save \
-        --post_command="2>&1 | perl -pe 'BEGIN {\\\$status=1} END {exit \\\$status} \\\$status=0 if /bad-wildcard-save/;'"
+      --post_command="2>&1 | perl -pe 'BEGIN {\\\$status=1} END {exit \\\$status} \\\$status=0 if /bad-wildcard-save/;'"
 
 file-copying:
     DO +RUN_EARTHLY --earthfile=file-copying.earth
@@ -551,7 +550,7 @@ RUN_EARTHLY:
             export EARTHLY_TMP_DIR=/tmp/earthly-tmpfs
         fi
         echo running earthly with $target
-        eval \"/usr/bin/earthly-buildkitd-wrapper.sh $extra_args $target $post_command\"
+        eval \"/usr/bin/earthly-entrypoint.sh $extra_args $target $post_command\"
         exit_code=\$?
         if $should_fail; then
             if [ \$exit_code -eq 0 ]; then

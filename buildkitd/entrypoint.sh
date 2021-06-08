@@ -65,7 +65,7 @@ fi
 
 #Set up CNI
 if [ -z "$CNI_MTU" ]; then
-  device=$(ip route show | grep default | cut -d' ' -f5)
+  device=$(ip route show | grep default | cut -d' ' -f5 | head -n 1)
   CNI_MTU=$(cat /sys/class/net/"$device"/mtu)
   export CNI_MTU
 fi
