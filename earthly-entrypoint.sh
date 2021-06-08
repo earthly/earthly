@@ -12,11 +12,6 @@ if [ -n "$GIT_CONFIG" ]; then
   earthly config git "$GIT_CONFIG"
 fi
 
-# We prefer you use EARTHLY_TOKEN directly, but this is here just in case
-if [ -n "$EARTHLY_EMAIL" ] && [ -n "$EARTHLY_PASSWORD" ]; then
-  earthly account login --email "$EARTHLY_EMAIL" --password "$EARTHLY_PASSWORD"
-fi
-
 # Skip docker if you are not exporting any images.
 if [ -z "$NO_DOCKER" ]; then
   # Right now, this container is BYOD - Bring Your Own Docker.
@@ -31,14 +26,15 @@ if [ -z "$NO_DOCKER" ]; then
   fi
 fi
 
-# Is container running as privileged? This is currently required.
-if ! captest --text | grep sys_admin > /dev/null; then
-  echo "Container appears to be running unprivilged. Currently, privileged mode is required."
-  exit 1
-fi
-
 # If no host specified, start an internal buildkit. If it is specified, rely on external setup
 if [ -z "$BUILDKIT_HOST" ]; then
+
+  # Is container running as privileged? This is currently required when starting up and using buildkit
+  if ! captest --text | grep sys_admin > /dev/null; then
+    echo "Container appears to be running unprivilged. Currently, privileged mode is required when buildkit runs inside the container."
+    exit 1
+  fi
+
   export BUILDKIT_TCP_TRANSPORT_ENABLED=true
 
   /usr/bin/entrypoint.sh \
@@ -56,7 +52,7 @@ fi
 echo "Using $EARTHLY_BUILDKIT_HOST as buildkit daemon"
 
 # Use the desired target dir for running a target, saves typing if you use the convention
-BASE_DIR="/src"
+BASE_DIR="/workspace"
 if [ -n "$SRC_DIR" ]; then
   BASE_DIR="$SRC_DIR"
 fi
