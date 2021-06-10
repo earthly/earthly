@@ -8,10 +8,12 @@ import (
 	"github.com/earthly/earthly/ast"
 	"github.com/earthly/earthly/ast/spec"
 	"github.com/earthly/earthly/cleanup"
+	"github.com/earthly/earthly/conslogging"
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/util/gitutil"
 	"github.com/earthly/earthly/util/llbutil/pllb"
 	"github.com/earthly/earthly/util/syncutil/synccache"
+
 	gwclient "github.com/moby/buildkit/frontend/gateway/client"
 	"github.com/pkg/errors"
 )
@@ -42,10 +44,11 @@ type Resolver struct {
 	lr *localResolver
 
 	parseCache *synccache.SyncCache // local path -> AST
+	console    conslogging.ConsoleLogger
 }
 
 // NewResolver returns a new NewResolver.
-func NewResolver(sessionID string, cleanCollection *cleanup.Collection, gitLookup *GitLookup) *Resolver {
+func NewResolver(sessionID string, cleanCollection *cleanup.Collection, gitLookup *GitLookup, console conslogging.ConsoleLogger) *Resolver {
 	return &Resolver{
 		gr: &gitResolver{
 			cleanCollection: cleanCollection,
@@ -56,8 +59,10 @@ func NewResolver(sessionID string, cleanCollection *cleanup.Collection, gitLooku
 		lr: &localResolver{
 			gitMetaCache: synccache.New(),
 			sessionID:    sessionID,
+			console:      console,
 		},
 		parseCache: synccache.New(),
+		console:    console,
 	}
 }
 
@@ -81,6 +86,7 @@ func (r *Resolver) Resolve(ctx context.Context, gwClient gwclient.Client, ref do
 		if _, isTarget := ref.(domain.Target); isTarget {
 			localDirs[ref.GetLocalPath()] = ref.GetLocalPath()
 		}
+
 		d, err = r.lr.resolveLocal(ctx, ref)
 		if err != nil {
 			return nil, err

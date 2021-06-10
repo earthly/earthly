@@ -6,12 +6,12 @@ buildkitd:
     IF [ "$BUILDKIT_PROJECT" != "" ]
         IF case "$BUILDKIT_PROJECT" in "../*") true;; "*") false;; esac
             # Assuming this is coming from the main Earthly Earthfile.
-            ARG BUILDKIT_BASE_IMAGE=../$BUILDKIT_PROJECT+build
+            ARG BUILDKIT_BASE_IMAGE=github.com/earthly/buildkit:00025901bf6b30a374e68eecf9fab9c28554bd25+build
         ELSE
-            ARG BUILDKIT_BASE_IMAGE=$BUILDKIT_PROJECT+build
+            ARG BUILDKIT_BASE_IMAGE=github.com/earthly/buildkit:00025901bf6b30a374e68eecf9fab9c28554bd25+build
         END
     ELSE
-        ARG BUILDKIT_BASE_IMAGE=github.com/earthly/buildkit:c896a903b73a001a756c8d40330874451dbe38c4+build
+        ARG BUILDKIT_BASE_IMAGE=github.com/earthly/buildkit:00025901bf6b30a374e68eecf9fab9c28554bd25+build
     END
     FROM $BUILDKIT_BASE_IMAGE
     RUN echo "@edge-community http://dl-cdn.alpinelinux.org/alpine/edge/community" >> /etc/apk/repositories
@@ -61,5 +61,6 @@ update-buildkit:
     LOCALLY
     ARG BUILDKIT_BRANCH=earthly-main
     RUN buildkit_sha1=$(git ls-remote --refs -q https://github.com/earthly/buildkit.git "$BUILDKIT_BRANCH" | awk 'BEGIN { FS = "[ \t]+" } {print $1}') && \
+        test ! -z "$buildkit_sha1" && \
         echo "pinning github.com/earthly/buildkit@${BUILDKIT_BRANCH} to reference git sha1: $buildkit_sha1" && \
-        sed -i 's/\(^[ \t]\+ARG BUILDKIT_BASE_IMAGE=\).*/\1github.com\/earthly\/buildkit:'$buildkit_sha1'+build/g' Earthfile
+        sed -i 's/\(^[ \t]\+ARG BUILDKIT_BASE_IMAGE=github.com\/earthly\/buildkit\).*/\1:'$buildkit_sha1'+build/g' Earthfile

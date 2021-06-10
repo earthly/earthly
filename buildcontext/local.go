@@ -2,10 +2,10 @@ package buildcontext
 
 import (
 	"context"
-	"fmt"
 	"path/filepath"
 
 	"github.com/earthly/earthly/analytics"
+	"github.com/earthly/earthly/conslogging"
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/util/gitutil"
 	"github.com/earthly/earthly/util/llbutil"
@@ -18,6 +18,7 @@ import (
 type localResolver struct {
 	gitMetaCache *synccache.SyncCache // local path -> *gitutil.GitMetadata
 	sessionID    string
+	console      conslogging.ConsoleLogger
 }
 
 func (lr *localResolver) resolveLocal(ctx context.Context, ref domain.Reference) (*Data, error) {
@@ -37,8 +38,7 @@ func (lr *localResolver) resolveLocal(ctx context.Context, ref domain.Reference)
 				// Keep going anyway. Either not a git dir, or git not installed, or
 				// remote not detected.
 				if errors.Is(err, gitutil.ErrNoGitBinary) {
-					// TODO: Log this properly in the console.
-					fmt.Printf("Warning: %s\n", err.Error())
+					lr.console.Warnf("Warning: %s\n", err.Error())
 				}
 			} else {
 				return nil, err

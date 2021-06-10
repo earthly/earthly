@@ -250,14 +250,14 @@ func (cl ConsoleLogger) PrintBytes(data []byte) {
 // VerbosePrintf prints formatted text to the console when verbose flag is set.
 func (cl ConsoleLogger) VerbosePrintf(format string, args ...interface{}) {
 	if cl.verbose {
-		cl.Printf(format, args...)
+		cl.WithMetadataMode(true).Printf(format, args...)
 	}
 }
 
 // VerboseBytes prints bytes directly to the console when verbose flag is set.
 func (cl ConsoleLogger) VerboseBytes(data []byte) {
 	if cl.verbose {
-		cl.PrintBytes(data)
+		cl.WithMetadataMode(true).PrintBytes(data)
 	}
 }
 
@@ -340,7 +340,9 @@ func (cl ConsoleLogger) prettyPrefix() string {
 	return fmt.Sprintf(formatString, fmt.Sprintf("%s%s", prettyPrefix, brackets))
 }
 
-// SetVerbose toggles the verbose level
-func (cl *ConsoleLogger) SetVerbose(verbose bool) {
-	cl.verbose = verbose
+// WithVerbose toggles the verbose level
+func (cl ConsoleLogger) WithVerbose(verbose bool) ConsoleLogger {
+	ret := cl.clone()
+	ret.verbose = verbose
+	return ret
 }

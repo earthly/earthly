@@ -209,7 +209,7 @@ func main() {
 
 	if debuggerSettings.DebugLevelLogging {
 		logrus.SetLevel(logrus.DebugLevel)
-		conslogger.SetVerbose(true)
+		conslogger = conslogger.WithVerbose(true)
 	}
 
 	ctx := context.Background()

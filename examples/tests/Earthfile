@@ -94,6 +94,12 @@ copy-test:
         echo "sub" > in/sub/file
     DO +RUN_EARTHLY --earthfile=copy.earth
 
+    RUN echo "output.txt" > .earthignore
+    DO +RUN_EARTHLY --earthfile=copy.earth --extra_args="--verbose"  --post_command="2>output.txt"
+    RUN cat output.txt
+    RUN cat output.txt | grep 'sent data for in/root (5 bytes)'
+    RUN cat output.txt | grep 'transfered 4 file(s) for context . (261 bytes, 8 file/dir stats)'
+
 cache-test:
     # Test that a file can be passed between runs through the mounted cache.
     DO +RUN_EARTHLY --earthfile=cache1.earth --target=+test-pass-file --use_tmpfs=false
