@@ -648,6 +648,22 @@ jobs:
         run: ./build/linux/amd64/earthly config global.local_registry_host 'tcp://127.0.0.1:8371'
       - name: Build and push +prerelease
         run: ./build/linux/amd64/earthly --ci --push +prerelease
+      - name: Update DockerHub description for earthly/earthly
+        uses: peter-evans/dockerhub-description@v2
+        env:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          repository: earthly/earthly
+          readme-filepath: ./docs/docker-images/all-in-one.md
+          short-description: ${{ github.event.repository.description }}
+      - name: Update DockerHub description for earthly/earthly
+        uses: peter-evans/dockerhub-description@v2
+        env:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          repository: earthly/buildkitd
+          readme-filepath: ./docs/docker-images/buildkit-standalone.md
+          short-description: Standalone Earthly buildkitd image
       - name: Buildkit logs (runs on failure)
         run: docker logs earthly-buildkitd
         if: ${{ failure() }}
