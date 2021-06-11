@@ -652,7 +652,7 @@ jobs:
         uses: peter-evans/dockerhub-description@v2
         env:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          password: ${{ secrets.DOCKERHUB_PASSWORD }}
           repository: earthly/earthly
           readme-filepath: ./docs/docker-images/all-in-one.md
           short-description: ${{ github.event.repository.description }}
@@ -660,7 +660,7 @@ jobs:
         uses: peter-evans/dockerhub-description@v2
         env:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          password: ${{ secrets.DOCKERHUB_PASSWORD }}
           repository: earthly/buildkitd
           readme-filepath: ./docs/docker-images/buildkit-standalone.md
           short-description: Standalone Earthly buildkitd image
