@@ -14,7 +14,7 @@ Want to just get started? Here are a couple sample `docker run` commands that co
 ### Simple Usage
 
 ```bash
-docker run --privileged -t -e NO_DOCKER=1 -v $(pwd):/workspace earthly/earthly:latest +for-linux
+docker run --privileged -t -e NO_DOCKER=1 -v $(pwd):/workspace -v earthly-tmp:/tmp/earthly:rw earthly/earthly:latest +for-linux
 ```
 
 Heres a quick breakdown:
@@ -23,12 +23,13 @@ Heres a quick breakdown:
 - `-t` tells Docker to emulate a TTY. This makes the `earthly` log output colorized.
 - `-e NO_DOCKER=1` skips the check for a functional Docker daemon. If you are not exporting any images, you do not need Docker.
 - `-v $(pwd):/workspace` mounts the source code into the conventional location within the docker container. Earthly is executed from this directory when starting the container. Any artifacts saved within this folder remain on your local machine.
+- `-v earthly-tmp:/tmp/earthly:rw` mounts (and creates, if necessary) the `earthly-tmp` Docker volume into the containers `/tmp/earthly`. This is used as a temporary/working directory for `buildkitd` during builds.
 - `+for-linux` is the target to be invoked. All arguments specified after the image tag will be passed to `earthly`.
 
 ### More Complicated Usage
 
 ```bash
-docker run -t --privileged -v $(pwd):/workspace:rw --network=host -v ~/.earthly/config.yml:/etc/.earthly/config.yml -e DOCKER_HOST="tcp://192.168.1.234:2375" earthly/earthly:latest --ci -P +for-linux
+docker run -t --privileged -v $(pwd):/workspace:rw -v earthly-tmp:/tmp/earthly:rw --network=host -v ~/.earthly/config.yml:/etc/.earthly/config.yml -e DOCKER_HOST="tcp://192.168.1.234:2375" earthly/earthly:latest --ci -P +for-linux
 ```
 
 Omitting the options already discussed from the simple example:
@@ -51,7 +52,9 @@ If you are using the baked-in `buildkitd`, then this image needs to be run as a 
 
 #### EARTHLY_TMP_DIR
 
-Because this folder sees _a lot_ of traffic, its important that it remains fast. You should almost always use a ocker volume, or a host mount for this folder. If you do not, `buildkitd` can consume excessive disk space.
+Because this folder sees _a lot_ of traffic, its important that it remains fast. You should almost always use a Docker volume. If you do not, `buildkitd` can consume excessive disk space and operate very slowly.
+
+Using a host mount _can_ work, but only on Linux. We almost always recommend using a volume for this mount.
 
 #### Source Mounting
 

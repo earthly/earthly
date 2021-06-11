@@ -16,21 +16,21 @@ Want to just get started? Here are a couple sample `docker run` commands that co
 ### Simple Usage (Use Locally)
 
 ```bash
-docker run --privileged -t -v /tmp/earthly:/tmp/earthly:rw earthly/buildkitd:latest
+docker run --privileged -t -v earthly-tmp:/tmp/earthly:rw earthly/buildkitd:latest
 ```
 
 Heres a quick breakdown:
 
 - `--privileged` is required. This is because `earthly` needs some privileged `buildkit` functionality.
 - `-t` tells Docker to emulate a TTY. This makes the `buildkit` log output colorized.
-- `-v /tmp/earthly:/tmp/earthly:rw` mounts the hosts `/tmp/earthly` into the containers `/tmp/earthly`. This is used as a temporary/working directory for `buildkitd` during builds.
+- `-v earthly-tmp:/tmp/earthly:rw` mounts (and creates, if necessary) the `earthly-tmp` Docker volume into the containers `/tmp/earthly`. This is used as a temporary/working directory for `buildkitd` during builds.
 
 Assuming you are running this on your machine, you could use this `buildkitd` by setting `EARTHLY_BUILDKIT_HOST=docker-container://<container-name>`, or by specifying the appropriate values in `config.yml`.
 
 ### Usage (Use As Remote)
 
 ```bash
-docker run --privileged -t -v /tmp/earthly:/tmp/earthly:rw -e BUILDKIT_TCP_TRANSPORT_ENABLED=true -p 8372:8372 earthly/buildkitd:latest
+docker run --privileged -t -v earthly-tmp:/tmp/earthly:rw -e BUILDKIT_TCP_TRANSPORT_ENABLED=true -p 8372:8372 earthly/buildkitd:latest
 ```
 
 Omitting the options already discussed from the simple example:
@@ -50,7 +50,9 @@ This image needs to be run as a privileged container. This is because `buildkitd
 
 #### EARTHLY_TMP_DIR
 
-Because this folder sees _a lot_ of traffic, its important that it remains fast. You should almost always use a ocker volume, or a host mount for this folder. If you do not, `buildkitd` can consume excessive disk space.
+Because this folder sees _a lot_ of traffic, its important that it remains fast. You should almost always use a Docker volume. If you do not, `buildkitd` can consume excessive disk space and operate very slowly.
+
+Using a host mount _can_ work, but only on Linux. We almost always recommend using a volume for this mount.
 
 #### External Usage
 
