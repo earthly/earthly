@@ -14,6 +14,10 @@ Earthly has the ability to use secure cloud-based storage for build secrets. Thi
 
 Cloud secrets can be used to share secrets between team members or across multiple computers and a CI systems.
 
+## Introduction
+
+This document covers the use of cloud-hosted secrets. It builds upon the understanding of [build arguments and locally-supplied secrets](build-args.md).
+
 ## Managing secrets
 
 In order to be able to use cloud secrets, you need to first register an Earthly cloud account.
@@ -69,7 +73,9 @@ earthly secrets get /user/my_key
 
 ## Using cloud secrets in builds
 
-Secrets can also be referenced in an Earthfile:
+Cloud secrets can be referenced in an Earthfile, in a similar way to [locally-defined secrets](build-args.md).
+
+Consider the Earthfile:
 
 ```Dockerfile
 FROM alpine:latest
@@ -86,6 +92,15 @@ You can build it via:
 ```bash
 earthly +build
 ```
+
+{% hint style='info' %}
+### Naming of local and cloud-based secrets
+
+The only difference between the naming of locally-supplied and cloud-based secrets is that cloud secrets will contain
+two or more slashes; where as locally-defined secret names will only start with the `+secrets/` suffix,
+followed by a single name and no other slashes.
+{% endhint %}
+
 
 ## Sharing secrets
 
@@ -161,6 +176,16 @@ EARTHLY_TOKEN=...
 
 Which will then force Earthly to use that token when accessing secrets. This is useful for cases
 where running an ssh-agent is impractical.
+
+# Security Details
+
+The Earthly command uses HTTPS to communicate with the cloud secrets server. The server encrypts all
+secrets using OpenPGP's implemtation of AES256 before storing it in a database.
+
+Secrets are presented to buildkit in a similar fashion as [locally-supplied secrets](build-args.md#storage-of-secrets):
+When buildkit encounters a `RUN` command that requires a secret, the buildkit daemon will request the secret
+from the earthly command-line process -- `earthly` will then make a request to earthly's cloud storage server
+(along with the auth token); once the server returns the secret, that secret will be passed to buildkit.
 
 # Feedback
 

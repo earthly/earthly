@@ -16,6 +16,7 @@
 * Guides
     * [Authenticating Git and image registries](guides/auth.md)
     * [Target, artifact and command referencing](guides/target-ref.md)
+    * [Build arguments and secrets](guides/build-args.md)
     * [User-defined commands (UDCs)](guides/udc.md)
     * [Managing cache](guides/cache.md)
     * [Advanced local caching](guides/advanced-local-caching.md)
