@@ -12,6 +12,7 @@ import (
 
 	"github.com/earthly/earthly/conslogging"
 
+	"github.com/dustin/go-humanize"
 	"github.com/moby/buildkit/session"
 	"github.com/moby/buildkit/session/filesync"
 	"github.com/pkg/errors"
@@ -148,7 +149,7 @@ func (bcp *BuildContextProvider) handle(method string, stream grpc.ServerStream)
 			numStats++
 			//console.VerbosePrintf("sent file stat for %s\n", fullPath) ignored as it is too verbose. TODO add different verbose levels to support ExtraVerbosePrintf
 		case fsutil.StatusSent:
-			console.VerbosePrintf("sent data for %s (%d bytes)\n", fullPath, numBytes)
+			console.VerbosePrintf("sent data for %s (%s)\n", fullPath, humanize.Bytes(uint64(numBytes)))
 			numSends++
 		case fsutil.StatusFailed:
 			console.VerbosePrintf("sent data for %s failed\n", fullPath)
@@ -163,7 +164,7 @@ func (bcp *BuildContextProvider) handle(method string, stream grpc.ServerStream)
 		mutex.Lock()
 		defer mutex.Unlock()
 		if last {
-			console.Printf("transferred %d file(s) for context %s (%d bytes, %d file/dir stats)", numSends, dir.Dir, numBytes, numStats)
+			console.Printf("transferred %d file(s) for context %s (%s, %d file/dir stats)", numSends, dir.Dir, humanize.Bytes(uint64(numBytes)), numStats)
 		}
 	}
 
