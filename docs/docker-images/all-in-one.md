@@ -12,7 +12,7 @@ $ docker run --privileged -t -e NO_DOCKER=1 -v $(pwd):/workspace earthly/earthly
 
 Heres a quick breakdown:
 
-- `--privileged` is required when you are using the internal `buildkit`. This is because `buildkit` currently requires is when used with `earthly`.
+- `--privileged` is required when you are using the internal `buildkit`. This is because `buildkit` currently requires it for overlayfs support.
 - `-t` tells Docker to emulate a TTY. This makes the `earthly` log output colorized.
 - `-e NO_DOCKER=1` skips the check for a functional Docker daemon. If you are not exporting any images, you do not need Docker.
 - `-v $(pwd):/workspace` mounts the source code into the conventional location within the docker container. Earthly is executed from this directory when starting the container. Any artifacts saved within this folder remain on your local machine.
