@@ -30,13 +30,13 @@ Assuming you are running this on your machine, you could use this `buildkitd` by
 ### Usage (Use As Remote)
 
 ```bash
-docker run --privileged -t -v /tmp/earthly:/tmp/earthly:rw -e BUILDKIT_TCP_TRANSPORT_ENABLED=true -p 127.0.0.1:8372:8372 earthly/buildkitd:latest
+docker run --privileged -t -v /tmp/earthly:/tmp/earthly:rw -e BUILDKIT_TCP_TRANSPORT_ENABLED=true -p 8372:8372 earthly/buildkitd:latest
 ```
 
 Omitting the options already discussed from the simple example:
 
 - `-e BUILDKIT_TCP_TRANSPORT_ENABLED=true` makes `buildkitd` listen on a TCP port instead of a Unix socket.
-- `-p 127.0.0.1:8372:8372` forwards the hosts port 8372 to the containers port 8372. When using TCP, `buildkit` will always listen on 8372, but you can configure the apparent port by forwarding a different port on your host.
+- `-p 8372:8372` forwards the hosts port 8372 to the containers port 8372. When using TCP, `buildkit` will always listen on 8372, but you can configure the apparent port by forwarding a different port on your host.
 
 Assuming you ran this on another machine named `fast-builder`, you could use this remote `buildkitd` by setting `EARTHLY_BUILDKIT_HOST=tcp://fast-builder:8372`, or by specifying the address in your `config.yml`.
 
