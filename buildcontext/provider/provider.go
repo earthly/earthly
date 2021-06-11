@@ -163,7 +163,7 @@ func (bcp *BuildContextProvider) handle(method string, stream grpc.ServerStream)
 		mutex.Lock()
 		defer mutex.Unlock()
 		if last {
-			console.Printf("transfered %d file(s) for context %s (%d bytes, %d file/dir stats)", numSends, dir.Dir, numBytes, numStats)
+			console.Printf("transferred %d file(s) for context %s (%d bytes, %d file/dir stats)", numSends, dir.Dir, numBytes, numStats)
 		}
 	}
 
