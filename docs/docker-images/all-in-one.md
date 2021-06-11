@@ -52,9 +52,7 @@ If you are using the baked-in `buildkitd`, then this image needs to be run as a 
 
 #### EARTHLY_TMP_DIR
 
-Because this folder sees _a lot_ of traffic, its important that it remains fast. You should almost always use a Docker volume. If you do not, `buildkitd` can consume excessive disk space and operate very slowly.
-
-Using a host mount _can_ work, but only on Linux. We almost always recommend using a volume for this mount.
+Because this folder sees _a lot_ of traffic, its important that it remains fast. We *strongly* recommend using a Docker volume. If you do not, `buildkitd` can consume excessive disk space and/or operate very slowly.
 
 #### Source Mounting
 
