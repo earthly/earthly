@@ -1,5 +1,14 @@
 This image contains `buildkit` with some Earthly-specific setup. This is what Earthly will start when using a local daemon. You can also start it up yourself and use it as a remote/shared buildkit daemon.
 
+*Note that versions of this container have only ever been tested with their corresponding version of `earthly`.* Mismatched versions are unspported.
+
+## Tags
+
+ * `prerelase`
+ * `v0.5.16`, `latest`
+ * `v0.5.15`
+ * `v0.5.14`
+
 ## Quickstart
 
 Want to just get started? Here are a couple sample `docker run` commands that cover the most common use-cases:
@@ -7,7 +16,7 @@ Want to just get started? Here are a couple sample `docker run` commands that co
 ### Simple Usage (Use Locally)
 
 ```bash
-$ docker run --privileged -t -v /tmp/earthly:/tmp/earthly:rw earthly/buildkitd:latest
+docker run --privileged -t -v /tmp/earthly:/tmp/earthly:rw earthly/buildkitd:latest
 ```
 
 Heres a quick breakdown:
@@ -21,7 +30,7 @@ Assuming you are running this on your machine, you could use this `buildkitd` by
 ### Usage (Use As Remote)
 
 ```bash
-$ docker run --privileged -t -v /tmp/earthly:/tmp/earthly:rw -e BUILDKIT_TCP_TRANSPORT_ENABLED=true -p 127.0.0.1:8372:8372 earthly/buildkitd:latest
+docker run --privileged -t -v /tmp/earthly:/tmp/earthly:rw -e BUILDKIT_TCP_TRANSPORT_ENABLED=true -p 127.0.0.1:8372:8372 earthly/buildkitd:latest
 ```
 
 Omitting the options already discussed from the simple example:
@@ -39,11 +48,15 @@ Assuming you ran this on another machine named `fast-builder`, you could use thi
 
 This image needs to be run as a privileged container. This is because `buildkitd` needs appropriate access to start and run additional containers itself via `runc`.
 
+#### EARTHLY_TMP_DIR
+
+Because this folder sees _a lot_ of traffic, its important that it remains fast. You should almost always use a ocker volume, or a host mount for this folder. If you do not, `buildkitd` can consume excessive disk space.
+
 #### External Usage
 
 To use this image externally, it requires you to forward a port on your machine to the containers port 8372. You will need to ensure that external access to the machine on the port you chose is possible as well.
 
-If you are using this container locally, please note that `EARTHLY_BUILDKIT_HOST` values where the host is `127.0.0.1`, ` ::1/128`, or `localhost` are considered local and will result in Earthly attempting to manage the buildkit container itself. Consider using your hostname, or another alternative name in these cases.
+When using this container locally with `earthly`,  please note that setting `EARTHLY_BUILDKIT_HOST` values with hosts `127.0.0.1`, ` ::1/128`, or `localhost` are considered local and will result in Earthly attempting to manage the buildkit container itself. Consider using your hostname, or another alternative name in these cases.
 
 ### Supported Environment Variables
 

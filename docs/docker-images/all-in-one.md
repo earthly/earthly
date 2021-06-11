@@ -1,5 +1,12 @@
 This image contains `earthly`, `buildkit`, and some extra configuration to enable the two to work together. All that's missing is your source code! This image is mainly intended for use in containerized CI scenarios, or where maintaining a persistent installation of `earthly` isn't possible.
 
+## Tags
+
+ * `prerelase`
+ * `v0.5.16`, `latest`
+ * `v0.5.15`
+ * `v0.5.14`
+
 ## Quickstart
 
 Want to just get started? Here are a couple sample `docker run` commands that cover the most common use-cases:
@@ -7,7 +14,7 @@ Want to just get started? Here are a couple sample `docker run` commands that co
 ### Simple Usage
 
 ```bash
-$ docker run --privileged -t -e NO_DOCKER=1 -v $(pwd):/workspace earthly/earthly:latest +for-linux
+docker run --privileged -t -e NO_DOCKER=1 -v $(pwd):/workspace earthly/earthly:latest +for-linux
 ```
 
 Heres a quick breakdown:
@@ -21,14 +28,14 @@ Heres a quick breakdown:
 ### More Complicated Usage
 
 ```bash
-$ docker run -t --privileged -v $(pwd):/workspace:rw --network=host -v ~/.earthly/config.yml:/etc/.earthly/config.yml -e DOCKER_HOST="tcp://0.0.0.0:2375" earthly/earthly:corey_entrypoint --ci -P +for-linux
+docker run -t --privileged -v $(pwd):/workspace:rw --network=host -v ~/.earthly/config.yml:/etc/.earthly/config.yml -e DOCKER_HOST="tcp://192.168.1.234:2375" earthly/earthly:corey_entrypoint --ci -P +for-linux
 ```
 
 Omitting the options already discussed from the simple example:
 
-- `--network=host` runs the container on the host machines network. This is necessary so (in this example) `earthly` can reach the host machines Docker daemon.
+- `--network=host` runs the container on the host machines network. This is necessary so (in this example) `earthly` can reach the Docker host.
 - `-v ~/.earthly/config.yml:/etc/.earthly/config.yml` mounts a custom `earthly` configuration file in the conventional location.
-- `-e DOCKER_HOST="tcp://0.0.0.0:2375"` specifies the external Docker host that will be used. This endpoint will be checked for accessibility before the target is built.
+- `-e DOCKER_HOST="tcp://192.168.1.234:2375"` specifies the external Docker host that will be used. This endpoint will be checked for accessibility before the target is built.
 - `--ci` run `earthly` in CI mode.
 - `-P` runs `earthly` in privileged mode.
 
@@ -40,7 +47,11 @@ There are a couple requirements this image expects you to follow when using it. 
 
 #### Privileged Mode
 
-If you are using the baked-in `buildkitd`, then this image needs to be run as a privileged container. This is because `buildkitd` needs appropriate access to start and run additional containers itself via `runc`.
+If you are using the baked-in `buildkitd`, then this image needs to be run as a privileged container. This is because `buildkitd` needs appropriate access to use `overlayfs`.
+
+#### EARTHLY_TMP_DIR
+
+Because this folder sees _a lot_ of traffic, its important that it remains fast. You should almost always use a ocker volume, or a host mount for this folder. If you do not, `buildkitd` can consume excessive disk space.
 
 #### Source Mounting
 
