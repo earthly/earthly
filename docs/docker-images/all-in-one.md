@@ -61,6 +61,8 @@ Because `earthly` is running inside a container, it does not have access to your
 
 This image *does* include a functional Docker CLI, but does not include a full Docker daemon. If your `Earthfile` requires a Docker daemon of any sort, you will need to provide it through this environment variable.
 
+If your daemon is on the same host as this container, you can also volume mount your hosts docker daemon using `-v /var/run/docker.sock:/var/run/docker.sock`. Note that this will cause `earthly` to use your hosts Docker daemon, and could lead to name conflicts if multiple copies of this image are run on the same host.
+
 #### -t
 
 This is the easiest way to ensure you get the nice, colorized output from `earthly`. Alternatively, you could provide the `FORCE_COLOR` environment variable.
@@ -73,7 +75,7 @@ This is the easiest way to ensure you get the nice, colorized output from `earth
 | GIT_CONFIG                          |                                | Any valid YAML for the top-level `git` key in `config.yml`. Example: `{example: {pattern: 'example.com/([^/]+)', substitute: 'ssh://git@example.com:2222/var/git/repos/\$1.git', auth: ssh}}`         |
 | NO_DOCKER                           |                                | Disables the check for a working Docker Daemon. Setting this _at all_ disables the check.                                                                                                             |
 | DOCKER_HOST                         | `/var/run/docker.sock`         | From Docker's CLI.                                                                                                                                                                                    |
-| BUILDKIT_HOST                       | `tcp://<hostname>:8372`        | The address of your buildkit host. Use this when you have a remote `buildkitd` you would like to connect to.                                                                                          |             
+| BUILDKIT_HOST                       | `tcp://<hostname>:8372`        | The address of your buildkit host. Use this when you have a remote `buildkitd` you would like to connect to.                                                                                          |
 | SRC_DIR                             | `/workspace`                   | The working directory for `earthly`. Usually host-mounted.                                                                                                                                            |
 | EARTHLY_ADDITIONAL_BUILDKIT_CONFIG  |                                | Additional `buildkitd` config to append to the generated configuration file.                                                                                                                          |
 | BUILDKIT_LOCAL_REGISTRY_LISTEN_PORT | `8371`                         | What port should the internal cache registry listen on?                                                                                                                                               |
