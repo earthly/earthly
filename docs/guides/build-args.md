@@ -91,7 +91,9 @@ Argument values can be set multiple ways:
 ## Passing Argument values to targets
 
 Build arguments can also be set when calling build targets. If multiple build arguments values are defined for the same argument name,
-earthly will build the target for each value. For example, we can create a new `greetings` target which calls `+hello` multiple times:
+earthly will build the target for each value; this makes it easy to configure a "build matrix" within Earthly.
+
+For example, we can create a new `greetings` target which calls `+hello` multiple times:
 
 ```dockerfile
 greetings:
@@ -121,7 +123,7 @@ Then when we call `earthly +greetings`, earthly will call `+hello` three times:
         output | --> exporting outputs
 ```
 
-In addition to the `BUILD` command, the `--build-arg` flag can also be used with `FROM` and `COPY` commands.
+In addition to the `BUILD` command, the `--build-arg` flag can also be used with `FROM`, `COPY` and a number of other commands.
 
 ## Passing secrets to RUN commands
 
@@ -145,7 +147,7 @@ RUN --mount type=secret,target=/root/mypassword,id=+secrets/passwd echo "my pass
 The file will not be saved to the image snapshot.
 {% endhint %}
 
-The value for `+secrets/passwd` must then be supplied to earthly on the command line. Either directly via:
+The value for `+secrets/passwd` must then be supplied when earthly is invoked. This can be either done directly via:
 
 ```bash
 earthly --secret passwd=itsasecret +hush
@@ -158,7 +160,9 @@ passwd=itsasecret \
 earthly --secret passwd +hush
 ```
 
-Running either of those commands will output:
+Alternatively, earthly offers [cloud-based secrets](cloud-secrets.md) if you need to share secrets between colleagues.
+
+Once earthly is invoked, it will output:
 
 ```
 +hush | --> RUN echo "my password is $mypassword"
@@ -182,11 +186,6 @@ Earthly stores the contents of command-line-supplied secrets in memory on the lo
 daemon will request the secret from the earthly command-line process and will temporarily mount the secret inside the runc container that is evaluating the `RUN` command.
 Once the command finishes the secret is unmounted. It will not persist as an environment variable within the saved container snapshot. Secrets will persist in-memory
 until the earthly command exits.
-
-{% hint style='danger' %}
-Earthly and BuildKit communicate over an unencrypted TCP connection *only* when running on the same host; therefore any users on the localhost with network packet inspection
-privileges could gain access to the secrets. Similarly, users with root level access could gain access to secrets by inspecting the memory contents of BuildKit or earthly.
-{% endhint %}
 
 Earthly also supports cloud-based shared secrets which can be stored in the cloud. Secrets are never stored in the cloud unless a user creates an earthly account and
 explicitly calls the `earthly secrets set ...` command to transmit the secret to the earthly cloud-based secrets server.

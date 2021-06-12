@@ -97,8 +97,8 @@ earthly +build
 ### Naming of local and cloud-based secrets
 
 The only difference between the naming of locally-supplied and cloud-based secrets is that cloud secrets will contain
-two or more slashes; where as locally-defined secret names will only start with the `+secrets/` suffix,
-followed by a single name and no other slashes.
+two or more slashes since all cloud secrets must start with a `+secrets/<user or organization>/` prefix, whereas locally-defined secrets
+will only start with the `+secrets/` suffix, followed by a single name which can not contain slashes.
 {% endhint %}
 
 
@@ -180,7 +180,8 @@ where running an ssh-agent is impractical.
 # Security Details
 
 The Earthly command uses HTTPS to communicate with the cloud secrets server. The server encrypts all
-secrets using OpenPGP's implemtation of AES256 before storing it in a database.
+secrets using OpenPGP's implementation of AES256 before storing it in a database.
+We use industry-standard security practices for managing our encryption keys in the cloud.
 
 Secrets are presented to buildkit in a similar fashion as [locally-supplied secrets](build-args.md#storage-of-secrets):
 When buildkit encounters a `RUN` command that requires a secret, the buildkit daemon will request the secret
