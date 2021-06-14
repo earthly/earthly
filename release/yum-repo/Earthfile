@@ -10,6 +10,7 @@ rpm:
     ARG EARTHLY_VERSION=$(echo "$RELEASE_TAG" | cut -c 2-)
     FROM +deps
     WORKDIR /work
+    RUN test ! -z "$EARTHLY_PLATFORM" || (echo "EARTHLY_PLATFORM is required" && exit 1)
     RUN (echo "$RELEASE_TAG" | grep '^v[0-9]\+.[0-9]\+.[0-9]\+$' > /dev/null) || (echo "RELEASE_TAG must be formatted as v1.2.3; instead got \"$RELEASE_TAG\""; exit 1)
     RUN wget -q "https://github.com/earthly/earthly/releases/download/v${EARTHLY_VERSION}/earthly-linux-$EARTHLY_PLATFORM" -O /usr/local/bin/earthly && chmod +x /usr/local/bin/earthly
 
