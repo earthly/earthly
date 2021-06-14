@@ -650,15 +650,15 @@ jobs:
         run: ./build/linux/amd64/earthly --ci --push +prerelease
       - name: Update DockerHub description for earthly/earthly
         uses: peter-evans/dockerhub-description@v2
-        env:
+        with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_PASSWORD }}
           repository: earthly/earthly
           readme-filepath: ./docs/docker-images/all-in-one.md
           short-description: ${{ github.event.repository.description }}
-      - name: Update DockerHub description for earthly/earthly
+      - name: Update DockerHub description for earthly/buildkitd
         uses: peter-evans/dockerhub-description@v2
-        env:
+        with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_PASSWORD }}
           repository: earthly/buildkitd
