@@ -30,6 +30,9 @@
         * [GCP Artifact Registry](guides/registries/gcp-artifact-registry.md)
         * [Azure ACR](guides/registries/azure-acr.md)
         * [Self-signed certificates](guides/registries/self-signed.md)
+    * Using the Earthly Docker Images
+        * [earthly/earthly](docker-images/all-in-one.md)
+        * [earthly/buildkitd](docker-images/buildkit-standalone.md)
 * [Earthfile reference](earthfile/earthfile.md)
     * [Builtin args](earthfile/builtin-args.md)
     * [Excluding patterns](earthfile/earthignore.md)
