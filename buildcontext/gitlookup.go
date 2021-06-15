@@ -266,16 +266,25 @@ func (gl *GitLookup) makeCloneURL(m *gitMatcher, host, gitPath string) (string, 
 	user := m.user
 	password := m.password
 	if configuredProtocol == "auto" {
-		configuredProtocol, err = gl.detectProtocol(host)
-		if err != nil {
-			return "", "", err
-		}
-		switch configuredProtocol {
-		case "ssh":
-			user = "git"
-		case "http", "https":
-			user = ""
-			password = ""
+		githubToken, ok := os.LookupEnv("GITHUB_TOKEN")
+		if ok {
+			fmt.Printf("using GITHUB TOKEN\n")
+			// TODO move this logic into detectProtocol (which will have to return user and pass too)
+			configuredProtocol = "https"
+			user = "todo"
+			password = githubToken
+		} else {
+			configuredProtocol, err = gl.detectProtocol(host)
+			if err != nil {
+				return "", "", err
+			}
+			switch configuredProtocol {
+			case "ssh":
+				user = "git"
+			case "http", "https":
+				user = ""
+				password = ""
+			}
 		}
 	}
 
