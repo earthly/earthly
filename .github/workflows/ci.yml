@@ -102,7 +102,9 @@ jobs:
       - name: Execute interactive debugger test from outside
         run: ./scripts/tests/interactive-debugger/test-interactive.py --earthly ./build/linux/amd64/earthly --timeout 60
       - name: Execute version test
-        run: "./build/linux/amd64/earthly --version"
+        run: "./build/linux/amd64/earthly --version | grep 'earthly version.*linux/amd64'"
+      - name: test against a private repo (to test GITHUB_TOKEN works)
+        run: "./build/linux/amd64/earthly github.com/earthly/irishfancy+all"
       - name: Execute docker2earth test
         run: "./examples/tests/docker2earth/test.sh"
       - name: Execute remote-cache test
