@@ -4,10 +4,10 @@ This image contains `buildkit` with some Earthly-specific setup. This is what Ea
 
 ## Tags
 
- * `prerelase`
- * `v0.5.16`, `latest`
- * `v0.5.15`
- * `v0.5.14`
+* `prerelase`
+* `v0.5.17`, `latest`
+* `v0.5.16`
+* `v0.5.15`
 
 ## Quickstart
 
