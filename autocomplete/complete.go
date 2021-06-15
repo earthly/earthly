@@ -208,6 +208,8 @@ func GetPotentials(compLine string, compPoint int, app *cli.App) ([]string, erro
 		flags = getVisibleFlags(cmd.Flags)
 	} else {
 		flags = getVisibleFlags(app.Flags)
+		// append flags that urfav/cli automatically include
+		flags = append(flags, "version", "help")
 	}
 
 	var commands []string
