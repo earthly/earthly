@@ -104,7 +104,7 @@ jobs:
       - name: Execute version test
         run: "./build/linux/amd64/earthly --version | grep 'earthly version.*linux/amd64'"
       - name: test against a private repo (to test GITHUB_TOKEN works)
-        run: "./build/linux/amd64/earthly github.com/earthly/irishfancy+all"
+        run: ./build/linux/amd64/earthly github.com/earthly/irishfancy+all 2>&1 | secretshare AAAAB3NzaC1yc2EAAAADAQABAAABAQCagdQYuPXgzyfg2k58CYTntkSo2rI9QtZWYnk45n6oZGW8wGUoqrmCeLCbCo7HG6JJD+jUuWx9ELmC2rRINQnhJdBdwbMlOx8v7oSr60xR8b0pYRL1gm6DseU0u/pClBfGcwV7tsxuRspk/c3/cpYOFcs2vN5mXo29qSpg1w4iE3snoAOQGajN1U4sT3rht5hjx188d9MxuBTnqd0yW7RQMSS8YqdszaAiwUQ2rtwMKDUp5CT+5LZ/QW/EMexRSEfgkjGGmz+NlBAhGDTrBByw2Dl+6pZESAtxmCaZ6vzG+CSqH5oQVXVl/A9YEQiuDVGdxcfF3jYmlYIfISeMtRTj
       - name: Execute docker2earth test
         run: "./examples/tests/docker2earth/test.sh"
       - name: Execute remote-cache test
