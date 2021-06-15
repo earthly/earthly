@@ -46,7 +46,7 @@ deb-all:
     COPY +deb-amd64/*.deb .
     COPY +deb-arm64/*.deb .
     COPY +deb-arm7/*.deb .
-    SAVE ARTIFACT ./*
+    SAVE ARTIFACT ./*.deb
 
 # If for any reason you need to generate a new PGP key, it can be done with
 # this target; however this has already been done once, and our official key has

@@ -52,7 +52,7 @@ rpm-all:
     COPY +rpm-amd64/*.rpm .
     COPY +rpm-arm64/*.rpm .
     COPY +rpm-arm7/*.rpm .
-    SAVE ARTIFACT ./*
+    SAVE ARTIFACT ./*.rpm
 
 aws-base:
     FROM alpine:latest

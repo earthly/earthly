@@ -7,7 +7,7 @@
   ```
 * Make sure you have uploaded your aws credentials to your user secrets.
   ```bash
-  ./earthly secrets ls /user/earthly-technologies/aws/credentials
+  ./earthly secrets get /user/earthly-technologies/aws/credentials
   ```
 * Choose the next [release tag](https://github.com/earthly/earthly/releases).
   ```bash
