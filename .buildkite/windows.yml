@@ -3,6 +3,7 @@ steps:
   - label: Test WSL
     commands:
       - ./.buildkite/tests.sh
+    key: wsl
     env:
       EARTHLY_INSTALL_ID: "earthly-buildkite-windows"
       FORCE_COLOR: 1
@@ -15,6 +16,7 @@ steps:
   - label: Test Native
     commands:
       - ./.buildkite/tests.sh
+    depends_on: wsl
     env:
       EARTHLY_INSTALL_ID: "earthly-buildkite-windows"
       FORCE_COLOR: 1
