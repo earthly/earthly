@@ -46,6 +46,7 @@ echo "Build latest earthly using released earthly"
 "$released_earthly" +for-"$EARTHLY_OS"
 chmod +x "$earthly"
 
+"$earthly" --version
 "$earthly" config global.local_registry_host 'tcp://127.0.0.1:8371'
 
 if [ "$EARTHLY_OS" != "windows" ]; then
