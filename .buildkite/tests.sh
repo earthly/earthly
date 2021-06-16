@@ -44,10 +44,7 @@ echo "Build latest earthly using released earthly"
 "$released_earthly" --version
 "$released_earthly" config global.disable_analytics true
 "$released_earthly" +for-"$EARTHLY_OS"
-
-ls -la "./build/windows/amd64"
-ls -la "./build"
-"$earthly" --version
+chmod +x "$earthly"
 
 "$earthly" config global.local_registry_host 'tcp://127.0.0.1:8371'
 
