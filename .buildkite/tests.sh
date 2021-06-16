@@ -47,6 +47,7 @@ echo "Build latest earthly using released earthly"
 
 ls -la "./build/windows/amd64"
 ls -la "./build"
+"$earthly" --version
 
 "$earthly" config global.local_registry_host 'tcp://127.0.0.1:8371'
 
