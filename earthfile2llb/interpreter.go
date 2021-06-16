@@ -16,6 +16,7 @@ import (
 	"github.com/earthly/earthly/util/llbutil"
 	"github.com/earthly/earthly/variables"
 
+	"github.com/google/uuid"
 	specs "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
 	"golang.org/x/sync/errgroup"
@@ -33,7 +34,7 @@ type Interpreter struct {
 	isBase          bool
 	isWith          bool
 	pushOnlyAllowed bool
-	local           bool
+	local           string
 	allowPrivileged bool
 
 	stack string
@@ -66,17 +67,23 @@ func newInterpreter(c *Converter, t domain.Target, allowPrivileged, parallelConv
 func (i *Interpreter) Run(ctx context.Context, ef spec.Earthfile) (err error) {
 	done := make(chan struct{})
 	eg, ctx := errgroup.WithContext(ctx)
-	eg.Go(func() error {
+	eg.Go(func() (err error) {
 		defer close(done)
+		defer func() {
+			if err == nil {
+				err = i.releasePreviousLocal(ctx)
+			}
+		}()
 		if i.target.Target == "base" {
 			i.isBase = true
-			err := i.handleBlock(ctx, ef.BaseRecipe)
+			err = i.handleBlock(ctx, ef.BaseRecipe)
 			i.isBase = false
 			return err
 		}
 		for _, t := range ef.Targets {
 			if t.Name == i.target.Target {
-				return i.handleTarget(ctx, t)
+				err = i.handleTarget(ctx, t)
+				return err
 			}
 		}
 		return i.errorf(ef.SourceLocation, "target %s not found", i.target.Target)
@@ -326,7 +333,7 @@ func (i *Interpreter) handleIfExpression(ctx context.Context, expression []strin
 
 	var exitCode int
 	commandName := "IF"
-	if i.local {
+	if i.local != "" {
 		if len(opts.Mounts) > 0 {
 			return false, i.errorf(sl, "mounts are not supported in combination with the LOCALLY directive")
 		}
@@ -345,7 +352,7 @@ func (i *Interpreter) handleIfExpression(ctx context.Context, expression []strin
 			return false, i.errorf(sl, "secrets need to be implemented for the LOCALLY directive")
 		}
 
-		exitCode, err = i.converter.RunLocalExitCode(ctx, commandName, args)
+		exitCode, err = i.converter.RunLocalExitCode(ctx, i.local, commandName, args)
 		if err != nil {
 			return false, i.wrapError(err, sl, "apply RUN")
 		}
@@ -398,7 +405,7 @@ func (i *Interpreter) handleFrom(ctx context.Context, cmd spec.Command) error {
 		return err
 	}
 
-	i.local = false
+	i.local = ""
 	err = i.converter.From(ctx, imageName, platform, allowPrivileged, expandedBuildArgs)
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "apply FROM %s", imageName)
@@ -463,7 +470,7 @@ func (i *Interpreter) handleRun(ctx context.Context, cmd spec.Command) error {
 	}
 	// Note: Not expanding args for the run itself, as that will be take care of by the shell.
 
-	if i.local {
+	if i.local != "" {
 		if len(opts.Mounts) > 0 {
 			return i.errorf(cmd.SourceLocation, "mounts are not supported in combination with the LOCALLY directive")
 		}
@@ -498,14 +505,14 @@ func (i *Interpreter) handleRun(ctx context.Context, cmd spec.Command) error {
 				return i.errorf(cmd.SourceLocation, "only one RUN command allowed in WITH DOCKER")
 			}
 			i.withDockerRan = true
-			err = i.converter.WithDockerRunLocal(ctx, args, *i.withDocker)
+			err = i.converter.WithDockerRunLocal(ctx, i.local, args, *i.withDocker)
 			if err != nil {
 				return i.wrapError(err, cmd.SourceLocation, "with docker run")
 			}
 			return nil
 		}
 
-		err = i.converter.RunLocal(ctx, args, opts.Push)
+		err = i.converter.RunLocal(ctx, i.local, args, opts.Push)
 		if err != nil {
 			return i.wrapError(err, cmd.SourceLocation, "apply RUN")
 		}
@@ -581,12 +588,19 @@ func (i *Interpreter) handleFromDockerfile(ctx context.Context, cmd spec.Command
 	}
 	opts.Path = i.expandArgs(opts.Path, false)
 	opts.Target = i.expandArgs(opts.Target, false)
-	i.local = false
+	i.local = ""
 	err = i.converter.FromDockerfile(ctx, path, opts.Path, opts.Target, platform, expandedBuildArgs)
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "from dockerfile")
 	}
 	return nil
+}
+
+func (i *Interpreter) releasePreviousLocal(ctx context.Context) error {
+	if i.local == "" {
+		return nil
+	}
+	return i.converter.ReleaseLocal(ctx, i.local)
 }
 
 func (i *Interpreter) handleLocally(ctx context.Context, cmd spec.Command) error {
@@ -603,7 +617,12 @@ func (i *Interpreter) handleLocally(ctx context.Context, cmd spec.Command) error
 		return i.wrapError(err, cmd.SourceLocation, "unable to get abs path in LOCALLY")
 	}
 
-	i.local = true
+	err = i.releasePreviousLocal(ctx)
+	if err != nil {
+		return i.wrapError(err, cmd.SourceLocation, "unable to release previous locally")
+	}
+	i.local = uuid.NewString()
+
 	err = i.converter.Locally(ctx, workingDir, nil)
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "apply LOCALLY")
@@ -686,7 +705,7 @@ func (i *Interpreter) handleCopy(ctx context.Context, cmd spec.Command) error {
 			}
 			srcBuildArgs := append(parsedFlagArgs, expandedBuildArgs...)
 
-			if i.local {
+			if i.local != "" {
 				err = i.converter.CopyArtifactLocal(ctx, src, dest, platform, allowPrivileged, srcBuildArgs, opts.IsDirCopy)
 				if err != nil {
 					return i.wrapError(err, cmd.SourceLocation, "copy artifact locally")
@@ -702,7 +721,7 @@ func (i *Interpreter) handleCopy(ctx context.Context, cmd spec.Command) error {
 		if len(expandedBuildArgs) != 0 {
 			return i.errorf(cmd.SourceLocation, "build args not supported for non +artifact arguments case %v", cmd.Args)
 		}
-		if i.local {
+		if i.local != "" {
 			return i.errorf(cmd.SourceLocation, "unhandled locally artifact copy when allArtifacts is false")
 		}
 
@@ -748,7 +767,7 @@ func (i *Interpreter) handleSaveArtifact(ctx context.Context, cmd spec.Command) 
 	saveTo = i.expandArgs(saveTo, false)
 	saveAsLocalTo = i.expandArgs(saveAsLocalTo, false)
 
-	if i.local {
+	if i.local != "" {
 		if saveAsLocalTo != "" {
 			return i.errorf(cmd.SourceLocation, "SAVE ARTIFACT AS LOCAL is not implemented under LOCALLY targets")
 		}

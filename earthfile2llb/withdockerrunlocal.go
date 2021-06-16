@@ -17,6 +17,7 @@ import (
 type withDockerRunLocal struct {
 	c        *Converter
 	tarLoads []llb.State
+	local    string
 }
 
 func (wdrl *withDockerRunLocal) Run(ctx context.Context, args []string, opt WithDockerOpt) error {
@@ -35,7 +36,7 @@ func (wdrl *withDockerRunLocal) Run(ctx context.Context, args []string, opt With
 	}
 
 	// then finally run the command
-	return wdrl.c.RunLocal(ctx, args, false)
+	return wdrl.c.RunLocal(ctx, wdrl.local, args, false)
 }
 
 func (wdrl *withDockerRunLocal) load(ctx context.Context, opt DockerLoadOpt) (string, error) {

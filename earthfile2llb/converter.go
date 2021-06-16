@@ -426,7 +426,7 @@ func (c *Converter) CopyClassical(ctx context.Context, srcs []string, dest strin
 }
 
 // RunLocal applies a RUN statement locally rather than in a container
-func (c *Converter) RunLocal(ctx context.Context, args []string, pushFlag bool) error {
+func (c *Converter) RunLocal(ctx context.Context, locallyLockID string, args []string, pushFlag bool) error {
 	err := c.checkAllowed("RUN")
 	if err != nil {
 		return err
@@ -442,7 +442,11 @@ func (c *Converter) RunLocal(ctx context.Context, args []string, pushFlag bool) 
 	}
 
 	// buildkit-hack in order to run locally, we prepend the command with a UUID
-	finalArgs := append([]string{localhost.RunOnLocalHostMagicStr}, withShellAndEnvVars(args, extraEnvVars, true, false, false)...)
+	finalArgs := append([]string{
+		localhost.RunOnLocalHostMagicStr,
+		localhost.RunOnLocalHostLockMagicStr,
+		locallyLockID,
+	}, withShellAndEnvVars(args, extraEnvVars, true, false, false)...)
 	opts := []llb.RunOption{
 		llb.Args(finalArgs),
 		llb.IgnoreCache,
@@ -462,6 +466,24 @@ func (c *Converter) RunLocal(ctx context.Context, args []string, pushFlag bool) 
 	} else {
 		c.mts.Final.MainState = c.mts.Final.MainState.Run(opts...).Root()
 	}
+	return nil
+}
+
+// ReleaseLocal tells buildkit the locally context has ended, thus allowing other locally contexts access to run
+func (c *Converter) ReleaseLocal(ctx context.Context, locallyLockID string) error {
+	c.nonSaveCommand()
+
+	finalArgs := []string{
+		localhost.RunOnLocalHostMagicStr,
+		localhost.RunOnLocalHostUnlockMagicStr,
+		locallyLockID,
+	}
+	opts := []llb.RunOption{
+		llb.Args(finalArgs),
+		llb.IgnoreCache,
+		llb.WithCustomNamef("[internal] ReleaseLocal %s", locallyLockID),
+	}
+	c.mts.Final.MainState = c.mts.Final.MainState.Run(opts...).Root()
 	return nil
 }
 
@@ -524,7 +546,7 @@ func (c *Converter) RunExitCode(ctx context.Context, commandName string, args, m
 }
 
 // RunLocalExitCode runs a command locally rather than in a container and returns its exit code.
-func (c *Converter) RunLocalExitCode(ctx context.Context, commandName string, args []string) (int, error) {
+func (c *Converter) RunLocalExitCode(ctx context.Context, locallyLockID, commandName string, args []string) (int, error) {
 	err := c.checkAllowed("RUN")
 	if err != nil {
 		return 0, err
@@ -548,8 +570,11 @@ func (c *Converter) RunLocalExitCode(ctx context.Context, commandName string, ar
 	})
 
 	// buildkit-hack in order to run locally, we prepend the command with a UUID
-	finalArgs := append(
-		[]string{localhost.RunOnLocalHostMagicStr},
+	finalArgs := append([]string{
+		localhost.RunOnLocalHostMagicStr,
+		localhost.RunOnLocalHostLockMagicStr,
+		locallyLockID,
+	},
 		withShellAndEnvVarsExitCode(exitCodeFile)(args, extraEnvVars, true, false, false)...,
 	)
 	opts := []llb.RunOption{
@@ -1012,14 +1037,15 @@ func (c *Converter) WithDockerRun(ctx context.Context, args []string, opt WithDo
 }
 
 // WithDockerRunLocal applies an entire WITH DOCKER ... RUN ... END clause.
-func (c *Converter) WithDockerRunLocal(ctx context.Context, args []string, opt WithDockerOpt) error {
+func (c *Converter) WithDockerRunLocal(ctx context.Context, locallyLockID string, args []string, opt WithDockerOpt) error {
 	err := c.checkAllowed("RUN")
 	if err != nil {
 		return err
 	}
 	c.nonSaveCommand()
 	wdrl := &withDockerRunLocal{
-		c: c,
+		c:     c,
+		local: locallyLockID,
 	}
 	return wdrl.Run(ctx, args, opt)
 }
