@@ -139,6 +139,7 @@ type cliFlags struct {
 	debuggerHost              string
 	certPath                  string
 	keyPath                   string
+	disableAnalytics          bool
 }
 
 var (
@@ -232,7 +233,7 @@ func main() {
 	exitCode := app.run(ctx, os.Args)
 	// app.cfg will be nil when a user runs `earthly --version`;
 	// however in all other regular commands app.cfg will be set in app.Before
-	if app.cfg != nil && !app.cfg.Global.DisableAnalytics {
+	if !app.disableAnalytics && app.cfg != nil && !app.cfg.Global.DisableAnalytics {
 		ctxTimeout, cancel := context.WithTimeout(ctx, time.Millisecond*500)
 		defer cancel()
 		displayErrors := app.verbose
@@ -530,6 +531,11 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 			EnvVars:     []string{"EARTHLY_CONVERSION_PARALLELISM"},
 			Usage:       "Set the conversion parallelism, which speeds up the use of IF, WITH DOCKER --load, FROM DOCKERFILE and others. A value of 0 disables the feature *experimental*",
 			Destination: &app.conversionParllelism,
+		},
+		&cli.BoolFlag{
+			EnvVars:     []string{"EARTHLY_DISABLE_ANALYTICS"},
+			Usage:       "Disable collection of analytics",
+			Destination: &app.disableAnalytics,
 		},
 	}
 
