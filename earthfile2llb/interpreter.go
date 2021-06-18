@@ -671,7 +671,7 @@ func (i *Interpreter) handleCopy(ctx context.Context, cmd spec.Command) error {
 	}
 	if allArtifacts {
 		if dest == "" || dest == "." || len(srcs) > 1 {
-			dest += string(filepath.Separator)
+			dest += string("/") // TODO needs to be the containers platform, not the earthly hosts platform. For now, this is always Linux.
 		}
 		for index, src := range srcs {
 			allowPrivileged, err := i.getAllowPrivilegedArtifact(src, opts.AllowPrivileged)
