@@ -34,18 +34,6 @@ echo "The detected architecture of the runner is $(uname -m)"
 echo "Add branch info back to git (Earthly uses it for tagging)"
 git checkout -B "$BUILDKITE_BRANCH" || true
 
-# This is needed when Windows first starts up.
-SECONDS=0
-while ! docker ps; do
-    echo "Waiting for docker to be ready..."
-    echo "Time elapsed: $SECONDS seconds"
-    sleep 1
-    if [ "$SECONDS" -gt "600" ]; then
-        echo "Timed out"
-        exit 1
-    fi
-done
-
 echo "Download latest Earthly binary"
 if [ -n "$download_url" ]; then
     curl -o ./earthly-released -L "$download_url" && chmod +x ./earthly-released
@@ -56,7 +44,11 @@ echo "Build latest earthly using released earthly"
 "$released_earthly" --version
 "$released_earthly" config global.disable_analytics true
 "$released_earthly" +for-"$EARTHLY_OS"
+chmod +x "$earthly"
 
+sleep 1 # WSL2 requires a wait after to avoid "Text file busy".
+
+"$earthly" --version
 "$earthly" config global.local_registry_host 'tcp://127.0.0.1:8371'
 
 if [ "$EARTHLY_OS" != "windows" ]; then
