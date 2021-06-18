@@ -72,6 +72,7 @@ ga:
     BUILD +infinite-recursion
     BUILD +from-dockerfile-arg
     BUILD +cache-mount-arg
+    BUILD +sequential-locally-test
 
 experimental:
     BUILD ./dind-auto-install+all
@@ -540,6 +541,43 @@ cache-mount-arg:
     RUN cat output.txt
     RUN cat output.txt | grep '\*cached\* --> RUN echo Doing something 1'; test "$?" != 0
     RUN cat output.txt | grep '\*cached\* --> RUN echo Doing something 2'; test "$?" != 0
+
+sequential-locally-test:
+    DO +RUN_EARTHLY --earthfile=sequential-locally.earth --use_tmpfs=false --target="+run-lots" --extra_args="--no-cache" --post_command="2>output.txt"
+    RUN cat output.txt | grep -vw RUN | grep -vw char | grep -o '\(start\|mid\|end\).*' > output-filtered.txt
+    RUN echo "set -e
+expectedmode=\"start\"
+expectedchar=\"?\"
+while read line; do
+    mode=\$(echo \"\$line\" | cut -d \" \" -f1)
+    char=\$(echo \"\$line\" | cut -d \" \" -f2)
+    echo \"mode=\$mode char=\$char\"
+    case \"\$mode\" in
+        start)
+            test \"\$expectedmode\" = \"start\" || (echo \"expected \$expectedmode; got \$mode\" && exit 1)
+            expectedmode=\"mid\"
+            expectedchar=\"$char\"
+            ;;
+        mid)
+            test \"\$expectedmode\" = \"mid\" || (echo \"expected \$expectedmode; got \$mode\" && exit 1)
+            test \"\$expectedchar\" = \"$char\" || (echo \"expected \$expectedchar; got \$char\" && exit 1)
+            # we don't change expectedmode to end, because we can have multiple 'mid's
+            ;;
+        end)
+            test \"\$expectedmode\" = \"mid\" || (echo \"expected \$expectedmode; got \$mode\" && exit 1)
+            test \"\$expectedchar\" = \"$char\" || (echo \"expected \$expectedchar; got \$char\" && exit 1)
+            expectedmode=\"start\"
+            expectedchar=\"?\"
+            ;;
+        *)
+            echo unhandled mode: $mode
+            exit 1
+    esac
+done
+echo RUNs were sequentially grouped; hooray!
+" > test-output.sh && chmod +x test-output.sh
+    RUN cat output-filtered.txt | ./test-output.sh
+
 
 RUN_EARTHLY:
     COMMAND

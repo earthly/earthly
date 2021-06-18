@@ -1,0 +1,33 @@
+lots:
+    LOCALLY
+    ARG char
+    RUN echo "start $char"
+    RUN echo "mid $char"
+    RUN echo "mid $char"
+    RUN echo "mid $char"
+    RUN echo "mid $char"
+    RUN echo "mid $char"
+    RUN echo "mid $char"
+    RUN echo "mid $char"
+    RUN echo "mid $char"
+    RUN echo "mid $char"
+    RUN echo "mid $char"
+    RUN echo "mid $char"
+    RUN echo "mid $char"
+    RUN echo "mid $char"
+    RUN echo "mid $char"
+    RUN echo "mid $char"
+    RUN echo "mid $char"
+    RUN echo "mid $char"
+    RUN echo "mid $char"
+    RUN echo "mid $char"
+    RUN echo "mid $char"
+    RUN echo "end $char"
+
+run-lots:
+    BUILD \
+        --build-arg char=a \
+        --build-arg char=b \
+        --build-arg char=c \
+        --build-arg char=d \
+       +lots
