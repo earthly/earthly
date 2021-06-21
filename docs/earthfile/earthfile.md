@@ -408,7 +408,7 @@ The command `ARG` declares a variable (or arg) with the name `<name>` and with a
 
 This command works similarly to the [Dockerfile `ARG` command](https://docs.docker.com/engine/reference/builder/#arg), with a few differences regarding the scope and the predefined args (called builtin args in Earthly). The variable's scope is always limited to the recipe of the current target or command and only from the point it is declared onwards. For more information regarding builtin args, see the [builtin args page](./builtin-args.md).
 
-If an `ARG` is defined in the `base` target of the Earthfile, then it becomes a global `ARG` and it is made avaialable to every other target or command in that file, regardless of their base images used.
+If an `ARG` is defined in the `base` target of the Earthfile, then it becomes a global `ARG` and it is made available to every other target or command in that file, regardless of their base images used.
 
 The value of an arg can be overridden either from the `earthly` command
 
@@ -1077,7 +1077,7 @@ If not provided, the `<alias>` is inferred automatically as the last element of 
 
 The `<project-ref>` can be a reference to any directory other than `.`. If the reference ends in `..`, then mentioning `AS <alias>` is mandatory.
 
-If an `IMPORT` is defined in the `base` target of the Earthfile, then it becomes a global `IMPORT` and it is made avaialable to every other target or command in that file, regardless of their base images used.
+If an `IMPORT` is defined in the `base` target of the Earthfile, then it becomes a global `IMPORT` and it is made available to every other target or command in that file, regardless of their base images used.
 
 For more information see the [target, artifact and command references guide](../guides/target-ref.md).
 
