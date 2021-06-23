@@ -227,7 +227,7 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 		buildContext = llbutil.ScratchWithPlatform()
 		buildContext = llbutil.CopyOp(
 			mts.Final.ArtifactsState, []string{contextArtifact.Artifact},
-			buildContext, "/", true, true, false, "", false,
+			buildContext, "/", true, true, false, "", false, false,
 			llb.WithCustomNamef(
 				"[internal] FROM DOCKERFILE (copy build context from) %s%s",
 				joinWrap(buildArgs, "(", " ", ") "), contextArtifact.String()))
@@ -373,7 +373,7 @@ func (c *Converter) CopyArtifactLocal(ctx context.Context, artifactName string, 
 }
 
 // CopyArtifact applies the earthly COPY artifact command.
-func (c *Converter) CopyArtifact(ctx context.Context, artifactName string, dest string, platform *specs.Platform, allowPrivileged bool, buildArgs []string, isDir bool, keepTs bool, keepOwn bool, chown string, ifExists bool) error {
+func (c *Converter) CopyArtifact(ctx context.Context, artifactName string, dest string, platform *specs.Platform, allowPrivileged bool, buildArgs []string, isDir bool, keepTs bool, keepOwn bool, chown string, ifExists, noFollow bool) error {
 	err := c.checkAllowed("COPY")
 	if err != nil {
 		return err
@@ -395,12 +395,13 @@ func (c *Converter) CopyArtifact(ctx context.Context, artifactName string, dest 
 	// Copy.
 	c.mts.Final.MainState = llbutil.CopyOp(
 		relevantDepState.ArtifactsState, []string{artifact.Artifact},
-		c.mts.Final.MainState, dest, true, isDir, keepTs, c.copyOwner(keepOwn, chown), ifExists,
+		c.mts.Final.MainState, dest, true, isDir, keepTs, c.copyOwner(keepOwn, chown), ifExists, noFollow,
 		llb.WithCustomNamef(
-			"%sCOPY %s%s%s%s %s",
+			"%sCOPY %s%s%s%s%s %s",
 			c.vertexPrefix(false, false),
 			strIf(isDir, "--dir "),
 			strIf(ifExists, "--if-exists "),
+			strIf(noFollow, "--no-follow "),
 			joinWrap(buildArgs, "(", " ", ") "),
 			artifact.String(),
 			dest))
@@ -415,7 +416,7 @@ func (c *Converter) CopyClassical(ctx context.Context, srcs []string, dest strin
 	}
 	c.nonSaveCommand()
 	c.mts.Final.MainState = llbutil.CopyOp(
-		c.buildContext, srcs, c.mts.Final.MainState, dest, true, isDir, keepTs, c.copyOwner(keepOwn, chown), false,
+		c.buildContext, srcs, c.mts.Final.MainState, dest, true, isDir, keepTs, c.copyOwner(keepOwn, chown), false, false,
 		llb.WithCustomNamef(
 			"%sCOPY %s%s %s",
 			c.vertexPrefix(false, false),
@@ -666,7 +667,7 @@ func (c *Converter) SaveArtifact(ctx context.Context, saveFrom string, saveTo st
 	}
 	c.mts.Final.ArtifactsState = llbutil.CopyOp(
 		c.mts.Final.MainState, []string{saveFrom}, c.mts.Final.ArtifactsState,
-		saveToAdjusted, true, true, keepTs, own, ifExists,
+		saveToAdjusted, true, true, keepTs, own, ifExists, false,
 		llb.WithCustomNamef(
 			"%sSAVE ARTIFACT %s%s %s", c.vertexPrefix(false, false), strIf(ifExists, "--if-exists "), saveFrom, artifact.String()))
 	if saveAsLocalTo != "" {
@@ -674,14 +675,14 @@ func (c *Converter) SaveArtifact(ctx context.Context, saveFrom string, saveTo st
 		if isPush {
 			separateArtifactsState = llbutil.CopyOp(
 				c.mts.Final.RunPush.State, []string{saveFrom}, separateArtifactsState,
-				saveToAdjusted, true, true, keepTs, "root:root", ifExists,
+				saveToAdjusted, true, true, keepTs, "root:root", ifExists, false,
 				llb.WithCustomNamef(
 					"%sSAVE ARTIFACT %s%s %s AS LOCAL %s",
 					c.vertexPrefix(false, false), strIf(ifExists, "--if-exists "), saveFrom, artifact.String(), saveAsLocalTo))
 		} else {
 			separateArtifactsState = llbutil.CopyOp(
 				c.mts.Final.MainState, []string{saveFrom}, separateArtifactsState,
-				saveToAdjusted, true, true, keepTs, "root:root", ifExists,
+				saveToAdjusted, true, true, keepTs, "root:root", ifExists, false,
 				llb.WithCustomNamef(
 					"%sSAVE ARTIFACT %s%s %s AS LOCAL %s",
 					c.vertexPrefix(false, false), strIf(ifExists, "--if-exists "), saveFrom, artifact.String(), saveAsLocalTo))
@@ -740,7 +741,7 @@ func (c *Converter) SaveArtifactFromLocal(ctx context.Context, saveFrom, saveTo 
 	ifExists := false
 	c.mts.Final.ArtifactsState = llbutil.CopyOp(
 		c.mts.Final.MainState, []string{absSaveTo}, c.mts.Final.ArtifactsState,
-		absSaveTo, true, true, keepTs, own, ifExists,
+		absSaveTo, true, true, keepTs, own, ifExists, false,
 	)
 	c.ranSave = true
 	c.markFakeDeps()
@@ -991,7 +992,7 @@ func (c *Converter) GitClone(ctx context.Context, gitURL string, branch string, 
 	gitState := pllb.Git(gitURL, branch, gitOpts...)
 	c.mts.Final.MainState = llbutil.CopyOp(
 		gitState, []string{"."}, c.mts.Final.MainState, dest, false, false, keepTs,
-		c.mts.Final.MainImage.Config.User, false,
+		c.mts.Final.MainImage.Config.User, false, false,
 		llb.WithCustomNamef(
 			"%sCOPY GIT CLONE (--branch %s) %s TO %s", c.vertexPrefix(false, false),
 			branch, gitURL, dest))

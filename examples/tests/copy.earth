@@ -15,6 +15,7 @@ all:
     BUILD +copy-art-multi-no-exist
     BUILD +copy-art-multi-trailing-slash
     BUILD +copy-art-multi-existing
+    BUILD +copy-invalid-symlink
 
 artifact:
     COPY --dir in in
@@ -165,3 +166,11 @@ copied/1/file
 copied/2
 copied/2/file" >./expected
     RUN diff -b ./actual ./expected
+
+copy-invalid-symlink-base:
+    RUN ln -s nonexistant symlink
+    SAVE ARTIFACT symlink
+
+copy-invalid-symlink:
+    COPY --no-follow +copy-invalid-symlink-base/symlink .
+    RUN ls -la symlink | grep nonexistant

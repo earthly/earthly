@@ -45,6 +45,7 @@ type copyOpts struct {
 	KeepTs          bool     `long:"keep-ts" description:"Keep created time file timestamps"`
 	KeepOwn         bool     `long:"keep-own" description:"Keep owner info"`
 	IfExists        bool     `long:"if-exists" description:"Do not fail if the artifact does not exist"`
+	NoFollow        bool     `long:"no-follow" description:"Do not follow symlinks"`
 	AllowPrivileged bool     `long:"allow-privileged" description:"Allow targets to assume privileged mode"`
 	Platform        string   `long:"platform" description:"The platform to use"`
 	BuildArgs       []string `long:"build-arg" description:"A build arg override passed on to a referenced Earthly target"`
