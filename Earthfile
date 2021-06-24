@@ -183,7 +183,7 @@ earthly:
     RUN test -n "$GOOS" && test -n "$GOARCH"
     RUN test "$GOARCH" != "arm" || test -n "$VARIANT"
     ARG EARTHLY_TARGET_TAG_DOCKER
-    ARG VERSION=$EARTHLY_TARGET_TAG_DOCKER
+    ARG VERSION="dev-$EARTHLY_TARGET_TAG_DOCKER"
     ARG EARTHLY_GIT_HASH
     ARG DEFAULT_BUILDKITD_IMAGE=earthly/buildkitd:$VERSION
     ARG BUILD_TAGS=dfrunmount dfrunsecurity dfsecrets dfssh dfrunnetwork
