@@ -116,6 +116,22 @@
             ],
             "name": "BUILD"
           }
+        },
+        {
+          "command": {
+            "args": [
+              "+copy-invalid-symlink"
+            ],
+            "name": "BUILD"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "+copy-dir-containing-invalid-symlink"
+            ],
+            "name": "BUILD"
+          }
         }
       ]
     },
@@ -778,6 +794,210 @@
               "-b",
               "./actual",
               "./expected"
+            ],
+            "name": "RUN"
+          }
+        }
+      ]
+    },
+    {
+      "name": "copy-invalid-symlink-base",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "ln",
+              "-s",
+              "nonexistanttarget",
+              "symlink"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "--no-follow",
+              "symlink"
+            ],
+            "name": "SAVE ARTIFACT"
+          }
+        }
+      ]
+    },
+    {
+      "name": "copy-invalid-symlink",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "--no-follow",
+              "+copy-invalid-symlink-base/symlink",
+              "."
+            ],
+            "name": "COPY"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "ls",
+              "-la",
+              "symlink",
+              "|",
+              "grep",
+              "nonexistanttarget"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "ls",
+              "symlink",
+              "2>&1",
+              "|",
+              "grep",
+              "'No",
+              "such",
+              "file",
+              "or",
+              "directory'"
+            ],
+            "name": "RUN"
+          }
+        }
+      ]
+    },
+    {
+      "name": "copy-dir-containing-invalid-symlink-base",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "mkdir",
+              "-p",
+              "/symlinks"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "mkdir",
+              "-p",
+              "/data"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "echo",
+              "hello",
+              ">",
+              "/data/hello.txt"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "ln",
+              "-s",
+              "/data/hello.txt",
+              "/symlinks/symlink"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "/symlinks/",
+              "/symlinks/"
+            ],
+            "name": "SAVE ARTIFACT"
+          }
+        }
+      ]
+    },
+    {
+      "name": "copy-dir-containing-invalid-symlink",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "--no-follow",
+              "+copy-dir-containing-invalid-symlink-base/*",
+              "/"
+            ],
+            "name": "COPY"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "ls",
+              "-la",
+              "/symlinks/symlink",
+              "|",
+              "grep",
+              "hello.txt"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "ls",
+              "/symlinks/symlink",
+              "2>&1",
+              "|",
+              "grep",
+              "'No",
+              "such",
+              "file",
+              "or",
+              "directory'"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "mkdir",
+              "/data"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "echo",
+              "hi",
+              ">",
+              "/data/hello.txt"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "cat",
+              "/symlinks/symlink",
+              "|",
+              "grep",
+              "-w",
+              "hi"
             ],
             "name": "RUN"
           }
