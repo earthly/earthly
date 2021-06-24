@@ -373,7 +373,7 @@ func (c *Converter) CopyArtifactLocal(ctx context.Context, artifactName string, 
 }
 
 // CopyArtifact applies the earthly COPY artifact command.
-func (c *Converter) CopyArtifact(ctx context.Context, artifactName string, dest string, platform *specs.Platform, allowPrivileged bool, buildArgs []string, isDir bool, keepTs bool, keepOwn bool, chown string, ifExists, noFollow bool) error {
+func (c *Converter) CopyArtifact(ctx context.Context, artifactName string, dest string, platform *specs.Platform, allowPrivileged bool, buildArgs []string, isDir bool, keepTs bool, keepOwn bool, chown string, ifExists, symlinkNoFollow bool) error {
 	err := c.checkAllowed("COPY")
 	if err != nil {
 		return err
@@ -395,13 +395,13 @@ func (c *Converter) CopyArtifact(ctx context.Context, artifactName string, dest 
 	// Copy.
 	c.mts.Final.MainState = llbutil.CopyOp(
 		relevantDepState.ArtifactsState, []string{artifact.Artifact},
-		c.mts.Final.MainState, dest, true, isDir, keepTs, c.copyOwner(keepOwn, chown), ifExists, noFollow,
+		c.mts.Final.MainState, dest, true, isDir, keepTs, c.copyOwner(keepOwn, chown), ifExists, symlinkNoFollow,
 		llb.WithCustomNamef(
 			"%sCOPY %s%s%s%s%s %s",
 			c.vertexPrefix(false, false),
 			strIf(isDir, "--dir "),
 			strIf(ifExists, "--if-exists "),
-			strIf(noFollow, "--no-follow "),
+			strIf(symlinkNoFollow, "--symlink-no-follow "),
 			joinWrap(buildArgs, "(", " ", ") "),
 			artifact.String(),
 			dest))
@@ -632,7 +632,7 @@ func (c *Converter) Run(ctx context.Context, args, mounts, secretKeyValues []str
 }
 
 // SaveArtifact applies the earthly SAVE ARTIFACT command.
-func (c *Converter) SaveArtifact(ctx context.Context, saveFrom string, saveTo string, saveAsLocalTo string, keepTs bool, keepOwn bool, ifExists, noFollow bool, isPush bool) error {
+func (c *Converter) SaveArtifact(ctx context.Context, saveFrom string, saveTo string, saveAsLocalTo string, keepTs bool, keepOwn bool, ifExists, symlinkNoFollow bool, isPush bool) error {
 	err := c.checkAllowed("SAVE ARTIFACT")
 	if err != nil {
 		return err
@@ -667,12 +667,12 @@ func (c *Converter) SaveArtifact(ctx context.Context, saveFrom string, saveTo st
 	}
 	c.mts.Final.ArtifactsState = llbutil.CopyOp(
 		c.mts.Final.MainState, []string{saveFrom}, c.mts.Final.ArtifactsState,
-		saveToAdjusted, true, true, keepTs, own, ifExists, noFollow,
+		saveToAdjusted, true, true, keepTs, own, ifExists, symlinkNoFollow,
 		llb.WithCustomNamef(
 			"%sSAVE ARTIFACT %s%s%s %s",
 			c.vertexPrefix(false, false),
 			strIf(ifExists, "--if-exists "),
-			strIf(noFollow, "--no-follow "),
+			strIf(symlinkNoFollow, "--symlink-no-follow "),
 			saveFrom,
 			artifact.String()))
 	if saveAsLocalTo != "" {
@@ -680,24 +680,24 @@ func (c *Converter) SaveArtifact(ctx context.Context, saveFrom string, saveTo st
 		if isPush {
 			separateArtifactsState = llbutil.CopyOp(
 				c.mts.Final.RunPush.State, []string{saveFrom}, separateArtifactsState,
-				saveToAdjusted, true, true, keepTs, "root:root", ifExists, noFollow,
+				saveToAdjusted, true, true, keepTs, "root:root", ifExists, symlinkNoFollow,
 				llb.WithCustomNamef(
 					"%sSAVE ARTIFACT %s%s%s %s AS LOCAL %s",
 					c.vertexPrefix(false, false),
 					strIf(ifExists, "--if-exists "),
-					strIf(noFollow, "--no-follow "),
+					strIf(symlinkNoFollow, "--symlink-no-follow "),
 					saveFrom,
 					artifact.String(),
 					saveAsLocalTo))
 		} else {
 			separateArtifactsState = llbutil.CopyOp(
 				c.mts.Final.MainState, []string{saveFrom}, separateArtifactsState,
-				saveToAdjusted, true, true, keepTs, "root:root", ifExists, noFollow,
+				saveToAdjusted, true, true, keepTs, "root:root", ifExists, symlinkNoFollow,
 				llb.WithCustomNamef(
 					"%sSAVE ARTIFACT %s%s%s %s AS LOCAL %s",
 					c.vertexPrefix(false, false),
 					strIf(ifExists, "--if-exists "),
-					strIf(noFollow, "--no-follow "),
+					strIf(symlinkNoFollow, "--symlink-no-follow "),
 					saveFrom,
 					artifact.String(),
 					saveAsLocalTo))

@@ -817,7 +817,7 @@
         {
           "command": {
             "args": [
-              "--no-follow",
+              "--symlink-no-follow",
               "symlink"
             ],
             "name": "SAVE ARTIFACT"
@@ -831,7 +831,7 @@
         {
           "command": {
             "args": [
-              "--no-follow",
+              "--symlink-no-follow",
               "+copy-invalid-symlink-base/symlink",
               "."
             ],
@@ -932,7 +932,7 @@
         {
           "command": {
             "args": [
-              "--no-follow",
+              "--symlink-no-follow",
               "+copy-dir-containing-invalid-symlink-base/*",
               "/"
             ],

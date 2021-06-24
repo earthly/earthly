@@ -13,7 +13,7 @@ import (
 )
 
 // CopyOp is a simplified llb copy operation.
-func CopyOp(srcState pllb.State, srcs []string, destState pllb.State, dest string, allowWildcard bool, isDir bool, keepTs bool, chown string, ifExists, noFollow bool, opts ...llb.ConstraintsOpt) pllb.State {
+func CopyOp(srcState pllb.State, srcs []string, destState pllb.State, dest string, allowWildcard bool, isDir bool, keepTs bool, chown string, ifExists, symlinkNoFollow bool, opts ...llb.ConstraintsOpt) pllb.State {
 	destAdjusted := dest
 	if dest == "." || dest == "" || len(srcs) > 1 {
 		destAdjusted += string("/") // TODO: needs to be the containers platform, not the earthly hosts platform. For now, this is always Linux.
@@ -37,7 +37,7 @@ func CopyOp(srcState pllb.State, srcs []string, destState pllb.State, dest strin
 		}
 		copyOpts := append([]llb.CopyOption{
 			&llb.CopyInfo{
-				FollowSymlinks:      !noFollow,
+				FollowSymlinks:      !symlinkNoFollow,
 				CopyDirContentsOnly: !isDir,
 				AttemptUnpack:       false,
 				CreateDestPath:      true,

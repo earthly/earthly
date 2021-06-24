@@ -170,10 +170,10 @@ copied/2/file" >./expected
 
 copy-invalid-symlink-base:
     RUN ln -s nonexistanttarget symlink
-    SAVE ARTIFACT --no-follow symlink
+    SAVE ARTIFACT --symlink-no-follow symlink
 
 copy-invalid-symlink:
-    COPY --no-follow +copy-invalid-symlink-base/symlink .
+    COPY --symlink-no-follow +copy-invalid-symlink-base/symlink .
     RUN ls -la symlink | grep nonexistanttarget
     RUN ls symlink 2>&1 | grep 'No such file or directory'
 
@@ -185,7 +185,7 @@ copy-dir-containing-invalid-symlink-base:
     SAVE ARTIFACT /symlinks/ /symlinks/
 
 copy-dir-containing-invalid-symlink:
-    COPY --no-follow +copy-dir-containing-invalid-symlink-base/* /
+    COPY --symlink-no-follow +copy-dir-containing-invalid-symlink-base/* /
     RUN ls -la /symlinks/symlink | grep hello.txt
     RUN ls /symlinks/symlink 2>&1 | grep 'No such file or directory'
     RUN mkdir /data
