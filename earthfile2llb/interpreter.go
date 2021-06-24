@@ -759,7 +759,7 @@ func (i *Interpreter) handleSaveArtifact(ctx context.Context, cmd spec.Command) 
 		return nil
 	}
 
-	err = i.converter.SaveArtifact(ctx, saveFrom, saveTo, saveAsLocalTo, opts.KeepTs, opts.KeepOwn, opts.IfExists, i.pushOnlyAllowed)
+	err = i.converter.SaveArtifact(ctx, saveFrom, saveTo, saveAsLocalTo, opts.KeepTs, opts.KeepOwn, opts.IfExists, opts.NoFollow, i.pushOnlyAllowed)
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "apply SAVE ARTIFACT")
 	}

@@ -632,7 +632,7 @@ func (c *Converter) Run(ctx context.Context, args, mounts, secretKeyValues []str
 }
 
 // SaveArtifact applies the earthly SAVE ARTIFACT command.
-func (c *Converter) SaveArtifact(ctx context.Context, saveFrom string, saveTo string, saveAsLocalTo string, keepTs bool, keepOwn bool, ifExists bool, isPush bool) error {
+func (c *Converter) SaveArtifact(ctx context.Context, saveFrom string, saveTo string, saveAsLocalTo string, keepTs bool, keepOwn bool, ifExists, noFollow bool, isPush bool) error {
 	err := c.checkAllowed("SAVE ARTIFACT")
 	if err != nil {
 		return err
@@ -667,25 +667,40 @@ func (c *Converter) SaveArtifact(ctx context.Context, saveFrom string, saveTo st
 	}
 	c.mts.Final.ArtifactsState = llbutil.CopyOp(
 		c.mts.Final.MainState, []string{saveFrom}, c.mts.Final.ArtifactsState,
-		saveToAdjusted, true, true, keepTs, own, ifExists, false,
+		saveToAdjusted, true, true, keepTs, own, ifExists, noFollow,
 		llb.WithCustomNamef(
-			"%sSAVE ARTIFACT %s%s %s", c.vertexPrefix(false, false), strIf(ifExists, "--if-exists "), saveFrom, artifact.String()))
+			"%sSAVE ARTIFACT %s%s%s %s",
+			c.vertexPrefix(false, false),
+			strIf(ifExists, "--if-exists "),
+			strIf(noFollow, "--no-follow "),
+			saveFrom,
+			artifact.String()))
 	if saveAsLocalTo != "" {
 		separateArtifactsState := llbutil.ScratchWithPlatform()
 		if isPush {
 			separateArtifactsState = llbutil.CopyOp(
 				c.mts.Final.RunPush.State, []string{saveFrom}, separateArtifactsState,
-				saveToAdjusted, true, true, keepTs, "root:root", ifExists, false,
+				saveToAdjusted, true, true, keepTs, "root:root", ifExists, noFollow,
 				llb.WithCustomNamef(
-					"%sSAVE ARTIFACT %s%s %s AS LOCAL %s",
-					c.vertexPrefix(false, false), strIf(ifExists, "--if-exists "), saveFrom, artifact.String(), saveAsLocalTo))
+					"%sSAVE ARTIFACT %s%s%s %s AS LOCAL %s",
+					c.vertexPrefix(false, false),
+					strIf(ifExists, "--if-exists "),
+					strIf(noFollow, "--no-follow "),
+					saveFrom,
+					artifact.String(),
+					saveAsLocalTo))
 		} else {
 			separateArtifactsState = llbutil.CopyOp(
 				c.mts.Final.MainState, []string{saveFrom}, separateArtifactsState,
-				saveToAdjusted, true, true, keepTs, "root:root", ifExists, false,
+				saveToAdjusted, true, true, keepTs, "root:root", ifExists, noFollow,
 				llb.WithCustomNamef(
-					"%sSAVE ARTIFACT %s%s %s AS LOCAL %s",
-					c.vertexPrefix(false, false), strIf(ifExists, "--if-exists "), saveFrom, artifact.String(), saveAsLocalTo))
+					"%sSAVE ARTIFACT %s%s%s %s AS LOCAL %s",
+					c.vertexPrefix(false, false),
+					strIf(ifExists, "--if-exists "),
+					strIf(noFollow, "--no-follow "),
+					saveFrom,
+					artifact.String(),
+					saveAsLocalTo))
 		}
 		c.mts.Final.SeparateArtifactsState = append(c.mts.Final.SeparateArtifactsState, separateArtifactsState)
 
