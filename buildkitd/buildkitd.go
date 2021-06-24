@@ -180,6 +180,9 @@ func MaybeRestart(ctx context.Context, console conslogging.ConsoleLogger, image 
 		availableImageID = "" // Will cause equality to fail and force a restart.
 		// Keep going anyway.
 	}
+	console.
+		WithPrefix("buildkitd").
+		VerbosePrintf("Comparing running container image (%q) with available image (%q)\n", containerImageID, availableImageID)
 	if containerImageID == availableImageID {
 		// Images are the same. Check settings hash.
 		hash, err := GetSettingsHash(ctx)
@@ -192,6 +195,9 @@ func MaybeRestart(ctx context.Context, console conslogging.ConsoleLogger, image 
 		}
 		if ok {
 			// No need to replace: images are the same and settings are the same.
+			console.
+				WithPrefix("buildkitd").
+				VerbosePrintf("Settings hashes match (%q), no restart required\n", hash)
 			return nil
 		}
 
