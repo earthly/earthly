@@ -181,7 +181,7 @@ Earthly can be used to reference and build targets from other directories or eve
 # Try it yourself! No need to clone.
 earthly github.com/earthly/earthly/examples/go:main+docker
 # Run the resulting image.
-docker run --rm go-example:latest
+docker run --rm earthly/examples:go
 ```
 
 ### 🔨 Reference other targets using +
