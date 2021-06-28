@@ -84,7 +84,7 @@ func JoinReferences(r1 Reference, r2 Reference) (Reference, error) {
 				localPath = path.Clean(localPath)
 			} else {
 				localPath = path.Join(r1.GetLocalPath(), localPath)
-				if !strings.HasPrefix(localPath, ".") {
+				if !(strings.HasPrefix(localPath, ".") || strings.HasPrefix(localPath, "/")) {
 					localPath = fmt.Sprintf("./%s", localPath)
 				}
 			}
