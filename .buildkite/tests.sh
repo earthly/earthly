@@ -51,6 +51,12 @@ sleep 1 # WSL2 requires a wait after to avoid "Text file busy".
 "$earthly" --version
 "$earthly" config global.local_registry_host 'tcp://127.0.0.1:8371'
 
+# Yes, there is a bug in the upstream YAML parser. Sorry about the jank here.
+# https://github.com/go-yaml/yaml/issues/423
+"$earthly" config global.buildkit_additional_config "'[registry.\"docker.io\"]
+
+ mirrors = [\"registry-1.docker.io.mirror.corp.earthly.dev\"]'"
+
 if [ "$EARTHLY_OS" != "windows" ]; then
   # Windows cannot run these tests due to a buildkitd dependency right now.
   echo "Execute tests"
