@@ -29,7 +29,7 @@ jobs:
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: Configure Earthly to use mirror (non fork only)
         run: |-
-          earthly config config global.buildkit_additional_config "'[registry.\"docker.io\"]
+          earthly config global.buildkit_additional_config "'[registry.\"docker.io\"]
 
           mirrors = [\"registry-1.docker.io.mirror.corp.earthly.dev\"]'"
       - name: Build latest earthly using released earthly
