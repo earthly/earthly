@@ -5,6 +5,7 @@ package pllb
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"sync"
 
@@ -15,6 +16,15 @@ import (
 
 // gmu is a global lock used for any interaction with the llb package.
 var gmu sync.Mutex
+
+// hacks are used to support changing opts before copying
+var hackName map[string]string
+var hackOpts map[string][]llb.LocalOption
+
+func init() {
+	hackName = map[string]string{}
+	hackOpts = map[string][]llb.LocalOption{}
+}
 
 // State is a wrapper around llb.State.
 type State struct {
@@ -36,20 +46,11 @@ func Scratch() State {
 	return State{st: llb.Scratch()}
 }
 
-var hackName map[string]string
-var hackOpts map[string][]llb.LocalOption
-
 // Local is a wrapper around llb.Local.
 func Local(name string, opts ...llb.LocalOption) State {
 	gmu.Lock()
 	defer gmu.Unlock()
 	s := State{st: llb.Local(name, opts...)}
-	if hackName == nil {
-		hackName = map[string]string{}
-	}
-	if hackOpts == nil {
-		hackOpts = map[string][]llb.LocalOption{}
-	}
 	id := uuid.NewString()
 	hackName[id] = name
 	hackOpts[id] = opts
@@ -128,7 +129,12 @@ func (s State) AddEnv(key, value string) State {
 func (s State) Dir(str string) State {
 	gmu.Lock()
 	defer gmu.Unlock()
-	return State{st: s.st.Dir(str)}
+	ss := State{st: s.st.Dir(str)}
+	id := uuid.NewString()
+	hackName[id] = str
+	hackOpts[id] = nil
+	ss.id = id
+	return ss
 }
 
 // GetDir is a wrapper around llb.GetDir.
@@ -143,13 +149,18 @@ func (s State) WithInclude(incl []string) State {
 	gmu.Lock()
 	defer gmu.Unlock()
 
+	if s.id == "" {
+		fmt.Fprintf(os.Stderr, "internal warning: state uuid was never set for %v\n", s)
+		return s
+	}
+
 	name, ok := hackName[s.id]
 	if !ok {
-		panic("hackName has no entry")
+		panic(fmt.Sprintf("internal error: hackName has no entry for %q", name))
 	}
 	opts, ok := hackOpts[s.id]
 	if !ok {
-		panic("hackOpts has no entry")
+		panic(fmt.Sprintf("internal error: hackOpts has no entry for %q", name))
 	}
 
 	newOpts := []llb.LocalOption{}
