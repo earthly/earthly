@@ -1,0 +1,3 @@
+test:
+    FROM ../+base
+    RUN ls /dir/from/base

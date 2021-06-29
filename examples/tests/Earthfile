@@ -53,6 +53,7 @@ ga:
     BUILD +escape-dir-test
     BUILD +fail-invalid-artifact-test
     BUILD +target-first-line
+    BUILD +absolute-reference-with-relative
     BUILD +end-comment
     BUILD +if-exists
     BUILD +file-copying
@@ -373,6 +374,12 @@ eine-privileged-test:
 target-first-line:
     DO +RUN_EARTHLY --earthfile=target-first-line.earth --extra_args="--no-output" --target=+test
 
+absolute-reference-with-relative:
+    RUN mkdir -p /a/path/to/test/subdir
+    # create a base Earthfile which is referenced by target-absolute-reference.earth
+    RUN echo -e "FROM alpine:3.13\nRUN mkdir -p /dir/from/base" > /a/path/to/test/Earthfile
+    DO +RUN_EARTHLY --earthfile=absolute-reference-with-relative.earth --earthfile_dest=/a/path/to/test/subdir/Earthfile --extra_args="--no-output" --target=/a/path/to/test/subdir+test
+
 end-comment:
     DO +RUN_EARTHLY --earthfile=end-comment.earth --target=+test
 
@@ -544,12 +551,13 @@ cache-mount-arg:
 RUN_EARTHLY:
     COMMAND
     ARG earthfile=
+    ARG earthfile_dest="./Earthfile"
     ARG target=+all
     ARG extra_args
     ARG post_command
     ARG should_fail=false
     ARG use_tmpfs=true
-    COPY "$earthfile" ./Earthfile
+    COPY "$earthfile" "$earthfile_dest"
     RUN echo "
         set -x
         if $use_tmpfs; then
