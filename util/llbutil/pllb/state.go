@@ -8,6 +8,7 @@ import (
 	"os"
 	"sync"
 
+	"github.com/google/uuid"
 	"github.com/moby/buildkit/client/llb"
 	specs "github.com/opencontainers/image-spec/specs-go/v1"
 )
@@ -18,6 +19,7 @@ var gmu sync.Mutex
 // State is a wrapper around llb.State.
 type State struct {
 	st llb.State
+	id string
 }
 
 // FromRawState creates a wrapper around a raw llb.State.
@@ -34,11 +36,25 @@ func Scratch() State {
 	return State{st: llb.Scratch()}
 }
 
+var hackName map[string]string
+var hackOpts map[string][]llb.LocalOption
+
 // Local is a wrapper around llb.Local.
 func Local(name string, opts ...llb.LocalOption) State {
 	gmu.Lock()
 	defer gmu.Unlock()
-	return State{st: llb.Local(name, opts...)}
+	s := State{st: llb.Local(name, opts...)}
+	if hackName == nil {
+		hackName = map[string]string{}
+	}
+	if hackOpts == nil {
+		hackOpts = map[string][]llb.LocalOption{}
+	}
+	id := uuid.NewString()
+	hackName[id] = name
+	hackOpts[id] = opts
+	s.id = id
+	return s
 }
 
 // Image is a wrapper around llb.Image.
@@ -120,6 +136,30 @@ func (s State) GetDir(ctx context.Context) (string, error) {
 	gmu.Lock()
 	defer gmu.Unlock()
 	return s.st.GetDir(ctx)
+}
+
+// WithInclude needs work
+func (s State) WithInclude(incl []string) State {
+	gmu.Lock()
+	defer gmu.Unlock()
+
+	name, ok := hackName[s.id]
+	if !ok {
+		panic("hackName has no entry")
+	}
+	opts, ok := hackOpts[s.id]
+	if !ok {
+		panic("hackOpts has no entry")
+	}
+
+	newOpts := []llb.LocalOption{}
+
+	for _, o := range opts {
+		newOpts = append(newOpts, o)
+	}
+	newOpts = append(newOpts, llb.IncludePatterns(incl))
+
+	return State{st: llb.Local(name, newOpts...), id: s.id}
 }
 
 // User is a wrapper around llb.User.

@@ -1,0 +1,5 @@
+FROM alpine:latest
+
+all:
+    COPY a.txt .
+    RUN cat a.txt | md5sum - | grep 0cc175b9c0f1b6a831c399e269772661

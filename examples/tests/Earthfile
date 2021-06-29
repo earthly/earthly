@@ -19,6 +19,7 @@ ga:
     BUILD ./version+test-all
     BUILD +privileged-test
     BUILD +copy-test
+    BUILD +copy-test-verbose-output
     BUILD +cache-test
     BUILD +git-clone-test
     BUILD +builtin-args-test
@@ -95,11 +96,18 @@ copy-test:
         echo "sub" > in/sub/file
     DO +RUN_EARTHLY --earthfile=copy.earth
 
-    RUN echo "output.txt" > .earthignore
-    DO +RUN_EARTHLY --earthfile=copy.earth --extra_args="--verbose"  --post_command="2>output.txt"
+copy-test-verbose-output:
+    RUN mkdir -p subdir/a.txt && \
+        echo -n "a" > a.txt && \
+        echo -n "alpha" > alpha.txt && \
+        echo -n "beta" > subdir/a.txt/beta.txt
+    DO +RUN_EARTHLY --earthfile=copy-verbose.earth --extra_args="--verbose"  --post_command="2>output.txt"
     RUN cat output.txt
-    RUN cat output.txt | grep 'sent data for in/root (5 B)'
-    RUN cat output.txt | grep 'transferred 4 file(s) for context . (261 B, 8 file/dir stats)'
+    RUN cat output.txt | grep 'sent data for a.txt (1 B)'
+    RUN cat output.txt | grep 'sent data for' | grep -v 'alpha'
+    RUN cat output.txt | grep 'sent data for' | grep -v 'beta'
+    RUN cat output.txt | grep 'transferred 1 file(s) for context . (29 B, 1 file/dir stats)'
+
 
 cache-test:
     # Test that a file can be passed between runs through the mounted cache.

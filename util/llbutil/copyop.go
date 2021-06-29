@@ -45,10 +45,13 @@ func CopyOp(srcState pllb.State, srcs []string, destState pllb.State, dest strin
 				AllowEmptyWildcard:  ifExists,
 			},
 		}, baseCopyOpts...)
+
+		srcStateWithInclude := srcState.WithInclude([]string{src})
+
 		if fa == nil {
-			fa = pllb.Copy(srcState, src, destAdjusted, copyOpts...)
+			fa = pllb.Copy(srcStateWithInclude, src, destAdjusted, copyOpts...)
 		} else {
-			fa = fa.Copy(srcState, src, destAdjusted, copyOpts...)
+			fa = fa.Copy(srcStateWithInclude, src, destAdjusted, copyOpts...)
 		}
 	}
 	if fa == nil {
