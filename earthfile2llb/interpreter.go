@@ -692,7 +692,7 @@ func (i *Interpreter) handleCopy(ctx context.Context, cmd spec.Command) error {
 					return i.wrapError(err, cmd.SourceLocation, "copy artifact locally")
 				}
 			} else {
-				err = i.converter.CopyArtifact(ctx, src, dest, platform, allowPrivileged, srcBuildArgs, opts.IsDirCopy, opts.KeepTs, opts.KeepOwn, opts.Chown, opts.IfExists)
+				err = i.converter.CopyArtifact(ctx, src, dest, platform, allowPrivileged, srcBuildArgs, opts.IsDirCopy, opts.KeepTs, opts.KeepOwn, opts.Chown, opts.IfExists, opts.SymlinkNoFollow)
 				if err != nil {
 					return i.wrapError(err, cmd.SourceLocation, "copy artifact")
 				}
@@ -759,7 +759,7 @@ func (i *Interpreter) handleSaveArtifact(ctx context.Context, cmd spec.Command) 
 		return nil
 	}
 
-	err = i.converter.SaveArtifact(ctx, saveFrom, saveTo, saveAsLocalTo, opts.KeepTs, opts.KeepOwn, opts.IfExists, i.pushOnlyAllowed)
+	err = i.converter.SaveArtifact(ctx, saveFrom, saveTo, saveAsLocalTo, opts.KeepTs, opts.KeepOwn, opts.IfExists, opts.SymlinkNoFollow, i.pushOnlyAllowed)
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "apply SAVE ARTIFACT")
 	}

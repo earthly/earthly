@@ -15,6 +15,8 @@ all:
     BUILD +copy-art-multi-no-exist
     BUILD +copy-art-multi-trailing-slash
     BUILD +copy-art-multi-existing
+    BUILD +copy-invalid-symlink
+    BUILD +copy-dir-containing-invalid-symlink
 
 artifact:
     COPY --dir in in
@@ -165,3 +167,27 @@ copied/1/file
 copied/2
 copied/2/file" >./expected
     RUN diff -b ./actual ./expected
+
+copy-invalid-symlink-base:
+    RUN ln -s nonexistanttarget symlink
+    SAVE ARTIFACT --symlink-no-follow symlink
+
+copy-invalid-symlink:
+    COPY --symlink-no-follow +copy-invalid-symlink-base/symlink .
+    RUN ls -la symlink | grep nonexistanttarget
+    RUN ls symlink 2>&1 | grep 'No such file or directory'
+
+copy-dir-containing-invalid-symlink-base:
+    RUN mkdir -p /symlinks
+    RUN mkdir -p /data
+    RUN echo hello > /data/hello.txt
+    RUN ln -s /data/hello.txt /symlinks/symlink
+    SAVE ARTIFACT /symlinks/ /symlinks/
+
+copy-dir-containing-invalid-symlink:
+    COPY --symlink-no-follow +copy-dir-containing-invalid-symlink-base/* /
+    RUN ls -la /symlinks/symlink | grep hello.txt
+    RUN ls /symlinks/symlink 2>&1 | grep 'No such file or directory'
+    RUN mkdir /data
+    RUN echo hi > /data/hello.txt
+    RUN cat /symlinks/symlink | grep -w hi
