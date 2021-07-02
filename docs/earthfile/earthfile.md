@@ -988,10 +988,22 @@ This feature is currently in **Experimental** stage
 
 #### Description
 
-The `LOCALLY` command instructs earthly to execute the following `RUN` commands locally on the host system.
+The `LOCALLY` command can be used inplace of a `FROM` command, which will cause earthly to execute all commands under the target directly
+on the host system, rather than inside a container. Commands within a `LOCALLY` target will never be cached.
 This feature should be used with caution as locally run commands have no guarantee they will behave the same on different systems.
 
-Only `RUN` commands are supported under a `LOCALLY` defined target; futhermore only `RUN`'s `--push` flag is supported.
+Only `RUN` commands are supported under a `LOCALLY` defined target; furthermore only `RUN`'s `--push` flag is supported.
+
+`RUN` commands have access to the environment variables which are exposed to the `earthly` command; however, the commands 
+are executed within a working directory which is set to the location of the referenced Earthfile and not where the `earthly` command is run from.
+
+For example, the following earthfile will display the current user, hostname, and directory where the Earthfile is stored:
+
+```Dockerfile
+whoami:
+    LOCALLY
+    RUN echo "I am currently running under $USER on $(hostname) under $(pwd)"
+```
 
 ## COMMAND (**experimental**)
 
