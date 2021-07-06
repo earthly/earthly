@@ -533,7 +533,7 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 			Destination: &app.conversionParllelism,
 		},
 		&cli.BoolFlag{
-			EnvVars:     []string{"EARTHLY_DISABLE_ANALYTICS"},
+			EnvVars:     []string{"EARTHLY_DISABLE_ANALYTICS", "DO_NOT_TRACK"},
 			Usage:       "Disable collection of analytics",
 			Destination: &app.disableAnalytics,
 		},
