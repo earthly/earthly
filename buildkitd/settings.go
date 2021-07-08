@@ -28,6 +28,7 @@ type Settings struct {
 	ServerTLSKey         string
 	UseTCP               bool
 	UseTLS               bool
+	VolumeName           string
 }
 
 // Hash returns a secure hash of the settings.
