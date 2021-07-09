@@ -100,28 +100,26 @@ release-homebrew:
     ARG GIT_USERNAME="griswoldthecat"
     ARG GIT_NAME="griswoldthecat"
     ARG GIT_EMAIL="griswoldthecat@users.noreply.github.com"
-    ARG REPO_OWNER=Homebrew
-    ARG HOMEBREW_CORE_URL="https://github.com/$REPO_OWNER/homebrew-core"
+    ARG HOMEBREW_EARTHLY_URL="https://github.com/earthly/homebrew-earthly"
     RUN test -n "$RELEASE_TAG" && \
         test -n "$GIT_USERNAME" && \
         test -n "$GIT_NAME" && \
         test -n "$GIT_EMAIL" && \
-        test -n "$REPO_OWNER" && \
-        test -n "$HOMEBREW_CORE_URL"
+        test -n "$HOMEBREW_EARTHLY_URL"
     ARG NEW_URL=https://github.com/earthly/earthly/archive/"$RELEASE_TAG".tar.gz
     RUN test -n "$NEW_URL"
-    GIT CLONE "$HOMEBREW_CORE_URL" /earthly/homebrew-core
-    WORKDIR /earthly/homebrew-core
+    GIT CLONE --branch main "$HOMEBREW_EARTHLY_URL" /earthly/homebrew-earthly
+    WORKDIR /earthly/homebrew-earthly
 
     # Git setup.
     # Force use of https.
-    RUN git remote set-url origin "$HOMEBREW_CORE_URL" && \
+    RUN git remote set-url origin "$HOMEBREW_EARTHLY_URL" && \
         git remote -v
     RUN --secret GIT_PASSWORD=+secrets/earthly-technologies/github/griswoldthecat/token \
-        git fetch --unshallow origin master
-    RUN git branch -f master && \
-        git checkout master && \
-        git branch -u origin/master
+        git fetch --unshallow origin main
+    RUN git branch -f main && \
+        git checkout main && \
+        git branch -u origin/main
     RUN git config --global user.name "$GIT_NAME" && \
         git config --global user.email "$GIT_EMAIL"
     COPY ./envcredhelper.sh /usr/bin/envcredhelper.sh
@@ -167,7 +165,7 @@ release-homebrew:
     # Force use of https so we can use GITHUB_TOKEN via envcredhelper.sh.
     RUN --push \
         -- \
-        git remote set-url "$GIT_USERNAME" "https://github.com/$GIT_USERNAME/homebrew-core.git" && \
+        git remote set-url "$GIT_USERNAME" "https://github.com/$GIT_USERNAME/homebrew-earthly.git" && \
         git remote -v
     RUN --push \
         --secret GIT_PASSWORD=+secrets/earthly-technologies/github/griswoldthecat/token \
@@ -182,7 +180,7 @@ release-homebrew:
         echo version=$version ;\
         output=$(hub pull-request --no-edit \
             -h "$GIT_USERNAME":"release-$RELEASE_TAG" \
-            -b "$REPO_OWNER:master" \
+            -b "$REPO_OWNER:main" \
             -m "earthly $version" \
             -m '-------------' \
             -m '#### Debug data' \
