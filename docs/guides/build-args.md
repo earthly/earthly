@@ -3,7 +3,7 @@
 ## Introduction
 
 One of the core features of earthly is support for build arguments. Build arguments
-can be used to dynamically set environment variables inside the context of [RUN commands](../earthfile.md#run).
+can be used to dynamically set environment variables inside the context of [RUN commands](../earthfile/earthfile.md#run).
 
 Build arguments can be passed between targets or from the command line. They encourage
 writing generic Earthfiles and ultimately promote greater code-reuse.
@@ -13,7 +13,7 @@ variables when explicitly allowed.
 
 ## A Quick Example
 
-Arguments are declared with the [ARG](../earthfile.md#arg) keyword.
+Arguments are declared with the [ARG](../earthfile/earthfile.md#arg) keyword.
 
 Let's consider a "hello world" example that allows us to change who is being greeted (e.g. hello banana, hello eggplant etc).
 We will create a hello target that accepts the `name` argument:
