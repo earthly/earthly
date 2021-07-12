@@ -7,7 +7,7 @@ build-msi:
     COPY --build-arg VERSION=$RELEASE_TAG \
         ../../+earthly-windows-amd64/earthly.exe .
     COPY ./icon.ico .
-    COPY ./build.wxs .
-    RUN wixl -v build.wxs
+    COPY ./earthly.wxs .
+    RUN wixl -v earthly.wxs
 
     SAVE ARTIFACT earthly.msi AS LOCAL earthly.msi
