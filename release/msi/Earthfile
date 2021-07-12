@@ -1,0 +1,13 @@
+
+build-msi:
+    FROM alpine:3.13
+    RUN apk add --no-cache msitools
+
+    WORKDIR buildmsi
+    COPY --build-arg VERSION=$RELEASE_TAG \
+        ../../+earthly-windows-amd64/earthly.exe .
+    COPY ./icon.ico .
+    COPY ./build.wxs .
+    RUN wixl -v build.wxs
+
+    SAVE ARTIFACT earthly.msi AS LOCAL earthly.msi
