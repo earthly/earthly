@@ -42,6 +42,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
+	"github.com/wille/osutil"
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/agent"
 	"golang.org/x/sync/errgroup"
@@ -261,7 +262,7 @@ func getVersionPlatform() string {
 }
 
 func getPlatform() string {
-	return fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH)
+	return fmt.Sprintf("%s/%s; %s", runtime.GOOS, runtime.GOARCH, osutil.GetDisplay())
 }
 
 func getBinaryName() string {
@@ -1484,7 +1485,7 @@ func (app *earthlyApp) run(ctx context.Context, args []string) int {
 				app.console.Warnf(
 					"It seems that buildkitd is shutting down or it has crashed. " +
 						"You can report crashes at https://github.com/earthly/earthly/issues/new.")
-				buildkitd.PrintLogs(ctx, app.containerName, app.buildkitdSettings, app.console)
+				app.printCrashLogs(ctx)
 				return 7
 			}
 		} else if errors.Is(err, buildkitd.ErrBuildkitCrashed) {
@@ -1492,14 +1493,14 @@ func (app *earthlyApp) run(ctx context.Context, args []string) int {
 			app.console.Warnf(
 				"It seems that buildkitd is shutting down or it has crashed. " +
 					"You can report crashes at https://github.com/earthly/earthly/issues/new.")
-			buildkitd.PrintLogs(ctx, app.containerName, app.buildkitdSettings, app.console)
+			app.printCrashLogs(ctx)
 			return 7
 		} else if errors.Is(err, buildkitd.ErrBuildkitStartFailure) {
 			app.console.Warnf("Error: %v\n", err)
 			app.console.Warnf(
 				"It seems that buildkitd had an issue. " +
 					"You can report crashes at https://github.com/earthly/earthly/issues/new.")
-			buildkitd.PrintLogs(ctx, app.containerName, app.buildkitdSettings, app.console)
+			app.printCrashLogs(ctx)
 			return 6
 		} else if isInterpereterError {
 			app.console.Warnf("Error: %s\n", ie.Error())
@@ -1512,6 +1513,29 @@ func (app *earthlyApp) run(ctx context.Context, args []string) int {
 		return 1
 	}
 	return 0
+}
+
+func (app *earthlyApp) printCrashLogs(ctx context.Context) {
+	app.console.PrintBar(color.New(color.FgHiRed), "System Info", "")
+	fmt.Fprintf(os.Stderr, "version: %s\n", Version)
+	fmt.Fprintf(os.Stderr, "build-sha: %s\n", GitSha)
+	fmt.Fprintf(os.Stderr, "platform: %s\n", getPlatform())
+
+	dockerVersion, err := buildkitd.GetDockerVersion(ctx)
+	if err != nil {
+		app.console.Warnf("failed querying docker version: %s\n", err.Error())
+	} else {
+		app.console.PrintBar(color.New(color.FgHiRed), "Docker Version", "")
+		fmt.Fprintln(os.Stderr, dockerVersion)
+	}
+
+	logs, err := buildkitd.GetLogs(ctx, app.containerName, app.buildkitdSettings)
+	if err != nil {
+		app.console.Warnf("failed fetching earthly-buildkit logs: %s\n", err.Error())
+	} else {
+		app.console.PrintBar(color.New(color.FgHiRed), "Buildkit Logs", "")
+		fmt.Fprintln(os.Stderr, logs)
+	}
 }
 
 func isEarthlyBinary(path string) bool {
