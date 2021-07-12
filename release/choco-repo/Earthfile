@@ -25,7 +25,11 @@ pack:
 
     WORKDIR package
     COPY ./earthly.nuspec .
+
     RUN mkdir tools
+    COPY ./LICENSE ./tools/LICENSE
+    COPY ./VERIFICATION ./tools/VERIFICATION
+
     RUN curl -L -o tools/earthly.exe https://github.com/earthly/earthly/releases/latest/download/earthly-windows-amd64.exe
 
     RUN choco pack

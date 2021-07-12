@@ -4,12 +4,12 @@
     <id>earthly</id>
     <version>0.5.18</version>
     <packageSourceUrl>https://github.com/earthly/earthly</packageSourceUrl>
-    <title>earthly</title>
+    <title>Earthly</title>
     <owners>dchw</owners>
     <authors>The Earthly Team</authors>
     <projectUrl>https://earthly.dev</projectUrl>
     <iconUrl>https://rawcdn.githack.com/earthly/website-output/b8d3fb0379b6be79c541d1266f7e34706916361c/assets/img/favicon.png</iconUrl>
-    <copyright>2021</copyright>
+    <copyright>2021 Earthly Technologies, Inc.</copyright>
     <licenseUrl>https://rawcdn.githack.com/earthly/earthly/59a5603ceaaca55bdbeda1ce9ba24d5869cecc35/LICENSE</licenseUrl>
     <projectSourceUrl>https://github.com/earthly/earthly</projectSourceUrl>
     <docsUrl>https://docs.earthly.dev/</docsUrl>
@@ -36,9 +36,6 @@
 [🌍 Earthly](https://earthly.dev) is a build automation tool for the container era. It allows you to execute all your builds in containers. This makes them self-contained, repeatable, portable and parallel. You can use Earthly to create Docker images and artifacts (eg binaries, packages, arbitrary files).
     </description>
     <releaseNotes>https://github.com/earthly/earthly/releases</releaseNotes>
-    <dependencies>
-      <dependency id="docker-desktop"/>
-    </dependencies>
   </metadata>
   <files>
     <file src="tools/**" target="tools" />
