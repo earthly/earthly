@@ -18,11 +18,13 @@ import (
 	"github.com/earthly/earthly/buildcontext"
 	"github.com/earthly/earthly/debugger/common"
 	"github.com/earthly/earthly/domain"
+	"github.com/earthly/earthly/features"
 	"github.com/earthly/earthly/states"
 	"github.com/earthly/earthly/states/dedup"
 	"github.com/earthly/earthly/states/image"
 	"github.com/earthly/earthly/util/gitutil"
 	"github.com/earthly/earthly/util/llbutil"
+	"github.com/earthly/earthly/util/llbutil/llbfactory"
 	"github.com/earthly/earthly/util/llbutil/pllb"
 	"github.com/earthly/earthly/variables"
 
@@ -41,19 +43,20 @@ const exitCodeFile = "/run/exit_code"
 
 // Converter turns earthly commands to buildkit LLB representation.
 type Converter struct {
-	gitMeta       *gitutil.GitMetadata
-	opt           ConvertOpt
-	mts           *states.MultiTarget
-	directDeps    []*states.SingleTarget
-	buildContext  pllb.State
-	cacheContext  pllb.State
-	varCollection *variables.Collection
-	ranSave       bool
-	cmdSet        bool
+	gitMeta             *gitutil.GitMetadata
+	opt                 ConvertOpt
+	mts                 *states.MultiTarget
+	directDeps          []*states.SingleTarget
+	buildContextFactory llbfactory.Factory
+	cacheContext        pllb.State
+	varCollection       *variables.Collection
+	ranSave             bool
+	cmdSet              bool
+	ftrs                *features.Features
 }
 
 // NewConverter constructs a new converter for a given earthly target.
-func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Data, sts *states.SingleTarget, opt ConvertOpt) (*Converter, error) {
+func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Data, sts *states.SingleTarget, opt ConvertOpt, ftrs *features.Features) (*Converter, error) {
 	for k, v := range bc.LocalDirs {
 		sts.LocalDirs[k] = v
 	}
@@ -67,12 +70,13 @@ func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Da
 		target, llbutil.PlatformWithDefault(opt.Platform), bc.GitMetadata, opt.OverridingVars,
 		opt.GlobalImports)
 	return &Converter{
-		gitMeta:       bc.GitMetadata,
-		opt:           opt,
-		mts:           mts,
-		buildContext:  bc.BuildContext,
-		cacheContext:  pllb.Scratch(),
-		varCollection: vc,
+		gitMeta:             bc.GitMetadata,
+		opt:                 opt,
+		mts:                 mts,
+		buildContextFactory: bc.BuildContextFactory,
+		cacheContext:        pllb.Scratch(),
+		varCollection:       vc,
+		ftrs:                ftrs,
 	}, nil
 }
 
@@ -205,7 +209,7 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 			}
 		}
 	}
-	var buildContext pllb.State
+	var BuildContextFactory llbfactory.Factory
 	contextArtifact, parseErr := domain.ParseArtifact(contextPath)
 	if parseErr == nil {
 		// The build context is from a target's artifact.
@@ -224,13 +228,12 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 				return err
 			}
 		}
-		buildContext = llbutil.ScratchWithPlatform()
-		buildContext = llbutil.CopyOp(
+		BuildContextFactory = llbfactory.PreconstructedState(llbutil.CopyOp(
 			mts.Final.ArtifactsState, []string{contextArtifact.Artifact},
-			buildContext, "/", true, true, false, "", false, false,
+			llbutil.ScratchWithPlatform(), "/", true, true, false, "", false, false,
 			llb.WithCustomNamef(
 				"[internal] FROM DOCKERFILE (copy build context from) %s%s",
-				joinWrap(buildArgs, "(", " ", ") "), contextArtifact.String()))
+				joinWrap(buildArgs, "(", " ", ") "), contextArtifact.String())))
 	} else {
 		// The build context is from the host.
 		if contextPath != "." &&
@@ -262,7 +265,7 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 				return errors.Wrapf(err, "read file %s", data.BuildFilePath)
 			}
 		}
-		buildContext = data.BuildContext
+		BuildContextFactory = data.BuildContextFactory
 	}
 	overriding, err := variables.ParseArgs(
 		buildArgs, c.processNonConstantBuildArgFunc(ctx), c.varCollection)
@@ -270,7 +273,7 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 		return err
 	}
 	caps := solverpb.Caps.CapSet(solverpb.Caps.All())
-	bcRawState, done := buildContext.RawState()
+	bcRawState, done := BuildContextFactory.Construct().RawState()
 	state, dfImg, err := dockerfile2llb.Dockerfile2LLB(ctx, dfData, dockerfile2llb.ConvertOpt{
 		BuildContext:     &bcRawState,
 		ContextLocalName: c.mts.FinalTarget().String(),
@@ -414,9 +417,21 @@ func (c *Converter) CopyClassical(ctx context.Context, srcs []string, dest strin
 	if err != nil {
 		return err
 	}
+
+	var srcState pllb.State
+	if c.ftrs.UseCopyIncludePatterns {
+		// create a new src state with the include patterns set (if this isn't done the entire context will be copied)
+		srcStateFactory := addIncludePathAndSharedKeyHint(c.buildContextFactory, srcs)
+		srcState = c.opt.LocalStateCache.getOrConstruct(srcStateFactory)
+	} else {
+		srcState = c.buildContextFactory.Construct()
+	}
+
 	c.nonSaveCommand()
 	c.mts.Final.MainState = llbutil.CopyOp(
-		c.buildContext, srcs, c.mts.Final.MainState, dest, true, isDir, keepTs, c.copyOwner(keepOwn, chown), false, false,
+		srcState,
+		srcs,
+		c.mts.Final.MainState, dest, true, isDir, keepTs, c.copyOwner(keepOwn, chown), false, false,
 		llb.WithCustomNamef(
 			"%sCOPY %s%s %s",
 			c.vertexPrefix(false, false),

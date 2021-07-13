@@ -73,6 +73,8 @@ type ConvertOpt struct {
 	AllowPrivileged bool
 	// Gitlookup is used to attach credentials to GIT CLONE operations
 	GitLookup *buildcontext.GitLookup
+	// LocalStateCache provides a cache for local pllb.States
+	LocalStateCache *LocalStateCache
 
 	// ParallelConversion is a feature flag enabling the parallel conversion algorithm.
 	ParallelConversion bool
@@ -129,7 +131,7 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt) (m
 			Visited: opt.Visited,
 		}, nil
 	}
-	converter, err := NewConverter(ctx, targetWithMetadata, bc, sts, opt)
+	converter, err := NewConverter(ctx, targetWithMetadata, bc, sts, opt, ftrs)
 	if err != nil {
 		return nil, err
 	}

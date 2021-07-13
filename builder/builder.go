@@ -155,6 +155,8 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 	}
 	sp := newSuccessPrinter(successFun(""), successFun("--push"))
 
+	sharedLocalStateCache := earthfile2llb.NewSharedLocalStateCache()
+
 	destPathWhitelist := make(map[string]bool)
 	manifestLists := make(map[string][]manifest) // parent image -> child images
 	var mts *states.MultiTarget
@@ -185,6 +187,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 				Console:              b.opt.Console,
 				GitLookup:            b.opt.GitLookup,
 				FeatureFlagOverrides: b.opt.FeatureFlagOverrides,
+				LocalStateCache:      sharedLocalStateCache,
 			})
 			if err != nil {
 				return nil, err
