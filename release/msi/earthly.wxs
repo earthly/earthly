@@ -31,7 +31,7 @@
         </Directory>
       </Directory>
       <Component Id="Path" Guid="ae123563-e6ac-4ea6-bf58-156cc42db361">
-        <Environment Id="PATH" Name="PATH" Value="[INSTALLDIR]" Permanent="no" Part="last" Action="set" System="no" />
+        <Environment Id="PATH" Name="PATH" Value="[INSTALLDIR]" Permanent="no" Part="last" Action="set" System="yes" />
       </Component>
     </Directory>
 
