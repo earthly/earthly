@@ -31,6 +31,12 @@ if [ "$EARTHLY_RESET_TMP_DIR" = "true" ]; then
     rm -rf "${EARTHLY_TMP_DIR:?}"/* || true
 fi
 
+if ! lsmod | grep -wq "^ip_tables"; then
+  echo "Legacy ip_tables is not loaded. Switching to iptables-nft."
+  ln -sf /sbin/iptables-nft /sbin/iptables
+  lsmod
+fi
+
 # clear any leftovers in the dind dir
 rm -rf "$EARTHLY_TMP_DIR/dind"
 mkdir -p "$EARTHLY_TMP_DIR/dind"
