@@ -1298,7 +1298,9 @@ func (app *earthlyApp) autoCompleteImp() (err error) {
 		return err
 	}
 
-	potentials, err := autocomplete.GetPotentials(compLine, int(compPointInt), app.cliApp)
+	showHidden := strings.HasPrefix(Version, "dev-") || os.Getenv("EARTHLY_AUTOCOMPLETE_HIDDEN") == "1"
+
+	potentials, err := autocomplete.GetPotentials(compLine, int(compPointInt), app.cliApp, showHidden)
 	if err != nil {
 		return err
 	}
