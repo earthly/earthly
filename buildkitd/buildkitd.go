@@ -265,13 +265,17 @@ func Start(ctx context.Context, console conslogging.ConsoleLogger, image, contai
 		"-d",
 		"-v", fmt.Sprintf("%s:/tmp/earthly:rw", settings.VolumeName),
 		"-e", fmt.Sprintf("BUILDKIT_DEBUG=%t", settings.Debug),
-		"-e", fmt.Sprintf("EARTHLY_ADDITIONAL_BUILDKIT_CONFIG=%s", settings.AdditionalConfig),
 		"-e", fmt.Sprintf("BUILDKIT_TCP_TRANSPORT_ENABLED=%t", settings.UseTCP),
 		"-e", fmt.Sprintf("BUILDKIT_TLS_ENABLED=%t", settings.UseTCP && settings.UseTLS),
 		"--label", fmt.Sprintf("dev.earthly.settingshash=%s", settingsHash),
 		"--name", containerName,
 		"--privileged",
 	}
+
+	if settings.AdditionalConfig != "" {
+		args = append(args, "-e", fmt.Sprintf("EARTHLY_ADDITIONAL_BUILDKIT_CONFIG=%s", settings.AdditionalConfig))
+	}
+
 	args = append(args, settings.AdditionalArgs...)
 	if os.Getenv("EARTHLY_WITH_DOCKER") == "1" {
 		// Add /sys/fs/cgroup if it's earthly-in-earthly.
@@ -340,10 +344,13 @@ func Start(ctx context.Context, console conslogging.ConsoleLogger, image, contai
 		args = append(args, "-e", fmt.Sprintf("CNI_MTU=%v", settings.CniMtu))
 	}
 
-	args = append(args,
-		"-e", fmt.Sprintf("CACHE_SIZE_MB=%d", settings.CacheSizeMb),
-		"-e", fmt.Sprintf("GIT_URL_INSTEAD_OF=%s", settings.GitURLInsteadOf),
-	)
+	if settings.CacheSizeMb > 0 {
+		args = append(args, "-e", fmt.Sprintf("CACHE_SIZE_MB=%d", settings.CacheSizeMb))
+	}
+
+	if settings.GitURLInsteadOf != "" {
+		args = append(args, "-e", fmt.Sprintf("GIT_URL_INSTEAD_OF=%s", settings.GitURLInsteadOf))
+	}
 
 	// Apply reset.
 	if reset {
