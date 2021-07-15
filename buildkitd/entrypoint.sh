@@ -41,7 +41,7 @@ fi
 if ! lsmod | grep -wq "^ip_tables"; then
   echo "Legacy ip_tables is not loaded."
 
-  if [ $KERNEL = "WSL" ]; then
+  if [ "$KERNEL" = "WSL" ]; then
     echo "Keeping iptables-legacy for WSL"
 
   else
