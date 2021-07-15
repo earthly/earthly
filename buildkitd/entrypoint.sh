@@ -32,8 +32,16 @@ if [ "$EARTHLY_RESET_TMP_DIR" = "true" ]; then
 fi
 
 if ! lsmod | grep -wq "^ip_tables"; then
-  echo "Legacy ip_tables is not loaded. Switching to iptables-nft."
-  ln -sf /sbin/iptables-nft /sbin/iptables
+  echo "Legacy ip_tables is not loaded."
+
+  if ! uname -a | grep -wiq "microsoft"; then
+    echo "WSL Detected! Keeping legacy iptables in place."
+
+  else
+    echo "Switching to iptables-nft."
+    ln -sf /sbin/iptables-nft /sbin/iptables
+  fi
+
   lsmod
 fi
 
