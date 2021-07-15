@@ -60,6 +60,7 @@ type Opt struct {
 	ParallelConversion     bool
 	Parallelism            *semaphore.Weighted
 	LocalRegistryAddr      string
+	FeatureFlagOverrides   string
 }
 
 // BuildOpt is a collection of build options.
@@ -183,6 +184,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 				Parallelism:          b.opt.Parallelism,
 				Console:              b.opt.Console,
 				GitLookup:            b.opt.GitLookup,
+				FeatureFlagOverrides: b.opt.FeatureFlagOverrides,
 			})
 			if err != nil {
 				return nil, err

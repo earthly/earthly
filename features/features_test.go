@@ -25,3 +25,31 @@ func TestFeaturesStringDisabled(t *testing.T) {
 	s := fts.String()
 	Equal(t, "VERSION 1.1", s)
 }
+
+func TestApplyFlagOverrides(t *testing.T) {
+	fts := &Features{}
+	err := ApplyFlagOverrides(fts, "referenced-save-only")
+	Nil(t, err)
+	Equal(t, true, fts.ReferencedSaveOnly)
+}
+
+func TestApplyFlagOverridesWithDashDashPrefix(t *testing.T) {
+	fts := &Features{}
+	err := ApplyFlagOverrides(fts, "--referenced-save-only")
+	Nil(t, err)
+	Equal(t, true, fts.ReferencedSaveOnly)
+}
+
+func TestApplyFlagOverridesMultipleFlags(t *testing.T) {
+	fts := &Features{}
+	err := ApplyFlagOverrides(fts, "referenced-save-only,use-copy-include-patterns")
+	Nil(t, err)
+	Equal(t, true, fts.ReferencedSaveOnly)
+	Equal(t, true, fts.UseCopyIncludePatterns)
+}
+
+func TestApplyFlagOverridesEmptyString(t *testing.T) {
+	fts := &Features{}
+	err := ApplyFlagOverrides(fts, "")
+	Nil(t, err)
+}

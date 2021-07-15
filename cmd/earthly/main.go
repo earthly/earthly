@@ -150,6 +150,7 @@ type cliFlags struct {
 	certPath                  string
 	keyPath                   string
 	disableAnalytics          bool
+	featureFlagOverrides      string
 }
 
 var (
@@ -562,6 +563,13 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 			EnvVars:     []string{"EARTHLY_DISABLE_ANALYTICS", "DO_NOT_TRACK"},
 			Usage:       "Disable collection of analytics",
 			Destination: &app.disableAnalytics,
+		},
+		&cli.StringFlag{
+			Name:        "feature-flag-overrides",
+			EnvVars:     []string{"EARTHLY_FEATURE_FLAG_OVERRIDES"},
+			Usage:       "Apply additional flags after each VERSION command across all Earthfiles, multiple flags can be seperated by commas",
+			Destination: &app.featureFlagOverrides,
+			Hidden:      true, // used for feature-flipping from ./earthly dev script
 		},
 	}
 
@@ -2780,6 +2788,7 @@ func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []st
 		ParallelConversion:     (app.conversionParllelism != 0),
 		Parallelism:            parallelism,
 		LocalRegistryAddr:      localRegistryAddr,
+		FeatureFlagOverrides:   app.featureFlagOverrides,
 	}
 	b, err := builder.NewBuilder(c.Context, builderOpts)
 	if err != nil {
