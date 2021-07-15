@@ -2,6 +2,13 @@
 set -e
 echo "starting earthly-buildkit with EARTHLY_GIT_HASH=$EARTHLY_GIT_HASH BUILDKIT_BASE_IMAGE=$BUILDKIT_BASE_IMAGE"
 
+KERNEL="generic"
+if uname -a | grep -wiq "microsoft"; then
+  KERNEL="WSL"
+  echo "WSL Detected!"
+fi
+# If we ever need additional kernel detections per-distro, add those checks here and set $KERNEL accordingly.
+
 if [ "$BUILDKIT_DEBUG" = "true" ]; then
     set -x
 fi
@@ -34,8 +41,8 @@ fi
 if ! lsmod | grep -wq "^ip_tables"; then
   echo "Legacy ip_tables is not loaded."
 
-  if ! uname -a | grep -wiq "microsoft"; then
-    echo "WSL Detected! Keeping legacy iptables in place."
+  if [ $KERNEL = "WSL" ]; then
+    echo "Keeping iptables-legacy for WSL"
 
   else
     echo "Switching to iptables-nft."
