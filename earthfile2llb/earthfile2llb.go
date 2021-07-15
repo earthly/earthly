@@ -81,6 +81,9 @@ type ConvertOpt struct {
 
 	// parentDepSub is a channel informing of any new dependencies from the parent.
 	parentDepSub chan string // chan of sts IDs.
+
+	// FeatureFlagOverride is used to override feature flags that are defined in specific Earthfiles
+	FeatureFlagOverrides string
 }
 
 // Earthfile2LLB parses a earthfile and executes the statements for a given target.
@@ -103,6 +106,11 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt) (m
 	ftrs, err := features.GetFeatures(bc.Earthfile.Version)
 	if err != nil {
 		return nil, errors.Wrapf(err, "resolve feature set for version %v for target %s", bc.Earthfile.Version.Args, target.String())
+	}
+
+	err = features.ApplyFlagOverrides(ftrs, opt.FeatureFlagOverrides)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to apply version feature overrides")
 	}
 
 	if ftrs.ReferencedSaveOnly {
