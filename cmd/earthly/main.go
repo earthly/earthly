@@ -565,8 +565,8 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 			Destination: &app.disableAnalytics,
 		},
 		&cli.StringFlag{
-			Name:        "feature-flag-overrides",
-			EnvVars:     []string{"EARTHLY_FEATURE_FLAG_OVERRIDES"},
+			Name:        "version-flag-overrides",
+			EnvVars:     []string{"EARTHLY_VERSION_FLAG_OVERRIDES"},
 			Usage:       "Apply additional flags after each VERSION command across all Earthfiles, multiple flags can be seperated by commas",
 			Destination: &app.featureFlagOverrides,
 			Hidden:      true, // used for feature-flipping from ./earthly dev script
