@@ -14,6 +14,7 @@ import (
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/util/gitutil"
 	"github.com/earthly/earthly/util/llbutil"
+	"github.com/earthly/earthly/util/llbutil/llbfactory"
 	"github.com/earthly/earthly/util/llbutil/pllb"
 	"github.com/earthly/earthly/util/stringutil"
 	"github.com/earthly/earthly/util/syncutil/synccache"
@@ -55,17 +56,16 @@ func (gr *gitResolver) resolveEarthProject(ctx context.Context, gwClient gwclien
 		return nil, err
 	}
 
-	var buildContext pllb.State
+	var buildContextFactory llbfactory.Factory
 	if _, isTarget := ref.(domain.Target); isTarget {
 		// Restrict the resulting build context to the right subdir.
 		if subDir == "." {
 			// Optimization.
-			buildContext = rgp.state
+			buildContextFactory = llbfactory.PreconstructedState(rgp.state)
 		} else {
-			buildContext = llbutil.ScratchWithPlatform()
-			buildContext = llbutil.CopyOp(
-				rgp.state, []string{subDir}, buildContext, "./", false, false, false, "root:root", false, false,
-				llb.WithCustomNamef("[internal] COPY git context %s", ref.String()))
+			buildContextFactory = llbfactory.PreconstructedState(llbutil.CopyOp(
+				rgp.state, []string{subDir}, llbutil.ScratchWithPlatform(), "./", false, false, false, "root:root", false, false,
+				llb.WithCustomNamef("[internal] COPY git context %s", ref.String())))
 		}
 	} else {
 		// Commands don't come with a build context.
@@ -111,8 +111,8 @@ func (gr *gitResolver) resolveEarthProject(ctx context.Context, gwClient gwclien
 	localBuildFilePath := localBuildFilePathValue.(string)
 	// TODO: Apply excludes / .earthignore.
 	return &Data{
-		BuildFilePath: localBuildFilePath,
-		BuildContext:  buildContext,
+		BuildFilePath:       localBuildFilePath,
+		BuildContextFactory: buildContextFactory,
 		GitMetadata: &gitutil.GitMetadata{
 			BaseDir:   "",
 			RelDir:    subDir,

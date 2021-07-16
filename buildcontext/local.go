@@ -9,7 +9,7 @@ import (
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/util/gitutil"
 	"github.com/earthly/earthly/util/llbutil"
-	"github.com/earthly/earthly/util/llbutil/pllb"
+	"github.com/earthly/earthly/util/llbutil/llbfactory"
 	"github.com/earthly/earthly/util/syncutil/synccache"
 	"github.com/moby/buildkit/client/llb"
 	"github.com/pkg/errors"
@@ -56,13 +56,13 @@ func (lr *localResolver) resolveLocal(ctx context.Context, ref domain.Reference)
 		return nil, err
 	}
 
-	var buildContext pllb.State
+	var buildContextFactory llbfactory.Factory
 	if _, isTarget := ref.(domain.Target); isTarget {
 		excludes, err := readExcludes(ref.GetLocalPath())
 		if err != nil {
 			return nil, err
 		}
-		buildContext = pllb.Local(
+		buildContextFactory = llbfactory.Local(
 			ref.GetLocalPath(),
 			llb.ExcludePatterns(excludes),
 			llb.SessionID(lr.sessionID),
@@ -74,8 +74,8 @@ func (lr *localResolver) resolveLocal(ctx context.Context, ref domain.Reference)
 	}
 
 	return &Data{
-		BuildFilePath: buildFilePath,
-		BuildContext:  buildContext,
-		GitMetadata:   metadata,
+		BuildFilePath:       buildFilePath,
+		BuildContextFactory: buildContextFactory,
+		GitMetadata:         metadata,
 	}, nil
 }

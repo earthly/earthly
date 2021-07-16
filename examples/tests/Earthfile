@@ -19,6 +19,7 @@ ga:
     BUILD ./version+test-all
     BUILD +privileged-test
     BUILD +copy-test
+    BUILD +copy-test-verbose-output
     BUILD +cache-test
     BUILD +git-clone-test
     BUILD +builtin-args-test
@@ -95,11 +96,41 @@ copy-test:
         echo "sub" > in/sub/file
     DO +RUN_EARTHLY --earthfile=copy.earth
 
-    RUN echo "output.txt" > .earthignore
-    DO +RUN_EARTHLY --earthfile=copy.earth --extra_args="--verbose"  --post_command="2>output.txt"
+copy-test-verbose-output:
+    RUN mkdir -p subdir/a.txt && \
+        echo -n "a" > a.txt && \
+        echo -n "alpha" > alpha.txt && \
+        echo -n "beta" > subdir/a.txt/beta.txt
+
+    COPY copy-verbose.earth Earthfile
+
+    # Setup a test that runs earthly twice; both instances of earthly must be run
+    # back to back as the file caching logic references the directories inode ID while constructing
+    # the shared cache key.
+    RUN echo "#!/bin/sh
+set -x
+earthly --config \$earthly_config --verbose +all 2>output.txt;
+earthly --config \$earthly_config --verbose +all 2>output2.txt;
+" >/tmp/multiple-earthly-script && chmod +x /tmp/multiple-earthly-script
+
+    RUN --privileged \
+        --mount=type=tmpfs,target=/tmp/earthly-tmpfs \
+        set -x; \
+        export EARTHLY_TMP_DIR="/tmp/earthly-tmpfs"; \
+        export EARTHLY_EXEC_CMD="/tmp/multiple-earthly-script"; \
+        /bin/sh /usr/bin/earthly-entrypoint.sh;
+
+    # test that the first run sends a.txt and doesn't send any non-referenced files
     RUN cat output.txt
-    RUN cat output.txt | grep 'sent data for in/root (5 B)'
-    RUN cat output.txt | grep 'transferred 4 file(s) for context . (261 B, 8 file/dir stats)'
+    RUN cat output.txt | grep 'sent data for a.txt (1 B)'
+    RUN if grep "sent data for alpha.txt" output.txt >/dev/null; then echo "alpha.txt should not have been sent"; exit 1; fi
+    RUN if grep "sent data for .*beta.txt" output.txt >/dev/null; then echo "beta.txt should not have been sent"; exit 1; fi
+
+    # test that the second run did not resend a.txt (or any other non-referenced files)
+    RUN cat output2.txt
+    RUN if grep "sent data for a.txt" output2.txt >/dev/null; then echo "a.txt should not have been sent"; exit 1; fi
+    RUN if grep "sent data for alpha.txt" output2.txt >/dev/null; then echo "alpha.txt should not have been sent"; exit 1; fi
+    RUN if grep "sent data for .*beta.txt" output2.txt >/dev/null; then echo "beta.txt should not have been sent"; exit 1; fi
 
 cache-test:
     # Test that a file can be passed between runs through the mounted cache.

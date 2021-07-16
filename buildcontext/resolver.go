@@ -11,7 +11,7 @@ import (
 	"github.com/earthly/earthly/conslogging"
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/util/gitutil"
-	"github.com/earthly/earthly/util/llbutil/pllb"
+	"github.com/earthly/earthly/util/llbutil/llbfactory"
 	"github.com/earthly/earthly/util/syncutil/synccache"
 
 	gwclient "github.com/moby/buildkit/frontend/gateway/client"
@@ -29,7 +29,7 @@ type Data struct {
 	// BuildFilePath is the local path where the Earthfile or Dockerfile can be found.
 	BuildFilePath string
 	// BuildContext is the state to use for the build.
-	BuildContext pllb.State
+	BuildContextFactory llbfactory.Factory
 	// GitMetadata contains git metadata information.
 	GitMetadata *gitutil.GitMetadata
 	// Target is the earthly reference.
