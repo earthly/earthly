@@ -1,0 +1,29 @@
+
+build-msi:
+    FROM ubuntu:20.04
+    ENV TZ=Etc/UTC
+    RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+    RUN dpkg --add-architecture i386 && \
+        apt-get update
+    RUN apt-get install -y wine wine32 winetricks
+
+    ENV WINEARCH=win32
+    ENV WINEDEBUG -all,err+all
+    RUN wineboot && \
+        winetricks --unattended dotnet40
+
+    WORKDIR /wix
+    RUN apt-get install -y wget
+    RUN wget http://wixtoolset.org/downloads/v3.9.1006.0/wix39-binaries.zip && \
+        unzip wix39-binaries.zip
+
+    WORKDIR /msi
+    COPY --build-arg VERSION=$RELEASE_TAG \
+        ../../+earthly-windows-amd64/earthly.exe .
+    COPY ./icon.ico .
+    COPY ./earthly.wxs .
+
+    RUN wine /wix/candle.exe -o earthly.wixobj -arch x64 earthly.wxs
+    RUN wine /wix/light.exe -o earthly.msi -sval earthly.wixobj
+
+    SAVE ARTIFACT earthly.msi AS LOCAL earthly.msi
