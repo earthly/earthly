@@ -338,6 +338,10 @@ Instructs Earthly to not overwrite the file creation timestamps with a constant.
 
 Instructs Earthly to keep file ownership information. This applies only to the *artifact form* and has no effect otherwise.
 
+##### `--if-exists`
+
+Only copy source if it exists; if it does not exist, earthly will simply ignore the COPY command and won't treat any missing sources as failures.
+
 ##### `--from`
 
 Although this option is present in classical Dockerfile syntax, it is not supported by Earthfiles. You may instead use a combination of `SAVE ARTIFACT` and `COPY` *artifact form* commands to achieve similar effects. For example, the following Dockerfile
@@ -438,7 +442,7 @@ A number of builtin args are available and are pre-filled by Earthly. For more i
 
 #### Synopsis
 
-* `SAVE ARTIFACT [--keep-ts] [--keep-own] <src> [<artifact-dest-path>] [AS LOCAL <local-path>]`
+* `SAVE ARTIFACT [--keep-ts] [--keep-own] [--if-exists] <src> [<artifact-dest-path>] [AS LOCAL <local-path>]`
 
 #### Description
 
@@ -470,6 +474,10 @@ Instructs Earthly to not overwrite the file creation timestamps with a constant.
 ##### `--keep-own`
 
 Instructs Earthly to keep file ownership information.
+
+##### `--if-exists`
+
+Only save artifacts if they exists; if not, earthly will simply ignore the SAVE ARTIFACT command and won't treat any missing sources as failures.
 
 #### Examples
 
