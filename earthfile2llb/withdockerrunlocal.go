@@ -43,7 +43,7 @@ func (wdrl *withDockerRunLocal) load(ctx context.Context, opt DockerLoadOpt) (st
 	if err != nil {
 		return "", errors.Wrapf(err, "parse target %s", opt.Target)
 	}
-	mts, err := wdrl.c.buildTarget(ctx, depTarget.String(), opt.Platform, opt.AllowPrivileged, opt.BuildArgs, false, false)
+	mts, err := wdrl.c.buildTarget(ctx, depTarget.String(), opt.Platform, opt.AllowPrivileged, opt.BuildArgs, false, "LOAD")
 	if err != nil {
 		return "", err
 	}

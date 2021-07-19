@@ -60,6 +60,10 @@ ga:
     BUILD +file-copying
     BUILD +run-no-cache
     BUILD +save-artifact-after-push
+    BUILD +save-artifact-selective
+    BUILD +save-artifact-selective-legacy
+    BUILD +save-remote-artifact-selective-legacy
+    BUILD +save-remote-artifact-selective
     BUILD +push-build
     BUILD +build-arg-repeat
     BUILD +if
@@ -74,6 +78,7 @@ ga:
     BUILD +infinite-recursion
     BUILD +from-dockerfile-arg
     BUILD +cache-mount-arg
+    BUILD +dont-save-indirect-remote-artifact
 
 experimental:
     BUILD ./dind-auto-install+all
@@ -488,6 +493,82 @@ save-artifact-after-push:
     DO +RUN_EARTHLY --earthfile=save-artifact-after-push.earth --target=+copy-test \
         --post_command="2>&1 | perl -pe 'BEGIN {\\\$status=1} END {exit \\\$status} \\\$status=0 if /not found/;'"
 
+save-artifact-selective-test1:
+    DO +RUN_EARTHLY --earthfile=save-artifact-selective.earth --target=+test1
+    RUN test   -f a && \
+        test   -f b && \
+        test ! -f c && \
+        test ! -f d && \
+        test ! -f e
+
+save-artifact-selective-test2:
+    DO +RUN_EARTHLY --earthfile=save-artifact-selective.earth --target=+test2
+    RUN test ! -f a && \
+        test ! -f b && \
+        test   -f c && \
+        test ! -f d && \
+        test ! -f e
+
+save-artifact-selective-test3:
+    DO +RUN_EARTHLY --earthfile=save-artifact-selective.earth --target=+test3
+    RUN test ! -f a && \
+        test ! -f b && \
+        test ! -f c && \
+        test   -f d && \
+        test ! -f e
+
+save-artifact-selective-test4:
+    DO +RUN_EARTHLY --earthfile=save-artifact-selective.earth --target=+test4
+    RUN test ! -f a && \
+        test ! -f b && \
+        test ! -f c && \
+        test ! -f d && \
+        test   -f e
+
+save-artifact-selective-test5:
+    DO +RUN_EARTHLY --earthfile=save-artifact-selective.earth --target=+test5
+    RUN test ! -f a && \
+        test ! -f b && \
+        test ! -f c && \
+        test ! -f d && \
+        test ! -f e && \
+        test ! -f test5sub && \
+        test   -f test5
+
+save-artifact-selective:
+    # test that the `--referenced-save-only` feature only saves referenced artifacts
+    BUILD +save-artifact-selective-test1
+    BUILD +save-artifact-selective-test2
+    BUILD +save-artifact-selective-test3
+    BUILD +save-artifact-selective-test4
+    BUILD +save-artifact-selective-test5
+
+save-artifact-selective-legacy:
+    DO +RUN_EARTHLY --earthfile=save-artifact-legacy.earth --target=+all
+    RUN test ! -f a && \
+        test   -f b && \
+        test   -f c && \
+        test   -f d && \
+        test   -f e && \
+        test   -f f && \
+        test ! -d output/data && \
+        test ! -f output/data && \
+        test ! -f data
+
+save-remote-artifact-selective-legacy:
+    DO +RUN_EARTHLY --target=github.com/earthly/test-remote/output/no-version:main+savelocal
+    RUN test -f ./output/testfile
+
+save-remote-artifact-selective:
+    DO +RUN_EARTHLY --target=github.com/earthly/test-remote/output/versioned:main+savelocal
+    RUN test ./output/testfile
+
+dont-save-indirect-remote-artifact:
+    DO +RUN_EARTHLY --target=github.com/earthly/test-remote/output/no-version:main+copy-from-savelocal
+    RUN test ! -f ./output/testfile
+    DO +RUN_EARTHLY --target=github.com/earthly/test-remote/output/versioned:main+copy-from-savelocal
+    RUN test ! -f ./output/testfile
+
 push-build:
     DO +RUN_EARTHLY --earthfile=push-build.earth --target=+test --extra_args="--push" --post_command="> output 2>&1"
     RUN cat output
@@ -588,7 +669,9 @@ RUN_EARTHLY:
     ARG post_command
     ARG should_fail=false
     ARG use_tmpfs=true
-    COPY "$earthfile" "$earthfile_dest"
+    IF [ ! -z "$earthfile" ]
+        COPY "$earthfile" "$earthfile_dest"
+    END
     RUN echo "
         set -x
         if $use_tmpfs; then
