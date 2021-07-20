@@ -31,17 +31,26 @@ type gitMatcher struct {
 	sub      string
 	user     string
 	suffix   string
-	protocol string
+	protocol gitProtocol
 	password string
 	keyScan  string
 }
+
+type gitProtocol string
+
+const (
+	autoProtocol  gitProtocol = "auto"
+	sshProtocol   gitProtocol = "ssh"
+	httpProtocol  gitProtocol = "http"
+	httpsProtocol gitProtocol = "https"
+)
 
 // GitLookup looksup gits
 type GitLookup struct {
 	mu            sync.Mutex
 	matchers      []*gitMatcher
 	catchAll      *gitMatcher
-	autoProtocols map[string]string // host -> detected protocol type
+	autoProtocols map[string]gitProtocol // host -> detected protocol type
 	sshAuthSock   string
 	console       conslogging.ConsoleLogger
 }
@@ -54,7 +63,7 @@ func NewGitLookup(console conslogging.ConsoleLogger, sshAuthSock string) *GitLoo
 			re:       regexp.MustCompile("github.com/[^/]+/[^/]+"),
 			user:     "git",
 			suffix:   ".git",
-			protocol: "auto",
+			protocol: autoProtocol,
 			keyScan:  "github.com ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEAq2A7hRGmdnm9tUDbO9IDSwBK6TbQa+PXYPCPy6rbTrTtw7PHkccKrpp0yVhp5HdEIcKr6pLlVDBfOLX9QUsyCOV0wzfjIJNlGEYsdlLJizHhbn2mUjvSAHQqZETYP81eFzLQNnPHt4EVVUh7VfDESU84KezmD5QlWpXLmvU31/yMf+Se8xhHTvKSCZIFImWwoG6mbUoWf9nzpIoaSjB+weqqUUmpaaasXVal72J+UX2B+2RPW3RcT0eOzQgqlJL3RKrTJvdsjE3JEAvGq3lGHSZXy28G3skua2SmVi/w4yCE6gbODqnTWlg7+wC604ydGXA8VJiS5ap43JXiUFFAaQ==",
 		},
 		{
@@ -62,7 +71,7 @@ func NewGitLookup(console conslogging.ConsoleLogger, sshAuthSock string) *GitLoo
 			re:       regexp.MustCompile("gitlab.com/[^/]+/[^/]+"),
 			user:     "git",
 			suffix:   ".git",
-			protocol: "auto",
+			protocol: autoProtocol,
 			keyScan:  "gitlab.com ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCsj2bNKTBSpIYDEGk9KxsGh3mySTRgMtXL583qmBpzeQ+jqCMRgBqB98u3z++J1sKlXHWfM9dyhSevkMwSbhoR8XIq/U0tCNyokEi/ueaBMCvbcTHhO7FcwzY92WK4Yt0aGROY5qX2UKSeOvuP4D6TPqKF1onrSzH9bx9XUf2lEdWT/ia1NEKjunUqu1xOB/StKDHMoX4/OKyIzuS0q/T1zOATthvasJFoPrAjkohTyaDUz2LN5JoH839hViyEG82yB+MjcFV5MU3N1l1QL3cVUCh93xSaua1N85qivl+siMkPGbO5xR/En4iEY6K2XPASUEMaieWVNTRCtJ4S8H+9",
 		},
 		{
@@ -70,7 +79,7 @@ func NewGitLookup(console conslogging.ConsoleLogger, sshAuthSock string) *GitLoo
 			re:       regexp.MustCompile("bitbucket.com/[^/]+/[^/]+"),
 			user:     "git",
 			suffix:   ".git",
-			protocol: "auto",
+			protocol: autoProtocol,
 			keyScan:  "bitbucket.com ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEAubiN81eDcafrgMeLzaFPsw2kNvEcqTKl/VqLat/MaB33pZy0y3rJZtnqwR2qOOvbwKZYKiEO1O6VqNEBxKvJJelCq0dTXWT5pbO2gDXC6h6QDXCaHo6pOHGPUy+YBaGQRGuSusMEASYiWunYN0vCAI8QaXnWMXNMdFP3jHAJH0eDsoiGnLPBlBp4TNm6rYI74nMzgz3B9IikW4WVK+dc8KZJZWYjAuORU3jc1c/NPskD2ASinf8v3xnfXeukU0sJ5N6m5E8VLjObPEO+mN2t/FZTMZLiFqPWc/ALSqnMnnhwrNi2rbfg/rd/IpL8Le3pSBne8+seeFVBoGqzHM9yXw==",
 		},
 	}
@@ -82,9 +91,9 @@ func NewGitLookup(console conslogging.ConsoleLogger, sshAuthSock string) *GitLoo
 			re:       regexp.MustCompile("[^/]+/[^/]+/[^/]+"),
 			user:     "git",
 			suffix:   ".git",
-			protocol: "auto",
+			protocol: autoProtocol,
 		},
-		autoProtocols: map[string]string{},
+		autoProtocols: map[string]gitProtocol{},
 		sshAuthSock:   sshAuthSock,
 		console:       console,
 	}
@@ -99,12 +108,12 @@ func (gl *GitLookup) DisableSSH() {
 	gl.mu.Lock()
 	defer gl.mu.Unlock()
 	for i, m := range gl.matchers {
-		if m.protocol == "ssh" || m.protocol == "auto" {
-			gl.matchers[i].protocol = "https"
+		if m.protocol == sshProtocol || m.protocol == autoProtocol {
+			gl.matchers[i].protocol = httpsProtocol
 		}
 	}
-	if gl.catchAll.protocol == "ssh" {
-		gl.catchAll.protocol = "https"
+	if gl.catchAll.protocol == sshProtocol {
+		gl.catchAll.protocol = httpsProtocol
 	}
 }
 
@@ -112,7 +121,8 @@ func (gl *GitLookup) DisableSSH() {
 func (gl *GitLookup) AddMatcher(name, pattern, sub, user, password, suffix, protocol, keyScan string) error {
 	gl.mu.Lock()
 	defer gl.mu.Unlock()
-	if protocol == "http" && password != "" {
+	p := gitProtocol(protocol)
+	if p == httpsProtocol && password != "" {
 		return errors.Errorf("using a password with http for %s is insecure", name)
 	}
 
@@ -120,8 +130,8 @@ func (gl *GitLookup) AddMatcher(name, pattern, sub, user, password, suffix, prot
 	if err != nil {
 		return errors.Wrapf(err, "failed to compile regex %s", pattern)
 	}
-	switch protocol {
-	case "http", "https", "ssh", "auto":
+	switch p {
+	case httpProtocol, httpsProtocol, sshProtocol, autoProtocol:
 		break
 	default:
 		return errors.Errorf("unsupported git protocol %q", protocol)
@@ -134,7 +144,7 @@ func (gl *GitLookup) AddMatcher(name, pattern, sub, user, password, suffix, prot
 		user:     user,
 		password: password,
 		suffix:   suffix,
-		protocol: protocol,
+		protocol: p,
 		keyScan:  keyScan,
 	}
 
@@ -197,7 +207,7 @@ func (gl *GitLookup) getGitMatcherByName(name string) *gitMatcher {
 }
 
 // detectProtocol will update the gitMatcher protocol if it is set to auto
-func (gl *GitLookup) detectProtocol(host string) (protocol string, err error) {
+func (gl *GitLookup) detectProtocol(host string) (protocol gitProtocol, err error) {
 	var ok bool
 	protocol, ok = gl.autoProtocols[host]
 	if ok {
@@ -212,7 +222,7 @@ func (gl *GitLookup) detectProtocol(host string) (protocol string, err error) {
 
 	sshAgent, err := net.Dial("unix", gl.sshAuthSock)
 	if err != nil {
-		protocol = "https"
+		protocol = httpsProtocol
 		err = nil
 		return
 	}
@@ -226,13 +236,13 @@ func (gl *GitLookup) detectProtocol(host string) (protocol string, err error) {
 
 	client, err := ssh.Dial("tcp", fmt.Sprintf("%s:22", host), config)
 	if err != nil {
-		protocol = "https"
+		protocol = httpsProtocol
 		err = nil
 		return
 	}
 	defer client.Close()
 
-	protocol = "ssh"
+	protocol = sshProtocol
 	err = nil
 	return
 }
@@ -265,15 +275,15 @@ func (gl *GitLookup) makeCloneURL(m *gitMatcher, host, gitPath string) (string, 
 	configuredProtocol := m.protocol
 	user := m.user
 	password := m.password
-	if configuredProtocol == "auto" {
+	if configuredProtocol == autoProtocol {
 		configuredProtocol, err = gl.detectProtocol(host)
 		if err != nil {
 			return "", "", err
 		}
 		switch configuredProtocol {
-		case "ssh":
+		case sshProtocol:
 			user = "git"
-		case "http", "https":
+		case httpProtocol, httpsProtocol:
 			user = ""
 			password = ""
 		}
@@ -281,7 +291,7 @@ func (gl *GitLookup) makeCloneURL(m *gitMatcher, host, gitPath string) (string, 
 
 	var gitURL, keyScan string
 	switch configuredProtocol {
-	case "ssh":
+	case sshProtocol:
 		gitURL = user + "@" + host + ":" + gitPath
 		keyScan = m.keyScan
 		if keyScan == "" {
@@ -290,12 +300,12 @@ func (gl *GitLookup) makeCloneURL(m *gitMatcher, host, gitPath string) (string, 
 				return "", "", err
 			}
 		}
-	case "http":
+	case httpProtocol:
 		if user != "" || password != "" {
 			gl.console.Warnf("%s has been configured to use basic access authentication with http; this is insecure and will be ignored; use https or ssh authentication instead", host)
 		}
 		gitURL = "http://" + host + "/" + gitPath
-	case "https":
+	case httpsProtocol:
 		var userAndPass string
 		if user == "" && password == "" {
 			user, password, _ = gl.lookupNetRCCredential(host) // best effort
