@@ -11,7 +11,7 @@ import (
 
 // ParseArgs parses flags and args from a command string
 func ParseArgs(command string, data interface{}, args []string) ([]string, error) {
-	p := flags.NewNamedParser("", flags.PrintErrors|flags.PassDoubleDash|flags.PassAfterNonOption)
+	p := flags.NewNamedParser("", flags.PrintErrors|flags.PassDoubleDash|flags.PassAfterNonOption|flags.AllowBoolValues)
 	_, err := p.AddGroup(fmt.Sprintf("%s [options] args", command), "", data)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to initiate parser.AddGroup for %s", command)
