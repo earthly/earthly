@@ -28,7 +28,7 @@ To configure an `earhly/buildkitd` daemon as a remotely available daemon, you wi
 
 **`BUILDKIT_TCP_TRANSPORT_ENABLED`**
 
-This will configure `buildkitd` on start to start listening on port `8372`. If you would like it to be externally available on a different port, you will need to handle that at the port mapping level. TCP is required for remotely sharing a daemon.
+This will configure `buildkitd` to listen on port `8372`. If you would like it to be externally available on a different port, you will need to handle that at the port mapping level. TCP is required for remotely sharing a daemon.
 
 **`BUILDKIT_TLS_ENABLED`**
 
