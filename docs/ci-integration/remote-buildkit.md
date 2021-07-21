@@ -34,7 +34,7 @@ This will configure `buildkitd` to listen on port `8372`. If you would like it t
 
 Set this to `true` for all daemons that will handle production workloads. This daemon *by design* is an arbitrary code execution machine, and running it without any kind of mTLS configuration is not recommended.
 
-Make sure you mount your your certificates and keys into the correct location (`/etc/*.pem`).
+Make sure you mount your certificates and keys in the correct location (`/etc/*.pem`).
 
 #### Client
 
