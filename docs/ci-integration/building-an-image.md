@@ -8,12 +8,12 @@ This guide is intended to help you create your own Earthly-enabled image for you
 
 There are two ways to build a containerized CI image with Earthly:
 
-- Extending `earthly/earthly` with your runner/agent
+- Extending the `earthly/earthly` image with an external runner/agent
 - Adding Earthly to an existing image
 
 This guide will cover both approaches to constructing your image. 
 
-### Extending `earthly/earthly`
+### Extending The `earthly/earthly` Image
 
 This is the recommended approach when adopting Earthly into your containerized CI. Start by basing your custom image on ours:
 
