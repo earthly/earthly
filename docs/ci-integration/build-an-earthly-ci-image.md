@@ -2,7 +2,7 @@
 
 ## Introduction
 
-This guide is intended to help you create your own Earthly-enabled image for your containerized CI workflows.
+This guide is intended to help you create your own Docker image with Earthly inside it for your containerized CI workflows.
 
 ## Getting Started
 
