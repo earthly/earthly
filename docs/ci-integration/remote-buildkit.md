@@ -38,7 +38,7 @@ Make sure you mount your certificates and keys in the correct location (`/etc/*.
 
 #### Client
 
-Normally, Earthly will try to start and manage its own `earthly/buildkitd` daemon. However, with some configuration, it will not try to create or manage this daemon and rely on the remote one. Here are the configuration values you may need to know:
+Normally, Earthly will try to start and manage its own `earthly/buildkitd` daemon. However, when relying on a remote `earthly/buildkitd` instance, Earthly will not attempt to manage this daemon. Here are the configuration options needed to use a remote instance:
 
 **`buildkit_host`**
 
