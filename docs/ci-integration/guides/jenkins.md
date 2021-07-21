@@ -54,7 +54,7 @@ If you broke the example environment, you can run `earthly ./jenkins+cleanup` to
 
 ### Constructing A Runner Image
 
-The example uses an `earthly` published image named `earthly/earthly-jenkins`. Please, do not ase your image off this one; copy our work and adapt it to your own needs. Earthly makes no commitment to keep this image consistently updated.
+The example uses an `earthly` published image named `earthly/earthly-jenkins`. Please, do not base your image off this one; copy our work and adapt it to your own needs. Earthly makes no commitment to keep this image consistently updated.
 
 It's easiest to start from our base `earthly/earthly` image and build up a runner image from scratch. [Our example is here](https://github.com/earthly/ci-examples/blob/ce20840cffd2a8b04a8bd5dce477751adac3f490/jenkins/Earthfile#L48-L54). This image simply installs Java, and relies on Jenkins to inject the runner for us.
 
