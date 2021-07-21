@@ -22,7 +22,7 @@ and then restart your shell.
 
 ### CI
 
-For instructions on how to install `earthly` for CI use, see the [CI integration guide](./ci-integration.md).
+For instructions on how to install `earthly` for CI use, see the [CI integration guide](./ci-integration/ci-integration.md).
 
 ### Installing from Earthly repositories (**experimental**)
 

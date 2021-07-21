@@ -149,7 +149,7 @@ To avoid any ambiguity regarding whether an argument is a `RUN` flag option or p
 
 #### Options
 
-##### `--push`
+``##### `--push`
 
 Marks the command as a "push command". Push commands are only executed if all other non-push instructions succeed. In addition, push commands are never cached, thus they are executed on every applicable invocation of the build.
 

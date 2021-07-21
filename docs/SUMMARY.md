@@ -39,7 +39,16 @@
     * [Excluding patterns](earthfile/earthignore.md)
 * [The `earthly` command](earthly-command/earthly-command.md)
 * [Configuration reference](earthly-config/earthly-config.md)
-* [CI integration](./ci-integration.md)
+* [CI integration](ci-integration/ci-integration.md)
+  * [Building An Image]()
+  * [Pull-Through Cache]()
+  * [Remote Buildkit]()
+  * Guides
+    * [Jenkins]()
+    * [Circle CI]()
+    * [GitHub Actions]()
+    * [CodeBuild]()
+    * [Kubernetes]()
 * Misc
     * [Alternative installation](./alt-installation.md)
     * [Definitions](definitions/definitions.md)
