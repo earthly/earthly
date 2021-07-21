@@ -6,7 +6,7 @@ In some cases, you may want to run a remote instance of `earthly/buildkitd`. Thi
 
 ### Why Remote?
 
-Running a remote daemon is a unique feature of Earthly. It allows the build to happen elsewhere; even when executing it from your local development machine. However, it is not always the best  option. Before setting up a remote daemon, first look into Earthly's shared caching capabilities and see if those can get you the boost you need. In our experience, shared caching is usually enough.
+Running a remote daemon is a unique feature of Earthly. It allows the build to happen elsewhere; even when executing it from your local development machine. However, it is not always the best option. Before setting up a remote daemon, first look into Earthly's shared caching capabilities and see if those can get you the boost you need. In our experience, shared caching is usually enough.
 
 However, there are instances where a remote daemon can make the most sense. Here are some examples:
 
