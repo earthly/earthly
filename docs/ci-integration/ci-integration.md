@@ -1,6 +1,6 @@
 # Earthly in CI
 
-Continuous Integration systems are as varied as the companies that use them. Fortunately, Earthly is flexible enough to fit into any of them.
+Continuous Integration systems are as varied as the companies that use them. Fortunately, Earthly is flexible enough to fit into most (and where we don't, let us know!). This document serves as a startping point to configuring Earthly in your CI environment.
 
 ## Getting Started
 
