@@ -2,7 +2,7 @@
 
 ## Introduction
 
-Docker Hub, Quay, and other registry providers all have pull limits, and costs associated with running them. Running large builds (or many small builds, frequently) may incur excess costs, rate limiting, or both. This guide will help you set up your own "pull-through" cache to combat the limitations imposed by registry providers.
+Docker Hub, Quay, and other registry providers all have pull limits, and costs associated with running them. Running large builds (or many small builds, frequently) may incur excess costs, rate limiting, or both. This guide will help you set up your own "pull-through" cache to optimize traffic, and bypass the limitations imposed by registry providers.
 
 ## What Is A Pull Through Cache?
 

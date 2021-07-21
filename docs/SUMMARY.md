@@ -39,11 +39,12 @@
     * [Excluding patterns](earthfile/earthignore.md)
 * [The `earthly` command](earthly-command/earthly-command.md)
 * [Configuration reference](earthly-config/earthly-config.md)
-* [CI integration](ci-integration/ci-integration.md)
-  * [Building An Image](ci-integration/building-an-image.md)
+* CI Integration
+  * [Overview](ci-integration/overview.md)
+  * [Building An Earthly CI Image](ci-integration/build-an-earthly-ci-image.md)
   * [Pull-Through Cache](ci-integration/pull-through-cache.md)
   * [Remote Buildkit](ci-integration/remote-buildkit.md)
-  * Guides
+  * Vendor-Specific Guides
     * [Jenkins](ci-integration/guides/jenkins.md)
     * [Circle CI](ci-integration/guides/circle-integration.md)
     * [GitHub Actions](ci-integration/guides/gh-actions-integration.md)

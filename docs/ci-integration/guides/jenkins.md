@@ -4,7 +4,7 @@
 
 You can find our [Jenkins example here](https://github.com/earthly/ci-examples/tree/main/jenkins).
 
-To run it yourself, clone the `ci-examples` repository, and then run (from the root of the repository):
+To run it yourself, clone the [`ci-examples` repository](https://github.com/earthly/ci-examples), and then run (from the root of the repository):
 
 ```go
 earthly ./jenkins+start
@@ -72,7 +72,7 @@ RUN apk add --update --no-cache curl bash git git-lfs openssh-client openssl pro
 
 Ensure that `VERSION` is set to the version of the agent you would like to install.
 
-[See our documentation for more general information on building your own CI image](../building-an-image.md).
+[See our documentation for more general information on building your own CI image](../build-an-earthly-ci-image.md).
 
 ## Runner Configuration Notes
 

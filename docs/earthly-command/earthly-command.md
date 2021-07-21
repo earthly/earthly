@@ -246,7 +246,7 @@ Enable interactive debugging mode. By default when a `RUN` command fails, earthl
 
 ##### `--strict`
 
-Disallow usage of features that may create unreproducible builds.
+Disallow usage of features that may create unrepeatable builds.
 
 #### Log formatting options
 

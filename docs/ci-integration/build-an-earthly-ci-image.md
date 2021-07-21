@@ -1,4 +1,4 @@
-# Building An Image
+# Building An Earthly CI Image
 
 ## Introduction
 
@@ -65,4 +65,4 @@ When connecting to a remote daemon, follow the Docker-In-Docker installation ins
 RUN earthly config global "{buildkit_host: 'tcp://myhost:8372', buildkit_transport: 'tcp'}"
 ```
 
-For more details on using a remote buildkit daemon, see our guide here.
+For more details on using a remote buildkit daemon, [see our guide](./remote-buildkit.md).

@@ -11,7 +11,7 @@ Examples of integrating Earthly into various CI systems can be found on the foll
 * [Jenkins](../ci-integration/guides/jenkins.md)
 * [Kubernetes](../ci-integration/guides/kubernetes.md)
 
-For more general information on CI systems not listed above, see the [CI integration guide](../ci-integration/ci-integration.md).
+For more general information on CI systems not listed above, see the [CI integration guide](../ci-integration/overview.md).
 
 ## Example Earthfiles
 

@@ -22,7 +22,7 @@ and then restart your shell.
 
 ### CI
 
-For instructions on how to install `earthly` for CI use, see the [CI integration guide](./ci-integration/ci-integration.md).
+For instructions on how to install `earthly` for CI use, see the [CI integration guide](ci-integration/overview.md).
 
 ### Installing from Earthly repositories (**experimental**)
 
@@ -153,6 +153,8 @@ To add `earthly.exe` to your `PATH` environment variable:
    * If the PATH environment variable does not exist, click New.
 4. In the Edit window, specify the value of the PATH environment variable, and Click OK.
 5. Close and reopen any existing terminal windows, so they will pick up the new `PATH`.
+
+If you are going to mostly be working from a WSL2 prompt in Windows, you might want to consider following the Linux instructions for installation. This will help prevent any cross-subsystem file transfers and keep your builds fast. Note that the "original" WSL is unsupported.
 
 ### Installing from source
 

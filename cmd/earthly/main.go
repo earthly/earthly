@@ -550,7 +550,7 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 		&cli.BoolFlag{
 			Name:        "strict",
 			EnvVars:     []string{"EARTHLY_STRICT"},
-			Usage:       "Disallow usage of features that may create unreproduceable builds",
+			Usage:       "Disallow usage of features that may create unrepeatable builds",
 			Destination: &app.strict,
 		},
 		&cli.IntFlag{

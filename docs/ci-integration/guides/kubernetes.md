@@ -6,10 +6,10 @@ You can find our [Kubernetes example here](https://github.com/earthly/ci-example
 
 To run it yourself, first you will need to install some prerequisites on your machine. This example requires `kind` and `kubectl` to be installed on your system. Here are some links to installation instructions:
 
-- `[kind` Quick Start](https://kind.sigs.k8s.io/docs/user/quick-start/)
+- [`kind` Quick Start](https://kind.sigs.k8s.io/docs/user/quick-start/)
 - [Install `kubectl`](https://kubernetes.io/docs/tasks/tools/#kubectl)
 
-When you are ready, clone the `ci-examples` repository, and then run (from the root of the repository):
+When you are ready, clone the [`ci-examples` repository](https://github.com/earthly/ci-examples), and then run (from the root of the repository):
 
 ```go
 earthly ./kubernetes+run

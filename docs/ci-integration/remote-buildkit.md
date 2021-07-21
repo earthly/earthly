@@ -1,4 +1,11 @@
-# Remote Buildkit
+# Remote Buildkit 
+
+{% hint style='danger' %}
+##### Note
+
+Using a remote buildkit instance is currently _experimental_. If you run into any issues, or need help, [don't hesitate to reach out](https://github.com/earthly/earthly/issues/new)!
+
+{% endhint %}
 
 ## Introduction
 
@@ -6,7 +13,7 @@ In some cases, you may want to run a remote instance of `earthly/buildkitd`. Thi
 
 ### Why Remote?
 
-Running a remote daemon is a unique feature of Earthly. It allows the build to happen elsewhere; even when executing it from your local development machine. However, it is not always the best option. Before setting up a remote daemon, first look into Earthly's shared caching capabilities and see if those can get you the boost you need. In our experience, shared caching is usually enough.
+Running a remote daemon is a unique feature of Earthly. It allows the build to happen elsewhere; even when executing it from your local development machine. However, it is not always the best option. Before setting up a remote daemon, first look into Earthly's shared caching capabilities and see if those can get you the boost you need. In our experience, [shared caching](../guides/shared-cache.md) is usually enough.
 
 However, there are instances where a remote daemon can make the most sense. Here are some examples:
 
@@ -14,17 +21,17 @@ However, there are instances where a remote daemon can make the most sense. Here
 - There is data closer to a remote machine than your development/CI environment, so you bring the build to the data
 - You are using Earthly in Kubernetes, and want to isolate the containers doing the actual building because they require privileged mode
 - You want to share a build machine (or cluster) with your CI environment and your developers
-- Your local computer does not have the capabilities to build the software (`docker` is missing, or you lack sufficient privileges, or it is simply not powerful enough)
+- Your local computer does not have the capabilities to build the software (`docker`/`dockerd` is missing, or you lack sufficient privileges, or it is simply not powerful enough)
 
 ### Configuring A Remote Cache
 
 #### Networking
 
-A remote daemon should be reachable by all clients intending to use it. Earthly uses ports `8371-8373` to communicate, so these should be open and available to communicate.
+A remote daemon should be reachable by all clients intending to use it. Earthly uses ports `8371-8373` to communicate, so these should be open and available.
 
 #### Daemon
 
-To configure an `earhly/buildkitd` daemon as a remotely available daemon, you will need to start the container yourself. See our configuration docs for more details on all the options available; but here are the ones you need to know:
+To configure an `earhly/buildkitd` daemon as a remotely available daemon, you will need to start the container yourself. See our [configuration docs](../earthly-config/earthly-config.md) for more details on all the options available; but here are the ones you need to know:
 
 **`BUILDKIT_TCP_TRANSPORT_ENABLED`**
 
@@ -35,6 +42,8 @@ This will configure `buildkitd` to listen on port `8372`. If you would like it t
 Set this to `true` for all daemons that will handle production workloads. This daemon *by design* is an arbitrary code execution machine, and running it without any kind of mTLS configuration is not recommended.
 
 Make sure you mount your certificates and keys in the correct location (`/etc/*.pem`).
+
+For complete details, see the [documentation for `earthly/buildkitd`](../docker-images/buildkit-standalone.md). 
 
 #### Client
 
