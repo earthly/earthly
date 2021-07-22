@@ -37,7 +37,15 @@
   ```bash
   ./earthly --build-arg RELEASE_TAG --push ./release+release-homebrew
   ```
-* Important: Subscribe to the PR that griswoldthecat created in homebrew-core, so that you can address any review comments that may come up.
+* Visit the newly created pull request (which is both listed in the previous command's stdout and the `#release` slack channel); there should be two checks that are automatically applied:
+  * `brew test-bot / test-bot (ubuntu-latest)`
+  * `brew test-bot / test-bot (macos-latest)`
+
+  Once these two jobs complete, add the `pr-pull` label, which will trigger a third job `brew pr-pull / pr-pull`, which will save the artifacts produced by the prior jobs
+  and eventually merge the PR automatically.
+
+  IMPORTANT: do not merge this PR manually, the `pr-pull`-triggered job will do this for you.
+
 * Run
   ```bash
   ./earthly --build-arg RELEASE_TAG --push ./release+release-repo
