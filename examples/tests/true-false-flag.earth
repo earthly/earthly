@@ -1,0 +1,9 @@
+hello:
+    FROM alpine:3.13
+    ARG NO_CACHE=false
+    RUN --no-cache=$NO_CACHE echo "a20594da-88d4-420c-a998-1c65c6cf8b23"
+
+all:
+    BUILD --build-arg NO_CACHE=false +hello
+    BUILD --build-arg NO_CACHE=true +hello
+    BUILD --build-arg NO_CACHE=1 +hello
