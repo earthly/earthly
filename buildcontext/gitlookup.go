@@ -122,7 +122,7 @@ func (gl *GitLookup) AddMatcher(name, pattern, sub, user, password, suffix, prot
 	gl.mu.Lock()
 	defer gl.mu.Unlock()
 	p := gitProtocol(protocol)
-	if p == httpsProtocol && password != "" {
+	if p == httpProtocol && password != "" {
 		return errors.Errorf("using a password with http for %s is insecure", name)
 	}
 
