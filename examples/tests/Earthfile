@@ -74,6 +74,8 @@ ga:
     BUILD +infinite-recursion
     BUILD +from-dockerfile-arg
     BUILD +cache-mount-arg
+    BUILD +true-false-flag
+    BUILD +true-false-flag-invalid
 
 experimental:
     BUILD ./dind-auto-install+all
@@ -578,6 +580,37 @@ cache-mount-arg:
     RUN cat output.txt
     RUN cat output.txt | grep '\*cached\* --> RUN echo Doing something 1'; test "$?" != 0
     RUN cat output.txt | grep '\*cached\* --> RUN echo Doing something 2'; test "$?" != 0
+
+true-false-flag:
+    COPY true-false-flag.earth Earthfile
+    RUN echo "#!/bin/sh
+set -x
+
+# make sure the cache gets warmed up first
+earthly --config \$earthly_config --verbose +all 2>output.txt;
+
+# the +all will run one that is cached, and two --no-cache RUNs
+earthly --config \$earthly_config --verbose +all 2>output2.txt;
+" >/tmp/multiple-earthly-script && chmod +x /tmp/multiple-earthly-script
+    RUN --privileged \
+        --mount=type=tmpfs,target=/tmp/earthly-tmpfs \
+        set -x; \
+        export EARTHLY_TMP_DIR="/tmp/earthly-tmpfs"; \
+        export EARTHLY_EXEC_CMD="/tmp/multiple-earthly-script"; \
+        /bin/sh /usr/bin/earthly-entrypoint.sh;
+
+    # test that the two non-cached commands were run
+    RUN test $( cat output2.txt | grep -v echo | grep "a20594da-88d4-420c-a998-1c65c6cf8b23" | wc -l) = "2"
+    # test a single RUN was cached
+    RUN test $( cat output2.txt | grep cached | grep "a20594da-88d4-420c-a998-1c65c6cf8b23" | wc -l) = "1"
+
+true-false-flag-invalid:
+    DO +RUN_EARTHLY --earthfile=true-false-flag-invalid.earth --should_fail=true --target=+run-false --post_command="2>output.txt"
+    RUN cat output.txt | grep "Command /bin/sh -c false failed with exit code 1"
+    DO +RUN_EARTHLY --earthfile=true-false-flag-invalid.earth --should_fail=true --target=+run-false-with-args --post_command="2>output2.txt"
+    RUN cat output2.txt | grep "Command /bin/sh -c 'false echo test' failed with exit code 1"
+    DO +RUN_EARTHLY --earthfile=true-false-flag-invalid.earth --should_fail=true --target=+run-maybe --post_command="2>output3.txt"
+    RUN cat output3.txt | grep 'invalid argument for flag .*--no-cache.*expected bool'
 
 RUN_EARTHLY:
     COMMAND
