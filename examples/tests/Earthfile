@@ -582,27 +582,11 @@ cache-mount-arg:
     RUN cat output.txt | grep '\*cached\* --> RUN echo Doing something 2'; test "$?" != 0
 
 true-false-flag:
-    COPY true-false-flag.earth Earthfile
-    RUN echo "#!/bin/sh
-set -x
-
-# make sure the cache gets warmed up first
-earthly --config \$earthly_config --verbose +all 2>output.txt;
-
-# the +all will run one that is cached, and two --no-cache RUNs
-earthly --config \$earthly_config --verbose +all 2>output2.txt;
-" >/tmp/multiple-earthly-script && chmod +x /tmp/multiple-earthly-script
-    RUN --privileged \
-        --mount=type=tmpfs,target=/tmp/earthly-tmpfs \
-        set -x; \
-        export EARTHLY_TMP_DIR="/tmp/earthly-tmpfs"; \
-        export EARTHLY_EXEC_CMD="/tmp/multiple-earthly-script"; \
-        /bin/sh /usr/bin/earthly-entrypoint.sh;
-
-    # test that the two non-cached commands were run
-    RUN test $( cat output2.txt | grep -v echo | grep "a20594da-88d4-420c-a998-1c65c6cf8b23" | wc -l) = "2"
-    # test a single RUN was cached
-    RUN test $( cat output2.txt | grep cached | grep "a20594da-88d4-420c-a998-1c65c6cf8b23" | wc -l) = "1"
+    DO +RUN_EARTHLY --earthfile=true-false-flag.earth --extra_args="--allow-privileged" --post_command=">output.txt 2>&1"
+    # test that the two privileged commands were run
+    RUN test $( cat output.txt | grep -v echo | grep "I have the power" | wc -l) = "2"
+    # test a single non-privileged RUN was executed
+    RUN test $( cat output.txt | grep -v echo | grep "fight the power" | wc -l) = "1"
 
 true-false-flag-invalid:
     DO +RUN_EARTHLY --earthfile=true-false-flag-invalid.earth --should_fail=true --target=+run-false --post_command="2>output.txt"
