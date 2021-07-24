@@ -1,9 +1,9 @@
 hello:
     FROM alpine:3.13
-    ARG NO_CACHE=false
-    RUN --no-cache=$NO_CACHE echo "a20594da-88d4-420c-a998-1c65c6cf8b23"
+    ARG PRIVILEGED=false
+    RUN --no-cache --privileged=$PRIVILEGED if cat /proc/self/status | grep CapEff | grep 0000003fffffffff >/dev/null; then echo "I have the power"; else echo "fight the power"; fi
 
 all:
-    BUILD --build-arg NO_CACHE=false +hello
-    BUILD --build-arg NO_CACHE=true +hello
-    BUILD --build-arg NO_CACHE=1 +hello
+    BUILD --build-arg PRIVILEGED=false +hello
+    BUILD --build-arg PRIVILEGED=true +hello
+    BUILD --build-arg PRIVILEGED=1 +hello
