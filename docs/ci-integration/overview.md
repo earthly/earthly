@@ -2,80 +2,62 @@
 
 Continuous Integration systems are as varied as the companies that use them. Fortunately, Earthly is flexible enough to fit into most (and where we don't, let us know!). This document serves as a starting point to configuring Earthly in your CI environment.
 
-## Getting Started
+Setting up Earthly is as easy as three steps:
 
-### Dependencies
+ 1. [Installing Dependencies](#dependencies)
+ 2. [Installing Earthly](#installation)
+ 3. [Configuration](#configuration)
 
-Earthly has two software dependencies: `docker` and `git`. 
+We also have instructions for [specific CI systems](#examples); and special-case instructions for other scenarios (explore the "CI Integrations" category.)
 
- `docker` is used to glean information about the containerization environment, and manage our `earthly-buildkitd` daemon. It is also used to do things like save images locally on your machine after they have been built by Earthly.
+## Dependencies
 
-Currently, the `earthly-buildkitd` daemon requires running in `--privileged` mode, which means that the `docker` daemon needs to be configured to allow this as well. Rootless configurations are currently unsupported.
+Earthly has two software dependencies: `docker` and `git`. Because `earthly` will not install these for you, please ensure they are present before proceeding. These tools are very common, so many environments will already have them installed. 
 
-`git` is used to help fetch remote targets, and also provides metadata for Earthly during your build.
+`docker` is used to glean information about the containerization environment, and manage our `earthly-buildkitd` daemon. It is also used to do things like save images locally on your machine after they have been built by Earthly. To install `docker`, use the most recent versions [directly from Docker](https://docs.docker.com/engine/install/#server). The versions packaged for many distributions tend to fall behind.
 
-Because `earthly` will not install these for you, please ensure they are present before proceeding. These tools are very common, so many environments will already have them installed. If they are not, here are some installation instructions that may help:
+`git` is used to help fetch remote targets, and also provides metadata for Earthly during your build. To install `git`, [you can typically use your distributions package manager](https://git-scm.com/download/linux).
 
-#### Linux
+If you are using Windows or Mac CI agents, please refer to our [CI documentation for alternative platforms](./other_platforms.md).
 
-To install `git`, you can typically use your distributions package manager. [This page](https://git-scm.com/download/linux) has installation instructions for most distributions.
-
-To install `docker`, use the most recent versions [directly from Docker](https://docs.docker.com/engine/install/#server). The versions packaged for many distributions tend to fall behind.
-
-#### macOS
-
-To install `git`, the easiest way is to install the "XCode Command Line Tools". If you open up `Terminal`, and type:
-
-```go
-git --version
-```
-
-Then macOS will prompt you to install these tools. You can also use the `git` provided installer or Homebrew, if you prefer. [Details can be found here](https://git-scm.com/download/mac).
-
-To install `docker`, [download and install Docker CE](https://hub.docker.com/editions/community/docker-ce-desktop-mac). Be sure to grab the correct installer depending on your CPU architecture.
-
-#### Windows
-
-To install `git`, use the  [MSI installer](https://gitforwindows.org/). This will provide `git`, and a Bash shell; which may prove more natural for using Earthly. You may also use your package manager of choice.
-
-To install `docker`, [download and install Docker CE](https://hub.docker.com/editions/community/docker-ce-desktop-windows). Both the HyperV and WSL2 backends are supported, but the WSL2 one is very likely to be faster.
-
-### Installation
+## Installation
 
 Once you have ensured that the dependencies are available, you'll need to install `earthly` itself.
 
-#### Bare Metal / VMs / Cloud Instances
+### Bare Metal / VMs / Cloud Instances
 
 This is the simplest method for adding `earthly` to your CI. It will work best on dedicated computers, or in scripted/auto-provisioned build environments. You can follow our [regular installation guide](https://earthly.dev/get-earthly) to add `earthly` if desired.
 
-It is arecommended to install `earthly` as part of the new host's configuration, and not as part of your build. This will speed up your builds, since you do not need to download `earthly` each time; and it will also provide stability in case a future version of `earthly` changes the behavior of a command.
+It is recommended to install `earthly` as part of the new host's configuration, and not as part of your build. This will speed up your builds, since you do not need to download `earthly` each time; and it will also provide stability in case a future version of `earthly` changes the behavior of a command.
 
 Don't forget to run `earthly bootstrap` when you are done to finish configuration!
 
-#### Container Images
+### Container Images
 
 Earthly currently offers two official images:
 
-- [`earthly/earthly`](https://hub.docker.com/r/earthly/earthly), which is a 1-stop shop. It includes a built-in `earthly-buildkitd` daemon, and accepts a target to be built as a parameter. It requires a mount for your source code, and an accessible `DOCKER_HOST`. When building a runner image for your CI; it is usually easier to start from this image, and add the pieces you need. See [this Jenkins agent configuration](https://github.com/earthly/ci-examples/blob/ce20840cffd2a8b04a8bd5dce477751adac3f490/jenkins/Earthfile#L48-L54) for an example.
+- [`earthly/earthly`](https://hub.docker.com/r/earthly/earthly), which is a 1-stop shop. It includes a built-in `earthly-buildkitd` daemon, and accepts a target to be built as a parameter. It requires a mount for your source code, and an accessible `DOCKER_HOST`.
 - [`earthly/buildkitd`](https://hub.docker.com/r/earthly/buildkitd), which is the same `earthly-buildkitd` container that `earthly` will run on your host. This is useful in more advanced configurations, such as sharing a single `buildkitd` machine across many workers, or isolating the privileged parts of builds. See [this Kubernetes configuration](https://github.com/earthly/ci-examples/blob/main/kubernetes/buildkit.yaml) for an example.
 
-If you need to provide additional configuration, [consider building your own image for CI](build-an-earthly-ci-image.md).
+If you need to provide additional configuration or tools, [consider building your own image for CI](build-an-earthly-ci-image.md).
 
-### Configuration
+## Configuration
 
 While `earthly` is fairly configurable by itself, it also depends on the configuration of its dependencies. In a CI environment, you will need to ensure all of them are configured correctly.
 
-#### Git
+### Git
 
 If you plan to build any private, or otherwise secure repositories, `git` will need to be configured to have access to these repositories. Please see our [documentation for how to configure access](../guides/auth.md#git-authentication).
 
-#### Docker
+### Docker
 
 Like `git`, `docker` also needs to be configured to have access to any private repositories referenced in the `Earthfiles` you want to build. Please our [documentation for how to log in](../guides/auth.md#docker-authentication), and our examples for pushing to many popular repositories.
 
 If your private registry can use a [credential helper](https://docs.docker.com/engine/reference/commandline/login/#credential-helpers), configure it according to your vendor's instructions. `earthly` can also make use of these to provide access when needed. If you need help configuring `docker` for use with Earthly, see our [guides on configuring many popular registries](https://docs.earthly.dev/docs/guides/configuring-registries) for details.
 
-#### Earthly
+Finally, the `earthly-buildkitd` daemon requires running in `--privileged` mode, which means that the `docker` daemon needs to be configured to allow this as well. Rootless configurations are currently unsupported.
+
+### Earthly
 
 `earthly` has quite a few configuration options that can either be set through a configuration file or environment variables. See our [configuration reference](../earthly-config/earthly-config.md) for a complete list of options.
 
@@ -97,7 +79,7 @@ If you would like to do cross-platform builds, you will need to install some [`b
 
 To share secrets with `earthly`, use the [`--secret`](../earthfile/earthfile.md#--secret-env-varsecret-ref) option to inject secrets into your builds. You could also use our [cloud secrets](../guides/cloud-secrets.md), for a more seamless experience.
 
-#### Networking & Security
+### Networking & Security
 
 Upon invocation, `earthly` depends on the availability of an `earthly-buildkit` daemon to perform its build. This daemon has some networking and security considerations.
 
@@ -107,9 +89,9 @@ If `earthly` is running on a dedicated host, the only consideration to take is t
 
 If `earthly` is connecting to a remote `earthly-buildkitd`, then you will need to take additional steps. See this article for [running a remote buildkit instance](guides/remote-buildkit.md).
 
-### Examples
+## Examples
 
-Below are links to CI systems that we have produced more specific guides for. If you run into anything in your CI that wasn't covered here, we would love to add it to our documentation. Pull requests are welcome!
+Below are links to CI systems that we have more specific information for. If you run into anything in your CI that wasn't covered here, we would love to add it to our documentation. Pull requests are welcome!
 
  * [Jenkins](guides/jenkins.md)
  * [Kubernetes](guides/kubernetes.md)
