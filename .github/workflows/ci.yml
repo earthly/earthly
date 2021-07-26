@@ -37,6 +37,15 @@ jobs:
         run: earthly --use-inline-cache +for-linux
       - name: Enable local registry-based exporter
         run: ./build/linux/amd64/earthly config global.local_registry_host 'tcp://127.0.0.1:8371'
+      - name: Execute apricot-blackberry (not a fork) 1
+        run: ./build/linux/amd64/earthly --ci -P ./examples/tests+apricot-blackberry
+        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+      - name: Execute apricot-blackberry (not a fork) 2
+        run: ./build/linux/amd64/earthly --ci -P ./examples/tests+apricot-blackberry
+        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+      - name: Execute apricot-blackberry (not a fork) 3
+        run: ./build/linux/amd64/earthly --ci -P ./examples/tests+apricot-blackberry
+        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: Execute tests (not a fork)
         run: ./build/linux/amd64/earthly --ci -P +test
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
