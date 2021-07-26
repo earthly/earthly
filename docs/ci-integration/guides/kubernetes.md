@@ -102,22 +102,16 @@ To run it yourself, first you will need to install some prerequisites on your ma
 When you are ready, clone the [`ci-examples` repository](https://github.com/earthly/ci-examples), and then run (from the root of the repository):
 
 ```go
-earthly ./kubernetes+run
+earthly ./kubernetes+start
 ```
 
 Running this target will:
 
-- Create a `kind` cluster named `earthlydemo`
-- Create a `deployment` with 1 replica of `[earthly/buildkitd](https://hub.docker.com/r/earthly/buildkitd)`, (the same container `earthly` will start when running locally)
-- Create a `service` to front the `deployment`
-- Create & watch a `job` that runs an `earthly` build against this independent, external `earthly-buildkitd` deployment
+- Create a `kind` cluster named `earthlydemo-aio`
+- Create & watch a `job` that runs an `earthly` build
 
-When the example is complete, the cluster is left up and intact for exploration experimentation. If you would like to clean up the cluster when complete, run (again from the root of the repository):
+When the example is complete, the cluster is left up and intact for exploration and experimentation. If you would like to clean up the cluster when complete, run (again from the root of the repository):
 
 ```go
-earthly ./kubernetes+cleanup
+earthly ./kubernetes+clean
 ```
-
-### Notes
-
-Commentary on the example to make it production ready.
