@@ -583,6 +583,7 @@ cache-mount-arg:
 
 true-false-flag:
     DO +RUN_EARTHLY --earthfile=true-false-flag.earth --extra_args="--allow-privileged" --post_command=">output.txt 2>&1"
+    RUN cat output.txt
     # test that the two privileged commands were run
     RUN test $( cat output.txt | grep -v echo | grep "I have the power" | wc -l) = "2"
     # test a single non-privileged RUN was executed
