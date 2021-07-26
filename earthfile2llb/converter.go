@@ -717,7 +717,7 @@ func (c *Converter) SaveArtifact(ctx context.Context, saveFrom string, saveTo st
 			strIf(symlinkNoFollow, "--symlink-no-follow "),
 			saveFrom,
 			artifact.String()))
-	if saveAsLocalTo != "" {
+	if saveAsLocalTo != "" && c.opt.DoSaves {
 		separateArtifactsState := llbutil.ScratchWithPlatform()
 		if isPush {
 			separateArtifactsState = llbutil.CopyOp(
@@ -814,6 +814,9 @@ func (c *Converter) SaveImage(ctx context.Context, imageNames []string, pushImag
 	for _, cf := range cacheFrom {
 		c.opt.CacheImports.Add(cf)
 	}
+	if !c.opt.DoSaves && !c.opt.ForceSaveImage {
+		imageNames = []string{}
+	}
 	justCacheHint := false
 	if len(imageNames) == 0 && cacheHint {
 		imageNames = []string{""}
@@ -884,7 +887,7 @@ func (c *Converter) BuildAsync(ctx context.Context, fullTargetName string, platf
 			return
 		}
 		defer c.opt.Parallelism.Release(1)
-		_, err = Earthfile2LLB(ctx, target, opt)
+		_, err = Earthfile2LLB(ctx, target, opt, false)
 		if err != nil {
 			errChan <- errors.Wrapf(err, "async earthfile2llb for %s", fullTargetName)
 			return
@@ -1216,6 +1219,13 @@ func (c *Converter) prepBuildTarget(ctx context.Context, fullTargetName string, 
 	opt.Platform, err = llbutil.ResolvePlatform(platform, c.opt.Platform)
 	opt.HasDangling = isDangling
 	opt.AllowPrivileged = allowPrivileged
+	if c.opt.Features.ReferencedSaveOnly {
+		// DoSaves should only be potentially turned-off when the ReferencedSaveOnly feature is flipped
+		opt.DoSaves = (cmdT == buildCmd && c.opt.DoSaves)
+		opt.ForceSaveImage = false
+	} else {
+		opt.DoSaves = c.opt.DoSaves && !target.IsRemote() // legacy mode only saves artifacts from local targets
+	}
 	if err != nil {
 		// Contradiction allowed. You can BUILD another target with different platform.
 		opt.Platform = platform
@@ -1228,7 +1238,7 @@ func (c *Converter) buildTarget(ctx context.Context, fullTargetName string, plat
 	if err != nil {
 		return nil, err
 	}
-	mts, err := Earthfile2LLB(ctx, target, opt)
+	mts, err := Earthfile2LLB(ctx, target, opt, false)
 	if err != nil {
 		return nil, errors.Wrapf(err, "earthfile2llb for %s", fullTargetName)
 	}

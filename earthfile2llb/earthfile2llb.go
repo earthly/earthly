@@ -2,7 +2,6 @@ package earthfile2llb
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/moby/buildkit/client/llb"
 	gwclient "github.com/moby/buildkit/frontend/gateway/client"
@@ -71,10 +70,21 @@ type ConvertOpt struct {
 	// AllowPrivileged is used to allow (or prevent) any "RUN --privileged" or RUNs under a LOCALLY target to be executed,
 	// when set to false, it prevents other referenced remote targets from requesting elevated privileges
 	AllowPrivileged bool
+	// DoSaves is used to control when SAVE ARTIFACT AS LOCAL calls will actually output the artifacts locally
+	// this is to differentiate between calling a target that saves an artifact directly vs using a FROM which indirectly
+	// calls a target which saves an artifact as a side effect.
+	DoSaves bool
+	// ForceSaveImage is used to force all SAVE IMAGE commands are executed regardless of if they are
+	// for a local or remote target; this is to support the legacy behaviour that was first introduced in earthly (up to 0.5)
+	// When this is set to false, SAVE IMAGE commands are only executed when DoSaves is true.
+	ForceSaveImage bool
 	// Gitlookup is used to attach credentials to GIT CLONE operations
 	GitLookup *buildcontext.GitLookup
 	// LocalStateCache provides a cache for local pllb.States
 	LocalStateCache *LocalStateCache
+
+	// Features is the set of enabled features
+	Features *features.Features
 
 	// ParallelConversion is a feature flag enabling the parallel conversion algorithm.
 	ParallelConversion bool
@@ -89,7 +99,7 @@ type ConvertOpt struct {
 }
 
 // Earthfile2LLB parses a earthfile and executes the statements for a given target.
-func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt) (mts *states.MultiTarget, err error) {
+func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt, initialCall bool) (mts *states.MultiTarget, err error) {
 	if opt.SolveCache == nil {
 		opt.SolveCache = states.NewSolveCache()
 	}
@@ -109,14 +119,21 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt) (m
 	if err != nil {
 		return nil, errors.Wrapf(err, "resolve feature set for version %v for target %s", bc.Earthfile.Version.Args, target.String())
 	}
-
 	err = features.ApplyFlagOverrides(ftrs, opt.FeatureFlagOverrides)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to apply version feature overrides")
 	}
-
-	if ftrs.ReferencedSaveOnly {
-		fmt.Printf("TODO feature-flip referenced save artifact as local feature in a future PR.\n")
+	opt.Features = ftrs
+	if initialCall {
+		// It's not possible to know if we should DoSaves until after we have parsed the target's VERSION features.
+		if ftrs.ReferencedSaveOnly {
+			opt.DoSaves = true
+		} else {
+			if !target.IsRemote() {
+				opt.DoSaves = true // legacy mode only saves artifacts that are locally referenced
+			}
+			opt.ForceSaveImage = true // legacy mode always saves images regardless of locally or remotely referenced
+		}
 	}
 
 	targetWithMetadata := bc.Ref.(domain.Target)
