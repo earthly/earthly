@@ -76,6 +76,7 @@ ga:
     BUILD +cache-mount-arg
     BUILD +true-false-flag
     BUILD +true-false-flag-invalid
+    BUILD +apricot-blackberry
 
 experimental:
     BUILD ./dind-auto-install+all
@@ -582,6 +583,7 @@ cache-mount-arg:
     RUN cat output.txt | grep '\*cached\* --> RUN echo Doing something 2'; test "$?" != 0
 
 true-false-flag:
+    RUN --no-cache true
     DO +RUN_EARTHLY --earthfile=true-false-flag.earth --extra_args="--allow-privileged" --post_command=">output.txt 2>&1"
     RUN cat output.txt
     # test that the two privileged commands were run
@@ -596,6 +598,14 @@ true-false-flag-invalid:
     RUN cat output2.txt | grep "Command /bin/sh -c 'false echo test' failed with exit code 1"
     DO +RUN_EARTHLY --earthfile=true-false-flag-invalid.earth --should_fail=true --target=+run-maybe --post_command="2>output3.txt"
     RUN cat output3.txt | grep 'invalid argument for flag .*--no-cache.*expected bool'
+
+apricot-blackberry:
+    DO +RUN_EARTHLY --earthfile=apricot-blackberry.earth --extra_args="--allow-privileged" --post_command=">output.txt 2>&1"
+    RUN cat output.txt
+    # test that the two privileged commands were run
+    RUN test $( cat output.txt | grep -v echo | grep "I want to eat" | grep apricot | wc -l) = "1"
+    # test a single non-privileged RUN was executed
+    RUN test $( cat output.txt | grep -v echo | grep "I want to eat" | grep blackberry | wc -l) = "1"
 
 RUN_EARTHLY:
     COMMAND

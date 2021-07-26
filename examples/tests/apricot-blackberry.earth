@@ -1,0 +1,8 @@
+hello:
+    FROM alpine:3.13
+    ARG fruit=false
+    RUN --no-cache echo "I want to eat $(env | grep ruit)"
+
+all:
+    BUILD --build-arg fruit=apricot +hello
+    BUILD --build-arg fruit=blackberry +hello
