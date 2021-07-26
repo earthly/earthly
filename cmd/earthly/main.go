@@ -2527,6 +2527,10 @@ func (app *earthlyApp) actionBuild(c *cli.Context) error {
 		if app.remoteCache == "" && app.push {
 			app.saveInlineCache = true
 		}
+
+		if app.interactiveDebugging {
+			return errors.New("unable to use --ci flag in combination with --interactive flag")
+		}
 	}
 	if app.imageMode && app.artifactMode {
 		return errors.New("both image and artifact modes cannot be active at the same time")
