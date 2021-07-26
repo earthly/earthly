@@ -41,6 +41,33 @@ import (
 
 const exitCodeFile = "/run/exit_code"
 
+type cmdType int
+
+const (
+	argCmd            cmdType = iota + 1 // "ARG"
+	buildCmd                             // "BUILD"
+	cmdCmd                               // "CMD"
+	copyCmd                              // "COPY"
+	enterScopeCmd                        // "ENTER-SCOPE"
+	entrypointCmd                        // "ENTRYPOINT"
+	envCmd                               // "ENV"
+	exposeCmd                            // "EXPOSE"
+	fromCmd                              // "FROM"
+	fromDockerfileCmd                    // "FROM DOCKERFILE"
+	gitCloneCmd                          // "GIT CLONE"
+	healthcheckCmd                       // "HEALTHCHECK"
+	importCmd                            // "IMPORT"
+	labelCmd                             // "LABEL"
+	loadCmd                              // "LOAD"
+	locallyCmd                           // "LOCALLY"
+	runCmd                               // "RUN"
+	saveArtifactCmd                      // "SAVE ARTIFACT"
+	saveImageCmd                         // "SAVE IMAGE"
+	userCmd                              // "USER"
+	volumeCmd                            // "VOLUME"
+	workdirCmd                           // "WORKDIR"
+)
+
 // Converter turns earthly commands to buildkit LLB representation.
 type Converter struct {
 	gitMeta             *gitutil.GitMetadata
@@ -82,7 +109,7 @@ func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Da
 
 // From applies the earthly FROM command.
 func (c *Converter) From(ctx context.Context, imageName string, platform *specs.Platform, allowPrivileged bool, buildArgs []string) error {
-	err := c.checkAllowed("FROM")
+	err := c.checkAllowed(fromCmd)
 	if err != nil {
 		return err
 	}
@@ -133,7 +160,7 @@ func (c *Converter) fromTarget(ctx context.Context, targetName string, platform 
 	if err != nil {
 		return errors.Wrapf(err, "parse target name %s", targetName)
 	}
-	mts, err := c.buildTarget(ctx, depTarget.String(), platform, allowPrivileged, buildArgs, false, true)
+	mts, err := c.buildTarget(ctx, depTarget.String(), platform, allowPrivileged, buildArgs, false, fromCmd)
 	if err != nil {
 		return errors.Wrapf(err, "apply build %s", depTarget.String())
 	}
@@ -161,7 +188,7 @@ func (c *Converter) fromTarget(ctx context.Context, targetName string, platform 
 
 // FromDockerfile applies the earthly FROM DOCKERFILE command.
 func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPath string, dfTarget string, platform *specs.Platform, buildArgs []string) error {
-	err := c.checkAllowed("FROM DOCKERFILE")
+	err := c.checkAllowed(fromDockerfileCmd)
 	if err != nil {
 		return err
 	}
@@ -177,7 +204,7 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 		dfArtifact, parseErr := domain.ParseArtifact(dfPath)
 		if parseErr == nil {
 			// The Dockerfile is from a target's artifact.
-			mts, err := c.buildTarget(ctx, dfArtifact.Target.String(), platform, false, buildArgs, false, false)
+			mts, err := c.buildTarget(ctx, dfArtifact.Target.String(), platform, false, buildArgs, false, fromDockerfileCmd)
 			if err != nil {
 				return err
 			}
@@ -215,7 +242,7 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 		// The build context is from a target's artifact.
 		// TODO: The build args are used for both the artifact and the Dockerfile. This could be
 		//       confusing to the user.
-		mts, err := c.buildTarget(ctx, contextArtifact.Target.String(), platform, false, buildArgs, false, false)
+		mts, err := c.buildTarget(ctx, contextArtifact.Target.String(), platform, false, buildArgs, false, fromDockerfileCmd)
 		if err != nil {
 			return err
 		}
@@ -309,7 +336,7 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 
 // Locally applies the earthly Locally command.
 func (c *Converter) Locally(ctx context.Context, workdirPath string, platform *specs.Platform) error {
-	err := c.checkAllowed("LOCALLY")
+	err := c.checkAllowed(locallyCmd)
 	if err != nil {
 		return err
 	}
@@ -333,7 +360,7 @@ func (c *Converter) Locally(ctx context.Context, workdirPath string, platform *s
 
 // CopyArtifactLocal applies the earthly COPY artifact command which are invoked under a LOCALLY target.
 func (c *Converter) CopyArtifactLocal(ctx context.Context, artifactName string, dest string, platform *specs.Platform, allowPrivileged bool, buildArgs []string, isDir bool) error {
-	err := c.checkAllowed("COPY")
+	err := c.checkAllowed(copyCmd)
 	if err != nil {
 		return err
 	}
@@ -342,7 +369,7 @@ func (c *Converter) CopyArtifactLocal(ctx context.Context, artifactName string, 
 	if err != nil {
 		return errors.Wrapf(err, "parse artifact name %s", artifactName)
 	}
-	mts, err := c.buildTarget(ctx, artifact.Target.String(), platform, allowPrivileged, buildArgs, false, false)
+	mts, err := c.buildTarget(ctx, artifact.Target.String(), platform, allowPrivileged, buildArgs, false, copyCmd)
 	if err != nil {
 		return errors.Wrapf(err, "apply build %s", artifact.Target.String())
 	}
@@ -377,7 +404,7 @@ func (c *Converter) CopyArtifactLocal(ctx context.Context, artifactName string, 
 
 // CopyArtifact applies the earthly COPY artifact command.
 func (c *Converter) CopyArtifact(ctx context.Context, artifactName string, dest string, platform *specs.Platform, allowPrivileged bool, buildArgs []string, isDir bool, keepTs bool, keepOwn bool, chown string, ifExists, symlinkNoFollow bool) error {
-	err := c.checkAllowed("COPY")
+	err := c.checkAllowed(copyCmd)
 	if err != nil {
 		return err
 	}
@@ -386,7 +413,7 @@ func (c *Converter) CopyArtifact(ctx context.Context, artifactName string, dest 
 	if err != nil {
 		return errors.Wrapf(err, "parse artifact name %s", artifactName)
 	}
-	mts, err := c.buildTarget(ctx, artifact.Target.String(), platform, allowPrivileged, buildArgs, false, false)
+	mts, err := c.buildTarget(ctx, artifact.Target.String(), platform, allowPrivileged, buildArgs, false, copyCmd)
 	if err != nil {
 		return errors.Wrapf(err, "apply build %s", artifact.Target.String())
 	}
@@ -413,7 +440,7 @@ func (c *Converter) CopyArtifact(ctx context.Context, artifactName string, dest 
 
 // CopyClassical applies the earthly COPY command, with classical args.
 func (c *Converter) CopyClassical(ctx context.Context, srcs []string, dest string, isDir bool, keepTs bool, keepOwn bool, chown string) error {
-	err := c.checkAllowed("COPY")
+	err := c.checkAllowed(copyCmd)
 	if err != nil {
 		return err
 	}
@@ -443,7 +470,7 @@ func (c *Converter) CopyClassical(ctx context.Context, srcs []string, dest strin
 
 // RunLocal applies a RUN statement locally rather than in a container
 func (c *Converter) RunLocal(ctx context.Context, args []string, pushFlag bool) error {
-	err := c.checkAllowed("RUN")
+	err := c.checkAllowed(runCmd)
 	if err != nil {
 		return err
 	}
@@ -483,7 +510,7 @@ func (c *Converter) RunLocal(ctx context.Context, args []string, pushFlag bool) 
 
 // RunExitCode executes a run for the purpose of determining the exit code of the command. This can be used in conditionals.
 func (c *Converter) RunExitCode(ctx context.Context, commandName string, args, mounts, secretKeyValues []string, privileged, isWithShell, withSSH, noCache bool) (int, error) {
-	err := c.checkAllowed("RUN")
+	err := c.checkAllowed(runCmd)
 	if err != nil {
 		return 0, err
 	}
@@ -541,7 +568,7 @@ func (c *Converter) RunExitCode(ctx context.Context, commandName string, args, m
 
 // RunLocalExitCode runs a command locally rather than in a container and returns its exit code.
 func (c *Converter) RunLocalExitCode(ctx context.Context, commandName string, args []string) (int, error) {
-	err := c.checkAllowed("RUN")
+	err := c.checkAllowed(runCmd)
 	if err != nil {
 		return 0, err
 	}
@@ -599,7 +626,7 @@ func (c *Converter) RunLocalExitCode(ctx context.Context, commandName string, ar
 
 // Run applies the earthly RUN command.
 func (c *Converter) Run(ctx context.Context, args, mounts, secretKeyValues []string, privileged, withEntrypoint, withDocker, isWithShell, pushFlag, withSSH, noCache, interactive, interactiveKeep bool) error {
-	err := c.checkAllowed("RUN")
+	err := c.checkAllowed(runCmd)
 	if err != nil {
 		return err
 	}
@@ -648,7 +675,7 @@ func (c *Converter) Run(ctx context.Context, args, mounts, secretKeyValues []str
 
 // SaveArtifact applies the earthly SAVE ARTIFACT command.
 func (c *Converter) SaveArtifact(ctx context.Context, saveFrom string, saveTo string, saveAsLocalTo string, keepTs bool, keepOwn bool, ifExists, symlinkNoFollow bool, isPush bool) error {
-	err := c.checkAllowed("SAVE ARTIFACT")
+	err := c.checkAllowed(saveArtifactCmd)
 	if err != nil {
 		return err
 	}
@@ -739,7 +766,7 @@ func (c *Converter) SaveArtifact(ctx context.Context, saveFrom string, saveTo st
 
 // SaveArtifactFromLocal saves a local file into the ArtifactsState
 func (c *Converter) SaveArtifactFromLocal(ctx context.Context, saveFrom, saveTo string, keepTs, keepOwn bool, chown string) error {
-	err := c.checkAllowed("SAVE ARTIFACT")
+	err := c.checkAllowed(saveArtifactCmd)
 	if err != nil {
 		return err
 	}
@@ -780,7 +807,7 @@ func (c *Converter) SaveArtifactFromLocal(ctx context.Context, saveFrom, saveTo 
 
 // SaveImage applies the earthly SAVE IMAGE command.
 func (c *Converter) SaveImage(ctx context.Context, imageNames []string, pushImages bool, insecurePush bool, cacheHint bool, cacheFrom []string) error {
-	err := c.checkAllowed("SAVE IMAGE")
+	err := c.checkAllowed(saveImageCmd)
 	if err != nil {
 		return err
 	}
@@ -833,19 +860,19 @@ func (c *Converter) SaveImage(ctx context.Context, imageNames []string, pushImag
 
 // Build applies the earthly BUILD command.
 func (c *Converter) Build(ctx context.Context, fullTargetName string, platform *specs.Platform, allowPrivileged bool, buildArgs []string) error {
-	err := c.checkAllowed("BUILD")
+	err := c.checkAllowed(buildCmd)
 	if err != nil {
 		return err
 	}
 	c.nonSaveCommand()
-	_, err = c.buildTarget(ctx, fullTargetName, platform, allowPrivileged, buildArgs, true, false)
+	_, err = c.buildTarget(ctx, fullTargetName, platform, allowPrivileged, buildArgs, true, buildCmd)
 	return err
 }
 
 // BuildAsync applies the earthly BUILD command asynchronously.
-func (c *Converter) BuildAsync(ctx context.Context, fullTargetName string, platform *specs.Platform, allowPrivileged bool, buildArgs []string) chan error {
+func (c *Converter) BuildAsync(ctx context.Context, fullTargetName string, platform *specs.Platform, allowPrivileged bool, buildArgs []string, cmdT cmdType) chan error {
 	errChan := make(chan error, 1)
-	target, opt, _, err := c.prepBuildTarget(ctx, fullTargetName, platform, allowPrivileged, buildArgs, true, false)
+	target, opt, _, err := c.prepBuildTarget(ctx, fullTargetName, platform, allowPrivileged, buildArgs, true, cmdT)
 	if err != nil {
 		errChan <- err
 		return errChan
@@ -869,7 +896,7 @@ func (c *Converter) BuildAsync(ctx context.Context, fullTargetName string, platf
 
 // Workdir applies the WORKDIR command.
 func (c *Converter) Workdir(ctx context.Context, workdirPath string) error {
-	err := c.checkAllowed("WORKDIR")
+	err := c.checkAllowed(workdirCmd)
 	if err != nil {
 		return err
 	}
@@ -899,7 +926,7 @@ func (c *Converter) Workdir(ctx context.Context, workdirPath string) error {
 
 // User applies the USER command.
 func (c *Converter) User(ctx context.Context, user string) error {
-	err := c.checkAllowed("USER")
+	err := c.checkAllowed(userCmd)
 	if err != nil {
 		return err
 	}
@@ -911,7 +938,7 @@ func (c *Converter) User(ctx context.Context, user string) error {
 
 // Cmd applies the CMD command.
 func (c *Converter) Cmd(ctx context.Context, cmdArgs []string, isWithShell bool) error {
-	err := c.checkAllowed("CMD")
+	err := c.checkAllowed(cmdCmd)
 	if err != nil {
 		return err
 	}
@@ -923,7 +950,7 @@ func (c *Converter) Cmd(ctx context.Context, cmdArgs []string, isWithShell bool)
 
 // Entrypoint applies the ENTRYPOINT command.
 func (c *Converter) Entrypoint(ctx context.Context, entrypointArgs []string, isWithShell bool) error {
-	err := c.checkAllowed("ENTRYPOINT")
+	err := c.checkAllowed(entrypointCmd)
 	if err != nil {
 		return err
 	}
@@ -937,7 +964,7 @@ func (c *Converter) Entrypoint(ctx context.Context, entrypointArgs []string, isW
 
 // Expose applies the EXPOSE command.
 func (c *Converter) Expose(ctx context.Context, ports []string) error {
-	err := c.checkAllowed("EXPOSE")
+	err := c.checkAllowed(exposeCmd)
 	if err != nil {
 		return err
 	}
@@ -950,7 +977,7 @@ func (c *Converter) Expose(ctx context.Context, ports []string) error {
 
 // Volume applies the VOLUME command.
 func (c *Converter) Volume(ctx context.Context, volumes []string) error {
-	err := c.checkAllowed("VOLUME")
+	err := c.checkAllowed(volumeCmd)
 	if err != nil {
 		return err
 	}
@@ -963,7 +990,7 @@ func (c *Converter) Volume(ctx context.Context, volumes []string) error {
 
 // Env applies the ENV command.
 func (c *Converter) Env(ctx context.Context, envKey string, envValue string) error {
-	err := c.checkAllowed("ENV")
+	err := c.checkAllowed(envCmd)
 	if err != nil {
 		return err
 	}
@@ -977,7 +1004,7 @@ func (c *Converter) Env(ctx context.Context, envKey string, envValue string) err
 
 // Arg applies the ARG command.
 func (c *Converter) Arg(ctx context.Context, argKey string, defaultArgValue string, global bool) error {
-	err := c.checkAllowed("ARG")
+	err := c.checkAllowed(argCmd)
 	if err != nil {
 		return err
 	}
@@ -996,7 +1023,7 @@ func (c *Converter) Arg(ctx context.Context, argKey string, defaultArgValue stri
 
 // Label applies the LABEL command.
 func (c *Converter) Label(ctx context.Context, labels map[string]string) error {
-	err := c.checkAllowed("LABEL")
+	err := c.checkAllowed(labelCmd)
 	if err != nil {
 		return err
 	}
@@ -1009,7 +1036,7 @@ func (c *Converter) Label(ctx context.Context, labels map[string]string) error {
 
 // GitClone applies the GIT CLONE command.
 func (c *Converter) GitClone(ctx context.Context, gitURL string, branch string, dest string, keepTs bool) error {
-	err := c.checkAllowed("GIT CLONE")
+	err := c.checkAllowed(gitCloneCmd)
 	if err != nil {
 		return err
 	}
@@ -1031,7 +1058,7 @@ func (c *Converter) GitClone(ctx context.Context, gitURL string, branch string, 
 
 // WithDockerRun applies an entire WITH DOCKER ... RUN ... END clause.
 func (c *Converter) WithDockerRun(ctx context.Context, args []string, opt WithDockerOpt) error {
-	err := c.checkAllowed("RUN")
+	err := c.checkAllowed(runCmd)
 	if err != nil {
 		return err
 	}
@@ -1044,7 +1071,7 @@ func (c *Converter) WithDockerRun(ctx context.Context, args []string, opt WithDo
 
 // WithDockerRunLocal applies an entire WITH DOCKER ... RUN ... END clause.
 func (c *Converter) WithDockerRunLocal(ctx context.Context, args []string, opt WithDockerOpt) error {
-	err := c.checkAllowed("RUN")
+	err := c.checkAllowed(runCmd)
 	if err != nil {
 		return err
 	}
@@ -1057,7 +1084,7 @@ func (c *Converter) WithDockerRunLocal(ctx context.Context, args []string, opt W
 
 // Healthcheck applies the HEALTHCHECK command.
 func (c *Converter) Healthcheck(ctx context.Context, isNone bool, cmdArgs []string, interval time.Duration, timeout time.Duration, startPeriod time.Duration, retries int) error {
-	err := c.checkAllowed("HEALTHCHECK")
+	err := c.checkAllowed(healthcheckCmd)
 	if err != nil {
 		return err
 	}
@@ -1080,7 +1107,7 @@ func (c *Converter) Healthcheck(ctx context.Context, isNone bool, cmdArgs []stri
 
 // Import applies the IMPORT command.
 func (c *Converter) Import(ctx context.Context, importStr, as string, isGlobal, currentlyPrivileged, allowPrivilegedFlag bool) error {
-	err := c.checkAllowed("IMPORT")
+	err := c.checkAllowed(importCmd)
 	if err != nil {
 		return err
 	}
@@ -1106,7 +1133,7 @@ func (c *Converter) ResolveReference(ctx context.Context, ref domain.Reference) 
 
 // EnterScope introduces a new variable scope. Gloabls and imports are fetched from baseTarget.
 func (c *Converter) EnterScope(ctx context.Context, command domain.Command, baseTarget domain.Target, allowPrivileged bool, scopeName string, buildArgs []string) error {
-	baseMts, err := c.buildTarget(ctx, baseTarget.String(), c.mts.Final.Platform, allowPrivileged, buildArgs, true, false)
+	baseMts, err := c.buildTarget(ctx, baseTarget.String(), c.mts.Final.Platform, allowPrivileged, buildArgs, true, enterScopeCmd)
 	if err != nil {
 		return err
 	}
@@ -1153,7 +1180,7 @@ func (c *Converter) ExpandArgs(word string) string {
 	return c.varCollection.Expand(word)
 }
 
-func (c *Converter) prepBuildTarget(ctx context.Context, fullTargetName string, platform *specs.Platform, allowPrivileged bool, buildArgs []string, isDangling bool, isFrom bool) (domain.Target, ConvertOpt, bool, error) {
+func (c *Converter) prepBuildTarget(ctx context.Context, fullTargetName string, platform *specs.Platform, allowPrivileged bool, buildArgs []string, isDangling bool, cmdT cmdType) (domain.Target, ConvertOpt, bool, error) {
 	relTarget, err := domain.ParseTarget(fullTargetName)
 	if err != nil {
 		return domain.Target{}, ConvertOpt{}, false, errors.Wrapf(err, "earthly target parse %s", fullTargetName)
@@ -1196,8 +1223,8 @@ func (c *Converter) prepBuildTarget(ctx context.Context, fullTargetName string, 
 	return target, opt, propagateBuildArgs, nil
 }
 
-func (c *Converter) buildTarget(ctx context.Context, fullTargetName string, platform *specs.Platform, allowPrivileged bool, buildArgs []string, isDangling bool, isFrom bool) (*states.MultiTarget, error) {
-	target, opt, propagateBuildArgs, err := c.prepBuildTarget(ctx, fullTargetName, platform, allowPrivileged, buildArgs, isDangling, isFrom)
+func (c *Converter) buildTarget(ctx context.Context, fullTargetName string, platform *specs.Platform, allowPrivileged bool, buildArgs []string, isDangling bool, cmdT cmdType) (*states.MultiTarget, error) {
+	target, opt, propagateBuildArgs, err := c.prepBuildTarget(ctx, fullTargetName, platform, allowPrivileged, buildArgs, isDangling, cmdT)
 	if err != nil {
 		return nil, err
 	}
@@ -1218,7 +1245,7 @@ func (c *Converter) buildTarget(ctx context.Context, fullTargetName string, plat
 			}
 			c.mts.Final.AddBuildArgInput(bai)
 		}
-		if isFrom {
+		if cmdT == fromCmd {
 			// Propagate globals.
 			globals := mts.Final.VarCollection.Globals()
 			for _, k := range globals.SortedActive() {
@@ -1578,8 +1605,8 @@ func (c *Converter) joinRefs(relRef domain.Reference) (domain.Reference, error) 
 	return domain.JoinReferences(c.varCollection.AbsRef(), relRef)
 }
 
-func (c *Converter) checkAllowed(command string) error {
-	if c.mts.Final.RanInteractive && command != "SAVE IMAGE" {
+func (c *Converter) checkAllowed(command cmdType) error {
+	if c.mts.Final.RanInteractive && command != saveImageCmd {
 		return errors.New("If present, a single --interactive command must be the last command in a target")
 	}
 
@@ -1588,7 +1615,7 @@ func (c *Converter) checkAllowed(command string) error {
 	}
 
 	switch command {
-	case "FROM", "FROM DOCKERFILE", "LOCALLY", "BUILD", "ARG", "IMPORT":
+	case fromCmd, fromDockerfileCmd, locallyCmd, buildCmd, argCmd, importCmd:
 		return nil
 	default:
 		return errors.New("the first command has to be FROM, FROM DOCKERFILE, LOCALLY, ARG, BUILD or IMPORT")

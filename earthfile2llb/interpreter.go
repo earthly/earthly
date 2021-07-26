@@ -855,7 +855,7 @@ func (i *Interpreter) handleBuild(ctx context.Context, cmd spec.Command, async b
 	for _, bas := range crossProductBuildArgs {
 		for _, platform := range platformsSlice {
 			if async {
-				errChan := i.converter.BuildAsync(ctx, fullTargetName, platform, allowPrivileged, bas)
+				errChan := i.converter.BuildAsync(ctx, fullTargetName, platform, allowPrivileged, bas, buildCmd)
 				i.monitorErrChan(ctx, errChan)
 			} else {
 				err = i.converter.Build(ctx, fullTargetName, platform, allowPrivileged, bas)
