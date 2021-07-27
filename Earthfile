@@ -276,7 +276,7 @@ earthly-docker:
     COPY earthly-entrypoint.sh /usr/bin/earthly-entrypoint.sh
     ENTRYPOINT ["/usr/bin/earthly-entrypoint.sh"]
     ARG EARTHLY_TARGET_TAG_DOCKER
-    ARG TAG=$EARTHLY_TARGET_TAG_DOCKER
+    ARG TAG="dev-$EARTHLY_TARGET_TAG_DOCKER"
     COPY --build-arg VERSION=$TAG +earthly/earthly /usr/bin/earthly
     SAVE IMAGE --push --cache-from=earthly/earthly:main earthly/earthly:$TAG
 
