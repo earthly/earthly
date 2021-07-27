@@ -1014,6 +1014,11 @@ func (app *earthlyApp) before(context *cli.Context) error {
 		return err
 	}
 
+	if app.strict == true && app.featureFlagOverrides != "" {
+		app.console.Warnf("EARTHLY_VERSION_FLAG_OVERRIDES (%s) will be ignored due to running in strict mode; they should be set via the VERSION Earthfile command instead\n", app.featureFlagOverrides)
+		app.featureFlagOverrides = ""
+	}
+
 	// command line option overrides the config which overrides the default value
 	if !context.IsSet("buildkit-image") && app.cfg.Global.BuildkitImage != "" {
 		app.buildkitdImage = app.cfg.Global.BuildkitImage
