@@ -3,9 +3,9 @@ This image contains `earthly`, `buildkit`, and some extra configuration to enabl
 ## Tags
 
  * `prerelase`
- * `v0.5.18`, `latest`
- * `v0.5.17`
- * `v0.5.16`
+ * `v0.5.20`, `latest`
+ * `v0.5.19`
+ * `v0.5.18`
 
 ## Quickstart
 

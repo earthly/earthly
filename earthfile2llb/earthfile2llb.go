@@ -73,6 +73,8 @@ type ConvertOpt struct {
 	AllowPrivileged bool
 	// Gitlookup is used to attach credentials to GIT CLONE operations
 	GitLookup *buildcontext.GitLookup
+	// LocalStateCache provides a cache for local pllb.States
+	LocalStateCache *LocalStateCache
 
 	// ParallelConversion is a feature flag enabling the parallel conversion algorithm.
 	ParallelConversion bool
@@ -81,6 +83,9 @@ type ConvertOpt struct {
 
 	// parentDepSub is a channel informing of any new dependencies from the parent.
 	parentDepSub chan string // chan of sts IDs.
+
+	// FeatureFlagOverride is used to override feature flags that are defined in specific Earthfiles
+	FeatureFlagOverrides string
 }
 
 // Earthfile2LLB parses a earthfile and executes the statements for a given target.
@@ -105,6 +110,11 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt) (m
 		return nil, errors.Wrapf(err, "resolve feature set for version %v for target %s", bc.Earthfile.Version.Args, target.String())
 	}
 
+	err = features.ApplyFlagOverrides(ftrs, opt.FeatureFlagOverrides)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to apply version feature overrides")
+	}
+
 	if ftrs.ReferencedSaveOnly {
 		fmt.Printf("TODO feature-flip referenced save artifact as local feature in a future PR.\n")
 	}
@@ -121,7 +131,7 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt) (m
 			Visited: opt.Visited,
 		}, nil
 	}
-	converter, err := NewConverter(ctx, targetWithMetadata, bc, sts, opt)
+	converter, err := NewConverter(ctx, targetWithMetadata, bc, sts, opt, ftrs)
 	if err != nil {
 		return nil, err
 	}

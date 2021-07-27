@@ -66,6 +66,12 @@ fi
 
 cd "$BASE_DIR"
 
+if [ -n "$EARTHLY_EXEC_CMD" ]; then
+    export earthly_config
+    exec "$EARTHLY_EXEC_CMD"
+    exit 1 # this should never be reached
+fi
+
 # Run earthly with given args.
 # Exec so we don't have to trap and manage signal propagation
 exec earthly --config $earthly_config "$@"

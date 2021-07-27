@@ -137,7 +137,7 @@ func getPotentialPaths(prefix string) ([]string, error) {
 	return paths, nil
 }
 
-// isHidden returns if a flag is hidden or not
+// isVisibleFlag returns if a flag is hidden or not
 // this code comes from https://github.com/urfave/cli/blob/d648edd48d89ef3a841b1ec75c2ebbd4de5f748f/flag.go#L136
 func isVisibleFlag(fl cli.Flag) bool {
 	fv := reflect.ValueOf(fl)
@@ -160,10 +160,10 @@ func getCmd(name string, cmds []*cli.Command) *cli.Command {
 	return nil
 }
 
-func getVisibleFlags(flags []cli.Flag) []string {
+func getVisibleFlags(flags []cli.Flag, showHidden bool) []string {
 	visibleFlags := []string{}
 	for _, f := range flags {
-		if isVisibleFlag(f) {
+		if isVisibleFlag(f) || showHidden {
 			for _, n := range f.Names() {
 				if len(n) > 1 {
 					visibleFlags = append(visibleFlags, n)
@@ -174,10 +174,10 @@ func getVisibleFlags(flags []cli.Flag) []string {
 	return visibleFlags
 }
 
-func getVisibleCommands(commands []*cli.Command) []string {
+func getVisibleCommands(commands []*cli.Command, showHidden bool) []string {
 	visibleCommands := []string{}
 	for _, cmd := range commands {
-		if !cmd.Hidden {
+		if !cmd.Hidden || showHidden {
 			visibleCommands = append(visibleCommands, cmd.Name)
 		}
 	}
@@ -185,7 +185,7 @@ func getVisibleCommands(commands []*cli.Command) []string {
 }
 
 // GetPotentials returns a list of potential arguments for shell auto completion
-func GetPotentials(compLine string, compPoint int, app *cli.App) ([]string, error) {
+func GetPotentials(compLine string, compPoint int, app *cli.App, showHidden bool) ([]string, error) {
 	potentials := []string{}
 
 	compLine = compLine[:compPoint]
@@ -205,18 +205,18 @@ func GetPotentials(compLine string, compPoint int, app *cli.App) ([]string, erro
 
 	var flags []string
 	if cmd != nil {
-		flags = getVisibleFlags(cmd.Flags)
+		flags = getVisibleFlags(cmd.Flags, showHidden)
 	} else {
-		flags = getVisibleFlags(app.Flags)
+		flags = getVisibleFlags(app.Flags, showHidden)
 		// append flags that urfav/cli automatically include
 		flags = append(flags, "version", "help")
 	}
 
 	var commands []string
 	if cmd != nil {
-		commands = getVisibleCommands(cmd.Subcommands)
+		commands = getVisibleCommands(cmd.Subcommands, showHidden)
 	} else {
-		commands = getVisibleCommands(app.Commands)
+		commands = getVisibleCommands(app.Commands, showHidden)
 	}
 
 	if flagPrefix, ok := trimFlag(lastWord); ok {

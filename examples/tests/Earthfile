@@ -19,6 +19,7 @@ ga:
     BUILD ./version+test-all
     BUILD +privileged-test
     BUILD +copy-test
+    BUILD +copy-test-verbose-output
     BUILD +cache-test
     BUILD +git-clone-test
     BUILD +builtin-args-test
@@ -73,6 +74,8 @@ ga:
     BUILD +infinite-recursion
     BUILD +from-dockerfile-arg
     BUILD +cache-mount-arg
+    BUILD +true-false-flag
+    BUILD +true-false-flag-invalid
 
 experimental:
     BUILD ./dind-auto-install+all
@@ -95,11 +98,41 @@ copy-test:
         echo "sub" > in/sub/file
     DO +RUN_EARTHLY --earthfile=copy.earth
 
-    RUN echo "output.txt" > .earthignore
-    DO +RUN_EARTHLY --earthfile=copy.earth --extra_args="--verbose"  --post_command="2>output.txt"
+copy-test-verbose-output:
+    RUN mkdir -p subdir/a.txt && \
+        echo -n "a" > a.txt && \
+        echo -n "alpha" > alpha.txt && \
+        echo -n "beta" > subdir/a.txt/beta.txt
+
+    COPY copy-verbose.earth Earthfile
+
+    # Setup a test that runs earthly twice; both instances of earthly must be run
+    # back to back as the file caching logic references the directories inode ID while constructing
+    # the shared cache key.
+    RUN echo "#!/bin/sh
+set -x
+earthly --config \$earthly_config --verbose +all 2>output.txt;
+earthly --config \$earthly_config --verbose +all 2>output2.txt;
+" >/tmp/multiple-earthly-script && chmod +x /tmp/multiple-earthly-script
+
+    RUN --privileged \
+        --mount=type=tmpfs,target=/tmp/earthly-tmpfs \
+        set -x; \
+        export EARTHLY_TMP_DIR="/tmp/earthly-tmpfs"; \
+        export EARTHLY_EXEC_CMD="/tmp/multiple-earthly-script"; \
+        /bin/sh /usr/bin/earthly-entrypoint.sh;
+
+    # test that the first run sends a.txt and doesn't send any non-referenced files
     RUN cat output.txt
-    RUN cat output.txt | grep 'sent data for in/root (5 B)'
-    RUN cat output.txt | grep 'transferred 4 file(s) for context . (261 B, 8 file/dir stats)'
+    RUN cat output.txt | grep 'sent data for a.txt (1 B)'
+    RUN if grep "sent data for alpha.txt" output.txt >/dev/null; then echo "alpha.txt should not have been sent"; exit 1; fi
+    RUN if grep "sent data for .*beta.txt" output.txt >/dev/null; then echo "beta.txt should not have been sent"; exit 1; fi
+
+    # test that the second run did not resend a.txt (or any other non-referenced files)
+    RUN cat output2.txt
+    RUN if grep "sent data for a.txt" output2.txt >/dev/null; then echo "a.txt should not have been sent"; exit 1; fi
+    RUN if grep "sent data for alpha.txt" output2.txt >/dev/null; then echo "alpha.txt should not have been sent"; exit 1; fi
+    RUN if grep "sent data for .*beta.txt" output2.txt >/dev/null; then echo "beta.txt should not have been sent"; exit 1; fi
 
 cache-test:
     # Test that a file can be passed between runs through the mounted cache.
@@ -547,6 +580,22 @@ cache-mount-arg:
     RUN cat output.txt
     RUN cat output.txt | grep '\*cached\* --> RUN echo Doing something 1'; test "$?" != 0
     RUN cat output.txt | grep '\*cached\* --> RUN echo Doing something 2'; test "$?" != 0
+
+true-false-flag:
+    DO +RUN_EARTHLY --earthfile=true-false-flag.earth --extra_args="--allow-privileged" --post_command=">output.txt 2>&1"
+    RUN cat output.txt
+    # test that the two privileged commands were run
+    RUN test $( cat output.txt | grep -v echo | grep "I have the power" | wc -l) = "2"
+    # test a single non-privileged RUN was executed
+    RUN test $( cat output.txt | grep -v echo | grep "fight the power" | wc -l) = "1"
+
+true-false-flag-invalid:
+    DO +RUN_EARTHLY --earthfile=true-false-flag-invalid.earth --should_fail=true --target=+run-false --post_command="2>output.txt"
+    RUN cat output.txt | grep "Command /bin/sh -c false failed with exit code 1"
+    DO +RUN_EARTHLY --earthfile=true-false-flag-invalid.earth --should_fail=true --target=+run-false-with-args --post_command="2>output2.txt"
+    RUN cat output2.txt | grep "Command /bin/sh -c 'false echo test' failed with exit code 1"
+    DO +RUN_EARTHLY --earthfile=true-false-flag-invalid.earth --should_fail=true --target=+run-maybe --post_command="2>output3.txt"
+    RUN cat output3.txt | grep 'invalid argument for flag .*--no-cache.*expected bool'
 
 RUN_EARTHLY:
     COMMAND

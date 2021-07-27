@@ -18,7 +18,6 @@ import (
 	"github.com/earthly/earthly/conslogging"
 	"github.com/earthly/earthly/util/cliutil"
 	"github.com/earthly/earthly/util/fileutil"
-	"github.com/fatih/color"
 	"github.com/moby/buildkit/client"
 	_ "github.com/moby/buildkit/client/connhelper/dockercontainer" // Load "docker-container://" helper.
 	"github.com/pkg/errors"
@@ -266,13 +265,17 @@ func Start(ctx context.Context, console conslogging.ConsoleLogger, image, contai
 		"-d",
 		"-v", fmt.Sprintf("%s:/tmp/earthly:rw", settings.VolumeName),
 		"-e", fmt.Sprintf("BUILDKIT_DEBUG=%t", settings.Debug),
-		"-e", fmt.Sprintf("EARTHLY_ADDITIONAL_BUILDKIT_CONFIG=%s", settings.AdditionalConfig),
 		"-e", fmt.Sprintf("BUILDKIT_TCP_TRANSPORT_ENABLED=%t", settings.UseTCP),
 		"-e", fmt.Sprintf("BUILDKIT_TLS_ENABLED=%t", settings.UseTCP && settings.UseTLS),
 		"--label", fmt.Sprintf("dev.earthly.settingshash=%s", settingsHash),
 		"--name", containerName,
 		"--privileged",
 	}
+
+	if settings.AdditionalConfig != "" {
+		args = append(args, "-e", fmt.Sprintf("EARTHLY_ADDITIONAL_BUILDKIT_CONFIG=%s", settings.AdditionalConfig))
+	}
+
 	args = append(args, settings.AdditionalArgs...)
 	if os.Getenv("EARTHLY_WITH_DOCKER") == "1" {
 		// Add /sys/fs/cgroup if it's earthly-in-earthly.
@@ -341,10 +344,13 @@ func Start(ctx context.Context, console conslogging.ConsoleLogger, image, contai
 		args = append(args, "-e", fmt.Sprintf("CNI_MTU=%v", settings.CniMtu))
 	}
 
-	args = append(args,
-		"-e", fmt.Sprintf("CACHE_SIZE_MB=%d", settings.CacheSizeMb),
-		"-e", fmt.Sprintf("GIT_URL_INSTEAD_OF=%s", settings.GitURLInsteadOf),
-	)
+	if settings.CacheSizeMb > 0 {
+		args = append(args, "-e", fmt.Sprintf("CACHE_SIZE_MB=%d", settings.CacheSizeMb))
+	}
+
+	if settings.GitURLInsteadOf != "" {
+		args = append(args, "-e", fmt.Sprintf("GIT_URL_INSTEAD_OF=%s", settings.GitURLInsteadOf))
+	}
 
 	// Apply reset.
 	if reset {
@@ -537,22 +543,28 @@ func MaybePull(ctx context.Context, console conslogging.ConsoleLogger, image str
 	return nil
 }
 
-// PrintLogs prints the buildkitd logs to stderr.
-func PrintLogs(ctx context.Context, containerName string, settings Settings, console conslogging.ConsoleLogger) error {
-	if !IsLocal(settings.BuildkitAddress) {
-		return nil
+// GetDockerVersion returns the docker version command output
+func GetDockerVersion(ctx context.Context) (string, error) {
+	cmd := exec.CommandContext(ctx, "docker", "version")
+	versionOutput, err := cmd.CombinedOutput()
+	if err != nil {
+		return "", errors.Wrapf(err, "docker version")
 	}
+	return string(versionOutput), nil
+}
 
-	console.PrintBar(color.New(color.FgHiRed), "Buildkit Logs", "")
+// GetLogs returns earthly-buildkitd logs
+func GetLogs(ctx context.Context, containerName string, settings Settings) (string, error) {
+	if !IsLocal(settings.BuildkitAddress) {
+		return "", nil
+	}
 
 	cmd := exec.CommandContext(ctx, "docker", "logs", containerName)
-	cmd.Stdout = os.Stderr
-	cmd.Stderr = os.Stderr
-	err := cmd.Run()
+	logs, err := cmd.CombinedOutput()
 	if err != nil {
-		return errors.Wrapf(err, "docker logs %s", containerName)
+		return "", errors.Wrapf(err, "docker logs %s", containerName)
 	}
-	return nil
+	return string(logs), nil
 }
 
 // GetContainerIP returns the IP of the buildkit container.
