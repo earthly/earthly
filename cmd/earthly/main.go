@@ -1298,7 +1298,14 @@ func (app *earthlyApp) autoCompleteImp() (err error) {
 		return err
 	}
 
-	showHidden := strings.HasPrefix(Version, "dev-") || os.Getenv("EARTHLY_AUTOCOMPLETE_HIDDEN") == "1"
+	showHidden := strings.HasPrefix(Version, "dev-")
+	showHiddenOverride := os.Getenv("EARTHLY_AUTOCOMPLETE_HIDDEN")
+	if showHiddenOverride != "" {
+		showHidden, err = strconv.ParseBool(showHiddenOverride)
+		if err != nil {
+			return err
+		}
+	}
 
 	potentials, err := autocomplete.GetPotentials(compLine, int(compPointInt), app.cliApp, showHidden)
 	if err != nil {
