@@ -1,11 +1,28 @@
 FROM ../../..+earthly-integration-test-base
 
+ENV EARTHLY_AUTOCOMPLETE_HIDDEN=0
+
 test-root-commands:
     RUN echo "./
 bootstrap 
 org 
 secrets 
 account 
+prune 
+config " > expected
+    RUN COMP_LINE="earthly " COMP_POINT=8 earthly > actual
+    RUN diff expected actual
+
+test-hidden-root-commands:
+    ENV EARTHLY_AUTOCOMPLETE_HIDDEN=1
+    RUN echo "./
+bootstrap 
+docker 
+docker2earthly 
+org 
+secrets 
+account 
+debug 
 prune 
 config " > expected
     RUN COMP_LINE="earthly " COMP_POINT=8 earthly > actual
@@ -35,5 +52,6 @@ test-relative-dir-targets:
 
 test-all:
     BUILD +test-root-commands
+    BUILD +test-hidden-root-commands
     BUILD +test-targets
     BUILD +test-relative-dir-targets

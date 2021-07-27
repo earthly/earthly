@@ -74,6 +74,8 @@ ga:
     BUILD +infinite-recursion
     BUILD +from-dockerfile-arg
     BUILD +cache-mount-arg
+    BUILD +true-false-flag
+    BUILD +true-false-flag-invalid
 
 experimental:
     BUILD ./dind-auto-install+all
@@ -578,6 +580,22 @@ cache-mount-arg:
     RUN cat output.txt
     RUN cat output.txt | grep '\*cached\* --> RUN echo Doing something 1'; test "$?" != 0
     RUN cat output.txt | grep '\*cached\* --> RUN echo Doing something 2'; test "$?" != 0
+
+true-false-flag:
+    DO +RUN_EARTHLY --earthfile=true-false-flag.earth --extra_args="--allow-privileged" --post_command=">output.txt 2>&1"
+    RUN cat output.txt
+    # test that the two privileged commands were run
+    RUN test $( cat output.txt | grep -v echo | grep "I have the power" | wc -l) = "2"
+    # test a single non-privileged RUN was executed
+    RUN test $( cat output.txt | grep -v echo | grep "fight the power" | wc -l) = "1"
+
+true-false-flag-invalid:
+    DO +RUN_EARTHLY --earthfile=true-false-flag-invalid.earth --should_fail=true --target=+run-false --post_command="2>output.txt"
+    RUN cat output.txt | grep "Command /bin/sh -c false failed with exit code 1"
+    DO +RUN_EARTHLY --earthfile=true-false-flag-invalid.earth --should_fail=true --target=+run-false-with-args --post_command="2>output2.txt"
+    RUN cat output2.txt | grep "Command /bin/sh -c 'false echo test' failed with exit code 1"
+    DO +RUN_EARTHLY --earthfile=true-false-flag-invalid.earth --should_fail=true --target=+run-maybe --post_command="2>output3.txt"
+    RUN cat output3.txt | grep 'invalid argument for flag .*--no-cache.*expected bool'
 
 RUN_EARTHLY:
     COMMAND

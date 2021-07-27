@@ -180,7 +180,7 @@ release-homebrew:
         echo version=$version ;\
         output=$(hub pull-request --no-edit \
             -h "$GIT_USERNAME":"release-$RELEASE_TAG" \
-            -b "$REPO_OWNER:main" \
+            -b "earthly:main" \
             -m "earthly $version" \
             -m '-------------' \
             -m '#### Debug data' \

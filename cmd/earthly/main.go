@@ -1298,7 +1298,14 @@ func (app *earthlyApp) autoCompleteImp() (err error) {
 		return err
 	}
 
-	showHidden := strings.HasPrefix(Version, "dev-") || os.Getenv("EARTHLY_AUTOCOMPLETE_HIDDEN") == "1"
+	showHidden := strings.HasPrefix(Version, "dev-")
+	showHiddenOverride := os.Getenv("EARTHLY_AUTOCOMPLETE_HIDDEN")
+	if showHiddenOverride != "" {
+		showHidden, err = strconv.ParseBool(showHiddenOverride)
+		if err != nil {
+			return err
+		}
+	}
 
 	potentials, err := autocomplete.GetPotentials(compLine, int(compPointInt), app.cliApp, showHidden)
 	if err != nil {
@@ -2526,6 +2533,10 @@ func (app *earthlyApp) actionBuild(c *cli.Context) error {
 		app.strict = true
 		if app.remoteCache == "" && app.push {
 			app.saveInlineCache = true
+		}
+
+		if app.interactiveDebugging {
+			return errors.New("unable to use --ci flag in combination with --interactive flag")
 		}
 	}
 	if app.imageMode && app.artifactMode {
