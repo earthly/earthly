@@ -45,12 +45,22 @@
 * Merge branch `main` into `next`, then merge branch `next` into `main`.
 * Update the version for the installation command in the following places:
   * [ci-integration.md](../docs/ci-integration.md)
-  * [circle-integration.md](../docs/ci-examples/circle-integration.md)
-  * [gh-actions-integration.md](../docs/ci-examples/gh-actions-integration.md)
-  * [codebuild-integration.md](../docs/ci-examples/codebuild-integration.md)
+  * [circle-integration.md](../docs/ci-integration/guides/circle-integration.md)
+  * [gh-actions-integration.md](../docs/ci-integration/guides/gh-actions-integration.md)
+  * [codebuild-integration.md](../docs/ci-integration/guides/codebuild-integration.md)
+  * [build-an-earthly-ci-image.md](../docs/ci-integration/build-an-earthly-ci-image.md)  
   * you can try doing that with:
     ```
-    find . -name '*integration.md' | xargs -n1 sed -i 's/\(earthly\/releases\/download\/\)v[0-9]\+\.[0-9]\+\.[0-9]\+\(\/\)/\1'$RELEASE_TAG'\2/g'
+    REGEX='\(earthly\/releases\/download\/\)v[0-9]\+\.[0-9]\+\.[0-9]\+\(\/\)'; grep -Ril './docs/' -e $REGEX | xargs -n1 sed -i 's/'$REGEX'/\1'$RELEASE_TAG'\2/g'
+    
+    ```
+* Update the pinned image tags used in the following places:
+  * [all-in-one.md](../docs/docker-images/all-in-one.md)
+  * [buildkit-standalone.md](../docs/docker-images/buildkit-standalone.md)
+  * [build-an-earthly-ci-image.md](../docs/ci-integration/build-an-earthly-ci-image.md)
+  * you can try doing that with:
+    ```shell
+    REGEX='\(\searthly\/\(buildkitd\|earthly\):\)v[0-9]\+\.[0-9]\+\.[0-9]\+'; grep -Ril './docs/' -e $REGEX | xargs -n1 sed -i 's/'$REGEX'/\1'$RELEASE_TAG'/g'
     ```
 * Update the Docker image documentation's tags with the new version, plus the prior two image versions under:
   * [all-in-one.md](../docs/docker-images/all-in-one.md)
