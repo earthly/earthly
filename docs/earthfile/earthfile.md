@@ -592,7 +592,9 @@ Same as [`FROM --allow-privileged`](#allow-privileged).
 
 #### Description
 
-The command `VERSION` identifies which set of features to enable in Earthly while handling the corresponding Earthfile. The `VERSION` command is optional; however if specified, it must be the first command in the Earthfile.
+The command `VERSION` identifies which set of features to enable in Earthly while handling the corresponding Earthfile. The `VERSION` command is currently optional;
+however will become manditory in a future version of Earthly. When specified, `VERSION` must be the first command in the Earthfile.
+
 
 | Version number | enabled features |
 | --- | --- | --- |
@@ -600,30 +602,11 @@ The command `VERSION` identifies which set of features to enable in Earthly whil
 
 #### Options
 
-##### `--use-copy-include-patterns`
+Individual features may be enabled by setting the corresponding feature flag.
+New features start off as experimental, which is why they are disabled by default.
+Once a feature reaches maturity, it will be enabled by default under a new version number.
 
-Instructs Earthly to set buildkit's `include pattern` when executing `COPY` commands; without this feature, Earthly sends all files in the current build context except ignored files.
-Setting this option may increase the speed of COPY commands by forcing Earthly to only transfered files needed for the specific COPY, rather than transfering all files initially.
-This is disabled by default under `0.5`.
-
-#### Overriding features globally
-
-It is possible to enable additional options to *all* Earthfiles, by including them in the `EARTHLY_VERSION_FLAG_OVERRIDES` environment variable. Multiple options can be seperated by commas.
-
-For example, to enable `--use-copy-include-patterns` across all Earthfiles, you can export:
-
-```bash
-export EARTHLY_VERSION_FLAG_OVERRIDES="use-copy-include-patterns"
-```
-
-{% hint style='danger' %}
-##### Important
-
-Overriding feature flags with the `EARTHLY_VERSION_FLAG_OVERRIDES` environment variable is discouraged, as it will cause the `Earthfile` to be executed in a non-reproducible way.
-
-Instead, the `VERSION` command should be used at the top of each `Earthfile`; this will ensure the Earthfile is executed using the same version of earthly features across multiple hosts
-even when different versions of earthly are installed.
-{% endhint %}
+All features are described in [a corresponding table](./features.md).
 
 ## GIT CLONE
 
