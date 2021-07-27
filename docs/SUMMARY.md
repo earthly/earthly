@@ -48,7 +48,7 @@
     * [Jenkins](ci-integration/guides/jenkins.md)
     * [Circle CI](ci-integration/guides/circle-integration.md)
     * [GitHub Actions](ci-integration/guides/gh-actions-integration.md)
-    * [CodeBuild](ci-integration/guides/codebuild-integration.md)
+    * [AWS CodeBuild](ci-integration/guides/codebuild-integration.md)
     * [Kubernetes](ci-integration/guides/kubernetes.md)
 * Misc
     * [Alternative installation](./alt-installation.md)
@@ -59,6 +59,8 @@
 
 * [Overview](examples/examples.md)
 * CI examples
-    * [GitHub Actions](ci-examples/gh-actions-integration.md)
-    * [Circle CI](ci-examples/circle-integration.md)
-    * [AWS CodeBuild](ci-examples/codebuild-integration.md)
+  * [Jenkins](ci-integration/guides/jenkins.md)
+  * [Circle CI](ci-integration/guides/circle-integration.md)
+  * [GitHub Actions](ci-integration/guides/gh-actions-integration.md)
+  * [AWS CodeBuild](ci-integration/guides/codebuild-integration.md)
+  * [Kubernetes](ci-integration/guides/kubernetes.md)
