@@ -2,7 +2,7 @@
 <package xmlns="http://schemas.microsoft.com/packaging/2015/06/nuspec.xsd">
   <metadata>
     <id>earthly</id>
-    <version>0.5.18</version>
+    <version>${EARTHLY_VERSION}</version>
     <packageSourceUrl>https://github.com/earthly/earthly</packageSourceUrl>
     <title>Earthly</title>
     <owners>dchw</owners>

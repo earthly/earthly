@@ -1,6 +1,7 @@
 
 choco:
     FROM mono:6.12
+    RUN apt-get update && apt-get -y install gettext-base
     GIT CLONE --branch stable https://github.com/chocolatey/choco /choco
 
     WORKDIR /choco
@@ -23,14 +24,18 @@ shell:
 pack:
     FROM +choco
 
+    ARG RELEASE_TAG
+    ARG EARTHLY_VERSION=$(echo "$RELEASE_TAG" | cut -c 2-)
+
     WORKDIR package
-    COPY ./earthly.nuspec .
+    COPY ./earthly.nuspec.template .
+    RUN envsubst <./earthly.nuspec.template >./earthly.nuspec
+
 
     RUN mkdir tools
-    COPY ./LICENSE ./tools/LICENSE
-    COPY ./VERIFICATION ./tools/VERIFICATION
-
-    RUN curl -L -o tools/earthly.exe https://github.com/earthly/earthly/releases/latest/download/earthly-windows-amd64.exe
+    COPY ./LICENSE.txt ./tools/LICENSE.txt
+    COPY ./VERIFICATION.txt ./tools/VERIFICATION.txt
+    RUN curl -L -o tools/earthly.exe https://github.com/earthly/earthly/releases/download/v${EARTHLY_VERSION}/earthly-windows-amd64.exe
 
     RUN choco pack
 
