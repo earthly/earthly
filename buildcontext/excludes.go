@@ -23,7 +23,7 @@ var ImplicitExcludes = []string{
 }
 
 func readExcludes(dir string) ([]string, error) {
-	ignoreFile := EarthIgnoreFile
+	var ignoreFile = EarthIgnoreFile
 
 	// if non (doesNotExist) errors appear then we need to return them.
 	//EarthIgnoreFile
@@ -42,7 +42,7 @@ func readExcludes(dir string) ([]string, error) {
 		// return just ImplicitExcludes if neither of them exist
 		return ImplicitExcludes, nil
 	} else if earthlyExists {
-		ignoreFile := EarthlyIgnoreFile
+		ignoreFile = EarthlyIgnoreFile
 	}
 
 	filePath := filepath.Join(dir, ignoreFile)
