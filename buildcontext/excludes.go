@@ -9,28 +9,27 @@ import (
 	"github.com/pkg/errors"
 )
 
-// EarthIgnoreFile is the name of the earthly ignore file.
-const EarthIgnoreFile = ".earthignore"
-const EarthlyIgnoreFile = ".earthlyignore"
+const earthIgnoreFile = ".earthignore"
+const earthlyIgnoreFile = ".earthlyignore"
 
 // ImplicitExcludes is a list of implicit patterns to exclude.
 var ImplicitExcludes = []string{
 	".tmp-earthly-out/",
 	"build.earth",
 	"Earthfile",
-	EarthIgnoreFile,
-	EarthlyIgnoreFile,
+	earthIgnoreFile,
+	earthlyIgnoreFile,
 }
 
 func readExcludes(dir string) ([]string, error) {
-	var ignoreFile = EarthIgnoreFile
+	var ignoreFile = earthIgnoreFile
 
-	//EarthIgnoreFile
-	var earthIgnoreFilePath = filepath.Join(dir, EarthIgnoreFile)
+	//earthIgnoreFile
+	var earthIgnoreFilePath = filepath.Join(dir, earthIgnoreFile)
 	earthExists := fileutil.FileExists(earthIgnoreFilePath)
 
-	//EarthlyIgnoreFile
-	var earthlyIgnoreFilePath = filepath.Join(dir, EarthlyIgnoreFile)
+	//earthlyIgnoreFile
+	var earthlyIgnoreFilePath = filepath.Join(dir, earthlyIgnoreFile)
 	earthlyExists := fileutil.FileExists(earthlyIgnoreFilePath)
 
 	// Check which ones exists and which don't
@@ -41,7 +40,7 @@ func readExcludes(dir string) ([]string, error) {
 		// return just ImplicitExcludes if neither of them exist
 		return ImplicitExcludes, nil
 	} else if earthlyExists {
-		ignoreFile = EarthlyIgnoreFile
+		ignoreFile = earthlyIgnoreFile
 	}
 
 	filePath := filepath.Join(dir, ignoreFile)
