@@ -19,6 +19,7 @@ import (
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/earthfile2llb"
 	"github.com/earthly/earthly/states"
+	"github.com/earthly/earthly/util/gwclientlogger"
 	"github.com/earthly/earthly/util/llbutil"
 	"github.com/earthly/earthly/util/llbutil/pllb"
 	"github.com/earthly/earthly/variables"
@@ -65,14 +66,15 @@ type Opt struct {
 
 // BuildOpt is a collection of build options.
 type BuildOpt struct {
-	Platform              *specs.Platform
-	AllowPrivileged       bool
-	PrintSuccess          bool
-	Push                  bool
-	NoOutput              bool
-	OnlyFinalTargetImages bool
-	OnlyArtifact          *domain.Artifact
-	OnlyArtifactDestPath  string
+	Platform                   *specs.Platform
+	AllowPrivileged            bool
+	PrintSuccess               bool
+	Push                       bool
+	NoOutput                   bool
+	OnlyFinalTargetImages      bool
+	OnlyArtifact               *domain.Artifact
+	OnlyArtifactDestPath       string
+	EnableGatewayClientLogging bool
 }
 
 // Builder executes Earthly builds.
@@ -165,6 +167,9 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 	dirIndex := 0
 	localImages := make(map[string]string) // local reg pull name -> final name
 	bf := func(childCtx context.Context, gwClient gwclient.Client) (*gwclient.Result, error) {
+		if opt.EnableGatewayClientLogging {
+			gwClient = gwclientlogger.New(gwClient)
+		}
 		var err error
 		if !b.builtMain {
 			mts, err = earthfile2llb.Earthfile2LLB(childCtx, target, earthfile2llb.ConvertOpt{
