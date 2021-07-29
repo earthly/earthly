@@ -1,6 +1,7 @@
 package buildcontext
 
 import (
+	"github.com/earthly/earthly/util/fileutil"
 	"os"
 	"path/filepath"
 
@@ -25,14 +26,13 @@ func readExcludes(dir string) ([]string, error) {
 	ignoreFile := EarthIgnoreFile
 
 	// if non (doesNotExist) errors appear then we need to return them.
-	earthExists, err := ignoreFileExists(dir, EarthIgnoreFile)
-	if err != nil {
-		return ImplicitExcludes, err
-	}
-	earthlyExists, err := ignoreFileExists(dir, EarthlyIgnoreFile)
-	if err != nil {
-		return ImplicitExcludes, err
-	}
+	//EarthIgnoreFile
+	var earthIgnoreFilePath = filepath.Join(dir, EarthIgnoreFile)
+	earthExists := fileutil.FileExists(earthIgnoreFilePath)
+
+	//EarthlyIgnoreFile
+	var earthlyIgnoreFilePath = filepath.Join(dir, EarthlyIgnoreFile)
+	earthlyExists := fileutil.FileExists(earthlyIgnoreFilePath)
 
 	// Check which ones exists and which don't
 	if earthExists && earthlyExists {
@@ -55,15 +55,4 @@ func readExcludes(dir string) ([]string, error) {
 		return nil, errors.Wrapf(err, "parse %s", filePath)
 	}
 	return append(excludes, ImplicitExcludes...), nil
-}
-
-// cleanest way I could imagine to iterate and check if both of them exist - If the file is a bash/executable file then it could return an error other than (os.IsNotExist(err))
-func ignoreFileExists(dir, file string) (exists bool, err error) {
-	filePath := filepath.Join(dir, file)
-	if _, err := os.Stat(filePath); os.IsNotExist(err) {
-		return false, nil
-	} else if err != nil {
-		return false, err
-	}
-	return true, nil
 }
