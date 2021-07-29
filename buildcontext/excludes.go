@@ -1,11 +1,11 @@
 package buildcontext
 
 import (
-	"github.com/earthly/earthly/util/fileutil"
 	"os"
 	"path/filepath"
 
 	"github.com/docker/docker/builder/dockerignore"
+	"github.com/earthly/earthly/util/fileutil"
 	"github.com/pkg/errors"
 )
 
@@ -25,7 +25,6 @@ var ImplicitExcludes = []string{
 func readExcludes(dir string) ([]string, error) {
 	var ignoreFile = EarthIgnoreFile
 
-	// if non (doesNotExist) errors appear then we need to return them.
 	//EarthIgnoreFile
 	var earthIgnoreFilePath = filepath.Join(dir, EarthIgnoreFile)
 	earthExists := fileutil.FileExists(earthIgnoreFilePath)
