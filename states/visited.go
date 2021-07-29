@@ -36,7 +36,7 @@ func (vc *VisitedCollection) All() []*SingleTarget {
 
 // Add adds a target to the collection, if it hasn't yet been visited. The returned sts is
 // either the previously visited one or a brand new one.
-func (vc *VisitedCollection) Add(ctx context.Context, target domain.Target, platform *specs.Platform, allowPrivileged bool, overridingVars *variables.Scope, parentDepSub chan string) (*SingleTarget, bool, error) {
+func (vc *VisitedCollection) Add(ctx context.Context, target domain.Target, platform *specs.Platform, allowPrivileged, HasDangling bool, overridingVars *variables.Scope, parentDepSub chan string) (*SingleTarget, bool, error) {
 	dependents, err := vc.waitAllDoneAndLock(ctx, target, parentDepSub)
 	if err != nil {
 		return nil, false, err
@@ -67,6 +67,8 @@ func (vc *VisitedCollection) Add(ctx context.Context, target domain.Target, plat
 			}
 			// Subscribe that sts to the dependencies of our parent.
 			sts.MonitorDependencySubscription(ctx, parentDepSub)
+			// previously cached state might not have been dangling if it was created via an async BUILD
+			sts.HasDangling = sts.HasDangling || HasDangling
 			return sts, true, nil
 		}
 	}

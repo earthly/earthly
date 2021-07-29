@@ -120,7 +120,7 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt) (m
 	}
 
 	targetWithMetadata := bc.Ref.(domain.Target)
-	sts, found, err := opt.Visited.Add(ctx, targetWithMetadata, opt.Platform, opt.AllowPrivileged, opt.OverridingVars, opt.parentDepSub)
+	sts, found, err := opt.Visited.Add(ctx, targetWithMetadata, opt.Platform, opt.AllowPrivileged, opt.HasDangling, opt.OverridingVars, opt.parentDepSub)
 	if err != nil {
 		return nil, err
 	}
