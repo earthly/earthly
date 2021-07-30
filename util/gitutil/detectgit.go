@@ -20,6 +20,8 @@ var (
 	ErrCouldNotDetectRemote = errors.New("Could not auto-detect or parse Git remote URL")
 	// ErrCouldNotDetectGitHash is an error returned when git hash could not be detected.
 	ErrCouldNotDetectGitHash = errors.New("Could not auto-detect or parse Git hash")
+	// ErrCouldNotDetectGitShortHash is an error returned when git short hash could not be detected.
+	ErrCouldNotDetectGitShortHash = errors.New("Could not auto-detect or parse Git short hash")
 	// ErrCouldNotDetectGitBranch is an error returned when git branch could not be detected.
 	ErrCouldNotDetectGitBranch = errors.New("Could not auto-detect or parse Git branch")
 )
@@ -31,8 +33,10 @@ type GitMetadata struct {
 	RemoteURL string
 	GitURL    string
 	Hash      string
+	ShortHash string
 	Branch    []string
 	Tags      []string
+	Timestamp string
 }
 
 // Metadata performs git metadata detection on the provided directory.
@@ -67,6 +71,11 @@ func Metadata(ctx context.Context, dir string) (*GitMetadata, error) {
 		retErr = err
 		// Keep going.
 	}
+	shortHash, err := detectGitShortHash(ctx, dir)
+	if err != nil {
+		retErr = err
+		// Keep going.
+	}
 	branch, err := detectGitBranch(ctx, dir)
 	if err != nil {
 		retErr = err
@@ -76,6 +85,11 @@ func Metadata(ctx context.Context, dir string) (*GitMetadata, error) {
 	if err != nil {
 		// Most likely no tags. Keep going.
 		tags = nil
+	}
+	timestamp, err := detectGitTimestamp(ctx, dir)
+	if err != nil {
+		retErr = err
+		// Keep going.
 	}
 
 	relDir, isRel, err := gitRelDir(baseDir, dir)
@@ -92,8 +106,10 @@ func Metadata(ctx context.Context, dir string) (*GitMetadata, error) {
 		RemoteURL: remoteURL,
 		GitURL:    gitURL,
 		Hash:      hash,
+		ShortHash: shortHash,
 		Branch:    branch,
 		Tags:      tags,
+		Timestamp: timestamp,
 	}, retErr
 }
 
@@ -183,6 +199,20 @@ func detectGitHash(ctx context.Context, dir string) (string, error) {
 	return strings.SplitN(outStr, "\n", 2)[0], nil
 }
 
+func detectGitShortHash(ctx context.Context, dir string) (string, error) {
+	cmd := exec.CommandContext(ctx, "git", "rev-parse", "--short=8", "HEAD")
+	cmd.Dir = dir
+	out, err := cmd.Output()
+	if err != nil {
+		return "", errors.Wrapf(ErrCouldNotDetectGitShortHash, "returned error %s: %s", err.Error(), string(out))
+	}
+	outStr := string(out)
+	if outStr == "" {
+		return "", errors.Wrapf(ErrCouldNotDetectGitShortHash, "no remote origin url output")
+	}
+	return strings.SplitN(outStr, "\n", 2)[0], nil
+}
+
 func detectGitBranch(ctx context.Context, dir string) ([]string, error) {
 	cmd := exec.CommandContext(ctx, "git", "rev-parse", "--abbrev-ref", "HEAD")
 	cmd.Dir = dir
@@ -209,6 +239,20 @@ func detectGitTags(ctx context.Context, dir string) ([]string, error) {
 		return strings.Split(outStr, "\n"), nil
 	}
 	return nil, nil
+}
+
+func detectGitTimestamp(ctx context.Context, dir string) (string, error) {
+	cmd := exec.CommandContext(ctx, "git", "log", "-1", "--format=%ct")
+	cmd.Dir = dir
+	out, err := cmd.Output()
+	if err != nil {
+		return "0", nil
+	}
+	outStr := string(out)
+	if outStr == "" {
+		return "0", nil
+	}
+	return strings.SplitN(outStr, "\n", 2)[0], nil
 }
 
 func gitRelDir(basePath string, path string) (string, bool, error) {
