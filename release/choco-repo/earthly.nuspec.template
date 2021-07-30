@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2015/06/nuspec.xsd">
+  <metadata>
+    <id>earthly</id>
+    <version>${EARTHLY_VERSION}</version>
+    <packageSourceUrl>https://github.com/earthly/earthly</packageSourceUrl>
+    <title>Earthly</title>
+    <owners>dchw</owners>
+    <authors>The Earthly Team</authors>
+    <projectUrl>https://earthly.dev</projectUrl>
+    <iconUrl>https://rawcdn.githack.com/earthly/website-output/b8d3fb0379b6be79c541d1266f7e34706916361c/assets/img/favicon.png</iconUrl>
+    <copyright>2021 Earthly Technologies, Inc.</copyright>
+    <licenseUrl>https://rawcdn.githack.com/earthly/earthly/59a5603ceaaca55bdbeda1ce9ba24d5869cecc35/LICENSE</licenseUrl>
+    <projectSourceUrl>https://github.com/earthly/earthly</projectSourceUrl>
+    <docsUrl>https://docs.earthly.dev/</docsUrl>
+    <bugTrackerUrl>https://github.com/earthly/earthly/issues</bugTrackerUrl>
+    <tags>earthly build docker</tags>
+    <summary>Build automation for the container era</summary>
+    <description>
+**🐳 Build anything via containers** - *build images or standalone artifacts (binaries, packages, arbitrary files)*
+
+**🛠 Programming language agnostic** - *allows use of language-specific build tooling*
+
+**🔁 Repeatable builds** - *does not depend on user's local installation: runs the same locally, as in CI*
+
+**⛓ Parallelism that just works** - *build in parallel without special considerations*
+
+**🏘 Mono and Poly-repo friendly** - *ability to split the build definitions across vast project hierarchies*
+
+**💾 Shared caching** - *share build cache between CI runners*
+
+**🔀 Multi-platform** - *build for multiple platforms in parallel*
+
+---------------------------------
+
+[🌍 Earthly](https://earthly.dev) is a build automation tool for the container era. It allows you to execute all your builds in containers. This makes them self-contained, repeatable, portable and parallel. You can use Earthly to create Docker images and artifacts (eg binaries, packages, arbitrary files).
+    </description>
+    <releaseNotes>https://github.com/earthly/earthly/releases</releaseNotes>
+  </metadata>
+  <files>
+    <file src="tools/**" target="tools" />
+  </files>
+</package>
