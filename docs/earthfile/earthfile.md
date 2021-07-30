@@ -584,6 +584,30 @@ For more information see the [multi-platform guide](../guides/multi-platform.md)
 
 Same as [`FROM --allow-privileged`](#allow-privileged).
 
+## VERSION
+
+#### Synopsis
+
+* `VERSION [--use-copy-include-patterns] <version-number>`
+
+#### Description
+
+The command `VERSION` identifies which set of features to enable in Earthly while handling the corresponding Earthfile. The `VERSION` command is currently optional;
+however will become manditory in a future version of Earthly. When specified, `VERSION` must be the first command in the Earthfile.
+
+
+| Version number | enabled features |
+| --- | --- | --- |
+| `0.5` | _initial functionality will be preserved_ |
+
+#### Options
+
+Individual features may be enabled by setting the corresponding feature flag.
+New features start off as experimental, which is why they are disabled by default.
+Once a feature reaches maturity, it will be enabled by default under a new version number.
+
+All features are described in [a corresponding table](./features.md).
+
 ## GIT CLONE
 
 #### Synopsis
