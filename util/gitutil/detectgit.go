@@ -242,7 +242,7 @@ func detectGitTags(ctx context.Context, dir string) ([]string, error) {
 }
 
 func detectGitTimestamp(ctx context.Context, dir string) (string, error) {
-	cmd := exec.CommandContext(ctx, "git", "log", "-1", "--format=%at")
+	cmd := exec.CommandContext(ctx, "git", "log", "-1", "--format=%ct")
 	cmd.Dir = dir
 	out, err := cmd.Output()
 	if err != nil {
