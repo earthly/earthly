@@ -12,19 +12,17 @@ We also have instructions for [specific CI systems](#examples); and special-case
 
 ## Dependencies
 
-Earthly has two software dependencies: `docker` and `git`. Because `earthly` will not install these for you, please ensure they are present before proceeding. These tools are very common, so many environments will already have them installed. 
+Earthly has two software dependencies: `docker` and `git`. Because `earthly` will not install these for you, please ensure they are present before proceeding. These tools are very common, so many environments will already have them installed. If you choose to use our pre-built containers, these dep 
 
 `docker` is used to glean information about the containerization environment, and manage our `earthly-buildkitd` daemon. It is also used to do things like save images locally on your machine after they have been built by Earthly. To install `docker`, use the most recent versions [directly from Docker](https://docs.docker.com/engine/install/#server). The versions packaged for many distributions tend to fall behind.
 
 `git` is used to help fetch remote targets, and also provides metadata for Earthly during your build. To install `git`, [you can typically use your distributions package manager](https://git-scm.com/download/linux).
 
-If you are using Windows or Mac CI agents, please refer to our [CI documentation for alternative platforms](./other_platforms.md).
-
 ## Installation
 
 Once you have ensured that the dependencies are available, you'll need to install `earthly` itself.
 
-### Bare Metal / VMs / Cloud Instances
+### Option 1
 
 This is the simplest method for adding `earthly` to your CI. It will work best on dedicated computers, or in scripted/auto-provisioned build environments. You can pin it to a specific version like so:
 
@@ -38,12 +36,12 @@ It is recommended to install `earthly` as part of the new host's configuration, 
 
 Don't forget to run `earthly bootstrap` when you are done to finish configuration!
 
-### Container Images
+### Option 2
 
-Earthly currently offers two official images:
+If a local installation isn't possible, Earthly currently offers two official images:
 
 - [`earthly/earthly`](https://hub.docker.com/r/earthly/earthly), which is a 1-stop shop. It includes a built-in `earthly-buildkitd` daemon, and accepts a target to be built as a parameter. It requires a mount for your source code, and an accessible `DOCKER_HOST`.
-- [`earthly/buildkitd`](https://hub.docker.com/r/earthly/buildkitd), which is the same `earthly-buildkitd` container that `earthly` will run on your host. This is useful in more advanced configurations, such as sharing a single `buildkitd` machine across many workers, or isolating the privileged parts of builds. See [this Kubernetes configuration](https://github.com/earthly/ci-examples/blob/main/kubernetes/buildkit.yaml) for an example.
+- [`earthly/buildkitd`](https://hub.docker.com/r/earthly/buildkitd), which is the same `earthly-buildkitd` container that `earthly` will run on your host. This is useful in more advanced configurations, such as sharing a single `buildkitd` machine across many workers, or isolating the privileged parts of builds. [It's still experimental, but you can find out more about how to do it here.](./remote-buildkit.md).
 
 If you need to provide additional configuration or tools, [consider building your own image for CI](build-an-earthly-ci-image.md).
 
@@ -93,7 +91,7 @@ Large builds can generate many `docker` pull requests for certain images. You ca
 
 If `earthly` is running on a dedicated host, the only consideration to take is the ability to run the container in a `--privileged` mode. Typical installations *should* support this out of the box. We also support running under user namespaces, [when `earthly` is configured to start the `earthly-buildkit` container with the `--userns host` option](../earthly-config/earthly-config.md#buildkit_additional_args). Rootless configurations are currently unsupported.
 
-If `earthly` is connecting to a remote `earthly-buildkitd`, then you will need to take additional steps. See this article for [running a remote buildkit instance](guides/remote-buildkit.md).
+If `earthly` is connecting to a remote `earthly-buildkitd`, then you will need to take additional steps. See this article for [running a remote buildkit instance](remote-buildkit.md).
 
 ## Examples
 
