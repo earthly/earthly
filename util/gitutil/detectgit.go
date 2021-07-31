@@ -246,11 +246,11 @@ func detectGitTimestamp(ctx context.Context, dir string) (string, error) {
 	cmd.Dir = dir
 	out, err := cmd.Output()
 	if err != nil {
-		return "0", nil
+		return "", nil
 	}
 	outStr := string(out)
 	if outStr == "" {
-		return "0", nil
+		return "", nil
 	}
 	return strings.SplitN(outStr, "\n", 2)[0], nil
 }
