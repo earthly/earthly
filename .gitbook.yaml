@@ -40,3 +40,5 @@ redirects:
     guides/basics: basics/basics.md
     basics: basics/basics.md
     guides/ci-integration: ci-integration/overview.md
+    examples/examples: examples/examples.md
+    examples/ci-examples: ci-integration/vendor-specific-guides
