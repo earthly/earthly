@@ -40,4 +40,4 @@ redirects:
     guides/basics: basics/basics.md
     basics: basics/basics.md
     guides/ci-integration: ci-integration/overview.md
-    ci-integration/overview: ci-integration/overview.md
+    ci-integration/guides/overview: ci-integration/overview.md
