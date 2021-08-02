@@ -19,7 +19,7 @@ Earthly has been tested with Jenkins in a standalone runner configuration, and u
 
 ## Setup (Standalone)
 
-This should not differ in any meaningful way from the steps outlined in the [overview](../../overview.md).
+This should not differ in any meaningful way from the steps outlined in the [overview](../overview.md).
 
 ## Setup (Docker Cloud)
 
