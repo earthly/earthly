@@ -37,4 +37,4 @@ http:
       hosts: [my.cool.mirror.horse]
 ```
 
-The currently shipping `library/registry` image does not support the DNS-01 challenge yet, and [some of the LetsEncrypt challenge support is getting out of date](https://github.com/distribution/distribution/issues/3041). If you need this, there is a tracking issue; We have had success by [building the binary ourselves](https://github.com/earthly/registry/blob/3f06d1fc5d7f456b63b870b2851fd18cd2098dcf/Earthfile#L3-L11) and replacing it in the image that Docker ships.
+The currently shipping `library/registry` image does not support the DNS-01 challenge yet, and [some of the LetsEncrypt challenge support is getting out of date](https://github.com/distribution/distribution/issues/3041). If you need this, there is a [tracking issue](https://github.com/docker/distribution-library-image/issues/96); We have had success by [building the binary ourselves](https://github.com/earthly/registry/blob/3f06d1fc5d7f456b63b870b2851fd18cd2098dcf/Earthfile#L3-L11) and replacing it in the image that Docker ships.

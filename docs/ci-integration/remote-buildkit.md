@@ -43,7 +43,7 @@ Set this to `true` for all daemons that will handle production workloads. This d
 
 Make sure you mount your certificates and keys in the correct location (`/etc/*.pem`).
 
-For complete details, see the [documentation for `earthly/buildkitd`](../docker-images/buildkit-standalone.md). 
+For complete details, see the [documentation for `earthly/buildkitd`](https://hub.docker.com/r/earthly/buildkitd). 
 
 #### Client
 
