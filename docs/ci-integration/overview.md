@@ -36,7 +36,7 @@ It is recommended to install `earthly` as part of the new host's configuration, 
 
 Don't forget to run `earthly bootstrap` when you are done to finish configuration!
 
-### Option 2
+### Option 2: Image
 
 If a local installation isn't possible, Earthly currently offers two official images:
 
