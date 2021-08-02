@@ -22,7 +22,7 @@ Earthly has two software dependencies: `docker` and `git`. Because `earthly` wil
 
 Once you have ensured that the dependencies are available, you'll need to install `earthly` itself.
 
-### Option 1
+### Option 1: Direct install
 
 This is the simplest method for adding `earthly` to your CI. It will work best on dedicated computers, or in scripted/auto-provisioned build environments. You can pin it to a specific version like so:
 
