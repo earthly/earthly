@@ -75,13 +75,13 @@ Some options that may make sense in a CI environment are:
 | `NO_COLOR` / `FORCE_COLOR` | Lets you force on/off the ANSI color codes. Use this when `earthly` misinterprets the presence of a terminal. Set either one to `1` to enable or disable colors.                                                                                 |
 | `EARTHLY_BUILDKIT_HOST`    | Use this when you have an external buildkit instance you would like to use instead of the one `earthly` manages.                                                                                                                                 |
 
-Earthly also has some special command-line switches to ensure best practices are followed within your CI. These come *highly* recommended. Enable these with the [`--ci`](../earthly-command/earthly-command.md#--ci-experimental) option,  which is shorthand for [`--use-inline-cache`](../earthly-command/earthly-command.md#--use-inline-cache-experimental) [`--save-inline-cache`](../earthly-command/earthly-command.md#--save-inline-cache-experimental) [`--strict`](../earthly-command/earthly-command.md#--strict) [`--no-output`](../earthly-command/earthly-command.md#--no-output).
+Earthly also has some special command-line switches to ensure best practices are followed within your CI. These come *highly* recommended. Enable these with the [`--ci`](../earthly-command/earthly-command.md#--ci-experimental) option,  which is shorthand for [`--use-inline-cache`](../earthly-command/earthly-command.md#use-inline-cache-experimental) [`--save-inline-cache`](../earthly-command/earthly-command.md#save-inline-cache-experimental) [`--strict`](../earthly-command/earthly-command.md#strict) [`--no-output`](../earthly-command/earthly-command.md#no-output).
 
-Earthly also has a special [`--push`](../earthfile/earthfile.md#--push) option that can be used when invoking a target. In a CI, you may want to ensure this flag is present to push images or run commands that are not typically done as part of a normal development workflow.
+Earthly also has a special [`--push`](../earthfile/earthfile.md#push) option that can be used when invoking a target. In a CI, you may want to ensure this flag is present to push images or run commands that are not typically done as part of a normal development workflow.
 
 If you would like to do cross-platform builds, you will need to install some [`binfmt_misc`](https://github.com/multiarch/qemu-user-static) entries. This can be done by running: `docker run --rm --privileged multiarch/qemu-user-static --reset -p yes`. This installs the needed entries and `qemue-user-static` binaries on your system. This will need to be repeated on each physical box (only once, since its a kernel level change, and the kernel is shared across containers).
 
-To share secrets with `earthly`, use the [`--secret`](../earthfile/earthfile.md#--secret-env-varsecret-ref) option to inject secrets into your builds. You could also use our [cloud secrets](../guides/cloud-secrets.md), for a more seamless experience.
+To share secrets with `earthly`, use the [`--secret`](../earthfile/earthfile.md#secret-env-varsecret-ref) option to inject secrets into your builds. You could also use our [cloud secrets](../guides/cloud-secrets.md), for a more seamless experience.
 
 ### Networking & Security
 
