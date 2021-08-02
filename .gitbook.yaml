@@ -31,10 +31,14 @@ redirects:
     guides/configuring-registries/aws-ecr: guides/configuring-registries/aws-ecr.md
     guides/configuring-registries/gcp-artifact-registry: guides/configuring-registries/gcp-artifact-registry.md
     guides/configuring-registries/azure-acr: guides/configuring-registries/azure-acr.md
-    examples/gh-actions-integration: ci-examples/gh-actions-integration.md
-    examples/circle-integration: ci-examples/circle-integration.md
-    examples/codebuild-integration: ci-examples/codebuild-integration.md
+    examples/gh-actions-integration: ci-integration/guides/gh-actions-integration.md
+    examples/circle-integration: ci-integration/guides/circle-integration.md
+    examples/codebuild-integration: ci-integration/guides/codebuild-integration.md
+    examples/kubernetes: ci-integration/guides/kubernetes.md
+    examples/jenkins: ci-integration/guides/jenkins.md
     alt-installation: alt-installation.md
     guides/basics: basics/basics.md
     basics: basics/basics.md
-    guides/ci-integration: ci-integration.md
+    guides/ci-integration: ci-integration/overview.md
+    examples/examples: examples/examples.md
+    examples/ci-examples: ci-integration/vendor-specific-guides

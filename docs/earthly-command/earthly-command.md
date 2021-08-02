@@ -179,7 +179,7 @@ Also available as an env var setting: `EARTHLY_CI=true`
 In *target mode*, this option is an alias for
 
 ```
---use-inline-cache --save-inline-cache --no-output
+--use-inline-cache --save-inline-cache --no-output --strict
 ```
 
 In *artifact* and *image modes* , this option is an alias for
@@ -243,6 +243,10 @@ Please use the [configuration file](../earthly-config/earthly-config.md) to over
 Also available as an env var setting: `EARTHLY_INTERACTIVE=true`.
 
 Enable interactive debugging mode. By default when a `RUN` command fails, earthly will display the error and exit. If the interactive mode is enabled and an error occurs, an interactive shell is presented which can be used for investigating the error interactively. Due to technical limitations, only a single interactive shell can be used on the system at any given time.
+
+##### `--strict`
+
+Disallow usage of features that may create unrepeatable builds.
 
 #### Log formatting options
 

@@ -3,13 +3,15 @@
 
 ## Examples of CI integration
 
-Examples of integrating Earthly into CI can be found on the following pages:
+Examples of integrating Earthly into various CI systems can be found on the following pages:
 
-* [Circle CI](../ci-examples/circle-integration.md)
-* [GitHub Actions](../ci-examples/gh-actions-integration.md)
-* [AWS CodeBuild](../ci-examples/codebuild-integration.md)
+* [Circle CI](../ci-integration/guides/circle-integration.md)
+* [GitHub Actions](../ci-integration/guides/gh-actions-integration.md)
+* [AWS CodeBuild](../ci-integration/guides/codebuild-integration.md)
+* [Jenkins](../ci-integration/guides/jenkins.md)
+* [Kubernetes](../ci-integration/guides/kubernetes.md)
 
-See also the [CI integration guide](../ci-integration.md).
+For more general information on CI systems not listed above, see the [CI integration guide](../ci-integration/overview.md).
 
 ## Example Earthfiles
 

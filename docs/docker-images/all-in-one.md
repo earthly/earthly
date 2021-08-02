@@ -14,7 +14,7 @@ Want to just get started? Here are a couple sample `docker run` commands that co
 ### Simple Usage
 
 ```bash
-docker run --privileged -t -e NO_DOCKER=1 -v $(pwd):/workspace -v earthly-tmp:/tmp/earthly:rw earthly/earthly:latest +for-linux
+docker run --privileged -t -e NO_DOCKER=1 -v $(pwd):/workspace -v earthly-tmp:/tmp/earthly:rw earthly/earthly:v0.5.20 +for-linux
 ```
 
 Heres a quick breakdown:
@@ -29,7 +29,7 @@ Heres a quick breakdown:
 ### More Complicated Usage
 
 ```bash
-docker run -t --privileged -v $(pwd):/workspace:rw -v earthly-tmp:/tmp/earthly:rw --network=host -v ~/.earthly/config.yml:/etc/.earthly/config.yml -e DOCKER_HOST="tcp://192.168.1.234:2375" earthly/earthly:latest --ci -P +for-linux
+docker run -t --privileged -v $(pwd):/workspace:rw -v earthly-tmp:/tmp/earthly:rw --network=host -v ~/.earthly/config.yml:/etc/.earthly/config.yml -e DOCKER_HOST="tcp://192.168.1.234:2375" earthly/earthly:v0.5.20 --ci -P +for-linux
 ```
 
 Omitting the options already discussed from the simple example:
