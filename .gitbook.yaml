@@ -20,7 +20,7 @@ redirects:
     guides/target-ref: guides/target-ref.md
     guides/udc: guides/udc.md
     earthly-config: earthly-config/earthly-config.md
-    ci-integration: ci-integration.md
+    ci-integration: ci-integration/overview.md
     earth-command: earthly-command/earthly-command.md
     earth-config: earthly-config/earthly-config.md
     installation: ./README.md
@@ -42,3 +42,6 @@ redirects:
     guides/ci-integration: ci-integration/overview.md
     examples/examples: examples/examples.md
     examples/ci-examples: ci-integration/vendor-specific-guides
+    examples/ci-examples/gh-actions-integration: ci-integration/guides/gh-actions-integration.md
+    examples/ci-examples/circle-integration: ci-integration/guides/circle-integration.md
+    examples/ci-examples/codebuild-integration: ci-integration/guides/codebuild-integration.md
