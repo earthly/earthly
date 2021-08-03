@@ -7,6 +7,7 @@ all:
     BUILD +test-for-comma
     BUILD +test-for-comma-colon
     BUILD +test-for-constant
+    BUILD +test-for-expand-arg
     # TODO @# how to test parallelizability?
     # @#
     #BUILD +test-for-ls-locally
@@ -46,6 +47,16 @@ test-for-comma-colon:
 
 test-for-constant:
     FOR what IN "foo bar buz"
+        RUN echo "what=$what"
+        RUN echo "$what" >>./output.txt
+    END
+    RUN cat ./output.txt
+    RUN cat ./output.txt | tr '\n' ' '
+    RUN test "$(cat ./output.txt | tr '\n' ' ')" = "foo bar buz "
+
+test-for-expand-arg:
+    ARG data="foo bar buz"
+    FOR what IN "$data"
         RUN echo "what=$what"
         RUN echo "$what" >>./output.txt
     END
