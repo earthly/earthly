@@ -7,7 +7,7 @@ structure:
 redirects:
     earthfile: earthfile/earthfile.md
     the-earthly-command/earthly-command: earthly-command/earthly-command.md
-    guides: docs/guides
+    guides: ./README.md
     guides/advanced-local-caching: guides/advanced-local-caching.md
     guides/auth: guides/auth.md
     guides/cache: guides/cache.md
