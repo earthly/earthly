@@ -60,9 +60,9 @@ redirects:
     examples/other-earthfile-examples/earthly: examples/examples.md
     examples/other-earthfile-examples/monorepo: examples/examples.md
     examples/other-earthfile-examples/multirepo: examples/examples.md
-    examples/per-language-earthfile-examples: examples/examples.md#examples-by-language
-    examples/per-language-earthfile-examples/cpp: examples/examples.md#examples-by-language
-    examples/per-language-earthfile-examples/go: examples/examples.md#examples-by-language
-    examples/per-language-earthfile-examples/java: examples/examples.md#examples-by-language
-    examples/per-language-earthfile-examples/js: examples/examples.md#examples-by-language
-    examples/per-language-earthfile-examples/python: examples/examples.md#examples-by-language
+    examples/per-language-earthfile-examples: examples/examples.md
+    examples/per-language-earthfile-examples/cpp: examples/examples.md
+    examples/per-language-earthfile-examples/go: examples/examples.md
+    examples/per-language-earthfile-examples/java: examples/examples.md
+    examples/per-language-earthfile-examples/js: examples/examples.md
+    examples/per-language-earthfile-examples/python: examples/examples.md
