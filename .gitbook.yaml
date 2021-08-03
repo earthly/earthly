@@ -42,6 +42,7 @@ redirects:
     basics: basics/basics.md
     guides/ci-integration: ci-integration/overview.md
     docs/ci-integration: ci-integration/overview.md
+    ci-examples/ci-examples: ci-integration/overview.md
     examples/examples: examples/examples.md
     examples/ci-examples: ci-integration/vendor-specific-guides
     examples/ci-examples/gh-actions-integration: ci-integration/guides/gh-actions-integration.md
@@ -50,3 +51,7 @@ redirects:
     ci-examples/gh-actions-integration: ci-integration/guides/gh-actions-integration.md
     ci-examples/circle-integration: ci-integration/guides/circle-integration.md
     ci-examples/codebuild-integration: ci-integration/guides/codebuild-integration.md
+    basics/part-2-executing-a-build: basics/part-1-executing-a-build.md
+    basics/part-3-detailed-explanation: basics/part-2-detailed-explanation.md
+    basics/part-4-adding-dependencies-in-the-mix: basics/part-3-adding-dependencies-in-the-mix.md
+    basics/part-6-reduce-code-duplication: basics/part-5-reduce-code-duplication.md
