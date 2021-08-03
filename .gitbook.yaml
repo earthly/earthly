@@ -40,8 +40,12 @@ redirects:
     guides/basics: basics/basics.md
     basics: basics/basics.md
     guides/ci-integration: ci-integration/overview.md
+    docs/ci-integration: ci-integration/overview.md
     examples/examples: examples/examples.md
     examples/ci-examples: ci-integration/vendor-specific-guides
     examples/ci-examples/gh-actions-integration: ci-integration/guides/gh-actions-integration.md
     examples/ci-examples/circle-integration: ci-integration/guides/circle-integration.md
     examples/ci-examples/codebuild-integration: ci-integration/guides/codebuild-integration.md
+    ci-examples/gh-actions-integration: ci-integration/guides/gh-actions-integration.md
+    ci-examples/circle-integration: ci-integration/guides/circle-integration.md
+    ci-examples/codebuild-integration: ci-integration/guides/codebuild-integration.md
