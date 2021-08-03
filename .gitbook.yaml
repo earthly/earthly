@@ -24,7 +24,7 @@ redirects:
     earth-command: earthly-command/earthly-command.md
     earth-config: earthly-config/earthly-config.md
     installation: ./README.md
-    guides/pushing-and-pulling-images-with-cloud-providers: guides/configuring-registries
+    guides/pushing-and-pulling-images-with-cloud-providers: guides/auth.md
     guides/pushing-and-pulling-images-with-cloud-providers/pushing-images-to-ecr: guides/registries/aws-ecr.md
     guides/pushing-and-pulling-images-with-cloud-providers/pushing-images-to-gcr: guides/registries/gcp-artifact-registry.md
     guides/pushing-and-pulling-images-with-cloud-providers/pushing-images-to-acr: guides/registries/azure-acr.md
