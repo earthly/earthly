@@ -164,6 +164,8 @@ func (i *Interpreter) handleStatement(ctx context.Context, stmt spec.Statement) 
 		return i.handleWith(ctx, *stmt.With)
 	} else if stmt.If != nil {
 		return i.handleIf(ctx, *stmt.If)
+	} else if stmt.For != nil {
+		return i.handleFor(ctx, *stmt.For)
 	} else {
 		return i.errorf(stmt.SourceLocation, "unexpected statement type")
 	}
@@ -348,7 +350,7 @@ func (i *Interpreter) handleIfExpression(ctx context.Context, expression []strin
 
 		exitCode, err = i.converter.RunLocalExitCode(ctx, commandName, args)
 		if err != nil {
-			return false, i.wrapError(err, sl, "apply RUN")
+			return false, i.wrapError(err, sl, "apply IF")
 		}
 	} else {
 		exitCode, err = i.converter.RunExitCode(
@@ -359,6 +361,96 @@ func (i *Interpreter) handleIfExpression(ctx context.Context, expression []strin
 		}
 	}
 	return (exitCode == 0), nil
+}
+
+func (i *Interpreter) handleFor(ctx context.Context, forStmt spec.ForStatement) error {
+	variable, instances, err := i.handleForArgs(ctx, forStmt.Args, forStmt.SourceLocation)
+	if err != nil {
+		return err
+	}
+	for _, instance := range instances {
+		err = i.converter.SetArg(ctx, variable, instance)
+		if err != nil {
+			return i.wrapError(err, forStmt.SourceLocation, "set %s=%s", variable, instance)
+		}
+		// TODO: @# this should be firing off BUILD commands in parallel - double-check that that's the case.
+		err = i.handleBlock(ctx, forStmt.Body)
+		if err != nil {
+			return err
+		}
+		err = i.converter.UnsetArg(ctx, variable)
+		if err != nil {
+			return i.wrapError(err, forStmt.SourceLocation, "unset %s", variable)
+		}
+	}
+	return nil
+}
+
+func (i *Interpreter) handleForArgs(ctx context.Context, forArgs []string, sl *spec.SourceLocation) (string, []string, error) {
+	opts := forOpts{
+		Separators: "\n\t ",
+	}
+	args, err := flagutil.ParseArgs("FOR", &opts, forArgs)
+	if err != nil {
+		return "", nil, i.wrapError(err, sl, "invalid FOR arguments %v", forArgs)
+	}
+	if len(args) < 3 {
+		return "", nil, i.errorf(sl, "not enough arguments for FOR")
+	}
+	if args[1] != "IN" {
+		return "", nil, i.errorf(sl, "expected IN, got %s", args[1])
+	}
+	variable := args[0]
+	expression := args[2:]
+	commandName := "FOR"
+	var output string
+	var exitCode int
+	if i.local {
+		if len(opts.Mounts) > 0 {
+			return "", nil, i.errorf(sl, "mounts are not supported in combination with the LOCALLY directive")
+		}
+		if opts.WithSSH {
+			return "", nil, i.errorf(sl, "the --ssh flag has no effect when used with the  LOCALLY directive")
+		}
+		if opts.Privileged {
+			return "", nil, i.errorf(sl, "the --privileged flag has no effect when used with the LOCALLY directive")
+		}
+		if opts.NoCache {
+			return "", nil, i.errorf(sl, "the --no-cache flag has no effect when used with the LOCALLY directive")
+		}
+
+		// TODO these should be supported, but haven't yet been implemented
+		if len(opts.Secrets) > 0 {
+			return "", nil, i.errorf(sl, "secrets need to be implemented for the LOCALLY directive")
+		}
+
+		exitCode, err = i.converter.RunLocalExitCode(ctx, commandName, expression)
+		if err != nil {
+			return "", nil, i.wrapError(err, sl, "apply FOR ... IN")
+		}
+		// TODO @# get output
+		output = "foo bar buz locally"
+	} else {
+		// TODO @# mounts, secrets etc
+		output, err = i.converter.RunExpression(ctx, commandName, strings.Join(expression, " "))
+		if err != nil {
+			return "", nil, i.wrapError(err, sl, "apply FOR ... IN")
+		}
+		// @#
+		// exitCode, err = i.converter.RunExitCode(
+		// 	ctx, commandName, args, opts.Mounts, opts.Secrets, opts.Privileged,
+		// 	true, opts.WithSSH, opts.NoCache)
+		// if err != nil {
+		// 	return "", nil, i.wrapError(err, sl, "apply FOR ... IN")
+		// }
+	}
+	if exitCode != 0 {
+		return "", nil, i.errorf(sl, "expression %s exit code %d", strings.Join(expression, " "), exitCode)
+	}
+	instances := strings.FieldsFunc(output, func(r rune) bool {
+		return strings.ContainsRune(opts.Separators, r)
+	})
+	return variable, instances, nil
 }
 
 // Commands -------------------------------------------------------------------
@@ -1305,7 +1397,7 @@ func (i *Interpreter) handleDoUserCommand(ctx context.Context, command domain.Co
 	scopeName := fmt.Sprintf(
 		"%s (%s line %d:%d)",
 		command.StringCanonical(), do.SourceLocation.File, do.SourceLocation.StartLine, do.SourceLocation.StartColumn)
-	err := i.converter.EnterScope(ctx, command, baseTarget(relCommand), allowPrivileged, scopeName, buildArgs)
+	err := i.converter.EnterScopeDo(ctx, command, baseTarget(relCommand), allowPrivileged, scopeName, buildArgs)
 	if err != nil {
 		return i.wrapError(err, uc.SourceLocation, "enter scope")
 	}

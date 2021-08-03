@@ -48,7 +48,7 @@ const (
 	buildCmd                             // "BUILD"
 	cmdCmd                               // "CMD"
 	copyCmd                              // "COPY"
-	enterScopeCmd                        // "ENTER-SCOPE"
+	enterScopeDoCmd                      // "ENTER-SCOPE-DO"
 	entrypointCmd                        // "ENTRYPOINT"
 	envCmd                               // "ENV"
 	exposeCmd                            // "EXPOSE"
@@ -624,6 +624,35 @@ func (c *Converter) RunLocalExitCode(ctx context.Context, commandName string, ar
 	return int(exitCode), err
 }
 
+// RunExpression runs an expression and returns its output.
+func (c *Converter) RunExpression(ctx context.Context, commandName string, expression string) (string, error) {
+	// Run the expression on the main state, but don't alter main with the resulting state.
+	srcBuildArgDir := "/run/buildargs"
+	srcBuildArgPath := path.Join(srcBuildArgDir, commandName)
+	c.mts.Final.MainState = c.mts.Final.MainState.File(
+		pllb.Mkdir(srcBuildArgDir, 0755, llb.WithParents(true)),
+		llb.WithCustomNamef("[internal] mkdir %s", srcBuildArgDir))
+	args := strings.Split(fmt.Sprintf("echo \"%s\" >%s", expression, srcBuildArgPath), " ")
+	transient := true
+	state, err := c.internalRun(
+		ctx, args, []string{}, true, withShellAndEnvVars, false, transient, false, false, false, false, expression,
+		llb.WithCustomNamef("%sRUN %s", c.vertexPrefix(false, false), expression))
+	if err != nil {
+		return "", errors.Wrapf(err, "run %v", expression)
+	}
+	ref, err := llbutil.StateToRef(ctx, c.opt.GwClient, state, c.opt.Platform, c.opt.CacheImports.AsMap())
+	if err != nil {
+		return "", errors.Wrapf(err, "build arg state to ref")
+	}
+	value, err := ref.ReadFile(ctx, gwclient.ReadRequest{Filename: srcBuildArgPath})
+	if err != nil {
+		return "", errors.Wrapf(err, "non constant build arg read request")
+	}
+	// echo adds a trailing \n.
+	value = bytes.TrimSuffix(value, []byte("\n"))
+	return string(value), nil
+}
+
 // Run applies the earthly RUN command.
 func (c *Converter) Run(ctx context.Context, args, mounts, secretKeyValues []string, privileged, withEntrypoint, withDocker, isWithShell, pushFlag, withSSH, noCache, interactive, interactiveKeep bool) error {
 	err := c.checkAllowed(runCmd)
@@ -1024,6 +1053,28 @@ func (c *Converter) Arg(ctx context.Context, argKey string, defaultArgValue stri
 	return nil
 }
 
+// SetArg sets an arg to a specific value.
+func (c *Converter) SetArg(ctx context.Context, argKey string, argValue string) error {
+	err := c.checkAllowed(argCmd)
+	if err != nil {
+		return err
+	}
+	c.nonSaveCommand()
+	c.varCollection.SetArg(argKey, argValue)
+	return nil
+}
+
+// UnsetArg unsets a previously declared arg. If the arg does not exist this operation is a no-op.
+func (c *Converter) UnsetArg(ctx context.Context, argKey string) error {
+	err := c.checkAllowed(argCmd)
+	if err != nil {
+		return err
+	}
+	c.nonSaveCommand()
+	c.varCollection.UnsetArg(argKey)
+	return nil
+}
+
 // Label applies the LABEL command.
 func (c *Converter) Label(ctx context.Context, labels map[string]string) error {
 	err := c.checkAllowed(labelCmd)
@@ -1134,9 +1185,9 @@ func (c *Converter) ResolveReference(ctx context.Context, ref domain.Reference) 
 	return bc, allowPrivileged, allowPrivilegedSet, nil
 }
 
-// EnterScope introduces a new variable scope. Gloabls and imports are fetched from baseTarget.
-func (c *Converter) EnterScope(ctx context.Context, command domain.Command, baseTarget domain.Target, allowPrivileged bool, scopeName string, buildArgs []string) error {
-	baseMts, err := c.buildTarget(ctx, baseTarget.String(), c.mts.Final.Platform, allowPrivileged, buildArgs, true, enterScopeCmd)
+// EnterScopeDo introduces a new variable scope. Gloabls and imports are fetched from baseTarget.
+func (c *Converter) EnterScopeDo(ctx context.Context, command domain.Command, baseTarget domain.Target, allowPrivileged bool, scopeName string, buildArgs []string) error {
+	baseMts, err := c.buildTarget(ctx, baseTarget.String(), c.mts.Final.Platform, allowPrivileged, buildArgs, true, enterScopeDoCmd)
 	if err != nil {
 		return err
 	}
@@ -1504,30 +1555,11 @@ func (c *Converter) nonSaveCommand() {
 func (c *Converter) processNonConstantBuildArgFunc(ctx context.Context) variables.ProcessNonConstantVariableFunc {
 	return func(name string, expression string) (string, int, error) {
 		// Run the expression on the main state, but don't alter main with the resulting state.
-		srcBuildArgDir := "/run/buildargs"
-		srcBuildArgPath := path.Join(srcBuildArgDir, name)
-		c.mts.Final.MainState = c.mts.Final.MainState.File(
-			pllb.Mkdir(srcBuildArgDir, 0755, llb.WithParents(true)),
-			llb.WithCustomNamef("[internal] mkdir %s", srcBuildArgDir))
-		args := strings.Split(fmt.Sprintf("echo \"%s\" >%s", expression, srcBuildArgPath), " ")
-		transient := true
-		state, err := c.internalRun(
-			ctx, args, []string{}, true, withShellAndEnvVars, false, transient, false, false, false, false, expression,
-			llb.WithCustomNamef("%sRUN %s", c.vertexPrefix(false, false), expression))
+		output, err := c.RunExpression(ctx, name, expression)
 		if err != nil {
-			return "", 0, errors.Wrapf(err, "run %v", expression)
+			return "", 0, err
 		}
-		ref, err := llbutil.StateToRef(ctx, c.opt.GwClient, state, c.opt.Platform, c.opt.CacheImports.AsMap())
-		if err != nil {
-			return "", 0, errors.Wrapf(err, "build arg state to ref")
-		}
-		value, err := ref.ReadFile(ctx, gwclient.ReadRequest{Filename: srcBuildArgPath})
-		if err != nil {
-			return "", 0, errors.Wrapf(err, "non constant build arg read request")
-		}
-		// echo adds a trailing \n.
-		value = bytes.TrimSuffix(value, []byte("\n"))
-		return string(value), 0, nil
+		return output, 0, nil
 	}
 }
 

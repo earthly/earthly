@@ -68,6 +68,7 @@ ga:
     BUILD +push-build
     BUILD +build-arg-repeat
     BUILD +if
+    BUILD +for
     BUILD +first-command
     BUILD +platform-output
     BUILD +command
@@ -635,6 +636,9 @@ build-arg-repeat:
 if:
     RUN touch exists-locally
     DO +RUN_EARTHLY --earthfile=if.earth
+
+for:
+    DO +RUN_EARTHLY --earthfile=for.earth
 
 first-command:
     DO +RUN_EARTHLY --earthfile=first-command.earth --target=+all-positive

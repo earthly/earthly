@@ -1,0 +1,69 @@
+FROM alpine:3.13
+
+WORKDIR /test
+
+all:
+    BUILD +test-for-ls
+    BUILD +test-for-comma
+    BUILD +test-for-comma-colon
+    BUILD +test-for-constant
+    # TODO @# how to test parallelizability?
+    # @#
+    #BUILD +test-for-ls-locally
+
+test-for-ls:
+    RUN touch a b c d
+    RUN ls
+    RUN ls | tr '\n' ' '
+    RUN test "$(ls | tr '\n' ' ')" = "a b c d "
+    FOR variable IN $(ls)
+        RUN echo "variable=$variable"
+        RUN echo "$variable" >>./output.txt
+    END
+    RUN cat ./output.txt
+    RUN cat ./output.txt | tr '\n' ' '
+    RUN test "$(cat ./output.txt | tr '\n' ' ')" = "a b c d "
+
+test-for-comma:
+    RUN echo "foo,bar:buz:zub,oof" >./input.txt
+    FOR --sep="," what IN $(cat ./input.txt)
+        RUN echo "what=$what"
+        RUN echo "$what" >>./output.txt
+    END
+    RUN cat ./output.txt
+    RUN cat ./output.txt | tr '\n' ' '
+    RUN test "$(cat ./output.txt | tr '\n' ' ')" = "foo bar:buz:zub oof "
+
+test-for-comma-colon:
+    RUN echo "foo,bar:buz:zub,oof" >./input.txt
+    FOR --sep=",:" what IN $(cat ./input.txt)
+        RUN echo "what=$what"
+        RUN echo "$what" >>./output.txt
+    END
+    RUN cat ./output.txt
+    RUN cat ./output.txt | tr '\n' ' '
+    RUN test "$(cat ./output.txt | tr '\n' ' ')" = "foo bar buz zub oof "
+
+test-for-constant:
+    FOR what IN "foo bar buz"
+        RUN echo "what=$what"
+        RUN echo "$what" >>./output.txt
+    END
+    RUN cat ./output.txt
+    RUN cat ./output.txt | tr '\n' ' '
+    RUN test "$(cat ./output.txt | tr '\n' ' ')" = "foo bar buz "
+
+test-for-ls-locally:
+    LOCALLY
+    RUN touch a b c d
+    RUN ls
+    RUN ls | tr '\n' ' '
+    RUN test "$(ls | tr '\n' ' ')" = "a b c d "
+    FOR variable IN $(ls)
+        RUN echo "variable=$variable"
+        RUN echo "$variable" >>./output.txt
+    END
+    RUN cat ./output.txt
+    RUN cat ./output.txt | tr '\n' ' '
+    RUN test "$(cat ./output.txt | tr '\n' ' ')" = "a b c d "
+
