@@ -2,9 +2,10 @@
 ARG REGISTRY
 ARG REGISTRY_IP
 ARG EARTHLY_BUILD_ARGS="REGISTRY"
-ARG EARTHLY_ADDITIONAL_BUILDKIT_CONFIG="
+ARG REGISTRY_CONFIG="
 [registry.\"$REGISTRY\"]
-    ca=[\"/etc/config/test.ca\"]
+  http = true
+  insecure = true
 "
 
 certs:
@@ -36,19 +37,24 @@ all:
 test-push-pull:
     FROM +test-base
     # Running with tmpfs mount = no local cache.
-    RUN --privileged \
-        --entrypoint \
-        --mount=type=tmpfs,target=/tmp/earthly \
-        -- --ci --push +test-push
-    RUN --privileged \
-        --entrypoint \
-        --mount=type=tmpfs,target=/tmp/earthly \
-        -- --ci +test-pull
+    DO +DO_REMOTE_CACHE_EARTHLY --target=+test-push
+    DO +DO_REMOTE_CACHE_EARTHLY --target=+test-pull
 
 test-connect:
     FROM +test-base
     COPY ./certs/domain.crt ./test.ca
+    DO +DO_REMOTE_CACHE_EARTHLY --target=+test-connect
+
+# Work around the lack of variable overriding, since the base image already includes EARTHLY_ADDITIONAL_BUILDKIT_CONFIG
+DO_REMOTE_CACHE_EARTHLY:
+    COMMAND
+
+    ARG EARTHLY_ADDITIONAL_BUILDKIT_CONFIG
+    ARG REGISTRY_CONFIG
+    ARG target
+
     RUN --privileged \
-        --entrypoint \
         --mount=type=tmpfs,target=/tmp/earthly \
-        -- +test-connect
+        -- \
+        EARTHLY_ADDITIONAL_BUILDKIT_CONFIG=$EARTHLY_ADDITIONAL_BUILDKIT_CONFIG$REGISTRY_CONFIG \
+        /usr/bin/earthly-entrypoint.sh --ci --push $target 2>&1 | tee ./output
