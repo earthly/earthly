@@ -447,7 +447,3 @@ examples2:
     BUILD ./examples/multiplatform+all
     BUILD ./examples/multiplatform-cross-compile+build-all-platforms
     BUILD github.com/earthly/hello-world:main+hello
-
-explore:
-    FROM +earthly-integration-test-base
-    RUN --interactive /bin/ash
