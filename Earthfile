@@ -287,6 +287,8 @@ earthly-integration-test-base:
 
                        mirrors = [\"registry-1.docker.io.mirror.corp.earthly.dev\"]'}"
     ENV NO_DOCKER=1
+    ENV EARTHLY_ADDITIONAL_BUILDKIT_CONFIG="[registry.\"docker.io\"]
+  mirrors = [\"registry-1.docker.io.mirror.corp.earthly.dev\"]"
     ENV SRC_DIR=/test
     ENV NETWORK_MODE=host
     # The inner buildkit requires Docker hub creds to prevent rate-limiting issues.
