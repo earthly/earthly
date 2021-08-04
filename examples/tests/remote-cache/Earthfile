@@ -71,6 +71,6 @@ DO_REMOTE_CACHE_EARTHLY:
 
     RUN --privileged \
         --mount=type=tmpfs,target=/tmp/earthly \
-        -- \EARTHLY_ADDITIONAL_BUILDKIT_CONFIG=$EARTHLY_ADDITIONAL_BUILDKIT_CONFIG$REGISTRY_CONFIG
-         \
+        -- \
+        EARTHLY_ADDITIONAL_BUILDKIT_CONFIG=$EARTHLY_ADDITIONAL_BUILDKIT_CONFIG$REGISTRY_CONFIG \
         /usr/bin/earthly-entrypoint.sh --ci --push $target 2>&1 | tee ./output
