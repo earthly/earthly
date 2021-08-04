@@ -283,8 +283,8 @@ earthly-docker:
 earthly-integration-test-base:
     FROM +earthly-docker
     ENV EARTHLY_CONVERSION_PARALLELISM=5
-    ENV GLOBAL_CONFIG="{disable_analytics: true, local_registry_host: 'tcp://127.0.0.1:8371', buildkit_additional_config: '[registry.\"docker.io\"] \
-                       \
+    ENV GLOBAL_CONFIG="{disable_analytics: true, local_registry_host: 'tcp://127.0.0.1:8371', buildkit_additional_config: '[registry.\"docker.io\"]
+
                        mirrors = [\"registry-1.docker.io.mirror.corp.earthly.dev\"]'}"
     ENV NO_DOCKER=1
     ENV SRC_DIR=/test
@@ -446,3 +446,6 @@ examples2:
     BUILD ./examples/multiplatform-cross-compile+build-all-platforms
     BUILD github.com/earthly/hello-world:main+hello
 
+explore:
+    FROM +earthly-integration-test-base
+    RUN --interactive /bin/ash
