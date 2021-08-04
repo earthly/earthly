@@ -289,13 +289,13 @@ earthly-integration-test-base:
     ENV NETWORK_MODE=host
     # The inner buildkit requires Docker hub creds to prevent rate-limiting issues.
     ARG DOCKERHUB_AUTH=true
-    ARG DOCKERHUB_USER_SECRET=+secrets/earthly-technologies/dockerhub/user
-    ARG DOCKERHUB_TOKEN_SECRET=+secrets/earthly-technologies/dockerhub/token
+    ARG DOCKERHUB_USER_SECRET=+secrets/earthly-technologies/dockerhub-mirror/user
+    ARG DOCKERHUB_TOKEN_SECRET=+secrets/earthly-technologies/dockerhub-mirror/pass
 
     IF $DOCKERHUB_AUTH
         RUN --secret USERNAME=$DOCKERHUB_USER_SECRET \
             --secret TOKEN=$DOCKERHUB_TOKEN_SECRET \
-            docker login --username="$USERNAME" --password="$TOKEN"
+            docker login registry-1.docker.io.mirror.corp.earthly.dev --username="$USERNAME" --password="$TOKEN"
     END
 
 prerelease:

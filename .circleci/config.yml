@@ -7,7 +7,7 @@ jobs:
       - checkout
       - run:
           name: Docker Login
-          command: "docker login --username $DOCKERHUB_USERNAME --password $DOCKERHUB_TOKEN"
+          command: "docker login registry-1.docker.io.mirror.corp.earthly.dev --username $DOCKERHUB_MIRROR_USERNAME --password $DOCKERHUB_MIRROR_TOKEN"
       - run:
           name: Install released earthly
           command: "sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/latest/download/earthly-linux-amd64 -O /usr/local/bin/earthly && chmod +x /usr/local/bin/earthly'"
