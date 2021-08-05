@@ -404,7 +404,6 @@ func (i *Interpreter) handleForArgs(ctx context.Context, forArgs []string, sl *s
 	expression := args[2:]
 	commandName := "FOR"
 	var output string
-	var exitCode int
 	if i.local {
 		if len(opts.Mounts) > 0 {
 			return "", nil, i.errorf(sl, "mounts are not supported in combination with the LOCALLY directive")
@@ -424,28 +423,17 @@ func (i *Interpreter) handleForArgs(ctx context.Context, forArgs []string, sl *s
 			return "", nil, i.errorf(sl, "secrets need to be implemented for the LOCALLY directive")
 		}
 
-		exitCode, err = i.converter.RunLocalExitCode(ctx, commandName, expression)
+		output, err = i.converter.RunExpressionLocal(ctx, commandName, expression)
 		if err != nil {
 			return "", nil, i.wrapError(err, sl, "apply FOR ... IN")
 		}
-		// TODO @# get output
-		output = "foo bar buz locally"
 	} else {
-		// TODO @# mounts, secrets etc
-		output, err = i.converter.RunExpression(ctx, commandName, strings.Join(expression, " "))
+		output, err = i.converter.RunExpression(
+			ctx, commandName, variable, expression, opts.Mounts, opts.Secrets,
+			opts.Privileged, opts.WithSSH, opts.NoCache)
 		if err != nil {
 			return "", nil, i.wrapError(err, sl, "apply FOR ... IN")
 		}
-		// @#
-		// exitCode, err = i.converter.RunExitCode(
-		// 	ctx, commandName, args, opts.Mounts, opts.Secrets, opts.Privileged,
-		// 	true, opts.WithSSH, opts.NoCache)
-		// if err != nil {
-		// 	return "", nil, i.wrapError(err, sl, "apply FOR ... IN")
-		// }
-	}
-	if exitCode != 0 {
-		return "", nil, i.errorf(sl, "expression %s exit code %d", strings.Join(expression, " "), exitCode)
 	}
 	instances := strings.FieldsFunc(output, func(r rune) bool {
 		return strings.ContainsRune(opts.Separators, r)

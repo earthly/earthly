@@ -8,9 +8,8 @@ all:
     BUILD +test-for-comma-colon
     BUILD +test-for-constant
     BUILD +test-for-expand-arg
+    BUILD +test-for-ls-locally
     # TODO @# how to test parallelizability?
-    # @#
-    #BUILD +test-for-ls-locally
 
 test-for-ls:
     RUN touch a b c d
@@ -66,6 +65,7 @@ test-for-expand-arg:
 
 test-for-ls-locally:
     LOCALLY
+    WORKDIR test-locally
     RUN touch a b c d
     RUN ls
     RUN ls | tr '\n' ' '
@@ -77,4 +77,3 @@ test-for-ls-locally:
     RUN cat ./output.txt
     RUN cat ./output.txt | tr '\n' ' '
     RUN test "$(cat ./output.txt | tr '\n' ' ')" = "a b c d "
-
