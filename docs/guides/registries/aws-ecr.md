@@ -137,9 +137,5 @@ If these are in order, the same fix from [Basic Credentials Not Found](#Basic-Cr
 If you are using a [pull-through-cache](../../ci-integration/pull-through-cache.md), the ECR credential helper may cause 401 failures when fetching metadata from the mirrored registry. You can solve this by manually logging in, instead of using the credential helper. Here is an example of logging in manually:
 
 ```
-RUN --secret AWS_ACCESS_KEY_ID=+secrets/access-key \
-    --secret AWS_SECRET_ACCESS_KEY=+secrets/access-secret \
-    --secret ACCT_ID=+secrets/account-id \
-    --privileged \
-    -- aws ecr get-login-password | docker login --username AWS --password-stdin <aws_account_id>.dkr.ecr.<region>.amazonaws.com
+aws ecr get-login-password | docker login --username AWS --password-stdin <aws_account_id>.dkr.ecr.<region>.amazonaws.com
 ```
