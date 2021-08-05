@@ -341,30 +341,30 @@ for-own:
     ARG BUILDKIT_PROJECT
     BUILD ./buildkitd+buildkitd --BUILDKIT_PROJECT="$BUILDKIT_PROJECT"
     COPY +earthly/earthly ./
-    SAVE ARTIFACT ./earthly
+    SAVE ARTIFACT ./earthly AS LOCAL ./build/own/earthly
 
 for-linux:
     ARG BUILDKIT_PROJECT
     BUILD --platform=linux/amd64 ./buildkitd+buildkitd --BUILDKIT_PROJECT="$BUILDKIT_PROJECT"
     COPY +earthly-linux-amd64/earthly ./
-    SAVE ARTIFACT ./earthly
+    SAVE ARTIFACT ./earthly AS LOCAL ./build/linux/amd64/earthly
 
 for-darwin:
     ARG BUILDKIT_PROJECT
     BUILD --platform=linux/amd64 ./buildkitd+buildkitd --BUILDKIT_PROJECT="$BUILDKIT_PROJECT"
     COPY +earthly-darwin-amd64/earthly ./
-    SAVE ARTIFACT ./earthly
+    SAVE ARTIFACT ./earthly AS LOCAL ./build/darwin/amd64/earthly
 
 for-darwin-m1:
     ARG BUILDKIT_PROJECT
     BUILD --platform=linux/arm64 ./buildkitd+buildkitd --BUILDKIT_PROJECT="$BUILDKIT_PROJECT"
     COPY +earthly-darwin-arm64/earthly ./
-    SAVE ARTIFACT ./earthly
+    SAVE ARTIFACT ./earthly AS LOCAL ./build/darwin/arm64/earthly
 
 for-windows:
     # BUILD --platform linux/amd64 ./buildkitd+buildkitd
     COPY +earthly-windows-amd64/earthly.exe ./
-    SAVE ARTIFACT ./earthly.exe
+    SAVE ARTIFACT ./earthly.exe AS LOCAL ./build/windows/amd64/earthly.exe
 
 all-buildkitd:
     ARG BUILDKIT_PROJECT
