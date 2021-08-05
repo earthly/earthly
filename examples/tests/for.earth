@@ -87,7 +87,7 @@ slow:
 
 test-parallel:
     BUILD +slow --instance=before
-    FOR i IN $(seq 1 5)
+    FOR i IN $(seq 1 10)
         BUILD +slow --instance=$i
     END
     BUILD +slow --instance=after

@@ -644,7 +644,7 @@ for:
     RUN date +%s >./start
     DO +RUN_EARTHLY --earthfile=for.earth --target=+test-parallel
     RUN date +%s >./end
-    RUN test "$(expr $(cat end) - $(cat start))" -lt "70"
+    RUN test "$(expr $(cat end) - $(cat start))" -lt "120"
 
 first-command:
     DO +RUN_EARTHLY --earthfile=first-command.earth --target=+all-positive
