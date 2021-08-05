@@ -364,6 +364,9 @@ func (i *Interpreter) handleIfExpression(ctx context.Context, expression []strin
 }
 
 func (i *Interpreter) handleFor(ctx context.Context, forStmt spec.ForStatement) error {
+	if !i.converter.ftrs.ForIn {
+		return i.errorf(forStmt.SourceLocation, "the FOR command is not supported in this version")
+	}
 	variable, instances, err := i.handleForArgs(ctx, forStmt.Args, forStmt.SourceLocation)
 	if err != nil {
 		return err
@@ -373,7 +376,6 @@ func (i *Interpreter) handleFor(ctx context.Context, forStmt spec.ForStatement) 
 		if err != nil {
 			return i.wrapError(err, forStmt.SourceLocation, "set %s=%s", variable, instance)
 		}
-		// TODO: @# this should be firing off BUILD commands in parallel - double-check that that's the case.
 		err = i.handleBlock(ctx, forStmt.Body)
 		if err != nil {
 			return err
