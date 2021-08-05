@@ -123,14 +123,20 @@ func (i *Interpreter) handleBlock(ctx context.Context, b spec.Block) error {
 }
 
 func (i *Interpreter) handleBlockParallel(ctx context.Context, b spec.Block, startIndex int) error {
+	if i.local {
+		// Don't do any pre-emptive execution for LOCALLY targets.
+		return nil
+	}
 	// Look ahead of the execution and fire off asynchronous builds for mentioned targets,
 	// as long as they don't have variable args $(...).
 	for index := startIndex; index < len(b); index++ {
 		stmt := b[index]
 		if stmt.Command != nil {
 			switch stmt.Command.Name {
-			case "ARG":
-				// Cannot do any further parallel builds - args may change the outcome.
+			case "ARG", "IF", "FOR", "LOCALLY":
+				// Cannot do any further parallel builds - these commands need to be
+				// executed to ensure that they don't impact the outcome. As such,
+				// commands following these cannot be executed pre-emptively.
 				return nil
 			case "BUILD":
 				err := i.handleBuild(ctx, *stmt.Command, true)

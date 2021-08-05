@@ -640,6 +640,7 @@ if:
 for:
     DO +RUN_EARTHLY --earthfile=for.earth
     # If this executes in parallel it'll terminate quickly.
+    ENV EARTHLY_CONVERSION_PARALLELISM=5 # not strictly needed, but best to test the future
     RUN date +%s >./start
     DO +RUN_EARTHLY --earthfile=for.earth --target=+test-parallel
     RUN date +%s >./end
