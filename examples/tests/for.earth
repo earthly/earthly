@@ -78,16 +78,3 @@ test-for-ls-locally:
     RUN cat ./output.txt
     RUN cat ./output.txt | tr '\n' ' '
     RUN test "$(cat ./output.txt | tr '\n' ' ')" = "a b c d "
-
-slow:
-    ARG instance
-    RUN echo "instance=$instance start"
-    RUN sleep 10
-    RUN echo "instance=$instance end"
-
-test-parallel:
-    BUILD +slow --instance=before
-    FOR i IN $(seq 1 10)
-        BUILD +slow --instance=$i
-    END
-    BUILD +slow --instance=after
