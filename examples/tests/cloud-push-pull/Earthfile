@@ -111,11 +111,20 @@ amazon-elastic-container-registry:
     FROM +amazon-base
     COPY amazon-elastic-container-registry.earth ./Earthfile
    
-    RUN --secret ACCT_ID=+secrets/earthly-technologies/aws/account-id \
-        mkdir -p /root/.docker && \
-        echo "{\"credHelpers\":{\"$ACCT_ID.dkr.ecr.us-west-2.amazonaws.com\": \"ecr-login\"}}" > /root/.docker/config.json
-
     ENV AWS_REGION us-west-2
+
+    # Set up the AWS credential helper
+    # RUN --secret ACCT_ID=+secrets/earthly-technologies/aws/account-id \
+    #    mkdir -p /root/.docker && \
+    #    echo "{\"credHelpers\":{\"$ACCT_ID.dkr.ecr.us-west-2.amazonaws.com\": \"ecr-login\"}}" > /root/.docker/config.json
+
+
+    # Do a manual login, since the credential helper doesn't work with a pull-through cache.
+    RUN --secret AWS_ACCESS_KEY_ID=+secrets/earthly-technologies/aws/ci-cd-access-key \
+        --secret AWS_SECRET_ACCESS_KEY=+secrets/earthly-technologies/aws/ci-cd-access-secret \
+        --secret ACCT_ID=+secrets/earthly-technologies/aws/account-id \
+        --privileged \
+        -- aws ecr get-login-password | docker login --username AWS --password-stdin 404851345508.dkr.ecr.us-west-2.amazonaws.com
 
     # Pass through Account ID this way to avoid checking it in to GitHub;
     # its not strictly secret this way but its secret enough

@@ -2,7 +2,7 @@ FROM ../../..+earthly-integration-test-base
 WORKDIR /test
 ARG REGISTRY
 ARG EARTHLY_BUILD_ARGS="REGISTRY"
-ARG EARTHLY_ADDITIONAL_BUILDKIT_CONFIG="
+ARG REGISTRY_CONFIG="
 [registry.\"$REGISTRY\"]
   http = true
   insecure = true
@@ -18,10 +18,7 @@ all:
 test1:
     RUN echo "content" >./input
     # Running with tmpfs mount = no local cache.
-    RUN --privileged \
-        --entrypoint \
-        --mount=type=tmpfs,target=/tmp/earthly \
-        -- --ci --push +test1 2>&1 | tee ./output
+    DO +DO_REMOTE_CACHE_EARTHLY --target=+test1
     # Not cached.
     RUN nl=$(cat ./output | grep "execute-test1-run-before-copy" | wc -l) && \
         test "$nl" -eq 2
@@ -29,10 +26,7 @@ test1:
     RUN nl=$(cat ./output | grep "execute-test1-run-after-copy" | wc -l) && \
         test "$nl" -eq 2
     # No change & re-run.
-    RUN --privileged \
-        --entrypoint \
-        --mount=type=tmpfs,target=/tmp/earthly \
-        -- --ci +test1 2>&1 | tee ./output
+    DO +DO_REMOTE_CACHE_EARTHLY --target=+test1
     # Cached.
     RUN nl=$(cat ./output | grep "execute-test1-run-before-copy" | wc -l) && \
         test "$nl" -eq 1
@@ -41,10 +35,7 @@ test1:
         test "$nl" -eq 1
     # Change input & re-run.
     RUN echo "other content" >./input
-    RUN --privileged \
-        --entrypoint \
-        --mount=type=tmpfs,target=/tmp/earthly \
-        -- --ci +test1 2>&1 | tee ./output
+    DO +DO_REMOTE_CACHE_EARTHLY --target=+test1
     # Cached.
     RUN nl=$(cat ./output | grep "execute-test1-run-before-copy" | wc -l) && \
         test "$nl" -eq 1
@@ -56,14 +47,8 @@ test2:
     RUN echo "a"
     COPY --dir test2 test2
     # Running with tmpfs mount = no local cache.
-    RUN --privileged \
-        --entrypoint \
-        --mount=type=tmpfs,target=/tmp/earthly \
-        -- --ci --push +test2
-    RUN --privileged \
-        --entrypoint \
-        --mount=type=tmpfs,target=/tmp/earthly \
-        -- --ci +test2 2>&1 | tee ./output
+    DO +DO_REMOTE_CACHE_EARTHLY --target=+test2
+    DO +DO_REMOTE_CACHE_EARTHLY --target=+test2
     RUN cat ./output | grep '\*cached\* --> RUN npm install'
     RUN cat ./output | grep '\*cached\* --> COPY test2/dist dist'
     RUN cat ./output | grep '\*cached\* --> SAVE ARTIFACT dist +test2-build/dist'
@@ -75,3 +60,17 @@ test3:
         --entrypoint \
         --mount=type=tmpfs,target=/tmp/earthly \
         -- --ci --push +test3
+
+# Work around the lack of variable overriding, since the base image already includes EARTHLY_ADDITIONAL_BUILDKIT_CONFIG
+DO_REMOTE_CACHE_EARTHLY:
+    COMMAND
+
+    ARG EARTHLY_ADDITIONAL_BUILDKIT_CONFIG
+    ARG REGISTRY_CONFIG
+    ARG target
+
+    RUN --privileged \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        -- \
+        EARTHLY_ADDITIONAL_BUILDKIT_CONFIG=$EARTHLY_ADDITIONAL_BUILDKIT_CONFIG$REGISTRY_CONFIG \
+        /usr/bin/earthly-entrypoint.sh --ci --push $target 2>&1 | tee ./output
