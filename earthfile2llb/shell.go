@@ -37,7 +37,7 @@ func withShell(args []string, withShell bool) []string {
 	return args
 }
 
-func strWithEnvVarsAndDocker(args []string, envVars []string, withShell, withDebugger, forceDebugger, withDocker bool, exitCodeFile string) string {
+func strWithEnvVarsAndDocker(args []string, envVars []string, withShell, withDebugger, forceDebugger, withDocker bool, exitCodeFile string, outputFile string) string {
 	var cmdParts []string
 	cmdParts = append(cmdParts, strings.Join(envVars, " "))
 	if withDocker {
@@ -54,6 +54,11 @@ func strWithEnvVarsAndDocker(args []string, envVars []string, withShell, withDeb
 		var escapedArgs []string
 		for _, arg := range args {
 			escapedArgs = append(escapedArgs, escapeShellSingleQuotes(arg))
+		}
+		if outputFile != "" {
+			escapedArgs = append([]string{"echo"}, escapedArgs...)
+			escapedArgs = append(escapedArgs,
+				fmt.Sprintf(">'\"'\"%s\"'\"'", escapeShellSingleQuotes(outputFile)))
 		}
 		if exitCodeFile != "" {
 			escapedArgs = append(escapedArgs,
@@ -72,7 +77,7 @@ type shellWrapFun func(args []string, envVars []string, withShell, withDebugger,
 func withShellAndEnvVars(args []string, envVars []string, withShell, withDebugger, forceDebugger bool) []string {
 	return []string{
 		"/bin/sh", "-c",
-		strWithEnvVarsAndDocker(args, envVars, withShell, withDebugger, forceDebugger, false, ""),
+		strWithEnvVarsAndDocker(args, envVars, withShell, withDebugger, forceDebugger, false, "", ""),
 	}
 }
 
@@ -83,7 +88,19 @@ func withShellAndEnvVarsExitCode(exitCodeFile string) shellWrapFun {
 		}
 		return []string{
 			"/bin/sh", "-c",
-			strWithEnvVarsAndDocker(args, envVars, true, withDebugger, false, false, exitCodeFile),
+			strWithEnvVarsAndDocker(args, envVars, true, withDebugger, false, false, exitCodeFile, ""),
+		}
+	}
+}
+
+func withShellAndEnvVarsOutput(outputFile string) shellWrapFun {
+	return func(args []string, envVars []string, withShell, withDebugger, forceDebugger bool) []string {
+		if !withShell {
+			panic("unexpected exec mode")
+		}
+		return []string{
+			"/bin/sh", "-c",
+			strWithEnvVarsAndDocker(args, envVars, true, withDebugger, false, false, "", outputFile),
 		}
 	}
 }

@@ -12,6 +12,15 @@ type ifOpts struct {
 	Mounts     []string `long:"mount" description:"Mount a file or directory"`
 }
 
+type forOpts struct {
+	Privileged bool     `long:"privileged" description:"Enable privileged mode"`
+	WithSSH    bool     `long:"ssh" description:"Make available the SSH agent of the host"`
+	NoCache    bool     `long:"no-cache" description:"Always run this specific item, ignoring cache"`
+	Secrets    []string `long:"secret" description:"Make available a secret"`
+	Mounts     []string `long:"mount" description:"Mount a file or directory"`
+	Separators string   `long:"sep" description:"The separators to use for tokenizing the output of the IN expression. Defaults to '\n\t '"`
+}
+
 type runOpts struct {
 	Push            bool     `long:"push" description:"Execute this command only if the build succeeds and also if earthly is invoked in push mode"`
 	Privileged      bool     `long:"privileged" description:"Enable privileged mode"`
