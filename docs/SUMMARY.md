@@ -37,18 +37,23 @@
 * [Earthfile reference](earthfile/earthfile.md)
     * [Builtin args](earthfile/builtin-args.md)
     * [Excluding patterns](earthfile/earthignore.md)
+    * [Experimental features](earthfile/features.md)
 * [The `earthly` command](earthly-command/earthly-command.md)
 * [Configuration reference](earthly-config/earthly-config.md)
-* [CI integration](./ci-integration.md)
+* [Examples](examples/examples.md)
 * Misc
     * [Alternative installation](./alt-installation.md)
     * [Definitions](definitions/definitions.md)
     * [Data collection](data-collection/data-collection.md)
 
-## 🧙 Examples
-
-* [Overview](examples/examples.md)
-* CI examples
-    * [GitHub Actions](ci-examples/gh-actions-integration.md)
-    * [Circle CI](ci-examples/circle-integration.md)
-    * [AWS CodeBuild](ci-examples/codebuild-integration.md)
+## 🔧 CI Integration
+* [Overview](ci-integration/overview.md)
+* [Build An Earthly CI Image](ci-integration/build-an-earthly-ci-image.md)
+* [Pull-Through Cache](ci-integration/pull-through-cache.md)
+* [Remote Buildkit](ci-integration/remote-buildkit.md)
+* Vendor-Specific Guides
+  * [Jenkins](ci-integration/guides/jenkins.md)
+  * [Circle CI](ci-integration/guides/circle-integration.md)
+  * [GitHub Actions](ci-integration/guides/gh-actions-integration.md)
+  * [AWS CodeBuild](ci-integration/guides/codebuild-integration.md)
+  * [Kubernetes](ci-integration/guides/kubernetes.md)

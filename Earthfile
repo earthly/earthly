@@ -186,7 +186,7 @@ earthly:
     ARG VERSION="dev-$EARTHLY_TARGET_TAG_DOCKER"
     ARG EARTHLY_GIT_HASH
     ARG DEFAULT_BUILDKITD_IMAGE=earthly/buildkitd:$VERSION
-    ARG BUILD_TAGS=dfrunmount dfrunsecurity dfsecrets dfssh dfrunnetwork
+    ARG BUILD_TAGS=dfrunmount dfrunsecurity dfsecrets dfssh dfrunnetwork dfheredoc
     ARG GOCACHE=/go-cache
     RUN mkdir -p build
     RUN printf "$BUILD_TAGS" > ./build/tags && echo "$(cat ./build/tags)"
@@ -276,26 +276,30 @@ earthly-docker:
     COPY earthly-entrypoint.sh /usr/bin/earthly-entrypoint.sh
     ENTRYPOINT ["/usr/bin/earthly-entrypoint.sh"]
     ARG EARTHLY_TARGET_TAG_DOCKER
-    ARG TAG=$EARTHLY_TARGET_TAG_DOCKER
+    ARG TAG="dev-$EARTHLY_TARGET_TAG_DOCKER"
     COPY --build-arg VERSION=$TAG +earthly/earthly /usr/bin/earthly
     SAVE IMAGE --push --cache-from=earthly/earthly:main earthly/earthly:$TAG
 
 earthly-integration-test-base:
     FROM +earthly-docker
     ENV EARTHLY_CONVERSION_PARALLELISM=5
-    ENV GLOBAL_CONFIG={disable_analytics: true, local_registry_host: 'tcp://127.0.0.1:8371'}
+    ENV GLOBAL_CONFIG="{disable_analytics: true, local_registry_host: 'tcp://127.0.0.1:8371', buildkit_additional_config: '[registry.\"docker.io\"]
+
+                       mirrors = [\"registry-1.docker.io.mirror.corp.earthly.dev\"]'}"
     ENV NO_DOCKER=1
+    ENV EARTHLY_ADDITIONAL_BUILDKIT_CONFIG="[registry.\"docker.io\"]
+  mirrors = [\"registry-1.docker.io.mirror.corp.earthly.dev\"]"
     ENV SRC_DIR=/test
     ENV NETWORK_MODE=host
     # The inner buildkit requires Docker hub creds to prevent rate-limiting issues.
     ARG DOCKERHUB_AUTH=true
-    ARG DOCKERHUB_USER_SECRET=+secrets/earthly-technologies/dockerhub/user
-    ARG DOCKERHUB_TOKEN_SECRET=+secrets/earthly-technologies/dockerhub/token
+    ARG DOCKERHUB_USER_SECRET=+secrets/earthly-technologies/dockerhub-mirror/user
+    ARG DOCKERHUB_TOKEN_SECRET=+secrets/earthly-technologies/dockerhub-mirror/pass
 
     IF $DOCKERHUB_AUTH
         RUN --secret USERNAME=$DOCKERHUB_USER_SECRET \
             --secret TOKEN=$DOCKERHUB_TOKEN_SECRET \
-            docker login --username="$USERNAME" --password="$TOKEN"
+            docker login registry-1.docker.io.mirror.corp.earthly.dev --username="$USERNAME" --password="$TOKEN"
     END
 
 prerelease:
@@ -443,4 +447,3 @@ examples2:
     BUILD ./examples/multiplatform+all
     BUILD ./examples/multiplatform-cross-compile+build-all-platforms
     BUILD github.com/earthly/hello-world:main+hello
-

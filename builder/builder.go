@@ -19,6 +19,7 @@ import (
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/earthfile2llb"
 	"github.com/earthly/earthly/states"
+	"github.com/earthly/earthly/util/gwclientlogger"
 	"github.com/earthly/earthly/util/llbutil"
 	"github.com/earthly/earthly/util/llbutil/pllb"
 	"github.com/earthly/earthly/variables"
@@ -65,14 +66,15 @@ type Opt struct {
 
 // BuildOpt is a collection of build options.
 type BuildOpt struct {
-	Platform              *specs.Platform
-	AllowPrivileged       bool
-	PrintSuccess          bool
-	Push                  bool
-	NoOutput              bool
-	OnlyFinalTargetImages bool
-	OnlyArtifact          *domain.Artifact
-	OnlyArtifactDestPath  string
+	Platform                   *specs.Platform
+	AllowPrivileged            bool
+	PrintSuccess               bool
+	Push                       bool
+	NoOutput                   bool
+	OnlyFinalTargetImages      bool
+	OnlyArtifact               *domain.Artifact
+	OnlyArtifactDestPath       string
+	EnableGatewayClientLogging bool
 }
 
 // Builder executes Earthly builds.
@@ -157,6 +159,8 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 
 	sharedLocalStateCache := earthfile2llb.NewSharedLocalStateCache()
 
+	featureFlagOverrides := b.opt.FeatureFlagOverrides
+
 	destPathWhitelist := make(map[string]bool)
 	manifestLists := make(map[string][]manifest) // parent image -> child images
 	var mts *states.MultiTarget
@@ -165,6 +169,9 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 	dirIndex := 0
 	localImages := make(map[string]string) // local reg pull name -> final name
 	bf := func(childCtx context.Context, gwClient gwclient.Client) (*gwclient.Result, error) {
+		if opt.EnableGatewayClientLogging {
+			gwClient = gwclientlogger.New(gwClient)
+		}
 		var err error
 		if !b.builtMain {
 			mts, err = earthfile2llb.Earthfile2LLB(childCtx, target, earthfile2llb.ConvertOpt{
@@ -186,9 +193,9 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 				Parallelism:          b.opt.Parallelism,
 				Console:              b.opt.Console,
 				GitLookup:            b.opt.GitLookup,
-				FeatureFlagOverrides: b.opt.FeatureFlagOverrides,
+				FeatureFlagOverrides: featureFlagOverrides,
 				LocalStateCache:      sharedLocalStateCache,
-			})
+			}, true)
 			if err != nil {
 				return nil, err
 			}
@@ -334,10 +341,10 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 					}
 				}
 			}
-			performSaveLocals := (!sts.Target.IsRemote() &&
-				!opt.NoOutput &&
+			performSaveLocals := (!opt.NoOutput &&
 				!opt.OnlyFinalTargetImages &&
 				opt.OnlyArtifact == nil)
+
 			if performSaveLocals {
 				for _, saveLocal := range b.targetPhaseArtifacts(sts) {
 					ref, err := b.artifactStateToRef(childCtx, gwClient, sts.SeparateArtifactsState[saveLocal.Index], sts.Platform)
@@ -494,7 +501,6 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 		dirIndex := 0
 		for _, sts := range mts.All() {
 			console := b.opt.Console.WithPrefixAndSalt(sts.Target.String(), sts.ID)
-
 			for _, saveImage := range sts.SaveImages {
 				shouldPush := opt.Push && saveImage.Push && !sts.Target.IsRemote() && saveImage.DockerTag != ""
 				shouldExport := !opt.NoOutput && saveImage.DockerTag != ""
@@ -511,46 +517,44 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 					console.Printf("Did not push %s. Use earthly --push to enable pushing\n", saveImage.DockerTag)
 				}
 			}
-			if !sts.Target.IsRemote() {
-				for _, saveLocal := range sts.SaveLocals {
-					artifactDir := filepath.Join(outDir, fmt.Sprintf("index-%d", dirIndex))
-					artifact := domain.Artifact{
-						Target:   sts.Target,
-						Artifact: saveLocal.ArtifactPath,
-					}
-					err := b.saveArtifactLocally(ctx, artifact, artifactDir, saveLocal.DestPath, sts.ID, opt, saveLocal.IfExists)
-					if err != nil {
-						return nil, err
-					}
-					dirIndex++
+			for _, saveLocal := range sts.SaveLocals {
+				artifactDir := filepath.Join(outDir, fmt.Sprintf("index-%d", dirIndex))
+				artifact := domain.Artifact{
+					Target:   sts.Target,
+					Artifact: saveLocal.ArtifactPath,
 				}
+				err := b.saveArtifactLocally(ctx, artifact, artifactDir, saveLocal.DestPath, sts.ID, opt, saveLocal.IfExists)
+				if err != nil {
+					return nil, err
+				}
+				dirIndex++
+			}
 
-				if sts.RunPush.HasState {
-					if opt.Push {
-						for _, saveLocal := range sts.RunPush.SaveLocals {
-							artifactDir := filepath.Join(outDir, fmt.Sprintf("index-%d", dirIndex))
-							artifact := domain.Artifact{
-								Target:   sts.Target,
-								Artifact: saveLocal.ArtifactPath,
-							}
-							err := b.saveArtifactLocally(ctx, artifact, artifactDir, saveLocal.DestPath, sts.ID, opt, saveLocal.IfExists)
-							if err != nil {
-								return nil, err
-							}
-							dirIndex++
+			if sts.RunPush.HasState {
+				if opt.Push {
+					for _, saveLocal := range sts.RunPush.SaveLocals {
+						artifactDir := filepath.Join(outDir, fmt.Sprintf("index-%d", dirIndex))
+						artifact := domain.Artifact{
+							Target:   sts.Target,
+							Artifact: saveLocal.ArtifactPath,
 						}
-					} else {
-						for _, commandStr := range sts.RunPush.CommandStrs {
-							console.Printf("Did not execute push command %s. Use earthly --push to enable pushing\n", commandStr)
+						err := b.saveArtifactLocally(ctx, artifact, artifactDir, saveLocal.DestPath, sts.ID, opt, saveLocal.IfExists)
+						if err != nil {
+							return nil, err
 						}
+						dirIndex++
+					}
+				} else {
+					for _, commandStr := range sts.RunPush.CommandStrs {
+						console.Printf("Did not execute push command %s. Use earthly --push to enable pushing\n", commandStr)
+					}
 
-						for _, saveImage := range sts.RunPush.SaveImages {
-							console.Printf("Did not push, OR save %s locally, as evaluating the image would have caused a RUN --push to execute", saveImage.DockerTag)
-						}
+					for _, saveImage := range sts.RunPush.SaveImages {
+						console.Printf("Did not push, OR save %s locally, as evaluating the image would have caused a RUN --push to execute", saveImage.DockerTag)
+					}
 
-						if sts.RunPush.InteractiveSession.Initialized {
-							console.Printf("Did not start an %s interactive session with command %s. Use earthly --push to start the session\n", sts.RunPush.InteractiveSession.Kind, sts.RunPush.InteractiveSession.CommandStr)
-						}
+					if sts.RunPush.InteractiveSession.Initialized {
+						console.Printf("Did not start an %s interactive session with command %s. Use earthly --push to start the session\n", sts.RunPush.InteractiveSession.Kind, sts.RunPush.InteractiveSession.CommandStr)
 					}
 				}
 			}

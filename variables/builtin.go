@@ -28,6 +28,7 @@ func BuiltinArgs(target domain.Target, platform specs.Platform, gitMeta *gitutil
 
 	if gitMeta != nil {
 		ret.AddInactive("EARTHLY_GIT_HASH", gitMeta.Hash)
+		ret.AddInactive("EARTHLY_GIT_SHORT_HASH", gitMeta.ShortHash)
 		branch := ""
 		if len(gitMeta.Branch) > 0 {
 			branch = gitMeta.Branch[0]
@@ -41,6 +42,7 @@ func BuiltinArgs(target domain.Target, platform specs.Platform, gitMeta *gitutil
 		ret.AddInactive("EARTHLY_GIT_ORIGIN_URL", gitMeta.RemoteURL)
 		ret.AddInactive("EARTHLY_GIT_ORIGIN_URL_SCRUBBED", stringutil.ScrubCredentials(gitMeta.RemoteURL))
 		ret.AddInactive("EARTHLY_GIT_PROJECT_NAME", getProjectName(gitMeta.RemoteURL))
+		ret.AddInactive("EARTHLY_GIT_COMMIT_TIMESTAMP", gitMeta.Timestamp)
 	}
 	// Note: Please update targetinput.go BuiltinVariables if adding more builtin variables.
 	for _, key := range ret.SortedAny() {

@@ -16,6 +16,7 @@ import (
 	"github.com/earthly/earthly/util/llbutil"
 	"github.com/earthly/earthly/variables"
 
+	flags "github.com/jessevdk/go-flags"
 	specs "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
 	"golang.org/x/sync/errgroup"
@@ -437,12 +438,20 @@ func (i *Interpreter) getAllowPrivilegedArtifact(artifactName string, allowPrivi
 	return i.getAllowPrivileged(artifact.Target, allowPrivileged)
 }
 
+func (i *Interpreter) flagValModifier(flagName string, flagOpt *flags.Option, flagVal *string) *string {
+	if flagOpt.IsBool() && flagVal != nil {
+		newFlag := i.expandArgs(*flagVal, false)
+		return &newFlag
+	}
+	return flagVal
+}
+
 func (i *Interpreter) handleRun(ctx context.Context, cmd spec.Command) error {
 	if len(cmd.Args) < 1 {
 		return i.errorf(cmd.SourceLocation, "not enough arguments for RUN")
 	}
 	opts := runOpts{}
-	args, err := flagutil.ParseArgs("RUN", &opts, getArgsCopy(cmd))
+	args, err := flagutil.ParseArgsWithValueModifier("RUN", &opts, getArgsCopy(cmd), i.flagValModifier)
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "invalid RUN arguments %v", cmd.Args)
 	}
@@ -846,7 +855,7 @@ func (i *Interpreter) handleBuild(ctx context.Context, cmd spec.Command, async b
 	for _, bas := range crossProductBuildArgs {
 		for _, platform := range platformsSlice {
 			if async {
-				errChan := i.converter.BuildAsync(ctx, fullTargetName, platform, allowPrivileged, bas)
+				errChan := i.converter.BuildAsync(ctx, fullTargetName, platform, allowPrivileged, bas, buildCmd)
 				i.monitorErrChan(ctx, errChan)
 			} else {
 				err = i.converter.Build(ctx, fullTargetName, platform, allowPrivileged, bas)

@@ -60,6 +60,11 @@ ga:
     BUILD +file-copying
     BUILD +run-no-cache
     BUILD +save-artifact-after-push
+    BUILD +save-artifact-selective
+    BUILD +save-artifact-selective-legacy
+    BUILD +save-artifact-selective-referencing-remote
+    BUILD +save-remote-artifact-selective-legacy
+    BUILD +save-remote-artifact-selective
     BUILD +push-build
     BUILD +build-arg-repeat
     BUILD +if
@@ -74,6 +79,9 @@ ga:
     BUILD +infinite-recursion
     BUILD +from-dockerfile-arg
     BUILD +cache-mount-arg
+    BUILD +true-false-flag
+    BUILD +true-false-flag-invalid
+    BUILD +dont-save-indirect-remote-artifact
 
 experimental:
     BUILD ./dind-auto-install+all
@@ -488,6 +496,119 @@ save-artifact-after-push:
     DO +RUN_EARTHLY --earthfile=save-artifact-after-push.earth --target=+copy-test \
         --post_command="2>&1 | perl -pe 'BEGIN {\\\$status=1} END {exit \\\$status} \\\$status=0 if /not found/;'"
 
+save-artifact-selective-test1:
+    DO +RUN_EARTHLY --earthfile=save-artifact-selective.earth --target=+test1
+    RUN test   -f a && \
+        test   -f b && \
+        test ! -f c && \
+        test ! -f d && \
+        test ! -f e
+
+save-artifact-selective-test2:
+    DO +RUN_EARTHLY --earthfile=save-artifact-selective.earth --target=+test2
+    RUN test ! -f a && \
+        test ! -f b && \
+        test   -f c && \
+        test ! -f d && \
+        test ! -f e
+
+save-artifact-selective-test3:
+    DO +RUN_EARTHLY --earthfile=save-artifact-selective.earth --target=+test3
+    RUN test ! -f a && \
+        test ! -f b && \
+        test ! -f c && \
+        test   -f d && \
+        test ! -f e
+
+save-artifact-selective-test4:
+    DO +RUN_EARTHLY --earthfile=save-artifact-selective.earth --target=+test4
+    RUN test ! -f a && \
+        test ! -f b && \
+        test ! -f c && \
+        test ! -f d && \
+        test   -f e
+
+save-artifact-selective-test5:
+    DO +RUN_EARTHLY --earthfile=save-artifact-selective.earth --target=+test5
+    RUN test ! -f a && \
+        test ! -f b && \
+        test ! -f c && \
+        test ! -f d && \
+        test ! -f e && \
+        test ! -f test5sub && \
+        test   -f test5
+
+save-artifact-selective:
+    # test that the `--referenced-save-only` feature only saves referenced artifacts
+    BUILD +save-artifact-selective-test1
+    BUILD +save-artifact-selective-test2
+    BUILD +save-artifact-selective-test3
+    BUILD +save-artifact-selective-test4
+    BUILD +save-artifact-selective-test5
+
+save-artifact-selective-legacy:
+    RUN env | grep EARTHLY
+    DO +RUN_EARTHLY --earthfile=save-artifact-legacy.earth --target=+all
+    RUN test ! -f a && \
+        test   -f b && \
+        test   -f c && \
+        test   -f d && \
+        test   -f e && \
+        test   -f f && \
+        test ! -d output && \
+        test ! -f output/testfile && \    # THIS FAILED
+        test ! -f testfile
+
+save-artifact-selective-referencing-remote-test1:
+    DO +RUN_EARTHLY --earthfile=save-artifact-selective-remote.earth --target=+test1
+    RUN test   -f a && \
+        test ! -f b && \
+        test ! -f c && \
+        test ! -d output && \
+        test ! -f output/testfile && \
+        test ! -f testfile
+
+save-artifact-selective-referencing-remote-test2:
+    DO +RUN_EARTHLY --earthfile=save-artifact-selective-remote.earth --target=+test2
+    RUN test ! -f a && \
+        test   -f b && \
+        test ! -f c && \
+        test ! -d output && \
+        test ! -f output/testfile && \
+        test ! -f testfile
+
+save-artifact-selective-referencing-remote-test3:
+    DO +RUN_EARTHLY --earthfile=save-artifact-selective-remote.earth --target=+test3
+    RUN test ! -f a && \
+        test ! -f b && \
+        test   -f c && \
+        test   -d output && \
+        test   -f output/testfile && \
+        test ! -f testfile
+
+save-artifact-selective-referencing-remote:
+    BUILD +save-artifact-selective-referencing-remote-test1
+    BUILD +save-artifact-selective-referencing-remote-test2
+    BUILD +save-artifact-selective-referencing-remote-test3
+
+save-remote-artifact-selective-legacy:
+    DO +RUN_EARTHLY --target=github.com/earthly/test-remote/output/no-version:main+savelocal
+    # if it were to be saved, it should show up under output/testfile; but we're going to check for
+    # a) no output directory (which also means output/testfile doesn't exist), and
+    # b) that ./testfile wasn't accidentally created.
+    RUN test ! -d output && \
+        test ! -f testfile
+
+save-remote-artifact-selective:
+    DO +RUN_EARTHLY --target=github.com/earthly/test-remote/output/versioned:main+savelocal
+    RUN test -f ./output/testfile
+
+dont-save-indirect-remote-artifact:
+    DO +RUN_EARTHLY --target=github.com/earthly/test-remote/output/no-version:main+copy-from-savelocal
+    RUN test ! -f ./output/testfile
+    DO +RUN_EARTHLY --target=github.com/earthly/test-remote/output/versioned:main+copy-from-savelocal
+    RUN test ! -f ./output/testfile
+
 push-build:
     DO +RUN_EARTHLY --earthfile=push-build.earth --target=+test --extra_args="--push" --post_command="> output 2>&1"
     RUN cat output
@@ -579,6 +700,22 @@ cache-mount-arg:
     RUN cat output.txt | grep '\*cached\* --> RUN echo Doing something 1'; test "$?" != 0
     RUN cat output.txt | grep '\*cached\* --> RUN echo Doing something 2'; test "$?" != 0
 
+true-false-flag:
+    DO +RUN_EARTHLY --earthfile=true-false-flag.earth --extra_args="--allow-privileged" --post_command=">output.txt 2>&1"
+    RUN cat output.txt
+    # test that the two privileged commands were run
+    RUN test $( cat output.txt | grep -v echo | grep "I have the power" | wc -l) = "2"
+    # test a single non-privileged RUN was executed
+    RUN test $( cat output.txt | grep -v echo | grep "fight the power" | wc -l) = "1"
+
+true-false-flag-invalid:
+    DO +RUN_EARTHLY --earthfile=true-false-flag-invalid.earth --should_fail=true --target=+run-false --post_command="2>output.txt"
+    RUN cat output.txt | grep "Command /bin/sh -c false failed with exit code 1"
+    DO +RUN_EARTHLY --earthfile=true-false-flag-invalid.earth --should_fail=true --target=+run-false-with-args --post_command="2>output2.txt"
+    RUN cat output2.txt | grep "Command /bin/sh -c 'false echo test' failed with exit code 1"
+    DO +RUN_EARTHLY --earthfile=true-false-flag-invalid.earth --should_fail=true --target=+run-maybe --post_command="2>output3.txt"
+    RUN cat output3.txt | grep 'invalid argument for flag .*--no-cache.*expected bool'
+
 RUN_EARTHLY:
     COMMAND
     ARG earthfile=
@@ -588,7 +725,9 @@ RUN_EARTHLY:
     ARG post_command
     ARG should_fail=false
     ARG use_tmpfs=true
-    COPY "$earthfile" "$earthfile_dest"
+    IF [ ! -z "$earthfile" ]
+        COPY "$earthfile" "$earthfile_dest"
+    END
     RUN echo "
         set -x
         if $use_tmpfs; then

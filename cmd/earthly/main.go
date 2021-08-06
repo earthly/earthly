@@ -550,7 +550,7 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 		&cli.BoolFlag{
 			Name:        "strict",
 			EnvVars:     []string{"EARTHLY_STRICT"},
-			Usage:       "Disallow usage of features that may create unreproduceable builds",
+			Usage:       "Disallow usage of features that may create unrepeatable builds",
 			Destination: &app.strict,
 		},
 		&cli.IntFlag{
@@ -1298,7 +1298,14 @@ func (app *earthlyApp) autoCompleteImp() (err error) {
 		return err
 	}
 
-	showHidden := strings.HasPrefix(Version, "dev-") || os.Getenv("EARTHLY_AUTOCOMPLETE_HIDDEN") == "1"
+	showHidden := strings.HasPrefix(Version, "dev-")
+	showHiddenOverride := os.Getenv("EARTHLY_AUTOCOMPLETE_HIDDEN")
+	if showHiddenOverride != "" {
+		showHidden, err = strconv.ParseBool(showHiddenOverride)
+		if err != nil {
+			return err
+		}
+	}
 
 	potentials, err := autocomplete.GetPotentials(compLine, int(compPointInt), app.cliApp, showHidden)
 	if err != nil {
@@ -2527,6 +2534,10 @@ func (app *earthlyApp) actionBuild(c *cli.Context) error {
 		if app.remoteCache == "" && app.push {
 			app.saveInlineCache = true
 		}
+
+		if app.interactiveDebugging {
+			return errors.New("unable to use --ci flag in combination with --interactive flag")
+		}
 	}
 	if app.imageMode && app.artifactMode {
 		return errors.New("both image and artifact modes cannot be active at the same time")
@@ -2801,11 +2812,12 @@ func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []st
 		return errors.Errorf("multi-platform builds are not yet supported on the command line. You may, however, create a target with the instruction BUILD --plaform ... --platform ... %s", target)
 	}
 	buildOpts := builder.BuildOpt{
-		PrintSuccess:          true,
-		Push:                  app.push,
-		NoOutput:              app.noOutput,
-		OnlyFinalTargetImages: app.imageMode,
-		Platform:              platformsSlice[0],
+		PrintSuccess:               true,
+		Push:                       app.push,
+		NoOutput:                   app.noOutput,
+		OnlyFinalTargetImages:      app.imageMode,
+		Platform:                   platformsSlice[0],
+		EnableGatewayClientLogging: app.debug,
 
 		// explicitly set this to true at the top level (without granting the entitlements.EntitlementSecurityInsecure buildkit option),
 		// to differentiate between a user forgetting to run earthly -P, versus a remotely referening an earthfile that requires privileged.

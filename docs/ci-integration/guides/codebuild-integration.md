@@ -18,7 +18,7 @@ version: 0.2
 phases:
   install:
     commands:
-      - wget https://github.com/earthly/earthly/releases/download/v0.5.18/earthly-linux-amd64 -O /usr/local/bin/earthly && chmod +x /usr/local/bin/earthly
+      - wget https://github.com/earthly/earthly/releases/download/v0.5.20/earthly-linux-amd64 -O /usr/local/bin/earthly && chmod +x /usr/local/bin/earthly
   pre_build:
     commands:
       - echo Logging in to Docker
@@ -29,4 +29,4 @@ phases:
       - earthly --push +build
 ```
 
-For a complete guide on CI integration see the [CI integration guide](../ci-integration.md).
+For a complete guide on CI integration see the [CI integration guide](../overview.md).
