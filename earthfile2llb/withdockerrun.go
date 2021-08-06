@@ -66,7 +66,13 @@ type withDockerRun struct {
 }
 
 func (wdr *withDockerRun) Run(ctx context.Context, args []string, opt WithDockerOpt) error {
-	err := wdr.installDeps(ctx, opt)
+	err := wdr.c.checkAllowed(runCmd)
+	if err != nil {
+		return err
+	}
+	wdr.c.nonSaveCommand()
+
+	err = wdr.installDeps(ctx, opt)
 	if err != nil {
 		return err
 	}
@@ -151,7 +157,7 @@ func (wdr *withDockerRun) Run(ctx context.Context, args []string, opt WithDocker
 	if err != nil {
 		return errors.Wrap(err, "compute dind id")
 	}
-	cirOpts.ShellWrap = makeWithDockerdWrapFun(dindID, tarPaths, opt)
+	cirOpts.shellWrap = makeWithDockerdWrapFun(dindID, tarPaths, opt)
 
 	_, err = wdr.c.internalRun(ctx, cirOpts)
 	return err

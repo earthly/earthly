@@ -10,7 +10,6 @@ type ConvertRunOpts struct {
 	Secrets         []string
 	WithEntrypoint  bool
 	WithShell       bool
-	ShellWrap       shellWrapFun
 	Privileged      bool
 	Push            bool
 	Transient       bool
@@ -18,8 +17,11 @@ type ConvertRunOpts struct {
 	NoCache         bool
 	Interactive     bool
 	InteractiveKeep bool
-	extraRunOpts    []llb.RunOption
 
 	// TODO: Unify
 	Locally bool
+
+	// Internal.
+	shellWrap    shellWrapFun
+	extraRunOpts []llb.RunOption
 }

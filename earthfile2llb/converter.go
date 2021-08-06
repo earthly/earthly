@@ -492,11 +492,11 @@ func (c *Converter) RunExitCode(ctx context.Context, commandName string, args, m
 		Mounts:      mounts,
 		Secrets:     secretKeyValues,
 		WithShell:   isWithShell,
-		ShellWrap:   withShellAndEnvVarsExitCode(exitCodeFile),
 		Privileged:  privileged,
 		Transient:   true,
 		WithSSH:     withSSH,
 		NoCache:     noCache,
+		shellWrap:   withShellAndEnvVarsExitCode(exitCodeFile),
 	}
 	state, err := c.internalRun(ctx, opts)
 	if err != nil {
@@ -594,11 +594,11 @@ func (c *Converter) RunExpression(ctx context.Context, commandName string, expre
 		Mounts:      mounts,
 		Secrets:     secretKeyValues,
 		WithShell:   true,
-		ShellWrap:   withShellAndEnvVarsOutput(srcBuildArgPath),
 		Privileged:  privileged,
 		Transient:   true,
 		WithSSH:     withSSH,
 		NoCache:     noCache,
+		shellWrap:   withShellAndEnvVarsOutput(srcBuildArgPath),
 	}
 	state, err := c.internalRun(ctx, opts)
 	if err != nil {
@@ -681,8 +681,8 @@ func (c *Converter) Run(ctx context.Context, opts ConvertRunOpts) error {
 	}
 	c.nonSaveCommand()
 
-	if opts.ShellWrap == nil {
-		opts.ShellWrap = withShellAndEnvVars
+	if opts.shellWrap == nil {
+		opts.shellWrap = withShellAndEnvVars
 	}
 	_, err = c.internalRun(ctx, opts)
 	return err
@@ -1450,7 +1450,7 @@ func (c *Converter) internalRun(ctx context.Context, opts ConvertRunOpts) (pllb.
 		runOpts = append(runOpts, llb.AddSSHSocket())
 	}
 	// Shell and debugger wrap.
-	finalArgs = opts.ShellWrap(finalArgs, extraEnvVars, opts.WithShell, true, isInteractive)
+	finalArgs = opts.shellWrap(finalArgs, extraEnvVars, opts.WithShell, true, isInteractive)
 	runOpts = append(runOpts, llb.Args(finalArgs))
 	if opts.NoCache {
 		runOpts = append(runOpts, llb.IgnoreCache)
