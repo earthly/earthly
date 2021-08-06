@@ -224,7 +224,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 		for _, sts := range mts.All() {
 			if sts.Platform != nil {
 				for _, saveImage := range b.targetPhaseImages(sts) {
-					if saveImage.DockerTag != "" {
+					if saveImage.DockerTag != "" && saveImage.DoSave {
 						isMultiPlatform[saveImage.DockerTag] = true
 					}
 				}
@@ -243,8 +243,8 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 			}
 
 			for _, saveImage := range b.targetPhaseImages(sts) {
-				shouldPush := opt.Push && saveImage.Push && !sts.Target.IsRemote() && saveImage.DockerTag != ""
-				shouldExport := !opt.NoOutput && opt.OnlyArtifact == nil && !(opt.OnlyFinalTargetImages && sts != mts.Final) && saveImage.DockerTag != ""
+				shouldPush := opt.Push && saveImage.Push && !sts.Target.IsRemote() && saveImage.DockerTag != "" && saveImage.DoSave
+				shouldExport := !opt.NoOutput && opt.OnlyArtifact == nil && !(opt.OnlyFinalTargetImages && sts != mts.Final) && saveImage.DockerTag != "" && saveImage.DoSave
 				useCacheHint := saveImage.CacheHint && b.opt.CacheExport != ""
 				if (!shouldPush && !shouldExport && !useCacheHint) || (!shouldPush && saveImage.HasPushDependencies) {
 					// Short-circuit.
@@ -479,8 +479,8 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 		}
 	} else if opt.OnlyFinalTargetImages {
 		for _, saveImage := range mts.Final.SaveImages {
-			shouldPush := opt.Push && saveImage.Push && saveImage.DockerTag != ""
-			shouldExport := !opt.NoOutput && saveImage.DockerTag != ""
+			shouldPush := opt.Push && saveImage.Push && saveImage.DockerTag != "" && saveImage.DoSave
+			shouldExport := !opt.NoOutput && saveImage.DockerTag != "" && saveImage.DoSave
 			if !shouldPush && !shouldExport {
 				continue
 			}
@@ -502,8 +502,8 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 		for _, sts := range mts.All() {
 			console := b.opt.Console.WithPrefixAndSalt(sts.Target.String(), sts.ID)
 			for _, saveImage := range sts.SaveImages {
-				shouldPush := opt.Push && saveImage.Push && !sts.Target.IsRemote() && saveImage.DockerTag != ""
-				shouldExport := !opt.NoOutput && saveImage.DockerTag != ""
+				shouldPush := opt.Push && saveImage.Push && !sts.Target.IsRemote() && saveImage.DockerTag != "" && saveImage.DoSave
+				shouldExport := !opt.NoOutput && saveImage.DockerTag != "" && saveImage.DoSave
 				if !shouldPush && !shouldExport {
 					continue
 				}

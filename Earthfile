@@ -341,7 +341,7 @@ for-own:
     ARG BUILDKIT_PROJECT
     BUILD ./buildkitd+buildkitd --BUILDKIT_PROJECT="$BUILDKIT_PROJECT"
     COPY +earthly/earthly ./
-    SAVE ARTIFACT ./earthly AS LOCAL ./build/earthly
+    SAVE ARTIFACT ./earthly AS LOCAL ./build/own/earthly
 
 for-linux:
     ARG BUILDKIT_PROJECT

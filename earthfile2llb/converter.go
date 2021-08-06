@@ -920,9 +920,6 @@ func (c *Converter) SaveImage(ctx context.Context, imageNames []string, pushImag
 	for _, cf := range cacheFrom {
 		c.opt.CacheImports.Add(cf)
 	}
-	if !c.opt.DoSaves && !c.opt.ForceSaveImage {
-		imageNames = []string{}
-	}
 	justCacheHint := false
 	if len(imageNames) == 0 && cacheHint {
 		imageNames = []string{""}
@@ -941,6 +938,7 @@ func (c *Converter) SaveImage(ctx context.Context, imageNames []string, pushImag
 					InsecurePush:        insecurePush,
 					CacheHint:           cacheHint,
 					HasPushDependencies: true,
+					DoSave:              c.opt.DoSaves || c.opt.ForceSaveImage,
 				})
 		} else {
 			c.mts.Final.SaveImages = append(c.mts.Final.SaveImages,
@@ -952,6 +950,7 @@ func (c *Converter) SaveImage(ctx context.Context, imageNames []string, pushImag
 					InsecurePush:        insecurePush,
 					CacheHint:           cacheHint,
 					HasPushDependencies: false,
+					DoSave:              c.opt.DoSaves || c.opt.ForceSaveImage,
 				})
 		}
 
