@@ -126,9 +126,12 @@ func (wdr *withDockerRun) Run(ctx context.Context, args []string, opt WithDocker
 	}
 	cirOpts := convertInternalRunOpts{
 		CommandName:     "WITH DOCKER RUN",
+		Args:            args,
 		Mounts:          opt.Mounts,
 		Secrets:         opt.Secrets,
-		Privileged:      true,
+		WithEntrypoint:  opt.WithEntrypoint,
+		IsWithShell:     opt.WithShell,
+		Privileged:      true, // needed for dockerd
 		NoCache:         opt.NoCache,
 		Interactive:     opt.Interactive,
 		InteractiveKeep: opt.interactiveKeep,
@@ -137,11 +140,6 @@ func (wdr *withDockerRun) Run(ctx context.Context, args []string, opt WithDocker
 		"/var/earthly/dind", pllb.Scratch(), llb.HostBind(), llb.SourcePath("/tmp/earthly/dind")))
 	cirOpts.extraRunOpts = append(cirOpts.extraRunOpts, pllb.AddMount(
 		dockerdWrapperPath, pllb.Scratch(), llb.HostBind(), llb.SourcePath(dockerdWrapperPath)))
-	// This seems to make earthly-in-earthly work
-	// (and docker run --privileged, together with -v /sys/fs/cgroup:/sys/fs/cgroup),
-	// however, it breaks regular cases.
-	//cirOpts.extraRunOpts = append(cirOpts.extraRunOpts, pllb.AddMount(
-	//"/sys/fs/cgroup", pllb.Scratch(), llb.HostBind(), llb.SourcePath("/sys/fs/cgroup")))
 	var tarPaths []string
 	for index, tarContext := range wdr.tarLoads {
 		loadDir := fmt.Sprintf("/var/earthly/load-%d", index)
@@ -149,18 +147,6 @@ func (wdr *withDockerRun) Run(ctx context.Context, args []string, opt WithDocker
 		tarPaths = append(tarPaths, path.Join(loadDir, "image.tar"))
 	}
 
-	finalArgs := args
-	if opt.WithEntrypoint {
-		if len(args) == 0 {
-			// No args provided. Use the image's CMD.
-			args := make([]string, len(wdr.c.mts.Final.MainImage.Config.Cmd))
-			copy(args, wdr.c.mts.Final.MainImage.Config.Cmd)
-		}
-		finalArgs = append(wdr.c.mts.Final.MainImage.Config.Entrypoint, args...)
-		opt.WithShell = false // Don't use shell when --entrypoint is passed.
-	}
-	cirOpts.Args = finalArgs
-	cirOpts.IsWithShell = opt.WithShell
 	dindID, err := wdr.c.mts.Final.TargetInput().Hash()
 	if err != nil {
 		return errors.Wrap(err, "compute dind id")

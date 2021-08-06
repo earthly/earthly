@@ -686,8 +686,11 @@ func (c *Converter) Run(ctx context.Context, args, mounts, secretKeyValues []str
 
 	opts := convertInternalRunOpts{
 		CommandName:     "RUN",
+		Args:            args,
 		Mounts:          mounts,
 		Secrets:         secretKeyValues,
+		IsWithShell:     isWithShell,
+		WithEntrypoint:  withEntrypoint,
 		ShellWrap:       withShellAndEnvVars,
 		Privileged:      privileged,
 		Push:            pushFlag,
@@ -696,19 +699,6 @@ func (c *Converter) Run(ctx context.Context, args, mounts, secretKeyValues []str
 		Interactive:     interactive,
 		InteractiveKeep: interactiveKeep,
 	}
-
-	finalArgs := args
-	if withEntrypoint {
-		if len(args) == 0 {
-			// No args provided. Use the image's CMD.
-			args := make([]string, len(c.mts.Final.MainImage.Config.Cmd))
-			copy(args, c.mts.Final.MainImage.Config.Cmd)
-		}
-		finalArgs = append(c.mts.Final.MainImage.Config.Entrypoint, args...)
-		isWithShell = false // Don't use shell when --entrypoint is passed.
-	}
-	opts.IsWithShell = isWithShell
-	opts.Args = finalArgs
 	_, err = c.internalRun(ctx, opts)
 	return err
 }
@@ -1397,6 +1387,17 @@ func (c *Converter) internalRun(ctx context.Context, opts convertInternalRunOpts
 		return pllb.State{}, errors.New("--interactive options are not allowed, when --strict is specified or otherwise implied")
 	}
 
+	finalArgs := opts.Args[:]
+	if opts.WithEntrypoint {
+		if len(finalArgs) == 0 {
+			// No args provided. Use the image's CMD.
+			args := make([]string, len(c.mts.Final.MainImage.Config.Cmd))
+			copy(args, c.mts.Final.MainImage.Config.Cmd)
+		}
+		finalArgs = append(c.mts.Final.MainImage.Config.Entrypoint, finalArgs...)
+		opts.IsWithShell = false // Don't use shell when --entrypoint is passed.
+	}
+
 	runOpts := opts.extraRunOpts[:]
 	if opts.Privileged {
 		runOpts = append(runOpts, llb.Security(llb.SecurityModeInsecure))
@@ -1464,7 +1465,7 @@ func (c *Converter) internalRun(ctx context.Context, opts convertInternalRunOpts
 		runOpts = append(runOpts, llb.AddSSHSocket())
 	}
 	// Shell and debugger wrap.
-	finalArgs := opts.ShellWrap(opts.Args, extraEnvVars, opts.IsWithShell, true, isInteractive)
+	finalArgs = opts.ShellWrap(finalArgs, extraEnvVars, opts.IsWithShell, true, isInteractive)
 	runOpts = append(runOpts, llb.Args(finalArgs))
 	if opts.NoCache {
 		runOpts = append(runOpts, llb.IgnoreCache)

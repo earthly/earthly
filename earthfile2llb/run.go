@@ -23,6 +23,7 @@ type convertInternalRunOpts struct {
 	Args            []string
 	Mounts          []string
 	Secrets         []string
+	WithEntrypoint  bool
 	IsWithShell     bool
 	ShellWrap       shellWrapFun
 	Privileged      bool
