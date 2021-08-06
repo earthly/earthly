@@ -150,6 +150,18 @@ func (c *Collection) DeclareArg(name string, defaultValue string, global bool, p
 	return finalValue, nil
 }
 
+// SetArg sets the value of an arg.
+func (c *Collection) SetArg(name string, value string) {
+	c.args().AddActive(name, value)
+	c.effectiveCache = nil
+}
+
+// UnsetArg removes an arg if it exists.
+func (c *Collection) UnsetArg(name string) {
+	c.args().Remove(name)
+	c.effectiveCache = nil
+}
+
 // DeclareEnv declares an env var.
 func (c *Collection) DeclareEnv(name string, value string) {
 	c.envs.AddActive(name, value)

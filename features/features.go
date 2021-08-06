@@ -16,10 +16,9 @@ import (
 // Features is used to denote which features to flip on or off; this is for use in maintaining
 // backwards compatibility
 type Features struct {
-	// DoSaves flags the feature to only save artifacts under directly referenced targets
-	// of those referenced by BUILDs
 	ReferencedSaveOnly     bool `long:"referenced-save-only" description:"only save artifacts that are directly referenced"`
 	UseCopyIncludePatterns bool `long:"use-copy-include-patterns" description:"specify an include pattern to buildkit when performing copies"`
+	ForIn                  bool `long:"for-in" description:"allow the use of the FOR command"`
 
 	Major int
 	Minor int

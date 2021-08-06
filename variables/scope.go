@@ -60,6 +60,12 @@ func (s *Scope) AddActive(name string, variable string) {
 	s.variables[name] = variable
 }
 
+// Remove removes a variable from the scope.
+func (s *Scope) Remove(name string) {
+	delete(s.variables, name)
+	delete(s.activeVariables, name)
+}
+
 // ActiveValueMap returns a map of the values of the active variables.
 func (s *Scope) ActiveValueMap() map[string]string {
 	ret := make(map[string]string)
