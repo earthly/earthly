@@ -379,9 +379,6 @@ all-dind:
         --platform=linux/amd64 \
         --platform=linux/arm64 \
         +dind
-    BUILD \
-        --platform=linux/arm/v7 \
-        +dind-alpine
 
 all:
     BUILD +all-buildkitd
