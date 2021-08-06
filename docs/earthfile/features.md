@@ -13,7 +13,7 @@ Each earthfile should list the current earthly version it depends on using the [
 The `VERSION` command was first introduced under `0.5` and is currently optional; however, it will become manditory in a future version.
 
 ```Dockerfile
-VERSION [flags...] <version-number>
+VERSION [<flags>...] <version-number>
 ```
 
 ## Feature flags
