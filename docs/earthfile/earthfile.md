@@ -1020,7 +1020,7 @@ This feature is currently in **Experimental** stage
 
 The `FOR` clause can iterate over the items resulting from the expression `<expression>`. On each iteration, the value of `<variable-name>` is set to the current item in the iteration and the block of commands `<for-block>` is executed in the context of that variable set as a build arg.
 
-The expression may be either a constant list of items (e.g. `foo bar buz`), or the output of a command (e.g. `$(echo foo bar buz)`), or a paramterized list of items (e.g. `foo $BARBUZ`). The result of the expression is then tokenized using the list of separators provided via the `--sep` option. If unspecified, the separator list defaults to `[tab]`, `[new line]` and `[space]` (`\t\n `).
+The expression may be either a constant list of items (e.g. `foo bar buz`), or the output of a command (e.g. `$(echo foo bar buz)`), or a parameterized list of items (e.g. `foo $BARBUZ`). The result of the expression is then tokenized using the list of separators provided via the `--sep` option. If unspecified, the separator list defaults to `[tab]`, `[new line]` and `[space]` (`\t\n `).
 
 {% hint style='danger' %}
 ##### Important
