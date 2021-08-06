@@ -2,6 +2,9 @@
 set -uex
 set -o pipefail
 
+# Unset referenced-save-only.
+export EARTHLY_VERSION_FLAG_OVERRIDES=""
+
 cd "$(dirname "$0")"
 
 earthly=${earthly-"../../../build/linux/amd64/earthly"}

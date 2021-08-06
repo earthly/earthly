@@ -15,6 +15,7 @@ jobs:
     env:
       FORCE_COLOR: 1
       EARTHLY_CONVERSION_PARALLELISM: "5"
+      EARTHLY_VERSION_FLAG_OVERRIDES: "referenced-save-only"
       EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
       EARTHLY_INSTALL_ID: "earthly-githubactions"
     steps:
@@ -52,6 +53,7 @@ jobs:
     env:
       FORCE_COLOR: 1
       EARTHLY_CONVERSION_PARALLELISM: "5"
+      EARTHLY_VERSION_FLAG_OVERRIDES: "referenced-save-only"
       EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
       EARTHLY_INSTALL_ID: "earthly-githubactions"
     steps:
@@ -87,6 +89,7 @@ jobs:
     env:
       FORCE_COLOR: 1
       EARTHLY_CONVERSION_PARALLELISM: "5"
+      EARTHLY_VERSION_FLAG_OVERRIDES: "referenced-save-only"
       EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
       EARTHLY_INSTALL_ID: "earthly-githubactions"
     steps:
@@ -148,6 +151,7 @@ jobs:
     env:
       FORCE_COLOR: 1
       EARTHLY_CONVERSION_PARALLELISM: "5"
+      EARTHLY_VERSION_FLAG_OVERRIDES: "referenced-save-only"
       EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
       EARTHLY_INSTALL_ID: "earthly-githubactions"
       EARTHLY_FEATURE_FLAG_OVERRIDES: "use-copy-include-patterns"
@@ -184,6 +188,7 @@ jobs:
     env:
       FORCE_COLOR: 1
       EARTHLY_CONVERSION_PARALLELISM: "5"
+      EARTHLY_VERSION_FLAG_OVERRIDES: "referenced-save-only"
       EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
       EARTHLY_INSTALL_ID: "earthly-githubactions"
     steps:
@@ -199,6 +204,9 @@ jobs:
       - name: Docker mirror login (non fork only)
         run: docker login registry-1.docker.io.mirror.corp.earthly.dev --username "${{ secrets.DOCKERHUB_MIRROR_USERNAME }}" --password "${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}"
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+      - name: Docker Login (main build)
+        run: docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password "${{ secrets.DOCKERHUB_TOKEN }}"
+        if: github.event_name == 'push'
       - name: Configure Earthly to use mirror (non fork only)
         run: |-
           earthly config global.buildkit_additional_config "'[registry.\"docker.io\"]
@@ -225,6 +233,7 @@ jobs:
     env:
       FORCE_COLOR: 1
       EARTHLY_CONVERSION_PARALLELISM: "5"
+      EARTHLY_VERSION_FLAG_OVERRIDES: "referenced-save-only"
       EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
       EARTHLY_INSTALL_ID: "earthly-githubactions"
     steps:
@@ -240,6 +249,9 @@ jobs:
       - name: Docker mirror login (non fork only)
         run: docker login registry-1.docker.io.mirror.corp.earthly.dev --username "${{ secrets.DOCKERHUB_MIRROR_USERNAME }}" --password "${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}"
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+      - name: Docker Login (main build)
+        run: docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password "${{ secrets.DOCKERHUB_TOKEN }}"
+        if: github.event_name == 'push'
       - name: Configure Earthly to use mirror (non fork only)
         run: |-
           earthly config global.buildkit_additional_config "'[registry.\"docker.io\"]
@@ -270,6 +282,7 @@ jobs:
     env:
       FORCE_COLOR: 1
       EARTHLY_CONVERSION_PARALLELISM: "5"
+      EARTHLY_VERSION_FLAG_OVERRIDES: "referenced-save-only"
       EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
       EARTHLY_INSTALL_ID: "earthly-githubactions"
     steps:
@@ -307,6 +320,7 @@ jobs:
     env:
       FORCE_COLOR: 1
       EARTHLY_CONVERSION_PARALLELISM: "5"
+      EARTHLY_VERSION_FLAG_OVERRIDES: "referenced-save-only"
       EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
       EARTHLY_INSTALL_ID: "earthly-githubactions"
     steps:
@@ -344,6 +358,7 @@ jobs:
     env:
       FORCE_COLOR: 1
       EARTHLY_CONVERSION_PARALLELISM: "5"
+      EARTHLY_VERSION_FLAG_OVERRIDES: "referenced-save-only"
       EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
       EARTHLY_INSTALL_ID: "earthly-githubactions"
     steps:
@@ -374,6 +389,7 @@ jobs:
     env:
       FORCE_COLOR: 1
       EARTHLY_CONVERSION_PARALLELISM: "5"
+      EARTHLY_VERSION_FLAG_OVERRIDES: "referenced-save-only"
       EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
       EARTHLY_INSTALL_ID: "earthly-githubactions"
     steps:
@@ -405,6 +421,7 @@ jobs:
     env:
       FORCE_COLOR: 1
       EARTHLY_CONVERSION_PARALLELISM: "5"
+      EARTHLY_VERSION_FLAG_OVERRIDES: "referenced-save-only"
       EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
       EARTHLY_INSTALL_ID: "earthly-githubactions"
     steps:
@@ -442,6 +459,7 @@ jobs:
     env:
       FORCE_COLOR: 1
       EARTHLY_CONVERSION_PARALLELISM: "5"
+      EARTHLY_VERSION_FLAG_OVERRIDES: "referenced-save-only"
       EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
       EARTHLY_INSTALL_ID: "earthly-githubactions"
       SSH_PORT: "2222"
@@ -502,6 +520,7 @@ jobs:
     env:
       FORCE_COLOR: 1
       EARTHLY_CONVERSION_PARALLELISM: "5"
+      EARTHLY_VERSION_FLAG_OVERRIDES: "referenced-save-only"
       EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
       EARTHLY_INSTALL_ID: "earthly-githubactions"
     steps:
@@ -539,6 +558,7 @@ jobs:
     env:
       FORCE_COLOR: 1
       EARTHLY_CONVERSION_PARALLELISM: "5"
+      EARTHLY_VERSION_FLAG_OVERRIDES: "referenced-save-only"
       EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
       EARTHLY_INSTALL_ID: "earthly-githubactions"
     steps:
@@ -586,6 +606,7 @@ jobs:
     env:
       FORCE_COLOR: 1
       EARTHLY_CONVERSION_PARALLELISM: "5"
+      EARTHLY_VERSION_FLAG_OVERRIDES: "referenced-save-only"
       EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
       EARTHLY_INSTALL_ID: "earthly-githubactions"
     steps:
@@ -633,6 +654,7 @@ jobs:
     env:
       FORCE_COLOR: 1
       EARTHLY_CONVERSION_PARALLELISM: "5"
+      EARTHLY_VERSION_FLAG_OVERRIDES: "referenced-save-only"
       EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
       EARTHLY_INSTALL_ID: "earthly-githubactions"
     steps:
@@ -682,6 +704,8 @@ jobs:
     env:
       FORCE_COLOR: 1
       EARTHLY_CONVERSION_PARALLELISM: "5"
+      # TODO
+      # EARTHLY_VERSION_FLAG_OVERRIDES: "referenced-save-only"
       EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
       EARTHLY_INSTALL_ID: "earthly-githubactions"
     steps:
@@ -746,6 +770,8 @@ jobs:
     env:
       FORCE_COLOR: 1
       EARTHLY_CONVERSION_PARALLELISM: "5"
+      # TODO
+      # EARTHLY_VERSION_FLAG_OVERRIDES: "referenced-save-only"
       EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
       EARTHLY_INSTALL_ID: "earthly-githubactions"
     steps:

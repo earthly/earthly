@@ -48,6 +48,7 @@ chmod +x "$earthly"
 sleep 1 # WSL2 requires a wait after to avoid "Text file busy".
 
 "$earthly" --version
+export EARTHLY_VERSION_FLAG_OVERRIDES="referenced-save-only"
 "$earthly" config global.local_registry_host 'tcp://127.0.0.1:8371'
 
 # Yes, there is a bug in the upstream YAML parser. Sorry about the jank here.

@@ -369,7 +369,7 @@ func makeWithDockerdWrapFun(dindID string, tarPaths []string, opt WithDockerOpt)
 		envVars2 := append(params, envVars...)
 		return []string{
 			"/bin/sh", "-c",
-			strWithEnvVarsAndDocker(args, envVars2, isWithShell, withDebugger, forceDebugger, true, ""),
+			strWithEnvVarsAndDocker(args, envVars2, isWithShell, withDebugger, forceDebugger, true, "", ""),
 		}
 	}
 }
