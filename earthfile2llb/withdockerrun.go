@@ -124,13 +124,13 @@ func (wdr *withDockerRun) Run(ctx context.Context, args []string, opt WithDocker
 			return errors.Wrap(err, "pull")
 		}
 	}
-	cirOpts := convertInternalRunOpts{
+	cirOpts := ConvertRunOpts{
 		CommandName:     "WITH DOCKER RUN",
 		Args:            args,
 		Mounts:          opt.Mounts,
 		Secrets:         opt.Secrets,
 		WithEntrypoint:  opt.WithEntrypoint,
-		IsWithShell:     opt.WithShell,
+		WithShell:       opt.WithShell,
 		Privileged:      true, // needed for dockerd
 		NoCache:         opt.NoCache,
 		Interactive:     opt.Interactive,

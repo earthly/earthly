@@ -2,29 +2,14 @@ package earthfile2llb
 
 import "github.com/moby/buildkit/client/llb"
 
-type convertRunOpts struct {
-	CommandName     string
-	Args            []string
-	Mounts          []string
-	Secrets         []string
-	Privileged      bool
-	WithEntrypoint  bool
-	WithDocker      bool
-	IsWithShell     bool
-	Push            bool
-	WithSSH         bool
-	NoCache         bool
-	Interactive     bool
-	InteractiveKeep bool
-}
-
-type convertInternalRunOpts struct {
+// ConvertRunOpts represents a set of options needed for the RUN command.
+type ConvertRunOpts struct {
 	CommandName     string
 	Args            []string
 	Mounts          []string
 	Secrets         []string
 	WithEntrypoint  bool
-	IsWithShell     bool
+	WithShell       bool
 	ShellWrap       shellWrapFun
 	Privileged      bool
 	Push            bool

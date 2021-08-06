@@ -486,12 +486,12 @@ func (c *Converter) RunExitCode(ctx context.Context, commandName string, args, m
 
 	// Perform execution, but append the command with the right shell incantation that
 	// causes it to output the exit code to a file. This is done via the shellWrap.
-	opts := convertInternalRunOpts{
+	opts := ConvertRunOpts{
 		CommandName: commandName,
 		Args:        args,
 		Mounts:      mounts,
 		Secrets:     secretKeyValues,
-		IsWithShell: isWithShell,
+		WithShell:   isWithShell,
 		ShellWrap:   withShellAndEnvVarsExitCode(exitCodeFile),
 		Privileged:  privileged,
 		Transient:   true,
@@ -588,12 +588,12 @@ func (c *Converter) RunExpression(ctx context.Context, commandName string, expre
 
 	// Perform execution, but append the command with the right shell incantation that
 	// causes it to output to a file. This is done via the shellWrap.
-	opts := convertInternalRunOpts{
+	opts := ConvertRunOpts{
 		CommandName: commandName,
 		Args:        args,
 		Mounts:      mounts,
 		Secrets:     secretKeyValues,
-		IsWithShell: true,
+		WithShell:   true,
 		ShellWrap:   withShellAndEnvVarsOutput(srcBuildArgPath),
 		Privileged:  privileged,
 		Transient:   true,
@@ -674,30 +674,15 @@ func (c *Converter) RunExpressionLocal(ctx context.Context, commandName string, 
 }
 
 // Run applies the earthly RUN command.
-func (c *Converter) Run(ctx context.Context, args, mounts, secretKeyValues []string, privileged, withEntrypoint, withDocker, isWithShell, pushFlag, withSSH, noCache, interactive, interactiveKeep bool) error {
+func (c *Converter) Run(ctx context.Context, opts ConvertRunOpts) error {
 	err := c.checkAllowed(runCmd)
 	if err != nil {
 		return err
 	}
 	c.nonSaveCommand()
-	if withDocker {
-		return errors.New("RUN --with-docker is obsolete. Please use WITH DOCKER ... RUN ... END instead")
-	}
 
-	opts := convertInternalRunOpts{
-		CommandName:     "RUN",
-		Args:            args,
-		Mounts:          mounts,
-		Secrets:         secretKeyValues,
-		IsWithShell:     isWithShell,
-		WithEntrypoint:  withEntrypoint,
-		ShellWrap:       withShellAndEnvVars,
-		Privileged:      privileged,
-		Push:            pushFlag,
-		WithSSH:         withSSH,
-		NoCache:         noCache,
-		Interactive:     interactive,
-		InteractiveKeep: interactiveKeep,
+	if opts.ShellWrap == nil {
+		opts.ShellWrap = withShellAndEnvVars
 	}
 	_, err = c.internalRun(ctx, opts)
 	return err
@@ -1380,7 +1365,7 @@ func (c *Converter) buildTarget(ctx context.Context, fullTargetName string, plat
 	return mts, nil
 }
 
-func (c *Converter) internalRun(ctx context.Context, opts convertInternalRunOpts) (pllb.State, error) {
+func (c *Converter) internalRun(ctx context.Context, opts ConvertRunOpts) (pllb.State, error) {
 	isInteractive := (opts.Interactive || opts.InteractiveKeep)
 	if !c.opt.AllowInteractive && isInteractive {
 		// This check is here because other places also call here to evaluate RUN-like statements. We catch all potential interactives here.
@@ -1395,7 +1380,7 @@ func (c *Converter) internalRun(ctx context.Context, opts convertInternalRunOpts
 			copy(args, c.mts.Final.MainImage.Config.Cmd)
 		}
 		finalArgs = append(c.mts.Final.MainImage.Config.Entrypoint, finalArgs...)
-		opts.IsWithShell = false // Don't use shell when --entrypoint is passed.
+		opts.WithShell = false // Don't use shell when --entrypoint is passed.
 	}
 
 	runOpts := opts.extraRunOpts[:]
@@ -1465,7 +1450,7 @@ func (c *Converter) internalRun(ctx context.Context, opts convertInternalRunOpts
 		runOpts = append(runOpts, llb.AddSSHSocket())
 	}
 	// Shell and debugger wrap.
-	finalArgs = opts.ShellWrap(finalArgs, extraEnvVars, opts.IsWithShell, true, isInteractive)
+	finalArgs = opts.ShellWrap(finalArgs, extraEnvVars, opts.WithShell, true, isInteractive)
 	runOpts = append(runOpts, llb.Args(finalArgs))
 	if opts.NoCache {
 		runOpts = append(runOpts, llb.IgnoreCache)

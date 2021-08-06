@@ -614,9 +614,24 @@ func (i *Interpreter) handleRun(ctx context.Context, cmd spec.Command) error {
 	}
 
 	if i.withDocker == nil {
-		err = i.converter.Run(
-			ctx, args, opts.Mounts, opts.Secrets, opts.Privileged, opts.WithEntrypoint, opts.WithDocker,
-			withShell, opts.Push, opts.WithSSH, opts.NoCache, opts.Interactive, opts.InteractiveKeep)
+		if opts.WithDocker {
+			return i.errorf(cmd.SourceLocation, "--with-docker is obsolete. Please use WITH DOCKER ... RUN ... END instead")
+		}
+		opts := ConvertRunOpts{
+			CommandName:     cmd.Name,
+			Args:            args,
+			Mounts:          opts.Mounts,
+			Secrets:         opts.Secrets,
+			WithShell:       withShell,
+			WithEntrypoint:  opts.WithEntrypoint,
+			Privileged:      opts.Privileged,
+			Push:            opts.Push,
+			WithSSH:         opts.WithSSH,
+			NoCache:         opts.NoCache,
+			Interactive:     opts.Interactive,
+			InteractiveKeep: opts.InteractiveKeep,
+		}
+		err = i.converter.Run(ctx, opts)
 		if err != nil {
 			return i.wrapError(err, cmd.SourceLocation, "apply RUN")
 		}
