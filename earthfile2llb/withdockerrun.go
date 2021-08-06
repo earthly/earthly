@@ -124,26 +124,28 @@ func (wdr *withDockerRun) Run(ctx context.Context, args []string, opt WithDocker
 			return errors.Wrap(err, "pull")
 		}
 	}
-	var runOpts []llb.RunOption
-	mountRunOpts, err := parseMounts(
-		opt.Mounts, wdr.c.mts.Final.Target, wdr.c.mts.Final.TargetInput(), wdr.c.cacheContext)
-	if err != nil {
-		return errors.Wrap(err, "parse mounts")
+	cirOpts := convertInternalRunOpts{
+		CommandName:     "WITH DOCKER RUN",
+		Mounts:          opt.Mounts,
+		Secrets:         opt.Secrets,
+		Privileged:      true,
+		NoCache:         opt.NoCache,
+		Interactive:     opt.Interactive,
+		InteractiveKeep: opt.interactiveKeep,
 	}
-	runOpts = append(runOpts, mountRunOpts...)
-	runOpts = append(runOpts, pllb.AddMount(
+	cirOpts.extraRunOpts = append(cirOpts.extraRunOpts, pllb.AddMount(
 		"/var/earthly/dind", pllb.Scratch(), llb.HostBind(), llb.SourcePath("/tmp/earthly/dind")))
-	runOpts = append(runOpts, pllb.AddMount(
+	cirOpts.extraRunOpts = append(cirOpts.extraRunOpts, pllb.AddMount(
 		dockerdWrapperPath, pllb.Scratch(), llb.HostBind(), llb.SourcePath(dockerdWrapperPath)))
 	// This seems to make earthly-in-earthly work
 	// (and docker run --privileged, together with -v /sys/fs/cgroup:/sys/fs/cgroup),
 	// however, it breaks regular cases.
-	//runOpts = append(runOpts, pllb.AddMount(
+	//cirOpts.extraRunOpts = append(cirOpts.extraRunOpts, pllb.AddMount(
 	//"/sys/fs/cgroup", pllb.Scratch(), llb.HostBind(), llb.SourcePath("/sys/fs/cgroup")))
 	var tarPaths []string
 	for index, tarContext := range wdr.tarLoads {
 		loadDir := fmt.Sprintf("/var/earthly/load-%d", index)
-		runOpts = append(runOpts, pllb.AddMount(loadDir, tarContext, llb.Readonly))
+		cirOpts.extraRunOpts = append(cirOpts.extraRunOpts, pllb.AddMount(loadDir, tarContext, llb.Readonly))
 		tarPaths = append(tarPaths, path.Join(loadDir, "image.tar"))
 	}
 
@@ -157,22 +159,15 @@ func (wdr *withDockerRun) Run(ctx context.Context, args []string, opt WithDocker
 		finalArgs = append(wdr.c.mts.Final.MainImage.Config.Entrypoint, args...)
 		opt.WithShell = false // Don't use shell when --entrypoint is passed.
 	}
-	runOpts = append(runOpts, llb.Security(llb.SecurityModeInsecure))
-	runStr := fmt.Sprintf(
-		"WITH DOCKER RUN %s%s",
-		strIf(opt.WithEntrypoint, "--entrypoint "),
-		strings.Join(finalArgs, " "))
-	runOpts = append(
-		runOpts,
-		llb.WithCustomNamef("%s%s", wdr.c.vertexPrefix(false, opt.Interactive || opt.interactiveKeep), runStr))
+	cirOpts.Args = finalArgs
+	cirOpts.IsWithShell = opt.WithShell
 	dindID, err := wdr.c.mts.Final.TargetInput().Hash()
 	if err != nil {
 		return errors.Wrap(err, "compute dind id")
 	}
-	shellWrap := makeWithDockerdWrapFun(dindID, tarPaths, opt)
-	_, err = wdr.c.internalRun(
-		ctx, finalArgs, opt.Secrets, opt.WithShell, shellWrap,
-		false, false, false, opt.NoCache, opt.Interactive, opt.interactiveKeep, runStr, runOpts...)
+	cirOpts.ShellWrap = makeWithDockerdWrapFun(dindID, tarPaths, opt)
+
+	_, err = wdr.c.internalRun(ctx, cirOpts)
 	return err
 }
 

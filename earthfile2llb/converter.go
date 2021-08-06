@@ -486,26 +486,19 @@ func (c *Converter) RunExitCode(ctx context.Context, commandName string, args, m
 
 	// Perform execution, but append the command with the right shell incantation that
 	// causes it to output the exit code to a file. This is done via the shellWrap.
-	var opts []llb.RunOption
-	mountRunOpts, err := parseMounts(mounts, c.mts.Final.Target, c.targetInputActiveOnly(), c.cacheContext)
-	if err != nil {
-		return 0, errors.Wrap(err, "parse mounts")
+	opts := convertInternalRunOpts{
+		CommandName: commandName,
+		Args:        args,
+		Mounts:      mounts,
+		Secrets:     secretKeyValues,
+		IsWithShell: isWithShell,
+		ShellWrap:   withShellAndEnvVarsExitCode(exitCodeFile),
+		Privileged:  privileged,
+		Transient:   true,
+		WithSSH:     withSSH,
+		NoCache:     noCache,
 	}
-	opts = append(opts, mountRunOpts...)
-	if privileged {
-		opts = append(opts, llb.Security(llb.SecurityModeInsecure))
-	}
-	runStr := fmt.Sprintf(
-		"%s %s%s%s",
-		commandName, // eg IF
-		strIf(privileged, "--privileged "),
-		strIf(noCache, "--no-cache "),
-		strings.Join(args, " "))
-	shellWrap := withShellAndEnvVarsExitCode(exitCodeFile)
-	opts = append(opts, llb.WithCustomNamef("%s%s", c.vertexPrefix(false, false), runStr))
-	state, err := c.internalRun(
-		ctx, args, secretKeyValues, isWithShell, shellWrap, false,
-		true, withSSH, noCache, false, false, runStr, opts...)
+	state, err := c.internalRun(ctx, opts)
 	if err != nil {
 		return 0, err
 	}
@@ -595,27 +588,19 @@ func (c *Converter) RunExpression(ctx context.Context, commandName string, expre
 
 	// Perform execution, but append the command with the right shell incantation that
 	// causes it to output to a file. This is done via the shellWrap.
-	var opts []llb.RunOption
-	mountRunOpts, err := parseMounts(mounts, c.mts.Final.Target, c.targetInputActiveOnly(), c.cacheContext)
-	if err != nil {
-		return "", errors.Wrap(err, "parse mounts")
+	opts := convertInternalRunOpts{
+		CommandName: commandName,
+		Args:        args,
+		Mounts:      mounts,
+		Secrets:     secretKeyValues,
+		IsWithShell: true,
+		ShellWrap:   withShellAndEnvVarsOutput(srcBuildArgPath),
+		Privileged:  privileged,
+		Transient:   true,
+		WithSSH:     withSSH,
+		NoCache:     noCache,
 	}
-	opts = append(opts, mountRunOpts...)
-	if privileged {
-		opts = append(opts, llb.Security(llb.SecurityModeInsecure))
-	}
-	runStr := fmt.Sprintf(
-		"%s %s%s%s",
-		commandName, // eg IF
-		strIf(privileged, "--privileged "),
-		strIf(noCache, "--no-cache "),
-		strings.Join(args, " "))
-	opts = append(opts, llb.WithCustomNamef("%sRUN %s", c.vertexPrefix(false, false), runStr))
-	transient := true
-	shellWrap := withShellAndEnvVarsOutput(srcBuildArgPath)
-	state, err := c.internalRun(
-		ctx, args, secretKeyValues, true, shellWrap, false, transient, withSSH, noCache, false, false, runStr,
-		opts...)
+	state, err := c.internalRun(ctx, opts)
 	if err != nil {
 		return "", err
 	}
@@ -699,12 +684,18 @@ func (c *Converter) Run(ctx context.Context, args, mounts, secretKeyValues []str
 		return errors.New("RUN --with-docker is obsolete. Please use WITH DOCKER ... RUN ... END instead")
 	}
 
-	var opts []llb.RunOption
-	mountRunOpts, err := parseMounts(mounts, c.mts.Final.Target, c.targetInputActiveOnly(), c.cacheContext)
-	if err != nil {
-		return errors.Wrap(err, "parse mounts")
+	opts := convertInternalRunOpts{
+		CommandName:     "RUN",
+		Mounts:          mounts,
+		Secrets:         secretKeyValues,
+		ShellWrap:       withShellAndEnvVars,
+		Privileged:      privileged,
+		Push:            pushFlag,
+		WithSSH:         withSSH,
+		NoCache:         noCache,
+		Interactive:     interactive,
+		InteractiveKeep: interactiveKeep,
 	}
-	opts = append(opts, mountRunOpts...)
 
 	finalArgs := args
 	if withEntrypoint {
@@ -716,24 +707,9 @@ func (c *Converter) Run(ctx context.Context, args, mounts, secretKeyValues []str
 		finalArgs = append(c.mts.Final.MainImage.Config.Entrypoint, args...)
 		isWithShell = false // Don't use shell when --entrypoint is passed.
 	}
-	if privileged {
-		opts = append(opts, llb.Security(llb.SecurityModeInsecure))
-	}
-	runStr := fmt.Sprintf(
-		"RUN %s%s%s%s%s%s%s%s",
-		strIf(privileged, "--privileged "),
-		strIf(withDocker, "--with-docker "),
-		strIf(withEntrypoint, "--entrypoint "),
-		strIf(pushFlag, "--push "),
-		strIf(noCache, "--no-cache "),
-		strIf(interactive, "--interactive "),
-		strIf(interactiveKeep, "--interactive-keep "),
-		strings.Join(finalArgs, " "))
-	shellWrap := withShellAndEnvVars
-	opts = append(opts, llb.WithCustomNamef("%s%s", c.vertexPrefix(false, interactive || interactiveKeep), runStr))
-	_, err = c.internalRun(
-		ctx, finalArgs, secretKeyValues, isWithShell, shellWrap, pushFlag,
-		false, withSSH, noCache, interactive, interactiveKeep, runStr, opts...)
+	opts.IsWithShell = isWithShell
+	opts.Args = finalArgs
+	_, err = c.internalRun(ctx, opts)
 	return err
 }
 
@@ -1414,17 +1390,36 @@ func (c *Converter) buildTarget(ctx context.Context, fullTargetName string, plat
 	return mts, nil
 }
 
-func (c *Converter) internalRun(ctx context.Context, args, secretKeyValues []string, isWithShell bool, shellWrap shellWrapFun, pushFlag, transient, withSSH, noCache, interactive, interactiveKeep bool, commandStr string, opts ...llb.RunOption) (pllb.State, error) {
-	isInteractive := (interactive || interactiveKeep)
+func (c *Converter) internalRun(ctx context.Context, opts convertInternalRunOpts) (pllb.State, error) {
+	isInteractive := (opts.Interactive || opts.InteractiveKeep)
 	if !c.opt.AllowInteractive && isInteractive {
 		// This check is here because other places also call here to evaluate RUN-like statements. We catch all potential interactives here.
 		return pllb.State{}, errors.New("--interactive options are not allowed, when --strict is specified or otherwise implied")
 	}
 
-	finalOpts := opts
+	runOpts := opts.extraRunOpts[:]
+	if opts.Privileged {
+		runOpts = append(runOpts, llb.Security(llb.SecurityModeInsecure))
+	}
+	mountRunOpts, err := parseMounts(opts.Mounts, c.mts.Final.Target, c.targetInputActiveOnly(), c.cacheContext)
+	if err != nil {
+		return pllb.State{}, errors.Wrap(err, "parse mounts")
+	}
+	runOpts = append(runOpts, mountRunOpts...)
+	commandStr := fmt.Sprintf(
+		"%s %s%s%s%s%s%s",
+		opts.CommandName, // e.g. "RUN", "IF", "FOR", "ARG"
+		strIf(opts.Privileged, "--privileged "),
+		strIf(opts.Push, "--push "),
+		strIf(opts.NoCache, "--no-cache "),
+		strIf(opts.Interactive, "--interactive "),
+		strIf(opts.InteractiveKeep, "--interactive-keep "),
+		strings.Join(opts.Args, " "))
+	runOpts = append(runOpts, llb.WithCustomNamef("%s%s", c.vertexPrefix(false, isInteractive), commandStr))
+
 	var extraEnvVars []string
 	// Secrets.
-	for _, secretKeyValue := range secretKeyValues {
+	for _, secretKeyValue := range opts.Secrets {
 		parts := strings.SplitN(secretKeyValue, "=", 2)
 		if len(parts) != 2 {
 			return pllb.State{}, errors.Errorf("invalid secret definition %s", secretKeyValue)
@@ -1439,7 +1434,7 @@ func (c *Converter) internalRun(ctx context.Context, args, secretKeyValues []str
 				//       buildkit side. Then we wouldn't need to open this up to everyone.
 				llb.SecretFileOpt(0, 0, 0444),
 			}
-			finalOpts = append(finalOpts, llb.AddSecret(secretPath, secretOpts...))
+			runOpts = append(runOpts, llb.AddSecret(secretPath, secretOpts...))
 			// TODO: The use of cat here might not be portable.
 			extraEnvVars = append(extraEnvVars, fmt.Sprintf("%s=\"$(cat %s)\"", envVar, secretPath))
 		} else if parts[1] == "" {
@@ -1464,20 +1459,20 @@ func (c *Converter) internalRun(ctx context.Context, args, secretKeyValues []str
 		fmt.Sprintf("/run/secrets/%s", common.DebuggerSettingsSecretsKey), secretOpts...)
 	debuggerMount := pllb.AddMount(debuggerPath, pllb.Scratch(),
 		llb.HostBind(), llb.SourcePath("/usr/bin/earth_debugger"))
-	finalOpts = append(finalOpts, debuggerSecretMount, debuggerMount)
-	if withSSH {
-		finalOpts = append(finalOpts, llb.AddSSHSocket())
+	runOpts = append(runOpts, debuggerSecretMount, debuggerMount)
+	if opts.WithSSH {
+		runOpts = append(runOpts, llb.AddSSHSocket())
 	}
 	// Shell and debugger wrap.
-	finalArgs := shellWrap(args, extraEnvVars, isWithShell, true, isInteractive)
-	finalOpts = append(finalOpts, llb.Args(finalArgs))
-	if noCache {
-		finalOpts = append(finalOpts, llb.IgnoreCache)
+	finalArgs := opts.ShellWrap(opts.Args, extraEnvVars, opts.IsWithShell, true, isInteractive)
+	runOpts = append(runOpts, llb.Args(finalArgs))
+	if opts.NoCache {
+		runOpts = append(runOpts, llb.IgnoreCache)
 	}
 
-	if pushFlag {
+	if opts.Push {
 		// For push-flagged commands, make sure they run every time - don't use cache.
-		finalOpts = append(finalOpts, llb.IgnoreCache)
+		runOpts = append(runOpts, llb.IgnoreCache)
 		if !c.mts.Final.RunPush.HasState {
 			// If this is the first push-flagged command, initialize the state with the latest
 			// side-effects state.
@@ -1487,28 +1482,28 @@ func (c *Converter) internalRun(ctx context.Context, args, secretKeyValues []str
 	}
 
 	if isInteractive {
-		finalOpts = append(finalOpts, llb.IgnoreCache)
+		runOpts = append(runOpts, llb.IgnoreCache)
 		c.mts.Final.RanInteractive = true
 
 		switch {
-		case interactive:
+		case opts.Interactive:
 			is := states.InteractiveSession{
 				CommandStr:  commandStr,
 				Initialized: true,
 				Kind:        states.SessionEphemeral,
 			}
 
-			if pushFlag {
-				is.State = c.mts.Final.RunPush.State.Run(finalOpts...).Root()
+			if opts.Push {
+				is.State = c.mts.Final.RunPush.State.Run(runOpts...).Root()
 				c.mts.Final.RunPush.InteractiveSession = is
 				return c.mts.Final.RunPush.State, nil
 
 			}
-			is.State = c.mts.Final.MainState.Run(finalOpts...).Root()
+			is.State = c.mts.Final.MainState.Run(runOpts...).Root()
 			c.mts.Final.InteractiveSession = is
 			return c.mts.Final.MainState, nil
 
-		case interactiveKeep:
+		case opts.InteractiveKeep:
 			c.mts.Final.InteractiveSession = states.InteractiveSession{
 				CommandStr:  commandStr,
 				Initialized: true,
@@ -1517,17 +1512,17 @@ func (c *Converter) internalRun(ctx context.Context, args, secretKeyValues []str
 		}
 	}
 
-	if pushFlag {
+	if opts.Push {
 		// Don't run on MainState. We want push-flagged commands to be executed only
 		// *after* the build. Save this for later.
-		c.mts.Final.RunPush.State = c.mts.Final.RunPush.State.Run(finalOpts...).Root()
+		c.mts.Final.RunPush.State = c.mts.Final.RunPush.State.Run(runOpts...).Root()
 		c.mts.Final.RunPush.CommandStrs = append(c.mts.Final.RunPush.CommandStrs, commandStr)
 		return c.mts.Final.RunPush.State, nil
-	} else if transient {
-		transientState := c.mts.Final.MainState.Run(finalOpts...).Root()
+	} else if opts.Transient {
+		transientState := c.mts.Final.MainState.Run(runOpts...).Root()
 		return transientState, nil
 	} else {
-		c.mts.Final.MainState = c.mts.Final.MainState.Run(finalOpts...).Root()
+		c.mts.Final.MainState = c.mts.Final.MainState.Run(runOpts...).Root()
 		return c.mts.Final.MainState, nil
 	}
 }
