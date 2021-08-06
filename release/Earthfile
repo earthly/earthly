@@ -18,7 +18,6 @@ release-dockerhub:
         ../+all-dind
     BUILD \
         --platform=linux/amd64 \
-        --platform=linux/arm/v7 \
         --platform=linux/arm64 \
         --build-arg DIND_ALPINE_TAG=latest \
         ../+dind-alpine
