@@ -1040,7 +1040,7 @@ END
 As another example, `FOR` may be used to iterate over a set of directories in a monorepo and invoking targets within them.
 
 ```Dockerfile
-FOR dir IN $(ls -d *)
+FOR dir IN $(ls -d */)
   BUILD "./$dir+build"
 END
 ```
