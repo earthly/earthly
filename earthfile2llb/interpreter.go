@@ -334,37 +334,20 @@ func (i *Interpreter) handleIfExpression(ctx context.Context, expression []strin
 	// Note: Not expanding args for the expression itself, as that will be take care of by the shell.
 
 	var exitCode int
-	commandName := "IF"
-	if i.local {
-		if len(opts.Mounts) > 0 {
-			return false, i.errorf(sl, "mounts are not supported in combination with the LOCALLY directive")
-		}
-		if opts.WithSSH {
-			return false, i.errorf(sl, "the --ssh flag has no effect when used with the  LOCALLY directive")
-		}
-		if opts.Privileged {
-			return false, i.errorf(sl, "the --privileged flag has no effect when used with the LOCALLY directive")
-		}
-		if opts.NoCache {
-			return false, i.errorf(sl, "the --no-cache flag has no effect when used with the LOCALLY directive")
-		}
-
-		// TODO these should be supported, but haven't yet been implemented
-		if len(opts.Secrets) > 0 {
-			return false, i.errorf(sl, "secrets need to be implemented for the LOCALLY directive")
-		}
-
-		exitCode, err = i.converter.RunLocalExitCode(ctx, commandName, args)
-		if err != nil {
-			return false, i.wrapError(err, sl, "apply IF")
-		}
-	} else {
-		exitCode, err = i.converter.RunExitCode(
-			ctx, commandName, args, opts.Mounts, opts.Secrets, opts.Privileged,
-			withShell, opts.WithSSH, opts.NoCache)
-		if err != nil {
-			return false, i.wrapError(err, sl, "apply IF")
-		}
+	runOpts := ConvertRunOpts{
+		CommandName: "IF",
+		Args:        args,
+		Locally:     i.local,
+		Mounts:      opts.Mounts,
+		Secrets:     opts.Secrets,
+		WithShell:   withShell,
+		Privileged:  opts.Privileged,
+		WithSSH:     opts.WithSSH,
+		NoCache:     opts.NoCache,
+	}
+	exitCode, err = i.converter.RunExitCode(ctx, runOpts)
+	if err != nil {
+		return false, i.wrapError(err, sl, "apply IF")
 	}
 	return (exitCode == 0), nil
 }
@@ -610,7 +593,6 @@ func (i *Interpreter) handleRun(ctx context.Context, cmd spec.Command) error {
 			if err != nil {
 				return i.wrapError(err, cmd.SourceLocation, "with docker run")
 			}
-			return nil
 		} else {
 			err = i.converter.WithDockerRun(ctx, args, *i.withDocker)
 			if err != nil {

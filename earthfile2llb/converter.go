@@ -39,8 +39,6 @@ import (
 	"github.com/pkg/errors"
 )
 
-const exitCodeFile = "/run/exit_code"
-
 type cmdType int
 
 const (
@@ -471,107 +469,92 @@ func (c *Converter) CopyClassical(ctx context.Context, srcs []string, dest strin
 	return nil
 }
 
+// ConvertRunOpts represents a set of options needed for the RUN command.
+type ConvertRunOpts struct {
+	CommandName     string
+	Args            []string
+	Locally         bool
+	Mounts          []string
+	Secrets         []string
+	WithEntrypoint  bool
+	WithShell       bool
+	Privileged      bool
+	Push            bool
+	Transient       bool
+	WithSSH         bool
+	NoCache         bool
+	Interactive     bool
+	InteractiveKeep bool
+
+	// Internal.
+	shellWrap    shellWrapFun
+	extraRunOpts []llb.RunOption
+	statePrep    func(context.Context, pllb.State) (pllb.State, error)
+}
+
+// Run applies the earthly RUN command.
+func (c *Converter) Run(ctx context.Context, opts ConvertRunOpts) error {
+	err := c.checkAllowed(runCmd)
+	if err != nil {
+		return err
+	}
+	c.nonSaveCommand()
+
+	_, err = c.internalRun(ctx, opts)
+	return err
+}
+
 // RunExitCode executes a run for the purpose of determining the exit code of the command. This can be used in conditionals.
-func (c *Converter) RunExitCode(ctx context.Context, commandName string, args, mounts, secretKeyValues []string, privileged, isWithShell, withSSH, noCache bool) (int, error) {
+func (c *Converter) RunExitCode(ctx context.Context, opts ConvertRunOpts) (int, error) {
 	err := c.checkAllowed(runCmd)
 	if err != nil {
 		return 0, err
 	}
 	c.nonSaveCommand()
-	if !isWithShell {
-		return 0, errors.New("non-shell mode not yet supported")
-	}
 
-	// The exit code will be placed in /run. We need that dir to have been created.
-	c.mts.Final.MainState = c.mts.Final.MainState.File(
-		pllb.Mkdir("/run", 0755, llb.WithParents(true)),
-		llb.WithCustomNamef("[internal] mkdir %s", "/run"))
+	var exitCodeFile string
+	if opts.Locally {
+		exitCodeDir, err := ioutil.TempDir(os.TempDir(), "earthlyexitcode")
+		if err != nil {
+			return 0, errors.Wrap(err, "create temp dir")
+		}
+		exitCodeFile = filepath.Join(exitCodeDir, "/exit_code")
+		c.opt.CleanCollection.Add(func() error {
+			return os.RemoveAll(exitCodeDir)
+		})
+	} else {
+		exitCodeFile = "/run/exit_code"
+		opts.statePrep = func(ctx context.Context, state pllb.State) (pllb.State, error) {
+			return state.File(
+				pllb.Mkdir("/run", 0755, llb.WithParents(true)),
+				llb.WithCustomNamef("[internal] mkdir %s", "/run")), nil
+		}
+	}
 
 	// Perform execution, but append the command with the right shell incantation that
 	// causes it to output the exit code to a file. This is done via the shellWrap.
-	opts := ConvertRunOpts{
-		CommandName: commandName,
-		Args:        args,
-		Mounts:      mounts,
-		Secrets:     secretKeyValues,
-		WithShell:   isWithShell,
-		Privileged:  privileged,
-		Transient:   true,
-		WithSSH:     withSSH,
-		NoCache:     noCache,
-		shellWrap:   withShellAndEnvVarsExitCode(exitCodeFile),
-	}
+	opts.shellWrap = withShellAndEnvVarsExitCode(exitCodeFile)
 	state, err := c.internalRun(ctx, opts)
 	if err != nil {
 		return 0, err
 	}
-	ref, err := llbutil.StateToRef(ctx, c.opt.GwClient, state, c.opt.Platform, c.opt.CacheImports.AsMap())
-	if err != nil {
-		return 0, errors.Wrap(err, "run exit code state to ref")
-	}
-	codeDt, err := ref.ReadFile(ctx, gwclient.ReadRequest{
-		Filename: exitCodeFile,
-	})
-	if err != nil {
-		return 0, errors.Wrap(err, "read exit code")
-	}
-	exitCode, err := strconv.ParseInt(string(bytes.TrimSpace(codeDt)), 10, 64)
-	if err != nil {
-		return 0, errors.Wrap(err, "parse exit code as int")
-	}
-	return int(exitCode), err
-}
-
-// RunLocalExitCode runs a command locally rather than in a container and returns its exit code.
-func (c *Converter) RunLocalExitCode(ctx context.Context, commandName string, args []string) (int, error) {
-	err := c.checkAllowed(runCmd)
-	if err != nil {
-		return 0, err
-	}
-	c.nonSaveCommand()
-	runStr := fmt.Sprintf("%s %s", commandName, strings.Join(args, " "))
-	// Build args get propagated into env.
-	extraEnvVars := []string{}
-	for _, buildArgName := range c.varCollection.SortedActiveVariables() {
-		ba, _ := c.varCollection.GetActive(buildArgName)
-		extraEnvVars = append(extraEnvVars, fmt.Sprintf("%s=\"%s\"", buildArgName, shellescape.Quote(ba)))
-	}
-
-	exitCodeDir, err := ioutil.TempDir(os.TempDir(), "earthlyexitcode")
-	if err != nil {
-		return 0, errors.Wrap(err, "create temp dir")
-	}
-	exitCodeFile := filepath.Join(exitCodeDir, "/exit_code")
-	c.opt.CleanCollection.Add(func() error {
-		return os.RemoveAll(exitCodeDir)
-	})
-
-	// buildkit-hack in order to run locally, we prepend the command with a UUID
-	finalArgs := append(
-		[]string{localhost.RunOnLocalHostMagicStr},
-		withShellAndEnvVarsExitCode(exitCodeFile)(args, extraEnvVars, true, false, false)...,
-	)
-	opts := []llb.RunOption{
-		llb.Args(finalArgs),
-		llb.IgnoreCache,
-		llb.WithCustomNamef("%s%s", c.vertexPrefix(true, false), runStr),
-	}
-	c.mts.Final.MainState = c.mts.Final.MainState.Run(opts...).Root()
-
-	ref, err := llbutil.StateToRef(ctx, c.opt.GwClient, c.mts.Final.MainState, c.opt.Platform, c.opt.CacheImports.AsMap())
-	if err != nil {
-		return 0, errors.Wrap(err, "run exit code state to ref")
-	}
-	// Cause the execution to complete. We're not really interested in reading the dir - we just
-	// want to un-lazy the ref so that the local commands have executed.
-	_, err = ref.ReadDir(ctx, gwclient.ReadDirRequest{Path: "/"})
-	if err != nil {
-		return 0, errors.Wrap(err, "unlazy locally")
-	}
-
-	codeDt, err := ioutil.ReadFile(exitCodeFile)
-	if err != nil {
-		return 0, errors.Wrap(err, "read exit code file")
+	var codeDt []byte
+	if opts.Locally {
+		codeDt, err = ioutil.ReadFile(exitCodeFile)
+		if err != nil {
+			return 0, errors.Wrap(err, "read exit code file")
+		}
+	} else {
+		ref, err := llbutil.StateToRef(ctx, c.opt.GwClient, state, c.opt.Platform, c.opt.CacheImports.AsMap())
+		if err != nil {
+			return 0, errors.Wrap(err, "run exit code state to ref")
+		}
+		codeDt, err = ref.ReadFile(ctx, gwclient.ReadRequest{
+			Filename: exitCodeFile,
+		})
+		if err != nil {
+			return 0, errors.Wrap(err, "read exit code")
+		}
 	}
 	exitCode, err := strconv.ParseInt(string(bytes.TrimSpace(codeDt)), 10, 64)
 	if err != nil {
@@ -674,18 +657,6 @@ func (c *Converter) RunExpressionLocal(ctx context.Context, commandName string, 
 	// echo adds a trailing \n.
 	outputDt = bytes.TrimSuffix(outputDt, []byte("\n"))
 	return string(outputDt), nil
-}
-
-// Run applies the earthly RUN command.
-func (c *Converter) Run(ctx context.Context, opts ConvertRunOpts) error {
-	err := c.checkAllowed(runCmd)
-	if err != nil {
-		return err
-	}
-	c.nonSaveCommand()
-
-	_, err = c.internalRun(ctx, opts)
-	return err
 }
 
 // SaveArtifact applies the earthly SAVE ARTIFACT command.
@@ -1449,7 +1420,7 @@ func (c *Converter) internalRun(ctx context.Context, opts ConvertRunOpts) (pllb.
 	}
 
 	runOpts = append(runOpts, llb.Args(finalArgs))
-	if opts.NoCache || opts.Locally || opts.Push {
+	if opts.NoCache || opts.Locally || opts.Push || isInteractive {
 		runOpts = append(runOpts, llb.IgnoreCache)
 	}
 
@@ -1462,8 +1433,19 @@ func (c *Converter) internalRun(ctx context.Context, opts ConvertRunOpts) (pllb.
 		}
 	}
 
+	var state pllb.State
+	if opts.Push {
+		state = c.mts.Final.RunPush.State
+	} else {
+		state = c.mts.Final.MainState
+	}
+	if opts.statePrep != nil {
+		state, err = opts.statePrep(ctx, state)
+		if err != nil {
+			return pllb.State{}, err
+		}
+	}
 	if isInteractive {
-		runOpts = append(runOpts, llb.IgnoreCache)
 		c.mts.Final.RanInteractive = true
 
 		switch {
@@ -1475,12 +1457,12 @@ func (c *Converter) internalRun(ctx context.Context, opts ConvertRunOpts) (pllb.
 			}
 
 			if opts.Push {
-				is.State = c.mts.Final.RunPush.State.Run(runOpts...).Root()
+				is.State = state.Run(runOpts...).Root()
 				c.mts.Final.RunPush.InteractiveSession = is
 				return c.mts.Final.RunPush.State, nil
 
 			}
-			is.State = c.mts.Final.MainState.Run(runOpts...).Root()
+			is.State = state.Run(runOpts...).Root()
 			c.mts.Final.InteractiveSession = is
 			return c.mts.Final.MainState, nil
 
@@ -1496,17 +1478,16 @@ func (c *Converter) internalRun(ctx context.Context, opts ConvertRunOpts) (pllb.
 	if opts.Push {
 		// Don't run on MainState. We want push-flagged commands to be executed only
 		// *after* the build. Save this for later.
-		c.mts.Final.RunPush.State = c.mts.Final.RunPush.State.Run(runOpts...).Root()
+		c.mts.Final.RunPush.State = state.Run(runOpts...).Root()
 		c.mts.Final.RunPush.CommandStrs = append(c.mts.Final.RunPush.CommandStrs, commandStr)
 		return c.mts.Final.RunPush.State, nil
 	} else if opts.Transient {
-		transientState := c.mts.Final.MainState.Run(runOpts...).Root()
+		transientState := state.Run(runOpts...).Root()
 		return transientState, nil
 	} else {
-		c.mts.Final.MainState = c.mts.Final.MainState.Run(runOpts...).Root()
+		c.mts.Final.MainState = state.Run(runOpts...).Root()
 
 		if opts.Locally {
-			// Cause the execution to complete.
 			err = c.forceExecution(ctx, c.mts.Final.MainState)
 			if err != nil {
 				return pllb.State{}, err
