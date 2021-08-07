@@ -6,6 +6,8 @@ WORKDIR /test
 
 all:
     BUILD +test-for-ls
+    BUILD +test-for-empty
+    BUILD +test-for-single
     BUILD +test-for-comma
     BUILD +test-for-comma-colon
     BUILD +test-for-constant
@@ -24,6 +26,35 @@ test-for-ls:
     RUN cat ./output.txt
     RUN cat ./output.txt | tr '\n' ' '
     RUN test "$(cat ./output.txt | tr '\n' ' ')" = "a b c d "
+
+test-for-empty:
+    FOR variable IN ""
+        RUN echo "fail! variable='$variable'"; false
+    END
+    FOR variable IN ''
+        RUN echo "fail! variable='$variable'"; false
+    END
+    ARG empty=""
+    FOR variable IN $empty
+        RUN echo "fail! variable='$variable'"; false
+    END
+    ARG empty2
+    FOR variable IN $empty2
+        RUN echo "fail! variable='$variable'"; false
+    END
+    FOR variable IN $(cat /dev/null)
+        RUN echo "fail! variable='$variable'"; false
+    END
+    FOR variable IN "$(cat /dev/null)"
+        RUN echo "fail! variable='$variable'"; false
+    END
+
+test-for-single:
+    FOR variable IN one
+        RUN test ! -f ./single
+        RUN touch ./single
+        RUN test "$variable" = "one"
+    END
 
 test-for-comma:
     RUN echo "foo,bar:buz:zub,oof" >./input.txt

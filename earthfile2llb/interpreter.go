@@ -344,6 +344,7 @@ func (i *Interpreter) handleIfExpression(ctx context.Context, expression []strin
 		Privileged:  opts.Privileged,
 		WithSSH:     opts.WithSSH,
 		NoCache:     opts.NoCache,
+		Transient:   !i.local,
 	}
 	exitCode, err = i.converter.RunExitCode(ctx, runOpts)
 	if err != nil {
@@ -393,38 +394,21 @@ func (i *Interpreter) handleForArgs(ctx context.Context, forArgs []string, sl *s
 	}
 	variable := args[0]
 	expression := args[2:]
-	commandName := "FOR"
-	var output string
-	if i.local {
-		if len(opts.Mounts) > 0 {
-			return "", nil, i.errorf(sl, "mounts are not supported in combination with the LOCALLY directive")
-		}
-		if opts.WithSSH {
-			return "", nil, i.errorf(sl, "the --ssh flag has no effect when used with the  LOCALLY directive")
-		}
-		if opts.Privileged {
-			return "", nil, i.errorf(sl, "the --privileged flag has no effect when used with the LOCALLY directive")
-		}
-		if opts.NoCache {
-			return "", nil, i.errorf(sl, "the --no-cache flag has no effect when used with the LOCALLY directive")
-		}
-
-		// TODO these should be supported, but haven't yet been implemented
-		if len(opts.Secrets) > 0 {
-			return "", nil, i.errorf(sl, "secrets need to be implemented for the LOCALLY directive")
-		}
-
-		output, err = i.converter.RunExpressionLocal(ctx, commandName, expression)
-		if err != nil {
-			return "", nil, i.wrapError(err, sl, "apply FOR ... IN")
-		}
-	} else {
-		output, err = i.converter.RunExpression(
-			ctx, commandName, variable, expression, opts.Mounts, opts.Secrets,
-			opts.Privileged, opts.WithSSH, opts.NoCache)
-		if err != nil {
-			return "", nil, i.wrapError(err, sl, "apply FOR ... IN")
-		}
+	runOpts := ConvertRunOpts{
+		CommandName: "FOR",
+		Args:        expression,
+		Locally:     i.local,
+		Mounts:      opts.Mounts,
+		Secrets:     opts.Secrets,
+		WithShell:   true,
+		Privileged:  opts.Privileged,
+		WithSSH:     opts.WithSSH,
+		NoCache:     opts.NoCache,
+		Transient:   !i.local,
+	}
+	output, err := i.converter.RunExpression(ctx, variable, runOpts)
+	if err != nil {
+		return "", nil, i.wrapError(err, sl, "apply FOR ... IN")
 	}
 	instances := strings.FieldsFunc(output, func(r rune) bool {
 		return strings.ContainsRune(opts.Separators, r)

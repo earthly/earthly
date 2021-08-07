@@ -565,94 +565,56 @@ func (c *Converter) RunExitCode(ctx context.Context, opts ConvertRunOpts) (int, 
 
 // RunExpression runs an expression and returns its output. The run is transient - any state created
 // is not used in subsequent commands.
-func (c *Converter) RunExpression(ctx context.Context, commandName string, expressionName string, args []string, mounts, secretKeyValues []string, privileged, withSSH, noCache bool) (string, error) {
-	srcBuildArgDir := "/run/buildargs"
-	srcBuildArgPath := path.Join(srcBuildArgDir, expressionName)
-	c.mts.Final.MainState = c.mts.Final.MainState.File(
-		pllb.Mkdir(srcBuildArgDir, 0755, llb.WithParents(true)),
-		llb.WithCustomNamef("[internal] mkdir %s", srcBuildArgDir))
-
-	// Perform execution, but append the command with the right shell incantation that
-	// causes it to output to a file. This is done via the shellWrap.
-	opts := ConvertRunOpts{
-		CommandName: commandName,
-		Args:        args,
-		Mounts:      mounts,
-		Secrets:     secretKeyValues,
-		WithShell:   true,
-		Privileged:  privileged,
-		Transient:   true,
-		WithSSH:     withSSH,
-		NoCache:     noCache,
-		shellWrap:   withShellAndEnvVarsOutput(srcBuildArgPath),
-	}
-	state, err := c.internalRun(ctx, opts)
-	if err != nil {
-		return "", err
-	}
-	ref, err := llbutil.StateToRef(ctx, c.opt.GwClient, state, c.opt.Platform, c.opt.CacheImports.AsMap())
-	if err != nil {
-		return "", errors.Wrapf(err, "build arg state to ref")
-	}
-	value, err := ref.ReadFile(ctx, gwclient.ReadRequest{Filename: srcBuildArgPath})
-	if err != nil {
-		return "", errors.Wrapf(err, "non constant build arg read request")
-	}
-	// echo adds a trailing \n.
-	value = bytes.TrimSuffix(value, []byte("\n"))
-	return string(value), nil
-}
-
-// RunExpressionLocal runs an expression locally and returns its output.
-func (c *Converter) RunExpressionLocal(ctx context.Context, commandName string, args []string) (string, error) {
+func (c *Converter) RunExpression(ctx context.Context, expressionName string, opts ConvertRunOpts) (string, error) {
 	err := c.checkAllowed(runCmd)
 	if err != nil {
 		return "", err
 	}
 	c.nonSaveCommand()
-	runStr := fmt.Sprintf("%s %s", commandName, strings.Join(args, " "))
 
-	// Build args get propagated into env.
-	extraEnvVars := []string{}
-	for _, buildArgName := range c.varCollection.SortedActiveVariables() {
-		ba, _ := c.varCollection.GetActive(buildArgName)
-		extraEnvVars = append(extraEnvVars, fmt.Sprintf("%s=\"%s\"", buildArgName, shellescape.Quote(ba)))
+	var outputFile string
+	if opts.Locally {
+		outputDir, err := ioutil.TempDir(os.TempDir(), "earthlyexproutput")
+		if err != nil {
+			return "", errors.Wrap(err, "create temp dir")
+		}
+		outputFile = filepath.Join(outputDir, "/output")
+		c.opt.CleanCollection.Add(func() error {
+			return os.RemoveAll(outputDir)
+		})
+	} else {
+		srcBuildArgDir := "/run/buildargs"
+		outputFile = path.Join(srcBuildArgDir, expressionName)
+		opts.statePrep = func(ctx context.Context, state pllb.State) (pllb.State, error) {
+			return state.File(
+				pllb.Mkdir(srcBuildArgDir, 0755, llb.WithParents(true)),
+				llb.WithCustomNamef("[internal] mkdir %s", srcBuildArgDir)), nil
+		}
 	}
 
-	outputDir, err := ioutil.TempDir(os.TempDir(), "earthlyexproutput")
+	// Perform execution, but append the command with the right shell incantation that
+	// causes it to output to a file. This is done via the shellWrap.
+	opts.shellWrap = withShellAndEnvVarsOutput(outputFile)
+	state, err := c.internalRun(ctx, opts)
 	if err != nil {
-		return "", errors.Wrap(err, "create temp dir")
-	}
-	outputFile := filepath.Join(outputDir, "/output")
-	c.opt.CleanCollection.Add(func() error {
-		return os.RemoveAll(outputDir)
-	})
-
-	// buildkit-hack in order to run locally, we prepend the command with a UUID
-	finalArgs := append(
-		[]string{localhost.RunOnLocalHostMagicStr},
-		withShellAndEnvVarsOutput(outputFile)(args, extraEnvVars, true, false, false)...)
-	opts := []llb.RunOption{
-		llb.Args(finalArgs),
-		llb.IgnoreCache,
-		llb.WithCustomNamef("%s%s", c.vertexPrefix(true, false), runStr),
-	}
-	c.mts.Final.MainState = c.mts.Final.MainState.Run(opts...).Root()
-
-	ref, err := llbutil.StateToRef(ctx, c.opt.GwClient, c.mts.Final.MainState, c.opt.Platform, c.opt.CacheImports.AsMap())
-	if err != nil {
-		return "", errors.Wrap(err, "run exit code state to ref")
-	}
-	// Cause the execution to complete. We're not really interested in reading the dir - we just
-	// want to un-lazy the ref so that the local commands have executed.
-	_, err = ref.ReadDir(ctx, gwclient.ReadDirRequest{Path: "/"})
-	if err != nil {
-		return "", errors.Wrap(err, "unlazy locally")
+		return "", err
 	}
 
-	outputDt, err := ioutil.ReadFile(outputFile)
-	if err != nil {
-		return "", errors.Wrap(err, "read exit code file")
+	var outputDt []byte
+	if opts.Locally {
+		outputDt, err = ioutil.ReadFile(outputFile)
+		if err != nil {
+			return "", errors.Wrap(err, "read exit code file")
+		}
+	} else {
+		ref, err := llbutil.StateToRef(ctx, c.opt.GwClient, state, c.opt.Platform, c.opt.CacheImports.AsMap())
+		if err != nil {
+			return "", errors.Wrapf(err, "build arg state to ref")
+		}
+		outputDt, err = ref.ReadFile(ctx, gwclient.ReadRequest{Filename: outputFile})
+		if err != nil {
+			return "", errors.Wrapf(err, "non constant build arg read request")
+		}
 	}
 	// echo adds a trailing \n.
 	outputDt = bytes.TrimSuffix(outputDt, []byte("\n"))
@@ -1610,8 +1572,12 @@ func (c *Converter) nonSaveCommand() {
 
 func (c *Converter) processNonConstantBuildArgFunc(ctx context.Context) variables.ProcessNonConstantVariableFunc {
 	return func(name string, expression string) (string, int, error) {
-		output, err := c.RunExpression(
-			ctx, "ARG", name, strings.Split(expression, " "), nil, nil, false, false, false)
+		opts := ConvertRunOpts{
+			CommandName: fmt.Sprintf("ARG %s = RUN", name),
+			Args:        strings.Split(expression, " "),
+			Transient:   true,
+		}
+		output, err := c.RunExpression(ctx, name, opts)
 		if err != nil {
 			return "", 0, err
 		}
