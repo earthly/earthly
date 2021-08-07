@@ -15,11 +15,16 @@ import (
 )
 
 type withDockerRunLocal struct {
-	c        *Converter
-	tarLoads []llb.State
+	c *Converter
 }
 
 func (wdrl *withDockerRunLocal) Run(ctx context.Context, args []string, opt WithDockerOpt) error {
+	err := wdrl.c.checkAllowed(runCmd)
+	if err != nil {
+		return err
+	}
+	wdrl.c.nonSaveCommand()
+
 	for _, loadOpt := range opt.Loads {
 		// Load.
 		localImageTarPath, err := wdrl.load(ctx, loadOpt)
@@ -34,8 +39,25 @@ func (wdrl *withDockerRunLocal) Run(ctx context.Context, args []string, opt With
 		wdrl.c.mts.Final.MainState = wdrl.c.mts.Final.MainState.Run(runOpts...).Root()
 	}
 
+	crOpts := ConvertRunOpts{
+		CommandName:     "WITH DOCKER RUN",
+		Locally:         true,
+		Args:            args,
+		Mounts:          opt.Mounts,
+		Secrets:         opt.Secrets,
+		WithEntrypoint:  opt.WithEntrypoint,
+		WithShell:       opt.WithShell,
+		NoCache:         opt.NoCache,
+		Interactive:     opt.Interactive,
+		InteractiveKeep: opt.interactiveKeep,
+	}
+
 	// then finally run the command
-	return wdrl.c.RunLocal(ctx, args, false)
+	_, err = wdrl.c.internalRun(ctx, crOpts)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (wdrl *withDockerRunLocal) load(ctx context.Context, opt DockerLoadOpt) (string, error) {

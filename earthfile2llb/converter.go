@@ -397,8 +397,11 @@ func (c *Converter) CopyArtifactLocal(ctx context.Context, artifactName string, 
 			artifact.String(),
 			dest),
 	}
-
 	c.mts.Final.MainState = c.mts.Final.MainState.Run(opts...).Root()
+	err = c.forceExecution(ctx, c.mts.Final.MainState)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -681,53 +684,8 @@ func (c *Converter) Run(ctx context.Context, opts ConvertRunOpts) error {
 	}
 	c.nonSaveCommand()
 
-	if opts.shellWrap == nil {
-		opts.shellWrap = withShellAndEnvVars
-	}
 	_, err = c.internalRun(ctx, opts)
 	return err
-}
-
-// RunLocal applies a RUN statement locally rather than in a container
-func (c *Converter) RunLocal(ctx context.Context, args []string, pushFlag bool) error {
-	err := c.checkAllowed(runCmd)
-	if err != nil {
-		return err
-	}
-	c.nonSaveCommand()
-	runStr := fmt.Sprintf("RUN %s%s", strIf(pushFlag, "--push "), strings.Join(args, " "))
-
-	// Build args get propagated into env.
-	extraEnvVars := []string{}
-	for _, buildArgName := range c.varCollection.SortedActiveVariables() {
-		ba, _ := c.varCollection.GetActive(buildArgName)
-		extraEnvVars = append(extraEnvVars, fmt.Sprintf("%s=\"%s\"", buildArgName, shellescape.Quote(ba)))
-	}
-
-	// buildkit-hack in order to run locally, we prepend the command with a UUID
-	finalArgs := append(
-		[]string{localhost.RunOnLocalHostMagicStr},
-		withShellAndEnvVars(args, extraEnvVars, true, false, false)...)
-	opts := []llb.RunOption{
-		llb.Args(finalArgs),
-		llb.IgnoreCache,
-		llb.WithCustomNamef("%s%s", c.vertexPrefix(true, false), runStr),
-	}
-
-	if pushFlag {
-		if !c.mts.Final.RunPush.HasState {
-			// If this is the first push-flagged command, initialize the state with the latest
-			// side-effects state.
-			c.mts.Final.RunPush.State = c.mts.Final.MainState
-			c.mts.Final.RunPush.HasState = true
-		}
-		c.mts.Final.RunPush.State = c.mts.Final.RunPush.State.Run(opts...).Root()
-		c.mts.Final.RunPush.CommandStrs = append(
-			c.mts.Final.RunPush.CommandStrs, runStr)
-	} else {
-		c.mts.Final.MainState = c.mts.Final.MainState.Run(opts...).Root()
-	}
-	return nil
 }
 
 // SaveArtifact applies the earthly SAVE ARTIFACT command.
@@ -857,6 +815,10 @@ func (c *Converter) SaveArtifactFromLocal(ctx context.Context, saveFrom, saveTo 
 		c.mts.Final.MainState, []string{absSaveTo}, c.mts.Final.ArtifactsState,
 		absSaveTo, true, true, keepTs, own, ifExists, false,
 	)
+	err = c.forceExecution(ctx, c.mts.Final.ArtifactsState)
+	if err != nil {
+		return err
+	}
 	c.ranSave = true
 	c.markFakeDeps()
 	return nil
@@ -1368,8 +1330,33 @@ func (c *Converter) buildTarget(ctx context.Context, fullTargetName string, plat
 func (c *Converter) internalRun(ctx context.Context, opts ConvertRunOpts) (pllb.State, error) {
 	isInteractive := (opts.Interactive || opts.InteractiveKeep)
 	if !c.opt.AllowInteractive && isInteractive {
-		// This check is here because other places also call here to evaluate RUN-like statements. We catch all potential interactives here.
-		return pllb.State{}, errors.New("--interactive options are not allowed, when --strict is specified or otherwise implied")
+		return pllb.State{}, errors.New("interactive options are not allowed, when --strict is specified or otherwise implied")
+	}
+	if opts.Locally {
+		if len(opts.Secrets) != 0 {
+			return pllb.State{}, errors.New("secrets not yet supported with LOCALLY") // TODO
+		}
+		if len(opts.Mounts) != 0 {
+			return pllb.State{}, errors.New("mounts not supported with LOCALLY")
+		}
+		if opts.WithSSH {
+			return pllb.State{}, errors.New("--ssh not supported with LOCALLY")
+		}
+		if opts.Privileged {
+			return pllb.State{}, errors.New("--privileged not supported with LOCALLY")
+		}
+		if isInteractive {
+			return pllb.State{}, errors.New("interactive mode not supported with LOCALLY")
+		}
+		if opts.Push {
+			return pllb.State{}, errors.New("--push not supported with LOCALLY")
+		}
+		if opts.Transient {
+			return pllb.State{}, errors.New("Transient run not supported with LOCALLY")
+		}
+	}
+	if opts.shellWrap == nil {
+		opts.shellWrap = withShellAndEnvVars
 	}
 
 	finalArgs := opts.Args[:]
@@ -1401,7 +1388,7 @@ func (c *Converter) internalRun(ctx context.Context, opts ConvertRunOpts) (pllb.
 		strIf(opts.Interactive, "--interactive "),
 		strIf(opts.InteractiveKeep, "--interactive-keep "),
 		strings.Join(opts.Args, " "))
-	runOpts = append(runOpts, llb.WithCustomNamef("%s%s", c.vertexPrefix(false, isInteractive), commandStr))
+	runOpts = append(runOpts, llb.WithCustomNamef("%s%s", c.vertexPrefix(opts.Locally, isInteractive), commandStr))
 
 	var extraEnvVars []string
 	// Secrets.
@@ -1436,29 +1423,37 @@ func (c *Converter) internalRun(ctx context.Context, opts ConvertRunOpts) (pllb.
 		ba, _ := c.varCollection.GetActive(buildArgName)
 		extraEnvVars = append(extraEnvVars, fmt.Sprintf("%s=%s", buildArgName, shellescape.Quote(ba)))
 	}
-	// Debugger.
-	secretOpts := []llb.SecretOption{
-		llb.SecretID(common.DebuggerSettingsSecretsKey),
-		llb.SecretFileOpt(0, 0, 0444),
-	}
-	debuggerSecretMount := llb.AddSecret(
-		fmt.Sprintf("/run/secrets/%s", common.DebuggerSettingsSecretsKey), secretOpts...)
-	debuggerMount := pllb.AddMount(debuggerPath, pllb.Scratch(),
-		llb.HostBind(), llb.SourcePath("/usr/bin/earth_debugger"))
-	runOpts = append(runOpts, debuggerSecretMount, debuggerMount)
-	if opts.WithSSH {
-		runOpts = append(runOpts, llb.AddSSHSocket())
+	if !opts.Locally {
+		// Debugger.
+		secretOpts := []llb.SecretOption{
+			llb.SecretID(common.DebuggerSettingsSecretsKey),
+			llb.SecretFileOpt(0, 0, 0444),
+		}
+		debuggerSecretMount := llb.AddSecret(
+			fmt.Sprintf("/run/secrets/%s", common.DebuggerSettingsSecretsKey), secretOpts...)
+		debuggerMount := pllb.AddMount(debuggerPath, pllb.Scratch(),
+			llb.HostBind(), llb.SourcePath("/usr/bin/earth_debugger"))
+		runOpts = append(runOpts, debuggerSecretMount, debuggerMount)
+		if opts.WithSSH {
+			runOpts = append(runOpts, llb.AddSSHSocket())
+		}
 	}
 	// Shell and debugger wrap.
-	finalArgs = opts.shellWrap(finalArgs, extraEnvVars, opts.WithShell, true, isInteractive)
+	prependDebugger := !opts.Locally
+	finalArgs = opts.shellWrap(finalArgs, extraEnvVars, opts.WithShell, prependDebugger, isInteractive)
+	if opts.Locally {
+		// buildkit-hack in order to run locally, we prepend the command with a magic UUID.
+		finalArgs = append(
+			[]string{localhost.RunOnLocalHostMagicStr},
+			finalArgs...)
+	}
+
 	runOpts = append(runOpts, llb.Args(finalArgs))
-	if opts.NoCache {
+	if opts.NoCache || opts.Locally || opts.Push {
 		runOpts = append(runOpts, llb.IgnoreCache)
 	}
 
 	if opts.Push {
-		// For push-flagged commands, make sure they run every time - don't use cache.
-		runOpts = append(runOpts, llb.IgnoreCache)
 		if !c.mts.Final.RunPush.HasState {
 			// If this is the first push-flagged command, initialize the state with the latest
 			// side-effects state.
@@ -1509,8 +1504,31 @@ func (c *Converter) internalRun(ctx context.Context, opts ConvertRunOpts) (pllb.
 		return transientState, nil
 	} else {
 		c.mts.Final.MainState = c.mts.Final.MainState.Run(runOpts...).Root()
+
+		if opts.Locally {
+			// Cause the execution to complete.
+			err = c.forceExecution(ctx, c.mts.Final.MainState)
+			if err != nil {
+				return pllb.State{}, err
+			}
+		}
+
 		return c.mts.Final.MainState, nil
 	}
+}
+
+func (c *Converter) forceExecution(ctx context.Context, state pllb.State) error {
+	ref, err := llbutil.StateToRef(ctx, c.opt.GwClient, state, c.opt.Platform, c.opt.CacheImports.AsMap())
+	if err != nil {
+		return errors.Wrap(err, "run locally state to ref")
+	}
+	// We're not really interested in reading the dir - we just
+	// want to un-lazy the ref so that the local commands have executed.
+	_, err = ref.ReadDir(ctx, gwclient.ReadDirRequest{Path: "/"})
+	if err != nil {
+		return errors.Wrap(err, "unlazy locally")
+	}
+	return nil
 }
 
 func (c *Converter) readArtifact(ctx context.Context, mts *states.MultiTarget, artifact domain.Artifact) ([]byte, error) {

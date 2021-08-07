@@ -560,55 +560,6 @@ func (i *Interpreter) handleRun(ctx context.Context, cmd spec.Command) error {
 	}
 	// Note: Not expanding args for the run itself, as that will be take care of by the shell.
 
-	if i.local {
-		if len(opts.Mounts) > 0 {
-			return i.errorf(cmd.SourceLocation, "mounts are not supported in combination with the LOCALLY directive")
-		}
-		if opts.WithSSH {
-			return i.errorf(cmd.SourceLocation, "the --ssh flag has no effect when used with the  LOCALLY directive")
-		}
-		if opts.Privileged {
-			return i.errorf(cmd.SourceLocation, "the --privileged flag has no effect when used with the LOCALLY directive")
-		}
-		if opts.NoCache {
-			return i.errorf(cmd.SourceLocation, "the --no-cache flag has no effect when used with the LOCALLY directive")
-		}
-		if opts.Interactive {
-			// I mean its literally just your terminal but with extra steps. No reason to support this?
-			return i.errorf(cmd.SourceLocation, "the --interactive flag is not supported in combination with the LOCALLY directive")
-		}
-		if opts.InteractiveKeep {
-			// I mean its literally just your terminal but with extra steps. No reason to support this?
-			return i.errorf(cmd.SourceLocation, "the --interactive-keep flag is not supported in combination with the LOCALLY directive")
-		}
-
-		// TODO these should be supported, but haven't yet been implemented
-		if len(opts.Secrets) > 0 {
-			return i.errorf(cmd.SourceLocation, "secrets need to be implemented for the LOCALLY directive")
-		}
-
-		if i.withDocker != nil {
-			if opts.Push {
-				return i.errorf(cmd.SourceLocation, "RUN --push not allowed in WITH DOCKER")
-			}
-			if i.withDockerRan {
-				return i.errorf(cmd.SourceLocation, "only one RUN command allowed in WITH DOCKER")
-			}
-			i.withDockerRan = true
-			err = i.converter.WithDockerRunLocal(ctx, args, *i.withDocker)
-			if err != nil {
-				return i.wrapError(err, cmd.SourceLocation, "with docker run")
-			}
-			return nil
-		}
-
-		err = i.converter.RunLocal(ctx, args, opts.Push)
-		if err != nil {
-			return i.wrapError(err, cmd.SourceLocation, "apply RUN")
-		}
-		return nil
-	}
-
 	if opts.Privileged && !i.allowPrivileged {
 		return i.errorf(cmd.SourceLocation, "Permission denied: unwilling to run privileged command; did you reference a remote Earthfile without the --allow-privileged flag?")
 	}
@@ -620,6 +571,7 @@ func (i *Interpreter) handleRun(ctx context.Context, cmd spec.Command) error {
 		opts := ConvertRunOpts{
 			CommandName:     cmd.Name,
 			Args:            args,
+			Locally:         i.local,
 			Mounts:          opts.Mounts,
 			Secrets:         opts.Secrets,
 			WithShell:       withShell,
@@ -639,13 +591,12 @@ func (i *Interpreter) handleRun(ctx context.Context, cmd spec.Command) error {
 			i.pushOnlyAllowed = true
 		}
 	} else {
-		if opts.Push {
-			return i.errorf(cmd.SourceLocation, "RUN --push not allowed in WITH DOCKER")
-		}
 		if i.withDockerRan {
 			return i.errorf(cmd.SourceLocation, "only one RUN command allowed in WITH DOCKER")
 		}
-		i.withDockerRan = true
+		if opts.Push {
+			return i.errorf(cmd.SourceLocation, "RUN --push not allowed in WITH DOCKER")
+		}
 		i.withDocker.Mounts = opts.Mounts
 		i.withDocker.Secrets = opts.Secrets
 		i.withDocker.WithShell = withShell
@@ -653,10 +604,20 @@ func (i *Interpreter) handleRun(ctx context.Context, cmd spec.Command) error {
 		i.withDocker.NoCache = opts.NoCache
 		i.withDocker.Interactive = opts.Interactive
 		i.withDocker.interactiveKeep = opts.InteractiveKeep
-		err = i.converter.WithDockerRun(ctx, args, *i.withDocker)
-		if err != nil {
-			return i.wrapError(err, cmd.SourceLocation, "with docker run")
+
+		if i.local {
+			err = i.converter.WithDockerRunLocal(ctx, args, *i.withDocker)
+			if err != nil {
+				return i.wrapError(err, cmd.SourceLocation, "with docker run")
+			}
+			return nil
+		} else {
+			err = i.converter.WithDockerRun(ctx, args, *i.withDocker)
+			if err != nil {
+				return i.wrapError(err, cmd.SourceLocation, "with docker run")
+			}
 		}
+		i.withDockerRan = true
 	}
 	return nil
 }

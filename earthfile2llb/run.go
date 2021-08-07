@@ -6,6 +6,7 @@ import "github.com/moby/buildkit/client/llb"
 type ConvertRunOpts struct {
 	CommandName     string
 	Args            []string
+	Locally         bool
 	Mounts          []string
 	Secrets         []string
 	WithEntrypoint  bool
@@ -17,9 +18,6 @@ type ConvertRunOpts struct {
 	NoCache         bool
 	Interactive     bool
 	InteractiveKeep bool
-
-	// TODO: Unify
-	Locally bool
 
 	// Internal.
 	shellWrap    shellWrapFun

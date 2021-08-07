@@ -130,7 +130,7 @@ func (wdr *withDockerRun) Run(ctx context.Context, args []string, opt WithDocker
 			return errors.Wrap(err, "pull")
 		}
 	}
-	cirOpts := ConvertRunOpts{
+	crOpts := ConvertRunOpts{
 		CommandName:     "WITH DOCKER RUN",
 		Args:            args,
 		Mounts:          opt.Mounts,
@@ -142,14 +142,14 @@ func (wdr *withDockerRun) Run(ctx context.Context, args []string, opt WithDocker
 		Interactive:     opt.Interactive,
 		InteractiveKeep: opt.interactiveKeep,
 	}
-	cirOpts.extraRunOpts = append(cirOpts.extraRunOpts, pllb.AddMount(
+	crOpts.extraRunOpts = append(crOpts.extraRunOpts, pllb.AddMount(
 		"/var/earthly/dind", pllb.Scratch(), llb.HostBind(), llb.SourcePath("/tmp/earthly/dind")))
-	cirOpts.extraRunOpts = append(cirOpts.extraRunOpts, pllb.AddMount(
+	crOpts.extraRunOpts = append(crOpts.extraRunOpts, pllb.AddMount(
 		dockerdWrapperPath, pllb.Scratch(), llb.HostBind(), llb.SourcePath(dockerdWrapperPath)))
 	var tarPaths []string
 	for index, tarContext := range wdr.tarLoads {
 		loadDir := fmt.Sprintf("/var/earthly/load-%d", index)
-		cirOpts.extraRunOpts = append(cirOpts.extraRunOpts, pllb.AddMount(loadDir, tarContext, llb.Readonly))
+		crOpts.extraRunOpts = append(crOpts.extraRunOpts, pllb.AddMount(loadDir, tarContext, llb.Readonly))
 		tarPaths = append(tarPaths, path.Join(loadDir, "image.tar"))
 	}
 
@@ -157,9 +157,9 @@ func (wdr *withDockerRun) Run(ctx context.Context, args []string, opt WithDocker
 	if err != nil {
 		return errors.Wrap(err, "compute dind id")
 	}
-	cirOpts.shellWrap = makeWithDockerdWrapFun(dindID, tarPaths, opt)
+	crOpts.shellWrap = makeWithDockerdWrapFun(dindID, tarPaths, opt)
 
-	_, err = wdr.c.internalRun(ctx, cirOpts)
+	_, err = wdr.c.internalRun(ctx, crOpts)
 	return err
 }
 
