@@ -534,6 +534,7 @@ func (c *Converter) RunExitCode(ctx context.Context, opts ConvertRunOpts) (int, 
 	// Perform execution, but append the command with the right shell incantation that
 	// causes it to output the exit code to a file. This is done via the shellWrap.
 	opts.shellWrap = withShellAndEnvVarsExitCode(exitCodeFile)
+	opts.WithShell = true // force shell wrapping
 	state, err := c.internalRun(ctx, opts)
 	if err != nil {
 		return 0, err
@@ -595,6 +596,7 @@ func (c *Converter) RunExpression(ctx context.Context, expressionName string, op
 	// Perform execution, but append the command with the right shell incantation that
 	// causes it to output to a file. This is done via the shellWrap.
 	opts.shellWrap = withShellAndEnvVarsOutput(outputFile)
+	opts.WithShell = true // force shell wrapping
 	state, err := c.internalRun(ctx, opts)
 	if err != nil {
 		return "", err
