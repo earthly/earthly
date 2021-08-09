@@ -1,7 +1,9 @@
 FROM alpine:3.13
+
 test:
+    RUN apk add --update openssl
     # intentionally cause a failure (this test is to ensure failures are caught)
-    RUN ls /this-will-fail
+    RUN echo "fail 7b72e024-5e21-4e1b-96e4-655c39876107" | openssl base64; false
 
 test-push:
     # intentionally cause a failure (this test is to ensure failures are caught)
