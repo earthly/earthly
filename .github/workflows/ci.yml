@@ -434,12 +434,8 @@ jobs:
         run: ./build/linux/amd64/earthly config global.local_registry_host 'tcp://127.0.0.1:8371'
       - name: Execute test-local
         run: "./build/linux/amd64/earthly --use-inline-cache --save-inline-cache --no-output ./examples/tests/local+test-local"
-      - name: Check previous run without the --push flag correctly prevented the file from being touched
-        run: "! ls /tmp/earthly-test-local"
       - name: Execute test-local --push
         run: "./build/linux/amd64/earthly --use-inline-cache --save-inline-cache --no-output --push ./examples/tests/local+test-local"
-      - name: Check --push cmd was run (and touched this file on the local disk)
-        run: "ls /tmp/earthly-test-local"
       - name: Run general local tests (TODO this is re-testing the +test-local target)
         run: "./build/linux/amd64/earthly --use-inline-cache --save-inline-cache --no-output ./examples/tests/local+all"
       - name: Buildkit logs (runs on failure)

@@ -24,7 +24,6 @@ test-local:
         else \
             cat /proc/1/cgroup | perl -pe 'BEGIN {$status=1} END {exit $status} $status=0 if /^[0-9]+:cpuset:\/$/;'; \
         fi
-    RUN --push touch /tmp/earthly-test-local
 
 
 #################################################################################################################

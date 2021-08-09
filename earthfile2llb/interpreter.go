@@ -334,37 +334,21 @@ func (i *Interpreter) handleIfExpression(ctx context.Context, expression []strin
 	// Note: Not expanding args for the expression itself, as that will be take care of by the shell.
 
 	var exitCode int
-	commandName := "IF"
-	if i.local {
-		if len(opts.Mounts) > 0 {
-			return false, i.errorf(sl, "mounts are not supported in combination with the LOCALLY directive")
-		}
-		if opts.WithSSH {
-			return false, i.errorf(sl, "the --ssh flag has no effect when used with the  LOCALLY directive")
-		}
-		if opts.Privileged {
-			return false, i.errorf(sl, "the --privileged flag has no effect when used with the LOCALLY directive")
-		}
-		if opts.NoCache {
-			return false, i.errorf(sl, "the --no-cache flag has no effect when used with the LOCALLY directive")
-		}
-
-		// TODO these should be supported, but haven't yet been implemented
-		if len(opts.Secrets) > 0 {
-			return false, i.errorf(sl, "secrets need to be implemented for the LOCALLY directive")
-		}
-
-		exitCode, err = i.converter.RunLocalExitCode(ctx, commandName, args)
-		if err != nil {
-			return false, i.wrapError(err, sl, "apply IF")
-		}
-	} else {
-		exitCode, err = i.converter.RunExitCode(
-			ctx, commandName, args, opts.Mounts, opts.Secrets, opts.Privileged,
-			withShell, opts.WithSSH, opts.NoCache)
-		if err != nil {
-			return false, i.wrapError(err, sl, "apply IF")
-		}
+	runOpts := ConvertRunOpts{
+		CommandName: "IF",
+		Args:        args,
+		Locally:     i.local,
+		Mounts:      opts.Mounts,
+		Secrets:     opts.Secrets,
+		WithShell:   withShell,
+		Privileged:  opts.Privileged,
+		WithSSH:     opts.WithSSH,
+		NoCache:     opts.NoCache,
+		Transient:   !i.local,
+	}
+	exitCode, err = i.converter.RunExitCode(ctx, runOpts)
+	if err != nil {
+		return false, i.wrapError(err, sl, "apply IF")
 	}
 	return (exitCode == 0), nil
 }
@@ -410,38 +394,21 @@ func (i *Interpreter) handleForArgs(ctx context.Context, forArgs []string, sl *s
 	}
 	variable := args[0]
 	expression := args[2:]
-	commandName := "FOR"
-	var output string
-	if i.local {
-		if len(opts.Mounts) > 0 {
-			return "", nil, i.errorf(sl, "mounts are not supported in combination with the LOCALLY directive")
-		}
-		if opts.WithSSH {
-			return "", nil, i.errorf(sl, "the --ssh flag has no effect when used with the  LOCALLY directive")
-		}
-		if opts.Privileged {
-			return "", nil, i.errorf(sl, "the --privileged flag has no effect when used with the LOCALLY directive")
-		}
-		if opts.NoCache {
-			return "", nil, i.errorf(sl, "the --no-cache flag has no effect when used with the LOCALLY directive")
-		}
-
-		// TODO these should be supported, but haven't yet been implemented
-		if len(opts.Secrets) > 0 {
-			return "", nil, i.errorf(sl, "secrets need to be implemented for the LOCALLY directive")
-		}
-
-		output, err = i.converter.RunExpressionLocal(ctx, commandName, expression)
-		if err != nil {
-			return "", nil, i.wrapError(err, sl, "apply FOR ... IN")
-		}
-	} else {
-		output, err = i.converter.RunExpression(
-			ctx, commandName, variable, expression, opts.Mounts, opts.Secrets,
-			opts.Privileged, opts.WithSSH, opts.NoCache)
-		if err != nil {
-			return "", nil, i.wrapError(err, sl, "apply FOR ... IN")
-		}
+	runOpts := ConvertRunOpts{
+		CommandName: "FOR",
+		Args:        expression,
+		Locally:     i.local,
+		Mounts:      opts.Mounts,
+		Secrets:     opts.Secrets,
+		WithShell:   true,
+		Privileged:  opts.Privileged,
+		WithSSH:     opts.WithSSH,
+		NoCache:     opts.NoCache,
+		Transient:   !i.local,
+	}
+	output, err := i.converter.RunExpression(ctx, variable, runOpts)
+	if err != nil {
+		return "", nil, i.wrapError(err, sl, "apply FOR ... IN")
 	}
 	instances := strings.FieldsFunc(output, func(r rune) bool {
 		return strings.ContainsRune(opts.Separators, r)
@@ -560,63 +527,30 @@ func (i *Interpreter) handleRun(ctx context.Context, cmd spec.Command) error {
 	}
 	// Note: Not expanding args for the run itself, as that will be take care of by the shell.
 
-	if i.local {
-		if len(opts.Mounts) > 0 {
-			return i.errorf(cmd.SourceLocation, "mounts are not supported in combination with the LOCALLY directive")
-		}
-		if opts.WithSSH {
-			return i.errorf(cmd.SourceLocation, "the --ssh flag has no effect when used with the  LOCALLY directive")
-		}
-		if opts.Privileged {
-			return i.errorf(cmd.SourceLocation, "the --privileged flag has no effect when used with the LOCALLY directive")
-		}
-		if opts.NoCache {
-			return i.errorf(cmd.SourceLocation, "the --no-cache flag has no effect when used with the LOCALLY directive")
-		}
-		if opts.Interactive {
-			// I mean its literally just your terminal but with extra steps. No reason to support this?
-			return i.errorf(cmd.SourceLocation, "the --interactive flag is not supported in combination with the LOCALLY directive")
-		}
-		if opts.InteractiveKeep {
-			// I mean its literally just your terminal but with extra steps. No reason to support this?
-			return i.errorf(cmd.SourceLocation, "the --interactive-keep flag is not supported in combination with the LOCALLY directive")
-		}
-
-		// TODO these should be supported, but haven't yet been implemented
-		if len(opts.Secrets) > 0 {
-			return i.errorf(cmd.SourceLocation, "secrets need to be implemented for the LOCALLY directive")
-		}
-
-		if i.withDocker != nil {
-			if opts.Push {
-				return i.errorf(cmd.SourceLocation, "RUN --push not allowed in WITH DOCKER")
-			}
-			if i.withDockerRan {
-				return i.errorf(cmd.SourceLocation, "only one RUN command allowed in WITH DOCKER")
-			}
-			i.withDockerRan = true
-			err = i.converter.WithDockerRunLocal(ctx, args, *i.withDocker)
-			if err != nil {
-				return i.wrapError(err, cmd.SourceLocation, "with docker run")
-			}
-			return nil
-		}
-
-		err = i.converter.RunLocal(ctx, args, opts.Push)
-		if err != nil {
-			return i.wrapError(err, cmd.SourceLocation, "apply RUN")
-		}
-		return nil
-	}
-
 	if opts.Privileged && !i.allowPrivileged {
 		return i.errorf(cmd.SourceLocation, "Permission denied: unwilling to run privileged command; did you reference a remote Earthfile without the --allow-privileged flag?")
 	}
 
 	if i.withDocker == nil {
-		err = i.converter.Run(
-			ctx, args, opts.Mounts, opts.Secrets, opts.Privileged, opts.WithEntrypoint, opts.WithDocker,
-			withShell, opts.Push, opts.WithSSH, opts.NoCache, opts.Interactive, opts.InteractiveKeep)
+		if opts.WithDocker {
+			return i.errorf(cmd.SourceLocation, "--with-docker is obsolete. Please use WITH DOCKER ... RUN ... END instead")
+		}
+		opts := ConvertRunOpts{
+			CommandName:     cmd.Name,
+			Args:            args,
+			Locally:         i.local,
+			Mounts:          opts.Mounts,
+			Secrets:         opts.Secrets,
+			WithShell:       withShell,
+			WithEntrypoint:  opts.WithEntrypoint,
+			Privileged:      opts.Privileged,
+			Push:            opts.Push,
+			WithSSH:         opts.WithSSH,
+			NoCache:         opts.NoCache,
+			Interactive:     opts.Interactive,
+			InteractiveKeep: opts.InteractiveKeep,
+		}
+		err = i.converter.Run(ctx, opts)
 		if err != nil {
 			return i.wrapError(err, cmd.SourceLocation, "apply RUN")
 		}
@@ -624,13 +558,12 @@ func (i *Interpreter) handleRun(ctx context.Context, cmd spec.Command) error {
 			i.pushOnlyAllowed = true
 		}
 	} else {
-		if opts.Push {
-			return i.errorf(cmd.SourceLocation, "RUN --push not allowed in WITH DOCKER")
-		}
 		if i.withDockerRan {
 			return i.errorf(cmd.SourceLocation, "only one RUN command allowed in WITH DOCKER")
 		}
-		i.withDockerRan = true
+		if opts.Push {
+			return i.errorf(cmd.SourceLocation, "RUN --push not allowed in WITH DOCKER")
+		}
 		i.withDocker.Mounts = opts.Mounts
 		i.withDocker.Secrets = opts.Secrets
 		i.withDocker.WithShell = withShell
@@ -638,10 +571,19 @@ func (i *Interpreter) handleRun(ctx context.Context, cmd spec.Command) error {
 		i.withDocker.NoCache = opts.NoCache
 		i.withDocker.Interactive = opts.Interactive
 		i.withDocker.interactiveKeep = opts.InteractiveKeep
-		err = i.converter.WithDockerRun(ctx, args, *i.withDocker)
-		if err != nil {
-			return i.wrapError(err, cmd.SourceLocation, "with docker run")
+
+		if i.local {
+			err = i.converter.WithDockerRunLocal(ctx, args, *i.withDocker)
+			if err != nil {
+				return i.wrapError(err, cmd.SourceLocation, "with docker run")
+			}
+		} else {
+			err = i.converter.WithDockerRun(ctx, args, *i.withDocker)
+			if err != nil {
+				return i.wrapError(err, cmd.SourceLocation, "with docker run")
+			}
 		}
+		i.withDockerRan = true
 	}
 	return nil
 }
