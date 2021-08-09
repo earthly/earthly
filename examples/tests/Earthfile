@@ -83,6 +83,9 @@ ga:
     BUILD +true-false-flag
     BUILD +true-false-flag-invalid
     BUILD +dont-save-indirect-remote-artifact
+    BUILD +scrub-git-clone-credentials
+    BUILD +scrub-remote-credentials
+    BUILD +scrub-remote-credentials-on-failure
 
 experimental:
     BUILD ./dind-auto-install+all
@@ -111,8 +114,6 @@ copy-test-verbose-output:
         echo -n "alpha" > alpha.txt && \
         echo -n "beta" > subdir/a.txt/beta.txt
 
-    COPY copy-verbose.earth Earthfile
-
     # Setup a test that runs earthly twice; both instances of earthly must be run
     # back to back as the file caching logic references the directories inode ID while constructing
     # the shared cache key.
@@ -122,12 +123,7 @@ earthly --config \$earthly_config --verbose +all 2>output.txt;
 earthly --config \$earthly_config --verbose +all 2>output2.txt;
 " >/tmp/multiple-earthly-script && chmod +x /tmp/multiple-earthly-script
 
-    RUN --privileged \
-        --mount=type=tmpfs,target=/tmp/earthly-tmpfs \
-        set -x; \
-        export EARTHLY_TMP_DIR="/tmp/earthly-tmpfs"; \
-        export EARTHLY_EXEC_CMD="/tmp/multiple-earthly-script"; \
-        /bin/sh /usr/bin/earthly-entrypoint.sh;
+    DO +RUN_EARTHLY --earthfile=copy-verbose.earth --exec_cmd=/tmp/multiple-earthly-script
 
     # test that the first run sends a.txt and doesn't send any non-referenced files
     RUN cat output.txt
@@ -720,6 +716,79 @@ true-false-flag-invalid:
     DO +RUN_EARTHLY --earthfile=true-false-flag-invalid.earth --should_fail=true --target=+run-maybe --post_command="2>output3.txt"
     RUN cat output3.txt | grep 'invalid argument for flag .*--no-cache.*expected bool'
 
+scrub-git-clone-credentials:
+    # This token is setup with read only access to public repos
+    ARG PUBLIC_TOKEN="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"
+    RUN --no-cache echo "#!/bin/sh
+set -ex
+earthly --config \$earthly_config config git \"{github.com: {auth: https, user: cinnamonthecat, password: $PUBLIC_TOKEN}}\"
+earthly --config \$earthly_config --verbose +gitclone >output.txt 2>&1
+" >/tmp/test-earthly-script && chmod +x /tmp/test-earthly-script
+
+    DO +RUN_EARTHLY --earthfile=scrub-credentials.earth --exec_cmd=/tmp/test-earthly-script
+
+    RUN cat output.txt | grep -vw echo | grep 'gitclone done'
+    RUN cat output.txt && \
+        if grep "$PUBLIC_TOKEN" output.txt >/dev/null; then \
+            echo "ERROR: password ($PUBLIC_TOKEN) was leaked" && exit 1; \
+        else \
+            echo "OK: password was not leaked"; \
+        fi
+    RUN grep 'https://cinnamonthecat:\*\*\*@github.com' output.txt >/dev/null
+
+scrub-remote-credentials:
+    # This token is setup with read only access to public repos
+    ARG PUBLIC_TOKEN="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"
+    RUN --no-cache echo "#!/bin/sh
+set -ex
+earthly --config \$earthly_config config git \"{github.com: {auth: https, user: cinnamonthecat, password: $PUBLIC_TOKEN}}\"
+earthly --config \$earthly_config --verbose github.com/earthly/test-remote/privileged+regular >output.txt 2>&1
+" >/tmp/test-earthly-script && chmod +x /tmp/test-earthly-script
+
+    DO +RUN_EARTHLY --exec_cmd=/tmp/test-earthly-script
+
+    # make sure the password doesn't appear anywhere
+    RUN cat output.txt && \
+        if grep "$PUBLIC_TOKEN" output.txt >/dev/null; then \
+            echo "ERROR: password ($PUBLIC_TOKEN) was leaked" && exit 1; \
+        else \
+            echo "OK: password was not leaked"; \
+        fi
+    # make sure the scrubbed URL appears somewhere
+    RUN grep 'https://cinnamonthecat:\*\*\*@github.com' output.txt >/dev/null
+
+scrub-remote-credentials-on-failure:
+    # This token is setup with read only access to public repos
+    ARG PUBLIC_TOKEN="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"
+    RUN --no-cache echo "#!/bin/sh
+set -ex
+earthly --config \$earthly_config config git \"{github.com: {auth: https, user: cinnamonthecat, password: $PUBLIC_TOKEN}}\"
+
+set +e
+earthly --config \$earthly_config --verbose github.com/cinnamonthecat/test-private+build >output.txt 2>&1
+exit_code=\$?
+if [ \$exit_code -eq 0 ]; then
+    echo ERROR: earthly should have failed but didn\'t.
+    exit 1
+fi
+" >/tmp/test-earthly-script && chmod +x /tmp/test-earthly-script
+
+    DO +RUN_EARTHLY --exec_cmd=/tmp/test-earthly-script
+
+    # PUBLIC_TOKEN should *not* have access to this private remote branch, make sure it fails
+    RUN grep 'error fetching default branch for repository' output.txt
+    # test the failure message correctly scrubs the credentials
+    RUN grep 'https://cinnamonthecat:\*\*\*@github.com' output.txt >/dev/null
+
+    # make sure the password doesn't appear anywhere
+    RUN cat output.txt && \
+        if grep "$PUBLIC_TOKEN" output.txt >/dev/null; then \
+            echo "ERROR: password ($PUBLIC_TOKEN) was leaked" && exit 1; \
+        else \
+            echo "OK: password was not leaked"; \
+        fi
+
+
 RUN_EARTHLY:
     COMMAND
     ARG earthfile=
@@ -729,6 +798,7 @@ RUN_EARTHLY:
     ARG post_command
     ARG should_fail=false
     ARG use_tmpfs=true
+    ARG exec_cmd=
     IF [ ! -z "$earthfile" ]
         COPY "$earthfile" "$earthfile_dest"
     END
@@ -737,9 +807,24 @@ RUN_EARTHLY:
         if $use_tmpfs; then
             export EARTHLY_TMP_DIR=/tmp/earthly-tmpfs
         fi
-        echo running earthly with $target
-        eval \"/usr/bin/earthly-entrypoint.sh $extra_args $target $post_command\"
-        exit_code=\$?
+        if [ -n \"$exec_cmd\" ]; then
+          if [ \"$exec_cmd\" = \"/tmp/earthly-script\" ]; then
+            echo \"exec_cmd can not be /tmp/earthly-script\"
+            exit 1
+          fi
+          if [ \"$target\" != \"+all\" ]; then
+            echo \"target can not be used with exec_cmd\"
+            exit 1
+          fi
+          export EARTHLY_EXEC_CMD=\"$exec_cmd\"
+          echo running earthly with EARTHLY_EXEC_CMD=\$EARTHLY_EXEC_CMD
+          /bin/sh /usr/bin/earthly-entrypoint.sh
+          exit_code=\$?
+        else
+          echo running earthly with $target
+          eval \"/usr/bin/earthly-entrypoint.sh $extra_args $target $post_command\"
+          exit_code=\$?
+        fi
         if $should_fail; then
             if [ \$exit_code -eq 0 ]; then
                 echo ERROR: earthly should have failed but didn\'t.

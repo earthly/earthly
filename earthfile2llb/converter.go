@@ -26,6 +26,7 @@ import (
 	"github.com/earthly/earthly/util/llbutil"
 	"github.com/earthly/earthly/util/llbutil/llbfactory"
 	"github.com/earthly/earthly/util/llbutil/pllb"
+	"github.com/earthly/earthly/util/stringutil"
 	"github.com/earthly/earthly/variables"
 
 	"github.com/alessio/shellescape"
@@ -1019,9 +1020,10 @@ func (c *Converter) GitClone(ctx context.Context, gitURL string, branch string, 
 		return err
 	}
 	c.nonSaveCommand()
+	gitURLScrubbed := stringutil.ScrubCredentials(gitURL)
 	gitOpts := []llb.GitOption{
 		llb.WithCustomNamef(
-			"%sGIT CLONE (--branch %s) %s", c.vertexPrefixWithURL(gitURL), branch, gitURL),
+			"%sGIT CLONE (--branch %s) %s", c.vertexPrefixWithURL(gitURLScrubbed), branch, gitURLScrubbed),
 		llb.KeepGitDir(),
 	}
 	gitState := pllb.Git(gitURL, branch, gitOpts...)
@@ -1030,7 +1032,7 @@ func (c *Converter) GitClone(ctx context.Context, gitURL string, branch string, 
 		c.mts.Final.MainImage.Config.User, false, false,
 		llb.WithCustomNamef(
 			"%sCOPY GIT CLONE (--branch %s) %s TO %s", c.vertexPrefix(false, false),
-			branch, gitURL, dest))
+			branch, gitURLScrubbed, dest))
 	return nil
 }
 
