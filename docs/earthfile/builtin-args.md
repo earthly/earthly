@@ -40,6 +40,7 @@ The following builtin args are available
 | `TARGETOS` | (**experimental**) The target OS the target is being built for. | `linux` |
 | `TARGETARCH` | (**experimental**) The target processor architecture the target is being built for. | `arm`, `amd64`, `arm64` |
 | `TARGETVARIANT` | (**experimental**) The target processor architecture variant the target is being built for. | `v7` |
+| `EARTHLY_SOURCE_DATE_EPOCH` | The timestamp, as unix seconds, of the git commit detected within the build context directory. If no git directory is detected, then the value is `0` (the unix epoch) | `1626881847`, `0` |
 
 {% hint style='info' %}
 ##### Note
