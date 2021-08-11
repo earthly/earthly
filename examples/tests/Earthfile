@@ -12,6 +12,7 @@ all:
 
 ga:
     BUILD ./autocompletion+test-all
+    BUILD ./scrub-https-credentials+all
     BUILD ./with-docker+all
     BUILD ./with-docker-compose+all
     BUILD ./dockerfile+test
@@ -83,9 +84,6 @@ ga:
     BUILD +true-false-flag
     BUILD +true-false-flag-invalid
     BUILD +dont-save-indirect-remote-artifact
-    BUILD +scrub-git-clone-credentials
-    BUILD +scrub-remote-credentials
-    BUILD +scrub-remote-credentials-on-failure
 
 experimental:
     BUILD ./dind-auto-install+all
@@ -715,158 +713,6 @@ true-false-flag-invalid:
     RUN cat output2.txt | grep "Command /bin/sh -c 'false echo test' failed with exit code 1"
     DO +RUN_EARTHLY --earthfile=true-false-flag-invalid.earth --should_fail=true --target=+run-maybe --post_command="2>output3.txt"
     RUN cat output3.txt | grep 'invalid argument for flag .*--no-cache.*expected bool'
-
-# git-webserver creates a self-signed root CA, adds that CA as a trusted CA, creates a new https cert and signs it with the CA
-# then sets up an https-based git server using nginx; this repo can then be cloned by running
-# "git clone https://testuser:keepitsecret@selfsigned.example.com/repo.git"
-git-webserver:
-    RUN apk add --update --no-cache nginx openssl curl perl strace git-daemon fcgiwrap spawn-fcgi
-
-    # create a selfsigned CA
-    RUN openssl genrsa -out /root/selfsigned-ca.key 2048
-    RUN openssl req -x509 -new -nodes -key /root/selfsigned-ca.key -days 9999 \
-        -out /usr/local/share/ca-certificates/SelfSigned_Root_CA.crt -subj "/CN=test-ca"
-    RUN update-ca-certificates
-
-    RUN echo "
-[req]
-req_extensions = v3_req
-distinguished_name = req_distinguished_name
-[req_distinguished_name]
-[ v3_req ]
-basicConstraints = CA:FALSE
-keyUsage = nonRepudiation, digitalSignature, keyEncipherment
-extendedKeyUsage = clientAuth, serverAuth
-" > /root/openssl.config
-
-    # create an ssl cert
-    RUN openssl genrsa -out /root/selfsigned-example-com.key 2048
-
-    RUN openssl req -new -key /root/selfsigned-example-com.key -out /root/selfsigned-example-com.csr \
-        -subj "/CN=selfsigned.example.com" -config /root/openssl.config
-
-    RUN openssl x509 -req -in /root/selfsigned-example-com.csr -CA /etc/ssl/certs/ca-cert-SelfSigned_Root_CA.pem \
-        -CAkey /root/selfsigned-ca.key -CAcreateserial -out /root/selfsigned-example-com.pem \
-        -days 9999 -extensions v3_req -extfile /root/openssl.config
-
-    RUN mkdir -p /var/git/repos
-    RUN git init --bar /var/git/repos/repo.git
-    RUN chown -R nginx:nginx /var/git/repos
-
-    # setup basic http auth for user=testuser; password=keepitsecret; which will be used to support authenticating
-    # requests to https://testuser:keepitsecret@selfsigned.example.com
-    RUN echo "testuser:{SHA}16usTToGj2dhTan3gF5/aToe4Ro=" > /var/git/htpasswd
-
-    COPY git-webserver.nginx /root/nginx.conf
-    RUN echo "set -e
-# Docker creates /etc/hosts as readonly; we must unmount it first
-# before we can update it; this change WILL not stick around between different RUNs
-# furthermore, we must execute this script with RUN --privileged
-cp /etc/hosts /tmp/hosts
-umount /etc/hosts
-cp /tmp/hosts /etc/hosts
-if ! grep selfsigned /etc/hosts 2>/dev/null; then
-    echo -e \"127.0.0.1\tselfsigned.example.com\" >> /etc/hosts
-fi
-
-spawn-fcgi -u nginx -s /var/run/fcgi.sock /usr/bin/fcgiwrap && \
-nginx -c /root/nginx.conf
-" > /bin/start-nginx-with-git && chmod +x /bin/start-nginx-with-git
-
-    RUN --privileged start-nginx-with-git && \ # starts in background
-        mkdir -p /test/repo && \
-        cd /test/repo && \
-        git init --initial-branch=main . && \
-        echo -e "FROM alpine:3.13\nhello:\n\tRUN echo -n 98e15fb5-197c-43bf-886e-3291e65d646e | base64" > Earthfile && \
-        git add Earthfile && \
-        git config --global user.email "onlyspammersemailthis@earthly.dev" && \
-        git config --global user.name "test name" && \
-        git commit -m "An Earthfile to test against" && \
-        git remote add origin https://testuser:keepitsecret@selfsigned.example.com/repo.git && \
-        git push --set-upstream origin main && \
-        cd .. && \
-        rm -rf repo # remove this repo dir now that it has been pushed to the server
-
-
-scrub-git-clone-credentials:
-    FROM +git-webserver
-    RUN --no-cache echo "#!/bin/sh
-set -ex
-
-# first ensure these two /etc/hosts entries are working
-ping -c 1 selfsigned.example.com
-ping -c 1 buildkitsandbox
-
-earthly --config \$earthly_config config git \"{selfsigned.example.com: {auth: https, user: testuser, password: keepitsecret, pattern: 'selfsigned.example.com/([^/]+)'}}\"
-earthly --config \$earthly_config --verbose -D +gitclone >output.txt 2>&1
-" >/tmp/test-earthly-script && chmod +x /tmp/test-earthly-script
-
-    DO +RUN_EARTHLY --pre_command=start-nginx-with-git --earthfile=scrub-credentials.earth --exec_cmd=/tmp/test-earthly-script
-
-    RUN cat output.txt | grep -vw echo | grep 'gitclone done'
-    RUN cat output.txt && \
-        if grep "keepitsecret" output.txt >/dev/null; then \
-            echo "ERROR: password (keepitsecret) was leaked" && exit 1; \
-        else \
-            echo "OK: password was not leaked"; \
-        fi
-    RUN grep 'https://testuser:\*\*\*@selfsigned.example.com' output.txt >/dev/null
-
-scrub-remote-credentials:
-    FROM +git-webserver
-    RUN --no-cache echo "#!/bin/sh
-set -ex
-
-# first ensure these two /etc/hosts entries are working
-ping -c 1 selfsigned.example.com
-ping -c 1 buildkitsandbox
-
-earthly --config \$earthly_config config git \"{selfsigned.example.com: {auth: https, user: testuser, password: keepitsecret, pattern: 'selfsigned.example.com/([^/]+)'}}\"
-earthly --config \$earthly_config --verbose selfsigned.example.com/repo:main+hello >output.txt 2>&1
-" >/tmp/test-earthly-script && chmod +x /tmp/test-earthly-script
-
-    DO +RUN_EARTHLY --pre_command=start-nginx-with-git --exec_cmd=/tmp/test-earthly-script
-
-    # make sure the password doesn't appear anywhere
-    RUN cat output.txt && \
-        if grep "keepitsecret" output.txt >/dev/null; then \
-            echo "ERROR: password (keepitsecret) was leaked" && exit 1; \
-        else \
-            echo "OK: password was not leaked"; \
-        fi
-    # make sure the scrubbed URL appears somewhere
-    RUN grep 'https://testuser:\*\*\*@selfsigned.example.com' output.txt >/dev/null
-    # echo -n 98e15fb5-197c-43bf-886e-3291e65d646e | base64
-    RUN grep 'OThlMTVmYjUtMTk3Yy00M2JmLTg4NmUtMzI5MWU2NWQ2NDZl' output.txt >/dev/null
-
-
-scrub-remote-credentials-on-failure:
-    RUN --no-cache echo "#!/bin/sh
-set -ex
-earthly --config \$earthly_config config git \"{github.com: {auth: https, user: cinnamonthecat, password: badpassword}}\"
-
-set +e
-earthly --config \$earthly_config --verbose github.com/cinnamonthecat/test-private:main+build >output.txt 2>&1
-exit_code=\$?
-if [ \$exit_code -eq 0 ]; then
-    echo ERROR: earthly should have failed but didn\'t.
-    exit 1
-fi
-" >/tmp/test-earthly-script && chmod +x /tmp/test-earthly-script
-
-    DO +RUN_EARTHLY --exec_cmd=/tmp/test-earthly-script
-
-    RUN grep 'failed to fetch remote' output.txt
-    # test the failure message correctly scrubs the credentials
-    RUN grep 'https://cinnamonthecat:\*\*\*@github.com' output.txt >/dev/null
-
-    # make sure the password doesn't appear anywhere
-    RUN cat output.txt && \
-        if grep "badpassword" output.txt >/dev/null; then \
-            echo "ERROR: password (badpassword) was leaked" && exit 1; \
-        else \
-            echo "OK: password was not leaked"; \
-        fi
 
 
 RUN_EARTHLY:
