@@ -291,11 +291,11 @@ dockerfile-test:
         -- --no-output +test
 
 fail-test:
-    # test that an error code is correctly returned
-    DO +RUN_EARTHLY --earthfile=fail.earth --should_fail=true --target=+test
-    # test that the 'failed with exit code' text is printed out
-    DO +RUN_EARTHLY --earthfile=fail.earth --target=+test \
-        --post_command="2>&1 | perl -pe 'BEGIN {\\\$status=1} END {exit \\\$status} \\\$status=0 if /this-will-fail/;'"
+    DO +RUN_EARTHLY --earthfile=fail.earth --should_fail=true --target=+test --post_command="2>output.txt"
+    RUN cat output.txt
+    # The output of the failed command should have been printed twice.
+    RUN cat output.txt | grep 'ZmFpbCA3YjcyZTAyNC01ZTIxLTRlMWItOTZlNC02NTVjMzk4NzYxMDcK' | test "$(wc -l)" -eq 2
+    RUN cat output.txt | grep 'Repeating the output of the command that caused the failure'
 
 allow-privileged-test:
     # test that privileged-tasks in remote repos dont run
