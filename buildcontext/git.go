@@ -41,8 +41,10 @@ type resolvedGitProject struct {
 	hash string
 	// branches is the git branches.
 	branches []string
-	// tags is the git tags
+	// tags is the git tags.
 	tags []string
+	// ts is the git commit timestamp.
+	ts string
 	// state is the state holding the git files.
 	state pllb.State
 }
@@ -120,6 +122,7 @@ func (gr *gitResolver) resolveEarthProject(ctx context.Context, gwClient gwclien
 			Hash:      rgp.hash,
 			Branch:    rgp.branches,
 			Tags:      rgp.tags,
+			Timestamp: rgp.ts,
 		},
 	}, nil
 }
@@ -157,7 +160,8 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, gwClient gwclient.
 				"/bin/sh", "-c",
 				"git rev-parse HEAD >/dest/git-hash ; " +
 					"git rev-parse --abbrev-ref HEAD >/dest/git-branch  || touch /dest/git-branch ; " +
-					"git describe --exact-match --tags >/dest/git-tags || touch /dest/git-tags",
+					"git describe --exact-match --tags >/dest/git-tags || touch /dest/git-tags ; " +
+					"git log -1 --format=%ct >/dest/git-ts || touch /dest/git-ts",
 			}),
 			llb.Dir("/git-src"),
 			llb.ReadonlyRootFS(),
@@ -189,6 +193,12 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, gwClient gwclient.
 		if err != nil {
 			return nil, errors.Wrap(err, "read git-tags")
 		}
+		gitTsBytes, err := gitMetaRef.ReadFile(ctx, gwclient.ReadRequest{
+			Filename: "git-ts",
+		})
+		if err != nil {
+			return nil, errors.Wrap(err, "read git-ts")
+		}
 
 		gitHash := strings.SplitN(string(gitHashBytes), "\n", 2)[0]
 		gitBranches := strings.SplitN(string(gitBranchBytes), "\n", 2)
@@ -205,6 +215,7 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, gwClient gwclient.
 				gitTags2 = append(gitTags2, gitTag)
 			}
 		}
+		gitTs := strings.SplitN(string(gitTsBytes), "\n", 2)[0]
 
 		gitOpts = []llb.GitOption{
 			llb.WithCustomNamef("[context %s] git context %s", gitURL, ref.StringCanonical()),
@@ -218,6 +229,7 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, gwClient gwclient.
 			hash:     gitHash,
 			branches: gitBranches2,
 			tags:     gitTags2,
+			ts:       gitTs,
 			state: pllb.Git(
 				gitURL,
 				gitHash,

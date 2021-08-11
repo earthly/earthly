@@ -48,6 +48,22 @@
         {
           "command": {
             "args": [
+              "EARTHLY_SOURCE_DATE_EPOCH"
+            ],
+            "name": "ARG"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "EARTHLY_GIT_COMMIT_TIMESTAMP"
+            ],
+            "name": "ARG"
+          }
+        },
+        {
+          "command": {
+            "args": [
               "echo",
               "\"$EARTHLY_TARGET\""
             ],
@@ -119,6 +135,27 @@
               "test",
               "-z",
               "\"$EARTHLY_TARGET_TAG\""
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "test",
+              "\"$EARTHLY_SOURCE_DATE_EPOCH\"",
+              "=",
+              "\"0\""
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "test",
+              "-z",
+              "\"$EARTHLY_GIT_COMMIT_TIMESTAMP\""
             ],
             "name": "RUN"
           }
