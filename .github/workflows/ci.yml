@@ -15,7 +15,7 @@ jobs:
     env:
       FORCE_COLOR: 1
       EARTHLY_CONVERSION_PARALLELISM: "5"
-      EARTHLY_VERSION_FLAG_OVERRIDES: "referenced-save-only"
+      EARTHLY_VERSION_FLAG_OVERRIDES: "referenced-save-only,use-copy-include-patterns"
       EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
       EARTHLY_INSTALL_ID: "earthly-githubactions"
     steps:
@@ -53,7 +53,7 @@ jobs:
     env:
       FORCE_COLOR: 1
       EARTHLY_CONVERSION_PARALLELISM: "5"
-      EARTHLY_VERSION_FLAG_OVERRIDES: "referenced-save-only"
+      EARTHLY_VERSION_FLAG_OVERRIDES: "referenced-save-only,use-copy-include-patterns"
       EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
       EARTHLY_INSTALL_ID: "earthly-githubactions"
     steps:
@@ -89,7 +89,7 @@ jobs:
     env:
       FORCE_COLOR: 1
       EARTHLY_CONVERSION_PARALLELISM: "5"
-      EARTHLY_VERSION_FLAG_OVERRIDES: "referenced-save-only"
+      EARTHLY_VERSION_FLAG_OVERRIDES: "referenced-save-only,use-copy-include-patterns"
       EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
       EARTHLY_INSTALL_ID: "earthly-githubactions"
     steps:
@@ -151,7 +151,7 @@ jobs:
     env:
       FORCE_COLOR: 1
       EARTHLY_CONVERSION_PARALLELISM: "5"
-      EARTHLY_VERSION_FLAG_OVERRIDES: "referenced-save-only"
+      EARTHLY_VERSION_FLAG_OVERRIDES: "referenced-save-only,use-copy-include-patterns"
       EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
       EARTHLY_INSTALL_ID: "earthly-githubactions"
       EARTHLY_FEATURE_FLAG_OVERRIDES: "use-copy-include-patterns"
@@ -188,7 +188,7 @@ jobs:
     env:
       FORCE_COLOR: 1
       EARTHLY_CONVERSION_PARALLELISM: "5"
-      EARTHLY_VERSION_FLAG_OVERRIDES: "referenced-save-only"
+      EARTHLY_VERSION_FLAG_OVERRIDES: "referenced-save-only,use-copy-include-patterns"
       EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
       EARTHLY_INSTALL_ID: "earthly-githubactions"
     steps:
@@ -233,7 +233,7 @@ jobs:
     env:
       FORCE_COLOR: 1
       EARTHLY_CONVERSION_PARALLELISM: "5"
-      EARTHLY_VERSION_FLAG_OVERRIDES: "referenced-save-only"
+      EARTHLY_VERSION_FLAG_OVERRIDES: "referenced-save-only,use-copy-include-patterns"
       EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
       EARTHLY_INSTALL_ID: "earthly-githubactions"
     steps:
@@ -282,7 +282,7 @@ jobs:
     env:
       FORCE_COLOR: 1
       EARTHLY_CONVERSION_PARALLELISM: "5"
-      EARTHLY_VERSION_FLAG_OVERRIDES: "referenced-save-only"
+      EARTHLY_VERSION_FLAG_OVERRIDES: "referenced-save-only,use-copy-include-patterns"
       EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
       EARTHLY_INSTALL_ID: "earthly-githubactions"
     steps:
@@ -320,7 +320,7 @@ jobs:
     env:
       FORCE_COLOR: 1
       EARTHLY_CONVERSION_PARALLELISM: "5"
-      EARTHLY_VERSION_FLAG_OVERRIDES: "referenced-save-only"
+      EARTHLY_VERSION_FLAG_OVERRIDES: "referenced-save-only,use-copy-include-patterns"
       EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
       EARTHLY_INSTALL_ID: "earthly-githubactions"
     steps:
@@ -358,7 +358,7 @@ jobs:
     env:
       FORCE_COLOR: 1
       EARTHLY_CONVERSION_PARALLELISM: "5"
-      EARTHLY_VERSION_FLAG_OVERRIDES: "referenced-save-only"
+      EARTHLY_VERSION_FLAG_OVERRIDES: "referenced-save-only,use-copy-include-patterns"
       EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
       EARTHLY_INSTALL_ID: "earthly-githubactions"
     steps:
@@ -389,7 +389,7 @@ jobs:
     env:
       FORCE_COLOR: 1
       EARTHLY_CONVERSION_PARALLELISM: "5"
-      EARTHLY_VERSION_FLAG_OVERRIDES: "referenced-save-only"
+      EARTHLY_VERSION_FLAG_OVERRIDES: "referenced-save-only,use-copy-include-patterns"
       EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
       EARTHLY_INSTALL_ID: "earthly-githubactions"
     steps:
@@ -421,7 +421,7 @@ jobs:
     env:
       FORCE_COLOR: 1
       EARTHLY_CONVERSION_PARALLELISM: "5"
-      EARTHLY_VERSION_FLAG_OVERRIDES: "referenced-save-only"
+      EARTHLY_VERSION_FLAG_OVERRIDES: "referenced-save-only,use-copy-include-patterns"
       EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
       EARTHLY_INSTALL_ID: "earthly-githubactions"
     steps:
@@ -455,7 +455,7 @@ jobs:
     env:
       FORCE_COLOR: 1
       EARTHLY_CONVERSION_PARALLELISM: "5"
-      EARTHLY_VERSION_FLAG_OVERRIDES: "referenced-save-only"
+      EARTHLY_VERSION_FLAG_OVERRIDES: "referenced-save-only,use-copy-include-patterns"
       EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
       EARTHLY_INSTALL_ID: "earthly-githubactions"
       SSH_PORT: "2222"
@@ -516,7 +516,7 @@ jobs:
     env:
       FORCE_COLOR: 1
       EARTHLY_CONVERSION_PARALLELISM: "5"
-      EARTHLY_VERSION_FLAG_OVERRIDES: "referenced-save-only"
+      EARTHLY_VERSION_FLAG_OVERRIDES: "referenced-save-only,use-copy-include-patterns"
       EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
       EARTHLY_INSTALL_ID: "earthly-githubactions"
     steps:
@@ -554,7 +554,7 @@ jobs:
     env:
       FORCE_COLOR: 1
       EARTHLY_CONVERSION_PARALLELISM: "5"
-      EARTHLY_VERSION_FLAG_OVERRIDES: "referenced-save-only"
+      EARTHLY_VERSION_FLAG_OVERRIDES: "referenced-save-only,use-copy-include-patterns"
       EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
       EARTHLY_INSTALL_ID: "earthly-githubactions"
     steps:
@@ -602,7 +602,7 @@ jobs:
     env:
       FORCE_COLOR: 1
       EARTHLY_CONVERSION_PARALLELISM: "5"
-      EARTHLY_VERSION_FLAG_OVERRIDES: "referenced-save-only"
+      EARTHLY_VERSION_FLAG_OVERRIDES: "referenced-save-only,use-copy-include-patterns"
       EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
       EARTHLY_INSTALL_ID: "earthly-githubactions"
     steps:
@@ -650,7 +650,7 @@ jobs:
     env:
       FORCE_COLOR: 1
       EARTHLY_CONVERSION_PARALLELISM: "5"
-      EARTHLY_VERSION_FLAG_OVERRIDES: "referenced-save-only"
+      EARTHLY_VERSION_FLAG_OVERRIDES: "referenced-save-only,use-copy-include-patterns"
       EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
       EARTHLY_INSTALL_ID: "earthly-githubactions"
     steps:
@@ -700,8 +700,7 @@ jobs:
     env:
       FORCE_COLOR: 1
       EARTHLY_CONVERSION_PARALLELISM: "5"
-      # TODO
-      # EARTHLY_VERSION_FLAG_OVERRIDES: "referenced-save-only"
+      EARTHLY_VERSION_FLAG_OVERRIDES: "referenced-save-only,use-copy-include-patterns"
       EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
       EARTHLY_INSTALL_ID: "earthly-githubactions"
     steps:
@@ -766,8 +765,7 @@ jobs:
     env:
       FORCE_COLOR: 1
       EARTHLY_CONVERSION_PARALLELISM: "5"
-      # TODO
-      # EARTHLY_VERSION_FLAG_OVERRIDES: "referenced-save-only"
+      EARTHLY_VERSION_FLAG_OVERRIDES: "referenced-save-only,use-copy-include-patterns"
       EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
       EARTHLY_INSTALL_ID: "earthly-githubactions"
     steps:
