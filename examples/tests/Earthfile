@@ -224,7 +224,7 @@ remote-test:
     RUN --privileged \
         --entrypoint \
         --mount=type=tmpfs,target=/tmp/earthly \
-        -- --no-output github.com/earthly/test-remote/builtin-args:main+test
+        -- --no-output github.com/earthly/test-remote/builtin-args:vlad/add-ts-tests+test
 
 transitive-args-test:
     DO +RUN_EARTHLY --earthfile=transitive-args.earth --extra_args="--build-arg SOMEARG=xyz" --target=+test
