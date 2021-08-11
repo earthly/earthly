@@ -24,11 +24,22 @@ func TestServer(t *testing.T) {
 
 	time.Sleep(10 * time.Millisecond)
 
-	// first open terminal
-	termConn, err := net.Dial("tcp", addr)
+	numRetries := 3
+	attempts := 0
+	var termConn net.Conn
+	var err error
+	for attempts < numRetries {
+		// first open terminal
+		termConn, err = net.Dial("tcp", addr)
+		if err != nil {
+			time.Sleep(time.Second)
+			attempts++
+		}
+	}
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	_, err = termConn.Write([]byte{common.TermID})
 	if err != nil {
 		t.Fatal(err)
