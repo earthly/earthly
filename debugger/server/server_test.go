@@ -24,7 +24,7 @@ func TestServer(t *testing.T) {
 
 	time.Sleep(10 * time.Millisecond)
 
-	numRetries := 3
+	const numRetries = 3
 	attempts := 0
 	var termConn net.Conn
 	var err error
