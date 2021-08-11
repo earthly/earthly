@@ -32,6 +32,7 @@ func TestServer(t *testing.T) {
 		// first open terminal
 		termConn, err = net.Dial("tcp", addr)
 		if err != nil {
+			// Retry since the connection is rejected sometimes.
 			time.Sleep(time.Second)
 			attempts++
 		}
