@@ -43,6 +43,15 @@ func BuiltinArgs(target domain.Target, platform specs.Platform, gitMeta *gitutil
 		ret.AddInactive("EARTHLY_GIT_ORIGIN_URL_SCRUBBED", stringutil.ScrubCredentials(gitMeta.RemoteURL))
 		ret.AddInactive("EARTHLY_GIT_PROJECT_NAME", getProjectName(gitMeta.RemoteURL))
 		ret.AddInactive("EARTHLY_GIT_COMMIT_TIMESTAMP", gitMeta.Timestamp)
+
+		if gitMeta.Timestamp == "" {
+			ret.AddInactive("EARTHLY_SOURCE_DATE_EPOCH", "0")
+		} else {
+			ret.AddInactive("EARTHLY_SOURCE_DATE_EPOCH", gitMeta.Timestamp)
+		}
+	} else {
+		// Ensure SOURCE_DATE_EPOCH is always available
+		ret.AddInactive("EARTHLY_SOURCE_DATE_EPOCH", "0")
 	}
 	// Note: Please update targetinput.go BuiltinVariables if adding more builtin variables.
 	for _, key := range ret.SortedAny() {

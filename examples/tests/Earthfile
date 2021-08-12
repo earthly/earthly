@@ -12,6 +12,7 @@ all:
 
 ga:
     BUILD ./autocompletion+test-all
+    BUILD ./scrub-https-credentials+all
     BUILD ./with-docker+all
     BUILD ./with-docker-compose+all
     BUILD ./dockerfile+test
@@ -68,6 +69,7 @@ ga:
     BUILD +push-build
     BUILD +build-arg-repeat
     BUILD +if
+    BUILD +for
     BUILD +first-command
     BUILD +platform-output
     BUILD +command
@@ -110,8 +112,6 @@ copy-test-verbose-output:
         echo -n "alpha" > alpha.txt && \
         echo -n "beta" > subdir/a.txt/beta.txt
 
-    COPY copy-verbose.earth Earthfile
-
     # Setup a test that runs earthly twice; both instances of earthly must be run
     # back to back as the file caching logic references the directories inode ID while constructing
     # the shared cache key.
@@ -121,12 +121,7 @@ earthly --config \$earthly_config --verbose +all 2>output.txt;
 earthly --config \$earthly_config --verbose +all 2>output2.txt;
 " >/tmp/multiple-earthly-script && chmod +x /tmp/multiple-earthly-script
 
-    RUN --privileged \
-        --mount=type=tmpfs,target=/tmp/earthly-tmpfs \
-        set -x; \
-        export EARTHLY_TMP_DIR="/tmp/earthly-tmpfs"; \
-        export EARTHLY_EXEC_CMD="/tmp/multiple-earthly-script"; \
-        /bin/sh /usr/bin/earthly-entrypoint.sh;
+    DO +RUN_EARTHLY --earthfile=copy-verbose.earth --exec_cmd=/tmp/multiple-earthly-script
 
     # test that the first run sends a.txt and doesn't send any non-referenced files
     RUN cat output.txt
@@ -290,11 +285,11 @@ dockerfile-test:
         -- --no-output +test
 
 fail-test:
-    # test that an error code is correctly returned
-    DO +RUN_EARTHLY --earthfile=fail.earth --should_fail=true --target=+test
-    # test that the 'failed with exit code' text is printed out
-    DO +RUN_EARTHLY --earthfile=fail.earth --target=+test \
-        --post_command="2>&1 | perl -pe 'BEGIN {\\\$status=1} END {exit \\\$status} \\\$status=0 if /this-will-fail/;'"
+    DO +RUN_EARTHLY --earthfile=fail.earth --should_fail=true --target=+test --post_command="2>output.txt"
+    RUN cat output.txt
+    # The output of the failed command should have been printed twice.
+    RUN cat output.txt | grep 'ZmFpbCA3YjcyZTAyNC01ZTIxLTRlMWItOTZlNC02NTVjMzk4NzYxMDcK' | test "$(wc -l)" -eq 2
+    RUN cat output.txt | grep 'Repeating the output of the command that caused the failure'
 
 allow-privileged-test:
     # test that privileged-tasks in remote repos dont run
@@ -636,6 +631,9 @@ if:
     RUN touch exists-locally
     DO +RUN_EARTHLY --earthfile=if.earth
 
+for:
+    DO +RUN_EARTHLY --earthfile=for.earth
+
 first-command:
     DO +RUN_EARTHLY --earthfile=first-command.earth --target=+all-positive
     DO +RUN_EARTHLY --earthfile=first-command.earth --should_fail=true --target=+start-with-run
@@ -716,15 +714,18 @@ true-false-flag-invalid:
     DO +RUN_EARTHLY --earthfile=true-false-flag-invalid.earth --should_fail=true --target=+run-maybe --post_command="2>output3.txt"
     RUN cat output3.txt | grep 'invalid argument for flag .*--no-cache.*expected bool'
 
+
 RUN_EARTHLY:
     COMMAND
     ARG earthfile=
     ARG earthfile_dest="./Earthfile"
     ARG target=+all
     ARG extra_args
+    ARG pre_command
     ARG post_command
     ARG should_fail=false
     ARG use_tmpfs=true
+    ARG exec_cmd=
     IF [ ! -z "$earthfile" ]
         COPY "$earthfile" "$earthfile_dest"
     END
@@ -733,9 +734,27 @@ RUN_EARTHLY:
         if $use_tmpfs; then
             export EARTHLY_TMP_DIR=/tmp/earthly-tmpfs
         fi
-        echo running earthly with $target
-        eval \"/usr/bin/earthly-entrypoint.sh $extra_args $target $post_command\"
-        exit_code=\$?
+        if [ -n \"$pre_command\" ]; then
+            eval \"$pre_command\"
+        fi
+        if [ -n \"$exec_cmd\" ]; then
+            if [ \"$exec_cmd\" = \"/tmp/earthly-script\" ]; then
+                echo \"exec_cmd can not be /tmp/earthly-script\"
+                exit 1
+            fi
+            if [ \"$target\" != \"+all\" ]; then
+                echo \"target can not be used with exec_cmd\"
+                exit 1
+            fi
+            export EARTHLY_EXEC_CMD=\"$exec_cmd\"
+            echo running earthly with EARTHLY_EXEC_CMD=\$EARTHLY_EXEC_CMD
+            /bin/sh /usr/bin/earthly-entrypoint.sh
+            exit_code=\$?
+        else
+            echo running earthly with $target
+            eval \"/usr/bin/earthly-entrypoint.sh $extra_args $target $post_command\"
+            exit_code=\$?
+        fi
         if $should_fail; then
             if [ \$exit_code -eq 0 ]; then
                 echo ERROR: earthly should have failed but didn\'t.

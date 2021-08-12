@@ -189,7 +189,7 @@ func (vm *vertexMonitor) printProgress(id string, progress int, verbose bool, sa
 }
 
 func (vm *vertexMonitor) printError() bool {
-	if strings.Contains(vm.vertex.Error, "executor failed running") {
+	if strings.Contains(vm.vertex.Error, "did not complete successfully") {
 		vm.console.Warnf("ERROR: Command exited with non-zero code: %s\n", vm.operation)
 		return true
 	}

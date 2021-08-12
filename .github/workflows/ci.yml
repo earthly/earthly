@@ -15,6 +15,7 @@ jobs:
     env:
       FORCE_COLOR: 1
       EARTHLY_CONVERSION_PARALLELISM: "5"
+      EARTHLY_VERSION_FLAG_OVERRIDES: "referenced-save-only"
       EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
       EARTHLY_INSTALL_ID: "earthly-githubactions"
     steps:
@@ -52,6 +53,7 @@ jobs:
     env:
       FORCE_COLOR: 1
       EARTHLY_CONVERSION_PARALLELISM: "5"
+      EARTHLY_VERSION_FLAG_OVERRIDES: "referenced-save-only"
       EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
       EARTHLY_INSTALL_ID: "earthly-githubactions"
     steps:
@@ -87,6 +89,7 @@ jobs:
     env:
       FORCE_COLOR: 1
       EARTHLY_CONVERSION_PARALLELISM: "5"
+      EARTHLY_VERSION_FLAG_OVERRIDES: "referenced-save-only"
       EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
       EARTHLY_INSTALL_ID: "earthly-githubactions"
     steps:
@@ -148,6 +151,7 @@ jobs:
     env:
       FORCE_COLOR: 1
       EARTHLY_CONVERSION_PARALLELISM: "5"
+      EARTHLY_VERSION_FLAG_OVERRIDES: "referenced-save-only"
       EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
       EARTHLY_INSTALL_ID: "earthly-githubactions"
       EARTHLY_FEATURE_FLAG_OVERRIDES: "use-copy-include-patterns"
@@ -183,7 +187,8 @@ jobs:
     runs-on: ubuntu-latest
     env:
       FORCE_COLOR: 1
-      # EARTHLY_CONVERSION_PARALLELISM: "5" # TODO: Getting random errors like these Error: failed to compute cache key: failed to copy: httpReadSeeker: failed open: failed to authorize: no active session for ...: context deadline exceeded
+      EARTHLY_CONVERSION_PARALLELISM: "5"
+      EARTHLY_VERSION_FLAG_OVERRIDES: "referenced-save-only"
       EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
       EARTHLY_INSTALL_ID: "earthly-githubactions"
     steps:
@@ -199,6 +204,9 @@ jobs:
       - name: Docker mirror login (non fork only)
         run: docker login registry-1.docker.io.mirror.corp.earthly.dev --username "${{ secrets.DOCKERHUB_MIRROR_USERNAME }}" --password "${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}"
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+      - name: Docker Login (main build)
+        run: docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password "${{ secrets.DOCKERHUB_TOKEN }}"
+        if: github.event_name == 'push'
       - name: Configure Earthly to use mirror (non fork only)
         run: |-
           earthly config global.buildkit_additional_config "'[registry.\"docker.io\"]
@@ -225,6 +233,7 @@ jobs:
     env:
       FORCE_COLOR: 1
       EARTHLY_CONVERSION_PARALLELISM: "5"
+      EARTHLY_VERSION_FLAG_OVERRIDES: "referenced-save-only"
       EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
       EARTHLY_INSTALL_ID: "earthly-githubactions"
     steps:
@@ -240,6 +249,9 @@ jobs:
       - name: Docker mirror login (non fork only)
         run: docker login registry-1.docker.io.mirror.corp.earthly.dev --username "${{ secrets.DOCKERHUB_MIRROR_USERNAME }}" --password "${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}"
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+      - name: Docker Login (main build)
+        run: docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password "${{ secrets.DOCKERHUB_TOKEN }}"
+        if: github.event_name == 'push'
       - name: Configure Earthly to use mirror (non fork only)
         run: |-
           earthly config global.buildkit_additional_config "'[registry.\"docker.io\"]
@@ -270,6 +282,7 @@ jobs:
     env:
       FORCE_COLOR: 1
       EARTHLY_CONVERSION_PARALLELISM: "5"
+      EARTHLY_VERSION_FLAG_OVERRIDES: "referenced-save-only"
       EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
       EARTHLY_INSTALL_ID: "earthly-githubactions"
     steps:
@@ -307,6 +320,7 @@ jobs:
     env:
       FORCE_COLOR: 1
       EARTHLY_CONVERSION_PARALLELISM: "5"
+      EARTHLY_VERSION_FLAG_OVERRIDES: "referenced-save-only"
       EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
       EARTHLY_INSTALL_ID: "earthly-githubactions"
     steps:
@@ -344,6 +358,7 @@ jobs:
     env:
       FORCE_COLOR: 1
       EARTHLY_CONVERSION_PARALLELISM: "5"
+      EARTHLY_VERSION_FLAG_OVERRIDES: "referenced-save-only"
       EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
       EARTHLY_INSTALL_ID: "earthly-githubactions"
     steps:
@@ -374,6 +389,7 @@ jobs:
     env:
       FORCE_COLOR: 1
       EARTHLY_CONVERSION_PARALLELISM: "5"
+      EARTHLY_VERSION_FLAG_OVERRIDES: "referenced-save-only"
       EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
       EARTHLY_INSTALL_ID: "earthly-githubactions"
     steps:
@@ -405,6 +421,7 @@ jobs:
     env:
       FORCE_COLOR: 1
       EARTHLY_CONVERSION_PARALLELISM: "5"
+      EARTHLY_VERSION_FLAG_OVERRIDES: "referenced-save-only"
       EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
       EARTHLY_INSTALL_ID: "earthly-githubactions"
     steps:
@@ -417,12 +434,8 @@ jobs:
         run: ./build/linux/amd64/earthly config global.local_registry_host 'tcp://127.0.0.1:8371'
       - name: Execute test-local
         run: "./build/linux/amd64/earthly --use-inline-cache --save-inline-cache --no-output ./examples/tests/local+test-local"
-      - name: Check previous run without the --push flag correctly prevented the file from being touched
-        run: "! ls /tmp/earthly-test-local"
       - name: Execute test-local --push
         run: "./build/linux/amd64/earthly --use-inline-cache --save-inline-cache --no-output --push ./examples/tests/local+test-local"
-      - name: Check --push cmd was run (and touched this file on the local disk)
-        run: "ls /tmp/earthly-test-local"
       - name: Run general local tests (TODO this is re-testing the +test-local target)
         run: "./build/linux/amd64/earthly --use-inline-cache --save-inline-cache --no-output ./examples/tests/local+all"
       - name: Buildkit logs (runs on failure)
@@ -442,6 +455,7 @@ jobs:
     env:
       FORCE_COLOR: 1
       EARTHLY_CONVERSION_PARALLELISM: "5"
+      EARTHLY_VERSION_FLAG_OVERRIDES: "referenced-save-only"
       EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
       EARTHLY_INSTALL_ID: "earthly-githubactions"
       SSH_PORT: "2222"
@@ -502,6 +516,7 @@ jobs:
     env:
       FORCE_COLOR: 1
       EARTHLY_CONVERSION_PARALLELISM: "5"
+      EARTHLY_VERSION_FLAG_OVERRIDES: "referenced-save-only"
       EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
       EARTHLY_INSTALL_ID: "earthly-githubactions"
     steps:
@@ -539,6 +554,7 @@ jobs:
     env:
       FORCE_COLOR: 1
       EARTHLY_CONVERSION_PARALLELISM: "5"
+      EARTHLY_VERSION_FLAG_OVERRIDES: "referenced-save-only"
       EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
       EARTHLY_INSTALL_ID: "earthly-githubactions"
     steps:
@@ -586,6 +602,7 @@ jobs:
     env:
       FORCE_COLOR: 1
       EARTHLY_CONVERSION_PARALLELISM: "5"
+      EARTHLY_VERSION_FLAG_OVERRIDES: "referenced-save-only"
       EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
       EARTHLY_INSTALL_ID: "earthly-githubactions"
     steps:
@@ -633,6 +650,7 @@ jobs:
     env:
       FORCE_COLOR: 1
       EARTHLY_CONVERSION_PARALLELISM: "5"
+      EARTHLY_VERSION_FLAG_OVERRIDES: "referenced-save-only"
       EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
       EARTHLY_INSTALL_ID: "earthly-githubactions"
     steps:
@@ -682,6 +700,8 @@ jobs:
     env:
       FORCE_COLOR: 1
       EARTHLY_CONVERSION_PARALLELISM: "5"
+      # TODO
+      # EARTHLY_VERSION_FLAG_OVERRIDES: "referenced-save-only"
       EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
       EARTHLY_INSTALL_ID: "earthly-githubactions"
     steps:
@@ -746,6 +766,8 @@ jobs:
     env:
       FORCE_COLOR: 1
       EARTHLY_CONVERSION_PARALLELISM: "5"
+      # TODO
+      # EARTHLY_VERSION_FLAG_OVERRIDES: "referenced-save-only"
       EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
       EARTHLY_INSTALL_ID: "earthly-githubactions"
     steps:
@@ -770,7 +792,8 @@ jobs:
         run: "sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/latest/download/earthly-linux-amd64 -O /usr/local/bin/earthly && chmod +x /usr/local/bin/earthly'"
       - name: Docker mirror login (non fork only)
         run: docker login registry-1.docker.io.mirror.corp.earthly.dev --username "${{ secrets.DOCKERHUB_MIRROR_USERNAME }}" --password "${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}"
-        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+      - name: Docker Login (main build)
+        run: docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password "${{ secrets.DOCKERHUB_TOKEN }}"
       - name: Configure Earthly to use mirror (non fork only)
         run: |-
           earthly config global.buildkit_additional_config "'[registry.\"docker.io\"]
