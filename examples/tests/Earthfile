@@ -716,7 +716,7 @@ true-false-flag-invalid:
     RUN cat output3.txt | grep 'invalid argument for flag .*--no-cache.*expected bool'
 
 sequential-locally-test:
-    DO +RUN_EARTHLY --earthfile=sequential-locally.earth --use_tmpfs=false --target="+run-lots" --extra_args="--no-cache" --post_command="2>output.txt"
+    DO +RUN_EARTHLY --earthfile=sequential-locally.earth --use_tmpfs=false --target="+run-lots" --post_command="2>output.txt"
     RUN cat output.txt | grep -vw RUN | grep -vw char | grep -o '\(start\|mid\|end\).*' > output-filtered.txt
     RUN echo "set -e
 expectedmode=\"start\"
