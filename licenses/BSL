@@ -9,13 +9,15 @@ Additional Use Grant: You may make use of the Licensed Work, provided that
                       you may not use the Licensed Work for a Service Offering.
 
                       A "Service Offering" is a commercial offering that
-                      allows third parties (other than your employees and
-                      contractors) to access the functionality of the
-                      Licensed Work by issuing builds whose build steps are
-                      controlled by such third parties, or by creating secrets
-                      whose contents or metadata are controlled by such
-                      third parties or by creating Artifacts whose contents
-                      or metadata are controlled by such third parties.
+                      allows end users or other third parties (other than your
+                      employees and contractors or a company that has
+                      contracted you to build code that incorporates the
+                      Licensed Work) to access the functionality of the
+                      Licensed Work by (i) issuing builds whose build steps are
+                      controlled by such third parties, (ii) creating build
+                      secrets whose contents or metadata are controlled by such
+                      third parties, or (iii) by creating Artifacts whose
+                      contents or metadata are controlled by such third parties.
 
                       An "Artifact" is a software library, executable binary,
                       software package, container image or regular file
@@ -79,28 +81,3 @@ AN “AS IS” BASIS. LICENSOR HEREBY DISCLAIMS ALL WARRANTIES AND CONDITIONS,
 EXPRESS OR IMPLIED, INCLUDING (WITHOUT LIMITATION) WARRANTIES OF
 MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, NON-INFRINGEMENT, AND
 TITLE.
-
-MariaDB hereby grants you permission to use this License’s text to license
-your works, and to refer to it using the trademark “Business Source License”,
-as long as you comply with the Covenants of Licensor below.
-
-Covenants of Licensor
-
-In consideration of the right to use this License’s text and the “Business
-Source License” name and trademark, Licensor covenants to MariaDB, and to all
-other recipients of the licensed work to be provided by Licensor:
-
-1. To specify as the Change License the GPL Version 2.0 or any later version,
-   or a license that is compatible with GPL Version 2.0 or a later version,
-   where “compatible” means that software provided under the Change License can
-   be included in a program with software provided under GPL Version 2.0 or a
-   later version. Licensor may specify additional Change Licenses without
-   limitation.
-
-2. To either: (a) specify an additional grant of rights to use that does not
-   impose any additional restriction on the right granted in this License, as
-   the Additional Use Grant; or (b) insert the text “None”.
-
-3. To specify a Change Date.
-
-4. Not to modify this License in any other way.
