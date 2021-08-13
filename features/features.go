@@ -21,6 +21,7 @@ type Features struct {
 	ReferencedSaveOnly     bool `long:"referenced-save-only" description:"only save artifacts that are directly referenced"`
 	UseCopyIncludePatterns bool `long:"use-copy-include-patterns" description:"specify an include pattern to buildkit when performing copies"`
 	ForIn                  bool `long:"for-in" description:"allow the use of the FOR command"`
+	AllowParentSaves       bool `long:"allow-parent-saves" description:"allow SAVE ARTIFACT AS LOCAL to save targets to parent directories"`
 
 	Major int
 	Minor int

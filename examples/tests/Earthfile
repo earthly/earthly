@@ -60,6 +60,9 @@ ga:
     BUILD +if-exists
     BUILD +file-copying
     BUILD +run-no-cache
+    BUILD +save-artifact-file-as-dot
+    BUILD +save-artifact-dir-as-dot
+    BUILD +save-artifact-dont-overwrite
     BUILD +save-artifact-after-push
     BUILD +save-artifact-selective
     BUILD +save-artifact-selective-legacy
@@ -469,6 +472,38 @@ file-copying:
 
     # Saving the root dir is not allowed. This should fail.
     DO +RUN_EARTHLY --earthfile=file-copying.earth --should_fail=true --target=+test-dot-scratch
+
+save-artifact-dont-overwrite:
+    RUN --no-cache echo hello > important-data
+
+    DO +RUN_EARTHLY --should_fail=true --earthfile=save-artifact-dont-overwrite.earth --target=+dont-overwrite-abs-ref --post_command="> /tmp/output 2>&1"
+    RUN cat /tmp/output | grep 'Error.*path must be located under'
+
+    DO +RUN_EARTHLY --should_fail=true --earthfile=save-artifact-dont-overwrite.earth --target=+dont-overwrite-rel-ref --post_command="> /tmp/output 2>&1"
+    RUN cat /tmp/output | grep 'Error.*path must be located under'
+
+    DO +RUN_EARTHLY --should_fail=true --earthfile=save-artifact-dont-overwrite.earth --target=+dont-overwrite-rel-other-ref --post_command="> /tmp/output 2>&1"
+    RUN cat /tmp/output | grep 'Error.*path must be located under'
+
+    DO +RUN_EARTHLY --should_fail=true --earthfile=save-artifact-dont-overwrite.earth --target=+dont-overwrite-root --post_command="> /tmp/output 2>&1"
+    RUN cat /tmp/output | grep 'Error.*path must be located under'
+
+    DO +RUN_EARTHLY --should_fail=true --earthfile=save-artifact-dont-overwrite.earth --target=+dont-overwrite-root2 --post_command="> /tmp/output 2>&1"
+    RUN cat /tmp/output | grep 'Error.*path must be located under'
+
+    DO +RUN_EARTHLY --should_fail=true --earthfile=save-artifact-dont-overwrite.earth --target=+dont-overwrite-root3 --post_command="> /tmp/output 2>&1"
+    RUN cat /tmp/output | grep 'Error.*path must be located under'
+
+    RUN ls important-data
+
+save-artifact-file-as-dot:
+    DO +RUN_EARTHLY --earthfile=save-artifact-dot.earth --target=+save-local-file-as-dot
+    RUN cat uuid | grep eeee5a95-1506-428f-8ef0-94bbad5bd22b
+
+save-artifact-dir-as-dot:
+    DO +RUN_EARTHLY --earthfile=save-artifact-dot.earth --target=+save-local-dir-as-dot
+    RUN cat the-data/file1 | grep 7be91098-1823-41df-911b-2a8907fe5da7
+    RUN cat the-data/file2 | grep b0359c17-d08b-411c-9db7-1333ef3673d0
 
 run-no-cache:
     # Run twice to allow the second one to attempt to cache things

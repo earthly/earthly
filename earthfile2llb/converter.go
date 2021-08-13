@@ -22,6 +22,7 @@ import (
 	"github.com/earthly/earthly/states"
 	"github.com/earthly/earthly/states/dedup"
 	"github.com/earthly/earthly/states/image"
+	"github.com/earthly/earthly/util/fileutil"
 	"github.com/earthly/earthly/util/gitutil"
 	"github.com/earthly/earthly/util/llbutil"
 	"github.com/earthly/earthly/util/llbutil/llbfactory"
@@ -69,6 +70,7 @@ const (
 
 // Converter turns earthly commands to buildkit LLB representation.
 type Converter struct {
+	target              domain.Target
 	gitMeta             *gitutil.GitMetadata
 	opt                 ConvertOpt
 	mts                 *states.MultiTarget
@@ -96,6 +98,7 @@ func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Da
 		target, llbutil.PlatformWithDefault(opt.Platform), bc.GitMetadata, opt.OverridingVars,
 		opt.GlobalImports)
 	return &Converter{
+		target:              target,
 		gitMeta:             bc.GitMetadata,
 		opt:                 opt,
 		mts:                 mts,
@@ -697,8 +700,23 @@ func (c *Converter) SaveArtifact(ctx context.Context, saveFrom string, saveTo st
 		}
 		c.mts.Final.SeparateArtifactsState = append(c.mts.Final.SeparateArtifactsState, separateArtifactsState)
 
+		saveAsLocalToAdj := saveAsLocalTo
+		if saveAsLocalToAdj == "." {
+			saveAsLocalToAdj = "./"
+		}
+
+		if !c.ftrs.AllowParentSaves {
+			canSave, err := c.canSave(ctx, saveAsLocalToAdj)
+			if err != nil {
+				return err
+			}
+			if !canSave {
+				return fmt.Errorf("unable to save to %s; path must be located under %s", saveAsLocalTo, c.target.LocalPath)
+			}
+		}
+
 		saveLocal := states.SaveLocal{
-			DestPath:     saveAsLocalTo,
+			DestPath:     saveAsLocalToAdj,
 			ArtifactPath: artifactPath,
 			Index:        len(c.mts.Final.SeparateArtifactsState) - 1,
 			IfExists:     ifExists,
@@ -713,6 +731,31 @@ func (c *Converter) SaveArtifact(ctx context.Context, saveFrom string, saveTo st
 	c.ranSave = true
 	c.markFakeDeps()
 	return nil
+}
+
+func (c *Converter) canSave(ctx context.Context, saveAsLocalTo string) (bool, error) {
+	basepath, err := filepath.Abs(c.target.LocalPath)
+	if err != nil {
+		return false, errors.Wrapf(err, "failed to get absolute path of %s", basepath)
+	}
+	if !fileutil.DirExists(basepath) {
+		return false, fmt.Errorf("no such directory: %s", basepath)
+	}
+	basepath += "/"
+
+	hasTrailingSlash := strings.HasSuffix(saveAsLocalTo, "/") && saveAsLocalTo != "/"
+	saveAsLocalToAdj := saveAsLocalTo
+	if !strings.HasPrefix(saveAsLocalTo, "/") {
+		saveAsLocalToAdj = path.Join(c.target.LocalPath, saveAsLocalTo)
+	}
+	saveAsLocalToAdj, err = filepath.Abs(saveAsLocalToAdj)
+	if err != nil {
+		return false, errors.Wrapf(err, "failed to get absolute path of %q", saveAsLocalTo)
+	}
+	if hasTrailingSlash {
+		saveAsLocalToAdj += "/"
+	}
+	return strings.HasPrefix(saveAsLocalToAdj, basepath), nil
 }
 
 // SaveArtifactFromLocal saves a local file into the ArtifactsState
