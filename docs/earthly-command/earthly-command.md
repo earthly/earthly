@@ -10,7 +10,7 @@
   ```
 * Artifact form
   ```
-  earthly [options...] --artifact|-a <artifact-ref> [<dest-path>]
+  earthly [options...] --artifact|-a <target-ref>/<artifact-path> [<dest-path>]
   ```
 * Image form
   ```
