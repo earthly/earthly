@@ -297,7 +297,7 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 		"\n" +
 		"   \t" + earthly + " [options] --image <target-ref>\n" +
 		"\n" +
-		"   \t" + earthly + " [options] --artifact <artifact-ref> [<dest-path>]\n" +
+		"   \t" + earthly + " [options] --artifact <target-ref>/<artifact-path> [<dest-path>]\n" +
 		"\n" +
 		"   \t" + earthly + " [options] command [command options]\n" +
 		"\n" +
@@ -335,7 +335,7 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 		&cli.BoolFlag{
 			Name:        "artifact",
 			Aliases:     []string{"a"},
-			Usage:       "Output only specified artifact",
+			Usage:       "Output specified artifact; a wildcard (*) can be used to output all artifacts",
 			Destination: &app.artifactMode,
 		},
 		&cli.BoolFlag{
