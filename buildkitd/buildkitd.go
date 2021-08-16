@@ -651,8 +651,8 @@ func CheckCompatibility(ctx context.Context, settings Settings) ([]string, error
 	isRootless, err := isRootlessDocker(ctx)
 	if isRootless {
 		return []string{
-			"--security-opt", "seccomp=unconfined",
-			"--security-opt", "apparmor=unconfined",
+			"--security-opt", "seccomp=unconfined", // Required by buildkitd
+			"--security-opt", "apparmor=unconfined", // Required by buildkitd
 			"--device", "/dev/fuse", // Required if/when fuse-overlayfs is used.
 			"--cap-add", "SYS_ADMIN", // Required to allow mounting overlayfs / fuse-overlayfs for snapshotter
 			"--cap-add", "NET_ADMIN", // Required when using CNI networking to create namespace
