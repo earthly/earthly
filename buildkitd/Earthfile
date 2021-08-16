@@ -22,7 +22,8 @@ buildkitd:
         openssh-client \
         pigz \
         util-linux \
-        xz
+        xz \
+        fuse-overlayfs
 
     # Add github and gitlab to known hosts.
     RUN mkdir -p ~/.ssh
@@ -35,6 +36,7 @@ buildkitd:
     COPY ./buildkitd.cache.template /etc/buildkitd.cache.template
     COPY ./buildkitd.tcp.template /etc/buildkitd.tcp.template
     COPY ./buildkitd.tls.template /etc/buildkitd.tls.template
+    COPY ./buildkitd.rootless-daemon.template /etc/buildkitd.rootless-daemon.template
     COPY ./cni-conf.json.template /etc/cni/cni-conf.json.template
 
     # Scripts and binaries used for the builds.

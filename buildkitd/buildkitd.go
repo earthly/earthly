@@ -237,7 +237,7 @@ func RemoveExited(ctx context.Context, containerName string) error {
 
 // Start starts the buildkitd daemon.
 func Start(ctx context.Context, console conslogging.ConsoleLogger, image, containerName string, settings Settings, reset bool) error {
-	err := CheckCompatibility(ctx, settings)
+	compatFlags, err := CheckCompatibility(ctx, settings)
 	if len(settings.AdditionalArgs) == 0 && err != nil {
 		return errors.Wrap(err, "compatibility")
 	}
@@ -269,8 +269,10 @@ func Start(ctx context.Context, console conslogging.ConsoleLogger, image, contai
 		"-e", fmt.Sprintf("BUILDKIT_TLS_ENABLED=%t", settings.UseTCP && settings.UseTLS),
 		"--label", fmt.Sprintf("dev.earthly.settingshash=%s", settingsHash),
 		"--name", containerName,
-		"--privileged",
 	}
+
+	// Flag tweaks needed for compatibility with the users daemon
+	args = append(args, compatFlags...)
 
 	if settings.AdditionalConfig != "" {
 		args = append(args, "-e", fmt.Sprintf("EARTHLY_ADDITIONAL_BUILDKIT_CONFIG=%s", settings.AdditionalConfig))
@@ -638,22 +640,29 @@ func GetAvailableImageID(ctx context.Context, image string) (string, error) {
 }
 
 // CheckCompatibility runs all avaliable compatibility checks before starting the buildkitd daemon.
-func CheckCompatibility(ctx context.Context, settings Settings) error {
+func CheckCompatibility(ctx context.Context, settings Settings) ([]string, error) {
 	isNamespaced, err := isNamespacedDocker(ctx)
 	if isNamespaced {
-		return errors.New(`user namespaces are enabled, set "buildkit_additional_args" in ~/.earthly/config.yml to ["--userns", "host"] to disable`)
+		return []string{}, errors.New(`user namespaces are enabled, set "buildkit_additional_args" in ~/.earthly/config.yml to ["--userns", "host"] to disable`)
 	} else if err != nil {
-		return errors.Wrap(err, "failed compatibilty check")
+		return []string{}, errors.Wrap(err, "failed compatibilty check")
 	}
 
 	isRootless, err := isRootlessDocker(ctx)
 	if isRootless {
-		return errors.New(`rootless docker detected. Compatibility is limited. Configure "buildkit_additional_args" in ~/.earthly/config.yml with some additional arguments like ["--log-opt"] to give it a shot`)
+		return []string{
+			"--security-opt", "seccomp=unconfined",
+			"--security-opt", "apparmor=unconfined",
+			"--device", "/dev/fuse", // Required if/when fuse-overlayfs is used.
+			"--cap-add", "SYS_ADMIN", // Required to allow mounting overlayfs / fuse-overlayfs for snapshotter
+			"--cap-add", "NET_ADMIN", // Required when using CNI networking to create namespace
+		}, nil
 	} else if err != nil {
-		return errors.Wrap(err, "failed compatibilty check")
+		return []string{}, errors.Wrap(err, "failed compatibilty check")
 	}
 
-	return nil
+	// Standard, expected flags.
+	return []string{"--privileged"}, nil
 }
 
 func isNamespacedDocker(ctx context.Context) (bool, error) {
