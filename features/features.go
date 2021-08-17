@@ -7,8 +7,10 @@ import (
 	"strconv"
 	"strings"
 
+	goflags "github.com/jessevdk/go-flags"
 	"github.com/pkg/errors"
 
+	"github.com/earthly/earthly/analytics"
 	"github.com/earthly/earthly/ast/spec"
 	"github.com/earthly/earthly/util/flagutil"
 )
@@ -92,6 +94,7 @@ func ApplyFlagOverrides(ftrs *Features, envOverrides string) error {
 
 	ftrsStruct := reflect.ValueOf(ftrs).Elem()
 	for key := range overrides {
+		analytics.Count("override-feature-flags", key)
 		i, ok := fieldIndices[key]
 		if !ok {
 			return fmt.Errorf("unable to set %s: invalid flag", key)
@@ -114,6 +117,11 @@ func ApplyFlagOverrides(ftrs *Features, envOverrides string) error {
 
 var errUnexpectedArgs = fmt.Errorf("unexpected VERSION arguments; should be VERSION [flags] <major-version>.<minor-version>")
 
+func instrumentVersion(_ string, opt *goflags.Option, s *string) *string {
+	analytics.Count("version-feature-flags", opt.LongName)
+	return s // don't modify the flag, just pass it back.
+}
+
 // GetFeatures returns a features struct for a particular version
 func GetFeatures(version *spec.Version) (*Features, error) {
 	var ftrs Features
@@ -126,7 +134,7 @@ func GetFeatures(version *spec.Version) (*Features, error) {
 		return nil, errUnexpectedArgs
 	}
 
-	parsedArgs, err := flagutil.ParseArgs("VERSION", &ftrs, version.Args)
+	parsedArgs, err := flagutil.ParseArgsWithValueModifier("VERSION", &ftrs, version.Args, instrumentVersion)
 	if err != nil {
 		return nil, err
 	}
