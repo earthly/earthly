@@ -63,6 +63,7 @@ ga:
     BUILD +save-artifact-file-as-dot
     BUILD +save-artifact-dir-as-dot
     BUILD +save-artifact-dont-overwrite
+    BUILD +save-artifact-force-overwrite
     BUILD +save-artifact-after-push
     BUILD +save-artifact-selective
     BUILD +save-artifact-selective-legacy
@@ -495,6 +496,14 @@ save-artifact-dont-overwrite:
     RUN cat /tmp/output | grep 'Error.*path must be located under'
 
     RUN ls important-data
+
+save-artifact-force-overwrite:
+    RUN --no-cache echo hello > /root/important-data
+    DO +RUN_EARTHLY --earthfile=save-artifact-overwrite.earth --target=+overwrite-root
+    RUN cat /root/base | grep 88716877-039f-4dea-8ec3-84eb64f326c5
+    RUN cat /root/sub/data1 | grep ff42c40d-034a-4855-8db7-febfa7322576
+    RUN cat /root/sub/data2 | grep 2b4a653d-cdf6-4574-ac5e-f02bb6993365
+    RUN ! ls /root/important-data
 
 save-artifact-file-as-dot:
     DO +RUN_EARTHLY --earthfile=save-artifact-dot.earth --target=+save-local-file-as-dot

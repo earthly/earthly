@@ -65,6 +65,7 @@ type saveArtifactOpts struct {
 	KeepOwn         bool `long:"keep-own" description:"Keep owner info"`
 	IfExists        bool `long:"if-exists" description:"Do not fail if the artifact does not exist"`
 	SymlinkNoFollow bool `long:"symlink-no-follow" description:"Do not follow symlinks"`
+	Force           bool `long:"force" description:"Force artifact to be saved, even if it means overwriting files or directories outside of the relative directory"`
 }
 
 type saveImageOpts struct {

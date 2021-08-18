@@ -628,7 +628,7 @@ func (c *Converter) RunExpression(ctx context.Context, expressionName string, op
 }
 
 // SaveArtifact applies the earthly SAVE ARTIFACT command.
-func (c *Converter) SaveArtifact(ctx context.Context, saveFrom string, saveTo string, saveAsLocalTo string, keepTs bool, keepOwn bool, ifExists, symlinkNoFollow bool, isPush bool) error {
+func (c *Converter) SaveArtifact(ctx context.Context, saveFrom string, saveTo string, saveAsLocalTo string, keepTs bool, keepOwn bool, ifExists, symlinkNoFollow, force bool, isPush bool) error {
 	err := c.checkAllowed(saveArtifactCmd)
 	if err != nil {
 		return err
@@ -705,7 +705,7 @@ func (c *Converter) SaveArtifact(ctx context.Context, saveFrom string, saveTo st
 			saveAsLocalToAdj = "./"
 		}
 
-		if !c.ftrs.AllowParentSaves {
+		if !force {
 			canSave, err := c.canSave(ctx, saveAsLocalToAdj)
 			if err != nil {
 				return err
