@@ -92,3 +92,10 @@ nginx -c /root/nginx.conf
         git push --set-upstream origin main && \
         cd .. && \
         rm -rf repo # remove this repo dir now that it has been pushed to the server
+
+# server-with-user-directory is similar to server, but is cloned via
+# "git clone https://testuser:keepitsecret@selfsigned.example.com/testuser/repo.git"
+server-with-user-directory:
+    FROM +server
+    RUN mkdir /var/git/repos/testuser
+    RUN mv /var/git/repos/repo.git /var/git/repos/testuser/.
