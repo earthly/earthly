@@ -276,6 +276,10 @@ func Start(ctx context.Context, console conslogging.ConsoleLogger, image, contai
 		args = append(args, "-e", fmt.Sprintf("EARTHLY_ADDITIONAL_BUILDKIT_CONFIG=%s", settings.AdditionalConfig))
 	}
 
+	if settings.IPTables != "" {
+		args = append(args, "-e", fmt.Sprintf("IP_TABLES=%s", settings.IPTables))
+	}
+
 	args = append(args, settings.AdditionalArgs...)
 	if os.Getenv("EARTHLY_WITH_DOCKER") == "1" {
 		// Add /sys/fs/cgroup if it's earthly-in-earthly.

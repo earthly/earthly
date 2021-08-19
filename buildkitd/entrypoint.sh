@@ -2,13 +2,6 @@
 set -e
 echo "starting earthly-buildkit with EARTHLY_GIT_HASH=$EARTHLY_GIT_HASH BUILDKIT_BASE_IMAGE=$BUILDKIT_BASE_IMAGE"
 
-KERNEL="generic"
-if uname -a | grep -wiq "microsoft"; then
-  KERNEL="WSL"
-  echo "WSL Detected!"
-fi
-# If we ever need additional kernel detections per-distro, add those checks here and set $KERNEL accordingly.
-
 if [ "$BUILDKIT_DEBUG" = "true" ]; then
     set -x
 fi
@@ -38,19 +31,51 @@ if [ "$EARTHLY_RESET_TMP_DIR" = "true" ]; then
     rm -rf "${EARTHLY_TMP_DIR:?}"/* || true
 fi
 
-if ! lsmod | grep -wq "^ip_tables"; then
-  echo "Legacy ip_tables is not loaded."
+if [ -z "$IP_TABLES" ]; then
+    echo "Autodetecting iptables"
 
-  if [ "$KERNEL" = "WSL" ]; then
-    echo "Keeping iptables-legacy for WSL"
+    if lsmod | grep -wq "^ip_tables"; then
+        echo "Detected iptables-legacy module"
+        IP_TABLES="iptables-legacy"
 
-  else
-    echo "Switching to iptables-nft."
-    ln -sf /sbin/iptables-nft /sbin/iptables
-  fi
+    elif lsmod | grep -wq "^nf_tables"; then
+        echo "Detected iptables-nft module"
+        IP_TABLES="iptables-nft"
+    else
+        echo "Could not find an ip_tables module. Using heuristics."
 
-  lsmod
+        legacylines=$(iptables-legacy -t nat -S --wait | wc -l | cut -d' ' -f1)
+        legacycode=$?
+
+        nflines=$(iptables-nft -t nat -S --wait | wc -l | cut -d' ' -f1)
+        nfcode=$?
+
+        if [ $legacycode -eq 0 -a $nfcode -ne 0 ]; then
+            echo "Detected iptables-legacy by exit code ($legacycode, $nftables)"
+            IP_TABLES="iptables-legacy"
+
+        elif [ $legacycode -ne 0 -a $nfcode -eq 0 ]; then
+            echo "Detected iptables-nft by exit code ($legacycode, $nftables)"
+            IP_TABLES="iptables-nft"
+
+        elif [ $legacycode -ne 0 -a $nfcode -ne 0 ]; then
+            echo "iptables-legacy and iptables-nft both exited abnormally ($legacycode, $nftables). Check your settings and then set the IP_TABLES variable correctly to skip autodetection."
+            exit 1
+
+        elif [ $legacylines -ge $nflines ]; then
+            # Tiebreak goes to legacy, after testing on WSL/Windows
+            echo "Detected iptables-legacy by output length ($legacylines >= $nflines)"
+            IP_TABLES="iptables-legacy"
+
+        else
+            echo "Detected iptables-nft by output length ($legacylines < $nflines)"
+            IP_TABLES="iptables-nft"
+        fi
+    fi
+else
+    echo "Manual iptables specified ($IP_TABLES), skipping autodetection."
 fi
+ln -sf "/sbin/$IP_TABLES" /sbin/iptables
 
 # clear any leftovers in the dind dir
 rm -rf "$EARTHLY_TMP_DIR/dind"
