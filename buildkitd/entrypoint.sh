@@ -42,7 +42,7 @@ if [ -z "$IP_TABLES" ]; then
         echo "Detected iptables-nft module"
         IP_TABLES="iptables-nft"
     else
-        echo "Could not find an ip_tables module. Using heuristics."
+        echo "Could not find an ip_tables module; falling back to heuristics."
 
         legacylines=$(iptables-legacy -t nat -S --wait | wc -l | cut -d' ' -f1)
         legacycode=$?
