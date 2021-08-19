@@ -1,0 +1,7 @@
+AuthorizedKeysFile .ssh/authorized_keys
+AllowTcpForwarding no
+GatewayPorts no
+X11Forwarding no
+PasswordAuthentication no
+
+Subsystem	sftp	/usr/lib/ssh/sftp-server
