@@ -50,19 +50,19 @@ if [ -z "$IP_TABLES" ]; then
         nflines=$(iptables-nft -t nat -S --wait | wc -l | cut -d' ' -f1)
         nfcode=$?
 
-        if [ $legacycode -eq 0 -a $nfcode -ne 0 ]; then
-            echo "Detected iptables-legacy by exit code ($legacycode, $nftables)"
+        if [ $legacycode -eq 0 ] && [ $nfcode -ne 0 ]; then
+            echo "Detected iptables-legacy by exit code ($legacycode, $nfcode)"
             IP_TABLES="iptables-legacy"
 
-        elif [ $legacycode -ne 0 -a $nfcode -eq 0 ]; then
-            echo "Detected iptables-nft by exit code ($legacycode, $nftables)"
+        elif [ $legacycode -ne 0 ] && [ $nfcode -eq 0 ]; then
+            echo "Detected iptables-nft by exit code ($legacycode, $nfcode)"
             IP_TABLES="iptables-nft"
 
-        elif [ $legacycode -ne 0 -a $nfcode -ne 0 ]; then
-            echo "iptables-legacy and iptables-nft both exited abnormally ($legacycode, $nftables). Check your settings and then set the IP_TABLES variable correctly to skip autodetection."
+        elif [ $legacycode -ne 0 ] && [ $nfcode -ne 0 ]; then
+            echo "iptables-legacy and iptables-nft both exited abnormally ($legacycode, $nfcode). Check your settings and then set the IP_TABLES variable correctly to skip autodetection."
             exit 1
 
-        elif [ $legacylines -ge $nflines ]; then
+        elif [ "$legacylines" -ge "$nflines" ]; then
             # Tiebreak goes to legacy, after testing on WSL/Windows
             echo "Detected iptables-legacy by output length ($legacylines >= $nflines)"
             IP_TABLES="iptables-legacy"
