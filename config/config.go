@@ -66,6 +66,7 @@ type GlobalConfig struct {
 	ServerTLSCert            string   `yaml:"buildkitd_tlscert"          help:"The path to the server cert for verification. Relative paths are interpreted as relative to ~/.earthly. Only used when Earthly manages buildkit."`
 	ServerTLSKey             string   `yaml:"buildkitd_tlskey"           help:"The path to the server key for verification. Relative paths are interpreted as relative to ~/.earthly. Only used when Earthly manages buildkit."`
 	TLSEnabled               bool     `yaml:"tls_enabled"                help:"If TLS should be used to communicate with Buildkit. Only honored when BuildkitScheme is 'tcp'."`
+	IPTables                 string   `yaml:"ip_tables"                  help:"Which iptables binary to use. Valid values are iptables-legacy or iptables-nft. Bypasses any autodetection."`
 
 	// Obsolete.
 	CachePath    string `yaml:"cache_path"    help:" *Deprecated* The path to keep Earthly's cache."`

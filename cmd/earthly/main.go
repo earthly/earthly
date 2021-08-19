@@ -1050,10 +1050,15 @@ func (app *earthlyApp) before(context *cli.Context) error {
 	app.buildkitdSettings.UseTLS = app.cfg.Global.TLSEnabled
 
 	// ensure the MTU is something allowable in IPv4, cap enforced by type. Zero is autodetect.
-	if app.buildkitdSettings.CniMtu != 0 && app.buildkitdSettings.CniMtu < 68 {
+	if app.cfg.Global.CniMtu != 0 && app.cfg.Global.CniMtu < 68 {
 		return errors.New("invalid overridden MTU size")
 	}
 	app.buildkitdSettings.CniMtu = app.cfg.Global.CniMtu
+
+	if app.cfg.Global.IPTables != "" && app.cfg.Global.IPTables != "iptables-legacy" && app.cfg.Global.IPTables != "iptables-nft" {
+		return errors.New(`invalid overridden iptables name. Valid values are "iptables-legacy" or "iptables-nft"`)
+	}
+	app.buildkitdSettings.IPTables = app.cfg.Global.IPTables
 
 	// Make a small attempt to check if we are not bootstrapped. If not, then do that before we do anything else.
 	isBootstrapCmd := false
