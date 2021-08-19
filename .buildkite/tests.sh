@@ -45,9 +45,16 @@ echo "Build latest earthly using released earthly"
 "$released_earthly" +for-"$EARTHLY_OS"
 chmod +x "$earthly"
 
-sleep 1 # WSL2 requires a wait after to avoid "Text file busy".
+# WSL2 sometimes gives a "Text file busy" when running the native binary, likely due to drossing the WSL/Windows divide.
+# This should be enough retry to skip that, and fail if theres _actually_ a problem.
+att_max=5
+att_num=1
+until "$earthly" --version || (( att_num == att_max ))
+do
+    echo "Attempt $att_num failed! Trying again in $att_num seconds..."
+    sleep $(( att_num++ ))
+done
 
-"$earthly" --version
 export EARTHLY_VERSION_FLAG_OVERRIDES="referenced-save-only"
 "$earthly" config global.local_registry_host 'tcp://127.0.0.1:8371'
 
