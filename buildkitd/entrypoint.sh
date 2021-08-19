@@ -44,10 +44,10 @@ if [ -z "$IP_TABLES" ]; then
     else
         echo "Could not find an ip_tables module; falling back to heuristics."
 
-        legacylines=$(iptables-legacy -t nat -S --wait | wc -l | cut -d' ' -f1)
+        legacylines=$(iptables-legacy -t nat -S --wait | wc -l)
         legacycode=$?
 
-        nflines=$(iptables-nft -t nat -S --wait | wc -l | cut -d' ' -f1)
+        nflines=$(iptables-nft -t nat -S --wait | wc -l)
         nfcode=$?
 
         if [ $legacycode -eq 0 ] && [ $nfcode -ne 0 ]; then
