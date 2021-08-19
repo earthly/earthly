@@ -441,7 +441,7 @@ func (c *Converter) CopyArtifact(ctx context.Context, artifactName string, dest 
 }
 
 // CopyClassical applies the earthly COPY command, with classical args.
-func (c *Converter) CopyClassical(ctx context.Context, srcs []string, dest string, isDir bool, keepTs bool, keepOwn bool, chown string) error {
+func (c *Converter) CopyClassical(ctx context.Context, srcs []string, dest string, isDir bool, keepTs bool, keepOwn bool, chown string, ifExists bool) error {
 	err := c.checkAllowed(copyCmd)
 	if err != nil {
 		return err
@@ -460,11 +460,12 @@ func (c *Converter) CopyClassical(ctx context.Context, srcs []string, dest strin
 	c.mts.Final.MainState = llbutil.CopyOp(
 		srcState,
 		srcs,
-		c.mts.Final.MainState, dest, true, isDir, keepTs, c.copyOwner(keepOwn, chown), false, false,
+		c.mts.Final.MainState, dest, true, isDir, keepTs, c.copyOwner(keepOwn, chown), ifExists, false,
 		llb.WithCustomNamef(
-			"%sCOPY %s%s %s",
+			"%sCOPY %s%s%s %s",
 			c.vertexPrefix(false, false),
 			strIf(isDir, "--dir "),
+			strIf(ifExists, "--if-exists "),
 			strings.Join(srcs, " "),
 			dest))
 	return nil
