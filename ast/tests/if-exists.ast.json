@@ -290,6 +290,32 @@
           }
         }
       ]
+    },
+    {
+      "name": "classic-copy",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "--if-exists",
+              "this-file-does-not-exist",
+              "."
+            ],
+            "name": "COPY"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "test",
+              "!",
+              "-f",
+              "this-file-does-not-exist"
+            ],
+            "name": "RUN"
+          }
+        }
+      ]
     }
   ]
 }
