@@ -45,7 +45,7 @@ echo "Build latest earthly using released earthly"
 "$released_earthly" +for-"$EARTHLY_OS"
 chmod +x "$earthly"
 
-# WSL2 sometimes gives a "Text file busy" when running the native binary, likely due to drossing the WSL/Windows divide.
+# WSL2 sometimes gives a "Text file busy" when running the native binary, likely due to crossing the WSL/Windows divide.
 # This should be enough retry to skip that, and fail if theres _actually_ a problem.
 att_max=5
 att_num=1
