@@ -1,0 +1,14 @@
+AuthorizedKeysFile .ssh/authorized_keys
+AllowTcpForwarding no
+GatewayPorts no
+X11Forwarding no
+PasswordAuthentication no
+
+port 22
+
+HostKey /root/sshd_a/ssh_host_rsa_key
+HostKey /root/sshd_a/ssh_host_ecdsa_key
+HostKey /root/sshd_a/ssh_host_ed25519_key
+
+Subsystem	sftp	/usr/lib/ssh/sftp-server
+

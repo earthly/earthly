@@ -1,0 +1,112 @@
+server-with-two-sshds:
+    FROM ..+base
+    RUN apk add --update --no-cache openssh git
+    RUN mkdir -p /root/sshd_a/tmp/etc/ssh
+    RUN mkdir -p /root/sshd_b/tmp/etc/ssh
+    # TODO figure out if "ssh-keygen -A" can be passed a different output directory for host keys.
+    RUN rm -f /etc/ssh/ssh_host_* && ssh-keygen -A && mv /etc/ssh/ssh_host_* /root/sshd_a/.
+    RUN rm -f /etc/ssh/ssh_host_* && ssh-keygen -A && mv /etc/ssh/ssh_host_* /root/sshd_b/.
+    RUN ssh-keygen -b 3072 -t rsa -f /root/self-hosted-sshkey -q -N "" -C "testkey"
+    RUN adduser --disabled-password --gecos "" git && \
+        mkdir ~git/.ssh && \
+        cat /root/self-hosted-sshkey.pub > ~git/.ssh/authorized_keys && \
+        chmod 600 ~git/.ssh/authorized_keys && \
+        chown git:git ~git/.ssh/authorized_keys && \
+        cat /etc/passwd | grep git && \
+        sed -i 's/\(git:.*\):\/bin\/ash/\1:\/usr\/bin\/git-shell/g' /etc/passwd && \
+        cat /etc/passwd | grep git && \
+        passwd git -u
+    RUN mkdir /home/git/testuser && \
+        git init --bare --initial-branch=main /home/git/testuser/repo.git && \
+        git init --bare --initial-branch=main /home/git/testuser/subrepo.git && \
+        chown -R git:git /home/git/testuser
+    COPY sshd_a_config /root/sshd_a/etc/ssh/sshd_config
+    COPY sshd_b_config /root/sshd_b/etc/ssh/sshd_config
+
+    RUN echo "Welcome to our dual self-hosted git ssh server" > /etc/motd
+
+    RUN echo "set -e
+# Docker creates /etc/hosts as readonly; we must unmount it first
+# before we can update it; this change WILL not stick around between different RUNs
+# furthermore, we must execute this script with RUN --privileged
+cp /etc/hosts /tmp/hosts
+umount /etc/hosts
+cp /tmp/hosts /etc/hosts
+if ! grep gita.example.com /etc/hosts 2>/dev/null; then
+    echo -e \"127.0.0.1\tgita.example.com\" >> /etc/hosts
+fi
+if ! grep gitb.example.com /etc/hosts 2>/dev/null; then
+    echo -e \"127.0.0.1\tgitb.example.com\" >> /etc/hosts
+fi
+/usr/sbin/sshd -f /root/sshd_a/etc/ssh/sshd_config
+/usr/sbin/sshd -f /root/sshd_b/etc/ssh/sshd_config
+" > /bin/start-sshds && chmod +x /bin/start-sshds
+
+    RUN --privileged start-sshds && \
+        mkdir -p ~/.ssh && \
+        ssh-keyscan -p 22 -H gita.example.com >> ~/.ssh/known_hosts && \
+        ssh-keyscan -p 2222 -H gitb.example.com >> ~/.ssh/known_hosts
+
+    # Create a subrepo on sshd_b
+    RUN --privileged start-sshds && \ # starts in background
+        eval `ssh-agent` && \
+        ssh-add /root/self-hosted-sshkey && \
+        mkdir -p /test/subrepo && \
+        cd /test/subrepo && \
+        git init --initial-branch=main . && \
+        echo "5cfedd4d-b22a-4df3-a531-f932a5a5cf11" > file-in-subrepo && \
+        git add file-in-subrepo && \
+        git config --global user.email "onlyspammersemailthis@earthly.dev" && \
+        git config --global user.name "test name" && \
+        git commit -m "a file in the subrepo" && \
+        git remote add origin ssh://git@gitb.example.com:2222/~/testuser/subrepo.git && \
+        git push --set-upstream origin main && \
+        cd .. && \
+        rm -rf subrepo # remove this repo dir now that it has been pushed to the server
+
+    # create testuser/repo.git
+    RUN --privileged start-sshds && \ # starts in background
+        eval `ssh-agent` && \
+        ssh-add /root/self-hosted-sshkey && \
+        mkdir -p /test/repo && \
+        cd /test/repo && \
+        git init --initial-branch=main . && \
+        git config --global user.email "onlyspammersemailthis@earthly.dev" && \
+        git config --global user.name "test name" && \
+        echo "FROM alpine:3.13
+hello:
+    COPY subrepo/file-in-subrepo .
+    RUN cat file-in-subrepo | base64
+" > Earthfile && \
+        git add Earthfile && \
+        git commit -a -m "an earthfile" && \
+        git submodule add ssh://git@gitb.example.com:2222/~/testuser/subrepo.git subrepo && \
+        git commit -a -m "and submodule" && \
+        git remote add origin git@gita.example.com:testuser/repo.git && \
+        git push --set-upstream origin main && \
+        cd .. && \
+        rm -rf repo # remove this repo dir now that it has been pushed to the server
+
+test-private-git-repos:
+    FROM +server-with-two-sshds
+    RUN --no-cache echo "#!/bin/sh
+set -ex
+
+# first ensure these two /etc/hosts entries are working
+ping -c 1 gita.example.com
+ping -c 1 gitb.example.com
+ping -c 1 buildkitsandbox
+
+# load in pre-authorized key
+eval \$(ssh-agent)
+ssh-add /root/self-hosted-sshkey
+ssh-add -l
+
+git clone git@gita.example.com:testuser/repo.git repo_git
+
+earthly --config \$earthly_config --verbose -D gita.example.com/testuser/repo:main+hello > output 2>&1
+
+# base64 encoded value of uuid
+grep hello.*NWNmZWRkNGQtYjIyYS00ZGYzLWE1MzEtZjkzMmE1YTVjZjExCg== output
+" >/tmp/test-earthly-script && chmod +x /tmp/test-earthly-script
+    DO ..+RUN_EARTHLY --pre_command=start-sshds --exec_cmd=/tmp/test-earthly-script
