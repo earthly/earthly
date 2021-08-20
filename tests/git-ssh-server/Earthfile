@@ -9,7 +9,7 @@ FROM ..+base \
     --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR
 
 # server creates a ssh-based git server; this repo can then be cloned by running
-# "git clone git@selfsigned.example.com:testuser/repo.git"
+# "git clone git@git.example.com:testuser/repo.git"
 server:
     RUN apk add --update --no-cache openssh git
     RUN ssh-keygen -A
@@ -24,7 +24,7 @@ server:
         cat /etc/passwd | grep git && \
         passwd git -u
     RUN mkdir /home/git/testuser && \
-        git init --bar /home/git/testuser/repo.git && \
+        git init --bare --initial-branch=main /home/git/testuser/repo.git && \
         chown -R git:git /home/git/testuser
     COPY sshd_config /etc/ssh/sshd_config
     RUN echo "Welcome to our self-hosted git ssh server" > /etc/motd

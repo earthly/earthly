@@ -64,7 +64,7 @@ server:
     COPY +certs/selfsigned-example-com.key /root/selfsigned-example-com.key
 
     RUN mkdir -p /var/git/repos
-    RUN git init --bar /var/git/repos/repo.git
+    RUN git init --bare /var/git/repos/repo.git
     RUN chown -R nginx:nginx /var/git/repos
 
     # setup basic http auth for user=testuser; password=keepitsecret; which will be used to support authenticating

@@ -1,0 +1,59 @@
+
+server-with-submodules:
+    FROM ../git-ssh-server+server
+    RUN git init --bare --initial-branch=main /home/git/testuser/subrepo.git && \
+        chown -R git:git /home/git/testuser/subrepo.git
+    # Create a subrepo
+    RUN --privileged start-sshd && \ # starts in background
+        eval `ssh-agent` && \
+        ssh-add /root/self-hosted-sshkey && \
+        mkdir -p /test/subrepo && \
+        cd /test/subrepo && \
+        git init --initial-branch=main . && \
+        echo "62916a7a-5d9e-4965-b008-f8ae08f470e1" > file-in-subrepo && \
+        git add file-in-subrepo && \
+        git config --global user.email "onlyspammersemailthis@earthly.dev" && \
+        git config --global user.name "test name" && \
+        git commit -m "a file in the subrepo" && \
+        git remote add origin git@git.example.com:testuser/subrepo.git && \
+        git push --set-upstream origin main && \
+        cd .. && \
+        rm -rf subrepo # remove this repo dir now that it has been pushed to the server
+    # create a submodule under repo.git
+    RUN --privileged start-sshd && \ # starts in background
+        eval `ssh-agent` && \
+        ssh-add /root/self-hosted-sshkey && \
+        git clone git@git.example.com:testuser/repo.git /root/repo && \
+        cd /root/repo && \
+        git submodule add git@git.example.com:testuser/subrepo.git subrepo && \
+        git commit -a -m "add subrepo.git as a submodule" && \
+        echo "FROM alpine:3.13
+hello:
+    COPY subrepo/file-in-subrepo .
+    RUN cat file-in-subrepo | base64
+" > Earthfile && \
+        git commit -a -m "update Earthfile to make use of file from submodule" && \
+        git push && \
+        cd .. && \
+        rm -rf repo
+
+test-private-git-repos:
+    FROM +server-with-submodules
+    RUN --no-cache echo "#!/bin/sh
+set -ex
+
+# first ensure these two /etc/hosts entries are working
+ping -c 1 git.example.com
+ping -c 1 buildkitsandbox
+
+# load in pre-authorized key
+eval \$(ssh-agent)
+ssh-add /root/self-hosted-sshkey
+ssh-add -l
+
+earthly --config \$earthly_config --verbose -D git.example.com/testuser/repo:main+hello > output 2>&1
+
+# base64 encoded value of uuid
+grep hello.*NjI5MTZhN2EtNWQ5ZS00OTY1LWIwMDgtZjhhZTA4ZjQ3MGUxCg== output
+" >/tmp/test-earthly-script && chmod +x /tmp/test-earthly-script
+    DO ..+RUN_EARTHLY --pre_command=start-sshd --exec_cmd=/tmp/test-earthly-script
