@@ -23,6 +23,8 @@ ga:
     BUILD +copy-test-verbose-output
     BUILD +cache-test
     BUILD +git-clone-test
+    BUILD +git-clone-private-ssh
+    BUILD ./private-https+all
     BUILD +builtin-args-test
     BUILD +config-test
     BUILD +excludes-test
@@ -151,6 +153,26 @@ cache-test:
 
 git-clone-test:
     DO +RUN_EARTHLY --earthfile=git-clone.earth --target=+test
+
+git-clone-private-ssh:
+    FROM ./git-ssh-server+server
+    RUN --no-cache echo "#!/bin/sh
+set -ex
+
+# first ensure these two /etc/hosts entries are working
+ping -c 1 git.example.com
+ping -c 1 buildkitsandbox
+
+# load in pre-authorized key
+eval \$(ssh-agent)
+ssh-add /root/self-hosted-sshkey
+ssh-add -l
+
+earthly --config \$earthly_config --verbose -D +test
+
+earthly --config \$earthly_config --verbose -D git.example.com/testuser/repo:main+hello
+" >/tmp/test-earthly-script && chmod +x /tmp/test-earthly-script
+    DO +RUN_EARTHLY --pre_command=start-sshd --earthfile=git-clone-private-ssh.earth --exec_cmd=/tmp/test-earthly-script
 
 builtin-args-test:
     DO +RUN_EARTHLY --earthfile=builtin-args.earth --target=+builtin-args-test
@@ -428,6 +450,7 @@ if-exists:
       --post_command="2>&1 | perl -pe 'BEGIN {\\\$status=1} END {exit \\\$status} \\\$status=0 if /bad-wildcard-copy/;'"
     DO +RUN_EARTHLY --earthfile=if-exists.earth --target=+bad-wildcard-save \
       --post_command="2>&1 | perl -pe 'BEGIN {\\\$status=1} END {exit \\\$status} \\\$status=0 if /bad-wildcard-save/;'"
+    DO +RUN_EARTHLY --earthfile=if-exists.earth --target=+classic-copy
 
 file-copying:
     DO +RUN_EARTHLY --earthfile=file-copying.earth
@@ -477,7 +500,7 @@ run-no-cache:
     # Fail if we cached any of the motd2 lines, which are after the --no-cache
     DO +RUN_EARTHLY --earthfile=run-no-cache.earth --use_tmpfs=false --target=+test \
         --post_command="2>&1 | perl -pe 'BEGIN {\\\$status=0} END {exit \\\$status} \\\$status=1 if /\\\*cached\\\* --> .* motd2/;'"
-    
+
     # Run twice to allow the second one to attempt to cache things
     DO +RUN_EARTHLY --earthfile=run-no-cache.earth --use_tmpfs=false --target=+test-from
     # Fail if we cached any of the COPY motd2 lines, which are after the --no-cache

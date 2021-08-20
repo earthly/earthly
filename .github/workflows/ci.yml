@@ -480,10 +480,6 @@ jobs:
         run: ./build/linux/amd64/earthly config global.local_registry_host 'tcp://127.0.0.1:8371'
 # to regenerate the entries below; run earthly ./scripts/tests/auth+generate-github-tasks
 # auto-generated-entries start;
-      - name: run test-earthfile-can-clone-private-repo-with-earthly-config.sh
-        run: env earthly=./build/linux/amd64/earthly scripts/tests/auth/test-earthfile-can-clone-private-repo-with-earthly-config.sh
-      - name: run test-earthfile-can-clone-private-repo-with-netrc.sh
-        run: env earthly=./build/linux/amd64/earthly scripts/tests/auth/test-earthfile-can-clone-private-repo-with-netrc.sh
       - name: run test-hello-world-empty-netrc.sh
         run: env earthly=./build/linux/amd64/earthly scripts/tests/auth/test-hello-world-empty-netrc.sh
       - name: run test-hello-world-no-ssh-agent.sh
@@ -492,12 +488,6 @@ jobs:
         run: env earthly=./build/linux/amd64/earthly scripts/tests/auth/test-hello-world-no-ssh-keys.sh
       - name: run test-hello-world-with-non-authorized-key.sh
         run: env earthly=./build/linux/amd64/earthly scripts/tests/auth/test-hello-world-with-non-authorized-key.sh
-      - name: run test-private-repo-with-https-config-arg.sh
-        run: env earthly=./build/linux/amd64/earthly scripts/tests/auth/test-private-repo-with-https-config-arg.sh
-      - name: run test-private-repo-with-https-config-command.sh
-        run: env earthly=./build/linux/amd64/earthly scripts/tests/auth/test-private-repo-with-https-config-command.sh
-      - name: run test-private-repo-with-https-config-file.sh
-        run: env earthly=./build/linux/amd64/earthly scripts/tests/auth/test-private-repo-with-https-config-file.sh
       - name: run test-private-repo-with-netrc.sh
         run: env earthly=./build/linux/amd64/earthly scripts/tests/auth/test-private-repo-with-netrc.sh
       - name: run test-private-repo-with-ssh-key.sh
