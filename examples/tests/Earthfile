@@ -477,29 +477,35 @@ file-copying:
 save-artifact-dont-overwrite:
     RUN --no-cache echo hello > important-data
 
-    DO +RUN_EARTHLY --should_fail=true --earthfile=save-artifact-dont-overwrite.earth --target=+dont-overwrite-abs-ref --post_command="> /tmp/output 2>&1"
+    DO +RUN_EARTHLY --should_fail=true --earthfile=save-artifact-dont-overwrite.earth --extra_args="--version-flag-overrides=require-force-for-unsafe-saves" \
+        --target=+dont-overwrite-abs-ref --post_command="> /tmp/output 2>&1"
     RUN cat /tmp/output | grep 'Error.*path must be located under'
 
-    DO +RUN_EARTHLY --should_fail=true --earthfile=save-artifact-dont-overwrite.earth --target=+dont-overwrite-rel-ref --post_command="> /tmp/output 2>&1"
+    DO +RUN_EARTHLY --should_fail=true --earthfile=save-artifact-dont-overwrite.earth --extra_args="--version-flag-overrides=require-force-for-unsafe-saves" \
+        --target=+dont-overwrite-rel-ref --post_command="> /tmp/output 2>&1"
     RUN cat /tmp/output | grep 'Error.*path must be located under'
 
-    DO +RUN_EARTHLY --should_fail=true --earthfile=save-artifact-dont-overwrite.earth --target=+dont-overwrite-rel-other-ref --post_command="> /tmp/output 2>&1"
+    DO +RUN_EARTHLY --should_fail=true --earthfile=save-artifact-dont-overwrite.earth --extra_args="--version-flag-overrides=require-force-for-unsafe-saves" \
+        --target=+dont-overwrite-rel-other-ref --post_command="> /tmp/output 2>&1"
     RUN cat /tmp/output | grep 'Error.*path must be located under'
 
-    DO +RUN_EARTHLY --should_fail=true --earthfile=save-artifact-dont-overwrite.earth --target=+dont-overwrite-root --post_command="> /tmp/output 2>&1"
+    DO +RUN_EARTHLY --should_fail=true --earthfile=save-artifact-dont-overwrite.earth --extra_args="--version-flag-overrides=require-force-for-unsafe-saves" \
+        --target=+dont-overwrite-root --post_command="> /tmp/output 2>&1"
     RUN cat /tmp/output | grep 'Error.*path must be located under'
 
-    DO +RUN_EARTHLY --should_fail=true --earthfile=save-artifact-dont-overwrite.earth --target=+dont-overwrite-root2 --post_command="> /tmp/output 2>&1"
+    DO +RUN_EARTHLY --should_fail=true --earthfile=save-artifact-dont-overwrite.earth --extra_args="--version-flag-overrides=require-force-for-unsafe-saves" \
+        --target=+dont-overwrite-root2 --post_command="> /tmp/output 2>&1"
     RUN cat /tmp/output | grep 'Error.*path must be located under'
 
-    DO +RUN_EARTHLY --should_fail=true --earthfile=save-artifact-dont-overwrite.earth --target=+dont-overwrite-root3 --post_command="> /tmp/output 2>&1"
+    DO +RUN_EARTHLY --should_fail=true --earthfile=save-artifact-dont-overwrite.earth --extra_args="--version-flag-overrides=require-force-for-unsafe-saves" \
+        --target=+dont-overwrite-root3 --post_command="> /tmp/output 2>&1"
     RUN cat /tmp/output | grep 'Error.*path must be located under'
 
     RUN ls important-data
 
 save-artifact-force-overwrite:
     RUN --no-cache echo hello > /root/important-data
-    DO +RUN_EARTHLY --earthfile=save-artifact-overwrite.earth --target=+overwrite-root
+    DO +RUN_EARTHLY --earthfile=save-artifact-overwrite.earth --extra_args="--version-flag-overrides=require-force-for-unsafe-saves" --target=+overwrite-root
     RUN cat /root/base | grep 88716877-039f-4dea-8ec3-84eb64f326c5
     RUN cat /root/sub/data1 | grep ff42c40d-034a-4855-8db7-febfa7322576
     RUN cat /root/sub/data2 | grep 2b4a653d-cdf6-4574-ac5e-f02bb6993365

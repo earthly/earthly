@@ -711,7 +711,10 @@ func (c *Converter) SaveArtifact(ctx context.Context, saveFrom string, saveTo st
 				return err
 			}
 			if !canSave {
-				return fmt.Errorf("unable to save to %s; path must be located under %s", saveAsLocalTo, c.target.LocalPath)
+				if c.ftrs.RequireForceForUnsafeSaves {
+					return fmt.Errorf("unable to save to %s; path must be located under %s", saveAsLocalTo, c.target.LocalPath)
+				}
+				c.opt.Console.Warnf("saving to path (%s) outside of current directory (%s) will require a --force flag in a future version", saveAsLocalTo, c.target.LocalPath)
 			}
 		}
 
