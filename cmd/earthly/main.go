@@ -2544,6 +2544,9 @@ func (app *earthlyApp) actionBuild(c *cli.Context) error {
 			return errors.New("unable to use --ci flag in combination with --interactive flag")
 		}
 	}
+	if !termutil.IsTTY() && app.interactiveDebugging {
+		return errors.New("A tty-terminal must be present in order to the --interactive flag")
+	}
 	if app.imageMode && app.artifactMode {
 		return errors.New("both image and artifact modes cannot be active at the same time")
 	}
@@ -2725,21 +2728,23 @@ func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []st
 	cleanCollection := cleanup.NewCollection()
 	defer cleanCollection.Close()
 
-	go func() {
-		// Dialing doesnt accept URLs, it accepts an address and a "network". These cannot be handled as URL schemes.
-		// Since Shellrepeater hard-codes TCP, we drop it here and log the error if we fail to connect.
+	if termutil.IsTTY() {
+		go func() {
+			// Dialing doesnt accept URLs, it accepts an address and a "network". These cannot be handled as URL schemes.
+			// Since Shellrepeater hard-codes TCP, we drop it here and log the error if we fail to connect.
 
-		u, err := url.Parse(app.debuggerHost)
-		if err != nil {
-			panic("debugger host was not a URL")
-		}
+			u, err := url.Parse(app.debuggerHost)
+			if err != nil {
+				panic("debugger host was not a URL")
+			}
 
-		debugTermConsole := app.console.WithPrefix("internal-term")
-		err = terminal.ConnectTerm(c.Context, u.Host, debugTermConsole)
-		if err != nil {
-			debugTermConsole.Warnf("Failed to connect to terminal: %s", err.Error())
-		}
-	}()
+			debugTermConsole := app.console.WithPrefix("internal-term")
+			err = terminal.ConnectTerm(c.Context, u.Host, debugTermConsole)
+			if err != nil {
+				debugTermConsole.Warnf("Failed to connect to terminal: %s", err.Error())
+			}
+		}()
+	}
 
 	dotEnvVars := variables.NewScope()
 	for k, v := range dotEnvMap {
