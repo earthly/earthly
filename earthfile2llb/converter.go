@@ -15,6 +15,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/earthly/earthly/analytics"
 	"github.com/earthly/earthly/buildcontext"
 	"github.com/earthly/earthly/debugger/common"
 	"github.com/earthly/earthly/domain"
@@ -714,6 +715,7 @@ func (c *Converter) SaveArtifact(ctx context.Context, saveFrom string, saveTo st
 				if c.ftrs.RequireForceForUnsafeSaves {
 					return fmt.Errorf("unable to save to %s; path must be located under %s", saveAsLocalTo, c.target.LocalPath)
 				}
+				analytics.Count("breaking-change", "save-artifact-force-flag-required-warning")
 				c.opt.Console.Warnf("saving to path (%s) outside of current directory (%s) will require a --force flag in a future version", saveAsLocalTo, c.target.LocalPath)
 			}
 		}
