@@ -15,12 +15,18 @@ import (
 
 var noopArgs = []string{""}
 
+type results struct {
+	buildkit      string
+	debugger      string
+	localRegistry string
+}
+
 func TestBuildArgMatrix(t *testing.T) {
 	var tests = []struct {
 		testName string
 		config   config.GlobalConfig
 		args     []string
-		expected addresses
+		expected results
 	}{
 		{
 			"No Config, no CLI",
@@ -31,7 +37,7 @@ func TestBuildArgMatrix(t *testing.T) {
 				LocalRegistryHost: "",
 			},
 			noopArgs,
-			addresses{
+			results{
 				buildkit:      buildkitd.DockerAddress,
 				debugger:      fmt.Sprintf("tcp://127.0.0.1:%v", config.DefaultDebuggerPort),
 				localRegistry: "",
@@ -46,7 +52,7 @@ func TestBuildArgMatrix(t *testing.T) {
 				LocalRegistryHost: "",
 			},
 			noopArgs,
-			addresses{
+			results{
 				buildkit:      "tcp://127.0.0.1:8372",
 				debugger:      fmt.Sprintf("tcp://127.0.0.1:%v", config.DefaultDebuggerPort),
 				localRegistry: "",
@@ -61,7 +67,7 @@ func TestBuildArgMatrix(t *testing.T) {
 				LocalRegistryHost: "",
 			},
 			noopArgs,
-			addresses{
+			results{
 				buildkit:      "tcp://my-cool-host:8372",
 				debugger:      fmt.Sprintf("tcp://my-cool-host:%v", config.DefaultDebuggerPort),
 				localRegistry: "",
@@ -76,7 +82,7 @@ func TestBuildArgMatrix(t *testing.T) {
 				LocalRegistryHost: "",
 			},
 			noopArgs,
-			addresses{
+			results{
 				buildkit:      "docker-container://my-container",
 				debugger:      fmt.Sprintf("tcp://127.0.0.1:%v", config.DefaultDebuggerPort),
 				localRegistry: "",
@@ -91,7 +97,7 @@ func TestBuildArgMatrix(t *testing.T) {
 				LocalRegistryHost: "",
 			},
 			noopArgs,
-			addresses{
+			results{
 				buildkit:      buildkitd.DockerAddress,
 				debugger:      "tcp://127.0.0.1:5678",
 				localRegistry: "",
@@ -106,7 +112,7 @@ func TestBuildArgMatrix(t *testing.T) {
 				LocalRegistryHost: "",
 			},
 			noopArgs,
-			addresses{
+			results{
 				buildkit:      buildkitd.DockerAddress,
 				debugger:      "tcp://127.0.0.1:1234",
 				localRegistry: "",
@@ -121,7 +127,7 @@ func TestBuildArgMatrix(t *testing.T) {
 				LocalRegistryHost: "",
 			},
 			[]string{"", "--buildkit-host", "tcp://ok-bk:42", "--debugger-host", "tcp://ok-db:43"},
-			addresses{
+			results{
 				buildkit:      "tcp://ok-bk:42",
 				debugger:      "tcp://ok-db:43",
 				localRegistry: "",
@@ -136,7 +142,7 @@ func TestBuildArgMatrix(t *testing.T) {
 				LocalRegistryHost: "tcp://127.0.0.1:8371",
 			},
 			noopArgs,
-			addresses{
+			results{
 				buildkit:      "tcp://127.0.0.1:8372",
 				debugger:      fmt.Sprintf("tcp://127.0.0.1:%v", config.DefaultDebuggerPort),
 				localRegistry: "tcp://127.0.0.1:8371",
@@ -151,7 +157,7 @@ func TestBuildArgMatrix(t *testing.T) {
 				LocalRegistryHost: "this-is-not-a-url",
 			},
 			noopArgs,
-			addresses{
+			results{
 				buildkit:      "tcp://my-cool-host:8372",
 				debugger:      fmt.Sprintf("tcp://my-cool-host:%v", config.DefaultDebuggerPort),
 				localRegistry: "",
@@ -166,7 +172,7 @@ func TestBuildArgMatrix(t *testing.T) {
 				LocalRegistryHost: "tcp://127.0.0.1:8371",
 			},
 			noopArgs,
-			addresses{
+			results{
 				buildkit:      "docker-container://my-cool-container",
 				debugger:      fmt.Sprintf("tcp://127.0.0.1:%v", config.DefaultDebuggerPort),
 				localRegistry: "tcp://127.0.0.1:8371",
@@ -191,9 +197,13 @@ func TestBuildArgMatrix(t *testing.T) {
 		// Before is called at about the time that we would parse these, plus it a nice place to hook.
 		earthlyApp.cliApp.Before = func(context *cli.Context) error {
 
-			actual, err := earthlyApp.getAndValidateAddresses(context)
+			err := earthlyApp.getAndValidateAddresses(context)
 			assert.NoError(t, err, tt.testName)
-			assert.Equal(t, tt.expected, actual, tt.testName)
+			assert.Equal(t, tt.expected, results{
+				buildkit:      earthlyApp.buildkitHost,
+				debugger:      earthlyApp.debuggerHost,
+				localRegistry: earthlyApp.localRegistryHost,
+			}, tt.testName)
 
 			return nil
 		}
@@ -303,7 +313,7 @@ func TestBuildArgMatrixValidationFailures(t *testing.T) {
 
 		// Before is called at about the time that we would parse these, plus it a nice place to hook.
 		earthlyApp.cliApp.Before = func(context *cli.Context) error {
-			_, err := earthlyApp.getAndValidateAddresses(context)
+			err := earthlyApp.getAndValidateAddresses(context)
 
 			assert.ErrorIs(t, err, tt.expected)
 			assert.Contains(t, logs.String(), tt.log)

@@ -1020,14 +1020,12 @@ func (app *earthlyApp) before(context *cli.Context) error {
 		app.buildkitdImage = app.cfg.Global.BuildkitImage
 	}
 
-	var addrs addresses
-
-	addrs, err = app.getAndValidateAddresses(context)
+	err = app.getAndValidateAddresses(context)
 	if err != nil {
 		return err
 	}
 
-	bkURL, err := parseAndvalidateURL(addrs.buildkit)
+	bkURL, err := parseAndvalidateURL(app.buildkitHost)
 	if err != nil {
 		return errors.Wrapf(err, "invalid buildkit_host: %s", app.buildkitHost)
 	}
@@ -1036,15 +1034,15 @@ func (app *earthlyApp) before(context *cli.Context) error {
 		app.handleTLSCertificateSettings(context)
 	}
 
-	app.debuggerHost = addrs.debugger
+	app.debuggerHost = app.debuggerHost
 
 	app.buildkitdSettings.AdditionalArgs = app.cfg.Global.BuildkitAdditionalArgs
 	app.buildkitdSettings.AdditionalConfig = app.cfg.Global.BuildkitAdditionalConfig
 	app.buildkitdSettings.Timeout = time.Duration(app.cfg.Global.BuildkitRestartTimeoutS) * time.Second
 	app.buildkitdSettings.Debug = app.debug
-	app.buildkitdSettings.BuildkitAddress = addrs.buildkit
+	app.buildkitdSettings.BuildkitAddress = app.buildkitHost
 	app.buildkitdSettings.DebuggerAddress = app.debuggerHost
-	app.buildkitdSettings.LocalRegistryAddress = addrs.localRegistry
+	app.buildkitdSettings.LocalRegistryAddress = app.localRegistryHost
 	app.buildkitdSettings.UseTCP = bkURL.Scheme == "tcp"
 	app.buildkitdSettings.UseTLS = app.cfg.Global.TLSEnabled
 
@@ -1080,13 +1078,7 @@ func (app *earthlyApp) before(context *cli.Context) error {
 	return nil
 }
 
-type addresses struct {
-	buildkit      string
-	debugger      string
-	localRegistry string
-}
-
-func (app *earthlyApp) getAndValidateAddresses(context *cli.Context) (addresses, error) {
+func (app *earthlyApp) getAndValidateAddresses(context *cli.Context) error {
 	if !context.IsSet("buildkit-host") {
 		if app.cfg.Global.BuildkitHost != "" {
 			app.buildkitHost = app.cfg.Global.BuildkitHost
@@ -1097,7 +1089,7 @@ func (app *earthlyApp) getAndValidateAddresses(context *cli.Context) (addresses,
 
 	bkURL, err := parseAndvalidateURL(app.buildkitHost)
 	if err != nil {
-		return addresses{}, err
+		return err
 	}
 
 	if !context.IsSet("debugger-host") {
@@ -1114,14 +1106,14 @@ func (app *earthlyApp) getAndValidateAddresses(context *cli.Context) (addresses,
 
 	dbURL, err := parseAndvalidateURL(app.debuggerHost)
 	if err != nil {
-		return addresses{}, err
+		return err
 	}
 
 	if buildkitd.IsLocal(app.buildkitHost) && app.cfg.Global.LocalRegistryHost != "" {
 		// Local registry only matters when local, and specified.
 		lrURL, err := parseAndvalidateURL(app.cfg.Global.LocalRegistryHost)
 		if err != nil {
-			return addresses{}, err
+			return err
 		}
 		if bkURL.Hostname() != lrURL.Hostname() {
 			app.console.Warnf("Buildkit and Local Registry URLs are pointed at different hosts (%s vs. %s)", bkURL.Hostname(), lrURL.Hostname())
@@ -1140,14 +1132,10 @@ func (app *earthlyApp) getAndValidateAddresses(context *cli.Context) (addresses,
 	}
 
 	if bkURL.Hostname() == dbURL.Hostname() && bkURL.Port() == dbURL.Port() {
-		return addresses{}, fmt.Errorf("Debugger and Buildkit ports are the same: %w", errURLValidationFailure)
+		return fmt.Errorf("Debugger and Buildkit ports are the same: %w", errURLValidationFailure)
 	}
 
-	return addresses{
-		buildkit:      app.buildkitHost,
-		debugger:      app.debuggerHost,
-		localRegistry: app.localRegistryHost,
-	}, nil
+	return nil
 }
 
 func (app *earthlyApp) handleTLSCertificateSettings(context *cli.Context) {
@@ -1681,7 +1669,7 @@ func (app *earthlyApp) bootstrap(c *cli.Context) error {
 	}
 
 	if !app.bootstrapNoBuildkit {
-		bkURL, err := parseAndvalidateURL(app.cfg.Global.BuildkitHost)
+		bkURL, err := parseAndvalidateURL(app.buildkitHost)
 		if err != nil {
 			return errors.Wrapf(err, "invalid buildkit_host: %s", app.cfg.Global.BuildkitHost)
 		}
