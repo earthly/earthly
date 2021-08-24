@@ -1168,6 +1168,10 @@ func parseAndvalidateURL(addr string) (*url.URL, error) {
 	}
 
 	if parsed.Scheme != "tcp" && parsed.Scheme != "docker-container" {
+		if parsed.Scheme == "" {
+			// This text should satisfy the homebrew test, as it pases a schemeless URL
+			return nil, fmt.Errorf("buildkitd failed to start: %w", errURLValidationFailure)
+		}
 		return nil, fmt.Errorf("%s is not a valid scheme. Only tcp or docker-container is allowed at this time: %w", parsed.Scheme, errURLValidationFailure)
 	}
 

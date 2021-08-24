@@ -285,6 +285,17 @@ func TestBuildArgMatrixValidationFailures(t *testing.T) {
 			"",
 		},
 		{
+			"Homebrew test",
+			config.GlobalConfig{
+				BuildkitHost:      "127.0.0.1",
+				DebuggerHost:      "",
+				DebuggerPort:      config.DefaultDebuggerPort,
+				LocalRegistryHost: "",
+			},
+			errURLValidationFailure,
+			"",
+		},
+		{
 			"Local registry with remote buildkit",
 			config.GlobalConfig{
 				BuildkitHost:      "tcp://cool-host:1234",
