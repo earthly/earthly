@@ -126,6 +126,7 @@ func (cl ConsoleLogger) WithFailed(isFailed bool) ConsoleLogger {
 	return ret
 }
 
+// WithWriter returns a ConsoleLogger with stderr and stdout pointed at the providedd writeup.
 func (cl ConsoleLogger) WithWriter(w io.Writer) ConsoleLogger {
 	ret := cl.clone()
 	ret.outW = w

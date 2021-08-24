@@ -216,7 +216,7 @@ func TestBuildArgMatrixValidationFailures(t *testing.T) {
 				DebuggerPort:      config.DefaultDebuggerPort,
 				LocalRegistryHost: "",
 			},
-			urlParseFailure,
+			errURLParseFailure,
 			"",
 		},
 		{
@@ -227,7 +227,7 @@ func TestBuildArgMatrixValidationFailures(t *testing.T) {
 				DebuggerPort:      config.DefaultDebuggerPort,
 				LocalRegistryHost: "",
 			},
-			urlParseFailure,
+			errURLParseFailure,
 			"",
 		},
 		{
@@ -238,7 +238,7 @@ func TestBuildArgMatrixValidationFailures(t *testing.T) {
 				DebuggerPort:      config.DefaultDebuggerPort,
 				LocalRegistryHost: "http\r://foo.com/",
 			},
-			urlParseFailure,
+			errURLParseFailure,
 			"",
 		},
 		{
@@ -271,7 +271,7 @@ func TestBuildArgMatrixValidationFailures(t *testing.T) {
 				DebuggerPort:      config.DefaultDebuggerPort,
 				LocalRegistryHost: "",
 			},
-			urlValidationFailure,
+			errURLValidationFailure,
 			"",
 		},
 	}
@@ -312,17 +312,17 @@ func TestParseAndvalidateURLFailures(t *testing.T) {
 		{
 			"Invalid URL",
 			"http\r://foo.com/",
-			urlParseFailure,
+			errURLParseFailure,
 		},
 		{
 			"Invalid Scheme",
 			"gopher://my-hole",
-			urlValidationFailure,
+			errURLValidationFailure,
 		},
 		{
 			"Missing Port",
 			"tcp://my-server",
-			urlValidationFailure,
+			errURLValidationFailure,
 		},
 	}
 

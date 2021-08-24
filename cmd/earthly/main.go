@@ -1132,7 +1132,7 @@ func (app *earthlyApp) getAndValidateAddresses(context *cli.Context) (addresses,
 	}
 
 	if bkURL.Hostname() == dbURL.Hostname() && bkURL.Port() == dbURL.Port() {
-		return addresses{}, fmt.Errorf("Debugger and Buildkit ports are the same: %w", urlValidationFailure)
+		return addresses{}, fmt.Errorf("Debugger and Buildkit ports are the same: %w", errURLValidationFailure)
 	}
 
 	return addresses{
@@ -1164,21 +1164,21 @@ func (app *earthlyApp) handleTLSCertificateSettings(context *cli.Context) {
 	app.buildkitdSettings.ServerTLSKey = app.cfg.Global.ServerTLSKey
 }
 
-var urlParseFailure = errors.New("Invalid URL")
-var urlValidationFailure = errors.New("URL did not pass validation")
+var errURLParseFailure = errors.New("Invalid URL")
+var errURLValidationFailure = errors.New("URL did not pass validation")
 
 func parseAndvalidateURL(addr string) (*url.URL, error) {
 	parsed, err := url.Parse(addr)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", addr, urlParseFailure)
+		return nil, fmt.Errorf("%s: %w", addr, errURLParseFailure)
 	}
 
 	if parsed.Scheme != "tcp" && parsed.Scheme != "docker-container" {
-		return nil, fmt.Errorf("%s is not a valid scheme. Only tcp or docker-container is allowed at this time: %w", parsed.Scheme, urlValidationFailure)
+		return nil, fmt.Errorf("%s is not a valid scheme. Only tcp or docker-container is allowed at this time: %w", parsed.Scheme, errURLValidationFailure)
 	}
 
 	if parsed.Port() == "" && parsed.Scheme == "tcp" {
-		return nil, fmt.Errorf("%s does not contain a port number: %w", addr, urlValidationFailure)
+		return nil, fmt.Errorf("%s does not contain a port number: %w", addr, errURLValidationFailure)
 	}
 
 	return parsed, nil
