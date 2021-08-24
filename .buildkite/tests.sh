@@ -6,6 +6,9 @@ trap 'kill $(jobs -p); wait' SIGINT SIGTERM
 
 export EARTHLY_CONVERSION_PARALLELISM=5
 
+EARTHLY_VERSION_FLAG_OVERRIDES="$(tr -d '\n' < .earthly_version_flag_overrides)"
+export EARTHLY_VERSION_FLAG_OVERRIDES
+
 case "$EARTHLY_OS" in
     darwin)
         download_url="https://github.com/earthly/earthly/releases/latest/download/earthly-darwin-amd64"

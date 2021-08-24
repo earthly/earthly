@@ -7,6 +7,7 @@ if [ ! -d "$bindir" ]; then
 fi
 
 scriptname=$(basename "$0")
+script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 
 last_check_state_path=/tmp/last-earthly-prerelease-check
 
@@ -96,7 +97,9 @@ case "$1" in
         fi
 
         export EARTHLY_CONVERSION_PARALLELISM=5
-        export EARTHLY_VERSION_FLAG_OVERRIDES="referenced-save-only,use-copy-include-patterns"
+        EARTHLY_VERSION_FLAG_OVERRIDES="$(tr -d '\n' < "$script_dir/.earthly_version_flag_overrides")"
+        export EARTHLY_VERSION_FLAG_OVERRIDES
+
         # enable local registry-based exports
         "$bindir/earthly-prerelease" config global.local_registry_host 'tcp://127.0.0.1:8371' || true
         exec -a "$scriptname" "$bindir/earthly-prerelease" "$@"
