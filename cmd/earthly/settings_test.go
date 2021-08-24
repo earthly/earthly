@@ -197,7 +197,7 @@ func TestBuildArgMatrix(t *testing.T) {
 		// Before is called at about the time that we would parse these, plus it a nice place to hook.
 		earthlyApp.cliApp.Before = func(context *cli.Context) error {
 
-			err := earthlyApp.getAndValidateAddresses(context)
+			err := earthlyApp.setupAndValidateAddresses(context)
 			assert.NoError(t, err, tt.testName)
 			assert.Equal(t, tt.expected, results{
 				buildkit:      earthlyApp.buildkitHost,
@@ -313,7 +313,7 @@ func TestBuildArgMatrixValidationFailures(t *testing.T) {
 
 		// Before is called at about the time that we would parse these, plus it a nice place to hook.
 		earthlyApp.cliApp.Before = func(context *cli.Context) error {
-			err := earthlyApp.getAndValidateAddresses(context)
+			err := earthlyApp.setupAndValidateAddresses(context)
 
 			assert.ErrorIs(t, err, tt.expected)
 			assert.Contains(t, logs.String(), tt.log)

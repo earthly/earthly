@@ -1020,7 +1020,7 @@ func (app *earthlyApp) before(context *cli.Context) error {
 		app.buildkitdImage = app.cfg.Global.BuildkitImage
 	}
 
-	err = app.getAndValidateAddresses(context)
+	err = app.setupAndValidateAddresses(context)
 	if err != nil {
 		return err
 	}
@@ -1033,8 +1033,6 @@ func (app *earthlyApp) before(context *cli.Context) error {
 	if bkURL.Scheme == "tcp" {
 		app.handleTLSCertificateSettings(context)
 	}
-
-	app.debuggerHost = app.debuggerHost
 
 	app.buildkitdSettings.AdditionalArgs = app.cfg.Global.BuildkitAdditionalArgs
 	app.buildkitdSettings.AdditionalConfig = app.cfg.Global.BuildkitAdditionalConfig
@@ -1078,7 +1076,7 @@ func (app *earthlyApp) before(context *cli.Context) error {
 	return nil
 }
 
-func (app *earthlyApp) getAndValidateAddresses(context *cli.Context) error {
+func (app *earthlyApp) setupAndValidateAddresses(context *cli.Context) error {
 	if !context.IsSet("buildkit-host") {
 		if app.cfg.Global.BuildkitHost != "" {
 			app.buildkitHost = app.cfg.Global.BuildkitHost
