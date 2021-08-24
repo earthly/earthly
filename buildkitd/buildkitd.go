@@ -31,8 +31,11 @@ var (
 	ErrBuildkitStartFailure = errors.New("buildkitd failed to start (in time)")
 )
 
-// TCPAddress is the address at which the daemon s available when using TCP.
+// TCPAddress is the address at which the daemon is available when using TCP.
 var TCPAddress = "tcp://127.0.0.1:8372"
+
+// DockerAddress is the address at which the daemon is avaliable whe using a Docker Container directly
+var DockerAddress = "docker-container://earthly-buildkitd"
 
 // TODO: Implement all this properly with the docker client.
 
