@@ -87,6 +87,10 @@ global:
 
 Allows overriding Earthly's automatic MTU detection. This is used when configuring the Buildkit internal CNI network. MTU must be between 64 and 65,536.
 
+### ip_tables
+
+Allows overriding Earthly's automatic `ip_tables` module detection. Valid choices are `iptables-legacy` or `iptables-nft`.
+
 ### no_loop_device (obsolete)
 
 This option is obsolete and it is ignored. Earthly no longer uses a loop device for its cache.
