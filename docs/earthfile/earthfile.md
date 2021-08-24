@@ -442,7 +442,7 @@ A number of builtin args are available and are pre-filled by Earthly. For more i
 
 #### Synopsis
 
-* `SAVE ARTIFACT [--keep-ts] [--keep-own] [--if-exists] <src> [<artifact-dest-path>] [AS LOCAL <local-path>]`
+* `SAVE ARTIFACT [--keep-ts] [--keep-own] [--if-exists] [--force] <src> [<artifact-dest-path>] [AS LOCAL <local-path>]`
 
 #### Description
 
@@ -478,6 +478,10 @@ Instructs Earthly to keep file ownership information.
 ##### `--if-exists`
 
 Only save artifacts if they exists; if not, earthly will simply ignore the SAVE ARTIFACT command and won't treat any missing sources as failures.
+
+##### `--force`
+
+Force save operations which may be unsafe, such as writing to (or overwriting) a file or directory on the host filesystem located outside of the context of the directory containing the Earthfile.
 
 #### Examples
 
