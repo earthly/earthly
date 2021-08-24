@@ -34,6 +34,8 @@ var (
 // TCPAddress is the address at which the daemon s available when using TCP.
 var TCPAddress = "tcp://127.0.0.1:8372"
 
+var DockerAddress = "docker-container://earthly-buildkitd"
+
 // TODO: Implement all this properly with the docker client.
 
 // NewClient returns a new buildkitd client, together with a boolean specifying whether the buildkit is local.

@@ -126,6 +126,13 @@ func (cl ConsoleLogger) WithFailed(isFailed bool) ConsoleLogger {
 	return ret
 }
 
+func (cl ConsoleLogger) WithWriter(w io.Writer) ConsoleLogger {
+	ret := cl.clone()
+	ret.outW = w
+	ret.errW = w
+	return ret
+}
+
 // PrintSuccess prints the success message.
 func (cl ConsoleLogger) PrintSuccess(msg string) {
 	cl.mu.Lock()
