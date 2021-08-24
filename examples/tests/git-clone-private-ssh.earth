@@ -1,0 +1,9 @@
+FROM alpine/git:1.0.7
+test:
+    WORKDIR /test
+    GIT CLONE --branch main git@git.example.com:testuser/repo.git myrepo
+    WORKDIR /test/myrepo
+    RUN git status
+    RUN git branch
+    RUN cat Earthfile
+    RUN grep $(echo MTIzM2MwODQtNGNmNS00Nzk3LWE0YzUtZWI2NTM1NGVlN2Vl | base64 -d) Earthfile

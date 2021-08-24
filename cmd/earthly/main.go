@@ -151,6 +151,7 @@ type cliFlags struct {
 	keyPath                   string
 	disableAnalytics          bool
 	featureFlagOverrides      string
+	localRegistryHost         string
 }
 
 var (
@@ -297,7 +298,7 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 		"\n" +
 		"   \t" + earthly + " [options] --image <target-ref>\n" +
 		"\n" +
-		"   \t" + earthly + " [options] --artifact <artifact-ref> [<dest-path>]\n" +
+		"   \t" + earthly + " [options] --artifact <target-ref>/<artifact-path> [<dest-path>]\n" +
 		"\n" +
 		"   \t" + earthly + " [options] command [command options]\n" +
 		"\n" +
@@ -335,7 +336,7 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 		&cli.BoolFlag{
 			Name:        "artifact",
 			Aliases:     []string{"a"},
-			Usage:       "Output only specified artifact",
+			Usage:       "Output specified artifact; a wildcard (*) can be used to output all artifacts",
 			Destination: &app.artifactMode,
 		},
 		&cli.BoolFlag{
@@ -1019,41 +1020,40 @@ func (app *earthlyApp) before(context *cli.Context) error {
 		app.buildkitdImage = app.cfg.Global.BuildkitImage
 	}
 
-	var addrs addresses
-	switch app.cfg.Global.BuildkitScheme {
-	case "tcp":
-		addrs, err = app.getAddressesForTCP(context)
-		if err != nil {
-			return err
-		}
-		app.handleTLSCertificateSettings(context)
-
-	case "docker-container":
-		addrs, err = app.getAddressesOriginal()
-		if err != nil {
-			return err
-		}
-	default:
-		return fmt.Errorf("%s is not a valid buildkit scheme", app.cfg.Global.BuildkitScheme)
+	err = app.setupAndValidateAddresses(context)
+	if err != nil {
+		return err
 	}
 
-	app.debuggerHost = addrs.debugger
+	bkURL, err := parseAndvalidateURL(app.buildkitHost)
+	if err != nil {
+		return errors.Wrapf(err, "invalid buildkit_host: %s", app.buildkitHost)
+	}
+
+	if bkURL.Scheme == "tcp" {
+		app.handleTLSCertificateSettings(context)
+	}
 
 	app.buildkitdSettings.AdditionalArgs = app.cfg.Global.BuildkitAdditionalArgs
 	app.buildkitdSettings.AdditionalConfig = app.cfg.Global.BuildkitAdditionalConfig
 	app.buildkitdSettings.Timeout = time.Duration(app.cfg.Global.BuildkitRestartTimeoutS) * time.Second
 	app.buildkitdSettings.Debug = app.debug
-	app.buildkitdSettings.BuildkitAddress = addrs.buildkit
+	app.buildkitdSettings.BuildkitAddress = app.buildkitHost
 	app.buildkitdSettings.DebuggerAddress = app.debuggerHost
-	app.buildkitdSettings.LocalRegistryAddress = addrs.localRegistry
-	app.buildkitdSettings.UseTCP = app.cfg.Global.BuildkitScheme == "tcp"
+	app.buildkitdSettings.LocalRegistryAddress = app.localRegistryHost
+	app.buildkitdSettings.UseTCP = bkURL.Scheme == "tcp"
 	app.buildkitdSettings.UseTLS = app.cfg.Global.TLSEnabled
 
 	// ensure the MTU is something allowable in IPv4, cap enforced by type. Zero is autodetect.
-	if app.buildkitdSettings.CniMtu != 0 && app.buildkitdSettings.CniMtu < 68 {
+	if app.cfg.Global.CniMtu != 0 && app.cfg.Global.CniMtu < 68 {
 		return errors.New("invalid overridden MTU size")
 	}
 	app.buildkitdSettings.CniMtu = app.cfg.Global.CniMtu
+
+	if app.cfg.Global.IPTables != "" && app.cfg.Global.IPTables != "iptables-legacy" && app.cfg.Global.IPTables != "iptables-nft" {
+		return errors.New(`invalid overridden iptables name. Valid values are "iptables-legacy" or "iptables-nft"`)
+	}
+	app.buildkitdSettings.IPTables = app.cfg.Global.IPTables
 
 	// Make a small attempt to check if we are not bootstrapped. If not, then do that before we do anything else.
 	isBootstrapCmd := false
@@ -1076,69 +1076,64 @@ func (app *earthlyApp) before(context *cli.Context) error {
 	return nil
 }
 
-type addresses struct {
-	buildkit      string
-	debugger      string
-	localRegistry string
-}
-
-func (app *earthlyApp) getAddressesOriginal() (addresses, error) {
-	dbAddr := fmt.Sprintf("tcp://127.0.0.1:%v", app.cfg.Global.DebuggerPort)
-	return addresses{
-		buildkit:      app.buildkitHost,
-		debugger:      dbAddr,
-		localRegistry: app.cfg.Global.LocalRegistryHost,
-	}, nil
-}
-
-func (app *earthlyApp) getAddressesForTCP(context *cli.Context) (addresses, error) {
+func (app *earthlyApp) setupAndValidateAddresses(context *cli.Context) error {
 	if !context.IsSet("buildkit-host") {
 		if app.cfg.Global.BuildkitHost != "" {
 			app.buildkitHost = app.cfg.Global.BuildkitHost
 		} else {
-			app.buildkitHost = buildkitd.TCPAddress
+			app.buildkitHost = buildkitd.DockerAddress
 		}
 	}
 
 	bkURL, err := parseAndvalidateURL(app.buildkitHost)
 	if err != nil {
-		return addresses{}, err
+		return err
 	}
 
 	if !context.IsSet("debugger-host") {
 		if app.cfg.Global.DebuggerHost != "" {
 			app.debuggerHost = app.cfg.Global.DebuggerHost
 		} else {
-			app.debuggerHost = fmt.Sprintf("tcp://%s:%v", bkURL.Hostname(), config.DefaultDebuggerPort)
+			if app.cfg.Global.DebuggerPort == config.DefaultDebuggerPort && bkURL.Scheme == "tcp" {
+				app.debuggerHost = fmt.Sprintf("tcp://%s:%v", bkURL.Hostname(), config.DefaultDebuggerPort)
+			} else {
+				app.debuggerHost = fmt.Sprintf("tcp://127.0.0.1:%v", app.cfg.Global.DebuggerPort)
+			}
 		}
 	}
 
 	dbURL, err := parseAndvalidateURL(app.debuggerHost)
 	if err != nil {
-		return addresses{}, err
+		return err
 	}
 
-	lrURL, err := parseAndvalidateURL(app.cfg.Global.LocalRegistryHost)
-	if err != nil {
-		return addresses{}, err
+	if buildkitd.IsLocal(app.buildkitHost) && app.cfg.Global.LocalRegistryHost != "" {
+		// Local registry only matters when local, and specified.
+		lrURL, err := parseAndvalidateURL(app.cfg.Global.LocalRegistryHost)
+		if err != nil {
+			return err
+		}
+		if bkURL.Hostname() != lrURL.Hostname() {
+			app.console.Warnf("Buildkit and Local Registry URLs are pointed at different hosts (%s vs. %s)", bkURL.Hostname(), lrURL.Hostname())
+		}
+		app.localRegistryHost = app.cfg.Global.LocalRegistryHost
+	} else {
+		app.localRegistryHost = ""
+
+		if app.cfg.Global.LocalRegistryHost != "" {
+			app.console.Warnf("Local registry host is specified while using remote buildkit. Local registry will not be used.")
+		}
 	}
 
-	if bkURL.Hostname() != dbURL.Hostname() {
+	if bkURL.Scheme == dbURL.Scheme && bkURL.Hostname() != dbURL.Hostname() {
 		app.console.Warnf("Buildkit and Debugger URLs are pointed at different hosts (%s vs. %s)", bkURL.Hostname(), dbURL.Hostname())
-	}
-	if bkURL.Hostname() != lrURL.Hostname() {
-		app.console.Warnf("Buildkit and Local Registry URLs are pointed at different hosts (%s vs. %s)", bkURL.Hostname(), lrURL.Hostname())
 	}
 
 	if bkURL.Hostname() == dbURL.Hostname() && bkURL.Port() == dbURL.Port() {
-		return addresses{}, errors.New("Debugger and Buildkit ports are the same")
+		return fmt.Errorf("Debugger and Buildkit ports are the same: %w", errURLValidationFailure)
 	}
 
-	return addresses{
-		buildkit:      app.buildkitHost,
-		debugger:      app.debuggerHost,
-		localRegistry: app.cfg.Global.LocalRegistryHost,
-	}, nil
+	return nil
 }
 
 func (app *earthlyApp) handleTLSCertificateSettings(context *cli.Context) {
@@ -1163,18 +1158,25 @@ func (app *earthlyApp) handleTLSCertificateSettings(context *cli.Context) {
 	app.buildkitdSettings.ServerTLSKey = app.cfg.Global.ServerTLSKey
 }
 
+var errURLParseFailure = errors.New("Invalid URL")
+var errURLValidationFailure = errors.New("URL did not pass validation")
+
 func parseAndvalidateURL(addr string) (*url.URL, error) {
 	parsed, err := url.Parse(addr)
 	if err != nil {
-		return nil, errors.Errorf("%s is not a valid URL", addr)
+		return nil, fmt.Errorf("%s: %w", addr, errURLParseFailure)
 	}
 
-	if parsed.Scheme != "tcp" {
-		return nil, errors.Errorf("%s is not a valid scheme. Only tcp is allowed at this time.", parsed.Scheme)
+	if parsed.Scheme != "tcp" && parsed.Scheme != "docker-container" {
+		if parsed.Scheme == "" {
+			// This text should satisfy the homebrew test, as it pases a schemeless URL
+			return nil, fmt.Errorf("buildkitd failed to start: %w", errURLValidationFailure)
+		}
+		return nil, fmt.Errorf("%s is not a valid scheme. Only tcp or docker-container is allowed at this time: %w", parsed.Scheme, errURLValidationFailure)
 	}
 
-	if parsed.Port() == "" {
-		return nil, errors.Errorf("%s does not contain a port number.", addr)
+	if parsed.Port() == "" && parsed.Scheme == "tcp" {
+		return nil, fmt.Errorf("%s does not contain a port number: %w", addr, errURLValidationFailure)
 	}
 
 	return parsed, nil
@@ -1246,8 +1248,8 @@ func (app *earthlyApp) processDeprecatedCommandOptions(context *cli.Context, cfg
 		app.buildkitdSettings.CacheSizeMb = cfg.Global.BuildkitCacheSizeMb
 	}
 
-	if cfg.Global.DebuggerPort != config.DefaultDebuggerPort && cfg.Global.BuildkitScheme == "tcp" {
-		app.console.Warnf("Warning: specifying the port using the debugger-port setting is deprecated. Set it in ~/.earthly/config.yml under the global debugger_port setting.\n")
+	if cfg.Global.DebuggerPort != config.DefaultDebuggerPort {
+		app.console.Warnf("Warning: specifying the port using the debugger-port setting is deprecated. Set it in ~/.earthly/config.yml as part of the debugger_host variable; see https://docs.earthly.dev/earthly-config for reference.\n")
 	}
 
 	return nil
@@ -1669,7 +1671,11 @@ func (app *earthlyApp) bootstrap(c *cli.Context) error {
 	}
 
 	if !app.bootstrapNoBuildkit {
-		if app.cfg.Global.BuildkitScheme == "tcp" && app.cfg.Global.TLSEnabled {
+		bkURL, err := parseAndvalidateURL(app.buildkitHost)
+		if err != nil {
+			return errors.Wrapf(err, "invalid buildkit_host: %s", app.cfg.Global.BuildkitHost)
+		}
+		if bkURL.Scheme == "tcp" && app.cfg.Global.TLSEnabled {
 			root, err := cliutil.GetOrCreateEarthlyDir()
 			if err != nil {
 				return err
@@ -2539,6 +2545,9 @@ func (app *earthlyApp) actionBuild(c *cli.Context) error {
 			return errors.New("unable to use --ci flag in combination with --interactive flag")
 		}
 	}
+	if !termutil.IsTTY() && app.interactiveDebugging {
+		return errors.New("A tty-terminal must be present in order to the --interactive flag")
+	}
 	if app.imageMode && app.artifactMode {
 		return errors.New("both image and artifact modes cannot be active at the same time")
 	}
@@ -2720,21 +2729,23 @@ func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []st
 	cleanCollection := cleanup.NewCollection()
 	defer cleanCollection.Close()
 
-	go func() {
-		// Dialing doesnt accept URLs, it accepts an address and a "network". These cannot be handled as URL schemes.
-		// Since Shellrepeater hard-codes TCP, we drop it here and log the error if we fail to connect.
+	if termutil.IsTTY() {
+		go func() {
+			// Dialing doesnt accept URLs, it accepts an address and a "network". These cannot be handled as URL schemes.
+			// Since Shellrepeater hard-codes TCP, we drop it here and log the error if we fail to connect.
 
-		u, err := url.Parse(app.debuggerHost)
-		if err != nil {
-			panic("debugger host was not a URL")
-		}
+			u, err := url.Parse(app.debuggerHost)
+			if err != nil {
+				panic("debugger host was not a URL")
+			}
 
-		debugTermConsole := app.console.WithPrefix("internal-term")
-		err = terminal.ConnectTerm(c.Context, u.Host, debugTermConsole)
-		if err != nil {
-			debugTermConsole.Warnf("Failed to connect to terminal: %s", err.Error())
-		}
-	}()
+			debugTermConsole := app.console.WithPrefix("internal-term")
+			err = terminal.ConnectTerm(c.Context, u.Host, debugTermConsole)
+			if err != nil {
+				debugTermConsole.Warnf("Failed to connect to terminal: %s", err.Error())
+			}
+		}()
+	}
 
 	dotEnvVars := variables.NewScope()
 	for k, v := range dotEnvMap {
@@ -2770,10 +2781,10 @@ func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []st
 		parallelism = semaphore.NewWeighted(int64(app.conversionParllelism))
 	}
 	localRegistryAddr := ""
-	if isLocal && app.cfg.Global.LocalRegistryHost != "" {
-		lrURL, err := url.Parse(app.cfg.Global.LocalRegistryHost)
+	if isLocal && app.localRegistryHost != "" {
+		lrURL, err := url.Parse(app.localRegistryHost)
 		if err != nil {
-			return errors.Wrapf(err, "parse local registry host %s", app.cfg.Global.LocalRegistryHost)
+			return errors.Wrapf(err, "parse local registry host %s", app.localRegistryHost)
 		}
 		localRegistryAddr = lrURL.Host
 	}

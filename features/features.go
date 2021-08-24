@@ -7,8 +7,10 @@ import (
 	"strconv"
 	"strings"
 
+	goflags "github.com/jessevdk/go-flags"
 	"github.com/pkg/errors"
 
+	"github.com/earthly/earthly/analytics"
 	"github.com/earthly/earthly/ast/spec"
 	"github.com/earthly/earthly/util/flagutil"
 )
@@ -16,9 +18,10 @@ import (
 // Features is used to denote which features to flip on or off; this is for use in maintaining
 // backwards compatibility
 type Features struct {
-	ReferencedSaveOnly     bool `long:"referenced-save-only" description:"only save artifacts that are directly referenced"`
-	UseCopyIncludePatterns bool `long:"use-copy-include-patterns" description:"specify an include pattern to buildkit when performing copies"`
-	ForIn                  bool `long:"for-in" description:"allow the use of the FOR command"`
+	ReferencedSaveOnly         bool `long:"referenced-save-only" description:"only save artifacts that are directly referenced"`
+	UseCopyIncludePatterns     bool `long:"use-copy-include-patterns" description:"specify an include pattern to buildkit when performing copies"`
+	ForIn                      bool `long:"for-in" description:"allow the use of the FOR command"`
+	RequireForceForUnsafeSaves bool `long:"require-force-for-unsafe-saves" description:"require the --force flag when saving to path outside of current path"`
 
 	Major int
 	Minor int
@@ -92,6 +95,7 @@ func ApplyFlagOverrides(ftrs *Features, envOverrides string) error {
 
 	ftrsStruct := reflect.ValueOf(ftrs).Elem()
 	for key := range overrides {
+		analytics.Count("override-feature-flags", key)
 		i, ok := fieldIndices[key]
 		if !ok {
 			return fmt.Errorf("unable to set %s: invalid flag", key)
@@ -114,6 +118,11 @@ func ApplyFlagOverrides(ftrs *Features, envOverrides string) error {
 
 var errUnexpectedArgs = fmt.Errorf("unexpected VERSION arguments; should be VERSION [flags] <major-version>.<minor-version>")
 
+func instrumentVersion(_ string, opt *goflags.Option, s *string) *string {
+	analytics.Count("version-feature-flags", opt.LongName)
+	return s // don't modify the flag, just pass it back.
+}
+
 // GetFeatures returns a features struct for a particular version
 func GetFeatures(version *spec.Version) (*Features, error) {
 	var ftrs Features
@@ -126,7 +135,7 @@ func GetFeatures(version *spec.Version) (*Features, error) {
 		return nil, errUnexpectedArgs
 	}
 
-	parsedArgs, err := flagutil.ParseArgs("VERSION", &ftrs, version.Args)
+	parsedArgs, err := flagutil.ParseArgsWithValueModifier("VERSION", &ftrs, version.Args, instrumentVersion)
 	if err != nil {
 		return nil, err
 	}

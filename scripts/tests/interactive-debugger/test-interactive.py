@@ -6,65 +6,26 @@ import sys
 import io
 import os
 import shlex
+import importlib
 
 script_dir = os.path.dirname(os.path.realpath(__file__))
 
-def print_box(s):
-    n = len(s)
-    print('-'*n)
-    print(s)
-    print('-'*n)
+def import_test_func(path, func_name='test_interactive'):
+    module_name = os.path.basename(path)
+    spec = importlib.util.spec_from_file_location(module_name, path)
+    foo = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(foo)
+    return getattr(foo, func_name)
 
-def test_interactive(earthly_path, timeout):
-    earthly_path = os.path.realpath(earthly_path)
-
-    print(f'Running interactive-debugger test against "{earthly_path}"')
-    output = io.StringIO()
-
-    # change dir to where our test Earthfile is
-    cwd = os.getcwd()
-    os.chdir(script_dir)
-
-    exit_code = 0
-    try:
-        c = pexpect.spawn(f'{shlex.quote(earthly_path)} -i +fail', encoding='utf-8', timeout=timeout)
-        c.logfile_read = output
-        try:
-            c.expect('Entering interactive debugger')
-
-            # give the shell time to startup, otherwise stdin might be lost
-            time.sleep(0.5)
-
-            # /data.txt contains bWFnaWNzdHJpbmcK which is the base64 encoded value of "magicstring\n"
-            c.sendline("cat /data.txt | base64 -d")
-
-            try:
-                c.expect('magicstring', timeout=1)
-            except Exception as e:
-                raise RuntimeError('failed to find magicstring in output (indicating the echo + base64 decode failed to run)')
-
-            assert c.isalive()
-
-            c.sendline("exit")
-            c.wait()
-
-            assert not c.isalive()
-            print_box('interactive debugger test passed')
-        except Exception as e:
-            print_box('interactive test failed')
-            print(f'{e}')
-
-            print_box('pexpect debug information')
-            print(str(c))
-            exit_code = 1
-        finally:
-            print_box('earthly output')
-            s = ''.join(ch for ch in output.getvalue() if ch.isprintable() or ch == '\n')
-            print(s)
-    finally:
-        os.chdir(cwd)
-
-    return exit_code
+def get_earthly_binary(earthly):
+    if os.path.isfile(earthly):
+        return earthly
+    if os.path.sep not in earthly:
+        for path in os.environ['PATH'].split(':'):
+            fullpath = os.path.join(path, earthly)
+            if os.path.isfile(fullpath):
+                return fullpath
+    raise RuntimeError(f'failed to find earthly binary: {earthly}')
 
 
 if __name__ == '__main__':
@@ -72,6 +33,20 @@ if __name__ == '__main__':
     parser.add_argument('-e', '--earthly', help="earthly binary to run test against", default='earthly')
     parser.add_argument('-t', '--timeout', help="fail test if it takes longer than this many seconds", type=float, default=30.0)
     args = parser.parse_args()
-    exit_code = test_interactive(args.earthly, args.timeout)
-    print(f'exiting with status code {exit_code}')
+
+    earthly_path = os.path.realpath(get_earthly_binary(args.earthly))
+    print(f'Running interactive tests against "{earthly_path}"')
+
+    exit_code = 0
+    for test_name, test in (
+            ('test-simple', import_test_func(os.path.join(script_dir, 'simple', 'test-simple.py'))),
+            ('test-docker-compose', import_test_func(os.path.join(script_dir, 'docker-compose', 'test-docker-compose.py'))),
+            ):
+        print(f'Running {test_name}')
+        test_exit_code = test(earthly_path, args.timeout)
+        if test_exit_code:
+            print(f'{test_name} failed with exit code={test_exit_code}')
+            exit_code = test_exit_code
+        else:
+            print(f'{test_name} passed')
     sys.exit(exit_code)

@@ -1,0 +1,59 @@
+FROM ..+base
+
+# server creates a ssh-based git server; this repo can then be cloned by running
+# "git clone git@selfsigned.example.com:testuser/repo.git"
+server:
+    RUN apk add --update --no-cache openssh git
+    RUN ssh-keygen -A
+    RUN ssh-keygen -b 3072 -t rsa -f /root/self-hosted-sshkey -q -N "" -C "testkey"
+    RUN adduser --disabled-password --gecos "" git && \
+        mkdir ~git/.ssh && \
+        cat /root/self-hosted-sshkey.pub > ~git/.ssh/authorized_keys && \
+        chmod 600 ~git/.ssh/authorized_keys && \
+        chown git:git ~git/.ssh/authorized_keys && \
+        cat /etc/passwd | grep git && \
+        sed -i 's/\(git:.*\):\/bin\/ash/\1:\/usr\/bin\/git-shell/g' /etc/passwd && \
+        cat /etc/passwd | grep git && \
+        passwd git -u
+    RUN mkdir /home/git/testuser && \
+        git init --bar /home/git/testuser/repo.git && \
+        chown -R git:git /home/git/testuser
+    COPY sshd_config /etc/ssh/sshd_config
+    RUN echo "Welcome to our self-hosted git ssh server" > /etc/motd
+
+    RUN echo "set -e
+# Docker creates /etc/hosts as readonly; we must unmount it first
+# before we can update it; this change WILL not stick around between different RUNs
+# furthermore, we must execute this script with RUN --privileged
+cp /etc/hosts /tmp/hosts
+umount /etc/hosts
+cp /tmp/hosts /etc/hosts
+if ! grep git.example.com /etc/hosts 2>/dev/null; then
+    echo -e \"127.0.0.1\tgit.example.com\" >> /etc/hosts
+fi
+/usr/sbin/sshd
+" > /bin/start-sshd && chmod +x /bin/start-sshd
+
+    RUN --privileged start-sshd && \
+        mkdir -p ~/.ssh && \
+        ssh-keyscan -H git.example.com >> ~/.ssh/known_hosts && \
+
+        echo done setup.
+        #test $(ssh -i /root/self-hosted-sshkey git@127.0.0.1 whoami) "=" "git"
+
+    RUN --privileged start-sshd && \ # starts in background
+        eval `ssh-agent` && \
+        ssh-add /root/self-hosted-sshkey && \
+        ssh-add -l && \
+        mkdir -p /test/repo && \
+        cd /test/repo && \
+        git init --initial-branch=main . && \
+        echo -e "FROM alpine:3.13\nhello:\n\tRUN echo -n 1233c084-4cf5-4797-a4c5-eb65354ee7ee | base64" > Earthfile && \
+        git add Earthfile && \
+        git config --global user.email "onlyspammersemailthis@earthly.dev" && \
+        git config --global user.name "test name" && \
+        git commit -m "An Earthfile to test against" && \
+        git remote add origin git@git.example.com:testuser/repo.git && \
+        git push --set-upstream origin main && \
+        cd .. && \
+        rm -rf repo # remove this repo dir now that it has been pushed to the server
