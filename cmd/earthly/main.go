@@ -1127,7 +1127,7 @@ func (app *earthlyApp) getAndValidateAddresses(context *cli.Context) error {
 		}
 	}
 
-	if bkURL.Hostname() != dbURL.Hostname() {
+	if bkURL.Scheme == dbURL.Scheme && bkURL.Hostname() != dbURL.Hostname() {
 		app.console.Warnf("Buildkit and Debugger URLs are pointed at different hosts (%s vs. %s)", bkURL.Hostname(), dbURL.Hostname())
 	}
 
