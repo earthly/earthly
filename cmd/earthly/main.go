@@ -151,6 +151,7 @@ type cliFlags struct {
 	keyPath                   string
 	disableAnalytics          bool
 	featureFlagOverrides      string
+	localRegistryHost         string
 }
 
 var (
@@ -1125,6 +1126,13 @@ func (app *earthlyApp) getAndValidateAddresses(context *cli.Context) (addresses,
 		if bkURL.Hostname() != lrURL.Hostname() {
 			app.console.Warnf("Buildkit and Local Registry URLs are pointed at different hosts (%s vs. %s)", bkURL.Hostname(), lrURL.Hostname())
 		}
+		app.localRegistryHost = app.cfg.Global.LocalRegistryHost
+	} else {
+		app.localRegistryHost = ""
+
+		if app.cfg.Global.LocalRegistryHost != "" {
+			app.console.Warnf("Local registry host is specified while using remote buildkit. Local registry will not be used.")
+		}
 	}
 
 	if bkURL.Hostname() != dbURL.Hostname() {
@@ -1138,7 +1146,7 @@ func (app *earthlyApp) getAndValidateAddresses(context *cli.Context) (addresses,
 	return addresses{
 		buildkit:      app.buildkitHost,
 		debugger:      app.debuggerHost,
-		localRegistry: app.cfg.Global.LocalRegistryHost,
+		localRegistry: app.localRegistryHost,
 	}, nil
 }
 
@@ -2778,10 +2786,10 @@ func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []st
 		parallelism = semaphore.NewWeighted(int64(app.conversionParllelism))
 	}
 	localRegistryAddr := ""
-	if isLocal && app.cfg.Global.LocalRegistryHost != "" {
-		lrURL, err := url.Parse(app.cfg.Global.LocalRegistryHost)
+	if isLocal && app.localRegistryHost != "" {
+		lrURL, err := url.Parse(app.localRegistryHost)
 		if err != nil {
-			return errors.Wrapf(err, "parse local registry host %s", app.cfg.Global.LocalRegistryHost)
+			return errors.Wrapf(err, "parse local registry host %s", app.localRegistryHost)
 		}
 		localRegistryAddr = lrURL.Host
 	}
