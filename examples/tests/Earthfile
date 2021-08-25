@@ -91,6 +91,7 @@ ga:
     BUILD +true-false-flag-invalid
     BUILD +dont-save-indirect-remote-artifact
     BUILD +sequential-locally-test
+    BUILD +homebrew-test
 
 experimental:
     BUILD ./dind-auto-install+all
@@ -823,6 +824,10 @@ done
 echo test passed: RUNs were sequentially grouped
 " > test-output.sh && chmod +x test-output.sh
     RUN cat output-filtered.txt | ./test-output.sh
+
+homebrew-test:
+    # This is to ensure the assert in https://github.com/earthly/homebrew-earthly/blob/main/Formula/earthly.rb continues to work
+    RUN earthly --version | grep '^earthly version'
 
 
 RUN_EARTHLY:
