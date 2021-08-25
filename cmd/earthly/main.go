@@ -1113,7 +1113,7 @@ func (app *earthlyApp) setupAndValidateAddresses(context *cli.Context) error {
 		if err != nil {
 			return err
 		}
-		if bkURL.Hostname() != lrURL.Hostname() {
+		if bkURL.Scheme == dbURL.Scheme && bkURL.Hostname() != lrURL.Hostname() {
 			app.console.Warnf("Buildkit and Local Registry URLs are pointed at different hosts (%s vs. %s)", bkURL.Hostname(), lrURL.Hostname())
 		}
 		app.localRegistryHost = app.cfg.Global.LocalRegistryHost

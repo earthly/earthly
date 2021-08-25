@@ -384,3 +384,58 @@ func TestParseAndvalidateURL(t *testing.T) {
 		assert.NoError(t, err)
 	}
 }
+
+func TestBuildArgMatrixValidationNonIssues(t *testing.T) {
+	var tests = []struct {
+		testName string
+		config   config.GlobalConfig
+		log      string
+	}{
+		{
+			"Buildkit/Local Registry host mismatch, schemes differ",
+			config.GlobalConfig{
+				BuildkitHost:      "docker-container://127.0.0.1:8372",
+				DebuggerHost:      "",
+				DebuggerPort:      config.DefaultDebuggerPort,
+				LocalRegistryHost: "tcp://localhost:8371",
+			},
+			"Buildkit and Local Registry URLs are pointed at different hosts",
+		},
+		{
+			"Buildkit/Debugger host mismatch, schemes differ",
+			config.GlobalConfig{
+				BuildkitHost:      "docker-container://bk:1234",
+				DebuggerHost:      "tcp://db:5678",
+				DebuggerPort:      config.DefaultDebuggerPort,
+				LocalRegistryHost: "",
+			},
+			"Buildkit and Debugger URLs are pointed at different hosts",
+		},
+	}
+
+	for _, tt := range tests {
+		ctx := context.Background()
+
+		var logs strings.Builder
+		var output strings.Builder
+
+		logger := conslogging.Current(conslogging.NoColor, conslogging.DefaultPadding, false)
+		logger = logger.WithWriter(&logs)
+
+		earthlyApp := newEarthlyApp(ctx, logger)
+		earthlyApp.cfg = &config.Config{Global: tt.config}
+		earthlyApp.cliApp.Writer = &output
+		earthlyApp.cliApp.ErrWriter = &output
+
+		// Before is called at about the time that we would parse these, plus it a nice place to hook.
+		earthlyApp.cliApp.Before = func(context *cli.Context) error {
+			err := earthlyApp.setupAndValidateAddresses(context)
+
+			assert.NoError(t, err)
+			assert.NotContains(t, logs.String(), tt.log)
+
+			return nil
+		}
+		earthlyApp.cliApp.RunContext(ctx, []string{""})
+	}
+}
