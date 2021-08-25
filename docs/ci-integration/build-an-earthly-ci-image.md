@@ -62,7 +62,7 @@ As with the Docker containers, be sure to pin the version in the download URL to
 When connecting to a remote daemon, follow the Docker-In-Docker installation instructions above to get the binary. Then you'll need to issue a few `earthly config` commands to ensure the container is set up to automatically use the remote daemon. It might look something like this:
 
 ```docker
-RUN earthly config global "{buildkit_host: 'tcp://myhost:8372', buildkit_transport: 'tcp'}"
+RUN earthly config global.buildkit_host buildkit_host: 'tcp://myhost:8372'
 ```
 
 For more details on using a remote buildkit daemon, [see our guide](./remote-buildkit.md).
