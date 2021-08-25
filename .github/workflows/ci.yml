@@ -133,8 +133,6 @@ jobs:
         run: go test ./analytics --tags=hasgitdirectory
       - name: Execute earthly docker command
         run: (cd examples/tests/docker && ../../.././build/linux/amd64/earthly docker --tag examples-test-docker:latest && diff <(docker run --rm examples-test-docker:latest) <(echo "hello dockerfile") )
-      - name: Execute test similar to homebrew test in https://github.com/Homebrew/homebrew-core/blob/master/Formula/earthly.rb
-        run: "./build/linux/amd64/earthly --buildkit-host 127.0.0.1 ./examples/tests/with-docker+all 2>&1 | grep 'buildkitd failed to start'"
       - name: Execute private image test (non fork only)
         run: ./build/linux/amd64/earthly --ci ./examples/tests+private-image-test
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository

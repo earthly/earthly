@@ -196,7 +196,7 @@ earthly:
         printf ' '"$GO_EXTRA_LDFLAGS" >> ./build/ldflags && \
         echo "$(cat ./build/ldflags)"
     # Important! If you change the go build options, you may need to also change them
-    # in https://github.com/Homebrew/homebrew-core/blob/master/Formula/earthly.rb.
+    # in https://github.com/earthly/homebrew-earthly/blob/main/Formula/earthly.rb
     RUN --mount=type=cache,target=$GOCACHE \
         GOARM=${VARIANT#v} go build \
             -tags "$(cat ./build/tags)" \
