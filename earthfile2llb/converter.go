@@ -15,6 +15,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/earthly/earthly/analytics"
 	"github.com/earthly/earthly/buildcontext"
 	"github.com/earthly/earthly/debugger/common"
 	"github.com/earthly/earthly/domain"
@@ -22,10 +23,12 @@ import (
 	"github.com/earthly/earthly/states"
 	"github.com/earthly/earthly/states/dedup"
 	"github.com/earthly/earthly/states/image"
+	"github.com/earthly/earthly/util/fileutil"
 	"github.com/earthly/earthly/util/gitutil"
 	"github.com/earthly/earthly/util/llbutil"
 	"github.com/earthly/earthly/util/llbutil/llbfactory"
 	"github.com/earthly/earthly/util/llbutil/pllb"
+	"github.com/earthly/earthly/util/stringutil"
 	"github.com/earthly/earthly/variables"
 
 	"github.com/alessio/shellescape"
@@ -68,6 +71,7 @@ const (
 
 // Converter turns earthly commands to buildkit LLB representation.
 type Converter struct {
+	target              domain.Target
 	gitMeta             *gitutil.GitMetadata
 	opt                 ConvertOpt
 	mts                 *states.MultiTarget
@@ -95,6 +99,7 @@ func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Da
 		target, llbutil.PlatformWithDefault(opt.Platform), bc.GitMetadata, opt.OverridingVars,
 		opt.GlobalImports)
 	return &Converter{
+		target:              target,
 		gitMeta:             bc.GitMetadata,
 		opt:                 opt,
 		mts:                 mts,
@@ -440,7 +445,7 @@ func (c *Converter) CopyArtifact(ctx context.Context, artifactName string, dest 
 }
 
 // CopyClassical applies the earthly COPY command, with classical args.
-func (c *Converter) CopyClassical(ctx context.Context, srcs []string, dest string, isDir bool, keepTs bool, keepOwn bool, chown string) error {
+func (c *Converter) CopyClassical(ctx context.Context, srcs []string, dest string, isDir bool, keepTs bool, keepOwn bool, chown string, ifExists bool) error {
 	err := c.checkAllowed(copyCmd)
 	if err != nil {
 		return err
@@ -459,11 +464,12 @@ func (c *Converter) CopyClassical(ctx context.Context, srcs []string, dest strin
 	c.mts.Final.MainState = llbutil.CopyOp(
 		srcState,
 		srcs,
-		c.mts.Final.MainState, dest, true, isDir, keepTs, c.copyOwner(keepOwn, chown), false, false,
+		c.mts.Final.MainState, dest, true, isDir, keepTs, c.copyOwner(keepOwn, chown), ifExists, false,
 		llb.WithCustomNamef(
-			"%sCOPY %s%s %s",
+			"%sCOPY %s%s%s %s",
 			c.vertexPrefix(false, false),
 			strIf(isDir, "--dir "),
+			strIf(ifExists, "--if-exists "),
 			strings.Join(srcs, " "),
 			dest))
 	return nil
@@ -624,7 +630,7 @@ func (c *Converter) RunExpression(ctx context.Context, expressionName string, op
 }
 
 // SaveArtifact applies the earthly SAVE ARTIFACT command.
-func (c *Converter) SaveArtifact(ctx context.Context, saveFrom string, saveTo string, saveAsLocalTo string, keepTs bool, keepOwn bool, ifExists, symlinkNoFollow bool, isPush bool) error {
+func (c *Converter) SaveArtifact(ctx context.Context, saveFrom string, saveTo string, saveAsLocalTo string, keepTs bool, keepOwn bool, ifExists, symlinkNoFollow, force bool, isPush bool) error {
 	err := c.checkAllowed(saveArtifactCmd)
 	if err != nil {
 		return err
@@ -696,8 +702,27 @@ func (c *Converter) SaveArtifact(ctx context.Context, saveFrom string, saveTo st
 		}
 		c.mts.Final.SeparateArtifactsState = append(c.mts.Final.SeparateArtifactsState, separateArtifactsState)
 
+		saveAsLocalToAdj := saveAsLocalTo
+		if saveAsLocalToAdj == "." {
+			saveAsLocalToAdj = "./"
+		}
+
+		if !force {
+			canSave, err := c.canSave(ctx, saveAsLocalToAdj)
+			if err != nil {
+				return err
+			}
+			if !canSave {
+				if c.ftrs.RequireForceForUnsafeSaves {
+					return fmt.Errorf("unable to save to %s; path must be located under %s", saveAsLocalTo, c.target.LocalPath)
+				}
+				analytics.Count("breaking-change", "save-artifact-force-flag-required-warning")
+				c.opt.Console.Warnf("saving to path (%s) outside of current directory (%s) will require a --force flag in a future version", saveAsLocalTo, c.target.LocalPath)
+			}
+		}
+
 		saveLocal := states.SaveLocal{
-			DestPath:     saveAsLocalTo,
+			DestPath:     saveAsLocalToAdj,
 			ArtifactPath: artifactPath,
 			Index:        len(c.mts.Final.SeparateArtifactsState) - 1,
 			IfExists:     ifExists,
@@ -712,6 +737,31 @@ func (c *Converter) SaveArtifact(ctx context.Context, saveFrom string, saveTo st
 	c.ranSave = true
 	c.markFakeDeps()
 	return nil
+}
+
+func (c *Converter) canSave(ctx context.Context, saveAsLocalTo string) (bool, error) {
+	basepath, err := filepath.Abs(c.target.LocalPath)
+	if err != nil {
+		return false, errors.Wrapf(err, "failed to get absolute path of %s", basepath)
+	}
+	if !fileutil.DirExists(basepath) {
+		return false, fmt.Errorf("no such directory: %s", basepath)
+	}
+	basepath += "/"
+
+	hasTrailingSlash := strings.HasSuffix(saveAsLocalTo, "/") && saveAsLocalTo != "/"
+	saveAsLocalToAdj := saveAsLocalTo
+	if !strings.HasPrefix(saveAsLocalTo, "/") {
+		saveAsLocalToAdj = path.Join(c.target.LocalPath, saveAsLocalTo)
+	}
+	saveAsLocalToAdj, err = filepath.Abs(saveAsLocalToAdj)
+	if err != nil {
+		return false, errors.Wrapf(err, "failed to get absolute path of %q", saveAsLocalTo)
+	}
+	if hasTrailingSlash {
+		saveAsLocalToAdj += "/"
+	}
+	return strings.HasPrefix(saveAsLocalToAdj, basepath), nil
 }
 
 // SaveArtifactFromLocal saves a local file into the ArtifactsState
@@ -1019,9 +1069,10 @@ func (c *Converter) GitClone(ctx context.Context, gitURL string, branch string, 
 		return err
 	}
 	c.nonSaveCommand()
+	gitURLScrubbed := stringutil.ScrubCredentials(gitURL)
 	gitOpts := []llb.GitOption{
 		llb.WithCustomNamef(
-			"%sGIT CLONE (--branch %s) %s", c.vertexPrefixWithURL(gitURL), branch, gitURL),
+			"%sGIT CLONE (--branch %s) %s", c.vertexPrefixWithURL(gitURLScrubbed), branch, gitURLScrubbed),
 		llb.KeepGitDir(),
 	}
 	gitState := pllb.Git(gitURL, branch, gitOpts...)
@@ -1030,7 +1081,7 @@ func (c *Converter) GitClone(ctx context.Context, gitURL string, branch string, 
 		c.mts.Final.MainImage.Config.User, false, false,
 		llb.WithCustomNamef(
 			"%sCOPY GIT CLONE (--branch %s) %s TO %s", c.vertexPrefix(false, false),
-			branch, gitURL, dest))
+			branch, gitURLScrubbed, dest))
 	return nil
 }
 

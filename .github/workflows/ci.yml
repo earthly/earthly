@@ -15,7 +15,6 @@ jobs:
     env:
       FORCE_COLOR: 1
       EARTHLY_CONVERSION_PARALLELISM: "5"
-      EARTHLY_VERSION_FLAG_OVERRIDES: "referenced-save-only"
       EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
       EARTHLY_INSTALL_ID: "earthly-githubactions"
     steps:
@@ -33,6 +32,11 @@ jobs:
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: Build latest earthly using released earthly
         run: earthly --use-inline-cache +for-linux
+      - name: Set EARTHLY_VERSION_FLAG_OVERRIDES env
+        run: |-
+            set -euo pipefail
+            EARTHLY_VERSION_FLAG_OVERRIDES="$(tr -d '\n' < .earthly_version_flag_overrides)"
+            echo "EARTHLY_VERSION_FLAG_OVERRIDES=$EARTHLY_VERSION_FLAG_OVERRIDES" >> "$GITHUB_ENV"
       - name: Enable local registry-based exporter
         run: ./build/linux/amd64/earthly config global.local_registry_host 'tcp://127.0.0.1:8371'
       - name: Execute tests (not a fork)
@@ -53,7 +57,6 @@ jobs:
     env:
       FORCE_COLOR: 1
       EARTHLY_CONVERSION_PARALLELISM: "5"
-      EARTHLY_VERSION_FLAG_OVERRIDES: "referenced-save-only"
       EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
       EARTHLY_INSTALL_ID: "earthly-githubactions"
     steps:
@@ -89,7 +92,6 @@ jobs:
     env:
       FORCE_COLOR: 1
       EARTHLY_CONVERSION_PARALLELISM: "5"
-      EARTHLY_VERSION_FLAG_OVERRIDES: "referenced-save-only"
       EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
       EARTHLY_INSTALL_ID: "earthly-githubactions"
     steps:
@@ -110,12 +112,15 @@ jobs:
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: Build latest earthly using released earthly
         run: earthly --use-inline-cache +for-linux
+      - name: Set EARTHLY_VERSION_FLAG_OVERRIDES env
+        run: |-
+            set -euo pipefail
+            EARTHLY_VERSION_FLAG_OVERRIDES="$(tr -d '\n' < .earthly_version_flag_overrides)"
+            echo "EARTHLY_VERSION_FLAG_OVERRIDES=$EARTHLY_VERSION_FLAG_OVERRIDES" >> "$GITHUB_ENV"
       - name: Enable local registry-based exporter
         run: ./build/linux/amd64/earthly config global.local_registry_host 'tcp://127.0.0.1:8371'
       - name: Execute interactive debugger test
-        run: ./build/linux/amd64/earthly --use-inline-cache --save-inline-cache --no-output --strict --interactive -P ./examples/tests/interactive+all
-      - name: Execute interactive debugger test from outside
-        run: ./scripts/tests/interactive-debugger/test-interactive.py --earthly ./build/linux/amd64/earthly --timeout 60
+        run: ./scripts/tests/interactive-debugger/test-interactive.py --earthly ./build/linux/amd64/earthly --timeout 180
       - name: Execute version test
         run: "./build/linux/amd64/earthly --version"
       - name: Execute docker2earth test
@@ -128,8 +133,6 @@ jobs:
         run: go test ./analytics --tags=hasgitdirectory
       - name: Execute earthly docker command
         run: (cd examples/tests/docker && ../../.././build/linux/amd64/earthly docker --tag examples-test-docker:latest && diff <(docker run --rm examples-test-docker:latest) <(echo "hello dockerfile") )
-      - name: Execute test similar to homebrew test in https://github.com/Homebrew/homebrew-core/blob/master/Formula/earthly.rb
-        run: "./build/linux/amd64/earthly --buildkit-host 127.0.0.1 ./examples/tests/with-docker+all 2>&1 | grep 'buildkitd failed to start'"
       - name: Execute private image test (non fork only)
         run: ./build/linux/amd64/earthly --ci ./examples/tests+private-image-test
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
@@ -146,49 +149,12 @@ jobs:
         run: docker logs earthly-buildkitd
         if: ${{ failure() }}
 
-  test-use-copy-include-patterns:
-    runs-on: ubuntu-latest
-    env:
-      FORCE_COLOR: 1
-      EARTHLY_CONVERSION_PARALLELISM: "5"
-      EARTHLY_VERSION_FLAG_OVERRIDES: "referenced-save-only"
-      EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
-      EARTHLY_INSTALL_ID: "earthly-githubactions"
-      EARTHLY_FEATURE_FLAG_OVERRIDES: "use-copy-include-patterns"
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-go@v1
-        with:
-          go-version: 1.16
-      - name: Download released earthly
-        run: "sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/latest/download/earthly-linux-amd64 -O /usr/local/bin/earthly && chmod +x /usr/local/bin/earthly'"
-      - name: Docker mirror login (non fork only)
-        run: docker login registry-1.docker.io.mirror.corp.earthly.dev --username "${{ secrets.DOCKERHUB_MIRROR_USERNAME }}" --password "${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}"
-        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
-      - name: Configure Earthly to use mirror (non fork only)
-        run: |-
-          earthly config global.buildkit_additional_config "'[registry.\"docker.io\"]
-
-          mirrors = [\"registry-1.docker.io.mirror.corp.earthly.dev\"]'"
-        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
-      - name: Build latest earthly using released earthly
-        run: earthly --use-inline-cache +for-linux
-      - name: Enable local registry-based exporter
-        run: ./build/linux/amd64/earthly config global.local_registry_host 'tcp://127.0.0.1:8371'
-      - name: Build examples1 (PR build)
-        run: ./build/linux/amd64/earthly --ci -P +examples1
-        if: github.event_name != 'push'
-      - name: Buildkit logs (runs on failure)
-        run: docker logs earthly-buildkitd
-        if: ${{ failure() }}
-
   examples1:
     name: +examples1
     runs-on: ubuntu-latest
     env:
       FORCE_COLOR: 1
       EARTHLY_CONVERSION_PARALLELISM: "5"
-      EARTHLY_VERSION_FLAG_OVERRIDES: "referenced-save-only"
       EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
       EARTHLY_INSTALL_ID: "earthly-githubactions"
     steps:
@@ -215,6 +181,11 @@ jobs:
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: Build latest earthly using released earthly
         run: earthly --use-inline-cache +for-linux
+      - name: Set EARTHLY_VERSION_FLAG_OVERRIDES env
+        run: |-
+            set -euo pipefail
+            EARTHLY_VERSION_FLAG_OVERRIDES="$(tr -d '\n' < .earthly_version_flag_overrides)"
+            echo "EARTHLY_VERSION_FLAG_OVERRIDES=$EARTHLY_VERSION_FLAG_OVERRIDES" >> "$GITHUB_ENV"
       - name: Enable local registry-based exporter
         run: ./build/linux/amd64/earthly config global.local_registry_host 'tcp://127.0.0.1:8371'
       - name: Build examples1 (PR build)
@@ -233,7 +204,6 @@ jobs:
     env:
       FORCE_COLOR: 1
       EARTHLY_CONVERSION_PARALLELISM: "5"
-      EARTHLY_VERSION_FLAG_OVERRIDES: "referenced-save-only"
       EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
       EARTHLY_INSTALL_ID: "earthly-githubactions"
     steps:
@@ -260,6 +230,11 @@ jobs:
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: Build latest earthly using released earthly
         run: earthly --use-inline-cache +for-linux
+      - name: Set EARTHLY_VERSION_FLAG_OVERRIDES env
+        run: |-
+            set -euo pipefail
+            EARTHLY_VERSION_FLAG_OVERRIDES="$(tr -d '\n' < .earthly_version_flag_overrides)"
+            echo "EARTHLY_VERSION_FLAG_OVERRIDES=$EARTHLY_VERSION_FLAG_OVERRIDES" >> "$GITHUB_ENV"
       - name: Enable local registry-based exporter
         run: ./build/linux/amd64/earthly config global.local_registry_host 'tcp://127.0.0.1:8371'
       - name: Build examples2 (PR build)
@@ -282,7 +257,6 @@ jobs:
     env:
       FORCE_COLOR: 1
       EARTHLY_CONVERSION_PARALLELISM: "5"
-      EARTHLY_VERSION_FLAG_OVERRIDES: "referenced-save-only"
       EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
       EARTHLY_INSTALL_ID: "earthly-githubactions"
     steps:
@@ -300,6 +274,11 @@ jobs:
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: Build latest earthly using released earthly
         run: earthly --use-inline-cache +for-linux
+      - name: Set EARTHLY_VERSION_FLAG_OVERRIDES env
+        run: |-
+            set -euo pipefail
+            EARTHLY_VERSION_FLAG_OVERRIDES="$(tr -d '\n' < .earthly_version_flag_overrides)"
+            echo "EARTHLY_VERSION_FLAG_OVERRIDES=$EARTHLY_VERSION_FLAG_OVERRIDES" >> "$GITHUB_ENV"
       - name: Enable local registry-based exporter
         run: ./build/linux/amd64/earthly config global.local_registry_host 'tcp://127.0.0.1:8371'
       - name: Build tutorial part 1
@@ -320,7 +299,6 @@ jobs:
     env:
       FORCE_COLOR: 1
       EARTHLY_CONVERSION_PARALLELISM: "5"
-      EARTHLY_VERSION_FLAG_OVERRIDES: "referenced-save-only"
       EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
       EARTHLY_INSTALL_ID: "earthly-githubactions"
     steps:
@@ -338,6 +316,11 @@ jobs:
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: Build latest earthly using released earthly
         run: earthly --use-inline-cache +for-linux
+      - name: Set EARTHLY_VERSION_FLAG_OVERRIDES env
+        run: |-
+            set -euo pipefail
+            EARTHLY_VERSION_FLAG_OVERRIDES="$(tr -d '\n' < .earthly_version_flag_overrides)"
+            echo "EARTHLY_VERSION_FLAG_OVERRIDES=$EARTHLY_VERSION_FLAG_OVERRIDES" >> "$GITHUB_ENV"
       - name: Enable local registry-based exporter
         run: ./build/linux/amd64/earthly config global.local_registry_host 'tcp://127.0.0.1:8371'
       - name: Push and Pull Cloud Images (not a fork)
@@ -358,7 +341,6 @@ jobs:
     env:
       FORCE_COLOR: 1
       EARTHLY_CONVERSION_PARALLELISM: "5"
-      EARTHLY_VERSION_FLAG_OVERRIDES: "referenced-save-only"
       EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
       EARTHLY_INSTALL_ID: "earthly-githubactions"
     steps:
@@ -376,6 +358,11 @@ jobs:
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: Build latest earthly using released earthly
         run: earthly --use-inline-cache +for-linux
+      - name: Set EARTHLY_VERSION_FLAG_OVERRIDES env
+        run: |-
+            set -euo pipefail
+            EARTHLY_VERSION_FLAG_OVERRIDES="$(tr -d '\n' < .earthly_version_flag_overrides)"
+            echo "EARTHLY_VERSION_FLAG_OVERRIDES=$EARTHLY_VERSION_FLAG_OVERRIDES" >> "$GITHUB_ENV"
       - name: Enable local registry-based exporter
         run: ./build/linux/amd64/earthly config global.local_registry_host 'tcp://127.0.0.1:8371'
       - name: run secrets-integration
@@ -389,7 +376,6 @@ jobs:
     env:
       FORCE_COLOR: 1
       EARTHLY_CONVERSION_PARALLELISM: "5"
-      EARTHLY_VERSION_FLAG_OVERRIDES: "referenced-save-only"
       EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
       EARTHLY_INSTALL_ID: "earthly-githubactions"
     steps:
@@ -407,6 +393,11 @@ jobs:
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: Build latest earthly using released earthly
         run: earthly --use-inline-cache +for-linux
+      - name: Set EARTHLY_VERSION_FLAG_OVERRIDES env
+        run: |-
+            set -euo pipefail
+            EARTHLY_VERSION_FLAG_OVERRIDES="$(tr -d '\n' < .earthly_version_flag_overrides)"
+            echo "EARTHLY_VERSION_FLAG_OVERRIDES=$EARTHLY_VERSION_FLAG_OVERRIDES" >> "$GITHUB_ENV"
       - name: Enable local registry-based exporter
         run: ./build/linux/amd64/earthly config global.local_registry_host 'tcp://127.0.0.1:8371'
       - name: Run bootstrap-integration
@@ -421,7 +412,6 @@ jobs:
     env:
       FORCE_COLOR: 1
       EARTHLY_CONVERSION_PARALLELISM: "5"
-      EARTHLY_VERSION_FLAG_OVERRIDES: "referenced-save-only"
       EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
       EARTHLY_INSTALL_ID: "earthly-githubactions"
     steps:
@@ -430,6 +420,11 @@ jobs:
         run: "sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/latest/download/earthly-linux-amd64 -O /usr/local/bin/earthly && chmod +x /usr/local/bin/earthly'"
       - name: Build latest earthly using released earthly
         run: earthly --use-inline-cache +for-linux
+      - name: Set EARTHLY_VERSION_FLAG_OVERRIDES env
+        run: |-
+            set -euo pipefail
+            EARTHLY_VERSION_FLAG_OVERRIDES="$(tr -d '\n' < .earthly_version_flag_overrides)"
+            echo "EARTHLY_VERSION_FLAG_OVERRIDES=$EARTHLY_VERSION_FLAG_OVERRIDES" >> "$GITHUB_ENV"
       - name: Enable local registry-based exporter
         run: ./build/linux/amd64/earthly config global.local_registry_host 'tcp://127.0.0.1:8371'
       - name: Execute test-local
@@ -455,7 +450,6 @@ jobs:
     env:
       FORCE_COLOR: 1
       EARTHLY_CONVERSION_PARALLELISM: "5"
-      EARTHLY_VERSION_FLAG_OVERRIDES: "referenced-save-only"
       EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
       EARTHLY_INSTALL_ID: "earthly-githubactions"
       SSH_PORT: "2222"
@@ -476,14 +470,15 @@ jobs:
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: Build latest earthly using released earthly
         run: earthly --use-inline-cache +for-linux
+      - name: Set EARTHLY_VERSION_FLAG_OVERRIDES env
+        run: |-
+            set -euo pipefail
+            EARTHLY_VERSION_FLAG_OVERRIDES="$(tr -d '\n' < .earthly_version_flag_overrides)"
+            echo "EARTHLY_VERSION_FLAG_OVERRIDES=$EARTHLY_VERSION_FLAG_OVERRIDES" >> "$GITHUB_ENV"
       - name: Enable local registry-based exporter
         run: ./build/linux/amd64/earthly config global.local_registry_host 'tcp://127.0.0.1:8371'
 # to regenerate the entries below; run earthly ./scripts/tests/auth+generate-github-tasks
 # auto-generated-entries start;
-      - name: run test-earthfile-can-clone-private-repo-with-earthly-config.sh
-        run: env earthly=./build/linux/amd64/earthly scripts/tests/auth/test-earthfile-can-clone-private-repo-with-earthly-config.sh
-      - name: run test-earthfile-can-clone-private-repo-with-netrc.sh
-        run: env earthly=./build/linux/amd64/earthly scripts/tests/auth/test-earthfile-can-clone-private-repo-with-netrc.sh
       - name: run test-hello-world-empty-netrc.sh
         run: env earthly=./build/linux/amd64/earthly scripts/tests/auth/test-hello-world-empty-netrc.sh
       - name: run test-hello-world-no-ssh-agent.sh
@@ -492,12 +487,6 @@ jobs:
         run: env earthly=./build/linux/amd64/earthly scripts/tests/auth/test-hello-world-no-ssh-keys.sh
       - name: run test-hello-world-with-non-authorized-key.sh
         run: env earthly=./build/linux/amd64/earthly scripts/tests/auth/test-hello-world-with-non-authorized-key.sh
-      - name: run test-private-repo-with-https-config-arg.sh
-        run: env earthly=./build/linux/amd64/earthly scripts/tests/auth/test-private-repo-with-https-config-arg.sh
-      - name: run test-private-repo-with-https-config-command.sh
-        run: env earthly=./build/linux/amd64/earthly scripts/tests/auth/test-private-repo-with-https-config-command.sh
-      - name: run test-private-repo-with-https-config-file.sh
-        run: env earthly=./build/linux/amd64/earthly scripts/tests/auth/test-private-repo-with-https-config-file.sh
       - name: run test-private-repo-with-netrc.sh
         run: env earthly=./build/linux/amd64/earthly scripts/tests/auth/test-private-repo-with-netrc.sh
       - name: run test-private-repo-with-ssh-key.sh
@@ -516,7 +505,6 @@ jobs:
     env:
       FORCE_COLOR: 1
       EARTHLY_CONVERSION_PARALLELISM: "5"
-      EARTHLY_VERSION_FLAG_OVERRIDES: "referenced-save-only"
       EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
       EARTHLY_INSTALL_ID: "earthly-githubactions"
     steps:
@@ -540,6 +528,11 @@ jobs:
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: Build latest earthly using released earthly
         run: earthly --use-inline-cache +for-linux
+      - name: Set EARTHLY_VERSION_FLAG_OVERRIDES env
+        run: |-
+            set -euo pipefail
+            EARTHLY_VERSION_FLAG_OVERRIDES="$(tr -d '\n' < .earthly_version_flag_overrides)"
+            echo "EARTHLY_VERSION_FLAG_OVERRIDES=$EARTHLY_VERSION_FLAG_OVERRIDES" >> "$GITHUB_ENV"
       - name: Enable local registry-based exporter
         run: ./build/linux/amd64/earthly config global.local_registry_host 'tcp://127.0.0.1:8371'
       - name: run export tests
@@ -554,7 +547,6 @@ jobs:
     env:
       FORCE_COLOR: 1
       EARTHLY_CONVERSION_PARALLELISM: "5"
-      EARTHLY_VERSION_FLAG_OVERRIDES: "referenced-save-only"
       EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
       EARTHLY_INSTALL_ID: "earthly-githubactions"
     steps:
@@ -588,6 +580,11 @@ jobs:
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: Build latest earthly using released earthly
         run: earthly --use-inline-cache +for-linux
+      - name: Set EARTHLY_VERSION_FLAG_OVERRIDES env
+        run: |-
+            set -euo pipefail
+            EARTHLY_VERSION_FLAG_OVERRIDES="$(tr -d '\n' < .earthly_version_flag_overrides)"
+            echo "EARTHLY_VERSION_FLAG_OVERRIDES=$EARTHLY_VERSION_FLAG_OVERRIDES" >> "$GITHUB_ENV"
       - name: Enable local registry-based exporter
         run: ./build/linux/amd64/earthly config global.local_registry_host 'tcp://127.0.0.1:8371'
       - name: Build +all-buildkitd
@@ -602,7 +599,6 @@ jobs:
     env:
       FORCE_COLOR: 1
       EARTHLY_CONVERSION_PARALLELISM: "5"
-      EARTHLY_VERSION_FLAG_OVERRIDES: "referenced-save-only"
       EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
       EARTHLY_INSTALL_ID: "earthly-githubactions"
     steps:
@@ -636,6 +632,11 @@ jobs:
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: Build latest earthly using released earthly
         run: earthly --use-inline-cache +for-linux
+      - name: Set EARTHLY_VERSION_FLAG_OVERRIDES env
+        run: |-
+            set -euo pipefail
+            EARTHLY_VERSION_FLAG_OVERRIDES="$(tr -d '\n' < .earthly_version_flag_overrides)"
+            echo "EARTHLY_VERSION_FLAG_OVERRIDES=$EARTHLY_VERSION_FLAG_OVERRIDES" >> "$GITHUB_ENV"
       - name: Enable local registry-based exporter
         run: ./build/linux/amd64/earthly config global.local_registry_host 'tcp://127.0.0.1:8371'
       - name: Build +all-dind
@@ -650,7 +651,6 @@ jobs:
     env:
       FORCE_COLOR: 1
       EARTHLY_CONVERSION_PARALLELISM: "5"
-      EARTHLY_VERSION_FLAG_OVERRIDES: "referenced-save-only"
       EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
       EARTHLY_INSTALL_ID: "earthly-githubactions"
     steps:
@@ -684,6 +684,11 @@ jobs:
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: Build latest earthly using released earthly
         run: earthly --use-inline-cache +for-linux
+      - name: Set EARTHLY_VERSION_FLAG_OVERRIDES env
+        run: |-
+            set -euo pipefail
+            EARTHLY_VERSION_FLAG_OVERRIDES="$(tr -d '\n' < .earthly_version_flag_overrides)"
+            echo "EARTHLY_VERSION_FLAG_OVERRIDES=$EARTHLY_VERSION_FLAG_OVERRIDES" >> "$GITHUB_ENV"
       - name: Enable local registry-based exporter
         run: ./build/linux/amd64/earthly config global.local_registry_host 'tcp://127.0.0.1:8371'
       - name: Build +earthly-all
@@ -700,8 +705,6 @@ jobs:
     env:
       FORCE_COLOR: 1
       EARTHLY_CONVERSION_PARALLELISM: "5"
-      # TODO
-      # EARTHLY_VERSION_FLAG_OVERRIDES: "referenced-save-only"
       EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
       EARTHLY_INSTALL_ID: "earthly-githubactions"
     steps:
@@ -735,6 +738,11 @@ jobs:
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: Build latest earthly using released earthly
         run: earthly --use-inline-cache +for-linux
+      - name: Set EARTHLY_VERSION_FLAG_OVERRIDES env
+        run: |-
+            set -euo pipefail
+            EARTHLY_VERSION_FLAG_OVERRIDES="$(tr -d '\n' < .earthly_version_flag_overrides)"
+            echo "EARTHLY_VERSION_FLAG_OVERRIDES=$EARTHLY_VERSION_FLAG_OVERRIDES" >> "$GITHUB_ENV"
       - name: Enable local registry-based exporter
         run: ./build/linux/amd64/earthly config global.local_registry_host 'tcp://127.0.0.1:8371'
       - name: Build +prerelease
@@ -766,8 +774,6 @@ jobs:
     env:
       FORCE_COLOR: 1
       EARTHLY_CONVERSION_PARALLELISM: "5"
-      # TODO
-      # EARTHLY_VERSION_FLAG_OVERRIDES: "referenced-save-only"
       EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
       EARTHLY_INSTALL_ID: "earthly-githubactions"
     steps:
@@ -802,6 +808,11 @@ jobs:
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: Build latest earthly using released earthly
         run: earthly --use-inline-cache +for-linux
+      - name: Set EARTHLY_VERSION_FLAG_OVERRIDES env
+        run: |-
+            set -euo pipefail
+            EARTHLY_VERSION_FLAG_OVERRIDES="$(tr -d '\n' < .earthly_version_flag_overrides)"
+            echo "EARTHLY_VERSION_FLAG_OVERRIDES=$EARTHLY_VERSION_FLAG_OVERRIDES" >> "$GITHUB_ENV"
       - name: Enable local registry-based exporter
         run: ./build/linux/amd64/earthly config global.local_registry_host 'tcp://127.0.0.1:8371'
       - name: Build and push +prerelease

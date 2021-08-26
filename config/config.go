@@ -56,7 +56,6 @@ type GlobalConfig struct {
 	BuildkitAdditionalArgs   []string `yaml:"buildkit_additional_args"   help:"Additional args to pass to buildkit when it starts. Useful for custom/self-signed certs, or user namespace complications."`
 	BuildkitAdditionalConfig string   `yaml:"buildkit_additional_config" help:"Additional config to use when starting the buildkit container; like using custom/self-signed certificates."`
 	CniMtu                   uint16   `yaml:"cni_mtu"                    help:"Override auto-detection of the default interface MTU, for all containers within buildkit"`
-	BuildkitScheme           string   `yaml:"buildkit_transport"         help:"Change how Earthly communicates with its buildkit daemon. Valid options are: docker-container, tcp. TCP is experimental."`
 	BuildkitHost             string   `yaml:"buildkit_host"              help:"The URL of your buildkit, remote or local."`
 	DebuggerHost             string   `yaml:"debugger_host"              help:"The URL of the Earthly debugger, remote or local."`
 	LocalRegistryHost        string   `yaml:"local_registry_host"        help:"The URL of the local registry used for image exports to Docker."`
@@ -66,10 +65,12 @@ type GlobalConfig struct {
 	ServerTLSCert            string   `yaml:"buildkitd_tlscert"          help:"The path to the server cert for verification. Relative paths are interpreted as relative to ~/.earthly. Only used when Earthly manages buildkit."`
 	ServerTLSKey             string   `yaml:"buildkitd_tlskey"           help:"The path to the server key for verification. Relative paths are interpreted as relative to ~/.earthly. Only used when Earthly manages buildkit."`
 	TLSEnabled               bool     `yaml:"tls_enabled"                help:"If TLS should be used to communicate with Buildkit. Only honored when BuildkitScheme is 'tcp'."`
+	IPTables                 string   `yaml:"ip_tables"                  help:"Which iptables binary to use. Valid values are iptables-legacy or iptables-nft. Bypasses any autodetection."`
 
 	// Obsolete.
-	CachePath    string `yaml:"cache_path"    help:" *Deprecated* The path to keep Earthly's cache."`
-	DebuggerPort int    `yaml:"debugger_port" help:" *Deprecated* What port should the debugger (and other interactive sessions) use to communicate."`
+	CachePath      string `yaml:"cache_path"         help:" *Deprecated* The path to keep Earthly's cache."`
+	DebuggerPort   int    `yaml:"debugger_port"      help:" *Deprecated* What port should the debugger (and other interactive sessions) use to communicate."`
+	BuildkitScheme string `yaml:"buildkit_transport" help:" *Deprecated* Change how Earthly communicates with its buildkit daemon. Valid options are: docker-container, tcp. TCP is experimental."`
 }
 
 // GitConfig contains git-specific config values

@@ -338,6 +338,10 @@ Instructs Earthly to not overwrite the file creation timestamps with a constant.
 
 Instructs Earthly to keep file ownership information. This applies only to the *artifact form* and has no effect otherwise.
 
+##### `--if-exists`
+
+Only copy source if it exists; if it does not exist, earthly will simply ignore the COPY command and won't treat any missing sources as failures.
+
 ##### `--from`
 
 Although this option is present in classical Dockerfile syntax, it is not supported by Earthfiles. You may instead use a combination of `SAVE ARTIFACT` and `COPY` *artifact form* commands to achieve similar effects. For example, the following Dockerfile
@@ -438,7 +442,7 @@ A number of builtin args are available and are pre-filled by Earthly. For more i
 
 #### Synopsis
 
-* `SAVE ARTIFACT [--keep-ts] [--keep-own] <src> [<artifact-dest-path>] [AS LOCAL <local-path>]`
+* `SAVE ARTIFACT [--keep-ts] [--keep-own] [--if-exists] [--force] <src> [<artifact-dest-path>] [AS LOCAL <local-path>]`
 
 #### Description
 
@@ -470,6 +474,14 @@ Instructs Earthly to not overwrite the file creation timestamps with a constant.
 ##### `--keep-own`
 
 Instructs Earthly to keep file ownership information.
+
+##### `--if-exists`
+
+Only save artifacts if they exists; if not, earthly will simply ignore the SAVE ARTIFACT command and won't treat any missing sources as failures.
+
+##### `--force`
+
+Force save operations which may be unsafe, such as writing to (or overwriting) a file or directory on the host filesystem located outside of the context of the directory containing the Earthfile.
 
 #### Examples
 
@@ -950,7 +962,7 @@ ELSE
 END
 ```
 
-The reason this is invalid is because the `IF` condition is actually running the `/usr/bin/[` executable to test if the condition is true or false, and therefore requires a valid build environment has been initialized.
+The reason this is invalid is because the `IF` condition is actually running the `/usr/bin/[` executable to test if the condition is true or false, and therefore requires that a valid build environment has been initialized.
 
 Here is how this might be fixed.
 
@@ -973,6 +985,83 @@ Changes to the filesystem in any of the conditions are not preserved. If a file 
 {% endhint %}
 
 #### Options
+
+##### `--privileged`
+
+Same as [`RUN --privileged`](#privileged).
+
+##### `--ssh`
+
+Same as [`RUN --ssh`](#ssh).
+
+##### `--no-cache`
+
+Same as [`RUN --no-cache`](#no-cache).
+
+##### `--mount <mount-spec>`
+
+Same as [`RUN --mount <mount-spec>`](#mount-less-than-mount-spec-greater-than).
+
+##### `--secret <env-var>=<secret-ref>`
+
+Same as [`RUN --secret <env-var>=<secret-ref>`](#secret-less-than-env-var-greater-than-less-than-secret-ref-greater-than).
+
+## FOR (**experimental**)
+
+Enable via `VERSION --for-in 0.5`.
+
+{% hint style='danger' %}
+##### Important
+
+This feature is currently in **Experimental** stage
+
+* The feature may break, be changed drastically with no warning, or be removed altogether in future versions of Earthly.
+* Check the [GitHub tracking issue](https://github.com/earthly/earthly/issues/779) for any known problems.
+* Give us feedback on [Slack](https://earthly.dev/slack).
+{% endhint %}
+
+#### Synopsis
+
+* ```
+  FOR [<options>...] <variable-name> IN <expression>
+    <for-block>
+  END
+  ```
+
+#### Description
+
+The `FOR` clause can iterate over the items resulting from the expression `<expression>`. On each iteration, the value of `<variable-name>` is set to the current item in the iteration and the block of commands `<for-block>` is executed in the context of that variable set as a build arg.
+
+The expression may be either a constant list of items (e.g. `foo bar buz`), or the output of a command (e.g. `$(echo foo bar buz)`), or a parameterized list of items (e.g. `foo $BARBUZ`). The result of the expression is then tokenized using the list of separators provided via the `--sep` option. If unspecified, the separator list defaults to `[tab]`, `[new line]` and `[space]` (`\t\n `).
+
+{% hint style='danger' %}
+##### Important
+Changes to the filesystem in expressions are not preserved. If a file is created as part of a `FOR` expression, then that file will not be present in the build environment for any subsequent commands.
+{% endhint %}
+
+#### Examples
+
+As an example, `FOR` may be used to iterate over a list of files for compilation
+
+```Dockerfile
+FOR file IN $(ls)
+  RUN gcc "${file}" -o "${file}.o" -c
+END
+```
+
+As another example, `FOR` may be used to iterate over a set of directories in a monorepo and invoking targets within them.
+
+```Dockerfile
+FOR dir IN $(ls -d */)
+  BUILD "./$dir+build"
+END
+```
+
+#### Options
+
+##### `--sep <separator-list>`
+
+The list of separators to use when tokenizing the output of the expression. If unspecified, the separator list defaults to `[tab]`, `[new line]` and `[space]` (`\t\n `).
 
 ##### `--privileged`
 

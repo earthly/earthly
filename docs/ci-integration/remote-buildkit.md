@@ -53,10 +53,6 @@ Normally, Earthly will try to start and manage its own `earthly/buildkitd` daemo
 
 This is the address of the remote daemon. It should look something like this: `tcp://my-cool-remote-daemon:8372`. If the hostname is considered to be a "local" one, Earthly will fall back to the Local-Remote behaviors described below. For reference; all IPv6 Loopback addresses, `127.0.0.1`, and `[localhost](http://localhost)` are considered to be "local". The machine's hostname is not considered "local".
 
-**`buildkit_transport`**
-
-Set this to `tcp` for connection to the remote daemon.
-
 **`tlsca` / `tlscert` / `tlskey`**
 
 These are the paths to the certificates and keys used by the client when communicating with an mTLS-enabled daemon. These paths are relative to the Earthly config (usually `~/.earthly/config.yaml`, unless absolute paths are specified.
@@ -67,6 +63,6 @@ Set this to `true` when using TLS is desired.
 
 ### Local-Remote
 
-It is also possible to use the remote protocols (TCP and mTLS) locally, while still letting Earthly manage the daemon container. You can do this by enabling TCP transport(`buildkit_transport`), and enabling mTLS(`tls_enabled`).
+It is also possible to use the remote protocols (TCP and mTLS) locally, while still letting Earthly manage the daemon container. You can do this by enabling mTLS(`tls_enabled`).
 
 By doing this, Earthly will (optionally) generate its own certificates, and connect to the daemon using `tcp://127.0.0.1:8372`. This is a great way to test some of the remote capabilities without having to generate certificates or manage a separate machine.

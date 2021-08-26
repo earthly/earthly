@@ -18,7 +18,7 @@ This guide will cover both approaches to constructing your image.
 This is the recommended approach when adopting Earthly into your containerized CI. Start by basing your custom image on ours:
 
 ```docker
-FROM earthly/earthly:v0.5.20
+FROM earthly/earthly:v0.5.23
 RUN ... # Add your agent, certificates, tools...
 ```
 
@@ -50,7 +50,7 @@ In this setup, Earthly will be allowed to manage an instance of its `earthly/bui
 To enable this, simply follow the installation instructions within your Dockerfile/Earthfile as you would on any other host. An example of installing this can be found below.
 
 ```docker
-RUN wget https://github.com/earthly/earthly/releases/download/v0.5.20/earthly-linux-amd64 -O /usr/local/bin/earthly && \
+RUN wget https://github.com/earthly/earthly/releases/download/v0.5.23/earthly-linux-amd64 -O /usr/local/bin/earthly && \
     chmod +x /usr/local/bin/earthly && \
     /usr/local/bin/earthly bootstrap
 ```
@@ -62,7 +62,7 @@ As with the Docker containers, be sure to pin the version in the download URL to
 When connecting to a remote daemon, follow the Docker-In-Docker installation instructions above to get the binary. Then you'll need to issue a few `earthly config` commands to ensure the container is set up to automatically use the remote daemon. It might look something like this:
 
 ```docker
-RUN earthly config global "{buildkit_host: 'tcp://myhost:8372', buildkit_transport: 'tcp'}"
+RUN earthly config global.buildkit_host buildkit_host: 'tcp://myhost:8372'
 ```
 
 For more details on using a remote buildkit daemon, [see our guide](./remote-buildkit.md).
