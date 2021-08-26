@@ -16,7 +16,7 @@ ping -c 1 selfsigned.example.com
 ping -c 1 buildkitsandbox
 
 earthly --config \$earthly_config config git \"{selfsigned.example.com: {auth: https, user: testuser, password: keepitsecret, pattern: 'selfsigned.example.com/([^/]+)'}}\"
-earthly --config \$earthly_config --verbose -D +gitclone >output.txt 2>&1
+earthly --config \$earthly_config --verbose --debug +gitclone >output.txt 2>&1
 " >/tmp/test-earthly-script && chmod +x /tmp/test-earthly-script
 
     DO ..+RUN_EARTHLY --pre_command=start-nginx-with-git --earthfile=scrub-credentials.earth --exec_cmd=/tmp/test-earthly-script
@@ -40,7 +40,7 @@ ping -c 1 selfsigned.example.com
 ping -c 1 buildkitsandbox
 
 earthly --config \$earthly_config config git \"{selfsigned.example.com: {auth: https, user: testuser, password: keepitsecret, pattern: 'selfsigned.example.com/([^/]+)'}}\"
-earthly --config \$earthly_config --verbose selfsigned.example.com/repo:main+hello >output.txt 2>&1
+earthly --config \$earthly_config --verbose --debug selfsigned.example.com/repo:main+hello >output.txt 2>&1
 " >/tmp/test-earthly-script && chmod +x /tmp/test-earthly-script
 
     DO ..+RUN_EARTHLY --pre_command=start-nginx-with-git --exec_cmd=/tmp/test-earthly-script
@@ -64,7 +64,7 @@ set -ex
 earthly --config \$earthly_config config git \"{github.com: {auth: https, user: cinnamonthecat, password: badpassword}}\"
 
 set +e
-earthly --config \$earthly_config --verbose github.com/cinnamonthecat/test-private:main+build >output.txt 2>&1
+earthly --config \$earthly_config --verbose --debug github.com/cinnamonthecat/test-private:main+build >output.txt 2>&1
 exit_code=\$?
 if [ \$exit_code -eq 0 ]; then
     echo ERROR: earthly should have failed but didn\'t.
