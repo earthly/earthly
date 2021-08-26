@@ -2669,6 +2669,9 @@ func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []st
 		RepeaterAddr:      fmt.Sprintf("%s:8373", bkIP),
 		Term:              os.Getenv("TERM"),
 	}
+	if app.interactiveDebugging {
+		analytics.Count("features", "interactive-debugging")
+	}
 
 	debuggerSettingsData, err := json.Marshal(&debuggerSettings)
 	if err != nil {
