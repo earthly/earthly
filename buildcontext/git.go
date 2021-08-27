@@ -218,7 +218,7 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, gwClient gwclient.
 		gitTs := strings.SplitN(string(gitTsBytes), "\n", 2)[0]
 
 		gitOpts = []llb.GitOption{
-			llb.WithCustomNamef("[context %s] git context %s", gitURL, ref.StringCanonical()),
+			llb.WithCustomNamef("[context %s] git context %s", stringutil.ScrubCredentials(gitURL), ref.StringCanonical()),
 			llb.KeepGitDir(),
 		}
 		if keyScan != "" {
