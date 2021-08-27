@@ -836,3 +836,53 @@ jobs:
       - name: Buildkit logs (runs on failure)
         run: docker logs earthly-buildkitd
         if: ${{ failure() }}
+
+  rootless:
+    name: rootless-daemon
+    runs-on: ubuntu-latest
+    env:
+      FORCE_COLOR: 1
+      EARTHLY_CONVERSION_PARALLELISM: "5"
+      EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
+      EARTHLY_INSTALL_ID: "earthly-githubactions"
+      FORCE_ROOTLESS_INSTALL: 1
+      XDG_RUNTIME_DIR: /home/runner/.docker/run
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install & Start Rootless Docker
+        run: sudo systemctl disable --now docker.service docker.socket && curl -fsSL https://get.docker.com/rootless | sh && echo "DOCKER_HOST=unix:///home/$(id -un)/.docker/run/docker.sock" >> $GITHUB_ENV && PATH=/home/runner/bin:/sbin:/usr/sbin:$PATH dockerd-rootless.sh &
+      - name: Docker Info
+        run: docker info
+      - name: Docker mirror login (non fork only)
+        run: docker login registry-1.docker.io.mirror.corp.earthly.dev --username "${{ secrets.DOCKERHUB_MIRROR_USERNAME }}" --password "${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}"
+        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+      - name: Download released earthly
+        run: "sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/latest/download/earthly-linux-amd64 -O /usr/local/bin/earthly && chmod +x /usr/local/bin/earthly'"
+      - name: Configure Earthly to use mirror (non fork only)
+        run: |-
+          earthly config global.buildkit_additional_config "'[registry.\"docker.io\"]
+
+          mirrors = [\"registry-1.docker.io.mirror.corp.earthly.dev\"]'"
+        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+      - name: Configure Earthly to use remote buildkitd
+        run: earthly config global.buildkit_host tcp://$(hostname):8372
+      - name: Start Remote Buildkit (Released)
+        run: docker run --name remote-buildkitd --privileged -d -t -v earthly-tmp:/tmp/earthly:rw -e BUILDKIT_TCP_TRANSPORT_ENABLED=true -p 8372:8372 earthly/buildkitd:$(earthly --version | cut -f3 -d' ') && docker ps -a
+      - name: Build latest earthly using released earthly
+        run: earthly --use-inline-cache +for-linux
+      - name: Start Remote Buildkit (Built)
+        run: docker rm -f remote-buildkitd && docker run --name remote-buildkitd --privileged -d -t -v earthly-tmp:/tmp/earthly:rw -e BUILDKIT_TCP_TRANSPORT_ENABLED=true -p 8372:8372 earthly/buildkitd:dev-HEAD && docker ps -a
+      - name: Set EARTHLY_VERSION_FLAG_OVERRIDES env
+        run: |-
+            set -euo pipefail
+            EARTHLY_VERSION_FLAG_OVERRIDES="$(tr -d '\n' < .earthly_version_flag_overrides)"
+            echo "EARTHLY_VERSION_FLAG_OVERRIDES=$EARTHLY_VERSION_FLAG_OVERRIDES" >> "$GITHUB_ENV"
+      - name: Execute tests (not a fork)
+        run: ./build/linux/amd64/earthly --build-arg BUILDKIT_HOST="tcp://$(hostname):8372" --ci -P ./examples/tests+rootless
+        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+      - name: Execute tests (fork)
+        run: ./build/linux/amd64/earthly --build-arg BUILDKIT_HOST="tcp://$(hostname):8372" --ci -P ./examples/tests+rootless --DOCKERHUB_AUTH=false
+        if: github.event_name != 'push' && github.event.pull_request.head.repo.full_name != github.repository
+      - name: Buildkit logs (runs on failure)
+        run: docker logs earthly-remote
+        if: ${{ failure() }}

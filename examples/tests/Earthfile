@@ -1,5 +1,6 @@
 ARG DOCKERHUB_AUTH=true
-FROM ../..+earthly-integration-test-base --DOCKERHUB_AUTH=$DOCKERHUB_AUTH
+ARG BUILDKIT_HOST
+FROM ../..+earthly-integration-test-base --DOCKERHUB_AUTH=$DOCKERHUB_AUTH --BUILDKIT_HOST=$BUILDKIT_HOST
 
 RUN apk add --update --no-cache \
     perl findutils
@@ -8,13 +9,13 @@ WORKDIR /test
 
 all:
     BUILD +ga
-    BUILD +experimental
+    BUILD +ga-requires-rootful
+
+rootless:
+    BUILD +ga
 
 ga:
     BUILD ./autocompletion+test-all
-    BUILD ./scrub-https-credentials+all
-    BUILD ./with-docker+all
-    BUILD ./with-docker-compose+all
     BUILD ./dockerfile+test
     BUILD ./dockerfile2/subdir+test
     BUILD ./version+test-all
@@ -23,8 +24,6 @@ ga:
     BUILD +copy-test-verbose-output
     BUILD +cache-test
     BUILD +git-clone-test
-    BUILD +git-clone-private-ssh
-    BUILD ./private-https+all
     BUILD +builtin-args-test
     BUILD +config-test
     BUILD +excludes-test
@@ -34,7 +33,6 @@ ga:
     BUILD +from-expose-test
     BUILD +scratch-test
     BUILD +build-earthly-test
-    BUILD +host-bind-test
     BUILD +remote-test
     BUILD +transitive-args-test
     BUILD +transitive-args-test2
@@ -86,14 +84,20 @@ ga:
     BUILD +import
     BUILD +infinite-recursion
     BUILD +from-dockerfile-arg
-    BUILD +cache-mount-arg
     BUILD +true-false-flag
     BUILD +true-false-flag-invalid
     BUILD +dont-save-indirect-remote-artifact
     BUILD +sequential-locally-test
     BUILD +homebrew-test
 
-experimental:
+ga-requires-rootful:
+    BUILD +cache-mount-arg
+    BUILD ./scrub-https-credentials+all
+    BUILD ./with-docker+all
+    BUILD ./with-docker-compose+all
+    BUILD +git-clone-private-ssh
+    BUILD ./private-https+all
+    BUILD +host-bind-test
     BUILD ./dind-auto-install+all
 
 ast-test-input:

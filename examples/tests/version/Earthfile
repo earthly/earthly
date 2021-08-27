@@ -1,5 +1,6 @@
 ARG DOCKERHUB_AUTH=true
-FROM ../../..+earthly-integration-test-base --DOCKERHUB_AUTH=$DOCKERHUB_AUTH
+ARG BUILDKIT_HOST
+FROM ../../..+earthly-integration-test-base --DOCKERHUB_AUTH=$DOCKERHUB_AUTH --BUILDKIT_HOST=$BUILDKIT_HOST
 
 IMPORT .. AS tests
 
