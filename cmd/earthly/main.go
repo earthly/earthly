@@ -2784,6 +2784,13 @@ func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []st
 		}
 		localRegistryAddr = lrURL.Host
 	}
+	rootless, err := buildkitd.IsRootlessDocker(c.Context)
+	if err != nil {
+		app.console.Warnf("Rootless detection failed. Assuming rootless.")
+		rootless = true
+	} else if rootless {
+		app.console.Warnf("Rootless mode detected.")
+	}
 	builderOpts := builder.Opt{
 		BkClient:               bkClient,
 		Console:                app.console,
@@ -2809,6 +2816,7 @@ func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []st
 		Parallelism:            parallelism,
 		LocalRegistryAddr:      localRegistryAddr,
 		FeatureFlagOverrides:   app.featureFlagOverrides,
+		Rootless:               rootless,
 	}
 	b, err := builder.NewBuilder(c.Context, builderOpts)
 	if err != nil {

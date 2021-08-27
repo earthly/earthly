@@ -1091,6 +1091,9 @@ func (c *Converter) WithDockerRun(ctx context.Context, args []string, opt WithDo
 	if err != nil {
 		return err
 	}
+	if c.opt.Rootless {
+		return errors.New("WITH DOCKER cannot be used on a rootless daemon")
+	}
 	c.nonSaveCommand()
 	wdr := &withDockerRun{
 		c: c,
@@ -1103,6 +1106,9 @@ func (c *Converter) WithDockerRunLocal(ctx context.Context, args []string, opt W
 	err := c.checkAllowed(runCmd)
 	if err != nil {
 		return err
+	}
+	if c.opt.Rootless {
+		return errors.New("WITH DOCKER cannot be used on a rootless daemon")
 	}
 	c.nonSaveCommand()
 	wdrl := &withDockerRunLocal{

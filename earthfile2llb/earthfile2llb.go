@@ -96,6 +96,9 @@ type ConvertOpt struct {
 
 	// FeatureFlagOverride is used to override feature flags that are defined in specific Earthfiles
 	FeatureFlagOverrides string
+
+	// RootlessMode is used to signify when we are running with a rootless or othwerwise low-privileged docker daemon
+	Rootless bool
 }
 
 // Earthfile2LLB parses a earthfile and executes the statements for a given target.

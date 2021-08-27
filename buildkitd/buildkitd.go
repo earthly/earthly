@@ -240,7 +240,7 @@ func RemoveExited(ctx context.Context, containerName string) error {
 
 // Start starts the buildkitd daemon.
 func Start(ctx context.Context, console conslogging.ConsoleLogger, image, containerName string, settings Settings, reset bool) error {
-	err := CheckCompatibility(ctx, settings)
+	compat, err := CheckCompatibility(ctx, settings)
 	if len(settings.AdditionalArgs) == 0 && err != nil {
 		return errors.Wrap(err, "compatibility")
 	}
@@ -272,8 +272,9 @@ func Start(ctx context.Context, console conslogging.ConsoleLogger, image, contai
 		"-e", fmt.Sprintf("BUILDKIT_TLS_ENABLED=%t", settings.UseTCP && settings.UseTLS),
 		"--label", fmt.Sprintf("dev.earthly.settingshash=%s", settingsHash),
 		"--name", containerName,
-		"--privileged",
 	}
+
+	args = append(args, compat...)
 
 	if settings.AdditionalConfig != "" {
 		args = append(args, "-e", fmt.Sprintf("EARTHLY_ADDITIONAL_BUILDKIT_CONFIG=%s", settings.AdditionalConfig))
@@ -577,7 +578,25 @@ func GetLogs(ctx context.Context, containerName string, settings Settings) (stri
 // GetContainerIP returns the IP of the buildkit container.
 func GetContainerIP(ctx context.Context, containerName string, settings Settings) (string, error) {
 	if !IsLocal(settings.BuildkitAddress) {
-		return "", nil // Remote buildkitd is not an error,  but we don't know its IP
+		// Remote buildkitd is not an error,  but we don't know its IP.
+		// Use the hostnames IP instead and assume that its configured to allow this kind of "hairpin" traffic.
+		// Someday, we should make buildkitd self-configuring instead of configured by the client.
+
+		url, err := url.Parse(settings.BuildkitAddress)
+		if err != nil {
+			return "", errors.Wrapf(err, "failed to parse URL %s for container IP", settings.BuildkitAddress)
+		}
+
+		ips, err := net.LookupIP(url.Hostname())
+		if err != nil {
+			return "", errors.Wrapf(err, "failed to lookup IPs for host %s", url.Hostname())
+		}
+
+		if len(ips) == 0 {
+			return "", errors.Wrapf(err, "no IPs found for %s", url.Hostname())
+		}
+
+		return ips[0].String(), nil
 	}
 
 	cmd := exec.CommandContext(ctx, "docker", "inspect", "-f", "{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}", containerName)
@@ -645,25 +664,32 @@ func GetAvailableImageID(ctx context.Context, image string) (string, error) {
 }
 
 // CheckCompatibility runs all avaliable compatibility checks before starting the buildkitd daemon.
-func CheckCompatibility(ctx context.Context, settings Settings) error {
-	isNamespaced, err := isNamespacedDocker(ctx)
+func CheckCompatibility(ctx context.Context, settings Settings) ([]string, error) {
+	// Trying to mirror how buildx choses to manage these scenarios
+	// https://github.com/docker/buildx/blob/a8a3b1738e01c1b661341a18f79c55ae16745b25/driver/docker-container/driver.go#L107-L117
+	isNamespaced, err := IsNamespacedDocker(ctx)
+	if err != nil {
+		return []string{}, errors.Wrap(err, "failed compatibilty check")
+	}
 	if isNamespaced {
-		return errors.New(`user namespaces are enabled, set "buildkit_additional_args" in ~/.earthly/config.yml to ["--userns", "host"] to disable`)
-	} else if err != nil {
-		return errors.Wrap(err, "failed compatibilty check")
+		return []string{
+			"--privileged",
+			"--userns",
+			"host",
+		}, nil
 	}
 
-	isRootless, err := isRootlessDocker(ctx)
-	if isRootless {
-		return errors.New(`rootless docker detected. Compatibility is limited. Configure "buildkit_additional_args" in ~/.earthly/config.yml with some additional arguments like ["--log-opt"] to give it a shot`)
-	} else if err != nil {
-		return errors.Wrap(err, "failed compatibilty check")
+	_, err = IsRootlessDocker(ctx)
+	if err != nil {
+		return []string{}, errors.Wrap(err, "failed compatibilty check")
 	}
 
-	return nil
+	// Standard, expected flags. Rootless is _almost_ fully secure under rootless daemon when running privileged.
+	return []string{"--privileged"}, nil
 }
 
-func isNamespacedDocker(ctx context.Context) (bool, error) {
+//IsNamespacedDocker returns true if the underlying docker daemon is user namespaced
+func IsNamespacedDocker(ctx context.Context) (bool, error) {
 	cmd := exec.CommandContext(ctx,
 		"docker", "info", "--format={{.SecurityOptions}}")
 	output, err := cmd.CombinedOutput()
@@ -674,7 +700,8 @@ func isNamespacedDocker(ctx context.Context) (bool, error) {
 	return strings.Contains(string(output), "name=userns"), nil
 }
 
-func isRootlessDocker(ctx context.Context) (bool, error) {
+// IsRootlessDocker returns true if the underlying docker daemon is rootless.
+func IsRootlessDocker(ctx context.Context) (bool, error) {
 	cmd := exec.CommandContext(ctx,
 		"docker", "info", "--format={{.SecurityOptions}}")
 	output, err := cmd.CombinedOutput()

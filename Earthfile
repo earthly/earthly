@@ -291,6 +291,12 @@ earthly-integration-test-base:
   mirrors = [\"registry-1.docker.io.mirror.corp.earthly.dev\"]"
     ENV SRC_DIR=/test
     ENV NETWORK_MODE=host
+    # This "lifts" the arg to an environment variable so we dont have to plumb it through each test individually.
+    ARG BUILDKIT_HOST
+    IF [ -n "$BUILDKIT_HOST" ]
+        RUN echo "Setting var"
+        ENV BUILDKIT_HOST=$BUILDKIT_HOST
+    END
     # The inner buildkit requires Docker hub creds to prevent rate-limiting issues.
     ARG DOCKERHUB_AUTH=true
     ARG DOCKERHUB_USER_SECRET=+secrets/earthly-technologies/dockerhub-mirror/user

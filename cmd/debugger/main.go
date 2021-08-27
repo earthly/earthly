@@ -88,7 +88,7 @@ func interactiveMode(ctx context.Context, remoteConsoleAddr string, cmdBuilder f
 
 	conn, err := net.Dial("tcp", remoteConsoleAddr)
 	if err != nil {
-		return errors.Wrap(err, "failed to connect to remote debugger")
+		return errors.Wrapf(err, "failed to connect to remote debugger %s", remoteConsoleAddr)
 	}
 	defer func() {
 		err := conn.Close()
