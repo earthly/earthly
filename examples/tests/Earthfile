@@ -18,7 +18,7 @@ ga:
     BUILD ./autocompletion+test-all
     BUILD ./dockerfile+test
     BUILD ./dockerfile2/subdir+test
-    BUILD --build-arg BUILDKIT_HOST ./version+test-all
+    BUILD ./version+test-all
     BUILD +privileged-test
     BUILD +copy-test
     BUILD +copy-test-verbose-output
