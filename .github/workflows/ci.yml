@@ -139,12 +139,6 @@ jobs:
       - name: Execute save images test
         run: ./examples/tests/save-images/test.sh
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
-      - name: "Experimental tests (not a fork)"
-        run: ./build/linux/amd64/earthly --ci -P ./examples/tests+experimental
-        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
-      - name: "Experimental tests (fork)"
-        run: ./build/linux/amd64/earthly --ci -P ./examples/tests+experimental --DOCKERHUB_AUTH=false
-        if: github.event_name != 'push' && github.event.pull_request.head.repo.full_name != github.repository
       - name: Buildkit logs (runs on failure)
         run: docker logs earthly-buildkitd
         if: ${{ failure() }}
@@ -852,7 +846,7 @@ jobs:
       - name: Install & Start Rootless Docker
         run: sudo systemctl disable --now docker.service docker.socket && curl -fsSL https://get.docker.com/rootless | sh && echo "DOCKER_HOST=unix:///home/$(id -un)/.docker/run/docker.sock" >> $GITHUB_ENV && PATH=/home/runner/bin:/sbin:/usr/sbin:$PATH dockerd-rootless.sh &
       - name: Docker Info
-        run: docker info
+        run: sleep 10 && docker info
       - name: Docker mirror login (non fork only)
         run: docker login registry-1.docker.io.mirror.corp.earthly.dev --username "${{ secrets.DOCKERHUB_MIRROR_USERNAME }}" --password "${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}"
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
