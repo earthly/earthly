@@ -843,8 +843,14 @@ jobs:
       XDG_RUNTIME_DIR: /home/runner/.docker/run
     steps:
       - uses: actions/checkout@v2
-      - name: Install & Start Rootless Docker
-        run: sudo systemctl disable --now docker.service docker.socket && curl -fsSL https://get.docker.com/rootless | sh && echo "DOCKER_HOST=unix:///home/$(id -un)/.docker/run/docker.sock" >> $GITHUB_ENV && PATH=/home/runner/bin:/sbin:/usr/sbin:$PATH dockerd-rootless.sh &
+      - name: Stop Existing Docker
+        run: sudo systemctl disable --now docker.service docker.socket
+      - name: Install Rootless Docker
+        run: curl -fsSL https://get.docker.com/rootless | sh
+      - name: Start Rootless Docker
+        run:  PATH=/home/runner/bin:/sbin:/usr/sbin:$PATH dockerd-rootless.sh &
+      - name: Configure Rootless Docker
+        run: echo "DOCKER_HOST=unix:///home/$(id -un)/.docker/run/docker.sock" >> $GITHUB_ENV
       - name: Docker Info
         run: sleep 10 && docker info
       - name: Docker mirror login (non fork only)
