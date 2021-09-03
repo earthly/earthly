@@ -8,13 +8,10 @@ For an introduction of Earthly see the [Earthly GitHub repository](https://githu
 
 ## Release Notes
 
-### 0.0.12
-
-* Fix missing highlight for port number when space after EXPOSE has more than 1 space.
-
 ### 0.0.11
 
 * Add highlighting for `FOR` and `VERSION`.
+* Fix missing highlight for port number when space after EXPOSE has more than 1 space.
 
 ### 0.0.10
 
