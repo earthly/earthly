@@ -273,7 +273,7 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 			contextPath = fmt.Sprintf("./%s", contextPath)
 		}
 		dockerfileMetaTarget := domain.Target{
-			Target:    fmt.Sprintf("%sDockerfile", buildcontext.DockerfileMetaTarget),
+			Target:    fmt.Sprintf("%s%s", buildcontext.DockerfileMetaTarget, stringutil.StrOrDefault(dfPath, "Dockerfile")),
 			LocalPath: path.Join(contextPath),
 		}
 		dockerfileMetaTargetRef, err := c.joinRefs(dockerfileMetaTarget)
