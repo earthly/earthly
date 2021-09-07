@@ -71,7 +71,7 @@
 					"name": "constant.character.escape.earthfile"
 				},
 				{
-					"match": "(?<=EXPOSE\\s)(\\d+)",
+					"match": "(?<=EXPOSE\\s+)(\\d+)",
 					"name": "constant.numeric.earthfile"
 				}
 			]
