@@ -34,6 +34,7 @@ func TestServer(t *testing.T) {
 		if err != nil {
 			// Retry since the connection is rejected sometimes.
 			time.Sleep(time.Second)
+			err = nil
 			attempts++
 		}
 	}
