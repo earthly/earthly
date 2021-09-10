@@ -465,6 +465,18 @@ earthly --artifact +<target>/* ./output/
 This command dumps the contents of the artifact environment of the target `+<target>` into a local directory called `output`, which can be inspected directly.
 {% endhint %}
 
+{% hint style='danger' %}
+##### Important
+Note that there is a distinction between a *directory artifact* and *file artifact* when it comes to local output. When saving an artifact locally, a directory artifact will **replace** the destination entirely, while a file (or set of files) artifact will be copied **into** the destination directory.
+
+```Dockerfile
+# This will wipe ./destination and replace it with the contents of the ./my-directory artifact.
+SAVE ARTIFACT ./my-directory AS LOCAL ./destination
+# This will merge the contents of ./my-directory into ./destination.
+SAVE ARTIFACT ./my-directory/* AS LOCAL ./destination
+```
+{% endhint %}
+
 #### Options
 
 ##### `--keep-ts`
@@ -1117,6 +1129,74 @@ whoami:
     LOCALLY
     RUN echo "I am currently running under $USER on $(hostname) under $(pwd)"
 ```
+
+{% hint style='info' %}
+##### Note
+In Earthly, outputing images and artifacts locally takes place only at the end of a successful build. In order to use such images or artifacts in `LOCALLY` targets, they need to be referenced correctly.
+
+For images, use the `--load` option under `WITH DOCKER`:
+
+```Dockerfile
+my-image:
+    FROM alpine 3.13
+    ...
+    SAVE IMAGE my-example-image
+
+a-locally-example:
+    LOCALLY
+    WITH DOCKER --load=+my-image
+        RUN docker run --rm my-example-image
+    END
+```
+
+Do NOT use `BUILD` for using images in `LOCALLY` targets:
+
+```Dockerfile
+# INCORRECT - do not use!
+my-image:
+    FROM alpine 3.13
+    ...
+    SAVE IMAGE my-example-image
+
+a-locally-example:
+    LOCALLY
+    BUILD +my-image
+    # The image will not be available here because the local export of the
+    # image only takes place at the end of an entire successful build.
+    RUN docker run --rm my-example-image
+```
+
+For artifacts, use `COPY`, the same way you would in a regular target:
+
+```Dockerfile
+my-artifact:
+    FROM alpine 3.13
+    ...
+    SAVE ARTIFACT ./my-example-artifact
+
+a-locally-example:
+    LOCALLY
+    COPY +my-artifact/my-example-artifact ./
+    RUN cat ./my-example-artifact
+```
+
+Do NOT use `SAVE ARTIFACT ... AS LOCAL` and `BUILD` for referencing artifacts in `LOCALLY` targets:
+
+```Dockerfile
+# INCORRECT - do not use!
+my-artifact:
+    FROM alpine 3.13
+    ...
+    SAVE ARTIFACT ./my-example-artifact AS LOCAL ./my-example-artifact
+
+a-locally-example:
+    LOCALLY
+    BUILD +my-artifact
+    # The artifact will not be available here because the local export of the
+    # artifact only takes place at the end of an entire successful build.
+    RUN cat ./my-example-artifact
+```
+{% endhint %}
 
 ## COMMAND (**experimental**)
 
