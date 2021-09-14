@@ -28,18 +28,23 @@ func TestServer(t *testing.T) {
 	attempts := 0
 	var termConn net.Conn
 	var err error
+
 	for attempts < numRetries {
-		// first open terminal
 		termConn, err = net.Dial("tcp", addr)
+
 		if err != nil {
 			// Retry since the connection is rejected sometimes.
+			fmt.Printf("Dial failed. Attempt: %v/%v, Error: %s", attempts, numRetries, err.Error())
 			time.Sleep(time.Second)
-			err = nil
+
 			attempts++
+			err = nil
+			continue
 		}
+		break
 	}
-	if err != nil {
-		t.Fatal(err)
+	if attempts >= numRetries {
+		t.Fatal("Retries exhausted")
 	}
 
 	_, err = termConn.Write([]byte{common.TermID})
