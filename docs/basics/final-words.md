@@ -2,12 +2,12 @@
 
 Congratulations, you made it this far!
 
-To learn more about Earthly, take a look at the [examples directory on GitHub](https://github.com/earthly/earthly/tree/main/examples), where you will find the complete code used in this guide:
+To learn more about Earthly, take a look at the [examples directory on GitHub](https://github.com/earthly/earthly/tree/main/examples), where you will find the complete code used in this guide, under the `tutorial` directory:
 
-* [Go](https://github.com/earthly/earthly/tree/main/examples/go)
-* [JavaScript](https://github.com/earthly/earthly/tree/main/examples/js)
-* [Java](https://github.com/earthly/earthly/tree/main/examples/java)
-* [Python](https://github.com/earthly/earthly/tree/main/examples/python)
+* [Go](https://github.com/earthly/earthly/tree/main/examples/tutorial/go)
+* [JavaScript](https://github.com/earthly/earthly/tree/main/examples/tutorial/js)
+* [Java](https://github.com/earthly/earthly/tree/main/examples/tutorial/java)
+* [Python](https://github.com/earthly/earthly/tree/main/examples/tutorial/python)
 
 ## Maintenance
 
