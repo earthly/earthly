@@ -2538,9 +2538,7 @@ func (app *earthlyApp) actionBuild(c *cli.Context) error {
 
 	if app.ci {
 		app.useInlineCache = true
-		if !app.output {
-			app.noOutput = true
-		}
+		app.noOutput = !app.output || !app.artifactMode || !app.imageMode
 		app.strict = true
 		if app.remoteCache == "" && app.push {
 			app.saveInlineCache = true
