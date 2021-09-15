@@ -366,7 +366,7 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 		&cli.BoolFlag{
 			Name:        "output",
 			EnvVars:     []string{"EARTHLY_OUTPUT"},
-			Usage:       wrap("Negate --no-output", "*experimental*"),
+			Usage:       wrap("Negate --no-output"),
 			Destination: &app.output,
 		},
 		&cli.BoolFlag{
