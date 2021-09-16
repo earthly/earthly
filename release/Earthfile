@@ -1,13 +1,20 @@
 FROM alpine:3.13
 
 RUN apk add --update --no-cache \
-    curl
+    curl python3 py3-requests
 
 release:
+    COPY ensure_gha_passing.py /bin/ensure_gha_passing
+    ARG EARTHLY_GIT_HASH
     ARG RELEASE_TAG
+    ARG SKIP_GHA_CHECK
     RUN test -n "$RELEASE_TAG"
-    BUILD --build-arg RELEASE_TAG="$RELEASE_TAG" +release-dockerhub
-    BUILD --build-arg RELEASE_TAG="$RELEASE_TAG" +release-github
+    IF --no-cache test -n "$SKIP_GHA_CHECK" || ensure_gha_passing --sha $EARTHLY_GIT_HASH
+        BUILD --build-arg RELEASE_TAG="$RELEASE_TAG" +release-dockerhub
+        BUILD --build-arg RELEASE_TAG="$RELEASE_TAG" +release-github
+    ELSE
+        RUN echo "github status check failed; to force the release without performing this check, set --build-arg SKIP_GHA_CHECK=1"
+    END
 
 release-dockerhub:
     ARG RELEASE_TAG
