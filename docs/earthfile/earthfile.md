@@ -970,7 +970,7 @@ ARG base=alpine
 IF [ "$base" = "alpine" ]
     FROM alpine:3.13
 ELSE
-    FROM ubuntu:20.04
+    FROM ubuntu:20.10
 END
 ```
 
@@ -984,7 +984,7 @@ FROM busybox
 IF [ "$base" = "alpine" ]
     FROM alpine:3.13
 ELSE
-    FROM ubuntu:20.04
+    FROM ubuntu:20.10
 END
 ```
 
