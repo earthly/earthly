@@ -366,7 +366,7 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 		&cli.BoolFlag{
 			Name:        "output",
 			EnvVars:     []string{"EARTHLY_OUTPUT"},
-			Usage:       wrap("Negate --no-output"),
+			Usage:       "Allow artifacts or images to be output, even when running under --ci mode",
 			Destination: &app.output,
 		},
 		&cli.BoolFlag{
