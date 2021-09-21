@@ -67,8 +67,10 @@ func NewBuildContextProvider(console conslogging.ConsoleLogger) *BuildContextPro
 
 // AddDirs adds local directories to the context.
 func (bcp *BuildContextProvider) AddDirs(dirs map[string]string) {
+	bcp.mu.Lock()
+	defer bcp.mu.Unlock()
 	for dirName, dir := range dirs {
-		bcp.AddDir(dirName, dir)
+		bcp.addDir(dirName, dir)
 	}
 }
 
@@ -77,6 +79,10 @@ func (bcp *BuildContextProvider) AddDir(dirName, dir string) {
 	bcp.mu.Lock()
 	defer bcp.mu.Unlock()
 
+	bcp.addDir(dirName, dir)
+}
+
+func (bcp *BuildContextProvider) addDir(dirName, dir string) {
 	resetUIDAndGID := func(p string, st *fstypes.Stat) bool {
 		st.Uid = 0
 		st.Gid = 0
