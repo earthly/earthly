@@ -72,6 +72,7 @@ func (bcp *BuildContextProvider) AddDirs(dirs map[string]string) {
 	}
 }
 
+// AddDir adds a single local directory to the context.
 func (bcp *BuildContextProvider) AddDir(dirName, dir string) {
 	bcp.mu.Lock()
 	defer bcp.mu.Unlock()
