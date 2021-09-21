@@ -86,9 +86,7 @@ type Converter struct {
 
 // NewConverter constructs a new converter for a given earthly target.
 func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Data, sts *states.SingleTarget, opt ConvertOpt, ftrs *features.Features) (*Converter, error) {
-	for k, v := range bc.LocalDirs {
-		sts.LocalDirs[k] = v
-	}
+	opt.BuildContextProvider.AddDirs(bc.LocalDirs)
 	sts.HasDangling = opt.HasDangling
 	mts := &states.MultiTarget{
 		Final:   sts,
@@ -178,9 +176,6 @@ func (c *Converter) fromTarget(ctx context.Context, targetName string, platform 
 	saveImage := relevantDepState.LastSaveImage()
 	// Pass on dep state over to this state.
 	c.mts.Final.MainState = relevantDepState.MainState
-	for dirKey, dirValue := range relevantDepState.LocalDirs {
-		c.mts.Final.LocalDirs[dirKey] = dirValue
-	}
 	c.varCollection.ResetEnvVars(mts.Final.VarCollection.EnvVars())
 	c.mts.Final.MainImage = saveImage.Image.Clone()
 	c.mts.Final.RanFromLike = mts.Final.RanFromLike
@@ -230,9 +225,7 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 			if err != nil {
 				return errors.Wrap(err, "resolve build context for dockerfile")
 			}
-			for ldk, ld := range data.LocalDirs {
-				c.mts.Final.LocalDirs[ldk] = ld
-			}
+			c.opt.BuildContextProvider.AddDirs(data.LocalDirs)
 			dfData, err = ioutil.ReadFile(data.BuildFilePath)
 			if err != nil {
 				return errors.Wrapf(err, "read file %s", data.BuildFilePath)
@@ -285,9 +278,7 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 		if err != nil {
 			return errors.Wrap(err, "resolve build context for dockerfile")
 		}
-		for ldk, ld := range data.LocalDirs {
-			c.mts.Final.LocalDirs[ldk] = ld
-		}
+		c.opt.BuildContextProvider.AddDirs(data.LocalDirs)
 		if dfPath == "" {
 			// Imply dockerfile as being ./Dockerfile in the root of the build context.
 			dfData, err = ioutil.ReadFile(data.BuildFilePath)
@@ -1197,7 +1188,6 @@ func (c *Converter) FinalizeStates(ctx context.Context) (*states.MultiTarget, er
 		// Should never happen.
 		return nil, errors.New("internal error: stack not at base in FinalizeStates")
 	}
-	c.opt.BuildContextProvider.AddDirs(c.mts.Final.LocalDirs)
 	c.mts.Final.VarCollection = c.varCollection
 	c.mts.Final.GlobalImports = c.varCollection.Imports().Global()
 	close(c.mts.Final.Done())
