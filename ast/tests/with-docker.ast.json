@@ -44,6 +44,14 @@
             ],
             "name": "BUILD"
           }
+        },
+        {
+          "command": {
+            "args": [
+              "+if-after"
+            ],
+            "name": "BUILD"
+          }
         }
       ]
     },
@@ -291,6 +299,63 @@
               ],
               "name": "DOCKER"
             }
+          }
+        }
+      ]
+    },
+    {
+      "name": "if-after",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "earthly/dind:alpine"
+            ],
+            "name": "FROM"
+          }
+        },
+        {
+          "with": {
+            "body": [
+              {
+                "command": {
+                  "args": [
+                    "docker",
+                    "run",
+                    "a:latest"
+                  ],
+                  "name": "RUN"
+                }
+              }
+            ],
+            "command": {
+              "args": [
+                "--load",
+                "a:latest=+multi-from-one"
+              ],
+              "name": "DOCKER"
+            }
+          }
+        },
+        {
+          "if": {
+            "expression": [
+              "[",
+              "\"true\"",
+              "=",
+              "\"true\"",
+              "]"
+            ],
+            "ifBody": [
+              {
+                "command": {
+                  "args": [
+                    "true"
+                  ],
+                  "name": "RUN"
+                }
+              }
+            ]
           }
         }
       ]
