@@ -1191,6 +1191,7 @@ func (c *Converter) StackString() string {
 
 // FinalizeStates returns the LLB states.
 func (c *Converter) FinalizeStates(ctx context.Context) (*states.MultiTarget, error) {
+	fmt.Printf("***** Finalizing %s\n", c.target.Target)
 	c.markFakeDeps()
 
 	if !c.varCollection.IsStackAtBase() {
@@ -1680,6 +1681,7 @@ func (c *Converter) markFakeDeps() {
 			panic("mark fake dep but dep not done")
 		}
 		if dep.HasDangling {
+			fmt.Printf("***** Marking fake dep %s on %s\n", c.mts.Final.Target.String(), dep.Target.String())
 			c.mts.Final.MainState = llbutil.WithDependency(
 				c.mts.Final.MainState, dep.MainState, c.mts.Final.Target.String(), dep.Target.String())
 		}
