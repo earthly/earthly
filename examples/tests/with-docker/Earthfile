@@ -7,6 +7,7 @@ all:
     BUILD +docker-pull-test
     BUILD +load-parallel-test
     BUILD +one-target-many-names
+    BUILD +if-after
 
 a-test-image:
     FROM alpine:3.13
@@ -69,4 +70,14 @@ one-target-many-names:
             docker run b:latest && \
             echo "-----" && \
             docker run c:latest uname -a
+    END
+
+if-after:
+    FROM earthly/dind:alpine
+    WITH DOCKER --load a:latest=+multi-from-one
+        RUN docker run a:latest
+    END
+
+    IF [ "true" = "true" ]
+        RUN true
     END
