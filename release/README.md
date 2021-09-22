@@ -32,20 +32,6 @@
   ./earthly --build-arg RELEASE_TAG --push -P ./release+release
   ```
 * Go to the [releases page](https://github.com/earthly/earthly/releases) and edit the latest release to add release notes. Use a comparison such as https://github.com/earthly/earthly/compare/v0.3.0...v0.3.1 (replace the right versions in the URL) to see which PRs went into this release.
-* Once everything looks good, uncheck the "pre-release" checkbox on the GitHub release page. This will make this release the "latest" when people install Earthly with the one-liner. Important: You **have** to do this before the next step.
-* Run
-  ```bash
-  ./earthly --build-arg RELEASE_TAG --push ./release+release-homebrew
-  ```
-* Visit the newly created pull request (which is both listed in the previous command's stdout and the `#release` slack channel); there should be two checks that are automatically applied:
-  * `brew test-bot / test-bot (ubuntu-latest)`
-  * `brew test-bot / test-bot (macos-latest)`
-
-  Once these two jobs complete, add the `pr-pull` label, which will trigger a third job `brew pr-pull / pr-pull`, which will save the artifacts produced by the prior jobs
-  and eventually merge the PR automatically.
-
-  IMPORTANT: do not merge this PR manually, the `pr-pull`-triggered job will do this for you.
-
 * Run
   ```bash
   ./earthly --build-arg RELEASE_TAG --push ./release+release-repo
@@ -74,12 +60,28 @@
   * [all-in-one.md](../docs/docker-images/all-in-one.md)
   * [buildkit-standalone.md](../docs/docker-images/buildkit-standalone.md)
 * After gitbook has processed the `main` branch, run a broken link checker over https://docs.earthly.dev. This one is fast and easy: https://www.deadlinkchecker.com/.
+* Verify the [homebrew release job](https://github.com/earthly/homebrew-earthly) has successfully run and has merged the new `release-v...` branch into `main`.
 * Copy the release notes you have written before and paste them in the Earthly Community slack channel `#announcements`, together with a link to the release's GitHub page. If you have Slack markdown editing activated, you can copy the markdown version of the text.
 * Ask Adam to tweet about the release.
 
 ### One-Time (clear this section when done during release)
 
 * Add new one-time items here.
+
+#### Performing a test release
+
+To perform a test release to a personal repo, first:
+
+1. fork a copy of both `earthly/earthly`, and `earthly/homebrew-earthly`
+2. commit your changes you wish to release and push them to your personal repo.
+
+Then run:
+
+  ``bash
+  ./earthly --push +all --DOCKERHUB_USER=mydockerhubuser --GITHUB_USER=mygithubuser --GITHUB_SECRET_PATH=+secrets/user/path-to-my/github-token --RELEASE_TAG=v...
+  ``
+
+NOTE: apt and yum repos do not currently support test releases. (TODO: fix this)
 
 #### Troubleshooting
 

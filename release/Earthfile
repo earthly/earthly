@@ -3,6 +3,57 @@ FROM alpine:3.13
 RUN apk add --update --no-cache \
     curl
 
+all:
+    LOCALLY
+    ARG RELEASE_TAG
+    ARG GITHUB_USER=earthly
+    ARG DOCKERHUB_USER=earthly
+    ARG EARTHLY_REPO=earthly
+    ARG BREW_REPO=homebrew-earthly
+    RUN test -n "$RELEASE_TAG" || (echo "ERROR: RELEASE_TAG is not set" && exit 1)
+
+    # validate args: if doing a prod-release make sure no args are changed
+    # otherwise if a test release is detected, make sure all users are changed
+    # (this is to prevent a case where only the github user is changed, but dockerhub is not, and the dockerhub binary is accidentally overwritten)
+    RUN set -e; \
+        test -n "$RELEASE_TAG" || (echo "ERROR: RELEASE_TAG is not set" && exit 1); \
+        (echo "$RELEASE_TAG" | grep '^v[0-9]\+.[0-9]\+.[0-9]\+$' > /dev/null) || (echo "ERROR: RELEASE_TAG must be formatted as v1.2.3; instead got \"$RELEASE_TAG\""; exit 1); \
+        if [ "$GITHUB_USER" = "earthly" ] && [ "$DOCKERHUB_USER" = "earthly" ]; then \
+          test "$BREW_REPO" = "homebrew-earthly" || (echo "ERROR: prod release detected; expecting BREW_REPO=earthly, but got $BREW_REPO" && exit 1); \
+          test "$EARTHLY_REPO" = "earthly" || (echo "ERROR: prod release detected; expecting EARTHLY_REPO=earthly, but got $EARTHLY_REPO" && exit 1); \
+          test "$EARTHLY_GIT_BRANCH" = "main" || (echo "ERROR: performing release on non-main branch" && exit 1); \
+        else \
+          test "$GITHUB_USER" != "earthly" || (echo "ERROR: non-prod release detected but got GITHUB_USER=$GITHUB_USER" && exit 1); \
+          test "$DOCKERHUB_USER" != "earthly" || (echo "ERROR: non-prod release detected but got DOCKERHUB_USER=$DOCKERHUB_USER" && exit 1); \
+        fi; \
+        echo "performing release to repo=$GITHUB_USER/$EARTHLY_REPO; homebrew=$GITHUB_USER/$BREW_REPO; dockerhub=$DOCKERHUB_USER"
+
+    # terrible unsafe hack to determine --push flag
+    IF ps auxw | grep -v grep | grep earthly | grep -e --push
+        ARG PUSH="--push"
+    ELSE
+        ARG PUSH=""
+    END
+
+    RUN set -e; \
+        earthly_pid=$(ps axw | grep -v grep | grep earthly | grep 'all' | awk '{print $1}'); \
+        expected_hash=$(cat ~/.earthly/earthly-prerelease | md5sum); \
+        actual_hash=$(cat /proc/$earthly_pid/exe | md5sum); \
+        if [ "$expected_hash" != "$actual_hash" ]; then \
+          echo "\nERROR: +all requires the ./earthly script be used (rather than directly using any earthly binary).\n"; \
+          exit 1; \
+        fi;
+
+    RUN ../earthly $PUSH --build-arg DOCKERHUB_USER="$DOCKERHUB_USER" --build-arg RELEASE_TAG="$RELEASE_TAG" +release-dockerhub
+    RUN ../earthly $PUSH --build-arg GITHUB_USER="$GITHUB_USER" --build-arg EARTHLY_REPO="$EARTHLY_REPO" --build-arg BREW_REPO="$BREW_REPO" --build-arg DOCKERHUB_USER="$DOCKERHUB_USER" --build-arg RELEASE_TAG="$RELEASE_TAG" +release-github
+    RUN ../earthly $PUSH --build-arg GITHUB_USER="$GITHUB_USER" --build-arg EARTHLY_REPO="$EARTHLY_REPO" --build-arg BREW_REPO="$BREW_REPO" --build-arg DOCKERHUB_USER="$DOCKERHUB_USER" --build-arg RELEASE_TAG="$RELEASE_TAG" +release-homebrew
+
+    # TODO pass along a RELEASE_REPO_TEST_SUFFIX which would cause us to host our yum/apt repos under https://test-pkg.earthly.dev/$RELEASE_REPO_TEST_SUFFIX/...
+    # and when it is empty, we would use https://pkg.earthly.dev/...
+    #RUN ../earthly --build-arg GITHUB_USER="$GITHUB_USER" --build-arg RELEASE_TAG="$RELEASE_TAG" +release-repo
+    # until then, we will just print this out:
+    RUN echo "TODO: the apt/yum release must be triggered seperately; once we get https://test-pkg.earthly.dev/ setup"
+
 release:
     ARG RELEASE_TAG
     RUN test -n "$RELEASE_TAG"
@@ -11,15 +62,18 @@ release:
 
 release-dockerhub:
     ARG RELEASE_TAG
+    ARG DOCKERHUB_USER="earthly"
     RUN test -n "$RELEASE_TAG"
     BUILD \
         --build-arg DIND_ALPINE_TAG=alpine \
         --build-arg DIND_UBUNTU_TAG=ubuntu \
+        --build-arg DOCKERHUB_USER="$DOCKERHUB_USER" \
         ../+all-dind
     BUILD \
         --platform=linux/amd64 \
         --platform=linux/arm64 \
         --build-arg DIND_ALPINE_TAG=latest \
+        --build-arg DOCKERHUB_USER="$DOCKERHUB_USER" \
         ../+dind-alpine
     BUILD --build-arg TAG="$RELEASE_TAG" ../+earthly-docker
     BUILD \
@@ -27,6 +81,7 @@ release-dockerhub:
         --platform=linux/arm/v7 \
         --platform=linux/arm64 \
         --build-arg TAG="$RELEASE_TAG" \
+        --build-arg DOCKERHUB_USER="$DOCKERHUB_USER" \
         ../buildkitd+buildkitd
     BUILD --build-arg TAG=latest ../+earthly-docker
     BUILD \
@@ -34,17 +89,23 @@ release-dockerhub:
         --platform=linux/arm/v7 \
         --platform=linux/arm64 \
         --build-arg TAG=latest \
+        --build-arg DOCKERHUB_USER="$DOCKERHUB_USER" \
         ../buildkitd+buildkitd
 
 release-github:
     FROM node:13.10.1-alpine3.11
-    RUN apk add file
+    RUN apk add file curl jq git
+    RUN apk add --update --no-cache --repository=http://dl-cdn.alpinelinux.org/alpine/edge/testing hub
     RUN npm install -g github-release-cli@v1.3.1
     WORKDIR /earthly
     ARG RELEASE_TAG
+    ARG GITHUB_USER="earthly"
+    ARG EARTHLY_REPO="earthly"
+    ARG DOCKERHUB_USER="earthly"
     ARG EARTHLY_GIT_HASH
     RUN test -n "$RELEASE_TAG" && test -n "$EARTHLY_GIT_HASH"
     COPY --build-arg VERSION=$RELEASE_TAG \
+         --build-arg DEFAULT_BUILDKITD_IMAGE="$DOCKERHUB_USER/buildkitd:$RELEASE_TAG" \
         ../+earthly-all/* ./release/
     RUN ls ./release
     RUN test -f ./release/earthly-linux-amd64 && \
@@ -63,18 +124,43 @@ release-github:
     RUN file ./release/earthly-linux-arm64 | grep "ELF 64-bit"
     RUN file ./release/earthly-windows-amd64.exe | grep "PE32"
     ARG BODY="No details provided"
-    RUN --secret GITHUB_TOKEN=+secrets/earthly-technologies/github/griswoldthecat/token test -n "$GITHUB_TOKEN"
+    ARG GITHUB_SECRET_PATH="+secrets/earthly-technologies/github/griswoldthecat/token"
+    RUN --secret GITHUB_TOKEN="$GITHUB_SECRET_PATH" test -n "$GITHUB_TOKEN" && echo $GITHUB_TOKEN
     RUN --push \
-        --secret GITHUB_TOKEN=+secrets/earthly-technologies/github/griswoldthecat/token \
+        --secret GITHUB_TOKEN="$GITHUB_SECRET_PATH" \
+        set -e; \
+        # test github token works
+        curl -H "Authorization: token $GITHUB_TOKEN" "https://api.github.com/user" | jq .login | grep "$GITHUB_USER"; \
+        # first delete any previously released files (needed in case the previous upload attempt failed)
+        PREV_RELEASE_ID=$(curl -H "Authorization: token $GITHUB_TOKEN" "https://api.github.com/repos/$GITHUB_USER/$EARTHLY_REPO/releases/tags/$RELEASE_TAG" | jq .id); \
+        if [ -n "$PREV_RELEASE_ID" ] && [ "$PREV_RELEASE_ID" != "null" ]; then \
+          echo "deleting previous release ID $PREV_RELEASE_ID"; \
+          curl -H "Authorization: token $GITHUB_TOKEN" --request DELETE "https://api.github.com/repos/$GITHUB_USER/$EARTHLY_REPO/releases/$PREV_RELEASE_ID"; \
+        fi; \
+        # next make sure any previous tag is deleted (otherwise github will create an untagged release name vX.Y.Z)
+        curl -H "Authorization: token $GITHUB_TOKEN" --request DELETE "https://api.github.com/repos/$GITHUB_USER/$EARTHLY_REPO/git/refs/tags/$RELEASE_TAG"; \
+        # next, upload binaries
         github-release upload \
-        --owner earthly \
-        --repo earthly \
-        --prerelease true \
+        --owner "$GITHUB_USER" \
+        --repo "$EARTHLY_REPO" \
+        --prerelease false \
         --commitish "$EARTHLY_GIT_HASH" \
         --tag "$RELEASE_TAG" \
         --name "$RELEASE_TAG" \
         --body "$BODY" \
-        ./release/*
+        ./release/* 2>&1 | tee /tmp/release.log && \
+        if grep -i "already_exists" /tmp/release.log > /dev/null; then \
+          echo "ERROR: github-release upload failed: file already exists -- you must delete if from github before proceeding" && exit 1; \
+        fi; \
+        if grep -i "tag_name is not a valid tag" /tmp/release.log > /dev/null; then \
+          echo "ERROR: github-release upload failed: tag_name is not a valid tag (it could be that the branch you are releasing doesnt exist on $GITHUB_USER/$EARTHLY_REPO)"; \
+          echo "you might need to do a git push $GITHUB_USER $EARTHLY_GIT_HASH:main ASSUMING YOU ARE NOT DOINT A PROD RELEASE"; \
+          exit 1; \
+        fi; \
+        if grep -i error /tmp/release.log > /dev/null; then \
+          echo "ERROR: github-release upload failed: check the above release.log output" && exit 1; \
+        fi
+
 
 release-homebrew:
     RUN apk add --update --no-cache \
@@ -91,6 +177,7 @@ release-homebrew:
         less \
         make \
         openssl \
+        openssh \
         util-linux
     RUN apk add --update --no-cache --repository=http://dl-cdn.alpinelinux.org/alpine/edge/testing hub
     
@@ -99,102 +186,55 @@ release-homebrew:
     ARG GIT_USERNAME="griswoldthecat"
     ARG GIT_NAME="griswoldthecat"
     ARG GIT_EMAIL="griswoldthecat@users.noreply.github.com"
-    ARG HOMEBREW_EARTHLY_URL="https://github.com/earthly/homebrew-earthly"
+    ARG GITHUB_USER
+    ARG BREW_REPO
+    ARG EARTHLY_REPO
+    ARG GITHUB_TOKEN_SECRET_PATH="+secrets/user/610f09a9-4493-4d3c-bb00-b8e0cf36f1e0"
+    ARG HOMEBREW_EARTHLY_URL="https://github.com/$GITHUB_USER/$BREW_REPO"
     RUN test -n "$RELEASE_TAG" && \
         test -n "$GIT_USERNAME" && \
         test -n "$GIT_NAME" && \
         test -n "$GIT_EMAIL" && \
         test -n "$HOMEBREW_EARTHLY_URL"
-    ARG NEW_URL=https://github.com/earthly/earthly/archive/"$RELEASE_TAG".tar.gz
+    ARG NEW_URL=https://github.com/"$GITHUB_USER"/"$EARTHLY_REPO"/archive/"$RELEASE_TAG".tar.gz
     RUN test -n "$NEW_URL"
-    GIT CLONE --branch main "$HOMEBREW_EARTHLY_URL" /earthly/homebrew-earthly
     WORKDIR /earthly/homebrew-earthly
 
-    # Git setup.
-    # Force use of https.
-    RUN git remote set-url origin "$HOMEBREW_EARTHLY_URL" && \
-        git remote -v
-    RUN --secret GIT_PASSWORD=+secrets/earthly-technologies/github/griswoldthecat/token \
-        git fetch --unshallow origin main
-    RUN git branch -f main && \
-        git checkout main && \
-        git branch -u origin/main
     RUN git config --global user.name "$GIT_NAME" && \
         git config --global user.email "$GIT_EMAIL"
+
     COPY ./envcredhelper.sh /usr/bin/envcredhelper.sh
     RUN git config --global credential.helper "/bin/sh /usr/bin/envcredhelper.sh"
 
+    RUN --secret GIT_PASSWORD="$GITHUB_TOKEN_SECRET_PATH" --no-cache \
+        git clone "https://$GITHUB_USER@github.com/$GITHUB_USER/$BREW_REPO.git" .
+
+    ARG RELEASE_BRANCH="release-$RELEASE_TAG"
+    RUN git switch -c "$RELEASE_BRANCH"
+
     # Make the change in a new branch.
-    RUN git checkout -b "release-$RELEASE_TAG"
+    #RUN git checkout -b "release-$RELEASE_TAG"
     RUN mkdir -p /params
     RUN curl -L "$NEW_URL" | sha256sum | cut -f 1 -d ' ' > /params/downloadsha256
     COPY --build-arg VERSION=$RELEASE_TAG \
         ../+earthly-darwin-amd64/tags ../+earthly-darwin-amd64/ldflags /params/
-
-    # Split /params/ldflags over two lines (to satisfy ruby linter).
-    RUN split --numeric-suffixes=1 --suffix-length=1 --bytes=80 /params/ldflags /params/ldflags && \
-        touch /params/ldflags2 && \
-        if [ -f "/params/ldflags3" ]; then \
-            echo "More than two lines for ldflags not supported" && \
-            exit 1 ;\
-        fi
 
     # replace version with #{version} variable to conform to homebrew PR requests
     RUN escapedversion=`echo "${RELEASE_TAG}" | sed 's/\./\\\./g'`; \
         sed -i -e "s/${escapedversion}/v#{version}/g" /params/ldflags*
 
     RUN sed -i \
-        -e 's^url ".*"^url "'"$NEW_URL"'"^' \
-        -e 's^sha256 ".*"$^sha256 "'$(cat /params/downloadsha256)'"^' \
-        -e 's^tags = ".*"^tags = "'"$(cat /params/tags)"'"^' \
-        -e 's^ldflags = ".*"^ldflags = "'"$(cat /params/ldflags1)"'"^' \
-        -e '/ldflags = ".*"/{n;s^".*"^"'"$(cat /params/ldflags2)"'"^}' \
+        -e 's^\burl ".*"^url "'"$NEW_URL"'"^' \
+        -e 's^\bsha256 ".*"$^sha256 "'$(cat /params/downloadsha256)'"^' \
+        -e 's^\btags = ".*"^tags = "'"$(cat /params/tags)"'"^' \
+        -e 's^\bldflags = ".*"^ldflags = "'"$(cat /params/ldflags)"'"^' \
         ./Formula/earthly.rb
     RUN echo "Diff:" && git diff
     RUN version=${RELEASE_TAG#v} ;\
         echo version=$version ;\
-        git commit -a -m "earthly $version"
-    
-    # Fork, push branch to fork and create upstream PR.
-    RUN --secret GITHUB_TOKEN=+secrets/earthly-technologies/github/griswoldthecat/token test -n "$GITHUB_TOKEN"
-    RUN --push \
-        --secret GITHUB_TOKEN=+secrets/earthly-technologies/github/griswoldthecat/token \
-        -- \
-        hub fork
-    # Force use of https so we can use GITHUB_TOKEN via envcredhelper.sh.
-    RUN --push \
-        -- \
-        git remote set-url "$GIT_USERNAME" "https://github.com/$GIT_USERNAME/homebrew-earthly.git" && \
-        git remote -v
-    RUN --push \
-        --secret GIT_PASSWORD=+secrets/earthly-technologies/github/griswoldthecat/token \
-        -- \
-        git push "$GIT_USERNAME" "release-$RELEASE_TAG"
-    RUN --push \
-        --secret GIT_PASSWORD=+secrets/earthly-technologies/github/griswoldthecat/token \
-        --secret GITHUB_TOKEN=+secrets/earthly-technologies/github/griswoldthecat/token \
-        --secret SLACK_WEBHOOK_URL=+secrets/earthly-technologies/slack/release-webhook \
-        -- \
-        version=${RELEASE_TAG#v} ;\
-        echo version=$version ;\
-        output=$(hub pull-request --no-edit \
-            -h "$GIT_USERNAME":"release-$RELEASE_TAG" \
-            -b "earthly:main" \
-            -m "earthly $version" \
-            -m '-------------' \
-            -m '#### Debug data' \
-            -m 'PR generated by the [Earthly build](https://github.com/earthly/earthly/blob/main/release/Earthfile) (target +release-homebrew)' \
-            -m '* `RELEASE_TAG='"$RELEASE_TAG"'`' \
-            -m '* `GIT_USERNAME='"$GIT_USERNAME"'`' \
-            -m '* `NEW_URL='"$NEW_URL"'`' \
-            -m '* `NEW_SHA256='"$(cat /params/downloadsha256)"'`' \
-            -m '* `TAGS='"$(cat /params/tags)"'`' \
-            -m '* `LDFLAGS='"$(cat /params/ldflags)"'`' \
-            -m '* `LDFLAGS1='"$(cat /params/ldflags1)"'`' \
-            -m '* `LDFLAGS2='"$(cat /params/ldflags2)"'`') && \
-        echo $output && \
-        curl -X POST -H 'Content-type: application/json' --data '{"text":"Successfully released `'$RELEASE_TAG'`: https://github.com/earthly/earthly/releases/tag/'$RELEASE_TAG'"}' $SLACK_WEBHOOK_URL && \
-        curl -X POST -H 'Content-type: application/json' --data '{"text":"Successfully released homebrew PR for `'$RELEASE_TAG'`: '"$output"'"}' $SLACK_WEBHOOK_URL
+        git commit -a -m "earthly $version" || true
+    RUN --secret GIT_PASSWORD="$GITHUB_TOKEN_SECRET_PATH" \
+        --push git push --force --set-upstream origin "$RELEASE_BRANCH"
 
 release-vscode-syntax-highlighting:
     ARG VSCODE_RELEASE_TAG

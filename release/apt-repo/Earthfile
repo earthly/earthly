@@ -176,4 +176,5 @@ upload:
         aws s3 cp --recursive --acl public-read /repo s3://staging-pkg/deb/
 
 build-and-release:
-    BUILD --build-arg USE_OUTPUT_COPY=false +upload
+    ARG STAGING_PREFIX=""
+    BUILD --build-arg STAGING_PREFIX=$STAGING_PREFIX --build-arg USE_OUTPUT_COPY=false +upload
