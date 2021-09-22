@@ -66,7 +66,7 @@ And then, we can execute the hello world program:
 hello world
 ```
 
-Finally, let's say that we want to build a Docker image for this program. For this, we can add another target, which depends on `build` and uses the built program.
+Let's say that we want to build a Docker image for this program. For this, we can add another target, which depends on `build` and uses the built program.
 
 ```Dockerfile
 # Earthfile
@@ -116,6 +116,116 @@ And then we can run the built image like so:
 ```
 ~/workspace/earthly/examples/go ❯ docker run --rm go-example:latest
 hello world
+```
+
+Not only you can run your program with Earthly, but also your unit and integration tests. 
+
+To execute the unit-tests, we can run `earthly -P +unit-test`:
+
+```
+           buildkitd | Found buildkit daemon as docker container (earthly-buildkitd)
+golang:1.15-alpine3.13 | --> Load metadata linux/amd64
+               +base | --> FROM golang:1.15-alpine3.13
+             context | --> local context .
+               +base | [██████████] resolve docker.io/library/golang:1.15-alpine3.13@sha256:330f31a4415d97bb64f244d5f4d838bea7a7ee1ab5a1a0bac49e7973c57cbb88 ... 100%
+             context | transferred 3 file(s) for context . (2.4 MB, 9 file/dir stats)
+               +base | --> WORKDIR /go-example
+               +deps | --> COPY go.mod go.sum ./
+               +deps | --> RUN go mod download
+               +deps | --> SAVE ARTIFACT go.sum +deps/go.sum AS LOCAL go.sum
+               +deps | --> SAVE ARTIFACT go.mod +deps/go.mod AS LOCAL go.mod
+          +unit-test | --> COPY main.go .
+          +unit-test | --> COPY main_test.go .
+          +unit-test | --> RUN CGO_ENABLED=0 go test github.com/earthly/earthly/examples/go
+              output | --> exporting outputs
+              output | [██████████] copying files ... 100%
+================================ SUCCESS [main] ================================
+               +deps | Artifact github.com/earthly/earthly/examples/go:go-integration-test-example+deps/go.mod as local go.mod
+               +deps | Artifact github.com/earthly/earthly/examples/go:go-integration-test-example+deps/go.sum as local go.sum
+
+``` 
+
+To execute the integration-tests, we can run `earthly -P +integration-test`:
+
+```
+           buildkitd | Found buildkit daemon as docker container (earthly-buildkitd)
+golang:1.15-alpine3.13 | --> Load metadata linux/amd64
+               +base | --> FROM golang:1.15-alpine3.13
+             context | --> local context .
+               +base | [██████████] resolve docker.io/library/golang:1.15-alpine3.13@sha256:330f31a4415d97bb64f244d5f4d838bea7a7ee1ab5a1a0bac49e7973c57cbb88 ... 100%
+             context | transferred 1 file(s) for context . (6.8 kB, 9 file/dir stats)
+               +base | --> WORKDIR /go-example
+               +deps | --> COPY go.mod go.sum ./
+               +deps | --> RUN go mod download
+   +integration-test | --> COPY main.go .
+   +integration-test | --> COPY main_integration_test.go .
+   +integration-test | --> COPY docker-compose.yml ./
+   +integration-test | --> WITH DOCKER (install deps)
+   +integration-test | --> WITH DOCKER (docker-compose config)
+    redis:6.0-alpine | --> Load metadata linux/amd64
+    redis:6.0-alpine | --> DOCKER PULL redis:6.0-alpine
+    redis:6.0-alpine | [██████████] resolve docker.io/library/redis:6.0-alpine@sha256:61f3e955fbef87ea07d7409a48a48b069579e32f37d2f310526017d68e9983b7 ... 100%
+               +deps | --> SAVE ARTIFACT go.sum +deps/go.sum AS LOCAL go.sum
+               +deps | --> SAVE ARTIFACT go.mod +deps/go.mod AS LOCAL go.mod
+             context | transferred 1 file(s) for context /var/folders/5f/jkczhmh52g71v8_q34kt2wm80000gn/T/earthly-docker-load330575103 (10 MB, 1 file/dir stats)
+   +integration-test | --> WITH DOCKER RUN --privileged CGO_ENABLED=0 go test github.com/earthly/earthly/examples/go
+   +integration-test | Loading images...
+   +integration-test | Loaded image: redis:6.0-alpine
+   +integration-test | ...done
+   +integration-test | Creating network "go-example_default" with the default driver
+   +integration-test | Creating local-redis ... done
+   +integration-test | Creating local-redis ... done
+             ongoing | ok  egratgithub.com/earthly/earthly/examples/go  0.006s
+   +integration-test | Stopping local-redis ... done
+   +integration-test | Removing local-redis ... done
+   +integration-test | Removing network go-example_default
+              output | --> exporting outputs
+              output | [██████████] copying files ... 100%
+================================ SUCCESS [main] ================================
+               +deps | Artifact github.com/earthly/earthly/examples/go:go-integration-test-example+deps/go.mod as local go.mod
+               +deps | Artifact github.com/earthly/earthly/examples/go:go-integration-test-example+deps/go.sum as local go.sum
+```
+
+Finally, to run the build, unit test, integration test and docker image just run `earthly -P +all`:
+
+```
+          buildkitd | Found buildkit daemon as docker container (earthly-buildkitd)
+golang:1.15-alpine3.13 | --> Load metadata linux/amd64
+             context | --> local context .
+               +base | --> FROM golang:1.15-alpine3.13
+               +base | [██████████] resolve docker.io/library/golang:1.15-alpine3.13@sha256:330f31a4415d97bb64f244d5f4d838bea7a7ee1ab5a1a0bac49e7973c57cbb88 ... 100%
+             context | transferred 1 file(s) for context . (9.6 kB, 9 file/dir stats)
+               +base | --> WORKDIR /go-example
+               +deps | --> COPY go.mod go.sum ./
+               +deps | --> RUN go mod download
+   +integration-test | --> COPY main.go .
+   +integration-test | --> COPY main_integration_test.go .
+   +integration-test | --> COPY docker-compose.yml ./
+   +integration-test | --> WITH DOCKER (install deps)
+   +integration-test | --> WITH DOCKER (docker-compose config)
+    redis:6.0-alpine | --> Load metadata linux/amd64
+    redis:6.0-alpine | --> DOCKER PULL redis:6.0-alpine
+    redis:6.0-alpine | [██████████] resolve docker.io/library/redis:6.0-alpine@sha256:61f3e955fbef87ea07d7409a48a48b069579e32f37d2f310526017d68e9983b7 ... 100%
+               +deps | --> SAVE ARTIFACT go.sum +deps/go.sum AS LOCAL go.sum
+              +build | --> RUN go build -o build/go-example main.go
+              +build | --> SAVE ARTIFACT build/go-example +build/go-example AS LOCAL build/go-example
+             +docker | --> COPY +build/go-example ./
+               +deps | --> SAVE ARTIFACT go.mod +deps/go.mod AS LOCAL go.mod
+   +integration-test | --> WITH DOCKER RUN --privileged CGO_ENABLED=0 go test github.com/earthly/earthly/examples/go
+          +unit-test | --> COPY main_test.go .
+          +unit-test | --> RUN CGO_ENABLED=0 go test github.com/earthly/earthly/examples/go
+              output | --> exporting outputs
+              output | [██████████] exporting layers ... 100%
+              output | [██████████] exporting manifest sha256:73cba3d853028a7fb74b936ce78b1adaf510b9d8ca57da67e5120bd38283b685 ... 100%
+              output | [██████████] exporting config sha256:9fef849e6fa9477fed2f481b7ac07d419c5ddd63c8179cac4e3401be174f4025 ... 100%
+              output | [██████████] copying files ... 100%
+              output | [██████████] transferring docker.io/earthly/examples:go ... 100%
+================================ SUCCESS [main] ================================
+              +build | Artifact github.com/earthly/earthly/examples/go:go-integration-test-example+build/go-example as local build/go-example
+               +deps | Artifact github.com/earthly/earthly/examples/go:go-integration-test-example+deps/go.mod as local go.mod
+               +deps | Artifact github.com/earthly/earthly/examples/go:go-integration-test-example+deps/go.sum as local go.sum
+             +docker | Image github.com/earthly/earthly/examples/go:go-integration-test-example+docker as earthly/examples:go
+             +docker | Did not push earthly/examples:go. Use earthly --push to enable pushing
 ```
 
 [![asciicast](https://asciinema.org/a/314637.svg)](https://asciinema.org/a/314637)
