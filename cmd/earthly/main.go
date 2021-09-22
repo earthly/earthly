@@ -101,6 +101,7 @@ type cliFlags struct {
 	pull                      bool
 	push                      bool
 	ci                        bool
+	output                    bool
 	noOutput                  bool
 	noCache                   bool
 	pruneAll                  bool
@@ -361,6 +362,12 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 			EnvVars:     []string{"EARTHLY_CI"},
 			Usage:       wrap("Execute in CI mode (implies --use-inline-cache --save-inline-cache --no-output --strict)", "*experimental*"),
 			Destination: &app.ci,
+		},
+		&cli.BoolFlag{
+			Name:        "output",
+			EnvVars:     []string{"EARTHLY_OUTPUT"},
+			Usage:       "Allow artifacts or images to be output, even when running under --ci mode",
+			Destination: &app.output,
 		},
 		&cli.BoolFlag{
 			Name:        "no-output",
@@ -2531,7 +2538,7 @@ func (app *earthlyApp) actionBuild(c *cli.Context) error {
 
 	if app.ci {
 		app.useInlineCache = true
-		app.noOutput = true
+		app.noOutput = !app.output && !app.artifactMode && !app.imageMode
 		app.strict = true
 		if app.remoteCache == "" && app.push {
 			app.saveInlineCache = true
