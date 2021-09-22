@@ -335,7 +335,8 @@ func (wdr *withDockerRun) solveImage(ctx context.Context, mts *states.MultiTarge
 			llb.Platform(llbutil.DefaultPlatform()),
 			llb.WithCustomNamef("[internal] docker tar context %s %s", opName, sessionID),
 		)
-		wdr.c.mts.Final.LocalDirs[string(solveID)] = outDir
+		// Add directly to build context so that if a later statement forces execution, the images are avaliable.
+		wdr.c.opt.BuildContextProvider.AddDir(string(solveID), outDir)
 		return tarContext, nil
 	})
 	if err != nil {

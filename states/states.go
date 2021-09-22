@@ -49,7 +49,6 @@ type SingleTarget struct {
 	SaveImages             []SaveImage
 	VarCollection          *variables.Collection
 	RunPush                RunPush
-	LocalDirs              map[string]string
 	InteractiveSession     InteractiveSession
 	GlobalImports          map[string]domain.ImportTrackerVal
 	// HasDangling represents whether the target has dangling instructions -
@@ -90,7 +89,6 @@ func newSingleTarget(ctx context.Context, target domain.Target, platform *specs.
 		MainState:                llbutil.ScratchWithPlatform(),
 		MainImage:                image.NewImage(),
 		ArtifactsState:           llbutil.ScratchWithPlatform(),
-		LocalDirs:                make(map[string]string),
 		dependentIDs:             make(map[string]bool),
 		doneCh:                   make(chan struct{}),
 		incomingNewSubscriptions: make(chan string, 1024),
