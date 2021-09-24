@@ -19,6 +19,7 @@ import (
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/earthfile2llb"
 	"github.com/earthly/earthly/states"
+	"github.com/earthly/earthly/util/containerutil"
 	"github.com/earthly/earthly/util/gwclientlogger"
 	"github.com/earthly/earthly/util/llbutil"
 	"github.com/earthly/earthly/util/llbutil/pllb"
@@ -62,6 +63,7 @@ type Opt struct {
 	Parallelism            *semaphore.Weighted
 	LocalRegistryAddr      string
 	FeatureFlagOverrides   string
+	ContainerFrontend      containerutil.ContainerFrontend
 }
 
 // BuildOpt is a collection of build options.
@@ -384,7 +386,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 		pipeR, pipeW := io.Pipe()
 		eg.Go(func() error {
 			defer pipeR.Close()
-			err := loadDockerTar(childCtx, pipeR, b.opt.Console)
+			err := loadDockerTar(childCtx, b.opt.ContainerFrontend, pipeR, b.opt.Console)
 			if err != nil {
 				return errors.Wrapf(err, "load docker tar")
 			}
@@ -425,7 +427,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 			}
 			pullMap[imgToPull] = finalName
 		}
-		return dockerPullLocalImages(childCtx, b.opt.LocalRegistryAddr, pullMap, b.opt.Console)
+		return dockerPullLocalImages(childCtx, b.opt.ContainerFrontend, b.opt.LocalRegistryAddr, pullMap, b.opt.Console)
 	}
 	err := b.s.buildMainMulti(ctx, bf, onImage, onArtifact, onFinalArtifact, onPull, "main")
 	if err != nil {
@@ -555,7 +557,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 		}
 	}
 	for parentImageName, children := range manifestLists {
-		err = loadDockerManifest(ctx, b.opt.Console, parentImageName, children)
+		err = loadDockerManifest(ctx, b.opt.Console, b.opt.ContainerFrontend, parentImageName, children)
 		if err != nil {
 			return nil, err
 		}

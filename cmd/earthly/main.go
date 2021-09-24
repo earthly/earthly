@@ -67,6 +67,7 @@ import (
 	"github.com/earthly/earthly/secretsclient"
 	"github.com/earthly/earthly/states"
 	"github.com/earthly/earthly/util/cliutil"
+	"github.com/earthly/earthly/util/containerutil"
 	"github.com/earthly/earthly/util/fileutil"
 	"github.com/earthly/earthly/util/llbutil"
 	"github.com/earthly/earthly/util/termutil"
@@ -153,6 +154,7 @@ type cliFlags struct {
 	disableAnalytics          bool
 	featureFlagOverrides      string
 	localRegistryHost         string
+	containerFrontend         containerutil.ContainerFrontend
 }
 
 var (
@@ -1022,6 +1024,12 @@ func (app *earthlyApp) before(context *cli.Context) error {
 		return err
 	}
 
+	fe, err := containerutil.FrontendForSetting(context.Context, app.cfg.Global.ContainerFrontend)
+	if err != nil {
+		return errors.Wrapf(err, "%s frontend could not be initialized", app.cfg.Global.ContainerFrontend)
+	}
+	app.containerFrontend = fe
+
 	// command line option overrides the config which overrides the default value
 	if !context.IsSet("buildkit-image") && app.cfg.Global.BuildkitImage != "" {
 		app.buildkitdImage = app.cfg.Global.BuildkitImage
@@ -1088,7 +1096,11 @@ func (app *earthlyApp) setupAndValidateAddresses(context *cli.Context) error {
 		if app.cfg.Global.BuildkitHost != "" {
 			app.buildkitHost = app.cfg.Global.BuildkitHost
 		} else {
-			app.buildkitHost = buildkitd.DockerAddress
+			var err error
+			app.buildkitHost, err = buildkitd.DefaultAddressForSetting(app.cfg.Global.ContainerFrontend)
+			if err != nil {
+				return errors.Wrap(err, "could not validate default address")
+			}
 		}
 	}
 
@@ -1174,7 +1186,7 @@ func parseAndvalidateURL(addr string) (*url.URL, error) {
 		return nil, fmt.Errorf("%s: %w", addr, errURLParseFailure)
 	}
 
-	if parsed.Scheme != "tcp" && parsed.Scheme != "docker-container" {
+	if parsed.Scheme != "tcp" && parsed.Scheme != "docker-container" && parsed.Scheme != "podman-container" {
 		return nil, fmt.Errorf("%s is not a valid scheme. Only tcp or docker-container is allowed at this time: %w", parsed.Scheme, errURLValidationFailure)
 	}
 
@@ -1543,7 +1555,7 @@ func (app *earthlyApp) printCrashLogs(ctx context.Context) {
 	fmt.Fprintf(os.Stderr, "build-sha: %s\n", GitSha)
 	fmt.Fprintf(os.Stderr, "platform: %s\n", getPlatform())
 
-	dockerVersion, err := buildkitd.GetDockerVersion(ctx)
+	dockerVersion, err := buildkitd.GetDockerVersion(ctx, app.containerFrontend)
 	if err != nil {
 		app.console.Warnf("failed querying docker version: %s\n", err.Error())
 	} else {
@@ -1551,7 +1563,7 @@ func (app *earthlyApp) printCrashLogs(ctx context.Context) {
 		fmt.Fprintln(os.Stderr, dockerVersion)
 	}
 
-	logs, err := buildkitd.GetLogs(ctx, app.containerName, app.buildkitdSettings)
+	logs, err := buildkitd.GetLogs(ctx, app.containerName, app.containerFrontend, app.buildkitdSettings)
 	if err != nil {
 		app.console.Warnf("failed fetching earthly-buildkit logs: %s\n", err.Error())
 	} else {
@@ -1692,7 +1704,7 @@ func (app *earthlyApp) bootstrap(c *cli.Context) error {
 		}
 
 		// Bootstrap buildkit - pulls image and starts daemon.
-		bkClient, err := buildkitd.NewClient(c.Context, app.console, app.buildkitdImage, app.containerName, app.buildkitdSettings)
+		bkClient, err := buildkitd.NewClient(c.Context, app.console, app.buildkitdImage, app.containerName, app.containerFrontend, app.buildkitdSettings)
 		if err != nil {
 			return errors.Wrap(err, "bootstrap new buildkitd client")
 		}
@@ -2420,7 +2432,7 @@ func (app *earthlyApp) actionPrune(c *cli.Context) error {
 		return errors.New("invalid arguments")
 	}
 	if app.pruneReset {
-		err := buildkitd.ResetCache(c.Context, app.console, app.buildkitdImage, app.containerName, app.buildkitdSettings)
+		err := buildkitd.ResetCache(c.Context, app.console, app.buildkitdImage, app.containerName, app.containerFrontend, app.buildkitdSettings)
 		if err != nil {
 			return errors.Wrap(err, "reset cache")
 		}
@@ -2428,7 +2440,7 @@ func (app *earthlyApp) actionPrune(c *cli.Context) error {
 	}
 
 	// Prune via API.
-	bkClient, err := buildkitd.NewClient(c.Context, app.console, app.buildkitdImage, app.containerName, app.buildkitdSettings)
+	bkClient, err := buildkitd.NewClient(c.Context, app.console, app.buildkitdImage, app.containerName, app.containerFrontend, app.buildkitdSettings)
 	if err != nil {
 		return errors.Wrap(err, "prune new buildkitd client")
 	}
@@ -2634,14 +2646,14 @@ func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []st
 			return errors.Wrapf(err, "parse target name %s", targetName)
 		}
 	}
-	bkClient, err := buildkitd.NewClient(c.Context, app.console, app.buildkitdImage, app.containerName, app.buildkitdSettings)
+	bkClient, err := buildkitd.NewClient(c.Context, app.console, app.buildkitdImage, app.containerName, app.containerFrontend, app.buildkitdSettings)
 	if err != nil {
 		return errors.Wrap(err, "build new buildkitd client")
 	}
 	defer bkClient.Close()
 	isLocal := buildkitd.IsLocal(app.buildkitdSettings.BuildkitAddress)
 
-	bkIP, err := buildkitd.GetContainerIP(c.Context, app.containerName, app.buildkitdSettings)
+	bkIP, err := buildkitd.GetContainerIP(c.Context, app.containerName, app.containerFrontend, app.buildkitdSettings)
 	if err != nil {
 		return errors.Wrap(err, "get buildkit container IP")
 	}
@@ -2819,6 +2831,7 @@ func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []st
 		Parallelism:            parallelism,
 		LocalRegistryAddr:      localRegistryAddr,
 		FeatureFlagOverrides:   app.featureFlagOverrides,
+		ContainerFrontend:      app.containerFrontend,
 	}
 	b, err := builder.NewBuilder(c.Context, builderOpts)
 	if err != nil {
