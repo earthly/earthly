@@ -395,7 +395,7 @@ test:
     BUILD +lint
     BUILD +lint-scripts
     BUILD +lint-newline-ending
-    BUILD --privileged +unit-test
+    BUILD +unit-test
     BUILD ./ast/tests+all
     ARG DOCKERHUB_AUTH=true
     BUILD ./examples/tests+ga --DOCKERHUB_AUTH=$DOCKERHUB_AUTH
