@@ -258,6 +258,9 @@ func newSolverMonitor(console conslogging.ConsoleLogger, verbose bool, disableNo
 func (sm *solverMonitor) monitorProgress(ctx context.Context, ch chan *client.SolveStatus, phaseText string, sideRun bool) (string, error) {
 	if !sideRun {
 		sm.mu.Lock()
+		if !sm.ongoing {
+			sm.console.PrintPhaseHeader(phaseText, false, false)
+		}
 		sm.ongoing = true
 		sm.mu.Unlock()
 	}
@@ -293,7 +296,7 @@ Loop:
 		if sm.success && !sm.printedSuccess {
 			sm.lastOutputWasProgress = false
 			sm.lastOutputWasNoOutputUpdate = false
-			sm.console.PrintSuccess(phaseText)
+			sm.console.PrintPhaseFooter(phaseText, false, false)
 			sm.printedSuccess = true
 		}
 		sm.ongoing = false
@@ -473,14 +476,14 @@ func (sm *solverMonitor) recordTiming(targetStr, targetBrackets, salt string, ve
 	sm.timingTable[key] += dur
 }
 
-func (sm *solverMonitor) SetSuccess(msg string) {
+func (sm *solverMonitor) SetSuccess(phaseText string) {
 	sm.mu.Lock()
 	defer sm.mu.Unlock()
 	sm.success = true
 	if !sm.ongoing {
 		sm.lastOutputWasProgress = false
 		sm.lastOutputWasNoOutputUpdate = false
-		sm.console.PrintSuccess(msg)
+		sm.console.PrintPhaseFooter(phaseText, false, false)
 		sm.printedSuccess = true
 	}
 }
@@ -529,8 +532,8 @@ func (sm *solverMonitor) PrintTiming() {
 func (sm *solverMonitor) reprintFailure(errVertex *vertexMonitor, phaseText string) {
 	sm.lastOutputWasProgress = false
 	sm.lastOutputWasNoOutputUpdate = false
-	sm.console.Warnf("Repeating the output of the command that caused the failure\n")
 	sm.console.PrintFailure(phaseText)
+	sm.console.Warnf("Repeating the output of the command that caused the failure\n")
 	errVertex.console = errVertex.console.WithFailed(true)
 	errVertex.printHeader()
 	if errVertex.tailOutput != nil {

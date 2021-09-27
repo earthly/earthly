@@ -68,7 +68,7 @@ type Opt struct {
 type BuildOpt struct {
 	Platform                   *specs.Platform
 	AllowPrivileged            bool
-	PrintSuccess               bool
+	PrintPhases                bool
 	Push                       bool
 	NoOutput                   bool
 	OnlyFinalTargetImages      bool
@@ -150,12 +150,12 @@ func (sp *successPrinter) incrementIndex() {
 func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt BuildOpt) (*states.MultiTarget, error) {
 	successFun := func(msg string) func() {
 		return func() {
-			if opt.PrintSuccess {
+			if opt.PrintPhases {
 				b.s.sm.SetSuccess(msg)
 			}
 		}
 	}
-	sp := newSuccessPrinter(successFun(""), successFun("--push"))
+	sp := newSuccessPrinter(successFun("2. Build 🔧"), successFun("3. Push ☁️"))
 
 	sharedLocalStateCache := earthfile2llb.NewSharedLocalStateCache()
 
@@ -427,7 +427,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 		}
 		return dockerPullLocalImages(childCtx, b.opt.LocalRegistryAddr, pullMap, b.opt.Console)
 	}
-	err := b.s.buildMainMulti(ctx, bf, onImage, onArtifact, onFinalArtifact, onPull, "main")
+	err := b.s.buildMainMulti(ctx, bf, onImage, onArtifact, onFinalArtifact, onPull, "2. Build 🔧")
 	if err != nil {
 		return nil, errors.Wrapf(err, "build main")
 	}
@@ -444,17 +444,28 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 			}
 		}
 		if hasRunPush {
-			err = b.s.buildMainMulti(ctx, bf, onImage, onArtifact, onFinalArtifact, onPull, "--push")
+			err = b.s.buildMainMulti(ctx, bf, onImage, onArtifact, onFinalArtifact, onPull, "3. Push ☁️")
 			if err != nil {
 				return nil, errors.Wrapf(err, "build push")
 			}
 		}
 		sp.printCurrentSuccess()
+	} else {
+		if opt.PrintPhases {
+			b.opt.Console.PrintPhaseHeader("3. Push (disabled) ☁️", true, false)
+			b.opt.Console.Printf("To enable pushing use\n\n\t\tearthly --push ...\n")
+			b.opt.Console.PrintPhaseFooter("3. Push (disabled) ☁️", true, false)
+		}
 	}
 
 	if opt.NoOutput {
-		// Nothing.
+		if opt.PrintPhases {
+			b.opt.Console.PrintPhaseHeader("4. Output (disabled) 🎁", true, false)
+		}
 	} else if opt.OnlyArtifact != nil {
+		if opt.PrintPhases {
+			b.opt.Console.PrintPhaseHeader("4. Output (single artifact) 🎁", false, true)
+		}
 		outDir, err := b.tempEarthlyOutDir()
 		if err != nil {
 			return nil, err
@@ -464,6 +475,9 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 			return nil, err
 		}
 	} else if opt.OnlyFinalTargetImages {
+		if opt.PrintPhases {
+			b.opt.Console.PrintPhaseHeader("4. Output (single image) 🎁", false, true)
+		}
 		for _, saveImage := range mts.Final.SaveImages {
 			shouldPush := opt.Push && saveImage.Push && saveImage.DockerTag != "" && saveImage.DoSave
 			shouldExport := !opt.NoOutput && saveImage.DockerTag != "" && saveImage.DoSave
@@ -482,6 +496,9 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 			}
 		}
 	} else {
+		if opt.PrintPhases {
+			b.opt.Console.PrintPhaseHeader("4. Output 🎁", false, false)
+		}
 		// This needs to match with the same index used during output.
 		// TODO: This is a little brittle to future code changes.
 		dirIndex := 0
@@ -561,6 +578,10 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 		}
 	}
 
+	if opt.PrintPhases {
+		b.opt.Console.PrintPhaseFooter("4. 🎁 Output", false, false)
+		b.opt.Console.PrintSuccess()
+	}
 	return mts, nil
 }
 
@@ -739,7 +760,7 @@ func (b *Builder) saveArtifactLocally(ctx context.Context, artifact domain.Artif
 		if strings.HasSuffix(destPath, "/") {
 			destPath2 = filepath.Join(destPath2, filepath.Base(artifactPath))
 		}
-		if opt.PrintSuccess {
+		if opt.PrintPhases {
 			artifactStr := console.PrefixColor().Sprintf("%s", artifact2.StringCanonical())
 			console.Printf("Artifact %s as local %s\n", artifactStr, destPath2)
 		}

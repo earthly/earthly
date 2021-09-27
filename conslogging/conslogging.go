@@ -134,19 +134,44 @@ func (cl ConsoleLogger) WithWriter(w io.Writer) ConsoleLogger {
 	return ret
 }
 
-// PrintSuccess prints the success message.
-func (cl ConsoleLogger) PrintSuccess(msg string) {
+// PrintPhaseHeader prints the phase header.
+func (cl ConsoleLogger) PrintPhaseHeader(phase string, disabled bool, special bool) {
 	cl.mu.Lock()
 	defer cl.mu.Unlock()
-	cl.PrintBar(successColor, " SUCCESS ", msg)
+	c := cl.color(phaseColor)
+	if disabled {
+		c = cl.color(disabledPhaseColor)
+	} else if special {
+		c = cl.color(specialPhaseColor)
+	}
+	underlineLength := utf8.RuneCountInString(phase) + 2
+	if underlineLength < 16 {
+		underlineLength = 16
+	}
+	c.Fprintf(cl.outW, "\n %s\n%s\n\n", phase, strings.Repeat("—", underlineLength))
+}
+
+// PrintPhaseFooter prints the phase footer.
+func (cl ConsoleLogger) PrintPhaseFooter(phase string, disabled bool, special bool) {
+	cl.mu.Lock()
+	defer cl.mu.Unlock()
+	c := cl.color(noColor)
+	cl.color(c).Fprintf(cl.outW, "\n")
+}
+
+// PrintSuccess prints the success message.
+func (cl ConsoleLogger) PrintSuccess() {
+	cl.mu.Lock()
+	defer cl.mu.Unlock()
+	cl.PrintBar(successColor, "🌍 Earthly Build  ✔️ SUCCESS", "")
 }
 
 // PrintFailure prints the failure message.
-func (cl ConsoleLogger) PrintFailure(msg string) {
+func (cl ConsoleLogger) PrintFailure(phase string) {
 	cl.mu.Lock()
 	defer cl.mu.Unlock()
 
-	cl.PrintBar(warnColor, " FAILURE ", msg)
+	cl.PrintBar(warnColor, "❌ FAILURE", phase)
 }
 
 // PrefixColor returns the color used for the prefix.
@@ -160,27 +185,20 @@ func (cl ConsoleLogger) PrefixColor() *color.Color {
 	return cl.color(c)
 }
 
-// PrintBar prints an earthly message bar
-func (cl ConsoleLogger) PrintBar(c *color.Color, center, msg string) {
-	if msg != "" {
-		center = fmt.Sprintf("%s[%s] ", center, msg)
+// PrintBar prints an earthly message bar.
+func (cl ConsoleLogger) PrintBar(c *color.Color, msg, phase string) {
+	if phase != "" {
+		msg = fmt.Sprintf("%s [%s]", msg, phase)
 	}
 
 	totalWidth := 80
-	sideWidth := (totalWidth - len(center)) / 2
-	if sideWidth < 0 {
-		sideWidth = 0
+	rightWidth := totalWidth - len(msg)
+	if rightWidth < 0 {
+		rightWidth = 0
 	}
-	eqBar := strings.Repeat("=", sideWidth)
-	leftBar := eqBar
-	rightBar := eqBar
+	eqBar := strings.Repeat("=", rightWidth)
 
-	// Ensure the width is always totalWidth
-	if len(center)%2 == 1 && sideWidth > 0 {
-		rightBar += "="
-	}
-
-	cl.color(c).Fprintf(cl.outW, "%s%s%s\n", leftBar, center, rightBar)
+	cl.color(c).Fprintf(cl.outW, "\n %s %s\n\n", msg, eqBar)
 }
 
 // Warnf prints a warning message in red to errWriter
