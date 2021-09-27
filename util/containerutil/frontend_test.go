@@ -130,14 +130,14 @@ func TestFrontendContainerInfo(t *testing.T) {
 
 			assert.Len(t, info, 3)
 
-			assert.Equal(t, info[getInfos[0]].Name, getInfos[0])
-			assert.Equal(t, info[getInfos[0]].Image, "docker.io/hashicorp/http-echo:latest")
+			assert.Equal(t, getInfos[0], info[getInfos[0]].Name)
+			assert.Equal(t, "docker.io/hashicorp/http-echo:latest", info[getInfos[0]].Image)
 
-			assert.Equal(t, info[getInfos[1]].Name, getInfos[1])
-			assert.Equal(t, info[getInfos[1]].Image, "docker.io/hashicorp/http-echo:latest")
+			assert.Equal(t, getInfos[1], info[getInfos[1]].Name)
+			assert.Equal(t, "docker.io/hashicorp/http-echo:latest", info[getInfos[1]].Image)
 
-			assert.Equal(t, info[getInfos[2]].Name, getInfos[2])
-			assert.Equal(t, info[getInfos[2]].Status, containerutil.StatusMissing)
+			assert.Equal(t, getInfos[2], info[getInfos[2]].Name)
+			assert.Equal(t, containerutil.StatusMissing, info[getInfos[2]].Status)
 		})
 	}
 }
@@ -172,8 +172,8 @@ func TestFrontendContainerRemove(t *testing.T) {
 
 			info, err = fe.ContainerInfo(ctx, testContainers...)
 			assert.NoError(t, err)
-			assert.Equal(t, info[testContainers[0]].Status, containerutil.StatusMissing)
-			assert.Equal(t, info[testContainers[1]].Status, containerutil.StatusMissing)
+			assert.Equal(t, containerutil.StatusMissing, info[testContainers[0]].Status)
+			assert.Equal(t, containerutil.StatusMissing, info[testContainers[1]].Status)
 		})
 	}
 }
@@ -307,16 +307,16 @@ func TestFrontendContainerRun(t *testing.T) {
 
 			info, err := fe.ContainerInfo(ctx, testContainers...)
 			assert.NoError(t, err)
-			assert.Equal(t, info[testContainers[0]].Status, containerutil.StatusMissing)
-			assert.Equal(t, info[testContainers[1]].Status, containerutil.StatusMissing)
+			assert.Equal(t, containerutil.StatusMissing, info[testContainers[0]].Status)
+			assert.Equal(t, containerutil.StatusMissing, info[testContainers[1]].Status)
 
 			err = fe.ContainerRun(ctx, runs...)
 			assert.NoError(t, err)
 
 			info, err = fe.ContainerInfo(ctx, testContainers...)
 			assert.NoError(t, err)
-			assert.Equal(t, info[testContainers[0]].Status, containerutil.StatusRunning)
-			assert.Equal(t, info[testContainers[1]].Status, containerutil.StatusRunning)
+			assert.Equal(t, containerutil.StatusRunning, info[testContainers[0]].Statuszs)
+			assert.Equal(t, containerutil.StatusRunning, info[testContainers[1]].Statuszs)
 		})
 	}
 }
@@ -379,8 +379,8 @@ func TestFrontendImageInfo(t *testing.T) {
 
 			assert.Len(t, info, 2)
 
-			assert.Contains(t, info[tC.refList[0]].Tags, tC.refList[0])
-			assert.Contains(t, info[tC.refList[1]].Tags, tC.refList[1])
+			assert.Contains(t, tC.refList[0], info[tC.refList[0]].Tags)
+			assert.Contains(t, tC.refList[1], info[tC.refList[1]].Tags)
 		})
 	}
 }
@@ -461,8 +461,8 @@ func TestFrontendImageTag(t *testing.T) {
 			info, err = fe.ImageInfo(ctx, tC.tagList...)
 			assert.NoError(t, err)
 
-			assert.Contains(t, info[tC.tagList[0]].Tags, tC.tagList[0])
-			assert.Contains(t, info[tC.tagList[1]].Tags, tC.tagList[1])
+			assert.Contains(t, tC.tagList[0], info[tC.tagList[0]].Tags)
+			assert.Contains(t, tC.tagList[1], info[tC.tagList[1]].Tags)
 		})
 	}
 }
