@@ -131,10 +131,10 @@ func TestFrontendContainerInfo(t *testing.T) {
 			assert.Len(t, info, 3)
 
 			assert.Equal(t, info[getInfos[0]].Name, getInfos[0])
-			assert.Equal(t, info[getInfos[0]].Image, "docker.io/hashicorp/http-echo")
+			assert.Equal(t, info[getInfos[0]].Image, "docker.io/hashicorp/http-echo:latest")
 
 			assert.Equal(t, info[getInfos[1]].Name, getInfos[1])
-			assert.Equal(t, info[getInfos[1]].Image, "docker.io/hashicorp/http-echo")
+			assert.Equal(t, info[getInfos[1]].Image, "docker.io/hashicorp/http-echo:latest")
 
 			assert.Equal(t, info[getInfos[2]].Name, getInfos[2])
 			assert.Equal(t, info[getInfos[2]].Status, containerutil.StatusMissing)
@@ -171,6 +171,7 @@ func TestFrontendContainerRemove(t *testing.T) {
 			assert.NoError(t, err)
 
 			info, err = fe.ContainerInfo(ctx, testContainers...)
+			assert.NoError(t, err)
 			assert.Equal(t, info[testContainers[0]].Status, containerutil.StatusMissing)
 			assert.Equal(t, info[testContainers[1]].Status, containerutil.StatusMissing)
 		})
@@ -553,7 +554,7 @@ func isBinaryInstalled(ctx context.Context, binary string) bool {
 func spawnTestContainers(ctx context.Context, feBinary string, names ...string) (func(), error) {
 	var err error
 	for _, name := range names {
-		cmd := exec.CommandContext(ctx, feBinary, "run", "-d", "--name", name, "docker.io/hashicorp/http-echo", `-text="test"`)
+		cmd := exec.CommandContext(ctx, feBinary, "run", "-d", "--name", name, "docker.io/hashicorp/http-echo:latest", `-text="test"`)
 		output, createErr := cmd.CombinedOutput()
 		if err != nil {
 			// the frontend exists but is non-functional. This is... not likely to work at all.

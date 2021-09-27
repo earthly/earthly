@@ -9,6 +9,7 @@ import (
 	"github.com/earthly/earthly/buildkitd"
 	"github.com/earthly/earthly/config"
 	"github.com/earthly/earthly/conslogging"
+	"github.com/earthly/earthly/util/containerutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/urfave/cli/v2"
 )
@@ -191,6 +192,7 @@ func TestBuildArgMatrix(t *testing.T) {
 
 		earthlyApp := newEarthlyApp(ctx, logger)
 		earthlyApp.cfg = &config.Config{Global: tt.config}
+		earthlyApp.containerFrontend, _ = containerutil.FrontendForSetting(ctx, containerutil.FrontendDockerShell)
 		earthlyApp.cliApp.Writer = &trash    // Just chuck the help output
 		earthlyApp.cliApp.ErrWriter = &trash // All of it, we dont care
 
@@ -319,6 +321,7 @@ func TestBuildArgMatrixValidationFailures(t *testing.T) {
 
 		earthlyApp := newEarthlyApp(ctx, logger)
 		earthlyApp.cfg = &config.Config{Global: tt.config}
+		earthlyApp.containerFrontend, _ = containerutil.FrontendForSetting(ctx, containerutil.FrontendDockerShell)
 		earthlyApp.cliApp.Writer = &output
 		earthlyApp.cliApp.ErrWriter = &output
 
@@ -424,6 +427,7 @@ func TestBuildArgMatrixValidationNonIssues(t *testing.T) {
 
 		earthlyApp := newEarthlyApp(ctx, logger)
 		earthlyApp.cfg = &config.Config{Global: tt.config}
+		earthlyApp.containerFrontend, _ = containerutil.FrontendForSetting(ctx, containerutil.FrontendDockerShell)
 		earthlyApp.cliApp.Writer = &output
 		earthlyApp.cliApp.ErrWriter = &output
 

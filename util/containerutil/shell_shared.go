@@ -283,7 +283,7 @@ type commmandContextOutput struct {
 }
 
 func (cco *commmandContextOutput) string() string {
-	return cco.stdout.String() + cco.stderr.String()
+	return strings.TrimSpace(cco.stdout.String() + cco.stderr.String())
 }
 
 func (sf *shellFrontend) commandContextOutput(ctx context.Context, args ...string) (*commmandContextOutput, error) {
