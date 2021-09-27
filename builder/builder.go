@@ -579,7 +579,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 	}
 
 	if opt.PrintPhases {
-		b.opt.Console.PrintPhaseFooter("4. 🎁 Output", false, false)
+		b.opt.Console.PrintPhaseFooter("4. Output 🎁", false, false)
 		b.opt.Console.PrintSuccess()
 	}
 	return mts, nil
