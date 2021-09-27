@@ -72,8 +72,8 @@ func NewClient(ctx context.Context, console conslogging.ConsoleLogger, image, co
 	}
 
 	if !isDockerAvailable(ctx, fe) {
-		console.WithPrefix("buildkitd").Printf("Is %[1]s installed and running? Are you part of any needed groups?\n", fe.Config().FrontendBinary)
-		return nil, fmt.Errorf("%s not available", fe.Config().FrontendBinary)
+		console.WithPrefix("buildkitd").Printf("Is %[1]s installed and running? Are you part of any needed groups?\n", fe.Config().Binary)
+		return nil, fmt.Errorf("%s not available", fe.Config().Binary)
 	}
 	address, err := MaybeStart(ctx, console, image, containerName, fe, settings, opts...)
 	if err != nil {
@@ -144,7 +144,7 @@ func MaybeStart(ctx context.Context, console conslogging.ConsoleLogger, image, c
 	if isStarted {
 		console.
 			WithPrefix("buildkitd").
-			Printf("Found buildkit daemon as %s container (%s)\n", fe.Config().FrontendBinary, containerName)
+			Printf("Found buildkit daemon as %s container (%s)\n", fe.Config().Binary, containerName)
 		err := MaybeRestart(ctx, console, image, containerName, fe, settings, opts...)
 		if err != nil {
 			return "", errors.Wrap(err, "maybe restart")
@@ -152,7 +152,7 @@ func MaybeStart(ctx context.Context, console conslogging.ConsoleLogger, image, c
 	} else {
 		console.
 			WithPrefix("buildkitd").
-			Printf("Starting buildkit daemon as a %s container (%s)...\n", fe.Config().FrontendBinary, containerName)
+			Printf("Starting buildkit daemon as a %s container (%s)...\n", fe.Config().Binary, containerName)
 		err := Start(ctx, console, image, containerName, fe, settings, false)
 		if err != nil {
 			return "", errors.Wrap(err, "start")

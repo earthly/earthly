@@ -997,10 +997,6 @@ func (app *earthlyApp) before(context *cli.Context) error {
 		return fmt.Errorf("buildkit-container-name is not currently supported")
 	}
 
-	if app.buildkitHost == "" {
-		app.buildkitHost = fmt.Sprintf("docker-container://%s", app.containerName)
-	}
-
 	var yamlData []byte
 	var err error
 	if app.configPath != "" {
@@ -1097,7 +1093,8 @@ func (app *earthlyApp) setupAndValidateAddresses(context *cli.Context) error {
 			app.buildkitHost = app.cfg.Global.BuildkitHost
 		} else {
 			var err error
-			app.buildkitHost, err = buildkitd.DefaultAddressForSetting(app.cfg.Global.ContainerFrontend)
+			feConfig := app.containerFrontend.Config()
+			app.buildkitHost, err = buildkitd.DefaultAddressForSetting(feConfig.Setting)
 			if err != nil {
 				return errors.Wrap(err, "could not validate default address")
 			}
