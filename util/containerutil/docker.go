@@ -18,6 +18,8 @@ type dockerShellFrontend struct {
 	userNamespaced bool
 }
 
+// NewDockerShellFrontend constructs a new Frontend using the docker binary installed on the host.
+// It also ensures that the binary is functional for our needs and collects compatibility information.
 func NewDockerShellFrontend(ctx context.Context) (ContainerFrontend, error) {
 	fe := &dockerShellFrontend{
 		shellFrontend: &shellFrontend{

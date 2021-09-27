@@ -107,9 +107,9 @@ func (sf *shellFrontend) ContainerLogs(ctx context.Context, namesOrIDs ...string
 	logs := map[string]*ContainerLogs{}
 	var err error
 
-	for _, nameOrId := range namesOrIDs {
+	for _, nameOrID := range namesOrIDs {
 		// Don't use the wrapper so we can capture stderr and stdout individually
-		cmd := exec.CommandContext(ctx, sf.binaryName, "logs", nameOrId)
+		cmd := exec.CommandContext(ctx, sf.binaryName, "logs", nameOrID)
 
 		var stdout, stderr strings.Builder
 		cmd.Stdout = &stdout
@@ -120,7 +120,7 @@ func (sf *shellFrontend) ContainerLogs(ctx context.Context, namesOrIDs ...string
 			err = multierror.Append(err, cmdErr)
 			continue
 		}
-		logs[nameOrId] = &ContainerLogs{
+		logs[nameOrID] = &ContainerLogs{
 			Stdout: stdout.String(),
 			Stderr: stderr.String(),
 		}

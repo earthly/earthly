@@ -39,6 +39,7 @@ var DockerAddress = "docker-container://earthly-buildkitd"
 // Currently unused due to image export issues
 var PodmanAddress = "podman-container://earthly-buildkitd"
 
+// DefaultAddressForSetting returns an address (signifying the desired/default transport) for a given frontend specified by setting.
 func DefaultAddressForSetting(setting string) (string, error) {
 	switch setting {
 	case containerutil.FrontendDockerShell:

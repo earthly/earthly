@@ -9,6 +9,7 @@ import (
 	"github.com/pkg/errors"
 )
 
+// ContainerFrontend is an interface specifying all the container options Earthly needs to do.
 type ContainerFrontend interface {
 	Scheme() string
 
@@ -31,6 +32,7 @@ type ContainerFrontend interface {
 	VolumeInfo(ctx context.Context, volumeNames ...string) (map[string]*VolumeInfo, error)
 }
 
+// FrontendForSetting returns a frontend given a setting. This includes automatic detection.
 func FrontendForSetting(ctx context.Context, feType string) (ContainerFrontend, error) {
 	if feType == FrontendAuto {
 		return autodetectFrontend(ctx)

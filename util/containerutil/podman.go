@@ -16,6 +16,8 @@ type podmanShellFrontend struct {
 	*shellFrontend
 }
 
+// NewPodmanShellFrontend constructs a new Frontend using the podman binary installed on the host.
+// It also ensures that the binary is functional for our needs and collects compatibility information.
 func NewPodmanShellFrontend(ctx context.Context) (ContainerFrontend, error) {
 	fe := &podmanShellFrontend{
 		shellFrontend: &shellFrontend{

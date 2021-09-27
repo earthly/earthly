@@ -315,8 +315,8 @@ func TestFrontendContainerRun(t *testing.T) {
 
 			info, err = fe.ContainerInfo(ctx, testContainers...)
 			assert.NoError(t, err)
-			assert.Equal(t, containerutil.StatusRunning, info[testContainers[0]].Statuszs)
-			assert.Equal(t, containerutil.StatusRunning, info[testContainers[1]].Statuszs)
+			assert.Equal(t, containerutil.StatusRunning, info[testContainers[0]].Status)
+			assert.Equal(t, containerutil.StatusRunning, info[testContainers[1]].Status)
 		})
 	}
 }
