@@ -81,7 +81,6 @@ func loadDockerManifest(ctx context.Context, console conslogging.ConsoleLogger, 
 func loadDockerTar(ctx context.Context, fe containerutil.ContainerFrontend, r io.ReadCloser, console conslogging.ConsoleLogger) error {
 	err := fe.ImageLoad(ctx, r)
 	if err != nil {
-		console.Warnf(err.Error())
 		return errors.Wrapf(err, "load tar")
 	}
 	return nil
@@ -103,7 +102,6 @@ func dockerPullLocalImage(ctx context.Context, fe containerutil.ContainerFronten
 	fullPullName := fmt.Sprintf("%s/%s", localRegistryAddr, pullName)
 	err := fe.ImagePull(ctx, fullPullName)
 	if err != nil {
-		console.Warnf(err.Error())
 		return errors.Wrapf(err, "image pull")
 	}
 	err = fe.ImageTag(ctx, containerutil.ImageTag{
@@ -111,12 +109,10 @@ func dockerPullLocalImage(ctx context.Context, fe containerutil.ContainerFronten
 		TargetRef: finalName,
 	})
 	if err != nil {
-		console.Warnf(err.Error())
 		return errors.Wrap(err, "image tag after pull")
 	}
 	err = fe.ImageRemove(ctx, false, fullPullName)
 	if err != nil {
-		console.Warnf(err.Error())
 		return errors.Wrap(err, "image rmi after pull and retag")
 	}
 	return nil

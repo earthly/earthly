@@ -35,7 +35,8 @@ var TCPAddress = "tcp://127.0.0.1:8372"
 // DockerAddress is the address at which the daemon is avaliable whe using a Docker Container directly
 var DockerAddress = "docker-container://earthly-buildkitd"
 
-// PodmanAddress is the address at which the daemon is avaliable whe using a Docker Container directly
+// PodmanAddress is the address at which the daemon is avaliable whe using a Podman Container directly.
+// Currently unused due to image export issues
 var PodmanAddress = "podman-container://earthly-buildkitd"
 
 func DefaultAddressForSetting(setting string) (string, error) {
@@ -71,8 +72,8 @@ func NewClient(ctx context.Context, console conslogging.ConsoleLogger, image, co
 	}
 
 	if !isDockerAvailable(ctx, fe) {
-		console.WithPrefix("buildkitd").Printf("Is docker installed and running? Are you part of the docker group?\n")
-		return nil, errors.New("docker not available")
+		console.WithPrefix("buildkitd").Printf("Is %[1]s installed and running? Are you part of any needed groups?\n", fe.Config().FrontendBinary)
+		return nil, fmt.Errorf("%s not available", fe.Config().FrontendBinary)
 	}
 	address, err := MaybeStart(ctx, console, image, containerName, fe, settings, opts...)
 	if err != nil {
@@ -143,7 +144,7 @@ func MaybeStart(ctx context.Context, console conslogging.ConsoleLogger, image, c
 	if isStarted {
 		console.
 			WithPrefix("buildkitd").
-			Printf("Found buildkit daemon as docker container (%s)\n", containerName)
+			Printf("Found buildkit daemon as %s container (%s)\n", fe.Config().FrontendBinary, containerName)
 		err := MaybeRestart(ctx, console, image, containerName, fe, settings, opts...)
 		if err != nil {
 			return "", errors.Wrap(err, "maybe restart")
@@ -151,7 +152,7 @@ func MaybeStart(ctx context.Context, console conslogging.ConsoleLogger, image, c
 	} else {
 		console.
 			WithPrefix("buildkitd").
-			Printf("Starting buildkit daemon as a docker container (%s)...\n", containerName)
+			Printf("Starting buildkit daemon as a %s container (%s)...\n", fe.Config().FrontendBinary, containerName)
 		err := Start(ctx, console, image, containerName, fe, settings, false)
 		if err != nil {
 			return "", errors.Wrap(err, "start")
@@ -315,13 +316,19 @@ func Start(ctx context.Context, console conslogging.ConsoleLogger, image, contai
 		//       if needed.
 		// These are controlled by us and should have been validated already - hence panics.
 
-		_, err := url.Parse(settings.DebuggerAddress)
+		dbURL, err := url.Parse(settings.DebuggerAddress)
 		if err != nil {
 			panic("Debugger address was not a URL when attempting to start buildkit")
 		}
+
+		hostPort, err := strconv.Atoi(dbURL.Port())
+		if err != nil {
+			panic("Local registry host port was not a numver when attempting to start buildkit")
+		}
+
 		portOpts = append(portOpts, containerutil.Port{
 			IP:            "127.0.0.1",
-			HostPort:      8373, //strconv.FormatInt(dbURL.Port(), 10),
+			HostPort:      hostPort,
 			ContainerPort: 8373,
 			Protocol:      containerutil.ProtocolTCP,
 		})

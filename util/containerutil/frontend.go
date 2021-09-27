@@ -13,6 +13,7 @@ type ContainerFrontend interface {
 	Scheme() string
 
 	IsAvaliable(ctx context.Context) bool
+	Config() *FrontendConfig
 	Information(ctx context.Context) (*FrontendInfo, error)
 
 	ContainerInfo(ctx context.Context, namesOrIDs ...string) (map[string]*ContainerInfo, error)
@@ -31,7 +32,7 @@ type ContainerFrontend interface {
 }
 
 func FrontendForSetting(ctx context.Context, feType string) (ContainerFrontend, error) {
-	if feType == FrontendAutomatic {
+	if feType == FrontendAuto {
 		return autodetectFrontend(ctx)
 	}
 

@@ -39,7 +39,7 @@ const (
 	DefaultServerTLSKey = "./certs/buildkit_key.pem"
 
 	// DefaultContainerFrontend is the default frontend program or interfacing with the running containers and saved images
-	DefaultContainerFrontend = "docker-shell"
+	DefaultContainerFrontend = "auto"
 )
 
 var (

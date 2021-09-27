@@ -41,6 +41,14 @@ func (psf *podmanShellFrontend) Scheme() string {
 	return "podman-container"
 }
 
+func (psf *podmanShellFrontend) Config() *FrontendConfig {
+	return &FrontendConfig{
+		Setting: FrontendPodmanShell,
+		Binary:  psf.binaryName,
+		Type:    FrontendTypeShell,
+	}
+}
+
 func (psf *podmanShellFrontend) Information(ctx context.Context) (*FrontendInfo, error) {
 	output, err := psf.commandContextOutput(ctx, "info", "--format={{.Host.RemoteSocket.Exists}}")
 	if err != nil {

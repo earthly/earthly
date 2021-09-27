@@ -43,6 +43,14 @@ func (dsf *dockerShellFrontend) Scheme() string {
 	return "docker-container"
 }
 
+func (dsf *dockerShellFrontend) Config() *FrontendConfig {
+	return &FrontendConfig{
+		Setting: FrontendDockerShell,
+		Binary:  dsf.binaryName,
+		Type:    FrontendTypeShell,
+	}
+}
+
 func (dsf *dockerShellFrontend) Information(ctx context.Context) (*FrontendInfo, error) {
 	output, err := dsf.commandContextOutput(ctx, "version", "--format={{json .}}")
 	if err != nil {

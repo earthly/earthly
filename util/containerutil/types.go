@@ -105,9 +105,20 @@ type ContainerRun struct {
 }
 
 const (
-	FrontendAutomatic   = "automatic"
+	FrontendAuto        = "auto"
 	FrontendDocker      = "docker"
 	FrontendDockerShell = "docker-shell"
 	FrontendPodman      = "podman"
 	FrontendPodmanShell = "podman-shell"
+)
+
+type FrontendConfig struct {
+	Setting string
+	Binary  string
+	Type    string
+}
+
+const (
+	FrontendTypeShell = "shell"
+	FrontendTypeAPI   = "api"
 )
