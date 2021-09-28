@@ -71,3 +71,4 @@ redirects:
     examples/per-language-earthfile-examples/js: examples/examples.md
     examples/per-language-earthfile-examples/python: examples/examples.md
     guides/configuring-registries: guides/auth.md
+    
