@@ -161,7 +161,7 @@ func (cl ConsoleLogger) PrintPhaseFooter(phase string, disabled bool, special st
 	cl.mu.Lock()
 	defer cl.mu.Unlock()
 	c := cl.color(noColor)
-	cl.color(c).Fprintf(cl.outW, "\n")
+	c.Fprintf(cl.outW, "\n")
 }
 
 // PrintSuccess prints the success message.
@@ -210,7 +210,7 @@ func (cl ConsoleLogger) PrintBar(c *color.Color, msg, phase string) {
 		rightBar += "="
 	}
 
-	cl.color(c).Fprintf(cl.outW, "\n%s%s%s\n\n", leftBar, center, rightBar)
+	c.Fprintf(cl.outW, "\n%s%s%s\n\n", leftBar, center, rightBar)
 }
 
 // Warnf prints a warning message in red to errWriter
@@ -242,7 +242,7 @@ func (cl ConsoleLogger) Printf(format string, args ...interface{}) {
 		cl.printPrefix(false)
 		c.Fprintf(cl.outW, "%s", line)
 		// Don't use a background color for \n.
-		cl.color(noColor).Fprintf(cl.outW, "\n")
+		noColor.Fprintf(cl.outW, "\n")
 	}
 }
 
