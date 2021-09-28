@@ -51,8 +51,6 @@ redirects:
     ci-examples/gh-actions-integration: ci-integration/guides/gh-actions-integration.md
     ci-examples/circle-integration: ci-integration/guides/circle-integration.md
     ci-examples/codebuild-integration: ci-integration/guides/codebuild-integration.md
-    
-    # todo: verify redirects when previewing changes
     basics/part-2-executing-a-build: basics/part-2-running-the-build.md
     basics/part-3-detailed-explanation: basics/part-1b-detailed-explanation.md
     basics/part-4-adding-dependencies-in-the-mix: basics/part-3-adding-dependencies.md
@@ -61,7 +59,6 @@ redirects:
     basics/part-3-adding-dependencies-in-the-mix: basics/part-3-adding-dependencies.md
     basics/part-4-efficient-caching-of-dependencies: basics/part-4-caching-dependencies.md
     basics/part-5-reduce-code-duplication: basics/part-5-reducing-code-duplication.md
-
     examples/go: examples/examples.md
     examples/other-earthfile-examples: examples/examples.md
     examples/other-earthfile-examples/earthly: examples/examples.md
