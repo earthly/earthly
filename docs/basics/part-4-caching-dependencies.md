@@ -1,4 +1,4 @@
-# Efficient caching of dependencies
+# Caching dependencies
 
 The reason the build is inefficient is because we have not made proper use of caching. When a file changes, the corresponding `COPY` command is re-executed without cache, causing all commands after it to also re-execute without cache.
 
@@ -30,7 +30,7 @@ docker:
 {% hint style='info' %}
 ##### Note
 
-To copy [these files](https://github.com/earthly/earthly/tree/main/examples/tutorial/go/part4) locally run
+To copy the files for [this example ( Part 4 )](https://github.com/earthly/earthly/tree/main/examples/tutorial/go/part4) run
 
 ```bash
 earthly --artifact github.com/earthly/earthly/examples/tutorial/go:main+part4/part4 ./part4
@@ -66,7 +66,7 @@ docker:
 {% hint style='info' %}
 ##### Note
 
-To copy [these files](https://github.com/earthly/earthly/tree/main/examples/tutorial/js/part4) locally run
+To copy the files for [this example ( Part 4 )](https://github.com/earthly/earthly/tree/main/examples/tutorial/js/part4) run
 
 ```bash
 earthly --artifact github.com/earthly/earthly/examples/tutorial/js:main+part4/part4 ./part4
@@ -102,7 +102,7 @@ docker:
 {% hint style='info' %}
 ##### Note
 
-To copy [these files](https://github.com/earthly/earthly/tree/main/examples/tutorial/java/part4) locally run
+To copy the files for [this example ( Part 4 )](https://github.com/earthly/earthly/tree/main/examples/tutorial/java/part4) run
 
 ```bash
 earthly --artifact github.com/earthly/earthly/examples/tutorial/java:main+part4/part4 ./part4
@@ -139,7 +139,7 @@ docker:
 {% hint style='info' %}
 ##### Note
 
-To copy [these files](https://github.com/earthly/earthly/tree/main/examples/tutorial/python/part4) locally run
+To copy the files for [this example ( Part 4 )](https://github.com/earthly/earthly/tree/main/examples/tutorial/python/part4) run
 
 ```bash
 earthly --artifact github.com/earthly/earthly/examples/tutorial/python:main+part4/part4 ./part4
@@ -151,4 +151,4 @@ For a primer into Dockerfile layer caching see [this article](https://pythonspee
 
 ## Continue tutorial
 
-👉 [Part 5: Reduce code duplication](./part-5-reduce-code-duplication.md)
+👉 [Part 5: Reducing code duplication](./part-5-reduce-code-duplication.md)

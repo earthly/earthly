@@ -1,5 +1,5 @@
 
-# Adding dependencies in the mix
+# Adding dependencies
 
 Let's imagine now that in our simple app, we now want to add a programming language dependency. Here's how our build might look like as a result
 
@@ -58,7 +58,7 @@ docker:
 {% hint style='info' %}
 ##### Note
 
-To copy [these files](https://github.com/earthly/earthly/tree/main/examples/tutorial/go/part3) locally run
+To copy the files for [this example ( Part 3 )](https://github.com/earthly/earthly/tree/main/examples/tutorial/go/part3) run
 
 ```bash
 earthly --artifact github.com/earthly/earthly/examples/tutorial/go:main+part3/part3 ./part3
@@ -153,7 +153,7 @@ docker:
 {% hint style='info' %}
 ##### Note
 
-To copy [these files](https://github.com/earthly/earthly/tree/main/examples/tutorial/js/part3) locally run
+To copy the files for [this example ( Part 3 )](https://github.com/earthly/earthly/tree/main/examples/tutorial/js/part3) run
 
 ```bash
 earthly --artifact github.com/earthly/earthly/examples/tutorial/js:main+part3/part3 ./part3
@@ -232,7 +232,7 @@ docker:
 {% hint style='info' %}
 ##### Note
 
-To copy [these files](https://github.com/earthly/earthly/tree/main/examples/tutorial/java/part3) locally run
+To copy the files for [this example ( Part 3 )](https://github.com/earthly/earthly/tree/main/examples/tutorial/java/part3) run
 
 ```bash
 earthly --artifact github.com/earthly/earthly/examples/tutorial/java:main+part3/part3 ./part3
@@ -286,7 +286,7 @@ docker:
 {% hint style='info' %}
 ##### Note
 
-To copy [these files](https://github.com/earthly/earthly/tree/main/examples/tutorial/python/part3) locally run
+To copy the files for [this example ( Part 3 )](https://github.com/earthly/earthly/tree/main/examples/tutorial/python/part3) run
 
 ```bash
 earthly --artifact github.com/earthly/earthly/examples/tutorial/python:main+part3/part3 ./part3
@@ -301,4 +301,4 @@ To improve the speed we will make some changes in part 4 of the tutorial.
 
 ## Continue tutorial
 
-👉 [Part 4: Efficient caching of dependencies](./part-4-efficient-caching-of-dependencies.md)
+👉 [Part 4: Caching dependencies](./part-4-efficient-caching-of-dependencies.md)

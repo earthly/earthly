@@ -67,3 +67,9 @@ redirects:
     examples/per-language-earthfile-examples/js: examples/examples.md
     examples/per-language-earthfile-examples/python: examples/examples.md
     guides/configuring-registries: guides/auth.md
+
+    # todo: verify redirects when previewing changes
+    examples/part-2-detailed-explanation: examples/part-1b-detailed-explanation.md
+    examples/part-3-adding-dependencies-in-the-mix: examples/part-3-adding-dependencies.md
+    examples/part-4-efficient-caching-of-dependencies: examples/part-4-caching-dependencies.md
+    examples/part-5-reduce-code-duplication: examples/part-5-reducing-code-duplication.md
