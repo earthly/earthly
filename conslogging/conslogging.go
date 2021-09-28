@@ -31,6 +31,8 @@ const (
 	DefaultPadding int = 20
 )
 
+const barWidth = 80
+
 var currentConsoleMutex sync.Mutex
 
 // ConsoleLogger is a writer for consoles.
@@ -148,8 +150,8 @@ func (cl ConsoleLogger) PrintPhaseHeader(phase string, disabled bool, special st
 		msg = fmt.Sprintf("%s (%s)", msg, special)
 	}
 	underlineLength := utf8.RuneCountInString(msg) + 2
-	if underlineLength < 16 {
-		underlineLength = 16
+	if underlineLength < barWidth {
+		underlineLength = barWidth
 	}
 	c.Fprintf(cl.outW, "\n %s\n%s\n\n", msg, strings.Repeat("—", underlineLength))
 }
@@ -166,7 +168,7 @@ func (cl ConsoleLogger) PrintPhaseFooter(phase string, disabled bool, special st
 func (cl ConsoleLogger) PrintSuccess() {
 	cl.mu.Lock()
 	defer cl.mu.Unlock()
-	cl.PrintBar(successColor, "🌍 Earthly Build  ✔️ SUCCESS", "")
+	cl.PrintBar(successColor, "🌍 Earthly Build  ✅ SUCCESS", "")
 }
 
 // PrintFailure prints the failure message.
@@ -190,18 +192,25 @@ func (cl ConsoleLogger) PrefixColor() *color.Color {
 
 // PrintBar prints an earthly message bar.
 func (cl ConsoleLogger) PrintBar(c *color.Color, msg, phase string) {
+	center := msg
 	if phase != "" {
-		msg = fmt.Sprintf("%s [%s]", msg, phase)
+		center = fmt.Sprintf("%s [%s]", msg, phase)
+	}
+	center = fmt.Sprintf(" %s ", center)
+
+	sideWidth := (barWidth - utf8.RuneCountInString(center)) / 2
+	if sideWidth < 0 {
+		sideWidth = 0
+	}
+	eqBar := strings.Repeat("=", sideWidth)
+	leftBar := eqBar
+	rightBar := eqBar
+	if utf8.RuneCountInString(center)%2 == 1 && sideWidth > 0 {
+		// Ensure the width is always barWidth
+		rightBar += "="
 	}
 
-	totalWidth := 80
-	rightWidth := totalWidth - len(msg)
-	if rightWidth < 0 {
-		rightWidth = 0
-	}
-	eqBar := strings.Repeat("=", rightWidth)
-
-	cl.color(c).Fprintf(cl.outW, "\n %s %s\n\n", msg, eqBar)
+	cl.color(c).Fprintf(cl.outW, "\n%s%s%s\n\n", leftBar, center, rightBar)
 }
 
 // Warnf prints a warning message in red to errWriter

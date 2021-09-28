@@ -38,11 +38,11 @@ import (
 
 const (
 	// PhaseInit is the phase text for the init phase.
-	PhaseInit = "1. Init ⚙️"
+	PhaseInit = "1. Init 🚀"
 	// PhaseBuild is the phase text for the build phase.
 	PhaseBuild = "2. Build 🔧"
 	// PhasePush is the phase text for the push phase.
-	PhasePush = "3. Push ☁️"
+	PhasePush = "3. Push 🌟"
 	// PhaseOutput is the phase text for the output phase.
 	PhaseOutput = "4. Output 🎁"
 )
