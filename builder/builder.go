@@ -36,6 +36,13 @@ import (
 	"golang.org/x/sync/semaphore"
 )
 
+const (
+	PHASE_INIT   = "1. Init ⚙️"
+	PHASE_BUILD  = "2. Build 🔧"
+	PHASE_PUSH   = "3. Push ☁️"
+	PHASE_OUTPUT = "4. Output 🎁"
+)
+
 // Opt represent builder options.
 type Opt struct {
 	SessionID              string
@@ -155,7 +162,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 			}
 		}
 	}
-	sp := newSuccessPrinter(successFun("2. Build 🔧"), successFun("3. Push ☁️"))
+	sp := newSuccessPrinter(successFun(PHASE_BUILD), successFun(PHASE_PUSH))
 
 	sharedLocalStateCache := earthfile2llb.NewSharedLocalStateCache()
 
@@ -427,7 +434,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 		}
 		return dockerPullLocalImages(childCtx, b.opt.LocalRegistryAddr, pullMap, b.opt.Console)
 	}
-	err := b.s.buildMainMulti(ctx, bf, onImage, onArtifact, onFinalArtifact, onPull, "2. Build 🔧")
+	err := b.s.buildMainMulti(ctx, bf, onImage, onArtifact, onFinalArtifact, onPull, PHASE_BUILD)
 	if err != nil {
 		return nil, errors.Wrapf(err, "build main")
 	}
@@ -444,7 +451,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 			}
 		}
 		if hasRunPush {
-			err = b.s.buildMainMulti(ctx, bf, onImage, onArtifact, onFinalArtifact, onPull, "3. Push ☁️")
+			err = b.s.buildMainMulti(ctx, bf, onImage, onArtifact, onFinalArtifact, onPull, PHASE_PUSH)
 			if err != nil {
 				return nil, errors.Wrapf(err, "build push")
 			}
@@ -452,19 +459,19 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 		sp.printCurrentSuccess()
 	} else {
 		if opt.PrintPhases {
-			b.opt.Console.PrintPhaseHeader("3. Push (disabled) ☁️", true, false)
+			b.opt.Console.PrintPhaseHeader(PHASE_PUSH, true, "")
 			b.opt.Console.Printf("To enable pushing use\n\n\t\tearthly --push ...\n")
-			b.opt.Console.PrintPhaseFooter("3. Push (disabled) ☁️", true, false)
+			b.opt.Console.PrintPhaseFooter(PHASE_PUSH, true, "")
 		}
 	}
 
 	if opt.NoOutput {
 		if opt.PrintPhases {
-			b.opt.Console.PrintPhaseHeader("4. Output (disabled) 🎁", true, false)
+			b.opt.Console.PrintPhaseHeader(PHASE_OUTPUT, true, "")
 		}
 	} else if opt.OnlyArtifact != nil {
 		if opt.PrintPhases {
-			b.opt.Console.PrintPhaseHeader("4. Output (single artifact) 🎁", false, true)
+			b.opt.Console.PrintPhaseHeader(PHASE_OUTPUT, false, "single artifact")
 		}
 		outDir, err := b.tempEarthlyOutDir()
 		if err != nil {
@@ -476,7 +483,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 		}
 	} else if opt.OnlyFinalTargetImages {
 		if opt.PrintPhases {
-			b.opt.Console.PrintPhaseHeader("4. Output (single image) 🎁", false, true)
+			b.opt.Console.PrintPhaseHeader(PHASE_OUTPUT, false, "single image")
 		}
 		for _, saveImage := range mts.Final.SaveImages {
 			shouldPush := opt.Push && saveImage.Push && saveImage.DockerTag != "" && saveImage.DoSave
@@ -497,7 +504,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 		}
 	} else {
 		if opt.PrintPhases {
-			b.opt.Console.PrintPhaseHeader("4. Output 🎁", false, false)
+			b.opt.Console.PrintPhaseHeader(PHASE_OUTPUT, false, "")
 		}
 		// This needs to match with the same index used during output.
 		// TODO: This is a little brittle to future code changes.
@@ -579,7 +586,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 	}
 
 	if opt.PrintPhases {
-		b.opt.Console.PrintPhaseFooter("4. Output 🎁", false, false)
+		b.opt.Console.PrintPhaseFooter(PHASE_OUTPUT, false, "")
 		b.opt.Console.PrintSuccess()
 	}
 	return mts, nil

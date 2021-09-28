@@ -135,24 +135,26 @@ func (cl ConsoleLogger) WithWriter(w io.Writer) ConsoleLogger {
 }
 
 // PrintPhaseHeader prints the phase header.
-func (cl ConsoleLogger) PrintPhaseHeader(phase string, disabled bool, special bool) {
+func (cl ConsoleLogger) PrintPhaseHeader(phase string, disabled bool, special string) {
 	cl.mu.Lock()
 	defer cl.mu.Unlock()
+	msg := phase
 	c := cl.color(phaseColor)
 	if disabled {
 		c = cl.color(disabledPhaseColor)
-	} else if special {
+	} else if special != "" {
 		c = cl.color(specialPhaseColor)
+		msg = fmt.Sprintf("%s (%s)", msg, special)
 	}
-	underlineLength := utf8.RuneCountInString(phase) + 2
+	underlineLength := utf8.RuneCountInString(msg) + 2
 	if underlineLength < 16 {
 		underlineLength = 16
 	}
-	c.Fprintf(cl.outW, "\n %s\n%s\n\n", phase, strings.Repeat("—", underlineLength))
+	c.Fprintf(cl.outW, "\n %s\n%s\n\n", msg, strings.Repeat("—", underlineLength))
 }
 
 // PrintPhaseFooter prints the phase footer.
-func (cl ConsoleLogger) PrintPhaseFooter(phase string, disabled bool, special bool) {
+func (cl ConsoleLogger) PrintPhaseFooter(phase string, disabled bool, special string) {
 	cl.mu.Lock()
 	defer cl.mu.Unlock()
 	c := cl.color(noColor)

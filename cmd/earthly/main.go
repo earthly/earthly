@@ -2577,7 +2577,7 @@ func (app *earthlyApp) warnIfArgContainsBuildArg(flagArgs []string) {
 	}
 }
 func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []string) error {
-	app.console.PrintPhaseHeader("1. Init ⚙️", false, false)
+	app.console.PrintPhaseHeader(builder.PHASE_INIT, false, "")
 	app.warnIfArgContainsBuildArg(flagArgs)
 	var target domain.Target
 	var artifact domain.Artifact
@@ -2823,7 +2823,7 @@ func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []st
 		return errors.Wrap(err, "new builder")
 	}
 
-	app.console.PrintPhaseFooter("1. Init ⚙️", false, false)
+	app.console.PrintPhaseFooter(builder.PHASE_INIT, false, "")
 
 	if len(platformsSlice) != 1 {
 		return errors.Errorf("multi-platform builds are not yet supported on the command line. You may, however, create a target with the instruction BUILD --plaform ... --platform ... %s", target)

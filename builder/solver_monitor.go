@@ -259,7 +259,7 @@ func (sm *solverMonitor) monitorProgress(ctx context.Context, ch chan *client.So
 	if !sideRun {
 		sm.mu.Lock()
 		if !sm.ongoing {
-			sm.console.PrintPhaseHeader(phaseText, false, false)
+			sm.console.PrintPhaseHeader(phaseText, false, "")
 		}
 		sm.ongoing = true
 		sm.mu.Unlock()
@@ -296,7 +296,7 @@ Loop:
 		if sm.success && !sm.printedSuccess {
 			sm.lastOutputWasProgress = false
 			sm.lastOutputWasNoOutputUpdate = false
-			sm.console.PrintPhaseFooter(phaseText, false, false)
+			sm.console.PrintPhaseFooter(phaseText, false, "")
 			sm.printedSuccess = true
 		}
 		sm.ongoing = false
@@ -483,7 +483,7 @@ func (sm *solverMonitor) SetSuccess(phaseText string) {
 	if !sm.ongoing {
 		sm.lastOutputWasProgress = false
 		sm.lastOutputWasNoOutputUpdate = false
-		sm.console.PrintPhaseFooter(phaseText, false, false)
+		sm.console.PrintPhaseFooter(phaseText, false, "")
 		sm.printedSuccess = true
 	}
 }
