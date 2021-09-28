@@ -218,4 +218,4 @@ With Earthly you have the ability to pass such artifacts or images between targe
 
 ## Continue tutorial
 
-👉 [Part 2: Executing the build](./part-2-executing-the-build.md)
+👉 [Part 1b: Detailed Explanation](./part-1b-detailed-explanation.md)

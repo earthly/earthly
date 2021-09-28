@@ -296,4 +296,4 @@ Targets have a particular referencing convention which helps Earthly to identify
 
 ## Continue tutorial
 
-👉 [Part 3: Adding dependencies](./part-3-adding-dependencies-in-the-mix.md)
+👉 [Part 2: Running the build](./part-2-running-the-build.md)

@@ -8,8 +8,8 @@ This tutorial will walk you through a basic example of using Earthly.
 * [Part 1: A simple Earthfile](./part-1-a-simple-earthfile.md)
 * [Part 1b: Detailed explanation](./part-1b-detailed-explanation.md)
 * [Part 2: Running the build](./part-2-running-the-build.md)
-* [Part 3: Adding dependencies](./part-2-adding-dependencies.md)
-* [Part 4: Caching dependencies](./part-3-caching-dependencies.md)
+* [Part 3: Adding dependencies](./part-3-adding-dependencies.md)
+* [Part 4: Caching dependencies](./part-4-caching-dependencies.md)
 * [Part 5: Reducing code duplication](./part-5-reducing-code-duplication.md)
 * [Final words](./final-words.md)
 

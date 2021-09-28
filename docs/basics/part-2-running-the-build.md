@@ -1,4 +1,4 @@
-# Executing the build
+# Running the build
 
 In this example, we can see two explicit targets: `build` and `docker`. In order to execute the build, we can run, for example:
 
@@ -46,3 +46,7 @@ docker run --rm python-example:latest
 ```
 
 {% endmethod %}
+
+## Continue tutorial
+
+👉 [Part 3: Adding dependencies](./part-3-adding-dependencies.md)
