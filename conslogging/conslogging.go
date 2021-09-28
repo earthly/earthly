@@ -142,6 +142,7 @@ func (cl ConsoleLogger) PrintPhaseHeader(phase string, disabled bool, special st
 	c := cl.color(phaseColor)
 	if disabled {
 		c = cl.color(disabledPhaseColor)
+		msg = fmt.Sprintf("%s (disabled)", msg)
 	} else if special != "" {
 		c = cl.color(specialPhaseColor)
 		msg = fmt.Sprintf("%s (%s)", msg, special)
