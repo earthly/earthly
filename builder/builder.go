@@ -37,10 +37,14 @@ import (
 )
 
 const (
-	PHASE_INIT   = "1. Init ⚙️"
-	PHASE_BUILD  = "2. Build 🔧"
-	PHASE_PUSH   = "3. Push ☁️"
-	PHASE_OUTPUT = "4. Output 🎁"
+	// PhaseInit is the phase text for the init phase.
+	PhaseInit = "1. Init ⚙️"
+	// PhaseBuild is the phase text for the build phase.
+	PhaseBuild = "2. Build 🔧"
+	// PhasePush is the phase text for the push phase.
+	PhasePush = "3. Push ☁️"
+	// PhaseOutput is the phase text for the output phase.
+	PhaseOutput = "4. Output 🎁"
 )
 
 // Opt represent builder options.
@@ -162,7 +166,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 			}
 		}
 	}
-	sp := newSuccessPrinter(successFun(PHASE_BUILD), successFun(PHASE_PUSH))
+	sp := newSuccessPrinter(successFun(PhaseBuild), successFun(PhasePush))
 
 	sharedLocalStateCache := earthfile2llb.NewSharedLocalStateCache()
 
@@ -434,7 +438,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 		}
 		return dockerPullLocalImages(childCtx, b.opt.LocalRegistryAddr, pullMap, b.opt.Console)
 	}
-	err := b.s.buildMainMulti(ctx, bf, onImage, onArtifact, onFinalArtifact, onPull, PHASE_BUILD)
+	err := b.s.buildMainMulti(ctx, bf, onImage, onArtifact, onFinalArtifact, onPull, PhaseBuild)
 	if err != nil {
 		return nil, errors.Wrapf(err, "build main")
 	}
@@ -451,7 +455,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 			}
 		}
 		if hasRunPush {
-			err = b.s.buildMainMulti(ctx, bf, onImage, onArtifact, onFinalArtifact, onPull, PHASE_PUSH)
+			err = b.s.buildMainMulti(ctx, bf, onImage, onArtifact, onFinalArtifact, onPull, PhasePush)
 			if err != nil {
 				return nil, errors.Wrapf(err, "build push")
 			}
@@ -459,19 +463,19 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 		sp.printCurrentSuccess()
 	} else {
 		if opt.PrintPhases {
-			b.opt.Console.PrintPhaseHeader(PHASE_PUSH, true, "")
+			b.opt.Console.PrintPhaseHeader(PhasePush, true, "")
 			b.opt.Console.Printf("To enable pushing use\n\n\t\tearthly --push ...\n")
-			b.opt.Console.PrintPhaseFooter(PHASE_PUSH, true, "")
+			b.opt.Console.PrintPhaseFooter(PhasePush, true, "")
 		}
 	}
 
 	if opt.NoOutput {
 		if opt.PrintPhases {
-			b.opt.Console.PrintPhaseHeader(PHASE_OUTPUT, true, "")
+			b.opt.Console.PrintPhaseHeader(PhaseOutput, true, "")
 		}
 	} else if opt.OnlyArtifact != nil {
 		if opt.PrintPhases {
-			b.opt.Console.PrintPhaseHeader(PHASE_OUTPUT, false, "single artifact")
+			b.opt.Console.PrintPhaseHeader(PhaseOutput, false, "single artifact")
 		}
 		outDir, err := b.tempEarthlyOutDir()
 		if err != nil {
@@ -483,7 +487,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 		}
 	} else if opt.OnlyFinalTargetImages {
 		if opt.PrintPhases {
-			b.opt.Console.PrintPhaseHeader(PHASE_OUTPUT, false, "single image")
+			b.opt.Console.PrintPhaseHeader(PhaseOutput, false, "single image")
 		}
 		for _, saveImage := range mts.Final.SaveImages {
 			shouldPush := opt.Push && saveImage.Push && saveImage.DockerTag != "" && saveImage.DoSave
@@ -504,7 +508,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 		}
 	} else {
 		if opt.PrintPhases {
-			b.opt.Console.PrintPhaseHeader(PHASE_OUTPUT, false, "")
+			b.opt.Console.PrintPhaseHeader(PhaseOutput, false, "")
 		}
 		// This needs to match with the same index used during output.
 		// TODO: This is a little brittle to future code changes.
@@ -586,7 +590,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 	}
 
 	if opt.PrintPhases {
-		b.opt.Console.PrintPhaseFooter(PHASE_OUTPUT, false, "")
+		b.opt.Console.PrintPhaseFooter(PhaseOutput, false, "")
 		b.opt.Console.PrintSuccess()
 	}
 	return mts, nil
