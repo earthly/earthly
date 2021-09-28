@@ -46,7 +46,3 @@ docker run --rm python-example:latest
 ```
 
 {% endmethod %}
-
-## Continue tutorial
-
-👉 [Part 3: Adding dependencies](./part-3-adding-dependencies.md)

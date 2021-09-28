@@ -157,6 +157,3 @@ earthly --artifact github.com/earthly/earthly/examples/tutorial/python:main+part
 
 {% endmethod %}
 
-## Continue tutorial
-
-👉 [Final words](./final-words.md)

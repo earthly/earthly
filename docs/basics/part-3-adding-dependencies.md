@@ -299,6 +299,3 @@ However, as we build this new setup and make changes to the main source code, we
 
 To improve the speed we will make some changes in part 4 of the tutorial.
 
-## Continue tutorial
-
-👉 [Part 4: Caching dependencies](./part-4-caching-dependencies.md)

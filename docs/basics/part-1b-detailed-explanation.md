@@ -293,7 +293,3 @@ Targets have a particular referencing convention which helps Earthly to identify
 {% endhint %}
 
 <img src="../guides/img/ref-infographic-v2.png" alt="Target and artifact reference syntax" title="Reference targets using +" width="500px" />
-
-## Continue tutorial
-
-👉 [Part 2: Running the build](./part-2-running-the-build.md)
