@@ -180,7 +180,7 @@ release-homebrew:
         openssh \
         util-linux
     RUN apk add --update --no-cache --repository=http://dl-cdn.alpinelinux.org/alpine/edge/testing hub
-    
+
     # Deps and preconditions.
     ARG RELEASE_TAG
     ARG GIT_USERNAME="griswoldthecat"
@@ -209,11 +209,10 @@ release-homebrew:
     RUN --secret GIT_PASSWORD="$GITHUB_TOKEN_SECRET_PATH" --no-cache \
         git clone "https://$GITHUB_USER@github.com/$GITHUB_USER/$BREW_REPO.git" .
 
+    # Make the change in a new branch.
     ARG RELEASE_BRANCH="release-$RELEASE_TAG"
     RUN git switch -c "$RELEASE_BRANCH"
 
-    # Make the change in a new branch.
-    #RUN git checkout -b "release-$RELEASE_TAG"
     RUN mkdir -p /params
     RUN curl -L "$NEW_URL" | sha256sum | cut -f 1 -d ' ' > /params/downloadsha256
     COPY --build-arg VERSION=$RELEASE_TAG \
@@ -232,7 +231,7 @@ release-homebrew:
     RUN echo "Diff:" && git diff
     RUN version=${RELEASE_TAG#v} ;\
         echo version=$version ;\
-        git commit -a -m "earthly $version" || true
+        git commit -a --allow-empty -m "earthly $version"
     RUN --secret GIT_PASSWORD="$GITHUB_TOKEN_SECRET_PATH" \
         --push git push --force --set-upstream origin "$RELEASE_BRANCH"
 
