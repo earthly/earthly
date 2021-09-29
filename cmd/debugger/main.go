@@ -219,7 +219,7 @@ func main() {
 	if forceInteractive {
 		quotedCmd := shellescape.QuoteCommand(args)
 
-		conslogger.PrintBar(color.New(color.FgHiMagenta), " 🌍 Earthly Build Interactive Session ", quotedCmd)
+		conslogger.PrintBar(color.New(color.FgHiMagenta), "🌍 Earthly Build Interactive Session", quotedCmd)
 
 		// Sometimes the interactive shell doesn't correctly get a newline
 		// Take a brief pause and issue a new line as a work around.

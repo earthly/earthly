@@ -39,7 +39,9 @@ import (
 
 const (
 	// PhaseInit is the phase text for the init phase.
-	PhaseInit = "1. Init 🚀"
+	// @#
+	// PhaseInit = "1. Init 🚀"
+	PhaseInit = "1. Init (no emoji @#)"
 	// PhaseBuild is the phase text for the build phase.
 	PhaseBuild = "2. Build 🔧"
 	// PhasePush is the phase text for the push phase.
@@ -328,7 +330,9 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 
 			if performSaveLocals {
 				for _, saveLocal := range b.targetPhaseArtifacts(sts) {
-					ref, err := b.artifactStateToRef(childCtx, gwClient, sts.SeparateArtifactsState[saveLocal.Index], sts.Platform)
+					ref, err := b.artifactStateToRef(
+						childCtx, gwClient, sts.SeparateArtifactsState[saveLocal.Index],
+						sts.Platform)
 					if err != nil {
 						return nil, err
 					}
@@ -448,7 +452,9 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 		if err != nil {
 			return nil, err
 		}
-		err = b.saveArtifactLocally(ctx, outputConsole, *opt.OnlyArtifact, outDir, opt.OnlyArtifactDestPath, mts.Final.ID, opt, false)
+		err = b.saveArtifactLocally(
+			ctx, outputConsole, *opt.OnlyArtifact, outDir, opt.OnlyArtifactDestPath,
+			mts.Final.ID, opt, false)
 		if err != nil {
 			return nil, err
 		}
@@ -500,7 +506,9 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 					Target:   sts.Target,
 					Artifact: saveLocal.ArtifactPath,
 				}
-				err = b.saveArtifactLocally(ctx, outputConsole, artifact, artifactDir, saveLocal.DestPath, sts.ID, opt, saveLocal.IfExists)
+				err = b.saveArtifactLocally(
+					ctx, outputConsole, artifact, artifactDir, saveLocal.DestPath,
+					sts.ID, opt, saveLocal.IfExists)
 				if err != nil {
 					return nil, err
 				}
@@ -519,7 +527,9 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 							Target:   sts.Target,
 							Artifact: saveLocal.ArtifactPath,
 						}
-						err = b.saveArtifactLocally(ctx, outputConsole, artifact, artifactDir, saveLocal.DestPath, sts.ID, opt, saveLocal.IfExists)
+						err = b.saveArtifactLocally(
+							ctx, outputConsole, artifact, artifactDir, saveLocal.DestPath,
+							sts.ID, opt, saveLocal.IfExists)
 						if err != nil {
 							return nil, err
 						}
@@ -531,12 +541,18 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 					}
 
 					for _, saveImage := range sts.RunPush.SaveImages {
-						pushConsole.Printf("Did not push %s as evaluating the image would have caused a RUN --push to execute", saveImage.DockerTag)
-						outputConsole.Printf("Did not output %s locally, as evaluating the image would have caused a RUN --push to execute", saveImage.DockerTag)
+						pushConsole.Printf(
+							"Did not push image %s as evaluating the image would "+
+								"have caused a RUN --push to execute", saveImage.DockerTag)
+						outputConsole.Printf("Did not output image %s locally, "+
+							"as evaluating the image would have caused a "+
+							"RUN --push to execute", saveImage.DockerTag)
 					}
 
 					if sts.RunPush.InteractiveSession.Initialized {
-						pushConsole.Printf("Did not start an %s interactive session with command %s\n", sts.RunPush.InteractiveSession.Kind, sts.RunPush.InteractiveSession.CommandStr)
+						pushConsole.Printf("Did not start an %s interactive session "+
+							"with command %s\n", sts.RunPush.InteractiveSession.Kind,
+							sts.RunPush.InteractiveSession.CommandStr)
 					}
 				}
 			}
@@ -771,7 +787,8 @@ func (b *Builder) tempEarthlyOutDir() (string, error) {
 func trimFilePathPrefix(prefix string, thePath string, console conslogging.ConsoleLogger) string {
 	ret, err := filepath.Rel(prefix, thePath)
 	if err != nil {
-		console.Warnf("Warning: Could not compute relative path for %s as being relative to %s: %s\n", thePath, prefix, err.Error())
+		console.Warnf("Warning: Could not compute relative path for %s "+
+			"as being relative to %s: %s\n", thePath, prefix, err.Error())
 		return thePath
 	}
 	return ret

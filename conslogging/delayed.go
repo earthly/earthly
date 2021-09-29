@@ -4,7 +4,7 @@ import (
 	"fmt"
 )
 
-// DelayedLogger is a ConsoleLogger that queues up messages until Flush is called.
+// DelayedLogger is a logger that queues up messages until Flush is called.
 type DelayedLogger struct {
 	cl        *ConsoleLogger
 	curPrefix string
