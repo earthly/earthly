@@ -146,11 +146,11 @@ func (cl ConsoleLogger) PrintPhaseHeader(phase string, disabled bool, special st
 	c := cl.color(phaseColor)
 	// @#
 	cl.errW.Write([]byte("\n"))
-	c.Fprintf(cl.errW, "testtesttest 1")
+	c.Fprintf(cl.errW, "\ntesttesttest 1")
 	cl.errW.Write([]byte("\n"))
-	c.Fprintf(cl.errW, "testtesttest 2")
+	c.Fprintf(cl.errW, "testtesttest 2\ntesttesttest 2")
 	cl.errW.Write([]byte("\n"))
-	phaseColor.Fprintf(cl.errW, "testtesttest 3")
+	phaseColor.Fprintf(cl.errW, "\ntestt\n\nesttest 3\n")
 	cl.errW.Write([]byte("\n"))
 	// }@#
 	if disabled {
@@ -164,7 +164,11 @@ func (cl ConsoleLogger) PrintPhaseHeader(phase string, disabled bool, special st
 	if underlineLength < barWidth {
 		underlineLength = barWidth
 	}
-	c.Fprintf(cl.errW, "\n %s\n%s\n\n", msg, strings.Repeat("—", underlineLength))
+	cl.errW.Write([]byte("\n"))
+	c.Fprintf(cl.errW, " %s", msg)
+	cl.errW.Write([]byte("\n"))
+	c.Fprintf(cl.errW, "%s", msg, strings.Repeat("—", underlineLength))
+	cl.errW.Write([]byte("\n\n"))
 }
 
 // PrintPhaseFooter prints the phase footer.
