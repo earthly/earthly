@@ -24,7 +24,7 @@ def parse_line(line):
     '''
     parses lines of the form "# <title>", "## <sub title>", etc.
     if line is not a header, a regular string is returned.
-    headers must contain exactly once space between the '#' and title, and may not contain trailling space.
+    headers must contain exactly one space between the '#' and title, and may not contain trailing spaces.
     tabs are not friends.
     '''
     num_headers = 0

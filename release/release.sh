@@ -49,4 +49,4 @@ fi
 # and when it is empty, we would use https://pkg.earthly.dev/...
 #../earthly --push --build-arg GITHUB_USER --build-arg EARTHLY_REPO --build-arg BREW_REPO --build-arg DOCKERHUB_USER --build-arg RELEASE_TAG +release-repo
 # until then, we will just print this out:
-echo "TODO: the apt/yum release must be triggered seperately; once we get https://test-pkg.earthly.dev/ setup"
+echo "TODO: the apt/yum release must be triggered seperately; until we get https://test-pkg.earthly.dev/ setup"
