@@ -44,8 +44,12 @@ func DefaultAddressForSetting(setting string) (string, error) {
 	switch setting {
 	case containerutil.FrontendDockerShell:
 		return DockerAddress, nil
+
 	case containerutil.FrontendPodmanShell:
 		return TCPAddress, nil // Right now, podman only works over TCP. There are weird errors when trying to use the provided helper from buildkit.
+
+	case containerutil.FrontendStub:
+		return DockerAddress, nil // Maintiain old behavior
 	}
 
 	return "", fmt.Errorf("no default buildkit address for %s", setting)

@@ -1022,7 +1022,8 @@ func (app *earthlyApp) before(context *cli.Context) error {
 
 	fe, err := containerutil.FrontendForSetting(context.Context, app.cfg.Global.ContainerFrontend)
 	if err != nil {
-		return errors.Wrapf(err, "%s frontend could not be initialized", app.cfg.Global.ContainerFrontend)
+		app.console.Warnf("%s frontend could not be initialized, using stub: %s", app.cfg.Global.ContainerFrontend, err.Error())
+		fe, _ = containerutil.NewStubFrontend(context.Context)
 	}
 	app.containerFrontend = fe
 
@@ -1098,6 +1099,7 @@ func (app *earthlyApp) setupAndValidateAddresses(context *cli.Context) error {
 			if err != nil {
 				return errors.Wrap(err, "could not validate default address")
 			}
+
 		}
 	}
 

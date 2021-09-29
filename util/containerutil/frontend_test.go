@@ -379,8 +379,8 @@ func TestFrontendImageInfo(t *testing.T) {
 
 			assert.Len(t, info, 2)
 
-			assert.Contains(t, tC.refList[0], info[tC.refList[0]].Tags)
-			assert.Contains(t, tC.refList[1], info[tC.refList[1]].Tags)
+			assert.Contains(t, info[tC.refList[0]].Tags, tC.refList[0])
+			assert.Contains(t, info[tC.refList[1]].Tags, tC.refList[1])
 		})
 	}
 }
@@ -461,8 +461,8 @@ func TestFrontendImageTag(t *testing.T) {
 			info, err = fe.ImageInfo(ctx, tC.tagList...)
 			assert.NoError(t, err)
 
-			assert.Contains(t, tC.tagList[0], info[tC.tagList[0]].Tags)
-			assert.Contains(t, tC.tagList[1], info[tC.tagList[1]].Tags)
+			assert.Contains(t, info[tC.tagList[0]].Tags, tC.tagList[0])
+			assert.Contains(t, info[tC.tagList[1]].Tags, tC.tagList[1])
 		})
 	}
 }
