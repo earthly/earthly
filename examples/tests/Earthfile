@@ -791,7 +791,7 @@ true-false-flag-invalid:
 
 sequential-locally-test:
     DO +RUN_EARTHLY --earthfile=sequential-locally.earth --use_tmpfs=false --target="+run-lots" --post_command="2>output.txt"
-    RUN cat output.txt | grep -vw RUN | grep -vw char | grep -o '\(start\|mid\|end\).*' > output-filtered.txt
+    RUN cat output.txt | grep -vw RUN | grep -vw char | grep -o '\(start\|mid\|end\)\s[a-d]$' > output-filtered.txt
     RUN echo "set -e
 expectedmode=\"start\"
 expectedchar=\"?\"
