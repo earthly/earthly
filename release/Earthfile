@@ -54,7 +54,8 @@ release-notes:
     COPY changelogparser.py /usr/bin/changelogparser
     COPY ..+changelog/CHANGELOG.md .
     ARG RELEASE_TAG
-    RUN changelogparser CHANGELOG.md $RELEASE_TAG > notes.txt
+    RUN test -n "$RELEASE_TAG" || (echo "ERROR: RELEASE_TAG is missing" && exit 1)
+    RUN changelogparser --changelog CHANGELOG.md --version "$RELEASE_TAG" > notes.txt
     SAVE ARTIFACT notes.txt
 
 release-github:

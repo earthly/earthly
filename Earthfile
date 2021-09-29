@@ -148,6 +148,12 @@ changelog:
     COPY CHANGELOG.md .
     SAVE ARTIFACT CHANGELOG.md
 
+lint-changelog:
+    FROM python:3
+    COPY release/changelogparser.py /usr/bin/changelogparser
+    COPY CHANGELOG.md .
+    RUN changelogparser --changelog CHANGELOG.md
+
 shellrepeater:
     FROM +code
     ARG GOCACHE=/go-cache
@@ -398,6 +404,7 @@ test:
     BUILD +lint
     BUILD +lint-scripts
     BUILD +lint-newline-ending
+    BUILD +lint-changelog
     BUILD +unit-test
     BUILD ./ast/tests+all
     ARG DOCKERHUB_AUTH=true

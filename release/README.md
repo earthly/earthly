@@ -1,4 +1,4 @@
-# Releasing instructions
+## Releasing instructions
 
 ### earthly
 * Make sure you have access to the `earthly-technologies` organization secrets.
