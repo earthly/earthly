@@ -148,16 +148,15 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 ## v0.5.7 - 2021-03-13
 
 - raise error when duplicate target names exists in Earthfile
-- fix zsh autocompletion issue for mac users
 - basic user defined commands (experimental)
 - cleans up console output for saving artifacts (#848)
 - implement support for WORKDIR under LOCALLY targets
-
-If the autocompletion bug persists for anyone (e.g. seeing an error like `command not found: __earthly__`), and the issues persists after upgrading to v0.5.7; it might be necessary to delete the _earthly autocompletion file before re-running earthly bootstrap (or alternatively manually replace `__earthly__` with the full path to the earthly binary).
+- fix zsh autocompletion issue for mac users
+  If the autocompletion bug persists for anyone (e.g. seeing an error like `command not found: __earthly__`), and the issues persists after upgrading to v0.5.7; it might be necessary to delete the _earthly autocompletion file before re-running earthly bootstrap (or alternatively manually replace `__earthly__` with the full path to the earthly binary).
 
 ## v0.5.6 - 2021-03-09
 
-This release removes the `ongoing` updates "Provide intermittent updates on long-running targets (#844)" from the previous release, as it has issues in the interactive mode.
+- This release removes the `ongoing` updates "Provide intermittent updates on long-running targets (#844)" from the previous release, as it has issues in the interactive mode.
 
 ## v0.5.5 - 2021-03-08
 
@@ -223,15 +222,15 @@ This release removes the `ongoing` updates "Provide intermittent updates on long
 
 ## v0.5.0-rc2 - 2021-02-01
 
-No details provided
+- No details provided
 
 ## v0.5.0-rc1 - 2021-02-01
 
-No details provided
+- No details provided
 
 ## v0.4.6 - 2021-01-29
 
-No details provided
+- No details provided
 
 ## v0.4.5 - 2021-01-13
 
