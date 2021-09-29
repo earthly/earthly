@@ -136,7 +136,7 @@ func (dsf *dockerShellFrontend) VolumeInfo(ctx context.Context, volumeNames ...s
 			if name == volumeInfo.Name {
 				bytes, parseErr := humanize.ParseBytes(volumeInfo.Size)
 				if parseErr != nil {
-					multierror.Append(err, parseErr)
+					err = multierror.Append(err, parseErr)
 				} else {
 					results[name] = &VolumeInfo{
 						Name:       volumeInfo.Name,

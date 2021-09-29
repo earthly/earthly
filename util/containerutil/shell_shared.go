@@ -255,7 +255,7 @@ func (sf *shellFrontend) ImageTag(ctx context.Context, tags ...ImageTag) error {
 	for _, tag := range tags {
 		_, cmdErr := sf.commandContextOutput(ctx, "tag", tag.SourceRef, tag.TargetRef)
 		if cmdErr != nil {
-			multierror.Append(err)
+			err = multierror.Append(err, cmdErr)
 		}
 	}
 
