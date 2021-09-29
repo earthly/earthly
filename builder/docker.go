@@ -4,13 +4,12 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"os"
-	"os/exec"
 	"strings"
 
 	"github.com/containerd/containerd/platforms"
 	"github.com/docker/distribution/reference"
 	"github.com/earthly/earthly/conslogging"
+	"github.com/earthly/earthly/util/containerutil"
 	"github.com/earthly/earthly/util/llbutil"
 	"golang.org/x/sync/errgroup"
 
@@ -40,7 +39,7 @@ func platformSpecificImageName(imgName string, platform specs.Platform) (string,
 	return reference.FamiliarString(r2), nil
 }
 
-func loadDockerManifest(ctx context.Context, console conslogging.ConsoleLogger, parentImageName string, children []manifest) error {
+func loadDockerManifest(ctx context.Context, console conslogging.ConsoleLogger, fe containerutil.ContainerFrontend, parentImageName string, children []manifest) error {
 	if len(children) == 0 {
 		return errors.Errorf("no images in manifest list for %s", parentImageName)
 	}
@@ -68,58 +67,52 @@ func loadDockerManifest(ctx context.Context, console conslogging.ConsoleLogger, 
 		"Image %s is a multi-platform image. The following per-platform images have been produced:\n\t%s\n%s\n",
 		parentImageName, strings.Join(childImgs, "\n\t"), noteDetail)
 
-	cmd := exec.CommandContext(ctx, "docker", "tag", children[defaultChild].imageName, parentImageName)
-	cmd.Stdout = os.Stderr // Preserve desired output on stdout, all logs to stderr
-	cmd.Stderr = os.Stderr
-	err := cmd.Run()
+	err := fe.ImageTag(ctx, containerutil.ImageTag{
+		SourceRef: children[defaultChild].imageName,
+		TargetRef: parentImageName,
+	})
 	if err != nil {
 		return errors.Wrap(err, "docker tag default platform image")
 	}
 	return nil
 }
 
-func loadDockerTar(ctx context.Context, r io.ReadCloser, console conslogging.ConsoleLogger) error {
-	cmd := exec.CommandContext(ctx, "docker", "load")
-	cmd.Stdin = r
-	output, err := cmd.CombinedOutput()
+func loadDockerTar(ctx context.Context, fe containerutil.ContainerFrontend, r io.ReadCloser, console conslogging.ConsoleLogger) error {
+	err := fe.ImageLoad(ctx, r)
 	if err != nil {
-		console.Warnf("%+v output:\n%s\n", cmd.Args, string(output))
-		return errors.Wrapf(err, "docker load")
+		return errors.Wrapf(err, "load tar")
 	}
 	return nil
 }
 
-func dockerPullLocalImages(ctx context.Context, localRegistryAddr string, pullMap map[string]string, console conslogging.ConsoleLogger) error {
+func dockerPullLocalImages(ctx context.Context, fe containerutil.ContainerFrontend, localRegistryAddr string, pullMap map[string]string, console conslogging.ConsoleLogger) error {
 	eg, ctx := errgroup.WithContext(ctx)
 	for pullName, finalName := range pullMap {
 		pn := pullName
 		fn := finalName
 		eg.Go(func() error {
-			return dockerPullLocalImage(ctx, localRegistryAddr, pn, fn, console)
+			return dockerPullLocalImage(ctx, fe, localRegistryAddr, pn, fn, console)
 		})
 	}
 	return eg.Wait()
 }
 
-func dockerPullLocalImage(ctx context.Context, localRegistryAddr string, pullName string, finalName string, console conslogging.ConsoleLogger) error {
+func dockerPullLocalImage(ctx context.Context, fe containerutil.ContainerFrontend, localRegistryAddr string, pullName string, finalName string, console conslogging.ConsoleLogger) error {
 	fullPullName := fmt.Sprintf("%s/%s", localRegistryAddr, pullName)
-	cmd := exec.CommandContext(ctx, "docker", "pull", fullPullName)
-	output, err := cmd.CombinedOutput()
+	err := fe.ImagePull(ctx, fullPullName)
 	if err != nil {
-		console.Warnf("%+v output:\n%s\n", cmd.Args, string(output))
-		return errors.Wrapf(err, "docker pull")
+		return errors.Wrapf(err, "image pull")
 	}
-	cmd = exec.CommandContext(ctx, "docker", "tag", fullPullName, finalName)
-	output, err = cmd.CombinedOutput()
+	err = fe.ImageTag(ctx, containerutil.ImageTag{
+		SourceRef: fullPullName,
+		TargetRef: finalName,
+	})
 	if err != nil {
-		console.Warnf("%+v output:\n%s\n", cmd.Args, string(output))
-		return errors.Wrap(err, "docker tag after pull")
+		return errors.Wrap(err, "image tag after pull")
 	}
-	cmd = exec.CommandContext(ctx, "docker", "rmi", fullPullName)
-	output, err = cmd.CombinedOutput()
+	err = fe.ImageRemove(ctx, false, fullPullName)
 	if err != nil {
-		console.Warnf("%+v output:\n%s\n", cmd.Args, string(output))
-		return errors.Wrap(err, "docker rmi after pull and retag")
+		return errors.Wrap(err, "image rmi after pull and retag")
 	}
 	return nil
 }

@@ -1,4 +1,4 @@
-FROM golang:1.16-alpine3.13
+FROM golang:1.16-alpine3.14
 
 RUN apk add --update --no-cache \
     bash \
@@ -141,7 +141,22 @@ lint-newline-ending:
 
 unit-test:
     FROM +code
-    RUN go test ./...
+    RUN apk add --no-cache --update podman
+    WITH DOCKER
+        RUN sed -i 's/\/var\/lib\/containers\/storage/$EARTHLY_DOCKERD_DATA_ROOT/g' /etc/containers/storage.conf && \
+            go test ./...
+    END
+
+changelog:
+    FROM scratch
+    COPY CHANGELOG.md .
+    SAVE ARTIFACT CHANGELOG.md
+
+lint-changelog:
+    FROM python:3
+    COPY release/changelogparser.py /usr/bin/changelogparser
+    COPY CHANGELOG.md .
+    RUN changelogparser --changelog CHANGELOG.md
 
 shellrepeater:
     FROM +code
@@ -328,14 +343,16 @@ dind-alpine:
     RUN apk add --update --no-cache docker-compose
     ARG EARTHLY_TARGET_TAG_DOCKER
     ARG DIND_ALPINE_TAG=alpine-$EARTHLY_TARGET_TAG_DOCKER
-    SAVE IMAGE --push --cache-from=earthly/dind:main earthly/dind:$DIND_ALPINE_TAG
+    ARG DOCKERHUB_USER=earthly
+    SAVE IMAGE --push --cache-from=earthly/dind:main $DOCKERHUB_USER/dind:$DIND_ALPINE_TAG
 
 dind-ubuntu:
     FROM ubuntu:20.10
     COPY ./buildkitd/docker-auto-install.sh /usr/local/bin/docker-auto-install.sh
     RUN docker-auto-install.sh
     ARG DIND_UBUNTU_TAG=ubuntu-$EARTHLY_TARGET_TAG_DOCKER
-    SAVE IMAGE --push --cache-from=earthly/dind:ubuntu-main earthly/dind:$DIND_UBUNTU_TAG
+    ARG DOCKERHUB_USER=earthly
+    SAVE IMAGE --push --cache-from=earthly/dind:ubuntu-main $DOCKERHUB_USER/dind:$DIND_UBUNTU_TAG
 
 for-own:
     ARG BUILDKIT_PROJECT
@@ -391,6 +408,7 @@ test:
     BUILD +lint
     BUILD +lint-scripts
     BUILD +lint-newline-ending
+    BUILD +lint-changelog
     BUILD +unit-test
     BUILD ./ast/tests+all
     ARG DOCKERHUB_AUTH=true
