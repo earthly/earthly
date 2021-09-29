@@ -158,7 +158,7 @@ const (
 	// FrontendPodmanShell forces usage of the podman binary for container operations.
 	FrontendPodmanShell = "podman-shell"
 
-	// frontendStub is for when there is no valid provider but attempting to run anyways is desired; like integration tests, or the earthly/earthly image when NO_DOCKER is set.
+	// FrontendStub is for when there is no valid provider but attempting to run anyways is desired; like integration tests, or the earthly/earthly image when NO_DOCKER is set.
 	FrontendStub = "stub"
 )
 
