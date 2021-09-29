@@ -225,10 +225,8 @@ type solverMonitor struct {
 	noOutputTick                time.Duration
 	errVertex                   *vertexMonitor
 
-	mu             sync.Mutex
-	success        bool
-	ongoing        bool
-	printedSuccess bool
+	mu      sync.Mutex
+	ongoing bool
 }
 
 type timingKey struct {
@@ -258,9 +256,6 @@ func newSolverMonitor(console conslogging.ConsoleLogger, verbose bool, disableNo
 func (sm *solverMonitor) monitorProgress(ctx context.Context, ch chan *client.SolveStatus, phaseText string, sideRun bool) (string, error) {
 	if !sideRun {
 		sm.mu.Lock()
-		if !sm.ongoing {
-			sm.console.PrintPhaseHeader(phaseText, false, "")
-		}
 		sm.ongoing = true
 		sm.mu.Unlock()
 	}
@@ -293,12 +288,6 @@ Loop:
 		}
 		sm.msgMu.Unlock()
 		sm.mu.Lock()
-		if sm.success && !sm.printedSuccess {
-			sm.lastOutputWasProgress = false
-			sm.lastOutputWasNoOutputUpdate = false
-			sm.console.PrintPhaseFooter(phaseText, false, "")
-			sm.printedSuccess = true
-		}
 		sm.ongoing = false
 		sm.mu.Unlock()
 		sm.PrintTiming()
@@ -474,18 +463,6 @@ func (sm *solverMonitor) recordTiming(targetStr, targetBrackets, salt string, ve
 		salt:           salt,
 	}
 	sm.timingTable[key] += dur
-}
-
-func (sm *solverMonitor) SetSuccess(phaseText string) {
-	sm.mu.Lock()
-	defer sm.mu.Unlock()
-	sm.success = true
-	if !sm.ongoing {
-		sm.lastOutputWasProgress = false
-		sm.lastOutputWasNoOutputUpdate = false
-		sm.console.PrintPhaseFooter(phaseText, false, "")
-		sm.printedSuccess = true
-	}
 }
 
 func (sm *solverMonitor) PrintTiming() {

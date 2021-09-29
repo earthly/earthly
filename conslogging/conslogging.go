@@ -114,6 +114,11 @@ func (cl ConsoleLogger) Prefix() string {
 	return cl.prefix
 }
 
+// Salt returns the console's salt.
+func (cl ConsoleLogger) Salt() string {
+	return cl.salt
+}
+
 // WithCached returns a ConsoleLogger with isCached flag set accordingly.
 func (cl ConsoleLogger) WithCached(isCached bool) ConsoleLogger {
 	ret := cl.clone()

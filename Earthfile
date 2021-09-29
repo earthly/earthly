@@ -447,3 +447,19 @@ examples2:
 
 fail:
     RUN false
+
+push-test:
+    BUILD +push-test-run-push
+    BUILD +push-test-art
+    BUILD +push-test-img
+
+push-test-run-push:
+    RUN --push echo PUSH PUSH PUSH
+
+push-test-art:
+    RUN echo a > a.txt
+    SAVE ARTIFACT a.txt AS LOCAL ./build/a.txt
+
+push-test-img:
+    RUN echo a > a.txt
+    SAVE IMAGE --push vladaionescu/test:push
