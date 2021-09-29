@@ -87,7 +87,12 @@ release-github:
         --secret GITHUB_TOKEN="$GITHUB_SECRET_PATH" \
         set -e; \
         # test github token works
+        test -n "$GITHUB_TOKEN"; \
         curl -H "Authorization: token $GITHUB_TOKEN" "https://api.github.com/user" | jq -r .login > /tmp/authenticated.github.user; \
+        if [ "$(cat /tmp/authenticated.github.user)" = "null" ]; then \
+          echo "failed to authenticate; check your git token"; \
+          exit 1; \
+        fi; \
         # first delete any previously released files (needed in case the previous upload attempt failed)
         PREV_RELEASE_ID=$(curl -H "Authorization: token $GITHUB_TOKEN" "https://api.github.com/repos/$GITHUB_USER/$EARTHLY_REPO/releases/tags/$RELEASE_TAG" | jq .id); \
         if [ -n "$PREV_RELEASE_ID" ] && [ "$PREV_RELEASE_ID" != "null" ]; then \
@@ -159,13 +164,10 @@ release-homebrew:
 
     RUN git config --global user.name "$GIT_NAME" && \
         git config --global user.email "$GIT_EMAIL"
-
     COPY ./envcredhelper.sh /usr/bin/envcredhelper.sh
     RUN git config --global credential.helper "/bin/sh /usr/bin/envcredhelper.sh"
-
     RUN --secret GIT_PASSWORD="$GITHUB_TOKEN_SECRET_PATH" --no-cache \
         git clone "https://$GITHUB_USER@github.com/$GITHUB_USER/$BREW_REPO.git" .
-
     # Make the change in a new branch.
     ARG RELEASE_BRANCH="release-$RELEASE_TAG"
     RUN git switch -c "$RELEASE_BRANCH"
