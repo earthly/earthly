@@ -3,57 +3,6 @@ FROM alpine:3.13
 RUN apk add --update --no-cache \
     curl
 
-all:
-    LOCALLY
-    ARG RELEASE_TAG
-    ARG GITHUB_USER=earthly
-    ARG DOCKERHUB_USER=earthly
-    ARG EARTHLY_REPO=earthly
-    ARG BREW_REPO=homebrew-earthly
-    RUN test -n "$RELEASE_TAG" || (echo "ERROR: RELEASE_TAG is not set" && exit 1)
-
-    # validate args: if doing a prod-release make sure no args are changed
-    # otherwise if a test release is detected, make sure all users are changed
-    # (this is to prevent a case where only the github user is changed, but dockerhub is not, and the dockerhub binary is accidentally overwritten)
-    RUN set -e; \
-        test -n "$RELEASE_TAG" || (echo "ERROR: RELEASE_TAG is not set" && exit 1); \
-        (echo "$RELEASE_TAG" | grep '^v[0-9]\+.[0-9]\+.[0-9]\+$' > /dev/null) || (echo "ERROR: RELEASE_TAG must be formatted as v1.2.3; instead got \"$RELEASE_TAG\""; exit 1); \
-        if [ "$GITHUB_USER" = "earthly" ] && [ "$DOCKERHUB_USER" = "earthly" ]; then \
-          test "$BREW_REPO" = "homebrew-earthly" || (echo "ERROR: prod release detected; expecting BREW_REPO=earthly, but got $BREW_REPO" && exit 1); \
-          test "$EARTHLY_REPO" = "earthly" || (echo "ERROR: prod release detected; expecting EARTHLY_REPO=earthly, but got $EARTHLY_REPO" && exit 1); \
-          test "$EARTHLY_GIT_BRANCH" = "main" || (echo "ERROR: performing release on non-main branch" && exit 1); \
-        else \
-          test "$GITHUB_USER" != "earthly" || (echo "ERROR: non-prod release detected but got GITHUB_USER=$GITHUB_USER" && exit 1); \
-          test "$DOCKERHUB_USER" != "earthly" || (echo "ERROR: non-prod release detected but got DOCKERHUB_USER=$DOCKERHUB_USER" && exit 1); \
-        fi; \
-        echo "performing release to repo=$GITHUB_USER/$EARTHLY_REPO; homebrew=$GITHUB_USER/$BREW_REPO; dockerhub=$DOCKERHUB_USER"
-
-    # terrible unsafe hack to determine --push flag
-    IF ps auxw | grep -v grep | grep earthly | grep -e --push
-        ARG PUSH="--push"
-    ELSE
-        ARG PUSH=""
-    END
-
-    RUN set -e; \
-        earthly_pid=$(ps axw | grep -v grep | grep earthly | grep 'all' | awk '{print $1}'); \
-        expected_hash=$(cat ~/.earthly/earthly-prerelease | md5sum); \
-        actual_hash=$(cat /proc/$earthly_pid/exe | md5sum); \
-        if [ "$expected_hash" != "$actual_hash" ]; then \
-          echo "\nERROR: +all requires the ./earthly script be used (rather than directly using any earthly binary).\n"; \
-          exit 1; \
-        fi;
-
-    RUN ../earthly $PUSH --build-arg DOCKERHUB_USER="$DOCKERHUB_USER" --build-arg RELEASE_TAG="$RELEASE_TAG" +release-dockerhub
-    RUN ../earthly $PUSH --build-arg GITHUB_USER="$GITHUB_USER" --build-arg EARTHLY_REPO="$EARTHLY_REPO" --build-arg BREW_REPO="$BREW_REPO" --build-arg DOCKERHUB_USER="$DOCKERHUB_USER" --build-arg RELEASE_TAG="$RELEASE_TAG" +release-github
-    RUN ../earthly $PUSH --build-arg GITHUB_USER="$GITHUB_USER" --build-arg EARTHLY_REPO="$EARTHLY_REPO" --build-arg BREW_REPO="$BREW_REPO" --build-arg DOCKERHUB_USER="$DOCKERHUB_USER" --build-arg RELEASE_TAG="$RELEASE_TAG" +release-homebrew
-
-    # TODO pass along a RELEASE_REPO_TEST_SUFFIX which would cause us to host our yum/apt repos under https://test-pkg.earthly.dev/$RELEASE_REPO_TEST_SUFFIX/...
-    # and when it is empty, we would use https://pkg.earthly.dev/...
-    #RUN ../earthly --build-arg GITHUB_USER="$GITHUB_USER" --build-arg RELEASE_TAG="$RELEASE_TAG" +release-repo
-    # until then, we will just print this out:
-    RUN echo "TODO: the apt/yum release must be triggered seperately; once we get https://test-pkg.earthly.dev/ setup"
-
 release:
     ARG RELEASE_TAG
     RUN test -n "$RELEASE_TAG"
