@@ -143,6 +143,11 @@ unit-test:
     FROM +code
     RUN go test ./...
 
+changelog:
+    FROM scratch
+    COPY CHANGELOG.md .
+    SAVE ARTIFACT CHANGELOG.md
+
 shellrepeater:
     FROM +code
     ARG GOCACHE=/go-cache

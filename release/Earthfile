@@ -92,6 +92,15 @@ release-dockerhub:
         --build-arg DOCKERHUB_USER="$DOCKERHUB_USER" \
         ../buildkitd+buildkitd
 
+release-notes:
+    FROM python:3
+    WORKDIR /changelog
+    COPY changelogparser.py /usr/bin/changelogparser
+    COPY ..+changelog/CHANGELOG.md .
+    ARG RELEASE_TAG
+    RUN changelogparser CHANGELOG.md $RELEASE_TAG > notes.txt
+    SAVE ARTIFACT notes.txt
+
 release-github:
     FROM node:13.10.1-alpine3.11
     RUN apk add file curl jq git
@@ -104,6 +113,7 @@ release-github:
     ARG DOCKERHUB_USER="earthly"
     ARG EARTHLY_GIT_HASH
     RUN test -n "$RELEASE_TAG" && test -n "$EARTHLY_GIT_HASH"
+    COPY +release-notes/notes.txt release-notes.txt
     COPY --build-arg VERSION=$RELEASE_TAG \
          --build-arg DEFAULT_BUILDKITD_IMAGE="$DOCKERHUB_USER/buildkitd:$RELEASE_TAG" \
         ../+earthly-all/* ./release/
@@ -123,14 +133,12 @@ release-github:
     RUN file ./release/earthly-linux-arm64 | grep "aarch64"
     RUN file ./release/earthly-linux-arm64 | grep "ELF 64-bit"
     RUN file ./release/earthly-windows-amd64.exe | grep "PE32"
-    ARG BODY="No details provided"
     ARG GITHUB_SECRET_PATH="+secrets/earthly-technologies/github/griswoldthecat/token"
-    RUN --secret GITHUB_TOKEN="$GITHUB_SECRET_PATH" test -n "$GITHUB_TOKEN" && echo $GITHUB_TOKEN
     RUN --push \
         --secret GITHUB_TOKEN="$GITHUB_SECRET_PATH" \
         set -e; \
         # test github token works
-        curl -H "Authorization: token $GITHUB_TOKEN" "https://api.github.com/user" | jq .login | grep "$GITHUB_USER"; \
+        curl -H "Authorization: token $GITHUB_TOKEN" "https://api.github.com/user" | jq -r .login > /tmp/authenticated.github.user; \
         # first delete any previously released files (needed in case the previous upload attempt failed)
         PREV_RELEASE_ID=$(curl -H "Authorization: token $GITHUB_TOKEN" "https://api.github.com/repos/$GITHUB_USER/$EARTHLY_REPO/releases/tags/$RELEASE_TAG" | jq .id); \
         if [ -n "$PREV_RELEASE_ID" ] && [ "$PREV_RELEASE_ID" != "null" ]; then \
@@ -147,7 +155,7 @@ release-github:
         --commitish "$EARTHLY_GIT_HASH" \
         --tag "$RELEASE_TAG" \
         --name "$RELEASE_TAG" \
-        --body "$BODY" \
+        --body "$(cat release-notes.txt)" \
         ./release/* 2>&1 | tee /tmp/release.log && \
         if grep -i "already_exists" /tmp/release.log > /dev/null; then \
           echo "ERROR: github-release upload failed: file already exists -- you must delete if from github before proceeding" && exit 1; \
