@@ -6,7 +6,7 @@ var (
 	noColor            = makeNoColor()
 	cachedColor        = makeColor(color.FgHiGreen)
 	metadataModeColor  = makeColor(color.FgHiWhite, color.BgHiBlack)
-	phaseColor         = makeNoColor()
+	phaseColor         = makeColor(color.FgHiCyan)
 	disabledPhaseColor = makeColor(color.FgHiBlack)
 	specialPhaseColor  = makeColor(color.FgYellow)
 	successColor       = makeColor(color.FgHiGreen)
