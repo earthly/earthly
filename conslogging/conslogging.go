@@ -144,15 +144,6 @@ func (cl ConsoleLogger) PrintPhaseHeader(phase string, disabled bool, special st
 	defer cl.mu.Unlock()
 	msg := phase
 	c := cl.color(phaseColor)
-	// @#
-	cl.errW.Write([]byte("\n"))
-	c.Fprintf(cl.errW, "\ntesttesttest 1")
-	cl.errW.Write([]byte("\n"))
-	c.Fprintf(cl.errW, "testtesttest 2\ntesttesttest 2")
-	cl.errW.Write([]byte("\n"))
-	phaseColor.Fprintf(cl.errW, "\ntestt\n\nesttest 3\n")
-	cl.errW.Write([]byte("\n"))
-	// }@#
 	if disabled {
 		c = cl.color(disabledPhaseColor)
 		msg = fmt.Sprintf("%s (disabled)", msg)
@@ -167,7 +158,7 @@ func (cl ConsoleLogger) PrintPhaseHeader(phase string, disabled bool, special st
 	cl.errW.Write([]byte("\n"))
 	c.Fprintf(cl.errW, " %s", msg)
 	cl.errW.Write([]byte("\n"))
-	c.Fprintf(cl.errW, "%s", msg, strings.Repeat("—", underlineLength))
+	c.Fprintf(cl.errW, "%s", strings.Repeat("—", underlineLength))
 	cl.errW.Write([]byte("\n\n"))
 }
 
@@ -226,7 +217,9 @@ func (cl ConsoleLogger) PrintBar(c *color.Color, msg, phase string) {
 		rightBar += "="
 	}
 
-	c.Fprintf(cl.errW, "\n%s%s%s\n\n", leftBar, center, rightBar)
+	cl.errW.Write([]byte("\n"))
+	c.Fprintf(cl.errW, "%s%s%s", leftBar, center, rightBar)
+	cl.errW.Write([]byte("\n\n"))
 }
 
 // Warnf prints a warning message in red to errWriter
