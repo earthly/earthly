@@ -39,9 +39,7 @@ import (
 
 const (
 	// PhaseInit is the phase text for the init phase.
-	// @#
-	// PhaseInit = "1. Init 🚀"
-	PhaseInit = "1. Init (no emoji @#)"
+	PhaseInit = "1. Init 🚀"
 	// PhaseBuild is the phase text for the build phase.
 	PhaseBuild = "2. Build 🔧"
 	// PhasePush is the phase text for the push phase.

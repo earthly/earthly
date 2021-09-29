@@ -144,6 +144,15 @@ func (cl ConsoleLogger) PrintPhaseHeader(phase string, disabled bool, special st
 	defer cl.mu.Unlock()
 	msg := phase
 	c := cl.color(phaseColor)
+	// @#
+	cl.errW.Write([]byte("\n"))
+	c.Fprintf(cl.errW, "testtesttest 1")
+	cl.errW.Write([]byte("\n"))
+	c.Fprintf(cl.errW, "testtesttest 2")
+	cl.errW.Write([]byte("\n"))
+	phaseColor.Fprintf(cl.errW, "testtesttest 3")
+	cl.errW.Write([]byte("\n"))
+	// }@#
 	if disabled {
 		c = cl.color(disabledPhaseColor)
 		msg = fmt.Sprintf("%s (disabled)", msg)
@@ -194,6 +203,7 @@ func (cl ConsoleLogger) PrefixColor() *color.Color {
 
 // PrintBar prints an earthly message bar.
 func (cl ConsoleLogger) PrintBar(c *color.Color, msg, phase string) {
+	c = cl.color(c)
 	center := msg
 	if phase != "" {
 		center = fmt.Sprintf("%s [%s]", msg, phase)
