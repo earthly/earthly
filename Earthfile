@@ -1,4 +1,4 @@
-FROM golang:1.16-alpine3.13
+FROM golang:1.16-alpine3.14
 
 RUN apk add --update --no-cache \
     bash \
@@ -141,7 +141,11 @@ lint-newline-ending:
 
 unit-test:
     FROM +code
-    RUN go test ./...
+    RUN apk add --no-cache --update podman
+    WITH DOCKER
+        RUN sed -i 's/\/var\/lib\/containers\/storage/$EARTHLY_DOCKERD_DATA_ROOT/g' /etc/containers/storage.conf && \
+            go test ./...
+    END
 
 changelog:
     FROM scratch
