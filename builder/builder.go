@@ -444,7 +444,9 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 	outputConsole := conslogging.NewDelayedLogger(&b.opt.Console)
 	outputPhaseSpecial := ""
 
-	if opt.OnlyArtifact != nil {
+	if opt.NoOutput {
+		// Nothing.
+	} else if opt.OnlyArtifact != nil {
 		outputPhaseSpecial = "single artifact"
 		outDir, err := b.tempEarthlyOutDir()
 		if err != nil {
