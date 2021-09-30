@@ -462,22 +462,3 @@ examples2:
     BUILD ./examples/multiplatform+all
     BUILD ./examples/multiplatform-cross-compile+build-all-platforms
     BUILD github.com/earthly/hello-world:main+hello
-
-fail:
-    RUN false
-
-push-test:
-    BUILD +push-test-run-push
-    BUILD +push-test-art
-    BUILD +push-test-img
-
-push-test-run-push:
-    RUN --push echo PUSH PUSH PUSH
-
-push-test-art:
-    RUN echo a > a.txt
-    SAVE ARTIFACT a.txt AS LOCAL ./build/a.txt
-
-push-test-img:
-    RUN echo a > a.txt
-    SAVE IMAGE --push vladaionescu/test:push
