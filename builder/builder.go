@@ -471,7 +471,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 				pushConsole.Printf("Pushed image %s as %s\n", targetStr, saveImage.DockerTag)
 			}
 			if saveImage.Push && !opt.Push {
-				pushConsole.Printf("Did not push %s\n", saveImage.DockerTag)
+				pushConsole.Printf("Did not push image %s\n", saveImage.DockerTag)
 			}
 			outputConsole.Printf("Image %s output as %s\n", targetStr, saveImage.DockerTag)
 		}
@@ -492,7 +492,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 					pushConsole.Printf("Pushed image %s as %s\n", targetStr, saveImage.DockerTag)
 				}
 				if saveImage.Push && !opt.Push && !sts.Target.IsRemote() {
-					pushConsole.Printf("Did not push %s\n", saveImage.DockerTag)
+					pushConsole.Printf("Did not push image %s\n", saveImage.DockerTag)
 				}
 				outputConsole.Printf("Image %s output as %s\n", targetStr, saveImage.DockerTag)
 			}
