@@ -4,10 +4,22 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+## v0.5.24 - 2021-09-30
+
 ### Added
 
-- New ./release+all target that combines existing release commands into a single command
-  that can be run as a single command.
+- New `--output` flag, which forces earthly to enable outputs, even when running under `--ci` mode [#1200](https://github.com/earthly/earthly/issues/1200).
+- Experimental support for Podman [#760](https://github.com/earthly/earthly/issues/760).
+- Automatically adds compatibility arguments for cases where docker is running under user namespaces.
+
+### Fixed
+
+- Removed spurious "Buildkit and Local Registry URLs are pointed at different hosts (earthly-buildkitd vs. 127.0.0.1)" warning.
+- Scrub git credentials when running under --debug mode.
+- "FROM DOCKERFILE" command was ignoring the path (when run on a remote target), which prevented including dockerfiles which were named something else.
+- Removed the creation of a temporary output directory when run in `--no-output` mode, or when building targets that don't output artifacts,
+  the temporary directory is now created just before it is needed.
+- Fixed race condition involving `WITH DOCKER` and `IF` statements, which resulted in `failed to solve: NotFound: no access allowed to dir` errors.
 
 ## v0.5.23 - 2021-08-24
 
