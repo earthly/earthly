@@ -6,18 +6,14 @@ import (
 
 // DelayedLogger is a logger that queues up messages until Flush is called.
 type DelayedLogger struct {
-	cl        *ConsoleLogger
-	curPrefix string
-	curSalt   string
-	queue     []string
+	cl    *ConsoleLogger
+	queue []string
 }
 
 // NewDelayedLogger creates a new DelayedLogger.
 func NewDelayedLogger(cl *ConsoleLogger) *DelayedLogger {
 	return &DelayedLogger{
-		cl:        cl,
-		curPrefix: cl.Prefix(),
-		curSalt:   cl.Salt(),
+		cl: cl,
 	}
 }
 
