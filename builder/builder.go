@@ -440,8 +440,8 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 		}
 	}
 
-	pushConsole := conslogging.NewDelayedLogger(&b.opt.Console)
-	outputConsole := conslogging.NewDelayedLogger(&b.opt.Console)
+	pushConsole := conslogging.NewBufferedLogger(&b.opt.Console)
+	outputConsole := conslogging.NewBufferedLogger(&b.opt.Console)
 	outputPhaseSpecial := ""
 
 	if opt.NoOutput {
@@ -663,7 +663,7 @@ func (b *Builder) outputImageTar(ctx context.Context, saveImage states.SaveImage
 	return nil
 }
 
-func (b *Builder) saveArtifactLocally(ctx context.Context, console *conslogging.DelayedLogger, artifact domain.Artifact, indexOutDir string, destPath string, salt string, opt BuildOpt, ifExists bool) error {
+func (b *Builder) saveArtifactLocally(ctx context.Context, console *conslogging.BufferedLogger, artifact domain.Artifact, indexOutDir string, destPath string, salt string, opt BuildOpt, ifExists bool) error {
 	fromPattern := filepath.Join(indexOutDir, filepath.FromSlash(artifact.Artifact))
 	// Resolve possible wildcards.
 	// TODO: Note that this is not very portable, as the glob is host-platform dependent,
