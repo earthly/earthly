@@ -1,5 +1,5 @@
 #!/bin/bash
-set -e
+set -ex
 
 # earthly does not (yet) have fine control over controlling the order of RUN --push commands (they all happen at the end)
 # Our release process requires the following commands be done in order:
@@ -29,17 +29,27 @@ test -n "$RELEASE_TAG" || (echo "ERROR: RELEASE_TAG is not set" && exit 1);
 (echo "$RELEASE_TAG" | grep '^v[0-9]\+.[0-9]\+.[0-9]\+$' > /dev/null) || (echo "ERROR: RELEASE_TAG must be formatted as v1.2.3; instead got \"$RELEASE_TAG\""; exit 1);
 
 # Set default values
-GITHUB_USER=${GITHUB_USER:-earthly}
-DOCKERHUB_USER=${DOCKERHUB_USER:-earthly}
-EARTHLY_REPO=${EARTHLY_REPO:-earthly}
-BREW_REPO=${BREW_REPO:-homebrew-earthly}
-GITHUB_SECRET_PATH=$GITHUB_SECRET_PATH
+export GITHUB_USER=${GITHUB_USER:-earthly}
+export DOCKERHUB_USER=${DOCKERHUB_USER:-earthly}
+export EARTHLY_REPO=${EARTHLY_REPO:-earthly}
+export BREW_REPO=${BREW_REPO:-homebrew-earthly}
+export GITHUB_SECRET_PATH=$GITHUB_SECRET_PATH
+
+../earthly upgrade
 
 if [ -n "$GITHUB_SECRET_PATH" ]; then
     GITHUB_SECRET_PATH_BUILD_ARG="--build-arg GITHUB_SECRET_PATH=$GITHUB_SECRET_PATH"
+else
+    (../earthly secrets ls /earthly-technologies >/dev/null) || (echo "ERROR: current user does not have access to earthly-technologies shared secrets"; exit 1);
 fi
 
-../earthly upgrade
+(../earthly secrets get /user/earthly-technologies/aws/credentials >/dev/null) || (echo "ERROR: user-secrets /user/earthly-technologies/aws/credentials does not exist"; exit 1);
+
+existing_release=$(curl -s https://api.github.com/repos/earthly/earthly/releases/tags/$RELEASE_TAG | jq -r .tag_name)
+if [ "$existing_release" != "null" ]; then
+    test "$OVERWRITE_RELEASE" = "1" || (echo "a release for $RELEASE_TAG already exists, to proceed with overwriting this release set OVERWRITE_RELEASE=1" && exit 1);
+    echo "overwriting existing release for $RELEASE_TAG"
+fi
 
 ../earthly --push --build-arg DOCKERHUB_USER --build-arg RELEASE_TAG +release-dockerhub
 ../earthly --push --build-arg GITHUB_USER --build-arg EARTHLY_REPO --build-arg BREW_REPO --build-arg DOCKERHUB_USER --build-arg RELEASE_TAG $GITHUB_SECRET_PATH_BUILD_ARG +release-github

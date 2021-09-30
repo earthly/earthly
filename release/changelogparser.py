@@ -119,6 +119,9 @@ def parse_changelog(changelog_data):
             allowed_titles = ('Added', 'Changed', 'Removed', 'Fixed')
             if title not in allowed_titles:
                 raise UnexpectedHeaderError(f'expected header of {allowed_titles}; but got {title}', line_num)
+            body.append(line)
+        else:
+            raise UnexpectedHeaderError(f'unsupported header {line}')
 
     if version:
         save_version(version, release_date, body)
