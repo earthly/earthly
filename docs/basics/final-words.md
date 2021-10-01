@@ -4,7 +4,7 @@ Congratulations, you completed the Earthly tutorial!
 
 Learning Earthly does not stop here. Discover more of what Earthly can do by exploring the documentation.
 
-**Recommended reading:**
+##### Recommended reading:
 
 * [The Earthfile reference](../earthfile/earthfile.md)
 * [The **earthly command** reference](../earthly-command/earthly-command.md)
