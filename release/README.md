@@ -23,7 +23,7 @@
   * Update the `Change Date` to the first April 1st after a three year period. So if today is Jan 2077, then update to 2080-04-01. If it's June 2077, then update to 2081-04-01.
   * Commit this to the `main` branch before continuing.
 * Update the CHANGELOG.md with the corresponding release notes and open a PR
-  * Use a comparison such as https://github.com/earthly/earthly/compare/v0.3.0...v0.3.1 (replace the right versions in the URL) to see which PRs went into this release.
+  * Use a comparison such as https://github.com/earthly/earthly/compare/v0.3.0...main (replace the versions in the URL with the previously released version) to see which PRs will go into this release.
 * Make sure that main build is green for all platforms (check build status for the latest commit on GitHub).
 * Run
   ```bash
@@ -86,6 +86,15 @@ NOTE: apt and yum repos do not currently support test releases. (TODO: fix this)
 If the release-homebrew fails with a rejected git push, you may have to delete the remote branch by running the following under the interactive debugger:
 
     git push "$GIT_USERNAME" --delete "release-$RELEASE_TAG"
+
+### dind
+
+Docker-in-Docker (dind) images change less frequently than earthly, but take a long time to build.
+These images can be rebuilt by running:
+
+  ```bash
+  ./earthly --build-arg RELEASE_TAG --push ./release+release-dind
+  ```
 
 ### VS Code syntax highlighting
 

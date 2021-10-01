@@ -16,10 +16,8 @@ release:
         RUN echo "github status check failed; to force the release without performing this check, set --build-arg SKIP_GHA_CHECK=1"
     END
 
-release-dockerhub:
-    ARG RELEASE_TAG
+release-dind:
     ARG DOCKERHUB_USER="earthly"
-    RUN test -n "$RELEASE_TAG"
     BUILD \
         --build-arg DIND_ALPINE_TAG=alpine \
         --build-arg DIND_UBUNTU_TAG=ubuntu \
@@ -31,6 +29,11 @@ release-dockerhub:
         --build-arg DIND_ALPINE_TAG=latest \
         --build-arg DOCKERHUB_USER="$DOCKERHUB_USER" \
         ../+dind-alpine
+
+release-dockerhub:
+    ARG RELEASE_TAG
+    ARG DOCKERHUB_USER="earthly"
+    RUN test -n "$RELEASE_TAG"
     BUILD --build-arg TAG="$RELEASE_TAG" ../+earthly-docker
     BUILD \
         --platform=linux/amd64 \
@@ -200,7 +203,10 @@ release-homebrew:
         echo version=$version ;\
         git commit -a --allow-empty -m "earthly $version"
     RUN --secret GIT_PASSWORD="$GITHUB_TOKEN_SECRET_PATH" \
-        --push git push --force --set-upstream origin "$RELEASE_BRANCH"
+        --secret SLACK_WEBHOOK_URL=+secrets/earthly-technologies/slack/release-webhook \
+        --push \
+        git push --force --set-upstream origin "$RELEASE_BRANCH" && \
+        curl -s -X POST -H 'Content-type: application/json' --data '{"text":"Successfully pushed release branch: https://github.com/earthly/homebrew-earthly/tree/'$RELEASE_BRANCH'"}' "$SLACK_WEBHOOK_URL"
 
 release-vscode-syntax-highlighting:
     ARG VSCODE_RELEASE_TAG

@@ -225,10 +225,8 @@ type solverMonitor struct {
 	noOutputTick                time.Duration
 	errVertex                   *vertexMonitor
 
-	mu             sync.Mutex
-	success        bool
-	ongoing        bool
-	printedSuccess bool
+	mu      sync.Mutex
+	ongoing bool
 }
 
 type timingKey struct {
@@ -290,12 +288,6 @@ Loop:
 		}
 		sm.msgMu.Unlock()
 		sm.mu.Lock()
-		if sm.success && !sm.printedSuccess {
-			sm.lastOutputWasProgress = false
-			sm.lastOutputWasNoOutputUpdate = false
-			sm.console.PrintSuccess(phaseText)
-			sm.printedSuccess = true
-		}
 		sm.ongoing = false
 		sm.mu.Unlock()
 		sm.PrintTiming()
@@ -473,18 +465,6 @@ func (sm *solverMonitor) recordTiming(targetStr, targetBrackets, salt string, ve
 	sm.timingTable[key] += dur
 }
 
-func (sm *solverMonitor) SetSuccess(msg string) {
-	sm.mu.Lock()
-	defer sm.mu.Unlock()
-	sm.success = true
-	if !sm.ongoing {
-		sm.lastOutputWasProgress = false
-		sm.lastOutputWasNoOutputUpdate = false
-		sm.console.PrintSuccess(msg)
-		sm.printedSuccess = true
-	}
-}
-
 func (sm *solverMonitor) PrintTiming() {
 	if !sm.verbose {
 		return
@@ -529,8 +509,8 @@ func (sm *solverMonitor) PrintTiming() {
 func (sm *solverMonitor) reprintFailure(errVertex *vertexMonitor, phaseText string) {
 	sm.lastOutputWasProgress = false
 	sm.lastOutputWasNoOutputUpdate = false
-	sm.console.Warnf("Repeating the output of the command that caused the failure\n")
 	sm.console.PrintFailure(phaseText)
+	sm.console.Warnf("Repeating the output of the command that caused the failure\n")
 	errVertex.console = errVertex.console.WithFailed(true)
 	errVertex.printHeader()
 	if errVertex.tailOutput != nil {
