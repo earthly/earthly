@@ -18,7 +18,6 @@ import (
 	"golang.org/x/crypto/ssh/knownhosts"
 
 	"github.com/earthly/earthly/conslogging"
-	"github.com/earthly/earthly/util/cliutil"
 	"github.com/earthly/earthly/util/fileutil"
 
 	"github.com/jdxcode/netrc"
@@ -250,7 +249,7 @@ func (gl *GitLookup) detectProtocol(host string) (protocol gitProtocol, err erro
 var errNoRCHostEntry = fmt.Errorf("no netrc host entry")
 
 func (gl *GitLookup) lookupNetRCCredential(host string) (login, password string, err error) {
-	homeDir, _ := cliutil.DetectHomeDir()
+	homeDir, _ := fileutil.HomeDir()
 	n, err := netrc.Parse(filepath.Join(homeDir, ".netrc"))
 	if err != nil {
 		return "", "", errors.Wrap(err, "failed to parse .netrc")

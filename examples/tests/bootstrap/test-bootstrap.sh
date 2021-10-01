@@ -6,6 +6,7 @@ set -o pipefail
 cd "$(dirname "$0")"
 
 earthly=${earthly-"../../../build/linux/amd64/earthly"}
+earthly=$(realpath "$earthly")
 
 echo "=== Test 1: Hand Bootstrapped ==="
 
@@ -138,7 +139,25 @@ if [[ $(stat --format '%G' "$HOME/.earthly/config.yml") != "$GRP" ]]; then
   exit 1
 fi
 
-echo "=== Test 6: Homebrew Source ==="
+echo "=== Test 6: works in read-only directory ==="
+
+sudo mkdir /tmp/earthly-read-only-test
+sudo cp Earthfile /tmp/earthly-read-only-test/.
+sudo chmod 0755 /tmp/earthly-read-only-test/.
+
+prevdir=$(pwd)
+cd /tmp/earthly-read-only-test/.
+
+if touch this-should-fail 2>/dev/null; then
+  echo "this directory should have been read-only; something is wrong with this test"
+  exit 1
+fi
+
+"$earthly" +test
+
+cd "$prevdir"
+
+echo "=== Test 7: Homebrew Source ==="
 
 if which docker > /dev/null; then
   docker rm -f earthly-buildkitd
@@ -174,7 +193,7 @@ fi
 
 rm -rf "$HOME/.earthly/"
 
-echo "=== Test 7: No Buildkit ==="
+echo "=== Test 8: No Buildkit ==="
 
 "$earthly" bootstrap --no-buildkit
 if docker container ls | grep earthly-buildkitd; then

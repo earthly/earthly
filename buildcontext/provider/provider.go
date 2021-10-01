@@ -69,23 +69,33 @@ func NewBuildContextProvider(console conslogging.ConsoleLogger) *BuildContextPro
 func (bcp *BuildContextProvider) AddDirs(dirs map[string]string) {
 	bcp.mu.Lock()
 	defer bcp.mu.Unlock()
+	for dirName, dir := range dirs {
+		bcp.addDir(dirName, dir)
+	}
+}
 
+// AddDir adds a single local directory to the context.
+func (bcp *BuildContextProvider) AddDir(dirName, dir string) {
+	bcp.mu.Lock()
+	defer bcp.mu.Unlock()
+
+	bcp.addDir(dirName, dir)
+}
+
+func (bcp *BuildContextProvider) addDir(dirName, dir string) {
 	resetUIDAndGID := func(p string, st *fstypes.Stat) bool {
 		st.Uid = 0
 		st.Gid = 0
 		return true
 	}
-	sds := make([]SyncedDir, 0, len(dirs))
-	for dirName, dir := range dirs {
-		sds = append(sds, SyncedDir{
-			Name: dirName,
-			Dir:  dir,
-			Map:  resetUIDAndGID,
-		})
+	var sd SyncedDir
+	sd = SyncedDir{
+		Name: dirName,
+		Dir:  dir,
+		Map:  resetUIDAndGID,
 	}
-	for _, sd := range sds {
-		bcp.dirs[sd.Name] = sd
-	}
+
+	bcp.dirs[sd.Name] = sd
 }
 
 // Register registers the attachable.

@@ -5,9 +5,9 @@ This image contains `buildkit` with some Earthly-specific setup. This is what Ea
 ## Tags
 
 * `prerelase`
-* `v0.5.22`, `latest`
+* `v0.5.23`, `latest`
+* `v0.5.22`
 * `v0.5.20`
-* `v0.5.19`
 
 ## Quickstart
 
@@ -16,7 +16,7 @@ Want to just get started? Here are a couple sample `docker run` commands that co
 ### Simple Usage (Use Locally)
 
 ```bash
-docker run --privileged -t -v earthly-tmp:/tmp/earthly:rw earthly/buildkitd:v0.5.22
+docker run --privileged -t -v earthly-tmp:/tmp/earthly:rw earthly/buildkitd:v0.5.23
 ```
 
 Heres a quick breakdown:
@@ -30,7 +30,7 @@ Assuming you are running this on your machine, you could use this `buildkitd` by
 ### Usage (Use As Remote)
 
 ```bash
-docker run --privileged -t -v earthly-tmp:/tmp/earthly:rw -e BUILDKIT_TCP_TRANSPORT_ENABLED=true -p 8372:8372 earthly/buildkitd:v0.5.22
+docker run --privileged -t -v earthly-tmp:/tmp/earthly:rw -e BUILDKIT_TCP_TRANSPORT_ENABLED=true -p 8372:8372 earthly/buildkitd:v0.5.23
 ```
 
 Omitting the options already discussed from the simple example:
@@ -71,3 +71,4 @@ When using this container locally with `earthly`,  please note that setting `EAR
 | EARTHLY_TMP_DIR                     | `/tmp/earthly`                 | Specifies the location of `earthly`s temp dir. You can also mount an external volume to this path to preserve the contents across runs.                                       |
 | CACHE_SIZE_MB                       | `0`                            | How big should the `buildkitd` cache be allowed to get, in MiB? 0 is unbounded.                                                                                               |
 | GIT_URL_INSTEAD_OF                  |                                | Configure `git config --global url.<url>.insteadOf` rules used by `buildkitd`                                                                                                 |
+| IP_TABLES                           |                                | Override which binary (iptables_nft or iptables_legacy) is used for configuring `ip_tables`. Only set this if autodetection fails for your platform.                          |

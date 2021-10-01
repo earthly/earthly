@@ -19,6 +19,7 @@ import (
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/earthfile2llb"
 	"github.com/earthly/earthly/states"
+	"github.com/earthly/earthly/util/containerutil"
 	"github.com/earthly/earthly/util/gwclientlogger"
 	"github.com/earthly/earthly/util/llbutil"
 	"github.com/earthly/earthly/util/llbutil/pllb"
@@ -62,6 +63,7 @@ type Opt struct {
 	Parallelism            *semaphore.Weighted
 	LocalRegistryAddr      string
 	FeatureFlagOverrides   string
+	ContainerFrontend      containerutil.ContainerFrontend
 }
 
 // BuildOpt is a collection of build options.
@@ -384,7 +386,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 		pipeR, pipeW := io.Pipe()
 		eg.Go(func() error {
 			defer pipeR.Close()
-			err := loadDockerTar(childCtx, pipeR, b.opt.Console)
+			err := loadDockerTar(childCtx, b.opt.ContainerFrontend, pipeR, b.opt.Console)
 			if err != nil {
 				return errors.Wrapf(err, "load docker tar")
 			}
@@ -392,21 +394,17 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 		})
 		return pipeW, nil
 	}
-	var outDir string
 	onArtifact := func(childCtx context.Context, index int, artifact domain.Artifact, artifactPath string, destPath string) (string, error) {
 		sp.printCurrentSuccess()
 		if !destPathWhitelist[destPath] {
 			return "", errors.Errorf("dest path %s is not in the whitelist: %+v", destPath, destPathWhitelist)
 		}
-		if outDir == "" {
-			var err error
-			outDir, err = b.tempEarthlyOutDir()
-			if err != nil {
-				return "", err
-			}
+		outDir, err := b.tempEarthlyOutDir()
+		if err != nil {
+			return "", err
 		}
 		artifactDir := filepath.Join(outDir, fmt.Sprintf("index-%d", index))
-		err := os.MkdirAll(artifactDir, 0755)
+		err = os.MkdirAll(artifactDir, 0755)
 		if err != nil {
 			return "", errors.Wrapf(err, "create dir %s", artifactDir)
 		}
@@ -414,14 +412,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 	}
 	onFinalArtifact := func(childCtx context.Context) (string, error) {
 		sp.printCurrentSuccess()
-		if outDir == "" {
-			var err error
-			outDir, err = b.tempEarthlyOutDir()
-			if err != nil {
-				return "", err
-			}
-		}
-		return outDir, nil
+		return b.tempEarthlyOutDir()
 	}
 	onPull := func(childCtx context.Context, imagesToPull []string) error {
 		sp.printCurrentSuccess()
@@ -436,20 +427,13 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 			}
 			pullMap[imgToPull] = finalName
 		}
-		return dockerPullLocalImages(childCtx, b.opt.LocalRegistryAddr, pullMap, b.opt.Console)
+		return dockerPullLocalImages(childCtx, b.opt.ContainerFrontend, b.opt.LocalRegistryAddr, pullMap, b.opt.Console)
 	}
 	err := b.s.buildMainMulti(ctx, bf, onImage, onArtifact, onFinalArtifact, onPull, "main")
 	if err != nil {
 		return nil, errors.Wrapf(err, "build main")
 	}
 	sp.printCurrentSuccess()
-	if outDir == "" {
-		var err error
-		outDir, err = b.tempEarthlyOutDir()
-		if err != nil {
-			return nil, err
-		}
-	}
 	sp.incrementIndex()
 	b.builtMain = true
 
@@ -473,7 +457,11 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 	if opt.NoOutput {
 		// Nothing.
 	} else if opt.OnlyArtifact != nil {
-		err := b.saveArtifactLocally(ctx, *opt.OnlyArtifact, outDir, opt.OnlyArtifactDestPath, mts.Final.ID, opt, false)
+		outDir, err := b.tempEarthlyOutDir()
+		if err != nil {
+			return nil, err
+		}
+		err = b.saveArtifactLocally(ctx, *opt.OnlyArtifact, outDir, opt.OnlyArtifactDestPath, mts.Final.ID, opt, false)
 		if err != nil {
 			return nil, err
 		}
@@ -518,12 +506,16 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 				}
 			}
 			for _, saveLocal := range sts.SaveLocals {
+				outDir, err := b.tempEarthlyOutDir()
+				if err != nil {
+					return nil, err
+				}
 				artifactDir := filepath.Join(outDir, fmt.Sprintf("index-%d", dirIndex))
 				artifact := domain.Artifact{
 					Target:   sts.Target,
 					Artifact: saveLocal.ArtifactPath,
 				}
-				err := b.saveArtifactLocally(ctx, artifact, artifactDir, saveLocal.DestPath, sts.ID, opt, saveLocal.IfExists)
+				err = b.saveArtifactLocally(ctx, artifact, artifactDir, saveLocal.DestPath, sts.ID, opt, saveLocal.IfExists)
 				if err != nil {
 					return nil, err
 				}
@@ -533,12 +525,16 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 			if sts.RunPush.HasState {
 				if opt.Push {
 					for _, saveLocal := range sts.RunPush.SaveLocals {
+						outDir, err := b.tempEarthlyOutDir()
+						if err != nil {
+							return nil, err
+						}
 						artifactDir := filepath.Join(outDir, fmt.Sprintf("index-%d", dirIndex))
 						artifact := domain.Artifact{
 							Target:   sts.Target,
 							Artifact: saveLocal.ArtifactPath,
 						}
-						err := b.saveArtifactLocally(ctx, artifact, artifactDir, saveLocal.DestPath, sts.ID, opt, saveLocal.IfExists)
+						err = b.saveArtifactLocally(ctx, artifact, artifactDir, saveLocal.DestPath, sts.ID, opt, saveLocal.IfExists)
 						if err != nil {
 							return nil, err
 						}
@@ -561,7 +557,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 		}
 	}
 	for parentImageName, children := range manifestLists {
-		err = loadDockerManifest(ctx, b.opt.Console, parentImageName, children)
+		err = loadDockerManifest(ctx, b.opt.Console, b.opt.ContainerFrontend, parentImageName, children)
 		if err != nil {
 			return nil, err
 		}

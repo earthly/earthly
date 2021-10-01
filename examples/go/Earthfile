@@ -17,3 +17,24 @@ docker:
     COPY +build/go-example .
     ENTRYPOINT ["/go-example/go-example"]
     SAVE IMAGE --push earthly/examples:go
+
+unit-test:
+    FROM +deps
+    COPY main.go .
+    COPY main_test.go .
+    RUN CGO_ENABLED=0 go test github.com/earthly/earthly/examples/go
+
+integration-test:
+    FROM +deps
+    COPY main.go .
+    COPY main_integration_test.go .
+    COPY docker-compose.yml ./
+    WITH DOCKER --compose docker-compose.yml
+        RUN CGO_ENABLED=0 go test github.com/earthly/earthly/examples/go
+    END
+
+all:
+  BUILD +build
+  BUILD +unit-test
+  BUILD +integration-test
+  BUILD +docker

@@ -9,6 +9,7 @@ import (
 	"github.com/earthly/earthly/buildkitd"
 	"github.com/earthly/earthly/config"
 	"github.com/earthly/earthly/conslogging"
+	"github.com/earthly/earthly/util/containerutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/urfave/cli/v2"
 )
@@ -191,6 +192,7 @@ func TestBuildArgMatrix(t *testing.T) {
 
 		earthlyApp := newEarthlyApp(ctx, logger)
 		earthlyApp.cfg = &config.Config{Global: tt.config}
+		earthlyApp.containerFrontend, _ = containerutil.FrontendForSetting(ctx, containerutil.FrontendDockerShell)
 		earthlyApp.cliApp.Writer = &trash    // Just chuck the help output
 		earthlyApp.cliApp.ErrWriter = &trash // All of it, we dont care
 
@@ -319,6 +321,7 @@ func TestBuildArgMatrixValidationFailures(t *testing.T) {
 
 		earthlyApp := newEarthlyApp(ctx, logger)
 		earthlyApp.cfg = &config.Config{Global: tt.config}
+		earthlyApp.containerFrontend, _ = containerutil.FrontendForSetting(ctx, containerutil.FrontendDockerShell)
 		earthlyApp.cliApp.Writer = &output
 		earthlyApp.cliApp.ErrWriter = &output
 
@@ -382,5 +385,61 @@ func TestParseAndvalidateURL(t *testing.T) {
 	for _, tt := range tests {
 		_, err := parseAndvalidateURL(tt.url)
 		assert.NoError(t, err)
+	}
+}
+
+func TestBuildArgMatrixValidationNonIssues(t *testing.T) {
+	var tests = []struct {
+		testName string
+		config   config.GlobalConfig
+		log      string
+	}{
+		{
+			"Buildkit/Local Registry host mismatch, schemes differ",
+			config.GlobalConfig{
+				BuildkitHost:      "docker-container://127.0.0.1:8372",
+				DebuggerHost:      "",
+				DebuggerPort:      config.DefaultDebuggerPort,
+				LocalRegistryHost: "tcp://localhost:8371",
+			},
+			"Buildkit and Local Registry URLs are pointed at different hosts",
+		},
+		{
+			"Buildkit/Debugger host mismatch, schemes differ",
+			config.GlobalConfig{
+				BuildkitHost:      "docker-container://bk:1234",
+				DebuggerHost:      "tcp://db:5678",
+				DebuggerPort:      config.DefaultDebuggerPort,
+				LocalRegistryHost: "",
+			},
+			"Buildkit and Debugger URLs are pointed at different hosts",
+		},
+	}
+
+	for _, tt := range tests {
+		ctx := context.Background()
+
+		var logs strings.Builder
+		var output strings.Builder
+
+		logger := conslogging.Current(conslogging.NoColor, conslogging.DefaultPadding, false)
+		logger = logger.WithWriter(&logs)
+
+		earthlyApp := newEarthlyApp(ctx, logger)
+		earthlyApp.cfg = &config.Config{Global: tt.config}
+		earthlyApp.containerFrontend, _ = containerutil.FrontendForSetting(ctx, containerutil.FrontendDockerShell)
+		earthlyApp.cliApp.Writer = &output
+		earthlyApp.cliApp.ErrWriter = &output
+
+		// Before is called at about the time that we would parse these, plus it a nice place to hook.
+		earthlyApp.cliApp.Before = func(context *cli.Context) error {
+			err := earthlyApp.setupAndValidateAddresses(context)
+
+			assert.NoError(t, err)
+			assert.NotContains(t, logs.String(), tt.log)
+
+			return nil
+		}
+		earthlyApp.cliApp.RunContext(ctx, []string{""})
 	}
 }
