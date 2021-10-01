@@ -426,6 +426,7 @@ examples:
 
 examples1:
     ARG TARGETARCH
+    BUILD ./examples/c+docker
     BUILD ./examples/cpp+docker
     IF [ "$TARGETARCH" = "amd64" ]
         # This only works on amd64 for now.
