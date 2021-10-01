@@ -87,6 +87,22 @@ If the release-homebrew fails with a rejected git push, you may have to delete t
 
     git push "$GIT_USERNAME" --delete "release-$RELEASE_TAG"
 
+#### Rollbacks
+
+If you need to rollback/disable a version:
+
+1. Go to [github releases](https://github.com/earthly/earthly/releases), click on the `edit release` button, then check the `This is a pre-release` checkbox.
+2. Check out the [earthly/homebrew-earthly](https://github.com/earthly/homebrew-earthly) repo, and run:
+
+```bash
+git checkout main
+git revert --no-commit 123abc..HEAD # where `123abc` is the sha1 commit to roll back to
+git commit # enter a message saying you are rolling back
+git push
+```
+
+3. TODO need to create targets for apt and yum Earthfiles to perform rollbacks
+
 ### dind
 
 Docker-in-Docker (dind) images change less frequently than earthly, but take a long time to build.
