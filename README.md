@@ -74,7 +74,7 @@ Taking some of the best ideas from Makefiles and Dockerfiles, Earthly combines t
 <br/>
 <h2 align="center">Where Does Earthly Fit?</h2>
 
-<div align="center"><img src="docs/img/integration-diagram.png" alt="Earthly fits between language-specific tooling and the CI" width="700px" /></div>
+<div align="center"><img src="docs/img/integration-diagram-v2.png" alt="Earthly fits between language-specific tooling and the CI" width="700px" /></div>
 <br/>
 
 Earthly is meant to be used both on your development machine and in CI. It can run on top of popular CI systems (like Jenkins, [Circle](https://docs.earthly.dev/examples/circle-integration), [GitHub Actions](https://docs.earthly.dev/examples/gh-actions-integration)). It is typically the layer between language-specific tooling (like maven, gradle, npm, pip, go build) and the CI build spec.
@@ -188,7 +188,7 @@ docker run --rm earthly/examples:go
 
 Use `+` to reference other targets and create complex build inter-dependencies.
 
-<div align="center"><a href="https://docs.earthly.dev/guides/target-ref"><img src="docs/guides/img/ref-infographic.png" alt="Target and artifact reference syntax" title="Reference targets using +" width="600px" /></a></div>
+<div align="center"><a href="https://docs.earthly.dev/guides/target-ref"><img src="docs/guides/img/ref-infographic-v2.png" alt="Target and artifact reference syntax" title="Reference targets using +" width="600px" /></a></div>
 
 Examples
 

@@ -1,32 +1,35 @@
 # Final words
 
-Congratulations, you made it this far!
+Congratulations, you completed the Earthly tutorial! 
 
-To learn more about Earthly, take a look at the [examples directory on GitHub](https://github.com/earthly/earthly/tree/main/examples), where you will find the complete code used in this guide, under the `tutorial` directory:
+Learning Earthly does not stop here. Discover more of what Earthly can do by exploring the documentation.
 
-* [Go](https://github.com/earthly/earthly/tree/main/examples/tutorial/go)
-* [JavaScript](https://github.com/earthly/earthly/tree/main/examples/tutorial/js)
-* [Java](https://github.com/earthly/earthly/tree/main/examples/tutorial/java)
-* [Python](https://github.com/earthly/earthly/tree/main/examples/tutorial/python)
+##### Recommended reading:
 
-## Maintenance
+* [The Earthfile reference](../earthfile/earthfile.md)
+* [The **earthly command** reference](../earthly-command/earthly-command.md)
+* [Guides](../earthfile/guides.md)
+* [Examples using Earthly](../examples/examples.md)
 
-Earthly is free and open and we would greatly appreciate any suggestions for improvement on this tutorial, or on Earthly in general. To leave feedback either visit our [Slack community](https://earthly.dev/slack) or open a [GitHub issue](https://github.com/earthly/earthly/issues). We would love to learn of any issues you may have encountered while getting to know Earthly.
+**More examples:**
+
+* [Examples directory on GitHub](https://github.com/earthly/earthly/tree/main/examples)
+* [Go](https://github.com/earthly/earthly/tree/main/examples/go)
+* [JavaScript](https://github.com/earthly/earthly/tree/main/examples/js)
+* [Java](https://github.com/earthly/earthly/tree/main/examples/java)
+* [Python](https://github.com/earthly/earthly/tree/main/examples/python)
+
+## Questions & Feedback
+
+If you have any questions, feedback or suggestions for Earthly or this tutorial feel free to reach out to us on our [Slack community](https://earthly.dev/slack) or open a [GitHub issue](https://github.com/earthly/earthly/issues). Earthly is free and open and we love and appreciate feedback and contributions from the community!
 
 ## Go back
 
 * [Introduction](./basics.md)
 * [Part 1: A simple Earthfile](./part-1-a-simple-earthfile.md)
-* [Part 2: Detailed explanation](./part-2-detailed-explanation.md)
-* [Part 3: Adding dependencies in the mix](./part-3-adding-dependencies-in-the-mix.md)
-* [Part 4: Efficient caching of dependencies](./part-4-efficient-caching-of-dependencies.md)
-* [Part 5: Reduce code duplication](./part-5-reduce-code-duplication.md)
-* Final words <-- You are here.
-
-## See also
-
-Learning does not stop here. Keep exploring the documentation to discover more of what Earthly can do. Check out
-
-* The [Earthfile reference](../earthfile/earthfile.md)
-* The [earthly command reference](../earthly-command/earthly-command.md)
-* More [examples](../examples/examples.md)
+* [Part 1b: Detailed explanation](./part-1b-detailed-explanation.md)
+* [Part 2: Running the build](./part-2-running-the-build.md)
+* [Part 3: Adding dependencies](./part-3-adding-dependencies.md)
+* [Part 4: Caching dependencies](./part-4-caching-dependencies.md)
+* [Part 5: Reducing code duplication](./part-5-reducing-code-duplication.md)
+* **Final words** <-- You are here.
