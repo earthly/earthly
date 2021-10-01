@@ -37,6 +37,17 @@ import (
 	"golang.org/x/sync/semaphore"
 )
 
+const (
+	// PhaseInit is the phase text for the init phase.
+	PhaseInit = "1. Init 🚀"
+	// PhaseBuild is the phase text for the build phase.
+	PhaseBuild = "2. Build 🔧"
+	// PhasePush is the phase text for the push phase.
+	PhasePush = "3. Push ⏫"
+	// PhaseOutput is the phase text for the output phase.
+	PhaseOutput = "4. Local Output 🎁"
+)
+
 // Opt represent builder options.
 type Opt struct {
 	SessionID              string
@@ -70,7 +81,7 @@ type Opt struct {
 type BuildOpt struct {
 	Platform                   *specs.Platform
 	AllowPrivileged            bool
-	PrintSuccess               bool
+	PrintPhases                bool
 	Push                       bool
 	NoOutput                   bool
 	OnlyFinalTargetImages      bool
@@ -126,39 +137,7 @@ func (b *Builder) MakeImageAsTarBuilderFun() states.DockerBuilderFun {
 	}
 }
 
-type successPrinter struct {
-	printedOnce []sync.Once
-	printFunc   []func()
-	printIndex  int
-}
-
-func newSuccessPrinter(funcs ...func()) *successPrinter {
-	printedOnce := []sync.Once{}
-	for i := 0; i < len(funcs); i++ {
-		printedOnce = append(printedOnce, sync.Once{})
-	}
-
-	return &successPrinter{printedOnce, funcs, 0}
-}
-
-func (sp *successPrinter) printCurrentSuccess() {
-	sp.printedOnce[sp.printIndex].Do(sp.printFunc[sp.printIndex])
-}
-
-func (sp *successPrinter) incrementIndex() {
-	sp.printIndex++
-}
-
 func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt BuildOpt) (*states.MultiTarget, error) {
-	successFun := func(msg string) func() {
-		return func() {
-			if opt.PrintSuccess {
-				b.s.sm.SetSuccess(msg)
-			}
-		}
-	}
-	sp := newSuccessPrinter(successFun(""), successFun("--push"))
-
 	sharedLocalStateCache := earthfile2llb.NewSharedLocalStateCache()
 
 	featureFlagOverrides := b.opt.FeatureFlagOverrides
@@ -349,7 +328,9 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 
 			if performSaveLocals {
 				for _, saveLocal := range b.targetPhaseArtifacts(sts) {
-					ref, err := b.artifactStateToRef(childCtx, gwClient, sts.SeparateArtifactsState[saveLocal.Index], sts.Platform)
+					ref, err := b.artifactStateToRef(
+						childCtx, gwClient, sts.SeparateArtifactsState[saveLocal.Index],
+						sts.Platform)
 					if err != nil {
 						return nil, err
 					}
@@ -382,7 +363,6 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 		return res, nil
 	}
 	onImage := func(childCtx context.Context, eg *errgroup.Group, imageName string) (io.WriteCloser, error) {
-		sp.printCurrentSuccess()
 		pipeR, pipeW := io.Pipe()
 		eg.Go(func() error {
 			defer pipeR.Close()
@@ -395,7 +375,6 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 		return pipeW, nil
 	}
 	onArtifact := func(childCtx context.Context, index int, artifact domain.Artifact, artifactPath string, destPath string) (string, error) {
-		sp.printCurrentSuccess()
 		if !destPathWhitelist[destPath] {
 			return "", errors.Errorf("dest path %s is not in the whitelist: %+v", destPath, destPathWhitelist)
 		}
@@ -411,11 +390,9 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 		return artifactDir, nil
 	}
 	onFinalArtifact := func(childCtx context.Context) (string, error) {
-		sp.printCurrentSuccess()
 		return b.tempEarthlyOutDir()
 	}
 	onPull := func(childCtx context.Context, imagesToPull []string) error {
-		sp.printCurrentSuccess()
 		if b.opt.LocalRegistryAddr == "" {
 			return nil
 		}
@@ -429,14 +406,24 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 		}
 		return dockerPullLocalImages(childCtx, b.opt.ContainerFrontend, b.opt.LocalRegistryAddr, pullMap, b.opt.Console)
 	}
-	err := b.s.buildMainMulti(ctx, bf, onImage, onArtifact, onFinalArtifact, onPull, "main")
+	if opt.PrintPhases {
+		b.opt.Console.PrintPhaseHeader(PhaseBuild, false, "")
+	}
+	err := b.s.buildMainMulti(ctx, bf, onImage, onArtifact, onFinalArtifact, onPull, PhaseBuild)
 	if err != nil {
 		return nil, errors.Wrapf(err, "build main")
 	}
-	sp.printCurrentSuccess()
-	sp.incrementIndex()
+	if opt.PrintPhases {
+		b.opt.Console.PrintPhaseFooter(PhaseBuild, false, "")
+	}
 	b.builtMain = true
 
+	if opt.PrintPhases {
+		b.opt.Console.PrintPhaseHeader(PhasePush, !opt.Push, "")
+		if !opt.Push {
+			b.opt.Console.Printf("To enable pushing use\n\n\t\tearthly --push ...\n\n")
+		}
+	}
 	if opt.Push && opt.OnlyArtifact == nil && !opt.OnlyFinalTargetImages {
 		hasRunPush := false
 		for _, sts := range mts.All() {
@@ -446,42 +433,47 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 			}
 		}
 		if hasRunPush {
-			err = b.s.buildMainMulti(ctx, bf, onImage, onArtifact, onFinalArtifact, onPull, "--push")
+			err = b.s.buildMainMulti(ctx, bf, onImage, onArtifact, onFinalArtifact, onPull, PhasePush)
 			if err != nil {
 				return nil, errors.Wrapf(err, "build push")
 			}
 		}
-		sp.printCurrentSuccess()
 	}
+
+	pushConsole := conslogging.NewBufferedLogger(&b.opt.Console)
+	outputConsole := conslogging.NewBufferedLogger(&b.opt.Console)
+	outputPhaseSpecial := ""
 
 	if opt.NoOutput {
 		// Nothing.
 	} else if opt.OnlyArtifact != nil {
+		outputPhaseSpecial = "single artifact"
 		outDir, err := b.tempEarthlyOutDir()
 		if err != nil {
 			return nil, err
 		}
-		err = b.saveArtifactLocally(ctx, *opt.OnlyArtifact, outDir, opt.OnlyArtifactDestPath, mts.Final.ID, opt, false)
+		err = b.saveArtifactLocally(
+			ctx, outputConsole, *opt.OnlyArtifact, outDir, opt.OnlyArtifactDestPath,
+			mts.Final.ID, opt, false)
 		if err != nil {
 			return nil, err
 		}
 	} else if opt.OnlyFinalTargetImages {
+		outputPhaseSpecial = "single image"
 		for _, saveImage := range mts.Final.SaveImages {
 			shouldPush := opt.Push && saveImage.Push && saveImage.DockerTag != "" && saveImage.DoSave
 			shouldExport := !opt.NoOutput && saveImage.DockerTag != "" && saveImage.DoSave
 			if !shouldPush && !shouldExport {
 				continue
 			}
-			console := b.opt.Console.WithPrefixAndSalt(mts.Final.Target.String(), mts.Final.ID)
-			pushStr := ""
+			targetStr := b.opt.Console.PrefixColor().Sprintf("%s", mts.Final.Target.StringCanonical())
 			if shouldPush {
-				pushStr = " (pushed)"
+				pushConsole.Printf("Pushed image %s as %s\n", targetStr, saveImage.DockerTag)
 			}
-			targetStr := console.PrefixColor().Sprintf("%s", mts.Final.Target.StringCanonical())
-			console.Printf("Image %s as %s%s\n", targetStr, saveImage.DockerTag, pushStr)
 			if saveImage.Push && !opt.Push {
-				console.Printf("Did not push %s. Use earthly --push to enable pushing\n", saveImage.DockerTag)
+				pushConsole.Printf("Did not push image %s\n", saveImage.DockerTag)
 			}
+			outputConsole.Printf("Image %s output as %s\n", targetStr, saveImage.DockerTag)
 		}
 	} else {
 		// This needs to match with the same index used during output.
@@ -495,15 +487,14 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 				if !shouldPush && !shouldExport {
 					continue
 				}
-				pushStr := ""
-				if shouldPush {
-					pushStr = " (pushed)"
-				}
 				targetStr := console.PrefixColor().Sprintf("%s", sts.Target.StringCanonical())
-				console.Printf("Image %s as %s%s\n", targetStr, saveImage.DockerTag, pushStr)
-				if saveImage.Push && !opt.Push && !sts.Target.IsRemote() {
-					console.Printf("Did not push %s. Use earthly --push to enable pushing\n", saveImage.DockerTag)
+				if shouldPush {
+					pushConsole.Printf("Pushed image %s as %s\n", targetStr, saveImage.DockerTag)
 				}
+				if saveImage.Push && !opt.Push && !sts.Target.IsRemote() {
+					pushConsole.Printf("Did not push image %s\n", saveImage.DockerTag)
+				}
+				outputConsole.Printf("Image %s output as %s\n", targetStr, saveImage.DockerTag)
 			}
 			for _, saveLocal := range sts.SaveLocals {
 				outDir, err := b.tempEarthlyOutDir()
@@ -515,7 +506,9 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 					Target:   sts.Target,
 					Artifact: saveLocal.ArtifactPath,
 				}
-				err = b.saveArtifactLocally(ctx, artifact, artifactDir, saveLocal.DestPath, sts.ID, opt, saveLocal.IfExists)
+				err = b.saveArtifactLocally(
+					ctx, outputConsole, artifact, artifactDir, saveLocal.DestPath,
+					sts.ID, opt, saveLocal.IfExists)
 				if err != nil {
 					return nil, err
 				}
@@ -534,7 +527,9 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 							Target:   sts.Target,
 							Artifact: saveLocal.ArtifactPath,
 						}
-						err = b.saveArtifactLocally(ctx, artifact, artifactDir, saveLocal.DestPath, sts.ID, opt, saveLocal.IfExists)
+						err = b.saveArtifactLocally(
+							ctx, outputConsole, artifact, artifactDir, saveLocal.DestPath,
+							sts.ID, opt, saveLocal.IfExists)
 						if err != nil {
 							return nil, err
 						}
@@ -542,27 +537,43 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 					}
 				} else {
 					for _, commandStr := range sts.RunPush.CommandStrs {
-						console.Printf("Did not execute push command %s. Use earthly --push to enable pushing\n", commandStr)
+						pushConsole.Printf("Did not execute push command %s\n", commandStr)
 					}
 
 					for _, saveImage := range sts.RunPush.SaveImages {
-						console.Printf("Did not push, OR save %s locally, as evaluating the image would have caused a RUN --push to execute", saveImage.DockerTag)
+						pushConsole.Printf(
+							"Did not push image %s as evaluating the image would "+
+								"have caused a RUN --push to execute", saveImage.DockerTag)
+						outputConsole.Printf("Did not output image %s locally, "+
+							"as evaluating the image would have caused a "+
+							"RUN --push to execute", saveImage.DockerTag)
 					}
 
 					if sts.RunPush.InteractiveSession.Initialized {
-						console.Printf("Did not start an %s interactive session with command %s. Use earthly --push to start the session\n", sts.RunPush.InteractiveSession.Kind, sts.RunPush.InteractiveSession.CommandStr)
+						pushConsole.Printf("Did not start an %s interactive session "+
+							"with command %s\n", sts.RunPush.InteractiveSession.Kind,
+							sts.RunPush.InteractiveSession.CommandStr)
 					}
 				}
 			}
 		}
 	}
+	pushConsole.Flush()
+	if opt.PrintPhases {
+		b.opt.Console.PrintPhaseFooter(PhasePush, !opt.Push, "")
+		b.opt.Console.PrintPhaseHeader(PhaseOutput, opt.NoOutput, outputPhaseSpecial)
+	}
+	outputConsole.Flush()
 	for parentImageName, children := range manifestLists {
 		err = loadDockerManifest(ctx, b.opt.Console, b.opt.ContainerFrontend, parentImageName, children)
 		if err != nil {
 			return nil, err
 		}
 	}
-
+	if opt.PrintPhases {
+		b.opt.Console.PrintPhaseFooter(PhaseOutput, false, "")
+		b.opt.Console.PrintSuccess()
+	}
 	return mts, nil
 }
 
@@ -652,8 +663,7 @@ func (b *Builder) outputImageTar(ctx context.Context, saveImage states.SaveImage
 	return nil
 }
 
-func (b *Builder) saveArtifactLocally(ctx context.Context, artifact domain.Artifact, indexOutDir string, destPath string, salt string, opt BuildOpt, ifExists bool) error {
-	console := b.opt.Console.WithPrefixAndSalt(artifact.Target.String(), salt)
+func (b *Builder) saveArtifactLocally(ctx context.Context, console *conslogging.BufferedLogger, artifact domain.Artifact, indexOutDir string, destPath string, salt string, opt BuildOpt, ifExists bool) error {
 	fromPattern := filepath.Join(indexOutDir, filepath.FromSlash(artifact.Artifact))
 	// Resolve possible wildcards.
 	// TODO: Note that this is not very portable, as the glob is host-platform dependent,
@@ -732,7 +742,7 @@ func (b *Builder) saveArtifactLocally(ctx context.Context, artifact domain.Artif
 		}
 
 		// Write to console about this artifact.
-		artifactPath := trimFilePathPrefix(indexOutDir, from, console)
+		artifactPath := trimFilePathPrefix(indexOutDir, from, b.opt.Console)
 		artifact2 := domain.Artifact{
 			Target:   artifact.Target,
 			Artifact: artifactPath,
@@ -741,9 +751,10 @@ func (b *Builder) saveArtifactLocally(ctx context.Context, artifact domain.Artif
 		if strings.HasSuffix(destPath, "/") {
 			destPath2 = filepath.Join(destPath2, filepath.Base(artifactPath))
 		}
-		if opt.PrintSuccess {
-			artifactStr := console.PrefixColor().Sprintf("%s", artifact2.StringCanonical())
-			console.Printf("Artifact %s as local %s\n", artifactStr, destPath2)
+		if opt.PrintPhases {
+			artifactColor := b.opt.Console.WithPrefixAndSalt(artifact.Target.String(), salt).PrefixColor()
+			artifactStr := artifactColor.Sprintf("%s", artifact2.StringCanonical())
+			console.Printf("Artifact %s output as %s\n", artifactStr, destPath2)
 		}
 	}
 	return nil
@@ -776,7 +787,8 @@ func (b *Builder) tempEarthlyOutDir() (string, error) {
 func trimFilePathPrefix(prefix string, thePath string, console conslogging.ConsoleLogger) string {
 	ret, err := filepath.Rel(prefix, thePath)
 	if err != nil {
-		console.Warnf("Warning: Could not compute relative path for %s as being relative to %s: %s\n", thePath, prefix, err.Error())
+		console.Warnf("Warning: Could not compute relative path for %s "+
+			"as being relative to %s: %s\n", thePath, prefix, err.Error())
 		return thePath
 	}
 	return ret

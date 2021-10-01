@@ -11,8 +11,8 @@ echo "=== Test Single --push ==="
 
 "$earthly" --allow-privileged --no-cache +only-push 2>&1 | tee single_output
 
-if ! cat single_output | grep "Did not push earthly/sap:only-push"; then
-    echo "Invalid push text"
+if ! cat single_output | grep "Did not push image earthly/sap:only-push"; then
+    echo "Invalid push text (expected: Did not push image earthly/sap:only-push)"
     cat single_output
     exit 1
 fi
@@ -29,8 +29,14 @@ echo "=== Test All Phase Transitions ==="
 
 "$earthly" --allow-privileged --no-cache +test 2>&1 | tee multi_output
 
-if ! cat multi_output | grep "Did not push, OR save earthly/sap:after-push locally"; then
-    echo "Invalid push text"
+if ! cat multi_output | grep "Did not push image earthly/sap:after-push"; then
+    echo "Invalid push text (expected: Did not push image earthly/sap:after-push)"
+    cat multi_output
+    exit 1
+fi
+
+if ! cat multi_output | grep "Did not output image earthly/sap:after-push"; then
+    echo "Invalid push text (expected: Did not output image earthly/sap:after-push)"
     cat multi_output
     exit 1
 fi

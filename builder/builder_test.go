@@ -20,5 +20,7 @@ func TestTempEarthlyOutDir(t *testing.T) {
 	outDir2, err := b.tempEarthlyOutDir()
 	assert.NoError(t, err)
 
+	b.opt.CleanCollection.Close()
+
 	assert.Equal(t, outDir1, outDir2)
 }

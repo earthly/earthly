@@ -1475,10 +1475,7 @@ func (app *earthlyApp) run(ctx context.Context, args []string) int {
 		if errors.As(err, &buildErr) {
 			failedOutput = buildErr.VertexLog()
 		}
-		canceledOrVerbose := (errors.Is(err, context.Canceled) ||
-			strings.Contains(err.Error(), context.Canceled.Error()) ||
-			app.verbose)
-		if canceledOrVerbose {
+		if app.verbose {
 			// Get the stack trace from the deepest error that has it and print it.
 			type stackTracer interface {
 				StackTrace() errors.StackTrace
@@ -1510,7 +1507,7 @@ func (app *earthlyApp) run(ctx context.Context, args []string) int {
 			app.console.Printf(
 				"Are you using --platform to target a different architecture? You may have to manually install QEMU.\n" +
 					"For more information see https://docs.earthly.dev/guides/multi-platform\n")
-		} else if !canceledOrVerbose && rpcRegex.MatchString(err.Error()) {
+		} else if !app.verbose && rpcRegex.MatchString(err.Error()) {
 			baseErr := errors.Cause(err)
 			baseErrMsg := rpcRegex.ReplaceAll([]byte(baseErr.Error()), []byte(""))
 			app.console.Warnf("Error: %s\n", string(baseErrMsg))
@@ -2591,6 +2588,7 @@ func (app *earthlyApp) warnIfArgContainsBuildArg(flagArgs []string) {
 	}
 }
 func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []string) error {
+	app.console.PrintPhaseHeader(builder.PhaseInit, false, "")
 	app.warnIfArgContainsBuildArg(flagArgs)
 	var target domain.Target
 	var artifact domain.Artifact
@@ -2837,11 +2835,13 @@ func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []st
 		return errors.Wrap(err, "new builder")
 	}
 
+	app.console.PrintPhaseFooter(builder.PhaseInit, false, "")
+
 	if len(platformsSlice) != 1 {
 		return errors.Errorf("multi-platform builds are not yet supported on the command line. You may, however, create a target with the instruction BUILD --plaform ... --platform ... %s", target)
 	}
 	buildOpts := builder.BuildOpt{
-		PrintSuccess:               true,
+		PrintPhases:                true,
 		Push:                       app.push,
 		NoOutput:                   app.noOutput,
 		OnlyFinalTargetImages:      app.imageMode,

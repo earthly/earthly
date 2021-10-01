@@ -40,7 +40,6 @@ func platformSpecificImageName(imgName string, platform specs.Platform) (string,
 }
 
 func loadDockerManifest(ctx context.Context, console conslogging.ConsoleLogger, fe containerutil.ContainerFrontend, parentImageName string, children []manifest) error {
-	console = console.WithPrefix(parentImageName)
 	if len(children) == 0 {
 		return errors.Errorf("no images in manifest list for %s", parentImageName)
 	}
@@ -65,7 +64,7 @@ func loadDockerManifest(ctx context.Context, console conslogging.ConsoleLogger, 
 		"it is pushed as a single multi-manifest image. " +
 		"Separate per-platform image tags are only available locally."
 	console.Printf(
-		"%s is a multi-platform image. The following per-platform images have been produced:\n\t%s\n%s\n",
+		"Image %s is a multi-platform image. The following per-platform images have been produced:\n\t%s\n%s\n",
 		parentImageName, strings.Join(childImgs, "\n\t"), noteDetail)
 
 	err := fe.ImageTag(ctx, containerutil.ImageTag{
