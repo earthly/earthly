@@ -29,4 +29,3 @@ all:
     BUILD +build
     BUILD +unit-test
     BUILD +docker
-
