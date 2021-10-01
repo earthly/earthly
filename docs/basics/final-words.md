@@ -11,7 +11,7 @@ Learning Earthly does not stop here. Discover more of what Earthly can do by exp
 * [Guides](../earthfile/guides.md)
 * [Examples using Earthly](../examples/examples.md)
 
-**More examples:**
+##### More examples:
 
 * [Examples directory on GitHub](https://github.com/earthly/earthly/tree/main/examples)
 * [Go](https://github.com/earthly/earthly/tree/main/examples/go)
