@@ -68,7 +68,7 @@ func ConnectTerm(ctx context.Context, addr string, console conslogging.ConsoleLo
 		for {
 			connDataType, data, err := common.ReadDataPacket(conn)
 			if err != nil {
-				console.Warnf("ReadDataPacket failed: %s\n", err.Error())
+				console.VerbosePrintf("ReadDataPacket failed: %s\n", err.Error())
 				break
 			}
 			switch connDataType {
@@ -76,24 +76,24 @@ func ConnectTerm(ctx context.Context, addr string, console conslogging.ConsoleLo
 				console.VerbosePrintf("starting new interactive shell pseudo terminal\n")
 				err := ts.makeRaw()
 				if err != nil {
-					console.Warnf("makeRaw failed: %s\n", err.Error())
+					console.VerbosePrintf("makeRaw failed: %s\n", err.Error())
 					break outer
 				}
 				sigs <- syscall.SIGWINCH
 			case common.EndShellSession:
 				err := ts.restore()
 				if err != nil {
-					console.Warnf("restore failed: %s\n", err.Error())
+					console.VerbosePrintf("restore failed: %s\n", err.Error())
 					break outer
 				}
 			case common.PtyData:
 				err := handlePtyData(data)
 				if err != nil {
-					console.Warnf("handlePtyData failed: %s\n", err.Error())
+					console.VerbosePrintf("handlePtyData failed: %s\n", err.Error())
 					break outer
 				}
 			default:
-				console.Warnf("unhandled terminal data type: %q\n", connDataType)
+				console.VerbosePrintf("unhandled terminal data type: %q\n", connDataType)
 				break outer
 			}
 		}
@@ -107,7 +107,7 @@ func ConnectTerm(ctx context.Context, addr string, console conslogging.ConsoleLo
 			}
 			data, err := getWindowSizePayload()
 			if err != nil {
-				console.Warnf("failed to get window size payload: %s\n", err.Error())
+				console.VerbosePrintf("failed to get window size payload: %s\n", err.Error())
 				break
 			}
 			writeCh <- data
@@ -120,7 +120,7 @@ func ConnectTerm(ctx context.Context, addr string, console conslogging.ConsoleLo
 			buf := <-writeCh
 			_, err := conn.Write(buf)
 			if err != nil {
-				console.Warnf("failed to send term data to shell: %s\n", err.Error())
+				console.VerbosePrintf("failed to send term data to shell: %s\n", err.Error())
 				break
 			}
 		}
@@ -131,13 +131,13 @@ func ConnectTerm(ctx context.Context, addr string, console conslogging.ConsoleLo
 			buf := make([]byte, 100)
 			n, err := os.Stdin.Read(buf)
 			if err != nil {
-				console.Warnf("failed to read from stdin: %s\n", err.Error())
+				console.VerbosePrintf("failed to read from stdin: %s\n", err.Error())
 				break
 			}
 			buf = buf[:n]
 			buf2, err := common.SerializeDataPacket(common.PtyData, buf)
 			if err != nil {
-				console.Warnf("failed to serialize data: %s\n", err.Error())
+				console.VerbosePrintf("failed to serialize data: %s\n", err.Error())
 				break
 			}
 

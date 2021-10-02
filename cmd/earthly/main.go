@@ -2757,7 +2757,7 @@ func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []st
 			debugTermConsole := app.console.WithPrefix("internal-term")
 			err = terminal.ConnectTerm(c.Context, u.Host, debugTermConsole)
 			if err != nil {
-				debugTermConsole.Warnf("Failed to connect to terminal: %s", err.Error())
+				debugTermConsole.VerbosePrintf("unable to connect to terminal: %s", err.Error())
 			}
 		}()
 	}
