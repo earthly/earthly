@@ -1,0 +1,6 @@
+target:
+    ARG foo
+    RUN echo "foo is $foo"
+
+test-target:
+	RUN echo "testing"

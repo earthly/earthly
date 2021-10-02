@@ -69,7 +69,6 @@ func getApp() *cli.App {
 }
 
 func TestFlagCompletion(t *testing.T) {
-
 	matches, err := GetPotentials("earthly --fl", 12, getApp(), false)
 	NoError(t, err, "GetPotentials failed")
 	Equal(t, []string{"--flag ", "--fleet "}, matches)
@@ -121,4 +120,16 @@ func TestPathCompletion(t *testing.T) {
 	matches, err := GetPotentials("earthly .", 9, getApp(), false)
 	NoError(t, err, "GetPotentials failed")
 	Equal(t, []string{"./", "../"}, matches)
+}
+
+func TestTargetCompletion(t *testing.T) {
+	matches, err := GetPotentials("earthly +tar", 12, getApp(), false)
+	NoError(t, err, "GetPotentials failed")
+	Equal(t, []string{"+target "}, matches)
+}
+
+func TestTargetEnvArgCompletion(t *testing.T) {
+	matches, err := GetPotentials("earthly +target -", 17, getApp(), false)
+	NoError(t, err, "GetPotentials failed")
+	Contains(t, matches, "--foo=")
 }

@@ -2,6 +2,7 @@ package earthfile2llb
 
 import (
 	"context"
+	"github.com/earthly/earthly/ast/spec"
 
 	"github.com/moby/buildkit/client/llb"
 	gwclient "github.com/moby/buildkit/frontend/gateway/client"
@@ -171,4 +172,28 @@ func GetTargets(filename string) ([]string, error) {
 		targets = append(targets, target.Name)
 	}
 	return targets, nil
+}
+
+// GetTargetEnvArgs returns a list of ENV Vars defined by ARG command from required target from an Earthfile.
+func GetTargetEnvArgs(filename string, target string) ([]string, error) {
+	ef, err := ast.Parse(context.TODO(), filename, false)
+	if err != nil {
+		return nil, err
+	}
+	var requiredTarget spec.Target
+	for _, t := range ef.Targets {
+		if t.Name == target {
+			requiredTarget = t
+		}
+	}
+	if requiredTarget.Name == "" {
+		return nil, errors.New("cannot find required target in given Earthfile")
+	}
+	var args []string
+	for _, recipe := range requiredTarget.Recipe {
+		if recipe.Command.Name == "ARG" && len(recipe.Command.Args) == 1 {
+			args = append(args, recipe.Command.Args[0])
+		}
+	}
+	return args, nil
 }

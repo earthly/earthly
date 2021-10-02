@@ -99,9 +99,22 @@ func getPotentialPaths(prefix string) ([]string, error) {
 
 		potentials := []string{}
 		for _, target := range targets {
-			s := dirPath + "+" + target + " "
+			s := dirPath + "+" + target
+
+			// handle target env args
+			if s == prefix {
+				envArgs, err := earthfile2llb.GetTargetEnvArgs(path.Join(dirPath, "Earthfile"), target)
+				if err != nil {
+					return nil, err
+				}
+				for _, arg := range envArgs {
+					potentials = append(potentials, "--"+arg+"=")
+				}
+				return potentials, nil
+			}
+
 			if strings.HasPrefix(s, prefix) {
-				potentials = append(potentials, replaceHomePrefix(s))
+				potentials = append(potentials, replaceHomePrefix(s+" "))
 			}
 		}
 
@@ -220,6 +233,14 @@ func GetPotentials(compLine string, compPoint int, app *cli.App, showHidden bool
 	}
 
 	if flagPrefix, ok := trimFlag(lastWord); ok {
+		target := parts[len(parts)-2]
+		if strings.HasPrefix(target, "+") {
+			args, err := getPotentialPaths(target)
+			if err != nil {
+				return nil, err
+			}
+			potentials = append(potentials, args...)
+		}
 		for _, s := range flags {
 			if strings.HasPrefix(s, flagPrefix) {
 				potentials = append(potentials, "--"+s+" ")
