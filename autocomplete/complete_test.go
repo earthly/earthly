@@ -129,7 +129,19 @@ func TestTargetCompletion(t *testing.T) {
 }
 
 func TestTargetEnvArgCompletion(t *testing.T) {
+	matches, err := GetPotentials("earthly +target ", 16, getApp(), false)
+	NoError(t, err, "GetPotentials failed")
+	Equal(t, []string{"--foo="}, matches)
+}
+
+func TestTargetEnvArgCompletionForFlagPrefix(t *testing.T) {
 	matches, err := GetPotentials("earthly +target -", 17, getApp(), false)
 	NoError(t, err, "GetPotentials failed")
-	Contains(t, matches, "--foo=")
+	Equal(t, []string{"--foo="}, matches)
+}
+
+func TestTargetEnvArgCompletionForArgPrefix(t *testing.T) {
+	matches, err := GetPotentials("earthly +target --", 18, getApp(), false)
+	NoError(t, err, "GetPotentials failed")
+	Equal(t, []string{"--foo="}, matches)
 }

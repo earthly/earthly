@@ -235,11 +235,7 @@ func GetPotentials(compLine string, compPoint int, app *cli.App, showHidden bool
 	if flagPrefix, ok := trimFlag(lastWord); ok {
 		target := parts[len(parts)-2]
 		if strings.HasPrefix(target, "+") {
-			args, err := getPotentialPaths(target)
-			if err != nil {
-				return nil, err
-			}
-			potentials = append(potentials, args...)
+			return getPotentialPaths(target)
 		}
 		for _, s := range flags {
 			if strings.HasPrefix(s, flagPrefix) {
@@ -254,6 +250,10 @@ func GetPotentials(compLine string, compPoint int, app *cli.App, showHidden bool
 	}
 
 	if lastWord == "" && cmd == nil {
+		target := parts[len(parts)-2]
+		if strings.HasPrefix(target, "+") {
+			return getPotentialPaths(target)
+		}
 		if hasEarthfile(".") {
 			potentials = append(potentials, "+")
 		}
