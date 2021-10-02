@@ -1,4 +1,4 @@
-# Reduce code duplication
+# Reducing code duplication
 
 In some cases, the dependencies might be used in more than one build target. For this use case, we might want to separate dependency downloading and reuse it. For this reason, let's consider breaking this out into a separate build target, called `deps`. We can then inherit from `deps` by using the command `FROM +deps`.
 
@@ -34,7 +34,7 @@ docker:
 {% hint style='info' %}
 ##### Note
 
-To copy [these files](https://github.com/earthly/earthly/tree/main/examples/tutorial/go/part5) locally run
+To copy the files for [this example ( Part 5 )](https://github.com/earthly/earthly/tree/main/examples/tutorial/go/part5) run
 
 ```bash
 earthly --artifact github.com/earthly/earthly/examples/tutorial/go:main+part5/part5 ./part5
@@ -74,7 +74,7 @@ docker:
 {% hint style='info' %}
 ##### Note
 
-To copy [these files](https://github.com/earthly/earthly/tree/main/examples/tutorial/js/part5) locally run
+To copy the files for [this example ( Part 5 )](https://github.com/earthly/earthly/tree/main/examples/tutorial/js/part5) run
 
 ```bash
 earthly --artifact github.com/earthly/earthly/examples/tutorial/js:main+part5/part5 ./part5
@@ -111,7 +111,7 @@ docker:
 {% hint style='info' %}
 ##### Note
 
-To copy [these files](https://github.com/earthly/earthly/tree/main/examples/tutorial/java/part5) locally run
+To copy the files for [this example ( Part 5 )](https://github.com/earthly/earthly/tree/main/examples/tutorial/java/part5) run
 
 ```bash
 earthly --artifact github.com/earthly/earthly/examples/tutorial/java:main+part5/part5 ./part5
@@ -148,7 +148,7 @@ docker:
 {% hint style='info' %}
 ##### Note
 
-To copy [these files](https://github.com/earthly/earthly/tree/main/examples/tutorial/python/part5) locally run
+To copy the files for [this example ( Part 5 )](https://github.com/earthly/earthly/tree/main/examples/tutorial/python/part5) run
 
 ```bash
 earthly --artifact github.com/earthly/earthly/examples/tutorial/python:main+part5/part5 ./part5
@@ -157,6 +157,3 @@ earthly --artifact github.com/earthly/earthly/examples/tutorial/python:main+part
 
 {% endmethod %}
 
-## Continue tutorial
-
-👉 [Final words](./final-words.md)

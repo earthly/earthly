@@ -35,6 +35,7 @@ If you are new to Earthly, you may find the [Basics tutorial](../basics/basics.m
 
 Please note that these examples, although similar, are distinct from the ones used in the [tutorial](https://github.com/earthly/earthly/tree/main/examples/tutorial).
 
+* [c](https://github.com/earthly/earthly/tree/main/examples/c)
 * [cobol](https://github.com/earthly/earthly/tree/main/examples/cobol)
 * [cpp](https://github.com/earthly/earthly/tree/main/examples/cpp)
 * [dotnet](https://github.com/earthly/earthly/tree/main/examples/dotnet)

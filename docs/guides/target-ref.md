@@ -60,7 +60,7 @@ For more information on UDCs, see the [User-defined commands guide](./udc.md).
 
 ## Project references
 
-<img src="img/ref-infographic.png" alt="Target and artifact reference syntax" title="Reference targets using +" width="800px" />
+<img src="img/ref-infographic-v2.png" alt="Target and artifact reference syntax" title="Reference targets using +" width="800px" />
 
 Project references appear in target, artifact and command references. They point to the Earthfile containing the respective target, artifact or command. Below are the different types of project references available in Earthly.
 

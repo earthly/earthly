@@ -115,6 +115,17 @@ lint-newline-ending:
     FROM alpine:3.13
     WORKDIR /everything
     COPY . .
+    # test that line endings are unix-style
+    RUN set -e; \
+        code=0; \
+        for f in $(find . -type f \( -iname '*.go' -o -iname 'Earthfile' -o -iname '*.earth' \) | grep -v "ast/tests/empty-targets.earth" ); do \
+            if ! dos2unix < "$f" | cmp - "$f"; then \
+                echo "$f contains windows-style newlines and must be converted to unix-style (use dos2unix to fix)"; \
+                code=1; \
+            fi; \
+        done; \
+        exit $code
+    # test file ends with a single newline
     RUN set -e; \
         code=0; \
         for f in $(find . -type f \( -iname '*.yml' -o -iname '*.go' -o -iname 'Earthfile' -o -iname '*.earth' \) | grep -v "ast/tests/empty-targets.earth" | grep -v "examples/tests/version/version-only.earth" ); do \
@@ -426,6 +437,7 @@ examples:
 
 examples1:
     ARG TARGETARCH
+    BUILD ./examples/c+docker
     BUILD ./examples/cpp+docker
     IF [ "$TARGETARCH" = "amd64" ]
         # This only works on amd64 for now.

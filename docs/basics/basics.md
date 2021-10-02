@@ -1,26 +1,27 @@
 # Introduction
 
-Earthly is a build automation tool where docker containers are used to enforce build repeatability. Earthly is meant to be run on your local system and in your CI. Implicit caching and parallelism mean your build will be repeatable and fast.
+Earthly is a build automation tool that uses docker containers to enforce build repeatability. Earthly is meant to be run on your local system and in your CI. Earthly's implicit caching and parallelism will make your builds repeatable and fast.
 
 This tutorial will walk you through a basic example of using Earthly.
 
-* Introduction <-- You are here.
+* **Introduction** <-- You are here.
 * [Part 1: A simple Earthfile](./part-1-a-simple-earthfile.md)
-* [Part 2: Detailed explanation](./part-2-detailed-explanation.md)
-* [Part 3: Adding dependencies in the mix](./part-3-adding-dependencies-in-the-mix.md)
-* [Part 4: Efficient caching of dependencies](./part-4-efficient-caching-of-dependencies.md)
-* [Part 5: Reduce code duplication](./part-5-reduce-code-duplication.md)
+* [Part 1b: Detailed explanation](./part-1b-detailed-explanation.md)
+* [Part 2: Running the build](./part-2-running-the-build.md)
+* [Part 3: Adding dependencies](./part-3-adding-dependencies.md)
+* [Part 4: Caching dependencies](./part-4-caching-dependencies.md)
+* [Part 5: Reducing code duplication](./part-5-reducing-code-duplication.md)
 * [Final words](./final-words.md)
 
 ## Installation
 
-Before going any further, it is advisable that you install `earthly` on your computer, so you can follow along and try out the examples. See the [installation instructions](https://earthly.dev/get-earthly).
+We recommend you install Earthly on your computer, so you can follow along and try the examples. See the [installation instructions](https://earthly.dev/get-earthly).
 
-## Maintenance
+## Questions & Feedback
 
-Earthly is free and open and we would greatly appreciate any suggestions for improvement on this tutorial, or on Earthly in general. To leave feedback either visit our [Slack community](https://earthly.dev/slack) or open a [GitHub issue](https://github.com/earthly/earthly/issues). We would love to learn of any issues you may have encountered while getting to know Earthly.
+If you have any questions, feedback or suggestions for Earthly or this tutorial feel free to reach out to us on our [Slack community](https://earthly.dev/slack) or open a [GitHub issue](https://github.com/earthly/earthly/issues). Earthly is free and open and we love and appreciate feedback and contributions from the community!
 
-## Begin
+## Get Started with Earthly
 
 We will start the first lesson with a simple Earthfile.
 
