@@ -247,7 +247,8 @@ func RemoveExited(ctx context.Context, fe containerutil.ContainerFrontend, conta
 	if err != nil {
 		return errors.Wrapf(err, "get info to remove exited %s", containerName)
 	}
-	if infos[containerName].Status == containerutil.StatusMissing {
+	containerInfo, ok := infos[containerName]
+	if !ok || containerInfo.Status == containerutil.StatusMissing {
 		return nil
 	}
 
@@ -457,7 +458,8 @@ func Stop(ctx context.Context, containerName string, fe containerutil.ContainerF
 // IsStarted checks if the buildkitd container has been started.
 func IsStarted(ctx context.Context, containerName string, fe containerutil.ContainerFrontend) (bool, error) {
 	infos, err := fe.ContainerInfo(ctx, containerName)
-	return err == nil && infos[containerName].Status == containerutil.StatusRunning, nil
+	containerInfo, ok := infos[containerName]
+	return err == nil && ok && containerInfo.Status == containerutil.StatusRunning, nil
 }
 
 // WaitUntilStarted waits until the buildkitd daemon has started and is healthy.
@@ -633,7 +635,11 @@ func GetLogs(ctx context.Context, containerName string, fe containerutil.Contain
 		return "", errors.Wrap(err, "")
 	}
 
-	return logs[containerName].Stdout, nil
+	if containerLogs, ok := logs[containerName]; ok {
+		return containerLogs.Stdout, nil
+	}
+
+	return "", fmt.Errorf("logs for container %s were not found", containerName)
 }
 
 // GetContainerIP returns the IP of the buildkit container.
@@ -647,8 +653,12 @@ func GetContainerIP(ctx context.Context, containerName string, fe containerutil.
 		return "", errors.Wrap(err, "could not get container info to determine ip")
 	}
 
-	// default is bridge. If someone has a weirdo setup this should be able to handle it with some config option.
-	return infos[containerName].IPs["bridge"], nil
+	if containerInfo, ok := infos[containerName]; ok {
+		// default is bridge. If someone has a weirdo setup this should be able to handle it with some config option.
+		return containerInfo.IPs["bridge"], nil
+	}
+
+	return "", fmt.Errorf("ip for container %s was not found", containerName)
 }
 
 // WaitUntilStopped waits until the buildkitd daemon has stopped.
@@ -679,7 +689,11 @@ func GetSettingsHash(ctx context.Context, containerName string, fe containerutil
 		return "", errors.Wrap(err, "get container info for settings")
 	}
 
-	return infos[containerName].Labels["dev.earthly.settingshash"], nil
+	if containerInfo, ok := infos[containerName]; ok {
+		return containerInfo.Labels["dev.earthly.settingshash"], nil
+	}
+
+	return "", fmt.Errorf("settings hash for container %s was not found", containerName)
 }
 
 // GetContainerImageID fetches the ID of the image used for the running buildkitd container.
@@ -688,7 +702,13 @@ func GetContainerImageID(ctx context.Context, containerName string, fe container
 	if err != nil {
 		return "", errors.Wrap(err, "get container info for current container image ID")
 	}
-	return infos[containerName].ImageID, nil
+
+	if containerInfo, ok := infos[containerName]; ok {
+		return containerInfo.ImageID, nil
+	}
+
+	return "", fmt.Errorf("image id for container %s was not found", containerName)
+
 }
 
 // GetAvailableImageID fetches the ID of the image buildkitd image available.
@@ -706,7 +726,11 @@ func isContainerRunning(ctx context.Context, containerName string, fe containeru
 		return false, errors.Wrap(err, "failed to get container info while checking if running")
 	}
 
-	return infos[containerName].Status == containerutil.StatusRunning, nil
+	if containerInfo, ok := infos[containerName]; ok {
+		return containerInfo.Status == containerutil.StatusRunning, nil
+	}
+
+	return false, fmt.Errorf("status for container %s was not found", containerName)
 }
 
 func isDockerAvailable(ctx context.Context, fe containerutil.ContainerFrontend) bool {
