@@ -114,7 +114,6 @@ Here are some resources to get you started with Earthly
   * [C++](./examples/cpp)
   * [Mono-repo](./examples/monorepo)
   * [Multi-repo](./examples/multirepo)
-  * [C++](./examples/cpp)
   * [Python](./examples/python)
   * [Ruby](./examples/ruby)
   * [Rust](./examples/rust)
