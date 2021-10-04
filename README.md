@@ -117,7 +117,7 @@ Here are some resources to get you started with Earthly
   * [Python](./examples/python)
   * [Ruby](./examples/ruby)
   * [Rust](./examples/rust)
-  * [Terraform](./examples/ruby)
+  * [Terraform](./examples/terraform)
 * 🔍 Explore [Earthly's own build](https://docs.earthly.dev/examples/examples#earthlys-own-build)
 
 See also the [full documentation](https://docs.earthly.dev).
