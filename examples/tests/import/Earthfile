@@ -11,5 +11,5 @@ INSTALL_WHLS:
     ARG wheels
 
     FOR wheel IN $wheels
-      BUILD "./$wheel+build"
+      BUILD "./$wheel+build-lib"
     END
