@@ -1104,13 +1104,6 @@ func (app *earthlyApp) setupAndValidateAddresses(context *cli.Context) error {
 		}
 	}
 
-	if buildkitd.IsLocal(app.buildkitHost) && app.containerFrontend.Config().Setting == containerutil.FrontendStub {
-		// Local buildkits would still need to be initialized. If we had failed to get a frontend, or the one specified is missing,
-		// we will have a stub to continue trying... since the remote one may just be running elsewhere and does not need any help.
-		// Fail if we still have a Local address, and the frontend could not be initialized.
-		return errors.New("cannot continue when buildkit is local and a frontend could not be initialized")
-	}
-
 	bkURL, err := parseAndvalidateURL(app.buildkitHost)
 	if err != nil {
 		return err
