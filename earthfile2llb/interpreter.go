@@ -1042,8 +1042,8 @@ func (i *Interpreter) handleArg(ctx context.Context, cmd spec.Command) error {
 		value = i.expandArgs(args[2], true)
 		fallthrough
 	case 1:
-		if opts.Required && len(value) == 0 {
-			return i.errorf(cmd.SourceLocation, "required ARG cannot be empty")
+		if opts.Required && len(value) != 0 {
+			return i.errorf(cmd.SourceLocation, "required ARG cannot have a default value")
 		}
 		key = args[0] // Note: Not expanding args for key.
 	default:
