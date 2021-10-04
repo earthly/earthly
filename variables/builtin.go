@@ -25,6 +25,7 @@ func BuiltinArgs(target domain.Target, platform specs.Platform, gitMeta *gitutil
 	ret.AddInactive("EARTHLY_TARGET_TAG", target.Tag)
 	ret.AddInactive("EARTHLY_TARGET_TAG_DOCKER", llbutil.DockerTagSafe(target.Tag))
 	SetPlatformArgs(ret, platform)
+	SetUserPlatformArgs(ret)
 
 	if gitMeta != nil {
 		ret.AddInactive("EARTHLY_GIT_HASH", gitMeta.Hash)
@@ -68,6 +69,15 @@ func SetPlatformArgs(s *Scope, platform specs.Platform) {
 	s.AddInactive("TARGETOS", platform.OS)
 	s.AddInactive("TARGETARCH", platform.Architecture)
 	s.AddInactive("TARGETVARIANT", platform.Variant)
+}
+
+// SetUserPlatformArgs sets the user's platform-specific built-in args.
+func SetUserPlatformArgs(s *Scope) {
+	platform := platforms.DefaultSpec()
+	s.AddInactive("USERPLATFORM", platforms.Format(platform))
+	s.AddInactive("USEROS", platform.OS)
+	s.AddInactive("USERARCH", platform.Architecture)
+	s.AddInactive("USERVARIANT", platform.Variant)
 }
 
 // getProjectName returns the depricated PROJECT_NAME value
