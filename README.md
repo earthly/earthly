@@ -48,31 +48,31 @@
 
 <br/>
 <br/>
-<h2 align="center">Why Use Earthly?</h2>
+<h2 align="center">🌍 Why Use Earthly? 🌍 </h2>
 
-### 🔁 Reproduce CI failures
+### 🔁 Reproduce CI failures 🔁 
 
 Earthly builds are self-contained, isolated and repeatable. Regardless of whether Earthly runs in your CI or on your laptop, there is a degree of guarantee that the build will run the same way. This allows for faster iteration on the build scripts and easier debugging when something goes wrong. No more `git commit -m "try again"`.
 
-### 🤲 Builds that run the same for everyone
+### 🤲 Builds that run the same for everyone 🤲
 
 Repeatable builds also mean that your build will run the same on your colleagues' laptop without any additional project-specific or language-specific setup. This fosters better developer collaboration and mitigates works-for-me type of issues.
 
-### 🚀 From zero to working build in minutes
+### 🚀 From zero to working build in minutes 🚀
 
 Jump from project to project with ease, regardless of the language they are written in. Running the project's test suites is simply a matter of running an Earthly target (without fiddling with project configuration to make it compile and run on your system). Contribute across teams with confidence.
 
-### 📦 Reusability
+### 📦 Reusability 📦
 
 A simple, yet powerful import system allows for reusability of builds across directories or even across repositories. Importing other builds does not have hidden environment-specific implications - it just works.
 
-### ❤️ It's like Makefile and Dockerfile had a baby
+### ❤️ It's like Makefile and Dockerfile had a baby ❤️
 
 Taking some of the best ideas from Makefiles and Dockerfiles, Earthly combines two build specifications into one.
 
 <br/>
 <br/>
-<h2 align="center">Where Does Earthly Fit?</h2>
+<h2 align="center">💝 Where Does Earthly Fit? 💝</h2> 
 
 <div align="center"><img src="docs/img/integration-diagram-v2.png" alt="Earthly fits between language-specific tooling and the CI" width="700px" /></div>
 <br/>
@@ -81,7 +81,7 @@ Earthly is meant to be used both on your development machine and in CI. It can r
 
 <br/>
 <br/>
-<h2 align="center">How Does It Work?</h2>
+<h2 align="center">👨‍🏭 How Does It Work? 👨‍🏭 </h2>
 
 In short: **containers**, **layer caching** and **complex build graphs**!
 
@@ -94,7 +94,7 @@ We use a target-based system to help users break up complex builds into reusable
 
 <br/>
 <br/>
-<h2 align="center">Installation</h2>
+<h2 align="center">💻 Installation 💻</h2>
 
 See [installation instructions](https://earthly.dev/get-earthly).
 
@@ -102,7 +102,7 @@ To build from source, check the [contributing page](./CONTRIBUTING.md).
 
 <br/>
 <br/>
-<h2 align="center">Quick Start</h2>
+<h2 align="center"> 🎏 Quick Start 🎏 </h2>
 
 Here are some resources to get you started with Earthly
 
@@ -171,9 +171,9 @@ Examples for other languages are available in the [examples dir](./examples).
 
 <br/>
 <br/>
-<h2 align="center">Features</h2>
+<h2 align="center">💡 Features 💡</h2>
 
-### 📦 Modern import system
+### 📦 Modern import system 📦
 
 Earthly can be used to reference and build targets from other directories or even other repositories. For example, if we wanted to build [an example target from the `github.com/earthly/earthly` repository](./examples/go/Earthfile#L17-L20), we could issue
 
@@ -184,7 +184,7 @@ earthly github.com/earthly/earthly/examples/go:main+docker
 docker run --rm earthly/examples:go
 ```
 
-### 🔨 Reference other targets using +
+### 🔨 Reference other targets using 🔨 +
 
 Use `+` to reference other targets and create complex build inter-dependencies.
 
@@ -216,7 +216,7 @@ Examples
   COPY github.com/someone/someproject:v1.2.3+some-target/my-artifact ./
   ```
 
-### 💾 Caching that works the same as Docker builds
+### 💾 Caching that works the same as Docker builds 💾
 
 <div align="center"><a href="https://asciinema.org/a/351674?speed=2"><img src="img/demo-351674.gif" alt="Demonstration of Earthly's caching" title="View on asciinema.org" width="600px" /></a></div>
 
@@ -241,13 +241,13 @@ build:
     SAVE IMAGE multiplatform-image
 ```
 
-### ⛓ Parallelization that just works
+### ⛓ Parallelization that just works ⛓
 
 Whenever possible, Earthly automatically executes targets in parallel.
 
 <div align="center"><a href="https://asciinema.org/a/351678?speed=2"><img src="img/demo-351678.gif" alt="Demonstration of Earthly's parallelization" title="View on asciinema.org" width="600px" /></a></div>
 
-### 🤲 Make use of build tools that work everywhere
+### 🤲 Make use of build tools that work everywhere 🤲
 
 No need to ask your team to install `protoc`, a specific version of Python, Java 1.6 or the .NET Core ecosystem. You only install once, in your Earthfile, and it works for everyone. Or even better, you can just make use of the rich Docker Hub ecosystem.
 
@@ -272,7 +272,7 @@ build:
 
 See full [example code](./examples/readme/proto).
 
-### 🔑 Cloud secrets support built-in
+### 🔑 Cloud secrets support built-in 🔑
 
 Secrets are never stored within an image's layers and they are only available to the commands that need them.
 
@@ -287,7 +287,7 @@ release:
 
 <br/>
 <br/>
-<h2 align="center">FAQ</h2>
+<h2 align="center">🙋 FAQ 🙋</h2>
 
 ### How is Earthly different from Dockerfiles?
 
@@ -336,6 +336,6 @@ Overall, compared to Bazel, Earthly sacrifices some correctness and reproducibil
 
 <br/>
 <br/>
-<h2 align="center">Licensing</h2>
+<h2 align="center">© Licensing ©</h2>
 
 Earthly is licensed under the Business Source License 1.1. See [licenses/BSL](./licenses/BSL) and the [Earthly BSL FAQ page](https://earthly.dev/bslfaq) for more information.
