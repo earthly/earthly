@@ -110,3 +110,7 @@ type doOpts struct {
 type importOpts struct {
 	AllowPrivileged bool `long:"allow-privileged" description:"Allow targets to assume privileged mode"`
 }
+
+type argOpts struct {
+	Required bool `long:"required" description:"Require argument to be non-empty"`
+}
