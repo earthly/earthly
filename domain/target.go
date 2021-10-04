@@ -80,7 +80,7 @@ func (et Target) IsImportReference() bool {
 // IsUnresolvedImportReference returns whether the target is an import reference that has
 // no remote or local information set.
 func (et Target) IsUnresolvedImportReference() bool {
-	return et.IsImportReference() && !et.IsRemote() && !et.IsLocalExternal()
+	return et.IsImportReference() && !et.IsRemote() && !et.IsLocalExternal() && !et.IsLocalInternal()
 }
 
 // DebugString returns a string that can be printed out for debugging purposes

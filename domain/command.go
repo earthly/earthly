@@ -80,7 +80,7 @@ func (ec Command) IsImportReference() bool {
 // IsUnresolvedImportReference returns whether the command is an import reference that has
 // no remote or local information set.
 func (ec Command) IsUnresolvedImportReference() bool {
-	return ec.IsImportReference() && !ec.IsRemote() && !ec.IsLocalExternal()
+	return ec.IsImportReference() && !ec.IsRemote() && !ec.IsLocalExternal() && !ec.IsLocalInternal()
 }
 
 // DebugString returns a string that can be printed out for debugging purposes
