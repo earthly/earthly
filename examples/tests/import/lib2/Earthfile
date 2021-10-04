@@ -1,0 +1,6 @@
+VERSION --for-in 0.5
+
+FROM alpine:3.13
+
+build:
+    RUN echo building lib2

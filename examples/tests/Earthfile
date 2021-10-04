@@ -18,6 +18,8 @@ ga:
     BUILD ./dockerfile+test
     BUILD ./dockerfile2/subdir+test
     BUILD ./version+test-all
+    BUILD ./import+build
+    BUILD ./import+build-imported
     BUILD +privileged-test
     BUILD +copy-test
     BUILD +copy-test-verbose-output

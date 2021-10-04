@@ -1,0 +1,15 @@
+VERSION --for-in 0.5
+
+build:
+    BUILD ./lib1+build
+
+build-imported:
+    BUILD ./lib1+build-imported
+
+INSTALL_WHLS:
+    COMMAND
+    ARG wheels
+
+    FOR wheel IN $wheels
+      BUILD "./$wheel+build"
+    END
