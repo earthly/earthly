@@ -44,7 +44,7 @@ To run most tests you can issue
 ```bash
 ./build/<platform>/amd64/earthly -P \
   --secret DOCKERHUB_USER=me \
-  --secret DOCKERHUB_PASS=my_token \
+  --secret DOCKERHUB_TOKEN=my_token \
   +test
 ```
 
@@ -53,7 +53,7 @@ To also build the examples, you can run
 ```bash
 ./build/<platform>/amd64/earthly -P \
   --secret DOCKERHUB_USER=me \
-  --secret DOCKERHUB_PASS=my_token \
+  --secret DOCKERHUB_TOKEN=my_token \
   +test-all
 ```
 

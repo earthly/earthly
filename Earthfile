@@ -314,7 +314,7 @@ earthly-integration-test-base:
     ARG DOCKERHUB_MIRROR
     ARG DOCKERHUB_AUTH=true
     ARG DOCKERHUB_USER_SECRET=+secrets/DOCKERHUB_USER
-    ARG DOCKERHUB_TOKEN_SECRET=+secrets/DOCKERHUB_PASS
+    ARG DOCKERHUB_TOKEN_SECRET=+secrets/DOCKERHUB_TOKEN
 
     IF [ -z $DOCKERHUB_MIRROR ]
     # No mirror, easy CI and local use by all

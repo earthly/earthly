@@ -40,8 +40,8 @@ jobs:
         run: |
           ./build/linux/amd64/earthly --ci -P \
             --build-arg DOCKERHUB_MIRROR=registry-1.docker.io.mirror.corp.earthly.dev \
-            --build-arg DOCKERHUB_USER_SECRET=+secrets/earthly-technologies/dockerhub-mirror/user \
-            --build-arg DOCKERHUB_PASS_SECRET=+secrets/earthly-technologies/dockerhub-mirror/pass \
+            --build-arg DOCKERHUB_USER_SECRET="+secrets/earthly-technologies/dockerhub-mirror/user" \
+            --build-arg DOCKERHUB_TOKEN_SECRET="+secrets/earthly-technologies/dockerhub-mirror/pass" \
           +test
       - name: Execute fail test
         run: "! ./build/linux/amd64/earthly --ci ./examples/tests/fail+test-fail"
