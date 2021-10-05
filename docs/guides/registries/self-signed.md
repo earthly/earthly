@@ -68,7 +68,7 @@ global:
       http = true|false
       insecure = true|false
       ca=["<ca-path-pem>"]
-      [[registry."<registry-hostname>".key pair]]
+      [[registry."<registry-hostname>".keypair]]
         key="<key-path-pem>"
         cert="<cert-path-pem>"
 ```
