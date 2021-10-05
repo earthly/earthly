@@ -131,10 +131,10 @@ func TestFrontendContainerInfo(t *testing.T) {
 			assert.Len(t, info, 3)
 
 			assert.Equal(t, getInfos[0], info[getInfos[0]].Name)
-			assert.Equal(t, "docker.io/nginx:1.21", info[getInfos[0]].Image)
+			assert.Equal(t, "docker.io/library/nginx:1.21", info[getInfos[0]].Image)
 
 			assert.Equal(t, getInfos[1], info[getInfos[1]].Name)
-			assert.Equal(t, "docker.io/nginx:1.21", info[getInfos[1]].Image)
+			assert.Equal(t, "docker.io/library/nginx:1.21", info[getInfos[1]].Image)
 
 			assert.Equal(t, getInfos[2], info[getInfos[2]].Name)
 			assert.Equal(t, containerutil.StatusMissing, info[getInfos[2]].Status)
@@ -552,7 +552,7 @@ func isBinaryInstalled(ctx context.Context, binary string) bool {
 func spawnTestContainers(ctx context.Context, feBinary string, names ...string) (func(), error) {
 	var err error
 	for _, name := range names {
-		cmd := exec.CommandContext(ctx, feBinary, "run", "-d", "--name", name, "docker.io/nginx:1.21", `-text="test"`)
+		cmd := exec.CommandContext(ctx, feBinary, "run", "-d", "--name", name, "docker.io/library/nginx:1.21", `-text="test"`)
 		output, createErr := cmd.CombinedOutput()
 		if err != nil {
 			// the frontend exists but is non-functional. This is... not likely to work at all.
