@@ -84,7 +84,7 @@ class DatabaseIntegrationTest extends FlatSpec {
   }
 }
 ```
-Ouput:
+Output:
 ``` bash
 >sbt it:test
 [info] DatabaseIntegrationTest:
@@ -207,7 +207,7 @@ docker:
     COPY src src
     RUN sbt assembly
     ENTRYPOINT ["java","-cp","target/scala-2.12/scala-example-assembly-1.0.jar","Main"]
-    SAVE IMAGE scala-example:lates 
+    SAVE IMAGE scala-example:latest 
 ```
 [Full file](https://github.com/earthly/earthly-example-scala/blob/main/integration/Earthfile)
 

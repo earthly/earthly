@@ -14,7 +14,7 @@ User-defined commands (UDCs) are templates (much like functions in regular progr
 
 Unlike targets, UDCs inherit the (1) build context and (2) the build environment from the caller. Meaning that
 
-1. Any local `COPY` opperation will use the directory where the calling Earthfile exists, as the source.
+1. Any local `COPY` operation will use the directory where the calling Earthfile exists, as the source.
 2. Any files, directories and dependencies created by a previous step of the caller are available to the UDC to operate on; and any file changes resulting from executing the UDC commands are passed back to the caller as part of the build environment.
 
 Thus, when importing and reusing UDCs across a complex build, it is very much like reusing libraries in a regular programming language.
