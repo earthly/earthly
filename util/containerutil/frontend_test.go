@@ -554,7 +554,7 @@ func isBinaryInstalled(ctx context.Context, binary string) bool {
 func spawnTestContainers(ctx context.Context, feBinary string, names ...string) (func(), error) {
 	var err error
 	for _, name := range names {
-		cmd := exec.CommandContext(ctx, feBinary, "run", "-d", "--name", name, "docker.io/hashicorp/http-echo:latest", `-text="test"`)
+		cmd := exec.CommandContext(ctx, feBinary, "run", "-d", "--name", name, "docker.io/nginx:1.21", `-text="test"`)
 		output, createErr := cmd.CombinedOutput()
 		if err != nil {
 			// the frontend exists but is non-functional. This is... not likely to work at all.
