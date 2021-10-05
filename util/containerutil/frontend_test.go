@@ -272,7 +272,7 @@ func TestFrontendContainerRun(t *testing.T) {
 					Privileged:     false,
 					Envs:           containerutil.EnvMap{"test": name},
 					Labels:         containerutil.LabelMap{"test": name},
-					ContainerArgs:  []string{"--text", "create-test"},
+					ContainerArgs:  []string{"nginx-debug", "-g", "daemon off;"},
 					AdditionalArgs: []string{"--rm"},
 					Mounts: containerutil.MountOpt{
 						containerutil.Mount{
@@ -338,13 +338,11 @@ func TestFrontendImagePull(t *testing.T) {
 			fe, err := tC.newFunc(ctx)
 			assert.NoError(t, err)
 
-			refList := []string{"nginx:1.21", "alpine:3.13"}
-
-			err = fe.ImagePull(ctx, refList...)
+			err = fe.ImagePull(ctx, tC.refList...)
 			assert.NoError(t, err)
 
 			defer func() {
-				for _, ref := range refList {
+				for _, ref := range tC.refList {
 					cmd := exec.CommandContext(ctx, "docker", "image", "rm", "-f", ref)
 					cmd.Run()
 				}
