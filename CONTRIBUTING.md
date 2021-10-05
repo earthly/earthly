@@ -42,14 +42,24 @@ For development purposes, you may use the built `earthly` binary to rebuild itse
 To run most tests you can issue
 
 ```bash
-./build/<platform>/amd64/earthly -P +test
+./build/<platform>/amd64/earthly -P \
+  --secret DOCKERHUB_USER=me \
+  --secret DOCKERHUB_PASS=my_token \
+  +test
 ```
 
 To also build the examples, you can run
 
 ```bash
-./build/<platform>/amd64/earthly -P +test-all
+./build/<platform>/amd64/earthly -P \
+  --secret DOCKERHUB_USER=me \
+  --secret DOCKERHUB_PASS=my_token \
+  +test-all
 ```
+
+Note the secrets provided. You will need to set these to be the values you use to perform a `docker login` to Docker Hub. If you get an error saying `You have reached your pull rate limit....`, please ensure you are logged in to Docker Hub on your developer machine, too.
+
+If you want to go deeper, you may consider setting up a [pull-through cache](https://docs.earthly.dev/ci-integration/pull-through-cache), but this is not necessary for most situations.
 
 ## Gotchas
 
