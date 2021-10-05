@@ -95,7 +95,7 @@ Output:
 ```
 {% sample lang="Service Dependencies" %}
 
-The Docker compose configuration specifies the application's dependencies.  It is useful for local development and can be started and stopped using `docker-compose up -d` and `docker-compose down`.
+The Docker compose configuration specifies the application's dependencies. It is useful for local development and can be started and stopped using `docker-compose up -d` and `docker-compose down`.
 This will also be essential for our Earthly integration tests.
 
 Docker Compose:
@@ -174,7 +174,7 @@ project-files:
 
 {% sample lang="Compile" %}
 
-We also set up our build target.  
+We also set up our build target.
 ``` Dockerfile
 build:
     FROM +project-files
@@ -213,7 +213,7 @@ docker:
 
 {% endmethod %}
 
- See the [Basics Guide](../basics/basics.md) for more details on these steps, including how they might differ in Go, Javascript, Java, and Python.
+See the [Basics Guide](../basics/basics.md) for more details on these steps, including how they might differ in Go, JavaScript, Java, and Python.
 
 ## In-App Integration Testing 
 
@@ -311,7 +311,7 @@ We can then run this and check that our application with its dependencies, produ
 
 ## Bringing It All Together
 
-Adding these testing targets to an all target, we now can unit test, integration test, and dockerize and push our software in a single command. Using this approach, integration tests that fail sporadically for environmental reasons and can't be reproduced consistently should be a thing of the past. 
+Adding these testing targets to an all target, we now can unit test, integration test, and dockerize and push our software in a single command. Using this approach, integration tests that fail sporadically for environmental reasons and can't be reproduced consistently should be a thing of the past.
 
 ``` Dockerfile
 all:

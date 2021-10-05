@@ -129,3 +129,13 @@ vcs
 virtualized
 wget
 zsh
+dockerize
+env
+redownloading
+cacheable
+polyrepo
+hostname
+subpath
+Jenkinsfile
+utils
+repo

@@ -16,7 +16,7 @@ git repository name.
 ## CI platform
 
 Earthly applies some heuristics to determine if it is running in a CI system, and will
-report which CI system is detected (e.g. github actions, circle CI, travis CI, jenkins, etc).
+report which CI system is detected (e.g. GitHub Actions, Circle CI, Travis CI, Jenkins, etc).
 
 ## Command and exit code
 
