@@ -73,7 +73,7 @@ func SetPlatformArgs(s *Scope, platform specs.Platform) {
 
 // SetUserPlatformArgs sets the user's platform-specific built-in args.
 func SetUserPlatformArgs(s *Scope) {
-	platform := llbutil.DefaultUserPlatform()
+	platform := platforms.DefaultSpec()
 	s.AddInactive("USERPLATFORM", platforms.Format(platform))
 	s.AddInactive("USEROS", platform.OS)
 	s.AddInactive("USERARCH", platform.Architecture)

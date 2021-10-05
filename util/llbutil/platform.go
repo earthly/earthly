@@ -32,15 +32,6 @@ func DefaultPlatform() specs.Platform {
 	return platforms.Normalize(p)
 }
 
-// DefaultUserPlatform returns the default platform of the host it is running on.
-func DefaultUserPlatform() specs.Platform {
-	p := platforms.DefaultSpec()
-	if runtime.GOOS == "darwin" {
-		p.OS = "linux"
-	}
-	return platforms.Normalize(p)
-}
-
 // ScratchWithPlatform is the scratch state with the default platform readily set.
 func ScratchWithPlatform() pllb.State {
 	return pllb.Scratch().Platform(DefaultPlatform())
