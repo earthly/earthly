@@ -180,18 +180,18 @@ func GetTargetEnvArgs(filename string, target string) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	var requiredTarget spec.Target
-	for _, t := range ef.Targets {
-		if t.Name == target {
-			requiredTarget = t
+	var requiredTarget *spec.Target
+	for i := range ef.Targets {
+		if ef.Targets[i].Name == target {
+			requiredTarget = &ef.Targets[i]
 		}
 	}
-	if requiredTarget.Name == "" {
+	if requiredTarget == nil {
 		return nil, errors.New("cannot find required target in given Earthfile")
 	}
 	var args []string
 	for _, recipe := range requiredTarget.Recipe {
-		if recipe.Command.Name == "ARG" && len(recipe.Command.Args) == 1 {
+		if recipe.Command != nil && recipe.Command.Name == "ARG" && len(recipe.Command.Args) == 1 {
 			args = append(args, recipe.Command.Args[0])
 		}
 	}

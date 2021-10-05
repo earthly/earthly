@@ -141,7 +141,7 @@ func TestTargetEnvArgCompletionForFlagPrefix(t *testing.T) {
 }
 
 func TestTargetEnvArgCompletionForArgPrefix(t *testing.T) {
-	matches, err := GetPotentials("earthly +target --", 18, getApp(), false)
+	matches, err := GetPotentials("earthly +code --", 16, getApp(), false)
 	NoError(t, err, "GetPotentials failed")
-	Equal(t, []string{"--foo="}, matches)
+	Equal(t, []string{"--BUILDKIT_PROJECT="}, matches)
 }
