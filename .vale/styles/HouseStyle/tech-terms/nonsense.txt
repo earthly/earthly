@@ -31,3 +31,15 @@ fzf
 cta
 csvtojson
 dasel
+cni
+mtu
+nft
+strs
+yaml
+ip
+asciicast
+dind
+gcloud
+md
+gitbook
+homebrew

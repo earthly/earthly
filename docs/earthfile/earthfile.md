@@ -410,7 +410,7 @@ For detailed examples demonstrating how other scenarios may function, please see
 
 The command `ARG` declares a variable (or arg) with the name `<name>` and with an optional default value `<default-value>`. If no default value is provided, then empty string is used as the default value.
 
-This command works similarly to the [Dockerfile `ARG` command](https://docs.docker.com/engine/reference/builder/#arg), with a few differences regarding the scope and the predefined args (called builtin args in Earthly). The variable's scope is always limited to the recipe of the current target or command and only from the point it is declared onwards. For more information regarding builtin args, see the [builtin args page](./builtin-args.md).
+This command works similarly to the [Dockerfile `ARG` command](https://docs.docker.com/engine/reference/builder/#arg), with a few differences regarding the scope and the predefined args (called builtin args in Earthly). The variable's scope is always limited to the recipe of the current target or command and only from the point it is declared onward. For more information regarding builtin args, see the [builtin args page](./builtin-args.md).
 
 If an `ARG` is defined in the `base` target of the Earthfile, then it becomes a global `ARG` and it is made available to every other target or command in that file, regardless of their base images used.
 
@@ -617,7 +617,7 @@ Same as [`FROM --allow-privileged`](#allow-privileged).
 #### Description
 
 The command `VERSION` identifies which set of features to enable in Earthly while handling the corresponding Earthfile. The `VERSION` command is currently optional;
-however will become manditory in a future version of Earthly. When specified, `VERSION` must be the first command in the Earthfile.
+however will become mandatory in a future version of Earthly. When specified, `VERSION` must be the first command in the Earthfile.
 
 
 | Version number | enabled features |
@@ -750,7 +750,7 @@ The `WORKDIR` command strs the working directory for other commands that follow 
 
 #### Synopsis
 
-* `HEALTHCHECK NONE` (disable healthchecking)
+* `HEALTHCHECK NONE` (disable health checking)
 * `HEALTHCHECK [--interval=DURATION] [--timeout=DURATION] [--start-period=DURATION] [--retries=N] CMD command arg1 arg2` (check container health by running command inside the container)
 
 #### Description
@@ -1113,7 +1113,7 @@ This feature is currently in **Experimental** stage
 
 #### Description
 
-The `LOCALLY` command can be used inplace of a `FROM` command, which will cause earthly to execute all commands under the target directly
+The `LOCALLY` command can be used in place of a `FROM` command, which will cause earthly to execute all commands under the target directly
 on the host system, rather than inside a container. Commands within a `LOCALLY` target will never be cached.
 This feature should be used with caution as locally run commands have no guarantee they will behave the same on different systems.
 

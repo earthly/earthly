@@ -10,7 +10,7 @@ the feature enabled by default.
 ## Specifying Version and features
 
 Each earthfile should list the current earthly version it depends on using the [`VERSION`](../earthfile/earthfile.md#version) command.
-The `VERSION` command was first introduced under `0.5` and is currently optional; however, it will become manditory in a future version.
+The `VERSION` command was first introduced under `0.5` and is currently optional; however, it will become mandatory in a future version.
 
 ```Dockerfile
 VERSION [<flags>...] <version-number>

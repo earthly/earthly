@@ -65,7 +65,7 @@ Ensure that you have correct permissions to push the images. The ECR helper is a
 }
 ```
 
-Additional examples for policy configuration can be found [here](https://docs.aws.amazon.com/AmazonECR/latest/userguide/repository-policy-examples.html).
+Additional [examples](https://docs.aws.amazon.com/AmazonECR/latest/userguide/repository-policy-examples.html) for policy configuration.
 
 ## Run the Target
 
@@ -126,7 +126,7 @@ And here is how you would run it:
 
 ### Basic Credentials Not Found
 
-If you get a message saying `basic credentials not found`; your distribution may not have the most recent version installed. A simple workaround is to simply prepend `AWS_SDK_LOAD_CONFIG=true` to your Earthly invocation. This will force the helper to use the SDK over built-in config when executing. You can track this issue [here](https://github.com/awslabs/amazon-ecr-credential-helper/issues/232).
+If you get a message saying `basic credentials not found`; your distribution may not have the most recent version installed. A simple workaround is to simply prepend `AWS_SDK_LOAD_CONFIG=true` to your Earthly invocation. This will force the helper to use the SDK over built-in config when executing. You can track this [issue](https://github.com/awslabs/amazon-ecr-credential-helper/issues/232).
 
 ### 401 Unauthorized
 

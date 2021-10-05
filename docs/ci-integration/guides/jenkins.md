@@ -72,7 +72,7 @@ earthly ./jenkins+start
 
 This will start a local Jenkins server, minimally configured to spawn `earthly` builds using the Docker cloud plugin.
 
-To run a build in this demo, you will need to configure a build pipeline. To do that, we have an [example project with a Jenkinsfile in it here](https://github.com/earthly/ci-example-project). To configure the build pipeline for the example project:
+To run a build in this demo, you will need to configure a build pipeline. To do that, we have an [example project with a Jenkinsfile](https://github.com/earthly/ci-example-project). To configure the build pipeline for the example project:
 
 - Open the Jenkins demo by going to [http://localhost:8000](http://localhost:8080/)
 - Click "New Item", on the left
@@ -90,11 +90,11 @@ To run a build in this demo, you will need to configure a build pipeline. To do 
     - Set the repository URL to [`https://github.com/earthly/ci-example-project`](https://github.com/earthly/ci-example-project)
     - Set the branch specifier to `*/main`
 
-![Configuring all the SCM optiona for the build](img/Jenkins3.png)
+![Configuring all the SCM options for the build](img/Jenkins3.png)
 
 - Once those changes are made, click "Save". Jenkins will navigate to the Pipelines' main page. Once there, click "Build Now"
 
-![Jenkins Dashboard for the rxample build, with "Build Now" highlighted](img/Jenkins4.png)
+![Jenkins Dashboard for the example build, with "Build Now" highlighted](img/Jenkins4.png)
 
 - Find the build in your build history, and watch it go!
 
@@ -106,9 +106,9 @@ If you broke the example environment, you can run `earthly ./jenkins+cleanup` to
 
 #### TLS
 
-The example purposely runs a Docker-In-Docker (DIND) container without TLS for simplicity. This is *not* a recommended configuration. [See here for configuring TLS inside Docker.](https://docs.docker.com/engine/security/protect-access/#use-tls-https-to-protect-the-docker-daemon-socket)
+The example purposely runs a Docker-In-Docker (DIND) container without TLS for simplicity. This is *not* a recommended configuration. [Configuring TLS inside Docker.](https://docs.docker.com/engine/security/protect-access/#use-tls-https-to-protect-the-docker-daemon-socket)
 
-To allow the `docker` client to access a daemon protected with TLS, you will need to add Jenkins credentials. Add the client key, certificate, and the server CA certificate as a credential. In our example, using the Docker Cloud provider, you can add them by choosing "Manage Jenkins", then "Manage Nodes and Clouds", and finally "Configure Clouds".  Then, choose the cloud to configure for TLS, and click the "Add" button here:
+To allow the `docker` client to access a daemon protected with TLS, you will need to add Jenkins credentials. Add the client key, certificate, and the server CA certificate as a credential. In our example, using the Docker Cloud provider, you can add them by choosing "Manage Jenkins", then "Manage Nodes and Clouds", and finally "Configure Clouds". Then, choose the cloud to configure for TLS, and click the "Add" button here:
 
 ![Configuring Docker credentials in Jenkins](img/Jenkins6.png)
 

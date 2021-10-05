@@ -2,3 +2,6 @@ manjaro
 ubuntu
 userspace
 namespaces
+debian
+linux
+centos

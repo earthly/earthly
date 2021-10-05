@@ -7,7 +7,7 @@ We host a rpm repository which fedora and centos users can use to install earthl
 TODO: move these notes elsewhere, this readme should only be notes on how to release to our repo, and is only intended for those with
 access to earthly credentials.
 
-fedora users can use this guide to setup our repo:
+fedora users can use this guide to set up our repo:
 
 
 

@@ -7,7 +7,7 @@ We host a Debian repository which Debian and ubuntu users can use to install ear
 TODO: move these notes elsewhere, this readme should only be notes on how to release to our repo, and is only intended for those with
 access to earthly credentials.
 
-Ubuntu users can use this guide to setup our repo:
+Ubuntu users can use this guide to set up our repo:
 
 First install the following tools:
 
@@ -24,7 +24,7 @@ Second, add earthly's official GPG key:
     curl -fsSL https://pkg.earthly.dev/earthly.pgp | sudo gpg --dearmor -o /usr/share/keyrings/earthly-archive-keyring.gpg
 
 
-Finally, setup the stable repository:
+Finally, set up the stable repository:
 
     echo \
       "deb [arch=amd64 signed-by=/usr/share/keyrings/earthly-archive-keyring.gpg] https://pkg.earthly.dev/deb \

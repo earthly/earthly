@@ -46,7 +46,7 @@ All of our binaries are signed with our [PGP key](https://pkg.earthly.dev/earthl
 
 Debian-based Linux users (e.g. debian, ubuntu, mint, etc) can use our apt repo to install Earthly.
 
-Before installing Earthly, you must first setup the Earthly apt repo.
+Before installing Earthly, you must first set up the Earthly apt repo.
 
 1. Update apt and install required tools to support https-based apt repos:
 
@@ -143,7 +143,7 @@ Our native Windows release is currently in the **Experimental** stage.
 
 {% endhint %}
 
-To install the Windows release, simply download the binary [here](https://github.com/earthly/earthly/releases/latest/download/earthly-windows-amd64.exe) (or from our [release page](https://github.com/earthly/earthly/releases/latest/)); and ensure it is within your `PATH`.
+To install the Windows release, simply [download](https://github.com/earthly/earthly/releases/latest/download/earthly-windows-amd64.exe) the binary (or from our [release page](https://github.com/earthly/earthly/releases/latest/)); and ensure it is within your `PATH`.
 
 To add `earthly.exe` to your `PATH` environment variable:
 

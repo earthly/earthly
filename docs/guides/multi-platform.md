@@ -24,7 +24,7 @@ In order to execute emulated build steps (usually `RUN`), QEMU needs to be insta
 
 ### Windows and Mac
 
-On Mac and on Windows, the Docker Desktop app comes with QEMU readilly installed and ready to go, so no special consideration is necessary.
+On Mac and on Windows, the Docker Desktop app comes with QEMU readily installed and ready to go, so no special consideration is necessary.
 
 ### Linux
 

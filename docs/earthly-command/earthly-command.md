@@ -256,7 +256,7 @@ These options can only be set via environment variables, and have no command lin
 |------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | NO_COLOR               | `NO_COLOR=1` disables the use of color.                                                                                                                                                                    |
 | FORCE_COLOR            | `FORCE_COLOR=1` forces the use of color.                                                                                                                                                                   |
-| EARTHLY_TARGET_PADDING | `EARTHLY_TARGET_PADDING=n` will set the column to the width of `n` characters. If a name is longer than `n`, its path will be truncated and and remaining extra length will cause the column to go ragged. |
+| EARTHLY_TARGET_PADDING | `EARTHLY_TARGET_PADDING=n` will set the column to the width of `n` characters. If a name is longer than `n`, its path will be truncated and remaining extra length will cause the column to go ragged. |
 | EARTHLY_FULL_TARGET    | `EARTHLY_FULL_TARGET=1` will always print the full target name, and leave the target name column ragged.                                                                                                   |
 
 ## earthly prune
@@ -364,7 +364,7 @@ Contains sub-commands for registering and administration an Earthly account.
 
 ###### Description
 
-Register for an Earthly account. Regristration is done in two steps: first run the register command with only the --email argument, this will then send an email to the
+Register for an Earthly account. Registration is done in two steps: first run the register command with only the --email argument, this will then send an email to the
 supplied email address with a registration token (which is used to verify your email address), second re-run the register command with both the --email and --token arguments
 to complete the registration process.
 
