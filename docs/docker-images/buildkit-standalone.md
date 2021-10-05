@@ -1,6 +1,6 @@
 This image contains `buildkit` with some Earthly-specific setup. This is what Earthly will start when using a local daemon. You can also start it up yourself and use it as a remote/shared buildkit daemon.
 
-*Note that versions of this container have only ever been tested with their corresponding version of `earthly`.* Mismatched versions are unspported.
+*Note that versions of this container have only ever been tested with their corresponding version of `earthly`.* Mismatched versions are unsupported.
 
 ## Tags
 

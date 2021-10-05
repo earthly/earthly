@@ -60,7 +60,7 @@ Specifies the total size of the BuildKit cache, in MB. The BuildKit daemon uses 
 
 ### disable_analytics
 
-When set to true, disables collecting command line analytics; otherwise, earthly will report anonymized analytics for invokation of the earthly command. For more information see the [data collection page](../data-collection/data-collection.md).
+When set to true, disables collecting command line analytics; otherwise, earthly will report anonymized analytics for invocation of the earthly command. For more information see the [data collection page](../data-collection/data-collection.md).
 
 ### buildkit_additional_args
 
@@ -138,7 +138,7 @@ See the [RE2 docs](https://github.com/google/re2/wiki/Syntax) for a complete def
 
 #### substitute
 
-If specified, a regular expression substitution will be preformed to determine which URL is cloned by git. Values like `$1`, `$2`, ... will be replaced
+If specified, a regular expression substitution will be performed to determine which URL is cloned by git. Values like `$1`, `$2`, ... will be replaced
 with matched subgroup data. If no substitute is given, a URL will be created based on the requested SSH authentication mode.
 
 See the [Authentication guide](../guides/auth.md) for a guide on setting up authentication with self-hosted git repositories.

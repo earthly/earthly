@@ -12,7 +12,7 @@ The general order of the commands is as follows:
 - Beta Earthly commands
 - Experimental Earthly commands
 - Classical Dockerfile commands that are not supported
-- Deprected Earthly commands
+- Deprecated Earthly commands
 
 -->
 
@@ -1132,7 +1132,7 @@ whoami:
 
 {% hint style='info' %}
 ##### Note
-In Earthly, outputing images and artifacts locally takes place only at the end of a successful build. In order to use such images or artifacts in `LOCALLY` targets, they need to be referenced correctly.
+In Earthly, outputting images and artifacts locally takes place only at the end of a successful build. In order to use such images or artifacts in `LOCALLY` targets, they need to be referenced correctly.
 
 For images, use the `--load` option under `WITH DOCKER`:
 
@@ -1290,7 +1290,7 @@ For more information see the [target, artifact and command references guide](../
 
 ##### `--allow-privileged`
 
-Similar to [`FROM --allow-privileged`](#allow-privileged), extend the ability to request privileged capabilities to all invokations of the imported alias.
+Similar to [`FROM --allow-privileged`](#allow-privileged), extend the ability to request privileged capabilities to all invocations of the imported alias.
 
 ## SHELL (not supported)
 
