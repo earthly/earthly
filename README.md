@@ -108,10 +108,10 @@ Here are some resources to get you started with Earthly
 
 * 🏁 [Getting started guide](https://docs.earthly.dev/guides/basics)
 * 👀 [Examples](./examples)
+  * [C++](./examples/cpp)
   * [Go](./examples/go)
   * [Java](./examples/java)
   * [JS](./examples/js)
-  * [C++](./examples/cpp)
   * [Mono-repo](./examples/monorepo)
   * [Multi-repo](./examples/multirepo)
   * [Python](./examples/python)
