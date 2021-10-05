@@ -131,10 +131,10 @@ func TestFrontendContainerInfo(t *testing.T) {
 			assert.Len(t, info, 3)
 
 			assert.Equal(t, getInfos[0], info[getInfos[0]].Name)
-			assert.Equal(t, "docker.io/hashicorp/http-echo:latest", info[getInfos[0]].Image)
+			assert.Equal(t, "docker.io/nginx:1.21", info[getInfos[0]].Image)
 
 			assert.Equal(t, getInfos[1], info[getInfos[1]].Name)
-			assert.Equal(t, "docker.io/hashicorp/http-echo:latest", info[getInfos[1]].Image)
+			assert.Equal(t, "docker.io/nginx:1.21", info[getInfos[1]].Image)
 
 			assert.Equal(t, getInfos[2], info[getInfos[2]].Name)
 			assert.Equal(t, containerutil.StatusMissing, info[getInfos[2]].Status)
