@@ -161,6 +161,10 @@ var BuiltinVariables = map[string]bool{
 	"TARGETARCH":                      true,
 	"TARGETVARIANT":                   true,
 	"EARTHLY_SOURCE_DATE_EPOCH":       true,
+	"USERPLATFORM":                    true,
+	"USEROS":                          true,
+	"USERARCH":                        true,
+	"USERVARIANT":                     true,
 }
 
 // IsDefaultValue returns whether the value of the BuildArgInput
