@@ -111,13 +111,12 @@ Here are some resources to get you started with Earthly
   * [C](./examples/c)
   * [Cobol](./examples/cobol)
   * [C++](./examples/cpp)
-  * [Java](./examples/java)
-  * [JS](./examples/js)
   * [Go](./examples/go)
+  * [Java](./examples/java)
+  * [JS](./examples/js) 
   * [Scala](./examples/scala)
   * [Mono-repo](./examples/monorepo)
   * [Multi-repo](./examples/multirepo)
-  
 * 🔍 Explore [Earthly's own build](https://docs.earthly.dev/examples/examples#earthlys-own-build)
 
 See also the [full documentation](https://docs.earthly.dev).
