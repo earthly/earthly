@@ -1,6 +1,6 @@
-# Earthly debian repository
+# Earthly Debian repository
 
-We host a debian repository which debian and ubuntu users can use to install earthly.
+We host a Debian repository which Debian and ubuntu users can use to install earthly.
 
 ## Setup for Ubuntu
 

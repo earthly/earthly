@@ -150,6 +150,14 @@ lint-newline-ending:
         done; \
         exit $code
 
+markdown-spellcheck:
+    WORKDIR /
+    RUN curl -sfL https://install.goreleaser.com/github.com/ValeLint/vale.sh | sh -s v2.10.3
+    WORKDIR /everything
+    COPY . .
+    # TODO remove the greps once the corresponding markdown files have spelling fixed (or techterms added to .vale/styles/HouseStyle/tech-terms/...
+    RUN find . -type f -iname '*.md' | grep -v examples | grep -v contrib | grep -v docs | grep -v release | xargs vale --config .vale/vale.ini --output line --minAlertLevel error
+
 unit-test:
     FROM +code
     RUN apk add --no-cache --update podman
@@ -421,6 +429,7 @@ test:
     BUILD +lint-newline-ending
     BUILD +lint-changelog
     BUILD +unit-test
+    BUILD +markdown-spellcheck
     BUILD ./ast/tests+all
     ARG DOCKERHUB_AUTH=true
     BUILD ./examples/tests+ga --DOCKERHUB_AUTH=$DOCKERHUB_AUTH
