@@ -119,6 +119,13 @@ ga:
     BUILD +homebrew-test
     BUILD +implicit-ignores
 
+# tests that only run on linux amd64
+# Note: this target is used to validate the USERPLATFORM user arg,
+# and should not be used to programatically detect if this should be
+# run or not.
+ga-linux-amd64:
+    BUILD +user-arg-test
+
 experimental:
     BUILD ./dind-auto-install+all
 
@@ -237,6 +244,10 @@ secrets-test:
 
 build-arg-test:
     DO +RUN_EARTHLY --earthfile=build-arg.earth
+
+#this test only works under linux/amd64
+user-arg-test:
+    DO +RUN_EARTHLY --earthfile=user-arg.earth
 
 lc-test:
     DO +RUN_EARTHLY --earthfile=lc.earth --target=+test
