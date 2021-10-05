@@ -1,0 +1,8 @@
+---
+message: "Don't use '%s' as the content of a link."
+extends: existence
+ignorecase: true
+scope: link
+level: error
+tokens:
+  - here

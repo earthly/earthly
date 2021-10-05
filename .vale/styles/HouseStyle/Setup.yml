@@ -1,0 +1,12 @@
+  
+---
+extends: substitution
+message: Use %s instead of “%s”. setup is a noun. set up a verb.
+level: error
+# Use 'setup' (noun) or 'set up' (verb).
+pos: 'setup/VB|set/NN up/\w+|set-up/\w+'
+ignorecase: true
+swap:
+  setup: "“set up”"
+  set up: "“setup”"
+  set-up: "“set up” or “setup”"

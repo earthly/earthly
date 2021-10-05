@@ -14,7 +14,7 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ### Fixed
 
-- Removed spurious "Buildkit and Local Registry URLs are pointed at different hosts (earthly-buildkitd vs. 127.0.0.1)" warning.
+- Removed spurious `BuildKit and Local Registry URLs are pointed at different hosts (earthly-buildkitd vs. 127.0.0.1)` warning.
 - Scrub git credentials when running under --debug mode.
 - "FROM DOCKERFILE" command was ignoring the path (when run on a remote target), which prevented including dockerfiles which were named something else.
 - Removed the creation of a temporary output directory when run in `--no-output` mode, or when building targets that don't output artifacts,
@@ -26,34 +26,34 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 - introduced `COPY --if-exists` which allows users to ignore errors which would have occurred [if the file did not exist](https://docs.earthly.dev/docs/earthfile#if-exists).
 - introduced new `ip_tables` config option for controlling which iptables binary is used; fixes #1160
 - introduced warning message when saving to paths above the current directory of the current Earthfile; these warnings will eventually become errors unless the `--force` [flag](https://docs.earthly.dev/docs/earthfile#force) is passed to `SAVE ARTIFACT`.
-- bugfix for remote buildkit configuration options being ignored; fixes #1177
-- suppressed erroneous internal-term error messages which occurred when running under non-interactive ( e.g. ci ) modes; fixes #1108
+- fixed remote BuildKit configuration options being ignored; fixes #1177
+- suppressed erroneous internal-term error messages which occurred when running under non-interactive ( e.g. `--ci` ) modes; fixes #1108
 - changed help text for `--artifact` mode
 - deb and yum packages no longer clear the earthly cache on upgrades
 
 
 ## v0.5.22 - 2021-08-11
 
-- when running under --ci mode, earthly now raises an error if a user attempts to use the interactive debugger
-- updated underlying buildkit version
-- print all request and responses to buildkit when running under --debug mode
-- support for specifying files to ignore under .earthlyignore in addition to .earthignore; an error is raised if both exist
+- when running under `--ci` mode, earthly now raises an error if a user attempts to use the interactive debugger
+- updated underlying BuildKit version
+- print all request and responses to BuildKit when running under --debug mode
+- support for specifying files to ignore under `.earthlyignore` in addition to `.earthignore`; an error is raised if both exist
 - new ARG `EARTHLY_GIT_SHORT_HASH` will contain an 8 char representation of the current git commit hash
 - new ARG `EARTHLY_GIT_COMMIT_TIMESTAMP` will contain the timestamp of the current git commit
 - new ARG `EARTHLY_SOURCE_DATE_EPOCH` will contain the same value as `EARTHLY_GIT_COMMIT_TIMESTAMP` or 0 when the timestamp is not available
 - only directly referenced artifacts or images will be saved when the VERSION's --referenced-save-only feature flag is defined #896
 - experimental support for FOR statements, when the VERSION's --for-in feature flag is defined #1142
 - fixes bug where error was not being repeated as the final output
-- fixes bug where https-based git credentials were leaked to stdout
+- fixes bug where HTTPS-based git credentials were leaked to stdout
 
 ## v0.5.20 - 2021-07-22
 
 - Support for passing true/false values to boolean flags #1109
-- fixes error that stated `http is insecure` when configuring a https git source. #1115
+- fixes error that stated `http is insecure` when configuring a HTTPS git source. #1115
 
 ## v0.5.19 - 2021-07-21
 
-- Improved selective file-transferring via buildkit's include patterns; this feature is currently disabled by default, but can be enabled by including the `--use-copy-include-patterns` feature-flag in the `VERSION` definition (e.g. add `VERSION --use-copy-include-patterns 0.5` to the top of your Earthfiles). This will become enabled by default in a later version.
+- Improved selective file-transferring via BuildKit's include patterns; this feature is currently disabled by default, but can be enabled by including the `--use-copy-include-patterns` feature-flag in the `VERSION` definition (e.g. add `VERSION --use-copy-include-patterns 0.5` to the top of your Earthfiles). This will become enabled by default in a later version.
 - Support for host systems that have `nf_tables` rather than `ip_tables`.
 - Show hidden dev flags when `EARTHLY_AUTOCOMPLETE_HIDDEN="1"` is set (or when running a custom-built version).
 - Improved crash logs.
@@ -61,7 +61,7 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 ## v0.5.18 - 2021-07-08
 
 - Added a `--symlink-no-follow` flag to allow copying invalid symbolic links (https://github.com/earthly/earthly/issues/1067)
-- Updated buildkit, which contains a fix for "failed to get edge" panic errors (https://github.com/earthly/earthly/issues/1016)
+- Updated BuildKit, which contains a fix for "failed to get edge" panic errors (https://github.com/earthly/earthly/issues/1016)
 - Fix bug that prevented using an absolute path to reference targets which contained relative imports
 - Added option to disable analytics data collection when environment variables `EARTHLY_DISABLE_ANALYTICS` or `DO_NOT_TRACK` are set.
 - Include version and help flags in autocompletion output.
@@ -69,13 +69,13 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 ## v0.5.17 - 2021-06-15
 
 - Begin experimental official support for `earthly/earthly` and `earthly/buildkitd` images; including a new `entrypoint` for `earthly/earthly` (https://github.com/earthly/earthly/pull/1050)
-- When running in `verbose` mode, log all files sent to buildkit (https://github.com/earthly/earthly/pull/1051, https://github.com/earthly/earthly/pull/1056)
+- When running in `verbose` mode, log all files sent to BuildKit (https://github.com/earthly/earthly/pull/1051, https://github.com/earthly/earthly/pull/1056)
 - Adjust `deb` and `rpm` packages to auto-install the shell completions though post-installation mechanisms (https://github.com/earthly/earthly/pull/1019, https://github.com/earthly/earthly/pull/1057)
 
 ## v0.5.16 - 2021-06-03
 
 - fixes handling of `Error getting earthly dir` lookup failures which prevents earthly from running (https://github.com/earthly/earthly/issues/1026)
-- implements ability to perform local exports via buildkit-hosted local registery in order to speed up exports; the feature is currently disabled by default but can be enabled with `earthly config global.local_registry_host 'tcp://127.0.0.1:8371'` (https://github.com/earthly/earthly/issues/500)
+- implements ability to perform local exports via buildkit-hosted local registry in order to speed up exports; the feature is currently disabled by default but can be enabled with `earthly config global.local_registry_host 'tcp://127.0.0.1:8371'` (https://github.com/earthly/earthly/issues/500)
 
 ## v0.5.15 - 2021-05-27
 
@@ -104,7 +104,7 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## v0.5.12 - 2021-05-07
 
-- Adds a retry for remote Buildkit hosts when using the `EARTHLY_BUILDKIT_HOST` configuration option. (#952)
+- Adds a retry for remote BuildKit hosts when using the `EARTHLY_BUILDKIT_HOST` configuration option. (#952)
 - Re-fetch credentials when they expire (#957)
 - Make use of `~/.netrc` credentials when no config is set under `~/.earthly/config.yml` (#964)
 - Make use of auth credentials when performing a GIT CLONE command within an Earthfile. (#964)
@@ -135,7 +135,7 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 - Download and start buildkitd as part of the earthly bootstrap command
 - Improved buildkitd startup logic (https://github.com/earthly/earthly/pull/892)
 - Check for reserved target names and disallow them (e.g. `+base`) (https://github.com/earthly/earthly/pull/898)
-- Fix use of self-hosted repos when a subdirectory is used (https://github.com/earthly/earthly/pull/897)
+- Fix use of self-hosted repositories when a subdirectory is used (https://github.com/earthly/earthly/pull/897)
 
 
 ## v0.5.8 - 2021-03-23
@@ -185,8 +185,8 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 - Detect if the build doesn't start with a FROM-like command and return a meaningful error. Previously `FROM scratch` was assumed automatically. (https://github.com/earthly/earthly/issues/807)
 - Fix an issue where `.tmpXXXXX` directories were created in the current directory (https://github.com/earthly/earthly/pull/821)
 - Fix auto-complete in zsh (https://github.com/earthly/earthly/pull/811)
-- Improved startup logic for buildkit daemon, which speeds up some rare edge cases (https://github.com/earthly/earthly/pull/808)
-- Print buildkit logs if it crashes or times out on startup (https://github.com/earthly/earthly/pull/819)
+- Improved startup logic for BuildKit daemon, which speeds up some rare edge cases (https://github.com/earthly/earthly/pull/808)
+- Print BuildKit logs if it crashes or times out on startup (https://github.com/earthly/earthly/pull/819)
 - Create config path if it's missing (https://github.com/earthly/earthly/pull/812)
 
 
@@ -194,9 +194,11 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 - Support for conditional logic using new `IF`, `ELSE IF`, and `ELSE` keywords (required for #779)
 - Support for copying artifacts to `LOCALLY` targets (required for #580)
-- bugfix: segfault when no output or error is displayed (fixes #798)
-- bugfix: unable to run earthly in docker container with mounted host-docker socket (fixes #791)
-- bugfix: `./.tmp-earthly-outXXXXXX` temp files are now stored under `./.tmp-earthly-out/tmpXXXXXX` and are correctly excluded from the builld context 
+
+### Fixed
+- segfault when no output or error is displayed (fixes #798)
+- unable to run earthly in docker container with mounted host-docker socket (fixes #791)
+- `./.tmp-earthly-outXXXXXX` temp files are now stored under `./.tmp-earthly-out/tmpXXXXXX` and are correctly excluded from the build context
 
 
 ## v0.5.2 - 2021-02-18
@@ -246,12 +248,12 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## v0.4.5 - 2021-01-13
 
-- Fix inconsistent `COPY --dir` behavior [https://github.com/earthly/earthly/issues/705](#705)
-- Fix `AS LOCAL` behavior with directories [https://github.com/earthly/earthly/issues/703](#703)
+- Fix inconsistent `COPY --dir` behavior [#705](https://github.com/earthly/earthly/issues/705)
+- Fix `AS LOCAL` behavior with directories [#703](https://github.com/earthly/earthly/issues/703)
 
 ## v0.4.4 - 2021-01-06
 
-- Improved experimental support for arm-based platforms, including Apple M1. Builds run natively on arm platforms now. (For Apple M1, you need to use darwin-amd64 download and have Rosetta 2 installed - the build steps themselves will run natively, however, via the buildkit daemon).
+- Improved experimental support for arm-based platforms, including Apple M1. Builds run natively on arm platforms now. (For Apple M1, you need to use darwin-amd64 download and have Rosetta 2 installed - the build steps themselves will run natively, however, via the BuildKit daemon).
 - Add `SAVE ARTIFACT --if-exists` (https://github.com/earthly/earthly/issues/588)
 - Fix an issue where comments at the end of the Earthfile were not allowed (https://github.com/earthly/earthly/issues/681)
 - Fix an issue where multiple `WITH DOCKER --load` with the same target, but different image tag were not working (https://github.com/earthly/earthly/issues/685)
@@ -265,7 +267,7 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## v0.4.2 - 2020-12-22
 
-- bugfix: `EARTHLY_GIT_PROJECT_NAME` contained the raw git url when https-based auth was used (fixes #671)
+- fixed: `EARTHLY_GIT_PROJECT_NAME` contained the raw git URL when HTTPS-based auth was used (fixes #671)
 - feature: support for mounting secrets as files rather than environment variables
 - feature: experimental support for multi-platform builds
 - misc: sending anonymized usage metrics to earthly
