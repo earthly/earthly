@@ -268,7 +268,7 @@ func TestFrontendContainerRun(t *testing.T) {
 			for _, name := range testContainers {
 				runs = append(runs, containerutil.ContainerRun{
 					NameOrID:       name,
-					ImageRef:       "docker.io/hashicorp/http-echo:latest",
+					ImageRef:       "docker.io/nginx:1.21",
 					Privileged:     false,
 					Envs:           containerutil.EnvMap{"test": name},
 					Labels:         containerutil.LabelMap{"test": name},
@@ -327,8 +327,8 @@ func TestFrontendImagePull(t *testing.T) {
 		newFunc func(context.Context) (containerutil.ContainerFrontend, error)
 		refList []string
 	}{
-		{"docker", containerutil.NewDockerShellFrontend, []string{"hello-world", "alpine:3.13"}},
-		{"podman", containerutil.NewPodmanShellFrontend, []string{"docker.io/hello-world", "docker.io/alpine:3.13"}}, // Podman prefers... and exports fully-qualified image tags
+		{"docker", containerutil.NewDockerShellFrontend, []string{"nginx:1.21", "alpine:3.13"}},
+		{"podman", containerutil.NewPodmanShellFrontend, []string{"docker.io/nginx:1.21", "docker.io/alpine:3.13"}}, // Podman prefers... and exports fully-qualified image tags
 	}
 	for _, tC := range testCases {
 		t.Run(tC.binary, func(t *testing.T) {
@@ -338,7 +338,7 @@ func TestFrontendImagePull(t *testing.T) {
 			fe, err := tC.newFunc(ctx)
 			assert.NoError(t, err)
 
-			refList := []string{"hello-world", "alpine:3.13"}
+			refList := []string{"nginx:1.21", "alpine:3.13"}
 
 			err = fe.ImagePull(ctx, refList...)
 			assert.NoError(t, err)
@@ -573,7 +573,7 @@ func spawnTestContainers(ctx context.Context, feBinary string, names ...string) 
 func spawnTestImages(ctx context.Context, feBinary string, refs ...string) (func(), error) {
 	var err error
 	for _, ref := range refs {
-		cmd := exec.CommandContext(ctx, feBinary, "image", "pull", "docker.io/hello-world")
+		cmd := exec.CommandContext(ctx, feBinary, "image", "pull", "docker.io/nginx:1.21")
 		output, createErr := cmd.CombinedOutput()
 		if err != nil {
 			// the frontend exists but is non-functional. This is... not likely to work at all.
@@ -581,7 +581,7 @@ func spawnTestImages(ctx context.Context, feBinary string, refs ...string) (func
 			break
 		}
 
-		cmd = exec.CommandContext(ctx, feBinary, "image", "tag", "docker.io/hello-world", ref)
+		cmd = exec.CommandContext(ctx, feBinary, "image", "tag", "docker.io/nginx:1.21", ref)
 		output, tagErr := cmd.CombinedOutput()
 		if err != nil {
 			// the frontend exists but is non-functional. This is... not likely to work at all.
