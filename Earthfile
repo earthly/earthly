@@ -157,13 +157,13 @@ vale:
     COPY .vale/ .
 
 markdown-spellcheck:
-    FROM +vale
+    FROM --platform=linux/amd64 +vale
     WORKDIR /everything
     COPY . .
     # TODO figure out a way to ignore this pattern in vale (doesn't seem to be working under spelling's filter option)
     RUN find . -type f -iname '*.md' |  xargs -n 1 sed -i 's/{[^}]*}//g'
     # TODO remove the greps once the corresponding markdown files have spelling fixed (or techterms added to .vale/styles/HouseStyle/tech-terms/...
-    RUN find . -type f -iname '*.md' | grep -v examples | xargs vale --config /etc/vale/vale.ini --output line --minAlertLevel error
+    RUN find . -type f -iname '*.md' | xargs vale --config /etc/vale/vale.ini --output line --minAlertLevel error
 
 unit-test:
     FROM +code
