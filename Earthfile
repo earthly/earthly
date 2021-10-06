@@ -157,7 +157,7 @@ vale:
     COPY .vale/ .
 
 markdown-spellcheck:
-    FROM +vale
+    FROM --platform=linux/amd64 +vale
     WORKDIR /everything
     COPY . .
     # TODO figure out a way to ignore this pattern in vale (doesn't seem to be working under spelling's filter option)
