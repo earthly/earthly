@@ -32,4 +32,3 @@ cta
 csvtojson
 dasel
 asciicast
-multirepo
