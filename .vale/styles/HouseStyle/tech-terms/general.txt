@@ -143,6 +143,4 @@ fibonacci
 http
 Noob
 LocalStack
-localstack
 multirepo
-cpp

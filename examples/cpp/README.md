@@ -13,7 +13,7 @@ Let's assume our code is structured as follows:
     └── main.cpp
 ```
 
-Our program will be split between two different cpp files; the main.cpp file:
+Our program will be split between two different `cpp` files; the `main.cpp` file:
 
 ```C++
 #include <iostream>
