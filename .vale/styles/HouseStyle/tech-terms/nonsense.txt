@@ -31,3 +31,4 @@ fzf
 cta
 csvtojson
 dasel
+asciicast

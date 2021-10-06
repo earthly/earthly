@@ -139,3 +139,8 @@ subpath
 Jenkinsfile
 utils
 repo
+fibonacci
+http
+Noob
+LocalStack
+multirepo

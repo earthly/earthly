@@ -8,16 +8,19 @@ This folder contains a series of examples to help you familiarize yourself with 
 
 If you are new to Earthly, you may find the [Basics tutorial](https://docs.earthly.dev/basics) helpful.
 
+<!-- vale HouseStyle.Spelling = NO -->
 * [tutorial](./tutorial)
     * [go](./tutorial/go)
     * [js](./tutorial/js)
     * [java](./tutorial/java)
     * [python](./tutorial/python)
+<!-- vale HouseStyle.Spelling = YES -->
 
 ## Examples by language
 
 Please note that these examples, although similar, are distinct from the ones used in the [tutorial](./tutorial).
 
+<!-- vale HouseStyle.Spelling = NO -->
 * [cobol](./cobol)
 * [c](./c)
 * [cpp](./cpp)
@@ -31,6 +34,7 @@ Please note that these examples, although similar, are distinct from the ones us
 * [ruby-on-rails](./ruby-on-rails)
 * [rust](./rust)
 * [scala](./scala)
+<!-- vale HouseStyle.Spelling = YES -->
 
 ## Examples by use-cases
 
