@@ -8,7 +8,7 @@ This is to demonstrate how you might combine Earthly and Terraform.
 
 This target runs localstack and applies the Terraform to it. This is easy to do because it doesn't require a cloud to actually test applying your Terraform.
 
-Requires priveleged mode to spin up the Localstack using DIND.
+Requires privileged mode to spin up the localstack using DIND.
 
 Saves the `.tfstate` to show how it can work with Earthly. It will not work on the next go around; because the localstack instance it was created in is gone.
 

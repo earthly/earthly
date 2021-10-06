@@ -31,3 +31,5 @@ fzf
 cta
 csvtojson
 dasel
+asciicast
+multirepo
