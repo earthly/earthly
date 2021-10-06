@@ -64,7 +64,7 @@ However, environment variable authentication are now deprecated in favor of usin
 #### Self-hosted and private Git Repositories
 
 Currently, `github.com`, `gitlab.com`, and `bitbucket.org` have been tested as SCM providers; we have experimental support for self-hosted git repositories
-such as github enterprise which will need to be configured using a regular expression:
+such as GitHub enterprise which will need to be configured using a regular expression:
 
 ```yaml
 git:

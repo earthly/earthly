@@ -44,7 +44,7 @@ All of our binaries are signed with our [PGP key](https://pkg.earthly.dev/earthl
 
 #### Debian-based repositories (including Ubuntu)
 
-Debian-based Linux users (e.g. debian, ubuntu, mint, etc) can use our apt repo to install Earthly.
+Debian-based Linux users (e.g. Debian, Ubuntu, Mint, etc) can use our apt repo to install Earthly.
 
 Before installing Earthly, you must first set up the Earthly apt repo.
 

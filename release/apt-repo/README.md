@@ -46,7 +46,7 @@ To package a new version of earthly, ensure the following requirements are met:
 
 ## Release steps
 
-Once earthly has been released to github, visit https://github.com/earthly/earthly/releases to determine the latest version:
+Once earthly has been released to GitHub, visit https://github.com/earthly/earthly/releases to determine the latest version:
 
     export RELEASE_TAG="v0.0.0"
 

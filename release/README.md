@@ -81,7 +81,7 @@ To perform a test release to a personal repo, first:
 
 1. fork a copy of both `earthly/earthly`, and `earthly/homebrew-earthly`
 2. commit your changes you wish to release and push them to your personal repo.
-3. save a copy of your github token to `+secrets/user/github-token` (e.g. `earthly secrets set /user/github-token keep-it-secret`)
+3. save a copy of your GitHub token to `+secrets/user/github-token` (e.g. `earthly secrets set /user/github-token keep-it-secret`)
 
 Then run:
 
@@ -101,7 +101,7 @@ If the release-homebrew fails with a rejected git push, you may have to delete t
 
 If you need to rollback/disable a version:
 
-1. Go to [github releases](https://github.com/earthly/earthly/releases), click on the `edit release` button, then check the `This is a pre-release` checkbox.
+1. Go to [GitHub releases](https://github.com/earthly/earthly/releases), click on the `edit release` button, then check the `This is a pre-release` checkbox.
 2. Check out the [earthly/homebrew-earthly](https://github.com/earthly/homebrew-earthly) repo, and run:
 
 ```bash

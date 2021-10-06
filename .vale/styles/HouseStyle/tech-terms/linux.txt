@@ -1,7 +1,7 @@
-manjaro
-ubuntu
+Manjaro
+Ubuntu
 userspace
 namespaces
-debian
-linux
-centos
+Debian
+Linux
+CentOS

@@ -145,8 +145,6 @@ deduplicates
 earthfiles
 earthfile
 dirs
-buildkit
-github
 artifactories
 prepends
 autodetect

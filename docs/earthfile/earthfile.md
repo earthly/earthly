@@ -106,7 +106,7 @@ Allows remotely-referenced targets to request privileged capabilities; this flag
 
 Additionally, for privileged capabilities, earthly must be invoked on the command line with the `--allow-privileged` (or `-P`) flag.
 
-For example, consider two Earthfiles, one hosted on a remote github repo:
+For example, consider two Earthfiles, one hosted on a remote GitHub repo:
 
 ```Dockerfile
 # github.com/earthly/example

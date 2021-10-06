@@ -21,7 +21,7 @@
 
 The command executes a build referenced by `<target-ref>` (*target form* and *image form*) or `<artifact-ref>` (*artifact form*). In the *target form*, the referenced target and its dependencies are built. In the *artifact form*, the referenced artifact and its dependencies are built, but only the specified artifact is output. The output path of the artifact can be optionally overridden by `<dest-path>`. In the *image form*, the image produced by the referenced target and its dependencies are built, but only the specified image is output.
 
-If a buildkit daemon has not already been started, and the option `--buildkit-host` is not specified, this command also starts up a container named `earthly-buildkitd` to act as a build daemon.
+If a BuildKit daemon has not already been started, and the option `--buildkit-host` is not specified, this command also starts up a container named `earthly-buildkitd` to act as a build daemon.
 
 The execution has two phases:
 
@@ -274,17 +274,17 @@ These options can only be set via environment variables, and have no command lin
 
 #### Description
 
-The command `earthly prune` eliminates Earthly cache. In the *standard form* it issues a prune command to the buildkit daemon. In the *reset form* it restarts the buildkit daemon, instructing it to completely delete the cache directory on startup, thus forcing it to start from scratch.
+The command `earthly prune` eliminates Earthly cache. In the *standard form* it issues a prune command to the BuildKit daemon. In the *reset form* it restarts the BuildKit daemon, instructing it to completely delete the cache directory on startup, thus forcing it to start from scratch.
 
 #### Options
 
 ##### `--all|-a`
 
-Instructs earthly to issue a "prune all" command to the buildkit daemon.
+Instructs earthly to issue a "prune all" command to the BuildKit daemon.
 
 ##### `--reset`
 
-Restarts the buildkit daemon and completely resets the cache directory.
+Restarts the BuildKit daemon and completely resets the cache directory.
 
 ## earthly config
 
@@ -316,7 +316,7 @@ Set your cache size:
 config global.cache_size_mb 1234
 ```
 
-Set additional buildkit args, using a YAML array:
+Set additional BuildKit args, using a YAML array:
 
 ```
 config global.buildkit_additional_args ['userns', '--host']
@@ -605,7 +605,7 @@ Performs initialization tasks needed for `earthly` to function correctly. This c
 
 ##### `--no-buildkit`
 
-Skips setting up the buildkit container during bootstrapping. If needed, it will also be performed when a build is ran.
+Skips setting up the BuildKit container during bootstrapping. If needed, it will also be performed when a build is ran.
 
 ##### `--with-autocomplete`
 

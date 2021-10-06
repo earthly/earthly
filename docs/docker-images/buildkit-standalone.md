@@ -1,4 +1,4 @@
-This image contains `buildkit` with some Earthly-specific setup. This is what Earthly will start when using a local daemon. You can also start it up yourself and use it as a remote/shared buildkit daemon.
+This image contains `buildkit` with some Earthly-specific setup. This is what Earthly will start when using a local daemon. You can also start it up yourself and use it as a remote/shared BuildKit daemon.
 
 *Note that versions of this container have only ever been tested with their corresponding version of `earthly`.* Mismatched versions are unsupported.
 
@@ -56,7 +56,7 @@ Because this folder sees _a lot_ of traffic, its important that it remains fast.
 
 To use this image externally, it requires you to forward a port on your machine to the containers port 8372. You will need to ensure that external access to the machine on the port you chose is possible as well.
 
-When using this container locally with `earthly`, please note that setting `EARTHLY_BUILDKIT_HOST` values with hosts `127.0.0.1`, ` ::1/128`, or `localhost` are considered local and will result in Earthly attempting to manage the buildkit container itself. Consider using your hostname, or another alternative name in these cases.
+When using this container locally with `earthly`, please note that setting `EARTHLY_BUILDKIT_HOST` values with hosts `127.0.0.1`, ` ::1/128`, or `localhost` are considered local and will result in Earthly attempting to manage the BuildKit container itself. Consider using your hostname, or another alternative name in these cases.
 
 ### Supported Environment Variables
 

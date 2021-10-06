@@ -328,7 +328,7 @@ all:
 =========================== SUCCESS ===========================
 ```
 
-There we have it, a reproducible integration process (full [example]()). If you have questions about the example, [ask](https://gitter.im/earthly-room/community)
+There we have it, a reproducible integration process. If you have questions about the example, [ask](https://gitter.im/earthly-room/community)
 
 ## See also
 * [Docker In Earthly](./docker-in-earthly.md)

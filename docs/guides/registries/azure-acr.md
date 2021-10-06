@@ -5,7 +5,7 @@
 The Azure Container Registry (ACR) is a hosted docker repository that requires extra configuration for day-to-day use. This configuration is not typical of other repositories, and there are some considerations to account for when using it with Earthly. This guide will walk you through creating an Earthfile, building an image, and pushing it to ACR.
 
 
-This guide assumes you have already installed the [as CLI tool](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli), and [created a new repository named `helloearthly`](https://portal.azure.com/?quickstart=true#create/Microsoft.ContainerRegistry).
+This guide assumes you have already installed the [Azure CLI tool](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli), and [created a new repository named `helloearthly`](https://portal.azure.com/?quickstart=true#create/Microsoft.ContainerRegistry).
 
 ## Create an Earthfile
 

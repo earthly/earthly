@@ -183,10 +183,10 @@ The Earthly command uses HTTPS to communicate with the cloud secrets server. The
 secrets using OpenPGP's implementation of AES256 before storing it in a database.
 We use industry-standard security practices for managing our encryption keys in the cloud.
 
-Secrets are presented to buildkit in a similar fashion as [locally-supplied secrets](build-args.md#storage-of-secrets):
-When buildkit encounters a `RUN` command that requires a secret, the buildkit daemon will request the secret
+Secrets are presented to BuildKit in a similar fashion as [locally-supplied secrets](build-args.md#storage-of-secrets):
+When BuildKit encounters a `RUN` command that requires a secret, the BuildKit daemon will request the secret
 from the earthly command-line process -- `earthly` will then make a request to earthly's cloud storage server
-(along with the auth token); once the server returns the secret, that secret will be passed to buildkit.
+(along with the auth token); once the server returns the secret, that secret will be passed to BuildKit.
 
 # Feedback
 

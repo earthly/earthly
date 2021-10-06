@@ -28,7 +28,7 @@ On Mac and on Windows, the Docker Desktop app comes with QEMU readily installed 
 
 ### Linux
 
-On linux, QEMU needs to be installed manually. On Ubuntu, this can be achieved by running:
+On Linux, QEMU needs to be installed manually. On Ubuntu, this can be achieved by running:
 
 ```bash
 sudo apt-get install qemu binfmt-support qemu-user-static

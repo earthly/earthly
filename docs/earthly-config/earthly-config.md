@@ -62,18 +62,18 @@ Specifies the total size of the BuildKit cache, in MB. The BuildKit daemon uses 
 
 When set to true, disables collecting command line analytics; otherwise, earthly will report anonymized analytics for invocation of the earthly command. For more information see the [data collection page](../data-collection/data-collection.md).
 
-### buildkit_additional_args
+### BuildKit_additional_args
 
-This option allows you to pass additional options to Docker when starting up the Earthly buildkit daemon. For example, this can be used to bypass user namespacing like so:
+This option allows you to pass additional options to Docker when starting up the Earthly BuildKit daemon. For example, this can be used to bypass user namespacing like so:
 
 ```yaml
 global:
   buildkit_additional_args: ["--userns", "host"]
 ```
 
-### buildkit_additional_config
+### BuildKit_additional_config
 
-This option allows you to pass additional options to Buildkit. For example, this can be used to specify additional CA certificates:
+This option allows you to pass additional options to BuildKit. For example, this can be used to specify additional CA certificates:
 
 ```yaml
 global:
@@ -85,7 +85,7 @@ global:
 
 ### cni_mtu
 
-Allows overriding Earthly's automatic MTU detection. This is used when configuring the Buildkit internal CNI network. MTU must be between 64 and 65,536.
+Allows overriding Earthly's automatic MTU detection. This is used when configuring the BuildKit internal CNI network. MTU must be between 64 and 65,536.
 
 ### ip_tables
 
