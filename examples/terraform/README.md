@@ -4,9 +4,9 @@ This is to demonstrate how you might combine Earthly and Terraform.
 
 <!-- vale HouseStyle.Spelling = NO -->
 ## +localstack
+<!-- vale HouseStyle.Spelling = YES -->
 
 `earthly -P +localstack`
-<!-- vale HouseStyle.Spelling = YES -->
 
 This target runs LocalStack and applies the Terraform to it. This is easy to do because it doesn't require a cloud to actually test applying your Terraform.
 

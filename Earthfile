@@ -163,7 +163,7 @@ markdown-spellcheck:
     # TODO figure out a way to ignore this pattern in vale (doesn't seem to be working under spelling's filter option)
     RUN find . -type f -iname '*.md' |  xargs -n 1 sed -i 's/{[^}]*}//g'
     # TODO remove the greps once the corresponding markdown files have spelling fixed (or techterms added to .vale/styles/HouseStyle/tech-terms/...
-    RUN find . -type f -iname '*.md' | grep -v examples | grep -v contrib | grep -v docs | grep -v release | xargs vale --config /etc/vale/vale.ini --output line --minAlertLevel error
+    RUN find . -type f -iname '*.md' | grep -v contrib | grep -v docs | grep -v release | xargs vale --config /etc/vale/vale.ini --output line --minAlertLevel error
 
 unit-test:
     FROM +code
