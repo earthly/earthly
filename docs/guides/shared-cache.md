@@ -215,7 +215,7 @@ Similarly to the comparison between `apk` and `apt-get`, similar remarks can be 
 
 ### An intermediate result is small and doesn't change much
 
-An area where shared cache is particularly impactful are cases where a rare-changing pre-requisite downloads many dependencies and/or performs intensive computation, but the end result is relatively small (e.g. a single binary). Passing this pre-requisitve over the wire as part of the shared cache is very fast (especially if the downloads required to generate it are not used anywhere else), whereas regenerating it requires a lot of work.
+An area where shared cache is particularly impactful are cases where a rare-changing pre-requisite downloads many dependencies and/or performs intensive computation, but the end result is relatively small (e.g. a single binary). Passing this pre-requisite over the wire as part of the shared cache is very fast (especially if the downloads required to generate it are not used anywhere else), whereas regenerating it requires a lot of work.
 
 ### Monorepo and Polyrepo setups
 

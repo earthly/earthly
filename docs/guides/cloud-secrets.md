@@ -44,7 +44,7 @@ To logout, you can run `earthly account logout`, which deletes the `~/.earthly/a
 
 ### Interacting with the private user secret store from the command line
 
-Each user has a non-sharable private userspace which can be referenced by `/user/...`; this can be thought of as your home directory.
+Each user has a non-sharable private user-space which can be referenced by `/user/...`; this can be thought of as your home directory.
 To view this workspace, try running:
 
 ```bash
