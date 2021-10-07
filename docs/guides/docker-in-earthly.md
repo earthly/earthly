@@ -5,7 +5,7 @@ This guide walks through using Docker commands in Earthly.
 
 ## Basic usage
 
-In order to use Docker commands (such as `docker run`), Earthly makes available isolated Docker daemons which are started and stopped on-demand. The reason for using isolated instances of Docker daemons is such that no pre-existing Docker state (e.g. images, containers, networks, volumes) can influence the way the build executes. This allows Earthly to achieve high degrees of reproducibility.
+To use Docker commands (such as `docker run`), Earthly makes available isolated Docker daemons which are started and stopped on-demand. The reason for using isolated instances of Docker daemons is such that no pre-existing Docker state (e.g. images, containers, networks, volumes) can influence the way the build executes. This allows Earthly to achieve high degrees of reproducibility.
 
 Here is a quick example of running a hello-world docker container via `docker run` in Earthly:
 
@@ -21,7 +21,7 @@ Let's break it down.
 
 `FROM earthly/dind:alpine` inherits from an Earthly-supported docker-in-docker (dind) image. This is recommended, because `WITH DOCKER` requires all the Docker binaries (not just the client) to be present in the build environment.
 
-`WITH DOCKER ... END` starts a Docker daemon for the purpose of running Docker commands against it. At the end of the execution, this also terminates the daemon and permanently deletes all of its data (e.g. daemon cached images).
+`WITH DOCKER ... END` starts a Docker daemon to run Docker commands against it. At the end of the execution, this also terminates the daemon and permanently deletes all of its data (e.g. daemon cached images).
 
 `--pull hello-world` pulls the image `hello-world` from the Docker Hub. This option could have been replaced with the more traditional `docker pull hello-world`. However, the Earthly variant additionally stores the image in the Earthly cache, so that the actual pull is performed only if the image changes. Because the daemon cache is cleared after each run, `docker pull` would not achieve the same.
 
@@ -70,7 +70,7 @@ For more information on integration testing and working with service dependencie
 
 ## Limitations of Docker in Earthly
 
-The current implementation of Docker in Earthly has a number of limitations:
+The current implementation of Docker in Earthly has several limitations:
 
 * Only one `RUN` command is allowed within the `WITH DOCKER` clause. The reason for this is that only one cache layer is used for the entire clause. You can, however, chain multiple shell commands together within a single `RUN` command. For example:
   ```Dockerfile
@@ -83,10 +83,10 @@ The current implementation of Docker in Earthly has a number of limitations:
   ```
 * It is recommended that the target containing the `WITH DOCKER` clause inherits from a supported Docker-in-Docker (dind) image such as `earthly/dind:alpine` or `earthly/dind:ubuntu`. If your build requires the use of an alternative environment as part of a test (e.g. to run commands like `sbt test` or `go test` together with a docker-compose stack), consider placing the test itself in a Docker image, then loading that image via `--load` and running the test as a Docker container.
 * If you do not use an officially supported Docker-in-Docker image, Earthly will attempt to install Docker in whatever image you have chosen. This has the drawback of not being able to use cache efficiently and is not recommended for performance reasons.
-* To maximize the use of cache, all external images used should be declared via the options `--pull` or `--compose`. Even though commands such as `docker run` automatically pull an image if it is not found locally, it will do so every single time the `WITH DOCKER` clause is executed, due to Docker caching not being preserved between runs. Pre-declaring the images ensures that they are properly cached by Earthly to minimize unnecessary redownloads.
+* To maximize the use of a cache, all external images used should be declared via the options `--pull` or `--compose`. Even though commands such as `docker run` automatically pull an image if it is not found locally, it will do so every single time the `WITH DOCKER` clause is executed, due to Docker caching not being preserved between runs. Pre-declaring the images ensures that they are properly cached by Earthly to minimize unnecessary redownloads.
 * `docker build` cannot be used to build Dockerfiles. However, the Earthly command `FROM DOCKERFILE` can be used instead. See [alternative to docker build](#alternative-to-docker-build) below.
 * The state of the Docker daemon within Earthly cannot be inspected on the host (e.g. for debugging purposes). For example, if a `docker-compose` stack fails, you cannot execute commands like `docker-compose logs` or `docker logs` on the host. However, you may use the interactive mode to drop into a shell within the build environment and execute such commands there. For more information, see the [debugging guide](./debugging.md).
-* It is currently not possible to mount `/var/run/docker.sock` in order to use the host Docker daemon. This goes against Earthly's principles of keeping execution repeatable. Mounting the Docker socket may cause builds to depend on the host Daemon state (e.g. pre-cached images) in ways that may not be obvious or easy to reproduce if the build were executed in another environment.
+* It is currently not possible to mount `/var/run/docker.sock` to use the host Docker daemon. This goes against Earthly's principles of keeping execution repeatable. Mounting the Docker socket may cause builds to depend on the host Daemon state (e.g. pre-cached images) in ways that may not be obvious or easy to reproduce if the build were executed in another environment.
 
 ## Alternatives to Docker in Earthly
 
@@ -114,7 +114,7 @@ This, of course, has limitations, such as not being able to mount volumes the sa
 
 ### Alternative to docker build
 
-Running `docker build` within Earthly is discouraged, as it has a number of key limitations:
+Running `docker build` within Earthly is discouraged, as it has many key limitations:
 
 * Layer caching does not work. This is because `WITH DOCKER` does not preserve Docker cache between runs (other than `--pull`).
 * Once an image is created, it cannot be exported as a build output in a form other than a TAR archive (e.g. it cannot be automatically loaded onto the host Docker daemon).
