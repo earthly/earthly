@@ -1,0 +1,7 @@
+FROM busybox:1.32.0
+
+PRINT:
+    COMMAND
+    ARG text
+    RUN echo $text > log.txt
+    SAVE ARTIFACT ./log.txt log.txt

@@ -472,6 +472,7 @@ examples1:
     BUILD ./examples/multirepo+docker
     BUILD ./examples/python+docker
     BUILD ./examples/cutoff-optimization+run
+    BUILD ./examples/import+init
 
 examples2:
     BUILD ./examples/readme/go1+all
