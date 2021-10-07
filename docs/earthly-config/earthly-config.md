@@ -7,7 +7,7 @@ overridden with the `--config` command flag option.
 
 ## Format
 
-The earthly config file is a [yaml](https://yaml.org/) formatted file that looks like:
+The earthly config file is a [YAML](https://yaml.org/) formatted file that looks like:
 
 ```yaml
 global:
@@ -83,11 +83,11 @@ global:
       ca=["/etc/config/add.ca"]
 ```
 
-### cni_mtu
+### `cni_mtu`
 
 Allows overriding Earthly's automatic MTU detection. This is used when configuring the BuildKit internal CNI network. MTU must be between 64 and 65,536.
 
-### ip_tables
+### `ip_tables`
 
 Allows overriding Earthly's automatic `ip_tables` module detection. Valid choices are `iptables-legacy` or `iptables-nft`.
 

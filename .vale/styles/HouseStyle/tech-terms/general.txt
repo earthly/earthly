@@ -142,9 +142,8 @@ repo
 repos
 deduplicate
 deduplicates
-earthfiles
-earthfile
-dirs
+Earthfiles
+Earthfile
 artifactories
 prepends
 autodetect
@@ -157,7 +156,6 @@ redownloads
 http
 https
 fibonacci
-http
 Noob
 LocalStack
 multirepo

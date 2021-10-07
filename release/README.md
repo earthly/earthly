@@ -66,8 +66,8 @@
 * Update the Docker image documentation's tags with the new version, plus the prior two image versions under:
   * [all-in-one.md](../docs/docker-images/all-in-one.md)
   * [buildkit-standalone.md](../docs/docker-images/buildkit-standalone.md)
-* After gitbook has processed the `main` branch, run a broken link checker over https://docs.earthly.dev. This one is fast and easy: https://www.deadlinkchecker.com/.
-* Verify the [homebrew release job](https://github.com/earthly/homebrew-earthly) has successfully run and has merged the new `release-v...` branch into `main`.
+* After GitBook has processed the `main` branch, run a broken link checker over https://docs.earthly.dev. This one is fast and easy: https://www.deadlinkchecker.com/.
+* Verify the [Homebrew release job](https://github.com/earthly/homebrew-earthly) has successfully run and has merged the new `release-v...` branch into `main`.
 * Copy the release notes you have written before and paste them in the Earthly Community slack channel `#announcements`, together with a link to the release's GitHub page. If you have Slack markdown editing activated, you can copy the markdown version of the text.
 * Ask Adam to tweet about the release.
 

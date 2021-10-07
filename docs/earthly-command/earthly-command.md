@@ -42,9 +42,9 @@ The `<target-ref>` can reference both local and remote targets.
 
 ##### Local Reference
 
-`+<target-name>` will reference a target in the local earthfile in the current directory.
+`+<target-name>` will reference a target in the local Earthfile in the current directory.
 
-`<local-path>+<target-name>` will reference a local earthfile in a different directory as
+`<local-path>+<target-name>` will reference a local Earthfile in a different directory as
 specified by `<local-path>`, which must start with `./`, `../`, or `/`.
 
 ##### Remote Reference

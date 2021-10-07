@@ -744,7 +744,7 @@ The `USER` command sets the user name (or UID) and optionally the user group (or
 
 #### Description
 
-The `WORKDIR` command strs the working directory for other commands that follow in the recipe. The working directory is also persisted as the default directory for the image. If the directory does not exist, it is automatically created. This command works the same way as the [Dockerfile `WORKDIR` command](https://docs.docker.com/engine/reference/builder/#workdir).
+The `WORKDIR` command `strs` the working directory for other commands that follow in the recipe. The working directory is also persisted as the default directory for the image. If the directory does not exist, it is automatically created. This command works the same way as the [Dockerfile `WORKDIR` command](https://docs.docker.com/engine/reference/builder/#workdir).
 
 ## HEALTHCHECK (same as Dockerfile HEALTHCHECK)
 
@@ -1122,7 +1122,7 @@ Only `RUN` commands are supported under a `LOCALLY` defined target; furthermore 
 `RUN` commands have access to the environment variables which are exposed to the `earthly` command; however, the commands 
 are executed within a working directory which is set to the location of the referenced Earthfile and not where the `earthly` command is run from.
 
-For example, the following earthfile will display the current user, hostname, and directory where the Earthfile is stored:
+For example, the following Earthfile will display the current user, hostname, and directory where the Earthfile is stored:
 
 ```Dockerfile
 whoami:

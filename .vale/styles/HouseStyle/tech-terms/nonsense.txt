@@ -4,6 +4,10 @@
 
 sbt
 scala
+js
+cobol
+cpp
+dotnet
 dev
 grpc
 api
@@ -31,15 +35,12 @@ fzf
 cta
 csvtojson
 dasel
-cni
-mtu
-nft
-strs
-yaml
-ip
+YAML
+IP
 asciicast
 dind
-gcloud
+GitBook
+Homebrew
+Buildkit
+AST
 md
-gitbook
-homebrew
