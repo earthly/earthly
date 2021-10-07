@@ -74,7 +74,7 @@ This will start a local Jenkins server, minimally configured to spawn `earthly` 
 
 To run a build in this demo, you will need to configure a build pipeline. To do that, we have an [example project with a Jenkinsfile](https://github.com/earthly/ci-example-project). To configure the build pipeline for the example project:
 
-- Open the Jenkins demo by going to [http://localhost:8000](http://localhost:8080/)
+- Open the Jenkins demo by going to [`http://localhost:8000`](http://localhost:8080/)
 - Click "New Item", on the left
 
 ![Jenkins Dashboard with "New Item" highlighted](img/Jenkins1.png)

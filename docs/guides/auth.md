@@ -18,7 +18,7 @@ A number of Earthly features use Git credentials to perform remote Git operation
 There are two possible ways to pass Git authentication to Earthly builds:
 
 * Via SSH agent socket (for SSH-based authentication)
-* Via username-password (usually for https Git URLs)
+* Via username-password (usually for HTTPS Git URLs)
 
 #### SSH agent socket
 
@@ -28,7 +28,7 @@ If you need to override the SSH agent socket, you can set the environment variab
 
 In order for the SSH agent to have the right credentials available, make sure you run `ssh-add` before executing Earthly builds.
 
-Another key setting is the `auth` mode for the git site that hosts the repository. By default earthly automatically default to `ssh` authentication if the ssh auth agent is running and has at least 1 key loaded, otherwise `earthly` will fallback to using non-authenticated https.
+Another key setting is the `auth` mode for the git site that hosts the repository. By default earthly automatically default to `ssh` authentication if the ssh auth agent is running and has at least 1 key loaded, otherwise `earthly` will fallback to using non-authenticated HTTPS.
 
 Sites can be explicitly added to the [earthly config file](../earthly-config/earthly-config.md) under the git section in order to override the auto-authentication mode:
 

@@ -26,7 +26,7 @@ Then, run the resulting container:
 docker run --rm -p 127.0.0.1:8080:8080 earthly/examples:monorepo
 ```
 
-and load http://127.0.0.1:8080 in your browser.
+and load `http://127.0.0.1:8080` in your browser.
 
 ## Explanation
 

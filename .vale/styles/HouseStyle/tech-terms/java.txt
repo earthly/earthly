@@ -1,8 +1,4 @@
-gradle
-maven
-jvm
 akka
-
-#python
-iterable
-itertools
+gradle
+jvm
+maven

@@ -35,6 +35,7 @@ If you are new to Earthly, you may find the [Basics tutorial](../basics/basics.m
 
 Please note that these examples, although similar, are distinct from the ones used in the [tutorial](https://github.com/earthly/earthly/tree/main/examples/tutorial).
 
+<!-- vale HouseStyle.Spelling = NO -->
 * [c](https://github.com/earthly/earthly/tree/main/examples/c)
 * [cobol](https://github.com/earthly/earthly/tree/main/examples/cobol)
 * [cpp](https://github.com/earthly/earthly/tree/main/examples/cpp)
@@ -48,6 +49,7 @@ Please note that these examples, although similar, are distinct from the ones us
 * [ruby-on-rails](https://github.com/earthly/earthly/tree/main/examples/ruby-on-rails)
 * [rust](https://github.com/earthly/earthly/tree/main/examples/rust)
 * [scala](https://github.com/earthly/earthly/tree/main/examples/scala)
+<!-- vale HouseStyle.Spelling = YES -->
 
 ### Examples by use-cases
 

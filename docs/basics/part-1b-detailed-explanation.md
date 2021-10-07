@@ -100,7 +100,7 @@ Copy `index.js` from the build context (the directory where the Earthfile reside
     COPY src/index.js .
 ```
 
-Save the `index.js` in an artifact dir called `dist` (it can be later
+Save the `index.js` in an artifact directory called `dist` (it can be later
 referenced as `+build/dist`). In addition, store the artifact as a
 local file (on the host) named `dist/index.js`. This local file is only
 written if the entire build succeeds.
@@ -245,13 +245,13 @@ build:
 
 ... and define the recipe of the target `build` as follows.
 
-Copy the `src` dir from the build context (the directory where the Earthfile resides) to the build environment (the containerized environment where Earthly commands are ran in).
+Copy the `src` directory from the build context (the directory where the Earthfile resides) to the build environment (the containerized environment where Earthly commands are ran in).
 
 ```
     COPY src src
 ```
 
-Save the python source in an artifact dir called src (it can be later referenced as `+build/src`).
+Save the python source in an artifact directory called `src` (it can be later referenced as `+build/src`).
 
 ```
     SAVE ARTIFACT src /src
