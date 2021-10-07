@@ -50,7 +50,7 @@ Notice that the image name produced as output is `my-image:latest`. This image n
 
 ## Running docker-compose
 
-It is possible to run `docker-compose` via `WITH DOCKER`, either explicitly, simply by running the `docker-compose` tool, or implicitly, via the `--compose` flag. The `--compose` flag allows you to specify a Docker compose stack that needs to be brough up before the execution of the `RUN` command. For example:
+It is possible to run `docker-compose` via `WITH DOCKER`, either explicitly, simply by running the `docker-compose` tool, or implicitly, via the `--compose` flag. The `--compose` flag allows you to specify a Docker compose stack that needs to be brought up before the execution of the `RUN` command. For example:
 
 ```Dockerfile
 FROM earthly/dind:alpine

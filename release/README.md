@@ -66,8 +66,8 @@
 * Update the Docker image documentation's tags with the new version, plus the prior two image versions under:
   * [all-in-one.md](../docs/docker-images/all-in-one.md)
   * [buildkit-standalone.md](../docs/docker-images/buildkit-standalone.md)
-* After gitbook has processed the `main` branch, run a broken link checker over https://docs.earthly.dev. This one is fast and easy: https://www.deadlinkchecker.com/.
-* Verify the [homebrew release job](https://github.com/earthly/homebrew-earthly) has successfully run and has merged the new `release-v...` branch into `main`.
+* After GitBook has processed the `main` branch, run a broken link checker over https://docs.earthly.dev. This one is fast and easy: https://www.deadlinkchecker.com/.
+* Verify the [Homebrew release job](https://github.com/earthly/homebrew-earthly) has successfully run and has merged the new `release-v...` branch into `main`.
 * Copy the release notes you have written before and paste them in the Earthly Community slack channel `#announcements`, together with a link to the release's GitHub page. If you have Slack markdown editing activated, you can copy the markdown version of the text.
 * Ask Adam to tweet about the release.
 
@@ -81,7 +81,7 @@ To perform a test release to a personal repo, first:
 
 1. fork a copy of both `earthly/earthly`, and `earthly/homebrew-earthly`
 2. commit your changes you wish to release and push them to your personal repo.
-3. save a copy of your github token to `+secrets/user/github-token` (e.g. `earthly secrets set /user/github-token keep-it-secret`)
+3. save a copy of your GitHub token to `+secrets/user/github-token` (e.g. `earthly secrets set /user/github-token keep-it-secret`)
 
 Then run:
 
@@ -101,7 +101,7 @@ If the release-homebrew fails with a rejected git push, you may have to delete t
 
 If you need to rollback/disable a version:
 
-1. Go to [github releases](https://github.com/earthly/earthly/releases), click on the `edit release` button, then check the `This is a pre-release` checkbox.
+1. Go to [GitHub releases](https://github.com/earthly/earthly/releases), click on the `edit release` button, then check the `This is a pre-release` checkbox.
 2. Check out the [earthly/homebrew-earthly](https://github.com/earthly/homebrew-earthly) repo, and run:
 
 ```bash
@@ -128,7 +128,7 @@ These images can be rebuilt by running:
   ```bash
   export VSCODE_RELEASE_TAG="v..."
   ```
-  (You can see what is already published [here](https://marketplace.visualstudio.com/items?itemName=earthly.earthfile-syntax-highlighting))
+  (You can [see what is already published](https://marketplace.visualstudio.com/items?itemName=earthly.earthfile-syntax-highlighting))
 * Make sure that the version has release notes already in the [README](../contrib/earthfile-syntax-highlighting/README.md)
 * Then publish it:
   ```bash

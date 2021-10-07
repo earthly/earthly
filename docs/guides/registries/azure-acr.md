@@ -2,10 +2,10 @@
 
 ## Introduction
 
-The Azure Container Registry (ACR) is is a hosted docker repository that requires extra configuration for day-to-day use. This configuration is not typical of other repositories, and there are some considerations to account for when using it with Earthly. This guide will walk you through creating an Earthfile, building an image, and pushing it to ACR.
+The Azure Container Registry (ACR) is a hosted docker repository that requires extra configuration for day-to-day use. This configuration is not typical of other repositories, and there are some considerations to account for when using it with Earthly. This guide will walk you through creating an Earthfile, building an image, and pushing it to ACR.
 
 
-This guide assumes you have already installed the [az CLI tool](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli), and [created a new repository named `helloearthly`](https://portal.azure.com/?quickstart=true#create/Microsoft.ContainerRegistry).
+This guide assumes you have already installed the [Azure CLI tool](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli), and [created a new repository named `helloearthly`](https://portal.azure.com/?quickstart=true#create/Microsoft.ContainerRegistry).
 
 ## Create an Earthfile
 
@@ -29,7 +29,7 @@ ACR does not issue permanent credentials. Instead, it relies on your Azure AD cr
 Login Succeeded
 ```
 
-After logging in, the [ACR Credential Helper](https://github.com/Azure/acr-docker-credential-helper) will help keep your credentials up to date, as long as it is invoked again before your already issued credentials expire.  When all this is complete, your `.docker/config.json` might look like this:
+After logging in, the [ACR Credential Helper](https://github.com/Azure/acr-docker-credential-helper) will help keep your credentials up to date, as long as it is invoked again before your already issued credentials expire. When all this is complete, your `.docker/config.json` might look like this:
 ```
 {
 	"auths": {
@@ -42,7 +42,7 @@ After logging in, the [ACR Credential Helper](https://github.com/Azure/acr-docke
 }
 ```
 
-ACR boasts many other methods of logging in, including [Service Principals](https://docs.microsoft.com/en-us/azure/container-registry/container-registry-auth-service-principal) and [admin accounts](https://docs.microsoft.com/en-us/azure/container-registry/container-registry-authentication#admin-account). Note that the admin account method is not recommended for production usage. Please follow the releavant guides to authenticate if you wish to use one of these other methods.
+ACR boasts many other methods of logging in, including [Service Principals](https://docs.microsoft.com/en-us/azure/container-registry/container-registry-auth-service-principal) and [admin accounts](https://docs.microsoft.com/en-us/azure/container-registry/container-registry-authentication#admin-account). Note that the admin account method is not recommended for production usage. Please follow the relevant guides to authenticate if you wish to use one of these other methods.
 
 ## RBAC
 

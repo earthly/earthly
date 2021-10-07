@@ -4,6 +4,10 @@
 
 sbt
 scala
+js
+cobol
+cpp
+dotnet
 dev
 grpc
 api
@@ -31,4 +35,12 @@ fzf
 cta
 csvtojson
 dasel
+YAML
+IP
 asciicast
+dind
+GitBook
+Homebrew
+Buildkit
+AST
+md

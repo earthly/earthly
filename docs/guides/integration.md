@@ -9,7 +9,7 @@ Running unit tests in a build pipeline is relatively simple. By definition, unit
 
 ### Our Application
 
-The application we start with is simple.  It returns the first 5 countries alphabetically via standard out. It has unit tests and integration tests.  The integration tests require a datastore with the correct data in place.  
+The application we start with is simple. It returns the first 5 countries alphabetically via standard out. It has unit tests and integration tests. The integration tests require a datastore with the correct data in place.  
 
 {% method %}
 {% sample lang="App" %}
@@ -328,7 +328,7 @@ all:
 =========================== SUCCESS ===========================
 ```
 
-There we have it, a reproducible integration process. The full example can be found [here](). If you have questions about the example, [ask them here](https://gitter.im/earthly-room/community)
+There we have it, a reproducible integration process. If you have questions about the example, [ask](https://gitter.im/earthly-room/community)
 
 ## See also
 * [Docker In Earthly](./docker-in-earthly.md)

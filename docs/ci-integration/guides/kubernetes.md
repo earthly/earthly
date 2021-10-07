@@ -94,7 +94,7 @@ This example is not production ready, and is intended to showcase configuration 
 
 {% endhint %}
 
-You can find our [Kubernetes examples here](https://github.com/earthly/ci-examples/tree/main/kubernetes).
+See our [Kubernetes examples](https://github.com/earthly/ci-examples/tree/main/kubernetes).
 
 To run it yourself, first you will need to install some prerequisites on your machine. This example requires `kind` and `kubectl` to be installed on your system. Here are some links to installation instructions:
 

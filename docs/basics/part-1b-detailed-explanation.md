@@ -1,7 +1,7 @@
 
 # Detailed explanation
 
-Going back to the example earthfile definition, here is what each command does:
+Going back to the example Earthfile definition, here is what each command does:
 
 {% method %}
 {% sample lang="Go" %}
@@ -184,8 +184,8 @@ Run the `gradle build` and `gradle install` commands. These use the previously c
 Save the output of the build command as artifacts. Call these
 artifacts `bin` and `lib` (they can be later referenced as `+build/bin` and
 `+build/lib` respectively).
-In addition, store the artifacts as local dirs (on the host) named
-`build/bin` and `build/lib`. These local dirs are only written if the entire
+In addition, store the artifacts as local directories (on the host) named
+`build/bin` and `build/lib`. These local directories are only written if the entire
 build succeeds.
 
 ```

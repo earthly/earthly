@@ -1,9 +1,9 @@
-# Remote Buildkit 
+# Remote BuildKit 
 
 {% hint style='danger' %}
 ##### Note
 
-Using a remote buildkit instance is currently _experimental_. If you run into any issues, or need help, [don't hesitate to reach out](https://github.com/earthly/earthly/issues/new)!
+Using a remote BuildKit instance is currently _experimental_. If you run into any issues, or need help, [don't hesitate to reach out](https://github.com/earthly/earthly/issues/new)!
 
 {% endhint %}
 

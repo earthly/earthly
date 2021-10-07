@@ -65,4 +65,4 @@ When connecting to a remote daemon, follow the Docker-In-Docker installation ins
 RUN earthly config global.buildkit_host buildkit_host: 'tcp://myhost:8372'
 ```
 
-For more details on using a remote buildkit daemon, [see our guide](./remote-buildkit.md).
+For more details on using a remote BuildKit daemon, [see our guide](./remote-buildkit.md).

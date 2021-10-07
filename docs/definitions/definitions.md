@@ -1,6 +1,6 @@
 # Definitions
 
-This page presents some common terms used throughout the earthly documentation.  Understanding these terms with help you understand how to use earthly. 
+This page presents some common terms used throughout the earthly documentation. Understanding these terms with help you understand how to use earthly. 
 
 * **Earthly** - the build automation system as a whole
 * **`earthly`** - the CLI tool used to interact with Earthly

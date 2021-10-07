@@ -64,7 +64,7 @@ However, environment variable authentication are now deprecated in favor of usin
 #### Self-hosted and private Git Repositories
 
 Currently, `github.com`, `gitlab.com`, and `bitbucket.org` have been tested as SCM providers; we have experimental support for self-hosted git repositories
-such as github enterprise which will need to be configured using a regular expression:
+such as GitHub enterprise which will need to be configured using a regular expression:
 
 ```yaml
 git:
@@ -92,7 +92,7 @@ before issuing earthly commands, if you have not already done so in the past. If
 
 ### Credential Helpers
 
-Docker can use various credential helpers to automatically generate and use credentials on your behalf. These are usually created by cloud providers to allow Docker to authenticate using the cloud provders own credentials.
+Docker can use various credential helpers to automatically generate and use credentials on your behalf. These are usually created by cloud providers to allow Docker to authenticate using the cloud providers own credentials.
 
 You can see examples of configuring Docker to use these, and working with Earthly here:
 * [Pushing and Pulling Images with AWS ECR](./pushing-images-to-ECR.md)

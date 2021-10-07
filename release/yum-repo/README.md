@@ -1,13 +1,13 @@
 # Earthly rpm repository
 
-We host a rpm repository which fedora and centos users can use to install earthly.
+We host a rpm repository which fedora and CentOS users can use to install earthly.
 
 ## Setup for Fedora
 
 TODO: move these notes elsewhere, this readme should only be notes on how to release to our repo, and is only intended for those with
 access to earthly credentials.
 
-fedora users can use this guide to setup our repo:
+fedora users can use this guide to set up our repo:
 
 
 
@@ -41,7 +41,7 @@ To package a new version of earthly, ensure the following requirements are met:
 
 ## Release steps
 
-Once earthly has been released to github, visit https://github.com/earthly/earthly/releases to determine the latest version:
+Once earthly has been released to GitHub, visit https://github.com/earthly/earthly/releases to determine the latest version:
 
     export RELEASE_TAG="v0.0.0"
 

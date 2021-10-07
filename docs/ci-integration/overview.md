@@ -41,7 +41,7 @@ Don't forget to run `earthly bootstrap` when you are done to finish configuratio
 If a local installation isn't possible, Earthly currently offers two official images:
 
 - [`earthly/earthly`](https://hub.docker.com/r/earthly/earthly), which is a 1-stop shop. It includes a built-in `earthly-buildkitd` daemon, and accepts a target to be built as a parameter. It requires a mount for your source code, and an accessible `DOCKER_HOST`.
-- [`earthly/buildkitd`](https://hub.docker.com/r/earthly/buildkitd), which is the same `earthly-buildkitd` container that `earthly` will run on your host. This is useful in more advanced configurations, such as sharing a single `buildkitd` machine across many workers, or isolating the privileged parts of builds. [It's still experimental, but you can find out more about how to do it here.](./remote-buildkit.md).
+- [`earthly/buildkitd`](https://hub.docker.com/r/earthly/buildkitd), which is the same `earthly-buildkitd` container that `earthly` will run on your host. This is useful in more advanced configurations, such as [remotely sharing](./remote-buildkit.md) a single `buildkitd` machine across many workers, or isolating the privileged parts of builds. This feature is experimental.
 
 If you need to provide additional configuration or tools, [consider building your own image for CI](build-an-earthly-ci-image.md).
 
@@ -73,9 +73,9 @@ Some options that may make sense in a CI environment are:
 |----------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `CNI_MTU`                  | In some environments, the MTU externally may be different than the MTU on the internal CNI network, causing the internet to be unavailable. This lets you configure the internal network for when `earthly` auto-configures the MTU incorrectly. |
 | `NO_COLOR` / `FORCE_COLOR` | Lets you force on/off the ANSI color codes. Use this when `earthly` misinterprets the presence of a terminal. Set either one to `1` to enable or disable colors.                                                                                 |
-| `EARTHLY_BUILDKIT_HOST`    | Use this when you have an external buildkit instance you would like to use instead of the one `earthly` manages.                                                                                                                                 |
+| `EARTHLY_BUILDKIT_HOST`    | Use this when you have an external BuildKit instance you would like to use instead of the one `earthly` manages.                                                                                                                                 |
 
-Earthly also has some special command-line switches to ensure best practices are followed within your CI. These come *highly* recommended. Enable these with the [`--ci`](../earthly-command/earthly-command.md#--ci-experimental) option,  which is shorthand for [`--use-inline-cache`](../earthly-command/earthly-command.md#use-inline-cache-experimental) [`--save-inline-cache`](../earthly-command/earthly-command.md#save-inline-cache-experimental) [`--strict`](../earthly-command/earthly-command.md#strict) [`--no-output`](../earthly-command/earthly-command.md#no-output).
+Earthly also has some special command-line switches to ensure best practices are followed within your CI. These come *highly* recommended. Enable these with the [`--ci`](../earthly-command/earthly-command.md#--ci-experimental) option, which is shorthand for [`--use-inline-cache`](../earthly-command/earthly-command.md#use-inline-cache-experimental) [`--save-inline-cache`](../earthly-command/earthly-command.md#save-inline-cache-experimental) [`--strict`](../earthly-command/earthly-command.md#strict) [`--no-output`](../earthly-command/earthly-command.md#no-output).
 
 Earthly also has a special [`--push`](../earthfile/earthfile.md#push) option that can be used when invoking a target. In a CI, you may want to ensure this flag is present to push images or run commands that are not typically done as part of a normal development workflow.
 
@@ -87,11 +87,11 @@ To share secrets with `earthly`, use the [`--secret`](../earthfile/earthfile.md#
 
 Upon invocation, `earthly` depends on the availability of an `earthly-buildkit` daemon to perform its build. This daemon has some networking and security considerations.
 
-Large builds can generate many `docker` pull requests for certain images. You can setup and use a [pull through cache](pull-through-cache.md) to circumvent this.
+Large builds can generate many `docker` pull requests for certain images. You can set up and use a [pull through cache](pull-through-cache.md) to circumvent this.
 
 If `earthly` is running on a dedicated host, the only consideration to take is the ability to run the container in a `--privileged` mode. Typical installations *should* support this out of the box. We also support running under user namespaces, [when `earthly` is configured to start the `earthly-buildkit` container with the `--userns host` option](../earthly-config/earthly-config.md#buildkit_additional_args). Rootless configurations are currently unsupported.
 
-If `earthly` is connecting to a remote `earthly-buildkitd`, then you will need to take additional steps. See this article for [running a remote buildkit instance](remote-buildkit.md).
+If `earthly` is connecting to a remote `earthly-buildkitd`, then you will need to take additional steps. See this article for [running a remote BuildKit instance](remote-buildkit.md).
 
 ## Examples
 
