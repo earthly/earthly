@@ -1,0 +1,31 @@
+Mask Detector - By Akash
+COVID-19 is a curse to us, How we can fight it is by wearing mask.
+Front Line Workers can't risk their lives to take a look on civilians.
+Hence we had come up with mask detectors. 
+
+
+Required Libraries---
+ 
+pip install tensorflow
+pip install open-cv python
+pip install keras
+pip install imutils
+pip install numpy
+
+Description - 
+
+This Deep Neural netwok is totally based on Mobile_Net_V2, Used a bit of transfer learning and pooling,
+to reduce the size a bit.
+The training is done on 20 Epochs, using 224 by 224 as a target.
+
+Rules - 
+Place the directory to Desktop
+Open Detect.py and specify the path of prototxt and weightres by the path of
+deploy.prtotxt and res10.CaffeModel
+
+Also Initialize maskNet to out Main Deep Neural Network Model (The Brain) 
+Aka maskDetector.model
+
+
+Thanks Regards
+Akash DG aka nexfreak07
