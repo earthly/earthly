@@ -324,23 +324,36 @@ earthly-docker:
 earthly-integration-test-base:
     FROM +earthly-docker
     ENV EARTHLY_CONVERSION_PARALLELISM=5
-    ENV GLOBAL_CONFIG="{disable_analytics: true, local_registry_host: 'tcp://127.0.0.1:8371', buildkit_additional_config: '[registry.\"docker.io\"]
-
-                       mirrors = [\"registry-1.docker.io.mirror.corp.earthly.dev\"]'}"
     ENV NO_DOCKER=1
-    ENV EARTHLY_ADDITIONAL_BUILDKIT_CONFIG="[registry.\"docker.io\"]
-  mirrors = [\"registry-1.docker.io.mirror.corp.earthly.dev\"]"
     ENV SRC_DIR=/test
     ENV NETWORK_MODE=host
-    # The inner buildkit requires Docker hub creds to prevent rate-limiting issues.
-    ARG DOCKERHUB_AUTH=true
-    ARG DOCKERHUB_USER_SECRET=+secrets/earthly-technologies/dockerhub-mirror/user
-    ARG DOCKERHUB_TOKEN_SECRET=+secrets/earthly-technologies/dockerhub-mirror/pass
 
-    IF $DOCKERHUB_AUTH
-        RUN --secret USERNAME=$DOCKERHUB_USER_SECRET \
-            --secret TOKEN=$DOCKERHUB_TOKEN_SECRET \
-            docker login registry-1.docker.io.mirror.corp.earthly.dev --username="$USERNAME" --password="$TOKEN"
+    # The inner buildkit requires Docker hub creds to prevent rate-limiting issues.
+    ARG DOCKERHUB_MIRROR
+    ARG DOCKERHUB_AUTH=true
+    ARG DOCKERHUB_USER_SECRET=+secrets/DOCKERHUB_USER
+    ARG DOCKERHUB_TOKEN_SECRET=+secrets/DOCKERHUB_TOKEN
+
+    IF [ -z $DOCKERHUB_MIRROR ]
+    # No mirror, easy CI and local use by all
+        ENV GLOBAL_CONFIG="{disable_analytics: true, local_registry_host: 'tcp://127.0.0.1:8371'}"
+        IF $DOCKERHUB_AUTH
+            RUN --secret USERNAME=$DOCKERHUB_USER_SECRET \
+                --secret TOKEN=$DOCKERHUB_TOKEN_SECRET \
+                docker login --username="$USERNAME" --password="$TOKEN"
+        END
+    ELSE
+    # Use a mirror, supports mirroring Docker Hub only.
+        ENV GLOBAL_CONFIG="{disable_analytics: true, local_registry_host: 'tcp://127.0.0.1:8371', buildkit_additional_config: '[registry.\"docker.io\"]
+
+                           mirrors = [\"$DOCKERHUB_MIRROR\"]'}"
+        ENV EARTHLY_ADDITIONAL_BUILDKIT_CONFIG="[registry.\"docker.io\"]
+                    mirrors = [\"registry-1.docker.io.mirror.corp.earthly.dev\"]"
+        IF $DOCKERHUB_AUTH
+            RUN --secret USERNAME=$DOCKERHUB_USER_SECRET \
+                --secret TOKEN=$DOCKERHUB_TOKEN_SECRET \
+                docker login $DOCKERHUB_MIRROR --username="$USERNAME" --password="$TOKEN"
+        END
     END
 
 prerelease:
@@ -431,21 +444,26 @@ all:
     BUILD +all-dind
 
 test:
-    BUILD +lint
-    BUILD +lint-scripts
-    BUILD +lint-newline-ending
-    BUILD +lint-changelog
-    BUILD +unit-test
-    BUILD +markdown-spellcheck
-    BUILD ./ast/tests+all
+    # BUILD +lint
+    # BUILD +lint-scripts
+    # BUILD +lint-newline-ending
+    # BUILD +lint-changelog
+    # BUILD +unit-test
+    ARG DOCKERHUB_MIRROR
     ARG DOCKERHUB_AUTH=true
-    BUILD ./examples/tests+ga --DOCKERHUB_AUTH=$DOCKERHUB_AUTH
+    ARG DOCKERHUB_USER_SECRET=+secrets/DOCKERHUB_USER
+    ARG DOCKERHUB_TOKEN_SECRET=+secrets/DOCKERHUB_TOKEN
+    BUILD ./ast/tests+all --DOCKERHUB_AUTH=$DOCKERHUB_AUTH --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR
+    # BUILD ./examples/tests+ga --DOCKERHUB_AUTH=$DOCKERHUB_AUTH --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR
 
 test-all:
-    BUILD +examples
-    BUILD +test
+    # BUILD +examples
+    ARG DOCKERHUB_MIRROR
     ARG DOCKERHUB_AUTH=true
-    BUILD ./examples/tests+experimental --DOCKERHUB_AUTH=$DOCKERHUB_AUTH
+    ARG DOCKERHUB_USER_SECRET=+secrets/DOCKERHUB_USER
+    ARG DOCKERHUB_TOKEN_SECRET=+secrets/DOCKERHUB_TOKEN
+    BUILD +test --DOCKERHUB_AUTH=$DOCKERHUB_AUTH --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR
+    BUILD ./examples/tests+experimental --DOCKERHUB_AUTH=$DOCKERHUB_AUTH --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR
 
 examples:
     BUILD +examples1

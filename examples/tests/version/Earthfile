@@ -1,57 +1,60 @@
+ARG DOCKERHUB_USER_SECRET=+secrets/DOCKERHUB_USER
+ARG DOCKERHUB_TOKEN_SECRET=+secrets/DOCKERHUB_TOKEN
+ARG DOCKERHUB_MIRROR
 ARG DOCKERHUB_AUTH=true
-FROM ../../..+earthly-integration-test-base --DOCKERHUB_AUTH=$DOCKERHUB_AUTH
+FROM ../../..+earthly-integration-test-base --DOCKERHUB_AUTH=$DOCKERHUB_AUTH --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR
 
 IMPORT .. AS tests
 
 WORKDIR /test
 
 test-single-line:
-    DO tests+RUN_EARTHLY --earthfile=single-line.earth --target=+test
+    DO +RUN_EARTHLY_ARGS --earthfile=single-line.earth --target=+test
 
 test-single-line-with-args:
-    DO tests+RUN_EARTHLY --earthfile=single-line-with-args.earth --target=+test
+    DO +RUN_EARTHLY_ARGS --earthfile=single-line-with-args.earth --target=+test
 
 test-single-line-with-comment:
-    DO tests+RUN_EARTHLY --earthfile=single-line-with-comment.earth --target=+test
+    DO +RUN_EARTHLY_ARGS --earthfile=single-line-with-comment.earth --target=+test
 
 test-multi-line:
-    DO tests+RUN_EARTHLY --earthfile=multi-line.earth --target=+test
+    DO +RUN_EARTHLY_ARGS --earthfile=multi-line.earth --target=+test
 
 test-multi-line-with-comment:
-    DO tests+RUN_EARTHLY --earthfile=multi-line-with-comment.earth --target=+test
+    DO +RUN_EARTHLY_ARGS --earthfile=multi-line-with-comment.earth --target=+test
 
 test-multi-line-with-comment2:
-    DO tests+RUN_EARTHLY --earthfile=multi-line-with-comment2.earth --target=+test
+    DO +RUN_EARTHLY_ARGS --earthfile=multi-line-with-comment2.earth --target=+test
 
 test-multi-line-with-comment3:
-    DO tests+RUN_EARTHLY --earthfile=multi-line-with-comment3.earth --target=+test
+    DO +RUN_EARTHLY_ARGS --earthfile=multi-line-with-comment3.earth --target=+test
 
 test-multi-line-with-comment4:
-    DO tests+RUN_EARTHLY --earthfile=multi-line-with-comment4.earth --target=+test
+    DO +RUN_EARTHLY_ARGS --earthfile=multi-line-with-comment4.earth --target=+test
 
 test-multi-line-with-args:
-    DO tests+RUN_EARTHLY --earthfile=multi-line-with-args.earth --target=+test
+    DO +RUN_EARTHLY_ARGS --earthfile=multi-line-with-args.earth --target=+test
 
 test-multi-line-with-args2:
-    DO tests+RUN_EARTHLY --earthfile=multi-line-with-args2.earth --target=+test
+    DO +RUN_EARTHLY_ARGS --earthfile=multi-line-with-args2.earth --target=+test
 
 test-multi-line-with-newline:
-    DO tests+RUN_EARTHLY --earthfile=multi-line-with-empty-newline.earth --target=+test
+    DO +RUN_EARTHLY_ARGS --earthfile=multi-line-with-empty-newline.earth --target=+test
 
 test-version-only-import:
     RUN mkdir subdir
     RUN echo "VERSION 0.5" > subdir/Earthfile
-    DO tests+RUN_EARTHLY --earthfile=version-only-import.earth --target=+test
+   DO +RUN_EARTHLY_ARGS --earthfile=version-only-import.earth --target=+test
 
 test-version-only:
-    DO tests+RUN_EARTHLY --earthfile=version-only.earth --target=+base
+    DO +RUN_EARTHLY_ARGS --earthfile=version-only.earth --target=+base
     RUN test "$(cat Earthfile | wc -l)" = "0"
 
 test-comment-and-whitespace-before-version:
-    DO tests+RUN_EARTHLY --earthfile=comment-and-whitespace-before-version.earth --target=+test
+    DO +RUN_EARTHLY_ARGS --earthfile=comment-and-whitespace-before-version.earth --target=+test
 
 test-whitespace-then-version:
-    DO tests+RUN_EARTHLY --earthfile=whitespace-then-version.earth --target=+test
+    DO +RUN_EARTHLY_ARGS --earthfile=whitespace-then-version.earth --target=+test
 
 test-all:
     BUILD +test-single-line
@@ -69,3 +72,9 @@ test-all:
     BUILD +test-comment-and-whitespace-before-version
     BUILD +test-whitespace-then-version
     BUILD +test-version-only-import
+
+RUN_EARTHLY_ARGS:
+    COMMAND
+    ARG earthfile
+    ARG target
+    DO tests+RUN_EARTHLY --earthfile=$earthfile --target=$target --DOCKERHUB_AUTH=$DOCKERHUB_AUTH --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR
