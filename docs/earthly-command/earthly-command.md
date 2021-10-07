@@ -235,7 +235,7 @@ This option is now deprecated. Please use the [configuration file](../earthly-co
 
 Also used to be available as an env var setting: `GIT_URL_INSTEAD_OF=<git-instead-of>`.
 
-This option is now obsolete. By default, `earthly` will automatically switch from ssh to https when no keys are found or the ssh-agent isn't running.
+This option is now obsolete. By default, `earthly` will automatically switch from ssh to HTTPS when no keys are found or the ssh-agent isn't running.
 Please use the [configuration file](../earthly-config/earthly-config.md) to override the default behavior.
 
 ##### `--interactive|-i` (**beta**)
