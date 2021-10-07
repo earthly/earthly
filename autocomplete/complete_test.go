@@ -137,11 +137,23 @@ func TestTargetEnvArgCompletion(t *testing.T) {
 func TestTargetEnvArgCompletionForFlagPrefix(t *testing.T) {
 	matches, err := GetPotentials("earthly +target -", 17, getApp(), false)
 	NoError(t, err, "GetPotentials failed")
-	Equal(t, []string{"--foo="}, matches)
+	Equal(t, []string{"--foo=", "--flag ", "--fleet ", "--fig ", "--version ", "--help "}, matches)
 }
 
 func TestTargetEnvArgCompletionForArgPrefix(t *testing.T) {
 	matches, err := GetPotentials("earthly +code --", 16, getApp(), false)
 	NoError(t, err, "GetPotentials failed")
-	Equal(t, []string{"--BUILDKIT_PROJECT="}, matches)
+	Equal(t, []string{"--BUILDKIT_PROJECT=", "--flag ", "--fleet ", "--fig ", "--version ", "--help "}, matches)
+}
+
+func TestTargetEnvArgCompletionForArgDefault(t *testing.T) {
+	matches, err := GetPotentials("earthly +earthly ", 17, getApp(), false)
+	NoError(t, err, "GetPotentials failed")
+	Equal(t, []string{"--GOOS=", "--TARGETARCH=", "--TARGETVARIANT=", "--GOARCH=", "--VARIANT=", "--GO_EXTRA_LDFLAGS=", "--EXECUTABLE_NAME=", "--EARTHLY_TARGET_TAG_DOCKER=", "--VERSION=", "--EARTHLY_GIT_HASH="}, matches)
+}
+
+func TestTargetEnvArgCompletionForMultiArgs(t *testing.T) {
+	matches, err := GetPotentials("earthly +earthly --GOOS=linux --", 32, getApp(), false)
+	NoError(t, err, "GetPotentials failed")
+	Equal(t, []string{"--GOOS=", "--TARGETARCH=", "--TARGETVARIANT=", "--GOARCH=", "--VARIANT=", "--GO_EXTRA_LDFLAGS=", "--EXECUTABLE_NAME=", "--EARTHLY_TARGET_TAG_DOCKER=", "--VERSION=", "--EARTHLY_GIT_HASH=", "--flag ", "--fleet ", "--fig ", "--version ", "--help "}, matches)
 }

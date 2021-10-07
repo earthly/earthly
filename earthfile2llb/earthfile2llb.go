@@ -191,7 +191,7 @@ func GetTargetEnvArgs(filename string, target string) ([]string, error) {
 	}
 	var args []string
 	for _, recipe := range requiredTarget.Recipe {
-		if recipe.Command != nil && recipe.Command.Name == "ARG" && len(recipe.Command.Args) == 1 {
+		if recipe.Command != nil && recipe.Command.Name == "ARG" {
 			args = append(args, recipe.Command.Args[0])
 		}
 	}

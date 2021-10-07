@@ -21,3 +21,18 @@ code:
     COPY --dir buildkitd/buildkitd.go buildkitd/settings.go buildkitd/certificates.go buildkitd/
     COPY --dir earthfile2llb/*.go earthfile2llb/
     COPY --dir ast/antlrhandler ast/spec ast/*.go ast/
+
+earthly:
+    FROM +code
+    ARG GOOS=linux
+    ARG TARGETARCH
+    ARG TARGETVARIANT
+    ARG GOARCH=$TARGETARCH
+    ARG VARIANT=$TARGETVARIANT
+    ARG GO_EXTRA_LDFLAGS="-linkmode external -extldflags -static"
+    ARG EXECUTABLE_NAME="earthly"
+    RUN test -n "$GOOS" && test -n "$GOARCH"
+    RUN test "$GOARCH" != "arm" || test -n "$VARIANT"
+    ARG EARTHLY_TARGET_TAG_DOCKER
+    ARG VERSION="dev-$EARTHLY_TARGET_TAG_DOCKER"
+    ARG EARTHLY_GIT_HASH

@@ -233,9 +233,13 @@ func GetPotentials(compLine string, compPoint int, app *cli.App, showHidden bool
 	}
 
 	if flagPrefix, ok := trimFlag(lastWord); ok {
-		target := parts[len(parts)-2]
-		if strings.HasPrefix(target, "+") {
-			return getPotentialPaths(target)
+		target := parts[1]
+		if isLocalPath(target) || strings.HasPrefix(target, "+") {
+			p, er := getPotentialPaths(target)
+			if er != nil {
+				return nil, er
+			}
+			potentials = append(potentials, p...)
 		}
 		for _, s := range flags {
 			if strings.HasPrefix(s, flagPrefix) {
