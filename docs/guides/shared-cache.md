@@ -225,7 +225,7 @@ A simple way to visualize this use-case is comparing the performance of a build 
 
 ### CIs that operate in a sandbox
 
-Modern CIs execute in a sandbox. They start with a blank slate and need to download and regenerate everything from scratch. Examples of such CIs: GitHub Actions, Circle CI, DroneCI, GitLab CI. Such CIs benefit greatly from being able to share pre-computed steps between runs.
+Modern CIs execute in a sandbox. They start with a blank slate and need to download and regenerate everything from scratch. Examples of such CIs: GitHub Actions, Circle CI, DroneCI, GitLab CI. Such CIs benefit greatly from being able to share precomputed steps between runs.
 
 If, however, you are using a CI which reuses the same environment (e.g. Jenkins, BuildKite - depending on how they are configured), then simply relying on the local cache is enough.
 

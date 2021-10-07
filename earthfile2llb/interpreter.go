@@ -124,7 +124,7 @@ func (i *Interpreter) handleBlock(ctx context.Context, b spec.Block) error {
 
 func (i *Interpreter) handleBlockParallel(ctx context.Context, b spec.Block, startIndex int) error {
 	if i.local {
-		// Don't do any pre-emptive execution for LOCALLY targets.
+		// Don't do any preemptive execution for LOCALLY targets.
 		return nil
 	}
 	// Look ahead of the execution and fire off asynchronous builds for mentioned targets,
@@ -136,7 +136,7 @@ func (i *Interpreter) handleBlockParallel(ctx context.Context, b spec.Block, sta
 			case "ARG", "IF", "FOR", "LOCALLY":
 				// Cannot do any further parallel builds - these commands need to be
 				// executed to ensure that they don't impact the outcome. As such,
-				// commands following these cannot be executed pre-emptively.
+				// commands following these cannot be executed preemptively.
 				return nil
 			case "BUILD":
 				err := i.handleBuild(ctx, *stmt.Command, true)

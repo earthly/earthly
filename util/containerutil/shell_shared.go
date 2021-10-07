@@ -36,7 +36,7 @@ func (sf *shellFrontend) ContainerInfo(ctx context.Context, namesOrIDs ...string
 
 	infos := map[string]*ContainerInfo{}
 	for _, nameOrID := range namesOrIDs {
-		// Pre-initialize all as missing. It will get overwritten when we encounter a real one from the actual output.
+		// Preinitialize all as missing. It will get overwritten when we encounter a real one from the actual output.
 		infos[nameOrID] = &ContainerInfo{
 			Name:   nameOrID,
 			Status: StatusMissing,
@@ -205,7 +205,7 @@ func (sf *shellFrontend) ImageInfo(ctx context.Context, refs ...string) (map[str
 
 	infos := map[string]*ImageInfo{}
 	for _, ref := range refs {
-		// Pre-initialize all as missing. It will get overwritten when we encounter a real one from the actual output.
+		// preinitialize all as missing. It will get overwritten when we encounter a real one from the actual output.
 		infos[ref] = &ImageInfo{}
 	}
 

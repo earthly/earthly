@@ -100,7 +100,7 @@ type Config struct {
 
 // ParseConfigFile parse config data
 func ParseConfigFile(yamlData []byte) (*Config, error) {
-	// pre-populate defaults
+	// prepopulate defaults
 	config := Config{
 		Global: GlobalConfig{
 			BuildkitCacheSizeMb: 0,

@@ -101,7 +101,7 @@ If the release-homebrew fails with a rejected git push, you may have to delete t
 
 If you need to rollback/disable a version:
 
-1. Go to [GitHub releases](https://github.com/earthly/earthly/releases), click on the `edit release` button, then check the `This is a pre-release` checkbox.
+1. Go to [GitHub releases](https://github.com/earthly/earthly/releases), click on the `edit release` button, then check the `This is a prerelease` checkbox.
 2. Check out the [earthly/homebrew-earthly](https://github.com/earthly/homebrew-earthly) repo, and run:
 
 ```bash

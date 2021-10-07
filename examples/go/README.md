@@ -21,7 +21,7 @@ In order to build it, you would normally run something like
 go build -o build/go-example main.go
 ```
 
-In our case, we will use a `Earthfile` to build it. We will create a target called `build`, and we will copy the necessary files within it (in this case, just `main.go`) and then execute the `go build` command. We will also need a base Docker image that has go pre-installed: `golang:1.15-alpine3.13`.
+In our case, we will use a `Earthfile` to build it. We will create a target called `build`, and we will copy the necessary files within it (in this case, just `main.go`) and then execute the `go build` command. We will also need a base Docker image that has go preinstalled: `golang:1.15-alpine3.13`.
 
 ```Dockerfile
 # Earthfile

@@ -18,7 +18,7 @@ By default, builds are performed on the same processor architecture as available
 
 In some cases, execution of the build itself does not need to happen on the target architecture, through cross-compilation features of the compiler. Examples of languages that support cross-compilation are Go and Rust. This approach may be more beneficial in many cases, as there is no need to install QEMU and also, the build is more performant.
 
-## Pre-requisites for emulation
+## Prerequisites for emulation
 
 In order to execute emulated build steps (usually `RUN`), QEMU needs to be installed and set up. This will allow you perform Earthly builds on non-native platforms, but also incidentally, to run Docker images on your host system through `docker run --platform=...`.
 

@@ -13,7 +13,7 @@ test-env-quoting:
     ENV HI "hello \"world\""
     RUN test "$HI" = "hello \"world\""
 
-    # validate parsing logic against a pre-calculated hash
+    # validate parsing logic against a precalculated hash
     RUN echo -n $HI | md5sum - > /actual.md5
     RUN echo "b25ea0182bf88bf6c47daaf2e4da5cac  -" > /expected.md5
     RUN diff /actual.md5 /expected.md5
