@@ -114,7 +114,7 @@ func (dsf *dockerShellFrontend) VolumeInfo(ctx context.Context, volumeNames ...s
 
 	results := map[string]*VolumeInfo{}
 	for _, name := range volumeNames {
-		// Pre-initialize all as missing. It will get overwritten when we encounter a real one from the actual output.
+		// Preinitialize all as missing. It will get overwritten when we encounter a real one from the actual output.
 		results[name] = &VolumeInfo{Name: name}
 	}
 

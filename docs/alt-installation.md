@@ -2,7 +2,7 @@
 
 This page outlines alternative installation instructions for the `earthly` build tool. The main instructions that most users need are available on the [installation instructions page](https://earthly.dev/get-earthly).
 
-## Pre-requisites
+## Prerequisites
 
 * [Docker](https://docs.docker.com/install/)
 * [Git](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git)

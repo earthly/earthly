@@ -54,7 +54,7 @@ do_help() {
         get_latest_binary
     fi
 
-    echo "------------------- earthly pre-release script help -------------------"
+    echo "------------------- earthly prerelease script help -------------------"
     echo "NAME:"
     echo "   $scriptname - A wrapper around the earthly binary that checks for updates once an hour"
     echo ""
@@ -89,7 +89,7 @@ case "$1" in
         since=$(( now - last ))
 
         if [ "$since" -ge 3600 ] && [ -z "$COMP_LINE" ]; then
-            echo checking for latest earthly pre-release binaries
+            echo checking for latest earthly prerelease binaries
             get_latest_binary
             echo "Updated prerelease binary. Version:"
             "$bindir/earthly-prerelease" --version

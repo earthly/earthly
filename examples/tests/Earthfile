@@ -170,7 +170,7 @@ set -ex
 ping -c 1 git.example.com
 ping -c 1 buildkitsandbox
 
-# load in pre-authorized key
+# load in preauthorized key
 eval \$(ssh-agent)
 ssh-add /root/self-hosted-sshkey
 ssh-add -l

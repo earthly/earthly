@@ -713,13 +713,13 @@ func (b *Builder) saveArtifactLocally(ctx context.Context, console *conslogging.
 		}
 		if destExists {
 			if !srcIsDir {
-				// Remove pre-existing dest file.
+				// Remove preexisting dest file.
 				err = os.Remove(to)
 				if err != nil {
 					return errors.Wrapf(err, "rm %s", to)
 				}
 			} else {
-				// Remove pre-existing dest dir.
+				// Remove preexisting dest dir.
 				err = os.RemoveAll(to)
 				if err != nil {
 					return errors.Wrapf(err, "rm -rf %s", to)

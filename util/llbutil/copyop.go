@@ -57,7 +57,7 @@ func CopyOp(srcState pllb.State, srcs []string, destState pllb.State, dest strin
 	return destState.File(fa, opts...)
 }
 
-// Abs pre-pends the working dir to the given path, if the
+// Abs prepends the working dir to the given path, if the
 // path is relative.
 func Abs(ctx context.Context, s pllb.State, p string) (string, error) {
 	if path.IsAbs(p) {

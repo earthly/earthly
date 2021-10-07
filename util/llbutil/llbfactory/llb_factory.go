@@ -12,7 +12,7 @@ type Factory interface {
 	Construct() pllb.State
 }
 
-// PreconstructedFactory holds a pre-constructed pllb.State for cases
+// PreconstructedFactory holds a preconstructed pllb.State for cases
 // where a factory is overkill.
 type PreconstructedFactory struct {
 	preconstructedState pllb.State

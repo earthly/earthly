@@ -215,7 +215,7 @@ Similarly to the comparison between `apk` and `apt-get`, similar remarks can be 
 
 ### An intermediate result is small and doesn't change much
 
-An area where shared cache is particularly impactful are cases where a rare-changing pre-requisite downloads many dependencies and/or performs intensive computation, but the end result is relatively small (e.g. a single binary). Passing this pre-requisitve over the wire as part of the shared cache is very fast (especially if the downloads required to generate it are not used anywhere else), whereas regenerating it requires a lot of work.
+An area where shared cache is particularly impactful are cases where a rare-changing prerequisite downloads many dependencies and/or performs intensive computation, but the end result is relatively small (e.g. a single binary). Passing this prerequisite over the wire as part of the shared cache is very fast (especially if the downloads required to generate it are not used anywhere else), whereas regenerating it requires a lot of work.
 
 ### Monorepo and Polyrepo setups
 
@@ -225,7 +225,7 @@ A simple way to visualize this use-case is comparing the performance of a build 
 
 ### CIs that operate in a sandbox
 
-Modern CIs execute in a sandbox. They start with a blank slate and need to download and regenerate everything from scratch. Examples of such CIs: GitHub Actions, Circle CI, DroneCI, GitLab CI. Such CIs benefit greatly from being able to share pre-computed steps between runs.
+Modern CIs execute in a sandbox. They start with a blank slate and need to download and regenerate everything from scratch. Examples of such CIs: GitHub Actions, Circle CI, DroneCI, GitLab CI. Such CIs benefit greatly from being able to share precomputed steps between runs.
 
 If, however, you are using a CI which reuses the same environment (e.g. Jenkins, BuildKite - depending on how they are configured), then simply relying on the local cache is enough.
 
