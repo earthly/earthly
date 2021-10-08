@@ -20,9 +20,8 @@ jobs:
     steps:
       - uses: earthly/actions/setup-earthly@v1
       - uses: actions/checkout@v2
-      - name: Docker mirror login (non fork only)
+      - name: Docker mirror login
         run: docker login registry-1.docker.io.mirror.corp.earthly.dev --username "${{ secrets.DOCKERHUB_MIRROR_USERNAME }}" --password "${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}"
-        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: Configure Earthly to use mirror
         run: |-
           earthly config global.buildkit_additional_config "'[registry.\"docker.io\"]
@@ -38,110 +37,107 @@ jobs:
       - name: Enable local registry-based exporter
         run: ./build/linux/amd64/earthly config global.local_registry_host 'tcp://127.0.0.1:8371'
       - name: Execute tests
-        run: ./build/linux/amd64/earthly --ci -P --build-arg DOCKERHUB_AUTH=true --build-arg DOCKERHUB_USER_SECRET=+secrets/earthly-technologies/dockerhub-mirror/user --build-arg DOCKERHUB_TOKEN_SECRET=+secrets/earthly-technologies/dockerhub-mirror/pass --build-arg DOCKERHUB_MIRROR=registry-1.docker.io.mirror.corp.earthly.dev +test
+        run: |-
+          ./build/linux/amd64/earthly --ci -P \
+            --build-arg DOCKERHUB_AUTH=true \
+            --build-arg DOCKERHUB_USER_SECRET=+secrets/earthly-technologies/dockerhub-mirror/user \
+            --build-arg DOCKERHUB_TOKEN_SECRET=+secrets/earthly-technologies/dockerhub-mirror/pass \
+            --build-arg DOCKERHUB_MIRROR=registry-1.docker.io.mirror.corp.earthly.dev \
+          +test
       - name: Execute fail test
         run: "! ./build/linux/amd64/earthly --ci ./examples/tests/fail+test-fail"
       - name: Buildkit logs (runs on failure)
         run: docker logs earthly-buildkitd
         if: ${{ failure() }}
 
-#  tests-remote:
-#    name: remotely referenced +test +test-fail
-#    runs-on: ubuntu-latest
-#    env:
-#      FORCE_COLOR: 1
-#      EARTHLY_CONVERSION_PARALLELISM: "5"
-#      EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
-#      EARTHLY_INSTALL_ID: "earthly-githubactions"
-#    steps:
-#      - uses: earthly/actions/setup-earthly@v1
-#      - uses: actions/checkout@v2
-#      - name: Docker mirror login (non fork only)
-#        run: docker login registry-1.docker.io.mirror.corp.earthly.dev --username "${{ secrets.DOCKERHUB_MIRROR_USERNAME }}" --password "${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}"
-#        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
-#      - name: Configure Earthly to use mirror (non fork only)
-#        run: |-
-#          earthly config global.buildkit_additional_config "'[registry.\"docker.io\"]
-#
-#          mirrors = [\"registry-1.docker.io.mirror.corp.earthly.dev\"]'"
-#        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
-#      - name: Build latest earthly using released earthly
-#        run: earthly --use-inline-cache +for-linux
-#      - name: Set EARTHLY_VERSION_FLAG_OVERRIDES env
-#        run: |-
-#            set -euo pipefail
-#            EARTHLY_VERSION_FLAG_OVERRIDES="$(tr -d '\n' < .earthly_version_flag_overrides)"
-#            echo "EARTHLY_VERSION_FLAG_OVERRIDES=$EARTHLY_VERSION_FLAG_OVERRIDES" >> "$GITHUB_ENV"
-#      - name: Enable local registry-based exporter
-#        run: ./build/linux/amd64/earthly config global.local_registry_host 'tcp://127.0.0.1:8371'
-#      - name: Execute tests (not a fork)
-#        run: |
-#          branch=""
-#          if [ -n "$GITHUB_HEAD_REF" ]; then
-#            branch="$GITHUB_HEAD_REF"
-#          else
-#            branch="${GITHUB_REF##*/}"
-#          fi
-#          ./build/linux/amd64/earthly --ci -P "github.com/$GITHUB_REPOSITORY:$branch+test"
-#        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
-#      - name: Execute tests (fork)
-#        run: |
-#          branch=""
-#          if [ -n "$GITHUB_HEAD_REF" ]; then
-#            branch="$GITHUB_HEAD_REF"
-#          else
-#            branch="${GITHUB_REF##*/}"
-#          fi
-#          ./build/linux/amd64/earthly --ci -P "github.com/$GITHUB_REPOSITORY:$branch+test" --DOCKERHUB_AUTH=false
-#        if: github.event_name != 'push' && github.event.pull_request.head.repo.full_name != github.repository
-#      - name: Execute fail test
-#        run: |
-#          branch=""
-#          if [ -n "$GITHUB_HEAD_REF" ]; then
-#            branch="$GITHUB_HEAD_REF"
-#          else
-#            branch="${GITHUB_REF##*/}"
-#          fi
-#          ! ./build/linux/amd64/earthly --ci "github.com/$GITHUB_REPOSITORY:$branch+test-fail"
-#      - name: Buildkit logs (runs on failure)
-#        run: docker logs earthly-buildkitd
-#        if: ${{ failure() }}
-#
-#  race-tests:
-#    name: +test (-race)
-#    runs-on: ubuntu-latest
-#    env:
-#      FORCE_COLOR: 1
-#      EARTHLY_CONVERSION_PARALLELISM: "5"
-#      EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
-#      EARTHLY_INSTALL_ID: "earthly-githubactions"
-#    steps:
-#      - uses: earthly/actions/setup-earthly@v1
-#      - uses: actions/checkout@v2
-#      - uses: actions/setup-go@v1
-#        with:
-#          go-version: 1.16
-#      - name: Docker mirror login (non fork only)
-#        run: docker login registry-1.docker.io.mirror.corp.earthly.dev --username "${{ secrets.DOCKERHUB_MIRROR_USERNAME }}" --password "${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}"
-#        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
-#      - name: Configure Earthly to use mirror (non fork only)
-#        run: |-
-#          earthly config global.buildkit_additional_config "'[registry.\"docker.io\"]
-#
-#          mirrors = [\"registry-1.docker.io.mirror.corp.earthly.dev\"]'"
-#        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
-#      - name: Build latest earthly/buildkitd image using released earthly
-#        run: earthly --use-inline-cache ./buildkitd+buildkitd --TAG=race-test
-#      - name: Execute tests (not a fork)
-#        run: GORACE="halt_on_error=1" go run -race ./cmd/earthly/main.go --buildkit-image earthly/buildkitd:race-test -P --no-output +test
-#        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
-#      - name: Execute tests (fork)
-#        run: GORACE="halt_on_error=1" go run -race ./cmd/earthly/main.go --buildkit-image earthly/buildkitd:race-test -P --no-output +test --DOCKERHUB_AUTH=false
-#        if: github.event_name != 'push' && github.event.pull_request.head.repo.full_name != github.repository
-#      - name: Buildkit logs (runs on failure)
-#        run: docker logs earthly-buildkitd
-#        if: ${{ failure() }}
-#
+  tests-remote:
+    name: remotely referenced +test +test-fail
+    runs-on: ubuntu-latest
+    env:
+      FORCE_COLOR: 1
+      EARTHLY_CONVERSION_PARALLELISM: "5"
+      EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
+      EARTHLY_INSTALL_ID: "earthly-githubactions"
+    steps:
+      - uses: earthly/actions/setup-earthly@v1
+      - uses: actions/checkout@v2
+      - name: Docker mirror login
+        run: docker login registry-1.docker.io.mirror.corp.earthly.dev --username "${{ secrets.DOCKERHUB_MIRROR_USERNAME }}" --password "${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}"
+      - name: Configure Earthly to use mirror
+        run: |-
+          earthly config global.buildkit_additional_config "'[registry.\"docker.io\"]
+
+          mirrors = [\"registry-1.docker.io.mirror.corp.earthly.dev\"]'"
+      - name: Build latest earthly using released earthly
+        run: earthly --use-inline-cache +for-linux
+      - name: Set EARTHLY_VERSION_FLAG_OVERRIDES env
+        run: |-
+            set -euo pipefail
+            EARTHLY_VERSION_FLAG_OVERRIDES="$(tr -d '\n' < .earthly_version_flag_overrides)"
+            echo "EARTHLY_VERSION_FLAG_OVERRIDES=$EARTHLY_VERSION_FLAG_OVERRIDES" >> "$GITHUB_ENV"
+      - name: Enable local registry-based exporter
+        run: ./build/linux/amd64/earthly config global.local_registry_host 'tcp://127.0.0.1:8371'
+      - name: Execute tests (not a fork)
+        run: |
+          branch=""
+          if [ -n "$GITHUB_HEAD_REF" ]; then
+            branch="$GITHUB_HEAD_REF"
+          else
+            branch="${GITHUB_REF##*/}"
+          fi
+          ./build/linux/amd64/earthly --ci -P \
+             --build-arg DOCKERHUB_AUTH=true \
+             --build-arg DOCKERHUB_USER_SECRET=+secrets/earthly-technologies/dockerhub-mirror/user \
+             --build-arg DOCKERHUB_TOKEN_SECRET=+secrets/earthly-technologies/dockerhub-mirror/pass \
+             --build-arg DOCKERHUB_MIRROR=registry-1.docker.io.mirror.corp.earthly.dev \
+           "github.com/$GITHUB_REPOSITORY:$branch+test"
+      - name: Execute fail test
+        run: |
+          branch=""
+          if [ -n "$GITHUB_HEAD_REF" ]; then
+            branch="$GITHUB_HEAD_REF"
+          else
+            branch="${GITHUB_REF##*/}"
+          fi
+          ! ./build/linux/amd64/earthly --ci "github.com/$GITHUB_REPOSITORY:$branch+test-fail"
+      - name: Buildkit logs (runs on failure)
+        run: docker logs earthly-buildkitd
+        if: ${{ failure() }}
+
+  race-tests:
+    name: +test (-race)
+    runs-on: ubuntu-latest
+    env:
+      FORCE_COLOR: 1
+      EARTHLY_CONVERSION_PARALLELISM: "5"
+      EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
+      EARTHLY_INSTALL_ID: "earthly-githubactions"
+    steps:
+      - uses: earthly/actions/setup-earthly@v1
+      - uses: actions/checkout@v2
+      - uses: actions/setup-go@v1
+        with:
+          go-version: 1.16
+      - name: Docker mirror login
+        run: docker login registry-1.docker.io.mirror.corp.earthly.dev --username "${{ secrets.DOCKERHUB_MIRROR_USERNAME }}" --password "${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}"
+      - name: Configure Earthly to use mirror (non fork only)
+        run: |-
+          earthly config global.buildkit_additional_config "'[registry.\"docker.io\"]
+
+          mirrors = [\"registry-1.docker.io.mirror.corp.earthly.dev\"]'"
+      - name: Build latest earthly/buildkitd image using released earthly
+        run: earthly --use-inline-cache ./buildkitd+buildkitd --TAG=race-test
+      - name: Execute tests (not a fork)
+        run: GORACE="halt_on_error=1" go run -race ./cmd/earthly/main.go --buildkit-image earthly/buildkitd:race-test -P --no-output  \
+              --build-arg DOCKERHUB_AUTH=true \
+              --build-arg DOCKERHUB_USER_SECRET=+secrets/earthly-technologies/dockerhub-mirror/user \
+              --build-arg DOCKERHUB_TOKEN_SECRET=+secrets/earthly-technologies/dockerhub-mirror/pass \
+              --build-arg DOCKERHUB_MIRROR=registry-1.docker.io.mirror.corp.earthly.dev \
+            +test
+      - name: Buildkit logs (runs on failure)
+        run: docker logs earthly-buildkitd
+        if: ${{ failure() }}
+
 #  misc-tests:
 #    runs-on: ubuntu-latest
 #    env:
