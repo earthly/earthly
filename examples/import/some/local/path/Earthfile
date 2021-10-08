@@ -1,7 +1,10 @@
 FROM busybox:1.32.0
 
+get-file:
+    COPY ./file.txt ./
+    SAVE ARTIFACT ./file.txt file.txt
+
 PRINT:
     COMMAND
     ARG text
-    RUN echo $text > log.txt
-    SAVE ARTIFACT ./log.txt log.txt
+    RUN echo $text

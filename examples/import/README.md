@@ -6,9 +6,9 @@ For example:
 
 ```Dockerfile
 init:
-    DO ./some/local/path+PRINT --string="Foo Bar"
-    COPY ./some/local/path+PRINT/log.txt ./
-    RUN cat log.txt
+    DO ./some/local/path+PRINT --string="IMPORT example"
+    COPY ./some/local/path+get-file/file.txt ./
+    RUN cat file.txt
     BUILD github.com/earthly/hello-world:main+hello
 ```
 
@@ -19,9 +19,9 @@ IMPORT ./some/local/path AS lib
 IMPORT github.com/earthly/hello-world:main
 
 init:
-    DO lib+PRINT --string="Foo Bar"
-    COPY lib+PRINT/log.txt ./
-    RUN cat log.txt
+    DO lib+PRINT --string="IMPORT example"
+    COPY lib+get-file/file.txt ./
+    RUN cat file.txt
     BUILD hello-world+hello
 ```
 
