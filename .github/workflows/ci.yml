@@ -77,7 +77,7 @@ jobs:
             echo "EARTHLY_VERSION_FLAG_OVERRIDES=$EARTHLY_VERSION_FLAG_OVERRIDES" >> "$GITHUB_ENV"
       - name: Enable local registry-based exporter
         run: ./build/linux/amd64/earthly config global.local_registry_host 'tcp://127.0.0.1:8371'
-      - name: Execute tests (not a fork)
+      - name: Execute tests
         run: |
           branch=""
           if [ -n "$GITHUB_HEAD_REF" ]; then
@@ -120,14 +120,14 @@ jobs:
           go-version: 1.16
       - name: Docker mirror login
         run: docker login registry-1.docker.io.mirror.corp.earthly.dev --username "${{ secrets.DOCKERHUB_MIRROR_USERNAME }}" --password "${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}"
-      - name: Configure Earthly to use mirror (non fork only)
+      - name: Configure Earthly to use mirror
         run: |-
           earthly config global.buildkit_additional_config "'[registry.\"docker.io\"]
 
           mirrors = [\"registry-1.docker.io.mirror.corp.earthly.dev\"]'"
       - name: Build latest earthly/buildkitd image using released earthly
         run: earthly --use-inline-cache ./buildkitd+buildkitd --TAG=race-test
-      - name: Execute tests (not a fork)
+      - name: Execute tests
         run: |-
           GORACE="halt_on_error=1" go run -race ./cmd/earthly/main.go --buildkit-image earthly/buildkitd:race-test -P --no-output \
             --build-arg DOCKERHUB_AUTH=true \
@@ -154,7 +154,7 @@ jobs:
           go-version: 1.16
       - name: Docker mirror login
         run: docker login registry-1.docker.io.mirror.corp.earthly.dev --username "${{ secrets.DOCKERHUB_MIRROR_USERNAME }}" --password "${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}"
-      - name: Configure Earthly to use mirror (non fork only)
+      - name: Configure Earthly to use mirror
         run: |-
           earthly config global.buildkit_additional_config "'[registry.\"docker.io\"]
 
@@ -323,7 +323,7 @@ jobs:
       - uses: actions/checkout@v2
       - name: Docker mirror login
         run: docker login registry-1.docker.io.mirror.corp.earthly.dev --username "${{ secrets.DOCKERHUB_MIRROR_USERNAME }}" --password "${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}"
-      - name: Configure Earthly to use mirror (non fork only)
+      - name: Configure Earthly to use mirror
         run: |-
           earthly config global.buildkit_additional_config "'[registry.\"docker.io\"]
 
@@ -402,7 +402,7 @@ jobs:
       - name: Docker mirror login
         run: docker login registry-1.docker.io.mirror.corp.earthly.dev --username "${{ secrets.DOCKERHUB_MIRROR_USERNAME }}" --password "${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}"
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
-      - name: Configure Earthly to use mirror (non fork only)
+      - name: Configure Earthly to use mirror
         run: |-
           earthly config global.buildkit_additional_config "'[registry.\"docker.io\"]
 
@@ -432,10 +432,9 @@ jobs:
     steps:
       - uses: earthly/actions/setup-earthly@v1
       - uses: actions/checkout@v2
-      - name: Docker mirror login (non fork only)
+      - name: Docker mirror login
         run: docker login registry-1.docker.io.mirror.corp.earthly.dev --username "${{ secrets.DOCKERHUB_MIRROR_USERNAME }}" --password "${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}"
-        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
-      - name: Configure Earthly to use mirror (non fork only)
+      - name: Configure Earthly to use mirror
         run: |-
           earthly config global.buildkit_additional_config "'[registry.\"docker.io\"]
 
@@ -562,7 +561,7 @@ jobs:
           platforms: all
       - name: Docker mirror login
         run: docker login registry-1.docker.io.mirror.corp.earthly.dev --username "${{ secrets.DOCKERHUB_MIRROR_USERNAME }}" --password "${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}"
-      - name: Configure Earthly to use mirror (non fork only)
+      - name: Configure Earthly to use mirror
         run: |-
           earthly config global.buildkit_additional_config "'[registry.\"docker.io\"]
 
@@ -611,7 +610,7 @@ jobs:
           git checkout -b "$branch" || true
       - name: Docker mirror login
         run: docker login registry-1.docker.io.mirror.corp.earthly.dev --username "${{ secrets.DOCKERHUB_MIRROR_USERNAME }}" --password "${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}"
-      - name: Configure Earthly to use mirror (non fork only)
+      - name: Configure Earthly to use mirror
         run: |-
           earthly config global.buildkit_additional_config "'[registry.\"docker.io\"]
 
@@ -760,7 +759,7 @@ jobs:
           git checkout -b "$branch" || true
       - name: Docker mirror login
         run: docker login registry-1.docker.io.mirror.corp.earthly.dev --username "${{ secrets.DOCKERHUB_MIRROR_USERNAME }}" --password "${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}"
-      - name: Configure Earthly to use mirror (non fork only)
+      - name: Configure Earthly to use mirror
         run: |-
           earthly config global.buildkit_additional_config "'[registry.\"docker.io\"]
 
@@ -824,7 +823,7 @@ jobs:
             branch="${GITHUB_REF##*/}"
           fi
           git checkout -b "$branch" || true
-      - name: Docker mirror login (non fork only)
+      - name: Docker mirror login
         run: docker login registry-1.docker.io.mirror.corp.earthly.dev --username "${{ secrets.DOCKERHUB_MIRROR_USERNAME }}" --password "${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}"
       - name: Docker Login (main build)
         run: docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password "${{ secrets.DOCKERHUB_TOKEN }}"
