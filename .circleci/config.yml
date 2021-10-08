@@ -19,7 +19,13 @@ jobs:
           command: sudo ./build/linux/amd64/earthly bootstrap
       - run:
           name: Run tests
-          command: ./build/linux/amd64/earthly --ci -P +test
+          command: |-
+              ./build/linux/amd64/earthly --ci -P \
+                --build-arg DOCKERHUB_AUTH=true \
+                --build-arg DOCKERHUB_USER_SECRET=+secrets/earthly-technologies/dockerhub-mirror/user \
+                --build-arg DOCKERHUB_TOKEN_SECRET=+secrets/earthly-technologies/dockerhub-mirror/pass \
+                --build-arg DOCKERHUB_MIRROR=registry-1.docker.io.mirror.corp.earthly.dev \
+              +test
       - run:
           name: Execute fail test
           command: "! ./build/linux/amd64/earthly --ci +test-fail"

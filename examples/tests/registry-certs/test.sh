@@ -42,6 +42,7 @@ set +e
     --ci \
     --build-arg REGISTRY \
     --build-arg REGISTRY_IP \
+    "$@" \
     +all
 exit_code="$?"
 set -e

@@ -2,6 +2,11 @@ FROM alpine:3.13
 RUN apk add jq
 WORKDIR /test
 
+ARG DOCKERHUB_USER_SECRET=+secrets/DOCKERHUB_USER
+ARG DOCKERHUB_TOKEN_SECRET=+secrets/DOCKERHUB_TOKEN
+ARG DOCKERHUB_MIRROR
+ARG DOCKERHUB_AUTH=true
+
 COPY ../..+earthly/earthly /usr/local/bin/earthly
 
 all:
@@ -49,9 +54,9 @@ all:
         --build-arg TEST=command \
         --build-arg TEST=import \
         +test
-    BUILD --build-arg INPUT_FROM=./ --build-arg TEST=if +test
-    BUILD --build-arg INPUT_FROM=./ --build-arg TEST=for +test
-    BUILD --build-arg INPUT_FROM=./ --build-arg TEST=empty-targets +test
+    BUILD --build-arg INPUT_FROM_DIR=./ --build-arg INPUT_FROM_TARGET="" --build-arg TEST=if +test
+    BUILD --build-arg INPUT_FROM_DIR=./ --build-arg INPUT_FROM_TARGET="" --build-arg TEST=for +test
+    BUILD --build-arg INPUT_FROM_DIR=./ --build-arg INPUT_FROM_TARGET="" --build-arg TEST=empty-targets +test
 
 update-all:
     BUILD \
@@ -98,17 +103,18 @@ update-all:
         --build-arg TEST=command \
         --build-arg TEST=import \
         +update-expected
-    BUILD --build-arg INPUT_FROM=./ --build-arg TEST=if +update-expected
-    BUILD --build-arg INPUT_FROM=./ --build-arg TEST=for +update-expected
-    BUILD --build-arg INPUT_FROM=./ --build-arg TEST=empty-targets +update-expected
+    BUILD --build-arg INPUT_FROM_DIR=./ --build-arg INPUT_FROM_TARGET="" --build-arg TEST=if +update-expected
+    BUILD --build-arg INPUT_FROM_DIR=./ --build-arg INPUT_FROM_TARGET="" --build-arg TEST=for +update-expected
+    BUILD --build-arg INPUT_FROM_DIR=./ --build-arg INPUT_FROM_TARGET="" --build-arg TEST=empty-targets +update-expected
 
 # Note: If this test fails for expected reasons (eg format of AST has changed), you can
 #       update the expectations via +update-all. Please review the resulting diff
 #       carefully when committing to git.
 test:
     ARG TEST
-    ARG INPUT_FROM=../../examples/tests+ast-test-input/
-    COPY ${INPUT_FROM}${TEST}.earth ./
+    ARG INPUT_FROM_DIR=../../examples/tests
+    ARG INPUT_FROM_TARGET=ast-test-input
+    DO +INPUT_COPY --TEST=$TEST --INPUT_FROM_DIR=$INPUT_FROM_DIR --INPUT_FROM_TARGET=$INPUT_FROM_TARGET
     COPY ${TEST}.ast.json ./expected.json
     RUN jq -S . ./expected.json >./expected.pretty.json
     RUN earthly debug ast ${TEST}.earth >./actual.json
@@ -117,8 +123,26 @@ test:
 
 update-expected:
     ARG TEST
-    ARG INPUT_FROM=../../examples/tests+ast-test-input/
-    COPY ${INPUT_FROM}${TEST}.earth ./
+    ARG INPUT_FROM_DIR=../../examples/tests
+    ARG INPUT_FROM_TARGET=ast-test-input
+    DO +INPUT_COPY --TEST=$TEST --INPUT_FROM_DIR=$INPUT_FROM_DIR --INPUT_FROM_TARGET=$INPUT_FROM_TARGET
     RUN earthly debug ast ${TEST}.earth >./expected.json
     RUN jq -S . ./expected.json >./expected.pretty.json
     SAVE ARTIFACT ./expected.pretty.json AS LOCAL ./${TEST}.ast.json
+
+INPUT_COPY:
+    COMMAND
+    ARG TEST
+    ARG INPUT_FROM_DIR
+    ARG INPUT_FROM_TARGET
+
+    IF [[ -z $INPUT_FROM_TARGET ]]
+        COPY ${INPUT_FROM_DIR}${TEST}.earth ./
+    ELSE
+        COPY \
+            --build-arg DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
+            --build-arg DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
+            --build-arg DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
+            --build-arg DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR \
+            ${INPUT_FROM_DIR}+${INPUT_FROM_TARGET}/${TEST}.earth .
+    END

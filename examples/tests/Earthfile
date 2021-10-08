@@ -1,5 +1,12 @@
+ARG DOCKERHUB_USER_SECRET=+secrets/DOCKERHUB_USER
+ARG DOCKERHUB_TOKEN_SECRET=+secrets/DOCKERHUB_TOKEN
+ARG DOCKERHUB_MIRROR
 ARG DOCKERHUB_AUTH=true
-FROM ../..+earthly-integration-test-base --DOCKERHUB_AUTH=$DOCKERHUB_AUTH
+FROM ../..+earthly-integration-test-base \
+    --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
+    --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
+    --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
+    --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR
 
 RUN apk add --update --no-cache \
     perl findutils
@@ -11,13 +18,25 @@ all:
     BUILD +experimental
 
 ga:
-    BUILD ./autocompletion+test-all
-    BUILD ./scrub-https-credentials+all
+    BUILD ./autocompletion+test-all \
+        --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
+        --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
+        --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
+        --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR
+    BUILD ./scrub-https-credentials+all \
+        --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
+        --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
+        --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
+        --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR
     BUILD ./with-docker+all
     BUILD ./with-docker-compose+all
     BUILD ./dockerfile+test
     BUILD ./dockerfile2/subdir+test
-    BUILD ./version+test-all
+    BUILD ./version+test-all \
+        --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
+        --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
+        --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
+        --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR
     BUILD ./import+build
     BUILD ./import+build-imported
     BUILD +privileged-test
@@ -26,7 +45,11 @@ ga:
     BUILD +cache-test
     BUILD +git-clone-test
     BUILD +git-clone-private-ssh
-    BUILD ./private-https+all
+    BUILD ./private-https+all \
+        --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
+        --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
+        --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
+        --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR
     BUILD +builtin-args-test
     BUILD +config-test
     BUILD +excludes-test
@@ -162,7 +185,11 @@ git-clone-test:
     DO +RUN_EARTHLY --earthfile=git-clone.earth --target=+test
 
 git-clone-private-ssh:
-    FROM ./git-ssh-server+server
+    FROM ./git-ssh-server+server \
+        --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
+        --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
+        --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
+        --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR
     RUN --no-cache echo "#!/bin/sh
 set -ex
 
