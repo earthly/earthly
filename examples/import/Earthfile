@@ -1,7 +1,7 @@
 IMPORT ./some/local/path AS lib
 IMPORT github.com/earthly/hello-world:main  # if alias is not provided, defaults to last element in path (in this case, hello-world)
 
-init:
+build:
     DO lib+PRINT --string="IMPORT example"
     COPY lib+get-file/file.txt ./
     RUN cat file.txt

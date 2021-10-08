@@ -5,7 +5,7 @@ The `IMPORT` command can be used to alias a project reference, allowing it to be
 For example:
 
 ```Dockerfile
-init:
+build:
     DO ./some/local/path+PRINT --string="IMPORT example"
     COPY ./some/local/path+get-file/file.txt ./
     RUN cat file.txt
@@ -18,7 +18,7 @@ can be refactored as:
 IMPORT ./some/local/path AS lib
 IMPORT github.com/earthly/hello-world:main
 
-init:
+build:
     DO lib+PRINT --string="IMPORT example"
     COPY lib+get-file/file.txt ./
     RUN cat file.txt
@@ -30,5 +30,5 @@ Note that the `IMPORT` command only supports project references, not target refe
 To run this example, execute:
 
 ```bash
-earthly +init
+earthly +build
 ```
