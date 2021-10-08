@@ -29,7 +29,11 @@ certs:
     SAVE ARTIFACT certs AS LOCAL certs
 
 test-base:
-    FROM ../../..+earthly-integration-test-base --DOCKERHUB_AUTH=$DOCKERHUB_AUTH --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR
+    FROM ../../..+earthly-integration-test-base \
+        --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
+        --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
+        --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
+        --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR
     WORKDIR /test
     COPY ./certs/domain.crt /etc/config/test.ca
     COPY test.earth ./Earthfile
@@ -61,4 +65,10 @@ DO_REMOTE_CACHE_EARTHLY:
         --mount=type=tmpfs,target=/tmp/earthly \
         -- \
         EARTHLY_ADDITIONAL_BUILDKIT_CONFIG=$EARTHLY_ADDITIONAL_BUILDKIT_CONFIG$REGISTRY_CONFIG \
-        /usr/bin/earthly-entrypoint.sh --ci --push --build-arg REGISTRY=$REGISTRY --build-arg DOCKERHUB_AUTH=$DOCKERHUB_AUTH --build-arg DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET --build-arg DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET --build-arg DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR $target 2>&1 | tee ./output
+        /usr/bin/earthly-entrypoint.sh --ci --push \
+            --build-arg REGISTRY=$REGISTRY \
+            --build-arg DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
+            --build-arg DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
+            --build-arg DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
+            --build-arg DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR \
+            $target 2>&1 | tee ./output
