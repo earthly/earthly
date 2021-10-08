@@ -1,3 +1,7 @@
+ARG DOCKERHUB_USER_SECRET=+secrets/DOCKERHUB_USER
+ARG DOCKERHUB_TOKEN_SECRET=+secrets/DOCKERHUB_TOKEN
+ARG DOCKERHUB_MIRROR
+ARG DOCKERHUB_AUTH=true
 
 ARG REGISTRY
 ARG REGISTRY_IP
@@ -57,4 +61,4 @@ DO_REMOTE_CACHE_EARTHLY:
         --mount=type=tmpfs,target=/tmp/earthly \
         -- \
         EARTHLY_ADDITIONAL_BUILDKIT_CONFIG=$EARTHLY_ADDITIONAL_BUILDKIT_CONFIG$REGISTRY_CONFIG \
-        /usr/bin/earthly-entrypoint.sh --ci --push $target 2>&1 | tee ./output
+        /usr/bin/earthly-entrypoint.sh --ci --push --build-arg REGISTRY=$REGISTRY --build-arg DOCKERHUB_AUTH=$DOCKERHUB_AUTH --build-arg DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET --build-arg DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET --build-arg DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR $target 2>&1 | tee ./output

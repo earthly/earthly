@@ -182,7 +182,12 @@ jobs:
               --build-arg DOCKERHUB_TOKEN_SECRET=+secrets/earthly-technologies/dockerhub-mirror/pass \
               --build-arg DOCKERHUB_MIRROR=registry-1.docker.io.mirror.corp.earthly.dev
       - name: Execute registry-certs test
-        run: "./examples/tests/registry-certs/test.sh"
+        run: |-
+          ./examples/tests/registry-certs/test.sh \
+              --build-arg DOCKERHUB_AUTH=true \
+              --build-arg DOCKERHUB_USER_SECRET=+secrets/earthly-technologies/dockerhub-mirror/user \
+              --build-arg DOCKERHUB_TOKEN_SECRET=+secrets/earthly-technologies/dockerhub-mirror/pass \
+              --build-arg DOCKERHUB_MIRROR=registry-1.docker.io.mirror.corp.earthly.dev
       - name: Execute tests requiring .git directory
         run: go test ./analytics --tags=hasgitdirectory
       - name: Execute earthly docker command
