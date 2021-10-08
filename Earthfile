@@ -47,7 +47,7 @@ code:
 
 update-buildkit:
     FROM +code # if we use deps, go mod tidy will remove a bunch of requirements since it won't have access to our codebase.
-    ARG BUILDKIT_BRANCH=earthly-main
+    ARG BUILDKIT_BRANCH=earthly-main # note: must be branch and not commit hash (it will convert branch to sha1)
     BUILD ./buildkitd+update-buildkit --BUILDKIT_BRANCH=$BUILDKIT_BRANCH
     RUN --no-cache go mod edit -replace "github.com/moby/buildkit=github.com/earthly/buildkit@$BUILDKIT_BRANCH"
     RUN --no-cache go mod tidy
