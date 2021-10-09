@@ -297,6 +297,12 @@ func (s *BaseEarthParserListener) EnterArgStmt(ctx *ArgStmtContext) {}
 // ExitArgStmt is called when production argStmt is exited.
 func (s *BaseEarthParserListener) ExitArgStmt(ctx *ArgStmtContext) {}
 
+// EnterOptionalFlag is called when production optionalFlag is entered.
+func (s *BaseEarthParserListener) EnterOptionalFlag(ctx *OptionalFlagContext) {}
+
+// ExitOptionalFlag is called when production optionalFlag is exited.
+func (s *BaseEarthParserListener) ExitOptionalFlag(ctx *OptionalFlagContext) {}
+
 // EnterEnvArgKey is called when production envArgKey is entered.
 func (s *BaseEarthParserListener) EnterEnvArgKey(ctx *EnvArgKeyContext) {}
 
