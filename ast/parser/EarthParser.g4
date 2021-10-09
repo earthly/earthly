@@ -116,7 +116,8 @@ exposeStmt: EXPOSE (WS stmtWords)?;
 volumeStmt: VOLUME (WS stmtWordsMaybeJSON)?;
 
 envStmt: ENV WS envArgKey (WS? EQUALS)? (WS? envArgValue)?;
-argStmt: ARG WS envArgKey ((WS? EQUALS) (WS? envArgValue)?)?;
+argStmt: ARG optionalFlag WS envArgKey ((WS? EQUALS) (WS? envArgValue)?)?;
+optionalFlag: (WS stmtWords)?;
 envArgKey: Atom;
 envArgValue: Atom (WS? Atom)*;
 

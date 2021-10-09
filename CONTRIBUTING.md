@@ -57,6 +57,8 @@ To also build the examples, you can run
 
 If you have issues with git-related features or with private docker registries, make sure you have configured auth correctly. See the [auth page](https://docs.earthly.dev/guides/auth) for more details.
 
+You may need to adjust the docker login command in the `earthly-integration-test-base:` target by removing the Earthly repository and adjusting for your login credentials provider.
+
 ## CLA
 
 ### Individual
