@@ -1368,7 +1368,6 @@ func (c *Converter) internalRun(ctx context.Context, opts ConvertRunOpts) (pllb.
 
 	var extraEnvVars []string
 	// Secrets.
-	var secretID string
 	for _, secretKeyValue := range opts.Secrets {
 		parts := strings.SplitN(secretKeyValue, "=", 2)
 		if len(parts) == 2 {
@@ -1398,7 +1397,7 @@ func (c *Converter) internalRun(ctx context.Context, opts ConvertRunOpts) (pllb.
 				// TODO: This should be an actual secret (with an empty value),
 				//
 			} else {
-				secretID = secretKeyValue
+				secretID := secretKeyValue
 				secretPath := path.Join("/run/secrets", secretID)
 				secretOpts := []llb.SecretOption{
 					llb.SecretID(secretID),
