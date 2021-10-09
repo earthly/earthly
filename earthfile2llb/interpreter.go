@@ -1051,7 +1051,7 @@ func (i *Interpreter) handleArg(ctx context.Context, cmd spec.Command) error {
 	}
 	// Args declared in the base target are global.
 	global := i.isBase
-	err = i.converter.Arg(ctx, key, value, global)
+	err = i.converter.Arg(ctx, key, value, opts, global)
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "apply ARG")
 	}
