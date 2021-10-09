@@ -226,11 +226,11 @@ secrets-test:
     RUN echo -n "secretfilecontents" > /root/my-secret-file
     DO +RUN_EARTHLY \
         --earthfile=secrets.earth \
-        --extra_args="--secret SECRET1 --secret SECRET2=bar --secret-file SECRET3=~/my-secret-file" \
+        --extra_args="--secret SECRET1 --secret SECRET2=bar --secret-file SECRET3=~/my-secret-file --build-arg SECRET_ID=\"\" --build-arg SECRET_ID_2=\"\"" \
         --target=+test
     DO +RUN_EARTHLY \
         --earthfile=secrets.earth \
-        --extra_args="--secret SECRET1 --secret SECRET2=bar" \
+        --extra_args="--secret SECRET1 --secret SECRET2=bar --build-arg SECRET_ID=\"\" --build-arg SECRET_ID_2=\"\"" \
         --target=+test \
         --post_command="2>&1 | perl -pe 'BEGIN {\\\$status=1} END {exit \\\$status} \\\$status=0 if /unable to lookup secret SECRET3: not found/;'"
 

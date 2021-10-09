@@ -1368,30 +1368,45 @@ func (c *Converter) internalRun(ctx context.Context, opts ConvertRunOpts) (pllb.
 
 	var extraEnvVars []string
 	// Secrets.
+	var secretID string
 	for _, secretKeyValue := range opts.Secrets {
 		parts := strings.SplitN(secretKeyValue, "=", 2)
-		if len(parts) != 2 {
-			return pllb.State{}, errors.Errorf("invalid secret definition %s", secretKeyValue)
-		}
-		if strings.HasPrefix(parts[1], "+secrets/") {
-			envVar := parts[0]
-			secretID := strings.TrimPrefix(parts[1], "+secrets/")
-			secretPath := path.Join("/run/secrets", secretID)
-			secretOpts := []llb.SecretOption{
-				llb.SecretID(secretID),
-				// TODO: Perhaps this should just default to the current user automatically from
-				//       buildkit side. Then we wouldn't need to open this up to everyone.
-				llb.SecretFileOpt(0, 0, 0444),
+		if len(parts) == 2 {
+			if strings.HasPrefix(parts[1], "+secrets/") {
+				envVar := parts[0]
+				secretID := strings.TrimPrefix(parts[1], "+secrets/")
+				secretPath := path.Join("/run/secrets", secretID)
+				secretOpts := []llb.SecretOption{
+					llb.SecretID(secretID),
+					// TODO: Perhaps this should just default to the current user automatically from
+					//       buildkit side. Then we wouldn't need to open this up to everyone.
+					llb.SecretFileOpt(0, 0, 0444),
+				}
+				runOpts = append(runOpts, llb.AddSecret(secretPath, secretOpts...))
+				// TODO: The use of cat here might not be portable.
+				extraEnvVars = append(extraEnvVars, fmt.Sprintf("%s=\"$(cat %s)\"", envVar, secretPath))
+			} else if parts[1] == "" {
+				// If empty string, don't use (used for optional secrets).
+				// TODO: This should be an actual secret (with an empty value),
+				//       so that the cache works correctly.
+			} else {
+				return pllb.State{}, errors.Errorf("secret definition %s not supported. Must start with +secrets/ or be an empty string", secretKeyValue)
 			}
-			runOpts = append(runOpts, llb.AddSecret(secretPath, secretOpts...))
-			// TODO: The use of cat here might not be portable.
-			extraEnvVars = append(extraEnvVars, fmt.Sprintf("%s=\"$(cat %s)\"", envVar, secretPath))
-		} else if parts[1] == "" {
-			// If empty string, don't use (used for optional secrets).
-			// TODO: This should be an actual secret (with an empty value),
-			//       so that the cache works correctly.
 		} else {
-			return pllb.State{}, errors.Errorf("secret definition %s not supported. Must start with +secrets/ or be an empty string", secretKeyValue)
+			if secretKeyValue == "" {
+				// If empty string, don't use (used for optional secrets).
+				// TODO: This should be an actual secret (with an empty value),
+				//
+			} else {
+				secretID = secretKeyValue
+				secretPath := path.Join("/run/secrets", secretID)
+				secretOpts := []llb.SecretOption{
+					llb.SecretID(secretID),
+					llb.SecretFileOpt(0, 0, 0444),
+				}
+				runOpts = append(runOpts, llb.AddSecret(secretPath, secretOpts...))
+				extraEnvVars = append(extraEnvVars, fmt.Sprintf("%s=\"$(cat %s)\"", secretID, secretPath))
+			}
 		}
 	}
 	// Build args.

@@ -137,6 +137,14 @@ hush:
     RUN --secret mypassword=+secrets/passwd echo "my password is $mypassword"
 ```
 
+If the environment variable name is identical to the secret ID. For example to accesses a secret stored under `+secrets/passwd` and exposes it under the environment variable `passwd`  you can use the shorthand :
+
+```dockerfile
+FROM alpine:latest
+hush:
+    RUN --secret passwd echo "my password is $passwd"
+```
+
 {% hint style='info' %}
 It's also possible to temporarily mount a secret as a file:
 
