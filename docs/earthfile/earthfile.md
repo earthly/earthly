@@ -198,7 +198,7 @@ earthly --allow-privileged +some-target
 ##### `--secret <env-var>=<secret-ref> | <secret-id>`
 
 Makes available a secret, in the form of an env var (its name is defined by `<env-var>`), to the command being executed. 
-If you only specify `<secret-id>`, the name of the env var will be `<secret-id>` and it's value the value of `<secret-id>`.
+If you only specify `<secret-id>`, the name of the env var will be `<secret-id>` and its value the value of `<secret-id>`.
 
 The `<secret-ref>` needs to be of the form `+secrets/<secret-id>`, where `<secret-id>` is the identifier passed to the `earthly` command when passing the secret: `earthly --secret <secret-id>=<value>`.
 
