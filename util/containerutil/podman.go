@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"os/exec"
 	"strconv"
 	"strings"
 
@@ -132,12 +131,9 @@ func (psf *podmanShellFrontend) ImageLoad(ctx context.Context, images ...io.Read
 		defer file.Close()
 		defer os.Remove(file.Name())
 
-		// Do not use the wrapper to allow the image to come in on stdin
-		cmd := exec.CommandContext(ctx, psf.binaryName, "pull", fmt.Sprintf("docker-archive:%s", file.Name()))
-		cmd.Stdin = image
-		output, cmdErr := cmd.CombinedOutput()
+		output, cmdErr := psf.commandContextOutput(ctx, "pull", fmt.Sprintf("docker-archive:%s", file.Name()))
 		if cmdErr != nil {
-			err = multierror.Append(err, errors.Wrapf(cmdErr, "image load failed: %s", string(output)))
+			err = multierror.Append(err, errors.Wrapf(cmdErr, "image load failed: %s", output))
 		}
 	}
 
