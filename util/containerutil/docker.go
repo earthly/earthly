@@ -4,7 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
+	"os/exec"
 	"strings"
 
 	"github.com/dustin/go-humanize"
@@ -105,6 +107,21 @@ func (dsf *dockerShellFrontend) ContainerInfo(ctx context.Context, namesOrIDs ..
 	}
 
 	return results, nil
+}
+
+func (dsf *dockerShellFrontend) ImageLoad(ctx context.Context, images ...io.Reader) error {
+	var err error
+	for _, image := range images {
+		// Do not use the wrapper to allow the image to come in on stdin
+		cmd := exec.CommandContext(ctx, dsf.binaryName, "load")
+		cmd.Stdin = image
+		output, cmdErr := cmd.CombinedOutput()
+		if cmdErr != nil {
+			err = multierror.Append(err, errors.Wrapf(cmdErr, "image load failed: %s", string(output)))
+		}
+	}
+
+	return err
 }
 
 func (dsf *dockerShellFrontend) VolumeInfo(ctx context.Context, volumeNames ...string) (map[string]*VolumeInfo, error) {

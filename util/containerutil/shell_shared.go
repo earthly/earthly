@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"os"
 	"os/exec"
 	"strconv"
@@ -256,21 +255,6 @@ func (sf *shellFrontend) ImageTag(ctx context.Context, tags ...ImageTag) error {
 		_, cmdErr := sf.commandContextOutput(ctx, "tag", tag.SourceRef, tag.TargetRef)
 		if cmdErr != nil {
 			err = multierror.Append(err, cmdErr)
-		}
-	}
-
-	return err
-}
-
-func (sf *shellFrontend) ImageLoad(ctx context.Context, images ...io.Reader) error {
-	var err error
-	for _, image := range images {
-		// Do not use the wrapper to allow the image to come in on stdin
-		cmd := exec.CommandContext(ctx, sf.binaryName, "load")
-		cmd.Stdin = image
-		output, cmdErr := cmd.CombinedOutput()
-		if cmdErr != nil {
-			err = multierror.Append(err, errors.Wrapf(cmdErr, "image load failed: %s", string(output)))
 		}
 	}
 

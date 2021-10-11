@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"os"
 	"os/exec"
 	"testing"
 
@@ -494,6 +495,42 @@ func TestFrontendImageLoad(t *testing.T) {
 			assert.NoError(t, err)
 
 			err = fe.ImageLoad(ctx, bufio.NewReader(imgBuffer))
+			assert.NoError(t, err)
+
+			defer func() {
+				cmd := exec.CommandContext(ctx, tC.binary, "image", "rm", "-f", tC.ref)
+				cmd.Run()
+			}()
+
+			info, err := fe.ImageInfo(ctx, tC.ref)
+			assert.NoError(t, err)
+			assert.Contains(t, info[tC.ref].Tags, tC.ref)
+		})
+	}
+}
+
+func TestFrontendImageLoadHybrid(t *testing.T) {
+	testCases := []struct {
+		binary  string
+		newFunc func(context.Context) (containerutil.ContainerFrontend, error)
+		ref     string
+	}{
+		{"docker", containerutil.NewDockerShellFrontend, "hybrid:test"},
+		{"podman", containerutil.NewPodmanShellFrontend, "localhost/hybrid:test"},
+	}
+	for _, tC := range testCases {
+		t.Run(tC.binary, func(t *testing.T) {
+			ctx := context.Background()
+			onlyIfBinaryIsInstalled(ctx, t, tC.binary)
+
+			fe, err := tC.newFunc(ctx)
+			assert.NoError(t, err)
+
+			data, err := os.ReadFile("./testdata/hybrid.tar")
+			assert.NoError(t, err)
+			reader := bytes.NewReader(data)
+
+			err = fe.ImageLoad(ctx, reader)
 			assert.NoError(t, err)
 
 			defer func() {
