@@ -366,7 +366,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 		pipeR, pipeW := io.Pipe()
 		eg.Go(func() error {
 			defer pipeR.Close()
-			err := loadDockerTar(childCtx, b.opt.ContainerFrontend, pipeR, b.opt.Console)
+			err := loadDockerTar(childCtx, b.opt.ContainerFrontend, pipeR)
 			if err != nil {
 				return errors.Wrapf(err, "load docker tar")
 			}
@@ -404,7 +404,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 			}
 			pullMap[imgToPull] = finalName
 		}
-		return dockerPullLocalImages(childCtx, b.opt.ContainerFrontend, b.opt.LocalRegistryAddr, pullMap, b.opt.Console)
+		return dockerPullLocalImages(childCtx, b.opt.ContainerFrontend, b.opt.LocalRegistryAddr, pullMap)
 	}
 	if opt.PrintPhases {
 		b.opt.Console.PrintPhaseHeader(PhaseBuild, false, "")
