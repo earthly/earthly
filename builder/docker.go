@@ -77,7 +77,7 @@ func loadDockerManifest(ctx context.Context, console conslogging.ConsoleLogger, 
 	return nil
 }
 
-func loadDockerTar(ctx context.Context, fe containerutil.ContainerFrontend, r io.ReadCloser, console conslogging.ConsoleLogger) error {
+func loadDockerTar(ctx context.Context, fe containerutil.ContainerFrontend, r io.ReadCloser) error {
 	err := fe.ImageLoad(ctx, r)
 	if err != nil {
 		return errors.Wrapf(err, "load tar")
@@ -85,19 +85,19 @@ func loadDockerTar(ctx context.Context, fe containerutil.ContainerFrontend, r io
 	return nil
 }
 
-func dockerPullLocalImages(ctx context.Context, fe containerutil.ContainerFrontend, localRegistryAddr string, pullMap map[string]string, console conslogging.ConsoleLogger) error {
+func dockerPullLocalImages(ctx context.Context, fe containerutil.ContainerFrontend, localRegistryAddr string, pullMap map[string]string) error {
 	eg, ctx := errgroup.WithContext(ctx)
 	for pullName, finalName := range pullMap {
 		pn := pullName
 		fn := finalName
 		eg.Go(func() error {
-			return dockerPullLocalImage(ctx, fe, localRegistryAddr, pn, fn, console)
+			return dockerPullLocalImage(ctx, fe, localRegistryAddr, pn, fn)
 		})
 	}
 	return eg.Wait()
 }
 
-func dockerPullLocalImage(ctx context.Context, fe containerutil.ContainerFrontend, localRegistryAddr string, pullName string, finalName string, console conslogging.ConsoleLogger) error {
+func dockerPullLocalImage(ctx context.Context, fe containerutil.ContainerFrontend, localRegistryAddr string, pullName string, finalName string) error {
 	fullPullName := fmt.Sprintf("%s/%s", localRegistryAddr, pullName)
 	err := fe.ImagePull(ctx, fullPullName)
 	if err != nil {

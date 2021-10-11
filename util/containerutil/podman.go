@@ -3,6 +3,9 @@ package containerutil
 import (
 	"context"
 	"encoding/json"
+	"fmt"
+	"io"
+	"os"
 	"strconv"
 	"strings"
 
@@ -104,6 +107,37 @@ func (psf *podmanShellFrontend) Information(ctx context.Context) (*FrontendInfo,
 		ServerPlatform:   allInfo.Server.OSArch,
 		ServerAddress:    host,
 	}, nil
+}
+
+func (psf *podmanShellFrontend) ImageLoad(ctx context.Context, images ...io.Reader) error {
+	var err error
+	for _, image := range images {
+		// Write the image to a temp file. This is needed to accomodate some Podman versions between 3.0 and 3.4. Because
+		// buildkit creates weird hybrid docker/OCI images, Podman pulls it in as an OCI image and ends up negelcting the
+		// in-built image tag. We can get around this by "pulling" a tar file and specifying the format at the CLI. This
+		// is more or less what Podman will be doing going forward. For further context, see the linked issues and discussion
+		// here: https://github.com/earthly/earthly/issues/1285
+
+		file, tmpErr := os.CreateTemp("", "earthly-podman-load-*")
+		if tmpErr != nil {
+			err = multierror.Append(err, errors.Wrap(tmpErr, "failed to create temp tarball"))
+			continue
+		}
+		_, copyErr := io.Copy(file, image)
+		if copyErr != nil {
+			err = multierror.Append(err, errors.Wrapf(tmpErr, "failed to write to %s", file.Name()))
+			continue
+		}
+		defer file.Close()
+		defer os.Remove(file.Name())
+
+		output, cmdErr := psf.commandContextOutput(ctx, "pull", fmt.Sprintf("docker-archive:%s", file.Name()))
+		if cmdErr != nil {
+			err = multierror.Append(err, errors.Wrapf(cmdErr, "image load failed: %s", output.string()))
+		}
+	}
+
+	return err
 }
 
 func (psf *podmanShellFrontend) VolumeInfo(ctx context.Context, volumeNames ...string) (map[string]*VolumeInfo, error) {
