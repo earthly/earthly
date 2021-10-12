@@ -1,6 +1,10 @@
 version: 2.1
 jobs:
   build:
+    filters:
+      branches:
+        only:
+          - main
     machine:
       image: ubuntu-1604:201903-01
     steps:
