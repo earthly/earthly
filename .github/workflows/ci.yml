@@ -246,7 +246,7 @@ jobs:
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: Execute private image test (Fork Only)
         run: |-
-          ./build/linux/amd64/earthly --ci
+          ./build/linux/amd64/earthly --ci \
             --build-arg DOCKERHUB_AUTH=false \
           ./examples/tests+private-image-test
         if: github.event_name != 'push' && github.event.pull_request.head.repo.full_name != github.repository
