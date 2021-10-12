@@ -1369,13 +1369,11 @@ func (c *Converter) internalRun(ctx context.Context, opts ConvertRunOpts) (pllb.
 	var extraEnvVars []string
 	// Secrets.
 	for _, secretKeyValue := range opts.Secrets {
-		parts := strings.SplitN(secretKeyValue, "=", 2)
-		if len(parts) != 2 {
-			return pllb.State{}, errors.Errorf("invalid secret definition %s", secretKeyValue)
+		secretID, envVar, err := c.parseSecretFlag(secretKeyValue)
+		if err != nil {
+			return pllb.State{}, err
 		}
-		if strings.HasPrefix(parts[1], "+secrets/") {
-			envVar := parts[0]
-			secretID := strings.TrimPrefix(parts[1], "+secrets/")
+		if secretID != "" {
 			secretPath := path.Join("/run/secrets", secretID)
 			secretOpts := []llb.SecretOption{
 				llb.SecretID(secretID),
@@ -1386,12 +1384,6 @@ func (c *Converter) internalRun(ctx context.Context, opts ConvertRunOpts) (pllb.
 			runOpts = append(runOpts, llb.AddSecret(secretPath, secretOpts...))
 			// TODO: The use of cat here might not be portable.
 			extraEnvVars = append(extraEnvVars, fmt.Sprintf("%s=\"$(cat %s)\"", envVar, secretPath))
-		} else if parts[1] == "" {
-			// If empty string, don't use (used for optional secrets).
-			// TODO: This should be an actual secret (with an empty value),
-			//       so that the cache works correctly.
-		} else {
-			return pllb.State{}, errors.Errorf("secret definition %s not supported. Must start with +secrets/ or be an empty string", secretKeyValue)
 		}
 	}
 	// Build args.
@@ -1500,6 +1492,33 @@ func (c *Converter) internalRun(ctx context.Context, opts ConvertRunOpts) (pllb.
 		}
 
 		return c.mts.Final.MainState, nil
+	}
+}
+
+func (c *Converter) parseSecretFlag(secretKeyValue string) (secretID string, envVar string, err error) {
+	parts := strings.SplitN(secretKeyValue, "=", 2)
+	if len(parts) == 2 {
+		if strings.HasPrefix(parts[1], "+secrets/") {
+			secretID := strings.TrimPrefix(parts[1], "+secrets/")
+			return secretID, parts[0], nil
+		} else if parts[1] == "" {
+			// If empty string, don't use (used for optional secrets).
+			// TODO: This should be an actual secret (with an empty value),
+			//       so that the cache works correctly.
+			return "", "", nil
+		} else {
+			return "", "", errors.Errorf("secret definition %s not supported. Format must be either <env-var>=+secrets/<secret-id> or <secret-id>", secretKeyValue)
+		}
+	} else if len(parts) == 1 {
+		if secretKeyValue == "" {
+			// If empty string, don't use (used for optional secrets).
+			// TODO: This should be an actual secret (with an empty value),
+			//       so that the cache works correctly.
+			return "", "", nil
+		}
+		return parts[0], parts[0], nil
+	} else {
+		return "", "", errors.Errorf("secret definition %s not supported. Format must be either <env-var>=+secrets/<secret-id> or <secret-id>", secretKeyValue)
 	}
 }
 

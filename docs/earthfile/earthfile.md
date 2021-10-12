@@ -195,21 +195,25 @@ Note that privileged mode is not enabled by default. In order to use this option
 earthly --allow-privileged +some-target
 ```
 
-##### `--secret <env-var>=<secret-ref>`
+##### `--secret <env-var>=<secret-ref> | <secret-id>`
 
-Makes available a secret, in the form of an env var (its name is defined by `<env-var>`), to the command being executed.
+Makes available a secret, in the form of an env var (its name is defined by `<env-var>`), to the command being executed. 
+If you only specify `<secret-id>`, the name of the env var will be `<secret-id>` and its value the value of `<secret-id>`.
 
 The `<secret-ref>` needs to be of the form `+secrets/<secret-id>`, where `<secret-id>` is the identifier passed to the `earthly` command when passing the secret: `earthly --secret <secret-id>=<value>`.
 
-Here is an example:
+Here is an example that showcases both syntaxes:
 
 ```Dockerfile
 release:
     RUN --push --secret GITHUB_TOKEN=+secrets/GH_TOKEN github-release upload
+release-short:
+    RUN --push --secret GITHUB_TOKEN github-release upload
 ```
 
 ```bash
 earthly --secret GH_TOKEN="the-actual-secret-token-value" +release
+earthly --secret GITHUB_TOKEN="the-actual-secret-token-value" +release-short
 ```
 
 An empty string is also allowed for `<secret-ref>`, allowing for optional secrets, should it need to be disabled.
@@ -218,10 +222,14 @@ An empty string is also allowed for `<secret-ref>`, allowing for optional secret
 release:
     ARG SECRET_ID=+secrets/GH_TOKEN
     RUN --push --secret GITHUB_TOKEN=$SECRET_ID github-release upload
+release-short:
+    ARG SECRET_ID=GITHUB_TOKEN
+    RUN --push --secret $SECRET_ID github-release upload
 ```
 
 ```bash
 earthly --build-arg SECRET_ID="" +release
+earthly --build-arg SECRET_ID="" +release-short
 ```
 
 See also the [Cloud secrets guide](../guides/cloud-secrets.md).
