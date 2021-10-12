@@ -63,7 +63,12 @@ export EARTHLY_VERSION_FLAG_OVERRIDES="referenced-save-only"
  mirrors = [\"registry-1.docker.io.mirror.corp.earthly.dev\"]'"
 
 echo "Execute tests"
-"$earthly" --ci -P +test
+"$earthly" --ci -P \
+    --build-arg DOCKERHUB_AUTH=true \
+    --build-arg DOCKERHUB_USER_SECRET=+secrets/earthly-technologies/dockerhub-mirror/user \
+    --build-arg DOCKERHUB_TOKEN_SECRET=+secrets/earthly-technologies/dockerhub-mirror/pass \
+    --build-arg DOCKERHUB_MIRROR=registry-1.docker.io.mirror.corp.earthly.dev \
+  +test
 
 echo "Execute fail test"
 bash -c "! $earthly --ci ./examples/tests/fail+test-fail"
