@@ -114,7 +114,7 @@ jobs:
           fi
           ./build/linux/amd64/earthly --ci -P \
              --build-arg DOCKERHUB_AUTH=false \
-           "github.com/GITHUB_FORK_REPOSITORY:$branch+test"
+           "github.com/$GITHUB_FORK_REPOSITORY:$branch+test"
         if: github.event_name != 'push' && github.event.pull_request.head.repo.full_name != github.repository
       - name: Execute fail test
         run: |
