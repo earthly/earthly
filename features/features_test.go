@@ -31,6 +31,10 @@ func TestApplyFlagOverrides(t *testing.T) {
 	err := ApplyFlagOverrides(fts, "referenced-save-only")
 	Nil(t, err)
 	Equal(t, true, fts.ReferencedSaveOnly)
+	Equal(t, false, fts.UseCopyIncludePatterns)
+	Equal(t, false, fts.ForIn)
+	Equal(t, false, fts.RequireForceForUnsafeSaves)
+	Equal(t, false, fts.NoImplicitIgnore)
 }
 
 func TestApplyFlagOverridesWithDashDashPrefix(t *testing.T) {
@@ -38,18 +42,30 @@ func TestApplyFlagOverridesWithDashDashPrefix(t *testing.T) {
 	err := ApplyFlagOverrides(fts, "--referenced-save-only")
 	Nil(t, err)
 	Equal(t, true, fts.ReferencedSaveOnly)
+	Equal(t, false, fts.UseCopyIncludePatterns)
+	Equal(t, false, fts.ForIn)
+	Equal(t, false, fts.RequireForceForUnsafeSaves)
+	Equal(t, false, fts.NoImplicitIgnore)
 }
 
 func TestApplyFlagOverridesMultipleFlags(t *testing.T) {
 	fts := &Features{}
-	err := ApplyFlagOverrides(fts, "referenced-save-only,use-copy-include-patterns")
+	err := ApplyFlagOverrides(fts, "referenced-save-only,use-copy-include-patterns,no-implicit-ignore")
 	Nil(t, err)
 	Equal(t, true, fts.ReferencedSaveOnly)
 	Equal(t, true, fts.UseCopyIncludePatterns)
+	Equal(t, false, fts.ForIn)
+	Equal(t, false, fts.RequireForceForUnsafeSaves)
+	Equal(t, true, fts.NoImplicitIgnore)
 }
 
 func TestApplyFlagOverridesEmptyString(t *testing.T) {
 	fts := &Features{}
 	err := ApplyFlagOverrides(fts, "")
 	Nil(t, err)
+	Equal(t, false, fts.ReferencedSaveOnly)
+	Equal(t, false, fts.UseCopyIncludePatterns)
+	Equal(t, false, fts.ForIn)
+	Equal(t, false, fts.RequireForceForUnsafeSaves)
+	Equal(t, false, fts.NoImplicitIgnore)
 }
