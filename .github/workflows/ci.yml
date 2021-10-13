@@ -244,12 +244,6 @@ jobs:
             --build-arg DOCKERHUB_MIRROR=registry-1.docker.io.mirror.corp.earthly.dev \
           ./examples/tests+private-image-test
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
-      - name: Execute private image test (Fork Only)
-        run: |-
-          ./build/linux/amd64/earthly --ci \
-            --build-arg DOCKERHUB_AUTH=false \
-          ./examples/tests+private-image-test
-        if: github.event_name != 'push' && github.event.pull_request.head.repo.full_name != github.repository
       - name: Execute save images test
         run: ./examples/tests/save-images/test.sh
       - name: Experimental tests (Earthly Only)
