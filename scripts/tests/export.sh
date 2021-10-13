@@ -10,6 +10,7 @@ echo "running tests with $earthly"
 date +%s > /tmp/last-earthly-prerelease-check
 
 # ensure earthly login works (and print out who gets logged in)
+test -n "$EARTHLY_TOKEN"
 "$earthly" account login
 
 # Test 1: export without anything
