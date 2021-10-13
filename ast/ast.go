@@ -14,7 +14,7 @@ import (
 
 // Parse parses an earthfile into an AST.
 func Parse(ctx context.Context, filePath string, enableSourceMap bool) (ef spec.Earthfile, err error) {
-	version, err := parseVersion(filePath, enableSourceMap)
+	version, err := ParseVersion(filePath, enableSourceMap)
 	if err != nil {
 		return spec.Earthfile{}, err
 	}
