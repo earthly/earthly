@@ -16,6 +16,17 @@ The `VERSION` command was first introduced under `0.5` and is currently optional
 VERSION [<flags>...] <version-number>
 ```
 
+### Example
+
+Currently we only support `0.5` as a version number. To Future-proof an Earthfiles it is recommended to add
+
+```Dockerfile
+VERSION 0.5
+```
+
+at the top of each Earthfile. This will ensure backwards-breaking feature changes will not affect an existing Earthfile.
+
+
 ## Feature flags
 
 | Feature flag | status | description |
@@ -23,6 +34,8 @@ VERSION [<flags>...] <version-number>
 | `--use-copy-include-patterns` | experimental | Speeds up COPY transfers |
 | `--referenced-save-only` | experimental | Changes the behavior of SAVE commands in a significant way |
 | `--for-in` | experimental | Enables support for `FOR ... IN ...` commands |
+
+All of these features flags are disabled by default in version `0.5`.
 
 ##### `--use-copy-include-patterns`
 
