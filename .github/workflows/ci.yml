@@ -67,6 +67,7 @@ jobs:
       EARTHLY_CONVERSION_PARALLELISM: "5"
       EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
       EARTHLY_INSTALL_ID: "earthly-githubactions"
+      GITHUB_FORK_REPOSITORY: "${{ github.event.pull_request.head.repo.full_name }}"
     steps:
       - uses: earthly/actions/setup-earthly@v1
       - uses: actions/checkout@v2
@@ -113,7 +114,7 @@ jobs:
           fi
           ./build/linux/amd64/earthly --ci -P \
              --build-arg DOCKERHUB_AUTH=false \
-           "github.com/$GITHUB_REPOSITORY:$branch+test"
+           "github.com/$GITHUB_FORK_REPOSITORY:$branch+test"
         if: github.event_name != 'push' && github.event.pull_request.head.repo.full_name != github.repository
       - name: Execute fail test
         run: |
