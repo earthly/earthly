@@ -1,16 +1,9 @@
 name: GitHub Actions CI
 
-on:
-  push:
-    branches: [ main ]
-    paths-ignore: [ docs/** ]
-  pull_request:
-    branches: [ main ]
-    paths-ignore: [ docs/** ]
 
 jobs:
   tests:
-    name: +test +test-fail
+    name: simple test
     runs-on: ubuntu-latest
     env:
       FORCE_COLOR: 1
@@ -19,8 +12,6 @@ jobs:
       GHA_FORK_REPO: "${{ github.event.pull_request.head.repo.full_name }}"
       EARTHLY_INSTALL_ID: "earthly-githubactions"
     steps:
-      - uses: earthly/actions/setup-earthly@v1
-      - uses: actions/checkout@v2
       - name: Print Env
         run: env
 
