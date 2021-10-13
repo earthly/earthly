@@ -18,13 +18,18 @@ VERSION [<flags>...] <version-number>
 
 ### Example
 
-Currently we only support `0.5` as a version number. To Future-proof an Earthfiles it is recommended to add
+To Future-proof Earthfiles it is recommended to add a `VERSION` command. Consider a case where an Earthfile is developed
+against earthly `v0.5.23` and makes use of the experimental `FOR` command, the first line of the Earthfile should be:
 
 ```Dockerfile
-VERSION 0.5
+VERSION --for-in 0.5
 ```
 
-at the top of each Earthfile. This will ensure backwards-breaking feature changes will not affect an existing Earthfile.
+This will ensure that backwards-breaking features that are introduced in a later version will not change how this Earthfile is interpreted.
+
+In a future release (e.g. `0.X`), the `for` command **might** be promoted from the _experimental_ stage to _stable_ stage,
+at that point, version `0.X` would automatically set the `--for-in` flag to `true`, and the Earthfile could be updated
+to require version `0.X` (or later), and could be rewritten as `VERSION 0.X`.
 
 
 ## Feature flags
