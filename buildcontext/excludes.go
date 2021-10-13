@@ -23,7 +23,7 @@ var ImplicitExcludes = []string{
 	earthlyIgnoreFile,
 }
 
-func readExcludes(dir string) ([]string, error) {
+func readExcludes(dir string, noImplicitIgnore bool) ([]string, error) {
 	var ignoreFile = earthIgnoreFile
 
 	//earthIgnoreFile
@@ -34,13 +34,18 @@ func readExcludes(dir string) ([]string, error) {
 	var earthlyIgnoreFilePath = filepath.Join(dir, earthlyIgnoreFile)
 	earthlyExists := fileutil.FileExists(earthlyIgnoreFilePath)
 
+	defaultExcludes := ImplicitExcludes
+	if noImplicitIgnore {
+		defaultExcludes = []string{}
+	}
+
 	// Check which ones exists and which don't
 	if earthExists && earthlyExists {
 		// if both exist then throw an error
-		return ImplicitExcludes, errDuplicateIgnoreFile
+		return defaultExcludes, errDuplicateIgnoreFile
 	} else if earthExists == earthlyExists {
 		// return just ImplicitExcludes if neither of them exist
-		return ImplicitExcludes, nil
+		return defaultExcludes, nil
 	} else if earthlyExists {
 		ignoreFile = earthlyIgnoreFile
 	}
@@ -54,5 +59,5 @@ func readExcludes(dir string) ([]string, error) {
 	if err != nil {
 		return nil, errors.Wrapf(err, "parse %s", filePath)
 	}
-	return append(excludes, ImplicitExcludes...), nil
+	return append(excludes, defaultExcludes...), nil
 }

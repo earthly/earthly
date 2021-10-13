@@ -48,7 +48,7 @@ type Resolver struct {
 }
 
 // NewResolver returns a new NewResolver.
-func NewResolver(sessionID string, cleanCollection *cleanup.Collection, gitLookup *GitLookup, console conslogging.ConsoleLogger) *Resolver {
+func NewResolver(sessionID string, cleanCollection *cleanup.Collection, gitLookup *GitLookup, console conslogging.ConsoleLogger, featureFlagOverrides string) *Resolver {
 	return &Resolver{
 		gr: &gitResolver{
 			cleanCollection: cleanCollection,
@@ -57,9 +57,10 @@ func NewResolver(sessionID string, cleanCollection *cleanup.Collection, gitLooku
 			gitLookup:       gitLookup,
 		},
 		lr: &localResolver{
-			gitMetaCache: synccache.New(),
-			sessionID:    sessionID,
-			console:      console,
+			gitMetaCache:         synccache.New(),
+			sessionID:            sessionID,
+			console:              console,
+			featureFlagOverrides: featureFlagOverrides,
 		},
 		parseCache: synccache.New(),
 		console:    console,

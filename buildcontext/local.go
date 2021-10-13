@@ -5,8 +5,10 @@ import (
 	"path/filepath"
 
 	"github.com/earthly/earthly/analytics"
+	"github.com/earthly/earthly/ast"
 	"github.com/earthly/earthly/conslogging"
 	"github.com/earthly/earthly/domain"
+	"github.com/earthly/earthly/features"
 	"github.com/earthly/earthly/util/gitutil"
 	"github.com/earthly/earthly/util/llbutil"
 	"github.com/earthly/earthly/util/llbutil/llbfactory"
@@ -16,9 +18,10 @@ import (
 )
 
 type localResolver struct {
-	gitMetaCache *synccache.SyncCache // local path -> *gitutil.GitMetadata
-	sessionID    string
-	console      conslogging.ConsoleLogger
+	gitMetaCache         *synccache.SyncCache // local path -> *gitutil.GitMetadata
+	sessionID            string
+	console              conslogging.ConsoleLogger
+	featureFlagOverrides string
 }
 
 func (lr *localResolver) resolveLocal(ctx context.Context, ref domain.Reference) (*Data, error) {
@@ -56,9 +59,27 @@ func (lr *localResolver) resolveLocal(ctx context.Context, ref domain.Reference)
 		return nil, err
 	}
 
+	// Resolver is responsible for parsing the Earthfile later, however, we need to pre-emptively parse the
+	// version only so we can check the Earthfile version and feature gates. This is so the local resolver knows
+	// which files to exclude based on certain feature flags like --no-implicit-ignore.
+	version, err := ast.ParseVersion(buildFilePath, false)
+	if err != nil {
+		return nil, err
+	}
+
+	ftrs, err := features.GetFeatures(version)
+	if err != nil {
+		return nil, err
+	}
+
+	err = features.ApplyFlagOverrides(ftrs, lr.featureFlagOverrides)
+	if err != nil {
+		return nil, err
+	}
+
 	var buildContextFactory llbfactory.Factory
 	if _, isTarget := ref.(domain.Target); isTarget {
-		excludes, err := readExcludes(ref.GetLocalPath())
+		excludes, err := readExcludes(ref.GetLocalPath(), ftrs.NoImplicitIgnore)
 		if err != nil {
 			return nil, err
 		}
