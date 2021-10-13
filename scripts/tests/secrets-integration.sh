@@ -10,6 +10,7 @@ echo "running tests with $earthly"
 date +%s > /tmp/last-earthly-prerelease-check
 
 # ensure earthly login works (and print out who gets logged in)
+test -n "$EARTHLY_TOKEN"
 "$earthly" account login
 
 # fetch shared secret key (this step assumes your personal user has access to the /earthly-technologies/ secrets org
