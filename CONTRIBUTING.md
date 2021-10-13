@@ -42,13 +42,25 @@ For development purposes, you may use the built `earthly` binary to rebuild itse
 To run most tests you can issue
 
 ```bash
-./build/<platform>/amd64/earthly -P +test
+./build/<platform>/amd64/earthly -P \
+  --secret DOCKERHUB_USER=<my-docker-username> \
+  --secret DOCKERHUB_TOKEN=<my-docker-token> \
+  +test
 ```
 
 To also build the examples, you can run
 
 ```bash
-./build/<platform>/amd64/earthly -P +test-all
+./build/<platform>/amd64/earthly -P  \
+  --secret DOCKERHUB_USER=<my-docker-username> \
+  --secret DOCKERHUB_TOKEN=<my-docker-token> \
+  +test-all
+```
+
+The token should be the same token you use to login with Docker Hub. Other repositories are not supported. It is also possible to run tests without credentials, but running all of them; or running too frequently may incur rate limits. You could run a single test, without credentials like this:
+
+```bash
+./build/<platform>/amd64/earthly -P --build-arg DOCKERHUB_AUTH=false ./examples/tests+env-test
 ```
 
 ## Gotchas
