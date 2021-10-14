@@ -10,6 +10,7 @@ import (
 	"github.com/earthly/earthly/cleanup"
 	"github.com/earthly/earthly/conslogging"
 	"github.com/earthly/earthly/domain"
+	"github.com/earthly/earthly/features"
 	"github.com/earthly/earthly/util/gitutil"
 	"github.com/earthly/earthly/util/llbutil/llbfactory"
 	"github.com/earthly/earthly/util/syncutil/synccache"
@@ -36,6 +37,8 @@ type Data struct {
 	Ref domain.Reference
 	// LocalDirs is the local dirs map to be passed as part of the buildkit solve.
 	LocalDirs map[string]string
+	// Features holds the feature state for the build context
+	Features *features.Features
 }
 
 // Resolver is a build context resolver.
@@ -45,6 +48,8 @@ type Resolver struct {
 
 	parseCache *synccache.SyncCache // local path -> AST
 	console    conslogging.ConsoleLogger
+
+	featureFlagOverrides string
 }
 
 // NewResolver returns a new NewResolver.
@@ -57,13 +62,13 @@ func NewResolver(sessionID string, cleanCollection *cleanup.Collection, gitLooku
 			gitLookup:       gitLookup,
 		},
 		lr: &localResolver{
-			gitMetaCache:         synccache.New(),
-			sessionID:            sessionID,
-			console:              console,
-			featureFlagOverrides: featureFlagOverrides,
+			gitMetaCache: synccache.New(),
+			sessionID:    sessionID,
+			console:      console,
 		},
-		parseCache: synccache.New(),
-		console:    console,
+		parseCache:           synccache.New(),
+		console:              console,
+		featureFlagOverrides: featureFlagOverrides,
 	}
 }
 
@@ -78,7 +83,7 @@ func (r *Resolver) Resolve(ctx context.Context, gwClient gwclient.Client, ref do
 	localDirs := make(map[string]string)
 	if ref.IsRemote() {
 		// Remote.
-		d, err = r.gr.resolveEarthProject(ctx, gwClient, ref)
+		d, err = r.gr.resolveEarthProject(ctx, gwClient, ref, r.featureFlagOverrides)
 		if err != nil {
 			return nil, err
 		}
@@ -88,7 +93,7 @@ func (r *Resolver) Resolve(ctx context.Context, gwClient gwclient.Client, ref do
 			localDirs[ref.GetLocalPath()] = ref.GetLocalPath()
 		}
 
-		d, err = r.lr.resolveLocal(ctx, ref)
+		d, err = r.lr.resolveLocal(ctx, ref, r.featureFlagOverrides)
 		if err != nil {
 			return nil, err
 		}
@@ -114,4 +119,23 @@ func (r *Resolver) parseEarthfile(ctx context.Context, path string) (spec.Earthf
 	}
 	ef := efValue.(spec.Earthfile)
 	return ef, nil
+}
+
+func parseFeatures(buildFilePath string, featureFlagOverrides string) (*features.Features, error) {
+	version, err := ast.ParseVersion(buildFilePath, false)
+	if err != nil {
+		return nil, err
+	}
+
+	ftrs, err := features.GetFeatures(version)
+	if err != nil {
+		return nil, err
+	}
+
+	err = features.ApplyFlagOverrides(ftrs, featureFlagOverrides)
+	if err != nil {
+		return nil, err
+	}
+
+	return ftrs, nil
 }

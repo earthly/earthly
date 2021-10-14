@@ -5,10 +5,8 @@ import (
 	"path/filepath"
 
 	"github.com/earthly/earthly/analytics"
-	"github.com/earthly/earthly/ast"
 	"github.com/earthly/earthly/conslogging"
 	"github.com/earthly/earthly/domain"
-	"github.com/earthly/earthly/features"
 	"github.com/earthly/earthly/util/gitutil"
 	"github.com/earthly/earthly/util/llbutil"
 	"github.com/earthly/earthly/util/llbutil/llbfactory"
@@ -18,13 +16,12 @@ import (
 )
 
 type localResolver struct {
-	gitMetaCache         *synccache.SyncCache // local path -> *gitutil.GitMetadata
-	sessionID            string
-	console              conslogging.ConsoleLogger
-	featureFlagOverrides string
+	gitMetaCache *synccache.SyncCache // local path -> *gitutil.GitMetadata
+	sessionID    string
+	console      conslogging.ConsoleLogger
 }
 
-func (lr *localResolver) resolveLocal(ctx context.Context, ref domain.Reference) (*Data, error) {
+func (lr *localResolver) resolveLocal(ctx context.Context, ref domain.Reference, featureFlagOverrides string) (*Data, error) {
 	analytics.Count("localResolver.resolveLocal", "local-reference")
 	if ref.IsRemote() {
 		return nil, errors.Errorf("unexpected remote target %s", ref.String())
@@ -58,28 +55,15 @@ func (lr *localResolver) resolveLocal(ctx context.Context, ref domain.Reference)
 	if err != nil {
 		return nil, err
 	}
-
-	// Resolver is responsible for parsing the Earthfile later, however, we need to pre-emptively parse the
-	// version only so we can check the Earthfile version and feature gates. This is so the local resolver knows
-	// which files to exclude based on certain feature flags like --no-implicit-ignore.
-	version, err := ast.ParseVersion(buildFilePath, false)
-	if err != nil {
-		return nil, err
-	}
-
-	ftrs, err := features.GetFeatures(version)
-	if err != nil {
-		return nil, err
-	}
-
-	err = features.ApplyFlagOverrides(ftrs, lr.featureFlagOverrides)
+	ftrs, err := parseFeatures(buildFilePath, featureFlagOverrides)
 	if err != nil {
 		return nil, err
 	}
 
 	var buildContextFactory llbfactory.Factory
 	if _, isTarget := ref.(domain.Target); isTarget {
-		excludes, err := readExcludes(ref.GetLocalPath(), ftrs.NoImplicitIgnore)
+		noImplicitIgnore := ftrs != nil && ftrs.NoImplicitIgnore
+		excludes, err := readExcludes(ref.GetLocalPath(), noImplicitIgnore)
 		if err != nil {
 			return nil, err
 		}
@@ -98,5 +82,6 @@ func (lr *localResolver) resolveLocal(ctx context.Context, ref domain.Reference)
 		BuildFilePath:       buildFilePath,
 		BuildContextFactory: buildContextFactory,
 		GitMetadata:         metadata,
+		Features:            ftrs,
 	}, nil
 }

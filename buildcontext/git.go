@@ -49,7 +49,7 @@ type resolvedGitProject struct {
 	state pllb.State
 }
 
-func (gr *gitResolver) resolveEarthProject(ctx context.Context, gwClient gwclient.Client, ref domain.Reference) (*Data, error) {
+func (gr *gitResolver) resolveEarthProject(ctx context.Context, gwClient gwclient.Client, ref domain.Reference, featureFlagOverrides string) (*Data, error) {
 	if !ref.IsRemote() {
 		return nil, errors.Errorf("unexpected local reference %s", ref.String())
 	}
@@ -111,6 +111,12 @@ func (gr *gitResolver) resolveEarthProject(ctx context.Context, gwClient gwclien
 		return nil, err
 	}
 	localBuildFilePath := localBuildFilePathValue.(string)
+
+	ftrs, err := parseFeatures(localBuildFilePath, featureFlagOverrides)
+	if err != nil {
+		return nil, err
+	}
+
 	// TODO: Apply excludes / .earthignore.
 	return &Data{
 		BuildFilePath:       localBuildFilePath,
@@ -124,6 +130,7 @@ func (gr *gitResolver) resolveEarthProject(ctx context.Context, gwClient gwclien
 			Tags:      rgp.tags,
 			Timestamp: rgp.ts,
 		},
+		Features: ftrs,
 	}, nil
 }
 
