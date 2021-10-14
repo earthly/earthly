@@ -21,7 +21,7 @@ type localResolver struct {
 	console      conslogging.ConsoleLogger
 }
 
-func (lr *localResolver) resolveLocal(ctx context.Context, ref domain.Reference) (*Data, error) {
+func (lr *localResolver) resolveLocal(ctx context.Context, ref domain.Reference, featureFlagOverrides string) (*Data, error) {
 	analytics.Count("localResolver.resolveLocal", "local-reference")
 	if ref.IsRemote() {
 		return nil, errors.Errorf("unexpected remote target %s", ref.String())
@@ -55,10 +55,15 @@ func (lr *localResolver) resolveLocal(ctx context.Context, ref domain.Reference)
 	if err != nil {
 		return nil, err
 	}
+	ftrs, err := parseFeatures(buildFilePath, featureFlagOverrides)
+	if err != nil {
+		return nil, err
+	}
 
 	var buildContextFactory llbfactory.Factory
 	if _, isTarget := ref.(domain.Target); isTarget {
-		excludes, err := readExcludes(ref.GetLocalPath())
+		noImplicitIgnore := ftrs != nil && ftrs.NoImplicitIgnore
+		excludes, err := readExcludes(ref.GetLocalPath(), noImplicitIgnore)
 		if err != nil {
 			return nil, err
 		}
@@ -77,5 +82,6 @@ func (lr *localResolver) resolveLocal(ctx context.Context, ref domain.Reference)
 		BuildFilePath:       buildFilePath,
 		BuildContextFactory: buildContextFactory,
 		GitMetadata:         metadata,
+		Features:            ftrs,
 	}, nil
 }

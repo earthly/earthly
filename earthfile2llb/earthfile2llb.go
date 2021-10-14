@@ -115,18 +115,10 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt, in
 		return nil, errors.Wrapf(err, "resolve build context for target %s", target.String())
 	}
 
-	ftrs, err := features.GetFeatures(bc.Earthfile.Version)
-	if err != nil {
-		return nil, errors.Wrapf(err, "resolve feature set for version %v for target %s", bc.Earthfile.Version.Args, target.String())
-	}
-	err = features.ApplyFlagOverrides(ftrs, opt.FeatureFlagOverrides)
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to apply version feature overrides")
-	}
-	opt.Features = ftrs
+	opt.Features = bc.Features
 	if initialCall {
 		// It's not possible to know if we should DoSaves until after we have parsed the target's VERSION features.
-		if ftrs.ReferencedSaveOnly {
+		if bc.Features.ReferencedSaveOnly {
 			opt.DoSaves = true
 		} else {
 			if !target.IsRemote() {
@@ -148,7 +140,7 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt, in
 			Visited: opt.Visited,
 		}, nil
 	}
-	converter, err := NewConverter(ctx, targetWithMetadata, bc, sts, opt, ftrs)
+	converter, err := NewConverter(ctx, targetWithMetadata, bc, sts, opt)
 	if err != nil {
 		return nil, err
 	}

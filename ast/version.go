@@ -11,7 +11,8 @@ import (
 	"github.com/pkg/errors"
 )
 
-func parseVersion(filePath string, enableSourceMap bool) (*spec.Version, error) {
+// ParseVersion reads the VERSION command for an Earthfile and returns spec.Version
+func ParseVersion(filePath string, enableSourceMap bool) (*spec.Version, error) {
 	file, err := os.Open(filePath)
 	if err != nil {
 		return nil, errors.Wrapf(err, "unable to open %q", filePath)

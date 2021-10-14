@@ -13,6 +13,7 @@ func Test_readExcludes(t *testing.T) {
 		name                  string
 		earthIgnoreContents   string
 		earthlyIgnoreContents string
+		noImplicitIgnore      bool
 		expectedExcludes      []string
 		expectedErr           error
 	}{
@@ -27,8 +28,25 @@ func Test_readExcludes(t *testing.T) {
 			expectedExcludes:    []string{"foobar", ".tmp-earthly-out/", "build.earth", "Earthfile", ".earthignore", ".earthlyignore"},
 		},
 		{
+			name:                  "only .earthlyignore with no implicit ignore",
+			earthlyIgnoreContents: `foobar/`,
+			noImplicitIgnore:      true,
+			expectedExcludes:      []string{"foobar"},
+		},
+		{
+			name:                "only .earthignore with no implicit ignore",
+			earthIgnoreContents: `foobar/`,
+			noImplicitIgnore:    true,
+			expectedExcludes:    []string{"foobar"},
+		},
+		{
 			name:             "no ignore file, default to implicit rules",
 			expectedExcludes: ImplicitExcludes,
+		},
+		{
+			name:             "no ignore file and no implicit ignore",
+			noImplicitIgnore: true,
+			expectedExcludes: []string{},
 		},
 		{
 			name:                  "both .earthignore and .earthlyignore results in error",
@@ -71,7 +89,7 @@ func Test_readExcludes(t *testing.T) {
 				}
 			}
 
-			excludes, err := readExcludes(dir)
+			excludes, err := readExcludes(dir, testcase.noImplicitIgnore)
 			if err != testcase.expectedErr {
 				t.Logf("actual err: %v", err)
 				t.Logf("expected err: %v", testcase.expectedErr)
