@@ -12,6 +12,8 @@ import (
 const earthIgnoreFile = ".earthignore"
 const earthlyIgnoreFile = ".earthlyignore"
 
+var errDuplicateIgnoreFile = errors.New("both .earthignore and .earthlyignore exist - please remove one")
+
 // ImplicitExcludes is a list of implicit patterns to exclude.
 var ImplicitExcludes = []string{
 	".tmp-earthly-out/",
@@ -35,7 +37,7 @@ func readExcludes(dir string) ([]string, error) {
 	// Check which ones exists and which don't
 	if earthExists && earthlyExists {
 		// if both exist then throw an error
-		return ImplicitExcludes, errors.New("both .earthignore and .earthlyignore exist - please remove one")
+		return ImplicitExcludes, errDuplicateIgnoreFile
 	} else if earthExists == earthlyExists {
 		// return just ImplicitExcludes if neither of them exist
 		return ImplicitExcludes, nil
