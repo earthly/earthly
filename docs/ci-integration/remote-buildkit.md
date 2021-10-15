@@ -31,7 +31,7 @@ A remote daemon should be reachable by all clients intending to use it. Earthly 
 
 #### Daemon
 
-To configure an `earhly/buildkitd` daemon as a remotely available daemon, you will need to start the container yourself. See our [configuration docs](../earthly-config/earthly-config.md) for more details on all the options available; but here are the ones you need to know:
+To configure an `earthly/buildkitd` daemon as a remotely available daemon, you will need to start the container yourself. See our [configuration docs](../earthly-config/earthly-config.md) for more details on all the options available; but here are the ones you need to know:
 
 **`BUILDKIT_TCP_TRANSPORT_ENABLED`**
 
