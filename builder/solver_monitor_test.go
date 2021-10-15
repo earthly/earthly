@@ -84,8 +84,8 @@ func TestParseVertexName(t *testing.T) {
 			operation:      "Load metadata linux/amd64",
 		},
 		{
-			name:           "[./examples/tests/local+test-local *local* 5577006791947779410] RUN whoami",
-			targetStr:      "./examples/tests/local+test-local *local*",
+			name:           "[./tests/local+test-local *local* 5577006791947779410] RUN whoami",
+			targetStr:      "./tests/local+test-local *local*",
 			targetBrackets: "",
 			meta:           map[string]string{},
 			salt:           "5577006791947779410",

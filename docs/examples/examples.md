@@ -72,7 +72,7 @@ Please note that these examples, although similar, are distinct from the ones us
 ### Other
 
 * [readme](https://github.com/earthly/earthly/tree/main/examples/readme) - some sample code we used in our README.
-* [tests](https://github.com/earthly/earthly/tree/main/examples/tests) - a suite of tests Earthly uses to ensure that its features are working correctly.
+* [tests](https://github.com/earthly/earthly/tree/main/tests) - a suite of tests Earthly uses to ensure that its features are working correctly.
 
 ### Earthly's own build
 

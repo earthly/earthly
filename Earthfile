@@ -130,7 +130,7 @@ lint-newline-ending:
     # test file ends with a single newline
     RUN set -e; \
         code=0; \
-        for f in $(find . -type f \( -iname '*.yml' -o -iname '*.go' -o -iname 'Earthfile' -o -iname '*.earth' \) | grep -v "ast/tests/empty-targets.earth" | grep -v "examples/tests/version/version-only.earth" ); do \
+        for f in $(find . -type f \( -iname '*.yml' -o -iname '*.go' -o -iname 'Earthfile' -o -iname '*.earth' \) | grep -v "ast/tests/empty-targets.earth" | grep -v "tests/version/version-only.earth" ); do \
             if [ "$(tail -c 1 $f)" != "$(printf '\n')" ]; then \
                 echo "$f does not end with a newline"; \
                 code=1; \
@@ -460,7 +460,7 @@ test:
         --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
         --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
         --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR
-    BUILD ./examples/tests+ga \
+    BUILD ./tests+ga \
         --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
         --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
         --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
@@ -477,7 +477,7 @@ test-all:
         --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
         --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
         --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR
-    BUILD ./examples/tests+experimental  \
+    BUILD ./tests+experimental  \
         --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
         --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
         --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
