@@ -284,6 +284,7 @@ func Start(ctx context.Context, console conslogging.ConsoleLogger, image, contai
 		"BUILDKIT_DEBUG":                 strconv.FormatBool(settings.Debug),
 		"BUILDKIT_TCP_TRANSPORT_ENABLED": strconv.FormatBool(settings.UseTCP),
 		"BUILDKIT_TLS_ENABLED":           strconv.FormatBool(settings.UseTCP && settings.UseTLS),
+		"BUILDKIT_MAX_PARALLELISM":       strconv.Itoa(settings.MaxParallelism),
 	}
 
 	labelOpts := map[string]string{

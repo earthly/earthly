@@ -569,6 +569,13 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 			Usage:       "Set the conversion parallelism, which speeds up the use of IF, WITH DOCKER --load, FROM DOCKERFILE and others. A value of 0 disables the feature *experimental*",
 			Destination: &app.conversionParllelism,
 		},
+		&cli.IntFlag{
+			Name:        "max-parallelism",
+			Value:       20,
+			EnvVars:     []string{"EARTHLY_MAX_PARALLELISM"},
+			Usage:       "Set max parallelism for builtkitd",
+			Destination: &app.buildkitdSettings.MaxParallelism,
+		},
 		&cli.BoolFlag{
 			EnvVars:     []string{"EARTHLY_DISABLE_ANALYTICS", "DO_NOT_TRACK"},
 			Usage:       "Disable collection of analytics",
@@ -947,7 +954,7 @@ Set additional buildkit args, using a YAML array:
 	config global.buildkit_additional_args ['userns', '--host']
 
 Set a key containing a period:
-		
+
 	config git."example.com".password hunter2
 
 Set up a whole custom git repository for a server called example.com, using a single-line YAML literal:
