@@ -60,6 +60,11 @@ test-comment-and-whitespace-before-version:
 test-whitespace-then-version:
     DO +RUN_EARTHLY_ARGS --earthfile=whitespace-then-version.earth --target=+test
 
+test-invalid-versions:
+    DO +RUN_EARTHLY_ARGS --should_fail=true --earthfile=invalid-major-version.earth --target=+base
+    DO +RUN_EARTHLY_ARGS --should_fail=true --earthfile=invalid-minor-version.earth --target=+base
+    DO +RUN_EARTHLY_ARGS --should_fail=true --earthfile=invalid-patch-version.earth --target=+base
+
 test-all:
     BUILD +test-single-line
     BUILD +test-single-line-with-args
@@ -76,14 +81,17 @@ test-all:
     BUILD +test-comment-and-whitespace-before-version
     BUILD +test-whitespace-then-version
     BUILD +test-version-only-import
+    BUILD +test-invalid-versions
 
 RUN_EARTHLY_ARGS:
     COMMAND
     ARG earthfile
     ARG target
+    ARG should_fail=false
     DO tests+RUN_EARTHLY \
         --earthfile=$earthfile \
         --target=$target \
+	--should_fail=$should_fail \
         --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
         --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
         --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \

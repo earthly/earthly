@@ -1,17 +1,29 @@
 package ast
 
 import (
+	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/earthly/earthly/ast/spec"
 	"github.com/pkg/errors"
 )
 
+// List of valid Earthfile versions.
+// At some point we might want to break out Earthfile versioning
+// into it's own package with some helper functions that are
+// consumable from other packages.
+var validEarthfileVersions = []string{
+	"0.0",
+	"0.5",
+}
+
 type astValidator func(spec.Earthfile) []error
 
 var astValidations = []astValidator{
 	noTargetsWithSameName,
 	noTargetsWithKeywords,
+	validVersion,
 	// TODO other checks go here
 }
 
@@ -34,6 +46,38 @@ func validateAst(ef spec.Earthfile) error {
 	}
 
 	return nil
+}
+
+func validVersion(ef spec.Earthfile) []error {
+	var errs []error
+
+	// VERSION is not required in Earthfile for now
+	if ef.Version == nil {
+		return nil
+	}
+
+	major, minor, err := parseSemver(ef.Version)
+	if err != nil {
+		errs = append(errs, err)
+	}
+
+	majorStr := strconv.Itoa(major)
+	minorStr := strconv.Itoa(minor)
+	earthFileVersion := fmt.Sprintf("%s.%s", majorStr, minorStr)
+
+	isVersionValid := false
+	for _, version := range validEarthfileVersions {
+		if earthFileVersion == version {
+			isVersionValid = true
+			break
+		}
+	}
+
+	if !isVersionValid {
+		errs = append(errs, errors.Errorf("Earthfile version is invalid, supported versions are %v", validEarthfileVersions))
+	}
+
+	return errs
 }
 
 func noTargetsWithSameName(ef spec.Earthfile) []error {
