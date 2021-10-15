@@ -64,6 +64,7 @@ test-invalid-versions:
     DO +RUN_EARTHLY_ARGS --should_fail=true --earthfile=invalid-major-version.earth --target=+base
     DO +RUN_EARTHLY_ARGS --should_fail=true --earthfile=invalid-minor-version.earth --target=+base
     DO +RUN_EARTHLY_ARGS --should_fail=true --earthfile=invalid-patch-version.earth --target=+base
+    DO +RUN_EARTHLY_ARGS --should_fail=true --earthfile=invalid-format-version.earth --target=+base
 
 test-all:
     BUILD +test-single-line
