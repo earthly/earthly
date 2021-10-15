@@ -29,7 +29,7 @@ certs:
     SAVE ARTIFACT certs AS LOCAL certs
 
 test-base:
-    FROM ../../..+earthly-integration-test-base \
+    FROM ../..+earthly-integration-test-base \
         --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
         --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
         --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
