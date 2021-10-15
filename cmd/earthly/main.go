@@ -569,13 +569,6 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 			Usage:       "Set the conversion parallelism, which speeds up the use of IF, WITH DOCKER --load, FROM DOCKERFILE and others. A value of 0 disables the feature *experimental*",
 			Destination: &app.conversionParllelism,
 		},
-		&cli.IntFlag{
-			Name:        "max-parallelism",
-			Value:       20,
-			EnvVars:     []string{"EARTHLY_MAX_PARALLELISM"},
-			Usage:       "Set max parallelism for builtkitd",
-			Destination: &app.buildkitdSettings.MaxParallelism,
-		},
 		&cli.BoolFlag{
 			EnvVars:     []string{"EARTHLY_DISABLE_ANALYTICS", "DO_NOT_TRACK"},
 			Usage:       "Disable collection of analytics",
@@ -1063,6 +1056,7 @@ func (app *earthlyApp) before(context *cli.Context) error {
 	app.buildkitdSettings.LocalRegistryAddress = app.localRegistryHost
 	app.buildkitdSettings.UseTCP = bkURL.Scheme == "tcp"
 	app.buildkitdSettings.UseTLS = app.cfg.Global.TLSEnabled
+	app.buildkitdSettings.MaxParallelism = app.cfg.Global.BuildkitMaxParallelism
 
 	// ensure the MTU is something allowable in IPv4, cap enforced by type. Zero is autodetect.
 	if app.cfg.Global.CniMtu != 0 && app.cfg.Global.CniMtu < 68 {
