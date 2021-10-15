@@ -117,7 +117,7 @@ ga:
     BUILD +dont-save-indirect-remote-artifact
     BUILD +sequential-locally-test
     BUILD +homebrew-test
-    BUILD +no-implicit-ignore
+    BUILD +implicit-ignores
 
 experimental:
     BUILD ./dind-auto-install+all
@@ -859,11 +859,12 @@ homebrew-test:
     # This is to ensure the assert in https://github.com/earthly/homebrew-earthly/blob/main/Formula/earthly.rb continues to work
     RUN earthly --version | grep '^earthly version'
 
-no-implicit-ignore:
+implicit-ignores:
     RUN mkdir -p ignored notignored && \
         echo "ignored/" > .earthlyignore && \
         echo "test" > notignored/test && \
         echo "test" > ignored/test
+    DO +RUN_EARTHLY --earthfile=implicit-ignore.earth
     DO +RUN_EARTHLY --earthfile=no-implicit-ignore.earth
 
 
