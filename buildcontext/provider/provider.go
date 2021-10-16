@@ -88,8 +88,7 @@ func (bcp *BuildContextProvider) addDir(dirName, dir string) {
 		st.Gid = 0
 		return true
 	}
-	var sd SyncedDir
-	sd = SyncedDir{
+	var sd SyncedDir = SyncedDir{
 		Name: dirName,
 		Dir:  dir,
 		Map:  resetUIDAndGID,
