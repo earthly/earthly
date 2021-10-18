@@ -79,6 +79,7 @@ install_dockerd() {
 }
 
 install_dockerd_debian_like() {
+    export DEBIAN_FRONTEND=noninteractive
     apt-get remove -y docker docker-engine docker.io containerd runc || true
     apt-get update
     apt-get install -y \
