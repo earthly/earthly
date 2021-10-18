@@ -1,0 +1,10 @@
+FROM alpine:3.13
+WORKDIR /test
+
+all:
+    COPY . .
+    # Earthfile and .earthlyignore not should be COPY-able unless --no-implicit-ignore was set
+    RUN ! ls Earthfile
+    RUN ! ls .earthlyignore
+    RUN ls notignored/
+    RUN ! ls ignored/
