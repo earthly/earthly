@@ -92,7 +92,7 @@ RUN_EARTHLY_ARGS:
     DO tests+RUN_EARTHLY \
         --earthfile=$earthfile \
         --target=$target \
-	--should_fail=$should_fail \
+        --should_fail=$should_fail \
         --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
         --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
         --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
