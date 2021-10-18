@@ -58,10 +58,26 @@ buildkitd:
     ARG DOCKERHUB_USER="earthly"
     SAVE IMAGE --push --cache-from=earthly/buildkitd:main $DOCKERHUB_USER/buildkitd:$TAG
 
+buildkit-sha:
+    RUN apk add git
+    ARG BUILDKIT_GIT_SHA
+    ARG BUILDKIT_GIT_BRANCH=earthly-main
+    RUN --no-cache set -e; \
+        if [ "$(echo -n $BUILDKIT_GIT_SHA | wc -c)" = 40 ]; then \
+            echo "pinning github.com/earthly/buildkit to reference git sha1: $BUILDKIT_GIT_SHA"; \
+            buildkit_sha1="$BUILDKIT_GIT_SHA"; \
+        else \
+            test -z "$BUILDKIT_GIT_SHA"; \
+            echo "looking up branch $BUILDKIT_GIT_BRANCH"; \
+            buildkit_sha1=$(git ls-remote --refs -q https://github.com/earthly/buildkit.git "$BUILDKIT_GIT_BRANCH" | awk 'BEGIN { FS = "[ \t]+" } {print $1}'); \
+            echo "pinning github.com/earthly/buildkit@${BUILDKIT_BRANCH} to reference git sha1: $buildkit_sha1"; \
+        fi && \
+        test -n "$buildkit_sha1" && \
+        echo "$buildkit_sha1" > buildkit_sha
+    SAVE ARTIFACT buildkit_sha buildkit_sha
+
 update-buildkit:
     LOCALLY
-    ARG BUILDKIT_BRANCH=earthly-main
-    RUN buildkit_sha1=$(git ls-remote --refs -q https://github.com/earthly/buildkit.git "$BUILDKIT_BRANCH" | awk 'BEGIN { FS = "[ \t]+" } {print $1}') && \
-        test ! -z "$buildkit_sha1" && \
-        echo "pinning github.com/earthly/buildkit@${BUILDKIT_BRANCH} to reference git sha1: $buildkit_sha1" && \
-        sed -i 's/\(^[ \t]\+ARG BUILDKIT_BASE_IMAGE=github.com\/earthly\/buildkit\).*/\1:'$buildkit_sha1'+build/g' Earthfile
+    ARG BUILDKIT_GIT_SHA
+    RUN test -n "$BUILDKIT_GIT_SHA" && \
+        sed -i 's/\(^[ \t]\+ARG BUILDKIT_BASE_IMAGE=github.com\/earthly\/buildkit\).*/\1:'$BUILDKIT_GIT_SHA'+build/g' Earthfile
