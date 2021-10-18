@@ -505,7 +505,7 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 		&cli.BoolFlag{
 			Name:        "max-remote-cache",
 			EnvVars:     []string{"EARTHLY_MAX_REMOTE_CACHE"},
-			Usage:       "Saves all intermediate images too in the remove cache *experimental*",
+			Usage:       "Saves all intermediate images too in the remote cache *experimental*",
 			Destination: &app.maxRemoteCache,
 		},
 		&cli.BoolFlag{
@@ -947,7 +947,7 @@ Set additional buildkit args, using a YAML array:
 	config global.buildkit_additional_args ['userns', '--host']
 
 Set a key containing a period:
-		
+
 	config git."example.com".password hunter2
 
 Set up a whole custom git repository for a server called example.com, using a single-line YAML literal:
