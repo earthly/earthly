@@ -47,12 +47,14 @@ code:
 
 update-buildkit:
     FROM +code # if we use deps, go mod tidy will remove a bunch of requirements since it won't have access to our codebase.
-    ARG BUILDKIT_BRANCH=earthly-main
-    BUILD ./buildkitd+update-buildkit --BUILDKIT_BRANCH=$BUILDKIT_BRANCH
-    RUN --no-cache go mod edit -replace "github.com/moby/buildkit=github.com/earthly/buildkit@$BUILDKIT_BRANCH"
+    ARG BUILDKIT_GIT_SHA
+    ARG BUILDKIT_GIT_BRANCH=earthly-main
+    COPY ./buildkitd+buildkit-sha/buildkit_sha buildkit_sha
+    BUILD --build-arg "BUILDKIT_GIT_SHA=$(cat buildkit_sha)" ./buildkitd+update-buildkit
+    RUN --no-cache go mod edit -replace "github.com/moby/buildkit=github.com/earthly/buildkit@$(cat buildkit_sha)"
     RUN --no-cache go mod tidy
-    SAVE ARTIFACT go.mod AS LOCAL go.mod-fixme  # this is a bug since we can't save to go.mod which was already saved in +deps
-    SAVE ARTIFACT go.sum AS LOCAL go.sum-fixme  # this is a bug since we can't save to go.sum which was already saved in +deps
+    SAVE ARTIFACT go.mod AS LOCAL go.mod
+    SAVE ARTIFACT go.sum AS LOCAL go.sum
 
 lint-scripts-base:
     FROM alpine:3.13
