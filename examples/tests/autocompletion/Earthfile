@@ -46,6 +46,12 @@ test-targets:
     RUN COMP_LINE="earthly +m" COMP_POINT=10 earthly > actual
     RUN diff expected actual
 
+test-base-only-target:
+    COPY base.earth ./Earthfile
+    RUN echo "+base " > expected
+    RUN COMP_LINE="earthly +" COMP_POINT=9 earthly > actual
+    RUN diff expected actual
+
 test-relative-dir-targets:
     RUN mkdir -p /test/foo
     COPY fake.earth /test/foo/Earthfile
@@ -62,4 +68,5 @@ test-all:
     BUILD +test-root-commands
     BUILD +test-hidden-root-commands
     BUILD +test-targets
+    BUILD +test-base-only-target
     BUILD +test-relative-dir-targets
