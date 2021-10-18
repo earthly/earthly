@@ -106,5 +106,5 @@ func withShellAndEnvVarsOutput(outputFile string) shellWrapFun {
 }
 
 func escapeShellSingleQuotes(arg string) string {
-	return strings.Replace(arg, "'", "'\"'\"'", -1)
+	return strings.ReplaceAll(arg, "'", "'\"'\"'")
 }
