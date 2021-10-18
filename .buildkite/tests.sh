@@ -2,7 +2,16 @@
 
 set -xeu
 
-trap 'kill $(jobs -p); wait' SIGINT SIGTERM
+function cleanup() {
+    jobs="$(jobs -p)"
+    if [ -n "$jobs" ]
+    then
+        # shellcheck disable=SC2086 # Intended splitting of 
+        kill $jobs
+    fi
+    wait
+}
+trap cleanup EXIT
 
 export EARTHLY_CONVERSION_PARALLELISM=5
 
