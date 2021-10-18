@@ -19,6 +19,8 @@ Docker has a [guide for getting a pull-through cache up and running](https://doc
 
 ### Configuration & Tips
 
+####  Set Up Mirror Authentication
+
 Pull-through caches run _unsecured_ by default. Add an `htpasswd` file for basic authentication, at a minimum:
 ```yaml
 auth:
@@ -26,6 +28,8 @@ auth:
     realm: basic-realm
     path: /auth/htpasswd
 ```
+
+#### Set Up Mirror TLS
 
 Adding TLS is also highly recommended. you can bring your own certificates, or use the built-in LetsEncrypt support:
 ```yaml
@@ -38,3 +42,20 @@ http:
 ```
 
 The currently shipping `library/registry` image does not support the DNS-01 challenge yet, and [some of the LetsEncrypt challenge support is getting out of date](https://github.com/distribution/distribution/issues/3041). If you need this, there is a [tracking issue](https://github.com/docker/distribution-library-image/issues/96); We have had success by [building the binary ourselves](https://github.com/earthly/registry/blob/3f06d1fc5d7f456b63b870b2851fd18cd2098dcf/Earthfile#L3-L11) and replacing it in the image that Docker ships.
+
+#### Use An Insecure Mirror
+
+By default, Earthly expects your mirror to be using TLS. While this is not recommended, you can use an unsecured mirror by specifying the following config in the `buildkit_additional_config` setting:
+
+```yaml
+global:
+  buildkit_additional_config: |
+    [registry."<upstream>"]
+      mirrors = ["<mirror>"]
+
+    [registry."<mirror>"]
+      http = true
+      insecure = true
+```
+
+Where `<mirror>` is the host/port of your mirror, and `<upstream>` is the address of the registry you are intending to mirror.
