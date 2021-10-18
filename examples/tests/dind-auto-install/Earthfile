@@ -1,4 +1,3 @@
-
 all:
     BUILD \
         --build-arg BASE_IMAGE=docker:dind \
@@ -16,6 +15,7 @@ test:
     ARG BASE_IMAGE
     FROM $BASE_IMAGE
     COPY ./docker-compose.yml ./
+    RUN cat docker-compose.yml && md5sum docker-compose.yml | grep b6626aeca817ea311ae8f1555c01a9cb
     WITH DOCKER --compose docker-compose.yml
         RUN true
     END
