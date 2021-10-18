@@ -40,17 +40,19 @@ def test_interactive(earthly_path, timeout):
             c.wait()
 
             assert not c.isalive()
+        except pexpect.exceptions.TIMEOUT as e:
+            print('interactive test timedout')
+            exit_code = 2
         except Exception as e:
-            print('interactive test failed')
-            print(f'{e}')
-
-            print('pexpect debug information')
-            print(str(c))
+            print(f'interactive test failed with {e}')
             exit_code = 1
         finally:
             print('earthly output')
             s = ''.join(ch for ch in output.getvalue() if ch.isprintable() or ch == '\n')
             print(s)
+            if exit_code:
+                print('additional pexpect debug information')
+                print(str(c)+'\n')
     finally:
         os.chdir(cwd)
 
