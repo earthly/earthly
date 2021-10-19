@@ -96,6 +96,10 @@ func getPotentialPaths(prefix string) ([]string, error) {
 		if err != nil {
 			return nil, err
 		}
+		if len(targets) == 0 {
+			// only suggest when Earthfile has no other targets
+			targets = append(targets, "base")
+		}
 
 		potentials := []string{}
 		for _, target := range targets {
