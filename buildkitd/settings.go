@@ -30,6 +30,7 @@ type Settings struct {
 	UseTLS               bool
 	VolumeName           string
 	IPTables             string
+	MaxParallelism       int
 }
 
 // Hash returns a secure hash of the settings.
