@@ -1,6 +1,7 @@
 package ast
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/earthly/earthly/ast/spec"
@@ -14,6 +15,8 @@ import (
 var validEarthfileVersions = []string{
 	"0.5",
 }
+
+var errUnexpectedVersionArgs = fmt.Errorf("unexpected VERSION arguments; should be VERSION [flags] <major-version>.<minor-version>")
 
 type astValidator func(spec.Earthfile) []error
 
@@ -55,7 +58,7 @@ func validVersion(ef spec.Earthfile) []error {
 
 	// if VERSION is specified, it's invalid to have no args
 	if len(ef.Version.Args) == 0 {
-		errs = append(errs, errUnexpectedArgs)
+		errs = append(errs, errUnexpectedVersionArgs)
 		return errs
 	}
 

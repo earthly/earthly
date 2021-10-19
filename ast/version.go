@@ -11,8 +11,6 @@ import (
 	"github.com/pkg/errors"
 )
 
-var errUnexpectedArgs = fmt.Errorf("unexpected VERSION arguments; should be VERSION [flags] <major-version>.<minor-version>")
-
 // ParseVersion reads the VERSION command for an Earthfile and returns spec.Version
 func ParseVersion(filePath string, enableSourceMap bool) (*spec.Version, error) {
 	file, err := os.Open(filePath)
