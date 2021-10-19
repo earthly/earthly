@@ -16,6 +16,11 @@ if [ -z "$BUILDKIT_DEBUG" ]; then
     exit 1
 fi
 
+if [ -z "$BUILDKIT_MAX_PARALLELISM" ]; then
+    echo "BUILDKIT_MAX_PARALLELISM not set"
+    exit 1
+fi
+
 if [ -z "$EARTHLY_TMP_DIR" ]; then
     echo "EARTHLY_TMP_DIR not set"
     exit 1
