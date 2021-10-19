@@ -122,7 +122,7 @@ All Earthfiles start with a base recipe. This is the only recipe which does not 
 
 ```
 # base recipe
-FROM golang:1.15-alpine3.13
+FROM golang:1.17-alpine3.14
 WORKDIR /go-example
 
 build:

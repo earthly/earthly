@@ -40,7 +40,7 @@ The build then might become
 `./Earthfile`
 
 ```Dockerfile
-FROM golang:1.15-alpine3.13
+FROM golang:1.17-alpine3.14
 WORKDIR /go-example
 
 build:

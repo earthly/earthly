@@ -9,7 +9,7 @@ Note that in our case, only the JavaScript version has an example where `FROM +d
 `./Earthfile`
 
 ```Dockerfile
-FROM golang:1.15-alpine3.13
+FROM golang:1.17-alpine3.14
 WORKDIR /go-example
 
 deps:

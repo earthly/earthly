@@ -157,7 +157,7 @@ build-all-platforms:
     BUILD +build-arm-v7
 
 build:
-    FROM golang:1.15-alpine3.13
+    FROM golang:1.17-alpine3.14
     WORKDIR /example
     ARG GOOS=linux
     ARG GOARCH=amd64
@@ -201,7 +201,7 @@ build-all-platforms:
     BUILD --platform=linux/amd64 --platform=linux/arm/v7 +build-image
 
 build:
-    FROM golang:1.15-alpine3.13
+    FROM golang:1.17-alpine3.14
     WORKDIR /example
     ARG GOOS=linux
     ARG GOARCH=amd64

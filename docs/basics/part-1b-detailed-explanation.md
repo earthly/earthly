@@ -10,7 +10,7 @@ The first commands in the file are part of the `base` target and are implicitly 
 The build starts from a docker image: `golang:1.15-alpine3.13`.
 
 ```Dockerfile
-FROM golang:1.15-alpine3.13
+FROM golang:1.17-alpine3.14
 ```
 
 We change the current working directory to `/go-example`.

@@ -26,7 +26,7 @@ In our case, we will use a `Earthfile` to build it. We will create a target call
 ```Dockerfile
 # Earthfile
 
-FROM golang:1.15-alpine3.13
+FROM golang:1.17-alpine3.14
 
 WORKDIR /go-example
 
@@ -44,7 +44,7 @@ To execute the build, we can run `earthly +build`:
 ~/workspace/earthly/examples/go ❯ earthly +build
 buildkitd | Found buildkit daemon as docker container (earthly-buildkitd)
 context | --> local context .
-+base | --> FROM golang:1.15-alpine3.13
++base | --> FROM golang:1.17-alpine3.14
 +base | resolve docker.io/library/golang:1.15-alpine3.13@sha256:7d45a6fc9cde63c3bf41651736996fe94a8347e726fe581926fd8c26e244e3b2 0%
 +base | resolve docker.io/library/golang:1.15-alpine3.13@sha256:7d45a6fc9cde63c3bf41651736996fe94a8347e726fe581926fd8c26e244e3b2 100%
 +base | --> WORKDIR /go-example
@@ -85,7 +85,7 @@ We can then run `earthly +docker` to build this target:
 ~/workspace/earthly/examples/go ❯ earthly +docker     
 buildkitd | Found buildkit daemon as docker container (earthly-buildkitd)
 context | --> local context .
-+base | --> FROM golang:1.15-alpine3.13
++base | --> FROM golang:1.17-alpine3.14
 +base | resolve docker.io/library/golang:1.15-alpine3.13@sha256:7d45a6fc9cde63c3bf41651736996fe94a8347e726fe581926fd8c26e244e3b2 0%
 +base | resolve docker.io/library/golang:1.15-alpine3.13@sha256:7d45a6fc9cde63c3bf41651736996fe94a8347e726fe581926fd8c26e244e3b2 100%
 +base | *cached* --> WORKDIR /go-example
@@ -125,7 +125,7 @@ To execute the unit-tests, we can run `earthly -P +unit-test`:
 ```
            buildkitd | Found buildkit daemon as docker container (earthly-buildkitd)
 golang:1.15-alpine3.13 | --> Load metadata linux/amd64
-               +base | --> FROM golang:1.15-alpine3.13
+               +base | --> FROM golang:1.17-alpine3.14
              context | --> local context .
                +base | [██████████] resolve docker.io/library/golang:1.15-alpine3.13@sha256:330f31a4415d97bb64f244d5f4d838bea7a7ee1ab5a1a0bac49e7973c57cbb88 ... 100%
              context | transferred 3 file(s) for context . (2.4 MB, 9 file/dir stats)
@@ -150,7 +150,7 @@ To execute the integration-tests, we can run `earthly -P +integration-test`:
 ```
            buildkitd | Found buildkit daemon as docker container (earthly-buildkitd)
 golang:1.15-alpine3.13 | --> Load metadata linux/amd64
-               +base | --> FROM golang:1.15-alpine3.13
+               +base | --> FROM golang:1.17-alpine3.14
              context | --> local context .
                +base | [██████████] resolve docker.io/library/golang:1.15-alpine3.13@sha256:330f31a4415d97bb64f244d5f4d838bea7a7ee1ab5a1a0bac49e7973c57cbb88 ... 100%
              context | transferred 1 file(s) for context . (6.8 kB, 9 file/dir stats)
@@ -192,7 +192,7 @@ Finally, to run the build, unit test, integration test and docker image just run
           buildkitd | Found buildkit daemon as docker container (earthly-buildkitd)
 golang:1.15-alpine3.13 | --> Load metadata linux/amd64
              context | --> local context .
-               +base | --> FROM golang:1.15-alpine3.13
+               +base | --> FROM golang:1.17-alpine3.14
                +base | [██████████] resolve docker.io/library/golang:1.15-alpine3.13@sha256:330f31a4415d97bb64f244d5f4d838bea7a7ee1ab5a1a0bac49e7973c57cbb88 ... 100%
              context | transferred 1 file(s) for context . (9.6 kB, 9 file/dir stats)
                +base | --> WORKDIR /go-example
