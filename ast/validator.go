@@ -1,8 +1,6 @@
 package ast
 
 import (
-	"fmt"
-	"strconv"
 	"strings"
 
 	"github.com/earthly/earthly/ast/spec"
@@ -14,7 +12,6 @@ import (
 // into it's own package with some helper functions that are
 // consumable from other packages.
 var validEarthfileVersions = []string{
-	"0.0",
 	"0.5",
 }
 
@@ -56,18 +53,18 @@ func validVersion(ef spec.Earthfile) []error {
 		return nil
 	}
 
-	major, minor, err := parseSemver(ef.Version)
-	if err != nil {
-		errs = append(errs, err)
+	// if VERSION is specified, it's invalid to have no args
+	if len(ef.Version.Args) == 0 {
+		errs = append(errs, errUnexpectedArgs)
+		return errs
 	}
 
-	majorStr := strconv.Itoa(major)
-	minorStr := strconv.Itoa(minor)
-	earthFileVersion := fmt.Sprintf("%s.%s", majorStr, minorStr)
+	// version is always last in VERSION command
+	earthFileVersion := ef.Version.Args[len(ef.Version.Args)-1]
 
 	isVersionValid := false
 	for _, version := range validEarthfileVersions {
-		if earthFileVersion == version {
+		if version == earthFileVersion {
 			isVersionValid = true
 			break
 		}

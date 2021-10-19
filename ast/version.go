@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"fmt"
 	"os"
-	"strconv"
 	"strings"
 
 	"github.com/earthly/earthly/ast/spec"
@@ -110,32 +109,4 @@ outer:
 
 	// No version was found
 	return nil, nil
-}
-
-// parseSemver returns the major and minor version from parsing VERSION from Earthfile.
-// TODO: might be worthwhile to use an actual semver library here
-func parseSemver(v *spec.Version) (int, int, error) {
-	if len(v.Args) == 0 {
-		return 0, 0, nil
-	}
-
-	// semver is always last in VERSION command
-	semver := v.Args[len(v.Args)-1]
-
-	majorAndMinor := strings.Split(semver, ".")
-	if len(majorAndMinor) != 2 {
-		return 0, 0, errUnexpectedArgs
-	}
-
-	major, err := strconv.Atoi(majorAndMinor[0])
-	if err != nil {
-		return 0, 0, errors.Wrapf(err, "failed to parse major version %q", majorAndMinor[0])
-	}
-
-	minor, err := strconv.Atoi(majorAndMinor[1])
-	if err != nil {
-		return 0, 0, errors.Wrapf(err, "failed to parse minor version %q", majorAndMinor[1])
-	}
-
-	return major, minor, nil
 }
