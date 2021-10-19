@@ -5,7 +5,7 @@ set -o pipefail
 
 cd "$(dirname "$0")"
 
-earthly=${earthly-"../../../build/linux/amd64/earthly"}
+earthly=${earthly-"../../build/linux/amd64/earthly"}
 earthly=$(realpath "$earthly")
 
 echo "=== Test 1: Hand Bootstrapped ==="
