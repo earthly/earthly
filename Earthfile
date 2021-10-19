@@ -507,6 +507,7 @@ examples1:
     BUILD ./examples/monorepo+all
     BUILD ./examples/multirepo+docker
     BUILD ./examples/python+docker
+    BUILD ./examples/react+docker
     BUILD ./examples/cutoff-optimization+run
     BUILD ./examples/import+build
 
