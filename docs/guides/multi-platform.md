@@ -230,6 +230,16 @@ The code of this example is available in [examples/multiplatform-cross-compile](
 earthly github.com/earthly/earthly/examples/multiplatform-cross-compile:main+build-all-platforms
 ```
 
+### USER platform args
+
+Additional `USER` [builtin build args](../earthfile/builtin-args.md) can be used to determine the architecture of
+the host that called `earthly`. This can be useful to determine if cross-platform emulation was used.
+
+* `USERPLATFORM` (eg `linux/amd64`)
+* `USEROS` (eg `linux`)
+* `USERARCH` (eg `amd64`)
+* `USERVARIANT` (eg ``; an empty string for non-arm platforms)
+
 ## Emulation and WITH DOCKER
 
 Please note that `WITH DOCKER` has an important limitation for cross-platform builds: the target containing `WITH DOCKER` needs to be executing on the native architecture of the host system. The images being run within `WITH DOCKER` can be of any architecture, however.

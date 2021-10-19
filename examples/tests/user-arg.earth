@@ -1,0 +1,11 @@
+FROM alpine:3.13
+
+all:
+    ARG USERPLATFORM
+    ARG USEROS
+    ARG USERARCH
+    ARG USERVARIANT
+    RUN test "$USERPLATFORM" = "linux/amd64"
+    RUN test "$USEROS" = "linux"
+    RUN test "$USERARCH" = "amd64"
+    RUN test "$USERVARIANT" = "" # only set on ARM
