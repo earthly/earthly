@@ -62,6 +62,17 @@ Specifies the total size of the BuildKit cache, in MB. The BuildKit daemon uses 
 
 When set to true, disables collecting command line analytics; otherwise, earthly will report anonymized analytics for invokation of the earthly command. For more information see the [data collection page](../data-collection/data-collection.md).
 
+### buildkit_max_parallelism
+
+The maximum parallelism configured for the buildkit daemon workers. The default is 20.
+
+{% hint style='info' %}
+##### Note
+
+Set this configuration to a lower value if your machine is resource constrained and performs poorly when running too many builds in parallel.
+
+{% endhint %}
+
 ### buildkit_additional_args
 
 This option allows you to pass additional options to Docker when starting up the Earthly buildkit daemon. For example, this can be used to bypass user namespacing like so:
