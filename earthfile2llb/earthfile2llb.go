@@ -2,6 +2,7 @@ package earthfile2llb
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/moby/buildkit/client/llb"
 	gwclient "github.com/moby/buildkit/frontend/gateway/client"
@@ -9,7 +10,7 @@ import (
 	"github.com/pkg/errors"
 	"golang.org/x/sync/semaphore"
 
-	"github.com/earthly/earthly/ast"
+	"github.com/earthly/earthly/ast/spec"
 	"github.com/earthly/earthly/buildcontext"
 	"github.com/earthly/earthly/buildcontext/provider"
 	"github.com/earthly/earthly/cleanup"
@@ -153,14 +154,41 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt, in
 }
 
 // GetTargets returns a list of targets from an Earthfile.
-func GetTargets(filename string) ([]string, error) {
-	ef, err := ast.Parse(context.TODO(), filename, false)
+// Note that the passed in domain.Target's target name is ignored (only the reference to the Earthfile is used)
+func GetTargets(ctx context.Context, resolver *buildcontext.Resolver, gwClient gwclient.Client, target domain.Target) ([]string, error) {
+	bc, err := resolver.Resolve(ctx, gwClient, target)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "resolve build context for target %s", target.String())
 	}
-	targets := make([]string, 0, len(ef.Targets))
-	for _, target := range ef.Targets {
+	targets := make([]string, 0, len(bc.Earthfile.Targets))
+	for _, target := range bc.Earthfile.Targets {
 		targets = append(targets, target.Name)
 	}
 	return targets, nil
+}
+
+// GetTargetArgs returns a list of build arguments for a specificed target
+func GetTargetArgs(ctx context.Context, resolver *buildcontext.Resolver, gwClient gwclient.Client, target domain.Target) ([]string, error) {
+	bc, err := resolver.Resolve(ctx, gwClient, target)
+	if err != nil {
+		return nil, errors.Wrapf(err, "resolve build context for target %s", target.String())
+	}
+	var t *spec.Target
+	for _, tt := range bc.Earthfile.Targets {
+		if tt.Name == target.Target {
+			t = &tt
+			break
+		}
+	}
+	if t == nil {
+		return nil, fmt.Errorf("faild to find %s", target.String())
+	}
+	var args []string
+	for _, stmt := range t.Recipe {
+		if stmt.Command.Name == "ARG" {
+			args = append(args, stmt.Command.Args[0])
+		}
+	}
+	return args, nil
+
 }

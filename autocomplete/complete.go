@@ -1,16 +1,22 @@
 package autocomplete
 
 import (
+	"context"
 	"io/ioutil"
 	"os"
 	"os/user"
 	"path"
+	"path/filepath"
 	"reflect"
+	"sort"
 	"strings"
 
+	"github.com/earthly/earthly/buildcontext"
+	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/earthfile2llb"
 	"github.com/earthly/earthly/util/fileutil"
 
+	gwclient "github.com/moby/buildkit/frontend/gateway/client"
 	"github.com/urfave/cli/v2"
 )
 
@@ -33,9 +39,40 @@ func isLocalPath(path string) bool {
 	return false
 }
 
-func getPotentialPaths(prefix string) ([]string, error) {
+func isCWDRoot() bool {
+	path, err := os.Getwd()
+	if err != nil {
+		return false
+	}
+	return path == "/"
+}
+
+func containsDirectories(path string) bool {
+	files, err := ioutil.ReadDir(path)
+	if err != nil {
+		return false
+	}
+	for _, f := range files {
+		if f.IsDir() {
+			return true
+		}
+	}
+	return false
+}
+
+func getPotentialPaths(ctx context.Context, resolver *buildcontext.Resolver, gwClient gwclient.Client, prefix string) ([]string, error) {
 	if prefix == "." {
-		return []string{"./", "../"}, nil
+		potentials := []string{}
+		if containsDirectories(".") {
+			potentials = append(potentials, "./")
+		}
+		if !isCWDRoot() {
+			potentials = append(potentials, "../")
+		}
+		return potentials, nil
+	}
+	if prefix == ".." {
+		return []string{"../"}, nil
 	}
 	currentUser, err := user.Current()
 	if err != nil {
@@ -92,7 +129,16 @@ func getPotentialPaths(prefix string) ([]string, error) {
 		}
 		dirPath := splits[0]
 
-		targets, err := earthfile2llb.GetTargets(path.Join(dirPath, "Earthfile"))
+		targetToParse := prefix
+		if strings.HasSuffix(targetToParse, "+") {
+			targetToParse += "base"
+		}
+		target, err := domain.ParseTarget(targetToParse)
+		if err != nil {
+			return nil, err
+		}
+
+		targets, err := earthfile2llb.GetTargets(ctx, resolver, gwClient, target)
 		if err != nil {
 			return nil, err
 		}
@@ -112,8 +158,12 @@ func getPotentialPaths(prefix string) ([]string, error) {
 		return potentials, nil
 	}
 
-	// handle paths
-	dir, f := path.Split(prefix)
+	var f, dir string
+	if fileutil.DirExists(prefix) {
+		dir = prefix
+	} else {
+		dir, f = path.Split(prefix)
+	}
 
 	files, err := ioutil.ReadDir(dir)
 	if err != nil {
@@ -138,7 +188,30 @@ func getPotentialPaths(prefix string) ([]string, error) {
 		}
 	}
 
+	if prefix != "./" && !strings.HasSuffix(prefix, "/./") { // dont suggest parent directory for "./"
+		if abs, _ := filepath.Abs(dir); abs != "/" { // if Abs fails, we will suggest "/../"
+			if strings.HasSuffix(prefix, "/.") {
+				paths = append(paths, prefix+"./")
+			}
+			if strings.HasSuffix(prefix, "/") {
+				paths = append(paths, prefix+"../")
+			}
+		}
+	}
+
 	return paths, nil
+}
+
+func getPotentialBuildArgs(ctx context.Context, resolver *buildcontext.Resolver, gwClient gwclient.Client, targetStr string) ([]string, error) {
+	target, err := domain.ParseTarget(targetStr)
+	if err != nil {
+		return nil, err
+	}
+	envArgs, err := earthfile2llb.GetTargetArgs(ctx, resolver, gwClient, target)
+	if err != nil {
+		return nil, err
+	}
+	return envArgs, nil
 }
 
 // isVisibleFlag returns if a flag is hidden or not
@@ -178,6 +251,46 @@ func getVisibleFlags(flags []cli.Flag, showHidden bool) []string {
 	return visibleFlags
 }
 
+func isBooleanFlag(flags []cli.Flag, flagName string) (isBool bool, flagFound bool) {
+	if flagName == "" {
+		return false, false
+	}
+
+	isShort := true
+	if strings.HasPrefix(flagName, "--") {
+		flagName = flagName[2:]
+		isShort = false
+	} else {
+		flagName = flagName[1:]
+	}
+	_ = isShort // short flags are not suggested; perhaps one day?
+
+	for _, f := range flags {
+		for _, n := range f.Names() {
+			if n == flagName {
+				_, ok := f.(*cli.BoolFlag)
+				return ok, true
+			}
+		}
+	}
+	return false, false
+}
+
+func isFlagValidAndRequiresValue(flags []cli.Flag, flagName string) bool {
+	isBool, ok := isBooleanFlag(flags, flagName)
+	return ok && !isBool
+}
+
+// padStrings takes an array of strings and returns a new array where each
+// string element has been padded with a prefix and suffix
+func padStrings(flags []string, prefix, suffix string) []string {
+	padded := make([]string, len(flags))
+	for i, s := range flags {
+		padded[i] = prefix + s + suffix
+	}
+	return padded
+}
+
 func getVisibleCommands(commands []*cli.Command, showHidden bool) []string {
 	visibleCommands := []string{}
 	for _, cmd := range commands {
@@ -188,69 +301,155 @@ func getVisibleCommands(commands []*cli.Command, showHidden bool) []string {
 	return visibleCommands
 }
 
-// GetPotentials returns a list of potential arguments for shell auto completion
-func GetPotentials(compLine string, compPoint int, app *cli.App, showHidden bool) ([]string, error) {
-	potentials := []string{}
+type completeState int
 
+const (
+	unknownState          completeState = iota
+	rootState                           // 1
+	flagState                           // 2
+	flagValueState                      // 3
+	commandState                        // 4
+	targetState                         // 5
+	targetFlagState                     // 6
+	endOfSuggestionsState               // 7
+)
+
+// GetPotentials returns a list of potential arguments for shell auto completion
+// NOTE: you can cause earthly to run this command with:
+//       COMP_LINE="earthly -" COMP_POINT=$(echo -n $COMP_LINE | wc -c) go run cmd/earthly/main.go
+func GetPotentials(ctx context.Context, resolver *buildcontext.Resolver, gwClient gwclient.Client, compLine string, compPoint int, app *cli.App, showHidden bool) ([]string, error) {
 	compLine = compLine[:compPoint]
 	subCommands := app.Commands
 
-	// determine sub command
-	parts := strings.Split(compLine, " ")
-	var cmd *cli.Command
-	for _, word := range parts[1 : len(parts)-1] {
-		foundCmd := getCmd(word, subCommands)
-		if foundCmd != nil {
-			subCommands = foundCmd.Subcommands
-			cmd = foundCmd
+	// getWord returns the next word and a boolean if it is valid
+	// TODO this function does not handle escaped space, e.g.
+	// earthly --build-arg key="value with space" +mytarget will fail
+	hasNextWord := len(compLine) > 0
+	getWord := func() (string, bool) {
+		if !hasNextWord {
+			return "", false
 		}
-	}
-	lastWord := parts[len(parts)-1]
-
-	var flags []string
-	if cmd != nil {
-		flags = getVisibleFlags(cmd.Flags, showHidden)
-	} else {
-		flags = getVisibleFlags(app.Flags, showHidden)
-		// append flags that urfav/cli automatically include
-		flags = append(flags, "version", "help")
-	}
-
-	var commands []string
-	if cmd != nil {
-		commands = getVisibleCommands(cmd.Subcommands, showHidden)
-	} else {
-		commands = getVisibleCommands(app.Commands, showHidden)
+		i := strings.Index(compLine, " ")
+		if i < 0 {
+			word := compLine
+			compLine = ""
+			hasNextWord = false
+			return word, true
+		}
+		word := compLine[:i]
+		compLine = compLine[(i + 1):]
+		return word, true
 	}
 
-	if flagPrefix, ok := trimFlag(lastWord); ok {
-		for _, s := range flags {
-			if strings.HasPrefix(s, flagPrefix) {
-				potentials = append(potentials, "--"+s+" ")
+	// remove first word which is most likely "earthly", or "/some/path/to/earthly", etc.
+	prevWord, _ := getWord()
+
+	state := rootState
+	var target string
+
+	var cmd *cli.Command
+	getFlags := func() []cli.Flag {
+		if cmd != nil {
+			return cmd.Flags
+		}
+		return app.Flags
+	}
+
+	for {
+		w, ok := getWord()
+		if !ok {
+			break
+		}
+
+		if state == flagValueState {
+			prevWord = ""
+			state = flagState
+		}
+
+		if state == flagState && isFlagValidAndRequiresValue(getFlags(), prevWord) {
+			state = flagValueState
+		} else if state == rootState || state == commandState || state == flagState {
+			if strings.HasPrefix(w, "-") {
+				state = flagState
+			} else {
+				// targets only work under the root command
+				if cmd == nil && (isLocalPath(w) || strings.HasPrefix(w, "+")) { // TODO switch to strings.Contains when remote resolving works
+					state = targetState
+					target = w
+				} else {
+					// must be under a command
+					foundCmd := getCmd(w, subCommands)
+					if foundCmd != nil {
+						subCommands = foundCmd.Subcommands
+						cmd = foundCmd
+					}
+					state = commandState
+				}
+			}
+		} else if state == targetState {
+			if strings.HasPrefix(w, "-") {
+				state = targetFlagState
+			} else {
+				state = endOfSuggestionsState
 			}
 		}
-		return potentials, nil
+
+		prevWord = w
 	}
 
-	if isLocalPath(lastWord) || strings.HasPrefix(lastWord, "+") {
-		return getPotentialPaths(lastWord)
+	var potentials []string
+
+	switch state {
+	case flagState:
+		if cmd != nil {
+			potentials = getVisibleFlags(cmd.Flags, showHidden)
+		} else {
+			potentials = getVisibleFlags(app.Flags, showHidden)
+			// append flags that urfav/cli automatically include
+			potentials = append(potentials, "version", "help")
+		}
+		potentials = padStrings(potentials, "--", " ")
+
+	case rootState, commandState:
+		if cmd != nil {
+			potentials = getVisibleCommands(cmd.Subcommands, showHidden)
+			potentials = padStrings(potentials, "", " ")
+		} else {
+			potentials = getVisibleCommands(app.Commands, showHidden)
+			potentials = padStrings(potentials, "", " ")
+			if containsDirectories(".") {
+				potentials = append(potentials, "./")
+			}
+			if fileutil.FileExists("Earthfile") {
+				potentials = append(potentials, "+")
+			}
+		}
+
+	case targetState:
+		var err error
+		potentials, err = getPotentialPaths(ctx, resolver, gwClient, prevWord)
+		if err != nil {
+			return nil, err
+		}
+
+	case targetFlagState:
+		var err error
+		potentials, err = getPotentialBuildArgs(ctx, resolver, gwClient, target)
+		if err != nil {
+			return nil, err
+		}
+		potentials = padStrings(potentials, "--", "=")
 	}
 
-	if lastWord == "" && cmd == nil {
-		if hasEarthfile(".") {
-			potentials = append(potentials, "+")
-		}
-		if hasSubDirs(".") {
-			potentials = append(potentials, "./")
+	filteredPotentials := []string{}
+	for _, s := range potentials {
+		if strings.HasPrefix(s, prevWord) {
+			filteredPotentials = append(filteredPotentials, s)
 		}
 	}
 
-	for _, cmd := range commands {
-		if strings.HasPrefix(cmd, lastWord) {
-			potentials = append(potentials, cmd+" ")
-		}
-	}
-	return potentials, nil
+	sort.Strings(filteredPotentials)
+	return filteredPotentials, nil
 }
 
 func hasEarthfile(dirPath string) bool {

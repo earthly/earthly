@@ -33,6 +33,7 @@ import (
 	"github.com/moby/buildkit/client"
 	_ "github.com/moby/buildkit/client/connhelper/dockercontainer" // Load "docker-container://" helper.
 	"github.com/moby/buildkit/client/llb"
+	gwclient "github.com/moby/buildkit/frontend/gateway/client"
 	"github.com/moby/buildkit/session"
 	"github.com/moby/buildkit/session/auth/authprovider"
 	"github.com/moby/buildkit/session/localhost/localhostprovider"
@@ -243,7 +244,7 @@ func main() {
 	}
 
 	app := newEarthlyApp(ctx, conslogging.Current(colorMode, padding, false))
-	app.autoComplete()
+	app.autoComplete(ctx)
 
 	exitCode := app.run(ctx, os.Args)
 	// app.cfg will be nil when a user runs `earthly --version`;
@@ -1273,13 +1274,13 @@ func (app *earthlyApp) processDeprecatedCommandOptions(context *cli.Context, cfg
 
 // to enable autocomplete, enter
 // complete -o nospace -C "/path/to/earthly" earthly
-func (app *earthlyApp) autoComplete() {
+func (app *earthlyApp) autoComplete(ctx context.Context) {
 	_, found := os.LookupEnv("COMP_LINE")
 	if !found {
 		return
 	}
 
-	err := app.autoCompleteImp()
+	err := app.autoCompleteImp(ctx)
 	if err != nil {
 		errToLog := err
 		logDir, err := cliutil.GetOrCreateEarthlyDir()
@@ -1301,7 +1302,7 @@ func (app *earthlyApp) autoComplete() {
 	os.Exit(0)
 }
 
-func (app *earthlyApp) autoCompleteImp() (err error) {
+func (app *earthlyApp) autoCompleteImp(ctx context.Context) (err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = errors.Errorf("recovered panic in autocomplete %s: %s", r, debug.Stack())
@@ -1325,7 +1326,12 @@ func (app *earthlyApp) autoCompleteImp() (err error) {
 		}
 	}
 
-	potentials, err := autocomplete.GetPotentials(compLine, int(compPointInt), app.cliApp, showHidden)
+	gitLookup := buildcontext.NewGitLookup(app.console, app.sshAuthSock)
+	resolver := buildcontext.NewResolver("", nil, gitLookup, app.console, "")
+	var gwClient gwclient.Client // TODO this is a nil pointer which causes a panic if we try to expand a remotely referenced earthfile
+	// it's expensive to create this gwclient, so we need to implement a lazy eval which returns it when required.
+
+	potentials, err := autocomplete.GetPotentials(ctx, resolver, gwClient, compLine, int(compPointInt), app.cliApp, showHidden)
 	if err != nil {
 		return err
 	}

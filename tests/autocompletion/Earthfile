@@ -12,44 +12,117 @@ ENV EARTHLY_AUTOCOMPLETE_HIDDEN=0
 
 test-root-commands:
     RUN echo "./
-bootstrap 
-org 
-secrets 
 account 
+bootstrap 
+config 
+org 
 prune 
-config " > expected
+secrets " > expected
     RUN COMP_LINE="earthly " COMP_POINT=8 earthly > actual
     RUN diff expected actual
 
 test-hidden-root-commands:
     ENV EARTHLY_AUTOCOMPLETE_HIDDEN=1
     RUN echo "./
+account 
 bootstrap 
+config 
+debug 
 docker 
 docker2earthly 
 org 
-secrets 
-account 
-debug 
 prune 
-config " > expected
+secrets " > expected
     RUN COMP_LINE="earthly " COMP_POINT=8 earthly > actual
     RUN diff expected actual
 
 test-targets:
     COPY fake.earth ./Earthfile
+
     RUN echo "+mytarget 
-+othertarget " > expected
++othertarget 
++othertargetwithargs " > expected
     RUN COMP_LINE="earthly +" COMP_POINT=9 earthly > actual
     RUN diff expected actual
+
     RUN echo "+mytarget " > expected
     RUN COMP_LINE="earthly +m" COMP_POINT=10 earthly > actual
+    RUN diff expected actual
+
+test-targets-with-build-args:
+    COPY fake.earth ./Earthfile
+
+    RUN echo "--city=
+--country=" > expected
+    RUN COMP_LINE="earthly +othertargetwithargs -" COMP_POINT=30 earthly > actual
+    RUN diff expected actual
+
+    RUN echo "--city=
+--country=" > expected
+    RUN COMP_LINE="earthly +othertargetwithargs --c" COMP_POINT=32 earthly > actual
+    RUN diff expected actual
+
+    RUN echo "--city=" > expected
+    RUN COMP_LINE="earthly +othertargetwithargs --ci" COMP_POINT=33 earthly > actual
+    RUN diff expected actual
+
+test-targets-from-other-dir:
+    RUN mkdir -p child/dir
+    COPY fake.earth child/dir/Earthfile
+
+    RUN echo "./child/dir+mytarget 
+./child/dir+othertarget 
+./child/dir+othertargetwithargs " > expected
+    RUN COMP_LINE="earthly ./child/dir+" COMP_POINT=20 earthly > actual
+    RUN diff expected actual
+
+    RUN echo "./child/dir+mytarget " > expected
+    RUN COMP_LINE="earthly ./child/dir+m" COMP_POINT=21 earthly > actual
+    RUN diff expected actual
+
+test-targets-with-build-args-from-other-dir:
+    RUN mkdir -p child/dir
+    COPY fake.earth child/dir/Earthfile
+
+    RUN echo "--city=
+--country=" > expected
+    RUN COMP_LINE="earthly ./child/dir+othertargetwithargs -" COMP_POINT=41 earthly > actual
+    RUN diff expected actual
+
+    RUN echo "--city=
+--country=" > expected
+    RUN COMP_LINE="earthly ./child/dir+othertargetwithargs --c" COMP_POINT=43 earthly > actual
+    RUN diff expected actual
+
+    RUN echo "--city=" > expected
+    RUN COMP_LINE="earthly ./child/dir+othertargetwithargs --ci" COMP_POINT=44 earthly > actual
     RUN diff expected actual
 
 test-base-only-target:
     COPY base.earth ./Earthfile
     RUN echo "+base " > expected
     RUN COMP_LINE="earthly +" COMP_POINT=9 earthly > actual
+    RUN diff expected actual
+
+test-no-parent-at-root:
+    WORKDIR /
+    RUN echo "./" > expected
+    RUN COMP_LINE="earthly ." COMP_POINT=9 earthly > actual
+    RUN diff expected actual
+
+test-no-parent-at-root-from-home:
+    WORKDIR /home
+    RUN echo "../dev/
+../etc/
+../lib/
+../media/
+../proc/
+../root/
+../run/
+../sys/
+../usr/
+../var/" > expected
+    RUN COMP_LINE="earthly ../" COMP_POINT=11 earthly > actual
     RUN diff expected actual
 
 test-relative-dir-targets:
@@ -60,7 +133,8 @@ test-relative-dir-targets:
     RUN COMP_LINE="earthly ./" COMP_POINT=10 earthly > actual
     RUN diff expected actual
     RUN echo "./foo+mytarget 
-./foo+othertarget " > expected
+./foo+othertarget 
+./foo+othertargetwithargs " > expected
     RUN COMP_LINE="earthly ./foo+" COMP_POINT=14 earthly > actual
     RUN diff expected actual
 
@@ -68,5 +142,10 @@ test-all:
     BUILD +test-root-commands
     BUILD +test-hidden-root-commands
     BUILD +test-targets
+    BUILD +test-targets-from-other-dir
+    BUILD +test-targets-with-build-args
+    BUILD +test-targets-with-build-args-from-other-dir
     BUILD +test-base-only-target
     BUILD +test-relative-dir-targets
+    BUILD +test-no-parent-at-root
+    BUILD +test-no-parent-at-root-from-home
