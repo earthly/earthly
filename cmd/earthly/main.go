@@ -147,7 +147,6 @@ type cliFlags struct {
 	enableSourceMap           bool
 	configDryRun              bool
 	strict                    bool
-	conversionParllelism      int
 	debuggerHost              string
 	certPath                  string
 	keyPath                   string
@@ -562,12 +561,6 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 			EnvVars:     []string{"EARTHLY_STRICT"},
 			Usage:       "Disallow usage of features that may create unrepeatable builds",
 			Destination: &app.strict,
-		},
-		&cli.IntFlag{
-			Name:        "conversion-parallelism",
-			EnvVars:     []string{"EARTHLY_CONVERSION_PARALLELISM"},
-			Usage:       "Set the conversion parallelism, which speeds up the use of IF, WITH DOCKER --load, FROM DOCKERFILE and others. A value of 0 disables the feature *experimental*",
-			Destination: &app.conversionParllelism,
 		},
 		&cli.BoolFlag{
 			EnvVars:     []string{"EARTHLY_DISABLE_ANALYTICS", "DO_NOT_TRACK"},
@@ -2794,8 +2787,8 @@ func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []st
 		}
 	}
 	var parallelism *semaphore.Weighted
-	if app.conversionParllelism != 0 {
-		parallelism = semaphore.NewWeighted(int64(app.conversionParllelism))
+	if app.cfg.Global.ConversionParallelism != 0 {
+		parallelism = semaphore.NewWeighted(int64(app.cfg.Global.ConversionParallelism))
 	}
 	localRegistryAddr := ""
 	if isLocal && app.localRegistryHost != "" {
@@ -2826,7 +2819,7 @@ func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []st
 		UseFakeDep:             !app.noFakeDep,
 		Strict:                 app.strict,
 		DisableNoOutputUpdates: app.interactiveDebugging,
-		ParallelConversion:     (app.conversionParllelism != 0),
+		ParallelConversion:     (app.cfg.Global.ConversionParallelism != 0),
 		Parallelism:            parallelism,
 		LocalRegistryAddr:      localRegistryAddr,
 		FeatureFlagOverrides:   app.featureFlagOverrides,
