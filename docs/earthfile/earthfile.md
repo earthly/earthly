@@ -406,7 +406,7 @@ COPY test/* .
 COPY --dir test .
 ```
 
-For detailed examples demonstrating how other scenarios may function, please see our [test suite](https://github.com/earthly/earthly/blob/main/examples/tests/copy.earth).
+For detailed examples demonstrating how other scenarios may function, please see our [test suite](https://github.com/earthly/earthly/blob/main/tests/copy.earth).
 
 ## ARG
 

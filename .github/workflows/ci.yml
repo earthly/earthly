@@ -54,7 +54,7 @@ jobs:
           +test
         if: github.event_name != 'push' && github.event.pull_request.head.repo.full_name != github.repository
       - name: Execute fail test
-        run: "! ./build/linux/amd64/earthly --ci ./examples/tests/fail+test-fail"
+        run: "! ./build/linux/amd64/earthly --ci ./tests/fail+test-fail"
       - name: Buildkit logs (runs on failure)
         run: docker logs earthly-buildkitd
         if: ${{ failure() }}
@@ -209,28 +209,28 @@ jobs:
       - name: Execute version test
         run: "./build/linux/amd64/earthly --version"
       - name: Execute docker2earth test
-        run: "./examples/tests/docker2earth/test.sh"
+        run: "./tests/docker2earth/test.sh"
       - name: Execute remote-cache test (Earthly Only)
         run: |-
-          ./examples/tests/remote-cache/test.sh \
+          ./tests/remote-cache/test.sh \
               --build-arg DOCKERHUB_AUTH=true \
               --build-arg DOCKERHUB_USER_SECRET=+secrets/earthly-technologies/dockerhub-mirror/user \
               --build-arg DOCKERHUB_TOKEN_SECRET=+secrets/earthly-technologies/dockerhub-mirror/pass \
               --build-arg DOCKERHUB_MIRROR=registry-1.docker.io.mirror.corp.earthly.dev
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: Execute remote-cache test (Fork Only)
-        run: ./examples/tests/remote-cache/test.sh --build-arg DOCKERHUB_AUTH=false
+        run: ./tests/remote-cache/test.sh --build-arg DOCKERHUB_AUTH=false
         if: github.event_name != 'push' && github.event.pull_request.head.repo.full_name != github.repository
       - name: Execute registry-certs test (Earthly Only)
         run: |-
-          ./examples/tests/registry-certs/test.sh \
+          ./tests/registry-certs/test.sh \
               --build-arg DOCKERHUB_AUTH=true \
               --build-arg DOCKERHUB_USER_SECRET=+secrets/earthly-technologies/dockerhub-mirror/user \
               --build-arg DOCKERHUB_TOKEN_SECRET=+secrets/earthly-technologies/dockerhub-mirror/pass \
               --build-arg DOCKERHUB_MIRROR=registry-1.docker.io.mirror.corp.earthly.dev
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: Execute registry-certs test (Fork Only)
-        run: ./examples/tests/registry-certs/test.sh --build-arg DOCKERHUB_AUTH=false
+        run: ./tests/registry-certs/test.sh --build-arg DOCKERHUB_AUTH=false
         if: github.event_name != 'push' && github.event.pull_request.head.repo.full_name != github.repository
       - name: Run linux-amd64 specific tests (Earthly Only)
         run: |-
@@ -239,15 +239,15 @@ jobs:
               --build-arg DOCKERHUB_USER_SECRET=+secrets/earthly-technologies/dockerhub-mirror/user \
               --build-arg DOCKERHUB_TOKEN_SECRET=+secrets/earthly-technologies/dockerhub-mirror/pass \
               --build-arg DOCKERHUB_MIRROR=registry-1.docker.io.mirror.corp.earthly.dev \
-              ./examples/tests+ga-linux-amd64
+              ./tests+ga-linux-amd64
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: Run linux-amd64 specific tests (Fork Only)
-        run: ./build/linux/amd64/earthly --ci -P --build-arg DOCKERHUB_AUTH=false ./examples/tests+ga-linux-amd64
+        run: ./build/linux/amd64/earthly --ci -P --build-arg DOCKERHUB_AUTH=false ./tests+ga-linux-amd64
         if: github.event_name != 'push' && github.event.pull_request.head.repo.full_name != github.repository
       - name: Execute tests requiring .git directory
         run: go test ./analytics --tags=hasgitdirectory
       - name: Execute earthly docker command
-        run: (cd examples/tests/docker && ../../.././build/linux/amd64/earthly docker --tag examples-test-docker:latest && diff <(docker run --rm examples-test-docker:latest) <(echo "hello dockerfile") )
+        run: (cd tests/docker && ../.././build/linux/amd64/earthly docker --tag examples-test-docker:latest && diff <(docker run --rm examples-test-docker:latest) <(echo "hello dockerfile") )
       - name: Execute private image test (Earthly Only)
         run: |-
           ./build/linux/amd64/earthly --ci \
@@ -255,10 +255,10 @@ jobs:
             --build-arg DOCKERHUB_USER_SECRET=+secrets/earthly-technologies/dockerhub-mirror/user \
             --build-arg DOCKERHUB_TOKEN_SECRET=+secrets/earthly-technologies/dockerhub-mirror/pass \
             --build-arg DOCKERHUB_MIRROR=registry-1.docker.io.mirror.corp.earthly.dev \
-          ./examples/tests+private-image-test
+          ./tests+private-image-test
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: Execute save images test
-        run: ./examples/tests/save-images/test.sh
+        run: ./tests/save-images/test.sh
       - name: Experimental tests (Earthly Only)
         run: |-
           ./build/linux/amd64/earthly --ci -P \
@@ -266,13 +266,13 @@ jobs:
               --build-arg DOCKERHUB_USER_SECRET=+secrets/earthly-technologies/dockerhub-mirror/user \
               --build-arg DOCKERHUB_TOKEN_SECRET=+secrets/earthly-technologies/dockerhub-mirror/pass \
               --build-arg DOCKERHUB_MIRROR=registry-1.docker.io.mirror.corp.earthly.dev \
-          ./examples/tests+experimental
+          ./tests+experimental
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: Experimental tests (Fork Only)
         run: |-
           ./build/linux/amd64/earthly --ci -P \
               --build-arg DOCKERHUB_AUTH=false \
-          ./examples/tests+experimental
+          ./tests+experimental
         if: github.event_name != 'push' && github.event.pull_request.head.repo.full_name != github.repository
       - name: Buildkit logs (runs on failure)
         run: docker logs earthly-buildkitd
@@ -455,9 +455,9 @@ jobs:
             --build-arg DOCKERHUB_USER_SECRET=+secrets/earthly-technologies/dockerhub-mirror/user \
             --build-arg DOCKERHUB_TOKEN_SECRET=+secrets/earthly-technologies/dockerhub-mirror/pass \
             --build-arg DOCKERHUB_MIRROR=registry-1.docker.io.mirror.corp.earthly.dev \
-          ./examples/tests/cloud-push-pull+all
+          ./tests/cloud-push-pull+all
       - name: Push Images after RUN --push
-        run: ./examples/tests/push-images/test.sh
+        run: ./tests/push-images/test.sh
       - name: Buildkit logs (runs on failure)
         run: docker logs earthly-buildkitd
         if: ${{ failure() }}
@@ -524,7 +524,7 @@ jobs:
       - name: Enable local registry-based exporter
         run: ./build/linux/amd64/earthly config global.local_registry_host 'tcp://127.0.0.1:8371'
       - name: Run bootstrap-integration
-        run: ./examples/tests/bootstrap/test-bootstrap.sh
+        run: ./tests/bootstrap/test-bootstrap.sh
       - name: Buildkit logs (runs on failure)
         run: docker logs earthly-buildkitd
         if: ${{ failure() }}
@@ -550,11 +550,11 @@ jobs:
       - name: Enable local registry-based exporter
         run: ./build/linux/amd64/earthly config global.local_registry_host 'tcp://127.0.0.1:8371'
       - name: Execute test-local
-        run: "./build/linux/amd64/earthly --use-inline-cache --save-inline-cache --no-output ./examples/tests/local+test-local"
+        run: "./build/linux/amd64/earthly --use-inline-cache --save-inline-cache --no-output ./tests/local+test-local"
       - name: Execute test-local --push
-        run: "./build/linux/amd64/earthly --use-inline-cache --save-inline-cache --no-output --push ./examples/tests/local+test-local"
+        run: "./build/linux/amd64/earthly --use-inline-cache --save-inline-cache --no-output --push ./tests/local+test-local"
       - name: Run general local tests (TODO this is re-testing the +test-local target)
-        run: "./build/linux/amd64/earthly --use-inline-cache --save-inline-cache --no-output ./examples/tests/local+all"
+        run: "./build/linux/amd64/earthly --use-inline-cache --save-inline-cache --no-output ./tests/local+all"
       - name: Buildkit logs (runs on failure)
         run: docker logs earthly-buildkitd 2>&1
         if: ${{ failure() }}

@@ -8,8 +8,8 @@ all:
         --build-arg BASE_IMAGE=ubuntu:latest \
         --build-arg BASE_IMAGE=amazonlinux:1 \
         --build-arg BASE_IMAGE=amazonlinux:2 \
-        --build-arg BASE_IMAGE=../../..+dind-alpine \
-        --build-arg BASE_IMAGE=../../..+dind-ubuntu \
+        --build-arg BASE_IMAGE=../..+dind-alpine \
+        --build-arg BASE_IMAGE=../..+dind-ubuntu \
         +test
 
 test:

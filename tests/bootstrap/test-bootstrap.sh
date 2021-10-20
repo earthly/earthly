@@ -5,7 +5,7 @@ set -o pipefail
 
 cd "$(dirname "$0")"
 
-earthly=${earthly-"../../../build/linux/amd64/earthly"}
+earthly=${earthly-"../../build/linux/amd64/earthly"}
 earthly=$(realpath "$earthly")
 
 echo "=== Test 1: Hand Bootstrapped ==="
@@ -182,7 +182,7 @@ if docker container ls | grep earthly-buildkitd; then
   exit 1
 fi
 
-if [[ -f ../../../build/linux/amd64/earth ]]; then
+if [[ -f ../../build/linux/amd64/earth ]]; then
   echo "--source symlinked earthly to earth"
 fi
 

@@ -60,7 +60,7 @@ To also build the examples, you can run
 The token should be the same token you use to login with Docker Hub. Other repositories are not supported. It is also possible to run tests without credentials. But running all of them, or running too frequently may incur rate limits. You could run a single test, without credentials like this:
 
 ```bash
-./build/<platform>/amd64/earthly -P --build-arg DOCKERHUB_AUTH=false ./examples/tests+env-test
+./build/<platform>/amd64/earthly -P --build-arg DOCKERHUB_AUTH=false ./tests+env-test
 ```
 
 If you don't want to specify these directly on the CLI, or don't want to type these each time, its possible [to use an .env file instead](https://docs.earthly.dev/docs/earthly-command#environment-variables-and-.env-file). Here is a template to get you started:

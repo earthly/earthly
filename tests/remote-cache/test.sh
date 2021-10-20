@@ -6,7 +6,7 @@ set -o pipefail
 
 cd "$(dirname "$0")"
 
-earthly=${earthly-"../../../build/linux/amd64/earthly"}
+earthly=${earthly-"../../build/linux/amd64/earthly"}
 
 # Cleanup previous run.
 docker stop registry || true

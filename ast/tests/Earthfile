@@ -112,7 +112,7 @@ update-all:
 #       carefully when committing to git.
 test:
     ARG TEST
-    ARG INPUT_FROM_DIR=../../examples/tests
+    ARG INPUT_FROM_DIR=../../tests
     ARG INPUT_FROM_TARGET=ast-test-input
     DO +INPUT_COPY --TEST=$TEST --INPUT_FROM_DIR=$INPUT_FROM_DIR --INPUT_FROM_TARGET=$INPUT_FROM_TARGET
     COPY ${TEST}.ast.json ./expected.json
@@ -123,7 +123,7 @@ test:
 
 update-expected:
     ARG TEST
-    ARG INPUT_FROM_DIR=../../examples/tests
+    ARG INPUT_FROM_DIR=../../tests
     ARG INPUT_FROM_TARGET=ast-test-input
     DO +INPUT_COPY --TEST=$TEST --INPUT_FROM_DIR=$INPUT_FROM_DIR --INPUT_FROM_TARGET=$INPUT_FROM_TARGET
     RUN earthly debug ast ${TEST}.earth >./expected.json
