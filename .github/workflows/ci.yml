@@ -156,7 +156,7 @@ jobs:
       - name: Build latest earthly/buildkitd image using released earthly
         run: earthly --use-inline-cache ./buildkitd+buildkitd --TAG=race-test
       - name: Configure Earthly Conversion Parallelism
-        run: earthly config global.conversion_parallelism 5
+        run: go run ./cmd/earthly/main.go config global.conversion_parallelism 5
       - name: Execute tests (Earthly Only)
         run: |-
           GORACE="halt_on_error=1" go run -race ./cmd/earthly/main.go --buildkit-image earthly/buildkitd:race-test -P --no-output \
