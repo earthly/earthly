@@ -62,7 +62,18 @@ Specifies the total size of the BuildKit cache, in MB. The BuildKit daemon uses 
 
 When set to true, disables collecting command line analytics; otherwise, earthly will report anonymized analytics for invocation of the earthly command. For more information see the [data collection page](../data-collection/data-collection.md).
 
-### BuildKit_additional_args
+### buildkit_max_parallelism
+
+The maximum parallelism configured for the buildkit daemon workers. The default is 20.
+
+{% hint style='info' %}
+##### Note
+
+Set this configuration to a lower value if your machine is resource constrained and performs poorly when running too many builds in parallel.
+
+{% endhint %}
+
+### buildkit_additional_args
 
 This option allows you to pass additional options to Docker when starting up the Earthly BuildKit daemon. For example, this can be used to bypass user namespacing like so:
 
@@ -71,7 +82,7 @@ global:
   buildkit_additional_args: ["--userns", "host"]
 ```
 
-### BuildKit_additional_config
+### buildkit_additional_config
 
 This option allows you to pass additional options to BuildKit. For example, this can be used to specify additional CA certificates:
 
@@ -83,11 +94,11 @@ global:
       ca=["/etc/config/add.ca"]
 ```
 
-### `cni_mtu`
+### cni_mtu
 
 Allows overriding Earthly's automatic MTU detection. This is used when configuring the BuildKit internal CNI network. MTU must be between 64 and 65,536.
 
-### `ip_tables`
+### ip_tables
 
 Allows overriding Earthly's automatic `ip_tables` module detection. Valid choices are `iptables-legacy` or `iptables-nft`.
 
