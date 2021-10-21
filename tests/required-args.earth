@@ -1,0 +1,16 @@
+FROM scratch
+
+test-non-required-args:
+    ARG validEmpty
+    ARG validDefault=val
+
+test-reject-default-val-required-arg:
+    BUILD +test-non-required-args
+    ARG --required shouldNotHaveDefaultValue=default
+
+test-accept-valid-required-arg:
+    BUILD +test-non-required-args
+    ARG --required req
+
+test-accept-valid-required-arg-build-arg-in-earthfile:
+    BUILD --build-arg req=val +test-accept-valid-required-arg

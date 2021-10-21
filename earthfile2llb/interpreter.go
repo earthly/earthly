@@ -1028,22 +1028,30 @@ func (i *Interpreter) handleArg(ctx context.Context, cmd spec.Command) error {
 	if i.pushOnlyAllowed {
 		return i.pushOnlyErr(cmd.SourceLocation)
 	}
+	opts := argOpts{}
+	args, err := flagutil.ParseArgs("ARG", &opts, getArgsCopy(cmd))
+	if err != nil {
+		return i.wrapError(err, cmd.SourceLocation, "invalid ARG arguments %v", cmd.Args)
+	}
 	var key, value string
-	switch len(cmd.Args) {
+	switch len(args) {
 	case 3:
-		if cmd.Args[1] != "=" {
+		if args[1] != "=" {
 			return i.errorf(cmd.SourceLocation, "invalid syntax")
 		}
-		value = i.expandArgs(cmd.Args[2], true)
+		value = i.expandArgs(args[2], true)
 		fallthrough
 	case 1:
-		key = cmd.Args[0] // Note: Not expanding args for key.
+		if opts.Required && len(value) != 0 {
+			return i.errorf(cmd.SourceLocation, "required ARG cannot have a default value")
+		}
+		key = args[0] // Note: Not expanding args for key.
 	default:
 		return i.errorf(cmd.SourceLocation, "invalid syntax")
 	}
 	// Args declared in the base target are global.
 	global := i.isBase
-	err := i.converter.Arg(ctx, key, value, global)
+	err = i.converter.Arg(ctx, key, value, opts, global)
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "apply ARG")
 	}
