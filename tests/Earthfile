@@ -71,6 +71,7 @@ ga:
     BUILD +allow-privileged-test
     BUILD +allow-privileged-import-test
     BUILD +reject-privileged-import-test
+    BUILD +required-arg-test
     BUILD +push-test
     BUILD +gen-dockerfile-test
     BUILD +chown-test
@@ -383,6 +384,12 @@ allow-privileged-import-test:
 reject-privileged-import-test:
     DO +RUN_EARTHLY --earthfile=reject-privileged-import.earth --should_fail=true --extra_args="--allow-privileged" --target=+test-reject-copy
     DO +RUN_EARTHLY --earthfile=reject-privileged-import.earth --should_fail=true --extra_args="--allow-privileged" --target=+test-reject-cmd
+
+required-arg-test:
+    DO +RUN_EARTHLY --earthfile=required-args.earth --should_fail=true --target=+test-reject-default-val-required-arg
+    DO +RUN_EARTHLY --earthfile=required-args.earth --should_fail=true --extra_args="--build-arg req=val" --target=+test-reject-with-default-val-test
+    DO +RUN_EARTHLY --earthfile=required-args.earth --extra_args="--build-arg req=val" --target=+test-accept-valid-required-arg
+    DO +RUN_EARTHLY --earthfile=required-args.earth --target=+test-accept-valid-required-arg-build-arg-in-earthfile
 
 fail-push-test:
     # test that an error code is correctly returned

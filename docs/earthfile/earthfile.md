@@ -412,7 +412,7 @@ For detailed examples demonstrating how other scenarios may function, please see
 
 #### Synopsis
 
-* `ARG <name>[=<default-value>]`
+* `ARG [--required] <name>[=<default-value>]`
 
 #### Description
 
@@ -445,6 +445,20 @@ FROM --build-arg NAME=john +docker-image
 ```
 
 A number of builtin args are available and are pre-filled by Earthly. For more information see [builtin args](./builtin-args.md).
+
+#### `--required`
+
+A required `ARG` must be provided at build time and can never have a default value. Required args can help eliminate cases where the user has unexpectedly set an `ARG` to "" when declared as `ARG someArg`.
+
+```
+platform-required:
+    # user must supply build arg for target
+    ARG --required PLATFORM
+
+build-linux:
+    # or explicitly supply in build command
+    BUILD --build-arg PLATFORM=linux +platform-required
+```
 
 ## SAVE ARTIFACT
 
