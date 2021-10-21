@@ -8,7 +8,6 @@ test-reject-default-val-required-arg:
     BUILD +test-non-required-args
     ARG --required shouldNotHaveDefaultValue=default
 
-
 test-accept-valid-required-arg:
     BUILD +test-non-required-args
     ARG --required req
