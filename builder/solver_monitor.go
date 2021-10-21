@@ -184,7 +184,7 @@ func (vm *vertexMonitor) printProgress(id string, progress int, verbose bool, sa
 		builder = append(builder, string(ansiUp))
 	}
 	progressBar := progressBar(progress, 10)
-	builder = append(builder, fmt.Sprintf("[%s] %s ... %d%%%s\n", progressBar, id, progress, string(ansiEraseRestLine)))
+	builder = append(builder, fmt.Sprintf("[%s] %3d%% %s%s\n", progressBar, progress, id, string(ansiEraseRestLine)))
 	vm.console.PrintBytes([]byte(strings.Join(builder, "")))
 }
 
