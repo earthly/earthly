@@ -147,6 +147,7 @@ type cliFlags struct {
 	enableSourceMap           bool
 	configDryRun              bool
 	strict                    bool
+	conversionParllelism      int
 	debuggerHost              string
 	certPath                  string
 	keyPath                   string
@@ -561,6 +562,14 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 			EnvVars:     []string{"EARTHLY_STRICT"},
 			Usage:       "Disallow usage of features that may create unrepeatable builds",
 			Destination: &app.strict,
+		},
+		// TODO: completely remove conversion-parallelism in some future release
+		&cli.IntFlag{
+			Name:        "conversion-parallelism",
+			EnvVars:     []string{"EARTHLY_CONVERSION_PARALLELISM"},
+			Usage:       "This flag is obsolete, use 'earthly config global.conversion_parallelism <parallelism>' instead'",
+			Destination: &app.conversionParllelism,
+			Hidden:      true, // obsolete in favor of config
 		},
 		&cli.BoolFlag{
 			EnvVars:     []string{"EARTHLY_DISABLE_ANALYTICS", "DO_NOT_TRACK"},
@@ -1217,6 +1226,10 @@ func (app *earthlyApp) processDeprecatedCommandOptions(context *cli.Context, cfg
 
 	if cfg.Global.CachePath != "" {
 		app.console.Warnf("Warning: the setting cache_path is now obsolete and will be ignored")
+	}
+
+	if app.conversionParllelism != 0 {
+		app.console.Warnf("Warning: --conversion-parallelism and EARTHLY_CONVERSION_PARALLELISM is obsolete, please use 'earthly config global.conversion_parallelism <parallelism>' instead")
 	}
 
 	// command line overrides the config file
