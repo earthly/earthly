@@ -37,7 +37,7 @@
   ```
 * Run
   ```bash
-  ./earthly --build-arg RELEASE_TAG --push ./release+release-repo
+  ./earthly --push ./release+release-repo --RELEASE_TAG="$RELEASE_TAG"
   ```
   TODO: This step will be merged into the release.sh command once our staging environment is setup
 * Merge branch `main` into `next`, then merge branch `next` into `main`.
@@ -121,7 +121,7 @@ Docker-in-Docker (dind) images change less frequently than earthly, but take a l
 These images can be rebuilt by running:
 
   ```bash
-  ./earthly --build-arg RELEASE_TAG --push ./release+release-dind
+  ./earthly --push ./release+release-dind --RELEASE_TAG="$RELEASE_TAG"
   ```
 
 ### VS Code syntax highlighting
@@ -135,9 +135,9 @@ These images can be rebuilt by running:
 * Then publish it:
   ```bash
   ./earthly \
-    --build-arg VSCODE_RELEASE_TAG \
     --push \
-    ./release+release-vscode-syntax-highlighting
+    ./release+release-vscode-syntax-highlighting \
+    --VSCODE_RELEASE_TAG="$VSCODE_RELEASE_TAG"
   ```
 * Finally, tag git for future reference
   ```bash

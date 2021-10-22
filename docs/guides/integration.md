@@ -145,7 +145,7 @@ We then install SBT
 ``` Dockerfile
 sbt: 
     #Scala
-    # Defaults if not specified in --build-arg
+    # Defaults if not specified
     ARG sbt_version=1.3.2
     ARG sbt_home=/usr/local/sbt
 

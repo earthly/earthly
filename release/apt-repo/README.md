@@ -52,7 +52,7 @@ Once earthly has been released to GitHub, visit https://github.com/earthly/earth
 
 Then run
 
-    earthly --build-arg RELEASE_TAG +build-and-release
+    earthly +build-and-release --RELEASE_TAG="$RELEASE_TAG"
 
 ### Running steps independently
 
@@ -62,11 +62,11 @@ It is also possible to run steps independently:
 
 To package all platforms
 
-    earthly --build-arg RELEASE_TAG +deb-all
+    earthly +deb-all --RELEASE_TAG="$RELEASE_TAG"
 
 To package a specific platform
 
-    earthly --build-arg RELEASE_TAG --build-arg EARTHLY_PLATFORM=arm7 +deb
+    earthly +deb --RELEASE_TAG="$RELEASE_TAG" --EARTHLY_PLATFORM=arm7
 
 #### Cloning the s3 repo to your local disk
 

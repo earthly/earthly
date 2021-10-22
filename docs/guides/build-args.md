@@ -2,13 +2,13 @@
 
 ## Introduction
 
-One of the core features of earthly is support for build arguments. Build arguments
+One of the core features of Earthly is support for build arguments. Build arguments
 can be used to dynamically set environment variables inside the context of [RUN commands](../earthfile/earthfile.md#run).
 
 Build arguments can be passed between targets or from the command line. They encourage
 writing generic Earthfiles and ultimately promote greater code-reuse.
 
-Additionally, earthly defines secrets which are similar to build arguments, but are exposed as environment
+Additionally, Earthly defines secrets which are similar to build arguments, but are exposed as environment
 variables when explicitly allowed.
 
 ## A Quick Example
@@ -29,7 +29,7 @@ hello:
 Then we will specify a value for the `name` argument on the command line when we invoke `earthly`:
 
 ```bash
-earthly --build-arg name=world +hello
+earthly +hello --name=world
 ```
 
 This will output
@@ -45,7 +45,7 @@ alpine:latest | --> Load metadata linux/amd64
        output | --> exporting outputs
 ```
 
-If we re-run `earthly --build-arg name=world +hello`, we will see that the echo command is cached (and won't re-display the hello world text):
+If we re-run `earthly +hello --name=world`, we will see that the echo command is cached (and won't re-display the hello world text):
 
 ```
 +foo | *cached* --> RUN echo "hello $name"
@@ -60,17 +60,16 @@ Argument values can be set multiple ways:
    The value can be directly specified on the command line (as shown in the previous example):
    
    ```
-   earthly --build-arg name=world +hello
+   earthly +hello --name=world
    ```
 
 2. From an environment variable
 
-   If no value is given for name, then earthly will look for the value in the corresponding
-   environment variable on the localhost:
+   Similar to above, except that the value is an environment variable:
    
    ```bash
    export name="banana"
-   earthly --build-arg name +hello
+   earthly +hello --name="$name"
    ```
 
 3. From a `.env` file
@@ -91,17 +90,16 @@ Argument values can be set multiple ways:
 ## Passing Argument values to targets
 
 Build arguments can also be set when calling build targets. If multiple build arguments values are defined for the same argument name,
-earthly will build the target for each value; this makes it easy to configure a "build matrix" within Earthly.
+Earthly will build the target for each value; this makes it easy to configure a "build matrix" within Earthly.
 
 For example, we can create a new `greetings` target which calls `+hello` multiple times:
 
 ```dockerfile
 greetings:
-    BUILD \
-        --build-arg name=world \
-        --build-arg name=banana \
-        --build-arg name=eggplant \
-        +hello
+    BUILD +hello \
+        --name=world \
+        --name=banana \
+        --name=eggplant
 ```
 
 Then when we call `earthly +greetings`, earthly will call `+hello` three times:
@@ -123,7 +121,7 @@ Then when we call `earthly +greetings`, earthly will call `+hello` three times:
         output | --> exporting outputs
 ```
 
-In addition to the `BUILD` command, the `--build-arg` flag can also be used with `FROM`, `COPY` and a number of other commands.
+In addition to the `BUILD` command, build args can also be used with `FROM`, `COPY` and a number of other commands.
 
 ## Passing secrets to RUN commands
 
@@ -161,14 +159,14 @@ The value for `+secrets/passwd` must then be supplied when earthly is invoked. T
 earthly --secret passwd=itsasecret +hush
 ```
 
-or if the value is omitted, then earthly will attempt to lookup the value from an environment variable on the localhost:
+or if the value is omitted, then Earthly will attempt to lookup the value from an environment variable on the localhost:
 
 ```bash
 passwd=itsasecret \
 earthly --secret passwd +hush
 ```
 
-Alternatively, earthly offers [cloud-based secrets](cloud-secrets.md) if you need to share secrets between colleagues.
+Alternatively, Earthly offers [cloud-based secrets](cloud-secrets.md) if you need to share secrets between colleagues.
 
 Once earthly is invoked, it will output:
 
@@ -181,10 +179,10 @@ Once earthly is invoked, it will output:
 ### How Arguments affect caching
 
 Commands in earthly must be re-evaluated when the command itself changes (e.g. `echo "hello $name"` is changed to `echo "greetings $name"`), or when
-one of it's inputs has changed (e.g. `--build-arg name=world` is changed to `--build-arg name=banana`). Earthly creates a hash based on both the contents
+one of it's inputs has changed (e.g. `--name=world` is changed to `--name=banana`). Earthly creates a hash based on both the contents
 of the command and the contents of all defined arguments of the target build context.
 
-However, in the case of secrets, the contents of the secret *is not* included in the hash; therefore, if the contents of a secret changes, earthly is unable to
+However, in the case of secrets, the contents of the secret *is not* included in the hash; therefore, if the contents of a secret changes, Earthly is unable to
 detect such a change, and thus the command will not be re-evaluated.
 {% endhint %}
 
@@ -192,7 +190,7 @@ detect such a change, and thus the command will not be re-evaluated.
 
 Earthly stores the contents of command-line-supplied secrets in memory on the localhost. When a `RUN` command that requires a secret is evaluated by BuildKit, the BuildKit
 daemon will request the secret from the earthly command-line process and will temporarily mount the secret inside the runc container that is evaluating the `RUN` command.
-Once the command finishes the secret is unmounted. It will not persist as an environment variable within the saved container snapshot. Secrets will persist in-memory
+Once the command finishes the secret is unmounted. It will not persist as an environment variable within the saved container snapshot. Secrets will be kept in-memory
 until the earthly command exits.
 
 Earthly also supports cloud-based shared secrets which can be stored in the cloud. Secrets are never stored in the cloud unless a user creates an earthly account and

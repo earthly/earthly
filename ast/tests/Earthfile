@@ -10,102 +10,100 @@ ARG DOCKERHUB_AUTH=true
 COPY ../..+earthly/earthly /usr/local/bin/earthly
 
 all:
-    BUILD \
-        --build-arg TEST=build-arg \
-        --build-arg TEST=builtin-args \
-        --build-arg TEST=cache1 \
-        --build-arg TEST=cache2 \
-        --build-arg TEST=chown \
-        --build-arg TEST=comments \
-        --build-arg TEST=config \
-        --build-arg TEST=copy \
-        --build-arg TEST=dotenv \
-        --build-arg TEST=empty-git \
-        --build-arg TEST=end-comment \
-        --build-arg TEST=env \
-        --build-arg TEST=escape-dir1 \
-        --build-arg TEST=escape-dir2 \
-        --build-arg TEST=escape \
-        --build-arg TEST=excludes \
-        --build-arg TEST=fail \
-        --build-arg TEST=fail-invalid-artifact \
-        --build-arg TEST=file-copying \
-        --build-arg TEST=from-expose \
-        --build-arg TEST=gen-dockerfile \
-        --build-arg TEST=git-clone \
-        --build-arg TEST=host-bind \
-        --build-arg TEST=if-exists \
-        --build-arg TEST=lc \
-        --build-arg TEST=no-cache-local-artifact \
-        --build-arg TEST=non-transitive-args1 \
-        --build-arg TEST=non-transitive-args2 \
-        --build-arg TEST=privileged \
-        --build-arg TEST=push-build \
-        --build-arg TEST=push \
-        --build-arg TEST=run-no-cache \
-        --build-arg TEST=save-artifact-after-push \
-        --build-arg TEST=scratch-test \
-        --build-arg TEST=secrets \
-        --build-arg TEST=star \
-        --build-arg TEST=target-first-line \
-        --build-arg TEST=transitive-args \
-        --build-arg TEST=with-docker \
-        --build-arg TEST=with-docker-compose \
-        --build-arg TEST=command \
-        --build-arg TEST=import \
-        +test
-    BUILD --build-arg INPUT_FROM_DIR=./ --build-arg INPUT_FROM_TARGET="" --build-arg TEST=if +test
-    BUILD --build-arg INPUT_FROM_DIR=./ --build-arg INPUT_FROM_TARGET="" --build-arg TEST=for +test
-    BUILD --build-arg INPUT_FROM_DIR=./ --build-arg INPUT_FROM_TARGET="" --build-arg TEST=empty-targets +test
+    BUILD +test \
+        --TEST=build-arg \
+        --TEST=builtin-args \
+        --TEST=cache1 \
+        --TEST=cache2 \
+        --TEST=chown \
+        --TEST=comments \
+        --TEST=config \
+        --TEST=copy \
+        --TEST=dotenv \
+        --TEST=empty-git \
+        --TEST=end-comment \
+        --TEST=env \
+        --TEST=escape-dir1 \
+        --TEST=escape-dir2 \
+        --TEST=escape \
+        --TEST=excludes \
+        --TEST=fail \
+        --TEST=fail-invalid-artifact \
+        --TEST=file-copying \
+        --TEST=from-expose \
+        --TEST=gen-dockerfile \
+        --TEST=git-clone \
+        --TEST=host-bind \
+        --TEST=if-exists \
+        --TEST=lc \
+        --TEST=no-cache-local-artifact \
+        --TEST=non-transitive-args1 \
+        --TEST=non-transitive-args2 \
+        --TEST=privileged \
+        --TEST=push-build \
+        --TEST=push \
+        --TEST=run-no-cache \
+        --TEST=save-artifact-after-push \
+        --TEST=scratch-test \
+        --TEST=secrets \
+        --TEST=star \
+        --TEST=target-first-line \
+        --TEST=transitive-args \
+        --TEST=with-docker \
+        --TEST=with-docker-compose \
+        --TEST=command \
+        --TEST=import
+    BUILD +test --INPUT_FROM_DIR=./ --INPUT_FROM_TARGET="" --TEST=if
+    BUILD +test --INPUT_FROM_DIR=./ --INPUT_FROM_TARGET="" --TEST=for
+    BUILD +test --INPUT_FROM_DIR=./ --INPUT_FROM_TARGET="" --TEST=empty-targets
 
 update-all:
-    BUILD \
-        --build-arg TEST=build-arg \
-        --build-arg TEST=builtin-args \
-        --build-arg TEST=cache1 \
-        --build-arg TEST=cache2 \
-        --build-arg TEST=chown \
-        --build-arg TEST=comments \
-        --build-arg TEST=config \
-        --build-arg TEST=copy \
-        --build-arg TEST=dotenv \
-        --build-arg TEST=empty-git \
-        --build-arg TEST=end-comment \
-        --build-arg TEST=env \
-        --build-arg TEST=escape-dir1 \
-        --build-arg TEST=escape-dir2 \
-        --build-arg TEST=escape \
-        --build-arg TEST=excludes \
-        --build-arg TEST=fail \
-        --build-arg TEST=fail-invalid-artifact \
-        --build-arg TEST=file-copying \
-        --build-arg TEST=from-expose \
-        --build-arg TEST=gen-dockerfile \
-        --build-arg TEST=git-clone \
-        --build-arg TEST=host-bind \
-        --build-arg TEST=if-exists \
-        --build-arg TEST=lc \
-        --build-arg TEST=no-cache-local-artifact \
-        --build-arg TEST=non-transitive-args1 \
-        --build-arg TEST=non-transitive-args2 \
-        --build-arg TEST=privileged \
-        --build-arg TEST=push-build \
-        --build-arg TEST=push \
-        --build-arg TEST=run-no-cache \
-        --build-arg TEST=save-artifact-after-push \
-        --build-arg TEST=scratch-test \
-        --build-arg TEST=secrets \
-        --build-arg TEST=star \
-        --build-arg TEST=target-first-line \
-        --build-arg TEST=transitive-args \
-        --build-arg TEST=with-docker \
-        --build-arg TEST=with-docker-compose \
-        --build-arg TEST=command \
-        --build-arg TEST=import \
-        +update-expected
-    BUILD --build-arg INPUT_FROM_DIR=./ --build-arg INPUT_FROM_TARGET="" --build-arg TEST=if +update-expected
-    BUILD --build-arg INPUT_FROM_DIR=./ --build-arg INPUT_FROM_TARGET="" --build-arg TEST=for +update-expected
-    BUILD --build-arg INPUT_FROM_DIR=./ --build-arg INPUT_FROM_TARGET="" --build-arg TEST=empty-targets +update-expected
+    BUILD +update-expected \
+        --TEST=build-arg \
+        --TEST=builtin-args \
+        --TEST=cache1 \
+        --TEST=cache2 \
+        --TEST=chown \
+        --TEST=comments \
+        --TEST=config \
+        --TEST=copy \
+        --TEST=dotenv \
+        --TEST=empty-git \
+        --TEST=end-comment \
+        --TEST=env \
+        --TEST=escape-dir1 \
+        --TEST=escape-dir2 \
+        --TEST=escape \
+        --TEST=excludes \
+        --TEST=fail \
+        --TEST=fail-invalid-artifact \
+        --TEST=file-copying \
+        --TEST=from-expose \
+        --TEST=gen-dockerfile \
+        --TEST=git-clone \
+        --TEST=host-bind \
+        --TEST=if-exists \
+        --TEST=lc \
+        --TEST=no-cache-local-artifact \
+        --TEST=non-transitive-args1 \
+        --TEST=non-transitive-args2 \
+        --TEST=privileged \
+        --TEST=push-build \
+        --TEST=push \
+        --TEST=run-no-cache \
+        --TEST=save-artifact-after-push \
+        --TEST=scratch-test \
+        --TEST=secrets \
+        --TEST=star \
+        --TEST=target-first-line \
+        --TEST=transitive-args \
+        --TEST=with-docker \
+        --TEST=with-docker-compose \
+        --TEST=command \
+        --TEST=import
+    BUILD +update-expected --INPUT_FROM_DIR=./ --INPUT_FROM_TARGET="" --TEST=if
+    BUILD +update-expected --INPUT_FROM_DIR=./ --INPUT_FROM_TARGET="" --TEST=for
+    BUILD +update-expected --INPUT_FROM_DIR=./ --INPUT_FROM_TARGET="" --TEST=empty-targets
 
 # Note: If this test fails for expected reasons (eg format of AST has changed), you can
 #       update the expectations via +update-all. Please review the resulting diff
@@ -140,9 +138,11 @@ INPUT_COPY:
         COPY ${INPUT_FROM_DIR}${TEST}.earth ./
     ELSE
         COPY \
-            --build-arg DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
-            --build-arg DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
-            --build-arg DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
-            --build-arg DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR \
-            ${INPUT_FROM_DIR}+${INPUT_FROM_TARGET}/${TEST}.earth .
+            ( \
+                ${INPUT_FROM_DIR}+${INPUT_FROM_TARGET}/${TEST}.earth \
+                --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
+                --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
+                --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
+                --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR \
+            ) .
     END

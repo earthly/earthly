@@ -6,15 +6,16 @@
 
 * Target form
   ```
-  earthly [options...] <target-ref>
+  earthly [options...] <target-ref> [build-args...]
   ```
 * Artifact form
   ```
   earthly [options...] --artifact|-a <target-ref>/<artifact-path> [<dest-path>]
+  earthly [options...] --artifact|-a (<target-ref>/<artifact-path> [build-args...]) [<dest-path>]
   ```
 * Image form
   ```
-  earthly [options...] --image <target-ref>
+  earthly [options...] --image <target-ref> [build-args...]
   ```
 
 #### Description
@@ -23,18 +24,16 @@ The command executes a build referenced by `<target-ref>` (*target form* and *im
 
 If a BuildKit daemon has not already been started, and the option `--buildkit-host` is not specified, this command also starts up a container named `earthly-buildkitd` to act as a build daemon.
 
-The execution has two phases:
+The execution has four phases:
 
-* The build
-* The output
+* Init
+* Build
+* Push (optional - disabled by default)
+* Local output (optional - enabled by default)
 
-During the build phase, the referenced target and all its direct or indirect dependencies are executed. During the output phase, all applicable artifacts with an `AS LOCAL` specification are written to the specified output location, and all applicable docker images are loaded onto the host's docker daemon. If the `--push` option is specified, the output phase additionally pushes any applicable docker images to remote registries and also all `RUN --push` commands are executed.
+During the init phase the configuration is interpreted and the BuildKit daemon is started (if applicable). During the build phase, the referenced target and all its direct or indirect dependencies are executed. During the push phase, when enabled, Earthly performs image pushes and it also runs `RUN --push` commands.  During the local output phase, all applicable artifacts with an `AS LOCAL` specification are written to the specified output location, and all applicable docker images are loaded onto the host's docker daemon.
 
-Remote targets only output images and no artifacts, by default.
-
-If the build phase does not succeed, not output is produced and no push instruction is executed. In this case, the command exits with a non-zero exit code.
-
-The printout of the two phases are separated by a `=== SUCCESS ===` marker.
+If the build phase does not succeed, no output is produced and no push instruction is executed. In this case, the command exits with a non-zero exit code.
 
 #### Target and Artifact Reference
 
@@ -58,6 +57,22 @@ The `<artifact-ref>` can reference artifacts built by targets. `<target-ref>/<ar
 ##### Examples
 
 See the [Target, artifact, and image referencing guide](../guides/target-ref.md) for more details and examples.
+
+#### Build args
+
+Synposis:
+
+  * Target form `earthly <target-ref> [--<build-arg-key>=<build-arg-value>...]`
+  * Artifact form `earthly --artifact (<target-ref>/<artifact-path> [--<build-arg-key>=<build-arg-value>...]) <dest-path>`
+  * Image form `earthly --image <target-ref> [--<build-arg-key>=<build-arg-value>...]`
+
+Build arg overrides may be specified as part of the Earthly command. The value of the build arg `<build-arg-key>` is set to `<build-arg-value>`.
+
+In the target and image forms the build args are passed after the target reference. For example `earthly +some-target --NAME=john --SPECIES=human`. In the artifact form, the build args are passed immediately after the artifact reference, however they are surrounded by paranthesis, similar to a [`COPY` command](../earthfile/earthfile.md#copy). For example `earthly --artifact (+some-target/some-artifact --NAME=john --SPECIES=human) ./dest/path/`.
+
+The build arg overrides only apply to the target being called directly and any other target referenced as part of the same Earthfile. Build arg overrides, will not apply to targets referenced from other directories or other repositories.
+
+For more information about build args see the [`ARG` Earthfile command](../earthfile/earthfile.md#arg).
 
 #### Environment Variables and .env File
 
@@ -99,12 +114,6 @@ The `.env` file is meant for settings which are specific to the local environmen
 {% endhint %}
 
 #### Options
-
-##### `--build-arg <key>[=<value>]`
-
-Also available as an env var setting: `EARTHLY_BUILD_ARGS"<key>=<value>,<key>=<value>,..."`.
-
-Overrides the value of the build arg `<key>`. If `<value>` is not specified, then the value becomes the value of the environment variable with the same name as `<key>`. For more information see the [`ARG` Earthfile command](../earthfile/earthfile.md#arg).
 
 ##### `--secret|-s <secret-id>[=<value>]`
 
@@ -219,19 +228,27 @@ On Mac systems, this setting defaults to `/run/host-services/ssh-auth.sock` to m
 
 For more information see the [Authentication page](../guides/auth.md).
 
-##### `--git-username <git-user>` (deprecated)
+##### `--build-arg <key>[=<value>]` (**deprecated**)
+
+This option has been deprecated in favor of the new build arg syntax `earthly <target-ref> --<key>=<value>`.
+
+Also available as an env var setting: `EARTHLY_BUILD_ARGS="<key>=<value>,<key>=<value>,..."`.
+
+Overrides the value of the build arg `<key>`. If `<value>` is not specified, then the value becomes the value of the environment variable with the same name as `<key>`. For more information see the [`ARG` Earthfile command](../earthfile/earthfile.md#arg).
+
+##### `--git-username <git-user>` (**deprecated**)
 
 Also available as an env var setting: `GIT_USERNAME=<git-user>`.
 
 This option is now deprecated. Please use the [configuration file](../earthly-config/earthly-config.md) instead.
 
-##### `--git-password <git-pass>` (deprecated)
+##### `--git-password <git-pass>` (**deprecated**)
 
 Also available as an env var setting: `GIT_PASSWORD=<git-pass>`.
 
 This option is now deprecated. Please use the [configuration file](../earthly-config/earthly-config.md) instead.
 
-##### `--git-url-instead-of <git-instead-of>` (obsolete)
+##### `--git-url-instead-of <git-instead-of>` (**obsolete**)
 
 Also used to be available as an env var setting: `GIT_URL_INSTEAD_OF=<git-instead-of>`.
 
