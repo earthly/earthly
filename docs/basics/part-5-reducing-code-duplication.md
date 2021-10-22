@@ -9,6 +9,7 @@ Note that in our case, only the JavaScript version has an example where `FROM +d
 `./Earthfile`
 
 ```Dockerfile
+VERSION 0.6
 FROM golang:1.15-alpine3.13
 WORKDIR /go-example
 
@@ -45,6 +46,7 @@ earthly --artifact github.com/earthly/earthly/examples/tutorial/go:main+part5/pa
 `./Earthfile`
 
 ```Dockerfile
+VERSION 0.6
 FROM node:13.10.1-alpine3.11
 WORKDIR /js-example
 
@@ -85,6 +87,7 @@ earthly --artifact github.com/earthly/earthly/examples/tutorial/js:main+part5/pa
 `./Earthfile`
 
 ```Dockerfile
+VERSION 0.6
 FROM openjdk:8-jdk-alpine
 RUN apk add --update --no-cache gradle
 WORKDIR /java-example
@@ -122,6 +125,7 @@ earthly --artifact github.com/earthly/earthly/examples/tutorial/java:main+part5/
 `./Earthfile`
 
 ```Dockerfile
+VERSION 0.6
 FROM python:3
 WORKDIR /code
 

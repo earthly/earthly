@@ -134,6 +134,7 @@ Reference pages
 
 ```Dockerfile
 # Earthfile
+VERSION 0.6
 FROM golang:1.15-alpine3.13
 RUN apk --update --no-cache add git
 WORKDIR /go-example
@@ -233,6 +234,7 @@ Cut down build times in CI through [Shared Caching](https://docs.earthly.dev/gui
 Build for multiple platforms in parallel.
 
 ```Dockerfile
+VERSION 0.6
 all:
     BUILD \
         --platform=linux/amd64 \
@@ -258,6 +260,7 @@ Whenever possible, Earthly automatically executes targets in parallel.
 No need to ask your team to install `protoc`, a specific version of Python, Java 1.6 or the .NET Core ecosystem. You only install once, in your Earthfile, and it works for everyone. Or even better, you can just make use of the rich Docker Hub ecosystem.
 
 ```Dockerfile
+VERSION 0.6
 FROM golang:1.15-alpine3.13
 WORKDIR /proto-example
 

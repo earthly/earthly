@@ -40,6 +40,7 @@ The build then might become
 `./Earthfile`
 
 ```Dockerfile
+VERSION 0.6
 FROM golang:1.15-alpine3.13
 WORKDIR /go-example
 
@@ -130,6 +131,7 @@ The build then might become
 `./Earthfile`
 
 ```Dockerfile
+VERSION 0.6
 FROM node:13.10.1-alpine3.11
 WORKDIR /js-example
 
@@ -210,6 +212,7 @@ The Earthfile file would not change
 `./Earthfile`
 
 ```Dockerfile
+VERSION 0.6
 FROM openjdk:8-jdk-alpine
 RUN apk add --update --no-cache gradle
 WORKDIR /java-example
@@ -263,6 +266,7 @@ The build might then become as follows.
 `./Earthfile`
 
 ```Dockerfile
+VERSION 0.6
 FROM python:3
 WORKDIR /code
 

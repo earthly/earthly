@@ -1,15 +1,5 @@
 # Multi-platform builds
 
-{% hint style='danger' %}
-##### Important
-
-This feature is currently in **Beta** stage
-
-* The feature may break, or be changed drastically with little warning.
-* Check the [GitHub tracking issue](https://github.com/earthly/earthly/issues/536) for any known problems.
-* Give us feedback on [Slack](https://earthly.dev/slack) in the `#multi-platform` channel.
-{% endhint %}
-
 Earthly has the ability to perform builds for multiple platforms, in parallel. This page walks through setting up your system to support emulation as well as through a few simple examples of how to use this feature.
 
 Currently only `linux` is supported as the build platform OS. Building with Windows containers will be available in a future version of Earthly.

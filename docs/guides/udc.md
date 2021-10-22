@@ -1,15 +1,5 @@
 # User-defined commands
 
-{% hint style='danger' %}
-##### Important
-
-This feature is currently in **Experimental** stage
-
-* The feature may break, be changed drastically with no warning, or be removed altogether in future versions of Earthly.
-* Check the [GitHub tracking issue](https://github.com/earthly/earthly/issues/581) for any known problems.
-* Give us feedback on [Slack](https://earthly.dev/slack) in the `#udc` channel.
-{% endhint %}
-
 User-defined commands (UDCs) are templates (much like functions in regular programming languages), which can be used to define a series of steps to be executed in sequence. In other words, it is a way to import common build steps which can be reused in multiple contexts.
 
 Unlike targets, UDCs inherit the (1) build context and (2) the build environment from the caller. Meaning that
@@ -70,6 +60,8 @@ PRINT_VAR:
 Global imports and global args are inherited from the `base` target of the same Earthfile where the command is defined in (this may be distinct from the `base` target of the caller).
 
 ```Dockerfile
+VERSION 0.6
+
 ARG a_global_var=value-in-global
 
 build:

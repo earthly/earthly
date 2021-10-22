@@ -1,3 +1,5 @@
+VERSION 0.6
+
 # An example where multi-platform images are possible without the need of any emulation.
 # The build takes place on linux/amd64, however multiple image variants are produced in the end.
 # There is no RUN command that needs to execute on linux/arm/v7 during the build.

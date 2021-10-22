@@ -96,7 +96,7 @@ Sets a value override of `<build-arg-value>` for the build arg identified by `<b
 
 For example, in `FROM +another-target --LINT=true`, `LINT` represents the `<build-arg-key>` and `true` represents the `<build-arg-value>`. This command inherits from the target `+another-target` with the build arg `LINT` set to `true`.
 
-##### `--platform <platform>` (**beta**)
+##### `--platform <platform>`
 
 Specifies the platform to build on.
 
@@ -276,7 +276,7 @@ RUN --mount=type=cache,target=/go-cache go build main.go
 Note that mounts cannot be shared between targets, nor can they be shared within the same target,
 if the build-args differ between invocations.
 
-##### `--interactive` / `--interactive-keep` (**experimental**)
+##### `--interactive` / `--interactive-keep`
 
 Opens an interactive prompt during the target build. An interactive prompt must:
 
@@ -324,7 +324,7 @@ Note that the Dockerfile form of `COPY` whereby you can reference a source as a 
 
 {% hint style='info' %}
 ##### Note
-To prevent Earthly from copying unwanted files, you may specify file patterns to be excluded from the build context using an [`.earthignore`](./earthignore.md) file. This file has the same syntax as a [`.dockerignore` file](https://docs.docker.com/engine/reference/builder/#dockerignore-file).
+To prevent Earthly from copying unwanted files, you may specify file patterns to be excluded from the build context using an [`.earthlyignore`](./earthignore.md) file. This file has the same syntax as a [`.dockerignore` file](https://docs.docker.com/engine/reference/builder/#dockerignore-file).
 {% endhint %}
 
 #### Options
@@ -376,7 +376,7 @@ final-target:
     COPY +intermediate/some-file.txt ./
 ```
 
-##### `--platform <platform>` (**beta**)
+##### `--platform <platform>`
 
 In *artifact form*, it specifies the platform to build the artifact on.
 
@@ -580,11 +580,11 @@ The actual push is not executed by default. Add the `--push` flag to the earthly
 earthly --push +docker-image
 ```
 
-##### `--cache-from=<cache-image>` (**experimental**)
+##### `--cache-from=<cache-image>`
 
-Adds additional cache sources to be used when `--use-inline-cache` is enabled. For more information see the [shared caching guide](../guides/shared-cache.md).
+Adds additional remote cache sources to be used. For more information see the [shared caching guide](../guides/shared-cache.md).
 
-##### `--cache-hint` (**experimental**)
+##### `--cache-hint`
 
 Instructs Earthly that the current target should be included as part of the explicit cache. For more information see the [shared caching guide](../guides/shared-cache.md).
 
@@ -624,7 +624,7 @@ or a dynamic expression, based on the output of a command executed in the contex
 --SOME_ARG="$(find /app -type f -name '*.php')"
 ```
 
-##### `--platform <platform>` (**beta**)
+##### `--platform <platform>`
 
 Specifies the platform to build on.
 
@@ -649,17 +649,19 @@ This option has been deprecated in favor of `--<build-arg-key>=<build-arg-value>
 
 #### Synopsis
 
-* `VERSION [--use-copy-include-patterns] <version-number>`
+* `VERSION [<flags>...] <version-number>`
 
 #### Description
 
 The command `VERSION` identifies which set of features to enable in Earthly while handling the corresponding Earthfile. The `VERSION` command is currently optional;
 however will become mandatory in a future version of Earthly. When specified, `VERSION` must be the first command in the Earthfile.
 
+It is possible to execute builds spanning multiple Earthfiles written for different versions, as long as all versions involved are lower than or equal to the current version of Earthly. Old versions will be supported for at least four minor versions back (running `VERSION 0.5` Earthfiles will be supported up to and including Earthly `v0.9.*`) and for at least one year since their last patch release.
 
 | Version number | enabled features |
-| --- | --- | --- |
-| `0.5` | _initial functionality will be preserved_ |
+| --- | --- |
+| `0.5` | _Initial functionality will be preserved_ |
+| `0.6` | Everything in `0.5`, `--use-copy-include-patterns`, `--referenced-save-only`, `--for-in`, `--require-force-for-unsafe-saves`, `--no-implicit-ignore`. See the [features page](./features.md) for more details. |
 
 #### Options
 
@@ -850,13 +852,13 @@ If the target context is an Earthly target, then this setting will also override
 
 In a multi-stage Dockerfile, sets the target to be used for the build. This option is similar to the `docker build --target <target-name>` option.
 
-##### `--platform <platform>` (**beta**)
+##### `--platform <platform>`
 
 Specifies the platform to build on.
 
 For more information see the [multi-platform guide](../guides/multi-platform.md).
 
-## WITH DOCKER (**beta**)
+## WITH DOCKER
 
 #### Synopsis
 
@@ -939,7 +941,7 @@ This option can only be used if `--compose` has been specified.
 
 This option may be repeated in order to specify multiple services.
 
-##### `--platform <platform>` (**beta**)
+##### `--platform <platform>`
 
 Specifies the platform for any referenced `--load` and `--pull` images.
 
@@ -953,17 +955,7 @@ Same as [`FROM --allow-privileged`](#allow-privileged).
 
 This option has been deprecated in favor of `--load <image-name>=(<target-ref> --<build-arg-key>=<build-arg-value>)`.
 
-## IF (**experimental**)
-
-{% hint style='danger' %}
-##### Important
-
-This feature is currently in **Experimental** stage
-
-* The feature may break, be changed drastically with no warning, or be removed altogether in future versions of Earthly.
-* Check the [GitHub tracking issue](https://github.com/earthly/earthly/issues/779) for any known problems.
-* Give us feedback on [Slack](https://earthly.dev/slack).
-{% endhint %}
+## IF
 
 #### Synopsis
 
@@ -1062,19 +1054,9 @@ Same as [`RUN --mount <mount-spec>`](#mount-less-than-mount-spec-greater-than).
 
 Same as [`RUN --secret <env-var>=<secret-ref>`](#secret-less-than-env-var-greater-than-less-than-secret-ref-greater-than).
 
-## FOR (**experimental**)
+## FOR
 
-Enable via `VERSION --for-in 0.5`.
-
-{% hint style='danger' %}
-##### Important
-
-This feature is currently in **Experimental** stage
-
-* The feature may break, be changed drastically with no warning, or be removed altogether in future versions of Earthly.
-* Check the [GitHub tracking issue](https://github.com/earthly/earthly/issues/779) for any known problems.
-* Give us feedback on [Slack](https://earthly.dev/slack).
-{% endhint %}
+Requires `VERSION 0.6`.
 
 #### Synopsis
 
@@ -1139,17 +1121,7 @@ Same as [`RUN --mount <mount-spec>`](#mount-less-than-mount-spec-greater-than).
 
 Same as [`RUN --secret <env-var>=<secret-ref>`](#secret-less-than-env-var-greater-than-less-than-secret-ref-greater-than).
 
-## LOCALLY (**experimental**)
-
-{% hint style='danger' %}
-##### Important
-
-This feature is currently in **Experimental** stage
-
-* The feature may break, be changed drastically with no warning, or be removed altogether in future versions of Earthly.
-* Check the [GitHub tracking issue](https://github.com/earthly/earthly/issues/580) for any known problems.
-* Give us feedback on [Slack](https://earthly.dev/slack) in the `#locally` channel.
-{% endhint %}
+## LOCALLY
 
 #### Synopsis
 
@@ -1157,11 +1129,11 @@ This feature is currently in **Experimental** stage
 
 #### Description
 
-The `LOCALLY` command can be used in place of a `FROM` command, which will cause earthly to execute all commands under the target directly
+The `LOCALLY` command can be used in place of a `FROM` command, which will cause Earthly to execute all commands under the target directly
 on the host system, rather than inside a container. Commands within a `LOCALLY` target will never be cached.
 This feature should be used with caution as locally run commands have no guarantee they will behave the same on different systems.
 
-Only `RUN` commands are supported under a `LOCALLY` defined target; furthermore only `RUN`'s `--push` flag is supported.
+Only `RUN` commands are supported under a `LOCALLY` defined target. Furthermore, only `RUN`'s `--push` flag is supported.
 
 `RUN` commands have access to the environment variables which are exposed to the `earthly` command; however, the commands 
 are executed within a working directory which is set to the location of the referenced Earthfile and not where the `earthly` command is run from.
@@ -1242,17 +1214,7 @@ a-locally-example:
 ```
 {% endhint %}
 
-## COMMAND (**experimental**)
-
-{% hint style='danger' %}
-##### Important
-
-This feature is currently in **Experimental** stage
-
-* The feature may break, be changed drastically with no warning, or be removed altogether in future versions of Earthly.
-* Check the [GitHub tracking issue](https://github.com/earthly/earthly/issues/581) for any known problems.
-* Give us feedback on [Slack](https://earthly.dev/slack) in the `#udc` channel.
-{% endhint %}
+## COMMAND
 
 #### Synopsis
 
@@ -1260,7 +1222,7 @@ This feature is currently in **Experimental** stage
 
 #### Description
 
-The command `COMMAND` marks the beginning of a user-defined command (UDC) definition. UDCs are templates (much like functions in regular programming languages), which can be used to define a series of steps to be executed in sequence. In order to reference and execute a UDC, you may use the command [`DO`](#do-experimental).
+The command `COMMAND` marks the beginning of a user-defined command (UDC) definition. UDCs are templates (much like functions in regular programming languages), which can be used to define a series of steps to be executed in sequence. In order to reference and execute a UDC, you may use the command [`DO`](#do).
 
 Unlike performing a `BUILD +target`, UDCs inherit the build context and the build environment from the caller.
 
@@ -1270,17 +1232,7 @@ Global imports and global args are inherited from the `base` target of the same 
 
 For more information see the [User-defined commands guide](../guides/udc.md).
 
-## DO (**experimental**)
-
-{% hint style='danger' %}
-##### Important
-
-This feature is currently in **Experimental** stage
-
-* The feature may break, be changed drastically with no warning, or be removed altogether in future versions of Earthly.
-* Check the [GitHub tracking issue](https://github.com/earthly/earthly/issues/581) for any known problems.
-* Give us feedback on [Slack](https://earthly.dev/slack) in the `#udc` channel.
-{% endhint %}
+## DO
 
 #### Synopsis
 
@@ -1302,17 +1254,7 @@ For more information see the [User-defined commands guide](../guides/udc.md).
 
 Same as [`FROM --allow-privileged`](#allow-privileged).
 
-## IMPORT (**experimental**)
-
-{% hint style='danger' %}
-##### Important
-
-This feature is currently in **Experimental** stage
-
-* The feature may break, be changed drastically with no warning, or be removed altogether in future versions of Earthly.
-* Check the [GitHub tracking issue](https://github.com/earthly/earthly/issues/581) for any known problems.
-* Give us feedback on [Slack](https://earthly.dev/slack) in the `#udc` channel.
-{% endhint %}
+## IMPORT
 
 #### Synopsis
 

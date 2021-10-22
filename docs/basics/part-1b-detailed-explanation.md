@@ -5,6 +5,12 @@ Going back to the example Earthfile definition, here is what each command does:
 
 {% method %}
 {% sample lang="Go" %}
+The Earthfile starts off with a version defintion. This will tell Earthly which features to enable and which ones not to, so that the build script maintains compatibility over time, even if Earthly itself is updated.
+
+```Dockerfile
+VERSION 0.6
+```
+
 The first commands in the file are part of the `base` target and are implicitly inherited by all other targets (as if they started with `FROM +base`).
 
 The build starts from a docker image: `golang:1.15-alpine3.13`.
@@ -72,6 +78,12 @@ SAVE IMAGE go-example:latest
 ```
 
 {% sample lang="JavaScript" %}
+The Earthfile starts off with a version defintion. This will tell Earthly which features to enable and which ones not to, so that the build script maintains compatibility over time, even if Earthly itself is updated.
+
+```Dockerfile
+VERSION 0.6
+```
+
 The first commands in the file are part of the `base` target and are implicitly inherited by all other targets (as if they started with `FROM +base`).
 
 The build starts from a docker image: `node:13.10.1-alpine3.11`.
@@ -139,6 +151,12 @@ if the entire build succeeds.
 ```
 
 {% sample lang="Java" %}
+The Earthfile starts off with a version defintion. This will tell Earthly which features to enable and which ones not to, so that the build script maintains compatibility over time, even if Earthly itself is updated.
+
+```Dockerfile
+VERSION 0.6
+```
+
 The first commands in the file are part of the `base` target and are implicitly inherited by all other targets (as if they started with `FROM +base`).
 
 The build starts from a docker image: `openjdk:8-jdk-alpine`.
@@ -223,6 +241,12 @@ docker if the entire build succeeds.
     SAVE IMAGE java-example:latest
 ```
 {% sample lang="Python" %}
+The Earthfile starts off with a version defintion. This will tell Earthly which features to enable and which ones not to, so that the build script maintains compatibility over time, even if Earthly itself is updated.
+
+```Dockerfile
+VERSION 0.6
+```
+
 The first commands in the file are part of the `base` target and are implicitly inherited by all other targets (as if they started with `FROM +base`).
 
 The build starts from the `python:3` docker image.
