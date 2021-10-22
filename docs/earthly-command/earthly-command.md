@@ -232,7 +232,7 @@ For more information see the [Authentication page](../guides/auth.md).
 
 This option has been deprecated in favor of the new build arg syntax `earthly <target-ref> --<key>=<value>`.
 
-Also available as an env var setting: `EARTHLY_BUILD_ARGS"<key>=<value>,<key>=<value>,..."`.
+Also available as an env var setting: `EARTHLY_BUILD_ARGS="<key>=<value>,<key>=<value>,..."`.
 
 Overrides the value of the build arg `<key>`. If `<value>` is not specified, then the value becomes the value of the environment variable with the same name as `<key>`. For more information see the [`ARG` Earthfile command](../earthfile/earthfile.md#arg).
 
