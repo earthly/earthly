@@ -22,8 +22,6 @@ build-image:
     FROM --platform=$TARGETPLATFORM alpine:3.13
     COPY \
         --platform=linux/amd64 \
-        --build-arg GOARCH=$TARGETARCH \
-        --build-arg VARIANT=$TARGETVARIANT \
-        +build/main ./example/main
+        (+build/main --GOARCH=$TARGETARCH --VARIANT=$TARGETVARIANT) ./example/main
     ENTRYPOINT ["/example/main"]
     SAVE IMAGE --push earthly/examples:multiplatform-cross-compile

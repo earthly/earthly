@@ -176,9 +176,7 @@ build-arm-v7:
     FROM --platform=linux/arm/v7 alpine:3.13
     COPY \
         --platform=linux/amd64 \
-        --build-arg GOARCH=arm \
-        --build-arg GOARM=v7 \
-        +build/main ./example/main
+        (+build/main --GOARCH=arm --GOARM=v7) ./example/main
     ENTRYPOINT ["/example/main"]
     SAVE IMAGE --push org/myimage:latest
 ```
@@ -217,9 +215,7 @@ build-image:
     FROM --platform=$TARGETPLATFORM alpine:3.13
     COPY \
         --platform=linux/amd64 \
-        --build-arg GOARCH=$TARGETARCH \
-        --build-arg VARIANT=$TARGETVARIANT \
-        +build/main ./example/main
+        (+build/main --GOARCH=$TARGETARCH --VARIANT=$TARGETVARIANT) ./example/main
     ENTRYPOINT ["/example/main"]
     SAVE IMAGE --push org/myimage:latest
 ```
