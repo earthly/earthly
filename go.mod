@@ -6,7 +6,7 @@ require (
 	github.com/alessio/shellescape v1.4.1
 	github.com/antlr/antlr4 v0.0.0-20200225173536-225249fdaef5
 	github.com/armon/circbuf v0.0.0-20190214190532-5111143e8da2
-	github.com/containerd/containerd v1.5.3
+	github.com/containerd/containerd v1.5.5
 	github.com/creack/pty v1.1.11
 	github.com/docker/distribution v2.7.1+incompatible
 	github.com/docker/docker v20.10.7+incompatible
@@ -28,14 +28,13 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/sirupsen/logrus v1.8.1
 	github.com/stretchr/testify v1.7.0
-	github.com/tetratelabs/multierror v1.1.0
 	github.com/tonistiigi/fsutil v0.0.0-20210609172227-d72af97c0eaf
 	github.com/urfave/cli/v2 v2.3.0
 	github.com/wille/osutil v0.0.0-20201124133013-e7a03eb09286
 	golang.org/x/crypto v0.0.0-20210322153248-0c34fe9e7dc2
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 	golang.org/x/term v0.0.0-20210220032956-6a3ed077a48d
-	google.golang.org/grpc v1.38.0
+	google.golang.org/grpc v1.39.0
 	google.golang.org/protobuf v1.26.0
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
 )
@@ -47,6 +46,6 @@ replace (
 
 	github.com/jessevdk/go-flags => github.com/alexcb/go-flags v0.0.0-20210722203016-f11d7ecb5ee5
 
-	github.com/moby/buildkit => github.com/earthly/buildkit v0.7.1-0.20210728003253-199ad6a5c213
+	github.com/moby/buildkit => github.com/earthly/buildkit v0.7.1-0.20211019210058-8dbeab962d9a
 	github.com/tonistiigi/fsutil => github.com/earthly/fsutil v0.0.0-20210609160335-a94814c540b2
 )
