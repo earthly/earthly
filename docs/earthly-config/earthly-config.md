@@ -64,7 +64,7 @@ When set to true, disables collecting command line analytics; otherwise, earthly
 
 ### conversion_parallelism
 
-The number of concurrent converters for speeding up build targets that use blocking commands like IF, WITH, DOCKER --load, FROMDOCKERFILE and others.
+The number of concurrent converters for speeding up build targets that use blocking commands like `IF`, `WITH DOCKER --load`, `FROM DOCKERFILE` and others.
 
 ### buildkit_max_parallelism
 
