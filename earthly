@@ -98,10 +98,6 @@ case "$1" in
 
         EARTHLY_VERSION_FLAG_OVERRIDES="$(tr -d '\n' < "$script_dir/.earthly_version_flag_overrides")"
         export EARTHLY_VERSION_FLAG_OVERRIDES
-
-        # enable local registry-based exports
-        "$bindir/earthly-prerelease" config global.local_registry_host 'tcp://127.0.0.1:8371' || true
-        "$bindir/earthly-prerelease" config global.conversion_parallelism 5 || true
         exec -a "$scriptname" "$bindir/earthly-prerelease" "$@"
         ;;
 esac
