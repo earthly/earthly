@@ -563,11 +563,13 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 			Usage:       "Disallow usage of features that may create unrepeatable builds",
 			Destination: &app.strict,
 		},
+		// TODO: completely remove conversion-parallelism in some future release
 		&cli.IntFlag{
 			Name:        "conversion-parallelism",
 			EnvVars:     []string{"EARTHLY_CONVERSION_PARALLELISM"},
-			Usage:       "Set the conversion parallelism, which speeds up the use of IF, WITH DOCKER --load, FROM DOCKERFILE and others. A value of 0 disables the feature *experimental*",
+			Usage:       "This flag is obsolete, use 'earthly config global.conversion_parallelism <parallelism>' instead'",
 			Destination: &app.conversionParllelism,
+			Hidden:      true, // obsolete in favor of config
 		},
 		&cli.BoolFlag{
 			EnvVars:     []string{"EARTHLY_DISABLE_ANALYTICS", "DO_NOT_TRACK"},
@@ -1224,6 +1226,10 @@ func (app *earthlyApp) processDeprecatedCommandOptions(context *cli.Context, cfg
 
 	if cfg.Global.CachePath != "" {
 		app.console.Warnf("Warning: the setting cache_path is now obsolete and will be ignored")
+	}
+
+	if app.conversionParllelism != 0 {
+		app.console.Warnf("Warning: --conversion-parallelism and EARTHLY_CONVERSION_PARALLELISM is obsolete, please use 'earthly config global.conversion_parallelism <parallelism>' instead")
 	}
 
 	// command line overrides the config file
@@ -2794,8 +2800,8 @@ func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []st
 		}
 	}
 	var parallelism *semaphore.Weighted
-	if app.conversionParllelism != 0 {
-		parallelism = semaphore.NewWeighted(int64(app.conversionParllelism))
+	if app.cfg.Global.ConversionParallelism != 0 {
+		parallelism = semaphore.NewWeighted(int64(app.cfg.Global.ConversionParallelism))
 	}
 	localRegistryAddr := ""
 	if isLocal && app.localRegistryHost != "" {
@@ -2826,7 +2832,7 @@ func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []st
 		UseFakeDep:             !app.noFakeDep,
 		Strict:                 app.strict,
 		DisableNoOutputUpdates: app.interactiveDebugging,
-		ParallelConversion:     (app.conversionParllelism != 0),
+		ParallelConversion:     (app.cfg.Global.ConversionParallelism != 0),
 		Parallelism:            parallelism,
 		LocalRegistryAddr:      localRegistryAddr,
 		FeatureFlagOverrides:   app.featureFlagOverrides,

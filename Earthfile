@@ -325,7 +325,6 @@ earthly-docker:
 
 earthly-integration-test-base:
     FROM +earthly-docker
-    ENV EARTHLY_CONVERSION_PARALLELISM=5
     ENV NO_DOCKER=1
     ENV SRC_DIR=/test
     ENV NETWORK_MODE=host
@@ -338,7 +337,7 @@ earthly-integration-test-base:
 
     IF [ -z $DOCKERHUB_MIRROR ]
     # No mirror, easy CI and local use by all
-        ENV GLOBAL_CONFIG="{disable_analytics: true, local_registry_host: 'tcp://127.0.0.1:8371'}"
+        ENV GLOBAL_CONFIG="{disable_analytics: true, local_registry_host: 'tcp://127.0.0.1:8371', conversion_parallelism: 5}"
         IF $DOCKERHUB_AUTH
             RUN --secret USERNAME=$DOCKERHUB_USER_SECRET \
                 --secret TOKEN=$DOCKERHUB_TOKEN_SECRET \
@@ -346,7 +345,7 @@ earthly-integration-test-base:
         END
     ELSE
     # Use a mirror, supports mirroring Docker Hub only.
-        ENV GLOBAL_CONFIG="{disable_analytics: true, local_registry_host: 'tcp://127.0.0.1:8371', buildkit_additional_config: '[registry.\"docker.io\"]
+        ENV GLOBAL_CONFIG="{disable_analytics: true, local_registry_host: 'tcp://127.0.0.1:8371', conversion_parallelism: 5, buildkit_additional_config: '[registry.\"docker.io\"]
 
                            mirrors = [\"$DOCKERHUB_MIRROR\"]'}"
         ENV EARTHLY_ADDITIONAL_BUILDKIT_CONFIG="[registry.\"docker.io\"]
