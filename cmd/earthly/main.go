@@ -2595,6 +2595,7 @@ func (app *earthlyApp) warnIfArgContainsBuildArg(flagArgs []string) {
 		}
 	}
 }
+
 func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []string) error {
 	app.console.PrintPhaseHeader(builder.PhaseInit, false, "")
 	if app.useInlineCache {
