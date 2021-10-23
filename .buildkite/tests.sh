@@ -6,14 +6,12 @@ function cleanup() {
     jobs="$(jobs -p)"
     if [ -n "$jobs" ]
     then
-        # shellcheck disable=SC2086 # Intended splitting of 
+        # shellcheck disable=SC2086 # Intended splitting of
         kill $jobs
     fi
     wait
 }
 trap cleanup EXIT
-
-export EARTHLY_CONVERSION_PARALLELISM=5
 
 EARTHLY_VERSION_FLAG_OVERRIDES="$(tr -d '\n' < .earthly_version_flag_overrides)"
 export EARTHLY_VERSION_FLAG_OVERRIDES
@@ -61,6 +59,8 @@ do
     echo "Attempt $att_num failed! Trying again in $att_num seconds..."
     sleep $(( att_num++ ))
 done
+
+"$earthly" config global.conversion_parallelism 5
 
 export EARTHLY_VERSION_FLAG_OVERRIDES="referenced-save-only"
 "$earthly" config global.local_registry_host 'tcp://127.0.0.1:8371'
