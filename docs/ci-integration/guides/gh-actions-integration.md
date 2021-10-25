@@ -39,7 +39,7 @@ jobs:
     - name: Earthly version
       run: earthly --version
     - name: Run build
-      run: earthly --push +build
+      run: earthly --ci --push +build
 ```
 
 For a complete guide on CI integration see the [CI integration guide](../overview.md).
