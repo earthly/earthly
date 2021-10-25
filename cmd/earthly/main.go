@@ -314,7 +314,7 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 		&cli.StringSliceFlag{
 			Name:    "platform",
 			EnvVars: []string{"EARTHLY_PLATFORMS"},
-			Usage:   "Specify the target platform to build for *experimental*",
+			Usage:   "Specify the target platform to build for",
 			Value:   &app.platformsStr,
 		},
 		&cli.StringSliceFlag{
@@ -362,7 +362,7 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 		&cli.BoolFlag{
 			Name:        "ci",
 			EnvVars:     []string{"EARTHLY_CI"},
-			Usage:       wrap("Execute in CI mode (implies --use-inline-cache --save-inline-cache --no-output --strict)", "*experimental*"),
+			Usage:       "Execute in CI mode (implies --save-inline-cache --no-output --strict)",
 			Destination: &app.ci,
 		},
 		&cli.BoolFlag{
@@ -499,26 +499,27 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 		&cli.StringFlag{
 			Name:        "remote-cache",
 			EnvVars:     []string{"EARTHLY_REMOTE_CACHE"},
-			Usage:       "A remote docker image tag use as explicit cache *experimental*",
+			Usage:       "A remote docker image tag use as explicit cache",
 			Destination: &app.remoteCache,
 		},
 		&cli.BoolFlag{
 			Name:        "max-remote-cache",
 			EnvVars:     []string{"EARTHLY_MAX_REMOTE_CACHE"},
-			Usage:       "Saves all intermediate images too in the remote cache *experimental*",
+			Usage:       "Saves all intermediate images too in the remote cache",
 			Destination: &app.maxRemoteCache,
 		},
 		&cli.BoolFlag{
 			Name:        "save-inline-cache",
 			EnvVars:     []string{"EARTHLY_SAVE_INLINE_CACHE"},
-			Usage:       "Enable cache inlining when pushing images *experimental*",
+			Usage:       "Enable cache inlining when pushing images",
 			Destination: &app.saveInlineCache,
 		},
 		&cli.BoolFlag{
 			Name:        "use-inline-cache",
 			EnvVars:     []string{"EARTHLY_USE_INLINE_CACHE"},
-			Usage:       wrap("Attempt to use any inline cache that may have been previously pushed ", "uses image tags referenced by SAVE IMAGE --push or SAVE IMAGE --cache-from", "*experimental*"),
+			Usage:       wrap("Attempt to use any inline cache that may have been previously pushed ", "uses image tags referenced by SAVE IMAGE --push or SAVE IMAGE --cache-from"),
 			Destination: &app.useInlineCache,
+			Hidden:      true, // Obsolete.
 		},
 		&cli.BoolFlag{
 			Name:        "interactive",
@@ -1152,7 +1153,7 @@ func (app *earthlyApp) setupAndValidateAddresses(context *cli.Context) error {
 	}
 
 	if bkURL.Hostname() == dbURL.Hostname() && bkURL.Port() == dbURL.Port() {
-		return fmt.Errorf("Debugger and Buildkit ports are the same: %w", errURLValidationFailure)
+		return fmt.Errorf("debugger and Buildkit ports are the same: %w", errURLValidationFailure)
 	}
 
 	return nil
@@ -2553,7 +2554,6 @@ func (app *earthlyApp) actionBuild(c *cli.Context) error {
 	app.commandName = "build"
 
 	if app.ci {
-		app.useInlineCache = true
 		app.noOutput = !app.output && !app.artifactMode && !app.imageMode
 		app.strict = true
 		if app.remoteCache == "" && app.push {
@@ -2595,8 +2595,12 @@ func (app *earthlyApp) warnIfArgContainsBuildArg(flagArgs []string) {
 		}
 	}
 }
+
 func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []string) error {
 	app.console.PrintPhaseHeader(builder.PhaseInit, false, "")
+	if app.useInlineCache {
+		app.console.Warnf("Warning: --use-inline-cache flag is now obsolete as it is enabled for all builds")
+	}
 	app.warnIfArgContainsBuildArg(flagArgs)
 	var target domain.Target
 	var artifact domain.Artifact
@@ -2821,7 +2825,7 @@ func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []st
 		CacheImports:           states.NewCacheImports(cacheImports),
 		CacheExport:            cacheExport,
 		MaxCacheExport:         maxCacheExport,
-		UseInlineCache:         app.useInlineCache,
+		UseInlineCache:         true,
 		SaveInlineCache:        app.saveInlineCache,
 		SessionID:              app.sessionID,
 		ImageResolveMode:       imageResolveMode,
