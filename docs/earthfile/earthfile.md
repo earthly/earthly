@@ -814,7 +814,7 @@ Sets an initialization time period in which failures are not counted towards the
 
 Sets the number of retries before a container is considered `unhealthy`. Defaults to `3`.
 
-## FROM DOCKERFILE (**beta**)
+## FROM DOCKERFILE
 
 #### Synopsis
 
@@ -825,16 +825,6 @@ Sets the number of retries before a container is considered `unhealthy`. Default
 The `FROM DOCKERFILE` command initializes a new build environment, inheriting from an existing Dockerfile. This allows the use of Dockerfiles in Earthly builds.
 
 The `<context-path>` is the path where the Dockerfile build context exists. By default, it is assumed that a file named `Dockerfile` exists in that directory. The context path can be either a path on the host system, or an [artifact reference](../guides/target-ref.md#artifact-reference), pointing to a directory containing a `Dockerfile`.
-
-{% hint style='info' %}
-##### Note
-
-This feature is currently in **Beta** and it has the following limitations:
-
-* This feature only works with files named `Dockerfile`. The equivalent of the `-f` option available in `docker build` has not yet been implemented.
-* `.dockerignore` is not used.
-* The newer experimental features which exist in the Dockerfile syntax are not guaranteed to work correctly.
-{% endhint %}
 
 #### Options
 
