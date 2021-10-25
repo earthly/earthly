@@ -1,10 +1,10 @@
 # Excluding patterns
 
-When a build takes place, the `earthly` command sends any necessary local build contexts to the BuildKit daemon. In order to avoid sending unwanted files, you may exclude certain patterns by specifying an `.earthignore` file.
+When a build takes place, the `earthly` command sends any necessary local build contexts to the BuildKit daemon. In order to avoid sending unwanted files, you may exclude certain patterns by specifying an `.earthlyignore` file.
 
-The `.earthignore` file must be present in the same directory as the target being built.
+The `.earthlyignore` file must be present in the same directory as the target being built.
 
-The syntax of the `.earthignore` file is the same as the syntax of a [`.dockerignore` file](https://docs.docker.com/engine/reference/builder/#dockerignore-file). Behind the scenes, the matching is performed using the Go [`filepath.Match`](https://golang.org/pkg/path/filepath/#Match) function.
+The syntax of the `.earthlyignore` file is the same as the syntax of a [`.dockerignore` file](https://docs.docker.com/engine/reference/builder/#dockerignore-file). Behind the scenes, the matching is performed using the Go [`filepath.Match`](https://golang.org/pkg/path/filepath/#Match) function.
 
 Patterns of files to exclude from the build context are specified as one pattern per line, with empty lines or lines starting with `#` being ignored. Each pattern has the following syntax:
 
@@ -27,5 +27,5 @@ character-range:
 
 {% hint style='info' %}
 ##### Note
-Currently `.earthignore` is only applied to local targets. If an `.earthignore` file is specified within the context of a remote target, it will be silently ignored and exclusions would not take place.
+Currently `.earthlyignore` is only applied to local targets. If an `.earthlyignore` file is specified within the context of a remote target, it will be silently ignored and exclusions would not take place.
 {% endhint %}

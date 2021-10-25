@@ -1,3 +1,4 @@
+VERSION 0.6
 FROM ubuntu:20.10
 
 ## for apt to be noninteractive

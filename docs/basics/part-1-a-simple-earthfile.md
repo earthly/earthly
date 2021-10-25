@@ -9,6 +9,7 @@ Here is a sample Earthfile of a Go app
 `./Earthfile`
 
 ```Dockerfile
+VERSION 0.6
 FROM golang:1.15-alpine3.13
 WORKDIR /go-example
 
@@ -57,6 +58,7 @@ Here is a sample Earthfile of a JS app
 `./Earthfile`
 
 ```Dockerfile
+VERSION 0.6
 FROM node:13.10.1-alpine3.11
 WORKDIR /js-example
 
@@ -100,6 +102,7 @@ Here is a sample Earthfile of a Java app
 `./Earthfile`
 
 ```Dockerfile
+VERSION 0.6
 FROM openjdk:8-jdk-alpine
 RUN apk add --update --no-cache gradle
 WORKDIR /java-example
@@ -170,6 +173,7 @@ Here is a sample Earthfile of a Python app
 `./Earthfile`
 
 ```Dockerfile
+VERSION 0.6
 FROM python:3
 WORKDIR /code
 

@@ -1,16 +1,5 @@
 # Shared cache
 
-{% hint style='danger' %}
-##### Important
-
-This feature is currently in **Experimental** stage
-
-* The feature may break, be changed drastically with no warning, or be removed altogether in future versions of Earthly.
-* Check the [GitHub tracking issue](https://github.com/earthly/earthly/issues/11) for any known problems.
-* Note that explicit caching is [not supported with AWS ECR](https://github.com/aws/containers-roadmap/issues/876).
-* Give us feedback on [Slack](https://earthly.dev/slack) in the `#shared-cache` channel.
-{% endhint %}
-
 Earthly has the ability to share cache between different isolated CI runs and even with developers. This page goes through the available features, common use-cases and situations where shared cache is most useful.
 
 Shared caching is made possible by storing intermediate steps of a build in a cloud-based Docker registry. This cache can then be downloaded on another machine in order to skip common parts.

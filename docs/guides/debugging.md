@@ -12,6 +12,7 @@ Let's consider a test example that prints out a randomly generated phrase:
 ```Dockerfile
 # Earthfile
 
+VERSION 0.6
 FROM python:3
 WORKDIR /code
 
@@ -97,6 +98,7 @@ Note that even though we fixed the problem during debugging, the image will not 
 ```Dockerfile
 # Earthfile
 
+VERSION 0.6
 FROM python:3
 WORKDIR /code
 
@@ -114,6 +116,8 @@ Let's consider a more complicated example where we are running integration tests
 
 ```Dockerfile
 # Earthfile
+
+VERSION 0.6
 
 server:
   COPY server.py .
@@ -186,6 +190,8 @@ Ah ha! The problem is our test is expecting a lowercase `h`, so we can fix our g
 
 ```Dockerfile
 # Earthfile
+
+VERSION 0.6
 
 server:
   COPY server.py .

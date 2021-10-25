@@ -158,5 +158,14 @@ func GetFeatures(version *spec.Version) (*Features, error) {
 		return nil, errors.Wrapf(err, "failed to parse minor version %q", majorAndMinor[1])
 	}
 
+	// Enable version-specific features.
+	if (ftrs.Major == 0 && ftrs.Minor >= 6) || ftrs.Major > 1 { // 0.6+
+		ftrs.ReferencedSaveOnly = true
+		ftrs.UseCopyIncludePatterns = true
+		ftrs.ForIn = true
+		ftrs.RequireForceForUnsafeSaves = true
+		ftrs.NoImplicitIgnore = true
+	}
+
 	return &ftrs, nil
 }

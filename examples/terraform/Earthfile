@@ -1,3 +1,4 @@
+VERSION 0.6
 
 prep: 
     FROM hashicorp/terraform:light

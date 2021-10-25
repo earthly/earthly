@@ -157,47 +157,47 @@ Also available as an env var setting: `EARTHLY_ALLOW_PRIVILEGED=true`.
 
 Permits the build to use the --privileged flag in RUN commands. For more information see the [`RUN --privileged` command](../earthfile/earthfile.md#run).
 
-##### `--use-inline-cache` (**experimental**)
+##### `--use-inline-cache`
 
 Also available as an env var setting: `EARTHLY_USE_INLINE_CACHE=true`
 
 Enables use of inline cache, if available. Any `SAVE IMAGE --push` command is used to inform the system of possible inline cache sources. For more information see the [shared caching guide](../guides/shared-cache.md).
 
-##### `--save-inline-cache` (**experimental**)
+##### `--save-inline-cache`
 
 Also available as an env var setting: `EARTHLY_SAVE_INLINE_CACHE=true`
 
 Enables embedding inline cache in any pushed images. This cache can be used on other systems, if enabled via `--use-inline-cache`. For more information see the [shared caching guide](../guides/shared-cache.md).
 
-##### `--remote-cache <image-tag>` (**experimental**)
+##### `--remote-cache <image-tag>`
 
 Also available as an env var setting: `EARTHLY_REMOTE_CACHE=<image-tag>`
 
 Enables use of explicit cache. The provided `<image-tag>` is used for storing and retrieving the cache to/from a Docker registry. Storing explicit cache is only enabled if the option `--push` is also passed in. For more information see the [shared caching guide](../guides/shared-cache.md).
 
-##### `--max-remote-cache` (**experimental**)
+##### `--max-remote-cache`
 
 Also available as an env var setting: `EARTHLY_MAX_REMOTE_CACHE=true`
 
 Enables storing all intermediate layers as part of the explicit cache. Note that this setting is rarely effective due to the excessive upload overhead. For more information see the [shared caching guide](../guides/shared-cache.md).
 
-##### `--ci` (**experimental**)
+##### `--ci`
 
 Also available as an env var setting: `EARTHLY_CI=true`
 
 In *target mode*, this option is an alias for
 
 ```
---use-inline-cache --save-inline-cache --no-output --strict
+--save-inline-cache --no-output --strict
 ```
 
 In *artifact* and *image modes* , this option is an alias for
 
 ```
---use-inline-cache --save-inline-cache
+--save-inline-cache
 ```
 
-##### `--platform <platform>` (**experimental**)
+##### `--platform <platform>`
 
 Also available as an env var setting: `EARTHLY_PLATFORMS=<platform>`.
 
@@ -255,7 +255,7 @@ Also used to be available as an env var setting: `GIT_URL_INSTEAD_OF=<git-instea
 This option is now obsolete. By default, `earthly` will automatically switch from ssh to HTTPS when no keys are found or the ssh-agent isn't running.
 Please use the [configuration file](../earthly-config/earthly-config.md) to override the default behavior.
 
-##### `--interactive|-i` (**beta**)
+##### `--interactive|-i`
 
 Also available as an env var setting: `EARTHLY_INTERACTIVE=true`.
 

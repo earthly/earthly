@@ -36,15 +36,15 @@ The following builtin args are available
 | `EARTHLY_GIT_ORIGIN_URL` | The git URL detected within the build context directory. If no git directory is detected, then the value is an empty string. Please note that this may be inconsistent, depending on whether an HTTPS or SSH URL was used. | `git@github.com:bar/buz.git` or `https://github.com/bar/buz.git` |
 | `EARTHLY_GIT_PROJECT_NAME` | The git project name from within the git URL detected within the build context directory. If no git directory is detected, then the value is an empty string. | `bar/buz` |
 | `EARTHLY_GIT_COMMIT_TIMESTAMP` | The timestamp, as unix seconds, of the git commit detected within the build context directory. If no git directory is detected, then the value is an empty string. | `1626881847` |
-| `TARGETPLATFORM` | (**experimental**) The target platform the target is being built for. | `linux/arm/v7`, `linux/amd64`, `linux/arm64` |
-| `TARGETOS` | (**experimental**) The target OS the target is being built for. | `linux` |
-| `TARGETARCH` | (**experimental**) The target processor architecture the target is being built for. | `arm`, `amd64`, `arm64` |
-| `TARGETVARIANT` | (**experimental**) The target processor architecture variant the target is being built for. | `v7` |
+| `TARGETPLATFORM` | The target platform the target is being built for. | `linux/arm/v7`, `linux/amd64`, `linux/arm64` |
+| `TARGETOS` | The target OS the target is being built for. | `linux` |
+| `TARGETARCH` | The target processor architecture the target is being built for. | `arm`, `amd64`, `arm64` |
+| `TARGETVARIANT` | The target processor architecture variant the target is being built for. | `v7` |
 | `EARTHLY_SOURCE_DATE_EPOCH` | The timestamp, as unix seconds, of the git commit detected within the build context directory. If no git directory is detected, then the value is `0` (the unix epoch) | `1626881847`, `0` |
-| `USERPLATFORM` | (**experimental**) The platform the target is being built from. | `linux/arm/v7`, `linux/amd64`, `linux/arm64` |
-| `USEROS` | (**experimental**) The OS the target is being built from. | `linux` |
-| `USERARCH` | (**experimental**) The processor architecture the target is being built from. | `arm`, `amd64`, `arm64` |
-| `USERVARIANT` | (**experimental**) The processor architecture variant the target is being built from. | `v7` |
+| `USERPLATFORM` | The platform the target is being built from. | `linux/arm/v7`, `linux/amd64`, `linux/arm64` |
+| `USEROS` | The OS the target is being built from. | `linux` |
+| `USERARCH` | The processor architecture the target is being built from. | `arm`, `amd64`, `arm64` |
+| `USERVARIANT` | The processor architecture variant the target is being built from. | `v7` |
 
 {% hint style='info' %}
 ##### Note
