@@ -1142,9 +1142,8 @@ func (app *earthlyApp) setupAndValidateAddresses(context *cli.Context) error {
 		app.localRegistryHost = app.cfg.Global.LocalRegistryHost
 	} else {
 		app.localRegistryHost = ""
-
 		if app.cfg.Global.LocalRegistryHost != "" {
-			app.console.Warnf("Local registry host is specified while using remote buildkit. Local registry will not be used.")
+			app.console.VerbosePrintf("Local registry host is specified while using remote buildkit. Local registry will not be used.")
 		}
 	}
 
