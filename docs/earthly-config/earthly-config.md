@@ -62,6 +62,10 @@ Specifies the total size of the BuildKit cache, in MB. The BuildKit daemon uses 
 
 When set to true, disables collecting command line analytics; otherwise, earthly will report anonymized analytics for invocation of the earthly command. For more information see the [data collection page](../data-collection/data-collection.md).
 
+### conversion_parallelism
+
+The number of concurrent converters for speeding up build targets that use blocking commands like `IF`, `WITH DOCKER --load`, `FROM DOCKERFILE` and others.
+
 ### buildkit_max_parallelism
 
 The maximum parallelism configured for the buildkit daemon workers. The default is 20.
