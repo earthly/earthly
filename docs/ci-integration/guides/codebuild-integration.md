@@ -26,7 +26,7 @@ phases:
   build:
     commands:
       - earthly --version
-      - earthly --push +build
+      - earthly --ci --push +build
 ```
 
 For a complete guide on CI integration see the [CI integration guide](../overview.md).
