@@ -31,9 +31,26 @@ if [ -z "$NETWORK_MODE" ]; then
     exit 1
 fi
 
+if [ -z "$EARTHLY_CACHE_VERSION" ]; then
+    echo "EARTHLY_CACHE_VERSION not set"
+    exit 1
+fi
+
+earthly_cache_version_path="${EARTHLY_TMP_DIR}/internal.earthly.version"
+if [ -f "$earthly_cache_version_path" ]; then
+    current_cache_version="$(cat "$earthly_cache_version_path")"
+else
+    current_cache_version="0"
+fi
+if [ "$EARTHLY_CACHE_VERSION" != "$current_cache_version" ]; then
+    EARTHLY_RESET_TMP_DIR="true"
+fi
+
 if [ "$EARTHLY_RESET_TMP_DIR" = "true" ]; then
     echo "Resetting dir $EARTHLY_TMP_DIR"
     rm -rf "${EARTHLY_TMP_DIR:?}"/* || true
+    mkdir -p "$EARTHLY_TMP_DIR" # required for eine tests
+    echo "$EARTHLY_CACHE_VERSION" > "$earthly_cache_version_path"
 fi
 
 if [ -z "$IP_TABLES" ]; then

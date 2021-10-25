@@ -30,6 +30,8 @@ jobs:
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: Build latest earthly using released earthly
         run: earthly --use-inline-cache +for-linux
+      - name: rebuild earthly using latest earthly build
+        run: ./build/linux/amd64/earthly --use-inline-cache +for-linux
       - name: Set EARTHLY_VERSION_FLAG_OVERRIDES env
         run: |-
             set -euo pipefail
@@ -39,6 +41,8 @@ jobs:
         run: ./build/linux/amd64/earthly config global.local_registry_host 'tcp://127.0.0.1:8371'
       - name: Configure Earthly Conversion Parallelism
         run: ./build/linux/amd64/earthly config global.conversion_parallelism 5
+      - name: Configure Earthly Buildkit Parallelism
+        run: ./build/linux/amd64/earthly config global.buildkit_max_parallelism 5
       - name: Execute tests (Earthly Only)
         run: |-
           ./build/linux/amd64/earthly --ci -P \
@@ -82,6 +86,8 @@ jobs:
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: Build latest earthly using released earthly
         run: earthly --use-inline-cache +for-linux
+      - name: rebuild earthly using latest earthly build
+        run: ./build/linux/amd64/earthly --use-inline-cache +for-linux
       - name: Set EARTHLY_VERSION_FLAG_OVERRIDES env
         run: |-
             set -euo pipefail
@@ -157,6 +163,8 @@ jobs:
         run: earthly --use-inline-cache ./buildkitd+buildkitd --TAG=race-test
       - name: Configure Earthly Conversion Parallelism
         run: go run ./cmd/earthly/main.go config global.conversion_parallelism 5
+      - name: Configure Earthly Buildkit Parallelism
+        run: go run ./cmd/earthly/main.go config global.buildkit_max_parallelism 5
       - name: Execute tests (Earthly Only)
         run: |-
           GORACE="halt_on_error=1" go run -race ./cmd/earthly/main.go --buildkit-image earthly/buildkitd:race-test -P --no-output \
@@ -199,6 +207,8 @@ jobs:
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: Build latest earthly using released earthly
         run: earthly --use-inline-cache +for-linux
+      - name: rebuild earthly using latest earthly build
+        run: ./build/linux/amd64/earthly --use-inline-cache +for-linux
       - name: Set EARTHLY_VERSION_FLAG_OVERRIDES env
         run: |-
             set -euo pipefail
@@ -208,6 +218,8 @@ jobs:
         run: ./build/linux/amd64/earthly config global.local_registry_host 'tcp://127.0.0.1:8371'
       - name: Configure Earthly Conversion Parallelism
         run: ./build/linux/amd64/earthly config global.conversion_parallelism 5
+      - name: Configure Earthly Buildkit Parallelism
+        run: ./build/linux/amd64/earthly config global.buildkit_max_parallelism 5
       - name: Execute interactive debugger test
         run: ./scripts/tests/interactive-debugger/test-interactive.py --earthly ./build/linux/amd64/earthly --timeout 180
       - name: Execute version test
@@ -321,6 +333,8 @@ jobs:
         run: ./build/linux/amd64/earthly config global.local_registry_host 'tcp://127.0.0.1:8371'
       - name: Configure Earthly Conversion Parallelism
         run: ./build/linux/amd64/earthly config global.conversion_parallelism 5
+      - name: Configure Earthly Buildkit Parallelism
+        run: ./build/linux/amd64/earthly config global.buildkit_max_parallelism 5
       - name: Build examples1 (PR build)
         run: ./build/linux/amd64/earthly --ci -P +examples1
         if: github.event_name != 'push'
@@ -370,6 +384,8 @@ jobs:
         run: ./build/linux/amd64/earthly config global.local_registry_host 'tcp://127.0.0.1:8371'
       - name: Configure Earthly Conversion Parallelism
         run: ./build/linux/amd64/earthly config global.conversion_parallelism 5
+      - name: Configure Earthly Buildkit Parallelism
+        run: ./build/linux/amd64/earthly config global.buildkit_max_parallelism 5
       - name: Build examples2 (PR build)
         run: ./build/linux/amd64/earthly --ci -P +examples2
         if: github.event_name != 'push'
@@ -414,6 +430,8 @@ jobs:
         run: ./build/linux/amd64/earthly config global.local_registry_host 'tcp://127.0.0.1:8371'
       - name: Configure Earthly Conversion Parallelism
         run: ./build/linux/amd64/earthly config global.conversion_parallelism 5
+      - name: Configure Earthly Buildkit Parallelism
+        run: ./build/linux/amd64/earthly config global.buildkit_max_parallelism 5
       - name: Build tutorial part 1
         run: ./build/linux/amd64/earthly -P ./examples/tutorial+test-part1 --earthly=$(realpath ./build/linux/amd64/earthly)
       - name: Build tutorial part 3
@@ -456,6 +474,8 @@ jobs:
         run: ./build/linux/amd64/earthly config global.local_registry_host 'tcp://127.0.0.1:8371'
       - name: Configure Earthly Conversion Parallelism
         run: ./build/linux/amd64/earthly config global.conversion_parallelism 5
+      - name: Configure Earthly Buildkit Parallelism
+        run: ./build/linux/amd64/earthly config global.buildkit_max_parallelism 5
       - name: Push and Pull Cloud Images
         run: |-
           ./build/linux/amd64/earthly --ci -P  \
@@ -498,6 +518,8 @@ jobs:
         run: ./build/linux/amd64/earthly config global.local_registry_host 'tcp://127.0.0.1:8371'
       - name: Configure Earthly Conversion Parallelism
         run: ./build/linux/amd64/earthly config global.conversion_parallelism 5
+      - name: Configure Earthly Buildkit Parallelism
+        run: ./build/linux/amd64/earthly config global.buildkit_max_parallelism 5
       - name: run secrets-integration
         run: env earthly=./build/linux/amd64/earthly scripts/tests/secrets-integration.sh
       - name: Buildkit logs (runs on failure)
@@ -533,6 +555,8 @@ jobs:
         run: ./build/linux/amd64/earthly config global.local_registry_host 'tcp://127.0.0.1:8371'
       - name: Configure Earthly Conversion Parallelism
         run: ./build/linux/amd64/earthly config global.conversion_parallelism 5
+      - name: Configure Earthly Buildkit Parallelism
+        run: ./build/linux/amd64/earthly config global.buildkit_max_parallelism 5
       - name: Run bootstrap-integration
         run: ./tests/bootstrap/test-bootstrap.sh
       - name: Buildkit logs (runs on failure)
@@ -560,6 +584,8 @@ jobs:
         run: ./build/linux/amd64/earthly config global.local_registry_host 'tcp://127.0.0.1:8371'
       - name: Configure Earthly Conversion Parallelism
         run: ./build/linux/amd64/earthly config global.conversion_parallelism 5
+      - name: Configure Earthly Buildkit Parallelism
+        run: ./build/linux/amd64/earthly config global.buildkit_max_parallelism 5
       - name: Execute test-local
         run: "./build/linux/amd64/earthly --use-inline-cache --save-inline-cache --no-output ./tests/local+test-local"
       - name: Execute test-local --push
@@ -610,6 +636,8 @@ jobs:
         run: ./build/linux/amd64/earthly config global.local_registry_host 'tcp://127.0.0.1:8371'
       - name: Configure Earthly Conversion Parallelism
         run: ./build/linux/amd64/earthly config global.conversion_parallelism 5
+      - name: Configure Earthly Buildkit Parallelism
+        run: ./build/linux/amd64/earthly config global.buildkit_max_parallelism 5
 # to regenerate the entries below; run earthly ./scripts/tests/auth+generate-github-tasks
 # auto-generated-entries start;
       - name: run test-hello-world-empty-netrc.sh
@@ -667,6 +695,8 @@ jobs:
         run: ./build/linux/amd64/earthly config global.local_registry_host 'tcp://127.0.0.1:8371'
       - name: Configure Earthly Conversion Parallelism
         run: ./build/linux/amd64/earthly config global.conversion_parallelism 5
+      - name: Configure Earthly Buildkit Parallelism
+        run: ./build/linux/amd64/earthly config global.buildkit_max_parallelism 5
       - name: run export tests
         run: env earthly=./build/linux/amd64/earthly scripts/tests/export.sh
       - name: Buildkit logs (runs on failure)
@@ -719,6 +749,8 @@ jobs:
         run: ./build/linux/amd64/earthly config global.local_registry_host 'tcp://127.0.0.1:8371'
       - name: Configure Earthly Conversion Parallelism
         run: ./build/linux/amd64/earthly config global.conversion_parallelism 5
+      - name: Configure Earthly Buildkit Parallelism
+        run: ./build/linux/amd64/earthly config global.buildkit_max_parallelism 5
       - name: Build +all-buildkitd
         run: ./build/linux/amd64/earthly --ci +all-buildkitd
       - name: Buildkit logs (runs on failure)
@@ -771,6 +803,8 @@ jobs:
         run: ./build/linux/amd64/earthly config global.local_registry_host 'tcp://127.0.0.1:8371'
       - name: Configure Earthly Conversion Parallelism
         run: ./build/linux/amd64/earthly config global.conversion_parallelism 5
+      - name: Configure Earthly Buildkit Parallelism
+        run: ./build/linux/amd64/earthly config global.buildkit_max_parallelism 5
       - name: Build +all-dind
         run: ./build/linux/amd64/earthly --ci +all-dind
       - name: Buildkit logs (runs on failure)
@@ -823,6 +857,8 @@ jobs:
         run: ./build/linux/amd64/earthly config global.local_registry_host 'tcp://127.0.0.1:8371'
       - name: Configure Earthly Conversion Parallelism
         run: ./build/linux/amd64/earthly config global.conversion_parallelism 5
+      - name: Configure Earthly Buildkit Parallelism
+        run: ./build/linux/amd64/earthly config global.buildkit_max_parallelism 5
       - name: Build +earthly-all
         run: ./build/linux/amd64/earthly --ci +earthly-all
       - name: Build +earthly-docker
@@ -877,6 +913,8 @@ jobs:
         run: ./build/linux/amd64/earthly config global.local_registry_host 'tcp://127.0.0.1:8371'
       - name: Configure Earthly Conversion Parallelism
         run: ./build/linux/amd64/earthly config global.conversion_parallelism 5
+      - name: Configure Earthly Buildkit Parallelism
+        run: ./build/linux/amd64/earthly config global.buildkit_max_parallelism 5
       - name: Build +prerelease
         run: ./build/linux/amd64/earthly --ci +prerelease
       - name: Buildkit logs (runs on failure)
@@ -948,6 +986,8 @@ jobs:
         run: ./build/linux/amd64/earthly config global.local_registry_host 'tcp://127.0.0.1:8371'
       - name: Configure Earthly Conversion Parallelism
         run: ./build/linux/amd64/earthly config global.conversion_parallelism 5
+      - name: Configure Earthly Buildkit Parallelism
+        run: ./build/linux/amd64/earthly config global.buildkit_max_parallelism 5
       - name: Build and push +prerelease
         run: ./build/linux/amd64/earthly --ci --push +prerelease
       - name: Update DockerHub description for earthly/earthly
