@@ -7,3 +7,8 @@ mytarget:
 
 othertarget:
     RUN echo we are only testing the autocompletion can extract targets
+
+othertargetwithargs:
+    ARG city
+    ARG country
+    RUN echo "we will test that +othertargetwithargs --c<tab><tab> suggests --city and --country"
