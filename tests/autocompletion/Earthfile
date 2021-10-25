@@ -12,11 +12,11 @@ ENV EARTHLY_AUTOCOMPLETE_HIDDEN=0
 
 test-root-commands:
     RUN echo "./
-account 
-bootstrap 
-config 
-org 
-prune 
+account
+bootstrap
+config
+org
+prune
 secrets " > expected
     RUN COMP_LINE="earthly " COMP_POINT=8 earthly > actual
     RUN diff expected actual
@@ -24,14 +24,14 @@ secrets " > expected
 test-hidden-root-commands:
     ENV EARTHLY_AUTOCOMPLETE_HIDDEN=1
     RUN echo "./
-account 
-bootstrap 
-config 
-debug 
-docker 
-docker2earthly 
-org 
-prune 
+account
+bootstrap
+config
+debug
+docker
+docker2earthly
+org
+prune
 secrets " > expected
     RUN COMP_LINE="earthly " COMP_POINT=8 earthly > actual
     RUN diff expected actual
@@ -39,8 +39,8 @@ secrets " > expected
 test-targets:
     COPY fake.earth ./Earthfile
 
-    RUN echo "+mytarget 
-+othertarget 
+    RUN echo "+mytarget
++othertarget
 +othertargetwithargs " > expected
     RUN COMP_LINE="earthly +" COMP_POINT=9 earthly > actual
     RUN diff expected actual
@@ -66,12 +66,20 @@ test-targets-with-build-args:
     RUN COMP_LINE="earthly +othertargetwithargs --ci" COMP_POINT=33 earthly > actual
     RUN diff expected actual
 
+    RUN > expected
+    RUN COMP_LINE="earthly +othertargetwithargs --city=" COMP_POINT=36 earthly > actual
+    RUN diff expected actual
+
+    RUN > expected
+    RUN COMP_LINE="earthly +othertargetwithargs --city=foo" COMP_POINT=39 earthly > actual
+    RUN diff expected actual
+
 test-targets-from-other-dir:
     RUN mkdir -p child/dir
     COPY fake.earth child/dir/Earthfile
 
-    RUN echo "./child/dir+mytarget 
-./child/dir+othertarget 
+    RUN echo "./child/dir+mytarget
+./child/dir+othertarget
 ./child/dir+othertargetwithargs " > expected
     RUN COMP_LINE="earthly ./child/dir+" COMP_POINT=20 earthly > actual
     RUN diff expected actual
@@ -132,8 +140,8 @@ test-relative-dir-targets:
     RUN echo "./foo+" > expected
     RUN COMP_LINE="earthly ./" COMP_POINT=10 earthly > actual
     RUN diff expected actual
-    RUN echo "./foo+mytarget 
-./foo+othertarget 
+    RUN echo "./foo+mytarget
+./foo+othertarget
 ./foo+othertargetwithargs " > expected
     RUN COMP_LINE="earthly ./foo+" COMP_POINT=14 earthly > actual
     RUN diff expected actual
