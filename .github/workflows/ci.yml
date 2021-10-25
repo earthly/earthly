@@ -30,6 +30,8 @@ jobs:
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: Build latest earthly using released earthly
         run: earthly --use-inline-cache +for-linux
+      - name: rebuild earthly using latest earthly build
+        run: ./build/linux/amd64/earthly --use-inline-cache +for-linux
       - name: Set EARTHLY_VERSION_FLAG_OVERRIDES env
         run: |-
             set -euo pipefail
@@ -84,6 +86,8 @@ jobs:
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: Build latest earthly using released earthly
         run: earthly --use-inline-cache +for-linux
+      - name: rebuild earthly using latest earthly build
+        run: ./build/linux/amd64/earthly --use-inline-cache +for-linux
       - name: Set EARTHLY_VERSION_FLAG_OVERRIDES env
         run: |-
             set -euo pipefail
@@ -203,6 +207,8 @@ jobs:
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: Build latest earthly using released earthly
         run: earthly --use-inline-cache +for-linux
+      - name: rebuild earthly using latest earthly build
+        run: ./build/linux/amd64/earthly --use-inline-cache +for-linux
       - name: Set EARTHLY_VERSION_FLAG_OVERRIDES env
         run: |-
             set -euo pipefail
