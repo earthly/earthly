@@ -23,7 +23,7 @@ require (
 	github.com/mitchellh/hashstructure/v2 v2.0.1
 	github.com/moby/buildkit v0.8.2-0.20210129065303-6b9ea0c202cf
 	github.com/opencontainers/go-digest v1.0.0
-	github.com/opencontainers/image-spec v1.0.2-0.20190823105129-775207bd45b6
+	github.com/opencontainers/image-spec v1.0.2-0.20210819154149-5ad6f50d6283
 	github.com/otiai10/copy v1.1.1
 	github.com/pkg/errors v0.9.1
 	github.com/sirupsen/logrus v1.8.1
@@ -34,7 +34,7 @@ require (
 	golang.org/x/crypto v0.0.0-20210322153248-0c34fe9e7dc2
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 	golang.org/x/term v0.0.0-20210220032956-6a3ed077a48d
-	google.golang.org/grpc v1.39.0
+	google.golang.org/grpc v1.40.0
 	google.golang.org/protobuf v1.26.0
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
 )
@@ -46,6 +46,6 @@ replace (
 
 	github.com/jessevdk/go-flags => github.com/alexcb/go-flags v0.0.0-20210722203016-f11d7ecb5ee5
 
-	github.com/moby/buildkit => github.com/earthly/buildkit v0.7.1-0.20211019210058-8dbeab962d9a
+	github.com/moby/buildkit => github.com/earthly/buildkit v0.7.1-0.20211026181429-91fc05f2b75e
 	github.com/tonistiigi/fsutil => github.com/earthly/fsutil v0.0.0-20210609160335-a94814c540b2
 )
