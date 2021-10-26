@@ -386,11 +386,15 @@ func GetPotentials(ctx context.Context, resolver *buildcontext.Resolver, gwClien
 					state = commandState
 				}
 			}
-		} else if state == targetState {
-			if strings.HasPrefix(w, "-") {
-				state = targetFlagState
-			} else {
+		} else if state == targetState || state == targetFlagState {
+			if !strings.HasPrefix(w, "-") {
 				state = endOfSuggestionsState
+			} else {
+				if strings.HasSuffix(w, "=") {
+					state = endOfSuggestionsState
+				} else {
+					state = targetFlagState
+				}
 			}
 		}
 

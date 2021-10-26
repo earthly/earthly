@@ -1235,6 +1235,10 @@ func (c *Converter) prepBuildTarget(ctx context.Context, fullTargetName string, 
 	opt.GlobalImports = nil
 	opt.parentDepSub = c.mts.Final.NewDependencySubscription()
 	opt.Platform, err = llbutil.ResolvePlatform(platform, c.opt.Platform)
+	if err != nil {
+		// Contradiction allowed. You can BUILD another target with different platform.
+		opt.Platform = platform
+	}
 	opt.HasDangling = isDangling
 	opt.AllowPrivileged = allowPrivileged
 	if c.opt.Features.ReferencedSaveOnly {
@@ -1243,10 +1247,6 @@ func (c *Converter) prepBuildTarget(ctx context.Context, fullTargetName string, 
 		opt.ForceSaveImage = false
 	} else {
 		opt.DoSaves = c.opt.DoSaves && !target.IsRemote() // legacy mode only saves artifacts from local targets
-	}
-	if err != nil {
-		// Contradiction allowed. You can BUILD another target with different platform.
-		opt.Platform = platform
 	}
 	return target, opt, propagateBuildArgs, nil
 }

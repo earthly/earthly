@@ -66,6 +66,14 @@ test-targets-with-build-args:
     RUN COMP_LINE="earthly +othertargetwithargs --ci" COMP_POINT=33 earthly > actual
     RUN diff expected actual
 
+    RUN > expected
+    RUN COMP_LINE="earthly +othertargetwithargs --city=" COMP_POINT=36 earthly > actual
+    RUN diff expected actual
+
+    RUN > expected
+    RUN COMP_LINE="earthly +othertargetwithargs --city=foo" COMP_POINT=39 earthly > actual
+    RUN diff expected actual
+
 test-targets-from-other-dir:
     RUN mkdir -p child/dir
     COPY fake.earth child/dir/Earthfile
