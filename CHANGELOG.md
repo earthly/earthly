@@ -4,6 +4,88 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+This version promotes a number of features that have been previously in Experimental and Beta status. To make use of the features in this version you need to declare `VERSION 0.6` at the top of your Earthfile. If a version is not declared, then Earthly's interpreter will assume `VERSION 0.5`.
+
+If you are not ready to update your scripts to take advantage of `VERSION 0.6`, then you may upgrade Earthly anyway and your scripts should continue to work as before, provided that they either declare `VERSION 0.5` or they don't declare a version at all.
+
+### Added
+
+- What Earthly outputs locally has changed in a way that is not backwards compatible. For an artifact or an image to be produced locally it needs to be part of a `BUILD` chain (or be part of the target being directly built). Artifacts and images introduced through `FROM` or `COPY` are no longer output locally.
+  
+  To update existing scripts, you may issue a duplicate `BUILD` in addition to a `FROM` (or a `COPY`), should you wish for the referenced target to perform output.
+
+  For example, the following script
+
+  ```
+  FROM +some-target
+  COPY +another-target/my-artifact ./
+  ```
+
+  could become
+
+  ```
+  FROM +some-target
+  BUILD +some-target
+  COPY +another-target/my-artifact ./
+  BUILD +another-target
+  ```
+
+  in order to produce the same outputs.
+  
+  For more details see [#896](https://github.com/earthly/earthly/issues/896).
+- The syntax for passing build args has been changed.
+  
+  Earthly v0.5 (old way)
+
+  ```
+  FROM --build-arg NAME=john +some-target
+  COPY --build-arg NAME=john +something/my-artifact ./
+  WITH DOCKER --build-arg NAME=john --load +another-target
+    ...
+  END
+  ```
+
+  Earthly v0.6 (new way)
+
+  ```
+  FROM +some-target --NAME=john
+  COPY (+something/my-artifact --NAME=john) ./
+  WITH DOCKER --load (+another-target --NAME=john)
+    ...
+  END
+  ```
+
+  Passing build args on the command-line has also changed similarly:
+
+  Earthly v0.5 (old way)
+
+  ```
+  earthly --build-arg NAME=john +some-target
+  ```
+
+  Earthly v0.6 (new way)
+
+  ```
+  earthly +some-target --NAME=john
+  ```
+
+  This change is part of the [UDC proposal #581](https://github.com/earthly/earthly/issues/581). The old way of passing args is deprecated and will be removed in a future version (however, it still works in 0.6).
+- Earthly now performs local image outputs to the local Docker daemon through a built-in registry. This speeds up the process drastically as common layers no longer need to be transferred over. [#500](https://github.com/earthly/earthly/issues/500)
+- Earthly now enables additional parallelism to speed up certain operations that were previously serialized. [#888](https://github.com/earthly/earthly/issues/888)
+- [`WITH DOCKER`](https://docs.earthly.dev/docs/earthfile#with-docker) has been promoted to GA [#576](https://github.com/earthly/earthly/issues/576).
+- [`FROM DOCKERFILE`](https://docs.earthly.dev/docs/earthfile#from-dockerfile) has been promoted to GA.
+- Support for Apple Silicon M1 has been promoted to GA [#722](https://github.com/earthly/earthly/issues/722).
+- [Multi-platform builds](https://docs.earthly.dev/docs/guides/multi-platform) have been promoted to GA [#536](https://github.com/earthly/earthly/issues/536).
+- Mounting secrets as files have been promoted as GA [#579](https://github.com/earthly/earthly/issues/579).
+- [`VERSION`](https://docs.earthly.dev/docs/earthfile#version) has been promoted to GA [#991](https://github.com/earthly/earthly/issues/991)
+- [User-defined commands (UDCs)](https://docs.earthly.dev/docs/guides/udc) have been promoted to GA [#581](https://github.com/earthly/earthly/issues/581).
+- Allow running `SAVE ARTIFACT` after `RUN --push` is now GA [#586](https://github.com/earthly/earthly/issues/586).
+- `SAVE ARTIFACT --if-exists` and `COPY --if-exists` have been promoted to GA [#588](https://github.com/earthly/earthly/issues/588).
+- [Shared cache](https://docs.earthly.dev/docs/guides/shared-cache) and `--ci` mode are now GA [#11](https://github.com/earthly/earthly/issues/11).
+- [`LOCALLY`](https://docs.earthly.dev/docs/earthfile#locally) has been promoted to GA [#580](https://github.com/earthly/earthly/issues/580).
+- [`RUN --interactive` and `RUN --interactive-keep`](https://docs.earthly.dev/docs/earthfile#run) have been promoted to GA [#693](https://github.com/earthly/earthly/issues/693).
+- [`IF`](https://docs.earthly.dev/docs/earthfile#if) and [`FOR`](https://docs.earthly.dev/docs/earthfile#for) have been promoted to GA [#779](https://github.com/earthly/earthly/issues/779).
+
 ## v0.5.24 - 2021-09-30
 
 ### Added
