@@ -232,6 +232,8 @@ earthly --build-arg SECRET_ID="" +release
 earthly --build-arg SECRET_ID="" +release-short
 ```
 
+It is also possible to mount a secret as a file with `RUN --mount type=secret,id=+secret/secret-id,target=/path/of/secret`. See `--mount` below.
+
 See also the [Cloud secrets guide](../guides/cloud-secrets.md).
 
 ##### `--ssh`
@@ -260,15 +262,37 @@ The `<mount-spec>` is defined as a series of comma-separated list of key-values.
 | `target` | The target path for the mount. | `target=/var/lib/data` |
 | `id` | The secret ID for the contents of the `target` file, only applicable for `type=secret`. | `id=+secrets/password` |
 
-Example:
+###### Examples:
+
+Persisting cache for a single `RUN` command, even when it's dependencies change:
 
 ```Dockerfile
 ENV GOCACHE=/go-cache
 RUN --mount=type=cache,target=/go-cache go build main.go
 ```
 
-Note that mounts cannot be shared between targets, nor can they be shared within the same target,
-if the build-args differ between invocations.
+{% hint style='warning' %}
+Note that mounts cannot be shared between targets, nor can they be shared within the same target, if the build-args differ between invocations.
+{% endhint %}
+
+Mounting a secret as a file:
+
+```Dockerfile
+RUN --mount=type=secret,id=+secrets/netrc,target=/root/.netrc curl https://example.earthly.dev/restricted/example-file-that-requires-auth > data
+```
+
+The contents of the secret `/root/.netrc` file can then be specified from the command line as:
+
+```bash
+earthly --secret netrc="machine example.earthly.dev login myusername password mypassword" +base
+```
+
+or by passing the contents of an existing file from the host filesystem:
+
+```bash
+earthly --secret-file netrc="$HOME/.netrc" +base
+```
+
 
 ##### `--interactive` / `--interactive-keep` (**experimental**)
 
