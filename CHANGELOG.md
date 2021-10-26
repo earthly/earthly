@@ -107,7 +107,7 @@ For more information on the individual Earthfile feature flags see the [Earthfil
 - The console output now has an improved structure [#1226](https://github.com/earthly/earthly/pull/1226).
 - Add builtin args `USERPLATFORM`, `USEROS`, `USERARCH`, and `USERVARIANT` which represent the platform, OS, architecture, and processor variant of the system Earthly is being called from [#1251](https://github.com/earthly/earthly/pull/1251). Thanks to @akrantz01 for the contribution!
 - Support for required ARGs (`ARG --required foo`) [#904](https://github.com/earthly/earthly/issues/904). Thanks to @camerondurham for the contribution!
-- Add a config setting to limit parallel steps [#1308](https://github.com/earthly/earthly/issues/1308).
+- Add a config item for buildkit's `max_parallelism` configuration. Use this to increase parallelism for faster builds or decrease parallelism when resources are constraint. The default is 20. [#1308](https://github.com/earthly/earthly/issues/1308)
 - Extend auto-completion to be build-arg aware. Typing `earthly +my-target --<tab><tab>` now prints possible build-args specific to `+my-target`. [#1330](https://github.com/earthly/earthly/pull/1330).
 - Buildkit was updated to `33fb83eb71666c2b0b5934e3f4e651f8cfa255c4`. This includes a number of bug fixes, including eliminating crashes due to `panic failed to get edge`.
 
