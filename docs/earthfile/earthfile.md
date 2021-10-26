@@ -232,7 +232,7 @@ earthly --build-arg SECRET_ID="" +release
 earthly --build-arg SECRET_ID="" +release-short
 ```
 
-It is also possible to temporarily mount a secret as file with [`RUN --mount type=secret,id=+secret/secret-id,target=/path/of/secret`](#run) .
+It is also possible to mount a secret as a file with `RUN --mount type=secret,id=+secret/secret-id,target=/path/of/secret`. See `--mount` below.
 
 See also the [Cloud secrets guide](../guides/cloud-secrets.md).
 
