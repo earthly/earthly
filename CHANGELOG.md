@@ -8,6 +8,22 @@ This version promotes a number of features that have been previously in Experime
 
 If you are not ready to update your scripts to take advantage of `VERSION 0.6`, then you may upgrade Earthly anyway and your scripts should continue to work as before, provided that they either declare `VERSION 0.5` or they don't declare a version at all.
 
+Declaring `VERSION 0.6` is equivalent to
+
+```
+VERSION \
+  --use-copy-include-patterns \
+  --referenced-save-only \
+  --for-in \
+  --require-force-for-unsafe-saves \
+  --no-implicit-ignore \
+  0.5
+```
+
+It is recommended to use `VERSION 0.6` instead as individual feature flags don't guarantee proper forwards-backwards compatibility. Note, however, that Earthly `0.5.*` is not able to run a `VERSION 0.6` Earthfile and will return an error.
+
+For more information on the individual Earthfile feature flags see the [Earthfile version-specific features page](https://docs.earthly.dev/docs/earthfile/features).
+
 ### Added
 
 - What Earthly outputs locally has changed in a way that is not backwards compatible. For an artifact or an image to be produced locally it needs to be part of a `BUILD` chain (or be part of the target being directly built). Artifacts and images introduced through `FROM` or `COPY` are no longer output locally.
@@ -70,8 +86,9 @@ If you are not ready to update your scripts to take advantage of `VERSION 0.6`, 
   ```
 
   This change is part of the [UDC proposal #581](https://github.com/earthly/earthly/issues/581). The old way of passing args is deprecated and will be removed in a future version (however, it still works in 0.6).
-- Earthly now performs local image outputs to the local Docker daemon through a built-in registry. This speeds up the process drastically as common layers no longer need to be transferred over. [#500](https://github.com/earthly/earthly/issues/500)
-- Earthly now enables additional parallelism to speed up certain operations that were previously serialized. [#888](https://github.com/earthly/earthly/issues/888)
+- Earthly now performs local image outputs to the local Docker daemon through a built-in registry. This speeds up the process drastically as common layers no longer need to be transferred over [#500](https://github.com/earthly/earthly/issues/500).
+- Earthly now enables additional parallelism to speed up certain operations that were previously serialized [#888](https://github.com/earthly/earthly/issues/888).
+- `COPY` transfers are sped up as only the necessary files are sent over to BuildKit [#1062](https://github.com/earthly/earthly/issues/1062).
 - [`WITH DOCKER`](https://docs.earthly.dev/docs/earthfile#with-docker) has been promoted to GA [#576](https://github.com/earthly/earthly/issues/576).
 - [`FROM DOCKERFILE`](https://docs.earthly.dev/docs/earthfile#from-dockerfile) has been promoted to GA.
 - Support for Apple Silicon M1 has been promoted to GA [#722](https://github.com/earthly/earthly/issues/722).
@@ -85,6 +102,8 @@ If you are not ready to update your scripts to take advantage of `VERSION 0.6`, 
 - [`LOCALLY`](https://docs.earthly.dev/docs/earthfile#locally) has been promoted to GA [#580](https://github.com/earthly/earthly/issues/580).
 - [`RUN --interactive` and `RUN --interactive-keep`](https://docs.earthly.dev/docs/earthfile#run) have been promoted to GA [#693](https://github.com/earthly/earthly/issues/693).
 - [`IF`](https://docs.earthly.dev/docs/earthfile#if) and [`FOR`](https://docs.earthly.dev/docs/earthfile#for) have been promoted to GA [#779](https://github.com/earthly/earthly/issues/779).
+- If a `SAVE ARTIFACT` is unsafe (writing to a directory outside of the Earthfile directory), it'll require the `--force` flag.
+- `.earthlyignore` no longer includes any implicit entries like `Earthfile` or `.earthlyignore`. These will need to be specified explicitly. [#1294](https://github.com/earthly/earthly/issues/1294)
 
 ## v0.5.24 - 2021-09-30
 
