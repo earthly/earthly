@@ -155,6 +155,15 @@ To add `earthly.exe` to your `PATH` environment variable:
 
 If you are going to mostly be working from a WSL2 prompt in Windows, you might want to consider following the Linux instructions for installation. This will help prevent any cross-subsystem file transfers and keep your builds fast. Note that the "original" WSL is unsupported.
 
+### macOS Binary
+
+While installing `earthly` via Homebrew is the recommended approach, you can also download a binary directly. This may be useful when using `earthly` on a Mac in CI scenarios.
+
+* [M1 Binary](https://github.com/earthly/earthly/releases/latest/download/earthly-darwin-arm64)
+* [x64 Binary](https://github.com/earthly/earthly/releases/latest/download/earthly-darwin-amd64)
+
+When using a precompiled binary, you may need to add an exception to Gatekeeper. [Follow Apple's instructions to add this exception](https://support.apple.com/guide/mac-help/apple-cant-check-app-for-malicious-software-mchleab3a043/mac).
+
 ### Installing from source
 
 To install from source, see the [contributing page](https://github.com/earthly/earthly/blob/main/CONTRIBUTING.md).
