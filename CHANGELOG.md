@@ -114,7 +114,7 @@ For more information on the individual Earthfile feature flags see the [Earthfil
 - Support for required ARGs (`ARG --required foo`) [#904](https://github.com/earthly/earthly/issues/904). Thanks to @camerondurham for the contribution!
 - Add a config item for buildkit's `max_parallelism` configuration. Use this to increase parallelism for faster builds or decrease parallelism when resources are constraint. The default is 20. [#1308](https://github.com/earthly/earthly/issues/1308)
 - Extend auto-completion to be build-arg aware. Typing `earthly +my-target --<tab><tab>` now prints possible build-args specific to `+my-target`. [#1330](https://github.com/earthly/earthly/pull/1330).
-- Buildkit was updated to `33fb83eb71666c2b0b5934e3f4e651f8cfa255c4`. This includes a number of bug fixes, including eliminating crashes due to `panic failed to get edge`.
+- Buildkit was updated to `d429b0b32606b5ea52e6be4a99b69d67b7c722b2`. This includes a number of bug fixes, including eliminating crashes due to `panic failed to get edge`.
 
 ### Fixed
 
