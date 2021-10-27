@@ -45,7 +45,7 @@ For more information on the individual Earthfile feature flags see the [Earthfil
 - If a `SAVE ARTIFACT` is unsafe (writing to a directory outside of the Earthfile directory), it'll require the `--force` flag.
 - `.earthlyignore` no longer includes any implicit entries like `Earthfile` or `.earthlyignore`. These will need to be specified explicitly. [#1294](https://github.com/earthly/earthly/issues/1294)
 - The console output now has an improved structure [#1226](https://github.com/earthly/earthly/pull/1226).
-
+- Fixed homebrew installation on macOS 12. [#1370](https://github.com/earthly/earthly/pull/1370), [homebrew/earthly#13](https://github.com/earthly/homebrew-earthly/pull/13)
 ### Changed
 
 <!--changelog-parser-ignore-->
