@@ -71,6 +71,8 @@ def parse_changelog(changelog_data):
     is_title_body = False
     dash_found = False
     body = []
+    is_intro = True
+    ignore = False
     for line_num, line in enumerate(changelog_data.splitlines()):
         num_headers, title = parse_line(line, line_num)
 
@@ -83,8 +85,14 @@ def parse_changelog(changelog_data):
             continue
 
         if num_headers == 0:
-            if is_title_body:
+            if line == '<!--changelog-parser-ignore-->':
+                ignore = True
+            if ignore:
+                pass
+            elif is_title_body:
                 pass # no linting of title body
+            elif is_intro:
+                pass # no linting of intro text
             elif line == '':
                 dash_found = False
             elif line.startswith('-'):
@@ -93,12 +101,13 @@ def parse_changelog(changelog_data):
                 dash_found = True
             elif not line.startswith(' '):
                 raise MalformedUnorderedItemError(f'expected unordered item of the form `- <text>` (or `- <text>\\n  <more text>`); got {line}', line_num)
-            if line.startswith(' ') and dash_found is False:
+            elif line.startswith(' ') and dash_found is False:
                 raise MalformedUnorderedItemError(f'expected unordered item of the form `- <text>` (or `- <text>\\n  <more text>`); got {line}', line_num)
             body.append(line)
         elif num_headers == 1:
             raise UnexpectedHeaderError(line, line_num)
         elif num_headers == 2:
+            ignore = False
             if is_title_body:
                 if title != 'Unreleased':
                     raise MissingTitleError(f'expected `## Unreleased` title; got {line}', line_num)
@@ -116,6 +125,8 @@ def parse_changelog(changelog_data):
                 release_date = m.group(2)
             body = []
         elif num_headers == 3:
+            ignore = False
+            is_intro = False
             allowed_titles = ('Added', 'Changed', 'Removed', 'Fixed')
             if title not in allowed_titles:
                 raise UnexpectedHeaderError(f'expected header of {allowed_titles}; but got {title}', line_num)
