@@ -49,6 +49,8 @@ import (
 	"golang.org/x/sync/errgroup"
 	"golang.org/x/sync/semaphore"
 	"golang.org/x/term"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	"github.com/earthly/earthly/analytics"
 	"github.com/earthly/earthly/ast"
@@ -1552,6 +1554,11 @@ func (app *earthlyApp) run(ctx context.Context, args []string) int {
 			app.console.Warnf("Error: %v\n", err)
 		}
 		if errors.Is(err, context.Canceled) {
+			app.console.Warnf("Context cancelled: %v\n", err)
+			return 2
+		}
+		if status.Code(err) == codes.Canceled {
+			app.console.Warnf("Context cancelled from buildkitd: %v\n", err)
 			return 2
 		}
 		return 1
