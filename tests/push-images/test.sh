@@ -9,7 +9,7 @@ earthly=${earthly-"../../build/linux/amd64/earthly"}
 
 echo "=== Test Single --push ==="
 
-"$earthly" --allow-privileged --no-cache +only-push 2>&1 | tee single_output
+"$earthly" --verbose --debug --allow-privileged --no-cache +only-push 2>&1 | tee single_output
 
 if ! cat single_output | grep "Did not push image earthly/sap:only-push"; then
     echo "Invalid push text (expected: Did not push image earthly/sap:only-push)"
