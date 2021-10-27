@@ -1554,11 +1554,11 @@ func (app *earthlyApp) run(ctx context.Context, args []string) int {
 			app.console.Warnf("Error: %v\n", err)
 		}
 		if errors.Is(err, context.Canceled) {
-			app.console.Warnf("Context cancelled: %v\n", err)
+			app.console.Warnf("Context canceled: %v\n", err)
 			return 2
 		}
 		if status.Code(err) == codes.Canceled {
-			app.console.Warnf("Context cancelled from buildkitd: %v\n", err)
+			app.console.Warnf("Context canceled from buildkitd: %v\n", err)
 			app.printCrashLogs(ctx)
 			return 2
 		}
