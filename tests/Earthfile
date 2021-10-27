@@ -226,7 +226,7 @@ config-test:
 excludes-test:
     RUN touch exclude-me.txt
     RUN touch do-not-exclude-me.txt
-    RUN echo 'exclude-me.txt' > .earthignore
+    RUN echo 'exclude-me.txt' > .earthlyignore
     DO +RUN_EARTHLY --earthfile=excludes.earth --target=+test
 
 secrets-test:

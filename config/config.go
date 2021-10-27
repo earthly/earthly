@@ -23,6 +23,9 @@ const (
 	// DefaultBuildkitScheme is the default scheme earthly uses to connect to its buildkitd. tcp or docker-container.
 	DefaultBuildkitScheme = "docker-container"
 
+	// DefaultConversionParallelism is the default conversion parallelism that Earthly uses internally to generate LLB for BuildKit to consume.
+	DefaultConversionParallelism = 4
+
 	// DefaultBuildkitMaxParallelism is the default max parallelism for buildkit workers.
 	DefaultBuildkitMaxParallelism = 20
 
@@ -62,7 +65,7 @@ type GlobalConfig struct {
 	BuildkitAdditionalArgs   []string `yaml:"buildkit_additional_args"   help:"Additional args to pass to buildkit when it starts. Useful for custom/self-signed certs, or user namespace complications."`
 	BuildkitAdditionalConfig string   `yaml:"buildkit_additional_config" help:"Additional config to use when starting the buildkit container; like using custom/self-signed certificates."`
 	BuildkitMaxParallelism   int      `yaml:"buildkit_max_parallelism"   help:"Max parallelism for builtkit workers"`
-	ConversionParallelism    int      `yaml:"conversion_parallelism"     help:"Set the conversion parallelism for speeding up the use of IF, WITH, DOCKER --load, FROMDOCKERFILE and others. A value of 0 disables the feature *experimental*"`
+	ConversionParallelism    int      `yaml:"conversion_parallelism"     help:"Set the conversion parallelism for speeding up the use of IF, WITH, DOCKER --load, FROMDOCKERFILE and others. A value of 0 disables the feature"`
 	CniMtu                   uint16   `yaml:"cni_mtu"                    help:"Override auto-detection of the default interface MTU, for all containers within buildkit"`
 	BuildkitHost             string   `yaml:"buildkit_host"              help:"The URL of your buildkit, remote or local."`
 	DebuggerHost             string   `yaml:"debugger_host"              help:"The URL of the Earthly debugger, remote or local."`
@@ -108,11 +111,12 @@ func ParseConfigFile(yamlData []byte) (*Config, error) {
 	// prepopulate defaults
 	config := Config{
 		Global: GlobalConfig{
-			BuildkitCacheSizeMb: 0,
-			DebuggerPort:        DefaultDebuggerPort,
-			// LocalRegistryHost:       fmt.Sprintf("tcp://127.0.0.1:%d", DefaultLocalRegistryPort), // TODO: Uncomment when feature is ready.
+			BuildkitCacheSizeMb:     0,
+			DebuggerPort:            DefaultDebuggerPort,
+			LocalRegistryHost:       fmt.Sprintf("tcp://127.0.0.1:%d", DefaultLocalRegistryPort),
 			BuildkitScheme:          DefaultBuildkitScheme,
 			BuildkitRestartTimeoutS: 60,
+			ConversionParallelism:   DefaultConversionParallelism,
 			BuildkitMaxParallelism:  DefaultBuildkitMaxParallelism,
 			BuildkitAdditionalArgs:  []string{},
 			TLSCA:                   DefaultCA,

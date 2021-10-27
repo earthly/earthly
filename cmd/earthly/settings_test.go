@@ -297,17 +297,6 @@ func TestBuildArgMatrixValidationFailures(t *testing.T) {
 			errURLValidationFailure,
 			"",
 		},
-		{
-			"Local registry with remote buildkit",
-			config.GlobalConfig{
-				BuildkitHost:      "tcp://cool-host:1234",
-				DebuggerHost:      "",
-				DebuggerPort:      config.DefaultDebuggerPort,
-				LocalRegistryHost: "tcp://127.0.0.1:8373",
-			},
-			nil,
-			"Local registry host is specified while using remote buildkit. Local registry will not be used.",
-		},
 	}
 
 	for _, tt := range tests {
