@@ -1559,6 +1559,7 @@ func (app *earthlyApp) run(ctx context.Context, args []string) int {
 		}
 		if status.Code(err) == codes.Canceled {
 			app.console.Warnf("Context cancelled from buildkitd: %v\n", err)
+			app.printCrashLogs(ctx)
 			return 2
 		}
 		return 1
