@@ -26,6 +26,30 @@ For more information on the individual Earthfile feature flags see the [Earthfil
 
 ### Added
 
+- Earthly now performs local image outputs to the local Docker daemon through a built-in registry. This speeds up the process drastically as common layers no longer need to be transferred over [#500](https://github.com/earthly/earthly/issues/500).
+- Earthly now enables additional parallelism to speed up certain operations that were previously serialized [#888](https://github.com/earthly/earthly/issues/888). Note that this setting was previously controlled by `--conversion-parallelism` flag or the `EARTHLY_CONVERSION_PARALLELISM` environment variable while in experimental stage. It has now been moved as part of the Earthly config and has been promoted to GA.
+- `COPY` transfers are sped up as only the necessary files are sent over to BuildKit [#1062](https://github.com/earthly/earthly/issues/1062).
+- [`WITH DOCKER`](https://docs.earthly.dev/docs/earthfile#with-docker) has been promoted to GA [#576](https://github.com/earthly/earthly/issues/576).
+- [`FROM DOCKERFILE`](https://docs.earthly.dev/docs/earthfile#from-dockerfile) has been promoted to GA.
+- Support for Apple Silicon M1 has been promoted to GA [#722](https://github.com/earthly/earthly/issues/722).
+- [Multi-platform builds](https://docs.earthly.dev/docs/guides/multi-platform) have been promoted to GA [#536](https://github.com/earthly/earthly/issues/536).
+- Mounting secrets as files have been promoted as GA [#579](https://github.com/earthly/earthly/issues/579).
+- [`VERSION`](https://docs.earthly.dev/docs/earthfile#version) has been promoted to GA [#991](https://github.com/earthly/earthly/issues/991)
+- [User-defined commands (UDCs)](https://docs.earthly.dev/docs/guides/udc) have been promoted to GA [#581](https://github.com/earthly/earthly/issues/581).
+- Allow running `SAVE ARTIFACT` after `RUN --push` is now GA [#586](https://github.com/earthly/earthly/issues/586).
+- `SAVE ARTIFACT --if-exists` and `COPY --if-exists` have been promoted to GA [#588](https://github.com/earthly/earthly/issues/588).
+- [Shared cache](https://docs.earthly.dev/docs/guides/shared-cache) and `--ci` mode are now GA [#11](https://github.com/earthly/earthly/issues/11).
+- [`LOCALLY`](https://docs.earthly.dev/docs/earthfile#locally) has been promoted to GA [#580](https://github.com/earthly/earthly/issues/580).
+- [`RUN --interactive` and `RUN --interactive-keep`](https://docs.earthly.dev/docs/earthfile#run) have been promoted to GA [#693](https://github.com/earthly/earthly/issues/693).
+- [`IF`](https://docs.earthly.dev/docs/earthfile#if) and [`FOR`](https://docs.earthly.dev/docs/earthfile#for) have been promoted to GA [#779](https://github.com/earthly/earthly/issues/779).
+- If a `SAVE ARTIFACT` is unsafe (writing to a directory outside of the Earthfile directory), it'll require the `--force` flag.
+- `.earthlyignore` no longer includes any implicit entries like `Earthfile` or `.earthlyignore`. These will need to be specified explicitly. [#1294](https://github.com/earthly/earthly/issues/1294)
+- The console output now has an improved structure [#1226](https://github.com/earthly/earthly/pull/1226).
+
+### Changed
+
+<!--changelog-parser-ignore-->
+
 - What Earthly outputs locally has changed in a way that is not backwards compatible. For an artifact or an image to be produced locally it needs to be part of a `BUILD` chain (or be part of the target being directly built). Artifacts and images introduced through `FROM` or `COPY` are no longer output locally.
   
   To update existing scripts, you may issue a duplicate `BUILD` in addition to a `FROM` (or a `COPY`), should you wish for the referenced target to perform output.
@@ -86,25 +110,6 @@ For more information on the individual Earthfile feature flags see the [Earthfil
   ```
 
   This change is part of the [UDC proposal #581](https://github.com/earthly/earthly/issues/581). The old way of passing args is deprecated and will be removed in a future version (however, it still works in 0.6).
-- Earthly now performs local image outputs to the local Docker daemon through a built-in registry. This speeds up the process drastically as common layers no longer need to be transferred over [#500](https://github.com/earthly/earthly/issues/500).
-- Earthly now enables additional parallelism to speed up certain operations that were previously serialized [#888](https://github.com/earthly/earthly/issues/888). Note that this setting was previously controlled by `--conversion-parallelism` flag or the `EARTHLY_CONVERSION_PARALLELISM` environment variable while in experimental stage. It has now been moved as part of the Earthly config and has been promoted to GA.
-- `COPY` transfers are sped up as only the necessary files are sent over to BuildKit [#1062](https://github.com/earthly/earthly/issues/1062).
-- [`WITH DOCKER`](https://docs.earthly.dev/docs/earthfile#with-docker) has been promoted to GA [#576](https://github.com/earthly/earthly/issues/576).
-- [`FROM DOCKERFILE`](https://docs.earthly.dev/docs/earthfile#from-dockerfile) has been promoted to GA.
-- Support for Apple Silicon M1 has been promoted to GA [#722](https://github.com/earthly/earthly/issues/722).
-- [Multi-platform builds](https://docs.earthly.dev/docs/guides/multi-platform) have been promoted to GA [#536](https://github.com/earthly/earthly/issues/536).
-- Mounting secrets as files have been promoted as GA [#579](https://github.com/earthly/earthly/issues/579).
-- [`VERSION`](https://docs.earthly.dev/docs/earthfile#version) has been promoted to GA [#991](https://github.com/earthly/earthly/issues/991)
-- [User-defined commands (UDCs)](https://docs.earthly.dev/docs/guides/udc) have been promoted to GA [#581](https://github.com/earthly/earthly/issues/581).
-- Allow running `SAVE ARTIFACT` after `RUN --push` is now GA [#586](https://github.com/earthly/earthly/issues/586).
-- `SAVE ARTIFACT --if-exists` and `COPY --if-exists` have been promoted to GA [#588](https://github.com/earthly/earthly/issues/588).
-- [Shared cache](https://docs.earthly.dev/docs/guides/shared-cache) and `--ci` mode are now GA [#11](https://github.com/earthly/earthly/issues/11).
-- [`LOCALLY`](https://docs.earthly.dev/docs/earthfile#locally) has been promoted to GA [#580](https://github.com/earthly/earthly/issues/580).
-- [`RUN --interactive` and `RUN --interactive-keep`](https://docs.earthly.dev/docs/earthfile#run) have been promoted to GA [#693](https://github.com/earthly/earthly/issues/693).
-- [`IF`](https://docs.earthly.dev/docs/earthfile#if) and [`FOR`](https://docs.earthly.dev/docs/earthfile#for) have been promoted to GA [#779](https://github.com/earthly/earthly/issues/779).
-- If a `SAVE ARTIFACT` is unsafe (writing to a directory outside of the Earthfile directory), it'll require the `--force` flag.
-- `.earthlyignore` no longer includes any implicit entries like `Earthfile` or `.earthlyignore`. These will need to be specified explicitly. [#1294](https://github.com/earthly/earthly/issues/1294)
-- The console output now has an improved structure [#1226](https://github.com/earthly/earthly/pull/1226).
 - Add builtin args `USERPLATFORM`, `USEROS`, `USERARCH`, and `USERVARIANT` which represent the platform, OS, architecture, and processor variant of the system Earthly is being called from [#1251](https://github.com/earthly/earthly/pull/1251). Thanks to @akrantz01 for the contribution!
 - Support for required ARGs (`ARG --required foo`) [#904](https://github.com/earthly/earthly/issues/904). Thanks to @camerondurham for the contribution!
 - Add a config item for buildkit's `max_parallelism` configuration. Use this to increase parallelism for faster builds or decrease parallelism when resources are constraint. The default is 20. [#1308](https://github.com/earthly/earthly/issues/1308)
