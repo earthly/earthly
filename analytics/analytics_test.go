@@ -1,3 +1,4 @@
+//go:build hasgitdirectory
 // +build hasgitdirectory
 
 package analytics
