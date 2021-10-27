@@ -363,7 +363,7 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 		&cli.BoolFlag{
 			Name:        "ci",
 			EnvVars:     []string{"EARTHLY_CI"},
-			Usage:       "Execute in CI mode (implies --save-inline-cache --no-output --strict)",
+			Usage:       "Execute in CI mode (implies --use-inline-cache --save-inline-cache --no-output --strict)",
 			Destination: &app.ci,
 		},
 		&cli.BoolFlag{
@@ -520,7 +520,6 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 			EnvVars:     []string{"EARTHLY_USE_INLINE_CACHE"},
 			Usage:       wrap("Attempt to use any inline cache that may have been previously pushed ", "uses image tags referenced by SAVE IMAGE --push or SAVE IMAGE --cache-from"),
 			Destination: &app.useInlineCache,
-			Hidden:      true, // Obsolete.
 		},
 		&cli.BoolFlag{
 			Name:        "interactive",
@@ -2559,6 +2558,7 @@ func (app *earthlyApp) actionBuild(c *cli.Context) error {
 	app.commandName = "build"
 
 	if app.ci {
+		app.useInlineCache = true
 		app.noOutput = !app.output && !app.artifactMode && !app.imageMode
 		app.strict = true
 		if app.remoteCache == "" && app.push {
@@ -2603,9 +2603,6 @@ func (app *earthlyApp) warnIfArgContainsBuildArg(flagArgs []string) {
 
 func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []string) error {
 	app.console.PrintPhaseHeader(builder.PhaseInit, false, "")
-	if app.useInlineCache {
-		app.console.Warnf("Warning: --use-inline-cache flag is now obsolete as it is enabled for all builds")
-	}
 	app.warnIfArgContainsBuildArg(flagArgs)
 	var target domain.Target
 	var artifact domain.Artifact
@@ -2830,7 +2827,7 @@ func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []st
 		CacheImports:           states.NewCacheImports(cacheImports),
 		CacheExport:            cacheExport,
 		MaxCacheExport:         maxCacheExport,
-		UseInlineCache:         true,
+		UseInlineCache:         app.useInlineCache,
 		SaveInlineCache:        app.saveInlineCache,
 		SessionID:              app.sessionID,
 		ImageResolveMode:       imageResolveMode,
