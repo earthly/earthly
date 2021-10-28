@@ -8,10 +8,11 @@ release:
     ARG EARTHLY_GIT_HASH
     ARG RELEASE_TAG
     ARG SKIP_GHA_CHECK
+    ARG PRERELEASE="false"
     RUN test -n "$RELEASE_TAG"
     IF --no-cache test -n "$SKIP_GHA_CHECK" || ensure_gha_passing --sha $EARTHLY_GIT_HASH
-        BUILD --build-arg RELEASE_TAG="$RELEASE_TAG" +release-dockerhub
-        BUILD --build-arg RELEASE_TAG="$RELEASE_TAG" +release-github
+        BUILD +release-dockerhub --RELEASE_TAG="$RELEASE_TAG"
+        BUILD +release-github --RELEASE_TAG="$RELEASE_TAG" --PRERELEASE="$PRERELEASE"
     ELSE
         RUN echo "github status check failed; to force the release without performing this check, set --build-arg SKIP_GHA_CHECK=1"
     END
@@ -71,6 +72,7 @@ release-github:
     ARG GITHUB_USER="earthly"
     ARG EARTHLY_REPO="earthly"
     ARG DOCKERHUB_USER="earthly"
+    ARG PRERELEASE="false"
     ARG EARTHLY_GIT_HASH
     RUN test -n "$RELEASE_TAG" && test -n "$EARTHLY_GIT_HASH"
     COPY +release-notes/notes.txt release-notes.txt
@@ -116,7 +118,7 @@ release-github:
         github-release upload \
         --owner "$GITHUB_USER" \
         --repo "$EARTHLY_REPO" \
-        --prerelease false \
+        --prerelease "$PRERELEASE" \
         --commitish "$EARTHLY_GIT_HASH" \
         --tag "$RELEASE_TAG" \
         --name "$RELEASE_TAG" \

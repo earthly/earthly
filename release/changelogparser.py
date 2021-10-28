@@ -156,7 +156,7 @@ if __name__ == '__main__':
     try:
         changelog = parse_changelog(changelog_str)
     except MalformedVersionHeaderError as e:
-        print(f'failed to parse {path_str}:{e.line+1}: unable to parse "{e}"; should be of the form "v1.2.3 - YYYY-MM-DD"', file=sys.stderr)
+        print(f'failed to parse {path_str}:{e.line+1}: unable to parse "{e}"; should be of the form "v1.2.3 - YYYY-MM-DD" (or "v1.2.3-rc4 - YYYY-MM-DD")', file=sys.stderr)
         sys.exit(1)
     except MalformedHeaderError as e:
         print(f'failed to parse {path_str}:{e.line+1}: malformed header found ({e}); should be "#[#[...]] <title>"', file=sys.stderr)
