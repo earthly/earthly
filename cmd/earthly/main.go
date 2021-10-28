@@ -2609,6 +2609,20 @@ func (app *earthlyApp) warnIfArgContainsBuildArg(flagArgs []string) {
 	}
 }
 
+func (app *earthlyApp) combineVariables(dotEnvMap map[string]string, flagArgs []string) (*variables.Scope, error) {
+	dotEnvVars := variables.NewScope()
+	for k, v := range dotEnvMap {
+		dotEnvVars.AddInactive(k, v)
+	}
+	buildArgs := append([]string{}, app.buildArgs.Value()...)
+	buildArgs = append(buildArgs, flagArgs...)
+	overridingVars, err := variables.ParseCommandLineArgs(buildArgs)
+	if err != nil {
+		return nil, errors.Wrap(err, "parse build args")
+	}
+	return variables.CombineScopes(overridingVars, dotEnvVars), nil
+}
+
 func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []string) error {
 	app.console.PrintPhaseHeader(builder.PhaseInit, false, "")
 	app.warnIfArgContainsBuildArg(flagArgs)
@@ -2784,17 +2798,11 @@ func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []st
 		}()
 	}
 
-	dotEnvVars := variables.NewScope()
-	for k, v := range dotEnvMap {
-		dotEnvVars.AddInactive(k, v)
-	}
-	buildArgs := append([]string{}, app.buildArgs.Value()...)
-	buildArgs = append(buildArgs, flagArgs...)
-	overridingVars, err := variables.ParseCommandLineArgs(buildArgs)
+	overridingVars, err := app.combineVariables(dotEnvMap, flagArgs)
 	if err != nil {
-		return errors.Wrap(err, "parse build args")
+		return err
 	}
-	overridingVars = variables.CombineScopes(overridingVars, dotEnvVars)
+
 	imageResolveMode := llb.ResolveModePreferLocal
 	if app.pull {
 		imageResolveMode = llb.ResolveModeForcePull
