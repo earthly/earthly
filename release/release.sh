@@ -18,9 +18,19 @@ set -ex
 #     EARTHLY_REPO        override the default earthly repo name
 #     BREW_REPO           override the default homebrew-earthly repo name
 #     GITHUB_SECRET_PATH  override the default +secrets/earthly-technologies/github/griswoldthecat/token secrets location where the github token is stored
+#     PRERELEASE          override the default false value (must be false or true)
 #
-# for example
-#  RELEASE_TAG=v0.5.10 GITHUB_USER=alexcb DOCKERHUB_USER=alexcb132 EARTHLY_REPO=earthly BREW_REPO=homebrew-earthly-1 ./release.sh
+# examples
+#
+#  performing a test release to a non-earthly location
+#    env -i RELEASE_TAG=v0.5.10 GITHUB_USER=alexcb DOCKERHUB_USER=alexcb132 EARTHLY_REPO=earthly BREW_REPO=homebrew-earthly-1 ./release.sh
+#
+#  performing a release candidate
+#    env -i RELEASE_TAG=v0.6.0-rc1 PRERELEASE=true ./release.sh
+#
+#  performing a regular release
+#    env -i RELEASE_TAG=v0.6.0 ./release.sh
+#
 
 SCRIPT_DIR="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 cd $SCRIPT_DIR
@@ -34,12 +44,19 @@ export DOCKERHUB_USER=${DOCKERHUB_USER:-earthly}
 export EARTHLY_REPO=${EARTHLY_REPO:-earthly}
 export BREW_REPO=${BREW_REPO:-homebrew-earthly}
 export GITHUB_SECRET_PATH=$GITHUB_SECRET_PATH
-export PRERELEASE=${PRERELEASE:false}
+export PRERELEASE=${PRERELEASE:-false}
 
 
 if [ "$PRERELEASE" != "false" ] && [ "$PRERELEASE" != "true" ]; then
     echo "PRERELEASE must be \"true\" or \"false\""
     exit 1
+fi
+
+if [ "$GITHUB_USER" = "earthly" ] && [ "$EARTHLY_REPO" = "earthly" ]; then
+    if [ "$DOCKERHUB_USER" != "earthly" ]; then
+        echo "expected DOCKERHUB_USER=earthly but got $DOCKERHUB_USER"
+        exit 1
+    fi
 fi
 
 ../earthly upgrade
