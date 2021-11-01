@@ -4,6 +4,16 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+## v0.6.0-rc2 - 2021-11-01
+
+### Fixed
+
+- `failed due to failed to autodetect a supported frontend` errors will now include underlying reason for failure
+
+### Changed
+
+- Buildkit was updated to `d47b46cf2a16ca80a958384282e8028285b1866d`.
+
 ## v0.6.0-rc1 - 2021-10-28
 
 This version promotes a number of features that have been previously in Experimental and Beta status. To make use of the features in this version you need to declare `VERSION 0.6` at the top of your Earthfile. If a version is not declared, then Earthly's interpreter will assume `VERSION 0.5`.
@@ -50,8 +60,7 @@ For more information on the individual Earthfile feature flags see the [Earthfil
 - Fixed homebrew installation on macOS 12. [#1370](https://github.com/earthly/earthly/pull/1370), [homebrew/earthly#13](https://github.com/earthly/homebrew-earthly/pull/13)
 ### Changed
 
-<!--changelog-parser-ignore-->
-
+<!--changelog-parser-ignore-start-->
 - What Earthly outputs locally has changed in a way that is not backwards compatible. For an artifact or an image to be produced locally it needs to be part of a `BUILD` chain (or be part of the target being directly built). Artifacts and images introduced through `FROM` or `COPY` are no longer output locally.
   
   To update existing scripts, you may issue a duplicate `BUILD` in addition to a `FROM` (or a `COPY`), should you wish for the referenced target to perform output.
@@ -112,11 +121,12 @@ For more information on the individual Earthfile feature flags see the [Earthfil
   ```
 
   This change is part of the [UDC proposal #581](https://github.com/earthly/earthly/issues/581). The old way of passing args is deprecated and will be removed in a future version (however, it still works in 0.6).
+<!--changelog-parser-ignore-end-->
 - Add builtin args `USERPLATFORM`, `USEROS`, `USERARCH`, and `USERVARIANT` which represent the platform, OS, architecture, and processor variant of the system Earthly is being called from [#1251](https://github.com/earthly/earthly/pull/1251). Thanks to @akrantz01 for the contribution!
 - Support for required ARGs (`ARG --required foo`) [#904](https://github.com/earthly/earthly/issues/904). Thanks to @camerondurham for the contribution!
 - Add a config item for buildkit's `max_parallelism` configuration. Use this to increase parallelism for faster builds or decrease parallelism when resources are constraint. The default is 20. [#1308](https://github.com/earthly/earthly/issues/1308)
 - Extend auto-completion to be build-arg aware. Typing `earthly +my-target --<tab><tab>` now prints possible build-args specific to `+my-target`. [#1330](https://github.com/earthly/earthly/pull/1330).
-- Buildkit was updated to `d47b46cf2a16ca80a958384282e8028285b1866d`. This includes a number of bug fixes, including eliminating crashes due to `panic failed to get edge`.
+- Buildkit was updated to `d429b0b32606b5ea52e6be4a99b69d67b7c722b2`. This includes a number of bug fixes, including eliminating crashes due to `panic failed to get edge`.
 
 ### Fixed
 
