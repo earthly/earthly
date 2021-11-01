@@ -56,7 +56,7 @@ Click "Add Key", and then "Create New Key". Choose "JSON" as the key format, and
 
 Stash the key in your secret management utility of choice. You'll need to make this key avaliable to your build at runtime. For the rest of our example, we will be using Earthly's [Cloud Secrets](../guides/cloud-secrets.md).
 
-Often, external secrets management requires some kind of bootstrapping secret (or additional integration) to allow you to access the rest of the secrets in your store. Earthly is no different. We will keep our `EARTHLY_TOKEN` in [Googles Secret Manager](https://cloud.google.com/build/docs/securing-builds/use-secrets) for ease of user.
+Often, external secrets management requires some kind of bootstrapping secret (or additional integration) to allow you to access the rest of the secrets in your store. Earthly is no different. We will keep our `EARTHLY_TOKEN` in [Googles Secret Manager](https://cloud.google.com/build/docs/securing-builds/use-secrets) for ease of use.
 
 {% hint style='danger' %}
 ##### Note
