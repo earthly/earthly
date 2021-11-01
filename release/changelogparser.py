@@ -71,7 +71,6 @@ def parse_changelog(changelog_data):
     is_title_body = False
     dash_found = False
     body = []
-    is_intro = True
     ignore = False
     for line_num, line in enumerate(changelog_data.splitlines()):
         num_headers, title = parse_line(line, line_num)
@@ -85,8 +84,12 @@ def parse_changelog(changelog_data):
             continue
 
         if num_headers == 0:
-            if line == '<!--changelog-parser-ignore-->':
+            if line == '<!--changelog-parser-ignore-start-->':
                 ignore = True
+                continue
+            if line == '<!--changelog-parser-ignore-end-->':
+                ignore = False
+                continue
             if ignore:
                 pass
             elif is_title_body:
@@ -107,6 +110,7 @@ def parse_changelog(changelog_data):
         elif num_headers == 1:
             raise UnexpectedHeaderError(line, line_num)
         elif num_headers == 2:
+            is_intro = True
             ignore = False
             if is_title_body:
                 if title != 'Unreleased':
