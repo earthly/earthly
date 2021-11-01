@@ -102,7 +102,7 @@ Click "Done" and you will be navigated back to the Triggers list view. To test t
 
 Running this build will use the [`cloudbuild.yaml`](https://github.com/earthly/ci-example-project/blob/main/cloudbuild.yaml) file in our sample repository. This file is also a key part of the build, so lets break this down as well.
 
-[The first step](https://github.com/earthly/ci-example-project/blob/6a547487efcde17cabb5c7e3271c0613255b6d0f/cloudbuild.yaml#L2-L6) simply uses the [all-in-one Earthly image](https://hub.docker.com/r/earthly/earthly) to do a simple build.
+[The first step](https://github.com/earthly/ci-example-project/blob/ea44992b020b52cb5a46920d5d11d4b8389ce19d/cloudbuild.yaml#L2-L6) simply uses the [all-in-one Earthly image](https://hub.docker.com/r/earthly/earthly) to do a simple build.
 
 ```yaml
   - id: 'build'
@@ -112,11 +112,22 @@ Running this build will use the [`cloudbuild.yaml`](https://github.com/earthly/c
       - +docker
 ```
 
-[The second step](https://github.com/earthly/ci-example-project/blob/6a547487efcde17cabb5c7e3271c0613255b6d0f/cloudbuild.yaml#L9-L13) runs a sample, Google Cloud Build only example to show how you would use an external service account to do things that normally requires credentials.
+[The second step](hhttps://github.com/earthly/ci-example-project/blob/ea44992b020b52cb5a46920d5d11d4b8389ce19d/cloudbuild.yaml#L8-L13) runs a sample, Google Cloud Build only example to show how you would use an external service account to do things that normally requires credentials.
 
 ```yaml
   - id: 'gcp-test'
     name: 'earthly/earthly:v0.5.24'
     args:
       - +gcp-cloudbuild
+    secretEnv:
+      - 'EARTHLY_TOKEN'
+```
+
+The secret environment variable bootstraps the Earthly secret store, and we can load it from Google's Secret Store like this:
+
+```yaml
+availableSecrets:
+  secretManager:
+  - versionName: projects/earthly-jupyterlab/secrets/EARTHLY_TOKEN/versions/2
+    env: 'EARTHLY_TOKEN'
 ```
