@@ -442,13 +442,48 @@ func (c *Converter) CopyClassical(ctx context.Context, srcs []string, dest strin
 		return err
 	}
 
+	found := false
+	buildContext := ""
+	for _, src := range srcs {
+		bc := buildContextFromPath(src)
+		if !found {
+			buildContext = bc
+			found = true
+		}
+
+		if found && bc != buildContext {
+			return errors.New("COPY only supports a single build context at a time")
+		}
+	}
+
 	var srcState pllb.State
+	srcStateFactory := c.buildContextFactory
 	if c.ftrs.UseCopyIncludePatterns {
 		// create a new src state with the include patterns set (if this isn't done the entire context will be copied)
-		srcStateFactory := addIncludePathAndSharedKeyHint(c.buildContextFactory, srcs)
+		srcStateFactory = addIncludePathAndSharedKeyHint(srcStateFactory, srcs)
 		srcState = c.opt.LocalStateCache.getOrConstruct(srcStateFactory)
 	} else {
-		srcState = c.buildContextFactory.Construct()
+		srcState = srcStateFactory.Construct()
+	}
+
+	if buildContext != "." {
+		localFactory, ok := srcStateFactory.(*llbfactory.LocalFactory)
+		if !ok {
+			return errors.New("parent directories only supported with local build context")
+		}
+
+		// strip parent dirs from all srcs since include patterns are relative
+		// to the local sources they are referenced from.
+		var includePatterns []string
+		for _, src := range srcs {
+			includePatterns = append(includePatterns, stripRootParentDirs(src))
+		}
+
+		srcStateFactory = localFactory.WithName(buildContext).WithInclude(includePatterns)
+		srcState = srcStateFactory.Construct()
+
+		// notify the build context provider about the new local source
+		c.opt.BuildContextProvider.AddDir(buildContext, buildContext)
 	}
 
 	c.nonSaveCommand()
@@ -464,6 +499,44 @@ func (c *Converter) CopyClassical(ctx context.Context, srcs []string, dest strin
 			strings.Join(srcs, " "),
 			dest))
 	return nil
+}
+
+// buildContextFromPath returns a valid build context path given a path.
+func buildContextFromPath(path string) string {
+	var buildContext string
+
+	curPath := path
+	if strings.HasPrefix(curPath, "./..") {
+		curPath = curPath[2:]
+	}
+
+	for strings.HasPrefix(curPath, "../") {
+		if strings.HasPrefix(curPath, "../") {
+			buildContext += "../"
+		}
+
+		curPath = strings.TrimPrefix(curPath, "../")
+	}
+
+	if buildContext == "" {
+		return "."
+	}
+
+	return buildContext
+}
+
+// stripRootParentDirs strips all root parent directories from a path
+func stripRootParentDirs(path string) string {
+	curPath := path
+	if strings.HasPrefix(curPath, "./..") {
+		curPath = curPath[2:]
+	}
+
+	for strings.HasPrefix(curPath, "../") {
+		curPath = strings.TrimPrefix(curPath, "../")
+	}
+
+	return curPath
 }
 
 // ConvertRunOpts represents a set of options needed for the RUN command.

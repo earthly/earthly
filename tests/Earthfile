@@ -148,6 +148,13 @@ copy-test:
         echo "sub" > in/sub/file
     DO +RUN_EARTHLY --earthfile=copy.earth
 
+copy-parent-test:
+    RUN mkdir -p /opt/test1 && \
+        echo "root" > /opt/test1/root && \
+        echo "1" > /opt/test1/file1 && \
+        echo "2" > /opt/test1/file2
+    DO +RUN_EARTHLY --earthfile=copy-parent.earth
+
 copy-test-verbose-output:
     RUN mkdir -p subdir/a.txt && \
         echo -n "a" > a.txt && \

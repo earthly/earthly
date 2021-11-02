@@ -1,6 +1,8 @@
 package llbfactory
 
 import (
+	"path/filepath"
+
 	"github.com/earthly/earthly/util/llbutil/pllb"
 
 	"github.com/moby/buildkit/client/llb"
@@ -77,6 +79,21 @@ func (f *LocalFactory) WithInclude(patterns []string) *LocalFactory {
 	f = f.Copy()
 	f.opts = append(f.opts, llb.IncludePatterns(patterns))
 	return f
+}
+
+// AsParent returns a copy such that the resulting pllb.Local state
+// represents the parent directory
+func (f *LocalFactory) AsParent() *LocalFactory {
+	parent := f.Copy()
+	parent.name = filepath.Join(f.name + "..")
+
+	return parent
+}
+
+func (f *LocalFactory) WithName(name string) *LocalFactory {
+	newFactory := f.Copy()
+	newFactory.name = name
+	return newFactory
 }
 
 // WithSharedKeyHint adds a shared key hint to the factory's llb options
