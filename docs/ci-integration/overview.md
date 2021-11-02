@@ -102,3 +102,4 @@ Below are links to CI systems that we have more specific information for. If you
  * [Circle CI](guides/circle-integration.md)
  * [AWS CodeBuild](guides/codebuild-integration.md)
  * [GitHub Actions](guides/gh-actions-integration.md)
+ * [Google Cloud Build](guilde/google-cloud-build.md)
