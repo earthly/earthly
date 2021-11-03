@@ -1,6 +1,0 @@
-VERSION --use-copy-include-patterns 0.5
-FROM alpine:3.13
-
-all:
-    COPY a.txt .
-    RUN cat a.txt | md5sum - | grep 0cc175b9c0f1b6a831c399e269772661

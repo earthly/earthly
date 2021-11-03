@@ -18,7 +18,7 @@ all:
     BUILD +copy
     BUILD +copy-verbose-output
     BUILD +copy-with-parents
-    BUILD +copy-multi-contexts
+    BUILD +copy-invalid
 
 copy:
     RUN mkdir -p in/sub/1 in/sub/2 && \
@@ -65,9 +65,7 @@ copy-with-parents:
         echo "bar1" > /opt/test2/foo2
     DO +RUN_EARTHLY_ARGS --earthfile=with-parents.earth
 
-# copy-multi-contexts target should error since COPY can only operate
-# against a single build context and this test case uses both "." and "../"
-copy-multi-contexts:
+copy-invalid:
     RUN mkdir -p /opt/test1 && \
         echo "root" > /opt/test1/root && \
         echo "1" > /opt/test1/file1 && \
