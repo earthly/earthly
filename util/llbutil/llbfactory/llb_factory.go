@@ -1,9 +1,6 @@
 package llbfactory
 
 import (
-	"fmt"
-	"path/filepath"
-
 	"github.com/earthly/earthly/util/llbutil/pllb"
 
 	"github.com/moby/buildkit/client/llb"
@@ -82,21 +79,11 @@ func (f *LocalFactory) WithInclude(patterns []string) *LocalFactory {
 	return f
 }
 
-// AsParent returns a copy such that the resulting pllb.Local state
-// represents the parent directory
-func (f *LocalFactory) AsParent() *LocalFactory {
-	parent := f.Copy()
-	parent.name = filepath.Join(f.name + "..")
-
-	return parent
-}
-
 // WithSource returns a copy of the factory using a new LLB source name
 func (f *LocalFactory) WithSource(name string) *LocalFactory {
 	newFactory := f.Copy()
 	newFactory.name = name
 
-	fmt.Printf("ANDREW: %#v", newFactory.opts)
 	return newFactory
 }
 
