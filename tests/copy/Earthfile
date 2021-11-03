@@ -33,6 +33,9 @@ copy-verbose-output:
         echo -n "a" > a.txt && \
         echo -n "alpha" > alpha.txt && \
         echo -n "beta" > subdir/a.txt/beta.txt
+    RUN mkdir -p /opt/test && \
+        echo "foo" > /opt/test/foo && \
+        echo "bar" > /opt/test/bar
     # Setup a test that runs earthly twice; both instances of earthly must be run
     # back to back as the file caching logic references the directories inode ID while constructing
     # the shared cache key.
@@ -47,14 +50,18 @@ earthly --config \$earthly_config --verbose +all 2>output2.txt;
     # test that the first run sends a.txt and doesn't send any non-referenced files
     RUN cat output.txt
     RUN cat output.txt | grep 'sent data for a.txt (1 B)'
+    RUN cat output.txt | grep 'sent data for ../opt/test/foo (4 B)'
     RUN if grep "sent data for alpha.txt" output.txt >/dev/null; then echo "alpha.txt should not have been sent"; exit 1; fi
     RUN if grep "sent data for .*beta.txt" output.txt >/dev/null; then echo "beta.txt should not have been sent"; exit 1; fi
+    RUN if grep "sent data for ../opt/test/bar" output.txt >/dev/null; then echo "../opt/test/bar should not have been sent"; exit 1; fi
 
     # test that the second run did not resend a.txt (or any other non-referenced files)
     RUN cat output2.txt
     RUN if grep "sent data for a.txt" output2.txt >/dev/null; then echo "a.txt should not have been sent"; exit 1; fi
+    RUN if grep "sent data for ../opt/test/foo" output2.txt >/dev/null; then echo "../opt/test/foo should not have been sent"; exit 1; fi
     RUN if grep "sent data for alpha.txt" output2.txt >/dev/null; then echo "alpha.txt should not have been sent"; exit 1; fi
     RUN if grep "sent data for .*beta.txt" output2.txt >/dev/null; then echo "beta.txt should not have been sent"; exit 1; fi
+    RUN if grep "sent data for ../opt/test/bar" output2.txt >/dev/null; then echo "../opt/test/bar should not have been sent"; exit 1; fi
 
 copy-with-parents:
     WORKDIR /test/workdir

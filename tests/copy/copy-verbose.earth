@@ -1,6 +1,7 @@
-VERSION --use-copy-include-patterns 0.5
+VERSION --copy-parent-dirs 0.6
 FROM alpine:3.13
 
 all:
     COPY a.txt .
+    COPY ../opt/test/foo .
     RUN cat a.txt | md5sum - | grep 0cc175b9c0f1b6a831c399e269772661
