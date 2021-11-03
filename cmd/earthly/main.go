@@ -1053,6 +1053,7 @@ func (app *earthlyApp) before(context *cli.Context) error {
 
 	app.buildkitdSettings.AdditionalArgs = app.cfg.Global.BuildkitAdditionalArgs
 	app.buildkitdSettings.AdditionalConfig = app.cfg.Global.BuildkitAdditionalConfig
+	app.buildkitdSettings.AdditionalEntrypoint = app.cfg.Global.BuildkitAdditionalEntrypoint
 	app.buildkitdSettings.Timeout = time.Duration(app.cfg.Global.BuildkitRestartTimeoutS) * time.Second
 	app.buildkitdSettings.Debug = app.debug
 	app.buildkitdSettings.BuildkitAddress = app.buildkitHost

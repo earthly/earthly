@@ -163,6 +163,9 @@ fi
 export TLS_ENABLED
 
 envsubst </etc/buildkitd.toml.template >/etc/buildkitd.toml
+
+eval "$EARTHLY_ADDITIONAL_ENTRYPOINT"
+
 echo "BUILDKIT_ROOT_DIR=$BUILDKIT_ROOT_DIR"
 echo "CACHE_SIZE_MB=$CACHE_SIZE_MB"
 echo "BUILDKIT_MAX_PARALLELISM=$BUILDKIT_MAX_PARALLELISM"

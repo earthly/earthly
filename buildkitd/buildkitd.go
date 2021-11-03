@@ -306,6 +306,10 @@ func Start(ctx context.Context, console conslogging.ConsoleLogger, image, contai
 		envOpts["EARTHLY_ADDITIONAL_BUILDKIT_CONFIG"] = settings.AdditionalConfig
 	}
 
+	if settings.AdditionalEntrypoint != "" {
+		envOpts["EARTHLY_ADDITIONAL_ENTRYPOINT"] = settings.AdditionalEntrypoint
+	}
+
 	if settings.IPTables != "" {
 		envOpts["IP_TABLES"] = settings.IPTables
 	}

@@ -19,6 +19,7 @@ type Settings struct {
 	LocalRegistryAddress string
 	AdditionalArgs       []string
 	AdditionalConfig     string
+	AdditionalEntrypoint string
 	CniMtu               uint16
 	Timeout              time.Duration `hash:"ignore"`
 	TLSCA                string
