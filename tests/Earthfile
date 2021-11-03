@@ -119,6 +119,7 @@ ga:
     BUILD +sequential-locally-test
     BUILD +homebrew-test
     BUILD +implicit-ignores
+    BUILD +help
 
 # tests that only run on linux amd64
 # Note: this target is used to validate the USERPLATFORM user arg,
@@ -888,6 +889,13 @@ implicit-ignores:
         echo "test" > ignored/test
     DO +RUN_EARTHLY --earthfile=implicit-ignore.earth
     DO +RUN_EARTHLY --earthfile=no-implicit-ignore.earth
+
+help:
+    # tests the hidden --buildkit-volume-name flag is only displayed in dev mode
+    ENV EARTHLY_SHOW_HIDDEN=0
+    RUN earthly --help | grep -v 'buildkit-volume-name'
+    ENV EARTHLY_SHOW_HIDDEN=1
+    RUN earthly --help | grep 'buildkit-volume-name'
 
 
 RUN_EARTHLY:

@@ -73,6 +73,7 @@ import (
 	"github.com/earthly/earthly/util/containerutil"
 	"github.com/earthly/earthly/util/fileutil"
 	"github.com/earthly/earthly/util/llbutil"
+	"github.com/earthly/earthly/util/reflectutil"
 	"github.com/earthly/earthly/util/termutil"
 	"github.com/earthly/earthly/variables"
 )
@@ -246,6 +247,7 @@ func main() {
 	}
 
 	app := newEarthlyApp(ctx, conslogging.Current(colorMode, padding, false))
+	app.unhideFlags(ctx)
 	app.autoComplete(ctx)
 
 	exitCode := app.run(ctx, os.Args)
@@ -615,7 +617,7 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 		},
 		{
 			Name:        "docker",
-			Usage:       "Build a Dockerfile without converting to an Earthfile",
+			Usage:       "Build a Dockerfile without converting to an Earthfile *experimental*",
 			Description: "Builds a dockerfile",
 			Hidden:      true, // Experimental.
 			Action:      app.actionDocker,
@@ -1278,6 +1280,44 @@ func (app *earthlyApp) processDeprecatedCommandOptions(context *cli.Context, cfg
 	return nil
 }
 
+func (app *earthlyApp) unhideFlags(ctx context.Context) error {
+	var err error
+	showHidden := strings.HasPrefix(Version, "dev-")
+	oldAutocompleteHidden := os.Getenv("EARTHLY_AUTOCOMPLETE_HIDDEN")
+	if oldAutocompleteHidden != "" && os.Getenv("COMP_POINT") == "" {
+		// only display warning when NOT under complete mode (otherwise we break auto completion)
+		app.console.Warnf("Warning: EARTHLY_AUTOCOMPLETE_HIDDEN has been renamed to EARTHLY_SHOW_HIDDEN\n")
+	}
+	showHiddenOverride := os.Getenv("EARTHLY_SHOW_HIDDEN")
+	if showHiddenOverride != "" {
+		showHidden, err = strconv.ParseBool(showHiddenOverride)
+		if err != nil {
+			return err
+		}
+	}
+	if !showHidden {
+		return nil
+	}
+
+	for _, fl := range app.cliApp.Flags {
+		reflectutil.SetBool(fl, "Hidden", false)
+	}
+
+	unhideFlagsCommands(ctx, app.cliApp.Commands)
+
+	return nil
+}
+
+func unhideFlagsCommands(ctx context.Context, cmds []*cli.Command) {
+	for _, cmd := range cmds {
+		reflectutil.SetBool(cmd, "Hidden", false)
+		for _, flg := range cmd.Flags {
+			reflectutil.SetBool(flg, "Hidden", false)
+		}
+		unhideFlagsCommands(ctx, cmd.Subcommands)
+	}
+}
+
 // to enable autocomplete, enter
 // complete -o nospace -C "/path/to/earthly" earthly
 func (app *earthlyApp) autoComplete(ctx context.Context) {
@@ -1323,21 +1363,12 @@ func (app *earthlyApp) autoCompleteImp(ctx context.Context) (err error) {
 		return err
 	}
 
-	showHidden := strings.HasPrefix(Version, "dev-")
-	showHiddenOverride := os.Getenv("EARTHLY_AUTOCOMPLETE_HIDDEN")
-	if showHiddenOverride != "" {
-		showHidden, err = strconv.ParseBool(showHiddenOverride)
-		if err != nil {
-			return err
-		}
-	}
-
 	gitLookup := buildcontext.NewGitLookup(app.console, app.sshAuthSock)
 	resolver := buildcontext.NewResolver("", nil, gitLookup, app.console, "")
 	var gwClient gwclient.Client // TODO this is a nil pointer which causes a panic if we try to expand a remotely referenced earthfile
 	// it's expensive to create this gwclient, so we need to implement a lazy eval which returns it when required.
 
-	potentials, err := autocomplete.GetPotentials(ctx, resolver, gwClient, compLine, int(compPointInt), app.cliApp, showHidden)
+	potentials, err := autocomplete.GetPotentials(ctx, resolver, gwClient, compLine, int(compPointInt), app.cliApp)
 	if err != nil {
 		return err
 	}
