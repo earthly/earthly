@@ -17,8 +17,7 @@ WORKDIR /test
 all:
     BUILD +copy
     BUILD +copy-verbose-output
-    BUILD +copy-single-parent
-    BUILD +copy-multi-parent
+    BUILD +copy-with-parents
     BUILD +copy-multi-contexts
 
 copy:
@@ -34,7 +33,6 @@ copy-verbose-output:
         echo -n "a" > a.txt && \
         echo -n "alpha" > alpha.txt && \
         echo -n "beta" > subdir/a.txt/beta.txt
-
     # Setup a test that runs earthly twice; both instances of earthly must be run
     # back to back as the file caching logic references the directories inode ID while constructing
     # the shared cache key.
@@ -58,21 +56,14 @@ earthly --config \$earthly_config --verbose +all 2>output2.txt;
     RUN if grep "sent data for alpha.txt" output2.txt >/dev/null; then echo "alpha.txt should not have been sent"; exit 1; fi
     RUN if grep "sent data for .*beta.txt" output2.txt >/dev/null; then echo "beta.txt should not have been sent"; exit 1; fi
 
-copy-single-parent:
-    RUN mkdir -p /opt/test1 && \
-        echo "root" > /opt/test1/root && \
-        echo "1" > /opt/test1/file1 && \
-        echo "2" > /opt/test1/file2
-    DO +RUN_EARTHLY_ARGS --earthfile=single-parent.earth
-
-copy-multi-parent:
-    WORKDIR /test/subdir
-    ENV SRC_DIR=/test/subdir
-    RUN mkdir -p /opt/test1 && \
-        echo "root" > /opt/test1/root && \
-        echo "1" > /opt/test1/file1 && \
-        echo "2" > /opt/test1/file2
-    DO +RUN_EARTHLY_ARGS --earthfile=multi-parent.earth
+copy-with-parents:
+    WORKDIR /test/workdir
+    ENV SRC_DIR=/test/workdir
+    RUN mkdir -p /test/test1 && \
+        echo "bar2" > /test/test1/foo1
+    RUN mkdir -p /opt/test2 && \
+        echo "bar1" > /opt/test2/foo2
+    DO +RUN_EARTHLY_ARGS --earthfile=with-parents.earth
 
 # copy-multi-contexts target should error since COPY can only operate
 # against a single build context and this test case uses both "." and "../"

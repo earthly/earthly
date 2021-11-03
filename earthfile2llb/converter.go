@@ -442,16 +442,14 @@ func (c *Converter) CopyClassical(ctx context.Context, srcs []string, dest strin
 		return err
 	}
 
-	found := false
-	buildContext := ""
+	var buildContext string
 	for _, src := range srcs {
 		bc := buildContextFromPath(src)
-		if !found {
+		if buildContext == "" {
 			buildContext = bc
-			found = true
 		}
 
-		if found && bc != buildContext {
+		if buildContext != "" && bc != buildContext {
 			return errors.New("COPY only supports a single build context at a time")
 		}
 	}
@@ -467,6 +465,7 @@ func (c *Converter) CopyClassical(ctx context.Context, srcs []string, dest strin
 	}
 
 	if buildContext != "." {
+		srcStateFactory := c.buildContextFactory
 		localFactory, ok := srcStateFactory.(*llbfactory.LocalFactory)
 		if !ok {
 			return errors.New("parent directories only supported with local build context")
@@ -479,7 +478,8 @@ func (c *Converter) CopyClassical(ctx context.Context, srcs []string, dest strin
 			includePatterns = append(includePatterns, stripRootParentDirs(src))
 		}
 
-		srcStateFactory = localFactory.WithName(buildContext).WithInclude(includePatterns)
+		srcStateFactory = localFactory.WithSource(buildContext)
+		srcStateFactory = addIncludePathAndSharedKeyHint(srcStateFactory, includePatterns)
 		srcState = srcStateFactory.Construct()
 
 		// notify the build context provider about the new local source
@@ -499,44 +499,6 @@ func (c *Converter) CopyClassical(ctx context.Context, srcs []string, dest strin
 			strings.Join(srcs, " "),
 			dest))
 	return nil
-}
-
-// buildContextFromPath returns a valid build context path given a path.
-func buildContextFromPath(path string) string {
-	var buildContext string
-
-	curPath := path
-	if strings.HasPrefix(curPath, "./..") {
-		curPath = curPath[2:]
-	}
-
-	for strings.HasPrefix(curPath, "../") {
-		if strings.HasPrefix(curPath, "../") {
-			buildContext += "../"
-		}
-
-		curPath = strings.TrimPrefix(curPath, "../")
-	}
-
-	if buildContext == "" {
-		return "."
-	}
-
-	return buildContext
-}
-
-// stripRootParentDirs strips all root parent directories from a path
-func stripRootParentDirs(path string) string {
-	curPath := path
-	if strings.HasPrefix(curPath, "./..") {
-		curPath = curPath[2:]
-	}
-
-	for strings.HasPrefix(curPath, "../") {
-		curPath = strings.TrimPrefix(curPath, "../")
-	}
-
-	return curPath
 }
 
 // ConvertRunOpts represents a set of options needed for the RUN command.
@@ -1843,4 +1805,39 @@ func strIf(condition bool, str string) string {
 		return str
 	}
 	return ""
+}
+
+// buildContextFromPath returns a valid build context given a path.
+func buildContextFromPath(path string) string {
+	var buildContext string
+
+	curPath := path
+	if strings.HasPrefix(curPath, "./..") {
+		curPath = curPath[2:]
+	}
+
+	for strings.HasPrefix(curPath, "../") {
+		buildContext += "../"
+		curPath = strings.TrimPrefix(curPath, "../")
+	}
+
+	if buildContext == "" {
+		return "."
+	}
+
+	return buildContext
+}
+
+// stripRootParentDirs strips all root parent directories from a path
+func stripRootParentDirs(path string) string {
+	curPath := path
+	if strings.HasPrefix(curPath, "./..") {
+		curPath = curPath[2:]
+	}
+
+	for strings.HasPrefix(curPath, "../") {
+		curPath = strings.TrimPrefix(curPath, "../")
+	}
+
+	return curPath
 }

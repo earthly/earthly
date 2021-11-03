@@ -5,4 +5,4 @@ FROM alpine:3.13
 WORKDIR /test
 
 all:
-    COPY ../opt/test1 ./cur test1/
+    COPY ../test1 ../../opt/test2 ./

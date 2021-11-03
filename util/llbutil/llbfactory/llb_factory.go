@@ -1,6 +1,7 @@
 package llbfactory
 
 import (
+	"fmt"
 	"path/filepath"
 
 	"github.com/earthly/earthly/util/llbutil/pllb"
@@ -90,9 +91,12 @@ func (f *LocalFactory) AsParent() *LocalFactory {
 	return parent
 }
 
-func (f *LocalFactory) WithName(name string) *LocalFactory {
+// WithSource returns a copy of the factory using a new LLB source name
+func (f *LocalFactory) WithSource(name string) *LocalFactory {
 	newFactory := f.Copy()
 	newFactory.name = name
+
+	fmt.Printf("ANDREW: %#v", newFactory.opts)
 	return newFactory
 }
 
