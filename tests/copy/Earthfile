@@ -66,15 +66,12 @@ copy-with-parents:
     DO +RUN_EARTHLY_ARGS --earthfile=with-parents.earth
 
 copy-invalid:
-    RUN mkdir -p /opt/test1 && \
-        echo "root" > /opt/test1/root && \
-        echo "1" > /opt/test1/file1 && \
-        echo "2" > /opt/test1/file2
-    RUN mkdir -p cur && \
-        echo "root" > cur/root && \
-        echo "1" > cur/file1 && \
-        echo "2" > cur/file2
-    DO +RUN_EARTHLY_ARGS --should_fail=true --earthfile=invalid.earth
+    RUN mkdir -p /test/test1 && \
+        echo "bar2" > /test/test1/foo1
+    RUN mkdir -p /opt/test2 && \
+        echo "bar1" > /opt/test2/foo2
+    DO +RUN_EARTHLY_ARGS --should_fail=true --earthfile=invalid.earth --target=+multi-parent-context
+    DO +RUN_EARTHLY_ARGS --should_fail=true --earthfile=invalid.earth --target=+all-parent-dir
 
 RUN_EARTHLY_ARGS:
     COMMAND

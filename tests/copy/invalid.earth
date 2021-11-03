@@ -4,12 +4,9 @@ FROM alpine:3.13
 
 WORKDIR /test
 
-all:
-    BUILD +multi-parent-context
-    BUILD +all-parent-dir
-
 multi-parent-context:
     COPY ../test1 ../../opt/test2 ./
 
+# this test is failing, COPYING ".." should probably not be allowed
 all-parent-dir:
     COPY .. .
