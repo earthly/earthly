@@ -67,9 +67,11 @@ copy-with-parents:
     WORKDIR /test/workdir
     ENV SRC_DIR=/test/workdir
     RUN mkdir -p /test/test1 && \
-        echo "bar2" > /test/test1/foo1
+        echo "bar1" > /test/test1/foo1
     RUN mkdir -p /opt/test2 && \
-        echo "bar1" > /opt/test2/foo2
+        echo "bar2" > /opt/test2/foo2
+    RUN mkdir -p /test/workdir/test3 && \
+        echo "bar3" > /test/workdir/test3/foo3
     DO +RUN_EARTHLY_ARGS --earthfile=with-parents.earth
 
 copy-invalid:

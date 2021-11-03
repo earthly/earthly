@@ -9,6 +9,7 @@ all:
     BUILD +copy-dir-single-parent
     BUILD +copy-files-multi-parent
     BUILD +copy-dir-multi-parent
+    BUILD +copy-child-dir-as-parent
 
 copy-files-single-parent:
     COPY ../test1 test1/
@@ -42,4 +43,11 @@ copy-dir-multi-parent:
 test1/foo1
 test2
 test2/foo2" >./expected
+    RUN diff -b ./actual ./expected
+
+copy-child-dir-as-parent:
+    COPY ../workdir/test3 test3/
+    RUN find test3 | sort | tee ./actual
+    RUN echo "test3
+test3/foo3" >./expected
     RUN diff -b ./actual ./expected
