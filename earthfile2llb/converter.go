@@ -444,43 +444,54 @@ func (c *Converter) CopyClassical(ctx context.Context, srcs []string, dest strin
 
 	var buildContext string
 	for _, src := range srcs {
+		// local sources that copy entire parent directores like ".." or "../" are not allowed
+		// since they could recursively copy files from the "." build context
+		if strings.HasSuffix(src, "..") || strings.HasSuffix(src, "../") {
+			return fmt.Errorf("COPY does not support whole parent directories: %q")
+		}
+
 		bc := buildContextFromPath(src)
 		if buildContext == "" {
 			buildContext = bc
 		}
 
-		if buildContext != "" && bc != buildContext {
-			return errors.New("COPY only supports a single build context at a time")
+		if bc != buildContext {
+			return fmt.Errorf("COPY command only supports a single build context, detected two: %q and %q", bc, buildContext)
 		}
+
+	}
+
+	if buildContext != "." && !c.ftrs.CopyParentDirs {
+		return errors.New("COPY does not support files parent directories as local sources by default, set the --copy-parent-dirs flag to enable this")
 	}
 
 	var srcState pllb.State
 	srcStateFactory := c.buildContextFactory
-	if c.ftrs.UseCopyIncludePatterns {
-		// create a new src state with the include patterns set (if this isn't done the entire context will be copied)
-		srcStateFactory = addIncludePathAndSharedKeyHint(srcStateFactory, srcs)
-		srcState = c.opt.LocalStateCache.getOrConstruct(srcStateFactory)
+	if buildContext == "." {
+		if c.ftrs.UseCopyIncludePatterns {
+			srcStateFactory = addIncludePathAndSharedKeyHint(srcStateFactory, srcs)
+			srcState = c.opt.LocalStateCache.getOrConstruct(srcStateFactory)
+		} else {
+			srcState = srcStateFactory.Construct()
+		}
 	} else {
-		srcState = srcStateFactory.Construct()
-	}
-
-	if buildContext != "." {
-		srcStateFactory := c.buildContextFactory
+		// We need to assume --use-copy-include-patterns when copying parent directories
+		// so we don't recursively copy content from the "." build context.
 		localFactory, ok := srcStateFactory.(*llbfactory.LocalFactory)
 		if !ok {
-			return errors.New("parent directories only supported with local build context")
+			return errors.New("parent directories only supported with local build contexts")
 		}
 
 		// strip parent dirs from all srcs since include patterns are relative
 		// to the local sources they are referenced from.
 		var includePatterns []string
 		for _, src := range srcs {
-			includePatterns = append(includePatterns, stripRootParentDirs(src))
+			includePatterns = append(includePatterns, pathFromBuildContext(src))
 		}
 
 		srcStateFactory = localFactory.WithSource(buildContext)
 		srcStateFactory = addIncludePathAndSharedKeyHint(srcStateFactory, includePatterns)
-		srcState = srcStateFactory.Construct()
+		srcState = c.opt.LocalStateCache.getOrConstruct(srcStateFactory)
 
 		// notify the build context provider about the new local source
 		c.opt.BuildContextProvider.AddDir(buildContext, buildContext)
@@ -1811,29 +1822,19 @@ func strIf(condition bool, str string) string {
 func buildContextFromPath(path string) string {
 	var buildContext string
 
-	curPath := path
-	if strings.HasPrefix(curPath, "./..") {
-		curPath = curPath[2:]
-	}
-
+	curPath := filepath.Clean(path)
 	for strings.HasPrefix(curPath, "../") {
 		buildContext += "../"
 		curPath = strings.TrimPrefix(curPath, "../")
 	}
 
-	if buildContext == "" {
-		return "."
-	}
-
-	return buildContext
+	return filepath.Clean(buildContext)
 }
 
-// stripRootParentDirs strips all root parent directories from a path
-func stripRootParentDirs(path string) string {
-	curPath := path
-	if strings.HasPrefix(curPath, "./..") {
-		curPath = curPath[2:]
-	}
+// pathFromBuildContext returns the relative path to the closest build
+// context directory for any given path.
+func pathFromBuildContext(path string) string {
+	curPath := filepath.Clean(path)
 
 	for strings.HasPrefix(curPath, "../") {
 		curPath = strings.TrimPrefix(curPath, "../")

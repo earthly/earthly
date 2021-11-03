@@ -72,6 +72,7 @@ copy-invalid:
         echo "bar1" > /opt/test2/foo2
     DO +RUN_EARTHLY_ARGS --should_fail=true --earthfile=invalid.earth --target=+multi-parent-context
     DO +RUN_EARTHLY_ARGS --should_fail=true --earthfile=invalid.earth --target=+all-parent-dir
+    DO +RUN_EARTHLY_ARGS --should_fail=true --earthfile=with-parent-no-feature-flag.earth --target=+all
 
 RUN_EARTHLY_ARGS:
     COMMAND
