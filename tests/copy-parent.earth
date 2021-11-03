@@ -1,17 +1,39 @@
 VERSION 0.6
 
-FROM alpine:3.13
 WORKDIR /test
 
 all:
-    BUILD +copy-parent-dir
+    BUILD +copy-single-parent
+    BUILD +copy-multi-parent
+    BUILD +copy-multiple-contexts
 
 
-copy-parent-dir:
-    COPY ../../opt/test1 copied
-    RUN find copied | sort | tee ./actual
-    RUN echo "copied
-copied/file1
-copied/file2
-copied/root" >./expected
+copy-single-parent:
+    COPY ../opt/test1 test1/
+    RUN find test1 | sort | tee ./actual
+    RUN echo "test1
+test1/file1
+test1/file2
+test1/root" >./expected
     RUN diff -b ./actual ./expected
+
+copy-multi-parent:
+    COPY ../opt/test1 test1/
+    RUN find test1 | sort | tee ./actual
+    RUN echo "test1
+test1/file1
+test1/file2
+test1/root" >./expected
+    RUN diff -b ./actual ./expected
+
+# should error, COPY can only operate against a single build context
+# this test case uses "." and "../"
+copy-multiple-contexts:
+    COPY ../opt/test1 ./in test1/
+    RUN find test1 | sort | tee ./actual
+    RUN echo "test1
+test1/file1
+test1/file2
+test1/root" >./expected
+    RUN diff -b ./actual ./expected
+

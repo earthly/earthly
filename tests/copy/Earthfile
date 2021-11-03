@@ -1,0 +1,106 @@
+VERSION 0.6
+
+ARG DOCKERHUB_USER_SECRET=+secrets/DOCKERHUB_USER
+ARG DOCKERHUB_TOKEN_SECRET=+secrets/DOCKERHUB_TOKEN
+ARG DOCKERHUB_MIRROR
+ARG DOCKERHUB_AUTH=true
+FROM ../..+earthly-integration-test-base \
+    --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
+    --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
+    --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
+    --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR
+
+IMPORT .. AS tests
+
+WORKDIR /test
+
+all:
+    BUILD +copy
+    BUILD +copy-verbose-output
+    BUILD +copy-single-parent
+    BUILD +copy-multi-parent
+    BUILD +copy-multi-contexts
+
+copy:
+    RUN mkdir -p in/sub/1 in/sub/2 && \
+        echo "root" > in/root && \
+        echo "1" > in/sub/1/file && \
+        echo "2" > in/sub/2/file && \
+        echo "sub" > in/sub/file
+    DO +RUN_EARTHLY_ARGS --earthfile=copy.earth
+
+copy-verbose-output:
+    RUN mkdir -p subdir/a.txt && \
+        echo -n "a" > a.txt && \
+        echo -n "alpha" > alpha.txt && \
+        echo -n "beta" > subdir/a.txt/beta.txt
+
+    # Setup a test that runs earthly twice; both instances of earthly must be run
+    # back to back as the file caching logic references the directories inode ID while constructing
+    # the shared cache key.
+    RUN echo "#!/bin/sh
+set -x
+earthly --config \$earthly_config --verbose +all 2>output.txt;
+earthly --config \$earthly_config --verbose +all 2>output2.txt;
+" >/tmp/multiple-earthly-script && chmod +x /tmp/multiple-earthly-script
+
+    DO +RUN_EARTHLY_ARGS --earthfile=copy-verbose.earth --exec_cmd=/tmp/multiple-earthly-script
+
+    # test that the first run sends a.txt and doesn't send any non-referenced files
+    RUN cat output.txt
+    RUN cat output.txt | grep 'sent data for a.txt (1 B)'
+    RUN if grep "sent data for alpha.txt" output.txt >/dev/null; then echo "alpha.txt should not have been sent"; exit 1; fi
+    RUN if grep "sent data for .*beta.txt" output.txt >/dev/null; then echo "beta.txt should not have been sent"; exit 1; fi
+
+    # test that the second run did not resend a.txt (or any other non-referenced files)
+    RUN cat output2.txt
+    RUN if grep "sent data for a.txt" output2.txt >/dev/null; then echo "a.txt should not have been sent"; exit 1; fi
+    RUN if grep "sent data for alpha.txt" output2.txt >/dev/null; then echo "alpha.txt should not have been sent"; exit 1; fi
+    RUN if grep "sent data for .*beta.txt" output2.txt >/dev/null; then echo "beta.txt should not have been sent"; exit 1; fi
+
+copy-single-parent:
+    RUN mkdir -p /opt/test1 && \
+        echo "root" > /opt/test1/root && \
+        echo "1" > /opt/test1/file1 && \
+        echo "2" > /opt/test1/file2
+    DO +RUN_EARTHLY_ARGS --earthfile=single-parent.earth
+
+copy-multi-parent:
+    WORKDIR /test/subdir
+    ENV SRC_DIR=/test/subdir
+    RUN mkdir -p /opt/test1 && \
+        echo "root" > /opt/test1/root && \
+        echo "1" > /opt/test1/file1 && \
+        echo "2" > /opt/test1/file2
+    DO +RUN_EARTHLY_ARGS --earthfile=multi-parent.earth
+
+# copy-multi-contexts target should error since COPY can only operate
+# against a single build context and this test case uses both "." and "../"
+copy-multi-contexts:
+    RUN mkdir -p /opt/test1 && \
+        echo "root" > /opt/test1/root && \
+        echo "1" > /opt/test1/file1 && \
+        echo "2" > /opt/test1/file2
+    RUN mkdir -p cur && \
+        echo "root" > cur/root && \
+        echo "1" > cur/file1 && \
+        echo "2" > cur/file2
+    DO +RUN_EARTHLY_ARGS --should_fail=true --earthfile=invalid-multi-context.earth
+
+RUN_EARTHLY_ARGS:
+    COMMAND
+    ARG earthfile
+    ARG earthfile_dest="./Earthfile"
+    ARG target=+all
+    ARG should_fail=false
+    ARG exec_cmd=$exec_cmd
+    DO tests+RUN_EARTHLY \
+        --earthfile=$earthfile \
+	--earthfile_dest=$earthfile_dest \
+        --target=$target \
+	--exec_cmd=$exec_cmd \
+        --should_fail=$should_fail \
+        --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
+        --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
+        --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
+        --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR

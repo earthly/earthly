@@ -40,8 +40,7 @@ ga:
     BUILD ./import+build
     BUILD ./import+build-imported
     BUILD +privileged-test
-    BUILD +copy-test
-    BUILD +copy-test-verbose-output
+    BUILD ./copy+all
     BUILD +cache-test
     BUILD +git-clone-test
     BUILD +git-clone-private-ssh
@@ -139,63 +138,6 @@ ast-test-input:
 
 privileged-test:
     DO +RUN_EARTHLY --earthfile=privileged.earth --extra_args="--allow-privileged" --target=+test
-
-copy-test:
-    RUN mkdir -p in/sub/1 in/sub/2 && \
-        echo "root" > in/root && \
-        echo "1" > in/sub/1/file && \
-        echo "2" > in/sub/2/file && \
-        echo "sub" > in/sub/file
-    DO +RUN_EARTHLY --earthfile=copy.earth
-
-copy-parent-test:
-    RUN mkdir -p /opt/test1 && \
-        echo "root" > /opt/test1/root && \
-        echo "1" > /opt/test1/file1 && \
-        echo "2" > /opt/test1/file2
-    DO +RUN_EARTHLY --earthfile=copy-parent.earth
-
-copy-test-verbose-output:
-    RUN mkdir -p subdir/a.txt && \
-        echo -n "a" > a.txt && \
-        echo -n "alpha" > alpha.txt && \
-        echo -n "beta" > subdir/a.txt/beta.txt
-
-    # Setup a test that runs earthly twice; both instances of earthly must be run
-    # back to back as the file caching logic references the directories inode ID while constructing
-    # the shared cache key.
-    RUN echo "#!/bin/sh
-set -x
-earthly --config \$earthly_config --verbose +all 2>output.txt;
-earthly --config \$earthly_config --verbose +all 2>output2.txt;
-" >/tmp/multiple-earthly-script && chmod +x /tmp/multiple-earthly-script
-
-    DO +RUN_EARTHLY --earthfile=copy-verbose.earth --exec_cmd=/tmp/multiple-earthly-script
-
-    # test that the first run sends a.txt and doesn't send any non-referenced files
-    RUN cat output.txt
-    RUN cat output.txt | grep 'sent data for a.txt (1 B)'
-    RUN if grep "sent data for alpha.txt" output.txt >/dev/null; then echo "alpha.txt should not have been sent"; exit 1; fi
-    RUN if grep "sent data for .*beta.txt" output.txt >/dev/null; then echo "beta.txt should not have been sent"; exit 1; fi
-
-    # test that the second run did not resend a.txt (or any other non-referenced files)
-    RUN cat output2.txt
-    RUN if grep "sent data for a.txt" output2.txt >/dev/null; then echo "a.txt should not have been sent"; exit 1; fi
-    RUN if grep "sent data for alpha.txt" output2.txt >/dev/null; then echo "alpha.txt should not have been sent"; exit 1; fi
-    RUN if grep "sent data for .*beta.txt" output2.txt >/dev/null; then echo "beta.txt should not have been sent"; exit 1; fi
-
-cache-test:
-    # Test that a file can be passed between runs through the mounted cache.
-    DO +RUN_EARTHLY --earthfile=cache1.earth --target=+test-pass-file --use_tmpfs=false
-    DO +RUN_EARTHLY --earthfile=cache2.earth --target=+test-pass-file --use_tmpfs=false
-    # Test that a change to the contents of the mount does not cause a cache bust if everything else
-    # is the same.
-    DO +RUN_EARTHLY --earthfile=cache1.earth --target=+test-no-bust-on-change --use_tmpfs=false
-    DO +RUN_EARTHLY --earthfile=cache2.earth --target=+test-no-bust-on-change --use_tmpfs=false  # make a change
-    DO +RUN_EARTHLY --earthfile=cache1.earth --target=+test-no-bust-on-change --use_tmpfs=false \
-        --post_command=">output.txt 2>&1" # check that all is still cached if re-running the prev version
-    RUN cat output.txt
-    RUN cat output.txt | grep '\*cached\* --> RUN echo hey'
 
 git-clone-test:
     DO +RUN_EARTHLY --earthfile=git-clone.earth --target=+test

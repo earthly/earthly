@@ -1,0 +1,27 @@
+VERSION 0.6
+
+FROM alpine:3.13
+
+WORKDIR /test
+
+all:
+    BUILD +copy-files
+    BUILD +copy-dir
+
+copy-files:
+    COPY ../../opt/test1 test1/
+    RUN find test1 | sort | tee ./actual
+    RUN echo "test1
+test1/file1
+test1/file2
+test1/root" >./expected
+    RUN diff -b ./actual ./expected
+
+copy-dir:
+    COPY --dir ../../opt/test1 ./
+    RUN find test1 | sort | tee ./actual
+    RUN echo "test1
+test1/file1
+test1/file2
+test1/root" >./expected
+    RUN diff -b ./actual ./expected
