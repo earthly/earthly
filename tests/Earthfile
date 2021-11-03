@@ -132,6 +132,7 @@ experimental:
 ast-test-input:
     FROM alpine:3.13
     COPY ./*.earth ./
+    COPY ./copy/copy.earth ./
     COPY ./with-docker/Earthfile ./with-docker.earth
     COPY ./with-docker-compose/Earthfile ./with-docker-compose.earth
     SAVE ARTIFACT ./*.earth

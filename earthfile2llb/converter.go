@@ -447,7 +447,7 @@ func (c *Converter) CopyClassical(ctx context.Context, srcs []string, dest strin
 		// local sources that copy entire parent directores like ".." or "../" are not allowed
 		// since they could recursively copy files from the "." build context
 		if strings.HasSuffix(src, "..") || strings.HasSuffix(src, "../") {
-			return fmt.Errorf("COPY does not support whole parent directories: %q")
+			return fmt.Errorf("COPY does not support whole parent directories: %q", src)
 		}
 
 		bc := buildContextFromPath(src)
