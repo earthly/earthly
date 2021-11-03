@@ -1822,18 +1822,21 @@ func strIf(condition bool, str string) string {
 func buildContextFromPath(path string) string {
 	var buildContext string
 
+	// call filepath.Clean to strip out "./"
 	curPath := filepath.Clean(path)
 	for strings.HasPrefix(curPath, "../") {
 		buildContext += "../"
 		curPath = strings.TrimPrefix(curPath, "../")
 	}
 
+	// filepath.Clean returns "." if passed an empty string
 	return filepath.Clean(buildContext)
 }
 
 // pathFromBuildContext returns the relative path to the closest build
 // context directory for any given path.
 func pathFromBuildContext(path string) string {
+	// call filepath.Clean to strip out "./"
 	curPath := filepath.Clean(path)
 
 	for strings.HasPrefix(curPath, "../") {
