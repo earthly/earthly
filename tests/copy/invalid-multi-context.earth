@@ -1,8 +1,0 @@
-VERSION 0.6
-
-FROM alpine:3.13
-
-WORKDIR /test
-
-all:
-    COPY ../test1 ../../opt/test2 ./

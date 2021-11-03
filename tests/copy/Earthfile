@@ -76,7 +76,7 @@ copy-multi-contexts:
         echo "root" > cur/root && \
         echo "1" > cur/file1 && \
         echo "2" > cur/file2
-    DO +RUN_EARTHLY_ARGS --should_fail=true --earthfile=invalid-multi-context.earth
+    DO +RUN_EARTHLY_ARGS --should_fail=true --earthfile=invalid.earth
 
 RUN_EARTHLY_ARGS:
     COMMAND

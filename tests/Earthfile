@@ -139,6 +139,19 @@ ast-test-input:
 privileged-test:
     DO +RUN_EARTHLY --earthfile=privileged.earth --extra_args="--allow-privileged" --target=+test
 
+cache-test:
+    # Test that a file can be passed between runs through the mounted cache.
+    DO +RUN_EARTHLY --earthfile=cache1.earth --target=+test-pass-file --use_tmpfs=false
+    DO +RUN_EARTHLY --earthfile=cache2.earth --target=+test-pass-file --use_tmpfs=false
+    # Test that a change to the contents of the mount does not cause a cache bust if everything else
+    # is the same.
+    DO +RUN_EARTHLY --earthfile=cache1.earth --target=+test-no-bust-on-change --use_tmpfs=false
+    DO +RUN_EARTHLY --earthfile=cache2.earth --target=+test-no-bust-on-change --use_tmpfs=false  # make a change
+    DO +RUN_EARTHLY --earthfile=cache1.earth --target=+test-no-bust-on-change --use_tmpfs=false \
+        --post_command=">output.txt 2>&1" # check that all is still cached if re-running the prev version
+    RUN cat output.txt
+    RUN cat output.txt | grep '\*cached\* --> RUN echo hey'
+
 git-clone-test:
     DO +RUN_EARTHLY --earthfile=git-clone.earth --target=+test
 
