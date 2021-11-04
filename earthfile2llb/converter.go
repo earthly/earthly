@@ -448,9 +448,9 @@ func (c *Converter) CopyClassical(ctx context.Context, srcs []string, dest strin
 	}
 
 	var buildContext string
-	localPath := c.target.GetLocalPath()
+	localPath := filepath.Clean(c.target.GetLocalPath())
 	if localPath != "" {
-		buildContext, err := buildContextForSources(srcs, localPath)
+		buildContext, err = buildContextForSources(srcs, localPath)
 		if err != nil {
 			return err
 		}
