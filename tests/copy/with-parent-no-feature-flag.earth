@@ -10,4 +10,3 @@ all:
     RUN echo "test1
 test1/foo1" >./expected
     RUN diff -b ./actual ./expected
-
