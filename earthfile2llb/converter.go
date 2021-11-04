@@ -447,19 +447,22 @@ func (c *Converter) CopyClassical(ctx context.Context, srcs []string, dest strin
 		return err
 	}
 
+	var buildContext string
 	localPath := c.target.GetLocalPath()
-	buildContext, err := buildContextForSources(srcs, localPath)
-	if err != nil {
-		return err
-	}
+	if localPath != "" {
+		buildContext, err := buildContextForSources(srcs, localPath)
+		if err != nil {
+			return err
+		}
 
-	if buildContext != localPath && !c.ftrs.CopyParentDirs {
-		return errors.New("COPY does not support files parent directories as local sources by default, set the --copy-parent-dirs flag to enable this")
+		if buildContext != localPath && !c.ftrs.CopyParentDirs {
+			return errors.New("COPY does not support files parent directories as local sources by default, set the --copy-parent-dirs flag to enable this")
+		}
 	}
 
 	var srcState pllb.State
 	srcStateFactory := c.buildContextFactory
-	if buildContext == localPath {
+	if localPath == "" || buildContext == localPath {
 		if c.ftrs.UseCopyIncludePatterns {
 			srcStateFactory = addIncludePathAndSharedKeyHint(srcStateFactory, srcs)
 			srcState = c.opt.LocalStateCache.getOrConstruct(srcStateFactory)
