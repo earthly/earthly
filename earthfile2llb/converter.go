@@ -442,32 +442,24 @@ func (c *Converter) CopyClassical(ctx context.Context, srcs []string, dest strin
 		return err
 	}
 
-	var buildContext string
-	for _, src := range srcs {
-		// local sources that copy entire parent directores like ".." or "../" are not allowed
-		// since they could recursively copy files from the "." build context
-		if strings.HasSuffix(src, "..") || strings.HasSuffix(src, "../") {
-			return fmt.Errorf("COPY does not support whole parent directories: %q", src)
-		}
-
-		bc := buildContextFromPath(src)
-		if buildContext == "" {
-			buildContext = bc
-		}
-
-		if bc != buildContext {
-			return fmt.Errorf("COPY command only supports a single build context, detected two: %q and %q", bc, buildContext)
-		}
-
+	err = validateCopySources(srcs)
+	if err != nil {
+		return err
 	}
 
-	if buildContext != "." && !c.ftrs.CopyParentDirs {
+	localPath := c.target.GetLocalPath()
+	buildContext, err := buildContextForSources(srcs, localPath)
+	if err != nil {
+		return err
+	}
+
+	if buildContext != localPath && !c.ftrs.CopyParentDirs {
 		return errors.New("COPY does not support files parent directories as local sources by default, set the --copy-parent-dirs flag to enable this")
 	}
 
 	var srcState pllb.State
 	srcStateFactory := c.buildContextFactory
-	if buildContext == "." {
+	if buildContext == localPath {
 		if c.ftrs.UseCopyIncludePatterns {
 			srcStateFactory = addIncludePathAndSharedKeyHint(srcStateFactory, srcs)
 			srcState = c.opt.LocalStateCache.getOrConstruct(srcStateFactory)
@@ -1818,25 +1810,68 @@ func strIf(condition bool, str string) string {
 	return ""
 }
 
-// buildContextFromPath returns a valid build context given a path.
-func buildContextFromPath(path string) string {
-	var buildContext string
+// validateCopySources validates all sources that are passed into the COPY command.
+func validateCopySources(srcs []string) error {
+	for _, src := range srcs {
+		// local sources that copy entire parent directores like ".." or "../" are not allowed
+		// since they could recursively copy files from the "." build context
+		if strings.HasSuffix(src, "..") || strings.HasSuffix(src, "../") {
+			return fmt.Errorf("COPY does not support whole parent directories for local source: %q", src)
+		}
 
-	// call filepath.Clean to strip out "./"
+		path := filepath.Clean(src)
+		if strings.HasPrefix(path, "../") {
+			// sources referencing parent directories should not include globs
+			basePath := filepath.Base(src)
+			if strings.Contains(basePath, "*") {
+				return fmt.Errorf("COPY does not support glob patterns using parent directories for local source: %q", src)
+			}
+		}
+	}
+
+	return nil
+}
+
+// buildContextForSources returns the build context for a list of sources.
+// Currently Earthly only supports a single build context per COPY so we return
+// an error here if the list of sources for COPY contains more than one build context.
+func buildContextForSources(srcs []string, basePath string) (string, error) {
+	var buildContext string
+	for _, src := range srcs {
+		bc := buildContextFromPath(src, basePath)
+		if buildContext == "" {
+			buildContext = bc
+		}
+
+		if bc != buildContext {
+			return "", fmt.Errorf("COPY command only supports a single build context, detected two: %q and %q", buildContext, bc)
+		}
+	}
+
+	return buildContext, nil
+}
+
+// buildContextFromPath returns a valid build context given a path.
+func buildContextFromPath(path, basePath string) string {
+	buildContext := filepath.Clean(basePath)
+
 	curPath := filepath.Clean(path)
 	for strings.HasPrefix(curPath, "../") {
-		buildContext += "../"
+		if buildContext == "." {
+			buildContext = ".."
+		} else {
+			buildContext += "/.."
+		}
+
 		curPath = strings.TrimPrefix(curPath, "../")
 	}
 
-	// filepath.Clean returns "." if passed an empty string
-	return filepath.Clean(buildContext)
+	return buildContext
 }
 
 // pathFromBuildContext returns the relative path to the closest build
 // context directory for any given path.
 func pathFromBuildContext(path string) string {
-	// call filepath.Clean to strip out "./"
 	curPath := filepath.Clean(path)
 
 	for strings.HasPrefix(curPath, "../") {

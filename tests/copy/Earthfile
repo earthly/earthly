@@ -18,6 +18,7 @@ all:
     BUILD +copy
     BUILD +copy-verbose-output
     BUILD +copy-with-parents
+    BUILD +copy-with-parents-and-local-path
     BUILD +copy-invalid
 
 copy:
@@ -73,6 +74,13 @@ copy-with-parents:
     RUN mkdir -p /test/workdir/test3 && \
         echo "bar3" > /test/workdir/test3/foo3
     DO +RUN_EARTHLY_ARGS --earthfile=with-parents.earth
+
+copy-with-parents-and-local-path:
+    WORKDIR /test/workdir
+    ENV SRC_DIR=/test
+    RUN mkdir -p /test/test1 && \
+        echo "bar1" > /test/test1/foo1
+    DO +RUN_EARTHLY_ARGS --earthfile_dest=/test/workdir/Earthfile --earthfile=with-parents-and-local-path.earth --target=./workdir+all
 
 copy-invalid:
     RUN mkdir -p /test/test1 && \

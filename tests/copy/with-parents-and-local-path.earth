@@ -1,0 +1,15 @@
+VERSION --copy-parent-dirs 0.6
+
+FROM alpine:3.13
+
+WORKDIR /test
+
+all:
+    BUILD +copy-parent
+
+copy-parent:
+    COPY ../test1 test1/
+    RUN find test1 | sort | tee ./actual
+    RUN echo "test1
+test1/foo1" >./expected
+    RUN diff -b ./actual ./expected
