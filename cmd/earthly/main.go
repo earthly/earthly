@@ -1282,15 +1282,14 @@ func (app *earthlyApp) processDeprecatedCommandOptions(context *cli.Context, cfg
 
 func (app *earthlyApp) unhideFlags(ctx context.Context) error {
 	var err error
-	showHidden := strings.HasPrefix(Version, "dev-")
-	oldAutocompleteHidden := os.Getenv("EARTHLY_AUTOCOMPLETE_HIDDEN")
-	if oldAutocompleteHidden != "" && os.Getenv("COMP_POINT") == "" {
+	if os.Getenv("EARTHLY_AUTOCOMPLETE_HIDDEN") != "" && os.Getenv("COMP_POINT") == "" { // TODO delete this check after 2021-03-01
 		// only display warning when NOT under complete mode (otherwise we break auto completion)
 		app.console.Warnf("Warning: EARTHLY_AUTOCOMPLETE_HIDDEN has been renamed to EARTHLY_SHOW_HIDDEN\n")
 	}
-	showHiddenOverride := os.Getenv("EARTHLY_SHOW_HIDDEN")
-	if showHiddenOverride != "" {
-		showHidden, err = strconv.ParseBool(showHiddenOverride)
+	showHidden := false
+	showHiddenStr := os.Getenv("EARTHLY_SHOW_HIDDEN")
+	if showHiddenStr != "" {
+		showHidden, err = strconv.ParseBool(showHiddenStr)
 		if err != nil {
 			return err
 		}
