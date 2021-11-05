@@ -237,10 +237,10 @@ func getCmd(name string, cmds []*cli.Command) *cli.Command {
 	return nil
 }
 
-func getVisibleFlags(flags []cli.Flag, showHidden bool) []string {
+func getVisibleFlags(flags []cli.Flag) []string {
 	visibleFlags := []string{}
 	for _, f := range flags {
-		if isVisibleFlag(f) || showHidden {
+		if isVisibleFlag(f) {
 			for _, n := range f.Names() {
 				if len(n) > 1 {
 					visibleFlags = append(visibleFlags, n)
@@ -291,10 +291,10 @@ func padStrings(flags []string, prefix, suffix string) []string {
 	return padded
 }
 
-func getVisibleCommands(commands []*cli.Command, showHidden bool) []string {
+func getVisibleCommands(commands []*cli.Command) []string {
 	visibleCommands := []string{}
 	for _, cmd := range commands {
-		if !cmd.Hidden || showHidden {
+		if !cmd.Hidden {
 			visibleCommands = append(visibleCommands, cmd.Name)
 		}
 	}
@@ -317,7 +317,7 @@ const (
 // GetPotentials returns a list of potential arguments for shell auto completion
 // NOTE: you can cause earthly to run this command with:
 //       COMP_LINE="earthly -" COMP_POINT=$(echo -n $COMP_LINE | wc -c) go run cmd/earthly/main.go
-func GetPotentials(ctx context.Context, resolver *buildcontext.Resolver, gwClient gwclient.Client, compLine string, compPoint int, app *cli.App, showHidden bool) ([]string, error) {
+func GetPotentials(ctx context.Context, resolver *buildcontext.Resolver, gwClient gwclient.Client, compLine string, compPoint int, app *cli.App) ([]string, error) {
 	compLine = compLine[:compPoint]
 	subCommands := app.Commands
 
@@ -406,9 +406,9 @@ func GetPotentials(ctx context.Context, resolver *buildcontext.Resolver, gwClien
 	switch state {
 	case flagState:
 		if cmd != nil {
-			potentials = getVisibleFlags(cmd.Flags, showHidden)
+			potentials = getVisibleFlags(cmd.Flags)
 		} else {
-			potentials = getVisibleFlags(app.Flags, showHidden)
+			potentials = getVisibleFlags(app.Flags)
 			// append flags that urfav/cli automatically include
 			potentials = append(potentials, "version", "help")
 		}
@@ -416,10 +416,10 @@ func GetPotentials(ctx context.Context, resolver *buildcontext.Resolver, gwClien
 
 	case rootState, commandState:
 		if cmd != nil {
-			potentials = getVisibleCommands(cmd.Subcommands, showHidden)
+			potentials = getVisibleCommands(cmd.Subcommands)
 			potentials = padStrings(potentials, "", " ")
 		} else {
-			potentials = getVisibleCommands(app.Commands, showHidden)
+			potentials = getVisibleCommands(app.Commands)
 			potentials = padStrings(potentials, "", " ")
 			if containsDirectories(".") {
 				potentials = append(potentials, "./")
