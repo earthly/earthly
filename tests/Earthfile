@@ -891,7 +891,7 @@ implicit-ignores:
     DO +RUN_EARTHLY --earthfile=no-implicit-ignore.earth
 
 help:
-    # tests the hidden --buildkit-volume-name flag is only displayed in dev mode
+    # tests the hidden `--buildkit-volume-name` flag is only displayed when EARTHLY_SHOW_HIDDEN is enabled
     ENV EARTHLY_SHOW_HIDDEN=0
     RUN earthly --help | grep -v 'buildkit-volume-name'
     ENV EARTHLY_SHOW_HIDDEN=1
