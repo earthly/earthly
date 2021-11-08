@@ -205,7 +205,7 @@ func (s *solver) newSolveOptMulti(ctx context.Context, eg *errgroup.Group, onIma
 		cacheExports = append(cacheExports, newCacheExportOpt(s.cacheExport, false))
 	}
 	if s.maxCacheExport != "" {
-		cacheExports = append(cacheExports, newCacheExportOpt(s.cacheExport, true))
+		cacheExports = append(cacheExports, newCacheExportOpt(s.maxCacheExport, true))
 	}
 	if s.saveInlineCache {
 		cacheExports = append(cacheExports, newInlineCacheOpt())
