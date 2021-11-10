@@ -284,6 +284,8 @@ jobs:
               --build-arg DOCKERHUB_AUTH=false \
           ./tests+experimental
         if: github.event_name != 'push' && github.event.pull_request.head.repo.full_name != github.repository
+      - name: Test buildkit info-level logging
+        run: docker logs earthly-buildkitd 2>&1 | grep 'running server on'
       - name: Buildkit logs (runs on failure)
         run: docker logs earthly-buildkitd
         if: ${{ failure() }}
