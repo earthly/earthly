@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 	"net/url"
@@ -22,7 +21,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
 
-	"github.com/earthly/earthly/analytics"
 	"github.com/earthly/earthly/buildcontext"
 	"github.com/earthly/earthly/buildcontext/provider"
 	"github.com/earthly/earthly/builder"
@@ -34,6 +32,7 @@ import (
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/states"
 	"github.com/earthly/earthly/util/containerutil"
+	"github.com/earthly/earthly/util/gatewaycrafter"
 	"github.com/earthly/earthly/util/llbutil/secretprovider"
 	"github.com/earthly/earthly/util/platutil"
 	"github.com/earthly/earthly/util/syncutil/semutil"
@@ -263,22 +262,6 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 		return err
 	}
 
-	debuggerSettings := debuggercommon.DebuggerSettings{
-		DebugLevelLogging: app.debug,
-		Enabled:           app.interactiveDebugging,
-		SocketPath:        debuggercommon.DebuggerDefaultSocketPath,
-		Term:              os.Getenv("TERM"),
-	}
-	if app.interactiveDebugging {
-		analytics.Count("features", "interactive-debugging")
-	}
-
-	debuggerSettingsData, err := json.Marshal(&debuggerSettings)
-	if err != nil {
-		return errors.Wrap(err, "debugger settings json marshal")
-	}
-	secretsMap[debuggercommon.DebuggerSettingsSecretsKey] = debuggerSettingsData
-
 	localhostProvider, err := localhostprovider.NewLocalhostProvider()
 	if err != nil {
 		return errors.Wrap(err, "failed to create localhostprovider")
@@ -342,7 +325,10 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 		attachables = append(attachables, ssh)
 	}
 
-	sockHack, err := socketprovider.NewSocketProvider(map[string]socketprovider.SocketAcceptCb{
+	localArtifactWhiteList := gatewaycrafter.NewLocalArtifactWhiteList()
+
+	socketProvider, err := socketprovider.NewSocketProvider(map[string]socketprovider.SocketAcceptCb{
+		"earthly_save_file": getTryCatchSaveFileHandler(localArtifactWhiteList),
 		"earthly_interactive": func(ctx context.Context, conn io.ReadWriteCloser) error {
 			if !termutil.IsTTY() {
 				return fmt.Errorf("interactive mode unavailable due to terminal not being tty")
@@ -358,7 +344,7 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 	if err != nil {
 		return errors.Wrap(err, "ssh agent provider")
 	}
-	attachables = append(attachables, sockHack)
+	attachables = append(attachables, socketProvider)
 
 	var enttlmnts []entitlements.Entitlement
 	if app.allowPrivileged {
@@ -404,33 +390,34 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 		localRegistryAddr = lrURL.Host
 	}
 	builderOpts := builder.Opt{
-		BkClient:               bkClient,
-		Console:                app.console,
-		Verbose:                app.verbose,
-		Attachables:            attachables,
-		Enttlmnts:              enttlmnts,
-		NoCache:                app.noCache,
-		CacheImports:           states.NewCacheImports(cacheImports),
-		CacheExport:            cacheExport,
-		MaxCacheExport:         maxCacheExport,
-		UseInlineCache:         app.useInlineCache,
-		SaveInlineCache:        app.saveInlineCache,
-		SessionID:              app.sessionID,
-		ImageResolveMode:       imageResolveMode,
-		CleanCollection:        cleanCollection,
-		OverridingVars:         overridingVars,
-		BuildContextProvider:   buildContextProvider,
-		GitLookup:              gitLookup,
-		UseFakeDep:             !app.noFakeDep,
-		Strict:                 app.strict,
-		DisableNoOutputUpdates: app.interactiveDebugging,
-		ParallelConversion:     (app.cfg.Global.ConversionParallelism != 0),
-		Parallelism:            parallelism,
-		LocalRegistryAddr:      localRegistryAddr,
-		FeatureFlagOverrides:   app.featureFlagOverrides,
-		ContainerFrontend:      app.containerFrontend,
-		InternalSecretStore:    internalSecretStore,
-		InteractiveDebugging:   app.interactiveDebugging,
+		BkClient:                              bkClient,
+		Console:                               app.console,
+		Verbose:                               app.verbose,
+		Attachables:                           attachables,
+		Enttlmnts:                             enttlmnts,
+		NoCache:                               app.noCache,
+		CacheImports:                          states.NewCacheImports(cacheImports),
+		CacheExport:                           cacheExport,
+		MaxCacheExport:                        maxCacheExport,
+		UseInlineCache:                        app.useInlineCache,
+		SaveInlineCache:                       app.saveInlineCache,
+		SessionID:                             app.sessionID,
+		ImageResolveMode:                      imageResolveMode,
+		CleanCollection:                       cleanCollection,
+		OverridingVars:                        overridingVars,
+		BuildContextProvider:                  buildContextProvider,
+		GitLookup:                             gitLookup,
+		UseFakeDep:                            !app.noFakeDep,
+		Strict:                                app.strict,
+		DisableNoOutputUpdates:                app.interactiveDebugging,
+		ParallelConversion:                    (app.cfg.Global.ConversionParallelism != 0),
+		Parallelism:                           parallelism,
+		LocalRegistryAddr:                     localRegistryAddr,
+		FeatureFlagOverrides:                  app.featureFlagOverrides,
+		ContainerFrontend:                     app.containerFrontend,
+		InternalSecretStore:                   internalSecretStore,
+		InteractiveDebugging:                  app.interactiveDebugging,
+		InteractiveDebuggingDebugLevelLogging: app.debug,
 	}
 	b, err := builder.NewBuilder(cliCtx.Context, builderOpts)
 	if err != nil {
@@ -451,6 +438,7 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 		PlatformResolver:           platr,
 		EnableGatewayClientLogging: app.debug,
 		BuiltinArgs:                builtinArgs,
+		LocalArtifactWhiteList:     localArtifactWhiteList,
 
 		// feature-flip the removal of builder.go code
 		// once VERSION 0.7 is released AND support for 0.6 is dropped,
@@ -471,4 +459,53 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 	}
 
 	return nil
+}
+
+func getTryCatchSaveFileHandler(localArtifactWhiteList *gatewaycrafter.LocalArtifactWhiteList) func(ctx context.Context, conn io.ReadWriteCloser) error {
+	return func(ctx context.Context, conn io.ReadWriteCloser) error {
+		// version
+		n, _, err := debuggercommon.ReadDataPacket(conn)
+		if err != nil {
+			return err
+		}
+		if n != 1 {
+			return fmt.Errorf("unexpected version %d", n)
+		}
+
+		// dst path
+		_, dst, err := debuggercommon.ReadDataPacket(conn)
+		if err != nil {
+			return err
+		}
+
+		if !localArtifactWhiteList.Exists(string(dst)) {
+			return fmt.Errorf("file %s does not appear in the white list", dst)
+		}
+
+		// data
+		_, data, err := debuggercommon.ReadDataPacket(conn)
+		if err != nil {
+			return err
+		}
+
+		// EOF
+		n, _, err = debuggercommon.ReadDataPacket(conn)
+		if err != nil {
+			return err
+		}
+		if n != 0 {
+			return fmt.Errorf("expected EOF, but got more data")
+		}
+
+		f, err := os.Create(string(dst))
+		if err != nil {
+			return err
+		}
+		_, err = f.Write(data)
+		if err != nil {
+			return err
+		}
+
+		return f.Close()
+	}
 }
