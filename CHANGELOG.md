@@ -4,6 +4,18 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+## v0.6.0-rc3 - 2021-11-15
+
+### Fixed
+
+- cache export was not honoring `EARTHLY_MAX_REMOTE_CACHE` setting
+- buildkit logs were not being sent to `earthly-buildkitd` container's output.
+- kind required permissions were not available in earthly-buildkitd.
+
+### Changed
+
+- docker and fsutils versions were set to match versions defined in earthly's buildkit fork.
+
 ## v0.6.0-rc2 - 2021-11-01
 
 ### Fixed
