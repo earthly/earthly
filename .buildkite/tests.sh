@@ -44,6 +44,9 @@ if [ -n "$download_url" ]; then
     released_earthly=./earthly-released
 fi
 
+echo "Prune cache for cross-version compatibility"
+"$released_earthly" prune --reset
+
 echo "Build latest earthly using released earthly"
 "$released_earthly" --version
 "$released_earthly" config global.disable_analytics true
