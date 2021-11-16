@@ -119,6 +119,7 @@ ga:
     BUILD +sequential-locally-test
     BUILD +homebrew-test
     BUILD +implicit-ignores
+    BUILD ./regressions/context-cancel+all
     BUILD +help
 
 # tests that only run on linux amd64
