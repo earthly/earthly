@@ -1,0 +1,21 @@
+FROM alpine
+
+SAVE_IMAGE:
+    COMMAND
+
+    IF [ 1 = 2 ]
+        RUN echo "test"
+    END
+
+    SAVE IMAGE --cache-from test:dev --push test:dev
+
+image:
+    DO +SAVE_IMAGE
+
+all:
+    FROM earthly/dind:alpine
+    WITH DOCKER \
+        --load my_image:dev=./+image
+
+        RUN docker run my_image:dev /bin/bash -c "echo Hello World!"
+    END
