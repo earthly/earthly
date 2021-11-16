@@ -288,8 +288,6 @@ func (i *Interpreter) handleWith(ctx context.Context, with spec.WithStatement) e
 }
 
 func (i *Interpreter) handleIf(ctx context.Context, ifStmt spec.IfStatement) error {
-	defer i.converter.markFakeDeps()
-
 	if i.pushOnlyAllowed {
 		return i.errorf(ifStmt.SourceLocation, "no non-push commands allowed after a --push")
 	}
