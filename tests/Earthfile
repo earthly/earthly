@@ -892,7 +892,7 @@ implicit-ignores:
     DO +RUN_EARTHLY --earthfile=no-implicit-ignore.earth
 
 regression-context-cancel-udc-save-image:
-    DO +RUN_EARTHLY --earthfile=regression-context-cancel-udc-save-image.earth
+    DO +RUN_EARTHLY --earthfile=regression-context-cancel-udc-save-image.earth --extra_args="--allow-privileged"
 
 help:
     # tests the hidden `--buildkit-volume-name` flag is only displayed when EARTHLY_SHOW_HIDDEN is enabled

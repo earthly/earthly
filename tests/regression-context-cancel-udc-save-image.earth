@@ -15,7 +15,7 @@ image:
 all:
     FROM earthly/dind:alpine
     WITH DOCKER \
-        --load my_image:dev=./+image
+        --load test:dev=./+image
 
-        RUN docker run my_image:dev /bin/bash -c "echo Hello World!"
+        RUN docker run test:dev /bin/bash -c "echo Hello World!"
     END
