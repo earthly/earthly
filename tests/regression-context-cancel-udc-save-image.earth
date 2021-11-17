@@ -1,4 +1,4 @@
-FROM alpine
+FROM ubuntu:focal
 
 SAVE_IMAGE:
     COMMAND
@@ -7,7 +7,7 @@ SAVE_IMAGE:
         RUN echo "test"
     END
 
-    SAVE IMAGE --cache-from test:dev --push test:dev
+    SAVE IMAGE --cache-from my_test_image:master --push my_test_image:dev
 
 image:
     DO +SAVE_IMAGE
@@ -15,7 +15,7 @@ image:
 all:
     FROM earthly/dind:alpine
     WITH DOCKER \
-        --load test:dev=./+image
+        --load my_image:dev=./+image
 
-        RUN docker run test:dev /bin/bash -c "echo Hello World!"
+        RUN docker run my_image:dev /bin/bash -c "echo Hello World!"
     END
