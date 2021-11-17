@@ -119,7 +119,7 @@ ga:
     BUILD +sequential-locally-test
     BUILD +homebrew-test
     BUILD +implicit-ignores
-    BUILD +regression-context-cancel-udc-save-image
+    BUILD ./regressions/context-cancel+all
     BUILD +help
 
 # tests that only run on linux amd64
@@ -890,9 +890,6 @@ implicit-ignores:
         echo "test" > ignored/test
     DO +RUN_EARTHLY --earthfile=implicit-ignore.earth
     DO +RUN_EARTHLY --earthfile=no-implicit-ignore.earth
-
-regression-context-cancel-udc-save-image:
-    DO +RUN_EARTHLY --earthfile=regression-context-cancel-udc-save-image.earth --extra_args="--allow-privileged"
 
 help:
     # tests the hidden `--buildkit-volume-name` flag is only displayed when EARTHLY_SHOW_HIDDEN is enabled
