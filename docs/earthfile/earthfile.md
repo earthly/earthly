@@ -629,7 +629,7 @@ however will become mandatory in a future version of Earthly. When specified, `V
 
 
 | Version number | enabled features |
-| --- | --- | --- |
+| --- | --- |
 | `0.5` | _initial functionality will be preserved_ |
 
 #### Options
