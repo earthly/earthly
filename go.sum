@@ -88,6 +88,10 @@ github.com/alecthomas/units v0.0.0-20190717042225-c3de453c63f4/go.mod h1:ybxpYRF
 github.com/alecthomas/units v0.0.0-20190924025748-f65c72e2690d/go.mod h1:rBZYJk541a8SKzHPHnH3zbiI+7dagKZ0cgpgrD7Fyho=
 github.com/alessio/shellescape v1.4.1 h1:V7yhSDDn8LP4lc4jS8pFkt0zCnzVJlG5JXy9BVKJUX0=
 github.com/alessio/shellescape v1.4.1/go.mod h1:PZAiSCk0LJaZkiCSkPv8qIobYglO3FPpyFjDCtHLS30=
+github.com/alexcb/buildkit v0.0.0-20211123191502-7b2cf3c70c51 h1:W6yWLKPmlEkNTuLVgYzzPusa0l8bLbGp4/bWrSW42Us=
+github.com/alexcb/buildkit v0.0.0-20211123191502-7b2cf3c70c51/go.mod h1:Hju1UvUY63/9Tfuje1vDVioXK1gGiDOaghvlmKaUfGI=
+github.com/alexcb/fsutil v0.0.0-20211123190133-0f953ce9fc03 h1:aqkUD2X1D4jEnGYp7w0AI8bScJNliwYM/Sy3mIyeqJ8=
+github.com/alexcb/fsutil v0.0.0-20211123190133-0f953ce9fc03/go.mod h1:E6osHKls9ix67jofYQ61RQKwlJhqJOZM2hintp+49iI=
 github.com/alexcb/go-flags v0.0.0-20210722203016-f11d7ecb5ee5 h1:im0niQRZXdxO8F1rw4zwb5rJmOJ9XnNtlnMFyfLenYE=
 github.com/alexcb/go-flags v0.0.0-20210722203016-f11d7ecb5ee5/go.mod h1:Fw0T6WPc1dYxT4mKEZRfG5kJhaTDP9pj1c2EWnYs/m4=
 github.com/alexflint/go-filemutex v0.0.0-20171022225611-72bdc8eae2ae/go.mod h1:CgnQgUtFrFz9mxFNtED3jI5tLDjKlOM+oUF/sTk6ps0=
@@ -317,10 +321,6 @@ github.com/docopt/docopt-go v0.0.0-20180111231733-ee0de3bc6815/go.mod h1:WwZ+bS3
 github.com/dustin/go-humanize v0.0.0-20171111073723-bb3d318650d4/go.mod h1:HtrtbFcZ19U5GC7JDqmcUSB87Iq5E25KnS6fMYU6eOk=
 github.com/dustin/go-humanize v1.0.0 h1:VSnTsYCnlFHaM2/igO1h6X3HA71jcobQuxemgkq4zYo=
 github.com/dustin/go-humanize v1.0.0/go.mod h1:HtrtbFcZ19U5GC7JDqmcUSB87Iq5E25KnS6fMYU6eOk=
-github.com/earthly/buildkit v0.0.1-0.20211122212033-d2b5329d1aff h1:VjG8r9T/svrMWjS3RykdgUVWFkcQW71Pr2byOPe8UNM=
-github.com/earthly/buildkit v0.0.1-0.20211122212033-d2b5329d1aff/go.mod h1:xVzArlNtSY2T0lx781v4QKjeGEI+StJYWdJHKd/vlmw=
-github.com/earthly/fsutil v0.0.0-20211029185157-9f87c4e70cf0 h1:AnKSLuPyEB7ZLDhapjkypj+eJohCBvTKdcCYLxvLcPA=
-github.com/earthly/fsutil v0.0.0-20211029185157-9f87c4e70cf0/go.mod h1:E6osHKls9ix67jofYQ61RQKwlJhqJOZM2hintp+49iI=
 github.com/elazarl/goproxy v0.0.0-20180725130230-947c36da3153/go.mod h1:/Zj4wYkgs4iZTTu3o/KG3Itv/qCCa8VVMlb3i9OVuzc=
 github.com/emicklei/go-restful v0.0.0-20170410110728-ff4f55a20633/go.mod h1:otzb+WCGbkyDHkqmQmT5YD2WR4BBwUdeQoFo8l/7tVs=
 github.com/emicklei/go-restful v2.9.5+incompatible/go.mod h1:otzb+WCGbkyDHkqmQmT5YD2WR4BBwUdeQoFo8l/7tVs=
