@@ -25,7 +25,7 @@ jobs:
                 --build-arg DOCKERHUB_USER_SECRET=+secrets/earthly-technologies/dockerhub-mirror/user \
                 --build-arg DOCKERHUB_TOKEN_SECRET=+secrets/earthly-technologies/dockerhub-mirror/pass \
                 --build-arg DOCKERHUB_MIRROR=registry-1.docker.io.mirror.corp.earthly.dev \
-              +test
+              ./tests+no-cache-local-artifact-test
       - run:
           name: Execute fail test
           command: "! ./build/linux/amd64/earthly --ci +test-fail"

@@ -46,8 +46,8 @@ if [ -z "$BUILDKIT_HOST" ]; then
 
   /usr/bin/entrypoint.sh \
     buildkitd \
-      --config=/etc/buildkitd.toml \
-      >/var/log/buildkitd.log 2>&1 \
+      --config=/etc/buildkitd.toml 2>&1 \
+      | tee /var/log/buildkitd.log \
       &
 
   EARTHLY_BUILDKIT_HOST="tcp://$(hostname):8372" # hostname is not recognized as local for this reason
