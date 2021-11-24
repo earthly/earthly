@@ -18,15 +18,27 @@ set -ex
 #     EARTHLY_REPO        override the default earthly repo name
 #     BREW_REPO           override the default homebrew-earthly repo name
 #     GITHUB_SECRET_PATH  override the default +secrets/earthly-technologies/github/griswoldthecat/token secrets location where the github token is stored
+#     PRERELEASE          override the default false value (must be false or true)
 #
-# for example
-#  RELEASE_TAG=v0.5.10 GITHUB_USER=alexcb DOCKERHUB_USER=alexcb132 EARTHLY_REPO=earthly BREW_REPO=homebrew-earthly-1 ./release.sh
+# examples
+#
+#  performing a test release to a non-earthly location
+#    env -i HOME="$HOME" PATH="$PATH" SSH_AUTH_SOCK="$SSH_AUTH_SOCK" RELEASE_TAG=v0.5.10 GITHUB_USER=alexcb DOCKERHUB_USER=alexcb132 EARTHLY_REPO=earthly BREW_REPO=homebrew-earthly-1 ./release.sh
+#
+#  performing a release candidate
+#    env -i HOME="$HOME" PATH="$PATH" SSH_AUTH_SOCK="$SSH_AUTH_SOCK" RELEASE_TAG=v0.6.0-rc1 PRERELEASE=true ./release.sh
+#
+#  performing a regular release
+#    env -i HOME="$HOME" PATH="$PATH" SSH_AUTH_SOCK="$SSH_AUTH_SOCK" RELEASE_TAG=v0.6.0 ./release.sh
+#
 
 SCRIPT_DIR="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 cd $SCRIPT_DIR
 
+test -n "$HOME" || (echo "ERROR: HOME is not set"; exit 1);
+
 test -n "$RELEASE_TAG" || (echo "ERROR: RELEASE_TAG is not set" && exit 1);
-(echo "$RELEASE_TAG" | grep '^v[0-9]\+.[0-9]\+.[0-9]\+$' > /dev/null) || (echo "ERROR: RELEASE_TAG must be formatted as v1.2.3; instead got \"$RELEASE_TAG\""; exit 1);
+(echo "$RELEASE_TAG" | grep '^v[0-9]\+.[0-9]\+.[0-9]\+\(-rc[0-9]\+\)\?$' > /dev/null) || (echo "ERROR: RELEASE_TAG must be formatted as v1.2.3 (or v1.2.3-RC1); instead got \"$RELEASE_TAG\""; exit 1);
 
 # Set default values
 export GITHUB_USER=${GITHUB_USER:-earthly}
@@ -34,8 +46,25 @@ export DOCKERHUB_USER=${DOCKERHUB_USER:-earthly}
 export EARTHLY_REPO=${EARTHLY_REPO:-earthly}
 export BREW_REPO=${BREW_REPO:-homebrew-earthly}
 export GITHUB_SECRET_PATH=$GITHUB_SECRET_PATH
+export PRERELEASE=${PRERELEASE:-false}
+
+
+if [ "$PRERELEASE" != "false" ] && [ "$PRERELEASE" != "true" ]; then
+    echo "PRERELEASE must be \"true\" or \"false\""
+    exit 1
+fi
+
+if [ "$GITHUB_USER" = "earthly" ] && [ "$EARTHLY_REPO" = "earthly" ]; then
+    if [ "$DOCKERHUB_USER" != "earthly" ]; then
+        echo "expected DOCKERHUB_USER=earthly but got $DOCKERHUB_USER"
+        exit 1
+    fi
+fi
 
 ../earthly upgrade
+
+# fail-fast if release-notes do not exist
+../earthly --build-arg DOCKERHUB_USER --build-arg RELEASE_TAG +release-notes
 
 if [ -n "$GITHUB_SECRET_PATH" ]; then
     GITHUB_SECRET_PATH_BUILD_ARG="--build-arg GITHUB_SECRET_PATH=$GITHUB_SECRET_PATH"
@@ -52,7 +81,13 @@ if [ "$existing_release" != "null" ]; then
 fi
 
 ../earthly --push --build-arg DOCKERHUB_USER --build-arg RELEASE_TAG +release-dockerhub
-../earthly --push --build-arg GITHUB_USER --build-arg EARTHLY_REPO --build-arg BREW_REPO --build-arg DOCKERHUB_USER --build-arg RELEASE_TAG $GITHUB_SECRET_PATH_BUILD_ARG +release-github
+../earthly --push --build-arg GITHUB_USER --build-arg EARTHLY_REPO --build-arg BREW_REPO --build-arg DOCKERHUB_USER --build-arg RELEASE_TAG --build-arg PRERELEASE="$PRERELEASE" $GITHUB_SECRET_PATH_BUILD_ARG +release-github
+
+if [ "$PRERELEASE" != "false" ]; then
+    echo "exiting due to prerelease = true"
+    exit 0
+fi
+
 ../earthly --push --build-arg GITHUB_USER --build-arg EARTHLY_REPO --build-arg BREW_REPO --build-arg DOCKERHUB_USER --build-arg RELEASE_TAG $GITHUB_SECRET_PATH_BUILD_ARG +release-homebrew
 
 # TODO pass along a RELEASE_REPO_TEST_SUFFIX which would cause us to host our yum/apt repos under https://test-pkg.earthly.dev/$RELEASE_REPO_TEST_SUFFIX/...

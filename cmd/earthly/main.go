@@ -49,6 +49,8 @@ import (
 	"golang.org/x/sync/errgroup"
 	"golang.org/x/sync/semaphore"
 	"golang.org/x/term"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	"github.com/earthly/earthly/analytics"
 	"github.com/earthly/earthly/ast"
@@ -71,6 +73,7 @@ import (
 	"github.com/earthly/earthly/util/containerutil"
 	"github.com/earthly/earthly/util/fileutil"
 	"github.com/earthly/earthly/util/llbutil"
+	"github.com/earthly/earthly/util/reflectutil"
 	"github.com/earthly/earthly/util/termutil"
 	"github.com/earthly/earthly/variables"
 )
@@ -244,6 +247,7 @@ func main() {
 	}
 
 	app := newEarthlyApp(ctx, conslogging.Current(colorMode, padding, false))
+	app.unhideFlags(ctx)
 	app.autoComplete(ctx)
 
 	exitCode := app.run(ctx, os.Args)
@@ -613,7 +617,7 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 		},
 		{
 			Name:        "docker",
-			Usage:       "Build a Dockerfile without converting to an Earthfile",
+			Usage:       "Build a Dockerfile without converting to an Earthfile *experimental*",
 			Description: "Builds a dockerfile",
 			Hidden:      true, // Experimental.
 			Action:      app.actionDocker,
@@ -1025,8 +1029,7 @@ func (app *earthlyApp) before(context *cli.Context) error {
 
 	fe, err := containerutil.FrontendForSetting(context.Context, app.cfg.Global.ContainerFrontend)
 	if err != nil {
-		app.console.Warnf("%s frontend could not be initialized, but trying anyway", app.cfg.Global.ContainerFrontend)
-		app.console.VerbosePrintf("%s frontend initialization error: %s", app.cfg.Global.ContainerFrontend, err.Error())
+		app.console.Warnf("%s frontend initialization failed due to %s; but will try anyway", app.cfg.Global.ContainerFrontend, err.Error())
 		fe, _ = containerutil.NewStubFrontend(context.Context)
 	}
 	app.containerFrontend = fe
@@ -1277,6 +1280,43 @@ func (app *earthlyApp) processDeprecatedCommandOptions(context *cli.Context, cfg
 	return nil
 }
 
+func (app *earthlyApp) unhideFlags(ctx context.Context) error {
+	var err error
+	if os.Getenv("EARTHLY_AUTOCOMPLETE_HIDDEN") != "" && os.Getenv("COMP_POINT") == "" { // TODO delete this check after 2022-03-01
+		// only display warning when NOT under complete mode (otherwise we break auto completion)
+		app.console.Warnf("Warning: EARTHLY_AUTOCOMPLETE_HIDDEN has been renamed to EARTHLY_SHOW_HIDDEN\n")
+	}
+	showHidden := false
+	showHiddenStr := os.Getenv("EARTHLY_SHOW_HIDDEN")
+	if showHiddenStr != "" {
+		showHidden, err = strconv.ParseBool(showHiddenStr)
+		if err != nil {
+			return err
+		}
+	}
+	if !showHidden {
+		return nil
+	}
+
+	for _, fl := range app.cliApp.Flags {
+		reflectutil.SetBool(fl, "Hidden", false)
+	}
+
+	unhideFlagsCommands(ctx, app.cliApp.Commands)
+
+	return nil
+}
+
+func unhideFlagsCommands(ctx context.Context, cmds []*cli.Command) {
+	for _, cmd := range cmds {
+		reflectutil.SetBool(cmd, "Hidden", false)
+		for _, flg := range cmd.Flags {
+			reflectutil.SetBool(flg, "Hidden", false)
+		}
+		unhideFlagsCommands(ctx, cmd.Subcommands)
+	}
+}
+
 // to enable autocomplete, enter
 // complete -o nospace -C "/path/to/earthly" earthly
 func (app *earthlyApp) autoComplete(ctx context.Context) {
@@ -1322,21 +1362,12 @@ func (app *earthlyApp) autoCompleteImp(ctx context.Context) (err error) {
 		return err
 	}
 
-	showHidden := strings.HasPrefix(Version, "dev-")
-	showHiddenOverride := os.Getenv("EARTHLY_AUTOCOMPLETE_HIDDEN")
-	if showHiddenOverride != "" {
-		showHidden, err = strconv.ParseBool(showHiddenOverride)
-		if err != nil {
-			return err
-		}
-	}
-
 	gitLookup := buildcontext.NewGitLookup(app.console, app.sshAuthSock)
 	resolver := buildcontext.NewResolver("", nil, gitLookup, app.console, "")
 	var gwClient gwclient.Client // TODO this is a nil pointer which causes a panic if we try to expand a remotely referenced earthfile
 	// it's expensive to create this gwclient, so we need to implement a lazy eval which returns it when required.
 
-	potentials, err := autocomplete.GetPotentials(ctx, resolver, gwClient, compLine, int(compPointInt), app.cliApp, showHidden)
+	potentials, err := autocomplete.GetPotentials(ctx, resolver, gwClient, compLine, int(compPointInt), app.cliApp)
 	if err != nil {
 		return err
 	}
@@ -1551,6 +1582,12 @@ func (app *earthlyApp) run(ctx context.Context, args []string) int {
 			app.console.Warnf("Error: %v\n", err)
 		}
 		if errors.Is(err, context.Canceled) {
+			app.console.Warnf("Context canceled: %v\n", err)
+			return 2
+		}
+		if status.Code(err) == codes.Canceled {
+			app.console.Warnf("Context canceled from buildkitd: %v\n", err)
+			app.printCrashLogs(ctx)
 			return 2
 		}
 		return 1
@@ -2601,6 +2638,20 @@ func (app *earthlyApp) warnIfArgContainsBuildArg(flagArgs []string) {
 	}
 }
 
+func (app *earthlyApp) combineVariables(dotEnvMap map[string]string, flagArgs []string) (*variables.Scope, error) {
+	dotEnvVars := variables.NewScope()
+	for k, v := range dotEnvMap {
+		dotEnvVars.AddInactive(k, v)
+	}
+	buildArgs := append([]string{}, app.buildArgs.Value()...)
+	buildArgs = append(buildArgs, flagArgs...)
+	overridingVars, err := variables.ParseCommandLineArgs(buildArgs)
+	if err != nil {
+		return nil, errors.Wrap(err, "parse build args")
+	}
+	return variables.CombineScopes(overridingVars, dotEnvVars), nil
+}
+
 func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []string) error {
 	app.console.PrintPhaseHeader(builder.PhaseInit, false, "")
 	app.warnIfArgContainsBuildArg(flagArgs)
@@ -2776,17 +2827,11 @@ func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []st
 		}()
 	}
 
-	dotEnvVars := variables.NewScope()
-	for k, v := range dotEnvMap {
-		dotEnvVars.AddInactive(k, v)
-	}
-	buildArgs := append([]string{}, app.buildArgs.Value()...)
-	buildArgs = append(buildArgs, flagArgs...)
-	overridingVars, err := variables.ParseCommandLineArgs(buildArgs)
+	overridingVars, err := app.combineVariables(dotEnvMap, flagArgs)
 	if err != nil {
-		return errors.Wrap(err, "parse build args")
+		return err
 	}
-	overridingVars = variables.CombineScopes(overridingVars, dotEnvVars)
+
 	imageResolveMode := llb.ResolveModePreferLocal
 	if app.pull {
 		imageResolveMode = llb.ResolveModeForcePull

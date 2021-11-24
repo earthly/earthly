@@ -8,7 +8,7 @@ FROM ../..+earthly-integration-test-base \
     --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
     --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR
 
-ENV EARTHLY_AUTOCOMPLETE_HIDDEN=0
+ENV EARTHLY_SHOW_HIDDEN=0
 
 test-root-commands:
     RUN echo "./
@@ -22,7 +22,7 @@ secrets " > expected
     RUN diff expected actual
 
 test-hidden-root-commands:
-    ENV EARTHLY_AUTOCOMPLETE_HIDDEN=1
+    ENV EARTHLY_SHOW_HIDDEN=1
     RUN echo "./
 account 
 bootstrap 

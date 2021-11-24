@@ -6,6 +6,7 @@ import (
 	"io"
 	"runtime"
 
+	"github.com/hashicorp/go-multierror"
 	"github.com/pkg/errors"
 )
 
@@ -42,15 +43,21 @@ func FrontendForSetting(ctx context.Context, feType string) (ContainerFrontend, 
 }
 
 func autodetectFrontend(ctx context.Context) (ContainerFrontend, error) {
-	if fe, err := frontendIfAvaliable(ctx, FrontendDockerShell); err == nil {
+	var errs error
+
+	for _, feType := range []string{
+		FrontendDockerShell,
+		FrontendPodmanShell,
+	} {
+
+		fe, err := frontendIfAvaliable(ctx, feType)
+		if err != nil {
+			errs = multierror.Append(errs, err)
+			continue
+		}
 		return fe, nil
 	}
-
-	if fe, err := frontendIfAvaliable(ctx, FrontendPodmanShell); err == nil {
-		return fe, nil
-	}
-
-	return nil, errors.New("failed to autodetect a supported frontend")
+	return nil, errors.Wrapf(errs, "failed to autodetect a supported frontend")
 }
 
 func frontendIfAvaliable(ctx context.Context, feType string) (ContainerFrontend, error) {

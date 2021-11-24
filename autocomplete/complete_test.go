@@ -72,75 +72,69 @@ func getApp() *cli.App {
 	return app
 }
 
-func getPotentials(cmd string, showHidden bool) ([]string, error) {
+func getPotentials(cmd string) ([]string, error) {
 	logger := conslogging.Current(conslogging.NoColor, 0, false)
 	gitLookup := buildcontext.NewGitLookup(logger, "")
 	resolver := buildcontext.NewResolver("", nil, gitLookup, logger, "")
-	return GetPotentials(context.TODO(), resolver, nil, cmd, len(cmd), getApp(), showHidden)
+	return GetPotentials(context.TODO(), resolver, nil, cmd, len(cmd), getApp())
 }
 
 func TestFlagCompletion(t *testing.T) {
-	matches, err := getPotentials("earthly --fl", false)
+	matches, err := getPotentials("earthly --fl")
 	NoError(t, err, "GetPotentials failed")
 	Equal(t, []string{"--flag ", "--fleet "}, matches)
 }
 
 func TestFlagCompletionWithPreviousFlags(t *testing.T) {
-	matches, err := getPotentials("earthly --fig desertking --fla", false)
+	matches, err := getPotentials("earthly --fig desertking --fla")
 	NoError(t, err, "GetPotentials failed")
 	Equal(t, []string{"--flag "}, matches)
 }
 
 func TestFlagCompletionWithPreviousFlags2(t *testing.T) {
-	matches, err := getPotentials("earthly --fig ", false)
+	matches, err := getPotentials("earthly --fig ")
 	NoError(t, err, "GetPotentials failed")
 	Equal(t, []string{}, matches)
 }
 
 func TestFlagCompletionWithPreviousFlagsContainingEqual(t *testing.T) {
-	matches, err := getPotentials("earthly --fig=desertking --fla", false)
+	matches, err := getPotentials("earthly --fig=desertking --fla")
 	NoError(t, err, "GetPotentials failed")
 	Equal(t, []string{"--flag "}, matches)
 }
 
 func TestCommandCompletion(t *testing.T) {
-	matches, err := getPotentials("earthly pru", false)
+	matches, err := getPotentials("earthly pru")
 	NoError(t, err, "GetPotentials failed")
 	Equal(t, []string{"prune "}, matches)
 }
 
 func TestCommandCompletionHidden(t *testing.T) {
-	matches, err := getPotentials("earthly hid", false)
+	matches, err := getPotentials("earthly hid")
 	NoError(t, err, "GetPotentials failed")
 	Equal(t, []string{}, matches)
 }
 
-func TestCommandCompletionShowHidden(t *testing.T) {
-	matches, err := getPotentials("earthly hid", true)
-	NoError(t, err, "GetPotentials failed")
-	Equal(t, []string{"hide "}, matches)
-}
-
 func TestCommandSubCompletion(t *testing.T) {
-	matches, err := getPotentials("earthly sub -", false)
+	matches, err := getPotentials("earthly sub -")
 	NoError(t, err, "GetPotentials failed")
 	Equal(t, []string{"--subflag "}, matches)
 }
 
 func TestCommandSubCompletion2(t *testing.T) {
-	matches, err := getPotentials("earthly sub --subflag abba --s", false)
+	matches, err := getPotentials("earthly sub --subflag abba --s")
 	NoError(t, err, "GetPotentials failed")
 	Equal(t, []string{"--subsubflag ", "--surf-the-internet "}, matches)
 }
 
 func TestCommandSubSubCompletion(t *testing.T) {
-	matches, err := getPotentials("earthly sub --subflag abba --sub", false)
+	matches, err := getPotentials("earthly sub --subflag abba --sub")
 	NoError(t, err, "GetPotentials failed")
 	Equal(t, []string{"--subsubflag "}, matches)
 }
 
 func TestCommandSubSubCompletion2(t *testing.T) {
-	matches, err := getPotentials("earthly sub --subflag abba ", false)
+	matches, err := getPotentials("earthly sub --subflag abba ")
 	NoError(t, err, "GetPotentials failed")
 	Equal(t, []string{"dancing-queen "}, matches)
 }

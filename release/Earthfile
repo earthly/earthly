@@ -8,10 +8,11 @@ release:
     ARG EARTHLY_GIT_HASH
     ARG RELEASE_TAG
     ARG SKIP_GHA_CHECK
+    ARG PRERELEASE="false"
     RUN test -n "$RELEASE_TAG"
     IF --no-cache test -n "$SKIP_GHA_CHECK" || ensure_gha_passing --sha $EARTHLY_GIT_HASH
-        BUILD --build-arg RELEASE_TAG="$RELEASE_TAG" +release-dockerhub
-        BUILD --build-arg RELEASE_TAG="$RELEASE_TAG" +release-github
+        BUILD +release-dockerhub --RELEASE_TAG="$RELEASE_TAG"
+        BUILD +release-github --RELEASE_TAG="$RELEASE_TAG" --PRERELEASE="$PRERELEASE"
     ELSE
         RUN echo "github status check failed; to force the release without performing this check, set --build-arg SKIP_GHA_CHECK=1"
     END
@@ -71,6 +72,7 @@ release-github:
     ARG GITHUB_USER="earthly"
     ARG EARTHLY_REPO="earthly"
     ARG DOCKERHUB_USER="earthly"
+    ARG PRERELEASE="false"
     ARG EARTHLY_GIT_HASH
     RUN test -n "$RELEASE_TAG" && test -n "$EARTHLY_GIT_HASH"
     COPY +release-notes/notes.txt release-notes.txt
@@ -116,7 +118,7 @@ release-github:
         github-release upload \
         --owner "$GITHUB_USER" \
         --repo "$EARTHLY_REPO" \
-        --prerelease false \
+        --prerelease "$PRERELEASE" \
         --commitish "$EARTHLY_GIT_HASH" \
         --tag "$RELEASE_TAG" \
         --name "$RELEASE_TAG" \
@@ -175,10 +177,15 @@ release-homebrew:
 
     RUN git config --global user.name "$GIT_NAME" && \
         git config --global user.email "$GIT_EMAIL"
-    COPY ./envcredhelper.sh /usr/bin/envcredhelper.sh
-    RUN git config --global credential.helper "/bin/sh /usr/bin/envcredhelper.sh"
-    RUN --secret GIT_PASSWORD="$GITHUB_TOKEN_SECRET_PATH" --no-cache \
-        git clone "https://$GITHUB_USER@github.com/$GITHUB_USER/$BREW_REPO.git" .
+
+    # load in github.com's public key (fetched by running: ssh-keyscan -H github.com)
+    RUN mkdir -p /root/.ssh
+    RUN echo "|1|M66Uwae8fx9M5JFDd+WyVi3dERM=|LKfAmECF1kHoZ6epHR5jtPhJgic= ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEAq2A7hRGmdnm9tUDbO9IDSwBK6TbQa+PXYPCPy6rbTrTtw7PHkccKrpp0yVhp5HdEIcKr6pLlVDBfOLX9QUsyCOV0wzfjIJNlGEYsdlLJizHhbn2mUjvSAHQqZETYP81eFzLQNnPHt4EVVUh7VfDESU84KezmD5QlWpXLmvU31/yMf+Se8xhHTvKSCZIFImWwoG6mbUoWf9nzpIoaSjB+weqqUUmpaaasXVal72J+UX2B+2RPW3RcT0eOzQgqlJL3RKrTJvdsjE3JEAvGq3lGHSZXy28G3skua2SmVi/w4yCE6gbODqnTWlg7+wC604ydGXA8VJiS5ap43JXiUFFAaQ==" > /root/.ssh/known_hosts
+
+    RUN --mount type=secret,id=+secrets/earthly-technologies/github/griswoldthecat/id_rsa,target=/root/id_rsa --no-cache \
+        eval $(ssh-agent) && \
+        cat /root/id_rsa | ssh-add - && \
+        git clone "git@github.com:$GITHUB_USER/$BREW_REPO.git" .
     # Make the change in a new branch.
     ARG RELEASE_BRANCH="release-$RELEASE_TAG"
     RUN git switch -c "$RELEASE_BRANCH"
@@ -202,9 +209,12 @@ release-homebrew:
     RUN version=${RELEASE_TAG#v} ;\
         echo version=$version ;\
         git commit -a --allow-empty -m "earthly $version"
-    RUN --secret GIT_PASSWORD="$GITHUB_TOKEN_SECRET_PATH" \
+
+    RUN --mount type=secret,id=+secrets/earthly-technologies/github/griswoldthecat/id_rsa,target=/root/id_rsa \
         --secret SLACK_WEBHOOK_URL=+secrets/earthly-technologies/slack/release-webhook \
         --push \
+        eval $(ssh-agent) && \
+        cat /root/id_rsa | ssh-add - && \
         git push --force --set-upstream origin "$RELEASE_BRANCH" && \
         curl -s -X POST -H 'Content-type: application/json' --data '{"text":"Successfully pushed release branch: https://github.com/earthly/homebrew-earthly/tree/'$RELEASE_BRANCH'"}' "$SLACK_WEBHOOK_URL"
 

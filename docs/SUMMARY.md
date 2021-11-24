@@ -58,3 +58,4 @@
   * [GitHub Actions](ci-integration/guides/gh-actions-integration.md)
   * [AWS CodeBuild](ci-integration/guides/codebuild-integration.md)
   * [Kubernetes](ci-integration/guides/kubernetes.md)
+  * [Google Cloud Build](ci-integration/guides/google-cloud-build.md)

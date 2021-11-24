@@ -71,7 +71,6 @@ def parse_changelog(changelog_data):
     is_title_body = False
     dash_found = False
     body = []
-    is_intro = True
     ignore = False
     for line_num, line in enumerate(changelog_data.splitlines()):
         num_headers, title = parse_line(line, line_num)
@@ -85,8 +84,12 @@ def parse_changelog(changelog_data):
             continue
 
         if num_headers == 0:
-            if line == '<!--changelog-parser-ignore-->':
+            if line == '<!--changelog-parser-ignore-start-->':
                 ignore = True
+                continue
+            if line == '<!--changelog-parser-ignore-end-->':
+                ignore = False
+                continue
             if ignore:
                 pass
             elif is_title_body:
@@ -107,6 +110,7 @@ def parse_changelog(changelog_data):
         elif num_headers == 1:
             raise UnexpectedHeaderError(line, line_num)
         elif num_headers == 2:
+            is_intro = True
             ignore = False
             if is_title_body:
                 if title != 'Unreleased':
@@ -156,7 +160,7 @@ if __name__ == '__main__':
     try:
         changelog = parse_changelog(changelog_str)
     except MalformedVersionHeaderError as e:
-        print(f'failed to parse {path_str}:{e.line+1}: unable to parse "{e}"; should be of the form "v1.2.3 - YYYY-MM-DD"', file=sys.stderr)
+        print(f'failed to parse {path_str}:{e.line+1}: unable to parse "{e}"; should be of the form "v1.2.3 - YYYY-MM-DD" (or "v1.2.3-rc4 - YYYY-MM-DD")', file=sys.stderr)
         sys.exit(1)
     except MalformedHeaderError as e:
         print(f'failed to parse {path_str}:{e.line+1}: malformed header found ({e}); should be "#[#[...]] <title>"', file=sys.stderr)
