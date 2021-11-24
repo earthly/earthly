@@ -4,6 +4,132 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+## v0.6.0 - 2021-11-24
+
+This version promotes a number of features that have been previously in Experimental and Beta status. To make use of the features in this version you need to declare `VERSION 0.6` at the top of your Earthfile. If a version is not declared, then Earthly's interpreter will assume `VERSION 0.5`.
+
+If you are not ready to update your scripts to take advantage of `VERSION 0.6`, then you may upgrade Earthly anyway and your scripts should continue to work as before, provided that they either declare `VERSION 0.5` or they don't declare a version at all.
+
+Declaring `VERSION 0.6` is equivalent to
+
+```
+VERSION \
+  --use-copy-include-patterns \
+  --referenced-save-only \
+  --for-in \
+  --require-force-for-unsafe-saves \
+  --no-implicit-ignore \
+  0.5
+```
+
+It is recommended to use `VERSION 0.6` instead as individual feature flags don't guarantee proper forwards-backwards compatibility. Note, however, that Earthly `0.5.*` is not able to run a `VERSION 0.6` Earthfile and will return an error.
+
+For more information on the individual Earthfile feature flags see the [Earthfile version-specific features page](https://docs.earthly.dev/docs/earthfile/features).
+
+### Changed
+
+<!--changelog-parser-ignore-start-->
+- What Earthly outputs locally has changed in a way that is not backwards compatible. For an artifact or an image to be produced locally it needs to be part of a `BUILD` chain (or be part of the target being directly built). Artifacts and images introduced through `FROM` or `COPY` are no longer output locally.
+  
+  To update existing scripts, you may issue a duplicate `BUILD` in addition to a `FROM` (or a `COPY`), should you wish for the referenced target to perform output.
+
+  For example, the following script
+
+  ```
+  FROM +some-target
+  COPY +another-target/my-artifact ./
+  ```
+
+  could become
+
+  ```
+  FROM +some-target
+  BUILD +some-target
+  COPY +another-target/my-artifact ./
+  BUILD +another-target
+  ```
+
+  in order to produce the same outputs.
+  
+  For more details see [#896](https://github.com/earthly/earthly/issues/896).
+- The syntax for passing build args has been changed.
+  
+  Earthly v0.5 (old way)
+
+  ```
+  FROM --build-arg NAME=john +some-target
+  COPY --build-arg NAME=john +something/my-artifact ./
+  WITH DOCKER --build-arg NAME=john --load +another-target
+    ...
+  END
+  ```
+
+  Earthly v0.6 (new way)
+
+  ```
+  FROM +some-target --NAME=john
+  COPY (+something/my-artifact --NAME=john) ./
+  WITH DOCKER --load (+another-target --NAME=john)
+    ...
+  END
+  ```
+
+  Passing build args on the command-line has also changed similarly:
+
+  Earthly v0.5 (old way)
+
+  ```
+  earthly --build-arg NAME=john +some-target
+  ```
+
+  Earthly v0.6 (new way)
+
+  ```
+  earthly +some-target --NAME=john
+  ```
+
+  This change is part of the [UDC proposal #581](https://github.com/earthly/earthly/issues/581). The old way of passing args is deprecated and will be removed in a future version (however, it still works in 0.6).
+<!--changelog-parser-ignore-end-->
+- If a `SAVE ARTIFACT` is unsafe (writing to a directory outside of the Earthfile directory), it'll require the `--force` flag.
+- `.earthlyignore` no longer includes any implicit entries like `Earthfile` or `.earthlyignore`. These will need to be specified explicitly. [#1294](https://github.com/earthly/earthly/issues/1294)
+- Buildkit was updated to `d429b0b32606b5ea52e6be4a99b69d67b7c722b2`. This includes a number of bug fixes, including eliminating crashes due to `panic failed to get edge`.
+
+### Added
+
+- Earthly now performs local image outputs to the local Docker daemon through a built-in registry. This speeds up the process drastically as common layers no longer need to be transferred over [#500](https://github.com/earthly/earthly/issues/500).
+- Earthly now enables additional parallelism to speed up certain operations that were previously serialized [#888](https://github.com/earthly/earthly/issues/888). Note that this setting was previously controlled by `--conversion-parallelism` flag or the `EARTHLY_CONVERSION_PARALLELISM` environment variable while in experimental stage. It has now been moved as part of the Earthly config and has been promoted to GA.
+- `COPY` transfers are sped up as only the necessary files are sent over to BuildKit [#1062](https://github.com/earthly/earthly/issues/1062).
+- [`WITH DOCKER`](https://docs.earthly.dev/docs/earthfile#with-docker) has been promoted to GA [#576](https://github.com/earthly/earthly/issues/576).
+- [`FROM DOCKERFILE`](https://docs.earthly.dev/docs/earthfile#from-dockerfile) has been promoted to GA.
+- [`LOCALLY`](https://docs.earthly.dev/docs/earthfile#locally) has been promoted to GA [#580](https://github.com/earthly/earthly/issues/580).
+- [`RUN --interactive` and `RUN --interactive-keep`](https://docs.earthly.dev/docs/earthfile#run) have been promoted to GA [#693](https://github.com/earthly/earthly/issues/693).
+- [`IF`](https://docs.earthly.dev/docs/earthfile#if) and [`FOR`](https://docs.earthly.dev/docs/earthfile#for) have been promoted to GA [#779](https://github.com/earthly/earthly/issues/779).
+- Support for Apple Silicon M1 has been promoted to GA [#722](https://github.com/earthly/earthly/issues/722).
+- [Multi-platform builds](https://docs.earthly.dev/docs/guides/multi-platform) have been promoted to GA [#536](https://github.com/earthly/earthly/issues/536).
+- Mounting secrets as files have been promoted as GA [#579](https://github.com/earthly/earthly/issues/579).
+- [`VERSION`](https://docs.earthly.dev/docs/earthfile#version) has been promoted to GA [#991](https://github.com/earthly/earthly/issues/991)
+- [User-defined commands (UDCs)](https://docs.earthly.dev/docs/guides/udc) have been promoted to GA [#581](https://github.com/earthly/earthly/issues/581).
+- Allow running `SAVE ARTIFACT` after `RUN --push` is now GA [#586](https://github.com/earthly/earthly/issues/586).
+- `SAVE ARTIFACT --if-exists` and `COPY --if-exists` have been promoted to GA [#588](https://github.com/earthly/earthly/issues/588).
+- [Shared cache](https://docs.earthly.dev/docs/guides/shared-cache) and `--ci` mode are now GA [#11](https://github.com/earthly/earthly/issues/11).
+- New builtin args `USERPLATFORM`, `USEROS`, `USERARCH`, and `USERVARIANT` which represent the platform, OS, architecture, and processor variant of the system Earthly is being called from [#1251](https://github.com/earthly/earthly/pull/1251). Thanks to @akrantz01 for the contribution!
+- Config option for buildkit's `max_parallelism` configuration. Use this to increase parallelism for faster builds or decrease parallelism when resources are constraint. The default is 20. [#1308](https://github.com/earthly/earthly/issues/1308)
+- Support for required ARGs (`ARG --required foo`) [#904](https://github.com/earthly/earthly/issues/904). Thanks to @camerondurham for the contribution!
+- Extended auto-completion to be build-arg aware. Typing `earthly +my-target --<tab><tab>` now prints possible build-args specific to `+my-target`. [#1330](https://github.com/earthly/earthly/pull/1330).
+- The console output now has an improved structure [#1226](https://github.com/earthly/earthly/pull/1226).
+
+### Fixed
+
+- Eliminated some spurious warnings (`ReadDataPacket failed`, `Failed to connect to terminal`, `failed to read from stdin` and others) [#1241](https://github.com/earthly/earthly/pull/1241).
+- Minor fixes related to the experimental Podman support [#1239](https://github.com/earthly/earthly/pull/1239).
+- Improved some error messages related to frontend detection [#1250](https://github.com/earthly/earthly/pull/1250).
+- Fixed Podman's ability to load OCI images [#1287](https://github.com/earthly/earthly/pull/1287).
+- Fixed homebrew installation on macOS 12. [#1370](https://github.com/earthly/earthly/pull/1370), [homebrew/earthly#13](https://github.com/earthly/homebrew-earthly/pull/13)
+- `failed due to failed to autodetect a supported frontend` errors will now include underlying reason for failure
+- Cache export was not honoring `EARTHLY_MAX_REMOTE_CACHE` setting.
+- Buildkit logs were not being sent to `earthly-buildkitd` container's output.
+- kind required permissions were not available in earthly-buildkitd.
+
 ## v0.6.0-rc3 - 2021-11-15
 
 ### Fixed
