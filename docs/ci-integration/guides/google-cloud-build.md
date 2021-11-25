@@ -54,7 +54,7 @@ Click "Add Key", and then "Create New Key". Choose "JSON" as the key format, and
 
 ![The list view of avaliable keys for a Google Cloud service account](img/google-cloud-build-5.png)
 
-Stash the key in your secret management utility of choice. You'll need to make this key avaliable to your build at runtime. For the rest of our example, we will be using Earthly's [Cloud Secrets](../guides/cloud-secrets.md).
+Stash the key in your secret management utility of choice. You'll need to make this key avaliable to your build at runtime. For the rest of our example, we will be using Earthly's [Cloud Secrets](../../guides/cloud-secrets.md).
 
 Often, external secrets management requires some kind of bootstrapping secret (or additional integration) to allow you to access the rest of the secrets in your store. Earthly is no different. We will keep our `EARTHLY_TOKEN` in [Googles Secret Manager](https://cloud.google.com/build/docs/securing-builds/use-secrets) for ease of use.
 
@@ -88,7 +88,7 @@ Fill out the "Name", "Description", and "Event" sections for this trigger, as th
 
 ![Creating a trigger for Google Cloud Build, specifying a name, description, and trigger event](img/google-cloud-build-7.png)
 
-Configure your source repository. If you do not see your desired repository in the drop down list, follow [Google's instructions to add it]((https://cloud.google.com/build/docs/automating-builds/create-manage-triggers#connect_repo)).
+Configure your source repository. If you do not see your desired repository in the drop down list, follow [Google's instructions to add it](https://cloud.google.com/build/docs/automating-builds/create-manage-triggers#connect_repo).
 
 ![Creating a trigger for Google Cloud Build, specifying a repository and branch name](img/google-cloud-build-8.png)
 

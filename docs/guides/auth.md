@@ -95,9 +95,9 @@ before issuing earthly commands, if you have not already done so in the past. If
 Docker can use various credential helpers to automatically generate and use credentials on your behalf. These are usually created by cloud providers to allow Docker to authenticate using the cloud providers own credentials.
 
 You can see examples of configuring Docker to use these, and working with Earthly here:
-* [Pushing and Pulling Images with AWS ECR](./pushing-images-to-ECR.md)
-* [Pushing and Pulling Images with GCP Artifact Registry](./pushing-images-to-GCR.md)
-* [Pushing and Pulling Images with Azure ACR](./pushing-images-to-ACR.md)
+* [Pushing and Pulling Images with AWS ECR](./registries/aws-ecr.md)
+* [Pushing and Pulling Images with GCP Artifact Registry](./registries/gcp-artifact-registry.md)
+* [Pushing and Pulling Images with Azure ACR](./registries/azure-acr.md)
 
 ## See also
 

@@ -566,7 +566,7 @@ SAVE ARTIFACT . AS LOCAL out-dot/
 SAVE ARTIFACT ./* AS LOCAL out-glob/
 ```
 
-For detailed examples demonstrating how other scenarios may function, please see our [test suite](https://github.com/earthly/earthly/blob/main/examples/tests/file-copying.earth).
+For detailed examples demonstrating how other scenarios may function, please see our [test suite](https://github.com/earthly/earthly/blob/main/tests/file-copying.earth).
 
 ## SAVE IMAGE
 

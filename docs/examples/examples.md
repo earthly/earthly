@@ -81,7 +81,7 @@ As a distinct example of a complete build, you can take a look at Earthly's own 
 * [Earthfile](https://github.com/earthly/earthly/blob/main/Earthfile) - the root build file
 * [buildkitd/Earthfile](https://github.com/earthly/earthly/blob/main/buildkitd/Earthfile) - the build of the Buildkit daemon
 * [AST/parser/Earthfile](https://github.com/earthly/earthly/blob/main/ast/parser/Earthfile) - the build of the parser, which generates .go files
-* [examples/tests/Earthfile](https://github.com/earthly/earthly/blob/main/examples/tests/Earthfile) - system and smoke tests
+* [tests/Earthfile](https://github.com/earthly/earthly/blob/main/tests/Earthfile) - system and smoke tests
 * [contrib/earthfile-syntax-highlighting/Earthfile](https://github.com/earthly/earthly/blob/main/contrib/earthfile-syntax-highlighting/Earthfile) - the build of the VS Code extension
 
 To invoke Earthly's build, check out the code and then run the following in the root of the repository
