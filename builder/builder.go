@@ -685,7 +685,7 @@ func (b *Builder) saveArtifactLocally(ctx context.Context, console *conslogging.
 		}
 		srcIsDir := fiSrc.IsDir()
 		to := destPath
-		destIsDir := strings.HasSuffix(to, "/")
+		destIsDir := strings.HasSuffix(to, "/") || to == "."
 		if artifact.Target.IsLocalExternal() && !filepath.IsAbs(to) {
 			// Place within external dir.
 			to = path.Join(artifact.Target.LocalPath, to)
