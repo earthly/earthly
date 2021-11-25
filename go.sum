@@ -316,8 +316,8 @@ github.com/docopt/docopt-go v0.0.0-20180111231733-ee0de3bc6815/go.mod h1:WwZ+bS3
 github.com/dustin/go-humanize v0.0.0-20171111073723-bb3d318650d4/go.mod h1:HtrtbFcZ19U5GC7JDqmcUSB87Iq5E25KnS6fMYU6eOk=
 github.com/dustin/go-humanize v1.0.0 h1:VSnTsYCnlFHaM2/igO1h6X3HA71jcobQuxemgkq4zYo=
 github.com/dustin/go-humanize v1.0.0/go.mod h1:HtrtbFcZ19U5GC7JDqmcUSB87Iq5E25KnS6fMYU6eOk=
-github.com/earthly/buildkit v0.0.0-20211120012956-5ee328821a2b h1:c2CftoOyCSaoWwUI1ZgQU9S2c+3Hh2CBXLHxo9wrMDk=
-github.com/earthly/buildkit v0.0.0-20211120012956-5ee328821a2b/go.mod h1:0SdY5YeYxYtvXOJ0Eppr9uKnc4yDXe+/5glup9Cthus=
+github.com/earthly/buildkit v0.0.0-20211125184125-c86fdb0bbe33 h1:MKXOpNWGXpkjxl9eZSTCTD33mekrnEo3yxCj4hHJa1w=
+github.com/earthly/buildkit v0.0.0-20211125184125-c86fdb0bbe33/go.mod h1:0SdY5YeYxYtvXOJ0Eppr9uKnc4yDXe+/5glup9Cthus=
 github.com/earthly/fsutil v0.0.0-20211029185157-9f87c4e70cf0 h1:AnKSLuPyEB7ZLDhapjkypj+eJohCBvTKdcCYLxvLcPA=
 github.com/earthly/fsutil v0.0.0-20211029185157-9f87c4e70cf0/go.mod h1:E6osHKls9ix67jofYQ61RQKwlJhqJOZM2hintp+49iI=
 github.com/elazarl/goproxy v0.0.0-20180725130230-947c36da3153/go.mod h1:/Zj4wYkgs4iZTTu3o/KG3Itv/qCCa8VVMlb3i9OVuzc=
