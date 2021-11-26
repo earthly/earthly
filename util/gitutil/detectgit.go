@@ -284,13 +284,11 @@ func gitRelDir(basePath string, path string) (string, bool, error) {
 	if err != nil {
 		return "", false, errors.Wrapf(err, "stat for %s", basePath)
 	}
-	basePartsInPath, err := filepath.Abs(filepath.Join(pathParts[len(basePathParts)-1]))
+	// `pathParts` here has lose heading filepath.Separator because when built by strings.Split beforehand.
+	// so putting heading separator is required to make it absolute again.
+	b, err := os.Stat(string(filepath.Separator) + filepath.Join(pathParts[0:len(basePathParts)-1]...))
 	if err != nil {
-		return "", false, errors.Wrapf(err, "get abs path for %v", pathParts)
-	}
-	b, err := os.Stat(basePartsInPath)
-	if err != nil {
-		return "", false, errors.Wrapf(err, "stat for %s", basePartsInPath)
+		return "", false, errors.Wrapf(err, "stat for %v", pathParts)
 	}
 	// Here checks if `path` is included in `basePath` in filesystem agnostic way.
 	// Case-sensitivity difference (like HFS+ in OSX) is also covered by os.SameFile.
