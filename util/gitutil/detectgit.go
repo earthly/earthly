@@ -277,16 +277,16 @@ func gitRelDir(basePath string, path string) (string, bool, error) {
 
 	a, err := os.Stat(filepath.Join(basePathParts...))
 	if err != nil {
-		panic(err)
+		return "", false, errors.Wrapf(err, "path for %s", basePath)
 	}
 	b, err := os.Stat(filepath.Join(pathParts[len(basePathParts)]))
 	if err != nil {
-		panic(err)
+		return "", false, errors.Wrapf(err, "path for %s", absPath2)
 	}
 	// Here checks if `path` is included in `basePath` in filesystem agnostic way.
 	// Case-sensitivity difference (like HFS+ in OSX) is also covered by os.SameFile.
 	if !os.SameFile(a, b) {
-		panic(err)
+		return "", false, errors.New("invalid directories")
 	}
 
 	relPath := filepath.Join(pathParts[len(basePathParts):]...)
