@@ -5,6 +5,7 @@ import (
 	"os/exec"
 	"path"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	"github.com/earthly/earthly/domain"
@@ -266,6 +267,13 @@ func gitRelDir(basePath string, path string) (string, bool, error) {
 	}
 	if !filepath.IsAbs(basePath) {
 		return "", false, errors.Errorf("git base path %s is not absolute", basePath)
+	}
+
+	if runtime.GOOS == "darwin" {
+		// OSX uses HFS+ which is case-insensitive
+		// So here lowers the characters in two paths to allow compare them in the same way.
+		basePath = strings.ToLower(basePath)
+		absPath2 = strings.ToLower(absPath2)
 	}
 	basePathSlash := filepath.ToSlash(basePath)
 	pathSlash := filepath.ToSlash(absPath2)
