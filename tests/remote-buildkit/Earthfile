@@ -1,0 +1,3 @@
+target:
+    FROM alpine:3.13
+    RUN echo "cnVubmluZyB1bmRlciByZW1vdGUtYnVpbGRraXQgdGVzdAo=" | base64 -d
