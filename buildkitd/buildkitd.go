@@ -550,7 +550,7 @@ func waitForConnection(ctx context.Context, containerName, address string, opTim
 			err := checkConnection(ctx, address, opts...)
 			if err != nil {
 				// We give up.
-				return errors.Wrapf(ErrBuildkitStartFailure, "timeout %s: buildkitd did not make connection available after start", opTimeout)
+				return errors.Wrapf(ErrBuildkitStartFailure, "timeout %s: buildkitd did not make connection available after start with error: %s", opTimeout, err.Error())
 			}
 			return nil
 		}
