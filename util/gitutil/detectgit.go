@@ -284,7 +284,7 @@ func gitRelDir(basePath string, path string) (string, bool, error) {
 	if err != nil {
 		return "", false, errors.Wrapf(err, "stat for %s", basePath)
 	}
-	basePartsInPath, err := filepath.Abs(filepath.Join(pathParts[0 : len(basePathParts)-1]...))
+	basePartsInPath, err := filepath.Abs(filepath.Join(pathParts[len(basePathParts)-1]))
 	if err != nil {
 		return "", false, errors.Wrapf(err, "get abs path for %v", pathParts)
 	}
