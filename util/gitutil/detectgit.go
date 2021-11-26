@@ -284,7 +284,7 @@ func gitRelDir(basePath string, path string) (string, bool, error) {
 	if err != nil {
 		return "", false, errors.Wrapf(err, "stat for %s", basePath)
 	}
-	// `pathParts` here has lose heading filepath.Separator because when built by strings.Split beforehand.
+	// `pathParts` here has lose the root filepath.Separator since built by strings.Split beforehand.
 	// so putting heading separator is required to make it absolute again.
 	b, err := os.Stat(string(filepath.Separator) + filepath.Join(pathParts[0:len(basePathParts)-1]...))
 	if err != nil {
