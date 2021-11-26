@@ -300,7 +300,7 @@ func gitRelDir(basePath string, path string) (string, bool, error) {
 	if relPath == "" {
 		return ".", true, nil
 	}
-	return filepath.FromSlash(relPath), true, nil
+	return relPath, true, nil
 }
 
 // ReferenceWithGitMeta applies git metadata to the target naming.
