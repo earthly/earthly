@@ -2,6 +2,7 @@ package gitutil
 
 import (
 	"context"
+	"os"
 	"os/exec"
 	"path"
 	"path/filepath"
@@ -256,6 +257,9 @@ func detectGitTimestamp(ctx context.Context, dir string) (string, error) {
 }
 
 func gitRelDir(basePath string, path string) (string, bool, error) {
+	if !filepath.IsAbs(basePath) {
+		return "", false, errors.Errorf("git base path %s is not absolute", basePath)
+	}
 	absPath, err := filepath.Abs(path)
 	if err != nil {
 		return "", false, errors.Wrapf(err, "get abs path for %s", path)
@@ -264,22 +268,28 @@ func gitRelDir(basePath string, path string) (string, bool, error) {
 	if err != nil {
 		return "", false, errors.Wrapf(err, "eval symlinks for %s", absPath)
 	}
-	if !filepath.IsAbs(basePath) {
-		return "", false, errors.Errorf("git base path %s is not absolute", basePath)
-	}
-	basePathSlash := filepath.ToSlash(basePath)
-	pathSlash := filepath.ToSlash(absPath2)
-	basePathParts := strings.Split(basePathSlash, "/")
-	pathParts := strings.Split(pathSlash, "/")
+
+	basePathParts := strings.Split(basePath, string(filepath.Separator))
+	pathParts := strings.Split(absPath2, string(filepath.Separator))
 	if len(pathParts) < len(basePathParts) {
 		return "", false, nil
 	}
-	for index := range basePathParts {
-		if basePathParts[index] != pathParts[index] {
-			return "", false, nil
-		}
+
+	a, err := os.Stat(filepath.Join(basePathParts...))
+	if err != nil {
+		panic(err)
 	}
-	relPath := strings.Join(pathParts[len(basePathParts):], "/")
+	b, err := os.Stat(filepath.Join(pathParts[len(basePathParts)]))
+	if err != nil {
+		panic(err)
+	}
+	// Here checks if `path` is included in `basePath` in filesystem agnostic way.
+	// Case-sensitivity difference (like HFS+ in OSX) is also covered by os.SameFile.
+	if !os.SameFile(a, b) {
+		panic(err)
+	}
+
+	relPath := filepath.Join(pathParts[len(basePathParts):]...)
 	if relPath == "" {
 		return ".", true, nil
 	}
