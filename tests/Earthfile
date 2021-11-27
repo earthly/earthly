@@ -55,6 +55,7 @@ ga:
     BUILD +excludes-test
     BUILD +secrets-test
     BUILD +build-arg-test
+    BUILD +build-arg-dynamic-with-empty-base
     BUILD +lc-test
     BUILD +from-expose-test
     BUILD +scratch-test
@@ -246,6 +247,9 @@ secrets-test:
 
 build-arg-test:
     DO +RUN_EARTHLY --earthfile=build-arg.earth
+
+build-arg-dynamic-with-empty-base:
+    DO +RUN_EARTHLY --earthfile=build-arg-dynamic-with-empty-base.earth --target=+test
 
 #this test only works under linux/amd64
 user-arg-test:

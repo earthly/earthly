@@ -122,15 +122,6 @@ func (i *Interpreter) handleBlock(ctx context.Context, b spec.Block) error {
 	return nil
 }
 
-func containsDynamicBuildArgs(args []string) bool {
-	for _, arg := range args {
-		if strings.Contains(arg, "$(") {
-			return true
-		}
-	}
-	return false
-}
-
 func (i *Interpreter) handleBlockParallel(ctx context.Context, b spec.Block, startIndex int) error {
 	if i.local {
 		// Don't do any preemptive execution for LOCALLY targets.
@@ -148,10 +139,6 @@ func (i *Interpreter) handleBlockParallel(ctx context.Context, b spec.Block, sta
 				// commands following these cannot be executed preemptively.
 				return nil
 			case "BUILD":
-				if containsDynamicBuildArgs(stmt.Command.Args) {
-					// Cannot do build in parallel since one or more build-args must first be executed
-					return nil
-				}
 				err := i.handleBuild(ctx, *stmt.Command, true)
 				if err != nil {
 					if errors.Is(err, errCannotAsync) {
@@ -871,7 +858,7 @@ func (i *Interpreter) handleBuild(ctx context.Context, cmd spec.Command, async b
 		}
 		platformsSlice = append(platformsSlice, platform)
 	}
-	if async && !isSafeAsyncBuildArgs(opts.BuildArgs) {
+	if async && !(isSafeAsyncBuildArgsDeprecatedStyle(opts.BuildArgs) && isSafeAsyncBuildArgs(args[1:])) {
 		return errCannotAsync
 	}
 	expandedBuildArgs := i.expandArgsSlice(opts.BuildArgs, true)
@@ -1574,10 +1561,25 @@ func parseParans(str string) (string, []string, error) {
 	return parts[0], parts[1:], nil
 }
 
-func isSafeAsyncBuildArgs(args []string) bool {
+// isSafeAsyncBuildArgsDeprecatedStyle is used for "BUILD --build-arg key=value +target" style buildargs
+func isSafeAsyncBuildArgsDeprecatedStyle(args []string) bool {
 	for _, arg := range args {
 		_, v, _ := variables.ParseKeyValue(arg)
-		if strings.HasPrefix(v, "$(") {
+		if strings.HasPrefix(v, "$(") || strings.HasPrefix(v, "\"$(") {
+			return false
+		}
+	}
+	return true
+}
+
+// isSafeAsyncBuildArgs is used for "BUILD +target --key=value" style buildargs
+func isSafeAsyncBuildArgs(args []string) bool {
+	for _, arg := range args {
+		if !strings.HasPrefix(arg, "--") {
+			return false // malformed build arg
+		}
+		_, v, _ := variables.ParseKeyValue(arg[2:])
+		if strings.HasPrefix(v, "$(") || strings.HasPrefix(v, "\"$(") {
 			return false
 		}
 	}
