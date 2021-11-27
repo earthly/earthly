@@ -122,6 +122,15 @@ func (i *Interpreter) handleBlock(ctx context.Context, b spec.Block) error {
 	return nil
 }
 
+func containsDynamicBuildArgs(args []string) bool {
+	for _, arg := range args {
+		if strings.Contains(arg, "$(") {
+			return true
+		}
+	}
+	return false
+}
+
 func (i *Interpreter) handleBlockParallel(ctx context.Context, b spec.Block, startIndex int) error {
 	if i.local {
 		// Don't do any preemptive execution for LOCALLY targets.
@@ -139,6 +148,10 @@ func (i *Interpreter) handleBlockParallel(ctx context.Context, b spec.Block, sta
 				// commands following these cannot be executed preemptively.
 				return nil
 			case "BUILD":
+				if containsDynamicBuildArgs(stmt.Command.Args) {
+					// Cannot do build in parallel since one or more build-args must first be executed
+					return nil
+				}
 				err := i.handleBuild(ctx, *stmt.Command, true)
 				if err != nil {
 					if errors.Is(err, errCannotAsync) {
