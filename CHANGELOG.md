@@ -4,6 +4,14 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+## v0.6.1 - 2021-11-29
+
+### Fixed
+
+- `BUILD` arguments containing a subshell (`$(...)`) were executed twice, and when `+base` target was empty would result errors such as `the first command has to be FROM, FROM DOCKERFILE, LOCALLY, ARG, BUILD or IMPORT` [#1448](https://github.com/earthly/earthly/issues/1448)
+- TLS error (`transport: authentication handshake failed: remote error: tls: no application protocol`) when enabling buildkit mTLS  [#1439](https://github.com/earthly/earthly/issues/1439)
+- Unable to save artifacts to local directory (`.`) [#1422](https://github.com/earthly/earthly/issues/1422)
+
 ## v0.6.0 - 2021-11-24
 
 This version promotes a number of features that have been previously in Experimental and Beta status. To make use of the features in this version you need to declare `VERSION 0.6` at the top of your Earthfile. If a version is not declared, then Earthly's interpreter will assume `VERSION 0.5`.
