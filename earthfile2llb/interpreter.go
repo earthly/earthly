@@ -858,7 +858,7 @@ func (i *Interpreter) handleBuild(ctx context.Context, cmd spec.Command, async b
 		}
 		platformsSlice = append(platformsSlice, platform)
 	}
-	if async && !isSafeAsyncBuildArgs(opts.BuildArgs) {
+	if async && !(isSafeAsyncBuildArgsDeprecatedStyle(opts.BuildArgs) && isSafeAsyncBuildArgs(args[1:])) {
 		return errCannotAsync
 	}
 	expandedBuildArgs := i.expandArgsSlice(opts.BuildArgs, true)
@@ -1561,10 +1561,25 @@ func parseParans(str string) (string, []string, error) {
 	return parts[0], parts[1:], nil
 }
 
-func isSafeAsyncBuildArgs(args []string) bool {
+// isSafeAsyncBuildArgsDeprecatedStyle is used for "BUILD --build-arg key=value +target" style buildargs
+func isSafeAsyncBuildArgsDeprecatedStyle(args []string) bool {
 	for _, arg := range args {
 		_, v, _ := variables.ParseKeyValue(arg)
-		if strings.HasPrefix(v, "$(") {
+		if strings.HasPrefix(v, "$(") || strings.HasPrefix(v, "\"$(") {
+			return false
+		}
+	}
+	return true
+}
+
+// isSafeAsyncBuildArgs is used for "BUILD +target --key=value" style buildargs
+func isSafeAsyncBuildArgs(args []string) bool {
+	for _, arg := range args {
+		if !strings.HasPrefix(arg, "--") {
+			return false // malformed build arg
+		}
+		_, v, _ := variables.ParseKeyValue(arg[2:])
+		if strings.HasPrefix(v, "$(") || strings.HasPrefix(v, "\"$(") {
 			return false
 		}
 	}
