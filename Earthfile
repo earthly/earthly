@@ -79,6 +79,7 @@ lint-scripts-misc:
         ./buildkitd/dockerd-wrapper.sh ./buildkitd/docker-auto-install.sh \
         ./release/envcredhelper.sh ./.buildkite/*.sh \
         ./scripts/tests/*.sh \
+        ./scripts/*.sh \
         ./shell_scripts/
     RUN shellcheck shell_scripts/*
 

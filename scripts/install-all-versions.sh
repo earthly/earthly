@@ -6,6 +6,11 @@
 # against older versions).
 set -e
 
+tools=("jq" "curl")
+for tool in "${tools[@]}"; do
+    which "$tool" >/dev/null || (echo "$tool must be installed to use this script" && exit 1)
+done
+
 os="linux"
 if [ "$(uname)" == "Darwin" ]; then
     os="darwin"
@@ -39,8 +44,8 @@ for row in $releases; do
         outfile="$HOME/bin/$earthlybin-$version"
 
         if [ ! -f "$outfile" ]; then
-            echo "Downloading $url"
-            wget -L "$url" -O "$outfile" || ( rm -f "$outfile"; exit 1)
+            echo "Downloading $url to $outfile"
+            curl -L "$url" -o "$outfile" || ( rm -f "$outfile"; exit 1)
             chmod +x "$outfile"
         else
             echo "$url has already been downloaded to $outfile"
