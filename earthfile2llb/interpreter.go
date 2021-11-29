@@ -861,6 +861,9 @@ func (i *Interpreter) handleBuild(ctx context.Context, cmd spec.Command, async b
 	if async && !(isSafeAsyncBuildArgsDeprecatedStyle(opts.BuildArgs) && isSafeAsyncBuildArgs(args[1:])) {
 		return errCannotAsync
 	}
+	if i.local && !(isSafeAsyncBuildArgsDeprecatedStyle(opts.BuildArgs) && isSafeAsyncBuildArgs(args[1:])) {
+		return i.errorf(cmd.SourceLocation, "BUILD args do not currently support shelling-out in combination with LOCALLY")
+	}
 	expandedBuildArgs := i.expandArgsSlice(opts.BuildArgs, true)
 	expandedFlagArgs := i.expandArgsSlice(args[1:], true)
 	parsedFlagArgs, err := variables.ParseFlagArgs(expandedFlagArgs)
@@ -1048,6 +1051,9 @@ func (i *Interpreter) handleArg(ctx context.Context, cmd spec.Command) error {
 		key = args[0] // Note: Not expanding args for key.
 	default:
 		return i.errorf(cmd.SourceLocation, "invalid syntax")
+	}
+	if i.local && strings.HasPrefix(value, "$(") {
+		return i.errorf(cmd.SourceLocation, "ARG does not currently support shelling-out in combination with LOCALLY")
 	}
 	// Args declared in the base target are global.
 	global := i.isBase
