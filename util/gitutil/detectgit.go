@@ -2,6 +2,7 @@ package gitutil
 
 import (
 	"context"
+	"os"
 	"os/exec"
 	"path"
 	"path/filepath"
@@ -255,7 +256,12 @@ func detectGitTimestamp(ctx context.Context, dir string) (string, error) {
 	return strings.SplitN(outStr, "\n", 2)[0], nil
 }
 
+// gitRelDir returns the relative path from git root (where .git directory locates in the project)
+// This function validates the input data (basePath, path) as well.
 func gitRelDir(basePath string, path string) (string, bool, error) {
+	if !filepath.IsAbs(basePath) {
+		return "", false, errors.Errorf("git base path %s is not absolute", basePath)
+	}
 	absPath, err := filepath.Abs(path)
 	if err != nil {
 		return "", false, errors.Wrapf(err, "get abs path for %s", path)
@@ -264,26 +270,39 @@ func gitRelDir(basePath string, path string) (string, bool, error) {
 	if err != nil {
 		return "", false, errors.Wrapf(err, "eval symlinks for %s", absPath)
 	}
-	if !filepath.IsAbs(basePath) {
-		return "", false, errors.Errorf("git base path %s is not absolute", basePath)
-	}
-	basePathSlash := filepath.ToSlash(basePath)
-	pathSlash := filepath.ToSlash(absPath2)
-	basePathParts := strings.Split(basePathSlash, "/")
-	pathParts := strings.Split(pathSlash, "/")
+
+	basePathParts := strings.Split(basePath, string(filepath.Separator))
+	pathParts := strings.Split(absPath2, string(filepath.Separator))
+
+	// `basePath` must be the part of `path`
+	// So it's length split by filepath.Separator must be shorter than `part`.
 	if len(pathParts) < len(basePathParts) {
 		return "", false, nil
 	}
-	for index := range basePathParts {
-		if basePathParts[index] != pathParts[index] {
-			return "", false, nil
-		}
+
+	a, err := os.Stat(basePath)
+	if err != nil {
+		return "", false, errors.Wrapf(err, "stat for %s", basePath)
 	}
-	relPath := strings.Join(pathParts[len(basePathParts):], "/")
+	// `pathParts` here has lose the root filepath.Separator since built by strings.Split beforehand.
+	// so putting heading separator is required to make it absolute again.
+	b, err := os.Stat(string(filepath.Separator) + filepath.Join(pathParts[:len(basePathParts)]...))
+	if err != nil {
+		return "", false, errors.Wrapf(err, "stat for %v", pathParts)
+	}
+	// Here checks if `path` is included in `basePath` in filesystem agnostic way.
+	// Case-sensitivity difference (like HFS+ in OSX) is also covered by os.SameFile.
+	if !os.SameFile(a, b) {
+		return "", false, nil
+	}
+
+	// Now we are sure that inclusion of `basePath` in `path` is OK.
+	// Finally, here extracts the relative path from `basePath` to return.
+	relPath := filepath.Join(pathParts[len(basePathParts):]...)
 	if relPath == "" {
 		return ".", true, nil
 	}
-	return filepath.FromSlash(relPath), true, nil
+	return relPath, true, nil
 }
 
 // ReferenceWithGitMeta applies git metadata to the target naming.
