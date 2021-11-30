@@ -338,7 +338,7 @@ The parameter `<src-artifact>` is an [artifact reference](../guides/target-ref.m
 The classical form of the `COPY` command differs from Dockerfiles in two cases:
 
 * URL sources are not yet supported.
-* The current directory is not treated as the root directory; meaning sources in the current directory cannot be referenced with a leading `/`.
+* Absolute paths are not supported - sources in the current directory cannot be referenced with a leading `/`
 
 {% hint style='info' %}
 ##### Note
