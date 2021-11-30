@@ -235,13 +235,13 @@ func (gl *GitLookup) detectProtocol(host string) (protocol gitProtocol, err erro
 
 	client, err := ssh.Dial("tcp", fmt.Sprintf("%s:22", host), config)
 	if err != nil {
-		protocol = httpsProtocol
+		protocol = sshProtocol
 		err = nil
 		return
 	}
 	defer client.Close()
 
-	protocol = sshProtocol
+	protocol = httpsProtocol
 	err = nil
 	return
 }
