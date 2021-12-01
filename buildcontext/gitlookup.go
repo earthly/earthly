@@ -221,6 +221,7 @@ func (gl *GitLookup) detectProtocol(host string) (protocol gitProtocol, err erro
 
 	sshAgent, err := net.Dial("unix", gl.sshAuthSock)
 	if err != nil {
+		gl.console.VerbosePrintf("failed to connect to ssh-agent (using %s) due to %s, falling back to https", gl.sshAuthSock, err.Error())
 		protocol = httpsProtocol
 		err = nil
 		return
@@ -230,11 +231,24 @@ func (gl *GitLookup) detectProtocol(host string) (protocol gitProtocol, err erro
 		Auth: []ssh.AuthMethod{
 			ssh.PublicKeysCallback(agent.NewClient(sshAgent).Signers),
 		},
+		HostKeyAlgorithms: []string{
+			ssh.KeyAlgoRSA, // prefer ssh-rsa due to having it as a default in our git matchers
+
+			// list from golang.org/x/crypto/ssh/common.go supportedHostKeyAlgos
+			ssh.CertAlgoRSAv01, ssh.CertAlgoDSAv01, ssh.CertAlgoECDSA256v01,
+			ssh.CertAlgoECDSA384v01, ssh.CertAlgoECDSA521v01, ssh.CertAlgoED25519v01,
+
+			ssh.KeyAlgoECDSA256, ssh.KeyAlgoECDSA384, ssh.KeyAlgoECDSA521,
+			ssh.KeyAlgoDSA,
+
+			ssh.KeyAlgoED25519,
+		},
 		HostKeyCallback: gl.hostKeyCallback,
 	}
 
 	client, err := ssh.Dial("tcp", fmt.Sprintf("%s:22", host), config)
 	if err != nil {
+		gl.console.VerbosePrintf("failed to connect to %s over ssh due to %s, falling back to https", host, err.Error())
 		protocol = httpsProtocol
 		err = nil
 		return
