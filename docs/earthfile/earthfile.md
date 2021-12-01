@@ -658,7 +658,7 @@ Same as [`FROM --allow-privileged`](#allow-privileged).
 
 #### Synopsis
 
-* `VERSION [--use-copy-include-patterns] <version-number>`
+* `VERSION [options...] <version-number>`
 
 #### Description
 
@@ -669,6 +669,7 @@ however will become mandatory in a future version of Earthly. When specified, `V
 | Version number | enabled features |
 | --- | --- |
 | `0.5` | _initial functionality will be preserved_ |
+| `0.6` | `--use-copy-include-patterns --referenced-save-only --for-in --require-force-for-unsafe-saves --no-implicit-ignore` |
 
 #### Options
 
@@ -676,7 +677,7 @@ Individual features may be enabled by setting the corresponding feature flag.
 New features start off as experimental, which is why they are disabled by default.
 Once a feature reaches maturity, it will be enabled by default under a new version number.
 
-All features are described in [a corresponding table](./features.md).
+All features are described in [the version-specific features reference](./features.md).
 
 ## GIT CLONE
 
