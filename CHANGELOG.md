@@ -4,6 +4,13 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+## v0.6.2 - 2021-12-01
+
+### Fixed
+
+- `unexpected non-relative path within git dir` bug when using case insensitive file systems [#1426](https://github.com/earthly/earthly/issues/1426)
+- Unable to access private GitHub repos [#1421](https://github.com/earthly/earthly/issues/1421)
+
 ## v0.6.1 - 2021-11-29
 
 ### Fixed
