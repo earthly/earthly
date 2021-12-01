@@ -95,3 +95,10 @@ fi
 #../earthly --push --build-arg GITHUB_USER --build-arg EARTHLY_REPO --build-arg BREW_REPO --build-arg DOCKERHUB_USER --build-arg RELEASE_TAG +release-repo
 # until then, we will just print this out:
 echo "TODO: the apt/yum release must be triggered seperately; until we get https://test-pkg.earthly.dev/ setup"
+
+if [ "$GITHUB_USER" = "earthly" ] && [ "$EARTHLY_REPO" = "earthly" ]; then
+    ../earthly --push --build-arg RELEASE_TAG ./apt-repo+build-and-release
+    ../earthly --push --build-arg RELEASE_TAG ./yum-repo+build-and-release
+else
+    echo "WARNING: there is no staging environment for apt or yum repos"
+fi
