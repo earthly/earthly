@@ -23,6 +23,6 @@ earthly:
     - earthly --ci --push -P +build
 ```
 
-For the full example on GitLab, see the [demo project here](https://gitlab.com/brandon176/earthly-demo/-/tree/main).
+A full example is available [on GitLab](https://gitlab.com/brandon176/earthly-demo/-/tree/main).
 
 For a complete guide on CI integration see the [CI integration guide](../overview.md).
