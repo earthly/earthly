@@ -103,3 +103,4 @@ Below are links to CI systems that we have more specific information for. If you
  * [AWS CodeBuild](guides/codebuild-integration.md)
  * [GitHub Actions](guides/gh-actions-integration.md)
  * [Google Cloud Build](guides/google-cloud-build.md)
+ * [GitLab CI/CD](guides/gitlab-integration.md)
