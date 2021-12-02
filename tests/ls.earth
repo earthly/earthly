@@ -1,0 +1,10 @@
+FROM alpine:
+
+alpha:
+    RUN echo "a"
+
+charlie:
+    RUN echo "c"
+
+bravo:
+    RUN echo "b"
