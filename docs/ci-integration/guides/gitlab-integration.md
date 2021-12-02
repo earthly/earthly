@@ -1,7 +1,8 @@
 
 # GitLab CI/CD integration
 
-Here is an example a GitLab CI/CD build, where we build the Earthly target `+build`.
+This example uses [GitLab CI/CD](https://docs.gitlab.com/ee/ci/) to build the Earthly target `+build`.
+
 
 ```yml
 # .gitlab-ci.yml
