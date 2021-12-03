@@ -64,7 +64,7 @@ Argument values can be set multiple ways:
    earthly +hello --HELLO=world --FOO=bar
    ```
 
-2. From a environment variables
+2. From environment variables
 
    Similar to above, except that the value is an environment variable:
    
