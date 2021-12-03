@@ -44,7 +44,7 @@ Each recipe contains a series of commands, which are defined below. For an intro
 #### Synopsis
 
 * `FROM <image-name>`
-* `FROM [--build-arg <key>=<value>] [--platform <platform>] [--allow-privileged] <target-ref>`
+* `FROM [--platform <platform>] [--allow-privileged] <target-ref> [--<build-arg-key>=<build-arg-value>...]`
 
 #### Description
 
@@ -90,9 +90,9 @@ yet-another:
 
 #### Options
 
-##### `--build-arg <key>=<value>`
+##### `--<build-arg-key>=<build-arg-value>`
 
-Sets a value override of `<value>` for the build arg identified by `<key>`. See also [BUILD](#build) for more details about the `--build-arg` option.
+Sets a value override of `<build-arg-value>` for the build arg identified by `<build-arg-key>`. See also [BUILD](#build) for more details about build args.
 
 ##### `--platform <platform>`
 
@@ -129,6 +129,10 @@ then one can build `my-target` by invoking earthly with the `--allow-privileged`
 ```bash
 earthly --allow-privileged +my-target
 ```
+
+##### `--build-arg <key>=<value>` (**deprecated**)
+
+This option is deprecated. Use `--<build-arg-key>=<build-arg-value>` instead.
 
 ## RUN
 
@@ -228,13 +232,13 @@ release-short:
 ```
 
 ```bash
-earthly --build-arg SECRET_ID="" +release
-earthly --build-arg SECRET_ID="" +release-short
+earthly +release --SECRET_ID=""
+earthly +release-short --SECRET_ID=""
 ```
 
 It is also possible to mount a secret as a file with `RUN --mount type=secret,id=+secret/secret-id,target=/path/of/secret`. See `--mount` below.
 
-See also the [Cloud secrets guide](../guides/cloud-secrets.md).
+For more information on how to use secrets see the [build arguments and secrets guide](../guides/build-args.md). See also the [Cloud secrets guide](../guides/cloud-secrets.md).
 
 ##### `--ssh`
 
@@ -326,6 +330,7 @@ build:
 
 * `COPY [options...] <src>... <dest>` (classical form)
 * `COPY [options...] <src-artifact>... <dest>` (artifact form)
+* `COPY [options...] (<src-artifact> --<build-arg-key>=<build-arg-value>...) <dest>` (artifact form with build args)
 
 #### Description
 
@@ -358,9 +363,9 @@ COPY dir3 dir3
 COPY --dir dir1 dir2 dir3 ./
 ```
 
-##### `--build-arg <key>=<value>`
+##### `--<build-arg-key>=<build-arg-value>`
 
-Sets a value override of `<value>` for the build arg identified by `<key>`, when building the target containing the mentioned artifact. See also [BUILD](#build) for more details about the `--build-arg` option.
+Sets a value override of `<build-arg-value>` for the build arg identified by `<build-arg-key>`, when building the target containing the mentioned artifact. See also [BUILD](#build) for more details about the build arg options.
 
 ##### `--keep-ts`
 
@@ -404,6 +409,10 @@ For more information see the [multi-platform guide](../guides/multi-platform.md)
 ##### `--allow-privileged`
 
 Same as [`FROM --allow-privileged`](#allow-privileged).
+
+##### `--build-arg <key>=<value>` (**deprecated**)
+
+The option `--build-arg` is deprecated. Use `--<build-arg-key>=<build-arg-value>` instead.
 
 #### Examples
 
@@ -455,22 +464,24 @@ earthly <target-ref> --<name>=<override-value>
 or from a command from another target, when implicitly or explicitly invoking the target containing the `ARG`
 
 ```Dockerfile
-BUILD --build-arg <name>=<override-value> <target-ref>
-COPY --build-arg <name>=<override-value> <target-ref>/<artifact-path>... <dest-path>
-FROM --build-arg <name>=<override-value> <target-ref>
+BUILD <target-ref> --<name>=<override-value>
+COPY (<target-ref>/<artifact-path> --<name>=<override-value>) <dest-path>
+FROM <target-ref> --<name>=<override-value>
 ```
 
 for example
 
 ```Dockerfile
-BUILD --build-arg PLATFORM=linux +binary
-COPY --build-arg PLATFORM=linux +binary/bin ./
-FROM --build-arg NAME=john +docker-image
+BUILD +binary --NAME=john
+COPY (+binary/bin --NAME=john) ./
+FROM +docker-image --NAME=john
 ```
 
-A number of builtin args are available and are pre-filled by Earthly. For more information see [builtin args](./builtin-args.md).
+For more information on how to use build args see the [build arguments and secrets guide](../guides/build-args.md). A number of builtin args are available and are pre-filled by Earthly. For more information see [builtin args](./builtin-args.md).
 
-#### `--required`
+#### Options
+
+##### `--required`
 
 A required `ARG` must be provided at build time and can never have a default value. Required args can help eliminate cases where the user has unexpectedly set an `ARG` to `""`.
 
@@ -607,7 +618,7 @@ Instructs Earthly that the current target should be included as part of the expl
 
 #### Synopsis
 
-* `BUILD [--build-arg <key>=<value>] [--platform <platform>] [--allow-privileged] <target-ref>`
+* `BUILD [--platform <platform>] [--allow-privileged] <target-ref> [--<build-arg-name>=<build-arg-value>...]`
 
 #### Description
 
@@ -615,26 +626,26 @@ The command `BUILD` instructs Earthly to additionally invoke the build of the ta
 
 #### Options
 
-##### `--build-arg <key>=<value>`
+##### `--<build-arg-key>=<build-arg-value>`
 
-Sets a value override of `<value>` for the build arg identified by `<key>`.
+Sets a value override of `<build-arg-value>` for the build arg identified by `<build-arg-key>`.
 
 The override value of a build arg may be a constant string
 
 ```
---build-arg SOME_ARG="a constant value"
+--SOME_ARG="a constant value"
 ```
 
 or an expression involving other build args
 
 ```
---build-arg SOME_ARG="a value based on other args, like $ANOTHER_ARG and $YET_ANOTHER_ARG"
+--SOME_ARG="a value based on other args, like $ANOTHER_ARG and $YET_ANOTHER_ARG"
 ```
 
 or a dynamic expression, based on the output of a command executed in the context of the build environment. In this case, the build arg becomes a "variable build arg".
 
 ```
---build-arg SOME_ARG=$(find /app -type f -name '*.php')
+--SOME_ARG=$(find /app -type f -name '*.php')
 ```
 
 ##### `--platform <platform>`
@@ -653,6 +664,10 @@ For more information see the [multi-platform guide](../guides/multi-platform.md)
 ##### `--allow-privileged`
 
 Same as [`FROM --allow-privileged`](#allow-privileged).
+
+##### `--build-arg <build-arg-key>=<build-arg-value>` (**deprecated**)
+
+This option is deprecated. Please use `--<build-arg-key>=<build-arg-value>` instead.
 
 ## VERSION
 
@@ -739,7 +754,7 @@ For more information see the [multi-platform guide](../guides/multi-platform.md)
 
 ```Dockerfile
 WITH DOCKER [--pull <image-name>] [--load <image-name>=<target-ref>] [--compose <compose-file>]
-            [--service <compose-service>] [--build-arg <key>=<value>] [--allow-privileged]
+            [--service <compose-service>] [--allow-privileged]
   <commands>
   ...
 END
@@ -761,7 +776,8 @@ WORKDIR /test
 COPY docker-compose.yml ./
 WITH DOCKER \
         --compose docker-compose.yml \
-        --load image-name:latest=+some-target \
+        --load image-name:latest=(+some-target --SOME_BUILD_ARG=value) \
+        --load another-image-name:latest=+another-target \
         --pull some-image:latest
     RUN docker run ... && \
         docker run ... && \
@@ -795,6 +811,8 @@ It is recommended that you avoid issuing `RUN docker pull ...` and use `WITH DOC
 
 Builds the image referenced by `<target-ref>` and then loads it into the temporary Docker daemon created by `WITH DOCKER`. The image can be referenced as `<image-name>` within `WITH DOCKER`.
 
+`<target-ref>` may be a simple target reference (`+some-target`), or a target reference with a build arg `(+some-target --SOME_BUILD_ARG=value)`.
+
 This option may be repeated in order to provide multiple images to be loaded.
 
 ##### `--compose <compose-file>`
@@ -811,10 +829,6 @@ This option can only be used if `--compose` has been specified.
 
 This option may be repeated in order to specify multiple services.
 
-##### `--build-arg <key>=<value>`
-
-Sets a value override of `<value>` for the build arg identified by `<key>`, when building a `<target-ref>` (specified via `--load`). See also [BUILD](#build) for more details about the `--build-arg` option.
-
 ##### `--platform <platform>`
 
 Specifies the platform for any referenced `--load` and `--pull` images.
@@ -824,6 +838,10 @@ For more information see the [multi-platform guide](../guides/multi-platform.md)
 ##### `--allow-privileged`
 
 Same as [`FROM --allow-privileged`](#allow-privileged).
+
+##### `--build-arg <key>=<value>` (**deprecated**)
+
+This option is deprecated. Please use `--load <image-name>=(<target-ref> --<build-arg-key>=<build-arg-value>)` instead.
 
 ## IF
 
@@ -1284,27 +1302,3 @@ The classical [`ONBUILD` Dockerfile command](https://docs.docker.com/engine/refe
 ## STOPSIGNAL (not supported)
 
 The classical [`STOPSIGNAL` Dockerfile command](https://docs.docker.com/engine/reference/builder/#stopsignal) is not yet supported.
-
-## DOCKER PULL (**deprecated**)
-
-#### Synopsis
-
-* `DOCKER PULL <image-name>`
-
-#### Description
-
-{% hint style='danger' %}
-`DOCKER PULL` is now deprecated and will not be supported in future versions of Earthly. Please use `WITH DOCKER --pull <image-name>` instead.
-{% endhint %}
-
-## DOCKER LOAD (**deprecated**)
-
-#### Synopsis
-
-* `DOCKER LOAD [--build-arg <name>=<override-value>] <target-ref> <image-name>`
-
-#### Description
-
-{% hint style='danger' %}
-`DOCKER LOAD` is now deprecated and will not be supported in future versions of Earthly. Please use `WITH DOCKER --load <image-name>=<target-ref>` instead.
-{% endhint %}
