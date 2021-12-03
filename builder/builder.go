@@ -89,7 +89,7 @@ type BuildOpt struct {
 	OnlyArtifactDestPath       string
 	EnableGatewayClientLogging bool
 	EarthlyVersion             string
-	EarthlyVersionSha          string
+	EarthlyBuildSha            string
 }
 
 // Builder executes Earthly builds.
@@ -158,8 +158,8 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 		var err error
 		if !b.builtMain {
 			defaultArgs := variables.DefaultArgs{
-				EarthlyVersion:    opt.EarthlyVersion,
-				EarthlyVersionSha: opt.EarthlyVersionSha,
+				EarthlyVersion:  opt.EarthlyVersion,
+				EarthlyBuildSha: opt.EarthlyBuildSha,
 			}
 			opt := earthfile2llb.ConvertOpt{
 				GwClient:             gwClient,
