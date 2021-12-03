@@ -13,8 +13,15 @@ import (
 	specs "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
+// DefaultArgs contains additional builtin ARG values which need
+// to be passed in from outside of the scope of this package.
+type DefaultArgs struct {
+	EarthlyVersion    string
+	EarthlyVersionSha string
+}
+
 // BuiltinArgs returns a scope containing the builtin args.
-func BuiltinArgs(target domain.Target, platform specs.Platform, gitMeta *gitutil.GitMetadata) *Scope {
+func BuiltinArgs(target domain.Target, platform specs.Platform, gitMeta *gitutil.GitMetadata, defaultArgs DefaultArgs) *Scope {
 	ret := NewScope()
 	ret.AddInactive("EARTHLY_TARGET", target.StringCanonical())
 	ret.AddInactive("EARTHLY_TARGET_PROJECT", target.ProjectCanonical())
@@ -24,6 +31,8 @@ func BuiltinArgs(target domain.Target, platform specs.Platform, gitMeta *gitutil
 	ret.AddInactive("EARTHLY_TARGET_NAME", target.Target)
 	ret.AddInactive("EARTHLY_TARGET_TAG", target.Tag)
 	ret.AddInactive("EARTHLY_TARGET_TAG_DOCKER", llbutil.DockerTagSafe(target.Tag))
+	ret.AddInactive("EARTHLY_VERSION", defaultArgs.EarthlyVersion)
+	ret.AddInactive("EARTHLY_VERSION_SHA", defaultArgs.EarthlyVersionSha)
 	SetPlatformArgs(ret, platform)
 	SetUserPlatformArgs(ret)
 

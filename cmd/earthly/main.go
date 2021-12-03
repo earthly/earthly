@@ -2906,6 +2906,8 @@ func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []st
 		OnlyFinalTargetImages:      app.imageMode,
 		Platform:                   platformsSlice[0],
 		EnableGatewayClientLogging: app.debug,
+		EarthlyVersion:             Version,
+		EarthlyVersionSha:          GitSha,
 
 		// explicitly set this to true at the top level (without granting the entitlements.EntitlementSecurityInsecure buildkit option),
 		// to differentiate between a user forgetting to run earthly -P, versus a remotely referening an earthfile that requires privileged.

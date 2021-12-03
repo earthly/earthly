@@ -94,8 +94,8 @@ func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Da
 	}
 	sts.AddOverridingVarsAsBuildArgInputs(opt.OverridingVars)
 	vc := variables.NewCollection(opt.Console,
-		target, llbutil.PlatformWithDefault(opt.Platform), bc.GitMetadata, opt.OverridingVars,
-		opt.GlobalImports)
+		target, llbutil.PlatformWithDefault(opt.Platform), bc.GitMetadata, opt.BuiltinArgs,
+		opt.OverridingVars, opt.GlobalImports)
 	return &Converter{
 		target:              target,
 		gitMeta:             bc.GitMetadata,
