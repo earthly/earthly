@@ -23,6 +23,7 @@ type Features struct {
 	ForIn                      bool `long:"for-in" description:"allow the use of the FOR command"`
 	RequireForceForUnsafeSaves bool `long:"require-force-for-unsafe-saves" description:"require the --force flag when saving to path outside of current path"`
 	NoImplicitIgnore           bool `long:"no-implicit-ignore" description:"disable implicit ignore rules to exclude .tmp-earthly-out/, build.earth, Earthfile, .earthignore and .earthlyignore when resolving local context"`
+	EarthlyVersionArg          bool `long:"earthly-version-arg" description:"includes EARTHLY_VERSION and EARTHLY_BUILD_SHA ARGs"`
 
 	Major int
 	Minor int
@@ -159,13 +160,23 @@ func GetFeatures(version *spec.Version) (*Features, error) {
 	}
 
 	// Enable version-specific features.
-	if (ftrs.Major == 0 && ftrs.Minor >= 6) || ftrs.Major > 1 { // 0.6+
+	switch {
+	case versionAtLeast(ftrs, 6): // 0.6+
 		ftrs.ReferencedSaveOnly = true
 		ftrs.UseCopyIncludePatterns = true
 		ftrs.ForIn = true
 		ftrs.RequireForceForUnsafeSaves = true
 		ftrs.NoImplicitIgnore = true
+	case versionAtLeast(ftrs, 7): // 0.7+
+		ftrs.EarthlyVersionArg = true
 	}
 
 	return &ftrs, nil
+}
+
+// versionGreaterThan returns true if the version configured in `ftrs` are greater than or equal to
+// the provided `minorVersion`, where `minorVersion` is the middle digit in a version string (e.g. '6' in 'v0.6.0').
+// This function probably needs to be expanded if our version checks become more complicated in future releases of Earthly.
+func versionAtLeast(ftrs Features, minorVersion int) bool {
+	return (ftrs.Major == 0 && ftrs.Minor >= minorVersion) || ftrs.Major > 1
 }

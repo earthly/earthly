@@ -6,6 +6,7 @@ import (
 
 	"github.com/earthly/earthly/conslogging"
 	"github.com/earthly/earthly/domain"
+	"github.com/earthly/earthly/features"
 	"github.com/earthly/earthly/util/gitutil"
 
 	dfShell "github.com/moby/buildkit/frontend/dockerfile/shell"
@@ -42,9 +43,10 @@ type Collection struct {
 }
 
 // NewCollection creates a new Collection to be used in the context of a target.
-func NewCollection(console conslogging.ConsoleLogger, target domain.Target, platform specs.Platform, gitMeta *gitutil.GitMetadata, defaultArgs DefaultArgs, overridingVars *Scope, globalImports map[string]domain.ImportTrackerVal) *Collection {
+func NewCollection(console conslogging.ConsoleLogger, target domain.Target, platform specs.Platform, gitMeta *gitutil.GitMetadata,
+	defaultArgs DefaultArgs, overridingVars *Scope, globalImports map[string]domain.ImportTrackerVal, ftrs *features.Features) *Collection {
 	return &Collection{
-		builtin: BuiltinArgs(target, platform, gitMeta, defaultArgs),
+		builtin: BuiltinArgs(target, platform, gitMeta, defaultArgs, ftrs),
 		envs:    NewScope(),
 		stack: []*stackFrame{{
 			frameName:  target.StringCanonical(),

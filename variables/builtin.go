@@ -6,6 +6,7 @@ import (
 
 	"github.com/containerd/containerd/platforms"
 	"github.com/earthly/earthly/domain"
+	"github.com/earthly/earthly/features"
 	"github.com/earthly/earthly/states/dedup"
 	"github.com/earthly/earthly/util/gitutil"
 	"github.com/earthly/earthly/util/llbutil"
@@ -21,7 +22,7 @@ type DefaultArgs struct {
 }
 
 // BuiltinArgs returns a scope containing the builtin args.
-func BuiltinArgs(target domain.Target, platform specs.Platform, gitMeta *gitutil.GitMetadata, defaultArgs DefaultArgs) *Scope {
+func BuiltinArgs(target domain.Target, platform specs.Platform, gitMeta *gitutil.GitMetadata, defaultArgs DefaultArgs, ftrs *features.Features) *Scope {
 	ret := NewScope()
 	ret.AddInactive("EARTHLY_TARGET", target.StringCanonical())
 	ret.AddInactive("EARTHLY_TARGET_PROJECT", target.ProjectCanonical())
@@ -31,10 +32,13 @@ func BuiltinArgs(target domain.Target, platform specs.Platform, gitMeta *gitutil
 	ret.AddInactive("EARTHLY_TARGET_NAME", target.Target)
 	ret.AddInactive("EARTHLY_TARGET_TAG", target.Tag)
 	ret.AddInactive("EARTHLY_TARGET_TAG_DOCKER", llbutil.DockerTagSafe(target.Tag))
-	ret.AddInactive("EARTHLY_VERSION", defaultArgs.EarthlyVersion)
-	ret.AddInactive("EARTHLY_BUILD_SHA", defaultArgs.EarthlyBuildSha)
 	SetPlatformArgs(ret, platform)
 	SetUserPlatformArgs(ret)
+
+	if ftrs != nil && ftrs.EarthlyVersionArg {
+		ret.AddInactive("EARTHLY_VERSION", defaultArgs.EarthlyVersion)
+		ret.AddInactive("EARTHLY_BUILD_SHA", defaultArgs.EarthlyBuildSha)
+	}
 
 	if gitMeta != nil {
 		ret.AddInactive("EARTHLY_GIT_HASH", gitMeta.Hash)
