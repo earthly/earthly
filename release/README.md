@@ -42,6 +42,7 @@
   * [circle-integration.md](../docs/ci-integration/guides/circle-integration.md)
   * [gh-actions-integration.md](../docs/ci-integration/guides/gh-actions-integration.md)
   * [codebuild-integration.md](../docs/ci-integration/guides/codebuild-integration.md)
+  * [gitlab-integration.md](../docs/ci-integration/guides/gitlab-integration.md)
   * [build-an-earthly-ci-image.md](../docs/ci-integration/build-an-earthly-ci-image.md)
 <!-- vale HouseStyle.Spelling = YES -->
   * you can try doing that with:
