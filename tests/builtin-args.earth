@@ -18,5 +18,5 @@ builtin-args-test:
     RUN test -z "$EARTHLY_TARGET_TAG"
     RUN test "$EARTHLY_SOURCE_DATE_EPOCH" = "0"
     RUN test -z "$EARTHLY_GIT_COMMIT_TIMESTAMP"
-    RUN test "$EARTHLY_VERSION" != ""
-    RUN test "$EARTHLY_BUILD_SHA" != ""
+    RUN test -n "$EARTHLY_VERSION"
+    RUN test -n "$EARTHLY_BUILD_SHA"
