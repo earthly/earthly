@@ -2899,6 +2899,10 @@ func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []st
 	if len(platformsSlice) != 1 {
 		return errors.Errorf("multi-platform builds are not yet supported on the command line. You may, however, create a target with the instruction BUILD --plaform ... --platform ... %s", target)
 	}
+	builtinArgs := variables.DefaultArgs{
+		EarthlyVersion:  Version,
+		EarthlyBuildSha: GitSha,
+	}
 	buildOpts := builder.BuildOpt{
 		PrintPhases:                true,
 		Push:                       app.push,
@@ -2906,8 +2910,7 @@ func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []st
 		OnlyFinalTargetImages:      app.imageMode,
 		Platform:                   platformsSlice[0],
 		EnableGatewayClientLogging: app.debug,
-		EarthlyVersion:             Version,
-		EarthlyBuildSha:            GitSha,
+		BuiltinArgs:                builtinArgs,
 
 		// explicitly set this to true at the top level (without granting the entitlements.EntitlementSecurityInsecure buildkit option),
 		// to differentiate between a user forgetting to run earthly -P, versus a remotely referening an earthfile that requires privileged.

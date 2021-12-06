@@ -88,8 +88,7 @@ type BuildOpt struct {
 	OnlyArtifact               *domain.Artifact
 	OnlyArtifactDestPath       string
 	EnableGatewayClientLogging bool
-	EarthlyVersion             string
-	EarthlyBuildSha            string
+	BuiltinArgs                variables.DefaultArgs
 }
 
 // Builder executes Earthly builds.
@@ -157,10 +156,6 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 		}
 		var err error
 		if !b.builtMain {
-			defaultArgs := variables.DefaultArgs{
-				EarthlyVersion:  opt.EarthlyVersion,
-				EarthlyBuildSha: opt.EarthlyBuildSha,
-			}
 			opt := earthfile2llb.ConvertOpt{
 				GwClient:             gwClient,
 				Resolver:             b.resolver,
@@ -182,7 +177,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 				GitLookup:            b.opt.GitLookup,
 				FeatureFlagOverrides: featureFlagOverrides,
 				LocalStateCache:      sharedLocalStateCache,
-				BuiltinArgs:          defaultArgs,
+				BuiltinArgs:          opt.BuiltinArgs,
 			}
 			mts, err = earthfile2llb.Earthfile2LLB(childCtx, target, opt, true)
 			if err != nil {
