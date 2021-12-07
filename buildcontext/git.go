@@ -138,8 +138,8 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, gwClient gwclient.
 	gitRef := ref.GetTag()
 
 	var err error
-	var keyScan string
-	gitURL, subDir, keyScan, err = gr.gitLookup.GetCloneURL(ref.GetGitURL())
+	var keyScans []string
+	gitURL, subDir, keyScans, err = gr.gitLookup.GetCloneURL(ref.GetGitURL())
 	if err != nil {
 		return nil, "", "", errors.Wrap(err, "failed to get url for cloning")
 	}
@@ -153,9 +153,10 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, gwClient gwclient.
 			llb.WithCustomNamef("[internal] GIT CLONE %s", stringutil.ScrubCredentials(gitURL)),
 			llb.KeepGitDir(),
 		}
-		if keyScan != "" {
-			gitOpts = append(gitOpts, llb.KnownSSHHosts(keyScan))
+		if len(keyScans) > 0 {
+			gitOpts = append(gitOpts, llb.KnownSSHHosts(strings.Join(keyScans, "\n")))
 		}
+
 		gitState := llb.Git(gitURL, gitRef, gitOpts...)
 		opImg := pllb.Image(
 			defaultGitImage, llb.MarkImageInternal, llb.ResolveModePreferLocal,
@@ -228,8 +229,8 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, gwClient gwclient.
 			llb.WithCustomNamef("[context %s] git context %s", stringutil.ScrubCredentials(gitURL), ref.StringCanonical()),
 			llb.KeepGitDir(),
 		}
-		if keyScan != "" {
-			gitOpts = append(gitOpts, llb.KnownSSHHosts(keyScan))
+		if len(keyScans) > 0 {
+			gitOpts = append(gitOpts, llb.KnownSSHHosts(strings.Join(keyScans, "\n")))
 		}
 
 		rgp := &resolvedGitProject{

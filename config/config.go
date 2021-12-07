@@ -91,13 +91,14 @@ type GitConfig struct {
 	GitURLInsteadOf string `yaml:"url_instead_of"`
 
 	// these are used for git vendors (e.g. github, gitlab)
-	Pattern    string `yaml:"pattern"    help:"A regular expression defined to match git URLs, defaults to the regex: <site>/([^/]+)/([^/]+). For example if the site is github.com, then the default pattern will match github.com/<user>/<repo>."`
-	Substitute string `yaml:"substitute" help:"If specified, a regular expression substitution will be preformed to determine which URL is cloned by git. Values like $1, $2, ... will be replaced with matched subgroup data. If no substitute is given, a URL will be created based on the requested SSH authentication mode."`
-	Suffix     string `yaml:"suffix"     help:"The git repository suffix, like .git."`                                       // .git
-	Auth       string `yaml:"auth"       help:"What authentication method do you use? Valid options are: http, https, ssh."` // http, https, ssh
-	User       string `yaml:"user"       help:"The https username to use when auth is set to https. This setting is ignored when auth is ssh."`
-	Password   string `yaml:"password"   help:"The https password to use when auth is set to https. This setting is ignored when auth is ssh."`
-	KeyScan    string `yaml:"serverkey"  help:"SSH fingerprints, like you would add in your known hosts file, or get from ssh-keyscan."`
+	Pattern               string `yaml:"pattern"                      help:"A regular expression defined to match git URLs, defaults to the regex: <site>/([^/]+)/([^/]+). For example if the site is github.com, then the default pattern will match github.com/<user>/<repo>."`
+	Substitute            string `yaml:"substitute"                   help:"If specified, a regular expression substitution will be preformed to determine which URL is cloned by git. Values like $1, $2, ... will be replaced with matched subgroup data. If no substitute is given, a URL will be created based on the requested SSH authentication mode."`
+	Suffix                string `yaml:"suffix"                       help:"The git repository suffix, like .git."`                                       // .git
+	Auth                  string `yaml:"auth"                         help:"What authentication method do you use? Valid options are: http, https, ssh."` // http, https, ssh
+	User                  string `yaml:"user"                         help:"The username to use when auth is set to git or https."`
+	Password              string `yaml:"password"                     help:"The https password to use when auth is set to https. This setting is ignored when auth is ssh."`
+	ServerKey             string `yaml:"serverkey"                    help:"SSH fingerprints, like you would add in your known hosts file, or get from ssh-keyscan."`
+	StrictHostKeyChecking *bool  `yaml:"strict_host_key_checking"     help:"Allow ssh access to hosts with unknown server keys (e.g. no entries in known_hosts), defaults to true."`
 }
 
 // Config contains user's configuration values from ~/earthly/config.yml
