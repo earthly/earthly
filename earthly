@@ -6,8 +6,24 @@ if [ ! -d "$bindir" ]; then
   mkdir -p "$bindir"
 fi
 
+# get_realpath implements "readlink -f" for both Linux and MacOX (MacOS does not support readlink -f)
+function get_realpath() {
+    TARGET_FILE="$1"
+    cd "$(dirname "$TARGET_FILE")"
+    TARGET_FILE=$(basename "$TARGET_FILE")
+    while [ -L "$TARGET_FILE" ]
+    do
+        TARGET_FILE=$(readlink "$TARGET_FILE")
+        cd "$(dirname "$TARGET_FILE")"
+        TARGET_FILE=$(basename "$TARGET_FILE")
+    done
+    PHYS_DIR="$(pwd -P)"
+    RESULT="$PHYS_DIR/$TARGET_FILE"
+    echo "$RESULT"
+}
+
 scriptname=$(basename "$0")
-scriptpath=$(readlink -f "$0")
+scriptpath=$(get_realpath "$0")
 script_dir="$( cd "$( dirname "$scriptpath" )" &> /dev/null && pwd )"
 
 last_check_state_path=/tmp/last-earthly-prerelease-check
