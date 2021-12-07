@@ -13,6 +13,8 @@ builtin-args-test:
     RUN echo "$EARTHLY_TARGET_PROJECT"
     RUN echo "$EARTHLY_TARGET_NAME"
     RUN echo "$EARTHLY_TARGET_TAG"
+    RUN echo "$EARTHLY_VERSION"
+    RUN echo "$EARTHLY_BUILD_SHA"
     RUN test "$EARTHLY_TARGET" == "+builtin-args-test"
     RUN test -z "$EARTHLY_TARGET_PROJECT"
     RUN test "$EARTHLY_TARGET_NAME" == "builtin-args-test"
