@@ -174,7 +174,7 @@ func GetFeatures(version *spec.Version) (*Features, error) {
 	return &ftrs, nil
 }
 
-// versionGreaterThan returns true if the version configured in `ftrs` are greater than or equal to
+// versionAtLeast returns true if the version configured in `ftrs` are greater than or equal to
 // the provided `minorVersion`, where `minorVersion` is the middle digit in a version string (e.g. '6' in 'v0.6.0').
 // This function probably needs to be expanded if our version checks become more complicated in future releases of Earthly.
 func versionAtLeast(ftrs Features, minorVersion int) bool {

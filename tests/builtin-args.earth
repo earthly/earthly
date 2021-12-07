@@ -1,3 +1,4 @@
+VERSION --earthly-version-arg 0.6
 FROM alpine:3.13
 builtin-args-test:
     ARG EARTHLY_TARGET
