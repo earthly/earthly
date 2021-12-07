@@ -340,7 +340,10 @@ The command may take a couple of possible forms. In the *classical form*, `COPY`
 
 The parameter `<src-artifact>` is an [artifact reference](../guides/target-ref.md#artifact-reference) and is generally of the form `<target-ref>/<artifact-path>`, where `<target-ref>` is the reference to the target which needs to be built in order to yield the artifact and `<artifact-path>` is the path within the artifact environment of the target, where the file or directory is located. The `<artifact-path>` may also be a wildcard.
 
-Note that the Dockerfile form of `COPY` whereby you can reference a source as a URL is not yet supported in Earthfiles.
+The classical form of the `COPY` command differs from Dockerfiles in two cases:
+
+* URL sources are not yet supported.
+* Absolute paths are not supported - sources in the current directory cannot be referenced with a leading `/`
 
 {% hint style='info' %}
 ##### Note
