@@ -2573,9 +2573,20 @@ func (app *earthlyApp) actionConfig(c *cli.Context) error {
 		return errors.Wrap(err, "read config")
 	}
 
-	outConfig, err := config.UpsertConfig(inConfig, args[0], args[1])
-	if err != nil {
-		return errors.Wrap(err, "upsert config")
+	var outConfig []byte
+
+	switch {
+	case args[0] == "--delete":
+		outConfig, err = config.Delete(inConfig, args[1])
+		if err != nil {
+			return errors.Wrap(err, "delete config")
+		}
+	default: // args are key/value pairs, e.g. ["global.conversion_parallelism","5"]
+		outConfig, err = config.Upsert(inConfig, args[0], args[1])
+		if err != nil {
+			return errors.Wrap(err, "upsert config")
+		}
+
 	}
 
 	if app.configDryRun {

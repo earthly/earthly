@@ -151,9 +151,9 @@ func keyAndValueCompatible(key reflect.Type, value *yaml.Node) bool {
 	return err == nil
 }
 
-// UpsertConfig adds or modifies the key to be the specified value.
+// Upsert adds or modifies the key to be the specified value.
 // This is saved to disk in your earthly config file.
-func UpsertConfig(config []byte, path, value string) ([]byte, error) {
+func Upsert(config []byte, path, value string) ([]byte, error) {
 	base := &yaml.Node{}
 	yaml.Unmarshal(config, base)
 
@@ -167,11 +167,20 @@ func UpsertConfig(config []byte, path, value string) ([]byte, error) {
 
 	pathParts := splitPath(path)
 
+	// TODO move out to main.go switch/case
 	t, help, err := validatePath(reflect.TypeOf(Config{}), pathParts)
 	if err != nil {
 		return []byte{}, errors.Wrap(err, "path is not valid")
 	}
 
+	// TODO one possible solution ...
+	// switch value {
+	// case "--help":
+	// 	fmt.Printf("(%s): %s\n", t.Kind(), help)
+	// 	return []byte{}, nil
+	// case "":
+	// 	return []byte{}, errors.New("please specify a value")
+	// }
 	if value == "--help" {
 		fmt.Printf("(%s): %s\n", t.Kind(), help)
 		return []byte{}, nil
@@ -187,6 +196,45 @@ func UpsertConfig(config []byte, path, value string) ([]byte, error) {
 	}
 
 	setYamlValue(base, pathParts, yamlValue)
+
+	newConfig, err := yaml.Marshal(base)
+	if err != nil {
+		return []byte{}, err
+	}
+
+	return newConfig, nil
+}
+
+func Delete(config []byte, path string) ([]byte, error) {
+	base := &yaml.Node{}
+	yaml.Unmarshal(config, base)
+
+	if base.IsZero() {
+		// // Empty file, or a simple comment results in a null document.
+		// // Not handled well, so manufacture somewhat acceptable document
+		// fullDoc := string(config) + "\n---"
+		// yaml.Unmarshal([]byte(fullDoc), base)
+		// base.Content = []*yaml.Node{{Kind: yaml.MappingNode}}
+
+		// TODO confirm
+		return nil, errors.New("empty config")
+	}
+
+	pathParts := splitPath(path)
+
+	t, _, err := validatePath(reflect.TypeOf(Config{}), pathParts)
+	if err != nil {
+		return []byte{}, errors.Wrap(err, "path is not valid")
+	}
+
+	// TODO one possible solution ...
+	// switch value {
+	// case "--help":
+	// 	fmt.Printf("(%s): %s\n", t.Kind(), help)
+	// 	return []byte{}, nil
+	// case "":
+	// 	return []byte{}, errors.New("please specify a value")
+	// }
 
 	newConfig, err := yaml.Marshal(base)
 	if err != nil {
@@ -263,7 +311,13 @@ func valueToYaml(value string) (*yaml.Node, error) {
 	}
 	fixStyling(valueNode)
 
-	return valueNode.Content[0], nil
+	// TODO maybe?
+	contentNode := &yaml.Node{}
+	if len(valueNode.Content) > 0 {
+		contentNode = valueNode.Content[0]
+	}
+
+	return contentNode, nil
 }
 
 func pathToYaml(path []string, value *yaml.Node) []*yaml.Node {
