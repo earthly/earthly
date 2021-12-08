@@ -167,23 +167,9 @@ func Upsert(config []byte, path, value string) ([]byte, error) {
 
 	pathParts := splitPath(path)
 
-	// TODO move out to main.go switch/case
-	t, help, err := validatePath(reflect.TypeOf(Config{}), pathParts)
+	t, _, err := validatePath(reflect.TypeOf(Config{}), pathParts)
 	if err != nil {
 		return []byte{}, errors.Wrap(err, "path is not valid")
-	}
-
-	// TODO one possible solution ...
-	// switch value {
-	// case "--help":
-	// 	fmt.Printf("(%s): %s\n", t.Kind(), help)
-	// 	return []byte{}, nil
-	// case "":
-	// 	return []byte{}, errors.New("please specify a value")
-	// }
-	if value == "--help" {
-		fmt.Printf("(%s): %s\n", t.Kind(), help)
-		return []byte{}, nil
 	}
 
 	yamlValue, err := valueToYaml(value)
@@ -210,31 +196,17 @@ func Delete(config []byte, path string) ([]byte, error) {
 	yaml.Unmarshal(config, base)
 
 	if base.IsZero() {
-		// // Empty file, or a simple comment results in a null document.
-		// // Not handled well, so manufacture somewhat acceptable document
-		// fullDoc := string(config) + "\n---"
-		// yaml.Unmarshal([]byte(fullDoc), base)
-		// base.Content = []*yaml.Node{{Kind: yaml.MappingNode}}
-
-		// TODO confirm
-		return nil, errors.New("empty config")
+		return nil, errors.New("config is empty or missing")
 	}
 
 	pathParts := splitPath(path)
 
-	t, _, err := validatePath(reflect.TypeOf(Config{}), pathParts)
+	_, _, err := validatePath(reflect.TypeOf(Config{}), pathParts)
 	if err != nil {
 		return []byte{}, errors.Wrap(err, "path is not valid")
 	}
 
-	// TODO one possible solution ...
-	// switch value {
-	// case "--help":
-	// 	fmt.Printf("(%s): %s\n", t.Kind(), help)
-	// 	return []byte{}, nil
-	// case "":
-	// 	return []byte{}, errors.New("please specify a value")
-	// }
+	deleteYamlValue(base, pathParts)
 
 	newConfig, err := yaml.Marshal(base)
 	if err != nil {
@@ -242,6 +214,15 @@ func Delete(config []byte, path string) ([]byte, error) {
 	}
 
 	return newConfig, nil
+}
+
+func PrintHelp(path string) error {
+	t, help, err := validatePath(reflect.TypeOf(Config{}), splitPath(path))
+	if err != nil {
+		return errors.Wrapf(err, "'%s' is not a valid config value", path)
+	}
+	fmt.Printf("(%s): %s\n", t.Kind(), help)
+	return nil
 }
 
 func splitPath(path string) []string {
@@ -311,10 +292,18 @@ func valueToYaml(value string) (*yaml.Node, error) {
 	}
 	fixStyling(valueNode)
 
-	// TODO maybe?
 	contentNode := &yaml.Node{}
-	if len(valueNode.Content) > 0 {
+	switch {
+	case len(valueNode.Content) > 0:
+		// ContentNode contains the user-provided value with it's type etc
 		contentNode = valueNode.Content[0]
+	case value == "":
+		// Edge case where the yaml.Unmarshal above results in no nodes in valueNode.Content.
+		// The code below ensures we can write an actual empty string to our yaml as requested.
+		contentNode.SetString("")
+	default:
+		// Very unlikely
+		return nil, errors.New("failed setting value in yaml")
 	}
 
 	return contentNode, nil
@@ -394,6 +383,40 @@ func setYamlValue(node *yaml.Node, path []string, value *yaml.Node) []string {
 	if len(path) > 0 {
 		yamlMap := pathToYaml(path, value)
 		node.Content = append(node.Content, yamlMap...)
+	}
+
+	return []string{}
+}
+
+func deleteYamlValue(node *yaml.Node, path []string) []string {
+
+	switch node.Kind {
+	case yaml.DocumentNode:
+		for _, c := range node.Content {
+			path = deleteYamlValue(c, path)
+		}
+
+	case yaml.MappingNode:
+		for i := 0; i < len(node.Content); i += 2 {
+			// Keys/Values are inline. Count by twos to get it right.
+			key := node.Content[i]
+			val := node.Content[i+1]
+
+			if len(path) > 0 && key.Value == path[0] {
+				path = path[1:]
+
+				if len(path) == 0 {
+					node.Content[i] = nil
+					node.Content[i+1] = nil
+					return []string{}
+				}
+
+				path = deleteYamlValue(val, path)
+			}
+		}
+
+	default: // Sequence, Scalar nodes get skipped
+		return path
 	}
 
 	return []string{}
