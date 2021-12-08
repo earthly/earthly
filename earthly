@@ -27,6 +27,7 @@ scriptpath=$(get_realpath "$0")
 script_dir="$( cd "$( dirname "$scriptpath" )" &> /dev/null && pwd )"
 
 last_check_state_path=/tmp/last-earthly-prerelease-check
+last_flag_hash_path=/tmp/last-earthly-flag-hash
 
 get_latest_binary() {
     docker rm --force earthly_binary 2>/dev/null || true
@@ -105,15 +106,33 @@ case "$1" in
         now=$(date +%s)
         since=$(( now - last ))
 
-        if [ "$since" -ge 3600 ] && [ -z "$COMP_LINE" ]; then
-            echo checking for latest earthly prerelease binaries
-            get_latest_binary
-            echo "Updated prerelease binary. Version:"
-            "$bindir/earthly-prerelease" --version
-            echo "$now" >"$last_check_state_path"
+        earthly_version_flag_overrides_path="$script_dir/.earthly_version_flag_overrides"
+
+        last_flag_hash=$(cat "$last_flag_hash_path" 2>/dev/null || echo null)
+        flagoverride_hash=$(md5sum "$earthly_version_flag_overrides_path" | awk '{print $1}')
+        if [ -z "$COMP_LINE" ]; then
+            update="false"
+            if [ "$last_flag_hash" != "$flagoverride_hash" ]; then
+                echo ".earthly_version_flag_overrides has changed since last run, checking for prerelease binaries" \
+                     "If you see an \"unable to set <flag-name>: invalid flag\" error, you may have to wait for the" \
+                     "prerelease binary to be built by GHA on the main branch, before re-attempting a ./earthly upgrade" | fold
+                update="true"
+            elif [ "$since" -ge 3600 ]; then
+                echo checking for latest earthly prerelease binaries
+                update="true"
+            fi
+
+            if [ "$update" = "true" ]; then
+                get_latest_binary
+                echo "Updated prerelease binary. Version:"
+                "$bindir/earthly-prerelease" --version
+                echo "$now" >"$last_check_state_path"
+                echo "$flagoverride_hash" >"$last_flag_hash_path"
+            fi
+
         fi
 
-        EARTHLY_VERSION_FLAG_OVERRIDES="$(tr -d '\n' < "$script_dir/.earthly_version_flag_overrides")"
+        EARTHLY_VERSION_FLAG_OVERRIDES="$(tr -d '\n' < "$earthly_version_flag_overrides_path")"
         export EARTHLY_VERSION_FLAG_OVERRIDES
         exec -a "$scriptname" "$bindir/earthly-prerelease" "$@"
         ;;
