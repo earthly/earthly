@@ -367,7 +367,7 @@ prerelease:
         --platform=linux/arm/v7 \
         --platform=linux/arm64 \
         ./buildkitd+buildkitd --TAG=prerelease  --BUILDKIT_PROJECT="$BUILDKIT_PROJECT"
-    COPY (+earthly-all/* VERSION=prerelease) ./
+    COPY (+earthly-all/* --VERSION=prerelease) ./
     SAVE IMAGE --push earthly/earthlybinaries:prerelease
 
 prerelease-script:
