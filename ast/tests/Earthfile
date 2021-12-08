@@ -109,7 +109,7 @@ update-all:
 #       update the expectations via +update-all. Please review the resulting diff
 #       carefully when committing to git.
 test:
-    ARG TEST
+    ARG --required TEST
     ARG INPUT_FROM_DIR=../../tests
     ARG INPUT_FROM_TARGET=ast-test-input
     DO +INPUT_COPY --TEST=$TEST --INPUT_FROM_DIR=$INPUT_FROM_DIR --INPUT_FROM_TARGET=$INPUT_FROM_TARGET
@@ -120,7 +120,7 @@ test:
     RUN diff ./actual.pretty.json ./expected.pretty.json
 
 update-expected:
-    ARG TEST
+    ARG --required TEST
     ARG INPUT_FROM_DIR=../../tests
     ARG INPUT_FROM_TARGET=ast-test-input
     DO +INPUT_COPY --TEST=$TEST --INPUT_FROM_DIR=$INPUT_FROM_DIR --INPUT_FROM_TARGET=$INPUT_FROM_TARGET

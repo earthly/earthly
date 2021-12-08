@@ -97,6 +97,9 @@ type ConvertOpt struct {
 
 	// FeatureFlagOverride is used to override feature flags that are defined in specific Earthfiles
 	FeatureFlagOverrides string
+
+	// Default set of ARGs to make available in Earthfile.
+	BuiltinArgs variables.DefaultArgs
 }
 
 // Earthfile2LLB parses a earthfile and executes the statements for a given target.

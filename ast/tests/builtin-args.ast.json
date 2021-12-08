@@ -64,6 +64,22 @@
         {
           "command": {
             "args": [
+              "EARTHLY_VERSION"
+            ],
+            "name": "ARG"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "EARTHLY_BUILD_SHA"
+            ],
+            "name": "ARG"
+          }
+        },
+        {
+          "command": {
+            "args": [
               "echo",
               "\"$EARTHLY_TARGET\""
             ],
@@ -93,6 +109,24 @@
             "args": [
               "echo",
               "\"$EARTHLY_TARGET_TAG\""
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "echo",
+              "\"$EARTHLY_VERSION\""
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "echo",
+              "\"$EARTHLY_BUILD_SHA\""
             ],
             "name": "RUN"
           }
@@ -159,8 +193,34 @@
             ],
             "name": "RUN"
           }
+        },
+        {
+          "command": {
+            "args": [
+              "test",
+              "-n",
+              "\"$EARTHLY_VERSION\""
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "test",
+              "-n",
+              "\"$EARTHLY_BUILD_SHA\""
+            ],
+            "name": "RUN"
+          }
         }
       ]
     }
-  ]
+  ],
+  "version": {
+    "args": [
+      "--earthly-version-arg",
+      "0.6"
+    ]
+  }
 }
