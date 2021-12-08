@@ -161,22 +161,21 @@ func GetFeatures(version *spec.Version) (*Features, error) {
 
 	// Enable version-specific features.
 	switch {
-	case versionAtLeast(ftrs, 6): // 0.6+
+	case versionAtLeast(ftrs, 0, 6):
 		ftrs.ReferencedSaveOnly = true
 		ftrs.UseCopyIncludePatterns = true
 		ftrs.ForIn = true
 		ftrs.RequireForceForUnsafeSaves = true
 		ftrs.NoImplicitIgnore = true
-	case versionAtLeast(ftrs, 7): // 0.7+
+	case versionAtLeast(ftrs, 0, 7):
 		ftrs.EarthlyVersionArg = true
 	}
 
 	return &ftrs, nil
 }
 
-// versionAtLeast returns true if the version configured in `ftrs` are greater than or equal to
-// the provided `minorVersion`, where `minorVersion` is the middle digit in a version string (e.g. '6' in 'v0.6.0').
-// This function probably needs to be expanded if our version checks become more complicated in future releases of Earthly.
-func versionAtLeast(ftrs Features, minorVersion int) bool {
-	return (ftrs.Major == 0 && ftrs.Minor >= minorVersion) || ftrs.Major > 1
+// versionAtLeast returns true if the version configured in `ftrs`
+// are greater than or equal to the provided major and minor versions.
+func versionAtLeast(ftrs Features, majorVersion, minorVersion int) bool {
+	return (ftrs.Major > majorVersion) || (ftrs.Major == majorVersion && ftrs.Minor >= minorVersion)
 }
