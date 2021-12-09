@@ -2606,9 +2606,15 @@ func (app *earthlyApp) actionBuild(c *cli.Context) error {
 			return errors.New("unable to use --ci flag in combination with --interactive flag")
 		}
 	}
-	if !termutil.IsTTY() && app.interactiveDebugging {
-		return errors.New("A tty-terminal must be present in order to the --interactive flag")
+	if app.interactiveDebugging {
+		if !termutil.IsTTY() {
+			return errors.New("A tty-terminal must be present in order to the --interactive flag")
+		}
+		if !buildkitd.IsLocal(app.buildkitHost) {
+			return errors.New("the --interactive flag is not currently supported with non-local buildkit servers")
+		}
 	}
+
 	if app.imageMode && app.artifactMode {
 		return errors.New("both image and artifact modes cannot be active at the same time")
 	}
