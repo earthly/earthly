@@ -1,3 +1,4 @@
+VERSION 0.6
 test:
     FROM alpine:3.13
     RUN echo $MYPATH

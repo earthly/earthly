@@ -1,3 +1,4 @@
+VERSION 0.6
 FROM alpine:3.13
 
 RUN apk add --update --no-cache \
@@ -19,38 +20,37 @@ release:
 
 release-dind:
     ARG DOCKERHUB_USER="earthly"
-    BUILD \
-        --build-arg DIND_ALPINE_TAG=alpine \
-        --build-arg DIND_UBUNTU_TAG=ubuntu \
-        --build-arg DOCKERHUB_USER="$DOCKERHUB_USER" \
-        ../+all-dind
+    BUILD ../+all-dind \
+        --DIND_ALPINE_TAG=alpine \
+        --DIND_UBUNTU_TAG=ubuntu \
+        --DOCKERHUB_USER="$DOCKERHUB_USER"
     BUILD \
         --platform=linux/amd64 \
         --platform=linux/arm64 \
-        --build-arg DIND_ALPINE_TAG=latest \
-        --build-arg DOCKERHUB_USER="$DOCKERHUB_USER" \
-        ../+dind-alpine
+        ../+dind-alpine \
+        --DIND_ALPINE_TAG=latest \
+        --DOCKERHUB_USER="$DOCKERHUB_USER"
 
 release-dockerhub:
     ARG RELEASE_TAG
     ARG DOCKERHUB_USER="earthly"
     RUN test -n "$RELEASE_TAG"
-    BUILD --build-arg TAG="$RELEASE_TAG" ../+earthly-docker
+    BUILD ../+earthly-docker --TAG="$RELEASE_TAG"
     BUILD \
         --platform=linux/amd64 \
         --platform=linux/arm/v7 \
         --platform=linux/arm64 \
-        --build-arg TAG="$RELEASE_TAG" \
-        --build-arg DOCKERHUB_USER="$DOCKERHUB_USER" \
-        ../buildkitd+buildkitd
-    BUILD --build-arg TAG=latest ../+earthly-docker
+        ../buildkitd+buildkitd \
+        --TAG="$RELEASE_TAG" \
+        --DOCKERHUB_USER="$DOCKERHUB_USER"
+    BUILD ../+earthly-docker --TAG=latest
     BUILD \
         --platform=linux/amd64 \
         --platform=linux/arm/v7 \
         --platform=linux/arm64 \
-        --build-arg TAG=latest \
-        --build-arg DOCKERHUB_USER="$DOCKERHUB_USER" \
-        ../buildkitd+buildkitd
+        ../buildkitd+buildkitd \
+        --TAG=latest \
+        --DOCKERHUB_USER="$DOCKERHUB_USER"
 
 release-notes:
     FROM python:3
@@ -76,9 +76,10 @@ release-github:
     ARG EARTHLY_GIT_HASH
     RUN test -n "$RELEASE_TAG" && test -n "$EARTHLY_GIT_HASH"
     COPY +release-notes/notes.txt release-notes.txt
-    COPY --build-arg VERSION=$RELEASE_TAG \
-         --build-arg DEFAULT_BUILDKITD_IMAGE="$DOCKERHUB_USER/buildkitd:$RELEASE_TAG" \
-        ../+earthly-all/* ./release/
+    COPY (../+earthly-all/* \
+         --VERSION=$RELEASE_TAG \
+         --DEFAULT_BUILDKITD_IMAGE="$DOCKERHUB_USER/buildkitd:$RELEASE_TAG" \
+         ) ./release/
     RUN ls ./release
     RUN test -f ./release/earthly-linux-amd64 && \
         test -f ./release/earthly-darwin-amd64 && \
@@ -220,10 +221,10 @@ release-homebrew:
 
 release-vscode-syntax-highlighting:
     ARG VSCODE_RELEASE_TAG
-    BUILD --build-arg VSCODE_RELEASE_TAG="$VSCODE_RELEASE_TAG" ../contrib/earthfile-syntax-highlighting+release
+    BUILD ../contrib/earthfile-syntax-highlighting+release --VSCODE_RELEASE_TAG="$VSCODE_RELEASE_TAG"
 
 release-repo:
     ARG RELEASE_TAG
     RUN test -n "$RELEASE_TAG"
-    BUILD --build-arg RELEASE_TAG="$RELEASE_TAG" ./apt-repo+build-and-release
-    BUILD --build-arg RELEASE_TAG="$RELEASE_TAG" ./yum-repo+build-and-release
+    BUILD ./apt-repo+build-and-release --RELEASE_TAG="$RELEASE_TAG"
+    BUILD ./yum-repo+build-and-release --RELEASE_TAG="$RELEASE_TAG"

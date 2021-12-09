@@ -1,3 +1,4 @@
+VERSION 0.6
 # the first two tests validate that we enforce that flags values are explicitly given
 # with an assignment opperater; i.e. "--flag=value" and not "--flag value".
 # otherwise it's unclear if the value is the flag value or command to run.

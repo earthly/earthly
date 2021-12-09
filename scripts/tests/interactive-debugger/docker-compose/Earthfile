@@ -1,3 +1,4 @@
+VERSION 0.6
 FROM earthly/dind:alpine
 RUN apk add --update --no-cache \
     jq

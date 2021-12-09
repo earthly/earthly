@@ -1,16 +1,16 @@
+VERSION 0.6
 
 all:
-    BUILD \
-        --build-arg BASE_IMAGE=docker:dind \
-        --build-arg BASE_IMAGE=alpine:latest \
-        --build-arg BASE_IMAGE=debian:stable \
-        --build-arg BASE_IMAGE=debian:stable-slim \
-        --build-arg BASE_IMAGE=ubuntu:latest \
-        --build-arg BASE_IMAGE=amazonlinux:1 \
-        --build-arg BASE_IMAGE=amazonlinux:2 \
-        --build-arg BASE_IMAGE=../..+dind-alpine \
-        --build-arg BASE_IMAGE=../..+dind-ubuntu \
-        +test
+    BUILD +test \
+        --BASE_IMAGE=docker:dind \
+        --BASE_IMAGE=alpine:latest \
+        --BASE_IMAGE=debian:stable \
+        --BASE_IMAGE=debian:stable-slim \
+        --BASE_IMAGE=ubuntu:latest \
+        --BASE_IMAGE=amazonlinux:1 \
+        --BASE_IMAGE=amazonlinux:2 \
+        --BASE_IMAGE=../..+dind-alpine \
+        --BASE_IMAGE=../..+dind-ubuntu
 
 test:
     ARG BASE_IMAGE
