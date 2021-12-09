@@ -2965,12 +2965,19 @@ func (app *earthlyApp) updateGitLookupConfig(gitLookup *buildcontext.GitLookup) 
 		if suffix == "" {
 			suffix = ".git"
 		}
-		err := gitLookup.AddMatcher(k, pattern, v.Substitute, v.User, v.Password, suffix, auth, v.KeyScan)
+		err := gitLookup.AddMatcher(k, pattern, v.Substitute, v.User, v.Password, suffix, auth, v.ServerKey, ifNilBoolDefault(v.StrictHostKeyChecking, true))
 		if err != nil {
 			return errors.Wrap(err, "gitlookup")
 		}
 	}
 	return nil
+}
+
+func ifNilBoolDefault(ptr *bool, defaultValue bool) bool {
+	if ptr == nil {
+		return defaultValue
+	}
+	return *ptr
 }
 
 func processSecrets(secrets, secretFiles []string, dotEnvMap map[string]string) (map[string][]byte, error) {

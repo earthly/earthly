@@ -1,3 +1,5 @@
+VERSION 0.6
+
 ARG DOCKERHUB_USER_SECRET=+secrets/DOCKERHUB_USER
 ARG DOCKERHUB_TOKEN_SECRET=+secrets/DOCKERHUB_TOKEN
 ARG DOCKERHUB_MIRROR
@@ -44,7 +46,11 @@ ga:
     BUILD +copy-test-verbose-output
     BUILD +cache-test
     BUILD +git-clone-test
-    BUILD +git-clone-private-ssh
+    BUILD ./git-ssh-server+all \
+        --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
+        --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
+        --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
+        --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR
     BUILD ./private-https+all \
         --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
         --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
@@ -194,30 +200,6 @@ cache-test:
 
 git-clone-test:
     DO +RUN_EARTHLY --earthfile=git-clone.earth --target=+test
-
-git-clone-private-ssh:
-    FROM ./git-ssh-server+server \
-        --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
-        --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
-        --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
-        --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR
-    RUN --no-cache echo "#!/bin/sh
-set -ex
-
-# first ensure these two /etc/hosts entries are working
-ping -c 1 git.example.com
-ping -c 1 buildkitsandbox
-
-# load in preauthorized key
-eval \$(ssh-agent)
-ssh-add /root/self-hosted-sshkey
-ssh-add -l
-
-earthly --config \$earthly_config --verbose -D +test
-
-earthly --config \$earthly_config --verbose -D git.example.com/testuser/repo:main+hello
-" >/tmp/test-earthly-script && chmod +x /tmp/test-earthly-script
-    DO +RUN_EARTHLY --pre_command=start-sshd --earthfile=git-clone-private-ssh.earth --exec_cmd=/tmp/test-earthly-script
 
 builtin-args-test:
     DO +RUN_EARTHLY --earthfile=builtin-args.earth --target=+builtin-args-test
