@@ -511,6 +511,7 @@ examples1:
     BUILD ./examples/react+docker
     BUILD ./examples/cutoff-optimization+run
     BUILD ./examples/import+build
+    BUILD ./examples/secrets+base
 
 examples2:
     BUILD ./examples/readme/go1+all
