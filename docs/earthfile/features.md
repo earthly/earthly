@@ -40,12 +40,9 @@ to require version `0.X` (or later), and could be rewritten as `VERSION 0.X`.
 | `--for-in` | 0.6 | Enables support for `FOR ... IN ...` commands |
 | `--require-force-for-unsafe-saves` | 0.6 | Requires `--force` for saving artifacts locally outside the Earthfile's directory  |
 | `--no-implicit-ignore` | 0.6 | Eliminates implicit `.earthlyignore` entries, such as `Earthfile` and `.tmp-earthly-out` |
-| `--earthly-version-arg` | 0.7 | Enables builtin ARGs: `EARTHLY_VERSION` and `EARTHLY_BUILD_SHA` |
+| `--earthly-version-arg` | Beta | Enables builtin ARGs: `EARTHLY_VERSION` and `EARTHLY_BUILD_SHA` |
 
-All of these features flags are disabled by default in versions lower than the version listed above in the "status" column.
-For example, the `--earthly-version-arg` flag may be disabled or unavailable in version 0.6, however, it is enabled by default in version 0.7+.
-
-All of these features flags are disabled by default in version `0.5`.
+Note that the features flags are disabled by default in Earthly versions lower than the version listed in the "status" column above.
 
 ##### `--use-copy-include-patterns`
 
