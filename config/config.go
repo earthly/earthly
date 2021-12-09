@@ -191,6 +191,8 @@ func Upsert(config []byte, path, value string) ([]byte, error) {
 	return newConfig, nil
 }
 
+// Delete removes the key and value at the specified path.
+// If no key/value exists, the function will eventually return cleanly.
 func Delete(config []byte, path string) ([]byte, error) {
 	base := &yaml.Node{}
 	yaml.Unmarshal(config, base)
@@ -216,6 +218,8 @@ func Delete(config []byte, path string) ([]byte, error) {
 	return newConfig, nil
 }
 
+// PrintHelp describes the provided config option by
+// printing it's type and help tags to the console.
 func PrintHelp(path string) error {
 	t, help, err := validatePath(reflect.TypeOf(Config{}), splitPath(path))
 	if err != nil {
