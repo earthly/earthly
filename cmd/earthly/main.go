@@ -951,11 +951,11 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 
 Set additional buildkit args, using a YAML array:
 
-	config global.buildkit_additional_args ['userns', '--host']
+	config global.buildkit_additional_args '["userns", "--host"]'
 
 Set a key containing a period:
 
-	config git."example.com".password hunter2
+	config 'git."example.com".password' hunter2
 
 Set up a whole custom git repository for a server called example.com, using a single-line YAML literal:
 	* which stores git repos under /var/git/repos/name-of-repo.git
