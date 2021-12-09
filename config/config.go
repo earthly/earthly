@@ -405,9 +405,16 @@ func deleteYamlValue(node *yaml.Node, path []string) []string {
 			if len(path) > 0 && key.Value == path[0] {
 				path = path[1:]
 
+				// We found the correct key/value pair.
+				// Build new Content without those nodes.
 				if len(path) == 0 {
-					node.Content[i] = nil
-					node.Content[i+1] = nil
+					var newContent []*yaml.Node
+					for j, n := range node.Content {
+						if j != i && j != i+1 {
+							newContent = append(newContent, n)
+						}
+					}
+					node.Content = newContent
 					return []string{}
 				}
 

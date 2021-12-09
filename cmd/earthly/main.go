@@ -2585,6 +2585,8 @@ func (app *earthlyApp) actionConfig(c *cli.Context) error {
 		if err = config.PrintHelp(args[0]); err != nil {
 			return errors.Wrap(err, "help")
 		}
+		// don't write any changes to config
+		return nil
 	default: // args are key/value pairs, e.g. ["global.conversion_parallelism","5"]
 		outConfig, err = config.Upsert(inConfig, args[0], args[1])
 		if err != nil {
