@@ -951,7 +951,7 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 
 Set additional buildkit args, using a YAML array:
 
-	config global.buildkit_additional_args "['userns', '--host']"
+	config global.buildkit_additional_args '["userns", "--host"]'
 
 Set a key containing a period:
 
