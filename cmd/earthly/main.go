@@ -951,11 +951,11 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 
 Set additional buildkit args, using a YAML array:
 
-	config global.buildkit_additional_args ['userns', '--host']
+	config global.buildkit_additional_args '["userns", "--host"]'
 
 Set a key containing a period:
 
-	config git."example.com".password hunter2
+	config 'git."example.com".password' hunter2
 
 Set up a whole custom git repository for a server called example.com, using a single-line YAML literal:
 	* which stores git repos under /var/git/repos/name-of-repo.git
@@ -2914,6 +2914,10 @@ func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []st
 	if len(platformsSlice) != 1 {
 		return errors.Errorf("multi-platform builds are not yet supported on the command line. You may, however, create a target with the instruction BUILD --plaform ... --platform ... %s", target)
 	}
+	builtinArgs := variables.DefaultArgs{
+		EarthlyVersion:  Version,
+		EarthlyBuildSha: GitSha,
+	}
 	buildOpts := builder.BuildOpt{
 		PrintPhases:                true,
 		Push:                       app.push,
@@ -2921,6 +2925,7 @@ func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []st
 		OnlyFinalTargetImages:      app.imageMode,
 		Platform:                   platformsSlice[0],
 		EnableGatewayClientLogging: app.debug,
+		BuiltinArgs:                builtinArgs,
 
 		// explicitly set this to true at the top level (without granting the entitlements.EntitlementSecurityInsecure buildkit option),
 		// to differentiate between a user forgetting to run earthly -P, versus a remotely referening an earthfile that requires privileged.
@@ -2975,12 +2980,19 @@ func (app *earthlyApp) updateGitLookupConfig(gitLookup *buildcontext.GitLookup) 
 		if suffix == "" {
 			suffix = ".git"
 		}
-		err := gitLookup.AddMatcher(k, pattern, v.Substitute, v.User, v.Password, suffix, auth, v.KeyScan)
+		err := gitLookup.AddMatcher(k, pattern, v.Substitute, v.User, v.Password, suffix, auth, v.ServerKey, ifNilBoolDefault(v.StrictHostKeyChecking, true))
 		if err != nil {
 			return errors.Wrap(err, "gitlookup")
 		}
 	}
 	return nil
+}
+
+func ifNilBoolDefault(ptr *bool, defaultValue bool) bool {
+	if ptr == nil {
+		return defaultValue
+	}
+	return *ptr
 }
 
 func processSecrets(secrets, secretFiles []string, dotEnvMap map[string]string) (map[string][]byte, error) {

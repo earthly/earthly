@@ -1,3 +1,4 @@
+VERSION --earthly-version-arg 0.6
 FROM alpine:3.13
 builtin-args-test:
     ARG EARTHLY_TARGET
@@ -6,13 +7,19 @@ builtin-args-test:
     ARG EARTHLY_TARGET_TAG
     ARG EARTHLY_SOURCE_DATE_EPOCH
     ARG EARTHLY_GIT_COMMIT_TIMESTAMP
+    ARG EARTHLY_VERSION
+    ARG EARTHLY_BUILD_SHA
     RUN echo "$EARTHLY_TARGET"
     RUN echo "$EARTHLY_TARGET_PROJECT"
     RUN echo "$EARTHLY_TARGET_NAME"
     RUN echo "$EARTHLY_TARGET_TAG"
+    RUN echo "$EARTHLY_VERSION"
+    RUN echo "$EARTHLY_BUILD_SHA"
     RUN test "$EARTHLY_TARGET" == "+builtin-args-test"
     RUN test -z "$EARTHLY_TARGET_PROJECT"
     RUN test "$EARTHLY_TARGET_NAME" == "builtin-args-test"
     RUN test -z "$EARTHLY_TARGET_TAG"
     RUN test "$EARTHLY_SOURCE_DATE_EPOCH" = "0"
     RUN test -z "$EARTHLY_GIT_COMMIT_TIMESTAMP"
+    RUN test -n "$EARTHLY_VERSION"
+    RUN test -n "$EARTHLY_BUILD_SHA"

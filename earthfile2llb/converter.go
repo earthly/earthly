@@ -93,9 +93,16 @@ func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Da
 		Visited: opt.Visited,
 	}
 	sts.AddOverridingVarsAsBuildArgInputs(opt.OverridingVars)
-	vc := variables.NewCollection(opt.Console,
-		target, llbutil.PlatformWithDefault(opt.Platform), bc.GitMetadata, opt.OverridingVars,
-		opt.GlobalImports)
+	newCollOpt := variables.NewCollectionOpt{
+		Console:        opt.Console,
+		Target:         target,
+		Platform:       llbutil.PlatformWithDefault(opt.Platform),
+		GitMeta:        bc.GitMetadata,
+		BuiltinArgs:    opt.BuiltinArgs,
+		OverridingVars: opt.OverridingVars,
+		GlobalImports:  opt.GlobalImports,
+		Features:       opt.Features,
+	}
 	return &Converter{
 		target:              target,
 		gitMeta:             bc.GitMetadata,
@@ -103,7 +110,7 @@ func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Da
 		mts:                 mts,
 		buildContextFactory: bc.BuildContextFactory,
 		cacheContext:        pllb.Scratch(),
-		varCollection:       vc,
+		varCollection:       variables.NewCollection(newCollOpt),
 		ftrs:                bc.Features,
 	}, nil
 }

@@ -1,3 +1,5 @@
+VERSION 0.6
+
 FROM golang:1.17-alpine3.14
 
 RUN apk add --update --no-cache \
@@ -50,7 +52,7 @@ update-buildkit:
     ARG BUILDKIT_GIT_SHA
     ARG BUILDKIT_GIT_BRANCH=earthly-main
     COPY (./buildkitd+buildkit-sha/buildkit_sha --BUILDKIT_GIT_SHA="$BUILDKIT_GIT_SHA" --BUILDKIT_GIT_BRANCH="$BUILDKIT_GIT_BRANCH") buildkit_sha
-    BUILD --build-arg "BUILDKIT_GIT_SHA=$(cat buildkit_sha)" ./buildkitd+update-buildkit
+    BUILD  ./buildkitd+update-buildkit --BUILDKIT_GIT_SHA="$(cat buildkit_sha)"
     RUN --no-cache go mod edit -replace "github.com/moby/buildkit=github.com/earthly/buildkit@$(cat buildkit_sha)"
     RUN --no-cache go mod tidy
     SAVE ARTIFACT go.mod AS LOCAL go.mod
@@ -252,54 +254,54 @@ earthly:
     SAVE IMAGE --cache-from=earthly/earthly:main
 
 earthly-linux-amd64:
-    COPY \
-        --build-arg GOARCH=amd64 \
-        --build-arg VARIANT= \
-        +earthly/* ./
+    COPY (+earthly/* \
+        --GOARCH=amd64 \
+        --VARIANT= \
+        ) ./
     SAVE ARTIFACT ./*
 
 earthly-linux-arm7:
-    COPY \
-        --build-arg GOARCH=arm \
-        --build-arg VARIANT=v7 \
-        --build-arg GO_EXTRA_LDFLAGS= \
-        +earthly/* ./
+    COPY (+earthly/* \
+        --GOARCH=arm \
+        --VARIANT=v7 \
+        --GO_EXTRA_LDFLAGS= \
+        ) ./
     SAVE ARTIFACT ./*
 
 earthly-linux-arm64:
-    COPY \
-        --build-arg GOARCH=arm64 \
-        --build-arg VARIANT= \
-        --build-arg GO_EXTRA_LDFLAGS= \
-        +earthly/* ./
+    COPY (+earthly/* \
+        --GOARCH=arm64 \
+        --VARIANT= \
+        --GO_EXTRA_LDFLAGS= \
+        ) ./
     SAVE ARTIFACT ./*
 
 earthly-darwin-amd64:
-    COPY \
-        --build-arg GOOS=darwin \
-        --build-arg GOARCH=amd64 \
-        --build-arg VARIANT= \
-        --build-arg GO_EXTRA_LDFLAGS= \
-        +earthly/* ./
+    COPY (+earthly/* \
+        --GOOS=darwin \
+        --GOARCH=amd64 \
+        --VARIANT= \
+        --GO_EXTRA_LDFLAGS= \
+        ) ./
     SAVE ARTIFACT ./*
 
 earthly-darwin-arm64:
-    COPY \
-        --build-arg GOOS=darwin \
-        --build-arg GOARCH=arm64 \
-        --build-arg VARIANT= \
-        --build-arg GO_EXTRA_LDFLAGS= \
-        +earthly/* ./
+    COPY (+earthly/* \
+        --GOOS=darwin \
+        --GOARCH=arm64 \
+        --VARIANT= \
+        --GO_EXTRA_LDFLAGS= \
+        ) ./
     SAVE ARTIFACT ./*
 
 earthly-windows-amd64:
-    COPY \
-        --build-arg GOOS=windows \
-        --build-arg GOARCH=amd64 \
-        --build-arg VARIANT= \
-        --build-arg GO_EXTRA_LDFLAGS= \
-        --build-arg EXECUTABLE_NAME=earthly.exe \
-        +earthly/* ./
+    COPY (+earthly/* \
+        --GOOS=windows \
+        --GOARCH=amd64 \
+        --VARIANT= \
+        --GO_EXTRA_LDFLAGS= \
+        --EXECUTABLE_NAME=earthly.exe \
+        ) ./
     SAVE ARTIFACT ./*
 
 earthly-all:
@@ -320,7 +322,7 @@ earthly-docker:
     ENTRYPOINT ["/usr/bin/earthly-entrypoint.sh"]
     ARG EARTHLY_TARGET_TAG_DOCKER
     ARG TAG="dev-$EARTHLY_TARGET_TAG_DOCKER"
-    COPY --build-arg VERSION=$TAG +earthly/earthly /usr/bin/earthly
+    COPY (+earthly/earthly --VERSION=$TAG) /usr/bin/earthly
     SAVE IMAGE --push --cache-from=earthly/earthly:main earthly/earthly:$TAG
 
 earthly-integration-test-base:
@@ -360,12 +362,12 @@ earthly-integration-test-base:
 prerelease:
     FROM alpine:3.13
     ARG BUILDKIT_PROJECT
-    BUILD --build-arg TAG=prerelease \
+    BUILD \
         --platform=linux/amd64 \
         --platform=linux/arm/v7 \
         --platform=linux/arm64 \
-        ./buildkitd+buildkitd --BUILDKIT_PROJECT="$BUILDKIT_PROJECT"
-    COPY --build-arg VERSION=prerelease +earthly-all/* ./
+        ./buildkitd+buildkitd --TAG=prerelease  --BUILDKIT_PROJECT="$BUILDKIT_PROJECT"
+    COPY (+earthly-all/* --VERSION=prerelease) ./
     SAVE IMAGE --push earthly/earthlybinaries:prerelease
 
 prerelease-script:

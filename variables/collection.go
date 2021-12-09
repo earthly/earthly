@@ -6,6 +6,7 @@ import (
 
 	"github.com/earthly/earthly/conslogging"
 	"github.com/earthly/earthly/domain"
+	"github.com/earthly/earthly/features"
 	"github.com/earthly/earthly/util/gitutil"
 
 	dfShell "github.com/moby/buildkit/frontend/dockerfile/shell"
@@ -41,16 +42,31 @@ type Collection struct {
 	console conslogging.ConsoleLogger
 }
 
+// NewCollectionOpt contains supported arguments which
+// the `NewCollection` function may accept.
+type NewCollectionOpt struct {
+	Console        conslogging.ConsoleLogger
+	Target         domain.Target
+	Platform       specs.Platform
+	GitMeta        *gitutil.GitMetadata
+	BuiltinArgs    DefaultArgs
+	OverridingVars *Scope
+	Features       *features.Features
+	GlobalImports  map[string]domain.ImportTrackerVal
+}
+
 // NewCollection creates a new Collection to be used in the context of a target.
-func NewCollection(console conslogging.ConsoleLogger, target domain.Target, platform specs.Platform, gitMeta *gitutil.GitMetadata, overridingVars *Scope, globalImports map[string]domain.ImportTrackerVal) *Collection {
+func NewCollection(opts NewCollectionOpt) *Collection {
+	target := opts.Target
+	console := opts.Console
 	return &Collection{
-		builtin: BuiltinArgs(target, platform, gitMeta),
+		builtin: BuiltinArgs(target, opts.Platform, opts.GitMeta, opts.BuiltinArgs, opts.Features),
 		envs:    NewScope(),
 		stack: []*stackFrame{{
 			frameName:  target.StringCanonical(),
 			absRef:     target,
-			imports:    domain.NewImportTracker(console, globalImports),
-			overriding: overridingVars,
+			imports:    domain.NewImportTracker(console, opts.GlobalImports),
+			overriding: opts.OverridingVars,
 			args:       NewScope(),
 			globals:    NewScope(),
 		}},

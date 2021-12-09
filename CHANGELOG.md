@@ -4,6 +4,17 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+### Added
+
+- Earthly now provides the following [builtin ARGs](https://docs.earthly.dev/docs/earthfile/builtin-args): `EARTHLY_VERSION` and `EARTHLY_BUILD_SHA`. These will be generally available in Earthly version 0.7+, however, they can be enabled earlier by using the `--earthly-version-arg` [feature flag](https://docs.earthly.dev/docs/earthfile/features#feature-flags) [#1452](https://github.com/earthly/earthly/issues/1452).
+- Config option to disable `known_host` checking for specific git hosts by setting `strict_host_key_checking ` to `false` under the `git` section of `earthly/config.yml` (defaults to `true`).
+
+### Fixed
+
+- `known_host` entries were being ignored when custom `pattern` and `substituted` git config options were used (commonly used for [self-hosted git repos](https://docs.earthly.dev/docs/guides/auth#self-hosted-and-private-git-repositories))
+- Unable to connect to ssh server when `known_hosts` doesn't contain ssh-rsa host scan, but contains a different key-scan (e.g. `ecdsa-sha2-nistp256`, `ssh-ed25519`, etc).
+- When git auth is set to ssh but no user is given, default to current user (similar to calling `ssh example.com` vs `ssh user@example.com`).
+
 ## v0.6.2 - 2021-12-01
 
 ### Fixed

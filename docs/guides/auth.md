@@ -70,7 +70,7 @@ such as GitHub enterprise you will need to configure Earthly to use them using a
 git:
     ghe.internal.mycompany.com:
         pattern: 'ghe.internal.mycompany.com/([^/]+)/([^/]+)'
-        substitute: 'ssh://git@ghe.internal.mycompany.com:22/\$1/\$2.git'
+        substitute: 'ssh://git@ghe.internal.mycompany.com:22/$1/$2.git'
         auth: ssh
 ```
 
