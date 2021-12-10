@@ -2575,18 +2575,21 @@ func (app *earthlyApp) actionConfig(c *cli.Context) error {
 
 	var outConfig []byte
 
-	switch {
-	case args[1] == "--delete":
-		outConfig, err = config.Delete(inConfig, args[0])
-		if err != nil {
-			return errors.Wrap(err, "delete config")
-		}
-	case args[1] == "--help" || args[1] == "-h":
+	switch args[1] {
+	case "-h":
+		fallthrough
+	case "--help":
 		if err = config.PrintHelp(args[0]); err != nil {
 			return errors.Wrap(err, "help")
 		}
 		return nil // exit now without writing any changes to config
-	default: // args are key/value pairs, e.g. ["global.conversion_parallelism","5"]
+	case "--delete":
+		outConfig, err = config.Delete(inConfig, args[0])
+		if err != nil {
+			return errors.Wrap(err, "delete config")
+		}
+	default:
+		// args are key/value pairs, e.g. ["global.conversion_parallelism","5"]
 		outConfig, err = config.Upsert(inConfig, args[0], args[1])
 		if err != nil {
 			return errors.Wrap(err, "upsert config")

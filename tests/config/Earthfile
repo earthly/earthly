@@ -4,6 +4,10 @@ FROM ..+base
 
 test:
     COPY expected-*.yml .
+    
+    # Ensure earthly doesn't create overridden config files when they don't exist
+    RUN earthly --config config.yml config global.disable_analytics true 2>&1 | grep 'failed to read from config.yml: open config.yml: no such file or directory'
+    
     RUN touch config.yml
 
     # Adding various configs of different types
@@ -26,10 +30,10 @@ test:
     # --help and -h should succeed
     RUN earthly config global.conversion_parallelism --help
     RUN earthly config global.conversion_parallelism -h
+    # Ensure configs haven't changed by running help
+    RUN test "$(cat config.yml)" = "$(cat expected-5.yml)"
 
     # Edge cases
     RUN earthly --config config.yml config global.conversion_parallelism oops; test $? = 1
     RUN earthly --config config.yml config global.conversion_parallelism ""; test $? = 1
     RUN earthly --config config.yml config global.buildkit_image ""
-
-

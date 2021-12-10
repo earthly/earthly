@@ -298,15 +298,14 @@ func valueToYaml(value string) (*yaml.Node, error) {
 	fixStyling(valueNode)
 
 	contentNode := &yaml.Node{}
-	switch {
-	case len(valueNode.Content) > 0:
+	if len(valueNode.Content) > 0 {
 		// ContentNode contains the user-provided value with it's type etc
 		contentNode = valueNode.Content[0]
-	case value == "":
+	} else if value == "" {
 		// Edge case where the yaml.Unmarshal above results in no nodes in valueNode.Content.
 		// The code below ensures we can write an actual empty string to our yaml as requested.
 		contentNode.SetString("")
-	default:
+	} else {
 		// Very unlikely
 		return nil, errors.New("failed setting value in yaml")
 	}
