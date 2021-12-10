@@ -6,10 +6,14 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ### Added
 
+- Config file entries can be deleted using a `--delete` flag (for example `earthly config global.conversion_parallelism --delete`) [#1449](https://github.com/earthly/earthly/issues/1449)
+
 - Earthly now provides the following [builtin ARGs](https://docs.earthly.dev/docs/earthfile/builtin-args): `EARTHLY_VERSION` and `EARTHLY_BUILD_SHA`. These will be generally available in Earthly version 0.7+, however, they can be enabled earlier by using the `--earthly-version-arg` [feature flag](https://docs.earthly.dev/docs/earthfile/features#feature-flags) [#1452](https://github.com/earthly/earthly/issues/1452).
 - Config option to disable `known_host` checking for specific git hosts by setting `strict_host_key_checking ` to `false` under the `git` section of `earthly/config.yml` (defaults to `true`).
 
 ### Fixed
+
+- Gracefully handle empty string `""` being provided as a value to `earthly config` commands [#1449](https://github.com/earthly/earthly/issues/1449)
 
 - `known_host` entries were being ignored when custom `pattern` and `substituted` git config options were used (commonly used for [self-hosted git repos](https://docs.earthly.dev/docs/guides/auth#self-hosted-and-private-git-repositories))
 - Unable to connect to ssh server when `known_hosts` doesn't contain ssh-rsa host scan, but contains a different key-scan (e.g. `ecdsa-sha2-nistp256`, `ssh-ed25519`, etc).
