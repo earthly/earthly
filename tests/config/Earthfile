@@ -1,0 +1,30 @@
+VERSION 0.6
+
+FROM ..+base
+
+test:
+    COPY expected-*.yml .
+    RUN touch config.yml
+
+    # Adding various configs of different types
+    RUN earthly --config config.yml config global.disable_analytics true
+    RUN test "$(cat config.yml)" = "$(cat expected-1.yml)"
+    
+    RUN earthly --config config.yml config 'git."example.com".password' hunter2
+    RUN test "$(cat config.yml)" = "$(cat expected-2.yml)"
+    
+    RUN earthly --config config.yml config global.buildkit_additional_args "['userns', '--host']"
+    RUN test "$(cat config.yml)" = "$(cat expected-3.yml)"
+    
+    RUN earthly --config config.yml config global.conversion_parallelism 5
+    RUN test "$(cat config.yml)" = "$(cat expected-4.yml)"
+
+    # --delete should remove a config
+    RUN earthly --config config.yml config global.conversion_parallelism --delete
+    RUN test "$(cat config.yml)" = "$(cat expected-5.yml)"
+
+    # --help and -h should succeed
+    RUN earthly config global.conversion_parallelism --help
+    RUN earthly config global.conversion_parallelism --h
+
+
