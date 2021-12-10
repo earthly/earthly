@@ -2575,13 +2575,13 @@ func (app *earthlyApp) actionConfig(c *cli.Context) error {
 
 	var outConfig []byte
 
-	switch args[1] {
-	case "--delete":
+	switch {
+	case args[1] == "--delete":
 		outConfig, err = config.Delete(inConfig, args[0])
 		if err != nil {
 			return errors.Wrap(err, "delete config")
 		}
-	case "--help":
+	case args[1] == "--help" || args[1] == "-h":
 		if err = config.PrintHelp(args[0]); err != nil {
 			return errors.Wrap(err, "help")
 		}
