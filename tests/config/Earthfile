@@ -25,6 +25,11 @@ test:
 
     # --help and -h should succeed
     RUN earthly config global.conversion_parallelism --help
-    RUN earthly config global.conversion_parallelism --h
+    RUN earthly config global.conversion_parallelism -h
+
+    # Edge cases
+    RUN earthly --config config.yml config global.conversion_parallelism oops; test $? = 1
+    RUN earthly --config config.yml config global.conversion_parallelism ""; test $? = 1
+    RUN earthly --config config.yml config global.buildkit_image ""
 
 
