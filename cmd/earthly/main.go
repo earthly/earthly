@@ -2576,9 +2576,7 @@ func (app *earthlyApp) actionConfig(c *cli.Context) error {
 	var outConfig []byte
 
 	switch args[1] {
-	case "-h":
-		fallthrough
-	case "--help":
+	case "-h", "--help":
 		if err = config.PrintHelp(args[0]); err != nil {
 			return errors.Wrap(err, "help")
 		}
