@@ -58,7 +58,11 @@ ga:
         --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR
     BUILD +builtin-args-test
     BUILD +smoke-test
-    BUILD +config-test
+    BUILD +config-test \
+        --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
+        --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
+        --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
+        --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR
     BUILD +excludes-test
     BUILD +secrets-test
     BUILD +build-arg-test
