@@ -731,6 +731,8 @@ The `FROM DOCKERFILE` command initializes a new build environment, inheriting fr
 
 The `<context-path>` is the path where the Dockerfile build context exists. By default, it is assumed that a file named `Dockerfile` exists in that directory. The context path can be either a path on the host system, or an [artifact reference](../guides/target-ref.md#artifact-reference), pointing to a directory containing a `Dockerfile`.
 
+Transfer of the build context when using [artifact references](../guides/target-ref.md#artifact-reference) can be achieved by specifying the -f flag manually and appending a /* to the context-path argument. For example `FROM DOCKERFILE -f +target/dir/Dockerfile +target/dir`. Other specifications may currently face issues as documented in [#1410](https://github.com/earthly/earthly/issues/1410).
+
 #### Options
 
 ##### `-f <dockerfile-path>`
