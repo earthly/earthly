@@ -92,6 +92,7 @@ ga:
     BUILD +no-cache-local-artifact-test
     BUILD +empty-git-test
     BUILD +escape-test
+    BUILD +escape-test --EARTHFILE=escape-v0.5.earth
     BUILD +escape-dir-test
     BUILD +fail-invalid-artifact-test
     BUILD +target-first-line
@@ -446,9 +447,10 @@ empty-git-test:
     DO +RUN_EARTHLY --earthfile=empty-git.earth --extra_args="--no-output" --target=+test-origin-no-hash
 
 escape-test:
+    ARG EARTHFILE=escape.earth
     RUN printf "content" >file-with-+.txt
     RUN printf "content" >regular-file.txt
-    DO +RUN_EARTHLY --earthfile=escape.earth
+    DO +RUN_EARTHLY --earthfile="$EARTHFILE"
     RUN test "test" == "$(cat ./still-+.txt)"
 
 escape-dir-test:
