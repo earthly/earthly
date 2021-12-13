@@ -57,7 +57,12 @@ ga:
         --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
         --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR
     BUILD +builtin-args-test
-    BUILD +config-test
+    BUILD +smoke-test
+    BUILD ./config+test \
+        --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
+        --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
+        --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
+        --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR
     BUILD +excludes-test
     BUILD +secrets-test
     BUILD +build-arg-test
@@ -204,8 +209,8 @@ git-clone-test:
 builtin-args-test:
     DO +RUN_EARTHLY --earthfile=builtin-args.earth --target=+builtin-args-test
 
-config-test:
-    DO +RUN_EARTHLY --earthfile=config.earth --target=+test
+smoke-test:
+    DO +RUN_EARTHLY --earthfile=smoke.earth --target=+test
 
 excludes-test:
     RUN touch exclude-me.txt
@@ -248,7 +253,7 @@ scratch-test:
 
 build-earthly-test:
     # Test that build.earth is supported.
-    COPY config.earth ./build.earth
+    COPY smoke.earth ./build.earth
     RUN --privileged \
         --entrypoint \
         --mount=type=tmpfs,target=/tmp/earthly \
@@ -458,9 +463,9 @@ eine-test-base:
     ENV EARTHLY_BUILDKIT_IMAGE=earthly/buildkitd:dind-test
     WORKDIR /test
 
-eine-config-test:
+eine-smoke-test:
     FROM +eine-test-base
-    COPY config.earth ./Earthfile
+    COPY smoke.earth ./Earthfile
     WITH DOCKER --load earthly/buildkitd:dind-test=../../buildkitd+buildkitd
         RUN earthly +test
     END
