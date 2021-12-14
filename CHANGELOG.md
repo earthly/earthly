@@ -4,6 +4,10 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+### Changed
+
+- Updated buildkit to contain changes up to `4a1cbd73b0de05967ba0baa538364f888720591d` from `moby/master`.
+
 ### Added
 
 - Config file entries can be deleted using a `--delete` flag (for example `earthly config global.conversion_parallelism --delete`) [#1449](https://github.com/earthly/earthly/issues/1449)
