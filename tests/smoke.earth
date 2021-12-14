@@ -1,3 +1,4 @@
+VERSION 0.6
 # This is a smoke test for parsing. We don't actually check that the config was
 # set correctly.
 FROM alpine:3.13

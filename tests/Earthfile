@@ -451,7 +451,6 @@ escape-test:
     RUN printf "content" >file-with-+.txt
     RUN printf "content" >regular-file.txt
     DO +RUN_EARTHLY --earthfile="$EARTHFILE"
-    RUN test "test" == "$(cat ./still-+.txt)"
 
 escape-dir-test:
     RUN mkdir ./dir-with-+-in-it
@@ -907,6 +906,7 @@ RUN_EARTHLY:
     END
     RUN echo "
         set -x
+        export EARTHLY_VERBOSE=1
         if $use_tmpfs; then
             export EARTHLY_TMP_DIR=/tmp/earthly-tmpfs
         fi

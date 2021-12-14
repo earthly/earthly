@@ -24,17 +24,12 @@
         {
           "command": {
             "args": [
-              "--build-arg",
-              "INDEX=1",
-              "--build-arg",
-              "INDEX=2",
-              "--build-arg",
-              "INDEX=3",
-              "--build-arg",
-              "INDEX=4",
-              "--build-arg",
-              "INDEX=5",
-              "+test"
+              "+test",
+              "--INDEX=1",
+              "--INDEX=2",
+              "--INDEX=3",
+              "--INDEX=4",
+              "--INDEX=5"
             ],
             "name": "BUILD"
           }
@@ -141,5 +136,10 @@
         }
       ]
     }
-  ]
+  ],
+  "version": {
+    "args": [
+      "0.6"
+    ]
+  }
 }

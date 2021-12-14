@@ -1,3 +1,4 @@
+VERSION 0.6
 test-ubuntu:
     ARG version=20.10
     FROM ubuntu:$version

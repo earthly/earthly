@@ -1,3 +1,4 @@
+VERSION 0.6
 FROM earthly/dind:alpine
 
 all:
@@ -45,12 +46,12 @@ docker-pull-test:
 
 load-parallel-test:
     BUILD \
-        --build-arg INDEX=1 \
-        --build-arg INDEX=2 \
-        --build-arg INDEX=3 \
-        --build-arg INDEX=4 \
-        --build-arg INDEX=5 \
-        +docker-load-test
+        +docker-load-test \
+        --INDEX=1 \
+        --INDEX=2 \
+        --INDEX=3 \
+        --INDEX=4 \
+        --INDEX=5
 
 multi-from-one:
     FROM hello-world

@@ -1,3 +1,4 @@
+VERSION 0.6
 # This test requires that the base be empty (i.e. no FROM)
 
 subtest:
