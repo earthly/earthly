@@ -260,6 +260,8 @@ func (i *Interpreter) handleCommand(ctx context.Context, cmd spec.Command) (err 
 		return i.handleDo(ctx, cmd)
 	case "IMPORT":
 		return i.handleImport(ctx, cmd)
+	case "CACHE":
+		return i.handleCache(ctx, cmd) // TODO CACHE
 	default:
 		return i.errorf(cmd.SourceLocation, "unexpected command %s", cmd.Name)
 	}
@@ -1330,6 +1332,19 @@ func (i *Interpreter) handleImport(ctx context.Context, cmd spec.Command) error 
 	err = i.converter.Import(ctx, importStr, as, isGlobal, i.allowPrivileged, opts.AllowPrivileged)
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "apply IMPORT")
+	}
+	return nil
+}
+
+// TODO CACHE
+func (i *Interpreter) handleCache(ctx context.Context, cmd spec.Command) error {
+	// TODO 
+	//   Here we would check for additional args to the CACHE command, including:
+	//     * path      - string - required - the path to the cache volume available in the target
+	//     * --persist - bool   - optional - if set, saves the cache as a layer in the resuling image at the end of the target
+	path, isPersisted := "/my/volume", false // e.g.
+	if err := i.converter.Cache(ctx, path, isPersisted); err != nil {
+		return i.wrapError(err, cmd.SourceLocation, "apply CACHE")
 	}
 	return nil
 }

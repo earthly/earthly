@@ -67,6 +67,7 @@ const (
 	userCmd                              // "USER"
 	volumeCmd                            // "VOLUME"
 	workdirCmd                           // "WORKDIR"
+	cacheCmd                             // "CACHE" // TODO CACHE
 )
 
 // Converter turns earthly commands to buildkit LLB representation.
@@ -1143,6 +1144,55 @@ func (c *Converter) Import(ctx context.Context, importStr, as string, isGlobal, 
 	return c.varCollection.Imports().Add(importStr, as, isGlobal, currentlyPrivileged, allowPrivilegedFlag)
 }
 
+// TODO CACHE
+func (c *Converter) Cache(ctx context.Context, path string, isPersisted bool) error {
+	if err := c.checkAllowed(cacheCmd); err != nil {
+		return err
+	}
+
+	// TODO what do we need to do here?
+	//   * Mount a volume to the current image at the path
+	//   	* Does the volume exist already? Where to get it?
+	//   * Save the volume as a layer to the image when isPersisted is true
+
+	// TODO possibly useful?
+	// c.mts.Final.Target
+	// c.mts.Final.MainState
+	// c.cacheContext
+	// c.opt.CacheImports
+	// c.opt.LocalStateCache
+
+	// Adds a cache mount to the main state?
+	pllb.AddMount(path, c.mts.Final.MainState, llb.AsPersistentCacheDir("cacheid", llb.CacheMountShared))
+
+	// do we need to set a volume like this?
+	// new empty volume? what if it exists already, where do I get it?
+	c.mts.Final.MainImage.Config.Volumes[path] = struct{}{}
+
+	// ONE THOUGHT:
+	// We could just manually configure the build such that each subsequent
+	// RUN command would have type=cache,target=<path>, allowing parseMounts to do the work.
+	// It seems a bit hackish though..
+	// c.opt.GlobalCache = path // for example
+
+	// The following is equivalent to doing something like this:
+	// `RUN --mount=type=cache,target=/root/.gradle/caches`
+	// Since this would only be done in a RUN command, it doesn't make sense to do right now...
+	// Entertainment purposes only:
+	mount := fmt.Sprintf("type=cache,target=%s", path)
+	runOpts, err := parseMount(mount, c.mts.Final.Target, c.targetInputActiveOnly(), c.cacheContext)
+	if err != nil {
+		return err
+	}
+	fmt.Println(runOpts)
+
+	// When we have a --persist flag,
+	// do we need to save this as a volume?
+	// support locally or remotely?
+
+	return nil
+}
+
 // ResolveReference resolves a reference's build context given the current state: relativity to the Earthfile, imports etc.
 func (c *Converter) ResolveReference(ctx context.Context, ref domain.Reference) (bc *buildcontext.Data, allowPrivileged, allowPrivilegedSet bool, err error) {
 	derefed, allowPrivileged, allowPrivilegedSet, err := c.varCollection.Imports().Deref(ref)
@@ -1750,7 +1800,7 @@ func (c *Converter) checkAllowed(command cmdType) error {
 	}
 
 	switch command {
-	case fromCmd, fromDockerfileCmd, locallyCmd, buildCmd, argCmd, importCmd:
+	case fromCmd, fromDockerfileCmd, locallyCmd, buildCmd, argCmd, importCmd, cacheCmd: // TODO CACHE
 		return nil
 	default:
 		return errors.New("the first command has to be FROM, FROM DOCKERFILE, LOCALLY, ARG, BUILD or IMPORT")
