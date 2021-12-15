@@ -86,7 +86,7 @@ func (gr *gitResolver) resolveEarthProject(ctx context.Context, gwClient gwclien
 		gr.cleanCollection.Add(func() error {
 			return os.RemoveAll(earthfileTmpDir)
 		})
-		gitState, err := llbutil.StateToRef(ctx, gwClient, rgp.state, nil, nil)
+		gitState, err := llbutil.StateToRef(ctx, gwClient, rgp.state, false, nil, nil)
 		if err != nil {
 			return nil, errors.Wrap(err, "state to ref git meta")
 		}
@@ -179,7 +179,8 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, gwClient gwclient.
 		gitHashOp := opImg.Run(gitHashOpts...)
 		gitMetaState := gitHashOp.AddMount("/dest", llbutil.ScratchWithPlatform())
 
-		gitMetaRef, err := llbutil.StateToRef(ctx, gwClient, gitMetaState, nil, nil)
+		noCache := false // TODO figure out if we want to propagate --no-cache here
+		gitMetaRef, err := llbutil.StateToRef(ctx, gwClient, gitMetaState, noCache, nil, nil)
 		if err != nil {
 			return nil, errors.Wrap(err, "state to ref git meta")
 		}

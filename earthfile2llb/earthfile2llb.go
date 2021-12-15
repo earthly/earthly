@@ -100,6 +100,9 @@ type ConvertOpt struct {
 
 	// Default set of ARGs to make available in Earthfile.
 	BuiltinArgs variables.DefaultArgs
+
+	// NoCache sets llb.IgnoreCache before calling StateToRef
+	NoCache bool
 }
 
 // Earthfile2LLB parses a earthfile and executes the statements for a given target.

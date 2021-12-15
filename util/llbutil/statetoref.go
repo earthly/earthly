@@ -12,7 +12,10 @@ import (
 )
 
 // StateToRef takes an LLB state, solves it using gateway and returns the ref.
-func StateToRef(ctx context.Context, gwClient gwclient.Client, state pllb.State, platform *specs.Platform, cacheImports map[string]bool) (gwclient.Reference, error) {
+func StateToRef(ctx context.Context, gwClient gwclient.Client, state pllb.State, noCache bool, platform *specs.Platform, cacheImports map[string]bool) (gwclient.Reference, error) {
+	if noCache {
+		state = state.SetMarshalDefaults(llb.IgnoreCache)
+	}
 	cacheImportsSlice := make([]string, 0, len(cacheImports))
 	for ci := range cacheImports {
 		cacheImportsSlice = append(cacheImportsSlice, ci)
