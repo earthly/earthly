@@ -550,6 +550,9 @@ func (c *Converter) RunExitCode(ctx context.Context, opts ConvertRunOpts) (int, 
 			return 0, errors.Wrap(err, "read exit code file")
 		}
 	} else {
+		if c.opt.NoCache {
+			state = state.SetMarshalDefaults(llb.IgnoreCache)
+		}
 		ref, err := llbutil.StateToRef(ctx, c.opt.GwClient, state, c.opt.Platform, c.opt.CacheImports.AsMap())
 		if err != nil {
 			return 0, errors.Wrap(err, "run exit code state to ref")
