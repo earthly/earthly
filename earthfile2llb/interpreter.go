@@ -1337,14 +1337,20 @@ func (i *Interpreter) handleImport(ctx context.Context, cmd spec.Command) error 
 }
 
 func (i *Interpreter) handleCache(ctx context.Context, cmd spec.Command) error {
-	// TODO
-	//   Here we would check for additional args to the CACHE command, including:
-	//     * path      - string - required - the path to the cache volume available in the target
-	//     * --persist - bool   - optional - if set, saves the cache as a layer in the resuling image at the end of the target
-	if len(cmd.Args) != 1 { // TODO prob change when supporting --persist
+	path, isPersisted := "", false
+	switch len(cmd.Args) {
+	case 1:
+		path = cmd.Args[0]
+	case 2:
+		if a := cmd.Args[0]; a == "--persist" {
+			path = cmd.Args[1]
+			isPersisted = true
+		} else {
+			return errors.Errorf("invalid argument for CACHE: %s", a)
+		}
+	default:
 		return errors.Errorf("invalid number of arguments for CACHE: %s", cmd.Args)
 	}
-	path, isPersisted := cmd.Args[0], true
 	if err := i.converter.Cache(ctx, path, isPersisted); err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "apply CACHE")
 	}
