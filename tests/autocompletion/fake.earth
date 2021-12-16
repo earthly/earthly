@@ -13,3 +13,7 @@ othertargetwithargs:
     ARG city
     ARG country
     RUN echo "we will test that +othertargetwithargs --c<tab><tab> suggests --city and --country"
+
+targetwithrequiredarg:
+    ARG --required musthave
+    RUN echo "this is a $musthave feature"
