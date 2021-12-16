@@ -67,7 +67,7 @@ const (
 	userCmd                              // "USER"
 	volumeCmd                            // "VOLUME"
 	workdirCmd                           // "WORKDIR"
-	cacheCmd                             // "CACHE" // TODO CACHE
+	cacheCmd                             // "CACHE"
 )
 
 // Converter turns earthly commands to buildkit LLB representation.
@@ -79,6 +79,9 @@ type Converter struct {
 	directDeps          []*states.SingleTarget
 	buildContextFactory llbfactory.Factory
 	cacheContext        pllb.State
+	runOpts             []llb.RunOption
+	hasPersistentCache  bool
+	persistentCacheDir  string
 	varCollection       *variables.Collection
 	ranSave             bool
 	cmdSet              bool
@@ -505,6 +508,7 @@ func (c *Converter) Run(ctx context.Context, opts ConvertRunOpts) error {
 	}
 	c.nonSaveCommand()
 
+	opts.extraRunOpts = append(opts.extraRunOpts, c.runOpts...)
 	_, err = c.internalRun(ctx, opts)
 	return err
 }
@@ -1144,52 +1148,19 @@ func (c *Converter) Import(ctx context.Context, importStr, as string, isGlobal, 
 	return c.varCollection.Imports().Add(importStr, as, isGlobal, currentlyPrivileged, allowPrivilegedFlag)
 }
 
-// TODO CACHE
+// Cache handles a `CACHE` command in a Target.
+// It appends run options to the Converter which will mount a cache volume in each successive `RUN` command.
 func (c *Converter) Cache(ctx context.Context, path string, isPersisted bool) error {
 	if err := c.checkAllowed(cacheCmd); err != nil {
 		return err
 	}
-
-	// TODO what do we need to do here?
-	//   * Mount a volume to the current image at the path
-	//   	* Does the volume exist already? Where to get it?
-	//   * Save the volume as a layer to the image when isPersisted is true
-
-	// TODO possibly useful?
-	// c.mts.Final.Target
-	// c.mts.Final.MainState
-	// c.cacheContext
-	// c.opt.CacheImports
-	// c.opt.LocalStateCache
-
-	// Adds a cache mount to the main state?
-	pllb.AddMount(path, c.mts.Final.MainState, llb.AsPersistentCacheDir("cacheid", llb.CacheMountShared))
-
-	// do we need to set a volume like this?
-	// new empty volume? what if it exists already, where do I get it?
-	c.mts.Final.MainImage.Config.Volumes[path] = struct{}{}
-
-	// ONE THOUGHT:
-	// We could just manually configure the build such that each subsequent
-	// RUN command would have type=cache,target=<path>, allowing parseMounts to do the work.
-	// It seems a bit hackish though..
-	// c.opt.GlobalCache = path // for example
-
-	// The following is equivalent to doing something like this:
-	// `RUN --mount=type=cache,target=/root/.gradle/caches`
-	// Since this would only be done in a RUN command, it doesn't make sense to do right now...
-	// Entertainment purposes only:
-	mount := fmt.Sprintf("type=cache,target=%s", path)
-	runOpts, err := parseMount(mount, c.mts.Final.Target, c.targetInputActiveOnly(), c.cacheContext)
-	if err != nil {
-		return err
+	if isPersisted {
+		c.hasPersistentCache = true
+		c.persistentCacheDir = path
 	}
-	fmt.Println(runOpts)
-
-	// When we have a --persist flag,
-	// do we need to save this as a volume?
-	// support locally or remotely?
-
+	mountOpt := pllb.AddMount(path, c.mts.Final.MainState,
+		llb.AsPersistentCacheDir(path, llb.CacheMountShared))
+	c.runOpts = append(c.runOpts, mountOpt)
 	return nil
 }
 
@@ -1247,6 +1218,12 @@ func (c *Converter) FinalizeStates(ctx context.Context) (*states.MultiTarget, er
 		// Should never happen.
 		return nil, errors.New("internal error: stack not at base in FinalizeStates")
 	}
+
+	if c.hasPersistentCache {
+		// Target contains a `CACHE` command with a `--persist` flag.
+		c.persistCacheVolume()
+	}
+
 	c.mts.Final.VarCollection = c.varCollection
 	c.mts.Final.GlobalImports = c.varCollection.Imports().Global()
 	close(c.mts.Final.Done())
@@ -1800,7 +1777,7 @@ func (c *Converter) checkAllowed(command cmdType) error {
 	}
 
 	switch command {
-	case fromCmd, fromDockerfileCmd, locallyCmd, buildCmd, argCmd, importCmd, cacheCmd: // TODO CACHE
+	case fromCmd, fromDockerfileCmd, locallyCmd, buildCmd, argCmd, importCmd, cacheCmd:
 		return nil
 	default:
 		return errors.New("the first command has to be FROM, FROM DOCKERFILE, LOCALLY, ARG, BUILD or IMPORT")
@@ -1813,6 +1790,39 @@ func (c *Converter) targetInputActiveOnly() dedup.TargetInput {
 		activeBuildArgs[k] = true
 	}
 	return c.mts.Final.TargetInput().WithFilterBuildArgs(activeBuildArgs)
+}
+
+// persistCacheVolume makes a temporary cache volume permanent by writing it's contents
+// from the volume to the host filesystem at the same directory.
+// Used when the Earthfile contains a `CACHE --persist /my/directory` directive (with the --persist).
+func (c *Converter) persistCacheVolume() {
+	// tmpDir is sufficiently random that it should never collide with a user's work.
+	const tmpDir = "/earthly-tmp-a8cb9b0e-f285-4851-b00e-cd5b1ac6a499"
+
+	// Mount the same cache volume that was setup previously by the `CACHE` command
+	var opts []llb.RunOption
+	opts = append(opts, c.runOpts...)
+
+	// TODO Ideally this should use llb.Copy as we're doing below,
+	// however, we were unable to mount the cache volume within llb.Copy
+	// as is possible with llb.Run at the time of writing this.
+	cp := append(opts, llb.Shlexf("cp -r %s %s", c.persistentCacheDir, tmpDir))
+	c.mts.Final.MainState = c.mts.Final.MainState.Run(cp...).Root()
+
+	// Copy the contents from our tmp directory back to the
+	// same place as the user had them with cache volume
+	c.mts.Final.MainState = llbutil.CopyOp(
+		c.mts.Final.MainState,
+		[]string{fmt.Sprintf("%s/*", tmpDir)},
+		c.mts.Final.MainState,
+		c.persistentCacheDir,
+		true, true, true,
+		"", false, false,
+	)
+
+	// TODO ideally this would use llb.Rm
+	rm := append(opts, llb.Shlexf("rm -rf %s", tmpDir))
+	c.mts.Final.MainState = c.mts.Final.MainState.Run(rm...).Root()
 }
 
 func joinWrap(a []string, before string, sep string, after string) string {

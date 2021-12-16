@@ -84,7 +84,7 @@ SHELL_R: SHELL -> type(SHELL), pushMode(COMMAND_ARGS);
 DO_R: DO -> type(DO), pushMode(COMMAND_ARGS);
 COMMAND_R: COMMAND -> type(COMMAND), pushMode(COMMAND_ARGS);
 IMPORT_R: IMPORT -> type(IMPORT), pushMode(COMMAND_ARGS);
-CACHE_R: IMPORT -> type(CACHE), pushMode(COMMAND_ARGS);
+CACHE_R: CACHE -> type(CACHE), pushMode(COMMAND_ARGS);
 
 WITH_R: WITH -> type(WITH);
 DOCKER_R: DOCKER -> type(DOCKER), pushMode(BLOCK), pushMode(COMMAND_ARGS);
