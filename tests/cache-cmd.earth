@@ -14,4 +14,7 @@ test-prev:
 
 test:
     FROM +test-prev
+    # The file should contain only the contents written to it in +test-prev.
     RUN test "$(cat ./my/data/hello)" = "hello world"
+    # The temporary backup directory should have been removed.
+    RUN test -d /earthly-tmp-a8cb9b0e-f285-4851-b00e-cd5b1ac6a499; test $? = 1
