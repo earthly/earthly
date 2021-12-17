@@ -1796,8 +1796,10 @@ func (c *Converter) targetInputActiveOnly() dedup.TargetInput {
 // from the volume to the host filesystem at the same directory.
 // Used when the Target contains a `CACHE --persist /my/directory` directive (with the --persist).
 func (c *Converter) persistCacheVolume() {
-	// tmpDir is sufficiently random that it should never collide with a user's work.
+	// tmpDir is a backup directory where we can store the contents of the user's cache volume
+	// Is's name is sufficiently random that it should never collide with a user's work.
 	const tmpDir = "/earthly-tmp-a8cb9b0e-f285-4851-b00e-cd5b1ac6a499"
+	state := c.mts.Final.MainState
 
 	// Mount the same cache volume that was setup previously by the `CACHE` command.
 	var opts []llb.RunOption
@@ -1807,22 +1809,26 @@ func (c *Converter) persistCacheVolume() {
 	// however, we were unable to mount the cache volume within llb.Copy
 	// as is possible with llb.Run (at the time of writing this).
 	cp := append(opts, llb.Shlexf("cp -r %s %s", c.persistentCacheDir, tmpDir))
-	c.mts.Final.MainState = c.mts.Final.MainState.Run(cp...).Root()
+	state = state.Run(cp...).Root()
 
 	// Copy the contents from our tmp directory back to the
 	// same place as the user had them with cache volume.
-	c.mts.Final.MainState = llbutil.CopyOp(
-		c.mts.Final.MainState,
-		[]string{fmt.Sprintf("%s/*", tmpDir)},
-		c.mts.Final.MainState,
+	copyOpts := []llb.CopyOption{&llb.CopyInfo{
+		FollowSymlinks:     true,
+		CreateDestPath:     true,
+		AllowWildcard:      true,
+		AllowEmptyWildcard: true,
+	}}
+	fa := pllb.Copy(
+		state,
+		fmt.Sprintf("%s/*", tmpDir),
 		c.persistentCacheDir,
-		true, true, true,
-		"", false, false,
+		copyOpts...,
 	)
 
-	// TODO ideally this would use llb.Rm.
-	rm := append(opts, llb.Shlexf("rm -rf %s", tmpDir))
-	c.mts.Final.MainState = c.mts.Final.MainState.Run(rm...).Root()
+	// Remove the temporary backup after we're done copying from it.
+	fa = fa.Rm(tmpDir)
+	c.mts.Final.MainState = state.File(fa)
 }
 
 func joinWrap(a []string, before string, sep string, after string) string {
