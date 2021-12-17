@@ -1,0 +1,17 @@
+VERSION 0.6
+
+FROM alpine:3.13
+
+test-prev-prev:
+    WORKDIR /test
+    CACHE ./my/data
+    RUN echo "nothing to see here" >> ./my/data/hello
+
+test-prev:
+    FROM +test-prev-prev
+    CACHE --persist ./my/data
+    RUN echo "hello world" >> ./my/data/hello
+
+test:
+    FROM +test-prev
+    RUN test "$(cat ./my/data/hello)" = "hello world"

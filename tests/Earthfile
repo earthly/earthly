@@ -133,6 +133,7 @@ ga:
     BUILD +homebrew-test
     BUILD +implicit-ignores
     BUILD +help
+    BUILD +cache-cmd
 
 # tests that only run on linux amd64
 # Note: this target is used to validate the USERPLATFORM user arg,
@@ -888,6 +889,9 @@ help:
     RUN earthly --help | grep -v 'buildkit-volume-name'
     ENV EARTHLY_SHOW_HIDDEN=1
     RUN earthly --help | grep 'buildkit-volume-name'
+
+cache-cmd:
+     DO +RUN_EARTHLY --earthfile=cache-cmd.earth --target=+test
 
 
 RUN_EARTHLY:
