@@ -80,8 +80,7 @@ type Converter struct {
 	buildContextFactory llbfactory.Factory
 	cacheContext        pllb.State
 	runOpts             []llb.RunOption
-	hasPersistentCache  bool
-	persistentCacheDir  string
+	persistentCacheDirs []string
 	varCollection       *variables.Collection
 	ranSave             bool
 	cmdSet              bool
@@ -1155,8 +1154,7 @@ func (c *Converter) Cache(ctx context.Context, path string, isPersisted bool) er
 		return err
 	}
 	if isPersisted {
-		c.hasPersistentCache = true
-		c.persistentCacheDir = path
+		c.persistentCacheDirs = append(c.persistentCacheDirs, path)
 	}
 	mountOpt := pllb.AddMount(path, c.mts.Final.MainState,
 		llb.AsPersistentCacheDir(path, llb.CacheMountShared))
@@ -1219,9 +1217,9 @@ func (c *Converter) FinalizeStates(ctx context.Context) (*states.MultiTarget, er
 		return nil, errors.New("internal error: stack not at base in FinalizeStates")
 	}
 
-	if c.hasPersistentCache {
+	if len(c.persistentCacheDirs) > 0 {
 		// Target contains a `CACHE` command with a `--persist` flag.
-		c.persistCacheVolume()
+		c.persistCacheVolumes()
 	}
 
 	c.mts.Final.VarCollection = c.varCollection
@@ -1792,43 +1790,45 @@ func (c *Converter) targetInputActiveOnly() dedup.TargetInput {
 	return c.mts.Final.TargetInput().WithFilterBuildArgs(activeBuildArgs)
 }
 
-// persistCacheVolume makes a temporary cache volume permanent by writing it's contents
+// persistCacheVolumes makes temporary cache volumes permanent by writing their contents
 // from the volume to the host filesystem at the same directory.
 // Used when the Target contains a `CACHE --persist /my/directory` directive (with the --persist).
-func (c *Converter) persistCacheVolume() {
-	// tmpDir is a backup directory where we can store the contents of the user's cache volume
-	// Is's name is sufficiently random that it should never collide with a user's work.
-	const tmpDir = "/earthly-tmp-a8cb9b0e-f285-4851-b00e-cd5b1ac6a499"
-	state := c.mts.Final.MainState
+func (c *Converter) persistCacheVolumes() {
+	for _, cacheDir := range c.persistentCacheDirs {
+		// tmpDir is a backup directory where we can store the contents of the user's cache volume
+		// Is's name is sufficiently random that it should never collide with a user's work.
+		const tmpDir = "/earthly-tmp-a8cb9b0e-f285-4851-b00e-cd5b1ac6a499"
+		state := c.mts.Final.MainState
 
-	// Mount the same cache volume that was setup previously by the `CACHE` command.
-	var opts []llb.RunOption
-	opts = append(opts, c.runOpts...)
+		// Mount the same cache volume that was setup previously by the `CACHE` command.
+		var opts []llb.RunOption
+		opts = append(opts, c.runOpts...)
 
-	// TODO Ideally this should use llb.Copy as we're doing below,
-	// however, we were unable to mount the cache volume within llb.Copy
-	// as is possible with llb.Run (at the time of writing this).
-	cp := append(opts, llb.Shlexf("cp -r %s %s", c.persistentCacheDir, tmpDir))
-	state = state.Run(cp...).Root()
+		// TODO Ideally this should use llb.Copy as we're doing below,
+		// however, we were unable to mount the cache volume within llb.Copy
+		// as is possible with llb.Run (at the time of writing this).
+		cp := append(opts, llb.Shlexf("cp -r %s %s", cacheDir, tmpDir))
+		state = state.Run(cp...).Root()
 
-	// Copy the contents from our tmp directory back to the
-	// same place as the user had them with cache volume.
-	copyOpts := []llb.CopyOption{&llb.CopyInfo{
-		FollowSymlinks:     true,
-		CreateDestPath:     true,
-		AllowWildcard:      true,
-		AllowEmptyWildcard: true,
-	}}
-	fa := pllb.Copy(
-		state,
-		fmt.Sprintf("%s/*", tmpDir),
-		c.persistentCacheDir,
-		copyOpts...,
-	)
+		// Copy the contents from our tmp directory back to the
+		// same place as the user had them with cache volume.
+		copyOpts := []llb.CopyOption{&llb.CopyInfo{
+			FollowSymlinks:     true,
+			CreateDestPath:     true,
+			AllowWildcard:      true,
+			AllowEmptyWildcard: true,
+		}}
+		fa := pllb.Copy(
+			state,
+			fmt.Sprintf("%s/*", tmpDir),
+			cacheDir,
+			copyOpts...,
+		)
 
-	// Remove the temporary backup after we're done copying from it.
-	fa = fa.Rm(tmpDir)
-	c.mts.Final.MainState = state.File(fa)
+		// Remove the temporary backup after we're done copying from it.
+		fa = fa.Rm(tmpDir)
+		c.mts.Final.MainState = state.File(fa)
+	}
 }
 
 func joinWrap(a []string, before string, sep string, after string) string {

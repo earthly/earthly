@@ -1,20 +1,32 @@
 VERSION 0.6
 
 FROM alpine:3.13
+CACHE --persist /base/persistent
+CACHE /base/ephemeral
 
 test-prev-prev:
     WORKDIR /test
     CACHE ./my/data
     RUN echo "nothing to see here" >> ./my/data/hello
+    RUN echo "...or here" >> /base/ephemeral/hello
+    RUN echo "hello" >> /base/persistent/hello
 
 test-prev:
     FROM +test-prev-prev
     CACHE --persist ./my/data
+    CACHE --persist ./my/other
     RUN echo "hello world" >> ./my/data/hello
+    RUN echo "hello again" >> ./my/other/hello
+    RUN echo "$(cat /base/persistent/hello), hello" > /base/persistent/hello
 
 test:
     FROM +test-prev
-    # The file should contain only the contents written to it in +test-prev.
+    # These files should contain only the contents written to it in +test-prev.
     RUN test "$(cat ./my/data/hello)" = "hello world"
+    RUN test "$(cat ./my/other/hello)" = "hello again"
+    # The persistent cache from the +base target should be accessible.
+    RUN test "$(cat /base/persistent/hello)" = "hello, hello"
+    # Non-persistent cache should not be accessible.
+    RUN test -d /base/ephemeral/hello; test $? = 1
     # The temporary backup directory should have been removed.
     RUN test -d /earthly-tmp-a8cb9b0e-f285-4851-b00e-cd5b1ac6a499; test $? = 1
