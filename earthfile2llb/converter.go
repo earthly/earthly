@@ -1794,23 +1794,23 @@ func (c *Converter) targetInputActiveOnly() dedup.TargetInput {
 
 // persistCacheVolume makes a temporary cache volume permanent by writing it's contents
 // from the volume to the host filesystem at the same directory.
-// Used when the Earthfile contains a `CACHE --persist /my/directory` directive (with the --persist).
+// Used when the Target contains a `CACHE --persist /my/directory` directive (with the --persist).
 func (c *Converter) persistCacheVolume() {
 	// tmpDir is sufficiently random that it should never collide with a user's work.
 	const tmpDir = "/earthly-tmp-a8cb9b0e-f285-4851-b00e-cd5b1ac6a499"
 
-	// Mount the same cache volume that was setup previously by the `CACHE` command
+	// Mount the same cache volume that was setup previously by the `CACHE` command.
 	var opts []llb.RunOption
 	opts = append(opts, c.runOpts...)
 
 	// TODO Ideally this should use llb.Copy as we're doing below,
 	// however, we were unable to mount the cache volume within llb.Copy
-	// as is possible with llb.Run at the time of writing this.
+	// as is possible with llb.Run (at the time of writing this).
 	cp := append(opts, llb.Shlexf("cp -r %s %s", c.persistentCacheDir, tmpDir))
 	c.mts.Final.MainState = c.mts.Final.MainState.Run(cp...).Root()
 
 	// Copy the contents from our tmp directory back to the
-	// same place as the user had them with cache volume
+	// same place as the user had them with cache volume.
 	c.mts.Final.MainState = llbutil.CopyOp(
 		c.mts.Final.MainState,
 		[]string{fmt.Sprintf("%s/*", tmpDir)},
@@ -1820,7 +1820,7 @@ func (c *Converter) persistCacheVolume() {
 		"", false, false,
 	)
 
-	// TODO ideally this would use llb.Rm
+	// TODO ideally this would use llb.Rm.
 	rm := append(opts, llb.Shlexf("rm -rf %s", tmpDir))
 	c.mts.Final.MainState = c.mts.Final.MainState.Run(rm...).Root()
 }
