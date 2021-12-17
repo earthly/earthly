@@ -891,8 +891,7 @@ help:
     RUN earthly --help | grep 'buildkit-volume-name'
 
 cache-cmd:
-     DO +RUN_EARTHLY --earthfile=cache-cmd.earth --target=+test
-
+    DO +RUN_EARTHLY --earthfile=cache-cmd.earth --target=+test
 
 RUN_EARTHLY:
     COMMAND
