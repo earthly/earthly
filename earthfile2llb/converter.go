@@ -555,7 +555,7 @@ func (c *Converter) RunExitCode(ctx context.Context, opts ConvertRunOpts) (int, 
 			return 0, errors.Wrap(err, "read exit code file")
 		}
 	} else {
-		ref, err := llbutil.StateToRef(ctx, c.opt.GwClient, state, c.opt.Platform, c.opt.CacheImports.AsMap())
+		ref, err := llbutil.StateToRef(ctx, c.opt.GwClient, state, c.opt.NoCache, c.opt.Platform, c.opt.CacheImports.AsMap())
 		if err != nil {
 			return 0, errors.Wrap(err, "run exit code state to ref")
 		}
@@ -618,7 +618,7 @@ func (c *Converter) RunExpression(ctx context.Context, expressionName string, op
 			return "", errors.Wrap(err, "read exit code file")
 		}
 	} else {
-		ref, err := llbutil.StateToRef(ctx, c.opt.GwClient, state, c.opt.Platform, c.opt.CacheImports.AsMap())
+		ref, err := llbutil.StateToRef(ctx, c.opt.GwClient, state, c.opt.NoCache, c.opt.Platform, c.opt.CacheImports.AsMap())
 		if err != nil {
 			return "", errors.Wrapf(err, "build arg state to ref")
 		}
@@ -1559,7 +1559,7 @@ func (c *Converter) parseSecretFlag(secretKeyValue string) (secretID string, env
 }
 
 func (c *Converter) forceExecution(ctx context.Context, state pllb.State) error {
-	ref, err := llbutil.StateToRef(ctx, c.opt.GwClient, state, c.opt.Platform, c.opt.CacheImports.AsMap())
+	ref, err := llbutil.StateToRef(ctx, c.opt.GwClient, state, c.opt.NoCache, c.opt.Platform, c.opt.CacheImports.AsMap())
 	if err != nil {
 		return errors.Wrap(err, "run locally state to ref")
 	}
@@ -1577,7 +1577,7 @@ func (c *Converter) readArtifact(ctx context.Context, mts *states.MultiTarget, a
 		// ArtifactsState is scratch - no artifact has been copied.
 		return nil, errors.Errorf("artifact %s not found; no SAVE ARTIFACT command was issued in %s", artifact.String(), artifact.Target.String())
 	}
-	ref, err := llbutil.StateToRef(ctx, c.opt.GwClient, mts.Final.ArtifactsState, mts.Final.Platform, c.opt.CacheImports.AsMap())
+	ref, err := llbutil.StateToRef(ctx, c.opt.GwClient, mts.Final.ArtifactsState, c.opt.NoCache, mts.Final.Platform, c.opt.CacheImports.AsMap())
 	if err != nil {
 		return nil, errors.Wrap(err, "state to ref solve artifact")
 	}

@@ -65,5 +65,10 @@
       "name": "eof",
       "recipe": null
     }
-  ]
+  ],
+  "version": {
+    "args": [
+      "0.6"
+    ]
+  }
 }

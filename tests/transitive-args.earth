@@ -1,7 +1,8 @@
+VERSION 0.6
 FROM alpine:3.13
 test:
     BUILD +intermediate
-    BUILD --build-arg SOMEARG=abc +intermediate
+    BUILD +intermediate --SOMEARG=abc
 intermediate:
     BUILD +arg-target
 arg-target:

@@ -1,3 +1,4 @@
+VERSION 0.5
 FROM alpine:3.13
 
 mysubimage:

@@ -178,6 +178,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 				FeatureFlagOverrides: featureFlagOverrides,
 				LocalStateCache:      sharedLocalStateCache,
 				BuiltinArgs:          opt.BuiltinArgs,
+				NoCache:              b.opt.NoCache,
 			}
 			mts, err = earthfile2llb.Earthfile2LLB(childCtx, target, opt, true)
 			if err != nil {
@@ -609,17 +610,13 @@ func (b *Builder) targetPhaseInteractiveSession(sts *states.SingleTarget) states
 }
 
 func (b *Builder) stateToRef(ctx context.Context, gwClient gwclient.Client, state pllb.State, platform *specs.Platform) (gwclient.Reference, error) {
-	if b.opt.NoCache && !b.builtMain {
-		state = state.SetMarshalDefaults(llb.IgnoreCache)
-	}
-	return llbutil.StateToRef(ctx, gwClient, state, platform, b.opt.CacheImports.AsMap())
+	noCache := b.opt.NoCache && !b.builtMain
+	return llbutil.StateToRef(ctx, gwClient, state, noCache, platform, b.opt.CacheImports.AsMap())
 }
 
 func (b *Builder) artifactStateToRef(ctx context.Context, gwClient gwclient.Client, state pllb.State, platform *specs.Platform) (gwclient.Reference, error) {
-	if b.opt.NoCache || b.builtMain {
-		state = state.SetMarshalDefaults(llb.IgnoreCache)
-	}
-	return llbutil.StateToRef(ctx, gwClient, state, platform, b.opt.CacheImports.AsMap())
+	noCache := b.opt.NoCache || b.builtMain
+	return llbutil.StateToRef(ctx, gwClient, state, noCache, platform, b.opt.CacheImports.AsMap())
 }
 
 func (b *Builder) buildOnlyLastImageAsTar(ctx context.Context, mts *states.MultiTarget, dockerTag string, outFile string, opt BuildOpt) error {
