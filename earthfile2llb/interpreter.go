@@ -1027,31 +1027,47 @@ func (i *Interpreter) handleEnv(ctx context.Context, cmd spec.Command) error {
 	return nil
 }
 
+var errInvalidSyntax = errors.New("invalid syntax")
+var errRequiredArgHasDefault = errors.New("required ARG cannot have a default value")
+
+// parseArgArgs parses the ARG command's arguments
+// and returns the argOpts, key, value (or nil if missing), or error
+func parseArgArgs(ctx context.Context, cmd spec.Command) (argOpts, string, *string, error) {
+	opts := argOpts{}
+	args, err := flagutil.ParseArgs("ARG", &opts, getArgsCopy(cmd))
+	if err != nil {
+		return argOpts{}, "", nil, err
+	}
+	switch len(args) {
+	case 3:
+		if args[1] != "=" {
+			return argOpts{}, "", nil, errInvalidSyntax
+		}
+		if opts.Required {
+			return argOpts{}, "", nil, errRequiredArgHasDefault
+		}
+		return opts, args[0], &args[2], nil
+	case 1:
+		return opts, args[0], nil, nil
+	default:
+		return argOpts{}, "", nil, errInvalidSyntax
+	}
+}
+
 func (i *Interpreter) handleArg(ctx context.Context, cmd spec.Command) error {
 	if i.pushOnlyAllowed {
 		return i.pushOnlyErr(cmd.SourceLocation)
 	}
-	opts := argOpts{}
-	args, err := flagutil.ParseArgs("ARG", &opts, getArgsCopy(cmd))
+	opts, key, valueOrNil, err := parseArgArgs(ctx, cmd)
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "invalid ARG arguments %v", cmd.Args)
 	}
-	var key, value string
-	switch len(args) {
-	case 3:
-		if args[1] != "=" {
-			return i.errorf(cmd.SourceLocation, "invalid syntax")
-		}
-		value = i.expandArgs(args[2], true)
-		fallthrough
-	case 1:
-		if opts.Required && len(value) != 0 {
-			return i.errorf(cmd.SourceLocation, "required ARG cannot have a default value")
-		}
-		key = args[0] // Note: Not expanding args for key.
-	default:
-		return i.errorf(cmd.SourceLocation, "invalid syntax")
+
+	var value string
+	if valueOrNil != nil {
+		value = i.expandArgs(*valueOrNil, true)
 	}
+
 	if i.local && strings.HasPrefix(value, "$(") {
 		return i.errorf(cmd.SourceLocation, "ARG does not currently support shelling-out in combination with LOCALLY")
 	}
