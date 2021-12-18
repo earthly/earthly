@@ -80,7 +80,7 @@ type Converter struct {
 	buildContextFactory llbfactory.Factory
 	cacheContext        pllb.State
 	runOpts             []llb.RunOption
-	persistentCacheDirs []string
+	persistentCacheDirs map[string]bool // Treated as a "set" of cache directories to persist in the image
 	varCollection       *variables.Collection
 	ranSave             bool
 	cmdSet              bool
@@ -113,6 +113,7 @@ func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Da
 		mts:                 mts,
 		buildContextFactory: bc.BuildContextFactory,
 		cacheContext:        pllb.Scratch(),
+		persistentCacheDirs: make(map[string]bool),
 		varCollection:       variables.NewCollection(newCollOpt),
 		ftrs:                bc.Features,
 	}, nil
@@ -1154,7 +1155,7 @@ func (c *Converter) Cache(ctx context.Context, path string, isPersisted bool) er
 		return err
 	}
 	if isPersisted {
-		c.persistentCacheDirs = append(c.persistentCacheDirs, path)
+		c.persistentCacheDirs[path] = true
 	}
 	mountOpt := pllb.AddMount(path, c.mts.Final.MainState,
 		llb.AsPersistentCacheDir(path, llb.CacheMountShared))
@@ -1217,10 +1218,8 @@ func (c *Converter) FinalizeStates(ctx context.Context) (*states.MultiTarget, er
 		return nil, errors.New("internal error: stack not at base in FinalizeStates")
 	}
 
-	if len(c.persistentCacheDirs) > 0 {
-		// Target contains a `CACHE` command with a `--persist` flag.
-		c.persistCacheVolumes()
-	}
+	// Persists cache volumes created by `CACHE --persist`
+	c.persistCacheVolumes()
 
 	c.mts.Final.VarCollection = c.varCollection
 	c.mts.Final.GlobalImports = c.varCollection.Imports().Global()
@@ -1794,7 +1793,7 @@ func (c *Converter) targetInputActiveOnly() dedup.TargetInput {
 // from the volume to the host filesystem at the same directory.
 // Used when the Target contains a `CACHE --persist /my/directory` directive (with the --persist).
 func (c *Converter) persistCacheVolumes() {
-	for _, cacheDir := range c.persistentCacheDirs {
+	for cacheDir := range c.persistentCacheDirs {
 		// tmpDir is a backup directory where we can store the contents of the user's cache volume
 		// Is's name is sufficiently random that it should never collide with a user's work.
 		const tmpDir = "/earthly-tmp-a8cb9b0e-f285-4851-b00e-cd5b1ac6a499"
