@@ -159,7 +159,7 @@ type cliFlags struct {
 	featureFlagOverrides      string
 	localRegistryHost         string
 	containerFrontend         containerutil.ContainerFrontend
-	envFile					  string
+	envFile                   string
 }
 
 var (
