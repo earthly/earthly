@@ -446,8 +446,8 @@ env-file-test:
     DO +RUN_EARTHLY --earthfile=envfile.earth --extra_args="--no-output --env-file $ENV_FILE_PATH" --target=+test
     # Test wrong file path results in an error
     RUN rm $ENV_FILE_PATH
-    DO +RUN_EARTHLY --earthfile=envfile.earth --extra_args="--no-output --env-file $ENV_FILE_PATH" --target=+test --post_command="> /tmp/output 2>&1"
-    RUN cat /tmp/output | grep 'Error: env file does not exist - $ENV_FILE_PATH'
+    DO +RUN_EARTHLY --should_fail=true --earthfile=envfile.earth --extra_args="--no-output --env-file $ENV_FILE_PATH" --target=+test --post_command="> /tmp/output 2>&1"
+    RUN cat /tmp/output | grep "Error.*env file does not exist - $ENV_FILE_PATH"
 
 env-test:
     DO +RUN_EARTHLY --earthfile=env.earth --extra_args="--no-output" --target=+test
