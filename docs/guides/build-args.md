@@ -97,7 +97,7 @@ Argument values can be set multiple ways:
    Then simply run earthly:
    
    ```bash
-   earthly --envfile my_env.env +hello
+   earthly --env-file my_env.env +hello
    ```
 
 5. From a `.env` file
