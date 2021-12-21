@@ -85,7 +85,22 @@ Argument values can be set multiple ways:
 
     This may be useful if you have a set of build args that you'd like to always use and would prefer not to have to specify them on the command line every time. The `EARTHLY_BUILD_ARGS` environment variable may also be stored in your `~/.bashrc` file, or some other shell-specific startup script.
 
-4. From a `.env` file
+4. From an env file
+
+   It is also possible to create an env file to contain the build arguments to pass
+   to earthly. First create an env file, `my_env.env` with:
+   
+   ```
+   name=tomatoe
+   ```
+   
+   Then simply run earthly:
+   
+   ```bash
+   earthly --envfile my_env.env +hello
+   ```
+
+5. From a `.env` file
 
    It is also possible to create an `.env` file to contain the build arguments to pass
    to earthly. First create an `.env` file with:
@@ -197,7 +212,22 @@ This is possible in a few ways:
 
    Multiple secrets can be specified by separating them with a comma.
 
-4. Via the `.env` file.
+4. Via your own env file.
+
+   Create an env file (e.g `my_env.env`). Its contents should be:
+   
+   ```
+   passwd=itsasecret
+   ```
+   
+   Then simply run earthly:
+   
+   ```bash
+   earthly --env-file my_env.env +hello
+   ```
+
+
+5. Via the `.env` file.
 
    Create a `.env` file in the same directory where you plan to run `earthly` from. Its contents should be:
    

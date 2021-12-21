@@ -159,6 +159,7 @@ type cliFlags struct {
 	featureFlagOverrides      string
 	localRegistryHost         string
 	containerFrontend         containerutil.ContainerFrontend
+	envFile					  string
 }
 
 var (
@@ -587,6 +588,13 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 			Usage:       "Apply additional flags after each VERSION command across all Earthfiles, multiple flags can be seperated by commas",
 			Destination: &app.featureFlagOverrides,
 			Hidden:      true, // used for feature-flipping from ./earthly dev script
+		},
+		&cli.StringFlag{
+			Name:        "env-file",
+			Aliases:     []string{"E"},
+			EnvVars:     []string{"EARTHLY_ENV_FILE"},
+			Usage:       "Specify additional build args and/or secrets via a given env file",
+			Destination: &app.envFile,
 		},
 	}
 
@@ -2754,14 +2762,30 @@ func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []st
 		platformsSlice = []*specs.Platform{nil}
 	}
 
-	dotEnvMap := make(map[string]string)
+	envMap := make(map[string]string)
+	envFilePaths := make([]string, 0, 2)
 	if fileutil.FileExists(dotEnvPath) {
-		dotEnvMap, err = godotenv.Read(dotEnvPath)
-		if err != nil {
-			return errors.Wrapf(err, "read %s", dotEnvPath)
+		envFilePaths = append(envFilePaths, dotEnvPath)
+	}
+	if app.envFile != "" {
+		if fileutil.FileExists(app.envFile) {
+			envFilePaths = append(envFilePaths, app.envFile)
+		} else {
+			return fmt.Errorf("env file does not exist - %s", app.envFile)
 		}
 	}
-	secretsMap, err := processSecrets(app.secrets.Value(), app.secretFiles.Value(), dotEnvMap)
+	if len(envFilePaths) > 0 {
+		envMap, err = godotenv.Read(envFilePaths...)
+		if err != nil {
+			errMsg := fmt.Sprintf("read %s", envFilePaths[0])
+			if len(envFilePaths) > 1 {
+				errMsg = fmt.Sprintf("%s, %s", errMsg, envFilePaths[1])
+			}
+			return errors.Wrapf(err, errMsg)
+		}
+	}
+
+	secretsMap, err := processSecrets(app.secrets.Value(), app.secretFiles.Value(), envMap)
 	if err != nil {
 		return err
 	}
@@ -2849,7 +2873,7 @@ func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []st
 		}()
 	}
 
-	overridingVars, err := app.combineVariables(dotEnvMap, flagArgs)
+	overridingVars, err := app.combineVariables(envMap, flagArgs)
 	if err != nil {
 		return err
 	}
