@@ -88,7 +88,7 @@ ga:
     BUILD +gen-dockerfile-test
     BUILD +chown-test
     BUILD +dotenv-test
-    BUILD +specified-env-test
+    BUILD +env-file-test
     BUILD +env-test
     BUILD +no-cache-local-artifact-test
     BUILD +empty-git-test
@@ -432,7 +432,7 @@ dotenv-test:
     RUN rm .env
     DO +RUN_EARTHLY --earthfile=envfile.earth --extra_args="--no-output" --target=+test-no-dotenv
 
-specified-env-test:
+env-file-test:
     ARG ENV_FILE_PATH=my_env.env
     RUN echo "TEST_ENV_1=abracadabra" >$ENV_FILE_PATH
     RUN echo "TEST_ENV_2=foo" >>$ENV_FILE_PATH

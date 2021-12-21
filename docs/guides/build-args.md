@@ -91,7 +91,7 @@ Argument values can be set multiple ways:
    to earthly. First create an env file, `my_env.env` with:
    
    ```
-   name=tomatoe
+   name=tomato
    ```
    
    Then simply run earthly:
