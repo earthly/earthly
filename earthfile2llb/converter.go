@@ -80,7 +80,7 @@ type Converter struct {
 	buildContextFactory llbfactory.Factory
 	cacheContext        pllb.State
 	runOpts             []llb.RunOption
-	persistentCacheDirs map[string]bool // Treated as a "set" of cache directories to persist in the image
+	persistentCacheDirs map[string]struct{} // Treated as a "set" of cache directories to persist in the image
 	varCollection       *variables.Collection
 	ranSave             bool
 	cmdSet              bool
@@ -113,7 +113,7 @@ func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Da
 		mts:                 mts,
 		buildContextFactory: bc.BuildContextFactory,
 		cacheContext:        pllb.Scratch(),
-		persistentCacheDirs: make(map[string]bool),
+		persistentCacheDirs: make(map[string]struct{}),
 		varCollection:       variables.NewCollection(newCollOpt),
 		ftrs:                bc.Features,
 	}, nil
@@ -1149,14 +1149,13 @@ func (c *Converter) Import(ctx context.Context, importStr, as string, isGlobal, 
 }
 
 // Cache handles a `CACHE` command in a Target.
-// It appends run options to the Converter which will mount a cache volume in each successive `RUN` command.
-func (c *Converter) Cache(ctx context.Context, path string, isPersisted bool) error {
+// It appends run options to the Converter which will mount a cache volume in each successive `RUN` command,
+// and configures the `Converter` to persist the cache in the image at the end of the target.
+func (c *Converter) Cache(ctx context.Context, path string) error {
 	if err := c.checkAllowed(cacheCmd); err != nil {
 		return err
 	}
-	if isPersisted {
-		c.persistentCacheDirs[path] = true
-	}
+	c.persistentCacheDirs[path] = struct{}{}
 	mountOpt := pllb.AddMount(path, c.mts.Final.MainState,
 		llb.AsPersistentCacheDir(path, llb.CacheMountShared))
 	c.runOpts = append(c.runOpts, mountOpt)

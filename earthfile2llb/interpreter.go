@@ -1337,21 +1337,11 @@ func (i *Interpreter) handleImport(ctx context.Context, cmd spec.Command) error 
 }
 
 func (i *Interpreter) handleCache(ctx context.Context, cmd spec.Command) error {
-	path, isPersisted := "", false
-	switch len(cmd.Args) {
-	case 1:
-		path = cmd.Args[0]
-	case 2:
-		if a := cmd.Args[0]; a == "--persist" {
-			path = cmd.Args[1]
-			isPersisted = true
-		} else {
-			return errors.Errorf("invalid argument for CACHE: %s", a)
-		}
-	default:
+	if len(cmd.Args) != 1 {
 		return errors.Errorf("invalid number of arguments for CACHE: %s", cmd.Args)
 	}
-	if err := i.converter.Cache(ctx, path, isPersisted); err != nil {
+	path := cmd.Args[1]
+	if err := i.converter.Cache(ctx, path); err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "apply CACHE")
 	}
 	return nil
