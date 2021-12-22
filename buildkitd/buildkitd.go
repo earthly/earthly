@@ -459,8 +459,14 @@ func Stop(ctx context.Context, containerName string, fe containerutil.ContainerF
 // IsStarted checks if the buildkitd container has been started.
 func IsStarted(ctx context.Context, containerName string, fe containerutil.ContainerFrontend) (bool, error) {
 	infos, err := fe.ContainerInfo(ctx, containerName)
+	if err != nil {
+		return false, err
+	}
 	containerInfo, ok := infos[containerName]
-	return err == nil && ok && containerInfo.Status == containerutil.StatusRunning, nil
+	if !ok {
+		return false, err
+	}
+	return containerInfo.Status == containerutil.StatusRunning, nil
 }
 
 // WaitUntilStarted waits until the buildkitd daemon has started and is healthy.
