@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/earthly/earthly/util/parseutil"
+
 	"github.com/pkg/errors"
 )
 
@@ -44,7 +46,7 @@ func ParseFlagArgsWithNonFlags(args []string) ([]string, []string, error) {
 				continue
 			}
 			var hasValue bool
-			k, v, hasValue = ParseKeyValue(trimmedArg)
+			k, v, hasValue = parseutil.ParseKeyValue(trimmedArg)
 			if !hasValue {
 				keyFromPrev = k
 				continue

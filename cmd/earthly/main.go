@@ -73,6 +73,7 @@ import (
 	"github.com/earthly/earthly/util/containerutil"
 	"github.com/earthly/earthly/util/fileutil"
 	"github.com/earthly/earthly/util/llbutil"
+	"github.com/earthly/earthly/util/parseutil"
 	"github.com/earthly/earthly/util/reflectutil"
 	"github.com/earthly/earthly/util/termutil"
 	"github.com/earthly/earthly/variables"
@@ -85,7 +86,7 @@ const (
 	DefaultBuildkitdVolumeName = "earthly-cache"
 )
 
-var dotEnvPath = ".env"
+var defaultDotEnvPath = ".env"
 
 type earthlyApp struct {
 	cliApp      *cli.App
@@ -157,6 +158,7 @@ type cliFlags struct {
 	keyPath                   string
 	disableAnalytics          bool
 	featureFlagOverrides      string
+	dotEnvPath                string
 	localRegistryHost         string
 	containerFrontend         containerutil.ContainerFrontend
 }
@@ -210,7 +212,22 @@ func main() {
 	// Occasional spurious warnings show up - these are coming from imported libraries. Discard them.
 	logrus.StandardLogger().Out = ioutil.Discard
 
-	// Load .env into current global env's. This is mainly for applying Earthly settings.
+	dotEnvPath := defaultDotEnvPath
+	// scan for overridden env file argument; which must occur before we parse the rest of the flags
+	// with urfav/cli, since we might be overriding these values via this .env file
+	keyEnvOverride, ok := parseutil.ParseArgsForKey("--env-file", os.Args)
+	if ok {
+		if !fileutil.FileExists(keyEnvOverride) {
+			fmt.Printf("Error loading dot-env file %s: file not found\n", keyEnvOverride)
+			os.Exit(1)
+		}
+		dotEnvPath = keyEnvOverride
+	}
+
+	// TODO still need to look for "EARTHLY_ENV_FILE" variable
+
+	// Load .env into current global env's; this must be done before the
+	// github.com/urfave/cli library parses earthly's command-line/environment variable flagss.
 	// Separate call is made for build args and secrets.
 	if fileutil.FileExists(dotEnvPath) {
 		err := godotenv.Load(dotEnvPath)
@@ -587,6 +604,13 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 			Usage:       "Apply additional flags after each VERSION command across all Earthfiles, multiple flags can be seperated by commas",
 			Destination: &app.featureFlagOverrides,
 			Hidden:      true, // used for feature-flipping from ./earthly dev script
+		},
+		&cli.StringFlag{
+			Name:        "env-file",
+			EnvVars:     []string{"EARTHLY_ENV_FILE"},
+			Usage:       "Specify an alternate environment file",
+			Value:       defaultDotEnvPath,
+			Destination: &app.dotEnvPath,
 		},
 	}
 
@@ -2755,10 +2779,10 @@ func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []st
 	}
 
 	dotEnvMap := make(map[string]string)
-	if fileutil.FileExists(dotEnvPath) {
-		dotEnvMap, err = godotenv.Read(dotEnvPath)
+	if fileutil.FileExists(app.dotEnvPath) {
+		dotEnvMap, err = godotenv.Read(app.dotEnvPath)
 		if err != nil {
-			return errors.Wrapf(err, "read %s", dotEnvPath)
+			return errors.Wrapf(err, "read %s", app.dotEnvPath)
 		}
 	}
 	secretsMap, err := processSecrets(app.secrets.Value(), app.secretFiles.Value(), dotEnvMap)

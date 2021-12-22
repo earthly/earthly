@@ -4,6 +4,8 @@ import (
 	"os"
 	"strings"
 
+	"github.com/earthly/earthly/util/parseutil"
+
 	"github.com/pkg/errors"
 )
 
@@ -99,7 +101,7 @@ func parseArgValue(name string, value string, pncvf ProcessNonConstantVariableFu
 func ParseEnvVars(envVars []string) *Scope {
 	ret := NewScope()
 	for _, envVar := range envVars {
-		k, v, _ := ParseKeyValue(envVar)
+		k, v, _ := parseutil.ParseKeyValue(envVar)
 		ret.AddActive(k, v)
 	}
 	return ret

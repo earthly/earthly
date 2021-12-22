@@ -14,6 +14,7 @@ import (
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/util/flagutil"
 	"github.com/earthly/earthly/util/llbutil"
+	"github.com/earthly/earthly/util/parseutil"
 	"github.com/earthly/earthly/variables"
 
 	flags "github.com/jessevdk/go-flags"
@@ -1586,7 +1587,7 @@ func parseParans(str string) (string, []string, error) {
 // isSafeAsyncBuildArgsDeprecatedStyle is used for "BUILD --build-arg key=value +target" style buildargs
 func isSafeAsyncBuildArgsDeprecatedStyle(args []string) bool {
 	for _, arg := range args {
-		_, v, _ := variables.ParseKeyValue(arg)
+		_, v, _ := parseutil.ParseKeyValue(arg)
 		if strings.HasPrefix(v, "$(") || strings.HasPrefix(v, "\"$(") {
 			return false
 		}
@@ -1600,7 +1601,7 @@ func isSafeAsyncBuildArgs(args []string) bool {
 		if !strings.HasPrefix(arg, "--") {
 			return false // malformed build arg
 		}
-		_, v, _ := variables.ParseKeyValue(arg[2:])
+		_, v, _ := parseutil.ParseKeyValue(arg[2:])
 		if strings.HasPrefix(v, "$(") || strings.HasPrefix(v, "\"$(") {
 			return false
 		}
