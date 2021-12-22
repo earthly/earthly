@@ -1340,8 +1340,7 @@ func (i *Interpreter) handleCache(ctx context.Context, cmd spec.Command) error {
 	if len(cmd.Args) != 1 {
 		return errors.Errorf("invalid number of arguments for CACHE: %s", cmd.Args)
 	}
-	path := cmd.Args[1]
-	if err := i.converter.Cache(ctx, path); err != nil {
+	if err := i.converter.Cache(ctx, cmd.Args[0]); err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "apply CACHE")
 	}
 	return nil
