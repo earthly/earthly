@@ -325,6 +325,26 @@ TODO ....
 
 TODO ...
 
+## Use `COPY --dir` to copy multiple directories
+
+The classical Dockerfile `COPY` command differs from the unix `cp` in that it will copy directory *contents*, not the directories themselves. This requires that copying multiple directories to be split across multiple lines:
+
+```Dockerfile
+# Avoid: too verbose
+COPY dir-1 dir-1
+COPY dir-2 dir-2
+COPY dir-3 dir-3
+```
+
+This is repetitive and uses more cache layers than should be necessary.
+
+Earthly introduces a setting, `COPY --dir`, which makes `COPY` behave more like `cp` and less like the Dockerfile `COPY`. The `--dir` flag can be used therefore to copy multiple directories in a single command:
+
+```Dockerfile
+# Good
+COPY --dir dir-1 dir-2 dir-3 ./
+```
+
 ## Technique: Use `earthly -i` to debug failures
 
 TODO ...
