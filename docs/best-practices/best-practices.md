@@ -46,6 +46,8 @@ COPY ./*.go ./
 RUN go build ...
 ```
 
+An additional way in which you can improve the precision of the `COPY` comamnd is to use the [`.earthlyignore`](../earthfile/earthignore.md) file. Note, however, that this is best left as a last resort, as new files added to the project (that may be irrelevant to builds) would need to be manually added to `.earthlyignore`, which may be error-prone. It is much better to have to include every new file manually into the build (by adding it to a `COPY` command), than to exclude every new file manually (by adding it to the `.earthlyignore`), as whenever any such new file *must* be included, then the build would typically fail, making it harder to make a mistake compared to the reverse.
+
 ## `ENV` for image env vars, `ARG` for build configurability
 
 `ENV` variables and `ARG` variables seem similar, however they are meant for different use-cases. Here is a breakdown of the differences, as well as how they differ from the Dockerfile-specific `ARG` command:
@@ -210,7 +212,7 @@ TODO ...
 
 TODO ...
 
-## Use `WITH DOCKER --load=+my-target` to pass files to `LOCALLY` targets
+## Use `WITH DOCKER --load=+my-target` to pass images to `LOCALLY` targets
 
 TODO ...
 
@@ -219,5 +221,9 @@ TODO ...
 TODO ....
 
 ## Use cross-repo references, avoid `GIT CLONE` if possible
+
+TODO ...
+
+## Technique: Use `earthly -i` to debug failures
 
 TODO ...
