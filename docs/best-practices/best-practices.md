@@ -305,6 +305,10 @@ RUN rm /root/.aws/credentials
 
 TODO ...
 
+## Do not pass Earthly dependencies from one target to another via the local file system or via the local Docker daemon
+
+TODO ...
+
 ## Use `COPY +my-target/...` to pass files to and from `LOCALLY` targets
 
 TODO ...
