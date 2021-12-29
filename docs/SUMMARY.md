@@ -41,8 +41,8 @@
     * [Version-specific features](earthfile/features.md)
 * [The `earthly` command](earthly-command/earthly-command.md)
 * [Configuration reference](earthly-config/earthly-config.md)
-* [Examples](examples/examples.md)
 * [Best practices](best-practices/best-practices.md)
+* [Examples](examples/examples.md)
 * Misc
     * [Alternative installation](./alt-installation.md)
     * [Definitions](definitions/definitions.md)

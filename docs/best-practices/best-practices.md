@@ -107,7 +107,13 @@ As a best practice, it is recommended to use `RUN for` whenever possible (e.g. o
 
 ## Use `--ci` when running in CI
 
-...
+Build scripts serve slightly different purposes when they are run in CI compared to when they are executed for local development. Most of the logic is similar (hence Earthly attempts to unify the two concepts in a unified syntax), but there are some small differences.
+
+For example, for development purposes, you may use commands such as `LOCALLY`, which cause Earthly to be less repeatable, and yet might satisfy very much needed use-cases that are typically out of scope of a CI build.
+
+In addition, in CI it is much more likely that shared caching will be needed, while outputting artifacts and images locally would not be needed.
+
+For these reasons, Earthly comes with the `--ci` flag, which simply expands to `--no-output --use-inline-cache --save-inline-cache --strict`. The `--ci` flag therefore, prevents the use of commands that are not repeatable, enables inline caching and disables outputting artifacts and images locally (as in CI the output is typically pushed or uploaded).
 
 ## Avoid `LOCALLY` and other non-strict commands
 
@@ -198,17 +204,108 @@ This will cause the execution of consecutive `FROM`s within the same target. Thi
 
 ## Pattern: Push on the `main` branch only
 
-TODO ...
+When using Earthly in a sandboxed CI, it may be useful to perform pushes on occasion, in order to populate shared caches. In addition, image pushes might also help developers to grab pre-built images for local use for various development workflows.
+
+Pushing too often can result in slowing down builds due to the push time, while pushing too infrequently results in stale cache or development images.
+
+A good balance is often to perform pushes on the `main` branch only, and to disable any pushing on PR builds. Although the `main` build will be slower, it will allow for maximum use of cache in PR builds, without the slowdown of further pushes.
+
+Main branch build: `earthly --ci --push +target`.
+PR build: `earthly --ci +target`.
+
+The push option can also be configured via the env var `EARTHLY_PUSH`, which may be easier to manipulate in your CI of choice.
+
+A more extreme case of this idea can be to use explicit maximum cache: `earthly --ci --push --remote-cache=.... --max-remote-cache +target`. The idea, again is to tradeoff performance on the `main` branch, for the benefit of faster PR builds. Whether this is actually beneficial needs to be measured on a project-by-project basis, however.
 
 ## Use `RUN --push` for deployment commands
 
+If the result of a build needs to be pushed to an external service (or storage provider) and the destination is not an image registry, then you will need to use a custom push command (as opposed to a `SAVE IMAGE --push`).
+
+To execute a custom push command, you can simply use a regular `RUN` command together with the `--push` flag. The `--push` will ensure that:
+
+* The command is only executed when Earthly is run in push mode (`earthly --push`)
+* No cache is reused for that specific command, causing it to execute every time
+* The command is executed during the push phase of the build, ensuring that everything else (e.g. testing) has completed successfully
+
+Here is an example of using the [github-release utility](https://github.com/github-release/github-release) to perform a push to GitHub Releases:
+
+```Dockerfile
+RUN --push --secret GITHUB_TOKEN github-release upload ...
+```
+
+## Use `--secret`, not `ARG`s to pass secrets to the build
+
+If a build requires the usage of secrets, it is strongly recommended that you use the builtin secrets constructs, such as `earthly --secret`, [Earthly Cloud Secrets](../guides/cloud-secrets.md), and `RUN --secret`.
+
+Using `ARG`s for passing secrets is strongly discouraged, as the secrets will be leaked in build logs, the build cache and the possibly in published images.
+
+## Avoid copying secrets to the build environment
+
+Even when using the proper builtin constructs for handling secrets, it is possible to then copy secrets in the build environment, which cause secrets to be leaked to a remote build cache, or to published images.
+
+An simple example of how this may be possible:
+
+```Dockerfile
+# Bad
+RUN --secret MY_SECRET echo "secret: $MY_SECRET" > /app/secret.txt
+```
+
+While this seems inoccuous and possibly uncommon, consider the following, which on the face of it might look like a good idea:
+
+```Dockerfile
+# Bad
+RUN --secret AWS_ACCESS_KEY_ID --secret AWS_SECRET_ACCESS_KEY echo "[default]\naws_access_key_id=$AWS_ACCESS_KEY_ID\naws_secret_access_key=$AWS_SECRET_ACCESS_KEY" > /root/.aws/credentials
+RUN aws ec2 describe-images
+```
+
+Another negative example is `COPY`ing the local credentials file:
+
+```Dockerfile
+# Bad
+aws-creds:
+    LOCALLY
+    RUN cp "$HOME"/.aws/credentials ./.aws-creds
+    SAVE ARTIFACT ./.aws-creds
+
+do-something-with-aws:
+    FROM ...
+    COPY +aws-creds/.aws-creds /root/.aws/credentials
+    RUN aws ec2 describe-images
+```
+
+The correct way to handle secrets that need to exist as files is to either mount them as secret files in the first place:
+
+```Dockerfile
+# Best
+RUN --mount=type=secret,target=/root/.aws/credentials,id=AWS_CREDENTIALS \
+    aws ec2 describe-images
+```
+
+This way, the credentials are never stored in the stored environment - they are only mounted during the execution of the `RUN` command.
+
+Or, if you really have no choice, you may copy the secrets temporarily, but you **have** to remove them in the same layer:
+
+```Dockerfile
+# Ok, but error prone
+RUN --secret AWS_ACCESS_KEY_ID --secret AWS_SECRET_ACCESS_KEY echo "[default]\naws_access_key_id=$AWS_ACCESS_KEY_ID\naws_secret_access_key=$AWS_SECRET_ACCESS_KEY" > /root/.aws/credentials ;\
+    aws ec2 describe-images ;\
+    rm /root/.aws/credentials
+```
+
+This should be avoided if possible, as it is error prone and might get secrets leaked if the `rm` is forgotten, or if the removal is performed under a separate `RUN` command.
+
+```Dockerfile
+# Bad: removal takes place in a separate layer, which means that the secrets will be leaked to the cache
+RUN --secret AWS_ACCESS_KEY_ID --secret AWS_SECRET_ACCESS_KEY echo "[default]\naws_access_key_id=$AWS_ACCESS_KEY_ID\naws_secret_access_key=$AWS_SECRET_ACCESS_KEY" > /root/.aws/credentials
+RUN aws ec2 describe-images
+RUN rm /root/.aws/credentials
+```
+
+## Avoid exposing cache tags publicly if the cache contains private code or dependencies
+
 TODO ...
 
-## Use `--secret`, not ARGs to pass secrets to the build
-
-TODO ...
-
-## Use `COPY +my-target/...` to pass files to `LOCALLY` targets
+## Use `COPY +my-target/...` to pass files to and from `LOCALLY` targets
 
 TODO ...
 
@@ -225,5 +322,25 @@ TODO ....
 TODO ...
 
 ## Technique: Use `earthly -i` to debug failures
+
+TODO ...
+
+## Use separate images for build and production
+
+TODO ...
+
+(Build in one image, copy only the necessary files for the the final production image)
+
+## Use `SAVE ARTIFACT ... AS LOCAL ...` for generated code, not `LOCALLY`
+
+Many programming tools require the generation of code. The generated code is often used in completing a build, but also it might be required for IDEs to perform code completion. For this reason, it's often preferable that generated code is also output as local files during development.
+
+It is recommended that generated code is saved via `SAVE ARTIFACT ... AS LOCAL ...` via regular Earthly targets, rather than via running the generation command in `LOCALLY`. There are multiple reasons for this:
+
+* Executing commands via `LOCALLY` loses the repeatability benefits. This means that the same command could end up generating different code, depending on the system it is being run on. Differences in the environment, such as the version of code generator installed (e.g. `protoc`), or certain environment variables (e.g. `GOPATH`) could cause the generated code to be different.
+* The logic to generate code via `LOCALLY` will not be usable in the CI, as the CI script would typically enable `--strict` mode.
+* If the code generation workflow requires that the generated code is committed to the repository and then used in a subsequent earthly build, it is possible that due to human error, changes will be made to the input files, without the generated code to be updated correctly. If a problem or an incompatibility is introduced in this manner, it will show up for other people when they try to generate the code themselves. In worse cases, it may even go unnoticed and end up in production.
+
+## Run everything in a single Earthly invocation, do not wrap Earthly
 
 TODO ...
