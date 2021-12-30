@@ -46,7 +46,7 @@ COPY ./*.go ./
 RUN go build ...
 ```
 
-An additional way in which you can improve the precision of the `COPY` comamnd is to use the [`.earthlyignore`](../earthfile/earthignore.md) file. Note, however, that this is best left as a last resort, as new files added to the project (that may be irrelevant to builds) would need to be manually added to `.earthlyignore`, which may be error-prone. It is much better to have to include every new file manually into the build (by adding it to a `COPY` command), than to exclude every new file manually (by adding it to the `.earthlyignore`), as whenever any such new file *must* be included, then the build would typically fail, making it harder to make a mistake compared to the reverse.
+An additional way in which you can improve the precision of the `COPY` command is to use the [`.earthlyignore`](../earthfile/earthignore.md) file. Note, however, that this is best left as a last resort, as new files added to the project (that may be irrelevant to builds) would need to be manually added to `.earthlyignore`, which may be error-prone. It is much better to have to include every new file manually into the build (by adding it to a `COPY` command), than to exclude every new file manually (by adding it to the `.earthlyignore`), as whenever any such new file *must* be included, then the build would typically fail, making it harder to make a mistake compared to the reverse.
 
 ## `ENV` for image env vars, `ARG` for build configurability
 
@@ -58,7 +58,7 @@ An additional way in which you can improve the precision of the `COPY` comamnd i
 | Available for expanding within non-RUN commands | ❌ | ✅ | ✅ |
 | Stored in the final image as an env-var | ✅ | ❌ | ❌ |
 | Inherited via `FROM` | ✅ | ❌ | ❌ |
-| Can be overriden when calling a build | ❌ | ✅ | ✅ |
+| Can be overridden when calling a build | ❌ | ✅ | ✅ |
 | Can be propagated to other targets (via `BUILD +target --<key>=<value>` or similar) | ❌ | ✅ | N/A |
 
 As you can see, the key situation where `ENV` is needed is when you want the value to be stored as part of the final image's configuration. This causes any `FROM` or `docker run` using that image to inherit the value.
@@ -67,7 +67,7 @@ However, if the use-case is build configurability, then `ARG` is the way to achi
 
 ## `IF [...]` vs `RUN if [...]`
 
-Earthly 0.6 introduces the conditional `IF` command, which allows for complex control flow within Earthly recipes. However, there is also the possiblity of using the shell `if` command to accomplish similar behavior. Which one should you use? Here is a quick comparison:
+Earthly 0.6 introduces the conditional `IF` command, which allows for complex control flow within Earthly recipes. However, there is also the possibility of using the shell `if` command to accomplish similar behavior. Which one should you use? Here is a quick comparison:
 
 | | `IF` | `RUN if` |
 | --- | --- | --- |
@@ -121,7 +121,7 @@ Certain Earthly functionality is only meant to be used for local development onl
 
 For this reason, it is recommended to avoid using these commands as much as possible, as doing so will:
 
-1. Cause Earthly to behave in a non-repeatable way across other platforms, as it will realy on host-specific environment configuration.
+1. Cause Earthly to behave in a non-repeatable way across other platforms, as it will rely on host-specific environment configuration.
 2. Disable caching.
 3. Cause the specific targets to not work at all when `--ci` is passed in.
 
@@ -263,7 +263,7 @@ An simple example of how this may be possible:
 RUN --secret MY_SECRET echo "secret: $MY_SECRET" > /app/secret.txt
 ```
 
-While this seems inoccuous and possibly uncommon, consider the following, which on the face of it might look like a good idea:
+While this seems innocuous and possibly uncommon, consider the following, which on the face of it might look like a good idea:
 
 ```Dockerfile
 # Bad
