@@ -854,17 +854,86 @@ RUN --ssh go mod download
 
 ## Repository structure: Place build logic as close to the relevant code as possible
 
-TODO ...
+When designing builds, it is advisable to place lower-level build logic closer to the code that it is building. This can be achieved by splitting Earthly builds across multiple Earthfiles, and placing some of the Earthfiles deeper inside the directory structure. The lower-level Earthfiles can then export artifacts and/or images via `SAVE *` commands. Those artifacts can then be referenced in higher-level Earthfiles via artifact and target references (`COPY ./deep/dir+some-target/an/artifact ...`, `FROM ./some/path+my-target`).
 
-(put logic in its own directory)
+This allows for low coupling between modules within your code and creates a "build API" for your code, whereby all externally accessible artifacts are exposed explicitly.
 
-## Avoid pass-through targets merely for shortening target paths
+As one example, you might find the [monorepo example](https://github.com/earthly/earthly/tree/main/examples/monorepo) to be a useful case-study. However, even when a repository contains a single project, you might still find it useful to split logic across multiple Earthfiles. An example might be including Protocol Buffers generation logic inside the subdirectory containing the `.proto` files, in its own Earthfile.
 
-TODO ...
+For a real-world example, you can also take a look at Earthly's own build, where several Earthfiles are scattered across the repository. Here are some examples:
+
+* [`ast/parser`](https://github.com/earthly/earthly/tree/main/ast/parser) - Earthfile contains the logic for generating Go source code based on an ANTLR grammar.
+* [`ast/parser/tests`](https://github.com/earthly/earthly/tree/main/ast/tests) - Earthfile contains logic for running AST-specific tests.
+* [`buildkitd`](https://github.com/earthly/earthly/tree/main/buildkitd) - Earthfile contains the logic for building the Earthly buildkit image.
+* [`tests`](https://github.com/earthly/earthly/tree/main/tests) - Earthfile contains logic for executing e2e tests.
+* [`release/**/`](https://github.com/earthly/earthly/tree/main/release) - Multiple Earthfiles contain logic used for the release of Earthly.
+* [The main Earthfile](https://github.com/earthly/earthly/blob/main/Earthfile) - ties everything together, referencing the various targets across the sub-directories.
 
 ## Pattern: Pass-through artifacts or images
 
-TODO ....
+If a target acts as a wrapper for another target and that other target produces artifacts, you may find it useful for the wrapper to also emit the same artifacts. Consider the following example of the target `+build-for-windows`:
+
+```Dockerfile
+# No pass-through artifacts
+VERSION 0.6
+FROM alpine:3.13
+build:
+    ARG some_arg=...
+    ARG another_arg=...
+    ARG os=linux
+    RUN ...
+    SAVE ARTIFACT ./output
+build-for-windows:
+    BUILD +build --some_arg=... --another_arg=... --os=windows
+```
+
+```Dockerfile
+# With pass-through artifacts
+VERSION 0.6
+FROM alpine:3.13
+build:
+    ARG some_arg=...
+    ARG another_arg=...
+    ARG os=linux
+    RUN ...
+    SAVE ARTIFACT ./output
+build-for-windows:
+    COPY (+build --some_arg=... --another_arg=... --os=windows) ./
+    SAVE ARTIFACT ./*
+```
+
+The fact that `+build-for-windows` itself exports the artifacts means that it can be referenced directly in other targets as `COPY +build-for-windows/output ./`.
+
+Similarly, if a target emits an image, then that image can be also emitted by a wrapping target like so:
+
+```Dockerfile
+# No pass-through image
+VERSION 0.6
+FROM alpine:3.13
+build:
+    ARG some_arg=...
+    ARG another_arg=...
+    RUN ...
+    SAVE IMAGE some-intermediate-image:latest
+build-wrapper:
+    BUILD +build --some_arg=... --another_arg=...
+```
+
+```Dockerfile
+# With pass-through image
+VERSION 0.6
+FROM alpine:3.13
+build:
+    ARG some_arg=...
+    ARG another_arg=...
+    RUN ...
+    SAVE IMAGE some-intermediate-image:latest
+build-wrapper:
+    FROM +build --some_arg=... --another_arg=...
+    SAVE IMAGE i-can-give-this-another-name:latest
+```
+
+This allows for `+build-wrapper` to reuse the logic in `+build`, but ultimately create an image that is saved under a different name. This can then be used in a `WITH DOCKER --load` statement directly (whereas if there was no image pass-through, then `+build-wrapper` couldn't have been used).
 
 ## Use `earthly/dind`
 
