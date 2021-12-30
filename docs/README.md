@@ -31,3 +31,4 @@ A high-level overview is available on [the Earthly GitHub page](https://github.c
 * [Earthly command reference](./earthly-command/earthly-command.md)
 * [Configuration reference](./earthly-config/earthly-config.md)
 * [Earthfile examples](./examples/examples.md)
+* [Best practices](./best-practices/best-practices.md)

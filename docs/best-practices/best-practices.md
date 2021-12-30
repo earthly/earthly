@@ -230,6 +230,19 @@ To execute a custom push command, you can simply use a regular `RUN` command tog
 Here is an example of using the [github-release utility](https://github.com/github-release/github-release) to perform a push to GitHub Releases:
 
 ```Dockerfile
+# Bad, and dangerous
+RUN --no-cache --secret GITHUB_TOKEN github-release upload ...
+```
+
+`RUN --no-cache` should be avoided for this use-case, as it has some potentially dangerous downsides:
+
+* The upload command may be executed in parallel with any testing (meaning that tests might not pass yet the upload may still complete)
+* The upload will execute even when earthly is not invoked in `--push` mode.
+
+To address this issue, it is advisable to use `RUN --push` instead.
+
+```Dockerfile
+# Good
 RUN --push --secret GITHUB_TOKEN github-release upload ...
 ```
 

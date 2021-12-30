@@ -11,6 +11,7 @@
     * [Part 4: Caching dependencies](basics/part-4-caching-dependencies.md)
     * [Part 5: Reducing code duplication](basics/part-5-reducing-code-duplication.md)
     * [Final words](basics/final-words.md)
+* [✔️ Best practices](best-practices/best-practices.md)
 
 ## 📖 Docs
 
@@ -41,7 +42,6 @@
     * [Version-specific features](earthfile/features.md)
 * [The `earthly` command](earthly-command/earthly-command.md)
 * [Configuration reference](earthly-config/earthly-config.md)
-* [Best practices](best-practices/best-practices.md)
 * [Examples](examples/examples.md)
 * Misc
     * [Alternative installation](./alt-installation.md)
@@ -49,6 +49,7 @@
     * [Data collection](data-collection/data-collection.md)
 
 ## 🔧 CI Integration
+
 * [Overview](ci-integration/overview.md)
 * [Build An Earthly CI Image](ci-integration/build-an-earthly-ci-image.md)
 * [Pull-Through Cache](ci-integration/pull-through-cache.md)
