@@ -77,7 +77,9 @@ PRINT_VAR:
 
 Earthly targets and UDCs are Earthly's core primitives for organizing build recipes. They encapsulate build logic, and from afar they look pretty similar. However, the use-cases for each are vastly different.
 
-In general, targets are used to produce specific build results, while UDCs are used as a way to reuse build logic, when certain commands are repeated in multiple places. As a real-world analogy, targets are more like factories, while UDCs are more like components that are used to put together factories.
+In general, targets are used to produce specific build results, while UDCs are used as a way to reuse build logic, when certain commands are repeated in multiple places. UDCs work like functions or methods in an imperative programming language. Much like function calls it's helpful to imagine UDCs being executed by being inlined into the call site but in a separate variable scope.
+
+As a real-world analogy, targets are more like factories, while UDCs are more like components that are used to put together factories.
 
 Here is a comparison of the two primitives:
 

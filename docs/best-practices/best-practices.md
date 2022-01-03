@@ -979,7 +979,7 @@ integration-test:
     END
 ```
 
-A simple way to fix this is to use an earthly-provided [UDC](../guides/udc.md) to install Docker engine before the `COPY` command.
+A simple way to fix this is to use an earthly-provided [UDC](../guides/udc.md) to install Docker engine before the `COPY` command. Please note that this particular UDC is fastest when ran on top of an alpine-based image.
 
 ```Dockerfile
 # Best - if possible
