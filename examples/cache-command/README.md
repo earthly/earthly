@@ -29,7 +29,7 @@ The `CACHE` command takes a singe argument, which is a directory containing the 
 CACHE <directory>
 ```
 
-The `<directory>` is also persisted into the resulting image at the end of the Target's execution. Meaning that you can access the directory in a subsequent target using `FROM +deps`, or if you run `SAVE IMAGE`, the directory will be accessible in the resulting Docker image.
+The `<directory>` is also persisted into the resulting image at the end of the Target's execution. Meaning that you can access the directory in a subsequent Target by referencing it with `FROM`, or if you run `SAVE IMAGE`, the directory will be accessible in the resulting Docker image.
 
 ## Simple Example
 A classic example for uing `CACHE` is within a Target which downloads new dependenices frequently. 
