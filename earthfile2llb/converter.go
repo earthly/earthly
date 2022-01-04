@@ -1792,24 +1792,38 @@ func (c *Converter) targetInputActiveOnly() dedup.TargetInput {
 // from the volume to the host filesystem at the same directory.
 // Used when the Target contains a `CACHE --persist /my/directory` directive (with the --persist).
 func (c *Converter) persistCacheVolumes() {
+	// tmpDir is a backup directory where we can store the contents of the user's cache volume
+	// Is's name is sufficiently random that it should never collide with a user's work.
+	const tmpDir = "/earthly-tmp-a8cb9b0e-f285-4851-b00e-cd5b1ac6a499"
+
+	// Docker's internal image for running COPY.
+	// Ref: https://github.com/moby/buildkit/blob/v0.9.3/frontend/dockerfile/dockerfile2llb/convert.go#L40
+	const copyImg = "docker/dockerfile-copy:v0.1.9@sha256:e8f159d3f00786604b93c675ee2783f8dc194bb565e61ca5788f6a6e9d304061"
+	imgOpts := []llb.ImageOption{llb.MarkImageInternal}
+	if p := c.mts.Final.Platform; p != nil {
+		imgOpts = append(imgOpts, llb.Platform(*p))
+	}
+	img := pllb.Image(copyImg, imgOpts...)
+	state := c.mts.Final.MainState
+
+	// User may have multiple CACHE commands in a single target
 	for cacheDir := range c.persistentCacheDirs {
-		// tmpDir is a backup directory where we can store the contents of the user's cache volume
-		// Is's name is sufficiently random that it should never collide with a user's work.
-		const tmpDir = "/earthly-tmp-a8cb9b0e-f285-4851-b00e-cd5b1ac6a499"
-		state := c.mts.Final.MainState
-
-		// Mount the same cache volume that was setup previously by the `CACHE` command.
-		var opts []llb.RunOption
-		opts = append(opts, c.runOpts...)
-
-		// TODO Ideally this should use llb.Copy as we're doing below,
-		// however, we were unable to mount the cache volume within llb.Copy
-		// as is possible with llb.Run (at the time of writing this).
-		cp := append(opts, llb.Shlexf("cp -r %s %s", cacheDir, tmpDir))
-		state = state.Run(cp...).Root()
+		// Mount the same cache volume that was setup previously by the `CACHE` command, and
+		// invoke Dockerfile `copy` executable to backup the files from the cache directory.
+		// Note: this technique is used so we don't rely on commands like `cp`
+		// being available on the user's base image.
+		opts := append(c.runOpts, []llb.RunOption{
+			llb.ReadonlyRootFS(),
+			llb.WithCustomName("persist cache directory"),
+			llb.Shlexf("copy %s /dest/%s", cacheDir, tmpDir)}...)
+		run := img.Run(opts...)
+		state = run.AddMount("/dest", state)
+		if p := c.mts.Final.Platform; p != nil {
+			state = state.Platform(*p)
+		}
 
 		// Copy the contents from our tmp directory back to the
-		// same place as the user had them with cache volume.
+		// same place as the user placed them in their cache directory
 		copyOpts := []llb.CopyOption{&llb.CopyInfo{
 			FollowSymlinks:     true,
 			CreateDestPath:     true,
@@ -1824,9 +1838,10 @@ func (c *Converter) persistCacheVolumes() {
 		)
 
 		// Remove the temporary backup after we're done copying from it.
-		fa = fa.Rm(tmpDir)
-		c.mts.Final.MainState = state.File(fa)
+		state = state.File(fa.Rm(tmpDir))
 	}
+
+	c.mts.Final.MainState = state
 }
 
 func joinWrap(a []string, before string, sep string, after string) string {
