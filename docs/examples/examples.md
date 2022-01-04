@@ -78,11 +78,49 @@ Please note that these examples, although similar, are distinct from the ones us
 
 As a distinct example of a complete build, you can take a look at Earthly's own build. Earthly builds itself, and the build files are available on GitHub:
 
+<!--
+
+GitBook currently has a bug where any references to an "Earthfile" gets confused with "docs/Earthfile" and somehow appends a /README.md
+
+e.g. https://github.com/earthly/earthly/blob/main/Earthfile is changed to https://github.com/earthly/earthly/blob/main/Earthfile/README.md
+
+Here's a snip from an support request with gitbook:
+
+    On Thu, Dec 23, 2021 at 7:15:12 UTC, GitBook Support <support@gitbook.com> wrote:
+
+    There is a file:
+
+    https://github.com/earthly/earthly/blob/main/Earthfile
+
+    And you want to reference it directly in your GitBook space as a link.
+
+    The problem here is that GitBook is thrown off by the fact it has a folder under the docs root. Remember you documentation root is set to /docs.
+
+    So when it sees that reference, it assumes you are referencing a default README.md file under that folder. The folder I am talking about is this one:
+
+    https://github.com/earthly/earthly/tree/main/docs/earthfile
+
+    Now, the question is, if there's an easy way out of this.
+
+    On Thu, Dec 23, 2021 at 11:41:41 UTC, GitBook Support <support@gitbook.com> wrote:
+
+    I can't confirm it yet, but this might be an edge case that we could patch.
+
+    One not very ideal workaround I thought of is to temporarily switch to shortened URLs for those that fail because of this scenario.
+
+
 * [Earthfile](https://github.com/earthly/earthly/blob/main/Earthfile) - the root build file
 * [buildkitd/Earthfile](https://github.com/earthly/earthly/blob/main/buildkitd/Earthfile) - the build of the Buildkit daemon
 * [AST/parser/Earthfile](https://github.com/earthly/earthly/blob/main/ast/parser/Earthfile) - the build of the parser, which generates .go files
 * [tests/Earthfile](https://github.com/earthly/earthly/blob/main/tests/Earthfile) - system and smoke tests
 * [contrib/earthfile-syntax-highlighting/Earthfile](https://github.com/earthly/earthly/blob/main/contrib/earthfile-syntax-highlighting/Earthfile) - the build of the VS Code extension
+-->
+
+* [Earthfile](https://tinyurl.com/yt3d3cx6) - the root build file
+* [buildkitd/Earthfile](https://tinyurl.com/yvnpuru7) - the build of the Buildkit daemon
+* [AST/parser/Earthfile](https://tinyurl.com/2k3u4vty) - the build of the parser, which generates .go files
+* [tests/Earthfile](https://tinyurl.com/2p8ws579) - system and smoke tests
+* [contrib/earthfile-syntax-highlighting/Earthfile](https://tinyurl.com/yp4y6byn) - the build of the VS Code extension
 
 To invoke Earthly's build, check out the code and then run the following in the root of the repository
 

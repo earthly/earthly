@@ -843,12 +843,15 @@ As one example, you might find the [monorepo example](https://github.com/earthly
 
 For a real-world example, you can also take a look at Earthly's own build, where several Earthfiles are scattered across the repository to help organize build logic across modules, very much like regular code. Here are some examples:
 
+<!-- GitBook currently has a bug where any references to an "Earthfile" gets confused with "docs/Earthfile" and somehow appends a /README.md
+https://github.com/earthly/earthly/blob/main/Earthfile was changed to https://tinyurl.com/yt3d3cx6 -->
+
 * [`ast/parser`](https://github.com/earthly/earthly/tree/main/ast/parser) - Earthfile contains the logic for generating Go source code based on an ANTLR grammar.
 * [`ast/parser/tests`](https://github.com/earthly/earthly/tree/main/ast/tests) - Earthfile contains logic for running AST-specific tests.
 * [`buildkitd`](https://github.com/earthly/earthly/tree/main/buildkitd) - Earthfile contains the logic for building the Earthly buildkit image.
 * [`tests`](https://github.com/earthly/earthly/tree/main/tests) - Earthfile contains logic for executing e2e tests.
 * [`release/**/`](https://github.com/earthly/earthly/tree/main/release) - Multiple Earthfiles contain logic used for the release of Earthly.
-* [The main Earthfile](https://github.com/earthly/earthly/blob/main/Earthfile) - ties everything together, referencing the various targets across the sub-directories.
+* [The main Earthfile](https://tinyurl.com/yt3d3cx6) - ties everything together, referencing the various targets across the sub-directories.
 
 ### Pattern: Pass-through artifacts or images
 
