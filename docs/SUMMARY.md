@@ -11,7 +11,7 @@
     * [Part 4: Caching dependencies](basics/part-4-caching-dependencies.md)
     * [Part 5: Reducing code duplication](basics/part-5-reducing-code-duplication.md)
     * [Final words](basics/final-words.md)
-* [🏅 Best practices](best-practices/best-practices.md)
+* [🔖 Best practices](best-practices/best-practices.md)
 
 ## 📖 Docs
 
