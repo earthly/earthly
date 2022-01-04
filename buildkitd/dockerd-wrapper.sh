@@ -88,7 +88,7 @@ EOF
             cat /var/log/docker.log
             echo "==== End dockerd logs ===="
             echo "If you are having trouble running docker, try using the official earthly/dind image instead"
-            exit 1
+            return 1
         fi
         i=$((i+1))
     done
