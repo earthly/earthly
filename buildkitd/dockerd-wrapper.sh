@@ -24,7 +24,7 @@ execute() {
         exit 1
     fi
 
-    start_dockerd
+    for i in 1 2 3 4 5; do start_dockerd && break || sleep 15; done
     load_images
     if [ "$EARTHLY_START_COMPOSE" = "true" ]; then
         # shellcheck disable=SC2086
