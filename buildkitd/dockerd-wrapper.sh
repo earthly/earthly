@@ -67,7 +67,7 @@ EOF
     # Start with a rm -rf to make sure a previous interrupted build did not leave its state around.
     rm -rf "$EARTHLY_DOCKERD_DATA_ROOT"
     mkdir -p "$EARTHLY_DOCKERD_DATA_ROOT"
-    dockerd --data-root="$EARTHLY_DOCKERD_DATA_ROOT" --bip=172.20.0.1/16 >/var/log/docker.log 2>&1 &
+    dockerd --data-root="$EARTHLY_DOCKERD_DATA_ROOT" --bip=172.20.0.1/16 --log-level debug >/var/log/docker.log 2>&1 &
     dockerd_pid="$!"
     i=1
     timeout=300
