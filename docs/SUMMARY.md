@@ -2,7 +2,7 @@
 # Table of contents
 
 * [👋 Introduction](README.md)
-* [⬇️ Installation](https://earthly.dev/get-earthly)
+* [💻 Installation](https://earthly.dev/get-earthly)
 * [🎓 Learn the basics](basics/basics.md)
     * [Part 1: A simple Earthfile](basics/part-1-a-simple-earthfile.md)
     * [Part 1b: Detailed explanation](basics/part-1b-detailed-explanation.md)
@@ -11,7 +11,7 @@
     * [Part 4: Caching dependencies](basics/part-4-caching-dependencies.md)
     * [Part 5: Reducing code duplication](basics/part-5-reducing-code-duplication.md)
     * [Final words](basics/final-words.md)
-* [✔️ Best practices](best-practices/best-practices.md)
+* [✨ Best practices](best-practices/best-practices.md)
 
 ## 📖 Docs
 
