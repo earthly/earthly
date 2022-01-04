@@ -171,7 +171,9 @@ project-files:
     RUN touch a.scala && sbt compile && rm a.scala
 ```
 
-[Full file](https://github.com/earthly/earthly/blob/main/examples/integration-test/Earthfile)
+<!-- due to gitbook bug, https://github.com/earthly/earthly/blob/main/examples/integration-test/Earthfile changed to https://tinyurl.com/4m6hbd6a -->
+
+[Full file](https://tinyurl.com/4m6hbd6a)
 
 {% sample lang="Compile" %}
 
@@ -182,7 +184,7 @@ build:
     COPY src src
     RUN sbt compile
 ```
-[Full file](https://github.com/earthly/earthly/blob/main/examples/integration-test/Earthfile)
+[Full file](https://tinyurl.com/4m6hbd6a)
 
 {% sample lang="Unit Test" %}
 
@@ -196,7 +198,7 @@ unit-test:
     RUN sbt test
 
 ```
-[Full file](https://github.com/earthly/earthly/blob/main/examples/integration-test/Earthfile)
+[Full file](https://tinyurl.com/4m6hbd6a)
 
 {% sample lang="Docker" %}
 
