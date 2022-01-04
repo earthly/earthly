@@ -13,7 +13,6 @@
     * [Final words](basics/final-words.md)
 * [🌟 Best practices](best-practices/best-practices.md)
 
-
 ## 📖 Docs
 
 * Guides
