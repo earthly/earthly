@@ -4,6 +4,45 @@ Although Earthly has been designed to be unambiguous about what command to use f
 
 Below we list some of the best practices that we have found to be useful in designing Earthly builds, with a focus on certain commands or techniques that seem similar, but aren't really, but also on some key points that we have seen newcomers stumble into.
 
+## Table of contents
+
+* [Earthfile-specific](#earthfile-specific)
+    * [`COPY` only the minimal amount of files. Avoid copying `.git`](#copy-only-the-minimal-amount-of-files.-avoid-copying-.git)
+    * [`ENV` for image env vars, `ARG` for build configurability](#env-for-image-env-vars-arg-for-build-configurability)
+    * [Use cross-repo references, and avoid `GIT CLONE` if possible](#use-cross-repo-references-and-avoid-git-clone-if-possible)
+    * [`GIT CLONE` vs `RUN git clone`](#git-clone-vs-run-git-clone)
+    * [`IF [...]` vs `RUN if [...]`](#if-...-vs-run-if-...)
+    * [`FOR ... IN ...` vs `RUN for ... in ...`](#for-...-in-...-vs-run-for-...-in-...)
+    * [Pattern: Optionally `LOCALLY`](#pattern-optionally-locally)
+    * [Pattern: Deciding on a base image based on a condition](#pattern-deciding-on-a-base-image-based-on-a-condition)
+    * [Use `RUN --push` for deployment commands](#use-run-push-for-deployment-commands)
+    * [Use `--secret`, not `ARG`s to pass secrets to the build](#use-secret-not-args-to-pass-secrets-to-the-build)
+    * [Avoid copying secrets to the build environment](#avoid-copying-secrets-to-the-build-environment)
+    * [Do not pass Earthly dependencies from one target to another via the local file system or via an external registry](#do-not-pass-earthly-dependencies-from-one-target-to-another-via-the-local-file-system-or-via-an-external-registry)
+    * [Use `WITH DOCKER --pull`](#use-with-docker-pull)
+    * [Style: Define the high-level targets at the top of the Earthfile](#style-define-the-high-level-targets-at-the-top-of-the-earthfile)
+    * [Use `COPY +my-target/...` to pass files to and from `LOCALLY` targets](#use-copy-+my-target-...-to-pass-files-to-and-from-locally-targets)
+    * [Use `WITH DOCKER --load=+my-target` to pass images to `LOCALLY` targets](#use-with-docker-load-+my-target-to-pass-images-to-locally-targets)
+    * [Avoid non-deterministic behavior](#avoid-non-deterministic-behavior)
+    * [Use `COPY --dir` to copy multiple directories](#use-copy-dir-to-copy-multiple-directories)
+    * [Use separate images for build and production](#use-separate-images-for-build-and-production)
+    * [Use `SAVE ARTIFACT ... AS LOCAL ...` for generated code, not `LOCALLY`](#use-save-artifact-...-as-local-...-for-generated-code-not-locally)
+    * [Multi-line strings](#multi-line-strings)
+    * [Multi-line commands](#multi-line-commands)
+    * [Repository structure: Place build logic as close to the relevant code as possible](#repository-structure-place-build-logic-as-close-to-the-relevant-code-as-possible)
+    * [Pattern: Pass-through artifacts or images](#pattern-pass-through-artifacts-or-images)
+    * [Use `earthly/dind`](#use-earthly-dind)
+    * [Pattern: Saving artifacts resulting from a `WITH DOCKER`](#pattern-saving-artifacts-resulting-from-a-with-docker)
+* [Usage-specific](#usage-specific)
+    * [Use `--ci` when running in CI](#use-ci-when-running-in-ci)
+    * [Avoid `LOCALLY` and other non-strict commands](#avoid-locally-and-other-non-strict-commands)
+    * [Pattern: Push on the `main` branch only](#pattern-push-on-the-main-branch-only)
+    * [Do not expose cache image tags publicly if the cache contains private code or dependencies](#do-not-expose-cache-image-tags-publicly-if-the-cache-contains-private-code-or-dependencies)
+    * [Technique: Use `earthly -i` to debug failures](#technique-use-earthly-i-to-debug-failures)
+    * [Run everything in a single Earthly invocation, do not wrap Earthly](#run-everything-in-a-single-earthly-invocation-do-not-wrap-earthly)
+    * [Use `RUN --ssh` for passing host SSH keys to builds](#use-run-ssh-for-passing-host-ssh-keys-to-builds)
+    * [Future: Saving an artifact even if the build fails](#future-saving-an-artifact-even-if-the-build-fails)
+
 ## Earthfile-specific
 
 ### `COPY` only the minimal amount of files. Avoid copying `.git`
