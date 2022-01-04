@@ -1,0 +1,18 @@
+VERSION 0.6
+
+FROM maven:3.8.4-jdk-11
+WORKDIR /app
+
+deps:
+    COPY pom.xml .
+    RUN mvn install
+
+code:
+    FROM +deps
+    COPY src .
+    RUN mvn package
+
+docker:
+    FROM +code
+    ENTRYPOINT ["java", "-jar", "target/my-app-1.0-SNAPSHOT.jar"]
+    SAVE IMAGE cache-example-mvn:latest 
