@@ -1,18 +1,14 @@
 VERSION 0.6
 
-FROM maven:3.8.4-jdk-11
+FROM maven:3.8.4-openjdk-17
 WORKDIR /app
 
-deps:
-    COPY pom.xml .
-    RUN mvn install
-
-code:
-    FROM +deps
-    COPY src .
+package:
+    CACHE /root/.m2
+    COPY --dir src pom.xml .
     RUN mvn package
 
 docker:
-    FROM +code
-    ENTRYPOINT ["java", "-jar", "target/my-app-1.0-SNAPSHOT.jar"]
+    FROM +package
+    ENTRYPOINT ["java", "-cp", "target/my-app-1.0-SNAPSHOT.jar", "com.mycompany.app.App"]
     SAVE IMAGE cache-example-mvn:latest 
