@@ -11,6 +11,7 @@
     * [Part 4: Caching dependencies](basics/part-4-caching-dependencies.md)
     * [Part 5: Reducing code duplication](basics/part-5-reducing-code-duplication.md)
     * [Final words](basics/final-words.md)
+* [✔️ Best practices](best-practices/best-practices.md)
 
 ## 📖 Docs
 
@@ -48,6 +49,7 @@
     * [Data collection](data-collection/data-collection.md)
 
 ## 🔧 CI Integration
+
 * [Overview](ci-integration/overview.md)
 * [Build An Earthly CI Image](ci-integration/build-an-earthly-ci-image.md)
 * [Pull-Through Cache](ci-integration/pull-through-cache.md)

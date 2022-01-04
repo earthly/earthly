@@ -121,6 +121,7 @@ Here are some resources to get you started with Earthly
   * [Mono-repo](./examples/monorepo)
   * [Multi-repo](./examples/multirepo)
 * 🔍 Explore [Earthly's own build](https://docs.earthly.dev/examples/examples#earthlys-own-build)
+* ✔️ [Best practices](https://docs.earthly.dev/best-practices)
 
 See also the [full documentation](https://docs.earthly.dev).
 
