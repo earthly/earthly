@@ -28,10 +28,10 @@ execute() {
     # dockerd, therefore we retry... since most instances of this timeout seem to be related to networking or scheduling
     # when many WITH DOCKER commands are also running. Logs are printed for each failure.
     for i in 1 2 3 4 5; do
-      if start_dockerd; then
-        break
-       else
-         sleep 5
+        if start_dockerd; then
+            break
+        else
+            sleep 5
       fi
     done
 
