@@ -1155,10 +1155,12 @@ func (c *Converter) Cache(ctx context.Context, path string) error {
 	if err := c.checkAllowed(cacheCmd); err != nil {
 		return err
 	}
-	c.persistentCacheDirs[path] = struct{}{}
-	mountOpt := pllb.AddMount(path, c.mts.Final.MainState,
-		llb.AsPersistentCacheDir(path, llb.CacheMountShared))
-	c.runOpts = append(c.runOpts, mountOpt)
+	if _, exists := c.persistentCacheDirs[path]; !exists {
+		c.persistentCacheDirs[path] = struct{}{}
+		mountOpt := pllb.AddMount(path, c.mts.Final.MainState,
+			llb.AsPersistentCacheDir(path, llb.CacheMountShared))
+		c.runOpts = append(c.runOpts, mountOpt)
+	}
 	return nil
 }
 
