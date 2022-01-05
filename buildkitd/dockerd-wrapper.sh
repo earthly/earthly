@@ -32,7 +32,7 @@ execute() {
             break
         else
             sleep 5
-      fi
+        fi
     done
 
     load_images
