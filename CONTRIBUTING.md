@@ -20,6 +20,10 @@ To build Earthly from source for your target system, use
     ```bash
     ./earthly +for-darwin
     ```
+* Mac with M1 chip
+    ```bash
+    ./earthly +for-darwin-m1
+    ```
 
 This builds the earthly binary in `./build/<platform>/amd64/earthly` and also the buildkitd image.
 
