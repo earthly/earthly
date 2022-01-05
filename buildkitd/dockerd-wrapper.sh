@@ -31,6 +31,10 @@ execute() {
         if start_dockerd; then
             break
         else
+            if [ "$i" = 5 ]; then
+                # Exiting here on the last retry maintains prior behavior of exiting when this cant start.
+                exit 1
+            fi
             sleep 5
         fi
     done
