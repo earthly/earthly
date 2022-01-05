@@ -49,7 +49,7 @@ commandStmt:
 	| importStmt;
 
 // version --------------------------------------------------------------------
-version: VERSION (WS stmtWords)? NL+;
+version: VERSION WS stmtWords NL+;
 
 // withStmt -------------------------------------------------------------------
 
@@ -141,5 +141,5 @@ importStmt: IMPORT (WS stmtWords)?;
 expr: stmtWordsMaybeJSON;
 
 stmtWordsMaybeJSON: stmtWords;
-stmtWords: stmtWord (WS? stmtWord)*;
+stmtWords: stmtWord (WS stmtWord)*;
 stmtWord: Atom;
