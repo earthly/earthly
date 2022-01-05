@@ -24,8 +24,17 @@ execute() {
         exit 1
     fi
 
-    # shellcheck disable=SC2015
-    for i in 1 2 3 4 5; do start_dockerd && break || sleep 15; done
+    # Sometimes, when dockerd starts containerd, it doesn't come up in time. This timeout is not configurable from
+    # dockerd, therefore we retry... since most instances of this timeout seem to be related to networking or scheculing
+    # when many WITH DOCKER commands are also running. Logs are printed for each failure.
+    for i in 1 2 3 4 5; do
+      if start_dockerd; then
+        break
+       else
+         sleep 5
+      fi
+    done
+
     load_images
     if [ "$EARTHLY_START_COMPOSE" = "true" ]; then
         # shellcheck disable=SC2086
