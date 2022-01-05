@@ -16,6 +16,7 @@ test-root-commands:
 account 
 bootstrap 
 config 
+ls 
 org 
 prune 
 secrets " > expected
@@ -31,6 +32,7 @@ config
 debug 
 docker 
 docker2earthly 
+ls 
 org 
 prune 
 secrets " > expected

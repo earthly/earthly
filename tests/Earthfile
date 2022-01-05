@@ -133,6 +133,8 @@ ga:
     BUILD +homebrew-test
     BUILD +implicit-ignores
     BUILD +help
+    BUILD +ls
+    BUILD +ls-subdir
 
 # tests that only run on linux amd64
 # Note: this target is used to validate the USERPLATFORM user arg,
@@ -888,6 +890,18 @@ help:
     RUN earthly --help | grep -v 'buildkit-volume-name'
     ENV EARTHLY_SHOW_HIDDEN=1
     RUN earthly --help | grep 'buildkit-volume-name'
+
+ls:
+    COPY ls.earth Earthfile
+    RUN earthly ls 2>/dev/null | tee actual
+    RUN echo -e "+alpha\n+base\n+bravo\n+charlie" > expected
+    RUN diff expected actual
+
+ls-subdir:
+    COPY ls.earth subdir/Earthfile
+    RUN earthly ls ./subdir 2>/dev/null | tee actual
+    RUN echo -e "+alpha\n+base\n+bravo\n+charlie" > expected
+    RUN diff expected actual
 
 
 RUN_EARTHLY:
