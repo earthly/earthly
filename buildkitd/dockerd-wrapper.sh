@@ -35,7 +35,15 @@ execute() {
                 # Exiting here on the last retry maintains prior behavior of exiting when this cant start.
                 exit 1
             fi
-            sleep 5
+
+            if grep -q "^failed to start containerd: timeout waiting for containerd to start$" /var/log/docker.log; then
+                # This error is the sentinel string for retrying to start dockerd.
+                echo "Attempting to restart dockerd (attempt $i), since the error may be transient..."
+                sleep 5
+            else
+                # If the logs do not contain this, then fail fast to maintain prior behavior.
+                exit 1
+            fi
         fi
     done
 
