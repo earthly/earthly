@@ -390,7 +390,7 @@ dind-alpine:
     SAVE IMAGE --push --cache-from=earthly/dind:main $DOCKERHUB_USER/dind:$DIND_ALPINE_TAG
 
 dind-ubuntu:
-    FROM ubuntu:20.10
+    FROM ubuntu:20.04
     COPY ./buildkitd/docker-auto-install.sh /usr/local/bin/docker-auto-install.sh
     RUN docker-auto-install.sh
     ARG DIND_UBUNTU_TAG=ubuntu-$EARTHLY_TARGET_TAG_DOCKER
