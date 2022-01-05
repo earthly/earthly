@@ -29,7 +29,9 @@ Below we list some of the best practices that we have found to be useful in desi
     * [Use `SAVE ARTIFACT ... AS LOCAL ...` for generated code, not `LOCALLY`](#use-save-artifact-...-as-local-...-for-generated-code-not-locally)
     * [Multi-line strings](#multi-line-strings)
     * [Multi-line commands](#multi-line-commands)
+    * [Copying files from outside the build context](#copying-files-from-outside-the-build-context)
     * [Repository structure: Place build logic as close to the relevant code as possible](#repository-structure-place-build-logic-as-close-to-the-relevant-code-as-possible)
+    * [Repository structure: Do not place all Earthfiles in a dedicated directory](#repository-structure-do-not-place-all-earthfiles-in-a-dedicated-directory)
     * [Pattern: Pass-through artifacts or images](#pattern-pass-through-artifacts-or-images)
     * [Use `earthly/dind`](#use-earthly-dind)
     * [Pattern: Saving artifacts resulting from a `WITH DOCKER`](#pattern-saving-artifacts-resulting-from-a-with-docker)
@@ -115,7 +117,7 @@ Here is an example.
 Repo 1:
 
 ```
-./earthfile
+repo 1
 ├── README.md
 └── my-file.txt
 ```
@@ -137,7 +139,7 @@ This might be addressed in the following way:
 Repo 1:
 
 ```
-./earthfile
+repo 1
 ├── README.md
 ├── Earthfile
 └── my-file.txt
@@ -833,6 +835,67 @@ RUN go build ... && \
     fi
 ```
 
+### Copying files from outside the build context
+
+It is generally advisable to avoid copying files outside of the build context. If a file is required from a sibling directory, or from a parent directory, it is recommended that those files are exported via `SAVE ARTIFACT` and then copied over using an artifact reference.
+
+```
+├── dir1
+|   └── some-file.txt
+└── dir2
+    ├── other-files...
+    └── Earthfile
+```
+
+```Dockerfile
+# ./dir2/Earthfile
+# Bad: does not work
+COPY ../dir1/some-file.txt ./
+```
+
+In the above example, the file `some-file.txt` is copied from the sibling directory `dir1`. This will not work in Earthly as the file is not in the build context of `./dir2/Earthfile` (the build context in this case is `./dir2`). To address this issue, we can create an Earthfile in `dir1` that exports the file `some-file.txt` as an artifact.
+
+```
+├── dir1
+|   ├── some-file.txt
+|   └── Earthfile
+└── dir2
+    ├── other-files...
+    └── Earthfile
+```
+
+```Dockerfile
+# ./dir1/Earthfile
+VERSION 0.6
+FROM alpine:3.13
+WORKDIR /work
+file:
+    COPY some-file.txt ./
+    SAVE ARTIFACT ./some-file.txt
+```
+
+```Dockerfile
+# ./dir2/Earthfile
+# Good
+COPY ../dir1+file/some-file.txt ./
+```
+
+The passing of the file as an artifact will also help create a build API of `dir1`, where all the files required outside of it are explicitly exported.
+
+If a file is needed and there is no good way of adding an Earthfile to the directory containing it (e.g. a common file from the user's home directory), then an option is to use `LOCALLY`.
+
+```Dockerfile
+file:
+    LOCALLY
+    SAVE ARTIFACT $HOME/some-file.txt
+do-something:
+    COPY +file/some-file.txt ./
+```
+
+Note, however, that `LOCALLY` is not allowed in `--strict` mode (or in `--ci` mode), as it introduces a dependency from the host machine, which may interfere with the repeatability property of the build.
+
+Although performing a `COPY ../` is not possible in Earthly today, there are some rare, but valid use-cases for this functionality. This is being discussed in GitHub issue [#1221](https://github.com/earthly/earthly/issues/1221).
+
 ### Repository structure: Place build logic as close to the relevant code as possible
 
 When designing builds, it is advisable to place lower-level build logic closer to the code that it is building. This can be achieved by splitting Earthly builds across multiple Earthfiles, and placing some of the Earthfiles deeper inside the directory structure. The lower-level Earthfiles can then export artifacts and/or images via `SAVE ARTIFACT` or `SAVE IMAGE` commands, respectively. Those artifacts can then be referenced in higher-level Earthfiles via artifact and target references (`COPY ./deep/dir+some-target/an/artifact ...`, `FROM ./some/path+my-target`).
@@ -852,6 +915,33 @@ https://github.com/earthly/earthly/blob/main/Earthfile was changed to https://ti
 * [`tests`](https://github.com/earthly/earthly/tree/main/tests) - Earthfile contains logic for executing e2e tests.
 * [`release/**/`](https://github.com/earthly/earthly/tree/main/release) - Multiple Earthfiles contain logic used for the release of Earthly.
 * [The main Earthfile](https://tinyurl.com/yt3d3cx6) - ties everything together, referencing the various targets across the sub-directories.
+
+### Repository structure: Do not place all Earthfiles in a dedicated directory
+
+A common practice when using Dockerfiles is to place all Dockerfiles in a special directory of the repository.
+
+```
+# Pattern common for Dockerfiles, but should be avoided for Earthfiles
+├── app1-src-dir
+|   └── ...
+├── app2-src-dir
+|   └── ...
+├── app3-src-dir
+|   └── ...
+└── services
+    ├── app1.Dockerfile
+    ├── app2.Dockerfile
+    └── app3.Dockerfile
+```
+
+And then running `docker build -f ./services/app1.Dockerfile ./app1-src-dir ...` and so on.
+
+In Earthly, however, this is an anti-pattern, for a couple reasons:
+
+- Every repository using Earthly should have a common structure, to help the user navigate the build. The convention is that Earthfiles are as close to the code as possible, with some high-level targets exposed in the root of the repository, or the root of the directory containing the code for a specific app. Having this convention helps the users who have not written the Earthfiles to quickly be able to browse around and understand the build, at least at a high level.
+- Cross-directory and cross-repository references will point to directories where the user expects an Earthfile to be present, and then to a specific target or UDC to within that Earthfile. It is important for this discoverability to be available to anyone browsing the build code and understanding the connections between Earthfiles.
+
+For these reasons, Earthly does not support placing all Earthfiles in a single directory, nor the equivalent of a `docker build -f` option.
 
 ### Pattern: Pass-through artifacts or images
 
