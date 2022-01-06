@@ -669,11 +669,11 @@ func (c *Converter) SaveArtifact(ctx context.Context, saveFrom string, saveTo st
 		own = ""
 	}
 
-	// tmpState is a separate state from the main state
+	// pcState is a separate state from the main state
 	// which persists any files cached via CACHE command.
 	// This is necessary so those cached files can be
 	// accessed within the CopyOps below.
-	tmpState := persistCache(
+	pcState := persistCache(
 		c.mts.Final.MainState,
 		c.persistentCacheDirs,
 		c.runOpts,
@@ -681,7 +681,7 @@ func (c *Converter) SaveArtifact(ctx context.Context, saveFrom string, saveTo st
 	)
 
 	c.mts.Final.ArtifactsState = llbutil.CopyOp(
-		tmpState, []string{saveFrom}, c.mts.Final.ArtifactsState,
+		pcState, []string{saveFrom}, c.mts.Final.ArtifactsState,
 		saveToAdjusted, true, true, keepTs, own, ifExists, symlinkNoFollow,
 		llb.WithCustomNamef(
 			"%sSAVE ARTIFACT %s%s%s %s",
@@ -712,7 +712,7 @@ func (c *Converter) SaveArtifact(ctx context.Context, saveFrom string, saveTo st
 					saveAsLocalTo))
 		} else {
 			separateArtifactsState = llbutil.CopyOp(
-				tmpState, []string{saveFrom}, separateArtifactsState,
+				pcState, []string{saveFrom}, separateArtifactsState,
 				saveToAdjusted, true, true, keepTs, "root:root", ifExists, symlinkNoFollow,
 				llb.WithCustomNamef(
 					"%sSAVE ARTIFACT %s%s%s %s AS LOCAL %s",
