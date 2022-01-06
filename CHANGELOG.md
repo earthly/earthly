@@ -10,7 +10,7 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ### Added
 
-- Expirmental CACHE command with optional `--persist` flag can optimize projects by allowing incremental changes from files on host machine without rebuilding the entire cache. For example, a Maven project where `SNAPSHOT` dependencies are added frequently, an NPM project where `node_modules` change frequently, or programming languages using incremental compilers. [#1399](https://github.com/earthly/earthly/issues/1399)
+- Expirmental CACHE command can be used in Earthfiles to optimize the cache in projects that perform better with incremental changes. For example, a Maven project where `SNAPSHOT` dependencies are added frequently, an NPM project where `node_modules` change frequently, or programming languages using incremental compilers. [#1399](https://github.com/earthly/earthly/issues/1399)
 
 - Config file entries can be deleted using a `--delete` flag (for example `earthly config global.conversion_parallelism --delete`) [#1449](https://github.com/earthly/earthly/issues/1449)
 
