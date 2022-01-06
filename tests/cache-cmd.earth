@@ -2,12 +2,12 @@ VERSION 0.6
 
 FROM alpine:3.13
 CACHE /base/persistent
+RUN echo "hello" >> /base/persistent/hello
 
 test-prev-prev:
     WORKDIR /test
     CACHE ./my/data
     RUN echo "hello" >> ./my/data/hello
-    RUN echo "hello" >> /base/persistent/hello
 
 test-prev:
     FROM +test-prev-prev

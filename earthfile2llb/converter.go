@@ -87,6 +87,8 @@ type Converter struct {
 	ftrs                *features.Features
 }
 
+type cacheDirSet map[string]struct{}
+
 // NewConverter constructs a new converter for a given earthly target.
 func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Data, sts *states.SingleTarget, opt ConvertOpt) (*Converter, error) {
 	opt.BuildContextProvider.AddDirs(bc.LocalDirs)
@@ -666,8 +668,20 @@ func (c *Converter) SaveArtifact(ctx context.Context, saveFrom string, saveTo st
 	if keepOwn {
 		own = ""
 	}
+
+	// tmpState is a separate state from the main state
+	// which persists any files cached via CACHE command.
+	// This is necessary so those cached files can be
+	// accessed within the CopyOps below.
+	tmpState := persistCache(
+		c.mts.Final.MainState,
+		c.persistentCacheDirs,
+		c.runOpts,
+		c.mts.Final.Platform,
+	)
+
 	c.mts.Final.ArtifactsState = llbutil.CopyOp(
-		c.mts.Final.MainState, []string{saveFrom}, c.mts.Final.ArtifactsState,
+		tmpState, []string{saveFrom}, c.mts.Final.ArtifactsState,
 		saveToAdjusted, true, true, keepTs, own, ifExists, symlinkNoFollow,
 		llb.WithCustomNamef(
 			"%sSAVE ARTIFACT %s%s%s %s",
@@ -679,8 +693,14 @@ func (c *Converter) SaveArtifact(ctx context.Context, saveFrom string, saveTo st
 	if saveAsLocalTo != "" && c.opt.DoSaves {
 		separateArtifactsState := llbutil.ScratchWithPlatform()
 		if isPush {
+			pushState := persistCache(
+				c.mts.Final.RunPush.State,
+				c.persistentCacheDirs,
+				c.runOpts,
+				c.mts.Final.Platform,
+			)
 			separateArtifactsState = llbutil.CopyOp(
-				c.mts.Final.RunPush.State, []string{saveFrom}, separateArtifactsState,
+				pushState, []string{saveFrom}, separateArtifactsState,
 				saveToAdjusted, true, true, keepTs, "root:root", ifExists, symlinkNoFollow,
 				llb.WithCustomNamef(
 					"%sSAVE ARTIFACT %s%s%s %s AS LOCAL %s",
@@ -692,7 +712,7 @@ func (c *Converter) SaveArtifact(ctx context.Context, saveFrom string, saveTo st
 					saveAsLocalTo))
 		} else {
 			separateArtifactsState = llbutil.CopyOp(
-				c.mts.Final.MainState, []string{saveFrom}, separateArtifactsState,
+				tmpState, []string{saveFrom}, separateArtifactsState,
 				saveToAdjusted, true, true, keepTs, "root:root", ifExists, symlinkNoFollow,
 				llb.WithCustomNamef(
 					"%sSAVE ARTIFACT %s%s%s %s AS LOCAL %s",
@@ -1157,7 +1177,7 @@ func (c *Converter) Cache(ctx context.Context, path string) error {
 	}
 	if _, exists := c.persistentCacheDirs[path]; !exists {
 		c.persistentCacheDirs[path] = struct{}{}
-		mountOpt := pllb.AddMount(path, c.mts.Final.MainState,
+		mountOpt := pllb.AddMount(path, pllb.Scratch(),
 			llb.AsPersistentCacheDir(path, llb.CacheMountShared))
 		c.runOpts = append(c.runOpts, mountOpt)
 	}
@@ -1219,8 +1239,13 @@ func (c *Converter) FinalizeStates(ctx context.Context) (*states.MultiTarget, er
 		return nil, errors.New("internal error: stack not at base in FinalizeStates")
 	}
 
-	// Persists cache volumes created by `CACHE --persist`
-	c.persistCacheVolumes()
+	// Persists any cache directories created by using a `CACHE` command
+	c.mts.Final.MainState = persistCache(
+		c.mts.Final.MainState,
+		c.persistentCacheDirs,
+		c.runOpts,
+		c.mts.Final.Platform,
+	)
 
 	c.mts.Final.VarCollection = c.varCollection
 	c.mts.Final.GlobalImports = c.varCollection.Imports().Global()
@@ -1790,34 +1815,33 @@ func (c *Converter) targetInputActiveOnly() dedup.TargetInput {
 	return c.mts.Final.TargetInput().WithFilterBuildArgs(activeBuildArgs)
 }
 
-// persistCacheVolumes makes temporary cache volumes permanent by writing their contents
-// from the volume to the host filesystem at the same directory.
-// Used when the Target contains a `CACHE /my/directory` directive.
-func (c *Converter) persistCacheVolumes() {
+// persistCache makes temporary cache directories permanent by writing their contents
+// from the cached directory to the persistent image layers at the same directory.
+// Used when the Target contains at least one `CACHE /my/directory` command.
+// Note that the RunOptions provided should contain at least all mounts corresponding to the cache direcories.
+func persistCache(srcState pllb.State, cacheDirs map[string]struct{}, opts []llb.RunOption, platform *specs.Platform) pllb.State {
 	// tmpDir is a backup directory where we can store the contents of the user's cache volume
 	// Is's name is sufficiently random that it should never collide with a user's work.
 	const tmpDir = "/earthly-tmp-a8cb9b0e-f285-4851-b00e-cd5b1ac6a499"
-	state := c.mts.Final.MainState
+	dest := srcState
 
 	// User may have multiple CACHE commands in a single target
-	for cacheDir := range c.persistentCacheDirs {
-
+	for cacheDir := range cacheDirs {
 		// Copy the contents of the user's cache directory to the temporary backup.
 		// It's important to use DockerfileCopy here, since traditional llb.Copy()
 		// doesn't support adding mounts via RunOptions.
-		// Note it's expected that c.runOpts contains the necessary mounts.
-		state = llbutil.DockerfileCopy(
-			state,
+		dest = llbutil.DockerfileCopy(
+			dest,
 			cacheDir,
 			tmpDir,
-			c.runOpts,
-			c.mts.Final.Platform,
+			append(opts, llb.WithCustomName("persist cache directory")),
+			platform,
 		)
 
 		// Copy the contents from our tmp directory back to the
 		// same place as the user placed them in their cache directory
 		fa := pllb.Copy(
-			state,
+			dest,
 			fmt.Sprintf("%s/*", tmpDir),
 			cacheDir,
 			&llb.CopyInfo{
@@ -1829,10 +1853,10 @@ func (c *Converter) persistCacheVolumes() {
 		)
 
 		// Remove the temporary backup after we're done copying from it.
-		state = state.File(fa.Rm(tmpDir))
+		dest = dest.File(fa.Rm(tmpDir))
 	}
 
-	c.mts.Final.MainState = state
+	return dest
 }
 
 func joinWrap(a []string, before string, sep string, after string) string {

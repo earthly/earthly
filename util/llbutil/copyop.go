@@ -77,7 +77,6 @@ func DockerfileCopy(srcState pllb.State, src, dest string, opts []llb.RunOption,
 	// with the Earthly user's state mounted at /dest on that image.
 	opts = append(opts, []llb.RunOption{
 		llb.ReadonlyRootFS(),
-		llb.WithCustomName("dockerfile copy"),
 		llb.Shlexf("copy %s /dest/%s", src, dest)}...)
 	copyState := pllb.Image(copyImg, imgOpts...)
 	run := copyState.Run(opts...)
