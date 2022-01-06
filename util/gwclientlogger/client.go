@@ -60,6 +60,6 @@ func (vc *verboseClient) NewContainer(ctx context.Context, req gwclient.NewConta
 }
 
 // Warn wraps gwclient.Warn
-func (vc *verboseClient) Warn(ctx context.Context, dgst digest.Digest, msg string) error {
-	return vc.c.Warn(ctx, dgst, msg)
+func (vc *verboseClient) Warn(ctx context.Context, dgst digest.Digest, msg string, warnOpts gwclient.WarnOpts) error {
+	return vc.c.Warn(ctx, dgst, msg, warnOpts)
 }

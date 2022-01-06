@@ -6,7 +6,7 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ### Changed
 
-- Updated buildkit to contain changes up to `4a1cbd73b0de05967ba0baa538364f888720591d` from `moby/master`.
+- Updated buildkit to contain changes up to `15fb1145afa48bf81fbce41634bdd36c02454f99` from `moby/master`.
 
 ### Added
 

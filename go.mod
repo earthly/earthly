@@ -44,6 +44,6 @@ replace (
 
 	github.com/jessevdk/go-flags => github.com/alexcb/go-flags v0.0.0-20210722203016-f11d7ecb5ee5
 
-	github.com/moby/buildkit => github.com/earthly/buildkit v0.0.1-0.20211214005924-ca354fe7aa93
+	github.com/moby/buildkit => github.com/earthly/buildkit v0.0.1-0.20220107002647-0177ad8f0db1
 	github.com/tonistiigi/fsutil => github.com/earthly/fsutil v0.0.0-20211029185157-9f87c4e70cf0
 )
