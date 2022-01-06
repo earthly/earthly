@@ -30,3 +30,10 @@ test:
     RUN test "$(cat /base/persistent/hello)" = "hello, hello"
     # The temporary backup directory should have been removed.
     RUN test -d /earthly-tmp-a8cb9b0e-f285-4851-b00e-cd5b1ac6a499; test $? = 1
+
+test-save-artifact:
+    CACHE ./my/artifacts
+    RUN echo "artifact 1" >> ./my/artifacts/1
+    SAVE ARTIFACT ./my/artifacts AS LOCAL ./artifacts1
+    RUN echo "artifact 2" >> ./my/artifacts/2
+    SAVE ARTIFACT ./my/artifacts AS LOCAL ./artifacts2
