@@ -63,6 +63,11 @@ ga:
         --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
         --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
         --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR
+    BUILD ./invalid+test-all \
+        --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
+        --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
+        --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
+        --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR
     BUILD +excludes-test
     BUILD +secrets-test
     BUILD +build-arg-test
@@ -134,6 +139,8 @@ ga:
     BUILD +implicit-ignores
     BUILD +help
     BUILD +cache-cmd
+    BUILD +ls
+    BUILD +ls-subdir
 
 # tests that only run on linux amd64
 # Note: this target is used to validate the USERPLATFORM user arg,
@@ -892,6 +899,18 @@ help:
 
 cache-cmd:
     DO +RUN_EARTHLY --earthfile=cache-cmd.earth --target=+test
+
+ls:
+    COPY ls.earth Earthfile
+    RUN earthly ls 2>/dev/null | tee actual
+    RUN echo -e "+alpha\n+base\n+bravo\n+charlie" > expected
+    RUN diff expected actual
+
+ls-subdir:
+    COPY ls.earth subdir/Earthfile
+    RUN earthly ls ./subdir 2>/dev/null | tee actual
+    RUN echo -e "+alpha\n+base\n+bravo\n+charlie" > expected
+    RUN diff expected actual
 
 RUN_EARTHLY:
     COMMAND

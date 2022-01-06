@@ -17,6 +17,7 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 - Earthly now provides the following [builtin ARGs](https://docs.earthly.dev/docs/earthfile/builtin-args): `EARTHLY_VERSION` and `EARTHLY_BUILD_SHA`. These will be generally available in Earthly version 0.7+, however, they can be enabled earlier by using the `--earthly-version-arg` [feature flag](https://docs.earthly.dev/docs/earthfile/features#feature-flags) [#1452](https://github.com/earthly/earthly/issues/1452).
 - Config option to disable `known_host` checking for specific git hosts by setting `strict_host_key_checking ` to `false` under the `git` section of `earthly/config.yml` (defaults to `true`).
 - Error check for using both `--interactive` and `--buildkit-host` (which are not currently supported together) [#1492](https://github.com/earthly/earthly/issues/1492).
+- `earthly ls [<project-ref>]` to list Earthfile targets
 
 ### Fixed
 

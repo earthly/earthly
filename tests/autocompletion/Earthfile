@@ -16,6 +16,7 @@ test-root-commands:
 account 
 bootstrap 
 config 
+ls 
 org 
 prune 
 secrets " > expected
@@ -31,6 +32,7 @@ config
 debug 
 docker 
 docker2earthly 
+ls 
 org 
 prune 
 secrets " > expected
@@ -42,7 +44,8 @@ test-targets:
 
     RUN echo "+mytarget 
 +othertarget 
-+othertargetwithargs " > expected
++othertargetwithargs 
++targetwithrequiredarg " > expected
     RUN COMP_LINE="earthly +" COMP_POINT=9 earthly > actual
     RUN diff expected actual
 
@@ -50,7 +53,7 @@ test-targets:
     RUN COMP_LINE="earthly +m" COMP_POINT=10 earthly > actual
     RUN diff expected actual
 
-test-targets-with-build-args:
+test-target-with-build-args:
     COPY fake.earth ./Earthfile
 
     RUN echo "--city=
@@ -81,7 +84,8 @@ test-targets-from-other-dir:
 
     RUN echo "./child/dir+mytarget 
 ./child/dir+othertarget 
-./child/dir+othertargetwithargs " > expected
+./child/dir+othertargetwithargs 
+./child/dir+targetwithrequiredarg " > expected
     RUN COMP_LINE="earthly ./child/dir+" COMP_POINT=20 earthly > actual
     RUN diff expected actual
 
@@ -89,7 +93,7 @@ test-targets-from-other-dir:
     RUN COMP_LINE="earthly ./child/dir+m" COMP_POINT=21 earthly > actual
     RUN diff expected actual
 
-test-targets-with-build-args-from-other-dir:
+test-target-with-build-args-from-other-dir:
     RUN mkdir -p child/dir
     COPY fake.earth child/dir/Earthfile
 
@@ -105,6 +109,13 @@ test-targets-with-build-args-from-other-dir:
 
     RUN echo "--city=" > expected
     RUN COMP_LINE="earthly ./child/dir+othertargetwithargs --ci" COMP_POINT=44 earthly > actual
+    RUN diff expected actual
+
+test-target-with-required-arg:
+    COPY fake.earth Earthfile
+
+    RUN echo "--musthave=" > expected
+    RUN COMP_LINE="earthly +targetwithrequiredarg -" COMP_POINT=32 earthly > actual
     RUN diff expected actual
 
 test-base-only-target:
@@ -143,7 +154,8 @@ test-relative-dir-targets:
     RUN diff expected actual
     RUN echo "./foo+mytarget 
 ./foo+othertarget 
-./foo+othertargetwithargs " > expected
+./foo+othertargetwithargs 
+./foo+targetwithrequiredarg " > expected
     RUN COMP_LINE="earthly ./foo+" COMP_POINT=14 earthly > actual
     RUN diff expected actual
 
@@ -152,8 +164,9 @@ test-all:
     BUILD +test-hidden-root-commands
     BUILD +test-targets
     BUILD +test-targets-from-other-dir
-    BUILD +test-targets-with-build-args
-    BUILD +test-targets-with-build-args-from-other-dir
+    BUILD +test-target-with-build-args
+    BUILD +test-target-with-build-args-from-other-dir
+    BUILD +test-target-with-required-arg
     BUILD +test-base-only-target
     BUILD +test-relative-dir-targets
     BUILD +test-no-parent-at-root

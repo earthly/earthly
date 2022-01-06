@@ -121,6 +121,7 @@ Here are some resources to get you started with Earthly
   * [Mono-repo](./examples/monorepo)
   * [Multi-repo](./examples/multirepo)
 * 🔍 Explore [Earthly's own build](https://docs.earthly.dev/examples/examples#earthlys-own-build)
+* ✔️ [Best practices](https://docs.earthly.dev/best-practices)
 
 See also the [full documentation](https://docs.earthly.dev).
 
@@ -132,7 +133,7 @@ Reference pages
 
 ### A simple example (for Go)
 
-```Dockerfile
+```earthly
 # Earthfile
 VERSION 0.6
 FROM golang:1.15-alpine3.13
@@ -201,7 +202,7 @@ Examples
 
 * Same directory (same Earthfile)
   
-  ```Dockerfile
+  ```earthly
   BUILD +some-target
   FROM +some-target
   COPY +some-target/my-artifact ./
@@ -209,7 +210,7 @@ Examples
 
 * Other directories
 
-  ```Dockerfile
+  ```earthly
   BUILD ./some/local/path+some-target
   FROM ./some/local/path+some-target
   COPY ./some/local/path+some-target/my-artifact ./
@@ -217,7 +218,7 @@ Examples
 
 * Other repositories
 
-  ```Dockerfile
+  ```earthly
   BUILD github.com/someone/someproject:v1.2.3+some-target
   FROM github.com/someone/someproject:v1.2.3+some-target
   COPY github.com/someone/someproject:v1.2.3+some-target/my-artifact ./
@@ -233,7 +234,7 @@ Cut down build times in CI through [Shared Caching](https://docs.earthly.dev/gui
 
 Build for multiple platforms in parallel.
 
-```Dockerfile
+```earthly
 VERSION 0.6
 all:
     BUILD \
@@ -259,7 +260,7 @@ Whenever possible, Earthly automatically executes targets in parallel.
 
 No need to ask your team to install `protoc`, a specific version of Python, Java 1.6 or the .NET Core ecosystem. You only install once, in your Earthfile, and it works for everyone. Or even better, you can just make use of the rich Docker Hub ecosystem.
 
-```Dockerfile
+```earthly
 VERSION 0.6
 FROM golang:1.15-alpine3.13
 WORKDIR /proto-example
@@ -289,7 +290,7 @@ Secrets are never stored within an image's layers and they are only available to
 earthly set /user/github/token 'shhh...'
 ```
 
-```Dockerfile
+```earthly
 release:
   RUN --push --secret GITHUB_TOKEN=+secrets/user/github/token github-release upload file.bin
 ```
@@ -314,7 +315,7 @@ Check out the [Earthfile reference doc page](https://docs.earthly.dev/earthfile)
 
 Yes! You can use the command `FROM DOCKERFILE` to inherit the commands in an existing Dockerfile.
 
-```Dockerfile
+```earthly
 build:
   FROM DOCKERFILE .
   SAVE IMAGE some-image:latest

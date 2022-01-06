@@ -42,11 +42,11 @@ DOCKER: 'DOCKER' -> pushMode(BLOCK), pushMode(COMMAND_ARGS);
 IF: 'IF' -> pushMode(BLOCK), pushMode(COMMAND_ARGS);
 FOR: 'FOR' -> pushMode(BLOCK), pushMode(COMMAND_ARGS);
 
-NL: WS? COMMENT? (EOF | CRLF);
+NL: [ \t]* COMMENT? (EOF | CRLF);
 WS: [ \t] ([ \t] | LC)*;
 fragment CRLF: ('\r' | '\n' | '\r\n');
 fragment COMMENT: '#' (~[\r\n])*;
-fragment NL_NOLC: [ \t]* COMMENT? (EOF | CRLF);
+fragment NL_NOLC: [ \t]* COMMENT? CRLF;
 fragment LC: '\\' NL_NOLC+;
 
 // ----------------------------------------------------------------------------

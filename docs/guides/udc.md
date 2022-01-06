@@ -72,3 +72,30 @@ PRINT_VAR:
     COMMAND
     RUN echo "$a_global_var"
 ```
+
+## Targets vs UDCs
+
+Earthly targets and UDCs are Earthly's core primitives for organizing build recipes. They encapsulate build logic, and from afar they look pretty similar. However, the use-cases for each are vastly different.
+
+In general, targets are used to produce specific build results, while UDCs are used as a way to reuse build logic, when certain commands are repeated in multiple places. UDCs work like functions or methods in an imperative programming language. Much like function calls it's helpful to imagine UDCs being executed by being inlined into the call site but in a separate variable scope.
+
+As a real-world analogy, targets are more like factories, while UDCs are more like components that are used to put together factories.
+
+Here is a comparison of the two primitives:
+
+| | Targets | UDCs |
+| --- | --- | --- |
+| Represents a collection of Earthly commands | ✅ | ✅ |
+| Can reference other targets in its body | ✅ | ✅ |
+| Can reference other UDCs in its body | ✅ | ✅ |
+| Build context | The directory where the Earthfile resides | Inherited from the caller |
+| Build environment, when no `FROM` is specified | Inherited from the base of its own Earthfile | Inherited from the caller |
+| `IMPORT` statements | Inherited from the base of its own Earthfile | Inherited from the base of its own Earthfile |
+| `ARG` context | Creates its own scope | Creates its own scope |
+| Requires that `ARG`s be passed in explicitly | ✅ | ✅ |
+| Global `ARG` context | Inherited from the base of its own Earthfile | Inherited from the base of its own Earthfile |
+| Can output artifacts | ✅ | ❌ - can issue `SAVE ARTIFACT`, but it's the caller that emits the artifacts |
+| Can output images | ✅ | ❌ - can issue `SAVE IMAGE`, but it's the caller that emits the images |
+| Can be called via `earthly` CLI | ✅ | ❌ |
+| Can be used via in conjunction with an `IMPORT` (`IMPORT github.com/my-co/my-proj/some-import`) | ✅ - `FROM some-import+my-target` | ✅ - `DO some-import+MY_UDC` |
+| Commands that can reference it | `FROM`, `BUILD`, `COPY`, `WITH DOCKER --load`, `FROM DOCKERFILE` | `DO` |
