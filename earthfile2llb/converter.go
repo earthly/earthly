@@ -1817,7 +1817,7 @@ func (c *Converter) targetInputActiveOnly() dedup.TargetInput {
 
 // persistCache makes temporary cache directories permanent by writing their contents
 // from the cached directory to the persistent image layers at the same directory.
-// Used when the Target contains at least one `CACHE /my/directory` command.
+// This only has an effect when the Target contains at least one `CACHE /my/directory` command.
 // Note that the RunOptions provided should contain at least all mounts corresponding to the cache direcories.
 func persistCache(srcState pllb.State, cacheDirs map[string]struct{}, opts []llb.RunOption, platform *specs.Platform) pllb.State {
 	// tmpDir is a backup directory where we can store the contents of the user's cache volume
