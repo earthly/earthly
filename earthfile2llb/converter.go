@@ -1172,7 +1172,8 @@ func (c *Converter) Import(ctx context.Context, importStr, as string, isGlobal, 
 // It appends run options to the Converter which will mount a cache volume in each successive `RUN` command,
 // and configures the `Converter` to persist the cache in the image at the end of the target.
 func (c *Converter) Cache(ctx context.Context, path string) error {
-	if err := c.checkAllowed(cacheCmd); err != nil {
+	err := c.checkAllowed(cacheCmd)
+	if err != nil {
 		return err
 	}
 	if _, exists := c.persistentCacheDirs[path]; !exists {
