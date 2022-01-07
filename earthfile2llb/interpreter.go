@@ -1359,8 +1359,7 @@ func (i *Interpreter) handleCache(ctx context.Context, cmd spec.Command) error {
 	}
 	dir := cmd.Args[0]
 	if !path.IsAbs(dir) {
-		dir = strings.TrimLeft(dir, "./")
-		dir = path.Join("/", i.converter.mts.Final.MainImage.Config.WorkingDir, dir)
+		dir = path.Clean(path.Join("/", i.converter.mts.Final.MainImage.Config.WorkingDir, dir))
 	}
 	if err := i.converter.Cache(ctx, dir); err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "apply CACHE")
