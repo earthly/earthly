@@ -247,7 +247,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 				}
 
 				if !isMultiPlatform[saveImage.DockerTag] {
-					if singPlatImgNames[saveImage.DockerTag] {
+					if _, found := singPlatImgNames[saveImage.DockerTag]; found {
 						return nil, errors.Errorf(
 							"image %s is defined multiple times for the same default platform",
 							saveImage.DockerTag)
@@ -284,7 +284,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 					if err != nil {
 						return nil, err
 					}
-					if platformImgNames[platformImgName] {
+					if _, found := platformImgNames[platformImgName]; found {
 						return nil, errors.Errorf(
 							"image %s is defined multiple times for the same platform (%s)",
 							saveImage.DockerTag, platformImgName)
