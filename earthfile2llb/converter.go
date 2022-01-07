@@ -676,8 +676,8 @@ func (c *Converter) SaveArtifact(ctx context.Context, saveFrom string, saveTo st
 	pcState := persistCache(
 		c.mts.Final.MainState,
 		c.persistentCacheDirs,
-		c.runOpts,
 		c.mts.Final.Platform,
+		c.runOpts...,
 	)
 
 	c.mts.Final.ArtifactsState = llbutil.CopyOp(
@@ -696,8 +696,8 @@ func (c *Converter) SaveArtifact(ctx context.Context, saveFrom string, saveTo st
 			pushState := persistCache(
 				c.mts.Final.RunPush.State,
 				c.persistentCacheDirs,
-				c.runOpts,
 				c.mts.Final.Platform,
+				c.runOpts...,
 			)
 			separateArtifactsState = llbutil.CopyOp(
 				pushState, []string{saveFrom}, separateArtifactsState,
@@ -1244,8 +1244,8 @@ func (c *Converter) FinalizeStates(ctx context.Context) (*states.MultiTarget, er
 	c.mts.Final.MainState = persistCache(
 		c.mts.Final.MainState,
 		c.persistentCacheDirs,
-		c.runOpts,
 		c.mts.Final.Platform,
+		c.runOpts...,
 	)
 
 	c.mts.Final.VarCollection = c.varCollection
@@ -1820,10 +1820,7 @@ func (c *Converter) targetInputActiveOnly() dedup.TargetInput {
 // from the cached directory to the persistent image layers at the same directory.
 // This only has an effect when the Target contains at least one `CACHE /my/directory` command.
 // Note that the RunOptions provided should contain at least all mounts corresponding to the cache direcories.
-func persistCache(srcState pllb.State, cacheDirs map[string]struct{}, opts []llb.RunOption, platform *specs.Platform) pllb.State {
-	// tmpDir is a backup directory where we can store the contents of the user's cache volume
-	// Is's name is sufficiently random that it should never collide with a user's work.
-	const tmpDir = "/earthly-tmp-a8cb9b0e-f285-4851-b00e-cd5b1ac6a499"
+func persistCache(srcState pllb.State, cacheDirs map[string]struct{}, platform *specs.Platform, opts ...llb.RunOption) pllb.State {
 	dest := srcState
 
 	// User may have multiple CACHE commands in a single target
@@ -1831,30 +1828,13 @@ func persistCache(srcState pllb.State, cacheDirs map[string]struct{}, opts []llb
 		// Copy the contents of the user's cache directory to the temporary backup.
 		// It's important to use DockerfileCopy here, since traditional llb.Copy()
 		// doesn't support adding mounts via RunOptions.
-		dest = llbutil.DockerfileCopy(
+		dest = llbutil.CopyWithRunOptions(
 			dest,
-			cacheDir,
-			tmpDir,
-			append(opts, llb.WithCustomName("persist cache directory")),
+			cacheDir, // cache dir from external mount
+			cacheDir, // cache dir on dest state (same location but without the mount)
 			platform,
+			append(opts, llb.WithCustomName("persist cache directory"))...,
 		)
-
-		// Copy the contents from our tmp directory back to the
-		// same place as the user placed them in their cache directory
-		fa := pllb.Copy(
-			dest,
-			fmt.Sprintf("%s/*", tmpDir),
-			cacheDir,
-			&llb.CopyInfo{
-				FollowSymlinks:     true,
-				CreateDestPath:     true,
-				AllowWildcard:      true,
-				AllowEmptyWildcard: true,
-			},
-		)
-
-		// Remove the temporary backup after we're done copying from it.
-		dest = dest.File(fa.Rm(tmpDir))
 	}
 
 	return dest

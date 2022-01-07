@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 
@@ -1356,7 +1357,12 @@ func (i *Interpreter) handleCache(ctx context.Context, cmd spec.Command) error {
 	if len(cmd.Args) != 1 {
 		return errors.Errorf("invalid number of arguments for CACHE: %s", cmd.Args)
 	}
-	if err := i.converter.Cache(ctx, cmd.Args[0]); err != nil {
+	dir := cmd.Args[0]
+	if !path.IsAbs(dir) {
+		dir = strings.TrimLeft(dir, "./")
+		dir = path.Join("/", i.converter.mts.Final.MainImage.Config.WorkingDir, dir)
+	}
+	if err := i.converter.Cache(ctx, dir); err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "apply CACHE")
 	}
 	return nil
