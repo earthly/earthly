@@ -527,7 +527,7 @@ func (c *Converter) RunExitCode(ctx context.Context, opts ConvertRunOpts) (int, 
 			return os.RemoveAll(exitCodeDir)
 		})
 	} else {
-		exitCodeFile = "/run/exit_code"
+		exitCodeFile = "/tmp/earthly_if_statement_exit_code"
 		opts.statePrep = func(ctx context.Context, state pllb.State) (pllb.State, error) {
 			return state.File(
 				pllb.Mkdir("/run", 0755, llb.WithParents(true)),
