@@ -1019,11 +1019,13 @@ func (c *Converter) Arg(ctx context.Context, argKey string, defaultArgValue stri
 	} else if opts.Required && len(effective) == 0 {
 		return errors.New("build-arg not supplied for required ARG")
 	}
-	c.mts.Final.AddBuildArgInput(dedup.BuildArgInput{
-		Name:          argKey,
-		DefaultValue:  defaultArgValue,
-		ConstantValue: effective,
-	})
+	if c.varCollection.IsStackAtBase() { // Only when outside of UDC.
+		c.mts.Final.AddBuildArgInput(dedup.BuildArgInput{
+			Name:          argKey,
+			DefaultValue:  defaultArgValue,
+			ConstantValue: effective,
+		})
+	}
 	return nil
 }
 

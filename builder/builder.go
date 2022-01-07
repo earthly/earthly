@@ -145,6 +145,8 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 
 	destPathWhitelist := make(map[string]bool)
 	manifestLists := make(map[string][]manifest) // parent image -> child images
+	platformImgNames := make(map[string]bool)    // ensure that these are unique
+	singPlatImgNames := make(map[string]bool)    // ensure that these are unique
 	var mts *states.MultiTarget
 	depIndex := 0
 	imageIndex := 0
@@ -245,6 +247,13 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 				}
 
 				if !isMultiPlatform[saveImage.DockerTag] {
+					if _, found := singPlatImgNames[saveImage.DockerTag]; found {
+						return nil, errors.Errorf(
+							"image %s is defined multiple times for the same default platform",
+							saveImage.DockerTag)
+					}
+					singPlatImgNames[saveImage.DockerTag] = true
+
 					refKey := fmt.Sprintf("image-%d", imageIndex)
 					refPrefix := fmt.Sprintf("ref/%s", refKey)
 					imageIndex++
@@ -271,6 +280,16 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 				} else {
 					platform := llbutil.PlatformWithDefault(sts.Platform)
 					platformStr := llbutil.PlatformWithDefaultToString(sts.Platform)
+					platformImgName, err := platformSpecificImageName(saveImage.DockerTag, platform)
+					if err != nil {
+						return nil, err
+					}
+					if _, found := platformImgNames[platformImgName]; found {
+						return nil, errors.Errorf(
+							"image %s is defined multiple times for the same platform (%s)",
+							saveImage.DockerTag, platformImgName)
+					}
+					platformImgNames[platformImgName] = true
 					// Image has platform set - need to use manifest lists.
 					// Need to push as a single multi-manifest image, but output locally as
 					// separate images.
@@ -299,10 +318,6 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 						refPrefix := fmt.Sprintf("ref/%s", refKey)
 						imageIndex++
 
-						platformImgName, err := platformSpecificImageName(saveImage.DockerTag, platform)
-						if err != nil {
-							return nil, err
-						}
 						localRegPullID, err := platformSpecificImageName(
 							fmt.Sprintf("sess-%s/mp:img%d", gwClient.BuildOpts().SessionID, imageIndex), platform)
 						if err != nil {
