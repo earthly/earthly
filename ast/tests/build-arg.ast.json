@@ -104,6 +104,14 @@
             ],
             "name": "BUILD"
           }
+        },
+        {
+          "command": {
+            "args": [
+              "+test-non-root"
+            ],
+            "name": "BUILD"
+          }
         }
       ]
     },
@@ -499,6 +507,50 @@
               "\"$global2\"",
               "==",
               "\"def\""
+            ],
+            "name": "RUN"
+          }
+        }
+      ]
+    },
+    {
+      "name": "test-non-root",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "adduser",
+              "--system",
+              "weeheavy"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "weeheavy"
+            ],
+            "name": "USER"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "foo",
+              "=",
+              "$(echo bar)"
+            ],
+            "name": "ARG"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "test",
+              "\"$foo\"",
+              "==",
+              "\"bar\""
             ],
             "name": "RUN"
           }

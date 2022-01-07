@@ -14,6 +14,7 @@ all:
     BUILD +test-global1
     BUILD +test-global2
     BUILD +test-global3
+    BUILD +test-non-root
 
 file-exists:
     ARG VAR1=nope.txt
@@ -70,3 +71,9 @@ test-global3:
     FROM +dummy
     RUN test "$global1" == "abc"
     RUN test "$global2" == "def"
+
+test-non-root:
+    RUN adduser --system weeheavy
+    USER weeheavy
+    ARG foo=$(echo bar)
+    RUN test "$foo" == "bar"

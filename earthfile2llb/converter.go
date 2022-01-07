@@ -527,7 +527,7 @@ func (c *Converter) RunExitCode(ctx context.Context, opts ConvertRunOpts) (int, 
 			return os.RemoveAll(exitCodeDir)
 		})
 	} else {
-		exitCodeFile = "/run/exit_code"
+		exitCodeFile = "/tmp/earthly_if_statement_exit_code"
 		opts.statePrep = func(ctx context.Context, state pllb.State) (pllb.State, error) {
 			return state.File(
 				pllb.Mkdir("/run", 0755, llb.WithParents(true)),
@@ -592,7 +592,7 @@ func (c *Converter) RunExpression(ctx context.Context, expressionName string, op
 		outputFile = path.Join(srcBuildArgDir, expressionName)
 		opts.statePrep = func(ctx context.Context, state pllb.State) (pllb.State, error) {
 			return state.File(
-				pllb.Mkdir(srcBuildArgDir, 0755, llb.WithParents(true)),
+				pllb.Mkdir(srcBuildArgDir, 0777, llb.WithParents(true)), // Mkdir is performed as root even when USER is set; we must use 0777
 				llb.WithCustomNamef("[internal] mkdir %s", srcBuildArgDir)), nil
 		}
 	}

@@ -47,6 +47,7 @@ all:
     BUILD +test-empty
     BUILD +test-complex
     BUILD +test-else-if
+    BUILD +test-non-root-user
 
 test-build:
     IF [ "true" = "false" ]
@@ -182,6 +183,15 @@ test-else-if:
     ELSE
         RUN false
     END
+
+test-non-root-user:
+    RUN adduser --system weeheavy
+    USER weeheavy
+    RUN ! test -f /tmp/exists
+    IF [ "true" = "true" ]
+        RUN touch /tmp/exists
+    END
+    RUN test -f /tmp/exists
 
 fail:
     RUN false
