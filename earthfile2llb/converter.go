@@ -848,11 +848,18 @@ func (c *Converter) SaveImage(ctx context.Context, imageNames []string, pushImag
 	}
 	for _, imageName := range imageNames {
 		if c.mts.Final.RunPush.HasState {
+			// pcState persists any files that may be cached via CACHE command.
+			pcState := persistCache(
+				c.mts.Final.RunPush.State,
+				c.persistentCacheDirs,
+				c.mts.Final.Platform,
+				c.runOpts...,
+			)
 			// SAVE IMAGE --push when it comes before any RUN --push should be treated as if they are in the main state,
 			// since thats their only dependency. It will still be marked as a push.
 			c.mts.Final.RunPush.SaveImages = append(c.mts.Final.RunPush.SaveImages,
 				states.SaveImage{
-					State:               c.mts.Final.RunPush.State,
+					State:               pcState,
 					Image:               c.mts.Final.MainImage.Clone(), // We can get away with this because no Image details can vary in a --push. This should be fixed before then.
 					DockerTag:           imageName,
 					Push:                pushImages,
@@ -862,9 +869,15 @@ func (c *Converter) SaveImage(ctx context.Context, imageNames []string, pushImag
 					DoSave:              c.opt.DoSaves || c.opt.ForceSaveImage,
 				})
 		} else {
+			pcState := persistCache(
+				c.mts.Final.MainState,
+				c.persistentCacheDirs,
+				c.mts.Final.Platform,
+				c.runOpts...,
+			)
 			c.mts.Final.SaveImages = append(c.mts.Final.SaveImages,
 				states.SaveImage{
-					State:               c.mts.Final.MainState,
+					State:               pcState,
 					Image:               c.mts.Final.MainImage.Clone(),
 					DockerTag:           imageName,
 					Push:                pushImages,
