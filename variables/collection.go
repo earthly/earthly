@@ -145,7 +145,7 @@ func (c *Collection) Expand(word string) string {
 
 // DeclareArg declares an arg. The effective value may be
 // different than the default, if the variable has been overridden.
-func (c *Collection) DeclareArg(name string, defaultValue string, global bool, pncvf ProcessNonConstantVariableFunc) (string, error) {
+func (c *Collection) DeclareArg(name string, defaultValue string, global bool, treatAsOverride bool, pncvf ProcessNonConstantVariableFunc) (string, error) {
 	ef := c.effective()
 	var finalValue string
 	existing, found := ef.GetAny(name)
@@ -161,6 +161,9 @@ func (c *Collection) DeclareArg(name string, defaultValue string, global bool, p
 	c.args().AddActive(name, finalValue)
 	if global {
 		c.globals().AddActive(name, finalValue)
+	}
+	if treatAsOverride {
+		c.overriding().AddInactive(name, finalValue)
 	}
 	c.effectiveCache = nil
 	return finalValue, nil

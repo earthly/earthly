@@ -1007,13 +1007,14 @@ func (c *Converter) Env(ctx context.Context, envKey string, envValue string) err
 }
 
 // Arg applies the ARG command.
-func (c *Converter) Arg(ctx context.Context, argKey string, defaultArgValue string, opts argOpts, global bool) error {
+func (c *Converter) Arg(ctx context.Context, argKey string, defaultArgValue string, opts argOpts, isBase bool) error {
 	err := c.checkAllowed(argCmd)
 	if err != nil {
 		return err
 	}
 	c.nonSaveCommand()
-	effective, err := c.varCollection.DeclareArg(argKey, defaultArgValue, global, c.processNonConstantBuildArgFunc((ctx)))
+	treatAsOverride := c.ftrs.UseExplicitGlobalArgFlag && isBase && !opts.Global
+	effective, err := c.varCollection.DeclareArg(argKey, defaultArgValue, opts.Global, treatAsOverride, c.processNonConstantBuildArgFunc((ctx)))
 	if err != nil {
 		return err
 	} else if opts.Required && len(effective) == 0 {
@@ -1308,6 +1309,10 @@ func (c *Converter) buildTarget(ctx context.Context, fullTargetName string, plat
 					})
 			}
 			c.varCollection.SetGlobals(globals)
+			if c.ftrs.UseExplicitGlobalArgFlag {
+				overrides := mts.Final.VarCollection.Overriding()
+				c.varCollection.SetOverriding(overrides)
+			}
 			c.varCollection.Imports().SetGlobal(mts.Final.GlobalImports)
 		}
 	}

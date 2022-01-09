@@ -173,7 +173,7 @@ func GetTargets(ctx context.Context, resolver *buildcontext.Resolver, gwClient g
 	return targets, nil
 }
 
-// GetTargetArgs returns a list of build arguments for a specificed target
+// GetTargetArgs returns a list of build arguments for a specified target
 func GetTargetArgs(ctx context.Context, resolver *buildcontext.Resolver, gwClient gwclient.Client, target domain.Target) ([]string, error) {
 	bc, err := resolver.Resolve(ctx, gwClient, target)
 	if err != nil {
@@ -192,7 +192,10 @@ func GetTargetArgs(ctx context.Context, resolver *buildcontext.Resolver, gwClien
 	var args []string
 	for _, stmt := range t.Recipe {
 		if stmt.Command != nil && stmt.Command.Name == "ARG" {
-			_, argName, _, err := parseArgArgs(ctx, *stmt.Command)
+			isBase := t.Name == "base"
+			// since Arg opts are ignored (and feature flags are not available) we set explicitGlobalArgFlag as false
+			explicitGlobalArgFlag := false
+			_, argName, _, err := parseArgArgs(ctx, *stmt.Command, isBase, explicitGlobalArgFlag)
 			if err != nil {
 				return nil, errors.Wrapf(err, "failed to parse ARG arguments %v", stmt.Command.Args)
 			}
