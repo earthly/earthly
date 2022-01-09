@@ -1033,7 +1033,7 @@ var errGlobalArgNotInBase = errors.New("global ARG can only be set in the base t
 
 // parseArgArgs parses the ARG command's arguments
 // and returns the argOpts, key, value (or nil if missing), or error
-func parseArgArgs(ctx context.Context, cmd spec.Command, isBaseTarget bool, useExplicitGlobalArgFlag bool) (argOpts, string, *string, error) {
+func parseArgArgs(ctx context.Context, cmd spec.Command, isBaseTarget bool, explicitGlobal bool) (argOpts, string, *string, error) {
 	opts := argOpts{}
 	args, err := flagutil.ParseArgs("ARG", &opts, getArgsCopy(cmd))
 	if err != nil {
@@ -1041,14 +1041,14 @@ func parseArgArgs(ctx context.Context, cmd spec.Command, isBaseTarget bool, useE
 	}
 	if opts.Global {
 		// since the global flag is part of the struct, we need to manually return parsing error if it's used while the feature flag is off
-		if !useExplicitGlobalArgFlag {
+		if !explicitGlobal {
 			return argOpts{}, "", nil, errors.New("unknown flag `global'")
 		}
 		// global flag can only bet set on base targets
 		if !isBaseTarget {
 			return argOpts{}, "", nil, errGlobalArgNotInBase
 		}
-	} else if !useExplicitGlobalArgFlag {
+	} else if !explicitGlobal {
 		// if the feature flag is off, all base target args are considered global
 		opts.Global = isBaseTarget
 	}
@@ -1072,7 +1072,7 @@ func (i *Interpreter) handleArg(ctx context.Context, cmd spec.Command) error {
 	if i.pushOnlyAllowed {
 		return i.pushOnlyErr(cmd.SourceLocation)
 	}
-	opts, key, valueOrNil, err := parseArgArgs(ctx, cmd, i.isBase, i.converter.ftrs.UseExplicitGlobalArgFlag)
+	opts, key, valueOrNil, err := parseArgArgs(ctx, cmd, i.isBase, i.converter.ftrs.ExplicitGlobal)
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "invalid ARG arguments %v", cmd.Args)
 	}

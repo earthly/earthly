@@ -1013,7 +1013,7 @@ func (c *Converter) Arg(ctx context.Context, argKey string, defaultArgValue stri
 		return err
 	}
 	c.nonSaveCommand()
-	treatAsOverride := c.ftrs.UseExplicitGlobalArgFlag && isBase && !opts.Global
+	treatAsOverride := c.ftrs.ExplicitGlobal && isBase && !opts.Global
 	effective, err := c.varCollection.DeclareArg(argKey, defaultArgValue, opts.Global, treatAsOverride, c.processNonConstantBuildArgFunc((ctx)))
 	if err != nil {
 		return err
@@ -1309,7 +1309,7 @@ func (c *Converter) buildTarget(ctx context.Context, fullTargetName string, plat
 					})
 			}
 			c.varCollection.SetGlobals(globals)
-			if c.ftrs.UseExplicitGlobalArgFlag {
+			if c.ftrs.ExplicitGlobal {
 				overrides := mts.Final.VarCollection.Overriding()
 				c.varCollection.SetOverriding(overrides)
 			}
