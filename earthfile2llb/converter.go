@@ -79,8 +79,7 @@ type Converter struct {
 	directDeps          []*states.SingleTarget
 	buildContextFactory llbfactory.Factory
 	cacheContext        pllb.State
-	runOpts             []llb.RunOption
-	persistentCacheDirs map[string]struct{}
+	persistentCacheDirs map[string]llb.RunOption // maps path->mount
 	varCollection       *variables.Collection
 	ranSave             bool
 	cmdSet              bool
@@ -115,7 +114,7 @@ func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Da
 		mts:                 mts,
 		buildContextFactory: bc.BuildContextFactory,
 		cacheContext:        pllb.Scratch(),
-		persistentCacheDirs: make(map[string]struct{}),
+		persistentCacheDirs: make(map[string]llb.RunOption),
 		varCollection:       variables.NewCollection(newCollOpt),
 		ftrs:                bc.Features,
 	}, nil
@@ -128,6 +127,12 @@ func (c *Converter) From(ctx context.Context, imageName string, platform *specs.
 		return err
 	}
 	c.nonSaveCommand()
+	if len(c.persistentCacheDirs) > 0 {
+		for dir := range c.persistentCacheDirs {
+			c.opt.Console.Warnf("running FROM invalidates the following cache directory: %s", dir)
+		}
+		c.persistentCacheDirs = make(map[string]llb.RunOption)
+	}
 	c.cmdSet = false
 	platform, err = llbutil.ResolvePlatform(platform, c.opt.Platform)
 	if err != nil {
@@ -510,7 +515,9 @@ func (c *Converter) Run(ctx context.Context, opts ConvertRunOpts) error {
 	}
 	c.nonSaveCommand()
 
-	opts.extraRunOpts = append(opts.extraRunOpts, c.runOpts...)
+	for _, cache := range c.persistentCacheDirs {
+		opts.extraRunOpts = append(opts.extraRunOpts, cache)
+	}
 	_, err = c.internalRun(ctx, opts)
 	return err
 }
@@ -677,7 +684,6 @@ func (c *Converter) SaveArtifact(ctx context.Context, saveFrom string, saveTo st
 		c.mts.Final.MainState,
 		c.persistentCacheDirs,
 		c.mts.Final.Platform,
-		c.runOpts...,
 	)
 
 	c.mts.Final.ArtifactsState = llbutil.CopyOp(
@@ -697,7 +703,6 @@ func (c *Converter) SaveArtifact(ctx context.Context, saveFrom string, saveTo st
 				c.mts.Final.RunPush.State,
 				c.persistentCacheDirs,
 				c.mts.Final.Platform,
-				c.runOpts...,
 			)
 			separateArtifactsState = llbutil.CopyOp(
 				pushState, []string{saveFrom}, separateArtifactsState,
@@ -853,7 +858,6 @@ func (c *Converter) SaveImage(ctx context.Context, imageNames []string, pushImag
 				c.mts.Final.RunPush.State,
 				c.persistentCacheDirs,
 				c.mts.Final.Platform,
-				c.runOpts...,
 			)
 			// SAVE IMAGE --push when it comes before any RUN --push should be treated as if they are in the main state,
 			// since thats their only dependency. It will still be marked as a push.
@@ -873,7 +877,6 @@ func (c *Converter) SaveImage(ctx context.Context, imageNames []string, pushImag
 				c.mts.Final.MainState,
 				c.persistentCacheDirs,
 				c.mts.Final.Platform,
-				c.runOpts...,
 			)
 			c.mts.Final.SaveImages = append(c.mts.Final.SaveImages,
 				states.SaveImage{
@@ -1191,10 +1194,8 @@ func (c *Converter) Cache(ctx context.Context, path string) error {
 	}
 	c.nonSaveCommand()
 	if _, exists := c.persistentCacheDirs[path]; !exists {
-		c.persistentCacheDirs[path] = struct{}{}
-		mountOpt := pllb.AddMount(path, pllb.Scratch(),
+		c.persistentCacheDirs[path] = pllb.AddMount(path, pllb.Scratch(),
 			llb.AsPersistentCacheDir(path, llb.CacheMountShared))
-		c.runOpts = append(c.runOpts, mountOpt)
 	}
 	return nil
 }
@@ -1259,7 +1260,6 @@ func (c *Converter) FinalizeStates(ctx context.Context) (*states.MultiTarget, er
 		c.mts.Final.MainState,
 		c.persistentCacheDirs,
 		c.mts.Final.Platform,
-		c.runOpts...,
 	)
 
 	c.mts.Final.VarCollection = c.varCollection
@@ -1834,20 +1834,21 @@ func (c *Converter) targetInputActiveOnly() dedup.TargetInput {
 // from the cached directory to the persistent image layers at the same directory.
 // This only has an effect when the Target contains at least one `CACHE /my/directory` command.
 // Note that the RunOptions provided should contain at least all mounts corresponding to the cache direcories.
-func persistCache(srcState pllb.State, cacheDirs map[string]struct{}, platform *specs.Platform, opts ...llb.RunOption) pllb.State {
+func persistCache(srcState pllb.State, cacheDirs map[string]llb.RunOption, platform *specs.Platform) pllb.State {
 	dest := srcState
 
 	// User may have multiple CACHE commands in a single target
-	for cacheDir := range cacheDirs {
+	for dir, cache := range cacheDirs {
 		// Copy the contents of the user's cache directory to the temporary backup.
 		// It's important to use DockerfileCopy here, since traditional llb.Copy()
 		// doesn't support adding mounts via RunOptions.
+		runOpts := []llb.RunOption{cache, llb.WithCustomName("persist cache directory")}
 		dest = llbutil.CopyWithRunOptions(
 			dest,
-			cacheDir, // cache dir from external mount
-			cacheDir, // cache dir on dest state (same location but without the mount)
+			dir, // cache dir from external mount
+			dir, // cache dir on dest state (same location but without the mount)
 			platform,
-			append(opts, llb.WithCustomName("persist cache directory"))...,
+			runOpts...,
 		)
 	}
 
