@@ -1404,6 +1404,9 @@ func (c *Converter) internalRun(ctx context.Context, opts ConvertRunOpts) (pllb.
 		if opts.Transient {
 			return pllb.State{}, errors.New("Transient run not supported with LOCALLY")
 		}
+		if len(c.persistentCacheDirs) > 0 {
+			return pllb.State{}, errors.New("CACHE command not supported with LOCALLY")
+		}
 	}
 	if opts.shellWrap == nil {
 		opts.shellWrap = withShellAndEnvVars
