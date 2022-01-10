@@ -129,7 +129,7 @@ func (c *Converter) From(ctx context.Context, imageName string, platform *specs.
 	c.nonSaveCommand()
 	if len(c.persistentCacheDirs) > 0 {
 		for dir := range c.persistentCacheDirs {
-			c.opt.Console.Warnf("running FROM invalidates the following cache directory: %s", dir)
+			c.opt.Console.Warnf("Warning: consecutive FROM invalidates the following cache directory: %s", dir)
 		}
 		c.persistentCacheDirs = make(map[string]llb.RunOption)
 	}
