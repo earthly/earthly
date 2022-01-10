@@ -1189,6 +1189,7 @@ func (c *Converter) Cache(ctx context.Context, path string) error {
 	if err != nil {
 		return err
 	}
+	c.nonSaveCommand()
 	if _, exists := c.persistentCacheDirs[path]; !exists {
 		c.persistentCacheDirs[path] = struct{}{}
 		mountOpt := pllb.AddMount(path, pllb.Scratch(),
