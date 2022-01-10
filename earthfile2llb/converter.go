@@ -80,7 +80,7 @@ type Converter struct {
 	buildContextFactory llbfactory.Factory
 	cacheContext        pllb.State
 	runOpts             []llb.RunOption
-	persistentCacheDirs map[string]struct{} // Treated as a "set" of cache directories to persist in the image
+	persistentCacheDirs map[string]struct{}
 	varCollection       *variables.Collection
 	ranSave             bool
 	cmdSet              bool
