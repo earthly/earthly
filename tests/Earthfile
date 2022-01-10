@@ -507,7 +507,9 @@ if-exists:
       --post_command="2>&1 | perl -pe 'BEGIN {\\\$status=1} END {exit \\\$status} \\\$status=0 if /bad-wildcard-copy/;'"
     DO +RUN_EARTHLY --earthfile=if-exists.earth --target=+bad-wildcard-save \
       --post_command="2>&1 | perl -pe 'BEGIN {\\\$status=1} END {exit \\\$status} \\\$status=0 if /bad-wildcard-save/;'"
-    DO +RUN_EARTHLY --earthfile=if-exists.earth --target=+classic-copy
+    RUN mkdir -p in && echo "this-file-does-exist" > ./in/this-file-does-exist
+    DO +RUN_EARTHLY --earthfile=if-exists.earth --target=+classic-copy-exists
+    DO +RUN_EARTHLY --earthfile=if-exists.earth --target=+classic-copy-not-exist
 
 file-copying:
     DO +RUN_EARTHLY --earthfile=file-copying.earth
