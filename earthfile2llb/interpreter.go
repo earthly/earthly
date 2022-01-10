@@ -1357,6 +1357,9 @@ func (i *Interpreter) handleCache(ctx context.Context, cmd spec.Command) error {
 	if len(cmd.Args) != 1 {
 		return errors.Errorf("invalid number of arguments for CACHE: %s", cmd.Args)
 	}
+	if i.local {
+		return errors.New("CACHE command not supported with LOCALLY")
+	}
 	dir := cmd.Args[0]
 	if !path.IsAbs(dir) {
 		dir = path.Clean(path.Join("/", i.converter.mts.Final.MainImage.Config.WorkingDir, dir))

@@ -1404,9 +1404,6 @@ func (c *Converter) internalRun(ctx context.Context, opts ConvertRunOpts) (pllb.
 		if opts.Transient {
 			return pllb.State{}, errors.New("Transient run not supported with LOCALLY")
 		}
-		if len(c.persistentCacheDirs) > 0 {
-			return pllb.State{}, errors.New("CACHE command not supported with LOCALLY")
-		}
 	}
 	if opts.shellWrap == nil {
 		opts.shellWrap = withShellAndEnvVars
@@ -1818,7 +1815,7 @@ func (c *Converter) checkAllowed(command cmdType) error {
 	}
 
 	switch command {
-	case fromCmd, fromDockerfileCmd, locallyCmd, buildCmd, argCmd, importCmd, cacheCmd:
+	case fromCmd, fromDockerfileCmd, locallyCmd, buildCmd, argCmd, importCmd:
 		return nil
 	default:
 		return errors.New("the first command has to be FROM, FROM DOCKERFILE, LOCALLY, ARG, BUILD or IMPORT")
