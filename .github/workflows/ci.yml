@@ -729,8 +729,15 @@ jobs:
         run: ./build/linux/amd64/earthly config global.local_registry_host 'tcp://127.0.0.1:8371'
       - name: Configure Earthly Conversion Parallelism
         run: ./build/linux/amd64/earthly config global.conversion_parallelism 5
-      - name: Build +all-buildkitd
-        run: ./build/linux/amd64/earthly --ci +all-buildkitd
+      - name: Build linux/arm64 +buildkitd
+        run: ./build/linux/amd64/earthly --ci  --platform=linux/arm64 \
+        ./buildkitd+buildkitd --BUILDKIT_PROJECT="$BUILDKIT_PROJECT"
+      - name: Build linux/arm/v7 +buildkitd
+        run: ./build/linux/amd64/earthly --ci  --platform=linux/arm/v7 \
+        ./buildkitd+buildkitd --BUILDKIT_PROJECT="$BUILDKIT_PROJECT"
+      - name: Build linux/arm64 +buildkitd
+        run: ./build/linux/amd64/earthly --ci  --platform=linux/arm64 \
+        ./buildkitd+buildkitd --BUILDKIT_PROJECT="$BUILDKIT_PROJECT"
       - name: Buildkit logs (runs on failure)
         run: docker logs earthly-buildkitd
         if: ${{ failure() }}
