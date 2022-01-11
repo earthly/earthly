@@ -1014,7 +1014,9 @@ jobs:
       - repo-auth-test
       - export-test
       - test-local
-      - all-buildkitd
+      - buildkitd-amd64
+      - buildkitd-armv7
+      - buildkitd-arm64
       - all-dind
       - prerelease
       - earthly
