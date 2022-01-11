@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"path"
-	"path/filepath"
 	"strings"
 
 	"github.com/earthly/earthly/analytics"
@@ -640,13 +639,8 @@ func (i *Interpreter) handleLocally(ctx context.Context, cmd spec.Command) error
 		return i.pushOnlyErr(cmd.SourceLocation)
 	}
 
-	workingDir, err := filepath.Abs(filepath.Dir(cmd.SourceLocation.File))
-	if err != nil {
-		return i.wrapError(err, cmd.SourceLocation, "unable to get abs path in LOCALLY")
-	}
-
 	i.local = true
-	err = i.converter.Locally(ctx, workingDir, nil)
+	err := i.converter.Locally(ctx)
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "apply LOCALLY")
 	}
