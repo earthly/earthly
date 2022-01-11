@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"path"
+	"strings"
 	"sync"
 	"time"
 
@@ -34,6 +35,9 @@ func CopyOp(srcState pllb.State, srcs []string, destState pllb.State, dest strin
 			// the filepath.Match syntax, so by simply creating a wildcard where the
 			// first letter needs to match the current first letter gets us the single
 			// match; and no error if it is missing.
+
+			//Normalize path by dropping './'
+			src = strings.TrimPrefix(src, "./")
 			src = fmt.Sprintf("[%s]%s", string(src[0]), string(src[1:]))
 		}
 		copyOpts := append([]llb.CopyOption{
