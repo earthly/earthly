@@ -24,6 +24,7 @@ type Features struct {
 	RequireForceForUnsafeSaves bool `long:"require-force-for-unsafe-saves" description:"require the --force flag when saving to path outside of current path"`
 	NoImplicitIgnore           bool `long:"no-implicit-ignore" description:"disable implicit ignore rules to exclude .tmp-earthly-out/, build.earth, Earthfile, .earthignore and .earthlyignore when resolving local context"`
 	EarthlyVersionArg          bool `long:"earthly-version-arg" description:"includes EARTHLY_VERSION and EARTHLY_BUILD_SHA ARGs"`
+	UseCacheCommand            bool `long:"use-cache-command" description:"allow use of CACHE command in Earthfiles"`
 
 	Major int
 	Minor int
@@ -169,6 +170,7 @@ func GetFeatures(version *spec.Version) (*Features, error) {
 		ftrs.NoImplicitIgnore = true
 	case versionAtLeast(ftrs, 0, 7):
 		ftrs.EarthlyVersionArg = true
+		ftrs.UseCacheCommand = true
 	}
 
 	return &ftrs, nil

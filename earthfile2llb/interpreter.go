@@ -1354,11 +1354,14 @@ func (i *Interpreter) handleImport(ctx context.Context, cmd spec.Command) error 
 }
 
 func (i *Interpreter) handleCache(ctx context.Context, cmd spec.Command) error {
+	if !i.converter.ftrs.UseCacheCommand {
+		return i.errorf(cmd.SourceLocation, "the CACHE command is not supported in this version")
+	}
 	if len(cmd.Args) != 1 {
-		return errors.Errorf("invalid number of arguments for CACHE: %s", cmd.Args)
+		return i.errorf(cmd.SourceLocation, "invalid number of arguments for CACHE: %s", cmd.Args)
 	}
 	if i.local {
-		return errors.New("CACHE command not supported with LOCALLY")
+		return i.errorf(cmd.SourceLocation, "CACHE command not supported with LOCALLY")
 	}
 	dir := cmd.Args[0]
 	if !path.IsAbs(dir) {
