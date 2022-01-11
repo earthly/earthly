@@ -387,6 +387,12 @@ func (s *BaseEarthParserListener) EnterImportStmt(ctx *ImportStmtContext) {}
 // ExitImportStmt is called when production importStmt is exited.
 func (s *BaseEarthParserListener) ExitImportStmt(ctx *ImportStmtContext) {}
 
+// EnterCacheStmt is called when production cacheStmt is entered.
+func (s *BaseEarthParserListener) EnterCacheStmt(ctx *CacheStmtContext) {}
+
+// ExitCacheStmt is called when production cacheStmt is exited.
+func (s *BaseEarthParserListener) ExitCacheStmt(ctx *CacheStmtContext) {}
+
 // EnterExpr is called when production expr is entered.
 func (s *BaseEarthParserListener) EnterExpr(ctx *ExprContext) {}
 

@@ -9,6 +9,7 @@ import (
 
 	"github.com/earthly/earthly/util/llbutil/pllb"
 	"github.com/moby/buildkit/client/llb"
+	specs "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
 )
 
@@ -55,6 +56,37 @@ func CopyOp(srcState pllb.State, srcs []string, destState pllb.State, dest strin
 		return destState
 	}
 	return destState.File(fa, opts...)
+}
+
+// CopyWithRunOptions copies from `src` to `dest` and returns the result in a separate LLB State.
+// This operation is similar llb.Copy, however, it can apply llb.RunOptions (such as a mount)
+// Interanally, the operation runs on the internal COPY image used by Dockerfile.
+func CopyWithRunOptions(srcState pllb.State, src, dest string, platform *specs.Platform, opts ...llb.RunOption) pllb.State {
+	// Docker's internal image for running COPY.
+	// Ref: https://github.com/moby/buildkit/blob/v0.9.3/frontend/dockerfile/dockerfile2llb/convert.go#L40
+	const copyImg = "docker/dockerfile-copy:v0.1.9@sha256:e8f159d3f00786604b93c675ee2783f8dc194bb565e61ca5788f6a6e9d304061"
+	imgOpts := []llb.ImageOption{llb.MarkImageInternal}
+
+	if platform != nil {
+		imgOpts = append(imgOpts, llb.Platform(*platform))
+	}
+
+	// The following executes the `copy` command, which is a custom exectuable
+	// contained in the Dockerfile COPY image above. The following .Run()
+	// operation executes in a state constructed from that Dockerfile COPY image,
+	// with the Earthly user's state mounted at /dest on that image.
+	opts = append(opts, []llb.RunOption{
+		llb.ReadonlyRootFS(),
+		llb.Shlexf("copy %s /dest/%s", src, dest)}...)
+	copyState := pllb.Image(copyImg, imgOpts...)
+	run := copyState.Run(opts...)
+	destState := run.AddMount("/dest", srcState)
+
+	if platform != nil {
+		destState = destState.Platform(*platform)
+	}
+
+	return destState
 }
 
 // Abs prepends the working dir to the given path, if the

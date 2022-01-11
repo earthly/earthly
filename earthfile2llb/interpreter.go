@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 
@@ -260,6 +261,8 @@ func (i *Interpreter) handleCommand(ctx context.Context, cmd spec.Command) (err 
 		return i.handleDo(ctx, cmd)
 	case "IMPORT":
 		return i.handleImport(ctx, cmd)
+	case "CACHE":
+		return i.handleCache(ctx, cmd)
 	default:
 		return i.errorf(cmd.SourceLocation, "unexpected command %s", cmd.Name)
 	}
@@ -1346,6 +1349,26 @@ func (i *Interpreter) handleImport(ctx context.Context, cmd spec.Command) error 
 	err = i.converter.Import(ctx, importStr, as, isGlobal, i.allowPrivileged, opts.AllowPrivileged)
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "apply IMPORT")
+	}
+	return nil
+}
+
+func (i *Interpreter) handleCache(ctx context.Context, cmd spec.Command) error {
+	if !i.converter.ftrs.UseCacheCommand {
+		return i.errorf(cmd.SourceLocation, "the CACHE command is not supported in this version")
+	}
+	if len(cmd.Args) != 1 {
+		return i.errorf(cmd.SourceLocation, "invalid number of arguments for CACHE: %s", cmd.Args)
+	}
+	if i.local {
+		return i.errorf(cmd.SourceLocation, "CACHE command not supported with LOCALLY")
+	}
+	dir := cmd.Args[0]
+	if !path.IsAbs(dir) {
+		dir = path.Clean(path.Join("/", i.converter.mts.Final.MainImage.Config.WorkingDir, dir))
+	}
+	if err := i.converter.Cache(ctx, dir); err != nil {
+		return i.wrapError(err, cmd.SourceLocation, "apply CACHE")
 	}
 	return nil
 }

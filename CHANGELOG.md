@@ -10,6 +10,8 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ### Added
 
+- Expirmental `CACHE` command can be used in Earthfiles to optimize the cache in projects that perform better with incremental changes. For example, a Maven project where `SNAPSHOT` dependencies are added frequently, an NPM project where `node_modules` change frequently, or programming languages using incremental compilers. [#1399](https://github.com/earthly/earthly/issues/1399)
+
 - Config file entries can be deleted using a `--delete` flag (for example `earthly config global.conversion_parallelism --delete`) [#1449](https://github.com/earthly/earthly/issues/1449)
 
 - Earthly now provides the following [builtin ARGs](https://docs.earthly.dev/docs/earthfile/builtin-args): `EARTHLY_VERSION` and `EARTHLY_BUILD_SHA`. These will be generally available in Earthly version 0.7+, however, they can be enabled earlier by using the `--earthly-version-arg` [feature flag](https://docs.earthly.dev/docs/earthfile/features#feature-flags) [#1452](https://github.com/earthly/earthly/issues/1452).

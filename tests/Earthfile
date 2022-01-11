@@ -138,6 +138,7 @@ ga:
     BUILD +homebrew-test
     BUILD +implicit-ignores
     BUILD +help
+    BUILD +cache-cmd
     BUILD +ls
     BUILD +ls-subdir
 
@@ -896,6 +897,14 @@ help:
     ENV EARTHLY_SHOW_HIDDEN=1
     RUN earthly --help | grep 'buildkit-volume-name'
 
+cache-cmd:
+    DO +RUN_EARTHLY --earthfile=cache-cmd.earth --target=+test
+    DO +RUN_EARTHLY --earthfile=cache-cmd.earth --target=+test-save-artifact
+    RUN test "$(cat ./artifacts1/1)" = "artifact 1"
+    RUN test -d ./artifacts1/2; test $? = 1
+    RUN test "$(cat ./artifacts2/1)" = "artifact 1"
+    RUN test "$(cat ./artifacts2/2)" = "artifact 2"
+
 ls:
     COPY ls.earth Earthfile
     RUN earthly ls 2>/dev/null | tee actual
@@ -907,7 +916,6 @@ ls-subdir:
     RUN earthly ls ./subdir 2>/dev/null | tee actual
     RUN echo -e "+alpha\n+base\n+bravo\n+charlie" > expected
     RUN diff expected actual
-
 
 RUN_EARTHLY:
     COMMAND
