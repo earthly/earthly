@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"path"
+	"strings"
 	"sync"
 	"time"
 
@@ -35,9 +36,7 @@ func CopyOp(srcState pllb.State, srcs []string, destState pllb.State, dest strin
 			// match; and no error if it is missing.
 
 			//Normalize path by dropping './'
-			if src[0:2] == "./" {
-				src = src[2:]
-			}
+			src = strings.TrimPrefix(src, "./")
 			src = fmt.Sprintf("[%s]%s", string(src[0]), string(src[1:]))
 		}
 		copyOpts := append([]llb.CopyOption{
