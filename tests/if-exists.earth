@@ -49,8 +49,8 @@ bad-wildcard-save:
 classic-copy-exists:
     COPY --if-exists ./in/this-file-does-exist .
     COPY --if-exists so-does-this-one .
-    RUN ls
     RUN test -f this-file-does-exist
+    RUN test -f so-does-this-one
 
 classic-copy-not-exist:
     COPY --if-exists ./in/this-file-does-not-exist .
