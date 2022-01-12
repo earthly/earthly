@@ -131,9 +131,6 @@ func (sts *SingleTarget) TargetInput() dedup.TargetInput {
 // SetPlatform sets the sts platform.
 func (sts *SingleTarget) SetPlatform(platform *specs.Platform) {
 	sts.Platform = platform
-	sts.tiMu.Lock()
-	defer sts.tiMu.Unlock()
-	sts.targetInput.Platform = llbutil.PlatformWithDefaultToString(platform)
 }
 
 // AddBuildArgInput adds a bai to the sts's target input.
