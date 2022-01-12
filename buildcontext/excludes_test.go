@@ -1,7 +1,6 @@
 package buildcontext
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -59,11 +58,7 @@ func Test_readExcludes(t *testing.T) {
 
 	for _, testcase := range testcases {
 		t.Run(testcase.name, func(t *testing.T) {
-			dir, err := ioutil.TempDir("", "earthly-test-read-excludes")
-			if err != nil {
-				t.Fatal(err)
-			}
-			defer os.RemoveAll(dir)
+			dir := t.TempDir()
 
 			if testcase.earthIgnoreContents != "" {
 				earthIgnoreFile, err := os.Create(filepath.Join(dir, earthIgnoreFile))

@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"os"
@@ -202,7 +201,7 @@ func (c *client) doCallImp(r request, method, url string, opts ...requestOpt) (i
 		return 0, "", err
 	}
 
-	respBody, err := ioutil.ReadAll(resp.Body)
+	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return 0, "", err
 	}
@@ -309,7 +308,7 @@ func getMessageFromJSON(r io.Reader) (string, error) {
 }
 
 func (c *client) getLastUsedPublicKey() (string, error) {
-	data, err := ioutil.ReadFile(path.Join(os.TempDir(), "last-used-public-key"))
+	data, err := os.ReadFile(path.Join(os.TempDir(), "last-used-public-key"))
 	if err != nil {
 		return "", errors.Wrap(err, "failed to read file")
 	}
@@ -897,7 +896,7 @@ func (c *client) loadAuthToken() error {
 	if !fileutil.FileExists(tokenPath) {
 		return nil
 	}
-	data, err := ioutil.ReadFile(tokenPath)
+	data, err := os.ReadFile(tokenPath)
 	if err != nil {
 		return errors.Wrap(err, "failed to read file")
 	}
@@ -954,7 +953,7 @@ func (c *client) saveToken(email, tokenType, tokenValue string) error {
 	}
 
 	data := []byte(email + " " + tokenType + " " + tokenValue)
-	err = ioutil.WriteFile(tokenPath, []byte(data), 0600)
+	err = os.WriteFile(tokenPath, []byte(data), 0600)
 	if err != nil {
 		return errors.Wrapf(err, "failed to store auth token")
 	}
