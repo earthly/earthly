@@ -2,11 +2,11 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 )
 
 func main() {
-	hello, err := ioutil.ReadFile("/root/hello.txt")
+	hello, err := os.ReadFile("/root/hello.txt")
 	if err != nil {
 		panic(err)
 	}

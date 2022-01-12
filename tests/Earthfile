@@ -39,6 +39,11 @@ ga:
         --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
         --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
         --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR
+    BUILD ./locally-in-command+all \
+        --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
+        --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
+        --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
+        --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR
     BUILD ./import+build
     BUILD ./import+build-imported
     BUILD +privileged-test
@@ -138,6 +143,7 @@ ga:
     BUILD +homebrew-test
     BUILD +implicit-ignores
     BUILD +help
+    BUILD +cache-cmd
     BUILD +ls
     BUILD +ls-subdir
 
@@ -507,7 +513,11 @@ if-exists:
       --post_command="2>&1 | perl -pe 'BEGIN {\\\$status=1} END {exit \\\$status} \\\$status=0 if /bad-wildcard-copy/;'"
     DO +RUN_EARTHLY --earthfile=if-exists.earth --target=+bad-wildcard-save \
       --post_command="2>&1 | perl -pe 'BEGIN {\\\$status=1} END {exit \\\$status} \\\$status=0 if /bad-wildcard-save/;'"
-    DO +RUN_EARTHLY --earthfile=if-exists.earth --target=+classic-copy
+    RUN mkdir in && \
+        echo "this-file-does-exist" > ./in/this-file-does-exist && \
+        echo "so-does-this-one" > so-does-this-one 
+    DO +RUN_EARTHLY --earthfile=if-exists.earth --target=+classic-copy-exists
+    DO +RUN_EARTHLY --earthfile=if-exists.earth --target=+classic-copy-not-exist
 
 file-copying:
     DO +RUN_EARTHLY --earthfile=file-copying.earth
@@ -896,6 +906,14 @@ help:
     ENV EARTHLY_SHOW_HIDDEN=1
     RUN earthly --help | grep 'buildkit-volume-name'
 
+cache-cmd:
+    DO +RUN_EARTHLY --earthfile=cache-cmd.earth --target=+test
+    DO +RUN_EARTHLY --earthfile=cache-cmd.earth --target=+test-save-artifact
+    RUN test "$(cat ./artifacts1/1)" = "artifact 1"
+    RUN test -d ./artifacts1/2; test $? = 1
+    RUN test "$(cat ./artifacts2/1)" = "artifact 1"
+    RUN test "$(cat ./artifacts2/2)" = "artifact 2"
+
 ls:
     COPY ls.earth Earthfile
     RUN earthly ls 2>/dev/null | tee actual
@@ -907,7 +925,6 @@ ls-subdir:
     RUN earthly ls ./subdir 2>/dev/null | tee actual
     RUN echo -e "+alpha\n+base\n+bravo\n+charlie" > expected
     RUN diff expected actual
-
 
 RUN_EARTHLY:
     COMMAND

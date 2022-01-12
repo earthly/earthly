@@ -1,0 +1,5 @@
+IMPORT .. AS imported-name
+
+UDC_THAT_CALLS_OTHER_UDC:
+    COMMAND
+    DO imported-name+UDC_THAT_SAVES_FILE_LOCALLY

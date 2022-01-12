@@ -8,7 +8,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net"
 	"net/http"
 	_ "net/http/pprof" // enable pprof handlers on net/http listener
@@ -211,7 +211,7 @@ func main() {
 		}
 	}()
 	// Occasional spurious warnings show up - these are coming from imported libraries. Discard them.
-	logrus.StandardLogger().Out = ioutil.Discard
+	logrus.StandardLogger().Out = io.Discard
 
 	// Load .env into current global env's. This is mainly for applying Earthly settings.
 	// Separate call is made for build args and secrets.
@@ -1454,7 +1454,7 @@ func (app *earthlyApp) deleteZcompdump() error {
 		}
 		homeDir = currentUser.HomeDir
 	}
-	files, err := ioutil.ReadDir(homeDir)
+	files, err := os.ReadDir(homeDir)
 	if err != nil {
 		return errors.Wrapf(err, "failed to read dir %s", homeDir)
 	}
@@ -1643,7 +1643,7 @@ func (app *earthlyApp) printCrashLogs(ctx context.Context) {
 
 func isEarthlyBinary(path string) bool {
 	// apply heuristics to see if binary is a version of earthly
-	data, err := ioutil.ReadFile(path)
+	data, err := os.ReadFile(path)
 	if err != nil {
 		return false
 	}
@@ -1995,7 +1995,7 @@ func (app *earthlyApp) actionSecretsSet(c *cli.Context) error {
 			return errors.New("invalid number of arguments provided")
 		}
 		path = c.Args().Get(0)
-		data, err := ioutil.ReadAll(os.Stdin)
+		data, err := io.ReadAll(os.Stdin)
 		if err != nil {
 			return errors.Wrap(err, "failed to read from stdin")
 		}
@@ -2005,7 +2005,7 @@ func (app *earthlyApp) actionSecretsSet(c *cli.Context) error {
 			return errors.New("invalid number of arguments provided")
 		}
 		path = c.Args().Get(0)
-		data, err := ioutil.ReadFile(app.secretFile)
+		data, err := os.ReadFile(app.secretFile)
 		if err != nil {
 			return errors.Wrapf(err, "failed to read secret from %s", app.secretFile)
 		}
@@ -2815,7 +2815,7 @@ func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []st
 		return errors.Wrap(err, "failed to create localhostprovider")
 	}
 
-	cacheLocalDir, err := ioutil.TempDir("", "earthly-cache")
+	cacheLocalDir, err := os.MkdirTemp("", "earthly-cache")
 	if err != nil {
 		return errors.Wrap(err, "make temp dir for cache")
 	}
@@ -2856,7 +2856,7 @@ func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []st
 
 	if termutil.IsTTY() {
 		go func() {
-			// Dialing doesnt accept URLs, it accepts an address and a "network". These cannot be handled as URL schemes.
+			// Dialing does not accept URLs, it accepts an address and a "network". These cannot be handled as URL schemes.
 			// Since Shellrepeater hard-codes TCP, we drop it here and log the error if we fail to connect.
 
 			u, err := url.Parse(app.debuggerHost)
@@ -3119,7 +3119,7 @@ func processSecrets(secrets, secretFiles []string, dotEnvMap map[string]string) 
 		}
 		k := parts[0]
 		path := fileutil.ExpandPath(parts[1])
-		data, err := ioutil.ReadFile(path)
+		data, err := os.ReadFile(path)
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to open %q", path)
 		}

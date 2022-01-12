@@ -3,7 +3,6 @@ package earthfile2llb
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path"
 
@@ -89,7 +88,7 @@ func (wdrl *withDockerRunLocal) load(ctx context.Context, opt DockerLoadOpt) (st
 }
 
 func (wdrl *withDockerRunLocal) solveImage(ctx context.Context, mts *states.MultiTarget, opName string, dockerTag string, opts ...llb.RunOption) (string, error) {
-	outDir, err := ioutil.TempDir(os.TempDir(), "earthly-docker-load")
+	outDir, err := os.MkdirTemp(os.TempDir(), "earthly-docker-load")
 	if err != nil {
 		return "", errors.Wrap(err, "mk temp dir for docker load")
 	}

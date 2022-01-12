@@ -11,19 +11,19 @@ deb:
     ARG RELEASE_TAG
     ARG EARTHLY_PLATFORM
     RUN test ! -z "$EARTHLY_PLATFORM" || (echo "EARTHLY_PLATFORM is required" && exit 1)
-    ARG EARTHLY_VERSION=$(echo "$RELEASE_TAG" | cut -c 2-)
-    ARG PKG_NAME=earthly_${EARTHLY_VERSION}-1_${EARTHLY_PLATFORM}
+    ARG RELEASE_TAG_WITHOUT_V=$(echo "$RELEASE_TAG" | cut -c 2-)
+    ARG PKG_NAME=earthly_${RELEASE_TAG_WITHOUT_V}-1_${EARTHLY_PLATFORM}
     FROM +deps
     WORKDIR /work
     RUN mkdir -p $PKG_NAME/DEBIAN
     RUN mkdir -p $PKG_NAME/usr/bin/
     RUN (echo "$RELEASE_TAG" | grep '^v[0-9]\+.[0-9]\+.[0-9]\+$' > /dev/null) || (echo "RELEASE_TAG must be formatted as v1.2.3; instead got \"$RELEASE_TAG\""; exit 1)
-    RUN wget -q "https://github.com/earthly/earthly/releases/download/v${EARTHLY_VERSION}/earthly-linux-$EARTHLY_PLATFORM" -O $PKG_NAME/usr/bin/earthly && chmod +x $PKG_NAME/usr/bin/earthly
+    RUN wget -q "https://github.com/earthly/earthly/releases/download/${RELEASE_TAG}/earthly-linux-$EARTHLY_PLATFORM" -O $PKG_NAME/usr/bin/earthly && chmod +x $PKG_NAME/usr/bin/earthly
     COPY earthly.control $PKG_NAME/DEBIAN/control
     COPY postinst $PKG_NAME/DEBIAN/postinst
     COPY postrm $PKG_NAME/DEBIAN/postrm
     RUN chmod 0555 $PKG_NAME/DEBIAN/postinst $PKG_NAME/DEBIAN/postrm
-    RUN sed -i "s/__earthly_version__/$EARTHLY_VERSION/" $PKG_NAME/DEBIAN/control
+    RUN sed -i "s/__earthly_version__/$RELEASE_TAG_WITHOUT_V/" $PKG_NAME/DEBIAN/control
     RUN dpkg -b $PKG_NAME
     SAVE ARTIFACT $PKG_NAME.deb AS LOCAL output/debs/$PKG_NAME.deb
 
@@ -112,7 +112,7 @@ index-and-sign:
 
     # validate the repo directory structure is correct
     RUN (test $(ls -1 /repo/pool) = "main") || (echo "pool should only contain a single directory named main"; exit 1)
-    RUN ls /repo/pool/main/*.deb || (echo "directory doesnt contain debs"; exit 1)
+    RUN ls /repo/pool/main/*.deb || (echo "directory does not contain debs"; exit 1)
     RUN (test $(ls -1 /repo/pool/main | grep -v '\.deb$' | wc -l) = 0) || (echo "directory should only contain debs, but doesn't"; exit 1)
 
     WORKDIR /repo

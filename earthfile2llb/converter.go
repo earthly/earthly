@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"hash/fnv"
-	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
@@ -67,6 +66,7 @@ const (
 	userCmd                              // "USER"
 	volumeCmd                            // "VOLUME"
 	workdirCmd                           // "WORKDIR"
+	cacheCmd                             // "CACHE"
 )
 
 // Converter turns earthly commands to buildkit LLB representation.
@@ -78,11 +78,15 @@ type Converter struct {
 	directDeps          []*states.SingleTarget
 	buildContextFactory llbfactory.Factory
 	cacheContext        pllb.State
+	persistentCacheDirs map[string]llb.RunOption // maps path->mount
 	varCollection       *variables.Collection
 	ranSave             bool
 	cmdSet              bool
 	ftrs                *features.Features
+	localWorkingDir     string
 }
+
+type cacheDirSet map[string]struct{}
 
 // NewConverter constructs a new converter for a given earthly target.
 func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Data, sts *states.SingleTarget, opt ConvertOpt) (*Converter, error) {
@@ -110,8 +114,10 @@ func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Da
 		mts:                 mts,
 		buildContextFactory: bc.BuildContextFactory,
 		cacheContext:        pllb.Scratch(),
+		persistentCacheDirs: make(map[string]llb.RunOption),
 		varCollection:       variables.NewCollection(newCollOpt),
 		ftrs:                bc.Features,
+		localWorkingDir:     filepath.Dir(bc.BuildFilePath),
 	}, nil
 }
 
@@ -122,6 +128,9 @@ func (c *Converter) From(ctx context.Context, imageName string, platform *specs.
 		return err
 	}
 	c.nonSaveCommand()
+	if len(c.persistentCacheDirs) > 0 {
+		c.persistentCacheDirs = make(map[string]llb.RunOption)
+	}
 	c.cmdSet = false
 	platform, err = llbutil.ResolvePlatform(platform, c.opt.Platform)
 	if err != nil {
@@ -233,7 +242,7 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 				return errors.Wrap(err, "resolve build context for dockerfile")
 			}
 			c.opt.BuildContextProvider.AddDirs(data.LocalDirs)
-			dfData, err = ioutil.ReadFile(data.BuildFilePath)
+			dfData, err = os.ReadFile(data.BuildFilePath)
 			if err != nil {
 				return errors.Wrapf(err, "read file %s", data.BuildFilePath)
 			}
@@ -288,7 +297,7 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 		c.opt.BuildContextProvider.AddDirs(data.LocalDirs)
 		if dfPath == "" {
 			// Imply dockerfile as being ./Dockerfile in the root of the build context.
-			dfData, err = ioutil.ReadFile(data.BuildFilePath)
+			dfData, err = os.ReadFile(data.BuildFilePath)
 			if err != nil {
 				return errors.Wrapf(err, "read file %s", data.BuildFilePath)
 			}
@@ -336,7 +345,7 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 }
 
 // Locally applies the earthly Locally command.
-func (c *Converter) Locally(ctx context.Context, workdirPath string, platform *specs.Platform) error {
+func (c *Converter) Locally(ctx context.Context) error {
 	err := c.checkAllowed(locallyCmd)
 	if err != nil {
 		return err
@@ -344,18 +353,20 @@ func (c *Converter) Locally(ctx context.Context, workdirPath string, platform *s
 	if !c.opt.AllowLocally {
 		return errors.New("LOCALLY cannot be used when --strict is specified or otherwise implied")
 	}
-	if !path.IsAbs(workdirPath) {
-		return errors.New("workdirPath must be absolute")
-	}
 
-	err = c.fromClassical(ctx, "scratch", platform, true)
+	err = c.fromClassical(ctx, "scratch", nil, true)
 	if err != nil {
 		return err
 	}
 
+	workingDir, err := filepath.Abs(c.localWorkingDir)
+	if err != nil {
+		return errors.Wrapf(err, "unable to get abs path of %s", c.localWorkingDir)
+	}
+
 	// reset WORKDIR to current directory where Earthfile is
-	c.mts.Final.MainState = c.mts.Final.MainState.Dir(workdirPath)
-	c.mts.Final.MainImage.Config.WorkingDir = workdirPath
+	c.mts.Final.MainState = c.mts.Final.MainState.Dir(workingDir)
+	c.mts.Final.MainImage.Config.WorkingDir = workingDir
 	return nil
 }
 
@@ -504,6 +515,9 @@ func (c *Converter) Run(ctx context.Context, opts ConvertRunOpts) error {
 	}
 	c.nonSaveCommand()
 
+	for _, cache := range c.persistentCacheDirs {
+		opts.extraRunOpts = append(opts.extraRunOpts, cache)
+	}
 	_, err = c.internalRun(ctx, opts)
 	return err
 }
@@ -518,7 +532,7 @@ func (c *Converter) RunExitCode(ctx context.Context, opts ConvertRunOpts) (int, 
 
 	var exitCodeFile string
 	if opts.Locally {
-		exitCodeDir, err := ioutil.TempDir(os.TempDir(), "earthlyexitcode")
+		exitCodeDir, err := os.MkdirTemp(os.TempDir(), "earthlyexitcode")
 		if err != nil {
 			return 0, errors.Wrap(err, "create temp dir")
 		}
@@ -545,7 +559,7 @@ func (c *Converter) RunExitCode(ctx context.Context, opts ConvertRunOpts) (int, 
 	}
 	var codeDt []byte
 	if opts.Locally {
-		codeDt, err = ioutil.ReadFile(exitCodeFile)
+		codeDt, err = os.ReadFile(exitCodeFile)
 		if err != nil {
 			return 0, errors.Wrap(err, "read exit code file")
 		}
@@ -579,7 +593,7 @@ func (c *Converter) RunExpression(ctx context.Context, expressionName string, op
 
 	var outputFile string
 	if opts.Locally {
-		outputDir, err := ioutil.TempDir(os.TempDir(), "earthlyexproutput")
+		outputDir, err := os.MkdirTemp(os.TempDir(), "earthlyexproutput")
 		if err != nil {
 			return "", errors.Wrap(err, "create temp dir")
 		}
@@ -608,7 +622,7 @@ func (c *Converter) RunExpression(ctx context.Context, expressionName string, op
 
 	var outputDt []byte
 	if opts.Locally {
-		outputDt, err = ioutil.ReadFile(outputFile)
+		outputDt, err = os.ReadFile(outputFile)
 		if err != nil {
 			return "", errors.Wrap(err, "read exit code file")
 		}
@@ -661,8 +675,19 @@ func (c *Converter) SaveArtifact(ctx context.Context, saveFrom string, saveTo st
 	if keepOwn {
 		own = ""
 	}
+
+	// pcState is a separate state from the main state
+	// which persists any files cached via CACHE command.
+	// This is necessary so those cached files can be
+	// accessed within the CopyOps below.
+	pcState := persistCache(
+		c.mts.Final.MainState,
+		c.persistentCacheDirs,
+		c.mts.Final.Platform,
+	)
+
 	c.mts.Final.ArtifactsState = llbutil.CopyOp(
-		c.mts.Final.MainState, []string{saveFrom}, c.mts.Final.ArtifactsState,
+		pcState, []string{saveFrom}, c.mts.Final.ArtifactsState,
 		saveToAdjusted, true, true, keepTs, own, ifExists, symlinkNoFollow,
 		llb.WithCustomNamef(
 			"%sSAVE ARTIFACT %s%s%s %s",
@@ -674,8 +699,13 @@ func (c *Converter) SaveArtifact(ctx context.Context, saveFrom string, saveTo st
 	if saveAsLocalTo != "" && c.opt.DoSaves {
 		separateArtifactsState := llbutil.ScratchWithPlatform()
 		if isPush {
+			pushState := persistCache(
+				c.mts.Final.RunPush.State,
+				c.persistentCacheDirs,
+				c.mts.Final.Platform,
+			)
 			separateArtifactsState = llbutil.CopyOp(
-				c.mts.Final.RunPush.State, []string{saveFrom}, separateArtifactsState,
+				pushState, []string{saveFrom}, separateArtifactsState,
 				saveToAdjusted, true, true, keepTs, "root:root", ifExists, symlinkNoFollow,
 				llb.WithCustomNamef(
 					"%sSAVE ARTIFACT %s%s%s %s AS LOCAL %s",
@@ -687,7 +717,7 @@ func (c *Converter) SaveArtifact(ctx context.Context, saveFrom string, saveTo st
 					saveAsLocalTo))
 		} else {
 			separateArtifactsState = llbutil.CopyOp(
-				c.mts.Final.MainState, []string{saveFrom}, separateArtifactsState,
+				pcState, []string{saveFrom}, separateArtifactsState,
 				saveToAdjusted, true, true, keepTs, "root:root", ifExists, symlinkNoFollow,
 				llb.WithCustomNamef(
 					"%sSAVE ARTIFACT %s%s%s %s AS LOCAL %s",
@@ -823,11 +853,17 @@ func (c *Converter) SaveImage(ctx context.Context, imageNames []string, pushImag
 	}
 	for _, imageName := range imageNames {
 		if c.mts.Final.RunPush.HasState {
+			// pcState persists any files that may be cached via CACHE command.
+			pcState := persistCache(
+				c.mts.Final.RunPush.State,
+				c.persistentCacheDirs,
+				c.mts.Final.Platform,
+			)
 			// SAVE IMAGE --push when it comes before any RUN --push should be treated as if they are in the main state,
 			// since thats their only dependency. It will still be marked as a push.
 			c.mts.Final.RunPush.SaveImages = append(c.mts.Final.RunPush.SaveImages,
 				states.SaveImage{
-					State:               c.mts.Final.RunPush.State,
+					State:               pcState,
 					Image:               c.mts.Final.MainImage.Clone(), // We can get away with this because no Image details can vary in a --push. This should be fixed before then.
 					DockerTag:           imageName,
 					Push:                pushImages,
@@ -837,9 +873,14 @@ func (c *Converter) SaveImage(ctx context.Context, imageNames []string, pushImag
 					DoSave:              c.opt.DoSaves || c.opt.ForceSaveImage,
 				})
 		} else {
+			pcState := persistCache(
+				c.mts.Final.MainState,
+				c.persistentCacheDirs,
+				c.mts.Final.Platform,
+			)
 			c.mts.Final.SaveImages = append(c.mts.Final.SaveImages,
 				states.SaveImage{
-					State:               c.mts.Final.MainState,
+					State:               pcState,
 					Image:               c.mts.Final.MainImage.Clone(),
 					DockerTag:           imageName,
 					Push:                pushImages,
@@ -1146,6 +1187,22 @@ func (c *Converter) Import(ctx context.Context, importStr, as string, isGlobal, 
 	return c.varCollection.Imports().Add(importStr, as, isGlobal, currentlyPrivileged, allowPrivilegedFlag)
 }
 
+// Cache handles a `CACHE` command in a Target.
+// It appends run options to the Converter which will mount a cache volume in each successive `RUN` command,
+// and configures the `Converter` to persist the cache in the image at the end of the target.
+func (c *Converter) Cache(ctx context.Context, path string) error {
+	err := c.checkAllowed(cacheCmd)
+	if err != nil {
+		return err
+	}
+	c.nonSaveCommand()
+	if _, exists := c.persistentCacheDirs[path]; !exists {
+		c.persistentCacheDirs[path] = pllb.AddMount(path, pllb.Scratch(),
+			llb.AsPersistentCacheDir(path, llb.CacheMountShared))
+	}
+	return nil
+}
+
 // ResolveReference resolves a reference's build context given the current state: relativity to the Earthfile, imports etc.
 func (c *Converter) ResolveReference(ctx context.Context, ref domain.Reference) (bc *buildcontext.Data, allowPrivileged, allowPrivilegedSet bool, err error) {
 	derefed, allowPrivileged, allowPrivilegedSet, err := c.varCollection.Imports().Deref(ref)
@@ -1200,6 +1257,14 @@ func (c *Converter) FinalizeStates(ctx context.Context) (*states.MultiTarget, er
 		// Should never happen.
 		return nil, errors.New("internal error: stack not at base in FinalizeStates")
 	}
+
+	// Persists any cache directories created by using a `CACHE` command
+	c.mts.Final.MainState = persistCache(
+		c.mts.Final.MainState,
+		c.persistentCacheDirs,
+		c.mts.Final.Platform,
+	)
+
 	c.mts.Final.VarCollection = c.varCollection
 	c.mts.Final.GlobalImports = c.varCollection.Imports().Global()
 	close(c.mts.Final.Done())
@@ -1770,6 +1835,31 @@ func (c *Converter) targetInputActiveOnly() dedup.TargetInput {
 		activeBuildArgs[k] = true
 	}
 	return c.mts.Final.TargetInput().WithFilterBuildArgs(activeBuildArgs)
+}
+
+// persistCache makes temporary cache directories permanent by writing their contents
+// from the cached directory to the persistent image layers at the same directory.
+// This only has an effect when the Target contains at least one `CACHE /my/directory` command.
+// Note that the RunOptions provided should contain at least all mounts corresponding to the cache direcories.
+func persistCache(srcState pllb.State, cacheDirs map[string]llb.RunOption, platform *specs.Platform) pllb.State {
+	dest := srcState
+
+	// User may have multiple CACHE commands in a single target
+	for dir, cache := range cacheDirs {
+		// Copy the contents of the user's cache directory to the temporary backup.
+		// It's important to use DockerfileCopy here, since traditional llb.Copy()
+		// doesn't support adding mounts via RunOptions.
+		runOpts := []llb.RunOption{cache, llb.WithCustomName("persist cache directory")}
+		dest = llbutil.CopyWithRunOptions(
+			dest,
+			dir, // cache dir from external mount
+			dir, // cache dir on dest state (same location but without the mount)
+			platform,
+			runOpts...,
+		)
+	}
+
+	return dest
 }
 
 func joinWrap(a []string, before string, sep string, after string) string {

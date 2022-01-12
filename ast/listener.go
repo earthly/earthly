@@ -293,6 +293,10 @@ func (l *listener) EnterImportStmt(c *parser.ImportStmtContext) {
 	l.command.Name = "IMPORT"
 }
 
+func (l *listener) EnterCacheStmt(c *parser.CacheStmtContext) {
+	l.command.Name = "CACHE"
+}
+
 // With -----------------------------------------------------------------------
 
 func (l *listener) EnterWithStmt(c *parser.WithStmtContext) {

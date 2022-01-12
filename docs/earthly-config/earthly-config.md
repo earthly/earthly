@@ -141,6 +141,23 @@ The HTTPS username to use when auth is set to `https`. This setting is ignored w
 
 The HTTPS password to use when auth is set to `https`. This setting is ignored when auth is `ssh`.
 
+#### strict_host_key_checking
+
+The `strict_host_key_checking` option can be used to control access to ssh-based repos whose key is not known or has changed.
+Strict host key checking is enabled by default, setting it to `false` disables host key checking.
+This setting is only used when auth is `ssh`.
+
+
+{% hint style='info' %}
+##### Tip
+Disabling strict host key checking is a bad security practice (as it makes a man-in-the-middle attack possible).
+Instead, it's recommended to record the host's ssh key to `~/.ssh/known_hosts`; this can be done by running
+
+```bash
+ssh-keyscan <hostname> >> ~/.ssh/known_hosts
+```
+{% endhint %}
+
 #### pattern
 
 A regular expression defined to match git URLs, defaults to the `<site>/([^/]+)/([^/]+)`. For example if the site is `github.com`, then the default pattern will

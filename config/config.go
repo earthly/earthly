@@ -2,7 +2,6 @@ package config
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -435,7 +434,7 @@ func deleteYamlValue(node *yaml.Node, path []string) []string {
 
 // ReadConfigFile reads in the config file from the disk, into a byte slice.
 func ReadConfigFile(configPath string, contextSet bool) ([]byte, error) {
-	yamlData, err := ioutil.ReadFile(configPath)
+	yamlData, err := os.ReadFile(configPath)
 	if os.IsNotExist(err) && !contextSet {
 		return []byte{}, nil
 	} else if err != nil {
@@ -452,5 +451,5 @@ func WriteConfigFile(configPath string, data []byte) error {
 		return err
 	}
 
-	return ioutil.WriteFile(configPath, data, 0644)
+	return os.WriteFile(configPath, data, 0644)
 }

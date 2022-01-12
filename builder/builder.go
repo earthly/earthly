@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
@@ -784,7 +783,7 @@ func (b *Builder) tempEarthlyOutDir() (string, error) {
 			err = errors.Wrapf(err, "unable to create dir %s", tmpParentDir)
 			return
 		}
-		b.outDir, err = ioutil.TempDir(tmpParentDir, "tmp")
+		b.outDir, err = os.MkdirTemp(tmpParentDir, "tmp")
 		if err != nil {
 			err = errors.Wrap(err, "mk temp dir for artifacts")
 			return
