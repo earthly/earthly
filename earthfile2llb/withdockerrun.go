@@ -5,7 +5,6 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path"
 	"sort"
@@ -306,7 +305,7 @@ func (wdr *withDockerRun) solveImage(ctx context.Context, mts *states.MultiTarge
 	tarContext, err := wdr.c.opt.SolveCache.Do(ctx, solveID, func(ctx context.Context, _ states.StateKey) (pllb.State, error) {
 		// Use a builder to create docker .tar file, mount it via a local build context,
 		// then docker load it within the current side effects state.
-		outDir, err := ioutil.TempDir(os.TempDir(), "earthly-docker-load")
+		outDir, err := os.MkdirTemp(os.TempDir(), "earthly-docker-load")
 		if err != nil {
 			return pllb.State{}, errors.Wrap(err, "mk temp dir for docker load")
 		}
@@ -379,7 +378,7 @@ func (wdr *withDockerRun) getComposeConfig(ctx context.Context, opt WithDockerOp
 		llb.WithCustomNamef("%sWITH DOCKER (docker-compose config)", wdr.c.vertexPrefix(false, false)),
 	}
 	state := wdr.c.mts.Final.MainState.Run(runOpts...).Root()
-	ref, err := llbutil.StateToRef(ctx, wdr.c.opt.GwClient, state, wdr.c.opt.Platform, wdr.c.opt.CacheImports.AsMap())
+	ref, err := llbutil.StateToRef(ctx, wdr.c.opt.GwClient, state, wdr.c.opt.NoCache, wdr.c.opt.Platform, wdr.c.opt.CacheImports.AsMap())
 	if err != nil {
 		return nil, errors.Wrap(err, "state to ref compose config")
 	}

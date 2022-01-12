@@ -148,6 +148,8 @@ var BuiltinVariables = map[string]bool{
 	"EARTHLY_TARGET_NAME":             true,
 	"EARTHLY_TARGET_TAG":              true,
 	"EARTHLY_TARGET_TAG_DOCKER":       true,
+	"EARTHLY_VERSION":                 true,
+	"EARTHLY_BUILD_SHA":               true,
 	"EARTHLY_GIT_HASH":                true,
 	"EARTHLY_GIT_SHORT_HASH":          true,
 	"EARTHLY_GIT_BRANCH":              true,

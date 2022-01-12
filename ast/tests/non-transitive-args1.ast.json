@@ -24,9 +24,8 @@
         {
           "command": {
             "args": [
-              "--build-arg",
-              "SOMEARG=abc",
-              "+intermediate"
+              "+intermediate",
+              "--SOMEARG=abc"
             ],
             "name": "BUILD"
           }
@@ -52,14 +51,18 @@
         {
           "command": {
             "args": [
-              "--build-arg",
-              "SOMEARG=direct",
-              "./subdir+arg-target"
+              "./subdir+arg-target",
+              "--SOMEARG=direct"
             ],
             "name": "BUILD"
           }
         }
       ]
     }
-  ]
+  ],
+  "version": {
+    "args": [
+      "0.6"
+    ]
+  }
 }

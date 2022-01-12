@@ -1,3 +1,4 @@
+VERSION 0.6
 FROM alpine:3.13
 RUN apk add jq
 WORKDIR /test
@@ -17,7 +18,7 @@ all:
         --TEST=cache2 \
         --TEST=chown \
         --TEST=comments \
-        --TEST=config \
+        --TEST=smoke \
         --TEST=copy \
         --TEST=dotenv \
         --TEST=empty-git \
@@ -56,6 +57,7 @@ all:
     BUILD +test --INPUT_FROM_DIR=./ --INPUT_FROM_TARGET="" --TEST=if
     BUILD +test --INPUT_FROM_DIR=./ --INPUT_FROM_TARGET="" --TEST=for
     BUILD +test --INPUT_FROM_DIR=./ --INPUT_FROM_TARGET="" --TEST=empty-targets
+    BUILD +test --INPUT_FROM_DIR=./ --INPUT_FROM_TARGET="" --TEST=quotes
 
 update-all:
     BUILD +update-expected \
@@ -65,7 +67,7 @@ update-all:
         --TEST=cache2 \
         --TEST=chown \
         --TEST=comments \
-        --TEST=config \
+        --TEST=smoke \
         --TEST=copy \
         --TEST=dotenv \
         --TEST=empty-git \
@@ -104,12 +106,13 @@ update-all:
     BUILD +update-expected --INPUT_FROM_DIR=./ --INPUT_FROM_TARGET="" --TEST=if
     BUILD +update-expected --INPUT_FROM_DIR=./ --INPUT_FROM_TARGET="" --TEST=for
     BUILD +update-expected --INPUT_FROM_DIR=./ --INPUT_FROM_TARGET="" --TEST=empty-targets
+    BUILD +update-expected --INPUT_FROM_DIR=./ --INPUT_FROM_TARGET="" --TEST=quotes
 
 # Note: If this test fails for expected reasons (eg format of AST has changed), you can
 #       update the expectations via +update-all. Please review the resulting diff
 #       carefully when committing to git.
 test:
-    ARG TEST
+    ARG --required TEST
     ARG INPUT_FROM_DIR=../../tests
     ARG INPUT_FROM_TARGET=ast-test-input
     DO +INPUT_COPY --TEST=$TEST --INPUT_FROM_DIR=$INPUT_FROM_DIR --INPUT_FROM_TARGET=$INPUT_FROM_TARGET
@@ -120,7 +123,7 @@ test:
     RUN diff ./actual.pretty.json ./expected.pretty.json
 
 update-expected:
-    ARG TEST
+    ARG --required TEST
     ARG INPUT_FROM_DIR=../../tests
     ARG INPUT_FROM_TARGET=ast-test-input
     DO +INPUT_COPY --TEST=$TEST --INPUT_FROM_DIR=$INPUT_FROM_DIR --INPUT_FROM_TARGET=$INPUT_FROM_TARGET

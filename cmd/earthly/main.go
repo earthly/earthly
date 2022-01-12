@@ -8,7 +8,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net"
 	"net/http"
 	_ "net/http/pprof" // enable pprof handlers on net/http listener
@@ -21,6 +21,7 @@ import (
 	"regexp"
 	"runtime"
 	"runtime/debug"
+	"sort"
 	"strconv"
 	"strings"
 	"syscall"
@@ -158,6 +159,8 @@ type cliFlags struct {
 	disableAnalytics          bool
 	featureFlagOverrides      string
 	localRegistryHost         string
+	lsShowLong                bool
+	lsShowArgs                bool
 	containerFrontend         containerutil.ContainerFrontend
 }
 
@@ -208,7 +211,7 @@ func main() {
 		}
 	}()
 	// Occasional spurious warnings show up - these are coming from imported libraries. Discard them.
-	logrus.StandardLogger().Out = ioutil.Discard
+	logrus.StandardLogger().Out = io.Discard
 
 	// Load .env into current global env's. This is mainly for applying Earthly settings.
 	// Separate call is made for build args and secrets.
@@ -650,7 +653,7 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 				},
 				&cli.StringFlag{
 					Name:        "earthfile",
-					Usage:       "Path to earthfile output, or - for stdout",
+					Usage:       "Path to Earthfile output, or - for stdout",
 					Value:       "Earthfile",
 					Destination: &app.earthfilePath,
 				},
@@ -701,6 +704,26 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 					Usage:     "Remove accounts from your organization",
 					UsageText: "earthly [options] org revoke <path> <email> [<email> ...]",
 					Action:    app.actionOrgRevoke,
+				},
+			},
+		},
+		{
+			Name:      "ls",
+			Usage:     "List targets from an Earthfile *experimental*",
+			UsageText: "earthly [options] ls [<project-ref>]",
+			Action:    app.actionListTargets,
+			Flags: []cli.Flag{
+				&cli.BoolFlag{
+					Name:        "args",
+					Aliases:     []string{"a"},
+					Usage:       "Show Arguments",
+					Destination: &app.lsShowArgs,
+				},
+				&cli.BoolFlag{
+					Name:        "long",
+					Aliases:     []string{"l"},
+					Usage:       "Show full target-ref",
+					Destination: &app.lsShowLong,
 				},
 			},
 		},
@@ -951,11 +974,11 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 
 Set additional buildkit args, using a YAML array:
 
-	config global.buildkit_additional_args ['userns', '--host']
+	config global.buildkit_additional_args '["userns", "--host"]'
 
 Set a key containing a period:
 
-	config git."example.com".password hunter2
+	config 'git."example.com".password' hunter2
 
 Set up a whole custom git repository for a server called example.com, using a single-line YAML literal:
 	* which stores git repos under /var/git/repos/name-of-repo.git
@@ -1431,7 +1454,7 @@ func (app *earthlyApp) deleteZcompdump() error {
 		}
 		homeDir = currentUser.HomeDir
 	}
-	files, err := ioutil.ReadDir(homeDir)
+	files, err := os.ReadDir(homeDir)
 	if err != nil {
 		return errors.Wrapf(err, "failed to read dir %s", homeDir)
 	}
@@ -1620,7 +1643,7 @@ func (app *earthlyApp) printCrashLogs(ctx context.Context) {
 
 func isEarthlyBinary(path string) bool {
 	// apply heuristics to see if binary is a version of earthly
-	data, err := ioutil.ReadFile(path)
+	data, err := os.ReadFile(path)
 	if err != nil {
 		return false
 	}
@@ -1972,7 +1995,7 @@ func (app *earthlyApp) actionSecretsSet(c *cli.Context) error {
 			return errors.New("invalid number of arguments provided")
 		}
 		path = c.Args().Get(0)
-		data, err := ioutil.ReadAll(os.Stdin)
+		data, err := io.ReadAll(os.Stdin)
 		if err != nil {
 			return errors.Wrap(err, "failed to read from stdin")
 		}
@@ -1982,7 +2005,7 @@ func (app *earthlyApp) actionSecretsSet(c *cli.Context) error {
 			return errors.New("invalid number of arguments provided")
 		}
 		path = c.Args().Get(0)
-		data, err := ioutil.ReadFile(app.secretFile)
+		data, err := os.ReadFile(app.secretFile)
 		if err != nil {
 			return errors.Wrapf(err, "failed to read secret from %s", app.secretFile)
 		}
@@ -2573,9 +2596,25 @@ func (app *earthlyApp) actionConfig(c *cli.Context) error {
 		return errors.Wrap(err, "read config")
 	}
 
-	outConfig, err := config.UpsertConfig(inConfig, args[0], args[1])
-	if err != nil {
-		return errors.Wrap(err, "upsert config")
+	var outConfig []byte
+
+	switch args[1] {
+	case "-h", "--help":
+		if err = config.PrintHelp(args[0]); err != nil {
+			return errors.Wrap(err, "help")
+		}
+		return nil // exit now without writing any changes to config
+	case "--delete":
+		outConfig, err = config.Delete(inConfig, args[0])
+		if err != nil {
+			return errors.Wrap(err, "delete config")
+		}
+	default:
+		// args are key/value pairs, e.g. ["global.conversion_parallelism","5"]
+		outConfig, err = config.Upsert(inConfig, args[0], args[1])
+		if err != nil {
+			return errors.Wrap(err, "upsert config")
+		}
 	}
 
 	if app.configDryRun {
@@ -2606,9 +2645,15 @@ func (app *earthlyApp) actionBuild(c *cli.Context) error {
 			return errors.New("unable to use --ci flag in combination with --interactive flag")
 		}
 	}
-	if !termutil.IsTTY() && app.interactiveDebugging {
-		return errors.New("A tty-terminal must be present in order to the --interactive flag")
+	if app.interactiveDebugging {
+		if !termutil.IsTTY() {
+			return errors.New("A tty-terminal must be present in order to the --interactive flag")
+		}
+		if !buildkitd.IsLocal(app.buildkitHost) {
+			return errors.New("the --interactive flag is not currently supported with non-local buildkit servers")
+		}
 	}
+
 	if app.imageMode && app.artifactMode {
 		return errors.New("both image and artifact modes cannot be active at the same time")
 	}
@@ -2770,7 +2815,7 @@ func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []st
 		return errors.Wrap(err, "failed to create localhostprovider")
 	}
 
-	cacheLocalDir, err := ioutil.TempDir("", "earthly-cache")
+	cacheLocalDir, err := os.MkdirTemp("", "earthly-cache")
 	if err != nil {
 		return errors.Wrap(err, "make temp dir for cache")
 	}
@@ -2899,6 +2944,10 @@ func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []st
 	if len(platformsSlice) != 1 {
 		return errors.Errorf("multi-platform builds are not yet supported on the command line. You may, however, create a target with the instruction BUILD --plaform ... --platform ... %s", target)
 	}
+	builtinArgs := variables.DefaultArgs{
+		EarthlyVersion:  Version,
+		EarthlyBuildSha: GitSha,
+	}
 	buildOpts := builder.BuildOpt{
 		PrintPhases:                true,
 		Push:                       app.push,
@@ -2906,6 +2955,7 @@ func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []st
 		OnlyFinalTargetImages:      app.imageMode,
 		Platform:                   platformsSlice[0],
 		EnableGatewayClientLogging: app.debug,
+		BuiltinArgs:                builtinArgs,
 
 		// explicitly set this to true at the top level (without granting the entitlements.EntitlementSecurityInsecure buildkit option),
 		// to differentiate between a user forgetting to run earthly -P, versus a remotely referening an earthfile that requires privileged.
@@ -2960,9 +3010,78 @@ func (app *earthlyApp) updateGitLookupConfig(gitLookup *buildcontext.GitLookup) 
 		if suffix == "" {
 			suffix = ".git"
 		}
-		err := gitLookup.AddMatcher(k, pattern, v.Substitute, v.User, v.Password, suffix, auth, v.KeyScan)
+		err := gitLookup.AddMatcher(k, pattern, v.Substitute, v.User, v.Password, suffix, auth, v.ServerKey, ifNilBoolDefault(v.StrictHostKeyChecking, true))
 		if err != nil {
 			return errors.Wrap(err, "gitlookup")
+		}
+	}
+	return nil
+}
+
+func ifNilBoolDefault(ptr *bool, defaultValue bool) bool {
+	if ptr == nil {
+		return defaultValue
+	}
+	return *ptr
+}
+
+func (app *earthlyApp) actionListTargets(c *cli.Context) error {
+	if c.NArg() > 1 {
+		return errors.New("invalid number of arguments provided")
+	}
+	var targetToParse string
+	if c.NArg() > 0 {
+		targetToParse = c.Args().Get(0)
+		if !(strings.HasPrefix(targetToParse, "/") || strings.HasPrefix(targetToParse, ".")) {
+			return errors.New("remote-paths are not currently supported; local paths must start with \"/\" or \".\"")
+		}
+		if strings.Contains(targetToParse, "+") {
+			return errors.New("path can not contain a +")
+		}
+		targetToParse = strings.TrimSuffix(targetToParse, "/Earthfile")
+	}
+
+	targetToDisplay := targetToParse
+	if targetToParse == "" {
+		targetToDisplay = "current directory"
+	}
+
+	gitLookup := buildcontext.NewGitLookup(app.console, app.sshAuthSock)
+	resolver := buildcontext.NewResolver("", nil, gitLookup, app.console, "")
+	var gwClient gwclient.Client // TODO this is a nil pointer which causes a panic if we try to expand a remotely referenced earthfile
+	// it's expensive to create this gwclient, so we need to implement a lazy eval which returns it when required.
+
+	target, err := domain.ParseTarget(fmt.Sprintf("%s+base", targetToParse)) //the +base is required to make ParseTarget work; however is ignored by GetTargets
+	if err != nil {
+		return errors.Errorf("unable to locate Earthfile under %s", targetToDisplay)
+	}
+
+	targets, err := earthfile2llb.GetTargets(c.Context, resolver, gwClient, target)
+	if err != nil {
+		return errors.Errorf("unable to locate Earthfile under %s", targetToDisplay)
+	}
+	targets = append(targets, "base")
+	sort.Strings(targets)
+	for _, t := range targets {
+		var args []string
+		if t != "base" {
+			target.Target = t
+			args, err = earthfile2llb.GetTargetArgs(c.Context, resolver, gwClient, target)
+			if err != nil {
+				return err
+			}
+		}
+		if app.lsShowLong {
+			fmt.Printf("%s+%s\n", targetToParse, t)
+		} else {
+			fmt.Printf("+%s\n", t)
+		}
+		if app.lsShowArgs {
+			if args != nil {
+				for _, arg := range args {
+					fmt.Printf("  --%s\n", arg)
+				}
+			}
 		}
 	}
 	return nil
@@ -3000,7 +3119,7 @@ func processSecrets(secrets, secretFiles []string, dotEnvMap map[string]string) 
 		}
 		k := parts[0]
 		path := fileutil.ExpandPath(parts[1])
-		data, err := ioutil.ReadFile(path)
+		data, err := os.ReadFile(path)
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to open %q", path)
 		}

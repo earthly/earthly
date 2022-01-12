@@ -13,6 +13,7 @@ all:
     BUILD +test-for-constant
     BUILD +test-for-expand-arg
     BUILD +test-for-ls-locally
+    BUILD +test-non-root-user
 
 test-for-ls:
     RUN touch a b c d
@@ -109,3 +110,15 @@ test-for-ls-locally:
     RUN cat ./output.txt
     RUN cat ./output.txt | tr '\n' ' '
     RUN test "$(cat ./output.txt | tr '\n' ' ')" = "a b c d "
+
+test-non-root-user:
+    RUN adduser --system weeheavy
+    USER weeheavy
+    WORKDIR /home/weeheavy
+    FOR variable IN $(seq 1 3)
+        RUN touch "$variable"
+    END
+    RUN ls -la
+    RUN test -f 1
+    RUN test -f 2
+    RUN test -f 3

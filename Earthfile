@@ -1,3 +1,5 @@
+VERSION 0.6
+
 FROM golang:1.17-alpine3.14
 
 RUN apk add --update --no-cache \
@@ -50,7 +52,7 @@ update-buildkit:
     ARG BUILDKIT_GIT_SHA
     ARG BUILDKIT_GIT_BRANCH=earthly-main
     COPY (./buildkitd+buildkit-sha/buildkit_sha --BUILDKIT_GIT_SHA="$BUILDKIT_GIT_SHA" --BUILDKIT_GIT_BRANCH="$BUILDKIT_GIT_BRANCH") buildkit_sha
-    BUILD --build-arg "BUILDKIT_GIT_SHA=$(cat buildkit_sha)" ./buildkitd+update-buildkit
+    BUILD  ./buildkitd+update-buildkit --BUILDKIT_GIT_SHA="$(cat buildkit_sha)"
     RUN --no-cache go mod edit -replace "github.com/moby/buildkit=github.com/earthly/buildkit@$(cat buildkit_sha)"
     RUN --no-cache go mod tidy
     SAVE ARTIFACT go.mod AS LOCAL go.mod
@@ -79,6 +81,7 @@ lint-scripts-misc:
         ./buildkitd/dockerd-wrapper.sh ./buildkitd/docker-auto-install.sh \
         ./release/envcredhelper.sh ./.buildkite/*.sh \
         ./scripts/tests/*.sh \
+        ./scripts/*.sh \
         ./shell_scripts/
     RUN shellcheck shell_scripts/*
 
@@ -112,6 +115,7 @@ lint:
             echo "$output" ; \
             exit 1 ; \
         fi
+    RUN if find . -type f -name \*.go | xargs grep '"io/ioutil"'; then echo "io/ioutil is deprecated: https://go.dev/doc/go1.16#ioutil"; exit 1; fi
 
 lint-newline-ending:
     FROM alpine:3.13
@@ -130,7 +134,7 @@ lint-newline-ending:
     # test file ends with a single newline
     RUN set -e; \
         code=0; \
-        for f in $(find . -type f \( -iname '*.yml' -o -iname '*.go' -o -iname 'Earthfile' -o -iname '*.earth' \) | grep -v "ast/tests/empty-targets.earth" | grep -v "tests/version/version-only.earth" ); do \
+        for f in $(find . -type f \( -iname '*.yml' -o -iname '*.go' -o -iname '*.sh' -o -iname '*.template' -o -iname 'Earthfile' -o -iname '*.earth' \) | grep -v "ast/tests/empty-targets.earth" | grep -v "tests/version/version-only.earth" ); do \
             if [ "$(tail -c 1 $f)" != "$(printf '\n')" ]; then \
                 echo "$f does not end with a newline"; \
                 code=1; \
@@ -252,54 +256,54 @@ earthly:
     SAVE IMAGE --cache-from=earthly/earthly:main
 
 earthly-linux-amd64:
-    COPY \
-        --build-arg GOARCH=amd64 \
-        --build-arg VARIANT= \
-        +earthly/* ./
+    COPY (+earthly/* \
+        --GOARCH=amd64 \
+        --VARIANT= \
+        ) ./
     SAVE ARTIFACT ./*
 
 earthly-linux-arm7:
-    COPY \
-        --build-arg GOARCH=arm \
-        --build-arg VARIANT=v7 \
-        --build-arg GO_EXTRA_LDFLAGS= \
-        +earthly/* ./
+    COPY (+earthly/* \
+        --GOARCH=arm \
+        --VARIANT=v7 \
+        --GO_EXTRA_LDFLAGS= \
+        ) ./
     SAVE ARTIFACT ./*
 
 earthly-linux-arm64:
-    COPY \
-        --build-arg GOARCH=arm64 \
-        --build-arg VARIANT= \
-        --build-arg GO_EXTRA_LDFLAGS= \
-        +earthly/* ./
+    COPY (+earthly/* \
+        --GOARCH=arm64 \
+        --VARIANT= \
+        --GO_EXTRA_LDFLAGS= \
+        ) ./
     SAVE ARTIFACT ./*
 
 earthly-darwin-amd64:
-    COPY \
-        --build-arg GOOS=darwin \
-        --build-arg GOARCH=amd64 \
-        --build-arg VARIANT= \
-        --build-arg GO_EXTRA_LDFLAGS= \
-        +earthly/* ./
+    COPY (+earthly/* \
+        --GOOS=darwin \
+        --GOARCH=amd64 \
+        --VARIANT= \
+        --GO_EXTRA_LDFLAGS= \
+        ) ./
     SAVE ARTIFACT ./*
 
 earthly-darwin-arm64:
-    COPY \
-        --build-arg GOOS=darwin \
-        --build-arg GOARCH=arm64 \
-        --build-arg VARIANT= \
-        --build-arg GO_EXTRA_LDFLAGS= \
-        +earthly/* ./
+    COPY (+earthly/* \
+        --GOOS=darwin \
+        --GOARCH=arm64 \
+        --VARIANT= \
+        --GO_EXTRA_LDFLAGS= \
+        ) ./
     SAVE ARTIFACT ./*
 
 earthly-windows-amd64:
-    COPY \
-        --build-arg GOOS=windows \
-        --build-arg GOARCH=amd64 \
-        --build-arg VARIANT= \
-        --build-arg GO_EXTRA_LDFLAGS= \
-        --build-arg EXECUTABLE_NAME=earthly.exe \
-        +earthly/* ./
+    COPY (+earthly/* \
+        --GOOS=windows \
+        --GOARCH=amd64 \
+        --VARIANT= \
+        --GO_EXTRA_LDFLAGS= \
+        --EXECUTABLE_NAME=earthly.exe \
+        ) ./
     SAVE ARTIFACT ./*
 
 earthly-all:
@@ -320,7 +324,7 @@ earthly-docker:
     ENTRYPOINT ["/usr/bin/earthly-entrypoint.sh"]
     ARG EARTHLY_TARGET_TAG_DOCKER
     ARG TAG="dev-$EARTHLY_TARGET_TAG_DOCKER"
-    COPY --build-arg VERSION=$TAG +earthly/earthly /usr/bin/earthly
+    COPY (+earthly/earthly --VERSION=$TAG) /usr/bin/earthly
     SAVE IMAGE --push --cache-from=earthly/earthly:main earthly/earthly:$TAG
 
 earthly-integration-test-base:
@@ -360,12 +364,12 @@ earthly-integration-test-base:
 prerelease:
     FROM alpine:3.13
     ARG BUILDKIT_PROJECT
-    BUILD --build-arg TAG=prerelease \
+    BUILD \
         --platform=linux/amd64 \
         --platform=linux/arm/v7 \
         --platform=linux/arm64 \
-        ./buildkitd+buildkitd --BUILDKIT_PROJECT="$BUILDKIT_PROJECT"
-    COPY --build-arg VERSION=prerelease +earthly-all/* ./
+        ./buildkitd+buildkitd --TAG=prerelease  --BUILDKIT_PROJECT="$BUILDKIT_PROJECT"
+    COPY (+earthly-all/* --VERSION=prerelease) ./
     SAVE IMAGE --push earthly/earthlybinaries:prerelease
 
 prerelease-script:
@@ -387,7 +391,7 @@ dind-alpine:
     SAVE IMAGE --push --cache-from=earthly/dind:main $DOCKERHUB_USER/dind:$DIND_ALPINE_TAG
 
 dind-ubuntu:
-    FROM ubuntu:20.10
+    FROM ubuntu:20.04
     COPY ./buildkitd/docker-auto-install.sh /usr/local/bin/docker-auto-install.sh
     RUN docker-auto-install.sh
     ARG DIND_UBUNTU_TAG=ubuntu-$EARTHLY_TARGET_TAG_DOCKER
@@ -509,6 +513,7 @@ examples1:
     BUILD ./examples/react+docker
     BUILD ./examples/cutoff-optimization+run
     BUILD ./examples/import+build
+    BUILD ./examples/secrets+base
 
 examples2:
     BUILD ./examples/readme/go1+all

@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
@@ -88,6 +87,7 @@ type BuildOpt struct {
 	OnlyArtifact               *domain.Artifact
 	OnlyArtifactDestPath       string
 	EnableGatewayClientLogging bool
+	BuiltinArgs                variables.DefaultArgs
 }
 
 // Builder executes Earthly builds.
@@ -144,6 +144,8 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 
 	destPathWhitelist := make(map[string]bool)
 	manifestLists := make(map[string][]manifest) // parent image -> child images
+	platformImgNames := make(map[string]bool)    // ensure that these are unique
+	singPlatImgNames := make(map[string]bool)    // ensure that these are unique
 	var mts *states.MultiTarget
 	depIndex := 0
 	imageIndex := 0
@@ -155,7 +157,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 		}
 		var err error
 		if !b.builtMain {
-			mts, err = earthfile2llb.Earthfile2LLB(childCtx, target, earthfile2llb.ConvertOpt{
+			opt := earthfile2llb.ConvertOpt{
 				GwClient:             gwClient,
 				Resolver:             b.resolver,
 				ImageResolveMode:     b.opt.ImageResolveMode,
@@ -176,7 +178,10 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 				GitLookup:            b.opt.GitLookup,
 				FeatureFlagOverrides: featureFlagOverrides,
 				LocalStateCache:      sharedLocalStateCache,
-			}, true)
+				BuiltinArgs:          opt.BuiltinArgs,
+				NoCache:              b.opt.NoCache,
+			}
+			mts, err = earthfile2llb.Earthfile2LLB(childCtx, target, opt, true)
 			if err != nil {
 				return nil, err
 			}
@@ -241,6 +246,13 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 				}
 
 				if !isMultiPlatform[saveImage.DockerTag] {
+					if _, found := singPlatImgNames[saveImage.DockerTag]; found {
+						return nil, errors.Errorf(
+							"image %s is defined multiple times for the same default platform",
+							saveImage.DockerTag)
+					}
+					singPlatImgNames[saveImage.DockerTag] = true
+
 					refKey := fmt.Sprintf("image-%d", imageIndex)
 					refPrefix := fmt.Sprintf("ref/%s", refKey)
 					imageIndex++
@@ -267,6 +279,16 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 				} else {
 					platform := llbutil.PlatformWithDefault(sts.Platform)
 					platformStr := llbutil.PlatformWithDefaultToString(sts.Platform)
+					platformImgName, err := platformSpecificImageName(saveImage.DockerTag, platform)
+					if err != nil {
+						return nil, err
+					}
+					if _, found := platformImgNames[platformImgName]; found {
+						return nil, errors.Errorf(
+							"image %s is defined multiple times for the same platform (%s)",
+							saveImage.DockerTag, platformImgName)
+					}
+					platformImgNames[platformImgName] = true
 					// Image has platform set - need to use manifest lists.
 					// Need to push as a single multi-manifest image, but output locally as
 					// separate images.
@@ -295,10 +317,6 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 						refPrefix := fmt.Sprintf("ref/%s", refKey)
 						imageIndex++
 
-						platformImgName, err := platformSpecificImageName(saveImage.DockerTag, platform)
-						if err != nil {
-							return nil, err
-						}
 						localRegPullID, err := platformSpecificImageName(
 							fmt.Sprintf("sess-%s/mp:img%d", gwClient.BuildOpts().SessionID, imageIndex), platform)
 						if err != nil {
@@ -606,17 +624,13 @@ func (b *Builder) targetPhaseInteractiveSession(sts *states.SingleTarget) states
 }
 
 func (b *Builder) stateToRef(ctx context.Context, gwClient gwclient.Client, state pllb.State, platform *specs.Platform) (gwclient.Reference, error) {
-	if b.opt.NoCache && !b.builtMain {
-		state = state.SetMarshalDefaults(llb.IgnoreCache)
-	}
-	return llbutil.StateToRef(ctx, gwClient, state, platform, b.opt.CacheImports.AsMap())
+	noCache := b.opt.NoCache && !b.builtMain
+	return llbutil.StateToRef(ctx, gwClient, state, noCache, platform, b.opt.CacheImports.AsMap())
 }
 
 func (b *Builder) artifactStateToRef(ctx context.Context, gwClient gwclient.Client, state pllb.State, platform *specs.Platform) (gwclient.Reference, error) {
-	if b.opt.NoCache || b.builtMain {
-		state = state.SetMarshalDefaults(llb.IgnoreCache)
-	}
-	return llbutil.StateToRef(ctx, gwClient, state, platform, b.opt.CacheImports.AsMap())
+	noCache := b.opt.NoCache || b.builtMain
+	return llbutil.StateToRef(ctx, gwClient, state, noCache, platform, b.opt.CacheImports.AsMap())
 }
 
 func (b *Builder) buildOnlyLastImageAsTar(ctx context.Context, mts *states.MultiTarget, dockerTag string, outFile string, opt BuildOpt) error {
@@ -769,7 +783,7 @@ func (b *Builder) tempEarthlyOutDir() (string, error) {
 			err = errors.Wrapf(err, "unable to create dir %s", tmpParentDir)
 			return
 		}
-		b.outDir, err = ioutil.TempDir(tmpParentDir, "tmp")
+		b.outDir, err = os.MkdirTemp(tmpParentDir, "tmp")
 		if err != nil {
 			err = errors.Wrap(err, "mk temp dir for artifacts")
 			return

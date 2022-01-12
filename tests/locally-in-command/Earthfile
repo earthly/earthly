@@ -1,0 +1,69 @@
+ARG DOCKERHUB_USER_SECRET=+secrets/DOCKERHUB_USER
+ARG DOCKERHUB_TOKEN_SECRET=+secrets/DOCKERHUB_TOKEN
+ARG DOCKERHUB_MIRROR
+ARG DOCKERHUB_AUTH=true
+FROM ../..+earthly-integration-test-base \
+    --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
+    --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
+    --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
+    --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR
+
+IMPORT .. AS tests
+
+WORKDIR /test
+
+all:
+    BUILD +test-command-in-sub-dir
+    BUILD +test-udc-that-calls-other-udc
+
+test-command-in-sub-dir:
+    RUN mkdir -p /the-test/some/subdir
+    RUN mkdir -p /the-test/other/path
+    COPY command.earth /the-test/some/subdir/Earthfile
+    COPY target-that-calls-command.earth /the-test/Earthfile
+    COPY other-target-that-calls-command.earth /the-test/other/path/Earthfile
+    RUN touch /this-file-exists-locally
+    DO +RUN_EARTHLY_ARGS --target=/the-test+test
+    RUN test "$(cat /the-test/data)" = "I am running in /the-test"
+
+    # cleanup
+    RUN rm /the-test/data
+    RUN find /the-test | grep -v data
+
+    # next test a target that calls the same UDC from a different location
+    DO +RUN_EARTHLY_ARGS --target=/the-test+test-other
+    RUN ! test -f /the-test/data
+    RUN test "$(cat /the-test/other/path/data)" = "I am running in /the-test/other/path"
+
+    # cleanup
+    RUN rm /the-test/other/path/data
+    RUN find /the-test | grep -v data
+
+    # finally test both targets that call the same locally command result in both files being created
+    DO +RUN_EARTHLY_ARGS --target=/the-test+test-both
+    RUN test "$(cat /the-test/data)" = "I am running in /the-test"
+    RUN test "$(cat /the-test/other/path/data)" = "I am running in /the-test/other/path"
+
+test-udc-that-calls-other-udc:
+    WORKDIR /my/test
+    ENV SRC_DIR=/my/test # required for RUN_EARTHLY's earthly-entrypoint.sh to execute out of a dir other than /test
+    RUN mkdir -p some/subdir/submarine
+    COPY command.earth some/subdir/Earthfile
+    COPY command-that-calls-command.earth some/subdir/submarine/Earthfile
+    COPY target-that-calls-command-that-calls-command.earth Earthfile
+    DO +RUN_EARTHLY_ARGS --target=+test
+    RUN test "$(cat data)" = "I am running in /my/test"
+
+RUN_EARTHLY_ARGS:
+    COMMAND
+    ARG earthfile
+    ARG target
+    ARG should_fail=false
+    DO tests+RUN_EARTHLY \
+        --earthfile=$earthfile \
+        --target=$target \
+        --should_fail=$should_fail \
+        --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
+        --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
+        --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
+        --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR

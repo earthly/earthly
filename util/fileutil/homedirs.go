@@ -3,7 +3,6 @@ package fileutil
 import (
 	"bufio"
 	"io"
-	"io/ioutil"
 	"os"
 	"os/user"
 	"path"
@@ -23,7 +22,7 @@ func GetUserHomeDirs() (map[string]string, error) {
 			return nil, errors.Wrap(err, "failed to get current user")
 		}
 		home := filepath.Dir(currentUser.HomeDir)
-		directoryList, err := ioutil.ReadDir(home)
+		directoryList, err := os.ReadDir(home)
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to read dir")
 		}

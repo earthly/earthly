@@ -1,67 +1,352 @@
+VERSION 0.6
+
 ARG DOCKERHUB_USER_SECRET=+secrets/DOCKERHUB_USER
 ARG DOCKERHUB_TOKEN_SECRET=+secrets/DOCKERHUB_TOKEN
 ARG DOCKERHUB_MIRROR
 ARG DOCKERHUB_AUTH=true
-FROM ..+base \
-    --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
-    --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
-    --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
-    --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR
 
-# server creates a ssh-based git server; this repo can then be cloned by running
-# "git clone git@selfsigned.example.com:testuser/repo.git"
-server:
-    RUN apk add --update --no-cache openssh git
-    RUN ssh-keygen -A
-    RUN ssh-keygen -b 3072 -t rsa -f /root/self-hosted-sshkey -q -N "" -C "testkey"
-    RUN adduser --disabled-password --gecos "" git && \
-        mkdir ~git/.ssh && \
-        cat /root/self-hosted-sshkey.pub > ~git/.ssh/authorized_keys && \
-        chmod 600 ~git/.ssh/authorized_keys && \
-        chown git:git ~git/.ssh/authorized_keys && \
-        cat /etc/passwd | grep git && \
-        sed -i 's/\(git:.*\):\/bin\/ash/\1:\/usr\/bin\/git-shell/g' /etc/passwd && \
-        cat /etc/passwd | grep git && \
-        passwd git -u
-    RUN mkdir /home/git/testuser && \
-        git init --bar /home/git/testuser/repo.git && \
-        chown -R git:git /home/git/testuser
-    COPY sshd_config /etc/ssh/sshd_config
-    RUN echo "Welcome to our self-hosted git ssh server" > /etc/motd
+test-rsa-only:
+    FROM ./setup+server \
+        --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
+        --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
+        --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
+        --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR \
+        --SSHD_RSA=true \
+        --SSHD_ED25519=false \
+        --USER_RSA=true \
+        --USER_ED25519=false
+    RUN echo "#!/bin/sh
+set -ex
 
-    RUN echo "set -e
-# Docker creates /etc/hosts as readonly; we must unmount it first
-# before we can update it; this change WILL not stick around between different RUNs
-# furthermore, we must execute this script with RUN --privileged
-cp /etc/hosts /tmp/hosts
-umount /etc/hosts
-cp /tmp/hosts /etc/hosts
-if ! grep git.example.com /etc/hosts 2>/dev/null; then
-    echo -e \"127.0.0.1\tgit.example.com\" >> /etc/hosts
+# first ensure these two /etc/hosts entries are working
+ping -c 1 git.example.com
+ping -c 1 buildkitsandbox
+
+# load in preauthorized key
+eval \$(ssh-agent)
+ssh-add /root/self-hosted-rsa-key
+ssh-add -l
+
+earthly --config \$earthly_config --verbose -D +test
+earthly --config \$earthly_config --verbose -D git.example.com/testuser/repo:main+hello
+" >/tmp/test-earthly-script && chmod +x /tmp/test-earthly-script
+    DO +RUN_EARTHLY_ARGS --pre_command=start-sshd --earthfile=git-clone-private-ssh.earth --exec_cmd=/tmp/test-earthly-script
+
+test-ed25519-only:
+    FROM ./setup+server \
+        --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
+        --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
+        --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
+        --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR \
+        --SSHD_RSA=false \
+        --SSHD_ED25519=true \
+        --USER_RSA=false \
+        --USER_ED25519=true
+    RUN --no-cache echo "#!/bin/sh
+set -ex
+
+# first ensure these two /etc/hosts entries are working
+ping -c 1 git.example.com
+ping -c 1 buildkitsandbox
+
+# load in preauthorized key
+eval \$(ssh-agent)
+ssh-add /root/self-hosted-ed25519-key
+ssh-add -l
+
+earthly --config \$earthly_config --verbose -D +test
+earthly --config \$earthly_config --verbose -D git.example.com/testuser/repo:main+hello
+" >/tmp/test-earthly-script && chmod +x /tmp/test-earthly-script
+    DO +RUN_EARTHLY_ARGS --pre_command=start-sshd --earthfile=git-clone-private-ssh.earth --exec_cmd=/tmp/test-earthly-script
+
+test-server-both-user-rsa-only:
+    FROM ./setup+server \
+        --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
+        --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
+        --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
+        --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR \
+        --SSHD_RSA=true \
+        --SSHD_ED25519=true \
+        --USER_RSA=true \
+        --USER_ED25519=false
+    RUN --no-cache echo "#!/bin/sh
+set -ex
+
+# first ensure these two /etc/hosts entries are working
+ping -c 1 git.example.com
+ping -c 1 buildkitsandbox
+
+# load in preauthorized key
+eval \$(ssh-agent)
+ssh-add /root/self-hosted-rsa-key
+ssh-add -l
+
+earthly --config \$earthly_config --verbose -D +test
+earthly --config \$earthly_config --verbose -D git.example.com/testuser/repo:main+hello
+" >/tmp/test-earthly-script && chmod +x /tmp/test-earthly-script
+    DO +RUN_EARTHLY_ARGS --pre_command=start-sshd --earthfile=git-clone-private-ssh.earth --exec_cmd=/tmp/test-earthly-script
+
+test-server-both-with-missing-keyscan:
+    FROM ./setup+server \
+        --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
+        --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
+        --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
+        --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR \
+        --SSHD_RSA=true \
+        --SSHD_ED25519=true \
+        --USER_RSA=true \
+        --USER_ED25519=false
+    RUN --no-cache echo "#!/bin/sh
+set -ex
+
+# first ensure these two /etc/hosts entries are working
+ping -c 1 git.example.com
+ping -c 1 buildkitsandbox
+
+# load in preauthorized key
+eval \$(ssh-agent)
+ssh-add /root/self-hosted-rsa-key
+ssh-add -l
+
+# Clear out known_hosts
+> ~/.ssh/known_hosts
+
+if earthly --config \$earthly_config --verbose -D +test > output.txt 2>&1; then
+    cat output.txt
+    echo \"expected earthly failure, but got clean exit code instead\" && exit 1
 fi
-/usr/sbin/sshd
-" > /bin/start-sshd && chmod +x /bin/start-sshd
+cat output.txt | grep 'no known_hosts entries found for git.example.com; falling back to https'
 
-    RUN --privileged start-sshd && \
-        mkdir -p ~/.ssh && \
-        ssh-keyscan -H git.example.com >> ~/.ssh/known_hosts && \
+if earthly --config \$earthly_config --verbose -D git.example.com/testuser/repo:main+hello > output.txt 2>&1; then
+    cat output.txt
+    echo \"expected earthly failure, but got clean exit code instead\" && exit 1
+fi
+cat output.txt | grep 'no known_hosts entries found for git.example.com; falling back to https'
+" >/tmp/test-earthly-script && chmod +x /tmp/test-earthly-script
+    DO +RUN_EARTHLY_ARGS --pre_command=start-sshd --earthfile=git-clone-private-ssh.earth --exec_cmd=/tmp/test-earthly-script
 
-        echo done setup.
-        #test $(ssh -i /root/self-hosted-sshkey git@127.0.0.1 whoami) "=" "git"
+test-server-both-with-only-rsa-keyscan:
+    FROM ./setup+server \
+        --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
+        --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
+        --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
+        --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR \
+        --SSHD_RSA=true \
+        --SSHD_ED25519=true \
+        --USER_RSA=true \
+        --USER_ED25519=false
+    RUN --no-cache echo "#!/bin/sh
+set -ex
 
-    RUN --privileged start-sshd && \ # starts in background
-        eval `ssh-agent` && \
-        ssh-add /root/self-hosted-sshkey && \
-        ssh-add -l && \
-        mkdir -p /test/repo && \
-        cd /test/repo && \
-        git init --initial-branch=main . && \
-        echo -e "FROM alpine:3.13\nhello:\n\tRUN echo -n 1233c084-4cf5-4797-a4c5-eb65354ee7ee | base64" > Earthfile && \
-        git add Earthfile && \
-        git config --global user.email "onlyspammersemailthis@earthly.dev" && \
-        git config --global user.name "test name" && \
-        git commit -m "An Earthfile to test against" && \
-        git remote add origin git@git.example.com:testuser/repo.git && \
-        git push --set-upstream origin main && \
-        cd .. && \
-        rm -rf repo # remove this repo dir now that it has been pushed to the server
+# first ensure these two /etc/hosts entries are working
+ping -c 1 git.example.com
+ping -c 1 buildkitsandbox
+
+# load in preauthorized key
+eval \$(ssh-agent)
+ssh-add /root/self-hosted-rsa-key
+ssh-add -l
+
+# limit known_hosts to ssh-rsa only
+cp ~/.ssh/known_hosts /tmp/known_hosts.old
+cat /tmp/known_hosts.old | grep ssh-rsa > ~/.ssh/known_hosts
+cat ~/.ssh/known_hosts
+
+earthly --config \$earthly_config --verbose -D +test
+earthly --config \$earthly_config --verbose -D git.example.com/testuser/repo:main+hello
+" >/tmp/test-earthly-script && chmod +x /tmp/test-earthly-script
+    DO +RUN_EARTHLY_ARGS --pre_command=start-sshd --earthfile=git-clone-private-ssh.earth --exec_cmd=/tmp/test-earthly-script
+
+test-server-both-with-only-ed25519-keyscan:
+    FROM ./setup+server \
+        --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
+        --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
+        --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
+        --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR \
+        --SSHD_RSA=true \
+        --SSHD_ED25519=true \
+        --USER_RSA=true \
+        --USER_ED25519=false
+    RUN --no-cache echo "#!/bin/sh
+set -ex
+
+# first ensure these two /etc/hosts entries are working
+ping -c 1 git.example.com
+ping -c 1 buildkitsandbox
+
+# load in preauthorized key
+eval \$(ssh-agent)
+ssh-add /root/self-hosted-rsa-key
+ssh-add -l
+
+# limit known_hosts to ssh-ed25519 only
+cp ~/.ssh/known_hosts /tmp/known_hosts.old
+cat /tmp/known_hosts.old | grep ssh-ed25519 > ~/.ssh/known_hosts
+cat ~/.ssh/known_hosts
+
+earthly --config \$earthly_config --verbose -D +test
+earthly --config \$earthly_config --verbose -D git.example.com/testuser/repo:main+hello
+" >/tmp/test-earthly-script && chmod +x /tmp/test-earthly-script
+    DO +RUN_EARTHLY_ARGS --pre_command=start-sshd --earthfile=git-clone-private-ssh.earth --exec_cmd=/tmp/test-earthly-script
+
+test-configured-ssh-no-keyscan:
+    FROM ./setup+server \
+        --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
+        --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
+        --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
+        --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR \
+        --SSHD_RSA=true \
+        --SSHD_ED25519=true \
+        --USER_RSA=true \
+        --USER_ED25519=false
+    RUN --no-cache echo "#!/bin/sh
+set -ex
+
+# first ensure these two /etc/hosts entries are working
+ping -c 1 git.example.com
+ping -c 1 buildkitsandbox
+
+# load in preauthorized key
+eval \$(ssh-agent)
+ssh-add /root/self-hosted-rsa-key
+ssh-add -l
+
+# Clear out known_hosts
+> ~/.ssh/known_hosts
+
+# Setup auth to be ssh; disallowing https-fallback.
+earthly --config \$earthly_config config 'git.\"git.example.com\"' '{\"auth\": \"ssh\", \"user\": \"git\"}'
+
+if earthly --config \$earthly_config --verbose -D +test > output.txt 2>&1; then
+    cat output.txt
+    echo \"expected earthly failure, but got clean exit code instead\" && exit 1
+fi
+
+if earthly --config \$earthly_config --verbose -D git.example.com/testuser/repo:main+hello > output.txt 2>&1; then
+    cat output.txt
+    echo \"expected earthly failure, but got clean exit code instead\" && exit 1
+fi
+
+# Next configure earthly to allow unknown hosts (insecure!)
+earthly --config \$earthly_config config 'git.\"git.example.com\"' '{\"auth\": \"ssh\", \"user\": \"git\", \"strict_host_key_checking\": false}'
+
+# earthly should now be able to clone these even though no known_hosts entry exists
+earthly --config \$earthly_config --verbose -D +test
+earthly --config \$earthly_config --verbose -D git.example.com/testuser/repo:main+hello
+
+" >/tmp/test-earthly-script && chmod +x /tmp/test-earthly-script
+    DO +RUN_EARTHLY_ARGS --pre_command=start-sshd --earthfile=git-clone-private-ssh.earth --exec_cmd=/tmp/test-earthly-script
+
+test-server-with-unhashed-keyscan:
+    FROM ./setup+server \
+        --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
+        --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
+        --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
+        --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR \
+        --SSHD_RSA=true \
+        --SSHD_ED25519=true \
+        --USER_RSA=true \
+        --USER_ED25519=false
+    RUN --no-cache echo "#!/bin/sh
+set -ex
+
+# first ensure these two /etc/hosts entries are working
+ping -c 1 git.example.com
+ping -c 1 buildkitsandbox
+
+# load in preauthorized key
+eval \$(ssh-agent)
+ssh-add /root/self-hosted-rsa-key
+ssh-add -l
+
+# first check that known_hosts are hashed (hashed entries start with |1|)
+cat ~/.ssh/known_hosts | awk '{print \$1}' | grep '|1|'
+
+# convert hashed hostnames into unhashed hostnames
+cp ~/.ssh/known_hosts /tmp/known_hosts.old
+cat /tmp/known_hosts.old | awk '{printf \"git.example.com %s %s\\n\", \$2, \$3}' > ~/.ssh/known_hosts
+
+earthly --config \$earthly_config --verbose -D +test
+earthly --config \$earthly_config --verbose -D git.example.com/testuser/repo:main+hello
+
+" >/tmp/test-earthly-script && chmod +x /tmp/test-earthly-script
+    DO +RUN_EARTHLY_ARGS --pre_command=start-sshd --earthfile=git-clone-private-ssh.earth --exec_cmd=/tmp/test-earthly-script
+
+test-with-custom-matcher:
+    FROM ./setup+server \
+        --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
+        --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
+        --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
+        --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR \
+        --SSHD_RSA=true \
+        --SSHD_ED25519=true \
+        --USER_RSA=true \
+        --USER_ED25519=false
+    RUN --no-cache echo "#!/bin/sh
+set -ex
+
+# first ensure these two /etc/hosts entries are working
+ping -c 1 git.example.com
+ping -c 1 buildkitsandbox
+
+# load in preauthorized key
+eval \$(ssh-agent)
+ssh-add /root/self-hosted-rsa-key
+ssh-add -l
+
+# Clear out known_hosts
+mv ~/.ssh/known_hosts /tmp/known_hosts.old
+
+# Setup auth to be ssh; with custom pattern/sub that converts `funnyserver/repo` to `ssh://git@git.example.com:22/home/git/testuser.git`
+earthly --config \$earthly_config config 'git.\"git.example.com\"' '{\"auth\": \"ssh\", \"user\": \"git\", \"pattern\": \"funnyserver/([^/]+)\", \"substitute\": \"ssh://git@git.example.com:22/home/git/testuser/\$1.git\"}'
+cat \$earthly_config
+
+if earthly --config \$earthly_config --verbose -D +test > output.txt 2>&1; then
+    cat output.txt
+    echo \"expected earthly failure, but got clean exit code instead\" && exit 1
+fi
+
+if earthly --config \$earthly_config --verbose -D funnyserver/repo:main+hello > output.txt 2>&1; then
+    cat output.txt
+    echo \"expected earthly failure, but got clean exit code instead\" && exit 1
+fi
+
+# restore known_hosts
+mv /tmp/known_hosts.old ~/.ssh/known_hosts
+
+# earthly should now be able to clone these even though no known_hosts entry exists
+earthly --config \$earthly_config --verbose -D +test 2>&1 | tee output.txt
+cat output.txt | grep $(echo MTIzM2MwODQtNGNmNS00Nzk3LWE0YzUtZWI2NTM1NGVlN2Vl | base64 -d)
+
+earthly --config \$earthly_config --verbose -D funnyserver/repo:main+hello 2>&1 | tee output.txt
+cat output.txt | grep $(echo MTIzM2MwODQtNGNmNS00Nzk3LWE0YzUtZWI2NTM1NGVlN2Vl | base64 -d)
+
+
+" >/tmp/test-earthly-script && chmod +x /tmp/test-earthly-script
+    DO +RUN_EARTHLY_ARGS --pre_command=start-sshd --earthfile=from-funnyserver.earth --exec_cmd=/tmp/test-earthly-script
+
+
+all:
+    BUILD +test-rsa-only
+    BUILD +test-ed25519-only
+    BUILD +test-server-both-user-rsa-only
+    BUILD +test-server-both-with-missing-keyscan
+    BUILD +test-server-both-with-only-rsa-keyscan
+    BUILD +test-server-both-with-only-ed25519-keyscan
+    BUILD +test-configured-ssh-no-keyscan
+    BUILD +test-server-with-unhashed-keyscan
+    BUILD +test-with-custom-matcher
+
+RUN_EARTHLY_ARGS:
+    COMMAND
+    ARG earthfile
+    ARG pre_command
+    ARG exec_cmd
+    DO ..+RUN_EARTHLY \
+        --earthfile=$earthfile \
+        --pre_command=$pre_command \
+        --exec_cmd=$exec_cmd \
+        --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
+        --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
+        --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
+        --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR

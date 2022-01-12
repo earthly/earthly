@@ -97,6 +97,12 @@ type ConvertOpt struct {
 
 	// FeatureFlagOverride is used to override feature flags that are defined in specific Earthfiles
 	FeatureFlagOverrides string
+
+	// Default set of ARGs to make available in Earthfile.
+	BuiltinArgs variables.DefaultArgs
+
+	// NoCache sets llb.IgnoreCache before calling StateToRef
+	NoCache bool
 }
 
 // Earthfile2LLB parses a earthfile and executes the statements for a given target.
@@ -185,8 +191,12 @@ func GetTargetArgs(ctx context.Context, resolver *buildcontext.Resolver, gwClien
 	}
 	var args []string
 	for _, stmt := range t.Recipe {
-		if stmt.Command.Name == "ARG" {
-			args = append(args, stmt.Command.Args[0])
+		if stmt.Command != nil && stmt.Command.Name == "ARG" {
+			_, argName, _, err := parseArgArgs(ctx, *stmt.Command)
+			if err != nil {
+				return nil, errors.Wrapf(err, "failed to parse ARG arguments %v", stmt.Command.Args)
+			}
+			args = append(args, argName)
 		}
 	}
 	return args, nil

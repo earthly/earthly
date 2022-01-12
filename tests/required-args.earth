@@ -1,3 +1,4 @@
+VERSION 0.6
 FROM scratch
 
 test-non-required-args:
@@ -13,4 +14,4 @@ test-accept-valid-required-arg:
     ARG --required req
 
 test-accept-valid-required-arg-build-arg-in-earthfile:
-    BUILD --build-arg req=val +test-accept-valid-required-arg
+    BUILD +test-accept-valid-required-arg --req=val

@@ -138,7 +138,7 @@ upload:
     # upload signed repo
     RUN --push \
         --mount type=secret,id=+secrets/user/earthly-technologies/aws/credentials,target=/root/.aws/credentials \
-        aws s3 cp --recursive --acl public-read /repo s3://staging-pkg/rpm/stable
+        aws s3 sync --acl public-read /repo s3://staging-pkg/rpm/stable
 
 build-and-release:
     BUILD --build-arg USE_OUTPUT_COPY=false +upload

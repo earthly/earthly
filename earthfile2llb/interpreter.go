@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"path/filepath"
+	"path"
 	"strings"
 
 	"github.com/earthly/earthly/analytics"
@@ -260,6 +260,8 @@ func (i *Interpreter) handleCommand(ctx context.Context, cmd spec.Command) (err 
 		return i.handleDo(ctx, cmd)
 	case "IMPORT":
 		return i.handleImport(ctx, cmd)
+	case "CACHE":
+		return i.handleCache(ctx, cmd)
 	default:
 		return i.errorf(cmd.SourceLocation, "unexpected command %s", cmd.Name)
 	}
@@ -637,13 +639,8 @@ func (i *Interpreter) handleLocally(ctx context.Context, cmd spec.Command) error
 		return i.pushOnlyErr(cmd.SourceLocation)
 	}
 
-	workingDir, err := filepath.Abs(filepath.Dir(cmd.SourceLocation.File))
-	if err != nil {
-		return i.wrapError(err, cmd.SourceLocation, "unable to get abs path in LOCALLY")
-	}
-
 	i.local = true
-	err = i.converter.Locally(ctx, workingDir, nil)
+	err := i.converter.Locally(ctx)
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "apply LOCALLY")
 	}
@@ -1027,31 +1024,47 @@ func (i *Interpreter) handleEnv(ctx context.Context, cmd spec.Command) error {
 	return nil
 }
 
+var errInvalidSyntax = errors.New("invalid syntax")
+var errRequiredArgHasDefault = errors.New("required ARG cannot have a default value")
+
+// parseArgArgs parses the ARG command's arguments
+// and returns the argOpts, key, value (or nil if missing), or error
+func parseArgArgs(ctx context.Context, cmd spec.Command) (argOpts, string, *string, error) {
+	opts := argOpts{}
+	args, err := flagutil.ParseArgs("ARG", &opts, getArgsCopy(cmd))
+	if err != nil {
+		return argOpts{}, "", nil, err
+	}
+	switch len(args) {
+	case 3:
+		if args[1] != "=" {
+			return argOpts{}, "", nil, errInvalidSyntax
+		}
+		if opts.Required {
+			return argOpts{}, "", nil, errRequiredArgHasDefault
+		}
+		return opts, args[0], &args[2], nil
+	case 1:
+		return opts, args[0], nil, nil
+	default:
+		return argOpts{}, "", nil, errInvalidSyntax
+	}
+}
+
 func (i *Interpreter) handleArg(ctx context.Context, cmd spec.Command) error {
 	if i.pushOnlyAllowed {
 		return i.pushOnlyErr(cmd.SourceLocation)
 	}
-	opts := argOpts{}
-	args, err := flagutil.ParseArgs("ARG", &opts, getArgsCopy(cmd))
+	opts, key, valueOrNil, err := parseArgArgs(ctx, cmd)
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "invalid ARG arguments %v", cmd.Args)
 	}
-	var key, value string
-	switch len(args) {
-	case 3:
-		if args[1] != "=" {
-			return i.errorf(cmd.SourceLocation, "invalid syntax")
-		}
-		value = i.expandArgs(args[2], true)
-		fallthrough
-	case 1:
-		if opts.Required && len(value) != 0 {
-			return i.errorf(cmd.SourceLocation, "required ARG cannot have a default value")
-		}
-		key = args[0] // Note: Not expanding args for key.
-	default:
-		return i.errorf(cmd.SourceLocation, "invalid syntax")
+
+	var value string
+	if valueOrNil != nil {
+		value = i.expandArgs(*valueOrNil, true)
 	}
+
 	if i.local && strings.HasPrefix(value, "$(") {
 		return i.errorf(cmd.SourceLocation, "ARG does not currently support shelling-out in combination with LOCALLY")
 	}
@@ -1330,6 +1343,26 @@ func (i *Interpreter) handleImport(ctx context.Context, cmd spec.Command) error 
 	err = i.converter.Import(ctx, importStr, as, isGlobal, i.allowPrivileged, opts.AllowPrivileged)
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "apply IMPORT")
+	}
+	return nil
+}
+
+func (i *Interpreter) handleCache(ctx context.Context, cmd spec.Command) error {
+	if !i.converter.ftrs.UseCacheCommand {
+		return i.errorf(cmd.SourceLocation, "the CACHE command is not supported in this version")
+	}
+	if len(cmd.Args) != 1 {
+		return i.errorf(cmd.SourceLocation, "invalid number of arguments for CACHE: %s", cmd.Args)
+	}
+	if i.local {
+		return i.errorf(cmd.SourceLocation, "CACHE command not supported with LOCALLY")
+	}
+	dir := cmd.Args[0]
+	if !path.IsAbs(dir) {
+		dir = path.Clean(path.Join("/", i.converter.mts.Final.MainImage.Config.WorkingDir, dir))
+	}
+	if err := i.converter.Cache(ctx, dir); err != nil {
+		return i.wrapError(err, cmd.SourceLocation, "apply CACHE")
 	}
 	return nil
 }

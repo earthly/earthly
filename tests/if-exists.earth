@@ -1,3 +1,4 @@
+VERSION 0.6
 FROM alpine:3.13
 
 save:
@@ -45,6 +46,12 @@ bad-wildcard-save:
     FROM +save
     SAVE ARTIFACT baddir/* AS LOCAL baddir
 
-classic-copy:
-    COPY --if-exists this-file-does-not-exist .
+classic-copy-exists:
+    COPY --if-exists ./in/this-file-does-exist .
+    COPY --if-exists so-does-this-one .
+    RUN test -f this-file-does-exist
+    RUN test -f so-does-this-one
+
+classic-copy-not-exist:
+    COPY --if-exists ./in/this-file-does-not-exist .
     RUN test ! -f this-file-does-not-exist

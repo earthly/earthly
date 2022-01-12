@@ -1,3 +1,4 @@
+VERSION 0.6
 duplicate:
     FROM alpine:3.13
 

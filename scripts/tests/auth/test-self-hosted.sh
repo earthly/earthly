@@ -2,7 +2,7 @@
 #
 # This script tests earthly can reference a self-hosted git repository.
 # The git repository runs in a second container which is spun up by GHA
-# and is accessible over the localhost on port 2222
+# and is accessible over the localhost on port 2222 ($SSH_PORT)
 #
 # The test:
 #   1. connects to the ssh server using a username/password and authorizes a public key
@@ -10,7 +10,7 @@
 #   2. initializes a bare git repo on the ssh server
 #   3. create a new local git repo with a sample Earthfile
 #   4. pushes that local git repo up to the server, and deletes the local copy
-#   5. configures earthly to be aware of the custom git repo running on port 2222
+#   5. configures earthly to be aware of the custom git repo running on port 2222 ($SSH_PORT)
 #   6. and finally tests earthly can remotely reference the Earthfile without having a local copy.
 
 set -eu
@@ -42,8 +42,8 @@ sshhost="ip4-localhost"
 # add test ssh server to known hosts
 mkdir -p ~/.ssh
 {
-	ssh-keyscan -p "$SSH_PORT" -H $sshhost
-	ssh-keyscan -p "$SSH_PORT" -H 127.0.0.1
+	ssh-keyscan -p "$SSH_PORT" -H "$sshhost"
+	ssh-keyscan -p "$SSH_PORT" -H "127.0.0.1"
 	ssh-keyscan -p "$SSH_PORT" -H "$ip"
 } > ~/.ssh/known_hosts
 
@@ -84,7 +84,7 @@ EOF
 git add Earthfile
 git commit -m 'This is my weird commit'
 git branch -M trunk
-git remote add origin ssh://root@$sshhost:2222/root/my/really/weird/path/project.git
+git remote add origin "ssh://root@$sshhost:$SSH_PORT/root/my/really/weird/path/project.git"
 git push -u origin trunk
 
 # Create a second Earthfile in a subdirectory which will contain a Command:
@@ -108,7 +108,7 @@ cd ~
 rm -rf odd-project
 
 # test that earthly has access to it
-"$earthly" config git "{myserver: {pattern: 'myserver/([^/]+)', substitute: 'ssh://root@$ip:2222/root/my/really/weird/path/\$1.git', auth: ssh}}"
+"$earthly" config git "{myserver: {pattern: 'myserver/([^/]+)', substitute: 'ssh://root@$ip:$SSH_PORT/root/my/really/weird/path/\$1.git', auth: ssh}}"
 
 echo "=== Test remote build under repo root ==="
 $earthly -V myserver/project:trunk+docker

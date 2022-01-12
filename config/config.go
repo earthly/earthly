@@ -2,7 +2,6 @@ package config
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -91,13 +90,14 @@ type GitConfig struct {
 	GitURLInsteadOf string `yaml:"url_instead_of"`
 
 	// these are used for git vendors (e.g. github, gitlab)
-	Pattern    string `yaml:"pattern"    help:"A regular expression defined to match git URLs, defaults to the regex: <site>/([^/]+)/([^/]+). For example if the site is github.com, then the default pattern will match github.com/<user>/<repo>."`
-	Substitute string `yaml:"substitute" help:"If specified, a regular expression substitution will be preformed to determine which URL is cloned by git. Values like $1, $2, ... will be replaced with matched subgroup data. If no substitute is given, a URL will be created based on the requested SSH authentication mode."`
-	Suffix     string `yaml:"suffix"     help:"The git repository suffix, like .git."`                                       // .git
-	Auth       string `yaml:"auth"       help:"What authentication method do you use? Valid options are: http, https, ssh."` // http, https, ssh
-	User       string `yaml:"user"       help:"The https username to use when auth is set to https. This setting is ignored when auth is ssh."`
-	Password   string `yaml:"password"   help:"The https password to use when auth is set to https. This setting is ignored when auth is ssh."`
-	KeyScan    string `yaml:"serverkey"  help:"SSH fingerprints, like you would add in your known hosts file, or get from ssh-keyscan."`
+	Pattern               string `yaml:"pattern"                      help:"A regular expression defined to match git URLs, defaults to the regex: <site>/([^/]+)/([^/]+). For example if the site is github.com, then the default pattern will match github.com/<user>/<repo>."`
+	Substitute            string `yaml:"substitute"                   help:"If specified, a regular expression substitution will be preformed to determine which URL is cloned by git. Values like $1, $2, ... will be replaced with matched subgroup data. If no substitute is given, a URL will be created based on the requested SSH authentication mode."`
+	Suffix                string `yaml:"suffix"                       help:"The git repository suffix, like .git."`                                       // .git
+	Auth                  string `yaml:"auth"                         help:"What authentication method do you use? Valid options are: http, https, ssh."` // http, https, ssh
+	User                  string `yaml:"user"                         help:"The username to use when auth is set to git or https."`
+	Password              string `yaml:"password"                     help:"The https password to use when auth is set to https. This setting is ignored when auth is ssh."`
+	ServerKey             string `yaml:"serverkey"                    help:"SSH fingerprints, like you would add in your known hosts file, or get from ssh-keyscan."`
+	StrictHostKeyChecking *bool  `yaml:"strict_host_key_checking"     help:"Allow ssh access to hosts with unknown server keys (e.g. no entries in known_hosts), defaults to true."`
 }
 
 // Config contains user's configuration values from ~/earthly/config.yml
@@ -151,9 +151,9 @@ func keyAndValueCompatible(key reflect.Type, value *yaml.Node) bool {
 	return err == nil
 }
 
-// UpsertConfig adds or modifies the key to be the specified value.
+// Upsert adds or modifies the key to be the specified value.
 // This is saved to disk in your earthly config file.
-func UpsertConfig(config []byte, path, value string) ([]byte, error) {
+func Upsert(config []byte, path, value string) ([]byte, error) {
 	base := &yaml.Node{}
 	yaml.Unmarshal(config, base)
 
@@ -167,14 +167,9 @@ func UpsertConfig(config []byte, path, value string) ([]byte, error) {
 
 	pathParts := splitPath(path)
 
-	t, help, err := validatePath(reflect.TypeOf(Config{}), pathParts)
+	t, _, err := validatePath(reflect.TypeOf(Config{}), pathParts)
 	if err != nil {
 		return []byte{}, errors.Wrap(err, "path is not valid")
-	}
-
-	if value == "--help" {
-		fmt.Printf("(%s): %s\n", t.Kind(), help)
-		return []byte{}, nil
 	}
 
 	yamlValue, err := valueToYaml(value)
@@ -194,6 +189,44 @@ func UpsertConfig(config []byte, path, value string) ([]byte, error) {
 	}
 
 	return newConfig, nil
+}
+
+// Delete removes the key and value at the specified path.
+// If no key/value exists, the function will eventually return cleanly.
+func Delete(config []byte, path string) ([]byte, error) {
+	base := &yaml.Node{}
+	yaml.Unmarshal(config, base)
+
+	if base.IsZero() {
+		return nil, errors.New("config is empty or missing")
+	}
+
+	pathParts := splitPath(path)
+
+	_, _, err := validatePath(reflect.TypeOf(Config{}), pathParts)
+	if err != nil {
+		return []byte{}, errors.Wrap(err, "path is not valid")
+	}
+
+	deleteYamlValue(base, pathParts)
+
+	newConfig, err := yaml.Marshal(base)
+	if err != nil {
+		return []byte{}, err
+	}
+
+	return newConfig, nil
+}
+
+// PrintHelp describes the provided config option by
+// printing it's type and help tags to the console.
+func PrintHelp(path string) error {
+	t, help, err := validatePath(reflect.TypeOf(Config{}), splitPath(path))
+	if err != nil {
+		return errors.Wrapf(err, "'%s' is not a valid config value", path)
+	}
+	fmt.Printf("(%s): %s\n", t.Kind(), help)
+	return nil
 }
 
 func splitPath(path string) []string {
@@ -263,7 +296,20 @@ func valueToYaml(value string) (*yaml.Node, error) {
 	}
 	fixStyling(valueNode)
 
-	return valueNode.Content[0], nil
+	contentNode := &yaml.Node{}
+	if len(valueNode.Content) > 0 {
+		// ContentNode contains the user-provided value with it's type etc
+		contentNode = valueNode.Content[0]
+	} else if value == "" {
+		// Edge case where the yaml.Unmarshal above results in no nodes in valueNode.Content.
+		// The code below ensures we can write an actual empty string to our yaml as requested.
+		contentNode.SetString("")
+	} else {
+		// Very unlikely
+		return nil, errors.New("failed setting value in yaml")
+	}
+
+	return contentNode, nil
 }
 
 func pathToYaml(path []string, value *yaml.Node) []*yaml.Node {
@@ -345,9 +391,50 @@ func setYamlValue(node *yaml.Node, path []string, value *yaml.Node) []string {
 	return []string{}
 }
 
+func deleteYamlValue(node *yaml.Node, path []string) []string {
+
+	switch node.Kind {
+	case yaml.DocumentNode:
+		for _, c := range node.Content {
+			path = deleteYamlValue(c, path)
+		}
+
+	case yaml.MappingNode:
+		for i := 0; i < len(node.Content); i += 2 {
+			// Keys/Values are inline. Count by twos to get it right.
+			key := node.Content[i]
+			val := node.Content[i+1]
+
+			if len(path) > 0 && key.Value == path[0] {
+				path = path[1:]
+
+				// We found the correct key/value pair.
+				// Build new Content without those nodes.
+				if len(path) == 0 {
+					var newContent []*yaml.Node
+					for j, n := range node.Content {
+						if j != i && j != i+1 {
+							newContent = append(newContent, n)
+						}
+					}
+					node.Content = newContent
+					return []string{}
+				}
+
+				path = deleteYamlValue(val, path)
+			}
+		}
+
+	default: // Sequence, Scalar nodes get skipped
+		return path
+	}
+
+	return []string{}
+}
+
 // ReadConfigFile reads in the config file from the disk, into a byte slice.
 func ReadConfigFile(configPath string, contextSet bool) ([]byte, error) {
-	yamlData, err := ioutil.ReadFile(configPath)
+	yamlData, err := os.ReadFile(configPath)
 	if os.IsNotExist(err) && !contextSet {
 		return []byte{}, nil
 	} else if err != nil {
@@ -364,5 +451,5 @@ func WriteConfigFile(configPath string, data []byte) error {
 		return err
 	}
 
-	return ioutil.WriteFile(configPath, data, 0644)
+	return os.WriteFile(configPath, data, 0644)
 }

@@ -73,6 +73,7 @@ func createIncludePatterns(incl []string) []string {
 		} else if strings.HasSuffix(inc, "/.") {
 			inc = inc[:len(inc)-1] + "*"
 		}
+		inc = quoteMeta(inc)
 		incl2 = append(incl2, inc)
 	}
 	return incl2

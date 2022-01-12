@@ -24,7 +24,29 @@ execute() {
         exit 1
     fi
 
-    start_dockerd
+    # Sometimes, when dockerd starts containerd, it doesn't come up in time. This timeout is not configurable from
+    # dockerd, therefore we retry... since most instances of this timeout seem to be related to networking or scheduling
+    # when many WITH DOCKER commands are also running. Logs are printed for each failure.
+    for i in 1 2 3 4 5; do
+        if start_dockerd; then
+            break
+        else
+            if [ "$i" = 5 ]; then
+                # Exiting here on the last retry maintains prior behavior of exiting when this cant start.
+                exit 1
+            fi
+
+            if grep -q "^failed to start containerd: timeout waiting for containerd to start$" /var/log/docker.log; then
+                # This error is the sentinel string for retrying to start dockerd.
+                echo "Attempting to restart dockerd (attempt $i), since the error may be transient..."
+                sleep 5
+            else
+                # If the logs do not contain this, then fail fast to maintain prior behavior.
+                exit 1
+            fi
+        fi
+    done
+
     load_images
     if [ "$EARTHLY_START_COMPOSE" = "true" ]; then
         # shellcheck disable=SC2086
@@ -88,7 +110,7 @@ EOF
             cat /var/log/docker.log
             echo "==== End dockerd logs ===="
             echo "If you are having trouble running docker, try using the official earthly/dind image instead"
-            exit 1
+            return 1
         fi
         i=$((i+1))
     done

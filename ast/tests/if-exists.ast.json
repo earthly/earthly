@@ -292,13 +292,58 @@
       ]
     },
     {
-      "name": "classic-copy",
+      "name": "classic-copy-exists",
       "recipe": [
         {
           "command": {
             "args": [
               "--if-exists",
-              "this-file-does-not-exist",
+              "./in/this-file-does-exist",
+              "."
+            ],
+            "name": "COPY"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "--if-exists",
+              "so-does-this-one",
+              "."
+            ],
+            "name": "COPY"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "test",
+              "-f",
+              "this-file-does-exist"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "test",
+              "-f",
+              "so-does-this-one"
+            ],
+            "name": "RUN"
+          }
+        }
+      ]
+    },
+    {
+      "name": "classic-copy-not-exist",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "--if-exists",
+              "./in/this-file-does-not-exist",
               "."
             ],
             "name": "COPY"
@@ -317,5 +362,10 @@
         }
       ]
     }
-  ]
+  ],
+  "version": {
+    "args": [
+      "0.6"
+    ]
+  }
 }

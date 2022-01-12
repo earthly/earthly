@@ -104,6 +104,14 @@
             ],
             "name": "BUILD"
           }
+        },
+        {
+          "command": {
+            "args": [
+              "+test-non-root"
+            ],
+            "name": "BUILD"
+          }
         }
       ]
     },
@@ -166,8 +174,8 @@
         {
           "command": {
             "args": [
-              "--build-arg=VAR1=existing-file.txt",
-              "+file-exists"
+              "+file-exists",
+              "--VAR1=existing-file.txt"
             ],
             "name": "BUILD"
           }
@@ -175,8 +183,8 @@
         {
           "command": {
             "args": [
-              "--build-arg=VAR1=dummy",
-              "+file-exists"
+              "+file-exists",
+              "--VAR1=dummy"
             ],
             "name": "BUILD"
           }
@@ -184,9 +192,9 @@
         {
           "command": {
             "args": [
-              "--build-arg=VAR1=dummy2",
-              "--build-arg=VAR2=dummy2",
-              "+file-exists"
+              "+file-exists",
+              "--VAR1=dummy2",
+              "--VAR2=dummy2"
             ],
             "name": "BUILD"
           }
@@ -203,8 +211,8 @@
         {
           "command": {
             "args": [
-              "--build-arg=VAR1=$(ls)",
-              "+file-exists"
+              "+file-exists",
+              "--VAR1=$(ls)"
             ],
             "name": "BUILD"
           }
@@ -230,8 +238,8 @@
         {
           "command": {
             "args": [
-              "--build-arg=VAR1=$(ls)",
-              "+file-exists"
+              "+file-exists",
+              "--VAR1=$(ls)"
             ],
             "name": "BUILD"
           }
@@ -504,6 +512,55 @@
           }
         }
       ]
+    },
+    {
+      "name": "test-non-root",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "adduser",
+              "--system",
+              "weeheavy"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "weeheavy"
+            ],
+            "name": "USER"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "foo",
+              "=",
+              "$(echo bar)"
+            ],
+            "name": "ARG"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "test",
+              "\"$foo\"",
+              "==",
+              "\"bar\""
+            ],
+            "name": "RUN"
+          }
+        }
+      ]
     }
-  ]
+  ],
+  "version": {
+    "args": [
+      "0.6"
+    ]
+  }
 }

@@ -69,6 +69,10 @@ ARG BRANCH=master
 SAVE IMAGE --cache-from=mycompany/myimage:master --push mycompany/myimage:$BRANCH
 ```
 
+{% hint style='info' %}
+The `--ci` flag will enable, among other things, both `--use-inline-cache` and `--save-inline-cache` flags. The `--use-inline-cache` flag is required to enable importing existing caches, and the `--save-inline-cache` flag is required to enable exporting images to the remote cache.
+{% endhint %}
+
 #### Optimizing inline cache performance
 
 Inline caching is very easy to use, however it can also turn out to be ineffective for some builds. One limitation is that only the layers that end up in uploaded images are actually used. Certain intermediate layers (e.g. targets only used for compiling binaries) will not exist.

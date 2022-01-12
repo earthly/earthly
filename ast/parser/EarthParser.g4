@@ -46,10 +46,11 @@ commandStmt:
 	| shellStmt
 	| userCommandStmt
 	| doStmt
-	| importStmt;
+	| importStmt
+	| cacheStmt;
 
 // version --------------------------------------------------------------------
-version: VERSION (WS stmtWords)? NL+;
+version: VERSION WS stmtWords NL+;
 
 // withStmt -------------------------------------------------------------------
 
@@ -135,11 +136,12 @@ shellStmt: SHELL (WS stmtWords)?;
 userCommandStmt: COMMAND (WS stmtWords)?;
 doStmt: DO (WS stmtWords)?;
 importStmt: IMPORT (WS stmtWords)?;
+cacheStmt: CACHE (WS stmtWords)?;
 
 // expr, stmtWord* ------------------------------------------------------------
 
 expr: stmtWordsMaybeJSON;
 
 stmtWordsMaybeJSON: stmtWords;
-stmtWords: stmtWord (WS? stmtWord)*;
+stmtWords: stmtWord (WS stmtWord)*;
 stmtWord: Atom;

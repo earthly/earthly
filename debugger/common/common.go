@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/binary"
 	"io"
-	"io/ioutil"
 )
 
 //******************************************************************************************
@@ -48,7 +47,7 @@ func readUint16PrefixedData(r io.Reader) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	return ioutil.ReadAll(io.LimitReader(r, int64(l)))
+	return io.ReadAll(io.LimitReader(r, int64(l)))
 }
 
 // ReadDataPacket decodes a data packet from the reader

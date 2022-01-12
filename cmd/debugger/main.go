@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"os"
 	"os/exec"
@@ -172,7 +171,7 @@ func interactiveMode(ctx context.Context, remoteConsoleAddr string, cmdBuilder f
 }
 
 func getSettings(path string) (*common.DebuggerSettings, error) {
-	s, err := ioutil.ReadFile(path)
+	s, err := os.ReadFile(path)
 	if err != nil {
 		return nil, errors.Wrap(err, fmt.Sprintf("failed to read %s", path))
 	}

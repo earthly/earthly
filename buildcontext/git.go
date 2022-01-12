@@ -3,7 +3,6 @@ package buildcontext
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
@@ -79,14 +78,14 @@ func (gr *gitResolver) resolveEarthProject(ctx context.Context, gwClient gwclien
 		key = ref.StringCanonical()
 	}
 	localBuildFilePathValue, err := gr.buildFileCache.Do(ctx, key, func(ctx context.Context, _ interface{}) (interface{}, error) {
-		earthfileTmpDir, err := ioutil.TempDir(os.TempDir(), "earthly-git")
+		earthfileTmpDir, err := os.MkdirTemp(os.TempDir(), "earthly-git")
 		if err != nil {
 			return nil, errors.Wrap(err, "create temp dir for Earthfile")
 		}
 		gr.cleanCollection.Add(func() error {
 			return os.RemoveAll(earthfileTmpDir)
 		})
-		gitState, err := llbutil.StateToRef(ctx, gwClient, rgp.state, nil, nil)
+		gitState, err := llbutil.StateToRef(ctx, gwClient, rgp.state, false, nil, nil)
 		if err != nil {
 			return nil, errors.Wrap(err, "state to ref git meta")
 		}
@@ -101,7 +100,7 @@ func (gr *gitResolver) resolveEarthProject(ctx context.Context, gwClient gwclien
 			return nil, errors.Wrap(err, "read build file")
 		}
 		localBuildFilePath := filepath.Join(earthfileTmpDir, path.Base(buildFile))
-		err = ioutil.WriteFile(localBuildFilePath, buildFileBytes, 0700)
+		err = os.WriteFile(localBuildFilePath, buildFileBytes, 0700)
 		if err != nil {
 			return nil, errors.Wrapf(err, "write build file to tmp dir at %s", localBuildFilePath)
 		}
@@ -138,8 +137,8 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, gwClient gwclient.
 	gitRef := ref.GetTag()
 
 	var err error
-	var keyScan string
-	gitURL, subDir, keyScan, err = gr.gitLookup.GetCloneURL(ref.GetGitURL())
+	var keyScans []string
+	gitURL, subDir, keyScans, err = gr.gitLookup.GetCloneURL(ref.GetGitURL())
 	if err != nil {
 		return nil, "", "", errors.Wrap(err, "failed to get url for cloning")
 	}
@@ -153,9 +152,10 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, gwClient gwclient.
 			llb.WithCustomNamef("[internal] GIT CLONE %s", stringutil.ScrubCredentials(gitURL)),
 			llb.KeepGitDir(),
 		}
-		if keyScan != "" {
-			gitOpts = append(gitOpts, llb.KnownSSHHosts(keyScan))
+		if len(keyScans) > 0 {
+			gitOpts = append(gitOpts, llb.KnownSSHHosts(strings.Join(keyScans, "\n")))
 		}
+
 		gitState := llb.Git(gitURL, gitRef, gitOpts...)
 		opImg := pllb.Image(
 			defaultGitImage, llb.MarkImageInternal, llb.ResolveModePreferLocal,
@@ -178,7 +178,8 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, gwClient gwclient.
 		gitHashOp := opImg.Run(gitHashOpts...)
 		gitMetaState := gitHashOp.AddMount("/dest", llbutil.ScratchWithPlatform())
 
-		gitMetaRef, err := llbutil.StateToRef(ctx, gwClient, gitMetaState, nil, nil)
+		noCache := false // TODO figure out if we want to propagate --no-cache here
+		gitMetaRef, err := llbutil.StateToRef(ctx, gwClient, gitMetaState, noCache, nil, nil)
 		if err != nil {
 			return nil, errors.Wrap(err, "state to ref git meta")
 		}
@@ -228,8 +229,8 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, gwClient gwclient.
 			llb.WithCustomNamef("[context %s] git context %s", stringutil.ScrubCredentials(gitURL), ref.StringCanonical()),
 			llb.KeepGitDir(),
 		}
-		if keyScan != "" {
-			gitOpts = append(gitOpts, llb.KnownSSHHosts(keyScan))
+		if len(keyScans) > 0 {
+			gitOpts = append(gitOpts, llb.KnownSSHHosts(strings.Join(keyScans, "\n")))
 		}
 
 		rgp := &resolvedGitProject{

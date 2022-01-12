@@ -33,13 +33,8 @@
   | Windows (WSL) | [![Build status](https://badge.buildkite.com/19d9cf7fcfb3e0ee45adcb29abb5ef3cfcd994fba2d6dc148c.svg)](https://buildkite.com/earthly-technologies/earthly-windows-scheduled)
 * Run
   ```bash
-  ./release.sh
+  env -i HOME="$HOME" PATH="$PATH" SSH_AUTH_SOCK="$SSH_AUTH_SOCK" RELEASE_TAG="$RELEASE_TAG" ./release.sh
   ```
-* Run
-  ```bash
-  ./earthly --push ./release+release-repo --RELEASE_TAG="$RELEASE_TAG"
-  ```
-  TODO: This step will be merged into the release.sh command once our staging environment is setup
 * Merge branch `main` into `next`, then merge branch `next` into `main`.
 * Update the version for the installation command in the following places:
 <!-- vale HouseStyle.Spelling = NO -->
@@ -47,6 +42,7 @@
   * [circle-integration.md](../docs/ci-integration/guides/circle-integration.md)
   * [gh-actions-integration.md](../docs/ci-integration/guides/gh-actions-integration.md)
   * [codebuild-integration.md](../docs/ci-integration/guides/codebuild-integration.md)
+  * [gitlab-integration.md](../docs/ci-integration/guides/gitlab-integration.md)
   * [build-an-earthly-ci-image.md](../docs/ci-integration/build-an-earthly-ci-image.md)
 <!-- vale HouseStyle.Spelling = YES -->
   * you can try doing that with:

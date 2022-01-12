@@ -58,3 +58,8 @@ func (vc *verboseClient) NewContainer(ctx context.Context, req gwclient.NewConta
 	fmt.Printf("NewContainer req=%s container=%v err=%v\n", s, container, err)
 	return container, err
 }
+
+// Warn wraps gwclient.Warn
+func (vc *verboseClient) Warn(ctx context.Context, dgst digest.Digest, msg string, warnOpts gwclient.WarnOpts) error {
+	return vc.c.Warn(ctx, dgst, msg, warnOpts)
+}

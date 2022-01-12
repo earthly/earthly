@@ -2,8 +2,10 @@ package buildcontext
 
 import (
 	"bytes"
+	"crypto/hmac"
+	"crypto/sha1"
+	"encoding/base64"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"net/url"
 	"os"
@@ -25,14 +27,14 @@ import (
 )
 
 type gitMatcher struct {
-	name     string
-	re       *regexp.Regexp
-	sub      string
-	user     string
-	suffix   string
-	protocol gitProtocol
-	password string
-	keyScan  string
+	name                  string
+	re                    *regexp.Regexp
+	sub                   string
+	user                  string
+	suffix                string
+	protocol              gitProtocol
+	password              string
+	strictHostKeyChecking bool
 }
 
 type gitProtocol string
@@ -51,40 +53,28 @@ type GitLookup struct {
 	catchAll      *gitMatcher
 	autoProtocols map[string]gitProtocol // host -> detected protocol type
 	sshAuthSock   string
+	keyScans      []string
 	console       conslogging.ConsoleLogger
+}
+
+var defaultKeyScans = []string{
+	// github.com
+	"|1|+wkzm0y4RAEaLjnuB3lvMyNmqto=|A97DLdg1fwTjawL47CHJqEeE2lw= ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEAq2A7hRGmdnm9tUDbO9IDSwBK6TbQa+PXYPCPy6rbTrTtw7PHkccKrpp0yVhp5HdEIcKr6pLlVDBfOLX9QUsyCOV0wzfjIJNlGEYsdlLJizHhbn2mUjvSAHQqZETYP81eFzLQNnPHt4EVVUh7VfDESU84KezmD5QlWpXLmvU31/yMf+Se8xhHTvKSCZIFImWwoG6mbUoWf9nzpIoaSjB+weqqUUmpaaasXVal72J+UX2B+2RPW3RcT0eOzQgqlJL3RKrTJvdsjE3JEAvGq3lGHSZXy28G3skua2SmVi/w4yCE6gbODqnTWlg7+wC604ydGXA8VJiS5ap43JXiUFFAaQ==",
+	"|1|tNJE6wQBmC1c4lJm0wtToe8IHxY=|I7K0Cre2i8VXpAKTS2P6Y7bIdqg= ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBEmKSENjQEezOmxkZMy7opKgwFB9nkt5YRrYMjNuG5N87uRgg6CLrbo5wAdT/y6v0mKV0U2w0WZ2YB/++Tpockg=",
+	"|1|z0g6bpSrCXjh1vZdfzQP634n7SQ=|Xf+7/COPFwsdLXxWptK2/jRP2k0= ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl",
+
+	// gitlab.com
+	"|1|an1urLLW36WT6FnJoB5BWqVwiEM=|RTcVDky6WhU+S+09yjALNiS4neo= ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCsj2bNKTBSpIYDEGk9KxsGh3mySTRgMtXL583qmBpzeQ+jqCMRgBqB98u3z++J1sKlXHWfM9dyhSevkMwSbhoR8XIq/U0tCNyokEi/ueaBMCvbcTHhO7FcwzY92WK4Yt0aGROY5qX2UKSeOvuP4D6TPqKF1onrSzH9bx9XUf2lEdWT/ia1NEKjunUqu1xOB/StKDHMoX4/OKyIzuS0q/T1zOATthvasJFoPrAjkohTyaDUz2LN5JoH839hViyEG82yB+MjcFV5MU3N1l1QL3cVUCh93xSaua1N85qivl+siMkPGbO5xR/En4iEY6K2XPASUEMaieWVNTRCtJ4S8H+9",
+	"|1|z2nqpVA8ymA2aLuV3ig57xKYDOw=|2JC7T/Oek2fpc/rw+YOfolDdDCI= ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBFSMqzJeV9rUzU4kWitGjeR4PWSa29SPqJ1fVkhtj3Hw9xjLVXVYrU9QlYWrOLXBpQ6KWjbjTDTdDkoohFzgbEY=",
+	"|1|JAhjb/FmPaOSwPtfZlOYRmq7nlg=|MysQCX5GQaSfAKTn5R5AHdskAt4= ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAfuCHKVTjquxvt6CM6tdG4SLp1Btn/nOeHHE5UOzRdf",
+
+	// bitbucket.com
+	"|1|5myLBXBnkK609Pb0DTrYhK9hn3k=|7wQiytbsZpu1pDE7AOs7pfBw/4M= ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEAubiN81eDcafrgMeLzaFPsw2kNvEcqTKl/VqLat/MaB33pZy0y3rJZtnqwR2qOOvbwKZYKiEO1O6VqNEBxKvJJelCq0dTXWT5pbO2gDXC6h6QDXCaHo6pOHGPUy+YBaGQRGuSusMEASYiWunYN0vCAI8QaXnWMXNMdFP3jHAJH0eDsoiGnLPBlBp4TNm6rYI74nMzgz3B9IikW4WVK+dc8KZJZWYjAuORU3jc1c/NPskD2ASinf8v3xnfXeukU0sJ5N6m5E8VLjObPEO+mN2t/FZTMZLiFqPWc/ALSqnMnnhwrNi2rbfg/rd/IpL8Le3pSBne8+seeFVBoGqzHM9yXw==",
 }
 
 // NewGitLookup creates new lookuper
 func NewGitLookup(console conslogging.ConsoleLogger, sshAuthSock string) *GitLookup {
-	matchers := []*gitMatcher{
-		{
-			name:     "github.com",
-			re:       regexp.MustCompile("github.com/[^/]+/[^/]+"),
-			user:     "git",
-			suffix:   ".git",
-			protocol: autoProtocol,
-			keyScan:  "github.com ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEAq2A7hRGmdnm9tUDbO9IDSwBK6TbQa+PXYPCPy6rbTrTtw7PHkccKrpp0yVhp5HdEIcKr6pLlVDBfOLX9QUsyCOV0wzfjIJNlGEYsdlLJizHhbn2mUjvSAHQqZETYP81eFzLQNnPHt4EVVUh7VfDESU84KezmD5QlWpXLmvU31/yMf+Se8xhHTvKSCZIFImWwoG6mbUoWf9nzpIoaSjB+weqqUUmpaaasXVal72J+UX2B+2RPW3RcT0eOzQgqlJL3RKrTJvdsjE3JEAvGq3lGHSZXy28G3skua2SmVi/w4yCE6gbODqnTWlg7+wC604ydGXA8VJiS5ap43JXiUFFAaQ==",
-		},
-		{
-			name:     "gitlab.com",
-			re:       regexp.MustCompile("gitlab.com/[^/]+/[^/]+"),
-			user:     "git",
-			suffix:   ".git",
-			protocol: autoProtocol,
-			keyScan:  "gitlab.com ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCsj2bNKTBSpIYDEGk9KxsGh3mySTRgMtXL583qmBpzeQ+jqCMRgBqB98u3z++J1sKlXHWfM9dyhSevkMwSbhoR8XIq/U0tCNyokEi/ueaBMCvbcTHhO7FcwzY92WK4Yt0aGROY5qX2UKSeOvuP4D6TPqKF1onrSzH9bx9XUf2lEdWT/ia1NEKjunUqu1xOB/StKDHMoX4/OKyIzuS0q/T1zOATthvasJFoPrAjkohTyaDUz2LN5JoH839hViyEG82yB+MjcFV5MU3N1l1QL3cVUCh93xSaua1N85qivl+siMkPGbO5xR/En4iEY6K2XPASUEMaieWVNTRCtJ4S8H+9",
-		},
-		{
-			name:     "bitbucket.com",
-			re:       regexp.MustCompile("bitbucket.com/[^/]+/[^/]+"),
-			user:     "git",
-			suffix:   ".git",
-			protocol: autoProtocol,
-			keyScan:  "bitbucket.com ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEAubiN81eDcafrgMeLzaFPsw2kNvEcqTKl/VqLat/MaB33pZy0y3rJZtnqwR2qOOvbwKZYKiEO1O6VqNEBxKvJJelCq0dTXWT5pbO2gDXC6h6QDXCaHo6pOHGPUy+YBaGQRGuSusMEASYiWunYN0vCAI8QaXnWMXNMdFP3jHAJH0eDsoiGnLPBlBp4TNm6rYI74nMzgz3B9IikW4WVK+dc8KZJZWYjAuORU3jc1c/NPskD2ASinf8v3xnfXeukU0sJ5N6m5E8VLjObPEO+mN2t/FZTMZLiFqPWc/ALSqnMnnhwrNi2rbfg/rd/IpL8Le3pSBne8+seeFVBoGqzHM9yXw==",
-		},
-	}
-
 	gl := &GitLookup{
-		matchers: matchers,
 		catchAll: &gitMatcher{
 			name:     "",
 			re:       regexp.MustCompile("[^/]+/[^/]+/[^/]+"),
@@ -116,8 +106,20 @@ func (gl *GitLookup) DisableSSH() {
 	}
 }
 
+func knownHostsToKeyScans(knownHosts string) []string {
+	knownHosts = strings.ReplaceAll(knownHosts, "\r\n", "\n")
+	var keyScans []string
+	for _, s := range strings.Split(knownHosts, "\n") {
+		s = strings.TrimSpace(s)
+		if s != "" && !strings.HasPrefix(s, "#") {
+			keyScans = append(keyScans, s)
+		}
+	}
+	return keyScans
+}
+
 // AddMatcher adds a new matcher for looking up git repos
-func (gl *GitLookup) AddMatcher(name, pattern, sub, user, password, suffix, protocol, keyScan string) error {
+func (gl *GitLookup) AddMatcher(name, pattern, sub, user, password, suffix, protocol, knownHosts string, strictHostKeyChecking bool) error {
 	gl.mu.Lock()
 	defer gl.mu.Unlock()
 	p := gitProtocol(protocol)
@@ -137,49 +139,205 @@ func (gl *GitLookup) AddMatcher(name, pattern, sub, user, password, suffix, prot
 	}
 
 	gm := &gitMatcher{
-		name:     name,
-		re:       re,
-		sub:      sub,
-		user:     user,
-		password: password,
-		suffix:   suffix,
-		protocol: p,
-		keyScan:  keyScan,
+		name:                  name,
+		re:                    re,
+		sub:                   sub,
+		user:                  user,
+		password:              password,
+		suffix:                suffix,
+		protocol:              p,
+		strictHostKeyChecking: strictHostKeyChecking,
 	}
 
 	// update existing entry
 	for i, m := range gl.matchers {
 		if m.name == name {
-			if gm.keyScan == "" {
-				gm.keyScan = m.keyScan
-			}
 			gl.matchers[i] = gm
 			return nil
 		}
 	}
+
+	gl.keyScans = append(gl.keyScans, knownHostsToKeyScans(knownHosts)...)
 
 	// add new entry
 	gl.matchers = append(gl.matchers, gm)
 	return nil
 }
 
-func (gl *GitLookup) hostKeyCallback(hostname string, remote net.Addr, key ssh.PublicKey) error {
-	for _, m := range gl.matchers {
-		k, _, _, _, err := ssh.ParseAuthorizedKey([]byte(m.keyScan))
-		if err != nil {
-			gl.console.Warnf("failed to parse authorized key %q", m.keyScan)
-			continue
-		}
-		if k.Type() == key.Type() && bytes.Equal(k.Marshal(), key.Marshal()) {
-			return nil
+// from crypto/ssh
+// See https://android.googlesource.com/platform/external/openssh/+/ab28f5495c85297e7a597c1ba62e996416da7c7e/hostfile.c#120
+func hashHost(hostname string, salt []byte) []byte {
+	mac := hmac.New(sha1.New, salt)
+	mac.Write([]byte(hostname))
+	return mac.Sum(nil)
+}
+
+var errUnsupportedHash = errors.New("unsupported keyscan hash")
+var errInvalidScan = errors.New("invalid keyscan")
+var errKeyScanNoMatch = errors.New("keyscan does not match")
+
+func hasPort(s string) bool {
+	if len(s) == 0 {
+		return false
+	}
+	if s[0] == '[' {
+		return strings.Contains(s, "]:")
+	}
+	return strings.Contains(s, ":")
+}
+
+func isHashedHost(hashAndSalt, hostname string) (bool, error) {
+	prefix := "|1|"
+	if !strings.HasPrefix(hashAndSalt, prefix) {
+		return false, errUnsupportedHash
+	}
+
+	splits := strings.Split(hashAndSalt[len(prefix):], "|")
+	if len(splits) != 2 {
+		return false, errInvalidScan
+	}
+
+	salt, err := base64.StdEncoding.DecodeString(splits[0])
+	if err != nil {
+		return false, errors.Wrap(err, "failed to decode known_hosts salt")
+	}
+	hash, err := base64.StdEncoding.DecodeString(splits[1])
+	if err != nil {
+		return false, errors.Wrap(err, "failed to decode known_hosts hash")
+	}
+
+	hostnameHash := hashHost(hostname, salt)
+	ok := bytes.Equal(hostnameHash, hash)
+
+	if !ok {
+		// try hashing the hostname only (ssh-keyscan -p 2222 -H hostname doesn't include the port in the hash)
+		// ses bugfix: https://github.com/openssh/openssh-portable/commit/e9c71498a083a8b502aa831ea931ce294228eda0
+		if hasPort(hostname) {
+			host, _, err := net.SplitHostPort(hostname)
+			if err != nil {
+				return false, errors.Wrapf(err, "SplitHostPort on %q failed", hostname)
+			}
+			hostnameHash := hashHost(host, salt)
+			ok = bytes.Equal(hostnameHash, hash)
 		}
 	}
 
-	hostKeyCallback, err := knownhosts.New(filepath.Join(os.Getenv("HOME"), ".ssh", "known_hosts"))
-	if err != nil {
-		return err
+	return ok, nil
+}
+
+func parseKeyScanIfHostMatches(keyScan, hostname string) (keyAlg, keyData string, err error) {
+	hostname = knownhosts.Normalize(hostname)
+	splits := strings.Fields(keyScan)
+	if len(splits) < 3 {
+		err = errInvalidScan
+		return
 	}
-	return hostKeyCallback(hostname, remote, key)
+	scannedHostname := splits[0]
+
+	if strings.HasPrefix(scannedHostname, "|") {
+		var ok bool
+		ok, err = isHashedHost(scannedHostname, hostname)
+		if err != nil {
+			return
+		}
+		if !ok {
+			err = errKeyScanNoMatch
+			return
+		}
+	} else {
+		// entry isn't hashed
+		// either the entry is of the form `[hostname]:port` or simply `hostname`
+		if scannedHostname != hostname {
+			// check for entry without a port
+			// TODO: ACB is not sure if this part is needed ( https://github.com/openssh/openssh-portable/commit/e9c71498a083a8b502aa831ea931ce294228eda0 is a bugfix
+			// that only affects hashed entries, however, it's not clear if old versions of ssh dropped the port in the non-hashed version).
+			if !hasPort(hostname) {
+				err = errKeyScanNoMatch
+				return
+			}
+			var host string
+			host, _, err = net.SplitHostPort(hostname)
+			if err != nil {
+				err = errors.Wrapf(err, "SplitHostPort on %q failed", hostname)
+				return
+			}
+			if scannedHostname != host {
+				err = errKeyScanNoMatch
+				return
+			}
+		}
+	}
+
+	keyAlg = splits[1]
+	keyData = splits[2]
+	err = nil
+	return
+}
+
+// This comes from crypto/ssh/common.go
+// supportedHostKeyAlgos specifies the supported host-key algorithms (i.e. methods
+// of authenticating servers) in preference order.
+var supportedHostKeyAlgos = []string{
+	ssh.CertAlgoRSAv01, ssh.CertAlgoDSAv01, ssh.CertAlgoECDSA256v01,
+	ssh.CertAlgoECDSA384v01, ssh.CertAlgoECDSA521v01, ssh.CertAlgoED25519v01,
+
+	ssh.KeyAlgoECDSA256, ssh.KeyAlgoECDSA384, ssh.KeyAlgoECDSA521,
+	ssh.KeyAlgoRSA, ssh.KeyAlgoDSA,
+
+	ssh.KeyAlgoED25519,
+}
+
+func (gl *GitLookup) getHostKeyAlgorithms(hostname string) ([]string, []string, error) {
+	foundAlgs := map[string]bool{}
+	keys := []string{}
+
+	knownHostsKeyScans, err := loadKnownHosts()
+	if err != nil {
+		gl.console.Warnf("failed to load ~/.ssh/known_hosts: %s", err)
+	}
+	for _, keyScans := range [][]string{
+		knownHostsKeyScans,
+		defaultKeyScans,
+	} {
+		for _, keyScan := range keyScans {
+			keyAlg, keyData, err := parseKeyScanIfHostMatches(keyScan, hostname)
+			switch err {
+			case nil:
+				break
+			case errKeyScanNoMatch:
+				continue
+			default:
+				gl.console.Warnf("failed to parse key scan %q: %s", keyScan, err)
+				continue
+			}
+			foundAlgs[keyAlg] = true
+			keys = append(keys, fmt.Sprintf("%s %s %s", knownhosts.Normalize(hostname), keyAlg, keyData))
+		}
+	}
+
+	algs := []string{}
+	for _, alg := range supportedHostKeyAlgos {
+		if _, ok := foundAlgs[alg]; ok {
+			algs = append(algs, alg)
+		}
+	}
+	return algs, keys, nil
+}
+
+func (gl *GitLookup) newHostKeyCallback(keys []string) ssh.HostKeyCallback {
+	return func(hostname string, remote net.Addr, key ssh.PublicKey) error {
+		for _, keyScan := range keys {
+			k, _, _, _, err := ssh.ParseAuthorizedKey([]byte(keyScan))
+			if err != nil {
+				gl.console.Warnf("failed to parse authorized key %q", keyScan)
+				continue
+			}
+			if k.Type() == key.Type() && bytes.Equal(k.Marshal(), key.Marshal()) {
+				return nil
+			}
+		}
+		return fmt.Errorf("No known_host entry for %s", hostname)
+	}
 }
 
 func (gl *GitLookup) getGitMatcherByPath(path string) (string, *gitMatcher, error) {
@@ -221,26 +379,45 @@ func (gl *GitLookup) detectProtocol(host string) (protocol gitProtocol, err erro
 
 	sshAgent, err := net.Dial("unix", gl.sshAuthSock)
 	if err != nil {
+		gl.console.VerbosePrintf("failed to connect to ssh-agent (using %s) due to %s; falling back to https", gl.sshAuthSock, err.Error())
 		protocol = httpsProtocol
 		err = nil
 		return
 	}
+
+	algs, keys, err := gl.getHostKeyAlgorithms(host)
+	if err != nil {
+		gl.console.VerbosePrintf("failed to get accepted host key algorithms for %s: %s; falling back to https", host, err.Error())
+		protocol = httpsProtocol
+		err = nil
+		return
+	}
+	if len(keys) == 0 {
+		gl.console.VerbosePrintf("no known_hosts entries found for %s; falling back to https", host)
+		protocol = httpsProtocol
+		err = nil
+		return
+	}
+
 	config := &ssh.ClientConfig{
 		User: "git",
 		Auth: []ssh.AuthMethod{
 			ssh.PublicKeysCallback(agent.NewClient(sshAgent).Signers),
 		},
-		HostKeyCallback: gl.hostKeyCallback,
+		HostKeyAlgorithms: algs,
+		HostKeyCallback:   gl.newHostKeyCallback(keys),
 	}
 
 	client, err := ssh.Dial("tcp", fmt.Sprintf("%s:22", host), config)
 	if err != nil {
+		gl.console.VerbosePrintf("failed to connect to %s over ssh due to %s; falling back to https", host, err.Error())
 		protocol = httpsProtocol
 		err = nil
 		return
 	}
 	defer client.Close()
 
+	gl.console.VerbosePrintf("defaulting to ssh protocol for %s", host)
 	protocol = sshProtocol
 	err = nil
 	return
@@ -265,9 +442,9 @@ func (gl *GitLookup) lookupNetRCCredential(host string) (login, password string,
 
 var errMakeCloneURLSubNotSupported = fmt.Errorf("makeCloneURL does not support gitMatcher substitution")
 
-func (gl *GitLookup) makeCloneURL(m *gitMatcher, host, gitPath string) (string, string, error) {
+func (gl *GitLookup) makeCloneURL(m *gitMatcher, host, gitPath string) (string, []string, error) {
 	if m.sub != "" {
-		return "", "", errMakeCloneURLSubNotSupported
+		return "", nil, errMakeCloneURLSubNotSupported
 	}
 
 	var err error
@@ -277,7 +454,7 @@ func (gl *GitLookup) makeCloneURL(m *gitMatcher, host, gitPath string) (string, 
 	if configuredProtocol == autoProtocol {
 		configuredProtocol, err = gl.detectProtocol(host)
 		if err != nil {
-			return "", "", err
+			return "", nil, err
 		}
 		switch configuredProtocol {
 		case sshProtocol:
@@ -288,16 +465,32 @@ func (gl *GitLookup) makeCloneURL(m *gitMatcher, host, gitPath string) (string, 
 		}
 	}
 
-	var gitURL, keyScan string
+	var gitURL string
+	var keyScans []string
 	switch configuredProtocol {
 	case sshProtocol:
-		gitURL = user + "@" + host + ":" + gitPath
-		keyScan = m.keyScan
-		if keyScan == "" {
-			keyScan, err = loadKnownHosts()
-			if err != nil {
-				return "", "", err
+		if user == "" {
+			var ok bool
+			user, ok = os.LookupEnv("USER")
+			if !ok {
+				user = "git"
+				gl.console.VerbosePrintf("ssh auth configured without a user; failed to get current user, defaulting to git")
+			} else {
+				gl.console.VerbosePrintf("ssh auth configured without a user; defaulting to current user")
 			}
+		}
+		// careful about changing to ssh://user@host:port/user/repo.git
+		// as it may break self-hosted repos that would be cloned as "git clone alex@coho:junk/test.git" which would
+		// need to be re-written as ssh://alex@coho/~/junk/test.git
+		// however that breaks github-based repos (e.g. this fails: ssh://git@github.com/~/user/repo.git).
+		// best stick to the short-hand form, and use the substitute regex config option for special cases (such as non-standard ports).
+		gitURL = user + "@" + host + ":" + gitPath
+		_, keyScans, err = gl.getHostKeyAlgorithms(host)
+		if err != nil {
+			return "", nil, err
+		}
+		if len(keyScans) == 0 && m.strictHostKeyChecking {
+			return "", nil, errors.Errorf("no known_hosts entries exist for %s", host)
 		}
 	case httpProtocol:
 		if user != "" || password != "" {
@@ -314,10 +507,9 @@ func (gl *GitLookup) makeCloneURL(m *gitMatcher, host, gitPath string) (string, 
 		}
 		gitURL = "https://" + userAndPass + host + "/" + gitPath
 	default:
-		return "", "", errors.Errorf("unsupported protocol: %s", configuredProtocol)
+		return "", nil, errors.Errorf("unsupported protocol: %s", configuredProtocol)
 	}
-
-	return gitURL, keyScan, nil
+	return gitURL, keyScans, nil
 }
 
 // GetCloneURL returns the repo to clone, and a path relative to the repo
@@ -325,12 +517,12 @@ func (gl *GitLookup) makeCloneURL(m *gitMatcher, host, gitPath string) (string, 
 //   "github.com/earthly/earthly/examples"    ---> ("git@github.com/earthly/earthly.git", "examples")
 //   "github.com/earthly/earthly/examples/go" ---> ("git@github.com/earthly/earthly.git", "examples/go")
 // Additionally a ssh keyscan might be returned (or an empty string indicating none was configured)
-func (gl *GitLookup) GetCloneURL(path string) (string, string, string, error) {
+func (gl *GitLookup) GetCloneURL(path string) (string, string, []string, error) {
 	gl.mu.Lock()
 	defer gl.mu.Unlock()
 	match, m, err := gl.getGitMatcherByPath(path)
 	if err != nil {
-		return "", "", "", err
+		return "", "", nil, err
 	}
 
 	n := len(match)
@@ -344,32 +536,36 @@ func (gl *GitLookup) GetCloneURL(path string) (string, string, string, error) {
 
 	if m.sub != "" {
 		if !m.re.MatchString(path) {
-			return "", "", "", errors.Errorf("failed to determine git path to clone for %q", path)
+			return "", "", nil, errors.Errorf("failed to determine git path to clone for %q", path)
 		}
 		gitURL := m.re.ReplaceAllString(path, m.sub)
-
-		keyScan := m.keyScan
-		if keyScan == "" {
-			keyScan, err = loadKnownHosts()
+		var keyScans []string
+		remote, protocol := gitutil.ParseProtocol(gitURL)
+		if protocol == gitutil.SSHProtocol {
+			subHost := remote[:strings.IndexByte(remote, '/')]
+			_, keyScans, err = gl.getHostKeyAlgorithms(subHost)
 			if err != nil {
-				return "", "", "", err
+				return "", "", nil, err
+			}
+			if len(keyScans) == 0 && m.strictHostKeyChecking {
+				return "", "", nil, errors.Errorf("no known_hosts entries exist for substituted host %s", subHost)
 			}
 		}
-		return gitURL, subPath, keyScan, nil
+		return gitURL, subPath, keyScans, nil
 	}
 
-	gitURL, keyScan, err := gl.makeCloneURL(m, host, gitPath)
+	gitURL, keyScans, err := gl.makeCloneURL(m, host, gitPath)
 	if err != nil {
-		return "", "", "", err
+		return "", "", nil, err
 	}
-	return gitURL, subPath, keyScan, nil
+	return gitURL, subPath, keyScans, nil
 }
 
 // ConvertCloneURL takes a url such as https://github.com/user/repo.git or git@github.com:user/repo.git
 // and makes use of configured git credentials and protocol preferences to convert it into the appropriate
 // https or ssh protocol.
 // it also returns a keyScan
-func (gl *GitLookup) ConvertCloneURL(inURL string) (string, string, error) {
+func (gl *GitLookup) ConvertCloneURL(inURL string) (string, []string, error) {
 	var host string
 
 	var splitChar string
@@ -380,7 +576,7 @@ func (gl *GitLookup) ConvertCloneURL(inURL string) (string, string, error) {
 	case gitutil.SSHProtocol:
 		splitChar = ":"
 	default:
-		return "", "", errors.Errorf("unsupported git protocol %v", protocol)
+		return "", nil, errors.Errorf("unsupported git protocol %v", protocol)
 	}
 	splits := strings.SplitN(remote, splitChar, 2)
 	host = splits[0]
@@ -390,21 +586,22 @@ func (gl *GitLookup) ConvertCloneURL(inURL string) (string, string, error) {
 	return gl.makeCloneURL(m, host, gitPath)
 }
 
-func loadKnownHosts() (string, error) {
+func loadKnownHosts() ([]string, error) {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
-		return "", errors.Wrap(err, "failed to get user home dir")
+		return nil, errors.Wrap(err, "failed to get user home dir")
 	}
 
 	knownHosts := filepath.Join(homeDir, ".ssh/known_hosts")
 
 	if !fileutil.FileExists(knownHosts) {
-		return "", nil
+		return nil, nil
 	}
 
-	b, err := ioutil.ReadFile(knownHosts)
+	b, err := os.ReadFile(knownHosts)
 	if err != nil {
-		return "", errors.Wrapf(err, "failed to read %s", knownHosts)
+		return nil, errors.Wrapf(err, "failed to read %s", knownHosts)
 	}
-	return string(b), nil
+
+	return knownHostsToKeyScans(string(b)), nil
 }

@@ -35,17 +35,18 @@ DO: 'DO' -> pushMode(COMMAND_ARGS);
 COMMAND: 'COMMAND' -> pushMode(COMMAND_ARGS);
 IMPORT: 'IMPORT' -> pushMode(COMMAND_ARGS);
 VERSION: 'VERSION' -> pushMode(COMMAND_ARGS);
+CACHE: 'CACHE' -> pushMode(COMMAND_ARGS);
 
 WITH: 'WITH';
 DOCKER: 'DOCKER' -> pushMode(BLOCK), pushMode(COMMAND_ARGS);
 IF: 'IF' -> pushMode(BLOCK), pushMode(COMMAND_ARGS);
 FOR: 'FOR' -> pushMode(BLOCK), pushMode(COMMAND_ARGS);
 
-NL: WS? COMMENT? (EOF | CRLF);
+NL: [ \t]* COMMENT? (EOF | CRLF);
 WS: [ \t] ([ \t] | LC)*;
 fragment CRLF: ('\r' | '\n' | '\r\n');
 fragment COMMENT: '#' (~[\r\n])*;
-fragment NL_NOLC: [ \t]* COMMENT? (EOF | CRLF);
+fragment NL_NOLC: [ \t]* COMMENT? CRLF;
 fragment LC: '\\' NL_NOLC+;
 
 // ----------------------------------------------------------------------------
@@ -83,6 +84,7 @@ SHELL_R: SHELL -> type(SHELL), pushMode(COMMAND_ARGS);
 DO_R: DO -> type(DO), pushMode(COMMAND_ARGS);
 COMMAND_R: COMMAND -> type(COMMAND), pushMode(COMMAND_ARGS);
 IMPORT_R: IMPORT -> type(IMPORT), pushMode(COMMAND_ARGS);
+CACHE_R: CACHE -> type(CACHE), pushMode(COMMAND_ARGS);
 
 WITH_R: WITH -> type(WITH);
 DOCKER_R: DOCKER -> type(DOCKER), pushMode(BLOCK), pushMode(COMMAND_ARGS);
@@ -122,6 +124,7 @@ SHELL_B: SHELL -> type(SHELL), pushMode(COMMAND_ARGS);
 DO_B: DO -> type(DO), pushMode(COMMAND_ARGS);
 COMMAND_B: COMMAND -> type(COMMAND), pushMode(COMMAND_ARGS);
 IMPORT_B: IMPORT -> type(IMPORT), pushMode(COMMAND_ARGS);
+CACHE_B: CACHE -> type(CACHE), pushMode(COMMAND_ARGS);
 
 WITH_B: WITH -> type(WITH);
 DOCKER_B: DOCKER -> type(DOCKER), pushMode(BLOCK), pushMode(COMMAND_ARGS);

@@ -1,3 +1,4 @@
+VERSION 0.6
 test:
     FROM ../+base
     RUN ls /dir/from/base

@@ -6,7 +6,6 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"os/exec"
@@ -144,14 +143,14 @@ func getInstallID() (string, error) {
 			}
 		}
 		ID := u.String()
-		err = ioutil.WriteFile(path, []byte(ID), 0644)
+		err = os.WriteFile(path, []byte(ID), 0644)
 		if err != nil {
 			return "", errors.Wrapf(err, "failed to write %q", path)
 		}
 		return ID, nil
 	}
 
-	s, err := ioutil.ReadFile(path)
+	s, err := os.ReadFile(path)
 	if err != nil {
 		return "", errors.Wrapf(err, "failed to read %q", path)
 	}

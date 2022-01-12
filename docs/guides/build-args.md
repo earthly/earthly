@@ -61,25 +61,37 @@ Argument values can be set multiple ways:
    The value can be directly specified on the command line (as shown in the previous example):
    
    ```
-   earthly +hello --name=world
+   earthly +hello --HELLO=world --FOO=bar
    ```
 
-2. From an environment variable
+2. From environment variables
 
    Similar to above, except that the value is an environment variable:
    
    ```bash
-   export name="banana"
-   earthly +hello --name="$name"
+   export HELLO="world"
+   export FOO="bar"
+   earthly +hello --HELLO="$HELLO" --FOO="$FOO"
    ```
 
-3. From a `.env` file
+3. Via the `EARTHLY_BUILD_ARGS` environment variable
+
+    The value can also be set via the `EARTHLY_BUILD_ARGS` environment variable.
+    
+    ```bash
+    export EARTHLY_BUILD_ARGS="HELLO=world,FOO=bar"
+    earthly +hello
+    ```
+
+    This may be useful if you have a set of build args that you'd like to always use and would prefer not to have to specify them on the command line every time. The `EARTHLY_BUILD_ARGS` environment variable may also be stored in your `~/.bashrc` file, or some other shell-specific startup script.
+
+4. From a `.env` file
 
    It is also possible to create an `.env` file to contain the build arguments to pass
    to earthly. First create an `.env` file with:
    
    ```
-   name eggplant
+   name=eggplant
    ```
    
    Then simply run earthly:
@@ -154,22 +166,54 @@ RUN --mount type=secret,target=/root/mypassword,id=+secrets/passwd echo "my pass
 The file will not be saved to the image snapshot.
 {% endhint %}
 
-The value for `+secrets/passwd` must then be supplied when earthly is invoked. This can be either done directly via:
+## Setting secret values
 
-```bash
-earthly --secret passwd=itsasecret +hush
-```
+The value for `+secrets/passwd` in examples above must then be supplied when earthly is invoked.
 
-or if the value is omitted, then Earthly will attempt to lookup the value from an environment variable on the localhost:
+This is possible in a few ways:
 
-```bash
-passwd=itsasecret \
-earthly --secret passwd +hush
-```
 
-Alternatively, Earthly offers [cloud-based secrets](cloud-secrets.md) if you need to share secrets between colleagues.
+1. Directly, on the command line:
 
-Once earthly is invoked, it will output:
+   ```bash
+   earthly --secret passwd=itsasecret +hush
+   ```
+
+2. Via an environment variable:
+
+   ```bash
+   export passwd=itsasecret
+   earthly --secret passwd +hush
+   ```
+
+   If the value of the secret is omitted on the command line Earthly will lookup the environment variable with that name.
+
+3. Via the environment variable `EARTHLY_SECRETS`
+
+   ```bash
+   export EARTHLY_SECRETS="passwd=itsasecret"
+   earthly +hush
+   ```
+
+   Multiple secrets can be specified by separating them with a comma.
+
+4. Via the `.env` file.
+
+   Create a `.env` file in the same directory where you plan to run `earthly` from. Its contents should be:
+   
+   ```
+   passwd=itsasecret
+   ```
+   
+   Then simply run earthly:
+   
+   ```bash
+   earthly +hello
+   ```
+
+5. Via cloud-based secrets. This option helps share secrets within a wider team. To read more about this see the [cloud-based secrets guide](cloud-secrets.md).
+
+Regardless of the approach chosen from above, once earthly is invoked, in our example, it will output:
 
 ```
 +hush | --> RUN echo "my password is $mypassword"
@@ -177,7 +221,7 @@ Once earthly is invoked, it will output:
 ```
 
 {% hint style='info' %}
-### How Arguments affect caching
+### How Arguments and Secrets affect caching
 
 Commands in earthly must be re-evaluated when the command itself changes (e.g. `echo "hello $name"` is changed to `echo "greetings $name"`), or when
 one of it's inputs has changed (e.g. `--name=world` is changed to `--name=banana`). Earthly creates a hash based on both the contents

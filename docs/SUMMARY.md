@@ -2,7 +2,7 @@
 # Table of contents
 
 * [👋 Introduction](README.md)
-* [⬇️ Installation](https://earthly.dev/get-earthly)
+* [💻 Installation](https://earthly.dev/get-earthly)
 * [🎓 Learn the basics](basics/basics.md)
     * [Part 1: A simple Earthfile](basics/part-1-a-simple-earthfile.md)
     * [Part 1b: Detailed explanation](basics/part-1b-detailed-explanation.md)
@@ -11,6 +11,7 @@
     * [Part 4: Caching dependencies](basics/part-4-caching-dependencies.md)
     * [Part 5: Reducing code duplication](basics/part-5-reducing-code-duplication.md)
     * [Final words](basics/final-words.md)
+* [✅ Best practices](best-practices/best-practices.md)
 
 ## 📖 Docs
 
@@ -48,14 +49,16 @@
     * [Data collection](data-collection/data-collection.md)
 
 ## 🔧 CI Integration
+
 * [Overview](ci-integration/overview.md)
 * [Build An Earthly CI Image](ci-integration/build-an-earthly-ci-image.md)
 * [Pull-Through Cache](ci-integration/pull-through-cache.md)
 * [Remote BuildKit](ci-integration/remote-buildkit.md)
 * Vendor-Specific Guides
-  * [Jenkins](ci-integration/guides/jenkins.md)
-  * [Circle CI](ci-integration/guides/circle-integration.md)
-  * [GitHub Actions](ci-integration/guides/gh-actions-integration.md)
-  * [AWS CodeBuild](ci-integration/guides/codebuild-integration.md)
-  * [Kubernetes](ci-integration/guides/kubernetes.md)
-  * [Google Cloud Build](ci-integration/guides/google-cloud-build.md)
+    * [Jenkins](ci-integration/guides/jenkins.md)
+    * [Circle CI](ci-integration/guides/circle-integration.md)
+    * [GitHub Actions](ci-integration/guides/gh-actions-integration.md)
+    * [AWS CodeBuild](ci-integration/guides/codebuild-integration.md)
+    * [Kubernetes](ci-integration/guides/kubernetes.md)
+    * [Google Cloud Build](ci-integration/guides/google-cloud-build.md)
+    * [GitLab CI/CD](ci-integration/guides/gitlab-integration.md)

@@ -49,11 +49,6 @@ func GenerateCertificates(dir string) error {
 	return nil
 }
 
-// DeleteCerts removes all generated certs.
-func DeleteCerts(dir string) error {
-	return os.RemoveAll(dir)
-}
-
 func createAndSaveCertificate(ca *certificateData, role, dir string) error {
 	certKey, err := rsa.GenerateKey(rand.Reader, 4096)
 	if err != nil {

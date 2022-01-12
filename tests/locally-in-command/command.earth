@@ -1,0 +1,4 @@
+UDC_THAT_SAVES_FILE_LOCALLY:
+    COMMAND
+    LOCALLY
+    RUN echo "I am running in $(pwd)" > data

@@ -1,3 +1,4 @@
+VERSION 0.6
 test-fedora:
     ARG version=34
     FROM fedora:$version

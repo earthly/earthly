@@ -2,7 +2,6 @@ package autocomplete
 
 import (
 	"context"
-	"io/ioutil"
 	"os"
 	"os/user"
 	"path"
@@ -48,7 +47,7 @@ func isCWDRoot() bool {
 }
 
 func containsDirectories(path string) bool {
-	files, err := ioutil.ReadDir(path)
+	files, err := os.ReadDir(path)
 	if err != nil {
 		return false
 	}
@@ -165,7 +164,7 @@ func getPotentialPaths(ctx context.Context, resolver *buildcontext.Resolver, gwC
 		dir, f = path.Split(prefix)
 	}
 
-	files, err := ioutil.ReadDir(dir)
+	files, err := os.ReadDir(dir)
 	if err != nil {
 		return nil, err
 	}
@@ -465,7 +464,7 @@ func hasEarthfile(dirPath string) bool {
 }
 
 func hasSubDirs(dirPath string) bool {
-	files, err := ioutil.ReadDir(dirPath)
+	files, err := os.ReadDir(dirPath)
 	if err != nil {
 		return false
 	}

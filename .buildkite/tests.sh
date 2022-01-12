@@ -13,9 +13,6 @@ function cleanup() {
 }
 trap cleanup EXIT
 
-EARTHLY_VERSION_FLAG_OVERRIDES="$(tr -d '\n' < .earthly_version_flag_overrides)"
-export EARTHLY_VERSION_FLAG_OVERRIDES
-
 case "$EARTHLY_OS" in
     darwin)
         download_url="https://github.com/earthly/earthly/releases/latest/download/earthly-darwin-amd64"
@@ -52,6 +49,9 @@ echo "Build latest earthly using released earthly"
 "$released_earthly" config global.disable_analytics true
 "$released_earthly" +for-"$EARTHLY_OS"
 chmod +x "$earthly"
+
+EARTHLY_VERSION_FLAG_OVERRIDES="$(tr -d '\n' < .earthly_version_flag_overrides)"
+export EARTHLY_VERSION_FLAG_OVERRIDES
 
 # WSL2 sometimes gives a "Text file busy" when running the native binary, likely due to crossing the WSL/Windows divide.
 # This should be enough retry to skip that, and fail if theres _actually_ a problem.
