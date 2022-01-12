@@ -129,8 +129,8 @@ release-github:
           echo "ERROR: github-release upload failed: file already exists -- you must delete if from github before proceeding" && exit 1; \
         fi; \
         if grep -i "tag_name is not a valid tag" /tmp/release.log > /dev/null; then \
-          echo "ERROR: github-release upload failed: tag_name is not a valid tag (it could be that the branch you are releasing doesnt exist on $GITHUB_USER/$EARTHLY_REPO)"; \
-          echo "you might need to do a git push $GITHUB_USER $EARTHLY_GIT_HASH:main ASSUMING YOU ARE NOT DOINT A PROD RELEASE"; \
+          echo "ERROR: github-release upload failed: tag_name is not a valid tag (it could be that the branch you are releasing does not exist on $GITHUB_USER/$EARTHLY_REPO)"; \
+          echo "you might need to do a git push $GITHUB_USER $EARTHLY_GIT_HASH:main (assuming you are not doing a prod release)"; \
           exit 1; \
         fi; \
         if grep -i error /tmp/release.log > /dev/null; then \
