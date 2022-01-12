@@ -7,12 +7,12 @@ deps:
 rpm:
     ARG RELEASE_TAG
     ARG EARTHLY_PLATFORM
-    ARG EARTHLY_VERSION=$(echo "$RELEASE_TAG" | cut -c 2-)
+    ARG RELEASE_TAG_WITHOUT_V=$(echo "$RELEASE_TAG" | cut -c 2-)
     FROM +deps
     WORKDIR /work
     RUN test ! -z "$EARTHLY_PLATFORM" || (echo "EARTHLY_PLATFORM is required" && exit 1)
     RUN (echo "$RELEASE_TAG" | grep '^v[0-9]\+.[0-9]\+.[0-9]\+$' > /dev/null) || (echo "RELEASE_TAG must be formatted as v1.2.3; instead got \"$RELEASE_TAG\""; exit 1)
-    RUN wget -q "https://github.com/earthly/earthly/releases/download/v${EARTHLY_VERSION}/earthly-linux-$EARTHLY_PLATFORM" -O /usr/local/bin/earthly && chmod +x /usr/local/bin/earthly
+    RUN wget -q "https://github.com/earthly/earthly/releases/download/${RELEASE_TAG}/earthly-linux-$EARTHLY_PLATFORM" -O /usr/local/bin/earthly && chmod +x /usr/local/bin/earthly
 
     IF [ "$EARTHLY_PLATFORM" = "amd64" ]
         ENV ARCH_TARGET=x86_64
@@ -25,9 +25,9 @@ rpm:
     END
 
     COPY earthly.spec .
-    RUN sed -i "s/__earthly_version__/$EARTHLY_VERSION/" earthly.spec
+    RUN sed -i "s/__earthly_version__/$RELEASE_TAG_WITHOUT_V/" earthly.spec
     RUN rpmbuild --target "$ARCH_TARGET" -bb earthly.spec
-    ARG PKG_NAME=earthly-${EARTHLY_VERSION}-1.${ARCH_TARGET}.rpm
+    ARG PKG_NAME=earthly-${RELEASE_TAG_WITHOUT_V}-1.${ARCH_TARGET}.rpm
     SAVE ARTIFACT "/root/rpmbuild/RPMS/${ARCH_TARGET}/${PKG_NAME}" AS LOCAL "$PKG_NAME"
 
 rpm-amd64:
@@ -78,7 +78,7 @@ download:
     SAVE ARTIFACT repo AS LOCAL output/repo
 
 generate-new-yum-repo:
-    ARG EARTHLY_VERSION
+    ARG RELEASE_TAG_WITHOUT_V
     FROM +deps
     WORKDIR /repo
     COPY +rpm-all/*.rpm ./packages/.
