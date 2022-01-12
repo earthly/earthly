@@ -84,6 +84,7 @@ type Converter struct {
 	ranSave             bool
 	cmdSet              bool
 	ftrs                *features.Features
+	localWorkingDir     string
 }
 
 type cacheDirSet map[string]struct{}
@@ -117,6 +118,7 @@ func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Da
 		persistentCacheDirs: make(map[string]llb.RunOption),
 		varCollection:       variables.NewCollection(newCollOpt),
 		ftrs:                bc.Features,
+		localWorkingDir:     filepath.Dir(bc.BuildFilePath),
 	}, nil
 }
 
@@ -344,7 +346,7 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 }
 
 // Locally applies the earthly Locally command.
-func (c *Converter) Locally(ctx context.Context, workdirPath string, platform *specs.Platform) error {
+func (c *Converter) Locally(ctx context.Context) error {
 	err := c.checkAllowed(locallyCmd)
 	if err != nil {
 		return err
@@ -352,18 +354,20 @@ func (c *Converter) Locally(ctx context.Context, workdirPath string, platform *s
 	if !c.opt.AllowLocally {
 		return errors.New("LOCALLY cannot be used when --strict is specified or otherwise implied")
 	}
-	if !path.IsAbs(workdirPath) {
-		return errors.New("workdirPath must be absolute")
-	}
 
-	err = c.fromClassical(ctx, "scratch", platform, true)
+	err = c.fromClassical(ctx, "scratch", nil, true)
 	if err != nil {
 		return err
 	}
 
+	workingDir, err := filepath.Abs(c.localWorkingDir)
+	if err != nil {
+		return errors.Wrapf(err, "unable to get abs path of %s", c.localWorkingDir)
+	}
+
 	// reset WORKDIR to current directory where Earthfile is
-	c.mts.Final.MainState = c.mts.Final.MainState.Dir(workdirPath)
-	c.mts.Final.MainImage.Config.WorkingDir = workdirPath
+	c.mts.Final.MainState = c.mts.Final.MainState.Dir(workingDir)
+	c.mts.Final.MainImage.Config.WorkingDir = workingDir
 	return nil
 }
 
