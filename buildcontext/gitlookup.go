@@ -6,7 +6,6 @@ import (
 	"crypto/sha1"
 	"encoding/base64"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"net/url"
 	"os"
@@ -599,7 +598,7 @@ func loadKnownHosts() ([]string, error) {
 		return nil, nil
 	}
 
-	b, err := ioutil.ReadFile(knownHosts)
+	b, err := os.ReadFile(knownHosts)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to read %s", knownHosts)
 	}

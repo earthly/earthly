@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"hash/fnv"
-	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
@@ -243,7 +242,7 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 				return errors.Wrap(err, "resolve build context for dockerfile")
 			}
 			c.opt.BuildContextProvider.AddDirs(data.LocalDirs)
-			dfData, err = ioutil.ReadFile(data.BuildFilePath)
+			dfData, err = os.ReadFile(data.BuildFilePath)
 			if err != nil {
 				return errors.Wrapf(err, "read file %s", data.BuildFilePath)
 			}
@@ -298,7 +297,7 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 		c.opt.BuildContextProvider.AddDirs(data.LocalDirs)
 		if dfPath == "" {
 			// Imply dockerfile as being ./Dockerfile in the root of the build context.
-			dfData, err = ioutil.ReadFile(data.BuildFilePath)
+			dfData, err = os.ReadFile(data.BuildFilePath)
 			if err != nil {
 				return errors.Wrapf(err, "read file %s", data.BuildFilePath)
 			}
@@ -533,7 +532,7 @@ func (c *Converter) RunExitCode(ctx context.Context, opts ConvertRunOpts) (int, 
 
 	var exitCodeFile string
 	if opts.Locally {
-		exitCodeDir, err := ioutil.TempDir(os.TempDir(), "earthlyexitcode")
+		exitCodeDir, err := os.MkdirTemp(os.TempDir(), "earthlyexitcode")
 		if err != nil {
 			return 0, errors.Wrap(err, "create temp dir")
 		}
@@ -560,7 +559,7 @@ func (c *Converter) RunExitCode(ctx context.Context, opts ConvertRunOpts) (int, 
 	}
 	var codeDt []byte
 	if opts.Locally {
-		codeDt, err = ioutil.ReadFile(exitCodeFile)
+		codeDt, err = os.ReadFile(exitCodeFile)
 		if err != nil {
 			return 0, errors.Wrap(err, "read exit code file")
 		}
@@ -594,7 +593,7 @@ func (c *Converter) RunExpression(ctx context.Context, expressionName string, op
 
 	var outputFile string
 	if opts.Locally {
-		outputDir, err := ioutil.TempDir(os.TempDir(), "earthlyexproutput")
+		outputDir, err := os.MkdirTemp(os.TempDir(), "earthlyexproutput")
 		if err != nil {
 			return "", errors.Wrap(err, "create temp dir")
 		}
@@ -623,7 +622,7 @@ func (c *Converter) RunExpression(ctx context.Context, expressionName string, op
 
 	var outputDt []byte
 	if opts.Locally {
-		outputDt, err = ioutil.ReadFile(outputFile)
+		outputDt, err = os.ReadFile(outputFile)
 		if err != nil {
 			return "", errors.Wrap(err, "read exit code file")
 		}

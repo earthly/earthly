@@ -3,7 +3,6 @@ package buildcontext
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
@@ -79,7 +78,7 @@ func (gr *gitResolver) resolveEarthProject(ctx context.Context, gwClient gwclien
 		key = ref.StringCanonical()
 	}
 	localBuildFilePathValue, err := gr.buildFileCache.Do(ctx, key, func(ctx context.Context, _ interface{}) (interface{}, error) {
-		earthfileTmpDir, err := ioutil.TempDir(os.TempDir(), "earthly-git")
+		earthfileTmpDir, err := os.MkdirTemp(os.TempDir(), "earthly-git")
 		if err != nil {
 			return nil, errors.Wrap(err, "create temp dir for Earthfile")
 		}
@@ -101,7 +100,7 @@ func (gr *gitResolver) resolveEarthProject(ctx context.Context, gwClient gwclien
 			return nil, errors.Wrap(err, "read build file")
 		}
 		localBuildFilePath := filepath.Join(earthfileTmpDir, path.Base(buildFile))
-		err = ioutil.WriteFile(localBuildFilePath, buildFileBytes, 0700)
+		err = os.WriteFile(localBuildFilePath, buildFileBytes, 0700)
 		if err != nil {
 			return nil, errors.Wrapf(err, "write build file to tmp dir at %s", localBuildFilePath)
 		}

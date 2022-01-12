@@ -5,7 +5,6 @@ import (
 	"bufio"
 	"encoding/json"
 	"io"
-	"io/ioutil"
 	"os"
 	"strings"
 
@@ -30,7 +29,7 @@ func GetID(tarFilePath string) (string, error) {
 			return "", errors.Wrapf(err, "reading tar %s", tarFilePath)
 		}
 		if header.Name == "manifest.json" && !header.FileInfo().IsDir() {
-			dt, err := ioutil.ReadAll(tarR)
+			dt, err := io.ReadAll(tarR)
 			if err != nil {
 				return "", errors.Wrapf(err, "read manifest.json from tar %s", tarFilePath)
 			}
