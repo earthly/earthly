@@ -160,4 +160,3 @@ earthly --artifact github.com/earthly/earthly/examples/tutorial/python:main+part
 {% endhint %}
 
 {% endmethod %}
-
