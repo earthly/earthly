@@ -302,4 +302,3 @@ earthly --artifact github.com/earthly/earthly/examples/tutorial/python:main+part
 However, as we build this new setup and make changes to the main source code, we notice that the dependencies are downloaded every single time we change the source code. While the build is not necessarily incorrect, it is inefficient for proper development speed.
 
 To improve the speed we will make some changes in part 4 of the tutorial.
-

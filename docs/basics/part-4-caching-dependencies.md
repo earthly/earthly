@@ -152,4 +152,3 @@ earthly --artifact github.com/earthly/earthly/examples/tutorial/python:main+part
 {% endmethod %}
 
 For a primer into Dockerfile layer caching see [this article](https://pythonspeed.com/articles/docker-caching-model/). The same principles apply to Earthfiles.
-
