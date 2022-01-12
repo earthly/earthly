@@ -4,25 +4,27 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+## v0.6.3 - 2021-01-12
+
 ### Changed
 
 - Updated buildkit to contain changes up to `15fb1145afa48bf81fbce41634bdd36c02454f99` from `moby/master`.
 
 ### Added
 
-- Expirmental `CACHE` command can be used in Earthfiles to optimize the cache in projects that perform better with incremental changes. For example, a Maven project where `SNAPSHOT` dependencies are added frequently, an NPM project where `node_modules` change frequently, or programming languages using incremental compilers. [#1399](https://github.com/earthly/earthly/issues/1399)
-
-- Config file entries can be deleted using a `--delete` flag (for example `earthly config global.conversion_parallelism --delete`) [#1449](https://github.com/earthly/earthly/issues/1449)
-
-- Earthly now provides the following [builtin ARGs](https://docs.earthly.dev/docs/earthfile/builtin-args): `EARTHLY_VERSION` and `EARTHLY_BUILD_SHA`. These will be generally available in Earthly version 0.7+, however, they can be enabled earlier by using the `--earthly-version-arg` [feature flag](https://docs.earthly.dev/docs/earthfile/features#feature-flags) [#1452](https://github.com/earthly/earthly/issues/1452).
+- Expirmental `CACHE` command can be used in Earthfiles to optimize the cache in projects that perform better with incremental changes. For example, a Maven
+  project where `SNAPSHOT` dependencies are added frequently, an NPM project where `node_modules` change frequently, or programming languages using
+  incremental compilers. [#1399](https://github.com/earthly/earthly/issues/1399)
+- Config file entries can be deleted using a `--delete` flag (for example `earthly config global.conversion_parallelism --delete`). [#1449](https://github.com/earthly/earthly/issues/1449)
+- Earthly now provides the following [builtin ARGs](https://docs.earthly.dev/docs/earthfile/builtin-args): `EARTHLY_VERSION` and `EARTHLY_BUILD_SHA`. These
+  will be generally available in Earthly version 0.7+, however, they can be enabled earlier by using the `--earthly-version-arg`. [feature flag](https://docs.earthly.dev/docs/earthfile/features#feature-flags) [#1452](https://github.com/earthly/earthly/issues/1452)
 - Config option to disable `known_host` checking for specific git hosts by setting `strict_host_key_checking ` to `false` under the `git` section of `earthly/config.yml` (defaults to `true`).
-- Error check for using both `--interactive` and `--buildkit-host` (which are not currently supported together) [#1492](https://github.com/earthly/earthly/issues/1492).
-- `earthly ls [<project-ref>]` to list Earthfile targets
+- Error check for using both `--interactive` and `--buildkit-host` (which are not currently supported together). [#1492](https://github.com/earthly/earthly/issues/1492)
+- `earthly ls [<project-ref>]` to list Earthfile targets.
 
 ### Fixed
 
-- Gracefully handle empty string `""` being provided as a value to `earthly config` commands [#1449](https://github.com/earthly/earthly/issues/1449)
-
+- Gracefully handle empty string `""` being provided as a value to `earthly config` commands. [#1449](https://github.com/earthly/earthly/issues/1449)
 - `known_host` entries were being ignored when custom `pattern` and `substituted` git config options were used (commonly used for [self-hosted git repos](https://docs.earthly.dev/docs/guides/auth#self-hosted-and-private-git-repositories))
 - Unable to connect to ssh server when `known_hosts` doesn't contain ssh-rsa host scan, but contains a different key-scan (e.g. `ecdsa-sha2-nistp256`, `ssh-ed25519`, etc).
 - When git auth is set to ssh but no user is given, default to current user (similar to calling `ssh example.com` vs `ssh user@example.com`).
