@@ -115,6 +115,7 @@ lint:
             echo "$output" ; \
             exit 1 ; \
         fi
+    RUN if find . -type f -name \*.go | xargs grep '"io/ioutil"'; then echo "io/ioutil is deprecated: https://go.dev/doc/go1.16#ioutil"; exit 1; fi
 
 lint-newline-ending:
     FROM alpine:3.13
