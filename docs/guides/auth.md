@@ -36,11 +36,12 @@ Sites can be explicitly added to the [earthly config file](../earthly-config/ear
 git:
     git.example.com:
         auth: ssh
+        user: git
 ```
 
 #### Username-password authentication
 
-Username-password based authentication can be configured in the [earthly config file](../earthly-config/earthly-config.md) under the git section: 
+Username-password based authentication can be configured in the [earthly config file](../earthly-config/earthly-config.md) under the git section:
 
 ```yaml
 git:

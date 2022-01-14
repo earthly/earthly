@@ -355,7 +355,7 @@ Set up a whole custom git repository for a server called example.com, using a si
 * is recognized to earthly as example.com/name-of-repo
 
 ```
-config git "{example: {pattern: 'example.com/([^/]+)', substitute: 'ssh://git@example.com:2222/var/git/repos/\$1.git', auth: ssh}}"
+config git "{example: {pattern: 'example.com/([^/]+)', substitute: 'ssh://git@example.com:2222/var/git/repos/\$1.git', auth: ssh, user: git}}"
 ```
 
 The above command yields the following config file:
@@ -366,6 +366,7 @@ git:
         pattern: example.com/([^/]+)
         substitute: ssh://git@example.com:2222/var/git/repos/$1.git
         auth: ssh
+        user: git
 ```
 
 ## earthly account
