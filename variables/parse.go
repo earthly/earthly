@@ -4,6 +4,8 @@ import (
 	"os"
 	"strings"
 
+	"github.com/earthly/earthly/variables/reserved"
+
 	"github.com/pkg/errors"
 )
 
@@ -26,6 +28,9 @@ func ParseCommandLineArgs(args []string) (*Scope, error) {
 		if len(splitArg) == 2 {
 			value = splitArg[1]
 			hasValue = true
+		}
+		if reserved.IsBuiltIn(key) {
+			return nil, errors.Errorf("built-in arg %s cannot be passed on the command line", key)
 		}
 		if !hasValue {
 			var found bool
@@ -66,6 +71,10 @@ func parseArg(arg string, pncvf ProcessNonConstantVariableFunc, current *Collect
 		hasValue = true
 	}
 	if hasValue {
+		if reserved.IsBuiltIn(name) {
+			return "", "", errors.Errorf("value cannot be specified for built-in build arg %s", name)
+		}
+
 		v, err := parseArgValue(name, value, pncvf)
 		if err != nil {
 			return "", "", err
