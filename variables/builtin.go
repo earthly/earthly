@@ -1,17 +1,17 @@
 package variables
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/containerd/containerd/platforms"
+	specs "github.com/opencontainers/image-spec/specs-go/v1"
+
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/features"
-	"github.com/earthly/earthly/states/dedup"
 	"github.com/earthly/earthly/util/gitutil"
 	"github.com/earthly/earthly/util/llbutil"
 	"github.com/earthly/earthly/util/stringutil"
-	specs "github.com/opencontainers/image-spec/specs-go/v1"
+	arg "github.com/earthly/earthly/variables/reserved"
 )
 
 // DefaultArgs contains additional builtin ARG values which need
@@ -24,73 +24,67 @@ type DefaultArgs struct {
 // BuiltinArgs returns a scope containing the builtin args.
 func BuiltinArgs(target domain.Target, platform specs.Platform, gitMeta *gitutil.GitMetadata, defaultArgs DefaultArgs, ftrs *features.Features) *Scope {
 	ret := NewScope()
-	ret.AddInactive("EARTHLY_TARGET", target.StringCanonical())
-	ret.AddInactive("EARTHLY_TARGET_PROJECT", target.ProjectCanonical())
+	ret.AddInactive(arg.EarthlyTarget, target.StringCanonical())
+	ret.AddInactive(arg.EarthlyTargetProject, target.ProjectCanonical())
 	targetNoTag := target
 	targetNoTag.Tag = ""
-	ret.AddInactive("EARTHLY_TARGET_PROJECT_NO_TAG", targetNoTag.ProjectCanonical())
-	ret.AddInactive("EARTHLY_TARGET_NAME", target.Target)
-	ret.AddInactive("EARTHLY_TARGET_TAG", target.Tag)
-	ret.AddInactive("EARTHLY_TARGET_TAG_DOCKER", llbutil.DockerTagSafe(target.Tag))
+	ret.AddInactive(arg.EarthlyTargetProjectNoTag, targetNoTag.ProjectCanonical())
+	ret.AddInactive(arg.EarthlyTargetName, target.Target)
+	ret.AddInactive(arg.EarthlyTargetTag, target.Tag)
+	ret.AddInactive(arg.EarthlyTargetTagDocker, llbutil.DockerTagSafe(target.Tag))
 	SetPlatformArgs(ret, platform)
 	SetUserPlatformArgs(ret)
 
 	if ftrs != nil && ftrs.EarthlyVersionArg {
-		ret.AddInactive("EARTHLY_VERSION", defaultArgs.EarthlyVersion)
-		ret.AddInactive("EARTHLY_BUILD_SHA", defaultArgs.EarthlyBuildSha)
+		ret.AddInactive(arg.EarthlyVersion, defaultArgs.EarthlyVersion)
+		ret.AddInactive(arg.EarthlyBuildSha, defaultArgs.EarthlyBuildSha)
 	}
 
 	if gitMeta != nil {
-		ret.AddInactive("EARTHLY_GIT_HASH", gitMeta.Hash)
-		ret.AddInactive("EARTHLY_GIT_SHORT_HASH", gitMeta.ShortHash)
+		ret.AddInactive(arg.EarthlyGitHash, gitMeta.Hash)
+		ret.AddInactive(arg.EarthlyGitShortHash, gitMeta.ShortHash)
 		branch := ""
 		if len(gitMeta.Branch) > 0 {
 			branch = gitMeta.Branch[0]
 		}
-		ret.AddInactive("EARTHLY_GIT_BRANCH", branch)
+		ret.AddInactive(arg.EarthlyGitBranch, branch)
 		tag := ""
 		if len(gitMeta.Tags) > 0 {
 			tag = gitMeta.Tags[0]
 		}
-		ret.AddInactive("EARTHLY_GIT_TAG", tag)
-		ret.AddInactive("EARTHLY_GIT_ORIGIN_URL", gitMeta.RemoteURL)
-		ret.AddInactive("EARTHLY_GIT_ORIGIN_URL_SCRUBBED", stringutil.ScrubCredentials(gitMeta.RemoteURL))
-		ret.AddInactive("EARTHLY_GIT_PROJECT_NAME", getProjectName(gitMeta.RemoteURL))
-		ret.AddInactive("EARTHLY_GIT_COMMIT_TIMESTAMP", gitMeta.Timestamp)
+		ret.AddInactive(arg.EarthlyGitTag, tag)
+		ret.AddInactive(arg.EarthlyGitOriginURL, gitMeta.RemoteURL)
+		ret.AddInactive(arg.EarthlyGitOriginURLScrubbed, stringutil.ScrubCredentials(gitMeta.RemoteURL))
+		ret.AddInactive(arg.EarthlyGitProjectName, getProjectName(gitMeta.RemoteURL))
+		ret.AddInactive(arg.EarthlyGitCommitTimestamp, gitMeta.Timestamp)
 
 		if gitMeta.Timestamp == "" {
-			ret.AddInactive("EARTHLY_SOURCE_DATE_EPOCH", "0")
+			ret.AddInactive(arg.EarthlySourceDateEpoch, "0")
 		} else {
-			ret.AddInactive("EARTHLY_SOURCE_DATE_EPOCH", gitMeta.Timestamp)
+			ret.AddInactive(arg.EarthlySourceDateEpoch, gitMeta.Timestamp)
 		}
 	} else {
 		// Ensure SOURCE_DATE_EPOCH is always available
-		ret.AddInactive("EARTHLY_SOURCE_DATE_EPOCH", "0")
-	}
-	// Note: Please update targetinput.go BuiltinVariables if adding more builtin variables.
-	for _, key := range ret.SortedAny() {
-		if !dedup.BuiltinVariables[key] {
-			panic(fmt.Sprintf("you forgot to add %s to the map of BuiltinVariables", key))
-		}
+		ret.AddInactive(arg.EarthlySourceDateEpoch, "0")
 	}
 	return ret
 }
 
 // SetPlatformArgs sets the platform-specific built-in args to a specific platform.
 func SetPlatformArgs(s *Scope, platform specs.Platform) {
-	s.AddInactive("TARGETPLATFORM", platforms.Format(platform))
-	s.AddInactive("TARGETOS", platform.OS)
-	s.AddInactive("TARGETARCH", platform.Architecture)
-	s.AddInactive("TARGETVARIANT", platform.Variant)
+	s.AddInactive(arg.TargetPlatform, platforms.Format(platform))
+	s.AddInactive(arg.TargetOS, platform.OS)
+	s.AddInactive(arg.TargetArch, platform.Architecture)
+	s.AddInactive(arg.TargetVariant, platform.Variant)
 }
 
 // SetUserPlatformArgs sets the user's platform-specific built-in args.
 func SetUserPlatformArgs(s *Scope) {
 	platform := platforms.DefaultSpec()
-	s.AddInactive("USERPLATFORM", platforms.Format(platform))
-	s.AddInactive("USEROS", platform.OS)
-	s.AddInactive("USERARCH", platform.Architecture)
-	s.AddInactive("USERVARIANT", platform.Variant)
+	s.AddInactive(arg.UserPlatform, platforms.Format(platform))
+	s.AddInactive(arg.UserOS, platform.OS)
+	s.AddInactive(arg.UserArch, platform.Architecture)
+	s.AddInactive(arg.UserVariant, platform.Variant)
 }
 
 // getProjectName returns the depricated PROJECT_NAME value

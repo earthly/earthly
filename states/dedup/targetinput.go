@@ -6,6 +6,8 @@ import (
 	"encoding/json"
 
 	"github.com/earthly/earthly/domain"
+	"github.com/earthly/earthly/variables/reserved"
+
 	"github.com/pkg/errors"
 )
 
@@ -140,39 +142,10 @@ type BuildArgInput struct {
 	DefaultValue string `json:"defaultConstant"`
 }
 
-// BuiltinVariables is a set of all the builtin variable names.
-var BuiltinVariables = map[string]bool{
-	"EARTHLY_TARGET":                  true,
-	"EARTHLY_TARGET_PROJECT":          true,
-	"EARTHLY_TARGET_PROJECT_NO_TAG":   true,
-	"EARTHLY_TARGET_NAME":             true,
-	"EARTHLY_TARGET_TAG":              true,
-	"EARTHLY_TARGET_TAG_DOCKER":       true,
-	"EARTHLY_VERSION":                 true,
-	"EARTHLY_BUILD_SHA":               true,
-	"EARTHLY_GIT_HASH":                true,
-	"EARTHLY_GIT_SHORT_HASH":          true,
-	"EARTHLY_GIT_BRANCH":              true,
-	"EARTHLY_GIT_TAG":                 true,
-	"EARTHLY_GIT_ORIGIN_URL":          true,
-	"EARTHLY_GIT_ORIGIN_URL_SCRUBBED": true,
-	"EARTHLY_GIT_PROJECT_NAME":        true,
-	"EARTHLY_GIT_COMMIT_TIMESTAMP":    true,
-	"TARGETPLATFORM":                  true,
-	"TARGETOS":                        true,
-	"TARGETARCH":                      true,
-	"TARGETVARIANT":                   true,
-	"EARTHLY_SOURCE_DATE_EPOCH":       true,
-	"USERPLATFORM":                    true,
-	"USEROS":                          true,
-	"USERARCH":                        true,
-	"USERVARIANT":                     true,
-}
-
 // IsDefaultValue returns whether the value of the BuildArgInput
 // is set as the same as the default.
 func (bai BuildArgInput) IsDefaultValue() bool {
-	if BuiltinVariables[bai.Name] {
+	if reserved.IsBuiltIn(bai.Name) {
 		return true
 	}
 	return bai.ConstantValue == bai.DefaultValue
