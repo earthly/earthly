@@ -2355,7 +2355,7 @@ func (app *earthlyApp) actionAccountLogin(c *cli.Context) error {
 	}
 
 	if token != "" && (email != "" || pass != "") {
-		return errors.New("--token can not be used in conjuction with --email or --password")
+		return errors.New("--token cannot be used in conjuction with --email or --password")
 	}
 	sc, err := secretsclient.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
 	if err != nil {
@@ -3036,7 +3036,7 @@ func (app *earthlyApp) actionListTargets(c *cli.Context) error {
 			return errors.New("remote-paths are not currently supported; local paths must start with \"/\" or \".\"")
 		}
 		if strings.Contains(targetToParse, "+") {
-			return errors.New("path can not contain a +")
+			return errors.New("path cannot contain a +")
 		}
 		targetToParse = strings.TrimSuffix(targetToParse, "/Earthfile")
 	}
