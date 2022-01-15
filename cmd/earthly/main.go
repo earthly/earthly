@@ -908,6 +908,13 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 					UsageText: "earthly [options] account remove-token <token>",
 					Action:    app.actionAccountRemoveToken,
 				},
+				{
+					Name:        "connect",
+					Usage:       "Connect an OAuth Earthly account.",
+					Description: " Visit https://ci.earthly.dev for details.",
+					Action:      app.actionAcccountOAuthConnect,
+					Hidden:      true,
+				},
 			},
 		},
 		{
@@ -2207,7 +2214,7 @@ func (app *earthlyApp) actionAccountAddKey(c *cli.Context) error {
 		return errors.Wrap(err, "failed to add public key to account")
 	}
 
-	//switch over to new key if the user is currently using password-based auth
+	// switch over to new key if the user is currently using password-based auth
 	email, authType, _, err := sc.WhoAmI()
 	if err != nil {
 		return errors.Wrap(err, "failed to validate auth token")
@@ -2329,6 +2336,24 @@ func (app *earthlyApp) actionAccountRemoveToken(c *cli.Context) error {
 	if err != nil {
 		return errors.Wrap(err, "failed to remove account tokens")
 	}
+	return nil
+}
+
+func (app *earthlyApp) actionAcccountOAuthConnect(c *cli.Context) error {
+	app.commandName = "accountOAuthConnect"
+	if c.NArg() != 1 {
+		return errors.New("invalid number of arguments provided")
+	}
+	token := c.Args().First()
+	sc, err := secretsclient.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
+	if err != nil {
+		return errors.Wrap(err, "failed to create secretsclient")
+	}
+	email, err := sc.RedeemOAuthToken(token)
+	if err != nil {
+		return errors.Wrap(err, "failed to redeem oauth token")
+	}
+	fmt.Printf("Connected with user %s\n", email)
 	return nil
 }
 
@@ -3051,7 +3076,7 @@ func (app *earthlyApp) actionListTargets(c *cli.Context) error {
 	var gwClient gwclient.Client // TODO this is a nil pointer which causes a panic if we try to expand a remotely referenced earthfile
 	// it's expensive to create this gwclient, so we need to implement a lazy eval which returns it when required.
 
-	target, err := domain.ParseTarget(fmt.Sprintf("%s+base", targetToParse)) //the +base is required to make ParseTarget work; however is ignored by GetTargets
+	target, err := domain.ParseTarget(fmt.Sprintf("%s+base", targetToParse)) // the +base is required to make ParseTarget work; however is ignored by GetTargets
 	if err != nil {
 		return errors.Errorf("unable to locate Earthfile under %s", targetToDisplay)
 	}

@@ -83,6 +83,7 @@ type Client interface {
 	DeleteCachedCredentials() error
 	DisableSSHKeyGuessing()
 	SetAuthTokenDir(path string)
+	RedeemOAuthToken(oauthToken string) (string, error)
 }
 
 type request struct {
@@ -1114,4 +1115,34 @@ func (c *client) FindSSHAuth() (map[string][]string, error) {
 		foundKeys[email] = append(foundKeys[email], key.String())
 	}
 	return foundKeys, nil
+}
+
+func (c *client) RedeemOAuthToken(oauthToken string) (string, error) {
+	connectRequest := api.OAuthConnectRequest{
+		Token: oauthToken,
+	}
+	status, body, err := c.doCall("PUT", "/api/v0/oauth/connect", withJSONBody(&connectRequest))
+	if err != nil {
+		return "", err
+	}
+	if status != http.StatusOK {
+		msg, err := getMessageFromJSON(bytes.NewReader([]byte(body)))
+		if err != nil {
+			return "", errors.Wrap(err, fmt.Sprintf("failed to decode response body (status code: %d)", status))
+		}
+		return "", errors.Errorf("failed to connect OAuth login: %s", msg)
+	}
+
+	var connectResponse api.OAuthConnectResponse
+	err = c.jm.Unmarshal(bytes.NewReader([]byte(body)), &connectResponse)
+	if err != nil {
+		return "", errors.Wrap(err, "failed to unmarshal OAuth connect response")
+	}
+
+	email, err := c.SetLoginToken(connectResponse.Token)
+	if err != nil {
+		return "", errors.Wrap(err, "failed to login with OAuth generated token")
+	}
+
+	return email, nil
 }
