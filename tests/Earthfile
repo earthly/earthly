@@ -227,7 +227,7 @@ builtin-args-test:
     DO +RUN_EARTHLY --earthfile=builtin-args.earth --target=+builtin-args-test
 
 builtin-args-invalid-default-test:
-    DO +RUN_EARTHLY --earthfile=builtin-args-invalid-default.earth --should_fail=true --target=+test --output_contains="build-arg default value supplied for built-in ARG"
+    DO +RUN_EARTHLY --earthfile=builtin-args-invalid-default.earth --should_fail=true --target=+test --output_contains="arg default value supplied for built-in ARG"
 
 builtin-args-invalid-pass-test:
     DO +RUN_EARTHLY --earthfile=builtin-args-invalid-pass.earth --should_fail=true --target=+test --output_contains="value cannot be specified for built-in build arg EARTHLY_VERSION"
