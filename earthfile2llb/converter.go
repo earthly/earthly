@@ -1055,20 +1055,21 @@ func (c *Converter) Arg(ctx context.Context, argKey string, defaultArgValue stri
 		return err
 	}
 	c.nonSaveCommand()
-	effective, err := c.varCollection.DeclareArg(argKey, defaultArgValue, global, c.processNonConstantBuildArgFunc((ctx)))
+	effective, effectiveDefault, err := c.varCollection.DeclareArg(
+		argKey, defaultArgValue, global, c.processNonConstantBuildArgFunc(ctx))
 	if err != nil {
 		return err
 	}
 	if opts.Required && len(effective) == 0 {
-		return errors.New("build-arg not supplied for required ARG")
+		return errors.New("arg not supplied for required ARG")
 	}
 	if len(defaultArgValue) > 0 && reserved.IsBuiltIn(argKey) {
-		return errors.New("build-arg default value supplied for built-in ARG")
+		return errors.New("arg default value supplied for built-in ARG")
 	}
 	if c.varCollection.IsStackAtBase() { // Only when outside of UDC.
 		c.mts.Final.AddBuildArgInput(dedup.BuildArgInput{
 			Name:          argKey,
-			DefaultValue:  defaultArgValue,
+			DefaultValue:  effectiveDefault,
 			ConstantValue: effective,
 		})
 	}

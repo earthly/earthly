@@ -145,8 +145,9 @@ func (c *Collection) Expand(word string) string {
 
 // DeclareArg declares an arg. The effective value may be
 // different than the default, if the variable has been overridden.
-func (c *Collection) DeclareArg(name string, defaultValue string, global bool, pncvf ProcessNonConstantVariableFunc) (string, error) {
+func (c *Collection) DeclareArg(name string, defaultValue string, global bool, pncvf ProcessNonConstantVariableFunc) (string, string, error) {
 	ef := c.effective()
+	finalDefaultValue := defaultValue
 	var finalValue string
 	existing, found := ef.GetAny(name)
 	if found {
@@ -154,16 +155,17 @@ func (c *Collection) DeclareArg(name string, defaultValue string, global bool, p
 	} else {
 		v, err := parseArgValue(name, defaultValue, pncvf)
 		if err != nil {
-			return "", err
+			return "", "", err
 		}
 		finalValue = v
+		finalDefaultValue = v
 	}
 	c.args().AddActive(name, finalValue)
 	if global {
 		c.globals().AddActive(name, finalValue)
 	}
 	c.effectiveCache = nil
-	return finalValue, nil
+	return finalValue, finalDefaultValue, nil
 }
 
 // SetArg sets the value of an arg.
