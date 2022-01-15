@@ -1,0 +1,37 @@
+VERSION 0.6
+FROM alpine:3.13
+WORKDIR /app
+
+images:
+    BUILD +build-image-arm64
+    BUILD +build-image-amd64
+
+vendor:
+    RUN echo "content" >/app/some-files
+    SAVE ARTIFACT /app /files
+
+build-amd64:
+    WORKDIR /build
+    COPY +vendor/files ./
+    RUN mkdir bin
+    RUN echo "go build -o bin/myservice ./app/main.go" >bin/myservice
+    SAVE ARTIFACT bin/myservice /myservice
+
+build-arm64:
+    WORKDIR /build
+    COPY +vendor/files ./
+    RUN mkdir bin
+    RUN echo "go build -o bin/myservice ./app/main.go" >bin/myservice
+    SAVE ARTIFACT bin/myservice /myservice
+
+build-image-amd64:
+    FROM --platform=linux/amd64 alpine:3.13
+    WORKDIR /app
+    COPY +build-amd64/myservice ./myservice
+    SAVE IMAGE earthly/test:amd64
+
+build-image-arm64:
+    FROM --platform=linux/arm64 alpine:3.13
+    WORKDIR /app
+    COPY +build-arm64/myservice ./myservice
+    SAVE IMAGE earthly/test:arm64

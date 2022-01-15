@@ -1,0 +1,18 @@
+VERSION 0.6
+FROM alpine
+WORKDIR /code
+
+ARG DATESTR=$(date)
+
+ARG REPO=earthly/test
+ARG TAG=latest
+
+dev:
+  SAVE IMAGE $REPO:$TAG-dev
+
+prod:
+  SAVE IMAGE $REPO:$TAG
+
+all:
+    BUILD +dev
+    BUILD +prod

@@ -1,0 +1,24 @@
+FROM busybox
+
+SOMECOMMAND:
+    COMMAND
+    ARG input
+    ARG output
+    RUN echo $input >$output
+    SAVE ARTIFACT ./*
+
+usercommand-target:
+    DO +SOMECOMMAND --input=./source.ts --output=./output.js
+
+foo:
+    ARG foo
+    COPY +usercommand-target/output.js .
+    SAVE IMAGE earthly/test:earthly-multiplatform-repro-foo
+
+bar:
+    ARG bar
+    SAVE IMAGE earthly/test:earthly-multiplatform-repro-bar
+
+images:
+    BUILD --platform=linux/amd64 +foo
+    BUILD --platform=linux/amd64 +bar
