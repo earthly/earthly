@@ -4,6 +4,13 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+## v0.6.4 - 2021-01-17
+
+### Fixed
+
+- Duplicate execution occuring when using ARGs. [#1572](https://github.com/earthly/earthly/issues/1572), [#1582](https://github.com/earthly/earthly/issues/1582)
+- Overriding builtin ARG value now displays an error (rather than silently ignoring it).
+
 ## v0.6.3 - 2021-01-12
 
 ### Changed
