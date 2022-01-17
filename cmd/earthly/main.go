@@ -911,6 +911,26 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 			},
 		},
 		{
+			Name:        "auth",
+			Usage:       "Add an OAuth token for use with Earthly Cloud server",
+			Description: "Add an OAuth token for use with Earthly Cloud server",
+			UsageText:   "earthly [options] auth <token>",
+			Action:      app.actionAuth,
+		},
+		{
+			Name:        "log-sharing",
+			Usage:       "Share local Earthly logs with fellow users",
+			Description: "Share local Earthly logs with fellow users",
+			Subcommands: []*cli.Command{
+				{
+					Name:      "upload-last-run",
+					Usage:     "Upload logs from the most recently run Earthly target",
+					UsageText: "earthly [options] log-sharing upload-last-run",
+					Action:    app.actionLogSharingUploadLastRun,
+				},
+			},
+		},
+		{
 			Name:        "debug",
 			Usage:       "Print debug information about an Earthfile",
 			Description: "Print debug information about an Earthfile",
@@ -2470,6 +2490,16 @@ func (app *earthlyApp) actionAccountLogout(c *cli.Context) error {
 	if err != nil {
 		return errors.Wrap(err, "failed to logout")
 	}
+	return nil
+}
+
+func (app *earthlyApp) actionAuth(c *cli.Context) error {
+	// TODO
+	return nil
+}
+
+func (app *earthlyApp) actionLogSharingUploadLastRun(c *cli.Context) error {
+	// TODO
 	return nil
 }
 
