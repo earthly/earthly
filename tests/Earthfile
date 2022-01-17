@@ -32,6 +32,7 @@ ga:
         --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR
     BUILD ./with-docker+all
     BUILD ./with-docker-compose+all
+    BUILD ./with-docker-via-command+test
     BUILD ./dockerfile+test
     BUILD ./dockerfile2/subdir+test
     BUILD ./version+test-all \
