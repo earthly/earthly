@@ -217,6 +217,9 @@ type client struct {
 	email                 string
 	password              string
 	authToken             string
+	jwt                   string
+	jwtExpiry             time.Time
+	oauthToken            string
 	authTokenDir          string
 	disableSSHKeyGuessing bool
 	jm                    *jsonpb.Unmarshaler
@@ -455,6 +458,12 @@ func getPasswordAuthToken(email, password string) string {
 }
 
 func (c *client) getAuthToken() (string, error) {
+	if c.jwt != "" {
+		if time.Now().After(c.jwtExpiry) {
+			// reauthenticate
+		}
+		return "Bearer " + c.jwt, nil
+	}
 	if c.email != "" && c.password != "" {
 		return getPasswordAuthToken(c.email, c.password), nil
 	}
