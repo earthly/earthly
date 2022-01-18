@@ -23,6 +23,7 @@ type Features struct {
 	ForIn                      bool `long:"for-in" description:"allow the use of the FOR command"`
 	RequireForceForUnsafeSaves bool `long:"require-force-for-unsafe-saves" description:"require the --force flag when saving to path outside of current path"`
 	NoImplicitIgnore           bool `long:"no-implicit-ignore" description:"disable implicit ignore rules to exclude .tmp-earthly-out/, build.earth, Earthfile, .earthignore and .earthlyignore when resolving local context"`
+	CheckDuplicateImages       bool `long:"check-duplicate-images" description:"check for duplicate images during output"`
 	EarthlyVersionArg          bool `long:"earthly-version-arg" description:"includes EARTHLY_VERSION and EARTHLY_BUILD_SHA ARGs"`
 	UseCacheCommand            bool `long:"use-cache-command" description:"allow use of CACHE command in Earthfiles"`
 
@@ -168,6 +169,7 @@ func GetFeatures(version *spec.Version) (*Features, error) {
 		ftrs.ForIn = true
 		ftrs.RequireForceForUnsafeSaves = true
 		ftrs.NoImplicitIgnore = true
+		ftrs.CheckDuplicateImages = true
 	case versionAtLeast(ftrs, 0, 7):
 		ftrs.EarthlyVersionArg = true
 		ftrs.UseCacheCommand = true
