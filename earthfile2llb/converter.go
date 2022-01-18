@@ -872,6 +872,7 @@ func (c *Converter) SaveImage(ctx context.Context, imageNames []string, pushImag
 					CacheHint:           cacheHint,
 					HasPushDependencies: true,
 					DoSave:              c.opt.DoSaves || c.opt.ForceSaveImage,
+					CheckDuplicate:      c.ftrs.CheckDuplicateImages,
 				})
 		} else {
 			pcState := persistCache(
@@ -889,6 +890,7 @@ func (c *Converter) SaveImage(ctx context.Context, imageNames []string, pushImag
 					CacheHint:           cacheHint,
 					HasPushDependencies: false,
 					DoSave:              c.opt.DoSaves || c.opt.ForceSaveImage,
+					CheckDuplicate:      c.ftrs.CheckDuplicateImages,
 				})
 		}
 
