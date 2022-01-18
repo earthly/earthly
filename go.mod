@@ -40,10 +40,10 @@ require (
 )
 
 replace (
-	github.com/docker/docker => github.com/docker/docker v20.10.3-0.20210817025855-ba2adeebdb8d+incompatible
+	github.com/docker/docker => github.com/docker/docker v20.10.3-0.20211208011758-87521affb077+incompatible
 
 	github.com/jessevdk/go-flags => github.com/alexcb/go-flags v0.0.0-20210722203016-f11d7ecb5ee5
 
-	github.com/moby/buildkit => github.com/earthly/buildkit v0.0.1-0.20220107002647-0177ad8f0db1
+	github.com/moby/buildkit => github.com/earthly/buildkit v0.0.1-0.20220118235757-8d4eb6b24e72
 	github.com/tonistiigi/fsutil => github.com/earthly/fsutil v0.0.0-20211029185157-9f87c4e70cf0
 )

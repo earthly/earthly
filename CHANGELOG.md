@@ -4,6 +4,10 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+### Changed
+
+- updated buildkit to include changes up to 17c237d69a46d61653746c03bcbe6953014b41a5
+
 ## v0.6.4 - 2021-01-17
 
 ### Fixed
