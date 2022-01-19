@@ -110,7 +110,8 @@ func dockerPullLocalImage(ctx context.Context, fe containerutil.ContainerFronten
 	if err != nil {
 		return errors.Wrap(err, "image tag after pull")
 	}
-	err = fe.ImageRemove(ctx, false, fullPullName)
+	force := true // Sometime Docker GCs images automatically (force prevents an error).
+	err = fe.ImageRemove(ctx, force, fullPullName)
 	if err != nil {
 		return errors.Wrap(err, "image rmi after pull and retag")
 	}
