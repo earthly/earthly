@@ -224,7 +224,7 @@ Regardless of the approach chosen from above, once earthly is invoked, in our ex
 ### How Arguments and Secrets affect caching
 
 Commands in earthly must be re-evaluated when the command itself changes (e.g. `echo "hello $name"` is changed to `echo "greetings $name"`), or when
-one of it's inputs has changed (e.g. `--name=world` is changed to `--name=banana`). Earthly creates a hash based on both the contents
+one of its inputs has changed (e.g. `--name=world` is changed to `--name=banana`). Earthly creates a hash based on both the contents
 of the command and the contents of all defined arguments of the target build context.
 
 However, in the case of secrets, the contents of the secret *is not* included in the hash; therefore, if the contents of a secret changes, Earthly is unable to
