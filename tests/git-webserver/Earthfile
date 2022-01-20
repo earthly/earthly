@@ -70,9 +70,14 @@ server:
 
     # setup basic http auth for user=testuser; password=keepitsecret; which will be used to support authenticating
     # requests to https://testuser:keepitsecret@selfsigned.example.com
-    RUN echo "testuser:{SHA}16usTToGj2dhTan3gF5/aToe4Ro=" > /var/git/htpasswd
 
     COPY nginx.conf /root/nginx.conf
+    ARG ENABLE_BASIC_AUTH="true"
+    IF [ "$ENABLE_BASIC_AUTH" = "true" ]
+        RUN echo "testuser:{SHA}16usTToGj2dhTan3gF5/aToe4Ro=" > /var/git/htpasswd
+    ELSE
+        RUN cat /root/nginx.conf | grep -v auth_basic > /root/nginx.conf.tmp && mv /root/nginx.conf.tmp /root/nginx.conf
+    END
     RUN echo "set -e
 # Docker creates /etc/hosts as readonly; we must unmount it first
 # before we can update it; this change WILL not stick around between different RUNs
@@ -97,7 +102,11 @@ nginx -c /root/nginx.conf
         git config --global user.email "onlyspammersemailthis@earthly.dev" && \
         git config --global user.name "test name" && \
         git commit -m "An Earthfile to test against" && \
-        git remote add origin https://testuser:keepitsecret@selfsigned.example.com/repo.git && \
+        if [ "$ENABLE_BASIC_AUTH" = "true" ]; then \
+            git remote add origin https://testuser:keepitsecret@selfsigned.example.com/repo.git; \
+        else \
+            git remote add origin https://selfsigned.example.com/repo.git; \
+        fi && \
         git push --set-upstream origin main && \
         cd .. && \
         rm -rf repo # remove this repo dir now that it has been pushed to the server
