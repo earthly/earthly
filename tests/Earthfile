@@ -452,8 +452,16 @@ dotenv-test:
     RUN echo "TEST_ENV_3=bar" >>.env
     DO +RUN_EARTHLY --earthfile=dotenv.earth --extra_args="--no-output" --target=+test
     # Smoke test that no .env file does not result in an error.
-    RUN rm .env
+    RUN mv .env .some-other-env
     DO +RUN_EARTHLY --earthfile=dotenv.earth --extra_args="--no-output" --target=+test-no-dotenv
+    DO +RUN_EARTHLY --earthfile=dotenv.earth --extra_args="--no-output --env-file .some-other-env" --target=+test
+    DO +RUN_EARTHLY --earthfile=dotenv.earth --extra_args="--no-output" --pre_command="export EARTHLY_ENV_FILE=.some-other-env" --target=+test
+    DO +RUN_EARTHLY --earthfile=dotenv.earth --extra_args="--no-output --env-file .this-should-fail" --should_fail="true" --target=+test
+    DO +RUN_EARTHLY --earthfile=dotenv.earth --extra_args="--no-output" --pre_command="export EARTHLY_ENV_FILE=.this-too-should-fail" --should_fail="true" --target=+test
+
+    # --env-file takes preceddence
+    DO +RUN_EARTHLY --earthfile=dotenv.earth --extra_args="--no-output --env-file .some-other-env" --pre_command="export EARTHLY_ENV_FILE=.this-should-be-ignored" --target=+test
+
 
 env-test:
     DO +RUN_EARTHLY --earthfile=env.earth --extra_args="--no-output" --target=+test
