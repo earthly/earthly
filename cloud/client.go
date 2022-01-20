@@ -108,6 +108,7 @@ func withAuth() requestOpt {
 func withHeader(key, value string) requestOpt {
 	return func(r *request) error {
 		r.hasHeaders = true
+		r.headers = http.Header{}
 		r.headers.Add(key, value)
 		return nil
 	}
@@ -147,7 +148,7 @@ func (c *client) doCall(method, url string, opts ...requestOpt) (int, string, er
 		}
 	}
 
-	if r.hasAuth && time.Now().After(c.authTokenExpiry) {
+	if r.hasAuth && time.Now().UTC().After(c.authTokenExpiry) {
 		if err := c.Authenticate(); err != nil {
 			return 0, "", errors.Wrap(err, "failed refreshing expired auth token")
 		}
@@ -220,7 +221,7 @@ func (c *client) doCallImp(r request, method, url string, opts ...requestOpt) (i
 		bodyLen = int64(len(r.body))
 	}
 
-	req, err := http.NewRequest(method, c.secretServer+url, bodyReader)
+	req, err := http.NewRequest(method, c.host+url, bodyReader)
 	if err != nil {
 		return 0, "", err
 	}
@@ -249,7 +250,7 @@ func (c *client) doCallImp(r request, method, url string, opts ...requestOpt) (i
 }
 
 type client struct {
-	secretServer          string
+	host                  string
 	sshKeyBlob            []byte // sshKey to use
 	forceSSHKey           bool   // if true only use the above ssh key, don't attempt to guess others
 	sshAgent              agent.ExtendedAgent
@@ -265,9 +266,9 @@ type client struct {
 }
 
 // NewClient provides a new Earthly Cloud client
-func NewClient(cloudServer, agentSockPath, authCredsOverride string, warnFunc func(string, ...interface{})) (Client, error) {
+func NewClient(host, agentSockPath, authCredsOverride string, warnFunc func(string, ...interface{})) (Client, error) {
 	c := &client{
-		secretServer: cloudServer,
+		host: host,
 		sshAgent: &lazySSHAgent{
 			sockPath: agentSockPath,
 		},
@@ -425,9 +426,9 @@ func (c *client) login(credentials string) (token string, expiry time.Time, err 
 	var resp api.LoginResponse
 	err = c.jm.Unmarshal(bytes.NewReader([]byte(body)), &resp)
 	if err != nil {
-		return "", zero, errors.Wrap(err, "failed to unmarshal list orgs response")
+		return "", zero, errors.Wrap(err, "failed to unmarshal login response")
 	}
-	return resp.Token, resp.Expiry.AsTime(), nil
+	return resp.Token, resp.Expiry.AsTime().UTC(), nil
 }
 
 // ping calls the ping endpoint on the server,
@@ -522,7 +523,7 @@ func (c *client) CreateAccount(email, verificationToken, password, publicKey str
 			c.warnFunc("failed to cache public ssh key: %s", err.Error())
 		}
 	} else {
-		err = c.savePasswordToken(email, password)
+		err = c.savePasswordCredentials(email, password)
 		if err != nil {
 			c.warnFunc("failed to cache password token: %s", err.Error())
 		}
@@ -585,7 +586,7 @@ func (c *client) tryCredentials(challenge string, key *agent.Key) (string, strin
 	blob := base64.StdEncoding.EncodeToString(key.Blob)
 	authToken := fmt.Sprintf("ssh-rsa %s %s", blob, sig)
 
-	url := fmt.Sprintf("%s/api/v0/account/ping", c.secretServer)
+	url := fmt.Sprintf("%s/api/v0/account/ping", c.host)
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return "", "", err
@@ -1087,6 +1088,9 @@ func (c *client) loadToken() error {
 	if err != nil {
 		return err
 	}
+	if !fileutil.FileExists(tokenPath) {
+		return nil
+	}
 	data, err := os.ReadFile(tokenPath)
 	if err != nil {
 		return errors.Wrap(err, "failed to read file")
@@ -1212,7 +1216,7 @@ func (c *client) saveSSHCredentials(email, sshKey string) error {
 	return c.saveCredentials(email, sshKeyType, sshKeyBlob)
 }
 
-func (c *client) savePasswordToken(email, password string) error {
+func (c *client) savePasswordCredentials(email, password string) error {
 	password64 := base64.StdEncoding.EncodeToString([]byte(password))
 	return c.saveCredentials(email, "password", password64)
 }
@@ -1225,7 +1229,7 @@ func (c *client) SetPasswordCredentials(email, password string) error {
 	if err != nil {
 		return err
 	}
-	return c.savePasswordToken(email, password)
+	return c.savePasswordCredentials(email, password)
 }
 
 func (c *client) SetTokenCredentials(token string) (string, error) {
