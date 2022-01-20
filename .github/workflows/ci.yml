@@ -622,8 +622,6 @@ jobs:
         run: ./build/linux/amd64/earthly config global.conversion_parallelism 5
 # to regenerate the entries below; run earthly ./scripts/tests/auth+generate-github-tasks
 # auto-generated-entries start;
-      - name: run test-hello-world-empty-netrc.sh
-        run: env earthly=./build/linux/amd64/earthly scripts/tests/auth/test-hello-world-empty-netrc.sh
       - name: run test-hello-world-no-ssh-agent.sh
         run: env earthly=./build/linux/amd64/earthly scripts/tests/auth/test-hello-world-no-ssh-agent.sh
       - name: run test-hello-world-no-ssh-keys.sh
