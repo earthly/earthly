@@ -241,13 +241,6 @@ func (c *client) doCallImp(r request, method, url string, opts ...requestOpt) (i
 		return 0, "", err
 	}
 
-	if resp.StatusCode == http.StatusUnauthorized && r.hasAuth {
-		if err = c.Authenticate(); err != nil {
-			return 0, "", errors.Wrap(err, "auth credentials are not valid")
-		}
-		return c.doCallImp(r, method, url, opts...)
-	}
-
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return 0, "", err
