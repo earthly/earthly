@@ -25,6 +25,7 @@ func TestClient_Authenticate(t *testing.T) {
 		host:     srv.URL,
 		email:    testEmail,
 		password: testPass,
+		authDir:  "/tmp",
 		jm: &jsonpb.Unmarshaler{
 			AllowUnknownFields: true,
 		},
@@ -48,6 +49,7 @@ func TestClient_loadAuthStorage(t *testing.T) {
 		authTokenExpiry: testTokenExp,
 		email:           testEmail,
 		password:        testPass,
+		authDir:         "/tmp",
 	}
 	cc.saveToken()
 	cc.savePasswordCredentials(cc.email, cc.password)
