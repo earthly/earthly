@@ -5,8 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/earthly/earthly/secretsclient"
-
+	"github.com/earthly/earthly/cloud"
 	"github.com/moby/buildkit/session"
 	"github.com/moby/buildkit/session/secrets"
 	"github.com/pkg/errors"
@@ -18,7 +17,7 @@ var ErrNoSecretsClient = errors.Errorf("no secrets client provided")
 
 type secretProvider struct {
 	store  secrets.SecretStore
-	client secretsclient.Client
+	client cloud.Client
 }
 
 // Register registers the secret provider
@@ -70,7 +69,7 @@ func (sp *secretProvider) GetSecret(ctx context.Context, req *secrets.GetSecretR
 }
 
 // NewSecretProvider returns a new secrets provider
-func NewSecretProvider(client secretsclient.Client, overrides map[string][]byte) session.Attachable {
+func NewSecretProvider(client cloud.Client, overrides map[string][]byte) session.Attachable {
 	return &secretProvider{
 		store:  mapStore(overrides),
 		client: client,

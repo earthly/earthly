@@ -1,4 +1,4 @@
-package secretsclient
+package cloud
 
 import (
 	"bytes"
@@ -15,7 +15,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/earthly/earthly/secretsclient/api"
+	"github.com/earthly/earthly/cloud/api"
 	"github.com/earthly/earthly/util/cliutil"
 	"github.com/earthly/earthly/util/fileutil"
 
@@ -59,6 +59,7 @@ type TokenDetail struct {
 type Client interface {
 	RegisterEmail(email string) error
 	CreateAccount(email, verificationToken, password, publicKey string, termsConditionsPrivacy bool) error
+	Authenticate() error
 	Get(path string) ([]byte, error)
 	Remove(path string) error
 	Set(path string, data []byte) error
@@ -76,10 +77,10 @@ type Client interface {
 	ListTokens() ([]*TokenDetail, error)
 	RemoveToken(string) error
 	WhoAmI() (string, string, bool, error)
-	FindSSHAuth() (map[string][]string, error)
-	SetLoginCredentials(string, string) error
-	SetLoginToken(token string) (string, error)
-	SetLoginSSH(email, sshKey string) error
+	SetPasswordCredentials(string, string) error
+	SetTokenCredentials(token string) (string, error)
+	SetSSHCredentials(email, sshKey string) error
+	FindSSHCredentials(emailToFind string) error
 	DeleteCachedCredentials() error
 	DisableSSHKeyGuessing()
 	SetAuthTokenDir(path string)
@@ -88,15 +89,25 @@ type Client interface {
 type request struct {
 	hasBody bool
 	body    []byte
+	headers http.Header
 
-	hasAuth bool
-	retry   bool
+	hasAuth    bool
+	hasHeaders bool
+	retry      bool
 }
 type requestOpt func(*request) error
 
 func withAuth() requestOpt {
 	return func(r *request) error {
 		r.hasAuth = true
+		return nil
+	}
+}
+
+func withHeader(key, value string) requestOpt {
+	return func(r *request) error {
+		r.hasHeaders = true
+		r.headers.Add(key, value)
 		return nil
 	}
 }
@@ -186,12 +197,11 @@ func (c *client) doCallImp(r request, method, url string, opts ...requestOpt) (i
 	if bodyReader != nil {
 		req.ContentLength = bodyLen
 	}
+	if r.hasHeaders {
+		req.Header = r.headers
+	}
 	if r.hasAuth {
-		authToken, err := c.getAuthToken()
-		if err != nil {
-			return 0, "", err
-		}
-		req.Header.Add("Authorization", authToken)
+		req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", c.authToken))
 	}
 
 	client := &http.Client{}
@@ -217,10 +227,9 @@ type client struct {
 	email                 string
 	password              string
 	authToken             string
-	jwt                   string
-	jwtExpiry             time.Time
-	oauthToken            string
-	authTokenDir          string
+	authTokenExpiry       time.Time
+	authCredToken         string
+	authDir               string
 	disableSSHKeyGuessing bool
 	jm                    *jsonpb.Unmarshaler
 }
@@ -238,9 +247,9 @@ func NewClient(secretServer, agentSockPath, authTokenOverride string, warnFunc f
 		},
 	}
 	if authTokenOverride != "" {
-		c.authToken = authTokenOverride
+		c.authCredToken = authTokenOverride
 	} else {
-		err := c.loadAuthToken()
+		err := c.loadAuthCredentials()
 		if err != nil {
 			return nil, err
 		}
@@ -296,6 +305,96 @@ func (c *client) RegisterEmail(email string) error {
 		return errors.Errorf("failed to create account registration request: %s", msg)
 	}
 	return nil
+}
+
+// Fetches a new auth token from the server and saves it to the client.
+// The user should have credentials store on disk within the ~/.earthly directory.
+// Credentials may be either email/password, ssh-based, or a custom token.
+// Upon successful authenticate, the JWT provided by the server is stored in
+// ~/.earthly/auth.jwt, and can be refreshed any time via another call to Authenticate().
+func (c *client) Authenticate() error {
+	var err error
+	if c.email != "" && c.password != "" {
+		c.authCredToken = getPasswordAuthToken(c.email, c.password)
+		c.authToken, c.authTokenExpiry, err = c.login(c.authCredToken)
+		return err
+	}
+	if c.authCredToken != "" {
+		c.authToken, c.authTokenExpiry, err = c.login("token " + c.authCredToken)
+		return err
+	}
+	if c.disableSSHKeyGuessing {
+		return ErrNoAuthorizedPublicKeys
+	}
+	challenge, err := c.getChallenge()
+	if err != nil {
+		return err
+	}
+	keys, err := c.GetPublicKeys()
+	if err != nil {
+		return err
+	}
+	for _, key := range keys {
+		credentials, err := c.getSSHCredentials(challenge, key)
+		if err != nil {
+			return err
+		}
+		c.authToken, c.authTokenExpiry, err = c.login(credentials)
+		if err == ErrUnauthorized {
+			continue // try next key
+		} else if err != nil {
+			return err
+		}
+		email, err := c.ping()
+		if err != nil {
+			return err
+		}
+		c.saveSSHToken(email, key.String())
+	}
+	return ErrNoAuthorizedPublicKeys
+}
+
+// login calls the login endpoint on the cloud server, passing the provided credentials.
+// If auth succeeds, a new jwt token is returned with it's expiry date.
+// ErrUnauthroized is returned if the credentials are not valid.
+func (c *client) login(credentials string) (token string, expiry time.Time, err error) {
+	var zero time.Time
+	status, body, err := c.doCall("POST", "/api/v0/account/login",
+		withHeader("Authorization", credentials))
+	if err != nil {
+		return "", zero, errors.Wrap(err, "failed to execute login request")
+	}
+	if status == http.StatusUnauthorized {
+		return "", zero, ErrUnauthorized
+	}
+	if status != http.StatusOK {
+		return "", zero, errors.Errorf("unexpected status code from login: %d", status)
+	}
+	var resp api.LoginResponse
+	err = c.jm.Unmarshal(bytes.NewReader([]byte(body)), &resp)
+	if err != nil {
+		return "", zero, errors.Wrap(err, "failed to unmarshal list orgs response")
+	}
+	return resp.Token, resp.Expiry.AsTime(), nil
+}
+
+func (c *client) ping() (email string, err error) {
+	status, body, err := c.doCall("GET", "/api/v0/account/ping", withAuth())
+	if err != nil {
+		return "", errors.Wrap(err, "failed executing ping request")
+	}
+	if status == http.StatusUnauthorized {
+		return "", ErrUnauthorized
+	}
+	if status != http.StatusOK {
+		return "", errors.Errorf("unexpected status code from ping: %d", status)
+	}
+	var resp api.PingResponse
+	err = c.jm.Unmarshal(bytes.NewReader([]byte(body)), &resp)
+	if err != nil {
+		return "", errors.Wrap(err, "failed to unmarshal challenge response")
+	}
+	return resp.Email, nil
 }
 
 func getMessageFromJSON(r io.Reader) (string, error) {
@@ -411,7 +510,17 @@ func (c *client) signChallenge(challenge string, key *agent.Key) (string, error)
 	return s, nil
 }
 
-func (c *client) tryAuth(challenge string, key *agent.Key) (string, string, error) {
+func (c *client) getSSHCredentials(challenge string, key *agent.Key) (credentials string, err error) {
+	sig, err := c.signChallenge(challenge, key)
+	if err != nil {
+		return credentials, err
+	}
+	blob := base64.StdEncoding.EncodeToString(key.Blob)
+	credentials = fmt.Sprintf("ssh-rsa %s %s", blob, sig)
+	return credentials, nil
+}
+
+func (c *client) tryCredentials(challenge string, key *agent.Key) (string, string, error) {
 	client := &http.Client{}
 
 	sig, err := c.signChallenge(challenge, key)
@@ -457,20 +566,13 @@ func getPasswordAuthToken(email, password string) string {
 	return fmt.Sprintf("password %s %s", email64, password64)
 }
 
-func (c *client) getAuthToken() (string, error) {
-	if c.jwt != "" {
-		if time.Now().After(c.jwtExpiry) {
-			// reauthenticate
-		}
-		return "Bearer " + c.jwt, nil
-	}
+func (c *client) getAuthCredentials() (string, error) {
 	if c.email != "" && c.password != "" {
 		return getPasswordAuthToken(c.email, c.password), nil
 	}
-	if c.authToken != "" {
-		return "token " + c.authToken, nil
+	if c.authCredToken != "" {
+		return "token " + c.authCredToken, nil
 	}
-
 	if c.disableSSHKeyGuessing {
 		return "", ErrNoAuthorizedPublicKeys
 	}
@@ -485,7 +587,7 @@ func (c *client) getAuthToken() (string, error) {
 		return "", err
 	}
 	for _, key := range keys {
-		email, authToken, err := c.tryAuth(challenge, key)
+		email, authToken, err := c.tryCredentials(challenge, key)
 		if err == ErrUnauthorized {
 			continue // try next key
 		} else if err != nil {
@@ -870,15 +972,15 @@ func (c *client) WhoAmI() (string, string, bool, error) {
 	authType := "ssh"
 	if c.password != "" {
 		authType = "password"
-	} else if c.authToken != "" {
+	} else if c.authCredToken != "" {
 		authType = "token"
 	}
 
 	return pingResponse.Email, authType, pingResponse.WriteAccess, nil
 }
 
-func (c *client) getAuthTokenPath(create bool) (string, error) {
-	confDirPath := c.authTokenDir
+func (c *client) getCredentialsPath(create bool) (string, error) {
+	confDirPath := c.authDir
 	if confDirPath == "" {
 		if create {
 			var err error
@@ -894,11 +996,11 @@ func (c *client) getAuthTokenPath(create bool) (string, error) {
 	return tokenPath, nil
 }
 
-// loads ~/.earthly/auth.token
+// loads ~/.earthly/auth.credentials
 // which is formatted as
 // <email> <type> ...
-func (c *client) loadAuthToken() error {
-	tokenPath, err := c.getAuthTokenPath(false)
+func (c *client) loadAuthCredentials() error {
+	tokenPath, err := c.getCredentialsPath(false)
 	if err != nil {
 		return err
 	}
@@ -929,7 +1031,7 @@ func (c *client) loadAuthToken() error {
 			return errors.Wrap(err, "base64 decode failed")
 		}
 	case "token":
-		c.authToken = authData
+		c.authCredToken = authData
 	default:
 		c.warnFunc("unable to handle cached auth type %s", authType)
 	}
@@ -945,8 +1047,8 @@ func IsValidEmail(email string) bool {
 	return len(parts) == 2
 }
 
-func (c *client) saveToken(email, tokenType, tokenValue string) error {
-	tokenPath, err := c.getAuthTokenPath(true)
+func (c *client) saveCredentials(email, tokenType, tokenValue string) error {
+	tokenPath, err := c.getCredentialsPath(true)
 	if err != nil {
 		return err
 	}
@@ -964,7 +1066,7 @@ func (c *client) saveToken(email, tokenType, tokenValue string) error {
 	data := []byte(email + " " + tokenType + " " + tokenValue)
 	err = os.WriteFile(tokenPath, []byte(data), 0600)
 	if err != nil {
-		return errors.Wrapf(err, "failed to store auth token")
+		return errors.Wrapf(err, "failed to store auth credentials")
 	}
 	return nil
 }
@@ -974,16 +1076,16 @@ func (c *client) saveSSHToken(email, sshKey string) error {
 	if err != nil {
 		return err
 	}
-	return c.saveToken(email, sshKeyType, sshKeyBlob)
+	return c.saveCredentials(email, sshKeyType, sshKeyBlob)
 }
 
 func (c *client) savePasswordToken(email, password string) error {
 	password64 := base64.StdEncoding.EncodeToString([]byte(password))
-	return c.saveToken(email, "password", password64)
+	return c.saveCredentials(email, "password", password64)
 }
 
-func (c *client) SetLoginCredentials(email, password string) error {
-	c.authToken = ""
+func (c *client) SetPasswordCredentials(email, password string) error {
+	c.authCredToken = ""
 	c.email = email
 	c.password = password
 	_, _, _, err := c.WhoAmI()
@@ -993,15 +1095,15 @@ func (c *client) SetLoginCredentials(email, password string) error {
 	return c.savePasswordToken(email, password)
 }
 
-func (c *client) SetLoginToken(token string) (string, error) {
+func (c *client) SetTokenCredentials(token string) (string, error) {
 	c.email = ""
 	c.password = ""
-	c.authToken = token
+	c.authCredToken = token
 	email, _, _, err := c.WhoAmI()
 	if err != nil {
 		return "", err
 	}
-	err = c.saveToken(email, "token", token)
+	err = c.saveCredentials(email, "token", token)
 	if err != nil {
 		return "", err
 	}
@@ -1010,7 +1112,7 @@ func (c *client) SetLoginToken(token string) (string, error) {
 
 func (c *client) SetLoginPublicKey(email, key string) (string, error) {
 	c.password = ""
-	c.authToken = ""
+	c.authCredToken = ""
 	c.email = email
 
 	sshKeyType, sshKeyBlob, _, err := parseSSHKey(key)
@@ -1040,14 +1142,14 @@ func (c *client) DisableSSHKeyGuessing() {
 }
 
 func (c *client) SetAuthTokenDir(path string) {
-	c.authTokenDir = path
+	c.authDir = path
 }
 
 func (c *client) DeleteCachedCredentials() error {
 	c.email = ""
 	c.password = ""
-	c.authToken = ""
-	tokenPath, err := c.getAuthTokenPath(false)
+	c.authCredToken = ""
+	tokenPath, err := c.getCredentialsPath(false)
 	if err != nil {
 		return err
 	}
@@ -1061,14 +1163,14 @@ func (c *client) DeleteCachedCredentials() error {
 	return nil
 }
 
-func (c *client) SetLoginSSH(email, sshKey string) error {
+func (c *client) SetSSHCredentials(email, sshKey string) error {
 	sshKeyType, sshKeyBlob, _, err := parseSSHKey(sshKey)
 	if err != nil {
 		return err
 	}
 
 	c.password = ""
-	c.authToken = ""
+	c.authCredToken = ""
 	c.email = email
 
 	c.sshKeyBlob, err = base64.StdEncoding.DecodeString(sshKeyBlob)
@@ -1083,7 +1185,7 @@ func (c *client) SetLoginSSH(email, sshKey string) error {
 	if authedEmail != email {
 		return errors.Errorf("failed to set correct email") // shouldn't happen
 	}
-	return c.saveToken(email, sshKeyType, sshKeyBlob)
+	return c.saveCredentials(email, sshKeyType, sshKeyBlob)
 }
 
 func parseSSHKey(sshKey string) (string, string, string, error) {
@@ -1100,27 +1202,36 @@ func parseSSHKey(sshKey string) (string, string, string, error) {
 	return sshKeyType, sshKeyBlob, sshKeyComment, nil
 }
 
-func (c *client) FindSSHAuth() (map[string][]string, error) {
+func (c *client) FindSSHCredentials(emailToFind string) error {
 	keys, err := c.GetPublicKeys()
 	if err != nil {
-		return nil, err
+		return err
 	}
-
 	challenge, err := c.getChallenge()
 	if err != nil {
-		return nil, err
+		return err
 	}
-
-	foundKeys := map[string][]string{}
-
 	for _, key := range keys {
-		email, _, err := c.tryAuth(challenge, key)
+		credentials, err := c.getSSHCredentials(challenge, key)
+		if err != nil {
+			return err
+		}
+		c.authToken, c.authTokenExpiry, err = c.login(credentials)
 		if err == ErrUnauthorized {
 			continue // try next key
 		} else if err != nil {
-			return nil, err
+			return err
 		}
-		foundKeys[email] = append(foundKeys[email], key.String())
+		email, err := c.ping()
+		if err != nil {
+			return err
+		}
+		if email == emailToFind {
+			return nil
+		}
+		if err := c.SetSSHCredentials(email, key.String()); err != nil {
+			return err
+		}
 	}
-	return foundKeys, nil
+	return ErrNoAuthorizedPublicKeys
 }
