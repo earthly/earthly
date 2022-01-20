@@ -12,8 +12,8 @@ import (
 	"google.golang.org/grpc"
 )
 
-// ErrNoSecretsClient occurs when the secrets client is referenced but was never provided
-var ErrNoSecretsClient = errors.Errorf("no secrets client provided")
+// ErrNoCloudClient occurs when the secrets client is referenced but was never provided
+var ErrNoCloudClient = errors.Errorf("no secrets client provided")
 
 type secretProvider struct {
 	store  secrets.SecretStore
@@ -27,7 +27,7 @@ func (sp *secretProvider) Register(server *grpc.Server) {
 
 func (sp *secretProvider) getSecretFromServer(path string) ([]byte, error) {
 	if sp.client == nil {
-		return nil, ErrNoSecretsClient
+		return nil, ErrNoCloudClient
 	}
 	data, err := sp.client.Get(path)
 	if err != nil {

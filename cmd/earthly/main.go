@@ -1802,7 +1802,7 @@ func (app *earthlyApp) actionOrgCreate(c *cli.Context) error {
 	org := c.Args().Get(0)
 	sc, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
 	if err != nil {
-		return errors.Wrap(err, "failed to create secretsclient")
+		return errors.Wrap(err, "failed to create cloud client")
 	}
 	err = sc.CreateOrg(org)
 	if err != nil {
@@ -1815,7 +1815,7 @@ func (app *earthlyApp) actionOrgList(c *cli.Context) error {
 	app.commandName = "orgList"
 	sc, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
 	if err != nil {
-		return errors.Wrap(err, "failed to create secretsclient")
+		return errors.Wrap(err, "failed to create cloud client")
 	}
 	orgs, err := sc.ListOrgs()
 	if err != nil {
@@ -1848,7 +1848,7 @@ func (app *earthlyApp) actionOrgListPermissions(c *cli.Context) error {
 	}
 	sc, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
 	if err != nil {
-		return errors.Wrap(err, "failed to create secretsclient")
+		return errors.Wrap(err, "failed to create cloud client")
 	}
 	orgs, err := sc.ListOrgPermissions(path)
 	if err != nil {
@@ -1881,7 +1881,7 @@ func (app *earthlyApp) actionOrgInvite(c *cli.Context) error {
 
 	sc, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
 	if err != nil {
-		return errors.Wrap(err, "failed to create secretsclient")
+		return errors.Wrap(err, "failed to create cloud client")
 	}
 	userEmail := c.Args().Get(1)
 	err = sc.Invite(path, userEmail, app.writePermission)
@@ -1903,7 +1903,7 @@ func (app *earthlyApp) actionOrgRevoke(c *cli.Context) error {
 
 	sc, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
 	if err != nil {
-		return errors.Wrap(err, "failed to create secretsclient")
+		return errors.Wrap(err, "failed to create cloud client")
 	}
 	userEmail := c.Args().Get(1)
 	err = sc.RevokePermission(path, userEmail)
@@ -1927,7 +1927,7 @@ func (app *earthlyApp) actionSecretsList(c *cli.Context) error {
 	}
 	sc, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
 	if err != nil {
-		return errors.Wrap(err, "failed to create secretsclient")
+		return errors.Wrap(err, "failed to create cloud client")
 	}
 	paths, err := sc.List(path)
 	if err != nil {
@@ -1947,7 +1947,7 @@ func (app *earthlyApp) actionSecretsGet(c *cli.Context) error {
 	path := c.Args().Get(0)
 	sc, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
 	if err != nil {
-		return errors.Wrap(err, "failed to create secretsclient")
+		return errors.Wrap(err, "failed to create cloud client")
 	}
 	data, err := sc.Get(path)
 	if err != nil {
@@ -1968,7 +1968,7 @@ func (app *earthlyApp) actionSecretsRemove(c *cli.Context) error {
 	path := c.Args().Get(0)
 	sc, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
 	if err != nil {
-		return errors.Wrap(err, "failed to create secretsclient")
+		return errors.Wrap(err, "failed to create cloud client")
 	}
 	err = sc.Remove(path)
 	if err != nil {
@@ -2014,7 +2014,7 @@ func (app *earthlyApp) actionSecretsSet(c *cli.Context) error {
 
 	sc, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
 	if err != nil {
-		return errors.Wrap(err, "failed to create secretsclient")
+		return errors.Wrap(err, "failed to create cloud client")
 	}
 	err = sc.Set(path, []byte(value))
 	if err != nil {
@@ -2035,7 +2035,7 @@ func (app *earthlyApp) actionRegister(c *cli.Context) error {
 
 	sc, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
 	if err != nil {
-		return errors.Wrap(err, "failed to create secretsclient")
+		return errors.Wrap(err, "failed to create cloud client")
 	}
 
 	if app.token == "" {
@@ -2145,7 +2145,7 @@ func (app *earthlyApp) actionAccountListKeys(c *cli.Context) error {
 	app.commandName = "accountListKeys"
 	sc, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
 	if err != nil {
-		return errors.Wrap(err, "failed to create secretsclient")
+		return errors.Wrap(err, "failed to create cloud client")
 	}
 	keys, err := sc.ListPublicKeys()
 	if err != nil {
@@ -2161,7 +2161,7 @@ func (app *earthlyApp) actionAccountAddKey(c *cli.Context) error {
 	app.commandName = "accountAddKey"
 	sc, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
 	if err != nil {
-		return errors.Wrap(err, "failed to create secretsclient")
+		return errors.Wrap(err, "failed to create cloud client")
 	}
 	if c.NArg() > 1 {
 		for _, k := range c.Args().Slice() {
@@ -2213,7 +2213,7 @@ func (app *earthlyApp) actionAccountAddKey(c *cli.Context) error {
 		return errors.Wrap(err, "failed to validate auth token")
 	}
 	if authType == "password" {
-		err = sc.SetLoginSSH(email, publicKey)
+		err = sc.SetSSHCredentials(email, publicKey)
 		if err != nil {
 			app.console.Warnf("failed to authenticate using newly added public key: %s", err.Error())
 			return nil
@@ -2228,7 +2228,7 @@ func (app *earthlyApp) actionAccountRemoveKey(c *cli.Context) error {
 	app.commandName = "accountRemoveKey"
 	sc, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
 	if err != nil {
-		return errors.Wrap(err, "failed to create secretsclient")
+		return errors.Wrap(err, "failed to create cloud client")
 	}
 	for _, k := range c.Args().Slice() {
 		err := sc.RemovePublickKey(k)
@@ -2242,7 +2242,7 @@ func (app *earthlyApp) actionAccountListTokens(c *cli.Context) error {
 	app.commandName = "accountListTokens"
 	sc, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
 	if err != nil {
-		return errors.Wrap(err, "failed to create secretsclient")
+		return errors.Wrap(err, "failed to create cloud client")
 	}
 	tokens, err := sc.ListTokens()
 	if err != nil {
@@ -2304,7 +2304,7 @@ func (app *earthlyApp) actionAccountCreateToken(c *cli.Context) error {
 
 	sc, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
 	if err != nil {
-		return errors.Wrap(err, "failed to create secretsclient")
+		return errors.Wrap(err, "failed to create cloud client")
 	}
 	name := c.Args().First()
 	token, err := sc.CreateToken(name, app.writePermission, &expiry)
@@ -2323,7 +2323,7 @@ func (app *earthlyApp) actionAccountRemoveToken(c *cli.Context) error {
 	name := c.Args().First()
 	sc, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
 	if err != nil {
-		return errors.Wrap(err, "failed to create secretsclient")
+		return errors.Wrap(err, "failed to create cloud client")
 	}
 	err = sc.RemoveToken(name)
 	if err != nil {
@@ -2359,7 +2359,7 @@ func (app *earthlyApp) actionAccountLogin(c *cli.Context) error {
 	}
 	sc, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
 	if err != nil {
-		return errors.Wrap(err, "failed to create secretsclient")
+		return errors.Wrap(err, "failed to create cloud client")
 	}
 
 	// special case where global auth token overrides login logic
@@ -2385,25 +2385,11 @@ func (app *earthlyApp) actionAccountLogin(c *cli.Context) error {
 		}
 		sc.DisableSSHKeyGuessing()
 	} else if email != "" {
-		if err := sc.FindSSHAuth(email); err != nil {
+		if err := sc.FindSSHCredentials(email); err != nil {
 			return errors.Wrap(err, "failed finding ssh keys")
 		}
 		fmt.Printf("Logged in as %q using ssh auth\n", email)
 		return nil
-		// foundSSHKeys, err := sc.FindSSHAuth(email)
-		// if err == nil {
-		// 	if keys, ok := foundSSHKeys[email]; ok {
-		// 		if len(keys) > 0 {
-		// 			foundSSHKey := keys[0]
-		// 			err := sc.SetLoginSSH(email, foundSSHKey)
-		// 			if err != nil {
-		// 				return err
-		// 			}
-		// 			fmt.Printf("Logged in as %q using ssh auth\n", email)
-		// 			return nil
-		// 		}
-		// 	}
-		// }
 	}
 
 	loggedInEmail, authType, writeAccess, err := sc.WhoAmI()
@@ -2449,18 +2435,21 @@ func (app *earthlyApp) actionAccountLogin(c *cli.Context) error {
 	}
 
 	if token != "" {
-		email, err = sc.SetLoginToken(token)
+		email, err = sc.SetTokenCredentials(token)
 		if err != nil {
 			return err
 		}
 		fmt.Printf("Logged in as %q using token auth\n", email) // TODO display if using read-only token
 	} else {
-		err = sc.SetLoginCredentials(email, string(pass))
+		err = sc.SetPasswordCredentials(email, string(pass))
 		if err != nil {
 			return err
 		}
 		fmt.Printf("Logged in as %q using password auth\n", email)
 		fmt.Printf("Warning unencrypted password has been stored under ~/.earthly/auth.token; consider using ssh-based auth to prevent this.\n")
+	}
+	if err = sc.Authenticate(); err != nil {
+		return errors.Wrap(err, "authentication with cloud server failed")
 	}
 	return nil
 }
@@ -2812,7 +2801,7 @@ func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []st
 
 	sc, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
 	if err != nil {
-		return errors.Wrap(err, "failed to create secretsclient")
+		return errors.Wrap(err, "failed to create cloud client")
 	}
 
 	localhostProvider, err := localhostprovider.NewLocalhostProvider()

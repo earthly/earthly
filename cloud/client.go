@@ -27,13 +27,15 @@ import (
 )
 
 // ErrAccountExists occurs account creation when an account already exists
-var ErrAccountExists = errors.Errorf("account already exists")
+var ErrAccountExists = errors.New("account already exists")
 
 // ErrUnauthorized occurs when a user is unauthorized to access a resource
-var ErrUnauthorized = errors.Errorf("unauthorized")
+var ErrUnauthorized = errors.New("unauthorized")
 
 // ErrNoAuthorizedPublicKeys occurs when no authorized public keys are found
-var ErrNoAuthorizedPublicKeys = errors.Errorf("no authorized public keys found")
+var ErrNoAuthorizedPublicKeys = errors.New("no authorized public keys found")
+
+const tokenExpiryLayout = "2006-01-02 15:04:05.999999999 -0700 MST"
 
 // OrgDetail contains an organization and details
 type OrgDetail struct {
@@ -93,7 +95,6 @@ type request struct {
 
 	hasAuth    bool
 	hasHeaders bool
-	retry      bool
 }
 type requestOpt func(*request) error
 
@@ -108,13 +109,6 @@ func withHeader(key, value string) requestOpt {
 	return func(r *request) error {
 		r.hasHeaders = true
 		r.headers.Add(key, value)
-		return nil
-	}
-}
-
-func withRetry() requestOpt {
-	return func(r *request) error {
-		r.retry = true
 		return nil
 	}
 }
@@ -141,10 +135,10 @@ func withBody(body string) requestOpt {
 	}
 }
 
-const maxAttempt = 10
-const maxSleepBeforeRetry = time.Second * 3
-
 func (c *client) doCall(method, url string, opts ...requestOpt) (int, string, error) {
+	const maxAttempt = 10
+	const maxSleepBeforeRetry = time.Second * 3
+
 	var r request
 	for _, opt := range opts {
 		err := opt(&r)
@@ -153,33 +147,69 @@ func (c *client) doCall(method, url string, opts ...requestOpt) (int, string, er
 		}
 	}
 
+	if r.hasAuth && time.Now().After(c.authTokenExpiry) {
+		if err := c.Authenticate(); err != nil {
+			return 0, "", errors.Wrap(err, "failed refreshing expired auth token")
+		}
+	}
+
 	var status int
 	var body string
 	var err error
 	duration := time.Millisecond * 100
+	alreadyReuthed := false
+
 	for attempt := 0; attempt < maxAttempt; attempt++ {
 		status, body, err = c.doCallImp(r, method, url, opts...)
-		if (err == nil && status < 500) || errors.Cause(err) == ErrNoAuthorizedPublicKeys || errors.Cause(err) == ErrNoSSHAgent ||
-			(err != nil && strings.Contains(err.Error(), "failed to connect to ssh-agent")) {
+
+		if !shouldRetry(status, body, err, c.warnFunc) {
 			return status, body, err
 		}
-		if err != nil {
-			c.warnFunc("retrying http request due to %v", err)
-		} else {
-			msg, err := getMessageFromJSON(bytes.NewReader([]byte(body)))
-			if err == nil {
-				c.warnFunc("retrying http request due to unexpected status code %v: %v", status, msg)
-			} else {
-				c.warnFunc("retrying http request due to unexpected status code %v", status)
+
+		if status == http.StatusUnauthorized {
+			if alreadyReuthed {
+				return status, body, err
 			}
+			if err = c.Authenticate(); err != nil {
+				return status, body, errors.Wrap(err, "auth credentials not valid")
+			}
+			alreadyReuthed = true
 		}
+
 		if duration > maxSleepBeforeRetry {
 			duration = maxSleepBeforeRetry
 		}
+
 		time.Sleep(duration)
 		duration *= 2
 	}
+
 	return status, body, err
+}
+
+func shouldRetry(status int, body string, err error, warnFunc func(string, ...interface{})) bool {
+	if status == http.StatusUnauthorized {
+		return true
+	}
+	if 500 <= status && status <= 599 {
+		msg, err := getMessageFromJSON(bytes.NewReader([]byte(body)))
+		if err != nil {
+			warnFunc("retrying http request due to unexpected status code %v", status)
+		} else {
+			warnFunc("retrying http request due to unexpected status code %v: %v", status, msg)
+		}
+		return true
+	}
+	if err != nil {
+		if errors.Cause(err) == ErrNoAuthorizedPublicKeys ||
+			errors.Cause(err) == ErrNoSSHAgent ||
+			strings.Contains(err.Error(), "failed to connect to ssh-agent") {
+			return false
+		}
+		warnFunc("retrying http request due to unexpected error %v", err)
+		return true
+	}
+	return false
 }
 
 func (c *client) doCallImp(r request, method, url string, opts ...requestOpt) (int, string, error) {
@@ -211,6 +241,13 @@ func (c *client) doCallImp(r request, method, url string, opts ...requestOpt) (i
 		return 0, "", err
 	}
 
+	if resp.StatusCode == http.StatusUnauthorized && r.hasAuth {
+		if err = c.Authenticate(); err != nil {
+			return 0, "", errors.Wrap(err, "auth credentials are not valid")
+		}
+		return c.doCallImp(r, method, url, opts...)
+	}
+
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return 0, "", err
@@ -234,10 +271,10 @@ type client struct {
 	jm                    *jsonpb.Unmarshaler
 }
 
-// NewClient provides a new client
-func NewClient(secretServer, agentSockPath, authTokenOverride string, warnFunc func(string, ...interface{})) (Client, error) {
+// NewClient provides a new Earthly Cloud client
+func NewClient(cloudServer, agentSockPath, authCredsOverride string, warnFunc func(string, ...interface{})) (Client, error) {
 	c := &client{
-		secretServer: secretServer,
+		secretServer: cloudServer,
 		sshAgent: &lazySSHAgent{
 			sockPath: agentSockPath,
 		},
@@ -246,10 +283,10 @@ func NewClient(secretServer, agentSockPath, authTokenOverride string, warnFunc f
 			AllowUnknownFields: true,
 		},
 	}
-	if authTokenOverride != "" {
-		c.authCredToken = authTokenOverride
+	if authCredsOverride != "" {
+		c.authCredToken = authCredsOverride
 	} else {
-		err := c.loadAuthCredentials()
+		err := c.loadAuthStorage()
 		if err != nil {
 			return nil, err
 		}
@@ -314,15 +351,37 @@ func (c *client) RegisterEmail(email string) error {
 // ~/.earthly/auth.jwt, and can be refreshed any time via another call to Authenticate().
 func (c *client) Authenticate() error {
 	var err error
-	if c.email != "" && c.password != "" {
-		c.authCredToken = getPasswordAuthToken(c.email, c.password)
-		c.authToken, c.authTokenExpiry, err = c.login(c.authCredToken)
+	switch {
+	case c.email != "" && c.password != "":
+		err = c.loginWithPassowrd()
+	case c.authCredToken != "":
+		err = c.loginWithToken()
+	default:
+		err = c.loginWithSSH()
+	}
+	if err != nil {
 		return err
 	}
-	if c.authCredToken != "" {
-		c.authToken, c.authTokenExpiry, err = c.login("token " + c.authCredToken)
+	if err = c.saveToken(); err != nil {
 		return err
 	}
+	return nil
+}
+
+func (c *client) loginWithPassowrd() error {
+	var err error
+	c.authCredToken = getPasswordAuthToken(c.email, c.password)
+	c.authToken, c.authTokenExpiry, err = c.login(c.authCredToken)
+	return err
+}
+
+func (c *client) loginWithToken() error {
+	var err error
+	c.authToken, c.authTokenExpiry, err = c.login("token " + c.authCredToken)
+	return err
+}
+
+func (c *client) loginWithSSH() error {
 	if c.disableSSHKeyGuessing {
 		return ErrNoAuthorizedPublicKeys
 	}
@@ -349,7 +408,7 @@ func (c *client) Authenticate() error {
 		if err != nil {
 			return err
 		}
-		c.saveSSHToken(email, key.String())
+		return c.saveSSHCredentials(email, key.String())
 	}
 	return ErrNoAuthorizedPublicKeys
 }
@@ -378,6 +437,8 @@ func (c *client) login(credentials string) (token string, expiry time.Time, err 
 	return resp.Token, resp.Expiry.AsTime(), nil
 }
 
+// ping calls the ping endpoint on the server,
+// which is used to both test an auth token and retrieve the associated email address.
 func (c *client) ping() (email string, err error) {
 	status, body, err := c.doCall("GET", "/api/v0/account/ping", withAuth())
 	if err != nil {
@@ -463,7 +524,7 @@ func (c *client) CreateAccount(email, verificationToken, password, publicKey str
 
 	// cache login preferences for future command runs
 	if publicKey != "" {
-		err = c.saveSSHToken(email, publicKey)
+		err = c.saveSSHCredentials(email, publicKey)
 		if err != nil {
 			c.warnFunc("failed to cache public ssh key: %s", err.Error())
 		}
@@ -593,7 +654,7 @@ func (c *client) getAuthCredentials() (string, error) {
 		} else if err != nil {
 			return "", err
 		}
-		c.saveSSHToken(email, key.String())
+		c.saveSSHCredentials(email, key.String())
 		return authToken, nil
 	}
 	return "", ErrNoAuthorizedPublicKeys
@@ -657,7 +718,7 @@ func (c *client) Get(path string) ([]byte, error) {
 	if path == "" || path[0] != '/' || strings.HasSuffix(path, "/") {
 		return nil, errors.Errorf("invalid path")
 	}
-	status, body, err := c.doCall("GET", fmt.Sprintf("/api/v0/secrets%s", path), withAuth(), withRetry())
+	status, body, err := c.doCall("GET", fmt.Sprintf("/api/v0/secrets%s", path), withAuth())
 	if err != nil {
 		return nil, err
 	}
@@ -979,6 +1040,38 @@ func (c *client) WhoAmI() (string, string, bool, error) {
 	return pingResponse.Email, authType, pingResponse.WriteAccess, nil
 }
 
+func (c *client) migrateV1Token() error {
+	confDirPath := c.authDir
+	if confDirPath == "" {
+		confDirPath = cliutil.GetEarthlyDir()
+	}
+	tokenPath := filepath.Join(confDirPath, "auth.token")
+	newPath := filepath.Join(confDirPath, "auth.credentials")
+	if fileutil.FileExists(tokenPath) {
+		if err := os.Rename(tokenPath, newPath); err != nil {
+			return errors.Wrapf(err, "failed to move v1 token from '%s' to '%s'", tokenPath, newPath)
+		}
+	}
+	return nil
+}
+
+func (c *client) getTokenPath(create bool) (string, error) {
+	confDirPath := c.authDir
+	if confDirPath == "" {
+		if create {
+			var err error
+			confDirPath, err = cliutil.GetOrCreateEarthlyDir()
+			if err != nil {
+				return "", errors.Wrap(err, "cannot get .earthly dir")
+			}
+		} else {
+			confDirPath = cliutil.GetEarthlyDir()
+		}
+	}
+	tokenPath := filepath.Join(confDirPath, "auth.v2.token")
+	return tokenPath, nil
+}
+
 func (c *client) getCredentialsPath(create bool) (string, error) {
 	confDirPath := c.authDir
 	if confDirPath == "" {
@@ -992,22 +1085,37 @@ func (c *client) getCredentialsPath(create bool) (string, error) {
 			confDirPath = cliutil.GetEarthlyDir()
 		}
 	}
-	tokenPath := filepath.Join(confDirPath, "auth.token")
+	tokenPath := filepath.Join(confDirPath, "auth.credentials")
 	return tokenPath, nil
 }
 
-// loads ~/.earthly/auth.credentials
-// which is formatted as
-// <email> <type> ...
-func (c *client) loadAuthCredentials() error {
-	tokenPath, err := c.getCredentialsPath(false)
+func (c *client) loadToken() error {
+	tokenPath, err := c.getTokenPath(false)
 	if err != nil {
 		return err
 	}
-	if !fileutil.FileExists(tokenPath) {
+	data, err := os.ReadFile(tokenPath)
+	if err != nil {
+		return errors.Wrap(err, "failed to read file")
+	}
+	parts := strings.SplitN(string(data), " ", 2)
+	c.authToken = parts[0]
+	c.authTokenExpiry, err = time.Parse(tokenExpiryLayout, parts[1])
+	if err != nil {
+		return errors.Wrapf(err, "unable to parse token expiry: %s", parts[1])
+	}
+	return nil
+}
+
+func (c *client) loadCredentials() error {
+	credPath, err := c.getCredentialsPath(false)
+	if err != nil {
+		return err
+	}
+	if !fileutil.FileExists(credPath) {
 		return nil
 	}
-	data, err := os.ReadFile(tokenPath)
+	data, err := os.ReadFile(credPath)
 	if err != nil {
 		return errors.Wrap(err, "failed to read file")
 	}
@@ -1016,24 +1124,41 @@ func (c *client) loadAuthCredentials() error {
 		return nil
 	}
 	c.email = parts[0]
-	authType := parts[1]
-	authData := parts[2]
-	switch authType {
+	credType := parts[1]
+	credData := parts[2]
+	switch credType {
 	case "password":
-		passwordBytes, err := base64.StdEncoding.DecodeString(authData)
+		passwordBytes, err := base64.StdEncoding.DecodeString(credData)
 		if err != nil {
 			return errors.Wrap(err, "base64 decode failed")
 		}
 		c.password = string(passwordBytes)
 	case "ssh-rsa":
-		c.sshKeyBlob, err = base64.StdEncoding.DecodeString(authData)
+		c.sshKeyBlob, err = base64.StdEncoding.DecodeString(credData)
 		if err != nil {
 			return errors.Wrap(err, "base64 decode failed")
 		}
 	case "token":
-		c.authCredToken = authData
+		c.authCredToken = credData
 	default:
-		c.warnFunc("unable to handle cached auth type %s", authType)
+		c.warnFunc("unable to handle cached auth type %s", credType)
+	}
+	return nil
+}
+
+// loads the following files:
+//  * ~/.earthly/auth.credentials
+//  * ~/.earthly/auth.v2.token
+// If a v1-style auth.token file exists, it is automatically removed.
+func (c *client) loadAuthStorage() error {
+	if err := c.migrateV1Token(); err != nil {
+		return err
+	}
+	if err := c.loadToken(); err != nil {
+		return err
+	}
+	if err := c.loadCredentials(); err != nil {
+		return err
 	}
 	return nil
 }
@@ -1045,6 +1170,21 @@ func IsValidEmail(email string) bool {
 	}
 	parts := strings.Split(email, "@")
 	return len(parts) == 2
+}
+
+func (c *client) saveToken() error {
+	path, err := c.getTokenPath(true)
+	if err != nil {
+		return err
+	}
+	data := []byte(fmt.Sprintf(
+		"%s %s",
+		c.authToken,
+		c.authTokenExpiry.Format(tokenExpiryLayout)))
+	if err = os.WriteFile(path, data, 0644); err != nil {
+		return errors.Wrap(err, "failed writing auth token to disk")
+	}
+	return nil
 }
 
 func (c *client) saveCredentials(email, tokenType, tokenValue string) error {
@@ -1071,7 +1211,7 @@ func (c *client) saveCredentials(email, tokenType, tokenValue string) error {
 	return nil
 }
 
-func (c *client) saveSSHToken(email, sshKey string) error {
+func (c *client) saveSSHCredentials(email, sshKey string) error {
 	sshKeyType, sshKeyBlob, _, err := parseSSHKey(sshKey)
 	if err != nil {
 		return err
@@ -1106,33 +1246,6 @@ func (c *client) SetTokenCredentials(token string) (string, error) {
 	err = c.saveCredentials(email, "token", token)
 	if err != nil {
 		return "", err
-	}
-	return email, nil
-}
-
-func (c *client) SetLoginPublicKey(email, key string) (string, error) {
-	c.password = ""
-	c.authCredToken = ""
-	c.email = email
-
-	sshKeyType, sshKeyBlob, _, err := parseSSHKey(key)
-	if err != nil {
-		return "", err
-	}
-	if sshKeyType != "ssh-rsa" {
-		return "", errors.Errorf("ssh-rsa only supported")
-	}
-	c.sshKeyBlob, err = base64.StdEncoding.DecodeString(sshKeyBlob)
-	if err != nil {
-		return "", errors.Wrap(err, "base64 decode failed")
-	}
-
-	returnedEmail, _, _, err := c.WhoAmI()
-	if err != nil {
-		return "", err
-	}
-	if returnedEmail != email {
-		return "", errors.Errorf("login email missmatch")
 	}
 	return email, nil
 }
