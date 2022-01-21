@@ -13,7 +13,7 @@ import (
 )
 
 // ErrNoCloudClient occurs when the secrets client is referenced but was never provided
-var ErrNoCloudClient = errors.Errorf("no secrets client provided")
+var ErrNoCloudClient = errors.Errorf("no cloud client provided")
 
 type secretProvider struct {
 	store  secrets.SecretStore
