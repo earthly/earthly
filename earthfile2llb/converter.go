@@ -932,9 +932,14 @@ func (c *Converter) BuildAsync(ctx context.Context, fullTargetName string, platf
 			return
 		}
 		defer c.opt.Parallelism.Release(1)
-		_, err = Earthfile2LLB(ctx, target, opt, false)
+		mts, err := Earthfile2LLB(ctx, target, opt, false)
 		if err != nil {
 			errChan <- errors.Wrapf(err, "async earthfile2llb for %s", fullTargetName)
+			return
+		}
+		err = c.forceExecution(ctx, mts.Final.MainState)
+		if err != nil {
+			errChan <- errors.Wrapf(err, "async force execution for %s", fullTargetName)
 			return
 		}
 		errChan <- nil
@@ -1609,13 +1614,13 @@ func (c *Converter) parseSecretFlag(secretKeyValue string) (secretID string, env
 func (c *Converter) forceExecution(ctx context.Context, state pllb.State) error {
 	ref, err := llbutil.StateToRef(ctx, c.opt.GwClient, state, c.opt.NoCache, c.opt.Platform, c.opt.CacheImports.AsMap())
 	if err != nil {
-		return errors.Wrap(err, "run locally state to ref")
+		return errors.Wrap(err, "force execution state to ref")
 	}
 	// We're not really interested in reading the dir - we just
-	// want to un-lazy the ref so that the local commands have executed.
+	// want to un-lazy the ref so that the commands have executed.
 	_, err = ref.ReadDir(ctx, gwclient.ReadDirRequest{Path: "/"})
 	if err != nil {
-		return errors.Wrap(err, "unlazy locally")
+		return errors.Wrap(err, "unlazy force execution")
 	}
 	return nil
 }
