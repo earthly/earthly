@@ -2446,7 +2446,7 @@ func (app *earthlyApp) actionAccountLogin(c *cli.Context) error {
 			return err
 		}
 		fmt.Printf("Logged in as %q using password auth\n", email)
-		fmt.Printf("Warning unencrypted password has been stored under ~/.earthly/auth.token; consider using ssh-based auth to prevent this.\n")
+		fmt.Printf("Warning unencrypted password has been stored under ~/.earthly/auth.credentials; consider using ssh-based auth to prevent this.\n")
 	}
 	if err = cc.Authenticate(); err != nil {
 		return errors.Wrap(err, "authentication with cloud server failed")

@@ -1012,11 +1012,11 @@ func (c *client) loadToken() error {
 	if err != nil {
 		return err
 	}
-	if !fileutil.FileExists(tokenPath) {
-		return nil
-	}
 	data, err := os.ReadFile(tokenPath)
 	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return nil
+		}
 		return errors.Wrap(err, "failed to read file")
 	}
 	parts := strings.SplitN(string(data), " ", 2)
@@ -1033,11 +1033,11 @@ func (c *client) loadCredentials() error {
 	if err != nil {
 		return err
 	}
-	if !fileutil.FileExists(credPath) {
-		return nil
-	}
 	data, err := os.ReadFile(credPath)
 	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return nil
+		}
 		return errors.Wrap(err, "failed to read file")
 	}
 	parts := strings.SplitN(string(data), " ", 3)
