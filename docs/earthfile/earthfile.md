@@ -268,7 +268,7 @@ The `<mount-spec>` is defined as a series of comma-separated list of key-values.
 
 ###### Examples:
 
-Persisting cache for a single `RUN` command, even when it's dependencies change:
+Persisting cache for a single `RUN` command, even when its dependencies change:
 
 ```Dockerfile
 ENV GOCACHE=/go-cache
@@ -736,6 +736,35 @@ The `<context-path>` is the path where the Dockerfile build context exists. By d
 ##### `-f <dockerfile-path>`
 
 Specify an alternative Dockerfile to use. The `<dockerfile-path>` can be either a path on the host system, relative to the current Earthfile, or an [artifact reference](../guides/target-ref.md#artifact-reference) pointing to a Dockerfile.
+
+{% hint style='info' %}
+It is possible to split the `Dockerfile` and the build context across two seperate [artifact references](../guides/target-ref.md#artifact-reference):
+
+```Dockerfile
+FROM alpine
+
+mybuildcontext:
+    WORKDIR /mydata
+    RUN echo mydata > myfile
+    SAVE ARTIFACT /mydata
+
+mydockerfile:
+    RUN echo "
+FROM busybox
+COPY myfile .
+RUN cat myfile" > Dockerfile
+    SAVE ARTIFACT Dockerfile
+
+docker:
+    FROM DOCKERFILE -f +mydockerfile/Dockerfile +mybuildcontext/mydata/*
+    SAVE IMAGE testimg:latest
+```
+
+Note that `+mybuildcontext/mydata` on its own would copy the directory _and_ its contents; where as `+mybuildcontext/mydata/*` is required to copy all of the contents from within the `mydata` directory (
+without copying the wrapping `mydata` directory).
+
+If both the `Dockerfile` and build context are inside the same target, one must reference the same target twice, e.g. `FROM DOCKERFILE -f +target/dir/Dockerfile +target/dir`.
+{% endhint %}
 
 ##### `--build-arg <key>=<value>`
 

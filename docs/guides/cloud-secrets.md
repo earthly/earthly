@@ -98,7 +98,7 @@ earthly +build
 
 The only difference between the naming of locally-supplied and cloud-based secrets is that cloud secrets will contain
 two or more slashes since all cloud secrets must start with a `+secrets/<user or organization>/` prefix, whereas locally-defined secrets
-will only start with the `+secrets/` suffix, followed by a single name which can not contain slashes.
+will only start with the `+secrets/` suffix, followed by a single name which cannot contain slashes.
 {% endhint %}
 
 

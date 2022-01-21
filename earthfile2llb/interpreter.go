@@ -1386,7 +1386,7 @@ func (i *Interpreter) handleDoUserCommand(ctx context.Context, command domain.Co
 	if allowPrivileged && !i.allowPrivileged {
 		return i.errorf(uc.SourceLocation, "invalid privileged in COMMAND") // this shouldn't happen, but check just in case
 	}
-	if len(uc.Recipe) == 0 || uc.Recipe[0].Command.Name != "COMMAND" {
+	if len(uc.Recipe) == 0 || uc.Recipe[0].Command == nil || uc.Recipe[0].Command.Name != "COMMAND" {
 		return i.errorf(uc.SourceLocation, "command recipes must start with COMMAND")
 	}
 	if len(uc.Recipe[0].Command.Args) > 0 {

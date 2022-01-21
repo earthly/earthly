@@ -32,6 +32,7 @@ ga:
         --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR
     BUILD ./with-docker+all
     BUILD ./with-docker-compose+all
+    BUILD ./with-docker-via-command+test
     BUILD ./dockerfile+test
     BUILD ./dockerfile2/subdir+test
     BUILD ./version+test-all \
@@ -62,6 +63,9 @@ ga:
         --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
         --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR
     BUILD +builtin-args-test
+    BUILD +builtin-args-invalid-default-test
+    BUILD +builtin-args-invalid-pass-test
+    BUILD +builtin-args-cli-tests
     BUILD +smoke-test
     BUILD ./config+test \
         --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
@@ -225,6 +229,16 @@ git-clone-test:
 builtin-args-test:
     DO +RUN_EARTHLY --earthfile=builtin-args.earth --target=+builtin-args-test
 
+builtin-args-invalid-default-test:
+    DO +RUN_EARTHLY --earthfile=builtin-args-invalid-default.earth --should_fail=true --target=+test --output_contains="arg default value supplied for built-in ARG"
+
+builtin-args-invalid-pass-test:
+    DO +RUN_EARTHLY --earthfile=builtin-args-invalid-pass.earth --should_fail=true --target=+test --output_contains="value cannot be specified for built-in build arg EARTHLY_VERSION"
+
+builtin-args-cli-tests:
+    DO +RUN_EARTHLY --earthfile=builtin-args.earth --should_fail=true --extra_args="--build-arg EARTHLY_VERSION=123" --target=+builtin-args-test \
+        --output_contains="cannot be passed on the command line"
+
 smoke-test:
     DO +RUN_EARTHLY --earthfile=smoke.earth --target=+test
 
@@ -246,7 +260,8 @@ secrets-test:
         --earthfile=secrets.earth \
         --extra_args="--secret SECRET1 --secret SECRET2=bar --build-arg SECRET_ID=\"\" --build-arg SECRET_ID_2=\"\"" \
         --target=+test \
-        --post_command="2>&1 | perl -pe 'BEGIN {\\\$status=1} END {exit \\\$status} \\\$status=0 if /unable to lookup secret SECRET3: not found/;'"
+        --should_fail=true \
+        --output_contains="unable to lookup secret SECRET3: not found"
 
 build-arg-test:
     DO +RUN_EARTHLY --earthfile=build-arg.earth
@@ -411,17 +426,13 @@ required-arg-test:
 
 fail-push-test:
     # test that an error code is correctly returned
-    DO +RUN_EARTHLY --earthfile=fail.earth --should_fail=true --extra_args="--push" --target=+test-push
-    # test that the 'failed with exit code' text is printed out
-    DO +RUN_EARTHLY --earthfile=fail.earth --extra_args="--push" --target=+test-push \
-        --post_command="2>&1 | perl -pe 'BEGIN {\\\$status=1} END {exit \\\$status} \\\$status=0 if /this-too-will-fail/;'"
+    DO +RUN_EARTHLY --earthfile=fail.earth --should_fail=true --extra_args="--push" --target=+test-push \
+        --output_contains="this-too-will-fail"
 
 fail-invalid-artifact-test:
     # test that the artifact fails to be copied
-    DO +RUN_EARTHLY --earthfile=fail-invalid-artifact.earth --should_fail=true --target="--artifact +test/foo /tmp/stuff"
-    # test that we echo a message containing the invalid artifact name
-    DO +RUN_EARTHLY --earthfile=fail-invalid-artifact.earth --target="--artifact +test/foo /tmp/stuff" \
-        --post_command="2>&1 | perl -pe 'BEGIN {\\\$status=1} END {exit \\\$status} \\\$status=0 if /\\\+test\\\/foo/;'"
+    DO +RUN_EARTHLY --earthfile=fail-invalid-artifact.earth --should_fail=true --target="--artifact +test/foo /tmp/stuff" \
+        --output_contains="cannot save artifact +test/foo, since it does not exist"
 
 push-test:
     DO +RUN_EARTHLY --earthfile=push.earth --target=+push-test \
@@ -513,14 +524,14 @@ end-comment:
 
 if-exists:
     DO +RUN_EARTHLY --earthfile=if-exists.earth --target=+save-exist-local
-    DO +RUN_EARTHLY --earthfile=if-exists.earth --target=+save-not-exist \
-      --post_command="2>&1 | perl -pe 'BEGIN {\\\$status=1} END {exit \\\$status} \\\$status=0 if /save-not-exist/;'"
-    DO +RUN_EARTHLY --earthfile=if-exists.earth --target=+copy-not-exist \
-      --post_command="2>&1 | perl -pe 'BEGIN {\\\$status=1} END {exit \\\$status} \\\$status=0 if /copy-not-exist/;'"
-    DO +RUN_EARTHLY --earthfile=if-exists.earth --target=+bad-wildcard-copy \
-      --post_command="2>&1 | perl -pe 'BEGIN {\\\$status=1} END {exit \\\$status} \\\$status=0 if /bad-wildcard-copy/;'"
-    DO +RUN_EARTHLY --earthfile=if-exists.earth --target=+bad-wildcard-save \
-      --post_command="2>&1 | perl -pe 'BEGIN {\\\$status=1} END {exit \\\$status} \\\$status=0 if /bad-wildcard-save/;'"
+    DO +RUN_EARTHLY --earthfile=if-exists.earth --should_fail=true --target=+save-not-exist \
+      --output_contains="save-not-exist"
+    DO +RUN_EARTHLY --earthfile=if-exists.earth --should_fail=true --target=+copy-not-exist \
+      --output_contains="copy-not-exist"
+    DO +RUN_EARTHLY --earthfile=if-exists.earth --should_fail=true --target=+bad-wildcard-copy \
+      --output_contains="bad-wildcard-copy"
+    DO +RUN_EARTHLY --earthfile=if-exists.earth --should_fail=true --target=+bad-wildcard-save \
+      --output_contains="bad-wildcard-save"
     RUN mkdir in && \
         echo "this-file-does-exist" > ./in/this-file-does-exist && \
         echo "so-does-this-one" > so-does-this-one 
@@ -620,21 +631,21 @@ run-no-cache:
     DO +RUN_EARTHLY --earthfile=run-no-cache.earth --use_tmpfs=false --target=+test
     # Fail if we cached any of the motd2 lines, which are after the --no-cache
     DO +RUN_EARTHLY --earthfile=run-no-cache.earth --use_tmpfs=false --target=+test \
-        --post_command="2>&1 | perl -pe 'BEGIN {\\\$status=0} END {exit \\\$status} \\\$status=1 if /\\\*cached\\\* --> .* motd2/;'"
+        --grep_flags="-v" --output_contains="\\\*cached\\\* --> .* motd2"
 
     # Run twice to allow the second one to attempt to cache things
     DO +RUN_EARTHLY --earthfile=run-no-cache.earth --use_tmpfs=false --target=+test-from
     # Fail if we cached any of the COPY motd2 lines, which are after the --no-cache
     DO +RUN_EARTHLY --earthfile=run-no-cache.earth --use_tmpfs=false --target=+test-from \
-        --post_command="2>&1 | perl -pe 'BEGIN {\\\$status=0} END {exit \\\$status} \\\$status=1 if /\\\*cached\\\* --> .*motd2 \\\.\\\//;'"
+        --grep_flags="-v" --output_contains="\\\*cached\\\* --> .*motd2 \\\.\\\//"
 
 save-artifact-after-push:
     # test that save after push is a thing
     DO +RUN_EARTHLY --earthfile=save-artifact-after-push.earth --target=+test
 
     # test that cant copy saved after push
-    DO +RUN_EARTHLY --earthfile=save-artifact-after-push.earth --target=+copy-test \
-        --post_command="2>&1 | perl -pe 'BEGIN {\\\$status=1} END {exit \\\$status} \\\$status=0 if /not found/;'"
+    DO +RUN_EARTHLY --earthfile=save-artifact-after-push.earth --should_fail="true" --target=+copy-test \
+        --output_contains="not found"
 
 save-artifact-selective-test1:
     DO +RUN_EARTHLY --earthfile=save-artifact-selective.earth --target=+test1
@@ -949,6 +960,8 @@ RUN_EARTHLY:
     ARG should_fail=false
     ARG use_tmpfs=true
     ARG exec_cmd=
+    ARG output_contains=
+    ARG grep_flags=
     IF [ ! -z "$earthfile" ]
         COPY "$earthfile" "$earthfile_dest"
     END
@@ -963,31 +976,43 @@ RUN_EARTHLY:
         fi
         if [ -n \"$exec_cmd\" ]; then
             if [ \"$exec_cmd\" = \"/tmp/earthly-script\" ]; then
-                echo \"exec_cmd can not be /tmp/earthly-script\"
+                echo \"exec_cmd cannot be /tmp/earthly-script\"
                 exit 1
             fi
             if [ \"$target\" != \"+all\" ]; then
-                echo \"target can not be used with exec_cmd\"
+                echo \"target cannot be used with exec_cmd\"
                 exit 1
             fi
             export EARTHLY_EXEC_CMD=\"$exec_cmd\"
             echo running earthly with EARTHLY_EXEC_CMD=\$EARTHLY_EXEC_CMD
-            /bin/sh /usr/bin/earthly-entrypoint.sh
-            exit_code=\$?
+            (/bin/sh /usr/bin/earthly-entrypoint.sh; echo exit_code=\$?) 2>&1 | tee earthly.output
         else
             echo running earthly with $target
-            eval \"/usr/bin/earthly-entrypoint.sh $extra_args $target $post_command\"
-            exit_code=\$?
+            (eval \"/usr/bin/earthly-entrypoint.sh $extra_args $target $post_command\"; echo exit_code=\$?) 2>&1 | tee earthly.output
         fi
+
+        if ! tail -n 1 earthly.output | grep 'exit_code=[0-9]\+'; then
+            echo ERROR: failed to extract exit_code # something is wrong with the above sh script
+            exit 1
+        fi
+        exit_code=\$(tail -n 1 earthly.output | cut -d \"=\" -f2)
+
         if $should_fail; then
             if [ \$exit_code -eq 0 ]; then
                 echo ERROR: earthly should have failed but didn\'t.
                 exit 1
-            else
-                exit 0
             fi
         else
-            exit \$exit_code
+            if [ \$exit_code -ne 0 ]; then
+                echo ERROR: earthly failed with exit code \$exit_code.
+                exit \$exit_code
+            fi
+        fi
+        if [ -n \"$output_contains\" ]; then
+            if ! grep $grep_flags \"$output_contains\" earthly.output >/dev/null; then
+                echo ERROR: earthly output did not contain \\\"$output_contains\\\"
+                exit 1
+            fi
         fi
     " >/tmp/earthly-script
     RUN --privileged \

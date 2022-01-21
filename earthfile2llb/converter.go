@@ -29,6 +29,7 @@ import (
 	"github.com/earthly/earthly/util/llbutil/pllb"
 	"github.com/earthly/earthly/util/stringutil"
 	"github.com/earthly/earthly/variables"
+	"github.com/earthly/earthly/variables/reserved"
 
 	"github.com/alessio/shellescape"
 	"github.com/docker/distribution/reference"
@@ -871,6 +872,7 @@ func (c *Converter) SaveImage(ctx context.Context, imageNames []string, pushImag
 					CacheHint:           cacheHint,
 					HasPushDependencies: true,
 					DoSave:              c.opt.DoSaves || c.opt.ForceSaveImage,
+					CheckDuplicate:      c.ftrs.CheckDuplicateImages,
 				})
 		} else {
 			pcState := persistCache(
@@ -888,6 +890,7 @@ func (c *Converter) SaveImage(ctx context.Context, imageNames []string, pushImag
 					CacheHint:           cacheHint,
 					HasPushDependencies: false,
 					DoSave:              c.opt.DoSaves || c.opt.ForceSaveImage,
+					CheckDuplicate:      c.ftrs.CheckDuplicateImages,
 				})
 		}
 
@@ -1054,16 +1057,21 @@ func (c *Converter) Arg(ctx context.Context, argKey string, defaultArgValue stri
 		return err
 	}
 	c.nonSaveCommand()
-	effective, err := c.varCollection.DeclareArg(argKey, defaultArgValue, opts.Global, c.processNonConstantBuildArgFunc((ctx)))
+	effective, effectiveDefault, err := c.varCollection.DeclareArg(
+		argKey, defaultArgValue, opts.Global, c.processNonConstantBuildArgFunc(ctx))
 	if err != nil {
 		return err
-	} else if opts.Required && len(effective) == 0 {
-		return errors.New("build-arg not supplied for required ARG")
+	}
+	if opts.Required && len(effective) == 0 {
+		return errors.New("arg not supplied for required ARG")
+	}
+	if len(defaultArgValue) > 0 && reserved.IsBuiltIn(argKey) {
+		return errors.New("arg default value supplied for built-in ARG")
 	}
 	if c.varCollection.IsStackAtBase() { // Only when outside of UDC.
 		c.mts.Final.AddBuildArgInput(dedup.BuildArgInput{
 			Name:          argKey,
-			DefaultValue:  defaultArgValue,
+			DefaultValue:  effectiveDefault,
 			ConstantValue: effective,
 		})
 	}
