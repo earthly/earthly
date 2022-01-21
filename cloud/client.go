@@ -158,7 +158,7 @@ func (c *client) doCall(method, url string, opts ...requestOpt) (int, string, er
 	var body string
 	var err error
 	duration := time.Millisecond * 100
-	alreadyReuthed := false
+	alreadyReAuthed := false
 
 	for attempt := 0; attempt < maxAttempt; attempt++ {
 		status, body, err = c.doCallImp(r, method, url, opts...)
