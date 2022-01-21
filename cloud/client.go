@@ -168,13 +168,13 @@ func (c *client) doCall(method, url string, opts ...requestOpt) (int, string, er
 		}
 
 		if status == http.StatusUnauthorized {
-			if alreadyReuthed {
+			if alreadyReAuthed {
 				return status, body, err
 			}
 			if err = c.Authenticate(); err != nil {
 				return status, body, errors.Wrap(err, "auth credentials not valid")
 			}
-			alreadyReuthed = true
+			alreadyReAuthed = true
 		}
 
 		if duration > maxSleepBeforeRetry {
@@ -280,8 +280,7 @@ func NewClient(host, agentSockPath, authCredsOverride string, warnFunc func(stri
 	if authCredsOverride != "" {
 		c.authCredToken = authCredsOverride
 	} else {
-		err := c.loadAuthStorage()
-		if err != nil {
+		if err := c.loadAuthStorage(); err != nil {
 			return nil, err
 		}
 	}
@@ -555,12 +554,10 @@ func (c *client) getChallenge() (string, error) {
 }
 
 func (c *client) signChallenge(challenge string, key *agent.Key) (string, error) {
-
 	sig, err := c.sshAgent.Sign(key, []byte(challenge))
 	if err != nil {
 		return "", err
 	}
-
 	s := base64.StdEncoding.EncodeToString(sig.Blob)
 	return s, nil
 }
@@ -575,83 +572,10 @@ func (c *client) getSSHCredentials(challenge string, key *agent.Key) (credential
 	return credentials, nil
 }
 
-func (c *client) tryCredentials(challenge string, key *agent.Key) (string, string, error) {
-	client := &http.Client{}
-
-	sig, err := c.signChallenge(challenge, key)
-	if err != nil {
-		return "", "", err
-	}
-
-	blob := base64.StdEncoding.EncodeToString(key.Blob)
-	authToken := fmt.Sprintf("ssh-rsa %s %s", blob, sig)
-
-	url := fmt.Sprintf("%s/api/v0/account/ping", c.host)
-	req, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		return "", "", err
-	}
-	req.Header.Add("Authorization", authToken)
-
-	resp, err := client.Do(req)
-	if err != nil {
-		return "", "", err
-	}
-
-	var pingResponse api.PingResponse
-	err = c.jm.Unmarshal(resp.Body, &pingResponse)
-	if err != nil {
-		return "", "", errors.Wrap(err, "failed to unmarshal challenge response")
-	}
-
-	if resp.StatusCode == http.StatusUnauthorized {
-		return "", "", ErrUnauthorized
-	}
-
-	if resp.StatusCode != http.StatusOK {
-		return "", "", errors.Errorf("failed to get secret: %s", pingResponse.Message)
-	}
-
-	return pingResponse.Email, authToken, nil
-}
-
 func getPasswordAuthToken(email, password string) string {
 	email64 := base64.StdEncoding.EncodeToString([]byte(email))
 	password64 := base64.StdEncoding.EncodeToString([]byte(password))
 	return fmt.Sprintf("password %s %s", email64, password64)
-}
-
-func (c *client) getAuthCredentials() (string, error) {
-	if c.email != "" && c.password != "" {
-		return getPasswordAuthToken(c.email, c.password), nil
-	}
-	if c.authCredToken != "" {
-		return "token " + c.authCredToken, nil
-	}
-	if c.disableSSHKeyGuessing {
-		return "", ErrNoAuthorizedPublicKeys
-	}
-
-	challenge, err := c.getChallenge()
-	if err != nil {
-		return "", err
-	}
-
-	keys, err := c.GetPublicKeys()
-	if err != nil {
-		return "", err
-	}
-	for _, key := range keys {
-		email, authToken, err := c.tryCredentials(challenge, key)
-		if err == ErrUnauthorized {
-			continue // try next key
-		} else if err != nil {
-			return "", err
-		}
-		c.saveSSHCredentials(email, key.String())
-		return authToken, nil
-	}
-	return "", ErrNoAuthorizedPublicKeys
 }
 
 func (c *client) CreateOrg(org string) error {
@@ -1034,7 +958,7 @@ func (c *client) WhoAmI() (string, string, bool, error) {
 	return pingResponse.Email, authType, pingResponse.WriteAccess, nil
 }
 
-func (c *client) migrateV1Token() error {
+func (c *client) migrateOldToken() error {
 	confDirPath := c.authDir
 	if confDirPath == "" {
 		confDirPath = cliutil.GetEarthlyDir()
@@ -1043,7 +967,7 @@ func (c *client) migrateV1Token() error {
 	newPath := filepath.Join(confDirPath, "auth.credentials")
 	if fileutil.FileExists(tokenPath) {
 		if err := os.Rename(tokenPath, newPath); err != nil {
-			return errors.Wrapf(err, "failed to move v1 token from '%s' to '%s'", tokenPath, newPath)
+			return errors.Wrapf(err, "failed to migrate auth from '%s' to '%s'", tokenPath, newPath)
 		}
 	}
 	return nil
@@ -1079,8 +1003,8 @@ func (c *client) getCredentialsPath(create bool) (string, error) {
 			confDirPath = cliutil.GetEarthlyDir()
 		}
 	}
-	tokenPath := filepath.Join(confDirPath, "auth.credentials")
-	return tokenPath, nil
+	credPath := filepath.Join(confDirPath, "auth.credentials")
+	return credPath, nil
 }
 
 func (c *client) loadToken() error {
@@ -1146,9 +1070,9 @@ func (c *client) loadCredentials() error {
 // loads the following files:
 //  * ~/.earthly/auth.credentials
 //  * ~/.earthly/auth.v2.token
-// If a v1-style auth.token file exists, it is automatically removed.
+// If a an old-style auth.token file exists, it is automatically migrated and removed.
 func (c *client) loadAuthStorage() error {
-	if err := c.migrateV1Token(); err != nil {
+	if err := c.migrateOldToken(); err != nil {
 		return err
 	}
 	if err := c.loadToken(); err != nil {

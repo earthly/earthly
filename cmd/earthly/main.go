@@ -2385,11 +2385,11 @@ func (app *earthlyApp) actionAccountLogin(c *cli.Context) error {
 		}
 		cc.DisableSSHKeyGuessing()
 	} else if email != "" {
-		if err := cc.FindSSHCredentials(email); err != nil {
-			return errors.Wrap(err, "failed finding ssh keys")
+		if err = cc.FindSSHCredentials(email); err == nil {
+			// case where err != nil is handled in switch case below
+			fmt.Printf("Logged in as %q using ssh auth\n", email)
+			return nil
 		}
-		fmt.Printf("Logged in as %q using ssh auth\n", email)
-		return nil
 	}
 
 	loggedInEmail, authType, writeAccess, err := cc.WhoAmI()
