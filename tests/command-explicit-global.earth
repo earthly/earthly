@@ -1,4 +1,4 @@
-VERSION --use-explicit-global-arg-flag 0.6
+VERSION --explicit-global 0.6
 
 FROM alpine:3.13
 WORKDIR /test

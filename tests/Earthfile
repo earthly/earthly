@@ -253,6 +253,9 @@ build-arg-test:
 
 build-arg-explicit-global-test:
     DO +RUN_EARTHLY --earthfile=build-arg-explicit-global.earth
+    DO +RUN_EARTHLY --should_fail=true --earthfile=build-arg-explicit-global.earth \
+        --target=+test-failure --post_command="> /tmp/output 2>&1"
+    RUN cat /tmp/output | grep 'invalid ARG arguments*: global ARG can only be set in the base target'
 
 build-arg-dynamic-with-empty-base:
     DO +RUN_EARTHLY --earthfile=build-arg-dynamic-with-empty-base.earth --target=+test
