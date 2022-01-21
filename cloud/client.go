@@ -1178,7 +1178,7 @@ func (c *client) saveToken() error {
 		"%s %s",
 		c.authToken,
 		c.authTokenExpiry.Format(tokenExpiryLayout)))
-	if err = os.WriteFile(path, data, 0644); err != nil {
+	if err = os.WriteFile(path, data, 0600); err != nil {
 		return errors.Wrap(err, "failed writing auth token to disk")
 	}
 	return nil
