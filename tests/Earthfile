@@ -144,7 +144,7 @@ ga:
     BUILD +true-false-flag-invalid
     BUILD +dont-save-indirect-remote-artifact
     BUILD +sequential-locally-test
-    BUILD +homebrew-test
+    BUILD +version-flag-test
     BUILD +implicit-ignores
     BUILD +help
     BUILD +cache-cmd
@@ -906,9 +906,11 @@ echo test passed: RUNs were sequentially grouped
 " > test-output.sh && chmod +x test-output.sh
     RUN cat output-filtered.txt | ./test-output.sh
 
-homebrew-test:
-    # This is to ensure the assert in https://github.com/earthly/homebrew-earthly/blob/main/Formula/earthly.rb continues to work
+version-flag-test:
+    # In addition to testing the --version flag works; this flag is critical for the homebrew deployment test, which
+    # performs an assert in https://github.com/earthly/homebrew-earthly/blob/main/Formula/earthly.rb
     RUN earthly --version | grep '^earthly version'
+    RUN test "$(earthly --version | wc -l)" = "1"
 
 implicit-ignores:
     RUN mkdir -p ignored notignored && \
