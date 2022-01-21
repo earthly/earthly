@@ -1083,7 +1083,7 @@ func (i *Interpreter) handleArg(ctx context.Context, cmd spec.Command) error {
 		return i.errorf(cmd.SourceLocation, "ARG does not currently support shelling-out in combination with LOCALLY")
 	}
 
-	err = i.converter.Arg(ctx, key, value, opts, i.isBase)
+	err = i.converter.Arg(ctx, key, value, opts)
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "apply ARG")
 	}
