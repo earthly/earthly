@@ -1612,9 +1612,16 @@ func (c *Converter) parseSecretFlag(secretKeyValue string) (secretID string, env
 }
 
 func (c *Converter) forceExecution(ctx context.Context, state pllb.State) error {
+	if state.Output() != nil {
+		// Scratch - no need to execute.
+		return nil
+	}
 	ref, err := llbutil.StateToRef(ctx, c.opt.GwClient, state, c.opt.NoCache, c.opt.Platform, c.opt.CacheImports.AsMap())
 	if err != nil {
 		return errors.Wrap(err, "force execution state to ref")
+	}
+	if ref == nil {
+		return nil
 	}
 	// We're not really interested in reading the dir - we just
 	// want to un-lazy the ref so that the commands have executed.
