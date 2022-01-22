@@ -1039,7 +1039,7 @@ func parseArgArgs(ctx context.Context, cmd spec.Command, isBaseTarget bool, expl
 	if opts.Global {
 		// since the global flag is part of the struct, we need to manually return parsing error if it's used while the feature flag is off
 		if !explicitGlobal {
-			return argOpts{}, "", nil, errors.New("unknown flag `global'")
+			return argOpts{}, "", nil, errors.New("unknown flag --global")
 		}
 		// global flag can only bet set on base targets
 		if !isBaseTarget {
@@ -1069,7 +1069,7 @@ func (i *Interpreter) handleArg(ctx context.Context, cmd spec.Command) error {
 	if i.pushOnlyAllowed {
 		return i.pushOnlyErr(cmd.SourceLocation)
 	}
-	opts, key, valueOrNil, err := parseArgArgs(ctx, cmd, i.isBase, i.converter.ftrs.ExplicitGlobal)
+	opts, key, valueOrNil, err := parseArgArgs(ctx, cmd, i.isBase, i.converter.ftrs.ExplicitGlobalFeature)
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "invalid ARG arguments %v", cmd.Args)
 	}

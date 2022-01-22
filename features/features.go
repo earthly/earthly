@@ -25,7 +25,7 @@ type Features struct {
 	NoImplicitIgnore           bool `long:"no-implicit-ignore" description:"disable implicit ignore rules to exclude .tmp-earthly-out/, build.earth, Earthfile, .earthignore and .earthlyignore when resolving local context"`
 	CheckDuplicateImages       bool `long:"check-duplicate-images" description:"check for duplicate images during output"`
 	EarthlyVersionArg          bool `long:"earthly-version-arg" description:"includes EARTHLY_VERSION and EARTHLY_BUILD_SHA ARGs"`
-	ExplicitGlobal             bool `long:"explicit-global" description:"require base target args to have explicit settings to be considered global args"`
+	ExplicitGlobalFeature      bool `long:"explicit-global-feature" description:"require base target args to have explicit settings to be considered global args"`
 	UseCacheCommand            bool `long:"use-cache-command" description:"allow use of CACHE command in Earthfiles"`
 
 	Major int
@@ -172,6 +172,7 @@ func GetFeatures(version *spec.Version) (*Features, error) {
 		ftrs.NoImplicitIgnore = true
 		ftrs.CheckDuplicateImages = true
 	case versionAtLeast(ftrs, 0, 7):
+		ftrs.ExplicitGlobalFeature = true
 		ftrs.EarthlyVersionArg = true
 		ftrs.UseCacheCommand = true
 	}

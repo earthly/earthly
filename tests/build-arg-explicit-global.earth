@@ -1,12 +1,13 @@
-VERSION --explicit-global 0.6
+VERSION --explicit-global-feature 0.6
 FROM alpine:3.13
 WORKDIR /test
 
 ARG --global global1=abc
 ARG --global global2=def
 ARG local=ghi
+RUN test "$local" = "ghi"
 
-test:
+test-success:
     BUILD +test-global1
     BUILD +test-global2
     BUILD +test-global3
