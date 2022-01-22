@@ -7,6 +7,7 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"encoding/json"
+	"flag"
 	"fmt"
 	"io"
 	"net"
@@ -84,9 +85,10 @@ const (
 	DefaultBuildkitdContainerName = "earthly-buildkitd"
 	// DefaultBuildkitdVolumeName is the name of the docker volume used for storing the cache.
 	DefaultBuildkitdVolumeName = "earthly-cache"
-)
 
-var dotEnvPath = ".env"
+	defaultEnvFile = ".env"
+	envFileFlag    = "env-file"
+)
 
 type earthlyApp struct {
 	cliApp      *cli.App
@@ -159,6 +161,7 @@ type cliFlags struct {
 	disableAnalytics          bool
 	featureFlagOverrides      string
 	localRegistryHost         string
+	envFile                   string
 	lsShowLong                bool
 	lsShowArgs                bool
 	containerFrontend         containerutil.ContainerFrontend
@@ -215,10 +218,34 @@ func main() {
 
 	// Load .env into current global env's. This is mainly for applying Earthly settings.
 	// Separate call is made for build args and secrets.
-	if fileutil.FileExists(dotEnvPath) {
-		err := godotenv.Load(dotEnvPath)
-		if err != nil {
-			fmt.Printf("Error loading dot-env file %s: %s\n", dotEnvPath, err.Error())
+	envFile := defaultEnvFile
+	envFileOverride := false
+	if envFileFromEnv, ok := os.LookupEnv("EARTHLY_ENV_FILE"); ok {
+		envFile = envFileFromEnv
+		envFileOverride = true
+	}
+	envFileFromArgOK := true
+	flagSet := flag.NewFlagSet(getBinaryName(), flag.ContinueOnError)
+	flagSet.SetOutput(io.Discard)
+	for _, f := range newEarthlyApp(ctx, conslogging.ConsoleLogger{}).cliApp.Flags {
+		if err := f.Apply(flagSet); err != nil {
+			envFileFromArgOK = false
+			break
+		}
+	}
+	if envFileFromArgOK {
+		if err := flagSet.Parse(os.Args[1:]); err == nil {
+			if envFileFlag := flagSet.Lookup(envFileFlag); envFileFlag != nil {
+				envFile = envFileFlag.Value.String()
+				envFileOverride = envFile != defaultEnvFile // flag lib doesn't expose if a value was set or not
+			}
+		}
+	}
+	err := godotenv.Load(envFile)
+	if err != nil {
+		// ignore ErrNotExist when using default .env file
+		if envFileOverride || !errors.Is(err, os.ErrNotExist) {
+			fmt.Printf("Error loading dot-env file %s: %s\n", envFile, err.Error())
 			os.Exit(1)
 		}
 	}
@@ -590,6 +617,13 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 			Usage:       "Apply additional flags after each VERSION command across all Earthfiles, multiple flags can be seperated by commas",
 			Destination: &app.featureFlagOverrides,
 			Hidden:      true, // used for feature-flipping from ./earthly dev script
+		},
+		&cli.StringFlag{
+			Name:        envFileFlag,
+			EnvVars:     []string{"EARTHLY_ENV_FILE"},
+			Usage:       "Use values from this file as earthly environment variables, buildargs, or secrets",
+			Value:       defaultEnvFile,
+			Destination: &app.envFile,
 		},
 	}
 
@@ -2777,13 +2811,14 @@ func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []st
 		platformsSlice = []*specs.Platform{nil}
 	}
 
-	dotEnvMap := make(map[string]string)
-	if fileutil.FileExists(dotEnvPath) {
-		dotEnvMap, err = godotenv.Read(dotEnvPath)
-		if err != nil {
-			return errors.Wrapf(err, "read %s", dotEnvPath)
+	dotEnvMap, err := godotenv.Read(app.envFile)
+	if err != nil {
+		// ignore ErrNotExist when using default .env file
+		if app.envFile != defaultEnvFile || !errors.Is(err, os.ErrNotExist) {
+			return errors.Wrapf(err, "read %s", app.envFile)
 		}
 	}
+
 	secretsMap, err := processSecrets(app.secrets.Value(), app.secretFiles.Value(), dotEnvMap)
 	if err != nil {
 		return err
