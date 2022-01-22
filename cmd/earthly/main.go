@@ -226,6 +226,7 @@ func main() {
 	}
 	envFileFromArgOK := true
 	flagSet := flag.NewFlagSet(getBinaryName(), flag.ContinueOnError)
+	flagSet.SetOutput(io.Discard)
 	for _, f := range newEarthlyApp(ctx, conslogging.ConsoleLogger{}).cliApp.Flags {
 		if err := f.Apply(flagSet); err != nil {
 			envFileFromArgOK = false
