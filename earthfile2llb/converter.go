@@ -929,7 +929,6 @@ func (c *Converter) BuildAsync(ctx context.Context, fullTargetName string, platf
 			eg.Go(func() error {
 				return errors.Wrapf(err, "acquiring parallelism semaphore for %s", fullTargetName)
 			})
-			return
 		}
 		defer c.opt.Parallelism.Release(1)
 		mts, err := Earthfile2LLB(ctx, target, opt, false)
@@ -938,7 +937,6 @@ func (c *Converter) BuildAsync(ctx context.Context, fullTargetName string, platf
 			eg.Go(func() error {
 				return errors.Wrapf(err, "async earthfile2llb for %s", fullTargetName)
 			})
-			return
 		}
 		if c.ftrs.ExecAfterParallel && mts != nil && mts.Final != nil {
 			eg.Go(func() error {
