@@ -14,12 +14,12 @@ import (
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/util/flagutil"
 	"github.com/earthly/earthly/util/llbutil"
+	"github.com/earthly/earthly/util/syncutil/serrgroup"
 	"github.com/earthly/earthly/variables"
 
 	flags "github.com/jessevdk/go-flags"
 	specs "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
-	"golang.org/x/sync/errgroup"
 	"golang.org/x/sync/semaphore"
 )
 
@@ -44,12 +44,12 @@ type Interpreter struct {
 
 	parallelConversion bool
 	parallelism        *semaphore.Weighted
-	eg                 *errgroup.Group
+	eg                 *serrgroup.Group
 	console            conslogging.ConsoleLogger
 	gitLookup          *buildcontext.GitLookup
 }
 
-func newInterpreter(c *Converter, t domain.Target, allowPrivileged, parallelConversion bool, parallelism *semaphore.Weighted, console conslogging.ConsoleLogger, gitLookup *buildcontext.GitLookup) *Interpreter {
+func newInterpreter(c *Converter, t domain.Target, allowPrivileged, parallelConversion bool, parallelism *semaphore.Weighted, eg *serrgroup.Group, console conslogging.ConsoleLogger, gitLookup *buildcontext.GitLookup) *Interpreter {
 	return &Interpreter{
 		converter:          c,
 		target:             t,
@@ -57,6 +57,7 @@ func newInterpreter(c *Converter, t domain.Target, allowPrivileged, parallelConv
 		allowPrivileged:    allowPrivileged,
 		parallelism:        parallelism,
 		parallelConversion: parallelConversion,
+		eg:                 eg,
 		console:            console,
 		gitLookup:          gitLookup,
 	}
@@ -64,26 +65,18 @@ func newInterpreter(c *Converter, t domain.Target, allowPrivileged, parallelConv
 
 // Run interprets the commands in the given Earthfile AST, for a specific target.
 func (i *Interpreter) Run(ctx context.Context, ef spec.Earthfile) (err error) {
-	if i.eg != nil {
-		return errors.New("cannot run an interpreter twice")
+	if i.target.Target == "base" {
+		i.isBase = true
+		err := i.handleBlock(ctx, ef.BaseRecipe)
+		i.isBase = false
+		return err
 	}
-	eg, ctx := errgroup.WithContext(ctx)
-	i.eg = eg
-	eg.Go(func() error {
-		if i.target.Target == "base" {
-			i.isBase = true
-			err := i.handleBlock(ctx, ef.BaseRecipe)
-			i.isBase = false
-			return err
+	for _, t := range ef.Targets {
+		if t.Name == i.target.Target {
+			return i.handleTarget(ctx, t)
 		}
-		for _, t := range ef.Targets {
-			if t.Name == i.target.Target {
-				return i.handleTarget(ctx, t)
-			}
-		}
-		return i.errorf(ef.SourceLocation, "target %s not found", i.target.Target)
-	})
-	return eg.Wait() // Waits for any parallel execution to finish too.
+	}
+	return i.errorf(ef.SourceLocation, "target %s not found", i.target.Target)
 }
 
 func (i *Interpreter) handleTarget(ctx context.Context, t spec.Target) error {
