@@ -26,6 +26,7 @@ type Features struct {
 	CheckDuplicateImages       bool `long:"check-duplicate-images" description:"check for duplicate images during output"`
 	EarthlyVersionArg          bool `long:"earthly-version-arg" description:"includes EARTHLY_VERSION and EARTHLY_BUILD_SHA ARGs"`
 	UseCacheCommand            bool `long:"use-cache-command" description:"allow use of CACHE command in Earthfiles"`
+	ExecAfterParallel          bool `long:"exec-after-parallel" description:"force execution after parallel conversion"`
 
 	Major int
 	Minor int
@@ -173,6 +174,7 @@ func GetFeatures(version *spec.Version) (*Features, error) {
 		ftrs.CheckDuplicateImages = true
 		ftrs.EarthlyVersionArg = true
 		ftrs.UseCacheCommand = true
+		ftrs.ExecAfterParallel = true
 	}
 
 	return &ftrs, nil

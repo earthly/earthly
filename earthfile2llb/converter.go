@@ -937,10 +937,12 @@ func (c *Converter) BuildAsync(ctx context.Context, fullTargetName string, platf
 			errChan <- errors.Wrapf(err, "async earthfile2llb for %s", fullTargetName)
 			return
 		}
-		err = c.forceExecution(ctx, mts.Final.MainState)
-		if err != nil {
-			errChan <- errors.Wrapf(err, "async force execution for %s", fullTargetName)
-			return
+		if c.ftrs.ExecAfterParallel {
+			err = c.forceExecution(ctx, mts.Final.MainState)
+			if err != nil {
+				errChan <- errors.Wrapf(err, "async force execution for %s", fullTargetName)
+				return
+			}
 		}
 		errChan <- nil
 	}()

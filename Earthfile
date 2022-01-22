@@ -457,8 +457,7 @@ test:
     BUILD +lint-scripts
     BUILD +lint-newline-ending
     BUILD +lint-changelog
-    # BUILD +unit-test
-    # @#
+    BUILD +unit-test
     ARG DOCKERHUB_MIRROR
     ARG DOCKERHUB_AUTH=true
     ARG DOCKERHUB_USER_SECRET=+secrets/DOCKERHUB_USER
