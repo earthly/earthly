@@ -938,7 +938,7 @@ func (c *Converter) BuildAsync(ctx context.Context, fullTargetName string, platf
 				return errors.Wrapf(err, "async earthfile2llb for %s", fullTargetName)
 			})
 		}
-		if c.ftrs.ExecAfterParallel {
+		if c.ftrs.ExecAfterParallel && mts != nil && mts.Final != nil {
 			eg.Go(func() error {
 				err = c.forceExecution(ctx, mts.Final.MainState)
 				if err != nil {
