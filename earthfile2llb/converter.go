@@ -937,7 +937,7 @@ func (c *Converter) BuildAsync(ctx context.Context, fullTargetName string, platf
 			errChan <- errors.Wrapf(err, "async earthfile2llb for %s", fullTargetName)
 			return
 		}
-		if c.ftrs.ExecAfterParallel {
+		if c.ftrs.ExecAfterParallel && mts != nil && mts.Final != nil {
 			err = c.forceExecution(ctx, mts.Final.MainState)
 			if err != nil {
 				errChan <- errors.Wrapf(err, "async force execution for %s", fullTargetName)
@@ -1614,7 +1614,7 @@ func (c *Converter) parseSecretFlag(secretKeyValue string) (secretID string, env
 }
 
 func (c *Converter) forceExecution(ctx context.Context, state pllb.State) error {
-	if state.Output() != nil {
+	if state.Output() == nil {
 		// Scratch - no need to execute.
 		return nil
 	}
