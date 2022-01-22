@@ -922,32 +922,24 @@ func (c *Converter) BuildAsync(ctx context.Context, fullTargetName string, platf
 	if err != nil {
 		return err
 	}
-	go func() {
+	eg.Go(func() error {
 		err := c.opt.Parallelism.Acquire(ctx, 1)
 		if err != nil {
-			// Bubble up errors as part of the error group.
-			eg.Go(func() error {
-				return errors.Wrapf(err, "acquiring parallelism semaphore for %s", fullTargetName)
-			})
+			return errors.Wrapf(err, "acquiring parallelism semaphore for %s", fullTargetName)
 		}
 		defer c.opt.Parallelism.Release(1)
 		mts, err := Earthfile2LLB(ctx, target, opt, false)
 		if err != nil {
-			// Bubble up errors as part of the error group.
-			eg.Go(func() error {
-				return errors.Wrapf(err, "async earthfile2llb for %s", fullTargetName)
-			})
+			return errors.Wrapf(err, "async earthfile2llb for %s", fullTargetName)
 		}
-		if c.ftrs.ExecAfterParallel {
-			eg.Go(func() error {
-				err = c.forceExecution(ctx, mts.Final.MainState)
-				if err != nil {
-					return errors.Wrapf(err, "async force execution for %s", fullTargetName)
-				}
-				return nil
-			})
+		if c.ftrs.ExecAfterParallel && mts != nil && mts.Final != nil {
+			err = c.forceExecution(ctx, mts.Final.MainState)
+			if err != nil {
+				return errors.Wrapf(err, "async force execution for %s", fullTargetName)
+			}
 		}
-	}()
+		return nil
+	})
 	return nil
 }
 
