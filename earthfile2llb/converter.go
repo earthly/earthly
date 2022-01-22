@@ -30,6 +30,7 @@ import (
 	"github.com/earthly/earthly/util/stringutil"
 	"github.com/earthly/earthly/variables"
 	"github.com/earthly/earthly/variables/reserved"
+	"golang.org/x/sync/errgroup"
 
 	"github.com/alessio/shellescape"
 	"github.com/docker/distribution/reference"
@@ -86,8 +87,6 @@ type Converter struct {
 	ftrs                *features.Features
 	localWorkingDir     string
 }
-
-type cacheDirSet map[string]struct{}
 
 // NewConverter constructs a new converter for a given earthly target.
 func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Data, sts *states.SingleTarget, opt ConvertOpt) (*Converter, error) {
@@ -918,35 +917,30 @@ func (c *Converter) Build(ctx context.Context, fullTargetName string, platform *
 }
 
 // BuildAsync applies the earthly BUILD command asynchronously.
-func (c *Converter) BuildAsync(ctx context.Context, fullTargetName string, platform *specs.Platform, allowPrivileged bool, buildArgs []string, cmdT cmdType) chan error {
-	errChan := make(chan error, 1)
+func (c *Converter) BuildAsync(ctx context.Context, fullTargetName string, platform *specs.Platform, allowPrivileged bool, buildArgs []string, cmdT cmdType, eg *errgroup.Group) error {
 	target, opt, _, err := c.prepBuildTarget(ctx, fullTargetName, platform, allowPrivileged, buildArgs, true, cmdT)
 	if err != nil {
-		errChan <- err
-		return errChan
+		return err
 	}
-	go func() {
+	eg.Go(func() error {
 		err := c.opt.Parallelism.Acquire(ctx, 1)
 		if err != nil {
-			errChan <- errors.Wrapf(err, "acquiring parallelism semaphore for %s", fullTargetName)
-			return
+			return errors.Wrapf(err, "acquiring parallelism semaphore for %s", fullTargetName)
 		}
 		defer c.opt.Parallelism.Release(1)
 		mts, err := Earthfile2LLB(ctx, target, opt, false)
 		if err != nil {
-			errChan <- errors.Wrapf(err, "async earthfile2llb for %s", fullTargetName)
-			return
+			return errors.Wrapf(err, "async earthfile2llb for %s", fullTargetName)
 		}
 		if c.ftrs.ExecAfterParallel && mts != nil && mts.Final != nil {
 			err = c.forceExecution(ctx, mts.Final.MainState)
 			if err != nil {
-				errChan <- errors.Wrapf(err, "async force execution for %s", fullTargetName)
-				return
+				return errors.Wrapf(err, "async force execution for %s", fullTargetName)
 			}
 		}
-		errChan <- nil
-	}()
-	return errChan
+		return nil
+	})
+	return nil
 }
 
 // Workdir applies the WORKDIR command.

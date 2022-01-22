@@ -44,7 +44,7 @@ type Interpreter struct {
 
 	parallelConversion bool
 	parallelism        *semaphore.Weighted
-	parallelErrChan    chan error
+	eg                 *errgroup.Group
 	console            conslogging.ConsoleLogger
 	gitLookup          *buildcontext.GitLookup
 }
@@ -57,7 +57,6 @@ func newInterpreter(c *Converter, t domain.Target, allowPrivileged, parallelConv
 		allowPrivileged:    allowPrivileged,
 		parallelism:        parallelism,
 		parallelConversion: parallelConversion,
-		parallelErrChan:    make(chan error),
 		console:            console,
 		gitLookup:          gitLookup,
 	}
@@ -65,10 +64,12 @@ func newInterpreter(c *Converter, t domain.Target, allowPrivileged, parallelConv
 
 // Run interprets the commands in the given Earthfile AST, for a specific target.
 func (i *Interpreter) Run(ctx context.Context, ef spec.Earthfile) (err error) {
-	done := make(chan struct{})
+	if i.eg != nil {
+		return errors.New("cannot run an interpreter twice")
+	}
 	eg, ctx := errgroup.WithContext(ctx)
+	i.eg = eg
 	eg.Go(func() error {
-		defer close(done)
 		if i.target.Target == "base" {
 			i.isBase = true
 			err := i.handleBlock(ctx, ef.BaseRecipe)
@@ -82,17 +83,7 @@ func (i *Interpreter) Run(ctx context.Context, ef spec.Earthfile) (err error) {
 		}
 		return i.errorf(ef.SourceLocation, "target %s not found", i.target.Target)
 	})
-	eg.Go(func() error {
-		select {
-		case parallelErr := <-i.parallelErrChan:
-			return parallelErr
-		case <-done:
-			return nil
-		case <-ctx.Done():
-			return nil
-		}
-	})
-	return eg.Wait()
+	return eg.Wait() // Waits for any parallel execution to finish too.
 }
 
 func (i *Interpreter) handleTarget(ctx context.Context, t spec.Target) error {
@@ -885,8 +876,10 @@ func (i *Interpreter) handleBuild(ctx context.Context, cmd spec.Command, async b
 	for _, bas := range crossProductBuildArgs {
 		for _, platform := range platformsSlice {
 			if async {
-				errChan := i.converter.BuildAsync(ctx, fullTargetName, platform, allowPrivileged, bas, buildCmd)
-				i.monitorErrChan(ctx, errChan)
+				err = i.converter.BuildAsync(ctx, fullTargetName, platform, allowPrivileged, bas, buildCmd, i.eg)
+				if err != nil {
+					return i.wrapError(err, cmd.SourceLocation, "apply BUILD %s", fullTargetName)
+				}
 			} else {
 				err = i.converter.Build(ctx, fullTargetName, platform, allowPrivileged, bas)
 				if err != nil {
@@ -1430,18 +1423,6 @@ func (i *Interpreter) expandArgs(word string, keepPlusEscape bool) string {
 		return ret
 	}
 	return unescapeSlashPlus(ret)
-}
-
-func (i *Interpreter) monitorErrChan(ctx context.Context, errChan chan error) {
-	go func() {
-		select {
-		case err := <-errChan:
-			if err != nil && !errors.Is(err, context.Canceled) {
-				i.parallelErrChan <- err
-			}
-		case <-ctx.Done():
-		}
-	}()
 }
 
 func escapeSlashPlus(str string) string {
