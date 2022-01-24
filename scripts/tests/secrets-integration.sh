@@ -14,9 +14,9 @@ test -n "$EARTHLY_TOKEN"
 "$earthly" account login
 
 # fetch shared secret key (this step assumes your personal user has access to the /earthly-technologies/ secrets org
-ID_RSA=$($earthly secrets get -n /earthly-technologies/github/other-service+github-cinnamon@earthly.dev/id_rsa)
+ID_RSA=$($earthly secrets get -n /earthly-technologies/earthly-secrets/manitou/id_rsa)
 
-# now that we grabbed the cinnamonthecat credentials, unset our token, to ensure that we're only testing using cinnamonthecat's credentials
+# now that we grabbed the manitou credentials, unset our token, to ensure that we're only testing using manitou's credentials
 unset EARTHLY_TOKEN
 
 echo starting new instance of ssh-agent, and loading credentials
@@ -29,13 +29,13 @@ echo "Adding key (with md5sum $md5sum...) into ssh-agent"
 echo "$ID_RSA" | ssh-add -
 
 echo testing that key was correctly loaded into ssh-agent
-ssh-add -l | perl -pe 'BEGIN {$status=1} END {exit $status} $status=0 if /cinnamonthecat/;'
+ssh-add -l | perl -pe 'BEGIN {$status=1} END {exit $status} $status=0 if /manitou/;'
 
 echo testing that the ssh-agent only contains a single key
 test "$(ssh-add -l | wc -l)" = "1"
 
-echo "testing earthly account login works (and is using the earthly-cinnamon account)"
-"$earthly" account login | perl -pe 'BEGIN {$status=1} END {exit $status} $status=0 if /other-service\+earthly-cinnamon\@earthly.dev/;'
+echo "testing earthly account login works (and is using the earthly-manitou account)"
+"$earthly" account login | perl -pe 'BEGIN {$status=1} END {exit $status} $status=0 if /other-service\+earthly-manitou\@earthly.dev/;'
 
 mkdir -p /tmp/earthtest
 cat << EOF > /tmp/earthtest/Earthfile
