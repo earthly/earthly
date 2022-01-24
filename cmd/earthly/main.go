@@ -2379,7 +2379,7 @@ func (app *earthlyApp) actionAccountLogin(c *cli.Context) error {
 	}
 
 	if token != "" || pass != "" {
-		err := cc.DeleteCachedCredentials()
+		err := cc.DeleteAuthCache()
 		if err != nil {
 			return errors.Wrap(err, "failed to clear cached credentials")
 		}
@@ -2460,7 +2460,7 @@ func (app *earthlyApp) actionAccountLogout(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	err = cc.DeleteCachedCredentials()
+	err = cc.DeleteAuthCache()
 	if err != nil {
 		return errors.Wrap(err, "failed to logout")
 	}

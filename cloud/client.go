@@ -83,7 +83,7 @@ type Client interface {
 	SetTokenCredentials(token string) (string, error)
 	SetSSHCredentials(email, sshKey string) error
 	FindSSHCredentials(emailToFind string) error
-	DeleteCachedCredentials() error
+	DeleteAuthCache() error
 	DisableSSHKeyGuessing()
 	SetAuthTokenDir(path string)
 }
@@ -392,7 +392,7 @@ func (c *client) loginWithSSH() error {
 			return err
 		}
 		c.authToken, c.authTokenExpiry, err = c.login(credentials)
-		if err == ErrUnauthorized {
+		if errors.Is(err, ErrUnauthorized) {
 			continue // try next key
 		} else if err != nil {
 			return err
@@ -1179,20 +1179,43 @@ func (c *client) SetAuthTokenDir(path string) {
 	c.authDir = path
 }
 
-func (c *client) DeleteCachedCredentials() error {
+func (c *client) deleteCachedCredentials() error {
 	c.email = ""
 	c.password = ""
 	c.authCredToken = ""
-	tokenPath, err := c.getCredentialsPath(false)
+	credsPath, err := c.getCredentialsPath(false)
 	if err != nil {
 		return err
 	}
-	if !fileutil.FileExists(tokenPath) {
-		return nil
+	if err = os.Remove(credsPath); err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return nil
+		}
+		return errors.Wrapf(err, "failed to delete cached credentials %s", credsPath)
 	}
-	err = os.Remove(tokenPath)
+	return nil
+}
+
+func (c *client) deleteCachedToken() error {
+	tokenPath, err := c.getTokenPath(false)
 	if err != nil {
-		return errors.Wrapf(err, "failed to delete %s", tokenPath)
+		return err
+	}
+	if err = os.Remove(tokenPath); err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return nil
+		}
+		return errors.Wrapf(err, "failed to delete cached token %s", tokenPath)
+	}
+	return nil
+}
+
+func (c *client) DeleteAuthCache() error {
+	if err := c.deleteCachedToken(); err != nil {
+		return err
+	}
+	if err := c.deleteCachedCredentials(); err != nil {
+		return err
 	}
 	return nil
 }
@@ -1251,7 +1274,7 @@ func (c *client) FindSSHCredentials(emailToFind string) error {
 			return err
 		}
 		c.authToken, c.authTokenExpiry, err = c.login(credentials)
-		if err == ErrUnauthorized {
+		if errors.Is(err, ErrUnauthorized) {
 			continue // try next key
 		} else if err != nil {
 			return err
