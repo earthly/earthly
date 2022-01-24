@@ -1051,14 +1051,14 @@ func (c *Converter) Env(ctx context.Context, envKey string, envValue string) err
 }
 
 // Arg applies the ARG command.
-func (c *Converter) Arg(ctx context.Context, argKey string, defaultArgValue string, opts argOpts, global bool) error {
+func (c *Converter) Arg(ctx context.Context, argKey string, defaultArgValue string, opts argOpts) error {
 	err := c.checkAllowed(argCmd)
 	if err != nil {
 		return err
 	}
 	c.nonSaveCommand()
 	effective, effectiveDefault, err := c.varCollection.DeclareArg(
-		argKey, defaultArgValue, global, c.processNonConstantBuildArgFunc(ctx))
+		argKey, defaultArgValue, opts.Global, c.processNonConstantBuildArgFunc(ctx))
 	if err != nil {
 		return err
 	}

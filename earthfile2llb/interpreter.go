@@ -1026,14 +1026,28 @@ func (i *Interpreter) handleEnv(ctx context.Context, cmd spec.Command) error {
 
 var errInvalidSyntax = errors.New("invalid syntax")
 var errRequiredArgHasDefault = errors.New("required ARG cannot have a default value")
+var errGlobalArgNotInBase = errors.New("global ARG can only be set in the base target")
 
 // parseArgArgs parses the ARG command's arguments
 // and returns the argOpts, key, value (or nil if missing), or error
-func parseArgArgs(ctx context.Context, cmd spec.Command) (argOpts, string, *string, error) {
+func parseArgArgs(ctx context.Context, cmd spec.Command, isBaseTarget bool, explicitGlobalFeature bool) (argOpts, string, *string, error) {
 	opts := argOpts{}
 	args, err := flagutil.ParseArgs("ARG", &opts, getArgsCopy(cmd))
 	if err != nil {
 		return argOpts{}, "", nil, err
+	}
+	if opts.Global {
+		// since the global flag is part of the struct, we need to manually return parsing error if it's used while the feature flag is off
+		if !explicitGlobalFeature {
+			return argOpts{}, "", nil, errors.New("unknown flag --global")
+		}
+		// global flag can only bet set on base targets
+		if !isBaseTarget {
+			return argOpts{}, "", nil, errGlobalArgNotInBase
+		}
+	} else if !explicitGlobalFeature {
+		// if the feature flag is off, all base target args are considered global
+		opts.Global = isBaseTarget
 	}
 	switch len(args) {
 	case 3:
@@ -1055,7 +1069,7 @@ func (i *Interpreter) handleArg(ctx context.Context, cmd spec.Command) error {
 	if i.pushOnlyAllowed {
 		return i.pushOnlyErr(cmd.SourceLocation)
 	}
-	opts, key, valueOrNil, err := parseArgArgs(ctx, cmd)
+	opts, key, valueOrNil, err := parseArgArgs(ctx, cmd, i.isBase, i.converter.ftrs.ExplicitGlobal)
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "invalid ARG arguments %v", cmd.Args)
 	}
@@ -1068,9 +1082,8 @@ func (i *Interpreter) handleArg(ctx context.Context, cmd spec.Command) error {
 	if i.local && strings.HasPrefix(value, "$(") {
 		return i.errorf(cmd.SourceLocation, "ARG does not currently support shelling-out in combination with LOCALLY")
 	}
-	// Args declared in the base target are global.
-	global := i.isBase
-	err = i.converter.Arg(ctx, key, value, opts, global)
+
+	err = i.converter.Arg(ctx, key, value, opts)
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "apply ARG")
 	}
