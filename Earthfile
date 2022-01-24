@@ -109,7 +109,7 @@ lint:
             echo "$output" ; \
             exit 1 ; \
         fi
-    # names.go defines some very obvious consts that to not need comments; however golint doesn't support disabling rules: https://github.com/golang/lint/issues/263
+    # names.go defines some very obvious consts that do not need comments; however golint doesn't support disabling rules: https://github.com/golang/lint/issues/263
     # therefore, we will hide this file from golint, and restore it after.
     RUN mv variables/reserved/names.go variables/reserved/names.skip-go-lint && echo "package reserved" > variables/reserved/names.go
     RUN golint -set_exit_status ./...

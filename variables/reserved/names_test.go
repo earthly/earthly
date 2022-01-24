@@ -35,7 +35,7 @@ func getConsts() (map[string]string, error) {
 	for name, obj := range f.Scope.Objects {
 		if obj.Kind == ast.Con {
 			val := obj.Decl.(*ast.ValueSpec).Values[0].(*ast.BasicLit).Value
-			parsedVal, ok := trimeDoubleQuotes(val)
+			parsedVal, ok := trimDoubleQuotes(val)
 			if !ok {
 				return nil, fmt.Errorf("failed to parse %s", val)
 			}
@@ -45,13 +45,13 @@ func getConsts() (map[string]string, error) {
 	return consts, nil
 }
 
-// trimeDoubleQuotes takes a string such as "abc" and returns abc
+// trimDoubleQuotes takes a string such as "abc" and returns abc
 // this is a hack due to the ast ast.BasicLit returning the literal go source code.
 // There is probably a better way to do this, but Alex couldn't quickly figure it out.
 // This function should not be used outside of testing the very-specific use-case,
 // it is very fragile, and is only designed to work with basic strings that are only ever
 // defined on a single line in the go source code (which works fine for builtin ARG names).
-func trimeDoubleQuotes(s string) (string, bool) {
+func trimDoubleQuotes(s string) (string, bool) {
 	n := len(s)
 	if n < 2 {
 		return "", false

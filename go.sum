@@ -302,8 +302,8 @@ github.com/docker/distribution v0.0.0-20190905152932-14b96e55d84c/go.mod h1:0+TT
 github.com/docker/distribution v2.7.1-0.20190205005809-0d3efadf0154+incompatible/go.mod h1:J2gT2udsDAN96Uj4KfcMRqY0/ypR+oyYUYmja8H+y+w=
 github.com/docker/distribution v2.7.1+incompatible h1:a5mlkVzth6W5A4fOsS3D2EO5BUmsJpcB+cRlLU7cSug=
 github.com/docker/distribution v2.7.1+incompatible/go.mod h1:J2gT2udsDAN96Uj4KfcMRqY0/ypR+oyYUYmja8H+y+w=
-github.com/docker/docker v20.10.3-0.20210817025855-ba2adeebdb8d+incompatible h1:tSd7TeZCH0j9m4P14bfe/eO1KYawrt3DztHI8gZAmLM=
-github.com/docker/docker v20.10.3-0.20210817025855-ba2adeebdb8d+incompatible/go.mod h1:eEKB0N0r5NX/I1kEveEz05bcu8tLC/8azJZsviup8Sk=
+github.com/docker/docker v20.10.3-0.20211208011758-87521affb077+incompatible h1:gUm2bOLaaAPkV1z4te7ahrXTWyA+PNNWroISSOttSgU=
+github.com/docker/docker v20.10.3-0.20211208011758-87521affb077+incompatible/go.mod h1:eEKB0N0r5NX/I1kEveEz05bcu8tLC/8azJZsviup8Sk=
 github.com/docker/docker-credential-helpers v0.6.3/go.mod h1:WRaJzqw3CTB9bk10avuGsjVBZsD05qeibJ1/TYlvc0Y=
 github.com/docker/docker-credential-helpers v0.6.4 h1:axCks+yV+2MR3/kZhAmy07yC56WZ2Pwu/fKWtKuZB0o=
 github.com/docker/docker-credential-helpers v0.6.4/go.mod h1:ofX3UI0Gz1TteYBjtgs07O36Pyasyp66D2uKT7H8W1c=
@@ -322,8 +322,8 @@ github.com/docopt/docopt-go v0.0.0-20180111231733-ee0de3bc6815/go.mod h1:WwZ+bS3
 github.com/dustin/go-humanize v0.0.0-20171111073723-bb3d318650d4/go.mod h1:HtrtbFcZ19U5GC7JDqmcUSB87Iq5E25KnS6fMYU6eOk=
 github.com/dustin/go-humanize v1.0.0 h1:VSnTsYCnlFHaM2/igO1h6X3HA71jcobQuxemgkq4zYo=
 github.com/dustin/go-humanize v1.0.0/go.mod h1:HtrtbFcZ19U5GC7JDqmcUSB87Iq5E25KnS6fMYU6eOk=
-github.com/earthly/buildkit v0.0.1-0.20220107002647-0177ad8f0db1 h1:WSXBKFZsNYXFfAiS+fTTFwLmJNPoxslFizj3cf+KqW8=
-github.com/earthly/buildkit v0.0.1-0.20220107002647-0177ad8f0db1/go.mod h1:T2DWQ8lYV1cYMd1pdCl9TtAnqDNr8z6UtAdYFJ02YaA=
+github.com/earthly/buildkit v0.0.1-0.20220118235757-8d4eb6b24e72 h1:IIzW40O2v5REq0KivodTr6snGdKuY/SjU2Mk+28vZsI=
+github.com/earthly/buildkit v0.0.1-0.20220118235757-8d4eb6b24e72/go.mod h1:Mf2dQVG6woGyGhNeFdV+o9tTH8rKwuKBmgTC1FLjPoQ=
 github.com/earthly/fsutil v0.0.0-20211029185157-9f87c4e70cf0 h1:AnKSLuPyEB7ZLDhapjkypj+eJohCBvTKdcCYLxvLcPA=
 github.com/earthly/fsutil v0.0.0-20211029185157-9f87c4e70cf0/go.mod h1:E6osHKls9ix67jofYQ61RQKwlJhqJOZM2hintp+49iI=
 github.com/elazarl/goproxy v0.0.0-20180725130230-947c36da3153/go.mod h1:/Zj4wYkgs4iZTTu3o/KG3Itv/qCCa8VVMlb3i9OVuzc=
@@ -845,12 +845,10 @@ github.com/vbatts/tar-split v0.11.2/go.mod h1:vV3ZuO2yWSVsz+pfFzDG/upWH1JhjOiEaW
 github.com/vishvananda/netlink v0.0.0-20181108222139-023a6dafdcdf/go.mod h1:+SR5DhBJrl6ZM7CoCKvpw5BKroDKQ+PJqOg65H/2ktk=
 github.com/vishvananda/netlink v1.1.0/go.mod h1:cTgwzPIzzgDAYoQrMm0EdrjRUBkTqKYppBueQtXaqoE=
 github.com/vishvananda/netlink v1.1.1-0.20201029203352-d40f9887b852/go.mod h1:twkDnbuQxJYemMlGd4JFIcuhgX83tXhKS2B/PRMpOho=
-github.com/vishvananda/netlink v1.1.1-0.20210330154013-f5de75959ad5 h1:+UB2BJA852UkGH42H+Oee69djmxS3ANzl2b/JtT1YiA=
 github.com/vishvananda/netlink v1.1.1-0.20210330154013-f5de75959ad5/go.mod h1:twkDnbuQxJYemMlGd4JFIcuhgX83tXhKS2B/PRMpOho=
 github.com/vishvananda/netns v0.0.0-20180720170159-13995c7128cc/go.mod h1:ZjcWmFBXmLKZu9Nxj3WKYEafiSqer2rnvPr0en9UNpI=
 github.com/vishvananda/netns v0.0.0-20191106174202-0a2b9b5464df/go.mod h1:JP3t17pCcGlemwknint6hfoeCVQrEMVwxRLRjXpq+BU=
 github.com/vishvananda/netns v0.0.0-20200728191858-db3c7e526aae/go.mod h1:DD4vA1DwXk04H54A1oHXtwZmA0grkVMdPxx/VGLCah0=
-github.com/vishvananda/netns v0.0.0-20210104183010-2eb08e3e575f h1:p4VB7kIXpOQvVn1ZaTIVp+3vuYAXFe3OJEvjbUYJLaA=
 github.com/vishvananda/netns v0.0.0-20210104183010-2eb08e3e575f/go.mod h1:DD4vA1DwXk04H54A1oHXtwZmA0grkVMdPxx/VGLCah0=
 github.com/wille/osutil v0.0.0-20201124133013-e7a03eb09286 h1:JEvHVuP9qrQ+Sq9cnmc35oDTm2PC/87K602ylms3H2g=
 github.com/wille/osutil v0.0.0-20201124133013-e7a03eb09286/go.mod h1:8mynkFldwsrffW4/Bp59D5bzt37KQcBzlnBysF6kyjc=

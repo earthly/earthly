@@ -241,6 +241,9 @@ type SaveImage struct {
 	HasPushDependencies bool
 	// DoSave indicates whether the image should be saved and (possibly pushed).
 	DoSave bool
+	// CheckDuplicate indicates whether to check if the image name shows up
+	// multiple times during output.
+	CheckDuplicate bool
 }
 
 // RunPush is a series of RUN --push commands to be run after the build has been deemed as
