@@ -37,6 +37,8 @@ test "$(ssh-add -l | wc -l)" = "1"
 echo "testing earthly account login works (and is using the earthly-manitou account)"
 "$earthly" account login | perl -pe 'BEGIN {$status=1} END {exit $status} $status=0 if /other-service\+earthly-manitou\@earthly.dev/;'
 
+cat ~/.earthly/auth.v2.token
+
 mkdir -p /tmp/earthtest
 cat << EOF > /tmp/earthtest/Earthfile
 FROM alpine:3.13
@@ -48,8 +50,12 @@ test-server-secret:
     RUN --mount=type=secret,target=/tmp/test_file,id=+secrets/user/earthly_integration_tests/my_test_file test "\$(cat /tmp/test_file)" = "secret-value"
 EOF
 
+echo "got here 1"
+
 # set and test get returns the correct value
 "$earthly" secrets set /user/earthly_integration_tests/my_test_file "secret-value"
+
+echo "got here 2"
 "$earthly" secrets get /user/earthly_integration_tests/my_test_file | perl -pe 'BEGIN {$status=1} END {exit $status} $status=0 if /secret-value/;'
 
 echo "=== test 1 ==="
