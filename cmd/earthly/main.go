@@ -3173,5 +3173,6 @@ func defaultConfigPath() string {
 	if fileutil.FileExists(oldConfig) && !fileutil.FileExists(newConfig) {
 		return oldConfig
 	}
+	fmt.Println("hi")
 	return newConfig
 }
