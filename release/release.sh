@@ -63,7 +63,7 @@ fi
 
 ../earthly upgrade
 
-# fail-fast if release-notes do not exist
+# fail-fast if release-notes do not exist (or if date is incorrect)
 ../earthly --build-arg DOCKERHUB_USER --build-arg RELEASE_TAG +release-notes
 
 if [ -n "$GITHUB_SECRET_PATH" ]; then
