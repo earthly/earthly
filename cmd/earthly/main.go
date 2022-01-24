@@ -2396,6 +2396,10 @@ func (app *earthlyApp) actionAccountLogin(c *cli.Context) error {
 		return errors.Wrap(err, "failed to create cloud client")
 	}
 
+	if err := cc.DeleteCachedToken(); err != nil {
+		return errors.Wrap(err, "failed to delete cached token")
+	}
+
 	// special case where global auth token overrides login logic
 	if app.authToken != "" {
 		if email != "" || token != "" || pass != "" {
