@@ -4,15 +4,22 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
-## v0.6.5 - 2022-01-21
+## v0.6.5 - 2022-01-24
 
 ### Added
 
 - Ability to load a different `.env` file via the `--env-file` flag.
+- Added experimental feature than changes the ARGs defined in the `+base` target to be local, unless defined with a `--global` flag;
+  To enable this feature use `VERSION --explicit-global 0.6`.
 
 ### Changed
 
-- updated buildkit to include changes up to 17c237d69a46d61653746c03bcbe6953014b41a5
+- Updated buildkit to include changes up to 17c237d69a46d61653746c03bcbe6953014b41a5
+
+### Fixed
+
+- `failed to solve: image  is defined multiple times for the same default platform` errors. [#1594](https://github.com/earthly/earthly/issues/1594), [#1582](https://github.com/earthly/earthly/issues/1582)
+- `failed to solve: image rmi after pull and retag: command failed: docker image rm ...: exit status 1: Error: No such image` errors. [#1590](https://github.com/earthly/earthly/issues/1590)
 
 ## v0.6.4 - 2022-01-17
 
