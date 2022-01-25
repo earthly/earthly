@@ -2424,7 +2424,11 @@ func (app *earthlyApp) actionAccountLogin(c *cli.Context) error {
 		cc.DisableSSHKeyGuessing()
 	} else if email != "" {
 		if err = cc.FindSSHCredentials(email); err == nil {
-			// if err is not nil, we will try again below
+			// if err is not nil, we will try again below via cc.WhoAmI()
+
+			if err = cc.Authenticate(); err != nil {
+				return errors.Wrap(err, "authentication with cloud server failed")
+			}
 			fmt.Printf("Logged in as %q using ssh auth\n", email)
 			return nil
 		}
