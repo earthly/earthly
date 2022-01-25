@@ -2,6 +2,7 @@ package earthfile2llb
 
 import (
 	"path"
+	"strconv"
 	"strings"
 
 	"github.com/earthly/earthly/domain"
@@ -30,6 +31,7 @@ func parseMount(mount string, target domain.Target, ti dedup.TargetInput, cacheC
 	var mountTarget string
 	var mountID string
 	var mountType string
+	var mountMode int
 	var mountOpts []llb.MountOption
 	sharingMode := llb.CacheMountShared
 	kvPairs := strings.Split(mount, ",")
@@ -85,17 +87,14 @@ func parseMount(mount string, target domain.Target, ti dedup.TargetInput, cacheC
 			// 	return nil, errors.Errorf("invalid mount arg %s", kvPair)
 			// }
 		case "mode":
-			return nil, errors.Errorf("not yet supported %s", kvPair)
-			// if len(kvSplit) != 2 {
-			// 	return nil, errors.Errorf("invalid mount arg %s", kvPair)
-			// }
-			// var err error
-			// var mode64 int64
-			// mode64, err = strconv.ParseInt(kvSplit[1], 8, 64)
-			// if err != nil {
-			// 	return nil, errors.Errorf("invalid mount arg %s", kvPair)
-			// }
-			// mode = int(mode64)
+			if len(kvSplit) != 2 {
+				return nil, errors.Errorf("invalid mount arg %s", kvPair)
+			}
+			var err error
+			mountMode, err = parseMode(kvSplit[1])
+			if err != nil {
+				return nil, errors.Errorf("failed to parse mount mode %s", kvSplit[1])
+			}
 		case "sharing":
 			if len(kvSplit) != 2 {
 				return nil, errors.Errorf("invalid mount arg %s", kvPair)
@@ -131,11 +130,17 @@ func parseMount(mount string, target domain.Target, ti dedup.TargetInput, cacheC
 		if mountTarget == "" {
 			return nil, errors.Errorf("mount target not specified")
 		}
+		if mountMode != 0 {
+			return nil, errors.Errorf("mode is not supported for type=bind-experimental")
+		}
 		mountOpts = append(mountOpts, llb.HostBind(), llb.SourcePath(mountSource))
 		return []llb.RunOption{llb.AddMount(mountTarget, llb.Scratch(), mountOpts...)}, nil
 	case "cache":
 		if mountTarget == "" {
 			return nil, errors.Errorf("mount target not specified")
+		}
+		if mountMode != 0 {
+			return nil, errors.Errorf("mode is not supported for type=cache")
 		}
 		key, err := cacheKeyTargetInput(ti)
 		if err != nil {
@@ -149,6 +154,9 @@ func parseMount(mount string, target domain.Target, ti dedup.TargetInput, cacheC
 		if mountTarget == "" {
 			return nil, errors.Errorf("mount target not specified")
 		}
+		if mountMode != 0 {
+			return nil, errors.Errorf("mode is not supported for type=tmpfs")
+		}
 		state = llbutil.ScratchWithPlatform()
 		mountOpts = append(mountOpts, llb.Tmpfs())
 		return []llb.RunOption{pllb.AddMount(mountTarget, state, mountOpts...)}, nil
@@ -157,22 +165,38 @@ func parseMount(mount string, target domain.Target, ti dedup.TargetInput, cacheC
 		if mountTarget != "" {
 			sshOpts = append(sshOpts, llb.SSHSocketTarget(mountTarget))
 		}
+		if mountMode != 0 {
+			return nil, errors.Errorf("mode is not supported for type=ssh-experimental")
+		}
 		return []llb.RunOption{llb.AddSSHSocket(sshOpts...)}, nil
 	case "secret":
 		if mountTarget == "" {
 			return nil, errors.Errorf("mount target not specified")
 		}
+		if mountMode == 0 {
+			// TODO: Perhaps this should just default to the current user automatically from
+			//       buildkit side. Then we wouldn't need to open this up to everyone.
+			mountMode = 0444
+		}
 		secretID := strings.TrimPrefix(mountID, "+secrets/")
 		secretOpts := []llb.SecretOption{
 			llb.SecretID(secretID),
-			// TODO: Perhaps this should just default to the current user automatically from
-			//       buildkit side. Then we wouldn't need to open this up to everyone.
-			llb.SecretFileOpt(0, 0, 0444),
+			llb.SecretFileOpt(0, 0, mountMode),
 		}
 		return []llb.RunOption{llb.AddSecret(mountTarget, secretOpts...)}, nil
 	default:
 		return nil, errors.Errorf("invalid mount type %s", mountType)
 	}
+}
+
+var errInvalidOctal = errors.New("invalid octal")
+
+func parseMode(s string) (int, error) {
+	if len(s) == 0 || s[0] != '0' {
+		return 0, errInvalidOctal
+	}
+	mode, err := strconv.ParseInt(s, 8, 64)
+	return int(mode), err
 }
 
 func cacheKeyTargetInput(ti dedup.TargetInput) (string, error) {

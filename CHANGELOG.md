@@ -4,6 +4,10 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+### Added
+
+- Ability to change mounted secret file mode. fixes [#1434](https://github.com/earthly/earthly/issues/1434)
+
 ## v0.6.5 - 2022-01-24
 
 ### Added
