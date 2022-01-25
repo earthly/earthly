@@ -2419,13 +2419,15 @@ func (app *earthlyApp) actionAccountLogin(c *cli.Context) error {
 		}
 		cc.DisableSSHKeyGuessing()
 	} else if email != "" {
-		fmt.Println("finding ssh credentials...")
 		if err = cc.FindSSHCredentials(email); err == nil {
+			// if err is not nil, we will try again below
 			fmt.Printf("Logged in as %q using ssh auth\n", email)
 			return nil
-		} else {
-			fmt.Println(err)
 		}
+	}
+
+	if err = cc.DeleteCachedToken(); err != nil {
+		return err
 	}
 
 	loggedInEmail, authType, writeAccess, err := cc.WhoAmI()

@@ -84,6 +84,7 @@ type Client interface {
 	SetSSHCredentials(email, sshKey string) error
 	FindSSHCredentials(emailToFind string) error
 	DeleteAuthCache() error
+	DeleteCachedToken() error
 	DisableSSHKeyGuessing()
 	SetAuthTokenDir(path string)
 }
@@ -930,7 +931,6 @@ func (c *client) RemoveToken(name string) error {
 }
 
 func (c *client) WhoAmI() (string, string, bool, error) {
-
 	email, writeAccess, err := c.ping()
 	if err != nil {
 		return "", "", false, err
@@ -1184,7 +1184,7 @@ func (c *client) deleteCachedCredentials() error {
 	return nil
 }
 
-func (c *client) deleteCachedToken() error {
+func (c *client) DeleteCachedToken() error {
 	var zero time.Time
 	c.authToken = ""
 	c.authTokenExpiry = zero
@@ -1202,7 +1202,7 @@ func (c *client) deleteCachedToken() error {
 }
 
 func (c *client) DeleteAuthCache() error {
-	if err := c.deleteCachedToken(); err != nil {
+	if err := c.DeleteCachedToken(); err != nil {
 		return err
 	}
 	if err := c.deleteCachedCredentials(); err != nil {
