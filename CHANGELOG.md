@@ -8,6 +8,10 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 - Ability to change mounted secret file mode. fixes [#1434](https://github.com/earthly/earthly/issues/1434)
 
+### Changed
+
+- Permission errors related to reading `~/.earthly/config.yml` and `.env` files are now treated as errors rather than silently ignored (and assuming the file does not exist).
+
 ## v0.6.5 - 2022-01-24
 
 ### Added

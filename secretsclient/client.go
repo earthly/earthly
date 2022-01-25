@@ -893,7 +893,7 @@ func (c *client) loadAuthToken() error {
 	if err != nil {
 		return err
 	}
-	if !fileutil.FileExists(tokenPath) {
+	if exists, _ := fileutil.FileExists(tokenPath); !exists {
 		return nil
 	}
 	data, err := os.ReadFile(tokenPath)
@@ -1038,13 +1038,20 @@ func (c *client) DeleteCachedCredentials() error {
 	c.email = ""
 	c.password = ""
 	c.authToken = ""
+
 	tokenPath, err := c.getAuthTokenPath(false)
 	if err != nil {
 		return err
 	}
-	if !fileutil.FileExists(tokenPath) {
+
+	tokenPathExists, err := fileutil.FileExists(tokenPath)
+	if err != nil {
+		return errors.Wrapf(err, "failed to check if %s exists", tokenPath)
+	}
+	if !tokenPathExists {
 		return nil
 	}
+
 	err = os.Remove(tokenPath)
 	if err != nil {
 		return errors.Wrapf(err, "failed to delete %s", tokenPath)

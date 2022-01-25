@@ -23,7 +23,7 @@ func getArtifactName(s string) string {
 // Docker2Earthly converts an existing Dockerfile in the current directory and writes out an Earthfile in the current directory
 // and error is returned if an Earthfile already exists.
 func Docker2Earthly(dockerfilePath, earthfilePath, imageTag string) error {
-	if fileutil.FileExists(earthfilePath) {
+	if exists, _ := fileutil.FileExists(earthfilePath); exists {
 		return errors.Errorf("earthfile already exists; please delete it if you wish to continue")
 	}
 

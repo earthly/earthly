@@ -779,7 +779,11 @@ func makeTLSPath(path string) (string, error) {
 		fullPath = filepath.Join(earthlyDir, path)
 	}
 
-	if !fileutil.FileExists(fullPath) {
+	exists, err := fileutil.FileExists(fullPath)
+	if err != nil {
+		return "", errors.Wrapf(err, "failed to check if %s exists", fullPath)
+	}
+	if !exists {
 		return "", fmt.Errorf("path '%s' does not exist", path)
 	}
 

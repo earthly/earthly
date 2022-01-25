@@ -157,8 +157,13 @@ func getPotentialPaths(ctx context.Context, resolver *buildcontext.Resolver, gwC
 		return potentials, nil
 	}
 
+	prefixDirExists, err := fileutil.DirExists(prefix)
+	if err != nil {
+		return nil, err
+	}
+
 	var f, dir string
-	if fileutil.DirExists(prefix) {
+	if prefixDirExists {
 		dir = prefix
 	} else {
 		dir, f = path.Split(prefix)
@@ -423,7 +428,7 @@ func GetPotentials(ctx context.Context, resolver *buildcontext.Resolver, gwClien
 			if containsDirectories(".") {
 				potentials = append(potentials, "./")
 			}
-			if fileutil.FileExists("Earthfile") {
+			if fileutil.FileExistsBestEffort("Earthfile") {
 				potentials = append(potentials, "+")
 			}
 		}

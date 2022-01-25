@@ -38,14 +38,22 @@ func GetOrCreateEarthlyDir() (string, error) {
 	_ = GetEarthlyDir() // ensure global vars get created so we can reference them below.
 
 	earthlyDirCreateOnce.Do(func() {
-		if !fileutil.DirExists(earthlyDir) {
+		earthlyDirExists, err := fileutil.DirExists(earthlyDir)
+		if err != nil {
+			earthlyDirCreateErr = errors.Wrapf(err, "unable to create dir %s", earthlyDir)
+			return
+		}
+		if !earthlyDirExists {
 			err := os.MkdirAll(earthlyDir, 0755)
 			if err != nil {
 				earthlyDirCreateErr = errors.Wrapf(err, "unable to create dir %s", earthlyDir)
 				return
 			}
 			if earthlyDirSudoUser != nil {
-				fileutil.EnsureUserOwned(earthlyDir, earthlyDirSudoUser)
+				err := fileutil.EnsureUserOwned(earthlyDir, earthlyDirSudoUser)
+				if err != nil {
+					earthlyDirCreateErr = errors.Wrapf(err, "failed to ensure %s is owned by %s", earthlyDir, earthlyDirSudoUser)
+				}
 			}
 		}
 	})
@@ -55,14 +63,18 @@ func GetOrCreateEarthlyDir() (string, error) {
 
 // IsBootstrapped provides a tentatively correct guess about the state of our bootstrapping.
 func IsBootstrapped() bool {
-	return fileutil.DirExists(GetEarthlyDir())
+	exists, _ := fileutil.DirExists(GetEarthlyDir())
+	return exists
 }
 
 // EnsurePermissions changes the permissions of all earthly files to be owned by the user and their group.
 func EnsurePermissions() error {
 	earthlyDir, sudoUser := getEarthlyDirAndUser()
 	if sudoUser != nil {
-		fileutil.EnsureUserOwned(earthlyDir, sudoUser)
+		err := fileutil.EnsureUserOwned(earthlyDir, sudoUser)
+		if err != nil {
+			return errors.Wrapf(err, "failed to ensure %s is owned by %s", earthlyDir, sudoUser)
+		}
 	}
 	return nil
 }

@@ -1057,9 +1057,11 @@ func (app *earthlyApp) before(context *cli.Context) error {
 	var yamlData []byte
 	var err error
 	if app.configPath != "" {
-		yamlData, err = config.ReadConfigFile(app.configPath, context.IsSet("config"))
+		yamlData, err = config.ReadConfigFile(app.configPath)
 		if err != nil {
-			return errors.Wrapf(err, "read config")
+			if context.IsSet("config") || !errors.Is(err, os.ErrNotExist) {
+				return errors.Wrapf(err, "read config")
+			}
 		}
 	}
 
@@ -1268,7 +1270,8 @@ func (app *earthlyApp) warnIfEarth() {
 			return
 		}
 		earthlyPath := path.Join(path.Dir(absPath), "earthly")
-		if fileutil.FileExists(earthlyPath) {
+		earthlyPathExists, _ := fileutil.FileExists(earthlyPath)
+		if earthlyPathExists {
 			app.console.Warnf("Once you are ready to switch over to earthly, you can `rm %s`", absPath)
 		}
 	}
@@ -1426,12 +1429,20 @@ func (app *earthlyApp) insertBashCompleteEntry() error {
 	}
 	dirPath := filepath.Dir(path)
 
-	if !fileutil.DirExists(dirPath) {
+	dirPathExists, err := fileutil.DirExists(dirPath)
+	if err != nil {
+		return errors.Wrapf(err, "failed checking if %s exists", dirPath)
+	}
+	if !dirPathExists {
 		fmt.Fprintf(os.Stderr, "Warning: unable to enable bash-completion: %s does not exist\n", dirPath)
 		return nil // bash-completion isn't available, silently fail.
 	}
 
-	if fileutil.FileExists(path) {
+	pathExists, err := fileutil.FileExists(path)
+	if err != nil {
+		return errors.Wrapf(err, "failed checking if %s exists", path)
+	}
+	if pathExists {
 		return nil // file already exists, don't update it.
 	}
 
@@ -1518,12 +1529,20 @@ func (app *earthlyApp) insertZSHCompleteEntry() error {
 	path := "/usr/local/share/zsh/site-functions/_earthly"
 	dirPath := filepath.Dir(path)
 
-	if !fileutil.DirExists(dirPath) {
+	dirPathExists, err := fileutil.DirExists(dirPath)
+	if err != nil {
+		return errors.Wrapf(err, "failed to check if %s exists", dirPath)
+	}
+	if !dirPathExists {
 		fmt.Fprintf(os.Stderr, "Warning: unable to enable zsh-completion: %s does not exist\n", dirPath)
 		return nil // zsh-completion isn't available, silently fail.
 	}
 
-	if fileutil.FileExists(path) {
+	pathExists, err := fileutil.FileExists(path)
+	if err != nil {
+		return errors.Wrapf(err, "failed to check if %s exists", path)
+	}
+	if pathExists {
 		return nil // file already exists, don't update it.
 	}
 
@@ -1689,7 +1708,11 @@ func symlinkEarthlyToEarth() error {
 
 	earthPath := path.Join(path.Dir(binPath), "earth")
 
-	if !fileutil.FileExists(earthPath) && termutil.IsTTY() {
+	earthPathExists, err := fileutil.FileExists(earthPath)
+	if err != nil {
+		return errors.Wrapf(err, "failed to check if %s exists", earthPath)
+	}
+	if !earthPathExists && termutil.IsTTY() {
 		return nil // legacy earth binary doesn't exist, don't create it (unless we're under a non-tty system e.g. CI)
 	}
 
@@ -2570,12 +2593,16 @@ func (app *earthlyApp) actionDocker(c *cli.Context) error {
 
 	dir := filepath.Dir(app.dockerfilePath)
 	earthfilePath := filepath.Join(dir, "Earthfile")
-	if fileutil.FileExists(earthfilePath) {
+	earthfilePathExists, err := fileutil.FileExists(earthfilePath)
+	if err != nil {
+		return errors.Wrapf(err, "failed to check if %s exists", earthfilePath)
+	}
+	if earthfilePathExists {
 		return errors.Errorf("earthfile already exists; please delete it if you wish to continue")
 	}
 	defer os.Remove(earthfilePath)
 
-	err := docker2earthly.Docker2Earthly(app.dockerfilePath, earthfilePath, app.earthfileFinalImage)
+	err = docker2earthly.Docker2Earthly(app.dockerfilePath, earthfilePath, app.earthfileFinalImage)
 	if err != nil {
 		return err
 	}
@@ -2608,9 +2635,11 @@ func (app *earthlyApp) actionConfig(c *cli.Context) error {
 	}
 
 	args := c.Args().Slice()
-	inConfig, err := config.ReadConfigFile(app.configPath, c.IsSet("config"))
+	inConfig, err := config.ReadConfigFile(app.configPath)
 	if err != nil {
-		return errors.Wrap(err, "read config")
+		if c.IsSet("config") || !errors.Is(err, os.ErrNotExist) {
+			return errors.Wrapf(err, "read config")
+		}
 	}
 
 	var outConfig []byte
@@ -3153,7 +3182,9 @@ func defaultConfigPath() string {
 	earthlyDir := cliutil.GetEarthlyDir()
 	oldConfig := filepath.Join(earthlyDir, "config.yaml")
 	newConfig := filepath.Join(earthlyDir, "config.yml")
-	if fileutil.FileExists(oldConfig) && !fileutil.FileExists(newConfig) {
+	oldConfigExists, _ := fileutil.FileExists(oldConfig)
+	newConfigExists, _ := fileutil.FileExists(newConfig)
+	if oldConfigExists && !newConfigExists {
 		return oldConfig
 	}
 	return newConfig
