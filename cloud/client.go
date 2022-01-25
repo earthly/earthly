@@ -397,7 +397,7 @@ func (c *client) loginWithSSH() error {
 		} else if err != nil {
 			return err
 		}
-		email, err := c.ping()
+		email, _, err := c.ping()
 		if err != nil {
 			return err
 		}
@@ -432,23 +432,23 @@ func (c *client) login(credentials string) (token string, expiry time.Time, err 
 
 // ping calls the ping endpoint on the server,
 // which is used to both test an auth token and retrieve the associated email address.
-func (c *client) ping() (email string, err error) {
+func (c *client) ping() (email string, writeAccess bool, err error) {
 	status, body, err := c.doCall("GET", "/api/v0/account/ping", withAuth())
 	if err != nil {
-		return "", errors.Wrap(err, "failed executing ping request")
+		return "", false, errors.Wrap(err, "failed executing ping request")
 	}
 	if status == http.StatusUnauthorized {
-		return "", ErrUnauthorized
+		return "", false, ErrUnauthorized
 	}
 	if status != http.StatusOK {
-		return "", errors.Errorf("unexpected status code from ping: %d", status)
+		return "", false, errors.Errorf("unexpected status code from ping: %d", status)
 	}
 	var resp api.PingResponse
 	err = c.jm.Unmarshal(bytes.NewReader([]byte(body)), &resp)
 	if err != nil {
-		return "", errors.Wrap(err, "failed to unmarshal challenge response")
+		return "", false, errors.Wrap(err, "failed to unmarshal challenge response")
 	}
-	return resp.Email, nil
+	return resp.Email, resp.WriteAccess, nil
 }
 
 func getMessageFromJSON(r io.Reader) (string, error) {
@@ -930,22 +930,10 @@ func (c *client) RemoveToken(name string) error {
 }
 
 func (c *client) WhoAmI() (string, string, bool, error) {
-	status, body, err := c.doCall("GET", "/api/v0/account/ping", withAuth())
+
+	email, writeAccess, err := c.ping()
 	if err != nil {
 		return "", "", false, err
-	}
-	if status != http.StatusOK {
-		msg, err := getMessageFromJSON(bytes.NewReader([]byte(body)))
-		if err != nil {
-			return "", "", false, errors.Wrap(err, fmt.Sprintf("failed to decode response body (status code: %d)", status))
-		}
-		return "", "", false, errors.Errorf("failed to authenticate: %s", msg)
-	}
-
-	var pingResponse api.PingResponse
-	err = c.jm.Unmarshal(bytes.NewReader([]byte(body)), &pingResponse)
-	if err != nil {
-		return "", "", false, errors.Wrap(err, "failed to unmarshal ping response")
 	}
 
 	authType := "ssh"
@@ -955,7 +943,7 @@ func (c *client) WhoAmI() (string, string, bool, error) {
 		authType = "token"
 	}
 
-	return pingResponse.Email, authType, pingResponse.WriteAccess, nil
+	return email, authType, writeAccess, nil
 }
 
 func (c *client) migrateOldToken() error {
@@ -1197,6 +1185,9 @@ func (c *client) deleteCachedCredentials() error {
 }
 
 func (c *client) deleteCachedToken() error {
+	var zero time.Time
+	c.authToken = ""
+	c.authTokenExpiry = zero
 	tokenPath, err := c.getTokenPath(false)
 	if err != nil {
 		return err
@@ -1279,7 +1270,7 @@ func (c *client) FindSSHCredentials(emailToFind string) error {
 		} else if err != nil {
 			return err
 		}
-		email, err := c.ping()
+		email, _, err := c.ping()
 		if err != nil {
 			return err
 		}
