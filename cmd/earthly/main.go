@@ -2419,10 +2419,12 @@ func (app *earthlyApp) actionAccountLogin(c *cli.Context) error {
 		}
 		cc.DisableSSHKeyGuessing()
 	} else if email != "" {
+		fmt.Println("finding ssh credentials...")
 		if err = cc.FindSSHCredentials(email); err == nil {
-			// case where err != nil is handled in switch case below
 			fmt.Printf("Logged in as %q using ssh auth\n", email)
 			return nil
+		} else {
+			fmt.Println(err)
 		}
 	}
 
