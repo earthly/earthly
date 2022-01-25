@@ -772,7 +772,11 @@ func (c *Converter) canSave(ctx context.Context, saveAsLocalTo string) (bool, er
 	if err != nil {
 		return false, errors.Wrapf(err, "failed to get absolute path of %s", basepath)
 	}
-	if !fileutil.DirExists(basepath) {
+	basePathExists, err := fileutil.DirExists(basepath)
+	if err != nil {
+		return false, errors.Wrapf(err, "failed to check if %s exists", basepath)
+	}
+	if !basePathExists {
 		return false, fmt.Errorf("no such directory: %s", basepath)
 	}
 	basepath += "/"

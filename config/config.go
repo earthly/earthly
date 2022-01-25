@@ -430,14 +430,11 @@ func deleteYamlValue(node *yaml.Node, path []string) []string {
 }
 
 // ReadConfigFile reads in the config file from the disk, into a byte slice.
-func ReadConfigFile(configPath string, contextSet bool) ([]byte, error) {
+func ReadConfigFile(configPath string) ([]byte, error) {
 	yamlData, err := os.ReadFile(configPath)
-	if os.IsNotExist(err) && !contextSet {
-		return []byte{}, nil
-	} else if err != nil {
+	if err != nil {
 		return []byte{}, errors.Wrapf(err, "failed to read from %s", configPath)
 	}
-
 	return yamlData, nil
 }
 

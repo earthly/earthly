@@ -134,7 +134,11 @@ func getInstallID() (string, error) {
 	}
 
 	path := filepath.Join(earthlyDir, "install_id")
-	if !fileutil.FileExists(path) {
+	pathExists, err := fileutil.FileExists(path)
+	if err != nil {
+		return "", errors.Wrapf(err, "failed to check if %s exists", path)
+	}
+	if !pathExists {
 		u, err := uuid.NewUUID()
 		if err != nil {
 			u, err = uuid.NewRandom()
@@ -227,7 +231,9 @@ func CollectAnalytics(ctx context.Context, earthlyServer string, displayErrors b
 		} else {
 			installID, err = getInstallID()
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "Failed to get install ID: %s\n", err.Error())
+				if displayErrors {
+					fmt.Fprintf(os.Stderr, "Failed to get install ID: %s\n", err.Error())
+				}
 				installID = "unknown"
 			}
 		}
