@@ -953,7 +953,7 @@ func (c *client) migrateOldToken() error {
 	}
 	tokenPath := filepath.Join(confDirPath, "auth.token")
 	newPath := filepath.Join(confDirPath, "auth.credentials")
-	if fileutil.FileExists(tokenPath) {
+	if ok, _ := fileutil.FileExists(tokenPath); ok {
 		if err := os.Rename(tokenPath, newPath); err != nil {
 			return errors.Wrapf(err, "failed to migrate auth from '%s' to '%s'", tokenPath, newPath)
 		}
