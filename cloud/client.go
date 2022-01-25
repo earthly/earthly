@@ -974,7 +974,7 @@ func (c *client) getTokenPath(create bool) (string, error) {
 			confDirPath = cliutil.GetEarthlyDir()
 		}
 	}
-	tokenPath := filepath.Join(confDirPath, "auth.v2.token")
+	tokenPath := filepath.Join(confDirPath, "auth.jwt")
 	return tokenPath, nil
 }
 
@@ -1057,7 +1057,7 @@ func (c *client) loadCredentials() error {
 
 // loads the following files:
 //  * ~/.earthly/auth.credentials
-//  * ~/.earthly/auth.v2.token
+//  * ~/.earthly/auth.jwt
 // If a an old-style auth.token file exists, it is automatically migrated and removed.
 func (c *client) loadAuthStorage() error {
 	if err := c.migrateOldToken(); err != nil {
