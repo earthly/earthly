@@ -2412,6 +2412,10 @@ func (app *earthlyApp) actionAccountLogin(c *cli.Context) error {
 		return nil
 	}
 
+	if err = cc.DeleteCachedToken(); err != nil {
+		return err
+	}
+
 	if token != "" || pass != "" {
 		err := cc.DeleteAuthCache()
 		if err != nil {
@@ -2424,10 +2428,6 @@ func (app *earthlyApp) actionAccountLogin(c *cli.Context) error {
 			fmt.Printf("Logged in as %q using ssh auth\n", email)
 			return nil
 		}
-	}
-
-	if err = cc.DeleteCachedToken(); err != nil {
-		return err
 	}
 
 	loggedInEmail, authType, writeAccess, err := cc.WhoAmI()
