@@ -450,13 +450,6 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 			Usage:       "The git password to use for git HTTPS authentication",
 			Destination: &app.gitPasswordOverride,
 		},
-		&cli.StringFlag{
-			Name:        "git-url-instead-of",
-			Value:       "",
-			EnvVars:     []string{"GIT_URL_INSTEAD_OF"},
-			Usage:       wrap("Rewrite git URLs of a certain pattern. Similar to git-config url.", "<base>.insteadOf (https://git-scm.com/docs/git-config#Documentation/git-config.txt-urlltbasegtinsteadOf).", "Multiple values can be separated by commas. Format: <base>=<instead-of>[,...]. ", "For example: 'https://github.com/=git@github.com:'"),
-			Destination: &app.buildkitdSettings.GitURLInsteadOf,
-		},
 		&cli.BoolFlag{
 			Name:        "allow-privileged",
 			Aliases:     []string{"P"},
@@ -1311,16 +1304,6 @@ func (app *earthlyApp) processDeprecatedCommandOptions(context *cli.Context, cfg
 				v.Password = app.gitPasswordOverride
 			}
 			cfg.Git[k] = v
-		}
-	}
-
-	if context.IsSet("git-url-instead-of") {
-		app.console.Warnf("Warning: the --git-url-instead-of command flag is deprecated and is now configured in the ~/.earthly/config.yml file under the git global url_instead_of setting; see https://docs.earthly.dev/earthly-config for reference.\n")
-	} else {
-		if gitGlobal, ok := cfg.Git["global"]; ok {
-			if gitGlobal.GitURLInsteadOf != "" {
-				app.buildkitdSettings.GitURLInsteadOf = gitGlobal.GitURLInsteadOf
-			}
 		}
 	}
 

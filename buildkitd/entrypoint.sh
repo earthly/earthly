@@ -121,16 +121,6 @@ do
 done
 echo "$EARTHLY_GIT_CONFIG" | base64 -d >/root/.gitconfig
 
-if [ -n "$GIT_URL_INSTEAD_OF" ]; then
-    # GIT_URL_INSTEAD_OF can support multiple comma-separated values
-    for instead_of in $(echo "${GIT_URL_INSTEAD_OF}" | sed "s/,/ /g")
-    do
-        base="${instead_of%%=*}"
-        insteadOf="${instead_of#*=}"
-        git config --global url."$base".insteadOf "$insteadOf"
-    done
-fi
-
 #Set up CNI
 if [ -z "$CNI_MTU" ]; then
   device=$(ip route show | grep default | cut -d' ' -f5 | head -n 1)
