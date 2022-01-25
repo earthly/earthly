@@ -1275,10 +1275,10 @@ func (c *client) FindSSHCredentials(emailToFind string) error {
 			return err
 		}
 		if email == emailToFind {
+			if err := c.SetSSHCredentials(email, key.String()); err != nil {
+				return err
+			}
 			return nil
-		}
-		if err := c.SetSSHCredentials(email, key.String()); err != nil {
-			return err
 		}
 	}
 	return ErrNoAuthorizedPublicKeys
