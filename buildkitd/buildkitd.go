@@ -424,10 +424,6 @@ func Start(ctx context.Context, console conslogging.ConsoleLogger, image, contai
 		envOpts["CACHE_SIZE_MB"] = strconv.FormatInt(int64(settings.CacheSizeMb), 10)
 	}
 
-	if settings.GitURLInsteadOf != "" {
-		envOpts["GIT_URL_INSTEAD_OF"] = strconv.FormatInt(int64(settings.CacheSizeMb), 10)
-	}
-
 	// Apply reset.
 	if reset {
 		envOpts["EARTHLY_RESET_TMP_DIR"] = "true"

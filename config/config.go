@@ -86,9 +86,6 @@ type GlobalConfig struct {
 
 // GitConfig contains git-specific config values
 type GitConfig struct {
-	// these are used for global config
-	GitURLInsteadOf string `yaml:"url_instead_of"`
-
 	// these are used for git vendors (e.g. github, gitlab)
 	Pattern               string `yaml:"pattern"                      help:"A regular expression defined to match git URLs, defaults to the regex: <site>/([^/]+)/([^/]+). For example if the site is github.com, then the default pattern will match github.com/<user>/<repo>."`
 	Substitute            string `yaml:"substitute"                   help:"If specified, a regular expression substitution will be preformed to determine which URL is cloned by git. Values like $1, $2, ... will be replaced with matched subgroup data. If no substitute is given, a URL will be created based on the requested SSH authentication mode."`
