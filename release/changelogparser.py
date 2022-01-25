@@ -126,7 +126,7 @@ def parse_changelog(changelog_data):
                 if not m:
                     raise MalformedVersionHeaderError(line, line_num)
                 version = m.group(1)
-                release_date = m.group(2)
+                release_date = m.group(3)
             body = []
         elif num_headers == 3:
             ignore = False
@@ -147,6 +147,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--changelog', help='path to change log; if omitted changelog is read from stdin')
     parser.add_argument('--version', help='version to display; if omitted, changelog is still parsed and any errors are displayed', default=None)
+    parser.add_argument('--date', help='display release date of specified version', action='store_true')
     args = parser.parse_args()
 
     path_str = args.changelog
@@ -181,4 +182,7 @@ if __name__ == '__main__':
     except KeyError:
         print(f'No changelog entry exists for {args.version}', file=sys.stderr)
         sys.exit(1)
-    print(details['body'].strip())
+    if args.date:
+        print(details['date'])
+    else:
+        print(details['body'].strip())

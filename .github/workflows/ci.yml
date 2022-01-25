@@ -630,8 +630,6 @@ jobs:
         run: env earthly=./build/linux/amd64/earthly scripts/tests/auth/test-hello-world-with-non-authorized-key.sh
       - name: run test-self-hosted.sh
         run: env earthly=./build/linux/amd64/earthly scripts/tests/auth/test-self-hosted.sh
-      - name: run test-with-git-url-instead-of.sh
-        run: env earthly=./build/linux/amd64/earthly scripts/tests/auth/test-with-git-url-instead-of.sh
 # auto-generated-entries end
       - name: Buildkit logs (runs on failure)
         run: docker logs earthly-buildkitd

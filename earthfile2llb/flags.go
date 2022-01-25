@@ -113,4 +113,5 @@ type importOpts struct {
 
 type argOpts struct {
 	Required bool `long:"required" description:"Require argument to be non-empty"`
+	Global   bool `long:"global" description:"Global argument to make available to all other targets"`
 }
