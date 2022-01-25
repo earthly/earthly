@@ -57,6 +57,7 @@ type ConsoleLogger struct {
 	errW           io.Writer
 	trailingLine   bool
 	prefixPadding  int
+	bb             *BundleBuilder
 }
 
 func (cl ConsoleLogger) clone() ConsoleLogger {
@@ -74,12 +75,14 @@ func (cl ConsoleLogger) clone() ConsoleLogger {
 		nextColorIndex: cl.nextColorIndex,
 		prefixPadding:  cl.prefixPadding,
 		mu:             cl.mu,
+		bb:             cl.bb,
 	}
 }
 
 // WithPrefix returns a ConsoleLogger with a prefix added.
 func (cl ConsoleLogger) WithPrefix(prefix string) ConsoleLogger {
 	ret := cl.clone()
+	ret.errW = io.MultiWriter(cl.errW, cl.bb.PrefixWriter(prefix))
 	ret.prefix = prefix
 	ret.salt = prefix
 	return ret
@@ -102,6 +105,7 @@ func (cl ConsoleLogger) WithLocal(isLocal bool) ConsoleLogger {
 // WithPrefixAndSalt returns a ConsoleLogger with a prefix and a seed added.
 func (cl ConsoleLogger) WithPrefixAndSalt(prefix string, salt string) ConsoleLogger {
 	ret := cl.clone()
+	ret.errW = io.MultiWriter(cl.errW, cl.bb.PrefixWriter(prefix))
 	ret.prefix = prefix
 	ret.salt = salt
 	return ret
@@ -135,6 +139,12 @@ func (cl ConsoleLogger) WithFailed(isFailed bool) ConsoleLogger {
 func (cl ConsoleLogger) WithWriter(w io.Writer) ConsoleLogger {
 	ret := cl.clone()
 	ret.errW = w
+	return ret
+}
+
+func (cl ConsoleLogger) WithLogBundleWriter() ConsoleLogger {
+	ret := cl.clone()
+	ret.bb = NewBundleBuilder("/home/dchw/aatestlog")
 	return ret
 }
 
@@ -250,6 +260,7 @@ func (cl ConsoleLogger) Printf(format string, args ...interface{}) {
 	for _, line := range strings.Split(text, "\n") {
 		cl.printPrefix()
 		c.Fprintf(cl.errW, "%s", line)
+
 		// Don't use a background color for \n.
 		noColor.Fprintf(cl.errW, "\n")
 	}
@@ -385,4 +396,8 @@ func (cl ConsoleLogger) WithVerbose(verbose bool) ConsoleLogger {
 	ret := cl.clone()
 	ret.verbose = verbose
 	return ret
+}
+
+func (cl ConsoleLogger) FlushBundleBuilder() {
+	cl.bb.WriteToDisk()
 }

@@ -276,7 +276,10 @@ func main() {
 		padding = conslogging.NoPadding
 	}
 
-	app := newEarthlyApp(ctx, conslogging.Current(colorMode, padding, false))
+	clogger := conslogging.Current(colorMode, padding, false)
+	clogger = clogger.WithLogBundleWriter()
+
+	app := newEarthlyApp(ctx, clogger)
 	app.unhideFlags(ctx)
 	app.autoComplete(ctx)
 
@@ -289,6 +292,8 @@ func main() {
 		displayErrors := app.verbose
 		analytics.CollectAnalytics(ctxTimeout, app.apiServer, displayErrors, Version, getPlatform(), GitSha, app.commandName, exitCode, time.Since(startTime))
 	}
+
+	clogger.FlushBundleBuilder()
 	os.Exit(exitCode)
 }
 
@@ -2241,7 +2246,7 @@ func (app *earthlyApp) actionAccountAddKey(c *cli.Context) error {
 		return errors.Wrap(err, "failed to add public key to account")
 	}
 
-	//switch over to new key if the user is currently using password-based auth
+	// switch over to new key if the user is currently using password-based auth
 	email, authType, _, err := sc.WhoAmI()
 	if err != nil {
 		return errors.Wrap(err, "failed to validate auth token")
@@ -3086,7 +3091,7 @@ func (app *earthlyApp) actionListTargets(c *cli.Context) error {
 	var gwClient gwclient.Client // TODO this is a nil pointer which causes a panic if we try to expand a remotely referenced earthfile
 	// it's expensive to create this gwclient, so we need to implement a lazy eval which returns it when required.
 
-	target, err := domain.ParseTarget(fmt.Sprintf("%s+base", targetToParse)) //the +base is required to make ParseTarget work; however is ignored by GetTargets
+	target, err := domain.ParseTarget(fmt.Sprintf("%s+base", targetToParse)) // the +base is required to make ParseTarget work; however is ignored by GetTargets
 	if err != nil {
 		return errors.Errorf("unable to locate Earthfile under %s", targetToDisplay)
 	}
