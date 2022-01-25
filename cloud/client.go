@@ -1000,12 +1000,9 @@ func (c *client) loadToken() error {
 	if err != nil {
 		return err
 	}
-<<<<<<< HEAD:cloud/client.go
-=======
 	if exists, _ := fileutil.FileExists(tokenPath); !exists {
 		return nil
 	}
->>>>>>> cef78b12bc85e3f96bb76205f9f933e9d4fae429:secretsclient/client.go
 	data, err := os.ReadFile(tokenPath)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
