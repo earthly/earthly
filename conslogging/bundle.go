@@ -6,12 +6,14 @@ import (
 	"io"
 	"io/ioutil"
 	"net/url"
+	"os"
 	"path"
 	"regexp"
 	"strings"
 	"time"
 
 	"github.com/hashicorp/go-multierror"
+	"github.com/pkg/errors"
 )
 
 type BundleBuilder struct {
@@ -70,24 +72,33 @@ func (bb *BundleBuilder) PrefixWriter(prefix string) io.Writer {
 }
 
 func (bb *BundleBuilder) WriteToDisk() error {
-	var err error
-
 	fmt.Println(bb.RootPath)
+
+	targetPath := path.Join(bb.RootPath, "target")
+	err := os.MkdirAll(targetPath, 0700)
+	if err != nil {
+		return errors.Wrapf(err, "Failed to write targets directory for bundle at %s", bb.RootPath)
+	}
 
 	manifest := &Manifest{
 		Version:    1,
 		Duration:   int(time.Since(bb.started).Seconds()),
 		Status:     "complete",
 		Result:     "success",
-		CreatedAt:  time.Now(),
+		CreatedAt:  time.Now().In(time.UTC),
 		Entrypoint: bb.Entrypoint,
 		Targets:    make([]TargetManifest, 0),
 	}
 
 	for prefix, lines := range bb.logmap {
+		if lines.writer.Len() <= 0 {
+			// Do not write empty logs, if the prefix didn't write anything
+			continue
+		}
+
 		trimmed := strings.TrimSpace(prefix)
 		escaped := url.PathEscape(trimmed)
-		logPath := path.Join(bb.RootPath, escaped)
+		logPath := path.Join(targetPath, escaped)
 
 		command, summary := bb.GetCommandAndSummary(prefix, lines.writer)
 
@@ -101,20 +112,44 @@ func (bb *BundleBuilder) WriteToDisk() error {
 			Summary:  summary,
 		})
 
-		tgtErr := ioutil.WriteFile(logPath, []byte(lines.writer.String()), 0666)
+		if lines.result != ResultSuccess {
+			manifest.Result = lines.result
+		}
+
+		if lines.status != StatusComplete {
+			manifest.Status = lines.status
+		}
+
+		tgtErr := ioutil.WriteFile(logPath, []byte(lines.writer.String()), 0600)
 		if err != nil {
 			err = multierror.Append(err, tgtErr)
 		}
 	}
+	if err != nil {
+		return errors.Wrap(err, "errors while writing targets for log bundle")
+	}
 
 	manifestJSON, _ := json.Marshal(&manifest)
-	err = ioutil.WriteFile(path.Join(bb.RootPath, "manifest.json"), manifestJSON, 0666)
+	err = ioutil.WriteFile(path.Join(bb.RootPath, "manifest"), manifestJSON, 0600)
+	if err != nil {
+		return errors.Wrap(err, "failed to serialize bundle manifest")
+	}
 
-	return err
+	permissionsJSON, _ := json.Marshal(&Permissions{
+		Version: 1,
+		Users:   make([]uint64, 0),
+		Orgs:    make([]uint64, 0),
+	})
+	err = ioutil.WriteFile(path.Join(bb.RootPath, "permissions"), permissionsJSON, 0600)
+	if err != nil {
+		return errors.Wrap(err, "failed to serialize bundle permissions placeholder")
+	}
+
+	return nil
 }
 
 // Nobody expects ANSI in the command/summary.
-// So, even if we don't inject color we should strip it since a tool inside could have done an ANSI too.
+// So, even if we don't inject color we should strip it since a tool inside could have done an ANSI too. *SIGH*
 const ansi = "[\u001B\u009B][[\\]()#;?]*(?:(?:(?:[a-zA-Z\\d]*(?:;[a-zA-Z\\d]*)*)?\u0007)|(?:(?:\\d{1,4}(?:;\\d{0,4})*)?[\\dA-PRZcf-ntqry=><~]))"
 
 var re = regexp.MustCompile(ansi)
@@ -138,9 +173,7 @@ func (bb *BundleBuilder) GetCommandAndSummary(prefix string, builder *strings.Bu
 	remainder := text[lastMatch[1]:]          // The rest of the log from end of the last match
 	command := TruncateString(remainder, 120) // The line up to a newline or 120 chars
 
-	// find the next newline, and go there
-
-	// If there is any left, take the last line, up to 120 characters
+	// regex to get the last line, (ab)use groups to get the line without the prefix. Truncate it like command.
 	regexStr2 := fmt.Sprintf(`%s \| (.*)\n?$`, regexp.QuoteMeta(prettyPrefix))
 	r2 := regexp.MustCompile(regexStr2)
 	matches2 := r2.FindAllStringSubmatch(remainder, -1)
@@ -204,4 +237,10 @@ type TargetManifest struct {
 	Size     int    `json:"size"`
 	Command  string `json:"command,omitempty"`
 	Summary  string `json:"summary,omitempty"`
+}
+
+type Permissions struct {
+	Version int      `json:"version"`
+	Users   []uint64 `json:"users"`
+	Orgs    []uint64 `json:"orgs"`
 }
