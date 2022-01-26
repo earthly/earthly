@@ -144,7 +144,7 @@ func (cl ConsoleLogger) WithWriter(w io.Writer) ConsoleLogger {
 
 func (cl ConsoleLogger) WithLogBundleWriter() ConsoleLogger {
 	ret := cl.clone()
-	ret.bb = NewBundleBuilder("/home/dchw/aatestlog")
+	ret.bb = NewBundleBuilder("/home/dchw/aatestlog", "my cool entrypoint")
 	return ret
 }
 
@@ -391,6 +391,38 @@ func (cl ConsoleLogger) prettyPrefix() string {
 	return fmt.Sprintf(formatString, fmt.Sprintf("%s%s", prettyPrefix, brackets))
 }
 
+func prettyPrefix2(prefixPadding int, prefix string) string {
+	if prefixPadding == NoPadding {
+		return prefix
+	}
+
+	var brackets string
+	bracketParts := strings.SplitN(prefix, "(", 2)
+	if len(bracketParts) > 1 {
+		brackets = fmt.Sprintf("(%s", bracketParts[1])
+	}
+	prettyPrefix := bracketParts[0]
+	if len(prefix) > prefixPadding {
+		parts := strings.Split(prefix, "/")
+		target := parts[len(parts)-1]
+
+		truncated := ""
+		for _, part := range parts[:len(parts)-1] {
+			letter := part
+			if len(part) > 0 && part != ".." {
+				letter = string(part[0])
+			}
+
+			truncated += letter + "/"
+		}
+
+		prettyPrefix = truncated + target
+	}
+
+	formatString := fmt.Sprintf("%%%vv", prefixPadding)
+	return fmt.Sprintf(formatString, fmt.Sprintf("%s%s", prettyPrefix, brackets))
+}
+
 // WithVerbose toggles the verbose level
 func (cl ConsoleLogger) WithVerbose(verbose bool) ConsoleLogger {
 	ret := cl.clone()
@@ -398,6 +430,6 @@ func (cl ConsoleLogger) WithVerbose(verbose bool) ConsoleLogger {
 	return ret
 }
 
-func (cl ConsoleLogger) FlushBundleBuilder() {
-	cl.bb.WriteToDisk()
+func (cl ConsoleLogger) FlushBundleBuilder() error {
+	return cl.bb.WriteToDisk()
 }

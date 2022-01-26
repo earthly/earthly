@@ -293,7 +293,10 @@ func main() {
 		analytics.CollectAnalytics(ctxTimeout, app.apiServer, displayErrors, Version, getPlatform(), GitSha, app.commandName, exitCode, time.Since(startTime))
 	}
 
-	clogger.FlushBundleBuilder()
+	err = clogger.FlushBundleBuilder()
+	if err != nil {
+		fmt.Printf("Error writing log to disk: %s\n", err.Error())
+	}
 	os.Exit(exitCode)
 }
 
