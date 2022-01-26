@@ -68,6 +68,7 @@ fi
 
     RUN --privileged start-sshd && \
         mkdir -p ~/.ssh && \
+        timeout 5 sh -c 'until nc -z $0 $1; do sleep 1; done' git.example.com 22 && \
         ssh-keyscan -H git.example.com > ~/.ssh/known_hosts && \
         echo done setup.
 
@@ -76,6 +77,7 @@ fi
         if [ "$USER_RSA" = "true" ]; then ssh-add /root/self-hosted-rsa-key; fi && \
         if [ "$USER_ED25519" = "true" ]; then ssh-add /root/self-hosted-ed25519-key; fi && \
         ssh-add -l && \
+        timeout 5 sh -c 'until nc -z $0 $1; do sleep 1; done' git.example.com 22 && \
         ssh-keyscan -H git.example.com && \
         mkdir -p /test/repo && \
         cd /test/repo && \
