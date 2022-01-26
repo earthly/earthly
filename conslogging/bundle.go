@@ -158,7 +158,7 @@ func (bb *BundleBuilder) GetCommandAndSummary(prefix string, builder *strings.Bu
 	rawText := builder.String()
 	text := re.ReplaceAllString(rawText, "")
 
-	prettyPrefix := prettyPrefix2(DefaultPadding, prefix)
+	prettyPrefix := prettyPrefix(DefaultPadding, prefix)
 
 	// regex to find command lines in the output.
 	regexStr := fmt.Sprintf(`(?m)^%s \| (\*cached\* |\*local\* | )*--> `, regexp.QuoteMeta(prettyPrefix))

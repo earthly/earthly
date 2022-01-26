@@ -325,7 +325,7 @@ func (cl ConsoleLogger) printPrefix() {
 		return
 	}
 	c := cl.PrefixColor()
-	c.Fprintf(cl.errW, cl.prettyPrefix())
+	c.Fprintf(cl.errW, prettyPrefix(cl.prefixPadding, cl.prefix))
 	if cl.isLocal {
 		cl.errW.Write([]byte(" *"))
 		cl.color(localColor).Fprintf(cl.errW, "local")
@@ -359,39 +359,7 @@ func (cl ConsoleLogger) color(c *color.Color) *color.Color {
 	return noColor
 }
 
-func (cl ConsoleLogger) prettyPrefix() string {
-	if cl.prefixPadding == NoPadding {
-		return cl.prefix
-	}
-
-	var brackets string
-	bracketParts := strings.SplitN(cl.prefix, "(", 2)
-	if len(bracketParts) > 1 {
-		brackets = fmt.Sprintf("(%s", bracketParts[1])
-	}
-	prettyPrefix := bracketParts[0]
-	if len(cl.prefix) > cl.prefixPadding {
-		parts := strings.Split(cl.prefix, "/")
-		target := parts[len(parts)-1]
-
-		truncated := ""
-		for _, part := range parts[:len(parts)-1] {
-			letter := part
-			if len(part) > 0 && part != ".." {
-				letter = string(part[0])
-			}
-
-			truncated += letter + "/"
-		}
-
-		prettyPrefix = truncated + target
-	}
-
-	formatString := fmt.Sprintf("%%%vv", cl.prefixPadding)
-	return fmt.Sprintf(formatString, fmt.Sprintf("%s%s", prettyPrefix, brackets))
-}
-
-func prettyPrefix2(prefixPadding int, prefix string) string {
+func prettyPrefix(prefixPadding int, prefix string) string {
 	if prefixPadding == NoPadding {
 		return prefix
 	}
