@@ -50,6 +50,7 @@ EOF
 
 # set and test get returns the correct value
 "$earthly" secrets set /user/earthly_integration_tests/my_test_file "secret-value"
+
 "$earthly" secrets get /user/earthly_integration_tests/my_test_file | perl -pe 'BEGIN {$status=1} END {exit $status} $status=0 if /secret-value/;'
 
 echo "=== test 1 ==="

@@ -5,20 +5,19 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/earthly/earthly/secretsclient"
-
+	"github.com/earthly/earthly/cloud"
 	"github.com/moby/buildkit/session"
 	"github.com/moby/buildkit/session/secrets"
 	"github.com/pkg/errors"
 	"google.golang.org/grpc"
 )
 
-// ErrNoSecretsClient occurs when the secrets client is referenced but was never provided
-var ErrNoSecretsClient = errors.Errorf("no secrets client provided")
+// ErrNoCloudClient occurs when the secrets client is referenced but was never provided
+var ErrNoCloudClient = errors.Errorf("no cloud client provided")
 
 type secretProvider struct {
 	store  secrets.SecretStore
-	client secretsclient.Client
+	client cloud.Client
 }
 
 // Register registers the secret provider
@@ -28,7 +27,7 @@ func (sp *secretProvider) Register(server *grpc.Server) {
 
 func (sp *secretProvider) getSecretFromServer(path string) ([]byte, error) {
 	if sp.client == nil {
-		return nil, ErrNoSecretsClient
+		return nil, ErrNoCloudClient
 	}
 	data, err := sp.client.Get(path)
 	if err != nil {
@@ -70,7 +69,7 @@ func (sp *secretProvider) GetSecret(ctx context.Context, req *secrets.GetSecretR
 }
 
 // NewSecretProvider returns a new secrets provider
-func NewSecretProvider(client secretsclient.Client, overrides map[string][]byte) session.Attachable {
+func NewSecretProvider(client cloud.Client, overrides map[string][]byte) session.Attachable {
 	return &secretProvider{
 		store:  mapStore(overrides),
 		client: client,
