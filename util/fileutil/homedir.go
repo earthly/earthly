@@ -21,7 +21,6 @@ func getHomeFromSudoUser() (string, *user.User, bool) {
 	if !writable {
 		return "", nil, false
 	}
-
 	return u.HomeDir, u, true
 }
 
