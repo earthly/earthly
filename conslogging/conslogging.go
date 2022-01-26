@@ -398,7 +398,7 @@ func (cl ConsoleLogger) WithVerbose(verbose bool) ConsoleLogger {
 	return ret
 }
 
-func (cl ConsoleLogger) FlushBundleBuilder() error {
+func (cl ConsoleLogger) WriteBundleToDisk() error {
 	return cl.bb.WriteToDisk()
 }
 

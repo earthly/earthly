@@ -2792,12 +2792,6 @@ func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []st
 		return errors.Wrap(err, "make temp log dir")
 	}
 	app.console = app.console.WithLogBundleWriter(logTemp, target.String())
-	defer func(console conslogging.ConsoleLogger) {
-		err := console.FlushBundleBuilder()
-		if err != nil {
-			fmt.Println(err.Error())
-		}
-	}(app.console)
 
 	bkClient, err := buildkitd.NewClient(c.Context, app.console, app.buildkitdImage, app.containerName, app.containerFrontend, app.buildkitdSettings)
 	if err != nil {
@@ -3016,6 +3010,12 @@ func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []st
 	if err != nil {
 		return errors.Wrap(err, "build target")
 	}
+
+	err = app.console.WriteBundleToDisk()
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+
 	return nil
 }
 
