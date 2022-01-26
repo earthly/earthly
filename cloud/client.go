@@ -356,10 +356,7 @@ func (c *client) Authenticate() error {
 	if err != nil {
 		return err
 	}
-	if err = c.saveToken(); err != nil {
-		return err
-	}
-	return nil
+	return c.saveToken()
 }
 
 func (c *client) loginWithPassowrd() error {
