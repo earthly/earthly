@@ -4,6 +4,8 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+## v0.6.6 - 2022-01-26
+
 ### Added
 
 - Ability to change mounted secret file mode. fixes [#1434](https://github.com/earthly/earthly/issues/1434)
@@ -11,6 +13,15 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 ### Changed
 
 - Permission errors related to reading `~/.earthly/config.yml` and `.env` files are now treated as errors rather than silently ignored (and assuming the file does not exist).
+- Speedup from pre-emptive execution of build steps prior to them being referenced in the build graph.
+
+### Fixed
+
+- earthly panic when running with `SUDO_USER` pointing to a user the current user did not have read/write permission; notably encountered when running under circleci.
+
+### Removed
+
+- Removed `--git-url-instead-of` flag, which has been replaced by `earthly config git ...`
 
 ## v0.6.5 - 2022-01-24
 
