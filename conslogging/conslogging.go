@@ -142,9 +142,9 @@ func (cl ConsoleLogger) WithWriter(w io.Writer) ConsoleLogger {
 	return ret
 }
 
-func (cl ConsoleLogger) WithLogBundleWriter() ConsoleLogger {
+func (cl ConsoleLogger) WithLogBundleWriter(rootPath, entrypoint string) ConsoleLogger {
 	ret := cl.clone()
-	ret.bb = NewBundleBuilder("/home/dchw/aatestlog", "my cool entrypoint")
+	ret.bb = NewBundleBuilder(rootPath, entrypoint)
 	return ret
 }
 
@@ -432,4 +432,30 @@ func (cl ConsoleLogger) WithVerbose(verbose bool) ConsoleLogger {
 
 func (cl ConsoleLogger) FlushBundleBuilder() error {
 	return cl.bb.WriteToDisk()
+}
+
+func (cl ConsoleLogger) MarkBundleBuilderResult(error bool) {
+	var result string
+	if error {
+		result = ResultFailure
+	} else {
+		result = ResultSuccess
+	}
+
+	cl.bb.PrefixResult(cl.Prefix(), result)
+}
+
+func (cl ConsoleLogger) MarkBundleBuilderStatus(isStarted, isFinished bool) {
+	var status string
+	if isStarted {
+		if isFinished {
+			status = StatusComplete
+		} else {
+			status = StatusInProgress
+		}
+	} else {
+		status = StatusWaiting
+	}
+
+	cl.bb.PrefixStatus(cl.Prefix(), status)
 }

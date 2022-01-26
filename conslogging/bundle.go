@@ -42,21 +42,15 @@ func NewBundleBuilder(rootPath, entrypoint string) *BundleBuilder {
 	}
 }
 
-func (bb *BundleBuilder) PrefixResultFailed(prefix string) {
+func (bb *BundleBuilder) PrefixResult(prefix, result string) {
 	if builder, ok := bb.logmap[prefix]; ok {
-		builder.result = "failed"
+		builder.result = result
 	}
 }
 
-func (bb *BundleBuilder) PrefixResultSucceeded(prefix string) {
+func (bb *BundleBuilder) PrefixStatus(prefix, status string) {
 	if builder, ok := bb.logmap[prefix]; ok {
-		builder.result = "success"
-	}
-}
-
-func (bb *BundleBuilder) PrefixStatusComplete(prefix string) {
-	if builder, ok := bb.logmap[prefix]; ok {
-		builder.status = "complete"
+		builder.status = status
 	}
 }
 
@@ -67,8 +61,8 @@ func (bb *BundleBuilder) PrefixWriter(prefix string) io.Writer {
 
 	writer := &TargetLogger{
 		writer:  &strings.Builder{},
-		status:  "cancelled",
-		result:  "cancelled",
+		status:  StatusWaiting,
+		result:  "",
 		started: time.Now(),
 	}
 	bb.logmap[prefix] = writer
@@ -77,6 +71,8 @@ func (bb *BundleBuilder) PrefixWriter(prefix string) io.Writer {
 
 func (bb *BundleBuilder) WriteToDisk() error {
 	var err error
+
+	fmt.Println(bb.RootPath)
 
 	manifest := &Manifest{
 		Version:    1,
@@ -104,14 +100,6 @@ func (bb *BundleBuilder) WriteToDisk() error {
 			Command:  command,
 			Summary:  summary,
 		})
-
-		if lines.result != "success" {
-			manifest.Result = lines.result
-		}
-
-		if lines.status != "complete" {
-			manifest.Status = lines.status
-		}
 
 		tgtErr := ioutil.WriteFile(logPath, []byte(lines.writer.String()), 0666)
 		if err != nil {
@@ -160,9 +148,6 @@ func (bb *BundleBuilder) GetCommandAndSummary(prefix string, builder *strings.Bu
 		return command, ""
 	}
 	summary := TruncateString(matches2[len(matches2)-1][1], 120)
-	fmt.Printf("%s: %v\n", prefix, summary)
-	fmt.Println(remainder)
-	fmt.Println("-------------")
 
 	return command, summary
 }
@@ -189,6 +174,17 @@ func TruncateString(str string, length int) string {
 }
 
 // --- Copied types below
+
+const (
+	StatusWaiting    = "waiting"
+	StatusInProgress = "in_progress"
+	StatusComplete   = "complete"
+	StatusCancelled  = "cancelled"
+
+	ResultSuccess   = "success"
+	ResultFailure   = "failure"
+	ResultCancelled = "cancelled"
+)
 
 type Manifest struct {
 	Version    int              `json:"version"`

@@ -209,6 +209,14 @@ func (vm *vertexMonitor) isOngoing() bool {
 	return vm.vertex.Started != nil && vm.vertex.Completed == nil && !vm.isError
 }
 
+func (vm *vertexMonitor) reportStatusToConsole() {
+	vm.console.MarkBundleBuilderStatus(vm.vertex.Started != nil, vm.vertex.Completed != nil)
+}
+
+func (vm *vertexMonitor) reportResultToConsole() {
+	vm.console.MarkBundleBuilderResult(vm.isError)
+}
+
 type solverMonitor struct {
 	msgMu                       sync.Mutex
 	console                     conslogging.ConsoleLogger
@@ -345,6 +353,9 @@ func (sm *solverMonitor) processStatus(ss *client.SolveStatus) error {
 			sm.recordTiming(vm.targetStr, vm.targetBrackets, vm.salt, vertex)
 			sm.noOutputTicker.Reset(sm.noOutputTick)
 		}
+
+		vm.reportStatusToConsole()
+		vm.reportResultToConsole()
 	}
 	for _, vs := range ss.Statuses {
 		vm, ok := sm.vertices[vs.Vertex]

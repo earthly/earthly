@@ -276,10 +276,7 @@ func main() {
 		padding = conslogging.NoPadding
 	}
 
-	clogger := conslogging.Current(colorMode, padding, false)
-	clogger = clogger.WithLogBundleWriter()
-
-	app := newEarthlyApp(ctx, clogger)
+	app := newEarthlyApp(ctx, conslogging.Current(colorMode, padding, false))
 	app.unhideFlags(ctx)
 	app.autoComplete(ctx)
 
@@ -291,11 +288,6 @@ func main() {
 		defer cancel()
 		displayErrors := app.verbose
 		analytics.CollectAnalytics(ctxTimeout, app.apiServer, displayErrors, Version, getPlatform(), GitSha, app.commandName, exitCode, time.Since(startTime))
-	}
-
-	err = clogger.FlushBundleBuilder()
-	if err != nil {
-		fmt.Printf("Error writing log to disk: %s\n", err.Error())
 	}
 	os.Exit(exitCode)
 }
@@ -2674,7 +2666,6 @@ func (app *earthlyApp) actionConfig(c *cli.Context) error {
 
 func (app *earthlyApp) actionBuild(c *cli.Context) error {
 	app.commandName = "build"
-
 	if app.ci {
 		app.useInlineCache = true
 		app.noOutput = !app.output && !app.artifactMode && !app.imageMode
@@ -2795,6 +2786,19 @@ func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []st
 			return errors.Wrapf(err, "parse target name %s", targetName)
 		}
 	}
+
+	logTemp, err := os.MkdirTemp("", "earthly-log")
+	if err != nil {
+		return errors.Wrap(err, "make temp log dir")
+	}
+	app.console = app.console.WithLogBundleWriter(logTemp, target.String())
+	defer func(console conslogging.ConsoleLogger) {
+		err := console.FlushBundleBuilder()
+		if err != nil {
+			fmt.Println(err.Error())
+		}
+	}(app.console)
+
 	bkClient, err := buildkitd.NewClient(c.Context, app.console, app.buildkitdImage, app.containerName, app.containerFrontend, app.buildkitdSettings)
 	if err != nil {
 		return errors.Wrap(err, "build new buildkitd client")
