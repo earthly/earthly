@@ -13,6 +13,7 @@ import (
 // Current returns the current console.
 func Current(colorMode ColorMode, prefixPadding int, verbose bool) ConsoleLogger {
 	return ConsoleLogger{
+		consoleErrW:    colorable.NewColorable(os.Stderr),
 		errW:           colorable.NewColorable(os.Stderr),
 		colorMode:      colorMode,
 		saltColors:     make(map[string]*color.Color),

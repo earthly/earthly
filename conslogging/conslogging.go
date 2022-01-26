@@ -55,6 +55,7 @@ type ConsoleLogger struct {
 	saltColors     map[string]*color.Color
 	nextColorIndex *int
 	errW           io.Writer
+	consoleErrW    io.Writer
 	trailingLine   bool
 	prefixPadding  int
 	bb             *BundleBuilder
@@ -62,6 +63,7 @@ type ConsoleLogger struct {
 
 func (cl ConsoleLogger) clone() ConsoleLogger {
 	return ConsoleLogger{
+		consoleErrW:    cl.consoleErrW,
 		errW:           cl.errW,
 		prefix:         cl.prefix,
 		metadataMode:   cl.metadataMode,
@@ -82,7 +84,7 @@ func (cl ConsoleLogger) clone() ConsoleLogger {
 // WithPrefix returns a ConsoleLogger with a prefix added.
 func (cl ConsoleLogger) WithPrefix(prefix string) ConsoleLogger {
 	ret := cl.clone()
-	ret.errW = io.MultiWriter(cl.errW, cl.bb.PrefixWriter(prefix))
+	ret.errW = io.MultiWriter(cl.consoleErrW, cl.bb.PrefixWriter(prefix))
 	ret.prefix = prefix
 	ret.salt = prefix
 	return ret
@@ -105,7 +107,7 @@ func (cl ConsoleLogger) WithLocal(isLocal bool) ConsoleLogger {
 // WithPrefixAndSalt returns a ConsoleLogger with a prefix and a seed added.
 func (cl ConsoleLogger) WithPrefixAndSalt(prefix string, salt string) ConsoleLogger {
 	ret := cl.clone()
-	ret.errW = io.MultiWriter(cl.errW, cl.bb.PrefixWriter(prefix))
+	ret.errW = io.MultiWriter(cl.consoleErrW, cl.bb.PrefixWriter(prefix))
 	ret.prefix = prefix
 	ret.salt = salt
 	return ret
