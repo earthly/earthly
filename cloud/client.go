@@ -955,7 +955,7 @@ func (c *client) migrateOldToken() error {
 	newPath := filepath.Join(confDirPath, "auth.credentials")
 	if ok, _ := fileutil.FileExists(tokenPath); ok {
 		if err := os.Rename(tokenPath, newPath); err != nil {
-			return errors.Wrapf(err, "failed to migrate auth from '%s' to '%s'", tokenPath, newPath)
+			return errors.Wrapf(err, "failed to migrate credentials from '%s' to '%s'", tokenPath, newPath)
 		}
 	}
 	return nil
@@ -1011,10 +1011,15 @@ func (c *client) loadToken() error {
 		return errors.Wrap(err, "failed to read file")
 	}
 	parts := strings.SplitN(string(data), " ", 2)
+	if len(parts) != 2 {
+		// trigger re-authenticate and save a new token
+		return nil
+	}
 	c.authToken = parts[0]
 	c.authTokenExpiry, err = time.Parse(tokenExpiryLayout, parts[1])
 	if err != nil {
-		return errors.Wrapf(err, "unable to parse token expiry: %s", parts[1])
+		// trigger re-authenticate and save a new token
+		return nil
 	}
 	return nil
 }
