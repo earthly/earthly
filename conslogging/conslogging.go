@@ -7,6 +7,7 @@ import (
 	"sync"
 	"unicode/utf8"
 
+	"github.com/earthly/earthly/cleanup"
 	"github.com/fatih/color"
 )
 
@@ -144,9 +145,9 @@ func (cl ConsoleLogger) WithWriter(w io.Writer) ConsoleLogger {
 	return ret
 }
 
-func (cl ConsoleLogger) WithLogBundleWriter(entrypoint string) ConsoleLogger {
+func (cl ConsoleLogger) WithLogBundleWriter(entrypoint string, collection *cleanup.Collection) ConsoleLogger {
 	ret := cl.clone()
-	ret.bb = NewBundleBuilder(entrypoint)
+	ret.bb = NewBundleBuilder(entrypoint, collection)
 	return ret
 }
 

@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/earthly/earthly/cleanup"
 	"github.com/pkg/errors"
 )
 
@@ -28,6 +29,7 @@ type BundleBuilder struct {
 	entrypoint    string
 	logsForTarget map[string]*targetLogger
 	started       time.Time
+	cleanup       *cleanup.Collection
 }
 
 // Write implements io.Writer as a passthrough to the underlying strings.Builder for convenience.
@@ -37,11 +39,12 @@ func (tl *targetLogger) Write(p []byte) (n int, err error) {
 
 // NewBundleBuilder makes a new BundleBuilder, that will write logs to the targeted root directory,
 // and specify the entrypoint in the resulting manifest.
-func NewBundleBuilder(entrypoint string) *BundleBuilder {
+func NewBundleBuilder(entrypoint string, cleanup *cleanup.Collection) *BundleBuilder {
 	return &BundleBuilder{
 		entrypoint:    entrypoint,
 		logsForTarget: map[string]*targetLogger{},
 		started:       time.Now(),
+		cleanup:       cleanup,
 	}
 }
 
@@ -86,6 +89,9 @@ func (bb *BundleBuilder) WriteToDisk() error {
 		return errors.Wrapf(err, "could not create tarball")
 	}
 	defer file.Close()
+	bb.cleanup.Add(func() error {
+		return os.Remove(file.Name())
+	})
 
 	fmt.Println(file.Name())
 

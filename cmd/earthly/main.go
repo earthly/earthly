@@ -2787,7 +2787,10 @@ func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []st
 		}
 	}
 
-	app.console = app.console.WithLogBundleWriter(target.String())
+	cleanCollection := cleanup.NewCollection()
+	defer cleanCollection.Close()
+
+	app.console = app.console.WithLogBundleWriter(target.String(), cleanCollection)
 
 	bkClient, err := buildkitd.NewClient(c.Context, app.console, app.buildkitdImage, app.containerName, app.containerFrontend, app.buildkitdSettings)
 	if err != nil {
@@ -2888,8 +2891,6 @@ func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []st
 	if app.allowPrivileged {
 		enttlmnts = append(enttlmnts, entitlements.EntitlementSecurityInsecure)
 	}
-	cleanCollection := cleanup.NewCollection()
-	defer cleanCollection.Close()
 
 	if termutil.IsTTY() {
 		go func() {
