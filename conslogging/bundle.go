@@ -1,151 +1,202 @@
 package conslogging
 
 import (
+	"archive/tar"
+	"compress/gzip"
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/url"
 	"os"
-	"path"
 	"regexp"
 	"strings"
 	"time"
 
-	"github.com/hashicorp/go-multierror"
 	"github.com/pkg/errors"
 )
 
-type BundleBuilder struct {
-	RootPath   string
-	Entrypoint string
-
-	logmap  map[string]*TargetLogger
-	started time.Time
-}
-
-type TargetLogger struct {
+type targetLogger struct {
 	writer  *strings.Builder
+	prefix  string
 	result  string
 	status  string
 	started time.Time
 }
 
-func (tl *TargetLogger) Write(p []byte) (n int, err error) {
+// BundleBuilder builds log bundles for local storage or upload to a logging server
+type BundleBuilder struct {
+	entrypoint    string
+	logsForTarget map[string]*targetLogger
+	started       time.Time
+}
+
+// Write implements io.Writer as a passthrough to the underlying strings.Builder for convenience.
+func (tl *targetLogger) Write(p []byte) (n int, err error) {
 	return tl.writer.Write(p)
 }
 
-func NewBundleBuilder(rootPath, entrypoint string) *BundleBuilder {
+// NewBundleBuilder makes a new BundleBuilder, that will write logs to the targeted root directory,
+// and specify the entrypoint in the resulting manifest.
+func NewBundleBuilder(entrypoint string) *BundleBuilder {
 	return &BundleBuilder{
-		RootPath:   rootPath,
-		Entrypoint: entrypoint,
-		logmap:     map[string]*TargetLogger{},
-		started:    time.Now(),
+		entrypoint:    entrypoint,
+		logsForTarget: map[string]*targetLogger{},
+		started:       time.Now(),
 	}
 }
 
+// PrefixResult sets the prefix(aka target) result as it should appear in the manifest for that specific target.
 func (bb *BundleBuilder) PrefixResult(prefix, result string) {
-	if builder, ok := bb.logmap[prefix]; ok {
+	if builder, ok := bb.logsForTarget[prefix]; ok {
 		builder.result = result
 	}
 }
 
+// PrefixStatus sets the prefix(aka target) result as it should appear in the manifest for that specific target.
 func (bb *BundleBuilder) PrefixStatus(prefix, status string) {
-	if builder, ok := bb.logmap[prefix]; ok {
+	if builder, ok := bb.logsForTarget[prefix]; ok {
 		builder.status = status
 	}
 }
 
+// PrefixWriter gets an io.Writer for a given prefix(aka target). If its a prefix we have not seen before,
+// then generate a new writer to accomodate it.
 func (bb *BundleBuilder) PrefixWriter(prefix string) io.Writer {
-	if builder, ok := bb.logmap[prefix]; ok {
+	if builder, ok := bb.logsForTarget[prefix]; ok {
 		return builder
 	}
 
-	writer := &TargetLogger{
+	writer := &targetLogger{
 		writer:  &strings.Builder{},
 		status:  StatusWaiting,
 		result:  "",
 		started: time.Now(),
+		prefix:  prefix,
 	}
-	bb.logmap[prefix] = writer
+	bb.logsForTarget[prefix] = writer
 	return writer
 }
 
+// WriteToDisk aggregates all the data in the numerous prefix writers, and generates an Earthly log bundle.
+// These bundles include a manifest generated from the aggregation of the prefixes (targets).
 func (bb *BundleBuilder) WriteToDisk() error {
-	fmt.Println(bb.RootPath)
-
-	targetPath := path.Join(bb.RootPath, "target")
-	err := os.MkdirAll(targetPath, 0700)
+	// Build file and io.Writer for saving log data
+	file, err := os.CreateTemp("", "earthly-log*.tar.gz")
 	if err != nil {
-		return errors.Wrapf(err, "Failed to write targets directory for bundle at %s", bb.RootPath)
+		return errors.Wrapf(err, "could not create tarball")
+	}
+	defer file.Close()
+
+	fmt.Println(file.Name())
+
+	gzipWriter := gzip.NewWriter(file)
+	defer gzipWriter.Close()
+
+	tarWriter := tar.NewWriter(gzipWriter)
+	defer tarWriter.Close()
+
+	// Convert targets to manifest representations, get tar headers for data
+	targetData := make([]TargetManifest, 0)
+	for _, lines := range bb.logsForTarget {
+		mt, err := lines.toManifestTarget()
+		if err != nil {
+			// Something was wrong with this targets logs (0 length, or blacklisted name...). Ignore it.
+			continue
+		}
+
+		targetData = append(targetData, mt)
+
+		trimmed := strings.TrimSpace(lines.prefix)
+		escaped := url.PathEscape(trimmed)
+
+		tarWriter.WriteHeader(&tar.Header{
+			Name: fmt.Sprintf("target/%s", escaped),
+			Size: int64(lines.writer.Len()),
+			Mode: 0600,
+		})
+		tarWriter.Write([]byte(lines.writer.String()))
 	}
 
+	// build manifest and permissions
+	mani := bb.buildManifest(targetData)
+	manifestJSON, _ := json.Marshal(mani)
+	tarWriter.WriteHeader(&tar.Header{
+		Name: "manifest",
+		Size: int64(len(manifestJSON)),
+		Mode: 0600,
+	})
+	tarWriter.Write(manifestJSON)
+
+	perm := bb.buildPermissions()
+	permissionsJSON, _ := json.Marshal(perm)
+	tarWriter.WriteHeader(&tar.Header{
+		Name: "permissions",
+		Size: int64(len(permissionsJSON)),
+		Mode: 0600,
+	})
+	tarWriter.Write(permissionsJSON)
+
+	return nil
+}
+
+func (bb *BundleBuilder) buildManifest(targetManifests []TargetManifest) *Manifest {
 	manifest := &Manifest{
 		Version:    1,
 		Duration:   int(time.Since(bb.started).Seconds()),
 		Status:     "complete",
 		Result:     "success",
 		CreatedAt:  time.Now().In(time.UTC),
-		Entrypoint: bb.Entrypoint,
-		Targets:    make([]TargetManifest, 0),
+		Entrypoint: bb.entrypoint,
+		Targets:    targetManifests,
 	}
 
-	for prefix, lines := range bb.logmap {
-		if lines.writer.Len() <= 0 {
-			// Do not write empty logs, if the prefix didn't write anything
-			continue
+	for _, tm := range targetManifests {
+		if tm.Result != ResultSuccess {
+			manifest.Result = tm.Result
 		}
 
-		trimmed := strings.TrimSpace(prefix)
-		escaped := url.PathEscape(trimmed)
-		logPath := path.Join(targetPath, escaped)
-
-		command, summary := bb.GetCommandAndSummary(prefix, lines.writer)
-
-		manifest.Targets = append(manifest.Targets, TargetManifest{
-			Name:     prefix,
-			Status:   lines.status,
-			Result:   lines.result,
-			Duration: int(time.Since(lines.started).Seconds()),
-			Size:     lines.writer.Len(),
-			Command:  command,
-			Summary:  summary,
-		})
-
-		if lines.result != ResultSuccess {
-			manifest.Result = lines.result
+		if tm.Status != StatusComplete {
+			manifest.Status = tm.Status
 		}
 
-		if lines.status != StatusComplete {
-			manifest.Status = lines.status
-		}
-
-		tgtErr := ioutil.WriteFile(logPath, []byte(lines.writer.String()), 0600)
-		if err != nil {
-			err = multierror.Append(err, tgtErr)
-		}
-	}
-	if err != nil {
-		return errors.Wrap(err, "errors while writing targets for log bundle")
 	}
 
-	manifestJSON, _ := json.Marshal(&manifest)
-	err = ioutil.WriteFile(path.Join(bb.RootPath, "manifest"), manifestJSON, 0600)
-	if err != nil {
-		return errors.Wrap(err, "failed to serialize bundle manifest")
-	}
+	return manifest
+}
 
-	permissionsJSON, _ := json.Marshal(&Permissions{
+func (bb *BundleBuilder) buildPermissions() *Permissions {
+	return &Permissions{
 		Version: 1,
 		Users:   make([]uint64, 0),
 		Orgs:    make([]uint64, 0),
-	})
-	err = ioutil.WriteFile(path.Join(bb.RootPath, "permissions"), permissionsJSON, 0600)
-	if err != nil {
-		return errors.Wrap(err, "failed to serialize bundle permissions placeholder")
+	}
+}
+
+func (tl *targetLogger) toManifestTarget() (TargetManifest, error) {
+	if tl.writer.Len() <= 0 {
+		// Do not write empty logs, if the prefix didn't write anything
+		return TargetManifest{}, errors.New("0 length target")
 	}
 
-	return nil
+	if tl.prefix == "ongoing" {
+		// The ongoing messages end up in here too. Since they are not updates from a vertex, we will never mark them as complete.
+		// Additionally, its not useful to have in the output. Ignore it here.
+		return TargetManifest{}, fmt.Errorf("blacklisted target name %s", tl.prefix)
+	}
+
+	command, summary := tl.getCommandAndSummary()
+
+	manifestTarget := TargetManifest{
+		Name:     tl.prefix,
+		Status:   tl.status,
+		Result:   tl.result,
+		Duration: int(time.Since(tl.started).Seconds()),
+		Size:     tl.writer.Len(),
+		Command:  command,
+		Summary:  summary,
+	}
+
+	return manifestTarget, nil
 }
 
 // Nobody expects ANSI in the command/summary.
@@ -154,11 +205,11 @@ const ansi = "[\u001B\u009B][[\\]()#;?]*(?:(?:(?:[a-zA-Z\\d]*(?:;[a-zA-Z\\d]*)*)
 
 var re = regexp.MustCompile(ansi)
 
-func (bb *BundleBuilder) GetCommandAndSummary(prefix string, builder *strings.Builder) (string, string) {
-	rawText := builder.String()
+func (tl *targetLogger) getCommandAndSummary() (string, string) {
+	rawText := tl.writer.String()
 	text := re.ReplaceAllString(rawText, "")
 
-	prettyPrefix := prettyPrefix(DefaultPadding, prefix)
+	prettyPrefix := prettyPrefix(DefaultPadding, tl.prefix)
 
 	// regex to find command lines in the output.
 	regexStr := fmt.Sprintf(`(?m)^%s \| (\*cached\* |\*local\* | )*--> `, regexp.QuoteMeta(prettyPrefix))
@@ -171,7 +222,7 @@ func (bb *BundleBuilder) GetCommandAndSummary(prefix string, builder *strings.Bu
 	// Take the last match, and use the first line up to 120 characters, or first newlines... whichever comes first.
 	lastMatch := matches[len(matches)-1]
 	remainder := text[lastMatch[1]:]          // The rest of the log from end of the last match
-	command := TruncateString(remainder, 120) // The line up to a newline or 120 chars
+	command := truncateString(remainder, 120) // The line up to a newline or 120 chars
 
 	// regex to get the last line, (ab)use groups to get the line without the prefix. Truncate it like command.
 	regexStr2 := fmt.Sprintf(`%s \| (.*)\n?$`, regexp.QuoteMeta(prettyPrefix))
@@ -180,13 +231,13 @@ func (bb *BundleBuilder) GetCommandAndSummary(prefix string, builder *strings.Bu
 	if len(matches2) == 0 {
 		return command, ""
 	}
-	summary := TruncateString(matches2[len(matches2)-1][1], 120)
+	summary := truncateString(matches2[len(matches2)-1][1], 120)
 
 	return command, summary
 }
 
-// TruncateString truncates a string honoring weird glyphs that are larger than one byte... like Japanese.
-func TruncateString(str string, length int) string {
+func truncateString(str string, length int) string {
+	// This weird truncation is needed to support multi-byte characters, which the slice notation does not account for.
 	if length <= 0 {
 		return ""
 	}

@@ -2787,11 +2787,7 @@ func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []st
 		}
 	}
 
-	logTemp, err := os.MkdirTemp("", "earthly-log")
-	if err != nil {
-		return errors.Wrap(err, "make temp log dir")
-	}
-	app.console = app.console.WithLogBundleWriter(logTemp, target.String())
+	app.console = app.console.WithLogBundleWriter(target.String())
 
 	bkClient, err := buildkitd.NewClient(c.Context, app.console, app.buildkitdImage, app.containerName, app.containerFrontend, app.buildkitdSettings)
 	if err != nil {

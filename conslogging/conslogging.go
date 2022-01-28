@@ -144,9 +144,9 @@ func (cl ConsoleLogger) WithWriter(w io.Writer) ConsoleLogger {
 	return ret
 }
 
-func (cl ConsoleLogger) WithLogBundleWriter(rootPath, entrypoint string) ConsoleLogger {
+func (cl ConsoleLogger) WithLogBundleWriter(entrypoint string) ConsoleLogger {
 	ret := cl.clone()
-	ret.bb = NewBundleBuilder(rootPath, entrypoint)
+	ret.bb = NewBundleBuilder(entrypoint)
 	return ret
 }
 
