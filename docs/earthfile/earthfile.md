@@ -442,6 +442,32 @@ COPY test/* .
 COPY --dir test .
 ```
 
+One can also copy from other Earthfile targets:
+
+```
+FROM alpine:3.13
+dummy-target:
+    RUN echo aGVsbG8= > encoded-data
+    SAVE ARTIFACT encoded-data
+example:
+    COPY +dummy-target/encoded-data .
+    RUN cat encoded-data | base64 -d
+```
+
+Parentheses are required when passing build-args:
+
+```
+FROM alpine:3.13
+RUN apk add coreutils # required for base32 binary
+dummy-target:
+    ARG encoder="base64"
+    RUN echo hello | $encoder > encoded-data
+    SAVE ARTIFACT encoded-data
+example:
+    COPY ( +dummy-target/encoded-data --encoder=base32 ) .
+    RUN cat encoded-data | base32 -d
+```
+
 For detailed examples demonstrating how other scenarios may function, please see our [test suite](https://github.com/earthly/earthly/blob/main/tests/copy.earth).
 
 ## ARG
