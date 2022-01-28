@@ -9,8 +9,8 @@ func ExpandPath(s string) string {
 	if !strings.HasPrefix(s, "~") {
 		return s
 	}
-	homeDir, _ := HomeDir()
-	if homeDir == "" {
+	homeDir, err := HomeDir()
+	if err != nil || homeDir == "" {
 		return s // best effort
 	}
 

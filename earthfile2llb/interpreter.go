@@ -14,12 +14,12 @@ import (
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/util/flagutil"
 	"github.com/earthly/earthly/util/llbutil"
+	"github.com/earthly/earthly/util/syncutil/serrgroup"
 	"github.com/earthly/earthly/variables"
 
 	flags "github.com/jessevdk/go-flags"
 	specs "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
-	"golang.org/x/sync/errgroup"
 	"golang.org/x/sync/semaphore"
 )
 
@@ -44,12 +44,12 @@ type Interpreter struct {
 
 	parallelConversion bool
 	parallelism        *semaphore.Weighted
-	parallelErrChan    chan error
+	eg                 *serrgroup.Group
 	console            conslogging.ConsoleLogger
 	gitLookup          *buildcontext.GitLookup
 }
 
-func newInterpreter(c *Converter, t domain.Target, allowPrivileged, parallelConversion bool, parallelism *semaphore.Weighted, console conslogging.ConsoleLogger, gitLookup *buildcontext.GitLookup) *Interpreter {
+func newInterpreter(c *Converter, t domain.Target, allowPrivileged, parallelConversion bool, parallelism *semaphore.Weighted, eg *serrgroup.Group, console conslogging.ConsoleLogger, gitLookup *buildcontext.GitLookup) *Interpreter {
 	return &Interpreter{
 		converter:          c,
 		target:             t,
@@ -57,7 +57,7 @@ func newInterpreter(c *Converter, t domain.Target, allowPrivileged, parallelConv
 		allowPrivileged:    allowPrivileged,
 		parallelism:        parallelism,
 		parallelConversion: parallelConversion,
-		parallelErrChan:    make(chan error),
+		eg:                 eg,
 		console:            console,
 		gitLookup:          gitLookup,
 	}
@@ -65,34 +65,18 @@ func newInterpreter(c *Converter, t domain.Target, allowPrivileged, parallelConv
 
 // Run interprets the commands in the given Earthfile AST, for a specific target.
 func (i *Interpreter) Run(ctx context.Context, ef spec.Earthfile) (err error) {
-	done := make(chan struct{})
-	eg, ctx := errgroup.WithContext(ctx)
-	eg.Go(func() error {
-		defer close(done)
-		if i.target.Target == "base" {
-			i.isBase = true
-			err := i.handleBlock(ctx, ef.BaseRecipe)
-			i.isBase = false
-			return err
+	if i.target.Target == "base" {
+		i.isBase = true
+		err := i.handleBlock(ctx, ef.BaseRecipe)
+		i.isBase = false
+		return err
+	}
+	for _, t := range ef.Targets {
+		if t.Name == i.target.Target {
+			return i.handleTarget(ctx, t)
 		}
-		for _, t := range ef.Targets {
-			if t.Name == i.target.Target {
-				return i.handleTarget(ctx, t)
-			}
-		}
-		return i.errorf(ef.SourceLocation, "target %s not found", i.target.Target)
-	})
-	eg.Go(func() error {
-		select {
-		case parallelErr := <-i.parallelErrChan:
-			return parallelErr
-		case <-done:
-			return nil
-		case <-ctx.Done():
-			return nil
-		}
-	})
-	return eg.Wait()
+	}
+	return i.errorf(ef.SourceLocation, "target %s not found", i.target.Target)
 }
 
 func (i *Interpreter) handleTarget(ctx context.Context, t spec.Target) error {
@@ -885,8 +869,10 @@ func (i *Interpreter) handleBuild(ctx context.Context, cmd spec.Command, async b
 	for _, bas := range crossProductBuildArgs {
 		for _, platform := range platformsSlice {
 			if async {
-				errChan := i.converter.BuildAsync(ctx, fullTargetName, platform, allowPrivileged, bas, buildCmd)
-				i.monitorErrChan(ctx, errChan)
+				err = i.converter.BuildAsync(ctx, fullTargetName, platform, allowPrivileged, bas, buildCmd, i.eg)
+				if err != nil {
+					return i.wrapError(err, cmd.SourceLocation, "apply BUILD %s", fullTargetName)
+				}
 			} else {
 				err = i.converter.Build(ctx, fullTargetName, platform, allowPrivileged, bas)
 				if err != nil {
@@ -1443,18 +1429,6 @@ func (i *Interpreter) expandArgs(word string, keepPlusEscape bool) string {
 		return ret
 	}
 	return unescapeSlashPlus(ret)
-}
-
-func (i *Interpreter) monitorErrChan(ctx context.Context, errChan chan error) {
-	go func() {
-		select {
-		case err := <-errChan:
-			if err != nil && !errors.Is(err, context.Canceled) {
-				i.parallelErrChan <- err
-			}
-		case <-ctx.Done():
-		}
-	}()
 }
 
 func escapeSlashPlus(str string) string {

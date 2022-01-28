@@ -1,0 +1,4 @@
+FROM alpine:3.13
+
+hello:
+    RUN echo "Z3JlZXRpbmdzCg==" | base64 -d

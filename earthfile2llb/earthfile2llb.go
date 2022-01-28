@@ -18,6 +18,7 @@ import (
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/features"
 	"github.com/earthly/earthly/states"
+	"github.com/earthly/earthly/util/syncutil/serrgroup"
 	"github.com/earthly/earthly/variables"
 )
 
@@ -91,18 +92,18 @@ type ConvertOpt struct {
 	ParallelConversion bool
 	// Parallelism is a semaphore controlling the maximum parallelism.
 	Parallelism *semaphore.Weighted
-
-	// parentDepSub is a channel informing of any new dependencies from the parent.
-	parentDepSub chan string // chan of sts IDs.
+	// ErrorGroup is a serrgroup used to submit parallel conversion jobs.
+	ErrorGroup *serrgroup.Group
 
 	// FeatureFlagOverride is used to override feature flags that are defined in specific Earthfiles
 	FeatureFlagOverrides string
-
 	// Default set of ARGs to make available in Earthfile.
 	BuiltinArgs variables.DefaultArgs
-
 	// NoCache sets llb.IgnoreCache before calling StateToRef
 	NoCache bool
+
+	// parentDepSub is a channel informing of any new dependencies from the parent.
+	parentDepSub chan string // chan of sts IDs.
 }
 
 // Earthfile2LLB parses a earthfile and executes the statements for a given target.
@@ -115,6 +116,11 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt, in
 	}
 	if opt.MetaResolver == nil {
 		opt.MetaResolver = NewCachedMetaResolver(opt.GwClient)
+	}
+	egWait := false
+	if opt.ErrorGroup == nil {
+		opt.ErrorGroup, ctx = serrgroup.WithContext(ctx)
+		egWait = true
 	}
 	// Resolve build context.
 	bc, err := opt.Resolver.Resolve(ctx, opt.GwClient, target)
@@ -151,12 +157,22 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt, in
 	if err != nil {
 		return nil, err
 	}
-	interpreter := newInterpreter(converter, targetWithMetadata, opt.AllowPrivileged, opt.ParallelConversion, opt.Parallelism, opt.Console, opt.GitLookup)
+	interpreter := newInterpreter(converter, targetWithMetadata, opt.AllowPrivileged, opt.ParallelConversion, opt.Parallelism, opt.ErrorGroup, opt.Console, opt.GitLookup)
 	err = interpreter.Run(ctx, bc.Earthfile)
 	if err != nil {
 		return nil, err
 	}
-	return converter.FinalizeStates(ctx)
+	mts, err = converter.FinalizeStates(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if egWait {
+		err := opt.ErrorGroup.Wait()
+		if err != nil {
+			return nil, err
+		}
+	}
+	return mts, nil
 }
 
 // GetTargets returns a list of targets from an Earthfile.

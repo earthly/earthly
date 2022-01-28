@@ -28,6 +28,7 @@ import (
 	"github.com/earthly/earthly/util/llbutil/llbfactory"
 	"github.com/earthly/earthly/util/llbutil/pllb"
 	"github.com/earthly/earthly/util/stringutil"
+	"github.com/earthly/earthly/util/syncutil/serrgroup"
 	"github.com/earthly/earthly/variables"
 	"github.com/earthly/earthly/variables/reserved"
 
@@ -86,8 +87,6 @@ type Converter struct {
 	ftrs                *features.Features
 	localWorkingDir     string
 }
-
-type cacheDirSet map[string]struct{}
 
 // NewConverter constructs a new converter for a given earthly target.
 func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Data, sts *states.SingleTarget, opt ConvertOpt) (*Converter, error) {
@@ -773,7 +772,11 @@ func (c *Converter) canSave(ctx context.Context, saveAsLocalTo string) (bool, er
 	if err != nil {
 		return false, errors.Wrapf(err, "failed to get absolute path of %s", basepath)
 	}
-	if !fileutil.DirExists(basepath) {
+	basePathExists, err := fileutil.DirExists(basepath)
+	if err != nil {
+		return false, errors.Wrapf(err, "failed to check if %s exists", basepath)
+	}
+	if !basePathExists {
 		return false, fmt.Errorf("no such directory: %s", basepath)
 	}
 	basepath += "/"
@@ -918,28 +921,30 @@ func (c *Converter) Build(ctx context.Context, fullTargetName string, platform *
 }
 
 // BuildAsync applies the earthly BUILD command asynchronously.
-func (c *Converter) BuildAsync(ctx context.Context, fullTargetName string, platform *specs.Platform, allowPrivileged bool, buildArgs []string, cmdT cmdType) chan error {
-	errChan := make(chan error, 1)
+func (c *Converter) BuildAsync(ctx context.Context, fullTargetName string, platform *specs.Platform, allowPrivileged bool, buildArgs []string, cmdT cmdType, eg *serrgroup.Group) error {
 	target, opt, _, err := c.prepBuildTarget(ctx, fullTargetName, platform, allowPrivileged, buildArgs, true, cmdT)
 	if err != nil {
-		errChan <- err
-		return errChan
+		return err
 	}
-	go func() {
+	eg.Go(func() error {
 		err := c.opt.Parallelism.Acquire(ctx, 1)
 		if err != nil {
-			errChan <- errors.Wrapf(err, "acquiring parallelism semaphore for %s", fullTargetName)
-			return
+			return errors.Wrapf(err, "acquiring parallelism semaphore for %s", fullTargetName)
 		}
 		defer c.opt.Parallelism.Release(1)
-		_, err = Earthfile2LLB(ctx, target, opt, false)
+		mts, err := Earthfile2LLB(ctx, target, opt, false)
 		if err != nil {
-			errChan <- errors.Wrapf(err, "async earthfile2llb for %s", fullTargetName)
-			return
+			return errors.Wrapf(err, "async earthfile2llb for %s", fullTargetName)
 		}
-		errChan <- nil
-	}()
-	return errChan
+		if c.ftrs.ExecAfterParallel && mts != nil && mts.Final != nil {
+			err = c.forceExecution(ctx, mts.Final.MainState)
+			if err != nil {
+				return errors.Wrapf(err, "async force execution for %s", fullTargetName)
+			}
+		}
+		return nil
+	})
+	return nil
 }
 
 // Workdir applies the WORKDIR command.
@@ -1607,15 +1612,22 @@ func (c *Converter) parseSecretFlag(secretKeyValue string) (secretID string, env
 }
 
 func (c *Converter) forceExecution(ctx context.Context, state pllb.State) error {
+	if state.Output() == nil {
+		// Scratch - no need to execute.
+		return nil
+	}
 	ref, err := llbutil.StateToRef(ctx, c.opt.GwClient, state, c.opt.NoCache, c.opt.Platform, c.opt.CacheImports.AsMap())
 	if err != nil {
-		return errors.Wrap(err, "run locally state to ref")
+		return errors.Wrap(err, "force execution state to ref")
+	}
+	if ref == nil {
+		return nil
 	}
 	// We're not really interested in reading the dir - we just
-	// want to un-lazy the ref so that the local commands have executed.
+	// want to un-lazy the ref so that the commands have executed.
 	_, err = ref.ReadDir(ctx, gwclient.ReadDirRequest{Path: "/"})
 	if err != nil {
-		return errors.Wrap(err, "unlazy locally")
+		return errors.Wrap(err, "unlazy force execution")
 	}
 	return nil
 }

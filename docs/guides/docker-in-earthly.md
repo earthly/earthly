@@ -64,6 +64,10 @@ END
 
 Using the `--compose` flag has the added benefit that any images needed by the compose stack will be automatically added to the pull list by Earthly, thus using cache efficiently.
 
+## Performance
+
+It's recommended to use the `earthly/dind:alpine` image for running docker-in-docker. See the best-practices' section on using [with docker](../best-practices/best-practices.md#use-earthly-dind) for more details.
+
 ## Integration testing
 
 For more information on integration testing and working with service dependencies see our [tutorial on integration testing in Earthly](./integration.md).

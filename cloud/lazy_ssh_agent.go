@@ -1,4 +1,4 @@
-package secretsclient
+package cloud
 
 import (
 	"net"
