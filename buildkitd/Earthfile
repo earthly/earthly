@@ -81,6 +81,5 @@ buildkit-sha:
 
 update-buildkit:
     LOCALLY
-    ARG BUILDKIT_GIT_SHA
-    RUN test -n "$BUILDKIT_GIT_SHA" && \
-        sed -i 's/\(^[ \t]\+ARG BUILDKIT_BASE_IMAGE=github.com\/earthly\/buildkit\).*/\1:'$BUILDKIT_GIT_SHA'+build/g' Earthfile
+    ARG --required BUILDKIT_GIT_SHA
+    RUN sed -i 's/\(^[ \t]\+ARG BUILDKIT_BASE_IMAGE=github.com\/earthly\/buildkit\).*/\1:'$BUILDKIT_GIT_SHA'+build/g' Earthfile

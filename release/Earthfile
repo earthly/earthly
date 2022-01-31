@@ -7,10 +7,9 @@ RUN apk add --update --no-cache \
 release:
     COPY ensure_gha_passing.py /bin/ensure_gha_passing
     ARG EARTHLY_GIT_HASH
-    ARG RELEASE_TAG
+    ARG --required RELEASE_TAG
     ARG SKIP_GHA_CHECK
     ARG PRERELEASE="false"
-    RUN test -n "$RELEASE_TAG"
     IF --no-cache test -n "$SKIP_GHA_CHECK" || ensure_gha_passing --sha $EARTHLY_GIT_HASH
         BUILD +release-dockerhub --RELEASE_TAG="$RELEASE_TAG"
         BUILD +release-github --RELEASE_TAG="$RELEASE_TAG" --PRERELEASE="$PRERELEASE"
@@ -32,9 +31,8 @@ release-dind:
         --DOCKERHUB_USER="$DOCKERHUB_USER"
 
 release-dockerhub:
-    ARG RELEASE_TAG
+    ARG --required RELEASE_TAG
     ARG DOCKERHUB_USER="earthly"
-    RUN test -n "$RELEASE_TAG"
     BUILD ../+earthly-docker --TAG="$RELEASE_TAG"
     BUILD \
         --platform=linux/amd64 \
@@ -57,8 +55,7 @@ release-notes:
     WORKDIR /changelog
     COPY changelogparser.py /usr/bin/changelogparser
     COPY ..+changelog/CHANGELOG.md .
-    ARG RELEASE_TAG
-    RUN test -n "$RELEASE_TAG" || (echo "ERROR: RELEASE_TAG is missing" && exit 1)
+    ARG --required RELEASE_TAG
     RUN changelogparser --changelog CHANGELOG.md --version "$RELEASE_TAG" > notes.txt
     RUN --no-cache test "$(changelogparser --changelog CHANGELOG.md --version "$RELEASE_TAG" --date)" = "$(date "+%Y-%m-%d")"
     SAVE ARTIFACT notes.txt
@@ -69,13 +66,13 @@ release-github:
     RUN apk add --update --no-cache --repository=http://dl-cdn.alpinelinux.org/alpine/edge/testing hub
     RUN npm install -g github-release-cli@v1.3.1
     WORKDIR /earthly
-    ARG RELEASE_TAG
+    ARG --required RELEASE_TAG
     ARG GITHUB_USER="earthly"
     ARG EARTHLY_REPO="earthly"
     ARG DOCKERHUB_USER="earthly"
     ARG PRERELEASE="false"
     ARG EARTHLY_GIT_HASH
-    RUN test -n "$RELEASE_TAG" && test -n "$EARTHLY_GIT_HASH"
+    RUN test -n "$EARTHLY_GIT_HASH"
     COPY +release-notes/notes.txt release-notes.txt
     COPY (../+earthly-all/* \
          --VERSION=$RELEASE_TAG \
@@ -159,7 +156,7 @@ release-homebrew:
     RUN apk add --update --no-cache --repository=http://dl-cdn.alpinelinux.org/alpine/edge/testing hub
 
     # Deps and preconditions.
-    ARG RELEASE_TAG
+    ARG --required RELEASE_TAG
     ARG GIT_USERNAME="griswoldthecat"
     ARG GIT_NAME="griswoldthecat"
     ARG GIT_EMAIL="griswoldthecat@users.noreply.github.com"
@@ -168,13 +165,7 @@ release-homebrew:
     ARG EARTHLY_REPO
     ARG GITHUB_TOKEN_SECRET_PATH="+secrets/user/610f09a9-4493-4d3c-bb00-b8e0cf36f1e0"
     ARG HOMEBREW_EARTHLY_URL="https://github.com/$GITHUB_USER/$BREW_REPO"
-    RUN test -n "$RELEASE_TAG" && \
-        test -n "$GIT_USERNAME" && \
-        test -n "$GIT_NAME" && \
-        test -n "$GIT_EMAIL" && \
-        test -n "$HOMEBREW_EARTHLY_URL"
     ARG NEW_URL=https://github.com/"$GITHUB_USER"/"$EARTHLY_REPO"/archive/"$RELEASE_TAG".tar.gz
-    RUN test -n "$NEW_URL"
     WORKDIR /earthly/homebrew-earthly
 
     RUN git config --global user.name "$GIT_NAME" && \
@@ -225,7 +216,6 @@ release-vscode-syntax-highlighting:
     BUILD ../contrib/earthfile-syntax-highlighting+release --VSCODE_RELEASE_TAG="$VSCODE_RELEASE_TAG"
 
 release-repo:
-    ARG RELEASE_TAG
-    RUN test -n "$RELEASE_TAG"
+    ARG --required RELEASE_TAG
     BUILD ./apt-repo+build-and-release --RELEASE_TAG="$RELEASE_TAG"
     BUILD ./yum-repo+build-and-release --RELEASE_TAG="$RELEASE_TAG"
