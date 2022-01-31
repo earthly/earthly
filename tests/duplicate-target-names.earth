@@ -1,6 +1,6 @@
 VERSION 0.6
 duplicate:
-    FROM alpine:3.13
+    FROM alpine:3.15
 
 duplicate:
-    FROM alpine:3.13
+    FROM alpine:3.15

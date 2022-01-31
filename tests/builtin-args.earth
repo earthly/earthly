@@ -1,5 +1,5 @@
 VERSION --earthly-version-arg 0.6
-FROM alpine:3.13
+FROM alpine:3.15
 builtin-args-test:
     ARG EARTHLY_TARGET
     ARG EARTHLY_TARGET_PROJECT
