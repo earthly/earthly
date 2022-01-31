@@ -370,6 +370,12 @@ COPY --dir dir1 dir2 dir3 ./
 
 Sets a value override of `<build-arg-value>` for the build arg identified by `<build-arg-key>`, when building the target containing the mentioned artifact. See also [BUILD](#build) for more details about the build arg options.
 
+Note that build args and the artifact references they apply to need to be surrounded by paranthesis:
+
+```Dockerfile
+COPY (+target1/artifact --arg1=foo --arg2=bar) ./dest/path
+```
+
 ##### `--keep-ts`
 
 Instructs Earthly to not overwrite the file creation timestamps with a constant.
