@@ -2247,7 +2247,7 @@ func (app *earthlyApp) actionAccountAddKey(c *cli.Context) error {
 		return errors.Wrap(err, "failed to add public key to account")
 	}
 
-	//switch over to new key if the user is currently using password-based auth
+	// switch over to new key if the user is currently using password-based auth
 	email, authType, _, err := cc.WhoAmI()
 	if err != nil {
 		return errors.Wrap(err, "failed to validate auth token")
@@ -3023,10 +3023,16 @@ func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []st
 		return errors.Wrap(err, "build target")
 	}
 
-	err = app.console.WriteBundleToDisk()
+	logPath, err := app.console.WriteBundleToDisk()
 	if err != nil {
 		fmt.Println(err.Error())
 	}
+
+	id, err := cc.UploadLog(logPath)
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+	app.console.Printf("Your is available here: %s\n", id)
 
 	return nil
 }
@@ -3110,7 +3116,7 @@ func (app *earthlyApp) actionListTargets(c *cli.Context) error {
 	var gwClient gwclient.Client // TODO this is a nil pointer which causes a panic if we try to expand a remotely referenced earthfile
 	// it's expensive to create this gwclient, so we need to implement a lazy eval which returns it when required.
 
-	target, err := domain.ParseTarget(fmt.Sprintf("%s+base", targetToParse)) //the +base is required to make ParseTarget work; however is ignored by GetTargets
+	target, err := domain.ParseTarget(fmt.Sprintf("%s+base", targetToParse)) // the +base is required to make ParseTarget work; however is ignored by GetTargets
 	if err != nil {
 		return errors.Errorf("unable to locate Earthfile under %s", targetToDisplay)
 	}

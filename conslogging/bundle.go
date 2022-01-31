@@ -82,18 +82,16 @@ func (bb *BundleBuilder) PrefixWriter(prefix string) io.Writer {
 
 // WriteToDisk aggregates all the data in the numerous prefix writers, and generates an Earthly log bundle.
 // These bundles include a manifest generated from the aggregation of the prefixes (targets).
-func (bb *BundleBuilder) WriteToDisk() error {
+func (bb *BundleBuilder) WriteToDisk() (string, error) {
 	// Build file and io.Writer for saving log data
 	file, err := os.CreateTemp("", "earthly-log*.tar.gz")
 	if err != nil {
-		return errors.Wrapf(err, "could not create tarball")
+		return "", errors.Wrapf(err, "could not create tarball")
 	}
 	defer file.Close()
 	bb.cleanup.Add(func() error {
 		return os.Remove(file.Name())
 	})
-
-	fmt.Println(file.Name())
 
 	gzipWriter := gzip.NewWriter(file)
 	defer gzipWriter.Close()
@@ -142,7 +140,7 @@ func (bb *BundleBuilder) WriteToDisk() error {
 	})
 	tarWriter.Write(permissionsJSON)
 
-	return nil
+	return file.Name(), nil
 }
 
 func (bb *BundleBuilder) buildManifest(targetManifests []TargetManifest) *Manifest {

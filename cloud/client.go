@@ -15,7 +15,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/earthly/earthly/cloud/api"
+	secretsapi "github.com/earthly/earthly/cloud/api"
+	logsapi "github.com/earthly/earthly/cloud/logs"
 	"github.com/earthly/earthly/util/cliutil"
 	"github.com/earthly/earthly/util/fileutil"
 
@@ -79,6 +80,7 @@ type Client interface {
 	ListTokens() ([]*TokenDetail, error)
 	RemoveToken(string) error
 	WhoAmI() (string, string, bool, error)
+	UploadLog(pathOnDisk string) (string, error)
 	SetPasswordCredentials(string, string) error
 	SetTokenCredentials(token string) (string, error)
 	SetSSHCredentials(email, sshKey string) error
@@ -125,6 +127,24 @@ func withJSONBody(body proto.Message) requestOpt {
 
 		r.hasBody = true
 		r.body = []byte(encodedBody)
+		return nil
+	}
+}
+
+func withFileBody(pathOnDisk string) requestOpt {
+	return func(r *request) error {
+		_, err := os.Stat(pathOnDisk)
+		if err != nil {
+			return errors.Wrapf(err, "could not stat file at %s", pathOnDisk)
+		}
+
+		contents, err := os.ReadFile(pathOnDisk)
+		if err != nil {
+			return errors.Wrapf(err, "could not add file %s to request body", pathOnDisk)
+		}
+
+		r.hasBody = true
+		r.body = contents
 		return nil
 	}
 }
@@ -420,7 +440,7 @@ func (c *client) login(credentials string) (token string, expiry time.Time, err 
 	if status != http.StatusOK {
 		return "", zero, errors.Errorf("unexpected status code from login: %d", status)
 	}
-	var resp api.LoginResponse
+	var resp secretsapi.LoginResponse
 	err = c.jm.Unmarshal(bytes.NewReader([]byte(body)), &resp)
 	if err != nil {
 		return "", zero, errors.Wrap(err, "failed to unmarshal login response")
@@ -441,7 +461,7 @@ func (c *client) ping() (email string, writeAccess bool, err error) {
 	if status != http.StatusOK {
 		return "", false, errors.Errorf("unexpected status code from ping: %d", status)
 	}
-	var resp api.PingResponse
+	var resp secretsapi.PingResponse
 	err = c.jm.Unmarshal(bytes.NewReader([]byte(body)), &resp)
 	if err != nil {
 		return "", false, errors.Wrap(err, "failed to unmarshal challenge response")
@@ -493,7 +513,7 @@ func (c *client) CreateAccount(email, verificationToken, password, publicKey str
 			return err
 		}
 	}
-	createAccountRequest := api.CreateAccountRequest{
+	createAccountRequest := secretsapi.CreateAccountRequest{
 		Email:                 email,
 		VerificationToken:     verificationToken,
 		PublicKey:             publicKey,
@@ -542,7 +562,7 @@ func (c *client) getChallenge() (string, error) {
 		return "", errors.Errorf("failed to get auth challenge: %s", msg)
 	}
 
-	var challengeResponse api.AuthChallengeResponse
+	var challengeResponse secretsapi.AuthChallengeResponse
 	err = c.jm.Unmarshal(bytes.NewReader([]byte(body)), &challengeResponse)
 	if err != nil {
 		return "", errors.Wrap(err, "failed to unmarshal challenge response")
@@ -684,7 +704,7 @@ func (c *client) Invite(path, user string, write bool) error {
 		return errors.Errorf("invalid path")
 	}
 
-	permission := api.OrgPermissions{
+	permission := secretsapi.OrgPermissions{
 		Path:  path,
 		Email: user,
 		Write: write,
@@ -710,7 +730,7 @@ func (c *client) RevokePermission(path, user string) error {
 		return errors.Errorf("invalid path")
 	}
 
-	permission := api.OrgPermissions{
+	permission := secretsapi.OrgPermissions{
 		Path:  path,
 		Email: user,
 	}
@@ -747,7 +767,7 @@ func (c *client) ListOrgPermissions(path string) ([]*OrgPermissions, error) {
 		return nil, errors.Errorf("failed to list org permissions: %s", msg)
 	}
 
-	var listOrgPermissionsResponse api.ListOrgPermissionsResponse
+	var listOrgPermissionsResponse secretsapi.ListOrgPermissionsResponse
 	err = c.jm.Unmarshal(bytes.NewReader([]byte(body)), &listOrgPermissionsResponse)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to unmarshal list org permissions response")
@@ -780,7 +800,7 @@ func (c *client) ListOrgs() ([]*OrgDetail, error) {
 		return nil, errors.Errorf("failed to list orgs: %s", msg)
 	}
 
-	var listOrgsResponse api.ListOrgsResponse
+	var listOrgsResponse secretsapi.ListOrgsResponse
 	err = c.jm.Unmarshal(bytes.NewReader([]byte(body)), &listOrgsResponse)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to unmarshal list orgs response")
@@ -859,7 +879,7 @@ func (c *client) CreateToken(name string, write bool, expiry *time.Time) (string
 		return "", errors.Wrap(err, "TimestampProto failed")
 	}
 
-	authToken := api.AuthToken{
+	authToken := secretsapi.AuthToken{
 		Write:  write,
 		Expiry: expiryPB,
 	}
@@ -890,7 +910,7 @@ func (c *client) ListTokens() ([]*TokenDetail, error) {
 		return nil, errors.Errorf("failed to list tokens: %s", msg)
 	}
 
-	var listTokensResponse api.ListAuthTokensResponse
+	var listTokensResponse secretsapi.ListAuthTokensResponse
 	err = c.jm.Unmarshal(bytes.NewReader([]byte(body)), &listTokensResponse)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to unmarshal listTokens response")
@@ -1287,4 +1307,26 @@ func (c *client) FindSSHCredentials(emailToFind string) error {
 		}
 	}
 	return ErrNoAuthorizedPublicKeys
+}
+
+func (c *client) UploadLog(pathOnDisk string) (string, error) {
+	status, body, err := c.doCall(http.MethodPost, "/api/v0/logs", withAuth(), withFileBody(pathOnDisk), withHeader("Content-Type", "application/gzip"))
+	if err != nil {
+		return "", err
+	}
+	if status != http.StatusCreated {
+		msg, err := getMessageFromJSON(bytes.NewReader([]byte(body)))
+		if err != nil {
+			return "", errors.Wrap(err, fmt.Sprintf("failed to decode response body (status code: %d)", status))
+		}
+		return "", errors.Errorf("failed to upload log: %s", msg)
+	}
+
+	var uploadBundleResponse logsapi.UploadLogBundleResponse
+	err = c.jm.Unmarshal(bytes.NewReader([]byte(body)), &uploadBundleResponse)
+	if err != nil {
+		return "", errors.Wrap(err, "failed to unmarshal uploadbundle response")
+	}
+
+	return fmt.Sprintf("https://ci.earthly.dev/logs?logId==%s&token=%s", uploadBundleResponse.LogID, c.authToken), nil
 }

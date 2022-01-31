@@ -401,7 +401,7 @@ func (cl ConsoleLogger) WithVerbose(verbose bool) ConsoleLogger {
 	return ret
 }
 
-func (cl ConsoleLogger) WriteBundleToDisk() error {
+func (cl ConsoleLogger) WriteBundleToDisk() (string, error) {
 	return cl.bb.WriteToDisk()
 }
 
