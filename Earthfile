@@ -59,7 +59,7 @@ update-buildkit:
     SAVE ARTIFACT go.sum AS LOCAL go.sum
 
 lint-scripts-base:
-    FROM alpine:3.13
+    FROM alpine:3.15
 
     ARG TARGETARCH
 
@@ -122,7 +122,7 @@ lint:
     RUN if find . -type f -name \*.go | xargs grep '"io/ioutil"'; then echo "io/ioutil is deprecated: https://go.dev/doc/go1.16#ioutil"; exit 1; fi
 
 lint-newline-ending:
-    FROM alpine:3.13
+    FROM alpine:3.15
     WORKDIR /everything
     COPY . .
     # test that line endings are unix-style
@@ -366,7 +366,7 @@ earthly-integration-test-base:
     END
 
 prerelease:
-    FROM alpine:3.13
+    FROM alpine:3.15
     ARG BUILDKIT_PROJECT
     BUILD \
         --platform=linux/amd64 \
@@ -377,7 +377,7 @@ prerelease:
     SAVE IMAGE --push earthly/earthlybinaries:prerelease
 
 prerelease-script:
-    FROM alpine:3.13
+    FROM alpine:3.15
     COPY ./earthly ./
     # This script is useful in other repos too.
     SAVE ARTIFACT ./earthly
