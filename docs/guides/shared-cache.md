@@ -138,7 +138,7 @@ If a project has multiple CI pipelines or `earthly` invocations, it is recommend
 {% hint style='info' %}
 ##### Note
 
-It is currently not possible to push both inline and implicit caches currently.
+It is currently not possible to push both inline and explicit caches currently.
 {% endhint %}
 
 #### Optimizing explicit cache performance (advanced)
