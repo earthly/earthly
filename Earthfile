@@ -398,6 +398,7 @@ dind-ubuntu:
     FROM ubuntu:20.04
     COPY ./buildkitd/docker-auto-install.sh /usr/local/bin/docker-auto-install.sh
     RUN docker-auto-install.sh
+    ARG EARTHLY_TARGET_TAG_DOCKER
     ARG DIND_UBUNTU_TAG=ubuntu-$EARTHLY_TARGET_TAG_DOCKER
     ARG DOCKERHUB_USER=earthly
     SAVE IMAGE --push --cache-from=earthly/dind:ubuntu-main $DOCKERHUB_USER/dind:$DIND_UBUNTU_TAG
