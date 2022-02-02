@@ -1328,5 +1328,5 @@ func (c *client) UploadLog(pathOnDisk string) (string, error) {
 		return "", errors.Wrap(err, "failed to unmarshal uploadbundle response")
 	}
 
-	return fmt.Sprintf("https://ci.earthly.dev/logs?logId==%s&token=%s", uploadBundleResponse.LogID, c.authToken), nil
+	return fmt.Sprintf(uploadBundleResponse.ViewURL), nil
 }

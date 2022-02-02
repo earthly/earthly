@@ -3031,8 +3031,9 @@ func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []st
 	id, err := cc.UploadLog(logPath)
 	if err != nil {
 		fmt.Println(err.Error())
+		return nil
 	}
-	app.console.Printf("Your is available here: %s\n", id)
+	app.console.Printf("Share your build log with this link: %s\n", id)
 
 	return nil
 }
