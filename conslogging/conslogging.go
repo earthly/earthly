@@ -85,7 +85,9 @@ func (cl ConsoleLogger) clone() ConsoleLogger {
 // WithPrefix returns a ConsoleLogger with a prefix added.
 func (cl ConsoleLogger) WithPrefix(prefix string) ConsoleLogger {
 	ret := cl.clone()
-	ret.errW = io.MultiWriter(cl.consoleErrW, cl.bb.PrefixWriter(prefix))
+	if cl.bb != nil {
+		ret.errW = io.MultiWriter(cl.consoleErrW, cl.bb.PrefixWriter(prefix))
+	}
 	ret.prefix = prefix
 	ret.salt = prefix
 	return ret
@@ -108,7 +110,9 @@ func (cl ConsoleLogger) WithLocal(isLocal bool) ConsoleLogger {
 // WithPrefixAndSalt returns a ConsoleLogger with a prefix and a seed added.
 func (cl ConsoleLogger) WithPrefixAndSalt(prefix string, salt string) ConsoleLogger {
 	ret := cl.clone()
-	ret.errW = io.MultiWriter(cl.consoleErrW, cl.bb.PrefixWriter(prefix))
+	if cl.bb != nil {
+		ret.errW = io.MultiWriter(cl.consoleErrW, cl.bb.PrefixWriter(prefix))
+	}
 	ret.prefix = prefix
 	ret.salt = salt
 	return ret
@@ -406,6 +410,10 @@ func (cl ConsoleLogger) WriteBundleToDisk() (string, error) {
 }
 
 func (cl ConsoleLogger) MarkBundleBuilderResult(error bool) {
+	if cl.bb == nil {
+		return
+	}
+
 	var result string
 	if error {
 		result = ResultFailure
@@ -417,6 +425,10 @@ func (cl ConsoleLogger) MarkBundleBuilderResult(error bool) {
 }
 
 func (cl ConsoleLogger) MarkBundleBuilderStatus(isStarted, isFinished bool) {
+	if cl.bb == nil {
+		return
+	}
+
 	var status string
 	if isStarted {
 		if isFinished {

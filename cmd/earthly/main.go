@@ -165,6 +165,7 @@ type cliFlags struct {
 	lsShowLong                bool
 	lsShowArgs                bool
 	containerFrontend         containerutil.ContainerFrontend
+	logSharing                bool
 }
 
 var (
@@ -2805,7 +2806,39 @@ func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []st
 	cleanCollection := cleanup.NewCollection()
 	defer cleanCollection.Close()
 
-	app.console = app.console.WithLogBundleWriter(target.String(), cleanCollection)
+	cc, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
+	if err != nil {
+		return errors.Wrap(err, "failed to create cloud client")
+	}
+
+	if app.cfg.Global.LogSharing {
+		_, _, _, err := cc.WhoAmI()
+		isLoggedIn := err == nil
+
+		if isLoggedIn {
+			// If you are logged in, then add the bundle builder code, and configure cleanup and post-build messages.
+			app.console = app.console.WithLogBundleWriter(target.String(), cleanCollection)
+
+			defer func() { // Defer this to keep log upload code together
+				logPath, err := app.console.WriteBundleToDisk()
+				if err != nil {
+					fmt.Println(err.Error())
+				}
+
+				id, err := cc.UploadLog(logPath)
+				if err != nil {
+					fmt.Println(err.Error())
+					return
+				}
+				app.console.Printf("Share your build log with this link: %s\n", id)
+			}()
+		} else {
+			// If you are not logged in, then advertise the service, since they probably turned it on to try it.
+			defer func() { // Defer this to keep log upload code together
+				app.console.Printf("You've enabled log sharing, but you do not yet have an Earthly account. Register for one at https://ci.earthly.dev.")
+			}()
+		}
+	}
 
 	bkClient, err := buildkitd.NewClient(c.Context, app.console, app.buildkitdImage, app.containerName, app.containerFrontend, app.buildkitdSettings)
 	if err != nil {
@@ -2859,11 +2892,6 @@ func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []st
 		return errors.Wrap(err, "debugger settings json marshal")
 	}
 	secretsMap[debuggercommon.DebuggerSettingsSecretsKey] = debuggerSettingsData
-
-	cc, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
-	if err != nil {
-		return errors.Wrap(err, "failed to create cloud client")
-	}
 
 	localhostProvider, err := localhostprovider.NewLocalhostProvider()
 	if err != nil {
@@ -3022,18 +3050,6 @@ func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []st
 	if err != nil {
 		return errors.Wrap(err, "build target")
 	}
-
-	logPath, err := app.console.WriteBundleToDisk()
-	if err != nil {
-		fmt.Println(err.Error())
-	}
-
-	id, err := cc.UploadLog(logPath)
-	if err != nil {
-		fmt.Println(err.Error())
-		return nil
-	}
-	app.console.Printf("Share your build log with this link: %s\n", id)
 
 	return nil
 }
