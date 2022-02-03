@@ -2446,7 +2446,7 @@ func (app *earthlyApp) actionAccountLogin(c *cli.Context) error {
 
 	loggedInEmail, authType, writeAccess, err := cc.WhoAmI()
 	switch errors.Cause(err) {
-	case cloud.ErrNoAuthorizedPublicKeys, cloud.ErrNoSSHAgent:
+	case cloud.ErrUnauthorized:
 		break
 	case nil:
 		if email != "" && email != loggedInEmail {
