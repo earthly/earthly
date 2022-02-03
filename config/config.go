@@ -77,7 +77,7 @@ type GlobalConfig struct {
 	TLSEnabled               bool     `yaml:"tls_enabled"                help:"If TLS should be used to communicate with Buildkit. Only honored when BuildkitScheme is 'tcp'."`
 	ContainerFrontend        string   `yaml:"container_frontend"         help:"What program should be used to start and stop buildkitd, save images. Default is 'docker'. Valid options are 'docker' and 'podman' (experimental)."`
 	IPTables                 string   `yaml:"ip_tables"                  help:"Which iptables binary to use. Valid values are iptables-legacy or iptables-nft. Bypasses any autodetection."`
-	LogSharing               bool     `yaml:"log_sharing"                help:"Enable cloud log sharing. Must be logged in with an Earthly account, see https://ci.earthly.dev for details."`
+	DisableLogSharing        bool     `yaml:"disable_log_sharing"        help:"Disable cloud log sharing whe logged in with an Earthly account, see https://ci.earthly.dev for details."`
 
 	// Obsolete.
 	CachePath      string `yaml:"cache_path"         help:" *Deprecated* The path to keep Earthly's cache."`

@@ -2811,7 +2811,8 @@ func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []st
 		return errors.Wrap(err, "failed to create cloud client")
 	}
 
-	if app.cfg.Global.LogSharing {
+	// Default upload logs, unless explicitly configured
+	if !app.cfg.Global.DisableLogSharing {
 		_, _, _, err := cc.WhoAmI()
 		isLoggedIn := err == nil
 
@@ -2835,7 +2836,7 @@ func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []st
 		} else {
 			// If you are not logged in, then advertise the service, since they probably turned it on to try it.
 			defer func() { // Defer this to keep log upload code together
-				app.console.Printf("You've enabled log sharing, but you do not yet have an Earthly account. Register for one at https://ci.earthly.dev.")
+				app.console.Printf("Share your logs with an Earthly account! Register for one at https://ci.earthly.dev.")
 			}()
 		}
 	}
