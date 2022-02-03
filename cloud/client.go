@@ -169,6 +169,9 @@ func (c *client) doCall(method, url string, opts ...requestOpt) (int, string, er
 		}
 
 		if status == http.StatusUnauthorized {
+			if !r.hasAuth {
+				return status, body, ErrUnauthorized
+			}
 			if alreadyReAuthed {
 				return status, body, err
 			}
