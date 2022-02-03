@@ -13,6 +13,14 @@ date +%s > /tmp/last-earthly-prerelease-check
 test -n "$EARTHLY_TOKEN"
 "$earthly" account login
 
+# test logout has no effect when EARTHLY_TOKEN is set
+if NO_COLOR=0 "$earthly" account logout > output 2>&1; then
+    echo "earthly account logout should have failed"
+    exit 1
+fi
+diff output <(echo "Error: account logout has no effect when --auth-token (or the EARTHLY_TOKEN environment variable) is set")
+
+
 # fetch shared secret key (this step assumes your personal user has access to the /earthly-technologies/ secrets org
 ID_RSA=$($earthly secrets get -n /earthly-technologies/earthly-secrets/manitou/id_rsa)
 

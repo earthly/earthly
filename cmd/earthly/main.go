@@ -178,6 +178,13 @@ var (
 	GitSha string
 )
 
+var (
+	errLoginFlagsHaveNoEffect            = errors.New("account login flags have no effect when --auth-token (or the EARTHLY_TOKEN environment variable) is set")
+	errLogoutHasNoEffectWhenAuthTokenSet = errors.New("account logout has no effect when --auth-token (or the EARTHLY_TOKEN environment variable) is set")
+	errURLParseFailure                   = errors.New("Invalid URL")
+	errURLValidationFailure              = errors.New("URL did not pass validation")
+)
+
 func profhandler() {
 	addr := "127.0.0.1:6060"
 	fmt.Printf("listening for pprof on %s\n", addr)
@@ -1234,9 +1241,6 @@ func (app *earthlyApp) handleTLSCertificateSettings(context *cli.Context) {
 	app.buildkitdSettings.ServerTLSCert = app.cfg.Global.ServerTLSCert
 	app.buildkitdSettings.ServerTLSKey = app.cfg.Global.ServerTLSKey
 }
-
-var errURLParseFailure = errors.New("Invalid URL")
-var errURLValidationFailure = errors.New("URL did not pass validation")
 
 func parseAndvalidateURL(addr string) (*url.URL, error) {
 	parsed, err := url.Parse(addr)
@@ -2405,7 +2409,7 @@ func (app *earthlyApp) actionAccountLogin(c *cli.Context) error {
 	// special case where global auth token overrides login logic
 	if app.authToken != "" {
 		if email != "" || token != "" || pass != "" {
-			return errors.New("account login flags have no effect when --auth-token (or the EARTHLY_TOKEN environment variable) is set")
+			return errLoginFlagsHaveNoEffect
 		}
 		loggedInEmail, authType, writeAccess, err := cc.WhoAmI()
 		if err != nil {
@@ -2504,6 +2508,11 @@ func (app *earthlyApp) actionAccountLogin(c *cli.Context) error {
 
 func (app *earthlyApp) actionAccountLogout(c *cli.Context) error {
 	app.commandName = "accountLogout"
+
+	if app.authToken != "" {
+		return errLogoutHasNoEffectWhenAuthTokenSet
+	}
+
 	cc, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
 	if err != nil {
 		return err
