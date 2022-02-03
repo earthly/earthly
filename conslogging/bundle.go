@@ -16,6 +16,8 @@ import (
 	"github.com/pkg/errors"
 )
 
+const fullLog = "_full"
+
 type targetLogger struct {
 	writer  *strings.Builder
 	prefix  string
@@ -72,7 +74,7 @@ func (bb *BundleBuilder) PrefixWriter(prefix string) io.Writer {
 	writer := &targetLogger{
 		writer:  &strings.Builder{},
 		status:  StatusWaiting,
-		result:  "",
+		result:  ResultCancelled,
 		started: time.Now(),
 		prefix:  prefix,
 	}
@@ -114,9 +116,10 @@ func (bb *BundleBuilder) WriteToDisk() (string, error) {
 		escaped := url.PathEscape(trimmed)
 
 		tarWriter.WriteHeader(&tar.Header{
-			Name: fmt.Sprintf("target/%s", escaped),
-			Size: int64(lines.writer.Len()),
-			Mode: 0600,
+			Name:       fmt.Sprintf("target/%s", escaped),
+			Size:       int64(lines.writer.Len()),
+			Mode:       0600,
+			ChangeTime: time.Now(),
 		})
 		tarWriter.Write([]byte(lines.writer.String()))
 	}
@@ -125,18 +128,20 @@ func (bb *BundleBuilder) WriteToDisk() (string, error) {
 	mani := bb.buildManifest(targetData)
 	manifestJSON, _ := json.Marshal(mani)
 	tarWriter.WriteHeader(&tar.Header{
-		Name: "manifest",
-		Size: int64(len(manifestJSON)),
-		Mode: 0600,
+		Name:       "manifest",
+		Size:       int64(len(manifestJSON)),
+		Mode:       0600,
+		ChangeTime: time.Now(),
 	})
 	tarWriter.Write(manifestJSON)
 
 	perm := bb.buildPermissions()
 	permissionsJSON, _ := json.Marshal(perm)
 	tarWriter.WriteHeader(&tar.Header{
-		Name: "permissions",
-		Size: int64(len(permissionsJSON)),
-		Mode: 0600,
+		Name:       "permissions",
+		Size:       int64(len(permissionsJSON)),
+		Mode:       0600,
+		ChangeTime: time.Now(),
 	})
 	tarWriter.Write(permissionsJSON)
 
@@ -162,7 +167,6 @@ func (bb *BundleBuilder) buildManifest(targetManifests []TargetManifest) *Manife
 		if tm.Status != StatusComplete {
 			manifest.Status = tm.Status
 		}
-
 	}
 
 	return manifest

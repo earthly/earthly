@@ -152,6 +152,8 @@ func (cl ConsoleLogger) WithWriter(w io.Writer) ConsoleLogger {
 func (cl ConsoleLogger) WithLogBundleWriter(entrypoint string, collection *cleanup.Collection) ConsoleLogger {
 	ret := cl.clone()
 	ret.bb = NewBundleBuilder(entrypoint, collection)
+	fullW := ret.bb.PrefixWriter(fullLog)
+	ret.consoleErrW = io.MultiWriter(ret.consoleErrW, fullW)
 	return ret
 }
 
