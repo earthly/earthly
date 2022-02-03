@@ -40,6 +40,7 @@ server:
         sed -i 's/\(git:.*\):\/bin\/ash/\1:\/usr\/bin\/git-shell/g' /etc/passwd && \
         cat /etc/passwd | grep git && \
         passwd git -u
+    COPY no-interactive-login /home/git/git-shell-commands/no-interactive-login
     RUN mkdir /home/git/testuser && \
         git init --bar /home/git/testuser/repo.git && \
         chown -R git:git /home/git/testuser

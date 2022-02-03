@@ -27,6 +27,10 @@ eval \$(ssh-agent)
 ssh-add /root/self-hosted-rsa-key
 ssh-add -l
 
+# next validate ssh is working
+ssh git@git.example.com | grep \"Hi git! You've successfully authenticated, but you get no shellz\"
+
+# finally perform earthly tests
 earthly --config \$earthly_config --verbose -D +test
 earthly --config \$earthly_config --verbose -D git.example.com/testuser/repo:main+hello
 " >/tmp/test-earthly-script && chmod +x /tmp/test-earthly-script
@@ -54,6 +58,10 @@ eval \$(ssh-agent)
 ssh-add /root/self-hosted-ed25519-key
 ssh-add -l
 
+# next validate ssh is working
+ssh git@git.example.com | grep \"Hi git! You've successfully authenticated, but you get no shellz\"
+
+# finally perform earthly tests
 earthly --config \$earthly_config --verbose -D +test
 earthly --config \$earthly_config --verbose -D git.example.com/testuser/repo:main+hello
 " >/tmp/test-earthly-script && chmod +x /tmp/test-earthly-script
@@ -81,6 +89,10 @@ eval \$(ssh-agent)
 ssh-add /root/self-hosted-rsa-key
 ssh-add -l
 
+# next validate ssh is working
+ssh git@git.example.com | grep \"Hi git! You've successfully authenticated, but you get no shellz\"
+
+# finally perform earthly tests
 earthly --config \$earthly_config --verbose -D +test
 earthly --config \$earthly_config --verbose -D git.example.com/testuser/repo:main+hello
 " >/tmp/test-earthly-script && chmod +x /tmp/test-earthly-script
