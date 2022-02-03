@@ -152,8 +152,8 @@ func (bb *BundleBuilder) buildManifest(targetManifests []TargetManifest) *Manife
 	manifest := &Manifest{
 		Version:    1,
 		Duration:   int(time.Since(bb.started).Seconds()),
-		Status:     "complete",
-		Result:     "success",
+		Status:     StatusComplete,
+		Result:     ResultSuccess,
 		CreatedAt:  time.Now().In(time.UTC),
 		Entrypoint: bb.entrypoint,
 		Targets:    targetManifests,
