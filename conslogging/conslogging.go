@@ -149,6 +149,7 @@ func (cl ConsoleLogger) WithWriter(w io.Writer) ConsoleLogger {
 	return ret
 }
 
+// WithLogBundleWriter returns a ConsoleLogger with a BundleWriter attached to capture output into a log bundle, for upload to log sharing.
 func (cl ConsoleLogger) WithLogBundleWriter(entrypoint string, collection *cleanup.Collection) ConsoleLogger {
 	ret := cl.clone()
 	ret.bb = NewBundleBuilder(entrypoint, collection)
@@ -407,10 +408,16 @@ func (cl ConsoleLogger) WithVerbose(verbose bool) ConsoleLogger {
 	return ret
 }
 
+// WriteBundleToDisk makes an attached bundle writer (if any) write the collected bundle to disk.
 func (cl ConsoleLogger) WriteBundleToDisk() (string, error) {
+	if cl.bb == nil {
+		return "", nil
+	}
+
 	return cl.bb.WriteToDisk()
 }
 
+// MarkBundleBuilderResult marks the current targets result in a log bundle for a given prefix with the current result.
 func (cl ConsoleLogger) MarkBundleBuilderResult(error bool) {
 	if cl.bb == nil {
 		return
@@ -426,6 +433,7 @@ func (cl ConsoleLogger) MarkBundleBuilderResult(error bool) {
 	cl.bb.PrefixResult(cl.Prefix(), result)
 }
 
+// MarkBundleBuilderStatus marks the current targets status in a log bundle for a given prefix with the current status.
 func (cl ConsoleLogger) MarkBundleBuilderStatus(isStarted, isFinished bool) {
 	if cl.bb == nil {
 		return

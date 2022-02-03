@@ -6,16 +6,29 @@ import (
 
 // These types are also used by our log server, too.
 const (
-	StatusWaiting    = "waiting"
-	StatusInProgress = "in_progress"
-	StatusComplete   = "complete"
-	StatusCancelled  = "cancelled"
+	// StatusWaiting is the status for a target that has yet to execute.
+	StatusWaiting = "waiting"
 
-	ResultSuccess   = "success"
-	ResultFailure   = "failure"
+	// StatusInProgress is the status for a target that is currently executing.
+	StatusInProgress = "in_progress"
+
+	// StatusComplete is the status for a target that has run to completion.
+	StatusComplete = "complete"
+
+	// StatusCancelled is the status for a target that did not run to completion, and was interrupted.
+	StatusCancelled = "cancelled"
+
+	// ResultSuccess is the result for a target that exits successfully.
+	ResultSuccess = "success"
+
+	// ResultFailure is the result for a target that exited with some kind of error code.
+	ResultFailure = "failure"
+
+	// ResultCancelled is the results for a target that did not run to completion.
 	ResultCancelled = "cancelled"
 )
 
+// Manifest is the structure for the log bundle manifest, including all overarching data we need.
 type Manifest struct {
 	Version    int              `json:"version"`
 	Duration   int              `json:"duration"`
@@ -26,6 +39,7 @@ type Manifest struct {
 	Entrypoint string           `json:"entrypoint"`
 }
 
+// TargetManifest is the structure for an individual target, indicating all relevant information.
 type TargetManifest struct {
 	Name     string `json:"name"`
 	Status   string `json:"status"`
@@ -36,6 +50,7 @@ type TargetManifest struct {
 	Summary  string `json:"summary,omitempty"`
 }
 
+// Permissions is the structure for the permissions manifest that can grant view rights to other Earthly users.
 type Permissions struct {
 	Version int      `json:"version"`
 	Users   []uint64 `json:"users"`
