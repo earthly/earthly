@@ -53,6 +53,6 @@ type TargetManifest struct {
 // Permissions is the structure for the permissions manifest that can grant view rights to other Earthly users.
 type Permissions struct {
 	Version int      `json:"version"`
-	Users   []uint64 `json:"users"`
-	Orgs    []uint64 `json:"orgs"`
+	Users   []string `json:"users"`
+	Orgs    []string `json:"orgs"`
 }

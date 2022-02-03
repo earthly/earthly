@@ -10,6 +10,7 @@ import (
 	"os"
 	"regexp"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/earthly/earthly/cleanup"
@@ -30,6 +31,7 @@ type targetLogger struct {
 type BundleBuilder struct {
 	entrypoint    string
 	logsForTarget map[string]*targetLogger
+	addTargetMu   sync.Mutex
 	started       time.Time
 	cleanup       *cleanup.Collection
 }
@@ -67,6 +69,9 @@ func (bb *BundleBuilder) PrefixStatus(prefix, status string) {
 // PrefixWriter gets an io.Writer for a given prefix(aka target). If its a prefix we have not seen before,
 // then generate a new writer to accomodate it.
 func (bb *BundleBuilder) PrefixWriter(prefix string) io.Writer {
+	bb.addTargetMu.Lock()
+	defer bb.addTargetMu.Unlock()
+
 	if builder, ok := bb.logsForTarget[prefix]; ok {
 		return builder
 	}
@@ -175,8 +180,8 @@ func (bb *BundleBuilder) buildManifest(targetManifests []TargetManifest) *Manife
 func (bb *BundleBuilder) buildPermissions() *Permissions {
 	return &Permissions{
 		Version: 1,
-		Users:   make([]uint64, 0),
-		Orgs:    make([]uint64, 0),
+		Users:   []string{"*"},
+		Orgs:    []string{"*"},
 	}
 }
 
