@@ -149,18 +149,21 @@ func (c *client) doCall(method, url string, opts ...requestOpt) (int, string, er
 		}
 	}
 
+	alreadyReAuthed := false
 	if r.hasAuth && time.Now().UTC().After(c.authTokenExpiry) {
 		if err := c.Authenticate(); err != nil {
+			if errors.Is(err, ErrUnauthorized) {
+				return 0, "", ErrUnauthorized
+			}
 			return 0, "", errors.Wrap(err, "failed refreshing expired auth token")
 		}
+		alreadyReAuthed = true
 	}
 
 	var status int
 	var body string
 	var err error
 	duration := time.Millisecond * 100
-	alreadyReAuthed := false
-
 	for attempt := 0; attempt < maxAttempt; attempt++ {
 		status, body, err = c.doCallImp(r, method, url, opts...)
 
@@ -169,11 +172,8 @@ func (c *client) doCall(method, url string, opts ...requestOpt) (int, string, er
 		}
 
 		if status == http.StatusUnauthorized {
-			if !r.hasAuth {
+			if !r.hasAuth || alreadyReAuthed {
 				return status, body, ErrUnauthorized
-			}
-			if alreadyReAuthed {
-				return status, body, err
 			}
 			if err = c.Authenticate(); err != nil {
 				return status, body, errors.Wrap(err, "auth credentials not valid")
@@ -357,6 +357,9 @@ func (c *client) Authenticate() error {
 		err = c.loginWithSSH()
 	}
 	if err != nil {
+		if errors.Is(err, ErrNoAuthorizedPublicKeys) || errors.Is(err, ErrNoSSHAgent) {
+			return ErrUnauthorized
+		}
 		return err
 	}
 	return c.saveToken()
