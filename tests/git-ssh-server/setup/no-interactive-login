@@ -1,0 +1,4 @@
+#!/bin/sh
+printf '%s\n' "Hi $USER! You've successfully authenticated, but you get no shellz"
+exit 128
+EOF
