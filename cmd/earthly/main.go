@@ -2823,12 +2823,13 @@ func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []st
 			defer func() { // Defer this to keep log upload code together
 				logPath, err := app.console.WriteBundleToDisk()
 				if err != nil {
-					fmt.Println(err.Error())
+					app.console.Warnf(err.Error())
+					return
 				}
 
 				id, err := cc.UploadLog(logPath)
 				if err != nil {
-					fmt.Println(err.Error())
+					app.console.Warnf(err.Error())
 					return
 				}
 				app.console.Printf("Share your build log with this link: %s\n", id)
@@ -2836,7 +2837,12 @@ func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []st
 		} else {
 			// If you are not logged in, then advertise the service, since they probably turned it on to try it.
 			defer func() { // Defer this to keep log upload code together
-				app.console.Printf("Share your logs with an Earthly account! Register for one at https://ci.earthly.dev.")
+				switch err {
+				case cloud.ErrUnauthorized:
+					app.console.Printf("Share your logs with an Earthly account! Register for one at https://ci.earthly.dev.")
+				default:
+					app.console.Warnf("Logs for this run were not shared, since earthly couldn't login. Error: %s", err.Error())
+				}
 			}()
 		}
 	}
