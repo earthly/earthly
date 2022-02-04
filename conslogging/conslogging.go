@@ -7,6 +7,7 @@ import (
 	"sync"
 	"unicode/utf8"
 
+	"github.com/earthly/earthly/cleanup"
 	"github.com/fatih/color"
 )
 
@@ -55,12 +56,15 @@ type ConsoleLogger struct {
 	saltColors     map[string]*color.Color
 	nextColorIndex *int
 	errW           io.Writer
+	consoleErrW    io.Writer
 	trailingLine   bool
 	prefixPadding  int
+	bb             *BundleBuilder
 }
 
 func (cl ConsoleLogger) clone() ConsoleLogger {
 	return ConsoleLogger{
+		consoleErrW:    cl.consoleErrW,
 		errW:           cl.errW,
 		prefix:         cl.prefix,
 		metadataMode:   cl.metadataMode,
@@ -74,12 +78,16 @@ func (cl ConsoleLogger) clone() ConsoleLogger {
 		nextColorIndex: cl.nextColorIndex,
 		prefixPadding:  cl.prefixPadding,
 		mu:             cl.mu,
+		bb:             cl.bb,
 	}
 }
 
 // WithPrefix returns a ConsoleLogger with a prefix added.
 func (cl ConsoleLogger) WithPrefix(prefix string) ConsoleLogger {
 	ret := cl.clone()
+	if cl.bb != nil {
+		ret.errW = io.MultiWriter(cl.consoleErrW, cl.bb.PrefixWriter(prefix))
+	}
 	ret.prefix = prefix
 	ret.salt = prefix
 	return ret
@@ -102,6 +110,9 @@ func (cl ConsoleLogger) WithLocal(isLocal bool) ConsoleLogger {
 // WithPrefixAndSalt returns a ConsoleLogger with a prefix and a seed added.
 func (cl ConsoleLogger) WithPrefixAndSalt(prefix string, salt string) ConsoleLogger {
 	ret := cl.clone()
+	if cl.bb != nil {
+		ret.errW = io.MultiWriter(cl.consoleErrW, cl.bb.PrefixWriter(prefix))
+	}
 	ret.prefix = prefix
 	ret.salt = salt
 	return ret
@@ -135,6 +146,15 @@ func (cl ConsoleLogger) WithFailed(isFailed bool) ConsoleLogger {
 func (cl ConsoleLogger) WithWriter(w io.Writer) ConsoleLogger {
 	ret := cl.clone()
 	ret.errW = w
+	return ret
+}
+
+// WithLogBundleWriter returns a ConsoleLogger with a BundleWriter attached to capture output into a log bundle, for upload to log sharing.
+func (cl ConsoleLogger) WithLogBundleWriter(entrypoint string, collection *cleanup.Collection) ConsoleLogger {
+	ret := cl.clone()
+	ret.bb = NewBundleBuilder(entrypoint, collection)
+	fullW := ret.bb.PrefixWriter(fullLog)
+	ret.consoleErrW = io.MultiWriter(ret.consoleErrW, fullW)
 	return ret
 }
 
@@ -250,6 +270,7 @@ func (cl ConsoleLogger) Printf(format string, args ...interface{}) {
 	for _, line := range strings.Split(text, "\n") {
 		cl.printPrefix()
 		c.Fprintf(cl.errW, "%s", line)
+
 		// Don't use a background color for \n.
 		noColor.Fprintf(cl.errW, "\n")
 	}
@@ -314,7 +335,7 @@ func (cl ConsoleLogger) printPrefix() {
 		return
 	}
 	c := cl.PrefixColor()
-	c.Fprintf(cl.errW, cl.prettyPrefix())
+	c.Fprintf(cl.errW, prettyPrefix(cl.prefixPadding, cl.prefix))
 	if cl.isLocal {
 		cl.errW.Write([]byte(" *"))
 		cl.color(localColor).Fprintf(cl.errW, "local")
@@ -348,19 +369,19 @@ func (cl ConsoleLogger) color(c *color.Color) *color.Color {
 	return noColor
 }
 
-func (cl ConsoleLogger) prettyPrefix() string {
-	if cl.prefixPadding == NoPadding {
-		return cl.prefix
+func prettyPrefix(prefixPadding int, prefix string) string {
+	if prefixPadding == NoPadding {
+		return prefix
 	}
 
 	var brackets string
-	bracketParts := strings.SplitN(cl.prefix, "(", 2)
+	bracketParts := strings.SplitN(prefix, "(", 2)
 	if len(bracketParts) > 1 {
 		brackets = fmt.Sprintf("(%s", bracketParts[1])
 	}
 	prettyPrefix := bracketParts[0]
-	if len(cl.prefix) > cl.prefixPadding {
-		parts := strings.Split(cl.prefix, "/")
+	if len(prefix) > prefixPadding {
+		parts := strings.Split(prefix, "/")
 		target := parts[len(parts)-1]
 
 		truncated := ""
@@ -376,7 +397,7 @@ func (cl ConsoleLogger) prettyPrefix() string {
 		prettyPrefix = truncated + target
 	}
 
-	formatString := fmt.Sprintf("%%%vv", cl.prefixPadding)
+	formatString := fmt.Sprintf("%%%vv", prefixPadding)
 	return fmt.Sprintf(formatString, fmt.Sprintf("%s%s", prettyPrefix, brackets))
 }
 
@@ -385,4 +406,49 @@ func (cl ConsoleLogger) WithVerbose(verbose bool) ConsoleLogger {
 	ret := cl.clone()
 	ret.verbose = verbose
 	return ret
+}
+
+// WriteBundleToDisk makes an attached bundle writer (if any) write the collected bundle to disk.
+func (cl ConsoleLogger) WriteBundleToDisk() (string, error) {
+	if cl.bb == nil {
+		return "", nil
+	}
+
+	return cl.bb.WriteToDisk()
+}
+
+// MarkBundleBuilderResult marks the current targets result in a log bundle for a given prefix with the current result.
+func (cl ConsoleLogger) MarkBundleBuilderResult(error bool) {
+	if cl.bb == nil {
+		return
+	}
+
+	var result string
+	if error {
+		result = ResultFailure
+	} else {
+		result = ResultSuccess
+	}
+
+	cl.bb.PrefixResult(cl.Prefix(), result)
+}
+
+// MarkBundleBuilderStatus marks the current targets status in a log bundle for a given prefix with the current status.
+func (cl ConsoleLogger) MarkBundleBuilderStatus(isStarted, isFinished bool) {
+	if cl.bb == nil {
+		return
+	}
+
+	var status string
+	if isStarted {
+		if isFinished {
+			status = StatusComplete
+		} else {
+			status = StatusInProgress
+		}
+	} else {
+		status = StatusWaiting
+	}
+
+	cl.bb.PrefixStatus(cl.Prefix(), status)
 }

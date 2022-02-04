@@ -165,6 +165,7 @@ type cliFlags struct {
 	lsShowLong                bool
 	lsShowArgs                bool
 	containerFrontend         containerutil.ContainerFrontend
+	logSharing                bool
 }
 
 var (
@@ -2251,7 +2252,7 @@ func (app *earthlyApp) actionAccountAddKey(c *cli.Context) error {
 		return errors.Wrap(err, "failed to add public key to account")
 	}
 
-	//switch over to new key if the user is currently using password-based auth
+	// switch over to new key if the user is currently using password-based auth
 	email, authType, _, err := cc.WhoAmI()
 	if err != nil {
 		return errors.Wrap(err, "failed to validate auth token")
@@ -2810,6 +2811,51 @@ func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []st
 			return errors.Wrapf(err, "parse target name %s", targetName)
 		}
 	}
+
+	cleanCollection := cleanup.NewCollection()
+	defer cleanCollection.Close()
+
+	cc, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
+	if err != nil {
+		return errors.Wrap(err, "failed to create cloud client")
+	}
+
+	// Default upload logs, unless explicitly configured
+	if !app.cfg.Global.DisableLogSharing {
+		_, _, _, whoAmIErr := cc.WhoAmI()
+		isLoggedIn := err == nil
+
+		if isLoggedIn {
+			// If you are logged in, then add the bundle builder code, and configure cleanup and post-build messages.
+			app.console = app.console.WithLogBundleWriter(target.String(), cleanCollection)
+
+			defer func() { // Defer this to keep log upload code together
+				logPath, err := app.console.WriteBundleToDisk()
+				if err != nil {
+					app.console.Warnf(err.Error())
+					return
+				}
+
+				id, err := cc.UploadLog(logPath)
+				if err != nil {
+					app.console.Warnf(err.Error())
+					return
+				}
+				app.console.Printf("Share your build log with this link: %s\n", id)
+			}()
+		} else {
+			// If you are not logged in, then advertise the service, since they probably turned it on to try it.
+			defer func() { // Defer this to keep log upload code together
+				switch whoAmIErr {
+				case cloud.ErrUnauthorized:
+					app.console.Printf("Share your logs with an Earthly account! Register for one at https://ci.earthly.dev.")
+				default:
+					app.console.Warnf("Logs were not shared, due to earthly login error: %s", err.Error())
+				}
+			}()
+		}
+	}
+
 	bkClient, err := buildkitd.NewClient(c.Context, app.console, app.buildkitdImage, app.containerName, app.containerFrontend, app.buildkitdSettings)
 	if err != nil {
 		return errors.Wrap(err, "build new buildkitd client")
@@ -2863,11 +2909,6 @@ func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []st
 	}
 	secretsMap[debuggercommon.DebuggerSettingsSecretsKey] = debuggerSettingsData
 
-	cc, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
-	if err != nil {
-		return errors.Wrap(err, "failed to create cloud client")
-	}
-
 	localhostProvider, err := localhostprovider.NewLocalhostProvider()
 	if err != nil {
 		return errors.Wrap(err, "failed to create localhostprovider")
@@ -2909,8 +2950,6 @@ func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []st
 	if app.allowPrivileged {
 		enttlmnts = append(enttlmnts, entitlements.EntitlementSecurityInsecure)
 	}
-	cleanCollection := cleanup.NewCollection()
-	defer cleanCollection.Close()
 
 	if termutil.IsTTY() {
 		go func() {
@@ -3027,6 +3066,7 @@ func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []st
 	if err != nil {
 		return errors.Wrap(err, "build target")
 	}
+
 	return nil
 }
 
@@ -3109,7 +3149,7 @@ func (app *earthlyApp) actionListTargets(c *cli.Context) error {
 	var gwClient gwclient.Client // TODO this is a nil pointer which causes a panic if we try to expand a remotely referenced earthfile
 	// it's expensive to create this gwclient, so we need to implement a lazy eval which returns it when required.
 
-	target, err := domain.ParseTarget(fmt.Sprintf("%s+base", targetToParse)) //the +base is required to make ParseTarget work; however is ignored by GetTargets
+	target, err := domain.ParseTarget(fmt.Sprintf("%s+base", targetToParse)) // the +base is required to make ParseTarget work; however is ignored by GetTargets
 	if err != nil {
 		return errors.Errorf("unable to locate Earthfile under %s", targetToDisplay)
 	}
