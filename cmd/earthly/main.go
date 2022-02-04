@@ -2841,7 +2841,7 @@ func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []st
 				case cloud.ErrUnauthorized:
 					app.console.Printf("Share your logs with an Earthly account! Register for one at https://ci.earthly.dev.")
 				default:
-					app.console.Warnf("Logs for this run were not shared, since earthly couldn't login. Error: %s", err.Error())
+					app.console.Warnf("Logs were not shared, due to earthly login error: %s", err.Error())
 				}
 			}()
 		}
