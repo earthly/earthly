@@ -64,6 +64,7 @@ cp /tmp/hosts /etc/hosts
 if ! grep git.example.com /etc/hosts 2>/dev/null; then
     echo -e \"127.0.0.1\tgit.example.com\" >> /etc/hosts
 fi
+/sbin/syslogd # required to have sshd log to /var/log/messages
 /usr/sbin/sshd
 " > /bin/start-sshd && chmod +x /bin/start-sshd
 
