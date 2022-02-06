@@ -137,9 +137,6 @@ func (m *Manifest) ApplyDelta(dm *DeltaManifest) error {
 			if dt.FinishedAt != nil {
 				t.FinishedAt = dt.FinishedAt
 			}
-			if dt.Size != nil {
-				t.Size = dt.Size
-			}
 			if dt.Commands != nil {
 				if t.Commands == nil {
 					t.Commands = make([]*CommandManifest, 0, len(dt.Commands))
