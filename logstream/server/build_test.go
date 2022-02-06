@@ -192,9 +192,9 @@ func TestBuildSubscriber(t *testing.T) {
 		return nil
 	}
 	_, err = b.Subscribe(&SubscriberOpt{
-		Manifest:   true,
-		AllTargets: true,
-		Emit:       emitFun1,
+		Manifest:    true,
+		TargetSeeks: map[string]int64{targetID: 0},
+		Emit:        emitFun1,
 	})
 	assert.NoError(t, err)
 	assert.Equal(t, []byte("hello world"), recvLog1)
