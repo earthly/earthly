@@ -30,6 +30,11 @@ parser:
     RUN diff ./ast/parser/earth_parser.go.bak ./ast/parser/earth_parser.go || true
     SAVE ARTIFACT ./ast/parser/*.go / AS LOCAL ./
 
+test-not-committed:
+    COPY ./*.go ./locally/
+    COPY +parser/* ./generated/
+    RUN diff -qr ./locally ./generated
+
 rrd-antlr4:
     FROM maven:3.6.3-jdk-11
     WORKDIR /rrd-antlr4
