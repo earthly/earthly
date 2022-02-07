@@ -71,22 +71,17 @@ func NewBuild(snapshotter snapshot.Snapshotter) *Build {
 // ReceiveDelta takes in a delta and applies it to the server's build model,
 // taking into account ordering (via DeltaStreams).
 func (b *Build) ReceiveDelta(delta api.Delta) error {
-	if len(delta.DeltaManifests) > 0 {
-		for _, dm := range delta.DeltaManifests {
-			err := b.manifestStream.Receive(dm)
-			if err != nil {
-				return err
-			}
+	for _, dm := range delta.DeltaManifests {
+		err := b.manifestStream.Receive(dm)
+		if err != nil {
+			return err
 		}
-	} else if len(delta.DeltaLogs) > 0 {
-		for _, dl := range delta.DeltaLogs {
-			err := b.receiveDeltaLog(dl)
-			if err != nil {
-				return err
-			}
+	}
+	for _, dl := range delta.DeltaLogs {
+		err := b.receiveDeltaLog(dl)
+		if err != nil {
+			return err
 		}
-	} else {
-		return errors.New("empty delta")
 	}
 	return nil
 }

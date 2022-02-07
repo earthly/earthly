@@ -40,28 +40,28 @@ func (ms *MemSnapshotter) ReadManifest(ctx context.Context, snapshotID string) (
 	return snapshot.Manifest, nil
 }
 
-func (ms *MemSnapshotter) ReadLogFragment(ctx context.Context, snapshotID string, targetID string, startSeekIndex int64, endSeekIndex int64) ([]byte, error) {
+func (ms *MemSnapshotter) ReadLogFragment(ctx context.Context, snapshotID string, targetID string, startSeekIndex int64, endSeekIndex int64) ([]byte, int64, int64, error) {
 	ms.mu.Lock()
 	defer ms.mu.Unlock()
 	snapshot, found := ms.snapshots[snapshotID]
 	if !found {
-		return nil, errors.Errorf("snapshot %s not found", snapshotID)
+		return nil, 0, 0, errors.Errorf("snapshot %s not found", snapshotID)
 	}
 	target, found := snapshot.Logs[targetID]
 	if !found {
-		return nil, errors.Errorf("target %s not found", targetID)
+		return nil, 0, 0, errors.Errorf("target %s not found", targetID)
 	}
 	if startSeekIndex < 0 {
 		startSeekIndex = int64(len(target.LogData)) + startSeekIndex
 	}
 	if startSeekIndex > int64(len(target.LogData)) {
-		return nil, errors.Errorf("start seek index %d out of bounds", startSeekIndex)
+		return nil, 0, 0, errors.Errorf("start seek index %d out of bounds", startSeekIndex)
 	}
 	if endSeekIndex <= 0 {
 		endSeekIndex = int64(len(target.LogData)) + endSeekIndex
 	}
 	if endSeekIndex > int64(len(target.LogData)) {
-		return nil, errors.Errorf("end seek index %d out of bounds", endSeekIndex)
+		return nil, 0, 0, errors.Errorf("end seek index %d out of bounds", endSeekIndex)
 	}
-	return target.LogData[startSeekIndex:endSeekIndex], nil
+	return target.LogData[startSeekIndex:endSeekIndex], startSeekIndex, endSeekIndex, nil
 }

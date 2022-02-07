@@ -33,5 +33,5 @@ func (t *Target) EndSeekIndex() int64 {
 type Snapshotter interface {
 	Write(ctx context.Context, snapshot *Snapshot) error
 	ReadManifest(ctx context.Context, snapshotID string) (*api.Manifest, error)
-	ReadLogFragment(ctx context.Context, snapshotID string, targetID string, startSeekIndex int64, endSeekIndex int64) ([]byte, error)
+	ReadLogFragment(ctx context.Context, snapshotID string, targetID string, startSeekIndex int64, endSeekIndex int64) ([]byte, int64, int64, error)
 }

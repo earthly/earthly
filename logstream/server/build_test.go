@@ -93,7 +93,7 @@ func TestBuildSnapshot(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, name, m.Targets[targetID].Name)
 
-	dt, err := ms.ReadLogFragment(ctx, snapshotID, targetID, 0, 0)
+	dt, _, _, err := ms.ReadLogFragment(ctx, snapshotID, targetID, 0, 0)
 	assert.NoError(t, err)
 	assert.Equal(t, "hello world and the entire universe!", string(dt))
 }

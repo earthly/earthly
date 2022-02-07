@@ -2,6 +2,7 @@ package producer
 
 import (
 	"io"
+	"sync"
 
 	"github.com/earthly/earthly/logstream/api"
 )
@@ -12,9 +13,12 @@ type logWriter struct {
 	deltaCh       chan api.Delta
 	targetID      string
 	nextSeekIndex int64
+	mu            sync.Mutex
 }
 
 func (lw *logWriter) Write(p []byte) (int, error) {
+	lw.mu.Lock()
+	defer lw.mu.Unlock()
 	if len(p) == 0 {
 		return 0, nil
 	}
