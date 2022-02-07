@@ -2830,12 +2830,14 @@ func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []st
 			defer func() { // Defer this to keep log upload code together
 				logPath, err := app.console.WriteBundleToDisk()
 				if err != nil {
+					err := errors.Wrapf(err, "failed to write log to disk")
 					app.console.Warnf(err.Error())
 					return
 				}
 
 				id, err := cc.UploadLog(logPath)
 				if err != nil {
+					err := errors.Wrapf(err, "failed to upload log")
 					app.console.Warnf(err.Error())
 					return
 				}
