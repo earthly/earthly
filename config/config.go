@@ -123,6 +123,7 @@ func ParseConfigFile(yamlData []byte) (*Config, error) {
 			ServerTLSCert:           DefaultServerTLSCert,
 			ServerTLSKey:            DefaultServerTLSKey,
 			ContainerFrontend:       DefaultContainerFrontend,
+			DisableLogSharing:       true,
 		},
 	}
 
