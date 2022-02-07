@@ -542,3 +542,5 @@ examples2:
     BUILD ./examples/multiplatform+all
     BUILD ./examples/multiplatform-cross-compile+build-all-platforms
     BUILD github.com/earthly/hello-world:main+hello
+    BUILD ./examples/cache-command/npm+docker
+    BUILD ./examples/cache-command/mvn+docker
