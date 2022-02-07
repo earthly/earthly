@@ -2756,8 +2756,6 @@ func (app *earthlyApp) combineVariables(dotEnvMap map[string]string, flagArgs []
 }
 
 func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []string) error {
-	app.console.PrintPhaseHeader(builder.PhaseInit, false, "")
-	app.warnIfArgContainsBuildArg(flagArgs)
 	var target domain.Target
 	var artifact domain.Artifact
 	destPath := "./"
@@ -2855,6 +2853,9 @@ func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []st
 			}()
 		}
 	}
+
+	app.console.PrintPhaseHeader(builder.PhaseInit, false, "")
+	app.warnIfArgContainsBuildArg(flagArgs)
 
 	bkClient, err := buildkitd.NewClient(c.Context, app.console, app.buildkitdImage, app.containerName, app.containerFrontend, app.buildkitdSettings)
 	if err != nil {
