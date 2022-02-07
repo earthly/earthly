@@ -306,7 +306,7 @@ func getVersionPlatform() string {
 	if !isRelease.MatchString(Version) {
 		v = fmt.Sprintf("%s-%s", Version, GitSha)
 	}
-	return fmt.Sprintf("%s %s", v, getPlatform())
+	return fmt.Sprintf("%s %s %s", v, GitSha, getPlatform())
 }
 
 func getPlatform() string {
