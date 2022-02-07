@@ -2821,7 +2821,7 @@ func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []st
 	// Default upload logs, unless explicitly configured
 	if !app.cfg.Global.DisableLogSharing {
 		_, _, _, whoAmIErr := cc.WhoAmI()
-		isLoggedIn := err == nil
+		isLoggedIn := whoAmIErr == nil
 
 		if isLoggedIn {
 			// If you are logged in, then add the bundle builder code, and configure cleanup and post-build messages.
