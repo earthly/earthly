@@ -155,6 +155,7 @@ func (cl ConsoleLogger) WithLogBundleWriter(entrypoint string, collection *clean
 	ret.bb = NewBundleBuilder(entrypoint, collection)
 	fullW := ret.bb.PrefixWriter(fullLog)
 	ret.consoleErrW = io.MultiWriter(ret.consoleErrW, fullW)
+	ret.errW = ret.consoleErrW
 	return ret
 }
 
