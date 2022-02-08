@@ -52,7 +52,15 @@ If you are using the baked-in `buildkitd`, then this image needs to be run as a 
 
 #### EARTHLY_TMP_DIR
 
-Because this folder sees _a lot_ of traffic, its important that it remains fast. We *strongly* recommend using a Docker volume. If you do not, `buildkitd` can consume excessive disk space and/or operate very slowly.
+Because this folder sees _a lot_ of traffic, its important that it remains fast. We *strongly* recommend using a Docker volume for mounting `EARTHLY_TMP_DIR`. If you do not, `buildkitd` can consume excessive disk space, operate very slowly, or it might not function correctly.
+
+In some environments, not mounting `EARTHLY_TMP_DIR` as a Docker volume results in the following error:
+
+```
+--> WITH DOCKER RUN --privileged ...
+...
+rm: can't remove '/var/earthly/dind/...': Resource busy
+```
 
 #### Source Mounting
 

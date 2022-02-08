@@ -33,6 +33,23 @@ A remote daemon should be reachable by all clients intending to use it. Earthly 
 
 To configure an `earthly/buildkitd` daemon as a remotely available daemon, you will need to start the container yourself. See our [configuration docs](../earthly-config/earthly-config.md) for more details on all the options available; but here are the ones you need to know:
 
+**`EARTHLY_TMP_DIR`**
+
+This will configure the location of the directory that Buildkit uses for storing the cache. Because this folder sees _a lot_ of traffic, its important that it remains fast.
+
+{% hint style='danger' %}
+##### Important
+We *strongly* recommend using a Docker volume for mounting `EARTHLY_TMP_DIR`. If you do not, `buildkitd` can consume excessive disk space, operate very slowly, or it might not function correctly.
+{% endhint %}
+
+In some environments, not mounting `EARTHLY_TMP_DIR` as a Docker volume results in the following error:
+
+```
+--> WITH DOCKER RUN --privileged ...
+...
+rm: can't remove '/var/earthly/dind/...': Resource busy
+```
+
 **`BUILDKIT_TCP_TRANSPORT_ENABLED`**
 
 This will configure `buildkitd` to listen on port `8372`. If you would like it to be externally available on a different port, you will need to handle that at the port mapping level. TCP is required for remotely sharing a daemon.
@@ -43,7 +60,7 @@ Set this to `true` for all daemons that will handle production workloads. This d
 
 Make sure you mount your certificates and keys in the correct location (`/etc/*.pem`).
 
-For complete details, see the [documentation for `earthly/buildkitd`](https://hub.docker.com/r/earthly/buildkitd). 
+For complete details, see the [documentation for `earthly/buildkitd` on DockerHub](https://hub.docker.com/r/earthly/buildkitd).
 
 #### Client
 
