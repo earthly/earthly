@@ -4,6 +4,11 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+### Fixed
+
+- Autocompletion bug when directory has both an Earthfile and subdir containing an earthfile.
+- Autocompletion bug when directory has two subdirectories where one is a prefix of the other.
+
 ## v0.6.6 - 2022-01-26
 
 ### Added
