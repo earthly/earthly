@@ -66,3 +66,22 @@ RUN earthly config global.buildkit_host buildkit_host: 'tcp://myhost:8372'
 ```
 
 For more details on using a remote BuildKit daemon, [see our guide](./remote-buildkit.md).
+
+## An important note about running the image
+
+When running the built image in your CI of choice, if you're not using a remote daemon, Earthly will start Buildkit within the same container. In this case, it is important to ensure that the directory used by Buildkit to cache the builds is mounted as a Docker volume. Failing to do so may result in excessive disk usage, slow builds, or Earthly not functioning properly.
+
+{% hint style='danger' %}
+##### Important
+We *strongly* recommend using a Docker volume for mounting `EARTHLY_TMP_DIR`. If you do not, Buildkit can consume excessive disk space, operate very slowly, or it might not function correctly.
+{% endhint %}
+
+In some environments, not mounting `EARTHLY_TMP_DIR` as a Docker volume results in the following error:
+
+```
+--> WITH DOCKER RUN --privileged ...
+...
+rm: can't remove '/var/earthly/dind/...': Resource busy
+```
+
+For more information, see the [documentation for `earthly/earthly` on DockerHub](https://hub.docker.com/r/earthly/earthly).
