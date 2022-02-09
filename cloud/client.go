@@ -970,6 +970,9 @@ func (c *client) WhoAmI() (string, string, bool, error) {
 	return email, authType, writeAccess, nil
 }
 
+// EarthlyAnalytics is the payload used in SendAnalytics.
+// It contains information about the command that was run,
+// the environment it was run in, and the result of the command.
 type EarthlyAnalytics struct {
 	Key              string                    `json:"key"`
 	InstallID        string                    `json:"install_id"`
@@ -984,6 +987,7 @@ type EarthlyAnalytics struct {
 	Counts           map[string]map[string]int `json:"counts"`
 }
 
+// SendAnalytics send an analytics event to the Cloud server.
 func (c *client) SendAnalytics(data *EarthlyAnalytics) error {
 	payload, err := json.Marshal(data)
 	if err != nil {
