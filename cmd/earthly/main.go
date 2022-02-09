@@ -295,7 +295,15 @@ func main() {
 		ctxTimeout, cancel := context.WithTimeout(ctx, time.Millisecond*500)
 		defer cancel()
 		displayErrors := app.verbose
-		analytics.CollectAnalytics(ctxTimeout, app.apiServer, displayErrors, Version, getPlatform(), GitSha, app.commandName, exitCode, time.Since(startTime))
+		cc, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
+		if err != nil && displayErrors {
+			app.console.Warnf("unable to start cloud client: %s", err)
+		} else if err == nil {
+			analytics.CollectAnalytics(
+				ctxTimeout, cc, displayErrors, Version, getPlatform(),
+				GitSha, app.commandName, exitCode, time.Since(startTime),
+			)
+		}
 	}
 	os.Exit(exitCode)
 }
@@ -3127,6 +3135,8 @@ func ifNilBoolDefault(ptr *bool, defaultValue bool) bool {
 }
 
 func (app *earthlyApp) actionListTargets(c *cli.Context) error {
+	app.commandName = "listTargets"
+
 	if c.NArg() > 1 {
 		return errors.New("invalid number of arguments provided")
 	}
