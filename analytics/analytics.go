@@ -1,12 +1,9 @@
 package analytics
 
 import (
-	"bytes"
 	"context"
 	"crypto/sha256"
-	"encoding/json"
 	"fmt"
-	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -15,6 +12,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/earthly/earthly/cloud"
 	"github.com/earthly/earthly/util/cliutil"
 	"github.com/earthly/earthly/util/fileutil"
 	"github.com/earthly/earthly/util/gitutil"
@@ -169,54 +167,13 @@ func isTerminal() bool {
 	return (fileInfo.Mode() & os.ModeCharDevice) != 0
 }
 
-// EarthlyAnalytics contains analytical data which is sent to api.earthly.dev
-type EarthlyAnalytics struct {
-	Key              string                    `json:"key"`
-	InstallID        string                    `json:"install_id"`
-	Version          string                    `json:"version"`
-	Platform         string                    `json:"platform"`
-	GitSHA           string                    `json:"git_sha"`
-	ExitCode         int                       `json:"exit_code"`
-	CI               string                    `json:"ci_name"`
-	RepoHash         string                    `json:"repo_hash"`
-	ExecutionSeconds float64                   `json:"execution_seconds"`
-	Terminal         bool                      `json:"terminal"`
-	Counts           map[string]map[string]int `json:"counts"`
-}
-
-func saveData(server string, data *EarthlyAnalytics) error {
-	payload, err := json.Marshal(data)
-	if err != nil {
-		return errors.Wrap(err, "failed to marshal data")
-	}
-
-	client := &http.Client{
-		Timeout: time.Millisecond * 500,
-	}
-
-	// set the HTTP method, url, and request body
-	url := server + "/analytics"
-	req, err := http.NewRequest(http.MethodPut, url, bytes.NewBuffer(payload))
-	if err != nil {
-		return errors.Wrap(err, "failed to create request for sending analytics")
-	}
-
-	req.Header.Set("Content-Type", "application/json; charset=utf-8")
-	_, err = client.Do(req)
-	if err != nil {
-		return errors.Wrap(err, "failed to send analytics")
-	}
-
-	return nil
-}
-
 // Count increases the global count of (subsystem, key) which then gets reported when CollectAnalytics is called.
 func Count(subsystem, key string) {
 	counts.Count(subsystem, key)
 }
 
 // CollectAnalytics sends analytics to api.earthly.dev
-func CollectAnalytics(ctx context.Context, earthlyServer string, displayErrors bool, version, platform, gitSha, commandName string, exitCode int, realtime time.Duration) {
+func CollectAnalytics(ctx context.Context, cc cloud.Client, displayErrors bool, version, platform, gitSha, commandName string, exitCode int, realtime time.Duration) {
 	var err error
 	ciName, ci := detectCI()
 	repoHash := getRepoHash()
@@ -251,7 +208,7 @@ func CollectAnalytics(ctx context.Context, earthlyServer string, displayErrors b
 		countsMap, countsMapUnlock := counts.getMap()
 		defer countsMapUnlock()
 
-		err := saveData(earthlyServer, &EarthlyAnalytics{
+		err := cc.SendAnalytics(&cloud.EarthlyAnalytics{
 			Key:              key,
 			InstallID:        installID,
 			Version:          version,
