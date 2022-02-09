@@ -43,8 +43,8 @@ The following builtin args are available
 | `TARGETARCH` | The target processor architecture the target is being built for. | `arm`, `amd64`, `arm64` |
 | `TARGETVARIANT` | The target processor architecture variant the target is being built for. | `v7` |
 | `EARTHLY_SOURCE_DATE_EPOCH` | The timestamp, as unix seconds, of the git commit detected within the build context directory. If no git directory is detected, then the value is `0` (the unix epoch) | `1626881847`, `0` |
-| `USERPLATFORM` | The platform the target is being built from. | `linux/arm/v7`, `linux/amd64`, `linux/arm64` |
-| `USEROS` | The OS the target is being built from. | `linux` |
+| `USERPLATFORM` | The platform the target is being built from. | `linux/arm/v7`, `linux/amd64`, `darwin/arm64` |
+| `USEROS` | The OS the target is being built from. | `linux`, `darwin` |
 | `USERARCH` | The processor architecture the target is being built from. | `arm`, `amd64`, `arm64` |
 | `USERVARIANT` | The processor architecture variant the target is being built from. | `v7` |
 
