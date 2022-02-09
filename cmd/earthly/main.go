@@ -298,7 +298,7 @@ func main() {
 		cc, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
 		if err != nil && displayErrors {
 			app.console.Warnf("unable to start cloud client: %s", err)
-		} else {
+		} else if err == nil {
 			analytics.CollectAnalytics(
 				ctxTimeout, cc, displayErrors, Version, getPlatform(),
 				GitSha, app.commandName, exitCode, time.Since(startTime),
