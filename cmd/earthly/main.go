@@ -832,11 +832,19 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 					Name:        "register",
 					Usage:       "Register for an Earthly account",
 					Description: "Register for an Earthly account",
-					UsageText: "first, request a token with:\n" +
-						"     earthly [options] account register --email <email>\n" +
+					UsageText: "You may register using GitHub OAuth, by visiting https://ci.earthly.dev\n" +
+						"   Once authenticated, a login token will be displayed which can be used to login:\n" +
 						"\n" +
-						"   then check your email to retrieve the token, then continue by running:\n" +
-						"     earthly [options] account register --email <email> --token <token> [options]",
+						"       earthly [options] account login --token <token>\n" +
+						"\n" +
+						"   Alternatively, you can register using an email:\n" +
+						"       first, request a token with:\n" +
+						"\n" +
+						"           earthly [options] account register --email <email>\n" +
+						"\n" +
+						"       then check your email to retrieve the token, then continue by running:\n" +
+						"\n" +
+						"           earthly [options] account register --token <token>\n",
 					Action: app.actionRegister,
 					Flags: []cli.Flag{
 						&cli.StringFlag{
