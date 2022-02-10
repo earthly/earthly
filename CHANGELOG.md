@@ -6,6 +6,27 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## v0.6.7 - 2022-02-09
 
+Log Sharing (experimental)
+
+This version of Earthly includes an experimental log-sharing feature which will
+upload build-logs to the cloud when enabled.
+
+To enable this experimental feature, you must first sign up for an earthly account
+by using the [`earthly account register`](https://docs.earthly.dev/docs/earthly-command#earthly-account-register)
+command, or by visiting [https://ci.earthly.dev/](https://ci.earthly.dev/)
+
+Once logged in, you must explicitly enable log-sharing by running:
+
+    earthly config global.disable_log_sharing false
+
+In a future version, log-sharing will be enabled by default for logged-in users; however, you will still be able to disable it, if needed.
+
+When log-sharing is enabled, you will see a message such as
+
+    Share your build log with this link: https://ci.earthly.dev/logs?logId=dc622821-9fe4-4a13-a1db-12680d73c442
+
+as the last line of `earthly` output.
+
 ### Fixed
 
 - `GIT CLONE` now works with annotated git tags. [#1571](https://github.com/earthly/earthly/issues/1571)
