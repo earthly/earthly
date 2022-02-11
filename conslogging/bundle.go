@@ -118,7 +118,7 @@ func (bb *BundleBuilder) WriteToDisk() (string, error) {
 		targetData = append(targetData, mt)
 
 		trimmed := strings.TrimSpace(lines.prefix)
-		escaped := url.PathEscape(trimmed)
+		escaped := url.QueryEscape(trimmed)
 
 		tarWriter.WriteHeader(&tar.Header{
 			Name:       fmt.Sprintf("target/%s", escaped),
@@ -198,9 +198,9 @@ func (tl *targetLogger) toManifestTarget() (TargetManifest, error) {
 		return TargetManifest{}, errors.New("0 length target")
 	}
 
-	if tl.prefix == "ongoing" {
-		// The ongoing messages end up in here too. Since they are not updates from a vertex, we will never mark them as complete.
-		// Additionally, its not useful to have in the output. Ignore it here.
+	if tl.prefix == "ongoing" || tl.prefix == "buildkitd" {
+		// The ongoing & buildkitd init messages end up in here too. Since they are not updates from a vertex, we will
+		// never mark them as complete. Additionally, its not useful to have in the output. Ignore it here.
 		return TargetManifest{}, fmt.Errorf("blacklisted target name %s", tl.prefix)
 	}
 
