@@ -2515,8 +2515,7 @@ func (app *earthlyApp) actionAccountLogin(c *cli.Context) error {
 func (app *earthlyApp) printLogSharingMessage() {
 	app.console.Printf("Log sharing is enabled by default. If you would like to disable it, run:\n" +
 		"\n" +
-		"\tearthly config global.disable_log_sharing true",
-	)
+		"\tearthly config global.disable_log_sharing true")
 }
 
 func (app *earthlyApp) actionAccountLogout(c *cli.Context) error {
