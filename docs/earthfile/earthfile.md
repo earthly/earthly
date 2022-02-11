@@ -50,6 +50,8 @@ Each recipe contains a series of commands, which are defined below. For an intro
 
 The `FROM` command initializes a new build environment and sets the base image for subsequent instructions. It works similarly to the classical [Dockerfile `FROM` instruction](https://docs.docker.com/engine/reference/builder/#from), but it has the added ability to use another target's image as the base image for the build. For example: `FROM +another-target`.
 
+The `FROM` command does not mark any saved images or artifacts of the referenced target for output, nor does it mark any push commands of the referenced target for pushing. For that, please use [`BUILD`](#build).
+
 {% hint style='info' %}
 ##### Note
 
@@ -339,6 +341,8 @@ The command `COPY` allows copying of files and directories between different con
 The command may take a couple of possible forms. In the *classical form*, `COPY` copies files and directories from the build context into the build environment - in this form, it works similarly to the [Dockerfile `COPY` command](https://docs.docker.com/engine/reference/builder/#copy). In the *artifact form*, `COPY` copies files or directories (also known as "artifacts" in this context) from the artifact environment of other build targets into the build environment of the current target. Either form allows the use of wildcards for the sources.
 
 The parameter `<src-artifact>` is an [artifact reference](../guides/target-ref.md#artifact-reference) and is generally of the form `<target-ref>/<artifact-path>`, where `<target-ref>` is the reference to the target which needs to be built in order to yield the artifact and `<artifact-path>` is the path within the artifact environment of the target, where the file or directory is located. The `<artifact-path>` may also be a wildcard.
+
+The `COPY` command does not mark any saved images or artifacts of the referenced target for output, nor does it mark any push commands of the referenced target for pushing. For that, please use [`BUILD`](#build).
 
 The classical form of the `COPY` command differs from Dockerfiles in two cases:
 
@@ -657,7 +661,30 @@ Instructs Earthly that the current target should be included as part of the expl
 
 #### Description
 
-The command `BUILD` instructs Earthly to additionally invoke the build of the target referenced by `<target-ref>`, where `<target-ref>` follows the rules defined by [target referencing](../guides/target-ref.md#target-reference).
+The command `BUILD` instructs Earthly to additionally invoke the build of the target referenced by `<target-ref>`, where `<target-ref>` follows the rules defined by [target referencing](../guides/target-ref.md#target-reference). The invocation will mark any images, or artifacts saved by the referenced target for local output (assuming local output is enabled), and any push commands issued by the referenced target for pushing (assuming pushing is enabled).
+
+{% hint style='info' %}
+##### What is being output and pushed
+
+In Earthly v0.6+, what is being output and pushed is determined either by the main target beeing invoked on the command-line directly, or by targets directly connected to it via a chain of `BUILD` calls. Other ways to reference a target, such as `FROM`, `COPY`, `WITH DOCKER --load` etc, do not contribute to the final set of outputs or pushes.
+
+If you are referencing a target via some other command, such as `COPY` and you would like for the outputs or pushes to be included, you can issue an equivalent `BUILD` command in addition to the `COPY`. For example
+
+```Dockerfile
+my-target:
+    COPY --plattform=linux/amd64 (+some-target/some-file.txt --FOO=bar) ./
+```
+
+Should be amended with the following additional `BUILD` call:
+
+```Dockerfile
+my-target:
+    BUILD --platform=linux/amd64 +some-target --FOO=bar
+    COPY --platform=linux/amd64 (+some-target/some-file.txt --FOO=bar) ./
+```
+
+This, however, assumes that the target `+my-target` is itself connected via a `BUILD` chain to the main target being built. If that is not the case, additional `BUILD` commands should be issued higher up the hierarchy.
+{% endhint %}
 
 #### Options
 
@@ -878,6 +905,8 @@ Builds the image referenced by `<target-ref>` and then loads it into the tempora
 `<target-ref>` may be a simple target reference (`+some-target`), or a target reference with a build arg `(+some-target --SOME_BUILD_ARG=value)`.
 
 This option may be repeated in order to provide multiple images to be loaded.
+
+The `WITH DOCKER --load` option does not mark any saved images or artifacts of the referenced target for local output, nor does it mark any push commands of the referenced target for pushing. For that, please use [`BUILD`](#build).
 
 ##### `--compose <compose-file>`
 
