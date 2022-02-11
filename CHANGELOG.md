@@ -4,6 +4,10 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+### Fixed
+
+- `RUN --interactive` command exit codes were being ignored
+
 ## v0.6.7 - 2022-02-09
 
 Log Sharing (experimental)

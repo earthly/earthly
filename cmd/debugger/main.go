@@ -29,7 +29,9 @@ var (
 	GitSha string
 
 	// ErrNoShellFound occurs when the container has no shell
-	ErrNoShellFound = errors.Errorf("no shell found")
+	ErrNoShellFound = errors.New("no shell found")
+
+	errInteractiveModeWaitFailed = errors.New("interactive mode wait failed")
 )
 
 func getShellPath() (string, bool) {
@@ -158,8 +160,11 @@ func interactiveMode(ctx context.Context, remoteConsoleAddr string, cmdBuilder f
 		cancel()
 	}()
 
+	var waitErr error
+	var waitErrSet bool
 	go func() {
-		c.Wait()
+		waitErr = c.Wait()
+		waitErrSet = true
 		cancel()
 	}()
 
@@ -167,7 +172,10 @@ func interactiveMode(ctx context.Context, remoteConsoleAddr string, cmdBuilder f
 
 	common.WriteDataPacket(conn, common.EndShellSession, nil)
 
-	return nil
+	if !waitErrSet {
+		return errInteractiveModeWaitFailed
+	}
+	return waitErr
 }
 
 func getSettings(path string) (*common.DebuggerSettings, error) {
@@ -233,14 +241,20 @@ func main() {
 			return exec.Command(args[0], args[1:]...), nil
 		}
 
+		exitCode := 0
 		err = interactiveMode(ctx, debuggerSettings.RepeaterAddr, cmdBuilder)
 		if err != nil {
 			log.Error(err)
+			if exitErr, ok := err.(*exec.ExitError); ok {
+				exitCode = exitErr.ExitCode()
+			} else {
+				exitCode = 127
+			}
 		}
 
 		conslogger.PrintBar(color.New(color.FgHiMagenta), " End Interactive Session ", "")
 
-		return
+		os.Exit(exitCode)
 	}
 
 	log.With("command", args).With("version", Version).Debug("running command")
