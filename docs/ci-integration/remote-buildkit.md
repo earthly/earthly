@@ -50,6 +50,8 @@ In some environments, not mounting `EARTHLY_TMP_DIR` as a Docker volume results 
 rm: can't remove '/var/earthly/dind/...': Resource busy
 ```
 
+In EKS, users reported that mounting an EBS volume, instead of a Kubernetes `emptyDir` worked.
+
 This part of our documentation needs improvement. If you have a Kubernetes-based setup, please [let us know](https://earthly.dev/slack) how you have mounted `EARTHLY_TMP_DIR` and whether `WITH DOCKER` worked well for you.
 
 **`BUILDKIT_TCP_TRANSPORT_ENABLED`**
