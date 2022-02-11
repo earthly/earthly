@@ -50,6 +50,8 @@ In some environments, not mounting `EARTHLY_TMP_DIR` as a Docker volume results 
 rm: can't remove '/var/earthly/dind/...': Resource busy
 ```
 
+This part of our documentation needs improvement. If you have a Kubernetes-based setup, please [let us know](https://earthly.dev/slack) how you have mounted `EARTHLY_TMP_DIR` and whether `WITH DOCKER` worked well for you.
+
 **`BUILDKIT_TCP_TRANSPORT_ENABLED`**
 
 This will configure `buildkitd` to listen on port `8372`. If you would like it to be externally available on a different port, you will need to handle that at the port mapping level. TCP is required for remotely sharing a daemon.
