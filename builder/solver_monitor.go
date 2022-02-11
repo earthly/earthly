@@ -44,6 +44,7 @@ type vertexMonitor struct {
 	headerPrinted  bool
 	isInternal     bool
 	isError        bool
+	isCanceled     bool
 	tailOutput     *circbuf.Buffer
 	// Line of output that has not yet been terminated with a \n.
 	openLine            []byte
@@ -210,11 +211,11 @@ func (vm *vertexMonitor) isOngoing() bool {
 }
 
 func (vm *vertexMonitor) reportStatusToConsole() {
-	vm.console.MarkBundleBuilderStatus(vm.vertex.Started != nil, vm.vertex.Completed != nil)
+	vm.console.MarkBundleBuilderStatus(vm.vertex.Started != nil, vm.vertex.Completed != nil, vm.isCanceled)
 }
 
 func (vm *vertexMonitor) reportResultToConsole() {
-	vm.console.MarkBundleBuilderResult(vm.isError)
+	vm.console.MarkBundleBuilderResult(vm.isError, vm.isCanceled)
 }
 
 type solverMonitor struct {
@@ -338,6 +339,7 @@ func (sm *solverMonitor) processStatus(ss *client.SolveStatus) error {
 			if strings.Contains(vertex.Error, "context canceled") {
 				if !vm.isInternal {
 					vm.console.Printf("WARN: Canceled\n")
+					vm.isCanceled = true
 					sm.noOutputTicker.Reset(sm.noOutputTick)
 				}
 			} else {

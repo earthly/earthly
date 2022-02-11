@@ -419,36 +419,44 @@ func (cl ConsoleLogger) WriteBundleToDisk() (string, error) {
 }
 
 // MarkBundleBuilderResult marks the current targets result in a log bundle for a given prefix with the current result.
-func (cl ConsoleLogger) MarkBundleBuilderResult(error bool) {
+func (cl ConsoleLogger) MarkBundleBuilderResult(isError, isCanceled bool) {
 	if cl.bb == nil {
 		return
 	}
 
 	var result string
-	if error {
-		result = ResultFailure
+	if isCanceled {
+		result = ResultCancelled
 	} else {
-		result = ResultSuccess
+		if isError {
+			result = ResultFailure
+		} else {
+			result = ResultSuccess
+		}
 	}
 
 	cl.bb.PrefixResult(cl.Prefix(), result)
 }
 
 // MarkBundleBuilderStatus marks the current targets status in a log bundle for a given prefix with the current status.
-func (cl ConsoleLogger) MarkBundleBuilderStatus(isStarted, isFinished bool) {
+func (cl ConsoleLogger) MarkBundleBuilderStatus(isStarted, isFinished, isCanceled bool) {
 	if cl.bb == nil {
 		return
 	}
 
 	var status string
-	if isStarted {
-		if isFinished {
-			status = StatusComplete
-		} else {
-			status = StatusInProgress
-		}
+	if isCanceled {
+		status = StatusCancelled
 	} else {
-		status = StatusWaiting
+		if isStarted {
+			if isFinished {
+				status = StatusComplete
+			} else {
+				status = StatusInProgress
+			}
+		} else {
+			status = StatusWaiting
+		}
 	}
 
 	cl.bb.PrefixStatus(cl.Prefix(), status)
