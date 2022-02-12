@@ -16,13 +16,13 @@ Saves the `.tfstate` to show how it can work with Earthly. It will not work on t
 
 ## +plan
 
-`earthly --build_arg AWS_ACCESS_KEY_ID --build_arg AWS_SECRET_ACCESS_KEY +plan`
+`earthly --build-arg AWS_ACCESS_KEY_ID --build-arg AWS_SECRET_ACCESS_KEY +plan`
 
 This target actually plans the Terraform against your cloud, if you pass in valid credentials. The region is optional, and can be overridden. Defaults to `us-east-1`.
 
 ## +apply
 
-`earthly --push --build_arg AWS_ACCESS_KEY_ID --build_arg AWS_SECRET_ACCESS_KEY +apply`
+`earthly --push --build-arg AWS_ACCESS_KEY_ID --build-arg AWS_SECRET_ACCESS_KEY +apply`
 
 This target actually applies the Terraform against your cloud, if you pass in valid credentials. Like in `+plan`, the region is optional, and can be overridden.
 
