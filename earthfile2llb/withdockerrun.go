@@ -50,6 +50,7 @@ type WithDockerOpt struct {
 	Secrets         []string
 	WithShell       bool
 	WithEntrypoint  bool
+	WithSSH         bool
 	NoCache         bool
 	Interactive     bool
 	interactiveKeep bool
@@ -137,6 +138,7 @@ func (wdr *withDockerRun) Run(ctx context.Context, args []string, opt WithDocker
 		WithEntrypoint:  opt.WithEntrypoint,
 		WithShell:       opt.WithShell,
 		Privileged:      true, // needed for dockerd
+		WithSSH:         opt.WithSSH,
 		NoCache:         opt.NoCache,
 		Interactive:     opt.Interactive,
 		InteractiveKeep: opt.interactiveKeep,

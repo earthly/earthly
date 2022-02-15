@@ -554,6 +554,7 @@ func (i *Interpreter) handleRun(ctx context.Context, cmd spec.Command) error {
 		i.withDocker.Secrets = opts.Secrets
 		i.withDocker.WithShell = withShell
 		i.withDocker.WithEntrypoint = opts.WithEntrypoint
+		i.withDocker.WithSSH = opts.WithSSH
 		i.withDocker.NoCache = opts.NoCache
 		i.withDocker.Interactive = opts.Interactive
 		i.withDocker.interactiveKeep = opts.InteractiveKeep
