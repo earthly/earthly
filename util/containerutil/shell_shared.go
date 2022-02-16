@@ -340,7 +340,7 @@ func (sf *shellFrontend) setupAndValidateAddresses(feType string, cfg *FrontendC
 			return nil, err
 		}
 		if bkURL.Scheme == dbURL.Scheme && bkURL.Hostname() != lrURL.Hostname() {
-			cfg.Console.Warnf("Buildkit and Local Registry URLs are pointed at different hosts (%s vs. %s)", bkURL.Hostname(), lrURL.Hostname())
+			cfg.Console.Warnf("Buildkit and local registry URLs are pointed at different hosts (%s vs. %s)", bkURL.Hostname(), lrURL.Hostname())
 		}
 	} else {
 		if cfg.LocalRegistryHostFileValue != "" {
@@ -349,7 +349,7 @@ func (sf *shellFrontend) setupAndValidateAddresses(feType string, cfg *FrontendC
 	}
 
 	if bkURL.Scheme == dbURL.Scheme && bkURL.Hostname() != dbURL.Hostname() {
-		cfg.Console.Warnf("Buildkit and Debugger URLs are pointed at different hosts (%s vs. %s)", bkURL.Hostname(), dbURL.Hostname())
+		cfg.Console.Warnf("Buildkit and debugger URLs are pointed at different hosts (%s vs. %s)", bkURL.Hostname(), dbURL.Hostname())
 	}
 
 	if bkURL.Hostname() == dbURL.Hostname() && bkURL.Port() == dbURL.Port() {
