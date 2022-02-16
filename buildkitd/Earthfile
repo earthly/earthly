@@ -58,8 +58,9 @@ buildkitd:
     ENTRYPOINT ["/usr/bin/entrypoint.sh", "buildkitd", "--config=/etc/buildkitd.toml"]
     ARG EARTHLY_TARGET_TAG_DOCKER
     ARG TAG="dev-$EARTHLY_TARGET_TAG_DOCKER"
-    ARG DOCKERHUB_USER="earthly"
-    SAVE IMAGE --push --cache-from=earthly/buildkitd:main docker.io/$DOCKERHUB_USER/buildkitd:$TAG
+    ARG REGISTRY_USER="earthly"
+    ARG IMAGE_REGISTRY="docker.io"
+    SAVE IMAGE --push --cache-from=earthly/buildkitd:main $IMAGE_REGISTRY/$REGISTRY_USER/buildkitd:$TAG
 
 buildkit-sha:
     RUN apk add git
