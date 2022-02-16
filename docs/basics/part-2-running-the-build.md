@@ -1,6 +1,6 @@
 # Running the build
 
-In this example, we can see two explicit targets: `build` and `docker`. In order to execute the build, we can run, for example:
+In the example `Earthfile` we have defined two explicit targets: `+build` and `+docker`. When we run Earthly, we can tell it to execute either target by passing the target name. In this case our docker target calls on our build target, so we can run both with:
 
 ```bash
 earthly +docker

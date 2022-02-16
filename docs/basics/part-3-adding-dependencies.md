@@ -1,7 +1,14 @@
 
 # Adding dependencies
 
-Let's imagine now that in our simple app, we now want to add a programming language dependency. Here's how our build might look like as a result
+Now Let's imagine that we want to add some dependancies to our app. Here's how our build might look as a result.
+
+- [Go](#go) 
+- [JavaScript](#javascript) 
+- [Java](#java)
+- [Python](#python)
+
+### Go
 
 {% method %}
 {% sample lang="Go" %}
@@ -66,6 +73,7 @@ earthly --artifact github.com/earthly/earthly/examples/tutorial/go:main+part3/pa
 ```
 {% endhint %}
 
+### Javascript
 {% sample lang="JavaScript" %}
 `./package.json`
 
@@ -162,6 +170,7 @@ earthly --artifact github.com/earthly/earthly/examples/tutorial/js:main+part3/pa
 ```
 {% endhint %}
 
+### Java
 {% sample lang="Java" %}
 
 `./build.gradle`
@@ -242,6 +251,7 @@ earthly --artifact github.com/earthly/earthly/examples/tutorial/java:main+part3/
 ```
 {% endhint %}
 
+### Python
 {% sample lang="Python" %}
 `./requirements.txt`
 

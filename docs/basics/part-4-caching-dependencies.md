@@ -1,9 +1,16 @@
 # Caching dependencies
 
-The reason the build is inefficient is because we have not made proper use of caching. When a file changes, the corresponding `COPY` command is re-executed without cache, causing all commands after it to also re-execute without cache.
+In the previous step we added some dependancies to our Earthfile. This works, but it is inefficient because we have not made proper use of caching. In the current setup, when a file changes, the corresponding `COPY` command is re-executed without cache, causing all commands after it to also re-execute without cache.
 
 If, however, we could first download the dependencies and only afterwards copy and build the code, then the cache would be reused every time we changed the code.
 
+- [Go](#go) 
+- [JavaScript](#javascript) 
+- [Java](#java)
+- [Python](#python)
+
+
+### Go
 {% method %}
 {% sample lang="Go" %}
 `./Earthfile`
@@ -38,6 +45,7 @@ earthly --artifact github.com/earthly/earthly/examples/tutorial/go:main+part4/pa
 ```
 {% endhint %}
 
+### JavaScript
 {% sample lang="JavaScript" %}
 `./Earthfile`
 
@@ -75,6 +83,7 @@ earthly --artifact github.com/earthly/earthly/examples/tutorial/js:main+part4/pa
 ```
 {% endhint %}
 
+### Java
 {% sample lang="Java" %}
 `./Earthfile`
 
@@ -112,6 +121,7 @@ earthly --artifact github.com/earthly/earthly/examples/tutorial/java:main+part4/
 ```
 {% endhint %}
 
+### Python
 {% sample lang="Python" %}
 
 `./Earthfile`

@@ -1,10 +1,17 @@
 
 # Detailed explanation
 
+- [Go](#go) 
+- [JavaScript](#javascript) 
+- [Java](#java)
+- [Python](#python)
+
 Going back to the example Earthfile definition, here is what each command does:
 
 {% method %}
 {% sample lang="Go" %}
+
+### Go
 The Earthfile starts off with a version defintion. This will tell Earthly which features to enable and which ones not to, so that the build script maintains compatibility over time, even if Earthly itself is updated.
 
 ```Dockerfile
@@ -76,7 +83,7 @@ Save the current state as a docker image, which will have the docker tag `go-exa
 ```Dockerfile
 SAVE IMAGE go-example:latest
 ```
-
+### JavaScript
 {% sample lang="JavaScript" %}
 The Earthfile starts off with a version defintion. This will tell Earthly which features to enable and which ones not to, so that the build script maintains compatibility over time, even if Earthly itself is updated.
 
@@ -149,7 +156,7 @@ if the entire build succeeds.
 ```
     SAVE IMAGE js-example:latest
 ```
-
+### Java
 {% sample lang="Java" %}
 The Earthfile starts off with a version defintion. This will tell Earthly which features to enable and which ones not to, so that the build script maintains compatibility over time, even if Earthly itself is updated.
 
@@ -240,6 +247,8 @@ docker if the entire build succeeds.
 ```
     SAVE IMAGE java-example:latest
 ```
+
+### Python
 {% sample lang="Python" %}
 The Earthfile starts off with a version defintion. This will tell Earthly which features to enable and which ones not to, so that the build script maintains compatibility over time, even if Earthly itself is updated.
 
