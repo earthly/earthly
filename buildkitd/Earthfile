@@ -59,7 +59,7 @@ buildkitd:
     ARG EARTHLY_TARGET_TAG_DOCKER
     ARG TAG="dev-$EARTHLY_TARGET_TAG_DOCKER"
     ARG DOCKERHUB_USER="earthly"
-    SAVE IMAGE --push --cache-from=earthly/buildkitd:main $DOCKERHUB_USER/buildkitd:$TAG
+    SAVE IMAGE --push --cache-from=earthly/buildkitd:main docker.io/$DOCKERHUB_USER/buildkitd:$TAG
 
 buildkit-sha:
     RUN apk add git
