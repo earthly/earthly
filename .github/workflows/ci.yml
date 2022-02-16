@@ -41,6 +41,8 @@ jobs:
         run: ./build/linux/amd64/earthly config global.local_registry_host 'tcp://127.0.0.1:8371'
       - name: Configure Earthly Conversion Parallelism
         run: ./build/linux/amd64/earthly config global.conversion_parallelism 5
+      - name: Enable log uploader
+        run: ./build/linux/amd64/earthly config global.disable_log_upload false
       - name: Execute tests (Earthly Only)
         run: |-
           ./build/linux/amd64/earthly --ci -P \
