@@ -1,5 +1,11 @@
 package containerutil
 
+import (
+	"net/url"
+
+	"github.com/pkg/errors"
+)
+
 // ContainerInfo contains things we may care about from inspect output for a given container.
 type ContainerInfo struct {
 	ID      string
@@ -162,8 +168,9 @@ const (
 	FrontendStub = "stub"
 )
 
-// FrontendConfig contains information about the current container frontend. Useful when the frontend was configured using FrontendAuto for deciding transport.
-type FrontendConfig struct {
+// CurrentFrontend contains information about the current container frontend. Useful when the frontend was configured using FrontendAuto for deciding transport.
+type CurrentFrontend struct {
+	*FrontendURLs
 	Setting string
 	Binary  string
 	Type    string
@@ -176,3 +183,31 @@ const (
 	// FrontendTypeAPI signifies that a given frontend is using an API, typically through some external daemon.
 	FrontendTypeAPI = "api"
 )
+
+const (
+	// TCPAddress is the address at which the daemon is available when using TCP.
+	TCPAddress = "tcp://127.0.0.1:8372"
+
+	// DockerAddress is the address at which the daemon is avaliable whe using a Docker Container directly
+	DockerAddress = "docker-container://earthly-buildkitd"
+
+	// PodmanAddress is the address at which the daemon is avaliable whe using a Podman Container directly.
+	// Currently unused due to image export issues
+	PodmanAddress = "podman-container://earthly-buildkitd"
+)
+
+var (
+	errURLParseFailure      = errors.New("Invalid URL")
+	errURLValidationFailure = errors.New("URL did not pass validation")
+)
+
+// FrontendURLs is a struct containing the relevant URLs to contact a container, if it is a buildkit container.
+type FrontendURLs struct {
+	// TODO this could probably be elsewhere still; but because we need at least one of these (LocalRegistryHost) to better
+	//   handle the additional TLS argument needed for podman to pull images. Its at least _better_ than what we had before
+	//   without a more major refactor.
+
+	BuildkitHost      *url.URL
+	DebuggerHost      *url.URL
+	LocalRegistryHost *url.URL
+}

@@ -1,4 +1,4 @@
-package main
+package containerutil
 
 import (
 	"context"
@@ -6,15 +6,12 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/earthly/earthly/buildkitd"
 	"github.com/earthly/earthly/config"
 	"github.com/earthly/earthly/conslogging"
-	"github.com/earthly/earthly/util/containerutil"
 	"github.com/stretchr/testify/assert"
-	"github.com/urfave/cli/v2"
 )
 
-var noopArgs = []string{""}
+var noopArgs = parsedCLIVals{}
 
 type results struct {
 	buildkit      string
@@ -22,11 +19,16 @@ type results struct {
 	localRegistry string
 }
 
+type parsedCLIVals struct {
+	buildkit string
+	debugger string
+}
+
 func TestBuildArgMatrix(t *testing.T) {
 	var tests = []struct {
 		testName string
 		config   config.GlobalConfig
-		args     []string
+		args     parsedCLIVals
 		expected results
 	}{
 		{
@@ -39,7 +41,7 @@ func TestBuildArgMatrix(t *testing.T) {
 			},
 			noopArgs,
 			results{
-				buildkit:      buildkitd.DockerAddress,
+				buildkit:      DockerAddress,
 				debugger:      fmt.Sprintf("tcp://127.0.0.1:%v", config.DefaultDebuggerPort),
 				localRegistry: "",
 			},
@@ -99,7 +101,7 @@ func TestBuildArgMatrix(t *testing.T) {
 			},
 			noopArgs,
 			results{
-				buildkit:      buildkitd.DockerAddress,
+				buildkit:      DockerAddress,
 				debugger:      "tcp://127.0.0.1:5678",
 				localRegistry: "",
 			},
@@ -114,7 +116,7 @@ func TestBuildArgMatrix(t *testing.T) {
 			},
 			noopArgs,
 			results{
-				buildkit:      buildkitd.DockerAddress,
+				buildkit:      DockerAddress,
 				debugger:      "tcp://127.0.0.1:1234",
 				localRegistry: "",
 			},
@@ -127,7 +129,10 @@ func TestBuildArgMatrix(t *testing.T) {
 				DebuggerPort:      config.DefaultDebuggerPort,
 				LocalRegistryHost: "",
 			},
-			[]string{"", "--buildkit-host", "tcp://ok-bk:42", "--debugger-host", "tcp://ok-db:43"},
+			parsedCLIVals{
+				buildkit: "tcp://ok-bk:42",
+				debugger: "tcp://ok-db:43",
+			},
 			results{
 				buildkit:      "tcp://ok-bk:42",
 				debugger:      "tcp://ok-db:43",
@@ -185,31 +190,30 @@ func TestBuildArgMatrix(t *testing.T) {
 		ctx := context.Background()
 
 		var logs strings.Builder
-		var trash strings.Builder
-
 		logger := conslogging.Current(conslogging.NoColor, conslogging.DefaultPadding, false)
 		logger = logger.WithWriter(&logs)
 
-		earthlyApp := newEarthlyApp(ctx, logger)
-		earthlyApp.cfg = &config.Config{Global: tt.config}
-		earthlyApp.containerFrontend, _ = containerutil.FrontendForSetting(ctx, containerutil.FrontendDockerShell)
-		earthlyApp.cliApp.Writer = &trash    // Just chuck the help output
-		earthlyApp.cliApp.ErrWriter = &trash // All of it, we dont care
+		frontend, err := NewStubFrontend(ctx, &FrontendConfig{})
+		assert.NoError(t, err)
 
-		// Before is called at about the time that we would parse these, plus it a nice place to hook.
-		earthlyApp.cliApp.Before = func(context *cli.Context) error {
+		stub, ok := frontend.(*stubFrontend)
+		assert.True(t, ok)
 
-			err := earthlyApp.setupAndValidateAddresses(context)
-			assert.NoError(t, err, tt.testName)
-			assert.Equal(t, tt.expected, results{
-				buildkit:      earthlyApp.buildkitHost,
-				debugger:      earthlyApp.debuggerHost,
-				localRegistry: earthlyApp.localRegistryHost,
-			}, tt.testName)
-
-			return nil
-		}
-		earthlyApp.cliApp.RunContext(ctx, tt.args)
+		urls, err := stub.setupAndValidateAddresses(FrontendDockerShell, &FrontendConfig{
+			BuildkitHostCLIValue:       tt.args.buildkit,
+			BuildkitHostFileValue:      tt.config.BuildkitHost,
+			DebuggerHostCLIValue:       tt.args.debugger,
+			DebuggerHostFileValue:      tt.config.DebuggerHost,
+			DebuggerPortFileValue:      tt.config.DebuggerPort,
+			LocalRegistryHostFileValue: tt.config.LocalRegistryHost,
+			Console:                    logger,
+		})
+		assert.NoError(t, err)
+		assert.Equal(t, tt.expected, results{
+			buildkit:      urls.BuildkitHost.String(),
+			debugger:      urls.DebuggerHost.String(),
+			localRegistry: urls.LocalRegistryHost.String(),
+		})
 	}
 }
 
@@ -303,27 +307,24 @@ func TestBuildArgMatrixValidationFailures(t *testing.T) {
 		ctx := context.Background()
 
 		var logs strings.Builder
-		var output strings.Builder
-
 		logger := conslogging.Current(conslogging.NoColor, conslogging.DefaultPadding, false)
 		logger = logger.WithWriter(&logs)
 
-		earthlyApp := newEarthlyApp(ctx, logger)
-		earthlyApp.cfg = &config.Config{Global: tt.config}
-		earthlyApp.containerFrontend, _ = containerutil.FrontendForSetting(ctx, containerutil.FrontendDockerShell)
-		earthlyApp.cliApp.Writer = &output
-		earthlyApp.cliApp.ErrWriter = &output
+		frontend, err := NewStubFrontend(ctx, &FrontendConfig{})
+		assert.NoError(t, err)
 
-		// Before is called at about the time that we would parse these, plus it a nice place to hook.
-		earthlyApp.cliApp.Before = func(context *cli.Context) error {
-			err := earthlyApp.setupAndValidateAddresses(context)
+		stub, ok := frontend.(*stubFrontend)
+		assert.True(t, ok)
 
-			assert.ErrorIs(t, err, tt.expected)
-			assert.Contains(t, logs.String(), tt.log)
-
-			return nil
-		}
-		earthlyApp.cliApp.RunContext(ctx, []string{""})
+		_, err = stub.setupAndValidateAddresses(FrontendDockerShell, &FrontendConfig{
+			BuildkitHostFileValue:      tt.config.BuildkitHost,
+			DebuggerHostFileValue:      tt.config.DebuggerHost,
+			DebuggerPortFileValue:      tt.config.DebuggerPort,
+			LocalRegistryHostFileValue: tt.config.LocalRegistryHost,
+			Console:                    logger,
+		})
+		assert.ErrorIs(t, err, tt.expected)
+		assert.Contains(t, logs.String(), tt.log)
 	}
 }
 
@@ -351,7 +352,7 @@ func TestParseAndvalidateURLFailures(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		_, err := parseAndvalidateURL(tt.url)
+		_, err := parseAndValidateURL(tt.url)
 		assert.ErrorIs(t, err, tt.expected)
 	}
 }
@@ -372,7 +373,7 @@ func TestParseAndvalidateURL(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		_, err := parseAndvalidateURL(tt.url)
+		_, err := parseAndValidateURL(tt.url)
 		assert.NoError(t, err)
 	}
 }
@@ -409,26 +410,23 @@ func TestBuildArgMatrixValidationNonIssues(t *testing.T) {
 		ctx := context.Background()
 
 		var logs strings.Builder
-		var output strings.Builder
-
 		logger := conslogging.Current(conslogging.NoColor, conslogging.DefaultPadding, false)
 		logger = logger.WithWriter(&logs)
 
-		earthlyApp := newEarthlyApp(ctx, logger)
-		earthlyApp.cfg = &config.Config{Global: tt.config}
-		earthlyApp.containerFrontend, _ = containerutil.FrontendForSetting(ctx, containerutil.FrontendDockerShell)
-		earthlyApp.cliApp.Writer = &output
-		earthlyApp.cliApp.ErrWriter = &output
+		frontend, err := NewStubFrontend(ctx, &FrontendConfig{})
+		assert.NoError(t, err)
 
-		// Before is called at about the time that we would parse these, plus it a nice place to hook.
-		earthlyApp.cliApp.Before = func(context *cli.Context) error {
-			err := earthlyApp.setupAndValidateAddresses(context)
+		stub, ok := frontend.(*stubFrontend)
+		assert.True(t, ok)
 
-			assert.NoError(t, err)
-			assert.NotContains(t, logs.String(), tt.log)
-
-			return nil
-		}
-		earthlyApp.cliApp.RunContext(ctx, []string{""})
+		_, err = stub.setupAndValidateAddresses(FrontendDockerShell, &FrontendConfig{
+			BuildkitHostFileValue:      tt.config.BuildkitHost,
+			DebuggerHostFileValue:      tt.config.DebuggerHost,
+			DebuggerPortFileValue:      tt.config.DebuggerPort,
+			LocalRegistryHostFileValue: tt.config.LocalRegistryHost,
+			Console:                    logger,
+		})
+		assert.NoError(t, err)
+		assert.NotContains(t, logs.String(), tt.log)
 	}
 }

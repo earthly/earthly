@@ -7,12 +7,16 @@ import (
 
 // This is a stub for use in internal testing when its too much effort to provide a legitimate backend.
 // Should never be used IRL.
-type stubFrontend struct{}
+type stubFrontend struct {
+	*shellFrontend
+}
 
 // NewStubFrontend creates a stubbed frontend. Useful in cases where a frontend could not be detected, but we still need a frontend.
 // Examples include earthly/earthly, or integration tests. It is currently only used as a fallback when docker or other frontends are missing.
-func NewStubFrontend(ctx context.Context) (ContainerFrontend, error) {
-	return &stubFrontend{}, nil
+func NewStubFrontend(ctx context.Context, cfg *FrontendConfig) (ContainerFrontend, error) {
+	return &stubFrontend{
+		shellFrontend: &shellFrontend{},
+	}, nil
 }
 
 func (*stubFrontend) Scheme() string {
@@ -21,8 +25,8 @@ func (*stubFrontend) Scheme() string {
 func (*stubFrontend) IsAvaliable(ctx context.Context) bool {
 	return true
 }
-func (*stubFrontend) Config() *FrontendConfig {
-	return &FrontendConfig{
+func (*stubFrontend) Config() *CurrentFrontend {
+	return &CurrentFrontend{
 		Setting: FrontendStub,
 	}
 }

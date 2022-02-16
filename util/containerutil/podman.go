@@ -21,10 +21,12 @@ type podmanShellFrontend struct {
 
 // NewPodmanShellFrontend constructs a new Frontend using the podman binary installed on the host.
 // It also ensures that the binary is functional for our needs and collects compatibility information.
-func NewPodmanShellFrontend(ctx context.Context) (ContainerFrontend, error) {
+func NewPodmanShellFrontend(ctx context.Context, cfg *FrontendConfig) (ContainerFrontend, error) {
 	fe := &podmanShellFrontend{
 		shellFrontend: &shellFrontend{
-			binaryName: "podman",
+			binaryName:              "podman",
+			runCompatibilityArgs:    make([]string, 0),
+			globalCompatibilityArgs: make([]string, 0),
 		},
 	}
 
@@ -33,11 +35,28 @@ func NewPodmanShellFrontend(ctx context.Context) (ContainerFrontend, error) {
 		return nil, err
 	}
 
-	isRootless, err := strconv.ParseBool(output.string())
+	if output.stderr.Len() > 0 {
+		// Only check stdout; since some podman versions less than 3.4 will report warnings about no systemd session,
+		// and falling back to cgroupfs. These errors land on stderr. https://github.com/containers/podman/pull/12834
+
+		cfg.Console.VerbosePrintf("Podman logged additional information to stderr:")
+		cfg.Console.VerbosePrintf(output.stderr.String())
+		cfg.Console.VerbosePrintf("Adding log level compatibility flag for all additional operations.")
+
+		fe.globalCompatibilityArgs = append(fe.globalCompatibilityArgs, "--log-level", "error")
+	}
+
+	// Only check stdout here since it may be contaminated with log output detected above.
+	isRootless, err := strconv.ParseBool(output.stdout.String())
 	if err != nil {
 		return nil, errors.Wrapf(err, "info returned invalid value %s", output.string())
 	}
 	fe.rootless = isRootless
+
+	fe.urls, err = fe.setupAndValidateAddresses(FrontendPodmanShell, cfg)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to calculate buildkit URLs")
+	}
 
 	return fe, nil
 }
@@ -46,11 +65,12 @@ func (psf *podmanShellFrontend) Scheme() string {
 	return "podman-container"
 }
 
-func (psf *podmanShellFrontend) Config() *FrontendConfig {
-	return &FrontendConfig{
-		Setting: FrontendPodmanShell,
-		Binary:  psf.binaryName,
-		Type:    FrontendTypeShell,
+func (psf *podmanShellFrontend) Config() *CurrentFrontend {
+	return &CurrentFrontend{
+		Setting:      FrontendPodmanShell,
+		Binary:       psf.binaryName,
+		Type:         FrontendTypeShell,
+		FrontendURLs: psf.urls,
 	}
 }
 
@@ -107,6 +127,26 @@ func (psf *podmanShellFrontend) Information(ctx context.Context) (*FrontendInfo,
 		ServerPlatform:   allInfo.Server.OSArch,
 		ServerAddress:    host,
 	}, nil
+}
+
+func (psf *podmanShellFrontend) ImagePull(ctx context.Context, refs ...string) error {
+	var err error
+	for _, ref := range refs {
+		args := []string{"pull"}
+		if strings.HasPrefix(ref, psf.urls.LocalRegistryHost.Host+"/") {
+			// Rather than force users to add an exemption locally in /etc/containers/registries.conf, detect when we are
+			// pulling from our own internal registry and manually exempt it from TLS.
+			args = append(args, "--tls-verify=false")
+		}
+		args = append(args, ref)
+
+		_, cmdErr := psf.commandContextOutput(ctx, args...)
+		if cmdErr != nil {
+			err = multierror.Append(err, cmdErr)
+		}
+	}
+
+	return err
 }
 
 func (psf *podmanShellFrontend) ImageLoad(ctx context.Context, images ...io.Reader) error {
