@@ -1,5 +1,4 @@
 #!/bin/sh
-
 set -e
 
 earthly_config="/etc/.earthly/config.yml"
