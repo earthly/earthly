@@ -41,8 +41,8 @@ jobs:
         run: ./build/linux/amd64/earthly config global.local_registry_host 'tcp://127.0.0.1:8371'
       - name: Configure Earthly Conversion Parallelism
         run: ./build/linux/amd64/earthly config global.conversion_parallelism 5
-      - name: Enable log uploader
-        run: ./build/linux/amd64/earthly config global.disable_log_upload false
+      - name: Enable log sharing
+        run: ./build/linux/amd64/earthly config global.disable_log_sharing false
       - name: Execute tests (Earthly Only)
         run: |-
           ./build/linux/amd64/earthly --ci -P \
@@ -97,6 +97,8 @@ jobs:
         run: ./build/linux/amd64/earthly config global.local_registry_host 'tcp://127.0.0.1:8371'
       - name: Configure Earthly Conversion Parallelism
         run: ./build/linux/amd64/earthly config global.conversion_parallelism 5
+      - name: Enable log sharing
+        run: ./build/linux/amd64/earthly config global.disable_log_sharing false
       - name: Execute tests (Earthly Only)
         run: |
           branch=""
@@ -163,6 +165,8 @@ jobs:
         run: earthly --use-inline-cache ./buildkitd+buildkitd --TAG=race-test
       - name: Configure Earthly Conversion Parallelism
         run: go run ./cmd/earthly/main.go config global.conversion_parallelism 5
+      - name: Enable log sharing
+        run: ./build/linux/amd64/earthly config global.disable_log_sharing false
       - name: Execute tests (Earthly Only)
         run: |-
           GORACE="halt_on_error=1" go run -race ./cmd/earthly/main.go --buildkit-image earthly/buildkitd:race-test -P --no-output \
@@ -216,6 +220,8 @@ jobs:
         run: ./build/linux/amd64/earthly config global.local_registry_host 'tcp://127.0.0.1:8371'
       - name: Configure Earthly Conversion Parallelism
         run: ./build/linux/amd64/earthly config global.conversion_parallelism 5
+      - name: Enable log sharing
+        run: ./build/linux/amd64/earthly config global.disable_log_sharing false
       - name: Execute interactive debugger test
         run: ./scripts/tests/interactive-debugger/test-interactive.py --earthly ./build/linux/amd64/earthly --timeout 180
       - name: Execute version test
@@ -341,6 +347,8 @@ jobs:
         run: ./build/linux/amd64/earthly config global.local_registry_host 'tcp://127.0.0.1:8371'
       - name: Configure Earthly Conversion Parallelism
         run: ./build/linux/amd64/earthly config global.conversion_parallelism 5
+      - name: Enable log sharing
+        run: ./build/linux/amd64/earthly config global.disable_log_sharing false
       - name: Build examples1 (PR build)
         run: ./build/linux/amd64/earthly --ci -P +examples1
         if: github.event_name != 'push'
@@ -390,6 +398,8 @@ jobs:
         run: ./build/linux/amd64/earthly config global.local_registry_host 'tcp://127.0.0.1:8371'
       - name: Configure Earthly Conversion Parallelism
         run: ./build/linux/amd64/earthly config global.conversion_parallelism 5
+      - name: Enable log sharing
+        run: ./build/linux/amd64/earthly config global.disable_log_sharing false
       - name: Build examples2 (PR build)
         run: ./build/linux/amd64/earthly --ci -P +examples2
         if: github.event_name != 'push'
@@ -434,6 +444,8 @@ jobs:
         run: ./build/linux/amd64/earthly config global.local_registry_host 'tcp://127.0.0.1:8371'
       - name: Configure Earthly Conversion Parallelism
         run: ./build/linux/amd64/earthly config global.conversion_parallelism 5
+      - name: Enable log sharing
+        run: ./build/linux/amd64/earthly config global.disable_log_sharing false
       - name: Build tutorial part 1
         run: ./build/linux/amd64/earthly -P ./examples/tutorial+test-part1 --earthly=$(realpath ./build/linux/amd64/earthly)
       - name: Build tutorial part 3
@@ -476,6 +488,8 @@ jobs:
         run: ./build/linux/amd64/earthly config global.local_registry_host 'tcp://127.0.0.1:8371'
       - name: Configure Earthly Conversion Parallelism
         run: ./build/linux/amd64/earthly config global.conversion_parallelism 5
+      - name: Enable log sharing
+        run: ./build/linux/amd64/earthly config global.disable_log_sharing false
       - name: Push and Pull Cloud Images
         run: |-
           ./build/linux/amd64/earthly --ci -P  \
@@ -518,6 +532,8 @@ jobs:
         run: ./build/linux/amd64/earthly config global.local_registry_host 'tcp://127.0.0.1:8371'
       - name: Configure Earthly Conversion Parallelism
         run: ./build/linux/amd64/earthly config global.conversion_parallelism 5
+      - name: Enable log sharing
+        run: ./build/linux/amd64/earthly config global.disable_log_sharing false
       - name: run secrets-integration
         run: env earthly=./build/linux/amd64/earthly scripts/tests/secrets-integration.sh
       - name: Buildkit logs (runs on failure)
@@ -553,6 +569,8 @@ jobs:
         run: ./build/linux/amd64/earthly config global.local_registry_host 'tcp://127.0.0.1:8371'
       - name: Configure Earthly Conversion Parallelism
         run: ./build/linux/amd64/earthly config global.conversion_parallelism 5
+      - name: Enable log sharing
+        run: ./build/linux/amd64/earthly config global.disable_log_sharing false
       - name: Run bootstrap-integration
         run: ./tests/bootstrap/test-bootstrap.sh
       - name: Buildkit logs (runs on failure)
@@ -580,6 +598,8 @@ jobs:
         run: ./build/linux/amd64/earthly config global.local_registry_host 'tcp://127.0.0.1:8371'
       - name: Configure Earthly Conversion Parallelism
         run: ./build/linux/amd64/earthly config global.conversion_parallelism 5
+      - name: Enable log sharing
+        run: ./build/linux/amd64/earthly config global.disable_log_sharing false
       - name: Execute test-local
         run: "./build/linux/amd64/earthly --use-inline-cache --save-inline-cache --no-output ./tests/local+test-local"
       - name: Execute test-local --push
@@ -630,6 +650,8 @@ jobs:
         run: ./build/linux/amd64/earthly config global.local_registry_host 'tcp://127.0.0.1:8371'
       - name: Configure Earthly Conversion Parallelism
         run: ./build/linux/amd64/earthly config global.conversion_parallelism 5
+      - name: Enable log sharing
+        run: ./build/linux/amd64/earthly config global.disable_log_sharing false
 # to regenerate the entries below; run earthly ./scripts/tests/auth+generate-github-tasks
 # auto-generated-entries start;
       - name: run test-hello-world-no-ssh-agent.sh
@@ -679,6 +701,8 @@ jobs:
         run: ./build/linux/amd64/earthly config global.local_registry_host 'tcp://127.0.0.1:8371'
       - name: Configure Earthly Conversion Parallelism
         run: ./build/linux/amd64/earthly config global.conversion_parallelism 5
+      - name: Enable log sharing
+        run: ./build/linux/amd64/earthly config global.disable_log_sharing false
       - name: run export tests
         run: env earthly=./build/linux/amd64/earthly scripts/tests/export.sh
       - name: Buildkit logs (runs on failure)
@@ -731,6 +755,8 @@ jobs:
         run: ./build/linux/amd64/earthly config global.local_registry_host 'tcp://127.0.0.1:8371'
       - name: Configure Earthly Conversion Parallelism
         run: ./build/linux/amd64/earthly config global.conversion_parallelism 5
+      - name: Enable log sharing
+        run: ./build/linux/amd64/earthly config global.disable_log_sharing false
       - name: Build linux/amd64 +buildkitd
         run: |-
           ./build/linux/amd64/earthly --ci  --platform=linux/amd64 ./buildkitd+buildkitd --BUILDKIT_PROJECT="$BUILDKIT_PROJECT"
@@ -784,6 +810,8 @@ jobs:
         run: ./build/linux/amd64/earthly config global.local_registry_host 'tcp://127.0.0.1:8371'
       - name: Configure Earthly Conversion Parallelism
         run: ./build/linux/amd64/earthly config global.conversion_parallelism 5
+      - name: Enable log sharing
+        run: ./build/linux/amd64/earthly config global.disable_log_sharing false
       - name: Build linux/armv7 +buildkitd
         run: |-
           ./build/linux/amd64/earthly --ci  --platform=linux/arm/v7 ./buildkitd+buildkitd --BUILDKIT_PROJECT="$BUILDKIT_PROJECT"
@@ -837,6 +865,8 @@ jobs:
         run: ./build/linux/amd64/earthly config global.local_registry_host 'tcp://127.0.0.1:8371'
       - name: Configure Earthly Conversion Parallelism
         run: ./build/linux/amd64/earthly config global.conversion_parallelism 5
+      - name: Enable log sharing
+        run: ./build/linux/amd64/earthly config global.disable_log_sharing false
       - name: Build linux/arm64 +buildkitd
         run: |-
           ./build/linux/amd64/earthly --ci  --platform=linux/arm64 ./buildkitd+buildkitd --BUILDKIT_PROJECT="$BUILDKIT_PROJECT"
@@ -889,6 +919,8 @@ jobs:
         run: ./build/linux/amd64/earthly config global.local_registry_host 'tcp://127.0.0.1:8371'
       - name: Configure Earthly Conversion Parallelism
         run: ./build/linux/amd64/earthly config global.conversion_parallelism 5
+      - name: Enable log sharing
+        run: ./build/linux/amd64/earthly config global.disable_log_sharing false
       - name: Build +all-dind
         run: ./build/linux/amd64/earthly --ci +all-dind
       - name: Buildkit logs (runs on failure)
@@ -941,6 +973,8 @@ jobs:
         run: ./build/linux/amd64/earthly config global.local_registry_host 'tcp://127.0.0.1:8371'
       - name: Configure Earthly Conversion Parallelism
         run: ./build/linux/amd64/earthly config global.conversion_parallelism 5
+      - name: Enable log sharing
+        run: ./build/linux/amd64/earthly config global.disable_log_sharing false
       - name: Build +earthly-all
         run: ./build/linux/amd64/earthly --ci +earthly-all
       - name: Build +earthly-docker
@@ -995,6 +1029,8 @@ jobs:
         run: ./build/linux/amd64/earthly config global.local_registry_host 'tcp://127.0.0.1:8371'
       - name: Configure Earthly Conversion Parallelism
         run: ./build/linux/amd64/earthly config global.conversion_parallelism 5
+      - name: Enable log sharing
+        run: ./build/linux/amd64/earthly config global.disable_log_sharing false
       - name: Build +prerelease
         run: ./build/linux/amd64/earthly --ci +prerelease
       - name: Buildkit logs (runs on failure)
@@ -1068,6 +1104,8 @@ jobs:
         run: ./build/linux/amd64/earthly config global.local_registry_host 'tcp://127.0.0.1:8371'
       - name: Configure Earthly Conversion Parallelism
         run: ./build/linux/amd64/earthly config global.conversion_parallelism 5
+      - name: Enable log sharing
+        run: ./build/linux/amd64/earthly config global.disable_log_sharing false
       - name: Build and push +prerelease
         run: ./build/linux/amd64/earthly --ci --push +prerelease
       - name: Update DockerHub description for earthly/earthly
