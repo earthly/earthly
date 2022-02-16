@@ -166,7 +166,7 @@ jobs:
       - name: Configure Earthly Conversion Parallelism
         run: go run ./cmd/earthly/main.go config global.conversion_parallelism 5
       - name: Enable log sharing
-        run: ./build/linux/amd64/earthly config global.disable_log_sharing false
+        run: go run ./cmd/earthly/main.go config global.disable_log_sharing false
       - name: Execute tests (Earthly Only)
         run: |-
           GORACE="halt_on_error=1" go run -race ./cmd/earthly/main.go --buildkit-image earthly/buildkitd:race-test -P --no-output \
