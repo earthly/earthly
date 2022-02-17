@@ -459,20 +459,20 @@ all:
     BUILD +all-dind
 
 test:
-    BUILD +lint
-    BUILD +lint-scripts
-    BUILD +lint-newline-ending
-    BUILD +lint-changelog
-    BUILD +unit-test
-    ARG DOCKERHUB_MIRROR
-    ARG DOCKERHUB_AUTH=true
-    ARG DOCKERHUB_USER_SECRET=+secrets/DOCKERHUB_USER
-    ARG DOCKERHUB_TOKEN_SECRET=+secrets/DOCKERHUB_TOKEN
-    BUILD ./ast/tests+all \
-        --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
-        --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
-        --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
-        --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR
+    # BUILD +lint
+    # BUILD +lint-scripts
+    # BUILD +lint-newline-ending
+    # BUILD +lint-changelog
+    # BUILD +unit-test
+    # ARG DOCKERHUB_MIRROR
+    # ARG DOCKERHUB_AUTH=true
+    # ARG DOCKERHUB_USER_SECRET=+secrets/DOCKERHUB_USER
+    # ARG DOCKERHUB_TOKEN_SECRET=+secrets/DOCKERHUB_TOKEN
+    # BUILD ./ast/tests+all \
+    #     --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
+    #     --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
+    #     --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
+    #     --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR
     BUILD ./tests+ga \
         --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
         --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \

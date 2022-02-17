@@ -20,139 +20,139 @@ all:
     BUILD +experimental
 
 ga:
-    BUILD ./autocompletion+test-all \
-        --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
-        --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
-        --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
-        --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR
-    BUILD ./scrub-https-credentials+all \
-        --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
-        --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
-        --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
-        --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR
-    BUILD ./with-docker+all
-    BUILD ./with-docker-compose+all
-    BUILD ./with-docker-via-command+test
-    BUILD ./dockerfile+test
-    BUILD ./dockerfile2/subdir+test
-    BUILD ./version+test-all \
-        --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
-        --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
-        --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
-        --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR
-    BUILD ./locally-in-command+all \
-        --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
-        --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
-        --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
-        --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR
-    BUILD ./import+build
-    BUILD ./import+build-imported
-    BUILD +privileged-test
-    BUILD +copy-test
-    BUILD +copy-test-verbose-output
-    BUILD +cache-test
-    BUILD +git-clone-test
-    BUILD ./git-ssh-server+all \
-        --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
-        --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
-        --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
-        --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR
-    BUILD ./private-https+all \
-        --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
-        --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
-        --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
-        --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR
-    BUILD +builtin-args-test
-    BUILD +builtin-args-invalid-default-test
-    BUILD +builtin-args-invalid-pass-test
-    BUILD +builtin-args-cli-tests
-    BUILD +smoke-test
-    BUILD ./config+test \
-        --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
-        --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
-        --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
-        --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR
-    BUILD ./invalid+test-all \
-        --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
-        --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
-        --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
-        --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR
-    BUILD +excludes-test
-    BUILD +secrets-test
-    BUILD +build-arg-test
-    BUILD +build-arg-explicit-global-test
-    BUILD +build-arg-dynamic-with-empty-base
-    BUILD +lc-test
-    BUILD +from-expose-test
-    BUILD +scratch-test
-    BUILD +build-earthly-test
-    BUILD +host-bind-test
-    BUILD +remote-test
-    BUILD +transitive-args-test
-    BUILD +transitive-args-test2
-    BUILD +non-transitive-args-test
-    BUILD +star-test
-    BUILD +dockerfile-test
-    BUILD +fail-test
-    BUILD +fail-push-test
-    BUILD +allow-privileged-test
-    BUILD +allow-privileged-import-test
-    BUILD +reject-privileged-import-test
-    BUILD +required-arg-test
-    BUILD +push-test
-    BUILD +gen-dockerfile-test
-    BUILD +chown-test
+    # BUILD ./autocompletion+test-all \
+    #     --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
+    #     --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
+    #     --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
+    #     --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR
+    # BUILD ./scrub-https-credentials+all \
+    #     --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
+    #     --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
+    #     --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
+    #     --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR
+    # BUILD ./with-docker+all
+    # BUILD ./with-docker-compose+all
+    # BUILD ./with-docker-via-command+test
+    # BUILD ./dockerfile+test
+    # BUILD ./dockerfile2/subdir+test
+    # BUILD ./version+test-all \
+    #     --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
+    #     --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
+    #     --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
+    #     --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR
+    # BUILD ./locally-in-command+all \
+    #     --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
+    #     --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
+    #     --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
+    #     --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR
+    # BUILD ./import+build
+    # BUILD ./import+build-imported
+    # BUILD +privileged-test
+    # BUILD +copy-test
+    # BUILD +copy-test-verbose-output
+    # BUILD +cache-test
+    # BUILD +git-clone-test
+    # BUILD ./git-ssh-server+all \
+    #     --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
+    #     --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
+    #     --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
+    #     --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR
+    # BUILD ./private-https+all \
+    #     --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
+    #     --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
+    #     --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
+    #     --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR
+    # BUILD +builtin-args-test
+    # BUILD +builtin-args-invalid-default-test
+    # BUILD +builtin-args-invalid-pass-test
+    # BUILD +builtin-args-cli-tests
+    # BUILD +smoke-test
+    # BUILD ./config+test \
+    #     --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
+    #     --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
+    #     --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
+    #     --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR
+    # BUILD ./invalid+test-all \
+    #     --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
+    #     --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
+    #     --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
+    #     --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR
+    # BUILD +excludes-test
+    # BUILD +secrets-test
+    # BUILD +build-arg-test
+    # BUILD +build-arg-explicit-global-test
+    # BUILD +build-arg-dynamic-with-empty-base
+    # BUILD +lc-test
+    # BUILD +from-expose-test
+    # BUILD +scratch-test
+    # BUILD +build-earthly-test
+    # BUILD +host-bind-test
+    # BUILD +remote-test
+    # BUILD +transitive-args-test
+    # BUILD +transitive-args-test2
+    # BUILD +non-transitive-args-test
+    # BUILD +star-test
+    # BUILD +dockerfile-test
+    # BUILD +fail-test
+    # BUILD +fail-push-test
+    # BUILD +allow-privileged-test
+    # BUILD +allow-privileged-import-test
+    # BUILD +reject-privileged-import-test
+    # BUILD +required-arg-test
+    # BUILD +push-test
+    # BUILD +gen-dockerfile-test
+    # BUILD +chown-test
     BUILD +dotenv-test
-    BUILD +env-test
-    BUILD +no-cache-local-artifact-test
-    BUILD +empty-git-test
-    BUILD +escape-test
-    BUILD +escape-test --EARTHFILE=escape-v0.5.earth
-    BUILD +escape-dir-test
-    BUILD +fail-invalid-artifact-test
-    BUILD +target-first-line
-    BUILD +absolute-reference-with-relative
-    BUILD +end-comment
-    BUILD +if-exists
-    BUILD +file-copying
-    BUILD +run-no-cache
-    BUILD +save-artifact-file-as-dot
-    BUILD +save-artifact-dir-as-dot
-    BUILD +save-artifact-dont-overwrite
-    BUILD +save-artifact-force-overwrite
-    BUILD +save-artifact-after-push
-    BUILD +save-artifact-selective
-    BUILD +save-artifact-selective-legacy
-    BUILD +save-artifact-selective-referencing-remote
-    BUILD +save-remote-artifact-selective-legacy
-    BUILD +save-remote-artifact-selective
-    BUILD +push-build
-    BUILD +build-arg-repeat
-    BUILD +if
-    BUILD +for
-    BUILD +first-command
-    BUILD +platform-output
-    BUILD +command
-    BUILD +command-explicit-global
-    BUILD +duplicate
-    BUILD +reserved
-    BUILD +quotes-test
-    BUILD +new-args
-    BUILD +import
-    BUILD +infinite-recursion
-    BUILD +from-dockerfile-arg
-    BUILD +cache-mount-arg
-    BUILD +true-false-flag
-    BUILD +true-false-flag-invalid
-    BUILD +dont-save-indirect-remote-artifact
-    BUILD +sequential-locally-test
-    BUILD +version-flag-test
-    BUILD +implicit-ignores
-    BUILD +help
-    BUILD +cache-cmd
-    BUILD +ls
-    BUILD +ls-subdir
-    BUILD +ssh
+    # BUILD +env-test
+    # BUILD +no-cache-local-artifact-test
+    # BUILD +empty-git-test
+    # BUILD +escape-test
+    # BUILD +escape-test --EARTHFILE=escape-v0.5.earth
+    # BUILD +escape-dir-test
+    # BUILD +fail-invalid-artifact-test
+    # BUILD +target-first-line
+    # BUILD +absolute-reference-with-relative
+    # BUILD +end-comment
+    # BUILD +if-exists
+    # BUILD +file-copying
+    # BUILD +run-no-cache
+    # BUILD +save-artifact-file-as-dot
+    # BUILD +save-artifact-dir-as-dot
+    # BUILD +save-artifact-dont-overwrite
+    # BUILD +save-artifact-force-overwrite
+    # BUILD +save-artifact-after-push
+    # BUILD +save-artifact-selective
+    # BUILD +save-artifact-selective-legacy
+    # BUILD +save-artifact-selective-referencing-remote
+    # BUILD +save-remote-artifact-selective-legacy
+    # BUILD +save-remote-artifact-selective
+    # BUILD +push-build
+    # BUILD +build-arg-repeat
+    # BUILD +if
+    # BUILD +for
+    # BUILD +first-command
+    # BUILD +platform-output
+    # BUILD +command
+    # BUILD +command-explicit-global
+    # BUILD +duplicate
+    # BUILD +reserved
+    # BUILD +quotes-test
+    # BUILD +new-args
+    # BUILD +import
+    # BUILD +infinite-recursion
+    # BUILD +from-dockerfile-arg
+    # BUILD +cache-mount-arg
+    # BUILD +true-false-flag
+    # BUILD +true-false-flag-invalid
+    # BUILD +dont-save-indirect-remote-artifact
+    # BUILD +sequential-locally-test
+    # BUILD +version-flag-test
+    # BUILD +implicit-ignores
+    # BUILD +help
+    # BUILD +cache-cmd
+    # BUILD +ls
+    # BUILD +ls-subdir
+    # BUILD +ssh
 
 # tests that only run on linux amd64
 # Note: this target is used to validate the USERPLATFORM user arg,
