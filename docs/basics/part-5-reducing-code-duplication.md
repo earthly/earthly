@@ -11,8 +11,7 @@ Note that in our case, only the JavaScript version has an example where `FROM +d
 
 
 ### Go
-{% method %}
-{% sample lang="Go" %}
+
 `./Earthfile`
 
 ```Dockerfile
@@ -50,7 +49,7 @@ earthly --artifact github.com/earthly/earthly/examples/tutorial/go:main+part5/pa
 {% endhint %}
 
 ### JavaScript
-{% sample lang="JavaScript" %}
+
 `./Earthfile`
 
 ```Dockerfile
@@ -92,7 +91,7 @@ earthly --artifact github.com/earthly/earthly/examples/tutorial/js:main+part5/pa
 {% endhint %}
 
 ### Java
-{% sample lang="Java" %}
+
 `./Earthfile`
 
 ```Dockerfile
@@ -131,7 +130,7 @@ earthly --artifact github.com/earthly/earthly/examples/tutorial/java:main+part5/
 {% endhint %}
 
 ### Python
-{% sample lang="Python" %}
+
 `./Earthfile`
 
 ```Dockerfile
@@ -168,5 +167,3 @@ To copy the files for [this example ( Part 5 )](https://github.com/earthly/earth
 earthly --artifact github.com/earthly/earthly/examples/tutorial/python:main+part5/part5 ./part5
 ```
 {% endhint %}
-
-{% endmethod %}
