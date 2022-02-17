@@ -3,6 +3,7 @@ package containerutil
 import (
 	"context"
 	"io"
+	"net/url"
 )
 
 // This is a stub for use in internal testing when its too much effort to provide a legitimate backend.
@@ -28,6 +29,11 @@ func (*stubFrontend) IsAvaliable(ctx context.Context) bool {
 func (*stubFrontend) Config() *CurrentFrontend {
 	return &CurrentFrontend{
 		Setting: FrontendStub,
+		FrontendURLs: &FrontendURLs{
+			BuildkitHost:      &url.URL{},
+			DebuggerHost:      &url.URL{},
+			LocalRegistryHost: &url.URL{},
+		},
 	}
 }
 func (*stubFrontend) Information(ctx context.Context) (*FrontendInfo, error) {
