@@ -20,29 +20,20 @@ Finally, notice how the output of the build (the docker image and the files) are
 
 Once the build has executed, we can run the resulting docker image to try it out:
 
-{% method %}
-{% sample lang="Go" %}
+
 
 ```
 docker run --rm go-example:latest
 ```
 
-{% sample lang="JavaScript" %}
-
 ```
 docker run --rm js-example:latest
 ```
-
-{% sample lang="Java" %}
 
 ```
 docker run --rm java-example:latest
 ```
 
-{% sample lang="Python" %}
-
 ```
 docker run --rm python-example:latest
 ```
-
-{% endmethod %}

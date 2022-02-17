@@ -11,8 +11,7 @@ If, however, we could first download the dependencies and only afterwards copy a
 
 
 ### Go
-{% method %}
-{% sample lang="Go" %}
+
 `./Earthfile`
 
 ```Dockerfile
@@ -46,7 +45,7 @@ earthly --artifact github.com/earthly/earthly/examples/tutorial/go:main+part4/pa
 {% endhint %}
 
 ### JavaScript
-{% sample lang="JavaScript" %}
+
 `./Earthfile`
 
 ```Dockerfile
@@ -84,7 +83,7 @@ earthly --artifact github.com/earthly/earthly/examples/tutorial/js:main+part4/pa
 {% endhint %}
 
 ### Java
-{% sample lang="Java" %}
+
 `./Earthfile`
 
 ```Dockerfile
@@ -122,7 +121,6 @@ earthly --artifact github.com/earthly/earthly/examples/tutorial/java:main+part4/
 {% endhint %}
 
 ### Python
-{% sample lang="Python" %}
 
 `./Earthfile`
 
@@ -159,6 +157,5 @@ To copy the files for [this example ( Part 4 )](https://github.com/earthly/earth
 earthly --artifact github.com/earthly/earthly/examples/tutorial/python:main+part4/part4 ./part4
 ```
 {% endhint %}
-{% endmethod %}
 
 For a primer into Dockerfile layer caching see [this article](https://pythonspeed.com/articles/docker-caching-model/). The same principles apply to Earthfiles.

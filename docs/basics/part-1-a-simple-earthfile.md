@@ -10,9 +10,6 @@ All the magic of Earthly happens in the Earthfile. Earthfiles are always named `
 
 ### Go
 
-{% method %}
-{% sample lang="Go" %}
-
 `./Earthfile`
 
 ```Dockerfile
@@ -59,8 +56,6 @@ earthly --artifact github.com/earthly/earthly/examples/tutorial/go:main+part1/pa
 
 {% endhint %}
 
-{% sample lang="JavaScript" %}
-
 ### JavaScript
 
 `./Earthfile`
@@ -103,8 +98,6 @@ earthly --artifact github.com/earthly/earthly/examples/tutorial/js:main+part1/pa
 ```
 
 {% endhint %}
-
-{% sample lang="Java" %}
 
 ### Java
 
@@ -176,8 +169,6 @@ earthly --artifact github.com/earthly/earthly/examples/tutorial/java:main+part1/
 
 {% endhint %}
 
-{% sample lang="Python" %}
-
 ### Python
 
 `./Earthfile`
@@ -219,8 +210,6 @@ earthly --artifact github.com/earthly/earthly/examples/tutorial/python:main+part
 ```
 
 {% endhint %}
-
-{% endmethod %}
 
 From the example above, you may notice that an Earthfile is very similar to a Dockerfile. This is an intentional design decision. Existing Dockerfiles can easily be ported to Earthly by copying them to an Earthfile and tweaking them slightly.
 
