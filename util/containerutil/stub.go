@@ -2,8 +2,8 @@ package containerutil
 
 import (
 	"context"
+	"github.com/pkg/errors"
 	"io"
-	"net/url"
 )
 
 // This is a stub for use in internal testing when its too much effort to provide a legitimate backend.
@@ -15,9 +15,17 @@ type stubFrontend struct {
 // NewStubFrontend creates a stubbed frontend. Useful in cases where a frontend could not be detected, but we still need a frontend.
 // Examples include earthly/earthly, or integration tests. It is currently only used as a fallback when docker or other frontends are missing.
 func NewStubFrontend(ctx context.Context, cfg *FrontendConfig) (ContainerFrontend, error) {
-	return &stubFrontend{
+	fe := &stubFrontend{
 		shellFrontend: &shellFrontend{},
-	}, nil
+	}
+
+	var err error
+	fe.urls, err = fe.setupAndValidateAddresses(FrontendStub, cfg)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to calculate buildkit URLs")
+	}
+
+	return fe, nil
 }
 
 func (*stubFrontend) Scheme() string {
@@ -26,14 +34,10 @@ func (*stubFrontend) Scheme() string {
 func (*stubFrontend) IsAvaliable(ctx context.Context) bool {
 	return true
 }
-func (*stubFrontend) Config() *CurrentFrontend {
+func (sf *stubFrontend) Config() *CurrentFrontend {
 	return &CurrentFrontend{
-		Setting: FrontendStub,
-		FrontendURLs: &FrontendURLs{
-			BuildkitHost:      &url.URL{},
-			DebuggerHost:      &url.URL{},
-			LocalRegistryHost: &url.URL{},
-		},
+		Setting:      FrontendStub,
+		FrontendURLs: sf.urls,
 	}
 }
 func (*stubFrontend) Information(ctx context.Context) (*FrontendInfo, error) {
