@@ -779,7 +779,7 @@ func (c *Converter) canSave(ctx context.Context, saveAsLocalTo string) (bool, er
 	if !basePathExists {
 		return false, fmt.Errorf("no such directory: %s", basepath)
 	}
-	basepath += "/"
+	basepath += string(filepath.Separator)
 
 	hasTrailingSlash := strings.HasSuffix(saveAsLocalTo, "/") && saveAsLocalTo != "/"
 	saveAsLocalToAdj := saveAsLocalTo
