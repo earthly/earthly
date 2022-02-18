@@ -47,7 +47,8 @@ func NewPodmanShellFrontend(ctx context.Context, cfg *FrontendConfig) (Container
 	}
 
 	// Only check stdout here since it may be contaminated with log output detected above.
-	isRootless, err := strconv.ParseBool(output.stdout.String())
+	trimmedStdOut := strings.TrimSpace(output.stdout.String())
+	isRootless, err := strconv.ParseBool(trimmedStdOut)
 	if err != nil {
 		return nil, errors.Wrapf(err, "info returned invalid value %s", output.string())
 	}
