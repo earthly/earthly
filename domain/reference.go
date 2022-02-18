@@ -220,7 +220,7 @@ func splitUnescapePlus(str string) ([]string, error) {
 	word := make([]rune, 0, len(str))
 	for _, c := range str {
 		if escape {
-			if c != '+' && c != '\\' && c != ' ' {
+			if c != '+' {
 				word = append(word, '\\')
 			}
 			word = append(word, c)
