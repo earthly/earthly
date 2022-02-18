@@ -266,7 +266,7 @@ func TestBuildArgMatrixValidationFailures(t *testing.T) {
 				LocalRegistryHost: "tcp://localhost:8371",
 			},
 			nil,
-			"Buildkit and Local Registry URLs are pointed at different hosts",
+			"Buildkit and local registry URLs are pointed at different hosts",
 		},
 		{
 			"Buildkit/Debugger host mismatch",
@@ -277,7 +277,7 @@ func TestBuildArgMatrixValidationFailures(t *testing.T) {
 				LocalRegistryHost: "",
 			},
 			nil,
-			"Buildkit and Debugger URLs are pointed at different hosts",
+			"Buildkit and debugger URLs are pointed at different hosts",
 		},
 		{
 			"Buildkit/Debugger port clash",
