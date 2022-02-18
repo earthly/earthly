@@ -284,6 +284,8 @@ func gitRelDir(basePath string, path string) (string, bool, error) {
 	if err != nil {
 		return "", false, errors.Wrapf(err, "stat for %s", basePath)
 	}
+	// In Window's style absolute paths, we should not prepend a file-separator.
+	// e.g. We want: `C:\some\dir`, not `\C:\some\dir`
 	rootPath := ""
 	if filepath.VolumeName(basePath) == "" {
 		// `pathParts` here has lose the root filepath.Separator since built by strings.Split beforehand.
