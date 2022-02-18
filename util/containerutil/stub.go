@@ -2,8 +2,9 @@ package containerutil
 
 import (
 	"context"
-	"github.com/pkg/errors"
 	"io"
+
+	"github.com/pkg/errors"
 )
 
 // This is a stub for use in internal testing when its too much effort to provide a legitimate backend.
