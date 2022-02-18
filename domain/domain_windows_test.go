@@ -4,7 +4,6 @@
 package domain
 
 import (
-	"fmt"
 	"testing"
 
 	. "github.com/stretchr/testify/assert"
@@ -84,7 +83,6 @@ var artifactNegativeTests = []string{
 }
 
 func TestArtifactParserWin(t *testing.T) {
-	fmt.Println("WINDOWS!")
 	for _, tt := range artifactTests {
 		t.Run(tt.in, func(t *testing.T) {
 			out, err := ParseArtifact(tt.in)
