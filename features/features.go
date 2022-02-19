@@ -178,6 +178,7 @@ func GetFeatures(version *spec.Version) (*Features, error) {
 		ftrs.EarthlyVersionArg = true
 		ftrs.UseCacheCommand = true
 		ftrs.ExecAfterParallel = true
+		ftrs.UseHostCommand = true
 	}
 
 	return &ftrs, nil
