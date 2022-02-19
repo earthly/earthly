@@ -1,1 +1,1 @@
-referenced-save-only,use-copy-include-patterns,earthly-version-arg,use-cache-command,check-duplicate-images,exec-after-parallel
+referenced-save-only,use-copy-include-patterns,earthly-version-arg,use-cache-command,user-host-command,check-duplicate-images,exec-after-parallel

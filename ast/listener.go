@@ -297,6 +297,10 @@ func (l *listener) EnterCacheStmt(c *parser.CacheStmtContext) {
 	l.command.Name = "CACHE"
 }
 
+func (l *listener) EnterHostStmt(ctx *parser.HostStmtContext) {
+	l.command.Name = "HOST"
+}
+
 // With -----------------------------------------------------------------------
 
 func (l *listener) EnterWithStmt(c *parser.WithStmtContext) {

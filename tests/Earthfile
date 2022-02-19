@@ -153,6 +153,8 @@ ga:
     BUILD +ls
     BUILD +ls-subdir
     BUILD +ssh
+    BUILD +host
+    BUILD +host-invalid
 
 # tests that only run on linux amd64
 # Note: this target is used to validate the USERPLATFORM user arg,
@@ -974,6 +976,15 @@ earthly --config \$earthly_config -P +test-with-docker
     --entrypoint \
     --mount=type=tmpfs,target=/tmp/earthly \
     -- -P
+
+host:
+    DO +RUN_EARTHLY --earthfile=host.earth --target=+add-single-host
+    DO +RUN_EARTHLY --earthfile=host.earth --target=+add-multiple-host
+
+host-invalid:
+    DO +RUN_EARTHLY --earthfile=host.earth --should_fail=true --target=+invalid-ip --output_contains="invalid HOST ip"
+    DO +RUN_EARTHLY --earthfile=host.earth --should_fail=true --target=+only-host --output_contains="invalid number of arguments for HOST"
+    DO +RUN_EARTHLY --earthfile=host.earth --should_fail=true --target=+only-ip --output_contains="invalid number of arguments for HOST"
 
 RUN_EARTHLY:
     COMMAND

@@ -194,6 +194,9 @@ type EarthParserListener interface {
 	// EnterCacheStmt is called when entering the cacheStmt production.
 	EnterCacheStmt(c *CacheStmtContext)
 
+	// EnterHostStmt is called when entering the hostStmt production.
+	EnterHostStmt(c *HostStmtContext)
+
 	// EnterExpr is called when entering the expr production.
 	EnterExpr(c *ExprContext)
 
@@ -391,6 +394,9 @@ type EarthParserListener interface {
 
 	// ExitCacheStmt is called when exiting the cacheStmt production.
 	ExitCacheStmt(c *CacheStmtContext)
+
+	// ExitHostStmt is called when exiting the hostStmt production.
+	ExitHostStmt(c *HostStmtContext)
 
 	// ExitExpr is called when exiting the expr production.
 	ExitExpr(c *ExprContext)
