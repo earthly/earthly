@@ -980,6 +980,7 @@ earthly --config \$earthly_config -P +test-with-docker
 host:
     DO +RUN_EARTHLY --earthfile=host.earth --target=+add-single-host
     DO +RUN_EARTHLY --earthfile=host.earth --target=+add-multiple-host
+    DO +RUN_EARTHLY --earthfile=host.earth --target=+add-ipv6
 
 host-invalid:
     DO +RUN_EARTHLY --earthfile=host.earth --should_fail=true --target=+invalid-ip --output_contains="invalid HOST ip"
