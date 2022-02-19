@@ -31,6 +31,7 @@ type ContainerFrontend interface {
 	ImageRemove(ctx context.Context, force bool, refs ...string) error
 	ImageTag(ctx context.Context, tags ...ImageTag) error
 	ImageLoad(ctx context.Context, image ...io.Reader) error
+	ImageLoadFromFileCommand(filename string) string
 
 	VolumeInfo(ctx context.Context, volumeNames ...string) (map[string]*VolumeInfo, error)
 }

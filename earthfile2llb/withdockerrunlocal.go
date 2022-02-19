@@ -2,7 +2,6 @@ package earthfile2llb
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"path"
 
@@ -33,7 +32,7 @@ func (wdrl *withDockerRunLocal) Run(ctx context.Context, args []string, opt With
 		// then issue docker load
 		runOpts := []llb.RunOption{
 			llb.IgnoreCache,
-			llb.Args([]string{localhost.RunOnLocalHostMagicStr, "/bin/sh", "-c", fmt.Sprintf("cat %s | docker load", localImageTarPath)}),
+			llb.Args([]string{localhost.RunOnLocalHostMagicStr, "/bin/sh", "-c", wdrl.c.containerFrontend.ImageLoadFromFileCommand(localImageTarPath)}),
 		}
 		wdrl.c.mts.Final.MainState = wdrl.c.mts.Final.MainState.Run(runOpts...).Root()
 	}

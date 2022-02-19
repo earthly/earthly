@@ -150,6 +150,15 @@ func (psf *podmanShellFrontend) ImagePull(ctx context.Context, refs ...string) e
 	return err
 }
 
+func (psf *podmanShellFrontend) ImageLoadFromFileCommand(filename string) string {
+	binary, args := psf.commandContextStrings("pull", fmt.Sprintf("docker-archive:%s", filename))
+
+	all := []string{binary}
+	all = append(all, args...)
+
+	return strings.Join(all, " ")
+}
+
 func (psf *podmanShellFrontend) ImageLoad(ctx context.Context, images ...io.Reader) error {
 	var err error
 	for _, image := range images {

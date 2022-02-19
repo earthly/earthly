@@ -180,6 +180,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 				LocalStateCache:      sharedLocalStateCache,
 				BuiltinArgs:          opt.BuiltinArgs,
 				NoCache:              b.opt.NoCache,
+				ContainerFrontend:    b.opt.ContainerFrontend,
 			}
 			mts, err = earthfile2llb.Earthfile2LLB(childCtx, target, opt, true)
 			if err != nil {

@@ -268,12 +268,17 @@ func (cco *commmandContextOutput) string() string {
 	return strings.TrimSpace(cco.stdout.String() + cco.stderr.String())
 }
 
+func (sf *shellFrontend) commandContextStrings(args ...string) (string, []string) {
+	allArgs := append(sf.globalCompatibilityArgs, args...)
+
+	return sf.binaryName, allArgs
+}
+
 func (sf *shellFrontend) commandContextOutput(ctx context.Context, args ...string) (*commmandContextOutput, error) {
 	output := &commmandContextOutput{}
 
-	allArgs := append(sf.globalCompatibilityArgs, args...)
-
-	cmd := exec.CommandContext(ctx, sf.binaryName, allArgs...)
+	binary, args := sf.commandContextStrings(args...)
+	cmd := exec.CommandContext(ctx, binary, args...)
 	cmd.Env = os.Environ() // Ensure all shellouts are using the current environment, picks up DOCKER_/PODMAN_ env vars when they matter
 	cmd.Stdout = &output.stdout
 	cmd.Stderr = &output.stderr

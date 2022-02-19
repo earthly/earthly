@@ -139,6 +139,15 @@ func (dsf *dockerShellFrontend) ImagePull(ctx context.Context, refs ...string) e
 	return err
 }
 
+func (dsf *dockerShellFrontend) ImageLoadFromFileCommand(filename string) string {
+	binary, args := dsf.commandContextStrings("load")
+
+	all := []string{binary}
+	all = append(all, args...)
+
+	return fmt.Sprintf("cat %s | %s", filename, strings.Join(all, " "))
+}
+
 func (dsf *dockerShellFrontend) ImageLoad(ctx context.Context, images ...io.Reader) error {
 	var err error
 	args := append(dsf.globalCompatibilityArgs, "load")

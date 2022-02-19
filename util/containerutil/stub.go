@@ -71,6 +71,9 @@ func (*stubFrontend) ImageRemove(ctx context.Context, force bool, refs ...string
 func (*stubFrontend) ImageTag(ctx context.Context, tags ...ImageTag) error {
 	return nil
 }
+func (*stubFrontend) ImageLoadFromFileCommand(filename string) string {
+	return ""
+}
 func (*stubFrontend) ImageLoad(ctx context.Context, image ...io.Reader) error {
 	return nil
 }

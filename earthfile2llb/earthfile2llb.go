@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/earthly/earthly/util/containerutil"
 	"github.com/moby/buildkit/client/llb"
 	gwclient "github.com/moby/buildkit/frontend/gateway/client"
 	specs "github.com/opencontainers/image-spec/specs-go/v1"
@@ -104,6 +105,10 @@ type ConvertOpt struct {
 
 	// parentDepSub is a channel informing of any new dependencies from the parent.
 	parentDepSub chan string // chan of sts IDs.
+
+	// ContainerFrontend is the currently used container frontend, as detected by Earthly at app start. It provides info
+	// and access to commands to manipulate the current container frontend.
+	ContainerFrontend containerutil.ContainerFrontend
 }
 
 // Earthfile2LLB parses a earthfile and executes the statements for a given target.

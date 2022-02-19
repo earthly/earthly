@@ -22,6 +22,7 @@ import (
 	"github.com/earthly/earthly/states"
 	"github.com/earthly/earthly/states/dedup"
 	"github.com/earthly/earthly/states/image"
+	"github.com/earthly/earthly/util/containerutil"
 	"github.com/earthly/earthly/util/fileutil"
 	"github.com/earthly/earthly/util/gitutil"
 	"github.com/earthly/earthly/util/llbutil"
@@ -86,6 +87,7 @@ type Converter struct {
 	cmdSet              bool
 	ftrs                *features.Features
 	localWorkingDir     string
+	containerFrontend   containerutil.ContainerFrontend
 }
 
 // NewConverter constructs a new converter for a given earthly target.
@@ -118,6 +120,7 @@ func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Da
 		varCollection:       variables.NewCollection(newCollOpt),
 		ftrs:                bc.Features,
 		localWorkingDir:     filepath.Dir(bc.BuildFilePath),
+		containerFrontend:   opt.ContainerFrontend,
 	}, nil
 }
 
