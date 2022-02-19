@@ -13,6 +13,7 @@ all:
 print-countries:
     FROM jbergknoff/postgresql-client:latest
     CMD ["-c", "SELECT * FROM country WHERE country_id = '76'"]
+    SAVE IMAGE print-countries:latest
 
 test:
     RUN apk add postgresql-client
@@ -22,7 +23,7 @@ test:
     WITH DOCKER \
             --compose docker-compose.yml \
             --service postgres \
-            --load print-countries:latest=+print-countries
+            --load +print-countries
         RUN while ! pg_isready --host=localhost --port=5432 --dbname=iso3166 --username=postgres; do sleep 1; done ;\
             docker-compose up --exit-code-from print-countries print-countries | grep Brazil
     END
