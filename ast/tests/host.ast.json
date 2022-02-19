@@ -90,7 +90,7 @@
           "command": {
             "args": [
               "cool.website",
-              "dead:beef:cafe"
+              "dead:beef::cafe"
             ],
             "name": "HOST"
           }
@@ -102,7 +102,7 @@
               "/etc/hosts",
               "|",
               "grep",
-              "\"dead:beef:cafe\\W*cool.website\""
+              "\"dead:beef::cafe\\W*cool.website\""
             ],
             "name": "RUN"
           }
