@@ -2873,9 +2873,20 @@ func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []st
 	buildContextProvider.AddDirs(defaultLocalDirs)
 	attachables := []session.Attachable{
 		llbutil.NewSecretProvider(cc, secretsMap),
-		authprovider.NewDockerAuthProvider(os.Stderr),
 		buildContextProvider,
 		localhostProvider,
+	}
+
+	switch app.containerFrontend.Config().Setting {
+	case containerutil.FrontendDocker, containerutil.FrontendDockerShell:
+		attachables = append(attachables, authprovider.NewDockerAuthProvider(os.Stderr))
+
+	case containerutil.FrontendPodman, containerutil.FrontendPodmanShell:
+		attachables = append(attachables, authprovider.NewPodmanAuthProvider(os.Stderr))
+
+	default:
+		// Old default behavior
+		attachables = append(attachables, authprovider.NewDockerAuthProvider(os.Stderr))
 	}
 
 	gitLookup := buildcontext.NewGitLookup(app.console, app.sshAuthSock)
