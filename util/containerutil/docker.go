@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"strings"
 
+	"github.com/alessio/shellescape"
 	"github.com/dustin/go-humanize"
 	"github.com/hashicorp/go-multierror"
 	_ "github.com/moby/buildkit/client/connhelper/dockercontainer" // Load "docker-container://" helper.
@@ -145,7 +146,7 @@ func (dsf *dockerShellFrontend) ImageLoadFromFileCommand(filename string) string
 	all := []string{binary}
 	all = append(all, args...)
 
-	return fmt.Sprintf("cat %s | %s", filename, strings.Join(all, " "))
+	return fmt.Sprintf("cat %s | %s", shellescape.Quote(filename), strings.Join(all, " "))
 }
 
 func (dsf *dockerShellFrontend) ImageLoad(ctx context.Context, images ...io.Reader) error {
