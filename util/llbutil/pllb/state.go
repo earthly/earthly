@@ -5,6 +5,7 @@ package pllb
 
 import (
 	"context"
+	"net"
 	"os"
 	"sync"
 
@@ -134,6 +135,13 @@ func (s State) Platform(p specs.Platform) State {
 	gmu.Lock()
 	defer gmu.Unlock()
 	return State{st: s.st.Platform(p)}
+}
+
+// AddExtraHost is a wrapper around llb.AddExtraHost
+func (s State) AddExtraHost(hostname string, ip net.IP) State {
+	gmu.Lock()
+	defer gmu.Unlock()
+	return State{st: s.st.AddExtraHost(hostname, ip)}
 }
 
 // ExecState is a wrapper around llb.ExecState.

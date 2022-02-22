@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"hash/fnv"
+	"net"
 	"os"
 	"path"
 	"path/filepath"
@@ -70,6 +71,7 @@ const (
 	volumeCmd                            // "VOLUME"
 	workdirCmd                           // "WORKDIR"
 	cacheCmd                             // "CACHE"
+	hostCmd                              // "HOST"
 )
 
 // Converter turns earthly commands to buildkit LLB representation.
@@ -1215,6 +1217,17 @@ func (c *Converter) Cache(ctx context.Context, path string) error {
 		c.persistentCacheDirs[path] = pllb.AddMount(path, pllb.Scratch(),
 			llb.AsPersistentCacheDir(path, llb.CacheMountShared))
 	}
+	return nil
+}
+
+// Host handles a `HOST` command in a Target.
+func (c *Converter) Host(ctx context.Context, hostname string, ip net.IP) error {
+	err := c.checkAllowed(hostCmd)
+	if err != nil {
+		return err
+	}
+	c.nonSaveCommand()
+	c.mts.Final.MainState = c.mts.Final.MainState.AddExtraHost(hostname, ip)
 	return nil
 }
 
