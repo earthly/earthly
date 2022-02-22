@@ -3,7 +3,6 @@ package buildkitd
 import (
 	"context"
 	"fmt"
-	"net"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -29,32 +28,6 @@ var (
 	ErrBuildkitStartFailure = errors.New("buildkitd failed to start (in time)")
 )
 
-// TCPAddress is the address at which the daemon is available when using TCP.
-var TCPAddress = "tcp://127.0.0.1:8372"
-
-// DockerAddress is the address at which the daemon is avaliable whe using a Docker Container directly
-var DockerAddress = "docker-container://earthly-buildkitd"
-
-// PodmanAddress is the address at which the daemon is avaliable whe using a Podman Container directly.
-// Currently unused due to image export issues
-var PodmanAddress = "podman-container://earthly-buildkitd"
-
-// DefaultAddressForSetting returns an address (signifying the desired/default transport) for a given frontend specified by setting.
-func DefaultAddressForSetting(setting string) (string, error) {
-	switch setting {
-	case containerutil.FrontendDockerShell:
-		return DockerAddress, nil
-
-	case containerutil.FrontendPodmanShell:
-		return TCPAddress, nil // Right now, podman only works over TCP. There are weird errors when trying to use the provided helper from buildkit.
-
-	case containerutil.FrontendStub:
-		return DockerAddress, nil // Maintiain old behavior
-	}
-
-	return "", fmt.Errorf("no default buildkit address for %s", setting)
-}
-
 // NewClient returns a new buildkitd client, together with a boolean specifying whether the buildkit is local.
 func NewClient(ctx context.Context, console conslogging.ConsoleLogger, image, containerName string, fe containerutil.ContainerFrontend, settings Settings, opts ...client.ClientOpt) (*client.Client, error) {
 	opts, err := addRequiredOpts(settings, opts...)
@@ -62,7 +35,7 @@ func NewClient(ctx context.Context, console conslogging.ConsoleLogger, image, co
 		return nil, errors.Wrap(err, "add required client opts")
 	}
 
-	if !IsLocal(settings.BuildkitAddress) {
+	if !containerutil.IsLocal(settings.BuildkitAddress) {
 		err := waitForConnection(ctx, containerName, settings.BuildkitAddress, settings.Timeout, fe, opts...)
 		if err != nil {
 			return nil, errors.Wrap(err, "connect provided buildkit")
@@ -94,7 +67,7 @@ func NewClient(ctx context.Context, console conslogging.ConsoleLogger, image, co
 // ResetCache restarts the buildkitd daemon with the reset command.
 func ResetCache(ctx context.Context, console conslogging.ConsoleLogger, image, containerName string, fe containerutil.ContainerFrontend, settings Settings, opts ...client.ClientOpt) error {
 	// Prune by resetting container.
-	if !IsLocal(settings.BuildkitAddress) {
+	if !containerutil.IsLocal(settings.BuildkitAddress) {
 		return errors.New("cannot reset cache of a provided buildkit-host setting")
 	}
 
@@ -629,7 +602,7 @@ func GetDockerVersion(ctx context.Context, fe containerutil.ContainerFrontend) (
 
 // GetLogs returns earthly-buildkitd logs
 func GetLogs(ctx context.Context, containerName string, fe containerutil.ContainerFrontend, settings Settings) (string, error) {
-	if !IsLocal(settings.BuildkitAddress) {
+	if !containerutil.IsLocal(settings.BuildkitAddress) {
 		return "", nil
 	}
 
@@ -647,7 +620,7 @@ func GetLogs(ctx context.Context, containerName string, fe containerutil.Contain
 
 // GetContainerIP returns the IP of the buildkit container.
 func GetContainerIP(ctx context.Context, containerName string, fe containerutil.ContainerFrontend, settings Settings) (string, error) {
-	if !IsLocal(settings.BuildkitAddress) {
+	if !containerutil.IsLocal(settings.BuildkitAddress) {
 		return "", nil // Remote buildkitd is not an error,  but we don't know its IP
 	}
 
@@ -748,23 +721,6 @@ func getCacheSize(ctx context.Context, volumeName string, fe containerutil.Conta
 	}
 
 	return int(infos[volumeName].Size), nil
-}
-
-// IsLocal parses a URL and returns whether it is considered a local buildkit host + port that we
-// need to manage ourselves.
-func IsLocal(addr string) bool {
-	parsed, err := url.Parse(addr)
-	if err != nil {
-		return false
-	}
-
-	hostname := parsed.Hostname()
-	// These need to match what we put in our certificates.
-	return hostname == "127.0.0.1" || // The only IP v4 Loopback we honor. Because we need to include it in the TLS certificates.
-		hostname == net.IPv6loopback.String() ||
-		hostname == "localhost" || // Convention. Users hostname omitted; this is only really here for convenience.
-		parsed.Scheme == "docker-container" || // Accomodate feature flagging during transition. This will have omitted TLS?
-		parsed.Scheme == "podman-container"
 }
 
 func makeTLSPath(path string) (string, error) {

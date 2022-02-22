@@ -4,9 +4,27 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+### Added
+
+- Experimental `HOST` command, which can be used like this: `HOST <domain> <ip>` to add additional hosts during the execution of your build. To enable this feature, use `VERSION --use-host-command 0.6`. [#1168](https://github.com/earthly/earthly/issues/1168)
+
 ### Fixed
 
-- `RUN --interactive` command exit codes were being ignored
+- Errors when using inline caching indicating `invalid layer index` [#1635](https://github.com/earthly/earthly/issues/1635)
+- Podman can now use credentials from the default location [#1644](https://github.com/earthly/earthly/issues/1644)
+- Podman can now use the local registry cache without modifying `registries.conf` [#1675](https://github.com/earthly/earthly/pull/1675)
+- Podman can now use `WITH DOCKER --load` inside a target marked as `LOCALLY` [#1675](https://github.com/earthly/earthly/pull/1675)
+
+## v0.6.8 - 2022-02-16
+
+### Fixed
+
+- `RUN --interactive` command exit codes were being ignored.
+- `RUN --ssh` command were failing to create `SSH_AUTH_SOCK` when run inside a `WITH DOCKER`. [#1672](https://github.com/earthly/earthly/issues/1672)
+
+### Changed
+
+- expanded help text for `earthly account register --help`.
 
 ## v0.6.7 - 2022-02-09
 

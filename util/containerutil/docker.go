@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"strings"
 
+	"github.com/alessio/shellescape"
 	"github.com/dustin/go-humanize"
 	"github.com/hashicorp/go-multierror"
 	_ "github.com/moby/buildkit/client/connhelper/dockercontainer" // Load "docker-container://" helper.
@@ -22,10 +23,12 @@ type dockerShellFrontend struct {
 
 // NewDockerShellFrontend constructs a new Frontend using the docker binary installed on the host.
 // It also ensures that the binary is functional for our needs and collects compatibility information.
-func NewDockerShellFrontend(ctx context.Context) (ContainerFrontend, error) {
+func NewDockerShellFrontend(ctx context.Context, cfg *FrontendConfig) (ContainerFrontend, error) {
 	fe := &dockerShellFrontend{
 		shellFrontend: &shellFrontend{
-			binaryName: "docker",
+			binaryName:              "docker",
+			runCompatibilityArgs:    make([]string, 0),
+			globalCompatibilityArgs: make([]string, 0),
 		},
 	}
 
@@ -47,7 +50,12 @@ func NewDockerShellFrontend(ctx context.Context) (ContainerFrontend, error) {
 	fe.userNamespaced = strings.Contains(output.string(), "name=userns")
 
 	if fe.userNamespaced {
-		fe.compatibilityArgs = []string{"--userns", "host"}
+		fe.runCompatibilityArgs = []string{"--userns", "host"}
+	}
+
+	fe.urls, err = fe.setupAndValidateAddresses(FrontendDockerShell, cfg)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to calculate buildkit URLs")
 	}
 
 	return fe, nil
@@ -57,11 +65,12 @@ func (dsf *dockerShellFrontend) Scheme() string {
 	return "docker-container"
 }
 
-func (dsf *dockerShellFrontend) Config() *FrontendConfig {
-	return &FrontendConfig{
-		Setting: FrontendDockerShell,
-		Binary:  dsf.binaryName,
-		Type:    FrontendTypeShell,
+func (dsf *dockerShellFrontend) Config() *CurrentFrontend {
+	return &CurrentFrontend{
+		Setting:      FrontendDockerShell,
+		Binary:       dsf.binaryName,
+		Type:         FrontendTypeShell,
+		FrontendURLs: dsf.urls,
 	}
 }
 
@@ -119,11 +128,33 @@ func (dsf *dockerShellFrontend) ContainerInfo(ctx context.Context, namesOrIDs ..
 	return results, nil
 }
 
+func (dsf *dockerShellFrontend) ImagePull(ctx context.Context, refs ...string) error {
+	var err error
+	for _, ref := range refs {
+		_, cmdErr := dsf.commandContextOutput(ctx, "pull", ref)
+		if cmdErr != nil {
+			err = multierror.Append(err, cmdErr)
+		}
+	}
+
+	return err
+}
+
+func (dsf *dockerShellFrontend) ImageLoadFromFileCommand(filename string) string {
+	binary, args := dsf.commandContextStrings("load")
+
+	all := []string{binary}
+	all = append(all, args...)
+
+	return fmt.Sprintf("cat %s | %s", shellescape.Quote(filename), strings.Join(all, " "))
+}
+
 func (dsf *dockerShellFrontend) ImageLoad(ctx context.Context, images ...io.Reader) error {
 	var err error
+	args := append(dsf.globalCompatibilityArgs, "load")
 	for _, image := range images {
 		// Do not use the wrapper to allow the image to come in on stdin
-		cmd := exec.CommandContext(ctx, dsf.binaryName, "load")
+		cmd := exec.CommandContext(ctx, dsf.binaryName, args...)
 		cmd.Stdin = image
 		output, cmdErr := cmd.CombinedOutput()
 		if cmdErr != nil {

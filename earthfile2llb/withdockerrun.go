@@ -93,18 +93,18 @@ func (wdr *withDockerRun) Run(ctx context.Context, args []string, opt WithDocker
 		}] = true
 	}
 	for _, loadOpt := range opt.Loads {
+		// Load.
+		actualImageName, err := wdr.load(ctx, loadOpt)
+		if err != nil {
+			return errors.Wrap(err, "load")
+		}
 		// Make sure we don't pull a compose image which is loaded.
 		key := setKey{
-			imageName:   loadOpt.ImageName,
+			imageName:   actualImageName,
 			platformStr: llbutil.PlatformToString(loadOpt.Platform),
 		}
 		if composeImagesSet[key] {
 			delete(composeImagesSet, key)
-		}
-		// Load.
-		err := wdr.load(ctx, loadOpt)
-		if err != nil {
-			return errors.Wrap(err, "load")
 		}
 	}
 	// Add compose images (what's left of them) to the pull list.
@@ -271,29 +271,29 @@ func (wdr *withDockerRun) pull(ctx context.Context, opt DockerPullOpt) error {
 		llb.WithCustomNamef("%sDOCKER LOAD (PULL %s)", wdr.c.imageVertexPrefix(opt.ImageName), opt.ImageName))
 }
 
-func (wdr *withDockerRun) load(ctx context.Context, opt DockerLoadOpt) error {
+func (wdr *withDockerRun) load(ctx context.Context, opt DockerLoadOpt) (string, error) {
 	depTarget, err := domain.ParseTarget(opt.Target)
 	if err != nil {
-		return errors.Wrapf(err, "parse target %s", opt.Target)
+		return "", errors.Wrapf(err, "parse target %s", opt.Target)
 	}
 	mts, err := wdr.c.buildTarget(ctx, depTarget.String(), opt.Platform, opt.AllowPrivileged, opt.BuildArgs, false, loadCmd)
 	if err != nil {
-		return err
+		return "", err
 	}
 	if opt.ImageName == "" {
 		// Infer image name from the SAVE IMAGE statement.
 		if len(mts.Final.SaveImages) == 0 || mts.Final.SaveImages[0].DockerTag == "" {
-			return errors.New(
+			return "", errors.New(
 				"no docker image tag specified in load and it cannot be inferred from the SAVE IMAGE statement")
 		}
 		if len(mts.Final.SaveImages) > 1 {
-			return errors.New(
+			return "", errors.New(
 				"no docker image tag specified in load and it cannot be inferred from the SAVE IMAGE statement: " +
 					"multiple tags mentioned in SAVE IMAGE")
 		}
 		opt.ImageName = mts.Final.SaveImages[0].DockerTag
 	}
-	return wdr.solveImage(
+	return opt.ImageName, wdr.solveImage(
 		ctx, mts, depTarget.String(), opt.ImageName,
 		llb.WithCustomNamef(
 			"%sDOCKER LOAD %s %s", wdr.c.imageVertexPrefix(depTarget.String()), depTarget.String(), opt.ImageName))

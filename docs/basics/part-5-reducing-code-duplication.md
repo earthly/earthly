@@ -4,8 +4,14 @@ In some cases, the dependencies might be used in more than one build target. For
 
 Note that in our case, only the JavaScript version has an example where `FROM +deps` is used in more than one place: both in `build` and in `docker`. Nevertheless, all versions show how dependencies may be separated.
 
-{% method %}
-{% sample lang="Go" %}
+- [Go](#go) 
+- [JavaScript](#javascript) 
+- [Java](#java)
+- [Python](#python)
+
+
+### Go
+
 `./Earthfile`
 
 ```Dockerfile
@@ -42,7 +48,8 @@ earthly --artifact github.com/earthly/earthly/examples/tutorial/go:main+part5/pa
 ```
 {% endhint %}
 
-{% sample lang="JavaScript" %}
+### JavaScript
+
 `./Earthfile`
 
 ```Dockerfile
@@ -83,7 +90,8 @@ earthly --artifact github.com/earthly/earthly/examples/tutorial/js:main+part5/pa
 ```
 {% endhint %}
 
-{% sample lang="Java" %}
+### Java
+
 `./Earthfile`
 
 ```Dockerfile
@@ -121,7 +129,8 @@ earthly --artifact github.com/earthly/earthly/examples/tutorial/java:main+part5/
 ```
 {% endhint %}
 
-{% sample lang="Python" %}
+### Python
+
 `./Earthfile`
 
 ```Dockerfile
@@ -158,5 +167,3 @@ To copy the files for [this example ( Part 5 )](https://github.com/earthly/earth
 earthly --artifact github.com/earthly/earthly/examples/tutorial/python:main+part5/part5 ./part5
 ```
 {% endhint %}
-
-{% endmethod %}

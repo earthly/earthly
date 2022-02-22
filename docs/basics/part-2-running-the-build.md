@@ -1,6 +1,6 @@
 # Running the build
 
-In this example, we can see two explicit targets: `build` and `docker`. In order to execute the build, we can run, for example:
+In the example `Earthfile` we have defined two explicit targets: `+build` and `+docker`. When we run Earthly, we can tell it to execute either target by passing the target name. In this case our docker target calls on our build target, so we can run both with:
 
 ```bash
 earthly +docker
@@ -20,29 +20,20 @@ Finally, notice how the output of the build (the docker image and the files) are
 
 Once the build has executed, we can run the resulting docker image to try it out:
 
-{% method %}
-{% sample lang="Go" %}
+
 
 ```
 docker run --rm go-example:latest
 ```
 
-{% sample lang="JavaScript" %}
-
 ```
 docker run --rm js-example:latest
 ```
-
-{% sample lang="Java" %}
 
 ```
 docker run --rm java-example:latest
 ```
 
-{% sample lang="Python" %}
-
 ```
 docker run --rm python-example:latest
 ```
-
-{% endmethod %}

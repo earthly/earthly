@@ -12,7 +12,7 @@ buildkitd:
             ARG BUILDKIT_BASE_IMAGE=$BUILDKIT_PROJECT+build
         END
     ELSE
-        ARG BUILDKIT_BASE_IMAGE=github.com/earthly/buildkit:60bb7fe66d316609854ee3c89466df464044ef8f+build
+        ARG BUILDKIT_BASE_IMAGE=github.com/earthly/buildkit:1c2e5f1a25465235de1344f9744062c4b64e2b28+build
     END
     FROM $BUILDKIT_BASE_IMAGE
     RUN echo "@edge-community http://dl-cdn.alpinelinux.org/alpine/edge/community" >> /etc/apk/repositories
@@ -58,8 +58,12 @@ buildkitd:
     ENTRYPOINT ["/usr/bin/entrypoint.sh", "buildkitd", "--config=/etc/buildkitd.toml"]
     ARG EARTHLY_TARGET_TAG_DOCKER
     ARG TAG="dev-$EARTHLY_TARGET_TAG_DOCKER"
-    ARG DOCKERHUB_USER="earthly"
-    SAVE IMAGE --push --cache-from=earthly/buildkitd:main $DOCKERHUB_USER/buildkitd:$TAG
+    ARG REGISTRY_USER="earthly"
+    ARG IMAGE_REGISTRY="docker.io"
+
+    # Ensure that the image we save is a fully qualified name. Podman defaults to "localhost", while Docker defaults to
+    # "docker.io". This keeps it consistent across both frontends.
+    SAVE IMAGE --push --cache-from=$IMAGE_REGISTRY/earthly/buildkitd:main $IMAGE_REGISTRY/$REGISTRY_USER/buildkitd:$TAG
 
 buildkit-sha:
     RUN apk add git
