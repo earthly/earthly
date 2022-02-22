@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net"
+	"net/url"
 	"os"
 	"os/exec"
 	"strconv"
@@ -12,16 +14,22 @@ import (
 	"github.com/hashicorp/go-multierror"
 	_ "github.com/moby/buildkit/client/connhelper/dockercontainer" // Load "docker-container://" helper.
 	"github.com/pkg/errors"
+
+	"github.com/earthly/earthly/config"
 )
 
 type shellFrontend struct {
-	binaryName        string
-	rootless          bool
-	compatibilityArgs []string
+	binaryName              string
+	rootless                bool
+	runCompatibilityArgs    []string
+	globalCompatibilityArgs []string
+
+	urls *FrontendURLs
 }
 
 func (sf *shellFrontend) IsAvaliable(ctx context.Context) bool {
-	cmd := exec.CommandContext(ctx, sf.binaryName, "ps")
+	args := append(sf.globalCompatibilityArgs, "ps")
+	cmd := exec.CommandContext(ctx, sf.binaryName, args...)
 	err := cmd.Run()
 	return err == nil
 }
@@ -106,9 +114,11 @@ func (sf *shellFrontend) ContainerLogs(ctx context.Context, namesOrIDs ...string
 	logs := map[string]*ContainerLogs{}
 	var err error
 
+	baseArgs := append(sf.globalCompatibilityArgs, "logs")
 	for _, nameOrID := range namesOrIDs {
 		// Don't use the wrapper so we can capture stderr and stdout individually
-		cmd := exec.CommandContext(ctx, sf.binaryName, "logs", nameOrID)
+		args := append(baseArgs, nameOrID)
+		cmd := exec.CommandContext(ctx, sf.binaryName, args...)
 
 		var stdout, stderr strings.Builder
 		cmd.Stdout = &stdout
@@ -182,7 +192,7 @@ func (sf *shellFrontend) ContainerRun(ctx context.Context, containers ...Contain
 		args = append(args, "-d") // Run detached, this feels implied by the API
 		args = append(args, "--name", container.NameOrID)
 		args = append(args, container.AdditionalArgs...)
-		args = append(args, sf.compatibilityArgs...)
+		args = append(args, sf.runCompatibilityArgs...)
 		args = append(args, container.ImageRef)
 		args = append(args, container.ContainerArgs...)
 
@@ -225,18 +235,6 @@ func (sf *shellFrontend) ImageInfo(ctx context.Context, refs ...string) (map[str
 	return infos, nil
 }
 
-func (sf *shellFrontend) ImagePull(ctx context.Context, refs ...string) error {
-	var err error
-	for _, ref := range refs {
-		_, cmdErr := sf.commandContextOutput(ctx, "pull", ref)
-		if cmdErr != nil {
-			err = multierror.Append(err, cmdErr)
-		}
-	}
-
-	return err
-}
-
 func (sf *shellFrontend) ImageRemove(ctx context.Context, force bool, refs ...string) error {
 	args := []string{"image", "rm"}
 	if force {
@@ -270,10 +268,17 @@ func (cco *commmandContextOutput) string() string {
 	return strings.TrimSpace(cco.stdout.String() + cco.stderr.String())
 }
 
+func (sf *shellFrontend) commandContextStrings(args ...string) (string, []string) {
+	allArgs := append(sf.globalCompatibilityArgs, args...)
+
+	return sf.binaryName, allArgs
+}
+
 func (sf *shellFrontend) commandContextOutput(ctx context.Context, args ...string) (*commmandContextOutput, error) {
 	output := &commmandContextOutput{}
 
-	cmd := exec.CommandContext(ctx, sf.binaryName, args...)
+	binary, args := sf.commandContextStrings(args...)
+	cmd := exec.CommandContext(ctx, binary, args...)
 	cmd.Env = os.Environ() // Ensure all shellouts are using the current environment, picks up DOCKER_/PODMAN_ env vars when they matter
 	cmd.Stdout = &output.stdout
 	cmd.Stderr = &output.stderr
@@ -292,4 +297,123 @@ func (sf *shellFrontend) supportsPlatformArg(ctx context.Context) bool {
 	// an actual image which may require downloading.
 	output, _ := sf.commandContextOutput(ctx, "run", "--rm", "--platform", getPlatform(), "scratch")
 	return strings.Contains(output.string(), "Unable to find image")
+}
+
+func (sf *shellFrontend) setupAndValidateAddresses(feType string, cfg *FrontendConfig) (*FrontendURLs, error) {
+	calculatedBuildkitHost := cfg.BuildkitHostCLIValue
+	if cfg.BuildkitHostCLIValue == "" {
+		if cfg.BuildkitHostFileValue != "" {
+			calculatedBuildkitHost = cfg.BuildkitHostFileValue
+		} else {
+			var err error
+			calculatedBuildkitHost, err = DefaultAddressForSetting(feType)
+			if err != nil {
+				return nil, errors.Wrap(err, "could not validate default address")
+			}
+
+		}
+	}
+
+	bkURL, err := parseAndValidateURL(calculatedBuildkitHost)
+	if err != nil {
+		return nil, err
+	}
+
+	calculatedDebuggerHost := cfg.DebuggerHostCLIValue
+	if cfg.DebuggerHostCLIValue == "" {
+		if cfg.DebuggerHostFileValue != "" {
+			calculatedDebuggerHost = cfg.DebuggerHostFileValue
+		} else {
+			if cfg.DebuggerPortFileValue == config.DefaultDebuggerPort && bkURL.Scheme == "tcp" {
+				calculatedDebuggerHost = fmt.Sprintf("tcp://%s:%v", bkURL.Hostname(), config.DefaultDebuggerPort)
+			} else {
+				calculatedDebuggerHost = fmt.Sprintf("tcp://127.0.0.1:%v", cfg.DebuggerPortFileValue)
+			}
+		}
+	}
+
+	dbURL, err := parseAndValidateURL(calculatedDebuggerHost)
+	if err != nil {
+		return nil, err
+	}
+
+	lrURL := &url.URL{}
+	if IsLocal(calculatedDebuggerHost) && cfg.LocalRegistryHostFileValue != "" {
+		// Local registry only matters when local, and specified.
+		lrURL, err = parseAndValidateURL(cfg.LocalRegistryHostFileValue)
+		if err != nil {
+			return nil, err
+		}
+		if bkURL.Scheme == dbURL.Scheme && bkURL.Hostname() != lrURL.Hostname() {
+			cfg.Console.Warnf("Buildkit and local registry URLs are pointed at different hosts (%s vs. %s)", bkURL.Hostname(), lrURL.Hostname())
+		}
+	} else {
+		if cfg.LocalRegistryHostFileValue != "" {
+			cfg.Console.VerbosePrintf("Local registry host is specified while using remote buildkit. Local registry will not be used.")
+		}
+	}
+
+	if bkURL.Scheme == dbURL.Scheme && bkURL.Hostname() != dbURL.Hostname() {
+		cfg.Console.Warnf("Buildkit and debugger URLs are pointed at different hosts (%s vs. %s)", bkURL.Hostname(), dbURL.Hostname())
+	}
+
+	if bkURL.Hostname() == dbURL.Hostname() && bkURL.Port() == dbURL.Port() {
+		return nil, fmt.Errorf("debugger and Buildkit ports are the same: %w", errURLValidationFailure)
+	}
+
+	return &FrontendURLs{
+		BuildkitHost:      bkURL,
+		DebuggerHost:      dbURL,
+		LocalRegistryHost: lrURL,
+	}, nil
+}
+
+// DefaultAddressForSetting returns an address (signifying the desired/default transport) for a given frontend specified by setting.
+func DefaultAddressForSetting(setting string) (string, error) {
+	switch setting {
+	case FrontendDockerShell:
+		return DockerAddress, nil
+
+	case FrontendPodmanShell:
+		return TCPAddress, nil // Right now, podman only works over TCP. There are weird errors when trying to use the provided helper from buildkit.
+
+	case FrontendStub:
+		return DockerAddress, nil // Maintiain old behavior
+	}
+
+	return "", fmt.Errorf("no default buildkit address for %s", setting)
+}
+
+func parseAndValidateURL(addr string) (*url.URL, error) {
+	parsed, err := url.Parse(addr)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", addr, errURLParseFailure)
+	}
+
+	if parsed.Scheme != "tcp" && parsed.Scheme != "docker-container" && parsed.Scheme != "podman-container" {
+		return nil, fmt.Errorf("%s is not a valid scheme. Only tcp or docker-container is allowed at this time: %w", parsed.Scheme, errURLValidationFailure)
+	}
+
+	if parsed.Port() == "" && parsed.Scheme == "tcp" {
+		return nil, fmt.Errorf("%s does not contain a port number: %w", addr, errURLValidationFailure)
+	}
+
+	return parsed, nil
+}
+
+// IsLocal parses a URL and returns whether it is considered a local buildkit host + port that we
+// need to manage ourselves.
+func IsLocal(addr string) bool {
+	parsed, err := url.Parse(addr)
+	if err != nil {
+		return false
+	}
+
+	hostname := parsed.Hostname()
+	// These need to match what we put in our certificates.
+	return hostname == "127.0.0.1" || // The only IP v4 Loopback we honor. Because we need to include it in the TLS certificates.
+		hostname == net.IPv6loopback.String() ||
+		hostname == "localhost" || // Convention. Users hostname omitted; this is only really here for convenience.
+		parsed.Scheme == "docker-container" || // Accomodate feature flagging during transition. This will have omitted TLS?
+		parsed.Scheme == "podman-container"
 }
