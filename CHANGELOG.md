@@ -6,7 +6,18 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ### Fixed
 
-- `RUN --interactive` command exit codes were being ignored
+- Errors when using inline caching indicating `invalid layer index` [#1635](https://github.com/earthly/earthly/issues/1635)
+
+## v0.6.8 - 2022-02-16
+
+### Fixed
+
+- `RUN --interactive` command exit codes were being ignored.
+- `RUN --ssh` command were failing to create `SSH_AUTH_SOCK` when run inside a `WITH DOCKER`. [#1672](https://github.com/earthly/earthly/issues/1672)
+
+### Changed
+
+- expanded help text for `earthly account register --help`.
 
 ## v0.6.7 - 2022-02-09
 
