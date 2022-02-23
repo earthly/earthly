@@ -130,8 +130,12 @@ stop_dockerd() {
             i=$((i+1))
         done
     fi
+
     # Wipe dockerd data when done.
-    rm -rf "$EARTHLY_DOCKERD_DATA_ROOT"
+   if ! rm -rf "$EARTHLY_DOCKERD_DATA_ROOT"; then
+     # We have some issues about failing to delete files. If we fail, list the processes keeping it open for results.
+     lsof +D "$EARTHLY_DOCKERD_DATA_ROOT"
+   fi
 }
 
 load_images() {
