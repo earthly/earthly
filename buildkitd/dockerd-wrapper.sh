@@ -122,37 +122,32 @@ print_dockerd_logs() {
 
 stop_dockerd() {
     dockerd_pid="$(cat /var/run/docker.pid)"
-
-    # Kill dockerd in a subshell and wait for the PID to exit. This ensures that dockerd cannot keep any files in
-    # EARTHLY_DOCKERD_DATA_ROOT open.
-    (kill_dockerd)
-    wait "$dockerd_pid" || true
-
-    # Wipe dockerd data when done.
-   if ! rm -rf "$EARTHLY_DOCKERD_DATA_ROOT"; then
-     # We have some issues about failing to delete files. If we fail, list the processes keeping it open for results.
-     echo "==== Begin file info ===="
-     lsof +D "$EARTHLY_DOCKERD_DATA_ROOT"
-     echo "==== End file info logs ===="
-     echo "" # Add space between above and docker logs
-     print_dockerd_logs
-   fi
-}
-
-kill_dockerd() {
     timeout=30
-    dockerd_pid="$(cat /var/run/docker.pid)"
+
     if [ -n "$dockerd_pid" ]; then
         kill "$dockerd_pid" >/dev/null 2>&1
         i=1
         while kill -0 "$dockerd_pid" >/dev/null 2>&1; do
             sleep 1
             if [ "$i" -gt "$timeout" ]; then
-              echo "dockerd did not exit after $timeout seconds, force-exiting"
-              kill -9 "$dockerd_pid" >/dev/null 2>&1 || true
+                echo "dockerd did not exit after $timeout seconds, force-exiting"
+                kill -9 "$dockerd_pid" >/dev/null 2>&1 || true
             fi
             i=$((i+1))
         done
+
+        # Wait for the PID to exit. This ensures that dockerd cannot keep any files in EARTHLY_DOCKERD_DATA_ROOT open.
+        wait "$dockerd_pid" || true
+    fi
+
+      # Wipe dockerd data when done.
+    if ! rm -rf "$EARTHLY_DOCKERD_DATA_ROOT"; then
+        # We have some issues about failing to delete files. If we fail, list the processes keeping it open for results.
+        echo "==== Begin file info ===="
+        lsof +D "$EARTHLY_DOCKERD_DATA_ROOT"
+        echo "==== End file info logs ===="
+        echo "" # Add space between above and docker logs
+        print_dockerd_logs
     fi
 }
 
