@@ -157,13 +157,31 @@ func getPotentialPaths(ctx context.Context, resolver *buildcontext.Resolver, gwC
 		return potentials, nil
 	}
 
-	prefixDirExists, err := fileutil.DirExists(prefix)
+	usePrefixAsDir, err := fileutil.DirExists(prefix)
 	if err != nil {
 		return nil, err
 	}
 
+	if usePrefixAsDir && !strings.HasSuffix(prefix, "/") {
+		p, f := path.Split(prefix)
+		if hasEarthfile(f) {
+			usePrefixAsDir = false
+		}
+		files, err := os.ReadDir(p)
+		if err != nil {
+			return nil, err
+		}
+		for _, file := range files {
+			fileName := file.Name()
+			if strings.HasPrefix(fileName, f) && fileName != f {
+				usePrefixAsDir = false
+				break
+			}
+		}
+	}
+
 	var f, dir string
-	if prefixDirExists {
+	if usePrefixAsDir {
 		dir = prefix
 	} else {
 		dir, f = path.Split(prefix)

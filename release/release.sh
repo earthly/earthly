@@ -32,6 +32,10 @@ set -ex
 #    env -i HOME="$HOME" PATH="$PATH" SSH_AUTH_SOCK="$SSH_AUTH_SOCK" RELEASE_TAG=v0.6.0 ./release.sh
 #
 
+if [[ "$earthly" == .* ]]; then
+  earthly="$(pwd)/$earthly"
+fi
+
 SCRIPT_DIR="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 cd $SCRIPT_DIR
 
@@ -61,18 +65,25 @@ if [ "$GITHUB_USER" = "earthly" ] && [ "$EARTHLY_REPO" = "earthly" ]; then
     fi
 fi
 
-../earthly upgrade
+if [ -z "$earthly" ]; then
+  ../earthly upgrade
+  earthly="../earthly"
+fi
 
 # fail-fast if release-notes do not exist (or if date is incorrect)
-../earthly --build-arg DOCKERHUB_USER --build-arg RELEASE_TAG +release-notes
+"$earthly" --build-arg DOCKERHUB_USER --build-arg RELEASE_TAG +release-notes
 
 if [ -n "$GITHUB_SECRET_PATH" ]; then
     GITHUB_SECRET_PATH_BUILD_ARG="--build-arg GITHUB_SECRET_PATH=$GITHUB_SECRET_PATH"
 else
-    (../earthly secrets ls /earthly-technologies >/dev/null) || (echo "ERROR: current user does not have access to earthly-technologies shared secrets"; exit 1);
+    ("$earthly" secrets ls /earthly-technologies >/dev/null) || (echo "ERROR: current user does not have access to earthly-technologies shared secrets"; exit 1);
 fi
 
-(../earthly secrets get /user/earthly-technologies/aws/credentials >/dev/null) || (echo "ERROR: user-secrets /user/earthly-technologies/aws/credentials does not exist"; exit 1);
+release_apt_and_yum="false"
+if [ "$GITHUB_USER" = "earthly" ] && [ "$EARTHLY_REPO" = "earthly" ]; then
+    ("$earthly" secrets get /user/earthly-technologies/aws/credentials >/dev/null) || (echo "ERROR: user-secrets /user/earthly-technologies/aws/credentials does not exist"; exit 1);
+    release_apt_and_yum="true"
+fi
 
 existing_release=$(curl -s https://api.github.com/repos/earthly/earthly/releases/tags/$RELEASE_TAG | jq -r .tag_name)
 if [ "$existing_release" != "null" ]; then
@@ -80,15 +91,16 @@ if [ "$existing_release" != "null" ]; then
     echo "overwriting existing release for $RELEASE_TAG"
 fi
 
-../earthly --push --build-arg DOCKERHUB_USER --build-arg RELEASE_TAG +release-dockerhub
-../earthly --push --build-arg GITHUB_USER --build-arg EARTHLY_REPO --build-arg BREW_REPO --build-arg DOCKERHUB_USER --build-arg RELEASE_TAG --build-arg PRERELEASE="$PRERELEASE" $GITHUB_SECRET_PATH_BUILD_ARG +release-github
+"$earthly" --push --build-arg DOCKERHUB_USER --build-arg RELEASE_TAG +release-dockerhub
+"$earthly" --push --build-arg GITHUB_USER --build-arg EARTHLY_REPO --build-arg BREW_REPO --build-arg DOCKERHUB_USER --build-arg RELEASE_TAG --build-arg PRERELEASE="$PRERELEASE" $GITHUB_SECRET_PATH_BUILD_ARG +release-github
 
 if [ "$PRERELEASE" != "false" ]; then
     echo "exiting due to prerelease = true"
     exit 0
 fi
 
-../earthly --push --build-arg GITHUB_USER --build-arg EARTHLY_REPO --build-arg BREW_REPO --build-arg DOCKERHUB_USER --build-arg RELEASE_TAG $GITHUB_SECRET_PATH_BUILD_ARG +release-homebrew
+echo "homebrew release with gu=$GITHUB_USER; er=$EARTHLY_REPO; br=$BREW_REPO; du=$DOCKERHUB_USER; rt=$RELEASE_TAG"
+"$earthly" --push --build-arg GITHUB_USER --build-arg EARTHLY_REPO --build-arg BREW_REPO --build-arg DOCKERHUB_USER --build-arg RELEASE_TAG $GITHUB_SECRET_PATH_BUILD_ARG +release-homebrew
 
 # TODO pass along a RELEASE_REPO_TEST_SUFFIX which would cause us to host our yum/apt repos under https://test-pkg.earthly.dev/$RELEASE_REPO_TEST_SUFFIX/...
 # and when it is empty, we would use https://pkg.earthly.dev/...
@@ -96,9 +108,9 @@ fi
 # until then, we will just print this out:
 echo "TODO: the apt/yum release must be triggered seperately; until we get https://test-pkg.earthly.dev/ setup"
 
-if [ "$GITHUB_USER" = "earthly" ] && [ "$EARTHLY_REPO" = "earthly" ]; then
-    ../earthly --push --build-arg RELEASE_TAG ./apt-repo+build-and-release
-    ../earthly --push --build-arg RELEASE_TAG ./yum-repo+build-and-release
+if [ "$release_apt_and_yum" = "true" ]; then
+    "$earthly" --push --build-arg RELEASE_TAG ./apt-repo+build-and-release
+    "$earthly" --push --build-arg RELEASE_TAG ./yum-repo+build-and-release
 else
     echo "WARNING: there is no staging environment for apt or yum repos"
 fi

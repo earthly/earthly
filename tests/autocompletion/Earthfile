@@ -159,6 +159,39 @@ test-relative-dir-targets:
     RUN COMP_LINE="earthly ./foo+" COMP_POINT=14 earthly > actual
     RUN diff expected actual
 
+test-targets-in-dir-and-subdir:
+    RUN mkdir -p /test/foo/subdir
+    COPY fake.earth /test/foo/Earthfile
+    COPY fake.earth /test/foo/subdir/Earthfile
+
+    WORKDIR /test/
+    RUN echo "./foo+
+./foo/" > expected
+    RUN COMP_LINE="earthly ./" COMP_POINT=10 earthly > actual
+    RUN diff expected actual
+
+    RUN COMP_LINE="earthly ./f" COMP_POINT=11 earthly > actual
+    RUN diff expected actual
+
+    RUN COMP_LINE="earthly ./foo" COMP_POINT=13 earthly > actual
+    RUN diff expected actual
+
+test-targets-in-two-subdirs-that-are-similar:
+    COPY fake.earth /test/foo/subdir/Earthfile
+    COPY fake.earth /test/food/subdir/Earthfile
+
+    WORKDIR /test/
+    RUN echo "./foo/
+./food/" > expected
+    RUN COMP_LINE="earthly ./" COMP_POINT=10 earthly > actual
+    RUN diff expected actual
+
+    RUN COMP_LINE="earthly ./f" COMP_POINT=11 earthly > actual
+    RUN diff expected actual
+
+    RUN COMP_LINE="earthly ./foo" COMP_POINT=13 earthly > actual
+    RUN diff expected actual
+
 test-all:
     BUILD +test-root-commands
     BUILD +test-hidden-root-commands
@@ -171,3 +204,5 @@ test-all:
     BUILD +test-relative-dir-targets
     BUILD +test-no-parent-at-root
     BUILD +test-no-parent-at-root-from-home
+    BUILD +test-targets-in-dir-and-subdir
+    BUILD +test-targets-in-two-subdirs-that-are-similar

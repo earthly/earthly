@@ -118,7 +118,7 @@ func (bb *BundleBuilder) WriteToDisk() (string, error) {
 		targetData = append(targetData, mt)
 
 		trimmed := strings.TrimSpace(lines.prefix)
-		escaped := url.PathEscape(trimmed)
+		escaped := url.QueryEscape(trimmed)
 
 		tarWriter.WriteHeader(&tar.Header{
 			Name:       fmt.Sprintf("target/%s", escaped),
@@ -156,7 +156,7 @@ func (bb *BundleBuilder) WriteToDisk() (string, error) {
 func (bb *BundleBuilder) buildManifest(targetManifests []TargetManifest) *Manifest {
 	manifest := &Manifest{
 		Version:    1,
-		Duration:   int(time.Since(bb.started).Seconds()),
+		Duration:   int(time.Since(bb.started).Milliseconds()),
 		Status:     StatusComplete,
 		Result:     ResultSuccess,
 		CreatedAt:  time.Now().In(time.UTC),
@@ -165,6 +165,13 @@ func (bb *BundleBuilder) buildManifest(targetManifests []TargetManifest) *Manife
 	}
 
 	for _, tm := range targetManifests {
+		if tm.Name == fullLog {
+			// Full Log reserved name should not determine whole build status.
+			// Really, we could go back through after determining whole build status to set _full result & status to the
+			// values for the whole build; but it doesn't (yet) affect or mean anything to us. So leave it as is.
+			continue
+		}
+
 		if tm.Result != ResultSuccess {
 			manifest.Result = tm.Result
 		}
@@ -191,9 +198,9 @@ func (tl *targetLogger) toManifestTarget() (TargetManifest, error) {
 		return TargetManifest{}, errors.New("0 length target")
 	}
 
-	if tl.prefix == "ongoing" {
-		// The ongoing messages end up in here too. Since they are not updates from a vertex, we will never mark them as complete.
-		// Additionally, its not useful to have in the output. Ignore it here.
+	if tl.prefix == "ongoing" || tl.prefix == "buildkitd" {
+		// The ongoing & buildkitd init messages end up in here too. Since they are not updates from a vertex, we will
+		// never mark them as complete. Additionally, its not useful to have in the output. Ignore it here.
 		return TargetManifest{}, fmt.Errorf("blacklisted target name %s", tl.prefix)
 	}
 
@@ -203,7 +210,7 @@ func (tl *targetLogger) toManifestTarget() (TargetManifest, error) {
 		Name:     tl.prefix,
 		Status:   tl.status,
 		Result:   tl.result,
-		Duration: int(time.Since(tl.started).Seconds()),
+		Duration: int(time.Since(tl.started).Milliseconds()),
 		Size:     tl.writer.Len(),
 		Command:  command,
 		Summary:  summary,

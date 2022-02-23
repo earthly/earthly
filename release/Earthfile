@@ -209,7 +209,9 @@ release-homebrew:
         eval $(ssh-agent) && \
         cat /root/id_rsa | ssh-add - && \
         git push --force --set-upstream origin "$RELEASE_BRANCH" && \
-        curl -s -X POST -H 'Content-type: application/json' --data '{"text":"Successfully pushed release branch: https://github.com/earthly/homebrew-earthly/tree/'$RELEASE_BRANCH' (this branch will be automatically deleted via GHA once GHA deploy task finishes)"}' "$SLACK_WEBHOOK_URL"
+        if [ "$BREW_REPO" = "homebrew-earthly" ] && [ "$GITHUB_USER" = "earthly" ]; then \
+            curl -s -X POST -H 'Content-type: application/json' --data '{"text":"Successfully pushed release branch: https://github.com/earthly/homebrew-earthly/tree/'$RELEASE_BRANCH' (this branch will be automatically deleted via GHA once GHA deploy task finishes)"}' "$SLACK_WEBHOOK_URL"; \
+        fi
 
 release-vscode-syntax-highlighting:
     ARG VSCODE_RELEASE_TAG

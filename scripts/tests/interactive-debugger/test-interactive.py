@@ -40,6 +40,7 @@ if __name__ == '__main__':
     exit_code = 0
     for test_name, test in (
             ('test-simple', import_test_func(os.path.join(script_dir, 'simple', 'test-simple.py'))),
+            ('test-interactive-run', import_test_func(os.path.join(script_dir, 'interactive-run', 'test-interactive-run.py'))),
             ('test-docker-compose', import_test_func(os.path.join(script_dir, 'docker-compose', 'test-docker-compose.py'))),
             ):
         print(f'Running {test_name}')

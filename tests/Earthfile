@@ -152,6 +152,9 @@ ga:
     BUILD +cache-cmd
     BUILD +ls
     BUILD +ls-subdir
+    BUILD +ssh
+    BUILD +host
+    BUILD +host-invalid
 
 # tests that only run on linux amd64
 # Note: this target is used to validate the USERPLATFORM user arg,
@@ -957,6 +960,32 @@ ls-subdir:
     RUN earthly ls ./subdir 2>/dev/null | tee actual
     RUN echo -e "+alpha\n+base\n+bravo\n+charlie" > expected
     RUN diff expected actual
+
+ssh:
+    COPY ssh.earth ./Earthfile
+    RUN ssh-keygen -b 3072 -t rsa -f /root/rsa-key -q -N '' -C 'rsa-key-from-earthly-tests'
+    RUN echo "#!/bin/sh
+set -e
+eval \"\$(ssh-agent)\"
+ssh-add /root/rsa-key
+earthly --config \$earthly_config +test
+earthly --config \$earthly_config -P +test-with-docker
+" >/tmp/test-earthly-script && chmod +x /tmp/test-earthly-script
+    ENV EARTHLY_EXEC_CMD="/tmp/test-earthly-script"
+    RUN --privileged \
+    --entrypoint \
+    --mount=type=tmpfs,target=/tmp/earthly \
+    -- -P
+
+host:
+    DO +RUN_EARTHLY --earthfile=host.earth --target=+add-single-host
+    DO +RUN_EARTHLY --earthfile=host.earth --target=+add-multiple-host
+    DO +RUN_EARTHLY --earthfile=host.earth --target=+add-ipv6
+
+host-invalid:
+    DO +RUN_EARTHLY --earthfile=host.earth --should_fail=true --target=+invalid-ip --output_contains="invalid HOST ip"
+    DO +RUN_EARTHLY --earthfile=host.earth --should_fail=true --target=+only-host --output_contains="invalid number of arguments for HOST"
+    DO +RUN_EARTHLY --earthfile=host.earth --should_fail=true --target=+only-ip --output_contains="invalid number of arguments for HOST"
 
 RUN_EARTHLY:
     COMMAND

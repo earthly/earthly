@@ -4,6 +4,63 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+### Added
+
+- Experimental `HOST` command, which can be used like this: `HOST <domain> <ip>` to add additional hosts during the execution of your build. To enable this feature, use `VERSION --use-host-command 0.6`. [#1168](https://github.com/earthly/earthly/issues/1168)
+
+### Fixed
+
+- Errors when using inline caching indicating `invalid layer index` [#1635](https://github.com/earthly/earthly/issues/1635)
+- Podman can now use credentials from the default location [#1644](https://github.com/earthly/earthly/issues/1644)
+- Podman can now use the local registry cache without modifying `registries.conf` [#1675](https://github.com/earthly/earthly/pull/1675)
+- Podman can now use `WITH DOCKER --load` inside a target marked as `LOCALLY` [#1675](https://github.com/earthly/earthly/pull/1675)
+- Interactive sessions should now work with rootless configurations that have no apparent external IP address [#1573](https://github.com/earthly/earthly/issues/1573), [#1689](https://github.com/earthly/earthly/pull/1689)
+
+## v0.6.8 - 2022-02-16
+
+### Fixed
+
+- `RUN --interactive` command exit codes were being ignored.
+- `RUN --ssh` command were failing to create `SSH_AUTH_SOCK` when run inside a `WITH DOCKER`. [#1672](https://github.com/earthly/earthly/issues/1672)
+
+### Changed
+
+- expanded help text for `earthly account register --help`.
+
+## v0.6.7 - 2022-02-09
+
+Log Sharing (experimental)
+
+This version of Earthly includes an experimental log-sharing feature which will
+upload build-logs to the cloud when enabled.
+
+To enable this experimental feature, you must first sign up for an earthly account
+by using the [`earthly account register`](https://docs.earthly.dev/docs/earthly-command#earthly-account-register)
+command, or by visiting [https://ci.earthly.dev/](https://ci.earthly.dev/)
+
+Once logged in, you must explicitly enable log-sharing by running:
+
+    earthly config global.disable_log_sharing false
+
+In a future version, log-sharing will be enabled by default for logged-in users; however, you will still be able to disable it, if needed.
+
+When log-sharing is enabled, you will see a message such as
+
+    Share your build log with this link: https://ci.earthly.dev/logs?logId=dc622821-9fe4-4a13-a1db-12680d73c442
+
+as the last line of `earthly` output.
+
+### Fixed
+
+- `GIT CLONE` now works with annotated git tags. [#1571](https://github.com/earthly/earthly/issues/1571)
+- `CACHE` command was not working for versions of earthly installed via homebrew.
+- Autocompletion bug when directory has both an Earthfile and subdir containing an earthfile.
+- Autocompletion bug when directory has two subdirectories where one is a prefix of the other.
+
+### Changed
+
+- `earthly account logout` raises an error when `EARTHLY_TOKEN` is set.
+
 ## v0.6.6 - 2022-01-26
 
 ### Added

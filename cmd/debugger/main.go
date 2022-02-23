@@ -21,6 +21,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+const cniGateway = "172.30.0.1:8373"
+
 var (
 	// Version is the version of the debugger
 	Version string
@@ -29,7 +31,9 @@ var (
 	GitSha string
 
 	// ErrNoShellFound occurs when the container has no shell
-	ErrNoShellFound = errors.Errorf("no shell found")
+	ErrNoShellFound = errors.New("no shell found")
+
+	errInteractiveModeWaitFailed = errors.New("interactive mode wait failed")
 )
 
 func getShellPath() (string, bool) {
@@ -85,9 +89,17 @@ func populateShellHistory(cmd string) error {
 func interactiveMode(ctx context.Context, remoteConsoleAddr string, cmdBuilder func() (*exec.Cmd, error)) error {
 	log := slog.GetLogger(ctx)
 
-	conn, err := net.Dial("tcp", remoteConsoleAddr)
+	// If the IP we derived at start fails, try the reserved gateway address for our internal CNI network.
+	// The CIDR range for this can be found in buildkitd/cni-conf.json.template, so if that ever changes, we need to change it here, too.
+	// Relevant CNI docs for the host-local ipam module: https://www.cni.dev/plugins/current/ipam/host-local/
+	// tl;dr we can assume the gateway is at .1 in the subnet.
+	conn, err := net.Dial("tcp", cniGateway)
 	if err != nil {
-		return errors.Wrap(err, "failed to connect to remote debugger")
+		log.Debug(fmt.Sprintf("failed to connect internal CNI %q, trying configured address %q.", cniGateway, remoteConsoleAddr))
+		conn, err = net.Dial("tcp", remoteConsoleAddr)
+		if err != nil {
+			return errors.Wrap(err, "failed to connect to remote debugger")
+		}
 	}
 	defer func() {
 		err := conn.Close()
@@ -158,8 +170,11 @@ func interactiveMode(ctx context.Context, remoteConsoleAddr string, cmdBuilder f
 		cancel()
 	}()
 
+	var waitErr error
+	var waitErrSet bool
 	go func() {
-		c.Wait()
+		waitErr = c.Wait()
+		waitErrSet = true
 		cancel()
 	}()
 
@@ -167,7 +182,10 @@ func interactiveMode(ctx context.Context, remoteConsoleAddr string, cmdBuilder f
 
 	common.WriteDataPacket(conn, common.EndShellSession, nil)
 
-	return nil
+	if !waitErrSet {
+		return errInteractiveModeWaitFailed
+	}
+	return waitErr
 }
 
 func getSettings(path string) (*common.DebuggerSettings, error) {
@@ -233,14 +251,20 @@ func main() {
 			return exec.Command(args[0], args[1:]...), nil
 		}
 
+		exitCode := 0
 		err = interactiveMode(ctx, debuggerSettings.RepeaterAddr, cmdBuilder)
 		if err != nil {
 			log.Error(err)
+			if exitErr, ok := err.(*exec.ExitError); ok {
+				exitCode = exitErr.ExitCode()
+			} else {
+				exitCode = 127
+			}
 		}
 
 		conslogger.PrintBar(color.New(color.FgHiMagenta), " End Interactive Session ", "")
 
-		return
+		os.Exit(exitCode)
 	}
 
 	log.With("command", args).With("version", Version).Debug("running command")

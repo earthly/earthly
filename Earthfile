@@ -347,7 +347,7 @@ earthly-integration-test-base:
     IF [ -z $DOCKERHUB_MIRROR ]
     # No mirror, easy CI and local use by all
         ENV GLOBAL_CONFIG="{disable_analytics: true, local_registry_host: 'tcp://127.0.0.1:8371', conversion_parallelism: 5}"
-        IF $DOCKERHUB_AUTH
+        IF [ "$DOCKERHUB_AUTH" = "true" ]
             RUN --secret USERNAME=$DOCKERHUB_USER_SECRET \
                 --secret TOKEN=$DOCKERHUB_TOKEN_SECRET \
                 docker login --username="$USERNAME" --password="$TOKEN"
@@ -359,7 +359,7 @@ earthly-integration-test-base:
                            mirrors = [\"$DOCKERHUB_MIRROR\"]'}"
         ENV EARTHLY_ADDITIONAL_BUILDKIT_CONFIG="[registry.\"docker.io\"]
                     mirrors = [\"registry-1.docker.io.mirror.corp.earthly.dev\"]"
-        IF $DOCKERHUB_AUTH
+        IF [ "$DOCKERHUB_AUTH" = "true" ]
             RUN --secret USERNAME=$DOCKERHUB_USER_SECRET \
                 --secret TOKEN=$DOCKERHUB_TOKEN_SECRET \
                 docker login $DOCKERHUB_MIRROR --username="$USERNAME" --password="$TOKEN"

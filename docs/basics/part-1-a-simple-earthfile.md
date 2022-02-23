@@ -1,10 +1,14 @@
 # A simple Earthfile
 
-Earthfiles are always named `Earthfile`, regardless of their location in the codebase.
+All the magic of Earthly happens in the Earthfile. Earthfiles are always named `Earthfile`, regardless of their location in the codebase. Below you'll find several example Earthfiles. 
 
-{% method %}
-{% sample lang="Go" %}
-Here is a sample Earthfile of a Go app
+- [Go](#go) 
+- [JavaScript](#javascript) 
+- [Java](#java)
+- [Python](#python)
+
+
+### Go
 
 `./Earthfile`
 
@@ -52,8 +56,7 @@ earthly --artifact github.com/earthly/earthly/examples/tutorial/go:main+part1/pa
 
 {% endhint %}
 
-{% sample lang="JavaScript" %}
-Here is a sample Earthfile of a JS app
+### JavaScript
 
 `./Earthfile`
 
@@ -96,8 +99,7 @@ earthly --artifact github.com/earthly/earthly/examples/tutorial/js:main+part1/pa
 
 {% endhint %}
 
-{% sample lang="Java" %}
-Here is a sample Earthfile of a Java app
+### Java
 
 `./Earthfile`
 
@@ -167,8 +169,7 @@ earthly --artifact github.com/earthly/earthly/examples/tutorial/java:main+part1/
 
 {% endhint %}
 
-{% sample lang="Python" %}
-Here is a sample Earthfile of a Python app
+### Python
 
 `./Earthfile`
 
@@ -209,8 +210,6 @@ earthly --artifact github.com/earthly/earthly/examples/tutorial/python:main+part
 ```
 
 {% endhint %}
-
-{% endmethod %}
 
 From the example above, you may notice that an Earthfile is very similar to a Dockerfile. This is an intentional design decision. Existing Dockerfiles can easily be ported to Earthly by copying them to an Earthfile and tweaking them slightly.
 

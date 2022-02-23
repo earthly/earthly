@@ -295,7 +295,15 @@ func main() {
 		ctxTimeout, cancel := context.WithTimeout(ctx, time.Millisecond*500)
 		defer cancel()
 		displayErrors := app.verbose
-		analytics.CollectAnalytics(ctxTimeout, app.apiServer, displayErrors, Version, getPlatform(), GitSha, app.commandName, exitCode, time.Since(startTime))
+		cc, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
+		if err != nil && displayErrors {
+			app.console.Warnf("unable to start cloud client: %s", err)
+		} else if err == nil {
+			analytics.CollectAnalytics(
+				ctxTimeout, cc, displayErrors, Version, getPlatform(),
+				GitSha, app.commandName, exitCode, time.Since(startTime),
+			)
+		}
 	}
 	os.Exit(exitCode)
 }
@@ -824,11 +832,19 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 					Name:        "register",
 					Usage:       "Register for an Earthly account",
 					Description: "Register for an Earthly account",
-					UsageText: "first, request a token with:\n" +
-						"     earthly [options] account register --email <email>\n" +
+					UsageText: "You may register using GitHub OAuth, by visiting https://ci.earthly.dev\n" +
+						"   Once authenticated, a login token will be displayed which can be used to login:\n" +
 						"\n" +
-						"   then check your email to retrieve the token, then continue by running:\n" +
-						"     earthly [options] account register --email <email> --token <token> [options]",
+						"       earthly [options] account login --token <token>\n" +
+						"\n" +
+						"   Alternatively, you can register using an email:\n" +
+						"       first, request a token with:\n" +
+						"\n" +
+						"           earthly [options] account register --email <email>\n" +
+						"\n" +
+						"       then check your email to retrieve the token, then continue by running:\n" +
+						"\n" +
+						"           earthly [options] account register --token <token>\n",
 					Action: app.actionRegister,
 					Flags: []cli.Flag{
 						&cli.StringFlag{
@@ -1087,10 +1103,19 @@ func (app *earthlyApp) before(context *cli.Context) error {
 		return err
 	}
 
-	fe, err := containerutil.FrontendForSetting(context.Context, app.cfg.Global.ContainerFrontend)
+	feConfig := &containerutil.FrontendConfig{
+		BuildkitHostCLIValue:       app.buildkitHost,
+		BuildkitHostFileValue:      app.cfg.Global.BuildkitHost,
+		DebuggerHostCLIValue:       app.debuggerHost,
+		DebuggerHostFileValue:      app.cfg.Global.DebuggerHost,
+		DebuggerPortFileValue:      app.cfg.Global.DebuggerPort,
+		LocalRegistryHostFileValue: app.cfg.Global.LocalRegistryHost,
+		Console:                    app.console,
+	}
+	fe, err := containerutil.FrontendForSetting(context.Context, app.cfg.Global.ContainerFrontend, feConfig)
 	if err != nil {
 		app.console.Warnf("%s frontend initialization failed due to %s; but will try anyway", app.cfg.Global.ContainerFrontend, err.Error())
-		fe, _ = containerutil.NewStubFrontend(context.Context)
+		fe, _ = containerutil.NewStubFrontend(context.Context, feConfig)
 	}
 	app.containerFrontend = fe
 
@@ -1099,14 +1124,16 @@ func (app *earthlyApp) before(context *cli.Context) error {
 		app.buildkitdImage = app.cfg.Global.BuildkitImage
 	}
 
-	err = app.setupAndValidateAddresses(context)
-	if err != nil {
-		return err
-	}
+	// These URLs were calculated relative to the configured frontend. In the case of an automatically detected frontend,
+	// they are calculated according to the first selected one in order of precedence.
+	buildkitURLs := fe.Config().FrontendURLs
+	app.buildkitHost = buildkitURLs.BuildkitHost.String()
+	app.debuggerHost = buildkitURLs.DebuggerHost.String()
+	app.localRegistryHost = buildkitURLs.LocalRegistryHost.String()
 
-	bkURL, err := parseAndvalidateURL(app.buildkitHost)
+	bkURL, err := url.Parse(app.buildkitHost) // Not validated because we already did that when we calculated it.
 	if err != nil {
-		return errors.Wrapf(err, "invalid buildkit_host: %s", app.buildkitHost)
+		return errors.Wrap(err, "failed to parse generated buildkit URL")
 	}
 
 	if bkURL.Scheme == "tcp" {
@@ -1156,71 +1183,6 @@ func (app *earthlyApp) before(context *cli.Context) error {
 	return nil
 }
 
-func (app *earthlyApp) setupAndValidateAddresses(context *cli.Context) error {
-	if !context.IsSet("buildkit-host") {
-		if app.cfg.Global.BuildkitHost != "" {
-			app.buildkitHost = app.cfg.Global.BuildkitHost
-		} else {
-			var err error
-			feConfig := app.containerFrontend.Config()
-			app.buildkitHost, err = buildkitd.DefaultAddressForSetting(feConfig.Setting)
-			if err != nil {
-				return errors.Wrap(err, "could not validate default address")
-			}
-
-		}
-	}
-
-	bkURL, err := parseAndvalidateURL(app.buildkitHost)
-	if err != nil {
-		return err
-	}
-
-	if !context.IsSet("debugger-host") {
-		if app.cfg.Global.DebuggerHost != "" {
-			app.debuggerHost = app.cfg.Global.DebuggerHost
-		} else {
-			if app.cfg.Global.DebuggerPort == config.DefaultDebuggerPort && bkURL.Scheme == "tcp" {
-				app.debuggerHost = fmt.Sprintf("tcp://%s:%v", bkURL.Hostname(), config.DefaultDebuggerPort)
-			} else {
-				app.debuggerHost = fmt.Sprintf("tcp://127.0.0.1:%v", app.cfg.Global.DebuggerPort)
-			}
-		}
-	}
-
-	dbURL, err := parseAndvalidateURL(app.debuggerHost)
-	if err != nil {
-		return err
-	}
-
-	if buildkitd.IsLocal(app.buildkitHost) && app.cfg.Global.LocalRegistryHost != "" {
-		// Local registry only matters when local, and specified.
-		lrURL, err := parseAndvalidateURL(app.cfg.Global.LocalRegistryHost)
-		if err != nil {
-			return err
-		}
-		if bkURL.Scheme == dbURL.Scheme && bkURL.Hostname() != lrURL.Hostname() {
-			app.console.Warnf("Buildkit and Local Registry URLs are pointed at different hosts (%s vs. %s)", bkURL.Hostname(), lrURL.Hostname())
-		}
-		app.localRegistryHost = app.cfg.Global.LocalRegistryHost
-	} else {
-		app.localRegistryHost = ""
-		if app.cfg.Global.LocalRegistryHost != "" {
-			app.console.VerbosePrintf("Local registry host is specified while using remote buildkit. Local registry will not be used.")
-		}
-	}
-
-	if bkURL.Scheme == dbURL.Scheme && bkURL.Hostname() != dbURL.Hostname() {
-		app.console.Warnf("Buildkit and Debugger URLs are pointed at different hosts (%s vs. %s)", bkURL.Hostname(), dbURL.Hostname())
-	}
-
-	if bkURL.Hostname() == dbURL.Hostname() && bkURL.Port() == dbURL.Port() {
-		return fmt.Errorf("debugger and Buildkit ports are the same: %w", errURLValidationFailure)
-	}
-
-	return nil
-}
-
 func (app *earthlyApp) handleTLSCertificateSettings(context *cli.Context) {
 	if !app.cfg.Global.TLSEnabled {
 		return
@@ -1241,23 +1203,6 @@ func (app *earthlyApp) handleTLSCertificateSettings(context *cli.Context) {
 
 	app.buildkitdSettings.ServerTLSCert = app.cfg.Global.ServerTLSCert
 	app.buildkitdSettings.ServerTLSKey = app.cfg.Global.ServerTLSKey
-}
-
-func parseAndvalidateURL(addr string) (*url.URL, error) {
-	parsed, err := url.Parse(addr)
-	if err != nil {
-		return nil, fmt.Errorf("%s: %w", addr, errURLParseFailure)
-	}
-
-	if parsed.Scheme != "tcp" && parsed.Scheme != "docker-container" && parsed.Scheme != "podman-container" {
-		return nil, fmt.Errorf("%s is not a valid scheme. Only tcp or docker-container is allowed at this time: %w", parsed.Scheme, errURLValidationFailure)
-	}
-
-	if parsed.Port() == "" && parsed.Scheme == "tcp" {
-		return nil, fmt.Errorf("%s does not contain a port number: %w", addr, errURLValidationFailure)
-	}
-
-	return parsed, nil
 }
 
 func (app *earthlyApp) warnIfEarth() {
@@ -1800,7 +1745,7 @@ func (app *earthlyApp) bootstrap(c *cli.Context) error {
 	}
 
 	if !app.bootstrapNoBuildkit {
-		bkURL, err := parseAndvalidateURL(app.buildkitHost)
+		bkURL, err := url.Parse(app.buildkitHost)
 		if err != nil {
 			return errors.Wrapf(err, "invalid buildkit_host: %s", app.cfg.Global.BuildkitHost)
 		}
@@ -2718,7 +2663,7 @@ func (app *earthlyApp) actionBuild(c *cli.Context) error {
 		if !termutil.IsTTY() {
 			return errors.New("A tty-terminal must be present in order to the --interactive flag")
 		}
-		if !buildkitd.IsLocal(app.buildkitHost) {
+		if !containerutil.IsLocal(app.buildkitHost) {
 			return errors.New("the --interactive flag is not currently supported with non-local buildkit servers")
 		}
 	}
@@ -2875,7 +2820,7 @@ func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []st
 		return errors.Wrap(err, "build new buildkitd client")
 	}
 	defer bkClient.Close()
-	isLocal := buildkitd.IsLocal(app.buildkitdSettings.BuildkitAddress)
+	isLocal := containerutil.IsLocal(app.buildkitdSettings.BuildkitAddress)
 
 	bkIP, err := buildkitd.GetContainerIP(c.Context, app.containerName, app.containerFrontend, app.buildkitdSettings)
 	if err != nil {
@@ -2939,9 +2884,20 @@ func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []st
 	buildContextProvider.AddDirs(defaultLocalDirs)
 	attachables := []session.Attachable{
 		llbutil.NewSecretProvider(cc, secretsMap),
-		authprovider.NewDockerAuthProvider(os.Stderr),
 		buildContextProvider,
 		localhostProvider,
+	}
+
+	switch app.containerFrontend.Config().Setting {
+	case containerutil.FrontendDocker, containerutil.FrontendDockerShell:
+		attachables = append(attachables, authprovider.NewDockerAuthProvider(os.Stderr))
+
+	case containerutil.FrontendPodman, containerutil.FrontendPodmanShell:
+		attachables = append(attachables, authprovider.NewPodmanAuthProvider(os.Stderr))
+
+	default:
+		// Old default behavior
+		attachables = append(attachables, authprovider.NewDockerAuthProvider(os.Stderr))
 	}
 
 	gitLookup := buildcontext.NewGitLookup(app.console, app.sshAuthSock)
@@ -3138,6 +3094,8 @@ func ifNilBoolDefault(ptr *bool, defaultValue bool) bool {
 }
 
 func (app *earthlyApp) actionListTargets(c *cli.Context) error {
+	app.commandName = "listTargets"
+
 	if c.NArg() > 1 {
 		return errors.New("invalid number of arguments provided")
 	}

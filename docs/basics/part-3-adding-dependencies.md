@@ -1,10 +1,14 @@
 
 # Adding dependencies
 
-Let's imagine now that in our simple app, we now want to add a programming language dependency. Here's how our build might look like as a result
+Now Let's imagine that we want to add some dependancies to our app. Here's how our build might look as a result.
 
-{% method %}
-{% sample lang="Go" %}
+- [Go](#go) 
+- [JavaScript](#javascript) 
+- [Java](#java)
+- [Python](#python)
+
+### Go
 
 `./go.mod`
 
@@ -66,7 +70,8 @@ earthly --artifact github.com/earthly/earthly/examples/tutorial/go:main+part3/pa
 ```
 {% endhint %}
 
-{% sample lang="JavaScript" %}
+### Javascript
+
 `./package.json`
 
 ```json
@@ -162,7 +167,7 @@ earthly --artifact github.com/earthly/earthly/examples/tutorial/js:main+part3/pa
 ```
 {% endhint %}
 
-{% sample lang="Java" %}
+### Java
 
 `./build.gradle`
 
@@ -242,7 +247,8 @@ earthly --artifact github.com/earthly/earthly/examples/tutorial/java:main+part3/
 ```
 {% endhint %}
 
-{% sample lang="Python" %}
+### Python
+
 `./requirements.txt`
 
 ```
@@ -296,8 +302,6 @@ To copy the files for [this example ( Part 3 )](https://github.com/earthly/earth
 earthly --artifact github.com/earthly/earthly/examples/tutorial/python:main+part3/part3 ./part3
 ```
 {% endhint %}
-
-{% endmethod %}
 
 However, as we build this new setup and make changes to the main source code, we notice that the dependencies are downloaded every single time we change the source code. While the build is not necessarily incorrect, it is inefficient for proper development speed.
 

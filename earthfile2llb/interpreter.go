@@ -3,6 +3,7 @@ package earthfile2llb
 import (
 	"context"
 	"fmt"
+	"net"
 	"os"
 	"path"
 	"strings"
@@ -246,6 +247,8 @@ func (i *Interpreter) handleCommand(ctx context.Context, cmd spec.Command) (err 
 		return i.handleImport(ctx, cmd)
 	case "CACHE":
 		return i.handleCache(ctx, cmd)
+	case "HOST":
+		return i.handleHost(ctx, cmd)
 	default:
 		return i.errorf(cmd.SourceLocation, "unexpected command %s", cmd.Name)
 	}
@@ -554,6 +557,7 @@ func (i *Interpreter) handleRun(ctx context.Context, cmd spec.Command) error {
 		i.withDocker.Secrets = opts.Secrets
 		i.withDocker.WithShell = withShell
 		i.withDocker.WithEntrypoint = opts.WithEntrypoint
+		i.withDocker.WithSSH = opts.WithSSH
 		i.withDocker.NoCache = opts.NoCache
 		i.withDocker.Interactive = opts.Interactive
 		i.withDocker.interactiveKeep = opts.InteractiveKeep
@@ -1362,6 +1366,31 @@ func (i *Interpreter) handleCache(ctx context.Context, cmd spec.Command) error {
 	}
 	if err := i.converter.Cache(ctx, dir); err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "apply CACHE")
+	}
+	return nil
+}
+
+func (i *Interpreter) handleHost(ctx context.Context, cmd spec.Command) error {
+	if !i.converter.ftrs.UseHostCommand {
+		return i.errorf(cmd.SourceLocation, "the HOST command is not supported in this version")
+	}
+	if len(cmd.Args) != 2 {
+		return i.errorf(cmd.SourceLocation, "invalid number of arguments for HOST: %s", cmd.Args)
+	}
+	if i.local {
+		return i.errorf(cmd.SourceLocation, "HOST command not supported with LOCALLY")
+	}
+
+	host := cmd.Args[0]
+	ipStr := cmd.Args[1]
+
+	ip := net.ParseIP(ipStr)
+	if ip == nil {
+		return i.errorf(cmd.SourceLocation, "invalid HOST ip %s", ipStr)
+	}
+
+	if err := i.converter.Host(ctx, host, ip); err != nil {
+		return i.wrapError(err, cmd.SourceLocation, "apply HOST")
 	}
 	return nil
 }

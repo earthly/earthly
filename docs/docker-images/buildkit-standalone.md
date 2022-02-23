@@ -5,9 +5,9 @@ This image contains `buildkit` with some Earthly-specific setup. This is what Ea
 ## Tags
 
 * `prerelase`
-* `v0.6.6`, `latest`
-* `v0.6.5`
-* `v0.6.4`
+* `v0.6.8`, `latest`
+* `v0.6.7`
+* `v0.6.6`
 
 ## Quickstart
 
@@ -16,7 +16,7 @@ Want to just get started? Here are a couple sample `docker run` commands that co
 ### Simple Usage (Use Locally)
 
 ```bash
-docker run --privileged -t -v earthly-tmp:/tmp/earthly:rw earthly/buildkitd:v0.6.6
+docker run --privileged -t -v earthly-tmp:/tmp/earthly:rw earthly/buildkitd:v0.6.8
 ```
 
 Heres a quick breakdown:
@@ -30,7 +30,7 @@ Assuming you are running this on your machine, you could use this `buildkitd` by
 ### Usage (Use As Remote)
 
 ```bash
-docker run --privileged -t -v earthly-tmp:/tmp/earthly:rw -e BUILDKIT_TCP_TRANSPORT_ENABLED=true -p 8372:8372 earthly/buildkitd:v0.6.6
+docker run --privileged -t -v earthly-tmp:/tmp/earthly:rw -e BUILDKIT_TCP_TRANSPORT_ENABLED=true -p 8372:8372 earthly/buildkitd:v0.6.8
 ```
 
 Omitting the options already discussed from the simple example:
@@ -50,7 +50,15 @@ This image needs to be run as a privileged container. This is because `buildkitd
 
 #### EARTHLY_TMP_DIR
 
-Because this folder sees _a lot_ of traffic, its important that it remains fast. We *strongly* recommend using a Docker volume. If you do not, `buildkitd` can consume excessive disk space and/or operate very slowly.
+Because this folder sees _a lot_ of traffic, its important that it remains fast. We *strongly* recommend using a Docker volume for mounting `EARTHLY_TMP_DIR`. If you do not, `buildkitd` can consume excessive disk space, operate very slowly, or it might not function correctly.
+
+In some environments, not mounting `EARTHLY_TMP_DIR` as a Docker volume results in the following error:
+
+```
+--> WITH DOCKER RUN --privileged ...
+...
+rm: can't remove '/var/earthly/dind/...': Resource busy
+```
 
 #### External Usage
 
