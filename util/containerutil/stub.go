@@ -3,16 +3,30 @@ package containerutil
 import (
 	"context"
 	"io"
+
+	"github.com/pkg/errors"
 )
 
 // This is a stub for use in internal testing when its too much effort to provide a legitimate backend.
 // Should never be used IRL.
-type stubFrontend struct{}
+type stubFrontend struct {
+	*shellFrontend
+}
 
 // NewStubFrontend creates a stubbed frontend. Useful in cases where a frontend could not be detected, but we still need a frontend.
 // Examples include earthly/earthly, or integration tests. It is currently only used as a fallback when docker or other frontends are missing.
-func NewStubFrontend(ctx context.Context) (ContainerFrontend, error) {
-	return &stubFrontend{}, nil
+func NewStubFrontend(ctx context.Context, cfg *FrontendConfig) (ContainerFrontend, error) {
+	fe := &stubFrontend{
+		shellFrontend: &shellFrontend{},
+	}
+
+	var err error
+	fe.urls, err = fe.setupAndValidateAddresses(FrontendStub, cfg)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to calculate buildkit URLs")
+	}
+
+	return fe, nil
 }
 
 func (*stubFrontend) Scheme() string {
@@ -21,9 +35,10 @@ func (*stubFrontend) Scheme() string {
 func (*stubFrontend) IsAvaliable(ctx context.Context) bool {
 	return true
 }
-func (*stubFrontend) Config() *FrontendConfig {
-	return &FrontendConfig{
-		Setting: FrontendStub,
+func (sf *stubFrontend) Config() *CurrentFrontend {
+	return &CurrentFrontend{
+		Setting:      FrontendStub,
+		FrontendURLs: sf.urls,
 	}
 }
 func (*stubFrontend) Information(ctx context.Context) (*FrontendInfo, error) {
@@ -55,6 +70,9 @@ func (*stubFrontend) ImageRemove(ctx context.Context, force bool, refs ...string
 }
 func (*stubFrontend) ImageTag(ctx context.Context, tags ...ImageTag) error {
 	return nil
+}
+func (*stubFrontend) ImageLoadFromFileCommand(filename string) string {
+	return ""
 }
 func (*stubFrontend) ImageLoad(ctx context.Context, image ...io.Reader) error {
 	return nil

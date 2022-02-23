@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"hash/fnv"
+	"net"
 	"os"
 	"path"
 	"path/filepath"
@@ -22,6 +23,7 @@ import (
 	"github.com/earthly/earthly/states"
 	"github.com/earthly/earthly/states/dedup"
 	"github.com/earthly/earthly/states/image"
+	"github.com/earthly/earthly/util/containerutil"
 	"github.com/earthly/earthly/util/fileutil"
 	"github.com/earthly/earthly/util/gitutil"
 	"github.com/earthly/earthly/util/llbutil"
@@ -69,6 +71,7 @@ const (
 	volumeCmd                            // "VOLUME"
 	workdirCmd                           // "WORKDIR"
 	cacheCmd                             // "CACHE"
+	hostCmd                              // "HOST"
 )
 
 // Converter turns earthly commands to buildkit LLB representation.
@@ -86,6 +89,7 @@ type Converter struct {
 	cmdSet              bool
 	ftrs                *features.Features
 	localWorkingDir     string
+	containerFrontend   containerutil.ContainerFrontend
 }
 
 // NewConverter constructs a new converter for a given earthly target.
@@ -118,6 +122,7 @@ func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Da
 		varCollection:       variables.NewCollection(newCollOpt),
 		ftrs:                bc.Features,
 		localWorkingDir:     filepath.Dir(bc.BuildFilePath),
+		containerFrontend:   opt.ContainerFrontend,
 	}, nil
 }
 
@@ -1212,6 +1217,17 @@ func (c *Converter) Cache(ctx context.Context, path string) error {
 		c.persistentCacheDirs[path] = pllb.AddMount(path, pllb.Scratch(),
 			llb.AsPersistentCacheDir(path, llb.CacheMountShared))
 	}
+	return nil
+}
+
+// Host handles a `HOST` command in a Target.
+func (c *Converter) Host(ctx context.Context, hostname string, ip net.IP) error {
+	err := c.checkAllowed(hostCmd)
+	if err != nil {
+		return err
+	}
+	c.nonSaveCommand()
+	c.mts.Final.MainState = c.mts.Final.MainState.AddExtraHost(hostname, ip)
 	return nil
 }
 

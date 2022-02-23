@@ -21,6 +21,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+const cniGateway = "172.30.0.1:8373"
+
 var (
 	// Version is the version of the debugger
 	Version string
@@ -87,9 +89,17 @@ func populateShellHistory(cmd string) error {
 func interactiveMode(ctx context.Context, remoteConsoleAddr string, cmdBuilder func() (*exec.Cmd, error)) error {
 	log := slog.GetLogger(ctx)
 
-	conn, err := net.Dial("tcp", remoteConsoleAddr)
+	// If the IP we derived at start fails, try the reserved gateway address for our internal CNI network.
+	// The CIDR range for this can be found in buildkitd/cni-conf.json.template, so if that ever changes, we need to change it here, too.
+	// Relevant CNI docs for the host-local ipam module: https://www.cni.dev/plugins/current/ipam/host-local/
+	// tl;dr we can assume the gateway is at .1 in the subnet.
+	conn, err := net.Dial("tcp", cniGateway)
 	if err != nil {
-		return errors.Wrap(err, "failed to connect to remote debugger")
+		log.Debug(fmt.Sprintf("failed to connect internal CNI %q, trying configured address %q.", cniGateway, remoteConsoleAddr))
+		conn, err = net.Dial("tcp", remoteConsoleAddr)
+		if err != nil {
+			return errors.Wrap(err, "failed to connect to remote debugger")
+		}
 	}
 	defer func() {
 		err := conn.Close()

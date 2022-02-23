@@ -47,7 +47,8 @@ commandStmt:
 	| userCommandStmt
 	| doStmt
 	| importStmt
-	| cacheStmt;
+	| cacheStmt
+	| hostStmt;
 
 // version --------------------------------------------------------------------
 version: VERSION WS stmtWords NL+;
@@ -137,6 +138,7 @@ userCommandStmt: COMMAND (WS stmtWords)?;
 doStmt: DO (WS stmtWords)?;
 importStmt: IMPORT (WS stmtWords)?;
 cacheStmt: CACHE (WS stmtWords)?;
+hostStmt: HOST (WS stmtWords)?;
 
 // expr, stmtWord* ------------------------------------------------------------
 

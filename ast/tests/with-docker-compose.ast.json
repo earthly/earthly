@@ -56,6 +56,14 @@
             "execMode": true,
             "name": "CMD"
           }
+        },
+        {
+          "command": {
+            "args": [
+              "print-countries:latest"
+            ],
+            "name": "SAVE IMAGE"
+          }
         }
       ]
     },
@@ -128,7 +136,7 @@
                 "--service",
                 "postgres",
                 "--load",
-                "print-countries:latest=+print-countries"
+                "+print-countries"
               ],
               "name": "DOCKER"
             }
