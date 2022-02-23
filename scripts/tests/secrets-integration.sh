@@ -43,7 +43,7 @@ echo testing that the ssh-agent only contains a single key
 test "$(ssh-add -l | wc -l)" = "1"
 
 echo "testing earthly account login works (and is using the earthly-manitou account)"
-"$earthly" account login | perl -pe 'BEGIN {$status=1} END {exit $status} $status=0 if /other-service\+earthly-manitou\@earthly.dev/;'
+"$earthly" account login 2>&1 | perl -pe 'BEGIN {$status=1} END {exit $status} $status=0 if /other-service\+earthly-manitou\@earthly.dev/;'
 
 mkdir -p /tmp/earthtest
 cat << EOF > /tmp/earthtest/Earthfile
