@@ -2803,7 +2803,7 @@ func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []st
 			// If you are not logged in, then advertise the service, since they probably turned it on to try it.
 			defer func() { // Defer this to keep log upload code together
 				if errors.Is(whoAmIErr, cloud.ErrUnauthorized) {
-					app.console.Printf("Share your logs with an Earthly account! Register for one at https://ci.earthly.dev.")
+					app.console.Printf("Share your logs with an Earthly account (experimental)! Register for one at https://ci.earthly.dev.")
 				} else {
 					app.console.Warnf("Logs were not shared, due to earthly login error: %s", whoAmIErr.Error())
 				}
