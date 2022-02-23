@@ -126,7 +126,7 @@ stop_dockerd() {
     # Kill dockerd in a subshell and wait for the PID to exit. This ensures that dockerd cannot keep any files in
     # EARTHLY_DOCKERD_DATA_ROOT open.
     (kill_dockerd)
-    wait $dockerd_pid || true
+    wait "$dockerd_pid" || true
 
     # Wipe dockerd data when done.
    if ! rm -rf "$EARTHLY_DOCKERD_DATA_ROOT"; then
