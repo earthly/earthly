@@ -2364,7 +2364,8 @@ func (app *earthlyApp) actionAccountLogin(c *cli.Context) error {
 		if !writeAccess {
 			authType = "read-only-" + authType
 		}
-		fmt.Printf("Logged in as %q using %s auth\n", loggedInEmail, authType)
+		app.console.Printf("Logged in as %q using %s auth\n", loggedInEmail, authType)
+		app.printLogSharingMessage()
 		return nil
 	}
 
@@ -2385,7 +2386,8 @@ func (app *earthlyApp) actionAccountLogin(c *cli.Context) error {
 			if err = cc.Authenticate(); err != nil {
 				return errors.Wrap(err, "authentication with cloud server failed")
 			}
-			fmt.Printf("Logged in as %q using ssh auth\n", email)
+			app.console.Printf("Logged in as %q using ssh auth\n", email)
+			app.printLogSharingMessage()
 			return nil
 		}
 	}
@@ -2401,7 +2403,8 @@ func (app *earthlyApp) actionAccountLogin(c *cli.Context) error {
 		if !writeAccess {
 			authType = "read-only-" + authType
 		}
-		fmt.Printf("Logged in as %q using %s auth\n", loggedInEmail, authType)
+		app.console.Printf("Logged in as %q using %s auth\n", loggedInEmail, authType)
+		app.printLogSharingMessage()
 		return nil
 	default:
 		return err
@@ -2421,7 +2424,7 @@ func (app *earthlyApp) actionAccountLogin(c *cli.Context) error {
 	}
 
 	if email != "" && pass == "" {
-		fmt.Println("enter your password: ")
+		app.console.Printf("enter your password: \n")
 		passwordBytes, err := term.ReadPassword(int(syscall.Stdin))
 		if err != nil {
 			return err
@@ -2437,19 +2440,27 @@ func (app *earthlyApp) actionAccountLogin(c *cli.Context) error {
 		if err != nil {
 			return err
 		}
-		fmt.Printf("Logged in as %q using token auth\n", email) // TODO display if using read-only token
+		app.console.Printf("Logged in as %q using token auth\n", email) // TODO display if using read-only token
+		app.printLogSharingMessage()
 	} else {
 		err = cc.SetPasswordCredentials(email, string(pass))
 		if err != nil {
 			return err
 		}
-		fmt.Printf("Logged in as %q using password auth\n", email)
-		fmt.Printf("Warning unencrypted password has been stored under ~/.earthly/auth.credentials; consider using ssh-based auth to prevent this.\n")
+		app.console.Printf("Logged in as %q using password auth\n", email)
+		app.console.Printf("Warning unencrypted password has been stored under ~/.earthly/auth.credentials; consider using ssh-based auth to prevent this.\n")
+		app.printLogSharingMessage()
 	}
 	if err = cc.Authenticate(); err != nil {
 		return errors.Wrap(err, "authentication with cloud server failed")
 	}
 	return nil
+}
+
+func (app *earthlyApp) printLogSharingMessage() {
+	app.console.Printf("Log sharing is enabled by default. If you would like to disable it, run:\n" +
+		"\n" +
+		"\tearthly config global.disable_log_sharing true")
 }
 
 func (app *earthlyApp) actionAccountLogout(c *cli.Context) error {
@@ -2791,11 +2802,10 @@ func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []st
 		} else {
 			// If you are not logged in, then advertise the service, since they probably turned it on to try it.
 			defer func() { // Defer this to keep log upload code together
-				switch whoAmIErr {
-				case cloud.ErrUnauthorized:
-					app.console.Printf("Share your logs with an Earthly account! Register for one at https://ci.earthly.dev.")
-				default:
-					app.console.Warnf("Logs were not shared, due to earthly login error: %s", err.Error())
+				if errors.Is(whoAmIErr, cloud.ErrUnauthorized) {
+					app.console.Printf("Share your logs with an Earthly account (experimental)! Register for one at https://ci.earthly.dev.")
+				} else {
+					app.console.Warnf("Logs were not shared, due to earthly login error: %s", whoAmIErr.Error())
 				}
 			}()
 		}
