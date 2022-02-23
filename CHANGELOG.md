@@ -6,6 +6,7 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ### Added
 
+- Earthly is now 15-30% faster when executing large builds [#1589](https://github.com/earthly/earthly/issues/1589)
 - Experimental `HOST` command, which can be used like this: `HOST <domain> <ip>` to add additional hosts during the execution of your build. To enable this feature, use `VERSION --use-host-command 0.6`. [#1168](https://github.com/earthly/earthly/issues/1168)
 
 ### Fixed

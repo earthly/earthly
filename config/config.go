@@ -23,7 +23,7 @@ const (
 	DefaultBuildkitScheme = "docker-container"
 
 	// DefaultConversionParallelism is the default conversion parallelism that Earthly uses internally to generate LLB for BuildKit to consume.
-	DefaultConversionParallelism = 4
+	DefaultConversionParallelism = 10
 
 	// DefaultBuildkitMaxParallelism is the default max parallelism for buildkit workers.
 	DefaultBuildkitMaxParallelism = 20
