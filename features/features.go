@@ -172,12 +172,12 @@ func GetFeatures(version *spec.Version) (*Features, error) {
 		ftrs.ForIn = true
 		ftrs.RequireForceForUnsafeSaves = true
 		ftrs.NoImplicitIgnore = true
+		ftrs.ExecAfterParallel = true
 	case versionAtLeast(ftrs, 0, 7):
 		ftrs.ExplicitGlobal = true
 		ftrs.CheckDuplicateImages = true
 		ftrs.EarthlyVersionArg = true
 		ftrs.UseCacheCommand = true
-		ftrs.ExecAfterParallel = true
 		ftrs.UseHostCommand = true
 	}
 
