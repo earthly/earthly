@@ -15,8 +15,8 @@ import (
 	"strings"
 	"time"
 
-	secretsapi "github.com/earthly/earthly/cloud/api"
-	logsapi "github.com/earthly/earthly/cloud/logs"
+	logsapi "github.com/earthly/cloud-api/logs"
+	secretsapi "github.com/earthly/cloud-api/secrets"
 	"github.com/earthly/earthly/util/cliutil"
 	"github.com/earthly/earthly/util/fileutil"
 

@@ -3,6 +3,7 @@ module github.com/earthly/earthly
 go 1.16
 
 require (
+	github.com/earthly/cloud-api v1.0.0
 	github.com/alessio/shellescape v1.4.1
 	github.com/antlr/antlr4 v0.0.0-20200225173536-225249fdaef5
 	github.com/armon/circbuf v0.0.0-20190214190532-5111143e8da2
