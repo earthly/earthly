@@ -3,6 +3,7 @@ package domain
 import (
 	"fmt"
 	"path"
+	"path/filepath"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -180,11 +181,10 @@ func parseCommon(fullName string) (gitURL string, tag string, localPath string, 
 	if partsPlus[0] == "" {
 		// Local target.
 		return "", "", ".", "", partsPlus[1], nil
-	} else if strings.HasPrefix(partsPlus[0], ".") ||
-		strings.HasPrefix(partsPlus[0], "/") {
+	} else if strings.HasPrefix(partsPlus[0], ".") || filepath.IsAbs(partsPlus[0]) {
 		// Local external target.
 		localPath := partsPlus[0]
-		if path.IsAbs(localPath) {
+		if filepath.IsAbs(localPath) {
 			localPath = path.Clean(localPath)
 		} else {
 			localPath = path.Clean(localPath)
@@ -209,18 +209,24 @@ func parseCommon(fullName string) (gitURL string, tag string, localPath string, 
 	return "", "", "", partsPlus[0], partsPlus[1], nil
 }
 
-// splitUnescapePlus performs a split on "+", but it accounts for escaping as "\+".
+// splitUnescapePlus performs a split on "+" to return the target and path separately (i.e. always an array of 2).
+// The function accounts for escaping a "\+" in a path before a target (which also begins with "+").
+// For example, a path to target that contains "+" like `/my/some\+dir+my-target` will be returned as
+// [ "/my/some\+dir", "my-target" ]. Special care is given for other cases where backslash might be used,
+// such as an escaped whitespace "\ ", or escaped back-slash "\\" or a Windows path with backslashes.
 func splitUnescapePlus(str string) ([]string, error) {
 	escape := false
 	ret := make([]string, 0, 2)
 	word := make([]rune, 0, len(str))
 	for _, c := range str {
 		if escape {
+			if c != '+' {
+				word = append(word, '\\')
+			}
 			word = append(word, c)
 			escape = false
 			continue
 		}
-
 		switch c {
 		case '\\':
 			escape = true

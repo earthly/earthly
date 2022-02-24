@@ -16,6 +16,9 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 - Podman can now use the local registry cache without modifying `registries.conf` [#1675](https://github.com/earthly/earthly/pull/1675)
 - Podman can now use `WITH DOCKER --load` inside a target marked as `LOCALLY` [#1675](https://github.com/earthly/earthly/pull/1675)
 - Interactive sessions should now work with rootless configurations that have no apparent external IP address [#1573](https://github.com/earthly/earthly/issues/1573), [#1689](https://github.com/earthly/earthly/pull/1689)
+- On native Windows installations, Earthly properly detects the local git path when it's available [#1663](https://github.com/earthly/earthly/issues/1663)
+- On native Windows installations, Earthly will properly identify targets in Earthfiles outside of the current directory using the `\` file separator  [#1663](https://github.com/earthly/earthly/issues/1663)
+- On native Windows installations, Earthly will save local artifacts to directories using the `\` file separator [#1663](https://github.com/earthly/earthly/issues/1663)
 
 ## v0.6.8 - 2022-02-16
 

@@ -180,6 +180,9 @@ func detectGitBaseDir(ctx context.Context, dir string) (string, error) {
 		return "", errors.Wrap(err, "detect git directory")
 	}
 	outStr := string(out)
+	// cmd.Output produces a path with forward slash, but on Windows, we should preserve backslash paths.
+	// E.g. This would convert `C:/my/path` to `C:\my\path`, but only when the platform is Windows.
+	outStr = strings.Join(strings.Split(outStr, "/"), string(filepath.Separator))
 	if outStr == "" {
 		return "", errors.New("No output returned for git base dir")
 	}
@@ -284,9 +287,18 @@ func gitRelDir(basePath string, path string) (string, bool, error) {
 	if err != nil {
 		return "", false, errors.Wrapf(err, "stat for %s", basePath)
 	}
-	// `pathParts` here has lose the root filepath.Separator since built by strings.Split beforehand.
-	// so putting heading separator is required to make it absolute again.
-	b, err := os.Stat(string(filepath.Separator) + filepath.Join(pathParts[:len(basePathParts)]...))
+
+	// Checking VolumeName determines if we have a fully-qualified Windows path like `C:\my\dir`.
+	if filepath.VolumeName(basePath) == "" {
+		// `pathParts` here has lost the root filepath.Separator since it was built by strings.Split beforehand.
+		// So putting heading separator is required to make it absolute again.
+		pathParts[0] = string(filepath.Separator) + pathParts[0]
+	} else {
+		// In Window's style absolute paths, we need append the file-separator after the first element.
+		// e.g. We want: `C:\some\dir`, not `\C:some\dir`
+		pathParts[0] = pathParts[0] + string(filepath.Separator)
+	}
+	b, err := os.Stat(filepath.Join(pathParts[:len(basePathParts)]...))
 	if err != nil {
 		return "", false, errors.Wrapf(err, "stat for %v", pathParts)
 	}
