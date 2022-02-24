@@ -343,6 +343,8 @@ github.com/dustin/go-humanize v1.0.0 h1:VSnTsYCnlFHaM2/igO1h6X3HA71jcobQuxemgkq4
 github.com/dustin/go-humanize v1.0.0/go.mod h1:HtrtbFcZ19U5GC7JDqmcUSB87Iq5E25KnS6fMYU6eOk=
 github.com/earthly/buildkit v0.0.1-0.20220222192743-b4a97a8ac4db h1:VXPhOfcbmWp29mrNdOrLs4e9jBRXKBRUDdbHqIDtCdc=
 github.com/earthly/buildkit v0.0.1-0.20220222192743-b4a97a8ac4db/go.mod h1:8578flFPixeoiXT6b1RZmxk14dfjISYq2QcKtWqIxC0=
+github.com/earthly/cloud-api v1.0.0 h1:9XsrkHGbfuQc84YjWiOc5+ZhhoQ3afRTx4AYUGv+GmM=
+github.com/earthly/cloud-api v1.0.0/go.mod h1:Xg9V1xG0/j7GlisqstxcartfOz5OJoXEAJdGPjrBnWw=
 github.com/earthly/fsutil v0.0.0-20220118225905-42fa88fbe869 h1:JOHn11YLRdybmRtdYrJ1LD3PLNqANfvIQoxhjrmcGOQ=
 github.com/earthly/fsutil v0.0.0-20220118225905-42fa88fbe869/go.mod h1:oPAfvw32vlUJSjyDcQ3Bu0nb2ON2B+G0dtVN/SZNJiA=
 github.com/elazarl/goproxy v0.0.0-20180725130230-947c36da3153/go.mod h1:/Zj4wYkgs4iZTTu3o/KG3Itv/qCCa8VVMlb3i9OVuzc=
