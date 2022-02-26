@@ -1,5 +1,7 @@
 // Package serrgroup is an error group that does not crash if work is added after
-// Wait has returned after an error. This is based on
+// Wait has returned after an error. In addition, the error is exposed via the
+// API.
+// This is based on
 // https://cs.opensource.google/go/x/sync/+/036812b2:errgroup/errgroup.go
 // with some modifications.
 package serrgroup
@@ -33,6 +35,13 @@ func WithContext(ctx context.Context) (*Group, context.Context) {
 	return &Group{cancel: cancel}, ctx
 }
 
+// Err returns the first non-nil error (if any) of all goroutines started by Go.
+func (g *Group) Err() error {
+	g.errMu.Lock()
+	defer g.errMu.Unlock()
+	return g.err
+}
+
 // Wait blocks until all function calls from the Go method have returned, then
 // returns the first non-nil error (if any) from them.
 func (g *Group) Wait() error {
@@ -40,9 +49,7 @@ func (g *Group) Wait() error {
 	if g.cancel != nil {
 		g.cancel()
 	}
-	g.errMu.Lock()
-	defer g.errMu.Unlock()
-	return g.err
+	return g.Err()
 }
 
 // Go calls the given function in a new goroutine.

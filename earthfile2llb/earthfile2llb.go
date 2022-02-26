@@ -112,7 +112,7 @@ type ConvertOpt struct {
 }
 
 // Earthfile2LLB parses a earthfile and executes the statements for a given target.
-func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt, initialCall bool) (mts *states.MultiTarget, err error) {
+func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt, initialCall bool) (mts *states.MultiTarget, retErr error) {
 	if opt.SolveCache == nil {
 		opt.SolveCache = states.NewSolveCache()
 	}
@@ -133,9 +133,9 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt, in
 				// different than what our error is (our error could be
 				// context.Canceled resulted from the cancellation of the
 				// ErrorGroup, but not the root cause).
-				err2 := opt.ErrorGroup.Wait()
+				err2 := opt.ErrorGroup.Err()
 				if err2 != nil {
-					err = err2
+					retErr = err2
 					return
 				}
 			}

@@ -1,5 +1,4 @@
-ARG USERARCH
-FROM --platform=linux/$USERARCH golang:1.17-alpine3.15
+FROM --platform=linux/amd64 golang:1.17-alpine3.15
 
 RUN apk add --update --no-cache \
     openjdk13 \
