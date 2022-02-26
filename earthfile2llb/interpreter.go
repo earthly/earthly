@@ -1691,25 +1691,19 @@ func baseTarget(ref domain.Reference) domain.Target {
 }
 
 func parseArgs(cmdName string, opts interface{}, args []string) ([]string, error) {
-	processed, err := processParansAndQuotes(args)
-	if err != nil {
-		return nil, err
-	}
+	processed := processParansAndQuotes(args)
 	return flagutil.ParseArgs(cmdName, opts, processed)
 }
 
 func parseArgsWithValueModifier(cmdName string, opts interface{}, args []string, argumentModFunc flagutil.ArgumentModFunc) ([]string, error) {
-	processed, err := processParansAndQuotes(args)
-	if err != nil {
-		return nil, err
-	}
+	processed := processParansAndQuotes(args)
 	return flagutil.ParseArgsWithValueModifier(cmdName, opts, processed, argumentModFunc)
 }
 
 // processParansAndQuotes takes in a slice of strings, and rearranges the slices
 // depending on quotes and paranthesis.
 // For example "hello ", "wor(", "ld)" becomes "hello ", "wor( ld)".
-func processParansAndQuotes(args []string) ([]string, error) {
+func processParansAndQuotes(args []string) []string {
 	curQuote := rune(0)
 	allowedQuotes := map[rune]rune{
 		'"':  '"',
@@ -1742,16 +1736,10 @@ func processParansAndQuotes(args []string) ([]string, error) {
 		}
 	}
 	if curQuote != 0 {
-		switch curQuote {
-		case '"':
-			return nil, errors.New("unterminated double quote")
-		case '\'':
-			return nil, errors.New("unterminated single quote")
-		case '(':
-			return nil, errors.New("unterminated paranthesis")
-		default:
-			return nil, errors.Errorf("unterminated %c", curQuote)
-		}
+		// Unterminated quote case.
+		newArg = newArg[:len(newArg)-1] // remove last space
+		ret = append(ret, string(newArg))
 	}
-	return ret, nil
+
+	return ret
 }

@@ -112,11 +112,17 @@ func (s *solver) buildMainMulti(ctx context.Context, bf gwclient.BuildFunc, onIm
 	if err != nil {
 		return errors.Wrap(err, "new solve opt")
 	}
+	var buildErr error
+	bkClientEnd := make(chan struct{})
 	eg.Go(func() error {
+		defer close(bkClientEnd)
 		var err error
 		_, err = s.bkClient.Build(ctx, *solveOpt, "", bf, ch)
 		if err != nil {
-			return errors.Wrap(err, "bkClient.Build")
+			// The actual error from bkClient.Build sometimes races with
+			// a context cancelled in the solver monitor.
+			buildErr = err
+			return err
 		}
 		return nil
 	})
@@ -127,6 +133,9 @@ func (s *solver) buildMainMulti(ctx context.Context, bf gwclient.BuildFunc, onIm
 		return err
 	})
 	err = eg.Wait()
+	if buildErr != nil {
+		return NewBuildError(buildErr, vertexFailureOutput)
+	}
 	if err != nil {
 		return NewBuildError(err, vertexFailureOutput)
 	}

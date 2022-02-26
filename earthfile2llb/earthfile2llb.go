@@ -126,6 +126,17 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt, in
 	if opt.ErrorGroup == nil {
 		opt.ErrorGroup, ctx = serrgroup.WithContext(ctx)
 		egWait = true
+		defer func() {
+			if egWait && errors.Is(err, context.Canceled) {
+				// There was an error, but we haven't really waited for the
+				// ErrorGroup, in case that's where the real error lies.
+				err2 := opt.ErrorGroup.Wait()
+				if err2 != nil {
+					err = err2
+					return
+				}
+			}
+		}()
 	}
 	// Resolve build context.
 	bc, err := opt.Resolver.Resolve(ctx, opt.GwClient, target)
@@ -172,6 +183,7 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt, in
 		return nil, err
 	}
 	if egWait {
+		egWait = false
 		err := opt.ErrorGroup.Wait()
 		if err != nil {
 			return nil, err

@@ -80,10 +80,13 @@ func TestProcessParansAndQuotes(t *testing.T) {
 		in   []string
 		args []string
 	}{
+		{[]string{}, []string{}},
+		{[]string{""}, []string{""}},
 		{[]string{"abc", "def", "ghi"}, []string{"abc", "def", "ghi"}},
 		{[]string{"hello ", "wor(", "ld)"}, []string{"hello ", "wor( ld)"}},
 		{[]string{"hello ", "(wor(", "ld)"}, []string{"hello ", "(wor( ld)"}},
 		{[]string{"hello ", "\"(wor(\"", "ld)"}, []string{"hello ", "\"(wor(\"", "ld)"}},
+		{[]string{"let's", "go"}, []string{"let's go"}},
 		{[]string{"(hello)"}, []string{"(hello)"}},
 		{[]string{"  (hello)"}, []string{"  (hello)"}},
 		{[]string{"(hello", "    ooo)"}, []string{"(hello     ooo)"}},
@@ -92,8 +95,7 @@ func TestProcessParansAndQuotes(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(strings.Join(tt.in, " "), func(t *testing.T) {
-			actualArgs, err := processParansAndQuotes(tt.in)
-			assert.NoError(t, err)
+			actualArgs := processParansAndQuotes(tt.in)
 			assert.Equal(t, tt.args, actualArgs)
 		})
 
