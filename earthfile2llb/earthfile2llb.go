@@ -127,9 +127,12 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt, in
 		opt.ErrorGroup, ctx = serrgroup.WithContext(ctx)
 		egWait = true
 		defer func() {
-			if egWait && errors.Is(err, context.Canceled) {
-				// There was an error, but we haven't really waited for the
-				// ErrorGroup, in case that's where the real error lies.
+			if egWait {
+				// We haven't waited for the ErrorGroup yet. The ErrorGroup will
+				// return the very first error encountered, which may be
+				// different than what our error is (our error could be
+				// context.Canceled resulted from the cancellation of the
+				// ErrorGroup, but not the root cause).
 				err2 := opt.ErrorGroup.Wait()
 				if err2 != nil {
 					err = err2
