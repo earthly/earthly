@@ -113,9 +113,7 @@ func (s *solver) buildMainMulti(ctx context.Context, bf gwclient.BuildFunc, onIm
 		return errors.Wrap(err, "new solve opt")
 	}
 	var buildErr error
-	bkClientEnd := make(chan struct{})
 	eg.Go(func() error {
-		defer close(bkClientEnd)
 		var err error
 		_, err = s.bkClient.Build(ctx, *solveOpt, "", bf, ch)
 		if err != nil {
