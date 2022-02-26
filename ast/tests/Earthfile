@@ -38,6 +38,7 @@ all:
         --TEST=host-bind \
         --TEST=if-exists \
         --TEST=lc \
+        --TEST=new-args \
         --TEST=no-cache-local-artifact \
         --TEST=non-transitive-args1 \
         --TEST=non-transitive-args2 \
@@ -55,6 +56,7 @@ all:
         --TEST=with-docker-compose \
         --TEST=command \
         --TEST=import
+    BUILD +test --INPUT_FROM_DIR=./ --INPUT_FROM_TARGET="" --TEST=args
     BUILD +test --INPUT_FROM_DIR=./ --INPUT_FROM_TARGET="" --TEST=if
     BUILD +test --INPUT_FROM_DIR=./ --INPUT_FROM_TARGET="" --TEST=for
     BUILD +test --INPUT_FROM_DIR=./ --INPUT_FROM_TARGET="" --TEST=empty-targets
@@ -88,6 +90,7 @@ update-all:
         --TEST=host-bind \
         --TEST=if-exists \
         --TEST=lc \
+        --TEST=new-args \
         --TEST=no-cache-local-artifact \
         --TEST=non-transitive-args1 \
         --TEST=non-transitive-args2 \
@@ -105,6 +108,7 @@ update-all:
         --TEST=with-docker-compose \
         --TEST=command \
         --TEST=import
+    BUILD +update-expected --INPUT_FROM_DIR=./ --INPUT_FROM_TARGET="" --TEST=args
     BUILD +update-expected --INPUT_FROM_DIR=./ --INPUT_FROM_TARGET="" --TEST=if
     BUILD +update-expected --INPUT_FROM_DIR=./ --INPUT_FROM_TARGET="" --TEST=for
     BUILD +update-expected --INPUT_FROM_DIR=./ --INPUT_FROM_TARGET="" --TEST=empty-targets

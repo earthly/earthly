@@ -308,7 +308,7 @@ func (i *Interpreter) handleIfExpression(ctx context.Context, expression []strin
 		return false, i.errorf(sl, "not enough arguments for IF")
 	}
 	opts := ifOpts{}
-	args, err := flagutil.ParseArgs("IF", &opts, expression)
+	args, err := parseArgs("IF", &opts, expression)
 	if err != nil {
 		return false, i.wrapError(err, sl, "invalid IF arguments %v", expression)
 	}
@@ -371,7 +371,7 @@ func (i *Interpreter) handleForArgs(ctx context.Context, forArgs []string, sl *s
 	opts := forOpts{
 		Separators: "\n\t ",
 	}
-	args, err := flagutil.ParseArgs("FOR", &opts, forArgs)
+	args, err := parseArgs("FOR", &opts, forArgs)
 	if err != nil {
 		return "", nil, i.wrapError(err, sl, "invalid FOR arguments %v", forArgs)
 	}
@@ -412,7 +412,7 @@ func (i *Interpreter) handleFrom(ctx context.Context, cmd spec.Command) error {
 		return i.pushOnlyErr(cmd.SourceLocation)
 	}
 	opts := fromOpts{}
-	args, err := flagutil.ParseArgs("FROM", &opts, getArgsCopy(cmd))
+	args, err := parseArgs("FROM", &opts, getArgsCopy(cmd))
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "invalid FROM arguments %v", cmd.Args)
 	}
@@ -495,7 +495,7 @@ func (i *Interpreter) handleRun(ctx context.Context, cmd spec.Command) error {
 		return i.errorf(cmd.SourceLocation, "not enough arguments for RUN")
 	}
 	opts := runOpts{}
-	args, err := flagutil.ParseArgsWithValueModifier("RUN", &opts, getArgsCopy(cmd), i.flagValModifier)
+	args, err := parseArgsWithValueModifier("RUN", &opts, getArgsCopy(cmd), i.flagValModifier)
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "invalid RUN arguments %v", cmd.Args)
 	}
@@ -583,7 +583,7 @@ func (i *Interpreter) handleFromDockerfile(ctx context.Context, cmd spec.Command
 		return i.pushOnlyErr(cmd.SourceLocation)
 	}
 	opts := fromDockerfileOpts{}
-	args, err := flagutil.ParseArgs("FROM DOCKERFILE", &opts, getArgsCopy(cmd))
+	args, err := parseArgs("FROM DOCKERFILE", &opts, getArgsCopy(cmd))
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "invalid FROM DOCKERFILE arguments %v", cmd.Args)
 	}
@@ -640,7 +640,7 @@ func (i *Interpreter) handleCopy(ctx context.Context, cmd spec.Command) error {
 		return i.pushOnlyErr(cmd.SourceLocation)
 	}
 	opts := copyOpts{}
-	args, err := flagutil.ParseArgs("COPY", &opts, getArgsCopy(cmd))
+	args, err := parseArgs("COPY", &opts, getArgsCopy(cmd))
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "invalid COPY arguments %v", cmd.Args)
 	}
@@ -666,7 +666,7 @@ func (i *Interpreter) handleCopy(ctx context.Context, cmd spec.Command) error {
 	for index, src := range srcs {
 		var artifactSrc domain.Artifact
 		var parseErr error
-		if strings.HasPrefix(src, "(") && strings.HasSuffix(src, ")") {
+		if isInParansForm(src) {
 			// COPY (<src> <flag-args>) ...
 			artifactStr, extraArgs, err := parseParans(src)
 			if err != nil {
@@ -740,7 +740,7 @@ func (i *Interpreter) handleCopy(ctx context.Context, cmd spec.Command) error {
 
 func (i *Interpreter) handleSaveArtifact(ctx context.Context, cmd spec.Command) error {
 	opts := saveArtifactOpts{}
-	args, err := flagutil.ParseArgs("SAVE ARTIFACT", &opts, getArgsCopy(cmd))
+	args, err := parseArgs("SAVE ARTIFACT", &opts, getArgsCopy(cmd))
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "invalid SAVE ARTIFACT arguments %v", cmd.Args)
 	}
@@ -792,7 +792,7 @@ func (i *Interpreter) handleSaveArtifact(ctx context.Context, cmd spec.Command) 
 
 func (i *Interpreter) handleSaveImage(ctx context.Context, cmd spec.Command) error {
 	opts := saveImageOpts{}
-	args, err := flagutil.ParseArgs("SAVE IMAGE", &opts, getArgsCopy(cmd))
+	args, err := parseArgs("SAVE IMAGE", &opts, getArgsCopy(cmd))
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "invalid SAVE IMAGE arguments %v", cmd.Args)
 	}
@@ -826,7 +826,7 @@ func (i *Interpreter) handleBuild(ctx context.Context, cmd spec.Command, async b
 		return i.pushOnlyErr(cmd.SourceLocation)
 	}
 	opts := buildOpts{}
-	args, err := flagutil.ParseArgs("BUILD", &opts, getArgsCopy(cmd))
+	args, err := parseArgs("BUILD", &opts, getArgsCopy(cmd))
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "invalid BUILD arguments %v", cmd.Args)
 	}
@@ -924,7 +924,7 @@ func (i *Interpreter) handleCmd(ctx context.Context, cmd spec.Command) error {
 	}
 	withShell := !cmd.ExecMode
 	cmdArgs := getArgsCopy(cmd)
-	if !withShell {
+	if withShell {
 		for index, arg := range cmdArgs {
 			cmdArgs[index] = i.expandArgs(arg, false)
 		}
@@ -942,7 +942,7 @@ func (i *Interpreter) handleEntrypoint(ctx context.Context, cmd spec.Command) er
 	}
 	withShell := !cmd.ExecMode
 	entArgs := getArgsCopy(cmd)
-	if !withShell {
+	if withShell {
 		for index, arg := range entArgs {
 			entArgs[index] = i.expandArgs(arg, false)
 		}
@@ -1022,7 +1022,7 @@ var errGlobalArgNotInBase = errors.New("global ARG can only be set in the base t
 // and returns the argOpts, key, value (or nil if missing), or error
 func parseArgArgs(ctx context.Context, cmd spec.Command, isBaseTarget bool, explicitGlobalFeature bool) (argOpts, string, *string, error) {
 	opts := argOpts{}
-	args, err := flagutil.ParseArgs("ARG", &opts, getArgsCopy(cmd))
+	args, err := parseArgs("ARG", &opts, getArgsCopy(cmd))
 	if err != nil {
 		return argOpts{}, "", nil, err
 	}
@@ -1122,7 +1122,7 @@ func (i *Interpreter) handleGitClone(ctx context.Context, cmd spec.Command) erro
 		return i.pushOnlyErr(cmd.SourceLocation)
 	}
 	opts := gitCloneOpts{}
-	args, err := flagutil.ParseArgs("GIT CLONE", &opts, getArgsCopy(cmd))
+	args, err := parseArgs("GIT CLONE", &opts, getArgsCopy(cmd))
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "invalid GIT CLONE arguments %v", cmd.Args)
 	}
@@ -1150,7 +1150,7 @@ func (i *Interpreter) handleHealthcheck(ctx context.Context, cmd spec.Command) e
 		return i.pushOnlyErr(cmd.SourceLocation)
 	}
 	opts := healthCheckOpts{}
-	args, err := flagutil.ParseArgs("HEALTHCHECK", &opts, getArgsCopy(cmd))
+	args, err := parseArgs("HEALTHCHECK", &opts, getArgsCopy(cmd))
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "invalid HEALTHCHECK arguments %v", cmd.Args)
 	}
@@ -1194,7 +1194,7 @@ func (i *Interpreter) handleWithDocker(ctx context.Context, cmd spec.Command) er
 		return i.errorf(cmd.SourceLocation, "cannot use WITH DOCKER within WITH DOCKER")
 	}
 	opts := withDockerOpts{}
-	args, err := flagutil.ParseArgs("WITH DOCKER", &opts, getArgsCopy(cmd))
+	args, err := parseArgs("WITH DOCKER", &opts, getArgsCopy(cmd))
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "invalid WITH DOCKER arguments %v", cmd.Args)
 	}
@@ -1280,7 +1280,7 @@ func (i *Interpreter) handleUserCommand(ctx context.Context, cmd spec.Command) e
 
 func (i *Interpreter) handleDo(ctx context.Context, cmd spec.Command) error {
 	opts := doOpts{}
-	args, err := flagutil.ParseArgs("DO", &opts, getArgsCopy(cmd))
+	args, err := parseArgs("DO", &opts, getArgsCopy(cmd))
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "invalid DO arguments %v", cmd.Args)
 	}
@@ -1326,7 +1326,7 @@ func (i *Interpreter) handleDo(ctx context.Context, cmd spec.Command) error {
 
 func (i *Interpreter) handleImport(ctx context.Context, cmd spec.Command) error {
 	opts := importOpts{}
-	args, err := flagutil.ParseArgs("IMPORT", &opts, getArgsCopy(cmd))
+	args, err := parseArgs("IMPORT", &opts, getArgsCopy(cmd))
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "invalid IMPORT arguments %v", cmd.Args)
 	}
@@ -1471,18 +1471,28 @@ func unescapeSlashPlus(str string) string {
 }
 
 func parseLoad(loadStr string) (image string, target string, extraArgs []string, err error) {
-	splitLoad := strings.SplitN(loadStr, "=", 2)
-	if len(splitLoad) < 2 {
-		// --load <target-name>
+	words := strings.SplitN(loadStr, " ", 2)
+	if len(words) == 0 {
+		return "", "", nil, nil
+	}
+	firstWord := words[0]
+	splitFirstWord := strings.SplitN(firstWord, "=", 2)
+	if len(splitFirstWord) < 2 {
+		// <target-name>
 		// (will infer image name from SAVE IMAGE of that target)
 		image = ""
 		target = loadStr
 	} else {
-		// --load <image-name>=<target-name>
-		image = splitLoad[0]
-		target = splitLoad[1]
+		// <image-name>=<target-name>
+		image = splitFirstWord[0]
+		if len(words) == 1 {
+			target = splitFirstWord[1]
+		} else {
+			words[0] = splitFirstWord[1]
+			target = strings.Join(words, " ")
+		}
 	}
-	if strings.HasPrefix(target, "(") && strings.HasSuffix(target, ")") {
+	if isInParansForm(target) {
 		target, extraArgs, err = parseParans(target)
 		if err != nil {
 			return "", "", nil, err
@@ -1563,12 +1573,22 @@ func parseKeyValue(arg string) (string, *string, error) {
 	return name, value, nil
 }
 
-// parseParans turns "(+target --flag=something)" into "+target" and []string{"--flag=something"}.
+func isInParansForm(str string) bool {
+	return (strings.HasPrefix(str, "\"(") && strings.HasSuffix(str, "\")")) ||
+		(strings.HasPrefix(str, "(") && strings.HasSuffix(str, ")"))
+}
+
+// parseParans turns "(+target --flag=something)" into "+target" and []string{"--flag=something"},
+// or "\"(+target --flag=something)\"" into "+target" and []string{"--flag=something"}
 func parseParans(str string) (string, []string, error) {
-	if !strings.HasPrefix(str, "(") || !strings.HasSuffix(str, ")") {
+	if !isInParansForm(str) {
 		return "", nil, errors.New("parans atom not in ( ... )")
 	}
-	str = str[1 : len(str)-1] // remove ( and )
+	if strings.HasPrefix(str, "\"(") {
+		str = str[2 : len(str)-2] // remove \"( and )\"
+	} else {
+		str = str[1 : len(str)-1] // remove ( and )
+	}
 	var parts []string
 	var part []rune
 	nextEscaped := false
@@ -1668,4 +1688,70 @@ func baseTarget(ref domain.Reference) domain.Target {
 		LocalPath: ref.GetLocalPath(),
 		Target:    "base",
 	}
+}
+
+func parseArgs(cmdName string, opts interface{}, args []string) ([]string, error) {
+	processed, err := processParansAndQuotes(args)
+	if err != nil {
+		return nil, err
+	}
+	return flagutil.ParseArgs(cmdName, opts, processed)
+}
+
+func parseArgsWithValueModifier(cmdName string, opts interface{}, args []string, argumentModFunc flagutil.ArgumentModFunc) ([]string, error) {
+	processed, err := processParansAndQuotes(args)
+	if err != nil {
+		return nil, err
+	}
+	return flagutil.ParseArgsWithValueModifier(cmdName, opts, processed, argumentModFunc)
+}
+
+// processParansAndQuotes takes in a slice of strings, and rearranges the slices
+// depending on quotes and paranthesis.
+// For example "hello ", "wor(", "ld)" becomes "hello ", "wor( ld)".
+func processParansAndQuotes(args []string) ([]string, error) {
+	curQuote := rune(0)
+	allowedQuotes := map[rune]rune{
+		'"':  '"',
+		'\'': '\'',
+		'(':  ')',
+	}
+	ret := make([]string, 0, len(args))
+	var newArg []rune
+	for _, arg := range args {
+		for _, char := range arg {
+			newArg = append(newArg, char)
+			if curQuote == 0 {
+				_, isQuote := allowedQuotes[char]
+				if isQuote {
+					curQuote = char
+				}
+			} else {
+				if char == allowedQuotes[curQuote] {
+					curQuote = rune(0)
+				}
+			}
+		}
+		if curQuote == 0 {
+			ret = append(ret, string(newArg))
+			newArg = []rune{}
+		} else {
+			// Unterminated quote - join up two args into one.
+			// Add a space between joined-up args.
+			newArg = append(newArg, ' ')
+		}
+	}
+	if curQuote != 0 {
+		switch curQuote {
+		case '"':
+			return nil, errors.New("unterminated double quote")
+		case '\'':
+			return nil, errors.New("unterminated single quote")
+		case '(':
+			return nil, errors.New("unterminated paranthesis")
+		default:
+			return nil, errors.Errorf("unterminated %c", curQuote)
+		}
+	}
+	return ret, nil
 }

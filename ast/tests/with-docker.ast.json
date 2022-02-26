@@ -24,6 +24,14 @@
         {
           "command": {
             "args": [
+              "+docker-load-arg-test"
+            ],
+            "name": "BUILD"
+          }
+        },
+        {
+          "command": {
+            "args": [
               "+docker-pull-test"
             ],
             "name": "BUILD"
@@ -69,8 +77,28 @@
         {
           "command": {
             "args": [
+              "name",
+              "=",
+              "abc"
+            ],
+            "name": "ARG"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "var",
+              "=",
+              "def"
+            ],
+            "name": "ARG"
+          }
+        },
+        {
+          "command": {
+            "args": [
               "mkdir",
-              "/abc"
+              "/$name"
             ],
             "name": "RUN"
           }
@@ -78,7 +106,7 @@
         {
           "command": {
             "args": [
-              "/abc"
+              "/$name"
             ],
             "name": "WORKDIR"
           }
@@ -87,7 +115,7 @@
           "command": {
             "args": [
               "echo",
-              "\"hello world\"",
+              "\"hello $var\"",
               ">def.txt"
             ],
             "name": "RUN"
@@ -97,7 +125,7 @@
           "command": {
             "args": [
               "cat",
-              "/abc/def.txt",
+              "/$name/def.txt",
               "&&",
               "pwd"
             ],
@@ -107,7 +135,7 @@
         {
           "command": {
             "args": [
-              "test-img:xyz"
+              "test-${name}-img:xyz"
             ],
             "name": "SAVE IMAGE"
           }
@@ -144,7 +172,7 @@
                   "args": [
                     "docker",
                     "run",
-                    "test-img:xyz",
+                    "test-abc-img:xyz",
                     "&&",
                     "docker",
                     "run",
@@ -160,6 +188,198 @@
                 "hello-world",
                 "--load",
                 "+a-test-image"
+              ],
+              "name": "DOCKER"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "docker-load-arg-test",
+      "recipe": [
+        {
+          "with": {
+            "body": [
+              {
+                "command": {
+                  "args": [
+                    "docker",
+                    "run",
+                    "test-foo-img:xyz",
+                    "|",
+                    "grep",
+                    "\"hello bar\""
+                  ],
+                  "name": "RUN"
+                }
+              }
+            ],
+            "command": {
+              "args": [
+                "--load=(+a-test-image",
+                "--name=foo",
+                "--var",
+                "bar)"
+              ],
+              "name": "DOCKER"
+            }
+          }
+        },
+        {
+          "with": {
+            "body": [
+              {
+                "command": {
+                  "args": [
+                    "docker",
+                    "run",
+                    "test-foo-img:xyz",
+                    "|",
+                    "grep",
+                    "\"hello bar\""
+                  ],
+                  "name": "RUN"
+                }
+              }
+            ],
+            "command": {
+              "args": [
+                "--load=(+a-test-image",
+                "--name=foo",
+                "--var",
+                "bar)"
+              ],
+              "name": "DOCKER"
+            }
+          }
+        },
+        {
+          "with": {
+            "body": [
+              {
+                "command": {
+                  "args": [
+                    "docker",
+                    "run",
+                    "test-bar-img:xyz",
+                    "|",
+                    "grep",
+                    "\"hello buz\""
+                  ],
+                  "name": "RUN"
+                }
+              }
+            ],
+            "command": {
+              "args": [
+                "--load=\"(+a-test-image --name=bar --var buz)\""
+              ],
+              "name": "DOCKER"
+            }
+          }
+        },
+        {
+          "with": {
+            "body": [
+              {
+                "command": {
+                  "args": [
+                    "docker",
+                    "run",
+                    "other-name:latest",
+                    "|",
+                    "grep",
+                    "\"hello buz\""
+                  ],
+                  "name": "RUN"
+                }
+              }
+            ],
+            "command": {
+              "args": [
+                "--load=other-name:latest=(+a-test-image",
+                "--name=foo",
+                "--var",
+                "buz)"
+              ],
+              "name": "DOCKER"
+            }
+          }
+        },
+        {
+          "with": {
+            "body": [
+              {
+                "command": {
+                  "args": [
+                    "docker",
+                    "run",
+                    "other-name:latest",
+                    "|",
+                    "grep",
+                    "\"hello buz\""
+                  ],
+                  "name": "RUN"
+                }
+              }
+            ],
+            "command": {
+              "args": [
+                "--load=other-name:latest=(+a-test-image",
+                "--name=foo",
+                "--var",
+                "buz)"
+              ],
+              "name": "DOCKER"
+            }
+          }
+        },
+        {
+          "with": {
+            "body": [
+              {
+                "command": {
+                  "args": [
+                    "docker",
+                    "run",
+                    "other-name:latest",
+                    "|",
+                    "grep",
+                    "\"hello buz\""
+                  ],
+                  "name": "RUN"
+                }
+              }
+            ],
+            "command": {
+              "args": [
+                "--load=\"other-name:latest=(+a-test-image --name=bar --var buz)\""
+              ],
+              "name": "DOCKER"
+            }
+          }
+        },
+        {
+          "with": {
+            "body": [
+              {
+                "command": {
+                  "args": [
+                    "docker",
+                    "run",
+                    "other-name:latest",
+                    "|",
+                    "grep",
+                    "\"hello buz\""
+                  ],
+                  "name": "RUN"
+                }
+              }
+            ],
+            "command": {
+              "args": [
+                "--load=other-name:latest=\"(+a-test-image --name=bar --var buz)\""
               ],
               "name": "DOCKER"
             }
