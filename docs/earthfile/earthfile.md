@@ -484,13 +484,16 @@ For detailed examples demonstrating how other scenarios may function, please see
 
 #### Synopsis
 
-* `ARG [--required] <name>[=<default-value>]`
+* `ARG [--required] <name>[=<default-value>]` (constant form)
+* `ARG [--required] <name>=$(<default-value-expr>)` (dynamic form)
 
 #### Description
 
 The command `ARG` declares a variable (or arg) with the name `<name>` and with an optional default value `<default-value>`. If no default value is provided, then empty string is used as the default value.
 
 This command works similarly to the [Dockerfile `ARG` command](https://docs.docker.com/engine/reference/builder/#arg), with a few differences regarding the scope and the predefined args (called builtin args in Earthly). The variable's scope is always limited to the recipe of the current target or command and only from the point it is declared onward. For more information regarding builtin args, see the [builtin args page](./builtin-args.md).
+
+In its *constant form*, the arg takes a default value defined as a constant string. If the `<default-value>` is not provided, then the default value is an empty string. In its *dynamic form*, the arg takes a default value defined as an expression. The expression is evaluated at run time and its result is used as the default value. The expression is interpreted via `/bin/sh` within the build environment.
 
 If an `ARG` is defined in the `base` target of the Earthfile, then it becomes a global `ARG` and it is made available to every other target or command in that file, regardless of their base images used.
 
@@ -704,11 +707,13 @@ or an expression involving other build args
 --SOME_ARG="a value based on other args, like $ANOTHER_ARG and $YET_ANOTHER_ARG"
 ```
 
-or a dynamic expression, based on the output of a command executed in the context of the build environment. In this case, the build arg becomes a "variable build arg".
+or a dynamic expression, based on the output of a command executed in the context of the build environment.
 
 ```
 --SOME_ARG=$(find /app -type f -name '*.php')
 ```
+
+Dynamic expressions are delimited by `$(...)`.
 
 ##### `--platform <platform>`
 

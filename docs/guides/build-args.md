@@ -37,9 +37,9 @@ This will output
 
 ```
     buildkitd | Found buildkit daemon as docker container (earthly-buildkitd)
-alpine:latest | --> Load metadata linux/amd64
+alpine:latest | --> Load metadata linux/arm64
          +foo | --> FROM alpine:latest
-         +foo | [██████████] resolve docker.io/library/alpine:latest@sha256:69e70a79f2d41ab5d637de98c1e0b055206ba40a8145e7bddb55ccc04e13cf8f ... 100%
+         +foo | [██████████] 100% resolve docker.io/library/alpine:latest@sha256:21a3deaa0d32a8057914f36584b5288d2e5ecc984380bc0118285c70fa8c9300
          +foo | name=world
          +foo | --> RUN echo "hello $name"
          +foo | hello world
@@ -52,7 +52,30 @@ If we re-run `earthly +hello --name=world`, we will see that the echo command is
 +foo | *cached* --> RUN echo "hello $name"
 ```
 
-## Setting Argument Values
+## Default values
+
+Arguments may also have default values, which may be either constant or dynamic. For example, the following target will greet the name identified by the arg `name` (which has a default value of John), with the current time:
+
+```Dockerfile
+hello:
+   ARG time=$(date +%H:%M)
+   ARG name=John
+   RUN echo "hello $name, it is $time"
+```
+
+```
+alpine:latest | --> Load metadata linux/arm64
+        +base | --> FROM alpine:latest
+        +base | [██████████] 100% resolve docker.io/library/alpine:latest@sha256:21a3deaa0d32a8057914f36584b5288d2e5ecc984380bc0118285c70fa8c9300
+       +hello | --> ARG time = RUN $(date +%H:%M)
+       +hello | --> RUN echo "hello $name, it is $time"
+       +hello | hello John, it is 23:21
+       output | --> exporting outputs
+```
+
+If an arg has no default value, then the default value is the empty string.
+
+## Overriding Argument Values
 
 Argument values can be set multiple ways:
 
@@ -134,7 +157,22 @@ Then when we call `earthly +greetings`, earthly will call `+hello` three times:
         output | --> exporting outputs
 ```
 
-In addition to the `BUILD` command, build args can also be used with `FROM`, `COPY` and a number of other commands.
+In addition to the `BUILD` command, build args can also be used with `FROM`, `COPY`, `WITH DOCKER --load` and a number of other commands:
+
+```Dockerfile
+BUILD +hello --name=world
+COPY (+hello/file.txt --name=world) ./
+FROM +hello --name=world
+WITH DOCKER --load=(+hello --name=world)
+  ...
+END
+```
+
+Another way to pass build args is by specifying a dynamic value, delimited by `$(...)`. For example, in the following, the value of the arg `name` will be set as the ouptut of the shell command `echo world` (which, of course is simply `world`):
+
+```Dockerfile
+BUILD +hello --name=$(echo world)
+```
 
 ## Passing secrets to RUN commands
 
