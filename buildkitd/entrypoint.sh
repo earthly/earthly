@@ -36,6 +36,24 @@ if [ -z "$EARTHLY_CACHE_VERSION" ]; then
     exit 1
 fi
 
+if [ -f "/sys/fs/cgroup/cgroup.controllers" ]; then
+    echo "detected cgroups v2"
+
+    mkdir /sys/fs/cgroup/earthly
+    mkdir /sys/fs/cgroup/buildkit
+    echo $$ > /sys/fs/cgroup/earthly/cgroup.procs
+
+    echo "+pids" > /sys/fs/cgroup/cgroup.subtree_control
+    echo "+cpu" > /sys/fs/cgroup/cgroup.subtree_control
+
+    echo "+pids" > /sys/fs/cgroup/buildkit/cgroup.subtree_control
+    echo "+cpu" > /sys/fs/cgroup/buildkit/cgroup.subtree_control
+
+    test "$(cat /sys/fs/cgroup/cgroup.type)" = "domain" || (echo "invalid root cgroup type: $(cat /sys/fs/cgroup/cgroup.type)" && exit 1)
+    test "$(cat /sys/fs/cgroup/earthly/cgroup.type)" = "domain" || (echo "invalid earthly cgroup type: $(cat /sys/fs/cgroup/earthly/cgroup.type)" && exit 1)
+    test "$(cat /sys/fs/cgroup/buildkit/cgroup.type)" = "domain" || (echo "invalid buildkit cgroup type: $(cat /sys/fs/cgroup/buildkit/cgroup.type)" && exit 1)
+fi
+
 earthly_cache_version_path="${EARTHLY_TMP_DIR}/internal.earthly.version"
 if [ -f "$earthly_cache_version_path" ]; then
     current_cache_version="$(cat "$earthly_cache_version_path")"
