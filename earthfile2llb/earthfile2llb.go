@@ -112,7 +112,7 @@ type ConvertOpt struct {
 }
 
 // Earthfile2LLB parses a earthfile and executes the statements for a given target.
-func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt, initialCall bool) (mts *states.MultiTarget, err error) {
+func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt, initialCall bool) (mts *states.MultiTarget, retErr error) {
 	if opt.SolveCache == nil {
 		opt.SolveCache = states.NewSolveCache()
 	}
@@ -126,6 +126,20 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt, in
 	if opt.ErrorGroup == nil {
 		opt.ErrorGroup, ctx = serrgroup.WithContext(ctx)
 		egWait = true
+		defer func() {
+			if egWait {
+				// We haven't waited for the ErrorGroup yet. The ErrorGroup will
+				// return the very first error encountered, which may be
+				// different than what our error is (our error could be
+				// context.Canceled resulted from the cancellation of the
+				// ErrorGroup, but not the root cause).
+				err2 := opt.ErrorGroup.Err()
+				if err2 != nil {
+					retErr = err2
+					return
+				}
+			}
+		}()
 	}
 	// Resolve build context.
 	bc, err := opt.Resolver.Resolve(ctx, opt.GwClient, target)
@@ -172,6 +186,7 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt, in
 		return nil, err
 	}
 	if egWait {
+		egWait = false
 		err := opt.ErrorGroup.Wait()
 		if err != nil {
 			return nil, err

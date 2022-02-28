@@ -1,6 +1,7 @@
 package earthfile2llb
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -46,10 +47,13 @@ func TestParseParans(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		actualFirst, actualArgs, err := parseParans(tt.in)
-		assert.NoError(t, err)
-		assert.Equal(t, tt.first, actualFirst)
-		assert.Equal(t, tt.args, actualArgs)
+		t.Run(tt.in, func(t *testing.T) {
+			actualFirst, actualArgs, err := parseParans(tt.in)
+			assert.NoError(t, err)
+			assert.Equal(t, tt.first, actualFirst)
+			assert.Equal(t, tt.args, actualArgs)
+		})
+
 	}
 }
 
@@ -68,5 +72,32 @@ func TestNegativeParseParans(t *testing.T) {
 	for _, tt := range tests {
 		_, _, err := parseParans(tt.in)
 		assert.Error(t, err)
+	}
+}
+
+func TestProcessParansAndQuotes(t *testing.T) {
+	var tests = []struct {
+		in   []string
+		args []string
+	}{
+		{[]string{}, []string{}},
+		{[]string{""}, []string{""}},
+		{[]string{"abc", "def", "ghi"}, []string{"abc", "def", "ghi"}},
+		{[]string{"hello ", "wor(", "ld)"}, []string{"hello ", "wor( ld)"}},
+		{[]string{"hello ", "(wor(", "ld)"}, []string{"hello ", "(wor( ld)"}},
+		{[]string{"hello ", "\"(wor(\"", "ld)"}, []string{"hello ", "\"(wor(\"", "ld)"}},
+		{[]string{"let's", "go"}, []string{"let's go"}},
+		{[]string{"(hello)"}, []string{"(hello)"}},
+		{[]string{"  (hello)"}, []string{"  (hello)"}},
+		{[]string{"(hello", "    ooo)"}, []string{"(hello     ooo)"}},
+		{[]string{"--load=(+a-test-image", "--name=foo", "--var", "bar)"}, []string{"--load=(+a-test-image --name=foo --var bar)"}},
+	}
+
+	for _, tt := range tests {
+		t.Run(strings.Join(tt.in, " "), func(t *testing.T) {
+			actualArgs := processParansAndQuotes(tt.in)
+			assert.Equal(t, tt.args, actualArgs)
+		})
+
 	}
 }

@@ -19,6 +19,10 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 - On native Windows installations, Earthly properly detects the local git path when it's available [#1663](https://github.com/earthly/earthly/issues/1663)
 - On native Windows installations, Earthly will properly identify targets in Earthfiles outside of the current directory using the `\` file separator  [#1663](https://github.com/earthly/earthly/issues/1663)
 - On native Windows installations, Earthly will save local artifacts to directories using the `\` file separator [#1663](https://github.com/earthly/earthly/issues/1663)
+- A parsing error, when using `WITH DOCKER --load` in conjunction with new-style
+  build args. [#1696](https://github.com/earthly/earthly/issues/1696)
+- `ENTRYPOINT` and `CMD` were not properly expanding args when used in shell mode.
+- A race condition sometimes caused a `Canceled` error to be reported, instead of the real error that caused the build to fail
 
 ## v0.6.8 - 2022-02-16
 

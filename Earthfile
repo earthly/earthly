@@ -152,7 +152,7 @@ lint-newline-ending:
     # check for files with trailing newlines
     RUN set -e; \
         code=0; \
-        for f in $(find . -type f \( -iname '*.go' -o -iname 'Earthfile' -o -iname '*.earth' -o -iname '*.md' \) | grep -v "ast/tests/empty-targets.earth" ); do \
+        for f in $(find . -type f \( -iname '*.go' -o -iname 'Earthfile' -o -iname '*.earth' -o -iname '*.md' \) | grep -v "ast/tests/empty-targets.earth" | grep -v "ast/parser/earth_parser.go" | grep -v "ast/parser/earth_lexer.go" ); do \
             if [ "$(tail -c 2 $f)" == "$(printf '\n\n')" ]; then \
                 echo "$f has trailing newlines"; \
                 code=1; \

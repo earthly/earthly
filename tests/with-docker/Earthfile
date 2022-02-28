@@ -3,8 +3,7 @@ FROM earthly/dind:alpine
 
 all:
     BUILD +docker-load-test
-    # Temporarily disabled.
-    # BUILD +undeclared-pull-test
+    BUILD +docker-load-arg-test
     BUILD +docker-pull-test
     BUILD +load-parallel-test
     BUILD +one-target-many-names
@@ -12,11 +11,13 @@ all:
 
 a-test-image:
     FROM alpine:3.15
-    RUN mkdir /abc
-    WORKDIR /abc
-    RUN echo "hello world" >def.txt
-    ENTRYPOINT cat /abc/def.txt && pwd
-    SAVE IMAGE test-img:xyz
+    ARG name=abc
+    ARG var=def
+    RUN mkdir /$name
+    WORKDIR /$name
+    RUN echo "hello $var" >def.txt
+    ENTRYPOINT cat /$name/def.txt && pwd
+    SAVE IMAGE test-${name}-img:xyz
 
 docker-load-test:
     # Index is used to create parallel tests.
@@ -25,21 +26,40 @@ docker-load-test:
     WITH DOCKER \
             --pull hello-world \
             --load +a-test-image
-        RUN docker run test-img:xyz && \
+        RUN docker run test-abc-img:xyz && \
             docker run hello-world
     END
 
-# This test is testing whether a pull within a WITH DOCKER would work.
-# Currently it fails occasionally due to DockerHub rate limiting.
-# undeclared-pull-test:
-#     WITH DOCKER
-#         RUN docker run hello-world
-#     END
+docker-load-arg-test:
+    WITH DOCKER --load=(+a-test-image --name=foo --var bar)
+        RUN docker run test-foo-img:xyz | grep "hello bar"
+    END
+    WITH DOCKER --load=(+a-test-image \
+            --name=foo \
+            --var \
+            bar)
+        RUN docker run test-foo-img:xyz | grep "hello bar"
+    END
+    WITH DOCKER --load="(+a-test-image --name=bar --var buz)"
+        RUN docker run test-bar-img:xyz | grep "hello buz"
+    END
+    WITH DOCKER --load=other-name:latest=(+a-test-image --name=foo --var buz)
+        RUN docker run other-name:latest | grep "hello buz"
+    END
+    WITH DOCKER --load=other-name:latest=(+a-test-image \
+            --name=foo \
+            --var \
+            buz)
+        RUN docker run other-name:latest | grep "hello buz"
+    END
+    WITH DOCKER --load="other-name:latest=(+a-test-image --name=bar --var buz)"
+        RUN docker run other-name:latest | grep "hello buz"
+    END
+    WITH DOCKER --load=other-name:latest="(+a-test-image --name=bar --var buz)"
+        RUN docker run other-name:latest | grep "hello buz"
+    END
 
 docker-pull-test:
-    # Note that this is mainly a smoke test, because the RUN command
-    # works even in absence of the --pull (it pull automatically if image
-    # not present).
     WITH DOCKER --pull hello-world
         RUN docker run hello-world
     END
