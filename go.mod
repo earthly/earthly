@@ -11,7 +11,7 @@ require (
 	github.com/docker/distribution v2.7.1+incompatible
 	github.com/docker/docker v20.10.7+incompatible
 	github.com/dustin/go-humanize v1.0.0
-	github.com/earthly/cloud-api v1.0.0
+	github.com/earthly/cloud-api v1.0.1-0.20220228235811-35dd6315dcf5
 	github.com/fatih/color v1.9.0
 	github.com/golang/protobuf v1.5.2
 	github.com/google/uuid v1.3.0
