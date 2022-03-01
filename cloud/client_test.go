@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/earthly/earthly/cloud/api"
+	api "github.com/earthly/cloud-api/secrets"
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/golang/protobuf/ptypes"
 )
