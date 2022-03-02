@@ -4,6 +4,8 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+## v0.6.9 - 2022-03-02
+
 ### Added
 
 - Earthly is now 15-30% faster when executing large builds [#1589](https://github.com/earthly/earthly/issues/1589)
