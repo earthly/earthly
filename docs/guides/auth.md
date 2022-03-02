@@ -20,11 +20,25 @@ There are two possible ways to pass Git authentication to Earthly builds:
 * Via SSH agent socket (for SSH-based authentication)
 * Via username-password (usually for HTTPS Git URLs)
 
+#### Auto authentication
+
+Earthly defaults to an `auto` authentication mode, where ssh-based authentication is automatically attempted, and falls back to https-based cloning.
+
+{% hint style='info' %}
+If you are having trouble accessing a private repository and want to use ssh-based authentication, first make sure `ssh-agent` is running and the `SSH_AUTH_SOCK`
+environment variable is set. If not, you can start it with `eval $(ssh-agent)`.
+
+Next make sure your private key has been added by running `ssh-add <path to key>`.
+{% endhint %}
+
+For users who want explicit control over git authentication, the following sections explain how.
+
 #### SSH agent socket
 
-SSH agent socket passing is configured by default and it should just work. It uses the environment variable `SSH_AUTH_SOCK` to detect where the SSH agent socket is located and mounts that socket to the BuildKit daemon container. (As an exception, on Mac, Docker's compatibility SSH auth socket is used instead).
+Earthly uses the environment variable `SSH_AUTH_SOCK` to detect where the SSH agent socket is located and mounts that socket to the BuildKit daemon container.
+(As an exception, on Mac, Docker's compatibility SSH auth socket is used instead).
 
-If you need to override the SSH agent socket, you can set the environment variable `EARTHLY_SSH_AUTH_SOCK` to point to an alternative SSH agent.
+If you need to override the SSH agent socket, you can set the environment variable `EARTHLY_SSH_AUTH_SOCK`, or use the `--ssh-auth-sock` flag to point to an alternative SSH agent.
 
 In order for the SSH agent to have the right credentials available, make sure you run `ssh-add` before executing Earthly builds.
 
