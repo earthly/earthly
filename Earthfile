@@ -104,7 +104,7 @@ lint:
             echo "$output" ; \
             exit 1 ; \
         fi
-    RUN output="$(goimports -d $(find . -type f -name '*.go' | grep -v \.pb\.go) 2>&1)"  ; \
+    RUN output="$(goimports -d $(find . -type f -name '*.go' | grep -v \./ast/parser/.*\.go) 2>&1)"  ; \
         if [ -n "$output" ]; then \
             echo "$output" ; \
             exit 1 ; \
