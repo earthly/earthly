@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"path"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/earthly/earthly/util/llbutil/pllb"
@@ -14,8 +13,10 @@ import (
 	"github.com/pkg/errors"
 )
 
+var defaultFlatTs = time.Time{} // the zero time
+
 // CopyOp is a simplified llb copy operation.
-func CopyOp(srcState pllb.State, srcs []string, destState pllb.State, dest string, allowWildcard bool, isDir bool, keepTs bool, chown string, ifExists, symlinkNoFollow bool, opts ...llb.ConstraintsOpt) pllb.State {
+func CopyOp(srcState pllb.State, srcs []string, destState pllb.State, dest string, allowWildcard bool, isDir bool, keepTs bool, chown string, ifExists, symlinkNoFollow, merge bool, opts ...llb.ConstraintsOpt) pllb.State {
 	destAdjusted := dest
 	if dest == "." || dest == "" || len(srcs) > 1 {
 		destAdjusted += string("/") // TODO: needs to be the containers platform, not the earthly hosts platform. For now, this is always Linux.
@@ -26,7 +27,7 @@ func CopyOp(srcState pllb.State, srcs []string, destState pllb.State, dest strin
 	}
 	var fa *pllb.FileAction
 	if !keepTs {
-		baseCopyOpts = append(baseCopyOpts, llb.WithCreatedTime(*defaultTs()))
+		baseCopyOpts = append(baseCopyOpts, llb.WithCreatedTime(defaultFlatTs))
 	}
 	for _, src := range srcs {
 		if ifExists {
@@ -58,6 +59,9 @@ func CopyOp(srcState pllb.State, srcs []string, destState pllb.State, dest strin
 	}
 	if fa == nil {
 		return destState
+	}
+	if merge && chown == "" {
+		return pllb.Merge([]pllb.State{destState, pllb.Scratch().File(fa)}, opts...)
 	}
 	return destState.File(fa, opts...)
 }
@@ -104,18 +108,4 @@ func Abs(ctx context.Context, s pllb.State, p string) (string, error) {
 		return "", errors.Wrap(err, "get dir")
 	}
 	return path.Join(dir, p), nil
-}
-
-var defaultTsValue time.Time
-var defaultTsParse sync.Once
-
-func defaultTs() *time.Time {
-	defaultTsParse.Do(func() {
-		var err error
-		defaultTsValue, err = time.Parse(time.RFC3339, "2020-04-16T12:00:00+00:00")
-		if err != nil {
-			panic(err)
-		}
-	})
-	return &defaultTsValue
 }

@@ -56,6 +56,17 @@ func Git(remote, ref string, opts ...llb.GitOption) State {
 	return State{st: llb.Git(remote, ref, opts...)}
 }
 
+// Merge is a wrapper around llb.Merge.
+func Merge(sts []State, opts ...llb.ConstraintsOpt) State {
+	sts2 := make([]llb.State, len(sts))
+	for i, st := range sts {
+		sts2[i] = st.st
+	}
+	gmu.Lock()
+	defer gmu.Unlock()
+	return State{st: llb.Merge(sts2, opts...)}
+}
+
 // RawState returns the wrapped llb.State, but requires an unlock from the caller.
 func (s State) RawState() (llb.State, func()) {
 	gmu.Lock()
