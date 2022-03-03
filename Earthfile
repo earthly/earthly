@@ -97,6 +97,18 @@ lint-scripts:
     BUILD +lint-scripts-auth-test
     BUILD +lint-scripts-misc
 
+earthly-script-no-stdout:
+    # This validates the ./earthly script doesn't print anything to stdout (it should print to stderr)
+    # This is to ensure commands such as: MYSECRET="$(./earthly secrets get -n /user/my-secret)" work
+    FROM earthly/dind:alpine
+    RUN apk add --no-cache --update bash
+    COPY earthly .earthly_version_flag_overrides .
+    WITH DOCKER --pull earthly/earthlybinaries
+        RUN ./earthly --version > earthly-version-output
+    END
+    RUN test "$(cat earthly-version-output | wc -l)" = "1"
+    RUN grep '^earthly version.*$' earthly-version-output # only --version info should go to stdout
+
 lint:
     FROM +code
     RUN output="$(ineffassign ./... 2>&1 | grep -v '/earthly/ast/parser/.*\.go')" ; \
@@ -464,6 +476,7 @@ test:
     BUILD +lint-newline-ending
     BUILD +lint-changelog
     BUILD +unit-test
+    BUILD +earthly-script-no-stdout
     ARG DOCKERHUB_MIRROR
     ARG DOCKERHUB_AUTH=true
     ARG DOCKERHUB_USER_SECRET=+secrets/DOCKERHUB_USER
