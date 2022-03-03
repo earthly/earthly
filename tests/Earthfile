@@ -155,6 +155,7 @@ ga:
     BUILD +ssh
     BUILD +host
     BUILD +host-invalid
+    BUILD +server
 
 # tests that only run on linux amd64
 # Note: this target is used to validate the USERPLATFORM user arg,
@@ -976,6 +977,17 @@ earthly --config \$earthly_config -P +test-with-docker
     --entrypoint \
     --mount=type=tmpfs,target=/tmp/earthly \
     -- -P
+
+server:
+    HOST api.earthly.dev 127.0.0.1
+    ENV EARTHLY_DISABLE_ANALYTICS 1
+    RUN \
+        echo -e "#!/bin/sh\\ntouch /i-was-run" > /run-this && chmod +x /run-this && \
+        nc -l -p 443 -e /run-this & \
+        export webserverpid="$!" && \
+        earthly +this-will-fail || true && \
+        if [ -f /i-was-run ]; then echo "earthly should not have attempted a connection" && exit 1; fi && \
+        kill -9 $webserverpid || true
 
 host:
     DO +RUN_EARTHLY --earthfile=host.earth --target=+add-single-host
