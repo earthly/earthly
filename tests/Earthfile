@@ -155,6 +155,7 @@ ga:
     BUILD +ssh
     BUILD +host
     BUILD +host-invalid
+    BUILD +mtime
 
 # tests that only run on linux amd64
 # Note: this target is used to validate the USERPLATFORM user arg,
@@ -986,6 +987,10 @@ host-invalid:
     DO +RUN_EARTHLY --earthfile=host.earth --should_fail=true --target=+invalid-ip --output_contains="invalid HOST ip"
     DO +RUN_EARTHLY --earthfile=host.earth --should_fail=true --target=+only-host --output_contains="invalid number of arguments for HOST"
     DO +RUN_EARTHLY --earthfile=host.earth --should_fail=true --target=+only-ip --output_contains="invalid number of arguments for HOST"
+
+mtime:
+    RUN echo test > file
+    DO +RUN_EARTHLY --earthfile=mtime.earth
 
 RUN_EARTHLY:
     COMMAND
