@@ -2796,11 +2796,10 @@ func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []st
 		} else {
 			// If you are not logged in, then advertise the service, since they probably turned it on to try it.
 			defer func() { // Defer this to keep log upload code together
-					if !cc.IsLoggedIn() || errors.Is(uploadErr, cloud.ErrUnauthorized) {
-						app.console.Printf("Share your logs with an Earthly account (experimental)! Register for one at https://ci.earthly.dev.")
-					} else if uploadErr != nil {
-						app.console.Warnf("Logs were not shared, due to an error: %s", uploadErr.Error())
-					}
+				if err != nil && !errors.Is(uploadErr, cloud.ErrUnauthorized) {
+					app.console.Warnf("Logs were not shared, due to an error: %s", uploadErr.Error())
+				} else {
+					app.console.Printf("Share your logs with an Earthly account (experimental)! Register for one at https://ci.earthly.dev.")
 				}
 			}()
 		}
