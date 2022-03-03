@@ -16,7 +16,7 @@ import (
 var defaultFlatTs = time.Time{} // the zero time
 
 // CopyOp is a simplified llb copy operation.
-func CopyOp(srcState pllb.State, srcs []string, destState pllb.State, dest string, allowWildcard bool, isDir bool, keepTs bool, chown string, ifExists, symlinkNoFollow bool, opts ...llb.ConstraintsOpt) pllb.State {
+func CopyOp(srcState pllb.State, srcs []string, destState pllb.State, dest string, allowWildcard bool, isDir bool, keepTs bool, chown string, ifExists, symlinkNoFollow, merge bool, opts ...llb.ConstraintsOpt) pllb.State {
 	destAdjusted := dest
 	if dest == "." || dest == "" || len(srcs) > 1 {
 		destAdjusted += string("/") // TODO: needs to be the containers platform, not the earthly hosts platform. For now, this is always Linux.
@@ -59,6 +59,9 @@ func CopyOp(srcState pllb.State, srcs []string, destState pllb.State, dest strin
 	}
 	if fa == nil {
 		return destState
+	}
+	if merge && chown == "" {
+		return pllb.Merge([]pllb.State{destState, pllb.Scratch().File(fa)}, opts...)
 	}
 	return destState.File(fa, opts...)
 }

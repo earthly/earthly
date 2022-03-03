@@ -29,6 +29,7 @@ type Features struct {
 	UseCacheCommand            bool `long:"use-cache-command" description:"allow use of CACHE command in Earthfiles"`
 	UseHostCommand             bool `long:"use-host-command" description:"allow use of HOST command in Earthfiles"`
 	ExecAfterParallel          bool `long:"exec-after-parallel" description:"force execution after parallel conversion"`
+	UseCopyLink                bool `long:"use-copy-link" description:"use the equivalent of COPY --link for all copy-like operations"`
 
 	Major int
 	Minor int
@@ -179,6 +180,7 @@ func GetFeatures(version *spec.Version) (*Features, error) {
 		ftrs.EarthlyVersionArg = true
 		ftrs.UseCacheCommand = true
 		ftrs.UseHostCommand = true
+		ftrs.UseCopyLink = true
 	}
 
 	return &ftrs, nil
