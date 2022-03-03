@@ -9,7 +9,7 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 ### Changed
 
 - Log sharing is enabled by default for logged in users, it can be disabled with `earthly config global.disable_log_sharing true`.
-- SAVE ARTIFACT ... AS LOCAL now sets mtime of output artifacts to the current time.
+- `SAVE ARTIFACT ... AS LOCAL` now sets mtime of output artifacts to the current time.
 
 ### Added
 
