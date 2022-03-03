@@ -1,0 +1,3 @@
+Error: build target: build main: bkClient.Build: failed to solve: Canceled: Earthfile line 471:4 apply BUILD ./ast/tests+all: earthfile2llb for ./ast/tests+all: ast\tests\Earthfile line 14:4 apply BUILD +test: earthfile2llb for +test: context canceled
+in              github.com/earthly/earthly/ast/tests:brandon/fix-windows-path+all --DOCKERHUB_AUTH=true --DOCKERHUB_MIRROR= --DOCKERHUB_TOKEN_SECRET=+secrets/DOCKERHUB_TOKEN --DOCKERHUB_USER_SECRET=+secrets/DOCKERHUB_USER
+in              github.com/earthly/earthly:brandon/fix-windows-path+test --DOCKERHUB_TOKEN=537f12b9-f805-4f2d-a586-42880937692f --DOCKERHUB_USER=brandonschurman
