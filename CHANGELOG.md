@@ -4,6 +4,12 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+## v0.6.10 - 2022-03-03
+
+### Changed
+
+- reverted zeroing of mtime change that was introduced in v0.6.9; this restores the behavior of setting modification time to `2020-04-16T12:00`. [#1712](https://github.com/earthly/earthly/issues/1712)
+
 ## v0.6.9 - 2022-03-02
 
 ### Changed
