@@ -1004,7 +1004,7 @@ func (c *client) SendAnalytics(data *EarthlyAnalytics) error {
 	if err != nil {
 		return errors.Wrap(err, "failed sending analytics")
 	}
-	if status != http.StatusAccepted {
+	if status != http.StatusCreated {
 		return errors.Errorf("unexpected response from analytics server: %d", status)
 	}
 	return nil
