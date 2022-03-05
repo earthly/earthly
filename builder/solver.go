@@ -140,40 +140,6 @@ func (s *solver) buildMainMulti(ctx context.Context, bf gwclient.BuildFunc, onIm
 	return nil
 }
 
-func (s *solver) solveMain(ctx context.Context, state pllb.State, platform specs.Platform) error {
-	dt, err := state.Marshal(ctx, llb.Platform(platform))
-	if err != nil {
-		return errors.Wrap(err, "state marshal")
-	}
-	solveOpt, err := s.newSolveOptMain()
-	if err != nil {
-		return errors.Wrap(err, "new solve opt")
-	}
-	ch := make(chan *client.SolveStatus)
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
-	eg, ctx := errgroup.WithContext(ctx)
-	eg.Go(func() error {
-		var err error
-		_, err = s.bkClient.Solve(ctx, dt, *solveOpt, ch)
-		if err != nil {
-			return errors.Wrap(err, "solve")
-		}
-		return nil
-	})
-	var vertexFailureOutput string
-	eg.Go(func() error {
-		var err error
-		vertexFailureOutput, err = s.sm.monitorProgress(ctx, ch, "", true)
-		return err
-	})
-	err = eg.Wait()
-	if err != nil {
-		return NewBuildError(err, vertexFailureOutput)
-	}
-	return nil
-}
-
 func (s *solver) newSolveOptDocker(img *image.Image, dockerTag string, w io.WriteCloser) (*client.SolveOpt, error) {
 	imgJSON, err := json.Marshal(img)
 	if err != nil {
@@ -258,18 +224,6 @@ func (s *solver) newSolveOptMulti(ctx context.Context, eg *errgroup.Group, onIma
 		CacheExports:        cacheExports,
 		Session:             s.attachables,
 		AllowedEntitlements: s.enttlmnts,
-	}, nil
-}
-
-func (s *solver) newSolveOptMain() (*client.SolveOpt, error) {
-	var cacheImports []client.CacheOptionsEntry
-	for ci := range s.cacheImports.AsMap() {
-		cacheImports = append(cacheImports, newCacheImportOpt(ci))
-	}
-	return &client.SolveOpt{
-		Session:             s.attachables,
-		AllowedEntitlements: s.enttlmnts,
-		CacheImports:        cacheImports,
 	}, nil
 }
 

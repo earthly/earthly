@@ -30,6 +30,7 @@ type Features struct {
 	UseHostCommand             bool `long:"use-host-command" description:"allow use of HOST command in Earthfiles"`
 	ExecAfterParallel          bool `long:"exec-after-parallel" description:"force execution after parallel conversion"`
 	UseCopyLink                bool `long:"use-copy-link" description:"use the equivalent of COPY --link for all copy-like operations"`
+	ParallelLoad               bool `long:"parallel-load" description:"perform parallel loading of images into WITH DOCKER"`
 
 	Major int
 	Minor int
@@ -181,6 +182,7 @@ func GetFeatures(version *spec.Version) (*Features, error) {
 		ftrs.UseCacheCommand = true
 		ftrs.UseHostCommand = true
 		ftrs.UseCopyLink = true
+		ftrs.ParallelLoad = true
 	}
 
 	return &ftrs, nil

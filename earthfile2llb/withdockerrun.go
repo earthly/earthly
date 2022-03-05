@@ -9,6 +9,7 @@ import (
 	"path"
 	"sort"
 	"strings"
+	"sync"
 
 	"github.com/containerd/containerd/platforms"
 	"github.com/earthly/earthly/dockertar"
@@ -16,6 +17,7 @@ import (
 	"github.com/earthly/earthly/states"
 	"github.com/earthly/earthly/util/llbutil"
 	"github.com/earthly/earthly/util/llbutil/pllb"
+	"github.com/earthly/earthly/util/syncutil/semutil"
 	"github.com/moby/buildkit/client/llb"
 	gwclient "github.com/moby/buildkit/frontend/gateway/client"
 	specs "github.com/opencontainers/image-spec/specs-go/v1"
@@ -61,8 +63,17 @@ type WithDockerOpt struct {
 }
 
 type withDockerRun struct {
-	c        *Converter
-	tarLoads []pllb.State
+	c *Converter
+
+	sem      semutil.Semaphore
+	mu       sync.Mutex
+	tarLoads []tarLoad
+}
+
+type tarLoad struct {
+	imgName  string
+	platform *specs.Platform
+	state    pllb.State
 }
 
 func (wdr *withDockerRun) Run(ctx context.Context, args []string, opt WithDockerOpt) error {
@@ -71,6 +82,9 @@ func (wdr *withDockerRun) Run(ctx context.Context, args []string, opt WithDocker
 		return err
 	}
 	wdr.c.nonSaveCommand()
+	// This semaphore ensures that there is at least one thread allowed to progress,
+	// even if parallelism is completely starved.
+	wdr.sem = semutil.NewMultiSem(wdr.c.opt.Parallelism, semutil.NewWeighted(1))
 
 	err = wdr.installDeps(ctx, opt)
 	if err != nil {
@@ -92,19 +106,29 @@ func (wdr *withDockerRun) Run(ctx context.Context, args []string, opt WithDocker
 			platformStr: llbutil.PlatformToString(pull.Platform),
 		}] = true
 	}
+
+	// Loads.
+	loadOptPromises := make([]chan DockerLoadOpt, 0, len(opt.Loads))
 	for _, loadOpt := range opt.Loads {
-		// Load.
-		actualImageName, err := wdr.load(ctx, loadOpt)
+		optPromise, err := wdr.load(ctx, loadOpt)
 		if err != nil {
 			return errors.Wrap(err, "load")
 		}
-		// Make sure we don't pull a compose image which is loaded.
-		key := setKey{
-			imageName:   actualImageName,
-			platformStr: llbutil.PlatformToString(loadOpt.Platform),
-		}
-		if composeImagesSet[key] {
-			delete(composeImagesSet, key)
+		loadOptPromises = append(loadOptPromises, optPromise)
+	}
+	for _, loadOptPromise := range loadOptPromises {
+		select {
+		case loadOpt := <-loadOptPromise:
+			// Make sure we don't pull a compose image which is loaded.
+			key := setKey{
+				imageName:   loadOpt.ImageName, // may have changed
+				platformStr: llbutil.PlatformToString(loadOpt.Platform),
+			}
+			if composeImagesSet[key] {
+				delete(composeImagesSet, key)
+			}
+		case <-ctx.Done():
+			return ctx.Err()
 		}
 	}
 	// Add compose images (what's left of them) to the pull list.
@@ -117,19 +141,28 @@ func (wdr *withDockerRun) Run(ctx context.Context, args []string, opt WithDocker
 			opt.Pulls = append(opt.Pulls, pull)
 		}
 	}
-	// Sort to make the operation consistent.
-	sort.Slice(opt.Pulls, func(i, j int) bool {
-		if opt.Pulls[i].ImageName == opt.Pulls[j].ImageName {
-			return llbutil.PlatformToString(opt.Pulls[i].Platform) < llbutil.PlatformToString(opt.Pulls[j].Platform)
-		}
-		return opt.Pulls[i].ImageName < opt.Pulls[j].ImageName
-	})
+	// Pulls.
+	pullPromises := make([]chan struct{}, 0, len(opt.Pulls))
 	for _, pullImageName := range opt.Pulls {
-		err := wdr.pull(ctx, pullImageName)
+		pullPromise, err := wdr.pull(ctx, pullImageName)
 		if err != nil {
 			return errors.Wrap(err, "pull")
 		}
+		pullPromises = append(pullPromises, pullPromise)
 	}
+	for _, pullPromise := range pullPromises {
+		select {
+		case <-pullPromise:
+		case <-ctx.Done():
+		}
+	}
+	// Sort the tar list, to make the operation consistent.
+	sort.Slice(wdr.tarLoads, func(i, j int) bool {
+		if wdr.tarLoads[i].imgName == wdr.tarLoads[j].imgName {
+			return llbutil.PlatformToString(wdr.tarLoads[i].platform) < llbutil.PlatformToString(wdr.tarLoads[j].platform)
+		}
+		return wdr.tarLoads[i].imgName < wdr.tarLoads[j].imgName
+	})
 	crOpts := ConvertRunOpts{
 		CommandName:     "WITH DOCKER RUN",
 		Args:            args,
@@ -148,9 +181,9 @@ func (wdr *withDockerRun) Run(ctx context.Context, args []string, opt WithDocker
 	crOpts.extraRunOpts = append(crOpts.extraRunOpts, pllb.AddMount(
 		dockerdWrapperPath, pllb.Scratch(), llb.HostBind(), llb.SourcePath(dockerdWrapperPath)))
 	var tarPaths []string
-	for index, tarContext := range wdr.tarLoads {
+	for index, tl := range wdr.tarLoads {
 		loadDir := fmt.Sprintf("/var/earthly/load-%d", index)
-		crOpts.extraRunOpts = append(crOpts.extraRunOpts, pllb.AddMount(loadDir, tarContext, llb.Readonly))
+		crOpts.extraRunOpts = append(crOpts.extraRunOpts, pllb.AddMount(loadDir, tl.state, llb.Readonly))
 		tarPaths = append(tarPaths, path.Join(loadDir, "image.tar"))
 	}
 
@@ -244,14 +277,15 @@ func (wdr *withDockerRun) getComposePulls(ctx context.Context, opt WithDockerOpt
 	return pulls, nil
 }
 
-func (wdr *withDockerRun) pull(ctx context.Context, opt DockerPullOpt) error {
+func (wdr *withDockerRun) pull(ctx context.Context, opt DockerPullOpt) (chan struct{}, error) {
+	promise := make(chan struct{})
 	plat := llbutil.PlatformWithDefault(opt.Platform)
 	state, image, _, err := wdr.c.internalFromClassical(
 		ctx, opt.ImageName, plat,
 		llb.WithCustomNamef("%sDOCKER PULL %s", wdr.c.imageVertexPrefix(opt.ImageName), opt.ImageName),
 	)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	mts := &states.MultiTarget{
 		Final: &states.SingleTarget{
@@ -264,39 +298,83 @@ func (wdr *withDockerRun) pull(ctx context.Context, opt DockerPullOpt) error {
 					DockerTag: opt.ImageName,
 				},
 			},
+			Platform: opt.Platform,
 		},
 	}
-	return wdr.solveImage(
-		ctx, mts, opt.ImageName, opt.ImageName,
-		llb.WithCustomNamef("%sDOCKER LOAD (PULL %s)", wdr.c.imageVertexPrefix(opt.ImageName), opt.ImageName))
+	solveFun := func() error {
+		err := wdr.solveImage(
+			ctx, mts, opt.ImageName, opt.ImageName,
+			llb.WithCustomNamef("%sDOCKER LOAD (PULL %s)", wdr.c.imageVertexPrefix(opt.ImageName), opt.ImageName))
+		if err != nil {
+			return err
+		}
+		close(promise)
+		return nil
+	}
+	if wdr.c.opt.ParallelConversion && wdr.c.ftrs.ParallelLoad {
+		wdr.c.opt.ErrorGroup.Go(func() error {
+			release, err := wdr.sem.Acquire(ctx, 1)
+			if err != nil {
+				return errors.Wrapf(err, "acquiring parallelism semaphore for pull load %s", opt.ImageName)
+			}
+			defer release()
+			return solveFun()
+		})
+	} else {
+		err = solveFun()
+		if err != nil {
+			return nil, err
+		}
+	}
+	return promise, nil
 }
 
-func (wdr *withDockerRun) load(ctx context.Context, opt DockerLoadOpt) (string, error) {
+func (wdr *withDockerRun) load(ctx context.Context, opt DockerLoadOpt) (chan DockerLoadOpt, error) {
+	optPromise := make(chan DockerLoadOpt, 1)
 	depTarget, err := domain.ParseTarget(opt.Target)
 	if err != nil {
-		return "", errors.Wrapf(err, "parse target %s", opt.Target)
+		return nil, errors.Wrapf(err, "parse target %s", opt.Target)
 	}
-	mts, err := wdr.c.buildTarget(ctx, depTarget.String(), opt.Platform, opt.AllowPrivileged, opt.BuildArgs, false, loadCmd)
-	if err != nil {
-		return "", err
-	}
-	if opt.ImageName == "" {
-		// Infer image name from the SAVE IMAGE statement.
-		if len(mts.Final.SaveImages) == 0 || mts.Final.SaveImages[0].DockerTag == "" {
-			return "", errors.New(
-				"no docker image tag specified in load and it cannot be inferred from the SAVE IMAGE statement")
+	afterFun := func(ctx context.Context, mts *states.MultiTarget) error {
+		if opt.ImageName == "" {
+			// Infer image name from the SAVE IMAGE statement.
+			if len(mts.Final.SaveImages) == 0 || mts.Final.SaveImages[0].DockerTag == "" {
+				return errors.New(
+					"no docker image tag specified in load and it cannot be inferred from the SAVE IMAGE statement")
+			}
+			if len(mts.Final.SaveImages) > 1 {
+				return errors.New(
+					"no docker image tag specified in load and it cannot be inferred from the SAVE IMAGE statement: " +
+						"multiple tags mentioned in SAVE IMAGE")
+			}
+			opt.ImageName = mts.Final.SaveImages[0].DockerTag
 		}
-		if len(mts.Final.SaveImages) > 1 {
-			return "", errors.New(
-				"no docker image tag specified in load and it cannot be inferred from the SAVE IMAGE statement: " +
-					"multiple tags mentioned in SAVE IMAGE")
+		err := wdr.solveImage(
+			ctx, mts, depTarget.String(), opt.ImageName,
+			llb.WithCustomNamef(
+				"%sDOCKER LOAD %s %s", wdr.c.imageVertexPrefix(depTarget.String()), depTarget.String(), opt.ImageName))
+		if err != nil {
+			return err
 		}
-		opt.ImageName = mts.Final.SaveImages[0].DockerTag
+		optPromise <- opt
+		return nil
 	}
-	return opt.ImageName, wdr.solveImage(
-		ctx, mts, depTarget.String(), opt.ImageName,
-		llb.WithCustomNamef(
-			"%sDOCKER LOAD %s %s", wdr.c.imageVertexPrefix(depTarget.String()), depTarget.String(), opt.ImageName))
+	if wdr.c.opt.ParallelConversion && wdr.c.ftrs.ParallelLoad {
+		err = wdr.c.BuildAsync(ctx, depTarget.String(), opt.Platform, opt.AllowPrivileged, opt.BuildArgs, loadCmd, afterFun, wdr.sem)
+		if err != nil && !errors.Is(err, errCannotAsync) {
+			return nil, err
+		}
+	} else {
+		mts, err := wdr.c.buildTarget(ctx, depTarget.String(), opt.Platform, opt.AllowPrivileged, opt.BuildArgs, false, loadCmd)
+		if err != nil {
+			return nil, err
+		}
+		err = afterFun(ctx, mts)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return optPromise, nil
 }
 
 func (wdr *withDockerRun) solveImage(ctx context.Context, mts *states.MultiTarget, opName string, dockerTag string, opts ...llb.RunOption) error {
@@ -343,7 +421,13 @@ func (wdr *withDockerRun) solveImage(ctx context.Context, mts *states.MultiTarge
 	if err != nil {
 		return err
 	}
-	wdr.tarLoads = append(wdr.tarLoads, tarContext)
+	wdr.mu.Lock()
+	defer wdr.mu.Unlock()
+	wdr.tarLoads = append(wdr.tarLoads, tarLoad{
+		imgName:  dockerTag,
+		platform: mts.Final.Platform,
+		state:    tarContext,
+	})
 	return nil
 }
 

@@ -49,7 +49,6 @@ import (
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/agent"
 	"golang.org/x/sync/errgroup"
-	"golang.org/x/sync/semaphore"
 	"golang.org/x/term"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -76,6 +75,7 @@ import (
 	"github.com/earthly/earthly/util/fileutil"
 	"github.com/earthly/earthly/util/llbutil"
 	"github.com/earthly/earthly/util/reflectutil"
+	"github.com/earthly/earthly/util/syncutil/semutil"
 	"github.com/earthly/earthly/util/termutil"
 	"github.com/earthly/earthly/variables"
 )
@@ -2955,9 +2955,9 @@ func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []st
 			cacheExport = app.remoteCache
 		}
 	}
-	var parallelism *semaphore.Weighted
+	var parallelism semutil.Semaphore
 	if app.cfg.Global.ConversionParallelism != 0 {
-		parallelism = semaphore.NewWeighted(int64(app.cfg.Global.ConversionParallelism))
+		parallelism = semutil.NewWeighted(int64(app.cfg.Global.ConversionParallelism))
 	}
 	localRegistryAddr := ""
 	if isLocal && app.localRegistryHost != "" {
