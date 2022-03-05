@@ -58,6 +58,11 @@ earthly config global.cache_size_mb 20000
 
 Specifies the total size of the BuildKit cache, in MB. The BuildKit daemon uses this setting to configure automatic garbage collection of old cache. A value of 0 causes the size to be adaptive depending on how much space is available on your system. The default is 0.
 
+### cache_size_pct
+
+Similar to [`cache_size_mb`](#cache_size_mb) (including the default and treatment of 0), but expressed as a percentage (0-100) of available space.
+This allows for an adaptively-sized cache, but in a controlled and deterministic manner.
+
 ### disable_analytics
 
 When set to true, disables collecting command line analytics; otherwise, earthly will report anonymized analytics for invocation of the earthly command. For more information see the [data collection page](../data-collection/data-collection.md).
