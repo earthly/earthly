@@ -65,6 +65,8 @@ type WithDockerOpt struct {
 type withDockerRun struct {
 	c *Converter
 
+	enableParallel bool
+
 	sem      semutil.Semaphore
 	mu       sync.Mutex
 	tarLoads []tarLoad
@@ -311,7 +313,7 @@ func (wdr *withDockerRun) pull(ctx context.Context, opt DockerPullOpt) (chan str
 		close(promise)
 		return nil
 	}
-	if wdr.c.opt.ParallelConversion && wdr.c.ftrs.ParallelLoad {
+	if wdr.enableParallel {
 		wdr.c.opt.ErrorGroup.Go(func() error {
 			release, err := wdr.sem.Acquire(ctx, 1)
 			if err != nil {
@@ -359,9 +361,9 @@ func (wdr *withDockerRun) load(ctx context.Context, opt DockerLoadOpt) (chan Doc
 		optPromise <- opt
 		return nil
 	}
-	if wdr.c.opt.ParallelConversion && wdr.c.ftrs.ParallelLoad {
+	if wdr.enableParallel {
 		err = wdr.c.BuildAsync(ctx, depTarget.String(), opt.Platform, opt.AllowPrivileged, opt.BuildArgs, loadCmd, afterFun, wdr.sem)
-		if err != nil && !errors.Is(err, errCannotAsync) {
+		if err != nil {
 			return nil, err
 		}
 	} else {

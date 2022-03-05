@@ -1165,27 +1165,29 @@ func (c *Converter) GitClone(ctx context.Context, gitURL string, branch string, 
 }
 
 // WithDockerRun applies an entire WITH DOCKER ... RUN ... END clause.
-func (c *Converter) WithDockerRun(ctx context.Context, args []string, opt WithDockerOpt) error {
+func (c *Converter) WithDockerRun(ctx context.Context, args []string, opt WithDockerOpt, allowParallel bool) error {
 	err := c.checkAllowed(runCmd)
 	if err != nil {
 		return err
 	}
 	c.nonSaveCommand()
 	wdr := &withDockerRun{
-		c: c,
+		c:              c,
+		enableParallel: allowParallel && c.opt.ParallelConversion && c.ftrs.ParallelLoad,
 	}
 	return wdr.Run(ctx, args, opt)
 }
 
 // WithDockerRunLocal applies an entire WITH DOCKER ... RUN ... END clause.
-func (c *Converter) WithDockerRunLocal(ctx context.Context, args []string, opt WithDockerOpt) error {
+func (c *Converter) WithDockerRunLocal(ctx context.Context, args []string, opt WithDockerOpt, allowParallel bool) error {
 	err := c.checkAllowed(runCmd)
 	if err != nil {
 		return err
 	}
 	c.nonSaveCommand()
 	wdrl := &withDockerRunLocal{
-		c: c,
+		c:              c,
+		enableParallel: allowParallel && c.opt.ParallelConversion && c.ftrs.ParallelLoad,
 	}
 	return wdrl.Run(ctx, args, opt)
 }

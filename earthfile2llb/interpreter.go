@@ -555,14 +555,23 @@ func (i *Interpreter) handleRun(ctx context.Context, cmd spec.Command) error {
 		i.withDocker.NoCache = opts.NoCache
 		i.withDocker.Interactive = opts.Interactive
 		i.withDocker.interactiveKeep = opts.InteractiveKeep
+		// TODO: Could this be allowed in the future, if dynamic build args
+		//       are expanded ahead of time?
+		allowParallel := true
+		for _, l := range i.withDocker.Loads {
+			if !isSafeAsyncBuildArgsKVStyle(l.BuildArgs) {
+				allowParallel = false
+				break
+			}
+		}
 
 		if i.local {
-			err = i.converter.WithDockerRunLocal(ctx, args, *i.withDocker)
+			err = i.converter.WithDockerRunLocal(ctx, args, *i.withDocker, allowParallel)
 			if err != nil {
 				return i.wrapError(err, cmd.SourceLocation, "with docker run")
 			}
 		} else {
-			err = i.converter.WithDockerRun(ctx, args, *i.withDocker)
+			err = i.converter.WithDockerRun(ctx, args, *i.withDocker, allowParallel)
 			if err != nil {
 				return i.wrapError(err, cmd.SourceLocation, "with docker run")
 			}
@@ -837,10 +846,10 @@ func (i *Interpreter) handleBuild(ctx context.Context, cmd spec.Command, async b
 		}
 		platformsSlice = append(platformsSlice, platform)
 	}
-	if async && !(isSafeAsyncBuildArgsDeprecatedStyle(opts.BuildArgs) && isSafeAsyncBuildArgs(args[1:])) {
+	if async && !(isSafeAsyncBuildArgsKVStyle(opts.BuildArgs) && isSafeAsyncBuildArgs(args[1:])) {
 		return errCannotAsync
 	}
-	if i.local && !(isSafeAsyncBuildArgsDeprecatedStyle(opts.BuildArgs) && isSafeAsyncBuildArgs(args[1:])) {
+	if i.local && !(isSafeAsyncBuildArgsKVStyle(opts.BuildArgs) && isSafeAsyncBuildArgs(args[1:])) {
 		return i.errorf(cmd.SourceLocation, "BUILD args do not currently support shelling-out in combination with LOCALLY")
 	}
 	expandedBuildArgs := i.expandArgsSlice(opts.BuildArgs, true)
@@ -1630,8 +1639,8 @@ func parseParans(str string) (string, []string, error) {
 	return parts[0], parts[1:], nil
 }
 
-// isSafeAsyncBuildArgsDeprecatedStyle is used for "BUILD --build-arg key=value +target" style buildargs
-func isSafeAsyncBuildArgsDeprecatedStyle(args []string) bool {
+// isSafeAsyncBuildArgsKVStyle is used for "key=value" style buildargs
+func isSafeAsyncBuildArgsKVStyle(args []string) bool {
 	for _, arg := range args {
 		_, v, _ := variables.ParseKeyValue(arg)
 		if strings.HasPrefix(v, "$(") || strings.HasPrefix(v, "\"$(") {
