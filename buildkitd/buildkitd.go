@@ -303,7 +303,7 @@ func Start(ctx context.Context, console conslogging.ConsoleLogger, image, contai
 
 		hostPort, err := strconv.Atoi(dbURL.Port())
 		if err != nil {
-			panic("Local registry host port was not a numver when attempting to start buildkit")
+			panic("Local registry host port was not a number when attempting to start buildkit")
 		}
 
 		portOpts = append(portOpts, containerutil.Port{
@@ -320,7 +320,7 @@ func Start(ctx context.Context, console conslogging.ConsoleLogger, image, contai
 			}
 			hostPort, err := strconv.Atoi(lrURL.Port())
 			if err != nil {
-				panic("Local registry host port was not a numver when attempting to start buildkit")
+				panic("Local registry host port was not a number when attempting to start buildkit")
 			}
 			portOpts = append(portOpts, containerutil.Port{
 				IP:            "127.0.0.1",
@@ -338,7 +338,7 @@ func Start(ctx context.Context, console conslogging.ConsoleLogger, image, contai
 		if settings.UseTCP {
 			hostPort, err := strconv.Atoi(bkURL.Port())
 			if err != nil {
-				panic("Local registry host port was not a numver when attempting to start buildkit")
+				panic("Local registry host port was not a number when attempting to start buildkit")
 			}
 			portOpts = append(portOpts, containerutil.Port{
 				IP:            "127.0.0.1",

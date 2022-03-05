@@ -219,7 +219,7 @@ func Delete(config []byte, path string) ([]byte, error) {
 }
 
 // PrintHelp describes the provided config option by
-// printing it's type and help tags to the console.
+// printing its type and help tags to the console.
 func PrintHelp(path string) error {
 	t, help, err := validatePath(reflect.TypeOf(Config{}), splitPath(path))
 	if err != nil {
@@ -230,7 +230,7 @@ func PrintHelp(path string) error {
 }
 
 func splitPath(path string) []string {
-	// Allow quotes to group keys, since git repos are keys and have periods... this is why we dont just strings.Split
+	// Allow quotes to group keys, since git repos are keys and have periods... this is why we don't just strings.Split
 	// If you screw up the quotes you will get a weird invalid path later.
 	re := regexp.MustCompile(`[^\."']+|"([^"]*)"|'([^']*)`)
 	pathParts := re.FindAllString(path, -1)
@@ -285,7 +285,7 @@ func valueToYaml(value string) (*yaml.Node, error) {
 		return nil, errors.Errorf("%s is not a valid YAML value", value)
 	}
 
-	// Unfold all the yaml so its not mixed inline and flow styles in the final document
+	// Unfold all the yaml so it's not mixed inline and flow styles in the final document
 	var fixStyling func(node *yaml.Node)
 	fixStyling = func(node *yaml.Node) {
 		node.Style = 0
@@ -298,7 +298,7 @@ func valueToYaml(value string) (*yaml.Node, error) {
 
 	contentNode := &yaml.Node{}
 	if len(valueNode.Content) > 0 {
-		// ContentNode contains the user-provided value with it's type etc
+		// ContentNode contains the user-provided value with its type etc
 		contentNode = valueNode.Content[0]
 	} else if value == "" {
 		// Edge case where the yaml.Unmarshal above results in no nodes in valueNode.Content.

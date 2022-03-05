@@ -206,7 +206,7 @@ func (wdr *withDockerRun) getComposePulls(ctx context.Context, opt WithDockerOpt
 		return nil, errors.Wrapf(err, "parse compose config for %v", opt.ComposeFiles)
 	}
 
-	// Collect relevant images from the comopose config.
+	// Collect relevant images from the compose config.
 	composeServicesSet := make(map[string]bool)
 	for _, composeService := range opt.ComposeServices {
 		composeServicesSet[composeService] = true
@@ -336,7 +336,7 @@ func (wdr *withDockerRun) solveImage(ctx context.Context, mts *states.MultiTarge
 			llb.Platform(llbutil.DefaultPlatform()),
 			llb.WithCustomNamef("[internal] docker tar context %s %s", opName, sessionID),
 		)
-		// Add directly to build context so that if a later statement forces execution, the images are avaliable.
+		// Add directly to build context so that if a later statement forces execution, the images are available.
 		wdr.c.opt.BuildContextProvider.AddDir(string(solveID), outDir)
 		return tarContext, nil
 	})
