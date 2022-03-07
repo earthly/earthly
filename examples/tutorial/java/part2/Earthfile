@@ -1,0 +1,18 @@
+VERSION 0.6
+FROM openjdk:8-jdk-alpine
+RUN apk add --update --no-cache gradle
+WORKDIR /java-example
+
+build:
+    COPY build.gradle ./
+    COPY src src
+    RUN gradle build
+    RUN gradle install
+    SAVE ARTIFACT build/install/java-example/bin /bin AS LOCAL build/bin
+    SAVE ARTIFACT build/install/java-example/lib /lib AS LOCAL build/lib
+
+docker:
+    COPY +build/bin bin
+    COPY +build/lib lib
+    ENTRYPOINT ["/java-example/bin/java-example"]
+    SAVE IMAGE java-example:latest

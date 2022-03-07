@@ -2,17 +2,20 @@ VERSION 0.6
 FROM python:3
 WORKDIR /code
 
-build:
+deps:
     RUN pip install wheel
     COPY requirements.txt ./
     RUN pip wheel -r requirements.txt --wheel-dir=wheels
-    COPY src src
-    SAVE ARTIFACT src /src
     SAVE ARTIFACT wheels /wheels
 
+build:
+    FROM +deps
+    COPY src src
+    SAVE ARTIFACT src /src
+
 docker:
+    COPY +deps/wheels wheels
     COPY +build/src src
-    COPY +build/wheels wheels
     COPY requirements.txt ./
     RUN pip install --no-index --find-links=wheels -r requirements.txt
     ENTRYPOINT ["python3", "./src/hello.py"]
