@@ -1,10 +1,15 @@
-FROM --platform=linux/amd64 golang:1.17-alpine3.15
+FROM alpine:3.15
+ARG TARGETARCH
+IF [ "$TARGETARCH" = "arm64" ]
+    FROM arm64v8/openjdk:19-slim
+ELSE
+    FROM --platform=linux/amd64 openjdk:19-slim
+END
 
-RUN apk add --update --no-cache \
-    openjdk13 \
-    openssl \
+RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
-    curl
+    curl \
+    openssl
 
 # Install antlr.
 WORKDIR /usr/local/lib
