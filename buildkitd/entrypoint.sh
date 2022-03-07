@@ -11,6 +11,11 @@ if [ -z "$CACHE_SIZE_MB" ]; then
     exit 1
 fi
 
+if [ -z "$CACHE_SIZE_PCT" ]; then
+    echo "CACHE_SIZE_PCT not set"
+    exit 1
+fi
+
 if [ -z "$BUILDKIT_DEBUG" ]; then
     echo "BUILDKIT_DEBUG not set"
     exit 1
@@ -135,6 +140,25 @@ mkdir -p "$BUILDKIT_ROOT_DIR"
 CACHE_SETTINGS=
 if [ "$CACHE_SIZE_MB" -gt "0" ]; then
     CACHE_SETTINGS="$(envsubst </etc/buildkitd.cache.template)"
+fi
+
+if [ "$CACHE_SIZE_PCT" -gt "0" ]; then
+    # %b -> "Total data blocks"
+    # %S -> "Fundamental block size"
+    # -f $EARTHLY_TMP_DIR -> filesystem where directory resides, usually a volume in docker's root directory
+    CALCULATED_CACHE_MB="$(stat -c "%b * %S * ${CACHE_SIZE_PCT} / 100 / 1024 / 1024" -f "$EARTHLY_TMP_DIR" | bc)"
+    echo "${CACHE_SIZE_PCT}% of target filesystem: ${CALCULATED_CACHE_MB}"
+
+    if [ "$CACHE_SIZE_MB" -gt "0" ]; then
+        echo "Lesser of specified size ($CACHE_SIZE_MB) and percentage ($CALCULATED_CACHE_MB) will be used"
+        if [ "$CALCULATED_CACHE_MB" -lt "$CACHE_SIZE_MB" ]; then
+            CACHE_SIZE_MB="$CALCULATED_CACHE_MB"
+            CACHE_SETTINGS="$(envsubst </etc/buildkitd.cache.template)"
+        fi
+    else
+        CACHE_SIZE_MB="$CALCULATED_CACHE_MB"
+        CACHE_SETTINGS="$(envsubst </etc/buildkitd.cache.template)"
+    fi
 fi
 export CACHE_SETTINGS
 

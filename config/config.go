@@ -59,6 +59,7 @@ var (
 type GlobalConfig struct {
 	DisableAnalytics         bool     `yaml:"disable_analytics"          help:"Controls Earthly telemetry."`
 	BuildkitCacheSizeMb      int      `yaml:"cache_size_mb"              help:"Size of the buildkit cache in Megabytes."`
+	BuildkitCacheSizePct     int      `yaml:"cache_size_pct"             help:"Size of the buildkit cache, as percentage (0-100)."`
 	BuildkitImage            string   `yaml:"buildkit_image"             help:"Choose a specific image for your buildkitd."`
 	BuildkitRestartTimeoutS  int      `yaml:"buildkit_restart_timeout_s" help:"How long to wait for buildkit to (re)start, in seconds."`
 	BuildkitAdditionalArgs   []string `yaml:"buildkit_additional_args"   help:"Additional args to pass to buildkit when it starts. Useful for custom/self-signed certs, or user namespace complications."`
@@ -110,6 +111,7 @@ func ParseConfigFile(yamlData []byte) (*Config, error) {
 	config := Config{
 		Global: GlobalConfig{
 			BuildkitCacheSizeMb:     0,
+			BuildkitCacheSizePct:    0,
 			DebuggerPort:            DefaultDebuggerPort,
 			LocalRegistryHost:       fmt.Sprintf("tcp://127.0.0.1:%d", DefaultLocalRegistryPort),
 			BuildkitScheme:          DefaultBuildkitScheme,

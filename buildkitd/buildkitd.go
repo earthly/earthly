@@ -397,6 +397,10 @@ func Start(ctx context.Context, console conslogging.ConsoleLogger, image, contai
 		envOpts["CACHE_SIZE_MB"] = strconv.FormatInt(int64(settings.CacheSizeMb), 10)
 	}
 
+	if settings.CacheSizePct > 0 {
+		envOpts["CACHE_SIZE_PCT"] = strconv.FormatInt(int64(settings.CacheSizePct), 10)
+	}
+
 	// Apply reset.
 	if reset {
 		envOpts["EARTHLY_RESET_TMP_DIR"] = "true"
@@ -485,10 +489,11 @@ ContainerRunningLoop:
 				Printf("Detected cache size %d GiB. It could take a while for buildkit to start up. Waiting for another %s before giving up...\n", cacheGigs, opTimeout)
 			console.
 				WithPrefix("buildkitd").
-				Printf("To reduce the size of the cache, you can run\n" +
+				Printf("To reduce the size of the cache, you can run one of\n" +
 					"\t\tearthly config 'global.cache_size_mb' <new-size>\n" +
-					"This sets the BuildKit GC target to a specific value. For more information see " +
-					"the Earthly config reference page: https://docs.earthly.dev/configuration/earthly-config\n")
+					"\t\tearthly config 'global.cache_size_pct' <new-percent>\n" +
+					"These set the BuildKit GC target to a specific value. For more information see " +
+					"the Earthly config reference page: https://docs.earthly.dev/docs/earthly-config\n")
 			return waitForConnection(ctx, containerName, address, opTimeout, fe)
 		}
 		return err

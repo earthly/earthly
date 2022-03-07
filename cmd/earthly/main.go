@@ -517,6 +517,13 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 			Usage:       "The total size of the buildkit cache, in MB",
 			Destination: &app.buildkitdSettings.CacheSizeMb,
 		},
+		&cli.IntFlag{
+			Name:        "buildkit-cache-size-pct",
+			Value:       0,
+			EnvVars:     []string{"EARTHLY_BUILDKIT_CACHE_SIZE_PCT"},
+			Usage:       "The total size of the buildkit cache, as a percentage (0-100)",
+			Destination: &app.buildkitdSettings.CacheSizePct,
+		},
 		&cli.StringFlag{
 			Name:        "buildkit-image",
 			Value:       DefaultBuildkitdImage,
@@ -1150,6 +1157,7 @@ func (app *earthlyApp) before(context *cli.Context) error {
 	app.buildkitdSettings.UseTCP = bkURL.Scheme == "tcp"
 	app.buildkitdSettings.UseTLS = app.cfg.Global.TLSEnabled
 	app.buildkitdSettings.MaxParallelism = app.cfg.Global.BuildkitMaxParallelism
+	app.buildkitdSettings.CacheSizePct = app.cfg.Global.BuildkitCacheSizePct
 
 	// ensure the MTU is something allowable in IPv4, cap enforced by type. Zero is autodetect.
 	if app.cfg.Global.CniMtu != 0 && app.cfg.Global.CniMtu < 68 {

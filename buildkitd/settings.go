@@ -12,6 +12,7 @@ import (
 // Settings represents the buildkitd settings used to start up the daemon with.
 type Settings struct {
 	CacheSizeMb          int
+	CacheSizePct         int
 	Debug                bool
 	BuildkitAddress      string
 	DebuggerAddress      string
