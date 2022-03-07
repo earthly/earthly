@@ -30,7 +30,7 @@ import (
 	"github.com/earthly/earthly/util/llbutil/llbfactory"
 	"github.com/earthly/earthly/util/llbutil/pllb"
 	"github.com/earthly/earthly/util/stringutil"
-	"github.com/earthly/earthly/util/syncutil/serrgroup"
+	"github.com/earthly/earthly/util/syncutil/semutil"
 	"github.com/earthly/earthly/variables"
 	"github.com/earthly/earthly/variables/reserved"
 
@@ -932,18 +932,23 @@ func (c *Converter) Build(ctx context.Context, fullTargetName string, platform *
 	return err
 }
 
+type afterParallelFunc func(context.Context, *states.MultiTarget) error
+
 // BuildAsync applies the earthly BUILD command asynchronously.
-func (c *Converter) BuildAsync(ctx context.Context, fullTargetName string, platform *specs.Platform, allowPrivileged bool, buildArgs []string, cmdT cmdType, eg *serrgroup.Group) error {
+func (c *Converter) BuildAsync(ctx context.Context, fullTargetName string, platform *specs.Platform, allowPrivileged bool, buildArgs []string, cmdT cmdType, apf afterParallelFunc, sem semutil.Semaphore) error {
 	target, opt, _, err := c.prepBuildTarget(ctx, fullTargetName, platform, allowPrivileged, buildArgs, true, cmdT)
 	if err != nil {
 		return err
 	}
-	eg.Go(func() error {
-		err := c.opt.Parallelism.Acquire(ctx, 1)
+	c.opt.ErrorGroup.Go(func() error {
+		if sem == nil {
+			sem = c.opt.Parallelism
+		}
+		rel, err := sem.Acquire(ctx, 1)
 		if err != nil {
 			return errors.Wrapf(err, "acquiring parallelism semaphore for %s", fullTargetName)
 		}
-		defer c.opt.Parallelism.Release(1)
+		defer rel()
 		mts, err := Earthfile2LLB(ctx, target, opt, false)
 		if err != nil {
 			return errors.Wrapf(err, "async earthfile2llb for %s", fullTargetName)
@@ -952,6 +957,12 @@ func (c *Converter) BuildAsync(ctx context.Context, fullTargetName string, platf
 			err = c.forceExecution(ctx, mts.Final.MainState)
 			if err != nil {
 				return errors.Wrapf(err, "async force execution for %s", fullTargetName)
+			}
+		}
+		if apf != nil {
+			err = apf(ctx, mts)
+			if err != nil {
+				return err
 			}
 		}
 		return nil
@@ -1154,27 +1165,29 @@ func (c *Converter) GitClone(ctx context.Context, gitURL string, branch string, 
 }
 
 // WithDockerRun applies an entire WITH DOCKER ... RUN ... END clause.
-func (c *Converter) WithDockerRun(ctx context.Context, args []string, opt WithDockerOpt) error {
+func (c *Converter) WithDockerRun(ctx context.Context, args []string, opt WithDockerOpt, allowParallel bool) error {
 	err := c.checkAllowed(runCmd)
 	if err != nil {
 		return err
 	}
 	c.nonSaveCommand()
 	wdr := &withDockerRun{
-		c: c,
+		c:              c,
+		enableParallel: allowParallel && c.opt.ParallelConversion && c.ftrs.ParallelLoad,
 	}
 	return wdr.Run(ctx, args, opt)
 }
 
 // WithDockerRunLocal applies an entire WITH DOCKER ... RUN ... END clause.
-func (c *Converter) WithDockerRunLocal(ctx context.Context, args []string, opt WithDockerOpt) error {
+func (c *Converter) WithDockerRunLocal(ctx context.Context, args []string, opt WithDockerOpt, allowParallel bool) error {
 	err := c.checkAllowed(runCmd)
 	if err != nil {
 		return err
 	}
 	c.nonSaveCommand()
 	wdrl := &withDockerRunLocal{
-		c: c,
+		c:              c,
+		enableParallel: allowParallel && c.opt.ParallelConversion && c.ftrs.ParallelLoad,
 	}
 	return wdrl.Run(ctx, args, opt)
 }

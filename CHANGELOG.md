@@ -4,6 +4,16 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+### Added
+
+- An experimental feature whereby `WITH DOCKER` parallelizes building of the
+  images to be loaded has been added. To enable this feature use
+  `VERSION --parallel-load 0.6`. [#1725](https://github.com/earthly/earthly/pull/1725)
+
+### Fixed
+
+- Fixed a duplicate build issue when using `IF` together with `WITH DOCKER` [#1724](https://github.com/earthly/earthly/issues/1724)
+
 ## v0.6.10 - 2022-03-03
 
 ### Changed
