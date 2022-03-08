@@ -61,6 +61,15 @@ test:
     # test earthly fails when explicitly set to use a different config that doesn't exist
     DO +RUN_EARTHLY_ARGS --extra_args="--config=this-does-not-exist.yml" --earthfile="hello.earth" --target="+hello" --should_fail="true" --output_contains="failed to read from this-does-not-exist.yml"
 
+    # test earthly runs with new cache percentage setting
+    RUN earthly config global.cache_size_pct 50
+    DO +RUN_EARTHLY_ARGS --earthfile="hello.earth" --target="+hello" --output_contains="greetings"
+
+    # test that it still runs alongside a size settings
+    RUN earthly config global.cache_size_mb 100
+    RUN test "$(cat /root/.earthly/config.yml)" = "$(cat expected-6.yml)"
+    DO +RUN_EARTHLY_ARGS --earthfile="hello.earth" --target="+hello" --output_contains="greetings"
+
     RUN touch /tmp/config.yml
     RUN chmod 400 /tmp/config.yml
 
