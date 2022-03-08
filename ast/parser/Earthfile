@@ -2,6 +2,8 @@ FROM alpine:3.15
 ARG USERARCH
 IF [ "$USERARCH" = "arm64" ]
     FROM arm64v8/openjdk:19-slim
+ELSE IF [ "$USERARCH" = "arm" ]
+    FROM arm32v7/openjdk:7-slim
 ELSE
     FROM --platform=linux/amd64 openjdk:19-slim
 END
