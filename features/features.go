@@ -31,6 +31,7 @@ type Features struct {
 	ExecAfterParallel          bool `long:"exec-after-parallel" description:"force execution after parallel conversion"`
 	UseCopyLink                bool `long:"use-copy-link" description:"use the equivalent of COPY --link for all copy-like operations"`
 	ParallelLoad               bool `long:"parallel-load" description:"perform parallel loading of images into WITH DOCKER"`
+	ShellOutAnywhere           bool `long:"shell-out-anywhere" description:"allow shelling-out in the middle of ARGs, or any other command"`
 
 	Major int
 	Minor int
@@ -127,9 +128,9 @@ func ApplyFlagOverrides(ftrs *Features, envOverrides string) error {
 
 var errUnexpectedArgs = fmt.Errorf("unexpected VERSION arguments; should be VERSION [flags] <major-version>.<minor-version>")
 
-func instrumentVersion(_ string, opt *goflags.Option, s *string) *string {
+func instrumentVersion(_ string, opt *goflags.Option, s *string) (*string, error) {
 	analytics.Count("version-feature-flags", opt.LongName)
-	return s // don't modify the flag, just pass it back.
+	return s, nil // don't modify the flag, just pass it back.
 }
 
 // GetFeatures returns a features struct for a particular version

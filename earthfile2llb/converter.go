@@ -311,8 +311,11 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 		}
 		BuildContextFactory = data.BuildContextFactory
 	}
-	overriding, err := variables.ParseArgs(
-		buildArgs, c.processNonConstantBuildArgFunc(ctx), c.varCollection)
+	var pncvf variables.ProcessNonConstantVariableFunc
+	if !c.opt.Features.ShellOutAnywhere {
+		pncvf = c.processNonConstantBuildArgFunc(ctx)
+	}
+	overriding, err := variables.ParseArgs(buildArgs, pncvf, c.varCollection)
 	if err != nil {
 		return err
 	}
@@ -597,11 +600,31 @@ func (c *Converter) RunExitCode(ctx context.Context, opts ConvertRunOpts) (int, 
 // RunExpression runs an expression and returns its output. The run is transient - any state created
 // is not used in subsequent commands.
 func (c *Converter) RunExpression(ctx context.Context, expressionName string, opts ConvertRunOpts) (string, error) {
+	return c.runCommand(ctx, expressionName, true, opts)
+}
+
+// RunCommand runs a command and returns its output. The run is transient - any state created
+// is not used in subsequent commands.
+func (c *Converter) RunCommand(ctx context.Context, commandName string, opts ConvertRunOpts) (string, error) {
+	return c.runCommand(ctx, commandName, false, opts)
+}
+
+func (c *Converter) runCommand(ctx context.Context, outputFileName string, isExpression bool, opts ConvertRunOpts) (string, error) {
 	err := c.checkAllowed(runCmd)
 	if err != nil {
 		return "", err
 	}
 	c.nonSaveCommand()
+
+	if !opts.WithShell {
+		panic("runCommand must be called WithShell")
+	}
+	if opts.Locally == opts.Transient {
+		panic("runCommand Transient xor Locally must be true")
+	}
+	if opts.shellWrap != nil {
+		panic("runCommand expects shellWrap to be nil (as it is overridden)")
+	}
 
 	var outputFile string
 	if opts.Locally {
@@ -615,7 +638,7 @@ func (c *Converter) RunExpression(ctx context.Context, expressionName string, op
 		})
 	} else {
 		srcBuildArgDir := "/run/buildargs"
-		outputFile = path.Join(srcBuildArgDir, expressionName)
+		outputFile = path.Join(srcBuildArgDir, outputFileName)
 		opts.statePrep = func(ctx context.Context, state pllb.State) (pllb.State, error) {
 			return state.File(
 				pllb.Mkdir(srcBuildArgDir, 0777, llb.WithParents(true)), // Mkdir is performed as root even when USER is set; we must use 0777
@@ -626,10 +649,12 @@ func (c *Converter) RunExpression(ctx context.Context, expressionName string, op
 		}
 	}
 
-	// Perform execution, but append the command with the right shell incantation that
-	// causes it to output to a file. This is done via the shellWrap.
-	opts.shellWrap = withShellAndEnvVarsOutput(outputFile)
-	opts.WithShell = true // force shell wrapping
+	if isExpression {
+		opts.shellWrap = expressionWithShellAndEnvVarsOutput(outputFile)
+	} else {
+		opts.shellWrap = withShellAndEnvVarsOutput(outputFile)
+	}
+
 	state, err := c.internalRun(ctx, opts)
 	if err != nil {
 		return "", err
@@ -639,7 +664,7 @@ func (c *Converter) RunExpression(ctx context.Context, expressionName string, op
 	if opts.Locally {
 		outputDt, err = os.ReadFile(outputFile)
 		if err != nil {
-			return "", errors.Wrap(err, "read exit code file")
+			return "", errors.Wrap(err, "read output file")
 		}
 	} else {
 		ref, err := llbutil.StateToRef(ctx, c.opt.GwClient, state, c.opt.NoCache, c.opt.Platform, c.opt.CacheImports.AsMap())
@@ -1094,8 +1119,13 @@ func (c *Converter) Arg(ctx context.Context, argKey string, defaultArgValue stri
 		return err
 	}
 	c.nonSaveCommand()
-	effective, effectiveDefault, err := c.varCollection.DeclareArg(
-		argKey, defaultArgValue, opts.Global, c.processNonConstantBuildArgFunc(ctx))
+
+	var pncvf variables.ProcessNonConstantVariableFunc
+	if !c.opt.Features.ShellOutAnywhere {
+		pncvf = c.processNonConstantBuildArgFunc(ctx)
+	}
+
+	effective, effectiveDefault, err := c.varCollection.DeclareArg(argKey, defaultArgValue, opts.Global, pncvf)
 	if err != nil {
 		return err
 	}
@@ -1284,8 +1314,11 @@ func (c *Converter) EnterScopeDo(ctx context.Context, command domain.Command, ba
 		return err
 	}
 
-	overriding, err := variables.ParseArgs(
-		buildArgs, c.processNonConstantBuildArgFunc(ctx), c.varCollection)
+	var pncvf variables.ProcessNonConstantVariableFunc
+	if !c.opt.Features.ShellOutAnywhere {
+		pncvf = c.processNonConstantBuildArgFunc(ctx)
+	}
+	overriding, err := variables.ParseArgs(buildArgs, pncvf, c.varCollection)
 	if err != nil {
 		return err
 	}
@@ -1329,8 +1362,14 @@ func (c *Converter) FinalizeStates(ctx context.Context) (*states.MultiTarget, er
 }
 
 // ExpandArgs expands args in the provided word.
-func (c *Converter) ExpandArgs(word string) string {
-	return c.varCollection.Expand(word)
+func (c *Converter) ExpandArgs(ctx context.Context, runOpts ConvertRunOpts, word string) (string, error) {
+	if !c.opt.Features.ShellOutAnywhere {
+		return c.varCollection.ExpandOld(word), nil
+	}
+	return c.varCollection.Expand(word, func(cmd string) (string, error) {
+		runOpts.Args = []string{cmd}
+		return c.RunCommand(ctx, "internal-expand-args", runOpts)
+	})
 }
 
 func (c *Converter) prepBuildTarget(ctx context.Context, fullTargetName string, platform *specs.Platform, allowPrivileged bool, buildArgs []string, isDangling bool, cmdT cmdType) (domain.Target, ConvertOpt, bool, error) {
@@ -1351,7 +1390,12 @@ func (c *Converter) prepBuildTarget(ctx context.Context, fullTargetName string, 
 	}
 	target := targetRef.(domain.Target)
 
-	overriding, err := variables.ParseArgs(buildArgs, c.processNonConstantBuildArgFunc(ctx), c.varCollection)
+	var pncvf variables.ProcessNonConstantVariableFunc
+	if !c.opt.Features.ShellOutAnywhere {
+		pncvf = c.processNonConstantBuildArgFunc(ctx)
+	}
+
+	overriding, err := variables.ParseArgs(buildArgs, pncvf, c.varCollection)
 	if err != nil {
 		return domain.Target{}, ConvertOpt{}, false, errors.Wrap(err, "parse build args")
 	}
@@ -1779,6 +1823,7 @@ func (c *Converter) processNonConstantBuildArgFunc(ctx context.Context) variable
 			CommandName: fmt.Sprintf("ARG %s = RUN", name),
 			Args:        strings.Split(expression, " "),
 			Transient:   true,
+			WithShell:   true,
 		}
 		output, err := c.RunExpression(ctx, name, opts)
 		if err != nil {
