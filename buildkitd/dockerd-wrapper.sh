@@ -71,7 +71,7 @@ start_dockerd() {
     # Use a specific IP range to avoid collision with host dockerd (we need to also connect to host
     # docker containers for the debugger).
     mkdir -p /etc/docker
-    cat <<'EOF' >/etc/docker/daemon.json
+    cat <<EOF >/etc/docker/daemon.json
 {
     "default-address-pools" : [
         {
@@ -82,7 +82,9 @@ start_dockerd() {
             "base" : "172.22.0.0/16",
             "size" : 24
         }
-    ]
+    ],
+    "insecure-registries": [$EARTHLY_DOCKERD_INSECURE_REGISTRY],
+    "registry-mirrors": [$EARTHLY_DOCKERD_REGISTRY_MIRROR]
 }
 EOF
 

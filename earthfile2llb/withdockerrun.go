@@ -435,9 +435,16 @@ func (wdr *withDockerRun) solveImage(ctx context.Context, mts *states.MultiTarge
 
 func makeWithDockerdWrapFun(dindID string, tarPaths []string, opt WithDockerOpt) shellWrapFun {
 	dockerRoot := path.Join("/var/earthly/dind", dindID)
+	registryMirror, _ := os.LookupEnv("EARTHLY_DOCKERD_REGISTRY_MIRROR")
+	registryMirror, _ = processRegistryValue(registryMirror, "https")
+	insecureRegistry, _ := os.LookupEnv("EARTHLY_DOCKERD_INSECURE_REGISTRY")
+	insecureRegistry, _ = processRegistryValue(insecureRegistry, "http")
+
 	params := []string{
 		fmt.Sprintf("EARTHLY_DOCKERD_DATA_ROOT=\"%s\"", dockerRoot),
 		fmt.Sprintf("EARTHLY_DOCKER_LOAD_FILES=\"%s\"", strings.Join(tarPaths, " ")),
+		fmt.Sprintf("EARTHLY_DOCKERD_REGISTRY_MIRROR=\"%s\"", registryMirror),
+		fmt.Sprintf("EARTHLY_DOCKERD_INSECURE_REGISTRY=\"%s\"", insecureRegistry),
 	}
 	params = append(params, composeParams(opt)...)
 	return func(args []string, envVars []string, isWithShell, withDebugger, forceDebugger bool) []string {
@@ -447,6 +454,29 @@ func makeWithDockerdWrapFun(dindID string, tarPaths []string, opt WithDockerOpt)
 			strWithEnvVarsAndDocker(args, envVars2, isWithShell, withDebugger, forceDebugger, true, "", ""),
 		}
 	}
+}
+
+func processRegistryValue(registry string, defaultProtocol string) (string, []string) {
+	processed := make([]string, 0)
+	protocolDelimiter := "://"
+	protocolPrefix := defaultProtocol + protocolDelimiter
+
+	if len(registry) > 0 {
+		// Convert comma-delimited list of registries into elements suitable for a JSON list
+		mirrors := strings.Split(registry, ",")
+		for i, s := range mirrors {
+			s = strings.TrimSpace(s)
+
+			if !strings.Contains(s, protocolDelimiter) {
+				s = fmt.Sprintf("%s%s", protocolPrefix, s)
+				processed = append(processed, s)
+			}
+			// Need to be escape the double-quotes to be valid JSON strings
+			mirrors[i] = fmt.Sprintf("\\\"%s\\\"", s)
+		}
+		registry = strings.Join(mirrors, ",")
+	}
+	return registry, processed
 }
 
 func (wdr *withDockerRun) getComposeConfig(ctx context.Context, opt WithDockerOpt) ([]byte, error) {

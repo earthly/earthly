@@ -157,6 +157,7 @@ ga:
     BUILD +host-invalid
     BUILD +mtime
     BUILD +server
+    BUILD ./dind-registries+all
 
 # tests that only run on linux amd64
 # Note: this target is used to validate the USERPLATFORM user arg,

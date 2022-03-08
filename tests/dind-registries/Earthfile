@@ -1,0 +1,39 @@
+VERSION 0.6
+FROM alpine:3.15
+
+all:
+    BUILD +registry-mirror --EARTHLY_DIND=true \
+                           --EARTHLY_DIND=false
+    BUILD +insecure-registry --EARTHLY_DIND=true \
+                             --EARTHLY_DIND=false
+
+registry-mirror:
+    ARG MIRROR=http://example.com
+    ARG EARTHLY_DIND=true
+    IF [ "$EARTHLY_DIND" = "true" ]
+        FROM earthly/dind:alpine
+    END
+    # The earthly client will do the proper escaping when invoking the dockerd-wrapper, but have to do it ourselves
+    # in this (uncommon) context
+    ENV EARTHLY_DOCKERD_REGISTRY_MIRROR="\"${MIRROR}\""
+    WITH DOCKER
+        RUN docker info -f '{{join .RegistryConfig.Mirrors ","}}' | grep -q "$MIRROR"
+    END
+
+insecure-registry:
+    ARG MIRROR=http://example.com
+    ARG EARTHLY_DIND=true
+    IF [ "$EARTHLY_DIND" = "true" ]
+        FROM earthly/dind:alpine
+    END
+    RUN apk --no-cache add jq
+    # The earthly client will do the proper escaping when invoking the dockerd-wrapper, but have to do it ourselves
+    # in this (uncommon) context
+    ENV EARTHLY_DOCKERD_INSECURE_REGISTRY="\"${MIRROR}\""
+    WITH DOCKER
+        # Though dockerd requires the protocol specified, it strips it off when it reports it back via "info"
+        RUN host=$(echo $MIRROR | sed -E 's/^https?:\/\///') && \
+            docker info -f '{{json .RegistryConfig.IndexConfigs}}' | \
+            # TODO Can this be done without jq?
+            jq -e --arg mirror "$host" '.[$mirror].Secure==false'
+    END
