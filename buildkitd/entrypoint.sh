@@ -147,7 +147,7 @@ if [ "$CACHE_SIZE_PCT" -gt "0" ]; then
     # %S -> "Fundamental block size"
     # -f $EARTHLY_TMP_DIR -> filesystem where directory resides, usually a volume in docker's root directory
     CALCULATED_CACHE_MB="$(stat -c "%b * %S * ${CACHE_SIZE_PCT} / 100 / 1024 / 1024" -f "$EARTHLY_TMP_DIR" | bc)"
-    echo "${CACHE_SIZE_PCT}% of target filesystem: ${CALCULATED_CACHE_MB}"
+    echo "cache size set to ${CALCULATED_CACHE_MB} MB (${CACHE_SIZE_PCT}% of filesystem)"
 
     if [ "$CACHE_SIZE_MB" -gt "0" ]; then
         echo "Lesser of specified size ($CACHE_SIZE_MB) and percentage ($CALCULATED_CACHE_MB) will be used"
