@@ -60,8 +60,9 @@ Specifies the total size of the BuildKit cache, in MB. The BuildKit daemon uses 
 
 ### cache_size_pct
 
-Similar to [`cache_size_mb`](#cache_size_mb) (including the default and treatment of 0), but expressed as a percentage (0-100) of available space.
-This allows for an adaptively-sized cache, but in a controlled and deterministic manner.
+Specifies the total size of the BuildKit cache, as a percentage (0-100) of the total filesystem size.
+When used in combination with `cache_size_mb`, the lesser of the two values will be used. This limit is ignored when set to 0.
+
 
 ### disable_analytics
 
