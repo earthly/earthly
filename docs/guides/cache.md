@@ -18,7 +18,7 @@ Earthly cache is persisted in a docker volume called `earthly-cache` on your sys
 
 ## Specifying cache size
 
-The default cache size is adaptable depending on available space on your system. If you would like to limit the cache size more aggressively, you can specify a different limit by modifying the `cache_size_mb` and/or `cache_size_pct` setting in the [configuration](../earthly-config/earthly-config.md). For example:
+The default cache size is adaptable depending on available space on your system. If you would like to limit the cache size more aggressively, you can specify a different limit by modifying the `cache_size_mb` and/or `cache_size_pct` settings in the [configuration](../earthly-config/earthly-config.md). For example:
 
 ```yaml
 global:
