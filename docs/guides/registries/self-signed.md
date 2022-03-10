@@ -29,7 +29,7 @@ global:
       ca=["/etc/config/add.ca"]
 ```
 
-Where `<absolute-path-to-ca-file>` is the location of the CA certificate you wish to add and `<registry-hostname>` is the hostname of the registry.
+Where `<absolute-path-to-ca-file>` is the location of the CA certificate you wish to add and `<registry-hostname>` is the hostname of the registry. The quotes are not a mistake, and should be left in.
 
 ## Insecure registries
 
@@ -45,7 +45,7 @@ global:
       insecure = true
 ```
 
-In addition, you will need to specify the `--insecure` flag in any `SAVE IMAGE` command.
+In addition, you will need to specify the `--insecure` flag in any `SAVE IMAGE` command.  Again, the quotes are not a mistake, and should be left in.
 
 ```
 FROM alpine:3.15
