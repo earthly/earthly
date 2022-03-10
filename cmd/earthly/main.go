@@ -517,13 +517,6 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 			Usage:       "The total size of the buildkit cache, in MB",
 			Destination: &app.buildkitdSettings.CacheSizeMb,
 		},
-		&cli.IntFlag{
-			Name:        "buildkit-cache-size-pct",
-			Value:       0,
-			EnvVars:     []string{"EARTHLY_BUILDKIT_CACHE_SIZE_PCT"},
-			Usage:       "The total size of the buildkit cache, as a percentage (0-100)",
-			Destination: &app.buildkitdSettings.CacheSizePct,
-		},
 		&cli.StringFlag{
 			Name:        "buildkit-image",
 			Value:       DefaultBuildkitdImage,
