@@ -358,7 +358,7 @@ The classical form of the `COPY` command differs from Dockerfiles in two cases:
 
 {% hint style='info' %}
 ##### Note
-To prevent Earthly from copying unwanted files, you may specify file patterns to be excluded from the build context using an [`.earthignore`](./earthignore.md) file. This file has the same syntax as a [`.dockerignore` file](https://docs.docker.com/engine/reference/builder/#dockerignore-file).
+To prevent Earthly from copying unwanted files, you may specify file patterns to be excluded from the build context using an [`.earthlyignore`](./earthlyignore.md) file. This file has the same syntax as a [`.dockerignore` file](https://docs.docker.com/engine/reference/builder/#dockerignore-file).
 {% endhint %}
 
 #### Options

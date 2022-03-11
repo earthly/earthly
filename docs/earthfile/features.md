@@ -49,7 +49,7 @@ Note that the features flags are disabled by default in Earthly versions lower t
 *Speeds up COPY transfers.*
 
 When enabled, Earthly will only send the files listed for the specific [`COPY`](../earthfile/earthfile.md#copy) command.
-Without this feature, Earthly sends the entire directory of files excluding files listed in the [`.earthlyignore` file](../earthfile/earthignore.md).
+Without this feature, Earthly sends the entire directory of files excluding files listed in the [`.earthlyignore` file](../earthfile/earthlyignore.md).
 
 ##### `--referenced-save-only`
 
