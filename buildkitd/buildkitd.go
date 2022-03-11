@@ -303,7 +303,7 @@ func Start(ctx context.Context, console conslogging.ConsoleLogger, image, contai
 
 		hostPort, err := strconv.Atoi(dbURL.Port())
 		if err != nil {
-			panic("Local registry host port was not a numver when attempting to start buildkit")
+			panic("Local registry host port was not a number when attempting to start buildkit")
 		}
 
 		portOpts = append(portOpts, containerutil.Port{
@@ -320,7 +320,7 @@ func Start(ctx context.Context, console conslogging.ConsoleLogger, image, contai
 			}
 			hostPort, err := strconv.Atoi(lrURL.Port())
 			if err != nil {
-				panic("Local registry host port was not a numver when attempting to start buildkit")
+				panic("Local registry host port was not a number when attempting to start buildkit")
 			}
 			portOpts = append(portOpts, containerutil.Port{
 				IP:            "127.0.0.1",
@@ -338,7 +338,7 @@ func Start(ctx context.Context, console conslogging.ConsoleLogger, image, contai
 		if settings.UseTCP {
 			hostPort, err := strconv.Atoi(bkURL.Port())
 			if err != nil {
-				panic("Local registry host port was not a numver when attempting to start buildkit")
+				panic("Local registry host port was not a number when attempting to start buildkit")
 			}
 			portOpts = append(portOpts, containerutil.Port{
 				IP:            "127.0.0.1",
@@ -395,6 +395,10 @@ func Start(ctx context.Context, console conslogging.ConsoleLogger, image, contai
 
 	if settings.CacheSizeMb > 0 {
 		envOpts["CACHE_SIZE_MB"] = strconv.FormatInt(int64(settings.CacheSizeMb), 10)
+	}
+
+	if settings.CacheSizePct > 0 {
+		envOpts["CACHE_SIZE_PCT"] = strconv.FormatInt(int64(settings.CacheSizePct), 10)
 	}
 
 	// Apply reset.
@@ -485,10 +489,11 @@ ContainerRunningLoop:
 				Printf("Detected cache size %d GiB. It could take a while for buildkit to start up. Waiting for another %s before giving up...\n", cacheGigs, opTimeout)
 			console.
 				WithPrefix("buildkitd").
-				Printf("To reduce the size of the cache, you can run\n" +
+				Printf("To reduce the size of the cache, you can run one of\n" +
 					"\t\tearthly config 'global.cache_size_mb' <new-size>\n" +
-					"This sets the BuildKit GC target to a specific value. For more information see " +
-					"the Earthly config reference page: https://docs.earthly.dev/configuration/earthly-config\n")
+					"\t\tearthly config 'global.cache_size_pct' <new-percent>\n" +
+					"These set the BuildKit GC target to a specific value. For more information see " +
+					"the Earthly config reference page: https://docs.earthly.dev/docs/earthly-config\n")
 			return waitForConnection(ctx, containerName, address, opTimeout, fe)
 		}
 		return err

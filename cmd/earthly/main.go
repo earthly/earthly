@@ -510,13 +510,6 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 			Destination: &app.keyPath,
 			Hidden:      true,
 		},
-		&cli.IntFlag{
-			Name:        "buildkit-cache-size-mb",
-			Value:       10000,
-			EnvVars:     []string{"EARTHLY_BUILDKIT_CACHE_SIZE_MB"},
-			Usage:       "The total size of the buildkit cache, in MB",
-			Destination: &app.buildkitdSettings.CacheSizeMb,
-		},
 		&cli.StringFlag{
 			Name:        "buildkit-image",
 			Value:       DefaultBuildkitdImage,
@@ -1150,6 +1143,8 @@ func (app *earthlyApp) before(context *cli.Context) error {
 	app.buildkitdSettings.UseTCP = bkURL.Scheme == "tcp"
 	app.buildkitdSettings.UseTLS = app.cfg.Global.TLSEnabled
 	app.buildkitdSettings.MaxParallelism = app.cfg.Global.BuildkitMaxParallelism
+	app.buildkitdSettings.CacheSizeMb = app.cfg.Global.BuildkitCacheSizeMb
+	app.buildkitdSettings.CacheSizePct = app.cfg.Global.BuildkitCacheSizePct
 
 	// ensure the MTU is something allowable in IPv4, cap enforced by type. Zero is autodetect.
 	if app.cfg.Global.CniMtu != 0 && app.cfg.Global.CniMtu < 68 {
@@ -1258,12 +1253,6 @@ func (app *earthlyApp) processDeprecatedCommandOptions(context *cli.Context, cfg
 			}
 			cfg.Git[k] = v
 		}
-	}
-
-	if context.IsSet("buildkit-cache-size-mb") {
-		app.console.Warnf("Warning: the --buildkit-cache-size-mb command flag is deprecated and is now configured in the ~/.earthly/config.yml file under the buildkit_cache_size setting; see https://docs.earthly.dev/earthly-config for reference.\n")
-	} else {
-		app.buildkitdSettings.CacheSizeMb = cfg.Global.BuildkitCacheSizeMb
 	}
 
 	if cfg.Global.DebuggerPort != config.DefaultDebuggerPort {
