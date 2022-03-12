@@ -212,7 +212,7 @@ func (wdr *withDockerRun) installDeps(ctx context.Context, opt WithDockerOpt) er
 		llb.AddMount(
 			dockerAutoInstallScriptPath, llb.Scratch(), llb.HostBind(), llb.SourcePath(dockerAutoInstallScriptPath)),
 		llb.Args(args),
-		llb.WithCustomNamef("%sWITH DOCKER (install deps)", wdr.c.vertexPrefix(false, false)),
+		llb.WithCustomNamef("%sWITH DOCKER (install deps)", wdr.c.vertexPrefix(false, false, false)),
 	}
 	wdr.c.mts.Final.MainState = wdr.c.mts.Final.MainState.Run(runOpts...).Root()
 	return nil
@@ -284,7 +284,7 @@ func (wdr *withDockerRun) pull(ctx context.Context, opt DockerPullOpt) (chan str
 	plat := llbutil.PlatformWithDefault(opt.Platform)
 	state, image, _, err := wdr.c.internalFromClassical(
 		ctx, opt.ImageName, plat,
-		llb.WithCustomNamef("%sDOCKER PULL %s", wdr.c.imageVertexPrefix(opt.ImageName), opt.ImageName),
+		llb.WithCustomNamef("%sDOCKER PULL %s", wdr.c.imageVertexPrefix(opt.ImageName, opt.Platform), opt.ImageName),
 	)
 	if err != nil {
 		return nil, err
@@ -306,7 +306,7 @@ func (wdr *withDockerRun) pull(ctx context.Context, opt DockerPullOpt) (chan str
 	solveFun := func() error {
 		err := wdr.solveImage(
 			ctx, mts, opt.ImageName, opt.ImageName,
-			llb.WithCustomNamef("%sDOCKER LOAD (PULL %s)", wdr.c.imageVertexPrefix(opt.ImageName), opt.ImageName))
+			llb.WithCustomNamef("%sDOCKER LOAD (PULL %s)", wdr.c.imageVertexPrefix(opt.ImageName, opt.Platform), opt.ImageName))
 		if err != nil {
 			return err
 		}
@@ -354,7 +354,7 @@ func (wdr *withDockerRun) load(ctx context.Context, opt DockerLoadOpt) (chan Doc
 		err := wdr.solveImage(
 			ctx, mts, depTarget.String(), opt.ImageName,
 			llb.WithCustomNamef(
-				"%sDOCKER LOAD %s %s", wdr.c.imageVertexPrefix(depTarget.String()), depTarget.String(), opt.ImageName))
+				"%sDOCKER LOAD %s %s", wdr.c.imageVertexPrefix(opt.ImageName, mts.Final.Platform), depTarget.String(), opt.ImageName))
 		if err != nil {
 			return err
 		}
@@ -414,7 +414,7 @@ func (wdr *withDockerRun) solveImage(ctx context.Context, mts *states.MultiTarge
 			string(solveID),
 			llb.SessionID(sessionID),
 			llb.Platform(llbutil.DefaultPlatform()),
-			llb.WithCustomNamef("[internal] docker tar context %s %s", opName, sessionID),
+			llb.WithCustomNamef("%sdocker tar context %s %s", wdr.c.vertexPrefix(false, false, true), opName, sessionID),
 		)
 		// Add directly to build context so that if a later statement forces execution, the images are available.
 		wdr.c.opt.BuildContextProvider.AddDir(string(solveID), outDir)
@@ -463,7 +463,7 @@ func (wdr *withDockerRun) getComposeConfig(ctx context.Context, opt WithDockerOp
 		llb.AddMount(
 			dockerdWrapperPath, llb.Scratch(), llb.HostBind(), llb.SourcePath(dockerdWrapperPath)),
 		llb.Args(args),
-		llb.WithCustomNamef("%sWITH DOCKER (docker-compose config)", wdr.c.vertexPrefix(false, false)),
+		llb.WithCustomNamef("%sWITH DOCKER (docker-compose config)", wdr.c.vertexPrefix(false, false, false)),
 	}
 	state := wdr.c.mts.Final.MainState.Run(runOpts...).Root()
 	ref, err := llbutil.StateToRef(ctx, wdr.c.opt.GwClient, state, wdr.c.opt.NoCache, wdr.c.opt.Platform, wdr.c.opt.CacheImports.AsMap())

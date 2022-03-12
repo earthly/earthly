@@ -3,10 +3,8 @@ package earthfile2llb
 import (
 	"bytes"
 	"context"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"hash/fnv"
 	"net"
 	"os"
 	"path"
@@ -15,11 +13,13 @@ import (
 	"strings"
 	"time"
 
+	"github.com/containerd/containerd/platforms"
 	"github.com/earthly/earthly/analytics"
 	"github.com/earthly/earthly/buildcontext"
 	"github.com/earthly/earthly/debugger/common"
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/features"
+	"github.com/earthly/earthly/outmon"
 	"github.com/earthly/earthly/states"
 	"github.com/earthly/earthly/states/dedup"
 	"github.com/earthly/earthly/states/image"
@@ -155,18 +155,18 @@ func (c *Converter) From(ctx context.Context, imageName string, platform *specs.
 }
 
 func (c *Converter) fromClassical(ctx context.Context, imageName string, platform *specs.Platform, local bool) error {
-	var prefix string
+	var internal bool
 	if local {
 		// local mode uses a fake image containing /bin/true
 		// we want to prefix this as internal so it doesn't show up in the output
-		prefix = "[internal] "
+		internal = true
 	} else {
-		prefix = c.vertexPrefix(false, false)
+		internal = false
 	}
 	plat := llbutil.PlatformWithDefault(platform)
 	state, img, envVars, err := c.internalFromClassical(
 		ctx, imageName, plat,
-		llb.WithCustomNamef("%sFROM %s", prefix, imageName))
+		llb.WithCustomNamef("%sFROM %s", c.vertexPrefix(local, false, internal), imageName))
 	if err != nil {
 		return err
 	}
@@ -277,7 +277,8 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 			llbutil.ScratchWithPlatform(), "/", true, true, false, "", false, false,
 			c.ftrs.UseCopyLink,
 			llb.WithCustomNamef(
-				"[internal] FROM DOCKERFILE (copy build context from) %s%s",
+				"%sFROM DOCKERFILE (copy build context from) %s%s",
+				c.vertexPrefix(false, false, true),
 				joinWrap(buildArgs, "(", " ", ") "), contextArtifact.String())))
 	} else {
 		// The build context is from the host.
@@ -409,7 +410,7 @@ func (c *Converter) CopyArtifactLocal(ctx context.Context, artifactName string, 
 		pllb.AddMount("/"+localhost.SendFileMagicStr, relevantDepState.ArtifactsState, llb.Readonly),
 		llb.WithCustomNamef(
 			"%sCOPY %s%s%s %s",
-			c.vertexPrefix(false, false),
+			c.vertexPrefix(false, false, false),
 			strIf(isDir, "--dir "),
 			joinWrap(buildArgs, "(", " ", ") "),
 			artifact.String(),
@@ -450,7 +451,7 @@ func (c *Converter) CopyArtifact(ctx context.Context, artifactName string, dest 
 		c.ftrs.UseCopyLink,
 		llb.WithCustomNamef(
 			"%sCOPY %s%s%s%s%s %s",
-			c.vertexPrefix(false, false),
+			c.vertexPrefix(false, false, false),
 			strIf(isDir, "--dir "),
 			strIf(ifExists, "--if-exists "),
 			strIf(symlinkNoFollow, "--symlink-no-follow "),
@@ -484,7 +485,7 @@ func (c *Converter) CopyClassical(ctx context.Context, srcs []string, dest strin
 		c.ftrs.UseCopyLink,
 		llb.WithCustomNamef(
 			"%sCOPY %s%s%s %s",
-			c.vertexPrefix(false, false),
+			c.vertexPrefix(false, false, false),
 			strIf(isDir, "--dir "),
 			strIf(ifExists, "--if-exists "),
 			strings.Join(srcs, " "),
@@ -553,7 +554,10 @@ func (c *Converter) RunExitCode(ctx context.Context, opts ConvertRunOpts) (int, 
 		opts.statePrep = func(ctx context.Context, state pllb.State) (pllb.State, error) {
 			return state.File(
 				pllb.Mkdir("/run", 0755, llb.WithParents(true)),
-				llb.WithCustomNamef("[internal] mkdir %s", "/run")), nil
+				llb.WithCustomNamef(
+					"%smkdir %s",
+					c.vertexPrefix(false, false, true), "/run"),
+			), nil
 		}
 	}
 
@@ -615,7 +619,10 @@ func (c *Converter) RunExpression(ctx context.Context, expressionName string, op
 		opts.statePrep = func(ctx context.Context, state pllb.State) (pllb.State, error) {
 			return state.File(
 				pllb.Mkdir(srcBuildArgDir, 0777, llb.WithParents(true)), // Mkdir is performed as root even when USER is set; we must use 0777
-				llb.WithCustomNamef("[internal] mkdir %s", srcBuildArgDir)), nil
+				llb.WithCustomNamef(
+					"%smkdir %s",
+					c.vertexPrefix(false, false, true), srcBuildArgDir),
+			), nil
 		}
 	}
 
@@ -700,7 +707,7 @@ func (c *Converter) SaveArtifact(ctx context.Context, saveFrom string, saveTo st
 		c.ftrs.UseCopyLink,
 		llb.WithCustomNamef(
 			"%sSAVE ARTIFACT %s%s%s %s",
-			c.vertexPrefix(false, false),
+			c.vertexPrefix(false, false, false),
 			strIf(ifExists, "--if-exists "),
 			strIf(symlinkNoFollow, "--symlink-no-follow "),
 			saveFrom,
@@ -719,7 +726,7 @@ func (c *Converter) SaveArtifact(ctx context.Context, saveFrom string, saveTo st
 				c.ftrs.UseCopyLink,
 				llb.WithCustomNamef(
 					"%sSAVE ARTIFACT %s%s%s %s AS LOCAL %s",
-					c.vertexPrefix(false, false),
+					c.vertexPrefix(false, false, false),
 					strIf(ifExists, "--if-exists "),
 					strIf(symlinkNoFollow, "--symlink-no-follow "),
 					saveFrom,
@@ -732,7 +739,7 @@ func (c *Converter) SaveArtifact(ctx context.Context, saveFrom string, saveTo st
 				c.ftrs.UseCopyLink,
 				llb.WithCustomNamef(
 					"%sSAVE ARTIFACT %s%s%s %s AS LOCAL %s",
-					c.vertexPrefix(false, false),
+					c.vertexPrefix(false, false, false),
 					strIf(ifExists, "--if-exists "),
 					strIf(symlinkNoFollow, "--symlink-no-follow "),
 					saveFrom,
@@ -826,7 +833,9 @@ func (c *Converter) SaveArtifactFromLocal(ctx context.Context, saveFrom, saveTo 
 	opts := []llb.RunOption{
 		llb.Args([]string{localhost.CopyFileMagicStr, saveFrom, saveTo}),
 		llb.IgnoreCache,
-		llb.WithCustomNamef("[internal] CopyFileMagicStr %s %s", saveFrom, saveTo),
+		llb.WithCustomNamef(
+			"%sCopyFileMagicStr %s %s",
+			c.vertexPrefix(true, false, true), saveFrom, saveTo),
 	}
 	c.mts.Final.MainState = c.mts.Final.MainState.Run(opts...).Root()
 
@@ -992,7 +1001,7 @@ func (c *Converter) Workdir(ctx context.Context, workdirPath string) error {
 			mkdirOpts = append(mkdirOpts, llb.WithUser(c.mts.Final.MainImage.Config.User))
 		}
 		opts := []llb.ConstraintsOpt{
-			llb.WithCustomNamef("%sWORKDIR %s", c.vertexPrefix(false, false), workdirPath),
+			llb.WithCustomNamef("%sWORKDIR %s", c.vertexPrefix(false, false, false), workdirPath),
 		}
 		c.mts.Final.MainState = c.mts.Final.MainState.File(
 			pllb.Mkdir(workdirAbs, 0755, mkdirOpts...), opts...)
@@ -1159,7 +1168,7 @@ func (c *Converter) GitClone(ctx context.Context, gitURL string, branch string, 
 		gitState, []string{"."}, c.mts.Final.MainState, dest, false, false, keepTs,
 		c.mts.Final.MainImage.Config.User, false, false, c.ftrs.UseCopyLink,
 		llb.WithCustomNamef(
-			"%sCOPY GIT CLONE (--branch %s) %s TO %s", c.vertexPrefix(false, false),
+			"%sCOPY GIT CLONE (--branch %s) %s TO %s", c.vertexPrefix(false, false, false),
 			branch, gitURLScrubbed, dest))
 	return nil
 }
@@ -1489,7 +1498,7 @@ func (c *Converter) internalRun(ctx context.Context, opts ConvertRunOpts) (pllb.
 		strIf(opts.Interactive, "--interactive "),
 		strIf(opts.InteractiveKeep, "--interactive-keep "),
 		strings.Join(opts.Args, " "))
-	runOpts = append(runOpts, llb.WithCustomNamef("%s%s", c.vertexPrefix(opts.Locally, isInteractive), commandStr))
+	runOpts = append(runOpts, llb.WithCustomNamef("%s%s", c.vertexPrefix(opts.Locally, isInteractive, false), commandStr))
 
 	var extraEnvVars []string
 	// Secrets.
@@ -1701,7 +1710,7 @@ func (c *Converter) internalFromClassical(ctx context.Context, imageName string,
 	baseImageName := reference.TagNameOnly(ref).String()
 	logName := fmt.Sprintf(
 		"%sLoad metadata %s",
-		c.imageVertexPrefix(imageName), llbutil.PlatformToString(&platform))
+		c.imageVertexPrefix(imageName, &platform), llbutil.PlatformToString(&platform))
 	dgst, dt, err := c.opt.MetaResolver.ResolveImageConfig(
 		ctx, baseImageName,
 		llb.ResolveImageConfigOpt{
@@ -1779,35 +1788,30 @@ func (c *Converter) processNonConstantBuildArgFunc(ctx context.Context) variable
 	}
 }
 
-var base64True = base64.StdEncoding.EncodeToString([]byte("true"))
-
-func (c *Converter) vertexPrefix(local bool, interactive bool) string {
-	overriding := c.varCollection.SortedOverridingVariables()
-	varStrBuilder := make([]string, 0, len(overriding)+1)
-	if c.mts.Final.Platform != nil {
-		b64Platform := base64.StdEncoding.EncodeToString(
-			[]byte(llbutil.PlatformToString(c.opt.Platform)))
-		varStrBuilder = append(varStrBuilder, fmt.Sprintf("@platform=%s", b64Platform))
-	}
-	if local {
-		varStrBuilder = append(varStrBuilder, fmt.Sprintf("@local=%s", base64True))
-	}
-	if interactive {
-		varStrBuilder = append(varStrBuilder, fmt.Sprintf("@interactive=%s", base64True))
-	}
-	for _, key := range overriding {
-		variable, isActive := c.varCollection.GetActive(key)
-		if !isActive {
-			continue
+func (c *Converter) vertexPrefix(local bool, interactive bool, internal bool) string {
+	activeOverriding := make(map[string]string)
+	for _, arg := range c.varCollection.SortedOverridingVariables() {
+		v, ok := c.varCollection.GetActive(arg)
+		if ok {
+			activeOverriding[arg] = v
 		}
-		b64Value := base64.StdEncoding.EncodeToString([]byte(variable))
-		varStrBuilder = append(varStrBuilder, fmt.Sprintf("%s=%s", key, b64Value))
 	}
-	var varStr string
-	if len(varStrBuilder) > 0 {
-		varStr = fmt.Sprintf("(%s)", strings.Join(varStrBuilder, " "))
+	platformStr := llbutil.PlatformWithDefaultToString(c.mts.Final.Platform)
+	isDefaultPlatform := false
+	if platformStr == platforms.Format(llbutil.DefaultPlatform()) {
+		isDefaultPlatform = true
 	}
-	return fmt.Sprintf("[%s%s %s] ", c.mts.Final.Target.String(), varStr, c.mts.Final.ID)
+	vm := &outmon.VertexMeta{
+		TargetID:           c.mts.Final.ID,
+		TargetName:         c.mts.Final.Target.String(),
+		Platform:           platformStr,
+		NonDefaultPlatform: !isDefaultPlatform,
+		Local:              local,
+		Interactive:        interactive,
+		OverridingArgs:     activeOverriding,
+		Internal:           internal,
+	}
+	return vm.ToVertexPrefix()
 }
 
 func (c *Converter) markFakeDeps() {
@@ -1829,10 +1833,18 @@ func (c *Converter) markFakeDeps() {
 	c.directDeps = nil
 }
 
-func (c *Converter) imageVertexPrefix(id string) string {
-	h := fnv.New32a()
-	h.Write([]byte(id))
-	return fmt.Sprintf("[%s %d] ", id, h.Sum32())
+func (c *Converter) imageVertexPrefix(id string, platform *specs.Platform) string {
+	platformStr := llbutil.PlatformWithDefaultToString(platform)
+	isDefaultPlatform := false
+	if platformStr == platforms.Format(llbutil.DefaultPlatform()) {
+		isDefaultPlatform = true
+	}
+	vm := &outmon.VertexMeta{
+		TargetName:         id,
+		Platform:           llbutil.PlatformToString(platform),
+		NonDefaultPlatform: !isDefaultPlatform,
+	}
+	return vm.ToVertexPrefix()
 }
 
 func (c *Converter) vertexPrefixWithURL(url string) string {

@@ -13,6 +13,7 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 ### Fixed
 
 - Fixed a duplicate build issue when using `IF` together with `WITH DOCKER` [#1724](https://github.com/earthly/earthly/issues/1724)
+- Fixed a bug where `BUILD --platform=$ARG` did not expand correctly
 
 ## v0.6.10 - 2022-03-03
 

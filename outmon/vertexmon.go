@@ -16,16 +16,12 @@ import (
 
 type vertexMonitor struct {
 	vertex         *client.Vertex
-	targetStr      string
-	targetBrackets string
-	meta           map[string]string
-	salt           string
+	meta           *VertexMeta
 	operation      string
 	lastProgress   map[string]time.Time
 	lastPercentage map[string]int
 	console        conslogging.ConsoleLogger
 	headerPrinted  bool
-	isInternal     bool
 	isError        bool
 	isCanceled     bool
 	tailOutput     *circbuf.Buffer
@@ -41,8 +37,15 @@ func (vm *vertexMonitor) printHeader() {
 		return
 	}
 	c := vm.console
-	if vm.targetBrackets != "" {
-		c.WithMetadataMode(true).Printf("%s\n", vm.targetBrackets)
+	var metaParts []string
+	if vm.meta.NonDefaultPlatform && vm.meta.Platform != "" {
+		metaParts = append(metaParts, vm.meta.Platform)
+	}
+	if vm.meta.OverridingArgs != nil {
+		metaParts = append(metaParts, vm.meta.OverridingArgsString())
+	}
+	if len(metaParts) > 0 {
+		c.WithMetadataMode(true).Printf("%s\n", strings.Join(metaParts, " | "))
 	}
 	out := []string{}
 	out = append(out, "-->")

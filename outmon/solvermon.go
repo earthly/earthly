@@ -2,9 +2,7 @@ package outmon
 
 import (
 	"context"
-	"encoding/base64"
 	"fmt"
-	"regexp"
 	"sort"
 	"strings"
 	"sync"
@@ -121,33 +119,29 @@ func (sm *SolverMonitor) processStatus(ss *client.SolveStatus) error {
 	for _, vertex := range ss.Vertexes {
 		vm, ok := sm.vertices[vertex.Digest]
 		if !ok {
-			targetStr, targetBrackets, vertexMetadata, salt, operation := parseVertexName(vertex.Name)
+			meta, operation := ParseFromVertexPrefix(vertex.Name)
 			vm = &vertexMonitor{
 				vertex:         vertex,
-				targetStr:      targetStr,
-				targetBrackets: targetBrackets,
-				meta:           vertexMetadata,
-				salt:           salt,
+				meta:           meta,
 				operation:      operation,
-				isInternal:     (targetStr == "internal" && !sm.verbose),
-				console:        sm.console.WithPrefixAndSalt(targetStr, salt),
+				console:        sm.console.WithPrefixAndSalt(meta.TargetName, meta.Salt()),
 				lastPercentage: make(map[string]int),
 				lastProgress:   make(map[string]time.Time),
 			}
-			if vm.meta["@local"] == "true" {
+			if vm.meta.Local {
 				vm.console = vm.console.WithLocal(true)
 			}
 			sm.vertices[vertex.Digest] = vm
 		}
 		vm.vertex = vertex
 		if !vm.headerPrinted &&
-			((!vm.isInternal && (vertex.Cached || vertex.Started != nil)) || vertex.Error != "") {
+			((!vm.meta.Internal && (vertex.Cached || vertex.Started != nil)) || vertex.Error != "") {
 			sm.printHeader(vm)
 			sm.noOutputTicker.Reset(sm.noOutputTick)
 		}
 		if vertex.Error != "" {
 			if strings.Contains(vertex.Error, "context canceled") {
-				if !vm.isInternal {
+				if !vm.meta.Internal {
 					vm.console.Printf("WARN: Canceled\n")
 					vm.isCanceled = true
 					sm.noOutputTicker.Reset(sm.noOutputTick)
@@ -162,7 +156,7 @@ func (sm *SolverMonitor) processStatus(ss *client.SolveStatus) error {
 		}
 		if sm.verbose {
 			vm.printTimingInfo()
-			sm.recordTiming(vm.targetStr, vm.targetBrackets, vm.salt, vertex)
+			sm.recordTiming(vm, vertex)
 			sm.noOutputTicker.Reset(sm.noOutputTick)
 		}
 
@@ -171,7 +165,7 @@ func (sm *SolverMonitor) processStatus(ss *client.SolveStatus) error {
 	}
 	for _, vs := range ss.Statuses {
 		vm, ok := sm.vertices[vs.Vertex]
-		if !ok || vm.isInternal {
+		if !ok || vm.meta.Internal {
 			// No logging for internal operations.
 			continue
 		}
@@ -187,7 +181,7 @@ func (sm *SolverMonitor) processStatus(ss *client.SolveStatus) error {
 	}
 	for _, logLine := range ss.Logs {
 		vm, ok := sm.vertices[logLine.Vertex]
-		if !ok || vm.isInternal {
+		if !ok || vm.meta.Internal {
 			// No logging for internal operations.
 			continue
 		}
@@ -220,14 +214,14 @@ func (sm *SolverMonitor) processNoOutputTick() error {
 		if !vm.isOngoing() {
 			continue
 		}
-		if vm.meta["@interactive"] == "true" {
+		if vm.meta.Interactive {
 			// Don't print ongoing updates when an interactive session is ongoing.
 			return nil
 		}
 
 		col := vm.console.PrefixColor()
 		relTime := humanize.RelTime(*vm.vertex.Started, now, "ago", "from now")
-		ongoing = append(ongoing, fmt.Sprintf("%s (%s)", col.Sprintf("%s", vm.targetStr), relTime))
+		ongoing = append(ongoing, fmt.Sprintf("%s (%s)", col.Sprintf("%s", vm.meta.TargetName), relTime))
 	}
 	sort.Strings(ongoing) // not entirely correct, but makes the ordering consistent
 	var ongoingStr string
@@ -263,16 +257,16 @@ func (sm *SolverMonitor) printProgress(vm *vertexMonitor, id string, progress in
 }
 
 func (sm *SolverMonitor) printHeader(vm *vertexMonitor) {
-	seen := sm.saltSeen[vm.salt]
+	seen := sm.saltSeen[vm.meta.Salt()]
 	if !seen {
-		sm.saltSeen[vm.salt] = true
+		sm.saltSeen[vm.meta.Salt()] = true
 	}
 	vm.printHeader()
 	sm.lastOutputWasProgress = false
 	sm.lastOutputWasNoOutputUpdate = false
 }
 
-func (sm *SolverMonitor) recordTiming(targetStr, targetBrackets, salt string, vertex *client.Vertex) {
+func (sm *SolverMonitor) recordTiming(vm *vertexMonitor, vertex *client.Vertex) {
 	if vertex.Started == nil || vertex.Completed == nil {
 		return
 	}
@@ -281,9 +275,9 @@ func (sm *SolverMonitor) recordTiming(targetStr, targetBrackets, salt string, ve
 		return
 	}
 	key := timingKey{
-		targetStr:      targetStr,
-		targetBrackets: targetBrackets,
-		salt:           salt,
+		targetStr:      vm.meta.TargetName,
+		targetBrackets: vm.meta.OverridingArgsString(),
+		salt:           vm.meta.Salt(),
 	}
 	sm.timingTable[key] += dur
 }
@@ -350,66 +344,4 @@ func (sm *SolverMonitor) reprintFailure(errVertex *vertexMonitor, phaseText stri
 		errVertex.console.Printf("[no output]\n")
 	}
 	errVertex.printError()
-}
-
-var vertexRegexp = regexp.MustCompile(`(?s)^\[([^\]]*)\] (.*)$`)
-var targetAndSaltRegexp = regexp.MustCompile(`(?s)^([^\(]*)(\(([^\)]*)\))? (.*)$`)
-
-func parseVertexName(vertexName string) (string, string, map[string]string, string, string) {
-	target := ""
-	targetBrackets := ""
-	operation := ""
-	meta := make(map[string]string)
-	salt := ""
-	if strings.HasPrefix(vertexName, "importing cache manifest") ||
-		strings.HasPrefix(vertexName, "exporting cache") {
-		return "cache", targetBrackets, meta, "cache", vertexName
-	}
-	match := vertexRegexp.FindStringSubmatch(vertexName)
-	if len(match) < 2 {
-		return "internal", targetBrackets, meta, "internal", vertexName
-	}
-	targetAndSalt := match[1]
-	operation = match[2]
-	targetAndSaltMatch := targetAndSaltRegexp.FindStringSubmatch(targetAndSalt)
-	if targetAndSaltMatch == nil {
-		return targetAndSalt, targetBrackets, meta, targetAndSalt, operation
-	}
-	target = targetAndSaltMatch[1]
-	salt = targetAndSaltMatch[len(targetAndSaltMatch)-1]
-	if salt == "" {
-		salt = targetAndSalt
-	}
-	if targetAndSaltMatch[3] != "" {
-		targetBracketsParts := strings.Split(targetAndSaltMatch[3], " ")
-		targetBracketsBuilder := make([]string, 0, len(targetBracketsParts))
-		for _, part := range targetBracketsParts {
-			kvParts := strings.SplitN(part, "=", 2)
-			if len(kvParts) != 2 {
-				// Handle an error better here?
-				continue
-			}
-			key := kvParts[0]
-			var value string
-			valueDt, err := base64.StdEncoding.DecodeString(kvParts[1])
-			if err != nil {
-				// Handle an error better here?
-				value = kvParts[1]
-			} else {
-				value = string(valueDt)
-			}
-			if strings.HasPrefix(key, "@") {
-				meta[key] = value
-			} else {
-				targetBracketsBuilder = append(targetBracketsBuilder, fmt.Sprintf("%s=%s", key, value))
-			}
-		}
-		platform := meta["@platform"]
-		if platform != "" {
-			targetBracketsBuilder = append(
-				[]string{fmt.Sprintf("platform=%s", platform)}, targetBracketsBuilder...)
-		}
-		targetBrackets = strings.Join(targetBracketsBuilder, " ")
-	}
-	return target, targetBrackets, meta, salt, operation
 }

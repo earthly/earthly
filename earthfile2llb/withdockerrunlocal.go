@@ -113,7 +113,7 @@ func (wdrl *withDockerRunLocal) load(ctx context.Context, opt DockerLoadOpt) (ch
 		err := wdrl.solveImage(
 			ctx, mts, depTarget.String(), opt.ImageName,
 			llb.WithCustomNamef(
-				"%sDOCKER LOAD %s %s", wdrl.c.imageVertexPrefix(depTarget.String()), depTarget.String(), opt.ImageName))
+				"%sDOCKER LOAD %s %s", wdrl.c.imageVertexPrefix(opt.ImageName, opt.Platform), depTarget.String(), opt.ImageName))
 		if err != nil {
 			return err
 		}
