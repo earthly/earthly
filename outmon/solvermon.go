@@ -24,6 +24,8 @@ const (
 	tailErrorBufferSizeBytes             = 80 * 1024 // About as much as 1024 lines of 80 chars each.
 )
 
+// SolverMonitor is an object that monitors for status updates from a buildkit solve
+// and prints them to the console.
 type SolverMonitor struct {
 	msgMu                       sync.Mutex
 	console                     conslogging.ConsoleLogger
@@ -69,7 +71,7 @@ func NewSolverMonitor(console conslogging.ConsoleLogger, verbose bool, disableNo
 	}
 }
 
-// Monitor progress consumes progress messages from a solve statue channel and prints them to the console.
+// MonitorProgress consumes progress messages from a solve statue channel and prints them to the console.
 func (sm *SolverMonitor) MonitorProgress(ctx context.Context, ch chan *client.SolveStatus, phaseText string, sideRun bool) (string, error) {
 	if !sideRun {
 		sm.mu.Lock()
@@ -282,6 +284,7 @@ func (sm *SolverMonitor) recordTiming(vm *vertexMonitor, vertex *client.Vertex) 
 	sm.timingTable[key] += dur
 }
 
+// PrintTiming prints the accumulated timing information.
 func (sm *SolverMonitor) PrintTiming() {
 	if !sm.verbose {
 		return
