@@ -45,17 +45,14 @@ func ParseFromVertexPrefix(in string) (*VertexMeta, string) {
 	dt, err := base64.StdEncoding.DecodeString(vmDt64)
 	if err != nil {
 		// Either "context <context-name>"
-		// or coming from Dockerfile (<target> <step>/<total-steps>).
+		// or "internal"
+		// or coming from Dockerfile: "<target> <step>/<total-steps>".
 		splits := strings.SplitN(vmDt64, " ", 2)
-		switch len(splits) {
-		case 0:
-		case 1:
+		if len(splits) > 0 {
 			vm.TargetName = splits[0]
-		case 2:
-			vm.TargetName = splits[0]
-			if vm.TargetName == "context" {
-				vm.TargetName = vmDt64
-			}
+		}
+		if vm.TargetName == "internal" {
+			vm.Internal = true
 		}
 		return vm, tail
 	}
