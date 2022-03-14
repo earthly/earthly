@@ -43,7 +43,7 @@ code:
     ARG USERARCH
     COPY --platform=linux/$USERARCH ./ast/parser+parser/*.go ./ast/parser/
     COPY --dir analytics autocomplete buildcontext builder cleanup cmd config conslogging debugger dockertar \
-        docker2earthly domain features slog cloud states util variables ./
+        docker2earthly domain features outmon slog cloud states util variables ./
     COPY --dir buildkitd/buildkitd.go buildkitd/settings.go buildkitd/certificates.go buildkitd/
     COPY --dir earthfile2llb/*.go earthfile2llb/
     COPY --dir ast/antlrhandler ast/spec ast/*.go ast/
@@ -426,6 +426,9 @@ for-own:
 for-linux:
     ARG BUILDKIT_PROJECT
     BUILD --platform=linux/amd64 ./buildkitd+buildkitd --BUILDKIT_PROJECT="$BUILDKIT_PROJECT"
+    # TODO: Use the USERARCH variant after the next Earthly release.
+    # ARG USERARCH
+    # BUILD --platform=linux/$USERARCH ./ast/parser+parser
     BUILD --platform=linux/amd64 ./ast/parser+parser
     COPY +earthly-linux-amd64/earthly ./
     SAVE ARTIFACT ./earthly AS LOCAL ./build/linux/amd64/earthly
@@ -433,6 +436,9 @@ for-linux:
 for-darwin:
     ARG BUILDKIT_PROJECT
     BUILD --platform=linux/amd64 ./buildkitd+buildkitd --BUILDKIT_PROJECT="$BUILDKIT_PROJECT"
+    # TODO: Use the USERARCH variant after the next Earthly release.
+    # ARG USERARCH
+    # BUILD --platform=linux/$USERARCH ./ast/parser+parser
     BUILD --platform=linux/amd64 ./ast/parser+parser
     COPY +earthly-darwin-amd64/earthly ./
     SAVE ARTIFACT ./earthly AS LOCAL ./build/darwin/amd64/earthly
@@ -440,13 +446,17 @@ for-darwin:
 for-darwin-m1:
     ARG BUILDKIT_PROJECT
     BUILD --platform=linux/arm64 ./buildkitd+buildkitd --BUILDKIT_PROJECT="$BUILDKIT_PROJECT"
+    # TODO: Use the USERARCH variant after the next Earthly release.
+    # ARG USERARCH
+    # BUILD --platform=linux/$USERARCH ./ast/parser+parser
     BUILD --platform=linux/amd64 ./ast/parser+parser
     COPY +earthly-darwin-arm64/earthly ./
     SAVE ARTIFACT ./earthly AS LOCAL ./build/darwin/arm64/earthly
 
 for-windows:
     # BUILD --platform=linux/amd64 ./buildkitd+buildkitd
-    # BUILD --platform=linux/amd64 ./ast/parser+parser
+    ARG USERARCH
+    BUILD --platform=linux/$USERARCH ./ast/parser+parser
     COPY +earthly-windows-amd64/earthly.exe ./
     SAVE ARTIFACT ./earthly.exe AS LOCAL ./build/windows/amd64/earthly.exe
 

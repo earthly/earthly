@@ -62,6 +62,20 @@ type ConsoleLogger struct {
 	bb             *BundleBuilder
 }
 
+// Current returns the current console.
+func Current(colorMode ColorMode, prefixPadding int, verbose bool) ConsoleLogger {
+	return ConsoleLogger{
+		consoleErrW:    getCompatibleStderr(),
+		errW:           getCompatibleStderr(),
+		colorMode:      colorMode,
+		saltColors:     make(map[string]*color.Color),
+		nextColorIndex: new(int),
+		prefixPadding:  prefixPadding,
+		mu:             &currentConsoleMutex,
+		verbose:        verbose,
+	}
+}
+
 func (cl ConsoleLogger) clone() ConsoleLogger {
 	return ConsoleLogger{
 		consoleErrW:    cl.consoleErrW,
@@ -243,7 +257,7 @@ func (cl ConsoleLogger) PrintBar(c *color.Color, msg, phase string) {
 	cl.errW.Write([]byte("\n\n"))
 }
 
-// Warnf prints a warning message in red to errWriter
+// Warnf prints a warning message in red to errWriter.
 func (cl ConsoleLogger) Warnf(format string, args ...interface{}) {
 	cl.mu.Lock()
 	defer cl.mu.Unlock()

@@ -9,6 +9,7 @@ import (
 	"strconv"
 
 	"github.com/earthly/earthly/domain"
+	"github.com/earthly/earthly/outmon"
 	"github.com/earthly/earthly/states"
 	"github.com/earthly/earthly/states/image"
 	"github.com/earthly/earthly/util/llbutil/pllb"
@@ -29,7 +30,7 @@ type onFinalArtifactFunc func(context.Context) (string, error)
 type onReadyForPullFunc func(context.Context, []string) error
 
 type solver struct {
-	sm              *solverMonitor
+	sm              *outmon.SolverMonitor
 	bkClient        *client.Client
 	attachables     []session.Attachable
 	enttlmnts       []entitlements.Entitlement
@@ -64,7 +65,7 @@ func (s *solver) solveDockerTar(ctx context.Context, state pllb.State, platform 
 	var vertexFailureOutput string
 	eg.Go(func() error {
 		var err error
-		vertexFailureOutput, err = s.sm.monitorProgress(ctx, ch, "", true)
+		vertexFailureOutput, err = s.sm.MonitorProgress(ctx, ch, "", true)
 		return err
 	})
 	eg.Go(func() error {
@@ -127,7 +128,7 @@ func (s *solver) buildMainMulti(ctx context.Context, bf gwclient.BuildFunc, onIm
 	var vertexFailureOutput string
 	eg.Go(func() error {
 		var err error
-		vertexFailureOutput, err = s.sm.monitorProgress(ctx, ch, phaseText, false)
+		vertexFailureOutput, err = s.sm.MonitorProgress(ctx, ch, phaseText, false)
 		return err
 	})
 	err = eg.Wait()

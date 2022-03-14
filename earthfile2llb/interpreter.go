@@ -840,7 +840,7 @@ func (i *Interpreter) handleBuild(ctx context.Context, cmd spec.Command, async b
 	platformsSlice := make([]*specs.Platform, 0, len(opts.Platforms))
 	for index, p := range opts.Platforms {
 		opts.Platforms[index] = i.expandArgs(p, false)
-		platform, err := llbutil.ParsePlatform(p)
+		platform, err := llbutil.ParsePlatform(opts.Platforms[index])
 		if err != nil {
 			return i.wrapError(err, cmd.SourceLocation, "parse platform %s", p)
 		}

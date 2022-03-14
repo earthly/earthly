@@ -2765,7 +2765,6 @@ func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []st
 
 	// Default upload logs, unless explicitly configured
 	if !app.cfg.Global.DisableLogSharing {
-		var uploadErr error
 		if cc.IsLoggedIn() {
 			// If you are logged in, then add the bundle builder code, and configure cleanup and post-build messages.
 			app.console = app.console.WithLogBundleWriter(target.String(), cleanCollection)
@@ -2778,18 +2777,17 @@ func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []st
 					return
 				}
 
-				var id string
-				id, uploadErr = cc.UploadLog(logPath)
-				app.console.Printf("Share your build log with this link: %s\n", id)
+				id, err := cc.UploadLog(logPath)
+				if err != nil {
+					err := errors.Wrapf(err, "failed to upload log")
+					app.console.Warnf(err.Error())
+					return
+				}
+				app.console.Printf("Shareable link: %s\n", id)
 			}()
 		} else {
-			// If you are not logged in, then advertise the service, since they probably turned it on to try it.
 			defer func() { // Defer this to keep log upload code together
-				if uploadErr != nil && !errors.Is(uploadErr, cloud.ErrUnauthorized) {
-					app.console.Warnf("Logs were not shared, due to an error: %s", uploadErr.Error())
-				} else {
-					app.console.Printf("Share your logs with an Earthly account (experimental)! Register for one at https://ci.earthly.dev.")
-				}
+				app.console.Printf("Share your logs with an Earthly account (experimental)! Register for one at https://ci.earthly.dev.")
 			}()
 		}
 	}
