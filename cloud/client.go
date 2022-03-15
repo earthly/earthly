@@ -1012,7 +1012,7 @@ func (c *client) SendAnalytics(data *EarthlyAnalytics) error {
 }
 
 func (c *client) IsLoggedIn() bool {
-	return c.authToken != ""
+	return c.authToken != "" || c.authCredToken != ""
 }
 
 func (c *client) migrateOldToken() error {
