@@ -4,16 +4,30 @@ import (
 	"context"
 	"os"
 	"path"
+	"sort"
+	"sync"
 
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/states"
+	"github.com/earthly/earthly/util/syncutil/semutil"
 	"github.com/moby/buildkit/client/llb"
 	"github.com/moby/buildkit/session/localhost"
 	"github.com/pkg/errors"
 )
 
 type withDockerRunLocal struct {
-	c *Converter
+	c   *Converter
+	sem semutil.Semaphore
+
+	enableParallel bool
+
+	mu       sync.Mutex
+	tarLoads []tarLoadLocal
+}
+
+type tarLoadLocal struct {
+	imgName string
+	imgFile string
 }
 
 func (wdrl *withDockerRunLocal) Run(ctx context.Context, args []string, opt WithDockerOpt) error {
@@ -22,17 +36,35 @@ func (wdrl *withDockerRunLocal) Run(ctx context.Context, args []string, opt With
 		return err
 	}
 	wdrl.c.nonSaveCommand()
+	// This semaphore ensures that there is at least one thread allowed to progress,
+	// even if parallelism is completely starved.
+	wdrl.sem = semutil.NewMultiSem(wdrl.c.opt.Parallelism, semutil.NewWeighted(1))
 
+	// Build and solve images to be loaded.
+	loadPromises := make([]chan DockerLoadOpt, 0, len(opt.Loads))
 	for _, loadOpt := range opt.Loads {
-		// Load.
-		localImageTarPath, err := wdrl.load(ctx, loadOpt)
+		lp, err := wdrl.load(ctx, loadOpt)
 		if err != nil {
 			return errors.Wrap(err, "load")
 		}
-		// then issue docker load
+		loadPromises = append(loadPromises, lp)
+	}
+	for _, lp := range loadPromises {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-lp:
+		}
+	}
+	// Sort the tar list, to make the operation consistent.
+	sort.Slice(wdrl.tarLoads, func(i, j int) bool {
+		return wdrl.tarLoads[i].imgName < wdrl.tarLoads[j].imgName
+	})
+	// Issue docker load.
+	for _, tl := range wdrl.tarLoads {
 		runOpts := []llb.RunOption{
 			llb.IgnoreCache,
-			llb.Args([]string{localhost.RunOnLocalHostMagicStr, "/bin/sh", "-c", wdrl.c.containerFrontend.ImageLoadFromFileCommand(localImageTarPath)}),
+			llb.Args([]string{localhost.RunOnLocalHostMagicStr, "/bin/sh", "-c", wdrl.c.containerFrontend.ImageLoadFromFileCommand(tl.imgFile)}),
 		}
 		wdrl.c.mts.Final.MainState = wdrl.c.mts.Final.MainState.Run(runOpts...).Root()
 	}
@@ -58,38 +90,58 @@ func (wdrl *withDockerRunLocal) Run(ctx context.Context, args []string, opt With
 	return nil
 }
 
-func (wdrl *withDockerRunLocal) load(ctx context.Context, opt DockerLoadOpt) (string, error) {
+func (wdrl *withDockerRunLocal) load(ctx context.Context, opt DockerLoadOpt) (chan DockerLoadOpt, error) {
+	optPromise := make(chan DockerLoadOpt, 1)
 	depTarget, err := domain.ParseTarget(opt.Target)
 	if err != nil {
-		return "", errors.Wrapf(err, "parse target %s", opt.Target)
+		return nil, errors.Wrapf(err, "parse target %s", opt.Target)
 	}
-	mts, err := wdrl.c.buildTarget(ctx, depTarget.String(), opt.Platform, opt.AllowPrivileged, opt.BuildArgs, false, loadCmd)
-	if err != nil {
-		return "", err
-	}
-	if opt.ImageName == "" {
-		// Infer image name from the SAVE IMAGE statement.
-		if len(mts.Final.SaveImages) == 0 || mts.Final.SaveImages[0].DockerTag == "" {
-			return "", errors.New(
-				"no docker image tag specified in load and it cannot be inferred from the SAVE IMAGE statement")
+	afterFun := func(ctx context.Context, mts *states.MultiTarget) error {
+		if opt.ImageName == "" {
+			// Infer image name from the SAVE IMAGE statement.
+			if len(mts.Final.SaveImages) == 0 || mts.Final.SaveImages[0].DockerTag == "" {
+				return errors.New(
+					"no docker image tag specified in load and it cannot be inferred from the SAVE IMAGE statement")
+			}
+			if len(mts.Final.SaveImages) > 1 {
+				return errors.New(
+					"no docker image tag specified in load and it cannot be inferred from the SAVE IMAGE statement: " +
+						"multiple tags mentioned in SAVE IMAGE")
+			}
+			opt.ImageName = mts.Final.SaveImages[0].DockerTag
 		}
-		if len(mts.Final.SaveImages) > 1 {
-			return "", errors.New(
-				"no docker image tag specified in load and it cannot be inferred from the SAVE IMAGE statement: " +
-					"multiple tags mentioned in SAVE IMAGE")
+		err := wdrl.solveImage(
+			ctx, mts, depTarget.String(), opt.ImageName,
+			llb.WithCustomNamef(
+				"%sDOCKER LOAD %s %s", wdrl.c.imageVertexPrefix(opt.ImageName, opt.Platform), depTarget.String(), opt.ImageName))
+		if err != nil {
+			return err
 		}
-		opt.ImageName = mts.Final.SaveImages[0].DockerTag
+		optPromise <- opt
+		return nil
 	}
-	return wdrl.solveImage(
-		ctx, mts, depTarget.String(), opt.ImageName,
-		llb.WithCustomNamef(
-			"%sDOCKER LOAD %s %s", wdrl.c.imageVertexPrefix(depTarget.String()), depTarget.String(), opt.ImageName))
+	if wdrl.enableParallel {
+		err = wdrl.c.BuildAsync(ctx, depTarget.String(), opt.Platform, opt.AllowPrivileged, opt.BuildArgs, loadCmd, afterFun, wdrl.sem)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		mts, err := wdrl.c.buildTarget(ctx, depTarget.String(), opt.Platform, opt.AllowPrivileged, opt.BuildArgs, false, loadCmd)
+		if err != nil {
+			return nil, err
+		}
+		err = afterFun(ctx, mts)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return optPromise, nil
 }
 
-func (wdrl *withDockerRunLocal) solveImage(ctx context.Context, mts *states.MultiTarget, opName string, dockerTag string, opts ...llb.RunOption) (string, error) {
+func (wdrl *withDockerRunLocal) solveImage(ctx context.Context, mts *states.MultiTarget, opName string, dockerTag string, opts ...llb.RunOption) error {
 	outDir, err := os.MkdirTemp(os.TempDir(), "earthly-docker-load")
 	if err != nil {
-		return "", errors.Wrap(err, "mk temp dir for docker load")
+		return errors.Wrap(err, "mk temp dir for docker load")
 	}
 	wdrl.c.opt.CleanCollection.Add(func() error {
 		return os.RemoveAll(outDir)
@@ -97,7 +149,13 @@ func (wdrl *withDockerRunLocal) solveImage(ctx context.Context, mts *states.Mult
 	outFile := path.Join(outDir, "image.tar")
 	err = wdrl.c.opt.DockerBuilderFun(ctx, mts, dockerTag, outFile)
 	if err != nil {
-		return "", errors.Wrapf(err, "build target %s for docker load", opName)
+		return errors.Wrapf(err, "build target %s for docker load", opName)
 	}
-	return outFile, nil
+	wdrl.mu.Lock()
+	defer wdrl.mu.Unlock()
+	wdrl.tarLoads = append(wdrl.tarLoads, tarLoadLocal{
+		imgName: dockerTag,
+		imgFile: outFile,
+	})
+	return nil
 }

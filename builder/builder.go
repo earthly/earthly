@@ -17,11 +17,13 @@ import (
 	"github.com/earthly/earthly/conslogging"
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/earthfile2llb"
+	"github.com/earthly/earthly/outmon"
 	"github.com/earthly/earthly/states"
 	"github.com/earthly/earthly/util/containerutil"
 	"github.com/earthly/earthly/util/gwclientlogger"
 	"github.com/earthly/earthly/util/llbutil"
 	"github.com/earthly/earthly/util/llbutil/pllb"
+	"github.com/earthly/earthly/util/syncutil/semutil"
 	"github.com/earthly/earthly/variables"
 	"github.com/moby/buildkit/client"
 	"github.com/moby/buildkit/client/llb"
@@ -33,7 +35,6 @@ import (
 	reccopy "github.com/otiai10/copy"
 	"github.com/pkg/errors"
 	"golang.org/x/sync/errgroup"
-	"golang.org/x/sync/semaphore"
 )
 
 const (
@@ -70,7 +71,7 @@ type Opt struct {
 	Strict                 bool
 	DisableNoOutputUpdates bool
 	ParallelConversion     bool
-	Parallelism            *semaphore.Weighted
+	Parallelism            semutil.Semaphore
 	LocalRegistryAddr      string
 	FeatureFlagOverrides   string
 	ContainerFrontend      containerutil.ContainerFrontend
@@ -105,7 +106,7 @@ type Builder struct {
 func NewBuilder(ctx context.Context, opt Opt) (*Builder, error) {
 	b := &Builder{
 		s: &solver{
-			sm:              newSolverMonitor(opt.Console, opt.Verbose, opt.DisableNoOutputUpdates),
+			sm:              outmon.NewSolverMonitor(opt.Console, opt.Verbose, opt.DisableNoOutputUpdates),
 			bkClient:        opt.BkClient,
 			cacheImports:    opt.CacheImports,
 			cacheExport:     opt.CacheExport,
@@ -639,43 +640,13 @@ func (b *Builder) artifactStateToRef(ctx context.Context, gwClient gwclient.Clie
 }
 
 func (b *Builder) buildOnlyLastImageAsTar(ctx context.Context, mts *states.MultiTarget, dockerTag string, outFile string, opt BuildOpt) error {
+	platform, err := llbutil.ResolvePlatform(mts.Final.Platform, opt.Platform)
+	if err != nil {
+		platform = mts.Final.Platform
+	}
+	plat := llbutil.PlatformWithDefault(platform)
 	saveImage := mts.Final.LastSaveImage()
-	err := b.buildMain(ctx, mts, opt)
-	if err != nil {
-		return err
-	}
-
-	platform, err := llbutil.ResolvePlatform(mts.Final.Platform, opt.Platform)
-	if err != nil {
-		platform = mts.Final.Platform
-	}
-	plat := llbutil.PlatformWithDefault(platform)
-	err = b.outputImageTar(ctx, saveImage, plat, dockerTag, outFile)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func (b *Builder) buildMain(ctx context.Context, mts *states.MultiTarget, opt BuildOpt) error {
-	state := mts.Final.MainState
-	if b.opt.NoCache {
-		state = state.SetMarshalDefaults(llb.IgnoreCache)
-	}
-	platform, err := llbutil.ResolvePlatform(mts.Final.Platform, opt.Platform)
-	if err != nil {
-		platform = mts.Final.Platform
-	}
-	plat := llbutil.PlatformWithDefault(platform)
-	err = b.s.solveMain(ctx, state, plat)
-	if err != nil {
-		return errors.Wrapf(err, "solve side effects")
-	}
-	return nil
-}
-
-func (b *Builder) outputImageTar(ctx context.Context, saveImage states.SaveImage, platform specs.Platform, dockerTag string, outFile string) error {
-	err := b.s.solveDockerTar(ctx, saveImage.State, platform, saveImage.Image, dockerTag, outFile)
+	err = b.s.solveDockerTar(ctx, saveImage.State, plat, saveImage.Image, dockerTag, outFile)
 	if err != nil {
 		return errors.Wrapf(err, "solve image tar %s", outFile)
 	}

@@ -49,7 +49,6 @@ import (
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/agent"
 	"golang.org/x/sync/errgroup"
-	"golang.org/x/sync/semaphore"
 	"golang.org/x/term"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -76,6 +75,7 @@ import (
 	"github.com/earthly/earthly/util/fileutil"
 	"github.com/earthly/earthly/util/llbutil"
 	"github.com/earthly/earthly/util/reflectutil"
+	"github.com/earthly/earthly/util/syncutil/semutil"
 	"github.com/earthly/earthly/util/termutil"
 	"github.com/earthly/earthly/variables"
 )
@@ -509,13 +509,6 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 			Usage:       wrap("The path to the client TLS key.", "If relative, will be interpreted as relative to the ~/.earthly folder."),
 			Destination: &app.keyPath,
 			Hidden:      true,
-		},
-		&cli.IntFlag{
-			Name:        "buildkit-cache-size-mb",
-			Value:       10000,
-			EnvVars:     []string{"EARTHLY_BUILDKIT_CACHE_SIZE_MB"},
-			Usage:       "The total size of the buildkit cache, in MB",
-			Destination: &app.buildkitdSettings.CacheSizeMb,
 		},
 		&cli.StringFlag{
 			Name:        "buildkit-image",
@@ -1150,6 +1143,8 @@ func (app *earthlyApp) before(context *cli.Context) error {
 	app.buildkitdSettings.UseTCP = bkURL.Scheme == "tcp"
 	app.buildkitdSettings.UseTLS = app.cfg.Global.TLSEnabled
 	app.buildkitdSettings.MaxParallelism = app.cfg.Global.BuildkitMaxParallelism
+	app.buildkitdSettings.CacheSizeMb = app.cfg.Global.BuildkitCacheSizeMb
+	app.buildkitdSettings.CacheSizePct = app.cfg.Global.BuildkitCacheSizePct
 
 	// ensure the MTU is something allowable in IPv4, cap enforced by type. Zero is autodetect.
 	if app.cfg.Global.CniMtu != 0 && app.cfg.Global.CniMtu < 68 {
@@ -1258,12 +1253,6 @@ func (app *earthlyApp) processDeprecatedCommandOptions(context *cli.Context, cfg
 			}
 			cfg.Git[k] = v
 		}
-	}
-
-	if context.IsSet("buildkit-cache-size-mb") {
-		app.console.Warnf("Warning: the --buildkit-cache-size-mb command flag is deprecated and is now configured in the ~/.earthly/config.yml file under the buildkit_cache_size setting; see https://docs.earthly.dev/earthly-config for reference.\n")
-	} else {
-		app.buildkitdSettings.CacheSizeMb = cfg.Global.BuildkitCacheSizeMb
 	}
 
 	if cfg.Global.DebuggerPort != config.DefaultDebuggerPort {
@@ -2776,10 +2765,7 @@ func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []st
 
 	// Default upload logs, unless explicitly configured
 	if !app.cfg.Global.DisableLogSharing {
-		_, _, _, whoAmIErr := cc.WhoAmI()
-		isLoggedIn := whoAmIErr == nil
-
-		if isLoggedIn {
+		if cc.IsLoggedIn() {
 			// If you are logged in, then add the bundle builder code, and configure cleanup and post-build messages.
 			app.console = app.console.WithLogBundleWriter(target.String(), cleanCollection)
 
@@ -2797,16 +2783,11 @@ func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []st
 					app.console.Warnf(err.Error())
 					return
 				}
-				app.console.Printf("Share your build log with this link: %s\n", id)
+				app.console.Printf("Shareable link: %s\n", id)
 			}()
 		} else {
-			// If you are not logged in, then advertise the service, since they probably turned it on to try it.
 			defer func() { // Defer this to keep log upload code together
-				if errors.Is(whoAmIErr, cloud.ErrUnauthorized) {
-					app.console.Printf("Share your logs with an Earthly account (experimental)! Register for one at https://ci.earthly.dev.")
-				} else {
-					app.console.Warnf("Logs were not shared, due to earthly login error: %s", whoAmIErr.Error())
-				}
+				app.console.Printf("Share your logs with an Earthly account (experimental)! Register for one at https://ci.earthly.dev.")
 			}()
 		}
 	}
@@ -2961,9 +2942,9 @@ func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []st
 			cacheExport = app.remoteCache
 		}
 	}
-	var parallelism *semaphore.Weighted
+	var parallelism semutil.Semaphore
 	if app.cfg.Global.ConversionParallelism != 0 {
-		parallelism = semaphore.NewWeighted(int64(app.cfg.Global.ConversionParallelism))
+		parallelism = semutil.NewWeighted(int64(app.cfg.Global.ConversionParallelism))
 	}
 	localRegistryAddr := ""
 	if isLocal && app.localRegistryHost != "" {

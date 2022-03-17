@@ -35,7 +35,7 @@ func NewDockerShellFrontend(ctx context.Context, cfg *FrontendConfig) (Container
 	// running `docker info --format={{.SecurityOptions}}` results in a panic() when docker is not running.
 	// To workaround this issue, first we run `docker info` to test docker is running, then again with the
 	// `--format` option.
-	// This is to prevent displaying panic() errors to our users (even though the panic() occured in the
+	// This is to prevent displaying panic() errors to our users (even though the panic() occurred in the
 	// docker cli binary and not earthly).
 	_, err := fe.commandContextOutput(ctx, "info")
 	if err != nil {

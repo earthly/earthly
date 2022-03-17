@@ -32,6 +32,14 @@
         {
           "command": {
             "args": [
+              "+docker-load-multi-test"
+            ],
+            "name": "BUILD"
+          }
+        },
+        {
+          "command": {
+            "args": [
               "+docker-pull-test"
             ],
             "name": "BUILD"
@@ -136,6 +144,64 @@
           "command": {
             "args": [
               "test-${name}-img:xyz"
+            ],
+            "name": "SAVE IMAGE"
+          }
+        }
+      ]
+    },
+    {
+      "name": "another-test-image",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "alpine:3.15"
+            ],
+            "name": "FROM"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "/work"
+            ],
+            "name": "WORKDIR"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "INDEX",
+              "=",
+              "0"
+            ],
+            "name": "ARG"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "echo",
+              "\"hello another test img $INDEX\"",
+              ">file.txt"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "cat",
+              "/work/file.txt"
+            ],
+            "name": "ENTRYPOINT"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "another-test-img:i${INDEX}"
             ],
             "name": "SAVE IMAGE"
           }
@@ -388,6 +454,63 @@
       ]
     },
     {
+      "name": "docker-load-multi-test",
+      "recipe": [
+        {
+          "with": {
+            "body": [
+              {
+                "command": {
+                  "args": [
+                    "docker",
+                    "run",
+                    "--rm",
+                    "another-test-img:i1",
+                    "&&",
+                    "docker",
+                    "run",
+                    "--rm",
+                    "another-test-img:i2",
+                    "&&",
+                    "docker",
+                    "run",
+                    "--rm",
+                    "another-test-img:i3",
+                    "&&",
+                    "docker",
+                    "run",
+                    "--rm",
+                    "another-test-img:i4",
+                    "&&",
+                    "docker",
+                    "run",
+                    "--rm",
+                    "another-test-img:i5"
+                  ],
+                  "name": "RUN"
+                }
+              }
+            ],
+            "command": {
+              "args": [
+                "--load=(+another-test-image",
+                "--INDEX=1)",
+                "--load=(+another-test-image",
+                "--INDEX=2)",
+                "--load=(+another-test-image",
+                "--INDEX=3)",
+                "--load=(+another-test-image",
+                "--INDEX=4)",
+                "--load=(+another-test-image",
+                "--INDEX=5)"
+              ],
+              "name": "DOCKER"
+            }
+          }
+        }
+      ]
+    },
+    {
       "name": "docker-pull-test",
       "recipe": [
         {
@@ -578,6 +701,7 @@
   ],
   "version": {
     "args": [
+      "--parallel-load",
       "0.6"
     ]
   }

@@ -9,6 +9,7 @@ import (
 	"strconv"
 
 	"github.com/earthly/earthly/domain"
+	"github.com/earthly/earthly/outmon"
 	"github.com/earthly/earthly/states"
 	"github.com/earthly/earthly/states/image"
 	"github.com/earthly/earthly/util/llbutil/pllb"
@@ -29,7 +30,7 @@ type onFinalArtifactFunc func(context.Context) (string, error)
 type onReadyForPullFunc func(context.Context, []string) error
 
 type solver struct {
-	sm              *solverMonitor
+	sm              *outmon.SolverMonitor
 	bkClient        *client.Client
 	attachables     []session.Attachable
 	enttlmnts       []entitlements.Entitlement
@@ -64,7 +65,7 @@ func (s *solver) solveDockerTar(ctx context.Context, state pllb.State, platform 
 	var vertexFailureOutput string
 	eg.Go(func() error {
 		var err error
-		vertexFailureOutput, err = s.sm.monitorProgress(ctx, ch, "", true)
+		vertexFailureOutput, err = s.sm.MonitorProgress(ctx, ch, "", true)
 		return err
 	})
 	eg.Go(func() error {
@@ -127,47 +128,13 @@ func (s *solver) buildMainMulti(ctx context.Context, bf gwclient.BuildFunc, onIm
 	var vertexFailureOutput string
 	eg.Go(func() error {
 		var err error
-		vertexFailureOutput, err = s.sm.monitorProgress(ctx, ch, phaseText, false)
+		vertexFailureOutput, err = s.sm.MonitorProgress(ctx, ch, phaseText, false)
 		return err
 	})
 	err = eg.Wait()
 	if buildErr != nil {
 		return NewBuildError(buildErr, vertexFailureOutput)
 	}
-	if err != nil {
-		return NewBuildError(err, vertexFailureOutput)
-	}
-	return nil
-}
-
-func (s *solver) solveMain(ctx context.Context, state pllb.State, platform specs.Platform) error {
-	dt, err := state.Marshal(ctx, llb.Platform(platform))
-	if err != nil {
-		return errors.Wrap(err, "state marshal")
-	}
-	solveOpt, err := s.newSolveOptMain()
-	if err != nil {
-		return errors.Wrap(err, "new solve opt")
-	}
-	ch := make(chan *client.SolveStatus)
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
-	eg, ctx := errgroup.WithContext(ctx)
-	eg.Go(func() error {
-		var err error
-		_, err = s.bkClient.Solve(ctx, dt, *solveOpt, ch)
-		if err != nil {
-			return errors.Wrap(err, "solve")
-		}
-		return nil
-	})
-	var vertexFailureOutput string
-	eg.Go(func() error {
-		var err error
-		vertexFailureOutput, err = s.sm.monitorProgress(ctx, ch, "", true)
-		return err
-	})
-	err = eg.Wait()
 	if err != nil {
 		return NewBuildError(err, vertexFailureOutput)
 	}
@@ -258,18 +225,6 @@ func (s *solver) newSolveOptMulti(ctx context.Context, eg *errgroup.Group, onIma
 		CacheExports:        cacheExports,
 		Session:             s.attachables,
 		AllowedEntitlements: s.enttlmnts,
-	}, nil
-}
-
-func (s *solver) newSolveOptMain() (*client.SolveOpt, error) {
-	var cacheImports []client.CacheOptionsEntry
-	for ci := range s.cacheImports.AsMap() {
-		cacheImports = append(cacheImports, newCacheImportOpt(ci))
-	}
-	return &client.SolveOpt{
-		Session:             s.attachables,
-		AllowedEntitlements: s.enttlmnts,
-		CacheImports:        cacheImports,
 	}, nil
 }
 

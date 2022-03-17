@@ -4,7 +4,33 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+## v0.6.11 - 2022-03-17
+
+### Added
+
+- An experimental feature whereby `WITH DOCKER` parallelizes building of the
+  images to be loaded has been added. To enable this feature use
+  `VERSION --parallel-load 0.6`. [#1725](https://github.com/earthly/earthly/pull/1725)
+- Added `cache_size_pct` config option to allow specifying cache size as a percentage of disk space.
+
+### Fixed
+
+- Fixed a duplicate build issue when using `IF` together with `WITH DOCKER` [#1724](https://github.com/earthly/earthly/issues/1724)
+- Fixed a bug where `BUILD --platform=$ARG` did not expand correctly
+- Fixed issue preventing use of `WITH DOCKER` with docker systemd-based images such as `kind`, when used under hosts with cgroups v2.
+
+## v0.6.10 - 2022-03-03
+
+### Changed
+
+- reverted zeroing of mtime change that was introduced in v0.6.9; this restores the behavior of setting modification time to `2020-04-16T12:00`. [#1712](https://github.com/earthly/earthly/issues/1712)
+
 ## v0.6.9 - 2022-03-02
+
+### Changed
+
+- Log sharing is enabled by default for logged in users, it can be disabled with `earthly config global.disable_log_sharing true`.
+- `SAVE ARTIFACT ... AS LOCAL` now sets mtime of output artifacts to the current time.
 
 ### Added
 

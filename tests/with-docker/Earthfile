@@ -1,9 +1,10 @@
-VERSION 0.6
+VERSION --parallel-load 0.6
 FROM earthly/dind:alpine
 
 all:
     BUILD +docker-load-test
     BUILD +docker-load-arg-test
+    BUILD +docker-load-multi-test
     BUILD +docker-pull-test
     BUILD +load-parallel-test
     BUILD +one-target-many-names
@@ -18,6 +19,14 @@ a-test-image:
     RUN echo "hello $var" >def.txt
     ENTRYPOINT cat /$name/def.txt && pwd
     SAVE IMAGE test-${name}-img:xyz
+
+another-test-image:
+    FROM alpine:3.15
+    WORKDIR /work
+    ARG INDEX=0
+    RUN echo "hello another test img $INDEX" >file.txt
+    ENTRYPOINT cat /work/file.txt
+    SAVE IMAGE another-test-img:i${INDEX}
 
 docker-load-test:
     # Index is used to create parallel tests.
@@ -57,6 +66,20 @@ docker-load-arg-test:
     END
     WITH DOCKER --load=other-name:latest="(+a-test-image --name=bar --var buz)"
         RUN docker run other-name:latest | grep "hello buz"
+    END
+
+docker-load-multi-test:
+    WITH DOCKER \
+        --load=(+another-test-image --INDEX=1) \
+        --load=(+another-test-image --INDEX=2) \
+        --load=(+another-test-image --INDEX=3) \
+        --load=(+another-test-image --INDEX=4) \
+        --load=(+another-test-image --INDEX=5)
+        RUN docker run --rm another-test-img:i1 && \
+            docker run --rm another-test-img:i2 && \
+            docker run --rm another-test-img:i3 && \
+            docker run --rm another-test-img:i4 && \
+            docker run --rm another-test-img:i5
     END
 
 docker-pull-test:

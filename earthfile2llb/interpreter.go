@@ -15,13 +15,11 @@ import (
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/util/flagutil"
 	"github.com/earthly/earthly/util/llbutil"
-	"github.com/earthly/earthly/util/syncutil/serrgroup"
 	"github.com/earthly/earthly/variables"
 
 	flags "github.com/jessevdk/go-flags"
 	specs "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
-	"golang.org/x/sync/semaphore"
 )
 
 var errCannotAsync = errors.New("cannot run async operation")
@@ -44,21 +42,17 @@ type Interpreter struct {
 	withDockerRan bool
 
 	parallelConversion bool
-	parallelism        *semaphore.Weighted
-	eg                 *serrgroup.Group
 	console            conslogging.ConsoleLogger
 	gitLookup          *buildcontext.GitLookup
 }
 
-func newInterpreter(c *Converter, t domain.Target, allowPrivileged, parallelConversion bool, parallelism *semaphore.Weighted, eg *serrgroup.Group, console conslogging.ConsoleLogger, gitLookup *buildcontext.GitLookup) *Interpreter {
+func newInterpreter(c *Converter, t domain.Target, allowPrivileged, parallelConversion bool, console conslogging.ConsoleLogger, gitLookup *buildcontext.GitLookup) *Interpreter {
 	return &Interpreter{
 		converter:          c,
 		target:             t,
 		stack:              c.StackString(),
 		allowPrivileged:    allowPrivileged,
-		parallelism:        parallelism,
 		parallelConversion: parallelConversion,
-		eg:                 eg,
 		console:            console,
 		gitLookup:          gitLookup,
 	}
@@ -561,14 +555,23 @@ func (i *Interpreter) handleRun(ctx context.Context, cmd spec.Command) error {
 		i.withDocker.NoCache = opts.NoCache
 		i.withDocker.Interactive = opts.Interactive
 		i.withDocker.interactiveKeep = opts.InteractiveKeep
+		// TODO: Could this be allowed in the future, if dynamic build args
+		//       are expanded ahead of time?
+		allowParallel := true
+		for _, l := range i.withDocker.Loads {
+			if !isSafeAsyncBuildArgsKVStyle(l.BuildArgs) {
+				allowParallel = false
+				break
+			}
+		}
 
 		if i.local {
-			err = i.converter.WithDockerRunLocal(ctx, args, *i.withDocker)
+			err = i.converter.WithDockerRunLocal(ctx, args, *i.withDocker, allowParallel)
 			if err != nil {
 				return i.wrapError(err, cmd.SourceLocation, "with docker run")
 			}
 		} else {
-			err = i.converter.WithDockerRun(ctx, args, *i.withDocker)
+			err = i.converter.WithDockerRun(ctx, args, *i.withDocker, allowParallel)
 			if err != nil {
 				return i.wrapError(err, cmd.SourceLocation, "with docker run")
 			}
@@ -837,16 +840,16 @@ func (i *Interpreter) handleBuild(ctx context.Context, cmd spec.Command, async b
 	platformsSlice := make([]*specs.Platform, 0, len(opts.Platforms))
 	for index, p := range opts.Platforms {
 		opts.Platforms[index] = i.expandArgs(p, false)
-		platform, err := llbutil.ParsePlatform(p)
+		platform, err := llbutil.ParsePlatform(opts.Platforms[index])
 		if err != nil {
 			return i.wrapError(err, cmd.SourceLocation, "parse platform %s", p)
 		}
 		platformsSlice = append(platformsSlice, platform)
 	}
-	if async && !(isSafeAsyncBuildArgsDeprecatedStyle(opts.BuildArgs) && isSafeAsyncBuildArgs(args[1:])) {
+	if async && !(isSafeAsyncBuildArgsKVStyle(opts.BuildArgs) && isSafeAsyncBuildArgs(args[1:])) {
 		return errCannotAsync
 	}
-	if i.local && !(isSafeAsyncBuildArgsDeprecatedStyle(opts.BuildArgs) && isSafeAsyncBuildArgs(args[1:])) {
+	if i.local && !(isSafeAsyncBuildArgsKVStyle(opts.BuildArgs) && isSafeAsyncBuildArgs(args[1:])) {
 		return i.errorf(cmd.SourceLocation, "BUILD args do not currently support shelling-out in combination with LOCALLY")
 	}
 	expandedBuildArgs := i.expandArgsSlice(opts.BuildArgs, true)
@@ -873,7 +876,7 @@ func (i *Interpreter) handleBuild(ctx context.Context, cmd spec.Command, async b
 	for _, bas := range crossProductBuildArgs {
 		for _, platform := range platformsSlice {
 			if async {
-				err = i.converter.BuildAsync(ctx, fullTargetName, platform, allowPrivileged, bas, buildCmd, i.eg)
+				err = i.converter.BuildAsync(ctx, fullTargetName, platform, allowPrivileged, bas, buildCmd, nil, nil)
 				if err != nil {
 					return i.wrapError(err, cmd.SourceLocation, "apply BUILD %s", fullTargetName)
 				}
@@ -1636,8 +1639,8 @@ func parseParans(str string) (string, []string, error) {
 	return parts[0], parts[1:], nil
 }
 
-// isSafeAsyncBuildArgsDeprecatedStyle is used for "BUILD --build-arg key=value +target" style buildargs
-func isSafeAsyncBuildArgsDeprecatedStyle(args []string) bool {
+// isSafeAsyncBuildArgsKVStyle is used for "key=value" style buildargs
+func isSafeAsyncBuildArgsKVStyle(args []string) bool {
 	for _, arg := range args {
 		_, v, _ := variables.ParseKeyValue(arg)
 		if strings.HasPrefix(v, "$(") || strings.HasPrefix(v, "\"$(") {

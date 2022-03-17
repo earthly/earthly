@@ -1,6 +1,8 @@
 package variables
 
-import "sort"
+import (
+	"sort"
+)
 
 // Scope represents a variable scope.
 type Scope struct {

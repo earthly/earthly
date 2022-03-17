@@ -38,7 +38,7 @@
         * [earthly/buildkitd](docker-images/buildkit-standalone.md)
 * [Earthfile reference](earthfile/earthfile.md)
     * [Builtin args](earthfile/builtin-args.md)
-    * [Excluding patterns](earthfile/earthignore.md)
+    * [Excluding patterns](earthfile/earthlyignore.md)
     * [Version-specific features](earthfile/features.md)
 * [The `earthly` command](earthly-command/earthly-command.md)
 * [Configuration reference](earthly-config/earthly-config.md)

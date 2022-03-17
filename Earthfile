@@ -40,9 +40,10 @@ code:
         RUN go mod edit -replace github.com/moby/buildkit=/buildkit
         RUN go mod download
     END
-    COPY --platform=linux/amd64 ./ast/parser+parser/*.go ./ast/parser/
+    ARG USERARCH
+    COPY --platform=linux/$USERARCH ./ast/parser+parser/*.go ./ast/parser/
     COPY --dir analytics autocomplete buildcontext builder cleanup cmd config conslogging debugger dockertar \
-        docker2earthly domain features slog cloud states util variables ./
+        docker2earthly domain features outmon slog cloud states util variables ./
     COPY --dir buildkitd/buildkitd.go buildkitd/settings.go buildkitd/certificates.go buildkitd/
     COPY --dir earthfile2llb/*.go earthfile2llb/
     COPY --dir ast/antlrhandler ast/spec ast/*.go ast/
@@ -97,6 +98,18 @@ lint-scripts:
     BUILD +lint-scripts-auth-test
     BUILD +lint-scripts-misc
 
+earthly-script-no-stdout:
+    # This validates the ./earthly script doesn't print anything to stdout (it should print to stderr)
+    # This is to ensure commands such as: MYSECRET="$(./earthly secrets get -n /user/my-secret)" work
+    FROM earthly/dind:alpine
+    RUN apk add --no-cache --update bash
+    COPY earthly .earthly_version_flag_overrides .
+    WITH DOCKER --pull earthly/earthlybinaries
+        RUN ./earthly --version > earthly-version-output
+    END
+    RUN test "$(cat earthly-version-output | wc -l)" = "1"
+    RUN grep '^earthly version.*$' earthly-version-output # only --version info should go to stdout
+
 lint:
     FROM +code
     RUN output="$(ineffassign ./... 2>&1 | grep -v '/earthly/ast/parser/.*\.go')" ; \
@@ -104,7 +117,7 @@ lint:
             echo "$output" ; \
             exit 1 ; \
         fi
-    RUN output="$(goimports -d $(find . -type f -name '*.go' | grep -v \.pb\.go) 2>&1)"  ; \
+    RUN output="$(goimports -d $(find . -type f -name '*.go' | grep -v \./ast/parser/.*\.go) 2>&1)"  ; \
         if [ -n "$output" ]; then \
             echo "$output" ; \
             exit 1 ; \
@@ -340,6 +353,7 @@ earthly-integration-test-base:
 
     # The inner buildkit requires Docker hub creds to prevent rate-limiting issues.
     ARG DOCKERHUB_MIRROR
+    ARG DOCKERHUB_MIRROR_INSECURE
     ARG DOCKERHUB_AUTH=true
     ARG DOCKERHUB_USER_SECRET=+secrets/DOCKERHUB_USER
     ARG DOCKERHUB_TOKEN_SECRET=+secrets/DOCKERHUB_TOKEN
@@ -354,11 +368,20 @@ earthly-integration-test-base:
         END
     ELSE
     # Use a mirror, supports mirroring Docker Hub only.
+        IF [ "$DOCKERHUB_MIRROR_INSECURE" = "true" ]
+            ARG _MIRROR_CONFIG="[registry.\"$DOCKERHUB_MIRROR\"]
+                                http = true
+                                insecure = true"
+        ELSE
+            ARG _MIRROR_CONFIG=""
+        END
         ENV GLOBAL_CONFIG="{disable_analytics: true, local_registry_host: 'tcp://127.0.0.1:8371', conversion_parallelism: 5, buildkit_additional_config: '[registry.\"docker.io\"]
 
-                           mirrors = [\"$DOCKERHUB_MIRROR\"]'}"
+                           mirrors = [\"$DOCKERHUB_MIRROR\"]
+                           $_MIRROR_CONFIG'}"
         ENV EARTHLY_ADDITIONAL_BUILDKIT_CONFIG="[registry.\"docker.io\"]
-                    mirrors = [\"registry-1.docker.io.mirror.corp.earthly.dev\"]"
+                    mirrors = [\"$DOCKERHUB_MIRROR\"]
+                    $_MIRROR_CONFIG"
         IF [ "$DOCKERHUB_AUTH" = "true" ]
             RUN --secret USERNAME=$DOCKERHUB_USER_SECRET \
                 --secret TOKEN=$DOCKERHUB_TOKEN_SECRET \
@@ -413,6 +436,9 @@ for-own:
 for-linux:
     ARG BUILDKIT_PROJECT
     BUILD --platform=linux/amd64 ./buildkitd+buildkitd --BUILDKIT_PROJECT="$BUILDKIT_PROJECT"
+    # TODO: Use the USERARCH variant after the next Earthly release.
+    # ARG USERARCH
+    # BUILD --platform=linux/$USERARCH ./ast/parser+parser
     BUILD --platform=linux/amd64 ./ast/parser+parser
     COPY +earthly-linux-amd64/earthly ./
     SAVE ARTIFACT ./earthly AS LOCAL ./build/linux/amd64/earthly
@@ -420,6 +446,9 @@ for-linux:
 for-darwin:
     ARG BUILDKIT_PROJECT
     BUILD --platform=linux/amd64 ./buildkitd+buildkitd --BUILDKIT_PROJECT="$BUILDKIT_PROJECT"
+    # TODO: Use the USERARCH variant after the next Earthly release.
+    # ARG USERARCH
+    # BUILD --platform=linux/$USERARCH ./ast/parser+parser
     BUILD --platform=linux/amd64 ./ast/parser+parser
     COPY +earthly-darwin-amd64/earthly ./
     SAVE ARTIFACT ./earthly AS LOCAL ./build/darwin/amd64/earthly
@@ -427,13 +456,17 @@ for-darwin:
 for-darwin-m1:
     ARG BUILDKIT_PROJECT
     BUILD --platform=linux/arm64 ./buildkitd+buildkitd --BUILDKIT_PROJECT="$BUILDKIT_PROJECT"
+    # TODO: Use the USERARCH variant after the next Earthly release.
+    # ARG USERARCH
+    # BUILD --platform=linux/$USERARCH ./ast/parser+parser
     BUILD --platform=linux/amd64 ./ast/parser+parser
     COPY +earthly-darwin-arm64/earthly ./
     SAVE ARTIFACT ./earthly AS LOCAL ./build/darwin/arm64/earthly
 
 for-windows:
     # BUILD --platform=linux/amd64 ./buildkitd+buildkitd
-    # BUILD --platform=linux/amd64 ./ast/parser+parser
+    ARG USERARCH
+    BUILD --platform=linux/$USERARCH ./ast/parser+parser
     COPY +earthly-windows-amd64/earthly.exe ./
     SAVE ARTIFACT ./earthly.exe AS LOCAL ./build/windows/amd64/earthly.exe
 
@@ -464,7 +497,9 @@ test:
     BUILD +lint-newline-ending
     BUILD +lint-changelog
     BUILD +unit-test
+    BUILD +earthly-script-no-stdout
     ARG DOCKERHUB_MIRROR
+    ARG DOCKERHUB_MIRROR_INSECURE=false
     ARG DOCKERHUB_AUTH=true
     ARG DOCKERHUB_USER_SECRET=+secrets/DOCKERHUB_USER
     ARG DOCKERHUB_TOKEN_SECRET=+secrets/DOCKERHUB_TOKEN
@@ -472,16 +507,19 @@ test:
         --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
         --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
         --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
-        --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR
+        --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR \
+        --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE
     BUILD ./tests+ga \
         --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
         --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
         --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
-        --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR
+        --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR \
+        --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE
 
 test-all:
     BUILD +examples
     ARG DOCKERHUB_MIRROR
+    ARG DOCKERHUB_MIRROR_INSECURE=false
     ARG DOCKERHUB_AUTH=true
     ARG DOCKERHUB_USER_SECRET=+secrets/DOCKERHUB_USER
     ARG DOCKERHUB_TOKEN_SECRET=+secrets/DOCKERHUB_TOKEN
@@ -489,12 +527,14 @@ test-all:
         --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
         --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
         --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
-        --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR
+        --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR \
+        --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE
     BUILD ./tests+experimental  \
         --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
         --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
         --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
-        --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR
+        --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR \
+        --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE
 
 examples:
     BUILD +examples1

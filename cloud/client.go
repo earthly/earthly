@@ -90,6 +90,7 @@ type Client interface {
 	DisableSSHKeyGuessing()
 	SetAuthTokenDir(path string)
 	SendAnalytics(data *EarthlyAnalytics) error
+	IsLoggedIn() bool
 }
 
 type request struct {
@@ -362,7 +363,7 @@ func (c *client) RegisterEmail(email string) error {
 	return nil
 }
 
-// Fetches a new auth token from the server and saves it to the client.
+// Authenticate fetches a new auth token from the server and saves it to the client.
 // The user should have credentials store on disk within the ~/.earthly directory.
 // Credentials may be either email/password, ssh-based, or a custom token.
 // Upon successful authenticate, the JWT provided by the server is stored in
@@ -997,17 +998,21 @@ func (c *client) SendAnalytics(data *EarthlyAnalytics) error {
 		withBody(string(payload)),
 		withHeader("Content-Type", "application/json; charset=utf-8"),
 	}
-	if c.authToken != "" {
+	if c.IsLoggedIn() {
 		opts = append(opts, withAuth())
 	}
 	status, _, err := c.doCall("PUT", "/analytics", opts...)
 	if err != nil {
 		return errors.Wrap(err, "failed sending analytics")
 	}
-	if status != http.StatusAccepted {
+	if status != http.StatusCreated {
 		return errors.Errorf("unexpected response from analytics server: %d", status)
 	}
 	return nil
+}
+
+func (c *client) IsLoggedIn() bool {
+	return c.authToken != "" || c.authCredToken != ""
 }
 
 func (c *client) migrateOldToken() error {

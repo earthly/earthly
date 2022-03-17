@@ -11,6 +11,7 @@ import (
 	"github.com/earthly/earthly/analytics"
 	"github.com/earthly/earthly/cleanup"
 	"github.com/earthly/earthly/domain"
+	"github.com/earthly/earthly/outmon"
 	"github.com/earthly/earthly/util/gitutil"
 	"github.com/earthly/earthly/util/llbutil"
 	"github.com/earthly/earthly/util/llbutil/llbfactory"
@@ -64,9 +65,13 @@ func (gr *gitResolver) resolveEarthProject(ctx context.Context, gwClient gwclien
 			// Optimization.
 			buildContextFactory = llbfactory.PreconstructedState(rgp.state)
 		} else {
+			vm := &outmon.VertexMeta{
+				TargetName: ref.String(),
+				Internal:   true,
+			}
 			buildContextFactory = llbfactory.PreconstructedState(llbutil.CopyOp(
-				rgp.state, []string{subDir}, llbutil.ScratchWithPlatform(), "./", false, false, false, "root:root", false, false,
-				llb.WithCustomNamef("[internal] COPY git context %s", ref.String())))
+				rgp.state, []string{subDir}, llbutil.ScratchWithPlatform(), "./", false, false, false, "root:root", false, false, false,
+				llb.WithCustomNamef("%sCOPY git context %s", vm.ToVertexPrefix(), ref.String())))
 		}
 	} else {
 		// Commands don't come with a build context.
@@ -148,8 +153,12 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, gwClient gwclient.
 	cacheKey := fmt.Sprintf("%s#%s", gitURL, gitRef)
 	rgpValue, err := gr.projectCache.Do(ctx, cacheKey, func(ctx context.Context, k interface{}) (interface{}, error) {
 		// Copy all Earthfile, build.earth and Dockerfile files.
+		vm := &outmon.VertexMeta{
+			TargetName: cacheKey,
+			Internal:   true,
+		}
 		gitOpts := []llb.GitOption{
-			llb.WithCustomNamef("[internal] GIT CLONE %s", stringutil.ScrubCredentials(gitURL)),
+			llb.WithCustomNamef("%sGIT CLONE %s", vm.ToVertexPrefix(), stringutil.ScrubCredentials(gitURL)),
 			llb.KeepGitDir(),
 		}
 		if len(keyScans) > 0 {
@@ -173,7 +182,7 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, gwClient gwclient.
 			llb.Dir("/git-src"),
 			llb.ReadonlyRootFS(),
 			llb.AddMount("/git-src", gitState, llb.Readonly),
-			llb.WithCustomNamef("[internal] GET GIT META %s", ref.ProjectCanonical()),
+			llb.WithCustomNamef("%sGET GIT META %s", vm.ToVertexPrefix(), ref.ProjectCanonical()),
 		}
 		gitHashOp := opImg.Run(gitHashOpts...)
 		gitMetaState := gitHashOp.AddMount("/dest", llbutil.ScratchWithPlatform())
