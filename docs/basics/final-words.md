@@ -8,7 +8,8 @@ Learning Earthly does not stop here. Discover more of what Earthly can do by exp
 
 * [The Earthfile reference](../earthfile/earthfile.md)
 * [The **earthly command** reference](../earthly-command/earthly-command.md)
-* [Guides](../earthfile/guides)
+* [Guides](https://tinyurl.com/2p8cpnxv) <!-- should be ../earthfile/guides but gitbook produces a 404 link for this -->
+
 * [Examples using Earthly](../examples/examples.md)
 * [Best practices](../best-practices/best-practices.md)
 
