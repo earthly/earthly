@@ -44,8 +44,8 @@ fi
 if [ -f "/sys/fs/cgroup/cgroup.controllers" ]; then
     echo "detected cgroups v2"
 
-    mkdir /sys/fs/cgroup/earthly
-    mkdir /sys/fs/cgroup/buildkit
+    mkdir -p /sys/fs/cgroup/earthly
+    mkdir -p /sys/fs/cgroup/buildkit
     echo $$ > /sys/fs/cgroup/earthly/cgroup.procs
 
     echo "+pids" > /sys/fs/cgroup/cgroup.subtree_control
