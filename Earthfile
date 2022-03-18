@@ -190,9 +190,9 @@ markdown-spellcheck:
 
 unit-test:
     FROM +code
-    RUN apk add --no-cache --update podman
+    COPY podman-setup.sh .
     WITH DOCKER
-        RUN sed -i 's/\/var\/lib\/containers\/storage/$EARTHLY_DOCKERD_DATA_ROOT/g' /etc/containers/storage.conf && \
+        RUN ./podman-setup.sh && \
             go test ./...
     END
 
