@@ -48,6 +48,7 @@ type NewCollectionOpt struct {
 	Console        conslogging.ConsoleLogger
 	Target         domain.Target
 	Platform       specs.Platform
+	NativePlatform specs.Platform
 	GitMeta        *gitutil.GitMetadata
 	BuiltinArgs    DefaultArgs
 	OverridingVars *Scope
@@ -60,7 +61,7 @@ func NewCollection(opts NewCollectionOpt) *Collection {
 	target := opts.Target
 	console := opts.Console
 	return &Collection{
-		builtin: BuiltinArgs(target, opts.Platform, opts.GitMeta, opts.BuiltinArgs, opts.Features),
+		builtin: BuiltinArgs(target, opts.Platform, opts.GitMeta, opts.BuiltinArgs, opts.Features, opts.NativePlatform),
 		envs:    NewScope(),
 		stack: []*stackFrame{{
 			frameName:  target.StringCanonical(),

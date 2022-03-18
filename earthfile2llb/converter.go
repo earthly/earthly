@@ -105,6 +105,7 @@ func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Da
 		Console:        opt.Console,
 		Target:         target,
 		Platform:       llbutil.PlatformWithDefault(opt.Platform),
+		NativePlatform: *opt.NativePlatform,
 		GitMeta:        bc.GitMetadata,
 		BuiltinArgs:    opt.BuiltinArgs,
 		OverridingVars: opt.OverridingVars,

@@ -147,6 +147,7 @@ ga:
     BUILD +if
     BUILD +for
     BUILD +first-command
+    BUILD +platform
     BUILD +platform-output
     BUILD +command
     BUILD +command-explicit-global
@@ -825,6 +826,34 @@ first-command:
     DO +RUN_EARTHLY --earthfile=first-command.earth --should_fail=true --target=+start-with-if
     DO +RUN_EARTHLY --earthfile=first-command.earth --should_fail=true --target=+start-with-non-from-target
 
+platform:
+    DO +RUN_EARTHLY --earthfile=platform.earth
+    ARG nativeUname=$(uname -m)
+    FOR plat IN linux/arm/v7 linux/arm64 linux/amd64
+        RUN /bin/sh -c "set -ex ; \
+            outdir=./out/$plat ; \
+            test -d \$outdir && \
+            cat \$outdir/uname-m && \
+            case \$(cat \$outdir/uname-m) in \
+                aarch64) test $plat = linux/arm64 ;; \
+                armv7l) test $plat = linux/arm/v7 ;; \
+                x86_64) test $plat = linux/amd64 ;; \
+                *) exit 1 ;; \
+            esac && \
+            case $nativeUname in \
+                aarch64) test \$(cat \$outdir/nativeplatform) = linux/arm64 ;; \
+                armv7l) test \$(cat \$outdir/nativeplatform) = linux/arm/v7 ;; \
+                x86_64) test \$(cat \$outdir/nativeplatform) = linux/amd64 ;; \
+                *) exit 1 ;; \
+            esac && \
+            case $nativeUname in \
+                aarch64) test \$(cat \$outdir/userplatform) = linux/arm64 ;; \
+                armv7l) test \$(cat \$outdir/userplatform) = linux/arm/v7 ;; \
+                x86_64) test \$(cat \$outdir/userplatform) = linux/amd64 ;; \
+                *) exit 1 ;; \
+            esac"
+    END
+
 platform-output:
     DO +RUN_EARTHLY --earthfile=platform-output.earth
     RUN test -f ./out-arm
@@ -1067,6 +1096,13 @@ RUN_EARTHLY:
             exit 1
         fi
         exit_code=\$(tail -n 1 earthly.output | cut -d \"=\" -f2)
+
+        if [ \$exit_code -eq 6 ]; then
+            echo =================== Buildkit logs ===================
+            cat /var/log/buildkitd.log
+            echo ================= End Buildkit logs =================
+            exit \$exit_code
+        fi
 
         if $should_fail; then
             if [ \$exit_code -eq 0 ]; then

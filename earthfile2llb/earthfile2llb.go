@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/containerd/containerd/platforms"
 	"github.com/earthly/earthly/util/containerutil"
 	"github.com/moby/buildkit/client/llb"
 	gwclient "github.com/moby/buildkit/frontend/gateway/client"
@@ -44,6 +45,8 @@ type ConvertOpt struct {
 	Visited *states.VisitedCollection
 	// Platform is the target platform of the build.
 	Platform *specs.Platform
+	// NativePlatform is the native platform of the buidldkit instance executing this build.
+	NativePlatform *specs.Platform
 	// OverridingVars is a collection of build args used for overriding args in the build.
 	OverridingVars *variables.Scope
 	// A cache for image solves. (maybe dockerTag +) depTargetInputHash -> context containing image.tar.
@@ -121,6 +124,18 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt, in
 	}
 	if opt.MetaResolver == nil {
 		opt.MetaResolver = NewCachedMetaResolver(opt.GwClient)
+	}
+	if opt.NativePlatform == nil {
+		ws := opt.GwClient.BuildOpts().Workers
+		if len(ws) == 0 {
+			return nil, errors.New("no worker found via gwclient")
+		}
+		nps := ws[0].Platforms
+		if len(nps) == 0 {
+			return nil, errors.New("no platform found for worker via gwclient")
+		}
+		np := platforms.Normalize(nps[0])
+		opt.NativePlatform = &np
 	}
 	egWait := false
 	if opt.ErrorGroup == nil {

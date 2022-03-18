@@ -436,30 +436,24 @@ for-own:
 for-linux:
     ARG BUILDKIT_PROJECT
     BUILD --platform=linux/amd64 ./buildkitd+buildkitd --BUILDKIT_PROJECT="$BUILDKIT_PROJECT"
-    # TODO: Use the USERARCH variant after the next Earthly release.
-    # ARG USERARCH
-    # BUILD --platform=linux/$USERARCH ./ast/parser+parser
-    BUILD --platform=linux/amd64 ./ast/parser+parser
+    ARG USERARCH
+    BUILD --platform=linux/$USERARCH ./ast/parser+parser
     COPY +earthly-linux-amd64/earthly ./
     SAVE ARTIFACT ./earthly AS LOCAL ./build/linux/amd64/earthly
 
 for-darwin:
     ARG BUILDKIT_PROJECT
     BUILD --platform=linux/amd64 ./buildkitd+buildkitd --BUILDKIT_PROJECT="$BUILDKIT_PROJECT"
-    # TODO: Use the USERARCH variant after the next Earthly release.
-    # ARG USERARCH
-    # BUILD --platform=linux/$USERARCH ./ast/parser+parser
-    BUILD --platform=linux/amd64 ./ast/parser+parser
+    ARG USERARCH
+    BUILD --platform=linux/$USERARCH ./ast/parser+parser
     COPY +earthly-darwin-amd64/earthly ./
     SAVE ARTIFACT ./earthly AS LOCAL ./build/darwin/amd64/earthly
 
 for-darwin-m1:
     ARG BUILDKIT_PROJECT
     BUILD --platform=linux/arm64 ./buildkitd+buildkitd --BUILDKIT_PROJECT="$BUILDKIT_PROJECT"
-    # TODO: Use the USERARCH variant after the next Earthly release.
-    # ARG USERARCH
-    # BUILD --platform=linux/$USERARCH ./ast/parser+parser
-    BUILD --platform=linux/amd64 ./ast/parser+parser
+    ARG USERARCH
+    BUILD --platform=linux/$USERARCH ./ast/parser+parser
     COPY +earthly-darwin-arm64/earthly ./
     SAVE ARTIFACT ./earthly AS LOCAL ./build/darwin/arm64/earthly
 

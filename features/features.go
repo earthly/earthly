@@ -31,6 +31,7 @@ type Features struct {
 	ExecAfterParallel          bool `long:"exec-after-parallel" description:"force execution after parallel conversion"`
 	UseCopyLink                bool `long:"use-copy-link" description:"use the equivalent of COPY --link for all copy-like operations"`
 	ParallelLoad               bool `long:"parallel-load" description:"perform parallel loading of images into WITH DOCKER"`
+	NewPlatform                bool `long:"new-platform" description:"enable new platform behavior"`
 
 	Major int
 	Minor int
@@ -183,6 +184,7 @@ func GetFeatures(version *spec.Version) (*Features, error) {
 		ftrs.UseHostCommand = true
 		ftrs.UseCopyLink = true
 		ftrs.ParallelLoad = true
+		ftrs.NewPlatform = true
 	}
 
 	return &ftrs, nil
