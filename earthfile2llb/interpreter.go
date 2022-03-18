@@ -15,6 +15,7 @@ import (
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/util/flagutil"
 	"github.com/earthly/earthly/util/llbutil"
+	"github.com/earthly/earthly/util/shell"
 	"github.com/earthly/earthly/variables"
 
 	flags "github.com/jessevdk/go-flags"
@@ -309,10 +310,18 @@ func (i *Interpreter) handleIfExpression(ctx context.Context, expression []strin
 	withShell := !execMode
 
 	for index, s := range opts.Secrets {
-		opts.Secrets[index] = i.expandArgs(s, true)
+		expanded, err := i.expandArgs(ctx, s, true)
+		if err != nil {
+			return false, i.wrapError(err, sl, "failed to expand IF secret %v", s)
+		}
+		opts.Secrets[index] = expanded
 	}
 	for index, m := range opts.Mounts {
-		opts.Mounts[index] = i.expandArgs(m, false)
+		expanded, err := i.expandArgs(ctx, m, false)
+		if err != nil {
+			return false, i.wrapError(err, sl, "failed to expand IF mount %v", m)
+		}
+		opts.Mounts[index] = expanded
 	}
 	// Note: Not expanding args for the expression itself, as that will be take care of by the shell.
 
@@ -376,10 +385,9 @@ func (i *Interpreter) handleForArgs(ctx context.Context, forArgs []string, sl *s
 		return "", nil, i.errorf(sl, "expected IN, got %s", args[1])
 	}
 	variable := args[0]
-	expression := args[2:]
 	runOpts := ConvertRunOpts{
 		CommandName: "FOR",
-		Args:        expression,
+		Args:        args[2:],
 		Locally:     i.local,
 		Mounts:      opts.Mounts,
 		Secrets:     opts.Secrets,
@@ -418,14 +426,26 @@ func (i *Interpreter) handleFrom(ctx context.Context, cmd spec.Command) error {
 			return i.errorf(cmd.SourceLocation, "invalid number of arguments for FROM: %s", cmd.Args)
 		}
 	}
-	imageName := i.expandArgs(args[0], true)
-	opts.Platform = i.expandArgs(opts.Platform, false)
-	platform, err := llbutil.ParsePlatform(opts.Platform)
+	imageName, err := i.expandArgs(ctx, args[0], true)
 	if err != nil {
-		return i.wrapError(err, cmd.SourceLocation, "parse platform %s", opts.Platform)
+		return i.errorf(cmd.SourceLocation, "unable to expand image name for FROM: %s", args[0])
 	}
-	expandedBuildArgs := i.expandArgsSlice(opts.BuildArgs, true)
-	expandedFlagArgs := i.expandArgsSlice(args[1:], true)
+	expandedPlatform, err := i.expandArgs(ctx, opts.Platform, false)
+	if err != nil {
+		return i.errorf(cmd.SourceLocation, "unable to expand platform for FROM: %s", opts.Platform)
+	}
+	platform, err := llbutil.ParsePlatform(expandedPlatform)
+	if err != nil {
+		return i.wrapError(err, cmd.SourceLocation, "parse platform %s", expandedPlatform)
+	}
+	expandedBuildArgs, err := i.expandArgsSlice(ctx, opts.BuildArgs, true)
+	if err != nil {
+		return i.errorf(cmd.SourceLocation, "unable to expand build args for FROM: %v", opts.BuildArgs)
+	}
+	expandedFlagArgs, err := i.expandArgsSlice(ctx, args[1:], true)
+	if err != nil {
+		return i.errorf(cmd.SourceLocation, "unable to expand flag args for FROM: %v", args[1:])
+	}
 	parsedFlagArgs, err := variables.ParseFlagArgs(expandedFlagArgs)
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "parse flag args")
@@ -476,12 +496,17 @@ func (i *Interpreter) getAllowPrivilegedArtifact(artifactName string, allowPrivi
 	return i.getAllowPrivileged(artifact.Target, allowPrivileged)
 }
 
-func (i *Interpreter) flagValModifier(flagName string, flagOpt *flags.Option, flagVal *string) *string {
-	if flagOpt.IsBool() && flagVal != nil {
-		newFlag := i.expandArgs(*flagVal, false)
-		return &newFlag
+func (i *Interpreter) flagValModifierFuncWithContext(ctx context.Context) func(string, *flags.Option, *string) (*string, error) {
+	return func(flagName string, flagOpt *flags.Option, flagVal *string) (*string, error) {
+		if flagOpt.IsBool() && flagVal != nil {
+			newFlag, err := i.expandArgs(ctx, *flagVal, false)
+			if err != nil {
+				return nil, err
+			}
+			return &newFlag, nil
+		}
+		return flagVal, nil
 	}
-	return flagVal
 }
 
 func (i *Interpreter) handleRun(ctx context.Context, cmd spec.Command) error {
@@ -489,7 +514,7 @@ func (i *Interpreter) handleRun(ctx context.Context, cmd spec.Command) error {
 		return i.errorf(cmd.SourceLocation, "not enough arguments for RUN")
 	}
 	opts := runOpts{}
-	args, err := parseArgsWithValueModifier("RUN", &opts, getArgsCopy(cmd), i.flagValModifier)
+	args, err := parseArgsWithValueModifier("RUN", &opts, getArgsCopy(cmd), i.flagValModifierFuncWithContext(ctx))
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "invalid RUN arguments %v", cmd.Args)
 	}
@@ -503,10 +528,18 @@ func (i *Interpreter) handleRun(ctx context.Context, cmd spec.Command) error {
 	// TODO: In the bracket case, should flags be outside of the brackets?
 
 	for index, s := range opts.Secrets {
-		opts.Secrets[index] = i.expandArgs(s, true)
+		expanded, err := i.expandArgs(ctx, s, true)
+		if err != nil {
+			return i.errorf(cmd.SourceLocation, "failed to expand secrets arg in RUN: %s", s)
+		}
+		opts.Secrets[index] = expanded
 	}
 	for index, m := range opts.Mounts {
-		opts.Mounts[index] = i.expandArgs(m, false)
+		expanded, err := i.expandArgs(ctx, m, false)
+		if err != nil {
+			return i.errorf(cmd.SourceLocation, "failed to expand mount arg in RUN: %s", m)
+		}
+		opts.Mounts[index] = expanded
 	}
 	// Note: Not expanding args for the run itself, as that will be take care of by the shell.
 
@@ -593,28 +626,49 @@ func (i *Interpreter) handleFromDockerfile(ctx context.Context, cmd spec.Command
 	if len(args) < 1 {
 		return i.errorf(cmd.SourceLocation, "invalid number of arguments for FROM DOCKERFILE")
 	}
-	path := i.expandArgs(args[0], false)
+	path, err := i.expandArgs(ctx, args[0], false)
+	if err != nil {
+		return i.errorf(cmd.SourceLocation, "failed to expand FROM DOCKERFILE path arg %s", args[0])
+	}
 	_, parseErr := domain.ParseArtifact(path)
 	if parseErr != nil {
 		// Treat as context path, not artifact path.
-		path = i.expandArgs(args[0], false)
+		path, err = i.expandArgs(ctx, args[0], false)
+		if err != nil {
+			return i.errorf(cmd.SourceLocation, "failed to expand FROM DOCKERFILE path arg %s", args[0])
+		}
 	}
-	expandedBuildArgs := i.expandArgsSlice(opts.BuildArgs, true)
-	expandedFlagArgs := i.expandArgsSlice(args[1:], true)
+	expandedBuildArgs, err := i.expandArgsSlice(ctx, opts.BuildArgs, true)
+	if err != nil {
+		return i.errorf(cmd.SourceLocation, "failed to expand FROM DOCKERFILE build args %s", opts.BuildArgs)
+	}
+	expandedFlagArgs, err := i.expandArgsSlice(ctx, args[1:], true)
+	if err != nil {
+		return i.errorf(cmd.SourceLocation, "failed to expand FROM DOCKERFILE flag args %s", args[1:])
+	}
 	parsedFlagArgs, err := variables.ParseFlagArgs(expandedFlagArgs)
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "parse flag args")
 	}
 	expandedBuildArgs = append(parsedFlagArgs, expandedBuildArgs...)
-	opts.Platform = i.expandArgs(opts.Platform, false)
-	platform, err := llbutil.ParsePlatform(opts.Platform)
+	expandedPlatform, err := i.expandArgs(ctx, opts.Platform, false)
 	if err != nil {
-		return i.wrapError(err, cmd.SourceLocation, "parse platform %s", opts.Platform)
+		return i.errorf(cmd.SourceLocation, "failed to expand FROM DOCKERFILE platform %s", opts.Platform)
 	}
-	opts.Path = i.expandArgs(opts.Path, false)
-	opts.Target = i.expandArgs(opts.Target, false)
+	platform, err := llbutil.ParsePlatform(expandedPlatform)
+	if err != nil {
+		return i.wrapError(err, cmd.SourceLocation, "parse platform %s", expandedPlatform)
+	}
+	expandedPath, err := i.expandArgs(ctx, opts.Path, false)
+	if err != nil {
+		return i.wrapError(err, cmd.SourceLocation, "failed to expand path %s", opts.Path)
+	}
+	expandedTarget, err := i.expandArgs(ctx, opts.Target, false)
+	if err != nil {
+		return i.wrapError(err, cmd.SourceLocation, "failed to expand target %s", opts.Target)
+	}
 	i.local = false
-	err = i.converter.FromDockerfile(ctx, path, opts.Path, opts.Target, platform, expandedBuildArgs)
+	err = i.converter.FromDockerfile(ctx, path, expandedPath, expandedTarget, platform, expandedBuildArgs)
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "from dockerfile")
 	}
@@ -655,13 +709,25 @@ func (i *Interpreter) handleCopy(ctx context.Context, cmd spec.Command) error {
 	}
 	srcs := args[:len(args)-1]
 	srcFlagArgs := make([][]string, len(srcs))
-	dest := i.expandArgs(args[len(args)-1], false)
-	expandedBuildArgs := i.expandArgsSlice(opts.BuildArgs, true)
-	opts.Chown = i.expandArgs(opts.Chown, false)
-	opts.Platform = i.expandArgs(opts.Platform, false)
-	platform, err := llbutil.ParsePlatform(opts.Platform)
+	dest, err := i.expandArgs(ctx, args[len(args)-1], false)
 	if err != nil {
-		return i.wrapError(err, cmd.SourceLocation, "parse platform %s", opts.Platform)
+		return i.wrapError(err, cmd.SourceLocation, "failed to expand COPY args %v", args[len(args)-1])
+	}
+	expandedBuildArgs, err := i.expandArgsSlice(ctx, opts.BuildArgs, true)
+	if err != nil {
+		return i.wrapError(err, cmd.SourceLocation, "failed to expand COPY buildargs %v", opts.BuildArgs)
+	}
+	expandedChown, err := i.expandArgs(ctx, opts.Chown, false)
+	if err != nil {
+		return i.wrapError(err, cmd.SourceLocation, "failed to expand COPY chown: %v", opts.Chown)
+	}
+	expandedPlatform, err := i.expandArgs(ctx, opts.Platform, false)
+	if err != nil {
+		return i.wrapError(err, cmd.SourceLocation, "failed to expand COPY platform: %v", opts.Platform)
+	}
+	platform, err := llbutil.ParsePlatform(expandedPlatform)
+	if err != nil {
+		return i.wrapError(err, cmd.SourceLocation, "parse platform %s", expandedPlatform)
 	}
 
 	allClassical := true
@@ -675,21 +741,33 @@ func (i *Interpreter) handleCopy(ctx context.Context, cmd spec.Command) error {
 			if err != nil {
 				return i.wrapError(err, cmd.SourceLocation, "parse parans %s", src)
 			}
-			artifactSrc, parseErr = domain.ParseArtifact(i.expandArgs(artifactStr, true))
+			expandedArtifact, err := i.expandArgs(ctx, artifactStr, true)
+			if err != nil {
+				return i.wrapError(err, cmd.SourceLocation, "failed to expand COPY artifact %s", artifactStr)
+			}
+			artifactSrc, parseErr = domain.ParseArtifact(expandedArtifact)
 			if parseErr != nil {
 				// Must parse in the parans case.
 				return i.wrapError(err, cmd.SourceLocation, "parse artifact")
 			}
 			srcFlagArgs[index] = extraArgs
 		} else {
-			artifactSrc, parseErr = domain.ParseArtifact(i.expandArgs(src, true))
+			expandedSrc, err := i.expandArgs(ctx, src, true)
+			if err != nil {
+				return i.wrapError(err, cmd.SourceLocation, "failed to expand COPY src %s", src)
+			}
+			artifactSrc, parseErr = domain.ParseArtifact(expandedSrc)
 		}
 		// If it parses as an artifact, treat as artifact.
 		if parseErr == nil {
 			srcs[index] = artifactSrc.String()
 			allClassical = false
 		} else {
-			srcs[index] = i.expandArgs(src, false)
+			expandedSrc, err := i.expandArgs(ctx, src, false)
+			if err != nil {
+				return i.wrapError(err, cmd.SourceLocation, "failed to expand COPY src %s", src)
+			}
+			srcs[index] = expandedSrc
 			allArtifacts = false
 		}
 	}
@@ -706,7 +784,10 @@ func (i *Interpreter) handleCopy(ctx context.Context, cmd spec.Command) error {
 				return err
 			}
 
-			expandedFlagArgs := i.expandArgsSlice(srcFlagArgs[index], true)
+			expandedFlagArgs, err := i.expandArgsSlice(ctx, srcFlagArgs[index], true)
+			if err != nil {
+				return i.wrapError(err, cmd.SourceLocation, "failed to expand COPY flag %s", srcFlagArgs[index])
+			}
 			parsedFlagArgs, err := variables.ParseFlagArgs(expandedFlagArgs)
 			if err != nil {
 				return i.wrapError(err, cmd.SourceLocation, "parse flag args")
@@ -719,7 +800,7 @@ func (i *Interpreter) handleCopy(ctx context.Context, cmd spec.Command) error {
 					return i.wrapError(err, cmd.SourceLocation, "copy artifact locally")
 				}
 			} else {
-				err = i.converter.CopyArtifact(ctx, src, dest, platform, allowPrivileged, srcBuildArgs, opts.IsDirCopy, opts.KeepTs, opts.KeepOwn, opts.Chown, opts.IfExists, opts.SymlinkNoFollow)
+				err = i.converter.CopyArtifact(ctx, src, dest, platform, allowPrivileged, srcBuildArgs, opts.IsDirCopy, opts.KeepTs, opts.KeepOwn, expandedChown, opts.IfExists, opts.SymlinkNoFollow)
 				if err != nil {
 					return i.wrapError(err, cmd.SourceLocation, "copy artifact")
 				}
@@ -733,7 +814,7 @@ func (i *Interpreter) handleCopy(ctx context.Context, cmd spec.Command) error {
 			return i.errorf(cmd.SourceLocation, "unhandled locally artifact copy when allArtifacts is false")
 		}
 
-		err = i.converter.CopyClassical(ctx, srcs, dest, opts.IsDirCopy, opts.KeepTs, opts.KeepOwn, opts.Chown, opts.IfExists)
+		err = i.converter.CopyClassical(ctx, srcs, dest, opts.IsDirCopy, opts.KeepTs, opts.KeepOwn, expandedChown, opts.IfExists)
 		if err != nil {
 			return i.wrapError(err, cmd.SourceLocation, "copy classical")
 		}
@@ -771,22 +852,31 @@ func (i *Interpreter) handleSaveArtifact(ctx context.Context, cmd spec.Command) 
 		return i.errorf(cmd.SourceLocation, "invalid arguments for SAVE ARTIFACT command: %v", cmd.Args)
 	}
 
-	saveFrom := i.expandArgs(args[0], false)
-	saveTo = i.expandArgs(saveTo, false)
-	saveAsLocalTo = i.expandArgs(saveAsLocalTo, false)
+	saveFrom, err := i.expandArgs(ctx, args[0], false)
+	if err != nil {
+		return i.errorf(cmd.SourceLocation, "failed to expand SAVE ARTIFACT src: %s", args[0])
+	}
+	expandedSaveTo, err := i.expandArgs(ctx, saveTo, false)
+	if err != nil {
+		return i.errorf(cmd.SourceLocation, "failed to expand SAVE ARTIFACT dst: %s", saveTo)
+	}
+	expandedSaveAsLocalTo, err := i.expandArgs(ctx, saveAsLocalTo, false)
+	if err != nil {
+		return i.errorf(cmd.SourceLocation, "failed to expand SAVE ARTIFACT local dst: %s", saveAsLocalTo)
+	}
 
 	if i.local {
-		if saveAsLocalTo != "" {
+		if expandedSaveAsLocalTo != "" {
 			return i.errorf(cmd.SourceLocation, "SAVE ARTIFACT AS LOCAL is not implemented under LOCALLY targets")
 		}
-		err = i.converter.SaveArtifactFromLocal(ctx, saveFrom, saveTo, opts.KeepTs, opts.IfExists, "")
+		err = i.converter.SaveArtifactFromLocal(ctx, saveFrom, expandedSaveTo, opts.KeepTs, opts.IfExists, "")
 		if err != nil {
 			return i.wrapError(err, cmd.SourceLocation, "apply SAVE ARTIFACT")
 		}
 		return nil
 	}
 
-	err = i.converter.SaveArtifact(ctx, saveFrom, saveTo, saveAsLocalTo, opts.KeepTs, opts.KeepOwn, opts.IfExists, opts.SymlinkNoFollow, opts.Force, i.pushOnlyAllowed)
+	err = i.converter.SaveArtifact(ctx, saveFrom, expandedSaveTo, expandedSaveAsLocalTo, opts.KeepTs, opts.KeepOwn, opts.IfExists, opts.SymlinkNoFollow, opts.Force, i.pushOnlyAllowed)
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "apply SAVE ARTIFACT")
 	}
@@ -800,7 +890,11 @@ func (i *Interpreter) handleSaveImage(ctx context.Context, cmd spec.Command) err
 		return i.wrapError(err, cmd.SourceLocation, "invalid SAVE IMAGE arguments %v", cmd.Args)
 	}
 	for index, cf := range opts.CacheFrom {
-		opts.CacheFrom[index] = i.expandArgs(cf, false)
+		expandedCacheFrom, err := i.expandArgs(ctx, cf, false)
+		if err != nil {
+			return i.wrapError(err, cmd.SourceLocation, "failed to expand SAVE IMAGE cache-from: %s", cf)
+		}
+		opts.CacheFrom[index] = expandedCacheFrom
 	}
 	if opts.Push && len(args) == 0 {
 		return i.errorf(cmd.SourceLocation, "invalid number of arguments for SAVE IMAGE --push: %v", cmd.Args)
@@ -808,7 +902,11 @@ func (i *Interpreter) handleSaveImage(ctx context.Context, cmd spec.Command) err
 
 	imageNames := args
 	for index, img := range imageNames {
-		imageNames[index] = i.expandArgs(img, false)
+		expandedImageName, err := i.expandArgs(ctx, img, false)
+		if err != nil {
+			return i.wrapError(err, cmd.SourceLocation, "failed to expand SAVE IMAGE img: %s", img)
+		}
+		imageNames[index] = expandedImageName
 	}
 	if len(imageNames) == 0 && !opts.CacheHint && len(opts.CacheFrom) == 0 {
 		fmt.Fprintf(os.Stderr, "Deprecation: using SAVE IMAGE with no arguments is no longer necessary and can be safely removed\n")
@@ -836,11 +934,18 @@ func (i *Interpreter) handleBuild(ctx context.Context, cmd spec.Command, async b
 	if len(args) < 1 {
 		return i.errorf(cmd.SourceLocation, "invalid number of arguments for BUILD: %s", cmd.Args)
 	}
-	fullTargetName := i.expandArgs(args[0], true)
+	fullTargetName, err := i.expandArgs(ctx, args[0], true)
+	if err != nil {
+		return i.wrapError(err, cmd.SourceLocation, "failed to expand BUILD target %s", args[0])
+	}
 	platformsSlice := make([]*specs.Platform, 0, len(opts.Platforms))
 	for index, p := range opts.Platforms {
-		opts.Platforms[index] = i.expandArgs(p, false)
-		platform, err := llbutil.ParsePlatform(opts.Platforms[index])
+		expandedPlatform, err := i.expandArgs(ctx, p, false)
+		if err != nil {
+			return i.wrapError(err, cmd.SourceLocation, "failed to expand BUILD platform %s", p)
+		}
+		opts.Platforms[index] = expandedPlatform
+		platform, err := llbutil.ParsePlatform(p)
 		if err != nil {
 			return i.wrapError(err, cmd.SourceLocation, "parse platform %s", p)
 		}
@@ -852,8 +957,14 @@ func (i *Interpreter) handleBuild(ctx context.Context, cmd spec.Command, async b
 	if i.local && !(isSafeAsyncBuildArgsKVStyle(opts.BuildArgs) && isSafeAsyncBuildArgs(args[1:])) {
 		return i.errorf(cmd.SourceLocation, "BUILD args do not currently support shelling-out in combination with LOCALLY")
 	}
-	expandedBuildArgs := i.expandArgsSlice(opts.BuildArgs, true)
-	expandedFlagArgs := i.expandArgsSlice(args[1:], true)
+	expandedBuildArgs, err := i.expandArgsSlice(ctx, opts.BuildArgs, true)
+	if err != nil {
+		return i.wrapError(err, cmd.SourceLocation, "failed to expand BUILD args %v", opts.BuildArgs)
+	}
+	expandedFlagArgs, err := i.expandArgsSlice(ctx, args[1:], true)
+	if err != nil {
+		return i.wrapError(err, cmd.SourceLocation, "failed to expand BUILD flags %v", args[1:])
+	}
 	parsedFlagArgs, err := variables.ParseFlagArgs(expandedFlagArgs)
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "parse flag args")
@@ -898,8 +1009,11 @@ func (i *Interpreter) handleWorkdir(ctx context.Context, cmd spec.Command) error
 	if len(cmd.Args) != 1 {
 		return i.errorf(cmd.SourceLocation, "invalid number of arguments for WORKDIR: %v", cmd.Args)
 	}
-	workdirPath := i.expandArgs(cmd.Args[0], false)
-	err := i.converter.Workdir(ctx, workdirPath)
+	workdirPath, err := i.expandArgs(ctx, cmd.Args[0], false)
+	if err != nil {
+		return i.wrapError(err, cmd.SourceLocation, "failed to expand WORKDIR path %s", cmd.Args[0])
+	}
+	err = i.converter.Workdir(ctx, workdirPath)
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "apply WORKDIR")
 	}
@@ -913,8 +1027,11 @@ func (i *Interpreter) handleUser(ctx context.Context, cmd spec.Command) error {
 	if len(cmd.Args) != 1 {
 		return i.errorf(cmd.SourceLocation, "invalid number of arguments for USER: %v", cmd.Args)
 	}
-	user := i.expandArgs(cmd.Args[0], false)
-	err := i.converter.User(ctx, user)
+	user, err := i.expandArgs(ctx, cmd.Args[0], false)
+	if err != nil {
+		return i.wrapError(err, cmd.SourceLocation, "failed to expand USER %s", cmd.Args[0])
+	}
+	err = i.converter.User(ctx, user)
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "apply USER")
 	}
@@ -929,7 +1046,11 @@ func (i *Interpreter) handleCmd(ctx context.Context, cmd spec.Command) error {
 	cmdArgs := getArgsCopy(cmd)
 	if withShell {
 		for index, arg := range cmdArgs {
-			cmdArgs[index] = i.expandArgs(arg, false)
+			expandedCmd, err := i.expandArgs(ctx, arg, false)
+			if err != nil {
+				return i.wrapError(err, cmd.SourceLocation, "failed to expand CMD %s", arg)
+			}
+			cmdArgs[index] = expandedCmd
 		}
 	}
 	err := i.converter.Cmd(ctx, cmdArgs, withShell)
@@ -947,7 +1068,11 @@ func (i *Interpreter) handleEntrypoint(ctx context.Context, cmd spec.Command) er
 	entArgs := getArgsCopy(cmd)
 	if withShell {
 		for index, arg := range entArgs {
-			entArgs[index] = i.expandArgs(arg, false)
+			expandedEntrypoint, err := i.expandArgs(ctx, arg, false)
+			if err != nil {
+				return i.wrapError(err, cmd.SourceLocation, "failed to expand ENTRYPOINT %s", arg)
+			}
+			entArgs[index] = expandedEntrypoint
 		}
 	}
 	err := i.converter.Entrypoint(ctx, entArgs, withShell)
@@ -966,7 +1091,11 @@ func (i *Interpreter) handleExpose(ctx context.Context, cmd spec.Command) error 
 	}
 	ports := getArgsCopy(cmd)
 	for index, port := range ports {
-		ports[index] = i.expandArgs(port, false)
+		expandedPort, err := i.expandArgs(ctx, port, false)
+		if err != nil {
+			return i.wrapError(err, cmd.SourceLocation, "failed to expand EXPOSE %s", port)
+		}
+		ports[index] = expandedPort
 	}
 	err := i.converter.Expose(ctx, ports)
 	if err != nil {
@@ -984,7 +1113,11 @@ func (i *Interpreter) handleVolume(ctx context.Context, cmd spec.Command) error 
 	}
 	volumes := getArgsCopy(cmd)
 	for index, volume := range volumes {
-		volumes[index] = i.expandArgs(volume, false)
+		expandedVolume, err := i.expandArgs(ctx, volume, false)
+		if err != nil {
+			return i.wrapError(err, cmd.SourceLocation, "failed to expand VOLUME %s", volume)
+		}
+		volumes[index] = expandedVolume
 	}
 	err := i.converter.Volume(ctx, volumes)
 	if err != nil {
@@ -997,20 +1130,24 @@ func (i *Interpreter) handleEnv(ctx context.Context, cmd spec.Command) error {
 	if i.pushOnlyAllowed {
 		return i.pushOnlyErr(cmd.SourceLocation)
 	}
+	var err error
 	var key, value string
 	switch len(cmd.Args) {
 	case 3:
 		if cmd.Args[1] != "=" {
 			return i.errorf(cmd.SourceLocation, "invalid syntax")
 		}
-		value = i.expandArgs(cmd.Args[2], false)
+		value, err = i.expandArgs(ctx, cmd.Args[2], false)
+		if err != nil {
+			return i.wrapError(err, cmd.SourceLocation, "failed to expand ENV %s", cmd.Args[2])
+		}
 		fallthrough
 	case 1:
 		key = cmd.Args[0] // Note: Not expanding args for key.
 	default:
 		return i.errorf(cmd.SourceLocation, "invalid syntax")
 	}
-	err := i.converter.Env(ctx, key, value)
+	err = i.converter.Env(ctx, key, value)
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "apply ENV")
 	}
@@ -1069,11 +1206,10 @@ func (i *Interpreter) handleArg(ctx context.Context, cmd spec.Command) error {
 
 	var value string
 	if valueOrNil != nil {
-		value = i.expandArgs(*valueOrNil, true)
-	}
-
-	if i.local && strings.HasPrefix(value, "$(") {
-		return i.errorf(cmd.SourceLocation, "ARG does not currently support shelling-out in combination with LOCALLY")
+		value, err = i.expandArgs(ctx, *valueOrNil, true)
+		if err != nil {
+			return i.wrapError(err, cmd.SourceLocation, "failed to expand ARG %s", *valueOrNil)
+		}
 	}
 
 	err = i.converter.Arg(ctx, key, value, opts)
@@ -1088,12 +1224,16 @@ func (i *Interpreter) handleLabel(ctx context.Context, cmd spec.Command) error {
 		return i.pushOnlyErr(cmd.SourceLocation)
 	}
 	labels := make(map[string]string)
+	var err error
 	var key string
 	nextEqual := false
 	nextKey := true
 	for _, arg := range cmd.Args {
 		if nextKey {
-			key = i.expandArgs(arg, false)
+			key, err = i.expandArgs(ctx, arg, false)
+			if err != nil {
+				return i.wrapError(err, cmd.SourceLocation, "failed to expand LABEL key %s", arg)
+			}
 			nextEqual = true
 			nextKey = false
 		} else if nextEqual {
@@ -1102,7 +1242,10 @@ func (i *Interpreter) handleLabel(ctx context.Context, cmd spec.Command) error {
 			}
 			nextEqual = false
 		} else {
-			value := i.expandArgs(arg, false)
+			value, err := i.expandArgs(ctx, arg, false)
+			if err != nil {
+				return i.wrapError(err, cmd.SourceLocation, "failed to expand LABEL value %s", arg)
+			}
 			labels[key] = value
 			nextKey = true
 		}
@@ -1113,7 +1256,7 @@ func (i *Interpreter) handleLabel(ctx context.Context, cmd spec.Command) error {
 	if len(labels) == 0 {
 		return i.errorf(cmd.SourceLocation, "no labels provided in LABEL command")
 	}
-	err := i.converter.Label(ctx, labels)
+	err = i.converter.Label(ctx, labels)
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "apply LABEL")
 	}
@@ -1132,16 +1275,26 @@ func (i *Interpreter) handleGitClone(ctx context.Context, cmd spec.Command) erro
 	if len(args) != 2 {
 		return i.errorf(cmd.SourceLocation, "invalid number of arguments for GIT CLONE: %s", cmd.Args)
 	}
-	gitURL := i.expandArgs(args[0], false)
-	gitCloneDest := i.expandArgs(args[1], false)
-	opts.Branch = i.expandArgs(opts.Branch, false)
+	gitURL, err := i.expandArgs(ctx, args[0], false)
+	if err != nil {
+		return i.wrapError(err, cmd.SourceLocation, "failed to expand GIT CLONE url: %s", args[0])
+	}
+
+	gitCloneDest, err := i.expandArgs(ctx, args[1], false)
+	if err != nil {
+		return i.wrapError(err, cmd.SourceLocation, "failed to expand GIT CLONE dest: %s", args[1])
+	}
+	gitBranch, err := i.expandArgs(ctx, opts.Branch, false)
+	if err != nil {
+		return i.wrapError(err, cmd.SourceLocation, "failed to expand GIT CLONE dest: %s", opts.Branch)
+	}
 
 	convertedGitURL, _, err := i.gitLookup.ConvertCloneURL(gitURL)
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "unable to use %v with configured earthly credentials from ~/.earthly/config.yml", cmd.Args)
 	}
 
-	err = i.converter.GitClone(ctx, convertedGitURL, opts.Branch, gitCloneDest, opts.KeepTs)
+	err = i.converter.GitClone(ctx, convertedGitURL, gitBranch, gitCloneDest, opts.KeepTs)
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "git clone")
 	}
@@ -1180,7 +1333,11 @@ func (i *Interpreter) handleHealthcheck(ctx context.Context, cmd spec.Command) e
 		return i.errorf(cmd.SourceLocation, "invalid arguments for HEALTHCHECK: %s", cmd.Args)
 	}
 	for index, arg := range cmdArgs {
-		cmdArgs[index] = i.expandArgs(arg, false)
+		expandedArg, err := i.expandArgs(ctx, arg, false)
+		if err != nil {
+			return i.wrapError(err, cmd.SourceLocation, "failed to expand HEALTHCHECK arguments %s", arg)
+		}
+		cmdArgs[index] = expandedArg
 	}
 	err = i.converter.Healthcheck(ctx, isNone, cmdArgs, opts.Interval, opts.Timeout, opts.StartPeriod, opts.Retries)
 	if err != nil {
@@ -1204,23 +1361,45 @@ func (i *Interpreter) handleWithDocker(ctx context.Context, cmd spec.Command) er
 	if len(args) != 0 {
 		return i.errorf(cmd.SourceLocation, "invalid WITH DOCKER arguments %v", args)
 	}
-	opts.Platform = i.expandArgs(opts.Platform, false)
-	platform, err := llbutil.ParsePlatform(opts.Platform)
+	expandedPlatform, err := i.expandArgs(ctx, opts.Platform, false)
 	if err != nil {
-		return i.wrapError(err, cmd.SourceLocation, "parse platform %s", opts.Platform)
+		return i.wrapError(err, cmd.SourceLocation, "failed to expand WITH DOCKER platform %s", opts.Platform)
+	}
+	platform, err := llbutil.ParsePlatform(expandedPlatform)
+	if err != nil {
+		return i.wrapError(err, cmd.SourceLocation, "parse platform %s", expandedPlatform)
 	}
 	for index, cf := range opts.ComposeFiles {
-		opts.ComposeFiles[index] = i.expandArgs(cf, false)
+		expandedComposeFile, err := i.expandArgs(ctx, cf, false)
+		if err != nil {
+			return i.wrapError(err, cmd.SourceLocation, "failed to expand WITH DOCKER compose: %s", cf)
+		}
+		opts.ComposeFiles[index] = expandedComposeFile
 	}
 	for index, cs := range opts.ComposeServices {
-		opts.ComposeServices[index] = i.expandArgs(cs, false)
+		expandedComposeService, err := i.expandArgs(ctx, cs, false)
+		if err != nil {
+			return i.wrapError(err, cmd.SourceLocation, "failed to expand WITH DOCKER compose service: %s", cs)
+		}
+		opts.ComposeServices[index] = expandedComposeService
 	}
 	for index, load := range opts.Loads {
-		opts.Loads[index] = i.expandArgs(load, true)
+		expandedLoad, err := i.expandArgs(ctx, load, true)
+		if err != nil {
+			return i.wrapError(err, cmd.SourceLocation, "failed to expand WITH DOCKER load: %s", load)
+		}
+		opts.Loads[index] = expandedLoad
 	}
-	expandedBuildArgs := i.expandArgsSlice(opts.BuildArgs, true)
+	expandedBuildArgs, err := i.expandArgsSlice(ctx, opts.BuildArgs, true)
+	if err != nil {
+		return i.wrapError(err, cmd.SourceLocation, "failed to expand WITH DOCKER build args %v", opts.BuildArgs)
+	}
 	for index, p := range opts.Pulls {
-		opts.Pulls[index] = i.expandArgs(p, false)
+		expandedPull, err := i.expandArgs(ctx, p, false)
+		if err != nil {
+			return i.wrapError(err, cmd.SourceLocation, "failed to expand WITH DOCKER pull: %s", p)
+		}
+		opts.Pulls[index] = expandedPull
 	}
 
 	i.withDocker = &WithDockerOpt{
@@ -1238,7 +1417,10 @@ func (i *Interpreter) handleWithDocker(ctx context.Context, cmd spec.Command) er
 		if err != nil {
 			return i.wrapError(err, cmd.SourceLocation, "parse load")
 		}
-		expandedFlagArgs := i.expandArgsSlice(flagArgs, true)
+		expandedFlagArgs, err := i.expandArgsSlice(ctx, flagArgs, true)
+		if err != nil {
+			return i.wrapError(err, cmd.SourceLocation, "failed to expand WITH DOCKER load flag: %s", flagArgs)
+		}
 		parsedFlagArgs, err := variables.ParseFlagArgs(expandedFlagArgs)
 		if err != nil {
 			return i.wrapError(err, cmd.SourceLocation, "parse flag args")
@@ -1291,13 +1473,19 @@ func (i *Interpreter) handleDo(ctx context.Context, cmd spec.Command) error {
 		return i.errorf(cmd.SourceLocation, "invalid number of arguments for DO: %s", args)
 	}
 
-	expandedFlagArgs := i.expandArgsSlice(args[1:], true)
+	expandedFlagArgs, err := i.expandArgsSlice(ctx, args[1:], true)
+	if err != nil {
+		return i.wrapError(err, cmd.SourceLocation, "failed to expand DO flags %v", args[1:])
+	}
 	parsedFlagArgs, err := variables.ParseFlagArgs(expandedFlagArgs)
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "parse flag args")
 	}
 
-	ucName := i.expandArgs(args[0], false)
+	ucName, err := i.expandArgs(ctx, args[0], false)
+	if err != nil {
+		return i.wrapError(err, cmd.SourceLocation, "failed to expand user command %v", args[0])
+	}
 	relCommand, err := domain.ParseCommand(ucName)
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "unable to parse user command reference %s", ucName)
@@ -1340,10 +1528,16 @@ func (i *Interpreter) handleImport(ctx context.Context, cmd spec.Command) error 
 	if len(args) == 3 && args[1] != "AS" {
 		return i.errorf(cmd.SourceLocation, "invalid arguments for IMPORT: %s", args)
 	}
-	importStr := i.expandArgs(args[0], false)
+	importStr, err := i.expandArgs(ctx, args[0], false)
+	if err != nil {
+		return i.wrapError(err, cmd.SourceLocation, "faled to expand IMPORT %s", args[0])
+	}
 	var as string
 	if len(args) == 3 {
-		as = i.expandArgs(args[2], false)
+		as, err = i.expandArgs(ctx, args[2], false)
+		if err != nil {
+			return i.wrapError(err, cmd.SourceLocation, "faled to expand IMPORT as: %s", as)
+		}
 	}
 	isGlobal := (i.target.Target == "base")
 	err = i.converter.Import(ctx, importStr, as, isGlobal, i.allowPrivileged, opts.AllowPrivileged)
@@ -1435,12 +1629,16 @@ func (i *Interpreter) handleDoUserCommand(ctx context.Context, command domain.Co
 
 // ----------------------------------------------------------------------------
 
-func (i *Interpreter) expandArgsSlice(words []string, keepPlusEscape bool) []string {
+func (i *Interpreter) expandArgsSlice(ctx context.Context, words []string, keepPlusEscape bool) ([]string, error) {
 	ret := make([]string, 0, len(words))
 	for _, word := range words {
-		ret = append(ret, i.expandArgs(word, keepPlusEscape))
+		expanded, err := i.expandArgs(ctx, word, keepPlusEscape)
+		if err != nil {
+			return nil, err
+		}
+		ret = append(ret, expanded)
 	}
-	return ret
+	return ret, nil
 }
 
 func (i *Interpreter) errorf(sl *spec.SourceLocation, format string, args ...interface{}) *InterpreterError {
@@ -1455,12 +1653,23 @@ func (i *Interpreter) pushOnlyErr(sl *spec.SourceLocation) error {
 	return i.errorf(sl, "no non-push commands allowed after a --push")
 }
 
-func (i *Interpreter) expandArgs(word string, keepPlusEscape bool) string {
-	ret := i.converter.ExpandArgs(escapeSlashPlus(word))
-	if keepPlusEscape {
-		return ret
+func (i *Interpreter) expandArgs(ctx context.Context, word string, keepPlusEscape bool) (string, error) {
+	runOpts := ConvertRunOpts{
+		CommandName: "expandargs",
+		Args:        nil, // this gets replaced whenver a shell-out is encountered
+		Locally:     i.local,
+		Transient:   !i.local,
+		WithShell:   true,
 	}
-	return unescapeSlashPlus(ret)
+
+	ret, err := i.converter.ExpandArgs(ctx, runOpts, escapeSlashPlus(word))
+	if err != nil {
+		return "", err
+	}
+	if keepPlusEscape {
+		return ret, nil
+	}
+	return unescapeSlashPlus(ret), nil
 }
 
 func escapeSlashPlus(str string) string {
@@ -1639,11 +1848,26 @@ func parseParans(str string) (string, []string, error) {
 	return parts[0], parts[1:], nil
 }
 
+// requiresShellOutOrCmdInvalid returns true if
+// cmd requires shelling out via $(...), or if the cmd is invalid.
+// This function is best-effort, and returns false on errors, errors
+// will be handled during the synchronous portion of earthfile2llb handling.
+func requiresShellOutOrCmdInvalid(s string) bool {
+	var required bool
+	shlex := shell.NewLex('\\')
+	shlex.ShellOut = func(cmd string) (string, error) {
+		required = true
+		return "", nil
+	}
+	_, err := shlex.ProcessWordWithMap(s, map[string]string{})
+	return required || err != nil
+}
+
 // isSafeAsyncBuildArgsKVStyle is used for "key=value" style buildargs
 func isSafeAsyncBuildArgsKVStyle(args []string) bool {
 	for _, arg := range args {
 		_, v, _ := variables.ParseKeyValue(arg)
-		if strings.HasPrefix(v, "$(") || strings.HasPrefix(v, "\"$(") {
+		if requiresShellOutOrCmdInvalid(v) {
 			return false
 		}
 	}
@@ -1657,7 +1881,7 @@ func isSafeAsyncBuildArgs(args []string) bool {
 			return false // malformed build arg
 		}
 		_, v, _ := variables.ParseKeyValue(arg[2:])
-		if strings.HasPrefix(v, "$(") || strings.HasPrefix(v, "\"$(") {
+		if requiresShellOutOrCmdInvalid(v) {
 			return false
 		}
 	}
