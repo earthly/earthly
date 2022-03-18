@@ -72,11 +72,9 @@ func CopyWithRunOptions(srcState pllb.State, src, dest string, platform *specs.P
 	// Docker's internal image for running COPY.
 	// Ref: https://github.com/moby/buildkit/blob/v0.9.3/frontend/dockerfile/dockerfile2llb/convert.go#L40
 	const copyImg = "docker/dockerfile-copy:v0.1.9@sha256:e8f159d3f00786604b93c675ee2783f8dc194bb565e61ca5788f6a6e9d304061"
-	imgOpts := []llb.ImageOption{llb.MarkImageInternal}
-
-	if platform != nil {
-		imgOpts = append(imgOpts, llb.Platform(*platform))
-	}
+	// Use the build platform instead of the target platform.
+	// Ref: https://github.com/moby/buildkit/blob/863c99ceb928f18fbbba5cb653acedb1a528a5dd/frontend/dockerfile/dockerfile2llb/convert.go#L1150
+	imgOpts := []llb.ImageOption{llb.MarkImageInternal, llb.Platform(DefaultPlatform())}
 
 	// The following executes the `copy` command, which is a custom exectuable
 	// contained in the Dockerfile COPY image above. The following .Run()
