@@ -74,7 +74,6 @@ func parseArg(arg string, pncvf ProcessNonConstantVariableFunc, current *Collect
 		if reserved.IsBuiltIn(name) {
 			return "", "", errors.Errorf("value cannot be specified for built-in build arg %s", name)
 		}
-
 		v, err := parseArgValue(name, value, pncvf)
 		if err != nil {
 			return "", "", err
@@ -100,7 +99,6 @@ func parseArgValue(name string, value string, pncvf ProcessNonConstantVariableFu
 			return "", err
 		}
 	}
-
 	return value, nil
 }
 

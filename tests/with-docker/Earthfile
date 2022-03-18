@@ -1,8 +1,9 @@
-VERSION --parallel-load 0.6
+VERSION --parallel-load --shell-out-anywhere 0.6
 FROM earthly/dind:alpine
 
 all:
     BUILD +docker-load-test
+    BUILD +docker-load-shellout-test
     BUILD +docker-load-arg-test
     BUILD +docker-load-multi-test
     BUILD +docker-pull-test
@@ -28,6 +29,13 @@ another-test-image:
     ENTRYPOINT cat /work/file.txt
     SAVE IMAGE another-test-img:i${INDEX}
 
+a-test-image-with-shell-out:
+    FROM alpine:3.15
+    RUN echo c2hlbGxvdXQ= > data # decodes into "shellout"
+    RUN echo myver > version
+    ENTRYPOINT echo "you found me"
+    SAVE IMAGE "test-img-with-$(cat data | base64 -d)":"$(cat version)"
+
 docker-load-test:
     # Index is used to create parallel tests.
     ARG INDEX=0
@@ -37,6 +45,11 @@ docker-load-test:
             --load +a-test-image
         RUN docker run test-abc-img:xyz && \
             docker run hello-world
+    END
+
+docker-load-shellout-test:
+    WITH DOCKER --load=+a-test-image-with-shell-out
+        RUN docker run test-img-with-shellout:myver | grep "you found me"
     END
 
 docker-load-arg-test:

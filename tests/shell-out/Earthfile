@@ -16,16 +16,33 @@ WORKDIR /test
 
 test-all:
     BUILD +test-old
+    BUILD +test-old2
+    BUILD +test-old-works-with-new
+    BUILD +test-new
+    BUILD +test-new-shellout-errors-are-detected
 
-# TODO shelling-out functionality will change in a follow-up PR;
-# for now, we will test the current behaviour (which will become the old behaviour)
 test-old:
     DO +RUN_EARTHLY_ARGS --earthfile=old.earth --target=+test
     DO +RUN_EARTHLY_ARGS --earthfile=old-no-middle-shell-out.earth --target=+test
     DO +RUN_EARTHLY_ARGS --earthfile=old-ignore-shellout-errors.earth --target=+test
     DO +RUN_EARTHLY_ARGS --earthfile=old-fail1.earth --target=+test --should_fail=true --output_contains="/valid-\$.echo file..: not found"
     DO +RUN_EARTHLY_ARGS --earthfile=old-fail2.earth --target=+test --should_fail=true --output_contains="invalid env key definition \$key"
+
+test-old2:
     DO +RUN_EARTHLY_ARGS --earthfile=old2.earth --target=+test
+
+test-old-works-with-new:
+    COPY old.earth Earthfile
+    RUN sed -i "1s/VERSION .*/VERSION --shell-out-anywhere 0.6/" Earthfile
+    DO +RUN_EARTHLY_ARGS --target=+test
+
+test-new-shellout-errors-are-detected:
+    COPY old-ignore-shellout-errors.earth Earthfile
+    RUN sed -i "1s/VERSION .*/VERSION --shell-out-anywhere 0.6/" Earthfile
+    DO +RUN_EARTHLY_ARGS --target=+test --should_fail=true
+
+test-new:
+    DO +RUN_EARTHLY_ARGS --earthfile=new.earth --target=+test
 
 RUN_EARTHLY_ARGS:
     COMMAND
