@@ -40,7 +40,7 @@ type SingleTarget struct {
 	// ID is a random unique string.
 	ID                     string
 	Target                 domain.Target
-	Platform               *specs.Platform
+	Platform               llbutil.Platform
 	MainImage              *image.Image
 	MainState              pllb.State
 	ArtifactsState         pllb.State
@@ -75,7 +75,7 @@ type SingleTarget struct {
 	incomingNewSubscriptions chan string
 }
 
-func newSingleTarget(ctx context.Context, target domain.Target, platform *specs.Platform, allowPrivileged bool, overridingVars *variables.Scope, parentDepSub chan string) (*SingleTarget, error) {
+func newSingleTarget(ctx context.Context, target domain.Target, platform llbutil.Platform, nativePlatform specs.Platform, allowPrivileged bool, overridingVars *variables.Scope, parentDepSub chan string) (*SingleTarget, error) {
 	targetStr := target.StringCanonical()
 	sts := &SingleTarget{
 		ID:       uuid.New().String(),
@@ -83,12 +83,12 @@ func newSingleTarget(ctx context.Context, target domain.Target, platform *specs.
 		Platform: platform,
 		targetInput: dedup.TargetInput{
 			TargetCanonical: targetStr,
-			Platform:        llbutil.PlatformWithDefaultToString(platform),
+			Platform:        platform.Resolve(nativePlatform).String(),
 			AllowPrivileged: allowPrivileged,
 		},
-		MainState:                llbutil.ScratchWithPlatform(),
+		MainState:                llbutil.ScratchWithPlatform(nativePlatform),
 		MainImage:                image.NewImage(),
-		ArtifactsState:           llbutil.ScratchWithPlatform(),
+		ArtifactsState:           llbutil.ScratchWithPlatform(nativePlatform),
 		dependentIDs:             make(map[string]bool),
 		doneCh:                   make(chan struct{}),
 		incomingNewSubscriptions: make(chan string, 1024),
@@ -129,7 +129,7 @@ func (sts *SingleTarget) TargetInput() dedup.TargetInput {
 }
 
 // SetPlatform sets the sts platform.
-func (sts *SingleTarget) SetPlatform(platform *specs.Platform) {
+func (sts *SingleTarget) SetPlatform(platform llbutil.Platform) {
 	sts.Platform = platform
 }
 

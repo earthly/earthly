@@ -79,7 +79,7 @@ type Opt struct {
 
 // BuildOpt is a collection of build options.
 type BuildOpt struct {
-	Platform                   *specs.Platform
+	Platform                   llbutil.Platform
 	AllowPrivileged            bool
 	PrintPhases                bool
 	Push                       bool
@@ -133,8 +133,8 @@ func (b *Builder) BuildTarget(ctx context.Context, target domain.Target, opt Bui
 
 // MakeImageAsTarBuilderFun returns a function which can be used to build an image as a tar.
 func (b *Builder) MakeImageAsTarBuilderFun() states.DockerBuilderFun {
-	return func(ctx context.Context, mts *states.MultiTarget, dockerTag string, outFile string) error {
-		return b.buildOnlyLastImageAsTar(ctx, mts, dockerTag, outFile, BuildOpt{})
+	return func(ctx context.Context, mts *states.MultiTarget, nativePlatform specs.Platform, dockerTag string, outFile string) error {
+		return b.buildOnlyLastImageAsTar(ctx, mts, nativePlatform, dockerTag, outFile, BuildOpt{})
 	}
 }
 
@@ -210,7 +210,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 
 		isMultiPlatform := make(map[string]bool) // DockerTag -> bool
 		for _, sts := range mts.All() {
-			if sts.Platform != nil {
+			if sts.Platform != llbutil.DefaultPlatform {
 				for _, saveImage := range b.targetPhaseImages(sts) {
 					if saveImage.DockerTag != "" && saveImage.DoSave {
 						isMultiPlatform[saveImage.DockerTag] = true
@@ -629,24 +629,20 @@ func (b *Builder) targetPhaseInteractiveSession(sts *states.SingleTarget) states
 	return sts.InteractiveSession
 }
 
-func (b *Builder) stateToRef(ctx context.Context, gwClient gwclient.Client, state pllb.State, platform *specs.Platform) (gwclient.Reference, error) {
+func (b *Builder) stateToRef(ctx context.Context, gwClient gwclient.Client, state pllb.State, platform llbutil.Platform) (gwclient.Reference, error) {
 	noCache := b.opt.NoCache && !b.builtMain
 	return llbutil.StateToRef(ctx, gwClient, state, noCache, platform, b.opt.CacheImports.AsMap())
 }
 
-func (b *Builder) artifactStateToRef(ctx context.Context, gwClient gwclient.Client, state pllb.State, platform *specs.Platform) (gwclient.Reference, error) {
+func (b *Builder) artifactStateToRef(ctx context.Context, gwClient gwclient.Client, state pllb.State, platform llbutil.Platform) (gwclient.Reference, error) {
 	noCache := b.opt.NoCache || b.builtMain
 	return llbutil.StateToRef(ctx, gwClient, state, noCache, platform, b.opt.CacheImports.AsMap())
 }
 
-func (b *Builder) buildOnlyLastImageAsTar(ctx context.Context, mts *states.MultiTarget, dockerTag string, outFile string, opt BuildOpt) error {
-	platform, err := llbutil.ResolvePlatform(mts.Final.Platform, opt.Platform)
-	if err != nil {
-		platform = mts.Final.Platform
-	}
-	plat := llbutil.PlatformWithDefault(platform)
+func (b *Builder) buildOnlyLastImageAsTar(ctx context.Context, mts *states.MultiTarget, nativePlatform specs.Platform, dockerTag string, outFile string, opt BuildOpt) error {
+	platform := mts.Final.Platform.ToLLBPlatform(nativePlatform)
 	saveImage := mts.Final.LastSaveImage()
-	err = b.s.solveDockerTar(ctx, saveImage.State, plat, saveImage.Image, dockerTag, outFile)
+	err := b.s.solveDockerTar(ctx, saveImage.State, platform, saveImage.Image, dockerTag, outFile)
 	if err != nil {
 		return errors.Wrapf(err, "solve image tar %s", outFile)
 	}

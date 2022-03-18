@@ -4,10 +4,11 @@ import (
 	"github.com/earthly/earthly/outmon"
 	"github.com/earthly/earthly/util/llbutil/pllb"
 	"github.com/moby/buildkit/client/llb"
+	specs "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
 // WithDependency creates a fake dependency between two states.
-func WithDependency(state pllb.State, depState pllb.State, stateStr, depStr string, opts ...llb.RunOption) pllb.State {
+func WithDependency(state pllb.State, depState pllb.State, stateStr, depStr string, nativePlatform specs.Platform, opts ...llb.RunOption) pllb.State {
 	// TODO: Is there a better way to mark two states as depending on each other?
 	if depState.Output() == nil {
 		// depState is Scratch.
@@ -16,7 +17,7 @@ func WithDependency(state pllb.State, depState pllb.State, stateStr, depStr stri
 
 	// Copy a wildcard that could never exist.
 	// (And allow for the wildcard to match nothing).
-	interm := ScratchWithPlatform()
+	interm := ScratchWithPlatform(nativePlatform)
 	vm := &outmon.VertexMeta{
 		Internal: true,
 	}

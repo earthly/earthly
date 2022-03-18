@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/containerd/containerd/platforms"
 	"github.com/earthly/earthly/util/containerutil"
+	"github.com/earthly/earthly/util/llbutil"
 	"github.com/moby/buildkit/client/llb"
 	gwclient "github.com/moby/buildkit/frontend/gateway/client"
 	specs "github.com/opencontainers/image-spec/specs-go/v1"
@@ -44,7 +44,7 @@ type ConvertOpt struct {
 	// This is used for deduplication and infinite cycle detection.
 	Visited *states.VisitedCollection
 	// Platform is the target platform of the build.
-	Platform *specs.Platform
+	Platform llbutil.Platform
 	// NativePlatform is the native platform of the buidldkit instance executing this build.
 	NativePlatform *specs.Platform
 	// OverridingVars is a collection of build args used for overriding args in the build.
@@ -126,15 +126,10 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt, in
 		opt.MetaResolver = NewCachedMetaResolver(opt.GwClient)
 	}
 	if opt.NativePlatform == nil {
-		ws := opt.GwClient.BuildOpts().Workers
-		if len(ws) == 0 {
-			return nil, errors.New("no worker found via gwclient")
+		np, err := llbutil.GetNativePlatform(opt.GwClient)
+		if err != nil {
+			return nil, err
 		}
-		nps := ws[0].Platforms
-		if len(nps) == 0 {
-			return nil, errors.New("no platform found for worker via gwclient")
-		}
-		np := platforms.Normalize(nps[0])
 		opt.NativePlatform = &np
 	}
 	egWait := false
@@ -176,7 +171,7 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt, in
 	}
 
 	targetWithMetadata := bc.Ref.(domain.Target)
-	sts, found, err := opt.Visited.Add(ctx, targetWithMetadata, opt.Platform, opt.AllowPrivileged, opt.OverridingVars, opt.parentDepSub)
+	sts, found, err := opt.Visited.Add(ctx, targetWithMetadata, opt.Platform, *opt.NativePlatform, opt.AllowPrivileged, opt.OverridingVars, opt.parentDepSub)
 	if err != nil {
 		return nil, err
 	}

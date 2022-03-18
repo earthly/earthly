@@ -1,29 +1,93 @@
 package llbutil
 
 import (
+	"context"
 	"runtime"
 
 	"github.com/containerd/containerd/platforms"
 	"github.com/earthly/earthly/util/llbutil/pllb"
+	"github.com/moby/buildkit/client"
+	gwclient "github.com/moby/buildkit/frontend/gateway/client"
 	specs "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
 )
 
-// ParsePlatform parses a given platform string. Empty string is a valid selection:
-// it means "the default platform".
-func ParsePlatform(str string) (*specs.Platform, error) {
-	if str == "" {
-		return nil, nil
-	}
-	p, err := platforms.Parse(str)
-	if err != nil {
-		return nil, err
-	}
-	return &p, nil
+var (
+	// DefaultPlatform returns the default platform object.
+	DefaultPlatform = Platform{}
+	// NativePlatform returns the native platform.
+	NativePlatform = Platform{native: true}
+	// UserPlatform returns the user platform.
+	UserPlatform = Platform{user: true}
+)
+
+// Platform is a platform set to either the user's platform, the native platform where the
+// build executes, or another specific platform.
+type Platform struct {
+	user   bool
+	native bool
+	p      *specs.Platform
 }
 
-// DefaultPlatform returns the default platform to use if none is specified.
-func DefaultPlatform() specs.Platform {
+// FromLLBPlatform returns a platform from a containerd platform.
+func FromLLBPlatform(p specs.Platform) Platform {
+	return Platform{p: &p}
+}
+
+// ParsePlatform parses a given platform string. Empty string is a valid selection:
+// it means "the default platform".
+func ParsePlatform(str string) (Platform, error) {
+	switch str {
+	case "native":
+		return NativePlatform, nil
+	case "user":
+		return UserPlatform, nil
+	case "":
+		return DefaultPlatform, nil
+	default:
+		p, err := platforms.Parse(str)
+		if err != nil {
+			return Platform{}, err
+		}
+		return Platform{p: &p}, nil
+	}
+}
+
+// ToLLBPlatform returns the containerd platform.
+func (p Platform) ToLLBPlatform(nativePlatform specs.Platform) specs.Platform {
+	ret := p.Resolve(nativePlatform).p
+	return *ret
+}
+
+// Resolve retnurns the specific platform to use for the build. It resolves
+// platforms such as "", "native" or "user" to an actual value.
+func (p Platform) Resolve(nativePlatform specs.Platform) Platform {
+	if p.p != nil {
+		return p
+	}
+	if p.user {
+		dp := userPlatform()
+		return Platform{p: &dp}
+	}
+	// p.native or none set
+	return Platform{p: &nativePlatform}
+}
+
+// String returns the string representation of the platform.
+func (p Platform) String() string {
+	if p.p != nil {
+		return platforms.Format(*p.p)
+	}
+	if p.native {
+		return "native"
+	}
+	if p.user {
+		return "user"
+	}
+	return ""
+}
+
+func userPlatform() specs.Platform {
 	p := platforms.DefaultSpec()
 	if runtime.GOOS == "darwin" || runtime.GOOS == "windows" {
 		// Use linux so that this works with Docker Desktop app.
@@ -33,72 +97,58 @@ func DefaultPlatform() specs.Platform {
 }
 
 // ScratchWithPlatform is the scratch state with the default platform readily set.
-func ScratchWithPlatform() pllb.State {
-	return pllb.Scratch().Platform(DefaultPlatform())
+func ScratchWithPlatform(nativePlatform specs.Platform) pllb.State {
+	return pllb.Scratch().Platform(nativePlatform)
 }
 
-// PlatformEquals compares whether two platform pointers equate to the same platform.
-// If any of the pointers is nil, then the default platform is assumed for it.
-func PlatformEquals(p1 *specs.Platform, p2 *specs.Platform) bool {
-	if p1 == p2 {
-		// Quick way out.
+// PlatformEquals compares whether two platforms equate to the same platform.
+// A "native" platform can still equate to a "user" platform, if they resolve
+// to the same platform.
+func PlatformEquals(p1 Platform, p2 Platform, nativePlatform specs.Platform) bool {
+	if p1.native && p2.native {
 		return true
 	}
-	pp1 := PlatformWithDefault(p1)
-	pp2 := PlatformWithDefault(p2)
-	return pp1.OS == pp2.OS &&
-		pp1.Architecture == pp2.Architecture &&
-		pp1.Variant == pp2.Variant
+	if p1.user && p2.user {
+		return true
+	}
+	if p1.p == p2.p {
+		return true
+	}
+	p1 = p1.Resolve(nativePlatform)
+	p2 = p2.Resolve(nativePlatform)
+	if p1.p == p2.p {
+		return true
+	}
+	return p1.p.OS == p2.p.OS &&
+		p1.p.Architecture == p2.p.Architecture &&
+		p1.p.Variant == p2.p.Variant
 }
 
-// PlatformWithDefaultToString turns a platform pointer into a string representation.
-func PlatformWithDefaultToString(p *specs.Platform) string {
-	return platforms.Format(PlatformWithDefault(p))
+// GetNativePlatform returns the native platform for a given gwClient.
+func GetNativePlatform(gwClient gwclient.Client) (specs.Platform, error) {
+	ws := gwClient.BuildOpts().Workers
+	if len(ws) == 0 {
+		return specs.Platform{}, errors.New("no worker found via gwclient")
+	}
+	nps := ws[0].Platforms
+	if len(nps) == 0 {
+		return specs.Platform{}, errors.New("no platform found for worker via gwclient")
+	}
+	return platforms.Normalize(nps[0]), nil
 }
 
-// PlatformToString turns a platform pointer into a string representation.
-func PlatformToString(p *specs.Platform) string {
-	if p == nil {
-		return ""
+// GetNativePlatformViaBkClient returns the native platform for a given buildkit client.
+func GetNativePlatformViaBkClient(ctx context.Context, bkClient *client.Client) (specs.Platform, error) {
+	ws, err := bkClient.ListWorkers(ctx)
+	if err != nil {
+		return specs.Platform{}, errors.Wrap(err, "failed to list workers")
 	}
-	return platforms.Format(*p)
-}
-
-// ResolvePlatform returns the non-nil platform provided. If both are nil, nil is returned.
-// If both are non-nil, they are compared to ensure they are identical. If they are not,
-// an error is returned.
-func ResolvePlatform(p1 *specs.Platform, p2 *specs.Platform) (*specs.Platform, error) {
-	if p1 == nil {
-		return p2, nil
+	if len(ws) == 0 {
+		return specs.Platform{}, errors.New("no worker found via bkClient")
 	}
-	if p2 == nil {
-		return p1, nil
+	nps := ws[0].Platforms
+	if len(nps) == 0 {
+		return specs.Platform{}, errors.New("no platform found for worker via bkClient")
 	}
-	plat1 := platforms.Normalize(*p1)
-	plat2 := platforms.Normalize(*p2)
-	if plat1.OS != plat2.OS {
-		return nil, errors.Errorf(
-			"platform contradiction %s vs %s",
-			platforms.Format(*p1), platforms.Format(*p2))
-	}
-	if plat1.Architecture != plat2.Architecture {
-		return nil, errors.Errorf(
-			"platform contradiction %s vs %s",
-			platforms.Format(*p1), platforms.Format(*p2))
-	}
-	if plat1.Variant != plat2.Variant {
-		return nil, errors.Errorf(
-			"platform contradiction %s vs %s",
-			platforms.Format(*p1), platforms.Format(*p2))
-	}
-	return p1, nil
-}
-
-// PlatformWithDefault returns the same platform provided if not nil, or the default
-// platform otherwise.
-func PlatformWithDefault(p *specs.Platform) specs.Platform {
-	if p != nil {
-		return *p
-	}
-	return DefaultPlatform()
+	return platforms.Normalize(nps[0]), nil
 }

@@ -41,7 +41,6 @@ import (
 	"github.com/moby/buildkit/session/localhost/localhostprovider"
 	"github.com/moby/buildkit/session/sshforward/sshprovider"
 	"github.com/moby/buildkit/util/entitlements"
-	specs "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
@@ -2807,7 +2806,7 @@ func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []st
 		return errors.Wrap(err, "get buildkit container IP")
 	}
 
-	platformsSlice := make([]*specs.Platform, 0, len(app.platformsStr.Value()))
+	platformsSlice := make([]llbutil.Platform, 0, len(app.platformsStr.Value()))
 	for _, p := range app.platformsStr.Value() {
 		platform, err := llbutil.ParsePlatform(p)
 		if err != nil {
@@ -2816,7 +2815,7 @@ func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []st
 		platformsSlice = append(platformsSlice, platform)
 	}
 	if len(platformsSlice) == 0 {
-		platformsSlice = []*specs.Platform{nil}
+		platformsSlice = []llbutil.Platform{llbutil.DefaultPlatform}
 	}
 
 	dotEnvMap, err := godotenv.Read(app.envFile)
