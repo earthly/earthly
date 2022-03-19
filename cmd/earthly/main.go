@@ -2808,7 +2808,7 @@ func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []st
 
 	platformsSlice := make([]llbutil.Platform, 0, len(app.platformsStr.Value()))
 	for _, p := range app.platformsStr.Value() {
-		platform, err := llbutil.ParsePlatform(p)
+		platform, err := llbutil.ParsePlatform(p, true)
 		if err != nil {
 			return errors.Wrapf(err, "parse platform %s", p)
 		}

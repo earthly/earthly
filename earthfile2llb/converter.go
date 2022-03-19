@@ -139,6 +139,11 @@ func (c *Converter) From(ctx context.Context, imageName string, platform llbutil
 	c.cmdSet = false
 	if platform == llbutil.DefaultPlatform {
 		platform = c.opt.DefaultPlatform
+	} else {
+		err = c.checkOldPlatformIncompatibility(platform)
+		if err != nil {
+			return err
+		}
 	}
 	c.setPlatform(platform)
 	if strings.Contains(imageName, "+") {
@@ -153,6 +158,19 @@ func (c *Converter) From(ctx context.Context, imageName string, platform llbutil
 	return c.fromClassical(ctx, imageName, platform, false)
 }
 
+func (c *Converter) checkOldPlatformIncompatibility(platform llbutil.Platform) error {
+	if c.ftrs.NewPlatform {
+		return nil
+	}
+	if c.opt.DefaultPlatform == llbutil.DefaultPlatform || platform == llbutil.DefaultPlatform {
+		return nil
+	}
+	if !llbutil.PlatformEquals(c.opt.DefaultPlatform, platform, *c.opt.NativePlatform) {
+		return errors.Errorf("platform contradiction: \"%s\" vs \"%s\"", platform.String(), c.opt.DefaultPlatform.String())
+	}
+	return nil
+}
+
 func (c *Converter) fromClassical(ctx context.Context, imageName string, platform llbutil.Platform, local bool) error {
 	var internal bool
 	if local {
@@ -164,6 +182,11 @@ func (c *Converter) fromClassical(ctx context.Context, imageName string, platfor
 	}
 	if platform == llbutil.DefaultPlatform {
 		platform = c.opt.DefaultPlatform
+	} else {
+		err := c.checkOldPlatformIncompatibility(platform)
+		if err != nil {
+			return err
+		}
 	}
 	state, img, envVars, err := c.internalFromClassical(
 		ctx, imageName, platform,
@@ -214,6 +237,11 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 	}
 	if platform == llbutil.DefaultPlatform {
 		platform = c.opt.DefaultPlatform
+	} else {
+		err = c.checkOldPlatformIncompatibility(platform)
+		if err != nil {
+			return err
+		}
 	}
 	c.setPlatform(platform)
 	plat := platform.ToLLBPlatform(*c.opt.NativePlatform)

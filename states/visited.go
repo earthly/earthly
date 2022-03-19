@@ -134,7 +134,7 @@ func CompareTargetInputs(target domain.Target, platform llbutil.Platform, native
 	if allowPrivileged != other.AllowPrivileged {
 		return false, nil
 	}
-	stsPlat, err := llbutil.ParsePlatform(other.Platform)
+	stsPlat, err := llbutil.ParsePlatform(other.Platform, true)
 	if err != nil {
 		return false, err
 	}

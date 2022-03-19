@@ -433,7 +433,7 @@ func (i *Interpreter) handleFrom(ctx context.Context, cmd spec.Command) error {
 	if err != nil {
 		return i.errorf(cmd.SourceLocation, "unable to expand platform for FROM: %s", opts.Platform)
 	}
-	platform, err := llbutil.ParsePlatform(expandedPlatform)
+	platform, err := llbutil.ParsePlatform(expandedPlatform, i.converter.ftrs.NewPlatform)
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "parse platform %s", expandedPlatform)
 	}
@@ -654,7 +654,7 @@ func (i *Interpreter) handleFromDockerfile(ctx context.Context, cmd spec.Command
 	if err != nil {
 		return i.errorf(cmd.SourceLocation, "failed to expand FROM DOCKERFILE platform %s", opts.Platform)
 	}
-	platform, err := llbutil.ParsePlatform(expandedPlatform)
+	platform, err := llbutil.ParsePlatform(expandedPlatform, i.converter.ftrs.NewPlatform)
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "parse platform %s", expandedPlatform)
 	}
@@ -724,7 +724,7 @@ func (i *Interpreter) handleCopy(ctx context.Context, cmd spec.Command) error {
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "failed to expand COPY platform: %v", opts.Platform)
 	}
-	platform, err := llbutil.ParsePlatform(expandedPlatform)
+	platform, err := llbutil.ParsePlatform(expandedPlatform, i.converter.ftrs.NewPlatform)
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "parse platform %s", expandedPlatform)
 	}
@@ -944,7 +944,7 @@ func (i *Interpreter) handleBuild(ctx context.Context, cmd spec.Command, async b
 			return i.wrapError(err, cmd.SourceLocation, "failed to expand BUILD platform %s", p)
 		}
 		opts.Platforms[index] = expandedPlatform
-		platform, err := llbutil.ParsePlatform(p)
+		platform, err := llbutil.ParsePlatform(p, i.converter.ftrs.NewPlatform)
 		if err != nil {
 			return i.wrapError(err, cmd.SourceLocation, "parse platform %s", p)
 		}
@@ -1364,7 +1364,7 @@ func (i *Interpreter) handleWithDocker(ctx context.Context, cmd spec.Command) er
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "failed to expand WITH DOCKER platform %s", opts.Platform)
 	}
-	platform, err := llbutil.ParsePlatform(expandedPlatform)
+	platform, err := llbutil.ParsePlatform(expandedPlatform, i.converter.ftrs.NewPlatform)
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "parse platform %s", expandedPlatform)
 	}

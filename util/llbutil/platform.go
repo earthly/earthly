@@ -36,11 +36,17 @@ func FromLLBPlatform(p specs.Platform) Platform {
 
 // ParsePlatform parses a given platform string. Empty string is a valid selection:
 // it means "the default platform".
-func ParsePlatform(str string) (Platform, error) {
+func ParsePlatform(str string, allowNativeAndUser bool) (Platform, error) {
 	switch str {
 	case "native":
+		if !allowNativeAndUser {
+			return Platform{}, errors.New("platform \"native\" is not allowed in this version")
+		}
 		return NativePlatform, nil
 	case "user":
+		if !allowNativeAndUser {
+			return Platform{}, errors.New("platform \"user\" is not allowed in this version")
+		}
 		return UserPlatform, nil
 	case "":
 		return DefaultPlatform, nil
