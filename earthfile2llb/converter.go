@@ -93,7 +93,6 @@ type Converter struct {
 
 // NewConverter constructs a new converter for a given earthly target.
 func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Data, sts *states.SingleTarget, opt ConvertOpt) (*Converter, error) {
-	fmt.Printf("@# target %s starts with %s\n", target.String(), opt.Platform.String())
 	opt.BuildContextProvider.AddDirs(bc.LocalDirs)
 	sts.HasDangling = opt.HasDangling
 	mts := &states.MultiTarget{
@@ -1339,7 +1338,6 @@ func (c *Converter) FinalizeStates(ctx context.Context) (*states.MultiTarget, er
 
 	c.mts.Final.VarCollection = c.varCollection
 	c.mts.Final.GlobalImports = c.varCollection.Imports().Global()
-	fmt.Printf("@# target %s ends with %s\n", c.mts.Final.Target.String(), c.mts.Final.Platform.String())
 	close(c.mts.Final.Done())
 	return c.mts, nil
 }
@@ -1356,7 +1354,6 @@ func (c *Converter) ExpandArgs(ctx context.Context, runOpts ConvertRunOpts, word
 }
 
 func (c *Converter) prepBuildTarget(ctx context.Context, fullTargetName string, platform llbutil.Platform, allowPrivileged bool, buildArgs []string, isDangling bool, cmdT cmdType) (domain.Target, ConvertOpt, bool, error) {
-	fmt.Printf("@# build target called with %s (%s)\n", fullTargetName, platform.String())
 	relTarget, err := domain.ParseTarget(fullTargetName)
 	if err != nil {
 		return domain.Target{}, ConvertOpt{}, false, errors.Wrapf(err, "earthly target parse %s", fullTargetName)

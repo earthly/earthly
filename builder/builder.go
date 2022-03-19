@@ -211,13 +211,9 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 
 		isMultiPlatform := make(map[string]bool) // DockerTag -> bool
 		for _, sts := range mts.All() {
-			fmt.Printf("@# sts is %s (%s)\n", sts.Target.String(), sts.Platform.String())
 			if sts.Platform != llbutil.DefaultPlatform {
-				fmt.Printf("@# HIT!\n")
 				for _, saveImage := range b.targetPhaseImages(sts) {
-					fmt.Printf("@# saveImage %s\n", saveImage.DockerTag)
 					if saveImage.DockerTag != "" && saveImage.DoSave {
-						fmt.Printf("@# MULTIIII!!!!\n")
 						isMultiPlatform[saveImage.DockerTag] = true
 					}
 				}
