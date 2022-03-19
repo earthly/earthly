@@ -203,6 +203,12 @@ func (wdr *withDockerRun) Run(ctx context.Context, args []string, opt WithDocker
 	}
 	crOpts.shellWrap = makeWithDockerdWrapFun(dindID, tarPaths, opt)
 
+	if !llbutil.PlatformEquals(wdr.c.mts.Final.Platform, llbutil.NativePlatform, *wdr.c.opt.NativePlatform) {
+		wdr.c.opt.Console.Warnf(
+			"Warning: Attempting to run WITH DOCKER as a non-native platform. This is not supported.\n" +
+				"Try using FROM --platform=native earthly/dind:alpine instead.\n" +
+				"You may still --load and --pull images of a different platform.\n")
+	}
 	_, err = wdr.c.internalRun(ctx, crOpts)
 	return err
 }
@@ -268,8 +274,6 @@ func (wdr *withDockerRun) getComposePulls(ctx context.Context, opt WithDockerOpt
 					err, "parse platform for image %s: %s", serviceInfo.Image, serviceInfo.Platform)
 			}
 			platform = llbutil.FromLLBPlatform(p)
-		} else {
-			platform = wdr.c.opt.DefaultPlatform
 		}
 		if len(opt.ComposeServices) > 0 {
 			if composeServicesSet[serviceName] {
