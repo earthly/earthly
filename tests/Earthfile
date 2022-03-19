@@ -829,16 +829,30 @@ first-command:
 platform:
     DO +RUN_EARTHLY --earthfile=platform.earth
     ARG nativeUname=$(uname -m)
-    FOR plat IN linux/arm/v7 linux/arm64 linux/amd64 native user default
+    FOR plat IN regular/linux/arm/v7 regular/linux/arm64 regular/linux/amd64 native user default override/linux/arm64 override/linux/amd64 default_override/linux/arm64 default_override/linux/amd64 copy_override/linux/arm64 copy_other_set/linux/arm64 copy/linux/arm64 copy_override/linux/amd64 copy_other_set/linux/amd64 copy/linux/amd64 copy_native1 copy_native2
         RUN /bin/sh -c "set -ex ; \
             outdir=./out/$plat ; \
             test -d \$outdir && \
             cat \$outdir/uname-m && \
+            echo plat=\$plat && \
             case \$plat in \
-                linux/arm/v7) test \$(cat \$outdir/uname-m) = armv7l ;; \
-                linux/arm64) test \$(cat \$outdir/uname-m) = aarch64 ;; \
-                linux/amd64) test \$(cat \$outdir/uname-m) = x86_64 ;; \
-                native | user | default) test \$(cat \$outdir/uname-m) = \$nativeUname ;; \
+                regular/linux/arm/v7) \
+                    test \$(cat \$outdir/uname-m) = armv7l && \
+                    test \$(cat \$outdir/platform) = linux/arm/v7 ;; \
+                copy_override/linux/arm64|copy_other_set/linux/arm64|copy/linux/arm64|override/linux/arm64|default_override/linux/arm64|regular/linux/arm64) \
+                    test \$(cat \$outdir/uname-m) = aarch64 && \
+                    test \$(cat \$outdir/platform) = linux/arm64 ;; \
+                copy_override/linux/amd64|copy_other_set/linux/amd64|copy/linux/amd64|override/linux/amd64|default_override/linux/amd64|regular/linux/amd64) \
+                    test \$(cat \$outdir/uname-m) = x86_64 && \
+                    test \$(cat \$outdir/platform) = linux/amd64 ;; \
+                native|user|default|copy_native1|copy_native2) \
+                    test \$(cat \$outdir/uname-m) = \$nativeUname && \
+                    case $nativeUname in \
+                        aarch64) test \$(cat \$outdir/platform) = linux/arm64 -o \$(cat \$outdir/platform) = linux/arm64/v8 ;; \
+                        armv7l) test \$(cat \$outdir/platform) = linux/arm/v7 ;; \
+                        x86_64) test \$(cat \$outdir/platform) = linux/amd64 ;; \
+                        *) exit 1 ;; \
+                    esac ;; \
                 *) exit 1 ;; \
             esac && \
             case $nativeUname in \
