@@ -13,6 +13,7 @@ import (
 	"github.com/earthly/earthly/features"
 	"github.com/earthly/earthly/util/gitutil"
 	"github.com/earthly/earthly/util/llbutil/llbfactory"
+	"github.com/earthly/earthly/util/platutil"
 	"github.com/earthly/earthly/util/syncutil/synccache"
 
 	gwclient "github.com/moby/buildkit/frontend/gateway/client"
@@ -74,7 +75,7 @@ func NewResolver(sessionID string, cleanCollection *cleanup.Collection, gitLooku
 
 // Resolve returns resolved context data for a given Earthly reference. If the reference is a target,
 // then the context will include a build context and possibly additional local directories.
-func (r *Resolver) Resolve(ctx context.Context, gwClient gwclient.Client, ref domain.Reference) (*Data, error) {
+func (r *Resolver) Resolve(ctx context.Context, gwClient gwclient.Client, platr *platutil.Resolver, ref domain.Reference) (*Data, error) {
 	if ref.IsUnresolvedImportReference() {
 		return nil, errors.Errorf("cannot resolve non-dereferenced import ref %s", ref.String())
 	}
@@ -83,7 +84,7 @@ func (r *Resolver) Resolve(ctx context.Context, gwClient gwclient.Client, ref do
 	localDirs := make(map[string]string)
 	if ref.IsRemote() {
 		// Remote.
-		d, err = r.gr.resolveEarthProject(ctx, gwClient, ref, r.featureFlagOverrides)
+		d, err = r.gr.resolveEarthProject(ctx, gwClient, platr, ref, r.featureFlagOverrides)
 		if err != nil {
 			return nil, err
 		}
@@ -93,7 +94,7 @@ func (r *Resolver) Resolve(ctx context.Context, gwClient gwclient.Client, ref do
 			localDirs[ref.GetLocalPath()] = ref.GetLocalPath()
 		}
 
-		d, err = r.lr.resolveLocal(ctx, gwClient, ref, r.featureFlagOverrides)
+		d, err = r.lr.resolveLocal(ctx, gwClient, platr, ref, r.featureFlagOverrides)
 		if err != nil {
 			return nil, err
 		}

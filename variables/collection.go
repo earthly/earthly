@@ -8,7 +8,7 @@ import (
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/features"
 	"github.com/earthly/earthly/util/gitutil"
-	"github.com/earthly/earthly/util/llbutil"
+	"github.com/earthly/earthly/util/platutil"
 	"github.com/earthly/earthly/util/shell"
 
 	dfShell "github.com/moby/buildkit/frontend/dockerfile/shell"
@@ -47,15 +47,15 @@ type Collection struct {
 // NewCollectionOpt contains supported arguments which
 // the `NewCollection` function may accept.
 type NewCollectionOpt struct {
-	Console        conslogging.ConsoleLogger
-	Target         domain.Target
-	Platform       llbutil.Platform
-	NativePlatform specs.Platform
-	GitMeta        *gitutil.GitMetadata
-	BuiltinArgs    DefaultArgs
-	OverridingVars *Scope
-	Features       *features.Features
-	GlobalImports  map[string]domain.ImportTrackerVal
+	Console          conslogging.ConsoleLogger
+	Target           domain.Target
+	PlatformResolver *platutil.Resolver
+	NativePlatform   specs.Platform
+	GitMeta          *gitutil.GitMetadata
+	BuiltinArgs      DefaultArgs
+	OverridingVars   *Scope
+	Features         *features.Features
+	GlobalImports    map[string]domain.ImportTrackerVal
 }
 
 // NewCollection creates a new Collection to be used in the context of a target.
@@ -63,7 +63,7 @@ func NewCollection(opts NewCollectionOpt) *Collection {
 	target := opts.Target
 	console := opts.Console
 	return &Collection{
-		builtin: BuiltinArgs(target, opts.Platform, opts.NativePlatform, opts.GitMeta, opts.BuiltinArgs, opts.Features),
+		builtin: BuiltinArgs(target, opts.PlatformResolver, opts.GitMeta, opts.BuiltinArgs, opts.Features),
 		envs:    NewScope(),
 		stack: []*stackFrame{{
 			frameName:  target.StringCanonical(),
@@ -114,8 +114,8 @@ func (c *Collection) SetOverriding(overriding *Scope) {
 }
 
 // SetPlatform sets the platform, updating the builtin args.
-func (c *Collection) SetPlatform(platform llbutil.Platform, nativePlatform specs.Platform) {
-	SetPlatformArgs(c.builtin, platform, nativePlatform)
+func (c *Collection) SetPlatform(platr *platutil.Resolver) {
+	SetPlatformArgs(c.builtin, platr)
 	c.effectiveCache = nil
 }
 

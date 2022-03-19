@@ -4,12 +4,12 @@ import (
 	"strings"
 
 	"github.com/containerd/containerd/platforms"
-	specs "github.com/opencontainers/image-spec/specs-go/v1"
 
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/features"
 	"github.com/earthly/earthly/util/gitutil"
 	"github.com/earthly/earthly/util/llbutil"
+	"github.com/earthly/earthly/util/platutil"
 	"github.com/earthly/earthly/util/stringutil"
 	arg "github.com/earthly/earthly/variables/reserved"
 )
@@ -22,7 +22,7 @@ type DefaultArgs struct {
 }
 
 // BuiltinArgs returns a scope containing the builtin args.
-func BuiltinArgs(target domain.Target, platform llbutil.Platform, nativePlatform specs.Platform, gitMeta *gitutil.GitMetadata, defaultArgs DefaultArgs, ftrs *features.Features) *Scope {
+func BuiltinArgs(target domain.Target, platr *platutil.Resolver, gitMeta *gitutil.GitMetadata, defaultArgs DefaultArgs, ftrs *features.Features) *Scope {
 	ret := NewScope()
 	ret.AddInactive(arg.EarthlyTarget, target.StringCanonical())
 	ret.AddInactive(arg.EarthlyTargetProject, target.ProjectCanonical())
@@ -32,10 +32,10 @@ func BuiltinArgs(target domain.Target, platform llbutil.Platform, nativePlatform
 	ret.AddInactive(arg.EarthlyTargetName, target.Target)
 	ret.AddInactive(arg.EarthlyTargetTag, target.Tag)
 	ret.AddInactive(arg.EarthlyTargetTagDocker, llbutil.DockerTagSafe(target.Tag))
-	SetPlatformArgs(ret, platform, nativePlatform)
-	setUserPlatformArgs(ret)
+	SetPlatformArgs(ret, platr)
+	setUserPlatformArgs(ret, platr)
 	if ftrs.NewPlatform {
-		setNativePlatformArgs(ret, nativePlatform)
+		setNativePlatformArgs(ret, platr)
 	}
 
 	if ftrs != nil && ftrs.EarthlyVersionArg {
@@ -74,28 +74,29 @@ func BuiltinArgs(target domain.Target, platform llbutil.Platform, nativePlatform
 }
 
 // SetPlatformArgs sets the platform-specific built-in args to a specific platform.
-func SetPlatformArgs(s *Scope, platform llbutil.Platform, nativePlatform specs.Platform) {
-	platform = platform.Resolve(nativePlatform)
-	llbPlatform := platform.ToLLBPlatform(nativePlatform)
+func SetPlatformArgs(s *Scope, platr *platutil.Resolver) {
+	platform := platr.Materialize(platr.Current())
+	llbPlatform := platr.ToLLBPlatform(platform)
 	s.AddInactive(arg.TargetPlatform, platform.String())
 	s.AddInactive(arg.TargetOS, llbPlatform.OS)
 	s.AddInactive(arg.TargetArch, llbPlatform.Architecture)
 	s.AddInactive(arg.TargetVariant, llbPlatform.Variant)
 }
 
-func setUserPlatformArgs(s *Scope) {
-	platform := platforms.DefaultSpec()
+func setUserPlatformArgs(s *Scope, platr *platutil.Resolver) {
+	platform := platr.LLBUser()
 	s.AddInactive(arg.UserPlatform, platforms.Format(platform))
 	s.AddInactive(arg.UserOS, platform.OS)
 	s.AddInactive(arg.UserArch, platform.Architecture)
 	s.AddInactive(arg.UserVariant, platform.Variant)
 }
 
-func setNativePlatformArgs(s *Scope, np specs.Platform) {
-	s.AddInactive(arg.NativePlatform, platforms.Format(np))
-	s.AddInactive(arg.NativeOS, np.OS)
-	s.AddInactive(arg.NativeArch, np.Architecture)
-	s.AddInactive(arg.NativeVariant, np.Variant)
+func setNativePlatformArgs(s *Scope, platr *platutil.Resolver) {
+	platform := platr.LLBNative()
+	s.AddInactive(arg.NativePlatform, platforms.Format(platform))
+	s.AddInactive(arg.NativeOS, platform.OS)
+	s.AddInactive(arg.NativeArch, platform.Architecture)
+	s.AddInactive(arg.NativeVariant, platform.Variant)
 }
 
 // getProjectName returns the depricated PROJECT_NAME value

@@ -10,6 +10,7 @@ import (
 	"github.com/earthly/earthly/conslogging"
 	"github.com/earthly/earthly/util/containerutil"
 	"github.com/earthly/earthly/util/llbutil"
+	"github.com/earthly/earthly/util/platutil"
 	"golang.org/x/sync/errgroup"
 
 	"github.com/pkg/errors"
@@ -17,10 +18,10 @@ import (
 
 type manifest struct {
 	imageName string
-	platform  llbutil.Platform
+	platform  platutil.Platform
 }
 
-func platformSpecificImageName(imgName string, platform llbutil.Platform) (string, error) {
+func platformSpecificImageName(imgName string, platform platutil.Platform) (string, error) {
 	platformStr := platform.String()
 	if platformStr == "" {
 		platformStr = "native"
@@ -48,7 +49,7 @@ func loadDockerManifest(ctx context.Context, console conslogging.ConsoleLogger, 
 	// Check if any child has the platform as the default platform (use the first one if none found).
 	defaultChild := 0
 	for i, child := range children {
-		if child.platform == llbutil.DefaultPlatform {
+		if child.platform == platutil.DefaultPlatform {
 			defaultChild = i
 			break
 		}

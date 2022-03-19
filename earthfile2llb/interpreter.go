@@ -14,7 +14,7 @@ import (
 	"github.com/earthly/earthly/conslogging"
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/util/flagutil"
-	"github.com/earthly/earthly/util/llbutil"
+	"github.com/earthly/earthly/util/platutil"
 	"github.com/earthly/earthly/util/shell"
 	"github.com/earthly/earthly/variables"
 
@@ -27,6 +27,7 @@ var errCannotAsync = errors.New("cannot run async operation")
 // Interpreter interprets Earthly AST's into calls to the converter.
 type Interpreter struct {
 	converter *Converter
+	platr     *platutil.Resolver
 
 	target domain.Target
 
@@ -46,9 +47,10 @@ type Interpreter struct {
 	gitLookup          *buildcontext.GitLookup
 }
 
-func newInterpreter(c *Converter, t domain.Target, allowPrivileged, parallelConversion bool, console conslogging.ConsoleLogger, gitLookup *buildcontext.GitLookup) *Interpreter {
+func newInterpreter(c *Converter, platr *platutil.Resolver, t domain.Target, allowPrivileged, parallelConversion bool, console conslogging.ConsoleLogger, gitLookup *buildcontext.GitLookup) *Interpreter {
 	return &Interpreter{
 		converter:          c,
+		platr:              platr,
 		target:             t,
 		stack:              c.StackString(),
 		allowPrivileged:    allowPrivileged,
@@ -76,7 +78,7 @@ func (i *Interpreter) Run(ctx context.Context, ef spec.Earthfile) (err error) {
 
 func (i *Interpreter) handleTarget(ctx context.Context, t spec.Target) error {
 	// Apply implicit FROM +base
-	err := i.converter.From(ctx, "+base", llbutil.DefaultPlatform, i.allowPrivileged, nil)
+	err := i.converter.From(ctx, "+base", platutil.DefaultPlatform, i.allowPrivileged, nil)
 	if err != nil {
 		return i.wrapError(err, t.SourceLocation, "apply FROM")
 	}
@@ -433,7 +435,7 @@ func (i *Interpreter) handleFrom(ctx context.Context, cmd spec.Command) error {
 	if err != nil {
 		return i.errorf(cmd.SourceLocation, "unable to expand platform for FROM: %s", opts.Platform)
 	}
-	platform, err := llbutil.ParsePlatform(expandedPlatform, i.converter.ftrs.NewPlatform)
+	platform, err := i.platr.Parse(expandedPlatform)
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "parse platform %s", expandedPlatform)
 	}
@@ -654,7 +656,7 @@ func (i *Interpreter) handleFromDockerfile(ctx context.Context, cmd spec.Command
 	if err != nil {
 		return i.errorf(cmd.SourceLocation, "failed to expand FROM DOCKERFILE platform %s", opts.Platform)
 	}
-	platform, err := llbutil.ParsePlatform(expandedPlatform, i.converter.ftrs.NewPlatform)
+	platform, err := i.platr.Parse(expandedPlatform)
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "parse platform %s", expandedPlatform)
 	}
@@ -724,7 +726,7 @@ func (i *Interpreter) handleCopy(ctx context.Context, cmd spec.Command) error {
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "failed to expand COPY platform: %v", opts.Platform)
 	}
-	platform, err := llbutil.ParsePlatform(expandedPlatform, i.converter.ftrs.NewPlatform)
+	platform, err := i.platr.Parse(expandedPlatform)
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "parse platform %s", expandedPlatform)
 	}
@@ -937,14 +939,14 @@ func (i *Interpreter) handleBuild(ctx context.Context, cmd spec.Command, async b
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "failed to expand BUILD target %s", args[0])
 	}
-	platformsSlice := make([]llbutil.Platform, 0, len(opts.Platforms))
+	platformsSlice := make([]platutil.Platform, 0, len(opts.Platforms))
 	for index, p := range opts.Platforms {
 		expandedPlatform, err := i.expandArgs(ctx, p, false)
 		if err != nil {
 			return i.wrapError(err, cmd.SourceLocation, "failed to expand BUILD platform %s", p)
 		}
 		opts.Platforms[index] = expandedPlatform
-		platform, err := llbutil.ParsePlatform(p, i.converter.ftrs.NewPlatform)
+		platform, err := i.platr.Parse(p)
 		if err != nil {
 			return i.wrapError(err, cmd.SourceLocation, "parse platform %s", p)
 		}
@@ -970,7 +972,7 @@ func (i *Interpreter) handleBuild(ctx context.Context, cmd spec.Command, async b
 	}
 	expandedBuildArgs = append(parsedFlagArgs, expandedBuildArgs...)
 	if len(platformsSlice) == 0 {
-		platformsSlice = []llbutil.Platform{llbutil.DefaultPlatform}
+		platformsSlice = []platutil.Platform{platutil.DefaultPlatform}
 	}
 
 	crossProductBuildArgs, err := buildArgMatrix(expandedBuildArgs)
@@ -1364,7 +1366,7 @@ func (i *Interpreter) handleWithDocker(ctx context.Context, cmd spec.Command) er
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "failed to expand WITH DOCKER platform %s", opts.Platform)
 	}
-	platform, err := llbutil.ParsePlatform(expandedPlatform, i.converter.ftrs.NewPlatform)
+	platform, err := i.platr.Parse(expandedPlatform)
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "parse platform %s", expandedPlatform)
 	}

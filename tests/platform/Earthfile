@@ -6,7 +6,15 @@ WORKDIR /work
 test:
     FROM +run-all
     ARG nativeUname=$(uname -m)
-    FOR plat IN regular/linux/arm/v7 regular/linux/arm64 regular/linux/amd64 native user default override/linux/arm64 override/linux/amd64 default_override/linux/arm64 default_override/linux/amd64 copy_override/linux/arm64 copy_other_set/linux/arm64 copy/linux/arm64 copy_override/linux/amd64 copy_other_set/linux/amd64 copy/linux/amd64 copy_native1 copy_native2
+    ARG tests="regular/linux/arm/v7 regular/linux/arm64 regular/linux/amd64 
+        native user default
+        override/linux/arm64 override/linux/amd64
+        default_override/linux/arm64 default_override/linux/amd64
+        copy_override/linux/arm64 copy_override/linux/amd64
+        copy_other_set/linux/arm64 copy_other_set/linux/amd64
+        copy/linux/arm64 copy/linux/amd64
+        copy_native1 copy_native2"
+    FOR plat IN $tests
         RUN /bin/sh -c "set -exo pipefail ; \
             outdir=./out/$plat ; \
             test -d \$outdir && \

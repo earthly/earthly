@@ -1,4 +1,5 @@
-VERSION 0.6
+# @#
+VERSION --new-platform 0.6
 
 FROM golang:1.17-alpine3.14
 
@@ -574,3 +575,13 @@ examples2:
     BUILD github.com/earthly/hello-world:main+hello
     BUILD ./examples/cache-command/npm+docker
     BUILD ./examples/cache-command/mvn+docker
+
+# @#
+img:
+    FROM --platform=linux/amd64 alpine:3.15
+    RUN uname -m
+    CMD ["uname", "-m"]
+    SAVE IMAGE test
+
+t:
+    BUILD +img

@@ -147,7 +147,7 @@ func (wdrl *withDockerRunLocal) solveImage(ctx context.Context, mts *states.Mult
 		return os.RemoveAll(outDir)
 	})
 	outFile := path.Join(outDir, "image.tar")
-	err = wdrl.c.opt.DockerBuilderFun(ctx, mts, *wdrl.c.opt.UserPlatform, dockerTag, outFile)
+	err = wdrl.c.opt.DockerBuilderFun(ctx, mts, dockerTag, outFile)
 	if err != nil {
 		return errors.Wrapf(err, "build target %s for docker load", opName)
 	}

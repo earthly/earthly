@@ -5,10 +5,9 @@ import (
 	"fmt"
 
 	"github.com/earthly/earthly/util/containerutil"
-	"github.com/earthly/earthly/util/llbutil"
+	"github.com/earthly/earthly/util/platutil"
 	"github.com/moby/buildkit/client/llb"
 	gwclient "github.com/moby/buildkit/frontend/gateway/client"
-	specs "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
 
 	"github.com/earthly/earthly/ast/spec"
@@ -43,15 +42,10 @@ type ConvertOpt struct {
 	// Visited is a collection of target states which have been converted to LLB.
 	// This is used for deduplication and infinite cycle detection.
 	Visited *states.VisitedCollection
-	// Platform is the target platform of the build.
-	Platform llbutil.Platform
-	// NativePlatform is the native platform of the buidldkit instance executing this build.
-	NativePlatform *specs.Platform
-	// User platform is the user's platform.
-	UserPlatform *specs.Platform
-	// DefaultPlatform is the default platform to use whenever no platform is specified
-	// (e.g. FROM without a platform).
-	DefaultPlatform llbutil.Platform
+	// PlatformResolver is a platform resolver, which keeps track of
+	// the current platform, the native platform, the user platform, and
+	// the default platform.
+	PlatformResolver *platutil.Resolver
 	// OverridingVars is a collection of build args used for overriding args in the build.
 	OverridingVars *variables.Scope
 	// A cache for image solves. (maybe dockerTag +) depTargetInputHash -> context containing image.tar.
@@ -130,16 +124,12 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt, in
 	if opt.MetaResolver == nil {
 		opt.MetaResolver = NewCachedMetaResolver(opt.GwClient)
 	}
-	if opt.NativePlatform == nil {
-		np, err := llbutil.GetNativePlatform(opt.GwClient)
+	if opt.PlatformResolver == nil {
+		np, err := platutil.GetNativePlatform(opt.GwClient)
 		if err != nil {
 			return nil, err
 		}
-		opt.NativePlatform = &np
-	}
-	if opt.UserPlatform == nil {
-		up := llbutil.UserPlatform.ToLLBPlatform(*opt.NativePlatform)
-		opt.UserPlatform = &up
+		opt.PlatformResolver = platutil.NewResolver(np)
 	}
 	egWait := false
 	if opt.ErrorGroup == nil {
@@ -161,7 +151,7 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt, in
 		}()
 	}
 	// Resolve build context.
-	bc, err := opt.Resolver.Resolve(ctx, opt.GwClient, target)
+	bc, err := opt.Resolver.Resolve(ctx, opt.GwClient, opt.PlatformResolver, target)
 	if err != nil {
 		return nil, errors.Wrapf(err, "resolve build context for target %s", target.String())
 	}
@@ -178,9 +168,10 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt, in
 			opt.ForceSaveImage = true // legacy mode always saves images regardless of locally or remotely referenced
 		}
 	}
+	opt.PlatformResolver.AllowNativeAndUser = opt.Features.NewPlatform
 
 	targetWithMetadata := bc.Ref.(domain.Target)
-	sts, found, err := opt.Visited.Add(ctx, targetWithMetadata, opt.Platform, *opt.NativePlatform, opt.AllowPrivileged, opt.OverridingVars, opt.parentDepSub)
+	sts, found, err := opt.Visited.Add(ctx, targetWithMetadata, opt.PlatformResolver, opt.AllowPrivileged, opt.OverridingVars, opt.parentDepSub)
 	if err != nil {
 		return nil, err
 	}
@@ -195,7 +186,7 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt, in
 	if err != nil {
 		return nil, err
 	}
-	interpreter := newInterpreter(converter, targetWithMetadata, opt.AllowPrivileged, opt.ParallelConversion, opt.Console, opt.GitLookup)
+	interpreter := newInterpreter(converter, opt.PlatformResolver, targetWithMetadata, opt.AllowPrivileged, opt.ParallelConversion, opt.Console, opt.GitLookup)
 	err = interpreter.Run(ctx, bc.Earthfile)
 	if err != nil {
 		return nil, err
@@ -217,7 +208,8 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt, in
 // GetTargets returns a list of targets from an Earthfile.
 // Note that the passed in domain.Target's target name is ignored (only the reference to the Earthfile is used)
 func GetTargets(ctx context.Context, resolver *buildcontext.Resolver, gwClient gwclient.Client, target domain.Target) ([]string, error) {
-	bc, err := resolver.Resolve(ctx, gwClient, target)
+	platr := platutil.NewResolver(platutil.GetUserPlatform())
+	bc, err := resolver.Resolve(ctx, gwClient, platr, target)
 	if err != nil {
 		return nil, errors.Wrapf(err, "resolve build context for target %s", target.String())
 	}
@@ -230,7 +222,8 @@ func GetTargets(ctx context.Context, resolver *buildcontext.Resolver, gwClient g
 
 // GetTargetArgs returns a list of build arguments for a specified target
 func GetTargetArgs(ctx context.Context, resolver *buildcontext.Resolver, gwClient gwclient.Client, target domain.Target) ([]string, error) {
-	bc, err := resolver.Resolve(ctx, gwClient, target)
+	platr := platutil.NewResolver(platutil.GetUserPlatform())
+	bc, err := resolver.Resolve(ctx, gwClient, platr, target)
 	if err != nil {
 		return nil, errors.Wrapf(err, "resolve build context for target %s", target.String())
 	}
