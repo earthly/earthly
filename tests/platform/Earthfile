@@ -48,10 +48,11 @@ test:
                         \$up = linux/arm64/v8 -o \
                         \$up = darwin/arm64 -o \
                         \$up = darwin/arm64/v8 ;; \
-                armv7l) test \$up = linux/arm/v7 ;; \
+                armv7l) \
+                    test \$up = linux/arm/v7 ;; \
                 x86_64) \
                     test \$up = linux/amd64 -o \
-                    test \$up = darwin/amd64 ;; \
+                        \$up = darwin/amd64 ;; \
                 *) exit 1 ;; \
             esac"
     END

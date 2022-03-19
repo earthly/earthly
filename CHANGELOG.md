@@ -10,7 +10,7 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ### Added
 
-- A new experimental mode in which `--platform` works. To enable these features in your builds, set `VERSION --new-platform 0.6`:
+- A new experimental mode in which `--platform` operates. To enable these features in your builds, set `VERSION --new-platform 0.6`:
   - There is now a distinction between **user** platform and **native** platform. The user platform is the platform of the user running Earthly, while the native platform is the platform of the build worker (these can be different when using a remote buildkit)
   - New platform shorthands are provided: `--platform=native`, `--platform=user`.
   - New builtin args are available: `NATIVEPLATFORM`, `NATIVEOS`, `NATIVEARCH`, `NATIVEVARIANT` (these are the equivalent of the `USER*` and `TARGET*` platform args).
