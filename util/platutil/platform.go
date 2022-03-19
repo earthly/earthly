@@ -24,6 +24,7 @@ type Platform struct {
 
 // FromLLBPlatform returns a platform from a containerd platform.
 func FromLLBPlatform(p specs.Platform) Platform {
+	p = platforms.Normalize(p)
 	return Platform{p: &p}
 }
 

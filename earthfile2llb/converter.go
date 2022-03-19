@@ -202,7 +202,7 @@ func (c *Converter) fromTarget(ctx context.Context, targetName string, platform 
 	c.mts.Final.MainImage = saveImage.Image.Clone()
 	c.mts.Final.RanFromLike = mts.Final.RanFromLike
 	c.mts.Final.RanInteractive = mts.Final.RanInteractive
-	c.platr = mts.Final.PlatformResolver
+	c.platr.UpdatePlatform(mts.Final.PlatformResolver.Current())
 	return nil
 }
 
@@ -422,7 +422,7 @@ func (c *Converter) CopyArtifactLocal(ctx context.Context, artifactName string, 
 			dest),
 	}
 	c.mts.Final.MainState = c.mts.Final.MainState.Run(opts...).Root()
-	err = c.forceExecution(ctx, c.mts.Final.MainState)
+	err = c.forceExecution(ctx, c.mts.Final.MainState, c.platr)
 	if err != nil {
 		return err
 	}
@@ -876,7 +876,7 @@ func (c *Converter) SaveArtifactFromLocal(ctx context.Context, saveFrom, saveTo 
 		absSaveTo, true, true, keepTs, own, ifExists, false,
 		c.ftrs.UseCopyLink,
 	)
-	err = c.forceExecution(ctx, c.mts.Final.ArtifactsState)
+	err = c.forceExecution(ctx, c.mts.Final.ArtifactsState, c.platr)
 	if err != nil {
 		return err
 	}
@@ -978,7 +978,7 @@ func (c *Converter) BuildAsync(ctx context.Context, fullTargetName string, platf
 			return errors.Wrapf(err, "async earthfile2llb for %s", fullTargetName)
 		}
 		if c.ftrs.ExecAfterParallel && mts != nil && mts.Final != nil {
-			err = c.forceExecution(ctx, mts.Final.MainState)
+			err = c.forceExecution(ctx, mts.Final.MainState, mts.Final.PlatformResolver)
 			if err != nil {
 				return errors.Wrapf(err, "async force execution for %s", fullTargetName)
 			}
@@ -1646,7 +1646,7 @@ func (c *Converter) internalRun(ctx context.Context, opts ConvertRunOpts) (pllb.
 		c.mts.Final.MainState = state.Run(runOpts...).Root()
 
 		if opts.Locally {
-			err = c.forceExecution(ctx, c.mts.Final.MainState)
+			err = c.forceExecution(ctx, c.mts.Final.MainState, c.platr)
 			if err != nil {
 				return pllb.State{}, err
 			}
@@ -1683,14 +1683,14 @@ func (c *Converter) parseSecretFlag(secretKeyValue string) (secretID string, env
 	}
 }
 
-func (c *Converter) forceExecution(ctx context.Context, state pllb.State) error {
+func (c *Converter) forceExecution(ctx context.Context, state pllb.State, platr *platutil.Resolver) error {
 	if state.Output() == nil {
 		// Scratch - no need to execute.
 		return nil
 	}
 	ref, err := llbutil.StateToRef(
 		ctx, c.opt.GwClient, state, c.opt.NoCache,
-		c.platr, c.opt.CacheImports.AsMap())
+		platr, c.opt.CacheImports.AsMap())
 	if err != nil {
 		return errors.Wrap(err, "force execution state to ref")
 	}

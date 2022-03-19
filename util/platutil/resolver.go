@@ -95,6 +95,7 @@ func (r *Resolver) Parse(str string) (Platform, error) {
 	if err != nil {
 		return Platform{}, err
 	}
+	p = platforms.Normalize(p)
 	return Platform{p: &p}, nil
 }
 
@@ -113,6 +114,7 @@ func (r *Resolver) ParseAllowNativeAndUser(str string) (Platform, error) {
 		if err != nil {
 			return Platform{}, err
 		}
+		p = platforms.Normalize(p)
 		return Platform{p: &p}, nil
 	}
 }

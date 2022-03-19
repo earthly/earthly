@@ -27,7 +27,6 @@ var errCannotAsync = errors.New("cannot run async operation")
 // Interpreter interprets Earthly AST's into calls to the converter.
 type Interpreter struct {
 	converter *Converter
-	platr     *platutil.Resolver
 
 	target domain.Target
 
@@ -47,10 +46,9 @@ type Interpreter struct {
 	gitLookup          *buildcontext.GitLookup
 }
 
-func newInterpreter(c *Converter, platr *platutil.Resolver, t domain.Target, allowPrivileged, parallelConversion bool, console conslogging.ConsoleLogger, gitLookup *buildcontext.GitLookup) *Interpreter {
+func newInterpreter(c *Converter, t domain.Target, allowPrivileged, parallelConversion bool, console conslogging.ConsoleLogger, gitLookup *buildcontext.GitLookup) *Interpreter {
 	return &Interpreter{
 		converter:          c,
-		platr:              platr,
 		target:             t,
 		stack:              c.StackString(),
 		allowPrivileged:    allowPrivileged,
@@ -114,7 +112,7 @@ func (i *Interpreter) handleBlockParallel(ctx context.Context, b spec.Block, sta
 		stmt := b[index]
 		if stmt.Command != nil {
 			switch stmt.Command.Name {
-			case "ARG", "IF", "FOR", "LOCALLY":
+			case "ARG", "IF", "FOR", "LOCALLY", "FROM", "FROM DOCKERFILE":
 				// Cannot do any further parallel builds - these commands need to be
 				// executed to ensure that they don't impact the outcome. As such,
 				// commands following these cannot be executed preemptively.
@@ -127,11 +125,7 @@ func (i *Interpreter) handleBlockParallel(ctx context.Context, b spec.Block, sta
 					}
 					return err
 				}
-			case "FROM":
-				// TODO
 			case "COPY":
-				// TODO
-			case "FROM DOCKERFILE":
 				// TODO
 			}
 		} else if stmt.With != nil {
@@ -435,7 +429,7 @@ func (i *Interpreter) handleFrom(ctx context.Context, cmd spec.Command) error {
 	if err != nil {
 		return i.errorf(cmd.SourceLocation, "unable to expand platform for FROM: %s", opts.Platform)
 	}
-	platform, err := i.platr.Parse(expandedPlatform)
+	platform, err := i.converter.platr.Parse(expandedPlatform)
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "parse platform %s", expandedPlatform)
 	}
@@ -656,7 +650,7 @@ func (i *Interpreter) handleFromDockerfile(ctx context.Context, cmd spec.Command
 	if err != nil {
 		return i.errorf(cmd.SourceLocation, "failed to expand FROM DOCKERFILE platform %s", opts.Platform)
 	}
-	platform, err := i.platr.Parse(expandedPlatform)
+	platform, err := i.converter.platr.Parse(expandedPlatform)
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "parse platform %s", expandedPlatform)
 	}
@@ -726,7 +720,7 @@ func (i *Interpreter) handleCopy(ctx context.Context, cmd spec.Command) error {
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "failed to expand COPY platform: %v", opts.Platform)
 	}
-	platform, err := i.platr.Parse(expandedPlatform)
+	platform, err := i.converter.platr.Parse(expandedPlatform)
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "parse platform %s", expandedPlatform)
 	}
@@ -946,7 +940,7 @@ func (i *Interpreter) handleBuild(ctx context.Context, cmd spec.Command, async b
 			return i.wrapError(err, cmd.SourceLocation, "failed to expand BUILD platform %s", p)
 		}
 		opts.Platforms[index] = expandedPlatform
-		platform, err := i.platr.Parse(p)
+		platform, err := i.converter.platr.Parse(p)
 		if err != nil {
 			return i.wrapError(err, cmd.SourceLocation, "parse platform %s", p)
 		}
@@ -1366,7 +1360,7 @@ func (i *Interpreter) handleWithDocker(ctx context.Context, cmd spec.Command) er
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "failed to expand WITH DOCKER platform %s", opts.Platform)
 	}
-	platform, err := i.platr.Parse(expandedPlatform)
+	platform, err := i.converter.platr.Parse(expandedPlatform)
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "parse platform %s", expandedPlatform)
 	}
