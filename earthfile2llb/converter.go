@@ -41,7 +41,6 @@ import (
 	gwclient "github.com/moby/buildkit/frontend/gateway/client"
 	"github.com/moby/buildkit/session/localhost"
 	solverpb "github.com/moby/buildkit/solver/pb"
-	specs "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
 )
 
@@ -104,7 +103,7 @@ func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Da
 	newCollOpt := variables.NewCollectionOpt{
 		Console:        opt.Console,
 		Target:         target,
-		Platform:       llbutil.PlatformWithDefault(opt.Platform),
+		Platform:       opt.Platform,
 		NativePlatform: *opt.NativePlatform,
 		GitMeta:        bc.GitMetadata,
 		BuiltinArgs:    opt.BuiltinArgs,
@@ -128,7 +127,7 @@ func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Da
 }
 
 // From applies the earthly FROM command.
-func (c *Converter) From(ctx context.Context, imageName string, platform *specs.Platform, allowPrivileged bool, buildArgs []string) error {
+func (c *Converter) From(ctx context.Context, imageName string, platform llbutil.Platform, allowPrivileged bool, buildArgs []string) error {
 	err := c.checkAllowed(fromCmd)
 	if err != nil {
 		return err
@@ -138,9 +137,8 @@ func (c *Converter) From(ctx context.Context, imageName string, platform *specs.
 		c.persistentCacheDirs = make(map[string]llb.RunOption)
 	}
 	c.cmdSet = false
-	platform, err = llbutil.ResolvePlatform(platform, c.opt.Platform)
-	if err != nil {
-		return err
+	if platform == llbutil.DefaultPlatform {
+		platform = c.opt.DefaultPlatform
 	}
 	c.setPlatform(platform)
 	if strings.Contains(imageName, "+") {
@@ -155,7 +153,7 @@ func (c *Converter) From(ctx context.Context, imageName string, platform *specs.
 	return c.fromClassical(ctx, imageName, platform, false)
 }
 
-func (c *Converter) fromClassical(ctx context.Context, imageName string, platform *specs.Platform, local bool) error {
+func (c *Converter) fromClassical(ctx context.Context, imageName string, platform llbutil.Platform, local bool) error {
 	var internal bool
 	if local {
 		// local mode uses a fake image containing /bin/true
@@ -164,9 +162,11 @@ func (c *Converter) fromClassical(ctx context.Context, imageName string, platfor
 	} else {
 		internal = false
 	}
-	plat := llbutil.PlatformWithDefault(platform)
+	if platform == llbutil.DefaultPlatform {
+		platform = c.opt.DefaultPlatform
+	}
 	state, img, envVars, err := c.internalFromClassical(
-		ctx, imageName, plat,
+		ctx, imageName, platform,
 		llb.WithCustomNamef("%sFROM %s", c.vertexPrefix(local, false, internal), imageName))
 	if err != nil {
 		return err
@@ -178,7 +178,7 @@ func (c *Converter) fromClassical(ctx context.Context, imageName string, platfor
 	return nil
 }
 
-func (c *Converter) fromTarget(ctx context.Context, targetName string, platform *specs.Platform, allowPrivileged bool, buildArgs []string) error {
+func (c *Converter) fromTarget(ctx context.Context, targetName string, platform llbutil.Platform, allowPrivileged bool, buildArgs []string) error {
 	depTarget, err := domain.ParseTarget(targetName)
 	if err != nil {
 		return errors.Wrapf(err, "parse target name %s", targetName)
@@ -207,17 +207,16 @@ func (c *Converter) fromTarget(ctx context.Context, targetName string, platform 
 }
 
 // FromDockerfile applies the earthly FROM DOCKERFILE command.
-func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPath string, dfTarget string, platform *specs.Platform, buildArgs []string) error {
+func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPath string, dfTarget string, platform llbutil.Platform, buildArgs []string) error {
 	err := c.checkAllowed(fromDockerfileCmd)
 	if err != nil {
 		return err
 	}
-	platform, err = llbutil.ResolvePlatform(platform, c.opt.Platform)
-	if err != nil {
-		return err
+	if platform == llbutil.DefaultPlatform {
+		platform = c.opt.DefaultPlatform
 	}
 	c.setPlatform(platform)
-	plat := llbutil.PlatformWithDefault(platform)
+	plat := platform.ToLLBPlatform(*c.opt.NativePlatform)
 	c.nonSaveCommand()
 	var dfData []byte
 	if dfPath != "" {
@@ -275,7 +274,7 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 		}
 		BuildContextFactory = llbfactory.PreconstructedState(llbutil.CopyOp(
 			mts.Final.ArtifactsState, []string{contextArtifact.Artifact},
-			llbutil.ScratchWithPlatform(), "/", true, true, false, "", false, false,
+			llbutil.ScratchWithPlatform(*c.opt.NativePlatform), "/", true, true, false, "", false, false,
 			c.ftrs.UseCopyLink,
 			llb.WithCustomNamef(
 				"%sFROM DOCKERFILE (copy build context from) %s%s",
@@ -365,7 +364,7 @@ func (c *Converter) Locally(ctx context.Context) error {
 		return errors.New("LOCALLY cannot be used when --strict is specified or otherwise implied")
 	}
 
-	err = c.fromClassical(ctx, "scratch", nil, true)
+	err = c.fromClassical(ctx, "scratch", llbutil.NativePlatform, true)
 	if err != nil {
 		return err
 	}
@@ -378,11 +377,12 @@ func (c *Converter) Locally(ctx context.Context) error {
 	// reset WORKDIR to current directory where Earthfile is
 	c.mts.Final.MainState = c.mts.Final.MainState.Dir(workingDir)
 	c.mts.Final.MainImage.Config.WorkingDir = workingDir
+	c.setPlatform(llbutil.UserPlatform)
 	return nil
 }
 
 // CopyArtifactLocal applies the earthly COPY artifact command which are invoked under a LOCALLY target.
-func (c *Converter) CopyArtifactLocal(ctx context.Context, artifactName string, dest string, platform *specs.Platform, allowPrivileged bool, buildArgs []string, isDir bool) error {
+func (c *Converter) CopyArtifactLocal(ctx context.Context, artifactName string, dest string, platform llbutil.Platform, allowPrivileged bool, buildArgs []string, isDir bool) error {
 	err := c.checkAllowed(copyCmd)
 	if err != nil {
 		return err
@@ -429,7 +429,7 @@ func (c *Converter) CopyArtifactLocal(ctx context.Context, artifactName string, 
 }
 
 // CopyArtifact applies the earthly COPY artifact command.
-func (c *Converter) CopyArtifact(ctx context.Context, artifactName string, dest string, platform *specs.Platform, allowPrivileged bool, buildArgs []string, isDir bool, keepTs bool, keepOwn bool, chown string, ifExists, symlinkNoFollow bool) error {
+func (c *Converter) CopyArtifact(ctx context.Context, artifactName string, dest string, platform llbutil.Platform, allowPrivileged bool, buildArgs []string, isDir bool, keepTs bool, keepOwn bool, chown string, ifExists, symlinkNoFollow bool) error {
 	err := c.checkAllowed(copyCmd)
 	if err != nil {
 		return err
@@ -580,7 +580,7 @@ func (c *Converter) RunExitCode(ctx context.Context, opts ConvertRunOpts) (int, 
 			return 0, errors.Wrap(err, "read exit code file")
 		}
 	} else {
-		ref, err := llbutil.StateToRef(ctx, c.opt.GwClient, state, c.opt.NoCache, c.opt.Platform, c.opt.CacheImports.AsMap())
+		ref, err := llbutil.StateToRef(ctx, c.opt.GwClient, state, c.opt.NoCache, c.mts.Final.Platform, c.opt.CacheImports.AsMap())
 		if err != nil {
 			return 0, errors.Wrap(err, "run exit code state to ref")
 		}
@@ -668,7 +668,7 @@ func (c *Converter) runCommand(ctx context.Context, outputFileName string, isExp
 			return "", errors.Wrap(err, "read output file")
 		}
 	} else {
-		ref, err := llbutil.StateToRef(ctx, c.opt.GwClient, state, c.opt.NoCache, c.opt.Platform, c.opt.CacheImports.AsMap())
+		ref, err := llbutil.StateToRef(ctx, c.opt.GwClient, state, c.opt.NoCache, c.mts.Final.Platform, c.opt.CacheImports.AsMap())
 		if err != nil {
 			return "", errors.Wrapf(err, "build arg state to ref")
 		}
@@ -721,10 +721,9 @@ func (c *Converter) SaveArtifact(ctx context.Context, saveFrom string, saveTo st
 	// which persists any files cached via CACHE command.
 	// This is necessary so those cached files can be
 	// accessed within the CopyOps below.
-	pcState := persistCache(
+	pcState := c.persistCache(
 		c.mts.Final.MainState,
 		c.persistentCacheDirs,
-		c.mts.Final.Platform,
 	)
 
 	c.mts.Final.ArtifactsState = llbutil.CopyOp(
@@ -739,12 +738,11 @@ func (c *Converter) SaveArtifact(ctx context.Context, saveFrom string, saveTo st
 			saveFrom,
 			artifact.String()))
 	if saveAsLocalTo != "" && c.opt.DoSaves {
-		separateArtifactsState := llbutil.ScratchWithPlatform()
+		separateArtifactsState := llbutil.ScratchWithPlatform(*c.opt.NativePlatform)
 		if isPush {
-			pushState := persistCache(
+			pushState := c.persistCache(
 				c.mts.Final.RunPush.State,
 				c.persistentCacheDirs,
-				c.mts.Final.Platform,
 			)
 			separateArtifactsState = llbutil.CopyOp(
 				pushState, []string{saveFrom}, separateArtifactsState,
@@ -905,10 +903,9 @@ func (c *Converter) SaveImage(ctx context.Context, imageNames []string, pushImag
 	for _, imageName := range imageNames {
 		if c.mts.Final.RunPush.HasState {
 			// pcState persists any files that may be cached via CACHE command.
-			pcState := persistCache(
+			pcState := c.persistCache(
 				c.mts.Final.RunPush.State,
 				c.persistentCacheDirs,
-				c.mts.Final.Platform,
 			)
 			// SAVE IMAGE --push when it comes before any RUN --push should be treated as if they are in the main state,
 			// since thats their only dependency. It will still be marked as a push.
@@ -925,10 +922,9 @@ func (c *Converter) SaveImage(ctx context.Context, imageNames []string, pushImag
 					CheckDuplicate:      c.ftrs.CheckDuplicateImages,
 				})
 		} else {
-			pcState := persistCache(
+			pcState := c.persistCache(
 				c.mts.Final.MainState,
 				c.persistentCacheDirs,
-				c.mts.Final.Platform,
 			)
 			c.mts.Final.SaveImages = append(c.mts.Final.SaveImages,
 				states.SaveImage{
@@ -957,7 +953,7 @@ func (c *Converter) SaveImage(ctx context.Context, imageNames []string, pushImag
 }
 
 // Build applies the earthly BUILD command.
-func (c *Converter) Build(ctx context.Context, fullTargetName string, platform *specs.Platform, allowPrivileged bool, buildArgs []string) error {
+func (c *Converter) Build(ctx context.Context, fullTargetName string, platform llbutil.Platform, allowPrivileged bool, buildArgs []string) error {
 	err := c.checkAllowed(buildCmd)
 	if err != nil {
 		return err
@@ -970,7 +966,7 @@ func (c *Converter) Build(ctx context.Context, fullTargetName string, platform *
 type afterParallelFunc func(context.Context, *states.MultiTarget) error
 
 // BuildAsync applies the earthly BUILD command asynchronously.
-func (c *Converter) BuildAsync(ctx context.Context, fullTargetName string, platform *specs.Platform, allowPrivileged bool, buildArgs []string, cmdT cmdType, apf afterParallelFunc, sem semutil.Semaphore) error {
+func (c *Converter) BuildAsync(ctx context.Context, fullTargetName string, platform llbutil.Platform, allowPrivileged bool, buildArgs []string, cmdT cmdType, apf afterParallelFunc, sem semutil.Semaphore) error {
 	target, opt, _, err := c.prepBuildTarget(ctx, fullTargetName, platform, allowPrivileged, buildArgs, true, cmdT)
 	if err != nil {
 		return err
@@ -1350,10 +1346,9 @@ func (c *Converter) FinalizeStates(ctx context.Context) (*states.MultiTarget, er
 	}
 
 	// Persists any cache directories created by using a `CACHE` command
-	c.mts.Final.MainState = persistCache(
+	c.mts.Final.MainState = c.persistCache(
 		c.mts.Final.MainState,
 		c.persistentCacheDirs,
-		c.mts.Final.Platform,
 	)
 
 	c.mts.Final.VarCollection = c.varCollection
@@ -1373,7 +1368,7 @@ func (c *Converter) ExpandArgs(ctx context.Context, runOpts ConvertRunOpts, word
 	})
 }
 
-func (c *Converter) prepBuildTarget(ctx context.Context, fullTargetName string, platform *specs.Platform, allowPrivileged bool, buildArgs []string, isDangling bool, cmdT cmdType) (domain.Target, ConvertOpt, bool, error) {
+func (c *Converter) prepBuildTarget(ctx context.Context, fullTargetName string, platform llbutil.Platform, allowPrivileged bool, buildArgs []string, isDangling bool, cmdT cmdType) (domain.Target, ConvertOpt, bool, error) {
 	relTarget, err := domain.ParseTarget(fullTargetName)
 	if err != nil {
 		return domain.Target{}, ConvertOpt{}, false, errors.Wrapf(err, "earthly target parse %s", fullTargetName)
@@ -1411,10 +1406,8 @@ func (c *Converter) prepBuildTarget(ctx context.Context, fullTargetName string, 
 	opt.OverridingVars = overriding
 	opt.GlobalImports = nil
 	opt.parentDepSub = c.mts.Final.NewDependencySubscription()
-	opt.Platform, err = llbutil.ResolvePlatform(platform, c.opt.Platform)
-	if err != nil {
-		// Contradiction allowed. You can BUILD another target with different platform.
-		opt.Platform = platform
+	if platform == llbutil.DefaultPlatform {
+		opt.Platform = opt.DefaultPlatform
 	}
 	opt.HasDangling = isDangling
 	opt.AllowPrivileged = allowPrivileged
@@ -1428,7 +1421,7 @@ func (c *Converter) prepBuildTarget(ctx context.Context, fullTargetName string, 
 	return target, opt, propagateBuildArgs, nil
 }
 
-func (c *Converter) buildTarget(ctx context.Context, fullTargetName string, platform *specs.Platform, allowPrivileged bool, buildArgs []string, isDangling bool, cmdT cmdType) (*states.MultiTarget, error) {
+func (c *Converter) buildTarget(ctx context.Context, fullTargetName string, platform llbutil.Platform, allowPrivileged bool, buildArgs []string, isDangling bool, cmdT cmdType) (*states.MultiTarget, error) {
 	target, opt, propagateBuildArgs, err := c.prepBuildTarget(ctx, fullTargetName, platform, allowPrivileged, buildArgs, isDangling, cmdT)
 	if err != nil {
 		return nil, err
@@ -1529,7 +1522,7 @@ func (c *Converter) internalRun(ctx context.Context, opts ConvertRunOpts) (pllb.
 	if opts.Privileged {
 		runOpts = append(runOpts, llb.Security(llb.SecurityModeInsecure))
 	}
-	mountRunOpts, err := parseMounts(opts.Mounts, c.mts.Final.Target, c.targetInputActiveOnly(), c.cacheContext)
+	mountRunOpts, err := parseMounts(opts.Mounts, c.mts.Final.Target, c.targetInputActiveOnly(), c.cacheContext, *c.opt.NativePlatform)
 	if err != nil {
 		return pllb.State{}, errors.Wrap(err, "parse mounts")
 	}
@@ -1706,7 +1699,7 @@ func (c *Converter) forceExecution(ctx context.Context, state pllb.State) error 
 		// Scratch - no need to execute.
 		return nil
 	}
-	ref, err := llbutil.StateToRef(ctx, c.opt.GwClient, state, c.opt.NoCache, c.opt.Platform, c.opt.CacheImports.AsMap())
+	ref, err := llbutil.StateToRef(ctx, c.opt.GwClient, state, c.opt.NoCache, c.mts.Final.Platform, c.opt.CacheImports.AsMap())
 	if err != nil {
 		return errors.Wrap(err, "force execution state to ref")
 	}
@@ -1740,13 +1733,14 @@ func (c *Converter) readArtifact(ctx context.Context, mts *states.MultiTarget, a
 	return artDt, nil
 }
 
-func (c *Converter) internalFromClassical(ctx context.Context, imageName string, platform specs.Platform, opts ...llb.ImageOption) (pllb.State, *image.Image, *variables.Scope, error) {
+func (c *Converter) internalFromClassical(ctx context.Context, imageName string, platform llbutil.Platform, opts ...llb.ImageOption) (pllb.State, *image.Image, *variables.Scope, error) {
+	llbPlatform := platform.ToLLBPlatform(*c.opt.NativePlatform)
 	if imageName == "scratch" {
 		// FROM scratch
 		img := image.NewImage()
-		img.OS = platform.OS
-		img.Architecture = platform.Architecture
-		return pllb.Scratch().Platform(platform), img, nil, nil
+		img.OS = llbPlatform.OS
+		img.Architecture = llbPlatform.Architecture
+		return pllb.Scratch().Platform(llbPlatform), img, nil, nil
 	}
 	ref, err := reference.ParseNormalizedNamed(imageName)
 	if err != nil {
@@ -1755,11 +1749,11 @@ func (c *Converter) internalFromClassical(ctx context.Context, imageName string,
 	baseImageName := reference.TagNameOnly(ref).String()
 	logName := fmt.Sprintf(
 		"%sLoad metadata %s",
-		c.imageVertexPrefix(imageName, &platform), llbutil.PlatformToString(&platform))
+		c.imageVertexPrefix(imageName, platform), platforms.Format(llbPlatform))
 	dgst, dt, err := c.opt.MetaResolver.ResolveImageConfig(
 		ctx, baseImageName,
 		llb.ResolveImageConfigOpt{
-			Platform:    &platform,
+			Platform:    &llbPlatform,
 			ResolveMode: c.opt.ImageResolveMode.String(),
 			LogName:     logName,
 		})
@@ -1777,7 +1771,7 @@ func (c *Converter) internalFromClassical(ctx context.Context, imageName string,
 			return pllb.State{}, nil, nil, errors.Wrapf(err, "reference add digest %v for %s", dgst, imageName)
 		}
 	}
-	allOpts := append(opts, llb.Platform(platform), c.opt.ImageResolveMode)
+	allOpts := append(opts, llb.Platform(platform.ToLLBPlatform(*c.opt.NativePlatform)), c.opt.ImageResolveMode)
 	state := pllb.Image(ref.String(), allOpts...)
 	state, img2, envVars := c.applyFromImage(state, &img)
 	return state, img2, envVars, nil
@@ -1842,16 +1836,14 @@ func (c *Converter) vertexPrefix(local bool, interactive bool, internal bool) st
 			activeOverriding[arg] = v
 		}
 	}
-	platformStr := llbutil.PlatformWithDefaultToString(c.mts.Final.Platform)
-	isDefaultPlatform := false
-	if platformStr == platforms.Format(llbutil.DefaultPlatform()) {
-		isDefaultPlatform = true
-	}
+	platformStr := c.mts.Final.Platform.String()
+	platform := c.mts.Final.Platform
+	nonDefaultPlatform := platform != llbutil.DefaultPlatform && platform != llbutil.NativePlatform
 	vm := &outmon.VertexMeta{
 		TargetID:           c.mts.Final.ID,
 		TargetName:         c.mts.Final.Target.String(),
 		Platform:           platformStr,
-		NonDefaultPlatform: !isDefaultPlatform,
+		NonDefaultPlatform: nonDefaultPlatform,
 		Local:              local,
 		Interactive:        interactive,
 		OverridingArgs:     activeOverriding,
@@ -1872,23 +1864,19 @@ func (c *Converter) markFakeDeps() {
 		}
 		if dep.HasDangling {
 			c.mts.Final.MainState = llbutil.WithDependency(
-				c.mts.Final.MainState, dep.MainState, c.mts.Final.Target.String(), dep.Target.String())
+				c.mts.Final.MainState, dep.MainState, c.mts.Final.Target.String(), dep.Target.String(),
+				*c.opt.NativePlatform)
 		}
 	}
 	// Clear the direct deps so we don't do this again.
 	c.directDeps = nil
 }
 
-func (c *Converter) imageVertexPrefix(id string, platform *specs.Platform) string {
-	platformStr := llbutil.PlatformWithDefaultToString(platform)
-	isDefaultPlatform := false
-	if platformStr == platforms.Format(llbutil.DefaultPlatform()) {
-		isDefaultPlatform = true
-	}
+func (c *Converter) imageVertexPrefix(id string, platform llbutil.Platform) string {
 	vm := &outmon.VertexMeta{
 		TargetName:         id,
-		Platform:           llbutil.PlatformToString(platform),
-		NonDefaultPlatform: !isDefaultPlatform,
+		Platform:           platform.String(),
+		NonDefaultPlatform: platform != llbutil.DefaultPlatform && platform != llbutil.NativePlatform,
 	}
 	return vm.ToVertexPrefix()
 }
@@ -1911,10 +1899,13 @@ func (c *Converter) copyOwner(keepOwn bool, chown string) string {
 	return own
 }
 
-func (c *Converter) setPlatform(platform *specs.Platform) {
-	c.opt.Platform = platform
+func (c *Converter) setPlatform(platform llbutil.Platform) {
+	if platform == llbutil.DefaultPlatform {
+		platform = c.opt.DefaultPlatform
+	}
+	c.opt.DefaultPlatform = platform
 	c.mts.Final.SetPlatform(platform)
-	c.varCollection.SetPlatform(llbutil.PlatformWithDefault(platform))
+	c.varCollection.SetPlatform(platform, *c.opt.NativePlatform)
 }
 
 func (c *Converter) joinRefs(relRef domain.Reference) (domain.Reference, error) {
@@ -1950,9 +1941,8 @@ func (c *Converter) targetInputActiveOnly() dedup.TargetInput {
 // from the cached directory to the persistent image layers at the same directory.
 // This only has an effect when the Target contains at least one `CACHE /my/directory` command.
 // Note that the RunOptions provided should contain at least all mounts corresponding to the cache direcories.
-func persistCache(srcState pllb.State, cacheDirs map[string]llb.RunOption, platform *specs.Platform) pllb.State {
+func (c *Converter) persistCache(srcState pllb.State, cacheDirs map[string]llb.RunOption) pllb.State {
 	dest := srcState
-
 	// User may have multiple CACHE commands in a single target
 	for dir, cache := range cacheDirs {
 		// Copy the contents of the user's cache directory to the temporary backup.
@@ -1963,7 +1953,8 @@ func persistCache(srcState pllb.State, cacheDirs map[string]llb.RunOption, platf
 			dest,
 			dir, // cache dir from external mount
 			dir, // cache dir on dest state (same location but without the mount)
-			platform,
+			c.mts.Final.Platform,
+			*c.opt.NativePlatform,
 			runOpts...,
 		)
 	}

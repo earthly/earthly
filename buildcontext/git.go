@@ -57,6 +57,10 @@ func (gr *gitResolver) resolveEarthProject(ctx context.Context, gwClient gwclien
 	if err != nil {
 		return nil, err
 	}
+	nativePlatform, err := llbutil.GetNativePlatform(gwClient)
+	if err != nil {
+		return nil, err
+	}
 
 	var buildContextFactory llbfactory.Factory
 	if _, isTarget := ref.(domain.Target); isTarget {
@@ -70,7 +74,7 @@ func (gr *gitResolver) resolveEarthProject(ctx context.Context, gwClient gwclien
 				Internal:   true,
 			}
 			buildContextFactory = llbfactory.PreconstructedState(llbutil.CopyOp(
-				rgp.state, []string{subDir}, llbutil.ScratchWithPlatform(), "./", false, false, false, "root:root", false, false, false,
+				rgp.state, []string{subDir}, llbutil.ScratchWithPlatform(nativePlatform), "./", false, false, false, "root:root", false, false, false,
 				llb.WithCustomNamef("%sCOPY git context %s", vm.ToVertexPrefix(), ref.String())))
 		}
 	} else {
@@ -90,7 +94,7 @@ func (gr *gitResolver) resolveEarthProject(ctx context.Context, gwClient gwclien
 		gr.cleanCollection.Add(func() error {
 			return os.RemoveAll(earthfileTmpDir)
 		})
-		gitState, err := llbutil.StateToRef(ctx, gwClient, rgp.state, false, nil, nil)
+		gitState, err := llbutil.StateToRef(ctx, gwClient, rgp.state, false, llbutil.DefaultPlatform, nil)
 		if err != nil {
 			return nil, errors.Wrap(err, "state to ref git meta")
 		}
@@ -149,6 +153,10 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, gwClient gwclient.
 	}
 	analytics.Count("gitResolver.resolveEarthProject", analytics.RepoHashFromCloneURL(gitURL))
 
+	nativePlatform, err := llbutil.GetNativePlatform(gwClient)
+	if err != nil {
+		return nil, "", "", err
+	}
 	// Check the cache first.
 	cacheKey := fmt.Sprintf("%s#%s", gitURL, gitRef)
 	rgpValue, err := gr.projectCache.Do(ctx, cacheKey, func(ctx context.Context, k interface{}) (interface{}, error) {
@@ -168,7 +176,7 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, gwClient gwclient.
 		gitState := llb.Git(gitURL, gitRef, gitOpts...)
 		opImg := pllb.Image(
 			defaultGitImage, llb.MarkImageInternal, llb.ResolveModePreferLocal,
-			llb.Platform(llbutil.DefaultPlatform()))
+			llb.Platform(llbutil.DefaultPlatform.ToLLBPlatform(nativePlatform)))
 
 		// Get git hash.
 		gitHashOpts := []llb.RunOption{
@@ -185,10 +193,10 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, gwClient gwclient.
 			llb.WithCustomNamef("%sGET GIT META %s", vm.ToVertexPrefix(), ref.ProjectCanonical()),
 		}
 		gitHashOp := opImg.Run(gitHashOpts...)
-		gitMetaState := gitHashOp.AddMount("/dest", llbutil.ScratchWithPlatform())
+		gitMetaState := gitHashOp.AddMount("/dest", llbutil.ScratchWithPlatform(nativePlatform))
 
 		noCache := false // TODO figure out if we want to propagate --no-cache here
-		gitMetaRef, err := llbutil.StateToRef(ctx, gwClient, gitMetaState, noCache, nil, nil)
+		gitMetaRef, err := llbutil.StateToRef(ctx, gwClient, gitMetaState, noCache, llbutil.DefaultPlatform, nil)
 		if err != nil {
 			return nil, errors.Wrap(err, "state to ref git meta")
 		}

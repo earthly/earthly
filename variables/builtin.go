@@ -22,7 +22,7 @@ type DefaultArgs struct {
 }
 
 // BuiltinArgs returns a scope containing the builtin args.
-func BuiltinArgs(target domain.Target, platform specs.Platform, gitMeta *gitutil.GitMetadata, defaultArgs DefaultArgs, ftrs *features.Features, nativePlatform specs.Platform) *Scope {
+func BuiltinArgs(target domain.Target, platform llbutil.Platform, nativePlatform specs.Platform, gitMeta *gitutil.GitMetadata, defaultArgs DefaultArgs, ftrs *features.Features) *Scope {
 	ret := NewScope()
 	ret.AddInactive(arg.EarthlyTarget, target.StringCanonical())
 	ret.AddInactive(arg.EarthlyTargetProject, target.ProjectCanonical())
@@ -32,7 +32,7 @@ func BuiltinArgs(target domain.Target, platform specs.Platform, gitMeta *gitutil
 	ret.AddInactive(arg.EarthlyTargetName, target.Target)
 	ret.AddInactive(arg.EarthlyTargetTag, target.Tag)
 	ret.AddInactive(arg.EarthlyTargetTagDocker, llbutil.DockerTagSafe(target.Tag))
-	SetPlatformArgs(ret, platform)
+	SetPlatformArgs(ret, platform, nativePlatform)
 	setUserPlatformArgs(ret)
 	if ftrs.NewPlatform {
 		setNativePlatformArgs(ret, nativePlatform)
@@ -74,11 +74,13 @@ func BuiltinArgs(target domain.Target, platform specs.Platform, gitMeta *gitutil
 }
 
 // SetPlatformArgs sets the platform-specific built-in args to a specific platform.
-func SetPlatformArgs(s *Scope, platform specs.Platform) {
-	s.AddInactive(arg.TargetPlatform, platforms.Format(platform))
-	s.AddInactive(arg.TargetOS, platform.OS)
-	s.AddInactive(arg.TargetArch, platform.Architecture)
-	s.AddInactive(arg.TargetVariant, platform.Variant)
+func SetPlatformArgs(s *Scope, platform llbutil.Platform, nativePlatform specs.Platform) {
+	platform = platform.Resolve(nativePlatform)
+	llbPlatform := platform.ToLLBPlatform(nativePlatform)
+	s.AddInactive(arg.TargetPlatform, platform.String())
+	s.AddInactive(arg.TargetOS, llbPlatform.OS)
+	s.AddInactive(arg.TargetArch, llbPlatform.Architecture)
+	s.AddInactive(arg.TargetVariant, llbPlatform.Variant)
 }
 
 func setUserPlatformArgs(s *Scope) {

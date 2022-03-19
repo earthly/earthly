@@ -6,23 +6,25 @@ import (
 	"io"
 	"strings"
 
-	"github.com/containerd/containerd/platforms"
 	"github.com/docker/distribution/reference"
 	"github.com/earthly/earthly/conslogging"
 	"github.com/earthly/earthly/util/containerutil"
 	"github.com/earthly/earthly/util/llbutil"
 	"golang.org/x/sync/errgroup"
 
-	specs "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
 )
 
 type manifest struct {
 	imageName string
-	platform  specs.Platform
+	platform  llbutil.Platform
 }
 
-func platformSpecificImageName(imgName string, platform specs.Platform) (string, error) {
+func platformSpecificImageName(imgName string, platform llbutil.Platform) (string, error) {
+	platformStr := platform.String()
+	if platformStr == "" {
+		platformStr = "native"
+	}
 	r, err := reference.ParseNormalizedNamed(imgName)
 	if err != nil {
 		return "", errors.Wrapf(err, "parse %s", imgName)
@@ -31,7 +33,7 @@ func platformSpecificImageName(imgName string, platform specs.Platform) (string,
 	if !ok {
 		return "", errors.Wrapf(err, "not tagged %s", reference.TagNameOnly(r).String())
 	}
-	platformTag := llbutil.DockerTagSafe(fmt.Sprintf("%s_%s", taggedR.Tag(), platforms.Format(platform)))
+	platformTag := llbutil.DockerTagSafe(fmt.Sprintf("%s_%s", taggedR.Tag(), platformStr))
 	r2, err := reference.WithTag(r, platformTag)
 	if err != nil {
 		return "", errors.Wrapf(err, "with tag %s - %s", r.String(), platformTag)
@@ -46,7 +48,7 @@ func loadDockerManifest(ctx context.Context, console conslogging.ConsoleLogger, 
 	// Check if any child has the platform as the default platform (use the first one if none found).
 	defaultChild := 0
 	for i, child := range children {
-		if platforms.Format(child.platform) == platforms.Format(llbutil.DefaultPlatform()) {
+		if child.platform == llbutil.DefaultPlatform {
 			defaultChild = i
 			break
 		}

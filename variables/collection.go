@@ -8,6 +8,7 @@ import (
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/features"
 	"github.com/earthly/earthly/util/gitutil"
+	"github.com/earthly/earthly/util/llbutil"
 	"github.com/earthly/earthly/util/shell"
 
 	dfShell "github.com/moby/buildkit/frontend/dockerfile/shell"
@@ -48,7 +49,7 @@ type Collection struct {
 type NewCollectionOpt struct {
 	Console        conslogging.ConsoleLogger
 	Target         domain.Target
-	Platform       specs.Platform
+	Platform       llbutil.Platform
 	NativePlatform specs.Platform
 	GitMeta        *gitutil.GitMetadata
 	BuiltinArgs    DefaultArgs
@@ -62,7 +63,7 @@ func NewCollection(opts NewCollectionOpt) *Collection {
 	target := opts.Target
 	console := opts.Console
 	return &Collection{
-		builtin: BuiltinArgs(target, opts.Platform, opts.GitMeta, opts.BuiltinArgs, opts.Features, opts.NativePlatform),
+		builtin: BuiltinArgs(target, opts.Platform, opts.NativePlatform, opts.GitMeta, opts.BuiltinArgs, opts.Features),
 		envs:    NewScope(),
 		stack: []*stackFrame{{
 			frameName:  target.StringCanonical(),
@@ -113,8 +114,8 @@ func (c *Collection) SetOverriding(overriding *Scope) {
 }
 
 // SetPlatform sets the platform, updating the builtin args.
-func (c *Collection) SetPlatform(platform specs.Platform) {
-	SetPlatformArgs(c.builtin, platform)
+func (c *Collection) SetPlatform(platform llbutil.Platform, nativePlatform specs.Platform) {
+	SetPlatformArgs(c.builtin, platform, nativePlatform)
 	c.effectiveCache = nil
 }
 

@@ -93,7 +93,7 @@ func (r *Resolver) Resolve(ctx context.Context, gwClient gwclient.Client, ref do
 			localDirs[ref.GetLocalPath()] = ref.GetLocalPath()
 		}
 
-		d, err = r.lr.resolveLocal(ctx, ref, r.featureFlagOverrides)
+		d, err = r.lr.resolveLocal(ctx, gwClient, ref, r.featureFlagOverrides)
 		if err != nil {
 			return nil, err
 		}

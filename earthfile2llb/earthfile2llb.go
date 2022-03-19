@@ -47,6 +47,11 @@ type ConvertOpt struct {
 	Platform llbutil.Platform
 	// NativePlatform is the native platform of the buidldkit instance executing this build.
 	NativePlatform *specs.Platform
+	// User platform is the user's platform.
+	UserPlatform *specs.Platform
+	// DefaultPlatform is the default platform to use whenever no platform is specified
+	// (e.g. FROM without a platform).
+	DefaultPlatform llbutil.Platform
 	// OverridingVars is a collection of build args used for overriding args in the build.
 	OverridingVars *variables.Scope
 	// A cache for image solves. (maybe dockerTag +) depTargetInputHash -> context containing image.tar.
@@ -131,6 +136,10 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt, in
 			return nil, err
 		}
 		opt.NativePlatform = &np
+	}
+	if opt.UserPlatform == nil {
+		up := llbutil.UserPlatform.ToLLBPlatform(*opt.NativePlatform)
+		opt.UserPlatform = &up
 	}
 	egWait := false
 	if opt.ErrorGroup == nil {

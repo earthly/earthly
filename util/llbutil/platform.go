@@ -69,7 +69,7 @@ func (p Platform) Resolve(nativePlatform specs.Platform) Platform {
 		dp := userPlatform()
 		return Platform{p: &dp}
 	}
-	// p.native or none set
+	// p.native or none set (default)
 	return Platform{p: &nativePlatform}
 }
 

@@ -19,7 +19,6 @@ import (
 	"github.com/earthly/earthly/variables"
 
 	flags "github.com/jessevdk/go-flags"
-	specs "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
 )
 
@@ -77,7 +76,7 @@ func (i *Interpreter) Run(ctx context.Context, ef spec.Earthfile) (err error) {
 
 func (i *Interpreter) handleTarget(ctx context.Context, t spec.Target) error {
 	// Apply implicit FROM +base
-	err := i.converter.From(ctx, "+base", nil, i.allowPrivileged, nil)
+	err := i.converter.From(ctx, "+base", llbutil.DefaultPlatform, i.allowPrivileged, nil)
 	if err != nil {
 		return i.wrapError(err, t.SourceLocation, "apply FROM")
 	}
@@ -938,7 +937,7 @@ func (i *Interpreter) handleBuild(ctx context.Context, cmd spec.Command, async b
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "failed to expand BUILD target %s", args[0])
 	}
-	platformsSlice := make([]*specs.Platform, 0, len(opts.Platforms))
+	platformsSlice := make([]llbutil.Platform, 0, len(opts.Platforms))
 	for index, p := range opts.Platforms {
 		expandedPlatform, err := i.expandArgs(ctx, p, false)
 		if err != nil {
@@ -971,7 +970,7 @@ func (i *Interpreter) handleBuild(ctx context.Context, cmd spec.Command, async b
 	}
 	expandedBuildArgs = append(parsedFlagArgs, expandedBuildArgs...)
 	if len(platformsSlice) == 0 {
-		platformsSlice = []*specs.Platform{nil}
+		platformsSlice = []llbutil.Platform{llbutil.DefaultPlatform}
 	}
 
 	crossProductBuildArgs, err := buildArgMatrix(expandedBuildArgs)

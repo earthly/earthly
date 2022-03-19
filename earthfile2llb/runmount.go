@@ -10,13 +10,14 @@ import (
 	"github.com/earthly/earthly/util/llbutil"
 	"github.com/earthly/earthly/util/llbutil/pllb"
 	"github.com/moby/buildkit/client/llb"
+	specs "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
 )
 
-func parseMounts(mounts []string, target domain.Target, ti dedup.TargetInput, cacheContext pllb.State) ([]llb.RunOption, error) {
+func parseMounts(mounts []string, target domain.Target, ti dedup.TargetInput, cacheContext pllb.State, nativePlatform specs.Platform) ([]llb.RunOption, error) {
 	var runOpts []llb.RunOption
 	for _, mount := range mounts {
-		mountRunOpts, err := parseMount(mount, target, ti, cacheContext)
+		mountRunOpts, err := parseMount(mount, target, ti, cacheContext, nativePlatform)
 		if err != nil {
 			return nil, errors.Wrap(err, "parse mount")
 		}
@@ -25,7 +26,7 @@ func parseMounts(mounts []string, target domain.Target, ti dedup.TargetInput, ca
 	return runOpts, nil
 }
 
-func parseMount(mount string, target domain.Target, ti dedup.TargetInput, cacheContext pllb.State) ([]llb.RunOption, error) {
+func parseMount(mount string, target domain.Target, ti dedup.TargetInput, cacheContext pllb.State, nativePlatform specs.Platform) ([]llb.RunOption, error) {
 	var state pllb.State
 	var mountSource string
 	var mountTarget string
@@ -157,7 +158,7 @@ func parseMount(mount string, target domain.Target, ti dedup.TargetInput, cacheC
 		if mountMode != 0 {
 			return nil, errors.Errorf("mode is not supported for type=tmpfs")
 		}
-		state = llbutil.ScratchWithPlatform()
+		state = llbutil.ScratchWithPlatform(nativePlatform)
 		mountOpts = append(mountOpts, llb.Tmpfs())
 		return []llb.RunOption{pllb.AddMount(mountTarget, state, mountOpts...)}, nil
 	case "ssh-experimental":

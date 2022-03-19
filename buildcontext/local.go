@@ -12,6 +12,7 @@ import (
 	"github.com/earthly/earthly/util/llbutil/llbfactory"
 	"github.com/earthly/earthly/util/syncutil/synccache"
 	"github.com/moby/buildkit/client/llb"
+	gwclient "github.com/moby/buildkit/frontend/gateway/client"
 	"github.com/pkg/errors"
 )
 
@@ -21,10 +22,14 @@ type localResolver struct {
 	console      conslogging.ConsoleLogger
 }
 
-func (lr *localResolver) resolveLocal(ctx context.Context, ref domain.Reference, featureFlagOverrides string) (*Data, error) {
+func (lr *localResolver) resolveLocal(ctx context.Context, gwClient gwclient.Client, ref domain.Reference, featureFlagOverrides string) (*Data, error) {
 	analytics.Count("localResolver.resolveLocal", "local-reference")
 	if ref.IsRemote() {
 		return nil, errors.Errorf("unexpected remote target %s", ref.String())
+	}
+	nativePlatform, err := llbutil.GetNativePlatform(gwClient)
+	if err != nil {
+		return nil, err
 	}
 
 	metadataValue, err := lr.gitMetaCache.Do(ctx, ref.GetLocalPath(), func(ctx context.Context, _ interface{}) (interface{}, error) {
@@ -71,7 +76,7 @@ func (lr *localResolver) resolveLocal(ctx context.Context, ref domain.Reference,
 			ref.GetLocalPath(),
 			llb.ExcludePatterns(excludes),
 			llb.SessionID(lr.sessionID),
-			llb.Platform(llbutil.DefaultPlatform()),
+			llb.Platform(llbutil.DefaultPlatform.ToLLBPlatform(nativePlatform)),
 			llb.WithCustomNamef("[context %s] local context %s", ref.GetLocalPath(), ref.GetLocalPath()),
 		)
 	} else {

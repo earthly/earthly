@@ -22,9 +22,9 @@ WORKDIR /earthly
 
 deps:
     FROM +base
-    RUN go get golang.org/x/tools/cmd/goimports
-    RUN go get golang.org/x/lint/golint
-    RUN go get github.com/gordonklaus/ineffassign
+    RUN go install golang.org/x/tools/cmd/goimports@latest
+    RUN go install golang.org/x/lint/golint@latest
+    RUN go install github.com/gordonklaus/ineffassign@latest
     COPY go.mod go.sum ./
     RUN go mod download
     SAVE ARTIFACT go.mod AS LOCAL go.mod
@@ -359,7 +359,7 @@ earthly-integration-test-base:
     ARG DOCKERHUB_TOKEN_SECRET=+secrets/DOCKERHUB_TOKEN
 
     IF [ -z $DOCKERHUB_MIRROR ]
-    # No mirror, easy CI and local use by all
+        # No mirror, easy CI and local use by all
         ENV GLOBAL_CONFIG="{disable_analytics: true, local_registry_host: 'tcp://127.0.0.1:8371', conversion_parallelism: 5}"
         IF [ "$DOCKERHUB_AUTH" = "true" ]
             RUN --secret USERNAME=$DOCKERHUB_USER_SECRET \
@@ -367,7 +367,7 @@ earthly-integration-test-base:
                 docker login --username="$USERNAME" --password="$TOKEN"
         END
     ELSE
-    # Use a mirror, supports mirroring Docker Hub only.
+        # Use a mirror, supports mirroring Docker Hub only.
         IF [ "$DOCKERHUB_MIRROR_INSECURE" = "true" ]
             ARG _MIRROR_CONFIG="[registry.\"$DOCKERHUB_MIRROR\"]
                                 http = true
@@ -436,31 +436,27 @@ for-own:
 for-linux:
     ARG BUILDKIT_PROJECT
     BUILD --platform=linux/amd64 ./buildkitd+buildkitd --BUILDKIT_PROJECT="$BUILDKIT_PROJECT"
-    ARG USERARCH
-    BUILD --platform=linux/$USERARCH ./ast/parser+parser
+    BUILD ./ast/parser+parser
     COPY +earthly-linux-amd64/earthly ./
     SAVE ARTIFACT ./earthly AS LOCAL ./build/linux/amd64/earthly
 
 for-darwin:
     ARG BUILDKIT_PROJECT
     BUILD --platform=linux/amd64 ./buildkitd+buildkitd --BUILDKIT_PROJECT="$BUILDKIT_PROJECT"
-    ARG USERARCH
-    BUILD --platform=linux/$USERARCH ./ast/parser+parser
+    BUILD ./ast/parser+parser
     COPY +earthly-darwin-amd64/earthly ./
     SAVE ARTIFACT ./earthly AS LOCAL ./build/darwin/amd64/earthly
 
 for-darwin-m1:
     ARG BUILDKIT_PROJECT
     BUILD --platform=linux/arm64 ./buildkitd+buildkitd --BUILDKIT_PROJECT="$BUILDKIT_PROJECT"
-    ARG USERARCH
-    BUILD --platform=linux/$USERARCH ./ast/parser+parser
+    BUILD ./ast/parser+parser
     COPY +earthly-darwin-arm64/earthly ./
     SAVE ARTIFACT ./earthly AS LOCAL ./build/darwin/arm64/earthly
 
 for-windows:
     # BUILD --platform=linux/amd64 ./buildkitd+buildkitd
-    ARG USERARCH
-    BUILD --platform=linux/$USERARCH ./ast/parser+parser
+    BUILD ./ast/parser+parser
     COPY +earthly-windows-amd64/earthly.exe ./
     SAVE ARTIFACT ./earthly.exe AS LOCAL ./build/windows/amd64/earthly.exe
 
