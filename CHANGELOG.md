@@ -4,6 +4,20 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+### Changed
+
+- A more obvious error is printed if `WITH DOCKER` starts non-natively. This is not supported and it wasn't obvious before.
+
+### Added
+
+- A new experimental mode in which `--platform` works. To enable these features in your builds, set `VERSION --new-platform 0.6`:
+  - There is now a distinction between **user** platform and **native** platform. The user platform is the platform of the user running Earthly, while the native platform is the platform of the build worker (these can be different when using a remote buildkit)
+  - New platform shorthands are provided: `--platform=native`, `--platform=user`.
+  - New builtin args are available: `NATIVEPLATFORM`, `NATIVEOS`, `NATIVEARCH`, `NATIVEVARIANT` (these are the equivalent of the `USER*` and `TARGET*` platform args).
+  - When no platform is provided, earthly will default to the **native** platform
+  - Additionally, earthly now default to native platform for internal operations too (copy operations, git clones etc)
+  - Earthly now allows changing the platform in the middle of a target (`FROM --platform` is not a contradiction anymore). There is a distinction between the "input" platform of a target (the platform the caller passes in) vs the "output" platform (the platform that ends up being the final platform of the image). These can be different if the caller passes `BUILD --platform=something +target`, but the target starts with `FROM --platform=otherthing ...`.
+
 ## v0.6.11 - 2022-03-17
 
 ### Added
