@@ -132,6 +132,9 @@ func PlatformEquals(p1 Platform, p2 Platform, nativePlatform specs.Platform) boo
 
 // GetNativePlatform returns the native platform for a given gwClient.
 func GetNativePlatform(gwClient gwclient.Client) (specs.Platform, error) {
+	if gwClient == nil {
+		return userPlatform(), nil
+	}
 	ws := gwClient.BuildOpts().Workers
 	if len(ws) == 0 {
 		return specs.Platform{}, errors.New("no worker found via gwclient")
