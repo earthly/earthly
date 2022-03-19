@@ -203,14 +203,23 @@ func (wdr *withDockerRun) Run(ctx context.Context, args []string, opt WithDocker
 	}
 	crOpts.shellWrap = makeWithDockerdWrapFun(dindID, tarPaths, opt)
 
-	if !llbutil.PlatformEquals(wdr.c.mts.Final.Platform, llbutil.NativePlatform, *wdr.c.opt.NativePlatform) {
-		wdr.c.opt.Console.Warnf(
-			"Warning: Attempting to run WITH DOCKER as a non-native platform. This is not supported.\n" +
-				"Try using FROM --platform=native earthly/dind:alpine instead.\n" +
-				"You may still --load and --pull images of a different platform.\n")
+	platformIncompatible := !llbutil.PlatformEquals(wdr.c.mts.Final.Platform, llbutil.NativePlatform, *wdr.c.opt.NativePlatform)
+	if platformIncompatible {
+		currentPlatStr := wdr.c.mts.Final.Platform.Resolve(*wdr.c.opt.NativePlatform).String()
+		nativePlatStr := llbutil.NativePlatform.Resolve(*wdr.c.opt.NativePlatform).String()
+		msg := "running WITH DOCKER as a non-native CPU architecture. This is not supported.\n" +
+			fmt.Sprintf("Current platform: %s\n", currentPlatStr) +
+			fmt.Sprintf("Native platform of the worker: %s\n", nativePlatStr) +
+			"Try using\n\n\tFROM --platform=native earthly/dind:alpine\n\ninstead.\n" +
+			"You may still --load and --pull images of a different platform.\n"
+		wdr.c.opt.Console.Warnf("Error: " + msg)
+		return errors.New("platform incompatible")
 	}
 	_, err = wdr.c.internalRun(ctx, crOpts)
-	return err
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (wdr *withDockerRun) installDeps(ctx context.Context, opt WithDockerOpt) error {
