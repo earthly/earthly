@@ -2,6 +2,9 @@ VERSION --new-platform 0.6
 
 all:
     BUILD --platform=linux/amd64 --platform=linux/arm64 --platform=linux/arm/v7 +test
+    BUILD --platform=native +test --name=native
+    BUILD --platform=user +test --name=user
+    BUILD +test --name=default
 
 test:
     FROM alpine:3.15
@@ -9,8 +12,9 @@ test:
     ARG USERPLATFORM
     ARG NATIVEPLATFORM
     ARG TARGETPLATFORM
+    ARG name=$TARGETPLATFORM
     RUN uname -m >./uname-m
     RUN echo "$USERPLATFORM" >./userplatform
     RUN echo "$NATIVEPLATFORM" >./nativeplatform
     RUN echo "$PLATFORM" >./platform
-    SAVE ARTIFACT ./* AS LOCAL ./out/$TARGETPLATFORM/
+    SAVE ARTIFACT ./* AS LOCAL ./out/$name/

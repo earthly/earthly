@@ -829,25 +829,26 @@ first-command:
 platform:
     DO +RUN_EARTHLY --earthfile=platform.earth
     ARG nativeUname=$(uname -m)
-    FOR plat IN linux/arm/v7 linux/arm64 linux/amd64
+    FOR plat IN linux/arm/v7 linux/arm64 linux/amd64 native user default
         RUN /bin/sh -c "set -ex ; \
             outdir=./out/$plat ; \
             test -d \$outdir && \
             cat \$outdir/uname-m && \
-            case \$(cat \$outdir/uname-m) in \
-                aarch64) test $plat = linux/arm64 ;; \
-                armv7l) test $plat = linux/arm/v7 ;; \
-                x86_64) test $plat = linux/amd64 ;; \
+            case \$plat in \
+                linux/arm/v7) test \$(cat \$outdir/uname-m) = armv7l ;; \
+                linux/arm64) test \$(cat \$outdir/uname-m) = aarch64 ;; \
+                linux/amd64) test \$(cat \$outdir/uname-m) = x86_64 ;; \
+                native | user | default) test \$(cat \$outdir/uname-m) = \$nativeUname ;; \
                 *) exit 1 ;; \
             esac && \
             case $nativeUname in \
-                aarch64) test \$(cat \$outdir/nativeplatform) = linux/arm64 ;; \
+                aarch64) test \$(cat \$outdir/nativeplatform) = linux/arm64 -o \$(cat \$outdir/nativeplatform) = linux/arm64/v8 ;; \
                 armv7l) test \$(cat \$outdir/nativeplatform) = linux/arm/v7 ;; \
                 x86_64) test \$(cat \$outdir/nativeplatform) = linux/amd64 ;; \
                 *) exit 1 ;; \
             esac && \
             case $nativeUname in \
-                aarch64) test \$(cat \$outdir/userplatform) = linux/arm64 ;; \
+                aarch64) test \$(cat \$outdir/userplatform) = linux/arm64 -o \$(cat \$outdir/userplatform) = linux/arm64/v8 ;; \
                 armv7l) test \$(cat \$outdir/userplatform) = linux/arm/v7 ;; \
                 x86_64) test \$(cat \$outdir/userplatform) = linux/amd64 ;; \
                 *) exit 1 ;; \
