@@ -211,9 +211,13 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 
 		isMultiPlatform := make(map[string]bool) // DockerTag -> bool
 		for _, sts := range mts.All() {
+			fmt.Printf("@# sts is %s (%s)\n", sts.Target.String(), sts.Platform.String())
 			if sts.Platform != llbutil.DefaultPlatform {
+				fmt.Printf("@# HIT!\n")
 				for _, saveImage := range b.targetPhaseImages(sts) {
+					fmt.Printf("@# saveImage %s\n", saveImage.DockerTag)
 					if saveImage.DockerTag != "" && saveImage.DoSave {
+						fmt.Printf("@# MULTIIII!!!!\n")
 						isMultiPlatform[saveImage.DockerTag] = true
 					}
 				}
@@ -286,8 +290,9 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 					res.AddMeta(fmt.Sprintf("%s/image-index", refPrefix), []byte(fmt.Sprintf("%d", imageIndex)))
 					res.AddRef(refKey, ref)
 				} else {
-					platformStr := sts.Platform.Resolve(nativePlatform).String()
-					platformImgName, err := platformSpecificImageName(saveImage.DockerTag, sts.Platform)
+					resolvedPlat := sts.Platform.Resolve(nativePlatform)
+					platformStr := resolvedPlat.String()
+					platformImgName, err := platformSpecificImageName(saveImage.DockerTag, resolvedPlat)
 					if err != nil {
 						return nil, err
 					}
@@ -328,7 +333,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 						imageIndex++
 
 						localRegPullID, err := platformSpecificImageName(
-							fmt.Sprintf("sess-%s/mp:img%d", gwClient.BuildOpts().SessionID, imageIndex), sts.Platform)
+							fmt.Sprintf("sess-%s/mp:img%d", gwClient.BuildOpts().SessionID, imageIndex), resolvedPlat)
 						if err != nil {
 							return nil, err
 						}
@@ -345,7 +350,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 						manifestLists[saveImage.DockerTag] = append(
 							manifestLists[saveImage.DockerTag], manifest{
 								imageName: platformImgName,
-								platform:  sts.Platform,
+								platform:  resolvedPlat,
 							})
 					}
 				}

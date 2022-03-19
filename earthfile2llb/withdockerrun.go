@@ -103,7 +103,7 @@ func (wdr *withDockerRun) Run(ctx context.Context, args []string, opt WithDocker
 	composeImagesSet := make(map[setKey]bool)
 	for _, pull := range composePulls {
 		if pull.Platform == llbutil.DefaultPlatform {
-			pull.Platform = wdr.c.opt.DefaultPlatform
+			pull.Platform = wdr.c.mts.Final.Platform
 		}
 		composeImagesSet[setKey{
 			imageName:   pull.ImageName,
@@ -115,7 +115,7 @@ func (wdr *withDockerRun) Run(ctx context.Context, args []string, opt WithDocker
 	loadOptPromises := make([]chan DockerLoadOpt, 0, len(opt.Loads))
 	for _, loadOpt := range opt.Loads {
 		if loadOpt.Platform == llbutil.DefaultPlatform {
-			loadOpt.Platform = wdr.c.opt.DefaultPlatform
+			loadOpt.Platform = wdr.c.mts.Final.Platform
 		}
 		optPromise, err := wdr.load(ctx, loadOpt)
 		if err != nil {
@@ -141,7 +141,7 @@ func (wdr *withDockerRun) Run(ctx context.Context, args []string, opt WithDocker
 	// Add compose images (what's left of them) to the pull list.
 	for _, pull := range composePulls {
 		if pull.Platform == llbutil.DefaultPlatform {
-			pull.Platform = wdr.c.opt.DefaultPlatform
+			pull.Platform = wdr.c.mts.Final.Platform
 		}
 		key := setKey{
 			imageName:   pull.ImageName,

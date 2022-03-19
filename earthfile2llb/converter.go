@@ -93,6 +93,7 @@ type Converter struct {
 
 // NewConverter constructs a new converter for a given earthly target.
 func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Data, sts *states.SingleTarget, opt ConvertOpt) (*Converter, error) {
+	fmt.Printf("@# target %s starts with %s\n", target.String(), opt.Platform.String())
 	opt.BuildContextProvider.AddDirs(bc.LocalDirs)
 	sts.HasDangling = opt.HasDangling
 	mts := &states.MultiTarget{
@@ -721,10 +722,7 @@ func (c *Converter) SaveArtifact(ctx context.Context, saveFrom string, saveTo st
 	// which persists any files cached via CACHE command.
 	// This is necessary so those cached files can be
 	// accessed within the CopyOps below.
-	pcState := c.persistCache(
-		c.mts.Final.MainState,
-		c.persistentCacheDirs,
-	)
+	pcState := c.persistCache(c.mts.Final.MainState)
 
 	c.mts.Final.ArtifactsState = llbutil.CopyOp(
 		pcState, []string{saveFrom}, c.mts.Final.ArtifactsState,
@@ -740,10 +738,7 @@ func (c *Converter) SaveArtifact(ctx context.Context, saveFrom string, saveTo st
 	if saveAsLocalTo != "" && c.opt.DoSaves {
 		separateArtifactsState := llbutil.ScratchWithPlatform(*c.opt.NativePlatform)
 		if isPush {
-			pushState := c.persistCache(
-				c.mts.Final.RunPush.State,
-				c.persistentCacheDirs,
-			)
+			pushState := c.persistCache(c.mts.Final.RunPush.State)
 			separateArtifactsState = llbutil.CopyOp(
 				pushState, []string{saveFrom}, separateArtifactsState,
 				saveToAdjusted, true, true, keepTs, "root:root", ifExists, symlinkNoFollow,
@@ -903,10 +898,7 @@ func (c *Converter) SaveImage(ctx context.Context, imageNames []string, pushImag
 	for _, imageName := range imageNames {
 		if c.mts.Final.RunPush.HasState {
 			// pcState persists any files that may be cached via CACHE command.
-			pcState := c.persistCache(
-				c.mts.Final.RunPush.State,
-				c.persistentCacheDirs,
-			)
+			pcState := c.persistCache(c.mts.Final.RunPush.State)
 			// SAVE IMAGE --push when it comes before any RUN --push should be treated as if they are in the main state,
 			// since thats their only dependency. It will still be marked as a push.
 			c.mts.Final.RunPush.SaveImages = append(c.mts.Final.RunPush.SaveImages,
@@ -922,10 +914,7 @@ func (c *Converter) SaveImage(ctx context.Context, imageNames []string, pushImag
 					CheckDuplicate:      c.ftrs.CheckDuplicateImages,
 				})
 		} else {
-			pcState := c.persistCache(
-				c.mts.Final.MainState,
-				c.persistentCacheDirs,
-			)
+			pcState := c.persistCache(c.mts.Final.MainState)
 			c.mts.Final.SaveImages = append(c.mts.Final.SaveImages,
 				states.SaveImage{
 					State:               pcState,
@@ -1346,13 +1335,11 @@ func (c *Converter) FinalizeStates(ctx context.Context) (*states.MultiTarget, er
 	}
 
 	// Persists any cache directories created by using a `CACHE` command
-	c.mts.Final.MainState = c.persistCache(
-		c.mts.Final.MainState,
-		c.persistentCacheDirs,
-	)
+	c.mts.Final.MainState = c.persistCache(c.mts.Final.MainState)
 
 	c.mts.Final.VarCollection = c.varCollection
 	c.mts.Final.GlobalImports = c.varCollection.Imports().Global()
+	fmt.Printf("@# target %s ends with %s\n", c.mts.Final.Target.String(), c.mts.Final.Platform.String())
 	close(c.mts.Final.Done())
 	return c.mts, nil
 }
@@ -1369,6 +1356,7 @@ func (c *Converter) ExpandArgs(ctx context.Context, runOpts ConvertRunOpts, word
 }
 
 func (c *Converter) prepBuildTarget(ctx context.Context, fullTargetName string, platform llbutil.Platform, allowPrivileged bool, buildArgs []string, isDangling bool, cmdT cmdType) (domain.Target, ConvertOpt, bool, error) {
+	fmt.Printf("@# build target called with %s (%s)\n", fullTargetName, platform.String())
 	relTarget, err := domain.ParseTarget(fullTargetName)
 	if err != nil {
 		return domain.Target{}, ConvertOpt{}, false, errors.Wrapf(err, "earthly target parse %s", fullTargetName)
@@ -1407,8 +1395,10 @@ func (c *Converter) prepBuildTarget(ctx context.Context, fullTargetName string, 
 	opt.GlobalImports = nil
 	opt.parentDepSub = c.mts.Final.NewDependencySubscription()
 	if platform == llbutil.DefaultPlatform {
-		opt.Platform = opt.DefaultPlatform
+		platform = c.opt.DefaultPlatform
 	}
+	opt.Platform = platform
+	opt.DefaultPlatform = platform
 	opt.HasDangling = isDangling
 	opt.AllowPrivileged = allowPrivileged
 	if c.opt.Features.ReferencedSaveOnly {
@@ -1836,14 +1826,14 @@ func (c *Converter) vertexPrefix(local bool, interactive bool, internal bool) st
 			activeOverriding[arg] = v
 		}
 	}
-	platformStr := c.mts.Final.Platform.String()
-	platform := c.mts.Final.Platform
-	nonDefaultPlatform := platform != llbutil.DefaultPlatform && platform != llbutil.NativePlatform
+	platform := c.mts.Final.Platform.Resolve(*c.opt.NativePlatform)
+	platformStr := platform.String()
+	isNativePlatform := llbutil.PlatformEquals(platform, llbutil.NativePlatform, *c.opt.NativePlatform)
 	vm := &outmon.VertexMeta{
 		TargetID:           c.mts.Final.ID,
 		TargetName:         c.mts.Final.Target.String(),
 		Platform:           platformStr,
-		NonDefaultPlatform: nonDefaultPlatform,
+		NonDefaultPlatform: !isNativePlatform,
 		Local:              local,
 		Interactive:        interactive,
 		OverridingArgs:     activeOverriding,
@@ -1873,10 +1863,12 @@ func (c *Converter) markFakeDeps() {
 }
 
 func (c *Converter) imageVertexPrefix(id string, platform llbutil.Platform) string {
+	platform = platform.Resolve(*c.opt.NativePlatform)
+	isNativePlatform := llbutil.PlatformEquals(platform, llbutil.NativePlatform, *c.opt.NativePlatform)
 	vm := &outmon.VertexMeta{
 		TargetName:         id,
 		Platform:           platform.String(),
-		NonDefaultPlatform: platform != llbutil.DefaultPlatform && platform != llbutil.NativePlatform,
+		NonDefaultPlatform: !isNativePlatform,
 	}
 	return vm.ToVertexPrefix()
 }
@@ -1903,7 +1895,6 @@ func (c *Converter) setPlatform(platform llbutil.Platform) {
 	if platform == llbutil.DefaultPlatform {
 		platform = c.opt.DefaultPlatform
 	}
-	c.opt.DefaultPlatform = platform
 	c.mts.Final.SetPlatform(platform)
 	c.varCollection.SetPlatform(platform, *c.opt.NativePlatform)
 }
@@ -1940,11 +1931,10 @@ func (c *Converter) targetInputActiveOnly() dedup.TargetInput {
 // persistCache makes temporary cache directories permanent by writing their contents
 // from the cached directory to the persistent image layers at the same directory.
 // This only has an effect when the Target contains at least one `CACHE /my/directory` command.
-// Note that the RunOptions provided should contain at least all mounts corresponding to the cache direcories.
-func (c *Converter) persistCache(srcState pllb.State, cacheDirs map[string]llb.RunOption) pllb.State {
+func (c *Converter) persistCache(srcState pllb.State) pllb.State {
 	dest := srcState
 	// User may have multiple CACHE commands in a single target
-	for dir, cache := range cacheDirs {
+	for dir, cache := range c.persistentCacheDirs {
 		// Copy the contents of the user's cache directory to the temporary backup.
 		// It's important to use DockerfileCopy here, since traditional llb.Copy()
 		// doesn't support adding mounts via RunOptions.
