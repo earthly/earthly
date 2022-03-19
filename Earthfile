@@ -459,7 +459,7 @@ for-darwin-m1:
     # TODO: Use the USERARCH variant after the next Earthly release.
     # ARG USERARCH
     # BUILD --platform=linux/$USERARCH ./ast/parser+parser
-    BUILD --platform=linux/amd64 ./ast/parser+parser
+    BUILD ./ast/parser+parser
     COPY +earthly-darwin-arm64/earthly ./
     SAVE ARTIFACT ./earthly AS LOCAL ./build/darwin/arm64/earthly
 

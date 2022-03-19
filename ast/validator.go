@@ -13,6 +13,7 @@ import (
 // into it's own package with some helper functions that are
 // consumable from other packages.
 var validEarthfileVersions = []string{
+	"0.0", // Meant only for testing/debugging. Disables all feature flags.
 	"0.5",
 	"0.6",
 }

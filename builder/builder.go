@@ -133,8 +133,8 @@ func (b *Builder) BuildTarget(ctx context.Context, target domain.Target, opt Bui
 
 // MakeImageAsTarBuilderFun returns a function which can be used to build an image as a tar.
 func (b *Builder) MakeImageAsTarBuilderFun() states.DockerBuilderFun {
-	return func(ctx context.Context, mts *states.MultiTarget, dockerTag string, outFile string) error {
-		return b.buildOnlyLastImageAsTar(ctx, mts, dockerTag, outFile, BuildOpt{})
+	return func(ctx context.Context, mts *states.MultiTarget, dockerTag string, outFile string, printOutput bool) error {
+		return b.buildOnlyLastImageAsTar(ctx, mts, dockerTag, outFile, BuildOpt{}, printOutput)
 	}
 }
 
@@ -639,14 +639,14 @@ func (b *Builder) artifactStateToRef(ctx context.Context, gwClient gwclient.Clie
 	return llbutil.StateToRef(ctx, gwClient, state, noCache, platform, b.opt.CacheImports.AsMap())
 }
 
-func (b *Builder) buildOnlyLastImageAsTar(ctx context.Context, mts *states.MultiTarget, dockerTag string, outFile string, opt BuildOpt) error {
+func (b *Builder) buildOnlyLastImageAsTar(ctx context.Context, mts *states.MultiTarget, dockerTag string, outFile string, opt BuildOpt, printOutput bool) error {
 	platform, err := llbutil.ResolvePlatform(mts.Final.Platform, opt.Platform)
 	if err != nil {
 		platform = mts.Final.Platform
 	}
 	plat := llbutil.PlatformWithDefault(platform)
 	saveImage := mts.Final.LastSaveImage()
-	err = b.s.solveDockerTar(ctx, saveImage.State, plat, saveImage.Image, dockerTag, outFile)
+	err = b.s.solveDockerTar(ctx, saveImage.State, plat, saveImage.Image, dockerTag, outFile, printOutput)
 	if err != nil {
 		return errors.Wrapf(err, "solve image tar %s", outFile)
 	}
