@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"context"
 	"encoding/json"
-	"fmt"
 	"io"
 	"os"
 	"strconv"
@@ -71,14 +70,12 @@ func (s *solver) solveDockerTar(ctx context.Context, state pllb.State, platform 
 			return err
 		}
 		// Silent case.
-		fmt.Printf("@# ENTERING silent case\n")
 		for {
 			select {
 			case <-ctx.Done():
 				return ctx.Err()
 			case _, ok := <-ch:
 				if !ok {
-					fmt.Printf("@# silent case DONE\n")
 					return nil
 				}
 				// Do nothing - just consume the status updates silently.
