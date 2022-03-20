@@ -122,16 +122,17 @@ func (r *Resolver) ParseAllowNativeAndUser(str string) (Platform, error) {
 // Materialize turns a platform into a concret platform
 // (resolves "user" / "native" / "") to an actual value.
 func (r *Resolver) Materialize(in Platform) Platform {
-	if in.p != nil {
-		return in
+	var out specs.Platform
+	switch {
+	case in.p != nil:
+		out = *in.p
+	case in.user:
+		out = r.userPlatform
+	default: // in.native or none (default)
+		out = r.nativePlatform
 	}
-	if in.user {
-		return Platform{
-			p: &r.userPlatform,
-		}
-	}
-	// in.native or none (default)
-	return Platform{p: &r.nativePlatform}
+	out = platforms.Normalize(out)
+	return Platform{p: &out}
 }
 
 // Scratch is the scratch state with the native platform readily set.
@@ -143,20 +144,8 @@ func (r *Resolver) Scratch() pllb.State {
 // A "native" platform can still equate to a "user" platform, if they
 // materialize to the same platform.
 func (r *Resolver) PlatformEquals(p1, p2 Platform) bool {
-	if p1.native && p2.native {
-		return true
-	}
-	if p1.user && p2.user {
-		return true
-	}
-	if p1.p == p2.p {
-		return true
-	}
 	p1 = r.Materialize(p1)
 	p2 = r.Materialize(p2)
-	if p1.p == p2.p {
-		return true
-	}
 	return p1.p.OS == p2.p.OS &&
 		p1.p.Architecture == p2.p.Architecture &&
 		p1.p.Variant == p2.p.Variant
