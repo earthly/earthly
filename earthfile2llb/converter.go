@@ -1960,7 +1960,6 @@ func (c *Converter) persistCache(srcState pllb.State) pllb.State {
 			dir, // cache dir from external mount
 			dir, // cache dir on dest state (same location but without the mount)
 			c.platr,
-			c.platr.LLBNative(),
 			runOpts...,
 		)
 	}
