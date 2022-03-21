@@ -4,6 +4,16 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+### Added
+
+- The feature flag `--exec-after-build` has been enabled retroactively for `VERSION 0.5`. This speeds up largs builds by 15-20%.
+- The feature flag `--parallel-load` has been enabled for every `VERSION`. This speeds up by parallelizing targets built for loading via `WITH DOCKER --load`.
+- `VERSION 0.0` is now permitted, however it is only meant for Earthly internal debugging purposes. `VERSION 0.0` disables all feature flags.
+
+### Fixed
+
+- An experimental fix for duplicate output when building images that are loaded via `WITH DOCKER --load`. This can be enabled via `VERSION --no-tar-build-output 0.6`.
+
 ## v0.6.11 - 2022-03-17
 
 ### Added
