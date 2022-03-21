@@ -13,6 +13,7 @@ import (
 	"regexp"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/pkg/errors"
 	"golang.org/x/crypto/ssh"
@@ -406,6 +407,7 @@ func (gl *GitLookup) detectProtocol(host string) (protocol gitProtocol, err erro
 		},
 		HostKeyAlgorithms: algs,
 		HostKeyCallback:   gl.newHostKeyCallback(keys),
+		Timeout:           time.Second * 3,
 	}
 
 	client, err := ssh.Dial("tcp", fmt.Sprintf("%s:22", host), config)
