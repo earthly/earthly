@@ -40,7 +40,7 @@ type solver struct {
 	saveInlineCache bool
 }
 
-func (s *solver) solveDockerTar(ctx context.Context, state pllb.State, platform specs.Platform, img *image.Image, dockerTag string, outFile string) error {
+func (s *solver) solveDockerTar(ctx context.Context, state pllb.State, platform specs.Platform, img *image.Image, dockerTag string, outFile string, printOutput bool) error {
 	dt, err := state.Marshal(ctx, llb.Platform(platform))
 	if err != nil {
 		return errors.Wrap(err, "state marshal")
@@ -65,8 +65,22 @@ func (s *solver) solveDockerTar(ctx context.Context, state pllb.State, platform 
 	var vertexFailureOutput string
 	eg.Go(func() error {
 		var err error
-		vertexFailureOutput, err = s.sm.MonitorProgress(ctx, ch, "", true)
-		return err
+		if printOutput {
+			vertexFailureOutput, err = s.sm.MonitorProgress(ctx, ch, "", true)
+			return err
+		}
+		// Silent case.
+		for {
+			select {
+			case <-ctx.Done():
+				return ctx.Err()
+			case _, ok := <-ch:
+				if !ok {
+					return nil
+				}
+				// Do nothing - just consume the status updates silently.
+			}
+		}
 	})
 	eg.Go(func() error {
 		file, err := os.Create(outFile)
