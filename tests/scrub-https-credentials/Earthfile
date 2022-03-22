@@ -80,12 +80,14 @@ earthly --config \$earthly_config --verbose --debug selfsigned.example.com/repo:
 
 
 scrub-remote-credentials-on-failure:
-    RUN --no-cache echo "#!/bin/sh
+    # this test uses a non-existant user named "kallaxtheshelf"
+    # (and if someone decides to register that username on github, that's fine too, we'll never know the password)
+    RUN echo "#!/bin/sh
 set -ex
-earthly --config \$earthly_config config git \"{github.com: {auth: https, user: cinnamonthecat, password: badpassword}}\"
+earthly --config \$earthly_config config git \"{github.com: {auth: https, user: kallaxtheshelf, password: badpassword}}\"
 
 set +e
-earthly --config \$earthly_config --verbose --debug github.com/cinnamonthecat/test-private:main+build >output.txt 2>&1
+earthly --config \$earthly_config --verbose --debug github.com/kallaxtheshelf/test-private:main+build >output.txt 2>&1
 exit_code=\$?
 if [ \$exit_code -eq 0 ]; then
     echo ERROR: earthly should have failed but didn\'t.
@@ -97,7 +99,7 @@ fi
 
     RUN grep 'failed to fetch remote' output.txt
     # test the failure message correctly scrubs the credentials
-    RUN grep 'https://cinnamonthecat:\*\*\*@github.com' output.txt >/dev/null
+    RUN grep 'https://kallaxtheshelf:\*\*\*@github.com' output.txt >/dev/null
 
     # make sure the password doesn't appear anywhere
     RUN cat output.txt && \
