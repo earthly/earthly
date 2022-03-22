@@ -33,6 +33,7 @@ type Features struct {
 	ParallelLoad               bool `long:"parallel-load" description:"perform parallel loading of images into WITH DOCKER"`
 	NoTarBuildOutput           bool `long:"no-tar-build-output" description:"do not print output when creating a tarball to load into WITH DOCKER"`
 	ShellOutAnywhere           bool `long:"shell-out-anywhere" description:"allow shelling-out in the middle of ARGs, or any other command"`
+	NewPlatform                bool `long:"new-platform" description:"enable new platform behavior"`
 
 	Major int
 	Minor int
@@ -187,6 +188,7 @@ func GetFeatures(version *spec.Version) (*Features, error) {
 		ftrs.UseCacheCommand = true
 		ftrs.UseHostCommand = true
 		ftrs.UseCopyLink = true
+		ftrs.NewPlatform = true
 		ftrs.NoTarBuildOutput = true
 	}
 

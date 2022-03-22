@@ -8,10 +8,11 @@ import (
 	"github.com/earthly/earthly/conslogging"
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/util/gitutil"
-	"github.com/earthly/earthly/util/llbutil"
 	"github.com/earthly/earthly/util/llbutil/llbfactory"
+	"github.com/earthly/earthly/util/platutil"
 	"github.com/earthly/earthly/util/syncutil/synccache"
 	"github.com/moby/buildkit/client/llb"
+	gwclient "github.com/moby/buildkit/frontend/gateway/client"
 	"github.com/pkg/errors"
 )
 
@@ -21,7 +22,7 @@ type localResolver struct {
 	console      conslogging.ConsoleLogger
 }
 
-func (lr *localResolver) resolveLocal(ctx context.Context, ref domain.Reference, featureFlagOverrides string) (*Data, error) {
+func (lr *localResolver) resolveLocal(ctx context.Context, gwClient gwclient.Client, platr *platutil.Resolver, ref domain.Reference, featureFlagOverrides string) (*Data, error) {
 	analytics.Count("localResolver.resolveLocal", "local-reference")
 	if ref.IsRemote() {
 		return nil, errors.Errorf("unexpected remote target %s", ref.String())
@@ -71,7 +72,7 @@ func (lr *localResolver) resolveLocal(ctx context.Context, ref domain.Reference,
 			ref.GetLocalPath(),
 			llb.ExcludePatterns(excludes),
 			llb.SessionID(lr.sessionID),
-			llb.Platform(llbutil.DefaultPlatform()),
+			llb.Platform(platr.LLBNative()),
 			llb.WithCustomNamef("[context %s] local context %s", ref.GetLocalPath(), ref.GetLocalPath()),
 		)
 	} else {

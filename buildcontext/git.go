@@ -16,6 +16,7 @@ import (
 	"github.com/earthly/earthly/util/llbutil"
 	"github.com/earthly/earthly/util/llbutil/llbfactory"
 	"github.com/earthly/earthly/util/llbutil/pllb"
+	"github.com/earthly/earthly/util/platutil"
 	"github.com/earthly/earthly/util/stringutil"
 	"github.com/earthly/earthly/util/syncutil/synccache"
 
@@ -49,11 +50,11 @@ type resolvedGitProject struct {
 	state pllb.State
 }
 
-func (gr *gitResolver) resolveEarthProject(ctx context.Context, gwClient gwclient.Client, ref domain.Reference, featureFlagOverrides string) (*Data, error) {
+func (gr *gitResolver) resolveEarthProject(ctx context.Context, gwClient gwclient.Client, platr *platutil.Resolver, ref domain.Reference, featureFlagOverrides string) (*Data, error) {
 	if !ref.IsRemote() {
 		return nil, errors.Errorf("unexpected local reference %s", ref.String())
 	}
-	rgp, gitURL, subDir, err := gr.resolveGitProject(ctx, gwClient, ref)
+	rgp, gitURL, subDir, err := gr.resolveGitProject(ctx, gwClient, platr, ref)
 	if err != nil {
 		return nil, err
 	}
@@ -70,7 +71,7 @@ func (gr *gitResolver) resolveEarthProject(ctx context.Context, gwClient gwclien
 				Internal:   true,
 			}
 			buildContextFactory = llbfactory.PreconstructedState(llbutil.CopyOp(
-				rgp.state, []string{subDir}, llbutil.ScratchWithPlatform(), "./", false, false, false, "root:root", false, false, false,
+				rgp.state, []string{subDir}, platr.Scratch(), "./", false, false, false, "root:root", false, false, false,
 				llb.WithCustomNamef("%sCOPY git context %s", vm.ToVertexPrefix(), ref.String())))
 		}
 	} else {
@@ -90,7 +91,9 @@ func (gr *gitResolver) resolveEarthProject(ctx context.Context, gwClient gwclien
 		gr.cleanCollection.Add(func() error {
 			return os.RemoveAll(earthfileTmpDir)
 		})
-		gitState, err := llbutil.StateToRef(ctx, gwClient, rgp.state, false, nil, nil)
+		gitState, err := llbutil.StateToRef(
+			ctx, gwClient, rgp.state, false,
+			platr.SubResolver(platutil.NativePlatform), nil)
 		if err != nil {
 			return nil, errors.Wrap(err, "state to ref git meta")
 		}
@@ -138,7 +141,7 @@ func (gr *gitResolver) resolveEarthProject(ctx context.Context, gwClient gwclien
 	}, nil
 }
 
-func (gr *gitResolver) resolveGitProject(ctx context.Context, gwClient gwclient.Client, ref domain.Reference) (rgp *resolvedGitProject, gitURL string, subDir string, finalErr error) {
+func (gr *gitResolver) resolveGitProject(ctx context.Context, gwClient gwclient.Client, platr *platutil.Resolver, ref domain.Reference) (rgp *resolvedGitProject, gitURL string, subDir string, finalErr error) {
 	gitRef := ref.GetTag()
 
 	var err error
@@ -168,7 +171,7 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, gwClient gwclient.
 		gitState := llb.Git(gitURL, gitRef, gitOpts...)
 		opImg := pllb.Image(
 			defaultGitImage, llb.MarkImageInternal, llb.ResolveModePreferLocal,
-			llb.Platform(llbutil.DefaultPlatform()))
+			llb.Platform(platr.LLBNative()))
 
 		// Get git hash.
 		gitHashOpts := []llb.RunOption{
@@ -185,10 +188,12 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, gwClient gwclient.
 			llb.WithCustomNamef("%sGET GIT META %s", vm.ToVertexPrefix(), ref.ProjectCanonical()),
 		}
 		gitHashOp := opImg.Run(gitHashOpts...)
-		gitMetaState := gitHashOp.AddMount("/dest", llbutil.ScratchWithPlatform())
+		gitMetaState := gitHashOp.AddMount("/dest", platr.Scratch())
 
 		noCache := false // TODO figure out if we want to propagate --no-cache here
-		gitMetaRef, err := llbutil.StateToRef(ctx, gwClient, gitMetaState, noCache, nil, nil)
+		gitMetaRef, err := llbutil.StateToRef(
+			ctx, gwClient, gitMetaState, noCache,
+			platr.SubResolver(platutil.NativePlatform), nil)
 		if err != nil {
 			return nil, errors.Wrap(err, "state to ref git meta")
 		}

@@ -3,7 +3,7 @@ package earthfile2llb
 import (
 	"context"
 
-	"github.com/earthly/earthly/util/llbutil"
+	"github.com/containerd/containerd/platforms"
 	"github.com/earthly/earthly/util/syncutil/synccache"
 	"github.com/moby/buildkit/client/llb"
 	"github.com/opencontainers/go-digest"
@@ -38,9 +38,13 @@ func NewCachedMetaResolver(metaResolver llb.ImageMetaResolver) *CachedMetaResolv
 
 // ResolveImageConfig implements llb.ImageMetaResolver.ResolveImageConfig.
 func (cmr *CachedMetaResolver) ResolveImageConfig(ctx context.Context, ref string, opt llb.ResolveImageConfigOpt) (digest.Digest, []byte, error) {
+	platformStr := ""
+	if opt.Platform != nil {
+		platformStr = platforms.Format(*opt.Platform)
+	}
 	key := cachedMetaResolverKey{
 		ref:      ref,
-		platform: llbutil.PlatformToString(opt.Platform),
+		platform: platformStr,
 	}
 	value, err := cmr.cache.Do(ctx, key, func(ctx context.Context, _ interface{}) (interface{}, error) {
 		dgst, config, err := cmr.metaResolver.ResolveImageConfig(ctx, ref, opt)

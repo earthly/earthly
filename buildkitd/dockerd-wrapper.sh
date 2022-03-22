@@ -115,6 +115,7 @@ EOF
 }
 
 print_dockerd_logs() {
+  echo "Architecture: $(uname -m)"
   echo "==== Begin dockerd logs ===="
   cat /var/log/docker.log
   echo "==== End dockerd logs ===="

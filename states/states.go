@@ -7,11 +7,10 @@ import (
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/states/dedup"
 	"github.com/earthly/earthly/states/image"
-	"github.com/earthly/earthly/util/llbutil"
 	"github.com/earthly/earthly/util/llbutil/pllb"
+	"github.com/earthly/earthly/util/platutil"
 	"github.com/earthly/earthly/variables"
 	"github.com/google/uuid"
-	specs "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
 // MultiTarget holds LLB states representing multiple earthly targets,
@@ -40,7 +39,7 @@ type SingleTarget struct {
 	// ID is a random unique string.
 	ID                     string
 	Target                 domain.Target
-	Platform               *specs.Platform
+	PlatformResolver       *platutil.Resolver
 	MainImage              *image.Image
 	MainState              pllb.State
 	ArtifactsState         pllb.State
@@ -75,20 +74,20 @@ type SingleTarget struct {
 	incomingNewSubscriptions chan string
 }
 
-func newSingleTarget(ctx context.Context, target domain.Target, platform *specs.Platform, allowPrivileged bool, overridingVars *variables.Scope, parentDepSub chan string) (*SingleTarget, error) {
+func newSingleTarget(ctx context.Context, target domain.Target, platr *platutil.Resolver, allowPrivileged bool, overridingVars *variables.Scope, parentDepSub chan string) (*SingleTarget, error) {
 	targetStr := target.StringCanonical()
 	sts := &SingleTarget{
-		ID:       uuid.New().String(),
-		Target:   target,
-		Platform: platform,
+		ID:               uuid.New().String(),
+		Target:           target,
+		PlatformResolver: nil, // Will be set in converter's FinalizeStates.
 		targetInput: dedup.TargetInput{
 			TargetCanonical: targetStr,
-			Platform:        llbutil.PlatformWithDefaultToString(platform),
+			Platform:        platr.Materialize(platr.Current()).String(),
 			AllowPrivileged: allowPrivileged,
 		},
-		MainState:                llbutil.ScratchWithPlatform(),
+		MainState:                platr.Scratch(),
 		MainImage:                image.NewImage(),
-		ArtifactsState:           llbutil.ScratchWithPlatform(),
+		ArtifactsState:           platr.Scratch(),
 		dependentIDs:             make(map[string]bool),
 		doneCh:                   make(chan struct{}),
 		incomingNewSubscriptions: make(chan string, 1024),
@@ -126,11 +125,6 @@ func (sts *SingleTarget) TargetInput() dedup.TargetInput {
 	sts.tiMu.Lock()
 	defer sts.tiMu.Unlock()
 	return sts.targetInput
-}
-
-// SetPlatform sets the sts platform.
-func (sts *SingleTarget) SetPlatform(platform *specs.Platform) {
-	sts.Platform = platform
 }
 
 // AddBuildArgInput adds a bai to the sts's target input.

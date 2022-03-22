@@ -3,11 +3,12 @@ package llbutil
 import (
 	"github.com/earthly/earthly/outmon"
 	"github.com/earthly/earthly/util/llbutil/pllb"
+	"github.com/earthly/earthly/util/platutil"
 	"github.com/moby/buildkit/client/llb"
 )
 
 // WithDependency creates a fake dependency between two states.
-func WithDependency(state pllb.State, depState pllb.State, stateStr, depStr string, opts ...llb.RunOption) pllb.State {
+func WithDependency(state pllb.State, depState pllb.State, stateStr, depStr string, platr *platutil.Resolver, opts ...llb.RunOption) pllb.State {
 	// TODO: Is there a better way to mark two states as depending on each other?
 	if depState.Output() == nil {
 		// depState is Scratch.
@@ -16,7 +17,7 @@ func WithDependency(state pllb.State, depState pllb.State, stateStr, depStr stri
 
 	// Copy a wildcard that could never exist.
 	// (And allow for the wildcard to match nothing).
-	interm := ScratchWithPlatform()
+	interm := platr.Scratch()
 	vm := &outmon.VertexMeta{
 		Internal: true,
 	}

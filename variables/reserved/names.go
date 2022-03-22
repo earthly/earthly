@@ -26,6 +26,10 @@ const (
 	UserOS                      = "USEROS"
 	UserPlatform                = "USERPLATFORM"
 	UserVariant                 = "USERVARIANT"
+	NativeArch                  = "NATIVEARCH"
+	NativeOS                    = "NATIVEOS"
+	NativePlatform              = "NATIVEPLATFORM"
+	NativeVariant               = "NATIVEVARIANT"
 )
 
 var args map[string]struct{}
@@ -57,6 +61,10 @@ func init() {
 		UserOS:                      struct{}{},
 		UserPlatform:                struct{}{},
 		UserVariant:                 struct{}{},
+		NativeArch:                  struct{}{},
+		NativeOS:                    struct{}{},
+		NativePlatform:              struct{}{},
+		NativeVariant:               struct{}{},
 	}
 }
 

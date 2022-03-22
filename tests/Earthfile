@@ -53,6 +53,7 @@ ga:
         --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE
     BUILD ./import+build
     BUILD ./import+build-imported
+    BUILD ./platform+test
     BUILD +privileged-test
     BUILD +copy-test
     BUILD +copy-test-verbose-output
@@ -1067,6 +1068,13 @@ RUN_EARTHLY:
             exit 1
         fi
         exit_code=\$(tail -n 1 earthly.output | cut -d \"=\" -f2)
+
+        if [ \$exit_code -eq 6 ]; then
+            echo =================== Buildkit logs ===================
+            cat /var/log/buildkitd.log
+            echo ================= End Buildkit logs =================
+            exit \$exit_code
+        fi
 
         if $should_fail; then
             if [ \$exit_code -eq 0 ]; then

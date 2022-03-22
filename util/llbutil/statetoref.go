@@ -5,14 +5,15 @@ import (
 	"sort"
 
 	"github.com/earthly/earthly/util/llbutil/pllb"
+	"github.com/earthly/earthly/util/platutil"
 	"github.com/moby/buildkit/client/llb"
 	gwclient "github.com/moby/buildkit/frontend/gateway/client"
-	specs "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
 )
 
 // StateToRef takes an LLB state, solves it using gateway and returns the ref.
-func StateToRef(ctx context.Context, gwClient gwclient.Client, state pllb.State, noCache bool, platform *specs.Platform, cacheImports map[string]bool) (gwclient.Reference, error) {
+func StateToRef(ctx context.Context, gwClient gwclient.Client, state pllb.State, noCache bool, platr *platutil.Resolver, cacheImports map[string]bool) (gwclient.Reference, error) {
+	platform := platr.SubPlatform(platr.Current())
 	if noCache {
 		state = state.SetMarshalDefaults(llb.IgnoreCache)
 	}
@@ -29,7 +30,7 @@ func StateToRef(ctx context.Context, gwClient gwclient.Client, state pllb.State,
 		}
 		coes = append(coes, coe)
 	}
-	def, err := state.Marshal(ctx, llb.Platform(PlatformWithDefault(platform)))
+	def, err := state.Marshal(ctx, llb.Platform(platr.ToLLBPlatform(platform)))
 	if err != nil {
 		return nil, errors.Wrap(err, "marshal state")
 	}

@@ -41,7 +41,6 @@ import (
 	"github.com/moby/buildkit/session/localhost/localhostprovider"
 	"github.com/moby/buildkit/session/sshforward/sshprovider"
 	"github.com/moby/buildkit/util/entitlements"
-	specs "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
@@ -74,6 +73,7 @@ import (
 	"github.com/earthly/earthly/util/containerutil"
 	"github.com/earthly/earthly/util/fileutil"
 	"github.com/earthly/earthly/util/llbutil"
+	"github.com/earthly/earthly/util/platutil"
 	"github.com/earthly/earthly/util/reflectutil"
 	"github.com/earthly/earthly/util/syncutil/semutil"
 	"github.com/earthly/earthly/util/termutil"
@@ -2807,16 +2807,26 @@ func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []st
 		return errors.Wrap(err, "get buildkit container IP")
 	}
 
-	platformsSlice := make([]*specs.Platform, 0, len(app.platformsStr.Value()))
+	nativePlatform, err := platutil.GetNativePlatformViaBkClient(c.Context, bkClient)
+	if err != nil {
+		return errors.Wrap(err, "get native platform via buildkit client")
+	}
+	platr := platutil.NewResolver(nativePlatform)
+	platr.AllowNativeAndUser = true
+	platformsSlice := make([]platutil.Platform, 0, len(app.platformsStr.Value()))
 	for _, p := range app.platformsStr.Value() {
-		platform, err := llbutil.ParsePlatform(p)
+		platform, err := platr.Parse(p)
 		if err != nil {
 			return errors.Wrapf(err, "parse platform %s", p)
 		}
 		platformsSlice = append(platformsSlice, platform)
 	}
-	if len(platformsSlice) == 0 {
-		platformsSlice = []*specs.Platform{nil}
+	switch len(platformsSlice) {
+	case 0:
+	case 1:
+		platr.UpdatePlatform(platformsSlice[0])
+	default:
+		return errors.Errorf("multi-platform builds are not yet supported on the command line. You may, however, create a target with the instruction BUILD --plaform ... --platform ... %s", target)
 	}
 
 	dotEnvMap, err := godotenv.Read(app.envFile)
@@ -2988,9 +2998,6 @@ func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []st
 
 	app.console.PrintPhaseFooter(builder.PhaseInit, false, "")
 
-	if len(platformsSlice) != 1 {
-		return errors.Errorf("multi-platform builds are not yet supported on the command line. You may, however, create a target with the instruction BUILD --plaform ... --platform ... %s", target)
-	}
 	builtinArgs := variables.DefaultArgs{
 		EarthlyVersion:  Version,
 		EarthlyBuildSha: GitSha,
@@ -3000,7 +3007,7 @@ func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []st
 		Push:                       app.push,
 		NoOutput:                   app.noOutput,
 		OnlyFinalTargetImages:      app.imageMode,
-		Platform:                   platformsSlice[0],
+		PlatformResolver:           platr,
 		EnableGatewayClientLogging: app.debug,
 		BuiltinArgs:                builtinArgs,
 

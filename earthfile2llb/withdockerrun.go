@@ -17,10 +17,10 @@ import (
 	"github.com/earthly/earthly/states"
 	"github.com/earthly/earthly/util/llbutil"
 	"github.com/earthly/earthly/util/llbutil/pllb"
+	"github.com/earthly/earthly/util/platutil"
 	"github.com/earthly/earthly/util/syncutil/semutil"
 	"github.com/moby/buildkit/client/llb"
 	gwclient "github.com/moby/buildkit/frontend/gateway/client"
-	specs "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
 	"gopkg.in/yaml.v3"
 )
@@ -35,7 +35,7 @@ const (
 type DockerLoadOpt struct {
 	Target          string
 	ImageName       string
-	Platform        *specs.Platform
+	Platform        platutil.Platform
 	BuildArgs       []string
 	AllowPrivileged bool
 }
@@ -43,7 +43,7 @@ type DockerLoadOpt struct {
 // DockerPullOpt holds parameters for the WITH DOCKER --pull parameter.
 type DockerPullOpt struct {
 	ImageName string
-	Platform  *specs.Platform
+	Platform  platutil.Platform
 }
 
 // WithDockerOpt holds parameters for WITH DOCKER run.
@@ -74,7 +74,7 @@ type withDockerRun struct {
 
 type tarLoad struct {
 	imgName  string
-	platform *specs.Platform
+	platform platutil.Platform
 	state    pllb.State
 }
 
@@ -103,15 +103,18 @@ func (wdr *withDockerRun) Run(ctx context.Context, args []string, opt WithDocker
 	}
 	composeImagesSet := make(map[setKey]bool)
 	for _, pull := range composePulls {
+		pull.Platform = wdr.c.platr.SubPlatform(pull.Platform)
+		platformStr := wdr.c.platr.Materialize(pull.Platform).String()
 		composeImagesSet[setKey{
 			imageName:   pull.ImageName,
-			platformStr: llbutil.PlatformToString(pull.Platform),
+			platformStr: platformStr,
 		}] = true
 	}
 
 	// Loads.
 	loadOptPromises := make([]chan DockerLoadOpt, 0, len(opt.Loads))
 	for _, loadOpt := range opt.Loads {
+		loadOpt.Platform = wdr.c.platr.SubPlatform(loadOpt.Platform)
 		optPromise, err := wdr.load(ctx, loadOpt)
 		if err != nil {
 			return errors.Wrap(err, "load")
@@ -122,9 +125,10 @@ func (wdr *withDockerRun) Run(ctx context.Context, args []string, opt WithDocker
 		select {
 		case loadOpt := <-loadOptPromise:
 			// Make sure we don't pull a compose image which is loaded.
+			platformStr := wdr.c.platr.Materialize(loadOpt.Platform).String()
 			key := setKey{
 				imageName:   loadOpt.ImageName, // may have changed
-				platformStr: llbutil.PlatformToString(loadOpt.Platform),
+				platformStr: platformStr,
 			}
 			if composeImagesSet[key] {
 				delete(composeImagesSet, key)
@@ -135,9 +139,11 @@ func (wdr *withDockerRun) Run(ctx context.Context, args []string, opt WithDocker
 	}
 	// Add compose images (what's left of them) to the pull list.
 	for _, pull := range composePulls {
+		pull.Platform = wdr.c.platr.SubPlatform(pull.Platform)
+		platformStr := wdr.c.platr.Materialize(pull.Platform).String()
 		key := setKey{
 			imageName:   pull.ImageName,
-			platformStr: llbutil.PlatformToString(pull.Platform),
+			platformStr: platformStr,
 		}
 		if composeImagesSet[key] {
 			opt.Pulls = append(opt.Pulls, pull)
@@ -161,7 +167,7 @@ func (wdr *withDockerRun) Run(ctx context.Context, args []string, opt WithDocker
 	// Sort the tar list, to make the operation consistent.
 	sort.Slice(wdr.tarLoads, func(i, j int) bool {
 		if wdr.tarLoads[i].imgName == wdr.tarLoads[j].imgName {
-			return llbutil.PlatformToString(wdr.tarLoads[i].platform) < llbutil.PlatformToString(wdr.tarLoads[j].platform)
+			return wdr.tarLoads[i].platform.String() < wdr.tarLoads[j].platform.String()
 		}
 		return wdr.tarLoads[i].imgName < wdr.tarLoads[j].imgName
 	})
@@ -195,8 +201,23 @@ func (wdr *withDockerRun) Run(ctx context.Context, args []string, opt WithDocker
 	}
 	crOpts.shellWrap = makeWithDockerdWrapFun(dindID, tarPaths, opt)
 
+	platformIncompatible := !wdr.c.platr.PlatformEquals(wdr.c.platr.Current(), platutil.NativePlatform)
+	if platformIncompatible {
+		currentPlatStr := wdr.c.platr.Materialize(wdr.c.platr.Current()).String()
+		nativePlatStr := wdr.c.platr.Materialize(platutil.NativePlatform).String()
+		msg := "running WITH DOCKER as a non-native CPU architecture. This is not supported.\n" +
+			fmt.Sprintf("Current platform: %s\n", currentPlatStr) +
+			fmt.Sprintf("Native platform of the worker: %s\n", nativePlatStr) +
+			"Try using\n\n\tFROM --platform=native earthly/dind:alpine\n\ninstead.\n" +
+			"You may still --load and --pull images of a different platform.\n"
+		wdr.c.opt.Console.Warnf("Error: " + msg)
+		return errors.New("platform incompatible")
+	}
 	_, err = wdr.c.internalRun(ctx, crOpts)
-	return err
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (wdr *withDockerRun) installDeps(ctx context.Context, opt WithDockerOpt) error {
@@ -252,14 +273,14 @@ func (wdr *withDockerRun) getComposePulls(ctx context.Context, opt WithDockerOpt
 			// Image not specified in yaml.
 			continue
 		}
-		platform := wdr.c.opt.Platform
+		platform := wdr.c.platr.Current()
 		if serviceInfo.Platform != "" {
 			p, err := platforms.Parse(serviceInfo.Platform)
 			if err != nil {
 				return nil, errors.Wrapf(
 					err, "parse platform for image %s: %s", serviceInfo.Image, serviceInfo.Platform)
 			}
-			platform = &p
+			platform = platutil.FromLLBPlatform(p)
 		}
 		if len(opt.ComposeServices) > 0 {
 			if composeServicesSet[serviceName] {
@@ -281,9 +302,8 @@ func (wdr *withDockerRun) getComposePulls(ctx context.Context, opt WithDockerOpt
 
 func (wdr *withDockerRun) pull(ctx context.Context, opt DockerPullOpt) (chan struct{}, error) {
 	promise := make(chan struct{})
-	plat := llbutil.PlatformWithDefault(opt.Platform)
 	state, image, _, err := wdr.c.internalFromClassical(
-		ctx, opt.ImageName, plat,
+		ctx, opt.ImageName, opt.Platform,
 		llb.WithCustomNamef("%sDOCKER PULL %s", wdr.c.imageVertexPrefix(opt.ImageName, opt.Platform), opt.ImageName),
 	)
 	if err != nil {
@@ -300,7 +320,7 @@ func (wdr *withDockerRun) pull(ctx context.Context, opt DockerPullOpt) (chan str
 					DockerTag: opt.ImageName,
 				},
 			},
-			Platform: opt.Platform,
+			PlatformResolver: wdr.c.platr.SubResolver(opt.Platform),
 		},
 	}
 	solveFun := func() error {
@@ -354,7 +374,7 @@ func (wdr *withDockerRun) load(ctx context.Context, opt DockerLoadOpt) (chan Doc
 		err := wdr.solveImage(
 			ctx, mts, depTarget.String(), opt.ImageName,
 			llb.WithCustomNamef(
-				"%sDOCKER LOAD %s %s", wdr.c.imageVertexPrefix(opt.ImageName, mts.Final.Platform), depTarget.String(), opt.ImageName))
+				"%sDOCKER LOAD %s %s", wdr.c.imageVertexPrefix(opt.ImageName, mts.Final.PlatformResolver.Current()), depTarget.String(), opt.ImageName))
 		if err != nil {
 			return err
 		}
@@ -413,7 +433,7 @@ func (wdr *withDockerRun) solveImage(ctx context.Context, mts *states.MultiTarge
 		tarContext := pllb.Local(
 			string(solveID),
 			llb.SessionID(sessionID),
-			llb.Platform(llbutil.DefaultPlatform()),
+			llb.Platform(wdr.c.platr.LLBNative()),
 			llb.WithCustomNamef("%sdocker tar context %s %s", wdr.c.vertexPrefix(false, false, true), opName, sessionID),
 		)
 		// Add directly to build context so that if a later statement forces execution, the images are available.
@@ -427,7 +447,7 @@ func (wdr *withDockerRun) solveImage(ctx context.Context, mts *states.MultiTarge
 	defer wdr.mu.Unlock()
 	wdr.tarLoads = append(wdr.tarLoads, tarLoad{
 		imgName:  dockerTag,
-		platform: mts.Final.Platform,
+		platform: mts.Final.PlatformResolver.Current(),
 		state:    tarContext,
 	})
 	return nil
@@ -466,7 +486,9 @@ func (wdr *withDockerRun) getComposeConfig(ctx context.Context, opt WithDockerOp
 		llb.WithCustomNamef("%sWITH DOCKER (docker-compose config)", wdr.c.vertexPrefix(false, false, false)),
 	}
 	state := wdr.c.mts.Final.MainState.Run(runOpts...).Root()
-	ref, err := llbutil.StateToRef(ctx, wdr.c.opt.GwClient, state, wdr.c.opt.NoCache, wdr.c.opt.Platform, wdr.c.opt.CacheImports.AsMap())
+	ref, err := llbutil.StateToRef(
+		ctx, wdr.c.opt.GwClient, state, wdr.c.opt.NoCache,
+		wdr.c.platr, wdr.c.opt.CacheImports.AsMap())
 	if err != nil {
 		return nil, errors.Wrap(err, "state to ref compose config")
 	}
