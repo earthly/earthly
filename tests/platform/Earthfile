@@ -19,7 +19,7 @@ test:
             outdir=./out/$plat ; \
             test -d \$outdir && \
             cat \$outdir/uname-m && \
-            echo plat=\$plat && \
+            echo plat=$plat && \
             um=\$(cat \$outdir/uname-m) && \
             p=\$(cat \$outdir/platform) && \
             case \$plat in \
