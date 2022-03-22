@@ -48,4 +48,3 @@ workflows:
             branches:
               only:
                 - main
-                - vlad/circle-platform
