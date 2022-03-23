@@ -1,4 +1,4 @@
-VERSION 0.6
+VERSION --shell-out-anywhere 0.6
 
 FROM golang:1.17-alpine3.14
 
@@ -371,20 +371,24 @@ earthly-integration-test-base:
         END
     ELSE
         # Use a mirror, supports mirroring Docker Hub only.
-        IF [ "$DOCKERHUB_MIRROR_INSECURE" = "true" ]
-            ARG _MIRROR_CONFIG="[registry.\"$DOCKERHUB_MIRROR\"]
-                                http = true
-                                insecure = true"
-        ELSE
-            ARG _MIRROR_CONFIG=""
-        END
-        ENV GLOBAL_CONFIG="{disable_analytics: true, local_registry_host: 'tcp://127.0.0.1:8371', conversion_parallelism: 5, buildkit_additional_config: '[registry.\"docker.io\"]
-
-                           mirrors = [\"$DOCKERHUB_MIRROR\"]
-                           $_MIRROR_CONFIG'}"
         ENV EARTHLY_ADDITIONAL_BUILDKIT_CONFIG="[registry.\"docker.io\"]
-                    mirrors = [\"$DOCKERHUB_MIRROR\"]
-                    $_MIRROR_CONFIG"
+  mirrors = [\"$DOCKERHUB_MIRROR\"]"
+
+        IF [ "$DOCKERHUB_MIRROR_INSECURE" = "true" ]
+            ENV EARTHLY_ADDITIONAL_BUILDKIT_CONFIG="$EARTHLY_ADDITIONAL_BUILDKIT_CONFIG
+[registry.\"$DOCKERHUB_MIRROR\"]
+  http = true
+  insecure = true"
+        END
+
+        # NOTE: newlines+indentation is important here, see https://github.com/earthly/earthly/issues/1764 for potential pitfalls
+        # yaml will convert newlines to spaces when using regular quoted-strings, therefore we will use the literal-style (denoted by `|`)
+        ENV GLOBAL_CONFIG="disable_analytics: true
+local_registry_host: 'tcp://127.0.0.1:8371'
+conversion_parallelism: 5
+buildkit_additional_config: |
+$(echo "$EARTHLY_ADDITIONAL_BUILDKIT_CONFIG" | sed "s/^/  /g")
+"
         IF [ "$DOCKERHUB_AUTH" = "true" ]
             RUN --secret USERNAME=$DOCKERHUB_USER_SECRET \
                 --secret TOKEN=$DOCKERHUB_TOKEN_SECRET \
