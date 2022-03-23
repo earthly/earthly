@@ -4,6 +4,8 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+## v0.6.12 - 2022-03-23
+
 ### Changed
 
 - A more obvious error is printed if `WITH DOCKER` starts non-natively. This is not supported and it wasn't obvious before.
@@ -20,6 +22,7 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
   - When no platform is provided, earthly will default to the **native** platform
   - Additionally, earthly now default to native platform for internal operations too (copy operations, git clones etc)
   - Earthly now allows changing the platform in the middle of a target (`FROM --platform` is not a contradiction anymore). There is a distinction between the "input" platform of a target (the platform the caller passes in) vs the "output" platform (the platform that ends up being the final platform of the image). These can be different if the caller passes `BUILD --platform=something +target`, but the target starts with `FROM --platform=otherthing ...`.
+- Ability to shell-out in any Earthly command, (e.g. `SAVE IMAGE myimage:$(cat version)`), as well as in the middle of ARG strings. To enable this feature, use `VERSION --shell-out-anywhere 0.6`.
 
 ### Fixed
 
@@ -57,7 +60,6 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 - Earthly is now 15-30% faster when executing large builds [#1589](https://github.com/earthly/earthly/issues/1589)
 - Experimental `HOST` command, which can be used like this: `HOST <domain> <ip>` to add additional hosts during the execution of your build. To enable this feature, use `VERSION --use-host-command 0.6`. [#1168](https://github.com/earthly/earthly/issues/1168)
-- Ability to shell-out in any Earthly command, (e.g. `SAVE IMAGE myimage:$(cat version)`), as well as in the middle of ARG strings. To enable this feature, use `VERSION --shell-out-anywhere 0.6`.
 
 ### Fixed
 
