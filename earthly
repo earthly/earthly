@@ -134,7 +134,7 @@ case "$1" in
                 update="true"
             fi
 
-            if [ "$update" = "true" ]; then
+            if [ "$update" = "true" ] && [ "$EARTHLY_DISABLE_AUTO_UPDATE" != "true" ]; then
                 get_latest_binary
                 echo "Updated prerelease binary. Version:" >&2
                 "$bindir/earthly-prerelease" --version >&2
