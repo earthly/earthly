@@ -51,6 +51,7 @@ export EARTHLY_REPO=${EARTHLY_REPO:-earthly}
 export BREW_REPO=${BREW_REPO:-homebrew-earthly}
 export GITHUB_SECRET_PATH=$GITHUB_SECRET_PATH
 export PRERELEASE=${PRERELEASE:-false}
+export SKIP_CHANGELOG_DATE_TEST=${SKIP_CHANGELOG_DATE_TEST:-false}
 
 
 if [ "$PRERELEASE" != "false" ] && [ "$PRERELEASE" != "true" ]; then
@@ -71,7 +72,7 @@ if [ -z "$earthly" ]; then
 fi
 
 # fail-fast if release-notes do not exist (or if date is incorrect)
-"$earthly" --build-arg DOCKERHUB_USER --build-arg RELEASE_TAG +release-notes
+"$earthly" --build-arg DOCKERHUB_USER --build-arg RELEASE_TAG --build-arg SKIP_CHANGELOG_DATE_TEST +release-notes
 
 if [ -n "$GITHUB_SECRET_PATH" ]; then
     GITHUB_SECRET_PATH_BUILD_ARG="--build-arg GITHUB_SECRET_PATH=$GITHUB_SECRET_PATH"
