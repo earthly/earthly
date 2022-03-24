@@ -80,7 +80,7 @@ In these examples, we will assume the server has an IP set to `192.168.0.80`.
 First connect to the server where you will be running the cache (e.g. `ssh 192.168.0.80`),
 and create a file under `~/.docker-registry-config.yml` containing:
 
-```
+```yaml
 version: 0.1
 log:
   fields:
@@ -109,13 +109,13 @@ proxy:
 
 Next, start the registry container with:
 
-```
+```bash
 docker run --rm --network host -d --name docker-registry -v $HOME/.docker-registry-config.yml:/root/config.yml registry.hub.docker.com/library/registry:2 registry serve /root/config.yml
 ```
 
 You can then verify the registry is running by tailing logs with:
 
-```
+```bash
 docker logs --follow docker-registry
 ```
 
@@ -130,7 +130,7 @@ The rest of the guide focus on configuring your workstation to use this cache.
 
 To configure docker to use this cache as a mirror, edit the `/etc/docker/daemon.json` file, and add:
 
-```
+```json
 {
   "registry-mirrors" : ["http://192.168.0.80:5000"]
 }
@@ -138,7 +138,7 @@ To configure docker to use this cache as a mirror, edit the `/etc/docker/daemon.
 
 Then restart docker:
 
-```
+```bash
 sudo service docker restart
 ```
 
@@ -163,7 +163,6 @@ Error response from daemon: Get "https://registry-1.docker.io/v2/": dial tcp 0.0
 If the cache is correctly configured, the pull command should work, and you should see logs on your server under the docker-registry container:
 
 ```
-
 192.168.0.126 - - [22/Mar/2022:19:10:39 +0000] "HEAD /v2/library/alpine/manifests/3.15 HTTP/1.1" 200 1638 "" "docker/20.10.12 go/go1.16.12 git-commit/459d0df kernel/5.13.0-35-generic os/linux arch/amd64 UpstreamClient(Docker-Client/20.10.12 \\(linux\\))"
 ```
 
@@ -185,6 +184,6 @@ The next time earthly is run, it will detect the configuration change and will r
 
 You can force these settings to be applied, and verify the mirror appears in the buildkit config by running:
 
-```
+```bash
 earthly bootstrap && docker exec earthly-buildkitd cat /etc/buildkitd.toml
 ```
