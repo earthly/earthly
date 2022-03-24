@@ -20,7 +20,7 @@ To run a cache, you'll need the ability to deploy a persistent service, somewher
 There are multiple ways to setup a registry -- Docker, for example, has a [guide for using the registry as a pull through cache](https://docs.docker.com/registry/recipes/mirror),
 as well as documentation for the [available options](https://docs.docker.com/registry/configuration/), and other details under the [registry image](https://hub.docker.com/_/registry).
 
-Documenting all the possible ways to setup a pull through cache is beyond the scope of this document; however, includes a [quick getting-started section](#insecure-docker-hub-cache-example) for those who wish
+Documenting all the possible ways to setup a pull through cache is beyond the scope of this document; however, it does include a [quick getting-started section](#insecure-docker-hub-cache-example) for those who wish
 to run an insecure pull through cache.
 
 ### Configuration & Tips
@@ -119,8 +119,10 @@ You can then verify the registry is running by tailing logs with:
 docker logs --follow docker-registry
 ```
 
-*Hint: Leave a second terminal window open to display the logs while you work on the following sections;
-this will make it more obvious when the cache is being used.*
+{% hint style='info' %}
+You may want to leave a second terminal window open to display the logs while you work on the following sections;
+this will make it more obvious when the cache is being used.
+{% endhint %}
 
 The rest of the guide focus on configuring your workstation to use this cache.
 
@@ -184,5 +186,5 @@ The next time earthly is run, it will detect the configuration change and will r
 You can force these settings to be applied, and verify the mirror appears in the buildkit config by running:
 
 ```
-earthly-v0.5.12 bootstrap && docker exec earthly-buildkitd cat /etc/buildkitd.toml
+earthly bootstrap && docker exec earthly-buildkitd cat /etc/buildkitd.toml
 ```
