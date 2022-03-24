@@ -74,6 +74,18 @@ DOCKERHUB_USER=<my-docker-username>
 DOCKERHUB_TOKEN=<my-docker-token>
 ```
 
+### Running tests with an insecure pull through cache
+
+The [Insecure Docker Hub Cache Example](https://docs.earthly.dev/ci-integration/pull-through-cache#insecure-docker-hub-cache-example), provides a guide on both
+running an insecure docker hub pull through cache as well as configuring Earthly to use that cache.
+
+Since Earthly uses itself for running the tests (Earthly-in-Earthly), simply configuring `~/.earthly/config.yml` is insufficient -- one must also configure the
+embedded version of Earthly to use the cache via build-args:
+
+```bash
+./build/<platform>/amd64/earthly -P ./tests+all --DOCKERHUB_AUTH=false --DOCKERHUB_MIRROR=<ip-address-or-hostname>:<port> --DOCKERHUB_MIRROR_INSECURE=true
+```
+
 ## Gotchas
 
 ### Auth
