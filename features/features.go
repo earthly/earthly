@@ -138,15 +138,13 @@ func instrumentVersion(_ string, opt *goflags.Option, s *string) (*string, error
 // GetFeatures returns a features struct for a particular version
 func GetFeatures(version *spec.Version) (*Features, bool, error) {
 	var ftrs Features
-	hasVersion := true
-
-	if version == nil {
+	hasVersion := (version != nil)
+	if !hasVersion {
 		// If no version is specified, we default to 0.5 (the Earthly version
 		// before the VERSION command was introduced).
 		version = &spec.Version{
 			Args: []string{"0.5"},
 		}
-		hasVersion = false
 	}
 
 	if version.Args == nil {
