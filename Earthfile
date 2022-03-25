@@ -1,4 +1,4 @@
-VERSION --shell-out-anywhere 0.6
+VERSION --shell-out-anywhere --use-copy-link 0.6
 
 FROM golang:1.17-alpine3.14
 
@@ -107,7 +107,7 @@ earthly-script-no-stdout:
 
     # This script performs an explicit "docker pull earthlybinaries:prerelease" which can cause rate-limiting
     # to work-around this, we will copy an earthly binary in, and disable auto-updating (and therefore don't require a WITH DOCKER)
-    COPY +for-linux/earthly /root/.earthly/earthly-prerelease
+    COPY +earthly/earthly /root/.earthly/earthly-prerelease
     RUN EARTHLY_DISABLE_AUTO_UPDATE=true ./earthly --version > earthly-version-output
 
     RUN test "$(cat earthly-version-output | wc -l)" = "1"
