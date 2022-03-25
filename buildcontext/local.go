@@ -81,6 +81,9 @@ func (lr *localResolver) resolveLocal(ctx context.Context, gwClient gwclient.Cli
 			ftrs: ftrs,
 		}, nil
 	})
+	if err != nil {
+		return nil, err
+	}
 	bf := buildFileValue.(*buildFile)
 
 	var buildContextFactory llbfactory.Factory
