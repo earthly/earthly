@@ -13,7 +13,7 @@ all:
         --BASE_IMAGE=../..+dind-ubuntu
 
 test:
-    ARG BASE_IMAGE
+    ARG --required BASE_IMAGE
     FROM $BASE_IMAGE
     COPY ./docker-compose.yml ./
     WITH DOCKER --compose docker-compose.yml
