@@ -690,7 +690,7 @@ If you are referencing a target via some other command, such as `COPY` and you w
 
 ```Dockerfile
 my-target:
-    COPY --plattform=linux/amd64 (+some-target/some-file.txt --FOO=bar) ./
+    COPY --platform=linux/amd64 (+some-target/some-file.txt --FOO=bar) ./
 ```
 
 Should be amended with the following additional `BUILD` call:
