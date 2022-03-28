@@ -2041,16 +2041,18 @@ func (app *earthlyApp) actionRegister(c *cli.Context) error {
 
 	pword := app.password
 	if app.password == "" {
-		fmt.Println("pick a password")
+		fmt.Printf("pick a password: ")
 		enteredPassword, err := term.ReadPassword(int(syscall.Stdin))
 		if err != nil {
 			return err
 		}
-		fmt.Println("confirm password")
+		fmt.Println("")
+		fmt.Printf("confirm password: ")
 		enteredPassword2, err := term.ReadPassword(int(syscall.Stdin))
 		if err != nil {
 			return err
 		}
+		fmt.Println("")
 		if string(enteredPassword) != string(enteredPassword2) {
 			return errors.Errorf("passwords do not match")
 		}
