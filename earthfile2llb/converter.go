@@ -1348,12 +1348,17 @@ func (c *Converter) FinalizeStates(ctx context.Context) (*states.MultiTarget, er
 	return c.mts, nil
 }
 
+var errShellOutNotPermitted = errors.New("shell-out not permitted")
+
 // ExpandArgs expands args in the provided word.
-func (c *Converter) ExpandArgs(ctx context.Context, runOpts ConvertRunOpts, word string) (string, error) {
+func (c *Converter) ExpandArgs(ctx context.Context, runOpts ConvertRunOpts, word string, allowShellOut bool) (string, error) {
 	if !c.opt.Features.ShellOutAnywhere {
 		return c.varCollection.ExpandOld(word), nil
 	}
 	return c.varCollection.Expand(word, func(cmd string) (string, error) {
+		if !allowShellOut {
+			return "", errShellOutNotPermitted
+		}
 		runOpts.Args = []string{cmd}
 		return c.RunCommand(ctx, "internal-expand-args", runOpts)
 	})
