@@ -20,6 +20,14 @@ detect_docker_compose() {
     return "$has_dc"
 }
 
+detect_jq() {
+    set +e
+    command -v jq
+    has_jq="$?"
+    set -e
+    return "$has_jq"
+}
+
 print_debug() {
     set +u
     if [ "$EARTHLY_DEBUG" = "true" ] ; then
@@ -78,10 +86,18 @@ install_dockerd() {
     esac
 }
 
+apt_update_done="false"
+apt_get_update() {
+    if [ "$apt_update_done" != "true" ]; then
+        apt-get update
+        apt_update_done=true
+    fi
+}
+
 install_dockerd_debian_like() {
     export DEBIAN_FRONTEND=noninteractive
     apt-get remove -y docker docker-engine docker.io containerd runc || true
-    apt-get update
+    apt_get_update
     apt-get install -y \
         apt-transport-https \
         ca-certificates \
@@ -93,7 +109,7 @@ install_dockerd_debian_like() {
         "deb [arch=$(dpkg --print-architecture)] https://download.docker.com/linux/$distro \
         $(lsb_release -cs) \
         stable"
-    apt-get update
+    apt-get update # dont use apt_get_update since we must update the newly added apt repo
     apt-get install -y docker-ce docker-ce-cli containerd.io
 }
 
@@ -110,8 +126,31 @@ install_dockerd_amazon() {
     esac
 }
 
+install_jq() {
+    case "$distro" in
+        alpine)
+            apk add --update --no-cache jq
+            ;;
+
+        amzn)
+            yum -y install jq
+            ;;
+
+        *)
+            export DEBIAN_FRONTEND=noninteractive
+            apt_get_update
+            apt-get install -y jq
+            ;;
+    esac
+}
+
 if [ "$(id -u)" != 0 ]; then
     echo "Warning: Docker-in-Earthly needs to be run as root user"
+fi
+
+if ! detect_jq; then
+    echo "jq is missing. Attempting to install automatically."
+    install_jq
 fi
 
 if ! detect_dockerd; then

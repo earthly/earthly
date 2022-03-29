@@ -13,6 +13,7 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 ### Changed
 
 - A more obvious error is printed if `WITH DOCKER` starts non-natively. This is not supported and it wasn't obvious before.
+- `WITH DOCKER` will keep any settings pre-applied in `/etc/docker/daemon.json` rather than overwriting them.
 
 ### Added
 
