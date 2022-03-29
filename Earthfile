@@ -419,7 +419,8 @@ dind:
 
 dind-alpine:
     FROM docker:dind
-    RUN apk add --update --no-cache docker-compose
+    COPY ./buildkitd/docker-auto-install.sh /usr/local/bin/docker-auto-install.sh
+    RUN docker-auto-install.sh
     ARG EARTHLY_TARGET_TAG_DOCKER
     ARG DIND_ALPINE_TAG=alpine-$EARTHLY_TARGET_TAG_DOCKER
     ARG DOCKERHUB_USER=earthly
