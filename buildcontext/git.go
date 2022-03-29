@@ -43,6 +43,8 @@ type gitResolver struct {
 type resolvedGitProject struct {
 	// hash is the git hash.
 	hash string
+	// shortHash is the short git hash.
+	shortHash string
 	// branches is the git branches.
 	branches []string
 	// tags is the git tags.
@@ -144,6 +146,7 @@ func (gr *gitResolver) resolveEarthProject(ctx context.Context, gwClient gwclien
 			RelDir:    subDir,
 			RemoteURL: gitURL,
 			Hash:      rgp.hash,
+			ShortHash: rgp.shortHash,
 			Branch:    rgp.branches,
 			Tags:      rgp.tags,
 			Timestamp: rgp.ts,
@@ -189,6 +192,7 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, gwClient gwclient.
 			llb.Args([]string{
 				"/bin/sh", "-c",
 				"git rev-parse HEAD >/dest/git-hash ; " +
+					"git rev-parse --short=8 HEAD >/dest/git-short-hash ; " +
 					"git rev-parse --abbrev-ref HEAD >/dest/git-branch  || touch /dest/git-branch ; " +
 					"git describe --exact-match --tags >/dest/git-tags || touch /dest/git-tags ; " +
 					"git log -1 --format=%ct >/dest/git-ts || touch /dest/git-ts",
@@ -214,6 +218,12 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, gwClient gwclient.
 		if err != nil {
 			return nil, errors.Wrap(err, "read git-hash")
 		}
+		gitShortHashBytes, err := gitMetaRef.ReadFile(ctx, gwclient.ReadRequest{
+			Filename: "git-short-hash",
+		})
+		if err != nil {
+			return nil, errors.Wrap(err, "read git-short-hash")
+		}
 		gitBranchBytes, err := gitMetaRef.ReadFile(ctx, gwclient.ReadRequest{
 			Filename: "git-branch",
 		})
@@ -234,6 +244,7 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, gwClient gwclient.
 		}
 
 		gitHash := strings.SplitN(string(gitHashBytes), "\n", 2)[0]
+		gitShortHash := strings.SplitN(string(gitShortHashBytes), "\n", 2)[0]
 		gitBranches := strings.SplitN(string(gitBranchBytes), "\n", 2)
 		var gitBranches2 []string
 		for _, gitBranch := range gitBranches {
@@ -259,10 +270,11 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, gwClient gwclient.
 		}
 
 		rgp := &resolvedGitProject{
-			hash:     gitHash,
-			branches: gitBranches2,
-			tags:     gitTags2,
-			ts:       gitTs,
+			hash:      gitHash,
+			shortHash: gitShortHash,
+			branches:  gitBranches2,
+			tags:      gitTags2,
+			ts:        gitTs,
 			state: pllb.Git(
 				gitURL,
 				gitHash,
