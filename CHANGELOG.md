@@ -4,9 +4,22 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+## v0.6.13 - 2022-03-30
+
 ### Added
 
 - Earthly now warns when encountering Earthfiles with no `VERSION` specified. In the future, the `VERSION` command will be mandatory. [#1775](https://github.com/earthly/earthly/pull/1775)
+
+### Changed
+
+- `WITH DOCKER` now merges changes into `/etc/docker/daemon.json` rather than overwriting the entire file; this change introduces `jq` as a dependency, which will
+  be auto-installed if missing.
+
+### Fixed
+
+- The `COPY` command, when used with `LOCALLY` was incorrectly ignoring the `WORKDIR` value. [#1792](https://github.com/earthly/earthly/issues/1792)
+- The `--shell-out-anywhere` feature introduced a bug which interfered with asynchronous builds. [#1785](https://github.com/earthly/earthly/issues/1785)
+- `EARTHLY_GIT_SHORT_HASH` was not set when building a remotely-referenced target. [#1787](https://github.com/earthly/earthly/issues/1787)
 
 ## v0.6.12 - 2022-03-23
 
