@@ -588,25 +588,34 @@ func (gl *GitLookup) ConvertCloneURL(inURL string) (string, []string, error) {
 	return gl.makeCloneURL(m, host, gitPath)
 }
 
+func loadKnownHostsFromPath(path string) ([]string, error) {
+	knownHostsExists, err := fileutil.FileExists(path)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to check if %s exists", path)
+	}
+	if !knownHostsExists {
+		return nil, nil
+	}
+	b, err := os.ReadFile(path)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to read %s", path)
+	}
+	return knownHostsToKeyScans(string(b)), nil
+}
+
 func loadKnownHosts() ([]string, error) {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get user home dir")
 	}
-
-	knownHosts := filepath.Join(homeDir, ".ssh/known_hosts")
-	knownHostsExists, err := fileutil.FileExists(knownHosts)
+	knownHosts, err := loadKnownHostsFromPath(filepath.Join(homeDir, ".ssh/known_hosts"))
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to check if %s exists", knownHosts)
+		return nil, err
 	}
-	if !knownHostsExists {
-		return nil, nil
-	}
-
-	b, err := os.ReadFile(knownHosts)
+	etcKnownHosts, err := loadKnownHostsFromPath("/etc/ssh/ssh_known_hosts")
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to read %s", knownHosts)
+		return nil, err
 	}
-
-	return knownHostsToKeyScans(string(b)), nil
+	knownHosts = append(knownHosts, etcKnownHosts...)
+	return knownHosts, nil
 }
