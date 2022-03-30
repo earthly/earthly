@@ -117,7 +117,7 @@ Docker-in-Docker (dind) images change less frequently than earthly, but take a l
 These images can be rebuilt by running:
 
   ```bash
-  ./earthly --push ./release+release-dind --RELEASE_TAG="$RELEASE_TAG"
+  ./earthly --push ./release+release-dind
   ```
 
 ### VS Code syntax highlighting
