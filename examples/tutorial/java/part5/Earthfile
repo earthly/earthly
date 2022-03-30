@@ -3,12 +3,9 @@ FROM openjdk:8-jdk-alpine
 RUN apk add --update --no-cache gradle
 WORKDIR /java-example
 
-deps:
-    COPY build.gradle ./
-    RUN gradle build
-
 build:
-    FROM +deps
+    FROM ./services/service-one+deps
+    # Or, using the IMPORT above: FROM my-service+deps
     COPY src src
     RUN gradle build
     RUN gradle install
@@ -18,5 +15,6 @@ build:
 docker:
     COPY +build/bin bin
     COPY +build/lib lib
+    ARG tag='latest'
     ENTRYPOINT ["/java-example/bin/java-example"]
-    SAVE IMAGE java-example:latest
+    SAVE IMAGE java-example:$tag

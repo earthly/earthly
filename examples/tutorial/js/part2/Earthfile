@@ -1,0 +1,14 @@
+VERSION 0.6
+FROM node:13.10.1-alpine3.11
+WORKDIR /js-example
+
+build:
+    # In JS, there's nothing to build in this simple form.
+    # The source is also the artifact used in production.
+    COPY src/index.js .
+    SAVE ARTIFACT index.js /dist/index.js AS LOCAL ./dist/index.js
+
+docker:
+    COPY +build/dist dist
+    ENTRYPOINT ["node", "./dist/index.js"]
+    SAVE IMAGE js-example:latest

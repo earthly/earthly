@@ -452,12 +452,16 @@ jobs:
         run: ./build/linux/amd64/earthly config global.conversion_parallelism 5
       - name: Build tutorial part 1
         run: ./build/linux/amd64/earthly -P ./examples/tutorial+test-part1 --earthly=$(realpath ./build/linux/amd64/earthly)
+      - name: Build tutorial part 2
+        run: ./build/linux/amd64/earthly -P ./examples/tutorial+test-part2 --earthly=$(realpath ./build/linux/amd64/earthly)
       - name: Build tutorial part 3
         run: ./build/linux/amd64/earthly -P ./examples/tutorial+test-part3 --earthly=$(realpath ./build/linux/amd64/earthly)
       - name: Build tutorial part 4
         run: ./build/linux/amd64/earthly -P ./examples/tutorial+test-part4 --earthly=$(realpath ./build/linux/amd64/earthly)
       - name: Build tutorial part 5
         run: ./build/linux/amd64/earthly -P ./examples/tutorial+test-part5 --earthly=$(realpath ./build/linux/amd64/earthly)
+      - name: Build tutorial part 6
+        run: ./build/linux/amd64/earthly -P ./examples/tutorial+test-part6 --earthly=$(realpath ./build/linux/amd64/earthly)
       - name: Buildkit logs (runs on failure)
         run: docker logs earthly-buildkitd
         if: ${{ failure() }}
