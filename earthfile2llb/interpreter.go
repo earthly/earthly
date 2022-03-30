@@ -1659,7 +1659,7 @@ func (i *Interpreter) expandArgs(ctx context.Context, word string, keepPlusEscap
 
 	ret, err := i.converter.ExpandArgs(ctx, runOpts, escapeSlashPlus(word), !async)
 	if err != nil {
-		if errors.Is(err, errShellOutNotPermitted) {
+		if async && errors.Is(err, errShellOutNotPermitted) {
 			return "", errCannotAsync
 		}
 		return "", err
