@@ -74,6 +74,17 @@ test-save-unnamed-local-artifact-dir2:
     COPY --dir +save-unnamed-local-artifact/earthly-test-c5009c71-d573-4562-be15-2c28dae333fc /var/log/.
     RUN cat /var/log/earthly-test-c5009c71-d573-4562-be15-2c28dae333fc/c.txt | grep '^ccc$'
 
+save-local-artifact-with-workdir:
+    LOCALLY
+    RUN rm -rf /tmp/earthly-b1682dd4-b3e3-41c8-8191-b8eeb0b56499
+    WORKDIR /tmp/earthly-b1682dd4-b3e3-41c8-8191-b8eeb0b56499
+    RUN echo ddd > 29998a72-a765-4d48-a395-c5252183934b
+    SAVE ARTIFACT 29998a72-a765-4d48-a395-c5252183934b data
+
+test-save-local-artifact-with-workdir:
+    COPY +save-local-artifact-with-workdir/data .
+    RUN cat data | grep '^ddd$'
+
 
 #################################################################################################################
 # tests for testing containerized artifacts can be referenced by local targets
@@ -88,6 +99,13 @@ test-copy-from-busybox-to-local:
     RUN rm -rf /tmp/4eb5dcb7-2245-4f35-ab41-252f78e7a451
     COPY +busybox-artifact/the-data /tmp/4eb5dcb7-2245-4f35-ab41-252f78e7a451
     RUN cat /tmp/4eb5dcb7-2245-4f35-ab41-252f78e7a451 | grep "BusyBox v1.32.1"
+
+test-copy-from-busybox-to-local-with-workdir:
+    LOCALLY
+    RUN rm -rf /tmp/earthly-test-5816ebd4-6b18-421e-a1b4-5991af91e11e
+    WORKDIR /tmp/earthly-test-5816ebd4-6b18-421e-a1b4-5991af91e11e
+    COPY +busybox-artifact/the-data 0b59ac77-91d7-4b84-9d1c-12f64fc6f48e
+    RUN cat /tmp/earthly-test-5816ebd4-6b18-421e-a1b4-5991af91e11e/0b59ac77-91d7-4b84-9d1c-12f64fc6f48e | grep "BusyBox v1.32.1"
 
 alpine-artifacts:
     FROM alpine:3.15.0 # if this is changed, the grep in test-multi-copy-from-alpine-to-local must also be updated
@@ -167,19 +185,20 @@ test-with-two-dockers:
 # tests for WITH DOCKER and compose
 
 all:
-    BUILD +test-locally-workdir
-    BUILD +test-copy-from-busybox-to-local
-    BUILD --build-arg pattern=memory +test-local-with-arg
-    BUILD +test-local
-    BUILD +test-copy-file-from-local
     BUILD +test-copy-dir-from-local
+    BUILD +test-copy-file-from-local
+    BUILD +test-copy-from-busybox-to-local
+    BUILD +test-copy-from-busybox-to-local-with-workdir
+    BUILD +test-local
+    BUILD +test-local-with-arg --pattern=memory
+    BUILD +test-locally-can-copy-dir
+    BUILD +test-locally-can-copy-dir-contents
+    BUILD +test-locally-workdir
+    BUILD +test-locally-workdir
+    BUILD +test-multi-copy-from-alpine-to-local
     BUILD +test-save-unnamed-local-artifact
     BUILD +test-save-unnamed-local-artifact-dir
     BUILD +test-save-unnamed-local-artifact-dir2
-    BUILD +test-multi-copy-from-alpine-to-local
-    BUILD +test-locally-can-copy-dir-contents
-    BUILD +test-locally-can-copy-dir
-    BUILD +test-locally-workdir
     BUILD +test-with-docker
     BUILD +test-with-two-dockers
     BUILD ./with-docker-compose-local+all
