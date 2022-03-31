@@ -1369,7 +1369,7 @@ The `USER` command sets the user name (or UID) and optionally the user group (or
 
 #### Description
 
-The `WORKDIR` command `strs` the working directory for other commands that follow in the recipe. The working directory is also persisted as the default directory for the image. If the directory does not exist, it is automatically created. This command works the same way as the [Dockerfile `WORKDIR` command](https://docs.docker.com/engine/reference/builder/#workdir).
+The `WORKDIR` command sets the working directory for following commands in the recipe. The working directory is also persisted as the default directory for the image. If the directory does not exist, it is automatically created. This command works the same way as the [Dockerfile `WORKDIR` command](https://docs.docker.com/engine/reference/builder/#workdir).
 
 ## HEALTHCHECK (same as Dockerfile HEALTHCHECK)
 
