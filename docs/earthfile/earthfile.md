@@ -1400,6 +1400,25 @@ Sets an initialization time period in which failures are not counted towards the
 
 Sets the number of retries before a container is considered `unhealthy`. Defaults to `3`.
 
+## HOST (experimental)
+
+{% hint style='info' %}
+##### Note
+The `HOST` command is experimental and must be enabled by enabling the `--use-host-command` flag, e.g.
+
+```Dockerfile
+VERSION --use-host-command 0.6
+```
+{% endhint %}
+
+#### Synopsis
+
+* `HOST <hostname> <ip>`
+
+#### Description
+
+The `HOST` command creates a hostname entry (under `/etc/hosts`) that causes `<hostname>` to resolve to the specified `<ip>` address.
+
 ## SHELL (not supported)
 
 The classical [`SHELL` Dockerfile command](https://docs.docker.com/engine/reference/builder/#shell) is not yet supported. Use the *exec form* of `RUN`, `ENTRYPOINT` and `CMD` instead and prepend a different shell.
