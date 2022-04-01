@@ -24,6 +24,7 @@ type stackFrame struct {
 	// Always inactive scopes. These scopes only influence newly declared
 	// args. They do not otherwise participate when args are expanded.
 	overriding *Scope
+	dotEnv     *Scope // these may also contain secrets, or earthly-flag values
 
 	// Always active scopes. These scopes influence the value of args directly.
 	args    *Scope
@@ -53,6 +54,7 @@ type NewCollectionOpt struct {
 	NativePlatform   specs.Platform
 	GitMeta          *gitutil.GitMetadata
 	BuiltinArgs      DefaultArgs
+	DotEnvVars       *Scope
 	OverridingVars   *Scope
 	Features         *features.Features
 	GlobalImports    map[string]domain.ImportTrackerVal
@@ -70,6 +72,7 @@ func NewCollection(opts NewCollectionOpt) *Collection {
 			absRef:     target,
 			imports:    domain.NewImportTracker(console, opts.GlobalImports),
 			overriding: opts.OverridingVars,
+			dotEnv:     opts.DotEnvVars,
 			args:       NewScope(),
 			globals:    NewScope(),
 		}},
@@ -239,7 +242,7 @@ func (c *Collection) IsStackAtBase() bool {
 func (c *Collection) StackString() string {
 	builder := make([]string, 0, len(c.stack))
 	for i := len(c.stack) - 1; i >= 0; i-- {
-		overridingNames := c.stack[i].overriding.SortedAny()
+		overridingNames := c.stack[i].overriding.SortedAny() // TODO should we combine with dotEnv vars (and display ***** as the value)?
 		row := make([]string, 0, len(overridingNames)+1)
 		row = append(row, c.stack[i].frameName)
 		for _, k := range overridingNames {
@@ -267,10 +270,14 @@ func (c *Collection) overriding() *Scope {
 	return c.frame().overriding
 }
 
+func (c *Collection) dotEnv() *Scope {
+	return c.frame().dotEnv
+}
+
 // effective returns the variables as a single combined scope.
 func (c *Collection) effective() *Scope {
 	if c.effectiveCache == nil {
-		c.effectiveCache = CombineScopes(c.overriding(), c.builtin, c.args(), c.envs, c.globals())
+		c.effectiveCache = CombineScopes(c.dotEnv(), c.overriding(), c.builtin, c.args(), c.envs, c.globals())
 	}
 	return c.effectiveCache
 }

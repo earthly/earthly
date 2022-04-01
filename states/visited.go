@@ -141,6 +141,7 @@ func CompareTargetInputs(target domain.Target, platr *platutil.Resolver, allowPr
 		return false, nil
 	}
 	for _, bai := range other.BuildArgs {
+		// TODO check for dotEnv here too? or better yet: make a GetAny helper which checks multiple scopes at a time
 		variable, found := overridingVars.GetAny(bai.Name)
 		if found {
 			baiVariable := dedup.BuildArgInput{

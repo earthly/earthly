@@ -48,6 +48,8 @@ type ConvertOpt struct {
 	PlatformResolver *platutil.Resolver
 	// OverridingVars is a collection of build args used for overriding args in the build.
 	OverridingVars *variables.Scope
+	// DotEnvVars is a collection of .env args used for overriding args in the build, this collection may also include secrets
+	DotEnvVars *variables.Scope
 	// A cache for image solves. (maybe dockerTag +) depTargetInputHash -> context containing image.tar.
 	SolveCache *states.SolveCache
 	// BuildContextProvider is the provider used for local build context files.

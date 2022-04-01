@@ -101,7 +101,7 @@ func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Da
 		Final:   sts,
 		Visited: opt.Visited,
 	}
-	sts.AddOverridingVarsAsBuildArgInputs(opt.OverridingVars)
+	sts.AddOverridingVarsAsBuildArgInputs(opt.DotEnvVars, opt.OverridingVars)
 	newCollOpt := variables.NewCollectionOpt{
 		Console:          opt.Console,
 		Target:           target,
@@ -109,6 +109,7 @@ func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Da
 		GitMeta:          bc.GitMetadata,
 		BuiltinArgs:      opt.BuiltinArgs,
 		OverridingVars:   opt.OverridingVars,
+		DotEnvVars:       opt.DotEnvVars,
 		GlobalImports:    opt.GlobalImports,
 		Features:         opt.Features,
 	}
@@ -1432,6 +1433,10 @@ func (c *Converter) buildTarget(ctx context.Context, fullTargetName string, plat
 			// Check if the build arg has been overridden. If it has, it can no longer be an input
 			// directly, so skip it.
 			_, found := opt.OverridingVars.GetAny(bai.Name)
+			if found {
+				continue
+			}
+			_, found = opt.DotEnvVars.GetAny(bai.Name)
 			if found {
 				continue
 			}

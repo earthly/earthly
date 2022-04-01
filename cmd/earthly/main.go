@@ -2688,18 +2688,22 @@ func (app *earthlyApp) warnIfArgContainsBuildArg(flagArgs []string) {
 	}
 }
 
-func (app *earthlyApp) combineVariables(dotEnvMap map[string]string, flagArgs []string) (*variables.Scope, error) {
-	dotEnvVars := variables.NewScope()
-	for k, v := range dotEnvMap {
-		dotEnvVars.AddInactive(k, v)
+func mapToScope(m map[string]string) *variables.Scope {
+	vars := variables.NewScope()
+	for k, v := range m {
+		vars.AddInactive(k, v)
 	}
+	return vars
+}
+
+func (app *earthlyApp) flagArgsToScope(flagArgs []string) (*variables.Scope, error) {
 	buildArgs := append([]string{}, app.buildArgs.Value()...)
 	buildArgs = append(buildArgs, flagArgs...)
 	overridingVars, err := variables.ParseCommandLineArgs(buildArgs)
 	if err != nil {
 		return nil, errors.Wrap(err, "parse build args")
 	}
-	return variables.CombineScopes(overridingVars, dotEnvVars), nil
+	return overridingVars, nil
 }
 
 func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []string) error {
@@ -2931,7 +2935,8 @@ func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []st
 		}()
 	}
 
-	overridingVars, err := app.combineVariables(dotEnvMap, flagArgs)
+	dotEnvVars := mapToScope(dotEnvMap)
+	overridingVars, err := app.flagArgsToScope(flagArgs)
 	if err != nil {
 		return err
 	}
@@ -2981,6 +2986,7 @@ func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []st
 		SessionID:              app.sessionID,
 		ImageResolveMode:       imageResolveMode,
 		CleanCollection:        cleanCollection,
+		DotEnvVars:             dotEnvVars,
 		OverridingVars:         overridingVars,
 		BuildContextProvider:   buildContextProvider,
 		GitLookup:              gitLookup,

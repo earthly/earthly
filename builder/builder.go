@@ -64,6 +64,7 @@ type Opt struct {
 	SaveInlineCache        bool
 	ImageResolveMode       llb.ResolveMode
 	CleanCollection        *cleanup.Collection
+	DotEnvVars             *variables.Scope
 	OverridingVars         *variables.Scope
 	BuildContextProvider   *provider.BuildContextProvider
 	GitLookup              *buildcontext.GitLookup
@@ -158,7 +159,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 		}
 		var err error
 		if !b.builtMain {
-			opt := earthfile2llb.ConvertOpt{
+			convertOpt := earthfile2llb.ConvertOpt{
 				GwClient:             gwClient,
 				Resolver:             b.resolver,
 				ImageResolveMode:     b.opt.ImageResolveMode,
@@ -166,6 +167,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 				CleanCollection:      b.opt.CleanCollection,
 				PlatformResolver:     opt.PlatformResolver.SubResolver(opt.PlatformResolver.Current()),
 				OverridingVars:       b.opt.OverridingVars,
+				DotEnvVars:           b.opt.DotEnvVars,
 				BuildContextProvider: b.opt.BuildContextProvider,
 				CacheImports:         b.opt.CacheImports,
 				UseInlineCache:       b.opt.UseInlineCache,
@@ -183,7 +185,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 				NoCache:              b.opt.NoCache,
 				ContainerFrontend:    b.opt.ContainerFrontend,
 			}
-			mts, err = earthfile2llb.Earthfile2LLB(childCtx, target, opt, true)
+			mts, err = earthfile2llb.Earthfile2LLB(childCtx, target, convertOpt, true)
 			if err != nil {
 				return nil, err
 			}
