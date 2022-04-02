@@ -208,12 +208,20 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 			res.AddMeta(fmt.Sprintf("%s/final-artifact", refPrefix), []byte("true"))
 		}
 
-		isMultiPlatform := make(map[string]bool) // DockerTag -> bool
+		isMultiPlatform := make(map[string]bool)    // DockerTag -> bool
+		noManifestListImgs := make(map[string]bool) // DockerTag -> bool
 		for _, sts := range mts.All() {
 			if sts.PlatformResolver.Current() != platutil.DefaultPlatform {
 				for _, saveImage := range b.targetPhaseImages(sts) {
 					if saveImage.DockerTag != "" && saveImage.DoSave {
-						isMultiPlatform[saveImage.DockerTag] = true
+						if saveImage.NoManifestList {
+							noManifestListImgs[saveImage.DockerTag] = true
+						} else {
+							isMultiPlatform[saveImage.DockerTag] = true
+						}
+						if isMultiPlatform[saveImage.DockerTag] && noManifestListImgs[saveImage.DockerTag] {
+							return nil, fmt.Errorf("cannot save image %s defined multiple times, but declared as SAVE IMAGE --no-manifest-list", saveImage.DockerTag)
+						}
 					}
 				}
 			}

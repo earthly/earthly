@@ -34,6 +34,7 @@ type Features struct {
 	NoTarBuildOutput           bool `long:"no-tar-build-output" description:"do not print output when creating a tarball to load into WITH DOCKER"`
 	ShellOutAnywhere           bool `long:"shell-out-anywhere" description:"allow shelling-out in the middle of ARGs, or any other command"`
 	NewPlatform                bool `long:"new-platform" description:"enable new platform behavior"`
+	UseNoManifestList          bool `long:"use-no-manifest-list" description:"enable the SAVE IMAGE --no-manifest-list option"`
 
 	Major int
 	Minor int
@@ -194,6 +195,7 @@ func GetFeatures(version *spec.Version) (*Features, bool, error) {
 		ftrs.UseCopyLink = true
 		ftrs.NewPlatform = true
 		ftrs.NoTarBuildOutput = true
+		ftrs.UseNoManifestList = true
 	}
 
 	return &ftrs, hasVersion, nil

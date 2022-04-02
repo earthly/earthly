@@ -886,10 +886,13 @@ func (c *Converter) SaveArtifactFromLocal(ctx context.Context, saveFrom, saveTo 
 }
 
 // SaveImage applies the earthly SAVE IMAGE command.
-func (c *Converter) SaveImage(ctx context.Context, imageNames []string, pushImages bool, insecurePush bool, cacheHint bool, cacheFrom []string) error {
+func (c *Converter) SaveImage(ctx context.Context, imageNames []string, pushImages bool, insecurePush bool, cacheHint bool, cacheFrom []string, noManifestList bool) error {
 	err := c.checkAllowed(saveImageCmd)
 	if err != nil {
 		return err
+	}
+	if noManifestList && !c.ftrs.UseNoManifestList {
+		return fmt.Errorf("SAVE IMAGE --no-manifest-list is not supported in this version")
 	}
 	for _, cf := range cacheFrom {
 		c.opt.CacheImports.Add(cf)
@@ -916,6 +919,7 @@ func (c *Converter) SaveImage(ctx context.Context, imageNames []string, pushImag
 					HasPushDependencies: true,
 					DoSave:              c.opt.DoSaves || c.opt.ForceSaveImage,
 					CheckDuplicate:      c.ftrs.CheckDuplicateImages,
+					NoManifestList:      noManifestList,
 				})
 		} else {
 			pcState := c.persistCache(c.mts.Final.MainState)
@@ -930,6 +934,7 @@ func (c *Converter) SaveImage(ctx context.Context, imageNames []string, pushImag
 					HasPushDependencies: false,
 					DoSave:              c.opt.DoSaves || c.opt.ForceSaveImage,
 					CheckDuplicate:      c.ftrs.CheckDuplicateImages,
+					NoManifestList:      noManifestList,
 				})
 		}
 
