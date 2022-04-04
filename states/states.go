@@ -238,6 +238,10 @@ type SaveImage struct {
 	// CheckDuplicate indicates whether to check if the image name shows up
 	// multiple times during output.
 	CheckDuplicate bool
+	// NoManifestList indicates that the image should not include a manifest
+	// list (usually used for multi-platform setups). This means that the image
+	// can only be a single-platform image.
+	NoManifestList bool
 }
 
 // RunPush is a series of RUN --push commands to be run after the build has been deemed as

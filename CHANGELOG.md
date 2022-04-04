@@ -4,6 +4,10 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+### Added
+
+- Experimental support for `SAVE IMAGE --no-manifest-list`. This option disables creating a multi-platform manifest list for the image, even if the image is created with a non-default platform. This allows the user to create non-native images (e.g. amd64 image on an M1 laptop) that are still compatible with AWS lambda. To enable this feature, please use `VERSION --use-no-manifest-list 0.6`. [#1802](https://github.com/earthly/earthly/pull/1802)
+
 ## v0.6.13 - 2022-03-30
 
 ### Added
