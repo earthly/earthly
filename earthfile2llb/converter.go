@@ -1261,15 +1261,23 @@ func (c *Converter) Import(ctx context.Context, importStr, as string, isGlobal, 
 // Cache handles a `CACHE` command in a Target.
 // It appends run options to the Converter which will mount a cache volume in each successive `RUN` command,
 // and configures the `Converter` to persist the cache in the image at the end of the target.
-func (c *Converter) Cache(ctx context.Context, path string) error {
+func (c *Converter) Cache(ctx context.Context, mountTarget string) error {
 	err := c.checkAllowed(cacheCmd)
 	if err != nil {
 		return err
 	}
 	c.nonSaveCommand()
-	if _, exists := c.persistentCacheDirs[path]; !exists {
-		c.persistentCacheDirs[path] = pllb.AddMount(path, pllb.Scratch(),
-			llb.AsPersistentCacheDir(path, llb.CacheMountShared))
+
+	key, err := cacheKeyTargetInput(c.targetInputActiveOnly())
+	if err != nil {
+		return err
+	}
+	mountID := path.Clean(mountTarget)
+	cachePath := path.Join("/run/cache", key, mountID)
+
+	if _, exists := c.persistentCacheDirs[mountTarget]; !exists {
+		c.persistentCacheDirs[mountTarget] = pllb.AddMount(mountTarget, pllb.Scratch(),
+			llb.AsPersistentCacheDir(cachePath, llb.CacheMountShared))
 	}
 	return nil
 }
