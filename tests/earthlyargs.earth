@@ -1,0 +1,19 @@
+VERSION 0.6
+FROM alpine:3.15
+
+test-arg:
+    ARG foo=incorrect
+    RUN test "$foo" == "bar"
+
+test-secret:
+    RUN --secret foo test "$foo" == "secretbar"
+
+test-both:
+    ARG foo=incorrect
+    RUN --secret foo test "$foo" = "bar" # arg takes precedence
+    RUN --secret secretfoo=+secrets/foo test "$secretfoo" == "secretbar" && test "$foo" = "bar"
+
+all:
+    BUILD +test-arg
+    BUILD +test-secret
+    BUILD +test-both
