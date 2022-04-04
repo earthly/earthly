@@ -48,4 +48,4 @@ test-no-sharing-prev:
 test-no-sharing:
     COPY +test-no-sharing-prev/nothing . # Only to make sure +test-no-sharing-prev runs fitst
     CACHE /no-sharing
-    RUN test -f /no-sharing/should-not-see-me; test $? = 1
+    RUN ! test -f /no-sharing/should-not-see-me
