@@ -89,8 +89,9 @@ const (
 	defaultEnvFile = ".env"
 	envFileFlag    = "env-file"
 
-	defaultSecretsFile = ".earthlysecrets"
-	defaultArgsFile    = ".earthlyargs"
+	hideEarthlySecretsAndArgs = true
+	defaultSecretsFile        = ".earthlysecrets"
+	defaultArgsFile           = ".earthlyargs"
 )
 
 type earthlyApp struct {
@@ -633,18 +634,20 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 			Destination: &app.envFile,
 		},
 		&cli.StringFlag{
-			Name:        "secrets-file",
+			Name:        "earthlysecrets",
 			EnvVars:     []string{"EARTHLY_SECRETS_FILE"},
 			Usage:       "Use secrets from this file",
 			Value:       defaultSecretsFile,
 			Destination: &app.secretsFile,
+			Hidden:      hideEarthlySecretsAndArgs,
 		},
 		&cli.StringFlag{
-			Name:        "args-file",
+			Name:        "earthlyargs",
 			EnvVars:     []string{"EARTHLY_ARGS_FILE"},
 			Usage:       "Use build args from this file",
 			Value:       defaultArgsFile,
 			Destination: &app.argsFile,
+			Hidden:      hideEarthlySecretsAndArgs,
 		},
 	}
 
@@ -2877,7 +2880,7 @@ func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []st
 			secretsStringMap[key] = val
 		}
 	}
-	if len(nonEarthlyEnvs) > 0 {
+	if !hideEarthlySecretsAndArgs && len(nonEarthlyEnvs) > 0 {
 		sort.Strings(nonEarthlyEnvs)
 		keys := strings.Join(nonEarthlyEnvs, ", ")
 		app.console.Warnf("Warning: build-args or secrets (%s) should be defined in .earthlyargs or .earthlysecrets; this will become mandatory in a future version of earthly.", keys)
