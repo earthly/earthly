@@ -498,6 +498,20 @@ dotenv-test:
     # --env-file takes preceddence
     DO +RUN_EARTHLY --earthfile=dotenv.earth --extra_args="--no-output --env-file .some-other-env" --pre_command="export EARTHLY_ENV_FILE=.this-should-be-ignored" --target=+test
 
+earthlyargs-test:
+    RUN echo "foo=bar" >.earthlyargs
+    RUN echo "foo=secretbar" >.earthlysecrets
+    DO +RUN_EARTHLY --earthfile=earthlyargs.earth --extra_args="--no-output"
+
+    RUN echo "foo=duplicate-key-should-fail" >.env
+    DO +RUN_EARTHLY --earthfile=earthlyargs.earth --extra_args="--no-output" --should_fail="true" --output_contains="build arg foo found in both .env and .earthlyargs"
+
+earthlyargs-override-test:
+    RUN echo "foo=bar" > other.args
+    RUN echo "foo=secretbar" > other.secrets
+    RUN echo "EARTHLY_ARGS_FILE=other.args
+EARTHLY_SECRETS_FILE=other.secrets" > .env
+    DO +RUN_EARTHLY --earthfile=earthlyargs.earth --extra_args="--no-output"
 
 env-test:
     DO +RUN_EARTHLY --earthfile=env.earth --extra_args="--no-output" --target=+test
