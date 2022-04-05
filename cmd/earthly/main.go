@@ -1567,9 +1567,13 @@ func (app *earthlyApp) run(ctx context.Context, args []string) int {
 					"Did you ssh-add today? Need to configure ~/.earthly/config.yml?\n" +
 					"For more information see https://docs.earthly.dev/guides/auth\n")
 		} else if strings.Contains(err.Error(), "failed to compute cache key") && strings.Contains(err.Error(), ": not found") {
-			var re = regexp.MustCompile(`".*?"`)
-			var path = re.FindString(err.Error())
-			app.console.Warnf("Error: File not found %v\n", path)
+			re := regexp.MustCompile(`("[^"]*"): not found`)
+			var matches = re.FindStringSubmatch(err.Error())
+			if len(matches) == 2 {
+				app.console.Warnf("Error: File not found %v\n", matches[1])
+			} else {
+				app.console.Warnf("Error: File not found: %v\n", err.Error())
+			}
 		} else if strings.Contains(failedOutput, "Invalid ELF image for this architecture") {
 			app.console.Warnf("Error: %v\n", err)
 			app.console.Printf(
