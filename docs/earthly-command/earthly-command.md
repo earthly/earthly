@@ -110,9 +110,19 @@ The additional environment variables specified in the `.env` file are loaded by 
 * **Build args** - the settings are passed on to the build and are used to override any [`ARG`](../earthfile/earthfile.md#arg) declaration.
 * **Secrets** - the settings are passed on to the build to be referenced via the [`RUN --secret`](../earthfile/earthfile.md#secret-less-than-env-var-greater-than-less-than-secret-ref-greater-than) option.
 
+##### Separation of Environment Variables, Build Args, and Secrets (Experimental)
+
+Earthly v0.6.14 the ability to separate build arguments and secrets from environment variables by reading data from `.earthlyargs` and .earthlysecrets` respectively.
+Segregating build args and secrets is required to prevent accidentally converting secrets to build-args, or printing secrets to the console when debugging errors.
+
+The `.earthlyargs` and `.earthlysecrets` files are formatted the same as `.env` files.
+
+An error will occurs if duplicate keys exist between the `.env` file and `.earthlyargs` and `.earthlysecrets` files;
+It is recommended to only list `EARTHLY_*` cli options in the `.env` file.
+
 {% hint style='danger' %}
 ##### Important
-The `.env` file is meant for settings which are specific to the local environment the build executes in. These settings may cause inconsistencies in the way the build executes on different systems, leading to builds that are difficult to reproduce. Keep the contents of `.env` files to a minimum to avoid such issues.
+The `.env` and `.earthlyargs` files are meant for settings which are specific to the local environment the build executes in. These settings may cause inconsistencies in the way the build executes on different systems, leading to builds that are difficult to reproduce. Keep the contents of `.env` and `.earthlyargs` files to a minimum to avoid such issues.
 {% endhint %}
 
 #### Options
