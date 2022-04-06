@@ -180,7 +180,7 @@ func (vm *vertexMonitor) printError() bool {
 		vm.console.Warnf("ERROR: Command exited with non-zero code: %s\n", vm.operation)
 		return true
 	}
-	vm.console.Printf("WARN: (%s) %s\n", vm.operation, vm.vertex.Error)
+	vm.console.Printf("WARN1: (%s) %s\n", vm.operation, vm.vertex.Error)
 	return false
 }
 

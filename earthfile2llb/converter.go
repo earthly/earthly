@@ -37,6 +37,7 @@ import (
 
 	"github.com/alessio/shellescape"
 	"github.com/docker/distribution/reference"
+	"github.com/google/uuid"
 	"github.com/moby/buildkit/client/llb"
 	"github.com/moby/buildkit/frontend/dockerfile/dockerfile2llb"
 	gwclient "github.com/moby/buildkit/frontend/gateway/client"
@@ -449,13 +450,16 @@ func (c *Converter) CopyArtifact(ctx context.Context, artifactName string, dest 
 	}
 	// Grab the artifacts state in the dep states, after we've built it.
 	relevantDepState := mts.Final
+	contextID := uuid.New().String()
 	// Copy.
+	c.opt.Console.Printf("1 %s", contextID)
 	c.mts.Final.MainState = llbutil.CopyOp(
 		relevantDepState.ArtifactsState, []string{artifact.Artifact},
 		c.mts.Final.MainState, dest, true, isDir, keepTs, c.copyOwner(keepOwn, chown), ifExists, symlinkNoFollow,
 		c.ftrs.UseCopyLink,
 		llb.WithCustomNamef(
-			"%sCOPY %s%s%s%s%s %s",
+			"eid=%s %sCOPY %s%s%s%s%s %s",
+			contextID,
 			c.vertexPrefix(false, false, false),
 			strIf(isDir, "--dir "),
 			strIf(ifExists, "--if-exists "),
@@ -483,13 +487,17 @@ func (c *Converter) CopyClassical(ctx context.Context, srcs []string, dest strin
 	}
 
 	c.nonSaveCommand()
+	contextID := uuid.New().String()
+	// Copy.
+	c.opt.Console.Printf("2 %s", contextID)
 	c.mts.Final.MainState = llbutil.CopyOp(
 		srcState,
 		srcs,
 		c.mts.Final.MainState, dest, true, isDir, keepTs, c.copyOwner(keepOwn, chown), ifExists, false,
 		c.ftrs.UseCopyLink,
 		llb.WithCustomNamef(
-			"%sCOPY %s%s%s %s",
+			"eid=%s %sCOPY %s%s%s%s%s %s",
+			contextID,
 			c.vertexPrefix(false, false, false),
 			strIf(isDir, "--dir "),
 			strIf(ifExists, "--if-exists "),
