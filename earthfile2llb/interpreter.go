@@ -6,6 +6,7 @@ import (
 	"net"
 	"os"
 	"path"
+	"strconv"
 	"strings"
 
 	"github.com/earthly/earthly/analytics"
@@ -716,6 +717,15 @@ func (i *Interpreter) handleCopy(ctx context.Context, cmd spec.Command) error {
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "failed to expand COPY chown: %v", opts.Chown)
 	}
+	expandedMode, err := i.expandArgs(ctx, opts.Chmod, false, false)
+	if err != nil {
+		return i.wrapError(err, cmd.SourceLocation, "failed to expand COPY chmod: %v", opts.Platform)
+	}
+	mode, err := strconv.ParseUint(expandedMode, 10, 32)
+	if err != nil {
+		return i.wrapError(err, cmd.SourceLocation, "failed to expand COPY chmod: %v", opts.Platform)
+	}
+	fileModeParsed := os.FileMode(uint32(mode))
 	expandedPlatform, err := i.expandArgs(ctx, opts.Platform, false, false)
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "failed to expand COPY platform: %v", opts.Platform)
@@ -795,7 +805,7 @@ func (i *Interpreter) handleCopy(ctx context.Context, cmd spec.Command) error {
 					return i.wrapError(err, cmd.SourceLocation, "copy artifact locally")
 				}
 			} else {
-				err = i.converter.CopyArtifact(ctx, src, dest, platform, allowPrivileged, srcBuildArgs, opts.IsDirCopy, opts.KeepTs, opts.KeepOwn, expandedChown, opts.IfExists, opts.SymlinkNoFollow)
+				err = i.converter.CopyArtifact(ctx, src, dest, platform, allowPrivileged, srcBuildArgs, opts.IsDirCopy, opts.KeepTs, opts.KeepOwn, expandedChown, fileModeParsed, opts.IfExists, opts.SymlinkNoFollow)
 				if err != nil {
 					return i.wrapError(err, cmd.SourceLocation, "copy artifact")
 				}
@@ -809,7 +819,7 @@ func (i *Interpreter) handleCopy(ctx context.Context, cmd spec.Command) error {
 			return i.errorf(cmd.SourceLocation, "unhandled locally artifact copy when allArtifacts is false")
 		}
 
-		err = i.converter.CopyClassical(ctx, srcs, dest, opts.IsDirCopy, opts.KeepTs, opts.KeepOwn, expandedChown, opts.IfExists)
+		err = i.converter.CopyClassical(ctx, srcs, dest, opts.IsDirCopy, opts.KeepTs, opts.KeepOwn, expandedChown, fileModeParsed, opts.IfExists)
 		if err != nil {
 			return i.wrapError(err, cmd.SourceLocation, "copy classical")
 		}

@@ -51,6 +51,7 @@ type copyOpts struct {
 	From            string   `long:"from" description:"Not supported"`
 	IsDirCopy       bool     `long:"dir" description:"Copy entire directories, not just the contents"`
 	Chown           string   `long:"chown" description:"Apply a specific group and/or owner to the copied files and directories"`
+	Chmod           string   `long:"chmod" description:"the copied files and directories"`
 	KeepTs          bool     `long:"keep-ts" description:"Keep created time file timestamps"`
 	KeepOwn         bool     `long:"keep-own" description:"Keep owner info"`
 	IfExists        bool     `long:"if-exists" description:"Do not fail if the artifact does not exist"`
