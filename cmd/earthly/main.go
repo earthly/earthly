@@ -10,7 +10,6 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"net"
 	"net/http"
 	_ "net/http/pprof" // enable pprof handlers on net/http listener
 	"net/url"
@@ -188,8 +187,6 @@ var (
 var (
 	errLoginFlagsHaveNoEffect            = errors.New("account login flags have no effect when --auth-token (or the EARTHLY_TOKEN environment variable) is set")
 	errLogoutHasNoEffectWhenAuthTokenSet = errors.New("account logout has no effect when --auth-token (or the EARTHLY_TOKEN environment variable) is set")
-	errURLParseFailure                   = errors.New("Invalid URL")
-	errURLValidationFailure              = errors.New("URL did not pass validation")
 )
 
 func profhandler() {
@@ -1529,7 +1526,6 @@ func (app *earthlyApp) insertZSHCompleteEntry() error {
 }
 
 func (app *earthlyApp) run(ctx context.Context, args []string) int {
-	rpcRegex := regexp.MustCompile(`(?U)rpc error: code = .+ desc = `)
 	err := app.cliApp.RunContext(ctx, args)
 	if err != nil {
 		ie, isInterpereterError := earthfile2llb.GetInterpreterError(err)
@@ -1558,6 +1554,7 @@ func (app *earthlyApp) run(ctx context.Context, args []string) int {
 			}
 		}
 
+		rpcRegex := regexp.MustCompile(`(?U)rpc error: code = .+ desc = `)
 		if strings.Contains(err.Error(), "security.insecure is not allowed") {
 			app.console.Warnf("Error: --allow-privileged (-P) flag is required\n")
 		} else if strings.Contains(err.Error(), "failed to fetch remote") {
@@ -3099,25 +3096,6 @@ func (app *earthlyApp) isEarthlyFlagEnvName(s string) bool {
 	return isFlag
 }
 
-func (app *earthlyApp) hasSSHKeys() bool {
-	if app.sshAuthSock == "" {
-		return false
-	}
-
-	agentSock, err := net.Dial("unix", app.sshAuthSock)
-	if err != nil {
-		return false
-	}
-
-	sshAgent := agent.NewClient(agentSock)
-	keys, err := sshAgent.List()
-	if err != nil {
-		return false
-	}
-
-	return len(keys) > 0
-}
-
 func (app *earthlyApp) updateGitLookupConfig(gitLookup *buildcontext.GitLookup) error {
 	for k, v := range app.cfg.Git {
 		if k == "github" || k == "gitlab" || k == "bitbucket" {
@@ -3206,10 +3184,8 @@ func (app *earthlyApp) actionListTargets(c *cli.Context) error {
 			fmt.Printf("+%s\n", t)
 		}
 		if app.lsShowArgs {
-			if args != nil {
-				for _, arg := range args {
-					fmt.Printf("  --%s\n", arg)
-				}
+			for _, arg := range args {
+				fmt.Printf("  --%s\n", arg)
 			}
 		}
 	}
