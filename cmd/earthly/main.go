@@ -2930,7 +2930,10 @@ func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []st
 	buildContextProvider := provider.NewBuildContextProvider(app.console)
 	buildContextProvider.AddDirs(defaultLocalDirs)
 	attachables := []session.Attachable{
-		secretprovider.New(cc, secretsMap),
+		secretprovider.New(
+			secretprovider.NewMapStore(secretsMap),
+			secretprovider.NewCloudStore(cc),
+		),
 		buildContextProvider,
 		localhostProvider,
 	}
