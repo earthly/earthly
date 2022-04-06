@@ -72,7 +72,7 @@ import (
 	"github.com/earthly/earthly/util/cliutil"
 	"github.com/earthly/earthly/util/containerutil"
 	"github.com/earthly/earthly/util/fileutil"
-	"github.com/earthly/earthly/util/llbutil"
+	"github.com/earthly/earthly/util/llbutil/secretprovider"
 	"github.com/earthly/earthly/util/platutil"
 	"github.com/earthly/earthly/util/reflectutil"
 	"github.com/earthly/earthly/util/syncutil/semutil"
@@ -2930,7 +2930,7 @@ func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []st
 	buildContextProvider := provider.NewBuildContextProvider(app.console)
 	buildContextProvider.AddDirs(defaultLocalDirs)
 	attachables := []session.Attachable{
-		llbutil.NewSecretProvider(cc, secretsMap),
+		secretprovider.New(cc, secretsMap),
 		buildContextProvider,
 		localhostProvider,
 	}
