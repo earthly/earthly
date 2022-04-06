@@ -1,4 +1,4 @@
-package llbutil
+package secretprovider
 
 import (
 	"context"
@@ -68,21 +68,10 @@ func (sp *secretProvider) GetSecret(ctx context.Context, req *secrets.GetSecretR
 	}, nil
 }
 
-// NewSecretProvider returns a new secrets provider
-func NewSecretProvider(client cloud.Client, overrides map[string][]byte) session.Attachable {
+// New returns a new secrets provider
+func New(client cloud.Client, overrides map[string][]byte) session.Attachable {
 	return &secretProvider{
 		store:  mapStore(overrides),
 		client: client,
 	}
-}
-
-type mapStore map[string][]byte
-
-// GetSecret gets a secret from the map store
-func (m mapStore) GetSecret(ctx context.Context, id string) ([]byte, error) {
-	v, ok := m[id]
-	if !ok {
-		return nil, errors.WithStack(errors.Wrapf(secrets.ErrNotFound, "unable to lookup secret %s", id))
-	}
-	return v, nil
 }
