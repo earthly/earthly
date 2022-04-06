@@ -13,7 +13,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/containerd/containerd/platforms"
 	"github.com/earthly/earthly/analytics"
 	"github.com/earthly/earthly/buildcontext"
 	"github.com/earthly/earthly/debugger/common"
@@ -29,6 +28,7 @@ import (
 	"github.com/earthly/earthly/util/llbutil"
 	"github.com/earthly/earthly/util/llbutil/llbfactory"
 	"github.com/earthly/earthly/util/llbutil/pllb"
+	"github.com/earthly/earthly/util/llbutil/secretprovider"
 	"github.com/earthly/earthly/util/platutil"
 	"github.com/earthly/earthly/util/stringutil"
 	"github.com/earthly/earthly/util/syncutil/semutil"
@@ -36,6 +36,7 @@ import (
 	"github.com/earthly/earthly/variables/reserved"
 
 	"github.com/alessio/shellescape"
+	"github.com/containerd/containerd/platforms"
 	"github.com/docker/distribution/reference"
 	"github.com/moby/buildkit/client/llb"
 	"github.com/moby/buildkit/frontend/dockerfile/dockerfile2llb"
@@ -1553,9 +1554,10 @@ func (c *Converter) internalRun(ctx context.Context, opts ConvertRunOpts) (pllb.
 			return pllb.State{}, err
 		}
 		if secretID != "" {
+			secretUUID := secretprovider.NewSecretID(secretID, c.target.LocalPath, c.target.GitURL)
 			secretPath := path.Join("/run/secrets", secretID)
 			secretOpts := []llb.SecretOption{
-				llb.SecretID(secretID),
+				llb.SecretID(secretUUID),
 				// TODO: Perhaps this should just default to the current user automatically from
 				//       buildkit side. Then we wouldn't need to open this up to everyone.
 				llb.SecretFileOpt(0, 0, 0444),
@@ -1572,8 +1574,9 @@ func (c *Converter) internalRun(ctx context.Context, opts ConvertRunOpts) (pllb.
 	}
 	if !opts.Locally {
 		// Debugger.
+		secretUUID := secretprovider.NewSecretID(common.DebuggerSettingsSecretsKey, "", "")
 		secretOpts := []llb.SecretOption{
-			llb.SecretID(common.DebuggerSettingsSecretsKey),
+			llb.SecretID(secretUUID),
 			llb.SecretFileOpt(0, 0, 0444),
 		}
 		debuggerSecretMount := llb.AddSecret(
