@@ -88,10 +88,6 @@ const (
 
 	defaultEnvFile = ".env"
 	envFileFlag    = "env-file"
-
-	hideEarthlySecretsAndArgs = true
-	defaultSecretsFile        = ".earthlysecrets"
-	defaultArgsFile           = ".earthlyargs"
 )
 
 type earthlyApp struct {
@@ -166,8 +162,6 @@ type cliFlags struct {
 	featureFlagOverrides      string
 	localRegistryHost         string
 	envFile                   string
-	secretsFile               string
-	argsFile                  string
 	lsShowLong                bool
 	lsShowArgs                bool
 	containerFrontend         containerutil.ContainerFrontend
@@ -632,22 +626,6 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 			Usage:       "Use values from this file as earthly environment variables, buildargs, or secrets",
 			Value:       defaultEnvFile,
 			Destination: &app.envFile,
-		},
-		&cli.StringFlag{
-			Name:        "earthlysecrets",
-			EnvVars:     []string{"EARTHLY_SECRETS_FILE"},
-			Usage:       "Use secrets from this file",
-			Value:       defaultSecretsFile,
-			Destination: &app.secretsFile,
-			Hidden:      hideEarthlySecretsAndArgs,
-		},
-		&cli.StringFlag{
-			Name:        "earthlyargs",
-			EnvVars:     []string{"EARTHLY_ARGS_FILE"},
-			Usage:       "Use build args from this file",
-			Value:       defaultArgsFile,
-			Destination: &app.argsFile,
-			Hidden:      hideEarthlySecretsAndArgs,
 		},
 	}
 
@@ -2861,40 +2839,15 @@ func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []st
 		return errors.Errorf("multi-platform builds are not yet supported on the command line. You may, however, create a target with the instruction BUILD --plaform ... --platform ... %s", target)
 	}
 
-	dotEnvMap, err := readEnvFile(app.envFile, app.envFile == defaultEnvFile)
+	dotEnvMap, err := godotenv.Read(app.envFile)
 	if err != nil {
-		return err
-	}
-	argsMap, err := readEnvFile(app.argsFile, app.argsFile == defaultArgsFile)
-	if err != nil {
-		return err
-	}
-	secretsStringMap, err := readEnvFile(app.secretsFile, app.secretsFile == defaultSecretsFile)
-	if err != nil {
-		return err
-	}
-
-	nonEarthlyEnvs := []string{}
-	for key, val := range dotEnvMap {
-		if !app.isEarthlyFlagEnvName(key) {
-			nonEarthlyEnvs = append(nonEarthlyEnvs, key)
-			if _, found := argsMap[key]; found {
-				return errors.Errorf("build arg %s found in both %s and %s", key, app.envFile, app.argsFile)
-			}
-			if _, found := secretsStringMap[key]; found {
-				return errors.Errorf("secret %s found in both %s and %s", key, app.envFile, app.secretsFile)
-			}
-			argsMap[key] = val
-			secretsStringMap[key] = val
+		// ignore ErrNotExist when using default .env file
+		if app.envFile != defaultEnvFile || !errors.Is(err, os.ErrNotExist) {
+			return errors.Wrapf(err, "read %s", app.envFile)
 		}
 	}
-	if !hideEarthlySecretsAndArgs && len(nonEarthlyEnvs) > 0 {
-		sort.Strings(nonEarthlyEnvs)
-		keys := strings.Join(nonEarthlyEnvs, ", ")
-		app.console.Warnf("Warning: build-args or secrets (%s) should be defined in .earthlyargs or .earthlysecrets; this will become mandatory in a future version of earthly.", keys)
-	}
 
-	secretsMap, err := processSecrets(app.secrets.Value(), app.secretFiles.Value(), secretsStringMap)
+	secretsMap, err := processSecrets(app.secrets.Value(), app.secretFiles.Value(), dotEnvMap)
 	if err != nil {
 		return err
 	}
@@ -2990,7 +2943,7 @@ func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []st
 		}()
 	}
 
-	overridingVars, err := app.combineVariables(argsMap, flagArgs)
+	overridingVars, err := app.combineVariables(dotEnvMap, flagArgs)
 	if err != nil {
 		return err
 	}
@@ -3086,21 +3039,6 @@ func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []st
 	}
 
 	return nil
-}
-
-var earthlyFlagNames map[string]struct{}
-
-func (app *earthlyApp) isEarthlyFlagEnvName(s string) bool {
-	if earthlyFlagNames == nil {
-		earthlyFlagNames = map[string]struct{}{}
-		for _, f := range app.cliApp.Flags {
-			for _, name := range f.Names() {
-				earthlyFlagNames[name] = struct{}{}
-			}
-		}
-	}
-	_, isFlag := earthlyFlagNames[s]
-	return isFlag
 }
 
 func (app *earthlyApp) hasSSHKeys() bool {
@@ -3218,17 +3156,6 @@ func (app *earthlyApp) actionListTargets(c *cli.Context) error {
 		}
 	}
 	return nil
-}
-
-func readEnvFile(path string, ignoreErrNotExist bool) (map[string]string, error) {
-	m, err := godotenv.Read(path)
-	if err != nil {
-		if ignoreErrNotExist && errors.Is(err, os.ErrNotExist) {
-			return map[string]string{}, nil
-		}
-		return nil, errors.Wrapf(err, "read %s", path)
-	}
-	return m, nil
 }
 
 func processSecrets(secrets, secretFiles []string, dotEnvMap map[string]string) (map[string][]byte, error) {
