@@ -79,6 +79,7 @@ type GlobalConfig struct {
 	ContainerFrontend        string   `yaml:"container_frontend"         help:"What program should be used to start and stop buildkitd, save images. Default is 'docker'. Valid options are 'docker' and 'podman' (experimental)."`
 	IPTables                 string   `yaml:"ip_tables"                  help:"Which iptables binary to use. Valid values are iptables-legacy or iptables-nft. Bypasses any autodetection."`
 	DisableLogSharing        bool     `yaml:"disable_log_sharing"        help:"Disable cloud log sharing when logged in with an Earthly account, see https://ci.earthly.dev for details."`
+	SecretProvider           string   `yaml:"secret_provider"            help:"Command to execute to retrieve secret"`
 
 	// Obsolete.
 	CachePath      string `yaml:"cache_path"         help:" *Deprecated* The path to keep Earthly's cache."`
