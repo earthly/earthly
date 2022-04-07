@@ -436,6 +436,9 @@ func (c *Converter) CopyArtifact(ctx context.Context, artifactName string, dest 
 	if err != nil {
 		return err
 	}
+	if chmod != nil && !c.ftrs.UseChmod {
+		return fmt.Errorf("COPY --chmod is not supported in this version")
+	}
 	c.nonSaveCommand()
 	artifact, err := domain.ParseArtifact(artifactName)
 	if err != nil {
@@ -472,6 +475,10 @@ func (c *Converter) CopyClassical(ctx context.Context, srcs []string, dest strin
 	err := c.checkAllowed(copyCmd)
 	if err != nil {
 		return err
+	}
+
+	if chmod != nil && !c.ftrs.UseChmod {
+		return fmt.Errorf("COPY --chmod is not supported in this version")
 	}
 
 	var srcState pllb.State

@@ -1,4 +1,4 @@
-VERSION 0.6
+VERSION --use-chmod 0.6
 
 FROM alpine:3.15
 WORKDIR /test
@@ -198,19 +198,19 @@ copy-chmod:
     RUN echo "no chmod - -rw-r-r-"
     COPY in/root .
     RUN echo "./root file-mode=$(stat -c %a ./root)"
-    RUN if [[ "$(stat -c %a ./root)" != "644" ]]; then exit 1; fi
+    RUN test "$(stat -c %a ./root)" != "644"
 
     RUN echo "777 - everyone can RWX"
     COPY --chmod=777 in/root .
     RUN echo "./root file-mode=$(stat -c %a ./root)"
-    RUN if [[ "$(stat -c %a ./root)" != "777" ]]; then exit 1; fi
+    RUN test "$(stat -c %a ./root)" = "777"
 
     RUN echo "600 - user can RW"
     COPY --chmod=600 in/root .
     RUN echo "./root file-mode=$(stat -c %a ./root)"
-    RUN if [[ "$(stat -c %a ./root)" != "600" ]]; then exit 1; fi
+    RUN test "$(stat -c %a ./root)" = "600"
 
     RUN echo "666 - everyone can RW"
     COPY --chmod=666 in/root .
     RUN echo "./root file-mode=$(stat -c %a ./root)"
-    RUN if [[ "$(stat -c %a ./root)" != "666" ]]; then exit 1; fi
+    RUN test "$(stat -c %a ./root)" = "666"

@@ -8,6 +8,7 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 - Experimental support for `SAVE IMAGE --no-manifest-list`. This option disables creating a multi-platform manifest list for the image, even if the image is created with a non-default platform. This allows the user to create non-native images (e.g. amd64 image on an M1 laptop) that are still compatible with AWS lambda. To enable this feature, please use `VERSION --use-no-manifest-list 0.6`. [#1802](https://github.com/earthly/earthly/pull/1802)
 - Introduced two new experimental files: `.earthlyargs` and `.earthlysecrets`, to allow users to separate build-args from secrets; without this separation it is not clear if a value is a build-arg or secret which led to earthly printing out potentially secrets to stdout on errors. [#1808](https://github.com/earthly/earthly/issues/1808)
+- Introduced Experimental support for `--chmod` flag in `COPY`. To enable this feature, please use `VERSION --use-chmod 0.6`. [#1802](https://github.com/earthly/earthly/pull/1817)
 
 ### Fixed
 

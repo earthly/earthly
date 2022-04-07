@@ -35,6 +35,7 @@ type Features struct {
 	ShellOutAnywhere           bool `long:"shell-out-anywhere" description:"allow shelling-out in the middle of ARGs, or any other command"`
 	NewPlatform                bool `long:"new-platform" description:"enable new platform behavior"`
 	UseNoManifestList          bool `long:"use-no-manifest-list" description:"enable the SAVE IMAGE --no-manifest-list option"`
+	UseChmod                   bool `long:"use-chmod" description:"enable the SAVE IMAGE --no-manifest-list option"`
 
 	Major int
 	Minor int
@@ -196,6 +197,7 @@ func GetFeatures(version *spec.Version) (*Features, bool, error) {
 		ftrs.NewPlatform = true
 		ftrs.NoTarBuildOutput = true
 		ftrs.UseNoManifestList = true
+		ftrs.UseChmod = true
 	}
 
 	return &ftrs, hasVersion, nil
