@@ -1019,7 +1019,7 @@
           "command": {
             "args": [
               "echo",
-              "\"no chmod\""
+              "\"no chmod - -rw-r-r-\""
             ],
             "name": "RUN"
           }
@@ -1045,16 +1045,10 @@
         {
           "command": {
             "args": [
-              "if",
-              "[[",
+              "test",
               "\"$(stat -c %a ./root)\"",
               "!=",
-              "\"644\"",
-              "]];",
-              "then",
-              "exit",
-              "1;",
-              "fi"
+              "\"644\""
             ],
             "name": "RUN"
           }
@@ -1090,16 +1084,10 @@
         {
           "command": {
             "args": [
-              "if",
-              "[[",
+              "test",
               "\"$(stat -c %a ./root)\"",
-              "!=",
-              "\"777\"",
-              "]];",
-              "then",
-              "exit",
-              "1;",
-              "fi"
+              "=",
+              "\"777\""
             ],
             "name": "RUN"
           }
@@ -1108,7 +1096,7 @@
           "command": {
             "args": [
               "echo",
-              "\"600 - everyone can RWX\""
+              "\"600 - user can RW\""
             ],
             "name": "RUN"
           }
@@ -1116,7 +1104,7 @@
         {
           "command": {
             "args": [
-              "--chmod=777",
+              "--chmod=600",
               "in/root",
               "."
             ],
@@ -1135,16 +1123,10 @@
         {
           "command": {
             "args": [
-              "if",
-              "[[",
+              "test",
               "\"$(stat -c %a ./root)\"",
-              "!=",
-              "\"777\"",
-              "]];",
-              "then",
-              "exit",
-              "1;",
-              "fi"
+              "=",
+              "\"600\""
             ],
             "name": "RUN"
           }
@@ -1153,7 +1135,7 @@
           "command": {
             "args": [
               "echo",
-              "\"777 - everyone can RWX\""
+              "\"666 - everyone can RW\""
             ],
             "name": "RUN"
           }
@@ -1161,7 +1143,7 @@
         {
           "command": {
             "args": [
-              "--chmod=777",
+              "--chmod=666",
               "in/root",
               "."
             ],
@@ -1180,16 +1162,10 @@
         {
           "command": {
             "args": [
-              "if",
-              "[[",
+              "test",
               "\"$(stat -c %a ./root)\"",
-              "!=",
-              "\"777\"",
-              "]];",
-              "then",
-              "exit",
-              "1;",
-              "fi"
+              "=",
+              "\"666\""
             ],
             "name": "RUN"
           }
@@ -1199,6 +1175,7 @@
   ],
   "version": {
     "args": [
+      "--use-chmod",
       "0.6"
     ]
   }
