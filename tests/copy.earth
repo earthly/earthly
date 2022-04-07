@@ -195,7 +195,7 @@ copy-dir-containing-invalid-symlink:
     RUN cat /symlinks/symlink | grep -w hi
 
 copy-chmod:
-    RUN echo "no chmod"
+    RUN echo "no chmod - -rw-r-r-"
     COPY in/root .
     RUN echo "./root file-mode=$(stat -c %a ./root)"
     RUN if [[ "$(stat -c %a ./root)" != "644" ]]; then exit 1; fi
@@ -205,12 +205,12 @@ copy-chmod:
     RUN echo "./root file-mode=$(stat -c %a ./root)"
     RUN if [[ "$(stat -c %a ./root)" != "777" ]]; then exit 1; fi
 
-    RUN echo "600 - everyone can RWX"
-    COPY --chmod=777 in/root .
+    RUN echo "600 - user can RW"
+    COPY --chmod=600 in/root .
     RUN echo "./root file-mode=$(stat -c %a ./root)"
-    RUN if [[ "$(stat -c %a ./root)" != "777" ]]; then exit 1; fi
+    RUN if [[ "$(stat -c %a ./root)" != "600" ]]; then exit 1; fi
 
-    RUN echo "777 - everyone can RWX"
-    COPY --chmod=777 in/root .
+    RUN echo "666 - everyone can RW"
+    COPY --chmod=666 in/root .
     RUN echo "./root file-mode=$(stat -c %a ./root)"
-    RUN if [[ "$(stat -c %a ./root)" != "777" ]]; then exit 1; fi
+    RUN if [[ "$(stat -c %a ./root)" != "666" ]]; then exit 1; fi
