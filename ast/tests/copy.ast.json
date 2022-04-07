@@ -132,6 +132,14 @@
             ],
             "name": "BUILD"
           }
+        },
+        {
+          "command": {
+            "args": [
+              "+copy-chmod"
+            ],
+            "name": "BUILD"
+          }
         }
       ]
     },
@@ -998,6 +1006,190 @@
               "grep",
               "-w",
               "hi"
+            ],
+            "name": "RUN"
+          }
+        }
+      ]
+    },
+    {
+      "name": "copy-chmod",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "echo",
+              "\"no chmod\""
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "in/root",
+              "."
+            ],
+            "name": "COPY"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "echo",
+              "\"./root file-mode=$(stat -c %a ./root)\""
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "if",
+              "[[",
+              "\"$(stat -c %a ./root)\"",
+              "!=",
+              "\"644\"",
+              "]];",
+              "then",
+              "exit",
+              "1;",
+              "fi"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "echo",
+              "\"777 - everyone can RWX\""
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "--chmod=777",
+              "in/root",
+              "."
+            ],
+            "name": "COPY"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "echo",
+              "\"./root file-mode=$(stat -c %a ./root)\""
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "if",
+              "[[",
+              "\"$(stat -c %a ./root)\"",
+              "!=",
+              "\"777\"",
+              "]];",
+              "then",
+              "exit",
+              "1;",
+              "fi"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "echo",
+              "\"600 - everyone can RWX\""
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "--chmod=777",
+              "in/root",
+              "."
+            ],
+            "name": "COPY"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "echo",
+              "\"./root file-mode=$(stat -c %a ./root)\""
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "if",
+              "[[",
+              "\"$(stat -c %a ./root)\"",
+              "!=",
+              "\"777\"",
+              "]];",
+              "then",
+              "exit",
+              "1;",
+              "fi"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "echo",
+              "\"777 - everyone can RWX\""
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "--chmod=777",
+              "in/root",
+              "."
+            ],
+            "name": "COPY"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "echo",
+              "\"./root file-mode=$(stat -c %a ./root)\""
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "if",
+              "[[",
+              "\"$(stat -c %a ./root)\"",
+              "!=",
+              "\"777\"",
+              "]];",
+              "then",
+              "exit",
+              "1;",
+              "fi"
             ],
             "name": "RUN"
           }
