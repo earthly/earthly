@@ -15,14 +15,14 @@ type cmdStore struct {
 }
 
 // NewSecretProviderCmd returns a SecretStore that shells out to a user-supplied command
-func NewSecretProviderCmd(cmd string) SecretStore {
+func NewSecretProviderCmd(cmd string) secrets.SecretStore {
 	return &cmdStore{
 		cmd: cmd,
 	}
 }
 
 // GetSecret gets a secret from the map store
-func (c *cmdStore) GetSecret(ctx context.Context, id string, meta secretID) ([]byte, error) {
+func (c *cmdStore) GetSecret(ctx context.Context, id string) ([]byte, error) {
 	if c.cmd == "" {
 		return nil, secrets.ErrNotFound
 	}
@@ -33,9 +33,6 @@ func (c *cmdStore) GetSecret(ctx context.Context, id string, meta secretID) ([]b
 	}
 	cmd := exec.CommandContext(ctx, c.cmd, id)
 	cmd.Stderr = os.Stderr
-	// TODO when buildkit calls the secret provider, it has lost the context of which earthfile it belongs to
-	cmd.Env = append(cmd.Env, fmt.Sprintf("EARTHLY_PROJECT_LOCAL_PATH=%s", meta.localProject))
-	cmd.Env = append(cmd.Env, fmt.Sprintf("EARTHLY_PROJECT_GIT_PATH=%s", meta.remoteProject))
 	if path, ok := os.LookupEnv("PATH"); ok {
 		cmd.Env = append(cmd.Env, fmt.Sprintf("PATH=%s", path))
 	}

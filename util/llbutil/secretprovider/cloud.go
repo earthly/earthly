@@ -13,7 +13,7 @@ type cloudStore struct {
 }
 
 // NewCloudStore returns a new cloud secret store
-func NewCloudStore(client cloud.Client) SecretStore {
+func NewCloudStore(client cloud.Client) secrets.SecretStore {
 	return &cloudStore{
 		client: client,
 	}
@@ -22,7 +22,7 @@ func NewCloudStore(client cloud.Client) SecretStore {
 // GetSecret returns a secret.
 // secrets are referenced via +secret/name or +secret/org/name (or +secret/org/subdir1/.../name)
 // however by the time GetSecret is called, the "+secret" prefix is removed.
-func (cs *cloudStore) GetSecret(ctx context.Context, id string, meta secretID) ([]byte, error) {
+func (cs *cloudStore) GetSecret(ctx context.Context, id string) ([]byte, error) {
 	if !strings.HasPrefix(id, "/") {
 		return nil, secrets.ErrNotFound
 	}

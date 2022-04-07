@@ -28,7 +28,6 @@ import (
 	"github.com/earthly/earthly/util/llbutil"
 	"github.com/earthly/earthly/util/llbutil/llbfactory"
 	"github.com/earthly/earthly/util/llbutil/pllb"
-	"github.com/earthly/earthly/util/llbutil/secretprovider"
 	"github.com/earthly/earthly/util/platutil"
 	"github.com/earthly/earthly/util/stringutil"
 	"github.com/earthly/earthly/util/syncutil/semutil"
@@ -1554,10 +1553,9 @@ func (c *Converter) internalRun(ctx context.Context, opts ConvertRunOpts) (pllb.
 			return pllb.State{}, err
 		}
 		if secretID != "" {
-			secretUUID := secretprovider.NewSecretID(secretID, c.target.LocalPath, c.target.GitURL)
 			secretPath := path.Join("/run/secrets", secretID)
 			secretOpts := []llb.SecretOption{
-				llb.SecretID(secretUUID),
+				llb.SecretID(secretID),
 				// TODO: Perhaps this should just default to the current user automatically from
 				//       buildkit side. Then we wouldn't need to open this up to everyone.
 				llb.SecretFileOpt(0, 0, 0444),
@@ -1574,9 +1572,8 @@ func (c *Converter) internalRun(ctx context.Context, opts ConvertRunOpts) (pllb.
 	}
 	if !opts.Locally {
 		// Debugger.
-		secretUUID := secretprovider.NewSecretID(common.DebuggerSettingsSecretsKey, "", "")
 		secretOpts := []llb.SecretOption{
-			llb.SecretID(secretUUID),
+			llb.SecretID(common.DebuggerSettingsSecretsKey),
 			llb.SecretFileOpt(0, 0, 0444),
 		}
 		debuggerSecretMount := llb.AddSecret(

@@ -2,7 +2,6 @@ package secretprovider
 
 import (
 	"context"
-	"fmt"
 	"strings"
 
 	"github.com/moby/buildkit/session"
@@ -13,11 +12,11 @@ import (
 
 // SecretStore defines an interface to providing secrets
 type SecretStore interface {
-	GetSecret(context.Context, string, secretID) ([]byte, error)
+	GetSecret(context.Context, string) ([]byte, error)
 }
 
 type secretProvider struct {
-	stores []SecretStore
+	stores []secrets.SecretStore
 }
 
 // Register registers the secret provider
@@ -30,15 +29,9 @@ func (sp *secretProvider) Register(server *grpc.Server) {
 // however by the time GetSecret is called, the "+secret/" prefix is removed.
 // if the name contains a /, then we can infer that it references the shared secret service.
 func (sp *secretProvider) GetSecret(ctx context.Context, req *secrets.GetSecretRequest) (*secrets.GetSecretResponse, error) {
-
-	secretMetadata, found := secretIDs[req.ID]
-	if !found {
-		return nil, fmt.Errorf("failed to find secret UUID %s", req.ID)
-	}
-
 	// shared secrets will be of the form org/path
 	// and must be transformed into /org/path
-	secretName := secretMetadata.name
+	secretName := req.ID
 	if strings.Contains(secretName, "/") {
 		if req.ID[0] == '/' {
 			panic("secret name starts with '/'; this should never happen")
@@ -47,7 +40,7 @@ func (sp *secretProvider) GetSecret(ctx context.Context, req *secrets.GetSecretR
 	}
 
 	for _, store := range sp.stores {
-		dt, err := store.GetSecret(ctx, secretName, secretMetadata)
+		dt, err := store.GetSecret(ctx, secretName)
 		if err != nil {
 			if errors.Is(err, secrets.ErrNotFound) {
 				continue
@@ -64,7 +57,7 @@ func (sp *secretProvider) GetSecret(ctx context.Context, req *secrets.GetSecretR
 
 // New returns a new secrets provider which looks up secrets
 // in each supplied secret store (ordered by argument ordering) and returns the first found secret
-func New(stores ...SecretStore) session.Attachable {
+func New(stores ...secrets.SecretStore) session.Attachable {
 	return &secretProvider{
 		stores: stores,
 	}
