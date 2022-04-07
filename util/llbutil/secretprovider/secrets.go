@@ -10,11 +10,6 @@ import (
 	"google.golang.org/grpc"
 )
 
-// SecretStore defines an interface to providing secrets
-type SecretStore interface {
-	GetSecret(context.Context, string) ([]byte, error)
-}
-
 type secretProvider struct {
 	stores []secrets.SecretStore
 }
