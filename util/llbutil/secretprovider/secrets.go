@@ -24,6 +24,7 @@ func (sp *secretProvider) Register(server *grpc.Server) {
 // however by the time GetSecret is called, the "+secret/" prefix is removed.
 // if the name contains a /, then we can infer that it references the shared secret service.
 func (sp *secretProvider) GetSecret(ctx context.Context, req *secrets.GetSecretRequest) (*secrets.GetSecretResponse, error) {
+
 	// shared secrets will be of the form org/path
 	// and must be transformed into /org/path
 	secretName := req.ID
