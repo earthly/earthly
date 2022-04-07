@@ -13,19 +13,24 @@ FROM ..+base \
     --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR \
     --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE
 
-test:
-    COPY test-secret-provider /weird/path/.
-    RUN echo "#!/bin/sh
+COPY test-secret-provider /weird/path/.
+RUN echo "#!/bin/sh
 set -ex
 export PATH=/weird/path:\$PATH
 earthly --config \$earthly_config config global.secret_provider test-secret-provider
 earthly --config \$earthly_config --verbose -D +test
 " >/tmp/test-earthly-script && chmod +x /tmp/test-earthly-script
+
+test:
     DO +RUN_EARTHLY_ARGS --earthfile=test.earth --exec_cmd=/tmp/test-earthly-script
     RUN test "$(cat output/value)" = "my secret is williwaw; don't tell anyone."
 
+test-binary:
+    DO +RUN_EARTHLY_ARGS --earthfile=test-binary.earth --exec_cmd=/tmp/test-earthly-script
+
 test-all:
     BUILD +test
+    BUILD +test-binary
 
 RUN_EARTHLY_ARGS:
     COMMAND
