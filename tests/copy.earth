@@ -198,7 +198,7 @@ copy-chmod:
     RUN echo "no chmod - -rw-r-r-"
     COPY in/root .
     RUN echo "./root file-mode=$(stat -c %a ./root)"
-    RUN test "$(stat -c %a ./root)" != "644"
+    RUN test "$(stat -c %a ./root)" = "644"
 
     RUN echo "777 - everyone can RWX"
     COPY --chmod=777 in/root .
