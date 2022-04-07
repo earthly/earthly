@@ -2931,6 +2931,7 @@ func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []st
 	buildContextProvider.AddDirs(defaultLocalDirs)
 	attachables := []session.Attachable{
 		secretprovider.New(
+			secretprovider.NewSecretProviderCmd(app.cfg.Global.SecretProvider),
 			secretprovider.NewMapStore(secretsMap),
 			secretprovider.NewCloudStore(cc),
 		),
