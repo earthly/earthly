@@ -7,6 +7,8 @@ import (
 	"os/exec"
 	"syscall"
 
+	"github.com/earthly/earthly/debugger/common"
+
 	"github.com/moby/buildkit/session/secrets"
 )
 
@@ -26,7 +28,7 @@ func (c *cmdStore) GetSecret(ctx context.Context, id string) ([]byte, error) {
 	if c.cmd == "" {
 		return nil, secrets.ErrNotFound
 	}
-	if id == "earthly_debugger_settings" {
+	if id == common.DebuggerSettingsSecretsKey {
 		// the interactive debugger passes config values by abusing secrets,
 		// we must not call the user's secret provider in this case.
 		return nil, secrets.ErrNotFound
