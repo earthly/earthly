@@ -63,6 +63,53 @@ Specifies the total size of the BuildKit cache, in MB. The BuildKit daemon uses 
 Specifies the total size of the BuildKit cache, as a percentage (0-100) of the total filesystem size.
 When used in combination with `cache_size_mb`, the lesser of the two values will be used. This limit is ignored when set to 0.
 
+### secret_provider (experimental)
+
+A custom user-supplied program to call which returns a secret for use by earthly. The secret identifier is passed as the first argument to the program.
+
+If no secret is found, the program can instruct earthly to continue searching for secrets under `.env`, by exiting with a status code of `2`, all other non-zero
+status codes will cause earthly to exit.
+
+For example, if you have:
+
+```yaml
+config:
+  secret_provider: my-secret-provider
+```
+
+and `my-secret-provider` (which is accessible on your `PATH`):
+
+```bash
+#!/bin/sh
+set -e
+
+if [ "$1" = "mysecret" ]; then
+    echo -n "open sesame"
+    exit 0
+fi
+
+exit 2
+```
+
+Then when earthly encounters a command that requires a secret, such as
+
+```Dockerfile
+RUN --secret mysecret echo "the passphrase is $mysecret."
+```
+
+earthly will request the secret for `mysecret` by calling `my-secret_provider mysecret`.
+
+{% hint style='info' %}
+##### Note
+
+All stdout data will be used as the secret value, including whitespace (and newlines).
+You may want to use `echo -n` to prevent returning a newline.
+
+Any data sent to stderr will be displayed on the earthly console, this makes it possible
+to insert commands such as `echo >&2 "here is some debug text"` without affecting the contents
+of the secret.
+
+{% endhint %}
 
 ### disable_analytics
 
