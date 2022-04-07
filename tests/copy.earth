@@ -18,6 +18,7 @@ all:
     BUILD +copy-art-multi-existing
     BUILD +copy-invalid-symlink
     BUILD +copy-dir-containing-invalid-symlink
+    BUILD +copy-chmod
 
 artifact:
     COPY --dir in in
@@ -192,3 +193,24 @@ copy-dir-containing-invalid-symlink:
     RUN mkdir /data
     RUN echo hi > /data/hello.txt
     RUN cat /symlinks/symlink | grep -w hi
+
+copy-chmod:
+    RUN echo "no chmod"
+    COPY in/root .
+    RUN echo "./root file-mode=$(stat -c %a ./root)"
+    RUN if [[ "$(stat -c %a ./root)" != "644" ]]; then exit 1; fi
+
+    RUN echo "777 - everyone can RWX"
+    COPY --chmod=777 in/root .
+    RUN echo "./root file-mode=$(stat -c %a ./root)"
+    RUN if [[ "$(stat -c %a ./root)" != "777" ]]; then exit 1; fi
+
+    RUN echo "600 - everyone can RWX"
+    COPY --chmod=777 in/root .
+    RUN echo "./root file-mode=$(stat -c %a ./root)"
+    RUN if [[ "$(stat -c %a ./root)" != "777" ]]; then exit 1; fi
+
+    RUN echo "777 - everyone can RWX"
+    COPY --chmod=777 in/root .
+    RUN echo "./root file-mode=$(stat -c %a ./root)"
+    RUN if [[ "$(stat -c %a ./root)" != "777" ]]; then exit 1; fi

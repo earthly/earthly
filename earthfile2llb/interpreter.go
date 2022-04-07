@@ -717,15 +717,19 @@ func (i *Interpreter) handleCopy(ctx context.Context, cmd spec.Command) error {
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "failed to expand COPY chown: %v", opts.Chown)
 	}
-	expandedMode, err := i.expandArgs(ctx, opts.Chmod, false, false)
-	if err != nil {
-		return i.wrapError(err, cmd.SourceLocation, "failed to expand COPY chmod: %v", opts.Platform)
+	var fileModeParsed *os.FileMode
+	if opts.Chmod != "" {
+		expandedMode, err := i.expandArgs(ctx, opts.Chmod, false, false)
+		if err != nil {
+			return i.wrapError(err, cmd.SourceLocation, "failed to expand COPY chmod: %v", opts.Platform)
+		}
+		mask, err := strconv.ParseUint(expandedMode, 8, 32)
+		if err != nil {
+			return i.wrapError(err, cmd.SourceLocation, "failed to parse COPY chmod: %v", opts.Platform)
+		}
+		mode := os.FileMode(uint32(mask))
+		fileModeParsed = &mode
 	}
-	mode, err := strconv.ParseUint(expandedMode, 10, 32)
-	if err != nil {
-		return i.wrapError(err, cmd.SourceLocation, "failed to expand COPY chmod: %v", opts.Platform)
-	}
-	fileModeParsed := os.FileMode(uint32(mode))
 	expandedPlatform, err := i.expandArgs(ctx, opts.Platform, false, false)
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "failed to expand COPY platform: %v", opts.Platform)
