@@ -186,6 +186,7 @@ ga:
     BUILD +host-invalid
     BUILD +mtime
     BUILD +server
+    BUILD +build-after-from
 
 # tests that only run on linux amd64
 # Note: this target is used to validate the USERPLATFORM user arg,
@@ -1033,6 +1034,10 @@ host-invalid:
 mtime:
     RUN echo test > file
     DO +RUN_EARTHLY --earthfile=mtime.earth
+
+build-after-from:
+    DO +RUN_EARTHLY --earthfile=build-after-from.earth --target=+all
+    RUN test -f ./hello.txt
 
 RUN_EARTHLY:
     COMMAND

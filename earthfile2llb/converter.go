@@ -747,7 +747,7 @@ func (c *Converter) SaveArtifact(ctx context.Context, saveFrom string, saveTo st
 			strIf(symlinkNoFollow, "--symlink-no-follow "),
 			saveFrom,
 			artifact.String()))
-	if saveAsLocalTo != "" && c.opt.DoSaves {
+	if saveAsLocalTo != "" {
 		separateArtifactsState := c.platr.Scratch()
 		if isPush {
 			pushState := c.persistCache(c.mts.Final.RunPush.State)
@@ -925,7 +925,7 @@ func (c *Converter) SaveImage(ctx context.Context, imageNames []string, pushImag
 					InsecurePush:        insecurePush,
 					CacheHint:           cacheHint,
 					HasPushDependencies: true,
-					DoSave:              c.opt.DoSaves || c.opt.ForceSaveImage,
+					ForceSave:           c.opt.ForceSaveImage,
 					CheckDuplicate:      c.ftrs.CheckDuplicateImages,
 					NoManifestList:      noManifestList,
 				})
@@ -940,7 +940,7 @@ func (c *Converter) SaveImage(ctx context.Context, imageNames []string, pushImag
 					InsecurePush:        insecurePush,
 					CacheHint:           cacheHint,
 					HasPushDependencies: false,
-					DoSave:              c.opt.DoSaves || c.opt.ForceSaveImage,
+					ForceSave:           c.opt.ForceSaveImage,
 					CheckDuplicate:      c.ftrs.CheckDuplicateImages,
 					NoManifestList:      noManifestList,
 				})
@@ -1365,6 +1365,10 @@ func (c *Converter) FinalizeStates(ctx context.Context) (*states.MultiTarget, er
 	c.mts.Final.PlatformResolver = c.platr
 	c.mts.Final.VarCollection = c.varCollection
 	c.mts.Final.GlobalImports = c.varCollection.Imports().Global()
+	if c.opt.DoSaves {
+		c.mts.Final.SetDoSaves()
+	}
+
 	close(c.mts.Final.Done())
 	return c.mts, nil
 }

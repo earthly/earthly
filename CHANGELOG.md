@@ -13,6 +13,7 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 ### Fixed
 
 - Targets with the same `CACHE` commands incorrectly shared cached contents. [#1805](https://github.com/earthly/earthly/issues/1805)
+- Sometimes local outputs and pushes are skipped mistakenly when a target is referenced both via `FROM` and via `BUILD` [#1823](https://github.com/earthly/earthly/issues/1823)
 
 ## v0.6.13 - 2022-03-30
 
