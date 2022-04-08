@@ -14,6 +14,7 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 - Targets with the same `CACHE` commands incorrectly shared cached contents. [#1805](https://github.com/earthly/earthly/issues/1805)
 - Sometimes local outputs and pushes are skipped mistakenly when a target is referenced both via `FROM` and via `BUILD` [#1823](https://github.com/earthly/earthly/issues/1823)
+- `GIT CLONE` failure (`makeCloneURL does not support gitMatcher substitution`) when used with a self-hosted git repo that was configured under `~/.earthly/config.yml`  [#1757](https://github.com/earthly/earthly/issues/1757)
 
 ## v0.6.13 - 2022-03-30
 

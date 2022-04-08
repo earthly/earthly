@@ -319,7 +319,7 @@ ssh-add -l
 # Clear out known_hosts
 mv ~/.ssh/known_hosts /tmp/known_hosts.old
 
-# Setup auth to be ssh; with custom pattern/sub that converts `funnyserver/repo` to `ssh://git@git.example.com:22/home/git/testuser.git`
+# Setup auth to be ssh; with custom pattern/sub that converts `funnyserver/repo` to `ssh://git@git.example.com:22/home/git/testuser/repo.git`
 earthly --config \$earthly_config config 'git.\"git.example.com\"' '{\"auth\": \"ssh\", \"user\": \"git\", \"pattern\": \"funnyserver/([^/]+)\", \"substitute\": \"ssh://git@git.example.com:22/home/git/testuser/\$1.git\"}'
 cat \$earthly_config
 
@@ -347,6 +347,40 @@ cat output.txt | grep $(echo MTIzM2MwODQtNGNmNS00Nzk3LWE0YzUtZWI2NTM1NGVlN2Vl | 
 " >/tmp/test-earthly-script && chmod +x /tmp/test-earthly-script
     DO +RUN_EARTHLY_ARGS --pre_command=start-sshd --earthfile=from-funnyserver.earth --exec_cmd=/tmp/test-earthly-script
 
+test-git-clone-command-with-custom-matcher:
+    FROM ./setup+server \
+        --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
+        --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
+        --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
+        --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR \
+        --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE \
+        --SSHD_RSA=true \
+        --SSHD_ED25519=true \
+        --USER_RSA=true \
+        --USER_ED25519=false
+    RUN --no-cache echo "#!/bin/sh
+set -ex
+
+# first ensure these two /etc/hosts entries are working
+ping -c 1 git.example.com
+ping -c 1 buildkitsandbox
+
+# load in preauthorized key
+eval \$(ssh-agent)
+ssh-add /root/self-hosted-rsa-key
+ssh-add -l
+
+# Setup auth to be ssh; with custom pattern/sub that converts `funnyserver/repo` to `ssh://git@git.example.com:22/home/git/testuser/repo.git`
+#earthly --config \$earthly_config config 'git.\"git.example.com\"' '{\"auth\": \"ssh\", \"user\": \"git\", \"pattern\": \"funnyserver/([^/]+)\", \"substitute\": \"ssh://git@git.example.com:22/home/git/testuser/\$1.git\"}'
+#cat \$earthly_config
+
+# call target which performs a git-clone
+(set +e; earthly --config \$earthly_config --verbose -D +test 2>&1; echo \"\$?\" > status) | tee output.txt
+test \"\$(cat status)\" = \"0\"
+grep fb5de6fc4b750a88841cd91b55bdec6d output.txt
+" >/tmp/test-earthly-script && chmod +x /tmp/test-earthly-script
+    DO +RUN_EARTHLY_ARGS --pre_command=start-sshd --earthfile=git-clone-funnyserver.earth --exec_cmd=/tmp/test-earthly-script
+
 
 all:
     BUILD +test-rsa-only
@@ -358,6 +392,7 @@ all:
     BUILD +test-configured-ssh-no-keyscan
     BUILD +test-server-with-unhashed-keyscan
     BUILD +test-with-custom-matcher
+    BUILD +test-git-clone-command-with-custom-matcher
 
 RUN_EARTHLY_ARGS:
     COMMAND
