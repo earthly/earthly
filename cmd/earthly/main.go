@@ -10,7 +10,6 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"net"
 	"net/http"
 	_ "net/http/pprof" // enable pprof handlers on net/http listener
 	"net/url"
@@ -182,8 +181,6 @@ var (
 var (
 	errLoginFlagsHaveNoEffect            = errors.New("account login flags have no effect when --auth-token (or the EARTHLY_TOKEN environment variable) is set")
 	errLogoutHasNoEffectWhenAuthTokenSet = errors.New("account logout has no effect when --auth-token (or the EARTHLY_TOKEN environment variable) is set")
-	errURLParseFailure                   = errors.New("Invalid URL")
-	errURLValidationFailure              = errors.New("URL did not pass validation")
 )
 
 func profhandler() {
@@ -3041,25 +3038,6 @@ func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []st
 	return nil
 }
 
-func (app *earthlyApp) hasSSHKeys() bool {
-	if app.sshAuthSock == "" {
-		return false
-	}
-
-	agentSock, err := net.Dial("unix", app.sshAuthSock)
-	if err != nil {
-		return false
-	}
-
-	sshAgent := agent.NewClient(agentSock)
-	keys, err := sshAgent.List()
-	if err != nil {
-		return false
-	}
-
-	return len(keys) > 0
-}
-
 func (app *earthlyApp) updateGitLookupConfig(gitLookup *buildcontext.GitLookup) error {
 	for k, v := range app.cfg.Git {
 		if k == "github" || k == "gitlab" || k == "bitbucket" {
@@ -3148,10 +3126,8 @@ func (app *earthlyApp) actionListTargets(c *cli.Context) error {
 			fmt.Printf("+%s\n", t)
 		}
 		if app.lsShowArgs {
-			if args != nil {
-				for _, arg := range args {
-					fmt.Printf("  --%s\n", arg)
-				}
+			for _, arg := range args {
+				fmt.Printf("  --%s\n", arg)
 			}
 		}
 	}
