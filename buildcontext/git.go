@@ -76,7 +76,7 @@ func (gr *gitResolver) resolveEarthProject(ctx context.Context, gwClient gwclien
 				Internal:   true,
 			}
 			buildContextFactory = llbfactory.PreconstructedState(llbutil.CopyOp(
-				rgp.state, []string{subDir}, platr.Scratch(), "./", false, false, false, "root:root", false, false, false,
+				rgp.state, []string{subDir}, platr.Scratch(), "./", false, false, false, "root:root", nil, false, false, false,
 				llb.WithCustomNamef("%sCOPY git context %s", vm.ToVertexPrefix(), ref.String())))
 		}
 	} else {

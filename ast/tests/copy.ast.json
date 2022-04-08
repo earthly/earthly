@@ -132,6 +132,14 @@
             ],
             "name": "BUILD"
           }
+        },
+        {
+          "command": {
+            "args": [
+              "+copy-chmod"
+            ],
+            "name": "BUILD"
+          }
         }
       ]
     },
@@ -1003,10 +1011,171 @@
           }
         }
       ]
+    },
+    {
+      "name": "copy-chmod",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "echo",
+              "\"no chmod - -rw-r-r-\""
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "in/root",
+              "."
+            ],
+            "name": "COPY"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "echo",
+              "\"./root file-mode=$(stat -c %a ./root)\""
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "test",
+              "\"$(stat -c %a ./root)\"",
+              "=",
+              "\"644\""
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "echo",
+              "\"777 - everyone can RWX\""
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "--chmod=777",
+              "in/root",
+              "."
+            ],
+            "name": "COPY"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "echo",
+              "\"./root file-mode=$(stat -c %a ./root)\""
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "test",
+              "\"$(stat -c %a ./root)\"",
+              "=",
+              "\"777\""
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "echo",
+              "\"600 - user can RW\""
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "--chmod=600",
+              "in/root",
+              "."
+            ],
+            "name": "COPY"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "echo",
+              "\"./root file-mode=$(stat -c %a ./root)\""
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "test",
+              "\"$(stat -c %a ./root)\"",
+              "=",
+              "\"600\""
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "echo",
+              "\"666 - everyone can RW\""
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "--chmod=666",
+              "in/root",
+              "."
+            ],
+            "name": "COPY"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "echo",
+              "\"./root file-mode=$(stat -c %a ./root)\""
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "test",
+              "\"$(stat -c %a ./root)\"",
+              "=",
+              "\"666\""
+            ],
+            "name": "RUN"
+          }
+        }
+      ]
     }
   ],
   "version": {
     "args": [
+      "--use-chmod",
       "0.6"
     ]
   }

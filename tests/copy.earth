@@ -1,4 +1,4 @@
-VERSION 0.6
+VERSION --use-chmod 0.6
 
 FROM alpine:3.15
 WORKDIR /test
@@ -18,6 +18,7 @@ all:
     BUILD +copy-art-multi-existing
     BUILD +copy-invalid-symlink
     BUILD +copy-dir-containing-invalid-symlink
+    BUILD +copy-chmod
 
 artifact:
     COPY --dir in in
@@ -192,3 +193,24 @@ copy-dir-containing-invalid-symlink:
     RUN mkdir /data
     RUN echo hi > /data/hello.txt
     RUN cat /symlinks/symlink | grep -w hi
+
+copy-chmod:
+    RUN echo "no chmod - -rw-r-r-"
+    COPY in/root .
+    RUN echo "./root file-mode=$(stat -c %a ./root)"
+    RUN test "$(stat -c %a ./root)" = "644"
+
+    RUN echo "777 - everyone can RWX"
+    COPY --chmod=777 in/root .
+    RUN echo "./root file-mode=$(stat -c %a ./root)"
+    RUN test "$(stat -c %a ./root)" = "777"
+
+    RUN echo "600 - user can RW"
+    COPY --chmod=600 in/root .
+    RUN echo "./root file-mode=$(stat -c %a ./root)"
+    RUN test "$(stat -c %a ./root)" = "600"
+
+    RUN echo "666 - everyone can RW"
+    COPY --chmod=666 in/root .
+    RUN echo "./root file-mode=$(stat -c %a ./root)"
+    RUN test "$(stat -c %a ./root)" = "666"
