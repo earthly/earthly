@@ -169,6 +169,10 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt, in
 		return nil, err
 	}
 	if found {
+		if opt.DoSaves {
+			// Set the do saves flag, in case it was not set before.
+			sts.SetDoSaves()
+		}
 		// This target has already been done.
 		return &states.MultiTarget{
 			Final:   sts,
