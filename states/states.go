@@ -60,9 +60,9 @@ type SingleTarget struct {
 	// RanInteractive represents whether we have encountered an --interactive command.
 	RanInteractive bool
 
-	// doSavesMu is a mutex for DoSave.
+	// doSavesMu is a mutex for doSave.
 	doSavesMu sync.Mutex
-	// DoSaves indicates whether the SaveImages and the SaveLocals should be
+	// doSaves indicates whether the SaveImages and the SaveLocals should be
 	// actually saved (and possibly pushed).
 	doSaves bool
 
