@@ -25,6 +25,7 @@ import (
 
 	"github.com/jdxcode/netrc"
 	"github.com/moby/buildkit/util/gitutil"
+	"github.com/moby/buildkit/util/sshutil"
 )
 
 type gitMatcher struct {
@@ -481,12 +482,17 @@ func (gl *GitLookup) makeCloneURL(m *gitMatcher, host, gitPath string) (string, 
 				gl.console.VerbosePrintf("ssh auth configured without a user; defaulting to current user")
 			}
 		}
-		// careful about changing to ssh://user@host:port/user/repo.git
-		// as it may break self-hosted repos that would be cloned as "git clone alex@coho:junk/test.git" which would
-		// need to be re-written as ssh://alex@coho/~/junk/test.git
-		// however that breaks github-based repos (e.g. this fails: ssh://git@github.com/~/user/repo.git).
-		// best stick to the short-hand form, and use the substitute regex config option for special cases (such as non-standard ports).
-		gitURL = user + "@" + host + ":" + gitPath
+
+		// careful about changing all clone paths to the explicit ssh://user@host:port/user/repo.git form.
+		// as the implicit form assumes the repo is relative to the user's home directory.
+		// for example "git clone alex@coho:junk/test.git", might work as ssh://alex@coho/~/junk/test.git
+		// however not all git servers support the use of `~` to denode the user's repo.
+		// For instance, github fails to `git clone ssh://git@github.com/~/user/repo.git`.
+		if strings.HasPrefix(gitPath, "/") {
+			gitURL = "ssh://" + user + "@" + host + gitPath
+		} else {
+			gitURL = user + "@" + host + ":" + gitPath
+		}
 		_, keyScans, err = gl.getHostKeyAlgorithms(host)
 		if err != nil {
 			return "", nil, err
@@ -569,20 +575,39 @@ func (gl *GitLookup) GetCloneURL(path string) (string, string, []string, error) 
 // it also returns a keyScan
 func (gl *GitLookup) ConvertCloneURL(inURL string) (string, []string, error) {
 	var host string
+	var gitPath string
 
-	var splitChar string
 	remote, protocol := gitutil.ParseProtocol(inURL)
 	switch protocol {
 	case gitutil.HTTPProtocol, gitutil.HTTPSProtocol:
-		splitChar = "/"
+		splits := strings.SplitN(remote, "/", 2)
+		if len(splits) != 2 {
+			return "", nil, errors.Errorf("failed to split path from host in %s", remote)
+		}
+		host = splits[0]
+		gitPath = splits[1]
 	case gitutil.SSHProtocol:
-		splitChar = ":"
+		if sshutil.IsImplicitSSHTransport(inURL) {
+			splits := strings.SplitN(remote, ":", 2)
+			if len(splits) != 2 {
+				return "", nil, errors.Errorf("failed to split path from host in %s", remote)
+			}
+			host = splits[0]
+			gitPath = splits[1]
+		} else {
+			u, err := url.Parse(inURL)
+			if err != nil {
+				return "", nil, errors.Wrapf(err, "failed to parse %s", inURL)
+			}
+			if u.Scheme != "ssh" {
+				panic(fmt.Sprintf("expected scheme of ssh; got %s", u.Scheme)) // shouldn't happen
+			}
+			host = strings.TrimSuffix(u.Host, ":22")
+			gitPath = u.Path
+		}
 	default:
 		return "", nil, errors.Errorf("unsupported git protocol %v", protocol)
 	}
-	splits := strings.SplitN(remote, splitChar, 2)
-	host = splits[0]
-	gitPath := splits[1]
 
 	m := gl.getGitMatcherByName(host)
 	return gl.makeCloneURL(m, host, gitPath)
