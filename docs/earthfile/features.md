@@ -41,6 +41,7 @@ to require version `0.X` (or later), and could be rewritten as `VERSION 0.X`.
 | `--require-force-for-unsafe-saves` | 0.6 | Requires `--force` for saving artifacts locally outside the Earthfile's directory  |
 | `--no-implicit-ignore` | 0.6 | Eliminates implicit `.earthlyignore` entries, such as `Earthfile` and `.tmp-earthly-out` |
 | `--earthly-version-arg` | Beta | Enables builtin ARGs: `EARTHLY_VERSION` and `EARTHLY_BUILD_SHA` |
+| `--shell-out-anywhere` | Experimental | Allows shelling-out in any earthly command (including in the middle of `ARG`) |
 
 Note that the features flags are disabled by default in Earthly versions lower than the version listed in the "status" column above.
 

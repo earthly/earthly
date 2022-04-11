@@ -61,11 +61,13 @@ func NewResolver(sessionID string, cleanCollection *cleanup.Collection, gitLooku
 			projectCache:    synccache.New(),
 			buildFileCache:  synccache.New(),
 			gitLookup:       gitLookup,
+			console:         console,
 		},
 		lr: &localResolver{
-			gitMetaCache: synccache.New(),
-			sessionID:    sessionID,
-			console:      console,
+			buildFileCache: synccache.New(),
+			gitMetaCache:   synccache.New(),
+			sessionID:      sessionID,
+			console:        console,
 		},
 		parseCache:           synccache.New(),
 		console:              console,
@@ -120,23 +122,4 @@ func (r *Resolver) parseEarthfile(ctx context.Context, path string) (spec.Earthf
 	}
 	ef := efValue.(spec.Earthfile)
 	return ef, nil
-}
-
-func parseFeatures(buildFilePath string, featureFlagOverrides string) (*features.Features, error) {
-	version, err := ast.ParseVersion(buildFilePath, false)
-	if err != nil {
-		return nil, err
-	}
-
-	ftrs, err := features.GetFeatures(version)
-	if err != nil {
-		return nil, err
-	}
-
-	err = features.ApplyFlagOverrides(ftrs, featureFlagOverrides)
-	if err != nil {
-		return nil, err
-	}
-
-	return ftrs, nil
 }

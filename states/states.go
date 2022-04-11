@@ -60,6 +60,12 @@ type SingleTarget struct {
 	// RanInteractive represents whether we have encountered an --interactive command.
 	RanInteractive bool
 
+	// doSavesMu is a mutex for doSave.
+	doSavesMu sync.Mutex
+	// doSaves indicates whether the SaveImages and the SaveLocals should be
+	// actually saved (and possibly pushed).
+	doSaves bool
+
 	// doneCh is a channel that is closed when the sts is complete.
 	doneCh chan struct{}
 
@@ -118,6 +124,21 @@ OuterLoop:
 		}
 	}()
 	return sts, nil
+}
+
+// GetDoSaves returns whether the SaveImages and the SaveLocals should be
+// actually saved (and possibly pushed).
+func (sts *SingleTarget) GetDoSaves() bool {
+	sts.doSavesMu.Lock()
+	defer sts.doSavesMu.Unlock()
+	return sts.doSaves
+}
+
+// SetDoSaves sets the DoSaves flag.
+func (sts *SingleTarget) SetDoSaves() {
+	sts.doSavesMu.Lock()
+	defer sts.doSavesMu.Unlock()
+	sts.doSaves = true
 }
 
 // TargetInput returns the target input in a concurrent-safe way.
@@ -233,11 +254,15 @@ type SaveImage struct {
 	// provided.
 	CacheHint           bool
 	HasPushDependencies bool
-	// DoSave indicates whether the image should be saved and (possibly pushed).
-	DoSave bool
+	// ForceSave indicates whether the image should be force-saved and (possibly pushed).
+	ForceSave bool
 	// CheckDuplicate indicates whether to check if the image name shows up
 	// multiple times during output.
 	CheckDuplicate bool
+	// NoManifestList indicates that the image should not include a manifest
+	// list (usually used for multi-platform setups). This means that the image
+	// can only be a single-platform image.
+	NoManifestList bool
 }
 
 // RunPush is a series of RUN --push commands to be run after the build has been deemed as

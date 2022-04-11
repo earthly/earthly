@@ -1,0 +1,31 @@
+VERSION 0.6
+FROM python:3
+WORKDIR /code
+
+deps:
+    COPY requirements.txt ./
+    RUN pip3 install -r requirements.txt
+
+build:
+    FROM +deps
+    COPY src src
+    SAVE ARTIFACT src /src
+
+with-docker-example:
+	FROM earthly/dind:alpine
+	COPY ./docker-compose.yml .
+	COPY ./tests ./tests
+	RUN apk update
+	RUN apk add postgresql-client
+	WITH DOCKER --compose docker-compose.yml --load app:latest=+docker
+		RUN while ! pg_isready --host=localhost --port=5432; do sleep 1; done ;\
+			docker run --network=default_python/part6_default app python3 ./tests/test_db_connection.py
+	END
+
+docker:
+    FROM +deps
+    COPY src src
+    COPY tests tests
+    ARG tag='latest'
+    CMD ["python3", "./src/hello.py"]
+    SAVE IMAGE python-example:$tag

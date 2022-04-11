@@ -1,0 +1,10 @@
+VERSION 0.6
+FROM golang:1.15-alpine3.13
+WORKDIR /go-example
+
+deps:
+    COPY go.mod go.sum ./
+    RUN go mod download
+    # Output these back in case go mod download changes them.
+    SAVE ARTIFACT go.mod AS LOCAL go.mod
+    SAVE ARTIFACT go.sum AS LOCAL go.sum

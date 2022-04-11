@@ -6,7 +6,7 @@ build:
     # In JS, there's nothing to build in this simple form.
     # The source is also the artifact used in production.
     COPY src/index.js .
-    SAVE ARTIFACT index.js /dist/index.js AS LOCAL ./dist/index.js
+    SAVE ARTIFACT index.js /dist/index.js
 
 docker:
     COPY +build/dist dist

@@ -1,0 +1,69 @@
+VERSION 0.6
+
+ARG DOCKERHUB_USER_SECRET=+secrets/DOCKERHUB_USER
+ARG DOCKERHUB_TOKEN_SECRET=+secrets/DOCKERHUB_TOKEN
+ARG DOCKERHUB_MIRROR
+ARG DOCKERHUB_MIRROR_INSECURE=false
+ARG DOCKERHUB_AUTH=true
+
+test:
+    FROM ../git-ssh-server/setup+server \
+        --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
+        --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
+        --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
+        --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR \
+        --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE \
+        --SSHD_RSA=true \
+        --SSHD_ED25519=false \
+        --USER_RSA=true \
+        --USER_ED25519=false
+    COPY test.earth Earthfile
+    RUN echo "#!/bin/sh
+set -ex
+
+# first ensure these two /etc/hosts entries are working
+ping -c 1 git.example.com
+ping -c 1 buildkitsandbox
+
+# load in preauthorized key
+eval \$(ssh-agent)
+ssh-add /root/self-hosted-rsa-key
+ssh-add -l
+
+# next validate ssh is working
+ssh git@git.example.com | grep \"Hi git! You've successfully authenticated, but you get no shellz\"
+
+# setup git email and user (needed to commit)
+git config --global user.email \"onlyspammersemailthis@earthly.dev\"
+git config --global user.name \"test name\"
+
+# clone the repo and add a test Earthfile to it
+git clone git@git.example.com:testuser/repo.git
+mv Earthfile repo/
+git -C repo add Earthfile
+git -C repo commit -m test
+git -C repo push
+export expectedsha=\$(git -C repo rev-parse HEAD)
+
+# finally perform earthly tests
+earthly --config \$earthly_config --verbose -D --build-arg expectedsha ./repo+test-git-metadata
+
+rm -rf repo
+earthly --config \$earthly_config --verbose -D --build-arg expectedsha git.example.com/testuser/repo:main+test-git-metadata
+" >/tmp/test-earthly-script && chmod +x /tmp/test-earthly-script
+    DO +RUN_EARTHLY_ARGS --pre_command=start-sshd --exec_cmd=/tmp/test-earthly-script
+
+RUN_EARTHLY_ARGS:
+    COMMAND
+    ARG earthfile
+    ARG pre_command
+    ARG exec_cmd
+    DO ..+RUN_EARTHLY \
+        --earthfile=$earthfile \
+        --pre_command=$pre_command \
+        --exec_cmd=$exec_cmd \
+        --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
+        --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
+        --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
+        --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR \
+        --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE

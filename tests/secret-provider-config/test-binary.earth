@@ -1,0 +1,4 @@
+FROM alpine
+
+test:
+    RUN --mount type=secret,id=+secrets/binarysecret,target=/secret-data test "$(md5sum secret-data)" = "fd0bf60256732d017fa1c77e25cd0dd5  secret-data"

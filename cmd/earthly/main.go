@@ -10,7 +10,6 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"net"
 	"net/http"
 	_ "net/http/pprof" // enable pprof handlers on net/http listener
 	"net/url"
@@ -72,7 +71,7 @@ import (
 	"github.com/earthly/earthly/util/cliutil"
 	"github.com/earthly/earthly/util/containerutil"
 	"github.com/earthly/earthly/util/fileutil"
-	"github.com/earthly/earthly/util/llbutil"
+	"github.com/earthly/earthly/util/llbutil/secretprovider"
 	"github.com/earthly/earthly/util/platutil"
 	"github.com/earthly/earthly/util/reflectutil"
 	"github.com/earthly/earthly/util/syncutil/semutil"
@@ -182,8 +181,6 @@ var (
 var (
 	errLoginFlagsHaveNoEffect            = errors.New("account login flags have no effect when --auth-token (or the EARTHLY_TOKEN environment variable) is set")
 	errLogoutHasNoEffectWhenAuthTokenSet = errors.New("account logout has no effect when --auth-token (or the EARTHLY_TOKEN environment variable) is set")
-	errURLParseFailure                   = errors.New("Invalid URL")
-	errURLValidationFailure              = errors.New("URL did not pass validation")
 )
 
 func profhandler() {
@@ -1544,6 +1541,14 @@ func (app *earthlyApp) run(ctx context.Context, args []string) int {
 				"Check your git auth settings.\n" +
 					"Did you ssh-add today? Need to configure ~/.earthly/config.yml?\n" +
 					"For more information see https://docs.earthly.dev/guides/auth\n")
+		} else if strings.Contains(err.Error(), "failed to compute cache key") && strings.Contains(err.Error(), ": not found") {
+			re := regexp.MustCompile(`("[^"]*"): not found`)
+			var matches = re.FindStringSubmatch(err.Error())
+			if len(matches) == 2 {
+				app.console.Warnf("Error: File not found %v\n", matches[1])
+			} else {
+				app.console.Warnf("Error: File not found: %v\n", err.Error())
+			}
 		} else if strings.Contains(failedOutput, "Invalid ELF image for this architecture") {
 			app.console.Warnf("Error: %v\n", err)
 			app.console.Printf(
@@ -2041,16 +2046,18 @@ func (app *earthlyApp) actionRegister(c *cli.Context) error {
 
 	pword := app.password
 	if app.password == "" {
-		fmt.Println("pick a password")
+		fmt.Printf("pick a password: ")
 		enteredPassword, err := term.ReadPassword(int(syscall.Stdin))
 		if err != nil {
 			return err
 		}
-		fmt.Println("confirm password")
+		fmt.Println("")
+		fmt.Printf("confirm password: ")
 		enteredPassword2, err := term.ReadPassword(int(syscall.Stdin))
 		if err != nil {
 			return err
 		}
+		fmt.Println("")
 		if string(enteredPassword) != string(enteredPassword2) {
 			return errors.Errorf("passwords do not match")
 		}
@@ -2873,7 +2880,11 @@ func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []st
 	buildContextProvider := provider.NewBuildContextProvider(app.console)
 	buildContextProvider.AddDirs(defaultLocalDirs)
 	attachables := []session.Attachable{
-		llbutil.NewSecretProvider(cc, secretsMap),
+		secretprovider.New(
+			secretprovider.NewSecretProviderCmd(app.cfg.Global.SecretProvider),
+			secretprovider.NewMapStore(secretsMap),
+			secretprovider.NewCloudStore(cc),
+		),
 		buildContextProvider,
 		localhostProvider,
 	}
@@ -3027,25 +3038,6 @@ func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []st
 	return nil
 }
 
-func (app *earthlyApp) hasSSHKeys() bool {
-	if app.sshAuthSock == "" {
-		return false
-	}
-
-	agentSock, err := net.Dial("unix", app.sshAuthSock)
-	if err != nil {
-		return false
-	}
-
-	sshAgent := agent.NewClient(agentSock)
-	keys, err := sshAgent.List()
-	if err != nil {
-		return false
-	}
-
-	return len(keys) > 0
-}
-
 func (app *earthlyApp) updateGitLookupConfig(gitLookup *buildcontext.GitLookup) error {
 	for k, v := range app.cfg.Git {
 		if k == "github" || k == "gitlab" || k == "bitbucket" {
@@ -3134,10 +3126,8 @@ func (app *earthlyApp) actionListTargets(c *cli.Context) error {
 			fmt.Printf("+%s\n", t)
 		}
 		if app.lsShowArgs {
-			if args != nil {
-				for _, arg := range args {
-					fmt.Printf("  --%s\n", arg)
-				}
+			for _, arg := range args {
+				fmt.Printf("  --%s\n", arg)
 			}
 		}
 	}

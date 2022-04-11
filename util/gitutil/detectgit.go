@@ -117,12 +117,15 @@ func Metadata(ctx context.Context, dir string) (*GitMetadata, error) {
 // Clone returns a copy of the GitMetadata object.
 func (gm *GitMetadata) Clone() *GitMetadata {
 	return &GitMetadata{
-		BaseDir: gm.BaseDir,
-		RelDir:  gm.RelDir,
-		GitURL:  gm.GitURL,
-		Hash:    gm.Hash,
-		Branch:  gm.Branch,
-		Tags:    gm.Tags,
+		BaseDir:   gm.BaseDir,
+		RelDir:    gm.RelDir,
+		RemoteURL: gm.RemoteURL,
+		GitURL:    gm.GitURL,
+		Hash:      gm.Hash,
+		ShortHash: gm.ShortHash,
+		Branch:    gm.Branch,
+		Tags:      gm.Tags,
+		Timestamp: gm.Timestamp,
 	}
 }
 

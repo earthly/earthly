@@ -544,6 +544,14 @@ build-linux:
     BUILD +target-required --NAME=john
 ```
 
+{% hint style='info' %}
+Earthly, by default, only supports dynamic values which start with the `$(...)` shell-out syntax -- passing
+a value such as `--name="the honourable $(whoami)"` will fail to execute the `whoami` program.
+
+This behaviour can be changed with the experimental [`VERSION` `--shell-out-anywhere` feature flag](../earthfile/features#feature-flags).
+This feature additionally allows shelling-out in *any* earthly command.
+{% endhint %}
+
 ## SAVE ARTIFACT
 
 #### Synopsis
@@ -682,7 +690,7 @@ If you are referencing a target via some other command, such as `COPY` and you w
 
 ```Dockerfile
 my-target:
-    COPY --plattform=linux/amd64 (+some-target/some-file.txt --FOO=bar) ./
+    COPY --platform=linux/amd64 (+some-target/some-file.txt --FOO=bar) ./
 ```
 
 Should be amended with the following additional `BUILD` call:
@@ -1361,7 +1369,7 @@ The `USER` command sets the user name (or UID) and optionally the user group (or
 
 #### Description
 
-The `WORKDIR` command `strs` the working directory for other commands that follow in the recipe. The working directory is also persisted as the default directory for the image. If the directory does not exist, it is automatically created. This command works the same way as the [Dockerfile `WORKDIR` command](https://docs.docker.com/engine/reference/builder/#workdir).
+The `WORKDIR` command sets the working directory for following commands in the recipe. The working directory is also persisted as the default directory for the image. If the directory does not exist, it is automatically created. This command works the same way as the [Dockerfile `WORKDIR` command](https://docs.docker.com/engine/reference/builder/#workdir).
 
 ## HEALTHCHECK (same as Dockerfile HEALTHCHECK)
 
@@ -1391,6 +1399,25 @@ Sets an initialization time period in which failures are not counted towards the
 ##### `--retries=N`
 
 Sets the number of retries before a container is considered `unhealthy`. Defaults to `3`.
+
+## HOST (experimental)
+
+{% hint style='info' %}
+##### Note
+The `HOST` command is experimental and must be enabled by enabling the `--use-host-command` flag, e.g.
+
+```Dockerfile
+VERSION --use-host-command 0.6
+```
+{% endhint %}
+
+#### Synopsis
+
+* `HOST <hostname> <ip>`
+
+#### Description
+
+The `HOST` command creates a hostname entry (under `/etc/hosts`) that causes `<hostname>` to resolve to the specified `<ip>` address.
 
 ## SHELL (not supported)
 

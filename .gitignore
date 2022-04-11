@@ -7,3 +7,4 @@
 .vscode
 .idea
 .tmp-earthly-out*
+.DS_Store

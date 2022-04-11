@@ -9,7 +9,7 @@ if [ ! -f "$earthly_config" ]; then
 
   # Apply global configuration
   if [ -n "$GLOBAL_CONFIG" ]; then
-    earthly --config $earthly_config config global "$GLOBAL_CONFIG"
+    earthly --config "$earthly_config" config global "$GLOBAL_CONFIG"
   fi
 
   # Apply git configuration

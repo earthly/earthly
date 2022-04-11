@@ -37,3 +37,15 @@ test-save-artifact:
     SAVE ARTIFACT ./my/artifacts AS LOCAL ./artifacts1
     RUN echo "artifact 2" >> ./my/artifacts/2
     SAVE ARTIFACT ./my/artifacts AS LOCAL ./artifacts2
+
+test-no-sharing-prev:
+    CACHE /no-sharing
+    RUN touch /no-sharing/should-not-see-me
+    # A hack to let +test-no-sharing have something to copy.
+    RUN touch nothing
+    SAVE ARTIFACT nothing
+
+test-no-sharing:
+    COPY +test-no-sharing-prev/nothing . # Only to make sure +test-no-sharing-prev runs fitst
+    CACHE /no-sharing
+    RUN ! test -f /no-sharing/should-not-see-me

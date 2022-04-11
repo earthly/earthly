@@ -1,4 +1,3 @@
-
 VERSION 0.6
 FROM alpine:3.15
 WORKDIR /tutorial
@@ -22,6 +21,14 @@ test-part1:
         --lang=java \
         --lang=python \
         --part=part1
+
+test-part2:
+    BUILD +test-part \
+        --lang=go \
+        --lang=js \
+        --lang=java \
+        --lang=python \
+        --part=part2
 
 test-part3:
     BUILD +test-part \
@@ -47,24 +54,34 @@ test-part5:
         --lang=python \
         --part=part5
 
+test-part6:
+    BUILD +test-part \
+        --lang=go \
+        --lang=js \
+        --lang=java \
+        --lang=python \
+        --part=part6 \
+        --target=with-docker-example
+
 test-part:
     LOCALLY
     ARG lang
     ARG part
+    ARG target=docker
     ARG earthly=earthly
     WORKDIR ${lang}
     RUN rm -rf ./test-${part}
     RUN "$earthly" --artifact +${part}/${part} ./test-${part}
     WORKDIR ./test-${part}
-    RUN "$earthly" +docker
-    IF [ "${lang}" = "js" ] && [ "${part}" != "part1" ]
+    RUN "$earthly" -P +"$target"
+    IF [ "${lang}" = "js" ] && [ "${part}" != "part1" ] && [ "${part}" != "part2" ] && [ "${part}" != "part6" ]
         RUN docker rm -f js-example
         RUN docker run -d --rm --name js-example ${lang}-example:latest
         RUN sleep 5
         RUN curl "$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' js-example)":8080 | grep "Getting Started"
         RUN curl "$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' js-example)":8080/main.js | grep "hello world"
         RUN docker stop js-example
-    ELSE
+    ELSE IF [ "${part}" != "part6" ]
         RUN docker run --rm ${lang}-example:latest 2>&1 | grep "hello world"
     END
     WORKDIR ..

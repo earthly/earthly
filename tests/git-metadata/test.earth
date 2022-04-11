@@ -1,0 +1,10 @@
+VERSION 0.6
+
+test-git-metadata:
+    FROM alpine
+    ARG --required expectedsha
+    ARG EARTHLY_GIT_SHORT_HASH
+    ARG EARTHLY_GIT_HASH
+    RUN test "$EARTHLY_GIT_HASH" = "$expectedsha"
+    RUN test -n "$EARTHLY_GIT_SHORT_HASH"
+    RUN echo "$EARTHLY_GIT_HASH" | grep "$EARTHLY_GIT_SHORT_HASH"

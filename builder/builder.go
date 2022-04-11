@@ -208,19 +208,30 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 			res.AddMeta(fmt.Sprintf("%s/final-artifact", refPrefix), []byte("true"))
 		}
 
-		isMultiPlatform := make(map[string]bool) // DockerTag -> bool
+		isMultiPlatform := make(map[string]bool)    // DockerTag -> bool
+		noManifestListImgs := make(map[string]bool) // DockerTag -> bool
 		for _, sts := range mts.All() {
-			if sts.PlatformResolver.Current() != platutil.DefaultPlatform {
-				for _, saveImage := range b.targetPhaseImages(sts) {
-					if saveImage.DockerTag != "" && saveImage.DoSave {
+			if sts.PlatformResolver.Current() == platutil.DefaultPlatform {
+				continue
+			}
+			for _, saveImage := range b.targetPhaseImages(sts) {
+				doSave := (sts.GetDoSaves() || saveImage.ForceSave)
+				if saveImage.DockerTag != "" && doSave {
+					if saveImage.NoManifestList {
+						noManifestListImgs[saveImage.DockerTag] = true
+					} else {
 						isMultiPlatform[saveImage.DockerTag] = true
+					}
+					if isMultiPlatform[saveImage.DockerTag] && noManifestListImgs[saveImage.DockerTag] {
+						return nil, fmt.Errorf("cannot save image %s defined multiple times, but declared as SAVE IMAGE --no-manifest-list", saveImage.DockerTag)
 					}
 				}
 			}
 		}
 
 		for _, sts := range mts.All() {
-			if (sts.HasDangling && !b.opt.UseFakeDep) || (b.builtMain && sts.RunPush.HasState) {
+			hasRunPush := (sts.GetDoSaves() && sts.RunPush.HasState)
+			if (sts.HasDangling && !b.opt.UseFakeDep) || (b.builtMain && hasRunPush) {
 				depRef, err := b.stateToRef(childCtx, gwClient, b.targetPhaseState(sts), sts.PlatformResolver)
 				if err != nil {
 					return nil, err
@@ -231,8 +242,9 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 			}
 
 			for _, saveImage := range b.targetPhaseImages(sts) {
-				shouldPush := opt.Push && saveImage.Push && !sts.Target.IsRemote() && saveImage.DockerTag != "" && saveImage.DoSave
-				shouldExport := !opt.NoOutput && opt.OnlyArtifact == nil && !(opt.OnlyFinalTargetImages && sts != mts.Final) && saveImage.DockerTag != "" && saveImage.DoSave
+				doSave := (sts.GetDoSaves() || saveImage.ForceSave)
+				shouldPush := opt.Push && saveImage.Push && !sts.Target.IsRemote() && saveImage.DockerTag != "" && doSave
+				shouldExport := !opt.NoOutput && opt.OnlyArtifact == nil && !(opt.OnlyFinalTargetImages && sts != mts.Final) && saveImage.DockerTag != "" && doSave
 				useCacheHint := saveImage.CacheHint && b.opt.CacheExport != ""
 				if (!shouldPush && !shouldExport && !useCacheHint) || (!shouldPush && saveImage.HasPushDependencies) {
 					// Short-circuit.
@@ -348,8 +360,8 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 			}
 			performSaveLocals := (!opt.NoOutput &&
 				!opt.OnlyFinalTargetImages &&
-				opt.OnlyArtifact == nil)
-
+				opt.OnlyArtifact == nil &&
+				sts.GetDoSaves())
 			if performSaveLocals {
 				for _, saveLocal := range b.targetPhaseArtifacts(sts) {
 					ref, err := b.artifactStateToRef(
@@ -451,7 +463,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 	if opt.Push && opt.OnlyArtifact == nil && !opt.OnlyFinalTargetImages {
 		hasRunPush := false
 		for _, sts := range mts.All() {
-			if sts.RunPush.HasState {
+			if sts.GetDoSaves() && sts.RunPush.HasState {
 				hasRunPush = true
 				break
 			}
@@ -471,22 +483,25 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 	if opt.NoOutput {
 		// Nothing.
 	} else if opt.OnlyArtifact != nil {
-		outputPhaseSpecial = "single artifact"
-		outDir, err := b.tempEarthlyOutDir()
-		if err != nil {
-			return nil, err
-		}
-		err = b.saveArtifactLocally(
-			ctx, outputConsole, *opt.OnlyArtifact, outDir, opt.OnlyArtifactDestPath,
-			mts.Final.ID, opt, false)
-		if err != nil {
-			return nil, err
+		if mts.Final.GetDoSaves() {
+			outputPhaseSpecial = "single artifact"
+			outDir, err := b.tempEarthlyOutDir()
+			if err != nil {
+				return nil, err
+			}
+			err = b.saveArtifactLocally(
+				ctx, outputConsole, *opt.OnlyArtifact, outDir, opt.OnlyArtifactDestPath,
+				mts.Final.ID, opt, false)
+			if err != nil {
+				return nil, err
+			}
 		}
 	} else if opt.OnlyFinalTargetImages {
 		outputPhaseSpecial = "single image"
 		for _, saveImage := range mts.Final.SaveImages {
-			shouldPush := opt.Push && saveImage.Push && saveImage.DockerTag != "" && saveImage.DoSave
-			shouldExport := !opt.NoOutput && saveImage.DockerTag != "" && saveImage.DoSave
+			doSave := (mts.Final.GetDoSaves() || saveImage.ForceSave)
+			shouldPush := opt.Push && saveImage.Push && saveImage.DockerTag != "" && doSave
+			shouldExport := !opt.NoOutput && saveImage.DockerTag != "" && doSave
 			if !shouldPush && !shouldExport {
 				continue
 			}
@@ -506,8 +521,9 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 		for _, sts := range mts.All() {
 			console := b.opt.Console.WithPrefixAndSalt(sts.Target.String(), sts.ID)
 			for _, saveImage := range sts.SaveImages {
-				shouldPush := opt.Push && saveImage.Push && !sts.Target.IsRemote() && saveImage.DockerTag != "" && saveImage.DoSave
-				shouldExport := !opt.NoOutput && saveImage.DockerTag != "" && saveImage.DoSave
+				doSave := (sts.GetDoSaves() || saveImage.ForceSave)
+				shouldPush := opt.Push && saveImage.Push && !sts.Target.IsRemote() && saveImage.DockerTag != "" && doSave
+				shouldExport := !opt.NoOutput && saveImage.DockerTag != "" && doSave
 				if !shouldPush && !shouldExport {
 					continue
 				}
@@ -520,26 +536,28 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 				}
 				outputConsole.Printf("Image %s output as %s\n", targetStr, saveImage.DockerTag)
 			}
-			for _, saveLocal := range sts.SaveLocals {
-				outDir, err := b.tempEarthlyOutDir()
-				if err != nil {
-					return nil, err
+			if sts.GetDoSaves() {
+				for _, saveLocal := range sts.SaveLocals {
+					outDir, err := b.tempEarthlyOutDir()
+					if err != nil {
+						return nil, err
+					}
+					artifactDir := filepath.Join(outDir, fmt.Sprintf("index-%d", dirIndex))
+					artifact := domain.Artifact{
+						Target:   sts.Target,
+						Artifact: saveLocal.ArtifactPath,
+					}
+					err = b.saveArtifactLocally(
+						ctx, outputConsole, artifact, artifactDir, saveLocal.DestPath,
+						sts.ID, opt, saveLocal.IfExists)
+					if err != nil {
+						return nil, err
+					}
+					dirIndex++
 				}
-				artifactDir := filepath.Join(outDir, fmt.Sprintf("index-%d", dirIndex))
-				artifact := domain.Artifact{
-					Target:   sts.Target,
-					Artifact: saveLocal.ArtifactPath,
-				}
-				err = b.saveArtifactLocally(
-					ctx, outputConsole, artifact, artifactDir, saveLocal.DestPath,
-					sts.ID, opt, saveLocal.IfExists)
-				if err != nil {
-					return nil, err
-				}
-				dirIndex++
 			}
 
-			if sts.RunPush.HasState {
+			if sts.GetDoSaves() && sts.RunPush.HasState {
 				if opt.Push {
 					for _, saveLocal := range sts.RunPush.SaveLocals {
 						outDir, err := b.tempEarthlyOutDir()

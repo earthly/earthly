@@ -8,8 +8,8 @@ build:
     COPY src src
     RUN gradle build
     RUN gradle install
-    SAVE ARTIFACT build/install/java-example/bin /bin AS LOCAL build/bin
-    SAVE ARTIFACT build/install/java-example/lib /lib AS LOCAL build/lib
+    SAVE ARTIFACT build/install/java-example/bin /bin
+    SAVE ARTIFACT build/install/java-example/lib /lib
 
 docker:
     COPY +build/bin bin

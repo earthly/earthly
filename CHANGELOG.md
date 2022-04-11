@@ -4,11 +4,44 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+## v0.6.14 - 2022-04-11
+
+### Added
+
+- Experimental support for `SAVE IMAGE --no-manifest-list`. This option disables creating a multi-platform manifest list for the image, even if the image is created with a non-default platform. This allows the user to create non-native images (e.g. amd64 image on an M1 laptop) that are still compatible with AWS lambda. To enable this feature, please use `VERSION --use-no-manifest-list 0.6`. [#1802](https://github.com/earthly/earthly/pull/1802)
+- Introduced Experimental support for `--chmod` flag in `COPY`. To enable this feature, please use `VERSION --use-chmod 0.6`. [#1817](https://github.com/earthly/earthly/pull/1817)
+- Experimental `secret_provider` config option allows users to provide a script which returns secrets. [#1808](https://github.com/earthly/earthly/issues/1808)
+- `/etc/ssh/ssh_known_hosts` are now passed to buildkit. [#1769](https://github.com/earthly/earthly/issues/1769)
+
+### Fixed
+
+- Targets with the same `CACHE` commands incorrectly shared cached contents. [#1805](https://github.com/earthly/earthly/issues/1805)
+- Sometimes local outputs and pushes are skipped mistakenly when a target is referenced both via `FROM` and via `BUILD` [#1823](https://github.com/earthly/earthly/issues/1823)
+- `GIT CLONE` failure (`makeCloneURL does not support gitMatcher substitution`) when used with a self-hosted git repo that was configured under `~/.earthly/config.yml`  [#1757](https://github.com/earthly/earthly/issues/1757)
+
+## v0.6.13 - 2022-03-30
+
+### Added
+
+- Earthly now warns when encountering Earthfiles with no `VERSION` specified. In the future, the `VERSION` command will be mandatory. [#1775](https://github.com/earthly/earthly/pull/1775)
+
+### Changed
+
+- `WITH DOCKER` now merges changes into `/etc/docker/daemon.json` rather than overwriting the entire file; this change introduces `jq` as a dependency, which will
+  be auto-installed if missing.
+
+### Fixed
+
+- The `COPY` command, when used with `LOCALLY` was incorrectly ignoring the `WORKDIR` value. [#1792](https://github.com/earthly/earthly/issues/1792)
+- The `--shell-out-anywhere` feature introduced a bug which interfered with asynchronous builds. [#1785](https://github.com/earthly/earthly/issues/1785)
+- `EARTHLY_GIT_SHORT_HASH` was not set when building a remotely-referenced target. [#1787](https://github.com/earthly/earthly/issues/1787)
+
 ## v0.6.12 - 2022-03-23
 
 ### Changed
 
 - A more obvious error is printed if `WITH DOCKER` starts non-natively. This is not supported and it wasn't obvious before.
+- `WITH DOCKER` will keep any settings pre-applied in `/etc/docker/daemon.json` rather than overwriting them.
 
 ### Added
 

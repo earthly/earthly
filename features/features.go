@@ -34,6 +34,8 @@ type Features struct {
 	NoTarBuildOutput           bool `long:"no-tar-build-output" description:"do not print output when creating a tarball to load into WITH DOCKER"`
 	ShellOutAnywhere           bool `long:"shell-out-anywhere" description:"allow shelling-out in the middle of ARGs, or any other command"`
 	NewPlatform                bool `long:"new-platform" description:"enable new platform behavior"`
+	UseNoManifestList          bool `long:"use-no-manifest-list" description:"enable the SAVE IMAGE --no-manifest-list option"`
+	UseChmod                   bool `long:"use-chmod" description:"enable the SAVE IMAGE --no-manifest-list option"`
 
 	Major int
 	Minor int
@@ -136,37 +138,41 @@ func instrumentVersion(_ string, opt *goflags.Option, s *string) (*string, error
 }
 
 // GetFeatures returns a features struct for a particular version
-func GetFeatures(version *spec.Version) (*Features, error) {
+func GetFeatures(version *spec.Version) (*Features, bool, error) {
 	var ftrs Features
-
-	if version == nil {
-		return &ftrs, nil
+	hasVersion := (version != nil)
+	if !hasVersion {
+		// If no version is specified, we default to 0.5 (the Earthly version
+		// before the VERSION command was introduced).
+		version = &spec.Version{
+			Args: []string{"0.5"},
+		}
 	}
 
 	if version.Args == nil {
-		return nil, errUnexpectedArgs
+		return nil, false, errUnexpectedArgs
 	}
 
 	parsedArgs, err := flagutil.ParseArgsWithValueModifier("VERSION", &ftrs, version.Args, instrumentVersion)
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 
 	if len(parsedArgs) != 1 {
-		return nil, errUnexpectedArgs
+		return nil, false, errUnexpectedArgs
 	}
 
 	majorAndMinor := strings.Split(parsedArgs[0], ".")
 	if len(majorAndMinor) != 2 {
-		return nil, errUnexpectedArgs
+		return nil, false, errUnexpectedArgs
 	}
 	ftrs.Major, err = strconv.Atoi(majorAndMinor[0])
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to parse major version %q", majorAndMinor[0])
+		return nil, false, errors.Wrapf(err, "failed to parse major version %q", majorAndMinor[0])
 	}
 	ftrs.Minor, err = strconv.Atoi(majorAndMinor[1])
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to parse minor version %q", majorAndMinor[1])
+		return nil, false, errors.Wrapf(err, "failed to parse minor version %q", majorAndMinor[1])
 	}
 
 	// Enable version-specific features.
@@ -190,9 +196,11 @@ func GetFeatures(version *spec.Version) (*Features, error) {
 		ftrs.UseCopyLink = true
 		ftrs.NewPlatform = true
 		ftrs.NoTarBuildOutput = true
+		ftrs.UseNoManifestList = true
+		ftrs.UseChmod = true
 	}
 
-	return &ftrs, nil
+	return &ftrs, hasVersion, nil
 }
 
 // versionAtLeast returns true if the version configured in `ftrs`

@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io/fs"
 	"net"
 	"os"
 	"path"
@@ -13,7 +14,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/containerd/containerd/platforms"
 	"github.com/earthly/earthly/analytics"
 	"github.com/earthly/earthly/buildcontext"
 	"github.com/earthly/earthly/debugger/common"
@@ -36,6 +36,7 @@ import (
 	"github.com/earthly/earthly/variables/reserved"
 
 	"github.com/alessio/shellescape"
+	"github.com/containerd/containerd/platforms"
 	"github.com/docker/distribution/reference"
 	"github.com/moby/buildkit/client/llb"
 	"github.com/moby/buildkit/frontend/dockerfile/dockerfile2llb"
@@ -275,7 +276,7 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 		}
 		BuildContextFactory = llbfactory.PreconstructedState(llbutil.CopyOp(
 			mts.Final.ArtifactsState, []string{contextArtifact.Artifact},
-			c.platr.Scratch(), "/", true, true, false, "", false, false,
+			c.platr.Scratch(), "/", true, true, false, "", nil, false, false,
 			c.ftrs.UseCopyLink,
 			llb.WithCustomNamef(
 				"%sFROM DOCKERFILE (copy build context from) %s%s",
@@ -430,10 +431,13 @@ func (c *Converter) CopyArtifactLocal(ctx context.Context, artifactName string, 
 }
 
 // CopyArtifact applies the earthly COPY artifact command.
-func (c *Converter) CopyArtifact(ctx context.Context, artifactName string, dest string, platform platutil.Platform, allowPrivileged bool, buildArgs []string, isDir bool, keepTs bool, keepOwn bool, chown string, ifExists, symlinkNoFollow bool) error {
+func (c *Converter) CopyArtifact(ctx context.Context, artifactName string, dest string, platform platutil.Platform, allowPrivileged bool, buildArgs []string, isDir bool, keepTs bool, keepOwn bool, chown string, chmod *fs.FileMode, ifExists, symlinkNoFollow bool) error {
 	err := c.checkAllowed(copyCmd)
 	if err != nil {
 		return err
+	}
+	if chmod != nil && !c.ftrs.UseChmod {
+		return fmt.Errorf("COPY --chmod is not supported in this version")
 	}
 	c.nonSaveCommand()
 	artifact, err := domain.ParseArtifact(artifactName)
@@ -452,7 +456,7 @@ func (c *Converter) CopyArtifact(ctx context.Context, artifactName string, dest 
 	// Copy.
 	c.mts.Final.MainState = llbutil.CopyOp(
 		relevantDepState.ArtifactsState, []string{artifact.Artifact},
-		c.mts.Final.MainState, dest, true, isDir, keepTs, c.copyOwner(keepOwn, chown), ifExists, symlinkNoFollow,
+		c.mts.Final.MainState, dest, true, isDir, keepTs, c.copyOwner(keepOwn, chown), chmod, ifExists, symlinkNoFollow,
 		c.ftrs.UseCopyLink,
 		llb.WithCustomNamef(
 			"%sCOPY %s%s%s%s%s %s",
@@ -467,10 +471,14 @@ func (c *Converter) CopyArtifact(ctx context.Context, artifactName string, dest 
 }
 
 // CopyClassical applies the earthly COPY command, with classical args.
-func (c *Converter) CopyClassical(ctx context.Context, srcs []string, dest string, isDir bool, keepTs bool, keepOwn bool, chown string, ifExists bool) error {
+func (c *Converter) CopyClassical(ctx context.Context, srcs []string, dest string, isDir bool, keepTs bool, keepOwn bool, chown string, chmod *fs.FileMode, ifExists bool) error {
 	err := c.checkAllowed(copyCmd)
 	if err != nil {
 		return err
+	}
+
+	if chmod != nil && !c.ftrs.UseChmod {
+		return fmt.Errorf("COPY --chmod is not supported in this version")
 	}
 
 	var srcState pllb.State
@@ -486,7 +494,7 @@ func (c *Converter) CopyClassical(ctx context.Context, srcs []string, dest strin
 	c.mts.Final.MainState = llbutil.CopyOp(
 		srcState,
 		srcs,
-		c.mts.Final.MainState, dest, true, isDir, keepTs, c.copyOwner(keepOwn, chown), ifExists, false,
+		c.mts.Final.MainState, dest, true, isDir, keepTs, c.copyOwner(keepOwn, chown), chmod, ifExists, false,
 		c.ftrs.UseCopyLink,
 		llb.WithCustomNamef(
 			"%sCOPY %s%s%s %s",
@@ -730,7 +738,7 @@ func (c *Converter) SaveArtifact(ctx context.Context, saveFrom string, saveTo st
 
 	c.mts.Final.ArtifactsState = llbutil.CopyOp(
 		pcState, []string{saveFrom}, c.mts.Final.ArtifactsState,
-		saveToAdjusted, true, true, keepTs, own, ifExists, symlinkNoFollow,
+		saveToAdjusted, true, true, keepTs, own, nil, ifExists, symlinkNoFollow,
 		c.ftrs.UseCopyLink,
 		llb.WithCustomNamef(
 			"%sSAVE ARTIFACT %s%s%s %s",
@@ -739,13 +747,13 @@ func (c *Converter) SaveArtifact(ctx context.Context, saveFrom string, saveTo st
 			strIf(symlinkNoFollow, "--symlink-no-follow "),
 			saveFrom,
 			artifact.String()))
-	if saveAsLocalTo != "" && c.opt.DoSaves {
+	if saveAsLocalTo != "" {
 		separateArtifactsState := c.platr.Scratch()
 		if isPush {
 			pushState := c.persistCache(c.mts.Final.RunPush.State)
 			separateArtifactsState = llbutil.CopyOp(
 				pushState, []string{saveFrom}, separateArtifactsState,
-				saveToAdjusted, true, true, keepTs, "root:root", ifExists, symlinkNoFollow,
+				saveToAdjusted, true, true, keepTs, "root:root", nil, ifExists, symlinkNoFollow,
 				c.ftrs.UseCopyLink,
 				llb.WithCustomNamef(
 					"%sSAVE ARTIFACT %s%s%s %s AS LOCAL %s",
@@ -758,7 +766,7 @@ func (c *Converter) SaveArtifact(ctx context.Context, saveFrom string, saveTo st
 		} else {
 			separateArtifactsState = llbutil.CopyOp(
 				pcState, []string{saveFrom}, separateArtifactsState,
-				saveToAdjusted, true, true, keepTs, "root:root", ifExists, symlinkNoFollow,
+				saveToAdjusted, true, true, keepTs, "root:root", nil, ifExists, symlinkNoFollow,
 				c.ftrs.UseCopyLink,
 				llb.WithCustomNamef(
 					"%sSAVE ARTIFACT %s%s%s %s AS LOCAL %s",
@@ -873,7 +881,7 @@ func (c *Converter) SaveArtifactFromLocal(ctx context.Context, saveFrom, saveTo 
 	ifExists := false
 	c.mts.Final.ArtifactsState = llbutil.CopyOp(
 		c.mts.Final.MainState, []string{absSaveTo}, c.mts.Final.ArtifactsState,
-		absSaveTo, true, true, keepTs, own, ifExists, false,
+		absSaveTo, true, true, keepTs, own, nil, ifExists, false,
 		c.ftrs.UseCopyLink,
 	)
 	err = c.forceExecution(ctx, c.mts.Final.ArtifactsState, c.platr)
@@ -886,10 +894,13 @@ func (c *Converter) SaveArtifactFromLocal(ctx context.Context, saveFrom, saveTo 
 }
 
 // SaveImage applies the earthly SAVE IMAGE command.
-func (c *Converter) SaveImage(ctx context.Context, imageNames []string, pushImages bool, insecurePush bool, cacheHint bool, cacheFrom []string) error {
+func (c *Converter) SaveImage(ctx context.Context, imageNames []string, pushImages bool, insecurePush bool, cacheHint bool, cacheFrom []string, noManifestList bool) error {
 	err := c.checkAllowed(saveImageCmd)
 	if err != nil {
 		return err
+	}
+	if noManifestList && !c.ftrs.UseNoManifestList {
+		return fmt.Errorf("SAVE IMAGE --no-manifest-list is not supported in this version")
 	}
 	for _, cf := range cacheFrom {
 		c.opt.CacheImports.Add(cf)
@@ -914,8 +925,9 @@ func (c *Converter) SaveImage(ctx context.Context, imageNames []string, pushImag
 					InsecurePush:        insecurePush,
 					CacheHint:           cacheHint,
 					HasPushDependencies: true,
-					DoSave:              c.opt.DoSaves || c.opt.ForceSaveImage,
+					ForceSave:           c.opt.ForceSaveImage,
 					CheckDuplicate:      c.ftrs.CheckDuplicateImages,
+					NoManifestList:      noManifestList,
 				})
 		} else {
 			pcState := c.persistCache(c.mts.Final.MainState)
@@ -928,8 +940,9 @@ func (c *Converter) SaveImage(ctx context.Context, imageNames []string, pushImag
 					InsecurePush:        insecurePush,
 					CacheHint:           cacheHint,
 					HasPushDependencies: false,
-					DoSave:              c.opt.DoSaves || c.opt.ForceSaveImage,
+					ForceSave:           c.opt.ForceSaveImage,
 					CheckDuplicate:      c.ftrs.CheckDuplicateImages,
+					NoManifestList:      noManifestList,
 				})
 		}
 
@@ -1186,7 +1199,7 @@ func (c *Converter) GitClone(ctx context.Context, gitURL string, branch string, 
 	gitState := pllb.Git(gitURL, branch, gitOpts...)
 	c.mts.Final.MainState = llbutil.CopyOp(
 		gitState, []string{"."}, c.mts.Final.MainState, dest, false, false, keepTs,
-		c.mts.Final.MainImage.Config.User, false, false, c.ftrs.UseCopyLink,
+		c.mts.Final.MainImage.Config.User, nil, false, false, c.ftrs.UseCopyLink,
 		llb.WithCustomNamef(
 			"%sCOPY GIT CLONE (--branch %s) %s TO %s", c.vertexPrefix(false, false, false),
 			branch, gitURLScrubbed, dest))
@@ -1256,15 +1269,23 @@ func (c *Converter) Import(ctx context.Context, importStr, as string, isGlobal, 
 // Cache handles a `CACHE` command in a Target.
 // It appends run options to the Converter which will mount a cache volume in each successive `RUN` command,
 // and configures the `Converter` to persist the cache in the image at the end of the target.
-func (c *Converter) Cache(ctx context.Context, path string) error {
+func (c *Converter) Cache(ctx context.Context, mountTarget string) error {
 	err := c.checkAllowed(cacheCmd)
 	if err != nil {
 		return err
 	}
 	c.nonSaveCommand()
-	if _, exists := c.persistentCacheDirs[path]; !exists {
-		c.persistentCacheDirs[path] = pllb.AddMount(path, pllb.Scratch(),
-			llb.AsPersistentCacheDir(path, llb.CacheMountShared))
+
+	key, err := cacheKeyTargetInput(c.targetInputActiveOnly())
+	if err != nil {
+		return err
+	}
+	mountID := path.Clean(mountTarget)
+	cachePath := path.Join("/run/cache", key, mountID)
+
+	if _, exists := c.persistentCacheDirs[mountTarget]; !exists {
+		c.persistentCacheDirs[mountTarget] = pllb.AddMount(mountTarget, pllb.Scratch(),
+			llb.AsPersistentCacheDir(cachePath, llb.CacheMountShared))
 	}
 	return nil
 }
@@ -1344,16 +1365,25 @@ func (c *Converter) FinalizeStates(ctx context.Context) (*states.MultiTarget, er
 	c.mts.Final.PlatformResolver = c.platr
 	c.mts.Final.VarCollection = c.varCollection
 	c.mts.Final.GlobalImports = c.varCollection.Imports().Global()
+	if c.opt.DoSaves {
+		c.mts.Final.SetDoSaves()
+	}
+
 	close(c.mts.Final.Done())
 	return c.mts, nil
 }
 
+var errShellOutNotPermitted = errors.New("shell-out not permitted")
+
 // ExpandArgs expands args in the provided word.
-func (c *Converter) ExpandArgs(ctx context.Context, runOpts ConvertRunOpts, word string) (string, error) {
+func (c *Converter) ExpandArgs(ctx context.Context, runOpts ConvertRunOpts, word string, allowShellOut bool) (string, error) {
 	if !c.opt.Features.ShellOutAnywhere {
 		return c.varCollection.ExpandOld(word), nil
 	}
 	return c.varCollection.Expand(word, func(cmd string) (string, error) {
+		if !allowShellOut {
+			return "", errShellOutNotPermitted
+		}
 		runOpts.Args = []string{cmd}
 		return c.RunCommand(ctx, "internal-expand-args", runOpts)
 	})

@@ -21,6 +21,7 @@ docker rmi earthly-export-test-1:test || true
 mkdir /tmp/earthly-export-test-1
 cd /tmp/earthly-export-test-1
 cat >> Earthfile <<EOF
+VERSION 0.6
 test1:
     FROM busybox:latest
     SAVE IMAGE earthly-export-test-1:test
@@ -39,6 +40,7 @@ docker rmi earthly-export-test-2:test || true
 mkdir /tmp/earthly-export-test-2
 cd /tmp/earthly-export-test-2
 cat >> Earthfile <<EOF
+VERSION 0.6
 test2:
     FROM busybox:latest
     CMD echo "running default cmd"
@@ -58,6 +60,7 @@ docker rmi earthly-export-test-3:test || true
 mkdir /tmp/earthly-export-test-3
 cd /tmp/earthly-export-test-3
 cat >> Earthfile <<EOF
+VERSION 0.6
 test3:
     FROM busybox:latest
     RUN echo "hello my world" > /data
@@ -81,6 +84,8 @@ docker rmi earthly-export-test-4:test_linux_arm_v7 || true
 mkdir /tmp/earthly-export-test-4
 cd /tmp/earthly-export-test-4
 cat >> Earthfile <<EOF
+VERSION 0.6
+
 multi4:
     BUILD --platform=linux/amd64 --platform=linux/arm64 --platform=linux/arm/v7 +test4
 
@@ -113,6 +118,8 @@ docker rmi earthly-export-test-5:test-img2 || true
 mkdir /tmp/earthly-export-test-5
 cd /tmp/earthly-export-test-5
 cat >> Earthfile <<EOF
+VERSION 0.6
+
 all5:
     BUILD +test5-img1
     BUILD +test5-img2
@@ -133,3 +140,34 @@ EOF
 
 docker run --rm earthly-export-test-5:test-img1 cat /data | grep "hello my world 1"
 docker run --rm earthly-export-test-5:test-img2 cat /data | grep "hello my world 2"
+
+# Test 6: no manifest list
+echo ==== Running test 6 ====
+rm -rf /tmp/earthly-export-test-6
+docker rmi earthly-export-test-6:test || true
+docker rmi earthly-export-test-6:test_linux_arm64 || true
+
+mkdir /tmp/earthly-export-test-6
+cd /tmp/earthly-export-test-6
+cat >> Earthfile <<EOF
+VERSION --use-no-manifest-list 0.6
+
+multi6:
+    BUILD --platform=linux/arm64 +test6
+
+test6:
+    FROM busybox:latest
+    RUN echo "hello my world" > /data
+    RUN uname -m >> /data
+    SAVE IMAGE --no-manifest-list earthly-export-test-6:test
+EOF
+
+"$earthly" prune --reset
+"$earthly" +multi6
+
+docker run --rm earthly-export-test-6:test cat /data | grep "hello my world"
+docker run --rm earthly-export-test-6:test cat /data | grep "aarch64"
+if docker inspect earthly-export-test-6:test_linux_arm64 >/dev/null 2>&1 ; then
+    echo "Expected failure"
+    exit 1
+fi

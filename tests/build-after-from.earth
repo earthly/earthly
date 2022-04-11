@@ -1,0 +1,19 @@
+VERSION 0.6
+
+all:
+  BUILD +one
+  BUILD +two
+  BUILD +common
+
+one:
+  FROM +common
+  RUN echo "one"
+
+two:
+  FROM +common
+  RUN echo "two"
+
+common:
+  FROM alpine:3.15
+  RUN echo "hello" >/hello.txt
+  SAVE ARTIFACT /hello.txt AS LOCAL hello.txt

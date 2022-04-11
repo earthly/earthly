@@ -46,10 +46,10 @@ extendedKeyUsage = clientAuth, serverAuth
     RUN openssl x509 -req -in /root/selfsigned-example-com.csr -CA /etc/ssl/certs/ca-cert-SelfSigned_Root_CA.pem \
         -CAkey /root/selfsigned-ca.key -CAcreateserial -out /root/selfsigned-example-com.pem \
         -days 9999 -extensions v3_req -extfile /root/openssl.config
-	
-	SAVE ARTIFACT /etc/ssl/certs/ca-cert-SelfSigned_Root_CA.pem SelfSigned_Root_CA.pem
-	SAVE ARTIFACT /root/selfsigned-example-com.pem selfsigned-example-com.pem
-	SAVE ARTIFACT /root/selfsigned-example-com.key selfsigned-example-com.key
+
+    SAVE ARTIFACT /etc/ssl/certs/ca-cert-SelfSigned_Root_CA.pem SelfSigned_Root_CA.pem
+    SAVE ARTIFACT /root/selfsigned-example-com.pem selfsigned-example-com.pem
+    SAVE ARTIFACT /root/selfsigned-example-com.key selfsigned-example-com.key
 
 # server creates a https-based git server using nginx; this repo can then be cloned by running
 # "git clone https://testuser:keepitsecret@selfsigned.example.com/repo.git"

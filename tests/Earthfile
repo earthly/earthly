@@ -59,6 +59,12 @@ ga:
     BUILD +copy-test-verbose-output
     BUILD +cache-test
     BUILD +git-clone-test
+    BUILD ./git-metadata+test \
+        --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
+        --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
+        --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
+        --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR \
+        --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE
     BUILD ./git-ssh-server+all \
         --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
         --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
@@ -83,6 +89,12 @@ ga:
         --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR \
         --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE
     BUILD ./invalid+test-all \
+        --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
+        --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
+        --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
+        --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR \
+        --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE
+    BUILD ./secret-provider-config+test-all \
         --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
         --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
         --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
@@ -174,6 +186,7 @@ ga:
     BUILD +host-invalid
     BUILD +mtime
     BUILD +server
+    BUILD +build-after-from
 
 # tests that only run on linux amd64
 # Note: this target is used to validate the USERPLATFORM user arg,
@@ -967,6 +980,7 @@ cache-cmd:
     RUN test -d ./artifacts1/2; test $? = 1
     RUN test "$(cat ./artifacts2/1)" = "artifact 1"
     RUN test "$(cat ./artifacts2/2)" = "artifact 2"
+    DO +RUN_EARTHLY --earthfile=cache-cmd.earth --target=+test-no-sharing
 
 ls:
     COPY ls.earth Earthfile
@@ -1020,6 +1034,10 @@ host-invalid:
 mtime:
     RUN echo test > file
     DO +RUN_EARTHLY --earthfile=mtime.earth
+
+build-after-from:
+    DO +RUN_EARTHLY --earthfile=build-after-from.earth --target=+all
+    RUN test -f ./hello.txt
 
 RUN_EARTHLY:
     COMMAND

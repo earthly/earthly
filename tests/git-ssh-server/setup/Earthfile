@@ -44,10 +44,10 @@ server:
         passwd git -u
     COPY no-interactive-login /home/git/git-shell-commands/no-interactive-login
     RUN mkdir /home/git/testuser && \
-        git init --bar /home/git/testuser/repo.git && \
+        git init --bare /home/git/testuser/repo.git && \
+        git -C /home/git/testuser/repo.git symbolic-ref HEAD refs/heads/main && \
         chown -R git:git /home/git/testuser
     COPY sshd_config /etc/ssh/sshd_config
-
 
     ARG SSHD_RSA="true"
     ARG SSHD_ED25519="true"

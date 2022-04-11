@@ -57,7 +57,10 @@ release-notes:
     COPY ..+changelog/CHANGELOG.md .
     ARG --required RELEASE_TAG
     RUN changelogparser --changelog CHANGELOG.md --version "$RELEASE_TAG" > notes.txt
-    RUN --no-cache test "$(changelogparser --changelog CHANGELOG.md --version "$RELEASE_TAG" --date)" = "$(date "+%Y-%m-%d")"
+    ARG SKIP_CHANGELOG_DATE_TEST="false"
+    IF [ "$SKIP_CHANGELOG_DATE_TEST" != "true" ]
+        RUN --no-cache test "$(changelogparser --changelog CHANGELOG.md --version "$RELEASE_TAG" --date)" = "$(date "+%Y-%m-%d")"
+    END
     SAVE ARTIFACT notes.txt
 
 release-github:

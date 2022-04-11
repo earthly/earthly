@@ -1,0 +1,19 @@
+version: "3"
+
+services:
+  redis:
+    container_name: local-redis
+    image: redis:6.0-alpine
+    ports:
+      - 127.0.0.1:6379:6379
+    hostname: redis
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:6379"]
+      interval: 1s
+      timeout: 10s
+      retries: 5
+    networks:
+      - go/part6_default
+
+networks:
+  go/part6_default:

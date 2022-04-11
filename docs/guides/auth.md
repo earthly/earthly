@@ -69,6 +69,10 @@ git:
         password: <password>
 ```
 
+If no `user` or `password` are found, earthly will check for entries under [`~/.netrc`](https://everything.curl.dev/usingcurl/netrc).
+
+##### Global override via environment variables (deprecated)
+
 Alternatively, environment variables can be set which will be override all host entries from the config file:
 
 * `GIT_USERNAME`
