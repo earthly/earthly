@@ -36,6 +36,8 @@ A classic example for uing `CACHE` is within a Target which downloads new depend
 
 Here's an example Target that uses `CACHE` in an NPM build:
 ```Earthfile
+VERSION --use-cache-command 0.6
+
 deps:
   CACHE ./node_modules
   COPY package*.json .
