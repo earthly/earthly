@@ -490,6 +490,13 @@ func (c *Converter) CopyClassical(ctx context.Context, srcs []string, dest strin
 		srcState = c.buildContextFactory.Construct()
 	}
 
+	// TODO add support for caches
+	for path := range c.persistentCacheDirs {
+		if dest == path || strings.HasPrefix(dest, path+"/") {
+			return fmt.Errorf("unable to copy to dest=%s which is located under CACHE=%s", dest, path)
+		}
+	}
+
 	c.nonSaveCommand()
 	c.mts.Final.MainState = llbutil.CopyOp(
 		srcState,
