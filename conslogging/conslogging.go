@@ -32,6 +32,20 @@ const (
 	DefaultPadding int = 20
 )
 
+// LogLevel defines which types of log messages are displayed (e.g. warning, info, verbose)
+type LogLevel int
+
+const (
+	// Silent silences logging
+	Silent LogLevel = iota
+	// Warn only display warning log messages
+	Warn
+	// Info displays info and higher priority log messages
+	Info
+	// Verbose displays all log messages
+	Verbose
+)
+
 const barWidth = 80
 
 var currentConsoleMutex sync.Mutex
@@ -49,7 +63,7 @@ type ConsoleLogger struct {
 	colorMode ColorMode
 	isCached  bool
 	isFailed  bool
-	verbose   bool
+	logLevel  LogLevel
 
 	// The following are shared between instances and are protected by the mutex.
 	mu             *sync.Mutex
@@ -63,7 +77,7 @@ type ConsoleLogger struct {
 }
 
 // Current returns the current console.
-func Current(colorMode ColorMode, prefixPadding int, verbose bool) ConsoleLogger {
+func Current(colorMode ColorMode, prefixPadding int, logLevel LogLevel) ConsoleLogger {
 	return ConsoleLogger{
 		consoleErrW:    getCompatibleStderr(),
 		errW:           getCompatibleStderr(),
@@ -72,7 +86,7 @@ func Current(colorMode ColorMode, prefixPadding int, verbose bool) ConsoleLogger
 		nextColorIndex: new(int),
 		prefixPadding:  prefixPadding,
 		mu:             &currentConsoleMutex,
-		verbose:        verbose,
+		logLevel:       logLevel,
 	}
 }
 
@@ -83,7 +97,7 @@ func (cl ConsoleLogger) clone() ConsoleLogger {
 		prefix:         cl.prefix,
 		metadataMode:   cl.metadataMode,
 		isLocal:        cl.isLocal,
-		verbose:        cl.verbose,
+		logLevel:       cl.logLevel,
 		salt:           cl.salt,
 		isCached:       cl.isCached,
 		isFailed:       cl.isFailed,
@@ -259,6 +273,10 @@ func (cl ConsoleLogger) PrintBar(c *color.Color, msg, phase string) {
 
 // Warnf prints a warning message in red to errWriter.
 func (cl ConsoleLogger) Warnf(format string, args ...interface{}) {
+	if cl.logLevel < Warn {
+		return
+	}
+
 	cl.mu.Lock()
 	defer cl.mu.Unlock()
 
@@ -274,6 +292,9 @@ func (cl ConsoleLogger) Warnf(format string, args ...interface{}) {
 
 // Printf prints formatted text to the console.
 func (cl ConsoleLogger) Printf(format string, args ...interface{}) {
+	if cl.logLevel < Info {
+		return
+	}
 	cl.mu.Lock()
 	defer cl.mu.Unlock()
 	c := cl.color(noColor)
@@ -332,16 +353,18 @@ func (cl ConsoleLogger) PrintBytes(data []byte) {
 
 // VerbosePrintf prints formatted text to the console when verbose flag is set.
 func (cl ConsoleLogger) VerbosePrintf(format string, args ...interface{}) {
-	if cl.verbose {
-		cl.WithMetadataMode(true).Printf(format, args...)
+	if cl.logLevel < Verbose {
+		return
 	}
+	cl.WithMetadataMode(true).Printf(format, args...)
 }
 
 // VerboseBytes prints bytes directly to the console when verbose flag is set.
 func (cl ConsoleLogger) VerboseBytes(data []byte) {
-	if cl.verbose {
-		cl.WithMetadataMode(true).PrintBytes(data)
+	if cl.logLevel < Verbose {
+		return
 	}
+	cl.WithMetadataMode(true).PrintBytes(data)
 }
 
 func (cl ConsoleLogger) printPrefix() {
@@ -416,10 +439,10 @@ func prettyPrefix(prefixPadding int, prefix string) string {
 	return fmt.Sprintf(formatString, fmt.Sprintf("%s%s", prettyPrefix, brackets))
 }
 
-// WithVerbose toggles the verbose level
-func (cl ConsoleLogger) WithVerbose(verbose bool) ConsoleLogger {
+// WithLogLevel changes the log level
+func (cl ConsoleLogger) WithLogLevel(logLevel LogLevel) ConsoleLogger {
 	ret := cl.clone()
-	ret.verbose = verbose
+	ret.logLevel = logLevel
 	return ret
 }
 
