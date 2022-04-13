@@ -660,6 +660,6 @@ func spawnTestVolumes(ctx context.Context, feBinary string, names ...string) (fu
 
 func testLogger() conslogging.ConsoleLogger {
 	var logs strings.Builder
-	logger := conslogging.Current(conslogging.NoColor, conslogging.DefaultPadding, false)
+	logger := conslogging.Current(conslogging.NoColor, conslogging.DefaultPadding, conslogging.Info)
 	return logger.WithWriter(&logs)
 }

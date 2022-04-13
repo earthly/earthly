@@ -281,7 +281,7 @@ func main() {
 		padding = conslogging.NoPadding
 	}
 
-	app := newEarthlyApp(ctx, conslogging.Current(colorMode, padding, false))
+	app := newEarthlyApp(ctx, conslogging.Current(colorMode, padding, conslogging.Info))
 	app.unhideFlags(ctx)
 	app.autoComplete(ctx)
 
@@ -1054,7 +1054,7 @@ func (app *earthlyApp) before(context *cli.Context) error {
 	}
 
 	if app.verbose {
-		app.console = app.console.WithVerbose(true)
+		app.console = app.console.WithLogLevel(conslogging.Verbose)
 	}
 
 	if context.IsSet("config") {
@@ -1303,6 +1303,8 @@ func (app *earthlyApp) autoComplete(ctx context.Context) {
 	if !found {
 		return
 	}
+
+	app.console = app.console.WithLogLevel(conslogging.Silent)
 
 	err := app.autoCompleteImp(ctx)
 	if err != nil {

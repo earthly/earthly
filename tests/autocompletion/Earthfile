@@ -55,6 +55,22 @@ test-targets:
     RUN COMP_LINE="earthly +m" COMP_POINT=10 earthly > actual
     RUN diff expected actual
 
+test-targets-without-version:
+    COPY fake.earth ./Earthfile
+    RUN mv Earthfile Earthfile.bkup && cat Earthfile.bkup | grep -v VERSION > Earthfile
+
+    RUN echo "+mytarget 
++othertarget 
++othertargetwithargs 
++targetwithrequiredarg " > expected
+    RUN COMP_LINE="earthly +" COMP_POINT=9 earthly > actual
+    RUN diff expected actual
+
+    RUN echo "+mytarget " > expected
+    RUN COMP_LINE="earthly +m" COMP_POINT=10 earthly > actual 2> errlog
+    RUN diff expected actual
+    RUN test -f errlog && ! test -s errlog
+
 test-target-with-build-args:
     COPY fake.earth ./Earthfile
 
@@ -198,6 +214,7 @@ test-all:
     BUILD +test-root-commands
     BUILD +test-hidden-root-commands
     BUILD +test-targets
+    BUILD +test-targets-without-version
     BUILD +test-targets-from-other-dir
     BUILD +test-target-with-build-args
     BUILD +test-target-with-build-args-from-other-dir
