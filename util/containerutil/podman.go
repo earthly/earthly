@@ -25,7 +25,7 @@ func NewPodmanShellFrontend(ctx context.Context, cfg *FrontendConfig) (Container
 	fe := &podmanShellFrontend{
 		shellFrontend: &shellFrontend{
 			binaryName:              "podman",
-			runCompatibilityArgs:    make([]string, 0),
+			runCompatibilityArgs:    []string{"--security-opt", "unmask=/sys/fs/cgroup"},
 			globalCompatibilityArgs: make([]string, 0),
 		},
 	}
