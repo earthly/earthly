@@ -1,18 +1,28 @@
 VERSION 0.6
 
+add-version:
+    FROM alpine:3.14
+
+    COPY versions .
+
+    ARG --required RELEASE_TAG
+    RUN echo $RELEASE_TAG | tr -d "v" >> versions
+
+    SAVE ARTIFACT versions AS LOCAL versions
+
 update-pipelines:
     FROM hashicorp/terraform:light
 
-    ARG ENVIRONMENT
-    ARG AWS_PROFILE
+    ARG --required ENVIRONMENT
+    ARG --required AWS_PROFILE
     ARG AWS_REGION=us-west-2
 
-    COPY imagebuilder.tf .
+    WORKDIR /tf
+    COPY . .
 
     RUN --no-cache \
         --mount=type=secret,id=+secrets/user/earthly-technologies/aws/credentials,target=/root/.aws/credentials \
         --mount=type=secret,id=+secrets/user/earthly-technologies/aws/config,target=/root/.aws/config \
-        --mount=type=secret,id=+secrets/earthly-technologies/github/griswoldthecat/id_rsa,target=/root/.ssh/id_rsa,mode=0400 \
 
         terraform init && \
         terraform workspace select $ENVIRONMENT
@@ -20,14 +30,12 @@ update-pipelines:
     RUN \
         --mount=type=secret,id=+secrets/user/earthly-technologies/aws/credentials,target=/root/.aws/credentials \
         --mount=type=secret,id=+secrets/user/earthly-technologies/aws/config,target=/root/.aws/config \
-        --mount=type=secret,id=+secrets/earthly-technologies/github/griswoldthecat/id_rsa,target=/root/.ssh/id_rsa,mode=0400 \
 
         terraform plan
 
     RUN --push \
         --mount=type=secret,id=+secrets/user/earthly-technologies/aws/credentials,target=/root/.aws/credentials \
         --mount=type=secret,id=+secrets/user/earthly-technologies/aws/config,target=/root/.aws/config \
-        --mount=type=secret,id=+secrets/earthly-technologies/github/griswoldthecat/id_rsa,target=/root/.ssh/id_rsa,mode=0400 \
 
         terraform apply --auto-approve
 
@@ -42,7 +50,7 @@ build-ami:
     ARG --required VERSION
     ARG --required ENVIRONMENT
     ARG --required AWS_PROFILE
-    ARG AWS_REGION=us-west-2
+    ARG --required AWS_REGION=us-west-2
 
     # Get the pipeline output data to look up the ARN for the one to trigger
     COPY imagebuilder.tf .
@@ -57,7 +65,7 @@ build-ami:
 
     # Look up the ARN based on version, and then kick it off
     ARG PIPELINE_ARN=$(yq \'.pipelines.value.[env(VERSION)]\'.arn deps.json)
-    RUN --push
+    RUN --push \
         --mount=type=secret,id=+secrets/user/earthly-technologies/aws/credentials,target=/root/.aws/credentials \
         --mount=type=secret,id=+secrets/user/earthly-technologies/aws/config,target=/root/.aws/config \
 

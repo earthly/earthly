@@ -30,7 +30,7 @@ data "aws_imagebuilder_component" "docker" {
 }
 
 resource "aws_imagebuilder_component" "earthly" {
-  for_each = toset(["0.6.12", "0.6.13", "0.6.14"])
+  for_each = toset(split("\n", trimspace(file("./versions"))))
 
   data = yamlencode({
     phases = [{
@@ -63,13 +63,13 @@ resource "aws_imagebuilder_component" "earthly" {
   name        = "Install Earthly"
   description = "A component to install Earthly"
   platform    = "Linux"
-  version     = each.key # Not the Earthly version, this is for the YAML document
+  version     = replace(each.key, "v", "") # Not the Earthly version, this is for the YAML document
 }
 
 resource "aws_imagebuilder_image_recipe" "earthly" {
   for_each = aws_imagebuilder_component.earthly
 
-  name         = "Earthly ${replace(each.value.version, ".", "_")}"
+  name         = "Earthly ${replace(each.key, ".", "_")}"
   parent_image = data.aws_ami.ecs_ami.image_id
   version      = each.value.version
   component {
@@ -88,12 +88,12 @@ resource "aws_imagebuilder_infrastructure_configuration" "earthly" {
 resource "aws_imagebuilder_distribution_configuration" "earthly" {
   for_each = aws_imagebuilder_image_recipe.earthly
 
-  name = "earthly-${replace(each.value.version, ".", "_")}"
-  description = "Distribution settings for Earthly ${each.value.version} AMI"
+  name = "earthly-${replace(each.key, ".", "_")}"
+  description = "Distribution settings for Earthly ${each.key} AMI"
   distribution {
     region = "us-west-2"
     ami_distribution_configuration {
-      name = "earthly-${replace(each.value.version, ".", "_")}-{{ imagebuilder:buildDate }}"
+      name = "earthly-${replace(each.key, ".", "_")}-{{ imagebuilder:buildDate }}"
     }
   }
 }
@@ -104,8 +104,8 @@ resource "aws_imagebuilder_image_pipeline" "earthly" {
   image_recipe_arn                 = each.value.arn
   infrastructure_configuration_arn = aws_imagebuilder_infrastructure_configuration.earthly.arn
   distribution_configuration_arn   = aws_imagebuilder_distribution_configuration.earthly[each.key].arn
-  name                             = "earthly-${replace(each.value.version, ".", "_")}"
-  description                      = "Builds an AMI with Earthly ${each.value.version}"
+  name                             = "earthly-${replace(each.key, ".", "_")}"
+  description                      = "Builds an AMI with Earthly ${each.key}"
 }
 
 output "pipelines" {
