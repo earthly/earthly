@@ -1,0 +1,96 @@
+VERSION 0.6
+
+update-pipelines:
+    FROM hashicorp/terraform:light
+
+    ARG ENVIRONMENT
+    ARG AWS_PROFILE
+    ARG AWS_REGION=us-west-2
+
+    COPY imagebuilder.tf .
+
+    RUN --no-cache \
+        --mount=type=secret,id=+secrets/user/earthly-technologies/aws/credentials,target=/root/.aws/credentials \
+        --mount=type=secret,id=+secrets/user/earthly-technologies/aws/config,target=/root/.aws/config \
+        --mount=type=secret,id=+secrets/earthly-technologies/github/griswoldthecat/id_rsa,target=/root/.ssh/id_rsa,mode=0400 \
+
+        terraform init && \
+        terraform workspace select $ENVIRONMENT
+
+    RUN \
+        --mount=type=secret,id=+secrets/user/earthly-technologies/aws/credentials,target=/root/.aws/credentials \
+        --mount=type=secret,id=+secrets/user/earthly-technologies/aws/config,target=/root/.aws/config \
+        --mount=type=secret,id=+secrets/earthly-technologies/github/griswoldthecat/id_rsa,target=/root/.ssh/id_rsa,mode=0400 \
+
+        terraform plan
+
+    RUN --push \
+        --mount=type=secret,id=+secrets/user/earthly-technologies/aws/credentials,target=/root/.aws/credentials \
+        --mount=type=secret,id=+secrets/user/earthly-technologies/aws/config,target=/root/.aws/config \
+        --mount=type=secret,id=+secrets/earthly-technologies/github/griswoldthecat/id_rsa,target=/root/.ssh/id_rsa,mode=0400 \
+
+        terraform apply --auto-approve
+
+build-ami:
+    FROM --platform=linux/amd64 ubuntu:22.04
+
+    DO +ADD_APT_REQS
+    DO +ADD_YQ
+    DO +ADD_AWSCLI
+    DO +ADD_TERRAFORM
+
+    ARG --required VERSION
+    ARG --required ENVIRONMENT
+    ARG --required AWS_PROFILE
+    ARG AWS_REGION=us-west-2
+
+    # Get the pipeline output data to look up the ARN for the one to trigger
+    COPY imagebuilder.tf .
+    RUN --no-cache \
+        --mount=type=secret,id=+secrets/user/earthly-technologies/aws/credentials,target=/root/.aws/credentials \
+        --mount=type=secret,id=+secrets/user/earthly-technologies/aws/config,target=/root/.aws/config \
+
+         terraform init && \
+         terraform workspace select $ENVIRONMENT && \
+         terraform refresh > /dev/null && \ # Do not print all variables to the logs. Terraform is one noisy fella
+         terraform output -json >> deps.json
+
+    # Look up the ARN based on version, and then kick it off
+    ARG PIPELINE_ARN=$(yq \'.pipelines.value.[env(VERSION)]\'.arn deps.json)
+    RUN --push
+        --mount=type=secret,id=+secrets/user/earthly-technologies/aws/credentials,target=/root/.aws/credentials \
+        --mount=type=secret,id=+secrets/user/earthly-technologies/aws/config,target=/root/.aws/config \
+
+        aws imagebuilder start-image-pipeline-execution --image-pipeline-arn $PIPELINE_ARN
+
+ADD_APT_REQS:
+    COMMAND
+    RUN apt update && \
+        apt install -y \
+           curl \
+           unzip \
+           git \
+           ca-certificates
+
+ADD_YQ:
+    COMMAND
+    ARG YQ_VER=v4.20.2
+    ARG YQ_BIN=yq_linux_amd64
+
+    RUN curl https://github.com/mikefarah/yq/releases/download/${YQ_VER}/${YQ_BIN} -L -o /usr/bin/yq && \
+        chmod +x /usr/bin/yq
+
+ADD_TERRAFORM:
+    COMMAND
+    ARG TF_VER=0.14.11
+
+    RUN curl "https://releases.hashicorp.com/terraform/${TF_VER}/terraform_${TF_VER}_linux_amd64.zip" -o "terraform.zip" && \
+        unzip terraform.zip && \
+        chmod +x ./terraform && \
+        mv ./terraform /usr/local/bin/terraform
+
+ADD_AWSCLI:
+    COMMAND
+    RUN curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip" && \
+        unzip awscliv2.zip && \
+        ./aws/install
