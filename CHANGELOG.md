@@ -4,6 +4,10 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+### Changed
+
+- Switch to MPL-2.0 license. [Announcement](https://earthly.dev/blog/earthly-open-source)
+
 ## v0.6.14 - 2022-04-11
 
 ### Added

@@ -33,7 +33,7 @@ pack:
 
 
     RUN mkdir tools
-    COPY ../../licenses+licenses/BSL ./tools/LICENSE.txt
+    COPY ../..+license/LICENSE ./tools/LICENSE.txt
     COPY ./VERIFICATION.txt ./tools/VERIFICATION.txt
     RUN curl -L -o tools/earthly.exe https://github.com/earthly/earthly/releases/download/v${EARTHLY_VERSION}/earthly-windows-amd64.exe
 

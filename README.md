@@ -6,7 +6,7 @@
 [![Website](https://img.shields.io/badge/website-earthly.dev-blue)](https://earthly.dev)
 [![Install Earthly](https://img.shields.io/github/v/release/earthly/earthly.svg?label=install&color=1f626c)](https://earthly.dev/get-earthly)
 [![Docker Hub](https://img.shields.io/badge/docker%20hub-earthly-blue)](https://hub.docker.com/u/earthly)
-[![License BSL](https://img.shields.io/badge/license-BSL-blue.svg)](./LICENSE)
+[![License MPL-2](https://img.shields.io/badge/license-MPL-blue.svg)](./LICENSE)
 
 **🐳 Build anything via containers** - *build images or standalone artifacts (binaries, packages, arbitrary files)*
 
@@ -24,7 +24,7 @@
 
 ---------------------------------
 
-[🌍 Earthly](https://earthly.dev) is a build automation tool for the container era. It allows you to execute all your builds in containers. This makes them self-contained, repeatable, portable and parallel. You can use Earthly to create Docker images and artifacts (e.g., binaries, packages, arbitrary files).
+[🌍 Earthly](https://earthly.dev) is a CI/CD framework that allows you to develop pipelines locally and run them anywhere. Earthly leverages containers for the execution of pipelines. This makes them self-contained, repeatable, portable and parallel.
 
 <br/>
 <div align="center"><a href="https://earthly.dev/get-earthly"><img src="docs/img/get-earthly-button.png" alt="Get Earthly" title="Get Earthly" /></a></div>
@@ -348,4 +348,4 @@ Overall, compared to Bazel, Earthly sacrifices some correctness and reproducibil
 <br/>
 <h2 align="center">Licensing</h2>
 
-Earthly is licensed under the Business Source License 1.1. See [licenses/BSL](./licenses/BSL) and the [Earthly BSL FAQ page](https://earthly.dev/bslfaq) for more information.
+Earthly is licensed under the Mozilla Public License Version 2.0. See [LICENSE](./LICENSE).
