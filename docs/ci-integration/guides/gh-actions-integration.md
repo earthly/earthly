@@ -34,8 +34,10 @@ jobs:
         git checkout -b "$branch" || true
     - name: Docker Login
       run: docker login --username "$DOCKERHUB_USERNAME" --password "$DOCKERHUB_TOKEN"
-    - name: Download latest earthly
-      run: "sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/download/v0.6.14/earthly-linux-amd64 -O /usr/local/bin/earthly && chmod +x /usr/local/bin/earthly'"
+    - name: Setup Earthly
+      uses: earthly/actions-setup@v1
+      with:
+        version: "v0.6.10"
     - name: Earthly version
       run: earthly --version
     - name: Run build
