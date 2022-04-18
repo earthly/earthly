@@ -18,8 +18,6 @@ jobs:
   build:
     runs-on: ubuntu-latest
     env:
-      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
       FORCE_COLOR: 1
     steps:
     - uses: actions/checkout@v2
@@ -33,7 +31,7 @@ jobs:
         fi
         git checkout -b "$branch" || true
     - name: Docker Login
-      run: docker login --username "$DOCKERHUB_USERNAME" --password "$DOCKERHUB_TOKEN"
+      run: echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
     - name: Setup Earthly
       uses: earthly/actions-setup@v1
       with:
