@@ -38,8 +38,6 @@ jobs:
       uses: earthly/actions-setup@v1
       with:
         version: "v0.6.10"
-    - name: Earthly version
-      run: earthly --version
     - name: Run build
       run: earthly --ci --push +build
 ```
