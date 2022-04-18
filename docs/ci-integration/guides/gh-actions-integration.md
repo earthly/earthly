@@ -20,7 +20,7 @@ jobs:
     env:
       FORCE_COLOR: 1
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Put back the git branch into git (Earthly uses it for tagging)
       run: |
         branch=""
