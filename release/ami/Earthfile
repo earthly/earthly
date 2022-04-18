@@ -37,12 +37,7 @@ update-pipelines:
         --mount=type=secret,id=+secrets/user/earthly-technologies/aws/config,target=/root/.aws/config \
 
         terraform init && \
-        terraform workspace select $ENVIRONMENT
-
-    RUN \
-        --mount=type=secret,id=+secrets/user/earthly-technologies/aws/credentials,target=/root/.aws/credentials \
-        --mount=type=secret,id=+secrets/user/earthly-technologies/aws/config,target=/root/.aws/config \
-
+        terraform workspace select $ENVIRONMENT && \
         terraform plan
 
     RUN --push \
