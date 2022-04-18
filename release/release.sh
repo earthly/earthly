@@ -8,6 +8,7 @@ set -ex
 # - downloading the binaries from github and existing binaries from s3 buckets
 # - signing those apt and yum packages containing those binaries
 # - and pushing signed up to s3 buckets (which back our apt and yum repos)
+# - building an AMI for the latest version
 
 # Args
 #   Required
@@ -81,9 +82,11 @@ else
 fi
 
 release_apt_and_yum="false"
+release_ami="false"
 if [ "$GITHUB_USER" = "earthly" ] && [ "$EARTHLY_REPO" = "earthly" ]; then
     ("$earthly" secrets get /user/earthly-technologies/aws/credentials >/dev/null) || (echo "ERROR: user-secrets /user/earthly-technologies/aws/credentials does not exist"; exit 1);
     release_apt_and_yum="true"
+    release_ami="true"
 fi
 
 existing_release=$(curl -s https://api.github.com/repos/earthly/earthly/releases/tags/$RELEASE_TAG | jq -r .tag_name)
@@ -114,4 +117,11 @@ if [ "$release_apt_and_yum" = "true" ]; then
     "$earthly" --push --build-arg RELEASE_TAG ./yum-repo+build-and-release
 else
     echo "WARNING: there is no staging environment for apt or yum repos"
+fi
+
+if [ "$release_ami" = "true" ]; then
+  "$earthly" --push --build-arg RELEASE_TAG ./ami+update-pipelines
+  "$earthly" --push --build-arg RELEASE_TAG ./ami+build-ami
+else
+  echo "WARNING: there is no staging environment for AMIs"
 fi
