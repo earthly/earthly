@@ -582,3 +582,7 @@ examples2:
     BUILD github.com/earthly/hello-world:main+hello
     BUILD ./examples/cache-command/npm+docker
     BUILD ./examples/cache-command/mvn+docker
+
+license:
+    COPY LICENSE ./
+    SAVE ARTIFACT LICENSE
