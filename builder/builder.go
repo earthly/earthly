@@ -131,11 +131,28 @@ func (b *Builder) BuildTarget(ctx context.Context, target domain.Target, opt Bui
 	return mts, nil
 }
 
+// MakeImageWithRegistryBuilderFun returns a states.DockerBuilderFun which can
+// be used to build a Docker image and store to to a local registry for later use.
+func (b *Builder) MakeImageWithRegistryBuilderFun() states.DockerBuilderFun {
+	return func(ctx context.Context, mts *states.MultiTarget, dockerTag string, outFile string, printOutput bool) error {
+		return b.buildOnlyLastImageWithRegistry(ctx, mts, dockerTag, outFile, BuildOpt{}, printOutput)
+	}
+}
+
 // MakeImageAsTarBuilderFun returns a function which can be used to build an image as a tar.
 func (b *Builder) MakeImageAsTarBuilderFun() states.DockerBuilderFun {
 	return func(ctx context.Context, mts *states.MultiTarget, dockerTag string, outFile string, printOutput bool) error {
 		return b.buildOnlyLastImageAsTar(ctx, mts, dockerTag, outFile, BuildOpt{}, printOutput)
 	}
+}
+
+// dockerBuilderFunForFlags returns the correct states.DockerBuilderFun for the
+// given feature flags.
+func (b *Builder) dockerBuilderFun(enableRegistry bool) states.DockerBuilderFun {
+	if enableRegistry {
+		return b.MakeImageWithRegistryBuilderFun()
+	}
+	return b.MakeImageAsTarBuilderFun()
 }
 
 func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt BuildOpt) (*states.MultiTarget, error) {
@@ -162,7 +179,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 				GwClient:             gwClient,
 				Resolver:             b.resolver,
 				ImageResolveMode:     b.opt.ImageResolveMode,
-				DockerBuilderFun:     b.MakeImageAsTarBuilderFun(),
+				DockerBuilderFun:     b.dockerBuilderFun,
 				CleanCollection:      b.opt.CleanCollection,
 				PlatformResolver:     opt.PlatformResolver.SubResolver(opt.PlatformResolver.Current()),
 				OverridingVars:       b.opt.OverridingVars,
@@ -659,6 +676,16 @@ func (b *Builder) artifactStateToRef(ctx context.Context, gwClient gwclient.Clie
 	return llbutil.StateToRef(
 		ctx, gwClient, state, noCache,
 		platr, b.opt.CacheImports.AsMap())
+}
+
+func (b *Builder) buildOnlyLastImageWithRegistry(ctx context.Context, mts *states.MultiTarget, dockerTag string, outFile string, opt BuildOpt, printOutput bool) error {
+	platform := mts.Final.PlatformResolver.ToLLBPlatform(mts.Final.PlatformResolver.Current())
+	saveImage := mts.Final.LastSaveImage()
+	err := b.s.solveDockerTar(ctx, saveImage.State, platform, saveImage.Image, dockerTag, outFile, printOutput)
+	if err != nil {
+		return errors.Wrapf(err, "solve image tar %s", outFile)
+	}
+	return nil
 }
 
 func (b *Builder) buildOnlyLastImageAsTar(ctx context.Context, mts *states.MultiTarget, dockerTag string, outFile string, opt BuildOpt, printOutput bool) error {

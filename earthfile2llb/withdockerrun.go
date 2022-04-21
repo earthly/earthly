@@ -65,7 +65,8 @@ type WithDockerOpt struct {
 type withDockerRun struct {
 	c *Converter
 
-	enableParallel bool
+	enableParallel      bool
+	enableImageRegistry bool
 
 	sem      semutil.Semaphore
 	mu       sync.Mutex
@@ -400,6 +401,7 @@ func (wdr *withDockerRun) load(ctx context.Context, opt DockerLoadOpt) (chan Doc
 }
 
 func (wdr *withDockerRun) solveImage(ctx context.Context, mts *states.MultiTarget, opName string, dockerTag string, opts ...llb.RunOption) error {
+	// TODO(mikejholly): will need to switch between tar and registry methods here
 	solveID, err := states.KeyFromHashAndTag(mts.Final, dockerTag)
 	if err != nil {
 		return errors.Wrap(err, "state key func")
@@ -415,7 +417,7 @@ func (wdr *withDockerRun) solveImage(ctx context.Context, mts *states.MultiTarge
 			return os.RemoveAll(outDir)
 		})
 		outFile := path.Join(outDir, "image.tar")
-		err = wdr.c.opt.DockerBuilderFun(ctx, mts, dockerTag, outFile, !wdr.c.ftrs.NoTarBuildOutput)
+		err = wdr.c.opt.DockerBuilderFun(wdr.enableImageRegistry)(ctx, mts, dockerTag, outFile, !wdr.c.ftrs.NoTarBuildOutput)
 		if err != nil {
 			return pllb.State{}, errors.Wrapf(err, "build target %s for docker load", opName)
 		}

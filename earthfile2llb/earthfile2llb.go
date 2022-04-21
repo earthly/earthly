@@ -35,8 +35,8 @@ type ConvertOpt struct {
 	ImageResolveMode llb.ResolveMode
 	// DockerBuilderFun is a fun that can be used to execute an image build. This
 	// is used as part of operations like DOCKER LOAD and DOCKER PULL, where
-	// a tar image is needed in the middle of a build.
-	DockerBuilderFun states.DockerBuilderFun
+	// a Docker image is needed in the middle of a build.
+	DockerBuilderFun func(bool) states.DockerBuilderFun
 	// CleanCollection is a collection of cleanup functions.
 	CleanCollection *cleanup.Collection
 	// Visited is a collection of target states which have been converted to LLB.
@@ -98,7 +98,7 @@ type ConvertOpt struct {
 	// ErrorGroup is a serrgroup used to submit parallel conversion jobs.
 	ErrorGroup *serrgroup.Group
 
-	// FeatureFlagOverride is used to override feature flags that are defined in specific Earthfiles
+	// FeatureFlagOverrides is used to override feature flags that are defined in specific Earthfiles
 	FeatureFlagOverrides string
 	// Default set of ARGs to make available in Earthfile.
 	BuiltinArgs variables.DefaultArgs

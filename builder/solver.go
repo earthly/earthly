@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"os"
 	"strconv"
@@ -40,6 +41,15 @@ type solver struct {
 	saveInlineCache bool
 }
 
+// solveDockerWithRegistry uses buildkit to create a new image. The image is
+// then pushed to a local Docker registry instead of having buildkit export a
+// local tar file.
+func (s *solver) solveDockerWithRegistry(ctx context.Context, state pllb.State, platform specs.Platform, img *image.Image, dockerTag string, outFile string, printOutput bool) error {
+	fmt.Println("USING NEW CODE PATH")
+	return nil
+}
+
+// solveDockerTar has buildkit export a Docker image as a local tar file.
 func (s *solver) solveDockerTar(ctx context.Context, state pllb.State, platform specs.Platform, img *image.Image, dockerTag string, outFile string, printOutput bool) error {
 	dt, err := state.Marshal(ctx, llb.Platform(platform))
 	if err != nil {
