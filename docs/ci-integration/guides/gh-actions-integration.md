@@ -23,15 +23,11 @@ jobs:
       FORCE_COLOR: 1
     steps:
     - uses: actions/checkout@v2
-    - name: Put back the git branch into git (Earthly uses it for tagging)
-      run: |
-        branch=""
-        if [ -n "$GITHUB_HEAD_REF" ]; then
-          branch="$GITHUB_HEAD_REF"
-        else
-          branch="${GITHUB_REF##*/}"
-        fi
-        git checkout -b "$branch" || true
+      with:
+          # By default, only the latest commit is checked out.
+          # Earthly uses the branch name for tagging,
+          # so we need to explicitly check out the branch.
+          ref: ${{ github.head_ref || github.ref_name }}
     - name: Docker Login
       run: docker login --username "$DOCKERHUB_USERNAME" --password "$DOCKERHUB_TOKEN"
     - name: Download latest earthly
