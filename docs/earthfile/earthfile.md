@@ -1419,6 +1419,43 @@ VERSION --use-host-command 0.6
 
 The `HOST` command creates a hostname entry (under `/etc/hosts`) that causes `<hostname>` to resolve to the specified `<ip>` address.
 
+## CACHE (experimental)
+
+{% hint style='info' %}
+##### Note
+The `CACHE` command is experimental and must be enabled by enabling the `--use-cache-command` flag, e.g.
+
+```Dockerfile
+VERSION --use-cache-command 0.6
+```
+{% endhint %}
+
+#### Synopsis
+
+* `CACHE <path>`
+
+### Description
+
+The `CACHE` command retains a copy of the file(s) within `<path>` to be reused in future runs of a target where the contents would normally be last due to dependent change. 
+This is especially useful for optimizing Targets that would normally perform faster with incremental changes.
+A classic example is downloading 3rd-party dependencies. For example, in an NPM project, applying `CACHE` to the `node_modules` directory
+will prevent a change in the `package.json` from re-downloading all of the dependencies.
+
+Here's how that NPM example might look in an Earthfile:
+
+```Dockerfile
+FROM node:17-alpine3.14
+WORKDIR /app
+
+deps:
+    CACHE ./node_modules
+    COPY package*.json .
+    RUN npm install
+```
+
+Note that `CACHE` command behaves similar to [mount-based caching](https://docs.earthly.dev/docs/guides/advanced-local-caching#option-2-mount-based-caching-advanced),
+however, the contents within the `<path>` are persisted in the resulting image.
+
 ## SHELL (not supported)
 
 The classical [`SHELL` Dockerfile command](https://docs.docker.com/engine/reference/builder/#shell) is not yet supported. Use the *exec form* of `RUN`, `ENTRYPOINT` and `CMD` instead and prepend a different shell.
