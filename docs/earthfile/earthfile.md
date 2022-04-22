@@ -1437,9 +1437,9 @@ VERSION --use-cache-command 0.6
 ### Description
 
 The `CACHE` command retains a copy of the file(s) in `<path>` such that they are reused in future runs of a target.
-This is especially useful for optimizing build steps that would normally perform faster with incremental changes.
+This is especially useful for optimizing build steps that would normally perform better with incremental changes.
 A classic example is downloading 3rd-party dependencies. For example, in an NPM project, applying `CACHE` to the `node_modules` directory
-will prevent a change in the `package.json` from triggering re-download of all of dependencies. Instead, only dependencies which have changed
+will prevent a change in the `package.json` from triggering re-download of all dependencies. Instead, only dependencies which have changed
 are redownloaded, much like you would expect in your local dev environment.
 
 Here's how that NPM example might look in an Earthfile:
