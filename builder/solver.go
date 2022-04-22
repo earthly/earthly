@@ -13,9 +13,12 @@ import (
 	"github.com/earthly/earthly/outmon"
 	"github.com/earthly/earthly/states"
 	"github.com/earthly/earthly/states/image"
+	"github.com/earthly/earthly/util/llbutil"
 	"github.com/earthly/earthly/util/llbutil/pllb"
+	"github.com/earthly/earthly/util/platutil"
 	"github.com/moby/buildkit/client"
 	"github.com/moby/buildkit/client/llb"
+	"github.com/moby/buildkit/exporter/containerimage/exptypes"
 	gwclient "github.com/moby/buildkit/frontend/gateway/client"
 	"github.com/moby/buildkit/session"
 	"github.com/moby/buildkit/session/pullping"
@@ -45,8 +48,124 @@ type solver struct {
 // then pushed to a local Docker registry instead of having buildkit export a
 // local tar file.
 func (s *solver) solveDockerWithRegistry(ctx context.Context, state pllb.State, platform specs.Platform, img *image.Image, dockerTag string, outFile string, printOutput bool) error {
-	fmt.Println("USING NEW CODE PATH")
+	fmt.Println("USING NEW CODE PATH!!!")
+
+	// This func is execute when the image create/push process is complete
+	onPull := func(ctx context.Context, images []string) error {
+		fmt.Println("PULL CALLBACK HIT")
+		fmt.Printf("images %+v", images)
+		return nil
+	}
+
+	imgJSON, err := json.Marshal(img)
+	if err != nil {
+		return errors.Wrap(err, "image json marshal")
+	}
+
+	solveOpt := s.newSolveOptDockerWithRegistry(img, dockerTag, onPull)
+	noCache := true
+	platr := platutil.NewResolver(platform)
+
+	buildFun := func(childCtx context.Context, gwClient gwclient.Client) (*gwclient.Result, error) {
+		res := gwclient.NewResult()
+		ref, err := llbutil.StateToRef(ctx, gwClient, state, noCache, platr, s.cacheImports.AsMap())
+		if err != nil {
+			return nil, errors.Wrap(err, "initial state to ref conversion")
+		}
+		refKey := fmt.Sprintf("image-%s", dockerTag)
+		refPrefix := fmt.Sprintf("ref/%s", refKey)
+		res.AddRef(refKey, ref)
+
+		// TODO: probably need to capture the key for retrieval
+		localRegPullID := fmt.Sprintf("sess-%s/wd-%s", gwClient.BuildOpts().SessionID, dockerTag)
+		res.AddMeta(fmt.Sprintf("%s/export-image-local-registry", refPrefix), []byte(localRegPullID))
+		res.AddMeta(fmt.Sprintf("%s/export-image", refPrefix), []byte("true"))
+		res.AddMeta(fmt.Sprintf("%s/export-image-push", refPrefix), []byte("true"))
+		res.AddMeta(fmt.Sprintf("%s/insecure-push", refPrefix), []byte("true"))
+		res.AddMeta(fmt.Sprintf("%s/%s", refPrefix, exptypes.ExporterImageConfigKey), imgJSON)
+		res.AddMeta(fmt.Sprintf("%s/image.name", refPrefix), []byte(dockerTag))
+
+		// TODO: needed?
+		// res.AddMeta(fmt.Sprintf("%s/image-index", refPrefix), []byte("0"))
+
+		return res, nil
+	}
+	statusChan := make(chan *client.SolveStatus)
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	var buildErr error
+	eg, ctx := errgroup.WithContext(ctx)
+	eg.Go(func() error {
+		fmt.Println("CALLING BUILD")
+		_, err := s.bkClient.Build(ctx, *solveOpt, "", buildFun, statusChan)
+		if err != nil {
+			fmt.Println("client build error", err)
+			buildErr = err
+			return err
+		}
+		return nil
+	})
+	var vertexFailureOutput string
+	eg.Go(func() error {
+		var err error
+		if printOutput {
+			vertexFailureOutput, err = s.sm.MonitorProgress(ctx, statusChan, "", true)
+			return err
+		}
+		// Silent case.
+		for {
+			select {
+			case <-ctx.Done():
+				return ctx.Err()
+			case st, ok := <-statusChan:
+				if !ok {
+					return nil
+				}
+				fmt.Printf("SOLVE STATUS: %+v\n", st)
+				// Do nothing - just consume the status updates silently.
+			}
+		}
+	})
+	fmt.Println("errgroup.Wait")
+	err = eg.Wait()
+	if buildErr != nil {
+		return NewBuildError(buildErr, vertexFailureOutput)
+	}
+	if err != nil {
+		return NewBuildError(err, vertexFailureOutput)
+	}
+	fmt.Println("WG FINISHED")
 	return nil
+}
+
+func (s *solver) newSolveOptDockerWithRegistry(img *image.Image, dockerTag string, onPull pullping.PullCallback) *client.SolveOpt {
+	var cacheImports []client.CacheOptionsEntry
+	for ci := range s.cacheImports.AsMap() {
+		cacheImports = append(cacheImports, newCacheImportOpt(ci))
+	}
+	var cacheExports []client.CacheOptionsEntry
+	if s.cacheExport != "" {
+		cacheExports = append(cacheExports, newCacheExportOpt(s.cacheExport, false))
+	}
+	if s.maxCacheExport != "" {
+		cacheExports = append(cacheExports, newCacheExportOpt(s.maxCacheExport, true))
+	}
+	if s.saveInlineCache {
+		cacheExports = append(cacheExports, newInlineCacheOpt())
+	}
+	return &client.SolveOpt{
+		Exports: []client.ExportEntry{
+			{
+				Type:               client.ExporterEarthly,
+				Attrs:              map[string]string{},
+				OutputPullCallback: pullping.PullCallback(onPull),
+			},
+		},
+		CacheImports:        cacheImports,
+		CacheExports:        cacheExports,
+		Session:             s.attachables,
+		AllowedEntitlements: s.enttlmnts,
+	}
 }
 
 // solveDockerTar has buildkit export a Docker image as a local tar file.
@@ -165,34 +284,6 @@ func (s *solver) buildMainMulti(ctx context.Context, bf gwclient.BuildFunc, onIm
 	return nil
 }
 
-func (s *solver) newSolveOptDockerWithRegistry(img *image.Image, dockerTag string, w io.WriteCloser) (*client.SolveOpt, error) {
-	imgJSON, err := json.Marshal(img)
-	if err != nil {
-		return nil, errors.Wrap(err, "image json marshal")
-	}
-	var cacheImports []client.CacheOptionsEntry
-	for ci := range s.cacheImports.AsMap() {
-		cacheImports = append(cacheImports, newCacheImportOpt(ci))
-	}
-	return &client.SolveOpt{
-		Exports: []client.ExportEntry{
-			{
-				Type: client.ExporterDocker,
-				Attrs: map[string]string{
-					"name":                  dockerTag,
-					"containerimage.config": string(imgJSON),
-				},
-				Output: func(_ map[string]string) (io.WriteCloser, error) {
-					return w, nil
-				},
-			},
-		},
-		CacheImports:        cacheImports,
-		Session:             s.attachables,
-		AllowedEntitlements: s.enttlmnts,
-	}, nil
-}
-
 func (s *solver) newSolveOptDocker(img *image.Image, dockerTag string, w io.WriteCloser) (*client.SolveOpt, error) {
 	imgJSON, err := json.Marshal(img)
 	if err != nil {
@@ -236,6 +327,7 @@ func (s *solver) newSolveOptMulti(ctx context.Context, eg *errgroup.Group, onIma
 	if s.saveInlineCache {
 		cacheExports = append(cacheExports, newInlineCacheOpt())
 	}
+
 	return &client.SolveOpt{
 		Exports: []client.ExportEntry{
 			{
