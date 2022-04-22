@@ -715,22 +715,17 @@ jobs:
     steps:
       - uses: earthly/actions-setup@v1.0.1
       - uses: actions/checkout@v2
-      -
-        name: Set up QEMU
+        with:
+          # By default, only the latest commit is checked out.
+          # Earthly uses the branch name for tagging,
+          # so we need to explicitly check out the branch.
+          ref: ${{ github.head_ref || github.ref_name }}
+      - name: Set up QEMU
         id: qemu
         uses: docker/setup-qemu-action@v1
         with:
           image: tonistiigi/binfmt:latest
           platforms: all
-      - name: "Put back the git branch into git (Earthly uses it for tagging)"
-        run: |
-          branch=""
-          if [ -n "$GITHUB_HEAD_REF" ]; then
-            branch="$GITHUB_HEAD_REF"
-          else
-            branch="${GITHUB_REF##*/}"
-          fi
-          git checkout -b "$branch" || true
       - name: Docker mirror login (Earthly Only)
         run: docker login registry-1.docker.io.mirror.corp.earthly.dev --username "${{ secrets.DOCKERHUB_MIRROR_USERNAME }}" --password "${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}"
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
@@ -768,22 +763,17 @@ jobs:
     steps:
       - uses: earthly/actions-setup@v1.0.1
       - uses: actions/checkout@v2
-      -
-        name: Set up QEMU
+        with:
+          # By default, only the latest commit is checked out.
+          # Earthly uses the branch name for tagging,
+          # so we need to explicitly check out the branch.
+          ref: ${{ github.head_ref || github.ref_name }}
+      - name: Set up QEMU
         id: qemu
         uses: docker/setup-qemu-action@v1
         with:
           image: tonistiigi/binfmt:latest
           platforms: all
-      - name: "Put back the git branch into git (Earthly uses it for tagging)"
-        run: |
-          branch=""
-          if [ -n "$GITHUB_HEAD_REF" ]; then
-            branch="$GITHUB_HEAD_REF"
-          else
-            branch="${GITHUB_REF##*/}"
-          fi
-          git checkout -b "$branch" || true
       - name: Docker mirror login (Earthly Only)
         run: docker login registry-1.docker.io.mirror.corp.earthly.dev --username "${{ secrets.DOCKERHUB_MIRROR_USERNAME }}" --password "${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}"
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
@@ -821,22 +811,17 @@ jobs:
     steps:
       - uses: earthly/actions-setup@v1.0.1
       - uses: actions/checkout@v2
-      -
-        name: Set up QEMU
+        with:
+          # By default, only the latest commit is checked out.
+          # Earthly uses the branch name for tagging,
+          # so we need to explicitly check out the branch.
+          ref: ${{ github.head_ref || github.ref_name }}
+      - name: Set up QEMU
         id: qemu
         uses: docker/setup-qemu-action@v1
         with:
           image: tonistiigi/binfmt:latest
           platforms: all
-      - name: "Put back the git branch into git (Earthly uses it for tagging)"
-        run: |
-          branch=""
-          if [ -n "$GITHUB_HEAD_REF" ]; then
-            branch="$GITHUB_HEAD_REF"
-          else
-            branch="${GITHUB_REF##*/}"
-          fi
-          git checkout -b "$branch" || true
       - name: Docker mirror login (Earthly Only)
         run: docker login registry-1.docker.io.mirror.corp.earthly.dev --username "${{ secrets.DOCKERHUB_MIRROR_USERNAME }}" --password "${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}"
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
@@ -873,22 +858,17 @@ jobs:
     steps:
       - uses: earthly/actions-setup@v1.0.1
       - uses: actions/checkout@v2
-      -
-        name: Set up QEMU
+        with:
+          # By default, only the latest commit is checked out.
+          # Earthly uses the branch name for tagging,
+          # so we need to explicitly check out the branch.
+          ref: ${{ github.head_ref || github.ref_name }}
+      - name: Set up QEMU
         id: qemu
         uses: docker/setup-qemu-action@v1
         with:
           image: tonistiigi/binfmt:latest
           platforms: all
-      - name: "Put back the git branch into git (Earthly uses it for tagging)"
-        run: |
-          branch=""
-          if [ -n "$GITHUB_HEAD_REF" ]; then
-            branch="$GITHUB_HEAD_REF"
-          else
-            branch="${GITHUB_REF##*/}"
-          fi
-          git checkout -b "$branch" || true
       - name: Docker mirror login (Earthly Only)
         run: docker login registry-1.docker.io.mirror.corp.earthly.dev --username "${{ secrets.DOCKERHUB_MIRROR_USERNAME }}" --password "${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}"
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
@@ -925,22 +905,17 @@ jobs:
     steps:
       - uses: earthly/actions-setup@v1.0.1
       - uses: actions/checkout@v2
-      -
-        name: Set up QEMU
+        with:
+          # By default, only the latest commit is checked out.
+          # Earthly uses the branch name for tagging,
+          # so we need to explicitly check out the branch.
+          ref: ${{ github.head_ref || github.ref_name }}
+      - name: Set up QEMU
         id: qemu
         uses: docker/setup-qemu-action@v1
         with:
           image: tonistiigi/binfmt:latest
           platforms: all
-      - name: "Put back the git branch into git (Earthly uses it for tagging)"
-        run: |
-          branch=""
-          if [ -n "$GITHUB_HEAD_REF" ]; then
-            branch="$GITHUB_HEAD_REF"
-          else
-            branch="${GITHUB_REF##*/}"
-          fi
-          git checkout -b "$branch" || true
       - name: Docker mirror login (Earthly Only)
         run: docker login registry-1.docker.io.mirror.corp.earthly.dev --username "${{ secrets.DOCKERHUB_MIRROR_USERNAME }}" --password "${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}"
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
@@ -979,22 +954,17 @@ jobs:
     steps:
       - uses: earthly/actions-setup@v1.0.1
       - uses: actions/checkout@v2
-      -
-        name: Set up QEMU
+        with:
+          # By default, only the latest commit is checked out.
+          # Earthly uses the branch name for tagging,
+          # so we need to explicitly check out the branch.
+          ref: ${{ github.head_ref || github.ref_name }}
+      - name: Set up QEMU
         id: qemu
         uses: docker/setup-qemu-action@v1
         with:
           image: tonistiigi/binfmt:latest
           platforms: all
-      - name: "Put back the git branch into git (Earthly uses it for tagging)"
-        run: |
-          branch=""
-          if [ -n "$GITHUB_HEAD_REF" ]; then
-            branch="$GITHUB_HEAD_REF"
-          else
-            branch="${GITHUB_REF##*/}"
-          fi
-          git checkout -b "$branch" || true
       - name: Docker mirror login (Earthly Only)
         run: docker login registry-1.docker.io.mirror.corp.earthly.dev --username "${{ secrets.DOCKERHUB_MIRROR_USERNAME }}" --password "${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}"
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
@@ -1050,22 +1020,17 @@ jobs:
     steps:
       - uses: earthly/actions-setup@v1.0.1
       - uses: actions/checkout@v2
-      -
-        name: Set up QEMU
+        with:
+          # By default, only the latest commit is checked out.
+          # Earthly uses the branch name for tagging,
+          # so we need to explicitly check out the branch.
+          ref: ${{ github.head_ref || github.ref_name }}
+      - name: Set up QEMU
         id: qemu
         uses: docker/setup-qemu-action@v1
         with:
           image: tonistiigi/binfmt:latest
           platforms: all
-      - name: "Put back the git branch into git (Earthly uses it for tagging)"
-        run: |
-          branch=""
-          if [ -n "$GITHUB_HEAD_REF" ]; then
-            branch="$GITHUB_HEAD_REF"
-          else
-            branch="${GITHUB_REF##*/}"
-          fi
-          git checkout -b "$branch" || true
       - name: Docker mirror login (Earthly Only)
         run: docker login registry-1.docker.io.mirror.corp.earthly.dev --username "${{ secrets.DOCKERHUB_MIRROR_USERNAME }}" --password "${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}"
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
