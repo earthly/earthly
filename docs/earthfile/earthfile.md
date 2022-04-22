@@ -1440,7 +1440,7 @@ The `CACHE` command retains a copy of the file(s) in `<path>` such that they are
 This is especially useful for optimizing build steps that would normally perform better with incremental changes.
 A classic example is downloading 3rd-party dependencies. For example, in an NPM project, applying `CACHE` to the `node_modules` directory
 will prevent a change in the `package.json` from triggering re-download of all dependencies. Instead, only dependencies which have changed
-are redownloaded, much like you would expect in your local dev environment.
+are downloaded, much like you would expect in your local dev environment.
 
 Here's how that NPM example might look in an Earthfile:
 
