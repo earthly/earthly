@@ -1453,8 +1453,8 @@ deps:
     RUN npm install
 ```
 
-Note that `CACHE` command behaves similar to [mount-based caching](https://docs.earthly.dev/docs/guides/advanced-local-caching#option-2-mount-based-caching-advanced),
-however, the contents within the `<path>` are persisted in the resulting image.
+Note that the `CACHE` command behaves similar to [mount-based caching](https://docs.earthly.dev/docs/guides/advanced-local-caching#option-2-mount-based-caching-advanced),
+however with `CACHE`, the contents in `<path>` are persisted in the resulting image.
 
 ## SHELL (not supported)
 
