@@ -165,6 +165,34 @@ func (s *solver) buildMainMulti(ctx context.Context, bf gwclient.BuildFunc, onIm
 	return nil
 }
 
+func (s *solver) newSolveOptDockerWithRegistry(img *image.Image, dockerTag string, w io.WriteCloser) (*client.SolveOpt, error) {
+	imgJSON, err := json.Marshal(img)
+	if err != nil {
+		return nil, errors.Wrap(err, "image json marshal")
+	}
+	var cacheImports []client.CacheOptionsEntry
+	for ci := range s.cacheImports.AsMap() {
+		cacheImports = append(cacheImports, newCacheImportOpt(ci))
+	}
+	return &client.SolveOpt{
+		Exports: []client.ExportEntry{
+			{
+				Type: client.ExporterDocker,
+				Attrs: map[string]string{
+					"name":                  dockerTag,
+					"containerimage.config": string(imgJSON),
+				},
+				Output: func(_ map[string]string) (io.WriteCloser, error) {
+					return w, nil
+				},
+			},
+		},
+		CacheImports:        cacheImports,
+		Session:             s.attachables,
+		AllowedEntitlements: s.enttlmnts,
+	}, nil
+}
+
 func (s *solver) newSolveOptDocker(img *image.Image, dockerTag string, w io.WriteCloser) (*client.SolveOpt, error) {
 	imgJSON, err := json.Marshal(img)
 	if err != nil {

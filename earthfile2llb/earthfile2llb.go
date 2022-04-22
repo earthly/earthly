@@ -33,10 +33,13 @@ type ConvertOpt struct {
 	GlobalImports map[string]domain.ImportTrackerVal
 	// The resolve mode for referenced images (force pull or prefer local).
 	ImageResolveMode llb.ResolveMode
-	// DockerBuilderFun is a fun that can be used to execute an image build. This
-	// is used as part of operations like DOCKER LOAD and DOCKER PULL, where
-	// a Docker image is needed in the middle of a build.
-	DockerBuilderFun func(bool) states.DockerBuilderFun
+	// DockerBuilderTarFun is a fun that can be used to execute an image
+	// build. This is used as part of operations like DOCKER LOAD and DOCKER
+	// PULL, where a Docker image is needed in the middle of a build.
+	DockerBuilderTarFun states.DockerBuilderFun
+	// DockerBuilderRegistryFun is similar to DockerBuilderTarFun expect that it
+	// saves the resulting image to a registry rather than a tar file.
+	DockerBuilderRegistryFun states.DockerBuilderFun
 	// CleanCollection is a collection of cleanup functions.
 	CleanCollection *cleanup.Collection
 	// Visited is a collection of target states which have been converted to LLB.

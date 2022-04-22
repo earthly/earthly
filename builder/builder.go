@@ -146,15 +146,6 @@ func (b *Builder) MakeImageAsTarBuilderFun() states.DockerBuilderFun {
 	}
 }
 
-// dockerBuilderFunForFlags returns the correct states.DockerBuilderFun for the
-// given feature flags.
-func (b *Builder) dockerBuilderFun(enableRegistry bool) states.DockerBuilderFun {
-	if enableRegistry {
-		return b.MakeImageWithRegistryBuilderFun()
-	}
-	return b.MakeImageAsTarBuilderFun()
-}
-
 func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt BuildOpt) (*states.MultiTarget, error) {
 	sharedLocalStateCache := earthfile2llb.NewSharedLocalStateCache()
 
@@ -176,29 +167,30 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 		var err error
 		if !b.builtMain {
 			opt := earthfile2llb.ConvertOpt{
-				GwClient:             gwClient,
-				Resolver:             b.resolver,
-				ImageResolveMode:     b.opt.ImageResolveMode,
-				DockerBuilderFun:     b.dockerBuilderFun,
-				CleanCollection:      b.opt.CleanCollection,
-				PlatformResolver:     opt.PlatformResolver.SubResolver(opt.PlatformResolver.Current()),
-				OverridingVars:       b.opt.OverridingVars,
-				BuildContextProvider: b.opt.BuildContextProvider,
-				CacheImports:         b.opt.CacheImports,
-				UseInlineCache:       b.opt.UseInlineCache,
-				UseFakeDep:           b.opt.UseFakeDep,
-				AllowLocally:         !b.opt.Strict,
-				AllowInteractive:     !b.opt.Strict,
-				AllowPrivileged:      opt.AllowPrivileged,
-				ParallelConversion:   b.opt.ParallelConversion,
-				Parallelism:          b.opt.Parallelism,
-				Console:              b.opt.Console,
-				GitLookup:            b.opt.GitLookup,
-				FeatureFlagOverrides: featureFlagOverrides,
-				LocalStateCache:      sharedLocalStateCache,
-				BuiltinArgs:          opt.BuiltinArgs,
-				NoCache:              b.opt.NoCache,
-				ContainerFrontend:    b.opt.ContainerFrontend,
+				GwClient:                 gwClient,
+				Resolver:                 b.resolver,
+				ImageResolveMode:         b.opt.ImageResolveMode,
+				DockerBuilderTarFun:      b.MakeImageAsTarBuilderFun(),
+				DockerBuilderRegistryFun: b.MakeImageWithRegistryBuilderFun(),
+				CleanCollection:          b.opt.CleanCollection,
+				PlatformResolver:         opt.PlatformResolver.SubResolver(opt.PlatformResolver.Current()),
+				OverridingVars:           b.opt.OverridingVars,
+				BuildContextProvider:     b.opt.BuildContextProvider,
+				CacheImports:             b.opt.CacheImports,
+				UseInlineCache:           b.opt.UseInlineCache,
+				UseFakeDep:               b.opt.UseFakeDep,
+				AllowLocally:             !b.opt.Strict,
+				AllowInteractive:         !b.opt.Strict,
+				AllowPrivileged:          opt.AllowPrivileged,
+				ParallelConversion:       b.opt.ParallelConversion,
+				Parallelism:              b.opt.Parallelism,
+				Console:                  b.opt.Console,
+				GitLookup:                b.opt.GitLookup,
+				FeatureFlagOverrides:     featureFlagOverrides,
+				LocalStateCache:          sharedLocalStateCache,
+				BuiltinArgs:              opt.BuiltinArgs,
+				NoCache:                  b.opt.NoCache,
+				ContainerFrontend:        b.opt.ContainerFrontend,
 			}
 			mts, err = earthfile2llb.Earthfile2LLB(childCtx, target, opt, true)
 			if err != nil {

@@ -71,12 +71,20 @@ type withDockerRun struct {
 	sem      semutil.Semaphore
 	mu       sync.Mutex
 	tarLoads []tarLoad
+
+	// TODO(mikejholly): unify these types?
+	imageLoads []imageLoad
 }
 
 type tarLoad struct {
 	imgName  string
 	platform platutil.Platform
 	state    pllb.State
+}
+
+type imageLoad struct {
+	imgName  string
+	platform platutil.Platform
 }
 
 func (wdr *withDockerRun) Run(ctx context.Context, args []string, opt WithDockerOpt) error {
@@ -400,15 +408,14 @@ func (wdr *withDockerRun) load(ctx context.Context, opt DockerLoadOpt) (chan Doc
 	return optPromise, nil
 }
 
-func (wdr *withDockerRun) solveImage(ctx context.Context, mts *states.MultiTarget, opName string, dockerTag string, opts ...llb.RunOption) error {
-	// TODO(mikejholly): will need to switch between tar and registry methods here
+func (wdr *withDockerRun) solveImageAsTar(ctx context.Context, mts *states.MultiTarget, opName string, dockerTag string, opts ...llb.RunOption) error {
 	solveID, err := states.KeyFromHashAndTag(mts.Final, dockerTag)
 	if err != nil {
 		return errors.Wrap(err, "state key func")
 	}
 	tarContext, err := wdr.c.opt.SolveCache.Do(ctx, solveID, func(ctx context.Context, _ states.StateKey) (pllb.State, error) {
-		// Use a builder to create docker .tar file, mount it via a local build context,
-		// then docker load it within the current side effects state.
+		// Use a builder to create docker .tar file, mount it via a local build
+		// context, then docker load it within the current side effects state.
 		outDir, err := os.MkdirTemp(os.TempDir(), "earthly-docker-load")
 		if err != nil {
 			return pllb.State{}, errors.Wrap(err, "mk temp dir for docker load")
@@ -417,7 +424,7 @@ func (wdr *withDockerRun) solveImage(ctx context.Context, mts *states.MultiTarge
 			return os.RemoveAll(outDir)
 		})
 		outFile := path.Join(outDir, "image.tar")
-		err = wdr.c.opt.DockerBuilderFun(wdr.enableImageRegistry)(ctx, mts, dockerTag, outFile, !wdr.c.ftrs.NoTarBuildOutput)
+		err = wdr.c.opt.DockerBuilderTarFun(ctx, mts, dockerTag, outFile, !wdr.c.ftrs.NoTarBuildOutput)
 		if err != nil {
 			return pllb.State{}, errors.Wrapf(err, "build target %s for docker load", opName)
 		}
@@ -452,6 +459,40 @@ func (wdr *withDockerRun) solveImage(ctx context.Context, mts *states.MultiTarge
 		platform: mts.Final.PlatformResolver.Current(),
 		state:    tarContext,
 	})
+	return nil
+}
+
+func (wdr *withDockerRun) solveImageWithRegistry(ctx context.Context, mts *states.MultiTarget, opName string, dockerTag string, opts ...llb.RunOption) error {
+	solveID, err := states.KeyFromHashAndTag(mts.Final, dockerTag)
+	if err != nil {
+		return errors.Wrap(err, "state key func")
+	}
+	_, err = wdr.c.opt.SolveCache.Do(ctx, solveID, func(ctx context.Context, _ states.StateKey) (pllb.State, error) {
+		err = wdr.c.opt.DockerBuilderRegistryFun(ctx, mts, dockerTag, "", true)
+		if err != nil {
+			return pllb.State{}, errors.Wrapf(err, "build target %s for docker load", opName)
+		}
+		return pllb.State{}, nil
+	})
+	wdr.mu.Lock()
+	defer wdr.mu.Unlock()
+	wdr.imageLoads = append(wdr.imageLoads, imageLoad{
+		imgName:  dockerTag,
+		platform: mts.Final.PlatformResolver.Current(),
+	})
+	return nil
+}
+
+func (wdr *withDockerRun) solveImage(ctx context.Context, mts *states.MultiTarget, opName string, dockerTag string, opts ...llb.RunOption) error {
+	var err error
+	if wdr.enableImageRegistry {
+		err = wdr.solveImageWithRegistry(ctx, mts, opName, dockerTag, opts...)
+	} else {
+		err = wdr.solveImageAsTar(ctx, mts, opName, dockerTag, opts...)
+	}
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
