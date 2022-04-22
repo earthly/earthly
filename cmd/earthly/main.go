@@ -306,12 +306,7 @@ func main() {
 }
 
 func getVersionPlatform() string {
-	var isRelease = regexp.MustCompile(`^v[0-9]+\.[0-9]+\.[0-9]+$`)
-	v := Version
-	if !isRelease.MatchString(Version) {
-		v = fmt.Sprintf("%s-%s", Version, GitSha)
-	}
-	return fmt.Sprintf("%s %s %s", v, GitSha, getPlatform())
+	return fmt.Sprintf("%s %s %s", Version, GitSha, getPlatform())
 }
 
 func getPlatform() string {
