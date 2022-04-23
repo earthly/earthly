@@ -43,7 +43,7 @@ jobs:
                 with:
                     image: tonistiigi/binfmt:latest
                     platforms: all
-            - uses: actions/checkout@v2
+            - uses: actions/checkout@v3
             - ...
 ```
 
