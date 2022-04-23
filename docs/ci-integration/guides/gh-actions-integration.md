@@ -43,3 +43,10 @@ jobs:
 ```
 
 For a complete guide on CI integration see the [CI integration guide](../overview.md).
+
+{% hint style='danger' %}
+## actions/checkout ref argument
+
+The example deliberately does not use the [`ref`](https://github.com/actions/checkout#checkout-a-different-branch) `actions/checkout@v2` option,
+as it can lead to inconsistent builds where a user chooses to re-run an older commit which is no longer at the head of the branch.
+{% endhint %}
