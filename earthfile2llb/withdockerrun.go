@@ -68,12 +68,11 @@ type withDockerRun struct {
 	enableParallel      bool
 	enableImageRegistry bool
 
-	sem      semutil.Semaphore
-	mu       sync.Mutex
-	tarLoads []tarLoad
+	sem semutil.Semaphore
+	mu  sync.Mutex
 
-	// TODO(mikejholly): unify these types?
-	imageLoads []imageLoad
+	tarLoads      []tarLoad
+	localRegLoads []localRegLoad
 }
 
 type tarLoad struct {
@@ -82,9 +81,10 @@ type tarLoad struct {
 	state    pllb.State
 }
 
-type imageLoad struct {
-	imgName  string
-	platform platutil.Platform
+type localRegLoad struct {
+	imgName   string
+	closer    func()
+	imageChan chan string
 }
 
 func (wdr *withDockerRun) Run(ctx context.Context, args []string, opt WithDockerOpt) error {
@@ -173,6 +173,12 @@ func (wdr *withDockerRun) Run(ctx context.Context, args []string, opt WithDocker
 		case <-ctx.Done():
 		}
 	}
+	// Ensure all local registry images are released after the command runs.
+	defer func() {
+		for _, localRegLoad := range wdr.localRegLoads {
+			localRegLoad.closer()
+		}
+	}()
 	// Sort the tar list, to make the operation consistent.
 	sort.Slice(wdr.tarLoads, func(i, j int) bool {
 		if wdr.tarLoads[i].imgName == wdr.tarLoads[j].imgName {
@@ -180,6 +186,26 @@ func (wdr *withDockerRun) Run(ctx context.Context, args []string, opt WithDocker
 		}
 		return wdr.tarLoads[i].imgName < wdr.tarLoads[j].imgName
 	})
+	// Sort the local registry pull list, to make the operation consistent.
+	sort.Slice(wdr.localRegLoads, func(i, j int) bool {
+		return wdr.localRegLoads[i].imgName < wdr.localRegLoads[j].imgName
+	})
+	// Wait for all local registry images to become available.
+	imageChans := make([]chan string, 0, len(wdr.localRegLoads))
+	for _, localRegLoad := range wdr.localRegLoads {
+		imageChans = append(imageChans, localRegLoad.imageChan)
+	}
+	var localRegImages []string
+	for _, imageChan := range imageChans {
+		select {
+		case image, ok := <-imageChan:
+			if !ok {
+				break
+			}
+			localRegImages = append(localRegImages, image)
+		case <-ctx.Done():
+		}
+	}
 	crOpts := ConvertRunOpts{
 		CommandName:     "WITH DOCKER RUN",
 		Args:            args,
@@ -424,7 +450,7 @@ func (wdr *withDockerRun) solveImageAsTar(ctx context.Context, mts *states.Multi
 			return os.RemoveAll(outDir)
 		})
 		outFile := path.Join(outDir, "image.tar")
-		err = wdr.c.opt.DockerBuilderTarFun(ctx, mts, dockerTag, outFile, !wdr.c.ftrs.NoTarBuildOutput)
+		_, _, err = wdr.c.opt.DockerImageSolverTar.SolveImage(ctx, mts, dockerTag, outFile, !wdr.c.ftrs.NoTarBuildOutput)
 		if err != nil {
 			return pllb.State{}, errors.Wrapf(err, "build target %s for docker load", opName)
 		}
@@ -468,17 +494,16 @@ func (wdr *withDockerRun) solveImageWithRegistry(ctx context.Context, mts *state
 		return errors.Wrap(err, "state key func")
 	}
 	_, err = wdr.c.opt.SolveCache.Do(ctx, solveID, func(ctx context.Context, _ states.StateKey) (pllb.State, error) {
-		err = wdr.c.opt.DockerBuilderRegistryFun(ctx, mts, dockerTag, "", true)
+		imageChan, closer, err := wdr.c.opt.DockerImageSolver.SolveImage(ctx, mts, dockerTag, "", true)
 		if err != nil {
 			return pllb.State{}, errors.Wrapf(err, "build target %s for docker load", opName)
 		}
+		wdr.localRegLoads = append(wdr.localRegLoads, localRegLoad{
+			imgName:   dockerTag,
+			closer:    closer,
+			imageChan: imageChan,
+		})
 		return pllb.State{}, nil
-	})
-	wdr.mu.Lock()
-	defer wdr.mu.Unlock()
-	wdr.imageLoads = append(wdr.imageLoads, imageLoad{
-		imgName:  dockerTag,
-		platform: mts.Final.PlatformResolver.Current(),
 	})
 	return nil
 }

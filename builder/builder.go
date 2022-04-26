@@ -131,21 +131,6 @@ func (b *Builder) BuildTarget(ctx context.Context, target domain.Target, opt Bui
 	return mts, nil
 }
 
-// MakeImageWithRegistryBuilderFun returns a states.DockerBuilderFun which can
-// be used to build a Docker image and store to to a local registry for later use.
-func (b *Builder) MakeImageWithRegistryBuilderFun() states.DockerBuilderFun {
-	return func(ctx context.Context, mts *states.MultiTarget, dockerTag string, outFile string, printOutput bool) error {
-		return b.buildOnlyLastImageWithRegistry(ctx, mts, dockerTag, outFile, BuildOpt{}, printOutput)
-	}
-}
-
-// MakeImageAsTarBuilderFun returns a function which can be used to build an image as a tar.
-func (b *Builder) MakeImageAsTarBuilderFun() states.DockerBuilderFun {
-	return func(ctx context.Context, mts *states.MultiTarget, dockerTag string, outFile string, printOutput bool) error {
-		return b.buildOnlyLastImageAsTar(ctx, mts, dockerTag, outFile, BuildOpt{}, printOutput)
-	}
-}
-
 func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt BuildOpt) (*states.MultiTarget, error) {
 	var (
 		sharedLocalStateCache = earthfile2llb.NewSharedLocalStateCache()
@@ -167,31 +152,32 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 		}
 		var err error
 		if !b.builtMain {
+
 			opt := earthfile2llb.ConvertOpt{
-				GwClient:                 gwClient,
-				Resolver:                 b.resolver,
-				ImageResolveMode:         b.opt.ImageResolveMode,
-				DockerBuilderTarFun:      b.MakeImageAsTarBuilderFun(),
-				DockerBuilderRegistryFun: b.MakeImageWithRegistryBuilderFun(),
-				CleanCollection:          b.opt.CleanCollection,
-				PlatformResolver:         opt.PlatformResolver.SubResolver(opt.PlatformResolver.Current()),
-				OverridingVars:           b.opt.OverridingVars,
-				BuildContextProvider:     b.opt.BuildContextProvider,
-				CacheImports:             b.opt.CacheImports,
-				UseInlineCache:           b.opt.UseInlineCache,
-				UseFakeDep:               b.opt.UseFakeDep,
-				AllowLocally:             !b.opt.Strict,
-				AllowInteractive:         !b.opt.Strict,
-				AllowPrivileged:          opt.AllowPrivileged,
-				ParallelConversion:       b.opt.ParallelConversion,
-				Parallelism:              b.opt.Parallelism,
-				Console:                  b.opt.Console,
-				GitLookup:                b.opt.GitLookup,
-				FeatureFlagOverrides:     featureFlagOverrides,
-				LocalStateCache:          sharedLocalStateCache,
-				BuiltinArgs:              opt.BuiltinArgs,
-				NoCache:                  b.opt.NoCache,
-				ContainerFrontend:        b.opt.ContainerFrontend,
+				GwClient:             gwClient,
+				Resolver:             b.resolver,
+				ImageResolveMode:     b.opt.ImageResolveMode,
+				CleanCollection:      b.opt.CleanCollection,
+				PlatformResolver:     opt.PlatformResolver.SubResolver(opt.PlatformResolver.Current()),
+				DockerImageSolverTar: newTarImageSolver(b.opt, b.s.sm),
+				DockerImageSolver:    newLocalRegistryImageSolver(b.opt, b.s.sm),
+				OverridingVars:       b.opt.OverridingVars,
+				BuildContextProvider: b.opt.BuildContextProvider,
+				CacheImports:         b.opt.CacheImports,
+				UseInlineCache:       b.opt.UseInlineCache,
+				UseFakeDep:           b.opt.UseFakeDep,
+				AllowLocally:         !b.opt.Strict,
+				AllowInteractive:     !b.opt.Strict,
+				AllowPrivileged:      opt.AllowPrivileged,
+				ParallelConversion:   b.opt.ParallelConversion,
+				Parallelism:          b.opt.Parallelism,
+				Console:              b.opt.Console,
+				GitLookup:            b.opt.GitLookup,
+				FeatureFlagOverrides: featureFlagOverrides,
+				LocalStateCache:      sharedLocalStateCache,
+				BuiltinArgs:          opt.BuiltinArgs,
+				NoCache:              b.opt.NoCache,
+				ContainerFrontend:    b.opt.ContainerFrontend,
 			}
 			mts, err = earthfile2llb.Earthfile2LLB(childCtx, target, opt, true)
 			if err != nil {
@@ -669,26 +655,6 @@ func (b *Builder) artifactStateToRef(ctx context.Context, gwClient gwclient.Clie
 	return llbutil.StateToRef(
 		ctx, gwClient, state, noCache,
 		platr, b.opt.CacheImports.AsMap())
-}
-
-func (b *Builder) buildOnlyLastImageWithRegistry(ctx context.Context, mts *states.MultiTarget, dockerTag string, outFile string, opt BuildOpt, printOutput bool) error {
-	platform := mts.Final.PlatformResolver.ToLLBPlatform(mts.Final.PlatformResolver.Current())
-	saveImage := mts.Final.LastSaveImage()
-	err := b.s.solveDockerWithRegistry(ctx, saveImage.State, platform, saveImage.Image, dockerTag, outFile, printOutput)
-	if err != nil {
-		return errors.Wrapf(err, "solve image with registry %s", dockerTag)
-	}
-	return nil
-}
-
-func (b *Builder) buildOnlyLastImageAsTar(ctx context.Context, mts *states.MultiTarget, dockerTag string, outFile string, opt BuildOpt, printOutput bool) error {
-	platform := mts.Final.PlatformResolver.ToLLBPlatform(mts.Final.PlatformResolver.Current())
-	saveImage := mts.Final.LastSaveImage()
-	err := b.s.solveDockerTar(ctx, saveImage.State, platform, saveImage.Image, dockerTag, outFile, printOutput)
-	if err != nil {
-		return errors.Wrapf(err, "solve image tar %s", outFile)
-	}
-	return nil
 }
 
 func (b *Builder) saveArtifactLocally(ctx context.Context, console *conslogging.BufferedLogger, artifact domain.Artifact, indexOutDir string, destPath string, salt string, opt BuildOpt, ifExists bool) error {

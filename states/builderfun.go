@@ -4,5 +4,7 @@ import (
 	"context"
 )
 
-// DockerBuilderFun is a function able to build a target into a docker tar file.
-type DockerBuilderFun = func(ctx context.Context, mts *MultiTarget, dockerTag string, outFile string, printOutput bool) error
+// DockerImageSolver can create a Docker image for the WITH DOCKER command.
+type DockerImageSolver interface {
+	SolveImage(ctx context.Context, mts *MultiTarget, dockerTag string, outFile string, printOutput bool) (chan string, func(), error)
+}
