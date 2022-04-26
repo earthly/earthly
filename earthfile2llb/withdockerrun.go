@@ -120,6 +120,8 @@ func (wdr *withDockerRun) Run(ctx context.Context, args []string, opt WithDocker
 		}] = true
 	}
 
+	fmt.Println("starting loads")
+
 	// Loads.
 	loadOptPromises := make([]chan DockerLoadOpt, 0, len(opt.Loads))
 	for _, loadOpt := range opt.Loads {
@@ -146,6 +148,9 @@ func (wdr *withDockerRun) Run(ctx context.Context, args []string, opt WithDocker
 			return ctx.Err()
 		}
 	}
+
+	fmt.Println("done loads")
+
 	// Add compose images (what's left of them) to the pull list.
 	for _, pull := range composePulls {
 		pull.Platform = wdr.c.platr.SubPlatform(pull.Platform)
@@ -173,12 +178,14 @@ func (wdr *withDockerRun) Run(ctx context.Context, args []string, opt WithDocker
 		case <-ctx.Done():
 		}
 	}
+
+	fmt.Println("done pulls")
 	// Ensure all local registry images are released after the command runs.
-	defer func() {
-		for _, localRegLoad := range wdr.localRegLoads {
-			localRegLoad.closer()
-		}
-	}()
+	// defer func() {
+	// 	for _, localRegLoad := range wdr.localRegLoads {
+	// 		localRegLoad.closer()
+	// 	}
+	// }()
 	// Sort the tar list, to make the operation consistent.
 	sort.Slice(wdr.tarLoads, func(i, j int) bool {
 		if wdr.tarLoads[i].imgName == wdr.tarLoads[j].imgName {
@@ -202,10 +209,12 @@ func (wdr *withDockerRun) Run(ctx context.Context, args []string, opt WithDocker
 			if !ok {
 				break
 			}
+			fmt.Println("found image", image)
 			localRegImages = append(localRegImages, image)
 		case <-ctx.Done():
 		}
 	}
+	fmt.Printf("%+v\n", localRegImages)
 	crOpts := ConvertRunOpts{
 		CommandName:     "WITH DOCKER RUN",
 		Args:            args,
@@ -234,7 +243,7 @@ func (wdr *withDockerRun) Run(ctx context.Context, args []string, opt WithDocker
 	if err != nil {
 		return errors.Wrap(err, "compute dind id")
 	}
-	crOpts.shellWrap = makeWithDockerdWrapFun(dindID, tarPaths, opt)
+	crOpts.shellWrap = makeWithDockerdWrapFun(dindID, tarPaths, localRegImages, opt)
 
 	platformIncompatible := !wdr.c.platr.PlatformEquals(wdr.c.platr.Current(), platutil.NativePlatform)
 	if platformIncompatible {
@@ -489,21 +498,16 @@ func (wdr *withDockerRun) solveImageAsTar(ctx context.Context, mts *states.Multi
 }
 
 func (wdr *withDockerRun) solveImageWithRegistry(ctx context.Context, mts *states.MultiTarget, opName string, dockerTag string, opts ...llb.RunOption) error {
-	solveID, err := states.KeyFromHashAndTag(mts.Final, dockerTag)
+	imageChan, closer, err := wdr.c.opt.DockerImageSolver.SolveImage(ctx, mts, dockerTag, "", true)
 	if err != nil {
-		return errors.Wrap(err, "state key func")
+		return errors.Wrapf(err, "build target %s for docker load", opName)
 	}
-	_, err = wdr.c.opt.SolveCache.Do(ctx, solveID, func(ctx context.Context, _ states.StateKey) (pllb.State, error) {
-		imageChan, closer, err := wdr.c.opt.DockerImageSolver.SolveImage(ctx, mts, dockerTag, "", true)
-		if err != nil {
-			return pllb.State{}, errors.Wrapf(err, "build target %s for docker load", opName)
-		}
-		wdr.localRegLoads = append(wdr.localRegLoads, localRegLoad{
-			imgName:   dockerTag,
-			closer:    closer,
-			imageChan: imageChan,
-		})
-		return pllb.State{}, nil
+	wdr.mu.Lock()
+	defer wdr.mu.Unlock()
+	wdr.localRegLoads = append(wdr.localRegLoads, localRegLoad{
+		imgName:   dockerTag,
+		closer:    closer,
+		imageChan: imageChan,
 	})
 	return nil
 }
@@ -521,11 +525,12 @@ func (wdr *withDockerRun) solveImage(ctx context.Context, mts *states.MultiTarge
 	return nil
 }
 
-func makeWithDockerdWrapFun(dindID string, tarPaths []string, opt WithDockerOpt) shellWrapFun {
+func makeWithDockerdWrapFun(dindID string, tarPaths []string, localRegImages []string, opt WithDockerOpt) shellWrapFun {
 	dockerRoot := path.Join("/var/earthly/dind", dindID)
 	params := []string{
 		fmt.Sprintf("EARTHLY_DOCKERD_DATA_ROOT=\"%s\"", dockerRoot),
 		fmt.Sprintf("EARTHLY_DOCKER_LOAD_FILES=\"%s\"", strings.Join(tarPaths, " ")),
+		fmt.Sprintf("EARTHLY_DOCKER_LOAD_REGISTRY=\"%s\"", strings.Join(localRegImages, " ")),
 	}
 	params = append(params, composeParams(opt)...)
 	return func(args []string, envVars []string, isWithShell, withDebugger, forceDebugger bool) []string {

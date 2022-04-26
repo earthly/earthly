@@ -210,6 +210,9 @@ func (s *localRegistryImageSolver) newSolveOpt(img *image.Image, dockerTag strin
 	}
 }
 
+type imageResult struct {
+}
+
 // SolveImage also creates a Docker image but it stores the image using the
 // embedded Docker registry in BK.
 func (s *localRegistryImageSolver) SolveImage(ctx context.Context, mts *states.MultiTarget, dockerTag string, outFile string, printOutput bool) (chan string, func(), error) {
@@ -217,7 +220,7 @@ func (s *localRegistryImageSolver) SolveImage(ctx context.Context, mts *states.M
 	saveImage := mts.Final.LastSaveImage()
 
 	releaseChan := make(chan struct{})
-	resultsChan := make(chan string)
+	resultsChan := make(chan string, 1)
 
 	// This func will be exposed to the caller and must be invoked when the WITH
 	// DOCKER command has termintated. It will release any prepared Docker
@@ -237,11 +240,15 @@ func (s *localRegistryImageSolver) SolveImage(ctx context.Context, mts *states.M
 		}
 		close(resultsChan)
 
+		fmt.Println("waiting for release")
+
 		// Wait for the closer func to be called. This signals that all WITH
 		// DOCKER statements have been run and we can release the image
 		// resources. When the onPull function returns BK will remove the
 		// images.
 		<-releaseChan
+
+		fmt.Println("onPull done")
 
 		return nil
 	}
@@ -259,11 +266,11 @@ func (s *localRegistryImageSolver) SolveImage(ctx context.Context, mts *states.M
 		if err != nil {
 			return nil, errors.Wrap(err, "initial state to ref conversion")
 		}
+
 		refKey := fmt.Sprintf("image-%s", dockerTag)
 		refPrefix := fmt.Sprintf("ref/%s", refKey)
 		res.AddRef(refKey, ref)
 
-		// TODO: do we need to capture this
 		localRegPullID := fmt.Sprintf("sess-%s/wd-%s", gwClient.BuildOpts().SessionID, dockerTag)
 		res.AddMeta(fmt.Sprintf("%s/export-image-local-registry", refPrefix), []byte(localRegPullID))
 		res.AddMeta(fmt.Sprintf("%s/%s", refPrefix, exptypes.ExporterImageConfigKey), imgJSON)
@@ -273,50 +280,58 @@ func (s *localRegistryImageSolver) SolveImage(ctx context.Context, mts *states.M
 		return res, nil
 	}
 
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
-
-	var buildErr error
 	statusChan := make(chan *client.SolveStatus)
-	eg, ctx := errgroup.WithContext(ctx)
-	eg.Go(func() error {
+
+	go func() {
 		_, err := s.bkClient.Build(ctx, *solveOpt, "", bf, statusChan)
 		if err != nil {
-			buildErr = err
-			return err
+			panic(err)
 		}
-		return nil
-	})
+	}()
 
-	var vertexFailureOutput string
-	eg.Go(func() error {
-		var err error
-		if printOutput {
-			vertexFailureOutput, err = s.sm.MonitorProgress(ctx, statusChan, "", true)
-			return err
-		}
-		// Silent case.
-		for {
-			select {
-			case <-ctx.Done():
-				return ctx.Err()
-			case _, ok := <-statusChan:
-				if !ok {
-					return nil
-				}
-				// Do nothing - just consume the status updates silently.
-			}
-		}
-	})
+	// var buildErr error
+	// statusChan := make(chan *client.SolveStatus)
+	// eg, ctx := errgroup.WithContext(ctx)
+	// eg.Go(func() error {
+	// 	_, err := s.bkClient.Build(ctx, *solveOpt, "", bf, statusChan)
+	// 	if err != nil {
+	// 		buildErr = err
+	// 		return err
+	// 	}
+	// 	return nil
+	// })
 
-	err = eg.Wait()
-	if buildErr != nil {
-		return nil, nil, NewBuildError(buildErr, vertexFailureOutput)
-	}
+	// var vertexFailureOutput string
+	// eg.Go(func() error {
+	// 	var err error
+	// 	if printOutput {
+	// 		vertexFailureOutput, err = s.sm.MonitorProgress(ctx, statusChan, "", true)
+	// 		return err
+	// 	}
+	// 	// Silent case.
+	// 	for {
+	// 		select {
+	// 		case <-ctx.Done():
+	// 			return ctx.Err()
+	// 		case _, ok := <-statusChan:
+	// 			if !ok {
+	// 				return nil
+	// 			}
+	// 			// Do nothing - just consume the status updates silently.
+	// 		}
+	// 	}
+	// })
 
-	if err != nil {
-		return nil, nil, NewBuildError(err, vertexFailureOutput)
-	}
+	// fmt.Println("eg.Wait")
+	// err = eg.Wait()
+	// fmt.Println("wait done")
+	// if buildErr != nil {
+	// 	return nil, nil, NewBuildError(buildErr, vertexFailureOutput)
+	// }
+
+	// if err != nil {
+	// 	return nil, nil, NewBuildError(err, vertexFailureOutput)
+	// }
 
 	return resultsChan, closer, nil
 }
