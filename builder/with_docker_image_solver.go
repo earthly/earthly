@@ -70,7 +70,8 @@ func (s *tarImageSolver) newSolveOpt(img *image.Image, dockerTag string, w io.Wr
 	}, nil
 }
 
-// SolveImage
+// SolveImage invokes a BK solve operation to create a Docker image. It is then
+// saved to a local tar file.
 func (s *tarImageSolver) SolveImage(ctx context.Context, mts *states.MultiTarget, dockerTag string, outFile string, printOutput bool) (chan string, func(), error) {
 	platform := mts.Final.PlatformResolver.ToLLBPlatform(mts.Final.PlatformResolver.Current())
 	saveImage := mts.Final.LastSaveImage()
@@ -209,6 +210,8 @@ func (s *localRegistryImageSolver) newSolveOpt(img *image.Image, dockerTag strin
 	}
 }
 
+// SolveImage also creates a Docker image but it stores the image using the
+// embedded Docker registry in BK.
 func (s *localRegistryImageSolver) SolveImage(ctx context.Context, mts *states.MultiTarget, dockerTag string, outFile string, printOutput bool) (chan string, func(), error) {
 	platform := mts.Final.PlatformResolver.ToLLBPlatform(mts.Final.PlatformResolver.Current())
 	saveImage := mts.Final.LastSaveImage()
