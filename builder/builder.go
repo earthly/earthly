@@ -140,7 +140,8 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 		platformImgNames      = make(map[string]bool)       // ensure that these are unique
 		singPlatImgNames      = make(map[string]bool)       // ensure that these are unique
 		localImages           = make(map[string]string)     // local reg pull name -> final name
-
+	)
+	var (
 		depIndex   = 0
 		imageIndex = 0
 		dirIndex   = 0
