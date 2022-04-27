@@ -152,7 +152,6 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 		}
 		var err error
 		if !b.builtMain {
-
 			opt := earthfile2llb.ConvertOpt{
 				GwClient:             gwClient,
 				Resolver:             b.resolver,

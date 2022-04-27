@@ -47,7 +47,7 @@ execute() {
         fi
     done
 
-    load_images
+    load_file_images
     load_registry_images
     if [ "$EARTHLY_START_COMPOSE" = "true" ]; then
         # shellcheck disable=SC2086
@@ -150,8 +150,6 @@ stop_dockerd() {
         wait "$dockerd_pid" || true
     fi
 
-    print_dockerd_logs
-
     # Wipe dockerd data when done.
     if ! rm -rf "$EARTHLY_DOCKERD_DATA_ROOT"; then
         # We have some issues about failing to delete files. If we fail, list the processes keeping it open for results.
@@ -163,7 +161,7 @@ stop_dockerd() {
     fi
 }
 
-load_images() {
+load_file_images() {
     if [ -n "$EARTHLY_DOCKER_LOAD_FILES" ]; then
         echo "Loading file-based images..."
         for img in $EARTHLY_DOCKER_LOAD_FILES; do
@@ -177,7 +175,9 @@ load_registry_images() {
     if [ -n "$EARTHLY_DOCKER_LOAD_REGISTRY" ]; then
         echo "Loading registry images..."
         for img in $EARTHLY_DOCKER_LOAD_REGISTRY; do
-            docker pull "172.30.0.1:8371/$img" || (stop_dockerd; exit 1)
+            user_tag=$(echo -n "$img" | cut -d'/' -f2)
+            with_reg="172.30.0.1:8371/$img"
+            (docker pull "$with_reg" && docker tag "$with_reg" "$user_tag") || (stop_dockerd; exit 1)
         done
         echo "...done"
     fi
