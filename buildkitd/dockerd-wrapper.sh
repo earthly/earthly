@@ -175,7 +175,7 @@ load_registry_images() {
     if [ -n "$EARTHLY_DOCKER_LOAD_REGISTRY" ]; then
         echo "Loading registry images..."
         for img in $EARTHLY_DOCKER_LOAD_REGISTRY; do
-            user_tag=$(echo -n "$img" | cut -d'/' -f2)
+            user_tag=$(printf "$img" | cut -d'/' -f2)
             with_reg="172.30.0.1:8371/$img"
             (docker pull "$with_reg" && docker tag "$with_reg" "$user_tag") || (stop_dockerd; exit 1)
         done
