@@ -71,21 +71,14 @@ type withDockerRun struct {
 	sem semutil.Semaphore
 	mu  sync.Mutex
 
-	tarLoads      []tarLoad
-	localRegLoads []localRegLoad
+	tarLoads           []tarLoad
+	imageSolverResults []*states.ImageSolverResult
 }
 
 type tarLoad struct {
 	imgName  string
 	platform platutil.Platform
 	state    pllb.State
-}
-
-type localRegLoad struct {
-	imgName   string
-	closer    func()
-	imageChan chan string
-	errChan   chan error
 }
 
 func (wdr *withDockerRun) Run(ctx context.Context, args []string, opt WithDockerOpt) error {
@@ -183,16 +176,16 @@ func (wdr *withDockerRun) Run(ctx context.Context, args []string, opt WithDocker
 		// registry images are released and cleaned up. This must be called
 		// after the meat of the WITH DOCKER RUN command finishes.
 		defer func() {
-			for _, l := range wdr.localRegLoads {
-				l.closer()
+			for _, l := range wdr.imageSolverResults {
+				l.ReleaseFunc()
 			}
 		}()
 		// Sort the local registry pull list, to make the operation consistent.
-		sort.Slice(wdr.localRegLoads, func(i, j int) bool {
-			return wdr.localRegLoads[i].imgName < wdr.localRegLoads[j].imgName
+		sort.Slice(wdr.imageSolverResults, func(i, j int) bool {
+			return wdr.imageSolverResults[i].ImageName < wdr.imageSolverResults[j].ImageName
 		})
-		for _, l := range wdr.localRegLoads {
-			errChan := l.errChan
+		for _, l := range wdr.imageSolverResults {
+			errChan := l.ErrChan
 			wdr.c.opt.ErrorGroup.Go(func() error {
 				for {
 					select {
@@ -284,9 +277,9 @@ func (wdr *withDockerRun) Run(ctx context.Context, args []string, opt WithDocker
 
 func (wdr *withDockerRun) waitForLocalRegImages(ctx context.Context) ([]string, error) {
 	var images []string
-	for _, l := range wdr.localRegLoads {
+	for _, l := range wdr.imageSolverResults {
 		select {
-		case image, ok := <-l.imageChan:
+		case image, ok := <-l.ResultChan:
 			if !ok {
 				break
 			}
@@ -532,18 +525,13 @@ func (wdr *withDockerRun) solveImageAsTar(ctx context.Context, mts *states.Multi
 }
 
 func (wdr *withDockerRun) solveImageWithRegistry(ctx context.Context, mts *states.MultiTarget, opName string, dockerTag string, opts ...llb.RunOption) error {
-	imageChan, closer, errChan, err := wdr.c.opt.DockerImageSolver.SolveImage(ctx, mts, dockerTag)
+	result, err := wdr.c.opt.DockerImageSolver.SolveImage(ctx, mts, dockerTag)
 	if err != nil {
 		return errors.Wrapf(err, "build target %s for docker load", opName)
 	}
 	wdr.mu.Lock()
 	defer wdr.mu.Unlock()
-	wdr.localRegLoads = append(wdr.localRegLoads, localRegLoad{
-		imgName:   dockerTag,
-		closer:    closer,
-		imageChan: imageChan,
-		errChan:   errChan,
-	})
+	wdr.imageSolverResults = append(wdr.imageSolverResults, result)
 	return nil
 }
 

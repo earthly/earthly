@@ -215,7 +215,7 @@ func (s *localRegistryImageSolver) newSolveOpt(img *image.Image, dockerTag strin
 // which Docker image names written, a close() function that must be called
 // after the images have been used, and an error channel to which any errors
 // will be sent.
-func (s *localRegistryImageSolver) SolveImage(ctx context.Context, mts *states.MultiTarget, dockerTag string) (chan string, func(), chan error, error) {
+func (s *localRegistryImageSolver) SolveImage(ctx context.Context, mts *states.MultiTarget, dockerTag string) (*states.ImageSolverResult, error) {
 	var (
 		platform  = mts.Final.PlatformResolver.ToLLBPlatform(mts.Final.PlatformResolver.Current())
 		saveImage = mts.Final.LastSaveImage()
@@ -223,7 +223,7 @@ func (s *localRegistryImageSolver) SolveImage(ctx context.Context, mts *states.M
 
 	var (
 		releaseChan = make(chan struct{})
-		resultsChan = make(chan string, 1)
+		resultChan  = make(chan string, 1)
 		errChan     = make(chan error)
 	)
 
@@ -238,9 +238,9 @@ func (s *localRegistryImageSolver) SolveImage(ctx context.Context, mts *states.M
 	onPull := func(ctx context.Context, images []string) error {
 		// Send any images created by BuildKit to the caller.
 		for _, image := range images {
-			resultsChan <- image
+			resultChan <- image
 		}
-		close(resultsChan)
+		close(resultChan)
 		// Wait for the closer func to be called. This signals that all WITH
 		// DOCKER statements have been run and we can release the image
 		// resources. When the onPull function returns BK will remove the
@@ -251,7 +251,7 @@ func (s *localRegistryImageSolver) SolveImage(ctx context.Context, mts *states.M
 
 	imgJSON, err := json.Marshal(saveImage.Image)
 	if err != nil {
-		return nil, nil, nil, errors.Wrap(err, "image json marshal")
+		return nil, errors.Wrap(err, "image json marshal")
 	}
 
 	solveOpt := s.newSolveOpt(saveImage.Image, dockerTag, onPull)
@@ -284,5 +284,12 @@ func (s *localRegistryImageSolver) SolveImage(ctx context.Context, mts *states.M
 		close(errChan)
 	}()
 
-	return resultsChan, closer, errChan, nil
+	result := &states.ImageSolverResult{
+		ImageName:   dockerTag,
+		ResultChan:  resultChan,
+		ErrChan:     errChan,
+		ReleaseFunc: closer,
+	}
+
+	return result, nil
 }
