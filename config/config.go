@@ -79,7 +79,7 @@ type GlobalConfig struct {
 	ContainerFrontend        string   `yaml:"container_frontend"         help:"What program should be used to start and stop buildkitd, save images. Default is 'docker'. Valid options are 'docker' and 'podman' (experimental)."`
 	IPTables                 string   `yaml:"ip_tables"                  help:"Which iptables binary to use. Valid values are iptables-legacy or iptables-nft. Bypasses any autodetection."`
 	DisableLogSharing        bool     `yaml:"disable_log_sharing"        help:"Disable cloud log sharing when logged in with an Earthly account, see https://ci.earthly.dev for details."`
-	SecretProvider           string   `yaml:"secret_provider"            help:"Command to execute to retrieve secret"`
+	SecretProvider           string   `yaml:"secret_provider"            help:"Command to execute to retrieve secret."`
 
 	// Obsolete.
 	CachePath      string `yaml:"cache_path"         help:" *Deprecated* The path to keep Earthly's cache."`
@@ -100,10 +100,17 @@ type GitConfig struct {
 	StrictHostKeyChecking *bool  `yaml:"strict_host_key_checking"     help:"Allow ssh access to hosts with unknown server keys (e.g. no entries in known_hosts), defaults to true."`
 }
 
+// Satellite contains satellite config values
+type Satellite struct {
+	Name string `yaml:"name" help:"The name of the satellite to use"`
+	Org  string `yaml:"org"  help:"The org to whom the satellite belongs"`
+}
+
 // Config contains user's configuration values from ~/earthly/config.yml
 type Config struct {
-	Global GlobalConfig         `yaml:"global" help:"Global configuration object. Requires YAML literal to set directly."`
-	Git    map[string]GitConfig `yaml:"git"    help:"Git configuration object. Requires YAML literal to set directly."`
+	Global    GlobalConfig         `yaml:"global"    help:"Global configuration object. Requires YAML literal to set directly."`
+	Git       map[string]GitConfig `yaml:"git"       help:"Git configuration object. Requires YAML literal to set directly."`
+	Satellite Satellite            `yaml:"satellite" help:"Satellite remote building configuration. Overrides some other remote buildkit settings when present. Requires YAML literal to set directly"`
 }
 
 // ParseConfigFile parse config data
