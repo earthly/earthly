@@ -163,7 +163,7 @@ stop_dockerd() {
 
 load_file_images() {
     if [ -n "$EARTHLY_DOCKER_LOAD_FILES" ]; then
-        echo "Loading file-based images..."
+        echo "Loading images from BuildKit via tar files..."
         for img in $EARTHLY_DOCKER_LOAD_FILES; do
             docker load -i "$img" || (stop_dockerd; exit 1)
         done
@@ -173,7 +173,7 @@ load_file_images() {
 
 load_registry_images() {
     if [ -n "$EARTHLY_DOCKER_LOAD_REGISTRY" ]; then
-        echo "Loading registry images..."
+        echo "Loading images from BuildKit via embedded registry..."
         for img in $EARTHLY_DOCKER_LOAD_REGISTRY; do
             user_tag=$(printf '%s' "$img" | cut -d'/' -f2)
             with_reg="172.30.0.1:8371/$img"
