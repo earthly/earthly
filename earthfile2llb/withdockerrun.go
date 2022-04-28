@@ -272,8 +272,7 @@ func (wdr *withDockerRun) Run(ctx context.Context, args []string, opt WithDocker
 		return err
 	}
 	// Force synchronous command execution if we're using the local registry for
-	// loads and pulls. Then look for any errors which may have been encountered
-	// during the local registry interaction.
+	// loads and pulls.
 	if wdr.enableImageRegistry {
 		err = wdr.c.forceExecution(ctx, wdr.c.mts.Final.MainState, wdr.c.platr)
 		if err != nil {
