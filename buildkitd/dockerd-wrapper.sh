@@ -2,6 +2,9 @@
 
 set -eu
 
+# This host is used to pull images from the embedded BuildKit Docker registry.
+buildkit_docker_registry='172.30.0.1:8371'
+
 # Runs docker-compose with the right -f flags.
 docker_compose_cmd() {
     compose_file_flags=""
@@ -91,7 +94,7 @@ start_dockerd() {
     ],
     "bip": "172.20.0.1/16",
     "data-root": "$EARTHLY_DOCKERD_DATA_ROOT",
-    "insecure-registries" : ["172.30.0.1:8371"]
+    "insecure-registries" : ["$buildkit_docker_registry"]
 }
 EOF
 
@@ -176,7 +179,7 @@ load_registry_images() {
         echo "Loading images from BuildKit via embedded registry..."
         for img in $EARTHLY_DOCKER_LOAD_REGISTRY; do
             user_tag=$(printf '%s' "$img" | cut -d'/' -f2)
-            with_reg="172.30.0.1:8371/$img"
+            with_reg="$buildkit_docker_registry/$img"
             (docker pull "$with_reg" && docker tag "$with_reg" "$user_tag") || (stop_dockerd; exit 1)
         done
         echo "...done"
