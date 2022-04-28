@@ -36,7 +36,7 @@ type Features struct {
 	NewPlatform                bool `long:"new-platform" description:"enable new platform behavior"`
 	UseNoManifestList          bool `long:"use-no-manifest-list" description:"enable the SAVE IMAGE --no-manifest-list option"`
 	UseChmod                   bool `long:"use-chmod" description:"enable the SAVE IMAGE --no-manifest-list option"`
-	UseRegistryForWithDocker   bool `long:"use-registry-for-with-docker" description:"use embedded Docker registry for WITH DOCKER operations"`
+	UseRegistryForWithDocker   bool `long:"use-registry-for-with-docker" description:"use embedded Docker registry for WITH DOCKER load operations"`
 
 	Major int
 	Minor int
