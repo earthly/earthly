@@ -141,6 +141,7 @@ type cliFlags struct {
 	secretFile                string
 	secretStdin               bool
 	apiServer                 string
+	satelliteAddress          string
 	writePermission           bool
 	registrationPublicKey     string
 	dockerfilePath            string
@@ -577,6 +578,14 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 			EnvVars:     []string{"EARTHLY_SERVER"},
 			Usage:       "API server override for dev purposes",
 			Destination: &app.apiServer,
+			Hidden:      true, // Internal.
+		},
+		&cli.StringFlag{
+			Name:        "satellite",
+			Value:       containerutil.SatelliteAddress,
+			EnvVars:     []string{"EARTHLY_SATELLITE"},
+			Usage:       "Satellite address override for dev purposes",
+			Destination: &app.satelliteAddress,
 			Hidden:      true, // Internal.
 		},
 		&cli.BoolFlag{
@@ -1170,6 +1179,45 @@ func (app *earthlyApp) before(context *cli.Context) error {
 	return nil
 }
 
+func (app *earthlyApp) configureSatellite(cc cloud.Client) error {
+	if !app.isUsingSatellite() || cc == nil {
+		// If the app is not using a cloud client, or the command doesn't interact with the cloud (prune, bootstrap)
+		// then pretend its all good and use your regular configuration.
+		return nil
+	}
+
+	// When using a satellite, interactive and local do not work; as they are not SSL nor routable yet.
+	app.console.Warnf("Note: the Interactive Debugger, Interactive RUN commands, and Local Registries do not yet work on Earthly Satellites.")
+
+	// Set up extra settings needed for buildkit RPC metadata
+	app.buildkitdSettings.BuildkitAddress = app.satelliteAddress
+	app.buildkitdSettings.SatelliteName = app.cfg.Satellite.Name
+	app.buildkitdSettings.SatelliteOrg = app.cfg.Satellite.Org
+
+	token, err := cc.GetAuthToken()
+	if err != nil {
+		return errors.Wrap(err, "failed to get auth token")
+	}
+	app.buildkitdSettings.SatelliteToken = token
+
+	// TODO (dchw) what other settings might we want to override here?
+
+	return nil
+}
+
+func (app *earthlyApp) isUsingSatellite() bool {
+	return len(app.cfg.Satellite.Name) > 0
+}
+
+func (app *earthlyApp) GetBuildkitClient(c *cli.Context, cc cloud.Client) (*client.Client, error) {
+	err := app.configureSatellite(cc)
+	if err != nil {
+		return nil, errors.Wrapf(err, "could not construct new buildkit client")
+	}
+
+	return buildkitd.NewClient(c.Context, app.console, app.buildkitdImage, app.containerName, app.containerFrontend, app.buildkitdSettings)
+}
+
 func (app *earthlyApp) handleTLSCertificateSettings(context *cli.Context) {
 	if !app.cfg.Global.TLSEnabled {
 		return
@@ -1735,7 +1783,7 @@ func (app *earthlyApp) bootstrap(c *cli.Context) error {
 		err = nil
 	}
 
-	if !app.bootstrapNoBuildkit {
+	if !app.bootstrapNoBuildkit && !app.isUsingSatellite() {
 		bkURL, err := url.Parse(app.buildkitHost)
 		if err != nil {
 			return errors.Wrapf(err, "invalid buildkit_host: %s", app.cfg.Global.BuildkitHost)
@@ -1754,7 +1802,7 @@ func (app *earthlyApp) bootstrap(c *cli.Context) error {
 		}
 
 		// Bootstrap buildkit - pulls image and starts daemon.
-		bkClient, err := buildkitd.NewClient(c.Context, app.console, app.buildkitdImage, app.containerName, app.containerFrontend, app.buildkitdSettings)
+		bkClient, err := app.GetBuildkitClient(c, nil)
 		if err != nil {
 			return errors.Wrap(err, "bootstrap new buildkitd client")
 		}
@@ -2509,8 +2557,12 @@ func (app *earthlyApp) actionPrune(c *cli.Context) error {
 		return nil
 	}
 
+	if app.isUsingSatellite() {
+		return errors.New("Cannot prune when using a satellite")
+	}
+
 	// Prune via API.
-	bkClient, err := buildkitd.NewClient(c.Context, app.console, app.buildkitdImage, app.containerName, app.containerFrontend, app.buildkitdSettings)
+	bkClient, err := app.GetBuildkitClient(c, nil)
 	if err != nil {
 		return errors.Wrap(err, "prune new buildkitd client")
 	}
@@ -2799,7 +2851,7 @@ func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []st
 	app.console.PrintPhaseHeader(builder.PhaseInit, false, "")
 	app.warnIfArgContainsBuildArg(flagArgs)
 
-	bkClient, err := buildkitd.NewClient(c.Context, app.console, app.buildkitdImage, app.containerName, app.containerFrontend, app.buildkitdSettings)
+	bkClient, err := app.GetBuildkitClient(c, cc)
 	if err != nil {
 		return errors.Wrap(err, "build new buildkitd client")
 	}

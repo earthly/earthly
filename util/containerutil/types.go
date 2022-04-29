@@ -194,6 +194,9 @@ const (
 	// PodmanAddress is the address at which the daemon is avaliable whe using a Podman Container directly.
 	// Currently unused due to image export issues
 	PodmanAddress = "podman-container://earthly-buildkitd"
+
+	// SatelliteAddress is the remote address when using a Satellite to execute your builds remotely.
+	SatelliteAddress = "tcp://satellite.earthly.dev:8372"
 )
 
 var (

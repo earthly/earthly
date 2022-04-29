@@ -752,6 +752,14 @@ func makeTLSPath(path string) (string, error) {
 }
 
 func addRequiredOpts(settings Settings, opts ...client.ClientOpt) ([]client.ClientOpt, error) {
+	if settings.SatelliteName != "" {
+		return append(opts, client.WithAdditionalMetadataContext(
+			"satellite_name", settings.SatelliteName,
+			"satellite_org", settings.SatelliteOrg,
+			"satellite_token", settings.SatelliteToken),
+		), nil
+	}
+
 	if !settings.UseTCP || !settings.UseTLS {
 		return opts, nil
 	}

@@ -91,6 +91,7 @@ type Client interface {
 	SetAuthTokenDir(path string)
 	SendAnalytics(data *EarthlyAnalytics) error
 	IsLoggedIn() bool
+	GetAuthToken() (string, error)
 }
 
 type request struct {
@@ -1381,4 +1382,12 @@ func (c *client) UploadLog(pathOnDisk string) (string, error) {
 	}
 
 	return fmt.Sprintf(uploadBundleResponse.ViewURL), nil
+}
+
+func (c *client) GetAuthToken() (string, error) {
+	err := c.Authenticate() // Ensure the current token is valid
+	if err != nil {
+		return "", errors.Wrap(err, "could not authenticate")
+	}
+	return c.authToken, nil
 }

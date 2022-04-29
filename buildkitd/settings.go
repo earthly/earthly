@@ -31,6 +31,9 @@ type Settings struct {
 	VolumeName           string
 	IPTables             string
 	MaxParallelism       int
+	SatelliteName        string `hash:"ignore"`
+	SatelliteOrg         string `hash:"ignore"`
+	SatelliteToken       string `hash:"ignore"`
 }
 
 // Hash returns a secure hash of the settings.
