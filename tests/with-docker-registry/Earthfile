@@ -1,0 +1,26 @@
+VERSION --use-registry-for-with-docker 0.6
+FROM earthly/dind:alpine
+
+all:
+    BUILD +docker-load-test
+    BUILD +docker-load-regular-test
+
+a-test-image:
+    FROM alpine:3.15
+    ARG name=abc
+    ARG var=def
+    RUN mkdir /$name
+    WORKDIR /$name
+    RUN echo "hello $var" >def.txt
+    ENTRYPOINT cat /$name/def.txt && pwd
+    SAVE IMAGE test-${name}-img:xyz
+
+docker-load-test:
+    WITH DOCKER --load +a-test-image
+        RUN docker run test-abc-img:xyz
+    END
+
+docker-load-regular-test:
+    WITH DOCKER --pull hello-world
+        RUN docker run hello-world
+    END

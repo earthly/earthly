@@ -172,7 +172,7 @@ func (wdr *withDockerRun) Run(ctx context.Context, args []string, opt WithDocker
 
 	var localRegImages []string
 	if wdr.enableImageRegistry {
-		// These "closer" functions are called to ensure that all ephemeral
+		// These "closer" functions are called last to ensure that all ephemeral
 		// registry images are released and cleaned up. This must be called
 		// after the meat of the WITH DOCKER RUN command finishes.
 		defer func() {
