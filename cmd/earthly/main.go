@@ -1179,11 +1179,11 @@ func (app *earthlyApp) before(context *cli.Context) error {
 	return nil
 }
 
-func (app *earthlyApp) configureSatellite(cc cloud.Client) {
+func (app *earthlyApp) configureSatellite(cc cloud.Client) error {
 	if !app.isUsingSatellite() || cc == nil {
 		// If the app is not using a cloud client, or the command doesn't interact with the cloud (prune, bootstrap)
 		// then pretend its all good and use your regular configuration.
-		return
+		return nil
 	}
 
 	// When using a satellite, interactive and local do not work; as they are not SSL nor routable yet.
@@ -1193,9 +1193,16 @@ func (app *earthlyApp) configureSatellite(cc cloud.Client) {
 	app.buildkitdSettings.BuildkitAddress = app.satelliteAddress
 	app.buildkitdSettings.SatelliteName = app.cfg.Satellite.Name
 	app.buildkitdSettings.SatelliteOrg = app.cfg.Satellite.Org
-	app.buildkitdSettings.SatelliteToken = cc.GetAuthToken()
+
+	token, err := cc.GetAuthToken()
+	if err != nil {
+		return errors.Wrap(err, "failed to get auth token")
+	}
+	app.buildkitdSettings.SatelliteToken = token
 
 	// TODO (dchw) what other settings might we want to override here?
+
+	return nil
 }
 
 func (app *earthlyApp) isUsingSatellite() bool {
@@ -1203,7 +1210,11 @@ func (app *earthlyApp) isUsingSatellite() bool {
 }
 
 func (app *earthlyApp) GetBuildkitClient(c *cli.Context, cc cloud.Client) (*client.Client, error) {
-	app.configureSatellite(cc)
+	err := app.configureSatellite(cc)
+	if err != nil {
+		return nil, errors.Wrapf(err, "could not construct new buildkit client")
+	}
+
 	return buildkitd.NewClient(c.Context, app.console, app.buildkitdImage, app.containerName, app.containerFrontend, app.buildkitdSettings)
 }
 
