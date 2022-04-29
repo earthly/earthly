@@ -1385,5 +1385,6 @@ func (c *client) UploadLog(pathOnDisk string) (string, error) {
 }
 
 func (c *client) GetAuthToken() string {
+	c.Authenticate() // Ensure the current token is valid
 	return c.authToken
 }
