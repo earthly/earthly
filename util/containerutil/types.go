@@ -196,7 +196,7 @@ const (
 	PodmanAddress = "podman-container://earthly-buildkitd"
 
 	// SatelliteAddress is the remote address when using a Satellite to execute your builds remotely.
-	SatelliteAddress = "tcp://buildkit.earthly.dev:8372"
+	SatelliteAddress = "tcp://satellite.earthly.dev:8372"
 )
 
 var (
