@@ -91,6 +91,7 @@ type Client interface {
 	SetAuthTokenDir(path string)
 	SendAnalytics(data *EarthlyAnalytics) error
 	IsLoggedIn() bool
+	GetAuthToken() string
 }
 
 type request struct {
@@ -1381,4 +1382,8 @@ func (c *client) UploadLog(pathOnDisk string) (string, error) {
 	}
 
 	return fmt.Sprintf(uploadBundleResponse.ViewURL), nil
+}
+
+func (c *client) GetAuthToken() string {
+	return c.authToken
 }

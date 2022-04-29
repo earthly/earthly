@@ -1754,7 +1754,7 @@ func (app *earthlyApp) bootstrap(c *cli.Context) error {
 		}
 
 		// Bootstrap buildkit - pulls image and starts daemon.
-		bkClient, err := buildkitd.NewClient(c.Context, app.console, app.buildkitdImage, app.containerName, app.containerFrontend, app.buildkitdSettings)
+		bkClient, err := app.GetBuildkitClient(c, nil)
 		if err != nil {
 			return errors.Wrap(err, "bootstrap new buildkitd client")
 		}
@@ -2510,7 +2510,7 @@ func (app *earthlyApp) actionPrune(c *cli.Context) error {
 	}
 
 	// Prune via API.
-	bkClient, err := buildkitd.NewClient(c.Context, app.console, app.buildkitdImage, app.containerName, app.containerFrontend, app.buildkitdSettings)
+	bkClient, err := app.GetBuildkitClient(c, nil)
 	if err != nil {
 		return errors.Wrap(err, "prune new buildkitd client")
 	}
@@ -2799,7 +2799,7 @@ func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []st
 	app.console.PrintPhaseHeader(builder.PhaseInit, false, "")
 	app.warnIfArgContainsBuildArg(flagArgs)
 
-	bkClient, err := buildkitd.NewClient(c.Context, app.console, app.buildkitdImage, app.containerName, app.containerFrontend, app.buildkitdSettings)
+	bkClient, err := app.GetBuildkitClient(c, cc)
 	if err != nil {
 		return errors.Wrap(err, "build new buildkitd client")
 	}
@@ -3185,4 +3185,29 @@ func defaultConfigPath() string {
 		return oldConfig
 	}
 	return newConfig
+}
+
+func (app *earthlyApp) configureSatellite(cc cloud.Client) {
+	if !app.isUsingSatellite() || cc == nil {
+		// If the app is not using a cloud client, or the command doesn't interact with the cloud (prune, bootstrap)
+		// then pretend its all good and use your regular configuration.
+		return
+	}
+
+	// When using a satellite, interactive and local do not work; as they are not SSL nor routable yet.
+	app.console.Warnf("Interactive modes and Local Registries do not work yet with Earthly-hosted Buildkit instances.")
+
+	// Set up extra settings needed for buildkit RPC metadata
+	app.buildkitdSettings.SatelliteName = app.cfg.Satellite.Name
+	app.buildkitdSettings.SatelliteOrg = app.cfg.Satellite.Org
+	app.buildkitdSettings.SatelliteToken = cc.GetAuthToken()
+}
+
+func (app *earthlyApp) isUsingSatellite() bool {
+	return len(app.cfg.Satellite.Name) > 0
+}
+
+func (app *earthlyApp) GetBuildkitClient(c *cli.Context, cc cloud.Client) (*client.Client, error) {
+	app.configureSatellite(cc)
+	return buildkitd.NewClient(c.Context, app.console, app.buildkitdImage, app.containerName, app.containerFrontend, app.buildkitdSettings)
 }
