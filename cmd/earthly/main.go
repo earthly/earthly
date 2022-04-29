@@ -1772,7 +1772,7 @@ func (app *earthlyApp) bootstrap(c *cli.Context) error {
 		err = nil
 	}
 
-	if !app.bootstrapNoBuildkit {
+	if !app.bootstrapNoBuildkit && !app.isUsingSatellite() {
 		bkURL, err := url.Parse(app.buildkitHost)
 		if err != nil {
 			return errors.Wrapf(err, "invalid buildkit_host: %s", app.cfg.Global.BuildkitHost)
@@ -2544,6 +2544,10 @@ func (app *earthlyApp) actionPrune(c *cli.Context) error {
 			return errors.Wrap(err, "reset cache")
 		}
 		return nil
+	}
+
+	if app.isUsingSatellite() {
+		return errors.New("Cannot prune when using a satellite")
 	}
 
 	// Prune via API.
