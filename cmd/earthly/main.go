@@ -1187,7 +1187,7 @@ func (app *earthlyApp) configureSatellite(cc cloud.Client) {
 	}
 
 	// When using a satellite, interactive and local do not work; as they are not SSL nor routable yet.
-	app.console.Warnf("Interactive modes and Local Registries do not work yet with Earthly-hosted Buildkit instances.")
+	app.console.Warnf("Note: the Interactive Debugger, Interactive RUN commands, and Local Registries do not yet work on Earthly Satellites.")
 
 	// Set up extra settings needed for buildkit RPC metadata
 	app.buildkitdSettings.BuildkitAddress = app.satelliteAddress
