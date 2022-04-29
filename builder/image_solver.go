@@ -275,9 +275,8 @@ func (s *localRegistryImageSolver) SolveImage(ctx context.Context, mts *states.M
 		return res, nil
 	}
 
-	// TODO: figure out why the below context is being canceled.
 	go func() {
-		_, err := s.bkClient.Build(context.TODO(), *solveOpt, "", bf, nil)
+		_, err := s.bkClient.Build(ctx, *solveOpt, "", bf, nil)
 		if err != nil {
 			errChan <- err
 		}
