@@ -141,6 +141,7 @@ type cliFlags struct {
 	secretFile                string
 	secretStdin               bool
 	apiServer                 string
+	satelliteAddress          string
 	writePermission           bool
 	registrationPublicKey     string
 	dockerfilePath            string
@@ -577,6 +578,14 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 			EnvVars:     []string{"EARTHLY_SERVER"},
 			Usage:       "API server override for dev purposes",
 			Destination: &app.apiServer,
+			Hidden:      true, // Internal.
+		},
+		&cli.StringFlag{
+			Name:        "satellite",
+			Value:       containerutil.SatelliteAddress,
+			EnvVars:     []string{"EARTHLY_SATELLITE"},
+			Usage:       "Satellite address override for dev purposes",
+			Destination: &app.satelliteAddress,
 			Hidden:      true, // Internal.
 		},
 		&cli.BoolFlag{
@@ -1168,6 +1177,34 @@ func (app *earthlyApp) before(context *cli.Context) error {
 	}
 
 	return nil
+}
+
+func (app *earthlyApp) configureSatellite(cc cloud.Client) {
+	if !app.isUsingSatellite() || cc == nil {
+		// If the app is not using a cloud client, or the command doesn't interact with the cloud (prune, bootstrap)
+		// then pretend its all good and use your regular configuration.
+		return
+	}
+
+	// When using a satellite, interactive and local do not work; as they are not SSL nor routable yet.
+	app.console.Warnf("Interactive modes and Local Registries do not work yet with Earthly-hosted Buildkit instances.")
+
+	// Set up extra settings needed for buildkit RPC metadata
+	app.buildkitdSettings.BuildkitAddress = app.satelliteAddress
+	app.buildkitdSettings.SatelliteName = app.cfg.Satellite.Name
+	app.buildkitdSettings.SatelliteOrg = app.cfg.Satellite.Org
+	app.buildkitdSettings.SatelliteToken = cc.GetAuthToken()
+
+	// TODO (dchw) what other settings might we want to override here?
+}
+
+func (app *earthlyApp) isUsingSatellite() bool {
+	return len(app.cfg.Satellite.Name) > 0
+}
+
+func (app *earthlyApp) GetBuildkitClient(c *cli.Context, cc cloud.Client) (*client.Client, error) {
+	app.configureSatellite(cc)
+	return buildkitd.NewClient(c.Context, app.console, app.buildkitdImage, app.containerName, app.containerFrontend, app.buildkitdSettings)
 }
 
 func (app *earthlyApp) handleTLSCertificateSettings(context *cli.Context) {
@@ -3185,29 +3222,4 @@ func defaultConfigPath() string {
 		return oldConfig
 	}
 	return newConfig
-}
-
-func (app *earthlyApp) configureSatellite(cc cloud.Client) {
-	if !app.isUsingSatellite() || cc == nil {
-		// If the app is not using a cloud client, or the command doesn't interact with the cloud (prune, bootstrap)
-		// then pretend its all good and use your regular configuration.
-		return
-	}
-
-	// When using a satellite, interactive and local do not work; as they are not SSL nor routable yet.
-	app.console.Warnf("Interactive modes and Local Registries do not work yet with Earthly-hosted Buildkit instances.")
-
-	// Set up extra settings needed for buildkit RPC metadata
-	app.buildkitdSettings.SatelliteName = app.cfg.Satellite.Name
-	app.buildkitdSettings.SatelliteOrg = app.cfg.Satellite.Org
-	app.buildkitdSettings.SatelliteToken = cc.GetAuthToken()
-}
-
-func (app *earthlyApp) isUsingSatellite() bool {
-	return len(app.cfg.Satellite.Name) > 0
-}
-
-func (app *earthlyApp) GetBuildkitClient(c *cli.Context, cc cloud.Client) (*client.Client, error) {
-	app.configureSatellite(cc)
-	return buildkitd.NewClient(c.Context, app.console, app.buildkitdImage, app.containerName, app.containerFrontend, app.buildkitdSettings)
 }
