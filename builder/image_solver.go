@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 
 	"github.com/earthly/earthly/outmon"
 	"github.com/earthly/earthly/states"
@@ -249,6 +250,10 @@ func (s *localRegistryImageSolver) SolveImage(ctx context.Context, mts *states.M
 		return nil, errors.Wrap(err, "image json marshal")
 	}
 
+	if !strings.Contains(dockerTag, ":") {
+		dockerTag += ":latest"
+	}
+
 	bf := func(childCtx context.Context, gwClient gwclient.Client) (*gwclient.Result, error) {
 		ref, err := llbutil.StateToRef(childCtx, gwClient, saveImage.State, true, mts.Final.PlatformResolver, s.cacheImports.AsMap())
 		if err != nil {
@@ -270,13 +275,34 @@ func (s *localRegistryImageSolver) SolveImage(ctx context.Context, mts *states.M
 		return res, nil
 	}
 
+	var (
+		statusChan = make(chan *client.SolveStatus)
+		doneChan   = make(chan struct{})
+	)
+
 	solveOpt := s.newSolveOpt(saveImage.Image, dockerTag, onPull)
 
+	var vertexFailureOutput string
+
 	go func() {
-		_, err := s.bkClient.Build(ctx, *solveOpt, "", bf, nil)
+		_, err := s.bkClient.Build(ctx, *solveOpt, "", bf, statusChan)
 		if err != nil {
-			errChan <- err
+			errChan <- NewBuildError(err, vertexFailureOutput)
 		}
+		doneChan <- struct{}{}
+	}()
+
+	go func() {
+		vertexFailureOutput, err := s.sm.MonitorProgress(ctx, statusChan, "", true)
+		if err != nil {
+			errChan <- NewBuildError(err, vertexFailureOutput)
+		}
+		doneChan <- struct{}{}
+	}()
+
+	go func() {
+		<-doneChan
+		<-doneChan
 		close(errChan)
 	}()
 

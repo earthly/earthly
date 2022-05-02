@@ -3,7 +3,7 @@ FROM earthly/dind:alpine
 
 all:
     BUILD +docker-load-test
-    BUILD +docker-load-regular-test
+    BUILD +docker-load-pull
 
 a-test-image:
     FROM alpine:3.15
@@ -20,7 +20,7 @@ docker-load-test:
         RUN docker run test-abc-img:xyz
     END
 
-docker-load-regular-test:
+docker-load-pull:
     WITH DOCKER --pull hello-world
         RUN docker run hello-world
     END
