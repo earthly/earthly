@@ -12,7 +12,6 @@ import (
 	"github.com/earthly/earthly/states"
 	"github.com/earthly/earthly/states/image"
 	"github.com/earthly/earthly/util/llbutil"
-	"github.com/earthly/earthly/util/platutil"
 	"github.com/moby/buildkit/client"
 	"github.com/moby/buildkit/client/llb"
 	"github.com/moby/buildkit/exporter/containerimage/exptypes"
@@ -217,11 +216,6 @@ func (s *localRegistryImageSolver) newSolveOpt(img *image.Image, dockerTag strin
 // will be sent.
 func (s *localRegistryImageSolver) SolveImage(ctx context.Context, mts *states.MultiTarget, dockerTag string) (*states.ImageSolverResult, error) {
 	var (
-		platform  = mts.Final.PlatformResolver.ToLLBPlatform(mts.Final.PlatformResolver.Current())
-		saveImage = mts.Final.LastSaveImage()
-	)
-
-	var (
 		releaseChan = make(chan struct{})
 		resultChan  = make(chan string, 1)
 		errChan     = make(chan error)
@@ -249,18 +243,19 @@ func (s *localRegistryImageSolver) SolveImage(ctx context.Context, mts *states.M
 		return nil
 	}
 
+	var saveImage = mts.Final.LastSaveImage()
 	imgJSON, err := json.Marshal(saveImage.Image)
 	if err != nil {
 		return nil, errors.Wrap(err, "image json marshal")
 	}
 
-	solveOpt := s.newSolveOpt(saveImage.Image, dockerTag, onPull)
 	bf := func(childCtx context.Context, gwClient gwclient.Client) (*gwclient.Result, error) {
-		res := gwclient.NewResult()
-		ref, err := llbutil.StateToRef(childCtx, gwClient, saveImage.State, true, platutil.NewResolver(platform), s.cacheImports.AsMap())
+		ref, err := llbutil.StateToRef(childCtx, gwClient, saveImage.State, true, mts.Final.PlatformResolver, s.cacheImports.AsMap())
 		if err != nil {
 			return nil, errors.Wrap(err, "initial state to ref conversion")
 		}
+
+		res := gwclient.NewResult()
 
 		refKey := fmt.Sprintf("image-%s", dockerTag)
 		refPrefix := fmt.Sprintf("ref/%s", refKey)
@@ -274,6 +269,8 @@ func (s *localRegistryImageSolver) SolveImage(ctx context.Context, mts *states.M
 
 		return res, nil
 	}
+
+	solveOpt := s.newSolveOpt(saveImage.Image, dockerTag, onPull)
 
 	go func() {
 		_, err := s.bkClient.Build(ctx, *solveOpt, "", bf, nil)
