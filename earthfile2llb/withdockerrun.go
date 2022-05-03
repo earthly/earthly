@@ -167,6 +167,7 @@ func (wdr *withDockerRun) Run(ctx context.Context, args []string, opt WithDocker
 		select {
 		case <-pullPromise:
 		case <-ctx.Done():
+			return ctx.Err()
 		}
 	}
 
