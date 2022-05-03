@@ -70,9 +70,9 @@ docker-load-multi-test:
         --load=(+another-test-image --INDEX=3) \
         --load=(+another-test-image --INDEX=4) \
         --load=(+another-test-image --INDEX=5)
-        RUN docker run --rm another-test-img:i1 && \
-            docker run --rm another-test-img:i2 && \
-            docker run --rm another-test-img:i3 && \
-            docker run --rm another-test-img:i4 && \
-            docker run --rm another-test-img:i5
+        RUN docker run --rm another-test-img:i1 | grep "test img 1" && \
+            docker run --rm another-test-img:i2 | grep "test img 2" && \
+            docker run --rm another-test-img:i3 | grep "test img 3" && \
+            docker run --rm another-test-img:i4 | grep "test img 4" && \
+            docker run --rm another-test-img:i5 | grep "test img 5"
     END

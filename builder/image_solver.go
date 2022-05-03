@@ -153,26 +153,20 @@ func (s *tarImageSolver) SolveImage(ctx context.Context, mts *states.MultiTarget
 }
 
 type localRegistryImageSolver struct {
-	bkClient        *client.Client
-	sm              *outmon.SolverMonitor
-	attachables     []session.Attachable
-	enttlmnts       []entitlements.Entitlement
-	cacheImports    *states.CacheImports
-	cacheExport     string
-	maxCacheExport  string
-	saveInlineCache bool
+	bkClient     *client.Client
+	sm           *outmon.SolverMonitor
+	attachables  []session.Attachable
+	enttlmnts    []entitlements.Entitlement
+	cacheImports *states.CacheImports
 }
 
 func newLocalRegistryImageSolver(opt Opt, sm *outmon.SolverMonitor) *localRegistryImageSolver {
 	return &localRegistryImageSolver{
-		sm:              sm,
-		bkClient:        opt.BkClient,
-		attachables:     opt.Attachables,
-		enttlmnts:       opt.Enttlmnts,
-		cacheImports:    opt.CacheImports,
-		cacheExport:     opt.CacheExport,
-		maxCacheExport:  opt.MaxCacheExport,
-		saveInlineCache: opt.SaveInlineCache,
+		sm:           sm,
+		bkClient:     opt.BkClient,
+		attachables:  opt.Attachables,
+		enttlmnts:    opt.Enttlmnts,
+		cacheImports: opt.CacheImports,
 	}
 }
 
@@ -180,16 +174,6 @@ func (s *localRegistryImageSolver) newSolveOpt(img *image.Image, dockerTag strin
 	var cacheImports []client.CacheOptionsEntry
 	for ci := range s.cacheImports.AsMap() {
 		cacheImports = append(cacheImports, newCacheImportOpt(ci))
-	}
-	var cacheExports []client.CacheOptionsEntry
-	if s.cacheExport != "" {
-		cacheExports = append(cacheExports, newCacheExportOpt(s.cacheExport, false))
-	}
-	if s.maxCacheExport != "" {
-		cacheExports = append(cacheExports, newCacheExportOpt(s.maxCacheExport, true))
-	}
-	if s.saveInlineCache {
-		cacheExports = append(cacheExports, newInlineCacheOpt())
 	}
 	return &client.SolveOpt{
 		Exports: []client.ExportEntry{
@@ -204,7 +188,6 @@ func (s *localRegistryImageSolver) newSolveOpt(img *image.Image, dockerTag strin
 			},
 		},
 		CacheImports:        cacheImports,
-		CacheExports:        cacheExports,
 		Session:             s.attachables,
 		AllowedEntitlements: s.enttlmnts,
 	}
