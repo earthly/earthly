@@ -83,7 +83,7 @@ build:
 ```
 
 ## Importing Whole Projects
-In addition to importing tagets from other files, we can also import an entire file with the `IMPORT` command.
+In addition to importing targets from other files, we can also import an entire file with the `IMPORT` command.
 
 ```Dockerfile
 VERSION 0.6
