@@ -65,11 +65,14 @@ type WithDockerOpt struct {
 type withDockerRun struct {
 	c *Converter
 
-	enableParallel bool
+	enableParallel      bool
+	enableImageRegistry bool
 
-	sem      semutil.Semaphore
-	mu       sync.Mutex
-	tarLoads []tarLoad
+	sem semutil.Semaphore
+	mu  sync.Mutex
+
+	tarLoads           []tarLoad
+	imageSolverResults []*states.ImageSolverResult
 }
 
 type tarLoad struct {
@@ -137,6 +140,7 @@ func (wdr *withDockerRun) Run(ctx context.Context, args []string, opt WithDocker
 			return ctx.Err()
 		}
 	}
+
 	// Add compose images (what's left of them) to the pull list.
 	for _, pull := range composePulls {
 		pull.Platform = wdr.c.platr.SubPlatform(pull.Platform)
@@ -149,6 +153,7 @@ func (wdr *withDockerRun) Run(ctx context.Context, args []string, opt WithDocker
 			opt.Pulls = append(opt.Pulls, pull)
 		}
 	}
+
 	// Pulls.
 	pullPromises := make([]chan struct{}, 0, len(opt.Pulls))
 	for _, pullImageName := range opt.Pulls {
@@ -162,15 +167,54 @@ func (wdr *withDockerRun) Run(ctx context.Context, args []string, opt WithDocker
 		select {
 		case <-pullPromise:
 		case <-ctx.Done():
+			return ctx.Err()
 		}
 	}
-	// Sort the tar list, to make the operation consistent.
-	sort.Slice(wdr.tarLoads, func(i, j int) bool {
-		if wdr.tarLoads[i].imgName == wdr.tarLoads[j].imgName {
-			return wdr.tarLoads[i].platform.String() < wdr.tarLoads[j].platform.String()
+
+	var localRegImages []string
+	if wdr.enableImageRegistry {
+		// These "closer" functions are called last to ensure that all ephemeral
+		// registry images are released and cleaned up. This must be called
+		// after the meat of the WITH DOCKER RUN command finishes.
+		defer func() {
+			for _, l := range wdr.imageSolverResults {
+				l.ReleaseFunc()
+			}
+		}()
+		// Sort the local registry pull list, to make the operation consistent.
+		sort.Slice(wdr.imageSolverResults, func(i, j int) bool {
+			return wdr.imageSolverResults[i].ImageName < wdr.imageSolverResults[j].ImageName
+		})
+		for _, l := range wdr.imageSolverResults {
+			errChan := l.ErrChan
+			wdr.c.opt.ErrorGroup.Go(func() error {
+				for {
+					select {
+					case err, ok := <-errChan:
+						if !ok {
+							return nil
+						}
+						return err
+					case <-ctx.Done():
+						return ctx.Err()
+					}
+				}
+			})
 		}
-		return wdr.tarLoads[i].imgName < wdr.tarLoads[j].imgName
-	})
+		localRegImages, err = wdr.waitForLocalRegImages(ctx)
+		if err != nil {
+			return errors.Wrap(err, "wait for local registry images")
+		}
+	} else {
+		// Sort the tar list, to make the operation consistent.
+		sort.Slice(wdr.tarLoads, func(i, j int) bool {
+			if wdr.tarLoads[i].imgName == wdr.tarLoads[j].imgName {
+				return wdr.tarLoads[i].platform.String() < wdr.tarLoads[j].platform.String()
+			}
+			return wdr.tarLoads[i].imgName < wdr.tarLoads[j].imgName
+		})
+	}
+
 	crOpts := ConvertRunOpts{
 		CommandName:     "WITH DOCKER RUN",
 		Args:            args,
@@ -184,22 +228,26 @@ func (wdr *withDockerRun) Run(ctx context.Context, args []string, opt WithDocker
 		Interactive:     opt.Interactive,
 		InteractiveKeep: opt.interactiveKeep,
 	}
+
 	crOpts.extraRunOpts = append(crOpts.extraRunOpts, pllb.AddMount(
 		"/var/earthly/dind", pllb.Scratch(), llb.HostBind(), llb.SourcePath("/tmp/earthly/dind")))
 	crOpts.extraRunOpts = append(crOpts.extraRunOpts, pllb.AddMount(
 		dockerdWrapperPath, pllb.Scratch(), llb.HostBind(), llb.SourcePath(dockerdWrapperPath)))
+
 	var tarPaths []string
-	for index, tl := range wdr.tarLoads {
-		loadDir := fmt.Sprintf("/var/earthly/load-%d", index)
-		crOpts.extraRunOpts = append(crOpts.extraRunOpts, pllb.AddMount(loadDir, tl.state, llb.Readonly))
-		tarPaths = append(tarPaths, path.Join(loadDir, "image.tar"))
+	if !wdr.enableImageRegistry {
+		for index, tl := range wdr.tarLoads {
+			loadDir := fmt.Sprintf("/var/earthly/load-%d", index)
+			crOpts.extraRunOpts = append(crOpts.extraRunOpts, pllb.AddMount(loadDir, tl.state, llb.Readonly))
+			tarPaths = append(tarPaths, path.Join(loadDir, "image.tar"))
+		}
 	}
 
 	dindID, err := wdr.c.mts.Final.TargetInput().Hash()
 	if err != nil {
 		return errors.Wrap(err, "compute dind id")
 	}
-	crOpts.shellWrap = makeWithDockerdWrapFun(dindID, tarPaths, opt)
+	crOpts.shellWrap = makeWithDockerdWrapFun(dindID, tarPaths, localRegImages, opt)
 
 	platformIncompatible := !wdr.c.platr.PlatformEquals(wdr.c.platr.Current(), platutil.NativePlatform)
 	if platformIncompatible {
@@ -217,7 +265,31 @@ func (wdr *withDockerRun) Run(ctx context.Context, args []string, opt WithDocker
 	if err != nil {
 		return err
 	}
+	// Force synchronous command execution if we're using the local registry for
+	// loads and pulls.
+	if wdr.enableImageRegistry {
+		err = wdr.c.forceExecution(ctx, wdr.c.mts.Final.MainState, wdr.c.platr)
+		if err != nil {
+			return err
+		}
+	}
 	return nil
+}
+
+func (wdr *withDockerRun) waitForLocalRegImages(ctx context.Context) ([]string, error) {
+	var images []string
+	for _, l := range wdr.imageSolverResults {
+		select {
+		case image, ok := <-l.ResultChan:
+			if !ok {
+				break
+			}
+			images = append(images, image)
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		}
+	}
+	return images, nil
 }
 
 func (wdr *withDockerRun) installDeps(ctx context.Context, opt WithDockerOpt) error {
@@ -399,14 +471,14 @@ func (wdr *withDockerRun) load(ctx context.Context, opt DockerLoadOpt) (chan Doc
 	return optPromise, nil
 }
 
-func (wdr *withDockerRun) solveImage(ctx context.Context, mts *states.MultiTarget, opName string, dockerTag string, opts ...llb.RunOption) error {
+func (wdr *withDockerRun) solveImageAsTar(ctx context.Context, mts *states.MultiTarget, opName string, dockerTag string, opts ...llb.RunOption) error {
 	solveID, err := states.KeyFromHashAndTag(mts.Final, dockerTag)
 	if err != nil {
 		return errors.Wrap(err, "state key func")
 	}
 	tarContext, err := wdr.c.opt.SolveCache.Do(ctx, solveID, func(ctx context.Context, _ states.StateKey) (pllb.State, error) {
-		// Use a builder to create docker .tar file, mount it via a local build context,
-		// then docker load it within the current side effects state.
+		// Use a builder to create docker .tar file, mount it via a local build
+		// context, then docker load it within the current side effects state.
 		outDir, err := os.MkdirTemp(os.TempDir(), "earthly-docker-load")
 		if err != nil {
 			return pllb.State{}, errors.Wrap(err, "mk temp dir for docker load")
@@ -415,7 +487,7 @@ func (wdr *withDockerRun) solveImage(ctx context.Context, mts *states.MultiTarge
 			return os.RemoveAll(outDir)
 		})
 		outFile := path.Join(outDir, "image.tar")
-		err = wdr.c.opt.DockerBuilderFun(ctx, mts, dockerTag, outFile, !wdr.c.ftrs.NoTarBuildOutput)
+		err = wdr.c.opt.DockerImageSolverTar.SolveImage(ctx, mts, dockerTag, outFile, !wdr.c.ftrs.NoTarBuildOutput)
 		if err != nil {
 			return pllb.State{}, errors.Wrapf(err, "build target %s for docker load", opName)
 		}
@@ -453,11 +525,36 @@ func (wdr *withDockerRun) solveImage(ctx context.Context, mts *states.MultiTarge
 	return nil
 }
 
-func makeWithDockerdWrapFun(dindID string, tarPaths []string, opt WithDockerOpt) shellWrapFun {
+func (wdr *withDockerRun) solveImageWithRegistry(ctx context.Context, mts *states.MultiTarget, opName string, dockerTag string, opts ...llb.RunOption) error {
+	result, err := wdr.c.opt.DockerImageSolver.SolveImage(ctx, mts, dockerTag)
+	if err != nil {
+		return errors.Wrapf(err, "build target %s for docker load", opName)
+	}
+	wdr.mu.Lock()
+	defer wdr.mu.Unlock()
+	wdr.imageSolverResults = append(wdr.imageSolverResults, result)
+	return nil
+}
+
+func (wdr *withDockerRun) solveImage(ctx context.Context, mts *states.MultiTarget, opName string, dockerTag string, opts ...llb.RunOption) error {
+	var err error
+	if wdr.enableImageRegistry {
+		err = wdr.solveImageWithRegistry(ctx, mts, opName, dockerTag, opts...)
+	} else {
+		err = wdr.solveImageAsTar(ctx, mts, opName, dockerTag, opts...)
+	}
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func makeWithDockerdWrapFun(dindID string, tarPaths []string, localRegImages []string, opt WithDockerOpt) shellWrapFun {
 	dockerRoot := path.Join("/var/earthly/dind", dindID)
 	params := []string{
 		fmt.Sprintf("EARTHLY_DOCKERD_DATA_ROOT=\"%s\"", dockerRoot),
 		fmt.Sprintf("EARTHLY_DOCKER_LOAD_FILES=\"%s\"", strings.Join(tarPaths, " ")),
+		fmt.Sprintf("EARTHLY_DOCKER_LOAD_REGISTRY=\"%s\"", strings.Join(localRegImages, " ")),
 	}
 	params = append(params, composeParams(opt)...)
 	return func(args []string, envVars []string, isWithShell, withDebugger, forceDebugger bool) []string {

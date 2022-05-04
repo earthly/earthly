@@ -2,6 +2,9 @@
 
 set -eu
 
+# This host is used to pull images from the embedded BuildKit Docker registry.
+buildkit_docker_registry='172.30.0.1:8371'
+
 # Runs docker-compose with the right -f flags.
 docker_compose_cmd() {
     compose_file_flags=""
@@ -47,7 +50,8 @@ execute() {
         fi
     done
 
-    load_images
+    load_file_images
+    load_registry_images
     if [ "$EARTHLY_START_COMPOSE" = "true" ]; then
         # shellcheck disable=SC2086
         docker_compose_cmd up -d $EARTHLY_COMPOSE_SERVICES
@@ -89,7 +93,8 @@ start_dockerd() {
         }
     ],
     "bip": "172.20.0.1/16",
-    "data-root": "$EARTHLY_DOCKERD_DATA_ROOT"
+    "data-root": "$EARTHLY_DOCKERD_DATA_ROOT",
+    "insecure-registries" : ["$buildkit_docker_registry"]
 }
 EOF
 
@@ -148,7 +153,7 @@ stop_dockerd() {
         wait "$dockerd_pid" || true
     fi
 
-      # Wipe dockerd data when done.
+    # Wipe dockerd data when done.
     if ! rm -rf "$EARTHLY_DOCKERD_DATA_ROOT"; then
         # We have some issues about failing to delete files. If we fail, list the processes keeping it open for results.
         echo "==== Begin file info ===="
@@ -159,11 +164,23 @@ stop_dockerd() {
     fi
 }
 
-load_images() {
+load_file_images() {
     if [ -n "$EARTHLY_DOCKER_LOAD_FILES" ]; then
-        echo "Loading images..."
+        echo "Loading images from BuildKit via tar files..."
         for img in $EARTHLY_DOCKER_LOAD_FILES; do
             docker load -i "$img" || (stop_dockerd; exit 1)
+        done
+        echo "...done"
+    fi
+}
+
+load_registry_images() {
+    if [ -n "$EARTHLY_DOCKER_LOAD_REGISTRY" ]; then
+        echo "Loading images from BuildKit via embedded registry..."
+        for img in $EARTHLY_DOCKER_LOAD_REGISTRY; do
+            user_tag=$(printf '%s' "$img" | cut -d'/' -f2)
+            with_reg="$buildkit_docker_registry/$img"
+            (docker pull "$with_reg" && docker tag "$with_reg" "$user_tag") || (stop_dockerd; exit 1)
         done
         echo "...done"
     fi
@@ -174,12 +191,12 @@ case "$1" in
         write_compose_config
         exit 0
         ;;
-    
+
     execute)
         execute "$@"
         exit "$?"
         ;;
-    
+
     *)
         echo "Invalid command $1"
         exit 1

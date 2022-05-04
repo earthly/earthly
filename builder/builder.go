@@ -131,27 +131,22 @@ func (b *Builder) BuildTarget(ctx context.Context, target domain.Target, opt Bui
 	return mts, nil
 }
 
-// MakeImageAsTarBuilderFun returns a function which can be used to build an image as a tar.
-func (b *Builder) MakeImageAsTarBuilderFun() states.DockerBuilderFun {
-	return func(ctx context.Context, mts *states.MultiTarget, dockerTag string, outFile string, printOutput bool) error {
-		return b.buildOnlyLastImageAsTar(ctx, mts, dockerTag, outFile, BuildOpt{}, printOutput)
-	}
-}
-
 func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt BuildOpt) (*states.MultiTarget, error) {
-	sharedLocalStateCache := earthfile2llb.NewSharedLocalStateCache()
-
-	featureFlagOverrides := b.opt.FeatureFlagOverrides
-
-	destPathWhitelist := make(map[string]bool)
-	manifestLists := make(map[string][]manifest) // parent image -> child images
-	platformImgNames := make(map[string]bool)    // ensure that these are unique
-	singPlatImgNames := make(map[string]bool)    // ensure that these are unique
+	var (
+		sharedLocalStateCache = earthfile2llb.NewSharedLocalStateCache()
+		featureFlagOverrides  = b.opt.FeatureFlagOverrides
+		destPathWhitelist     = make(map[string]bool)
+		manifestLists         = make(map[string][]manifest) // parent image -> child images
+		platformImgNames      = make(map[string]bool)       // ensure that these are unique
+		singPlatImgNames      = make(map[string]bool)       // ensure that these are unique
+		localImages           = make(map[string]string)     // local reg pull name -> final name
+	)
+	var (
+		depIndex   = 0
+		imageIndex = 0
+		dirIndex   = 0
+	)
 	var mts *states.MultiTarget
-	depIndex := 0
-	imageIndex := 0
-	dirIndex := 0
-	localImages := make(map[string]string) // local reg pull name -> final name
 	bf := func(childCtx context.Context, gwClient gwclient.Client) (*gwclient.Result, error) {
 		if opt.EnableGatewayClientLogging {
 			gwClient = gwclientlogger.New(gwClient)
@@ -162,9 +157,10 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 				GwClient:             gwClient,
 				Resolver:             b.resolver,
 				ImageResolveMode:     b.opt.ImageResolveMode,
-				DockerBuilderFun:     b.MakeImageAsTarBuilderFun(),
 				CleanCollection:      b.opt.CleanCollection,
 				PlatformResolver:     opt.PlatformResolver.SubResolver(opt.PlatformResolver.Current()),
+				DockerImageSolverTar: newTarImageSolver(b.opt, b.s.sm),
+				DockerImageSolver:    newLocalRegistryImageSolver(b.opt, b.s.sm),
 				OverridingVars:       b.opt.OverridingVars,
 				BuildContextProvider: b.opt.BuildContextProvider,
 				CacheImports:         b.opt.CacheImports,
@@ -659,16 +655,6 @@ func (b *Builder) artifactStateToRef(ctx context.Context, gwClient gwclient.Clie
 	return llbutil.StateToRef(
 		ctx, gwClient, state, noCache,
 		platr, b.opt.CacheImports.AsMap())
-}
-
-func (b *Builder) buildOnlyLastImageAsTar(ctx context.Context, mts *states.MultiTarget, dockerTag string, outFile string, opt BuildOpt, printOutput bool) error {
-	platform := mts.Final.PlatformResolver.ToLLBPlatform(mts.Final.PlatformResolver.Current())
-	saveImage := mts.Final.LastSaveImage()
-	err := b.s.solveDockerTar(ctx, saveImage.State, platform, saveImage.Image, dockerTag, outFile, printOutput)
-	if err != nil {
-		return errors.Wrapf(err, "solve image tar %s", outFile)
-	}
-	return nil
 }
 
 func (b *Builder) saveArtifactLocally(ctx context.Context, console *conslogging.BufferedLogger, artifact domain.Artifact, indexOutDir string, destPath string, salt string, opt BuildOpt, ifExists bool) error {

@@ -8,6 +8,10 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 - Switch to MPL-2.0 license. [Announcement](https://earthly.dev/blog/earthly-open-source)
 
+### Added
+
+- Experimental support for Docker registry based image creation and transfer `WITH DOCKER` loads and pulls. Enable with the `VERSION ----use-registry-for-with-docker` flag.
+
 ## v0.6.14 - 2022-04-11
 
 ### Added
@@ -267,7 +271,7 @@ For more information on the individual Earthfile feature flags see the [Earthfil
 
 <!--changelog-parser-ignore-start-->
 - What Earthly outputs locally has changed in a way that is not backwards compatible. For an artifact or an image to be produced locally it needs to be part of a `BUILD` chain (or be part of the target being directly built). Artifacts and images introduced through `FROM` or `COPY` are no longer output locally.
-  
+
   To update existing scripts, you may issue a duplicate `BUILD` in addition to a `FROM` (or a `COPY`), should you wish for the referenced target to perform output.
 
   For example, the following script
@@ -287,10 +291,10 @@ For more information on the individual Earthfile feature flags see the [Earthfil
   ```
 
   in order to produce the same outputs.
-  
+
   For more details see [#896](https://github.com/earthly/earthly/issues/896).
 - The syntax for passing build args has been changed.
-  
+
   Earthly v0.5 (old way)
 
   ```
@@ -437,7 +441,7 @@ For more information on the individual Earthfile feature flags see the [Earthfil
 
 <!--changelog-parser-ignore-start-->
 - What Earthly outputs locally has changed in a way that is not backwards compatible. For an artifact or an image to be produced locally it needs to be part of a `BUILD` chain (or be part of the target being directly built). Artifacts and images introduced through `FROM` or `COPY` are no longer output locally.
-  
+
   To update existing scripts, you may issue a duplicate `BUILD` in addition to a `FROM` (or a `COPY`), should you wish for the referenced target to perform output.
 
   For example, the following script
@@ -457,10 +461,10 @@ For more information on the individual Earthfile feature flags see the [Earthfil
   ```
 
   in order to produce the same outputs.
-  
+
   For more details see [#896](https://github.com/earthly/earthly/issues/896).
 - The syntax for passing build args has been changed.
-  
+
   Earthly v0.5 (old way)
 
   ```
@@ -651,9 +655,9 @@ For more information on the individual Earthfile feature flags see the [Earthfil
   ```
   IMPORT github.com/foo/bar:v1.2.3
   IMPORT github.com/foo/buz:main AS zulu
-  
+
   ...
-  
+
   FROM bar+target
   BUILD zulu+something
   ```

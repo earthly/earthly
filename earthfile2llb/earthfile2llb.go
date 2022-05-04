@@ -33,10 +33,12 @@ type ConvertOpt struct {
 	GlobalImports map[string]domain.ImportTrackerVal
 	// The resolve mode for referenced images (force pull or prefer local).
 	ImageResolveMode llb.ResolveMode
-	// DockerBuilderFun is a fun that can be used to execute an image build. This
-	// is used as part of operations like DOCKER LOAD and DOCKER PULL, where
-	// a tar image is needed in the middle of a build.
-	DockerBuilderFun states.DockerBuilderFun
+	// DockerImageSolver uses the local Docker registry to create and make
+	// available a Docker image for WITH DOCKER commands.
+	DockerImageSolver states.DockerImageSolver
+	// DockerImageSolverTar is similar to the above solver but it uses a tar
+	// file to transfer images. To be deprecated in favor of the local registry version.
+	DockerImageSolverTar states.DockerTarImageSolver
 	// CleanCollection is a collection of cleanup functions.
 	CleanCollection *cleanup.Collection
 	// Visited is a collection of target states which have been converted to LLB.
@@ -98,7 +100,7 @@ type ConvertOpt struct {
 	// ErrorGroup is a serrgroup used to submit parallel conversion jobs.
 	ErrorGroup *serrgroup.Group
 
-	// FeatureFlagOverride is used to override feature flags that are defined in specific Earthfiles
+	// FeatureFlagOverrides is used to override feature flags that are defined in specific Earthfiles
 	FeatureFlagOverrides string
 	// Default set of ARGs to make available in Earthfile.
 	BuiltinArgs variables.DefaultArgs
