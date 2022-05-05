@@ -1133,10 +1133,10 @@ func (c *Converter) Arg(ctx context.Context, argKey string, defaultArgValue stri
 		return err
 	}
 	if opts.Required && len(effective) == 0 {
-		return errors.New("arg not supplied for required ARG")
+		return fmt.Errorf("value not supplied for required ARG: %s", argKey)
 	}
 	if len(defaultArgValue) > 0 && reserved.IsBuiltIn(argKey) {
-		return errors.New("arg default value supplied for built-in ARG")
+		return fmt.Errorf("arg default value supplied for built-in ARG: %s", argKey)
 	}
 	if c.varCollection.IsStackAtBase() { // Only when outside of UDC.
 		c.mts.Final.AddBuildArgInput(dedup.BuildArgInput{
