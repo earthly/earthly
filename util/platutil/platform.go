@@ -22,6 +22,11 @@ type Platform struct {
 	p      *specs.Platform
 }
 
+// IsPlatformDefined returns true when the platform was explicitly set
+func IsPlatformDefined(p Platform) bool {
+	return p != DefaultPlatform
+}
+
 // FromLLBPlatform returns a platform from a containerd platform.
 func FromLLBPlatform(p specs.Platform) Platform {
 	p = platforms.Normalize(p)

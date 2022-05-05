@@ -20,6 +20,7 @@ type block struct {
 	ifStatement   *spec.IfStatement
 	elseIf        *spec.ElseIf
 	forStatement  *spec.ForStatement
+	waitStatement *spec.WaitStatement
 }
 
 type listener struct {
@@ -483,6 +484,44 @@ func (l *listener) EnterForBlock(c *parser.ForBlockContext) {
 func (l *listener) ExitForBlock(c *parser.ForBlockContext) {
 	forBlock := l.popBlock()
 	l.block().forStatement.Body = forBlock
+}
+
+// Wait -----------------------------------------------------------------------
+
+func (l *listener) EnterWaitStmt(c *parser.WaitStmtContext) {
+
+	l.block().waitStatement = new(spec.WaitStatement)
+	if l.enableSourceMap {
+		l.block().waitStatement.SourceLocation = &spec.SourceLocation{
+			File:        l.filePath,
+			StartLine:   c.GetStart().GetLine(),
+			StartColumn: c.GetStart().GetColumn(),
+			EndLine:     c.GetStop().GetLine(),
+			EndColumn:   c.GetStop().GetColumn(),
+		}
+	}
+}
+
+func (l *listener) ExitWaitStmt(c *parser.WaitStmtContext) {
+	l.block().statement.Wait = l.block().waitStatement
+	l.block().waitStatement = nil
+}
+
+func (l *listener) EnterWaitExpr(c *parser.WaitExprContext) {
+	l.stmtWords = []string{}
+}
+
+func (l *listener) ExitWaitExpr(c *parser.WaitExprContext) {
+	l.block().waitStatement.Args = l.stmtWords
+}
+
+func (l *listener) EnterWaitBlock(c *parser.WaitBlockContext) {
+	l.pushNewBlock()
+}
+
+func (l *listener) ExitWaitBlock(c *parser.WaitBlockContext) {
+	waitBlock := l.popBlock()
+	l.block().waitStatement.Body = waitBlock
 }
 
 // EnvArgKey, EnvArgValue, LabelKey, LabelValue -------------------------------

@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"strconv"
 	"strings"
 
 	"github.com/earthly/earthly/outmon"
@@ -300,7 +299,6 @@ func (m *multiImageSolver) addRefToResult(ctx context.Context, gwClient gwclient
 	res.AddMeta(fmt.Sprintf("%s/export-image-local-registry", refPrefix), []byte(localRegPullID))
 	res.AddMeta(fmt.Sprintf("%s/%s", refPrefix, exptypes.ExporterImageConfigKey), imgJSON)
 	res.AddMeta(fmt.Sprintf("%s/image.name", refPrefix), []byte(imageDef.ImageName))
-	res.AddMeta(fmt.Sprintf("%s/image-index", refPrefix), []byte(strconv.Itoa(idx)))
 
 	return nil
 }
