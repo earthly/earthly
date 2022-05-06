@@ -119,7 +119,7 @@ func (r *Resolver) ParseAllowNativeAndUser(str string) (Platform, error) {
 	}
 }
 
-// Materialize turns a platform into a concret platform
+// Materialize turns a platform into a concrete platform
 // (resolves "user" / "native" / "") to an actual value.
 func (r *Resolver) Materialize(in Platform) Platform {
 	var out specs.Platform

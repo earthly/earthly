@@ -9,6 +9,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/earthly/earthly/builder/builderror"
 	"github.com/earthly/earthly/outmon"
 	"github.com/earthly/earthly/states"
 	"github.com/earthly/earthly/states/image"
@@ -147,7 +148,7 @@ func (s *tarImageSolver) SolveImage(ctx context.Context, mts *states.MultiTarget
 	}()
 	err = eg.Wait()
 	if err != nil {
-		return NewBuildError(err, vertexFailureOutput)
+		return builderror.New(err, vertexFailureOutput)
 	}
 	return nil
 }
@@ -270,7 +271,7 @@ func (s *localRegistryImageSolver) SolveImage(ctx context.Context, mts *states.M
 	go func() {
 		_, err := s.bkClient.Build(ctx, *solveOpt, "", bf, statusChan)
 		if err != nil {
-			errChan <- NewBuildError(err, vertexFailureOutput)
+			errChan <- builderror.New(err, vertexFailureOutput)
 		}
 		doneChan <- struct{}{}
 	}()
@@ -278,7 +279,7 @@ func (s *localRegistryImageSolver) SolveImage(ctx context.Context, mts *states.M
 	go func() {
 		vertexFailureOutput, err := s.sm.MonitorProgress(ctx, statusChan, "", true)
 		if err != nil {
-			errChan <- NewBuildError(err, vertexFailureOutput)
+			errChan <- builderror.New(err, vertexFailureOutput)
 		}
 		doneChan <- struct{}{}
 	}()
@@ -297,4 +298,142 @@ func (s *localRegistryImageSolver) SolveImage(ctx context.Context, mts *states.M
 	}
 
 	return result, nil
+}
+
+type multiImageSolver struct {
+	bkClient     *client.Client
+	sm           *outmon.SolverMonitor
+	attachables  []session.Attachable
+	enttlmnts    []entitlements.Entitlement
+	cacheImports *states.CacheImports
+}
+
+func newMultiImageSolver(opt Opt, sm *outmon.SolverMonitor) *multiImageSolver {
+	return &multiImageSolver{
+		sm:           sm,
+		bkClient:     opt.BkClient,
+		attachables:  opt.Attachables,
+		enttlmnts:    opt.Enttlmnts,
+		cacheImports: opt.CacheImports,
+	}
+}
+
+func (m *multiImageSolver) SolveImages(ctx context.Context, imageDefs []*states.ImageDef) (*states.ImageSolverResults, error) {
+	var (
+		releaseChan = make(chan struct{})
+		resultChan  = make(chan string, 1)
+		errChan     = make(chan error)
+	)
+
+	// This func will be exposed to the caller and must be invoked when the WITH
+	// DOCKER command has termintated. It will release any prepared Docker
+	// images.
+	closer := func() {
+		close(releaseChan)
+	}
+
+	// This func is execute when the image create/push process is complete.
+	onPull := func(ctx context.Context, images []string) error {
+		// Send any images created by BuildKit to the caller.
+		for _, image := range images {
+			resultChan <- image
+		}
+		close(resultChan)
+		// Wait for the closer func to be called. This signals that all WITH
+		// DOCKER statements have been run and we can release the image
+		// resources. When the onPull function returns BK will remove the
+		// images.
+		<-releaseChan
+		return nil
+	}
+
+	buildFn := func(childCtx context.Context, gwClient gwclient.Client) (*gwclient.Result, error) {
+		res := gwclient.NewResult()
+
+		for _, imageDef := range imageDefs {
+			var saveImage = imageDef.MTS.Final.LastSaveImage()
+			imgJSON, err := json.Marshal(saveImage.Image)
+			if err != nil {
+				return nil, errors.Wrap(err, "image json marshal")
+			}
+
+			if !strings.Contains(imageDef.ImageName, ":") {
+				imageDef.ImageName += ":latest"
+			}
+
+			ref, err := llbutil.StateToRef(childCtx, gwClient, saveImage.State, true, imageDef.MTS.Final.PlatformResolver, m.cacheImports.AsMap())
+			if err != nil {
+				return nil, errors.Wrap(err, "initial state to ref conversion")
+			}
+
+			refKey := fmt.Sprintf("image-%s", imageDef.ImageName)
+			refPrefix := fmt.Sprintf("ref/%s", refKey)
+			res.AddRef(refKey, ref)
+
+			localRegPullID := fmt.Sprintf("sess-%s/%s", gwClient.BuildOpts().SessionID, imageDef.ImageName)
+			res.AddMeta(fmt.Sprintf("%s/export-image-local-registry", refPrefix), []byte(localRegPullID))
+			res.AddMeta(fmt.Sprintf("%s/%s", refPrefix, exptypes.ExporterImageConfigKey), imgJSON)
+			res.AddMeta(fmt.Sprintf("%s/image.name", refPrefix), []byte(imageDef.ImageName))
+			res.AddMeta(fmt.Sprintf("%s/image-index", refPrefix), []byte("0"))
+		}
+
+		return res, nil
+	}
+
+	var (
+		statusChan = make(chan *client.SolveStatus)
+		doneChan   = make(chan struct{})
+	)
+
+	var cacheImports []client.CacheOptionsEntry
+	for ci := range m.cacheImports.AsMap() {
+		cacheImports = append(cacheImports, newCacheImportOpt(ci))
+	}
+
+	solveOpt := &client.SolveOpt{
+		Exports: []client.ExportEntry{
+			{
+				Type:  client.ExporterEarthly,
+				Attrs: map[string]string{},
+				// Not used but required in client validation.
+				Output: func(map[string]string) (io.WriteCloser, error) {
+					return nil, errors.New("not implemented")
+				},
+				OutputPullCallback: pullping.PullCallback(onPull),
+			},
+		},
+		CacheImports:        cacheImports,
+		Session:             m.attachables,
+		AllowedEntitlements: m.enttlmnts,
+	}
+
+	var vertexFailureOutput string
+
+	go func() {
+		_, err := m.bkClient.Build(ctx, *solveOpt, "", buildFn, statusChan)
+		if err != nil {
+			errChan <- builderror.New(err, vertexFailureOutput)
+		}
+		doneChan <- struct{}{}
+	}()
+
+	go func() {
+		vertexFailureOutput, err := m.sm.MonitorProgress(ctx, statusChan, "", true)
+		if err != nil {
+			errChan <- builderror.New(err, vertexFailureOutput)
+		}
+		doneChan <- struct{}{}
+	}()
+
+	go func() {
+		<-doneChan
+		<-doneChan
+		close(errChan)
+	}()
+
+	return &states.ImageSolverResults{
+		ResultChan:  resultChan,
+		ErrChan:     errChan,
+		ReleaseFunc: closer,
+	}, nil
 }

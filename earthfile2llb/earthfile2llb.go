@@ -39,6 +39,9 @@ type ConvertOpt struct {
 	// DockerImageSolverTar is similar to the above solver but it uses a tar
 	// file to transfer images. To be deprecated in favor of the local registry version.
 	DockerImageSolverTar states.DockerTarImageSolver
+
+	MultiImageSolver states.MultiImageSolver
+
 	// CleanCollection is a collection of cleanup functions.
 	CleanCollection *cleanup.Collection
 	// Visited is a collection of target states which have been converted to LLB.

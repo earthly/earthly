@@ -154,6 +154,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 		var err error
 		if !b.builtMain {
 			opt := earthfile2llb.ConvertOpt{
+				SolverMonitor:        b.s.sm,
 				GwClient:             gwClient,
 				Resolver:             b.resolver,
 				ImageResolveMode:     b.opt.ImageResolveMode,
