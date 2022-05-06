@@ -154,153 +154,6 @@ func (s *tarImageSolver) SolveImage(ctx context.Context, mts *states.MultiTarget
 	return nil
 }
 
-type localRegistryImageSolver struct {
-	bkClient     *client.Client
-	sm           *outmon.SolverMonitor
-	attachables  []session.Attachable
-	enttlmnts    []entitlements.Entitlement
-	cacheImports *states.CacheImports
-}
-
-func newLocalRegistryImageSolver(opt Opt, sm *outmon.SolverMonitor) *localRegistryImageSolver {
-	return &localRegistryImageSolver{
-		sm:           sm,
-		bkClient:     opt.BkClient,
-		attachables:  opt.Attachables,
-		enttlmnts:    opt.Enttlmnts,
-		cacheImports: opt.CacheImports,
-	}
-}
-
-func (s *localRegistryImageSolver) newSolveOpt(img *image.Image, dockerTag string, onPull pullping.PullCallback) *client.SolveOpt {
-	var cacheImports []client.CacheOptionsEntry
-	for ci := range s.cacheImports.AsMap() {
-		cacheImports = append(cacheImports, newCacheImportOpt(ci))
-	}
-	return &client.SolveOpt{
-		Exports: []client.ExportEntry{
-			{
-				Type:  client.ExporterEarthly,
-				Attrs: map[string]string{},
-				// Not used but required in client validation.
-				Output: func(map[string]string) (io.WriteCloser, error) {
-					return nil, errors.New("not implemented")
-				},
-				OutputPullCallback: pullping.PullCallback(onPull),
-			},
-		},
-		CacheImports:        cacheImports,
-		Session:             s.attachables,
-		AllowedEntitlements: s.enttlmnts,
-	}
-}
-
-// SolveImage also creates a Docker image but it stores the image using the
-// embedded Docker registry in BuildKit. The method returns a string channel to
-// which Docker image names written, a close() function that must be called
-// after the images have been used, and an error channel to which any errors
-// will be sent.
-func (s *localRegistryImageSolver) SolveImage(ctx context.Context, mts *states.MultiTarget, dockerTag string) (*states.ImageSolverResult, error) {
-	var (
-		releaseChan = make(chan struct{})
-		resultChan  = make(chan string, 1)
-		errChan     = make(chan error)
-	)
-
-	// This func will be exposed to the caller and must be invoked when the WITH
-	// DOCKER command has termintated. It will release any prepared Docker
-	// images.
-	closer := func() {
-		close(releaseChan)
-	}
-
-	// This func is execute when the image create/push process is complete.
-	onPull := func(ctx context.Context, images []string) error {
-		// Send any images created by BuildKit to the caller.
-		for _, image := range images {
-			resultChan <- image
-		}
-		close(resultChan)
-		// Wait for the closer func to be called. This signals that all WITH
-		// DOCKER statements have been run and we can release the image
-		// resources. When the onPull function returns BK will remove the
-		// images.
-		<-releaseChan
-		return nil
-	}
-
-	var saveImage = mts.Final.LastSaveImage()
-	imgJSON, err := json.Marshal(saveImage.Image)
-	if err != nil {
-		return nil, errors.Wrap(err, "image json marshal")
-	}
-
-	if !strings.Contains(dockerTag, ":") {
-		dockerTag += ":latest"
-	}
-
-	bf := func(childCtx context.Context, gwClient gwclient.Client) (*gwclient.Result, error) {
-		ref, err := llbutil.StateToRef(childCtx, gwClient, saveImage.State, true, mts.Final.PlatformResolver, s.cacheImports.AsMap())
-		if err != nil {
-			return nil, errors.Wrap(err, "initial state to ref conversion")
-		}
-
-		res := gwclient.NewResult()
-
-		refKey := fmt.Sprintf("image-%s", dockerTag)
-		refPrefix := fmt.Sprintf("ref/%s", refKey)
-		res.AddRef(refKey, ref)
-
-		localRegPullID := fmt.Sprintf("sess-%s/%s", gwClient.BuildOpts().SessionID, dockerTag)
-		res.AddMeta(fmt.Sprintf("%s/export-image-local-registry", refPrefix), []byte(localRegPullID))
-		res.AddMeta(fmt.Sprintf("%s/%s", refPrefix, exptypes.ExporterImageConfigKey), imgJSON)
-		res.AddMeta(fmt.Sprintf("%s/image.name", refPrefix), []byte(dockerTag))
-		res.AddMeta(fmt.Sprintf("%s/image-index", refPrefix), []byte("0"))
-
-		return res, nil
-	}
-
-	var (
-		statusChan = make(chan *client.SolveStatus)
-		doneChan   = make(chan struct{})
-	)
-
-	solveOpt := s.newSolveOpt(saveImage.Image, dockerTag, onPull)
-
-	var vertexFailureOutput string
-
-	go func() {
-		_, err := s.bkClient.Build(ctx, *solveOpt, "", bf, statusChan)
-		if err != nil {
-			errChan <- builderror.New(err, vertexFailureOutput)
-		}
-		doneChan <- struct{}{}
-	}()
-
-	go func() {
-		vertexFailureOutput, err := s.sm.MonitorProgress(ctx, statusChan, "", true)
-		if err != nil {
-			errChan <- builderror.New(err, vertexFailureOutput)
-		}
-		doneChan <- struct{}{}
-	}()
-
-	go func() {
-		<-doneChan
-		<-doneChan
-		close(errChan)
-	}()
-
-	result := &states.ImageSolverResult{
-		ImageName:   dockerTag,
-		ResultChan:  resultChan,
-		ErrChan:     errChan,
-		ReleaseFunc: closer,
-	}
-
-	return result, nil
-}
-
 type multiImageSolver struct {
 	bkClient     *client.Client
 	sm           *outmon.SolverMonitor
@@ -319,6 +172,11 @@ func newMultiImageSolver(opt Opt, sm *outmon.SolverMonitor) *multiImageSolver {
 	}
 }
 
+// SolveImages uses BuildKit to solve multiple images using a single build
+// operation. It stores the images using the embedded Docker registry in
+// BuildKit. The method returns a string channel to which Docker image names
+// written, a release function that must be called after the images have been
+// used, and an error channel to which any errors will be sent.
 func (m *multiImageSolver) SolveImages(ctx context.Context, imageDefs []*states.ImageDef) (*states.ImageSolverResults, error) {
 	var (
 		releaseChan = make(chan struct{})
