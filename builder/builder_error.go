@@ -1,4 +1,4 @@
-package builderror
+package builder
 
 // BuildError contains an BuildError and log
 type BuildError struct {
@@ -6,8 +6,8 @@ type BuildError struct {
 	log string
 }
 
-// New creates a new BuildError with the additional output log of the command that failed
-func New(err error, vertexLog string) error {
+// NewBuildError creates a new BuildError with the additional output log of the command that failed
+func NewBuildError(err error, vertexLog string) error {
 	if vertexLog == "" {
 		return err
 	}

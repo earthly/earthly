@@ -5,7 +5,6 @@ import (
 	"io"
 	"strconv"
 
-	"github.com/earthly/earthly/builder/builderror"
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/outmon"
 	"github.com/earthly/earthly/states"
@@ -63,10 +62,10 @@ func (s *solver) buildMainMulti(ctx context.Context, bf gwclient.BuildFunc, onIm
 	})
 	err = eg.Wait()
 	if buildErr != nil {
-		return builderror.New(buildErr, vertexFailureOutput)
+		return NewBuildError(buildErr, vertexFailureOutput)
 	}
 	if err != nil {
-		return builderror.New(err, vertexFailureOutput)
+		return NewBuildError(err, vertexFailureOutput)
 	}
 	return nil
 }

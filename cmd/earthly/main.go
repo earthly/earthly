@@ -57,7 +57,6 @@ import (
 	"github.com/earthly/earthly/buildcontext"
 	"github.com/earthly/earthly/buildcontext/provider"
 	"github.com/earthly/earthly/builder"
-	"github.com/earthly/earthly/builder/builderror"
 	"github.com/earthly/earthly/buildkitd"
 	"github.com/earthly/earthly/cleanup"
 	"github.com/earthly/earthly/cloud"
@@ -1556,7 +1555,7 @@ func (app *earthlyApp) run(ctx context.Context, args []string) int {
 		ie, isInterpereterError := earthfile2llb.GetInterpreterError(err)
 
 		var failedOutput string
-		var buildErr *builderror.BuildError
+		var buildErr *builder.BuildError
 		if errors.As(err, &buildErr) {
 			failedOutput = buildErr.VertexLog()
 		}

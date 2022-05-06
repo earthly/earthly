@@ -149,7 +149,7 @@ func (s *tarImageSolver) SolveImage(ctx context.Context, mts *states.MultiTarget
 	}()
 	err = eg.Wait()
 	if err != nil {
-		return builderror.New(err, vertexFailureOutput)
+		return NewBuildError(err, vertexFailureOutput)
 	}
 	return nil
 }
@@ -271,7 +271,7 @@ func (m *multiImageSolver) SolveImages(ctx context.Context, imageDefs []*states.
 	go func() {
 		_, err := m.bkClient.Build(ctx, *solveOpt, "", buildFn, statusChan)
 		if err != nil {
-			errChan <- builderror.New(err, vertexFailureOutput)
+			errChan <- NewBuildError(err, vertexFailureOutput)
 		}
 		doneChan <- struct{}{}
 	}()
@@ -279,7 +279,7 @@ func (m *multiImageSolver) SolveImages(ctx context.Context, imageDefs []*states.
 	go func() {
 		vertexFailureOutput, err := m.sm.MonitorProgress(ctx, statusChan, "", true)
 		if err != nil {
-			errChan <- builderror.New(err, vertexFailureOutput)
+			errChan <- NewBuildError(err, vertexFailureOutput)
 		}
 		doneChan <- struct{}{}
 	}()
