@@ -454,10 +454,10 @@ func (wdr *withDockerRunRegistry) prepareImages(ctx context.Context, opt WithDoc
 
 	// Add compose images (what's left of them) to the pull list.
 	for _, pull := range composePulls {
-		platform := wdr.c.platr.SubPlatform(pull.Platform)
+		pull.Platform = wdr.c.platr.SubPlatform(pull.Platform)
 		key := setKey{
 			imageName: pull.ImageName,
-			platform:  wdr.c.platr.Materialize(platform).String(),
+			platform:  wdr.c.platr.Materialize(pull.Platform).String(),
 		}
 		if composeImagesSet[key] {
 			opt.Pulls = append(opt.Pulls, pull)
