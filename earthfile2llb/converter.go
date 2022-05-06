@@ -1217,7 +1217,6 @@ func (c *Converter) WithDockerRun(ctx context.Context, args []string, opt WithDo
 		wdr := &withDockerRunRegistry{
 			withDockerRunBase: &withDockerRunBase{c},
 			c:                 c,
-			enableParallel:    allowParallel && c.opt.ParallelConversion && c.ftrs.ParallelLoad,
 		}
 		return wdr.Run(ctx, args, opt)
 	} else {

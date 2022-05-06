@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/earthly/earthly/builder/builderror"
@@ -350,7 +351,7 @@ func (m *multiImageSolver) SolveImages(ctx context.Context, imageDefs []*states.
 	buildFn := func(childCtx context.Context, gwClient gwclient.Client) (*gwclient.Result, error) {
 		res := gwclient.NewResult()
 
-		for _, imageDef := range imageDefs {
+		for i, imageDef := range imageDefs {
 			var saveImage = imageDef.MTS.Final.LastSaveImage()
 			imgJSON, err := json.Marshal(saveImage.Image)
 			if err != nil {
@@ -374,7 +375,7 @@ func (m *multiImageSolver) SolveImages(ctx context.Context, imageDefs []*states.
 			res.AddMeta(fmt.Sprintf("%s/export-image-local-registry", refPrefix), []byte(localRegPullID))
 			res.AddMeta(fmt.Sprintf("%s/%s", refPrefix, exptypes.ExporterImageConfigKey), imgJSON)
 			res.AddMeta(fmt.Sprintf("%s/image.name", refPrefix), []byte(imageDef.ImageName))
-			res.AddMeta(fmt.Sprintf("%s/image-index", refPrefix), []byte("0"))
+			res.AddMeta(fmt.Sprintf("%s/image-index", refPrefix), []byte(strconv.Itoa(i)))
 		}
 
 		return res, nil
