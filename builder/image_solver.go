@@ -10,7 +10,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/earthly/earthly/builder/builderror"
 	"github.com/earthly/earthly/outmon"
 	"github.com/earthly/earthly/states"
 	"github.com/earthly/earthly/states/image"
