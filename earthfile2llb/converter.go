@@ -1212,21 +1212,24 @@ func (c *Converter) WithDockerRun(ctx context.Context, args []string, opt WithDo
 	if err != nil {
 		return err
 	}
+
 	c.nonSaveCommand()
+
 	if c.ftrs.UseRegistryForWithDocker {
 		wdr := &withDockerRunRegistry{
 			withDockerRunBase: &withDockerRunBase{c},
 			c:                 c,
 		}
 		return wdr.Run(ctx, args, opt)
-	} else {
-		wdr := &withDockerRunTar{
-			withDockerRunBase: &withDockerRunBase{c},
-			c:                 c,
-			enableParallel:    allowParallel && c.opt.ParallelConversion && c.ftrs.ParallelLoad,
-		}
-		return wdr.Run(ctx, args, opt)
 	}
+
+	wdr := &withDockerRunTar{
+		withDockerRunBase: &withDockerRunBase{c},
+		c:                 c,
+		enableParallel:    allowParallel && c.opt.ParallelConversion && c.ftrs.ParallelLoad,
+	}
+
+	return wdr.Run(ctx, args, opt)
 }
 
 // WithDockerRunLocal applies an entire WITH DOCKER ... RUN ... END clause.
