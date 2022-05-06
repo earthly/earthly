@@ -25,6 +25,18 @@ type withDockerRunLocal struct {
 	tarLoads []tarLoadLocal
 }
 
+func newWithDockerRunLocal(c *Converter, enableParallel bool) *withDockerRunLocal {
+	// This semaphore ensures that there is at least one thread allowed to progress,
+	// even if parallelism is completely starved.
+	sem := semutil.NewMultiSem(c.opt.Parallelism, semutil.NewWeighted(1))
+
+	return &withDockerRunLocal{
+		c:              c,
+		sem:            sem,
+		enableParallel: enableParallel,
+	}
+}
+
 type tarLoadLocal struct {
 	imgName string
 	imgFile string
@@ -36,9 +48,6 @@ func (wdrl *withDockerRunLocal) Run(ctx context.Context, args []string, opt With
 		return err
 	}
 	wdrl.c.nonSaveCommand()
-	// This semaphore ensures that there is at least one thread allowed to progress,
-	// even if parallelism is completely starved.
-	wdrl.sem = semutil.NewMultiSem(wdrl.c.opt.Parallelism, semutil.NewWeighted(1))
 
 	// Build and solve images to be loaded.
 	loadPromises := make([]chan DockerLoadOpt, 0, len(opt.Loads))
