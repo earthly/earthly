@@ -36,7 +36,7 @@ my-hello-world:
 
 hello:
     FROM earthly/dind:alpine
-    WITH DOCKER --load hello:latest=+my-hello-world
+    WITH DOCKER --load my-hello:latest=+my-hello-world
         RUN docker run hello:latest
     END
 ```
