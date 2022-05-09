@@ -31,7 +31,7 @@ We can load in an image created by another target with the `--load` flag.
 ```Dockerfile
 my-hello-world:
     FROM ubuntu
-    CMD echo 'hello world'
+    CMD echo "hello world"
     SAVE IMAGE my-hello:latest
 
 hello:
