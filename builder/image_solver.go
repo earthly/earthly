@@ -208,31 +208,19 @@ func (m *multiImageSolver) SolveImages(ctx context.Context, imageDefs []*states.
 	buildFn := func(childCtx context.Context, gwClient gwclient.Client) (*gwclient.Result, error) {
 		res := gwclient.NewResult()
 
+		eg, childCtx := errgroup.WithContext(childCtx)
+
 		for i, imageDef := range imageDefs {
-			var saveImage = imageDef.MTS.Final.LastSaveImage()
-			imgJSON, err := json.Marshal(saveImage.Image)
-			if err != nil {
-				return nil, errors.Wrap(err, "image json marshal")
-			}
+			idx := i
+			def := imageDef
+			eg.Go(func() error {
+				return m.addRefToResult(childCtx, gwClient, res, def, idx)
+			})
+		}
 
-			if !strings.Contains(imageDef.ImageName, ":") {
-				imageDef.ImageName += ":latest"
-			}
-
-			ref, err := llbutil.StateToRef(childCtx, gwClient, saveImage.State, true, imageDef.MTS.Final.PlatformResolver, m.cacheImports.AsMap())
-			if err != nil {
-				return nil, errors.Wrap(err, "initial state to ref conversion")
-			}
-
-			refKey := fmt.Sprintf("image-%s", imageDef.ImageName)
-			refPrefix := fmt.Sprintf("ref/%s", refKey)
-			res.AddRef(refKey, ref)
-
-			localRegPullID := fmt.Sprintf("sess-%s/%s", gwClient.BuildOpts().SessionID, imageDef.ImageName)
-			res.AddMeta(fmt.Sprintf("%s/export-image-local-registry", refPrefix), []byte(localRegPullID))
-			res.AddMeta(fmt.Sprintf("%s/%s", refPrefix, exptypes.ExporterImageConfigKey), imgJSON)
-			res.AddMeta(fmt.Sprintf("%s/image.name", refPrefix), []byte(imageDef.ImageName))
-			res.AddMeta(fmt.Sprintf("%s/image-index", refPrefix), []byte(strconv.Itoa(i)))
+		err := eg.Wait()
+		if err != nil {
+			return nil, err
 		}
 
 		return res, nil
@@ -294,4 +282,33 @@ func (m *multiImageSolver) SolveImages(ctx context.Context, imageDefs []*states.
 		ErrChan:     errChan,
 		ReleaseFunc: closer,
 	}, nil
+}
+
+func (m *multiImageSolver) addRefToResult(ctx context.Context, gwClient gwclient.Client, res *gwclient.Result, imageDef *states.ImageDef, idx int) error {
+	var saveImage = imageDef.MTS.Final.LastSaveImage()
+	imgJSON, err := json.Marshal(saveImage.Image)
+	if err != nil {
+		return errors.Wrap(err, "image json marshal")
+	}
+
+	if !strings.Contains(imageDef.ImageName, ":") {
+		imageDef.ImageName += ":latest"
+	}
+
+	ref, err := llbutil.StateToRef(ctx, gwClient, saveImage.State, true, imageDef.MTS.Final.PlatformResolver, m.cacheImports.AsMap())
+	if err != nil {
+		return errors.Wrap(err, "initial state to ref conversion")
+	}
+
+	refKey := fmt.Sprintf("image-%s", imageDef.ImageName)
+	refPrefix := fmt.Sprintf("ref/%s", refKey)
+	res.AddRef(refKey, ref)
+
+	localRegPullID := fmt.Sprintf("sess-%s/%s", gwClient.BuildOpts().SessionID, imageDef.ImageName)
+	res.AddMeta(fmt.Sprintf("%s/export-image-local-registry", refPrefix), []byte(localRegPullID))
+	res.AddMeta(fmt.Sprintf("%s/%s", refPrefix, exptypes.ExporterImageConfigKey), imgJSON)
+	res.AddMeta(fmt.Sprintf("%s/image.name", refPrefix), []byte(imageDef.ImageName))
+	res.AddMeta(fmt.Sprintf("%s/image-index", refPrefix), []byte(strconv.Itoa(idx)))
+
+	return nil
 }
