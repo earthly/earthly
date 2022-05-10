@@ -208,19 +208,11 @@ func (m *multiImageSolver) SolveImages(ctx context.Context, imageDefs []*states.
 	buildFn := func(childCtx context.Context, gwClient gwclient.Client) (*gwclient.Result, error) {
 		res := gwclient.NewResult()
 
-		eg, childCtx := errgroup.WithContext(childCtx)
-
 		for i, imageDef := range imageDefs {
-			idx := i
-			def := imageDef
-			eg.Go(func() error {
-				return m.addRefToResult(childCtx, gwClient, res, def, idx)
-			})
-		}
-
-		err := eg.Wait()
-		if err != nil {
-			return nil, err
+			err := m.addRefToResult(childCtx, gwClient, res, imageDef, i)
+			if err != nil {
+				return nil, err
+			}
 		}
 
 		return res, nil
