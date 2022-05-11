@@ -160,7 +160,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 				CleanCollection:      b.opt.CleanCollection,
 				PlatformResolver:     opt.PlatformResolver.SubResolver(opt.PlatformResolver.Current()),
 				DockerImageSolverTar: newTarImageSolver(b.opt, b.s.sm),
-				DockerImageSolver:    newLocalRegistryImageSolver(b.opt, b.s.sm),
+				MultiImageSolver:     newMultiImageSolver(b.opt, b.s.sm),
 				OverridingVars:       b.opt.OverridingVars,
 				BuildContextProvider: b.opt.BuildContextProvider,
 				CacheImports:         b.opt.CacheImports,

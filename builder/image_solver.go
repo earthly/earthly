@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/earthly/earthly/outmon"
@@ -152,7 +153,7 @@ func (s *tarImageSolver) SolveImage(ctx context.Context, mts *states.MultiTarget
 	return nil
 }
 
-type localRegistryImageSolver struct {
+type multiImageSolver struct {
 	bkClient     *client.Client
 	sm           *outmon.SolverMonitor
 	attachables  []session.Attachable
@@ -160,8 +161,8 @@ type localRegistryImageSolver struct {
 	cacheImports *states.CacheImports
 }
 
-func newLocalRegistryImageSolver(opt Opt, sm *outmon.SolverMonitor) *localRegistryImageSolver {
-	return &localRegistryImageSolver{
+func newMultiImageSolver(opt Opt, sm *outmon.SolverMonitor) *multiImageSolver {
+	return &multiImageSolver{
 		sm:           sm,
 		bkClient:     opt.BkClient,
 		attachables:  opt.Attachables,
@@ -170,35 +171,12 @@ func newLocalRegistryImageSolver(opt Opt, sm *outmon.SolverMonitor) *localRegist
 	}
 }
 
-func (s *localRegistryImageSolver) newSolveOpt(img *image.Image, dockerTag string, onPull pullping.PullCallback) *client.SolveOpt {
-	var cacheImports []client.CacheOptionsEntry
-	for ci := range s.cacheImports.AsMap() {
-		cacheImports = append(cacheImports, newCacheImportOpt(ci))
-	}
-	return &client.SolveOpt{
-		Exports: []client.ExportEntry{
-			{
-				Type:  client.ExporterEarthly,
-				Attrs: map[string]string{},
-				// Not used but required in client validation.
-				Output: func(map[string]string) (io.WriteCloser, error) {
-					return nil, errors.New("not implemented")
-				},
-				OutputPullCallback: pullping.PullCallback(onPull),
-			},
-		},
-		CacheImports:        cacheImports,
-		Session:             s.attachables,
-		AllowedEntitlements: s.enttlmnts,
-	}
-}
-
-// SolveImage also creates a Docker image but it stores the image using the
-// embedded Docker registry in BuildKit. The method returns a string channel to
-// which Docker image names written, a close() function that must be called
-// after the images have been used, and an error channel to which any errors
-// will be sent.
-func (s *localRegistryImageSolver) SolveImage(ctx context.Context, mts *states.MultiTarget, dockerTag string) (*states.ImageSolverResult, error) {
+// SolveImages uses BuildKit to solve multiple images using a single build
+// operation. It stores the images using the embedded Docker registry in
+// BuildKit. The method returns a string channel to which Docker image names
+// written, a release function that must be called after the images have been
+// used, and an error channel to which any errors will be sent.
+func (m *multiImageSolver) SolveImages(ctx context.Context, imageDefs []*states.ImageDef) (*states.ImageSolverResults, error) {
 	var (
 		releaseChan = make(chan struct{})
 		resultChan  = make(chan string, 1)
@@ -227,33 +205,15 @@ func (s *localRegistryImageSolver) SolveImage(ctx context.Context, mts *states.M
 		return nil
 	}
 
-	var saveImage = mts.Final.LastSaveImage()
-	imgJSON, err := json.Marshal(saveImage.Image)
-	if err != nil {
-		return nil, errors.Wrap(err, "image json marshal")
-	}
-
-	if !strings.Contains(dockerTag, ":") {
-		dockerTag += ":latest"
-	}
-
-	bf := func(childCtx context.Context, gwClient gwclient.Client) (*gwclient.Result, error) {
-		ref, err := llbutil.StateToRef(childCtx, gwClient, saveImage.State, true, mts.Final.PlatformResolver, s.cacheImports.AsMap())
-		if err != nil {
-			return nil, errors.Wrap(err, "initial state to ref conversion")
-		}
-
+	buildFn := func(childCtx context.Context, gwClient gwclient.Client) (*gwclient.Result, error) {
 		res := gwclient.NewResult()
 
-		refKey := fmt.Sprintf("image-%s", dockerTag)
-		refPrefix := fmt.Sprintf("ref/%s", refKey)
-		res.AddRef(refKey, ref)
-
-		localRegPullID := fmt.Sprintf("sess-%s/%s", gwClient.BuildOpts().SessionID, dockerTag)
-		res.AddMeta(fmt.Sprintf("%s/export-image-local-registry", refPrefix), []byte(localRegPullID))
-		res.AddMeta(fmt.Sprintf("%s/%s", refPrefix, exptypes.ExporterImageConfigKey), imgJSON)
-		res.AddMeta(fmt.Sprintf("%s/image.name", refPrefix), []byte(dockerTag))
-		res.AddMeta(fmt.Sprintf("%s/image-index", refPrefix), []byte("0"))
+		for i, imageDef := range imageDefs {
+			err := m.addRefToResult(childCtx, gwClient, res, imageDef, i)
+			if err != nil {
+				return nil, err
+			}
+		}
 
 		return res, nil
 	}
@@ -263,12 +223,32 @@ func (s *localRegistryImageSolver) SolveImage(ctx context.Context, mts *states.M
 		doneChan   = make(chan struct{})
 	)
 
-	solveOpt := s.newSolveOpt(saveImage.Image, dockerTag, onPull)
+	var cacheImports []client.CacheOptionsEntry
+	for ci := range m.cacheImports.AsMap() {
+		cacheImports = append(cacheImports, newCacheImportOpt(ci))
+	}
+
+	solveOpt := &client.SolveOpt{
+		Exports: []client.ExportEntry{
+			{
+				Type:  client.ExporterEarthly,
+				Attrs: map[string]string{},
+				// Not used but required in client validation.
+				Output: func(map[string]string) (io.WriteCloser, error) {
+					return nil, errors.New("not implemented")
+				},
+				OutputPullCallback: pullping.PullCallback(onPull),
+			},
+		},
+		CacheImports:        cacheImports,
+		Session:             m.attachables,
+		AllowedEntitlements: m.enttlmnts,
+	}
 
 	var vertexFailureOutput string
 
 	go func() {
-		_, err := s.bkClient.Build(ctx, *solveOpt, "", bf, statusChan)
+		_, err := m.bkClient.Build(ctx, *solveOpt, "", buildFn, statusChan)
 		if err != nil {
 			errChan <- NewBuildError(err, vertexFailureOutput)
 		}
@@ -276,7 +256,7 @@ func (s *localRegistryImageSolver) SolveImage(ctx context.Context, mts *states.M
 	}()
 
 	go func() {
-		vertexFailureOutput, err := s.sm.MonitorProgress(ctx, statusChan, "", true)
+		vertexFailureOutput, err := m.sm.MonitorProgress(ctx, statusChan, "", true)
 		if err != nil {
 			errChan <- NewBuildError(err, vertexFailureOutput)
 		}
@@ -289,12 +269,38 @@ func (s *localRegistryImageSolver) SolveImage(ctx context.Context, mts *states.M
 		close(errChan)
 	}()
 
-	result := &states.ImageSolverResult{
-		ImageName:   dockerTag,
+	return &states.ImageSolverResults{
 		ResultChan:  resultChan,
 		ErrChan:     errChan,
 		ReleaseFunc: closer,
+	}, nil
+}
+
+func (m *multiImageSolver) addRefToResult(ctx context.Context, gwClient gwclient.Client, res *gwclient.Result, imageDef *states.ImageDef, idx int) error {
+	var saveImage = imageDef.MTS.Final.LastSaveImage()
+	imgJSON, err := json.Marshal(saveImage.Image)
+	if err != nil {
+		return errors.Wrap(err, "image json marshal")
 	}
 
-	return result, nil
+	if !strings.Contains(imageDef.ImageName, ":") {
+		imageDef.ImageName += ":latest"
+	}
+
+	ref, err := llbutil.StateToRef(ctx, gwClient, saveImage.State, true, imageDef.MTS.Final.PlatformResolver, m.cacheImports.AsMap())
+	if err != nil {
+		return errors.Wrap(err, "initial state to ref conversion")
+	}
+
+	refKey := fmt.Sprintf("image-%s", imageDef.ImageName)
+	refPrefix := fmt.Sprintf("ref/%s", refKey)
+	res.AddRef(refKey, ref)
+
+	localRegPullID := fmt.Sprintf("sess-%s/%s", gwClient.BuildOpts().SessionID, imageDef.ImageName)
+	res.AddMeta(fmt.Sprintf("%s/export-image-local-registry", refPrefix), []byte(localRegPullID))
+	res.AddMeta(fmt.Sprintf("%s/%s", refPrefix, exptypes.ExporterImageConfigKey), imgJSON)
+	res.AddMeta(fmt.Sprintf("%s/image.name", refPrefix), []byte(imageDef.ImageName))
+	res.AddMeta(fmt.Sprintf("%s/image-index", refPrefix), []byte(strconv.Itoa(idx)))
+
+	return nil
 }

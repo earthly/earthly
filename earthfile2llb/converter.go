@@ -1212,12 +1212,17 @@ func (c *Converter) WithDockerRun(ctx context.Context, args []string, opt WithDo
 	if err != nil {
 		return err
 	}
+
 	c.nonSaveCommand()
-	wdr := &withDockerRun{
-		c:                   c,
-		enableParallel:      allowParallel && c.opt.ParallelConversion && c.ftrs.ParallelLoad,
-		enableImageRegistry: c.ftrs.UseRegistryForWithDocker,
+
+	enableParallel := allowParallel && c.opt.ParallelConversion && c.ftrs.ParallelLoad
+
+	if c.ftrs.UseRegistryForWithDocker {
+		wdr := newWithDockerRunRegistry(c, enableParallel)
+		return wdr.Run(ctx, args, opt)
 	}
+
+	wdr := newWithDockerRunTar(c, enableParallel)
 	return wdr.Run(ctx, args, opt)
 }
 
