@@ -2,7 +2,7 @@ VERSION 0.6
 
 all:
     BUILD +test \
-        # Pin the versiob here as 20.10.15 seems to have introduced a bug.
+        # Pin the version here as 20.10.15 seems to have introduced a bug.
         --BASE_IMAGE=docker:20.10.14-dind \
         --BASE_IMAGE=alpine:latest \
         --BASE_IMAGE=debian:stable \
