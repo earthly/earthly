@@ -4,6 +4,7 @@ all:
     BUILD +test \
         --BASE_IMAGE=docker:20.10.14-dind \
         --BASE_IMAGE=docker:20.10.15-dind \
+        --BASE_IMAGE=docker:dind \
         --BASE_IMAGE=alpine:latest \
         --BASE_IMAGE=debian:stable \
         --BASE_IMAGE=debian:stable-slim \
