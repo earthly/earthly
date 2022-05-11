@@ -418,7 +418,7 @@ dind:
     BUILD +dind-ubuntu
 
 dind-alpine:
-    FROM docker:dind
+    FROM docker:20.10.14-dind
     COPY ./buildkitd/docker-auto-install.sh /usr/local/bin/docker-auto-install.sh
     RUN docker-auto-install.sh
     ARG EARTHLY_TARGET_TAG_DOCKER
