@@ -2,7 +2,6 @@ package earthfile2llb
 
 import (
 	"context"
-	"fmt"
 	"strings"
 
 	"github.com/earthly/earthly/domain"
