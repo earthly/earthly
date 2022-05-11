@@ -21,10 +21,15 @@ type withDockerRunRegistry struct {
 }
 
 func newWithDockerRunRegistry(c *Converter, enableParallel bool) *withDockerRunRegistry {
+	// This semaphore ensures that there is at least one thread allowed to progress,
+	// even if parallelism is completely starved.
+	sem := semutil.NewMultiSem(c.opt.Parallelism, semutil.NewWeighted(1))
+
 	return &withDockerRunRegistry{
 		withDockerRunBase: &withDockerRunBase{c},
 		enableParallel:    enableParallel,
 		c:                 c,
+		sem:               sem,
 	}
 }
 
