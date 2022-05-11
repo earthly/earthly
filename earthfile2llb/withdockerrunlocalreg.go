@@ -87,6 +87,10 @@ func (w *withDockerRunLocalReg) Run(ctx context.Context, args []string, opt With
 
 	// Tag all images with expected tags.
 	for _, pullImage := range pullImages {
+
+		// The temporary image name we get back from BuildKit is structured like
+		// 'sess-<id>/<image-name>:<tag>'. We need to pull and retag it for use
+		// in the WITH DOCKER command.
 		parts := strings.SplitN(pullImage, "/", 2)
 		if len(parts) != 2 {
 			return errors.Errorf("image name: %q", pullImage)
