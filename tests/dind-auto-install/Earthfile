@@ -2,8 +2,8 @@ VERSION 0.6
 
 all:
     BUILD +test \
-        # Pin the version here as 20.10.15 seems to have introduced a bug.
         --BASE_IMAGE=docker:20.10.14-dind \
+        --BASE_IMAGE=docker:20.10.15-dind \
         --BASE_IMAGE=alpine:latest \
         --BASE_IMAGE=debian:stable \
         --BASE_IMAGE=debian:stable-slim \
@@ -16,6 +16,7 @@ all:
 test:
     ARG --required BASE_IMAGE
     FROM $BASE_IMAGE
+    WORKDIR /root
     COPY ./docker-compose.yml ./
     WITH DOCKER --compose docker-compose.yml
         RUN true
