@@ -202,3 +202,4 @@ all:
     BUILD +test-with-docker
     BUILD +test-with-two-dockers
     BUILD ./with-docker-compose-local+all
+    BUILD ./with-docker-compose-local-reg+all

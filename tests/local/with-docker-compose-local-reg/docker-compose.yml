@@ -1,0 +1,13 @@
+version: "3"
+
+services:
+  fetch:
+    image: fetch:latest
+    depends_on:
+      - webserver
+    environment:
+      - WEBHOST=webserver
+      - WEBPORT=80
+
+  webserver:
+    image: nginxdemos/hello
