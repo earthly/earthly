@@ -9,7 +9,7 @@ Using a remote BuildKit instance is currently _experimental_. If you run into an
 
 ## Introduction
 
-In some cases, you may want to run a remote instance of `earthly/buildkitd`. This guide is intended to help you identify if you might benefit from this configuration, and to help you set it up correctly.
+In some cases, you may want to run a remote instance of [`earthly/buildkitd`](https://hub.docker.com/r/earthly/buildkitd). This guide is intended to help you identify if you might benefit from this configuration, and to help you set it up correctly.
 
 ### Why Remote?
 
@@ -23,7 +23,9 @@ However, there are instances where a remote daemon can make the most sense. Here
 - You want to share a build machine (or cluster) with your CI environment and your developers
 - Your local computer does not have the capabilities to build the software (`docker`/`dockerd` is missing, or you lack sufficient privileges, or it is simply not powerful enough)
 
-### Configuring A Remote Cache
+### Running Remote BuildKit
+
+To run a remote BuildKit instance, deploy and configure the image [`earthly/buildkitd`](https://hub.docker.com/r/earthly/buildkitd).
 
 #### Networking
 
