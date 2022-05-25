@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"hash/fnv"
 	"os"
 	"os/exec"
 	"strings"
@@ -25,6 +26,7 @@ func TestFrontendNew(t *testing.T) {
 	}{
 		{"docker", containerutil.NewDockerShellFrontend},
 		{"podman", containerutil.NewPodmanShellFrontend},
+		{"nerdctl", containerutil.NewNerdctlShellFrontend},
 	}
 	for _, tC := range testCases {
 		t.Run(tC.binary, func(t *testing.T) {
@@ -46,6 +48,7 @@ func TestFrontendScheme(t *testing.T) {
 	}{
 		{"docker", containerutil.NewDockerShellFrontend, "docker-container"},
 		{"podman", containerutil.NewPodmanShellFrontend, "podman-container"},
+		{"nerdctl", containerutil.NewNerdctlShellFrontend, "nerdctl-container"},
 	}
 	for _, tC := range testCases {
 		t.Run(tC.binary, func(t *testing.T) {
@@ -68,6 +71,7 @@ func TestFrontendIsAvaliable(t *testing.T) {
 	}{
 		{"docker", containerutil.NewDockerShellFrontend},
 		{"podman", containerutil.NewPodmanShellFrontend},
+		{"nerdctl", containerutil.NewNerdctlShellFrontend},
 	}
 	for _, tC := range testCases {
 		t.Run(tC.binary, func(t *testing.T) {
@@ -90,6 +94,7 @@ func TestFrontendInformation(t *testing.T) {
 	}{
 		{"docker", containerutil.NewDockerShellFrontend},
 		{"podman", containerutil.NewPodmanShellFrontend},
+		{"nerdctl", containerutil.NewNerdctlShellFrontend},
 	}
 	for _, tC := range testCases {
 		t.Run(tC.binary, func(t *testing.T) {
@@ -113,6 +118,7 @@ func TestFrontendContainerInfo(t *testing.T) {
 	}{
 		{"docker", containerutil.NewDockerShellFrontend},
 		{"podman", containerutil.NewPodmanShellFrontend},
+		{"nerdctl", containerutil.NewNerdctlShellFrontend},
 	}
 	for _, tC := range testCases {
 		t.Run(tC.binary, func(t *testing.T) {
@@ -153,6 +159,7 @@ func TestFrontendContainerRemove(t *testing.T) {
 	}{
 		{"docker", containerutil.NewDockerShellFrontend},
 		{"podman", containerutil.NewPodmanShellFrontend},
+		{"nerdctl", containerutil.NewNerdctlShellFrontend},
 	}
 	for _, tC := range testCases {
 		t.Run(tC.binary, func(t *testing.T) {
@@ -189,6 +196,7 @@ func TestFrontendContainerStop(t *testing.T) {
 	}{
 		{"docker", containerutil.NewDockerShellFrontend},
 		{"podman", containerutil.NewPodmanShellFrontend},
+		{"nerdctl", containerutil.NewNerdctlShellFrontend},
 	}
 	for _, tC := range testCases {
 		t.Run(tC.binary, func(t *testing.T) {
@@ -224,6 +232,7 @@ func TestFrontendContainerLogs(t *testing.T) {
 	}{
 		{"docker", containerutil.NewDockerShellFrontend},
 		{"podman", containerutil.NewPodmanShellFrontend},
+		{"nerdctl", containerutil.NewNerdctlShellFrontend},
 	}
 	for _, tC := range testCases {
 		t.Run(tC.binary, func(t *testing.T) {
@@ -242,10 +251,10 @@ func TestFrontendContainerLogs(t *testing.T) {
 			assert.NoError(t, err)
 			assert.Len(t, logs, 2)
 
-			assert.Empty(t, logs[testContainers[0]].Stdout)
+			assert.NotEmpty(t, logs[testContainers[0]].Stdout)
 			assert.NotEmpty(t, logs[testContainers[0]].Stderr)
 
-			assert.Empty(t, logs[testContainers[1]].Stdout)
+			assert.NotEmpty(t, logs[testContainers[1]].Stdout)
 			assert.NotEmpty(t, logs[testContainers[1]].Stderr)
 		})
 	}
@@ -258,6 +267,7 @@ func TestFrontendContainerRun(t *testing.T) {
 	}{
 		{"docker", containerutil.NewDockerShellFrontend},
 		{"podman", containerutil.NewPodmanShellFrontend},
+		{"nerdctl", containerutil.NewNerdctlShellFrontend},
 	}
 	for _, tC := range testCases {
 		t.Run(tC.binary, func(t *testing.T) {
@@ -271,13 +281,13 @@ func TestFrontendContainerRun(t *testing.T) {
 			runs := []containerutil.ContainerRun{}
 			for _, name := range testContainers {
 				runs = append(runs, containerutil.ContainerRun{
-					NameOrID:       name,
-					ImageRef:       "docker.io/nginx:1.21",
-					Privileged:     false,
-					Envs:           containerutil.EnvMap{"test": name},
-					Labels:         containerutil.LabelMap{"test": name},
-					ContainerArgs:  []string{"nginx-debug", "-g", "daemon off;"},
-					AdditionalArgs: []string{"--rm"},
+					NameOrID:      name,
+					ImageRef:      "docker.io/nginx:1.21",
+					Privileged:    false,
+					Envs:          containerutil.EnvMap{"test": name},
+					Labels:        containerutil.LabelMap{"test": name},
+					ContainerArgs: []string{"nginx-debug", "-g", "daemon off;"},
+					//AdditionalArgs: []string{"--rm"},
 					Mounts: containerutil.MountOpt{
 						containerutil.Mount{
 							Type:     containerutil.MountVolume,
@@ -289,7 +299,7 @@ func TestFrontendContainerRun(t *testing.T) {
 					Ports: containerutil.PortOpt{
 						containerutil.Port{
 							IP:            "127.0.0.1",
-							HostPort:      0,
+							HostPort:      deterministicPortHash(tC.binary, name),
 							ContainerPort: 5678,
 							Protocol:      containerutil.ProtocolTCP,
 						},
@@ -333,6 +343,7 @@ func TestFrontendImagePull(t *testing.T) {
 	}{
 		{"docker", containerutil.NewDockerShellFrontend, []string{"nginx:1.21", "alpine:3.15"}},
 		{"podman", containerutil.NewPodmanShellFrontend, []string{"docker.io/nginx:1.21", "docker.io/alpine:3.15"}}, // Podman prefers... and exports fully-qualified image tags
+		{"nerdctl", containerutil.NewNerdctlShellFrontend, []string{"nginx:1.21", "alpine:3.15"}},
 	}
 	for _, tC := range testCases {
 		t.Run(tC.binary, func(t *testing.T) {
@@ -366,6 +377,7 @@ func TestFrontendImageInfo(t *testing.T) {
 	}{
 		{"docker", containerutil.NewDockerShellFrontend, []string{"info:1", "info:2"}},
 		{"podman", containerutil.NewPodmanShellFrontend, []string{"localhost/info:1", "localhost/info:2"}},
+		{"nerdctl", containerutil.NewNerdctlShellFrontend, []string{"info:1", "info:2"}},
 	}
 	for _, tC := range testCases {
 		t.Run(tC.binary, func(t *testing.T) {
@@ -397,6 +409,7 @@ func TestFrontendImageRemove(t *testing.T) {
 	}{
 		{"docker", containerutil.NewDockerShellFrontend},
 		{"podman", containerutil.NewPodmanShellFrontend},
+		{"nerdctl", containerutil.NewNerdctlShellFrontend},
 	}
 	for _, tC := range testCases {
 		t.Run(tC.binary, func(t *testing.T) {
@@ -434,6 +447,7 @@ func TestFrontendImageTag(t *testing.T) {
 	}{
 		{"docker", containerutil.NewDockerShellFrontend, []string{"tag:1", "tag:2"}},
 		{"podman", containerutil.NewPodmanShellFrontend, []string{"localhost/tag:1", "localhost/tag:2"}},
+		{"nerdctl", containerutil.NewNerdctlShellFrontend, []string{"tag:1", "tag:2"}},
 	}
 	for _, tC := range testCases {
 		t.Run(tC.binary, func(t *testing.T) {
@@ -480,6 +494,7 @@ func TestFrontendImageLoad(t *testing.T) {
 	}{
 		{"docker", containerutil.NewDockerShellFrontend, "load:me"},
 		{"podman", containerutil.NewPodmanShellFrontend, "localhost/load:me"},
+		{"nerdctl", containerutil.NewNerdctlShellFrontend, "load:me"},
 	}
 	for _, tC := range testCases {
 		t.Run(tC.binary, func(t *testing.T) {
@@ -523,6 +538,7 @@ func TestFrontendImageLoadHybrid(t *testing.T) {
 	}{
 		{"docker", containerutil.NewDockerShellFrontend, "hybrid:test"},
 		{"podman", containerutil.NewPodmanShellFrontend, "localhost/hybrid:test"},
+		{"nerdctl", containerutil.NewNerdctlShellFrontend, "hybrid:test"},
 	}
 	for _, tC := range testCases {
 		t.Run(tC.binary, func(t *testing.T) {
@@ -558,6 +574,7 @@ func TestFrontendVolumeInfo(t *testing.T) {
 	}{
 		{"docker", containerutil.NewDockerShellFrontend},
 		{"podman", containerutil.NewPodmanShellFrontend},
+		{"nerdctl", containerutil.NewNerdctlShellFrontend},
 	}
 	for _, tC := range testCases {
 		t.Run(tC.binary, func(t *testing.T) {
@@ -595,7 +612,7 @@ func isBinaryInstalled(ctx context.Context, binary string) bool {
 func spawnTestContainers(ctx context.Context, feBinary string, names ...string) (func(), error) {
 	var err error
 	for _, name := range names {
-		cmd := exec.CommandContext(ctx, feBinary, "run", "-d", "--name", name, "docker.io/library/nginx:1.21", `-text="test"`)
+		cmd := exec.CommandContext(ctx, feBinary, "run", "-d", "--name", name, "docker.io/library/nginx:1.21")
 		output, createErr := cmd.CombinedOutput()
 		if err != nil {
 			// the frontend exists but is non-functional. This is... not likely to work at all.
@@ -662,4 +679,12 @@ func testLogger() conslogging.ConsoleLogger {
 	var logs strings.Builder
 	logger := conslogging.Current(conslogging.NoColor, conslogging.DefaultPadding, conslogging.Info)
 	return logger.WithWriter(&logs)
+}
+
+func deterministicPortHash(inputs ...string) int {
+	h := fnv.New32a()
+	for _, s := range inputs {
+		h.Write([]byte(s))
+	}
+	return int((h.Sum32() % 64512) + 1024) // Clamp to non-root port
 }

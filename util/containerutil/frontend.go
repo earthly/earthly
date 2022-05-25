@@ -64,8 +64,9 @@ func autodetectFrontend(ctx context.Context, cfg *FrontendConfig) (ContainerFron
 	var errs error
 
 	for _, feType := range []string{
-		FrontendDockerShell,
-		FrontendPodmanShell,
+		//FrontendDockerShell,
+		//FrontendPodmanShell,
+		FrontendNerdctlShell,
 	} {
 		fe, err := frontendIfAvaliable(ctx, feType, cfg)
 		if err != nil {
@@ -84,6 +85,8 @@ func frontendIfAvaliable(ctx context.Context, feType string, cfg *FrontendConfig
 		newFe = NewDockerShellFrontend
 	case FrontendPodmanShell:
 		newFe = NewPodmanShellFrontend
+	case FrontendNerdctlShell:
+		newFe = NewNerdctlShellFrontend
 	default:
 		return nil, fmt.Errorf("%s is not a supported container frontend", feType)
 	}
