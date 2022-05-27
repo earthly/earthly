@@ -6,10 +6,8 @@ import (
 	"io"
 	"strings"
 
-	"github.com/docker/distribution/reference"
 	"github.com/earthly/earthly/conslogging"
 	"github.com/earthly/earthly/util/containerutil"
-	"github.com/earthly/earthly/util/llbutil"
 	"github.com/earthly/earthly/util/platutil"
 	"golang.org/x/sync/errgroup"
 
@@ -19,27 +17,6 @@ import (
 type manifest struct {
 	imageName string
 	platform  platutil.Platform
-}
-
-func platformSpecificImageName(imgName string, platform platutil.Platform) (string, error) {
-	platformStr := platform.String()
-	if platformStr == "" {
-		platformStr = "native"
-	}
-	r, err := reference.ParseNormalizedNamed(imgName)
-	if err != nil {
-		return "", errors.Wrapf(err, "parse %s", imgName)
-	}
-	taggedR, ok := reference.TagNameOnly(r).(reference.Tagged)
-	if !ok {
-		return "", errors.Wrapf(err, "not tagged %s", reference.TagNameOnly(r).String())
-	}
-	platformTag := llbutil.DockerTagSafe(fmt.Sprintf("%s_%s", taggedR.Tag(), platformStr))
-	r2, err := reference.WithTag(r, platformTag)
-	if err != nil {
-		return "", errors.Wrapf(err, "with tag %s - %s", r.String(), platformTag)
-	}
-	return reference.FamiliarString(r2), nil
 }
 
 func loadDockerManifest(ctx context.Context, console conslogging.ConsoleLogger, fe containerutil.ContainerFrontend, parentImageName string, children []manifest) error {

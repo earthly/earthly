@@ -113,6 +113,9 @@ type ConvertOpt struct {
 	// ContainerFrontend is the currently used container frontend, as detected by Earthly at app start. It provides info
 	// and access to commands to manipulate the current container frontend.
 	ContainerFrontend containerutil.ContainerFrontend
+
+	// waitBlock references the current WAIT/END scope
+	waitBlock *waitBlock
 }
 
 // Earthfile2LLB parses a earthfile and executes the statements for a given target.
@@ -131,6 +134,9 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt, in
 		opt.ErrorGroup, ctx = serrgroup.WithContext(ctx)
 		egWait = true
 		defer func() {
+			if retErr != nil {
+				return
+			}
 			if egWait {
 				// We haven't waited for the ErrorGroup yet. The ErrorGroup will
 				// return the very first error encountered, which may be
@@ -165,6 +171,16 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt, in
 	}
 	opt.PlatformResolver.AllowNativeAndUser = opt.Features.NewPlatform
 
+	wbWait := false
+	if opt.waitBlock == nil {
+		opt.waitBlock = newWaitBlock()
+
+		// we must call opt.waitBlock.wait(), since we are the creator.
+		// unfortunately this must be done before opt.ErrorGroup.Wait() is called (rather than here via a defer),
+		// as the ctx would otherwise be canceled.
+		wbWait = true
+	}
+
 	targetWithMetadata := bc.Ref.(domain.Target)
 	sts, found, err := opt.Visited.Add(ctx, targetWithMetadata, opt.PlatformResolver, opt.AllowPrivileged, opt.OverridingVars, opt.parentDepSub)
 	if err != nil {
@@ -190,10 +206,19 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt, in
 	if err != nil {
 		return nil, err
 	}
+
 	mts, err = converter.FinalizeStates(ctx)
 	if err != nil {
 		return nil, err
 	}
+
+	if wbWait {
+		err = opt.waitBlock.wait(ctx)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	if egWait {
 		egWait = false
 		err := opt.ErrorGroup.Wait()

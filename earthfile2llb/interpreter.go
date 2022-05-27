@@ -113,7 +113,7 @@ func (i *Interpreter) handleBlockParallel(ctx context.Context, b spec.Block, sta
 		stmt := b[index]
 		if stmt.Command != nil {
 			switch stmt.Command.Name {
-			case "ARG", "IF", "FOR", "LOCALLY", "FROM", "FROM DOCKERFILE":
+			case "ARG", "LOCALLY", "FROM", "FROM DOCKERFILE":
 				// Cannot do any further parallel builds - these commands need to be
 				// executed to ensure that they don't impact the outcome. As such,
 				// commands following these cannot be executed preemptively.
@@ -134,6 +134,13 @@ func (i *Interpreter) handleBlockParallel(ctx context.Context, b spec.Block, sta
 			case "DOCKER":
 				// TODO
 			}
+		} else if stmt.If != nil || stmt.For != nil || stmt.Wait != nil {
+			// Cannot do any further parallel builds - these commands need to be
+			// executed to ensure that they don't impact the outcome. As such,
+			// commands following these cannot be executed preemptively.
+			return nil
+		} else {
+			return i.errorf(stmt.SourceLocation, "unexpected statement type")
 		}
 	}
 	return nil
@@ -148,6 +155,8 @@ func (i *Interpreter) handleStatement(ctx context.Context, stmt spec.Statement) 
 		return i.handleIf(ctx, *stmt.If)
 	} else if stmt.For != nil {
 		return i.handleFor(ctx, *stmt.For)
+	} else if stmt.Wait != nil {
+		return i.handleWait(ctx, *stmt.Wait)
 	} else {
 		return i.errorf(stmt.SourceLocation, "unexpected statement type")
 	}
@@ -401,6 +410,28 @@ func (i *Interpreter) handleForArgs(ctx context.Context, forArgs []string, sl *s
 		return strings.ContainsRune(opts.Separators, r)
 	})
 	return variable, instances, nil
+}
+
+func (i *Interpreter) handleWait(ctx context.Context, waitStmt spec.WaitStatement) error {
+	if !i.converter.ftrs.WaitBlock {
+		return i.errorf(waitStmt.SourceLocation, "the WAIT command is not supported in this version")
+	}
+
+	if len(waitStmt.Args) != 0 {
+		return i.errorf(waitStmt.SourceLocation, "WAIT does not accept any options")
+	}
+
+	err := i.converter.PushWaitBlock(ctx)
+	if err != nil {
+		return err
+	}
+
+	err = i.handleBlock(ctx, waitStmt.Body)
+	if err != nil {
+		return err
+	}
+
+	return i.converter.PopWaitBlock(ctx)
 }
 
 // Commands -------------------------------------------------------------------
