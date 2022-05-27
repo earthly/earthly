@@ -1,12 +1,17 @@
 VERSION --parallel-load --shell-out-anywhere --use-registry-for-with-docker 0.6
 FROM earthly/dind:alpine
 
+ARG IMAGE_SIZE=1K
+
 all:
     BUILD +docker-load-test
-    BUILD +docker-pull-test
     BUILD +docker-load-shellout-test
-    BUILD +load-parallel-test
+    BUILD +docker-load-arg-test
     BUILD +docker-load-multi-test
+    BUILD +docker-pull-test
+    BUILD +load-parallel-test
+    BUILD +one-target-many-names
+    BUILD +if-after
 
 a-test-image:
     FROM alpine:3.15
@@ -14,6 +19,7 @@ a-test-image:
     ARG var=def
     RUN mkdir /$name
     WORKDIR /$name
+    RUN fallocate -l $IMAGE_SIZE just_to_increase_image_size
     RUN echo "hello $var" >def.txt
     ENTRYPOINT cat /$name/def.txt && pwd
     SAVE IMAGE test-${name}-img:xyz
@@ -37,21 +43,61 @@ docker-load-test:
     # Index is used to create parallel tests.
     ARG INDEX=0
     RUN echo "$INDEX"
-    WITH DOCKER \
-            --pull hello-world \
-            --load +a-test-image
-        RUN docker run test-abc-img:xyz && \
-            docker run hello-world
-    END
-
-docker-pull-test:
-    WITH DOCKER --pull hello-world
-        RUN docker run hello-world
+    WITH DOCKER --load +a-test-image
+        RUN docker run test-abc-img:xyz
     END
 
 docker-load-shellout-test:
     WITH DOCKER --load=+a-test-image-with-shell-out
         RUN docker run test-img-with-shellout:myver | grep "you found me"
+    END
+
+docker-load-arg-test:
+    WITH DOCKER --load=(+a-test-image --name=foo --var bar)
+        RUN docker run test-foo-img:xyz | grep "hello bar"
+    END
+    WITH DOCKER --load=(+a-test-image \
+            --name=foo \
+            --var \
+            bar)
+        RUN docker run test-foo-img:xyz | grep "hello bar"
+    END
+    WITH DOCKER --load="(+a-test-image --name=bar --var buz)"
+        RUN docker run test-bar-img:xyz | grep "hello buz"
+    END
+    WITH DOCKER --load=other-name:latest=(+a-test-image --name=foo --var buz)
+        RUN docker run other-name:latest | grep "hello buz"
+    END
+    WITH DOCKER --load=other-name:latest=(+a-test-image \
+            --name=foo \
+            --var \
+            buz)
+        RUN docker run other-name:latest | grep "hello buz"
+    END
+    WITH DOCKER --load="other-name:latest=(+a-test-image --name=bar --var buz)"
+        RUN docker run other-name:latest | grep "hello buz"
+    END
+    WITH DOCKER --load=other-name:latest="(+a-test-image --name=bar --var buz)"
+        RUN docker run other-name:latest | grep "hello buz"
+    END
+
+docker-load-multi-test:
+    WITH DOCKER \
+        --load=(+another-test-image --INDEX=1) \
+        --load=(+another-test-image --INDEX=2) \
+        --load=(+another-test-image --INDEX=3) \
+        --load=(+another-test-image --INDEX=4) \
+        --load=(+another-test-image --INDEX=5)
+        RUN docker run --rm another-test-img:i1 && \
+            docker run --rm another-test-img:i2 && \
+            docker run --rm another-test-img:i3 && \
+            docker run --rm another-test-img:i4 && \
+            docker run --rm another-test-img:i5
+    END
+
+docker-pull-test:
+    WITH DOCKER --pull hello-world
+        RUN docker run hello-world
     END
 
 load-parallel-test:
@@ -63,16 +109,30 @@ load-parallel-test:
         --INDEX=4 \
         --INDEX=5
 
-docker-load-multi-test:
+multi-from-one:
+    FROM hello-world
+
+multi-from-two:
+    FROM alpine:latest
+
+one-target-many-names:
     WITH DOCKER \
-        --load=(+another-test-image --INDEX=1) \
-        --load=(+another-test-image --INDEX=2) \
-        --load=(+another-test-image --INDEX=3) \
-        --load=(+another-test-image --INDEX=4) \
-        --load=(+another-test-image --INDEX=5)
-        RUN docker run --rm another-test-img:i1 | grep "test img 1" && \
-            docker run --rm another-test-img:i2 | grep "test img 2" && \
-            docker run --rm another-test-img:i3 | grep "test img 3" && \
-            docker run --rm another-test-img:i4 | grep "test img 4" && \
-            docker run --rm another-test-img:i5 | grep "test img 5"
+            --load a:latest=+multi-from-one \  # Test that there can be multiple names assigned to an image from a single target
+            --load b:latest=+multi-from-one \
+            --load c:latest=+multi-from-two    # Test that nothing else broke, load from another target
+        RUN docker images && \
+            docker run a:latest && \
+            echo "-----" && \
+            docker run b:latest && \
+            echo "-----" && \
+            docker run c:latest uname -a
+    END
+
+if-after:
+    WITH DOCKER --load a:latest=+multi-from-one
+        RUN docker run a:latest
+    END
+
+    IF [ "true" = "true" ]
+        RUN true
     END

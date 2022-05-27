@@ -1,5 +1,6 @@
 VERSION --parallel-load --shell-out-anywhere 0.6
 FROM earthly/dind:alpine
+ARG IMAGE_SIZE=1K
 
 all:
     BUILD +docker-load-test
@@ -17,6 +18,7 @@ a-test-image:
     ARG var=def
     RUN mkdir /$name
     WORKDIR /$name
+    RUN fallocate -l $IMAGE_SIZE just_to_increase_image_size
     RUN echo "hello $var" >def.txt
     ENTRYPOINT cat /$name/def.txt && pwd
     SAVE IMAGE test-${name}-img:xyz
@@ -40,11 +42,8 @@ docker-load-test:
     # Index is used to create parallel tests.
     ARG INDEX=0
     RUN echo "$INDEX"
-    WITH DOCKER \
-            --pull hello-world \
-            --load +a-test-image
-        RUN docker run test-abc-img:xyz && \
-            docker run hello-world
+    WITH DOCKER --load +a-test-image
+        RUN docker run test-abc-img:xyz
     END
 
 docker-load-shellout-test:
@@ -116,7 +115,6 @@ multi-from-two:
     FROM alpine:latest
 
 one-target-many-names:
-    FROM earthly/dind:alpine
     WITH DOCKER \
             --load a:latest=+multi-from-one \  # Test that there can be multiple names assigned to an image from a single target
             --load b:latest=+multi-from-one \
@@ -130,7 +128,6 @@ one-target-many-names:
     END
 
 if-after:
-    FROM earthly/dind:alpine
     WITH DOCKER --load a:latest=+multi-from-one
         RUN docker run a:latest
     END
