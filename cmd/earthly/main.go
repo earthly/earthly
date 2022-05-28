@@ -311,6 +311,7 @@ func getVersionPlatform() string {
 }
 
 func getPlatform() string {
+	// Work-around for windows panics; this can be removed once https://github.com/wille/osutil/pull/10 is merged
 	showOSInfo := func() (info string) {
 		defer func() {
 			if err := recover(); err != nil {
