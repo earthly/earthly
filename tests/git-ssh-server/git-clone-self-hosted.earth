@@ -1,0 +1,32 @@
+VERSION 0.6
+
+test-abs-path:
+    FROM alpine:3.15
+    GIT CLONE ssh://git.example.com/home/git/testuser/repo.git /repo
+    GIT CLONE ssh://git@git.example.com/home/git/testuser/repo.git /repo2
+    GIT CLONE ssh://git@git.example.com:22/home/git/testuser/repo.git /repo3
+
+    # Make sure all cloned repos are the same
+    RUN diff /repo/Earthfile /repo2/Earthfile
+    RUN diff /repo/Earthfile /repo3/Earthfile
+
+    # Display hash of Earthfile so the caller can verify we cloned the right file
+    RUN --no-cache md5sum /repo/Earthfile
+
+test-rel-path:
+    FROM alpine:3.15
+
+    GIT CLONE ssh://git.example.com/testuser/repo.git /repo
+    GIT CLONE ssh://git@git.example.com/testuser/repo.git /repo2
+    GIT CLONE ssh://git@git.example.com:22/testuser/repo.git /repo3
+    GIT CLONE git@git.example.com:testuser/repo.git /repo4
+    GIT CLONE http://git.example.com/testuser/repo.git /repo5
+
+    # Make sure all cloned repos are the same
+    RUN diff /repo/Earthfile /repo2/Earthfile
+    RUN diff /repo/Earthfile /repo3/Earthfile
+    RUN diff /repo/Earthfile /repo4/Earthfile
+    RUN diff /repo/Earthfile /repo5/Earthfile
+
+    # Display hash of Earthfile so the caller can verify we cloned the right file
+    RUN --no-cache md5sum /repo/Earthfile
