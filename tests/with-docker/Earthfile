@@ -1,6 +1,6 @@
 VERSION --parallel-load --shell-out-anywhere 0.6
 FROM earthly/dind:alpine
-ARG IMAGE_SIZE=1K
+ARG TEST_IMAGE=alpine:3.15
 
 all:
     BUILD +docker-load-test
@@ -13,18 +13,17 @@ all:
     BUILD +if-after
 
 a-test-image:
-    FROM alpine:3.15
+    FROM $TEST_IMAGE
     ARG name=abc
     ARG var=def
     RUN mkdir /$name
     WORKDIR /$name
-    RUN fallocate -l $IMAGE_SIZE just_to_increase_image_size
     RUN echo "hello $var" >def.txt
     ENTRYPOINT cat /$name/def.txt && pwd
     SAVE IMAGE test-${name}-img:xyz
 
 another-test-image:
-    FROM alpine:3.15
+    FROM $TEST_IMAGE
     WORKDIR /work
     ARG INDEX=0
     RUN echo "hello another test img $INDEX" >file.txt
@@ -32,7 +31,7 @@ another-test-image:
     SAVE IMAGE another-test-img:i${INDEX}
 
 a-test-image-with-shell-out:
-    FROM alpine:3.15
+    FROM $TEST_IMAGE
     RUN echo c2hlbGxvdXQ= > data # decodes into "shellout"
     RUN echo myver > version
     ENTRYPOINT echo "you found me"
