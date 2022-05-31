@@ -446,8 +446,15 @@ func (gl *GitLookup) lookupNetRCCredential(host string) (login, password string,
 var errMakeCloneURLSubNotSupported = fmt.Errorf("makeCloneURL does not support gitMatcher substitution")
 
 func (gl *GitLookup) makeCloneURL(m *gitMatcher, host, gitPath string) (string, []string, error) {
+	// Caller GetCloneURL would explicitly handle substitutions and never get here.  Caller ConvertCloneURL has
+	// no such logic.  That's fine if URLs for GIT CLONE won't undergo substitution; I'm sure there's a good reason.
+	// In order for GIT CLONE to work with matchers using substitutions (when required for remote targets to work),
+	// either this restriction needs to be lifted or the caller has to do work to avoid calling this method.  That
+	// work would likely be a near copy/paste of this method.  Maybe this 'error' is more of a warning, and something
+	// to be presented to the user (but still continue to work)?
+
 	if m.sub != "" {
-		return "", nil, errMakeCloneURLSubNotSupported
+		gl.console.VerbosePrintf("%s", errMakeCloneURLSubNotSupported)
 	}
 
 	var err error
@@ -588,6 +595,7 @@ func (gl *GitLookup) ConvertCloneURL(inURL string) (string, []string, error) {
 		gitPath = splits[1]
 	case gitutil.SSHProtocol:
 		if sshutil.IsImplicitSSHTransport(inURL) {
+			// It must be impossible to use an implicit URL with a custom port?
 			splits := strings.SplitN(remote, ":", 2)
 			if len(splits) != 2 {
 				return "", nil, errors.Errorf("failed to split path from host in %s", remote)
@@ -602,14 +610,19 @@ func (gl *GitLookup) ConvertCloneURL(inURL string) (string, []string, error) {
 			if u.Scheme != "ssh" {
 				panic(fmt.Sprintf("expected scheme of ssh; got %s", u.Scheme)) // shouldn't happen
 			}
-			host = strings.TrimSuffix(u.Host, ":22")
+			// Don't strip the port (if present), as it will be needed to construct a fully accurate clone URL
+			host = u.Host
 			gitPath = u.Path
 		}
 	default:
 		return "", nil, errors.Errorf("unsupported git protocol %v", protocol)
 	}
 
-	m := gl.getGitMatcherByName(host)
+	// For 'explicit' URLs, a colon (if present) should denote a custom port, so strip that for the purposes of
+	// finding a matcher.  An 'implicit' URL won't have a colon at this point, as that would have denoted a 'user'.
+	splits := strings.SplitN(host, ":", 2)
+	hostName := splits[0]
+	m := gl.getGitMatcherByName(hostName)
 	return gl.makeCloneURL(m, host, gitPath)
 }
 

@@ -16,3 +16,20 @@ test:
 
     # Display hash of Earthfile so the caller can verify we cloned the right file
     RUN --no-cache md5sum /repo/Earthfile
+
+test-custom-port:
+    FROM alpine:3.15
+    ARG --required port
+    GIT CLONE ssh://git.example.com:${port}/home/git/testuser/repo.git /repo
+    GIT CLONE ssh://git@git.example.com:${port}/home/git/testuser/repo.git /repo2
+
+    # Pseudo-documentation that this does *not* work, even if one would expect it to.  This implicit style
+    # leads to ambiguities around whether what appears after the host is a port or a 'user'.  Someone will have
+    # to decide whether this should be allowed, and if so, how to resolve the ambiguity.
+    #GIT CLONE git@git.example.com:${port}/testuser/repo.git /repo3
+
+    # Make sure all cloned repos are the same
+    RUN diff /repo/Earthfile /repo2/Earthfile
+
+    # Display hash of Earthfile so the caller can verify we cloned the right file
+    RUN --no-cache md5sum /repo/Earthfile

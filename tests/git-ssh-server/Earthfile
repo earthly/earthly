@@ -348,6 +348,8 @@ cat output.txt | grep $(echo MTIzM2MwODQtNGNmNS00Nzk3LWE0YzUtZWI2NTM1NGVlN2Vl | 
     DO +RUN_EARTHLY_ARGS --pre_command=start-sshd --earthfile=from-funnyserver.earth --exec_cmd=/tmp/test-earthly-script
 
 test-git-clone-command-with-custom-matcher:
+    ARG SSHD_PORT
+    ARG EFFECTIVE_PORT=${SSHD_PORT:-22}
     FROM ./setup+server \
         --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
         --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
@@ -357,7 +359,8 @@ test-git-clone-command-with-custom-matcher:
         --SSHD_RSA=true \
         --SSHD_ED25519=true \
         --USER_RSA=true \
-        --USER_ED25519=false
+        --USER_ED25519=false \
+        --SSHD_PORT=$EFFECTIVE_PORT
     RUN --no-cache echo "#!/bin/sh
 set -ex
 
@@ -370,12 +373,18 @@ eval \$(ssh-agent)
 ssh-add /root/self-hosted-rsa-key
 ssh-add -l
 
-# Setup auth to be ssh; with custom pattern/sub that converts `funnyserver/repo` to `ssh://git@git.example.com:22/home/git/testuser/repo.git`
-#earthly --config \$earthly_config config 'git.\"git.example.com\"' '{\"auth\": \"ssh\", \"user\": \"git\", \"pattern\": \"funnyserver/([^/]+)\", \"substitute\": \"ssh://git@git.example.com:22/home/git/testuser/\$1.git\"}'
-#cat \$earthly_config
+# Setup auth to be ssh; with custom pattern/sub that converts 'funnyserver/repo' to 'ssh://git@git.example.com:<port>/home/git/testuser/repo.git'
+earthly --config \$earthly_config config 'git.\"git.example.com\"' '{\"auth\": \"ssh\", \"user\": \"git\", \"pattern\": \"funnyserver/([^/]+)\", \"substitute\": \"ssh://git@git.example.com@PORT@/home/git/testuser/\$1.git\"}'
+git_port=${SSHD_PORT:+":$SSHD_PORT"}
+sed -i "s/@PORT@/\$git_port/" \$earthly_config
+cat \$earthly_config
 
 # call target which performs a git-clone
-(set +e; earthly --config \$earthly_config --verbose -D +test 2>&1; echo \"\$?\" > status) | tee output.txt
+if [ "$EFFECTIVE_PORT" -eq 22 ]; then
+    (set +e; earthly --config \$earthly_config --verbose -D +test 2>&1; echo \"\$?\" > status) | tee output.txt
+else
+    (set +e; earthly --config \$earthly_config --verbose -D +test-custom-port --port=$EFFECTIVE_PORT 2>&1; echo \"\$?\" > status) | tee output.txt
+fi
 test \"\$(cat status)\" = \"0\"
 grep fb5de6fc4b750a88841cd91b55bdec6d output.txt
 " >/tmp/test-earthly-script && chmod +x /tmp/test-earthly-script
@@ -392,7 +401,9 @@ all:
     BUILD +test-configured-ssh-no-keyscan
     BUILD +test-server-with-unhashed-keyscan
     BUILD +test-with-custom-matcher
-    BUILD +test-git-clone-command-with-custom-matcher
+    BUILD +test-git-clone-command-with-custom-matcher --SSHD_PORT= \
+                                                      --SSHD_PORT=22 \
+                                                      --SSHD_PORT=7999
 
 RUN_EARTHLY_ARGS:
     COMMAND
