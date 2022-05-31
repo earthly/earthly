@@ -311,7 +311,18 @@ func getVersionPlatform() string {
 }
 
 func getPlatform() string {
-	return fmt.Sprintf("%s/%s; %s", runtime.GOOS, runtime.GOARCH, osutil.GetDisplay())
+	// Work-around for windows panics; this can be removed once https://github.com/wille/osutil/pull/10 is merged
+	showOSInfo := func() (info string) {
+		defer func() {
+			if err := recover(); err != nil {
+				// skipped
+				info = "unknown"
+				return
+			}
+		}()
+		return osutil.GetDisplay()
+	}
+	return fmt.Sprintf("%s/%s; %s", runtime.GOOS, runtime.GOARCH, showOSInfo())
 }
 
 func getBinaryName() string {
