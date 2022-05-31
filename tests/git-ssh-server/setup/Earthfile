@@ -49,10 +49,12 @@ server:
         chown -R git:git /home/git/testuser
     COPY sshd_config /etc/ssh/sshd_config
 
+    ARG SSHD_PORT=22
     ARG SSHD_RSA="true"
     ARG SSHD_ED25519="true"
     RUN if [ "$SSHD_RSA" = "true" ]; then echo "HostKey /etc/sshd_keys/sshd_rsa_key" >> /etc/ssh/sshd_config; fi && \
-        if [ "$SSHD_ED25519" = "true" ]; then echo "HostKey /etc/sshd_keys/sshd_ed25519_key" >> /etc/ssh/sshd_config; fi
+        if [ "$SSHD_ED25519" = "true" ]; then echo "HostKey /etc/sshd_keys/sshd_ed25519_key" >> /etc/ssh/sshd_config; fi && \
+        echo "Port $SSHD_PORT" >> /etc/ssh/sshd_config
 
     RUN echo "Welcome to our self-hosted git ssh server" > /etc/motd
 
@@ -72,8 +74,8 @@ fi
 
     RUN --privileged start-sshd && \
         mkdir -p ~/.ssh && \
-        timeout 5 sh -c 'until nc -z $0 $1; do sleep 1; done' git.example.com 22 && \
-        ssh-keyscan -H git.example.com > ~/.ssh/known_hosts && \
+        timeout 5 sh -c 'until nc -z $0 $1; do sleep 1; done' git.example.com "$SSHD_PORT" && \
+        ssh-keyscan -H -p "$SSHD_PORT" git.example.com > ~/.ssh/known_hosts && \
         echo done setup.
 
     RUN --privileged start-sshd && \ # starts in background
@@ -81,8 +83,8 @@ fi
         if [ "$USER_RSA" = "true" ]; then ssh-add /root/self-hosted-rsa-key; fi && \
         if [ "$USER_ED25519" = "true" ]; then ssh-add /root/self-hosted-ed25519-key; fi && \
         ssh-add -l && \
-        timeout 5 sh -c 'until nc -z $0 $1; do sleep 1; done' git.example.com 22 && \
-        ssh-keyscan -H git.example.com && \
+        timeout 5 sh -c 'until nc -z $0 $1; do sleep 1; done' git.example.com "$SSHD_PORT" && \
+        ssh-keyscan -H -p "$SSHD_PORT" git.example.com && \
         mkdir -p /test/repo && \
         cd /test/repo && \
         git init --initial-branch=main . && \
@@ -92,6 +94,7 @@ fi
         git config --global user.name "test name" && \
         git commit -m "An Earthfile to test against" && \
         git remote add origin git@git.example.com:testuser/repo.git && \
-        git push --set-upstream origin main && \
+        # Maybe the above 'implicit' syntax is required for some existing tests, so use this trick to use the correct port
+        GIT_SSH_COMMAND='ssh -p $SSHD_PORT' git push --set-upstream origin main && \
         cd .. && \
         rm -rf repo # remove this repo dir now that it has been pushed to the server
