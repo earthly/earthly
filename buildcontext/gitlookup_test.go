@@ -2,10 +2,139 @@ package buildcontext
 
 import (
 	"fmt"
+	"os"
 	"testing"
 
+	"github.com/earthly/earthly/conslogging"
 	. "github.com/stretchr/testify/assert"
 )
+
+func Test_GetCloneURL(t *testing.T) {
+	testcases := []struct {
+		path    string
+		url     string
+		subPath string
+		ok      bool
+	}{
+		{
+			path:    "git.example.com/proj/repo",
+			url:     "ssh://git.example.com:7777/proj/repo.git",
+			subPath: "",
+			ok:      true,
+		},
+		{
+			path:    "git.example.com/proj/repo/inner/location",
+			url:     "ssh://git.example.com:7777/proj/repo.git",
+			subPath: "inner/location",
+			ok:      true,
+		},
+	}
+
+	logger := conslogging.Current(conslogging.NoColor, 0, conslogging.Info)
+	gl := NewGitLookup(logger, "")
+	err := gl.AddMatcher("git.example.com", "git.example.com/([^/]+)/([^/]+)", "ssh://git.example.com:7777/$1/$2.git",
+		"", "", ".git", "ssh", "", false)
+	Nil(t, err)
+
+	for i, testcase := range testcases {
+		t.Run(fmt.Sprintf("path test %d", i), func(t *testing.T) {
+			url, subPath, _, err := gl.GetCloneURL(testcase.path)
+			ok := err == nil
+			Equal(t, ok, testcase.ok)
+			Equal(t, url, testcase.url)
+			Equal(t, subPath, testcase.subPath)
+		})
+	}
+}
+
+func Test_ConvertCloneURL(t *testing.T) {
+	matcherName := "git.example.com"
+	matcherPattern := "git.example.com/([^/]+)/([^/]+)"
+	matcherSub := "ssh://git.example.com:7777/$1/$2.git"
+	matcherSuffix := ".git"
+	matcherProtocol := "ssh"
+
+	err := os.Setenv("USER", "somebody")
+	if err != nil {
+		Error(t, err)
+	}
+	testcases := []struct {
+		inURL   string
+		matcher func(lookup *GitLookup) error
+		outURL  string
+		ok      bool
+	}{
+		{
+			inURL: "ssh://git.example.com:7777/proj/repo.git",
+			matcher: func(gl *GitLookup) error {
+				return gl.AddMatcher(matcherName, matcherPattern, matcherSub,
+					"git", "", matcherSuffix, matcherProtocol, "", false)
+			},
+			outURL: "ssh://git@git.example.com:7777/proj/repo.git",
+			ok:     true,
+		},
+		{
+			inURL: "ssh://git.example.com:22/proj/repo.git",
+			matcher: func(gl *GitLookup) error {
+				return gl.AddMatcher(matcherName, matcherPattern, matcherSub,
+					"git", "", matcherSuffix, matcherProtocol, "", false)
+			},
+			outURL: "ssh://git@git.example.com:22/proj/repo.git",
+			ok:     true,
+		},
+		{
+			inURL: "ssh://git.example.com/proj/repo.git",
+			matcher: func(gl *GitLookup) error {
+				return gl.AddMatcher(matcherName, matcherPattern, matcherSub,
+					"git", "", matcherSuffix, matcherProtocol, "", false)
+			},
+			outURL: "ssh://git@git.example.com/proj/repo.git",
+			ok:     true,
+		},
+		{
+			inURL: "ssh://git.example.com:7777/proj/repo.git",
+			matcher: func(gl *GitLookup) error {
+				return gl.AddMatcher(matcherName, matcherPattern, matcherSub,
+					"", "", matcherSuffix, matcherProtocol, "", false)
+			},
+			outURL: "ssh://somebody@git.example.com:7777/proj/repo.git",
+			ok:     true,
+		},
+		{
+			inURL: "ssh://git.example.com:22/proj/repo.git",
+			matcher: func(gl *GitLookup) error {
+				return gl.AddMatcher(matcherName, matcherPattern, matcherSub,
+					"", "", matcherSuffix, matcherProtocol, "", false)
+			},
+			outURL: "ssh://somebody@git.example.com:22/proj/repo.git",
+			ok:     true,
+		},
+		{
+			inURL: "ssh://git.example.com/proj/repo.git",
+			matcher: func(gl *GitLookup) error {
+				return gl.AddMatcher(matcherName, matcherPattern, matcherSub,
+					"", "", matcherSuffix, matcherProtocol, "", false)
+			},
+			outURL: "ssh://somebody@git.example.com/proj/repo.git",
+			ok:     true,
+		},
+	}
+
+	logger := conslogging.Current(conslogging.NoColor, 0, conslogging.Info)
+	gl := NewGitLookup(logger, "")
+
+	for i, testcase := range testcases {
+		t.Run(fmt.Sprintf("inURL test %d", i), func(t *testing.T) {
+
+			err := testcase.matcher(gl)
+			Nil(t, err)
+			url, _, err := gl.ConvertCloneURL(testcase.inURL)
+			ok := err == nil
+			Equal(t, testcase.ok, ok)
+			Equal(t, testcase.outURL, url)
+		})
+	}
+}
 
 func Test_parseKeyScanIfHostMatches(t *testing.T) {
 	testcases := []struct {
