@@ -3117,7 +3117,7 @@ func (app *earthlyApp) updateGitLookupConfig(gitLookup *buildcontext.GitLookup) 
 		if suffix == "" {
 			suffix = ".git"
 		}
-		err := gitLookup.AddMatcher(k, pattern, v.Substitute, v.User, v.Password, suffix, auth, v.ServerKey, ifNilBoolDefault(v.StrictHostKeyChecking, true))
+		err := gitLookup.AddMatcher(k, pattern, v.Substitute, v.User, v.Password, v.Prefix, suffix, auth, v.ServerKey, ifNilBoolDefault(v.StrictHostKeyChecking, true), v.Port)
 		if err != nil {
 			return errors.Wrap(err, "gitlookup")
 		}

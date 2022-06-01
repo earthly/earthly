@@ -11,6 +11,7 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 ### Added
 
 - Experimental support for Docker registry based image creation and transfer `WITH DOCKER` loads and pulls. Enable with the `VERSION ----use-registry-for-with-docker` flag.
+- Git config options for non-standard port and path prefix; these options are incompatible with a custom git substition regex.
 
 ## v0.6.14 - 2022-04-11
 
