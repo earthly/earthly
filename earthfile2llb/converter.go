@@ -1188,6 +1188,9 @@ func (c *Converter) Arg(ctx context.Context, argKey string, defaultArgValue stri
 	if len(defaultArgValue) > 0 && reserved.IsBuiltIn(argKey) {
 		return fmt.Errorf("arg default value supplied for built-in ARG: %s", argKey)
 	}
+	if argKey == "help" {
+		c.opt.Console.Warnf("\"ARG help\" will become reserved in a future version of earthly and should be renamed")
+	}
 	if c.varCollection.IsStackAtBase() { // Only when outside of UDC.
 		c.mts.Final.AddBuildArgInput(dedup.BuildArgInput{
 			Name:          argKey,
