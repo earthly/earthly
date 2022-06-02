@@ -10,6 +10,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -531,6 +532,7 @@ type ConvertRunOpts struct {
 
 // Run applies the earthly RUN command.
 func (c *Converter) Run(ctx context.Context, opts ConvertRunOpts) error {
+	fmt.Printf("RUN %+v\n", opts)
 	err := c.checkAllowed(runCmd)
 	if err != nil {
 		return err
@@ -541,6 +543,7 @@ func (c *Converter) Run(ctx context.Context, opts ConvertRunOpts) error {
 		opts.extraRunOpts = append(opts.extraRunOpts, cache)
 	}
 	_, err = c.internalRun(ctx, opts)
+	fmt.Println("internalRun done")
 	return err
 }
 
@@ -1009,6 +1012,8 @@ func (c *Converter) BuildAsync(ctx context.Context, fullTargetName string, platf
 
 // Workdir applies the WORKDIR command.
 func (c *Converter) Workdir(ctx context.Context, workdirPath string) error {
+	fmt.Println("Workdir")
+	const strSep = string(filepath.Separator)
 	err := c.checkAllowed(workdirCmd)
 	if err != nil {
 		return err
@@ -1016,11 +1021,18 @@ func (c *Converter) Workdir(ctx context.Context, workdirPath string) error {
 	c.nonSaveCommand()
 	c.mts.Final.MainState = c.mts.Final.MainState.Dir(workdirPath)
 	workdirAbs := workdirPath
-	if !path.IsAbs(workdirAbs) {
-		workdirAbs = path.Join("/", c.mts.Final.MainImage.Config.WorkingDir, workdirAbs)
+	if !filepath.IsAbs(workdirAbs) {
+		prefix := strSep
+		if v := filepath.VolumeName(workdirAbs); v != "" {
+			prefix = "" // case where absolute path starts with a windows drive (e.g. `C:`)
+		}
+		workdirAbs = filepath.Join(prefix, c.mts.Final.MainImage.Config.WorkingDir, workdirAbs)
 	}
+	fmt.Println("workdirAbs: " + workdirAbs)
 	c.mts.Final.MainImage.Config.WorkingDir = workdirAbs
-	if workdirAbs != "/" {
+	// Check if the path is just the root (i.e. `/` or `C:\`)
+	if workdirAbs != strSep && workdirAbs != filepath.VolumeName(workdirAbs)+strSep {
+		fmt.Println("mkdir")
 		// Mkdir.
 		mkdirOpts := []llb.MkdirOption{
 			llb.WithParents(true),
@@ -1600,11 +1612,13 @@ func (c *Converter) internalRun(ctx context.Context, opts ConvertRunOpts) (pllb.
 	// Shell and debugger wrap.
 	prependDebugger := !opts.Locally
 	finalArgs = opts.shellWrap(finalArgs, extraEnvVars, opts.WithShell, prependDebugger, isInteractive)
+	fmt.Printf("finalArgs: %+v\n", finalArgs)
 	if opts.Locally {
 		// buildkit-hack in order to run locally, we prepend the command with a magic UUID.
 		finalArgs = append(
 			[]string{localhost.RunOnLocalHostMagicStr},
 			finalArgs...)
+		fmt.Printf("finalArgsLocally: %+v\n", finalArgs)
 	}
 
 	runOpts = append(runOpts, llb.Args(finalArgs))
@@ -1673,15 +1687,25 @@ func (c *Converter) internalRun(ctx context.Context, opts ConvertRunOpts) (pllb.
 		transientState := state.Run(runOpts...).Root()
 		return transientState, nil
 	} else {
+		fmt.Printf("runOpts: %+v\n", runOpts)
+		for _, o := range runOpts {
+			fmt.Printf("o: %+v\n", o)
+		}
 		c.mts.Final.MainState = state.Run(runOpts...).Root()
 
 		if opts.Locally {
+			fmt.Printf("forceExecution: %+v\n", c.platr)
+			if runtime.GOOS == "windows" {
+				c.platr.UserPlatform.OS = "windows"
+				c.platr.NativePlatform.OS = "windows"
+			}
 			err = c.forceExecution(ctx, c.mts.Final.MainState, c.platr)
 			if err != nil {
+				fmt.Printf("failed force execution %+v\n", err)
 				return pllb.State{}, err
 			}
 		}
-
+		fmt.Println("done!")
 		return c.mts.Final.MainState, nil
 	}
 }
@@ -1714,6 +1738,7 @@ func (c *Converter) parseSecretFlag(secretKeyValue string) (secretID string, env
 }
 
 func (c *Converter) forceExecution(ctx context.Context, state pllb.State, platr *platutil.Resolver) error {
+	fmt.Printf("forceExecution!\n")
 	if state.Output() == nil {
 		// Scratch - no need to execute.
 		return nil
@@ -1724,15 +1749,17 @@ func (c *Converter) forceExecution(ctx context.Context, state pllb.State, platr 
 	if err != nil {
 		return errors.Wrap(err, "force execution state to ref")
 	}
+	fmt.Printf("forceExecution stateToRef worked\n")
 	if ref == nil {
 		return nil
 	}
 	// We're not really interested in reading the dir - we just
 	// want to un-lazy the ref so that the commands have executed.
-	_, err = ref.ReadDir(ctx, gwclient.ReadDirRequest{Path: "/"})
-	if err != nil {
-		return errors.Wrap(err, "unlazy force execution")
-	}
+	fmt.Printf("force execution readdir\n")
+	//_, err = ref.ReadDir(ctx, gwclient.ReadDirRequest{Path: `C:\Users\brandon`})
+	//if err != nil {
+	//	return errors.Wrap(err, "unlazy force execution")
+	//}
 	return nil
 }
 

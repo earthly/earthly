@@ -11,6 +11,16 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/moby/buildkit/client"
+	"github.com/moby/buildkit/client/llb"
+	"github.com/moby/buildkit/exporter/containerimage/exptypes"
+	gwclient "github.com/moby/buildkit/frontend/gateway/client"
+	"github.com/moby/buildkit/session"
+	"github.com/moby/buildkit/util/entitlements"
+	reccopy "github.com/otiai10/copy"
+	"github.com/pkg/errors"
+	"golang.org/x/sync/errgroup"
+
 	"github.com/earthly/earthly/buildcontext"
 	"github.com/earthly/earthly/buildcontext/provider"
 	"github.com/earthly/earthly/cleanup"
@@ -26,15 +36,6 @@ import (
 	"github.com/earthly/earthly/util/platutil"
 	"github.com/earthly/earthly/util/syncutil/semutil"
 	"github.com/earthly/earthly/variables"
-	"github.com/moby/buildkit/client"
-	"github.com/moby/buildkit/client/llb"
-	"github.com/moby/buildkit/exporter/containerimage/exptypes"
-	gwclient "github.com/moby/buildkit/frontend/gateway/client"
-	"github.com/moby/buildkit/session"
-	"github.com/moby/buildkit/util/entitlements"
-	reccopy "github.com/otiai10/copy"
-	"github.com/pkg/errors"
-	"golang.org/x/sync/errgroup"
 )
 
 const (
@@ -139,6 +140,7 @@ func (b *Builder) MakeImageAsTarBuilderFun() states.DockerBuilderFun {
 }
 
 func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt BuildOpt) (*states.MultiTarget, error) {
+	fmt.Println("convertAndBuild")
 	sharedLocalStateCache := earthfile2llb.NewSharedLocalStateCache()
 
 	featureFlagOverrides := b.opt.FeatureFlagOverrides
@@ -152,7 +154,9 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 	imageIndex := 0
 	dirIndex := 0
 	localImages := make(map[string]string) // local reg pull name -> final name
+	fmt.Println("going to make a buildfunc")
 	bf := func(childCtx context.Context, gwClient gwclient.Client) (*gwclient.Result, error) {
+		fmt.Println("in buildfunc")
 		if opt.EnableGatewayClientLogging {
 			gwClient = gwclientlogger.New(gwClient)
 		}
@@ -187,16 +191,20 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 			if err != nil {
 				return nil, err
 			}
+			fmt.Println("done earthfile2llb")
 		}
 		res := gwclient.NewResult()
 		if !b.builtMain {
+			fmt.Println("stateToRef")
 			ref, err := b.stateToRef(childCtx, gwClient, mts.Final.MainState, mts.Final.PlatformResolver)
 			if err != nil {
 				return nil, err
 			}
+			fmt.Println("done state to ref")
 			res.AddRef("main", ref)
 		}
 		if !opt.NoOutput && opt.OnlyArtifact != nil && !opt.OnlyFinalTargetImages {
+			fmt.Println("")
 			ref, err := b.stateToRef(childCtx, gwClient, mts.Final.ArtifactsState, mts.Final.PlatformResolver)
 			if err != nil {
 				return nil, err
@@ -207,7 +215,6 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 			res.AddMeta(fmt.Sprintf("%s/export-dir", refPrefix), []byte("true"))
 			res.AddMeta(fmt.Sprintf("%s/final-artifact", refPrefix), []byte("true"))
 		}
-
 		isMultiPlatform := make(map[string]bool)    // DockerTag -> bool
 		noManifestListImgs := make(map[string]bool) // DockerTag -> bool
 		for _, sts := range mts.All() {
@@ -228,7 +235,6 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 				}
 			}
 		}
-
 		for _, sts := range mts.All() {
 			hasRunPush := (sts.GetDoSaves() && sts.RunPush.HasState)
 			if (sts.HasDangling && !b.opt.UseFakeDep) || (b.builtMain && hasRunPush) {
@@ -240,7 +246,6 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 				res.AddRef(refKey, depRef)
 				depIndex++
 			}
-
 			for _, saveImage := range b.targetPhaseImages(sts) {
 				doSave := (sts.GetDoSaves() || saveImage.ForceSave)
 				shouldPush := opt.Push && saveImage.Push && !sts.Target.IsRemote() && saveImage.DockerTag != "" && doSave
@@ -386,7 +391,6 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 					dirIndex++
 				}
 			}
-
 			targetInteractiveSession := b.targetPhaseInteractiveSession(sts)
 			if targetInteractiveSession.Initialized && targetInteractiveSession.Kind == states.SessionEphemeral {
 				ref, err := b.stateToRef(ctx, gwClient, targetInteractiveSession.State, sts.PlatformResolver)
@@ -396,8 +400,10 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 				}
 			}
 		}
+		fmt.Println("done buildfunc!?")
 		return res, nil
 	}
+	fmt.Println("outside of buildfunc")
 	onImage := func(childCtx context.Context, eg *errgroup.Group, imageName string) (io.WriteCloser, error) {
 		pipeR, pipeW := io.Pipe()
 		eg.Go(func() error {
@@ -445,6 +451,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 	if opt.PrintPhases {
 		b.opt.Console.PrintPhaseHeader(PhaseBuild, false, "")
 	}
+	fmt.Println("going to actually use buildfunc")
 	err := b.s.buildMainMulti(ctx, bf, onImage, onArtifact, onFinalArtifact, onPull, PhaseBuild)
 	if err != nil {
 		return nil, errors.Wrapf(err, "build main")
@@ -453,6 +460,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 		b.opt.Console.PrintPhaseFooter(PhaseBuild, false, "")
 	}
 	b.builtMain = true
+	fmt.Println("done using buildfunc")
 
 	if opt.PrintPhases {
 		b.opt.Console.PrintPhaseHeader(PhasePush, !opt.Push, "")
@@ -475,7 +483,6 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 			}
 		}
 	}
-
 	pushConsole := conslogging.NewBufferedLogger(&b.opt.Console)
 	outputConsole := conslogging.NewBufferedLogger(&b.opt.Console)
 	outputPhaseSpecial := ""
@@ -616,6 +623,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 		b.opt.Console.PrintPhaseFooter(PhaseOutput, false, "")
 		b.opt.Console.PrintSuccess()
 	}
+	fmt.Println("done convert and build")
 	return mts, nil
 }
 

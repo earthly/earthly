@@ -69,6 +69,7 @@ func (i *Interpreter) Run(ctx context.Context, ef spec.Earthfile) (err error) {
 	}
 	for _, t := range ef.Targets {
 		if t.Name == i.target.Target {
+			fmt.Println("handled target")
 			return i.handleTarget(ctx, t)
 		}
 	}
@@ -99,6 +100,7 @@ func (i *Interpreter) handleBlock(ctx context.Context, b spec.Block) error {
 		}
 		prevWasArg = (stmt.Command != nil && stmt.Command.Name == "ARG")
 	}
+	fmt.Println("handled statement")
 	return nil
 }
 
@@ -514,6 +516,7 @@ func (i *Interpreter) handleRun(ctx context.Context, cmd spec.Command) error {
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "invalid RUN arguments %v", cmd.Args)
 	}
+	fmt.Printf("args: %+v\n", args)
 	withShell := !cmd.ExecMode
 	if opts.WithDocker {
 		opts.Privileged = true
@@ -562,10 +565,12 @@ func (i *Interpreter) handleRun(ctx context.Context, cmd spec.Command) error {
 			Interactive:     opts.Interactive,
 			InteractiveKeep: opts.InteractiveKeep,
 		}
+		fmt.Printf("opts: %+v\n", opts)
 		err = i.converter.Run(ctx, opts)
 		if err != nil {
 			return i.wrapError(err, cmd.SourceLocation, "apply RUN")
 		}
+		fmt.Println("converter.Run done")
 		if opts.Push {
 			i.pushOnlyAllowed = true
 		}
@@ -607,6 +612,7 @@ func (i *Interpreter) handleRun(ctx context.Context, cmd spec.Command) error {
 		}
 		i.withDockerRan = true
 	}
+	fmt.Println("handled run")
 	return nil
 }
 

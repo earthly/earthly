@@ -3079,11 +3079,12 @@ func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []st
 		buildOpts.OnlyArtifact = &artifact
 		buildOpts.OnlyArtifactDestPath = destPath
 	}
+	fmt.Println("build target")
 	_, err = b.BuildTarget(c.Context, target, buildOpts)
 	if err != nil {
 		return errors.Wrap(err, "build target")
 	}
-
+	fmt.Println("done build target")
 	return nil
 }
 

@@ -4,11 +4,12 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/earthly/earthly/util/containerutil"
-	"github.com/earthly/earthly/util/platutil"
 	"github.com/moby/buildkit/client/llb"
 	gwclient "github.com/moby/buildkit/frontend/gateway/client"
 	"github.com/pkg/errors"
+
+	"github.com/earthly/earthly/util/containerutil"
+	"github.com/earthly/earthly/util/platutil"
 
 	"github.com/earthly/earthly/ast/spec"
 	"github.com/earthly/earthly/buildcontext"
@@ -199,6 +200,7 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt, in
 			return nil, err
 		}
 	}
+	fmt.Println("earthfile2llb")
 	return mts, nil
 }
 

@@ -4,27 +4,28 @@ import (
 	"runtime"
 
 	"github.com/containerd/containerd/platforms"
-	"github.com/earthly/earthly/util/llbutil/pllb"
 	specs "github.com/opencontainers/image-spec/specs-go/v1"
+
+	"github.com/earthly/earthly/util/llbutil/pllb"
 )
 
 // Resolver is a platform resolver.
 type Resolver struct {
 	AllowNativeAndUser bool // this will be set via feature flag.
 
-	currentPlatform Platform
-	defaultPlatform Platform
-	userPlatform    specs.Platform
-	nativePlatform  specs.Platform
+	CurrentPlatform Platform
+	DefaultPlatform Platform
+	UserPlatform    specs.Platform
+	NativePlatform  specs.Platform
 }
 
 // NewResolver returns a new platform resolver.
 func NewResolver(nativePlatform specs.Platform) *Resolver {
 	return &Resolver{
-		currentPlatform: DefaultPlatform,
-		defaultPlatform: DefaultPlatform,
-		nativePlatform:  nativePlatform,
-		userPlatform:    GetUserPlatform(),
+		CurrentPlatform: DefaultPlatform,
+		DefaultPlatform: DefaultPlatform,
+		NativePlatform:  nativePlatform,
+		UserPlatform:    GetUserPlatform(),
 	}
 }
 
@@ -32,13 +33,13 @@ func NewResolver(nativePlatform specs.Platform) *Resolver {
 // platform overriden.
 func (r *Resolver) SubResolver(newPlatform Platform) *Resolver {
 	if newPlatform == DefaultPlatform {
-		newPlatform = r.defaultPlatform
+		newPlatform = r.DefaultPlatform
 	}
 	return &Resolver{
-		currentPlatform:    newPlatform,
-		defaultPlatform:    newPlatform,
-		userPlatform:       r.userPlatform,
-		nativePlatform:     r.nativePlatform,
+		CurrentPlatform:    newPlatform,
+		DefaultPlatform:    newPlatform,
+		UserPlatform:       r.UserPlatform,
+		NativePlatform:     r.NativePlatform,
 		AllowNativeAndUser: r.AllowNativeAndUser,
 	}
 }
@@ -47,7 +48,7 @@ func (r *Resolver) SubResolver(newPlatform Platform) *Resolver {
 // resolver (as opposed to the default platform of the resolver).
 func (r *Resolver) SubPlatform(in Platform) Platform {
 	if in == DefaultPlatform {
-		return r.currentPlatform
+		return r.CurrentPlatform
 	}
 	return in
 }
@@ -56,30 +57,30 @@ func (r *Resolver) SubPlatform(in Platform) Platform {
 // the effective platform set, resolving the default accordingly.
 func (r *Resolver) UpdatePlatform(newPlatform Platform) Platform {
 	if newPlatform == DefaultPlatform {
-		newPlatform = r.defaultPlatform
+		newPlatform = r.DefaultPlatform
 	}
-	r.currentPlatform = newPlatform
+	r.CurrentPlatform = newPlatform
 	return newPlatform
 }
 
 // Current returns the current platform.
 func (r *Resolver) Current() Platform {
-	return r.currentPlatform
+	return r.CurrentPlatform
 }
 
 // Default returns the default platform.
 func (r *Resolver) Default() Platform {
-	return r.defaultPlatform
+	return r.DefaultPlatform
 }
 
 // LLBNative returns the native platform.
 func (r *Resolver) LLBNative() specs.Platform {
-	return r.nativePlatform
+	return r.NativePlatform
 }
 
 // LLBUser returns the user platform.
 func (r *Resolver) LLBUser() specs.Platform {
-	return r.userPlatform
+	return r.UserPlatform
 }
 
 // Parse parses a given platform string. Empty string is a valid selection:
@@ -127,9 +128,9 @@ func (r *Resolver) Materialize(in Platform) Platform {
 	case in.p != nil:
 		out = *in.p
 	case in.user:
-		out = r.userPlatform
+		out = r.UserPlatform
 	default: // in.native or none (default)
-		out = r.nativePlatform
+		out = r.NativePlatform
 	}
 	out = platforms.Normalize(out)
 	return Platform{p: &out}
@@ -137,7 +138,7 @@ func (r *Resolver) Materialize(in Platform) Platform {
 
 // Scratch is the scratch state with the native platform readily set.
 func (r *Resolver) Scratch() pllb.State {
-	return pllb.Scratch().Platform(r.nativePlatform)
+	return pllb.Scratch().Platform(r.NativePlatform)
 }
 
 // PlatformEquals compares two platforms if the equate to the same platform.
