@@ -53,6 +53,7 @@ export BREW_REPO=${BREW_REPO:-homebrew-earthly}
 export GITHUB_SECRET_PATH=$GITHUB_SECRET_PATH
 export PRERELEASE=${PRERELEASE:-false}
 export SKIP_CHANGELOG_DATE_TEST=${SKIP_CHANGELOG_DATE_TEST:-false}
+export S3_BUCKET=${S3_BUCKET:-production-pkg}
 
 
 if [ "$PRERELEASE" != "false" ] && [ "$PRERELEASE" != "true" ]; then
@@ -60,9 +61,20 @@ if [ "$PRERELEASE" != "false" ] && [ "$PRERELEASE" != "true" ]; then
     exit 1
 fi
 
+PRODUCTION_RELEASE="false"
 if [ "$GITHUB_USER" = "earthly" ] && [ "$EARTHLY_REPO" = "earthly" ]; then
+    PRODUCTION_RELEASE="true"
     if [ "$DOCKERHUB_USER" != "earthly" ]; then
         echo "expected DOCKERHUB_USER=earthly but got $DOCKERHUB_USER"
+        exit 1
+    fi
+    if [ "$S3_BUCKET" != "production-pkg" ]; then
+        echo "expected S3_BUCKET=production-pkg but got $S3_BUCKET"
+        exit 1
+    fi
+else
+    if [ "$S3_BUCKET" == "production-pkg" ]; then
+        echo "unable to perform non-production release with S3_BUCKET set to production-pkg"
         exit 1
     fi
 fi
@@ -81,11 +93,9 @@ else
     ("$earthly" secrets ls /earthly-technologies >/dev/null) || (echo "ERROR: current user does not have access to earthly-technologies shared secrets"; exit 1);
 fi
 
-release_apt_and_yum="false"
 release_ami="false"
-if [ "$GITHUB_USER" = "earthly" ] && [ "$EARTHLY_REPO" = "earthly" ]; then
+if [ PRODUCTION_RELEASE = "true" ]; then
     ("$earthly" secrets get /user/earthly-technologies/aws/credentials >/dev/null) || (echo "ERROR: user-secrets /user/earthly-technologies/aws/credentials does not exist"; exit 1);
-    release_apt_and_yum="true"
     release_ami="true"
 fi
 
@@ -106,18 +116,11 @@ fi
 echo "homebrew release with gu=$GITHUB_USER; er=$EARTHLY_REPO; br=$BREW_REPO; du=$DOCKERHUB_USER; rt=$RELEASE_TAG"
 "$earthly" --push --build-arg GITHUB_USER --build-arg EARTHLY_REPO --build-arg BREW_REPO --build-arg DOCKERHUB_USER --build-arg RELEASE_TAG $GITHUB_SECRET_PATH_BUILD_ARG +release-homebrew
 
-# TODO pass along a RELEASE_REPO_TEST_SUFFIX which would cause us to host our yum/apt repos under https://test-pkg.earthly.dev/$RELEASE_REPO_TEST_SUFFIX/...
-# and when it is empty, we would use https://pkg.earthly.dev/...
-#../earthly --push --build-arg GITHUB_USER --build-arg EARTHLY_REPO --build-arg BREW_REPO --build-arg DOCKERHUB_USER --build-arg RELEASE_TAG +release-repo
-# until then, we will just print this out:
-echo "TODO: the apt/yum release must be triggered seperately; until we get https://test-pkg.earthly.dev/ setup"
+echo "releasing to apt under s3://$S3_BUCKET/deb"
+"$earthly" --push --build-arg RELEASE_TAG --build-arg S3_BUCKET ./apt-repo+build-and-release
 
-if [ "$release_apt_and_yum" = "true" ]; then
-    "$earthly" --push --build-arg RELEASE_TAG ./apt-repo+build-and-release
-    "$earthly" --push --build-arg RELEASE_TAG ./yum-repo+build-and-release
-else
-    echo "WARNING: there is no staging environment for apt or yum repos"
-fi
+echo "releasing to yum under s3://$S3_BUCKET/yum"
+"$earthly" --push --build-arg RELEASE_TAG --build-arg S3_BUCKET ./yum-repo+build-and-release
 
 if [ "$release_ami" = "true" ]; then
   "$earthly" --push --build-arg RELEASE_TAG ./ami+update-pipelines
