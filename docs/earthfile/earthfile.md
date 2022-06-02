@@ -245,7 +245,7 @@ earthly +release --SECRET_ID=""
 earthly +release-short --SECRET_ID=""
 ```
 
-It is also possible to mount a secret as a file with `RUN --mount type=secret,id=+secret/secret-id,target=/path/of/secret`. See `--mount` below.
+It is also possible to mount a secret as a file with `RUN --mount type=secret,id=+secret/secret-id,target=/path/of/secret,mode=0400`. See `--mount` below.
 
 For more information on how to use secrets see the [build arguments and secrets guide](../guides/build-args.md). See also the [Cloud secrets guide](../guides/cloud-secrets.md).
 
@@ -273,6 +273,7 @@ The `<mount-spec>` is defined as a series of comma-separated list of key-values.
 | --- | --- | --- |
 | `type` | The type of the mount. Currently only `cache`, `tmpfs`, and `secret` are allowed. | `type=cache` |
 | `target` | The target path for the mount. | `target=/var/lib/data` |
+| `mode` | The permission of the mounted file, in octal format (the same format the chmod unix command line expects). | `mode=0400` |
 | `id` | The secret ID for the contents of the `target` file, only applicable for `type=secret`. | `id=+secrets/password` |
 
 ###### Examples:
