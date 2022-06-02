@@ -16,7 +16,9 @@ import (
 	"time"
 
 	logsapi "github.com/earthly/cloud-api/logs"
+	pipelinesapi "github.com/earthly/cloud-api/pipelines"
 	secretsapi "github.com/earthly/cloud-api/secrets"
+
 	"github.com/earthly/earthly/util/cliutil"
 	"github.com/earthly/earthly/util/fileutil"
 
@@ -26,9 +28,6 @@ import (
 	"github.com/pkg/errors"
 	"golang.org/x/crypto/ssh/agent"
 )
-
-// ErrAccountExists occurs account creation when an account already exists
-var ErrAccountExists = errors.New("account already exists")
 
 // ErrUnauthorized occurs when a user is unauthorized to access a resource
 var ErrUnauthorized = errors.New("unauthorized")
@@ -40,6 +39,7 @@ const tokenExpiryLayout = "2006-01-02 15:04:05.999999999 -0700 MST"
 
 // OrgDetail contains an organization and details
 type OrgDetail struct {
+	ID    string
 	Name  string
 	Admin bool
 }
@@ -56,6 +56,14 @@ type TokenDetail struct {
 	Name   string
 	Write  bool
 	Expiry time.Time
+}
+
+// SatelliteInstance contains details about a remote Buildkit instance.
+type SatelliteInstance struct {
+	Name     string
+	Status   string
+	Version  string
+	Platform string
 }
 
 // Client provides a client to the shared secrets service
@@ -92,6 +100,7 @@ type Client interface {
 	SendAnalytics(data *EarthlyAnalytics) error
 	IsLoggedIn() bool
 	GetAuthToken() (string, error)
+	LaunchSatellite(name, org string) (*SatelliteInstance, error)
 }
 
 type request struct {
@@ -818,6 +827,7 @@ func (c *client) ListOrgs() ([]*OrgDetail, error) {
 	res := []*OrgDetail{}
 	for _, org := range listOrgsResponse.Details {
 		res = append(res, &OrgDetail{
+			ID:    org.Id,
 			Name:  org.Name,
 			Admin: org.Admin,
 		})
@@ -970,6 +980,36 @@ func (c *client) WhoAmI() (string, string, bool, error) {
 	}
 
 	return email, authType, writeAccess, nil
+}
+
+func (c *client) LaunchSatellite(name, org string) (*SatelliteInstance, error) {
+	req := pipelinesapi.LaunchSatelliteRequest{
+		OrgId:    org,
+		Name:     name,
+		Platform: "linux/amd64", // TODO support arm64 as well
+	}
+	status, body, err := c.doCall("POST", "/api/v0/satellites", withAuth(), withJSONBody(&req))
+	if err != nil {
+		return nil, err
+	}
+	if status != http.StatusOK {
+		msg, err := getMessageFromJSON(bytes.NewReader([]byte(body)))
+		if err != nil {
+			return nil, errors.Wrap(err, fmt.Sprintf("failed to decode response body (status code: %d)", status))
+		}
+		return nil, errors.Errorf("failed launching satellite: %s", msg)
+	}
+	var resp pipelinesapi.LaunchSatelliteResponse
+	err = c.jm.Unmarshal(bytes.NewReader([]byte(body)), &resp)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to unmarshal LaunchSatellite response")
+	}
+	return &SatelliteInstance{
+		Name:     name,
+		Status:   resp.Status.String(),
+		Version:  resp.Version,
+		Platform: "linux/amd64",
+	}, nil
 }
 
 // EarthlyAnalytics is the payload used in SendAnalytics.
