@@ -12,7 +12,7 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ### Added
 
-- Experimental support for Docker registry based image creation and transfer `WITH DOCKER` loads and pulls. Enable with the `VERSION ----use-registry-for-with-docker` flag.
+- Experimental support for Docker registry based image creation and transfer `WITH DOCKER` loads and pulls. Enable with the `VERSION --use-registry-for-with-docker` flag.
 - Git config options for non-standard port and path prefix; these options are incompatible with a custom git substition regex.
 - Experimental WAIT / END blocks, to allow for finer grain of control between pushing images and running commands.
 - Improved ARG error messages to include the ARG name associated with the error.
