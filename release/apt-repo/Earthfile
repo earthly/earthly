@@ -91,10 +91,11 @@ aws:
 
 download:
     FROM +aws
+    ARG --required S3_BUCKET
     RUN env | grep dev
     RUN --no-cache \
         --mount type=secret,id=+secrets/user/earthly-technologies/aws/credentials,target=/root/.aws/credentials \
-        aws s3 cp --recursive s3://staging-pkg/deb/ repo
+        aws s3 cp --recursive "s3://$S3_BUCKET/deb/" repo
     SAVE ARTIFACT repo AS LOCAL output/repo
 
 index-and-sign:
@@ -168,25 +169,27 @@ upload:
             exit 1; \
         fi
     # upload public key
+    ARG --required S3_BUCKET
     RUN --push \
         --mount type=secret,id=+secrets/earthly-technologies/release/keys/earthly-public.pgp,target=/release-key/earthly-public.pgp \
         --mount type=secret,id=+secrets/user/earthly-technologies/aws/credentials,target=/root/.aws/credentials \
         grep PUBLIC /release-key/earthly-public.pgp >/dev/null && \
-        aws s3 cp --acl public-read /release-key/earthly-public.pgp s3://staging-pkg/earthly.pgp
+        aws s3 cp --acl public-read /release-key/earthly-public.pgp "s3://$S3_BUCKET/earthly.pgp"
     # upload signed repo
     # Note: aws s3 sync doesn't always pickup changes to Release and Packages files, so force a cp to ensure they are uploaded
     RUN --push \
         --mount type=secret,id=+secrets/user/earthly-technologies/aws/credentials,target=/root/.aws/credentials \
-        aws s3 cp --acl public-read /repo/dists/stable/Release s3://staging-pkg/deb/dists/stable/Release && \
-        aws s3 cp --acl public-read /repo/dists/stable/Release.gpg s3://staging-pkg/deb/dists/stable/Release.gpg && \
-        aws s3 cp --acl public-read /repo/dists/stable/InRelease s3://staging-pkg/deb/dists/stable/InRelease && \
-        aws s3 cp --acl public-read /repo/dists/stable/main/binary-amd64/Packages s3://staging-pkg/deb/dists/stable/main/binary-amd64/Packages && \
-        aws s3 cp --acl public-read /repo/dists/stable/main/binary-arm64/Packages s3://staging-pkg/deb/dists/stable/main/binary-arm64/Packages && \
-        aws s3 cp --acl public-read /repo/dists/stable/main/binary-arm7/Packages s3://staging-pkg/deb/dists/stable/main/binary-arm7/Packages && \
-        aws s3 cp --acl public-read /repo/dists/stable/main/binary-amd64/Packages.gz s3://staging-pkg/deb/dists/stable/main/binary-amd64/Packages.gz && \
-        aws s3 cp --acl public-read /repo/dists/stable/main/binary-arm64/Packages.gz s3://staging-pkg/deb/dists/stable/main/binary-arm64/Packages.gz && \
-        aws s3 cp --acl public-read /repo/dists/stable/main/binary-arm7/Packages.gz s3://staging-pkg/deb/dists/stable/main/binary-arm7/Packages.gz && \
-        aws s3 sync --acl public-read /repo s3://staging-pkg/deb/
+        aws s3 cp --acl public-read /repo/dists/stable/Release s3://$S3_BUCKET/deb/dists/stable/Release && \
+        aws s3 cp --acl public-read /repo/dists/stable/Release.gpg s3://$S3_BUCKET/deb/dists/stable/Release.gpg && \
+        aws s3 cp --acl public-read /repo/dists/stable/InRelease s3://$S3_BUCKET/deb/dists/stable/InRelease && \
+        aws s3 cp --acl public-read /repo/dists/stable/main/binary-amd64/Packages s3://$S3_BUCKET/deb/dists/stable/main/binary-amd64/Packages && \
+        aws s3 cp --acl public-read /repo/dists/stable/main/binary-arm64/Packages s3://$S3_BUCKET/deb/dists/stable/main/binary-arm64/Packages && \
+        aws s3 cp --acl public-read /repo/dists/stable/main/binary-arm7/Packages s3://$S3_BUCKET/deb/dists/stable/main/binary-arm7/Packages && \
+        aws s3 cp --acl public-read /repo/dists/stable/main/binary-amd64/Packages.gz s3://$S3_BUCKET/deb/dists/stable/main/binary-amd64/Packages.gz && \
+        aws s3 cp --acl public-read /repo/dists/stable/main/binary-arm64/Packages.gz s3://$S3_BUCKET/deb/dists/stable/main/binary-arm64/Packages.gz && \
+        aws s3 cp --acl public-read /repo/dists/stable/main/binary-arm7/Packages.gz s3://$S3_BUCKET/deb/dists/stable/main/binary-arm7/Packages.gz && \
+        aws s3 sync --acl public-read /repo s3://$S3_BUCKET/deb/
 
 build-and-release:
-    BUILD --build-arg USE_OUTPUT_COPY=false +upload
+    ARG --required S3_BUCKET
+    BUILD +upload --USE_OUTPUT_COPY=false --S3_BUCKET="$S3_BUCKET"
