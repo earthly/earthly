@@ -4,6 +4,8 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+## v0.6.15 - 2022-06-02
+
 ### Changed
 
 - Switch to MPL-2.0 license. [Announcement](https://earthly.dev/blog/earthly-open-source)
@@ -12,6 +14,15 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 - Experimental support for Docker registry based image creation and transfer `WITH DOCKER` loads and pulls. Enable with the `VERSION ----use-registry-for-with-docker` flag.
 - Git config options for non-standard port and path prefix; these options are incompatible with a custom git substition regex.
+- Experimental WAIT / END blocks, to allow for finer grain of control between pushing images and running commands.
+- Improved ARG error messages to include the ARG name associated with the error.
+
+### Fixed
+
+- Panic when running earthly --version under some versions of windows
+- Removed duplicate git commit hash from earthly --version output string (when running dev versions of earthly)
+- Garbled auto-completion when using Earthfiles without a VERSION command (or with other warnings) [#1837](https://github.com/earthly/earthly/issues/1837).
+- Masking of cgroups for podman support.
 
 ## v0.6.14 - 2022-04-11
 
