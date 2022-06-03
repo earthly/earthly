@@ -101,6 +101,8 @@ type Client interface {
 	IsLoggedIn() bool
 	GetAuthToken() (string, error)
 	LaunchSatellite(name, org string) (*SatelliteInstance, error)
+	GetOrgID(name string) (string, error)
+	ListSatellites(orgID string) ([]SatelliteInstance, error)
 }
 
 type request struct {
@@ -1026,8 +1028,33 @@ func (c *client) GetOrgID(orgName string) (string, error) {
 }
 
 func (c *client) ListSatellites(orgID string) ([]SatelliteInstance, error) {
-	status, body, err := c.doCall("GET", "/api/v0/satellites", withAuth())
-
+	url := fmt.Sprintf("/api/v0/satellites?orgId=%s", orgID)
+	status, body, err := c.doCall("GET", url, withAuth())
+	if err != nil {
+		return nil, err
+	}
+	if status != http.StatusOK {
+		msg, err := getMessageFromJSON(bytes.NewReader([]byte(body)))
+		if err != nil {
+			return nil, errors.Wrap(err, fmt.Sprintf("failed to decode response body (status code: %d)", status))
+		}
+		return nil, errors.Errorf("failed listing satellites: %s", msg)
+	}
+	var resp pipelinesapi.ListSatellitesResponse
+	err = c.jm.Unmarshal(bytes.NewReader([]byte(body)), &resp)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to unmarshal listTokens response")
+	}
+	instances := make([]SatelliteInstance, len(resp.Instances))
+	for i, s := range resp.Instances {
+		instances[i] = SatelliteInstance{
+			Name:     s.Name,
+			Version:  s.Version,
+			Platform: s.Platform,
+			Status:   s.Status.String(),
+		}
+	}
+	return instances, nil
 }
 
 // EarthlyAnalytics is the payload used in SendAnalytics.
