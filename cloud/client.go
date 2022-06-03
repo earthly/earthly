@@ -982,9 +982,9 @@ func (c *client) WhoAmI() (string, string, bool, error) {
 	return email, authType, writeAccess, nil
 }
 
-func (c *client) LaunchSatellite(name, org string) (*SatelliteInstance, error) {
+func (c *client) LaunchSatellite(name, orgID string) (*SatelliteInstance, error) {
 	req := pipelinesapi.LaunchSatelliteRequest{
-		OrgId:    org,
+		OrgId:    orgID,
 		Name:     name,
 		Platform: "linux/amd64", // TODO support arm64 as well
 	}
@@ -1010,6 +1010,24 @@ func (c *client) LaunchSatellite(name, org string) (*SatelliteInstance, error) {
 		Version:  resp.Version,
 		Platform: "linux/amd64",
 	}, nil
+}
+
+func (c *client) GetOrgID(orgName string) (string, error) {
+	orgs, err := c.ListOrgs()
+	if err != nil {
+		return "", err
+	}
+	for _, o := range orgs {
+		if o.Name == orgName {
+			return o.ID, nil
+		}
+	}
+	return "", errors.Errorf("org not found: %s", orgName)
+}
+
+func (c *client) ListSatellites(orgID string) ([]SatelliteInstance, error) {
+	status, body, err := c.doCall("GET", "/api/v0/satellites", withAuth())
+
 }
 
 // EarthlyAnalytics is the payload used in SendAnalytics.
