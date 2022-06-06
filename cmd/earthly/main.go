@@ -1119,8 +1119,12 @@ func (app *earthlyApp) before(context *cli.Context) error {
 	}
 	fe, err := containerutil.FrontendForSetting(context.Context, app.cfg.Global.ContainerFrontend, feConfig)
 	if err != nil {
-		app.console.Warnf("%s frontend initialization failed due to %s; but will try anyway", app.cfg.Global.ContainerFrontend, err.Error())
-		fe, _ = containerutil.NewStubFrontend(context.Context, feConfig)
+		origErr := err
+		fe, err = containerutil.NewStubFrontend(context.Context, feConfig)
+		if err != nil {
+			return errors.Wrap(err, "failed frontend initialization")
+		}
+		app.console.Warnf("%s frontend initialization failed due to %s; but will try anyway", app.cfg.Global.ContainerFrontend, origErr.Error())
 	}
 	app.containerFrontend = fe
 
