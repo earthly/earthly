@@ -74,7 +74,6 @@ import (
 	"github.com/earthly/earthly/util/llbutil/secretprovider"
 	"github.com/earthly/earthly/util/platutil"
 	"github.com/earthly/earthly/util/reflectutil"
-	"github.com/earthly/earthly/util/satelliteutil"
 	"github.com/earthly/earthly/util/syncutil/semutil"
 	"github.com/earthly/earthly/util/termutil"
 	"github.com/earthly/earthly/variables"
@@ -1285,10 +1284,11 @@ func (app *earthlyApp) configureSatellite(cc cloud.Client) error {
 	app.console.Warnf("Note: the Interactive Debugger, Interactive RUN commands, and Local Registries do not yet work on Earthly Satellites.")
 
 	// Set up extra settings needed for buildkit RPC metadata
-	app.buildkitdSettings.BuildkitAddress = app.satelliteAddress
-	app.buildkitdSettings.SatelliteName = app.cfg.Satellite.Name
-	app.buildkitdSettings.SatelliteOrg = app.cfg.Satellite.Org
-
+	if app.cfg.Satellite.Name != "" {
+		app.buildkitdSettings.SatelliteName = app.cfg.Satellite.Name
+		app.buildkitdSettings.SatelliteOrg = app.cfg.Satellite.Org
+		app.buildkitdSettings.BuildkitAddress = "https://satellite.earthly.dev" // TODO make me configurable
+	}
 	token, err := cc.GetAuthToken()
 	if err != nil {
 		return errors.Wrap(err, "failed to get auth token")
@@ -3278,12 +3278,6 @@ func (app *earthlyApp) actionListTargets(c *cli.Context) error {
 	return nil
 }
 
-func (app *earthlyApp) buildSatelliteConfig() satelliteutil.SatelliteClientConfig {
-	return satelliteutil.SatelliteClientConfig{
-		ConfigPath: cliutil.GetEarthlyDir(),
-	}
-}
-
 func (app *earthlyApp) useSatellite(c *cli.Context, satelliteName, orgID string) error {
 	inConfig, err := config.ReadConfigFile(app.configPath)
 	if err != nil {
@@ -3299,12 +3293,11 @@ func (app *earthlyApp) useSatellite(c *cli.Context, satelliteName, orgID string)
 	// Update in-place so we can use it later, assuming the config change was successful.
 	app.cfg.Satellite.Name = satelliteName
 
-	newConfig, err = config.Upsert(inConfig, "satellite.org", orgID)
+	newConfig, err = config.Upsert(newConfig, "satellite.org", orgID)
 	if err != nil {
 		return errors.Wrap(err, "could not update satellite name")
 	}
 	app.cfg.Satellite.Org = orgID
-
 	err = config.WriteConfigFile(app.configPath, newConfig)
 	if err != nil {
 		return errors.Wrap(err, "could not save config")
@@ -3316,9 +3309,9 @@ func (app *earthlyApp) useSatellite(c *cli.Context, satelliteName, orgID string)
 func (app *earthlyApp) printSatellites(satellites []cloud.SatelliteInstance) {
 	for _, satellite := range satellites {
 		if app.cfg.Satellite.Name == satellite.Name {
-			app.console.Printf("  -> %s", satellite.Name)
+			app.console.Printf("  -> %s %s %s %s", satellite.Name, satellite.Version, satellite.Platform, satellite.Status)
 		} else {
-			app.console.Printf("     %s", satellite.Name)
+			app.console.Printf("     %s %s %s %s", satellite.Name, satellite.Version, satellite.Platform, satellite.Status)
 		}
 	}
 }
@@ -3331,7 +3324,7 @@ func (app *earthlyApp) getSatelliteOrgID(cc cloud.Client) (string, error) {
 			return "", errors.Wrap(err, "failed finding org")
 		}
 		if len(orgs) != 1 {
-			return "", errors.Wrap(err, "please provide org name")
+			return "", errors.New("More than one organizations available. Please specify the name of the organization using `--org`.")
 		}
 		app.satelliteOrg = orgs[0].Name
 		orgID = orgs[0].ID
@@ -3399,7 +3392,7 @@ func (app *earthlyApp) actionSatelliteList(c *cli.Context) error {
 
 	satellites, err := cc.ListSatellites(orgID)
 	if err != nil {
-		return errors.Wrap(err, "failed to list satellites")
+		return err
 	}
 
 	app.console.PrintPhaseHeader("2. Available Satellites 🛰️", false, "")
@@ -3461,7 +3454,7 @@ func (app *earthlyApp) actionSatelliteSelect(c *cli.Context) error {
 
 	satellites, err := cc.ListSatellites(orgID)
 	if err != nil {
-		return errors.Wrap(err, "failed to list satellites")
+		return err
 	}
 
 	found := false
