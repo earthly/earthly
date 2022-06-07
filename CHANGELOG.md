@@ -4,6 +4,10 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+### Changed
+
+- Custom `secret_provider` is now called with user's env variables.
+
 ## v0.6.15 - 2022-06-02
 
 ### Changed
