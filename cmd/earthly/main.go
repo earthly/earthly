@@ -2943,12 +2943,19 @@ func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []st
 	defaultLocalDirs["earthly-cache"] = cacheLocalDir
 	buildContextProvider := provider.NewBuildContextProvider(app.console)
 	buildContextProvider.AddDirs(defaultLocalDirs)
+
+	customSecretProviderCmd, err := secretprovider.NewSecretProviderCmd(app.cfg.Global.SecretProvider)
+	if err != nil {
+		return errors.Wrap(err, "NewSecretProviderCmd")
+	}
+	secretProvider := secretprovider.New(
+		customSecretProviderCmd,
+		secretprovider.NewMapStore(secretsMap),
+		secretprovider.NewCloudStore(cc),
+	)
+
 	attachables := []session.Attachable{
-		secretprovider.New(
-			secretprovider.NewSecretProviderCmd(app.cfg.Global.SecretProvider),
-			secretprovider.NewMapStore(secretsMap),
-			secretprovider.NewCloudStore(cc),
-		),
+		secretProvider,
 		buildContextProvider,
 		localhostProvider,
 	}

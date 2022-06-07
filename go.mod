@@ -14,6 +14,7 @@ require (
 	github.com/earthly/cloud-api v1.0.1-0.20220228235811-35dd6315dcf5
 	github.com/fatih/color v1.9.0
 	github.com/golang/protobuf v1.5.2
+	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510
 	github.com/google/uuid v1.3.0
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/jdxcode/netrc v0.0.0-20210204082910-926c7f70242a

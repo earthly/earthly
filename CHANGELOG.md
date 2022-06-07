@@ -7,6 +7,7 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 ### Changed
 
 - Custom `secret_provider` is now called with user's env variables.
+- Additional args can be passed to `secret_provider`, e.g. `secret_provider: my-password-manager --db=$HOME/path/to/secrets.db`
 
 ## v0.6.15 - 2022-06-02
 
