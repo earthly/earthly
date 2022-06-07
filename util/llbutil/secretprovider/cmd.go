@@ -2,7 +2,6 @@ package secretprovider
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"os/exec"
 	"syscall"
@@ -34,10 +33,8 @@ func (c *cmdStore) GetSecret(ctx context.Context, id string) ([]byte, error) {
 		return nil, secrets.ErrNotFound
 	}
 	cmd := exec.CommandContext(ctx, c.cmd, id)
+	cmd.Env = os.Environ()
 	cmd.Stderr = os.Stderr
-	if path, ok := os.LookupEnv("PATH"); ok {
-		cmd.Env = append(cmd.Env, fmt.Sprintf("PATH=%s", path))
-	}
 	dt, err := cmd.Output()
 	if err != nil {
 		if exiterr, ok := err.(*exec.ExitError); ok {
