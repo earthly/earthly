@@ -103,6 +103,7 @@ type Client interface {
 	LaunchSatellite(name, org string) (*SatelliteInstance, error)
 	GetOrgID(name string) (string, error)
 	ListSatellites(orgID string) ([]SatelliteInstance, error)
+	DeleteSatellite(name, orgID string) error
 }
 
 type request struct {
@@ -1055,6 +1056,22 @@ func (c *client) ListSatellites(orgID string) ([]SatelliteInstance, error) {
 		}
 	}
 	return instances, nil
+}
+
+func (c *client) DeleteSatellite(name, orgID string) error {
+	url := fmt.Sprintf("/api/v0/satellites/%s?orgId=%s", name, orgID)
+	status, body, err := c.doCall("DELETE", url, withAuth())
+	if err != nil {
+		return err
+	}
+	if status != http.StatusOK {
+		msg, err := getMessageFromJSON(bytes.NewReader([]byte(body)))
+		if err != nil {
+			return errors.Wrap(err, fmt.Sprintf("failed to decode response body (status code: %d)", status))
+		}
+		return errors.Errorf("failed listing satellites: %s", msg)
+	}
+	return nil
 }
 
 // EarthlyAnalytics is the payload used in SendAnalytics.

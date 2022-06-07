@@ -602,14 +602,6 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 			Destination: &app.satelliteAddress,
 			Hidden:      true, // Internal.
 		},
-		&cli.StringFlag{
-			Name:        "satellite",
-			Value:       containerutil.SatelliteAddress,
-			EnvVars:     []string{"EARTHLY_SATELLITE"},
-			Usage:       "Satellite address override for dev purposes",
-			Destination: &app.satelliteAddress,
-			Hidden:      true, // Internal.
-		},
 		&cli.BoolFlag{
 			Name:        "no-fake-dep",
 			EnvVars:     []string{"EARTHLY_NO_FAKE_DEP"},
@@ -1081,6 +1073,12 @@ Set up a whole custom git repository for a server called example.com, using a si
 							Required:    true,
 							Destination: &app.satelliteName,
 						},
+						&cli.StringFlag{
+							Name:        "org",
+							Usage:       "The name of the organization the satellite belongs to. Required when user belongs to multiple.",
+							Required:    false,
+							Destination: &app.satelliteOrg,
+						},
 					},
 				},
 				{
@@ -1095,6 +1093,12 @@ Set up a whole custom git repository for a server called example.com, using a si
 							Required:    true,
 							Destination: &app.satelliteName,
 						},
+						&cli.StringFlag{
+							Name:        "org",
+							Usage:       "The name of the organization the satellite belongs to. Required when user belongs to multiple.",
+							Required:    false,
+							Destination: &app.satelliteOrg,
+						},
 					},
 				},
 				{
@@ -1102,6 +1106,14 @@ Set up a whole custom git repository for a server called example.com, using a si
 					Description: "List your Earthly Satellites",
 					UsageText:   "earthly satellite launch",
 					Action:      app.actionSatelliteList,
+					Flags: []cli.Flag{
+						&cli.StringFlag{
+							Name:        "org",
+							Usage:       "The name of the organization the satellite belongs to. Required when user belongs to multiple.",
+							Required:    false,
+							Destination: &app.satelliteOrg,
+						},
+					},
 				},
 				{
 					Name:        "select",
@@ -1114,6 +1126,12 @@ Set up a whole custom git repository for a server called example.com, using a si
 							Usage:       "The name of the specified satellite",
 							Required:    true,
 							Destination: &app.satelliteName,
+						},
+						&cli.StringFlag{
+							Name:        "org",
+							Usage:       "The name of the organization the satellite belongs to. Required when user belongs to multiple.",
+							Required:    false,
+							Destination: &app.satelliteOrg,
 						},
 					},
 				},
@@ -3390,34 +3408,35 @@ func (app *earthlyApp) actionSatelliteList(c *cli.Context) error {
 }
 
 func (app *earthlyApp) actionSatelliteDestroy(c *cli.Context) error {
-	//app.commandName = "launch"
-	//
-	//if c.NArg() > 2 {
-	//	return errors.New("invalid number of arguments provided")
-	//}
-	//
-	//app.console.PrintPhaseHeader("1. Destroying Satellite 💥️", false, "")
-	//
-	//cc, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
-	//if err != nil {
-	//	return errors.Wrap(err, "failed to create cloud client")
-	//}
-	//
-	//orgID, err := app.getSatelliteOrgID(cc)
-	//if err != nil {
-	//	return err
-	//}
-	//
-	//err = cc.DeleteSatellite(app.satelliteName, orgID)
-	//if err != nil {
-	//	return errors.Wrapf(err, "failed to delete satellite %s", app.satelliteName)
-	//}
-	//
-	//if app.satelliteName == app.cfg.Satellite.Name {
-	//	// TODO what strategy do we want to use if you delete your current satellite?
-	//	app.useSatellite(c, "", "")
-	//}
+	app.commandName = "launch"
 
+	if c.NArg() > 2 {
+		return errors.New("invalid number of arguments provided")
+	}
+
+	app.console.PrintPhaseHeader("1. Destroying Satellite 💥️", false, "")
+
+	cc, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
+	if err != nil {
+		return errors.Wrap(err, "failed to create cloud client")
+	}
+
+	orgID, err := app.getSatelliteOrgID(cc)
+	if err != nil {
+		return err
+	}
+
+	err = cc.DeleteSatellite(app.satelliteName, orgID)
+	if err != nil {
+		return errors.Wrapf(err, "failed to delete satellite %s", app.satelliteName)
+	}
+
+	if app.satelliteName == app.cfg.Satellite.Name {
+		// TODO what strategy do we want to use if you delete your current satellite?
+		if err = app.useSatellite(c, "", ""); err != nil {
+			return errors.Wrapf(err, "failed unselecting satellite")
+		}
+	}
 	return nil
 }
 
