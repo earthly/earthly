@@ -1121,6 +1121,12 @@ Set up a whole custom git repository for a server called example.com, using a si
 						},
 					},
 				},
+				{
+					Name:        "unselect",
+					Description: "Remove any currently selected Satellite instance from your Earthly configuration.",
+					UsageText:   "earthly satellite unselect",
+					Action:      app.actionSatelliteUnselect,
+				},
 			},
 		},
 	}
@@ -1274,7 +1280,11 @@ func (app *earthlyApp) configureSatellite(cc cloud.Client) error {
 	if app.cfg.Satellite.Name != "" {
 		app.buildkitdSettings.SatelliteName = app.cfg.Satellite.Name
 		app.buildkitdSettings.SatelliteOrg = app.cfg.Satellite.Org
-		app.buildkitdSettings.BuildkitAddress = "https://satellite.earthly.dev" // TODO make me configurable
+		if app.satelliteAddress != "" {
+			app.buildkitdSettings.BuildkitAddress = app.satelliteAddress
+		} else {
+			app.buildkitdSettings.BuildkitAddress = containerutil.SatelliteAddress
+		}
 	}
 	token, err := cc.GetAuthToken()
 	if err != nil {
@@ -3465,6 +3475,24 @@ func (app *earthlyApp) actionSatelliteSelect(c *cli.Context) error {
 
 	app.console.PrintPhaseHeader("2. Available Satellites 🛰️", false, "")
 	app.printSatellites(satellites)
+	return nil
+}
+
+func (app *earthlyApp) actionSatelliteUnselect(c *cli.Context) error {
+	app.commandName = "unselect"
+
+	if c.NArg() != 0 {
+		return errors.New("invalid number of arguments provided")
+	}
+
+	app.satelliteName = c.Args().Get(0)
+	app.console.PrintPhaseHeader("1. Unselecting Satellites ❌", false, "")
+
+	if err := app.useSatellite(c, "", ""); err != nil {
+		return errors.Wrap(err, "could not unselect satellite")
+	}
+
+	app.console.Printf("Done. Earthly will use a local Buildkit instance instead.")
 	return nil
 }
 
