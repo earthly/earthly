@@ -1056,8 +1056,13 @@ Set up a whole custom git repository for a server called example.com, using a si
 			},
 		},
 		{
-			Name:        "satellite",
-			Usage:       "earthly satellite (launch|list|destroy)",
+			Name: "satellite",
+			Usage: "Launch and use a Satellite runner as remote backend for Earthly builds. " +
+				"Satellites can be used to optimize and share cache between multiple builds and users, " +
+				"as well as run builds in native architectures independent of where the Earthly client is invoked. " +
+				"Note: this feature is currently experimental. " +
+				"If you'd like to try it out, please contact us via Slack to be added to the beta testers group.",
+			UsageText:   "earthly satellite (launch|list|destroy)",
 			Description: "Create and manage Earthly build Satellites",
 			Subcommands: []*cli.Command{
 				{
@@ -1067,14 +1072,8 @@ Set up a whole custom git repository for a server called example.com, using a si
 					Action:      app.actionSatelliteLaunch,
 					Flags: []cli.Flag{
 						&cli.StringFlag{
-							Name:        "name",
-							Usage:       "The name of the specified satellite",
-							Required:    true,
-							Destination: &app.satelliteName,
-						},
-						&cli.StringFlag{
 							Name:        "org",
-							Usage:       "The name of the organization the satellite belongs to. Required when user belongs to multiple.",
+							Usage:       "The name of the organization the satellite belongs to. Required when user is a member of multiple.",
 							Required:    false,
 							Destination: &app.satelliteOrg,
 						},
@@ -1087,14 +1086,8 @@ Set up a whole custom git repository for a server called example.com, using a si
 					Action:      app.actionSatelliteDestroy,
 					Flags: []cli.Flag{
 						&cli.StringFlag{
-							Name:        "name",
-							Usage:       "The name of the specified satellite",
-							Required:    true,
-							Destination: &app.satelliteName,
-						},
-						&cli.StringFlag{
 							Name:        "org",
-							Usage:       "The name of the organization the satellite belongs to. Required when user belongs to multiple.",
+							Usage:       "The name of the organization the satellite belongs to. Required when user is a member of multiple.",
 							Required:    false,
 							Destination: &app.satelliteOrg,
 						},
@@ -1108,7 +1101,7 @@ Set up a whole custom git repository for a server called example.com, using a si
 					Flags: []cli.Flag{
 						&cli.StringFlag{
 							Name:        "org",
-							Usage:       "The name of the organization the satellite belongs to. Required when user belongs to multiple.",
+							Usage:       "The name of the organization the satellite belongs to. Required when user is a member of multiple.",
 							Required:    false,
 							Destination: &app.satelliteOrg,
 						},
@@ -1121,14 +1114,8 @@ Set up a whole custom git repository for a server called example.com, using a si
 					Action:      app.actionSatelliteSelect,
 					Flags: []cli.Flag{
 						&cli.StringFlag{
-							Name:        "name",
-							Usage:       "The name of the specified satellite",
-							Required:    true,
-							Destination: &app.satelliteName,
-						},
-						&cli.StringFlag{
 							Name:        "org",
-							Usage:       "The name of the organization the satellite belongs to. Required when user belongs to multiple.",
+							Usage:       "The name of the organization the satellite belongs to. Required when user is a member of multiple.",
 							Required:    false,
 							Destination: &app.satelliteOrg,
 						},
@@ -3341,10 +3328,11 @@ func (app *earthlyApp) getSatelliteOrgID(cc cloud.Client) (string, error) {
 func (app *earthlyApp) actionSatelliteLaunch(c *cli.Context) error {
 	app.commandName = "launch"
 
-	if c.NArg() > 2 {
+	if c.NArg() != 1 {
 		return errors.New("invalid number of arguments provided")
 	}
 
+	app.satelliteName = c.Args().Get(0)
 	app.console.PrintPhaseHeader("1. Launching Satellite 🚀️", false, "")
 
 	cc, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
@@ -3374,7 +3362,7 @@ func (app *earthlyApp) actionSatelliteLaunch(c *cli.Context) error {
 func (app *earthlyApp) actionSatelliteList(c *cli.Context) error {
 	app.commandName = "list"
 
-	if c.NArg() > 2 {
+	if c.NArg() != 0 {
 		return errors.New("invalid number of arguments provided")
 	}
 
@@ -3403,10 +3391,11 @@ func (app *earthlyApp) actionSatelliteList(c *cli.Context) error {
 func (app *earthlyApp) actionSatelliteDestroy(c *cli.Context) error {
 	app.commandName = "launch"
 
-	if c.NArg() > 2 {
+	if c.NArg() != 1 {
 		return errors.New("invalid number of arguments provided")
 	}
 
+	app.satelliteName = c.Args().Get(0)
 	app.console.PrintPhaseHeader("1. Destroying Satellite 💥️", false, "")
 
 	cc, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
@@ -3436,10 +3425,11 @@ func (app *earthlyApp) actionSatelliteDestroy(c *cli.Context) error {
 func (app *earthlyApp) actionSatelliteSelect(c *cli.Context) error {
 	app.commandName = "select"
 
-	if c.NArg() > 2 {
+	if c.NArg() != 1 {
 		return errors.New("invalid number of arguments provided")
 	}
 
+	app.satelliteName = c.Args().Get(0)
 	app.console.PrintPhaseHeader("1. Finding Satellites 🕵️", false, "")
 
 	cc, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
