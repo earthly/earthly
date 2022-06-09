@@ -996,11 +996,7 @@ func (c *client) LaunchSatellite(name, orgID string) (*SatelliteInstance, error)
 		return nil, err
 	}
 	if status != http.StatusOK {
-		msg, err := getMessageFromJSON(bytes.NewReader([]byte(body)))
-		if err != nil {
-			return nil, errors.Wrap(err, fmt.Sprintf("failed to decode response body (status code: %d)", status))
-		}
-		return nil, errors.Errorf("failed launching satellite: %s", msg)
+		return nil, errors.Errorf("failed launching satellite: %s", body)
 	}
 	var resp pipelinesapi.LaunchSatelliteResponse
 	err = c.jm.Unmarshal(bytes.NewReader([]byte(body)), &resp)
@@ -1035,11 +1031,7 @@ func (c *client) ListSatellites(orgID string) ([]SatelliteInstance, error) {
 		return nil, err
 	}
 	if status != http.StatusOK {
-		msg, err := getMessageFromJSON(bytes.NewReader([]byte(body)))
-		if err != nil {
-			return nil, errors.Wrap(err, fmt.Sprintf("failed to decode response body (status code: %d)", status))
-		}
-		return nil, errors.Errorf("failed listing satellites: %s", msg)
+		return nil, errors.Errorf("failed listing satellites: %s", body)
 	}
 	var resp pipelinesapi.ListSatellitesResponse
 	err = c.jm.Unmarshal(bytes.NewReader([]byte(body)), &resp)
@@ -1065,11 +1057,7 @@ func (c *client) DeleteSatellite(name, orgID string) error {
 		return err
 	}
 	if status != http.StatusOK {
-		msg, err := getMessageFromJSON(bytes.NewReader([]byte(body)))
-		if err != nil {
-			return errors.Wrap(err, fmt.Sprintf("failed to decode response body (status code: %d)", status))
-		}
-		return errors.Errorf("failed listing satellites: %s", msg)
+		return errors.Errorf("failed listing satellites: %s", body)
 	}
 	return nil
 }

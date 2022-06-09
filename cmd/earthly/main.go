@@ -1062,7 +1062,7 @@ Set up a whole custom git repository for a server called example.com, using a si
 				"as well as run builds in native architectures independent of where the Earthly client is invoked. " +
 				"Note: this feature is currently experimental. " +
 				"If you'd like to try it out, please contact us via Slack to be added to the beta testers group.",
-			UsageText:   "earthly satellite (launch|list|destroy)",
+			UsageText:   "earthly satellite (launch|list|destroy|unselect)",
 			Description: "Create and manage Earthly build Satellites",
 			Subcommands: []*cli.Command{
 				{
