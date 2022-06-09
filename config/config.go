@@ -95,6 +95,8 @@ type GitConfig struct {
 	Suffix                string `yaml:"suffix"                       help:"The git repository suffix, like .git."`                                       // .git
 	Auth                  string `yaml:"auth"                         help:"What authentication method do you use? Valid options are: http, https, ssh."` // http, https, ssh
 	User                  string `yaml:"user"                         help:"The username to use when auth is set to git or https."`
+	Port                  int    `yaml:"port"                         help:"The port to connect to when using git; has no effect for http(s)."`
+	Prefix                string `yaml:"prefix"                  help:"This path is prefixed to the git clone url, e.g. ssh://user@host:port/prefix/project/repo.git"`
 	Password              string `yaml:"password"                     help:"The https password to use when auth is set to https. This setting is ignored when auth is ssh."`
 	ServerKey             string `yaml:"serverkey"                    help:"SSH fingerprints, like you would add in your known hosts file, or get from ssh-keyscan."`
 	StrictHostKeyChecking *bool  `yaml:"strict_host_key_checking"     help:"Allow ssh access to hosts with unknown server keys (e.g. no entries in known_hosts), defaults to true."`

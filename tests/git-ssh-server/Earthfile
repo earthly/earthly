@@ -253,7 +253,6 @@ earthly --config \$earthly_config config 'git.\"git.example.com\"' '{\"auth\": \
 # earthly should now be able to clone these even though no known_hosts entry exists
 earthly --config \$earthly_config --verbose -D +test
 earthly --config \$earthly_config --verbose -D git.example.com/testuser/repo:main+hello
-
 " >/tmp/test-earthly-script && chmod +x /tmp/test-earthly-script
     DO +RUN_EARTHLY_ARGS --pre_command=start-sshd --earthfile=git-clone-private-ssh.earth --exec_cmd=/tmp/test-earthly-script
 
@@ -289,7 +288,6 @@ cat /tmp/known_hosts.old | awk '{printf \"git.example.com %s %s\\n\", \$2, \$3}'
 
 earthly --config \$earthly_config --verbose -D +test
 earthly --config \$earthly_config --verbose -D git.example.com/testuser/repo:main+hello
-
 " >/tmp/test-earthly-script && chmod +x /tmp/test-earthly-script
     DO +RUN_EARTHLY_ARGS --pre_command=start-sshd --earthfile=git-clone-private-ssh.earth --exec_cmd=/tmp/test-earthly-script
 
@@ -342,8 +340,6 @@ cat output.txt | grep $(echo MTIzM2MwODQtNGNmNS00Nzk3LWE0YzUtZWI2NTM1NGVlN2Vl | 
 
 earthly --config \$earthly_config --verbose -D funnyserver/repo:main+hello 2>&1 | tee output.txt
 cat output.txt | grep $(echo MTIzM2MwODQtNGNmNS00Nzk3LWE0YzUtZWI2NTM1NGVlN2Vl | base64 -d)
-
-
 " >/tmp/test-earthly-script && chmod +x /tmp/test-earthly-script
     DO +RUN_EARTHLY_ARGS --pre_command=start-sshd --earthfile=from-funnyserver.earth --exec_cmd=/tmp/test-earthly-script
 
@@ -381,6 +377,51 @@ grep fb5de6fc4b750a88841cd91b55bdec6d output.txt
 " >/tmp/test-earthly-script && chmod +x /tmp/test-earthly-script
     DO +RUN_EARTHLY_ARGS --pre_command=start-sshd --earthfile=git-clone-funnyserver.earth --exec_cmd=/tmp/test-earthly-script
 
+test-custom-matcher-non-standard-port-and-no-host-checking:
+    FROM ./setup+server \
+        --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
+        --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
+        --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
+        --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR \
+        --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE \
+        --SSHD_RSA=true \
+        --SSHD_ED25519=true \
+        --USER_RSA=true \
+        --USER_ED25519=false \
+        --SSH_PORT=2244
+    RUN --no-cache echo "#!/bin/sh
+set -ex
+
+# first ensure these two /etc/hosts entries are working
+ping -c 1 git.example.com
+ping -c 1 buildkitsandbox
+
+# load in preauthorized key
+eval \$(ssh-agent)
+ssh-add /root/self-hosted-rsa-key
+ssh-add -l
+
+# Setup auth to be ssh on non-standard port, and disable host checking
+earthly --config \$earthly_config config 'git.\"git.example.com\"' '{\"auth\": \"ssh\", \"user\": \"git\", \"port\": 2244, \"strict_host_key_checking\": false}'
+cat \$earthly_config
+
+# call target which performs a git-clone
+(set +e; earthly --config \$earthly_config --verbose -D +test-abs-path 2>&1; echo \"\$?\" > status) | tee output.txt
+test \"\$(cat status)\" = \"0\"
+grep fb5de6fc4b750a88841cd91b55bdec6d output.txt
+
+# next, change config to reflect git repos that use relative paths and require a prefix
+earthly --config \$earthly_config config 'git.\"git.example.com\"' '{\"auth\": \"ssh\", \"user\": \"git\", \"port\": 2244, \"prefix\": \"~/\", \"strict_host_key_checking\": false}'
+cat \$earthly_config
+(set +e; earthly --config \$earthly_config --verbose -D +test-rel-path 2>&1; echo \"\$?\" > status) | tee output2.txt
+test \"\$(cat status)\" = \"0\"
+grep fb5de6fc4b750a88841cd91b55bdec6d output2.txt
+
+# finally make sure we can reference it remotely via the cli
+earthly --config \$earthly_config --verbose -D git.example.com/testuser/repo+hello
+" >/tmp/test-earthly-script && chmod +x /tmp/test-earthly-script
+    DO +RUN_EARTHLY_ARGS --pre_command=start-sshd --earthfile=git-clone-self-hosted.earth --exec_cmd=/tmp/test-earthly-script
+
 
 all:
     BUILD +test-rsa-only
@@ -393,6 +434,7 @@ all:
     BUILD +test-server-with-unhashed-keyscan
     BUILD +test-with-custom-matcher
     BUILD +test-git-clone-command-with-custom-matcher
+    BUILD +test-custom-matcher-non-standard-port-and-no-host-checking
 
 RUN_EARTHLY_ARGS:
     COMMAND

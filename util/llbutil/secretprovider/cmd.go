@@ -2,13 +2,13 @@ package secretprovider
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"os/exec"
 	"syscall"
 
 	"github.com/earthly/earthly/debugger/common"
 
+	"github.com/alessio/shellescape"
 	"github.com/moby/buildkit/session/secrets"
 )
 
@@ -17,15 +17,15 @@ type cmdStore struct {
 }
 
 // NewSecretProviderCmd returns a SecretStore that shells out to a user-supplied command
-func NewSecretProviderCmd(cmd string) secrets.SecretStore {
+func NewSecretProviderCmd(cmd string) (secrets.SecretStore, error) {
 	return &cmdStore{
 		cmd: cmd,
-	}
+	}, nil
 }
 
 // GetSecret gets a secret from the map store
 func (c *cmdStore) GetSecret(ctx context.Context, id string) ([]byte, error) {
-	if c.cmd == "" {
+	if len(c.cmd) == 0 {
 		return nil, secrets.ErrNotFound
 	}
 	if id == common.DebuggerSettingsSecretsKey {
@@ -33,11 +33,9 @@ func (c *cmdStore) GetSecret(ctx context.Context, id string) ([]byte, error) {
 		// we must not call the user's secret provider in this case.
 		return nil, secrets.ErrNotFound
 	}
-	cmd := exec.CommandContext(ctx, c.cmd, id)
+	cmd := exec.CommandContext(ctx, "/bin/sh", "-c", c.cmd+" "+shellescape.Quote(id))
+	cmd.Env = os.Environ()
 	cmd.Stderr = os.Stderr
-	if path, ok := os.LookupEnv("PATH"); ok {
-		cmd.Env = append(cmd.Env, fmt.Sprintf("PATH=%s", path))
-	}
 	dt, err := cmd.Output()
 	if err != nil {
 		if exiterr, ok := err.(*exec.ExitError); ok {

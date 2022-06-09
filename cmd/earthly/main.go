@@ -1199,8 +1199,12 @@ func (app *earthlyApp) before(context *cli.Context) error {
 	}
 	fe, err := containerutil.FrontendForSetting(context.Context, app.cfg.Global.ContainerFrontend, feConfig)
 	if err != nil {
-		app.console.Warnf("%s frontend initialization failed due to %s; but will try anyway", app.cfg.Global.ContainerFrontend, err.Error())
-		fe, _ = containerutil.NewStubFrontend(context.Context, feConfig)
+		origErr := err
+		fe, err = containerutil.NewStubFrontend(context.Context, feConfig)
+		if err != nil {
+			return errors.Wrap(err, "failed frontend initialization")
+		}
+		app.console.Warnf("%s frontend initialization failed due to %s; but will try anyway", app.cfg.Global.ContainerFrontend, origErr.Error())
 	}
 	app.containerFrontend = fe
 
@@ -3024,12 +3028,19 @@ func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []st
 	defaultLocalDirs["earthly-cache"] = cacheLocalDir
 	buildContextProvider := provider.NewBuildContextProvider(app.console)
 	buildContextProvider.AddDirs(defaultLocalDirs)
+
+	customSecretProviderCmd, err := secretprovider.NewSecretProviderCmd(app.cfg.Global.SecretProvider)
+	if err != nil {
+		return errors.Wrap(err, "NewSecretProviderCmd")
+	}
+	secretProvider := secretprovider.New(
+		customSecretProviderCmd,
+		secretprovider.NewMapStore(secretsMap),
+		secretprovider.NewCloudStore(cc),
+	)
+
 	attachables := []session.Attachable{
-		secretprovider.New(
-			secretprovider.NewSecretProviderCmd(app.cfg.Global.SecretProvider),
-			secretprovider.NewMapStore(secretsMap),
-			secretprovider.NewCloudStore(cc),
-		),
+		secretProvider,
 		buildContextProvider,
 		localhostProvider,
 	}
@@ -3202,7 +3213,7 @@ func (app *earthlyApp) updateGitLookupConfig(gitLookup *buildcontext.GitLookup) 
 		if suffix == "" {
 			suffix = ".git"
 		}
-		err := gitLookup.AddMatcher(k, pattern, v.Substitute, v.User, v.Password, suffix, auth, v.ServerKey, ifNilBoolDefault(v.StrictHostKeyChecking, true))
+		err := gitLookup.AddMatcher(k, pattern, v.Substitute, v.User, v.Password, v.Prefix, suffix, auth, v.ServerKey, ifNilBoolDefault(v.StrictHostKeyChecking, true), v.Port)
 		if err != nil {
 			return errors.Wrap(err, "gitlookup")
 		}

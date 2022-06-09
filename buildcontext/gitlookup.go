@@ -37,6 +37,8 @@ type gitMatcher struct {
 	protocol              gitProtocol
 	password              string
 	strictHostKeyChecking bool
+	port                  int
+	prefix                string
 }
 
 type gitProtocol string
@@ -121,12 +123,16 @@ func knownHostsToKeyScans(knownHosts string) []string {
 }
 
 // AddMatcher adds a new matcher for looking up git repos
-func (gl *GitLookup) AddMatcher(name, pattern, sub, user, password, suffix, protocol, knownHosts string, strictHostKeyChecking bool) error {
+func (gl *GitLookup) AddMatcher(name, pattern, sub, user, password, prefix, suffix, protocol, knownHosts string, strictHostKeyChecking bool, port int) error {
 	gl.mu.Lock()
 	defer gl.mu.Unlock()
 	p := gitProtocol(protocol)
 	if p == httpProtocol && password != "" {
 		return errors.Errorf("using a password with http for %s is insecure", name)
+	}
+
+	if sub != "" && (port != 0 || prefix != "") {
+		return errors.Errorf("unable to use substitution in combination with port or prefix values for %s git config", name)
 	}
 
 	re, err := regexp.Compile(pattern)
@@ -146,6 +152,8 @@ func (gl *GitLookup) AddMatcher(name, pattern, sub, user, password, suffix, prot
 		sub:                   sub,
 		user:                  user,
 		password:              password,
+		port:                  port,
+		prefix:                prefix,
 		suffix:                suffix,
 		protocol:              p,
 		strictHostKeyChecking: strictHostKeyChecking,
@@ -483,13 +491,25 @@ func (gl *GitLookup) makeCloneURL(m *gitMatcher, host, gitPath string) (string, 
 			}
 		}
 
+		port := m.port
+		if port == 0 {
+			port = 22
+		}
+
 		// careful about changing all clone paths to the explicit ssh://user@host:port/user/repo.git form.
 		// as the implicit form assumes the repo is relative to the user's home directory.
 		// for example "git clone alex@coho:junk/test.git", might work as ssh://alex@coho/~/junk/test.git
 		// however not all git servers support the use of `~` to denode the user's repo.
 		// For instance, github fails to `git clone ssh://git@github.com/~/user/repo.git`.
-		if strings.HasPrefix(gitPath, "/") {
-			gitURL = "ssh://" + user + "@" + host + gitPath
+		if strings.HasPrefix(gitPath, "/") || port != 22 {
+			var portStr string
+			if port != 22 {
+				portStr = fmt.Sprintf(":%d", port)
+			}
+			if !strings.HasPrefix(gitPath, "/") {
+				gitPath = "/" + gitPath
+			}
+			gitURL = "ssh://" + user + "@" + host + portStr + gitPath
 		} else {
 			gitURL = user + "@" + host + ":" + gitPath
 		}
@@ -540,7 +560,7 @@ func (gl *GitLookup) GetCloneURL(path string) (string, string, []string, error) 
 		path = path[:n]
 	}
 	host := path[:strings.IndexByte(path, '/')]
-	gitPath := match[(strings.IndexByte(match, '/')+1):] + m.suffix
+	gitPath := m.prefix + match[(strings.IndexByte(match, '/')+1):] + m.suffix
 
 	if m.sub != "" {
 		if !m.re.MatchString(path) {
@@ -574,6 +594,7 @@ func (gl *GitLookup) GetCloneURL(path string) (string, string, []string, error) 
 // https or ssh protocol.
 // it also returns a keyScan
 func (gl *GitLookup) ConvertCloneURL(inURL string) (string, []string, error) {
+	var err error
 	var host string
 	var gitPath string
 
@@ -610,7 +631,30 @@ func (gl *GitLookup) ConvertCloneURL(inURL string) (string, []string, error) {
 	}
 
 	m := gl.getGitMatcherByName(host)
-	return gl.makeCloneURL(m, host, gitPath)
+	if m.sub != "" {
+		path := host + strings.TrimSuffix(gitPath, ".git")
+		if !m.re.MatchString(path) {
+			return "", nil, errors.Errorf("failed to determine git path to clone for %q", path)
+		}
+		gitURL := m.re.ReplaceAllString(path, m.sub)
+		var keyScans []string
+		remote, protocol := gitutil.ParseProtocol(gitURL)
+		if protocol == gitutil.SSHProtocol {
+			subHost := remote[:strings.IndexByte(remote, '/')]
+			_, keyScans, err = gl.getHostKeyAlgorithms(subHost)
+			if err != nil {
+				return "", nil, err
+			}
+			if len(keyScans) == 0 && m.strictHostKeyChecking {
+				return "", nil, errors.Errorf("no known_hosts entries exist for substituted host %s", subHost)
+			}
+		}
+		return gitURL, keyScans, nil
+	}
+
+	return gl.makeCloneURL(m, host,
+		m.prefix+gitPath, // Note that inURL already contains the suffix
+	)
 }
 
 func loadKnownHostsFromPath(path string) ([]string, error) {
