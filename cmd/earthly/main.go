@@ -3336,7 +3336,7 @@ func (app *earthlyApp) getSatelliteOrgID(cc cloud.Client) (string, error) {
 			return "", errors.Wrap(err, "failed finding org")
 		}
 		if len(orgs) != 1 {
-			return "", errors.New("More than one organizations available. Please specify the name of the organization using `--org`.")
+			return "", errors.New("more than one organizations available - please specify the name of the organization using `--org`")
 		}
 		app.satelliteOrg = orgs[0].Name
 		orgID = orgs[0].ID
