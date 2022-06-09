@@ -1068,8 +1068,9 @@ Set up a whole custom git repository for a server called example.com, using a si
 				{
 					Name:        "launch",
 					Description: "Launch a new Earthly Satellite",
-					UsageText:   "earthly satellite launch",
-					Action:      app.actionSatelliteLaunch,
+					UsageText: "earthly satellite launch <satellite-name>\n" +
+						"	earthly satellite launch --org <organization-name> <satellite-name>",
+					Action: app.actionSatelliteLaunch,
 					Flags: []cli.Flag{
 						&cli.StringFlag{
 							Name:        "org",
@@ -1082,8 +1083,9 @@ Set up a whole custom git repository for a server called example.com, using a si
 				{
 					Name:        "destroy",
 					Description: "Destroy an Earthly Satellite",
-					UsageText:   "earthly satellite destroy",
-					Action:      app.actionSatelliteDestroy,
+					UsageText: "earthly satellite destroy <satellite-name>\n" +
+						"	earthly satellite destroy --org <organization-name> <satellite-name>",
+					Action: app.actionSatelliteDestroy,
 					Flags: []cli.Flag{
 						&cli.StringFlag{
 							Name:        "org",
@@ -1096,8 +1098,9 @@ Set up a whole custom git repository for a server called example.com, using a si
 				{
 					Name:        "list",
 					Description: "List your Earthly Satellites",
-					UsageText:   "earthly satellite launch",
-					Action:      app.actionSatelliteList,
+					UsageText: "earthly satellite list\n" +
+						"	earthly satellite list --org <organization-name>",
+					Action: app.actionSatelliteList,
 					Flags: []cli.Flag{
 						&cli.StringFlag{
 							Name:        "org",
@@ -1110,8 +1113,9 @@ Set up a whole custom git repository for a server called example.com, using a si
 				{
 					Name:        "select",
 					Description: "Choose which satellite to use to build your app.",
-					UsageText:   "earthly satellite select",
-					Action:      app.actionSatelliteSelect,
+					UsageText: "earthly satellite select <satellite-name>\n" +
+						"	earthly satellite select --org <organization-name> <satellite-name>",
+					Action: app.actionSatelliteSelect,
 					Flags: []cli.Flag{
 						&cli.StringFlag{
 							Name:        "org",
@@ -3339,7 +3343,7 @@ func (app *earthlyApp) actionSatelliteLaunch(c *cli.Context) error {
 	app.commandName = "launch"
 
 	if c.NArg() != 1 {
-		return errors.New("invalid number of arguments provided")
+		return errors.New("satellite name is required")
 	}
 
 	app.satelliteName = c.Args().Get(0)
@@ -3373,7 +3377,7 @@ func (app *earthlyApp) actionSatelliteList(c *cli.Context) error {
 	app.commandName = "list"
 
 	if c.NArg() != 0 {
-		return errors.New("invalid number of arguments provided")
+		return errors.New("command does not accept any arguments")
 	}
 
 	app.console.PrintPhaseHeader("1. Finding Satellites 🕵️", false, "")
@@ -3402,7 +3406,7 @@ func (app *earthlyApp) actionSatelliteDestroy(c *cli.Context) error {
 	app.commandName = "launch"
 
 	if c.NArg() != 1 {
-		return errors.New("invalid number of arguments provided")
+		return errors.New("satellite name is required")
 	}
 
 	app.satelliteName = c.Args().Get(0)
@@ -3436,7 +3440,7 @@ func (app *earthlyApp) actionSatelliteSelect(c *cli.Context) error {
 	app.commandName = "select"
 
 	if c.NArg() != 1 {
-		return errors.New("invalid number of arguments provided")
+		return errors.New("satellite name is required")
 	}
 
 	app.satelliteName = c.Args().Get(0)
@@ -3482,7 +3486,7 @@ func (app *earthlyApp) actionSatelliteUnselect(c *cli.Context) error {
 	app.commandName = "unselect"
 
 	if c.NArg() != 0 {
-		return errors.New("invalid number of arguments provided")
+		return errors.New("command does not accept any arguments")
 	}
 
 	app.satelliteName = c.Args().Get(0)
