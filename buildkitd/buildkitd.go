@@ -11,14 +11,14 @@ import (
 	"sync"
 	"time"
 
-	"github.com/moby/buildkit/client"
-	_ "github.com/moby/buildkit/client/connhelper/dockercontainer" // Load "docker-container://" helper.
-	"github.com/pkg/errors"
-
 	"github.com/earthly/earthly/conslogging"
 	"github.com/earthly/earthly/util/cliutil"
 	"github.com/earthly/earthly/util/containerutil"
 	"github.com/earthly/earthly/util/fileutil"
+	"github.com/moby/buildkit/client"
+	_ "github.com/moby/buildkit/client/connhelper/dockercontainer" // Load "docker-container://" helper.
+	"github.com/pkg/errors"
+
 )
 
 var (
