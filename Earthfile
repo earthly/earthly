@@ -40,8 +40,7 @@ code:
         RUN go mod edit -replace github.com/moby/buildkit=/buildkit
         RUN go mod download
     END
-    ARG USERARCH
-    COPY --platform=linux/$USERARCH ./ast/parser+parser/*.go ./ast/parser/
+    COPY ./ast/parser+parser/*.go ./ast/parser/
     COPY --dir analytics autocomplete buildcontext builder cleanup cmd config conslogging debugger dockertar \
         docker2earthly domain features outmon slog cloud states util variables ./
     COPY --dir buildkitd/buildkitd.go buildkitd/settings.go buildkitd/certificates.go buildkitd/
