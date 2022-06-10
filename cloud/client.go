@@ -103,6 +103,7 @@ type Client interface {
 	LaunchSatellite(name, org string) (*SatelliteInstance, error)
 	GetOrgID(name string) (string, error)
 	ListSatellites(orgID string) ([]SatelliteInstance, error)
+	GetSatellite(name, orgID string) (*SatelliteInstance, error)
 	DeleteSatellite(name, orgID string) error
 }
 
@@ -1048,6 +1049,28 @@ func (c *client) ListSatellites(orgID string) ([]SatelliteInstance, error) {
 		}
 	}
 	return instances, nil
+}
+
+func (c *client) GetSatellite(name, orgID string) (*SatelliteInstance, error) {
+	url := fmt.Sprintf("/api/v0/satellites/%s?orgId=%s", name, orgID)
+	status, body, err := c.doCall("GET", url, withAuth())
+	if err != nil {
+		return nil, err
+	}
+	if status != http.StatusOK {
+		return nil, errors.Errorf("failed listing satellites: %s", body)
+	}
+	var resp pipelinesapi.GetSatelliteResponse
+	err = c.jm.Unmarshal(bytes.NewReader([]byte(body)), &resp)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to unmarshal listTokens response")
+	}
+	return &SatelliteInstance{
+		Name:     name,
+		Status:   resp.Status.String(),
+		Version:  resp.Version,
+		Platform: resp.Platform,
+	}, nil
 }
 
 func (c *client) DeleteSatellite(name, orgID string) error {
