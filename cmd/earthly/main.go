@@ -1062,7 +1062,7 @@ Set up a whole custom git repository for a server called example.com, using a si
 				"	as well as run builds in native architectures independent of where the Earthly client is invoked.\n" +
 				"	Note: this feature is currently experimental.\n" +
 				"	If you'd like to try it out, please contact us via Slack to be added to the beta testers group.",
-			UsageText:   "earthly satellite (launch|list|destroy|unselect)",
+			UsageText:   "earthly satellite (launch|ls|inspect|select|unselect|rm)",
 			Description: "Create and manage Earthly build Satellites",
 			Subcommands: []*cli.Command{
 				{
@@ -1081,10 +1081,10 @@ Set up a whole custom git repository for a server called example.com, using a si
 					},
 				},
 				{
-					Name:        "destroy",
+					Name:        "rm",
 					Description: "Destroy an Earthly Satellite",
-					UsageText: "earthly satellite destroy <satellite-name>\n" +
-						"	earthly satellite destroy --org <organization-name> <satellite-name>",
+					UsageText: "earthly satellite rm <satellite-name>\n" +
+						"	earthly satellite rm --org <organization-name> <satellite-name>",
 					Action: app.actionSatelliteDestroy,
 					Flags: []cli.Flag{
 						&cli.StringFlag{
@@ -1096,10 +1096,10 @@ Set up a whole custom git repository for a server called example.com, using a si
 					},
 				},
 				{
-					Name:        "list",
+					Name:        "ls",
 					Description: "List your Earthly Satellites",
 					UsageText: "earthly satellite list\n" +
-						"	earthly satellite list --org <organization-name>",
+						"	earthly satellite ls--org <organization-name>",
 					Action: app.actionSatelliteList,
 					Flags: []cli.Flag{
 						&cli.StringFlag{
@@ -1111,10 +1111,10 @@ Set up a whole custom git repository for a server called example.com, using a si
 					},
 				},
 				{
-					Name:        "describe",
+					Name:        "inspect",
 					Description: "Show additional details about a Satellite instance",
-					UsageText: "earthly satellite describe <satellite-name>\n" +
-						"	earthly satellite list --org <organization-name> <satellite-name>",
+					UsageText: "earthly satellite inspect <satellite-name>\n" +
+						"	earthly satellite inspect --org <organization-name> <satellite-name>",
 					Action: app.actionSatelliteDescribe,
 					Flags: []cli.Flag{
 						&cli.StringFlag{
@@ -1296,15 +1296,19 @@ func (app *earthlyApp) configureSatellite(cc cloud.Client) error {
 		return nil
 	}
 
-	app.console.Printf("Using Satellite: %s", app.satelliteName)
-
 	// When using a satellite, interactive and local do not work; as they are not SSL nor routable yet.
 	app.console.Warnf("Note: the Interactive Debugger, Interactive RUN commands, and Local Registries do not yet work on Earthly Satellites.")
 
 	// Set up extra settings needed for buildkit RPC metadata
 	if app.cfg.Satellite.Name != "" {
+		app.satelliteName = app.cfg.Satellite.Name
+		app.satelliteOrg = app.cfg.Satellite.Org
+		orgID, err := app.getSatelliteOrgID(cc)
+		if err != nil {
+			return err
+		}
 		app.buildkitdSettings.SatelliteName = app.cfg.Satellite.Name
-		app.buildkitdSettings.SatelliteOrg = app.cfg.Satellite.Org
+		app.buildkitdSettings.SatelliteOrgID = orgID
 		if app.satelliteAddress != "" {
 			app.buildkitdSettings.BuildkitAddress = app.satelliteAddress
 		} else {
@@ -1319,6 +1323,7 @@ func (app *earthlyApp) configureSatellite(cc cloud.Client) error {
 
 	// TODO (dchw) what other settings might we want to override here?
 
+	app.console.Printf("Connecting to Satellite (%s)", app.satelliteName)
 	return nil
 }
 
@@ -3307,7 +3312,7 @@ func (app *earthlyApp) actionListTargets(c *cli.Context) error {
 	return nil
 }
 
-func (app *earthlyApp) useSatellite(c *cli.Context, satelliteName, orgID string) error {
+func (app *earthlyApp) useSatellite(c *cli.Context, satelliteName, orgName string) error {
 	inConfig, err := config.ReadConfigFile(app.configPath)
 	if err != nil {
 		if c.IsSet("config") || !errors.Is(err, os.ErrNotExist) {
@@ -3322,11 +3327,11 @@ func (app *earthlyApp) useSatellite(c *cli.Context, satelliteName, orgID string)
 	// Update in-place so we can use it later, assuming the config change was successful.
 	app.cfg.Satellite.Name = satelliteName
 
-	newConfig, err = config.Upsert(newConfig, "satellite.org", orgID)
+	newConfig, err = config.Upsert(newConfig, "satellite.org", orgName)
 	if err != nil {
 		return errors.Wrap(err, "could not update satellite name")
 	}
-	app.cfg.Satellite.Org = orgID
+	app.cfg.Satellite.Org = orgName
 	err = config.WriteConfigFile(app.configPath, newConfig)
 	if err != nil {
 		return errors.Wrap(err, "could not save config")
@@ -3337,7 +3342,11 @@ func (app *earthlyApp) useSatellite(c *cli.Context, satelliteName, orgID string)
 
 func (app *earthlyApp) printSatellites(satellites []cloud.SatelliteInstance) {
 	for _, satellite := range satellites {
-		app.console.Printf("name: %s, selected: %t", satellite.Name, app.cfg.Satellite.Name == satellite.Name)
+		if app.cfg.Satellite.Name == satellite.Name {
+			app.console.Printf("* %s", satellite.Name)
+		} else {
+			app.console.Printf("  %s", satellite.Name)
+		}
 	}
 }
 
@@ -3514,7 +3523,7 @@ func (app *earthlyApp) actionSatelliteSelect(c *cli.Context) error {
 	found := false
 	for _, s := range satellites {
 		if app.satelliteName == s.Name {
-			err = app.useSatellite(c, s.Name, orgID)
+			err = app.useSatellite(c, s.Name, app.satelliteOrg)
 			if err != nil {
 				return errors.Wrapf(err, "could not select satellite %s", app.satelliteName)
 			}
