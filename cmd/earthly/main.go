@@ -715,8 +715,9 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 			},
 		},
 		{
-			Name:  "org",
-			Usage: "Earthly organization administration *experimental*",
+			Name:    "org",
+			Aliases: []string{"orgs"},
+			Usage:   "Earthly organization administration *experimental*",
 			Subcommands: []*cli.Command{
 				{
 					Name:      "create",
@@ -725,9 +726,10 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 					Action:    app.actionOrgCreate,
 				},
 				{
-					Name:      "list",
+					Name:      "ls",
+					Aliases:   []string{"list"},
 					Usage:     "List organizations you belong to",
-					UsageText: "earthly [options] org list",
+					UsageText: "earthly [options] org ls",
 					Action:    app.actionOrgList,
 				},
 				{
@@ -778,16 +780,17 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 			},
 		},
 		{
-			Name:        "secrets",
+			Name:        "secret",
+			Aliases:     []string{"secrets"},
 			Usage:       "Earthly secrets",
 			Description: "Manage cloud secrets *experimental*",
 			Subcommands: []*cli.Command{
 				{
 					Name:  "set",
 					Usage: "Stores a secret in the secrets store",
-					UsageText: "earthly [options] secrets set <path> <value>\n" +
-						"   earthly [options] secrets set --file <local-path> <path>\n" +
-						"   earthly [options] secrets set --file <local-path> <path>",
+					UsageText: "earthly [options] secret set <path> <value>\n" +
+						"   earthly [options] secret set --file <local-path> <path>\n" +
+						"   earthly [options] secret set --file <local-path> <path>",
 					Action: app.actionSecretsSet,
 					Flags: []cli.Flag{
 						&cli.StringFlag{
@@ -808,7 +811,7 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 					Name:      "get",
 					Action:    app.actionSecretsGet,
 					Usage:     "Retrieve a secret from the secrets store",
-					UsageText: "earthly [options] secrets get [options] <path>",
+					UsageText: "earthly [options] secret get [options] <path>",
 					Flags: []cli.Flag{
 						&cli.BoolFlag{
 							Aliases:     []string{"n"},
@@ -820,13 +823,13 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 				{
 					Name:      "ls",
 					Usage:     "List secrets in the secrets store",
-					UsageText: "earthly [options] secrets ls [<path>]",
+					UsageText: "earthly [options] secret ls [<path>]",
 					Action:    app.actionSecretsList,
 				},
 				{
 					Name:      "rm",
 					Usage:     "Removes a secret from the secrets store",
-					UsageText: "earthly [options] secrets rm <path>",
+					UsageText: "earthly [options] secret rm <path>",
 					Action:    app.actionSecretsRemove,
 				},
 			},
@@ -1056,7 +1059,8 @@ Set up a whole custom git repository for a server called example.com, using a si
 			},
 		},
 		{
-			Name: "satellite",
+			Name:    "satellite",
+			Aliases: []string{"satellites"},
 			Usage: "Launch and use a Satellite runner as remote backend for Earthly builds.\n" +
 				"	Satellites can be used to optimize and share cache between multiple builds and users,\n" +
 				"	as well as run builds in native architectures independent of where the Earthly client is invoked.\n" +
@@ -1099,7 +1103,7 @@ Set up a whole custom git repository for a server called example.com, using a si
 					Name:        "ls",
 					Description: "List your Earthly Satellites",
 					UsageText: "earthly satellite list\n" +
-						"	earthly satellite ls--org <organization-name>",
+						"	earthly satellite ls --org <organization-name>",
 					Action: app.actionSatelliteList,
 					Flags: []cli.Flag{
 						&cli.StringFlag{
