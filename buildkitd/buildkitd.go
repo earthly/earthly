@@ -37,6 +37,10 @@ func NewClient(ctx context.Context, console conslogging.ConsoleLogger, image, co
 	}
 
 	if !containerutil.IsLocal(settings.BuildkitAddress) {
+		if settings.SatelliteName != "" {
+			console.WithPrefix("buildkitd").Printf("Connecting to Satellite (%s)", settings.SatelliteName)
+		}
+
 		err := waitForConnection(ctx, containerName, settings.BuildkitAddress, settings.Timeout, fe, opts...)
 		if err != nil {
 			return nil, errors.Wrap(err, "connect provided buildkit")

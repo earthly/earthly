@@ -1071,6 +1071,7 @@ Set up a whole custom git repository for a server called example.com, using a si
 			Subcommands: []*cli.Command{
 				{
 					Name:        "launch",
+					Usage:       "Launch a new Earthly Satellite",
 					Description: "Launch a new Earthly Satellite",
 					UsageText: "earthly satellite launch <satellite-name>\n" +
 						"	earthly satellite launch --org <organization-name> <satellite-name>",
@@ -1086,6 +1087,7 @@ Set up a whole custom git repository for a server called example.com, using a si
 				},
 				{
 					Name:        "rm",
+					Usage:       "Destroy an Earthly Satellite",
 					Description: "Destroy an Earthly Satellite",
 					UsageText: "earthly satellite rm <satellite-name>\n" +
 						"	earthly satellite rm --org <organization-name> <satellite-name>",
@@ -1102,6 +1104,7 @@ Set up a whole custom git repository for a server called example.com, using a si
 				{
 					Name:        "ls",
 					Description: "List your Earthly Satellites",
+					Usage:       "List your Earthly Satellites",
 					UsageText: "earthly satellite list\n" +
 						"	earthly satellite ls --org <organization-name>",
 					Action: app.actionSatelliteList,
@@ -1131,7 +1134,8 @@ Set up a whole custom git repository for a server called example.com, using a si
 				},
 				{
 					Name:        "select",
-					Description: "Choose which satellite to use to build your app.",
+					Usage:       "Choose which satellite to use to build your app",
+					Description: "Choose which satellite to use to build your app",
 					UsageText: "earthly satellite select <satellite-name>\n" +
 						"	earthly satellite select --org <organization-name> <satellite-name>",
 					Action: app.actionSatelliteSelect,
@@ -1146,7 +1150,8 @@ Set up a whole custom git repository for a server called example.com, using a si
 				},
 				{
 					Name:        "unselect",
-					Description: "Remove any currently selected Satellite instance from your Earthly configuration.",
+					Usage:       "Remove any currently selected Satellite instance from your Earthly configuration",
+					Description: "Remove any currently selected Satellite instance from your Earthly configuration",
 					UsageText:   "earthly satellite unselect",
 					Action:      app.actionSatelliteUnselect,
 				},
@@ -1304,21 +1309,31 @@ func (app *earthlyApp) configureSatellite(cc cloud.Client) error {
 	app.console.Warnf("Note: the Interactive Debugger, Interactive RUN commands, and Local Registries do not yet work on Earthly Satellites.")
 
 	// Set up extra settings needed for buildkit RPC metadata
-	if app.cfg.Satellite.Name != "" {
-		app.satelliteName = app.cfg.Satellite.Name
-		app.satelliteOrg = app.cfg.Satellite.Org
-		orgID, err := app.getSatelliteOrgID(cc)
-		if err != nil {
-			return err
-		}
-		app.buildkitdSettings.SatelliteName = app.cfg.Satellite.Name
-		app.buildkitdSettings.SatelliteOrgID = orgID
-		if app.satelliteAddress != "" {
-			app.buildkitdSettings.BuildkitAddress = app.satelliteAddress
-		} else {
-			app.buildkitdSettings.BuildkitAddress = containerutil.SatelliteAddress
-		}
+	app.satelliteName = app.cfg.Satellite.Name
+	app.satelliteOrg = app.cfg.Satellite.Org
+	orgID, err := app.getSatelliteOrgID(cc)
+	if err != nil {
+		return err
 	}
+	app.buildkitdSettings.SatelliteName = app.cfg.Satellite.Name
+	app.buildkitdSettings.SatelliteOrgID = orgID
+	if app.satelliteAddress != "" {
+		app.buildkitdSettings.BuildkitAddress = app.satelliteAddress
+	} else {
+		app.buildkitdSettings.BuildkitAddress = containerutil.SatelliteAddress
+	}
+
+	app.console.Warnf("") // newline
+	app.console.Warnf("The following feature flags are recommended for use with Satellites and will be auto-enabled:")
+	app.console.Warnf("--new-platform, --use-registry-for-with-docker")
+	app.console.Warnf("") // newline
+
+	if app.featureFlagOverrides == "" {
+		app.featureFlagOverrides = "new-platform,use-registry-for-with-docker"
+	} else {
+		app.featureFlagOverrides = fmt.Sprintf("%s,new-platform,use-registry-for-with-docker", app.featureFlagOverrides)
+	}
+
 	token, err := cc.GetAuthToken()
 	if err != nil {
 		return errors.Wrap(err, "failed to get auth token")
@@ -1326,8 +1341,6 @@ func (app *earthlyApp) configureSatellite(cc cloud.Client) error {
 	app.buildkitdSettings.SatelliteToken = token
 
 	// TODO (dchw) what other settings might we want to override here?
-
-	app.console.Printf("Connecting to Satellite (%s)", app.satelliteName)
 	return nil
 }
 
