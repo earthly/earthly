@@ -1063,7 +1063,7 @@ Set up a whole custom git repository for a server called example.com, using a si
 				"	Note: this feature is currently experimental.\n" +
 				"	If you'd like to try it out, please contact us via Slack to be added to the beta testers group.",
 			UsageText:   "earthly satellite (launch|ls|inspect|select|unselect|rm)",
-			Description: "Create and manage Earthly build Satellites",
+			Description: "Create and manage Earthly Satellites",
 			Subcommands: []*cli.Command{
 				{
 					Name:        "launch",
@@ -3391,7 +3391,8 @@ func (app *earthlyApp) actionSatelliteLaunch(c *cli.Context) error {
 		return err
 	}
 
-	satellite, err := cc.LaunchSatellite(app.satelliteName, orgID)
+	app.console.Warnf("Launching Satellite. This could take a moment...")
+	_, err = cc.LaunchSatellite(app.satelliteName, orgID)
 	if err != nil {
 		return errors.Wrapf(err, "failed to create satellite %s", app.satelliteName)
 	}
@@ -3401,7 +3402,12 @@ func (app *earthlyApp) actionSatelliteLaunch(c *cli.Context) error {
 		return errors.Wrap(err, "could not configure satellite for use")
 	}
 
-	app.printSatellites([]cloud.SatelliteInstance{*satellite})
+	satellites, err := cc.ListSatellites(orgID)
+	if err != nil {
+		return err
+	}
+
+	app.printSatellites(satellites)
 	return nil
 }
 
@@ -3450,6 +3456,7 @@ func (app *earthlyApp) actionSatelliteDestroy(c *cli.Context) error {
 		return err
 	}
 
+	app.console.Warnf("Destroying Satellite. This could take a moment...")
 	err = cc.DeleteSatellite(app.satelliteName, orgID)
 	if err != nil {
 		return errors.Wrapf(err, "failed to delete satellite %s", app.satelliteName)
