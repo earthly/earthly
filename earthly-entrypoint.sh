@@ -57,6 +57,12 @@ fi
 
 echo "Using $EARTHLY_BUILDKIT_HOST as buildkit daemon"
 
+if [ -n "$SRC_DIR" ]; then
+  echo 'Please note that SRC_DIR is deprecated. This script will no longer automatically switch to it in the future.'
+  echo 'Please change the container'"'"'s working directory instead (e.g. via docker run -w)'
+  cd "$SRC_DIR"
+fi
+
 if [ -n "$EARTHLY_EXEC_CMD" ]; then
     export earthly_config
     exec "$EARTHLY_EXEC_CMD"
