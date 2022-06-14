@@ -341,7 +341,7 @@ const (
 //       COMP_LINE="earthly -" COMP_POINT=$(echo -n $COMP_LINE | wc -c) go run cmd/earthly/main.go
 func GetPotentials(ctx context.Context, resolver *buildcontext.Resolver, gwClient gwclient.Client, compLine string, compPoint int, app *cli.App) ([]string, error) {
 	compLine = compLine[:compPoint]
-	subCommands := app.Commands
+	subCommands := getVisibleCommands(app.Commands)
 
 	// getWord returns the next word and a boolean if it is valid
 	// TODO this function does not handle escaped space, e.g.
