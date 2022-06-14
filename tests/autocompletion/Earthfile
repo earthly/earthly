@@ -21,7 +21,6 @@ config
 ls 
 org 
 prune 
-satellite 
 secret " > expected
     RUN COMP_LINE="earthly " COMP_POINT=8 earthly > actual
     RUN diff expected actual
@@ -38,7 +37,6 @@ docker2earthly
 ls 
 org 
 prune 
-satellite 
 secret " > expected
     RUN COMP_LINE="earthly " COMP_POINT=8 earthly > actual
     RUN diff expected actual

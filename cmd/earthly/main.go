@@ -1060,6 +1060,7 @@ Set up a whole custom git repository for a server called example.com, using a si
 		},
 		{
 			Name:    "satellite",
+			Hidden:  true, // Temporarily hidden for private beta testing
 			Aliases: []string{"satellites"},
 			Usage: "Launch and use a Satellite runner as remote backend for Earthly builds.\n" +
 				"	Satellites can be used to optimize and share cache between multiple builds and users,\n" +
