@@ -54,7 +54,7 @@ volumes:
 
 The location within the container for this temporary folder is configurable with the `EARTHLY_TMP_DIR` environment variable.
 
-The `earthly/earthly` image will expect to find the source code (with `Earthfile`) rooted in `/workspace`. To configure this, ensure that the `SRC_DIR` environment variable is set correctly. In the case of the example, we are building a remote target, so mounting a dummy volume is needed.
+The `earthly/earthly` image will expect to find the source code (with `Earthfile`) rooted in the default working directory, which is set to `/workspace`.
 
 ## Setup (Remote `earthly/buildkitd`)
 

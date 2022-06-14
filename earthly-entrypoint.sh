@@ -57,13 +57,11 @@ fi
 
 echo "Using $EARTHLY_BUILDKIT_HOST as buildkit daemon"
 
-# Use the desired target dir for running a target, saves typing if you use the convention
-BASE_DIR="/workspace"
 if [ -n "$SRC_DIR" ]; then
-  BASE_DIR="$SRC_DIR"
+  echo 'Please note that SRC_DIR is deprecated. This script will no longer automatically switch to it in the future.'
+  echo 'Please change the container'"'"'s working directory instead (e.g. via docker run -w)'
+  cd "$SRC_DIR"
 fi
-
-cd "$BASE_DIR"
 
 if [ -n "$EARTHLY_EXEC_CMD" ]; then
     export earthly_config

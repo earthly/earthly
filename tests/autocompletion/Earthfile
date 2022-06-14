@@ -14,8 +14,7 @@ FROM ../..+earthly-integration-test-base \
 ENV EARTHLY_SHOW_HIDDEN=0
 
 test-root-commands:
-    RUN echo "./
-account 
+    RUN echo "account 
 bootstrap 
 config 
 ls 
@@ -27,8 +26,7 @@ secrets " > expected
 
 test-hidden-root-commands:
     ENV EARTHLY_SHOW_HIDDEN=1
-    RUN echo "./
-account 
+    RUN echo "account 
 bootstrap 
 config 
 debug 

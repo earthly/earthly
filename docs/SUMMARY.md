@@ -51,7 +51,8 @@
 ## 🔧 CI Integration
 
 * [Overview](ci-integration/overview.md)
-* [Build An Earthly CI Image](ci-integration/build-an-earthly-ci-image.md)
+* [Use the Earthly CI Image](ci-integration/use-earthly-ci-image.md)
+* [Build your own Earthly CI Image](ci-integration/build-an-earthly-ci-image.md)
 * [Pull-Through Cache](ci-integration/pull-through-cache.md)
 * [Remote BuildKit](ci-integration/remote-buildkit.md)
 * Vendor-Specific Guides
