@@ -313,11 +313,21 @@ func padStrings(flags []string, prefix, suffix string) []string {
 	return padded
 }
 
-func getVisibleCommands(commands []*cli.Command) []string {
+func getVisibleCommandNames(commands []*cli.Command) []string {
 	visibleCommands := []string{}
 	for _, cmd := range commands {
 		if !cmd.Hidden {
 			visibleCommands = append(visibleCommands, cmd.Name)
+		}
+	}
+	return visibleCommands
+}
+
+func getVisibleCommands(commands []*cli.Command) []*cli.Command {
+	var visibleCommands []*cli.Command
+	for _, cmd := range commands {
+		if !cmd.Hidden {
+			visibleCommands = append(visibleCommands, cmd)
 		}
 	}
 	return visibleCommands
@@ -438,10 +448,10 @@ func GetPotentials(ctx context.Context, resolver *buildcontext.Resolver, gwClien
 
 	case rootState, commandState:
 		if cmd != nil {
-			potentials = getVisibleCommands(cmd.Subcommands)
+			potentials = getVisibleCommandNames(cmd.Subcommands)
 			potentials = padStrings(potentials, "", " ")
 		} else {
-			potentials = getVisibleCommands(app.Commands)
+			potentials = getVisibleCommandNames(app.Commands)
 			potentials = padStrings(potentials, "", " ")
 			if containsDirectories(".") {
 				potentials = append(potentials, "./")
