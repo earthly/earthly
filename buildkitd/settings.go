@@ -32,7 +32,7 @@ type Settings struct {
 	IPTables             string
 	MaxParallelism       int
 	SatelliteName        string `hash:"ignore"`
-	SatelliteOrg         string `hash:"ignore"`
+	SatelliteOrgID       string `hash:"ignore"`
 	SatelliteToken       string `hash:"ignore"`
 }
 

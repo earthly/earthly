@@ -11,13 +11,14 @@ import (
 	"sync"
 	"time"
 
+	"github.com/moby/buildkit/client"
+	_ "github.com/moby/buildkit/client/connhelper/dockercontainer" // Load "docker-container://" helper.
+	"github.com/pkg/errors"
+
 	"github.com/earthly/earthly/conslogging"
 	"github.com/earthly/earthly/util/cliutil"
 	"github.com/earthly/earthly/util/containerutil"
 	"github.com/earthly/earthly/util/fileutil"
-	"github.com/moby/buildkit/client"
-	_ "github.com/moby/buildkit/client/connhelper/dockercontainer" // Load "docker-container://" helper.
-	"github.com/pkg/errors"
 )
 
 var (
@@ -36,6 +37,10 @@ func NewClient(ctx context.Context, console conslogging.ConsoleLogger, image, co
 	}
 
 	if !containerutil.IsLocal(settings.BuildkitAddress) {
+		if settings.SatelliteName != "" {
+			console.WithPrefix("satellite").Printf("Connecting to %s", settings.SatelliteName)
+		}
+
 		err := waitForConnection(ctx, containerName, settings.BuildkitAddress, settings.Timeout, fe, opts...)
 		if err != nil {
 			return nil, errors.Wrap(err, "connect provided buildkit")
@@ -755,7 +760,7 @@ func addRequiredOpts(settings Settings, opts ...client.ClientOpt) ([]client.Clie
 	if settings.SatelliteName != "" {
 		return append(opts, client.WithAdditionalMetadataContext(
 			"satellite_name", settings.SatelliteName,
-			"satellite_org", settings.SatelliteOrg,
+			"satellite_org", settings.SatelliteOrgID,
 			"satellite_token", settings.SatelliteToken),
 		), nil
 	}

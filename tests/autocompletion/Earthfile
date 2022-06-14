@@ -20,7 +20,7 @@ config
 ls 
 org 
 prune 
-secrets " > expected
+secret " > expected
     RUN COMP_LINE="earthly " COMP_POINT=8 earthly > actual
     RUN diff expected actual
 
@@ -35,7 +35,8 @@ docker2earthly
 ls 
 org 
 prune 
-secrets " > expected
+satellite 
+secret " > expected
     RUN COMP_LINE="earthly " COMP_POINT=8 earthly > actual
     RUN diff expected actual
 

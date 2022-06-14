@@ -166,6 +166,8 @@ type cliFlags struct {
 	lsShowArgs                bool
 	containerFrontend         containerutil.ContainerFrontend
 	logSharing                bool
+	satelliteName             string
+	satelliteOrg              string
 }
 
 var (
@@ -713,8 +715,9 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 			},
 		},
 		{
-			Name:  "org",
-			Usage: "Earthly organization administration *experimental*",
+			Name:    "org",
+			Aliases: []string{"orgs"},
+			Usage:   "Earthly organization administration *experimental*",
 			Subcommands: []*cli.Command{
 				{
 					Name:      "create",
@@ -723,9 +726,10 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 					Action:    app.actionOrgCreate,
 				},
 				{
-					Name:      "list",
+					Name:      "ls",
+					Aliases:   []string{"list"},
 					Usage:     "List organizations you belong to",
-					UsageText: "earthly [options] org list",
+					UsageText: "earthly [options] org ls",
 					Action:    app.actionOrgList,
 				},
 				{
@@ -776,16 +780,17 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 			},
 		},
 		{
-			Name:        "secrets",
+			Name:        "secret",
+			Aliases:     []string{"secrets"},
 			Usage:       "Earthly secrets",
 			Description: "Manage cloud secrets *experimental*",
 			Subcommands: []*cli.Command{
 				{
 					Name:  "set",
 					Usage: "Stores a secret in the secrets store",
-					UsageText: "earthly [options] secrets set <path> <value>\n" +
-						"   earthly [options] secrets set --file <local-path> <path>\n" +
-						"   earthly [options] secrets set --file <local-path> <path>",
+					UsageText: "earthly [options] secret set <path> <value>\n" +
+						"   earthly [options] secret set --file <local-path> <path>\n" +
+						"   earthly [options] secret set --file <local-path> <path>",
 					Action: app.actionSecretsSet,
 					Flags: []cli.Flag{
 						&cli.StringFlag{
@@ -806,7 +811,7 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 					Name:      "get",
 					Action:    app.actionSecretsGet,
 					Usage:     "Retrieve a secret from the secrets store",
-					UsageText: "earthly [options] secrets get [options] <path>",
+					UsageText: "earthly [options] secret get [options] <path>",
 					Flags: []cli.Flag{
 						&cli.BoolFlag{
 							Aliases:     []string{"n"},
@@ -818,13 +823,13 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 				{
 					Name:      "ls",
 					Usage:     "List secrets in the secrets store",
-					UsageText: "earthly [options] secrets ls [<path>]",
+					UsageText: "earthly [options] secret ls [<path>]",
 					Action:    app.actionSecretsList,
 				},
 				{
 					Name:      "rm",
 					Usage:     "Removes a secret from the secrets store",
-					UsageText: "earthly [options] secrets rm <path>",
+					UsageText: "earthly [options] secret rm <path>",
 					Action:    app.actionSecretsRemove,
 				},
 			},
@@ -1053,6 +1058,107 @@ Set up a whole custom git repository for a server called example.com, using a si
 				},
 			},
 		},
+		{
+			Name:    "satellite",
+			Hidden:  true, // Temporarily hidden for private beta testing
+			Aliases: []string{"satellites"},
+			Usage: "Launch and use a Satellite runner as remote backend for Earthly builds.\n" +
+				"	Satellites can be used to optimize and share cache between multiple builds and users,\n" +
+				"	as well as run builds in native architectures independent of where the Earthly client is invoked.\n" +
+				"	Note: this feature is currently experimental.\n" +
+				"	If you'd like to try it out, please contact us via Slack to be added to the beta testers group.",
+			UsageText:   "earthly satellite (launch|ls|inspect|select|unselect|rm)",
+			Description: "Create and manage Earthly Satellites",
+			Subcommands: []*cli.Command{
+				{
+					Name:        "launch",
+					Usage:       "Launch a new Earthly Satellite",
+					Description: "Launch a new Earthly Satellite",
+					UsageText: "earthly satellite launch <satellite-name>\n" +
+						"	earthly satellite launch --org <organization-name> <satellite-name>",
+					Action: app.actionSatelliteLaunch,
+					Flags: []cli.Flag{
+						&cli.StringFlag{
+							Name:        "org",
+							Usage:       "The name of the organization the satellite belongs to. Required when user is a member of multiple.",
+							Required:    false,
+							Destination: &app.satelliteOrg,
+						},
+					},
+				},
+				{
+					Name:        "rm",
+					Usage:       "Destroy an Earthly Satellite",
+					Description: "Destroy an Earthly Satellite",
+					UsageText: "earthly satellite rm <satellite-name>\n" +
+						"	earthly satellite rm --org <organization-name> <satellite-name>",
+					Action: app.actionSatelliteDestroy,
+					Flags: []cli.Flag{
+						&cli.StringFlag{
+							Name:        "org",
+							Usage:       "The name of the organization the satellite belongs to. Required when user is a member of multiple.",
+							Required:    false,
+							Destination: &app.satelliteOrg,
+						},
+					},
+				},
+				{
+					Name:        "ls",
+					Description: "List your Earthly Satellites",
+					Usage:       "List your Earthly Satellites",
+					UsageText: "earthly satellite ls\n" +
+						"	earthly satellite ls --org <organization-name>",
+					Action: app.actionSatelliteList,
+					Flags: []cli.Flag{
+						&cli.StringFlag{
+							Name:        "org",
+							Usage:       "The name of the organization the satellite belongs to. Required when user is a member of multiple.",
+							Required:    false,
+							Destination: &app.satelliteOrg,
+						},
+					},
+				},
+				{
+					Name:        "inspect",
+					Description: "Show additional details about a Satellite instance",
+					Usage:       "Show additional details about a Satellite instance",
+					UsageText: "earthly satellite inspect <satellite-name>\n" +
+						"	earthly satellite inspect --org <organization-name> <satellite-name>",
+					Action: app.actionSatelliteDescribe,
+					Flags: []cli.Flag{
+						&cli.StringFlag{
+							Name:        "org",
+							Usage:       "The name of the organization the satellite belongs to. Required when user is a member of multiple.",
+							Required:    false,
+							Destination: &app.satelliteOrg,
+						},
+					},
+				},
+				{
+					Name:        "select",
+					Usage:       "Choose which satellite to use to build your app",
+					Description: "Choose which satellite to use to build your app",
+					UsageText: "earthly satellite select <satellite-name>\n" +
+						"	earthly satellite select --org <organization-name> <satellite-name>",
+					Action: app.actionSatelliteSelect,
+					Flags: []cli.Flag{
+						&cli.StringFlag{
+							Name:        "org",
+							Usage:       "The name of the organization the satellite belongs to. Required when user is a member of multiple.",
+							Required:    false,
+							Destination: &app.satelliteOrg,
+						},
+					},
+				},
+				{
+					Name:        "unselect",
+					Usage:       "Remove any currently selected Satellite instance from your Earthly configuration",
+					Description: "Remove any currently selected Satellite instance from your Earthly configuration",
+					UsageText:   "earthly satellite unselect",
+					Action:      app.actionSatelliteUnselect,
+				},
+			},
+		},
 	}
 
 	app.cliApp.Before = app.before
@@ -1205,9 +1311,29 @@ func (app *earthlyApp) configureSatellite(cc cloud.Client) error {
 	app.console.Warnf("Note: the Interactive Debugger, Interactive RUN commands, and Local Registries do not yet work on Earthly Satellites.")
 
 	// Set up extra settings needed for buildkit RPC metadata
-	app.buildkitdSettings.BuildkitAddress = app.satelliteAddress
+	app.satelliteName = app.cfg.Satellite.Name
+	app.satelliteOrg = app.cfg.Satellite.Org
+	orgID, err := app.getSatelliteOrgID(cc)
+	if err != nil {
+		return err
+	}
 	app.buildkitdSettings.SatelliteName = app.cfg.Satellite.Name
-	app.buildkitdSettings.SatelliteOrg = app.cfg.Satellite.Org
+	app.buildkitdSettings.SatelliteOrgID = orgID
+	if app.satelliteAddress != "" {
+		app.buildkitdSettings.BuildkitAddress = app.satelliteAddress
+	} else {
+		app.buildkitdSettings.BuildkitAddress = containerutil.SatelliteAddress
+	}
+
+	app.console.Warnf("") // newline
+	app.console.Warnf("The following feature flags are recommended for use with Satellites and will be auto-enabled:")
+	app.console.Warnf("--new-platform, --use-registry-for-with-docker")
+	app.console.Warnf("") // newline
+
+	if app.featureFlagOverrides != "" {
+		app.featureFlagOverrides += ","
+	}
+	app.featureFlagOverrides += "new-platform,use-registry-for-with-docker"
 
 	token, err := cc.GetAuthToken()
 	if err != nil {
@@ -1216,7 +1342,6 @@ func (app *earthlyApp) configureSatellite(cc cloud.Client) error {
 	app.buildkitdSettings.SatelliteToken = token
 
 	// TODO (dchw) what other settings might we want to override here?
-
 	return nil
 }
 
@@ -3202,6 +3327,259 @@ func (app *earthlyApp) actionListTargets(c *cli.Context) error {
 			}
 		}
 	}
+	return nil
+}
+
+func (app *earthlyApp) useSatellite(c *cli.Context, satelliteName, orgName string) error {
+	inConfig, err := config.ReadConfigFile(app.configPath)
+	if err != nil {
+		if c.IsSet("config") || !errors.Is(err, os.ErrNotExist) {
+			return errors.Wrap(err, "read config")
+		}
+	}
+
+	newConfig, err := config.Upsert(inConfig, "satellite.name", satelliteName)
+	if err != nil {
+		return errors.Wrap(err, "could not update satellite name")
+	}
+	// Update in-place so we can use it later, assuming the config change was successful.
+	app.cfg.Satellite.Name = satelliteName
+
+	newConfig, err = config.Upsert(newConfig, "satellite.org", orgName)
+	if err != nil {
+		return errors.Wrap(err, "could not update satellite name")
+	}
+	app.cfg.Satellite.Org = orgName
+	err = config.WriteConfigFile(app.configPath, newConfig)
+	if err != nil {
+		return errors.Wrap(err, "could not save config")
+	}
+
+	return nil
+}
+
+func (app *earthlyApp) printSatellites(satellites []cloud.SatelliteInstance, orgID string) {
+	for _, satellite := range satellites {
+		if satellite.Name == app.cfg.Satellite.Name && satellite.Org == orgID {
+			fmt.Printf("* %s\n", satellite.Name)
+		} else {
+			fmt.Printf("  %s\n", satellite.Name)
+		}
+	}
+}
+
+func (app *earthlyApp) getSatelliteOrgID(cc cloud.Client) (string, error) {
+	var orgID string
+	if app.satelliteOrg == "" {
+		orgs, err := cc.ListOrgs()
+		if err != nil {
+			return "", errors.Wrap(err, "failed finding org")
+		}
+		if len(orgs) != 1 {
+			return "", errors.New("more than one organizations available - please specify the name of the organization using `--org`")
+		}
+		app.satelliteOrg = orgs[0].Name
+		orgID = orgs[0].ID
+	} else {
+		var err error
+		orgID, err = cc.GetOrgID(app.satelliteOrg)
+		if err != nil {
+			return "", errors.Wrap(err, "invalid org provided")
+		}
+	}
+	return orgID, nil
+}
+
+func (app *earthlyApp) actionSatelliteLaunch(c *cli.Context) error {
+	app.commandName = "launch"
+
+	if c.NArg() != 1 {
+		return errors.New("satellite name is required")
+	}
+
+	app.satelliteName = c.Args().Get(0)
+
+	cc, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
+	if err != nil {
+		return errors.Wrap(err, "failed to create cloud client")
+	}
+
+	orgID, err := app.getSatelliteOrgID(cc)
+	if err != nil {
+		return err
+	}
+
+	app.console.Printf("Launching Satellite. This could take a moment...")
+	_, err = cc.LaunchSatellite(app.satelliteName, orgID)
+	if err != nil {
+		return errors.Wrapf(err, "failed to create satellite %s", app.satelliteName)
+	}
+
+	err = app.useSatellite(c, app.satelliteName, app.satelliteOrg)
+	if err != nil {
+		return errors.Wrap(err, "could not configure satellite for use")
+	}
+
+	satellites, err := cc.ListSatellites(orgID)
+	if err != nil {
+		return err
+	}
+
+	app.printSatellites(satellites, orgID)
+	return nil
+}
+
+func (app *earthlyApp) actionSatelliteList(c *cli.Context) error {
+	app.commandName = "list"
+
+	if c.NArg() != 0 {
+		return errors.New("command does not accept any arguments")
+	}
+
+	cc, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
+	if err != nil {
+		return errors.Wrap(err, "failed to create cloud client")
+	}
+
+	orgID, err := app.getSatelliteOrgID(cc)
+	if err != nil {
+		return err
+	}
+
+	satellites, err := cc.ListSatellites(orgID)
+	if err != nil {
+		return err
+	}
+
+	app.printSatellites(satellites, orgID)
+	return nil
+}
+
+func (app *earthlyApp) actionSatelliteDestroy(c *cli.Context) error {
+	app.commandName = "launch"
+
+	if c.NArg() != 1 {
+		return errors.New("satellite name is required")
+	}
+
+	app.satelliteName = c.Args().Get(0)
+
+	cc, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
+	if err != nil {
+		return errors.Wrap(err, "failed to create cloud client")
+	}
+
+	orgID, err := app.getSatelliteOrgID(cc)
+	if err != nil {
+		return err
+	}
+
+	app.console.Printf("Destroying Satellite. This could take a moment...")
+	err = cc.DeleteSatellite(app.satelliteName, orgID)
+	if err != nil {
+		return errors.Wrapf(err, "failed to delete satellite %s", app.satelliteName)
+	}
+
+	if app.satelliteName == app.cfg.Satellite.Name {
+		err = app.useSatellite(c, "", "")
+		if err != nil {
+			return errors.Wrapf(err, "failed unselecting satellite")
+		}
+		app.console.Printf("Satellite has also been unselected")
+	}
+	return nil
+}
+
+func (app *earthlyApp) actionSatelliteDescribe(c *cli.Context) error {
+	app.commandName = "describe"
+
+	if c.NArg() != 1 {
+		return errors.New("satellite name is required")
+	}
+
+	app.satelliteName = c.Args().Get(0)
+
+	cc, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
+	if err != nil {
+		return errors.Wrap(err, "failed to create cloud client")
+	}
+
+	orgID, err := app.getSatelliteOrgID(cc)
+	if err != nil {
+		return err
+	}
+
+	satellite, err := cc.GetSatellite(app.satelliteName, orgID)
+	if err != nil {
+		return err
+	}
+
+	app.console.Printf("name: %s", satellite.Name)
+	app.console.Printf("version: %s", satellite.Version)
+	app.console.Printf("platform: %s", satellite.Platform)
+	app.console.Printf("status: %s", satellite.Status)
+	app.console.Printf("selected: %t", app.satelliteName == satellite.Name)
+	return nil
+}
+
+func (app *earthlyApp) actionSatelliteSelect(c *cli.Context) error {
+	app.commandName = "select"
+
+	if c.NArg() != 1 {
+		return errors.New("satellite name is required")
+	}
+
+	app.satelliteName = c.Args().Get(0)
+
+	cc, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
+	if err != nil {
+		return errors.Wrap(err, "failed to create cloud client")
+	}
+
+	orgID, err := app.getSatelliteOrgID(cc)
+	if err != nil {
+		return err
+	}
+
+	satellites, err := cc.ListSatellites(orgID)
+	if err != nil {
+		return err
+	}
+
+	found := false
+	for _, s := range satellites {
+		if app.satelliteName == s.Name {
+			err = app.useSatellite(c, s.Name, app.satelliteOrg)
+			if err != nil {
+				return errors.Wrapf(err, "could not select satellite %s", app.satelliteName)
+			}
+			found = true
+			break
+		}
+	}
+
+	if !found {
+		return fmt.Errorf("%s is not a valid satellite", app.satelliteName)
+	}
+
+	app.printSatellites(satellites, orgID)
+	return nil
+}
+
+func (app *earthlyApp) actionSatelliteUnselect(c *cli.Context) error {
+	app.commandName = "unselect"
+
+	if c.NArg() != 0 {
+		return errors.New("command does not accept any arguments")
+	}
+
+	app.satelliteName = c.Args().Get(0)
+
+	err := app.useSatellite(c, "", "")
+	if err != nil {
+		return errors.Wrap(err, "could not unselect satellite")
+	}
+
 	return nil
 }
 

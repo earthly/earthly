@@ -105,7 +105,7 @@ type GitConfig struct {
 // Satellite contains satellite config values
 type Satellite struct {
 	Name string `yaml:"name" help:"The name of the satellite to use"`
-	Org  string `yaml:"org"  help:"The org to whom the satellite belongs"`
+	Org  string `yaml:"org"  help:"The org name to whom the satellite belongs"`
 }
 
 // Config contains user's configuration values from ~/earthly/config.yml
