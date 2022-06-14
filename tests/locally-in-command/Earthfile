@@ -48,7 +48,6 @@ test-command-in-sub-dir:
 
 test-udc-that-calls-other-udc:
     WORKDIR /my/test
-    ENV SRC_DIR=/my/test # required for RUN_EARTHLY's earthly-entrypoint.sh to execute out of a dir other than /test
     RUN mkdir -p some/subdir/submarine
     COPY command.earth some/subdir/Earthfile
     COPY command-that-calls-command.earth some/subdir/submarine/Earthfile

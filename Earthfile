@@ -342,6 +342,7 @@ earthly-docker:
     ENV EARTHLY_IMAGE=true
     COPY earthly-entrypoint.sh /usr/bin/earthly-entrypoint.sh
     ENTRYPOINT ["/usr/bin/earthly-entrypoint.sh"]
+    WORKDIR /workspace
     ARG EARTHLY_TARGET_TAG_DOCKER
     ARG TAG="dev-$EARTHLY_TARGET_TAG_DOCKER"
     COPY (+earthly/earthly --VERSION=$TAG) /usr/bin/earthly
@@ -350,8 +351,8 @@ earthly-docker:
 earthly-integration-test-base:
     FROM +earthly-docker
     ENV NO_DOCKER=1
-    ENV SRC_DIR=/test
     ENV NETWORK_MODE=host
+    WORKDIR /test
 
     # The inner buildkit requires Docker hub creds to prevent rate-limiting issues.
     ARG DOCKERHUB_MIRROR

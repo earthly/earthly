@@ -57,14 +57,6 @@ fi
 
 echo "Using $EARTHLY_BUILDKIT_HOST as buildkit daemon"
 
-# Use the desired target dir for running a target, saves typing if you use the convention
-BASE_DIR="/workspace"
-if [ -n "$SRC_DIR" ]; then
-  BASE_DIR="$SRC_DIR"
-fi
-
-cd "$BASE_DIR"
-
 if [ -n "$EARTHLY_EXEC_CMD" ]; then
     export earthly_config
     exec "$EARTHLY_EXEC_CMD"
