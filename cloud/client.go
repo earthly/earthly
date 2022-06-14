@@ -61,6 +61,7 @@ type TokenDetail struct {
 // SatelliteInstance contains details about a remote Buildkit instance.
 type SatelliteInstance struct {
 	Name     string
+	Org      string
 	Status   string
 	Version  string
 	Platform string
@@ -1006,6 +1007,7 @@ func (c *client) LaunchSatellite(name, orgID string) (*SatelliteInstance, error)
 	}
 	return &SatelliteInstance{
 		Name:     name,
+		Org:      orgID,
 		Status:   resp.Status.String(),
 		Version:  resp.Version,
 		Platform: "linux/amd64",
@@ -1026,7 +1028,7 @@ func (c *client) GetOrgID(orgName string) (string, error) {
 }
 
 func (c *client) ListSatellites(orgID string) ([]SatelliteInstance, error) {
-	url := fmt.Sprintf("/api/v0/satellites?orgId=%s", orgID)
+	url := fmt.Sprintf("/api/v0/satellites?orgId=%s", url.QueryEscape(orgID))
 	status, body, err := c.doCall("GET", url, withAuth())
 	if err != nil {
 		return nil, err
@@ -1043,6 +1045,7 @@ func (c *client) ListSatellites(orgID string) ([]SatelliteInstance, error) {
 	for i, s := range resp.Instances {
 		instances[i] = SatelliteInstance{
 			Name:     s.Name,
+			Org:      orgID,
 			Version:  s.Version,
 			Platform: s.Platform,
 			Status:   s.Status.String(),
@@ -1052,7 +1055,7 @@ func (c *client) ListSatellites(orgID string) ([]SatelliteInstance, error) {
 }
 
 func (c *client) GetSatellite(name, orgID string) (*SatelliteInstance, error) {
-	url := fmt.Sprintf("/api/v0/satellites/%s?orgId=%s", name, orgID)
+	url := fmt.Sprintf("/api/v0/satellites/%s?orgId=%s", name, url.QueryEscape(orgID))
 	status, body, err := c.doCall("GET", url, withAuth())
 	if err != nil {
 		return nil, err
@@ -1067,6 +1070,7 @@ func (c *client) GetSatellite(name, orgID string) (*SatelliteInstance, error) {
 	}
 	return &SatelliteInstance{
 		Name:     name,
+		Org:      orgID,
 		Status:   resp.Status.String(),
 		Version:  resp.Version,
 		Platform: resp.Platform,
@@ -1074,7 +1078,7 @@ func (c *client) GetSatellite(name, orgID string) (*SatelliteInstance, error) {
 }
 
 func (c *client) DeleteSatellite(name, orgID string) error {
-	url := fmt.Sprintf("/api/v0/satellites/%s?orgId=%s", name, orgID)
+	url := fmt.Sprintf("/api/v0/satellites/%s?orgId=%s", name, url.QueryEscape(orgID))
 	status, body, err := c.doCall("DELETE", url, withAuth())
 	if err != nil {
 		return err

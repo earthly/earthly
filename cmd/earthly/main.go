@@ -1105,7 +1105,7 @@ Set up a whole custom git repository for a server called example.com, using a si
 					Name:        "ls",
 					Description: "List your Earthly Satellites",
 					Usage:       "List your Earthly Satellites",
-					UsageText: "earthly satellite list\n" +
+					UsageText: "earthly satellite ls\n" +
 						"	earthly satellite ls --org <organization-name>",
 					Action: app.actionSatelliteList,
 					Flags: []cli.Flag{
@@ -1120,6 +1120,7 @@ Set up a whole custom git repository for a server called example.com, using a si
 				{
 					Name:        "inspect",
 					Description: "Show additional details about a Satellite instance",
+					Usage:       "Show additional details about a Satellite instance",
 					UsageText: "earthly satellite inspect <satellite-name>\n" +
 						"	earthly satellite inspect --org <organization-name> <satellite-name>",
 					Action: app.actionSatelliteDescribe,
@@ -1328,11 +1329,10 @@ func (app *earthlyApp) configureSatellite(cc cloud.Client) error {
 	app.console.Warnf("--new-platform, --use-registry-for-with-docker")
 	app.console.Warnf("") // newline
 
-	if app.featureFlagOverrides == "" {
-		app.featureFlagOverrides = "new-platform,use-registry-for-with-docker"
-	} else {
-		app.featureFlagOverrides = fmt.Sprintf("%s,new-platform,use-registry-for-with-docker", app.featureFlagOverrides)
+	if app.featureFlagOverrides != "" {
+		app.featureFlagOverrides += ","
 	}
+	app.featureFlagOverrides += "new-platform,use-registry-for-with-docker"
 
 	token, err := cc.GetAuthToken()
 	if err != nil {
@@ -3357,12 +3357,12 @@ func (app *earthlyApp) useSatellite(c *cli.Context, satelliteName, orgName strin
 	return nil
 }
 
-func (app *earthlyApp) printSatellites(satellites []cloud.SatelliteInstance) {
+func (app *earthlyApp) printSatellites(satellites []cloud.SatelliteInstance, orgID string) {
 	for _, satellite := range satellites {
-		if app.cfg.Satellite.Name == satellite.Name {
-			app.console.Printf("* %s", satellite.Name)
+		if satellite.Name == app.cfg.Satellite.Name && satellite.Org == orgID {
+			fmt.Printf("* %s\n", satellite.Name)
 		} else {
-			app.console.Printf("  %s", satellite.Name)
+			fmt.Printf("  %s\n", satellite.Name)
 		}
 	}
 }
@@ -3408,13 +3408,13 @@ func (app *earthlyApp) actionSatelliteLaunch(c *cli.Context) error {
 		return err
 	}
 
-	app.console.Warnf("Launching Satellite. This could take a moment...")
+	app.console.Printf("Launching Satellite. This could take a moment...")
 	_, err = cc.LaunchSatellite(app.satelliteName, orgID)
 	if err != nil {
 		return errors.Wrapf(err, "failed to create satellite %s", app.satelliteName)
 	}
 
-	err = app.useSatellite(c, app.satelliteName, orgID)
+	err = app.useSatellite(c, app.satelliteName, app.satelliteOrg)
 	if err != nil {
 		return errors.Wrap(err, "could not configure satellite for use")
 	}
@@ -3424,7 +3424,7 @@ func (app *earthlyApp) actionSatelliteLaunch(c *cli.Context) error {
 		return err
 	}
 
-	app.printSatellites(satellites)
+	app.printSatellites(satellites, orgID)
 	return nil
 }
 
@@ -3450,7 +3450,7 @@ func (app *earthlyApp) actionSatelliteList(c *cli.Context) error {
 		return err
 	}
 
-	app.printSatellites(satellites)
+	app.printSatellites(satellites, orgID)
 	return nil
 }
 
@@ -3473,17 +3473,18 @@ func (app *earthlyApp) actionSatelliteDestroy(c *cli.Context) error {
 		return err
 	}
 
-	app.console.Warnf("Destroying Satellite. This could take a moment...")
+	app.console.Printf("Destroying Satellite. This could take a moment...")
 	err = cc.DeleteSatellite(app.satelliteName, orgID)
 	if err != nil {
 		return errors.Wrapf(err, "failed to delete satellite %s", app.satelliteName)
 	}
 
 	if app.satelliteName == app.cfg.Satellite.Name {
-		// TODO what strategy do we want to use if you delete your current satellite?
-		if err = app.useSatellite(c, "", ""); err != nil {
+		err = app.useSatellite(c, "", "")
+		if err != nil {
 			return errors.Wrapf(err, "failed unselecting satellite")
 		}
+		app.console.Printf("Satellite has also been unselected")
 	}
 	return nil
 }
@@ -3560,7 +3561,7 @@ func (app *earthlyApp) actionSatelliteSelect(c *cli.Context) error {
 		return fmt.Errorf("%s is not a valid satellite", app.satelliteName)
 	}
 
-	app.printSatellites(satellites)
+	app.printSatellites(satellites, orgID)
 	return nil
 }
 
@@ -3573,7 +3574,8 @@ func (app *earthlyApp) actionSatelliteUnselect(c *cli.Context) error {
 
 	app.satelliteName = c.Args().Get(0)
 
-	if err := app.useSatellite(c, "", ""); err != nil {
+	err := app.useSatellite(c, "", "")
+	if err != nil {
 		return errors.Wrap(err, "could not unselect satellite")
 	}
 
