@@ -313,21 +313,11 @@ func padStrings(flags []string, prefix, suffix string) []string {
 	return padded
 }
 
-func getVisibleCommandNames(commands []*cli.Command) []string {
+func getVisibleCommands(commands []*cli.Command) []string {
 	visibleCommands := []string{}
 	for _, cmd := range commands {
 		if !cmd.Hidden {
 			visibleCommands = append(visibleCommands, cmd.Name)
-		}
-	}
-	return visibleCommands
-}
-
-func getVisibleCommands(commands []*cli.Command) []*cli.Command {
-	var visibleCommands []*cli.Command
-	for _, cmd := range commands {
-		if !cmd.Hidden {
-			visibleCommands = append(visibleCommands, cmd)
 		}
 	}
 	return visibleCommands
@@ -351,7 +341,7 @@ const (
 //       COMP_LINE="earthly -" COMP_POINT=$(echo -n $COMP_LINE | wc -c) go run cmd/earthly/main.go
 func GetPotentials(ctx context.Context, resolver *buildcontext.Resolver, gwClient gwclient.Client, compLine string, compPoint int, app *cli.App) ([]string, error) {
 	compLine = compLine[:compPoint]
-	subCommands := getVisibleCommands(app.Commands)
+	subCommands := app.Commands
 
 	// getWord returns the next word and a boolean if it is valid
 	// TODO this function does not handle escaped space, e.g.
@@ -448,10 +438,10 @@ func GetPotentials(ctx context.Context, resolver *buildcontext.Resolver, gwClien
 
 	case rootState, commandState:
 		if cmd != nil {
-			potentials = getVisibleCommandNames(cmd.Subcommands)
+			potentials = getVisibleCommands(cmd.Subcommands)
 			potentials = padStrings(potentials, "", " ")
 		} else {
-			potentials = getVisibleCommandNames(app.Commands)
+			potentials = getVisibleCommands(app.Commands)
 			potentials = padStrings(potentials, "", " ")
 			if containsDirectories(".") {
 				potentials = append(potentials, "./")
