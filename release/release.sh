@@ -105,22 +105,31 @@ if [ "$existing_release" != "null" ]; then
     echo "overwriting existing release for $RELEASE_TAG"
 fi
 
-"$earthly" --push --build-arg DOCKERHUB_USER --build-arg RELEASE_TAG +release-dockerhub
-"$earthly" --push --build-arg GITHUB_USER --build-arg EARTHLY_REPO --build-arg BREW_REPO --build-arg DOCKERHUB_USER --build-arg RELEASE_TAG --build-arg SKIP_CHANGELOG_DATE_TEST --build-arg PRERELEASE="$PRERELEASE" $GITHUB_SECRET_PATH_BUILD_ARG +release-github
+PUSH_LATEST_TAG="true"
+if [ "$PRERELEASE" != "true" ] || [ "$PRODUCTION_RELEASE" != "true" ]; then
+    PUSH_LATEST_TAG="false"
+fi
+
+"$earthly" --push --build-arg DOCKERHUB_USER --build-arg RELEASE_TAG --build-arg PRERELEASE +release-dockerhub
+"$earthly" --push --build-arg GITHUB_USER --build-arg EARTHLY_REPO --build-arg BREW_REPO --build-arg DOCKERHUB_USER --build-arg RELEASE_TAG --build-arg SKIP_CHANGELOG_DATE_TEST $GITHUB_SECRET_PATH_BUILD_ARG +release-github --PUSH_LATEST_TAG="$PUSH_LATEST_TAG"
 
 if [ "$PRERELEASE" != "false" ]; then
-    echo "exiting due to prerelease = true"
+    echo "exiting due to PRERELEASE=$PRERELEASE"
     exit 0
 fi
 
 echo "homebrew release with gu=$GITHUB_USER; er=$EARTHLY_REPO; br=$BREW_REPO; du=$DOCKERHUB_USER; rt=$RELEASE_TAG"
 "$earthly" --push --build-arg GITHUB_USER --build-arg EARTHLY_REPO --build-arg BREW_REPO --build-arg DOCKERHUB_USER --build-arg RELEASE_TAG $GITHUB_SECRET_PATH_BUILD_ARG +release-homebrew
 
-echo "releasing to apt under s3://$S3_BUCKET/deb"
-"$earthly" --push --build-arg RELEASE_TAG --build-arg S3_BUCKET ./apt-repo+build-and-release
+if [ "$PRODUCTION_RELEASE" = "true" ]; then
+    echo "releasing to apt under s3://$S3_BUCKET/deb"
+    "$earthly" --push --build-arg RELEASE_TAG --build-arg S3_BUCKET ./apt-repo+build-and-release
 
-echo "releasing to yum under s3://$S3_BUCKET/yum"
-"$earthly" --push --build-arg RELEASE_TAG --build-arg S3_BUCKET ./yum-repo+build-and-release
+    echo "releasing to yum under s3://$S3_BUCKET/yum"
+    "$earthly" --push --build-arg RELEASE_TAG --build-arg S3_BUCKET ./yum-repo+build-and-release
+else
+    echo "staging apt and yum repos are currently disabled" // TODO s3 related release needs to be updated to work with MFA
+fi
 
 if [ "$release_ami" = "true" ]; then
   "$earthly" --push --build-arg RELEASE_TAG ./ami+update-pipelines

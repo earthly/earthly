@@ -282,14 +282,6 @@ earthly-linux-amd64:
         ) ./
     SAVE ARTIFACT ./*
 
-earthly-linux-arm7:
-    COPY (+earthly/* \
-        --GOARCH=arm \
-        --VARIANT=v7 \
-        --GO_EXTRA_LDFLAGS= \
-        ) ./
-    SAVE ARTIFACT ./*
-
 earthly-linux-arm64:
     COPY (+earthly/* \
         --GOARCH=arm64 \
@@ -328,7 +320,6 @@ earthly-windows-amd64:
 
 earthly-all:
     COPY +earthly-linux-amd64/earthly ./earthly-linux-amd64
-    COPY +earthly-linux-arm7/earthly ./earthly-linux-arm7
     COPY +earthly-linux-arm64/earthly ./earthly-linux-arm64
     COPY +earthly-darwin-amd64/earthly ./earthly-darwin-amd64
     COPY +earthly-darwin-arm64/earthly ./earthly-darwin-arm64
@@ -401,7 +392,6 @@ prerelease:
     ARG BUILDKIT_PROJECT
     BUILD \
         --platform=linux/amd64 \
-        --platform=linux/arm/v7 \
         --platform=linux/arm64 \
         ./buildkitd+buildkitd --TAG=prerelease  --BUILDKIT_PROJECT="$BUILDKIT_PROJECT"
     COPY (+earthly-all/* --VERSION=prerelease) ./
@@ -472,7 +462,6 @@ all-buildkitd:
     ARG BUILDKIT_PROJECT
     BUILD \
         --platform=linux/amd64 \
-        --platform=linux/arm/v7 \
         --platform=linux/arm64 \
         ./buildkitd+buildkitd --BUILDKIT_PROJECT="$BUILDKIT_PROJECT"
 
