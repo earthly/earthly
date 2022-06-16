@@ -1084,7 +1084,7 @@ Set up a whole custom git repository for a server called example.com, using a si
 					Usage:       "Launch a new Earthly Satellite",
 					Description: "Launch a new Earthly Satellite",
 					UsageText: "earthly satellite launch <satellite-name>\n" +
-						"	earthly satellite launch --org <organization-name> <satellite-name>",
+						"	earthly satellite --org <organization-name> launch <satellite-name>",
 					Action: app.actionSatelliteLaunch,
 				},
 				{
@@ -1092,7 +1092,7 @@ Set up a whole custom git repository for a server called example.com, using a si
 					Usage:       "Destroy an Earthly Satellite",
 					Description: "Destroy an Earthly Satellite",
 					UsageText: "earthly satellite rm <satellite-name>\n" +
-						"	earthly satellite rm --org <organization-name> <satellite-name>",
+						"	earthly satellite --org <organization-name> rm <satellite-name>",
 					Action: app.actionSatelliteDestroy,
 				},
 				{
@@ -1100,7 +1100,7 @@ Set up a whole custom git repository for a server called example.com, using a si
 					Description: "List your Earthly Satellites",
 					Usage:       "List your Earthly Satellites",
 					UsageText: "earthly satellite ls\n" +
-						"	earthly satellite ls --org <organization-name>",
+						"	earthly satellite --org <organization-name> ls",
 					Action: app.actionSatelliteList,
 				},
 				{
@@ -1108,7 +1108,7 @@ Set up a whole custom git repository for a server called example.com, using a si
 					Description: "Show additional details about a Satellite instance",
 					Usage:       "Show additional details about a Satellite instance",
 					UsageText: "earthly satellite inspect <satellite-name>\n" +
-						"	earthly satellite inspect --org <organization-name> <satellite-name>",
+						"	earthly satellite --org <organization-name> inspect <satellite-name>",
 					Action: app.actionSatelliteDescribe,
 				},
 				{
@@ -1116,7 +1116,7 @@ Set up a whole custom git repository for a server called example.com, using a si
 					Usage:       "Choose which satellite to use to build your app",
 					Description: "Choose which satellite to use to build your app",
 					UsageText: "earthly satellite select <satellite-name>\n" +
-						"	earthly satellite select --org <organization-name> <satellite-name>",
+						"	earthly satellite --org <organization-name> select <satellite-name>",
 					Action: app.actionSatelliteSelect,
 				},
 				{
