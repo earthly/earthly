@@ -12,7 +12,7 @@ We also have instructions for [specific CI systems](#examples); and special-case
 
 ## Dependencies
 
-Earthly has two software dependencies: `docker` and `git`. Because `earthly` will not install these for you, please ensure they are present before proceeding. These tools are very common, so many environments will already have them installed. If you choose to use our prebuilt containers, these dep 
+Earthly has two software dependencies: `docker` and `git`. Because `earthly` will not install these for you, please ensure they are present before proceeding. These tools are very common, so many environments will already have them installed. If you choose to use our prebuilt containers, these dependencies are already included.
 
 `docker` is used to glean information about the containerization environment, and manage our `earthly-buildkitd` daemon. It is also used to do things like save images locally on your machine after they have been built by Earthly. To install `docker`, use the most recent versions [directly from Docker](https://docs.docker.com/engine/install/#server). The versions packaged for many distributions tend to fall behind.
 
