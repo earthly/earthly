@@ -117,7 +117,7 @@ When set to true, disables collecting command line analytics; otherwise, earthly
 
 ### disable_log_sharing
 
-When set to true, disables sharing build logs after each build.
+When set to true, disables sharing build logs after each build. This setting applies to logged-in users only.
 
 ### conversion_parallelism
 
