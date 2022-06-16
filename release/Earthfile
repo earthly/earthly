@@ -33,21 +33,21 @@ release-dind:
 release-dockerhub:
     ARG --required RELEASE_TAG
     ARG DOCKERHUB_USER="earthly"
+    ARG PUSH_LATEST_TAG="false"
+    BUILD +perform-release-dockerhub --RELEASE_TAG="$RELEASE_TAG" --DOCKERHUB_USER="$DOCKERHUB_USER"
+    IF [ "$PUSH_LATEST_TAG" = "true" ]
+      BUILD +perform-release-dockerhub --RELEASE_TAG="latest" --DOCKERHUB_USER="$DOCKERHUB_USER"
+    END
+
+perform-release-dockerhub:
+    ARG --required RELEASE_TAG
+    ARG DOCKERHUB_USER="earthly"
     BUILD ../+earthly-docker --TAG="$RELEASE_TAG"
     BUILD \
         --platform=linux/amd64 \
-        --platform=linux/arm/v7 \
         --platform=linux/arm64 \
         ../buildkitd+buildkitd \
         --TAG="$RELEASE_TAG" \
-        --DOCKERHUB_USER="$DOCKERHUB_USER"
-    BUILD ../+earthly-docker --TAG=latest
-    BUILD \
-        --platform=linux/amd64 \
-        --platform=linux/arm/v7 \
-        --platform=linux/arm64 \
-        ../buildkitd+buildkitd \
-        --TAG=latest \
         --DOCKERHUB_USER="$DOCKERHUB_USER"
 
 release-notes:
@@ -85,15 +85,12 @@ release-github:
     RUN test -f ./release/earthly-linux-amd64 && \
         test -f ./release/earthly-darwin-amd64 && \
         test -f ./release/earthly-darwin-arm64 && \
-        test -f ./release/earthly-linux-arm7 && \
         test -f ./release/earthly-linux-arm64 && \
         test -f ./release/earthly-windows-amd64.exe
     RUN file ./release/earthly-linux-amd64 | grep "x86-64"
     RUN file ./release/earthly-linux-amd64 | grep "ELF 64-bit"
     RUN file ./release/earthly-darwin-amd64 | grep "Mach-O 64-bit x86_64"
     RUN file ./release/earthly-darwin-arm64 | grep "Mach-O 64-bit arm64"
-    RUN file ./release/earthly-linux-arm7 | grep "ARM, EABI5 version 1"
-    RUN file ./release/earthly-linux-arm7 | grep "ELF 32-bit"
     RUN file ./release/earthly-linux-arm64 | grep "aarch64"
     RUN file ./release/earthly-linux-arm64 | grep "ELF 64-bit"
     RUN file ./release/earthly-windows-amd64.exe | grep "PE32"
