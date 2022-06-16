@@ -1069,6 +1069,15 @@ Set up a whole custom git repository for a server called example.com, using a si
 				"	If you'd like to try it out, please contact us via Slack to be added to the beta testers group.",
 			UsageText:   "earthly satellite (launch|ls|inspect|select|unselect|rm)",
 			Description: "Create and manage Earthly Satellites",
+			Flags: []cli.Flag{
+				&cli.StringFlag{
+					Name:        "org",
+					EnvVars:     []string{"EARTHLY_ORG"},
+					Usage:       "The name of the organization the satellite belongs to. Required when user is a member of multiple.",
+					Required:    false,
+					Destination: &app.satelliteOrg,
+				},
+			},
 			Subcommands: []*cli.Command{
 				{
 					Name:        "launch",
@@ -1077,14 +1086,6 @@ Set up a whole custom git repository for a server called example.com, using a si
 					UsageText: "earthly satellite launch <satellite-name>\n" +
 						"	earthly satellite launch --org <organization-name> <satellite-name>",
 					Action: app.actionSatelliteLaunch,
-					Flags: []cli.Flag{
-						&cli.StringFlag{
-							Name:        "org",
-							Usage:       "The name of the organization the satellite belongs to. Required when user is a member of multiple.",
-							Required:    false,
-							Destination: &app.satelliteOrg,
-						},
-					},
 				},
 				{
 					Name:        "rm",
@@ -1093,14 +1094,6 @@ Set up a whole custom git repository for a server called example.com, using a si
 					UsageText: "earthly satellite rm <satellite-name>\n" +
 						"	earthly satellite rm --org <organization-name> <satellite-name>",
 					Action: app.actionSatelliteDestroy,
-					Flags: []cli.Flag{
-						&cli.StringFlag{
-							Name:        "org",
-							Usage:       "The name of the organization the satellite belongs to. Required when user is a member of multiple.",
-							Required:    false,
-							Destination: &app.satelliteOrg,
-						},
-					},
 				},
 				{
 					Name:        "ls",
@@ -1109,14 +1102,6 @@ Set up a whole custom git repository for a server called example.com, using a si
 					UsageText: "earthly satellite ls\n" +
 						"	earthly satellite ls --org <organization-name>",
 					Action: app.actionSatelliteList,
-					Flags: []cli.Flag{
-						&cli.StringFlag{
-							Name:        "org",
-							Usage:       "The name of the organization the satellite belongs to. Required when user is a member of multiple.",
-							Required:    false,
-							Destination: &app.satelliteOrg,
-						},
-					},
 				},
 				{
 					Name:        "inspect",
@@ -1125,14 +1110,6 @@ Set up a whole custom git repository for a server called example.com, using a si
 					UsageText: "earthly satellite inspect <satellite-name>\n" +
 						"	earthly satellite inspect --org <organization-name> <satellite-name>",
 					Action: app.actionSatelliteDescribe,
-					Flags: []cli.Flag{
-						&cli.StringFlag{
-							Name:        "org",
-							Usage:       "The name of the organization the satellite belongs to. Required when user is a member of multiple.",
-							Required:    false,
-							Destination: &app.satelliteOrg,
-						},
-					},
 				},
 				{
 					Name:        "select",
@@ -1141,14 +1118,6 @@ Set up a whole custom git repository for a server called example.com, using a si
 					UsageText: "earthly satellite select <satellite-name>\n" +
 						"	earthly satellite select --org <organization-name> <satellite-name>",
 					Action: app.actionSatelliteSelect,
-					Flags: []cli.Flag{
-						&cli.StringFlag{
-							Name:        "org",
-							Usage:       "The name of the organization the satellite belongs to. Required when user is a member of multiple.",
-							Required:    false,
-							Destination: &app.satelliteOrg,
-						},
-					},
 				},
 				{
 					Name:        "unselect",
