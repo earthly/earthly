@@ -333,7 +333,6 @@ func Start(ctx context.Context, console conslogging.ConsoleLogger, image, contai
 				ContainerPort: 8371,
 				Protocol:      containerutil.ProtocolTCP,
 			})
-			envOpts["BUILDKIT_LOCAL_REGISTRY_LISTEN_PORT"] = "8371"
 		}
 
 		bkURL, err := url.Parse(settings.BuildkitAddress)
