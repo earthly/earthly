@@ -378,6 +378,8 @@ COPY dir3 dir3
 COPY --dir dir1 dir2 dir3 ./
 ```
 
+If the directories were copied without the use of `--dir`, then their contents would be merged into the destination.
+
 ##### `--<build-arg-key>=<build-arg-value>`
 
 Sets a value override of `<build-arg-value>` for the build arg identified by `<build-arg-key>`, when building the target containing the mentioned artifact. See also [BUILD](#build) for more details about the build arg options.
