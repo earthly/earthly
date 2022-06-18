@@ -12,6 +12,7 @@ require (
 	github.com/docker/docker v20.10.7+incompatible
 	github.com/dustin/go-humanize v1.0.0
 	github.com/earthly/cloud-api v1.0.1-0.20220603155547-accef7dc6f19
+	github.com/elastic/go-sysinfo v1.7.1
 	github.com/fatih/color v1.9.0
 	github.com/golang/protobuf v1.5.2
 	github.com/google/uuid v1.3.0
@@ -31,7 +32,6 @@ require (
 	github.com/stretchr/testify v1.7.0
 	github.com/tonistiigi/fsutil v0.0.0-20211208180946-61a57076b9b0
 	github.com/urfave/cli/v2 v2.3.0
-	github.com/wille/osutil v0.0.0-20201124133013-e7a03eb09286
 	golang.org/x/crypto v0.0.0-20220131195533-30dcbda58838
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211
