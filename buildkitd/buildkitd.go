@@ -561,7 +561,6 @@ func checkConnection(ctx context.Context, address string, opts ...client.ClientO
 		if err != nil {
 			connErrMu.Lock()
 			connErr = err
-			fmt.Println(err.Error())
 			connErrMu.Unlock()
 			return
 		}
