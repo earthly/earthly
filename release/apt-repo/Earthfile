@@ -1,3 +1,4 @@
+VERSION 0.6
 FROM alpine:3.15
 
 deps:
@@ -39,16 +40,9 @@ deb-arm64:
         +deb/* ./
     SAVE ARTIFACT *.deb
 
-deb-arm7:
-    COPY \
-        --build-arg  EARTHLY_PLATFORM=arm7 \
-        +deb/* ./
-    SAVE ARTIFACT *.deb
-
 deb-all:
     COPY +deb-amd64/*.deb .
     COPY +deb-arm64/*.deb .
-    COPY +deb-arm7/*.deb .
     SAVE ARTIFACT ./*.deb
 
 # If for any reason you need to generate a new PGP key, it can be done with
@@ -73,28 +67,14 @@ Expire-Date: 0
     SAVE ARTIFACT earthly-pgp-public.pgp AS LOCAL earthly-pgp-public.pgp
     SAVE ARTIFACT earthly-pgp-private.pgp AS LOCAL earthly-pgp-private.pgp
 
-
-aws-base:
-    FROM alpine:latest
-    RUN apk add --update --no-cache curl unzip
-    RUN curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64-2.0.30.zip" -o "awscliv2.zip"
-    RUN unzip awscliv2.zip
-    RUN ./aws/install
-    ENV PATH=$PATH:/usr/local/aws-cli/v2/bin/
-
-aws:
-    FROM amazon/aws-cli
-    RUN mkdir -p ~/.aws && echo "[profile developer]
-    role_arn = arn:aws:iam::404851345508:role/developer
-    source_profile = default" > ~/.aws/config
-    ENV AWS_PROFILE=developer
-
 download:
-    FROM +aws
+    FROM ../common-repo+aws
     ARG --required S3_BUCKET
-    RUN env | grep dev
     RUN --no-cache \
+        --secret MFA_ARN=+secrets/user/earthly-technologies/aws/mfa-arn \
+        --secret MFA_KEY=+secrets/user/earthly-technologies/aws/mfa-key \
         --mount type=secret,id=+secrets/user/earthly-technologies/aws/credentials,target=/root/.aws/credentials \
+        eval $(assume-developer-role) && \
         aws s3 cp --recursive "s3://$S3_BUCKET/deb/" repo
     SAVE ARTIFACT repo AS LOCAL output/repo
 
@@ -120,15 +100,12 @@ index-and-sign:
     RUN rm -rf dists
     RUN mkdir -p dists/stable/main/binary-amd64
     RUN mkdir -p dists/stable/main/binary-arm64
-    RUN mkdir -p dists/stable/main/binary-arm7
 
     RUN dpkg-scanpackages --arch amd64 --multiversion pool/ > dists/stable/main/binary-amd64/Packages
     RUN dpkg-scanpackages --arch arm64 --multiversion pool/ > dists/stable/main/binary-arm64/Packages
-    RUN dpkg-scanpackages --arch arm7 --multiversion pool/ > dists/stable/main/binary-arm7/Packages
 
     RUN gzip -c9 dists/stable/main/binary-amd64/Packages > dists/stable/main/binary-amd64/Packages.gz
     RUN gzip -c9 dists/stable/main/binary-arm64/Packages > dists/stable/main/binary-arm64/Packages.gz
-    RUN gzip -c9 dists/stable/main/binary-arm7/Packages > dists/stable/main/binary-arm7/Packages.gz
 
     WORKDIR /repo/dists/stable
     COPY generate-release.sh /
@@ -139,7 +116,6 @@ index-and-sign:
     RUN set -e; \
         grep amd64 Release; \
         grep arm64 Release; \
-        grep arm7 Release; \
         ls /repo/pool/main/earthly_*.deb; \
         ls /repo/dists/stable/Release;
 
@@ -153,7 +129,7 @@ index-and-sign:
     SAVE ARTIFACT /repo AS LOCAL output/signed-repo
 
 upload:
-    FROM +aws
+    FROM ../common-repo+aws
 
     ARG USE_OUTPUT_COPY=true
     IF [ "$USE_OUTPUT_COPY" = "true" ]
@@ -172,22 +148,21 @@ upload:
     ARG --required S3_BUCKET
     RUN --push \
         --mount type=secret,id=+secrets/earthly-technologies/release/keys/earthly-public.pgp,target=/release-key/earthly-public.pgp \
+        --secret MFA_ARN=+secrets/user/earthly-technologies/aws/mfa-arn \
+        --secret MFA_KEY=+secrets/user/earthly-technologies/aws/mfa-key \
         --mount type=secret,id=+secrets/user/earthly-technologies/aws/credentials,target=/root/.aws/credentials \
         grep PUBLIC /release-key/earthly-public.pgp >/dev/null && \
-        aws s3 cp --acl public-read /release-key/earthly-public.pgp "s3://$S3_BUCKET/earthly.pgp"
-    # upload signed repo
-    # Note: aws s3 sync doesn't always pickup changes to Release and Packages files, so force a cp to ensure they are uploaded
-    RUN --push \
-        --mount type=secret,id=+secrets/user/earthly-technologies/aws/credentials,target=/root/.aws/credentials \
+        eval $(assume-developer-role 1) && \
+        aws s3 cp --acl public-read /release-key/earthly-public.pgp "s3://$S3_BUCKET/earthly.pgp" && \
+        # upload signed repo
+        # Note: aws s3 sync doesn't always pickup changes to Release and Packages files, so force a cp to ensure they are uploaded
         aws s3 cp --acl public-read /repo/dists/stable/Release s3://$S3_BUCKET/deb/dists/stable/Release && \
         aws s3 cp --acl public-read /repo/dists/stable/Release.gpg s3://$S3_BUCKET/deb/dists/stable/Release.gpg && \
         aws s3 cp --acl public-read /repo/dists/stable/InRelease s3://$S3_BUCKET/deb/dists/stable/InRelease && \
         aws s3 cp --acl public-read /repo/dists/stable/main/binary-amd64/Packages s3://$S3_BUCKET/deb/dists/stable/main/binary-amd64/Packages && \
         aws s3 cp --acl public-read /repo/dists/stable/main/binary-arm64/Packages s3://$S3_BUCKET/deb/dists/stable/main/binary-arm64/Packages && \
-        aws s3 cp --acl public-read /repo/dists/stable/main/binary-arm7/Packages s3://$S3_BUCKET/deb/dists/stable/main/binary-arm7/Packages && \
         aws s3 cp --acl public-read /repo/dists/stable/main/binary-amd64/Packages.gz s3://$S3_BUCKET/deb/dists/stable/main/binary-amd64/Packages.gz && \
         aws s3 cp --acl public-read /repo/dists/stable/main/binary-arm64/Packages.gz s3://$S3_BUCKET/deb/dists/stable/main/binary-arm64/Packages.gz && \
-        aws s3 cp --acl public-read /repo/dists/stable/main/binary-arm7/Packages.gz s3://$S3_BUCKET/deb/dists/stable/main/binary-arm7/Packages.gz && \
         aws s3 sync --acl public-read /repo s3://$S3_BUCKET/deb/
 
 build-and-release:
