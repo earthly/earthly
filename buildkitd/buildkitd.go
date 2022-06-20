@@ -561,6 +561,7 @@ func checkConnection(ctx context.Context, address string, opts ...client.ClientO
 		if err != nil {
 			connErrMu.Lock()
 			connErr = err
+			fmt.Println(err.Error())
 			connErrMu.Unlock()
 			return
 		}
@@ -761,6 +762,7 @@ func addRequiredOpts(settings Settings, opts ...client.ClientOpt) ([]client.Clie
 			"satellite_name", settings.SatelliteName,
 			"satellite_org", settings.SatelliteOrgID,
 			"satellite_token", settings.SatelliteToken),
+			client.WithCredentials("", "", "", ""),
 		), nil
 	}
 
