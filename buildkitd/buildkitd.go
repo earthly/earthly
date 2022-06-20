@@ -761,7 +761,7 @@ func addRequiredOpts(settings Settings, opts ...client.ClientOpt) ([]client.Clie
 			"satellite_name", settings.SatelliteName,
 			"satellite_org", settings.SatelliteOrgID,
 			"satellite_token", settings.SatelliteToken),
-			client.WithCredentials("", "", "", ""),
+			client.WithCredentials("", "", "", ""), // force buildkit to use a TLS connection
 		), nil
 	}
 
