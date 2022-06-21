@@ -3395,6 +3395,7 @@ func (app *earthlyApp) actionSatelliteLaunch(c *cli.Context) error {
 	}
 
 	app.printSatellites(satellites, orgID)
+	app.console.Printf("The satellite %s has been automatically selected for use. To go back to using local builds you can use\n\n\tearthly satellite unselect", app.satelliteName)
 	return nil
 }
 
