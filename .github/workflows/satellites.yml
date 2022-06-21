@@ -1,4 +1,4 @@
-name: Builds on Satellites
+name: Test on Satellites
 
 on:
   push:
@@ -10,7 +10,7 @@ on:
 
 jobs:
   tests:
-    name: (satellites) +test +test-fail
+    name: +test +test-fail (satellites)
     runs-on: ubuntu-latest
     env:
       FORCE_COLOR: 1
@@ -72,7 +72,7 @@ jobs:
         if: ${{ failure() }}
 
   examples1:
-    name: (satellites) +examples1
+    name: +examples1 (satellites)
     runs-on: ubuntu-latest
     env:
       FORCE_COLOR: 1
@@ -124,7 +124,7 @@ jobs:
         if: ${{ failure() }}
 
   examples2:
-    name: (satellites) +examples2
+    name: +examples2 (satellites)
     runs-on: ubuntu-latest
     env:
       FORCE_COLOR: 1
