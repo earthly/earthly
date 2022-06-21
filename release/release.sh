@@ -94,7 +94,7 @@ else
 fi
 
 release_ami="false"
-if [ PRODUCTION_RELEASE = "true" ]; then
+if [ "$PRODUCTION_RELEASE" = "true" ]; then
     ("$earthly" secrets get /user/earthly-technologies/aws/credentials >/dev/null) || (echo "ERROR: user-secrets /user/earthly-technologies/aws/credentials does not exist"; exit 1);
     release_ami="true"
 fi
