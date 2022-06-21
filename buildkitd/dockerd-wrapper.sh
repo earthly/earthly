@@ -156,9 +156,19 @@ stop_dockerd() {
     # Wipe dockerd data when done.
     if ! rm -rf "$EARTHLY_DOCKERD_DATA_ROOT"; then
         # We have some issues about failing to delete files. If we fail, list the processes keeping it open for results.
-        echo "==== Begin file info ===="
-        lsof +D "$EARTHLY_DOCKERD_DATA_ROOT"
-        echo "==== End file info logs ===="
+        echo "==== Begin file lsof info ===="
+        if ! lsof +D "$EARTHLY_DOCKERD_DATA_ROOT"; then
+            echo "Failed to run lsof +D $EARTHLY_DOCKERD_DATA_ROOT. Trying lsof $EARTHLY_DOCKERD_DATA_ROOT"
+            if ! lsof "$EARTHLY_DOCKERD_DATA_ROOT"; then
+                echo "Failed to run lsof $EARTHLY_DOCKERD_DATA_ROOT"
+            fi
+        fi
+        echo "==== End file lsof info ===="
+        echo "==== Begin file ls info ===="
+        if ! ls -Ral "$EARTHLY_DOCKERD_DATA_ROOT"; then
+            echo "Failed to run ls -Ral $EARTHLY_DOCKERD_DATA_ROOT"
+        fi
+        echo "==== End file ls info ===="
         echo "" # Add space between above and docker logs
         print_dockerd_logs
     fi
