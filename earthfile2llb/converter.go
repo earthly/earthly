@@ -1285,7 +1285,7 @@ func (c *Converter) WithDockerRunLocal(ctx context.Context, args []string, opt W
 	c.nonSaveCommand()
 	enableParallel := allowParallel && c.opt.ParallelConversion && c.ftrs.ParallelLoad
 
-	if c.ftrs.UseRegistryForWithDocker {
+	if c.ftrs.UseRegistryForWithDocker && c.opt.UseLocalRegistry {
 		wdr := newWithDockerRunLocalReg(c, enableParallel)
 		return wdr.Run(ctx, args, opt)
 	}
