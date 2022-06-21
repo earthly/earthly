@@ -993,7 +993,8 @@ func (c *client) LaunchSatellite(name, orgID string) (*SatelliteInstance, error)
 		Name:     name,
 		Platform: "linux/amd64", // TODO support arm64 as well
 	}
-	status, body, err := c.doCall("POST", "/api/v0/satellites", withAuth(), withJSONBody(&req))
+	status, body, err := c.doCall("POST", "/api/v0/satellites",
+		withAuth(), withHeader("Grpc-Timeout", "5M"), withJSONBody(&req))
 	if err != nil {
 		return nil, err
 	}
@@ -1079,7 +1080,7 @@ func (c *client) GetSatellite(name, orgID string) (*SatelliteInstance, error) {
 
 func (c *client) DeleteSatellite(name, orgID string) error {
 	url := fmt.Sprintf("/api/v0/satellites/%s?orgId=%s", name, url.QueryEscape(orgID))
-	status, body, err := c.doCall("DELETE", url, withAuth())
+	status, body, err := c.doCall("DELETE", url, withAuth(), withHeader("Grpc-Timeout", "5M"))
 	if err != nil {
 		return err
 	}
