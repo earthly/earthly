@@ -3378,23 +3378,19 @@ func (app *earthlyApp) actionSatelliteLaunch(c *cli.Context) error {
 		return err
 	}
 
-	app.console.Printf("Launching Satellite. This could take a moment...")
+	app.console.Printf("Launching Satellite. This could take a moment...\n")
 	_, err = cc.LaunchSatellite(app.satelliteName, orgID)
 	if err != nil {
 		return errors.Wrapf(err, "failed to create satellite %s", app.satelliteName)
 	}
+	app.console.Printf("...Done\n")
 
 	err = app.useSatellite(c, app.satelliteName, app.satelliteOrg)
 	if err != nil {
 		return errors.Wrap(err, "could not configure satellite for use")
 	}
+	app.console.Printf("The satellite %s has been automatically selected for use. To go back to using local builds you can use\n\n\tearthly satellite unselect\n\n", app.satelliteName)
 
-	satellites, err := cc.ListSatellites(orgID)
-	if err != nil {
-		return err
-	}
-
-	app.printSatellites(satellites, orgID)
 	return nil
 }
 
@@ -3443,18 +3439,19 @@ func (app *earthlyApp) actionSatelliteDestroy(c *cli.Context) error {
 		return err
 	}
 
-	app.console.Printf("Destroying Satellite. This could take a moment...")
+	app.console.Printf("Destroying Satellite. This could take a moment...\n")
 	err = cc.DeleteSatellite(app.satelliteName, orgID)
 	if err != nil {
 		return errors.Wrapf(err, "failed to delete satellite %s", app.satelliteName)
 	}
+	app.console.Printf("...Done\n")
 
 	if app.satelliteName == app.cfg.Satellite.Name {
 		err = app.useSatellite(c, "", "")
 		if err != nil {
 			return errors.Wrapf(err, "failed unselecting satellite")
 		}
-		app.console.Printf("Satellite has also been unselected")
+		app.console.Printf("Satellite has also been unselected\n")
 	}
 	return nil
 }
