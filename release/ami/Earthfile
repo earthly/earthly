@@ -3,7 +3,7 @@ VERSION 0.6
 ami-base:
     FROM --platform=linux/amd64 ../common-repo+aws
 
-    DO +ADD_APT_REQS
+    DO +ADD_YUM_REQS
     DO +ADD_YQ
     DO +ADD_TERRAFORM
 
@@ -71,7 +71,7 @@ build-ami:
         export PIPELINE_ARN=$(terraform output -json | yq .pipelines.value.[env\(RELEASE_TAG\)].arn) && \
         aws imagebuilder start-image-pipeline-execution --image-pipeline-arn $PIPELINE_ARN
 
-ADD_APT_REQS:
+ADD_YUM_REQS:
     COMMAND
     RUN yum update && \
         yum install -y \
