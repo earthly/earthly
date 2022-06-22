@@ -35,7 +35,10 @@ var ErrUnauthorized = errors.New("unauthorized")
 // ErrNoAuthorizedPublicKeys occurs when no authorized public keys are found
 var ErrNoAuthorizedPublicKeys = errors.New("no authorized public keys found")
 
-const tokenExpiryLayout = "2006-01-02 15:04:05.999999999 -0700 MST"
+const (
+	tokenExpiryLayout    = "2006-01-02 15:04:05.999999999 -0700 MST"
+	satelliteMgmtTimeout = "5M" // 5 minute timeout when launching or deleting a Satellite
+)
 
 // OrgDetail contains an organization and details
 type OrgDetail struct {
@@ -994,7 +997,7 @@ func (c *client) LaunchSatellite(name, orgID string) (*SatelliteInstance, error)
 		Platform: "linux/amd64", // TODO support arm64 as well
 	}
 	status, body, err := c.doCall("POST", "/api/v0/satellites",
-		withAuth(), withHeader("Grpc-Timeout", "5M"), withJSONBody(&req))
+		withAuth(), withHeader("Grpc-Timeout", satelliteMgmtTimeout), withJSONBody(&req))
 	if err != nil {
 		return nil, err
 	}
@@ -1080,7 +1083,8 @@ func (c *client) GetSatellite(name, orgID string) (*SatelliteInstance, error) {
 
 func (c *client) DeleteSatellite(name, orgID string) error {
 	url := fmt.Sprintf("/api/v0/satellites/%s?orgId=%s", name, url.QueryEscape(orgID))
-	status, body, err := c.doCall("DELETE", url, withAuth(), withHeader("Grpc-Timeout", "5M"))
+	status, body, err := c.doCall("DELETE", url,
+		withAuth(), withHeader("Grpc-Timeout", satelliteMgmtTimeout))
 	if err != nil {
 		return err
 	}
