@@ -18,22 +18,20 @@ jobs:
       EARTHLY_INSTALL_ID: "earthly-githubactions"
       EARTHLY_ORG: "earthly-technologies"
     steps:
-      - name: Don't run Satellites on forks
-        run: exit 0
-        if: github.event.pull_request.head.repo.full_name != github.repository
       - uses: earthly/actions-setup@v1.0.1
       - uses: actions/checkout@v3
       - name: Docker mirror login (Earthly Only)
         run: docker login registry-1.docker.io.mirror.corp.earthly.dev --username "${{ secrets.DOCKERHUB_MIRROR_USERNAME }}" --password "${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}"
-        if: github.event_name == 'push'
-      - name: Configure Satellites
+        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+      - name: Configure Satellites (Earthly Only)
         run: earthly satellite select earthly-core
+        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: Configure Earthly to use mirror (Earthly Only)
         run: |-
           earthly config global.buildkit_additional_config "'[registry.\"docker.io\"]
 
           mirrors = [\"registry-1.docker.io.mirror.corp.earthly.dev\"]'"
-        if: github.event_name == 'push'
+        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: Build latest earthly using released earthly
         run: earthly --use-inline-cache +for-linux
       - name: rebuild earthly using latest earthly build
@@ -66,22 +64,20 @@ jobs:
       EARTHLY_INSTALL_ID: "earthly-githubactions"
       EARTHLY_ORG: "earthly-technologies"
     steps:
-      - name: Don't run Satellites on forks
-        run: exit 0
-        if: github.event.pull_request.head.repo.full_name != github.repository
       - uses: earthly/actions-setup@v1.0.1
       - uses: actions/checkout@v3
-      - name: Configure Satellites
+      - name: Configure Satellites (Earthly Only)
         run: earthly satellite select earthly-core
+        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: Docker mirror login (Earthly Only)
         run: docker login registry-1.docker.io.mirror.corp.earthly.dev --username "${{ secrets.DOCKERHUB_MIRROR_USERNAME }}" --password "${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}"
-        if: github.event_name == 'push'
+        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: Configure Earthly to use mirror (Earthly Only)
         run: |-
           earthly config global.buildkit_additional_config "'[registry.\"docker.io\"]
 
           mirrors = [\"registry-1.docker.io.mirror.corp.earthly.dev\"]'"
-        if: github.event_name == 'push'
+        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: Docker Login (main build)
         run: docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password "${{ secrets.DOCKERHUB_TOKEN }}"
         if: github.event_name == 'push'
@@ -110,22 +106,20 @@ jobs:
       EARTHLY_INSTALL_ID: "earthly-githubactions"
       EARTHLY_ORG: "earthly-technologies"
     steps:
-      - name: Don't run Satellites on forks
-        run: exit 0
-        if: github.event.pull_request.head.repo.full_name != github.repository
       - uses: earthly/actions-setup@v1.0.1
       - uses: actions/checkout@v3
-      - name: Configure Satellites
+      - name: Configure Satellites (Earthly Only)
         run: earthly satellite select earthly-core
+        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: Docker mirror login (Earthly Only)
         run: docker login registry-1.docker.io.mirror.corp.earthly.dev --username "${{ secrets.DOCKERHUB_MIRROR_USERNAME }}" --password "${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}"
-        if: github.event_name == 'push'
+        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: Configure Earthly to use mirror (Earthly Only)
         run: |-
           earthly config global.buildkit_additional_config "'[registry.\"docker.io\"]
 
           mirrors = [\"registry-1.docker.io.mirror.corp.earthly.dev\"]'"
-        if: github.event_name == 'push'
+        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: Docker Login (main build)
         run: docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password "${{ secrets.DOCKERHUB_TOKEN }}"
         if: github.event_name == 'push'
@@ -146,22 +140,20 @@ jobs:
         if: github.event_name == 'push'
 
   test-local:
-    name: +test-local
+    name: +test-local (satellites)
     runs-on: ubuntu-latest
     env:
       FORCE_COLOR: 1
       EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
       EARTHLY_INSTALL_ID: "earthly-githubactions"
     steps:
-      - name: Don't run Satellites on forks
-        run: exit 0
-        if: github.event.pull_request.head.repo.full_name != github.repository
       - uses: earthly/actions-setup@v1.0.1
       - uses: actions/checkout@v3
       - name: Build latest earthly using released earthly
         run: earthly --use-inline-cache +for-linux
-      - name: Configure Satellites
+      - name: Configure Satellites (Earthly Only)
         run: earthly satellite select earthly-core
+        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: Set EARTHLY_VERSION_FLAG_OVERRIDES env
         run: |-
             set -euo pipefail
