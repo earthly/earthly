@@ -18,7 +18,6 @@ jobs:
       EARTHLY_INSTALL_ID: "earthly-githubactions"
       EARTHLY_ORG: "earthly-technologies"
     steps:
-      run:
       - name: Don't run Satellites on forks
         run: exit 0
         if: github.event.pull_request.head.repo.full_name != github.repository
