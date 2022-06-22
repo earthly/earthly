@@ -1,60 +1,51 @@
 VERSION 0.6
 
 ami-base:
-    FROM --platform=linux/amd64 ubuntu:22.04
+    FROM --platform=linux/amd64 ../common-repo+aws
 
     DO +ADD_APT_REQS
     DO +ADD_YQ
-    DO +ADD_AWSCLI
     DO +ADD_TERRAFORM
 
     WORKDIR ami
-
-GET_VERSIONS:
-    COMMAND
-
-    RUN --no-cache \
-        --mount=type=secret,id=+secrets/user/earthly-technologies/aws/credentials,target=/root/.aws/credentials \
-        --mount=type=secret,id=+secrets/user/earthly-technologies/aws/config,target=/root/.aws/config \
-        aws imagebuilder list-components | yq '.componentVersionList[] | "v"+.version' >> versions
 
 update-pipelines:
     FROM +ami-base
 
     ARG --required RELEASE_TAG
     ARG ENVIRONMENT=production
-    ARG AWS_PROFILE=developer
     ARG AWS_REGION=us-west-2
 
     COPY imagebuilder.tf .
 
-    DO +GET_VERSIONS
-    RUN echo $RELEASE_TAG >> versions
-    RUN cat versions
+    RUN --push \
+        --secret MFA_ARN=+secrets/user/earthly-technologies/aws/mfa-arn \
+        --secret MFA_KEY=+secrets/user/earthly-technologies/aws/mfa-key \
+        --mount type=secret,id=+secrets/user/earthly-technologies/aws/credentials,target=/root/.aws/credentials \
 
-    RUN --no-cache \
-        --mount=type=secret,id=+secrets/user/earthly-technologies/aws/credentials,target=/root/.aws/credentials \
-        --mount=type=secret,id=+secrets/user/earthly-technologies/aws/config,target=/root/.aws/config \
-
+        eval $(assume-developer-role) && \
+        aws imagebuilder list-components | yq '.componentVersionList[] | "v"+.version' >> versions && \
+        echo $RELEASE_TAG >> versions && \
+        cat versions && \
         terraform init && \
         terraform workspace select $ENVIRONMENT && \
-        terraform plan
-
-    RUN --push \
-        --mount=type=secret,id=+secrets/user/earthly-technologies/aws/credentials,target=/root/.aws/credentials \
-        --mount=type=secret,id=+secrets/user/earthly-technologies/aws/config,target=/root/.aws/config \
-
+        terraform plan && \
         terraform apply --auto-approve
 
 shell:
     FROM +ami-base
 
+    ARG ENVIRONMENT=production
+    ARG AWS_REGION=us-west-2
+
     COPY imagebuilder.tf .
-    DO +GET_VERSIONS
 
     RUN --interactive \
-        --mount=type=secret,id=+secrets/user/earthly-technologies/aws/credentials,target=/root/.aws/credentials \
-        --mount=type=secret,id=+secrets/user/earthly-technologies/aws/config,target=/root/.aws/config \
+        --secret MFA_ARN=+secrets/user/earthly-technologies/aws/mfa-arn \
+        --secret MFA_KEY=+secrets/user/earthly-technologies/aws/mfa-key \
+        --mount type=secret,id=+secrets/user/earthly-technologies/aws/credentials,target=/root/.aws/credentials \
+
+        eval $(assume-developer-role 1) && \
         /bin/bash
 
 build-ami:
@@ -62,33 +53,28 @@ build-ami:
 
     ARG --required RELEASE_TAG
     ARG ENVIRONMENT=production
-    ARG AWS_PROFILE=developer
     ARG AWS_REGION=us-west-2
 
     # Get the pipeline output data to look up the ARN for the one to trigger
     COPY imagebuilder.tf .
-    DO +GET_VERSIONS
-    RUN --no-cache \
-        --mount=type=secret,id=+secrets/user/earthly-technologies/aws/credentials,target=/root/.aws/credentials \
-        --mount=type=secret,id=+secrets/user/earthly-technologies/aws/config,target=/root/.aws/config \
 
-         terraform init && \
-         terraform workspace select $ENVIRONMENT && \
-         terraform refresh > /dev/null && \ # Do not print all variables to the logs. Terraform is one noisy fella
-         terraform output -json >> deps.json
-
-    # Look up the ARN based on version, and then kick it off
-    ARG PIPELINE_ARN=$(yq \'.pipelines.value.[env(RELEASE_TAG)]\'.arn deps.json)
     RUN --push \
-        --mount=type=secret,id=+secrets/user/earthly-technologies/aws/credentials,target=/root/.aws/credentials \
-        --mount=type=secret,id=+secrets/user/earthly-technologies/aws/config,target=/root/.aws/config \
+        --secret MFA_ARN=+secrets/user/earthly-technologies/aws/mfa-arn \
+        --secret MFA_KEY=+secrets/user/earthly-technologies/aws/mfa-key \
+        --mount type=secret,id=+secrets/user/earthly-technologies/aws/credentials,target=/root/.aws/credentials \
 
+        eval $(assume-developer-role) && \
+        aws imagebuilder list-components | yq '.componentVersionList[] | "v"+.version' >> versions && \
+        terraform init && \
+        terraform workspace select $ENVIRONMENT && \
+        terraform refresh > /dev/null && \ # Do not print all variables to the logs. Terraform is one noisy fella
+        export PIPELINE_ARN=$(terraform output -json | yq .pipelines.value.[env\(RELEASE_TAG\)].arn) && \
         aws imagebuilder start-image-pipeline-execution --image-pipeline-arn $PIPELINE_ARN
 
 ADD_APT_REQS:
     COMMAND
-    RUN apt update && \
-        apt install -y \
+    RUN yum update && \
+        yum install -y \
            curl \
            unzip \
            git \
@@ -110,9 +96,3 @@ ADD_TERRAFORM:
         unzip terraform.zip && \
         chmod +x ./terraform && \
         mv ./terraform /usr/local/bin/terraform
-
-ADD_AWSCLI:
-    COMMAND
-    RUN curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip" && \
-        unzip awscliv2.zip && \
-        ./aws/install
