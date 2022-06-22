@@ -1061,7 +1061,7 @@ Set up a whole custom git repository for a server called example.com, using a si
 		{
 			Name:    "satellite",
 			Hidden:  true, // Temporarily hidden for private beta testing
-			Aliases: []string{"satellites"},
+			Aliases: []string{"satellites", "sat"},
 			Usage: "Launch and use a Satellite runner as remote backend for Earthly builds.\n" +
 				"	Satellites can be used to optimize and share cache between multiple builds and users,\n" +
 				"	as well as run builds in native architectures independent of where the Earthly client is invoked.\n" +
@@ -1113,6 +1113,7 @@ Set up a whole custom git repository for a server called example.com, using a si
 				},
 				{
 					Name:        "select",
+					Aliases:     []string{"s"},
 					Usage:       "Choose which satellite to use to build your app",
 					Description: "Choose which satellite to use to build your app",
 					UsageText: "earthly satellite select <satellite-name>\n" +
@@ -1121,6 +1122,7 @@ Set up a whole custom git repository for a server called example.com, using a si
 				},
 				{
 					Name:        "unselect",
+					Aliases:     []string{"uns"},
 					Usage:       "Remove any currently selected Satellite instance from your Earthly configuration",
 					Description: "Remove any currently selected Satellite instance from your Earthly configuration",
 					UsageText:   "earthly satellite unselect",
