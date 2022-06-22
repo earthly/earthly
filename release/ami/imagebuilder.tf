@@ -39,7 +39,7 @@ resource "aws_imagebuilder_component" "earthly" {
         {
           action = "WebDownload"
           inputs: [{
-            source: "https://github.com/earthly/earthly/releases/download/v${each.key}/earthly-linux-amd64"
+            source: "https://github.com/earthly/earthly/releases/download/${each.key}/earthly-linux-amd64"
             destination: "/usr/local/bin/earthly"
           }]
           name      = "download_earthly"
@@ -78,6 +78,8 @@ resource "aws_imagebuilder_image_recipe" "earthly" {
   component {
     component_arn = each.value.arn
   }
+
+  depends_on = [aws_imagebuilder_component.earthly]
 }
 
 resource "aws_imagebuilder_infrastructure_configuration" "earthly" {
@@ -96,6 +98,8 @@ resource "aws_imagebuilder_distribution_configuration" "earthly" {
       name = "earthly-${replace(each.key, ".", "_")}-{{ imagebuilder:buildDate }}"
     }
   }
+
+  depends_on = [aws_imagebuilder_image_recipe.earthly]
 }
 
 resource "aws_imagebuilder_image_pipeline" "earthly" {
