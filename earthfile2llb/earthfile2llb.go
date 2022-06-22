@@ -89,6 +89,8 @@ type ConvertOpt struct {
 	GitLookup *buildcontext.GitLookup
 	// LocalStateCache provides a cache for local pllb.States
 	LocalStateCache *LocalStateCache
+	// UseLocalRegistry indicates whether the the BuildKit-embedded registry can be used for exports.
+	UseLocalRegistry bool
 
 	// Features is the set of enabled features
 	Features *features.Features
