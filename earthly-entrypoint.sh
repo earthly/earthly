@@ -49,6 +49,10 @@ if [ -z "$BUILDKIT_HOST" ]; then
       >/var/log/buildkitd.log 2>&1 \
       &
 
+  if [ "$BUILDKIT_DEBUG" = "true" ]; then
+      tail -f /var/log/buildkitd.log &
+  fi
+
   EARTHLY_BUILDKIT_HOST="tcp://$(hostname):8372" # hostname is not recognized as local for this reason
   export EARTHLY_BUILDKIT_HOST
 else
