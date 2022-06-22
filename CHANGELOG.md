@@ -4,6 +4,10 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+### Fixed
+
+- `sh: write error: Resource busy` error caused by running the earthly/earthly docker image on a cgroups2-enabled host. [#1934](https://github.com/earthly/earthly/issues/1934)
+
 ## v0.6.17 - 2022-06-20
 
 ### Added
