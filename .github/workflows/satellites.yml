@@ -144,10 +144,6 @@ jobs:
       - name: Build examples2 (main build)
         run: ./build/linux/amd64/earthly --ci --push -P +examples2
         if: github.event_name == 'push'
-      - name: Build and test multi-platform example
-        run: |
-          ./build/linux/amd64/earthly ./examples/multiplatform+all
-          docker run --rm earthly/examples:multiplatform_linux_arm64 | grep aarch64
 
   test-local:
     name: +test-local
