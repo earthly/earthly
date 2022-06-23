@@ -3340,13 +3340,24 @@ func (app *earthlyApp) printSatellites(satellites []cloud.SatelliteInstance, org
 }
 
 func (app *earthlyApp) getSatelliteOrgID(cc cloud.Client) (string, error) {
+	// We are cheating here and forcing a re-auth before running any satellite commands.
+	// This is because there is an issue on the backend where the token might be outdated
+	// if a user was invited to an org recently after already logging-in.
+	// TODO Eventually we should be able to remove this cheat.
+	err := cc.Authenticate()
+	if err != nil {
+		return "", errors.New("unable to authenticate")
+	}
 	var orgID string
 	if app.satelliteOrg == "" {
 		orgs, err := cc.ListOrgs()
 		if err != nil {
 			return "", errors.Wrap(err, "failed finding org")
 		}
-		if len(orgs) != 1 {
+		if len(orgs) == 0 {
+			return "", errors.New("not a member of any organizations - satellites only work within an org.")
+		}
+		if len(orgs) > 1 {
 			return "", errors.New("more than one organizations available - please specify the name of the organization using `--org`")
 		}
 		app.satelliteOrg = orgs[0].Name
