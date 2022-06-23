@@ -3355,7 +3355,7 @@ func (app *earthlyApp) getSatelliteOrgID(cc cloud.Client) (string, error) {
 			return "", errors.Wrap(err, "failed finding org")
 		}
 		if len(orgs) == 0 {
-			return "", errors.New("not a member of any organizations - satellites only work within an org.")
+			return "", errors.New("not a member of any organizations - satellites only work within an org")
 		}
 		if len(orgs) > 1 {
 			return "", errors.New("more than one organizations available - please specify the name of the organization using `--org`")
