@@ -2227,32 +2227,38 @@ func (app *earthlyApp) actionRegister(c *cli.Context) error {
 			rawAccept = "n"
 		}
 		accept := strings.ToLower(rawAccept)[0]
-
-		interactiveAccept = accept == 'y'
+		interactiveAccept = (accept == 'y')
 	}
 	termsConditionsPrivacy := app.termsConditionsPrivacy || interactiveAccept
 
 	var publicKey string
 	if app.registrationPublicKey == "" {
 		if len(publicKeys) > 0 {
-			fmt.Printf("Which of the following keys do you want to register?\n")
-			fmt.Printf("0) none\n")
-			for i, key := range publicKeys {
-				fmt.Printf("%d) %s\n", i+1, key.String())
+			rawIsRegisterSSHKey := promptInput("Would you like to register an SSH key to be used as a form of login? [Y/n]: ")
+			if rawIsRegisterSSHKey == "" {
+				rawIsRegisterSSHKey = "y"
 			}
-			keyNum := promptInput("enter key number (1=default): ")
-			if keyNum == "" {
-				keyNum = "1"
-			}
-			i, err := strconv.Atoi(keyNum)
-			if err != nil {
-				return errors.Wrap(err, "invalid key number")
-			}
-			if i < 0 || i > len(publicKeys) {
-				return errors.Errorf("invalid key number")
-			}
-			if i > 0 {
-				publicKey = publicKeys[i-1].String()
+			isRegisterSSHKey := (strings.ToLower(rawIsRegisterSSHKey)[0] == 'y')
+			if isRegisterSSHKey {
+				fmt.Printf("Which of the following keys do you want to register?\n")
+				fmt.Printf("0) none\n")
+				for i, key := range publicKeys {
+					fmt.Printf("%d) %s\n", i+1, key.String())
+				}
+				keyNum := promptInput("enter key number (1=default): ")
+				if keyNum == "" {
+					keyNum = "1"
+				}
+				i, err := strconv.Atoi(keyNum)
+				if err != nil {
+					return errors.Wrap(err, "invalid key number")
+				}
+				if i < 0 || i > len(publicKeys) {
+					return errors.Errorf("invalid key number")
+				}
+				if i > 0 {
+					publicKey = publicKeys[i-1].String()
+				}
 			}
 		}
 	} else {
