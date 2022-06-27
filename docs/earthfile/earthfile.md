@@ -648,9 +648,27 @@ For detailed examples demonstrating how other scenarios may function, please see
 
 #### Description
 
-In the *output form*, the command `SAVE IMAGE` marks the current build environment as the image of the target and assigns an output image name.
+In the *output form*, the command `SAVE IMAGE` marks the current build environment as the image of the target and assigns one or more output image names.
 
 In the *cache hint form*, it instructs Earthly that the current target should be included as part of the explicit cache. For more information see the [shared caching guide](../guides/shared-cache.md).
+
+{% hint style='info' %}
+##### Assigning multiple image names
+
+The `SAVE IMAGE` command allows you to assign more than one image name:
+
+```Dockerfile
+SAVE IMAGE my-image:latest my-image:1.0.0 my-example-registry.com/another-image:latest
+```
+
+Or
+
+```Dockerfile
+SAVE IMAGE my-image:latest
+SAVE IMAGE my-image:1.0.0
+SAVE IMAGE my-example-registry.com/another-image:latest
+```
+{% endhint %}
 
 #### Options
 
