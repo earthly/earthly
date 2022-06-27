@@ -67,6 +67,26 @@ RUN earthly config global.buildkit_host buildkit_host: 'tcp://myhost:8372'
 
 For more details on using a remote BuildKit daemon, [see our guide](./remote-buildkit.md).
 
+## cgroups v2 Considerations
+
+When cgroups v2 is detected by the `earthly/earthly` image's default entrypoint, it moves it's process under an isolated cgroup. If a different entrypoint is used (i.e. a custom user supplied script),
+the root process must be moved into a separate cgroup, for example:
+
+```bash
+if [ -f "/sys/fs/cgroup/cgroup.controllers" ]; then
+    echo "detected cgroups v2; moving pid $$ to subgroup"
+
+    # move the process under a new cgroup to prevent buildkitd/entrypoint.sh
+    # from getting a "sh: write error: Resource busy" error while enabling controllers
+    # via echo +pids > /sys/fs/cgroup/cgroup.subtree_control
+    mkdir -p /sys/fs/cgroup/my-entrypoint
+    echo "$$" > /sys/fs/cgroup/my-entrypoint/cgroup.procs
+fi
+```
+
+If this step is not performed before the buildkitd process starts up, buildkitd will be unable to initialize it's own cgroup (due to the container's root cgroup already having processes directly under it), and will
+fail with the error: `sh: write error: Resource busy`.
+
 ## An important note about running the image
 
 When running the built image in your CI of choice, if you're not using a remote daemon, Earthly will start Buildkit within the same container. In this case, it is important to ensure that the directory used by Buildkit to cache the builds is mounted as a Docker volume. Failing to do so may result in excessive disk usage, slow builds, or Earthly not functioning properly.
