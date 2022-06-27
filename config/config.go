@@ -79,7 +79,7 @@ type GlobalConfig struct {
 	ContainerFrontend        string   `yaml:"container_frontend"         help:"What program should be used to start and stop buildkitd, save images. Default is 'docker'. Valid options are 'docker' and 'podman' (experimental)."`
 	IPTables                 string   `yaml:"ip_tables"                  help:"Which iptables binary to use. Valid values are iptables-legacy or iptables-nft. Bypasses any autodetection."`
 	DisableLogSharing        bool     `yaml:"disable_log_sharing"        help:"Disable cloud log sharing when logged in with an Earthly account, see https://ci.earthly.dev for details."`
-	SecretProvider           string   `yaml:"secret_provider"            help:"Command to execute to retrieve secret"`
+	SecretProvider           string   `yaml:"secret_provider"            help:"Command to execute to retrieve secret."`
 
 	// Obsolete.
 	CachePath      string `yaml:"cache_path"         help:" *Deprecated* The path to keep Earthly's cache."`
@@ -95,15 +95,24 @@ type GitConfig struct {
 	Suffix                string `yaml:"suffix"                       help:"The git repository suffix, like .git."`                                       // .git
 	Auth                  string `yaml:"auth"                         help:"What authentication method do you use? Valid options are: http, https, ssh."` // http, https, ssh
 	User                  string `yaml:"user"                         help:"The username to use when auth is set to git or https."`
+	Port                  int    `yaml:"port"                         help:"The port to connect to when using git; has no effect for http(s)."`
+	Prefix                string `yaml:"prefix"                  help:"This path is prefixed to the git clone url, e.g. ssh://user@host:port/prefix/project/repo.git"`
 	Password              string `yaml:"password"                     help:"The https password to use when auth is set to https. This setting is ignored when auth is ssh."`
 	ServerKey             string `yaml:"serverkey"                    help:"SSH fingerprints, like you would add in your known hosts file, or get from ssh-keyscan."`
 	StrictHostKeyChecking *bool  `yaml:"strict_host_key_checking"     help:"Allow ssh access to hosts with unknown server keys (e.g. no entries in known_hosts), defaults to true."`
 }
 
+// Satellite contains satellite config values
+type Satellite struct {
+	Name string `yaml:"name" help:"The name of the satellite to use"`
+	Org  string `yaml:"org"  help:"The org name to whom the satellite belongs"`
+}
+
 // Config contains user's configuration values from ~/earthly/config.yml
 type Config struct {
-	Global GlobalConfig         `yaml:"global" help:"Global configuration object. Requires YAML literal to set directly."`
-	Git    map[string]GitConfig `yaml:"git"    help:"Git configuration object. Requires YAML literal to set directly."`
+	Global    GlobalConfig         `yaml:"global"    help:"Global configuration object. Requires YAML literal to set directly."`
+	Git       map[string]GitConfig `yaml:"git"       help:"Git configuration object. Requires YAML literal to set directly."`
+	Satellite Satellite            `yaml:"satellite" help:"Satellite remote building configuration. Overrides some other remote buildkit settings when present. Requires YAML literal to set directly"`
 }
 
 // ParseConfigFile parse config data

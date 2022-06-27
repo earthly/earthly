@@ -1,9 +1,0 @@
-VERSION 0.6
-licenses:
-    FROM scratch
-
-    COPY BSL .
-    COPY MPL2 .
-
-    SAVE ARTIFACT BSL
-    SAVE ARTIFACT MPL2

@@ -92,6 +92,7 @@ type Converter struct {
 	ftrs                *features.Features
 	localWorkingDir     string
 	containerFrontend   containerutil.ContainerFrontend
+	waitBlockStack      []*waitBlock
 }
 
 // NewConverter constructs a new converter for a given earthly target.
@@ -126,6 +127,7 @@ func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Da
 		ftrs:                bc.Features,
 		localWorkingDir:     filepath.Dir(bc.BuildFilePath),
 		containerFrontend:   opt.ContainerFrontend,
+		waitBlockStack:      []*waitBlock{opt.waitBlock},
 	}, nil
 }
 
@@ -893,6 +895,42 @@ func (c *Converter) SaveArtifactFromLocal(ctx context.Context, saveFrom, saveTo 
 	return nil
 }
 
+func (c *Converter) waitBlock() *waitBlock {
+	n := len(c.waitBlockStack)
+	if n == 0 {
+		panic("waitBlock() called on empty stack") // shouldn't happen
+	}
+	return c.waitBlockStack[n-1]
+}
+
+// PushWaitBlock should be called when a WAIT block starts, all commands will be added to this new block
+func (c *Converter) PushWaitBlock(ctx context.Context) error {
+	c.opt.Console.Warnf("WAIT/END code is experimental and may be incomplete")
+	c.waitBlockStack = append(c.waitBlockStack, newWaitBlock())
+	return nil
+}
+
+// PopWaitBlock should be called when an END is encountered, it will block until all commands within the block complete
+func (c *Converter) PopWaitBlock(ctx context.Context) error {
+	n := len(c.waitBlockStack)
+	if n == 0 {
+		return fmt.Errorf("waitBlockStack is empty") // shouldn't happen
+	}
+
+	if c.ftrs.WaitBlock {
+		// an END is only ever encountered by the converter that created the WAIT block, this is the only special
+		// instance where we reference mts.Final.MainState before calling FinalizeStates; this can be done here
+		// as the waitBlock belongs to the current Converter
+		c.waitBlock().addState(&c.mts.Final.MainState, c)
+	}
+
+	i := n - 1
+	waitBlock := c.waitBlockStack[i]
+	c.waitBlockStack = c.waitBlockStack[:i]
+
+	return waitBlock.wait(ctx)
+}
+
 // SaveImage applies the earthly SAVE IMAGE command.
 func (c *Converter) SaveImage(ctx context.Context, imageNames []string, pushImages bool, insecurePush bool, cacheHint bool, cacheFrom []string, noManifestList bool) error {
 	err := c.checkAllowed(saveImageCmd)
@@ -912,6 +950,9 @@ func (c *Converter) SaveImage(ctx context.Context, imageNames []string, pushImag
 	}
 	for _, imageName := range imageNames {
 		if c.mts.Final.RunPush.HasState {
+			if c.ftrs.WaitBlock {
+				panic("RunPush.HasState should never be true when --wait-block is used")
+			}
 			// pcState persists any files that may be cached via CACHE command.
 			pcState := c.persistCache(c.mts.Final.RunPush.State)
 			// SAVE IMAGE --push when it comes before any RUN --push should be treated as if they are in the main state,
@@ -930,20 +971,29 @@ func (c *Converter) SaveImage(ctx context.Context, imageNames []string, pushImag
 					NoManifestList:      noManifestList,
 				})
 		} else {
-			pcState := c.persistCache(c.mts.Final.MainState)
-			c.mts.Final.SaveImages = append(c.mts.Final.SaveImages,
-				states.SaveImage{
-					State:               pcState,
-					Image:               c.mts.Final.MainImage.Clone(),
-					DockerTag:           imageName,
-					Push:                pushImages,
-					InsecurePush:        insecurePush,
-					CacheHint:           cacheHint,
-					HasPushDependencies: false,
-					ForceSave:           c.opt.ForceSaveImage,
-					CheckDuplicate:      c.ftrs.CheckDuplicateImages,
-					NoManifestList:      noManifestList,
-				})
+			si := states.SaveImage{
+				State:               c.persistCache(c.mts.Final.MainState),
+				Image:               c.mts.Final.MainImage.Clone(),
+				DockerTag:           imageName,
+				Push:                pushImages,
+				InsecurePush:        insecurePush,
+				CacheHint:           cacheHint,
+				HasPushDependencies: false,
+				ForceSave:           c.opt.ForceSaveImage,
+				CheckDuplicate:      c.ftrs.CheckDuplicateImages,
+				NoManifestList:      noManifestList,
+
+				Platform:    c.platr.Materialize(c.platr.Current()),
+				HasPlatform: platutil.IsPlatformDefined(c.platr.Current()),
+			}
+
+			if c.ftrs.WaitBlock {
+				shouldPush := pushImages && si.DockerTag != "" && c.opt.DoSaves
+				c.waitBlock().addSaveImage(si, c, shouldPush)
+			} else {
+				c.mts.Final.SaveImages = append(c.mts.Final.SaveImages, si)
+			}
+
 		}
 
 		if pushImages && imageName != "" && c.opt.UseInlineCache {
@@ -1133,10 +1183,10 @@ func (c *Converter) Arg(ctx context.Context, argKey string, defaultArgValue stri
 		return err
 	}
 	if opts.Required && len(effective) == 0 {
-		return errors.New("arg not supplied for required ARG")
+		return fmt.Errorf("value not supplied for required ARG: %s", argKey)
 	}
 	if len(defaultArgValue) > 0 && reserved.IsBuiltIn(argKey) {
-		return errors.New("arg default value supplied for built-in ARG")
+		return fmt.Errorf("arg default value supplied for built-in ARG: %s", argKey)
 	}
 	if c.varCollection.IsStackAtBase() { // Only when outside of UDC.
 		c.mts.Final.AddBuildArgInput(dedup.BuildArgInput{
@@ -1212,11 +1262,17 @@ func (c *Converter) WithDockerRun(ctx context.Context, args []string, opt WithDo
 	if err != nil {
 		return err
 	}
+
 	c.nonSaveCommand()
-	wdr := &withDockerRun{
-		c:              c,
-		enableParallel: allowParallel && c.opt.ParallelConversion && c.ftrs.ParallelLoad,
+
+	enableParallel := allowParallel && c.opt.ParallelConversion && c.ftrs.ParallelLoad
+
+	if c.ftrs.UseRegistryForWithDocker {
+		wdr := newWithDockerRunRegistry(c, enableParallel)
+		return wdr.Run(ctx, args, opt)
 	}
+
+	wdr := newWithDockerRunTar(c, enableParallel)
 	return wdr.Run(ctx, args, opt)
 }
 
@@ -1227,10 +1283,14 @@ func (c *Converter) WithDockerRunLocal(ctx context.Context, args []string, opt W
 		return err
 	}
 	c.nonSaveCommand()
-	wdrl := &withDockerRunLocal{
-		c:              c,
-		enableParallel: allowParallel && c.opt.ParallelConversion && c.ftrs.ParallelLoad,
+	enableParallel := allowParallel && c.opt.ParallelConversion && c.ftrs.ParallelLoad
+
+	if c.ftrs.UseRegistryForWithDocker && c.opt.UseLocalRegistry {
+		wdr := newWithDockerRunLocalReg(c, enableParallel)
+		return wdr.Run(ctx, args, opt)
 	}
+
+	wdrl := newWithDockerRunLocal(c, enableParallel)
 	return wdrl.Run(ctx, args, opt)
 }
 
@@ -1369,6 +1429,10 @@ func (c *Converter) FinalizeStates(ctx context.Context) (*states.MultiTarget, er
 		c.mts.Final.SetDoSaves()
 	}
 
+	if c.ftrs.WaitBlock {
+		c.waitBlock().addState(&c.mts.Final.MainState, c)
+	}
+
 	close(c.mts.Final.Done())
 	return c.mts, nil
 }
@@ -1430,6 +1494,7 @@ func (c *Converter) prepBuildTarget(ctx context.Context, fullTargetName string, 
 	opt.PlatformResolver = c.platr.SubResolver(platform)
 	opt.HasDangling = isDangling
 	opt.AllowPrivileged = allowPrivileged
+	opt.waitBlock = c.waitBlock()
 	if c.opt.Features.ReferencedSaveOnly {
 		// DoSaves should only be potentially turned-off when the ReferencedSaveOnly feature is flipped
 		opt.DoSaves = (cmdT == buildCmd && c.opt.DoSaves)
@@ -1491,6 +1556,7 @@ func (c *Converter) buildTarget(ctx context.Context, fullTargetName string, plat
 			c.varCollection.Imports().SetGlobal(mts.Final.GlobalImports)
 		}
 	}
+
 	return mts, nil
 }
 
@@ -1524,6 +1590,10 @@ func (c *Converter) internalRun(ctx context.Context, opts ConvertRunOpts) (pllb.
 	}
 	if opts.shellWrap == nil {
 		opts.shellWrap = withShellAndEnvVars
+	}
+
+	if c.ftrs.WaitBlock && opts.Push {
+		return pllb.State{}, errors.New("RUN --push is not currently supported with --wait-block, you must rewrite it as IF ... RUN --no-cache END") // TODO this will be done automatically
 	}
 
 	finalArgs := opts.Args[:]
@@ -1711,6 +1781,16 @@ func (c *Converter) parseSecretFlag(secretKeyValue string) (secretID string, env
 	} else {
 		return "", "", errors.Errorf("secret definition %s not supported. Format must be either <env-var>=+secrets/<secret-id> or <secret-id>", secretKeyValue)
 	}
+}
+
+func (c *Converter) forceExecutionWithSemaphore(ctx context.Context, state pllb.State, platr *platutil.Resolver) error {
+	sem := c.opt.Parallelism
+	rel, err := sem.Acquire(ctx, 1)
+	if err != nil {
+		return errors.Wrapf(err, "acquiring parallelism semaphore during forceExecutionWithSemaphore for %s", c.target.String())
+	}
+	defer rel()
+	return c.forceExecution(ctx, state, platr)
 }
 
 func (c *Converter) forceExecution(ctx context.Context, state pllb.State, platr *platutil.Resolver) error {

@@ -16,7 +16,9 @@ import (
 	"time"
 
 	logsapi "github.com/earthly/cloud-api/logs"
+	pipelinesapi "github.com/earthly/cloud-api/pipelines"
 	secretsapi "github.com/earthly/cloud-api/secrets"
+
 	"github.com/earthly/earthly/util/cliutil"
 	"github.com/earthly/earthly/util/fileutil"
 
@@ -27,19 +29,20 @@ import (
 	"golang.org/x/crypto/ssh/agent"
 )
 
-// ErrAccountExists occurs account creation when an account already exists
-var ErrAccountExists = errors.New("account already exists")
-
 // ErrUnauthorized occurs when a user is unauthorized to access a resource
 var ErrUnauthorized = errors.New("unauthorized")
 
 // ErrNoAuthorizedPublicKeys occurs when no authorized public keys are found
 var ErrNoAuthorizedPublicKeys = errors.New("no authorized public keys found")
 
-const tokenExpiryLayout = "2006-01-02 15:04:05.999999999 -0700 MST"
+const (
+	tokenExpiryLayout    = "2006-01-02 15:04:05.999999999 -0700 MST"
+	satelliteMgmtTimeout = "5M" // 5 minute timeout when launching or deleting a Satellite
+)
 
 // OrgDetail contains an organization and details
 type OrgDetail struct {
+	ID    string
 	Name  string
 	Admin bool
 }
@@ -56,6 +59,15 @@ type TokenDetail struct {
 	Name   string
 	Write  bool
 	Expiry time.Time
+}
+
+// SatelliteInstance contains details about a remote Buildkit instance.
+type SatelliteInstance struct {
+	Name     string
+	Org      string
+	Status   string
+	Version  string
+	Platform string
 }
 
 // Client provides a client to the shared secrets service
@@ -91,6 +103,12 @@ type Client interface {
 	SetAuthTokenDir(path string)
 	SendAnalytics(data *EarthlyAnalytics) error
 	IsLoggedIn() bool
+	GetAuthToken() (string, error)
+	LaunchSatellite(name, org string) (*SatelliteInstance, error)
+	GetOrgID(name string) (string, error)
+	ListSatellites(orgID string) ([]SatelliteInstance, error)
+	GetSatellite(name, orgID string) (*SatelliteInstance, error)
+	DeleteSatellite(name, orgID string) error
 }
 
 type request struct {
@@ -817,6 +835,7 @@ func (c *client) ListOrgs() ([]*OrgDetail, error) {
 	res := []*OrgDetail{}
 	for _, org := range listOrgsResponse.Details {
 		res = append(res, &OrgDetail{
+			ID:    org.Id,
 			Name:  org.Name,
 			Admin: org.Admin,
 		})
@@ -969,6 +988,110 @@ func (c *client) WhoAmI() (string, string, bool, error) {
 	}
 
 	return email, authType, writeAccess, nil
+}
+
+func (c *client) LaunchSatellite(name, orgID string) (*SatelliteInstance, error) {
+	req := pipelinesapi.LaunchSatelliteRequest{
+		OrgId:    orgID,
+		Name:     name,
+		Platform: "linux/amd64", // TODO support arm64 as well
+	}
+	status, body, err := c.doCall("POST", "/api/v0/satellites",
+		withAuth(), withHeader("Grpc-Timeout", satelliteMgmtTimeout), withJSONBody(&req))
+	if err != nil {
+		return nil, err
+	}
+	if status != http.StatusOK {
+		return nil, errors.Errorf("failed launching satellite: %s", body)
+	}
+	var resp pipelinesapi.LaunchSatelliteResponse
+	err = c.jm.Unmarshal(bytes.NewReader([]byte(body)), &resp)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to unmarshal LaunchSatellite response")
+	}
+	return &SatelliteInstance{
+		Name:     name,
+		Org:      orgID,
+		Status:   resp.Status.String(),
+		Version:  resp.Version,
+		Platform: "linux/amd64",
+	}, nil
+}
+
+func (c *client) GetOrgID(orgName string) (string, error) {
+	orgs, err := c.ListOrgs()
+	if err != nil {
+		return "", err
+	}
+	for _, o := range orgs {
+		if o.Name == orgName {
+			return o.ID, nil
+		}
+	}
+	return "", errors.Errorf("org not found: %s", orgName)
+}
+
+func (c *client) ListSatellites(orgID string) ([]SatelliteInstance, error) {
+	url := fmt.Sprintf("/api/v0/satellites?orgId=%s", url.QueryEscape(orgID))
+	status, body, err := c.doCall("GET", url, withAuth())
+	if err != nil {
+		return nil, err
+	}
+	if status != http.StatusOK {
+		return nil, errors.Errorf("failed listing satellites: %s", body)
+	}
+	var resp pipelinesapi.ListSatellitesResponse
+	err = c.jm.Unmarshal(bytes.NewReader([]byte(body)), &resp)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to unmarshal listTokens response")
+	}
+	instances := make([]SatelliteInstance, len(resp.Instances))
+	for i, s := range resp.Instances {
+		instances[i] = SatelliteInstance{
+			Name:     s.Name,
+			Org:      orgID,
+			Version:  s.Version,
+			Platform: s.Platform,
+			Status:   s.Status.String(),
+		}
+	}
+	return instances, nil
+}
+
+func (c *client) GetSatellite(name, orgID string) (*SatelliteInstance, error) {
+	url := fmt.Sprintf("/api/v0/satellites/%s?orgId=%s", name, url.QueryEscape(orgID))
+	status, body, err := c.doCall("GET", url, withAuth())
+	if err != nil {
+		return nil, err
+	}
+	if status != http.StatusOK {
+		return nil, errors.Errorf("failed listing satellites: %s", body)
+	}
+	var resp pipelinesapi.GetSatelliteResponse
+	err = c.jm.Unmarshal(bytes.NewReader([]byte(body)), &resp)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to unmarshal listTokens response")
+	}
+	return &SatelliteInstance{
+		Name:     name,
+		Org:      orgID,
+		Status:   resp.Status.String(),
+		Version:  resp.Version,
+		Platform: resp.Platform,
+	}, nil
+}
+
+func (c *client) DeleteSatellite(name, orgID string) error {
+	url := fmt.Sprintf("/api/v0/satellites/%s?orgId=%s", name, url.QueryEscape(orgID))
+	status, body, err := c.doCall("DELETE", url,
+		withAuth(), withHeader("Grpc-Timeout", satelliteMgmtTimeout))
+	if err != nil {
+		return err
+	}
+	if status != http.StatusOK {
+		return errors.Errorf("failed listing satellites: %s", body)
+	}
+	return nil
 }
 
 // EarthlyAnalytics is the payload used in SendAnalytics.
@@ -1381,4 +1504,12 @@ func (c *client) UploadLog(pathOnDisk string) (string, error) {
 	}
 
 	return fmt.Sprintf(uploadBundleResponse.ViewURL), nil
+}
+
+func (c *client) GetAuthToken() (string, error) {
+	err := c.Authenticate() // Ensure the current token is valid
+	if err != nil {
+		return "", errors.Wrap(err, "could not authenticate")
+	}
+	return c.authToken, nil
 }

@@ -245,7 +245,7 @@ earthly +release --SECRET_ID=""
 earthly +release-short --SECRET_ID=""
 ```
 
-It is also possible to mount a secret as a file with `RUN --mount type=secret,id=+secret/secret-id,target=/path/of/secret`. See `--mount` below.
+It is also possible to mount a secret as a file with `RUN --mount type=secret,id=+secret/secret-id,target=/path/of/secret,mode=0400`. See `--mount` below.
 
 For more information on how to use secrets see the [build arguments and secrets guide](../guides/build-args.md). See also the [Cloud secrets guide](../guides/cloud-secrets.md).
 
@@ -273,6 +273,7 @@ The `<mount-spec>` is defined as a series of comma-separated list of key-values.
 | --- | --- | --- |
 | `type` | The type of the mount. Currently only `cache`, `tmpfs`, and `secret` are allowed. | `type=cache` |
 | `target` | The target path for the mount. | `target=/var/lib/data` |
+| `mode` | The permission of the mounted file, in octal format (the same format the chmod unix command line expects). | `mode=0400` |
 | `id` | The secret ID for the contents of the `target` file, only applicable for `type=secret`. | `id=+secrets/password` |
 
 ###### Examples:
@@ -376,6 +377,8 @@ COPY dir3 dir3
 ```Dockerfile
 COPY --dir dir1 dir2 dir3 ./
 ```
+
+If the directories were copied without the use of `--dir`, then their contents would be merged into the destination.
 
 ##### `--<build-arg-key>=<build-arg-value>`
 
@@ -500,7 +503,7 @@ The command `ARG` declares a variable (or arg) with the name `<name>` and with a
 
 This command works similarly to the [Dockerfile `ARG` command](https://docs.docker.com/engine/reference/builder/#arg), with a few differences regarding the scope and the predefined args (called builtin args in Earthly). The variable's scope is always limited to the recipe of the current target or command and only from the point it is declared onward. For more information regarding builtin args, see the [builtin args page](./builtin-args.md).
 
-In its *constant form*, the arg takes a default value defined as a constant string. If the `<default-value>` is not provided, then the default value is an empty string. In its *dynamic form*, the arg takes a default value defined as an expression. The expression is evaluated at run time and its result is used as the default value. The expression is interpreted via `/bin/sh` within the build environment.
+In its *constant form*, the arg takes a default value defined as a constant string. If the `<default-value>` is not provided, then the default value is an empty string. In its *dynamic form*, the arg takes a default value defined as an expression. The expression is evaluated at run time and its result is used as the default value. The expression is interpreted via the default shell (`/bin/sh -c`) within the build environment.
 
 If an `ARG` is defined in the `base` target of the Earthfile, then it becomes a global `ARG` and it is made available to every other target or command in that file, regardless of their base images used.
 
@@ -645,9 +648,27 @@ For detailed examples demonstrating how other scenarios may function, please see
 
 #### Description
 
-In the *output form*, the command `SAVE IMAGE` marks the current build environment as the image of the target and assigns an output image name.
+In the *output form*, the command `SAVE IMAGE` marks the current build environment as the image of the target and assigns one or more output image names.
 
 In the *cache hint form*, it instructs Earthly that the current target should be included as part of the explicit cache. For more information see the [shared caching guide](../guides/shared-cache.md).
+
+{% hint style='info' %}
+##### Assigning multiple image names
+
+The `SAVE IMAGE` command allows you to assign more than one image name:
+
+```Dockerfile
+SAVE IMAGE my-image:latest my-image:1.0.0 my-example-registry.com/another-image:latest
+```
+
+Or
+
+```Dockerfile
+SAVE IMAGE my-image:latest
+SAVE IMAGE my-image:1.0.0
+SAVE IMAGE my-example-registry.com/another-image:latest
+```
+{% endhint %}
 
 #### Options
 

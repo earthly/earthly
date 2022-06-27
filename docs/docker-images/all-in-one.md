@@ -3,9 +3,9 @@ This image contains `earthly`, `buildkit`, and some extra configuration to enabl
 ## Tags
 
 * `prerelase`
-* `v0.6.12`, `latest`
-* `v0.6.11`
-* `v0.6.10`
+* `v0.6.14`, `latest`
+* `v0.6.13`
+* `v0.6.12`
 
 ## Quickstart
 
@@ -14,7 +14,7 @@ Want to just get started? Here are a couple sample `docker run` commands that co
 ### Simple Usage
 
 ```bash
-docker run --privileged -t -e NO_DOCKER=1 -v $(pwd):/workspace -v earthly-tmp:/tmp/earthly:rw earthly/earthly:v0.6.12 +for-linux
+docker run --privileged -t -e NO_DOCKER=1 -v $(pwd):/workspace -v earthly-tmp:/tmp/earthly:rw earthly/earthly:v0.6.14 +for-linux
 ```
 
 Heres a quick breakdown:
@@ -29,7 +29,7 @@ Heres a quick breakdown:
 ### More Complicated Usage
 
 ```bash
-docker run -t --privileged -v $(pwd):/workspace:rw -v earthly-tmp:/tmp/earthly:rw --network=host -v ~/.earthly/config.yml:/etc/.earthly/config.yml -e DOCKER_HOST="tcp://192.168.1.234:2375" earthly/earthly:v0.6.12 --ci -P +for-linux
+docker run -t --privileged -v $(pwd):/workspace:rw -v earthly-tmp:/tmp/earthly:rw --network=host -v ~/.earthly/config.yml:/etc/.earthly/config.yml -e DOCKER_HOST="tcp://192.168.1.234:2375" earthly/earthly:v0.6.14 --ci -P +for-linux
 ```
 
 Omitting the options already discussed from the simple example:
@@ -64,7 +64,7 @@ rm: can't remove '/var/earthly/dind/...': Resource busy
 
 #### Source Mounting
 
-Because `earthly` is running inside a container, it does not have access to your source code unless you grant it. Unless otherwise specified via `SRC_DIR`, or our target path, this image expects to find a valid `Earthfile` at `/workspace`.
+Because `earthly` is running inside a container, it does not have access to your source code unless you grant it. This image expects to find a valid `Earthfile` in the working directory, which is set by default to `/workspace`.
 
 #### DOCKER_HOST
 
@@ -85,7 +85,6 @@ This is the easiest way to ensure you get the nice, colorized output from `earth
 | NO_DOCKER                           |                                | Disables the check for a working Docker Daemon. Setting this _at all_ disables the check.                                                                                                                     |
 | DOCKER_HOST                         | `/var/run/docker.sock`         | From Docker's CLI.                                                                                                                                                                                            |
 | BUILDKIT_HOST                       | `tcp://<hostname>:8372`        | The address of your BuildKit host. Use this when you have a remote `buildkitd` you would like to connect to.                                                                                                  |
-| SRC_DIR                             | `/workspace`                   | The working directory for `earthly`. Usually host-mounted.                                                                                                                                                    |
 | EARTHLY_ADDITIONAL_BUILDKIT_CONFIG  |                                | Additional `buildkitd` config to append to the generated configuration file.                                                                                                                                  |
 | BUILDKIT_TCP_TRANSPORT_ENABLED      |                                | Required to be set to `true` when using an external `buildkitd` via `BUILDKIT_HOST`. `true` when using the baked-in `buildkitd`.                                                                              |
 | BUILDKIT_TLS_ENABLED                |                                | Required when using an external `buildkitd` via `BUILDKITD_HOST`, and the external `buildkitd` requires mTLS. You will also need to mount certificates into the right place (`/etc/.earthly/certs`).          |

@@ -14,21 +14,19 @@ FROM ../..+earthly-integration-test-base \
 ENV EARTHLY_SHOW_HIDDEN=0
 
 test-root-commands:
-    RUN echo "./
-account 
+    RUN echo "account 
 bootstrap 
 config 
 ls 
 org 
 prune 
-secrets " > expected
+secret " > expected
     RUN COMP_LINE="earthly " COMP_POINT=8 earthly > actual
     RUN diff expected actual
 
 test-hidden-root-commands:
     ENV EARTHLY_SHOW_HIDDEN=1
-    RUN echo "./
-account 
+    RUN echo "account 
 bootstrap 
 config 
 debug 
@@ -37,7 +35,8 @@ docker2earthly
 ls 
 org 
 prune 
-secrets " > expected
+satellite 
+secret " > expected
     RUN COMP_LINE="earthly " COMP_POINT=8 earthly > actual
     RUN diff expected actual
 
@@ -54,6 +53,22 @@ test-targets:
     RUN echo "+mytarget " > expected
     RUN COMP_LINE="earthly +m" COMP_POINT=10 earthly > actual
     RUN diff expected actual
+
+test-targets-without-version:
+    COPY fake.earth ./Earthfile
+    RUN mv Earthfile Earthfile.bkup && cat Earthfile.bkup | grep -v VERSION > Earthfile
+
+    RUN echo "+mytarget 
++othertarget 
++othertargetwithargs 
++targetwithrequiredarg " > expected
+    RUN COMP_LINE="earthly +" COMP_POINT=9 earthly > actual
+    RUN diff expected actual
+
+    RUN echo "+mytarget " > expected
+    RUN COMP_LINE="earthly +m" COMP_POINT=10 earthly > actual 2> errlog
+    RUN diff expected actual
+    RUN test -f errlog && ! test -s errlog
 
 test-target-with-build-args:
     COPY fake.earth ./Earthfile
@@ -198,6 +213,7 @@ test-all:
     BUILD +test-root-commands
     BUILD +test-hidden-root-commands
     BUILD +test-targets
+    BUILD +test-targets-without-version
     BUILD +test-targets-from-other-dir
     BUILD +test-target-with-build-args
     BUILD +test-target-with-build-args-from-other-dir

@@ -1,0 +1,84 @@
+VERSION --parallel-load --shell-out-anywhere --use-registry-for-with-docker 0.6
+FROM earthly/dind:alpine
+
+all:
+    BUILD +empty-test
+    BUILD +docker-load-test
+    BUILD +docker-pull-test
+    BUILD +docker-load-shellout-test
+    BUILD +load-parallel-test
+    BUILD +docker-load-multi-test
+
+empty-test:
+    WITH DOCKER
+        RUN echo "dummy"
+    END
+
+a-test-image:
+    FROM alpine:3.15
+    ARG name=abc
+    ARG var=def
+    RUN mkdir /$name
+    WORKDIR /$name
+    RUN echo "hello $var" >def.txt
+    ENTRYPOINT cat /$name/def.txt && pwd
+    SAVE IMAGE test-${name}-img:xyz
+
+another-test-image:
+    FROM alpine:3.15
+    WORKDIR /work
+    ARG INDEX=0
+    RUN echo "hello another test img $INDEX" >file.txt
+    ENTRYPOINT cat /work/file.txt
+    SAVE IMAGE another-test-img:i${INDEX}
+
+a-test-image-with-shell-out:
+    FROM alpine:3.15
+    RUN echo c2hlbGxvdXQ= > data # decodes into "shellout"
+    RUN echo myver > version
+    ENTRYPOINT echo "you found me"
+    SAVE IMAGE "test-img-with-$(cat data | base64 -d)":"$(cat version)"
+
+docker-load-test:
+    # Index is used to create parallel tests.
+    ARG INDEX=0
+    RUN echo "$INDEX"
+    WITH DOCKER \
+            --pull hello-world \
+            --load +a-test-image
+        RUN docker run test-abc-img:xyz && \
+            docker run hello-world
+    END
+
+docker-pull-test:
+    WITH DOCKER --pull hello-world
+        RUN docker run hello-world
+    END
+
+docker-load-shellout-test:
+    WITH DOCKER --load=+a-test-image-with-shell-out
+        RUN docker run test-img-with-shellout:myver | grep "you found me"
+    END
+
+load-parallel-test:
+    BUILD \
+        +docker-load-test \
+        --INDEX=1 \
+        --INDEX=2 \
+        --INDEX=3 \
+        --INDEX=4 \
+        --INDEX=5
+
+docker-load-multi-test:
+    WITH DOCKER \
+        --load=(+another-test-image --INDEX=1) \
+        --load=(+another-test-image --INDEX=2) \
+        --load=(+another-test-image --INDEX=3) \
+        --load=(+another-test-image --INDEX=4) \
+        --load=(+another-test-image --INDEX=5)
+        RUN docker run --rm another-test-img:i1 | grep "test img 1" && \
+            docker run --rm another-test-img:i2 | grep "test img 2" && \
+            docker run --rm another-test-img:i3 | grep "test img 3" && \
+            docker run --rm another-test-img:i4 | grep "test img 4" && \
+            docker run --rm another-test-img:i5 | grep "test img 5"
+    END

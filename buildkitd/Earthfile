@@ -12,7 +12,7 @@ buildkitd:
             ARG BUILDKIT_BASE_IMAGE=$BUILDKIT_PROJECT+build
         END
     ELSE
-        ARG BUILDKIT_BASE_IMAGE=github.com/earthly/buildkit:f126d5cedf8a91de9948f374b982cce3fb5649f6+build
+        ARG BUILDKIT_BASE_IMAGE=github.com/earthly/buildkit:de75b35133f98ab156ebaf0f4eee4cfcf6257b8c+build
     END
     FROM $BUILDKIT_BASE_IMAGE
     RUN echo "@edge-community http://dl-cdn.alpinelinux.org/alpine/edge/community" >> /etc/apk/repositories
@@ -48,6 +48,7 @@ buildkitd:
     ENV EARTHLY_TMP_DIR=/tmp/earthly
     ENV BUILDKIT_DEBUG=false
     ENV BUILDKIT_MAX_PARALLELISM=20
+    ENV BUILDKIT_LOCAL_REGISTRY_LISTEN_PORT=8371
     ENV CACHE_SIZE_MB=0
     ENV CACHE_SIZE_PCT=0
     ENV NETWORK_MODE=cni

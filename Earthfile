@@ -40,8 +40,7 @@ code:
         RUN go mod edit -replace github.com/moby/buildkit=/buildkit
         RUN go mod download
     END
-    ARG USERARCH
-    COPY --platform=linux/$USERARCH ./ast/parser+parser/*.go ./ast/parser/
+    COPY ./ast/parser+parser/*.go ./ast/parser/
     COPY --dir analytics autocomplete buildcontext builder cleanup cmd config conslogging debugger dockertar \
         docker2earthly domain features outmon slog cloud states util variables ./
     COPY --dir buildkitd/buildkitd.go buildkitd/settings.go buildkitd/certificates.go buildkitd/
@@ -283,14 +282,6 @@ earthly-linux-amd64:
         ) ./
     SAVE ARTIFACT ./*
 
-earthly-linux-arm7:
-    COPY (+earthly/* \
-        --GOARCH=arm \
-        --VARIANT=v7 \
-        --GO_EXTRA_LDFLAGS= \
-        ) ./
-    SAVE ARTIFACT ./*
-
 earthly-linux-arm64:
     COPY (+earthly/* \
         --GOARCH=arm64 \
@@ -329,7 +320,6 @@ earthly-windows-amd64:
 
 earthly-all:
     COPY +earthly-linux-amd64/earthly ./earthly-linux-amd64
-    COPY +earthly-linux-arm7/earthly ./earthly-linux-arm7
     COPY +earthly-linux-arm64/earthly ./earthly-linux-arm64
     COPY +earthly-darwin-amd64/earthly ./earthly-darwin-amd64
     COPY +earthly-darwin-arm64/earthly ./earthly-darwin-arm64
@@ -343,6 +333,7 @@ earthly-docker:
     ENV EARTHLY_IMAGE=true
     COPY earthly-entrypoint.sh /usr/bin/earthly-entrypoint.sh
     ENTRYPOINT ["/usr/bin/earthly-entrypoint.sh"]
+    WORKDIR /workspace
     ARG EARTHLY_TARGET_TAG_DOCKER
     ARG TAG="dev-$EARTHLY_TARGET_TAG_DOCKER"
     COPY (+earthly/earthly --VERSION=$TAG) /usr/bin/earthly
@@ -351,8 +342,8 @@ earthly-docker:
 earthly-integration-test-base:
     FROM +earthly-docker
     ENV NO_DOCKER=1
-    ENV SRC_DIR=/test
     ENV NETWORK_MODE=host
+    WORKDIR /test
 
     # The inner buildkit requires Docker hub creds to prevent rate-limiting issues.
     ARG DOCKERHUB_MIRROR
@@ -401,7 +392,6 @@ prerelease:
     ARG BUILDKIT_PROJECT
     BUILD \
         --platform=linux/amd64 \
-        --platform=linux/arm/v7 \
         --platform=linux/arm64 \
         ./buildkitd+buildkitd --TAG=prerelease  --BUILDKIT_PROJECT="$BUILDKIT_PROJECT"
     COPY (+earthly-all/* --VERSION=prerelease) ./
@@ -418,7 +408,7 @@ dind:
     BUILD +dind-ubuntu
 
 dind-alpine:
-    FROM docker:dind
+    FROM docker:20.10.14-dind
     COPY ./buildkitd/docker-auto-install.sh /usr/local/bin/docker-auto-install.sh
     RUN docker-auto-install.sh
     ARG EARTHLY_TARGET_TAG_DOCKER
@@ -472,7 +462,6 @@ all-buildkitd:
     ARG BUILDKIT_PROJECT
     BUILD \
         --platform=linux/amd64 \
-        --platform=linux/arm/v7 \
         --platform=linux/arm64 \
         ./buildkitd+buildkitd --BUILDKIT_PROJECT="$BUILDKIT_PROJECT"
 
@@ -582,3 +571,7 @@ examples2:
     BUILD github.com/earthly/hello-world:main+hello
     BUILD ./examples/cache-command/npm+docker
     BUILD ./examples/cache-command/mvn+docker
+
+license:
+    COPY LICENSE ./
+    SAVE ARTIFACT LICENSE

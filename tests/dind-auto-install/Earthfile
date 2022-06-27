@@ -2,6 +2,8 @@ VERSION 0.6
 
 all:
     BUILD +test \
+        --BASE_IMAGE=docker:20.10.14-dind \
+        --BASE_IMAGE=docker:20.10.15-dind \
         --BASE_IMAGE=docker:dind \
         --BASE_IMAGE=alpine:latest \
         --BASE_IMAGE=debian:stable \
@@ -15,6 +17,7 @@ all:
 test:
     ARG --required BASE_IMAGE
     FROM $BASE_IMAGE
+    WORKDIR /root
     COPY ./docker-compose.yml ./
     WITH DOCKER --compose docker-compose.yml
         RUN true

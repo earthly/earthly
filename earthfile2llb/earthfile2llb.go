@@ -33,10 +33,12 @@ type ConvertOpt struct {
 	GlobalImports map[string]domain.ImportTrackerVal
 	// The resolve mode for referenced images (force pull or prefer local).
 	ImageResolveMode llb.ResolveMode
-	// DockerBuilderFun is a fun that can be used to execute an image build. This
-	// is used as part of operations like DOCKER LOAD and DOCKER PULL, where
-	// a tar image is needed in the middle of a build.
-	DockerBuilderFun states.DockerBuilderFun
+	// DockerImageSolverTar is similar to the above solver but it uses a tar
+	// file to transfer images. To be deprecated in favor of the local registry version.
+	DockerImageSolverTar states.DockerTarImageSolver
+	// MultiImageSolver can solve multiple images using a single build
+	// request. Primarily used for WITH DOCKER commands.
+	MultiImageSolver states.MultiImageSolver
 	// CleanCollection is a collection of cleanup functions.
 	CleanCollection *cleanup.Collection
 	// Visited is a collection of target states which have been converted to LLB.
@@ -87,6 +89,8 @@ type ConvertOpt struct {
 	GitLookup *buildcontext.GitLookup
 	// LocalStateCache provides a cache for local pllb.States
 	LocalStateCache *LocalStateCache
+	// UseLocalRegistry indicates whether the the BuildKit-embedded registry can be used for exports.
+	UseLocalRegistry bool
 
 	// Features is the set of enabled features
 	Features *features.Features
@@ -98,7 +102,7 @@ type ConvertOpt struct {
 	// ErrorGroup is a serrgroup used to submit parallel conversion jobs.
 	ErrorGroup *serrgroup.Group
 
-	// FeatureFlagOverride is used to override feature flags that are defined in specific Earthfiles
+	// FeatureFlagOverrides is used to override feature flags that are defined in specific Earthfiles
 	FeatureFlagOverrides string
 	// Default set of ARGs to make available in Earthfile.
 	BuiltinArgs variables.DefaultArgs
@@ -111,6 +115,9 @@ type ConvertOpt struct {
 	// ContainerFrontend is the currently used container frontend, as detected by Earthly at app start. It provides info
 	// and access to commands to manipulate the current container frontend.
 	ContainerFrontend containerutil.ContainerFrontend
+
+	// waitBlock references the current WAIT/END scope
+	waitBlock *waitBlock
 }
 
 // Earthfile2LLB parses a earthfile and executes the statements for a given target.
@@ -129,6 +136,9 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt, in
 		opt.ErrorGroup, ctx = serrgroup.WithContext(ctx)
 		egWait = true
 		defer func() {
+			if retErr != nil {
+				return
+			}
 			if egWait {
 				// We haven't waited for the ErrorGroup yet. The ErrorGroup will
 				// return the very first error encountered, which may be
@@ -163,6 +173,16 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt, in
 	}
 	opt.PlatformResolver.AllowNativeAndUser = opt.Features.NewPlatform
 
+	wbWait := false
+	if opt.waitBlock == nil {
+		opt.waitBlock = newWaitBlock()
+
+		// we must call opt.waitBlock.wait(), since we are the creator.
+		// unfortunately this must be done before opt.ErrorGroup.Wait() is called (rather than here via a defer),
+		// as the ctx would otherwise be canceled.
+		wbWait = true
+	}
+
 	targetWithMetadata := bc.Ref.(domain.Target)
 	sts, found, err := opt.Visited.Add(ctx, targetWithMetadata, opt.PlatformResolver, opt.AllowPrivileged, opt.OverridingVars, opt.parentDepSub)
 	if err != nil {
@@ -188,10 +208,19 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt, in
 	if err != nil {
 		return nil, err
 	}
+
 	mts, err = converter.FinalizeStates(ctx)
 	if err != nil {
 		return nil, err
 	}
+
+	if wbWait {
+		err = opt.waitBlock.wait(ctx)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	if egWait {
 		egWait = false
 		err := opt.ErrorGroup.Wait()

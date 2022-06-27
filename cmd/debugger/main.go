@@ -215,7 +215,7 @@ func main() {
 		forceInteractive = true
 	}
 
-	conslogger := conslogging.Current(conslogging.ForceColor, conslogging.NoPadding, false)
+	conslogger := conslogging.Current(conslogging.ForceColor, conslogging.NoPadding, conslogging.Info)
 	color.NoColor = false
 
 	debuggerSettings, err := getSettings(fmt.Sprintf("/run/secrets/%s", common.DebuggerSettingsSecretsKey))
@@ -226,7 +226,7 @@ func main() {
 
 	if debuggerSettings.DebugLevelLogging {
 		logrus.SetLevel(logrus.DebugLevel)
-		conslogger = conslogger.WithVerbose(true)
+		conslogger = conslogger.WithLogLevel(conslogging.Verbose)
 	}
 
 	ctx := context.Background()

@@ -4,6 +4,46 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+## v0.6.18 - 2022-06-27
+
+### Fixed
+
+- `sh: write error: Resource busy` error caused by running the earthly/earthly docker image on a cgroups2-enabled host. [#1934](https://github.com/earthly/earthly/issues/1934)
+
+## v0.6.17 - 2022-06-20
+
+### Added
+
+- Additional debug information for failure during dind cleanup.
+
+## v0.6.16 - 2022-06-17
+
+### Changed
+
+- Custom `secret_provider` is now called with user's env variables.
+- Additional args can be passed to `secret_provider`, e.g. `secret_provider: my-password-manager --db=$HOME/path/to/secrets.db`
+- Local registry is enabled by default in the earthly-buildkit container.
+
+## v0.6.15 - 2022-06-02
+
+### Changed
+
+- Switch to MPL-2.0 license. [Announcement](https://earthly.dev/blog/earthly-open-source)
+
+### Added
+
+- Experimental support for Docker registry based image creation and transfer `WITH DOCKER` loads and pulls. Enable with the `VERSION --use-registry-for-with-docker` flag.
+- Git config options for non-standard port and path prefix; these options are incompatible with a custom git substition regex.
+- Experimental WAIT / END blocks, to allow for finer grain of control between pushing images and running commands.
+- Improved ARG error messages to include the ARG name associated with the error.
+
+### Fixed
+
+- Panic when running earthly --version under some versions of windows
+- Removed duplicate git commit hash from earthly --version output string (when running dev versions of earthly)
+- Garbled auto-completion when using Earthfiles without a VERSION command (or with other warnings) [#1837](https://github.com/earthly/earthly/issues/1837).
+- Masking of cgroups for podman support.
+
 ## v0.6.14 - 2022-04-11
 
 ### Added
@@ -263,7 +303,7 @@ For more information on the individual Earthfile feature flags see the [Earthfil
 
 <!--changelog-parser-ignore-start-->
 - What Earthly outputs locally has changed in a way that is not backwards compatible. For an artifact or an image to be produced locally it needs to be part of a `BUILD` chain (or be part of the target being directly built). Artifacts and images introduced through `FROM` or `COPY` are no longer output locally.
-  
+
   To update existing scripts, you may issue a duplicate `BUILD` in addition to a `FROM` (or a `COPY`), should you wish for the referenced target to perform output.
 
   For example, the following script
@@ -283,10 +323,10 @@ For more information on the individual Earthfile feature flags see the [Earthfil
   ```
 
   in order to produce the same outputs.
-  
+
   For more details see [#896](https://github.com/earthly/earthly/issues/896).
 - The syntax for passing build args has been changed.
-  
+
   Earthly v0.5 (old way)
 
   ```
@@ -433,7 +473,7 @@ For more information on the individual Earthfile feature flags see the [Earthfil
 
 <!--changelog-parser-ignore-start-->
 - What Earthly outputs locally has changed in a way that is not backwards compatible. For an artifact or an image to be produced locally it needs to be part of a `BUILD` chain (or be part of the target being directly built). Artifacts and images introduced through `FROM` or `COPY` are no longer output locally.
-  
+
   To update existing scripts, you may issue a duplicate `BUILD` in addition to a `FROM` (or a `COPY`), should you wish for the referenced target to perform output.
 
   For example, the following script
@@ -453,10 +493,10 @@ For more information on the individual Earthfile feature flags see the [Earthfil
   ```
 
   in order to produce the same outputs.
-  
+
   For more details see [#896](https://github.com/earthly/earthly/issues/896).
 - The syntax for passing build args has been changed.
-  
+
   Earthly v0.5 (old way)
 
   ```
@@ -647,9 +687,9 @@ For more information on the individual Earthfile feature flags see the [Earthfil
   ```
   IMPORT github.com/foo/bar:v1.2.3
   IMPORT github.com/foo/buz:main AS zulu
-  
+
   ...
-  
+
   FROM bar+target
   BUILD zulu+something
   ```

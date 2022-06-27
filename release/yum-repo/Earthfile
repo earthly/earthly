@@ -1,3 +1,4 @@
+VERSION 0.6
 FROM alpine:3.15
 
 deps:
@@ -20,8 +21,6 @@ rpm:
         ENV ARCH_TARGET=x86_64
     ELSE IF [ "$EARTHLY_PLATFORM" = "arm64" ]
         ENV ARCH_TARGET="aarch64"
-    ELSE IF [ "$EARTHLY_PLATFORM" = "arm7" ]
-        ENV ARCH_TARGET="armv7l"
     ELSE
         RUN echo "$EARTHLY_PLATFORM is not supported" && exit 1
     END
@@ -44,25 +43,10 @@ rpm-arm64:
         +rpm/* ./
     SAVE ARTIFACT *.rpm
 
-rpm-arm7:
-    COPY \
-        --build-arg  EARTHLY_PLATFORM=arm7 \
-        +rpm/* ./
-    SAVE ARTIFACT *.rpm
-
 rpm-all:
     COPY +rpm-amd64/*.rpm .
     COPY +rpm-arm64/*.rpm .
-    COPY +rpm-arm7/*.rpm .
     SAVE ARTIFACT ./*.rpm
-
-aws-base:
-    FROM alpine:latest
-    RUN apk add --update --no-cache curl unzip
-    RUN curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64-2.0.30.zip" -o "awscliv2.zip"
-    RUN unzip awscliv2.zip
-    RUN ./aws/install
-    ENV PATH=$PATH:/usr/local/aws-cli/v2/bin/
 
 aws:
     FROM amazon/aws-cli
@@ -72,11 +56,14 @@ aws:
     ENV AWS_PROFILE=developer
 
 download:
-    FROM +aws
-    RUN env | grep dev
+    FROM ../common-repo+aws
+    ARG --required S3_BUCKET
     RUN --no-cache \
+        --secret MFA_ARN=+secrets/user/earthly-technologies/aws/mfa-arn \
+        --secret MFA_KEY=+secrets/user/earthly-technologies/aws/mfa-key \
         --mount type=secret,id=+secrets/user/earthly-technologies/aws/credentials,target=/root/.aws/credentials \
-        aws s3 cp --recursive s3://staging-pkg/rpm/stable repo
+        eval $(assume-developer-role) && \
+        aws s3 cp --recursive s3://$S3_BUCKET/rpm/stable repo
     SAVE ARTIFACT repo AS LOCAL output/repo
 
 generate-new-yum-repo:
@@ -116,7 +103,7 @@ index-and-sign:
     SAVE ARTIFACT /repo AS LOCAL output/signed-repo
 
 upload:
-    FROM +aws
+    FROM ../common-repo+aws
 
     ARG USE_OUTPUT_COPY=true
     IF [ "$USE_OUTPUT_COPY" = "true" ]
@@ -132,17 +119,20 @@ upload:
             exit 1; \
         fi
     # upload public key
+    ARG --required S3_BUCKET
     RUN --push \
         --mount type=secret,id=+secrets/earthly-technologies/release/keys/earthly-public.pgp,target=/release-key/earthly-public.pgp \
+        --secret MFA_ARN=+secrets/user/earthly-technologies/aws/mfa-arn \
+        --secret MFA_KEY=+secrets/user/earthly-technologies/aws/mfa-key \
         --mount type=secret,id=+secrets/user/earthly-technologies/aws/credentials,target=/root/.aws/credentials \
+        eval $(assume-developer-role 1) && \
         grep PUBLIC /release-key/earthly-public.pgp >/dev/null && \
-        aws s3 cp --acl public-read /release-key/earthly-public.pgp s3://staging-pkg/earthly.pgp
-    # upload signed repo
-    RUN --push \
-        --mount type=secret,id=+secrets/user/earthly-technologies/aws/credentials,target=/root/.aws/credentials \
-        aws s3 cp --acl public-read /repo/repodata/repomd.xml s3://staging-pkg/rpm/stable/repodata/repomd.xml && \
-        aws s3 cp --acl public-read /repo/repodata/repomd.xml.asc s3://staging-pkg/rpm/stable/repodata/repomd.xml.asc && \
-        aws s3 sync --acl public-read /repo s3://staging-pkg/rpm/stable
+        aws s3 cp --acl public-read /release-key/earthly-public.pgp s3://$S3_BUCKET/earthly.pgp && \
+        # upload signed repo
+        aws s3 cp --acl public-read /repo/repodata/repomd.xml s3://$S3_BUCKET/rpm/stable/repodata/repomd.xml && \
+        aws s3 cp --acl public-read /repo/repodata/repomd.xml.asc s3://$S3_BUCKET/rpm/stable/repodata/repomd.xml.asc && \
+        aws s3 sync --acl public-read /repo s3://$S3_BUCKET/rpm/stable
 
 build-and-release:
-    BUILD --build-arg USE_OUTPUT_COPY=false +upload
+    ARG --required S3_BUCKET
+    BUILD +upload --USE_OUTPUT_COPY=false --S3_BUCKET="$S3_BUCKET"

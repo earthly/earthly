@@ -35,6 +35,7 @@ ga:
         --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR \
         --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE
     BUILD ./with-docker+all
+    BUILD ./with-docker-registry+all
     BUILD ./with-docker-compose+all
     BUILD ./with-docker-via-command+test
     BUILD ./dockerfile+test
@@ -577,7 +578,7 @@ if-exists:
       --output_contains="bad-wildcard-save"
     RUN mkdir in && \
         echo "this-file-does-exist" > ./in/this-file-does-exist && \
-        echo "so-does-this-one" > so-does-this-one 
+        echo "so-does-this-one" > so-does-this-one
     DO +RUN_EARTHLY --earthfile=if-exists.earth --target=+classic-copy-exists
     DO +RUN_EARTHLY --earthfile=if-exists.earth --target=+classic-copy-not-exist
 

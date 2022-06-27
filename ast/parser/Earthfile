@@ -5,7 +5,7 @@ ARG TARGETARCH
 IF [ "$TARGETARCH" = "arm64" ]
     FROM arm64v8/openjdk:19-slim
 ELSE
-    FROM --platform=linux/amd64 openjdk:19-slim
+    FROM --platform="linux/$TARGETARCH" openjdk:19-slim
 END
 
 RUN apt-get update && apt-get install -y --no-install-recommends \

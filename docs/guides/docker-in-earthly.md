@@ -132,6 +132,6 @@ SAVE IMAGE my-image:latest
 
 ## See also
 
-* Reference for [`WITH DOCKER`](../earthfile/earthfile.md#with-docker-beta)
+* Reference for [`WITH DOCKER`](../earthfile/earthfile.md#with-docker)
 * [Debugging techniques](./debugging.md)
 * [Tutorial on integration testing in Earthly](./integration.md)

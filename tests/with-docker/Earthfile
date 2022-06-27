@@ -2,6 +2,7 @@ VERSION --parallel-load --shell-out-anywhere 0.6
 FROM earthly/dind:alpine
 
 all:
+    BUILD +empty-test
     BUILD +docker-load-test
     BUILD +docker-load-shellout-test
     BUILD +docker-load-arg-test
@@ -10,6 +11,11 @@ all:
     BUILD +load-parallel-test
     BUILD +one-target-many-names
     BUILD +if-after
+
+empty-test:
+    WITH DOCKER
+        RUN echo "dummy"
+    END
 
 a-test-image:
     FROM alpine:3.15

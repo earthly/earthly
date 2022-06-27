@@ -31,6 +31,8 @@ server:
     ARG USER_RSA="true"
     ARG USER_ED25519="true"
 
+    ARG SSH_PORT="22"
+
     RUN adduser --disabled-password --gecos "" git && \
         mkdir ~git/.ssh && \
         > ~git/.ssh/authorized_keys && \
@@ -54,6 +56,8 @@ server:
     RUN if [ "$SSHD_RSA" = "true" ]; then echo "HostKey /etc/sshd_keys/sshd_rsa_key" >> /etc/ssh/sshd_config; fi && \
         if [ "$SSHD_ED25519" = "true" ]; then echo "HostKey /etc/sshd_keys/sshd_ed25519_key" >> /etc/ssh/sshd_config; fi
 
+    RUN if [ "$SSH_PORT" != "22" ]; then echo "Port $SSH_PORT" >> /etc/ssh/sshd_config; fi
+
     RUN echo "Welcome to our self-hosted git ssh server" > /etc/motd
 
     RUN echo "set -e
@@ -72,8 +76,8 @@ fi
 
     RUN --privileged start-sshd && \
         mkdir -p ~/.ssh && \
-        timeout 5 sh -c 'until nc -z $0 $1; do sleep 1; done' git.example.com 22 && \
-        ssh-keyscan -H git.example.com > ~/.ssh/known_hosts && \
+        timeout 5 sh -c 'until nc -z $0 $1; do sleep 1; done' git.example.com $SSH_PORT && \
+        ssh-keyscan -p $SSH_PORT -H git.example.com > ~/.ssh/known_hosts && \
         echo done setup.
 
     RUN --privileged start-sshd && \ # starts in background
@@ -81,8 +85,8 @@ fi
         if [ "$USER_RSA" = "true" ]; then ssh-add /root/self-hosted-rsa-key; fi && \
         if [ "$USER_ED25519" = "true" ]; then ssh-add /root/self-hosted-ed25519-key; fi && \
         ssh-add -l && \
-        timeout 5 sh -c 'until nc -z $0 $1; do sleep 1; done' git.example.com 22 && \
-        ssh-keyscan -H git.example.com && \
+        timeout 5 sh -c 'until nc -z $0 $1; do sleep 1; done' git.example.com $SSH_PORT && \
+        ssh-keyscan -p $SSH_PORT -H git.example.com && \
         mkdir -p /test/repo && \
         cd /test/repo && \
         git init --initial-branch=main . && \
@@ -91,7 +95,11 @@ fi
         git config --global user.email "onlyspammersemailthis@earthly.dev" && \
         git config --global user.name "test name" && \
         git commit -m "An Earthfile to test against" && \
-        git remote add origin git@git.example.com:testuser/repo.git && \
+        if [ "$SSH_PORT" = "22" ]; then \
+            git remote add origin git@git.example.com:testuser/repo.git; \
+        else \
+            git remote add origin ssh://git@git.example.com:$SSH_PORT/home/git/testuser/repo.git; \
+        fi && \
         git push --set-upstream origin main && \
         cd .. && \
         rm -rf repo # remove this repo dir now that it has been pushed to the server

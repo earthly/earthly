@@ -24,7 +24,7 @@ jobs:
         with:
           image: tonistiigi/binfmt:latest
           platforms: all
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Docker mirror login (Earthly Only)
         run: docker login registry-1.docker.io.mirror.corp.earthly.dev --username "${{ secrets.DOCKERHUB_MIRROR_USERNAME }}" --password "${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}"
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
@@ -84,7 +84,7 @@ jobs:
         with:
           image: tonistiigi/binfmt:latest
           platforms: all
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Docker mirror login (Earthly Only)
         run: docker login registry-1.docker.io.mirror.corp.earthly.dev --username "${{ secrets.DOCKERHUB_MIRROR_USERNAME }}" --password "${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}"
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
@@ -162,7 +162,7 @@ jobs:
         with:
           image: tonistiigi/binfmt:latest
           platforms: all
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - uses: actions/setup-go@v1
         with:
           go-version: 1.17
@@ -206,7 +206,7 @@ jobs:
       EARTHLY_INSTALL_ID: "earthly-githubactions"
     steps:
       - uses: earthly/actions-setup@v1.0.1
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - uses: actions/setup-go@v1
         with:
           go-version: 1.17
@@ -259,6 +259,17 @@ jobs:
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: Execute registry-certs test (Fork Only)
         run: ./tests/registry-certs/test.sh --build-arg DOCKERHUB_AUTH=false
+        if: github.event_name != 'push' && github.event.pull_request.head.repo.full_name != github.repository
+      - name: Execute wait-block test (Earthly Only)
+        run: |-
+          ./tests/wait-block/test.sh \
+              --build-arg DOCKERHUB_AUTH=true \
+              --build-arg DOCKERHUB_USER_SECRET=+secrets/earthly-technologies/dockerhub-mirror/user \
+              --build-arg DOCKERHUB_TOKEN_SECRET=+secrets/earthly-technologies/dockerhub-mirror/pass \
+              --build-arg DOCKERHUB_MIRROR=registry-1.docker.io.mirror.corp.earthly.dev
+        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+      - name: Execute wait-block test (Fork Only)
+        run: ./tests/wait-block/test.sh --build-arg DOCKERHUB_AUTH=false
         if: github.event_name != 'push' && github.event.pull_request.head.repo.full_name != github.repository
       - name: Execute local buildkit with mTLS test
         run: ./tests/remote-buildkit/remote-buildkit-test.sh
@@ -327,7 +338,7 @@ jobs:
       EARTHLY_INSTALL_ID: "earthly-githubactions"
     steps:
       - uses: earthly/actions-setup@v1.0.1
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Set up QEMU
         id: qemu
         uses: docker/setup-qemu-action@v1
@@ -376,7 +387,7 @@ jobs:
       EARTHLY_INSTALL_ID: "earthly-githubactions"
     steps:
       - uses: earthly/actions-setup@v1.0.1
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Set up QEMU
         id: qemu
         uses: docker/setup-qemu-action@v1
@@ -429,7 +440,7 @@ jobs:
       EARTHLY_INSTALL_ID: "earthly-githubactions"
     steps:
       - uses: earthly/actions-setup@v1.0.1
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Docker mirror login (Earthly Only)
         run: docker login registry-1.docker.io.mirror.corp.earthly.dev --username "${{ secrets.DOCKERHUB_MIRROR_USERNAME }}" --password "${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}"
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
@@ -475,7 +486,7 @@ jobs:
       EARTHLY_INSTALL_ID: "earthly-githubactions"
     steps:
       - uses: earthly/actions-setup@v1.0.1
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Docker mirror login (Earthly Only)
         run: docker login registry-1.docker.io.mirror.corp.earthly.dev --username "${{ secrets.DOCKERHUB_MIRROR_USERNAME }}" --password "${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}"
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
@@ -519,7 +530,7 @@ jobs:
       EARTHLY_INSTALL_ID: "earthly-githubactions"
     steps:
       - uses: earthly/actions-setup@v1.0.1
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Docker mirror login (Earthly Only)
         run: docker login registry-1.docker.io.mirror.corp.earthly.dev --username "${{ secrets.DOCKERHUB_MIRROR_USERNAME }}" --password "${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}"
       - name: Configure Earthly to use mirror (Earthly Only)
@@ -552,7 +563,7 @@ jobs:
       EARTHLY_INSTALL_ID: "earthly-githubactions"
     steps:
       - uses: earthly/actions-setup@v1.0.1
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Docker mirror login (Earthly Only)
         run: docker login registry-1.docker.io.mirror.corp.earthly.dev --username "${{ secrets.DOCKERHUB_MIRROR_USERNAME }}" --password "${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}"
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
@@ -588,7 +599,7 @@ jobs:
       EARTHLY_INSTALL_ID: "earthly-githubactions"
     steps:
       - uses: earthly/actions-setup@v1.0.1
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Build latest earthly using released earthly
         run: earthly --use-inline-cache +for-linux
       - name: Set EARTHLY_VERSION_FLAG_OVERRIDES env
@@ -627,7 +638,7 @@ jobs:
       SSH_PORT: "2222"
     steps:
       - uses: earthly/actions-setup@v1.0.1
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: install sshpass and net-tools
         run: sudo apt-get install -y sshpass net-tools
       - name: Docker mirror login (Earthly Only)
@@ -674,7 +685,7 @@ jobs:
       EARTHLY_INSTALL_ID: "earthly-githubactions"
     steps:
       - uses: earthly/actions-setup@v1.0.1
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Set up QEMU
         id: qemu
         uses: docker/setup-qemu-action@v1
@@ -714,7 +725,7 @@ jobs:
       EARTHLY_INSTALL_ID: "earthly-githubactions"
     steps:
       - uses: earthly/actions-setup@v1.0.1
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       -
         name: Set up QEMU
         id: qemu
@@ -758,59 +769,6 @@ jobs:
         run: docker logs earthly-buildkitd
         if: ${{ failure() }}
 
-  buildkitd-armv7:
-    name: +all-buildkitd
-    runs-on: ubuntu-latest
-    env:
-      FORCE_COLOR: 1
-      EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
-      EARTHLY_INSTALL_ID: "earthly-githubactions"
-    steps:
-      - uses: earthly/actions-setup@v1.0.1
-      - uses: actions/checkout@v2
-      -
-        name: Set up QEMU
-        id: qemu
-        uses: docker/setup-qemu-action@v1
-        with:
-          image: tonistiigi/binfmt:latest
-          platforms: all
-      - name: "Put back the git branch into git (Earthly uses it for tagging)"
-        run: |
-          branch=""
-          if [ -n "$GITHUB_HEAD_REF" ]; then
-            branch="$GITHUB_HEAD_REF"
-          else
-            branch="${GITHUB_REF##*/}"
-          fi
-          git checkout -b "$branch" || true
-      - name: Docker mirror login (Earthly Only)
-        run: docker login registry-1.docker.io.mirror.corp.earthly.dev --username "${{ secrets.DOCKERHUB_MIRROR_USERNAME }}" --password "${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}"
-        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
-      - name: Configure Earthly to use mirror (Earthly Only)
-        run: |-
-          earthly config global.buildkit_additional_config "'[registry.\"docker.io\"]
-
-          mirrors = [\"registry-1.docker.io.mirror.corp.earthly.dev\"]'"
-        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
-      - name: Build latest earthly using released earthly
-        run: earthly --use-inline-cache +for-linux
-      - name: Set EARTHLY_VERSION_FLAG_OVERRIDES env
-        run: |-
-            set -euo pipefail
-            EARTHLY_VERSION_FLAG_OVERRIDES="$(tr -d '\n' < .earthly_version_flag_overrides)"
-            echo "EARTHLY_VERSION_FLAG_OVERRIDES=$EARTHLY_VERSION_FLAG_OVERRIDES" >> "$GITHUB_ENV"
-      - name: Enable local registry-based exporter
-        run: ./build/linux/amd64/earthly config global.local_registry_host 'tcp://127.0.0.1:8371'
-      - name: Configure Earthly Conversion Parallelism
-        run: ./build/linux/amd64/earthly config global.conversion_parallelism 5
-      - name: Build linux/armv7 +buildkitd
-        run: |-
-          ./build/linux/amd64/earthly --ci  --platform=linux/arm/v7 ./buildkitd+buildkitd --BUILDKIT_PROJECT="$BUILDKIT_PROJECT"
-      - name: Buildkit logs (runs on failure)
-        run: docker logs earthly-buildkitd
-        if: ${{ failure() }}
-
   buildkitd-arm64:
     name: +all-buildkitd
     runs-on: ubuntu-latest
@@ -820,7 +778,7 @@ jobs:
       EARTHLY_INSTALL_ID: "earthly-githubactions"
     steps:
       - uses: earthly/actions-setup@v1.0.1
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       -
         name: Set up QEMU
         id: qemu
@@ -872,7 +830,7 @@ jobs:
       EARTHLY_INSTALL_ID: "earthly-githubactions"
     steps:
       - uses: earthly/actions-setup@v1.0.1
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       -
         name: Set up QEMU
         id: qemu
@@ -924,7 +882,7 @@ jobs:
       EARTHLY_INSTALL_ID: "earthly-githubactions"
     steps:
       - uses: earthly/actions-setup@v1.0.1
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       -
         name: Set up QEMU
         id: qemu
@@ -978,7 +936,7 @@ jobs:
       EARTHLY_INSTALL_ID: "earthly-githubactions"
     steps:
       - uses: earthly/actions-setup@v1.0.1
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       -
         name: Set up QEMU
         id: qemu
@@ -1037,7 +995,6 @@ jobs:
       - export-test
       - test-local
       - buildkitd-amd64
-      - buildkitd-armv7
       - buildkitd-arm64
       - all-dind
       - prerelease
@@ -1049,7 +1006,7 @@ jobs:
       EARTHLY_INSTALL_ID: "earthly-githubactions"
     steps:
       - uses: earthly/actions-setup@v1.0.1
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       -
         name: Set up QEMU
         id: qemu
