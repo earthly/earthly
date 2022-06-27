@@ -152,7 +152,7 @@ jobs:
       - name: Build latest earthly using released earthly
         run: earthly --use-inline-cache +for-linux
       - name: Configure Satellites (Earthly Only)
-        run: earthly satellite select earthly-cloud
+        run: earthly satellite select earthly-core
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: Set EARTHLY_VERSION_FLAG_OVERRIDES env
         run: |-
