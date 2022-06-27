@@ -653,7 +653,7 @@ In the *output form*, the command `SAVE IMAGE` marks the current build environme
 In the *cache hint form*, it instructs Earthly that the current target should be included as part of the explicit cache. For more information see the [shared caching guide](../guides/shared-cache.md).
 
 {% hint style='info' %}
-##### Assigning more than one image name
+##### Assigning multiple image names
 
 The `SAVE IMAGE` command allows you to assign more than one image name:
 
