@@ -313,7 +313,7 @@ func getVersionPlatform() string {
 }
 
 func getPlatform() string {
-        h, err := gsysinfo.Host()
+	h, err := gsysinfo.Host()
 	if err != nil {
 		return "unknown"
 	}
