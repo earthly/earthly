@@ -179,6 +179,9 @@ var (
 
 	// GitSha contains the git sha used to build this app
 	GitSha string
+
+	// BuiltBy contains information on which build-system was used (e.g. official earthly binaries, homebrew, etc)
+	BuiltBy string
 )
 
 var (
@@ -309,7 +312,11 @@ func main() {
 }
 
 func getVersionPlatform() string {
-	return fmt.Sprintf("%s %s %s", Version, GitSha, getPlatform())
+	s := fmt.Sprintf("%s %s %s", Version, GitSha, getPlatform())
+	if BuiltBy != "" {
+		s += " " + BuiltBy
+	}
+	return s
 }
 
 func getPlatform() string {
