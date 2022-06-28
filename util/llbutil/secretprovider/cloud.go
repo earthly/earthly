@@ -26,7 +26,7 @@ func (cs *cloudStore) GetSecret(ctx context.Context, id string) ([]byte, error) 
 	if !strings.HasPrefix(id, "/") {
 		return nil, secrets.ErrNotFound
 	}
-	dt, err := cs.client.Get(id)
+	dt, err := cs.client.Get(ctx, id)
 	if err != nil {
 		return nil, err
 	}

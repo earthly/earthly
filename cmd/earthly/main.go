@@ -296,7 +296,8 @@ func main() {
 	// app.cfg will be nil when a user runs `earthly --version`;
 	// however in all other regular commands app.cfg will be set in app.Before
 	if !app.disableAnalytics && app.cfg != nil && !app.cfg.Global.DisableAnalytics {
-		ctxTimeout, cancel := context.WithTimeout(ctx, time.Millisecond*500)
+		// Use a new context, in case the original context is cancelled due to sigint.
+		ctxTimeout, cancel := context.WithTimeout(context.Background(), time.Millisecond*500)
 		defer cancel()
 		displayErrors := app.verbose
 		cloudClient, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
@@ -1318,7 +1319,7 @@ func (app *earthlyApp) configureSatellite(cliCtx *cli.Context, cloudClient cloud
 	if app.satelliteOrg == "" {
 		app.satelliteOrg = app.cfg.Satellite.Org
 	}
-	orgID, err := app.getSatelliteOrgID(cloudClient)
+	orgID, err := app.getSatelliteOrgID(cliCtx.Context, cloudClient)
 	if err != nil {
 		return err
 	}
@@ -1340,7 +1341,7 @@ func (app *earthlyApp) configureSatellite(cliCtx *cli.Context, cloudClient cloud
 	}
 	app.featureFlagOverrides += "new-platform,use-registry-for-with-docker"
 
-	token, err := cloudClient.GetAuthToken()
+	token, err := cloudClient.GetAuthToken(cliCtx.Context)
 	if err != nil {
 		return errors.Wrap(err, "failed to get auth token")
 	}
@@ -1965,14 +1966,25 @@ func (app *earthlyApp) bootstrap(cliCtx *cli.Context) error {
 	return nil
 }
 
-func promptInput(question string) string {
+func promptInput(ctx context.Context, question string) (string, error) {
 	fmt.Printf("%s", question)
-	rbuf := bufio.NewReader(os.Stdin)
-	line, err := rbuf.ReadString('\n')
-	if err != nil {
-		return ""
+	var line string
+	var readErr error
+	ch := make(chan struct{})
+	go func() {
+		rbuf := bufio.NewReader(os.Stdin)
+		line, readErr = rbuf.ReadString('\n')
+		close(ch)
+	}()
+	select {
+	case <-ctx.Done():
+		return "", ctx.Err()
+	case <-ch:
+		if readErr != nil {
+			return "", readErr
+		}
+		return strings.TrimRight(line, "\n"), nil
 	}
-	return strings.TrimRight(line, "\n")
 }
 
 func (app *earthlyApp) actionOrgCreate(cliCtx *cli.Context) error {
@@ -1985,7 +1997,7 @@ func (app *earthlyApp) actionOrgCreate(cliCtx *cli.Context) error {
 	if err != nil {
 		return errors.Wrap(err, "failed to create cloud client")
 	}
-	err = cloudClient.CreateOrg(org)
+	err = cloudClient.CreateOrg(cliCtx.Context, org)
 	if err != nil {
 		return errors.Wrap(err, "failed to create org")
 	}
@@ -1998,7 +2010,7 @@ func (app *earthlyApp) actionOrgList(cliCtx *cli.Context) error {
 	if err != nil {
 		return errors.Wrap(err, "failed to create cloud client")
 	}
-	orgs, err := cloudClient.ListOrgs()
+	orgs, err := cloudClient.ListOrgs(cliCtx.Context)
 	if err != nil {
 		return errors.Wrap(err, "failed to list orgs")
 	}
@@ -2031,7 +2043,7 @@ func (app *earthlyApp) actionOrgListPermissions(cliCtx *cli.Context) error {
 	if err != nil {
 		return errors.Wrap(err, "failed to create cloud client")
 	}
-	orgs, err := cloudClient.ListOrgPermissions(path)
+	orgs, err := cloudClient.ListOrgPermissions(cliCtx.Context, path)
 	if err != nil {
 		return errors.Wrap(err, "failed to list org permissions")
 	}
@@ -2065,7 +2077,7 @@ func (app *earthlyApp) actionOrgInvite(cliCtx *cli.Context) error {
 		return errors.Wrap(err, "failed to create cloud client")
 	}
 	userEmail := cliCtx.Args().Get(1)
-	err = cloudClient.Invite(path, userEmail, app.writePermission)
+	err = cloudClient.Invite(cliCtx.Context, path, userEmail, app.writePermission)
 	if err != nil {
 		return errors.Wrap(err, "failed to invite user into org")
 	}
@@ -2087,7 +2099,7 @@ func (app *earthlyApp) actionOrgRevoke(cliCtx *cli.Context) error {
 		return errors.Wrap(err, "failed to create cloud client")
 	}
 	userEmail := cliCtx.Args().Get(1)
-	err = cloudClient.RevokePermission(path, userEmail)
+	err = cloudClient.RevokePermission(cliCtx.Context, path, userEmail)
 	if err != nil {
 		return errors.Wrap(err, "failed to revoke user from org")
 	}
@@ -2110,7 +2122,7 @@ func (app *earthlyApp) actionSecretsList(cliCtx *cli.Context) error {
 	if err != nil {
 		return errors.Wrap(err, "failed to create cloud client")
 	}
-	paths, err := cloudClient.List(path)
+	paths, err := cloudClient.List(cliCtx.Context, path)
 	if err != nil {
 		return errors.Wrap(err, "failed to list secret")
 	}
@@ -2130,7 +2142,7 @@ func (app *earthlyApp) actionSecretsGet(cliCtx *cli.Context) error {
 	if err != nil {
 		return errors.Wrap(err, "failed to create cloud client")
 	}
-	data, err := cloudClient.Get(path)
+	data, err := cloudClient.Get(cliCtx.Context, path)
 	if err != nil {
 		return errors.Wrap(err, "failed to get secret")
 	}
@@ -2151,7 +2163,7 @@ func (app *earthlyApp) actionSecretsRemove(cliCtx *cli.Context) error {
 	if err != nil {
 		return errors.Wrap(err, "failed to create cloud client")
 	}
-	err = cloudClient.Remove(path)
+	err = cloudClient.Remove(cliCtx.Context, path)
 	if err != nil {
 		return errors.Wrap(err, "failed to remove secret")
 	}
@@ -2197,7 +2209,7 @@ func (app *earthlyApp) actionSecretsSet(cliCtx *cli.Context) error {
 	if err != nil {
 		return errors.Wrap(err, "failed to create cloud client")
 	}
-	err = cloudClient.Set(path, []byte(value))
+	err = cloudClient.Set(cliCtx.Context, path, []byte(value))
 	if err != nil {
 		return errors.Wrap(err, "failed to set secret")
 	}
@@ -2220,7 +2232,7 @@ func (app *earthlyApp) actionRegister(cliCtx *cli.Context) error {
 	}
 
 	if app.token == "" {
-		err := cloudClient.RegisterEmail(app.email)
+		err := cloudClient.RegisterEmail(cliCtx.Context, app.email)
 		if err != nil {
 			return errors.Wrap(err, "failed to register email")
 		}
@@ -2231,7 +2243,7 @@ func (app *earthlyApp) actionRegister(cliCtx *cli.Context) error {
 	var publicKeys []*agent.Key
 	if app.sshAuthSock != "" {
 		var err error
-		publicKeys, err = cloudClient.GetPublicKeys()
+		publicKeys, err = cloudClient.GetPublicKeys(cliCtx.Context)
 		if err != nil {
 			return err
 		}
@@ -2263,7 +2275,10 @@ func (app *earthlyApp) actionRegister(cliCtx *cli.Context) error {
 
 	var interactiveAccept bool
 	if !app.termsConditionsPrivacy {
-		rawAccept := promptInput("I acknowledge Earthly Technologies’ Privacy Policy (https://earthly.dev/privacy-policy) and agree to Earthly Technologies Terms of Service (https://earthly.dev/tos) [y/N]: ")
+		rawAccept, err := promptInput(cliCtx.Context, "I acknowledge Earthly Technologies’ Privacy Policy (https://earthly.dev/privacy-policy) and agree to Earthly Technologies Terms of Service (https://earthly.dev/tos) [y/N]: ")
+		if err != nil {
+			return err
+		}
 		if rawAccept == "" {
 			rawAccept = "n"
 		}
@@ -2275,7 +2290,10 @@ func (app *earthlyApp) actionRegister(cliCtx *cli.Context) error {
 	var publicKey string
 	if app.registrationPublicKey == "" {
 		if len(publicKeys) > 0 {
-			rawIsRegisterSSHKey := promptInput("Would you like to register an SSH key to be used as a form of login? [Y/n]: ")
+			rawIsRegisterSSHKey, err := promptInput(cliCtx.Context, "Would you like to register an SSH key to be used as a form of login? [Y/n]: ")
+			if err != nil {
+				return err
+			}
 			if rawIsRegisterSSHKey == "" {
 				rawIsRegisterSSHKey = "y"
 			}
@@ -2286,7 +2304,10 @@ func (app *earthlyApp) actionRegister(cliCtx *cli.Context) error {
 				for i, key := range publicKeys {
 					fmt.Printf("%d) %s\n", i+1, key.String())
 				}
-				keyNum := promptInput("enter key number (1=default): ")
+				keyNum, err := promptInput(cliCtx.Context, "enter key number (1=default): ")
+				if err != nil {
+					return err
+				}
 				if keyNum == "" {
 					keyNum = "1"
 				}
@@ -2321,7 +2342,7 @@ func (app *earthlyApp) actionRegister(cliCtx *cli.Context) error {
 		}
 	}
 
-	err = cloudClient.CreateAccount(app.email, app.token, pword, publicKey, termsConditionsPrivacy)
+	err = cloudClient.CreateAccount(cliCtx.Context, app.email, app.token, pword, publicKey, termsConditionsPrivacy)
 	if err != nil {
 		return errors.Wrap(err, "failed to create account")
 	}
@@ -2336,7 +2357,7 @@ func (app *earthlyApp) actionAccountListKeys(cliCtx *cli.Context) error {
 	if err != nil {
 		return errors.Wrap(err, "failed to create cloud client")
 	}
-	keys, err := cloudClient.ListPublicKeys()
+	keys, err := cloudClient.ListPublicKeys(cliCtx.Context)
 	if err != nil {
 		return errors.Wrap(err, "failed to list account keys")
 	}
@@ -2354,7 +2375,7 @@ func (app *earthlyApp) actionAccountAddKey(cliCtx *cli.Context) error {
 	}
 	if cliCtx.NArg() > 1 {
 		for _, k := range cliCtx.Args().Slice() {
-			err := cloudClient.AddPublickKey(k)
+			err := cloudClient.AddPublickKey(cliCtx.Context, k)
 			if err != nil {
 				return errors.Wrap(err, "failed to add public key to account")
 			}
@@ -2362,7 +2383,7 @@ func (app *earthlyApp) actionAccountAddKey(cliCtx *cli.Context) error {
 		return nil
 	}
 
-	publicKeys, err := cloudClient.GetPublicKeys()
+	publicKeys, err := cloudClient.GetPublicKeys(cliCtx.Context)
 	if err != nil {
 		return err
 	}
@@ -2378,7 +2399,10 @@ func (app *earthlyApp) actionAccountAddKey(cliCtx *cli.Context) error {
 	for i, key := range publicKeys {
 		fmt.Printf("%d) %s\n", i+1, key.String())
 	}
-	keyNum := promptInput("enter key number (1=default): ")
+	keyNum, err := promptInput(cliCtx.Context, "enter key number (1=default): ")
+	if err != nil {
+		return err
+	}
 	if keyNum == "" {
 		keyNum = "1"
 	}
@@ -2391,18 +2415,18 @@ func (app *earthlyApp) actionAccountAddKey(cliCtx *cli.Context) error {
 	}
 	publicKey := publicKeys[i-1].String()
 
-	err = cloudClient.AddPublickKey(publicKey)
+	err = cloudClient.AddPublickKey(cliCtx.Context, publicKey)
 	if err != nil {
 		return errors.Wrap(err, "failed to add public key to account")
 	}
 
 	// switch over to new key if the user is currently using password-based auth
-	email, authType, _, err := cloudClient.WhoAmI()
+	email, authType, _, err := cloudClient.WhoAmI(cliCtx.Context)
 	if err != nil {
 		return errors.Wrap(err, "failed to validate auth token")
 	}
 	if authType == "password" {
-		err = cloudClient.SetSSHCredentials(email, publicKey)
+		err = cloudClient.SetSSHCredentials(cliCtx.Context, email, publicKey)
 		if err != nil {
 			app.console.Warnf("failed to authenticate using newly added public key: %s", err.Error())
 			return nil
@@ -2420,7 +2444,7 @@ func (app *earthlyApp) actionAccountRemoveKey(cliCtx *cli.Context) error {
 		return errors.Wrap(err, "failed to create cloud client")
 	}
 	for _, k := range cliCtx.Args().Slice() {
-		err := cloudClient.RemovePublickKey(k)
+		err := cloudClient.RemovePublickKey(cliCtx.Context, k)
 		if err != nil {
 			return errors.Wrap(err, "failed to add public key to account")
 		}
@@ -2433,7 +2457,7 @@ func (app *earthlyApp) actionAccountListTokens(cliCtx *cli.Context) error {
 	if err != nil {
 		return errors.Wrap(err, "failed to create cloud client")
 	}
-	tokens, err := cloudClient.ListTokens()
+	tokens, err := cloudClient.ListTokens(cliCtx.Context)
 	if err != nil {
 		return errors.Wrap(err, "failed to list account tokens")
 	}
@@ -2496,7 +2520,7 @@ func (app *earthlyApp) actionAccountCreateToken(cliCtx *cli.Context) error {
 		return errors.Wrap(err, "failed to create cloud client")
 	}
 	name := cliCtx.Args().First()
-	token, err := cloudClient.CreateToken(name, app.writePermission, &expiry)
+	token, err := cloudClient.CreateToken(cliCtx.Context, name, app.writePermission, &expiry)
 	if err != nil {
 		return errors.Wrap(err, "failed to create token")
 	}
@@ -2514,7 +2538,7 @@ func (app *earthlyApp) actionAccountRemoveToken(cliCtx *cli.Context) error {
 	if err != nil {
 		return errors.Wrap(err, "failed to create cloud client")
 	}
-	err = cloudClient.RemoveToken(name)
+	err = cloudClient.RemoveToken(cliCtx.Context, name)
 	if err != nil {
 		return errors.Wrap(err, "failed to remove account tokens")
 	}
@@ -2530,7 +2554,7 @@ func (app *earthlyApp) actionAccountLogin(cliCtx *cli.Context) error {
 	if cliCtx.NArg() == 1 {
 		emailOrToken := cliCtx.Args().First()
 		if token == "" && email == "" {
-			if cloud.IsValidEmail(emailOrToken) {
+			if cloud.IsValidEmail(cliCtx.Context, emailOrToken) {
 				email = emailOrToken
 			} else {
 				token = emailOrToken
@@ -2556,7 +2580,7 @@ func (app *earthlyApp) actionAccountLogin(cliCtx *cli.Context) error {
 		if email != "" || token != "" || pass != "" {
 			return errLoginFlagsHaveNoEffect
 		}
-		loggedInEmail, authType, writeAccess, err := cloudClient.WhoAmI()
+		loggedInEmail, authType, writeAccess, err := cloudClient.WhoAmI(cliCtx.Context)
 		if err != nil {
 			return errors.Wrap(err, "failed to validate auth token")
 		}
@@ -2568,21 +2592,22 @@ func (app *earthlyApp) actionAccountLogin(cliCtx *cli.Context) error {
 		return nil
 	}
 
-	if err = cloudClient.DeleteCachedToken(); err != nil {
+	err = cloudClient.DeleteCachedToken(cliCtx.Context)
+	if err != nil {
 		return err
 	}
 
 	if token != "" || pass != "" {
-		err := cloudClient.DeleteAuthCache()
+		err := cloudClient.DeleteAuthCache(cliCtx.Context)
 		if err != nil {
 			return errors.Wrap(err, "failed to clear cached credentials")
 		}
-		cloudClient.DisableSSHKeyGuessing()
+		cloudClient.DisableSSHKeyGuessing(cliCtx.Context)
 	} else if email != "" {
-		if err = cloudClient.FindSSHCredentials(email); err == nil {
+		if err = cloudClient.FindSSHCredentials(cliCtx.Context, email); err == nil {
 			// if err is not nil, we will try again below via cloudClient.WhoAmI()
-
-			if err = cloudClient.Authenticate(); err != nil {
+			err = cloudClient.Authenticate(cliCtx.Context)
+			if err != nil {
 				return errors.Wrap(err, "authentication with cloud server failed")
 			}
 			app.console.Printf("Logged in as %q using ssh auth\n", email)
@@ -2591,7 +2616,7 @@ func (app *earthlyApp) actionAccountLogin(cliCtx *cli.Context) error {
 		}
 	}
 
-	loggedInEmail, authType, writeAccess, err := cloudClient.WhoAmI()
+	loggedInEmail, authType, writeAccess, err := cloudClient.WhoAmI(cliCtx.Context)
 	switch errors.Cause(err) {
 	case cloud.ErrUnauthorized:
 		break
@@ -2614,7 +2639,10 @@ func (app *earthlyApp) actionAccountLogin(cliCtx *cli.Context) error {
 			app.console.Warnf("No ssh auth socket detected; falling back to password-based login\n")
 		}
 
-		emailOrToken := promptInput("enter your email or auth token: ")
+		emailOrToken, err := promptInput(cliCtx.Context, "enter your email or auth token: ")
+		if err != nil {
+			return err
+		}
 		if strings.Contains(emailOrToken, "@") {
 			email = emailOrToken
 		} else {
@@ -2635,14 +2663,14 @@ func (app *earthlyApp) actionAccountLogin(cliCtx *cli.Context) error {
 	}
 
 	if token != "" {
-		email, err = cloudClient.SetTokenCredentials(token)
+		email, err = cloudClient.SetTokenCredentials(cliCtx.Context, token)
 		if err != nil {
 			return err
 		}
 		app.console.Printf("Logged in as %q using token auth\n", email) // TODO display if using read-only token
 		app.printLogSharingMessage()
 	} else {
-		err = cloudClient.SetPasswordCredentials(email, string(pass))
+		err = cloudClient.SetPasswordCredentials(cliCtx.Context, email, string(pass))
 		if err != nil {
 			return err
 		}
@@ -2650,7 +2678,8 @@ func (app *earthlyApp) actionAccountLogin(cliCtx *cli.Context) error {
 		app.console.Printf("Warning unencrypted password has been stored under ~/.earthly/auth.credentials; consider using ssh-based auth to prevent this.\n")
 		app.printLogSharingMessage()
 	}
-	if err = cloudClient.Authenticate(); err != nil {
+	err = cloudClient.Authenticate(cliCtx.Context)
+	if err != nil {
 		return errors.Wrap(err, "authentication with cloud server failed")
 	}
 	return nil
@@ -2673,7 +2702,7 @@ func (app *earthlyApp) actionAccountLogout(cliCtx *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	err = cloudClient.DeleteAuthCache()
+	err = cloudClient.DeleteAuthCache(cliCtx.Context)
 	if err != nil {
 		return errors.Wrap(err, "failed to logout")
 	}
@@ -2979,7 +3008,7 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 
 	// Default upload logs, unless explicitly configured
 	if !app.cfg.Global.DisableLogSharing {
-		if cloudClient.IsLoggedIn() {
+		if cloudClient.IsLoggedIn(cliCtx.Context) {
 			// If you are logged in, then add the bundle builder code, and configure cleanup and post-build messages.
 			app.console = app.console.WithLogBundleWriter(target.String(), cleanCollection)
 
@@ -2991,7 +3020,7 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 					return
 				}
 
-				id, err := cloudClient.UploadLog(logPath)
+				id, err := cloudClient.UploadLog(cliCtx.Context, logPath)
 				if err != nil {
 					err := errors.Wrapf(err, "failed to upload log")
 					app.console.Warnf(err.Error())
@@ -3386,18 +3415,18 @@ func (app *earthlyApp) printSatellites(satellites []cloud.SatelliteInstance, org
 	}
 }
 
-func (app *earthlyApp) getSatelliteOrgID(cloudClient cloud.Client) (string, error) {
+func (app *earthlyApp) getSatelliteOrgID(ctx context.Context, cloudClient cloud.Client) (string, error) {
 	// We are cheating here and forcing a re-auth before running any satellite commands.
 	// This is because there is an issue on the backend where the token might be outdated
 	// if a user was invited to an org recently after already logging-in.
 	// TODO Eventually we should be able to remove this cheat.
-	err := cloudClient.Authenticate()
+	err := cloudClient.Authenticate(ctx)
 	if err != nil {
 		return "", errors.New("unable to authenticate")
 	}
 	var orgID string
 	if app.satelliteOrg == "" {
-		orgs, err := cloudClient.ListOrgs()
+		orgs, err := cloudClient.ListOrgs(ctx)
 		if err != nil {
 			return "", errors.Wrap(err, "failed finding org")
 		}
@@ -3411,7 +3440,7 @@ func (app *earthlyApp) getSatelliteOrgID(cloudClient cloud.Client) (string, erro
 		orgID = orgs[0].ID
 	} else {
 		var err error
-		orgID, err = cloudClient.GetOrgID(app.satelliteOrg)
+		orgID, err = cloudClient.GetOrgID(ctx, app.satelliteOrg)
 		if err != nil {
 			return "", errors.Wrap(err, "invalid org provided")
 		}
@@ -3433,13 +3462,13 @@ func (app *earthlyApp) actionSatelliteLaunch(cliCtx *cli.Context) error {
 		return errors.Wrap(err, "failed to create cloud client")
 	}
 
-	orgID, err := app.getSatelliteOrgID(cloudClient)
+	orgID, err := app.getSatelliteOrgID(cliCtx.Context, cloudClient)
 	if err != nil {
 		return err
 	}
 
 	app.console.Printf("Launching Satellite. This could take a moment...\n")
-	_, err = cloudClient.LaunchSatellite(app.satelliteName, orgID)
+	_, err = cloudClient.LaunchSatellite(cliCtx.Context, app.satelliteName, orgID)
 	if err != nil {
 		return errors.Wrapf(err, "failed to create satellite %s", app.satelliteName)
 	}
@@ -3466,12 +3495,12 @@ func (app *earthlyApp) actionSatelliteList(cliCtx *cli.Context) error {
 		return errors.Wrap(err, "failed to create cloud client")
 	}
 
-	orgID, err := app.getSatelliteOrgID(cloudClient)
+	orgID, err := app.getSatelliteOrgID(cliCtx.Context, cloudClient)
 	if err != nil {
 		return err
 	}
 
-	satellites, err := cloudClient.ListSatellites(orgID)
+	satellites, err := cloudClient.ListSatellites(cliCtx.Context, orgID)
 	if err != nil {
 		return err
 	}
@@ -3494,13 +3523,13 @@ func (app *earthlyApp) actionSatelliteDestroy(cliCtx *cli.Context) error {
 		return errors.Wrap(err, "failed to create cloud client")
 	}
 
-	orgID, err := app.getSatelliteOrgID(cloudClient)
+	orgID, err := app.getSatelliteOrgID(cliCtx.Context, cloudClient)
 	if err != nil {
 		return err
 	}
 
 	app.console.Printf("Destroying Satellite. This could take a moment...\n")
-	err = cloudClient.DeleteSatellite(app.satelliteName, orgID)
+	err = cloudClient.DeleteSatellite(cliCtx.Context, app.satelliteName, orgID)
 	if err != nil {
 		return errors.Wrapf(err, "failed to delete satellite %s", app.satelliteName)
 	}
@@ -3530,12 +3559,12 @@ func (app *earthlyApp) actionSatelliteDescribe(cliCtx *cli.Context) error {
 		return errors.Wrap(err, "failed to create cloud client")
 	}
 
-	orgID, err := app.getSatelliteOrgID(cloudClient)
+	orgID, err := app.getSatelliteOrgID(cliCtx.Context, cloudClient)
 	if err != nil {
 		return err
 	}
 
-	satellite, err := cloudClient.GetSatellite(app.satelliteName, orgID)
+	satellite, err := cloudClient.GetSatellite(cliCtx.Context, app.satelliteName, orgID)
 	if err != nil {
 		return err
 	}
@@ -3562,12 +3591,12 @@ func (app *earthlyApp) actionSatelliteSelect(cliCtx *cli.Context) error {
 		return errors.Wrap(err, "failed to create cloud client")
 	}
 
-	orgID, err := app.getSatelliteOrgID(cloudClient)
+	orgID, err := app.getSatelliteOrgID(cliCtx.Context, cloudClient)
 	if err != nil {
 		return err
 	}
 
-	satellites, err := cloudClient.ListSatellites(orgID)
+	satellites, err := cloudClient.ListSatellites(cliCtx.Context, orgID)
 	if err != nil {
 		return err
 	}
