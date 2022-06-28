@@ -1357,7 +1357,7 @@ func (app *earthlyApp) isUsingSatellite(c *cli.Context) bool {
 		// buildkit-host takes precedence
 		return false
 	}
-	return len(app.cfg.Satellite.Name) > 0 || app.satelliteName != ""
+	return app.cfg.Satellite.Name != "" || app.satelliteName != ""
 }
 
 func (app *earthlyApp) GetBuildkitClient(c *cli.Context, cc cloud.Client) (*client.Client, error) {
