@@ -168,6 +168,7 @@ type cliFlags struct {
 	logSharing                bool
 	satelliteName             string
 	satelliteOrg              string
+	noSatellite               bool
 }
 
 var (
@@ -494,6 +495,29 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 			Destination: &app.buildkitHost,
 		},
 		&cli.StringFlag{
+			Name:        "org",
+			EnvVars:     []string{"EARTHLY_ORG"},
+			Usage:       "The name of the organization the satellite belongs to. Required when using --satellite and user is a member of multiple organizations.",
+			Required:    false,
+			Destination: &app.satelliteOrg,
+		},
+		&cli.StringFlag{
+			Name:        "satellite",
+			Aliases:     []string{"sat"},
+			EnvVars:     []string{"EARTHLY_SATELLITE"},
+			Usage:       "The name of satellite to use for this build.",
+			Required:    false,
+			Destination: &app.satelliteName,
+		},
+		&cli.BoolFlag{
+			Name:        "no-satellite",
+			Aliases:     []string{"no-sat"},
+			EnvVars:     []string{"EARTHLY_NO_SATELLITE"},
+			Usage:       "Disables the use of a selected satellite for this build.",
+			Required:    false,
+			Destination: &app.noSatellite,
+		},
+		&cli.StringFlag{
 			Name:        "debugger-host",
 			EnvVars:     []string{"EARTHLY_DEBUGGER_HOST"},
 			Usage:       wrap("The URL to use for connecting to a debugger host. ", "If empty, earthly uses the default debugger port, combined with the desired buildkit host."),
@@ -594,9 +618,9 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 			Hidden:      true, // Internal.
 		},
 		&cli.StringFlag{
-			Name:        "satellite",
+			Name:        "satellite-address",
 			Value:       containerutil.SatelliteAddress,
-			EnvVars:     []string{"EARTHLY_SATELLITE"},
+			EnvVars:     []string{"EARTHLY_SATELLITE_ADDRESS"},
 			Usage:       "Satellite address override for dev purposes",
 			Destination: &app.satelliteAddress,
 			Hidden:      true, // Internal.
@@ -1060,7 +1084,6 @@ Set up a whole custom git repository for a server called example.com, using a si
 		},
 		{
 			Name:    "satellite",
-			Hidden:  true, // Temporarily hidden for private beta testing
 			Aliases: []string{"satellites", "sat"},
 			Usage: "Launch and use a Satellite runner as remote backend for Earthly builds.\n" +
 				"	Satellites can be used to optimize and share cache between multiple builds and users,\n" +
@@ -1271,24 +1294,31 @@ func (app *earthlyApp) before(context *cli.Context) error {
 	return nil
 }
 
-func (app *earthlyApp) configureSatellite(cc cloud.Client) error {
-	if !app.isUsingSatellite() || cc == nil {
+func (app *earthlyApp) configureSatellite(c *cli.Context, cc cloud.Client) error {
+	if c.IsSet("buildkit-host") && c.IsSet("satellite") {
+		return errors.New("cannot specify both buildkit-host and satellite")
+	}
+	if !app.isUsingSatellite(c) || cc == nil {
 		// If the app is not using a cloud client, or the command doesn't interact with the cloud (prune, bootstrap)
 		// then pretend its all good and use your regular configuration.
 		return nil
 	}
 
 	// When using a satellite, interactive and local do not work; as they are not SSL nor routable yet.
-	app.console.Warnf("Note: the Interactive Debugger, Interactive RUN commands, and Local Registries do not yet work on Earthly Satellites.")
+	app.console.Warnf("Note: the interactive debugger, interactive RUN commands, and fast output via embedded registry do not yet work on Earthly Satellites.")
 
 	// Set up extra settings needed for buildkit RPC metadata
-	app.satelliteName = app.cfg.Satellite.Name
-	app.satelliteOrg = app.cfg.Satellite.Org
+	if app.satelliteName == "" {
+		app.satelliteName = app.cfg.Satellite.Name
+	}
+	if app.satelliteOrg == "" {
+		app.satelliteOrg = app.cfg.Satellite.Org
+	}
 	orgID, err := app.getSatelliteOrgID(cc)
 	if err != nil {
 		return err
 	}
-	app.buildkitdSettings.SatelliteName = app.cfg.Satellite.Name
+	app.buildkitdSettings.SatelliteName = app.satelliteName
 	app.buildkitdSettings.SatelliteOrgID = orgID
 	if app.satelliteAddress != "" {
 		app.buildkitdSettings.BuildkitAddress = app.satelliteAddress
@@ -1316,12 +1346,19 @@ func (app *earthlyApp) configureSatellite(cc cloud.Client) error {
 	return nil
 }
 
-func (app *earthlyApp) isUsingSatellite() bool {
-	return len(app.cfg.Satellite.Name) > 0
+func (app *earthlyApp) isUsingSatellite(c *cli.Context) bool {
+	if app.noSatellite {
+		return false
+	}
+	if c.IsSet("buildkit-host") {
+		// buildkit-host takes precedence
+		return false
+	}
+	return len(app.cfg.Satellite.Name) > 0 || app.satelliteName != ""
 }
 
 func (app *earthlyApp) GetBuildkitClient(c *cli.Context, cc cloud.Client) (*client.Client, error) {
-	err := app.configureSatellite(cc)
+	err := app.configureSatellite(c, cc)
 	if err != nil {
 		return nil, errors.Wrapf(err, "could not construct new buildkit client")
 	}
@@ -1894,7 +1931,7 @@ func (app *earthlyApp) bootstrap(c *cli.Context) error {
 		err = nil
 	}
 
-	if !app.bootstrapNoBuildkit && !app.isUsingSatellite() {
+	if !app.bootstrapNoBuildkit && !app.isUsingSatellite(c) {
 		bkURL, err := url.Parse(app.buildkitHost)
 		if err != nil {
 			return errors.Wrapf(err, "invalid buildkit_host: %s", app.cfg.Global.BuildkitHost)
@@ -2674,7 +2711,7 @@ func (app *earthlyApp) actionPrune(c *cli.Context) error {
 		return nil
 	}
 
-	if app.isUsingSatellite() {
+	if app.isUsingSatellite(c) {
 		return errors.New("Cannot prune when using a satellite")
 	}
 
