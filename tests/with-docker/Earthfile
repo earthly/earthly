@@ -8,6 +8,8 @@ all:
     BUILD +docker-load-arg-test
     BUILD +docker-load-multi-test
     BUILD +docker-pull-test
+    BUILD +docker-pull-test-long
+    BUILD +docker-load-test-long
     BUILD +load-parallel-test
     BUILD +one-target-many-names
     BUILD +if-after
@@ -103,7 +105,18 @@ docker-load-multi-test:
 
 docker-pull-test:
     WITH DOCKER --pull hello-world
-        RUN docker run hello-world
+        RUN docker images | grep hello-world && \
+            docker run hello-world
+    END
+
+docker-pull-test-long:
+    WITH DOCKER --platform=linux/amd64 --pull earthly/earthly:v0.6.17
+        RUN docker images | grep earthly/earthly
+    END
+
+docker-load-test-long:
+    WITH DOCKER --load foo.example.com/bar/buz:abc=+a-test-image
+        RUN docker images | grep foo.example.com/bar/buz | grep abc
     END
 
 load-parallel-test:
