@@ -64,6 +64,22 @@
         {
           "command": {
             "args": [
+              "+docker-pull-test-long"
+            ],
+            "name": "BUILD"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "+docker-load-test-long"
+            ],
+            "name": "BUILD"
+          }
+        },
+        {
+          "command": {
+            "args": [
               "+load-parallel-test"
             ],
             "name": "BUILD"
@@ -642,6 +658,12 @@
                 "command": {
                   "args": [
                     "docker",
+                    "images",
+                    "|",
+                    "grep",
+                    "hello-world",
+                    "&&",
+                    "docker",
                     "run",
                     "hello-world"
                   ],
@@ -653,6 +675,70 @@
               "args": [
                 "--pull",
                 "hello-world"
+              ],
+              "name": "DOCKER"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "docker-pull-test-long",
+      "recipe": [
+        {
+          "with": {
+            "body": [
+              {
+                "command": {
+                  "args": [
+                    "docker",
+                    "images",
+                    "|",
+                    "grep",
+                    "earthly/earthly"
+                  ],
+                  "name": "RUN"
+                }
+              }
+            ],
+            "command": {
+              "args": [
+                "--platform=linux/amd64",
+                "--pull",
+                "earthly/earthly:v0.6.17"
+              ],
+              "name": "DOCKER"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "docker-load-test-long",
+      "recipe": [
+        {
+          "with": {
+            "body": [
+              {
+                "command": {
+                  "args": [
+                    "docker",
+                    "images",
+                    "|",
+                    "grep",
+                    "foo.example.com/bar/buz",
+                    "|",
+                    "grep",
+                    "abc"
+                  ],
+                  "name": "RUN"
+                }
+              }
+            ],
+            "command": {
+              "args": [
+                "--load",
+                "foo.example.com/bar/buz:abc=+a-test-image"
               ],
               "name": "DOCKER"
             }
