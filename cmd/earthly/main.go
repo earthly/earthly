@@ -314,15 +314,11 @@ func getVersionPlatform() string {
 
 func getPlatform() string {
 	// replace osutil with sysinfo
-	showOSInfo := func() string {
-		if h, err := gsysinfo.Host(); err == nil {
-			info := h.Info()
-			return fmt.Sprintf("%s %s", info.OS.Name, info.OS.Version)
-		}
-		return "unknown"
+	if h, err := gsysinfo.Host(); err == nil {
+		info := h.Info()
+		return fmt.Sprintf("%s/%s; %s %s", runtime.GOOS, runtime.GOARCH, info.OS.Name, info.OS.Version)
 	}
-
-	return fmt.Sprintf("%s/%s; %s", runtime.GOOS, runtime.GOARCH, showOSInfo())
+	return "unknown"
 }
 
 func getBinaryName() string {
