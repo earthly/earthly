@@ -197,15 +197,15 @@ func main() {
 	startTime := time.Now()
 	ctx := context.Background()
 	ctx, cancel := context.WithCancel(ctx)
-	c := make(chan os.Signal, 1)
-	signal.Notify(c, syscall.SIGINT, syscall.SIGTERM)
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 	defer func() {
-		signal.Stop(c)
+		signal.Stop(sigChan)
 		cancel()
 	}()
 	go func() {
 		receivedSignal := false
-		for sig := range c {
+		for sig := range sigChan {
 			cancel()
 			if receivedSignal {
 				// This is the second time we have received a signal. Quit immediately.
@@ -1294,14 +1294,14 @@ func (app *earthlyApp) before(context *cli.Context) error {
 	return nil
 }
 
-func (app *earthlyApp) configureSatellite(c *cli.Context, cloudClient cloud.Client) error {
-	if c.IsSet("buildkit-host") && c.IsSet("satellite") {
+func (app *earthlyApp) configureSatellite(cliCtx *cli.Context, cloudClient cloud.Client) error {
+	if cliCtx.IsSet("buildkit-host") && cliCtx.IsSet("satellite") {
 		return errors.New("cannot specify both buildkit-host and satellite")
 	}
-	if c.IsSet("satellite") && app.noSatellite {
+	if cliCtx.IsSet("satellite") && app.noSatellite {
 		return errors.New("cannot specify both no-satellite and satellite")
 	}
-	if !app.isUsingSatellite(c) || cloudClient == nil {
+	if !app.isUsingSatellite(cliCtx) || cloudClient == nil {
 		// If the app is not using a cloud client, or the command doesn't interact with the cloud (prune, bootstrap)
 		// then pretend its all good and use your regular configuration.
 		return nil
@@ -1349,24 +1349,24 @@ func (app *earthlyApp) configureSatellite(c *cli.Context, cloudClient cloud.Clie
 	return nil
 }
 
-func (app *earthlyApp) isUsingSatellite(c *cli.Context) bool {
+func (app *earthlyApp) isUsingSatellite(cliCtx *cli.Context) bool {
 	if app.noSatellite {
 		return false
 	}
-	if c.IsSet("buildkit-host") {
+	if cliCtx.IsSet("buildkit-host") {
 		// buildkit-host takes precedence
 		return false
 	}
 	return app.cfg.Satellite.Name != "" || app.satelliteName != ""
 }
 
-func (app *earthlyApp) GetBuildkitClient(c *cli.Context, cloudClient cloud.Client) (*client.Client, error) {
-	err := app.configureSatellite(c, cloudClient)
+func (app *earthlyApp) GetBuildkitClient(cliCtx *cli.Context, cloudClient cloud.Client) (*client.Client, error) {
+	err := app.configureSatellite(cliCtx, cloudClient)
 	if err != nil {
 		return nil, errors.Wrapf(err, "could not construct new buildkit client")
 	}
 
-	return buildkitd.NewClient(c.Context, app.console, app.buildkitdImage, app.containerName, app.containerFrontend, app.buildkitdSettings)
+	return buildkitd.NewClient(cliCtx.Context, app.console, app.buildkitdImage, app.containerName, app.containerFrontend, app.buildkitdSettings)
 }
 
 func (app *earthlyApp) handleTLSCertificateSettings(context *cli.Context) {
@@ -1873,7 +1873,7 @@ func symlinkEarthlyToEarth() error {
 	return nil
 }
 
-func (app *earthlyApp) actionBootstrap(c *cli.Context) error {
+func (app *earthlyApp) actionBootstrap(cliCtx *cli.Context) error {
 	app.commandName = "bootstrap"
 
 	switch app.homebrewSource {
@@ -1899,10 +1899,10 @@ func (app *earthlyApp) actionBootstrap(c *cli.Context) error {
 		return errors.Errorf("unhandled source %q", app.homebrewSource)
 	}
 
-	return app.bootstrap(c)
+	return app.bootstrap(cliCtx)
 }
 
-func (app *earthlyApp) bootstrap(c *cli.Context) error {
+func (app *earthlyApp) bootstrap(cliCtx *cli.Context) error {
 	var err error
 	console := app.console.WithPrefix("bootstrap")
 	defer func() {
@@ -1934,7 +1934,7 @@ func (app *earthlyApp) bootstrap(c *cli.Context) error {
 		err = nil
 	}
 
-	if !app.bootstrapNoBuildkit && !app.isUsingSatellite(c) {
+	if !app.bootstrapNoBuildkit && !app.isUsingSatellite(cliCtx) {
 		bkURL, err := url.Parse(app.buildkitHost)
 		if err != nil {
 			return errors.Wrapf(err, "invalid buildkit_host: %s", app.cfg.Global.BuildkitHost)
@@ -1953,7 +1953,7 @@ func (app *earthlyApp) bootstrap(c *cli.Context) error {
 		}
 
 		// Bootstrap buildkit - pulls image and starts daemon.
-		bkClient, err := app.GetBuildkitClient(c, nil)
+		bkClient, err := app.GetBuildkitClient(cliCtx, nil)
 		if err != nil {
 			return errors.Wrap(err, "bootstrap new buildkitd client")
 		}
@@ -1974,12 +1974,12 @@ func promptInput(question string) string {
 	return strings.TrimRight(line, "\n")
 }
 
-func (app *earthlyApp) actionOrgCreate(c *cli.Context) error {
+func (app *earthlyApp) actionOrgCreate(cliCtx *cli.Context) error {
 	app.commandName = "orgCreate"
-	if c.NArg() != 1 {
+	if cliCtx.NArg() != 1 {
 		return errors.New("invalid number of arguments provided")
 	}
-	org := c.Args().Get(0)
+	org := cliCtx.Args().Get(0)
 	cloudClient, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
 	if err != nil {
 		return errors.Wrap(err, "failed to create cloud client")
@@ -1991,7 +1991,7 @@ func (app *earthlyApp) actionOrgCreate(c *cli.Context) error {
 	return nil
 }
 
-func (app *earthlyApp) actionOrgList(c *cli.Context) error {
+func (app *earthlyApp) actionOrgList(cliCtx *cli.Context) error {
 	app.commandName = "orgList"
 	cloudClient, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
 	if err != nil {
@@ -2017,12 +2017,12 @@ func (app *earthlyApp) actionOrgList(c *cli.Context) error {
 	return nil
 }
 
-func (app *earthlyApp) actionOrgListPermissions(c *cli.Context) error {
+func (app *earthlyApp) actionOrgListPermissions(cliCtx *cli.Context) error {
 	app.commandName = "orgListPermissions"
-	if c.NArg() != 1 {
+	if cliCtx.NArg() != 1 {
 		return errors.New("invalid number of arguments provided")
 	}
-	path := c.Args().Get(0)
+	path := cliCtx.Args().Get(0)
 	if !strings.HasSuffix(path, "/") {
 		path += "/"
 	}
@@ -2049,12 +2049,12 @@ func (app *earthlyApp) actionOrgListPermissions(c *cli.Context) error {
 	return nil
 }
 
-func (app *earthlyApp) actionOrgInvite(c *cli.Context) error {
+func (app *earthlyApp) actionOrgInvite(cliCtx *cli.Context) error {
 	app.commandName = "orgInvite"
-	if c.NArg() < 2 {
+	if cliCtx.NArg() < 2 {
 		return errors.New("invalid number of arguments provided")
 	}
-	path := c.Args().Get(0)
+	path := cliCtx.Args().Get(0)
 	if !strings.HasSuffix(path, "/") {
 		return errors.New("invitation paths must end with a slash (/)")
 	}
@@ -2063,7 +2063,7 @@ func (app *earthlyApp) actionOrgInvite(c *cli.Context) error {
 	if err != nil {
 		return errors.Wrap(err, "failed to create cloud client")
 	}
-	userEmail := c.Args().Get(1)
+	userEmail := cliCtx.Args().Get(1)
 	err = cloudClient.Invite(path, userEmail, app.writePermission)
 	if err != nil {
 		return errors.Wrap(err, "failed to invite user into org")
@@ -2071,12 +2071,12 @@ func (app *earthlyApp) actionOrgInvite(c *cli.Context) error {
 	return nil
 }
 
-func (app *earthlyApp) actionOrgRevoke(c *cli.Context) error {
+func (app *earthlyApp) actionOrgRevoke(cliCtx *cli.Context) error {
 	app.commandName = "orgRevoke"
-	if c.NArg() < 2 {
+	if cliCtx.NArg() < 2 {
 		return errors.New("invalid number of arguments provided")
 	}
-	path := c.Args().Get(0)
+	path := cliCtx.Args().Get(0)
 	if !strings.HasSuffix(path, "/") {
 		return errors.New("revoked paths must end with a slash (/)")
 	}
@@ -2085,7 +2085,7 @@ func (app *earthlyApp) actionOrgRevoke(c *cli.Context) error {
 	if err != nil {
 		return errors.Wrap(err, "failed to create cloud client")
 	}
-	userEmail := c.Args().Get(1)
+	userEmail := cliCtx.Args().Get(1)
 	err = cloudClient.RevokePermission(path, userEmail)
 	if err != nil {
 		return errors.Wrap(err, "failed to revoke user from org")
@@ -2093,14 +2093,14 @@ func (app *earthlyApp) actionOrgRevoke(c *cli.Context) error {
 	return nil
 }
 
-func (app *earthlyApp) actionSecretsList(c *cli.Context) error {
+func (app *earthlyApp) actionSecretsList(cliCtx *cli.Context) error {
 	app.commandName = "secretsList"
 
 	path := "/"
-	if c.NArg() > 1 {
+	if cliCtx.NArg() > 1 {
 		return errors.New("invalid number of arguments provided")
-	} else if c.NArg() == 1 {
-		path = c.Args().Get(0)
+	} else if cliCtx.NArg() == 1 {
+		path = cliCtx.Args().Get(0)
 	}
 	if !strings.HasSuffix(path, "/") {
 		path += "/"
@@ -2119,12 +2119,12 @@ func (app *earthlyApp) actionSecretsList(c *cli.Context) error {
 	return nil
 }
 
-func (app *earthlyApp) actionSecretsGet(c *cli.Context) error {
+func (app *earthlyApp) actionSecretsGet(cliCtx *cli.Context) error {
 	app.commandName = "secretsGet"
-	if c.NArg() != 1 {
+	if cliCtx.NArg() != 1 {
 		return errors.New("invalid number of arguments provided")
 	}
-	path := c.Args().Get(0)
+	path := cliCtx.Args().Get(0)
 	cloudClient, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
 	if err != nil {
 		return errors.Wrap(err, "failed to create cloud client")
@@ -2140,12 +2140,12 @@ func (app *earthlyApp) actionSecretsGet(c *cli.Context) error {
 	return nil
 }
 
-func (app *earthlyApp) actionSecretsRemove(c *cli.Context) error {
+func (app *earthlyApp) actionSecretsRemove(cliCtx *cli.Context) error {
 	app.commandName = "secretsRemove"
-	if c.NArg() != 1 {
+	if cliCtx.NArg() != 1 {
 		return errors.New("invalid number of arguments provided")
 	}
-	path := c.Args().Get(0)
+	path := cliCtx.Args().Get(0)
 	cloudClient, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
 	if err != nil {
 		return errors.Wrap(err, "failed to create cloud client")
@@ -2157,34 +2157,34 @@ func (app *earthlyApp) actionSecretsRemove(c *cli.Context) error {
 	return nil
 }
 
-func (app *earthlyApp) actionSecretsSet(c *cli.Context) error {
+func (app *earthlyApp) actionSecretsSet(cliCtx *cli.Context) error {
 	app.commandName = "secretsSet"
 	var path string
 	var value string
 	if app.secretFile == "" && !app.secretStdin {
-		if c.NArg() != 2 {
+		if cliCtx.NArg() != 2 {
 			return errors.New("invalid number of arguments provided")
 		}
-		path = c.Args().Get(0)
-		value = c.Args().Get(1)
+		path = cliCtx.Args().Get(0)
+		value = cliCtx.Args().Get(1)
 	} else if app.secretStdin {
 		if app.secretFile != "" {
 			return errors.New("only one of --file or --stdin can be used at a time")
 		}
-		if c.NArg() != 1 {
+		if cliCtx.NArg() != 1 {
 			return errors.New("invalid number of arguments provided")
 		}
-		path = c.Args().Get(0)
+		path = cliCtx.Args().Get(0)
 		data, err := io.ReadAll(os.Stdin)
 		if err != nil {
 			return errors.Wrap(err, "failed to read from stdin")
 		}
 		value = string(data)
 	} else {
-		if c.NArg() != 1 {
+		if cliCtx.NArg() != 1 {
 			return errors.New("invalid number of arguments provided")
 		}
-		path = c.Args().Get(0)
+		path = cliCtx.Args().Get(0)
 		data, err := os.ReadFile(app.secretFile)
 		if err != nil {
 			return errors.Wrapf(err, "failed to read secret from %s", app.secretFile)
@@ -2203,7 +2203,7 @@ func (app *earthlyApp) actionSecretsSet(c *cli.Context) error {
 	return nil
 }
 
-func (app *earthlyApp) actionRegister(c *cli.Context) error {
+func (app *earthlyApp) actionRegister(cliCtx *cli.Context) error {
 	app.commandName = "secretsRegister"
 	if app.email == "" {
 		return errors.New("no email given")
@@ -2329,7 +2329,7 @@ func (app *earthlyApp) actionRegister(c *cli.Context) error {
 	return nil
 }
 
-func (app *earthlyApp) actionAccountListKeys(c *cli.Context) error {
+func (app *earthlyApp) actionAccountListKeys(cliCtx *cli.Context) error {
 	app.commandName = "accountListKeys"
 	cloudClient, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
 	if err != nil {
@@ -2345,14 +2345,14 @@ func (app *earthlyApp) actionAccountListKeys(c *cli.Context) error {
 	return nil
 }
 
-func (app *earthlyApp) actionAccountAddKey(c *cli.Context) error {
+func (app *earthlyApp) actionAccountAddKey(cliCtx *cli.Context) error {
 	app.commandName = "accountAddKey"
 	cloudClient, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
 	if err != nil {
 		return errors.Wrap(err, "failed to create cloud client")
 	}
-	if c.NArg() > 1 {
-		for _, k := range c.Args().Slice() {
+	if cliCtx.NArg() > 1 {
+		for _, k := range cliCtx.Args().Slice() {
 			err := cloudClient.AddPublickKey(k)
 			if err != nil {
 				return errors.Wrap(err, "failed to add public key to account")
@@ -2412,13 +2412,13 @@ func (app *earthlyApp) actionAccountAddKey(c *cli.Context) error {
 	return nil
 }
 
-func (app *earthlyApp) actionAccountRemoveKey(c *cli.Context) error {
+func (app *earthlyApp) actionAccountRemoveKey(cliCtx *cli.Context) error {
 	app.commandName = "accountRemoveKey"
 	cloudClient, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
 	if err != nil {
 		return errors.Wrap(err, "failed to create cloud client")
 	}
-	for _, k := range c.Args().Slice() {
+	for _, k := range cliCtx.Args().Slice() {
 		err := cloudClient.RemovePublickKey(k)
 		if err != nil {
 			return errors.Wrap(err, "failed to add public key to account")
@@ -2426,7 +2426,7 @@ func (app *earthlyApp) actionAccountRemoveKey(c *cli.Context) error {
 	}
 	return nil
 }
-func (app *earthlyApp) actionAccountListTokens(c *cli.Context) error {
+func (app *earthlyApp) actionAccountListTokens(cliCtx *cli.Context) error {
 	app.commandName = "accountListTokens"
 	cloudClient, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
 	if err != nil {
@@ -2461,9 +2461,9 @@ func (app *earthlyApp) actionAccountListTokens(c *cli.Context) error {
 	w.Flush()
 	return nil
 }
-func (app *earthlyApp) actionAccountCreateToken(c *cli.Context) error {
+func (app *earthlyApp) actionAccountCreateToken(cliCtx *cli.Context) error {
 	app.commandName = "accountCreateToken"
-	if c.NArg() != 1 {
+	if cliCtx.NArg() != 1 {
 		return errors.New("invalid number of arguments provided")
 	}
 
@@ -2494,7 +2494,7 @@ func (app *earthlyApp) actionAccountCreateToken(c *cli.Context) error {
 	if err != nil {
 		return errors.Wrap(err, "failed to create cloud client")
 	}
-	name := c.Args().First()
+	name := cliCtx.Args().First()
 	token, err := cloudClient.CreateToken(name, app.writePermission, &expiry)
 	if err != nil {
 		return errors.Wrap(err, "failed to create token")
@@ -2503,12 +2503,12 @@ func (app *earthlyApp) actionAccountCreateToken(c *cli.Context) error {
 	fmt.Printf("created token %q which will expire in %s; save this token somewhere, it can't be viewed again (only reset)\n", token, expiryStr)
 	return nil
 }
-func (app *earthlyApp) actionAccountRemoveToken(c *cli.Context) error {
+func (app *earthlyApp) actionAccountRemoveToken(cliCtx *cli.Context) error {
 	app.commandName = "accountRemoveToken"
-	if c.NArg() != 1 {
+	if cliCtx.NArg() != 1 {
 		return errors.New("invalid number of arguments provided")
 	}
-	name := c.Args().First()
+	name := cliCtx.Args().First()
 	cloudClient, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
 	if err != nil {
 		return errors.Wrap(err, "failed to create cloud client")
@@ -2520,14 +2520,14 @@ func (app *earthlyApp) actionAccountRemoveToken(c *cli.Context) error {
 	return nil
 }
 
-func (app *earthlyApp) actionAccountLogin(c *cli.Context) error {
+func (app *earthlyApp) actionAccountLogin(cliCtx *cli.Context) error {
 	app.commandName = "accountLogin"
 	email := app.email
 	token := app.token
 	pass := app.password
 
-	if c.NArg() == 1 {
-		emailOrToken := c.Args().First()
+	if cliCtx.NArg() == 1 {
+		emailOrToken := cliCtx.Args().First()
 		if token == "" && email == "" {
 			if cloud.IsValidEmail(emailOrToken) {
 				email = emailOrToken
@@ -2538,7 +2538,7 @@ func (app *earthlyApp) actionAccountLogin(c *cli.Context) error {
 		} else {
 			return errors.New("invalid number of arguments provided")
 		}
-	} else if c.NArg() > 1 {
+	} else if cliCtx.NArg() > 1 {
 		return errors.New("invalid number of arguments provided")
 	}
 
@@ -2661,7 +2661,7 @@ func (app *earthlyApp) printLogSharingMessage() {
 		"\tearthly config global.disable_log_sharing true")
 }
 
-func (app *earthlyApp) actionAccountLogout(c *cli.Context) error {
+func (app *earthlyApp) actionAccountLogout(cliCtx *cli.Context) error {
 	app.commandName = "accountLogout"
 
 	if app.authToken != "" {
@@ -2679,17 +2679,17 @@ func (app *earthlyApp) actionAccountLogout(c *cli.Context) error {
 	return nil
 }
 
-func (app *earthlyApp) actionDebugAst(c *cli.Context) error {
+func (app *earthlyApp) actionDebugAst(cliCtx *cli.Context) error {
 	app.commandName = "debugAst"
-	if c.NArg() > 1 {
+	if cliCtx.NArg() > 1 {
 		return errors.New("invalid number of arguments provided")
 	}
 	path := "./Earthfile"
-	if c.NArg() == 1 {
-		path = c.Args().First()
+	if cliCtx.NArg() == 1 {
+		path = cliCtx.Args().First()
 	}
 
-	ef, err := ast.Parse(c.Context, path, app.enableSourceMap)
+	ef, err := ast.Parse(cliCtx.Context, path, app.enableSourceMap)
 	if err != nil {
 		return err
 	}
@@ -2701,25 +2701,25 @@ func (app *earthlyApp) actionDebugAst(c *cli.Context) error {
 	return nil
 }
 
-func (app *earthlyApp) actionPrune(c *cli.Context) error {
+func (app *earthlyApp) actionPrune(cliCtx *cli.Context) error {
 	app.commandName = "prune"
-	if c.NArg() != 0 {
+	if cliCtx.NArg() != 0 {
 		return errors.New("invalid arguments")
 	}
 	if app.pruneReset {
-		err := buildkitd.ResetCache(c.Context, app.console, app.buildkitdImage, app.containerName, app.containerFrontend, app.buildkitdSettings)
+		err := buildkitd.ResetCache(cliCtx.Context, app.console, app.buildkitdImage, app.containerName, app.containerFrontend, app.buildkitdSettings)
 		if err != nil {
 			return errors.Wrap(err, "reset cache")
 		}
 		return nil
 	}
 
-	if app.isUsingSatellite(c) {
+	if app.isUsingSatellite(cliCtx) {
 		return errors.New("Cannot prune when using a satellite")
 	}
 
 	// Prune via API.
-	bkClient, err := app.GetBuildkitClient(c, nil)
+	bkClient, err := app.GetBuildkitClient(cliCtx, nil)
 	if err != nil {
 		return errors.Wrap(err, "prune new buildkitd client")
 	}
@@ -2729,7 +2729,7 @@ func (app *earthlyApp) actionPrune(c *cli.Context) error {
 		opts = append(opts, client.PruneAll)
 	}
 	ch := make(chan client.UsageInfo, 1)
-	eg, ctx := errgroup.WithContext(c.Context)
+	eg, ctx := errgroup.WithContext(cliCtx.Context)
 	eg.Go(func() error {
 		err = bkClient.Prune(ctx, ch, opts...)
 		if err != nil {
@@ -2758,7 +2758,7 @@ func (app *earthlyApp) actionPrune(c *cli.Context) error {
 	return nil
 }
 
-func (app *earthlyApp) actionDocker(c *cli.Context) error {
+func (app *earthlyApp) actionDocker(cliCtx *cli.Context) error {
 	app.commandName = "docker"
 
 	dir := filepath.Dir(app.dockerfilePath)
@@ -2785,10 +2785,10 @@ func (app *earthlyApp) actionDocker(c *cli.Context) error {
 	flagArgs := []string{}
 	nonFlagArgs := []string{"+build"}
 
-	return app.actionBuildImp(c, flagArgs, nonFlagArgs)
+	return app.actionBuildImp(cliCtx, flagArgs, nonFlagArgs)
 }
 
-func (app *earthlyApp) actionDocker2Earthly(c *cli.Context) error {
+func (app *earthlyApp) actionDocker2Earthly(cliCtx *cli.Context) error {
 	app.commandName = "docker2earthly"
 	err := docker2earthly.Docker2Earthly(app.dockerfilePath, app.earthfilePath, app.earthfileFinalImage)
 	if err != nil {
@@ -2798,16 +2798,16 @@ func (app *earthlyApp) actionDocker2Earthly(c *cli.Context) error {
 	return nil
 }
 
-func (app *earthlyApp) actionConfig(c *cli.Context) error {
+func (app *earthlyApp) actionConfig(cliCtx *cli.Context) error {
 	app.commandName = "config"
-	if c.NArg() != 2 {
+	if cliCtx.NArg() != 2 {
 		return errors.New("invalid number of arguments provided")
 	}
 
-	args := c.Args().Slice()
+	args := cliCtx.Args().Slice()
 	inConfig, err := config.ReadConfigFile(app.configPath)
 	if err != nil {
-		if c.IsSet("config") || !errors.Is(err, os.ErrNotExist) {
+		if cliCtx.IsSet("config") || !errors.Is(err, os.ErrNotExist) {
 			return errors.Wrapf(err, "read config")
 		}
 	}
@@ -2846,7 +2846,7 @@ func (app *earthlyApp) actionConfig(c *cli.Context) error {
 	return nil
 }
 
-func (app *earthlyApp) actionBuild(c *cli.Context) error {
+func (app *earthlyApp) actionBuild(cliCtx *cli.Context) error {
 	app.commandName = "build"
 
 	if app.ci {
@@ -2881,12 +2881,12 @@ func (app *earthlyApp) actionBuild(c *cli.Context) error {
 		}
 	}
 
-	flagArgs, nonFlagArgs, err := variables.ParseFlagArgsWithNonFlags(c.Args().Slice())
+	flagArgs, nonFlagArgs, err := variables.ParseFlagArgsWithNonFlags(cliCtx.Args().Slice())
 	if err != nil {
-		return errors.Wrapf(err, "parse args %s", strings.Join(c.Args().Slice(), " "))
+		return errors.Wrapf(err, "parse args %s", strings.Join(cliCtx.Args().Slice(), " "))
 	}
 
-	return app.actionBuildImp(c, flagArgs, nonFlagArgs)
+	return app.actionBuildImp(cliCtx, flagArgs, nonFlagArgs)
 }
 
 // warnIfArgContainsBuildArg will issue a warning if a flag is incorrectly prefixed with build-arg.
@@ -2913,17 +2913,17 @@ func (app *earthlyApp) combineVariables(dotEnvMap map[string]string, flagArgs []
 	return variables.CombineScopes(overridingVars, dotEnvVars), nil
 }
 
-func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []string) error {
+func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []string) error {
 	var target domain.Target
 	var artifact domain.Artifact
 	destPath := "./"
 	if app.imageMode {
 		if len(nonFlagArgs) == 0 {
-			cli.ShowAppHelp(c)
+			cli.ShowAppHelp(cliCtx)
 			return errors.Errorf(
-				"no image reference provided. Try %s --image +<target-name>", c.App.Name)
+				"no image reference provided. Try %s --image +<target-name>", cliCtx.App.Name)
 		} else if len(nonFlagArgs) != 1 {
-			cli.ShowAppHelp(c)
+			cli.ShowAppHelp(cliCtx)
 			return errors.Errorf("invalid arguments %s", strings.Join(nonFlagArgs, " "))
 		}
 		targetName := nonFlagArgs[0]
@@ -2934,11 +2934,11 @@ func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []st
 		}
 	} else if app.artifactMode {
 		if len(nonFlagArgs) == 0 {
-			cli.ShowAppHelp(c)
+			cli.ShowAppHelp(cliCtx)
 			return errors.Errorf(
-				"no artifact reference provided. Try %s --artifact +<target-name>/<artifact-name>", c.App.Name)
+				"no artifact reference provided. Try %s --artifact +<target-name>/<artifact-name>", cliCtx.App.Name)
 		} else if len(nonFlagArgs) > 2 {
-			cli.ShowAppHelp(c)
+			cli.ShowAppHelp(cliCtx)
 			return errors.Errorf("invalid arguments %s", strings.Join(nonFlagArgs, " "))
 		}
 		artifactName := nonFlagArgs[0]
@@ -2953,11 +2953,11 @@ func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []st
 		target = artifact.Target
 	} else {
 		if len(nonFlagArgs) == 0 {
-			cli.ShowAppHelp(c)
+			cli.ShowAppHelp(cliCtx)
 			return errors.Errorf(
-				"no target reference provided. Try %s +<target-name>", c.App.Name)
+				"no target reference provided. Try %s +<target-name>", cliCtx.App.Name)
 		} else if len(nonFlagArgs) != 1 {
-			cli.ShowAppHelp(c)
+			cli.ShowAppHelp(cliCtx)
 			return errors.Errorf("invalid arguments %s", strings.Join(nonFlagArgs, " "))
 		}
 		targetName := nonFlagArgs[0]
@@ -3008,19 +3008,19 @@ func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []st
 	app.console.PrintPhaseHeader(builder.PhaseInit, false, "")
 	app.warnIfArgContainsBuildArg(flagArgs)
 
-	bkClient, err := app.GetBuildkitClient(c, cloudClient)
+	bkClient, err := app.GetBuildkitClient(cliCtx, cloudClient)
 	if err != nil {
 		return errors.Wrap(err, "build new buildkitd client")
 	}
 	defer bkClient.Close()
 	isLocal := containerutil.IsLocal(app.buildkitdSettings.BuildkitAddress)
 
-	bkIP, err := buildkitd.GetContainerIP(c.Context, app.containerName, app.containerFrontend, app.buildkitdSettings)
+	bkIP, err := buildkitd.GetContainerIP(cliCtx.Context, app.containerName, app.containerFrontend, app.buildkitdSettings)
 	if err != nil {
 		return errors.Wrap(err, "get buildkit container IP")
 	}
 
-	nativePlatform, err := platutil.GetNativePlatformViaBkClient(c.Context, bkClient)
+	nativePlatform, err := platutil.GetNativePlatformViaBkClient(cliCtx.Context, bkClient)
 	if err != nil {
 		return errors.Wrap(err, "get native platform via buildkit client")
 	}
@@ -3146,7 +3146,7 @@ func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []st
 			}
 
 			debugTermConsole := app.console.WithPrefix("internal-term")
-			err = terminal.ConnectTerm(c.Context, u.Host, debugTermConsole)
+			err = terminal.ConnectTerm(cliCtx.Context, u.Host, debugTermConsole)
 			if err != nil {
 				debugTermConsole.VerbosePrintf("unable to connect to terminal: %s", err.Error())
 			}
@@ -3215,7 +3215,7 @@ func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []st
 		FeatureFlagOverrides:   app.featureFlagOverrides,
 		ContainerFrontend:      app.containerFrontend,
 	}
-	b, err := builder.NewBuilder(c.Context, builderOpts)
+	b, err := builder.NewBuilder(cliCtx.Context, builderOpts)
 	if err != nil {
 		return errors.Wrap(err, "new builder")
 	}
@@ -3243,7 +3243,7 @@ func (app *earthlyApp) actionBuildImp(c *cli.Context, flagArgs, nonFlagArgs []st
 		buildOpts.OnlyArtifact = &artifact
 		buildOpts.OnlyArtifactDestPath = destPath
 	}
-	_, err = b.BuildTarget(c.Context, target, buildOpts)
+	_, err = b.BuildTarget(cliCtx.Context, target, buildOpts)
 	if err != nil {
 		return errors.Wrap(err, "build target")
 	}
@@ -3285,15 +3285,15 @@ func ifNilBoolDefault(ptr *bool, defaultValue bool) bool {
 	return *ptr
 }
 
-func (app *earthlyApp) actionListTargets(c *cli.Context) error {
+func (app *earthlyApp) actionListTargets(cliCtx *cli.Context) error {
 	app.commandName = "listTargets"
 
-	if c.NArg() > 1 {
+	if cliCtx.NArg() > 1 {
 		return errors.New("invalid number of arguments provided")
 	}
 	var targetToParse string
-	if c.NArg() > 0 {
-		targetToParse = c.Args().Get(0)
+	if cliCtx.NArg() > 0 {
+		targetToParse = cliCtx.Args().Get(0)
 		if !(strings.HasPrefix(targetToParse, "/") || strings.HasPrefix(targetToParse, ".")) {
 			return errors.New("remote-paths are not currently supported; local paths must start with \"/\" or \".\"")
 		}
@@ -3318,7 +3318,7 @@ func (app *earthlyApp) actionListTargets(c *cli.Context) error {
 		return errors.Errorf("unable to locate Earthfile under %s", targetToDisplay)
 	}
 
-	targets, err := earthfile2llb.GetTargets(c.Context, resolver, gwClient, target)
+	targets, err := earthfile2llb.GetTargets(cliCtx.Context, resolver, gwClient, target)
 	if err != nil {
 		return errors.Errorf("unable to locate Earthfile under %s", targetToDisplay)
 	}
@@ -3328,7 +3328,7 @@ func (app *earthlyApp) actionListTargets(c *cli.Context) error {
 		var args []string
 		if t != "base" {
 			target.Target = t
-			args, err = earthfile2llb.GetTargetArgs(c.Context, resolver, gwClient, target)
+			args, err = earthfile2llb.GetTargetArgs(cliCtx.Context, resolver, gwClient, target)
 			if err != nil {
 				return err
 			}
@@ -3347,10 +3347,10 @@ func (app *earthlyApp) actionListTargets(c *cli.Context) error {
 	return nil
 }
 
-func (app *earthlyApp) useSatellite(c *cli.Context, satelliteName, orgName string) error {
+func (app *earthlyApp) useSatellite(cliCtx *cli.Context, satelliteName, orgName string) error {
 	inConfig, err := config.ReadConfigFile(app.configPath)
 	if err != nil {
-		if c.IsSet("config") || !errors.Is(err, os.ErrNotExist) {
+		if cliCtx.IsSet("config") || !errors.Is(err, os.ErrNotExist) {
 			return errors.Wrap(err, "read config")
 		}
 	}
@@ -3418,14 +3418,14 @@ func (app *earthlyApp) getSatelliteOrgID(cloudClient cloud.Client) (string, erro
 	return orgID, nil
 }
 
-func (app *earthlyApp) actionSatelliteLaunch(c *cli.Context) error {
+func (app *earthlyApp) actionSatelliteLaunch(cliCtx *cli.Context) error {
 	app.commandName = "launch"
 
-	if c.NArg() != 1 {
+	if cliCtx.NArg() != 1 {
 		return errors.New("satellite name is required")
 	}
 
-	app.satelliteName = c.Args().Get(0)
+	app.satelliteName = cliCtx.Args().Get(0)
 
 	cloudClient, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
 	if err != nil {
@@ -3444,7 +3444,7 @@ func (app *earthlyApp) actionSatelliteLaunch(c *cli.Context) error {
 	}
 	app.console.Printf("...Done\n")
 
-	err = app.useSatellite(c, app.satelliteName, app.satelliteOrg)
+	err = app.useSatellite(cliCtx, app.satelliteName, app.satelliteOrg)
 	if err != nil {
 		return errors.Wrap(err, "could not configure satellite for use")
 	}
@@ -3453,10 +3453,10 @@ func (app *earthlyApp) actionSatelliteLaunch(c *cli.Context) error {
 	return nil
 }
 
-func (app *earthlyApp) actionSatelliteList(c *cli.Context) error {
+func (app *earthlyApp) actionSatelliteList(cliCtx *cli.Context) error {
 	app.commandName = "list"
 
-	if c.NArg() != 0 {
+	if cliCtx.NArg() != 0 {
 		return errors.New("command does not accept any arguments")
 	}
 
@@ -3479,14 +3479,14 @@ func (app *earthlyApp) actionSatelliteList(c *cli.Context) error {
 	return nil
 }
 
-func (app *earthlyApp) actionSatelliteDestroy(c *cli.Context) error {
+func (app *earthlyApp) actionSatelliteDestroy(cliCtx *cli.Context) error {
 	app.commandName = "launch"
 
-	if c.NArg() != 1 {
+	if cliCtx.NArg() != 1 {
 		return errors.New("satellite name is required")
 	}
 
-	app.satelliteName = c.Args().Get(0)
+	app.satelliteName = cliCtx.Args().Get(0)
 
 	cloudClient, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
 	if err != nil {
@@ -3506,7 +3506,7 @@ func (app *earthlyApp) actionSatelliteDestroy(c *cli.Context) error {
 	app.console.Printf("...Done\n")
 
 	if app.satelliteName == app.cfg.Satellite.Name {
-		err = app.useSatellite(c, "", "")
+		err = app.useSatellite(cliCtx, "", "")
 		if err != nil {
 			return errors.Wrapf(err, "failed unselecting satellite")
 		}
@@ -3515,14 +3515,14 @@ func (app *earthlyApp) actionSatelliteDestroy(c *cli.Context) error {
 	return nil
 }
 
-func (app *earthlyApp) actionSatelliteDescribe(c *cli.Context) error {
+func (app *earthlyApp) actionSatelliteDescribe(cliCtx *cli.Context) error {
 	app.commandName = "describe"
 
-	if c.NArg() != 1 {
+	if cliCtx.NArg() != 1 {
 		return errors.New("satellite name is required")
 	}
 
-	app.satelliteName = c.Args().Get(0)
+	app.satelliteName = cliCtx.Args().Get(0)
 
 	cloudClient, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
 	if err != nil {
@@ -3547,14 +3547,14 @@ func (app *earthlyApp) actionSatelliteDescribe(c *cli.Context) error {
 	return nil
 }
 
-func (app *earthlyApp) actionSatelliteSelect(c *cli.Context) error {
+func (app *earthlyApp) actionSatelliteSelect(cliCtx *cli.Context) error {
 	app.commandName = "select"
 
-	if c.NArg() != 1 {
+	if cliCtx.NArg() != 1 {
 		return errors.New("satellite name is required")
 	}
 
-	app.satelliteName = c.Args().Get(0)
+	app.satelliteName = cliCtx.Args().Get(0)
 
 	cloudClient, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
 	if err != nil {
@@ -3574,7 +3574,7 @@ func (app *earthlyApp) actionSatelliteSelect(c *cli.Context) error {
 	found := false
 	for _, s := range satellites {
 		if app.satelliteName == s.Name {
-			err = app.useSatellite(c, s.Name, app.satelliteOrg)
+			err = app.useSatellite(cliCtx, s.Name, app.satelliteOrg)
 			if err != nil {
 				return errors.Wrapf(err, "could not select satellite %s", app.satelliteName)
 			}
@@ -3591,16 +3591,16 @@ func (app *earthlyApp) actionSatelliteSelect(c *cli.Context) error {
 	return nil
 }
 
-func (app *earthlyApp) actionSatelliteUnselect(c *cli.Context) error {
+func (app *earthlyApp) actionSatelliteUnselect(cliCtx *cli.Context) error {
 	app.commandName = "unselect"
 
-	if c.NArg() != 0 {
+	if cliCtx.NArg() != 0 {
 		return errors.New("command does not accept any arguments")
 	}
 
-	app.satelliteName = c.Args().Get(0)
+	app.satelliteName = cliCtx.Args().Get(0)
 
-	err := app.useSatellite(c, "", "")
+	err := app.useSatellite(cliCtx, "", "")
 	if err != nil {
 		return errors.Wrap(err, "could not unselect satellite")
 	}
