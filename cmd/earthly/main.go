@@ -1298,6 +1298,9 @@ func (app *earthlyApp) configureSatellite(c *cli.Context, cc cloud.Client) error
 	if c.IsSet("buildkit-host") && c.IsSet("satellite") {
 		return errors.New("cannot specify both buildkit-host and satellite")
 	}
+	if c.IsSet("satellite") && app.noSatellite {
+		return errors.New("cannot specify both no-satellite and satellite")
+	}
 	if !app.isUsingSatellite(c) || cc == nil {
 		// If the app is not using a cloud client, or the command doesn't interact with the cloud (prune, bootstrap)
 		// then pretend its all good and use your regular configuration.
