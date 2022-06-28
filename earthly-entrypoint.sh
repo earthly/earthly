@@ -1,6 +1,16 @@
 #!/bin/sh
 set -e
 
+if [ -f "/sys/fs/cgroup/cgroup.controllers" ]; then
+    echo "detected cgroups v2; earthly-entrypoint.sh pid=$$"
+
+    # move the process under a new cgroup to prevent buildkitd/entrypoint.sh
+    # from getting a "h: write error: Resource busy" error while enabling controllers
+    # via echo +pids > /sys/fs/cgroup/cgroup.subtree_control
+    mkdir -p /sys/fs/cgroup/earthly-entrypoint
+    echo "$$" > /sys/fs/cgroup/earthly-entrypoint/cgroup.procs
+fi
+
 earthly_config="/etc/.earthly/config.yml"
 if [ ! -f "$earthly_config" ]; then
   # Missing config, generate it and use the env vars
@@ -48,6 +58,10 @@ if [ -z "$BUILDKIT_HOST" ]; then
       --config=/etc/buildkitd.toml \
       >/var/log/buildkitd.log 2>&1 \
       &
+
+  if [ "$BUILDKIT_DEBUG" = "true" ]; then
+      tail -f /var/log/buildkitd.log &
+  fi
 
   EARTHLY_BUILDKIT_HOST="tcp://$(hostname):8372" # hostname is not recognized as local for this reason
   export EARTHLY_BUILDKIT_HOST

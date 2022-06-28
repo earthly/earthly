@@ -1059,7 +1059,7 @@ Set up a whole custom git repository for a server called example.com, using a si
 		{
 			Name:    "satellite",
 			Hidden:  true, // Temporarily hidden for private beta testing
-			Aliases: []string{"satellites"},
+			Aliases: []string{"satellites", "sat"},
 			Usage: "Launch and use a Satellite runner as remote backend for Earthly builds.\n" +
 				"	Satellites can be used to optimize and share cache between multiple builds and users,\n" +
 				"	as well as run builds in native architectures independent of where the Earthly client is invoked.\n" +
@@ -1111,6 +1111,7 @@ Set up a whole custom git repository for a server called example.com, using a si
 				},
 				{
 					Name:        "select",
+					Aliases:     []string{"s"},
 					Usage:       "Choose which satellite to use to build your app",
 					Description: "Choose which satellite to use to build your app",
 					UsageText: "earthly satellite select <satellite-name>\n" +
@@ -1119,6 +1120,7 @@ Set up a whole custom git repository for a server called example.com, using a si
 				},
 				{
 					Name:        "unselect",
+					Aliases:     []string{"uns"},
 					Usage:       "Remove any currently selected Satellite instance from your Earthly configuration",
 					Description: "Remove any currently selected Satellite instance from your Earthly configuration",
 					UsageText:   "earthly satellite unselect",
@@ -2223,32 +2225,38 @@ func (app *earthlyApp) actionRegister(c *cli.Context) error {
 			rawAccept = "n"
 		}
 		accept := strings.ToLower(rawAccept)[0]
-
-		interactiveAccept = accept == 'y'
+		interactiveAccept = (accept == 'y')
 	}
 	termsConditionsPrivacy := app.termsConditionsPrivacy || interactiveAccept
 
 	var publicKey string
 	if app.registrationPublicKey == "" {
 		if len(publicKeys) > 0 {
-			fmt.Printf("Which of the following keys do you want to register?\n")
-			fmt.Printf("0) none\n")
-			for i, key := range publicKeys {
-				fmt.Printf("%d) %s\n", i+1, key.String())
+			rawIsRegisterSSHKey := promptInput("Would you like to register an SSH key to be used as a form of login? [Y/n]: ")
+			if rawIsRegisterSSHKey == "" {
+				rawIsRegisterSSHKey = "y"
 			}
-			keyNum := promptInput("enter key number (1=default): ")
-			if keyNum == "" {
-				keyNum = "1"
-			}
-			i, err := strconv.Atoi(keyNum)
-			if err != nil {
-				return errors.Wrap(err, "invalid key number")
-			}
-			if i < 0 || i > len(publicKeys) {
-				return errors.Errorf("invalid key number")
-			}
-			if i > 0 {
-				publicKey = publicKeys[i-1].String()
+			isRegisterSSHKey := (strings.ToLower(rawIsRegisterSSHKey)[0] == 'y')
+			if isRegisterSSHKey {
+				fmt.Printf("Which of the following keys do you want to register?\n")
+				fmt.Printf("0) none\n")
+				for i, key := range publicKeys {
+					fmt.Printf("%d) %s\n", i+1, key.String())
+				}
+				keyNum := promptInput("enter key number (1=default): ")
+				if keyNum == "" {
+					keyNum = "1"
+				}
+				i, err := strconv.Atoi(keyNum)
+				if err != nil {
+					return errors.Wrap(err, "invalid key number")
+				}
+				if i < 0 || i > len(publicKeys) {
+					return errors.Errorf("invalid key number")
+				}
+				if i > 0 {
+					publicKey = publicKeys[i-1].String()
+				}
 			}
 		}
 	} else {
@@ -3336,13 +3344,24 @@ func (app *earthlyApp) printSatellites(satellites []cloud.SatelliteInstance, org
 }
 
 func (app *earthlyApp) getSatelliteOrgID(cc cloud.Client) (string, error) {
+	// We are cheating here and forcing a re-auth before running any satellite commands.
+	// This is because there is an issue on the backend where the token might be outdated
+	// if a user was invited to an org recently after already logging-in.
+	// TODO Eventually we should be able to remove this cheat.
+	err := cc.Authenticate()
+	if err != nil {
+		return "", errors.New("unable to authenticate")
+	}
 	var orgID string
 	if app.satelliteOrg == "" {
 		orgs, err := cc.ListOrgs()
 		if err != nil {
 			return "", errors.Wrap(err, "failed finding org")
 		}
-		if len(orgs) != 1 {
+		if len(orgs) == 0 {
+			return "", errors.New("not a member of any organizations - satellites only work within an org")
+		}
+		if len(orgs) > 1 {
 			return "", errors.New("more than one organizations available - please specify the name of the organization using `--org`")
 		}
 		app.satelliteOrg = orgs[0].Name
@@ -3376,23 +3395,19 @@ func (app *earthlyApp) actionSatelliteLaunch(c *cli.Context) error {
 		return err
 	}
 
-	app.console.Printf("Launching Satellite. This could take a moment...")
+	app.console.Printf("Launching Satellite. This could take a moment...\n")
 	_, err = cc.LaunchSatellite(app.satelliteName, orgID)
 	if err != nil {
 		return errors.Wrapf(err, "failed to create satellite %s", app.satelliteName)
 	}
+	app.console.Printf("...Done\n")
 
 	err = app.useSatellite(c, app.satelliteName, app.satelliteOrg)
 	if err != nil {
 		return errors.Wrap(err, "could not configure satellite for use")
 	}
+	app.console.Printf("The satellite %s has been automatically selected for use. To go back to using local builds you can use\n\n\tearthly satellite unselect\n\n", app.satelliteName)
 
-	satellites, err := cc.ListSatellites(orgID)
-	if err != nil {
-		return err
-	}
-
-	app.printSatellites(satellites, orgID)
 	return nil
 }
 
@@ -3441,18 +3456,19 @@ func (app *earthlyApp) actionSatelliteDestroy(c *cli.Context) error {
 		return err
 	}
 
-	app.console.Printf("Destroying Satellite. This could take a moment...")
+	app.console.Printf("Destroying Satellite. This could take a moment...\n")
 	err = cc.DeleteSatellite(app.satelliteName, orgID)
 	if err != nil {
 		return errors.Wrapf(err, "failed to delete satellite %s", app.satelliteName)
 	}
+	app.console.Printf("...Done\n")
 
 	if app.satelliteName == app.cfg.Satellite.Name {
 		err = app.useSatellite(c, "", "")
 		if err != nil {
 			return errors.Wrapf(err, "failed unselecting satellite")
 		}
-		app.console.Printf("Satellite has also been unselected")
+		app.console.Printf("Satellite has also been unselected\n")
 	}
 	return nil
 }

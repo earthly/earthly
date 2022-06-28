@@ -16,6 +16,14 @@
         {
           "command": {
             "args": [
+              "+empty-test"
+            ],
+            "name": "BUILD"
+          }
+        },
+        {
+          "command": {
+            "args": [
               "+docker-load-test"
             ],
             "name": "BUILD"
@@ -75,6 +83,30 @@
               "+if-after"
             ],
             "name": "BUILD"
+          }
+        }
+      ]
+    },
+    {
+      "name": "empty-test",
+      "recipe": [
+        {
+          "with": {
+            "body": [
+              {
+                "command": {
+                  "args": [
+                    "echo",
+                    "\"dummy\""
+                  ],
+                  "name": "RUN"
+                }
+              }
+            ],
+            "command": {
+              "args": [],
+              "name": "DOCKER"
+            }
           }
         }
       ]

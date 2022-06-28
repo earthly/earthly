@@ -178,18 +178,24 @@ func newMultiImageSolver(opt Opt, sm *outmon.SolverMonitor) *multiImageSolver {
 func (m *multiImageSolver) SolveImages(ctx context.Context, imageDefs []*states.ImageDef) (*states.ImageSolverResults, error) {
 	var (
 		releaseChan = make(chan struct{})
-		resultChan  = make(chan string, 1)
+		resultChan  = make(chan string, len(imageDefs))
 		errChan     = make(chan error)
+		ret         = &states.ImageSolverResults{
+			ResultChan: resultChan,
+			ErrChan:    errChan,
+			ReleaseFunc: func() {
+				close(releaseChan)
+			},
+		}
 	)
-
-	// This func will be exposed to the caller and must be invoked when the WITH
-	// DOCKER command has termintated. It will release any prepared Docker
-	// images.
-	closer := func() {
-		close(releaseChan)
+	if len(imageDefs) == 0 {
+		// Nothing to solve.
+		close(resultChan)
+		close(errChan)
+		return ret, nil
 	}
 
-	// This func is execute when the image create/push process is complete.
+	// This func is executed when the image create/push process is complete.
 	onPull := func(ctx context.Context, images []string) error {
 		// Send any images created by BuildKit to the caller.
 		for _, image := range images {
@@ -200,7 +206,11 @@ func (m *multiImageSolver) SolveImages(ctx context.Context, imageDefs []*states.
 		// DOCKER statements have been run and we can release the image
 		// resources. When the onPull function returns BK will remove the
 		// images.
-		<-releaseChan
+		select {
+		case <-releaseChan:
+		case <-ctx.Done():
+			return ctx.Err()
+		}
 		return nil
 	}
 
@@ -268,11 +278,7 @@ func (m *multiImageSolver) SolveImages(ctx context.Context, imageDefs []*states.
 		close(errChan)
 	}()
 
-	return &states.ImageSolverResults{
-		ResultChan:  resultChan,
-		ErrChan:     errChan,
-		ReleaseFunc: closer,
-	}, nil
+	return ret, nil
 }
 
 func (m *multiImageSolver) addRefToResult(ctx context.Context, gwClient gwclient.Client, res *gwclient.Result, imageDef *states.ImageDef, idx int) error {

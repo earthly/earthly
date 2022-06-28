@@ -2,11 +2,17 @@ VERSION --parallel-load --shell-out-anywhere --use-registry-for-with-docker 0.6
 FROM earthly/dind:alpine
 
 all:
+    BUILD +empty-test
     BUILD +docker-load-test
     BUILD +docker-pull-test
     BUILD +docker-load-shellout-test
     BUILD +load-parallel-test
     BUILD +docker-load-multi-test
+
+empty-test:
+    WITH DOCKER
+        RUN echo "dummy"
+    END
 
 a-test-image:
     FROM alpine:3.15

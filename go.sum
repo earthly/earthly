@@ -342,8 +342,8 @@ github.com/docopt/docopt-go v0.0.0-20180111231733-ee0de3bc6815/go.mod h1:WwZ+bS3
 github.com/dustin/go-humanize v0.0.0-20171111073723-bb3d318650d4/go.mod h1:HtrtbFcZ19U5GC7JDqmcUSB87Iq5E25KnS6fMYU6eOk=
 github.com/dustin/go-humanize v1.0.0 h1:VSnTsYCnlFHaM2/igO1h6X3HA71jcobQuxemgkq4zYo=
 github.com/dustin/go-humanize v1.0.0/go.mod h1:HtrtbFcZ19U5GC7JDqmcUSB87Iq5E25KnS6fMYU6eOk=
-github.com/earthly/buildkit v0.0.1-0.20220601212315-e0de996ebb10 h1:ilmuItSPLOylCdvkeIjqxOT9R9teMTkVUnRG2HaXc7k=
-github.com/earthly/buildkit v0.0.1-0.20220601212315-e0de996ebb10/go.mod h1:8578flFPixeoiXT6b1RZmxk14dfjISYq2QcKtWqIxC0=
+github.com/earthly/buildkit v0.0.1-0.20220620195325-de75b35133f9 h1:QIbWL58uTHhTLLMdHo5jE/Ea4z5PpupQLgNOHuOJWSk=
+github.com/earthly/buildkit v0.0.1-0.20220620195325-de75b35133f9/go.mod h1:8578flFPixeoiXT6b1RZmxk14dfjISYq2QcKtWqIxC0=
 github.com/earthly/cloud-api v1.0.1-0.20220603155547-accef7dc6f19 h1:QO4MmqWD3JU5vsF+cAx7xcAxS4HWPEWZ7hsdSMKz7nQ=
 github.com/earthly/cloud-api v1.0.1-0.20220603155547-accef7dc6f19/go.mod h1:t9cO3NUQ2aqEI/pwO1XjeTwv2cAOdVV/aiZ37AHrmZg=
 github.com/earthly/fsutil v0.0.0-20220118225905-42fa88fbe869 h1:JOHn11YLRdybmRtdYrJ1LD3PLNqANfvIQoxhjrmcGOQ=
