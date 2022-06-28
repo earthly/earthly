@@ -612,7 +612,7 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 		&cli.StringFlag{
 			Name:        "server",
 			Value:       "https://api.earthly.dev",
-			EnvVars:     []string{"EARTHLY_SERVER"},
+			EnvVars:     []string{"EARTHLY_SERVER_ADDRESS"},
 			Usage:       "API server override for dev purposes",
 			Destination: &app.apiServer,
 			Hidden:      true, // Internal.
