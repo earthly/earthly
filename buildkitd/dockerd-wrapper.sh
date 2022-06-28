@@ -190,6 +190,7 @@ load_registry_images() {
         for img in $EARTHLY_DOCKER_LOAD_REGISTRY; do
             user_tag=$(printf '%s' "$img" | cut -d'/' -f2)
             with_reg="$buildkit_docker_registry/$img"
+            echo "Pulling $with_reg and retagging as $user_tag"
             (docker pull "$with_reg" && docker tag "$with_reg" "$user_tag") || (stop_dockerd; exit 1)
         done
         echo "...done"
