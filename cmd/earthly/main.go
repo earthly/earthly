@@ -29,6 +29,7 @@ import (
 	"time"
 
 	"github.com/dustin/go-humanize"
+	gsysinfo "github.com/elastic/go-sysinfo"
 	"github.com/fatih/color"
 	"github.com/joho/godotenv"
 	"github.com/moby/buildkit/client"
@@ -43,7 +44,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
-	"github.com/wille/osutil"
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/agent"
 	"golang.org/x/sync/errgroup"
@@ -320,18 +320,12 @@ func getVersionPlatform() string {
 }
 
 func getPlatform() string {
-	// Work-around for windows panics; this can be removed once https://github.com/wille/osutil/pull/10 is merged
-	showOSInfo := func() (info string) {
-		defer func() {
-			if err := recover(); err != nil {
-				// skipped
-				info = "unknown"
-				return
-			}
-		}()
-		return osutil.GetDisplay()
+	h, err := gsysinfo.Host()
+	if err != nil {
+		return "unknown"
 	}
-	return fmt.Sprintf("%s/%s; %s", runtime.GOOS, runtime.GOARCH, showOSInfo())
+	info := h.Info()
+	return fmt.Sprintf("%s/%s; %s %s", runtime.GOOS, runtime.GOARCH, info.OS.Name, info.OS.Version)
 }
 
 func getBinaryName() string {
