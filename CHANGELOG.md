@@ -4,6 +4,13 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+## v0.6.19 - 2022-06-29
+
+### Fixed
+
+- Fixed retagging of images that are made available via the `WITH DOCKER` command when the `--use-registry-for-with-docker` feature is enabled.
+- Fixed a bug where `earthly --version` would display unknown on some versions of Windows.
+
 ## v0.6.18 - 2022-06-27
 
 ### Fixed
@@ -39,7 +46,7 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ### Fixed
 
-- Panic when running earthly --version under some versions of windows
+- Panic when running earthly --version under some versions of Windows
 - Removed duplicate git commit hash from earthly --version output string (when running dev versions of earthly)
 - Garbled auto-completion when using Earthfiles without a VERSION command (or with other warnings) [#1837](https://github.com/earthly/earthly/issues/1837).
 - Masking of cgroups for podman support.
