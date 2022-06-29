@@ -208,7 +208,7 @@ func CollectAnalytics(ctx context.Context, cc cloud.Client, displayErrors bool, 
 		countsMap, countsMapUnlock := counts.getMap()
 		defer countsMapUnlock()
 
-		err := cc.SendAnalytics(&cloud.EarthlyAnalytics{
+		err := cc.SendAnalytics(ctx, &cloud.EarthlyAnalytics{
 			Key:              key,
 			InstallID:        installID,
 			Version:          version,

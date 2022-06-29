@@ -1,6 +1,7 @@
 package cloud
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -30,8 +31,9 @@ func TestClient_Authenticate(t *testing.T) {
 			AllowUnknownFields: true,
 		},
 	}
+	ctx := context.Background()
 
-	if err := cc.Authenticate(); err != nil {
+	if err := cc.Authenticate(ctx); err != nil {
 		t.Fatalf("unexpected authentication error: %+v", err)
 	}
 
@@ -51,8 +53,9 @@ func TestClient_loadAuthStorage(t *testing.T) {
 		password:        testPass,
 		authDir:         "/tmp",
 	}
+	ctx := context.Background()
 	cc.saveToken()
-	cc.savePasswordCredentials(cc.email, cc.password)
+	cc.savePasswordCredentials(ctx, cc.email, cc.password)
 
 	cc.email = ""
 	cc.password = ""

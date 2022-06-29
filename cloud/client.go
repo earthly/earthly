@@ -2,6 +2,7 @@ package cloud
 
 import (
 	"bytes"
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -72,43 +73,43 @@ type SatelliteInstance struct {
 
 // Client provides a client to the shared secrets service
 type Client interface {
-	RegisterEmail(email string) error
-	CreateAccount(email, verificationToken, password, publicKey string, termsConditionsPrivacy bool) error
-	Authenticate() error
-	Get(path string) ([]byte, error)
-	Remove(path string) error
-	Set(path string, data []byte) error
-	List(path string) ([]string, error)
-	GetPublicKeys() ([]*agent.Key, error)
-	CreateOrg(org string) error
-	Invite(org, user string, write bool) error
-	ListOrgs() ([]*OrgDetail, error)
-	ListOrgPermissions(path string) ([]*OrgPermissions, error)
-	RevokePermission(path, user string) error
-	ListPublicKeys() ([]string, error)
-	AddPublickKey(string) error
-	RemovePublickKey(string) error
-	CreateToken(string, bool, *time.Time) (string, error)
-	ListTokens() ([]*TokenDetail, error)
-	RemoveToken(string) error
-	WhoAmI() (string, string, bool, error)
-	UploadLog(pathOnDisk string) (string, error)
-	SetPasswordCredentials(string, string) error
-	SetTokenCredentials(token string) (string, error)
-	SetSSHCredentials(email, sshKey string) error
-	FindSSHCredentials(emailToFind string) error
-	DeleteAuthCache() error
-	DeleteCachedToken() error
-	DisableSSHKeyGuessing()
-	SetAuthTokenDir(path string)
-	SendAnalytics(data *EarthlyAnalytics) error
-	IsLoggedIn() bool
-	GetAuthToken() (string, error)
-	LaunchSatellite(name, org string) (*SatelliteInstance, error)
-	GetOrgID(name string) (string, error)
-	ListSatellites(orgID string) ([]SatelliteInstance, error)
-	GetSatellite(name, orgID string) (*SatelliteInstance, error)
-	DeleteSatellite(name, orgID string) error
+	RegisterEmail(ctx context.Context, email string) error
+	CreateAccount(ctx context.Context, email, verificationToken, password, publicKey string, termsConditionsPrivacy bool) error
+	Authenticate(ctx context.Context) error
+	Get(ctx context.Context, path string) ([]byte, error)
+	Remove(ctx context.Context, path string) error
+	Set(ctx context.Context, path string, data []byte) error
+	List(ctx context.Context, path string) ([]string, error)
+	GetPublicKeys(ctx context.Context) ([]*agent.Key, error)
+	CreateOrg(ctx context.Context, org string) error
+	Invite(ctx context.Context, org, user string, write bool) error
+	ListOrgs(ctx context.Context) ([]*OrgDetail, error)
+	ListOrgPermissions(ctx context.Context, path string) ([]*OrgPermissions, error)
+	RevokePermission(ctx context.Context, path, user string) error
+	ListPublicKeys(ctx context.Context) ([]string, error)
+	AddPublickKey(ctx context.Context, key string) error
+	RemovePublickKey(ctx context.Context, key string) error
+	CreateToken(context.Context, string, bool, *time.Time) (string, error)
+	ListTokens(ctx context.Context) ([]*TokenDetail, error)
+	RemoveToken(ctx context.Context, token string) error
+	WhoAmI(ctx context.Context) (string, string, bool, error)
+	UploadLog(ctx context.Context, pathOnDisk string) (string, error)
+	SetPasswordCredentials(context.Context, string, string) error
+	SetTokenCredentials(ctx context.Context, token string) (string, error)
+	SetSSHCredentials(ctx context.Context, email, sshKey string) error
+	FindSSHCredentials(ctx context.Context, emailToFind string) error
+	DeleteAuthCache(ctx context.Context) error
+	DeleteCachedToken(ctx context.Context) error
+	DisableSSHKeyGuessing(ctx context.Context)
+	SetAuthTokenDir(ctx context.Context, path string)
+	SendAnalytics(ctx context.Context, data *EarthlyAnalytics) error
+	IsLoggedIn(ctx context.Context) bool
+	GetAuthToken(ctx context.Context) (string, error)
+	LaunchSatellite(ctx context.Context, name, org string) (*SatelliteInstance, error)
+	GetOrgID(ctx context.Context, name string) (string, error)
+	ListSatellites(ctx context.Context, orgID string) ([]SatelliteInstance, error)
+	GetSatellite(ctx context.Context, name, orgID string) (*SatelliteInstance, error)
+	DeleteSatellite(ctx context.Context, name, orgID string) error
 }
 
 type request struct {
@@ -177,7 +178,7 @@ func withBody(body string) requestOpt {
 	}
 }
 
-func (c *client) doCall(method, url string, opts ...requestOpt) (int, string, error) {
+func (c *client) doCall(ctx context.Context, method, url string, opts ...requestOpt) (int, string, error) {
 	const maxAttempt = 10
 	const maxSleepBeforeRetry = time.Second * 3
 
@@ -191,7 +192,7 @@ func (c *client) doCall(method, url string, opts ...requestOpt) (int, string, er
 
 	alreadyReAuthed := false
 	if r.hasAuth && time.Now().UTC().After(c.authTokenExpiry) {
-		if err := c.Authenticate(); err != nil {
+		if err := c.Authenticate(ctx); err != nil {
 			if errors.Is(err, ErrUnauthorized) {
 				return 0, "", ErrUnauthorized
 			}
@@ -205,7 +206,7 @@ func (c *client) doCall(method, url string, opts ...requestOpt) (int, string, er
 	var err error
 	duration := time.Millisecond * 100
 	for attempt := 0; attempt < maxAttempt; attempt++ {
-		status, body, err = c.doCallImp(r, method, url, opts...)
+		status, body, err = c.doCallImp(ctx, r, method, url, opts...)
 
 		if !shouldRetry(status, body, err, c.warnFunc) {
 			return status, body, err
@@ -215,7 +216,7 @@ func (c *client) doCall(method, url string, opts ...requestOpt) (int, string, er
 			if !r.hasAuth || alreadyReAuthed {
 				return status, body, ErrUnauthorized
 			}
-			if err = c.Authenticate(); err != nil {
+			if err = c.Authenticate(ctx); err != nil {
 				return status, body, errors.Wrap(err, "auth credentials not valid")
 			}
 			alreadyReAuthed = true
@@ -257,7 +258,7 @@ func shouldRetry(status int, body string, err error, warnFunc func(string, ...in
 	return false
 }
 
-func (c *client) doCallImp(r request, method, url string, opts ...requestOpt) (int, string, error) {
+func (c *client) doCallImp(ctx context.Context, r request, method, url string, opts ...requestOpt) (int, string, error) {
 	var bodyReader io.Reader
 	var bodyLen int64
 	if r.hasBody {
@@ -265,7 +266,7 @@ func (c *client) doCallImp(r request, method, url string, opts ...requestOpt) (i
 		bodyLen = int64(len(r.body))
 	}
 
-	req, err := http.NewRequest(method, c.host+url, bodyReader)
+	req, err := http.NewRequestWithContext(ctx, method, c.host+url, bodyReader)
 	if err != nil {
 		return 0, "", err
 	}
@@ -286,11 +287,27 @@ func (c *client) doCallImp(r request, method, url string, opts ...requestOpt) (i
 		return 0, "", err
 	}
 
-	respBody, err := io.ReadAll(resp.Body)
+	respBody, err := readAllWithContext(ctx, resp.Body)
 	if err != nil {
 		return 0, "", err
 	}
 	return resp.StatusCode, string(respBody), nil
+}
+
+func readAllWithContext(ctx context.Context, r io.Reader) ([]byte, error) {
+	var dt []byte
+	var readErr error
+	ch := make(chan struct{})
+	go func() {
+		dt, readErr = io.ReadAll(r)
+		close(ch)
+	}()
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	case <-ch:
+		return dt, readErr
+	}
 }
 
 type client struct {
@@ -345,7 +362,7 @@ func (c *client) filterKeys(keys []*agent.Key) []*agent.Key {
 	return keys2
 }
 
-func (c *client) GetPublicKeys() ([]*agent.Key, error) {
+func (c *client) GetPublicKeys(ctx context.Context) ([]*agent.Key, error) {
 	keys, err := c.sshAgent.List()
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to list ssh keys")
@@ -366,8 +383,8 @@ func (c *client) GetPublicKeys() ([]*agent.Key, error) {
 	return keys, nil
 }
 
-func (c *client) RegisterEmail(email string) error {
-	status, body, err := c.doCall("PUT", fmt.Sprintf("/api/v0/account/create/%s", url.QueryEscape(email)))
+func (c *client) RegisterEmail(ctx context.Context, email string) error {
+	status, body, err := c.doCall(ctx, "PUT", fmt.Sprintf("/api/v0/account/create/%s", url.QueryEscape(email)))
 	if err != nil {
 		return err
 	}
@@ -386,15 +403,15 @@ func (c *client) RegisterEmail(email string) error {
 // Credentials may be either email/password, ssh-based, or a custom token.
 // Upon successful authenticate, the JWT provided by the server is stored in
 // ~/.earthly/auth.jwt, and can be refreshed any time via another call to Authenticate().
-func (c *client) Authenticate() error {
+func (c *client) Authenticate(ctx context.Context) error {
 	var err error
 	switch {
 	case c.email != "" && c.password != "":
-		err = c.loginWithPassowrd()
+		err = c.loginWithPassowrd(ctx)
 	case c.authCredToken != "":
-		err = c.loginWithToken()
+		err = c.loginWithToken(ctx)
 	default:
-		err = c.loginWithSSH()
+		err = c.loginWithSSH(ctx)
 	}
 	if err != nil {
 		if errors.Is(err, ErrNoAuthorizedPublicKeys) || errors.Is(err, ErrNoSSHAgent) {
@@ -405,28 +422,28 @@ func (c *client) Authenticate() error {
 	return c.saveToken()
 }
 
-func (c *client) loginWithPassowrd() error {
+func (c *client) loginWithPassowrd(ctx context.Context) error {
 	var err error
 	c.authCredToken = getPasswordAuthToken(c.email, c.password)
-	c.authToken, c.authTokenExpiry, err = c.login(c.authCredToken)
+	c.authToken, c.authTokenExpiry, err = c.login(ctx, c.authCredToken)
 	return err
 }
 
-func (c *client) loginWithToken() error {
+func (c *client) loginWithToken(ctx context.Context) error {
 	var err error
-	c.authToken, c.authTokenExpiry, err = c.login("token " + c.authCredToken)
+	c.authToken, c.authTokenExpiry, err = c.login(ctx, "token "+c.authCredToken)
 	return err
 }
 
-func (c *client) loginWithSSH() error {
+func (c *client) loginWithSSH(ctx context.Context) error {
 	if c.disableSSHKeyGuessing {
 		return ErrNoAuthorizedPublicKeys
 	}
-	challenge, err := c.getChallenge()
+	challenge, err := c.getChallenge(ctx)
 	if err != nil {
 		return err
 	}
-	keys, err := c.GetPublicKeys()
+	keys, err := c.GetPublicKeys(ctx)
 	if err != nil {
 		return err
 	}
@@ -435,17 +452,17 @@ func (c *client) loginWithSSH() error {
 		if err != nil {
 			return err
 		}
-		c.authToken, c.authTokenExpiry, err = c.login(credentials)
+		c.authToken, c.authTokenExpiry, err = c.login(ctx, credentials)
 		if errors.Is(err, ErrUnauthorized) {
 			continue // try next key
 		} else if err != nil {
 			return err
 		}
-		email, _, err := c.ping()
+		email, _, err := c.ping(ctx)
 		if err != nil {
 			return err
 		}
-		return c.saveSSHCredentials(email, key.String())
+		return c.saveSSHCredentials(ctx, email, key.String())
 	}
 	return ErrNoAuthorizedPublicKeys
 }
@@ -453,9 +470,9 @@ func (c *client) loginWithSSH() error {
 // login calls the login endpoint on the cloud server, passing the provided credentials.
 // If auth succeeds, a new jwt token is returned with it's expiry date.
 // ErrUnauthroized is returned if the credentials are not valid.
-func (c *client) login(credentials string) (token string, expiry time.Time, err error) {
+func (c *client) login(ctx context.Context, credentials string) (token string, expiry time.Time, err error) {
 	var zero time.Time
-	status, body, err := c.doCall("POST", "/api/v0/account/login",
+	status, body, err := c.doCall(ctx, "POST", "/api/v0/account/login",
 		withHeader("Authorization", credentials))
 	if err != nil {
 		return "", zero, errors.Wrap(err, "failed to execute login request")
@@ -476,8 +493,8 @@ func (c *client) login(credentials string) (token string, expiry time.Time, err 
 
 // ping calls the ping endpoint on the server,
 // which is used to both test an auth token and retrieve the associated email address.
-func (c *client) ping() (email string, writeAccess bool, err error) {
-	status, body, err := c.doCall("GET", "/api/v0/account/ping", withAuth())
+func (c *client) ping(ctx context.Context) (email string, writeAccess bool, err error) {
+	status, body, err := c.doCall(ctx, "GET", "/api/v0/account/ping", withAuth())
 	if err != nil {
 		return "", false, errors.Wrap(err, "failed executing ping request")
 	}
@@ -528,8 +545,8 @@ func (c *client) savePublicKey(publicKey string) error {
 	return nil
 }
 
-func (c *client) CreateAccount(email, verificationToken, password, publicKey string, termsConditionsPrivacy bool) error {
-	if !IsValidEmail(email) {
+func (c *client) CreateAccount(ctx context.Context, email, verificationToken, password, publicKey string, termsConditionsPrivacy bool) error {
+	if !IsValidEmail(ctx, email) {
 		return errors.Errorf("invalid email: %q", email)
 	}
 	if publicKey != "" {
@@ -547,7 +564,7 @@ func (c *client) CreateAccount(email, verificationToken, password, publicKey str
 		AcceptTermsConditions: termsConditionsPrivacy,
 		AcceptPrivacyPolicy:   termsConditionsPrivacy,
 	}
-	status, body, err := c.doCall("PUT", "/api/v0/account/create", withJSONBody(&createAccountRequest))
+	status, body, err := c.doCall(ctx, "PUT", "/api/v0/account/create", withJSONBody(&createAccountRequest))
 	if err != nil {
 		return err
 	}
@@ -561,12 +578,12 @@ func (c *client) CreateAccount(email, verificationToken, password, publicKey str
 
 	// cache login preferences for future command runs
 	if publicKey != "" {
-		err = c.saveSSHCredentials(email, publicKey)
+		err = c.saveSSHCredentials(ctx, email, publicKey)
 		if err != nil {
 			c.warnFunc("failed to cache public ssh key: %s", err.Error())
 		}
 	} else {
-		err = c.savePasswordCredentials(email, password)
+		err = c.savePasswordCredentials(ctx, email, password)
 		if err != nil {
 			c.warnFunc("failed to cache password token: %s", err.Error())
 		}
@@ -575,8 +592,8 @@ func (c *client) CreateAccount(email, verificationToken, password, publicKey str
 	return nil
 }
 
-func (c *client) getChallenge() (string, error) {
-	status, body, err := c.doCall("GET", "/api/v0/account/auth-challenge")
+func (c *client) getChallenge(ctx context.Context) (string, error) {
+	status, body, err := c.doCall(ctx, "GET", "/api/v0/account/auth-challenge")
 	if err != nil {
 		return "", err
 	}
@@ -622,8 +639,8 @@ func getPasswordAuthToken(email, password string) string {
 	return fmt.Sprintf("password %s %s", email64, password64)
 }
 
-func (c *client) CreateOrg(org string) error {
-	status, body, err := c.doCall("PUT", fmt.Sprintf("/api/v0/admin/organizations/%s", url.QueryEscape(org)), withAuth())
+func (c *client) CreateOrg(ctx context.Context, org string) error {
+	status, body, err := c.doCall(ctx, "PUT", fmt.Sprintf("/api/v0/admin/organizations/%s", url.QueryEscape(org)), withAuth())
 	if err != nil {
 		return err
 	}
@@ -637,11 +654,11 @@ func (c *client) CreateOrg(org string) error {
 	return nil
 }
 
-func (c *client) Remove(path string) error {
+func (c *client) Remove(ctx context.Context, path string) error {
 	if path == "" || path[0] != '/' {
 		return errors.Errorf("invalid path")
 	}
-	status, body, err := c.doCall("DELETE", fmt.Sprintf("/api/v0/secrets%s", path), withAuth())
+	status, body, err := c.doCall(ctx, "DELETE", fmt.Sprintf("/api/v0/secrets%s", path), withAuth())
 	if err != nil {
 		return err
 	}
@@ -655,11 +672,11 @@ func (c *client) Remove(path string) error {
 	return nil
 }
 
-func (c *client) List(path string) ([]string, error) {
+func (c *client) List(ctx context.Context, path string) ([]string, error) {
 	if path != "" && !strings.HasSuffix(path, "/") {
 		return nil, errors.Errorf("invalid path")
 	}
-	status, body, err := c.doCall("GET", fmt.Sprintf("/api/v0/secrets%s", path), withAuth())
+	status, body, err := c.doCall(ctx, "GET", fmt.Sprintf("/api/v0/secrets%s", path), withAuth())
 	if err != nil {
 		return nil, err
 	}
@@ -676,11 +693,11 @@ func (c *client) List(path string) ([]string, error) {
 	return strings.Split(body, "\n"), nil
 }
 
-func (c *client) Get(path string) ([]byte, error) {
+func (c *client) Get(ctx context.Context, path string) ([]byte, error) {
 	if path == "" || path[0] != '/' || strings.HasSuffix(path, "/") {
 		return nil, errors.Errorf("invalid path")
 	}
-	status, body, err := c.doCall("GET", fmt.Sprintf("/api/v0/secrets%s", path), withAuth())
+	status, body, err := c.doCall(ctx, "GET", fmt.Sprintf("/api/v0/secrets%s", path), withAuth())
 	if err != nil {
 		return nil, err
 	}
@@ -694,11 +711,11 @@ func (c *client) Get(path string) ([]byte, error) {
 	return []byte(body), nil
 }
 
-func (c *client) Set(path string, data []byte) error {
+func (c *client) Set(ctx context.Context, path string, data []byte) error {
 	if path == "" || path[0] != '/' {
 		return errors.Errorf("invalid path")
 	}
-	status, body, err := c.doCall("PUT", fmt.Sprintf("/api/v0/secrets%s", path), withAuth(), withBody(string(data)))
+	status, body, err := c.doCall(ctx, "PUT", fmt.Sprintf("/api/v0/secrets%s", path), withAuth(), withBody(string(data)))
 	if err != nil {
 		return err
 	}
@@ -724,7 +741,7 @@ func getOrgFromPath(path string) (string, bool) {
 	return parts[1], true
 }
 
-func (c *client) Invite(path, user string, write bool) error {
+func (c *client) Invite(ctx context.Context, path, user string, write bool) error {
 	orgName, ok := getOrgFromPath(path)
 	if !ok {
 		return errors.Errorf("invalid path")
@@ -736,7 +753,7 @@ func (c *client) Invite(path, user string, write bool) error {
 		Write: write,
 	}
 
-	status, body, err := c.doCall("PUT", fmt.Sprintf("/api/v0/admin/organizations/%s/permissions", url.QueryEscape(orgName)), withAuth(), withJSONBody(&permission))
+	status, body, err := c.doCall(ctx, "PUT", fmt.Sprintf("/api/v0/admin/organizations/%s/permissions", url.QueryEscape(orgName)), withAuth(), withJSONBody(&permission))
 	if err != nil {
 		return err
 	}
@@ -750,7 +767,7 @@ func (c *client) Invite(path, user string, write bool) error {
 	return nil
 }
 
-func (c *client) RevokePermission(path, user string) error {
+func (c *client) RevokePermission(ctx context.Context, path, user string) error {
 	orgName, ok := getOrgFromPath(path)
 	if !ok {
 		return errors.Errorf("invalid path")
@@ -761,7 +778,7 @@ func (c *client) RevokePermission(path, user string) error {
 		Email: user,
 	}
 
-	status, body, err := c.doCall("DELETE", fmt.Sprintf("/api/v0/admin/organizations/%s/permissions", url.QueryEscape(orgName)), withAuth(), withJSONBody(&permission))
+	status, body, err := c.doCall(ctx, "DELETE", fmt.Sprintf("/api/v0/admin/organizations/%s/permissions", url.QueryEscape(orgName)), withAuth(), withJSONBody(&permission))
 	if err != nil {
 		return err
 	}
@@ -775,13 +792,13 @@ func (c *client) RevokePermission(path, user string) error {
 	return nil
 }
 
-func (c *client) ListOrgPermissions(path string) ([]*OrgPermissions, error) {
+func (c *client) ListOrgPermissions(ctx context.Context, path string) ([]*OrgPermissions, error) {
 	orgName, ok := getOrgFromPath(path)
 	if !ok {
 		return nil, errors.Errorf("invalid path")
 	}
 
-	status, body, err := c.doCall("GET", fmt.Sprintf("/api/v0/admin/organizations/%s/permissions", url.QueryEscape(orgName)), withAuth())
+	status, body, err := c.doCall(ctx, "GET", fmt.Sprintf("/api/v0/admin/organizations/%s/permissions", url.QueryEscape(orgName)), withAuth())
 	if err != nil {
 		return nil, err
 	}
@@ -813,8 +830,8 @@ func (c *client) ListOrgPermissions(path string) ([]*OrgPermissions, error) {
 	return res, nil
 }
 
-func (c *client) ListOrgs() ([]*OrgDetail, error) {
-	status, body, err := c.doCall("GET", "/api/v0/admin/organizations", withAuth())
+func (c *client) ListOrgs(ctx context.Context) ([]*OrgDetail, error) {
+	status, body, err := c.doCall(ctx, "GET", "/api/v0/admin/organizations", withAuth())
 	if err != nil {
 		return nil, err
 	}
@@ -844,8 +861,8 @@ func (c *client) ListOrgs() ([]*OrgDetail, error) {
 	return res, nil
 }
 
-func (c *client) ListPublicKeys() ([]string, error) {
-	status, body, err := c.doCall("GET", "/api/v0/account/keys", withAuth())
+func (c *client) ListPublicKeys(ctx context.Context) ([]string, error) {
+	status, body, err := c.doCall(ctx, "GET", "/api/v0/account/keys", withAuth())
 	if err != nil {
 		return nil, err
 	}
@@ -866,9 +883,9 @@ func (c *client) ListPublicKeys() ([]string, error) {
 	return keys, nil
 }
 
-func (c *client) AddPublickKey(key string) error {
+func (c *client) AddPublickKey(ctx context.Context, key string) error {
 	key = strings.TrimSpace(key) + "\n"
-	status, body, err := c.doCall("PUT", "/api/v0/account/keys", withAuth(), withBody(key))
+	status, body, err := c.doCall(ctx, "PUT", "/api/v0/account/keys", withAuth(), withBody(key))
 	if err != nil {
 		return err
 	}
@@ -882,9 +899,9 @@ func (c *client) AddPublickKey(key string) error {
 	return nil
 }
 
-func (c *client) RemovePublickKey(key string) error {
+func (c *client) RemovePublickKey(ctx context.Context, key string) error {
 	key = strings.TrimSpace(key) + "\n"
-	status, body, err := c.doCall("DELETE", "/api/v0/account/keys", withAuth(), withBody(key))
+	status, body, err := c.doCall(ctx, "DELETE", "/api/v0/account/keys", withAuth(), withBody(key))
 	if err != nil {
 		return err
 	}
@@ -898,7 +915,7 @@ func (c *client) RemovePublickKey(key string) error {
 	return nil
 }
 
-func (c *client) CreateToken(name string, write bool, expiry *time.Time) (string, error) {
+func (c *client) CreateToken(ctx context.Context, name string, write bool, expiry *time.Time) (string, error) {
 	name = url.QueryEscape(name)
 
 	expiryPB, err := ptypes.TimestampProto(expiry.UTC())
@@ -910,7 +927,7 @@ func (c *client) CreateToken(name string, write bool, expiry *time.Time) (string
 		Write:  write,
 		Expiry: expiryPB,
 	}
-	status, body, err := c.doCall("PUT", "/api/v0/account/token/"+name, withAuth(), withJSONBody(&authToken))
+	status, body, err := c.doCall(ctx, "PUT", "/api/v0/account/token/"+name, withAuth(), withJSONBody(&authToken))
 	if err != nil {
 		return "", err
 	}
@@ -924,8 +941,8 @@ func (c *client) CreateToken(name string, write bool, expiry *time.Time) (string
 	return body, nil
 }
 
-func (c *client) ListTokens() ([]*TokenDetail, error) {
-	status, body, err := c.doCall("GET", "/api/v0/account/tokens", withAuth())
+func (c *client) ListTokens(ctx context.Context) ([]*TokenDetail, error) {
+	status, body, err := c.doCall(ctx, "GET", "/api/v0/account/tokens", withAuth())
 	if err != nil {
 		return nil, err
 	}
@@ -958,9 +975,9 @@ func (c *client) ListTokens() ([]*TokenDetail, error) {
 	return tokenDetails, nil
 }
 
-func (c *client) RemoveToken(name string) error {
+func (c *client) RemoveToken(ctx context.Context, name string) error {
 	name = url.QueryEscape(name)
-	status, body, err := c.doCall("DELETE", "/api/v0/account/token/"+name, withAuth())
+	status, body, err := c.doCall(ctx, "DELETE", "/api/v0/account/token/"+name, withAuth())
 	if err != nil {
 		return err
 	}
@@ -974,8 +991,8 @@ func (c *client) RemoveToken(name string) error {
 	return nil
 }
 
-func (c *client) WhoAmI() (string, string, bool, error) {
-	email, writeAccess, err := c.ping()
+func (c *client) WhoAmI(ctx context.Context) (string, string, bool, error) {
+	email, writeAccess, err := c.ping(ctx)
 	if err != nil {
 		return "", "", false, err
 	}
@@ -990,13 +1007,13 @@ func (c *client) WhoAmI() (string, string, bool, error) {
 	return email, authType, writeAccess, nil
 }
 
-func (c *client) LaunchSatellite(name, orgID string) (*SatelliteInstance, error) {
+func (c *client) LaunchSatellite(ctx context.Context, name, orgID string) (*SatelliteInstance, error) {
 	req := pipelinesapi.LaunchSatelliteRequest{
 		OrgId:    orgID,
 		Name:     name,
 		Platform: "linux/amd64", // TODO support arm64 as well
 	}
-	status, body, err := c.doCall("POST", "/api/v0/satellites",
+	status, body, err := c.doCall(ctx, "POST", "/api/v0/satellites",
 		withAuth(), withHeader("Grpc-Timeout", satelliteMgmtTimeout), withJSONBody(&req))
 	if err != nil {
 		return nil, err
@@ -1018,8 +1035,8 @@ func (c *client) LaunchSatellite(name, orgID string) (*SatelliteInstance, error)
 	}, nil
 }
 
-func (c *client) GetOrgID(orgName string) (string, error) {
-	orgs, err := c.ListOrgs()
+func (c *client) GetOrgID(ctx context.Context, orgName string) (string, error) {
+	orgs, err := c.ListOrgs(ctx)
 	if err != nil {
 		return "", err
 	}
@@ -1031,9 +1048,9 @@ func (c *client) GetOrgID(orgName string) (string, error) {
 	return "", errors.Errorf("org not found: %s", orgName)
 }
 
-func (c *client) ListSatellites(orgID string) ([]SatelliteInstance, error) {
+func (c *client) ListSatellites(ctx context.Context, orgID string) ([]SatelliteInstance, error) {
 	url := fmt.Sprintf("/api/v0/satellites?orgId=%s", url.QueryEscape(orgID))
-	status, body, err := c.doCall("GET", url, withAuth())
+	status, body, err := c.doCall(ctx, "GET", url, withAuth())
 	if err != nil {
 		return nil, err
 	}
@@ -1058,9 +1075,9 @@ func (c *client) ListSatellites(orgID string) ([]SatelliteInstance, error) {
 	return instances, nil
 }
 
-func (c *client) GetSatellite(name, orgID string) (*SatelliteInstance, error) {
+func (c *client) GetSatellite(ctx context.Context, name, orgID string) (*SatelliteInstance, error) {
 	url := fmt.Sprintf("/api/v0/satellites/%s?orgId=%s", name, url.QueryEscape(orgID))
-	status, body, err := c.doCall("GET", url, withAuth())
+	status, body, err := c.doCall(ctx, "GET", url, withAuth())
 	if err != nil {
 		return nil, err
 	}
@@ -1081,9 +1098,9 @@ func (c *client) GetSatellite(name, orgID string) (*SatelliteInstance, error) {
 	}, nil
 }
 
-func (c *client) DeleteSatellite(name, orgID string) error {
+func (c *client) DeleteSatellite(ctx context.Context, name, orgID string) error {
 	url := fmt.Sprintf("/api/v0/satellites/%s?orgId=%s", name, url.QueryEscape(orgID))
-	status, body, err := c.doCall("DELETE", url,
+	status, body, err := c.doCall(ctx, "DELETE", url,
 		withAuth(), withHeader("Grpc-Timeout", satelliteMgmtTimeout))
 	if err != nil {
 		return err
@@ -1112,7 +1129,7 @@ type EarthlyAnalytics struct {
 }
 
 // SendAnalytics send an analytics event to the Cloud server.
-func (c *client) SendAnalytics(data *EarthlyAnalytics) error {
+func (c *client) SendAnalytics(ctx context.Context, data *EarthlyAnalytics) error {
 	payload, err := json.Marshal(data)
 	if err != nil {
 		return errors.Wrap(err, "failed to marshal data")
@@ -1121,10 +1138,10 @@ func (c *client) SendAnalytics(data *EarthlyAnalytics) error {
 		withBody(string(payload)),
 		withHeader("Content-Type", "application/json; charset=utf-8"),
 	}
-	if c.IsLoggedIn() {
+	if c.IsLoggedIn(ctx) {
 		opts = append(opts, withAuth())
 	}
-	status, _, err := c.doCall("PUT", "/analytics", opts...)
+	status, _, err := c.doCall(ctx, "PUT", "/analytics", opts...)
 	if err != nil {
 		return errors.Wrap(err, "failed sending analytics")
 	}
@@ -1134,7 +1151,7 @@ func (c *client) SendAnalytics(data *EarthlyAnalytics) error {
 	return nil
 }
 
-func (c *client) IsLoggedIn() bool {
+func (c *client) IsLoggedIn(ctx context.Context) bool {
 	return c.authToken != "" || c.authCredToken != ""
 }
 
@@ -1273,7 +1290,7 @@ func (c *client) loadAuthStorage() error {
 }
 
 // IsValidEmail returns true if email is valid
-func IsValidEmail(email string) bool {
+func IsValidEmail(ctx context.Context, email string) bool {
 	if strings.Contains(email, " ") {
 		return false
 	}
@@ -1296,13 +1313,13 @@ func (c *client) saveToken() error {
 	return nil
 }
 
-func (c *client) saveCredentials(email, tokenType, tokenValue string) error {
+func (c *client) saveCredentials(ctx context.Context, email, tokenType, tokenValue string) error {
 	tokenPath, err := c.getCredentialsPath(true)
 	if err != nil {
 		return err
 	}
 
-	if !IsValidEmail(email) {
+	if !IsValidEmail(ctx, email) {
 		return errors.Errorf("invalid email: %q", email)
 	}
 	if strings.Contains(tokenType, " ") {
@@ -1320,50 +1337,50 @@ func (c *client) saveCredentials(email, tokenType, tokenValue string) error {
 	return nil
 }
 
-func (c *client) saveSSHCredentials(email, sshKey string) error {
+func (c *client) saveSSHCredentials(ctx context.Context, email, sshKey string) error {
 	sshKeyType, sshKeyBlob, _, err := parseSSHKey(sshKey)
 	if err != nil {
 		return err
 	}
-	return c.saveCredentials(email, sshKeyType, sshKeyBlob)
+	return c.saveCredentials(ctx, email, sshKeyType, sshKeyBlob)
 }
 
-func (c *client) savePasswordCredentials(email, password string) error {
+func (c *client) savePasswordCredentials(ctx context.Context, email, password string) error {
 	password64 := base64.StdEncoding.EncodeToString([]byte(password))
-	return c.saveCredentials(email, "password", password64)
+	return c.saveCredentials(ctx, email, "password", password64)
 }
 
-func (c *client) SetPasswordCredentials(email, password string) error {
+func (c *client) SetPasswordCredentials(ctx context.Context, email, password string) error {
 	c.authCredToken = ""
 	c.email = email
 	c.password = password
-	_, _, _, err := c.WhoAmI()
+	_, _, _, err := c.WhoAmI(ctx)
 	if err != nil {
 		return err
 	}
-	return c.savePasswordCredentials(email, password)
+	return c.savePasswordCredentials(ctx, email, password)
 }
 
-func (c *client) SetTokenCredentials(token string) (string, error) {
+func (c *client) SetTokenCredentials(ctx context.Context, token string) (string, error) {
 	c.email = ""
 	c.password = ""
 	c.authCredToken = token
-	email, _, _, err := c.WhoAmI()
+	email, _, _, err := c.WhoAmI(ctx)
 	if err != nil {
 		return "", err
 	}
-	err = c.saveCredentials(email, "token", token)
+	err = c.saveCredentials(ctx, email, "token", token)
 	if err != nil {
 		return "", err
 	}
 	return email, nil
 }
 
-func (c *client) DisableSSHKeyGuessing() {
+func (c *client) DisableSSHKeyGuessing(ctx context.Context) {
 	c.disableSSHKeyGuessing = true
 }
 
-func (c *client) SetAuthTokenDir(path string) {
+func (c *client) SetAuthTokenDir(ctx context.Context, path string) {
 	c.authDir = path
 }
 
@@ -1384,7 +1401,7 @@ func (c *client) deleteCachedCredentials() error {
 	return nil
 }
 
-func (c *client) DeleteCachedToken() error {
+func (c *client) DeleteCachedToken(ctx context.Context) error {
 	var zero time.Time
 	c.authToken = ""
 	c.authTokenExpiry = zero
@@ -1401,17 +1418,19 @@ func (c *client) DeleteCachedToken() error {
 	return nil
 }
 
-func (c *client) DeleteAuthCache() error {
-	if err := c.DeleteCachedToken(); err != nil {
+func (c *client) DeleteAuthCache(ctx context.Context) error {
+	err := c.DeleteCachedToken(ctx)
+	if err != nil {
 		return err
 	}
-	if err := c.deleteCachedCredentials(); err != nil {
+	err = c.deleteCachedCredentials()
+	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (c *client) SetSSHCredentials(email, sshKey string) error {
+func (c *client) SetSSHCredentials(ctx context.Context, email, sshKey string) error {
 	sshKeyType, sshKeyBlob, _, err := parseSSHKey(sshKey)
 	if err != nil {
 		return err
@@ -1426,14 +1445,14 @@ func (c *client) SetSSHCredentials(email, sshKey string) error {
 		return errors.Wrap(err, "base64 decode failed")
 	}
 
-	authedEmail, _, _, err := c.WhoAmI()
+	authedEmail, _, _, err := c.WhoAmI(ctx)
 	if err != nil {
 		return err
 	}
 	if authedEmail != email {
 		return errors.Errorf("failed to set correct email") // shouldn't happen
 	}
-	return c.saveCredentials(email, sshKeyType, sshKeyBlob)
+	return c.saveCredentials(ctx, email, sshKeyType, sshKeyBlob)
 }
 
 func parseSSHKey(sshKey string) (string, string, string, error) {
@@ -1450,12 +1469,12 @@ func parseSSHKey(sshKey string) (string, string, string, error) {
 	return sshKeyType, sshKeyBlob, sshKeyComment, nil
 }
 
-func (c *client) FindSSHCredentials(emailToFind string) error {
-	keys, err := c.GetPublicKeys()
+func (c *client) FindSSHCredentials(ctx context.Context, emailToFind string) error {
+	keys, err := c.GetPublicKeys(ctx)
 	if err != nil {
 		return err
 	}
-	challenge, err := c.getChallenge()
+	challenge, err := c.getChallenge(ctx)
 	if err != nil {
 		return err
 	}
@@ -1464,18 +1483,18 @@ func (c *client) FindSSHCredentials(emailToFind string) error {
 		if err != nil {
 			return err
 		}
-		c.authToken, c.authTokenExpiry, err = c.login(credentials)
+		c.authToken, c.authTokenExpiry, err = c.login(ctx, credentials)
 		if errors.Is(err, ErrUnauthorized) {
 			continue // try next key
 		} else if err != nil {
 			return err
 		}
-		email, _, err := c.ping()
+		email, _, err := c.ping(ctx)
 		if err != nil {
 			return err
 		}
 		if email == emailToFind {
-			if err := c.SetSSHCredentials(email, key.String()); err != nil {
+			if err := c.SetSSHCredentials(ctx, email, key.String()); err != nil {
 				return err
 			}
 			return nil
@@ -1484,8 +1503,8 @@ func (c *client) FindSSHCredentials(emailToFind string) error {
 	return ErrNoAuthorizedPublicKeys
 }
 
-func (c *client) UploadLog(pathOnDisk string) (string, error) {
-	status, body, err := c.doCall(http.MethodPost, "/api/v0/logs", withAuth(), withFileBody(pathOnDisk), withHeader("Content-Type", "application/gzip"))
+func (c *client) UploadLog(ctx context.Context, pathOnDisk string) (string, error) {
+	status, body, err := c.doCall(ctx, http.MethodPost, "/api/v0/logs", withAuth(), withFileBody(pathOnDisk), withHeader("Content-Type", "application/gzip"))
 	if err != nil {
 		return "", err
 	}
@@ -1506,8 +1525,8 @@ func (c *client) UploadLog(pathOnDisk string) (string, error) {
 	return fmt.Sprintf(uploadBundleResponse.ViewURL), nil
 }
 
-func (c *client) GetAuthToken() (string, error) {
-	err := c.Authenticate() // Ensure the current token is valid
+func (c *client) GetAuthToken(ctx context.Context) (string, error) {
+	err := c.Authenticate(ctx) // Ensure the current token is valid
 	if err != nil {
 		return "", errors.Wrap(err, "could not authenticate")
 	}
