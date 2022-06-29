@@ -48,7 +48,6 @@ resource "aws_imagebuilder_component" "earthly" {
         {
         action = "ExecuteBash"
         inputs = {
-
           commands = [
             "chmod +x /usr/local/bin/earthly",
             "/usr/local/bin/earthly bootstrap"
@@ -66,6 +65,30 @@ resource "aws_imagebuilder_component" "earthly" {
   version     = replace(each.key, "v", "") # Not the Earthly version, this is for the YAML document
 }
 
+resource "aws_imagebuilder_component" "qemu-static" {
+  data = yamlencode({
+    phases = [{
+      name = "build"
+      steps = [
+        {
+          action = "ExecuteBash"
+          inputs = {
+            commands = [
+              "docker run --rm --privileged multiarch/qemu-user-static:7.0.0-7 --reset -p yes",
+            ]
+          }
+          name      = "install_qemu_static"
+          onFailure = "Abort"
+        }]
+    }]
+    schemaVersion = 1.0
+  })
+  name        = "Install qemu-static"
+  description = "A component to install Earthly"
+  platform    = "Linux"
+  version     = "7.0.0"
+}
+
 resource "aws_imagebuilder_image_recipe" "earthly" {
   for_each = aws_imagebuilder_component.earthly
 
@@ -77,6 +100,9 @@ resource "aws_imagebuilder_image_recipe" "earthly" {
   }
   component {
     component_arn = each.value.arn
+  }
+  component {
+    component_arn = aws_imagebuilder_component.qemu-static.arn
   }
 
   depends_on = [aws_imagebuilder_component.earthly]
