@@ -42,11 +42,15 @@ if [ -z "$EARTHLY_CACHE_VERSION" ]; then
 fi
 
 if [ -f "/sys/fs/cgroup/cgroup.controllers" ]; then
-    echo "detected cgroups v2"
+    echo "detected cgroups v2; buildkit/entrypoint.sh running under pid=$$"
 
     mkdir -p /sys/fs/cgroup/earthly
     mkdir -p /sys/fs/cgroup/buildkit
-    echo $$ > /sys/fs/cgroup/earthly/cgroup.procs
+    echo "$$" > /sys/fs/cgroup/earthly/cgroup.procs
+
+    if [ "$(wc -l < /sys/fs/cgroup/cgroup.procs)" != "0" ]; then
+        echo "warning: processes exist in the root cgroup; this may cause errors during cgroup initialization"
+    fi
 
     echo "+pids" > /sys/fs/cgroup/cgroup.subtree_control
     echo "+cpu" > /sys/fs/cgroup/cgroup.subtree_control
