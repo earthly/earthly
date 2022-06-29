@@ -1,0 +1,44 @@
+VERSION --wait-block 0.6
+
+myimg-amd64:
+    FROM --platform=linux/amd64 alpine:3.15
+    RUN echo amd64 > /contrived-platform-data
+    ARG --required REGISTRY
+    ARG --required tag
+    SAVE IMAGE $REGISTRY/myuser/myimg:$tag
+
+myimg-arm64:
+    FROM --platform=linux/arm64 alpine:3.15
+    RUN echo arm64 > /contrived-platform-data
+    ARG --required REGISTRY
+    ARG --required tag
+    SAVE IMAGE $REGISTRY/myuser/myimg:$tag
+
+deps:
+    FROM alpine:3.15
+    RUN apk add curl jq
+
+check-tag-does-not-exist-in-registry:
+    FROM +deps
+    ARG --required REGISTRY
+    ARG --required tag
+    RUN curl -k "https://$REGISTRY/v2/myuser/myimg/manifests/$tag" > output && \
+        test "$(cat output | jq -r .errors[0].code)" = "MANIFEST_UNKNOWN" && echo "verified $tag was not pushed"
+
+check-tag-exists-locally:
+    LOCALLY
+    ARG --required REGISTRY
+    ARG --required tag
+    #RUN docker images "$REGISTRY/myuser/myimg:$tag" | grep "$tag"
+    RUN docker images | grep "${tag}_linux_amd64"
+    RUN docker images | grep "${tag}_linux_arm64"
+
+test:
+    ARG --required REGISTRY
+    ARG --required tag
+    WAIT
+        BUILD +myimg-amd64 --REGISTRY=$REGISTRY --tag=$tag
+        BUILD +myimg-arm64 --REGISTRY=$REGISTRY --tag=$tag
+    END
+    BUILD +check-tag-does-not-exist-in-registry --REGISTRY=$REGISTRY --tag=$tag
+    BUILD +check-tag-exists-locally --REGISTRY=$REGISTRY --tag=$tag
