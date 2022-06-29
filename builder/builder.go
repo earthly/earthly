@@ -92,10 +92,11 @@ type BuildOpt struct {
 
 // Builder executes Earthly builds.
 type Builder struct {
-	s         *solver
-	opt       Opt
-	resolver  *buildcontext.Resolver
-	builtMain bool
+	s           *solver
+	opt         Opt
+	resolver    *buildcontext.Resolver
+	builtMain   bool
+	pullPingMap *gatewaycrafter.PullPingMap
 
 	outDirOnce sync.Once
 	outDir     string
@@ -114,8 +115,9 @@ func NewBuilder(ctx context.Context, opt Opt) (*Builder, error) {
 			enttlmnts:       opt.Enttlmnts,
 			saveInlineCache: opt.SaveInlineCache,
 		},
-		opt:      opt,
-		resolver: nil, // initialized below
+		opt:         opt,
+		pullPingMap: gatewaycrafter.NewPullPingMap(),
+		resolver:    nil, // initialized below
 	}
 	b.resolver = buildcontext.NewResolver(opt.SessionID, opt.CleanCollection, opt.GitLookup, opt.Console, opt.FeatureFlagOverrides)
 	return b, nil
@@ -138,7 +140,6 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 		manifestLists         = make(map[string][]manifest) // parent image -> child images
 		platformImgNames      = make(map[string]bool)       // ensure that these are unique
 		singPlatImgNames      = make(map[string]bool)       // ensure that these are unique
-		localImages           = make(map[string]string)     // local reg pull name -> final name
 	)
 	var (
 		depIndex   = 0
@@ -153,33 +154,35 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 		var err error
 		if !b.builtMain {
 			opt := earthfile2llb.ConvertOpt{
-				GwClient:             gwClient,
-				Resolver:             b.resolver,
-				ImageResolveMode:     b.opt.ImageResolveMode,
-				CleanCollection:      b.opt.CleanCollection,
-				PlatformResolver:     opt.PlatformResolver.SubResolver(opt.PlatformResolver.Current()),
-				DockerImageSolverTar: newTarImageSolver(b.opt, b.s.sm),
-				MultiImageSolver:     newMultiImageSolver(b.opt, b.s.sm),
-				OverridingVars:       b.opt.OverridingVars,
-				BuildContextProvider: b.opt.BuildContextProvider,
-				CacheImports:         b.opt.CacheImports,
-				UseInlineCache:       b.opt.UseInlineCache,
-				UseFakeDep:           b.opt.UseFakeDep,
-				AllowLocally:         !b.opt.Strict,
-				AllowInteractive:     !b.opt.Strict,
-				AllowPrivileged:      opt.AllowPrivileged,
-				ParallelConversion:   b.opt.ParallelConversion,
-				Parallelism:          b.opt.Parallelism,
-				Console:              b.opt.Console,
-				GitLookup:            b.opt.GitLookup,
-				FeatureFlagOverrides: featureFlagOverrides,
-				LocalStateCache:      sharedLocalStateCache,
-				BuiltinArgs:          opt.BuiltinArgs,
-				NoCache:              b.opt.NoCache,
-				ContainerFrontend:    b.opt.ContainerFrontend,
-				UseLocalRegistry:     (b.opt.LocalRegistryAddr != ""),
-				DoSaves:              !opt.NoOutput,
-				DoPushes:             opt.Push,
+				GwClient:              gwClient,
+				Resolver:              b.resolver,
+				ImageResolveMode:      b.opt.ImageResolveMode,
+				CleanCollection:       b.opt.CleanCollection,
+				PlatformResolver:      opt.PlatformResolver.SubResolver(opt.PlatformResolver.Current()),
+				DockerImageSolverTar:  newTarImageSolver(b.opt, b.s.sm),
+				MultiImageSolver:      newMultiImageSolver(b.opt, b.s.sm),
+				OverridingVars:        b.opt.OverridingVars,
+				BuildContextProvider:  b.opt.BuildContextProvider,
+				CacheImports:          b.opt.CacheImports,
+				UseInlineCache:        b.opt.UseInlineCache,
+				UseFakeDep:            b.opt.UseFakeDep,
+				AllowLocally:          !b.opt.Strict,
+				AllowInteractive:      !b.opt.Strict,
+				AllowPrivileged:       opt.AllowPrivileged,
+				ParallelConversion:    b.opt.ParallelConversion,
+				Parallelism:           b.opt.Parallelism,
+				Console:               b.opt.Console,
+				GitLookup:             b.opt.GitLookup,
+				FeatureFlagOverrides:  featureFlagOverrides,
+				LocalStateCache:       sharedLocalStateCache,
+				BuiltinArgs:           opt.BuiltinArgs,
+				NoCache:               b.opt.NoCache,
+				ContainerFrontend:     b.opt.ContainerFrontend,
+				UseLocalRegistry:      (b.opt.LocalRegistryAddr != ""),
+				DoSaves:               !opt.NoOutput,
+				OnlyFinalTargetImages: opt.OnlyFinalTargetImages,
+				DoPushes:              opt.Push,
+				PullPingMap:           b.pullPingMap,
 			}
 			mts, err = earthfile2llb.Earthfile2LLB(childCtx, target, opt, true)
 			if err != nil {
@@ -262,10 +265,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 						}
 						singPlatImgNames[saveImage.DockerTag] = true
 					}
-
-					localRegPullID := fmt.Sprintf("sess-%s/sp:img%d", gwClient.BuildOpts().SessionID, imageIndex)
-					localImages[localRegPullID] = saveImage.DockerTag
-
+					localRegPullID := b.pullPingMap.Insert(gwClient.BuildOpts().SessionID, saveImage.DockerTag)
 					refPrefix, err := gwCrafter.AddPushImageEntry(ref, imageIndex, saveImage.DockerTag, shouldPush, saveImage.InsecurePush, saveImage.Image, nil)
 					if err != nil {
 						return nil, err
@@ -316,12 +316,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 						}
 						imageIndex++
 
-						localRegPullID, err := llbutil.PlatformSpecificImageName(
-							fmt.Sprintf("sess-%s/mp:img%d", gwClient.BuildOpts().SessionID, imageIndex), resolvedPlat)
-						if err != nil {
-							return nil, err
-						}
-						localImages[localRegPullID] = platformImgName
+						localRegPullID := b.pullPingMap.Insert(gwClient.BuildOpts().SessionID, platformImgName)
 						if b.opt.LocalRegistryAddr != "" {
 							gwCrafter.AddMeta(fmt.Sprintf("%s/export-image-local-registry", refPrefix), []byte(localRegPullID))
 						} else {
@@ -412,7 +407,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 		}
 		pullMap := make(map[string]string)
 		for _, imgToPull := range imagesToPull {
-			finalName, ok := localImages[imgToPull]
+			finalName, ok := b.pullPingMap.Get(imgToPull)
 			if !ok {
 				return errors.Errorf("unrecognized image to pull %s", imgToPull)
 			}

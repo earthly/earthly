@@ -990,7 +990,8 @@ func (c *Converter) SaveImage(ctx context.Context, imageNames []string, pushImag
 
 			if c.ftrs.WaitBlock {
 				shouldPush := pushImages && si.DockerTag != "" && c.opt.DoSaves
-				c.waitBlock().addSaveImage(si, c, shouldPush)
+				shouldExportLocally := si.DockerTag != "" && c.opt.DoSaves
+				c.waitBlock().addSaveImage(si, c, shouldPush, shouldExportLocally)
 			} else {
 				c.mts.Final.SaveImages = append(c.mts.Final.SaveImages, si)
 			}
@@ -1501,7 +1502,7 @@ func (c *Converter) prepBuildTarget(ctx context.Context, fullTargetName string, 
 	opt.waitBlock = c.waitBlock()
 	if c.opt.Features.ReferencedSaveOnly {
 		// DoSaves should only be potentially turned-off when the ReferencedSaveOnly feature is flipped
-		opt.DoSaves = (cmdT == buildCmd && c.opt.DoSaves)
+		opt.DoSaves = (cmdT == buildCmd && c.opt.DoSaves && !c.opt.OnlyFinalTargetImages)
 		opt.DoPushes = (cmdT == buildCmd && c.opt.DoPushes)
 		opt.ForceSaveImage = false
 	} else {
