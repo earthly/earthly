@@ -177,6 +177,7 @@ type AnalyticsMeta struct {
 	Version          string
 	Platform         string
 	BuildkitPlatform string
+	UserPlatform     string
 	GitSHA           string
 	CommandName      string
 	ExitCode         int
@@ -228,6 +229,7 @@ func CollectAnalytics(ctx context.Context, cloudClient cloud.Client, displayErro
 			Version:          meta.Version,
 			Platform:         meta.Platform,
 			BuildkitPlatform: meta.BuildkitPlatform,
+			UserPlatform:     meta.UserPlatform,
 			GitSHA:           meta.GitSHA,
 			ExitCode:         meta.ExitCode,
 			CI:               ciName,

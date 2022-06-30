@@ -178,6 +178,7 @@ type analyticsMetadata struct {
 	isRemoteBuildkit bool
 	satelliteVersion string
 	buildkitPlatform string
+	userPlatform     string
 }
 
 var (
@@ -318,6 +319,7 @@ func main() {
 					Version:          Version,
 					Platform:         getPlatform(),
 					BuildkitPlatform: app.analyticsMetadata.buildkitPlatform,
+					UserPlatform:     app.analyticsMetadata.userPlatform,
 					GitSHA:           GitSha,
 					CommandName:      app.commandName,
 					ExitCode:         exitCode,
@@ -3076,8 +3078,9 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 	if err != nil {
 		return errors.Wrap(err, "get native platform via buildkit client")
 	}
-	app.analyticsMetadata.buildkitPlatform = platforms.Format(nativePlatform)
 	platr := platutil.NewResolver(nativePlatform)
+	app.analyticsMetadata.buildkitPlatform = platforms.Format(nativePlatform)
+	app.analyticsMetadata.userPlatform = platforms.Format(platr.LLBUser())
 	platr.AllowNativeAndUser = true
 	platformsSlice := make([]platutil.Platform, 0, len(app.platformsStr.Value()))
 	for _, p := range app.platformsStr.Value() {

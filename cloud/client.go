@@ -1120,6 +1120,7 @@ type EarthlyAnalytics struct {
 	Version          string                    `json:"version"`
 	Platform         string                    `json:"platform"`
 	BuildkitPlatform string                    `json:"buildkit_platform"`
+	UserPlatform     string                    `json:"user_platform"`
 	GitSHA           string                    `json:"git_sha"`
 	ExitCode         int                       `json:"exit_code"`
 	CI               string                    `json:"ci_name"`
