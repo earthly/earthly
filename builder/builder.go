@@ -94,10 +94,11 @@ type BuildOpt struct {
 
 // Builder executes Earthly builds.
 type Builder struct {
-	s         *solver
-	opt       Opt
-	resolver  *buildcontext.Resolver
-	builtMain bool
+	s           *solver
+	opt         Opt
+	resolver    *buildcontext.Resolver
+	builtMain   bool
+	pullPingMap *gatewaycrafter.PullPingMap
 
 	outDirOnce sync.Once
 	outDir     string
@@ -116,8 +117,9 @@ func NewBuilder(ctx context.Context, opt Opt) (*Builder, error) {
 			enttlmnts:       opt.Enttlmnts,
 			saveInlineCache: opt.SaveInlineCache,
 		},
-		opt:      opt,
-		resolver: nil, // initialized below
+		opt:         opt,
+		pullPingMap: gatewaycrafter.NewPullPingMap(),
+		resolver:    nil, // initialized below
 	}
 	b.resolver = buildcontext.NewResolver(opt.SessionID, opt.CleanCollection, opt.GitLookup, opt.Console, opt.FeatureFlagOverrides)
 	return b, nil
@@ -179,6 +181,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 				NoCache:              b.opt.NoCache,
 				ContainerFrontend:    b.opt.ContainerFrontend,
 				UseLocalRegistry:     (b.opt.LocalRegistryAddr != ""),
+				PullPingMap:          b.pullPingMap,
 			}
 			mts, err = earthfile2llb.Earthfile2LLB(childCtx, target, opt, true)
 			if err != nil {
@@ -267,7 +270,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 					}
 
 					localRegPullID := fmt.Sprintf("sess-%s/sp:img%d", gwClient.BuildOpts().SessionID, imageIndex)
-					gatewaycrafter.OnPullInst.Set(localRegPullID, saveImage.DockerTag)
+					b.pullPingMap.Insert(localRegPullID, saveImage.DockerTag)
 
 					refPrefix, err := gwCrafter.AddPushImageEntry(ref, imageIndex, saveImage.DockerTag, shouldPush, saveImage.InsecurePush, saveImage.Image, nil)
 					if err != nil {
@@ -321,7 +324,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 						if err != nil {
 							return nil, err
 						}
-						gatewaycrafter.OnPullInst.Set(localRegPullID, platformImgName)
+						b.pullPingMap.Insert(localRegPullID, platformImgName)
 						if b.opt.LocalRegistryAddr != "" {
 							gwCrafter.AddMeta(fmt.Sprintf("%s/export-image-local-registry", refPrefix), []byte(localRegPullID))
 						} else {
@@ -416,7 +419,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 		}
 		pullMap := make(map[string]string)
 		for _, imgToPull := range imagesToPull {
-			finalName, ok := gatewaycrafter.OnPullInst.Get(imgToPull)
+			finalName, ok := b.pullPingMap.Get(imgToPull)
 			if !ok {
 				return errors.Errorf("unrecognized image to pull %s", imgToPull)
 			}

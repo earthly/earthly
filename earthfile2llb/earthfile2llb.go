@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/earthly/earthly/util/containerutil"
+	"github.com/earthly/earthly/util/gatewaycrafter"
 	"github.com/earthly/earthly/util/platutil"
 	"github.com/moby/buildkit/client/llb"
 	gwclient "github.com/moby/buildkit/frontend/gateway/client"
@@ -118,6 +119,9 @@ type ConvertOpt struct {
 
 	// waitBlock references the current WAIT/END scope
 	waitBlock *waitBlock
+
+	// PullPingMap points to the per-connection map used by the builder's onPull callback
+	PullPingMap *gatewaycrafter.PullPingMap
 }
 
 // Earthfile2LLB parses a earthfile and executes the statements for a given target.
