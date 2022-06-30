@@ -172,8 +172,8 @@ func Count(subsystem, key string) {
 	counts.Count(subsystem, key)
 }
 
-// AnalyticsMeta holds metadata about the current run of the program.
-type AnalyticsMeta struct {
+// Meta holds metadata about the current run of the program.
+type Meta struct {
 	Version          string
 	Platform         string
 	BuildkitPlatform string
@@ -188,7 +188,7 @@ type AnalyticsMeta struct {
 }
 
 // CollectAnalytics sends analytics to api.earthly.dev
-func CollectAnalytics(ctx context.Context, cloudClient cloud.Client, displayErrors bool, meta AnalyticsMeta) {
+func CollectAnalytics(ctx context.Context, cloudClient cloud.Client, displayErrors bool, meta Meta) {
 	var err error
 	ciName, ci := detectCI()
 	repoHash := getRepoHash()

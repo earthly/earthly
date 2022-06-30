@@ -315,7 +315,7 @@ func main() {
 			app.console.Warnf("unable to start cloud client: %s", err)
 		} else if err == nil {
 			analytics.CollectAnalytics(
-				ctxTimeout, cloudClient, displayErrors, analytics.AnalyticsMeta{
+				ctxTimeout, cloudClient, displayErrors, analytics.Meta{
 					Version:          Version,
 					Platform:         getPlatform(),
 					BuildkitPlatform: app.analyticsMetadata.buildkitPlatform,
