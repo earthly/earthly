@@ -26,6 +26,7 @@ import (
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
+	"github.com/google/uuid"
 	"github.com/pkg/errors"
 	"golang.org/x/crypto/ssh/agent"
 )
@@ -71,6 +72,42 @@ type SatelliteInstance struct {
 	Platform string
 }
 
+// Project contains information about the org project.
+type Project struct {
+	ID         string
+	Name       string
+	OrgName    string
+	CreatedAt  time.Time
+	ModifiedAt time.Time
+}
+
+// Secret represents a Cloud secret with a path key and a string value.
+type Secret struct {
+	Path       string
+	Value      string
+	CreatedAt  time.Time
+	ModifiedAt time.Time
+}
+
+// SecretPermission contains information about a user-specific secret
+// permission override.
+type SecretPermission struct {
+	Path       string
+	UserID     string
+	Permission string
+	CreatedAt  time.Time
+	ModifiedAt time.Time
+}
+
+// OrgInvitation can be used to invite a user to become a member in an org.
+type OrgInvitation struct {
+	Name       string
+	Email      string
+	Permission string
+	Message    string
+	OrgName    string
+}
+
 // Client provides a client to the shared secrets service
 type Client interface {
 	RegisterEmail(ctx context.Context, email string) error
@@ -83,6 +120,7 @@ type Client interface {
 	GetPublicKeys(ctx context.Context) ([]*agent.Key, error)
 	CreateOrg(ctx context.Context, org string) error
 	Invite(ctx context.Context, org, user string, write bool) error
+	InviteToOrg(ctx context.Context, invite *OrgInvitation) (string, error)
 	ListOrgs(ctx context.Context) ([]*OrgDetail, error)
 	ListOrgPermissions(ctx context.Context, path string) ([]*OrgPermissions, error)
 	RevokePermission(ctx context.Context, path, user string) error
@@ -110,6 +148,20 @@ type Client interface {
 	ListSatellites(ctx context.Context, orgID string) ([]SatelliteInstance, error)
 	GetSatellite(ctx context.Context, name, orgID string) (*SatelliteInstance, error)
 	DeleteSatellite(ctx context.Context, name, orgID string) error
+	CreateProject(ctx context.Context, name, orgName string) (*Project, error)
+	ListProjects(ctx context.Context, orgName string) ([]*Project, error)
+	GetProject(ctx context.Context, orgName, name string) (*Project, error)
+	DeleteProject(ctx context.Context, orgName, name string) error
+	AddProjectMember(ctx context.Context, orgName, name, idOrEmail, permission string) error
+	UpdateProjectMember(ctx context.Context, orgName, name, userID, permission string) error
+	ListProjectMembers(ctx context.Context, orgName, name string) error
+	RemoveProjectMember(ctx context.Context, orgName, name, userID string) error
+	ListSecrets(ctx context.Context, path string) ([]*Secret, error)
+	SetSecret(ctx context.Context, path string, secret []byte) error
+	RemoveSecret(ctx context.Context, path string) error
+	ListSecretPermissions(ctx context.Context, path string) ([]*SecretPermission, error)
+	SetSecretPermission(ctx context.Context, path, userID, permission string) error
+	RemoveSecretPermission(ctx context.Context, path, userID string) error
 }
 
 type request struct {
@@ -325,6 +377,8 @@ type client struct {
 	disableSSHKeyGuessing bool
 	jm                    *jsonpb.Unmarshaler
 }
+
+var _ Client = &client{}
 
 // NewClient provides a new Earthly Cloud client
 func NewClient(host, agentSockPath, authCredsOverride string, warnFunc func(string, ...interface{})) (Client, error) {
@@ -1109,6 +1163,385 @@ func (c *client) DeleteSatellite(ctx context.Context, name, orgID string) error 
 		return errors.Errorf("failed listing satellites: %s", body)
 	}
 	return nil
+}
+
+// CreateProject creates a new project within the specified organization.
+func (c *client) CreateProject(ctx context.Context, name, orgName string) (*Project, error) {
+	u := "/api/v0/projects"
+
+	req := &secretsapi.CreateProjectRequest{
+		Project: &secretsapi.Project{
+			OrgName: orgName,
+			Name:    name,
+		},
+	}
+
+	status, body, err := c.doCall(ctx, http.MethodPost, u, withAuth(), withJSONBody(req))
+	if err != nil {
+		return nil, err
+	}
+
+	if status != http.StatusCreated {
+		return nil, errors.Errorf("failed to create project: %s", body)
+	}
+
+	res := &secretsapi.CreateProjectResponse{}
+
+	err = jsonpb.UnmarshalString(body, res)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Project{
+		Name:       res.Project.Name,
+		OrgName:    res.Project.OrgName,
+		CreatedAt:  res.Project.CreatedAt.AsTime(),
+		ModifiedAt: res.Project.ModifiedAt.AsTime(),
+	}, nil
+}
+
+// ListProjects returns all projects in the organization that are visible to the
+// logged-in user.
+func (c *client) ListProjects(ctx context.Context, orgName string) ([]*Project, error) {
+	u := fmt.Sprintf("/api/v0/projects/%s", orgName)
+
+	status, body, err := c.doCall(ctx, http.MethodGet, u, withAuth())
+	if err != nil {
+		return nil, err
+	}
+
+	if status != http.StatusOK {
+		return nil, errors.Errorf("failed to list projects: %s", body)
+	}
+
+	res := &secretsapi.ListProjectsResponse{}
+
+	err = jsonpb.UnmarshalString(body, res)
+	if err != nil {
+		return nil, err
+	}
+
+	var projects []*Project
+
+	for _, pro := range res.Projects {
+		projects = append(projects, &Project{
+			Name:       pro.Name,
+			OrgName:    pro.OrgName,
+			CreatedAt:  pro.CreatedAt.AsTime(),
+			ModifiedAt: pro.ModifiedAt.AsTime(),
+		})
+	}
+
+	return projects, nil
+}
+
+// GetProject loads a single project from the projects endpoint.
+func (c *client) GetProject(ctx context.Context, orgName, name string) (*Project, error) {
+	u := fmt.Sprintf("/api/v0/projects/%s/%s", orgName, name)
+
+	status, body, err := c.doCall(ctx, http.MethodPost, u, withAuth())
+	if err != nil {
+		return nil, err
+	}
+
+	if status != http.StatusOK {
+		return nil, errors.Errorf("failed to get project: %s", body)
+	}
+
+	res := &secretsapi.GetProjectResponse{}
+
+	err = jsonpb.UnmarshalString(body, res)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Project{
+		Name:       res.Project.Name,
+		OrgName:    res.Project.OrgName,
+		CreatedAt:  res.Project.CreatedAt.AsTime(),
+		ModifiedAt: res.Project.ModifiedAt.AsTime(),
+	}, nil
+}
+
+// DeleteProject deletes a given project by name.
+func (c *client) DeleteProject(ctx context.Context, orgName, name string) error {
+	u := fmt.Sprintf("/api/v0/projects/%s/%s", orgName, name)
+
+	status, body, err := c.doCall(ctx, http.MethodDelete, u, withAuth())
+	if err != nil {
+		return err
+	}
+
+	if status != http.StatusOK {
+		return errors.Errorf("failed to delete project: %s", body)
+	}
+
+	return nil
+}
+
+// AddProjectMember adds a new member to the project by email or user ID.
+func (c *client) AddProjectMember(ctx context.Context, orgName, name, idOrEmail, permission string) error {
+	u := fmt.Sprintf("/api/v0/projects/%s/%s", orgName, name)
+
+	req := &secretsapi.AddProjectMemberRequest{
+		Permission: permission,
+	}
+
+	if userID, err := uuid.Parse(idOrEmail); err == nil && userID != uuid.Nil {
+		req.UserId = idOrEmail
+	} else if strings.Contains(idOrEmail, "@") {
+		req.UserEmail = idOrEmail
+	} else {
+		return errors.Errorf("%q does not appear to be an ID or email address")
+	}
+
+	status, body, err := c.doCall(ctx, http.MethodPost, u, withAuth(), withJSONBody(req))
+	if err != nil {
+		return err
+	}
+
+	if status != http.StatusCreated {
+		return errors.Errorf("failed to add member to project: %s", body)
+	}
+
+	return nil
+}
+
+// UpdateProjectMember updates an existing member with the new permission
+func (c *client) UpdateProjectMember(ctx context.Context, orgName, name, userID, permission string) error {
+	u := fmt.Sprintf("/api/v0/projects/%s/%s/%s", orgName, name, userID)
+
+	req := &secretsapi.AddProjectMemberRequest{
+		Permission: permission,
+		UserId:     userID,
+	}
+
+	status, body, err := c.doCall(ctx, http.MethodPut, u, withAuth(), withJSONBody(req))
+	if err != nil {
+		return err
+	}
+
+	if status != http.StatusOK {
+		return errors.Errorf("failed to update member: %s", body)
+	}
+
+	return nil
+}
+
+// ListProjectMembers will return all project members if the user has permission to do so.
+func (c *client) ListProjectMembers(ctx context.Context, orgName, name string) error {
+	u := fmt.Sprintf("/api/v0/projects/%s/%s", orgName, name)
+
+	status, body, err := c.doCall(ctx, http.MethodGet, u, withAuth())
+	if err != nil {
+		return err
+	}
+
+	if status != http.StatusOK {
+		return errors.Errorf("failed to list project members: %s", body)
+	}
+
+	return nil
+}
+
+// RemoveProjectMember will remove a member from a project.
+func (c *client) RemoveProjectMember(ctx context.Context, orgName, name, userID string) error {
+	u := fmt.Sprintf("/api/v0/projects/%s/%s/%s", orgName, name, userID)
+
+	status, body, err := c.doCall(ctx, http.MethodDelete, u, withAuth())
+	if err != nil {
+		return err
+	}
+
+	if status != http.StatusOK {
+		return errors.Errorf("failed to remove a project member: %s", body)
+	}
+
+	return nil
+}
+
+// ListSecrets returns a list of secrets base on the given path.
+func (c *client) ListSecrets(ctx context.Context, path string) ([]*Secret, error) {
+	if !strings.HasPrefix(path, "/") {
+		path = "/" + path
+	}
+	u := "/api/v1/secrets" + path
+
+	status, body, err := c.doCall(ctx, http.MethodGet, u, withAuth())
+	if err != nil {
+		return nil, err
+	}
+
+	if status != http.StatusOK {
+		return nil, errors.Errorf("failed to list secrets: %s", body)
+	}
+
+	var secrets []*Secret
+
+	res := &secretsapi.ListSecretsResponse{}
+	err = jsonpb.UnmarshalString(body, res)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, secret := range res.Secrets {
+		secrets = append(secrets, &Secret{
+			Path:       secret.Path,
+			Value:      secret.Value,
+			CreatedAt:  secret.CreatedAt.AsTime(),
+			ModifiedAt: secret.ModifiedAt.AsTime(),
+		})
+	}
+
+	return secrets, nil
+}
+
+// SetSecret adds or updates the given path and secret combination.
+func (c *client) SetSecret(ctx context.Context, path string, secret []byte) error {
+	if !strings.HasPrefix(path, "/") {
+		path = "/" + path
+	}
+	u := "/api/v1/secrets" + path
+
+	status, body, err := c.doCall(ctx, http.MethodPut, u, withAuth(), withBody(string(secret)))
+	if err != nil {
+		return err
+	}
+
+	if status != http.StatusOK {
+		return errors.Errorf("failed to set secret: %s", body)
+	}
+
+	return nil
+}
+
+// RemoveSecret deletes a secret by path name.
+func (c *client) RemoveSecret(ctx context.Context, path string) error {
+	if !strings.HasPrefix(path, "/") {
+		path = "/" + path
+	}
+	u := "/api/v1/secrets" + path
+
+	status, body, err := c.doCall(ctx, http.MethodDelete, u, withAuth())
+	if err != nil {
+		return err
+	}
+
+	if status != http.StatusOK {
+		return errors.Errorf("failed to delete secret: %s", body)
+	}
+
+	return nil
+}
+
+// ListSecretPermissions returns a set of user permissions for project secrets.
+func (c *client) ListSecretPermissions(ctx context.Context, path string) ([]*SecretPermission, error) {
+	if !strings.HasPrefix(path, "/") {
+		path = "/" + path
+	}
+	u := "/api/v1/secrets/permissions" + path
+
+	status, body, err := c.doCall(ctx, http.MethodPut, u, withAuth())
+	if err != nil {
+		return nil, err
+	}
+
+	if status != http.StatusOK {
+		return nil, errors.Errorf("failed to set secret: %s", body)
+	}
+
+	var secretPerms []*SecretPermission
+
+	res := &secretsapi.ListSecretPermissionsResponse{}
+	err = jsonpb.UnmarshalString(body, res)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, perm := range res.SecretPermissions {
+		secretPerms = append(secretPerms, &SecretPermission{
+			UserID:     perm.UserId,
+			Path:       perm.Path,
+			Permission: perm.Permission,
+			CreatedAt:  perm.CreatedAt.AsTime(),
+			ModifiedAt: perm.ModifiedAt.AsTime(),
+		})
+	}
+
+	return secretPerms, nil
+}
+
+// SetSecretPermission is used to set a user permission on a given secret path.
+func (c *client) SetSecretPermission(ctx context.Context, path, userID, permission string) error {
+	if !strings.HasPrefix(path, "/") {
+		path = "/" + path
+	}
+	u := "/api/v1/secrets/permissions" + path
+
+	req := &secretsapi.UpdateSecretPermissionRequest{
+		UserId:     userID,
+		Permission: permission,
+	}
+
+	status, body, err := c.doCall(ctx, http.MethodPut, u, withAuth(), withJSONBody(req))
+	if err != nil {
+		return err
+	}
+
+	if status != http.StatusOK {
+		return errors.Errorf("failed to set secret permission: %s", body)
+	}
+
+	return nil
+}
+
+// RemoveSecretPermission removes a secret permission for the user and path.
+func (c *client) RemoveSecretPermission(ctx context.Context, path, userID string) error {
+	if !strings.HasPrefix(path, "/") {
+		path = "/" + path
+	}
+	u := "/api/v1/secrets/permissions" + path + "/" + userID
+
+	status, body, err := c.doCall(ctx, http.MethodDelete, u, withAuth())
+	if err != nil {
+		return err
+	}
+
+	if status != http.StatusOK {
+		return errors.Errorf("failed to delete secret permission: %s", body)
+	}
+
+	return nil
+}
+
+// InviteToOrg sends an email invitation to a user and asks for them to join an org.
+func (c *client) InviteToOrg(ctx context.Context, invite *OrgInvitation) (string, error) {
+	u := "/api/v1/invitations"
+
+	req := &secretsapi.CreateInvitationRequest{
+		Name:       invite.Name,
+		OrgName:    invite.OrgName,
+		Email:      invite.Email,
+		Permission: invite.Permission,
+		Message:    invite.Message,
+	}
+
+	status, body, err := c.doCall(ctx, http.MethodPost, u, withAuth(), withJSONBody(req))
+	if err != nil {
+		return "", err
+	}
+
+	if status != http.StatusOK {
+		return "", errors.Errorf("failed to send email invite: %s", body)
+	}
+
+	res := &secretsapi.CreateInvitationResponse{}
+	err = jsonpb.UnmarshalString(body, res)
+	if err != nil {
+		return "", err
+	}
+
+	return res.Token, nil
 }
 
 // EarthlyAnalytics is the payload used in SendAnalytics.
