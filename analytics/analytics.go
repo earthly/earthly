@@ -172,8 +172,22 @@ func Count(subsystem, key string) {
 	counts.Count(subsystem, key)
 }
 
+// AnalyticsMeta holds metadata about the current run of the program.
+type AnalyticsMeta struct {
+	Version          string
+	Platform         string
+	BuildkitPlatform string
+	GitSHA           string
+	CommandName      string
+	ExitCode         int
+	IsSatellite      bool
+	SatelliteVersion string
+	IsRemoteBuildkit bool
+	Realtime         time.Duration
+}
+
 // CollectAnalytics sends analytics to api.earthly.dev
-func CollectAnalytics(ctx context.Context, cc cloud.Client, displayErrors bool, version, platform, gitSha, commandName string, exitCode int, realtime time.Duration) {
+func CollectAnalytics(ctx context.Context, cloudClient cloud.Client, displayErrors bool, meta AnalyticsMeta) {
 	var err error
 	ciName, ci := detectCI()
 	repoHash := getRepoHash()
@@ -196,7 +210,7 @@ func CollectAnalytics(ctx context.Context, cc cloud.Client, displayErrors bool, 
 		}
 	}
 
-	key := "cli-" + commandName
+	key := "cli-" + meta.CommandName
 
 	var wg sync.WaitGroup
 
@@ -208,16 +222,20 @@ func CollectAnalytics(ctx context.Context, cc cloud.Client, displayErrors bool, 
 		countsMap, countsMapUnlock := counts.getMap()
 		defer countsMapUnlock()
 
-		err := cc.SendAnalytics(ctx, &cloud.EarthlyAnalytics{
+		err := cloudClient.SendAnalytics(ctx, &cloud.EarthlyAnalytics{
 			Key:              key,
 			InstallID:        installID,
-			Version:          version,
-			Platform:         platform,
-			GitSHA:           gitSha,
-			ExitCode:         exitCode,
+			Version:          meta.Version,
+			Platform:         meta.Platform,
+			BuildkitPlatform: meta.BuildkitPlatform,
+			GitSHA:           meta.GitSHA,
+			ExitCode:         meta.ExitCode,
 			CI:               ciName,
+			IsSatellite:      meta.IsSatellite,
+			SatelliteVersion: meta.SatelliteVersion,
+			IsRemoteBuildkit: meta.IsRemoteBuildkit,
 			RepoHash:         repoHash,
-			ExecutionSeconds: realtime.Seconds(),
+			ExecutionSeconds: meta.Realtime.Seconds(),
 			Terminal:         isTerminal(),
 			Counts:           countsMap,
 		})

@@ -28,6 +28,7 @@ import (
 	"text/tabwriter"
 	"time"
 
+	"github.com/containerd/containerd/platforms"
 	"github.com/dustin/go-humanize"
 	gsysinfo "github.com/elastic/go-sysinfo"
 	"github.com/fatih/color"
@@ -96,6 +97,7 @@ type earthlyApp struct {
 	sessionID   string
 	commandName string
 	cliFlags
+	analyticsMetadata
 }
 
 type cliFlags struct {
@@ -169,6 +171,13 @@ type cliFlags struct {
 	satelliteName             string
 	satelliteOrg              string
 	noSatellite               bool
+}
+
+type analyticsMetadata struct {
+	isSatellite      bool
+	isRemoteBuildkit bool
+	satelliteVersion string
+	buildkitPlatform string
 }
 
 var (
@@ -305,8 +314,18 @@ func main() {
 			app.console.Warnf("unable to start cloud client: %s", err)
 		} else if err == nil {
 			analytics.CollectAnalytics(
-				ctxTimeout, cloudClient, displayErrors, Version, getPlatform(),
-				GitSha, app.commandName, exitCode, time.Since(startTime),
+				ctxTimeout, cloudClient, displayErrors, analytics.AnalyticsMeta{
+					Version:          Version,
+					Platform:         getPlatform(),
+					BuildkitPlatform: app.analyticsMetadata.buildkitPlatform,
+					GitSHA:           GitSha,
+					CommandName:      app.commandName,
+					ExitCode:         exitCode,
+					IsSatellite:      app.analyticsMetadata.isSatellite,
+					SatelliteVersion: app.analyticsMetadata.satelliteVersion,
+					IsRemoteBuildkit: app.analyticsMetadata.isRemoteBuildkit,
+					Realtime:         time.Since(startTime),
+				},
 			)
 		}
 	}
@@ -1330,6 +1349,8 @@ func (app *earthlyApp) configureSatellite(cliCtx *cli.Context, cloudClient cloud
 	} else {
 		app.buildkitdSettings.BuildkitAddress = containerutil.SatelliteAddress
 	}
+	app.analyticsMetadata.isSatellite = true
+	app.analyticsMetadata.satelliteVersion = "" // TODO
 
 	app.console.Warnf("") // newline
 	app.console.Warnf("The following feature flags are recommended for use with Satellites and will be auto-enabled:")
@@ -3044,6 +3065,7 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 	}
 	defer bkClient.Close()
 	isLocal := containerutil.IsLocal(app.buildkitdSettings.BuildkitAddress)
+	app.analyticsMetadata.isRemoteBuildkit = !isLocal
 
 	bkIP, err := buildkitd.GetContainerIP(cliCtx.Context, app.containerName, app.containerFrontend, app.buildkitdSettings)
 	if err != nil {
@@ -3054,6 +3076,7 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 	if err != nil {
 		return errors.Wrap(err, "get native platform via buildkit client")
 	}
+	app.analyticsMetadata.buildkitPlatform = platforms.Format(nativePlatform)
 	platr := platutil.NewResolver(nativePlatform)
 	platr.AllowNativeAndUser = true
 	platformsSlice := make([]platutil.Platform, 0, len(app.platformsStr.Value()))

@@ -1119,9 +1119,13 @@ type EarthlyAnalytics struct {
 	InstallID        string                    `json:"install_id"`
 	Version          string                    `json:"version"`
 	Platform         string                    `json:"platform"`
+	BuildkitPlatform string                    `json:"buildkit_platform"`
 	GitSHA           string                    `json:"git_sha"`
 	ExitCode         int                       `json:"exit_code"`
 	CI               string                    `json:"ci_name"`
+	IsSatellite      bool                      `json:"is_satellite"`
+	SatelliteVersion string                    `json:"satellite_version"`
+	IsRemoteBuildkit bool                      `json:"is_remote_buildkit"`
 	RepoHash         string                    `json:"repo_hash"`
 	ExecutionSeconds float64                   `json:"execution_seconds"`
 	Terminal         bool                      `json:"terminal"`
