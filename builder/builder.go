@@ -140,7 +140,6 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 		manifestLists         = make(map[string][]manifest) // parent image -> child images
 		platformImgNames      = make(map[string]bool)       // ensure that these are unique
 		singPlatImgNames      = make(map[string]bool)       // ensure that these are unique
-		localImages           = make(map[string]string)     // local reg pull name -> final name
 	)
 	var (
 		depIndex   = 0
@@ -268,7 +267,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 					}
 
 					localRegPullID := fmt.Sprintf("sess-%s/sp:img%d", gwClient.BuildOpts().SessionID, imageIndex)
-					localImages[localRegPullID] = saveImage.DockerTag
+					gatewaycrafter.OnPullInst.Set(localRegPullID, saveImage.DockerTag)
 
 					refPrefix, err := gwCrafter.AddPushImageEntry(ref, imageIndex, saveImage.DockerTag, shouldPush, saveImage.InsecurePush, saveImage.Image, nil)
 					if err != nil {
@@ -322,7 +321,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 						if err != nil {
 							return nil, err
 						}
-						localImages[localRegPullID] = platformImgName
+						gatewaycrafter.OnPullInst.Set(localRegPullID, platformImgName)
 						if b.opt.LocalRegistryAddr != "" {
 							gwCrafter.AddMeta(fmt.Sprintf("%s/export-image-local-registry", refPrefix), []byte(localRegPullID))
 						} else {
@@ -417,7 +416,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 		}
 		pullMap := make(map[string]string)
 		for _, imgToPull := range imagesToPull {
-			finalName, ok := localImages[imgToPull]
+			finalName, ok := gatewaycrafter.OnPullInst.Get(imgToPull)
 			if !ok {
 				return errors.Errorf("unrecognized image to pull %s", imgToPull)
 			}

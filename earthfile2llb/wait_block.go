@@ -121,6 +121,7 @@ func (wb *waitBlock) saveImages(ctx context.Context) error {
 
 	refID := 0
 	for _, item := range imageWaitItems {
+		sessionID := item.c.opt.GwClient.BuildOpts().SessionID
 		ref, err := llbutil.StateToRef(
 			ctx, item.c.opt.GwClient, item.si.State, item.c.opt.NoCache,
 			item.c.platr, item.c.opt.CacheImports.AsMap())
@@ -160,6 +161,7 @@ func (wb *waitBlock) saveImages(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
+		localRegPullID := fmt.Sprintf("sess-%s/sp:img%d", sessionID, refID)
 		refID++
 
 		shouldExport := true // TODO
@@ -171,16 +173,24 @@ func (wb *waitBlock) saveImages(ctx context.Context) error {
 				if err != nil {
 					return err
 				}
+				if item.c.opt.UseLocalRegistry {
+					localRegPullID, err = llbutil.PlatformSpecificImageName(fmt.Sprintf("sess-%s/mp:img%d", sessionID, refID), item.si.Platform)
+					if err != nil {
+						return err
+					}
+					gatewaycrafter.OnPullInst.Set(localRegPullID, platformImgName)
+					gwCrafter.AddMeta(fmt.Sprintf("%s/export-image-local-registry", refPrefix), []byte(localRegPullID))
+				} else {
+					gwCrafter.AddMeta(fmt.Sprintf("%s/export-image", refPrefix), []byte("true"))
+				}
 				refID++
-				// TODO check for b.opt.LocalRegistryAddr != ""
-				gwCrafter.AddMeta(fmt.Sprintf("%s/export-image", refPrefix), []byte("true"))
 			} else {
-				// TODO check for b.opt.LocalRegistryAddr != ""
-				//if b.opt.LocalRegistryAddr != "" {
-				//	gwCrafter.AddMeta(fmt.Sprintf("%s/export-image-local-registry", refPrefix), []byte(localRegPullID))
-				//} else {
-				gwCrafter.AddMeta(fmt.Sprintf("%s/export-image", refPrefix), []byte("true"))
-				//}
+				if item.c.opt.UseLocalRegistry {
+					gatewaycrafter.OnPullInst.Set(localRegPullID, item.si.DockerTag)
+					gwCrafter.AddMeta(fmt.Sprintf("%s/export-image-local-registry", refPrefix), []byte(localRegPullID))
+				} else {
+					gwCrafter.AddMeta(fmt.Sprintf("%s/export-image", refPrefix), []byte("true"))
+				}
 			}
 
 		}
