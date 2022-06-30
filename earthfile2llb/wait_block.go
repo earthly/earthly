@@ -17,9 +17,10 @@ import (
 )
 
 type saveImageWaitItem struct {
-	c    *Converter
-	si   states.SaveImage
-	push bool
+	c           *Converter
+	si          states.SaveImage
+	push        bool
+	localExport bool
 }
 
 type stateWaitItem struct {
@@ -40,13 +41,14 @@ func newWaitBlock() *waitBlock {
 	return &waitBlock{}
 }
 
-func (wb *waitBlock) addSaveImage(si states.SaveImage, c *Converter, push bool) {
+func (wb *waitBlock) addSaveImage(si states.SaveImage, c *Converter, push, localExport bool) {
 	wb.mu.Lock()
 	defer wb.mu.Unlock()
 	item := saveImageWaitItem{
-		c:    c,
-		si:   si,
-		push: push,
+		c:           c,
+		si:          si,
+		push:        push,
+		localExport: localExport,
 	}
 	wb.items = append(wb.items, &item)
 }
@@ -164,11 +166,9 @@ func (wb *waitBlock) saveImages(ctx context.Context) error {
 		}
 		refID++
 
-		shouldExport := true // TODO
-		if shouldExport {    // local export
+		if item.localExport {
 			if isMultiPlatform[item.si.DockerTag] {
 				// local docker instance does not support multi-platform images, so we must create a new entry and set it to the platformImgName
-				fmt.Printf("creating new single image: %s -> %s\n", item.si.DockerTag, platformImgName)
 				refPrefix, err := gwCrafter.AddPushImageEntry(ref, refID, platformImgName, false, false, item.si.Image, nil)
 				if err != nil {
 					return err
