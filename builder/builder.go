@@ -268,10 +268,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 						}
 						singPlatImgNames[saveImage.DockerTag] = true
 					}
-
-					localRegPullID := fmt.Sprintf("sess-%s/sp:img%d", gwClient.BuildOpts().SessionID, imageIndex)
-					b.pullPingMap.Insert(localRegPullID, saveImage.DockerTag)
-
+					localRegPullID := b.pullPingMap.Insert(gwClient.BuildOpts().SessionID, saveImage.DockerTag)
 					refPrefix, err := gwCrafter.AddPushImageEntry(ref, imageIndex, saveImage.DockerTag, shouldPush, saveImage.InsecurePush, saveImage.Image, nil)
 					if err != nil {
 						return nil, err
@@ -319,12 +316,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 						refKey := fmt.Sprintf("image-%d", imageIndex)
 						refPrefix := fmt.Sprintf("ref/%s", refKey)
 
-						localRegPullID, err := llbutil.PlatformSpecificImageName(
-							fmt.Sprintf("sess-%s/mp:img%d", gwClient.BuildOpts().SessionID, imageIndex), resolvedPlat)
-						if err != nil {
-							return nil, err
-						}
-						b.pullPingMap.Insert(localRegPullID, platformImgName)
+						localRegPullID := b.pullPingMap.Insert(gwClient.BuildOpts().SessionID, platformImgName)
 						if b.opt.LocalRegistryAddr != "" {
 							gwCrafter.AddMeta(fmt.Sprintf("%s/export-image-local-registry", refPrefix), []byte(localRegPullID))
 						} else {

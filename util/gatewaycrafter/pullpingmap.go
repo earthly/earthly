@@ -1,7 +1,10 @@
 package gatewaycrafter
 
 import (
+	"fmt"
 	"sync"
+
+	"github.com/google/uuid"
 )
 
 // PullPingMap is a thread-save map used for coordinating pullpings
@@ -26,8 +29,10 @@ func (ppm *PullPingMap) Get(k string) (string, bool) {
 }
 
 // Insert creates a new entry for the value under sessionID/<uuid>
-func (ppm *PullPingMap) Insert(k, v string) {
+func (ppm *PullPingMap) Insert(sessionID, v string) string {
+	k := fmt.Sprintf("sess-%s/pullping:%s", sessionID, uuid.New().String())
 	ppm.m.Lock()
 	defer ppm.m.Unlock()
 	ppm.localImages[k] = v
+	return k
 }

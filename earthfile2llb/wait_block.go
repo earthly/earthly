@@ -162,7 +162,6 @@ func (wb *waitBlock) saveImages(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
-		localRegPullID := fmt.Sprintf("sess-%s/sp:img%d", sessionID, refID)
 		refID++
 
 		shouldExport := true // TODO
@@ -175,11 +174,7 @@ func (wb *waitBlock) saveImages(ctx context.Context) error {
 					return err
 				}
 				if item.c.opt.UseLocalRegistry {
-					localRegPullID, err = llbutil.PlatformSpecificImageName(fmt.Sprintf("sess-%s/mp:img%d", sessionID, refID), item.si.Platform)
-					if err != nil {
-						return err
-					}
-					pullPingMap.Insert(localRegPullID, platformImgName)
+					localRegPullID := pullPingMap.Insert(sessionID, platformImgName)
 					gwCrafter.AddMeta(fmt.Sprintf("%s/export-image-local-registry", refPrefix), []byte(localRegPullID))
 				} else {
 					gwCrafter.AddMeta(fmt.Sprintf("%s/export-image", refPrefix), []byte("true"))
@@ -187,7 +182,7 @@ func (wb *waitBlock) saveImages(ctx context.Context) error {
 				refID++
 			} else {
 				if item.c.opt.UseLocalRegistry {
-					pullPingMap.Insert(localRegPullID, item.si.DockerTag)
+					localRegPullID := pullPingMap.Insert(sessionID, item.si.DockerTag)
 					gwCrafter.AddMeta(fmt.Sprintf("%s/export-image-local-registry", refPrefix), []byte(localRegPullID))
 				} else {
 					gwCrafter.AddMeta(fmt.Sprintf("%s/export-image", refPrefix), []byte("true"))
