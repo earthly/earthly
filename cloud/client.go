@@ -1292,7 +1292,7 @@ func (c *client) AddProjectMember(ctx context.Context, orgName, name, idOrEmail,
 	} else if strings.Contains(idOrEmail, "@") {
 		req.UserEmail = idOrEmail
 	} else {
-		return errors.Errorf("%q does not appear to be an ID or email address")
+		return errors.Errorf("%q does not appear to be an ID or email address", idOrEmail)
 	}
 
 	status, body, err := c.doCall(ctx, http.MethodPost, u, withAuth(), withJSONBody(req))
