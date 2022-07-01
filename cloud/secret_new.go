@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	secretsapi "github.com/earthly/cloud-api/secrets"
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/pkg/errors"
 )
