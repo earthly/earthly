@@ -164,16 +164,13 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt, in
 	}
 
 	opt.Features = bc.Features
-	if initialCall {
-		// It's not possible to know if we should DoSaves until after we have parsed the target's VERSION features.
-		if bc.Features.ReferencedSaveOnly {
-			opt.DoSaves = true
-		} else {
-			if !target.IsRemote() {
-				opt.DoSaves = true // legacy mode only saves artifacts that are locally referenced
-			}
-			opt.ForceSaveImage = true // legacy mode always saves images regardless of locally or remotely referenced
+	if initialCall && opt.DoSaves && !bc.Features.ReferencedSaveOnly {
+		// Special case for legacy mode (which can only be determined after parsing the target's VERSION feature)
+		if !target.IsRemote() {
+			opt.DoSaves = true // legacy mode only saves artifacts that are locally referenced
 		}
+		opt.ForceSaveImage = true // legacy mode always saves images regardless of locally or remotely referenced
+
 	}
 	opt.PlatformResolver.AllowNativeAndUser = opt.Features.NewPlatform
 

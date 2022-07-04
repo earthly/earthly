@@ -182,6 +182,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 				ContainerFrontend:    b.opt.ContainerFrontend,
 				UseLocalRegistry:     (b.opt.LocalRegistryAddr != ""),
 				PullPingMap:          b.pullPingMap,
+				DoSaves:              !opt.NoOutput && opt.OnlyArtifact == nil,
 			}
 			mts, err = earthfile2llb.Earthfile2LLB(childCtx, target, opt, true)
 			if err != nil {
