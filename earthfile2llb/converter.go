@@ -989,12 +989,7 @@ func (c *Converter) SaveImage(ctx context.Context, imageNames []string, pushImag
 
 			if c.ftrs.WaitBlock {
 				shouldPush := pushImages && si.DockerTag != "" && c.opt.DoSaves
-
-				//TODO opt.DoSaves isn't enough here, the original builder code did
-				// shouldExport := (!opt.NoOutput && opt.OnlyArtifact == nil && !(opt.OnlyFinalTargetImages && sts != mts.Final) && saveImage.DockerTag != "")
-				// however, not all of those are available here right now.
 				shouldExportLocally := si.DockerTag != "" && c.opt.DoSaves
-
 				c.waitBlock().addSaveImage(si, c, shouldPush, shouldExportLocally)
 			} else {
 				c.mts.Final.SaveImages = append(c.mts.Final.SaveImages, si)
