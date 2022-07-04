@@ -1176,6 +1176,82 @@ Set up a whole custom git repository for a server called example.com, using a si
 				},
 			},
 		},
+		{
+			Name: "preview",
+			Subcommands: []*cli.Command{
+				{
+					Name:        "project",
+					Description: "Create and manage Earthly projects",
+					UsageText:   "earthly project (ls|rm|)",
+					Flags: []cli.Flag{
+						&cli.StringFlag{
+							Name:     "org",
+							EnvVars:  []string{"EARTHLY_ORG"},
+							Usage:    "The name of the organization to which the project belongs. Required when user is a member of multiple.",
+							Required: false,
+						},
+					},
+					Subcommands: []*cli.Command{
+						{
+							Name:        "ls",
+							Usage:       "List all projects that belong to the specified organization",
+							Description: "List all projects that belong to the specified organization",
+							UsageText:   "earthly project --org <organization-name> ls",
+							Action:      app.actionProjectList,
+						},
+						{
+							Name:        "rm",
+							Usage:       "Remove an existing project from the organization",
+							Description: "Remove an existing project from the organization",
+							UsageText:   "earthly project --org <organization-name> rm <project-name>",
+							Action:      app.actionProjectList,
+						},
+						{
+							Name:        "create",
+							Usage:       "Create a new project in the specified organization",
+							Description: "Create a new project in the specified organization",
+							UsageText:   "earthly project --org <organization-name> create <project-name>",
+							Action:      app.actionProjectList,
+						},
+						{
+							Name:        "member",
+							Description: "Manage project members",
+							UsageText:   "earthly project member (ls|rm|add|update)",
+							Subcommands: []*cli.Command{
+								{
+									Name:        "add",
+									Usage:       "Add a new member to the specified project",
+									Description: "Add a new member to the specified project",
+									UsageText:   "earthly project --org <organization-name> member add <project-name> <user-id-or-email> <permission>",
+									Action:      app.actionProjectList,
+								},
+								{
+									Name:        "rm",
+									Usage:       "Remove a member from the specified project",
+									Description: "Remove a member from the specified project",
+									UsageText:   "earthly project --org <organization-name> member rm <project-name> <user-id>",
+									Action:      app.actionProjectList,
+								},
+								{
+									Name:        "ls",
+									Usage:       "List all members in the specified project",
+									Description: "List all members in the specified project",
+									UsageText:   "earthly project --org <organization-name> member ls <project-name>",
+									Action:      app.actionProjectList,
+								},
+								{
+									Name:        "update",
+									Usage:       "Update the project member's permission",
+									Description: "Update the project member's permission",
+									UsageText:   "earthly project --org <organization-name> member update <project-name> <user-id> <permission>",
+									Action:      app.actionProjectList,
+								},
+							},
+						},
+					},
+				},
+			},
+		},
 	}
 
 	app.cliApp.Before = app.before
@@ -3661,6 +3737,10 @@ func (app *earthlyApp) actionSatelliteUnselect(cliCtx *cli.Context) error {
 		return errors.Wrap(err, "could not unselect satellite")
 	}
 
+	return nil
+}
+
+func (app *earthlyApp) actionProjectList(cliCtx *cli.Context) error {
 	return nil
 }
 
