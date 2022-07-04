@@ -1182,7 +1182,7 @@ Set up a whole custom git repository for a server called example.com, using a si
 				{
 					Name:        "project",
 					Description: "Create and manage Earthly projects",
-					UsageText:   "earthly project (ls|rm|)",
+					UsageText:   "earthly project (ls|rm|create|member)",
 					Flags: []cli.Flag{
 						&cli.StringFlag{
 							Name:     "org",
