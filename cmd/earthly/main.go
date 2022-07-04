@@ -1194,6 +1194,7 @@ Set up a whole custom git repository for a server called example.com, using a si
 					Subcommands: []*cli.Command{
 						{
 							Name:        "ls",
+							Aliases:     []string{"list"},
 							Usage:       "List all projects that belong to the specified organization",
 							Description: "List all projects that belong to the specified organization",
 							UsageText:   "earthly project --org <organization-name> ls",
@@ -1201,17 +1202,18 @@ Set up a whole custom git repository for a server called example.com, using a si
 						},
 						{
 							Name:        "rm",
+							Aliases:     []string{"remove", "delete"},
 							Usage:       "Remove an existing project from the organization",
 							Description: "Remove an existing project from the organization",
 							UsageText:   "earthly project --org <organization-name> rm <project-name>",
-							Action:      app.actionProjectList,
+							Action:      app.actionProjectRemove,
 						},
 						{
 							Name:        "create",
 							Usage:       "Create a new project in the specified organization",
 							Description: "Create a new project in the specified organization",
 							UsageText:   "earthly project --org <organization-name> create <project-name>",
-							Action:      app.actionProjectList,
+							Action:      app.actionProjectCreate,
 						},
 						{
 							Name:        "member",
@@ -1223,28 +1225,30 @@ Set up a whole custom git repository for a server called example.com, using a si
 									Usage:       "Add a new member to the specified project",
 									Description: "Add a new member to the specified project",
 									UsageText:   "earthly project --org <organization-name> member add <project-name> <user-id-or-email> <permission>",
-									Action:      app.actionProjectList,
+									Action:      app.actionProjectMemberAdd,
 								},
 								{
 									Name:        "rm",
+									Aliases:     []string{"remove", "delete"},
 									Usage:       "Remove a member from the specified project",
 									Description: "Remove a member from the specified project",
 									UsageText:   "earthly project --org <organization-name> member rm <project-name> <user-id>",
-									Action:      app.actionProjectList,
+									Action:      app.actionProjectMemberRemove,
 								},
 								{
 									Name:        "ls",
+									Aliases:     []string{"list"},
 									Usage:       "List all members in the specified project",
 									Description: "List all members in the specified project",
 									UsageText:   "earthly project --org <organization-name> member ls <project-name>",
-									Action:      app.actionProjectList,
+									Action:      app.actionProjectMemberList,
 								},
 								{
 									Name:        "update",
 									Usage:       "Update the project member's permission",
 									Description: "Update the project member's permission",
 									UsageText:   "earthly project --org <organization-name> member update <project-name> <user-id> <permission>",
-									Action:      app.actionProjectList,
+									Action:      app.actionProjectMemberUpdate,
 								},
 							},
 						},
@@ -3741,6 +3745,199 @@ func (app *earthlyApp) actionSatelliteUnselect(cliCtx *cli.Context) error {
 }
 
 func (app *earthlyApp) actionProjectList(cliCtx *cli.Context) error {
+
+	orgName := cliCtx.String("org")
+	if orgName == "" {
+		return errors.New("org name is required")
+	}
+
+	cloudClient, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
+	if err != nil {
+		return errors.Wrap(err, "failed to create cloud client")
+	}
+
+	projects, err := cloudClient.ListProjects(cliCtx.Context, orgName)
+	if err != nil {
+		return errors.Wrap(err, "failed to list projects")
+	}
+
+	for _, project := range projects {
+		app.console.Printf("%s\n", project.Name)
+	}
+
+	return nil
+}
+
+func (app *earthlyApp) actionProjectRemove(cliCtx *cli.Context) error {
+	orgName := cliCtx.String("org")
+	if orgName == "" {
+		return errors.New("org name is required")
+	}
+
+	projectName := cliCtx.Args().Get(0)
+	if projectName == "" {
+		return errors.New("project name is required")
+	}
+
+	cloudClient, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
+	if err != nil {
+		return errors.Wrap(err, "failed to create cloud client")
+	}
+
+	err = cloudClient.DeleteProject(cliCtx.Context, orgName, projectName)
+	if err != nil {
+		return errors.Wrap(err, "failed to remove project")
+	}
+
+	return nil
+}
+
+func (app *earthlyApp) actionProjectCreate(cliCtx *cli.Context) error {
+	orgName := cliCtx.String("org")
+	if orgName == "" {
+		return errors.New("org name is required")
+	}
+
+	projectName := cliCtx.Args().Get(0)
+	if projectName == "" {
+		return errors.New("project name is required")
+	}
+
+	cloudClient, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
+	if err != nil {
+		return errors.Wrap(err, "failed to create cloud client")
+	}
+
+	_, err = cloudClient.CreateProject(cliCtx.Context, projectName, orgName)
+	if err != nil {
+		return errors.Wrap(err, "failed to create project")
+	}
+
+	return nil
+}
+
+func (app *earthlyApp) actionProjectMemberList(cliCtx *cli.Context) error {
+	orgName := cliCtx.String("org")
+	if orgName == "" {
+		return errors.New("org name is required")
+	}
+
+	projectName := cliCtx.Args().Get(0)
+	if projectName == "" {
+		return errors.New("project name is required")
+	}
+
+	cloudClient, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
+	if err != nil {
+		return errors.Wrap(err, "failed to create cloud client")
+	}
+
+	members, err := cloudClient.ListProjectMembers(cliCtx.Context, orgName, projectName)
+	if err != nil {
+		return errors.Wrap(err, "failed to list project members")
+	}
+
+	for _, m := range members {
+		app.console.Printf("%s\t%s\t%s\n", m.UserID, m.UserEmail, m.Permission)
+	}
+
+	return nil
+}
+
+func (app *earthlyApp) actionProjectMemberRemove(cliCtx *cli.Context) error {
+	orgName := cliCtx.String("org")
+	if orgName == "" {
+		return errors.New("org name is required")
+	}
+
+	projectName := cliCtx.Args().Get(0)
+	if projectName == "" {
+		return errors.New("project name is required")
+	}
+
+	userID := cliCtx.Args().Get(1)
+	if projectName == "" {
+		return errors.New("user ID is required")
+	}
+
+	cloudClient, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
+	if err != nil {
+		return errors.Wrap(err, "failed to create cloud client")
+	}
+
+	err = cloudClient.RemoveProjectMember(cliCtx.Context, orgName, projectName, userID)
+	if err != nil {
+		return errors.Wrap(err, "failed to remove project member")
+	}
+
+	return nil
+}
+
+func (app *earthlyApp) actionProjectMemberAdd(cliCtx *cli.Context) error {
+	orgName := cliCtx.String("org")
+	if orgName == "" {
+		return errors.New("org name is required")
+	}
+
+	projectName := cliCtx.Args().Get(0)
+	if projectName == "" {
+		return errors.New("project name is required")
+	}
+
+	userID := cliCtx.Args().Get(1)
+	if userID == "" {
+		return errors.New("user ID is required")
+	}
+
+	permission := cliCtx.Args().Get(2)
+	if permission == "" {
+		return errors.New("permission is required")
+	}
+
+	cloudClient, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
+	if err != nil {
+		return errors.Wrap(err, "failed to create cloud client")
+	}
+
+	err = cloudClient.AddProjectMember(cliCtx.Context, orgName, projectName, userID, permission)
+	if err != nil {
+		return errors.Wrap(err, "failed to add project member")
+	}
+
+	return nil
+}
+
+func (app *earthlyApp) actionProjectMemberUpdate(cliCtx *cli.Context) error {
+	orgName := cliCtx.String("org")
+	if orgName == "" {
+		return errors.New("org name is required")
+	}
+
+	projectName := cliCtx.Args().Get(0)
+	if projectName == "" {
+		return errors.New("project name is required")
+	}
+
+	userID := cliCtx.Args().Get(1)
+	if userID == "" {
+		return errors.New("user ID is required")
+	}
+
+	permission := cliCtx.Args().Get(2)
+	if permission == "" {
+		return errors.New("permission is required")
+	}
+
+	cloudClient, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
+	if err != nil {
+		return errors.Wrap(err, "failed to create cloud client")
+	}
+
+	err = cloudClient.UpdateProjectMember(cliCtx.Context, orgName, projectName, userID, permission)
+	if err != nil {
+		return errors.Wrap(err, "failed to update project member")
+	}
+
 	return nil
 }
 
