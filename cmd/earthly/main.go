@@ -3770,6 +3770,10 @@ func (app *earthlyApp) actionProjectRemove(cliCtx *cli.Context) error {
 		return errors.New("org name is required")
 	}
 
+	if cliCtx.Args().Len() != 1 {
+		return errors.New("1 argument required")
+	}
+
 	projectName := cliCtx.Args().Get(0)
 	if projectName == "" {
 		return errors.New("project name is required")
@@ -3794,6 +3798,11 @@ func (app *earthlyApp) actionProjectCreate(cliCtx *cli.Context) error {
 		return errors.New("org name is required")
 	}
 
+	if cliCtx.Args().Len() != 1 {
+		return errors.New("1 argument required")
+
+	}
+
 	projectName := cliCtx.Args().Get(0)
 	if projectName == "" {
 		return errors.New("project name is required")
@@ -3816,6 +3825,10 @@ func (app *earthlyApp) actionProjectMemberList(cliCtx *cli.Context) error {
 	orgName := cliCtx.String("org")
 	if orgName == "" {
 		return errors.New("org name is required")
+	}
+
+	if cliCtx.Args().Len() != 1 {
+		return errors.New("1 argument required")
 	}
 
 	projectName := cliCtx.Args().Get(0)
@@ -3848,6 +3861,10 @@ func (app *earthlyApp) actionProjectMemberRemove(cliCtx *cli.Context) error {
 		return errors.New("org name is required")
 	}
 
+	if cliCtx.Args().Len() != 2 {
+		return errors.New("2 arguments required")
+	}
+
 	projectName := cliCtx.Args().Get(0)
 	if projectName == "" {
 		return errors.New("project name is required")
@@ -3875,6 +3892,10 @@ func (app *earthlyApp) actionProjectMemberAdd(cliCtx *cli.Context) error {
 	orgName := cliCtx.String("org")
 	if orgName == "" {
 		return errors.New("org name is required")
+	}
+
+	if cliCtx.Args().Len() != 3 {
+		return errors.New("3 arguments required")
 	}
 
 	projectName := cliCtx.Args().Get(0)
@@ -3909,6 +3930,10 @@ func (app *earthlyApp) actionProjectMemberUpdate(cliCtx *cli.Context) error {
 	orgName := cliCtx.String("org")
 	if orgName == "" {
 		return errors.New("org name is required")
+	}
+
+	if cliCtx.Args().Len() != 3 {
+		return errors.New("3 arguments required")
 	}
 
 	projectName := cliCtx.Args().Get(0)
