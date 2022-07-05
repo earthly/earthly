@@ -1194,7 +1194,6 @@ Set up a whole custom git repository for a server called example.com, using a si
 					Subcommands: []*cli.Command{
 						{
 							Name:        "ls",
-							Aliases:     []string{"list"},
 							Usage:       "List all projects that belong to the specified organization",
 							Description: "List all projects that belong to the specified organization",
 							UsageText:   "earthly project --org <organization-name> ls",
@@ -1202,7 +1201,6 @@ Set up a whole custom git repository for a server called example.com, using a si
 						},
 						{
 							Name:        "rm",
-							Aliases:     []string{"remove", "delete"},
 							Usage:       "Remove an existing project from the organization",
 							Description: "Remove an existing project from the organization",
 							UsageText:   "earthly project --org <organization-name> rm <project-name>",
@@ -1229,7 +1227,6 @@ Set up a whole custom git repository for a server called example.com, using a si
 								},
 								{
 									Name:        "rm",
-									Aliases:     []string{"remove", "delete"},
 									Usage:       "Remove a member from the specified project",
 									Description: "Remove a member from the specified project",
 									UsageText:   "earthly project --org <organization-name> member rm <project-name> <user-id>",
@@ -1237,7 +1234,6 @@ Set up a whole custom git repository for a server called example.com, using a si
 								},
 								{
 									Name:        "ls",
-									Aliases:     []string{"list"},
 									Usage:       "List all members in the specified project",
 									Description: "List all members in the specified project",
 									UsageText:   "earthly project --org <organization-name> member ls <project-name>",
