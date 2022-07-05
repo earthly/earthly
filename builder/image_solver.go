@@ -12,10 +12,10 @@ import (
 	"github.com/earthly/earthly/outmon"
 	"github.com/earthly/earthly/states"
 	"github.com/earthly/earthly/states/image"
+	"github.com/earthly/earthly/util/gatewaycrafter"
 	"github.com/earthly/earthly/util/llbutil"
 	"github.com/moby/buildkit/client"
 	"github.com/moby/buildkit/client/llb"
-	"github.com/moby/buildkit/exporter/containerimage/exptypes"
 	gwclient "github.com/moby/buildkit/frontend/gateway/client"
 	"github.com/moby/buildkit/session"
 	"github.com/moby/buildkit/session/pullping"
@@ -215,16 +215,16 @@ func (m *multiImageSolver) SolveImages(ctx context.Context, imageDefs []*states.
 	}
 
 	buildFn := func(childCtx context.Context, gwClient gwclient.Client) (*gwclient.Result, error) {
-		res := gwclient.NewResult()
+		gwCrafter := gatewaycrafter.NewGatewayCrafter()
 
 		for i, imageDef := range imageDefs {
-			err := m.addRefToResult(childCtx, gwClient, res, imageDef, i)
+			err := m.addRefToResult(childCtx, gwClient, gwCrafter, imageDef, i)
 			if err != nil {
 				return nil, err
 			}
 		}
 
-		return res, nil
+		return gwCrafter.GetResult(), nil
 	}
 
 	var (
@@ -281,12 +281,8 @@ func (m *multiImageSolver) SolveImages(ctx context.Context, imageDefs []*states.
 	return ret, nil
 }
 
-func (m *multiImageSolver) addRefToResult(ctx context.Context, gwClient gwclient.Client, res *gwclient.Result, imageDef *states.ImageDef, idx int) error {
-	var saveImage = imageDef.MTS.Final.LastSaveImage()
-	imgJSON, err := json.Marshal(saveImage.Image)
-	if err != nil {
-		return errors.Wrap(err, "image json marshal")
-	}
+func (m *multiImageSolver) addRefToResult(ctx context.Context, gwClient gwclient.Client, gwCrafter *gatewaycrafter.GatewayCrafter, imageDef *states.ImageDef, imageIndex int) error {
+	saveImage := imageDef.MTS.Final.LastSaveImage()
 
 	if !strings.Contains(imageDef.ImageName, ":") {
 		imageDef.ImageName += ":latest"
@@ -297,14 +293,13 @@ func (m *multiImageSolver) addRefToResult(ctx context.Context, gwClient gwclient
 		return errors.Wrap(err, "initial state to ref conversion")
 	}
 
-	refKey := fmt.Sprintf("image-%s", imageDef.ImageName)
-	refPrefix := fmt.Sprintf("ref/%s", refKey)
-	res.AddRef(refKey, ref)
+	refPrefix, err := gwCrafter.AddPushImageEntry(ref, imageIndex, imageDef.ImageName, false, false, saveImage.Image, nil)
+	if err != nil {
+		return err
+	}
 
 	localRegPullID := fmt.Sprintf("sess-%s/%s", gwClient.BuildOpts().SessionID, imageDef.ImageName)
-	res.AddMeta(fmt.Sprintf("%s/export-image-local-registry", refPrefix), []byte(localRegPullID))
-	res.AddMeta(fmt.Sprintf("%s/%s", refPrefix, exptypes.ExporterImageConfigKey), imgJSON)
-	res.AddMeta(fmt.Sprintf("%s/image.name", refPrefix), []byte(imageDef.ImageName))
+	gwCrafter.AddMeta(fmt.Sprintf("%s/export-image-local-registry", refPrefix), []byte(localRegPullID))
 
 	return nil
 }
