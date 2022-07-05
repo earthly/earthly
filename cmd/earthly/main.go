@@ -3833,9 +3833,11 @@ func (app *earthlyApp) actionProjectMemberList(cliCtx *cli.Context) error {
 		return errors.Wrap(err, "failed to list project members")
 	}
 
+	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
 	for _, m := range members {
-		app.console.Printf("%s\t%s\t%s\n", m.UserID, m.UserEmail, m.Permission)
+		fmt.Fprintf(w, "%s\t%s\t%s\n", m.UserID, m.UserEmail, m.Permission)
 	}
+	w.Flush()
 
 	return nil
 }
