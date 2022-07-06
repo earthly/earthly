@@ -1180,8 +1180,47 @@ Set up a whole custom git repository for a server called example.com, using a si
 			Name: "preview",
 			Subcommands: []*cli.Command{
 				{
+					Name:        "org",
+					Aliases:     []string{"orgs"},
+					Usage:       "Earthly organization administration *experimental*",
+					Description: "Earthly organization administration *experimental*",
+					Subcommands: []*cli.Command{
+						{
+							Name:        "invite",
+							Usage:       "Invite accounts to your organization",
+							Description: "Invite accounts to your organization",
+							UsageText:   "earthly org invite <email> --name <recipient-name> --org <organization-name> --permission <permission> --message <message>",
+							Action:      app.actionOrgInviteEmail,
+							Flags: []cli.Flag{
+								&cli.StringFlag{
+									Name:     "org",
+									EnvVars:  []string{"EARTHLY_ORG"},
+									Usage:    "The name of the organization to which the project belongs. Required when user is a member of multiple.",
+									Required: false,
+								},
+								&cli.StringFlag{
+									Name:     "permission",
+									Usage:    "The access level the new organization member will have. Can be one of: read, write, or admin.",
+									Required: false,
+								},
+								&cli.StringFlag{
+									Name:     "message",
+									Usage:    "An optional message to send with the invitation email.",
+									Required: false,
+								},
+								&cli.StringFlag{
+									Name:     "name",
+									Usage:    "The invite recipient's name (optional).",
+									Required: false,
+								},
+							},
+						},
+					},
+				},
+				{
 					Name:        "project",
 					Description: "Create and manage Earthly projects",
+					Usage:       "Create and manage Earthly projects",
 					UsageText:   "earthly project (ls|rm|create|member)",
 					Flags: []cli.Flag{
 						&cli.StringFlag{
@@ -2180,6 +2219,57 @@ func (app *earthlyApp) actionOrgInvite(cliCtx *cli.Context) error {
 	if err != nil {
 		return errors.Wrap(err, "failed to invite user into org")
 	}
+	return nil
+}
+
+func (app *earthlyApp) actionOrgInviteEmail(cliCtx *cli.Context) error {
+	app.commandName = "orgInviteEmail"
+
+	if cliCtx.NArg() != 1 {
+		return errors.New("invalid number of arguments provided")
+	}
+
+	userEmail := cliCtx.Args().Get(0)
+	if !strings.Contains(userEmail, "@") {
+		return errors.New("invalid email address")
+	}
+
+	orgName := cliCtx.String("org")
+	if orgName == "" {
+		return errors.New("invalid org name")
+	}
+
+	permission := cliCtx.String("permission")
+	if permission == "" {
+		permission = "read"
+	}
+
+	cloudClient, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
+	if err != nil {
+		return errors.Wrap(err, "failed to create cloud client")
+	}
+
+	invite := &cloud.OrgInvitation{
+		Email:      userEmail,
+		Permission: permission,
+		OrgName:    orgName,
+	}
+
+	if name := cliCtx.String("name"); name != "" {
+		invite.Name = name
+	}
+
+	if message := cliCtx.String("message"); message != "" {
+		invite.Message = message
+	}
+
+	_, err = cloudClient.InviteToOrg(cliCtx.Context, invite)
+	if err != nil {
+		return errors.Wrap(err, "failed to invite user into org")
+	}
+
+	app.console.Printf("Invite sent!\n")
+
 	return nil
 }
 
