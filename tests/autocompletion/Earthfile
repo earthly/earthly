@@ -19,8 +19,8 @@ bootstrap
 config 
 ls 
 org 
-prune 
 preview 
+prune 
 satellite 
 secret " > expected
     RUN COMP_LINE="earthly " COMP_POINT=8 earthly > actual
@@ -36,8 +36,8 @@ docker
 docker2earthly 
 ls 
 org 
-prune 
 preview 
+prune 
 satellite 
 secret " > expected
     RUN COMP_LINE="earthly " COMP_POINT=8 earthly > actual
