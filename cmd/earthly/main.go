@@ -1189,7 +1189,7 @@ Set up a whole custom git repository for a server called example.com, using a si
 							Name:        "invite",
 							Usage:       "Invite accounts to your organization",
 							Description: "Invite accounts to your organization",
-							UsageText:   "earthly org invite <email> --name <recipient-name> --org <organization-name> --permission <permission> --message <message>",
+							UsageText:   "earthly org [--org <organization-name>] invite <email> [--name <recipient-name>] [--permission <permission>] [--message <message>]",
 							Action:      app.actionOrgInviteEmail,
 							Flags: []cli.Flag{
 								&cli.StringFlag{
