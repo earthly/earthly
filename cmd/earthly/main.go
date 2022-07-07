@@ -1184,6 +1184,14 @@ Set up a whole custom git repository for a server called example.com, using a si
 					Aliases:     []string{"orgs"},
 					Usage:       "Earthly organization administration *experimental*",
 					Description: "Earthly organization administration *experimental*",
+					Flags: []cli.Flag{
+						&cli.StringFlag{
+							Name:     "org",
+							EnvVars:  []string{"EARTHLY_ORG"},
+							Usage:    "The name of the organization to which the project belongs. Required when user is a member of multiple.",
+							Required: false,
+						},
+					},
 					Subcommands: []*cli.Command{
 						{
 							Name:        "invite",
@@ -1192,12 +1200,6 @@ Set up a whole custom git repository for a server called example.com, using a si
 							UsageText:   "earthly org [--org <organization-name>] invite <email> [--name <recipient-name>] [--permission <permission>] [--message <message>]",
 							Action:      app.actionOrgInviteEmail,
 							Flags: []cli.Flag{
-								&cli.StringFlag{
-									Name:     "org",
-									EnvVars:  []string{"EARTHLY_ORG"},
-									Usage:    "The name of the organization to which the project belongs. Required when user is a member of multiple.",
-									Required: false,
-								},
 								&cli.StringFlag{
 									Name:     "permission",
 									Usage:    "The access level the new organization member will have. Can be one of: read, write, or admin.",
@@ -2226,7 +2228,7 @@ func (app *earthlyApp) actionOrgInviteEmail(cliCtx *cli.Context) error {
 	app.commandName = "orgInviteEmail"
 
 	if cliCtx.NArg() != 1 {
-		return errors.New("invalid number of arguments provided")
+		return errors.New("user email address required")
 	}
 
 	cloudClient, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
@@ -2260,7 +2262,7 @@ func (app *earthlyApp) actionOrgInviteEmail(cliCtx *cli.Context) error {
 
 	permission := cliCtx.String("permission")
 	if permission == "" {
-		permission, err = promptInput(cliCtx.Context, "New user's permission: ")
+		permission, err = promptInput(cliCtx.Context, "New user's permission (read, write, admin): ")
 		if err != nil {
 			return errors.Wrap(err, "failed to read permission")
 		}
