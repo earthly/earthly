@@ -29,6 +29,7 @@ test-hidden-root-commands:
     ENV EARTHLY_SHOW_HIDDEN=1
     RUN echo "account 
 bootstrap 
+build 
 config 
 debug 
 docker 
