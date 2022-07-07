@@ -44,6 +44,9 @@ secret " > expected
     RUN COMP_LINE="earthly " COMP_POINT=8 earthly > actual
     RUN diff expected actual
 
+test-build-flags:
+    RUN COMP_LINE="earthly --" COMP_POINT=10 earthly | grep -- "--allow-privileged"
+
 test-targets:
     COPY fake.earth ./Earthfile
 
@@ -216,6 +219,7 @@ test-targets-in-two-subdirs-that-are-similar:
 test-all:
     BUILD +test-root-commands
     BUILD +test-hidden-root-commands
+    BUILD +test-build-flags
     BUILD +test-targets
     BUILD +test-targets-without-version
     BUILD +test-targets-from-other-dir

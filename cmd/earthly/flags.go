@@ -308,7 +308,12 @@ func (app *earthlyApp) buildFlags() []cli.Flag {
 }
 
 func (app *earthlyApp) hiddenBuildFlags() []cli.Flag {
+	_, isAutocomplete := os.LookupEnv("COMP_LINE")
 	flags := app.buildFlags()
+	if isAutocomplete {
+		// Don't hide the build flags for autocomplete.
+		return flags
+	}
 	for _, flag := range flags {
 		switch f := flag.(type) {
 		case *cli.StringSliceFlag:
