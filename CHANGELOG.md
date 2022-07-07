@@ -11,6 +11,10 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 ### Added
 
 - Adding support for saving artifact from `--interactive-keep`. [#1980](https://github.com/earthly/earthly/issues/1980)
+- New `EARTHLY_PUSH` builtin arg, which is set to `true` when earthly is run with the `--push` flag, and the argument
+  is referenced under the direct target, or a target which is indirectly referenced via a `BUILD` command; otherwise
+  it will be set to `false`. The value mimics when a `RUN --push` command is executed. This feature must be enabled with
+  `VERSION --wait-block 0.6`.
 
 ## v0.6.19 - 2022-06-29
 

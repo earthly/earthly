@@ -1,6 +1,7 @@
 package variables
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/containerd/containerd/platforms"
@@ -22,7 +23,7 @@ type DefaultArgs struct {
 }
 
 // BuiltinArgs returns a scope containing the builtin args.
-func BuiltinArgs(target domain.Target, platr *platutil.Resolver, gitMeta *gitutil.GitMetadata, defaultArgs DefaultArgs, ftrs *features.Features) *Scope {
+func BuiltinArgs(target domain.Target, platr *platutil.Resolver, gitMeta *gitutil.GitMetadata, defaultArgs DefaultArgs, ftrs *features.Features, push bool) *Scope {
 	ret := NewScope()
 	ret.AddInactive(arg.EarthlyTarget, target.StringCanonical())
 	ret.AddInactive(arg.EarthlyTargetProject, target.ProjectCanonical())
@@ -36,6 +37,9 @@ func BuiltinArgs(target domain.Target, platr *platutil.Resolver, gitMeta *gituti
 	setUserPlatformArgs(ret, platr)
 	if ftrs.NewPlatform {
 		setNativePlatformArgs(ret, platr)
+	}
+	if ftrs.WaitBlock {
+		ret.AddInactive(arg.EarthlyPush, fmt.Sprintf("%t", push))
 	}
 
 	if ftrs != nil && ftrs.EarthlyVersionArg {

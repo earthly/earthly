@@ -49,6 +49,7 @@ type Collection struct {
 type NewCollectionOpt struct {
 	Console          conslogging.ConsoleLogger
 	Target           domain.Target
+	Push             bool
 	PlatformResolver *platutil.Resolver
 	NativePlatform   specs.Platform
 	GitMeta          *gitutil.GitMetadata
@@ -63,7 +64,7 @@ func NewCollection(opts NewCollectionOpt) *Collection {
 	target := opts.Target
 	console := opts.Console
 	return &Collection{
-		builtin: BuiltinArgs(target, opts.PlatformResolver, opts.GitMeta, opts.BuiltinArgs, opts.Features),
+		builtin: BuiltinArgs(target, opts.PlatformResolver, opts.GitMeta, opts.BuiltinArgs, opts.Features, opts.Push),
 		envs:    NewScope(),
 		stack: []*stackFrame{{
 			frameName:  target.StringCanonical(),

@@ -107,6 +107,7 @@ func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Da
 	newCollOpt := variables.NewCollectionOpt{
 		Console:          opt.Console,
 		Target:           target,
+		Push:             opt.DoPushes,
 		PlatformResolver: opt.PlatformResolver,
 		GitMeta:          bc.GitMetadata,
 		BuiltinArgs:      opt.BuiltinArgs,
@@ -1428,6 +1429,9 @@ func (c *Converter) FinalizeStates(ctx context.Context) (*states.MultiTarget, er
 	if c.opt.DoSaves {
 		c.mts.Final.SetDoSaves()
 	}
+	if c.opt.DoPushes {
+		c.mts.Final.SetDoPushes()
+	}
 
 	if c.ftrs.WaitBlock {
 		c.waitBlock().addState(&c.mts.Final.MainState, c)
@@ -1498,9 +1502,11 @@ func (c *Converter) prepBuildTarget(ctx context.Context, fullTargetName string, 
 	if c.opt.Features.ReferencedSaveOnly {
 		// DoSaves should only be potentially turned-off when the ReferencedSaveOnly feature is flipped
 		opt.DoSaves = (cmdT == buildCmd && c.opt.DoSaves)
+		opt.DoPushes = (cmdT == buildCmd && c.opt.DoPushes)
 		opt.ForceSaveImage = false
 	} else {
-		opt.DoSaves = c.opt.DoSaves && !target.IsRemote() // legacy mode only saves artifacts from local targets
+		opt.DoSaves = c.opt.DoSaves && !target.IsRemote()   // legacy mode only saves artifacts from local targets
+		opt.DoPushes = c.opt.DoPushes && !target.IsRemote() // legacy mode only saves artifacts from local targets
 	}
 	return target, opt, propagateBuildArgs, nil
 }

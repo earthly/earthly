@@ -77,10 +77,13 @@ type ConvertOpt struct {
 	// AllowPrivileged is used to allow (or prevent) any "RUN --privileged" or RUNs under a LOCALLY target to be executed,
 	// when set to false, it prevents other referenced remote targets from requesting elevated privileges
 	AllowPrivileged bool
-	// DoSaves is used to control when SAVE ARTIFACT AS LOCAL calls will actually output the artifacts locally
-	// this is to differentiate between calling a target that saves an artifact directly vs using a FROM which indirectly
-	// calls a target which saves an artifact as a side effect.
+	// DoSaves controls when SAVE ARTIFACT AS LOCAL, and SAVE IMAGE (to the local docker instance) calls are executed
+	// When a SAVE IMAGE --push is encountered, the image may still be pushed to the remote registry (as long as DoPushes=true),
+	// but is not exported to the local docker instance.
 	DoSaves bool
+	// DoPushes controls when a SAVE IMAGE --push, and RUN --push commands are executed;
+	// SAVE IMAGE --push ... will still export an image to the local docker instance (as long as DoSaves=true)
+	DoPushes bool
 	// ForceSaveImage is used to force all SAVE IMAGE commands are executed regardless of if they are
 	// for a local or remote target; this is to support the legacy behaviour that was first introduced in earthly (up to 0.5)
 	// When this is set to false, SAVE IMAGE commands are only executed when DoSaves is true.
@@ -160,16 +163,9 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt, in
 	}
 
 	opt.Features = bc.Features
-	if initialCall {
-		// It's not possible to know if we should DoSaves until after we have parsed the target's VERSION features.
-		if bc.Features.ReferencedSaveOnly {
-			opt.DoSaves = true
-		} else {
-			if !target.IsRemote() {
-				opt.DoSaves = true // legacy mode only saves artifacts that are locally referenced
-			}
-			opt.ForceSaveImage = true // legacy mode always saves images regardless of locally or remotely referenced
-		}
+	if initialCall && !bc.Features.ReferencedSaveOnly {
+		opt.DoSaves = !target.IsRemote() // legacy mode only saves artifacts that are locally referenced
+		opt.ForceSaveImage = true        // legacy mode always saves images regardless of locally or remotely referenced
 	}
 	opt.PlatformResolver.AllowNativeAndUser = opt.Features.NewPlatform
 
