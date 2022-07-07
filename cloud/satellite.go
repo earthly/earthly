@@ -83,7 +83,7 @@ func (c *client) DeleteSatellite(ctx context.Context, name, orgID string) error 
 	return nil
 }
 
-func (c *client) LaunchSatellite(ctx context.Context, name, orgID string) (*SatelliteInstance, error) {
+func (c *client) LaunchSatellite(ctx context.Context, name, orgID string) error {
 	req := pipelinesapi.LaunchSatelliteRequest{
 		OrgId:    orgID,
 		Name:     name,
@@ -92,21 +92,10 @@ func (c *client) LaunchSatellite(ctx context.Context, name, orgID string) (*Sate
 	status, body, err := c.doCall(ctx, "POST", "/api/v0/satellites",
 		withAuth(), withHeader("Grpc-Timeout", satelliteMgmtTimeout), withJSONBody(&req))
 	if err != nil {
-		return nil, err
+		return err
 	}
 	if status != http.StatusOK {
-		return nil, errors.Errorf("failed launching satellite: %s", body)
+		return errors.Errorf("failed launching satellite: %s", body)
 	}
-	var resp pipelinesapi.LaunchSatelliteResponse
-	err = c.jm.Unmarshal(bytes.NewReader([]byte(body)), &resp)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to unmarshal LaunchSatellite response")
-	}
-	return &SatelliteInstance{
-		Name:     name,
-		Org:      orgID,
-		Status:   resp.Status.String(),
-		Version:  resp.Version,
-		Platform: "linux/amd64",
-	}, nil
+	return nil
 }

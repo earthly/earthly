@@ -3676,8 +3676,12 @@ func (app *earthlyApp) actionSatelliteLaunch(cliCtx *cli.Context) error {
 	}
 
 	app.console.Printf("Launching Satellite. This could take a moment...\n")
-	_, err = cloudClient.LaunchSatellite(cliCtx.Context, app.satelliteName, orgID)
+	err = cloudClient.LaunchSatellite(cliCtx.Context, app.satelliteName, orgID)
 	if err != nil {
+		if errors.Cause(err) == context.Canceled {
+			app.console.Printf("Operation canceled. Satellite should continue to launch in background.")
+			return nil
+		}
 		return errors.Wrapf(err, "failed to create satellite %s", app.satelliteName)
 	}
 	app.console.Printf("...Done\n")
@@ -3739,6 +3743,10 @@ func (app *earthlyApp) actionSatelliteDestroy(cliCtx *cli.Context) error {
 	app.console.Printf("Destroying Satellite. This could take a moment...\n")
 	err = cloudClient.DeleteSatellite(cliCtx.Context, app.satelliteName, orgID)
 	if err != nil {
+		if errors.Cause(err) == context.Canceled {
+			app.console.Printf("Operation canceled. Satellite should continue to delete in background.")
+			return nil
+		}
 		return errors.Wrapf(err, "failed to delete satellite %s", app.satelliteName)
 	}
 	app.console.Printf("...Done\n")
