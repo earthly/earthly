@@ -178,10 +178,10 @@ jobs:
       - name: Build latest earthly/buildkitd image using released earthly
         run: earthly --use-inline-cache ./buildkitd+buildkitd --TAG=race-test
       - name: Configure Earthly Conversion Parallelism
-        run: go run ./cmd/earthly/main.go config global.conversion_parallelism 5
+        run: go run ./cmd/earthly/*.go config global.conversion_parallelism 5
       - name: Execute tests (Earthly Only)
         run: |-
-          GORACE="halt_on_error=1" go run -race ./cmd/earthly/main.go --buildkit-image earthly/buildkitd:race-test -P --no-output \
+          GORACE="halt_on_error=1" go run -race ./cmd/earthly/*.go --buildkit-image earthly/buildkitd:race-test -P --no-output \
             --build-arg DOCKERHUB_AUTH=true \
             --build-arg DOCKERHUB_USER_SECRET=+secrets/earthly-technologies/dockerhub-mirror/user \
             --build-arg DOCKERHUB_TOKEN_SECRET=+secrets/earthly-technologies/dockerhub-mirror/pass \
@@ -190,7 +190,7 @@ jobs:
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: Execute tests (Fork Only)
         run: |-
-          GORACE="halt_on_error=1" go run -race ./cmd/earthly/main.go --buildkit-image earthly/buildkitd:race-test -P --no-output \
+          GORACE="halt_on_error=1" go run -race ./cmd/earthly/*.go --buildkit-image earthly/buildkitd:race-test -P --no-output \
             --build-arg DOCKERHUB_AUTH=false \
           +test
         if: github.event_name != 'push' && github.event.pull_request.head.repo.full_name != github.repository
