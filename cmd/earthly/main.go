@@ -3791,7 +3791,7 @@ func (app *earthlyApp) actionProjectList(cliCtx *cli.Context) error {
 func (app *earthlyApp) actionProjectRemove(cliCtx *cli.Context) error {
 
 	if cliCtx.NArg() != 1 {
-		return errors.New("1 argument required")
+		return errors.New("project name is required")
 	}
 
 	cloudClient, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
@@ -3820,7 +3820,7 @@ func (app *earthlyApp) actionProjectRemove(cliCtx *cli.Context) error {
 func (app *earthlyApp) actionProjectCreate(cliCtx *cli.Context) error {
 
 	if cliCtx.NArg() != 1 {
-		return errors.New("1 argument required")
+		return errors.New("project name is required")
 	}
 
 	projectName := cliCtx.Args().Get(0)
@@ -3849,7 +3849,7 @@ func (app *earthlyApp) actionProjectCreate(cliCtx *cli.Context) error {
 func (app *earthlyApp) actionProjectMemberList(cliCtx *cli.Context) error {
 
 	if cliCtx.NArg() != 1 {
-		return errors.New("1 argument required")
+		return errors.New("project name is required")
 	}
 
 	cloudClient, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
@@ -3884,7 +3884,7 @@ func (app *earthlyApp) actionProjectMemberList(cliCtx *cli.Context) error {
 func (app *earthlyApp) actionProjectMemberRemove(cliCtx *cli.Context) error {
 
 	if cliCtx.NArg() != 2 {
-		return errors.New("2 arguments required")
+		return errors.New("project name and user ID are required")
 	}
 
 	cloudClient, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
@@ -3917,7 +3917,7 @@ func (app *earthlyApp) actionProjectMemberRemove(cliCtx *cli.Context) error {
 
 func (app *earthlyApp) actionProjectMemberAdd(cliCtx *cli.Context) error {
 	if cliCtx.NArg() != 3 {
-		return errors.New("3 arguments required")
+		return errors.New("project name, user ID, and permission arguments are required")
 	}
 
 	cloudClient, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
@@ -3956,7 +3956,7 @@ func (app *earthlyApp) actionProjectMemberAdd(cliCtx *cli.Context) error {
 func (app *earthlyApp) actionProjectMemberUpdate(cliCtx *cli.Context) error {
 
 	if cliCtx.NArg() != 3 {
-		return errors.New("3 arguments required")
+		return errors.New("project name, user ID, and permission arguments are required")
 	}
 
 	cloudClient, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
