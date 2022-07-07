@@ -22,6 +22,16 @@ type Project struct {
 	ModifiedAt time.Time
 }
 
+// ProjectMember contains information about the project member.
+type ProjectMember struct {
+	UserID     string
+	UserEmail  string
+	UserName   string
+	Permission string
+	CreatedAt  time.Time
+	ModifiedAt time.Time
+}
+
 // CreateProject creates a new project within the specified organization.
 func (c *client) CreateProject(ctx context.Context, name, orgName string) (*Project, error) {
 	u := "/api/v0/projects"
@@ -186,19 +196,39 @@ func (c *client) UpdateProjectMember(ctx context.Context, orgName, name, userID,
 }
 
 // ListProjectMembers will return all project members if the user has permission to do so.
-func (c *client) ListProjectMembers(ctx context.Context, orgName, name string) error {
+func (c *client) ListProjectMembers(ctx context.Context, orgName, name string) ([]*ProjectMember, error) {
 	u := fmt.Sprintf("/api/v0/projects/%s/%s", orgName, name)
 
 	status, body, err := c.doCall(ctx, http.MethodGet, u, withAuth())
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if status != http.StatusOK {
-		return errors.Errorf("failed to list project members: %s", body)
+		return nil, errors.Errorf("failed to list project members: %s", body)
 	}
 
-	return nil
+	var members []*ProjectMember
+
+	res := &secretsapi.ListProjectMembersResponse{}
+
+	err = jsonpb.UnmarshalString(body, res)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, m := range res.Members {
+		members = append(members, &ProjectMember{
+			UserName:   m.UserName,
+			UserEmail:  m.UserEmail,
+			UserID:     m.UserId,
+			Permission: m.Permission,
+			CreatedAt:  m.CreatedAt.AsTime(),
+			ModifiedAt: m.ModifiedAt.AsTime(),
+		})
+	}
+
+	return members, nil
 }
 
 // RemoveProjectMember will remove a member from a project.
