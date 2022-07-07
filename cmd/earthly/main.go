@@ -2229,37 +2229,50 @@ func (app *earthlyApp) actionOrgInviteEmail(cliCtx *cli.Context) error {
 		return errors.New("invalid number of arguments provided")
 	}
 
-	userEmail := cliCtx.Args().Get(0)
-	if !strings.Contains(userEmail, "@") {
-		return errors.New("invalid email address")
-	}
-
-	orgName := cliCtx.String("org")
-	if orgName == "" {
-		return errors.New("invalid org name")
-	}
-
-	permission := cliCtx.String("permission")
-	if permission == "" {
-		permission = "read"
-	}
-
 	cloudClient, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
 	if err != nil {
 		return errors.Wrap(err, "failed to create cloud client")
 	}
 
-	invite := &cloud.OrgInvitation{
-		Email:      userEmail,
-		Permission: permission,
-		OrgName:    orgName,
+	orgName, err := projectOrgName(cliCtx, cloudClient)
+	if err != nil {
+		return err
 	}
 
-	if name := cliCtx.String("name"); name != "" {
+	userEmail := cliCtx.Args().Get(0)
+	if !strings.Contains(userEmail, "@") {
+		return errors.New("invalid email address")
+	}
+
+	invite := &cloud.OrgInvitation{
+		Email:   userEmail,
+		OrgName: orgName,
+	}
+
+	name := cliCtx.String("name")
+	if name == "" {
+		name, err = promptInput(cliCtx.Context, "New user's name: ")
+		if err != nil {
+			return errors.Wrap(err, "failed to read name")
+		}
 		invite.Name = name
 	}
 
-	if message := cliCtx.String("message"); message != "" {
+	permission := cliCtx.String("permission")
+	if permission == "" {
+		permission, err = promptInput(cliCtx.Context, "New user's permission: ")
+		if err != nil {
+			return errors.Wrap(err, "failed to read permission")
+		}
+		invite.Permission = permission
+	}
+
+	message := cliCtx.String("message")
+	if message == "" {
+		message, err = promptInput(cliCtx.Context, "Message to user: ")
+		if err != nil {
+			return errors.Wrap(err, "failed to read message")
+		}
 		invite.Message = message
 	}
 
