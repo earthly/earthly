@@ -1215,7 +1215,8 @@ Set up a whole custom git repository for a server called example.com, using a si
 						},
 						{
 							Name:        "member",
-							Description: "Manage project members",
+							Usage:       "Create, list, and edit project members",
+							Description: "Create, list, and edit project members",
 							UsageText:   "earthly project member (ls|rm|add|update)",
 							Subcommands: []*cli.Command{
 								{
