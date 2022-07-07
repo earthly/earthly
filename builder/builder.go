@@ -2,7 +2,6 @@ package builder
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -29,7 +28,6 @@ import (
 	"github.com/earthly/earthly/variables"
 	"github.com/moby/buildkit/client"
 	"github.com/moby/buildkit/client/llb"
-	"github.com/moby/buildkit/exporter/containerimage/exptypes"
 	gwclient "github.com/moby/buildkit/frontend/gateway/client"
 	"github.com/moby/buildkit/session"
 	"github.com/moby/buildkit/util/entitlements"
@@ -252,10 +250,6 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 				if err != nil {
 					return nil, err
 				}
-				config, err := json.Marshal(saveImage.Image)
-				if err != nil {
-					return nil, errors.Wrapf(err, "marshal save image config")
-				}
 
 				if !isMultiPlatform[saveImage.DockerTag] {
 					if saveImage.CheckDuplicate && saveImage.DockerTag != "" {
@@ -314,8 +308,11 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 
 					// For local.
 					if shouldExport {
-						refKey := fmt.Sprintf("image-%d", imageIndex)
-						refPrefix := fmt.Sprintf("ref/%s", refKey)
+						refPrefix, err := gwCrafter.AddPushImageEntry(ref, imageIndex, platformImgName, false, false, saveImage.Image, nil)
+						if err != nil {
+							return nil, err
+						}
+						imageIndex++
 
 						localRegPullID, err := llbutil.PlatformSpecificImageName(
 							fmt.Sprintf("sess-%s/mp:img%d", gwClient.BuildOpts().SessionID, imageIndex), resolvedPlat)
@@ -329,10 +326,6 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 							gwCrafter.AddMeta(fmt.Sprintf("%s/export-image", refPrefix), []byte("true"))
 						}
 
-						gwCrafter.AddMeta(fmt.Sprintf("%s/image.name", refPrefix), []byte(platformImgName))
-						gwCrafter.AddMeta(fmt.Sprintf("%s/%s", refPrefix, exptypes.ExporterImageConfigKey), config)
-						gwCrafter.AddRef(refKey, ref)
-						imageIndex++
 						manifestLists[saveImage.DockerTag] = append(
 							manifestLists[saveImage.DockerTag], manifest{
 								imageName: platformImgName,
