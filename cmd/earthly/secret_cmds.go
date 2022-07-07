@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"strings"
+	"text/tabwriter"
 
 	"github.com/earthly/earthly/cloud"
 	"github.com/pkg/errors"
