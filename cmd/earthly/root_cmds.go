@@ -270,6 +270,27 @@ Set up a whole custom git repository for a server called example.com, using a si
 					},
 					Subcommands: app.projectCmds(),
 				},
+				{
+					Name:        "secret",
+					Aliases:     []string{"secrets"},
+					Description: "Manage cloud secrets *experimental*",
+					Usage:       "Manage cloud secrets *experimental*",
+					Flags: []cli.Flag{
+						&cli.StringFlag{
+							Name:     "org",
+							EnvVars:  []string{"EARTHLY_ORG"},
+							Usage:    "The organization to which the project belongs.",
+							Required: true,
+						},
+						&cli.StringFlag{
+							Name:     "project",
+							EnvVars:  []string{"EARTHLY_PROJECT"},
+							Usage:    "The organization project in which to store secrets.",
+							Required: true,
+						},
+					},
+					Subcommands: app.secretCmdsPreview(),
+				},
 			},
 		},
 	}
