@@ -17,11 +17,12 @@ import (
 	"golang.org/x/crypto/ssh/agent"
 )
 
-// ErrUnauthorized occurs when a user is unauthorized to access a resource
-var ErrUnauthorized = errors.New("unauthorized")
-
-// ErrNoAuthorizedPublicKeys occurs when no authorized public keys are found
-var ErrNoAuthorizedPublicKeys = errors.New("no authorized public keys found")
+var (
+	// ErrUnauthorized occurs when a user is unauthorized to access a resource
+	ErrUnauthorized = errors.New("unauthorized")
+	// ErrNoAuthorizedPublicKeys occurs when no authorized public keys are found
+	ErrNoAuthorizedPublicKeys = errors.New("no authorized public keys found")
+)
 
 const (
 	tokenExpiryLayout    = "2006-01-02 15:04:05.999999999 -0700 MST"
@@ -63,7 +64,7 @@ type Client interface {
 	SendAnalytics(ctx context.Context, data *EarthlyAnalytics) error
 	IsLoggedIn(ctx context.Context) bool
 	GetAuthToken(ctx context.Context) (string, error)
-	LaunchSatellite(ctx context.Context, name, org string) (*SatelliteInstance, error)
+	LaunchSatellite(ctx context.Context, name, org string) error
 	GetOrgID(ctx context.Context, name string) (string, error)
 	ListSatellites(ctx context.Context, orgID string) ([]SatelliteInstance, error)
 	GetSatellite(ctx context.Context, name, orgID string) (*SatelliteInstance, error)
@@ -181,6 +182,13 @@ func (c *client) doCall(ctx context.Context, method, url string, opts ...request
 	for attempt := 0; attempt < maxAttempt; attempt++ {
 		status, body, err = c.doCallImp(ctx, r, method, url, opts...)
 
+		if err != nil && strings.Contains(err.Error(), "context canceled") {
+			// Some operations can be canceled gracefully, so we can signal this to higher-level functions.
+			// Note the actual error caught here is not an instance of context.Canceled,
+			// but is an error message that contains the HTTP call plus the string "context canceled".
+			return status, body, context.Canceled
+		}
+
 		if !shouldRetry(status, body, err, c.warnFunc) {
 			return status, body, err
 		}
@@ -247,7 +255,7 @@ func (c *client) doCallImp(ctx context.Context, r request, method, url string, o
 		req.ContentLength = bodyLen
 	}
 	if r.hasHeaders {
-		req.Header = r.headers
+		req.Header = r.headers.Clone()
 	}
 	if r.hasAuth {
 		req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", c.authToken))
