@@ -12,6 +12,10 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 - Adding support for saving artifact from `--interactive-keep`. [#1980](https://github.com/earthly/earthly/issues/1980)
 
+### Fixed
+
+- Fixed `context.Canceled` being reported as the error in some builds instead of the root cause. [#1991](https://github.com/earthly/earthly/issues/1991)
+
 ## v0.6.19 - 2022-06-29
 
 ### Fixed
