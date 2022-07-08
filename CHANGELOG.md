@@ -4,6 +4,10 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+### Changed
+
+- Updated buildkit to include changes up to 12cfc87450c8d4fc31c8c0a09981e4c3fb3e4d9f
+
 ### Added
 
 - Adding support for saving artifact from `--interactive-keep`. [#1980](https://github.com/earthly/earthly/issues/1980)

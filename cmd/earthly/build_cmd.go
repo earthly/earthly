@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/containerd/containerd/platforms"
+	"github.com/docker/cli/cli/config"
 	"github.com/earthly/earthly/analytics"
 	"github.com/earthly/earthly/buildcontext"
 	"github.com/earthly/earthly/buildcontext/provider"
@@ -297,14 +298,16 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 
 	switch app.containerFrontend.Config().Setting {
 	case containerutil.FrontendDocker, containerutil.FrontendDockerShell:
-		attachables = append(attachables, authprovider.NewDockerAuthProvider(os.Stderr))
+		cfg := config.LoadDefaultConfigFile(os.Stderr)
+		attachables = append(attachables, authprovider.NewDockerAuthProvider(cfg))
 
 	case containerutil.FrontendPodman, containerutil.FrontendPodmanShell:
 		attachables = append(attachables, authprovider.NewPodmanAuthProvider(os.Stderr))
 
 	default:
 		// Old default behavior
-		attachables = append(attachables, authprovider.NewDockerAuthProvider(os.Stderr))
+		cfg := config.LoadDefaultConfigFile(os.Stderr)
+		attachables = append(attachables, authprovider.NewDockerAuthProvider(cfg))
 	}
 
 	gitLookup := buildcontext.NewGitLookup(app.console, app.sshAuthSock)

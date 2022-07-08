@@ -325,7 +325,7 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 	}
 	caps := solverpb.Caps.CapSet(solverpb.Caps.All())
 	bcRawState, done := BuildContextFactory.Construct().RawState()
-	state, dfImg, err := dockerfile2llb.Dockerfile2LLB(ctx, dfData, dockerfile2llb.ConvertOpt{
+	state, dfImg, _, err := dockerfile2llb.Dockerfile2LLB(ctx, dfData, dockerfile2llb.ConvertOpt{
 		BuildContext:     &bcRawState,
 		ContextLocalName: c.mts.FinalTarget().String(),
 		MetaResolver:     c.opt.MetaResolver,
