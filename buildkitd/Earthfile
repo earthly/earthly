@@ -12,9 +12,12 @@ buildkitd:
             ARG BUILDKIT_BASE_IMAGE=$BUILDKIT_PROJECT+build
         END
     ELSE
-        ARG BUILDKIT_BASE_IMAGE=github.com/earthly/buildkit:f9b1fc160d49dd40f859123b91674784fd19e845+build
+        ARG BUILDKIT_BASE_IMAGE=github.com/earthly/buildkit:e5e5399956f09960775cd2892e60917db8afaace+build
     END
-    FROM $BUILDKIT_BASE_IMAGE
+    ARG EARTHLY_TARGET_TAG_DOCKER
+    ARG TAG="dev-$EARTHLY_TARGET_TAG_DOCKER"
+
+    FROM $BUILDKIT_BASE_IMAGE --RELEASE_VERSION=$TAG
     RUN echo "@edge-community http://dl-cdn.alpinelinux.org/alpine/edge/community" >> /etc/apk/repositories
     RUN apk add --update --no-cache \
         cni-plugins@edge-community \
@@ -58,8 +61,6 @@ buildkitd:
     ENV EARTHLY_CACHE_VERSION="2" # whenever this value changes, a forced cache reset is performed
     VOLUME /tmp/earthly
     ENTRYPOINT ["/usr/bin/entrypoint.sh", "buildkitd", "--config=/etc/buildkitd.toml"]
-    ARG EARTHLY_TARGET_TAG_DOCKER
-    ARG TAG="dev-$EARTHLY_TARGET_TAG_DOCKER"
     ARG REGISTRY_USER="earthly"
     ARG IMAGE_REGISTRY="docker.io"
 
