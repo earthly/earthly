@@ -9,8 +9,10 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/dustin/go-humanize"
 	"github.com/earthly/earthly/buildcontext"
 	"github.com/earthly/earthly/buildkitd"
+	"github.com/earthly/earthly/cloud"
 	"github.com/earthly/earthly/config"
 	"github.com/earthly/earthly/docker2earthly"
 	"github.com/earthly/earthly/domain"
@@ -616,6 +618,9 @@ func (app *earthlyApp) actionPrune(cliCtx *cli.Context) error {
 		return errors.New("invalid arguments")
 	}
 	if app.pruneReset {
+		if app.isUsingSatellite(cliCtx) {
+			return errors.New("Cannot prune --reset when using a satellite. Try without --reset")
+		}
 		err := buildkitd.ResetCache(cliCtx.Context, app.console, app.buildkitdImage, app.containerName, app.containerFrontend, app.buildkitdSettings)
 		if err != nil {
 			return errors.Wrap(err, "reset cache")
@@ -623,12 +628,12 @@ func (app *earthlyApp) actionPrune(cliCtx *cli.Context) error {
 		return nil
 	}
 
-	if app.isUsingSatellite(cliCtx) {
-		return errors.New("Cannot prune when using a satellite")
-	}
-
 	// Prune via API.
-	bkClient, err := app.getBuildkitClient(cliCtx, nil)
+	cloudClient, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
+	if err != nil {
+		return errors.Wrap(err, "failed to create cloud client")
+	}
+	bkClient, err := app.getBuildkitClient(cliCtx, cloudClient)
 	if err != nil {
 		return errors.Wrap(err, "prune new buildkitd client")
 	}
@@ -647,14 +652,17 @@ func (app *earthlyApp) actionPrune(cliCtx *cli.Context) error {
 		close(ch)
 		return nil
 	})
+
+	total := uint64(0)
 	eg.Go(func() error {
 		for {
 			select {
-			case _, ok := <-ch:
+			case usageInfo, ok := <-ch:
 				if !ok {
 					return nil
 				}
-				// TODO: Print some progress info.
+				app.console.Printf("%s\t%s\n", usageInfo.ID, humanize.Bytes(uint64(usageInfo.Size)))
+				total += uint64(usageInfo.Size)
 			case <-ctx.Done():
 				return nil
 			}
@@ -664,5 +672,6 @@ func (app *earthlyApp) actionPrune(cliCtx *cli.Context) error {
 	if err != nil {
 		return errors.Wrap(err, "err group")
 	}
+	app.console.Printf("Freed %s\n", humanize.Bytes(total))
 	return nil
 }
