@@ -4,8 +4,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/docker/docker/builder/dockerignore"
 	"github.com/earthly/earthly/util/fileutil"
+	"github.com/moby/buildkit/frontend/dockerfile/dockerignore"
 	"github.com/pkg/errors"
 )
 

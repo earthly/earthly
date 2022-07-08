@@ -54,7 +54,7 @@ type SyncedDir struct {
 	Name     string
 	Dir      string
 	Excludes []string
-	Map      func(string, *fstypes.Stat) bool
+	Map      func(string, *fstypes.Stat) fsutil.MapResult
 }
 
 // NewBuildContextProvider creates a new provider for sending build context files from client.
@@ -83,10 +83,10 @@ func (bcp *BuildContextProvider) AddDir(dirName, dir string) {
 }
 
 func (bcp *BuildContextProvider) addDir(dirName, dir string) {
-	resetUIDAndGID := func(p string, st *fstypes.Stat) bool {
+	resetUIDAndGID := func(p string, st *fstypes.Stat) fsutil.MapResult {
 		st.Uid = 0
 		st.Gid = 0
-		return true
+		return fsutil.MapResultKeep
 	}
 	sd := SyncedDir{
 		Name: dirName,

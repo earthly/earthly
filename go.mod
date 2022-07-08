@@ -6,10 +6,10 @@ require (
 	github.com/alessio/shellescape v1.4.1
 	github.com/antlr/antlr4 v0.0.0-20200225173536-225249fdaef5
 	github.com/armon/circbuf v0.0.0-20190214190532-5111143e8da2
-	github.com/containerd/containerd v1.6.0-rc.1
+	github.com/containerd/containerd v1.6.6
 	github.com/creack/pty v1.1.11
-	github.com/docker/distribution v2.7.1+incompatible
-	github.com/docker/docker v20.10.7+incompatible
+	github.com/docker/cli v20.10.14+incompatible
+	github.com/docker/distribution v2.8.1+incompatible
 	github.com/dustin/go-humanize v1.0.0
 	github.com/earthly/cloud-api v1.0.1-0.20220629195532-0fc4354d2fbf
 	github.com/elastic/go-sysinfo v1.7.1
@@ -25,14 +25,14 @@ require (
 	github.com/mitchellh/hashstructure/v2 v2.0.2
 	github.com/moby/buildkit v0.8.2-0.20210129065303-6b9ea0c202cf
 	github.com/opencontainers/go-digest v1.0.0
-	github.com/opencontainers/image-spec v1.0.2-0.20211117181255-693428a734f5
+	github.com/opencontainers/image-spec v1.0.3-0.20211202183452-c5a74bcca799
 	github.com/otiai10/copy v1.1.1
 	github.com/pkg/errors v0.9.1
 	github.com/sirupsen/logrus v1.8.1
 	github.com/stretchr/testify v1.7.0
-	github.com/tonistiigi/fsutil v0.0.0-20211208180946-61a57076b9b0
+	github.com/tonistiigi/fsutil v0.0.0-20220510150904-0dbf3a8a7d58
 	github.com/urfave/cli/v2 v2.3.0
-	golang.org/x/crypto v0.0.0-20220131195533-30dcbda58838
+	golang.org/x/crypto v0.0.0-20220315160706-3147a52a75dd
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211
 	google.golang.org/grpc v1.47.0
@@ -40,10 +40,10 @@ require (
 )
 
 replace (
-	github.com/docker/docker => github.com/docker/docker v20.10.3-0.20211208011758-87521affb077+incompatible
+	github.com/docker/docker => github.com/docker/docker v20.10.3-0.20220414164044-61404de7df1a+incompatible
 
 	github.com/jessevdk/go-flags => github.com/alexcb/go-flags v0.0.0-20210722203016-f11d7ecb5ee5
 
-	github.com/moby/buildkit => github.com/earthly/buildkit v0.0.1-0.20220620195325-de75b35133f9
-	github.com/tonistiigi/fsutil => github.com/earthly/fsutil v0.0.0-20220118225905-42fa88fbe869
+	github.com/moby/buildkit => github.com/earthly/buildkit v0.0.1-0.20220708012310-5edef273e628
+	github.com/tonistiigi/fsutil => github.com/earthly/fsutil v0.0.0-20220707234217-feae5c0ecda9
 )
