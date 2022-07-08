@@ -135,12 +135,16 @@ func (app *earthlyApp) actionDebugBuildkitDiskUsage(cliCtx *cli.Context) error {
 		case client.UsageRecordTypeRegular:
 			rt = "regular"
 		}
+		lua := "nil"
+		if info.LastUsedAt != nil {
+			lua = info.LastUsedAt.Format(time.RFC3339)
+		}
 		fmt.Fprintf(
 			w, "%s\t%s\t%d\t%d\t%s\t%t\t%t\t%t\t%s\t%s\t%s\n",
 			info.ID, info.Description, info.Size, info.UsageCount,
 			rt, info.Mutable, info.Shared, info.InUse,
 			strings.Join(info.Parents, ","),
-			info.CreatedAt.Format(time.RFC3339), info.LastUsedAt.Format(time.RFC3339),
+			info.CreatedAt.Format(time.RFC3339), lua,
 		)
 	}
 	return nil
@@ -163,9 +167,7 @@ func (app *earthlyApp) actionDebugBuildkitWorkers(cliCtx *cli.Context) error {
 	if err != nil {
 		return errors.Wrap(err, "get buildkit workers")
 	}
-	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
-	defer w.Flush()
-	fmt.Fprintf(w, "ID\tLabels\tPlatforms\tVersion\tPackage\tRevision\tParallelism current\tParallelism max\tParallelism waiting\n")
+
 	for _, info := range workers {
 		ps := make([]string, 0, len(info.Platforms))
 		for _, p := range info.Platforms {
@@ -175,14 +177,15 @@ func (app *earthlyApp) actionDebugBuildkitWorkers(cliCtx *cli.Context) error {
 		for lk, lv := range info.Labels {
 			ls = append(ls, fmt.Sprintf("%s=%s", lk, lv))
 		}
-
-		fmt.Fprintf(
-			w, "%s\t%s\t%s\t%s\t%s\t%s\t%d\t%d\t%d\n",
-			info.ID, strings.Join(ls, ","), strings.Join(ps, ","),
-			info.BuildkitVersion.Version, info.BuildkitVersion.Package,
-			info.BuildkitVersion.Revision,
-			info.ParallelismCurrent, info.ParallelismMax,
-			info.ParallelismWaiting)
+		fmt.Printf("Worker %s\n", info.ID)
+		fmt.Printf("\tLabels: %s\n", strings.Join(ls, ","))
+		fmt.Printf("\tPlatforms: %s\n", strings.Join(ps, ","))
+		fmt.Printf("\tVersion: %s\n", info.BuildkitVersion.Version)
+		fmt.Printf("\tPackage: %s\n", info.BuildkitVersion.Package)
+		fmt.Printf("\tRevision: %s\n", info.BuildkitVersion.Revision)
+		fmt.Printf("\tParallelism current: %d\n", info.ParallelismCurrent)
+		fmt.Printf("\tParallelism max: %d\n", info.ParallelismMax)
+		fmt.Printf("\tParallelism waiting: %d\n", info.ParallelismWaiting)
 	}
 	return nil
 }
