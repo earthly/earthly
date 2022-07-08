@@ -5,10 +5,11 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/earthly/earthly/cloud"
-	"github.com/earthly/earthly/config"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
+
+	"github.com/earthly/earthly/cloud"
+	"github.com/earthly/earthly/config"
 )
 
 func (app *earthlyApp) satelliteCmds() []*cli.Command {
@@ -157,7 +158,7 @@ func (app *earthlyApp) actionSatelliteLaunch(cliCtx *cli.Context) error {
 	}
 
 	app.console.Printf("Launching Satellite. This could take a moment...\n")
-	_, err = cloudClient.LaunchSatellite(cliCtx.Context, app.satelliteName, orgID)
+	err = cloudClient.LaunchSatellite(cliCtx.Context, app.satelliteName, orgID)
 	if err != nil {
 		return errors.Wrapf(err, "failed to create satellite %s", app.satelliteName)
 	}
