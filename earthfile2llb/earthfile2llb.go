@@ -136,16 +136,18 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt, in
 		opt.ErrorGroup, ctx = serrgroup.WithContext(ctx)
 		egWait = true
 		defer func() {
-			if retErr != nil {
+			if retErr == nil {
 				return
 			}
 			if egWait {
+				opt.Console.VerbosePrintf("earthfile2llb immediate error: %v", retErr)
 				// We haven't waited for the ErrorGroup yet. The ErrorGroup will
 				// return the very first error encountered, which may be
 				// different than what our error is (our error could be
 				// context.Canceled resulted from the cancellation of the
 				// ErrorGroup, but not the root cause).
 				err2 := opt.ErrorGroup.Err()
+				opt.Console.VerbosePrintf("earthfile2llb opt.ErrorGroup.Err(): %v", err2)
 				if err2 != nil {
 					retErr = err2
 					return
