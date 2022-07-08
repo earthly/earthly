@@ -10,6 +10,8 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
+const dateFormat = "2006-01-02"
+
 func (app *earthlyApp) projectCmds() []*cli.Command {
 	return []*cli.Command{
 		{
@@ -188,7 +190,7 @@ func (app *earthlyApp) actionProjectMemberList(cliCtx *cli.Context) error {
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
 	fmt.Fprintf(w, "User ID\tEmail\tPermission\n")
 	for _, m := range members {
-		fmt.Fprintf(w, "%s\t%s\t%s\n", m.UserID, m.UserEmail, m.Permission)
+		fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", m.UserID, m.UserEmail, m.Permission, m.CreatedAt.Format(dateFormat))
 	}
 	w.Flush()
 

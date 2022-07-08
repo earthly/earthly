@@ -434,7 +434,7 @@ func (app *earthlyApp) actionSecretPermsList(cliCtx *cli.Context) error {
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
 	fmt.Fprintf(w, "User ID\tPermission\tCreated\n")
 	for _, perm := range perms {
-		fmt.Fprintf(w, "%s\t%s\t%s\n", perm.UserID, perm.Permission, perm.CreatedAt)
+		fmt.Fprintf(w, "%s\t%s\t%s\n", perm.UserID, perm.Permission, perm.CreatedAt.Format(dateFormat))
 	}
 	w.Flush()
 
