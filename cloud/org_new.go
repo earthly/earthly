@@ -20,7 +20,7 @@ type OrgInvitation struct {
 
 // InviteToOrg sends an email invitation to a user and asks for them to join an org.
 func (c *client) InviteToOrg(ctx context.Context, invite *OrgInvitation) (string, error) {
-	u := "/api/v1/invitations"
+	u := "/api/v0/invitations"
 
 	req := &secretsapi.CreateInvitationRequest{
 		Name:       invite.Name,
@@ -35,7 +35,7 @@ func (c *client) InviteToOrg(ctx context.Context, invite *OrgInvitation) (string
 		return "", err
 	}
 
-	if status != http.StatusOK {
+	if status != http.StatusCreated {
 		return "", errors.Errorf("failed to send email invite: %s", body)
 	}
 
