@@ -35,6 +35,7 @@ func (app *earthlyApp) projectCmds() []*cli.Command {
 		},
 		{
 			Name:        "member",
+			Aliases:     []string{"members"},
 			Usage:       "Create, list, and edit project members",
 			Description: "Create, list, and edit project members",
 			UsageText:   "earthly project member (ls|rm|add|update)",
@@ -185,6 +186,7 @@ func (app *earthlyApp) actionProjectMemberList(cliCtx *cli.Context) error {
 	}
 
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
+	fmt.Fprintf(w, "User ID\tEmail\tPermission\n")
 	for _, m := range members {
 		fmt.Fprintf(w, "%s\t%s\t%s\n", m.UserID, m.UserEmail, m.Permission)
 	}

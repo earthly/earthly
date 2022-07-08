@@ -115,6 +115,7 @@ func (app *earthlyApp) secretCmdsPreview() []*cli.Command {
 		},
 		{
 			Name:      "permission",
+			Aliases:   []string{"permissions"},
 			Usage:     "Manage user-level secret permissions.",
 			UsageText: "earthly [options] secret permission (ls|set|rm)",
 			Subcommands: []*cli.Command{
@@ -269,13 +270,13 @@ func (app *earthlyApp) actionSecretsListV2(cliCtx *cli.Context) error {
 		return errors.Wrap(err, "failed to create cloud client")
 	}
 
-	paths, err := cloudClient.ListSecrets(cliCtx.Context, path)
+	secrets, err := cloudClient.ListSecrets(cliCtx.Context, path)
 	if err != nil {
 		return errors.Wrap(err, "failed to list secrets")
 	}
 
-	for _, path := range paths {
-		fmt.Println(path)
+	for _, secret := range secrets {
+		fmt.Println(secret.Path)
 	}
 
 	return nil

@@ -148,7 +148,7 @@ func (c *client) DeleteProject(ctx context.Context, orgName, name string) error 
 
 // AddProjectMember adds a new member to the project by email or user ID.
 func (c *client) AddProjectMember(ctx context.Context, orgName, name, idOrEmail, permission string) error {
-	u := fmt.Sprintf("/api/v0/projects/%s/%s", orgName, name)
+	u := fmt.Sprintf("/api/v0/projects/%s/%s/members", orgName, name)
 
 	req := &secretsapi.AddProjectMemberRequest{
 		Permission: permission,
@@ -176,7 +176,7 @@ func (c *client) AddProjectMember(ctx context.Context, orgName, name, idOrEmail,
 
 // UpdateProjectMember updates an existing member with the new permission
 func (c *client) UpdateProjectMember(ctx context.Context, orgName, name, userID, permission string) error {
-	u := fmt.Sprintf("/api/v0/projects/%s/%s/%s", orgName, name, userID)
+	u := fmt.Sprintf("/api/v0/projects/%s/%s/members/%s", orgName, name, userID)
 
 	req := &secretsapi.AddProjectMemberRequest{
 		Permission: permission,
@@ -197,7 +197,7 @@ func (c *client) UpdateProjectMember(ctx context.Context, orgName, name, userID,
 
 // ListProjectMembers will return all project members if the user has permission to do so.
 func (c *client) ListProjectMembers(ctx context.Context, orgName, name string) ([]*ProjectMember, error) {
-	u := fmt.Sprintf("/api/v0/projects/%s/%s", orgName, name)
+	u := fmt.Sprintf("/api/v0/projects/%s/%s/members", orgName, name)
 
 	status, body, err := c.doCall(ctx, http.MethodGet, u, withAuth())
 	if err != nil {
@@ -233,7 +233,7 @@ func (c *client) ListProjectMembers(ctx context.Context, orgName, name string) (
 
 // RemoveProjectMember will remove a member from a project.
 func (c *client) RemoveProjectMember(ctx context.Context, orgName, name, userID string) error {
-	u := fmt.Sprintf("/api/v0/projects/%s/%s/%s", orgName, name, userID)
+	u := fmt.Sprintf("/api/v0/projects/%s/%s/members/%s", orgName, name, userID)
 
 	status, body, err := c.doCall(ctx, http.MethodDelete, u, withAuth())
 	if err != nil {

@@ -110,13 +110,13 @@ func (c *client) ListSecretPermissions(ctx context.Context, path string) ([]*Sec
 	}
 	u := "/api/v1/secrets/permissions" + path
 
-	status, body, err := c.doCall(ctx, http.MethodPut, u, withAuth())
+	status, body, err := c.doCall(ctx, http.MethodGet, u, withAuth())
 	if err != nil {
 		return nil, err
 	}
 
 	if status != http.StatusOK {
-		return nil, errors.Errorf("failed to set secret: %s", body)
+		return nil, errors.Errorf("failed to list secret permissions: %s", body)
 	}
 
 	var secretPerms []*SecretPermission
