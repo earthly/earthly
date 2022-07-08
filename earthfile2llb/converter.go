@@ -2030,7 +2030,7 @@ func (c *Converter) joinRefs(relRef domain.Reference) (domain.Reference, error) 
 }
 
 func (c *Converter) checkAllowed(command cmdType) error {
-	if c.mts.Final.RanInteractive && command != saveImageCmd {
+	if c.mts.Final.RanInteractive && !(command == saveImageCmd || command == saveArtifactCmd) {
 		return errors.New("If present, a single --interactive command must be the last command in a target")
 	}
 
