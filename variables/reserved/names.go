@@ -10,6 +10,7 @@ const (
 	EarthlyGitProjectName       = "EARTHLY_GIT_PROJECT_NAME"
 	EarthlyGitShortHash         = "EARTHLY_GIT_SHORT_HASH"
 	EarthlyGitTag               = "EARTHLY_GIT_TAG"
+	EarthlyPush                 = "EARTHLY_PUSH"
 	EarthlySourceDateEpoch      = "EARTHLY_SOURCE_DATE_EPOCH"
 	EarthlyTarget               = "EARTHLY_TARGET"
 	EarthlyTargetName           = "EARTHLY_TARGET_NAME"
@@ -45,6 +46,7 @@ func init() {
 		EarthlyGitProjectName:       struct{}{},
 		EarthlyGitShortHash:         struct{}{},
 		EarthlyGitTag:               struct{}{},
+		EarthlyPush:                 struct{}{},
 		EarthlySourceDateEpoch:      struct{}{},
 		EarthlyTarget:               struct{}{},
 		EarthlyTargetName:           struct{}{},

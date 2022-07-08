@@ -130,6 +130,7 @@ ga:
     BUILD +reject-privileged-import-test
     BUILD +required-arg-test
     BUILD +push-test
+    BUILD +push-arg-test
     BUILD +gen-dockerfile-test
     BUILD +chown-test
     BUILD +dotenv-test
@@ -472,9 +473,21 @@ fail-invalid-artifact-test:
 
 push-test:
     DO +RUN_EARTHLY --earthfile=push.earth --target=+push-test \
-        --post_command="2>&1 | grep '(disabled)'"
+        --output_contains="\(disabled\)"
     DO +RUN_EARTHLY --earthfile=push.earth --extra_args="--push" --target=+push-test \
-        --post_command="2>&1 | grep 'hello world'"
+        --output_contains="hello world"
+
+push-arg-test:
+    DO +RUN_EARTHLY --earthfile=push-arg.earth --target=+push-test \
+        --output_contains="shoop"
+    DO +RUN_EARTHLY --earthfile=push-arg.earth --extra_args="--push" --target=+push-test \
+        --output_contains="real good"
+
+push-arg-indirect-test:
+    DO +RUN_EARTHLY --earthfile=push-arg.earth --target=+indirect-test \
+        --output_contains="shoop"
+    DO +RUN_EARTHLY --earthfile=push-arg.earth --extra_args="--push" --target=+indirect-test \
+        --output_contains="shoop"
 
 private-image-test:
     FROM earthly/private-test:latest

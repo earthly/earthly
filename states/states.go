@@ -62,9 +62,11 @@ type SingleTarget struct {
 
 	// doSavesMu is a mutex for doSave.
 	doSavesMu sync.Mutex
-	// doSaves indicates whether the SaveImages and the SaveLocals should be
-	// actually saved (and possibly pushed).
+	// doSaves indicates whether the SaveImages and the SaveLocals should actually be saved
 	doSaves bool
+
+	// doPushes indicates whether the SaveImages should actually be pushed
+	doPushes bool
 
 	// doneCh is a channel that is closed when the sts is complete.
 	doneCh chan struct{}
@@ -127,7 +129,7 @@ OuterLoop:
 }
 
 // GetDoSaves returns whether the SaveImages and the SaveLocals should be
-// actually saved (and possibly pushed).
+// actually saved.
 func (sts *SingleTarget) GetDoSaves() bool {
 	sts.doSavesMu.Lock()
 	defer sts.doSavesMu.Unlock()
@@ -139,6 +141,21 @@ func (sts *SingleTarget) SetDoSaves() {
 	sts.doSavesMu.Lock()
 	defer sts.doSavesMu.Unlock()
 	sts.doSaves = true
+}
+
+// GetDoPushes returns whether the SAVE IMAGE --push or RUN --push commands
+// should be executed
+func (sts *SingleTarget) GetDoPushes() bool {
+	sts.doSavesMu.Lock()
+	defer sts.doSavesMu.Unlock()
+	return sts.doPushes
+}
+
+// SetDoPushes sets the doPushes flag.
+func (sts *SingleTarget) SetDoPushes() {
+	sts.doSavesMu.Lock()
+	defer sts.doSavesMu.Unlock()
+	sts.doPushes = true
 }
 
 // TargetInput returns the target input in a concurrent-safe way.

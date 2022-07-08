@@ -178,6 +178,8 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 				NoCache:              b.opt.NoCache,
 				ContainerFrontend:    b.opt.ContainerFrontend,
 				UseLocalRegistry:     (b.opt.LocalRegistryAddr != ""),
+				DoSaves:              !opt.NoOutput,
+				DoPushes:             opt.Push,
 			}
 			mts, err = earthfile2llb.Earthfile2LLB(childCtx, target, opt, true)
 			if err != nil {
@@ -211,8 +213,8 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 				continue
 			}
 			for _, saveImage := range b.targetPhaseImages(sts) {
-				doSave := (sts.GetDoSaves() || saveImage.ForceSave)
-				if saveImage.DockerTag != "" && doSave {
+				doSaveOrPush := (sts.GetDoSaves() || sts.GetDoPushes() || saveImage.ForceSave)
+				if saveImage.DockerTag != "" && doSaveOrPush {
 					if saveImage.NoManifestList {
 						noManifestListImgs[saveImage.DockerTag] = true
 					} else {
@@ -226,7 +228,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 		}
 
 		for _, sts := range mts.All() {
-			hasRunPush := (sts.GetDoSaves() && sts.RunPush.HasState)
+			hasRunPush := (sts.GetDoPushes() && sts.RunPush.HasState)
 			if (sts.HasDangling && !b.opt.UseFakeDep) || (b.builtMain && hasRunPush) {
 				depRef, err := b.stateToRef(childCtx, gwClient, b.targetPhaseState(sts), sts.PlatformResolver)
 				if err != nil {
@@ -239,8 +241,8 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 
 			for _, saveImage := range b.targetPhaseImages(sts) {
 				doSave := (sts.GetDoSaves() || saveImage.ForceSave)
-				shouldPush := opt.Push && saveImage.Push && !sts.Target.IsRemote() && saveImage.DockerTag != "" && doSave
 				shouldExport := !opt.NoOutput && opt.OnlyArtifact == nil && !(opt.OnlyFinalTargetImages && sts != mts.Final) && saveImage.DockerTag != "" && doSave
+				shouldPush := opt.Push && saveImage.Push && !sts.Target.IsRemote() && saveImage.DockerTag != "" && sts.GetDoPushes()
 				useCacheHint := saveImage.CacheHint && b.opt.CacheExport != ""
 				if (!shouldPush && !shouldExport && !useCacheHint) || (!shouldPush && saveImage.HasPushDependencies) {
 					// Short-circuit.
@@ -439,7 +441,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 	if opt.Push && opt.OnlyArtifact == nil && !opt.OnlyFinalTargetImages {
 		hasRunPush := false
 		for _, sts := range mts.All() {
-			if sts.GetDoSaves() && sts.RunPush.HasState {
+			if sts.GetDoPushes() && sts.RunPush.HasState {
 				hasRunPush = true
 				break
 			}
@@ -476,8 +478,8 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 		outputPhaseSpecial = "single image"
 		for _, saveImage := range mts.Final.SaveImages {
 			doSave := (mts.Final.GetDoSaves() || saveImage.ForceSave)
-			shouldPush := opt.Push && saveImage.Push && saveImage.DockerTag != "" && doSave
 			shouldExport := !opt.NoOutput && saveImage.DockerTag != "" && doSave
+			shouldPush := opt.Push && saveImage.Push && saveImage.DockerTag != "" && mts.Final.GetDoPushes()
 			if !shouldPush && !shouldExport {
 				continue
 			}
@@ -498,7 +500,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 			console := b.opt.Console.WithPrefixAndSalt(sts.Target.String(), sts.ID)
 			for _, saveImage := range sts.SaveImages {
 				doSave := (sts.GetDoSaves() || saveImage.ForceSave)
-				shouldPush := opt.Push && saveImage.Push && !sts.Target.IsRemote() && saveImage.DockerTag != "" && doSave
+				shouldPush := opt.Push && saveImage.Push && !sts.Target.IsRemote() && saveImage.DockerTag != "" && sts.GetDoPushes()
 				shouldExport := !opt.NoOutput && saveImage.DockerTag != "" && doSave
 				if !shouldPush && !shouldExport {
 					continue
