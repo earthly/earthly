@@ -1028,7 +1028,6 @@ func (c *Converter) BuildAsync(ctx context.Context, fullTargetName string, platf
 		return err
 	}
 	c.opt.ErrorGroup.Go(func() error {
-		fmt.Printf("@@#@#@#@# Launching parallel build for %s\n", fullTargetName)
 		if sem == nil {
 			sem = c.opt.Parallelism
 		}
@@ -1507,7 +1506,6 @@ func (c *Converter) prepBuildTarget(ctx context.Context, fullTargetName string, 
 }
 
 func (c *Converter) buildTarget(ctx context.Context, fullTargetName string, platform platutil.Platform, allowPrivileged bool, buildArgs []string, isDangling bool, cmdT cmdType) (*states.MultiTarget, error) {
-	fmt.Printf("@@#@#@#@# Launching sync build for %s\n", fullTargetName)
 	target, opt, propagateBuildArgs, err := c.prepBuildTarget(ctx, fullTargetName, platform, allowPrivileged, buildArgs, isDangling, cmdT)
 	if err != nil {
 		return nil, err
