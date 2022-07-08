@@ -4,6 +4,10 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+### Added
+
+- Adding support for saving artifact from `--interactive-keep`. [#1980](https://github.com/earthly/earthly/issues/1980)
+
 ## v0.6.19 - 2022-06-29
 
 ### Fixed
