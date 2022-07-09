@@ -779,9 +779,17 @@ func printBuildkitInfo(bkCons conslogging.ConsoleLogger, info *client.Info, work
 	if len(ps) > 0 {
 		printFun("Platforms: %s (native) %s", ps[0], strings.Join(ps[1:], " "))
 	}
+	load := workerInfo.ParallelismCurrent + workerInfo.ParallelismWaiting
 	printFun(
-		"Utilization: %d other builds, %d op parallelism, %d max op parallelism, %d ops waiting",
-		info.NumSessions, workerInfo.ParallelismCurrent, workerInfo.ParallelismMax, workerInfo.ParallelismWaiting)
+		"Utilization: %d other builds, %d/%d op load",
+		info.NumSessions, load, workerInfo.ParallelismMax)
+	switch {
+	case workerInfo.ParallelismWaiting > 5:
+		bkCons.Warnf("Warning: Currently under heavy load. Performance will be affected")
+	case workerInfo.ParallelismWaiting > 0:
+		bkCons.Printf("Note: Currently under significant load. Performance will be affected")
+	default:
+	}
 }
 
 // getCacheSize returns the size of the earthly cache in KiB.

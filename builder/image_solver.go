@@ -100,7 +100,7 @@ func (s *tarImageSolver) SolveImage(ctx context.Context, mts *states.MultiTarget
 	eg.Go(func() error {
 		var err error
 		if printOutput {
-			vertexFailureOutput, err = s.sm.MonitorProgress(ctx, ch, "", true)
+			vertexFailureOutput, err = s.sm.MonitorProgress(ctx, ch, "", true, s.bkClient)
 			return err
 		}
 		// Silent case.
@@ -265,7 +265,7 @@ func (m *multiImageSolver) SolveImages(ctx context.Context, imageDefs []*states.
 	}()
 
 	go func() {
-		vertexFailureOutput, err := m.sm.MonitorProgress(ctx, statusChan, "", true)
+		vertexFailureOutput, err := m.sm.MonitorProgress(ctx, statusChan, "", true, m.bkClient)
 		if err != nil {
 			errChan <- NewBuildError(err, vertexFailureOutput)
 		}

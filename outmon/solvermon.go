@@ -72,7 +72,7 @@ func NewSolverMonitor(console conslogging.ConsoleLogger, verbose bool, disableNo
 }
 
 // MonitorProgress consumes progress messages from a solve statue channel and prints them to the console.
-func (sm *SolverMonitor) MonitorProgress(ctx context.Context, ch chan *client.SolveStatus, phaseText string, sideRun bool) (string, error) {
+func (sm *SolverMonitor) MonitorProgress(ctx context.Context, ch chan *client.SolveStatus, phaseText string, sideRun bool, bkClient *client.Client) (string, error) {
 	if !sideRun {
 		sm.mu.Lock()
 		sm.ongoing = true
@@ -90,7 +90,7 @@ Loop:
 				return "", err
 			}
 		case <-sm.noOutputTicker.C:
-			err := sm.processNoOutputTick()
+			err := sm.processNoOutputTick(ctx, bkClient)
 			if err != nil {
 				return "", err
 			}
@@ -199,7 +199,8 @@ func (sm *SolverMonitor) processStatus(ss *client.SolveStatus) error {
 	return nil
 }
 
-func (sm *SolverMonitor) processNoOutputTick() error {
+func (sm *SolverMonitor) processNoOutputTick(ctx context.Context, bkClient *client.Client) error {
+	ongoingCons := sm.console.WithPrefix("ongoing")
 	sm.msgMu.Lock()
 	defer sm.msgMu.Unlock()
 	if sm.disableNoOutputUpdates {
@@ -225,15 +226,55 @@ func (sm *SolverMonitor) processNoOutputTick() error {
 		relTime := humanize.RelTime(*vm.vertex.Started, now, "ago", "from now")
 		ongoing = append(ongoing, fmt.Sprintf("%s (%s)", col.Sprintf("%s", vm.meta.TargetName), relTime))
 	}
-	sort.Strings(ongoing) // not entirely correct, but makes the ordering consistent
 	var ongoingStr string
-	if len(ongoing) > 2 {
-		ongoingStr = fmt.Sprintf("%s and %d others", strings.Join(ongoing[:2], ", "), len(ongoing)-2)
+	warn := false
+	if len(ongoing) != 0 {
+		sort.Strings(ongoing) // not entirely correct, but makes the ordering consistent
+		if len(ongoing) > 2 {
+			ongoingStr = fmt.Sprintf("%s and %d others", strings.Join(ongoing[:2], ", "), len(ongoing)-2)
+		} else {
+			ongoingStr = strings.Join(ongoing, ", ")
+		}
 	} else {
-		ongoingStr = strings.Join(ongoing, ", ")
+		// Nothing running, but also no output taking place. We're just sitting,
+		// waiting for buildkit to make progress. Let's check if buildkit is
+		// overwhelmed and report accordingly.
+		workers, err := bkClient.ListWorkers(ctx)
+		if err != nil {
+			ongoingStr = fmt.Sprintf("error getting buildkit worker info: %v", err)
+			warn = true
+			return nil // no need to crash
+		}
+		if len(workers) == 0 {
+			ongoingStr = "error getting buildkit worker info: no workers"
+			warn = true
+			return nil // no need to crash
+		}
+		workerInfo := workers[0]
+		load := workerInfo.ParallelismCurrent + workerInfo.ParallelismWaiting
+		switch {
+		case workerInfo.ParallelismWaiting > 5:
+			ongoingStr = fmt.Sprintf(
+				"Waiting... Buildkit is currently under heavy load (%d/%d)",
+				load, workerInfo.ParallelismMax)
+			warn = true
+		case workerInfo.ParallelismWaiting > 0:
+			ongoingStr = fmt.Sprintf(
+				"Waiting... Buildkit is currently under significant load (%d/%d)",
+				load, workerInfo.ParallelismMax)
+		default:
+			ongoingStr = fmt.Sprintf(
+				"Waiting on Buildkit... Load (%d/%d)",
+				load, workerInfo.ParallelismMax)
+		}
 	}
 	ongoingBuilder = append(ongoingBuilder, ongoingStr, string(ansiEraseRestLine))
-	sm.console.WithPrefix("ongoing").Printf("%s\n", strings.Join(ongoingBuilder, ""))
+	outStr := strings.Join(ongoingBuilder, "")
+	if warn {
+		ongoingCons.Warnf("%s\n", outStr)
+	} else {
+		ongoingCons.Printf("%s\n", outStr)
+	}
 	sm.lastOutputWasProgress = false
 	sm.lastOutputWasNoOutputUpdate = true
 	return nil
