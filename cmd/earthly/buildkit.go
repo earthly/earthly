@@ -15,7 +15,7 @@ func (app *earthlyApp) getBuildkitClient(cliCtx *cli.Context, cloudClient cloud.
 		return nil, errors.Wrapf(err, "could not construct new buildkit client")
 	}
 
-	return buildkitd.NewClient(cliCtx.Context, app.console, app.buildkitdImage, app.containerName, app.containerFrontend, app.buildkitdSettings)
+	return buildkitd.NewClient(cliCtx.Context, app.console, app.buildkitdImage, app.containerName, app.containerFrontend, Version, app.buildkitdSettings)
 }
 
 func (app *earthlyApp) handleTLSCertificateSettings(context *cli.Context) {
