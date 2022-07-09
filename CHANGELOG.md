@@ -16,6 +16,10 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
   it will be set to `false`. The value mimics when a `RUN --push` command is executed. This feature must be enabled with
   `VERSION --wait-block 0.6`.
 
+### Fixed
+
+- Fixed `context.Canceled` being reported as the error in some builds instead of the root cause. [#1991](https://github.com/earthly/earthly/issues/1991)
+
 ## v0.6.19 - 2022-06-29
 
 ### Fixed
