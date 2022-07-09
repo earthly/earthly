@@ -81,45 +81,6 @@ func NewClient(ctx context.Context, console conslogging.ConsoleLogger, image, co
 	return bkClient, nil
 }
 
-func printBuildkitInfo(bkCons conslogging.ConsoleLogger, info *client.Info, workerInfo *client.WorkerInfo, earthlyVersion string, isLocal bool) {
-	// Print most of this stuff only for remote buildkits / satellites.
-	printFun := bkCons.Printf
-	if isLocal {
-		printFun = bkCons.VerbosePrintf
-	}
-	printFun(
-		"Version %s %s %s",
-		info.BuildkitVersion.Package, info.BuildkitVersion.Version, info.BuildkitVersion.Revision)
-	if info.BuildkitVersion.Package != "github.com/earthly/buildkit" {
-		bkCons.Warnf("Using a non-Earthly version of Buildkit. This is not supported.")
-	} else {
-		if info.BuildkitVersion.Version != earthlyVersion {
-			if isLocal {
-				// For local buildkits we expect perfect version match.
-				bkCons.Warnf(
-					"Warning: Buildkit version (%s) is different from Earthly version (%s)",
-					info.BuildkitVersion.Version, earthlyVersion)
-			} else {
-				// TODO: Be smarter about this comparison and provide a more meaningful message.
-				//       Perhaps we should only print something here if the versions are drastically different.
-				bkCons.Printf(
-					"Info: Buildkit version (%s) is different from Earthly version (%s)",
-					info.BuildkitVersion.Version, earthlyVersion)
-			}
-		}
-	}
-	ps := make([]string, len(workerInfo.Platforms))
-	for i, p := range workerInfo.Platforms {
-		ps[i] = platforms.Format(p)
-	}
-	if len(ps) > 0 {
-		printFun("Platforms: %s (native) %s", ps[0], strings.Join(ps[1:], " "))
-	}
-	printFun(
-		"Utilization: %d other builds, %d op parallelism, %d max op parallelism, %d ops waiting",
-		info.NumSessions, workerInfo.ParallelismCurrent, workerInfo.ParallelismMax, workerInfo.ParallelismWaiting)
-}
-
 // ResetCache restarts the buildkitd daemon with the reset command.
 func ResetCache(ctx context.Context, console conslogging.ConsoleLogger, image, containerName string, fe containerutil.ContainerFrontend, settings Settings, opts ...client.ClientOpt) error {
 	// Prune by resetting container.
@@ -782,6 +743,45 @@ func isContainerRunning(ctx context.Context, containerName string, fe containeru
 
 func isDockerAvailable(ctx context.Context, fe containerutil.ContainerFrontend) bool {
 	return fe.IsAvaliable(ctx)
+}
+
+func printBuildkitInfo(bkCons conslogging.ConsoleLogger, info *client.Info, workerInfo *client.WorkerInfo, earthlyVersion string, isLocal bool) {
+	// Print most of this stuff only for remote buildkits / satellites.
+	printFun := bkCons.Printf
+	if isLocal {
+		printFun = bkCons.VerbosePrintf
+	}
+	printFun(
+		"Version %s %s %s",
+		info.BuildkitVersion.Package, info.BuildkitVersion.Version, info.BuildkitVersion.Revision)
+	if info.BuildkitVersion.Package != "github.com/earthly/buildkit" {
+		bkCons.Warnf("Using a non-Earthly version of Buildkit. This is not supported.")
+	} else {
+		if info.BuildkitVersion.Version != earthlyVersion {
+			if isLocal {
+				// For local buildkits we expect perfect version match.
+				bkCons.Warnf(
+					"Warning: Buildkit version (%s) is different from Earthly version (%s)",
+					info.BuildkitVersion.Version, earthlyVersion)
+			} else {
+				// TODO: Be smarter about this comparison and provide a more meaningful message.
+				//       Perhaps we should only print something here if the versions are drastically different.
+				bkCons.Printf(
+					"Info: Buildkit version (%s) is different from Earthly version (%s)",
+					info.BuildkitVersion.Version, earthlyVersion)
+			}
+		}
+	}
+	ps := make([]string, len(workerInfo.Platforms))
+	for i, p := range workerInfo.Platforms {
+		ps[i] = platforms.Format(p)
+	}
+	if len(ps) > 0 {
+		printFun("Platforms: %s (native) %s", ps[0], strings.Join(ps[1:], " "))
+	}
+	printFun(
+		"Utilization: %d other builds, %d op parallelism, %d max op parallelism, %d ops waiting",
+		info.NumSessions, workerInfo.ParallelismCurrent, workerInfo.ParallelismMax, workerInfo.ParallelismWaiting)
 }
 
 // getCacheSize returns the size of the earthly cache in KiB.
