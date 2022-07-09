@@ -228,6 +228,19 @@ func (sm *SolverMonitor) processNoOutputTick(ctx context.Context, bkClient *clie
 	}
 	var ongoingStr string
 	warn := false
+	defer func() {
+		// Note: This part assumes that we are still under lock.
+		ongoingBuilder = append(ongoingBuilder, ongoingStr, string(ansiEraseRestLine))
+		outStr := strings.Join(ongoingBuilder, "")
+		if warn {
+			ongoingCons.Warnf("%s\n", outStr)
+		} else {
+			ongoingCons.Printf("%s\n", outStr)
+		}
+		sm.lastOutputWasProgress = false
+		sm.lastOutputWasNoOutputUpdate = true
+	}()
+
 	if len(ongoing) != 0 {
 		sort.Strings(ongoing) // not entirely correct, but makes the ordering consistent
 		if len(ongoing) > 2 {
@@ -235,48 +248,40 @@ func (sm *SolverMonitor) processNoOutputTick(ctx context.Context, bkClient *clie
 		} else {
 			ongoingStr = strings.Join(ongoing, ", ")
 		}
-	} else {
-		// Nothing running, but also no output taking place. We're just sitting,
-		// waiting for buildkit to make progress. Let's check if buildkit is
-		// overwhelmed and report accordingly.
-		workers, err := bkClient.ListWorkers(ctx)
-		if err != nil {
-			ongoingStr = fmt.Sprintf("error getting buildkit worker info: %v", err)
-			warn = true
-			return nil // no need to crash
-		}
-		if len(workers) == 0 {
-			ongoingStr = "error getting buildkit worker info: no workers"
-			warn = true
-			return nil // no need to crash
-		}
-		workerInfo := workers[0]
-		load := workerInfo.ParallelismCurrent + workerInfo.ParallelismWaiting
-		switch {
-		case workerInfo.ParallelismWaiting > 5:
-			ongoingStr = fmt.Sprintf(
-				"Waiting... Buildkit is currently under heavy load (%d/%d)",
-				load, workerInfo.ParallelismMax)
-			warn = true
-		case workerInfo.ParallelismWaiting > 0:
-			ongoingStr = fmt.Sprintf(
-				"Waiting... Buildkit is currently under significant load (%d/%d)",
-				load, workerInfo.ParallelismMax)
-		default:
-			ongoingStr = fmt.Sprintf(
-				"Waiting on Buildkit... Load (%d/%d)",
-				load, workerInfo.ParallelismMax)
-		}
+		return nil
 	}
-	ongoingBuilder = append(ongoingBuilder, ongoingStr, string(ansiEraseRestLine))
-	outStr := strings.Join(ongoingBuilder, "")
-	if warn {
-		ongoingCons.Warnf("%s\n", outStr)
-	} else {
-		ongoingCons.Printf("%s\n", outStr)
+
+	// Nothing running, but also no output taking place. We're just sitting,
+	// waiting for buildkit to make progress. Let's check if buildkit is
+	// overwhelmed and report accordingly.
+	workers, err := bkClient.ListWorkers(ctx)
+	if err != nil {
+		ongoingStr = fmt.Sprintf("error getting buildkit worker info: %v", err)
+		warn = true
+		return nil // no need to crash
 	}
-	sm.lastOutputWasProgress = false
-	sm.lastOutputWasNoOutputUpdate = true
+	if len(workers) == 0 {
+		ongoingStr = "error getting buildkit worker info: no workers"
+		warn = true
+		return nil // no need to crash
+	}
+	workerInfo := workers[0]
+	load := workerInfo.ParallelismCurrent + workerInfo.ParallelismWaiting
+	switch {
+	case workerInfo.ParallelismWaiting > 5:
+		ongoingStr = fmt.Sprintf(
+			"Waiting... Buildkit is currently under heavy load (%d/%d)",
+			load, workerInfo.ParallelismMax)
+		warn = true
+	case workerInfo.ParallelismWaiting > 0:
+		ongoingStr = fmt.Sprintf(
+			"Waiting... Buildkit is currently under significant load (%d/%d)",
+			load, workerInfo.ParallelismMax)
+	default:
+		ongoingStr = fmt.Sprintf(
+			"Waiting on Buildkit... Load (%d/%d)",
+			load, workerInfo.ParallelismMax)
+	}
 	return nil
 }
 
