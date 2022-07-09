@@ -146,8 +146,8 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt, in
 				// context.Canceled resulted from the cancellation of the
 				// ErrorGroup, but not the root cause).
 				err2 := opt.ErrorGroup.Err()
-				opt.Console.VerbosePrintf("earthfile2llb immediate error: %s", retErr.Error())
-				opt.Console.VerbosePrintf("earthfile2llb group error: %s", err2.Error())
+				opt.Console.VerbosePrintf("earthfile2llb immediate error: %v", retErr)
+				opt.Console.VerbosePrintf("earthfile2llb group error: %v", err2)
 				if err2 != nil {
 					retErr = err2
 					return
