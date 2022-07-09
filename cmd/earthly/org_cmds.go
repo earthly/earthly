@@ -213,8 +213,8 @@ func (app *earthlyApp) actionOrgInviteEmail(cliCtx *cli.Context) error {
 		if err != nil {
 			return errors.Wrap(err, "failed to read name")
 		}
-		invite.Name = name
 	}
+	invite.Name = name
 
 	permission := cliCtx.String("permission")
 	if permission == "" {
@@ -222,8 +222,8 @@ func (app *earthlyApp) actionOrgInviteEmail(cliCtx *cli.Context) error {
 		if err != nil {
 			return errors.Wrap(err, "failed to read permission")
 		}
-		invite.Permission = permission
 	}
+	invite.Permission = permission
 
 	message := cliCtx.String("message")
 	if message == "" {
@@ -231,8 +231,8 @@ func (app *earthlyApp) actionOrgInviteEmail(cliCtx *cli.Context) error {
 		if err != nil {
 			return errors.Wrap(err, "failed to read message")
 		}
-		invite.Message = message
 	}
+	invite.Message = message
 
 	_, err = cloudClient.InviteToOrg(cliCtx.Context, invite)
 	if err != nil {
