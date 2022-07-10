@@ -193,7 +193,7 @@ func MaybeRestart(ctx context.Context, console conslogging.ConsoleLogger, image,
 		if ok {
 			// No need to replace: images are the same and settings are the same.
 			bkCons.VerbosePrintf("Settings hashes match (%q), no restart required\n", hash)
-			info, workerInfo, err := checkConnection(ctx, settings.BuildkitAddress, opts)
+			info, workerInfo, err := checkConnection(ctx, settings.BuildkitAddress, opts...)
 			if err != nil {
 				return nil, nil, err
 			}
@@ -504,7 +504,7 @@ ContainerRunningLoop:
 					"\t\tearthly config 'global.cache_size_pct' <new-percent>\n" +
 					"These set the BuildKit GC target to a specific value. For more information see " +
 					"the Earthly config reference page: https://docs.earthly.dev/docs/earthly-config\n")
-			info, workerInfo, err := waitForConnection(ctx, containerName, address, opTimeout, fe)
+			info, workerInfo, err := waitForConnection(ctx, containerName, address, opTimeout, fe, opts...)
 			if err != nil {
 				return nil, nil, err
 			}
@@ -556,8 +556,8 @@ func checkConnection(ctx context.Context, address string, opts ...client.ClientO
 	// here.
 	ctxTimeout, cancel := context.WithTimeout(ctx, 5*time.Second)
 	var (
-		connErrMu  sync.Mutex
-		connErr    error = errors.New("timeout")
+		mu         sync.Mutex // protects the vars below
+		connErr    error      = errors.New("timeout")
 		info       *client.Info
 		workerInfo *client.WorkerInfo
 	)
@@ -565,22 +565,23 @@ func checkConnection(ctx context.Context, address string, opts ...client.ClientO
 		defer cancel()
 		bkClient, err := client.New(ctxTimeout, address, opts...)
 		if err != nil {
-			connErrMu.Lock()
+			mu.Lock()
 			connErr = err
-			connErrMu.Unlock()
+			mu.Unlock()
 			return
 		}
 		defer bkClient.Close()
-		info, err = bkClient.Info(ctxTimeout)
+		infoRet, err := bkClient.Info(ctxTimeout)
 		if err != nil {
-			connErrMu.Lock()
+			mu.Lock()
 			connErr = err
-			connErrMu.Unlock()
+			mu.Unlock()
 			return
 		}
 		// Success.
-		connErrMu.Lock()
-		defer connErrMu.Unlock()
+		mu.Lock()
+		defer mu.Unlock()
+		info = infoRet
 		connErr = nil
 		ws, err := bkClient.ListWorkers(ctxTimeout)
 		if err != nil {
@@ -594,9 +595,12 @@ func checkConnection(ctx context.Context, address string, opts ...client.ClientO
 		workerInfo = ws[0]
 	}()
 	<-ctxTimeout.Done() // timeout or goroutine finished
-	connErrMu.Lock()
-	defer connErrMu.Unlock()
-	return info, workerInfo, connErr
+	mu.Lock()
+	defer mu.Unlock()
+	if connErr != nil {
+		return nil, nil, connErr
+	}
+	return info, workerInfo, nil
 }
 
 // MaybePull checks whether an image is available locally and pulls it if it is not.
