@@ -1,11 +1,11 @@
-VERSION 0.6
+VERSION --new-platform 0.6
 
 FROM alpine:3.15
-ARG TARGETARCH
-IF [ "$TARGETARCH" = "arm64" ]
+ARG NATIVEARCH
+IF [ "$NATIVEARCH" = "arm64" ]
     FROM arm64v8/openjdk:19-slim
 ELSE
-    FROM --platform="linux/$TARGETARCH" openjdk:19-slim
+    FROM --platform="linux/$NATIVEARCH" openjdk:19-slim
 END
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
