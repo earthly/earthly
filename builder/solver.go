@@ -57,7 +57,7 @@ func (s *solver) buildMainMulti(ctx context.Context, bf gwclient.BuildFunc, onIm
 	var vertexFailureOutput string
 	eg.Go(func() error {
 		var err error
-		vertexFailureOutput, err = s.sm.MonitorProgress(ctx, ch, phaseText, false)
+		vertexFailureOutput, err = s.sm.MonitorProgress(ctx, ch, phaseText, false, s.bkClient)
 		return err
 	})
 	err = eg.Wait()
