@@ -4,12 +4,10 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"strings"
 	"time"
 
 	secretsapi "github.com/earthly/cloud-api/secrets"
 	"github.com/golang/protobuf/jsonpb"
-	"github.com/google/uuid"
 	"github.com/pkg/errors"
 )
 
@@ -147,19 +145,12 @@ func (c *client) DeleteProject(ctx context.Context, orgName, name string) error 
 }
 
 // AddProjectMember adds a new member to the project by email or user ID.
-func (c *client) AddProjectMember(ctx context.Context, orgName, name, idOrEmail, permission string) error {
+func (c *client) AddProjectMember(ctx context.Context, orgName, name, userEmail, permission string) error {
 	u := fmt.Sprintf("/api/v0/projects/%s/%s/members", orgName, name)
 
 	req := &secretsapi.AddProjectMemberRequest{
 		Permission: permission,
-	}
-
-	if userID, err := uuid.Parse(idOrEmail); err == nil && userID != uuid.Nil {
-		req.UserId = idOrEmail
-	} else if strings.Contains(idOrEmail, "@") {
-		req.UserEmail = idOrEmail
-	} else {
-		return errors.Errorf("%q does not appear to be an ID or email address", idOrEmail)
+		UserEmail:  userEmail,
 	}
 
 	status, body, err := c.doCall(ctx, http.MethodPost, u, withAuth(), withJSONBody(req))
@@ -175,12 +166,12 @@ func (c *client) AddProjectMember(ctx context.Context, orgName, name, idOrEmail,
 }
 
 // UpdateProjectMember updates an existing member with the new permission
-func (c *client) UpdateProjectMember(ctx context.Context, orgName, name, userID, permission string) error {
-	u := fmt.Sprintf("/api/v0/projects/%s/%s/members/%s", orgName, name, userID)
+func (c *client) UpdateProjectMember(ctx context.Context, orgName, name, userEmail, permission string) error {
+	u := fmt.Sprintf("/api/v0/projects/%s/%s/members/%s", orgName, name, userEmail)
 
 	req := &secretsapi.AddProjectMemberRequest{
 		Permission: permission,
-		UserId:     userID,
+		UserEmail:  userEmail,
 	}
 
 	status, body, err := c.doCall(ctx, http.MethodPut, u, withAuth(), withJSONBody(req))
@@ -221,7 +212,6 @@ func (c *client) ListProjectMembers(ctx context.Context, orgName, name string) (
 		members = append(members, &ProjectMember{
 			UserName:   m.UserName,
 			UserEmail:  m.UserEmail,
-			UserID:     m.UserId,
 			Permission: m.Permission,
 			CreatedAt:  m.CreatedAt.AsTime(),
 			ModifiedAt: m.ModifiedAt.AsTime(),
@@ -232,8 +222,8 @@ func (c *client) ListProjectMembers(ctx context.Context, orgName, name string) (
 }
 
 // RemoveProjectMember will remove a member from a project.
-func (c *client) RemoveProjectMember(ctx context.Context, orgName, name, userID string) error {
-	u := fmt.Sprintf("/api/v0/projects/%s/%s/members/%s", orgName, name, userID)
+func (c *client) RemoveProjectMember(ctx context.Context, orgName, name, userEmail string) error {
+	u := fmt.Sprintf("/api/v0/projects/%s/%s/members/%s", orgName, name, userEmail)
 
 	status, body, err := c.doCall(ctx, http.MethodDelete, u, withAuth())
 	if err != nil {

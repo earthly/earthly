@@ -73,16 +73,16 @@ type Client interface {
 	ListProjects(ctx context.Context, orgName string) ([]*Project, error)
 	GetProject(ctx context.Context, orgName, name string) (*Project, error)
 	DeleteProject(ctx context.Context, orgName, name string) error
-	AddProjectMember(ctx context.Context, orgName, name, idOrEmail, permission string) error
-	UpdateProjectMember(ctx context.Context, orgName, name, userID, permission string) error
+	AddProjectMember(ctx context.Context, orgName, name, userEmail, permission string) error
+	UpdateProjectMember(ctx context.Context, orgName, name, userEmail, permission string) error
 	ListProjectMembers(ctx context.Context, orgName, name string) ([]*ProjectMember, error)
-	RemoveProjectMember(ctx context.Context, orgName, name, userID string) error
+	RemoveProjectMember(ctx context.Context, orgName, name, userEmail string) error
 	ListSecrets(ctx context.Context, path string) ([]*Secret, error)
 	SetSecret(ctx context.Context, path string, secret []byte) error
 	RemoveSecret(ctx context.Context, path string) error
 	ListSecretPermissions(ctx context.Context, path string) ([]*SecretPermission, error)
-	SetSecretPermission(ctx context.Context, path, userID, permission string) error
-	RemoveSecretPermission(ctx context.Context, path, userID string) error
+	SetSecretPermission(ctx context.Context, path, userEmail, permission string) error
+	RemoveSecretPermission(ctx context.Context, path, userEmail string) error
 }
 
 type request struct {

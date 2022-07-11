@@ -46,14 +46,14 @@ func (app *earthlyApp) projectCmds() []*cli.Command {
 					Name:        "add",
 					Usage:       "Add a new member to the specified project",
 					Description: "Add a new member to the specified project",
-					UsageText:   "earthly project [--org <organization-name>] member add <project-name> <user-id-or-email> <permission>",
+					UsageText:   "earthly project [--org <organization-name>] member add <project-name> <user-email> <permission>",
 					Action:      app.actionProjectMemberAdd,
 				},
 				{
 					Name:        "rm",
 					Usage:       "Remove a member from the specified project",
 					Description: "Remove a member from the specified project",
-					UsageText:   "earthly project [--org <organization-name>] member rm <project-name> <user-id>",
+					UsageText:   "earthly project [--org <organization-name>] member rm <project-name> <user-email>",
 					Action:      app.actionProjectMemberRemove,
 				},
 				{
@@ -67,7 +67,7 @@ func (app *earthlyApp) projectCmds() []*cli.Command {
 					Name:        "update",
 					Usage:       "Update the project member's permission",
 					Description: "Update the project member's permission",
-					UsageText:   "earthly project [--org <organization-name>] member update <project-name> <user-id> <permission>",
+					UsageText:   "earthly project [--org <organization-name>] member update <project-name> <user-email> <permission>",
 					Action:      app.actionProjectMemberUpdate,
 				},
 			},
@@ -188,9 +188,9 @@ func (app *earthlyApp) actionProjectMemberList(cliCtx *cli.Context) error {
 	}
 
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
-	fmt.Fprintf(w, "User ID\tEmail\tPermission\tCreated\n")
+	fmt.Fprintf(w, "User Email\tPermission\tCreated\n")
 	for _, m := range members {
-		fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", m.UserID, m.UserEmail, m.Permission, m.CreatedAt.Format(dateFormat))
+		fmt.Fprintf(w, "%s\t%s\t%s\n", m.UserEmail, m.Permission, m.CreatedAt.Format(dateFormat))
 	}
 	w.Flush()
 
@@ -219,12 +219,12 @@ func (app *earthlyApp) actionProjectMemberRemove(cliCtx *cli.Context) error {
 		return errors.New("project name is required")
 	}
 
-	userID := cliCtx.Args().Get(1)
+	userEmail := cliCtx.Args().Get(1)
 	if projectName == "" {
-		return errors.New("user ID is required")
+		return errors.New("user email is required")
 	}
 
-	err = cloudClient.RemoveProjectMember(cliCtx.Context, orgName, projectName, userID)
+	err = cloudClient.RemoveProjectMember(cliCtx.Context, orgName, projectName, userEmail)
 	if err != nil {
 		return errors.Wrap(err, "failed to remove project member")
 	}
@@ -254,9 +254,9 @@ func (app *earthlyApp) actionProjectMemberAdd(cliCtx *cli.Context) error {
 		return errors.New("project name is required")
 	}
 
-	userID := cliCtx.Args().Get(1)
-	if userID == "" {
-		return errors.New("user ID is required")
+	userEmail := cliCtx.Args().Get(1)
+	if userEmail == "" {
+		return errors.New("user email is required")
 	}
 
 	permission := cliCtx.Args().Get(2)
@@ -264,7 +264,7 @@ func (app *earthlyApp) actionProjectMemberAdd(cliCtx *cli.Context) error {
 		return errors.New("permission is required")
 	}
 
-	err = cloudClient.AddProjectMember(cliCtx.Context, orgName, projectName, userID, permission)
+	err = cloudClient.AddProjectMember(cliCtx.Context, orgName, projectName, userEmail, permission)
 	if err != nil {
 		return errors.Wrap(err, "failed to add project member")
 	}
@@ -294,9 +294,9 @@ func (app *earthlyApp) actionProjectMemberUpdate(cliCtx *cli.Context) error {
 		return errors.New("project name is required")
 	}
 
-	userID := cliCtx.Args().Get(1)
-	if userID == "" {
-		return errors.New("user ID is required")
+	userEmail := cliCtx.Args().Get(1)
+	if userEmail == "" {
+		return errors.New("user email is required")
 	}
 
 	permission := cliCtx.Args().Get(2)
@@ -304,7 +304,7 @@ func (app *earthlyApp) actionProjectMemberUpdate(cliCtx *cli.Context) error {
 		return errors.New("permission is required")
 	}
 
-	err = cloudClient.UpdateProjectMember(cliCtx.Context, orgName, projectName, userID, permission)
+	err = cloudClient.UpdateProjectMember(cliCtx.Context, orgName, projectName, userEmail, permission)
 	if err != nil {
 		return errors.Wrap(err, "failed to update project member")
 	}
