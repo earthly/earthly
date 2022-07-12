@@ -16,6 +16,8 @@ import (
 	"github.com/moby/buildkit/client"
 	_ "github.com/moby/buildkit/client/connhelper/dockercontainer" // Load "docker-container://" helper.
 	"github.com/pkg/errors"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	"github.com/earthly/earthly/conslogging"
 	"github.com/earthly/earthly/util/cliutil"
@@ -593,13 +595,19 @@ func checkConnection(ctx context.Context, address string, opts ...client.ClientO
 		workerInfo = ws[0]
 		info, err = bkClient.Info(ctxTimeout)
 		if err != nil {
-			// Some older buildkits do not support Info. Degrade gracefully.
-			info = &client.Info{
-				BuildkitVersion: client.BuildkitVersion{
-					Version:  "unknown",
-					Package:  "unknown",
-					Revision: "unknown",
-				},
+			s, ok := status.FromError(errors.Cause(err))
+			if ok && s.Code() == codes.Unimplemented {
+				// Degrade gracefully.
+				info = &client.Info{
+					BuildkitVersion: client.BuildkitVersion{
+						Version:  "unknown",
+						Package:  "unknown",
+						Revision: "unknown",
+					},
+				}
+			} else {
+				connErr = err
+				return
 			}
 		}
 	}()
