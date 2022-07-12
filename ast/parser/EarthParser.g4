@@ -50,7 +50,7 @@ commandStmt:
 	| importStmt
 	| cacheStmt
 	| hostStmt
-    | projectStmt;
+	| projectStmt;
 
 // version --------------------------------------------------------------------
 version: VERSION WS stmtWords NL+;
