@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/google/uuid"
+	"github.com/earthly/earthly/util/stringutil"
 )
 
 // PullPingMap is a thread-save map used for coordinating pullpings
@@ -28,9 +28,10 @@ func (ppm *PullPingMap) Get(k string) (string, bool) {
 	return v, ok
 }
 
-// Insert creates a new entry for the value under sessionID/<uuid>
+// Insert creates a new entry for the value under sessionID/<v'>-<uuid>
+// Where v' is v without special chars
 func (ppm *PullPingMap) Insert(sessionID, v string) string {
-	k := fmt.Sprintf("sess-%s/pullping:%s", sessionID, uuid.New().String())
+	k := fmt.Sprintf("sess-%s/pullping:%s-%s", sessionID, stringutil.AlphanumericOnly(v), stringutil.RandomAlphanumeric(32))
 	ppm.m.Lock()
 	defer ppm.m.Unlock()
 	ppm.localImages[k] = v
