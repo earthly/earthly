@@ -865,3 +865,8 @@ func addRequiredOpts(settings Settings, opts ...client.ClientOpt) ([]client.Clie
 
 	return append(opts, client.WithCredentials(server.Hostname(), caPath, certPath, keyPath)), nil
 }
+
+func GetInfo() (*client.Info, *client.WorkerInfo, error) {
+
+	return nil, nil, nil
+}

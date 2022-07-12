@@ -8,6 +8,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
 
+	"github.com/earthly/earthly/buildkitd"
 	"github.com/earthly/earthly/cloud"
 	"github.com/earthly/earthly/config"
 )
@@ -259,10 +260,17 @@ func (app *earthlyApp) actionSatelliteInspect(cliCtx *cli.Context) error {
 		return err
 	}
 
+	bkInfo, workerInfo, err := buildkitd.GetInfo()
+	if err != nil {
+		return errors.Wrap(err, "failed checking buildkit info")
+	}
+
 	app.console.Printf("name: %s", satellite.Name)
-	app.console.Printf("version: %s", satellite.Version)
+	app.console.Printf("version: %s", bkInfo.BuildkitVersion)
 	app.console.Printf("platform: %s", satellite.Platform)
 	app.console.Printf("status: %s", satellite.Status)
+	app.console.Printf("running jobs: %d/%d", workerInfo.ParallelismCurrent, workerInfo.ParallelismMax)
+	app.console.Printf("jobs waiting: %d", workerInfo.ParallelismWaiting)
 	app.console.Printf("selected: %t", app.satelliteName == satellite.Name)
 	return nil
 }
