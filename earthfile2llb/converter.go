@@ -73,6 +73,7 @@ const (
 	workdirCmd                           // "WORKDIR"
 	cacheCmd                             // "CACHE"
 	hostCmd                              // "HOST"
+	projectCmd                           // "PROJECT"
 )
 
 // Converter turns earthly commands to buildkit LLB representation.
@@ -93,6 +94,8 @@ type Converter struct {
 	localWorkingDir     string
 	containerFrontend   containerutil.ContainerFrontend
 	waitBlockStack      []*waitBlock
+	project             string
+	org                 string
 }
 
 // NewConverter constructs a new converter for a given earthly target.

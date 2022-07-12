@@ -423,6 +423,12 @@ func (s *BaseEarthParserListener) EnterHostStmt(ctx *HostStmtContext) {}
 // ExitHostStmt is called when production hostStmt is exited.
 func (s *BaseEarthParserListener) ExitHostStmt(ctx *HostStmtContext) {}
 
+// EnterProjectStmt is called when production projectStmt is entered.
+func (s *BaseEarthParserListener) EnterProjectStmt(ctx *ProjectStmtContext) {}
+
+// ExitProjectStmt is called when production projectStmt is exited.
+func (s *BaseEarthParserListener) ExitProjectStmt(ctx *ProjectStmtContext) {}
+
 // EnterExpr is called when production expr is entered.
 func (s *BaseEarthParserListener) EnterExpr(ctx *ExprContext) {}
 

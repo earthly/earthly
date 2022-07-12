@@ -302,6 +302,10 @@ func (l *listener) EnterHostStmt(ctx *parser.HostStmtContext) {
 	l.command.Name = "HOST"
 }
 
+func (l *listener) EnterProjectStmt(c *parser.ProjectStmtContext) {
+	l.command.Name = "PROJECT"
+}
+
 // With -----------------------------------------------------------------------
 
 func (l *listener) EnterWithStmt(c *parser.WithStmtContext) {
