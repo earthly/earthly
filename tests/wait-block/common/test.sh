@@ -68,14 +68,14 @@ cd "$initialwd"
 echo "running earthly out of $(pwd)"
 
 # First make sure all deps get cached, to increase the likelihood of a race-condition
-"$earthly" --config="$config_path" +deps
+"$earthly" --config="$config_path" -P $@ +deps
 
 # Test.
 tag="$(uuidgen)"
 test -n "$tag"
 echo "using tag=$tag"
 set +e
-"$earthly" --config="$config_path" $@ +test --tag="$tag" --REGISTRY="$REGISTRY"
+"$earthly" --config="$config_path" -P $@ +test --tag="$tag" --REGISTRY="$REGISTRY"
 exit_code="$?"
 set -e
 

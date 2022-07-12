@@ -17,9 +17,10 @@ import (
 )
 
 type saveImageWaitItem struct {
-	c    *Converter
-	si   states.SaveImage
-	push bool
+	c           *Converter
+	si          states.SaveImage
+	push        bool
+	localExport bool
 }
 
 type stateWaitItem struct {
@@ -40,13 +41,14 @@ func newWaitBlock() *waitBlock {
 	return &waitBlock{}
 }
 
-func (wb *waitBlock) addSaveImage(si states.SaveImage, c *Converter, push bool) {
+func (wb *waitBlock) addSaveImage(si states.SaveImage, c *Converter, push, localExport bool) {
 	wb.mu.Lock()
 	defer wb.mu.Unlock()
 	item := saveImageWaitItem{
-		c:    c,
-		si:   si,
-		push: push,
+		c:           c,
+		si:          si,
+		push:        push,
+		localExport: localExport,
 	}
 	wb.items = append(wb.items, &item)
 }
@@ -79,6 +81,7 @@ func (wb *waitBlock) saveImages(ctx context.Context) error {
 	isMultiPlatform := make(map[string]bool)        // DockerTag -> bool
 	noManifestListImgs := make(map[string]struct{}) // set based on DockerTag
 	platformImgNames := make(map[string]bool)
+	singPlatImgNames := make(map[string]bool) // ensure that these are unique
 
 	imageWaitItems := []*saveImageWaitItem{}
 	for _, item := range wb.items {
@@ -120,10 +123,8 @@ func (wb *waitBlock) saveImages(ctx context.Context) error {
 
 	refID := 0
 	for _, item := range imageWaitItems {
-		if !item.push {
-			continue
-		}
-
+		sessionID := item.c.opt.GwClient.BuildOpts().SessionID
+		pullPingMap := item.c.opt.PullPingMap
 		ref, err := llbutil.StateToRef(
 			ctx, item.c.opt.GwClient, item.si.State, item.c.opt.NoCache,
 			item.c.platr, item.c.opt.CacheImports.AsMap())
@@ -132,9 +133,10 @@ func (wb *waitBlock) saveImages(ctx context.Context) error {
 		}
 
 		var platformBytes []byte
+		var platformImgName string
 		if isMultiPlatform[item.si.DockerTag] {
 			platformBytes = []byte(item.si.Platform.String())
-			platformImgName, err := llbutil.PlatformSpecificImageName(item.si.DockerTag, item.si.Platform)
+			platformImgName, err = llbutil.PlatformSpecificImageName(item.si.DockerTag, item.si.Platform)
 			if err != nil {
 				return err
 			}
@@ -147,13 +149,47 @@ func (wb *waitBlock) saveImages(ctx context.Context) error {
 				}
 				platformImgNames[platformImgName] = true
 			}
+		} else {
+			if item.si.CheckDuplicate && item.si.DockerTag != "" {
+				if _, found := singPlatImgNames[item.si.DockerTag]; found {
+					return errors.Errorf(
+						"image %s is defined multiple times for the same default platform",
+						item.si.DockerTag)
+				}
+				singPlatImgNames[item.si.DockerTag] = true
+			}
 		}
 
-		_, err = gwCrafter.AddPushImageEntry(ref, refID, item.si.DockerTag, true, item.si.InsecurePush, item.si.Image, platformBytes)
+		refPrefix, err := gwCrafter.AddPushImageEntry(ref, refID, item.si.DockerTag, item.push, item.si.InsecurePush, item.si.Image, platformBytes)
 		if err != nil {
 			return err
 		}
 		refID++
+
+		if item.localExport {
+			if isMultiPlatform[item.si.DockerTag] {
+				// local docker instance does not support multi-platform images, so we must create a new entry and set it to the platformImgName
+				refPrefix, err := gwCrafter.AddPushImageEntry(ref, refID, platformImgName, false, false, item.si.Image, nil)
+				if err != nil {
+					return err
+				}
+				if item.c.opt.UseLocalRegistry {
+					localRegPullID := pullPingMap.Insert(sessionID, platformImgName)
+					gwCrafter.AddMeta(fmt.Sprintf("%s/export-image-local-registry", refPrefix), []byte(localRegPullID))
+				} else {
+					gwCrafter.AddMeta(fmt.Sprintf("%s/export-image", refPrefix), []byte("true"))
+				}
+				refID++
+			} else {
+				if item.c.opt.UseLocalRegistry {
+					localRegPullID := pullPingMap.Insert(sessionID, item.si.DockerTag)
+					gwCrafter.AddMeta(fmt.Sprintf("%s/export-image-local-registry", refPrefix), []byte(localRegPullID))
+				} else {
+					gwCrafter.AddMeta(fmt.Sprintf("%s/export-image", refPrefix), []byte("true"))
+				}
+			}
+
+		}
 	}
 
 	if len(imageWaitItems) == 0 {
