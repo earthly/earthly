@@ -23,7 +23,7 @@ type Secret struct {
 // permission override.
 type SecretPermission struct {
 	Path       string
-	UserID     string
+	UserEmail  string
 	Permission string
 	CreatedAt  time.Time
 	ModifiedAt time.Time
@@ -129,7 +129,7 @@ func (c *client) ListSecretPermissions(ctx context.Context, path string) ([]*Sec
 
 	for _, perm := range res.SecretPermissions {
 		secretPerms = append(secretPerms, &SecretPermission{
-			UserID:     perm.UserId,
+			UserEmail:  perm.UserEmail,
 			Path:       perm.Path,
 			Permission: perm.Permission,
 			CreatedAt:  perm.CreatedAt.AsTime(),
@@ -141,14 +141,14 @@ func (c *client) ListSecretPermissions(ctx context.Context, path string) ([]*Sec
 }
 
 // SetSecretPermission is used to set a user permission on a given secret path.
-func (c *client) SetSecretPermission(ctx context.Context, path, userID, permission string) error {
+func (c *client) SetSecretPermission(ctx context.Context, path, userEmail, permission string) error {
 	if !strings.HasPrefix(path, "/") {
 		path = "/" + path
 	}
 	u := "/api/v1/secrets/permissions" + path
 
 	req := &secretsapi.UpdateSecretPermissionRequest{
-		UserId:     userID,
+		UserEmail:  userEmail,
 		Permission: permission,
 	}
 
@@ -165,11 +165,11 @@ func (c *client) SetSecretPermission(ctx context.Context, path, userID, permissi
 }
 
 // RemoveSecretPermission removes a secret permission for the user and path.
-func (c *client) RemoveSecretPermission(ctx context.Context, path, userID string) error {
+func (c *client) RemoveSecretPermission(ctx context.Context, path, userEmail string) error {
 	if !strings.HasPrefix(path, "/") {
 		path = "/" + path
 	}
-	u := "/api/v1/secrets/permissions" + path + "/" + userID
+	u := "/api/v1/secrets/permissions" + path + "/" + userEmail
 
 	status, body, err := c.doCall(ctx, http.MethodDelete, u, withAuth())
 	if err != nil {
