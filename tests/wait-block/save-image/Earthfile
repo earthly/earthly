@@ -25,6 +25,20 @@ check-tag-exists-locally:
     ARG --required tag
     RUN docker images "$REGISTRY/myuser/myimg:$tag" | grep "$tag"
 
+check-with-docker-pull-works:
+    FROM earthly/dind:alpine
+    ARG --required REGISTRY
+    ARG --required tag
+    WITH DOCKER --pull $REGISTRY/myuser/myimg:$tag
+        RUN docker images "$REGISTRY/myuser/myimg:$tag" | grep "$tag"
+    END
+
+check-with-docker-load-works:
+    FROM earthly/dind:alpine
+    WITH DOCKER --load mytestimg=+myimg
+        RUN docker run mytestimg /bin/sh -c 'cat /special-data' | grep NWMyMTQ2Y
+    END
+
 test:
     ARG --required REGISTRY
     ARG --required tag
@@ -33,3 +47,7 @@ test:
     END
     BUILD +check-tag-does-not-exist-in-registry --REGISTRY=$REGISTRY --tag=$tag
     BUILD +check-tag-exists-locally --REGISTRY=$REGISTRY --tag=$tag
+    BUILD +check-with-docker-load-works
+
+    # FIXME pulling from a registry does not currently work
+    # BUILD +check-with-docker-pull-works --REGISTRY=$REGISTRY --tag=$tag
