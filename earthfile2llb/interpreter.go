@@ -1595,13 +1595,9 @@ func (i *Interpreter) handleProject(ctx context.Context, cmd spec.Command) error
 		return i.wrapError(err, cmd.SourceLocation, "failed to expand PROJECT %s", cmd.Args[0])
 	}
 
-	if !strings.Contains(projectVal, "/") {
-		return i.errorf(cmd.SourceLocation, "format for PROJECT statement should be: <organization>/<project>")
-	}
-
 	parts := strings.Split(projectVal, "/")
 	if len(parts) != 2 {
-		return i.errorf(cmd.SourceLocation, "unexpected format for PROJECT statement")
+		return i.errorf(cmd.SourceLocation, "unexpected format for PROJECT statement, should be: <organization>/<project>")
 	}
 
 	i.converter.Project(ctx, parts[0], parts[1])
