@@ -14,6 +14,7 @@ import (
 	"github.com/earthly/earthly/dockertar"
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/states"
+	"github.com/earthly/earthly/states/dedup"
 	"github.com/earthly/earthly/util/llbutil/pllb"
 	"github.com/earthly/earthly/util/platutil"
 	"github.com/earthly/earthly/util/syncutil/semutil"
@@ -221,9 +222,9 @@ func (w *withDockerRunTar) Run(ctx context.Context, args []string, opt WithDocke
 		tarPaths = append(tarPaths, path.Join(loadDir, "image.tar"))
 	}
 
-	dindID, err := w.c.mts.Final.TargetInput().Hash()
+	dindID, err := makeDindID(w.c.mts.Final.TargetInput(), w.c.opt.GwClient.BuildOpts().SessionID)
 	if err != nil {
-		return errors.Wrap(err, "compute dind id")
+		return err
 	}
 	crOpts.shellWrap = makeWithDockerdWrapFun(dindID, tarPaths, nil, opt)
 
@@ -428,4 +429,12 @@ func platformIncompatMsg(platr *platutil.Resolver) string {
 		fmt.Sprintf("Native platform of the worker: %s\n", nativePlatStr) +
 		"Try using\n\n\tFROM --platform=native earthly/dind:alpine\n\ninstead.\n" +
 		"You may still --load and --pull images of a different platform.\n"
+}
+
+func makeDindID(ti dedup.TargetInput, sessionID string) (string, error) {
+	hash, err := ti.Hash()
+	if err != nil {
+		return "", errors.Wrap(err, "hash target input")
+	}
+	return fmt.Sprintf("%s-%s", hash, sessionID), nil
 }
