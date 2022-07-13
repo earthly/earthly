@@ -42,7 +42,11 @@ release-dockerhub:
 perform-release-dockerhub:
     ARG --required RELEASE_TAG
     ARG DOCKERHUB_USER="earthly"
-    BUILD ../+earthly-docker --TAG="$RELEASE_TAG"
+    BUILD \
+        --platform=linux/amd64 \
+        --platform=linux/arm64 \
+        ../+earthly-docker \
+        --TAG="$RELEASE_TAG"
     BUILD \
         --platform=linux/amd64 \
         --platform=linux/arm64 \
