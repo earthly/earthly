@@ -3,12 +3,16 @@ package earthfile2llb
 import (
 	"context"
 	"fmt"
+	"path/filepath"
 	"sync"
 
+	"github.com/earthly/earthly/conslogging"
+	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/states"
 	"github.com/earthly/earthly/util/gatewaycrafter"
 	"github.com/earthly/earthly/util/llbutil"
 	"github.com/earthly/earthly/util/llbutil/pllb"
+	"github.com/earthly/earthly/util/saveartifactlocally"
 	"github.com/earthly/earthly/util/syncutil/semutil"
 	"github.com/earthly/earthly/util/syncutil/serrgroup"
 
@@ -26,6 +30,11 @@ type saveImageWaitItem struct {
 type stateWaitItem struct {
 	c     *Converter
 	state *pllb.State
+}
+
+type saveArtifactLocalWaitItem struct {
+	c         *Converter
+	saveLocal states.SaveLocal
 }
 
 // waitItem should be either saveImageWaitItem or stateWaitItem
@@ -63,6 +72,16 @@ func (wb *waitBlock) addState(state *pllb.State, c *Converter) {
 	wb.items = append(wb.items, &item)
 }
 
+func (wb *waitBlock) addSaveArtifactLocal(state states.SaveLocal, c *Converter) {
+	wb.mu.Lock()
+	defer wb.mu.Unlock()
+	item := saveArtifactLocalWaitItem{
+		c:         c,
+		saveLocal: state,
+	}
+	wb.items = append(wb.items, &item)
+}
+
 func (wb *waitBlock) wait(ctx context.Context) error {
 	wb.mu.Lock()
 	defer wb.mu.Unlock()
@@ -70,6 +89,9 @@ func (wb *waitBlock) wait(ctx context.Context) error {
 	errGroup, ctx := serrgroup.WithContext(ctx)
 	errGroup.Go(func() error {
 		return wb.saveImages(ctx)
+	})
+	errGroup.Go(func() error {
+		return wb.saveArtifactLocal(ctx)
 	})
 	errGroup.Go(func() error {
 		return wb.waitStates(ctx)
@@ -244,4 +266,93 @@ func (wb *waitBlock) waitStates(ctx context.Context) error {
 		})
 	}
 	return errGroup.Wait()
+}
+
+type saveArtifactLocalEntry struct {
+	artifact    domain.Artifact
+	artifactDir string
+	destPath    string
+	ifExists    bool
+	salt        string
+}
+
+func (wb *waitBlock) saveArtifactLocal(ctx context.Context) error {
+	gwCrafter := gatewaycrafter.NewGatewayCrafter()
+
+	var gatewayClient gwclient.Client
+	var console conslogging.ConsoleLogger
+	artifacts := []saveArtifactLocalEntry{}
+
+	for refID, item := range wb.items {
+		saveLocalItem, ok := item.(*saveArtifactLocalWaitItem)
+		if !ok {
+			continue
+		}
+
+		c := saveLocalItem.c
+		i := saveLocalItem.saveLocal.Index
+		gatewayClient = c.opt.GwClient
+		console = c.opt.Console
+
+		state := c.mts.Final.SeparateArtifactsState[i]
+
+		ref, err := llbutil.StateToRef(ctx, c.opt.GwClient, state, c.opt.NoCache, c.platr, c.opt.CacheImports.AsSlice())
+		if err != nil {
+			return err
+		}
+
+		artifact := domain.Artifact{
+			Target:   c.target,
+			Artifact: saveLocalItem.saveLocal.ArtifactPath,
+		}
+
+		dirID, err := gwCrafter.AddSaveArtifactLocal(ref, refID, artifact.String(), saveLocalItem.saveLocal.ArtifactPath, saveLocalItem.saveLocal.DestPath)
+		if err != nil {
+			return err
+		}
+		c.opt.LocalArtifactWhiteList.Add(saveLocalItem.saveLocal.DestPath)
+
+		outDir, err := c.opt.TempEarthlyOutDir()
+		if err != nil {
+			return err
+		}
+		artifacts = append(artifacts, saveArtifactLocalEntry{
+			artifact:    artifact,
+			artifactDir: filepath.Join(outDir, fmt.Sprintf("index-%s", dirID)),
+			destPath:    saveLocalItem.saveLocal.DestPath,
+			ifExists:    saveLocalItem.saveLocal.IfExists,
+			salt:        c.mts.Final.ID,
+		})
+
+	}
+
+	refs, metadata := gwCrafter.GetRefsAndMetadata()
+	if len(refs) == 0 {
+		if len(metadata) != 0 {
+			panic("metadata should always be empty when refs is empty")
+		}
+		return nil
+	}
+
+	err := gatewayClient.Export(ctx, gwclient.ExportRequest{
+		Refs:     refs,
+		Metadata: metadata,
+	})
+	if err != nil {
+		return err
+	}
+
+	outputConsole := conslogging.NewBufferedLogger(&console)
+	defer outputConsole.Flush()
+
+	for _, entry := range artifacts {
+		err = saveartifactlocally.SaveArtifactLocally(
+			ctx, console, outputConsole, entry.artifact, entry.artifactDir, entry.destPath,
+			entry.salt, true, entry.ifExists)
+		if err != nil {
+			return err
+		}
+
+	}
+	return nil
 }

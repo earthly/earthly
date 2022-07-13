@@ -5,9 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path"
 	"path/filepath"
-	"strings"
 	"sync"
 
 	"github.com/earthly/earthly/buildcontext"
@@ -25,6 +23,7 @@ import (
 	"github.com/earthly/earthly/util/llbutil/pllb"
 	"github.com/earthly/earthly/util/llbutil/secretprovider"
 	"github.com/earthly/earthly/util/platutil"
+	"github.com/earthly/earthly/util/saveartifactlocally"
 	"github.com/earthly/earthly/util/syncutil/semutil"
 	"github.com/earthly/earthly/variables"
 	"github.com/moby/buildkit/client"
@@ -32,7 +31,6 @@ import (
 	gwclient "github.com/moby/buildkit/frontend/gateway/client"
 	"github.com/moby/buildkit/session"
 	"github.com/moby/buildkit/util/entitlements"
-	reccopy "github.com/otiai10/copy"
 	"github.com/pkg/errors"
 	"golang.org/x/sync/errgroup"
 )
@@ -134,13 +132,17 @@ func (b *Builder) BuildTarget(ctx context.Context, target domain.Target, opt Bui
 
 func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt BuildOpt) (*states.MultiTarget, error) {
 	var (
-		sharedLocalStateCache = earthfile2llb.NewSharedLocalStateCache()
-		featureFlagOverrides  = b.opt.FeatureFlagOverrides
-		destPathWhitelist     = make(map[string]bool)
-		manifestLists         = make(map[string][]manifest) // parent image -> child images
-		platformImgNames      = make(map[string]bool)       // ensure that these are unique
-		singPlatImgNames      = make(map[string]bool)       // ensure that these are unique
-		pullPingMap           = gatewaycrafter.NewPullPingMap()
+		sharedLocalStateCache  = earthfile2llb.NewSharedLocalStateCache()
+		featureFlagOverrides   = b.opt.FeatureFlagOverrides
+		manifestLists          = make(map[string][]manifest) // parent image -> child images
+		platformImgNames       = make(map[string]bool)       // ensure that these are unique
+		singPlatImgNames       = make(map[string]bool)       // ensure that these are unique
+		pullPingMap            = gatewaycrafter.NewPullPingMap()
+		localArtifactWhiteList = gatewaycrafter.NewLocalArtifactWhiteList()
+
+		// dirIDs maps a dirIndex to a dirID; the "dir-id" field was introduced
+		// to accomodate parallelism in the WAIT/END PopWaitBlock handling
+		dirIDs = map[int]string{}
 	)
 	var (
 		depIndex   = 0
@@ -155,36 +157,38 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 		var err error
 		if !b.builtMain {
 			opt := earthfile2llb.ConvertOpt{
-				GwClient:              gwClient,
-				Resolver:              b.resolver,
-				ImageResolveMode:      b.opt.ImageResolveMode,
-				CleanCollection:       b.opt.CleanCollection,
-				PlatformResolver:      opt.PlatformResolver.SubResolver(opt.PlatformResolver.Current()),
-				DockerImageSolverTar:  newTarImageSolver(b.opt, b.s.sm),
-				MultiImageSolver:      newMultiImageSolver(b.opt, b.s.sm),
-				OverridingVars:        b.opt.OverridingVars,
-				BuildContextProvider:  b.opt.BuildContextProvider,
-				CacheImports:          b.opt.CacheImports,
-				UseInlineCache:        b.opt.UseInlineCache,
-				UseFakeDep:            b.opt.UseFakeDep,
-				AllowLocally:          !b.opt.Strict,
-				AllowInteractive:      !b.opt.Strict,
-				AllowPrivileged:       opt.AllowPrivileged,
-				ParallelConversion:    b.opt.ParallelConversion,
-				Parallelism:           b.opt.Parallelism,
-				Console:               b.opt.Console,
-				GitLookup:             b.opt.GitLookup,
-				FeatureFlagOverrides:  featureFlagOverrides,
-				LocalStateCache:       sharedLocalStateCache,
-				BuiltinArgs:           opt.BuiltinArgs,
-				NoCache:               b.opt.NoCache,
-				ContainerFrontend:     b.opt.ContainerFrontend,
-				UseLocalRegistry:      (b.opt.LocalRegistryAddr != ""),
-				DoSaves:               !opt.NoOutput,
-				OnlyFinalTargetImages: opt.OnlyFinalTargetImages,
-				DoPushes:              opt.Push,
-				PullPingMap:           pullPingMap,
-				InternalSecretStore:   b.opt.InternalSecretStore,
+				GwClient:               gwClient,
+				Resolver:               b.resolver,
+				ImageResolveMode:       b.opt.ImageResolveMode,
+				CleanCollection:        b.opt.CleanCollection,
+				PlatformResolver:       opt.PlatformResolver.SubResolver(opt.PlatformResolver.Current()),
+				DockerImageSolverTar:   newTarImageSolver(b.opt, b.s.sm),
+				MultiImageSolver:       newMultiImageSolver(b.opt, b.s.sm),
+				OverridingVars:         b.opt.OverridingVars,
+				BuildContextProvider:   b.opt.BuildContextProvider,
+				CacheImports:           b.opt.CacheImports,
+				UseInlineCache:         b.opt.UseInlineCache,
+				UseFakeDep:             b.opt.UseFakeDep,
+				AllowLocally:           !b.opt.Strict,
+				AllowInteractive:       !b.opt.Strict,
+				AllowPrivileged:        opt.AllowPrivileged,
+				ParallelConversion:     b.opt.ParallelConversion,
+				Parallelism:            b.opt.Parallelism,
+				Console:                b.opt.Console,
+				GitLookup:              b.opt.GitLookup,
+				FeatureFlagOverrides:   featureFlagOverrides,
+				LocalStateCache:        sharedLocalStateCache,
+				BuiltinArgs:            opt.BuiltinArgs,
+				NoCache:                b.opt.NoCache,
+				ContainerFrontend:      b.opt.ContainerFrontend,
+				UseLocalRegistry:       (b.opt.LocalRegistryAddr != ""),
+				DoSaves:                !opt.NoOutput,
+				OnlyFinalTargetImages:  opt.OnlyFinalTargetImages,
+				DoPushes:               opt.Push,
+				PullPingMap:            pullPingMap,
+				LocalArtifactWhiteList: localArtifactWhiteList,
+				InternalSecretStore:    b.opt.InternalSecretStore,
+				TempEarthlyOutDir:      b.tempEarthlyOutDir,
 			}
 			mts, err = earthfile2llb.Earthfile2LLB(childCtx, target, opt, true)
 			if err != nil {
@@ -345,19 +349,16 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 					if err != nil {
 						return nil, err
 					}
-					refKey := fmt.Sprintf("dir-%d", dirIndex)
-					refPrefix := fmt.Sprintf("ref/%s", refKey)
-					gwCrafter.AddRef(refKey, ref)
 					artifact := domain.Artifact{
 						Target:   sts.Target,
 						Artifact: saveLocal.ArtifactPath,
 					}
-					gwCrafter.AddMeta(fmt.Sprintf("%s/artifact", refPrefix), []byte(artifact.String()))
-					gwCrafter.AddMeta(fmt.Sprintf("%s/src-path", refPrefix), []byte(saveLocal.ArtifactPath))
-					gwCrafter.AddMeta(fmt.Sprintf("%s/dest-path", refPrefix), []byte(saveLocal.DestPath))
-					gwCrafter.AddMeta(fmt.Sprintf("%s/export-dir", refPrefix), []byte("true"))
-					gwCrafter.AddMeta(fmt.Sprintf("%s/dir-index", refPrefix), []byte(fmt.Sprintf("%d", dirIndex)))
-					destPathWhitelist[saveLocal.DestPath] = true
+					dirID, err := gwCrafter.AddSaveArtifactLocal(ref, dirIndex, artifact.String(), saveLocal.ArtifactPath, saveLocal.DestPath)
+					if err != nil {
+						return nil, err
+					}
+					dirIDs[dirIndex] = dirID
+					localArtifactWhiteList.Add(saveLocal.DestPath)
 					dirIndex++
 				}
 			}
@@ -385,15 +386,15 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 		})
 		return pipeW, nil
 	}
-	onArtifact := func(childCtx context.Context, index int, artifact domain.Artifact, artifactPath string, destPath string) (string, error) {
-		if !destPathWhitelist[destPath] {
-			return "", errors.Errorf("dest path %s is not in the whitelist: %+v", destPath, destPathWhitelist)
+	onArtifact := func(childCtx context.Context, index string, artifact domain.Artifact, artifactPath string, destPath string) (string, error) {
+		if !localArtifactWhiteList.Exists(destPath) {
+			return "", errors.Errorf("dest path %s is not in the whitelist: %+v", destPath, localArtifactWhiteList.AsList())
 		}
 		outDir, err := b.tempEarthlyOutDir()
 		if err != nil {
 			return "", err
 		}
-		artifactDir := filepath.Join(outDir, fmt.Sprintf("index-%d", index))
+		artifactDir := filepath.Join(outDir, fmt.Sprintf("index-%s", index))
 		err = os.MkdirAll(artifactDir, 0755)
 		if err != nil {
 			return "", errors.Wrapf(err, "create dir %s", artifactDir)
@@ -464,9 +465,9 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 			if err != nil {
 				return nil, err
 			}
-			err = b.saveArtifactLocally(
-				ctx, outputConsole, *opt.OnlyArtifact, outDir, opt.OnlyArtifactDestPath,
-				mts.Final.ID, opt, false)
+			err = saveartifactlocally.SaveArtifactLocally(
+				ctx, b.opt.Console, outputConsole, *opt.OnlyArtifact, outDir, opt.OnlyArtifactDestPath,
+				mts.Final.ID, opt.PrintPhases, false)
 			if err != nil {
 				return nil, err
 			}
@@ -517,14 +518,18 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 					if err != nil {
 						return nil, err
 					}
-					artifactDir := filepath.Join(outDir, fmt.Sprintf("index-%d", dirIndex))
+					dirID, ok := dirIDs[dirIndex]
+					if !ok {
+						return nil, fmt.Errorf("failed to map dir index %d", dirIndex)
+					}
+					artifactDir := filepath.Join(outDir, fmt.Sprintf("index-%s", dirID))
 					artifact := domain.Artifact{
 						Target:   sts.Target,
 						Artifact: saveLocal.ArtifactPath,
 					}
-					err = b.saveArtifactLocally(
-						ctx, outputConsole, artifact, artifactDir, saveLocal.DestPath,
-						sts.ID, opt, saveLocal.IfExists)
+					err = saveartifactlocally.SaveArtifactLocally(
+						ctx, b.opt.Console, outputConsole, artifact, artifactDir, saveLocal.DestPath,
+						sts.ID, opt.PrintPhases, saveLocal.IfExists)
 					if err != nil {
 						return nil, err
 					}
@@ -539,14 +544,18 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 						if err != nil {
 							return nil, err
 						}
-						artifactDir := filepath.Join(outDir, fmt.Sprintf("index-%d", dirIndex))
+						dirID, ok := dirIDs[dirIndex]
+						if !ok {
+							return nil, fmt.Errorf("failed to map dir index %d", dirIndex)
+						}
+						artifactDir := filepath.Join(outDir, fmt.Sprintf("index-%s", dirID))
 						artifact := domain.Artifact{
 							Target:   sts.Target,
 							Artifact: saveLocal.ArtifactPath,
 						}
-						err = b.saveArtifactLocally(
-							ctx, outputConsole, artifact, artifactDir, saveLocal.DestPath,
-							sts.ID, opt, saveLocal.IfExists)
+						err = saveartifactlocally.SaveArtifactLocally(
+							ctx, b.opt.Console, outputConsole, artifact, artifactDir, saveLocal.DestPath,
+							sts.ID, opt.PrintPhases, saveLocal.IfExists)
 						if err != nil {
 							return nil, err
 						}
@@ -637,103 +646,6 @@ func (b *Builder) artifactStateToRef(ctx context.Context, gwClient gwclient.Clie
 		platr, b.opt.CacheImports.AsSlice())
 }
 
-func (b *Builder) saveArtifactLocally(ctx context.Context, console *conslogging.BufferedLogger, artifact domain.Artifact, indexOutDir string, destPath string, salt string, opt BuildOpt, ifExists bool) error {
-	fromPattern := filepath.Join(indexOutDir, filepath.FromSlash(artifact.Artifact))
-	// Resolve possible wildcards.
-	// TODO: Note that this is not very portable, as the glob is host-platform dependent,
-	//       while the pattern is also guest-platform dependent.
-	fromGlobMatches, err := filepath.Glob(fromPattern)
-	if err != nil {
-		return errors.Wrapf(err, "glob")
-	} else if !artifact.Target.IsRemote() && len(fromGlobMatches) <= 0 {
-		if ifExists {
-			return nil
-		}
-		return errors.Errorf("cannot save artifact %s, since it does not exist", artifact.StringCanonical())
-	}
-	isWildcard := strings.ContainsAny(fromPattern, `*?[`)
-	for _, from := range fromGlobMatches {
-		fiSrc, err := os.Stat(from)
-		if err != nil {
-			return errors.Wrapf(err, "os stat %s", from)
-		}
-		srcIsDir := fiSrc.IsDir()
-		to := destPath
-		destIsDir := strings.HasSuffix(to, "/") || to == "."
-		if artifact.Target.IsLocalExternal() && !filepath.IsAbs(to) {
-			// Place within external dir.
-			to = path.Join(artifact.Target.LocalPath, to)
-		}
-		if destIsDir {
-			// Place within dest dir.
-			to = path.Join(to, path.Base(from))
-		}
-		destExists := false
-		fiDest, err := os.Stat(to)
-		if err != nil {
-			// Ignore err. Likely dest path does not exist.
-			if isWildcard && !destIsDir {
-				return errors.New(
-					"artifact is a wildcard, but AS LOCAL destination does not end with /")
-			}
-			destIsDir = fiSrc.IsDir()
-		} else {
-			destExists = true
-			destIsDir = fiDest.IsDir()
-		}
-		if srcIsDir && !destIsDir {
-			return errors.New(
-				"artifact is a directory, but existing AS LOCAL destination is a file")
-		}
-		if destExists {
-			if !srcIsDir {
-				// Remove preexisting dest file.
-				err = os.Remove(to)
-				if err != nil {
-					return errors.Wrapf(err, "rm %s", to)
-				}
-			} else {
-				// Remove preexisting dest dir.
-				err = os.RemoveAll(to)
-				if err != nil {
-					return errors.Wrapf(err, "rm -rf %s", to)
-				}
-			}
-		}
-
-		toDir := path.Dir(to)
-		err = os.MkdirAll(toDir, 0755)
-		if err != nil {
-			return errors.Wrapf(err, "mkdir all for artifact %s", toDir)
-		}
-		err = os.Link(from, to)
-		if err != nil {
-			// Hard linking did not work. Try recursive copy.
-			errCopy := reccopy.Copy(from, to)
-			if errCopy != nil {
-				return errors.Wrapf(errCopy, "copy artifact %s", from)
-			}
-		}
-
-		// Write to console about this artifact.
-		artifactPath := trimFilePathPrefix(indexOutDir, from, b.opt.Console)
-		artifact2 := domain.Artifact{
-			Target:   artifact.Target,
-			Artifact: artifactPath,
-		}
-		destPath2 := filepath.FromSlash(destPath)
-		if strings.HasSuffix(destPath, "/") {
-			destPath2 = filepath.Join(destPath2, filepath.Base(artifactPath))
-		}
-		if opt.PrintPhases {
-			artifactColor := b.opt.Console.WithPrefixAndSalt(artifact.Target.String(), salt).PrefixColor()
-			artifactStr := artifactColor.Sprintf("%s", artifact2.StringCanonical())
-			console.Printf("Artifact %s output as %s\n", artifactStr, destPath2)
-		}
-	}
-	return nil
-}
-
 func (b *Builder) tempEarthlyOutDir() (string, error) {
 	var err error
 	b.outDirOnce.Do(func() {
@@ -756,14 +668,4 @@ func (b *Builder) tempEarthlyOutDir() (string, error) {
 		})
 	})
 	return b.outDir, err
-}
-
-func trimFilePathPrefix(prefix string, thePath string, console conslogging.ConsoleLogger) string {
-	ret, err := filepath.Rel(prefix, thePath)
-	if err != nil {
-		console.Warnf("Warning: Could not compute relative path for %s "+
-			"as being relative to %s: %s\n", thePath, prefix, err.Error())
-		return thePath
-	}
-	return ret
 }

@@ -129,10 +129,16 @@ type ConvertOpt struct {
 	// PullPingMap points to the per-connection map used by the builder's onPull callback
 	PullPingMap *gatewaycrafter.PullPingMap
 
+	// LocalArtifactWhiteList points to the per-connection list of seen SAVE ARTIFACT ... AS LOCAL entries
+	LocalArtifactWhiteList *gatewaycrafter.LocalArtifactWhiteList
+
 	// InternalSecretStore is a secret store used internally by Earthly.
 	// It is mainly used to pass along parameters to buildkit processes without
 	// invalidating the cache.
 	InternalSecretStore *secretprovider.MutableMapStore
+
+	// TempEarthlyOutDir is a path to a temp dir where artifacts are temporarily saved
+	TempEarthlyOutDir func() (string, error)
 }
 
 // Earthfile2LLB parses a earthfile and executes the statements for a given target.

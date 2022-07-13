@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/earthly/earthly/states/image"
+	"github.com/earthly/earthly/util/stringutil"
 
 	"github.com/moby/buildkit/exporter/containerimage/exptypes"
 	gwclient "github.com/moby/buildkit/frontend/gateway/client"
@@ -52,6 +53,22 @@ func (gc *GatewayCrafter) AddPushImageEntry(ref gwclient.Reference, refID int, i
 		gc.AddMeta(refPrefix+"/platform", []byte(platformStr))
 	}
 	return refPrefix, nil // TODO once all earthlyoutput-metadata-related code is moved into saveimageutil, change to "return err" only
+}
+
+// AddSaveArtifactLocal adds ref and metadata required to trigger an artifact export to the local host
+func (gc *GatewayCrafter) AddSaveArtifactLocal(ref gwclient.Reference, refID int, artifact, srcPath, destPath string) (string, error) {
+	refKey := fmt.Sprintf("dir-%d", refID)
+	refPrefix := fmt.Sprintf("ref/%s", refKey)
+	gc.AddRef(refKey, ref)
+
+	dirID := stringutil.RandomAlphanumeric(32)
+	gc.AddMeta(fmt.Sprintf("%s/artifact", refPrefix), []byte(artifact))
+	gc.AddMeta(fmt.Sprintf("%s/src-path", refPrefix), []byte(srcPath))
+	gc.AddMeta(fmt.Sprintf("%s/dest-path", refPrefix), []byte(destPath))
+	gc.AddMeta(fmt.Sprintf("%s/export-dir", refPrefix), []byte("true"))
+	gc.AddMeta(fmt.Sprintf("%s/dir-id", refPrefix), []byte(dirID))
+
+	return dirID, nil
 }
 
 // AddRef adds a reference to the results to be exported.

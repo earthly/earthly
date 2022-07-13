@@ -495,6 +495,9 @@ func (c *Converter) CopyClassical(ctx context.Context, srcs []string, dest strin
 		srcStateFactory := addIncludePathAndSharedKeyHint(c.buildContextFactory, srcs)
 		srcState = c.opt.LocalStateCache.getOrConstruct(srcStateFactory)
 	} else {
+		if c.ftrs.WaitBlock {
+			return fmt.Errorf("wait-block feature requires use-copy-include-patterns feature")
+		}
 		srcState = c.buildContextFactory.Construct()
 	}
 
@@ -812,10 +815,17 @@ func (c *Converter) SaveArtifact(ctx context.Context, saveFrom string, saveTo st
 			Index:        len(c.mts.Final.SeparateArtifactsState) - 1,
 			IfExists:     ifExists,
 		}
-		if isPush {
-			c.mts.Final.RunPush.SaveLocals = append(c.mts.Final.RunPush.SaveLocals, saveLocal)
+
+		if c.ftrs.WaitBlock {
+			if c.opt.DoSaves {
+				c.waitBlock().addSaveArtifactLocal(saveLocal, c)
+			}
 		} else {
-			c.mts.Final.SaveLocals = append(c.mts.Final.SaveLocals, saveLocal)
+			if isPush {
+				c.mts.Final.RunPush.SaveLocals = append(c.mts.Final.RunPush.SaveLocals, saveLocal)
+			} else {
+				c.mts.Final.SaveLocals = append(c.mts.Final.SaveLocals, saveLocal)
+			}
 		}
 
 	}
