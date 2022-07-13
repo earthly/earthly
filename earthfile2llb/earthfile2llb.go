@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/earthly/earthly/util/containerutil"
+	"github.com/earthly/earthly/util/gatewaycrafter"
 	"github.com/earthly/earthly/util/platutil"
 	"github.com/moby/buildkit/client/llb"
 	gwclient "github.com/moby/buildkit/frontend/gateway/client"
@@ -88,6 +89,8 @@ type ConvertOpt struct {
 	// for a local or remote target; this is to support the legacy behaviour that was first introduced in earthly (up to 0.5)
 	// When this is set to false, SAVE IMAGE commands are only executed when DoSaves is true.
 	ForceSaveImage bool
+	// OnlyFinalTargetImages is used to ignore SAVE IMAGE commands in indirectly referenced targets
+	OnlyFinalTargetImages bool
 	// Gitlookup is used to attach credentials to GIT CLONE operations
 	GitLookup *buildcontext.GitLookup
 	// LocalStateCache provides a cache for local pllb.States
@@ -121,6 +124,9 @@ type ConvertOpt struct {
 
 	// waitBlock references the current WAIT/END scope
 	waitBlock *waitBlock
+
+	// PullPingMap points to the per-connection map used by the builder's onPull callback
+	PullPingMap *gatewaycrafter.PullPingMap
 }
 
 // Earthfile2LLB parses a earthfile and executes the statements for a given target.

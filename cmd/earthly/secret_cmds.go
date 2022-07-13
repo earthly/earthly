@@ -128,13 +128,13 @@ func (app *earthlyApp) secretCmdsPreview() []*cli.Command {
 				{
 					Name:      "rm",
 					Usage:     "Remove a user secret permission.",
-					UsageText: "earthly [options] secret permission rm <path> <user-id>",
+					UsageText: "earthly [options] secret permission rm <path> <user-email>",
 					Action:    app.actionSecretPermsRemove,
 				},
 				{
 					Name:      "set",
 					Usage:     "Create or update a user secret permission.",
-					UsageText: "earthly [options] secret permission set <path> <user-id> <permission>",
+					UsageText: "earthly [options] secret permission set <path> <user-email> <permission>",
 					Action:    app.actionSecretPermsSet,
 				},
 			},
@@ -432,9 +432,9 @@ func (app *earthlyApp) actionSecretPermsList(cliCtx *cli.Context) error {
 	}
 
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
-	fmt.Fprintf(w, "User ID\tPermission\tCreated\n")
+	fmt.Fprintf(w, "User Email\tPermission\tCreated\n")
 	for _, perm := range perms {
-		fmt.Fprintf(w, "%s\t%s\t%s\n", perm.UserID, perm.Permission, perm.CreatedAt.Format(dateFormat))
+		fmt.Fprintf(w, "%s\t%s\t%s\n", perm.UserEmail, perm.Permission, perm.CreatedAt.Format(dateFormat))
 	}
 	w.Flush()
 
@@ -455,14 +455,17 @@ func (app *earthlyApp) actionSecretPermsRemove(cliCtx *cli.Context) error {
 		return errors.New("user secrets don't support permissions")
 	}
 
-	userID := cliCtx.Args().Get(1)
+	userEmail := cliCtx.Args().Get(1)
+	if userEmail == "" {
+		return errors.New("user email is required")
+	}
 
 	cloudClient, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
 	if err != nil {
 		return errors.Wrap(err, "failed to create cloud client")
 	}
 
-	err = cloudClient.RemoveSecretPermission(cliCtx.Context, path, userID)
+	err = cloudClient.RemoveSecretPermission(cliCtx.Context, path, userEmail)
 	if err != nil {
 		return errors.Wrap(err, "failed to remove permission")
 	}
@@ -484,9 +487,9 @@ func (app *earthlyApp) actionSecretPermsSet(cliCtx *cli.Context) error {
 		return errors.New("user secrets don't support permissions")
 	}
 
-	userID := cliCtx.Args().Get(1)
-	if userID == "" {
-		return errors.New("user ID is required")
+	userEmail := cliCtx.Args().Get(1)
+	if userEmail == "" {
+		return errors.New("user email is required")
 	}
 
 	perm := cliCtx.Args().Get(2)
@@ -499,7 +502,7 @@ func (app *earthlyApp) actionSecretPermsSet(cliCtx *cli.Context) error {
 		return errors.Wrap(err, "failed to create cloud client")
 	}
 
-	err = cloudClient.SetSecretPermission(cliCtx.Context, path, userID, perm)
+	err = cloudClient.SetSecretPermission(cliCtx.Context, path, userEmail, perm)
 	if err != nil {
 		return errors.Wrap(err, "failed to set permission")
 	}

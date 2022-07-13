@@ -1,0 +1,53 @@
+VERSION --wait-block 0.6
+
+myimg:
+    FROM alpine:3.15
+    RUN echo NWMyMTQ2YjctZGFlNS00YzQ5LWE1MTktNDM2Zjc4YzNkNzAwCg== > /special-data
+    RUN sleep 5 # increase the likelyhood of +check-tag-exists to run in the event the WAIT/END code fails to block
+    ARG --required REGISTRY
+    ARG --required tag
+    SAVE IMAGE $REGISTRY/myuser/myimg:$tag
+
+deps:
+    FROM alpine:3.15
+    RUN apk add curl jq
+
+check-tag-does-not-exist-in-registry:
+    FROM +deps
+    ARG --required REGISTRY
+    ARG --required tag
+    RUN curl -k "https://$REGISTRY/v2/myuser/myimg/manifests/$tag" > output && \
+        test "$(cat output | jq -r .errors[0].code)" = "MANIFEST_UNKNOWN" && echo "verified $tag was not pushed"
+
+check-tag-exists-locally:
+    LOCALLY
+    ARG --required REGISTRY
+    ARG --required tag
+    RUN docker images "$REGISTRY/myuser/myimg:$tag" | grep "$tag"
+
+check-with-docker-pull-works:
+    FROM earthly/dind:alpine
+    ARG --required REGISTRY
+    ARG --required tag
+    WITH DOCKER --pull $REGISTRY/myuser/myimg:$tag
+        RUN docker images "$REGISTRY/myuser/myimg:$tag" | grep "$tag"
+    END
+
+check-with-docker-load-works:
+    FROM earthly/dind:alpine
+    WITH DOCKER --load mytestimg=+myimg
+        RUN docker run mytestimg /bin/sh -c 'cat /special-data' | grep NWMyMTQ2Y
+    END
+
+test:
+    ARG --required REGISTRY
+    ARG --required tag
+    WAIT
+        BUILD +myimg --REGISTRY=$REGISTRY --tag=$tag
+    END
+    BUILD +check-tag-does-not-exist-in-registry --REGISTRY=$REGISTRY --tag=$tag
+    BUILD +check-tag-exists-locally --REGISTRY=$REGISTRY --tag=$tag
+    BUILD +check-with-docker-load-works
+
+    # FIXME pulling from a registry does not currently work
+    # BUILD +check-with-docker-pull-works --REGISTRY=$REGISTRY --tag=$tag

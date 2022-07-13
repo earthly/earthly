@@ -206,6 +206,12 @@ jobs:
       EARTHLY_INSTALL_ID: "earthly-githubactions"
     steps:
       - uses: earthly/actions-setup@v1.0.1
+      - name: Set up QEMU
+        id: qemu
+        uses: docker/setup-qemu-action@v1
+        with:
+          image: tonistiigi/binfmt:latest
+          platforms: all
       - uses: actions/checkout@v3
       - uses: actions/setup-go@v1
         with:

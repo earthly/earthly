@@ -172,9 +172,9 @@ func (w *withDockerRunRegistry) Run(ctx context.Context, args []string, opt With
 	crOpts.extraRunOpts = append(crOpts.extraRunOpts, pllb.AddMount(
 		dockerdWrapperPath, pllb.Scratch(), llb.HostBind(), llb.SourcePath(dockerdWrapperPath)))
 
-	dindID, err := w.c.mts.Final.TargetInput().Hash()
+	dindID, err := makeDindID(w.c.mts.Final.TargetInput(), w.c.opt.GwClient.BuildOpts().SessionID)
 	if err != nil {
-		return errors.Wrap(err, "compute dind id")
+		return err
 	}
 	crOpts.shellWrap = makeWithDockerdWrapFun(dindID, nil, pullImages, opt)
 

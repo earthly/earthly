@@ -3,8 +3,6 @@ package main
 import (
 	"bytes"
 	"context"
-	"crypto/rand"
-	"encoding/base64"
 	"flag"
 	"fmt"
 	"io"
@@ -42,6 +40,7 @@ import (
 	"github.com/earthly/earthly/util/containerutil"
 	"github.com/earthly/earthly/util/fileutil"
 	"github.com/earthly/earthly/util/reflectutil"
+	"github.com/earthly/earthly/util/stringutil"
 )
 
 const (
@@ -314,15 +313,10 @@ func getBinaryName() string {
 }
 
 func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *earthlyApp {
-	sessionIDBytes := make([]byte, 64)
-	_, err := rand.Read(sessionIDBytes)
-	if err != nil {
-		panic(err)
-	}
 	app := &earthlyApp{
 		cliApp:    cli.NewApp(),
 		console:   console,
-		sessionID: base64.StdEncoding.EncodeToString(sessionIDBytes),
+		sessionID: stringutil.RandomAlphanumeric(64),
 		cliFlags: cliFlags{
 			buildkitdSettings: buildkitd.Settings{},
 		},
