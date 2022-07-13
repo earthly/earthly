@@ -1366,6 +1366,13 @@ func (c *Converter) Host(ctx context.Context, hostname string, ip net.IP) error 
 	return nil
 }
 
+// Project handles a "PROJECT" command in base target.
+func (c *Converter) Project(ctx context.Context, org, project string) error {
+	c.org = org
+	c.project = project
+	return nil
+}
+
 // ResolveReference resolves a reference's build context given the current state: relativity to the Earthfile, imports etc.
 func (c *Converter) ResolveReference(ctx context.Context, ref domain.Reference) (bc *buildcontext.Data, allowPrivileged, allowPrivilegedSet bool, err error) {
 	derefed, allowPrivileged, allowPrivilegedSet, err := c.varCollection.Imports().Deref(ref)

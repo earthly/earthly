@@ -1596,16 +1596,15 @@ func (i *Interpreter) handleProject(ctx context.Context, cmd spec.Command) error
 	}
 
 	if !strings.Contains(projectVal, "/") {
-		return errors.New("format for PROJECT statement should be: <organization>/<project>")
+		return i.errorf(cmd.SourceLocation, "format for PROJECT statement should be: <organization>/<project>")
 	}
 
 	parts := strings.Split(projectVal, "/")
 	if len(parts) != 2 {
-		return errors.New("unexpected format for PROJECT statement")
+		return i.errorf(cmd.SourceLocation, "unexpected format for PROJECT statement")
 	}
 
-	i.converter.org = parts[0]
-	i.converter.project = parts[1]
+	i.converter.Project(ctx, parts[0], parts[1])
 
 	return nil
 }
