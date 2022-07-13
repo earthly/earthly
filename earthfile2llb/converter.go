@@ -73,6 +73,7 @@ const (
 	workdirCmd                           // "WORKDIR"
 	cacheCmd                             // "CACHE"
 	hostCmd                              // "HOST"
+	projectCmd                           // "PROJECT"
 )
 
 // Converter turns earthly commands to buildkit LLB representation.
@@ -93,6 +94,8 @@ type Converter struct {
 	localWorkingDir     string
 	containerFrontend   containerutil.ContainerFrontend
 	waitBlockStack      []*waitBlock
+	project             string
+	org                 string
 }
 
 // NewConverter constructs a new converter for a given earthly target.
@@ -1360,6 +1363,13 @@ func (c *Converter) Host(ctx context.Context, hostname string, ip net.IP) error 
 	}
 	c.nonSaveCommand()
 	c.mts.Final.MainState = c.mts.Final.MainState.AddExtraHost(hostname, ip)
+	return nil
+}
+
+// Project handles a "PROJECT" command in base target.
+func (c *Converter) Project(ctx context.Context, org, project string) error {
+	c.org = org
+	c.project = project
 	return nil
 }
 

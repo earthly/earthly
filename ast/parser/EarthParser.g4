@@ -49,7 +49,8 @@ commandStmt:
 	| doStmt
 	| importStmt
 	| cacheStmt
-	| hostStmt;
+	| hostStmt
+	| projectStmt;
 
 // version --------------------------------------------------------------------
 version: VERSION WS stmtWords NL+;
@@ -147,6 +148,7 @@ doStmt: DO (WS stmtWords)?;
 importStmt: IMPORT (WS stmtWords)?;
 cacheStmt: CACHE (WS stmtWords)?;
 hostStmt: HOST (WS stmtWords)?;
+projectStmt: PROJECT (WS stmtWords)?;
 
 // expr, stmtWord* ------------------------------------------------------------
 
