@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/containerd/containerd/platforms"
+	"github.com/dustin/go-humanize"
 	"github.com/earthly/earthly/ast"
 	"github.com/earthly/earthly/cloud"
 	"github.com/moby/buildkit/client"
@@ -183,9 +184,56 @@ func (app *earthlyApp) actionDebugBuildkitWorkers(cliCtx *cli.Context) error {
 		fmt.Printf("\tVersion: %s\n", info.BuildkitVersion.Version)
 		fmt.Printf("\tPackage: %s\n", info.BuildkitVersion.Package)
 		fmt.Printf("\tRevision: %s\n", info.BuildkitVersion.Revision)
+
 		fmt.Printf("\tParallelism current: %d\n", info.ParallelismCurrent)
 		fmt.Printf("\tParallelism max: %d\n", info.ParallelismMax)
 		fmt.Printf("\tParallelism waiting: %d\n", info.ParallelismWaiting)
+
+		fmt.Printf("\tGC Num runs summary: %d\n", info.GCAnalytics.NumRuns)
+		fmt.Printf("\tGC Num failures: %d\n", info.GCAnalytics.NumFailures)
+		fmt.Printf("\tGC Avg duration: %s\n", info.GCAnalytics.AvgDuration)
+		fmt.Printf("\tGC Avg records cleared: %d\n", info.GCAnalytics.AvgRecordsCleared)
+		fmt.Printf("\tGC Avg size cleared: %s\n", humanize.Bytes(uint64(info.GCAnalytics.AvgSizeCleared)))
+		fmt.Printf("\tGC Avg records before: %d\n", info.GCAnalytics.AvgRecordsBefore)
+		fmt.Printf("\tGC Avg size before: %s\n", humanize.Bytes(uint64(info.GCAnalytics.AvgSizeBefore)))
+		fmt.Printf("\tGC All-time runs: %d\n", info.GCAnalytics.AllTimeRuns)
+		fmt.Printf("\tGC All-time max duration: %s\n", humanizeDuration(info.GCAnalytics.AllTimeMaxDuration))
+		fmt.Printf("\tGC All-time duration: %s\n", humanizeDuration(info.GCAnalytics.AllTimeDuration))
+		if info.GCAnalytics.CurrentStartTime != nil {
+			fmt.Printf("\tGC Current start time: %s\n", humanizeTime(info.GCAnalytics.CurrentStartTime))
+			fmt.Printf("\tGC Current num records before: %d\n", info.GCAnalytics.CurrentNumRecordsBefore)
+			fmt.Printf("\tGC Current size before: %s\n", humanize.Bytes(uint64(info.GCAnalytics.CurrentSizeBefore)))
+		} else {
+			fmt.Printf("\tNo GC run currently ongoing\n")
+		}
+		if info.GCAnalytics.LastStartTime != nil {
+			fmt.Printf("\tGC Last start time: %s\n", humanizeTime(info.GCAnalytics.LastStartTime))
+			fmt.Printf("\tGC Last end time: %s\n", humanizeTime(info.GCAnalytics.LastEndTime))
+			fmt.Printf(
+				"\tGC Last duration: %s\n",
+				humanizeDuration(info.GCAnalytics.LastEndTime.Sub(*info.GCAnalytics.LastStartTime)))
+			fmt.Printf("\tGC Last num records before: %d\n", info.GCAnalytics.LastNumRecordsBefore)
+			fmt.Printf("\tGC Last size before: %s\n", humanize.Bytes(uint64(info.GCAnalytics.LastSizeBefore)))
+			fmt.Printf("\tGC Last num records cleared: %d\n", info.GCAnalytics.LastNumRecordsCleared)
+			fmt.Printf("\tGC Last size cleared: %s\n", humanize.Bytes(uint64(info.GCAnalytics.LastSizeCleared)))
+			fmt.Printf("\tGC Last success: %v\n", info.GCAnalytics.LastSuccess)
+		} else {
+			fmt.Printf("\tGC has not run yet\n")
+		}
 	}
 	return nil
+}
+
+func humanizeDuration(d time.Duration) string {
+	return fmt.Sprintf("%v", d.Round(time.Second))
+}
+
+func humanizeTime(t *time.Time) string {
+	if t == nil {
+		return "nil"
+	}
+	if t.IsZero() {
+		return "zero"
+	}
+	return t.Format(time.RFC3339)
 }
