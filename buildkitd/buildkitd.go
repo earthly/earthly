@@ -889,7 +889,21 @@ func addRequiredOpts(settings Settings, opts ...client.ClientOpt) ([]client.Clie
 	return append(opts, client.WithCredentials(server.Hostname(), caPath, certPath, keyPath)), nil
 }
 
-func GetInfo() (*client.Info, *client.WorkerInfo, error) {
-
-	return nil, nil, nil
+// GetSatelliteInfo reports a buildkit instance's details like version, and current workload.
+// This function assumes the caller is requesting buildkit info from a Satellite instance.
+func GetSatelliteInfo(ctx context.Context, console conslogging.ConsoleLogger, image, containerName string, fe containerutil.ContainerFrontend, earthlyVersion string, settings Settings) (*client.Info, *client.WorkerInfo, error) {
+	fmt.Println(containerName)
+	fmt.Println(settings.BuildkitAddress)
+	fmt.Printf("frontend: %+v\n", fe)
+	opts, err := addRequiredOpts(settings, []client.ClientOpt{})
+	if err != nil {
+		return nil, nil, errors.Wrap(err, "add required client opts")
+	}
+	info, workerInfo, err := waitForConnection(ctx, containerName, settings.BuildkitAddress, settings.Timeout, fe, opts...)
+	if err != nil {
+		return nil, nil, errors.Wrap(err, "connect provided buildkit")
+	}
+	remoteConsole := console.WithPrefix("satellite")
+	printBuildkitInfo(remoteConsole, info, workerInfo, earthlyVersion, false)
+	return info, workerInfo, nil
 }

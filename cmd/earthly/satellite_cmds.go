@@ -243,7 +243,8 @@ func (app *earthlyApp) actionSatelliteInspect(cliCtx *cli.Context) error {
 		return errors.New("satellite name is required")
 	}
 
-	app.satelliteName = cliCtx.Args().Get(0)
+	satelliteToInspect := cliCtx.Args().Get(0)
+	selectedSatellite := app.satelliteName
 
 	cloudClient, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
 	if err != nil {
@@ -255,12 +256,25 @@ func (app *earthlyApp) actionSatelliteInspect(cliCtx *cli.Context) error {
 		return err
 	}
 
-	satellite, err := cloudClient.GetSatellite(cliCtx.Context, app.satelliteName, orgID)
+	//bkClient, err := app.getBuildkitClient(cliCtx, cloudClient)
+	//if err != nil {
+	//	return errors.Wrap(err, "build new buildkitd client")
+	//}
+	//fmt.Println(bkClient)
+
+	satellite, err := cloudClient.GetSatellite(cliCtx.Context, satelliteToInspect, orgID)
 	if err != nil {
 		return err
 	}
 
-	bkInfo, workerInfo, err := buildkitd.GetInfo()
+	err = app.configureSatellite(cliCtx, cloudClient)
+	if err != nil {
+		return errors.Wrapf(err, "could not construct new buildkit client")
+	}
+	app.buildkitdSettings.SatelliteName = satelliteToInspect
+	app.buildkitdSettings.SatelliteOrgID = orgID
+	bkInfo, workerInfo, err := buildkitd.GetSatelliteInfo(cliCtx.Context, app.console, app.buildkitdImage,
+		app.containerName, app.containerFrontend, Version, app.buildkitdSettings)
 	if err != nil {
 		return errors.Wrap(err, "failed checking buildkit info")
 	}
@@ -271,7 +285,7 @@ func (app *earthlyApp) actionSatelliteInspect(cliCtx *cli.Context) error {
 	app.console.Printf("status: %s", satellite.Status)
 	app.console.Printf("running jobs: %d/%d", workerInfo.ParallelismCurrent, workerInfo.ParallelismMax)
 	app.console.Printf("jobs waiting: %d", workerInfo.ParallelismWaiting)
-	app.console.Printf("selected: %t", app.satelliteName == satellite.Name)
+	app.console.Printf("selected: %t", selectedSatellite == satellite.Name)
 	return nil
 }
 
