@@ -213,6 +213,7 @@ load_file_images() {
 }
 
 load_registry_images() {
+    EARTHLY_DOCKER_LOAD_REGISTRY=${EARTHLY_DOCKER_LOAD_REGISTRY:-''}
     if [ -n "$EARTHLY_DOCKER_LOAD_REGISTRY" ]; then
         echo "Loading images from BuildKit via embedded registry..."
         for img in $EARTHLY_DOCKER_LOAD_REGISTRY; do
