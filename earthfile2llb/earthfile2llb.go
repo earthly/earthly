@@ -6,6 +6,7 @@ import (
 
 	"github.com/earthly/earthly/util/containerutil"
 	"github.com/earthly/earthly/util/gatewaycrafter"
+	"github.com/earthly/earthly/util/llbutil/secretprovider"
 	"github.com/earthly/earthly/util/platutil"
 	"github.com/moby/buildkit/client/llb"
 	gwclient "github.com/moby/buildkit/frontend/gateway/client"
@@ -127,6 +128,11 @@ type ConvertOpt struct {
 
 	// PullPingMap points to the per-connection map used by the builder's onPull callback
 	PullPingMap *gatewaycrafter.PullPingMap
+
+	// InternalSecretStore is a secret store used internally by Earthly.
+	// It is mainly used to pass along parameters to buildkit processes without
+	// invalidating the cache.
+	InternalSecretStore *secretprovider.MutableMapStore
 }
 
 // Earthfile2LLB parses a earthfile and executes the statements for a given target.

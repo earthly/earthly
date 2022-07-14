@@ -298,6 +298,7 @@ func (m *multiImageSolver) addRefToResult(ctx context.Context, gwClient gwclient
 		return err
 	}
 
+	// @# TODO: SHOULD NOT USE SESSION ID HERE!!
 	localRegPullID := fmt.Sprintf("sess-%s/%s", gwClient.BuildOpts().SessionID, imageDef.ImageName)
 	gwCrafter.AddMeta(fmt.Sprintf("%s/export-image-local-registry", refPrefix), []byte(localRegPullID))
 

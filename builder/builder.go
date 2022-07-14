@@ -23,6 +23,7 @@ import (
 	"github.com/earthly/earthly/util/gwclientlogger"
 	"github.com/earthly/earthly/util/llbutil"
 	"github.com/earthly/earthly/util/llbutil/pllb"
+	"github.com/earthly/earthly/util/llbutil/secretprovider"
 	"github.com/earthly/earthly/util/platutil"
 	"github.com/earthly/earthly/util/syncutil/semutil"
 	"github.com/earthly/earthly/variables"
@@ -74,6 +75,7 @@ type Opt struct {
 	LocalRegistryAddr      string
 	FeatureFlagOverrides   string
 	ContainerFrontend      containerutil.ContainerFrontend
+	InternalSecretStore    *secretprovider.MutableMapStore
 }
 
 // BuildOpt is a collection of build options.
@@ -182,6 +184,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 				OnlyFinalTargetImages: opt.OnlyFinalTargetImages,
 				DoPushes:              opt.Push,
 				PullPingMap:           pullPingMap,
+				InternalSecretStore:   b.opt.InternalSecretStore,
 			}
 			mts, err = earthfile2llb.Earthfile2LLB(childCtx, target, opt, true)
 			if err != nil {
