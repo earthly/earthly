@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/fs"
 	"net"
+	"net/url"
 	"os"
 	"path"
 	"path/filepath"
@@ -1368,6 +1369,7 @@ func (c *Converter) Host(ctx context.Context, hostname string, ip net.IP) error 
 
 // Project handles a "PROJECT" command in base target.
 func (c *Converter) Project(ctx context.Context, org, project string) error {
+	fmt.Println("PROJECT HANDLED", org, project)
 	c.org = org
 	c.project = project
 	return nil
@@ -1645,16 +1647,23 @@ func (c *Converter) internalRun(ctx context.Context, opts ConvertRunOpts) (pllb.
 	runOpts = append(runOpts, llb.WithCustomNamef("%s%s", c.vertexPrefix(opts.Locally, isInteractive, false), commandStr))
 
 	var extraEnvVars []string
+
+	fmt.Println("PROJECT VALUE", c.org, c.project)
+
+	if c.ftrs.UseProjectSecrets && (c.org == "" || c.project == "") {
+		return pllb.State{}, errors.New("PROJECT statement is required with --use-project-secrets flag")
+	}
+
 	// Secrets.
 	for _, secretKeyValue := range opts.Secrets {
-		secretID, envVar, err := c.parseSecretFlag(secretKeyValue)
+		secretName, envVar, err := c.parseSecretFlag(secretKeyValue)
 		if err != nil {
 			return pllb.State{}, err
 		}
-		if secretID != "" {
-			secretPath := path.Join("/run/secrets", secretID)
+		if secretName != "" {
+			secretPath := path.Join("/run/secrets", secretName)
 			secretOpts := []llb.SecretOption{
-				llb.SecretID(secretID),
+				llb.SecretID(c.secretID(secretName)),
 				// TODO: Perhaps this should just default to the current user automatically from
 				//       buildkit side. Then we wouldn't need to open this up to everyone.
 				llb.SecretFileOpt(0, 0, 0444),
@@ -1672,7 +1681,7 @@ func (c *Converter) internalRun(ctx context.Context, opts ConvertRunOpts) (pllb.
 	if !opts.Locally {
 		// Debugger.
 		secretOpts := []llb.SecretOption{
-			llb.SecretID(common.DebuggerSettingsSecretsKey),
+			llb.SecretID(c.secretID(common.DebuggerSettingsSecretsKey)),
 			llb.SecretFileOpt(0, 0, 0444),
 		}
 		debuggerSecretMount := llb.AddSecret(
@@ -1771,6 +1780,19 @@ func (c *Converter) internalRun(ctx context.Context, opts ConvertRunOpts) (pllb.
 
 		return c.mts.Final.MainState, nil
 	}
+}
+
+func (c *Converter) secretID(name string) string {
+	v := url.Values{}
+	v.Set("name", name)
+	if c.ftrs.UseProjectSecrets {
+		v.Set("v", "1")
+		v.Set("org", c.org)
+		v.Set("project", c.project)
+	} else {
+		v.Set("v", "0")
+	}
+	return v.Encode()
 }
 
 func (c *Converter) parseSecretFlag(secretKeyValue string) (secretID string, envVar string, err error) {

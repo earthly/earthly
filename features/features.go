@@ -38,6 +38,7 @@ type Features struct {
 	UseChmod                   bool `long:"use-chmod" description:"enable the SAVE IMAGE --no-manifest-list option"`
 	UseRegistryForWithDocker   bool `long:"use-registry-for-with-docker" description:"use embedded Docker registry for WITH DOCKER load operations"`
 	WaitBlock                  bool `long:"wait-block" description:"enable WITH/END feature, also allows RUN --push mixed with non-push commands"`
+	UseProjectSecrets          bool `long:"use-project-secrets" description:"enable project-based secret resolution"`
 
 	Major int
 	Minor int
