@@ -249,6 +249,8 @@ func (i *Interpreter) handleCommand(ctx context.Context, cmd spec.Command) (err 
 		return i.handleCache(ctx, cmd)
 	case "HOST":
 		return i.handleHost(ctx, cmd)
+	case "PROJECT":
+		return i.handleProject(ctx, cmd)
 	default:
 		return i.errorf(cmd.SourceLocation, "unexpected command %s", cmd.Name)
 	}
@@ -1570,13 +1572,13 @@ func (i *Interpreter) handleImport(ctx context.Context, cmd spec.Command) error 
 	}
 	importStr, err := i.expandArgs(ctx, args[0], false, false)
 	if err != nil {
-		return i.wrapError(err, cmd.SourceLocation, "faled to expand IMPORT %s", args[0])
+		return i.wrapError(err, cmd.SourceLocation, "failed to expand IMPORT %s", args[0])
 	}
 	var as string
 	if len(args) == 3 {
 		as, err = i.expandArgs(ctx, args[2], false, false)
 		if err != nil {
-			return i.wrapError(err, cmd.SourceLocation, "faled to expand IMPORT as: %s", as)
+			return i.wrapError(err, cmd.SourceLocation, "failed to expand IMPORT as: %s", as)
 		}
 	}
 	isGlobal := (i.target.Target == "base")
@@ -1584,6 +1586,22 @@ func (i *Interpreter) handleImport(ctx context.Context, cmd spec.Command) error 
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "apply IMPORT")
 	}
+	return nil
+}
+
+func (i *Interpreter) handleProject(ctx context.Context, cmd spec.Command) error {
+	projectVal, err := i.expandArgs(ctx, cmd.Args[0], false, false)
+	if err != nil {
+		return i.wrapError(err, cmd.SourceLocation, "failed to expand PROJECT %s", cmd.Args[0])
+	}
+
+	parts := strings.Split(projectVal, "/")
+	if len(parts) != 2 {
+		return i.errorf(cmd.SourceLocation, "unexpected format for PROJECT statement, should be: <organization>/<project>")
+	}
+
+	i.converter.Project(ctx, parts[0], parts[1])
+
 	return nil
 }
 
@@ -1597,7 +1615,10 @@ func (i *Interpreter) handleCache(ctx context.Context, cmd spec.Command) error {
 	if i.local {
 		return i.errorf(cmd.SourceLocation, "CACHE command not supported with LOCALLY")
 	}
-	dir := cmd.Args[0]
+	dir, err := i.expandArgs(ctx, cmd.Args[0], false, false)
+	if err != nil {
+		return i.wrapError(err, cmd.SourceLocation, "failed to expand CACHE %s", cmd.Args[0])
+	}
 	if !path.IsAbs(dir) {
 		dir = path.Clean(path.Join("/", i.converter.mts.Final.MainImage.Config.WorkingDir, dir))
 	}

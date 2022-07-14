@@ -73,6 +73,7 @@ const (
 	workdirCmd                           // "WORKDIR"
 	cacheCmd                             // "CACHE"
 	hostCmd                              // "HOST"
+	projectCmd                           // "PROJECT"
 )
 
 // Converter turns earthly commands to buildkit LLB representation.
@@ -93,6 +94,8 @@ type Converter struct {
 	localWorkingDir     string
 	containerFrontend   containerutil.ContainerFrontend
 	waitBlockStack      []*waitBlock
+	project             string
+	org                 string
 }
 
 // NewConverter constructs a new converter for a given earthly target.
@@ -990,7 +993,8 @@ func (c *Converter) SaveImage(ctx context.Context, imageNames []string, pushImag
 
 			if c.ftrs.WaitBlock {
 				shouldPush := pushImages && si.DockerTag != "" && c.opt.DoSaves
-				c.waitBlock().addSaveImage(si, c, shouldPush)
+				shouldExportLocally := si.DockerTag != "" && c.opt.DoSaves
+				c.waitBlock().addSaveImage(si, c, shouldPush, shouldExportLocally)
 			} else {
 				c.mts.Final.SaveImages = append(c.mts.Final.SaveImages, si)
 			}
@@ -1362,6 +1366,13 @@ func (c *Converter) Host(ctx context.Context, hostname string, ip net.IP) error 
 	return nil
 }
 
+// Project handles a "PROJECT" command in base target.
+func (c *Converter) Project(ctx context.Context, org, project string) error {
+	c.org = org
+	c.project = project
+	return nil
+}
+
 // ResolveReference resolves a reference's build context given the current state: relativity to the Earthfile, imports etc.
 func (c *Converter) ResolveReference(ctx context.Context, ref domain.Reference) (bc *buildcontext.Data, allowPrivileged, allowPrivilegedSet bool, err error) {
 	derefed, allowPrivileged, allowPrivilegedSet, err := c.varCollection.Imports().Deref(ref)
@@ -1501,7 +1512,7 @@ func (c *Converter) prepBuildTarget(ctx context.Context, fullTargetName string, 
 	opt.waitBlock = c.waitBlock()
 	if c.opt.Features.ReferencedSaveOnly {
 		// DoSaves should only be potentially turned-off when the ReferencedSaveOnly feature is flipped
-		opt.DoSaves = (cmdT == buildCmd && c.opt.DoSaves)
+		opt.DoSaves = (cmdT == buildCmd && c.opt.DoSaves && !c.opt.OnlyFinalTargetImages)
 		opt.DoPushes = (cmdT == buildCmd && c.opt.DoPushes)
 		opt.ForceSaveImage = false
 	} else {

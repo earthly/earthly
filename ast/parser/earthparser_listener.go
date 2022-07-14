@@ -209,6 +209,9 @@ type EarthParserListener interface {
 	// EnterHostStmt is called when entering the hostStmt production.
 	EnterHostStmt(c *HostStmtContext)
 
+	// EnterProjectStmt is called when entering the projectStmt production.
+	EnterProjectStmt(c *ProjectStmtContext)
+
 	// EnterExpr is called when entering the expr production.
 	EnterExpr(c *ExprContext)
 
@@ -421,6 +424,9 @@ type EarthParserListener interface {
 
 	// ExitHostStmt is called when exiting the hostStmt production.
 	ExitHostStmt(c *HostStmtContext)
+
+	// ExitProjectStmt is called when exiting the projectStmt production.
+	ExitProjectStmt(c *ProjectStmtContext)
 
 	// ExitExpr is called when exiting the expr production.
 	ExitExpr(c *ExprContext)

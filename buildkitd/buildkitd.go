@@ -16,6 +16,8 @@ import (
 	"github.com/moby/buildkit/client"
 	_ "github.com/moby/buildkit/client/connhelper/dockercontainer" // Load "docker-container://" helper.
 	"github.com/pkg/errors"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	"github.com/earthly/earthly/conslogging"
 	"github.com/earthly/earthly/util/cliutil"
@@ -571,28 +573,43 @@ func checkConnection(ctx context.Context, address string, opts ...client.ClientO
 			return
 		}
 		defer bkClient.Close()
-		infoRet, err := bkClient.Info(ctxTimeout)
+		// Use ListWorkers for backwards compatibility. (Info is relatively new)
+		ws, err := bkClient.ListWorkers(ctxTimeout)
 		if err != nil {
 			mu.Lock()
 			connErr = err
 			mu.Unlock()
 			return
 		}
+		if len(ws) == 0 {
+			mu.Lock()
+			connErr = errors.New("no workers")
+			mu.Unlock()
+			return
+		}
+
 		// Success.
 		mu.Lock()
 		defer mu.Unlock()
-		info = infoRet
 		connErr = nil
-		ws, err := bkClient.ListWorkers(ctxTimeout)
-		if err != nil {
-			connErr = err
-			return
-		}
-		if len(ws) == 0 {
-			connErr = errors.New("no workers")
-			return
-		}
 		workerInfo = ws[0]
+		info, err = bkClient.Info(ctxTimeout)
+		if err != nil {
+			s, ok := status.FromError(errors.Cause(err))
+			if ok && s.Code() == codes.Unimplemented {
+				// Degrade gracefully.
+				info = &client.Info{
+					BuildkitVersion: client.BuildkitVersion{
+						Version:  "unknown",
+						Package:  "unknown",
+						Revision: "unknown",
+					},
+				}
+			} else {
+				connErr = err
+				return
+			}
+		}
 	}()
 	<-ctxTimeout.Done() // timeout or goroutine finished
 	mu.Lock()
@@ -755,26 +772,32 @@ func printBuildkitInfo(bkCons conslogging.ConsoleLogger, info *client.Info, work
 	if isLocal {
 		printFun = bkCons.VerbosePrintf
 	}
-	printFun(
-		"Version %s %s %s",
-		info.BuildkitVersion.Package, info.BuildkitVersion.Version, info.BuildkitVersion.Revision)
-	if info.BuildkitVersion.Package != "github.com/earthly/buildkit" {
-		bkCons.Warnf("Using a non-Earthly version of Buildkit. This is not supported.")
-	} else {
-		if info.BuildkitVersion.Version != earthlyVersion {
-			if isLocal {
-				// For local buildkits we expect perfect version match.
-				bkCons.Warnf(
-					"Warning: Buildkit version (%s) is different from Earthly version (%s)",
-					info.BuildkitVersion.Version, earthlyVersion)
-			} else {
-				// TODO: Be smarter about this comparison and provide a more meaningful message.
-				//       Perhaps we should only print something here if the versions are drastically different.
-				bkCons.Printf(
-					"Info: Buildkit version (%s) is different from Earthly version (%s)",
-					info.BuildkitVersion.Version, earthlyVersion)
+	if info.BuildkitVersion.Version != "unknown" {
+		printFun(
+			"Version %s %s %s",
+			info.BuildkitVersion.Package, info.BuildkitVersion.Version, info.BuildkitVersion.Revision)
+		if info.BuildkitVersion.Package != "github.com/earthly/buildkit" {
+			bkCons.Warnf("Using a non-Earthly version of Buildkit. This is not supported.")
+		} else {
+			if info.BuildkitVersion.Version != earthlyVersion {
+				if isLocal {
+					// For local buildkits we expect perfect version match.
+					bkCons.Warnf(
+						"Warning: Buildkit version (%s) is different from Earthly version (%s)",
+						info.BuildkitVersion.Version, earthlyVersion)
+				} else {
+					// TODO: Be smarter about this comparison and provide a more meaningful message.
+					//       Perhaps we should only print something here if the versions are drastically different.
+					bkCons.Printf(
+						"Info: Buildkit version (%s) is different from Earthly version (%s)",
+						info.BuildkitVersion.Version, earthlyVersion)
+				}
 			}
 		}
+	} else {
+		bkCons.Warnf(
+			"Warning: Buildkit version is unknown. This usually means that " +
+				"it's from a version lower than Earthly Buildkit v0.6.20")
 	}
 	ps := make([]string, len(workerInfo.Platforms))
 	for i, p := range workerInfo.Platforms {
