@@ -10,9 +10,6 @@ import (
 	"google.golang.org/grpc"
 )
 
-// InternalSecretPrefix is a prefix used for Earthly-internal secrets.
-const InternalSecretPrefix = "52804da5-2787-46ad-8478-80c50f305e76/"
-
 type secretProvider struct {
 	stores []secrets.SecretStore
 }
