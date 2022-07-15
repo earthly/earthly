@@ -34,16 +34,22 @@ func (cs *cloudStore) GetSecret(ctx context.Context, id string) ([]byte, error) 
 
 	var data []byte
 
-	if q.Get("name") == "" {
+	name := q.Get("name")
+	if name == "" {
 		return nil, errors.New("name parameter not found")
 	}
 
 	switch q.Get("version") {
 	case "0": // Legacy secret ID format includes the name only
-		if !strings.HasPrefix(id, "/") {
-			return nil, secrets.ErrNotFound
+
+		// For the old secret format, there should never be a secret
+		// that starts with a forward slash.
+		if strings.HasPrefix(name, "/") {
+			return nil, errors.New("secret name starts with '/'; this should never happen")
 		}
-		data, err = cs.client.Get(ctx, id)
+
+		name = "/" + name
+		data, err = cs.client.Get(ctx, name)
 		if err != nil {
 			return nil, err
 		}

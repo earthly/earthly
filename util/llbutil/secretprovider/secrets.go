@@ -26,12 +26,6 @@ func (sp *secretProvider) Register(server *grpc.Server) {
 // if the name contains a /, then we can infer that it references the shared secret service.
 func (sp *secretProvider) GetSecret(ctx context.Context, req *secrets.GetSecretRequest) (*secrets.GetSecretResponse, error) {
 
-	// Based on the old and new secret formats, there should never be a secret
-	// that starts with a forward slash.
-	if strings.HasPrefix(req.ID, "/") {
-		panic("secret name starts with '/'; this should never happen")
-	}
-
 	v, err := url.ParseQuery(req.ID)
 	if err != nil {
 		return nil, errors.New("failed to parse secret ID")
