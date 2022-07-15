@@ -917,8 +917,8 @@ func addRequiredOpts(settings Settings, opts ...client.ClientOpt) ([]client.Clie
 	return append(opts, client.WithCredentials(server.Hostname(), caPath, certPath, keyPath)), nil
 }
 
-// PrintSatelliteInfo reports a buildkit instance's details like version, and current workload.
-// This function assumes the caller is requesting buildkit info from a Satellite instance.
+// PrintSatelliteInfo prints the instance's details,
+// including its Buildkit version, current workload, and garbage collection.
 func PrintSatelliteInfo(ctx context.Context, console conslogging.ConsoleLogger, earthlyVersion string, settings Settings) error {
 	console.Printf("Connecting to %s...", settings.SatelliteName)
 	opts, err := addRequiredOpts(settings, []client.ClientOpt{})
