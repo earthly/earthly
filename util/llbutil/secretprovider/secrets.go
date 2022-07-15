@@ -2,6 +2,7 @@ package secretprovider
 
 import (
 	"context"
+	"net/url"
 	"strings"
 
 	"github.com/moby/buildkit/session"
@@ -25,18 +26,19 @@ func (sp *secretProvider) Register(server *grpc.Server) {
 // if the name contains a /, then we can infer that it references the shared secret service.
 func (sp *secretProvider) GetSecret(ctx context.Context, req *secrets.GetSecretRequest) (*secrets.GetSecretResponse, error) {
 
-	// shared secrets will be of the form org/path
-	// and must be transformed into /org/path
-	secretName := req.ID
-	if strings.Contains(secretName, "/") {
-		if req.ID[0] == '/' {
-			panic("secret name starts with '/'; this should never happen")
-		}
-		secretName = "/" + secretName
+	// Based on the old and new secret formats, there should never be a secret
+	// that starts with a forward slash.
+	if strings.HasPrefix(req.ID, "/") {
+		panic("secret name starts with '/'; this should never happen")
+	}
+
+	v, err := url.ParseQuery(req.ID)
+	if err != nil {
+		return nil, errors.New("failed to parse secret ID")
 	}
 
 	for _, store := range sp.stores {
-		dt, err := store.GetSecret(ctx, secretName)
+		data, err := store.GetSecret(ctx, req.ID)
 		if err != nil {
 			if errors.Is(err, secrets.ErrNotFound) {
 				continue
@@ -44,11 +46,11 @@ func (sp *secretProvider) GetSecret(ctx context.Context, req *secrets.GetSecretR
 			return nil, err
 		}
 		return &secrets.GetSecretResponse{
-			Data: dt,
+			Data: data,
 		}, nil
 	}
 
-	return nil, errors.WithStack(errors.Wrapf(secrets.ErrNotFound, "unable to lookup secret %s", secretName))
+	return nil, errors.WithStack(errors.Wrapf(secrets.ErrNotFound, "unable to lookup secret %s", v.Get("name")))
 }
 
 // New returns a new secrets provider which looks up secrets

@@ -38,7 +38,7 @@ func (cs *cloudStore) GetSecret(ctx context.Context, id string) ([]byte, error) 
 		return nil, errors.New("name parameter not found")
 	}
 
-	switch q.Get("v") {
+	switch q.Get("version") {
 	case "0": // Legacy secret ID format includes the name only
 		if !strings.HasPrefix(id, "/") {
 			return nil, secrets.ErrNotFound
@@ -56,7 +56,7 @@ func (cs *cloudStore) GetSecret(ctx context.Context, id string) ([]byte, error) 
 		}
 		var match *cloud.Secret
 		for _, sec := range res {
-			if sec.Path == q.Get("name") {
+			if sec.Path == path {
 				match = sec
 				break
 			}

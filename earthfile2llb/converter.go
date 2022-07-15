@@ -1788,11 +1788,11 @@ func (c *Converter) secretID(name string) string {
 	v := url.Values{}
 	v.Set("name", name)
 	if c.ftrs.UseProjectSecrets {
-		v.Set("v", "1")
+		v.Set("version", "1")
 		v.Set("org", c.varCollection.Org())
 		v.Set("project", c.varCollection.Project())
 	} else {
-		v.Set("v", "0")
+		v.Set("version", "0")
 	}
 	return v.Encode()
 }
