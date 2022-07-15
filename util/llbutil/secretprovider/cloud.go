@@ -55,14 +55,14 @@ func (cs *cloudStore) GetSecret(ctx context.Context, id string) ([]byte, error) 
 		}
 
 	case "1": // Project-based secret style includes the org and project name
-		path := "/" + path.Join(q.Get("org"), q.Get("project"), q.Get("name"))
-		res, err := cs.client.ListSecrets(ctx, path)
+		name = "/" + name
+		res, err := cs.client.ListSecrets(ctx, name)
 		if err != nil {
 			return nil, err
 		}
 		var match *cloud.Secret
 		for _, sec := range res {
-			if sec.Path == path {
+			if sec.Path == name {
 				match = sec
 				break
 			}
