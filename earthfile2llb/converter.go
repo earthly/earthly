@@ -1780,6 +1780,10 @@ func (c *Converter) internalRun(ctx context.Context, opts ConvertRunOpts) (pllb.
 	}
 }
 
+// secretID returns query parameter style string that contains the secret
+// version, name, org, and project. The version value informs the secret
+// providers how to handle the secret name and whether to use the new
+// project-based secrets endpoints.
 func (c *Converter) secretID(name string) string {
 	v := url.Values{}
 	v.Set("name", name)
