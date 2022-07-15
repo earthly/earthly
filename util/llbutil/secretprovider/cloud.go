@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net/url"
+	"path"
 	"strings"
 
 	"github.com/earthly/earthly/cloud"
@@ -38,7 +39,7 @@ func (cs *cloudStore) GetSecret(ctx context.Context, id string) ([]byte, error) 
 		return nil, errors.New("name parameter not found")
 	}
 
-	switch q.Get("version") {
+	switch q.Get("v") {
 	case "0": // Legacy secret ID format includes the name only
 
 		// For the old secret format, there should never be a secret
@@ -54,6 +55,9 @@ func (cs *cloudStore) GetSecret(ctx context.Context, id string) ([]byte, error) 
 		}
 
 	case "1": // Project-based secret style includes the org and project name
+		if !strings.HasPrefix(name, "user/") {
+			name = path.Join(q.Get("org"), q.Get("project"), name)
+		}
 		name = "/" + name
 		res, err := cs.client.ListSecrets(ctx, name)
 		if err != nil {

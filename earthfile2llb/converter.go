@@ -1786,15 +1786,13 @@ func (c *Converter) internalRun(ctx context.Context, opts ConvertRunOpts) (pllb.
 // project-based secrets endpoints.
 func (c *Converter) secretID(name string) string {
 	v := url.Values{}
+	v.Set("name", name)
 	if c.ftrs.UseProjectSecrets {
-		v.Set("version", "1")
-		if !strings.HasPrefix(name, "user/") {
-			name = path.Join(c.varCollection.Org(), c.varCollection.Project(), name)
-		}
-		v.Set("name", name)
+		v.Set("v", "1")
+		v.Set("org", c.varCollection.Org())
+		v.Set("project", c.varCollection.Project())
 	} else {
-		v.Set("version", "0")
-		v.Set("name", name)
+		v.Set("v", "0")
 	}
 	return v.Encode()
 }
