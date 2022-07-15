@@ -95,8 +95,6 @@ type Converter struct {
 	localWorkingDir     string
 	containerFrontend   containerutil.ContainerFrontend
 	waitBlockStack      []*waitBlock
-	project             string
-	org                 string
 }
 
 // NewConverter constructs a new converter for a given earthly target.
@@ -1369,9 +1367,9 @@ func (c *Converter) Host(ctx context.Context, hostname string, ip net.IP) error 
 
 // Project handles a "PROJECT" command in base target.
 func (c *Converter) Project(ctx context.Context, org, project string) error {
-	fmt.Println("PROJECT HANDLED", org, project)
-	c.org = org
-	c.project = project
+	c.varCollection.SetOrg(org)
+	c.varCollection.SetProject(project)
+	c.nonSaveCommand() // TODO: needed?
 	return nil
 }
 
@@ -1573,6 +1571,8 @@ func (c *Converter) buildTarget(ctx context.Context, fullTargetName string, plat
 			}
 			c.varCollection.SetGlobals(globals)
 			c.varCollection.Imports().SetGlobal(mts.Final.GlobalImports)
+			c.varCollection.SetProject(mts.Final.VarCollection.Project())
+			c.varCollection.SetOrg(mts.Final.VarCollection.Org())
 		}
 	}
 
@@ -1648,9 +1648,7 @@ func (c *Converter) internalRun(ctx context.Context, opts ConvertRunOpts) (pllb.
 
 	var extraEnvVars []string
 
-	fmt.Println("PROJECT VALUE", c.org, c.project)
-
-	if c.ftrs.UseProjectSecrets && (c.org == "" || c.project == "") {
+	if c.ftrs.UseProjectSecrets && (c.varCollection.Org() == "" || c.varCollection.Project() == "") {
 		return pllb.State{}, errors.New("PROJECT statement is required with --use-project-secrets flag")
 	}
 
@@ -1787,8 +1785,8 @@ func (c *Converter) secretID(name string) string {
 	v.Set("name", name)
 	if c.ftrs.UseProjectSecrets {
 		v.Set("v", "1")
-		v.Set("org", c.org)
-		v.Set("project", c.project)
+		v.Set("org", c.varCollection.Org())
+		v.Set("project", c.varCollection.Project())
 	} else {
 		v.Set("v", "0")
 	}
