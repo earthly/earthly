@@ -917,21 +917,18 @@ func addRequiredOpts(settings Settings, opts ...client.ClientOpt) ([]client.Clie
 	return append(opts, client.WithCredentials(server.Hostname(), caPath, certPath, keyPath)), nil
 }
 
-// GetSatelliteInfo reports a buildkit instance's details like version, and current workload.
+// PrintSatelliteInfo reports a buildkit instance's details like version, and current workload.
 // This function assumes the caller is requesting buildkit info from a Satellite instance.
-func GetSatelliteInfo(ctx context.Context, console conslogging.ConsoleLogger, image, containerName string, fe containerutil.ContainerFrontend, earthlyVersion string, settings Settings) (*client.Info, *client.WorkerInfo, error) {
-	fmt.Println(containerName)
-	fmt.Println(settings.BuildkitAddress)
-	fmt.Printf("frontend: %+v\n", fe)
+func PrintSatelliteInfo(ctx context.Context, console conslogging.ConsoleLogger, earthlyVersion string, settings Settings) error {
+	console.Printf("Connecting to %s...", settings.SatelliteName)
 	opts, err := addRequiredOpts(settings, []client.ClientOpt{})
 	if err != nil {
-		return nil, nil, errors.Wrap(err, "add required client opts")
+		return errors.Wrap(err, "add required client opts")
 	}
-	info, workerInfo, err := waitForConnection(ctx, containerName, settings.BuildkitAddress, settings.Timeout, fe, opts...)
+	info, workerInfo, err := waitForConnection(ctx, "", settings.BuildkitAddress, settings.Timeout, nil, opts...)
 	if err != nil {
-		return nil, nil, errors.Wrap(err, "connect provided buildkit")
+		return errors.Wrap(err, "connect provided buildkit")
 	}
-	remoteConsole := console.WithPrefix("satellite")
-	printBuildkitInfo(remoteConsole, info, workerInfo, earthlyVersion, false)
-	return info, workerInfo, nil
+	printBuildkitInfo(console, info, workerInfo, earthlyVersion, false)
+	return nil
 }

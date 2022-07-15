@@ -11,6 +11,7 @@ import (
 	"github.com/earthly/earthly/buildkitd"
 	"github.com/earthly/earthly/cloud"
 	"github.com/earthly/earthly/config"
+	"github.com/earthly/earthly/util/containerutil"
 )
 
 func (app *earthlyApp) satelliteCmds() []*cli.Command {
@@ -256,36 +257,36 @@ func (app *earthlyApp) actionSatelliteInspect(cliCtx *cli.Context) error {
 		return err
 	}
 
-	//bkClient, err := app.getBuildkitClient(cliCtx, cloudClient)
-	//if err != nil {
-	//	return errors.Wrap(err, "build new buildkitd client")
-	//}
-	//fmt.Println(bkClient)
-
 	satellite, err := cloudClient.GetSatellite(cliCtx.Context, satelliteToInspect, orgID)
 	if err != nil {
 		return err
 	}
 
-	err = app.configureSatellite(cliCtx, cloudClient)
+	token, err := cloudClient.GetAuthToken(cliCtx.Context)
 	if err != nil {
-		return errors.Wrapf(err, "could not construct new buildkit client")
+		return errors.Wrap(err, "failed to get auth token")
 	}
+
+	app.buildkitdSettings.SatelliteToken = token
 	app.buildkitdSettings.SatelliteName = satelliteToInspect
 	app.buildkitdSettings.SatelliteOrgID = orgID
-	bkInfo, workerInfo, err := buildkitd.GetSatelliteInfo(cliCtx.Context, app.console, app.buildkitdImage,
-		app.containerName, app.containerFrontend, Version, app.buildkitdSettings)
+	if app.satelliteAddress != "" {
+		app.buildkitdSettings.BuildkitAddress = app.satelliteAddress
+	} else {
+		app.buildkitdSettings.BuildkitAddress = containerutil.SatelliteAddress
+	}
+
+	err = buildkitd.PrintSatelliteInfo(cliCtx.Context, app.console, Version, app.buildkitdSettings)
 	if err != nil {
 		return errors.Wrap(err, "failed checking buildkit info")
 	}
 
-	app.console.Printf("name: %s", satellite.Name)
-	app.console.Printf("version: %s", bkInfo.BuildkitVersion)
-	app.console.Printf("platform: %s", satellite.Platform)
-	app.console.Printf("status: %s", satellite.Status)
-	app.console.Printf("running jobs: %d/%d", workerInfo.ParallelismCurrent, workerInfo.ParallelismMax)
-	app.console.Printf("jobs waiting: %d", workerInfo.ParallelismWaiting)
-	app.console.Printf("selected: %t", selectedSatellite == satellite.Name)
+	selected := "No"
+	if selectedSatellite == satellite.Name {
+		selected = "Yes"
+	}
+	app.console.Printf("Instance state: %s", satellite.Status)
+	app.console.Printf("Currently selected: %s", selected)
 	return nil
 }
 

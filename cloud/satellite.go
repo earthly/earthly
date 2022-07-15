@@ -61,10 +61,25 @@ func (c *client) GetSatellite(ctx context.Context, name, orgID string) (*Satelli
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to unmarshal listTokens response")
 	}
+	var satelliteStatus string
+	switch resp.Status {
+	case pipelinesapi.SatelliteStatus_SATELLITE_STATUS_OPERATIONAL:
+		satelliteStatus = "Operational"
+	case pipelinesapi.SatelliteStatus_SATELLITE_STATUS_CREATING:
+		satelliteStatus = "Creating"
+	case pipelinesapi.SatelliteStatus_SATELLITE_STATUS_FAILED:
+		satelliteStatus = "Failed"
+	case pipelinesapi.SatelliteStatus_SATELLITE_STATUS_DESTROYING:
+		satelliteStatus = "Destroying"
+	case pipelinesapi.SatelliteStatus_SATELLITE_STATUS_OFFLINE:
+		satelliteStatus = "Offline"
+	default:
+		satelliteStatus = "Unknown"
+	}
 	return &SatelliteInstance{
 		Name:     name,
 		Org:      orgID,
-		Status:   resp.Status.String(),
+		Status:   satelliteStatus,
 		Version:  resp.Version,
 		Platform: resp.Platform,
 	}, nil
