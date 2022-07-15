@@ -288,7 +288,7 @@ func (m *multiImageSolver) addRefToResult(ctx context.Context, gwClient gwclient
 		imageDef.ImageName += ":latest"
 	}
 
-	ref, err := llbutil.StateToRef(ctx, gwClient, saveImage.State, true, imageDef.MTS.Final.PlatformResolver, m.cacheImports.AsMap())
+	ref, err := llbutil.StateToRef(ctx, gwClient, saveImage.State, false, imageDef.MTS.Final.PlatformResolver, m.cacheImports.AsMap())
 	if err != nil {
 		return errors.Wrap(err, "initial state to ref conversion")
 	}
