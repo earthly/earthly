@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"net/url"
-	"path"
 	"strings"
 
 	"github.com/earthly/earthly/cloud"

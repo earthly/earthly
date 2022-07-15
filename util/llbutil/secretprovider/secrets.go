@@ -3,7 +3,6 @@ package secretprovider
 import (
 	"context"
 	"net/url"
-	"strings"
 
 	"github.com/moby/buildkit/session"
 	"github.com/moby/buildkit/session/secrets"
