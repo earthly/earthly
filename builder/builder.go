@@ -403,7 +403,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 	onFinalArtifact := func(childCtx context.Context) (string, error) {
 		return b.tempEarthlyOutDir()
 	}
-	onPull := func(childCtx context.Context, imagesToPull []string) error {
+	onPull := func(childCtx context.Context, imagesToPull []string, resp map[string]string) error {
 		if b.opt.LocalRegistryAddr == "" {
 			return nil
 		}

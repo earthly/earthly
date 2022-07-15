@@ -227,7 +227,7 @@ func (w *withDockerRunTar) Run(ctx context.Context, args []string, opt WithDocke
 	if err != nil {
 		return errors.Wrap(err, "make dind ID")
 	}
-	crOpts.shellWrap = makeWithDockerdWrapFun(dindID, tarPaths, opt)
+	crOpts.shellWrap = makeWithDockerdWrapFun(dindID, tarPaths, nil, opt)
 
 	platformIncompatible := !w.c.platr.PlatformEquals(w.c.platr.Current(), platutil.NativePlatform)
 	if platformIncompatible {
@@ -396,11 +396,14 @@ func (w *withDockerRunTar) solveImage(ctx context.Context, mts *states.MultiTarg
 	return nil
 }
 
-func makeWithDockerdWrapFun(dindID string, tarPaths []string, opt WithDockerOpt) shellWrapFun {
+func makeWithDockerdWrapFun(dindID string, tarPaths []string, imgsWithDigests []string, opt WithDockerOpt) shellWrapFun {
 	dockerRoot := path.Join("/var/earthly/dind", dindID)
 	params := []string{
 		fmt.Sprintf("EARTHLY_DOCKERD_DATA_ROOT=\"%s\"", dockerRoot),
 		fmt.Sprintf("EARTHLY_DOCKER_LOAD_FILES=\"%s\"", strings.Join(tarPaths, " ")),
+		// This is not actually used, but it is needed in order to bust the cache
+		// in case an image is updated.
+		fmt.Sprintf("EARTHLY_IMAGES_WITH_DIGESTS=\"%s\"", strings.Join(imgsWithDigests, " ")),
 	}
 	params = append(params, composeParams(opt)...)
 	return func(args []string, envVars []string, isWithShell, withDebugger, forceDebugger bool) []string {

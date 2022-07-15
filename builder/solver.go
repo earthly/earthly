@@ -20,7 +20,6 @@ import (
 type onImageFunc func(context.Context, *errgroup.Group, string) (io.WriteCloser, error)
 type onArtifactFunc func(context.Context, int, domain.Artifact, string, string) (string, error)
 type onFinalArtifactFunc func(context.Context) (string, error)
-type onReadyForPullFunc func(context.Context, []string) error
 
 type solver struct {
 	sm              *outmon.SolverMonitor
@@ -33,7 +32,7 @@ type solver struct {
 	saveInlineCache bool
 }
 
-func (s *solver) buildMainMulti(ctx context.Context, bf gwclient.BuildFunc, onImage onImageFunc, onArtifact onArtifactFunc, onFinalArtifact onFinalArtifactFunc, onPullCallback onReadyForPullFunc, phaseText string) error {
+func (s *solver) buildMainMulti(ctx context.Context, bf gwclient.BuildFunc, onImage onImageFunc, onArtifact onArtifactFunc, onFinalArtifact onFinalArtifactFunc, onPullCallback pullping.PullCallback, phaseText string) error {
 	ch := make(chan *client.SolveStatus)
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
@@ -70,7 +69,7 @@ func (s *solver) buildMainMulti(ctx context.Context, bf gwclient.BuildFunc, onIm
 	return nil
 }
 
-func (s *solver) newSolveOptMulti(ctx context.Context, eg *errgroup.Group, onImage onImageFunc, onArtifact onArtifactFunc, onFinalArtifact onFinalArtifactFunc, onPullCallback onReadyForPullFunc) (*client.SolveOpt, error) {
+func (s *solver) newSolveOptMulti(ctx context.Context, eg *errgroup.Group, onImage onImageFunc, onArtifact onArtifactFunc, onFinalArtifact onFinalArtifactFunc, onPullCallback pullping.PullCallback) (*client.SolveOpt, error) {
 	var cacheImports []client.CacheOptionsEntry
 	for ci := range s.cacheImports.AsMap() {
 		cacheImports = append(cacheImports, newCacheImportOpt(ci))

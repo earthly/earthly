@@ -65,7 +65,9 @@ docker-pull-test-long:
 
 docker-load-test-long:
     WITH DOCKER --load foo.example.com/bar/buz:abc=+a-test-image
-        RUN docker images | grep foo.example.com/bar/buz | grep abc
+        RUN echo "@# j" && \
+            docker inspect foo.example.com/bar/buz:abc && \
+            docker images | grep foo.example.com/bar/buz | grep abc
     END
 
 docker-load-shellout-test:
