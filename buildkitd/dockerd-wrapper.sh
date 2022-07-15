@@ -26,6 +26,7 @@ execute() {
         echo "EARTHLY_DOCKERD_DATA_ROOT not set"
         exit 1
     fi
+    mkdir -p "$EARTHLY_DOCKERD_DATA_ROOT"
 
     # Sometimes, when dockerd starts containerd, it doesn't come up in time. This timeout is not configurable from
     # dockerd, therefore we retry... since most instances of this timeout seem to be related to networking or scheduling
@@ -72,6 +73,9 @@ execute() {
 }
 
 start_dockerd() {
+    data_root=$(TMPDIR="$EARTHLY_DOCKERD_DATA_ROOT/" mktemp -d)
+    echo "Starting dockerd with data root $data_root"
+
     # Use a specific IP range to avoid collision with host dockerd (we need to also connect to host
     # docker containers for the debugger).
     if ! [ -f /etc/docker/daemon.json ]; then
@@ -93,14 +97,14 @@ start_dockerd() {
         }
     ],
     "bip": "172.20.0.1/16",
-    "data-root": "$EARTHLY_DOCKERD_DATA_ROOT",
+    "data-root": "$data_root",
     "insecure-registries" : ["$buildkit_docker_registry"]
 }
 EOF
 
     # Start with a rm -rf to make sure a previous interrupted build did not leave its state around.
-    rm -rf "$EARTHLY_DOCKERD_DATA_ROOT"
-    mkdir -p "$EARTHLY_DOCKERD_DATA_ROOT"
+    rm -rf "$data_root"
+    mkdir -p "$data_root"
     dockerd >/var/log/docker.log 2>&1 &
     dockerd_pid="$!"
     i=1
@@ -149,24 +153,24 @@ stop_dockerd() {
             i=$((i+1))
         done
 
-        # Wait for the PID to exit. This ensures that dockerd cannot keep any files in EARTHLY_DOCKERD_DATA_ROOT open.
+        # Wait for the PID to exit. This ensures that dockerd cannot keep any files in data root open.
         wait "$dockerd_pid" || true
     fi
 
     # Wipe dockerd data when done.
-    if ! rm -rf "$EARTHLY_DOCKERD_DATA_ROOT"; then
+    if ! rm -rf "$data_root"; then
         # We have some issues about failing to delete files. If we fail, list the processes keeping it open for results.
         echo "==== Begin file lsof info ===="
-        if ! lsof +D "$EARTHLY_DOCKERD_DATA_ROOT"; then
-            echo "Failed to run lsof +D $EARTHLY_DOCKERD_DATA_ROOT. Trying lsof $EARTHLY_DOCKERD_DATA_ROOT"
-            if ! lsof "$EARTHLY_DOCKERD_DATA_ROOT"; then
-                echo "Failed to run lsof $EARTHLY_DOCKERD_DATA_ROOT"
+        if ! lsof +D "$data_root"; then
+            echo "Failed to run lsof +D $data_root. Trying lsof $data_root"
+            if ! lsof "$data_root"; then
+                echo "Failed to run lsof $data_root"
             fi
         fi
         echo "==== End file lsof info ===="
         echo "==== Begin file ls info ===="
-        if ! ls -Ral "$EARTHLY_DOCKERD_DATA_ROOT"; then
-            echo "Failed to run ls -Ral $EARTHLY_DOCKERD_DATA_ROOT"
+        if ! ls -Ral "$data_root"; then
+            echo "Failed to run ls -Ral $data_root"
         fi
         echo "==== End file ls info ===="
         echo "" # Add space between above and docker logs
@@ -185,6 +189,7 @@ load_file_images() {
 }
 
 load_registry_images() {
+    EARTHLY_DOCKER_LOAD_REGISTRY=${EARTHLY_DOCKER_LOAD_REGISTRY:-''}
     if [ -n "$EARTHLY_DOCKER_LOAD_REGISTRY" ]; then
         echo "Loading images from BuildKit via embedded registry..."
         for img in $EARTHLY_DOCKER_LOAD_REGISTRY; do

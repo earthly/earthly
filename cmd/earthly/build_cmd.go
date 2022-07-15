@@ -280,11 +280,13 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 	buildContextProvider := provider.NewBuildContextProvider(app.console)
 	buildContextProvider.AddDirs(defaultLocalDirs)
 
+	internalSecretStore := secretprovider.NewMutableMapStore(nil)
 	customSecretProviderCmd, err := secretprovider.NewSecretProviderCmd(app.cfg.Global.SecretProvider)
 	if err != nil {
 		return errors.Wrap(err, "NewSecretProviderCmd")
 	}
 	secretProvider := secretprovider.New(
+		internalSecretStore,
 		customSecretProviderCmd,
 		secretprovider.NewMapStore(secretsMap),
 		secretprovider.NewCloudStore(cloudClient),
@@ -410,6 +412,7 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 		LocalRegistryAddr:      localRegistryAddr,
 		FeatureFlagOverrides:   app.featureFlagOverrides,
 		ContainerFrontend:      app.containerFrontend,
+		InternalSecretStore:    internalSecretStore,
 	}
 	b, err := builder.NewBuilder(cliCtx.Context, builderOpts)
 	if err != nil {
