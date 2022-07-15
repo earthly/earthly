@@ -50,11 +50,11 @@ There are a couple requirements this image expects you to follow when using it. 
 
 If you are using the baked-in `buildkitd`, then this image needs to be run as a privileged container. This is because `buildkitd` needs appropriate access to use `overlayfs`.
 
-#### EARTHLY_TMP_DIR
+#### `/tmp/earthly`
 
-Because this folder sees _a lot_ of traffic, its important that it remains fast. We *strongly* recommend using a Docker volume for mounting `EARTHLY_TMP_DIR`. If you do not, `buildkitd` can consume excessive disk space, operate very slowly, or it might not function correctly.
+Because this folder sees _a lot_ of traffic, its important that it remains fast. We *strongly* recommend using a Docker volume for mounting `/tmp/earthly`. If you do not, `buildkitd` can consume excessive disk space, operate very slowly, or it might not function correctly.
 
-In some environments, not mounting `EARTHLY_TMP_DIR` as a Docker volume results in the following error:
+In some environments, not mounting `/tmp/earthly` as a Docker volume results in the following error:
 
 ```
 --> WITH DOCKER RUN --privileged ...
@@ -89,9 +89,8 @@ This is the easiest way to ensure you get the nice, colorized output from `earth
 | BUILDKIT_TCP_TRANSPORT_ENABLED      |                                | Required to be set to `true` when using an external `buildkitd` via `BUILDKIT_HOST`. `true` when using the baked-in `buildkitd`.                                                                              |
 | BUILDKIT_TLS_ENABLED                |                                | Required when using an external `buildkitd` via `BUILDKITD_HOST`, and the external `buildkitd` requires mTLS. You will also need to mount certificates into the right place (`/etc/.earthly/certs`).          |
 | CNI_MTU                             | MTU of first default interface | Set this when we autodetect the MTU incorrectly. The device used for autodetection can be shown by the command  `ip route show \| grep default \| cut -d' ' -f5 \| head -n 1`                                 |
-| EARTHLY_RESET_TMP_DIR               | `false`                        | Cleans out `EARTHLY_TMP_DIR` before running, if set to `true`. Useful when you host-mount an temporary directory across runs.                                                                                 |
+| EARTHLY_RESET_TMP_DIR               | `false`                        | Cleans out `/tmp/earthly` before running, if set to `true`. Useful when you host-mount an temporary directory across runs.                                                                                 |
 | NETWORK_MODE                        | `cni`                          | Specifies the networking mode of `buildkitd`. Default uses a CNI bridge network, configured with the `CNI_MTU`.                                                                                               |
-| EARTHLY_TMP_DIR                     | `/tmp/earthly`                 | Specifies the location of `earthly`s temporary directory. You can also mount an external volume to this path to preserve the contents across runs.                                                            |
 | CACHE_SIZE_MB                       | `0`                            | How big should the `buildkitd` cache be allowed to get, in MiB? A value of 0 sets the cache size to "adaptive", causing BuildKit to detect the available size of the system and choose a limit automatically. |
 | GIT_URL_INSTEAD_OF                  |                                | Configure `git config --global url.<url>.insteadOf` rules to be used by `buildkitd`.                                                                                                                          |
 | IP_TABLES                           |                                | Override which binary (`iptables_nft` or `iptables_legacy`) is used for configuring `ip_tables`. Only set this if autodetection fails for your platform.                                                      |

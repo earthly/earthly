@@ -31,20 +31,18 @@ To run a remote BuildKit instance, deploy and configure the image [`earthly/buil
 
 A remote daemon should be reachable by all clients intending to use it. Earthly uses ports `8371-8373` to communicate, so these should be open and available.
 
-#### Daemon
+#### Mounts
 
-To configure an `earthly/buildkitd` daemon as a remotely available daemon, you will need to start the container yourself. See our [configuration docs](../earthly-config/earthly-config.md) for more details on all the options available; but here are the ones you need to know:
+**`/tmp/earthly`**
 
-**`EARTHLY_TMP_DIR`**
-
-This will configure the location of the directory that Buildkit uses for storing the cache. Because this folder sees _a lot_ of traffic, its important that it remains fast.
+This path within the container is the location that Buildkit uses for storing the cache. Because this folder sees _a lot_ of traffic, its important that it remains fast.
 
 {% hint style='danger' %}
 ##### Important
-We *strongly* recommend using a Docker volume for mounting `EARTHLY_TMP_DIR`. If you do not, `buildkitd` can consume excessive disk space, operate very slowly, or it might not function correctly.
+We *strongly* recommend using a Docker volume for mounting `/tmp/earthly`. If you do not, `buildkitd` can consume excessive disk space, operate very slowly, or it might not function correctly.
 {% endhint %}
 
-In some environments, not mounting `EARTHLY_TMP_DIR` as a Docker volume results in the following error:
+In some environments, not mounting `/tmp/earthly` as a Docker volume results in the following error:
 
 ```
 --> WITH DOCKER RUN --privileged ...
@@ -55,6 +53,10 @@ rm: can't remove '/var/earthly/dind/...': Resource busy
 In EKS, users reported that mounting an EBS volume, instead of a Kubernetes `emptyDir` worked.
 
 This part of our documentation needs improvement. If you have a Kubernetes-based setup, please [let us know](https://earthly.dev/slack) how you have mounted `EARTHLY_TMP_DIR` and whether `WITH DOCKER` worked well for you.
+
+#### Daemon
+
+To configure an `earthly/buildkitd` daemon as a remotely available daemon, you will need to start the container yourself. See our [configuration docs](../earthly-config/earthly-config.md) for more details on all the options available; but here are the ones you need to know:
 
 **`BUILDKIT_TCP_TRANSPORT_ENABLED`**
 
