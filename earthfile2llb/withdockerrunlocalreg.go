@@ -2,6 +2,7 @@ package earthfile2llb
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/states"
@@ -81,7 +82,8 @@ func (w *withDockerRunLocalReg) Run(ctx context.Context, args []string, opt With
 	// Wait for all images to build (channel will be closed when finished).
 	for result := range res.ResultChan {
 		// Pull and then retag all images with expected tags.
-		err := w.c.containerFrontend.ImagePull(ctx, result.IntermediateImageName)
+		pullImage := fmt.Sprintf("%s/%s", buildkitRegistry, result.IntermediateImageName)
+		err := w.c.containerFrontend.ImagePull(ctx, pullImage)
 		if err != nil {
 			return err
 		}
