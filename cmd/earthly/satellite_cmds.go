@@ -8,8 +8,10 @@ import (
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
 
+	"github.com/earthly/earthly/buildkitd"
 	"github.com/earthly/earthly/cloud"
 	"github.com/earthly/earthly/config"
+	"github.com/earthly/earthly/util/containerutil"
 )
 
 func (app *earthlyApp) satelliteCmds() []*cli.Command {
@@ -242,7 +244,8 @@ func (app *earthlyApp) actionSatelliteInspect(cliCtx *cli.Context) error {
 		return errors.New("satellite name is required")
 	}
 
-	app.satelliteName = cliCtx.Args().Get(0)
+	satelliteToInspect := cliCtx.Args().Get(0)
+	selectedSatellite := app.cfg.Satellite.Name
 
 	cloudClient, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
 	if err != nil {
@@ -254,16 +257,36 @@ func (app *earthlyApp) actionSatelliteInspect(cliCtx *cli.Context) error {
 		return err
 	}
 
-	satellite, err := cloudClient.GetSatellite(cliCtx.Context, app.satelliteName, orgID)
+	satellite, err := cloudClient.GetSatellite(cliCtx.Context, satelliteToInspect, orgID)
 	if err != nil {
 		return err
 	}
 
-	app.console.Printf("name: %s", satellite.Name)
-	app.console.Printf("version: %s", satellite.Version)
-	app.console.Printf("platform: %s", satellite.Platform)
-	app.console.Printf("status: %s", satellite.Status)
-	app.console.Printf("selected: %t", app.satelliteName == satellite.Name)
+	token, err := cloudClient.GetAuthToken(cliCtx.Context)
+	if err != nil {
+		return errors.Wrap(err, "failed to get auth token")
+	}
+
+	app.buildkitdSettings.SatelliteToken = token
+	app.buildkitdSettings.SatelliteName = satelliteToInspect
+	app.buildkitdSettings.SatelliteOrgID = orgID
+	if app.satelliteAddress != "" {
+		app.buildkitdSettings.BuildkitAddress = app.satelliteAddress
+	} else {
+		app.buildkitdSettings.BuildkitAddress = containerutil.SatelliteAddress
+	}
+
+	err = buildkitd.PrintSatelliteInfo(cliCtx.Context, app.console, Version, app.buildkitdSettings)
+	if err != nil {
+		return errors.Wrap(err, "failed checking buildkit info")
+	}
+
+	selected := "No"
+	if selectedSatellite == satellite.Name {
+		selected = "Yes"
+	}
+	app.console.Printf("Instance state: %s", satellite.Status)
+	app.console.Printf("Currently selected: %s", selected)
 	return nil
 }
 

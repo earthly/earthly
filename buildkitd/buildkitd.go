@@ -916,3 +916,19 @@ func addRequiredOpts(settings Settings, opts ...client.ClientOpt) ([]client.Clie
 
 	return append(opts, client.WithCredentials(server.Hostname(), caPath, certPath, keyPath)), nil
 }
+
+// PrintSatelliteInfo prints the instance's details,
+// including its Buildkit version, current workload, and garbage collection.
+func PrintSatelliteInfo(ctx context.Context, console conslogging.ConsoleLogger, earthlyVersion string, settings Settings) error {
+	console.Printf("Connecting to %s...", settings.SatelliteName)
+	opts, err := addRequiredOpts(settings, []client.ClientOpt{})
+	if err != nil {
+		return errors.Wrap(err, "add required client opts")
+	}
+	info, workerInfo, err := waitForConnection(ctx, "", settings.BuildkitAddress, settings.Timeout, nil, opts...)
+	if err != nil {
+		return errors.Wrap(err, "connect provided buildkit")
+	}
+	printBuildkitInfo(console, info, workerInfo, earthlyVersion, false)
+	return nil
+}
