@@ -245,7 +245,7 @@ func (app *earthlyApp) actionSatelliteInspect(cliCtx *cli.Context) error {
 	}
 
 	satelliteToInspect := cliCtx.Args().Get(0)
-	selectedSatellite := app.satelliteName
+	selectedSatellite := app.cfg.Satellite.Name
 
 	cloudClient, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
 	if err != nil {
