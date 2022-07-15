@@ -28,10 +28,6 @@ execute() {
     fi
     mkdir -p "$EARTHLY_DOCKERD_DATA_ROOT"
 
-    if ! find_free_subdir; then
-        exit 1
-    fi
-
     # Sometimes, when dockerd starts containerd, it doesn't come up in time. This timeout is not configurable from
     # dockerd, therefore we retry... since most instances of this timeout seem to be related to networking or scheduling
     # when many WITH DOCKER commands are also running. Logs are printed for each failure.
@@ -76,29 +72,9 @@ execute() {
     return "$exit_code"
 }
 
-find_free_subdir() {
-    i=0
-    dir="$EARTHLY_DOCKERD_DATA_ROOT/$i"
-    lock="$EARTHLY_DOCKERD_DATA_ROOT/$i.lock"
-    touch "$lock" || true
-    exec 9<>"$lock"
-    while ! flock -n 9; do
-        exec 9<&-
-        i=$((i+1))
-        if [ "$i" -gt 100 ]; then
-            echo "Could not find a free subdir in $EARTHLY_DOCKERD_DATA_ROOT"
-            return 1
-        fi
-        dir="$EARTHLY_DOCKERD_DATA_ROOT/$i"
-        lock="$EARTHLY_DOCKERD_DATA_ROOT/$i.lock"
-        touch "$lock" || true
-        exec 9<>"$lock"
-    done
-    echo "$dir" >/var/run/docker-data-root
-}
-
 start_dockerd() {
-    data_root="$(cat /var/run/docker-data-root)"
+    data_root=$(TMPDIR="$EARTHLY_DOCKERD_DATA_ROOT/" mktemp -d)
+    echo "Starting dockerd with data root $data_root"
 
     # Use a specific IP range to avoid collision with host dockerd (we need to also connect to host
     # docker containers for the debugger).
