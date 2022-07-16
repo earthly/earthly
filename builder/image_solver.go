@@ -3,6 +3,7 @@ package builder
 import (
 	"bufio"
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -16,10 +17,12 @@ import (
 	"github.com/earthly/earthly/util/llbutil"
 	"github.com/moby/buildkit/client"
 	"github.com/moby/buildkit/client/llb"
+	"github.com/moby/buildkit/exporter/containerimage/exptypes"
 	gwclient "github.com/moby/buildkit/frontend/gateway/client"
 	"github.com/moby/buildkit/session"
 	"github.com/moby/buildkit/session/pullping"
 	"github.com/moby/buildkit/util/entitlements"
+	ocispecs "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
 	"golang.org/x/sync/errgroup"
 )
@@ -177,9 +180,9 @@ func newMultiImageSolver(opt Opt, sm *outmon.SolverMonitor) *multiImageSolver {
 // used, and an error channel to which any errors will be sent.
 func (m *multiImageSolver) SolveImages(ctx context.Context, imageDefs []*states.ImageDef) (*states.ImageSolverResults, error) {
 	var (
-		releaseChan = make(chan struct{})
-		resultChan  = make(chan string, len(imageDefs))
+		resultChan  = make(chan *states.ImageResult, len(imageDefs))
 		errChan     = make(chan error)
+		releaseChan = make(chan struct{})
 		ret         = &states.ImageSolverResults{
 			ResultChan: resultChan,
 			ErrChan:    errChan,
@@ -196,10 +199,59 @@ func (m *multiImageSolver) SolveImages(ctx context.Context, imageDefs []*states.
 	}
 
 	// This func is executed when the image create/push process is complete.
-	onPull := func(ctx context.Context, images []string) error {
+	onPull := func(ctx context.Context, images []string, resp map[string]string) error {
+		if resp == nil {
+			resp = make(map[string]string)
+		}
+		results := make([]*states.ImageResult, len(images))
+		for i, img := range images {
+			// Note that this img split by / algo is also repeated in the
+			// dockerd wrapper.
+			imgParts := strings.SplitN(img, "/", 2)
+			if len(imgParts) != 2 {
+				return errors.Errorf(
+					"invalid image name: %s. Was expecting sess prefix", img)
+			}
+			result := &states.ImageResult{
+				IntermediateImageName: img,
+				FinalImageName:        imgParts[1],
+				Annotations:           make(map[string]string),
+			}
+
+			for k, v := range resp {
+				if !strings.HasPrefix(k, result.FinalImageName+"|") {
+					continue
+				}
+				k2 := strings.TrimPrefix(k, result.FinalImageName+"|")
+				switch k2 {
+				case exptypes.ExporterImageDescriptorKey:
+					vdec, err := base64.StdEncoding.DecodeString(v)
+					if err != nil {
+						return errors.Wrapf(err, "base64 decode img descriptor for img %s", img)
+					}
+					result.ImageDescriptor = &ocispecs.Descriptor{}
+					err = json.Unmarshal(vdec, result.ImageDescriptor)
+					if err != nil {
+						return errors.Wrapf(err, "json unmarshal img descriptor for img %s", img)
+					}
+					result.ImageDigest = result.ImageDescriptor.Digest.String()
+					result.FinalImageNameWithDigest = fmt.Sprintf(
+						"%s@%s", result.FinalImageName, result.ImageDigest)
+				case exptypes.ExporterConfigDigestKey:
+					result.ConfigDigest = v
+				default:
+				}
+				result.Annotations[k2] = v
+			}
+			if result.ImageDigest == "" {
+				// TODO: This should use console.
+				fmt.Printf("Warning: Could not detect digest for image %s. Please update your buildkit installation.\n", result.FinalImageName)
+			}
+			results[i] = result
+		}
 		// Send any images created by BuildKit to the caller.
-		for _, image := range images {
-			resultChan <- image
+		for _, res := range results {
+			resultChan <- res
 		}
 		close(resultChan)
 		// Wait for the closer func to be called. This signals that all WITH

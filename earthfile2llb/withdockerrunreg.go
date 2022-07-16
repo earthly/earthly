@@ -3,6 +3,7 @@ package earthfile2llb
 import (
 	"context"
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/earthly/earthly/domain"
@@ -151,9 +152,19 @@ func (w *withDockerRunRegistry) Run(ctx context.Context, args []string, opt With
 	})
 
 	// Wait for all images to build (channel will be closed when finished).
+	results := make([]*states.ImageResult, 0, len(imagesToBuild))
+	for result := range res.ResultChan {
+		results = append(results, result)
+	}
+	// Sort the results for LLB consistency.
+	sort.Slice(results, func(i, j int) bool {
+		return results[i].FinalImageNameWithDigest < results[j].FinalImageNameWithDigest
+	})
 	var pullImages []string
-	for imageName := range res.ResultChan {
-		pullImages = append(pullImages, imageName)
+	var imgsWithDigests []string
+	for _, result := range results {
+		pullImages = append(pullImages, result.IntermediateImageName)
+		imgsWithDigests = append(imgsWithDigests, result.FinalImageNameWithDigest)
 	}
 
 	// Construct run command with all options and images.
@@ -200,7 +211,7 @@ func (w *withDockerRunRegistry) Run(ctx context.Context, args []string, opt With
 			context.TODO(), dockerLoadRegistrySecretID)
 	})
 
-	crOpts.shellWrap = makeWithDockerdWrapFun(dindID, nil, opt)
+	crOpts.shellWrap = makeWithDockerdWrapFun(dindID, nil, imgsWithDigests, opt)
 
 	platformIncompatible := !w.c.platr.PlatformEquals(w.c.platr.Current(), platutil.NativePlatform)
 	if platformIncompatible {
