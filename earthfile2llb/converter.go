@@ -1630,7 +1630,7 @@ func (c *Converter) internalRun(ctx context.Context, opts ConvertRunOpts) (pllb.
 	if opts.Privileged {
 		runOpts = append(runOpts, llb.Security(llb.SecurityModeInsecure))
 	}
-	mountRunOpts, err := parseMounts(opts.Mounts, c.mts.Final.Target, c.targetInputActiveOnly(), c.cacheContext, c.platr)
+	mountRunOpts, err := c.parseMounts(opts.Mounts)
 	if err != nil {
 		return pllb.State{}, errors.Wrap(err, "parse mounts")
 	}
