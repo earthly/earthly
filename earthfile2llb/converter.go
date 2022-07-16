@@ -96,6 +96,7 @@ type Converter struct {
 	waitBlockStack      []*waitBlock
 	project             string
 	org                 string
+	fromState           pllb.State
 }
 
 // NewConverter constructs a new converter for a given earthly target.
@@ -132,6 +133,7 @@ func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Da
 		localWorkingDir:     filepath.Dir(bc.BuildFilePath),
 		containerFrontend:   opt.ContainerFrontend,
 		waitBlockStack:      []*waitBlock{opt.waitBlock},
+		fromState:           pllb.Scratch(),
 	}, nil
 }
 
@@ -182,6 +184,7 @@ func (c *Converter) fromClassical(ctx context.Context, imageName string, platfor
 	c.mts.Final.MainImage = img
 	c.mts.Final.RanFromLike = true
 	c.varCollection.ResetEnvVars(envVars)
+	c.fromState = c.mts.Final.MainState
 	return nil
 }
 
@@ -210,6 +213,7 @@ func (c *Converter) fromTarget(ctx context.Context, targetName string, platform 
 	c.mts.Final.RanFromLike = mts.Final.RanFromLike
 	c.mts.Final.RanInteractive = mts.Final.RanInteractive
 	c.platr.UpdatePlatform(mts.Final.PlatformResolver.Current())
+	c.fromState = c.mts.Final.MainState
 	return nil
 }
 
@@ -740,7 +744,7 @@ func (c *Converter) SaveArtifact(ctx context.Context, saveFrom string, saveTo st
 	// which persists any files cached via CACHE command.
 	// This is necessary so those cached files can be
 	// accessed within the CopyOps below.
-	pcState := c.persistCache(c.mts.Final.MainState)
+	pcState := c.persistCacheAndFlatten(c.mts.Final.MainState, true)
 
 	c.mts.Final.ArtifactsState = llbutil.CopyOp(
 		pcState, []string{saveFrom}, c.mts.Final.ArtifactsState,
@@ -756,7 +760,7 @@ func (c *Converter) SaveArtifact(ctx context.Context, saveFrom string, saveTo st
 	if saveAsLocalTo != "" {
 		separateArtifactsState := c.platr.Scratch()
 		if isPush {
-			pushState := c.persistCache(c.mts.Final.RunPush.State)
+			pushState := c.persistCacheAndFlatten(c.mts.Final.RunPush.State, true)
 			separateArtifactsState = llbutil.CopyOp(
 				pushState, []string{saveFrom}, separateArtifactsState,
 				saveToAdjusted, true, true, keepTs, "root:root", nil, ifExists, symlinkNoFollow,
@@ -936,7 +940,7 @@ func (c *Converter) PopWaitBlock(ctx context.Context) error {
 }
 
 // SaveImage applies the earthly SAVE IMAGE command.
-func (c *Converter) SaveImage(ctx context.Context, imageNames []string, pushImages bool, insecurePush bool, cacheHint bool, cacheFrom []string, noManifestList bool) error {
+func (c *Converter) SaveImage(ctx context.Context, imageNames []string, pushImages bool, insecurePush bool, cacheHint bool, cacheFrom []string, noManifestList bool, keepTs bool) error {
 	err := c.checkAllowed(saveImageCmd)
 	if err != nil {
 		return err
@@ -958,7 +962,7 @@ func (c *Converter) SaveImage(ctx context.Context, imageNames []string, pushImag
 				panic("RunPush.HasState should never be true when --wait-block is used")
 			}
 			// pcState persists any files that may be cached via CACHE command.
-			pcState := c.persistCache(c.mts.Final.RunPush.State)
+			pcState := c.persistCacheAndFlatten(c.mts.Final.RunPush.State, keepTs)
 			// SAVE IMAGE --push when it comes before any RUN --push should be treated as if they are in the main state,
 			// since thats their only dependency. It will still be marked as a push.
 			c.mts.Final.RunPush.SaveImages = append(c.mts.Final.RunPush.SaveImages,
@@ -973,10 +977,11 @@ func (c *Converter) SaveImage(ctx context.Context, imageNames []string, pushImag
 					ForceSave:           c.opt.ForceSaveImage,
 					CheckDuplicate:      c.ftrs.CheckDuplicateImages,
 					NoManifestList:      noManifestList,
+					KeepTs:              keepTs,
 				})
 		} else {
 			si := states.SaveImage{
-				State:               c.persistCache(c.mts.Final.MainState),
+				State:               c.persistCacheAndFlatten(c.mts.Final.MainState, keepTs),
 				Image:               c.mts.Final.MainImage.Clone(),
 				DockerTag:           imageName,
 				Push:                pushImages,
@@ -986,6 +991,7 @@ func (c *Converter) SaveImage(ctx context.Context, imageNames []string, pushImag
 				ForceSave:           c.opt.ForceSaveImage,
 				CheckDuplicate:      c.ftrs.CheckDuplicateImages,
 				NoManifestList:      noManifestList,
+				KeepTs:              keepTs,
 
 				Platform:    c.platr.Materialize(c.platr.Current()),
 				HasPlatform: platutil.IsPlatformDefined(c.platr.Current()),
@@ -1431,8 +1437,9 @@ func (c *Converter) FinalizeStates(ctx context.Context) (*states.MultiTarget, er
 		return nil, errors.New("internal error: stack not at base in FinalizeStates")
 	}
 
-	// Persists any cache directories created by using a `CACHE` command
-	c.mts.Final.MainState = c.persistCache(c.mts.Final.MainState)
+	// Persists any cache directories created by using a `CACHE` command.
+	keepTs := c.mts.Final.LastSaveImage().KeepTs
+	c.mts.Final.MainState = c.persistCacheAndFlatten(c.mts.Final.MainState, keepTs)
 
 	c.mts.Final.PlatformResolver = c.platr
 	c.mts.Final.VarCollection = c.varCollection
@@ -2071,10 +2078,11 @@ func (c *Converter) targetInputActiveOnly() dedup.TargetInput {
 	return c.mts.Final.TargetInput().WithFilterBuildArgs(activeBuildArgs)
 }
 
-// persistCache makes temporary cache directories permanent by writing their contents
+// persistCacheAndFlatten makes temporary cache directories permanent by writing their contents
 // from the cached directory to the persistent image layers at the same directory.
 // This only has an effect when the Target contains at least one `CACHE /my/directory` command.
-func (c *Converter) persistCache(srcState pllb.State) pllb.State {
+// In addition, this function optionally flattens all timestamps of the image.
+func (c *Converter) persistCacheAndFlatten(srcState pllb.State, keepTs bool) pllb.State {
 	dest := srcState
 	// User may have multiple CACHE commands in a single target
 	for dir, cache := range c.persistentCacheDirs {
@@ -2090,7 +2098,11 @@ func (c *Converter) persistCache(srcState pllb.State) pllb.State {
 			runOpts...,
 		)
 	}
-
+	if c.ftrs.FlattenTsAllImages && !keepTs {
+		dest = llbutil.FlattenTimestamp(
+			c.fromState, dest,
+			llb.WithCustomNamef("%sSAVE IMAGE (timestamp flatten)", c.vertexPrefix(false, false, false)))
+	}
 	return dest
 }
 

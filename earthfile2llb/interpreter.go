@@ -954,7 +954,7 @@ func (i *Interpreter) handleSaveImage(ctx context.Context, cmd spec.Command) err
 		fmt.Fprintf(os.Stderr, "Deprecation: using SAVE IMAGE with no arguments is no longer necessary and can be safely removed\n")
 		return nil
 	}
-	err = i.converter.SaveImage(ctx, imageNames, opts.Push, opts.Insecure, opts.CacheHint, opts.CacheFrom, opts.NoManifestList)
+	err = i.converter.SaveImage(ctx, imageNames, opts.Push, opts.Insecure, opts.CacheHint, opts.CacheFrom, opts.NoManifestList, opts.KeepTs)
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "save image")
 	}

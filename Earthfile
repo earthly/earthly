@@ -1,4 +1,5 @@
-VERSION --shell-out-anywhere --use-copy-link 0.6
+VERSION --shell-out-anywhere --use-copy-link --flatten-ts-all-images 0.6 # @#
+# VERSION --shell-out-anywhere --use-copy-link 0.6
 
 FROM golang:1.17-alpine3.14
 

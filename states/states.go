@@ -280,6 +280,9 @@ type SaveImage struct {
 	// list (usually used for multi-platform setups). This means that the image
 	// can only be a single-platform image.
 	NoManifestList bool
+	// KeepTs indicates whether to keep the original creation timestamps
+	// of the image.
+	KeepTs bool
 
 	Platform    platutil.Platform
 	HasPlatform bool // true when the --platform value was set (either on cli, or via FROM --platform=..., or BUILD --platform=...)

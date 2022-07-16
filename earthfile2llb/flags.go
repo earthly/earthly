@@ -70,6 +70,7 @@ type saveArtifactOpts struct {
 }
 
 type saveImageOpts struct {
+	KeepTs         bool     `long:"keep-ts" description:"Keep created time file timestamps"`
 	Push           bool     `long:"push" description:"Push the image to the remote registry provided that the build succeeds and also that earthly is invoked in push mode"`
 	CacheHint      bool     `long:"cache-hint" description:"Instruct Earthly that the current target should be saved entirely as part of the remote cache"`
 	Insecure       bool     `long:"insecure" description:"Use unencrypted connection for the push"`

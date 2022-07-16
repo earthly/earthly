@@ -239,3 +239,10 @@ func Copy(input CopyInput, src, dest string, opts ...llb.CopyOption) *FileAction
 type CopyInput interface {
 	UnsafeUnwrap() llb.CopyInput
 }
+
+// Diff is a wrapper around llb.Diff.
+func Diff(lower State, upper State, opts ...llb.ConstraintsOpt) State {
+	gmu.Lock()
+	defer gmu.Unlock()
+	return State{st: llb.Diff(lower.st, upper.st, opts...)}
+}
