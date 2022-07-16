@@ -88,7 +88,7 @@ func (w *withDockerRunLocalReg) Run(ctx context.Context, args []string, opt With
 			return err
 		}
 		err = w.c.containerFrontend.ImageTag(ctx, containerutil.ImageTag{
-			SourceRef: result.IntermediateImageName,
+			SourceRef: pullImage,
 			TargetRef: result.FinalImageName,
 		})
 		if err != nil {
