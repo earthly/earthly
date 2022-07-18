@@ -42,6 +42,12 @@ func (cs *cloudStore) GetSecret(ctx context.Context, id string) ([]byte, error) 
 	switch q.Get("v") {
 	case "0": // Legacy secret ID format includes the name only
 
+		// This format requires the secret to be prefixed with either <org-name>
+		// or 'user'.
+		if !strings.Contains(name, "/") {
+			return nil, secrets.ErrNotFound
+		}
+
 		// For the old secret format, there should never be a secret
 		// that starts with a forward slash.
 		if strings.HasPrefix(name, "/") {
