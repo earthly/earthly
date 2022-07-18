@@ -4,6 +4,8 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+## v0.6.20 - 2022-07-18
+
 ### Changed
 
 - Updated buildkit to include changes up to 12cfc87450c8d4fc31c8c0a09981e4c3fb3e4d9f
@@ -19,6 +21,7 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 ### Fixed
 
 - Fixed `context.Canceled` being reported as the error in some builds instead of the root cause. [#1991](https://github.com/earthly/earthly/issues/1991)
+- Improved cache use of `WITH DOCKER` command.
 - The `earthly/earthly` docker image is now also built for arm64 (in addition to amd64).
 
 ## v0.6.19 - 2022-06-29
