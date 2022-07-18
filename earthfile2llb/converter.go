@@ -1367,9 +1367,9 @@ func (c *Converter) Host(ctx context.Context, hostname string, ip net.IP) error 
 
 // Project handles a "PROJECT" command in base target.
 func (c *Converter) Project(ctx context.Context, org, project string) error {
+	c.nonSaveCommand()
 	c.varCollection.SetOrg(org)
 	c.varCollection.SetProject(project)
-	c.nonSaveCommand() // TODO: needed?
 	return nil
 }
 
