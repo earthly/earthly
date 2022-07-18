@@ -1600,7 +1600,10 @@ func (i *Interpreter) handleProject(ctx context.Context, cmd spec.Command) error
 		return i.errorf(cmd.SourceLocation, "unexpected format for PROJECT statement, should be: <organization>/<project>")
 	}
 
-	i.converter.Project(ctx, parts[0], parts[1])
+	err = i.converter.Project(ctx, parts[0], parts[1])
+	if err != nil {
+		return i.wrapError(err, cmd.SourceLocation, "failed to process PROJECT")
+	}
 
 	return nil
 }

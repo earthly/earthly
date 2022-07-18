@@ -300,6 +300,13 @@ secrets-test:
         --should_fail=true \
         --output_contains="unable to lookup secret SECRET3: not found"
 
+project-secrets-test:
+    DO +RUN_EARTHLY \
+        --earthfile=project-secrets-without-flag.earth \
+        --target=+without-flag \
+        --should_fail=true \
+        --output_contains="must be enabled in order to use PROJECT"
+
 build-arg-test:
     DO +RUN_EARTHLY --earthfile=build-arg.earth
 
