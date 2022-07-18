@@ -215,6 +215,14 @@ ssh-keyscan <hostname> >> ~/.ssh/known_hosts
 ```
 {% endhint %}
 
+#### port
+
+Connect using a non-standard git port, e.g. `2222`.
+
+#### prefix
+
+The `prefix` option is used to indicate where git repositories are stored on the server, e.g. `/var/git/`.
+
 #### pattern
 
 A regular expression defined to match git URLs, defaults to the `<site>/([^/]+)/([^/]+)`. For example if the site is `github.com`, then the default pattern will
