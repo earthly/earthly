@@ -1367,6 +1367,9 @@ func (c *Converter) Host(ctx context.Context, hostname string, ip net.IP) error 
 
 // Project handles a "PROJECT" command in base target.
 func (c *Converter) Project(ctx context.Context, org, project string) error {
+	if !c.ftrs.UseProjectSecrets {
+		return errors.New("--use-project-secrets must be enabled in order to use PROJECT")
+	}
 	c.nonSaveCommand()
 	c.varCollection.SetOrg(org)
 	c.varCollection.SetProject(project)
@@ -1647,10 +1650,6 @@ func (c *Converter) internalRun(ctx context.Context, opts ConvertRunOpts) (pllb.
 	runOpts = append(runOpts, llb.WithCustomNamef("%s%s", c.vertexPrefix(opts.Locally, isInteractive, false), commandStr))
 
 	var extraEnvVars []string
-
-	if c.ftrs.UseProjectSecrets && (c.varCollection.Org() == "" || c.varCollection.Project() == "") {
-		return pllb.State{}, errors.New("PROJECT statement is required with --use-project-secrets flag")
-	}
 
 	// Secrets.
 	for _, secretKeyValue := range opts.Secrets {
