@@ -4,6 +4,8 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+- Added a deprecation warning for secrets using a `+secrets/` prefix. Support for this prefix will be removed in a future release.
+
 ## v0.6.20 - 2022-07-18
 
 ### Changed
