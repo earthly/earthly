@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/fs"
 	"net"
+	"net/url"
 	"os"
 	"path"
 	"path/filepath"
@@ -94,8 +95,6 @@ type Converter struct {
 	localWorkingDir     string
 	containerFrontend   containerutil.ContainerFrontend
 	waitBlockStack      []*waitBlock
-	project             string
-	org                 string
 }
 
 // NewConverter constructs a new converter for a given earthly target.
@@ -1368,8 +1367,12 @@ func (c *Converter) Host(ctx context.Context, hostname string, ip net.IP) error 
 
 // Project handles a "PROJECT" command in base target.
 func (c *Converter) Project(ctx context.Context, org, project string) error {
-	c.org = org
-	c.project = project
+	if !c.ftrs.UseProjectSecrets {
+		return errors.New("--use-project-secrets must be enabled in order to use PROJECT")
+	}
+	c.nonSaveCommand()
+	c.varCollection.SetOrg(org)
+	c.varCollection.SetProject(project)
 	return nil
 }
 
@@ -1571,6 +1574,8 @@ func (c *Converter) buildTarget(ctx context.Context, fullTargetName string, plat
 			}
 			c.varCollection.SetGlobals(globals)
 			c.varCollection.Imports().SetGlobal(mts.Final.GlobalImports)
+			c.varCollection.SetProject(mts.Final.VarCollection.Project())
+			c.varCollection.SetOrg(mts.Final.VarCollection.Org())
 		}
 	}
 
@@ -1628,7 +1633,7 @@ func (c *Converter) internalRun(ctx context.Context, opts ConvertRunOpts) (pllb.
 	if opts.Privileged {
 		runOpts = append(runOpts, llb.Security(llb.SecurityModeInsecure))
 	}
-	mountRunOpts, err := parseMounts(opts.Mounts, c.mts.Final.Target, c.targetInputActiveOnly(), c.cacheContext, c.platr)
+	mountRunOpts, err := c.parseMounts(opts.Mounts)
 	if err != nil {
 		return pllb.State{}, errors.Wrap(err, "parse mounts")
 	}
@@ -1645,16 +1650,17 @@ func (c *Converter) internalRun(ctx context.Context, opts ConvertRunOpts) (pllb.
 	runOpts = append(runOpts, llb.WithCustomNamef("%s%s", c.vertexPrefix(opts.Locally, isInteractive, false), commandStr))
 
 	var extraEnvVars []string
+
 	// Secrets.
 	for _, secretKeyValue := range opts.Secrets {
-		secretID, envVar, err := c.parseSecretFlag(secretKeyValue)
+		secretName, envVar, err := c.parseSecretFlag(secretKeyValue)
 		if err != nil {
 			return pllb.State{}, err
 		}
-		if secretID != "" {
-			secretPath := path.Join("/run/secrets", secretID)
+		if secretName != "" {
+			secretPath := path.Join("/run/secrets", secretName)
 			secretOpts := []llb.SecretOption{
-				llb.SecretID(secretID),
+				llb.SecretID(c.secretID(secretName)),
 				// TODO: Perhaps this should just default to the current user automatically from
 				//       buildkit side. Then we wouldn't need to open this up to everyone.
 				llb.SecretFileOpt(0, 0, 0444),
@@ -1672,7 +1678,7 @@ func (c *Converter) internalRun(ctx context.Context, opts ConvertRunOpts) (pllb.
 	if !opts.Locally {
 		// Debugger.
 		secretOpts := []llb.SecretOption{
-			llb.SecretID(common.DebuggerSettingsSecretsKey),
+			llb.SecretID(c.secretID(common.DebuggerSettingsSecretsKey)),
 			llb.SecretFileOpt(0, 0, 0444),
 		}
 		debuggerSecretMount := llb.AddSecret(
@@ -1773,10 +1779,28 @@ func (c *Converter) internalRun(ctx context.Context, opts ConvertRunOpts) (pllb.
 	}
 }
 
+// secretID returns query parameter style string that contains the secret
+// version, name, org, and project. The version value informs the secret
+// providers how to handle the secret name and whether to use the new
+// project-based secrets endpoints.
+func (c *Converter) secretID(name string) string {
+	v := url.Values{}
+	v.Set("name", name)
+	if c.ftrs.UseProjectSecrets {
+		v.Set("v", "1")
+		v.Set("org", c.varCollection.Org())
+		v.Set("project", c.varCollection.Project())
+	} else {
+		v.Set("v", "0")
+	}
+	return v.Encode()
+}
+
 func (c *Converter) parseSecretFlag(secretKeyValue string) (secretID string, envVar string, err error) {
 	parts := strings.SplitN(secretKeyValue, "=", 2)
 	if len(parts) == 2 {
 		if strings.HasPrefix(parts[1], "+secrets/") {
+			c.opt.Console.Printf("Deprecation: the '+secrets/' prefix is not required and support for it will be removed in an upcoming release")
 			secretID := strings.TrimPrefix(parts[1], "+secrets/")
 			return secretID, parts[0], nil
 		} else if parts[1] == "" {

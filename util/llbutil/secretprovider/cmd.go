@@ -2,6 +2,8 @@ package secretprovider
 
 import (
 	"context"
+	"errors"
+	"net/url"
 	"os"
 	"os/exec"
 	"syscall"
@@ -28,13 +30,23 @@ func (c *cmdStore) GetSecret(ctx context.Context, id string) ([]byte, error) {
 	if len(c.cmd) == 0 {
 		return nil, secrets.ErrNotFound
 	}
-	if id == common.DebuggerSettingsSecretsKey {
+	q, err := url.ParseQuery(id)
+	if err != nil {
+		return nil, errors.New("invalid secret ID format")
+	}
+	name := q.Get("name")
+	if name == common.DebuggerSettingsSecretsKey {
 		// the interactive debugger passes config values by abusing secrets,
 		// we must not call the user's secret provider in this case.
 		return nil, secrets.ErrNotFound
 	}
-	cmd := exec.CommandContext(ctx, "/bin/sh", "-c", c.cmd+" "+shellescape.Quote(id))
-	cmd.Env = os.Environ()
+	cmd := exec.CommandContext(ctx, "/bin/sh", "-c", c.cmd+" "+shellescape.Quote(name))
+	envs := os.Environ()
+	if q.Get("v") == "1" {
+		envs = append(envs, "EARTHLY_ORG="+shellescape.Quote(q.Get("org")))
+		envs = append(envs, "EARTHLY_PROJECT="+shellescape.Quote(q.Get("project")))
+	}
+	cmd.Env = envs
 	cmd.Stderr = os.Stderr
 	dt, err := cmd.Output()
 	if err != nil {

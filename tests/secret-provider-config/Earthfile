@@ -58,11 +58,17 @@ test-with-env:
     DO +RUN_EARTHLY_ARGS --earthfile=test.earth --exec_cmd=/tmp/test-earthly-script
     RUN test "$(cat output/value)" = "my secret is jvyyvjnj; don't tell anyone."
 
+test-with-project-secrets:
+    FROM +base-secret-provider-with-flag
+    DO +RUN_EARTHLY_ARGS --earthfile=test-with-project-secrets.earth --exec_cmd=/tmp/test-earthly-script
+    RUN test "$(cat output/value)" = "my secret is org/project; don't tell anyone."
+
 test-all:
     BUILD +test
     BUILD +test-binary
     BUILD +test-with-flag
     BUILD +test-with-env
+    BUILD +test-with-project-secrets
 
 RUN_EARTHLY_ARGS:
     COMMAND
