@@ -285,8 +285,8 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 		return errors.Wrap(err, "NewSecretProviderCmd")
 	}
 	secretProvider := secretprovider.New(
-		customSecretProviderCmd,
 		secretprovider.NewMapStore(secretsMap),
+		customSecretProviderCmd,
 		secretprovider.NewCloudStore(cloudClient),
 	)
 

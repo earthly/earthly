@@ -1800,6 +1800,7 @@ func (c *Converter) parseSecretFlag(secretKeyValue string) (secretID string, env
 	parts := strings.SplitN(secretKeyValue, "=", 2)
 	if len(parts) == 2 {
 		if strings.HasPrefix(parts[1], "+secrets/") {
+			c.opt.Console.Printf("Deprecation: the '+secrets/' prefix is not required and support for it will be removed in an upcoming release")
 			secretID := strings.TrimPrefix(parts[1], "+secrets/")
 			return secretID, parts[0], nil
 		} else if parts[1] == "" {
