@@ -4,6 +4,12 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+### Fixed
+
+- Fixed an incompatibility with older versions of remote BuildKits and Satellites, which was resulting in Earthly crashing.
+
+### Changed
+
 - Added a deprecation warning for secrets using a `+secrets/` prefix. Support for this prefix will be removed in a future release.
 
 ## v0.6.20 - 2022-07-18
