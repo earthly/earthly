@@ -1,0 +1,6 @@
+VERSION 0.6
+
+FROM alpine
+
+test:
+    RUN sleep 10000
