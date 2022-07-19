@@ -109,6 +109,7 @@ ga:
         --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE
     BUILD +excludes-test
     BUILD +secrets-test
+    BUILD +project-secrets-test
     BUILD +build-arg-test
     BUILD +build-arg-explicit-global-test
     BUILD +build-arg-dynamic-with-empty-base

@@ -41,7 +41,12 @@ func (c *cmdStore) GetSecret(ctx context.Context, id string) ([]byte, error) {
 		return nil, secrets.ErrNotFound
 	}
 	cmd := exec.CommandContext(ctx, "/bin/sh", "-c", c.cmd+" "+shellescape.Quote(name))
-	cmd.Env = os.Environ()
+	envs := os.Environ()
+	if q.Get("v") == "1" {
+		envs = append(envs, "EARTHLY_ORG="+shellescape.Quote(q.Get("org")))
+		envs = append(envs, "EARTHLY_PROJECT="+shellescape.Quote(q.Get("project")))
+	}
+	cmd.Env = envs
 	cmd.Stderr = os.Stderr
 	dt, err := cmd.Output()
 	if err != nil {
