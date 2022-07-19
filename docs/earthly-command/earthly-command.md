@@ -115,7 +115,61 @@ The additional environment variables specified in the `.env` file are loaded by 
 The `.env` file is meant for settings which are specific to the local environment the build executes in. These settings may cause inconsistencies in the way the build executes on different systems, leading to builds that are difficult to reproduce. Keep the contents of `.env` files to a minimum to avoid such issues.
 {% endhint %}
 
-#### Options
+#### Global Options
+
+##### `--config <path>`
+
+
+Also available as an env var setting: `EARTHLY_CONFIG=<path>`.
+
+Overrides the earthly [configuration file](../earthly-config/earthly-config.md), defaults to `~/.earthly/config.yml`.
+
+##### `--ssh-auth-sock <path-to-sock>`
+
+Also available as an env var setting: `EARTHLY_SSH_AUTH_SOCK=<path-to-sock>`.
+
+Sets the path to the SSH agent sock, which can be used for SSH authentication. SSH authentication is used by Earthly in order to perform git clone's underneath.
+
+On Linux systems, this setting defaults to the value of the env var $SSH_AUTH_SOCK. On most systems, the env var `SSH_AUTH_SOCK` env var is already set if an SSH agent is running.
+
+On Mac systems, this setting defaults to `/run/host-services/ssh-auth.sock` to match recommendation in [the official Docker documentation](https://docs.docker.com/docker-for-mac/osxfs/#ssh-agent-forwarding).
+
+For more information see the [Authentication page](../guides/auth.md).
+
+##### `--auth-token <value>`
+
+Also available as an env var setting: `EARTHLY_TOKEN=<value>`.
+
+Force Earthly account login to authenticate with supplied token.
+
+##### `--verbose`
+
+Also available as an env var setting: `EARTHLY_VERBOSE=1`.
+
+Enables verbose logging.
+
+##### `--git-username <git-user>` (**deprecated**)
+
+Also available as an env var setting: `GIT_USERNAME=<git-user>`.
+
+This option is now deprecated. Please use the [configuration file](../earthly-config/earthly-config.md) instead.
+
+##### `--git-password <git-pass>` (**deprecated**)
+
+Also available as an env var setting: `GIT_PASSWORD=<git-pass>`.
+
+This option is now deprecated. Please use the [configuration file](../earthly-config/earthly-config.md) instead.
+
+##### `--git-url-instead-of <git-instead-of>` (**obsolete**)
+
+Also used to be available as an env var setting: `GIT_URL_INSTEAD_OF=<git-instead-of>`.
+
+This option is now obsolete. By default, `earthly` will automatically switch from ssh to HTTPS when no keys are found or the ssh-agent isn't running.
+Please use the [configuration file](../earthly-config/earthly-config.md) to override the default behavior.
+
+#### Build Options
+
+Build options are specific to executing Earthly builds; they are simply listed in this section for readability, and can be supplied as global options.
 
 ##### `--secret|-s <secret-id>[=<value>]`
 
@@ -146,6 +200,12 @@ Pushing only happens during the output phase, and only if the build has succeede
 Also available as an env var setting: `EARTHLY_NO_OUTPUT=true`.
 
 Instructs Earthly not to output any images or artifacts. This option cannot be used with the *artifact form* or the *image form*.
+
+##### `--output`
+
+Also available as an env var setting: `EARTHLY_OUTPUT=true`.
+
+Allow artifacts or images to be output, even when running under --ci mode.
 
 ##### `--no-cache`
 
@@ -218,18 +278,6 @@ build:
 ```
 {% endhint %}
 
-##### `--ssh-auth-sock <path-to-sock>`
-
-Also available as an env var setting: `EARTHLY_SSH_AUTH_SOCK=<path-to-sock>`.
-
-Sets the path to the SSH agent sock, which can be used for SSH authentication. SSH authentication is used by Earthly in order to perform git clone's underneath.
-
-On Linux systems, this setting defaults to the value of the env var $SSH_AUTH_SOCK. On most systems, the env var `SSH_AUTH_SOCK` env var is already set if an SSH agent is running.
-
-On Mac systems, this setting defaults to `/run/host-services/ssh-auth.sock` to match recommendation in [the official Docker documentation](https://docs.docker.com/docker-for-mac/osxfs/#ssh-agent-forwarding).
-
-For more information see the [Authentication page](../guides/auth.md).
-
 ##### `--build-arg <key>[=<value>]` (**deprecated**)
 
 This option has been deprecated in favor of the new build arg syntax `earthly <target-ref> --<key>=<value>`.
@@ -237,25 +285,6 @@ This option has been deprecated in favor of the new build arg syntax `earthly <t
 Also available as an env var setting: `EARTHLY_BUILD_ARGS="<key>=<value>,<key>=<value>,..."`.
 
 Overrides the value of the build arg `<key>`. If `<value>` is not specified, then the value becomes the value of the environment variable with the same name as `<key>`. For more information see the [`ARG` Earthfile command](../earthfile/earthfile.md#arg).
-
-##### `--git-username <git-user>` (**deprecated**)
-
-Also available as an env var setting: `GIT_USERNAME=<git-user>`.
-
-This option is now deprecated. Please use the [configuration file](../earthly-config/earthly-config.md) instead.
-
-##### `--git-password <git-pass>` (**deprecated**)
-
-Also available as an env var setting: `GIT_PASSWORD=<git-pass>`.
-
-This option is now deprecated. Please use the [configuration file](../earthly-config/earthly-config.md) instead.
-
-##### `--git-url-instead-of <git-instead-of>` (**obsolete**)
-
-Also used to be available as an env var setting: `GIT_URL_INSTEAD_OF=<git-instead-of>`.
-
-This option is now obsolete. By default, `earthly` will automatically switch from ssh to HTTPS when no keys are found or the ssh-agent isn't running.
-Please use the [configuration file](../earthly-config/earthly-config.md) to override the default behavior.
 
 ##### `--interactive|-i`
 
