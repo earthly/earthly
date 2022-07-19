@@ -2,7 +2,7 @@ package earthfile2llb
 
 import (
 	"context"
-	"strings"
+	"fmt"
 
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/states"
@@ -80,34 +80,19 @@ func (w *withDockerRunLocalReg) Run(ctx context.Context, args []string, opt With
 	})
 
 	// Wait for all images to build (channel will be closed when finished).
-	var pullImages []string
-	for imageName := range res.ResultChan {
-		pullImages = append(pullImages, imageName)
-	}
-
-	// Tag all images with expected tags.
-	for _, pullImage := range pullImages {
-
-		// The temporary image name we get back from BuildKit is structured like
-		// 'sess-<id>/<image-name>:<tag>'. We need to pull and retag it for use
-		// in the WITH DOCKER command.
-		parts := strings.SplitN(pullImage, "/", 2)
-		if len(parts) != 2 {
-			return errors.Errorf("image name: %q", pullImage)
-		}
-
-		fullRef := buildkitRegistry + "/" + pullImage
-		err := w.c.containerFrontend.ImagePull(ctx, fullRef)
+	for result := range res.ResultChan {
+		// Pull and then retag all images with expected tags.
+		pullImage := fmt.Sprintf("%s/%s", buildkitRegistry, result.IntermediateImageName)
+		err := w.c.containerFrontend.ImagePull(ctx, pullImage)
 		if err != nil {
 			return err
 		}
-
 		err = w.c.containerFrontend.ImageTag(ctx, containerutil.ImageTag{
-			SourceRef: fullRef,
-			TargetRef: parts[1],
+			SourceRef: pullImage,
+			TargetRef: result.FinalImageName,
 		})
 		if err != nil {
-			return errors.Wrapf(err, "tag image %q", pullImage)
+			return errors.Wrapf(err, "tag image %q", result.FinalImageName)
 		}
 	}
 

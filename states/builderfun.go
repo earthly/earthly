@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/earthly/earthly/util/platutil"
+	ocispecs "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
 // DockerTarImageSolver can create a Docker image and make it available as a tar
@@ -15,9 +16,20 @@ type DockerTarImageSolver interface {
 // ImageSolverResults contains data and channels that allow one to act on images
 // during and after they are built.
 type ImageSolverResults struct {
-	ResultChan  chan string
+	ResultChan  chan *ImageResult
 	ErrChan     chan error
 	ReleaseFunc func()
+}
+
+// ImageResult contains data about an image that was built.
+type ImageResult struct {
+	IntermediateImageName    string
+	FinalImageName           string
+	FinalImageNameWithDigest string
+	ImageDigest              string
+	ConfigDigest             string
+	ImageDescriptor          *ocispecs.Descriptor
+	Annotations              map[string]string
 }
 
 // ImageDef includes the information required to build an image in BuildKit.

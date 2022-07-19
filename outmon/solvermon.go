@@ -282,6 +282,21 @@ func (sm *SolverMonitor) processNoOutputTick(ctx context.Context, bkClient *clie
 			"Waiting on Buildkit... Load (%d/%d)",
 			load, workerInfo.ParallelismMax)
 	}
+	if workerInfo.GCAnalytics.CurrentStartTime != nil {
+		d := now.Sub(*workerInfo.GCAnalytics.CurrentStartTime).Round(time.Second)
+		if d <= 5*time.Minute {
+			ongoingStr += fmt.Sprintf(" GC (%v ago)", d)
+		} else {
+			ongoingStr += fmt.Sprintf(" GC is slow (%v ago)", d)
+			warn = true
+		}
+	}
+	if workerInfo.GCAnalytics.AllTimeMaxDuration > 5*time.Minute {
+		ongoingStr += fmt.Sprintf(
+			" GCs historically slow (max %v)",
+			workerInfo.GCAnalytics.AllTimeMaxDuration.Round(time.Second))
+		warn = true
+	}
 	return nil
 }
 

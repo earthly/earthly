@@ -68,7 +68,7 @@ release-notes:
     SAVE ARTIFACT notes.txt
 
 release-github:
-    FROM node:13.10.1-alpine3.11
+    FROM node:16.16.0-alpine3.15
     RUN apk add file curl jq git
     RUN apk add --update --no-cache --repository=http://dl-cdn.alpinelinux.org/alpine/edge/testing hub
     RUN npm install -g github-release-cli@v1.3.1

@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"os"
 
 	"github.com/earthly/earthly/debugger/server"
 	"github.com/earthly/earthly/slog"
@@ -17,5 +18,9 @@ func main() {
 	log := slog.GetLogger(ctx).With("app", "shellrepeater")
 
 	x := server.NewServer(addr, log)
-	x.Start()
+	err := x.Start()
+	if err != nil {
+		log.Error(err)
+		os.Exit(1)
+	}
 }

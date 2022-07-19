@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/containerd/containerd/platforms"
+	"github.com/dustin/go-humanize"
 	"github.com/moby/buildkit/client"
 	_ "github.com/moby/buildkit/client/connhelper/dockercontainer" // Load "docker-container://" helper.
 	"github.com/pkg/errors"
@@ -817,6 +818,33 @@ func printBuildkitInfo(bkCons conslogging.ConsoleLogger, info *client.Info, work
 		bkCons.Printf("Note: Currently under significant load. Performance will be affected")
 	default:
 	}
+	ld := time.Duration(0)
+	if workerInfo.GCAnalytics.LastEndTime != nil &&
+		workerInfo.GCAnalytics.LastStartTime != nil {
+		ld = workerInfo.GCAnalytics.LastEndTime.Sub(*workerInfo.GCAnalytics.LastStartTime)
+	}
+	printFun(
+		"GC stats: %s cache, avg GC duration %v, all-time GC duration %v, last GC duration %v, last cleared %v",
+		humanize.Bytes(uint64(workerInfo.GCAnalytics.LastSizeBefore)),
+		workerInfo.GCAnalytics.AvgDuration,
+		workerInfo.GCAnalytics.AllTimeDuration,
+		ld,
+		humanize.Bytes(uint64(workerInfo.GCAnalytics.LastSizeCleared)))
+	if workerInfo.GCAnalytics.CurrentStartTime != nil {
+		d := time.Now().Sub(*workerInfo.GCAnalytics.CurrentStartTime).Round(time.Second)
+		switch {
+		case d > 5*time.Minute:
+			bkCons.Warnf("Warning: GC has been running for a long time, started %v ago", d)
+		case d > 1*time.Minute:
+			bkCons.Printf("GC currently ongoing, started %v ago", d)
+		default:
+		}
+	}
+	if workerInfo.GCAnalytics.AllTimeMaxDuration > 5*time.Minute {
+		bkCons.Warnf(
+			"Warning: Some GC runs are very slow, max duration %v",
+			workerInfo.GCAnalytics.AllTimeMaxDuration.Round(time.Second))
+	}
 }
 
 // getCacheSize returns the size of the earthly cache in KiB.
@@ -887,4 +915,20 @@ func addRequiredOpts(settings Settings, opts ...client.ClientOpt) ([]client.Clie
 	}
 
 	return append(opts, client.WithCredentials(server.Hostname(), caPath, certPath, keyPath)), nil
+}
+
+// PrintSatelliteInfo prints the instance's details,
+// including its Buildkit version, current workload, and garbage collection.
+func PrintSatelliteInfo(ctx context.Context, console conslogging.ConsoleLogger, earthlyVersion string, settings Settings) error {
+	console.Printf("Connecting to %s...", settings.SatelliteName)
+	opts, err := addRequiredOpts(settings, []client.ClientOpt{})
+	if err != nil {
+		return errors.Wrap(err, "add required client opts")
+	}
+	info, workerInfo, err := waitForConnection(ctx, "", settings.BuildkitAddress, settings.Timeout, nil, opts...)
+	if err != nil {
+		return errors.Wrap(err, "connect provided buildkit")
+	}
+	printBuildkitInfo(console, info, workerInfo, earthlyVersion, false)
+	return nil
 }

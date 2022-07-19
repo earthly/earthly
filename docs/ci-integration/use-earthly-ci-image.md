@@ -34,13 +34,13 @@ For more details on using a remote BuildKit daemon, [see our guide](./remote-bui
 The image expects the source code of the application you are building in the current working directory (by default `/workspace`). You will need to copy or mount the necessary files to that directory prior to invoking the entrypoint.
 
 ```bash
-docker run --privileged --rm -v "$PWD":/workspace earthly/earthly:v0.6.19 +my-target
+docker run --privileged --rm -v "$PWD":/workspace earthly/earthly:v0.6.20 +my-target
 ```
 
 Or, if you would like to use an alternative directory:
 
 ```bash
-docker run --privileged --rm -v "$PWD":/my-dir -w /my-dir earthly/earthly:v0.6.19 +my-target
+docker run --privileged --rm -v "$PWD":/my-dir -w /my-dir earthly/earthly:v0.6.20 +my-target
 ```
 
 #### `NO_DOCKER` Environment Variable
@@ -53,10 +53,10 @@ When running the built image in your CI of choice, if you're not using a remote 
 
 {% hint style='danger' %}
 ##### Important
-We *strongly* recommend using a Docker volume for mounting `EARTHLY_TMP_DIR`. If you do not, Buildkit can consume excessive disk space, operate very slowly, or it might not function correctly.
+We *strongly* recommend using a Docker volume for mounting `/tmp/earthly`. If you do not, Buildkit can consume excessive disk space, operate very slowly, or it might not function correctly.
 {% endhint %}
 
-In some environments, not mounting `EARTHLY_TMP_DIR` as a Docker volume results in the following error:
+In some environments, not mounting `/tmp/earthly` as a Docker volume results in the following error:
 
 ```
 --> WITH DOCKER RUN --privileged ...
@@ -66,6 +66,6 @@ rm: can't remove '/var/earthly/dind/...': Resource busy
 
 In EKS, users reported that mounting an EBS volume, instead of a Kubernetes `emptyDir` worked.
 
-This part of our documentation needs improvement. If you have a Kubernetes-based setup, please [let us know](https://earthly.dev/slack) how you have mounted `EARTHLY_TMP_DIR` and whether `WITH DOCKER` worked well for you.
+This part of our documentation needs improvement. If you have a Kubernetes-based setup, please [let us know](https://earthly.dev/slack) how you have mounted `/tmp/earthly` and whether `WITH DOCKER` worked well for you.
 
 For more information, see the [documentation for `earthly/earthly` on DockerHub](https://hub.docker.com/r/earthly/earthly).

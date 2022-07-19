@@ -2,6 +2,9 @@ package earthfile2llb
 
 import (
 	"context"
+	"fmt"
+	"sort"
+	"strings"
 
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/states"
@@ -19,6 +22,8 @@ type withDockerRunRegistry struct {
 	enableParallel bool
 	sem            semutil.Semaphore
 }
+
+const internalWithDockerSecretPrefix = "52804da5-2787-46ad-8478-80c50f305e76"
 
 func newWithDockerRunRegistry(c *Converter, enableParallel bool) *withDockerRunRegistry {
 	// This semaphore ensures that there is at least one thread allowed to progress,
@@ -147,9 +152,19 @@ func (w *withDockerRunRegistry) Run(ctx context.Context, args []string, opt With
 	})
 
 	// Wait for all images to build (channel will be closed when finished).
+	results := make([]*states.ImageResult, 0, len(imagesToBuild))
+	for result := range res.ResultChan {
+		results = append(results, result)
+	}
+	// Sort the results for LLB consistency.
+	sort.Slice(results, func(i, j int) bool {
+		return results[i].FinalImageNameWithDigest < results[j].FinalImageNameWithDigest
+	})
 	var pullImages []string
-	for imageName := range res.ResultChan {
-		pullImages = append(pullImages, imageName)
+	var imgsWithDigests []string
+	for _, result := range results {
+		pullImages = append(pullImages, result.IntermediateImageName)
+		imgsWithDigests = append(imgsWithDigests, result.FinalImageNameWithDigest)
 	}
 
 	// Construct run command with all options and images.
@@ -171,12 +186,32 @@ func (w *withDockerRunRegistry) Run(ctx context.Context, args []string, opt With
 		"/var/earthly/dind", pllb.Scratch(), llb.HostBind(), llb.SourcePath("/tmp/earthly/dind")))
 	crOpts.extraRunOpts = append(crOpts.extraRunOpts, pllb.AddMount(
 		dockerdWrapperPath, pllb.Scratch(), llb.HostBind(), llb.SourcePath(dockerdWrapperPath)))
-
-	dindID, err := makeDindID(w.c.mts.Final.TargetInput(), w.c.opt.GwClient.BuildOpts().SessionID)
+	dindID, err := w.c.mts.Final.TargetInput().Hash()
 	if err != nil {
-		return err
+		return errors.Wrap(err, "make dind ID")
 	}
-	crOpts.shellWrap = makeWithDockerdWrapFun(dindID, nil, pullImages, opt)
+	// We will pass along the variable EARTHLY_DOCKER_LOAD_REGISTRY via a secret
+	// to prevent busting the cache, as the intermediate image names are
+	// different every time.
+	dockerLoadRegistrySecretID := fmt.Sprintf("%s-%s", internalWithDockerSecretPrefix, dindID)
+	crOpts.extraRunOpts = append(
+		crOpts.extraRunOpts,
+		llb.AddSecret(
+			"EARTHLY_DOCKER_LOAD_REGISTRY",
+			llb.SecretID(dockerLoadRegistrySecretID),
+			llb.SecretAsEnv(true),
+		))
+	err = w.c.opt.InternalSecretStore.SetSecret(
+		ctx, dockerLoadRegistrySecretID, []byte(strings.Join(pullImages, " ")))
+	if err != nil {
+		return errors.Wrap(err, "set docker load registry secret")
+	}
+	w.c.opt.CleanCollection.Add(func() error {
+		return w.c.opt.InternalSecretStore.DeleteSecret(
+			context.TODO(), dockerLoadRegistrySecretID)
+	})
+
+	crOpts.shellWrap = makeWithDockerdWrapFun(dindID, nil, imgsWithDigests, opt)
 
 	platformIncompatible := !w.c.platr.PlatformEquals(w.c.platr.Current(), platutil.NativePlatform)
 	if platformIncompatible {
