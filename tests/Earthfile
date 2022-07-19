@@ -306,6 +306,18 @@ project-secrets-test:
         --target=+without-flag \
         --should_fail=true \
         --output_contains="must be enabled in order to use PROJECT"
+    DO +RUN_EARTHLY \
+        --earthfile=project-secrets.earth \
+        --target=+local-override \
+        --extra_args="--secret foo/bar=override" \
+        --should_fail=false \
+        --output_contains="my secret is override"
+    DO +RUN_EARTHLY \
+        --earthfile=project-secrets.earth \
+        --target=+basic \
+        --extra_args="--secret SECRET1=foo --secret SECRET2=bar" \
+        --should_fail=false \
+        --output_contains="my secrets are foo and bar"
 
 build-arg-test:
     DO +RUN_EARTHLY --earthfile=build-arg.earth
