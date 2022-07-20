@@ -557,6 +557,9 @@ func (app *earthlyApp) actionSecretsMigrate(cliCtx *cli.Context) error {
 	}
 
 	secretPaths, err := cloudClient.List(cliCtx.Context, fmt.Sprintf("/%s/", srcOrg))
+	if err != nil {
+		return errors.Wrap(err, "failed to list secrets")
+	}
 
 	app.console.Printf("Copying %d secrets to %s\n", len(secretPaths), destProject)
 
