@@ -125,6 +125,11 @@ func (app *earthlyApp) secretCmdsPreview() []*cli.Command {
 					Aliases: []string{"v"},
 					Usage:   "Output more information about copied secrets",
 				},
+				&cli.BoolFlag{
+					Name:    "dry-run",
+					Aliases: []string{"d"},
+					Usage:   "Output what the command will do without actually doing it",
+				},
 			},
 		},
 		{
@@ -561,9 +566,10 @@ func (app *earthlyApp) actionSecretsMigrate(cliCtx *cli.Context) error {
 		return errors.Wrap(err, "failed to list secrets")
 	}
 
-	app.console.Printf("Copying %d secrets to %s\n", len(secretPaths), destProject)
+	app.console.Printf("Copying %d secrets to %s.\n", len(secretPaths), destProject)
 
 	verbose := cliCtx.Bool("verbose")
+	dryRun := cliCtx.Bool("dry-run")
 
 	for _, secretPath := range secretPaths {
 		val, err := cloudClient.Get(cliCtx.Context, secretPath)
@@ -580,6 +586,10 @@ func (app *earthlyApp) actionSecretsMigrate(cliCtx *cli.Context) error {
 			app.console.PrintBytes([]byte("."))
 		}
 
+		if dryRun {
+			continue
+		}
+
 		err = cloudClient.SetSecret(cliCtx.Context, newPath, val)
 		if err != nil {
 			return errors.Wrap(err, "failed to set secret")
@@ -590,7 +600,9 @@ func (app *earthlyApp) actionSecretsMigrate(cliCtx *cli.Context) error {
 		app.console.Printf("\n")
 	}
 
-	app.console.Printf("%d secrets migrated successfully!\n", len(secretPaths))
+	if !dryRun {
+		app.console.Printf("%d secrets migrated successfully!\n", len(secretPaths))
+	}
 
 	return nil
 }
