@@ -104,7 +104,7 @@ func (c *client) ListProjects(ctx context.Context, orgName string) ([]*Project, 
 func (c *client) GetProject(ctx context.Context, orgName, name string) (*Project, error) {
 	u := fmt.Sprintf("/api/v0/projects/%s/%s", orgName, name)
 
-	status, body, err := c.doCall(ctx, http.MethodPost, u, withAuth())
+	status, body, err := c.doCall(ctx, http.MethodGet, u, withAuth())
 	if err != nil {
 		return nil, err
 	}

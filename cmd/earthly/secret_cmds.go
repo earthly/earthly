@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path"
 	"strings"
 	"text/tabwriter"
 
@@ -112,6 +113,19 @@ func (app *earthlyApp) secretCmdsPreview() []*cli.Command {
 			Usage:     "Removes a secret from the secrets store",
 			UsageText: "earthly [options] secret rm <path>",
 			Action:    app.actionSecretsRemoveV2,
+		},
+		{
+			Name:      "migrate",
+			Usage:     "Migrate existing secrets into the new project-based structure",
+			UsageText: "earthly [options] secret migrate --org <organization> --project <project> <source-organization>",
+			Action:    app.actionSecretsMigrate,
+			Flags: []cli.Flag{
+				&cli.BoolFlag{
+					Name:    "verbose",
+					Aliases: []string{"v"},
+					Usage:   "Output more information about copied secrets",
+				},
+			},
 		},
 		{
 			Name:      "permission",
@@ -506,6 +520,74 @@ func (app *earthlyApp) actionSecretPermsSet(cliCtx *cli.Context) error {
 	if err != nil {
 		return errors.Wrap(err, "failed to set permission")
 	}
+
+	return nil
+}
+
+func (app *earthlyApp) actionSecretsMigrate(cliCtx *cli.Context) error {
+	app.commandName = "secretMigrate"
+
+	if cliCtx.NArg() != 1 {
+		return errors.New("source organization required")
+	}
+
+	srcOrg := cliCtx.Args().Get(0)
+	if srcOrg == "" {
+		return errors.New("source organization is required")
+	}
+
+	destOrg := cliCtx.String("org")
+	if destOrg == "" {
+		return errors.New("destination organization is required")
+	}
+
+	destProject := cliCtx.String("project")
+	if destProject == "" {
+		return errors.New("destination project is required")
+	}
+
+	cloudClient, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
+	if err != nil {
+		return errors.Wrap(err, "failed to create cloud client")
+	}
+
+	_, err = cloudClient.GetProject(cliCtx.Context, destOrg, destProject)
+	if err != nil {
+		return errors.Wrap(err, "failed to load destination project")
+	}
+
+	secretPaths, err := cloudClient.List(cliCtx.Context, fmt.Sprintf("/%s/", srcOrg))
+
+	app.console.Printf("Copying %d secrets to %s\n", len(secretPaths), destProject)
+
+	verbose := cliCtx.Bool("verbose")
+
+	for _, secretPath := range secretPaths {
+		val, err := cloudClient.Get(cliCtx.Context, secretPath)
+		if err != nil {
+			return errors.Wrapf(err, "failed to load secret %q", secretPath)
+		}
+
+		parts := strings.Split(secretPath, "/")
+		newPath := "/" + path.Join(destOrg, destProject, path.Join(parts[2:]...))
+
+		if verbose {
+			app.console.Printf("Copying secret %q to %q\n", secretPath, newPath)
+		} else {
+			app.console.PrintBytes([]byte("."))
+		}
+
+		err = cloudClient.SetSecret(cliCtx.Context, newPath, val)
+		if err != nil {
+			return errors.Wrap(err, "failed to set secret")
+		}
+	}
+
+	if !verbose {
+		app.console.Printf("\n")
+	}
+
+	app.console.Printf("%d secrets migrated successfully!\n", len(secretPaths))
 
 	return nil
 }
