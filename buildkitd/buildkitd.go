@@ -885,7 +885,8 @@ func addRequiredOpts(settings Settings, opts ...client.ClientOpt) ([]client.Clie
 		return append(opts, client.WithAdditionalMetadataContext(
 			"satellite_name", settings.SatelliteName,
 			"satellite_org", settings.SatelliteOrgID,
-			"satellite_token", settings.SatelliteToken),
+			"satellite_token", settings.SatelliteToken,
+			"grpc-timeout", "30S"), // Tolerate slow internet connections from users to Satellites
 			client.WithCredentials("", "", "", ""), // force buildkit to use a TLS connection
 		), nil
 	}
