@@ -160,4 +160,4 @@ jobs:
             EARTHLY_VERSION_FLAG_OVERRIDES="$(tr -d '\n' < .earthly_version_flag_overrides)"
             echo "EARTHLY_VERSION_FLAG_OVERRIDES=$EARTHLY_VERSION_FLAG_OVERRIDES" >> "$GITHUB_ENV"
       - name: Run general local tests
-        run: "./build/linux/amd64/earthly --strict --no-output ./tests/local+all"
+        run: "./build/linux/amd64/earthly --no-output ./tests/local+all"
