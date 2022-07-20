@@ -121,14 +121,10 @@ func (app *earthlyApp) secretCmdsPreview() []*cli.Command {
 			Action:    app.actionSecretsMigrate,
 			Flags: []cli.Flag{
 				&cli.BoolFlag{
-					Name:    "verbose",
-					Aliases: []string{"v"},
-					Usage:   "Output more information about copied secrets",
-				},
-				&cli.BoolFlag{
-					Name:    "dry-run",
-					Aliases: []string{"d"},
-					Usage:   "Output what the command will do without actually doing it",
+					Name:        "dry-run",
+					Aliases:     []string{"d"},
+					Usage:       "Output what the command will do without actually doing it",
+					Destination: &app.dryRun,
 				},
 			},
 		},
@@ -568,9 +564,6 @@ func (app *earthlyApp) actionSecretsMigrate(cliCtx *cli.Context) error {
 
 	app.console.Printf("Copying %d secrets to %s.\n", len(secretPaths), destProject)
 
-	verbose := cliCtx.Bool("verbose")
-	dryRun := cliCtx.Bool("dry-run")
-
 	for _, secretPath := range secretPaths {
 		val, err := cloudClient.Get(cliCtx.Context, secretPath)
 		if err != nil {
@@ -580,13 +573,13 @@ func (app *earthlyApp) actionSecretsMigrate(cliCtx *cli.Context) error {
 		parts := strings.Split(secretPath, "/")
 		newPath := "/" + path.Join(destOrg, destProject, path.Join(parts[2:]...))
 
-		if verbose {
+		if app.verbose {
 			app.console.Printf("Copying secret %q to %q\n", secretPath, newPath)
 		} else {
 			app.console.PrintBytes([]byte("."))
 		}
 
-		if dryRun {
+		if app.dryRun {
 			continue
 		}
 
@@ -596,11 +589,11 @@ func (app *earthlyApp) actionSecretsMigrate(cliCtx *cli.Context) error {
 		}
 	}
 
-	if !verbose {
+	if !app.verbose {
 		app.console.Printf("\n")
 	}
 
-	if !dryRun {
+	if !app.dryRun {
 		app.console.Printf("%d secrets migrated successfully!\n", len(secretPaths))
 	}
 
