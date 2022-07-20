@@ -53,6 +53,7 @@ const (
 	envFileFlag    = "env-file"
 )
 
+// Dummy comment.
 type earthlyApp struct {
 	cliApp      *cli.App
 	console     conslogging.ConsoleLogger
