@@ -95,6 +95,7 @@ type cliFlags struct {
 	interactiveDebugging      bool
 	sshAuthSock               string
 	verbose                   bool
+	dryRun                    bool
 	debug                     bool
 	homebrewSource            string
 	bootstrapNoBuildkit       bool
