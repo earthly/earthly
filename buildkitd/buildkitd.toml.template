@@ -3,6 +3,7 @@ root = "${BUILDKIT_ROOT_DIR}"
 insecure-entitlements = [ "security.insecure" ]
 
 ${TCP_TRANSPORT}
+${PPROF_SETTINGS}
 ${TLS_ENABLED}
 
 [worker.oci]

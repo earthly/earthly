@@ -450,6 +450,7 @@ func (app *earthlyApp) before(context *cli.Context) error {
 	app.buildkitdSettings.MaxParallelism = app.cfg.Global.BuildkitMaxParallelism
 	app.buildkitdSettings.CacheSizeMb = app.cfg.Global.BuildkitCacheSizeMb
 	app.buildkitdSettings.CacheSizePct = app.cfg.Global.BuildkitCacheSizePct
+	app.buildkitdSettings.EnableProfiler = app.enableProfiler
 
 	// ensure the MTU is something allowable in IPv4, cap enforced by type. Zero is autodetect.
 	if app.cfg.Global.CniMtu != 0 && app.cfg.Global.CniMtu < 68 {

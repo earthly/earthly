@@ -38,6 +38,7 @@ buildkitd:
     COPY ./buildkitd.toml.template /etc/buildkitd.toml.template
     COPY ./buildkitd.cache.template /etc/buildkitd.cache.template
     COPY ./buildkitd.tcp.template /etc/buildkitd.tcp.template
+    COPY ./buildkitd.pprof.template /etc/buildkitd.pprof.template
     COPY ./buildkitd.tls.template /etc/buildkitd.tls.template
     COPY ./cni-conf.json.template /etc/cni/cni-conf.json.template
 
