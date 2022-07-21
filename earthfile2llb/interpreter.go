@@ -486,7 +486,7 @@ func (i *Interpreter) handleFrom(ctx context.Context, cmd spec.Command) error {
 		return err
 	}
 
-	i.local = false
+	i.local = false // FIXME https://github.com/earthly/earthly/issues/2044
 	err = i.converter.From(ctx, imageName, platform, allowPrivileged, expandedBuildArgs)
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "apply FROM %s", imageName)
