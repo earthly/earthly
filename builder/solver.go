@@ -87,10 +87,7 @@ func (s *solver) newSolveOptMulti(ctx context.Context, eg *errgroup.Group, onIma
 		cacheExports = append(cacheExports, newInlineCacheOpt())
 	}
 
-	verboseProgressConsole := console.WithPrefixAndSalt("output",
-		"local context .", // TODO this salt must be the same as the salt used in SolverMonitor.processStatus
-	)
-	progressCB := fsutilprogress.New("", verboseProgressConsole)
+	progressCB := fsutilprogress.New("", console.WithPrefix("output"))
 
 	return &client.SolveOpt{
 		Exports: []client.ExportEntry{
